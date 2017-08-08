@@ -1,9 +1,9 @@
 package pow
 
 import (
-	"DNA/common/config"
 	cl "DNA_POW/account"
 	. "DNA_POW/common"
+	"DNA_POW/common/config"
 	"DNA_POW/common/log"
 	"DNA_POW/core/contract/program"
 	"DNA_POW/core/ledger"

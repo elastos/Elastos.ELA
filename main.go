@@ -12,6 +12,7 @@ import (
 	"DNA_POW/crypto"
 	"DNA_POW/net"
 	"DNA_POW/net/httpjsonrpc"
+	"DNA_POW/net/httpnodeinfo"
 	"DNA_POW/net/httprestful"
 	"DNA_POW/net/httpwebsocket"
 	"DNA_POW/net/protocol"
@@ -147,6 +148,9 @@ func main() {
 	go httpjsonrpc.StartLocalServer()
 	go httprestful.StartServer(noder)
 	go httpwebsocket.StartServer(noder)
+	if config.Parameters.HttpInfoStart {
+		go httpnodeinfo.StartServer(noder)
+	}
 	select {}
 ERROR:
 	os.Exit(1)

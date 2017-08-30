@@ -327,6 +327,17 @@ func (tx *Transaction) GetProgramHashes() ([]Uint160, error) {
 	case TransferAsset:
 	case Record:
 	case BookKeeper:
+		issuer := tx.Payload.(*payload.BookKeeper).Issuer
+		signatureRedeemScript, err := contract.CreateSignatureRedeemScript(issuer)
+		if err != nil {
+			return nil, NewDetailErr(err, ErrNoCode, "[Transaction - BookKeeper], GetProgramHashes CreateSignatureRedeemScript failed.")
+		}
+
+		astHash, err := ToCodeHash(signatureRedeemScript)
+		if err != nil {
+			return nil, NewDetailErr(err, ErrNoCode, "[Transaction - BookKeeper], GetProgramHashes ToCodeHash failed.")
+		}
+		hashs = append(hashs, astHash)
 	case PrivacyPayload:
 		issuer := tx.Payload.(*payload.PrivacyPayload).EncryptAttr.(*payload.EcdhAes256).FromPubkey
 		signatureRedeemScript, err := contract.CreateSignatureRedeemScript(issuer)

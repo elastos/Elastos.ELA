@@ -1,12 +1,12 @@
 package message
 
 import (
-	"DNA/common"
-	"DNA/common/log"
-	"DNA/core/ledger"
-	"DNA/core/transaction"
-	. "DNA/errors"
-	. "DNA/net/protocol"
+	"DNA_POW/common"
+	"DNA_POW/common/log"
+	"DNA_POW/core/ledger"
+	"DNA_POW/core/transaction"
+	. "DNA_POW/errors"
+	. "DNA_POW/net/protocol"
 	"bytes"
 	"crypto/sha256"
 	"encoding/binary"

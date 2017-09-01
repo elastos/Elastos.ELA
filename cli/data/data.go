@@ -1,12 +1,12 @@
 package data
 
 import (
-	"DNA/account"
-	. "DNA/cli/common"
-	"DNA/core/contract"
-	"DNA/core/signature"
-	"DNA/core/transaction"
-	"DNA/net/httpjsonrpc"
+	"DNA_POW/account"
+	. "DNA_POW/cli/common"
+	"DNA_POW/core/contract"
+	"DNA_POW/core/signature"
+	"DNA_POW/core/transaction"
+	"DNA_POW/net/httpjsonrpc"
 	"bytes"
 	"encoding/hex"
 	"fmt"

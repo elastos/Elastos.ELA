@@ -1,7 +1,7 @@
 package crypto
 
 import (
-	. "DNA/errors"
+	. "DNA_POW/errors"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"

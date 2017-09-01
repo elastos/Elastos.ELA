@@ -1,11 +1,11 @@
 package transaction
 
 import (
-	"DNA/common"
-	"DNA/core/asset"
-	"DNA/core/contract/program"
-	"DNA/core/transaction/payload"
-	"DNA/crypto"
+	"DNA_POW/common"
+	"DNA_POW/core/asset"
+	"DNA_POW/core/contract/program"
+	"DNA_POW/core/transaction/payload"
+	"DNA_POW/crypto"
 )
 
 //initial a new transaction with asset registration payload

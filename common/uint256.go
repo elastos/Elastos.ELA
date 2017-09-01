@@ -6,7 +6,7 @@ import (
 	"errors"
 	"io"
 
-	. "DNA/errors"
+	. "DNA_POW/errors"
 )
 
 const UINT256SIZE int = 32

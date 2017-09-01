@@ -1,7 +1,7 @@
 package transaction
 
 import (
-	"DNA/common"
+	"DNA_POW/common"
 	"io"
 )
 

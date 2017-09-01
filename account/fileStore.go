@@ -1,8 +1,8 @@
 package account
 
 import (
-	ct "DNA/core/contract"
-	. "DNA/errors"
+	ct "DNA_POW/core/contract"
+	. "DNA_POW/errors"
 	"encoding/hex"
 	"encoding/json"
 	"errors"

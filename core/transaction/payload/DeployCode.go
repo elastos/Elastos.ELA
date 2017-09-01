@@ -1,8 +1,8 @@
 package payload
 
 import (
-	"DNA/common/serialization"
-	. "DNA/core/code"
+	"DNA_POW/common/serialization"
+	. "DNA_POW/core/code"
 	"io"
 )
 

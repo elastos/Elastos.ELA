@@ -1,8 +1,8 @@
 package vm
 
 import (
-	"DNA/vm/interfaces"
-	"DNA/vm/utils"
+	"DNA_POW/vm/interfaces"
+	"DNA_POW/vm/utils"
 	"io"
 	_ "math/big"
 	_ "sort"

@@ -1,14 +1,14 @@
 package httpwebsocket
 
 import (
-	. "DNA/common"
-	. "DNA/common/config"
-	"DNA/core/ledger"
-	"DNA/events"
-	"DNA/net/httprestful/common"
-	Err "DNA/net/httprestful/error"
-	"DNA/net/httpwebsocket/websocket"
-	. "DNA/net/protocol"
+	. "DNA_POW/common"
+	. "DNA_POW/common/config"
+	"DNA_POW/core/ledger"
+	"DNA_POW/events"
+	"DNA_POW/net/httprestful/common"
+	Err "DNA_POW/net/httprestful/error"
+	"DNA_POW/net/httpwebsocket/websocket"
+	. "DNA_POW/net/protocol"
 	"bytes"
 )
 

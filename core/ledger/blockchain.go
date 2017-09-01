@@ -1,12 +1,12 @@
 package ledger
 
 import (
-	. "DNA/common"
-	"DNA/common/log"
-	tx "DNA/core/transaction"
-	"DNA/crypto"
-	. "DNA/errors"
-	"DNA/events"
+	. "DNA_POW/common"
+	"DNA_POW/common/log"
+	tx "DNA_POW/core/transaction"
+	"DNA_POW/crypto"
+	. "DNA_POW/errors"
+	"DNA_POW/events"
 	"sync"
 )
 

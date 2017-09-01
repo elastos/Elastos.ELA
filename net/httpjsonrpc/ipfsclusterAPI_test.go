@@ -1,7 +1,7 @@
 package httpjsonrpc
 
 import (
-	"DNA/common/log"
+	"DNA_POW/common/log"
 	"fmt"
 	"os"
 	"os/exec"

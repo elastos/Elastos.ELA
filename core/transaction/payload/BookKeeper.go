@@ -1,9 +1,9 @@
 package payload
 
 import (
-	"DNA/common/serialization"
-	"DNA/crypto"
-	. "DNA/errors"
+	"DNA_POW/common/serialization"
+	"DNA_POW/crypto"
+	. "DNA_POW/errors"
 	"bytes"
 	"io"
 )

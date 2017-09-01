@@ -2,7 +2,7 @@ package consensus
 
 import (
 	"fmt"
-	"DNA/common/log"
+	"DNA_POW/common/log"
 	"time"
 )
 

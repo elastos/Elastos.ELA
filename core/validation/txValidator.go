@@ -1,13 +1,13 @@
 package validation
 
 import (
-	"DNA/common"
-	"DNA/common/log"
-	"DNA/core/asset"
-	"DNA/core/ledger"
-	tx "DNA/core/transaction"
-	"DNA/core/transaction/payload"
-	. "DNA/errors"
+	"DNA_POW/common"
+	"DNA_POW/common/log"
+	"DNA_POW/core/asset"
+	"DNA_POW/core/ledger"
+	tx "DNA_POW/core/transaction"
+	"DNA_POW/core/transaction/payload"
+	. "DNA_POW/errors"
 	"errors"
 	"fmt"
 	"math"

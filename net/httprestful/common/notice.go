@@ -1,8 +1,8 @@
 package common
 
 import (
-	. "DNA/common/config"
-	Err "DNA/net/httprestful/error"
+	. "DNA_POW/common/config"
+	Err "DNA_POW/net/httprestful/error"
 	"bytes"
 	"encoding/json"
 	"io/ioutil"

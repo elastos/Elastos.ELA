@@ -13,17 +13,17 @@ import (
 	"sync"
 	"time"
 
-	. "DNA/common"
-	"DNA/common/config"
-	"DNA/common/log"
-	"DNA/common/password"
-	"DNA/core/contract"
-	ct "DNA/core/contract"
-	"DNA/core/ledger"
-	sig "DNA/core/signature"
-	"DNA/crypto"
-	. "DNA/errors"
-	"DNA/net/protocol"
+	. "DNA_POW/common"
+	"DNA_POW/common/config"
+	"DNA_POW/common/log"
+	"DNA_POW/common/password"
+	"DNA_POW/core/contract"
+	ct "DNA_POW/core/contract"
+	"DNA_POW/core/ledger"
+	sig "DNA_POW/core/signature"
+	"DNA_POW/crypto"
+	. "DNA_POW/errors"
+	"DNA_POW/net/protocol"
 )
 
 const (

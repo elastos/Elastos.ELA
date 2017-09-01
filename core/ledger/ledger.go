@@ -1,13 +1,13 @@
 package ledger
 
 import (
-	"DNA/common"
-	. "DNA/common"
-	"DNA/core/asset"
-	"DNA/core/contract"
-	tx "DNA/core/transaction"
-	"DNA/crypto"
-	. "DNA/errors"
+	"DNA_POW/common"
+	. "DNA_POW/common"
+	"DNA_POW/core/asset"
+	"DNA_POW/core/contract"
+	tx "DNA_POW/core/transaction"
+	"DNA_POW/crypto"
+	. "DNA_POW/errors"
 	"errors"
 )
 

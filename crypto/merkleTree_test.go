@@ -1,7 +1,7 @@
 package crypto
 
 import (
-	. "DNA/common"
+	. "DNA_POW/common"
 	"crypto/sha256"
 	"fmt"
 	"testing"

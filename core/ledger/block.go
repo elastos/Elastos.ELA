@@ -1,16 +1,16 @@
 package ledger
 
 import (
-	. "DNA/common"
-	"DNA/common/log"
-	"DNA/common/serialization"
-	"DNA/core/contract/program"
-	sig "DNA/core/signature"
-	tx "DNA/core/transaction"
-	"DNA/core/transaction/payload"
-	"DNA/crypto"
-	. "DNA/errors"
-	"DNA/vm"
+	. "DNA_POW/common"
+	"DNA_POW/common/log"
+	"DNA_POW/common/serialization"
+	"DNA_POW/core/contract/program"
+	sig "DNA_POW/core/signature"
+	tx "DNA_POW/core/transaction"
+	"DNA_POW/core/transaction/payload"
+	"DNA_POW/crypto"
+	. "DNA_POW/errors"
+	"DNA_POW/vm"
 	"io"
 	"time"
 )

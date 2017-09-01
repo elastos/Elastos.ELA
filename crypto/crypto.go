@@ -1,10 +1,10 @@
 package crypto
 
 import (
-	"DNA/common/serialization"
-	"DNA/crypto/p256r1"
-	"DNA/crypto/sm2"
-	"DNA/crypto/util"
+	"DNA_POW/common/serialization"
+	"DNA_POW/crypto/p256r1"
+	"DNA_POW/crypto/sm2"
+	"DNA_POW/crypto/util"
 	"crypto/sha256"
 	"errors"
 	"fmt"

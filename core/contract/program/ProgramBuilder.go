@@ -1,8 +1,8 @@
 package program
 
 import (
-	. "DNA/common"
-	"DNA/vm"
+	. "DNA_POW/common"
+	"DNA_POW/vm"
 	"bytes"
 	"math/big"
 )

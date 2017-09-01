@@ -1,9 +1,9 @@
 package vm
 
 import (
-	"DNA/crypto"
-	. "DNA/errors"
-	"DNA/common/log"
+	"DNA_POW/crypto"
+	. "DNA_POW/errors"
+	"DNA_POW/common/log"
 	"errors"
 )
 

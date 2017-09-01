@@ -1,12 +1,12 @@
 package signature
 
 import (
-	"DNA/common"
-	"DNA/common/log"
-	"DNA/core/contract/program"
-	"DNA/crypto"
-	. "DNA/errors"
-	"DNA/vm/interfaces"
+	"DNA_POW/common"
+	"DNA_POW/common/log"
+	"DNA_POW/core/contract/program"
+	"DNA_POW/crypto"
+	. "DNA_POW/errors"
+	"DNA_POW/vm/interfaces"
 	"bytes"
 	"crypto/sha256"
 	"io"

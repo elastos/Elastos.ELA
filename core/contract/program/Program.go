@@ -1,8 +1,8 @@
 package program
 
 import (
-	"DNA/common/serialization"
-	. "DNA/errors"
+	"DNA_POW/common/serialization"
+	. "DNA_POW/errors"
 	"io"
 )
 

@@ -7,13 +7,13 @@ import (
 	"io"
 	"sort"
 
-	. "DNA/common"
-	"DNA/common/serialization"
-	"DNA/core/contract"
-	"DNA/core/contract/program"
-	sig "DNA/core/signature"
-	"DNA/core/transaction/payload"
-	. "DNA/errors"
+	. "DNA_POW/common"
+	"DNA_POW/common/serialization"
+	"DNA_POW/core/contract"
+	"DNA_POW/core/contract/program"
+	sig "DNA_POW/core/signature"
+	"DNA_POW/core/transaction/payload"
+	. "DNA_POW/errors"
 )
 
 //for different transaction types with different payload format

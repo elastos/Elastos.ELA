@@ -1,14 +1,14 @@
 package node
 
 import (
-	"DNA/common"
-	"DNA/common/config"
-	"DNA/common/log"
-	"DNA/core/ledger"
-	"DNA/core/transaction"
-	"DNA/core/transaction/payload"
-	va "DNA/core/validation"
-	. "DNA/errors"
+	"DNA_POW/common"
+	"DNA_POW/common/config"
+	"DNA_POW/common/log"
+	"DNA_POW/core/ledger"
+	"DNA_POW/core/transaction"
+	"DNA_POW/core/transaction/payload"
+	va "DNA_POW/core/validation"
+	. "DNA_POW/errors"
 	"fmt"
 	"sync"
 )

@@ -1,10 +1,10 @@
 package account
 
 import (
-	. "DNA/common"
-	"DNA/core/contract"
-	"DNA/crypto"
-	. "DNA/errors"
+	. "DNA_POW/common"
+	"DNA_POW/core/contract"
+	"DNA_POW/crypto"
+	. "DNA_POW/errors"
 	"errors"
 )
 

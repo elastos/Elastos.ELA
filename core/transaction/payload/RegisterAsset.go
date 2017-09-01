@@ -1,10 +1,10 @@
 package payload
 
 import (
-	"DNA/common"
-	"DNA/core/asset"
-	"DNA/crypto"
-	. "DNA/errors"
+	"DNA_POW/common"
+	"DNA_POW/core/asset"
+	"DNA_POW/crypto"
+	. "DNA_POW/errors"
 	"io"
 )
 

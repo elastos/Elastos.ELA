@@ -1,7 +1,7 @@
 package node
 
 import (
-	"DNA/common"
+	"DNA_POW/common"
 	"sync"
 )
 

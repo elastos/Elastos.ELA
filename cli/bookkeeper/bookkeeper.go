@@ -1,10 +1,10 @@
 package bookkeeper
 
 import (
-	. "DNA/cli/common"
-	"DNA/core/transaction"
-	"DNA/crypto"
-	"DNA/net/httpjsonrpc"
+	. "DNA_POW/cli/common"
+	"DNA_POW/core/transaction"
+	"DNA_POW/crypto"
+	"DNA_POW/net/httpjsonrpc"
 	"bytes"
 	"encoding/hex"
 	"fmt"

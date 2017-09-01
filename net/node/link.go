@@ -1,11 +1,11 @@
 package node
 
 import (
-	. "DNA/common/config"
-	"DNA/common/log"
-	"DNA/events"
-	msg "DNA/net/message"
-	. "DNA/net/protocol"
+	. "DNA_POW/common/config"
+	"DNA_POW/common/log"
+	"DNA_POW/events"
+	msg "DNA_POW/net/message"
+	. "DNA_POW/net/protocol"
 	"crypto/tls"
 	"crypto/x509"
 	"errors"

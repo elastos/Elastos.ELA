@@ -1,12 +1,12 @@
 package httprestful
 
 import (
-	. "DNA/common/config"
-	"DNA/core/ledger"
-	"DNA/events"
-	"DNA/net/httprestful/common"
-	. "DNA/net/httprestful/restful"
-	. "DNA/net/protocol"
+	. "DNA_POW/common/config"
+	"DNA_POW/core/ledger"
+	"DNA_POW/events"
+	"DNA_POW/net/httprestful/common"
+	. "DNA_POW/net/httprestful/restful"
+	. "DNA_POW/net/protocol"
 	"strconv"
 )
 

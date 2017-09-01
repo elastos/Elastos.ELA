@@ -1,13 +1,13 @@
 package common
 
 import (
-	. "DNA/common"
-	"DNA/core/ledger"
-	tx "DNA/core/transaction"
-	. "DNA/errors"
-	. "DNA/net/httpjsonrpc"
-	Err "DNA/net/httprestful/error"
-	. "DNA/net/protocol"
+	. "DNA_POW/common"
+	"DNA_POW/core/ledger"
+	tx "DNA_POW/core/transaction"
+	. "DNA_POW/errors"
+	. "DNA_POW/net/httpjsonrpc"
+	Err "DNA_POW/net/httprestful/error"
+	. "DNA_POW/net/protocol"
 	"bytes"
 	"fmt"
 	"math"

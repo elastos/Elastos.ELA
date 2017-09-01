@@ -1,8 +1,8 @@
 package message
 
 import (
-	"DNA/common/log"
-	. "DNA/net/protocol"
+	"DNA_POW/common/log"
+	. "DNA_POW/net/protocol"
 	"bytes"
 	"crypto/sha256"
 	"encoding/binary"

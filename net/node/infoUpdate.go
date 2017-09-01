@@ -1,11 +1,11 @@
 package node
 
 import (
-	"DNA/common/config"
-	"DNA/common/log"
-	"DNA/core/ledger"
-	. "DNA/net/message"
-	. "DNA/net/protocol"
+	"DNA_POW/common/config"
+	"DNA_POW/common/log"
+	"DNA_POW/core/ledger"
+	. "DNA_POW/net/message"
+	. "DNA_POW/net/protocol"
 	"math/rand"
 	"net"
 	"strconv"

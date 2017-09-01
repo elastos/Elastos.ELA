@@ -1,13 +1,13 @@
 package httpjsonrpc
 
 import (
-	. "DNA/account"
-	. "DNA/common"
-	"DNA/common/log"
-	. "DNA/core/asset"
-	"DNA/core/contract"
-	"DNA/core/signature"
-	"DNA/core/transaction"
+	. "DNA_POW/account"
+	. "DNA_POW/common"
+	"DNA_POW/common/log"
+	. "DNA_POW/core/asset"
+	"DNA_POW/core/contract"
+	"DNA_POW/core/signature"
+	"DNA_POW/core/transaction"
 	"strconv"
 )
 

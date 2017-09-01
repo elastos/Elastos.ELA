@@ -1,10 +1,10 @@
 package code
 
 import (
-	"DNA/common/log"
-	. "DNA/common"
-	. "DNA/core/contract"
-	"DNA/common/serialization"
+	"DNA_POW/common/log"
+	. "DNA_POW/common"
+	. "DNA_POW/core/contract"
+	"DNA_POW/common/serialization"
 	"fmt"
 	"io"
 )

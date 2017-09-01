@@ -1,10 +1,10 @@
 package message
 
 import (
-	"DNA/common/log"
-	"DNA/common/serialization"
-	"DNA/core/ledger"
-	. "DNA/net/protocol"
+	"DNA_POW/common/log"
+	"DNA_POW/common/serialization"
+	"DNA_POW/core/ledger"
+	. "DNA_POW/net/protocol"
 	"bytes"
 	"crypto/sha256"
 	"encoding/binary"

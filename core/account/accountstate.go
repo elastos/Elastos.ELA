@@ -1,10 +1,10 @@
 package account
 
 import (
-	"DNA/common"
+	"DNA_POW/common"
 	"io"
 	"bytes"
-	"DNA/common/serialization"
+	"DNA_POW/common/serialization"
 )
 
 type AccountState struct {

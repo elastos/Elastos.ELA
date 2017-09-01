@@ -1,13 +1,13 @@
 package httpjsonrpc
 
 import (
-	"DNA/account"
-	. "DNA/common"
-	"DNA/common/config"
-	"DNA/common/log"
-	"DNA/core/ledger"
-	tx "DNA/core/transaction"
-	. "DNA/errors"
+	"DNA_POW/account"
+	. "DNA_POW/common"
+	"DNA_POW/common/config"
+	"DNA_POW/common/log"
+	"DNA_POW/core/ledger"
+	tx "DNA_POW/core/transaction"
+	. "DNA_POW/errors"
 	"bytes"
 	"encoding/base64"
 	"encoding/hex"

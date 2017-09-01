@@ -1,8 +1,8 @@
 package account
 
 import (
-	. "DNA/common"
-	ct "DNA/core/contract"
+	. "DNA_POW/common"
+	ct "DNA_POW/core/contract"
 )
 
 type IClientStore interface {

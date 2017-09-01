@@ -1,7 +1,7 @@
 package log
 
 import (
-	"DNA/common/config"
+	"DNA_POW/common/config"
 	"bytes"
 	"errors"
 	"fmt"

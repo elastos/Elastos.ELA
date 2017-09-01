@@ -62,6 +62,36 @@ func VerifyBlock(block *ledger.Block, ld *ledger.Ledger, completely bool) error 
 	return nil
 }
 
+func PowVerifyBlock(block *ledger.Block, ld *ledger.Ledger, completely bool) error {
+	if block.Blockdata.Height == 0 {
+		return nil
+	}
+	err := VerifyBlockData(block.Blockdata, ld)
+	if err != nil {
+		return err
+	}
+
+	flag, err := VerifySignableData(block)
+	if flag == false || err != nil {
+		return err
+	}
+
+	if block.Transactions == nil {
+		return errors.New(fmt.Sprintf("No Transactions Exist in Block."))
+	}
+	if block.Transactions[0].TxType != tx.BookKeeping {
+		return errors.New(fmt.Sprintf("Blockdata Verify failed first Transacion in block is not BookKeeping type."))
+	}
+	for index, v := range block.Transactions {
+		if v.TxType == tx.BookKeeping && index != 0 {
+			return errors.New(fmt.Sprintf("This Block Has BookKeeping transaction after first transaction in block."))
+		}
+	}
+
+	return nil
+}
+
+
 func VerifyHeader(bd *ledger.Header, ledger *ledger.Ledger) error {
 	return VerifyBlockData(bd.Blockdata, ledger)
 }

@@ -426,6 +426,36 @@ func (bd *ChainStore) verifyHeader(header *Header) bool {
 	return true
 }
 
+func (bd *ChainStore) powVerifyHeader(header *Header) bool {
+	prevHeader := bd.getHeaderWithCache(header.Blockdata.PrevBlockHash)
+
+	if prevHeader == nil {
+		log.Error("[verifyHeader] failed, not found prevHeader.")
+		return false
+	}
+
+	// Fixme Consider the forking case
+	if prevHeader.Blockdata.Height+1 != header.Blockdata.Height {
+		log.Error("[verifyHeader] failed, prevHeader.Height + 1 != header.Height")
+		return false
+	}
+
+	if prevHeader.Blockdata.Timestamp >= header.Blockdata.Timestamp {
+		log.Error("[verifyHeader] failed, prevHeader.Timestamp >= header.Timestamp")
+		return false
+	}
+
+	flag, err := validation.VerifySignableData(header.Blockdata)
+	if flag == false || err != nil {
+		log.Error("[verifyHeader] failed, VerifySignableData failed.")
+		log.Error(err)
+		return false
+	}
+
+	return true
+}
+
+
 func (self *ChainStore) AddHeaders(headers []Header, ledger *Ledger) error {
 
 	sort.Slice(headers, func(i, j int) bool {
@@ -1074,13 +1104,16 @@ func (bd *ChainStore) addHeader(header *Header) {
 }
 
 func (self *ChainStore) handlePersistHeaderTask(header *Header) {
-
 	if header.Blockdata.Height != uint32(len(self.headerIndex)) {
 		return
 	}
 
-	if !self.verifyHeader(header) {
-		return
+	if (config.Parameters.ConsensusType == "pow") {
+		if !self.powVerifyHeader(header) {
+			return
+	} else {
+		if !self.verifyHeader(header) {
+			return
 	}
 
 	self.addHeader(header)
@@ -1104,14 +1137,22 @@ func (self *ChainStore) SaveBlock(b *Block, ledger *Ledger) error {
 	}
 
 	if b.Blockdata.Height == headerHeight {
-		err := validation.VerifyBlock(b, ledger, false)
-		if err != nil {
-			log.Error("VerifyBlock error!")
-			return err
+		if (config.Parameters.ConsensusType == "pow") {
+			err := validation.PowVerifyBlock(b, ledger, false)
+			if err != nil {
+				log.Error("VerifyBlock error!")
+				return err
+			}
+		} else {
+			err := validation.VerifyBlock(b, ledger, false)
+			if err != nil {
+				log.Error("VerifyBlock error!")
+				return err
+			}
 		}
-
 		self.taskCh <- &persistHeaderTask{header: &Header{Blockdata: b.Blockdata}}
 	} else {
+		// Fixme Consider the Pow case
 		flag, err := validation.VerifySignableData(b)
 		if flag == false || err != nil {
 			log.Error("VerifyBlock error!")

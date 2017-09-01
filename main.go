@@ -5,6 +5,7 @@ import (
 	"DNA_POW/common/config"
 	"DNA_POW/common/log"
 	"DNA_POW/consensus/dbft"
+	"DNA_POW/consensus/pow"
 	"DNA_POW/core/ledger"
 	"DNA_POW/core/store/ChainStore"
 	"DNA_POW/core/transaction"
@@ -90,10 +91,16 @@ func main() {
 	noder.WaitForFourPeersStart()
 	noder.WaitForSyncBlkFinish()
 	if protocol.SERVICENODENAME != config.Parameters.NodeType {
-		log.Info("5. Start DBFT Services")
-		dbftServices := dbft.NewDbftService(client, "logdbft", noder)
-		httpjsonrpc.RegistDbftService(dbftServices)
-		go dbftServices.Start()
+		if (config.Parameters.ConsensusType == "pow") {
+			log.Info("Start POW Services")
+			powServices := pow.NewPowService(client, "logPow", noder)
+			go powServices.Start()
+		} else {
+			log.Info("5. Start DBFT Services")
+			dbftServices := dbft.NewDbftService(client, "logdbft", noder)
+			httpjsonrpc.RegistDbftService(dbftServices)
+			go dbftServices.Start()
+		}
 		time.Sleep(5 * time.Second)
 	}
 

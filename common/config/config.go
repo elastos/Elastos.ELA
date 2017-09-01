@@ -40,6 +40,7 @@ type Configuration struct {
 	EncryptAlg      string   `json:"EncryptAlg"`
 	MaxLogSize      int64    `json:"MaxLogSize"`
 	MaxTxInBlock    int      `json:"MaxTransactionInBlock"`
+	ConsensusType   string   `json:"ConsensusType"`
 }
 
 type ConfigFile struct {

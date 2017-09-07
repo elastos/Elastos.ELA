@@ -54,6 +54,7 @@ type Configuration struct {
 	MaxTxInBlock     int              `json:"MaxTransactionInBlock"`
 	ConsensusType    string           `json:"ConsensusType"`
 	PowConfiguration PowConfiguration `json:"PowConfiguration"`
+	MaxHdrSyncReqs   int              `json:"MaxConcurrentSyncHeaderReqs"`
 }
 
 type ConfigFile struct {

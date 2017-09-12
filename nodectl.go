@@ -8,7 +8,6 @@ import (
 	"DNA_POW/cli/asset"
 	"DNA_POW/cli/bookkeeper"
 	. "DNA_POW/cli/common"
-	"DNA_POW/cli/consensus"
 	"DNA_POW/cli/data"
 	"DNA_POW/cli/debug"
 	"DNA_POW/cli/info"
@@ -37,7 +36,6 @@ func main() {
 	}
 	//commands
 	app.Commands = []cli.Command{
-		*consensus.NewCommand(),
 		*debug.NewCommand(),
 		*info.NewCommand(),
 		*test.NewCommand(),

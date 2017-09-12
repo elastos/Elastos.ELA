@@ -1,6 +1,10 @@
 package main
 
 import (
+	"os"
+	"runtime"
+	"time"
+
 	"DNA_POW/account"
 	"DNA_POW/common/config"
 	"DNA_POW/common/log"
@@ -16,9 +20,6 @@ import (
 	"DNA_POW/net/httprestful"
 	"DNA_POW/net/httpwebsocket"
 	"DNA_POW/net/protocol"
-	"os"
-	"runtime"
-	"time"
 )
 
 const (
@@ -86,6 +87,7 @@ func startConsensus(client account.Client, noder protocol.Noder) bool {
 }
 
 func main() {
+	var client account.Client
 	var acct *account.Account
 	var blockChain *ledger.Blockchain
 	var err error
@@ -109,8 +111,17 @@ func main() {
 	transaction.TxStore = ledger.DefaultLedger.Store
 	crypto.SetAlg(config.Parameters.EncryptAlg)
 
-	log.Info("1. Open the account")
-	client := account.GetClient()
+	log.Info("1. BlockChain init")
+	ledger.StandbyBookKeepers = account.GetBookKeepers()
+	blockChain, err = ledger.NewBlockchainWithGenesisBlock(ledger.StandbyBookKeepers)
+	if err != nil {
+		log.Fatal(err, "  BlockChain generate failed")
+		goto ERROR
+	}
+	ledger.DefaultLedger.Blockchain = blockChain
+
+	log.Info("2. Open the account")
+	client = account.GetClient()
 	if client == nil {
 		log.Fatal("Can't get local account.")
 		goto ERROR
@@ -120,22 +131,11 @@ func main() {
 		log.Fatal(err)
 		goto ERROR
 	}
-	log.Debug("The Node's PublicKey ", acct.PublicKey)
-	ledger.StandbyBookKeepers = account.GetBookKeepers()
-
-	log.Info("3. BlockChain init")
-	blockChain, err = ledger.NewBlockchainWithGenesisBlock(ledger.StandbyBookKeepers)
-	if err != nil {
-		log.Fatal(err, "  BlockChain generate failed")
-		goto ERROR
-	}
-	ledger.DefaultLedger.Blockchain = blockChain
-
-	log.Info("4. Start the P2P networks")
-	// Don't need two return value.
+	log.Info("The Node's PublicKey ", acct.PublicKey)
+	log.Info("3. Start the P2P networks")
 	noder = net.StartProtocol(acct.PublicKey)
 	httpjsonrpc.RegistRpcNode(noder)
-	time.Sleep(20 * time.Second)
+	time.Sleep(10 * time.Second)
 	noder.SyncNodeHeight()
 	noder.WaitForFourPeersStart()
 	noder.WaitForSyncBlkFinish()

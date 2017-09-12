@@ -17,5 +17,9 @@ var (
 	DnaRpcSuccess       = responsePacking(true)
 	DnaRpcFailed        = responsePacking(false)
 
+	// error code for wallet
+	DnaRpcWalletAlreadyExists = responsePacking("wallet already exist")
+	DnaRpcWalletNotExists     = responsePacking("wallet doesn't exist")
+
 	DnaRpc = responsePacking
 )

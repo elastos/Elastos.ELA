@@ -149,7 +149,6 @@ func (client *ClientImpl) ProcessBlock(v interface{}) {
 	if block, ok := v.(*ledger.Block); ok {
 		blockHash := block.Hash()
 		savedBlock, _ := ledger.DefaultLedger.GetBlockWithHash(blockHash)
-		fmt.Println("ProcessBlock")
 
 		var needUpdate bool
 		// received coins

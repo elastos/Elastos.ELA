@@ -12,6 +12,7 @@ import (
 	"DNA_POW/cli/debug"
 	"DNA_POW/cli/info"
 	"DNA_POW/cli/privpayload"
+	"DNA_POW/cli/recover"
 	"DNA_POW/cli/test"
 	"DNA_POW/cli/wallet"
 
@@ -44,6 +45,7 @@ func main() {
 		*privpayload.NewCommand(),
 		*data.NewCommand(),
 		*bookkeeper.NewCommand(),
+		*recover.NewCommand(),
 	}
 	sort.Sort(cli.CommandsByName(app.Commands))
 	sort.Sort(cli.FlagsByName(app.Flags))

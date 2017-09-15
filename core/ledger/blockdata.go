@@ -16,7 +16,9 @@ type Blockdata struct {
 	PrevBlockHash    Uint256
 	TransactionsRoot Uint256
 	Timestamp        uint32
+	Bits             uint32
 	Height           uint32
+	Nonce            uint32
 	ConsensusData    uint64
 	NextBookKeeper   Uint160
 	Program          *program.Program
@@ -40,6 +42,8 @@ func (bd *Blockdata) SerializeUnsigned(w io.Writer) error {
 	bd.PrevBlockHash.Serialize(w)
 	bd.TransactionsRoot.Serialize(w)
 	serialization.WriteUint32(w, bd.Timestamp)
+	serialization.WriteUint32(w, bd.Bits)
+	serialization.WriteUint32(w, bd.Nonce)
 	serialization.WriteUint32(w, bd.Height)
 	serialization.WriteUint64(w, bd.ConsensusData)
 	bd.NextBookKeeper.Serialize(w)
@@ -97,6 +101,14 @@ func (bd *Blockdata) DeserializeUnsigned(r io.Reader) error {
 	//Timestamp
 	temp, _ = serialization.ReadUint32(r)
 	bd.Timestamp = uint32(temp)
+
+	//Bits
+	temp, _ = serialization.ReadUint32(r)
+	bd.Bits = uint32(temp)
+
+	//Nonce
+	temp, _ = serialization.ReadUint32(r)
+	bd.Nonce = uint32(temp)
 
 	//Height
 	temp, _ = serialization.ReadUint32(r)

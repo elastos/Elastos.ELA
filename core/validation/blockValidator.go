@@ -1,11 +1,13 @@
 package validation
 
 import (
+	"DNA_POW/common/log"
 	"DNA_POW/core/ledger"
 	tx "DNA_POW/core/transaction"
 	. "DNA_POW/errors"
 	"errors"
 	"fmt"
+	"math/big"
 )
 
 func VerifyBlock(block *ledger.Block, ld *ledger.Ledger, completely bool) error {
@@ -63,34 +65,70 @@ func VerifyBlock(block *ledger.Block, ld *ledger.Ledger, completely bool) error 
 }
 
 func PowVerifyBlock(block *ledger.Block, ld *ledger.Ledger, completely bool) error {
+	//TODO main chian
+	//TODO orphan block
+
+	blockHash := block.Hash()
+	fmt.Printf("Processing block %v", blockHash)
+
+	if ledger.DefaultLedger.BlockInLedger(blockHash) {
+		log.Debug("Receive ", " duplicated block.")
+		return nil
+	}
+
 	if block.Blockdata.Height == 0 {
 		return nil
 	}
+
 	err := VerifyBlockData(block.Blockdata, ld)
 	if err != nil {
 		return err
 	}
 
-	flag, err := VerifySignableData(block)
-	if flag == false || err != nil {
-		return err
-	}
-
-	if block.Transactions == nil {
-		return errors.New(fmt.Sprintf("No Transactions Exist in Block."))
-	}
-	if block.Transactions[0].TxType != tx.BookKeeping {
-		return errors.New(fmt.Sprintf("Blockdata Verify failed first Transacion in block is not BookKeeping type."))
-	}
-	for index, v := range block.Transactions {
-		if v.TxType == tx.BookKeeping && index != 0 {
-			return errors.New(fmt.Sprintf("This Block Has BookKeeping transaction after first transaction in block."))
-		}
-	}
+	//	flag, err := VerifySignableData(block)
+	//	if flag == false || err != nil {
+	//		return err
+	//	}
+	//
+	//	if block.Transactions == nil {
+	//		return errors.New(fmt.Sprintf("No Transactions Exist in Block."))
+	//	}
+	//	if block.Transactions[0].TxType != tx.BookKeeping {
+	//		return errors.New(fmt.Sprintf("Blockdata Verify failed first Transacion in block is not BookKeeping type."))
+	//	}
+	//	for index, v := range block.Transactions {
+	//		if v.TxType == tx.BookKeeping && index != 0 {
+	//			return errors.New(fmt.Sprintf("This Block Has BookKeeping transaction after first transaction in block."))
+	//		}
+	//	}
+	//
+	//	//verfiy block's transactions
+	//	if completely {
+	//		/*
+	//			//TODO: NextBookKeeper Check.
+	//			bookKeeperaddress, err := ledger.GetBookKeeperAddress(ld.Blockchain.GetBookKeepersByTXs(block.Transactions))
+	//			if err != nil {
+	//				return errors.New(fmt.Sprintf("GetBookKeeperAddress Failed."))
+	//			}
+	//			if block.Blockdata.NextBookKeeper != bookKeeperaddress {
+	//				return errors.New(fmt.Sprintf("BookKeeper is not validate."))
+	//			}
+	//		*/
+	//		for _, txVerify := range block.Transactions {
+	//			if errCode := VerifyTransaction(txVerify); errCode != ErrNoError {
+	//				return errors.New(fmt.Sprintf("VerifyTransaction failed when verifiy block"))
+	//			}
+	//			if errCode := VerifyTransactionWithLedger(txVerify, ledger.DefaultLedger); errCode != ErrNoError {
+	//				return errors.New(fmt.Sprintf("VerifyTransactionWithLedger failed when verifiy block"))
+	//			}
+	//		}
+	//		if err := VerifyTransactionWithBlock(block.Transactions); err != nil {
+	//			return errors.New(fmt.Sprintf("VerifyTransactionWithBlock failed when verifiy block"))
+	//		}
+	//	}
 
 	return nil
 }
-
 
 func VerifyHeader(bd *ledger.Header, ledger *ledger.Ledger) error {
 	return VerifyBlockData(bd.Blockdata, ledger)
@@ -115,6 +153,39 @@ func VerifyBlockData(bd *ledger.Blockdata, ledger *ledger.Ledger) error {
 
 	if prevHeader.Blockdata.Timestamp >= bd.Timestamp {
 		return NewDetailErr(errors.New("[BlockValidator] error"), ErrNoCode, "[BlockValidator], block timestamp is incorrect.")
+	}
+	// TODO temp powLimit
+
+	bigOne := big.NewInt(1)
+	powLimit := new(big.Int).Sub(new(big.Int).Lsh(bigOne, 255), bigOne)
+
+	if checkProofOfWork(bd, powLimit) != nil {
+		return NewDetailErr(errors.New("[BlockValidator] error"), ErrNoCode, "[BlockValidator], block check proof is failed.")
+	}
+
+	return nil
+}
+
+func checkProofOfWork(bd *ledger.Blockdata, powLimit *big.Int) error {
+	// The target difficulty must be larger than zero.
+	target := CompactToBig(bd.Bits)
+	if target.Sign() <= 0 {
+		return NewDetailErr(errors.New("[BlockValidator] error"), ErrNoCode, "[BlockValidator], block target difficulty is too low.")
+	}
+	fmt.Printf("target:%x\n", target)
+
+	//// The target difficulty must be less than the maximum allowed.
+	//if target.Cmp(powLimit) > 0 {
+	//	return NewDetailErr(errors.New("[BlockValidator] error"), ErrNoCode, "[BlockValidator], block target difficulty is higher than max of limit.")
+	//}
+
+	// The block hash must be less than the claimed target.
+	hash := bd.Hash()
+	hashNum := HashToBig(&hash)
+	log.Tracef("hash %x\n", hash)
+	log.Tracef("hashNum %x\n", hashNum)
+	if hashNum.Cmp(target) > 0 {
+		return NewDetailErr(errors.New("[BlockValidator] error"), ErrNoCode, "[BlockValidator], block target difficulty is higher than expected difficulty.")
 	}
 
 	return nil

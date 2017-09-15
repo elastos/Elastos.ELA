@@ -2,6 +2,7 @@ package main
 
 import (
 	"DNA_POW/account"
+
 	"DNA_POW/common/config"
 	"DNA_POW/common/log"
 	"DNA_POW/consensus/dbft"
@@ -15,6 +16,7 @@ import (
 	"DNA_POW/net/httprestful"
 	"DNA_POW/net/httpwebsocket"
 	"DNA_POW/net/protocol"
+
 	"os"
 	"runtime"
 	"time"
@@ -91,9 +93,10 @@ func main() {
 	noder.WaitForFourPeersStart()
 	noder.WaitForSyncBlkFinish()
 	if protocol.SERVICENODENAME != config.Parameters.NodeType {
-		if (config.Parameters.ConsensusType == "pow") {
+		if config.Parameters.ConsensusType == "pow" {
 			log.Info("Start POW Services")
 			powServices := pow.NewPowService(client, "logPow", noder)
+			//httpjsonrpc.RegistDbftService(powServices)
 			go powServices.Start()
 		} else {
 			log.Info("5. Start DBFT Services")

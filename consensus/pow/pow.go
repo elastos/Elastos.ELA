@@ -3,28 +3,51 @@ package pow
 import (
 	cl "DNA_POW/account"
 	. "DNA_POW/common"
-	"DNA_POW/common/config"
 	"DNA_POW/common/log"
 	"DNA_POW/core/contract/program"
 	"DNA_POW/core/ledger"
-	sig "DNA_POW/core/signature"
 	tx "DNA_POW/core/transaction"
 	"DNA_POW/core/transaction/payload"
-	msg "DNA_POW/net/message"
+	"DNA_POW/crypto"
 	"DNA_POW/events"
 	"DNA_POW/net"
-	"time"
+	msg "DNA_POW/net/message"
+	//	"bytes"
+	"math/big"
 	"sync"
+	"time"
 )
 
 const (
 	MINGENBLOCKTIME = 6
+	// maxNonce is the maximum value a nonce can be in a block header.
+	maxNonce = ^uint32(0) // 2^32 - 1
+
+	// maxExtraNonce is the maximum value an extra nonce used in a coinbase
+	// transaction can be.
+	maxExtraNonce = ^uint64(0) // 2^64 - 1
+
+	// hpsUpdateSecs is the number of seconds to wait in between each
+	// update to the hashes per second monitor.
+	hpsUpdateSecs = 10
+
+	// hashUpdateSec is the number of seconds each worker waits in between
+	// notifying the speed monitor with how many hashes have been completed
+	// while they are actively searching for a solution.  This is done to
+	// reduce the amount of syncs between the workers that must be done to
+	// keep track of the hashes per second.
+	hashUpdateSecs = 15
 )
 
 var GenBlockTime = (MINGENBLOCKTIME * time.Second)
 
 type PowService struct {
-	sync.Mutex
+	// Miner's receiving address for earning coin
+	payToAddr string
+	//	MsgBlock  *ledger.Block
+
+	Mutex sync.Mutex
+	//context           ConsensusContext
 	Client            cl.Client
 	timer             *time.Timer
 	timerHeight       uint32
@@ -38,23 +61,125 @@ type PowService struct {
 	blockPersistCompletedSubscriber events.Subscriber
 }
 
-func (pow *PowService) Start() error {
-	log.Debug()
-	pow.started = true
+func (pow *PowService) CollectTransactions(MsgBlock *ledger.Block) int {
+	txs := 0
+	transactionsPool := pow.localNet.GetTxnPool(true)
 
-	if config.Parameters.GenBlockTime > MINGENBLOCKTIME {
-		GenBlockTime = time.Duration(config.Parameters.GenBlockTime) * time.Second
-	} else {
-		log.Warn("The Generate block time should be longer than 6 seconds, so set it to be 6.")
+	for _, tx := range transactionsPool {
+		log.Trace(tx)
+		MsgBlock.Transactions = append(MsgBlock.Transactions, tx)
+		txs++
 	}
 
-	pow.blockPersistCompletedSubscriber = ledger.DefaultLedger.Blockchain.BCEvents.Subscribe(events.EventBlockPersistCompleted, pow.BlockPersistCompleted)
-	pow.newInventorySubscriber = pow.localNet.GetEvent("consensus").Subscribe(events.EventNewInventory, pow.LocalNodeNewInventory)
+	return txs
+}
 
-	go pow.InitializeConsensus(0)
+func (pow *PowService) GenerateBlock(MsgBlock *ledger.Block) bool {
+	if 0 == len(MsgBlock.Transactions) {
+		return false
+	}
+
+	txHash := []Uint256{}
+	for _, t := range MsgBlock.Transactions {
+		txHash = append(txHash, t.Hash())
+	}
+
+	txRoot, _ := crypto.ComputeRoot(txHash)
+	MsgBlock.Blockdata.TransactionsRoot = txRoot
+
+	return true
+}
+
+func CompactToBig(compact uint32) *big.Int {
+	// Extract the mantissa, sign bit, and exponent.
+	mantissa := compact & 0x007fffff
+	isNegative := compact&0x00800000 != 0
+	exponent := uint(compact >> 24)
+
+	// Since the base for the exponent is 256, the exponent can be treated
+	// as the number of bytes to represent the full 256-bit number.  So,
+	// treat the exponent as the number of bytes and shift the mantissa
+	// right or left accordingly.  This is equivalent to:
+	// N = mantissa * 256^(exponent-3)
+	var bn *big.Int
+	if exponent <= 3 {
+		mantissa >>= 8 * (3 - exponent)
+		bn = big.NewInt(int64(mantissa))
+	} else {
+		bn = big.NewInt(int64(mantissa))
+		bn.Lsh(bn, 8*(exponent-3))
+	}
+
+	// Make it negative if the sign bit is set.
+	if isNegative {
+		bn = bn.Neg(bn)
+	}
+
+	return bn
+}
+
+// HashToBig converts a chainhash.Hash into a big.Int that can be used to
+// perform math comparisons.
+func HashToBig(hash *Uint256) *big.Int {
+	// A Hash is in little-endian, but the big package wants the bytes in
+	// big-endian, so reverse them.
+	buf := *hash
+	blen := len(buf)
+	for i := 0; i < blen/2; i++ {
+		buf[i], buf[blen-1-i] = buf[blen-1-i], buf[i]
+	}
+
+	return new(big.Int).SetBytes(buf[:])
+}
+
+func (pow *PowService) SolveBlock(MsgBlock *ledger.Block) bool {
+	header := MsgBlock.Blockdata
+	header.Timestamp = uint32(time.Now().Unix())
+	header.PrevBlockHash = ledger.DefaultLedger.Blockchain.CurrentBlockHash()
+	header.Height = ledger.DefaultLedger.Blockchain.BlockHeight + 1
+	targetDifficulty := CompactToBig(header.Bits)
+
+	for extraNonce := uint64(0); extraNonce < maxExtraNonce; extraNonce++ {
+		for i := uint32(0); i <= maxNonce; i++ {
+			header.Nonce = i
+			hash := header.Hash()
+			if HashToBig(&hash).Cmp(targetDifficulty) <= 0 {
+				log.Trace(header)
+				log.Trace(hash)
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func (pow *PowService) BroadcastBlock(MsgBlock *ledger.Block) error {
+	pow.localNet.Xmit(MsgBlock)
 	return nil
 }
 
+/*
+func (pow *PowService) CleanSubmittedTransactions() error {
+	return nil
+}
+*/
+
+func (pow *PowService) ReleaseTransactions() error {
+	return nil
+}
+
+func (pow *PowService) Start() error {
+	pow.Mutex.Lock()
+	defer pow.Mutex.Unlock()
+	pow.started = true
+
+	pow.blockPersistCompletedSubscriber = ledger.DefaultLedger.Blockchain.BCEvents.Subscribe(events.EventBlockPersistCompleted, pow.BlockPersistCompleted)
+	//pow.newInventorySubscriber = ds.localNet.GetEvent("consensus").Subscribe(events.EventNewInventory,pow.LocalNodeNewInventory)
+
+	pow.timer.Stop()
+	pow.timer.Reset(GenBlockTime)
+	return nil
+}
 
 func (pow *PowService) Halt() error {
 	log.Debug()
@@ -65,7 +190,7 @@ func (pow *PowService) Halt() error {
 
 	if pow.started {
 		ledger.DefaultLedger.Blockchain.BCEvents.UnSubscribe(events.EventBlockPersistCompleted, pow.blockPersistCompletedSubscriber)
-		pow.localNet.GetEvent("consensus").UnSubscribe(events.EventNewInventory, pow.newInventorySubscriber)
+		//pow.localNet.GetEvent("consensus").UnSubscribe(events.EventNewInventory, pow.newInventorySubscriber)
 	}
 	return nil
 }
@@ -79,12 +204,12 @@ func (pow *PowService) BlockPersistCompleted(v interface{}) {
 			log.Warn(err)
 		}
 
-		pow.localNet.Xmit(block.Hash())
+		//pow.localNet.Xmit(block.Hash())
 	}
 
-	pow.blockReceivedTime = time.Now()
+	//pow.blockReceivedTime = time.Now()
 
-	go pow.InitializeConsensus(0)
+	//go pow.InitializeConsensus(0)
 }
 
 func (pow *PowService) LocalNodeNewInventory(v interface{}) {
@@ -114,39 +239,42 @@ func (pow *PowService) InitializeConsensus(viewNum byte) error {
 
 //TODO: add invenory receiving
 func (pow *PowService) NewConsensusPayload(payload *msg.ConsensusPayload) {
-	log.Debug()
-	pow.Mutex.Lock()
-	defer pow.MutexUnlock()
+	/*
+		log.Debug()
+		pow.Mutex.Lock()
+		defer pow.Mutex.Unlock()
 
-	//if payload is not same height with current contex, ignore it
-	if payload.Version != ContextVersion || payload.PrevHash != pow.context.PrevHash || payload.Height != pow.context.Height {
-		return
-	}
-
-	message, err := DeserializeMessage(payload.Data)
-	if err != nil {
-		log.Error(fmt.Sprintf("DeserializeMessage failed: %s\n", err))
-		return
-	}
-
-	if message.ViewNumber() != ds.context.ViewNumber && message.Type() != ChangeViewMsg {
-		return
-	}
-
-	switch message.Type() {
-	case ChangeViewMsg:
-		if cv, ok := message.(*ChangeView); ok {
-			ds.ChangeViewReceived(payload, cv)
+		//if payload is not same height with current contex, ignore it
+		if payload.Version != ContextVersion || payload.PrevHash != pow.context.PrevHash || payload.Height != pow.context.Height {
+			return
 		}
-		break
-	}
+
+		message, err := DeserializeMessage(payload.Data)
+		if err != nil {
+			log.Error(fmt.Sprintf("DeserializeMessage failed: %s\n", err))
+			return
+		}
+
+		if message.ViewNumber() != ds.context.ViewNumber && message.Type() != ChangeViewMsg {
+			return
+		}
+
+		switch message.Type() {
+		case ChangeViewMsg:
+			if cv, ok := message.(*ChangeView); ok {
+				ds.ChangeViewReceived(payload, cv)
+			}
+			break
+		}
+	*/
 }
 
 func NewPowService(client cl.Client, logDictionary string, localNet net.Neter) *PowService {
 	log.Debug()
 
 	pow := &PowService{
-		Client:        client,
+		Client: client,
+		//	MsgBlock:      msgBlock,
 		timer:         time.NewTimer(time.Second * 15),
 		started:       false,
 		localNet:      localNet,
@@ -180,56 +308,55 @@ func (pow *PowService) CreateBookkeepingTransaction(nonce uint64) *tx.Transactio
 }
 
 func (pow *PowService) Timeout() {
-	log.Debug()
-	pow.context.contextMu.Lock()
-	defer pow.context.contextMu.Unlock()
-	if pow.timerHeight != pow.context.Height || pow.timeView != pow.context.ViewNumber {
+
+	blockData := &ledger.Blockdata{
+		//Version: ContextVersion,
+		Version: 0,
+		//PrevBlockHash:    cxt.PrevHash,
+		//TransactionsRoot: txRoot,
+		//Timestamp:        cxt.Timestamp,
+		//Height:           cxt.Height,
+		//Bits:             0x1d00ffff,
+		//Bits:           0x2007ffff,
+		Bits: 0x1f07ffff,
+		//ConsensusData:  uint64(Nonce),
+		//NextBookKeeper: cxt.NextBookKeeper,
+		Program: &program.Program{},
+	}
+
+	msgBlock := &ledger.Block{
+		Blockdata:    blockData,
+		Transactions: []*tx.Transaction{},
+	}
+
+	if 0 == pow.CollectTransactions(msgBlock) {
+		pow.timer.Stop()
+		pow.timer.Reset(GenBlockTime)
 		return
 	}
+	pow.GenerateBlock(msgBlock)
 
-	log.Info("Timeout: height: ", pow.timerHeight, " View: ", pow.timeView, " State: ", pow.context.GetStateDetail())
+	//begin to mine the block with POW
+	if pow.SolveBlock(msgBlock) {
+		//send the valid block to p2p networkd
+		if msgBlock.Blockdata.Height == ledger.DefaultLedger.Blockchain.BlockHeight+1 {
 
-	if pow.context.State.HasFlag(Primary) && !pow.context.State.HasFlag(RequestSent) {
-		//primary node send the prepare request
-		log.Info("Send prepare request: height: ", pow.timerHeight, " View: ", pow.timeView, " State: ", pow.context.GetStateDetail())
-		pow.context.State |= RequestSent
-		if !pow.context.State.HasFlag(SignatureSent) {
-			now := uint32(time.Now().Unix())
-			header, _ := ledger.DefaultLedger.Blockchain.GetHeader(pow.context.PrevHash)
-
-			//set context Timestamp
-			blockTime := header.Blockdata.Timestamp + 1
-			if blockTime > now {
-				pow.context.Timestamp = blockTime
-			} else {
-				pow.context.Timestamp = now
+			if err := ledger.DefaultLedger.Blockchain.AddBlock(msgBlock); err != nil {
+				log.Trace(err)
+				return
 			}
-
-			pow.context.Nonce = GetNonce()
-			transactionsPool := pow.localNet.GetTxnPool(true)
-			//TODO: add policy
-			//TODO: add max TX limitation
-
-			txBookkeeping := pow.CreateBookkeepingTransaction(pow.context.Nonce)
-			//add book keeping transaction first
-			pow.context.Transactions = append(pow.context.Transactions, txBookkeeping)
-			//add transactions from transaction pool
-			for _, tx := range transactionsPool {
-				pow.context.Transactions = append(pow.context.Transactions, tx)
-			}
-			pow.context.header = nil
-			//build block and sign
-			block := pow.context.MakeHeader()
-			account, _ := pow.Client.GetAccount(pow.context.BookKeepers[pow.context.BookKeeperIndex]) //TODO: handle error
-			pow.context.Signatures[pow.context.BookKeeperIndex], _ = sig.SignBySigner(block, account)
+			pow.BroadcastBlock(msgBlock)
 		}
-		payload := pow.context.MakePrepareRequest()
-		pow.SignAndRelay(payload)
-		pow.timer.Stop()
-		pow.timer.Reset(GenBlockTime << (pow.timeView + 1))
-	} else if (pow.context.State.HasFlag(Primary) && pow.context.State.HasFlag(RequestSent)) || pow.context.State.HasFlag(Backup) {
-		pow.RequestChangeView()
+		//when the block send succeed, the transaction need to be removed from transaction pool
+		//pow.localNet.CleanSubmittedTransactions(pow.MsgBlock)
+		//pow.CleanSubmittedTransactions()
+	} else {
+		//if mining failed, have to give transaction back to transaction pool
+		//pow.ReleaseTransactions()
 	}
+
+	pow.timer.Stop()
+	pow.timer.Reset(GenBlockTime)
 }
 
 func (pow *PowService) timerRoutine() {
@@ -243,7 +370,6 @@ func (pow *PowService) timerRoutine() {
 	}
 }
 
-
 func miner(blkHdrHash []byte) []byte {
-
+	return nil
 }

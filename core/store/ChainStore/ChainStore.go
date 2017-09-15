@@ -2,6 +2,7 @@ package ChainStore
 
 import (
 	. "DNA_POW/common"
+	"DNA_POW/common/config"
 	"DNA_POW/common/log"
 	"DNA_POW/common/serialization"
 	"DNA_POW/core/account"
@@ -388,11 +389,18 @@ func (bd *ChainStore) GetContract(hash []byte) ([]byte, error) {
 	return bData, nil
 }
 
+func (bd *ChainStore) dumpCache() {
+	for key, data := range bd.headerCache {
+		log.Trace("dumpCache ", key, data.Blockdata)
+	}
+}
+func (bd *ChainStore) DumpCache() {
+	bd.dumpCache()
+}
 func (bd *ChainStore) getHeaderWithCache(hash Uint256) *Header {
 	if _, ok := bd.headerCache[hash]; ok {
 		return bd.headerCache[hash]
 	}
-
 	header, _ := bd.GetHeader(hash)
 
 	return header
@@ -445,16 +453,17 @@ func (bd *ChainStore) powVerifyHeader(header *Header) bool {
 		return false
 	}
 
-	flag, err := validation.VerifySignableData(header.Blockdata)
-	if flag == false || err != nil {
-		log.Error("[verifyHeader] failed, VerifySignableData failed.")
-		log.Error(err)
-		return false
-	}
+	//flag, err := validation.VerifySignableData(header.Blockdata)
+	//if flag == false || err != nil {
+	//	log.Error("[verifyHeader] failed, VerifySignableData failed.")
+	//	log.Error(err)
+	//	return false
+	//}
+
+	//pow verify
 
 	return true
 }
-
 
 func (self *ChainStore) AddHeaders(headers []Header, ledger *Ledger) error {
 
@@ -1108,20 +1117,22 @@ func (self *ChainStore) handlePersistHeaderTask(header *Header) {
 		return
 	}
 
-	if (config.Parameters.ConsensusType == "pow") {
+	if config.Parameters.ConsensusType == "pow" {
 		if !self.powVerifyHeader(header) {
 			return
+		}
+
+		self.addHeader(header)
 	} else {
 		if !self.verifyHeader(header) {
 			return
+		}
+		self.addHeader(header)
 	}
-
-	self.addHeader(header)
 }
 
 func (self *ChainStore) SaveBlock(b *Block, ledger *Ledger) error {
 	log.Debug("SaveBlock()")
-
 	self.mu.RLock()
 	headerHeight := uint32(len(self.headerIndex))
 	currBlockHeight := self.currentBlockHeight
@@ -1137,12 +1148,13 @@ func (self *ChainStore) SaveBlock(b *Block, ledger *Ledger) error {
 	}
 
 	if b.Blockdata.Height == headerHeight {
-		if (config.Parameters.ConsensusType == "pow") {
+		if config.Parameters.ConsensusType == "pow" {
 			err := validation.PowVerifyBlock(b, ledger, false)
 			if err != nil {
-				log.Error("VerifyBlock error!")
+				log.Error("PowVerifyBlock error!")
 				return err
 			}
+			log.Trace("------------>PowVerifyBlock passs!")
 		} else {
 			err := validation.VerifyBlock(b, ledger, false)
 			if err != nil {
@@ -1152,19 +1164,24 @@ func (self *ChainStore) SaveBlock(b *Block, ledger *Ledger) error {
 		}
 		self.taskCh <- &persistHeaderTask{header: &Header{Blockdata: b.Blockdata}}
 	} else {
-		// Fixme Consider the Pow case
-		flag, err := validation.VerifySignableData(b)
-		if flag == false || err != nil {
-			log.Error("VerifyBlock error!")
-			return err
+		if config.Parameters.ConsensusType == "pow" {
+			// Fixme Consider the Pow case
+		} else {
+			flag, err := validation.VerifySignableData(b)
+			if flag == false || err != nil {
+				log.Error("VerifyBlock error!")
+				return err
+			}
 		}
 	}
 
 	self.taskCh <- &persistBlockTask{block: b, ledger: ledger}
+
 	return nil
 }
 
 func (self *ChainStore) handlePersistBlockTask(b *Block, ledger *Ledger) {
+
 	if b.Blockdata.Height <= self.currentBlockHeight {
 		return
 	}
@@ -1173,6 +1190,9 @@ func (self *ChainStore) handlePersistBlockTask(b *Block, ledger *Ledger) {
 	self.blockCache[b.Hash()] = b
 	self.mu.Unlock()
 
+	//log.Trace(b.Blockdata.Height)
+	//log.Trace(b.Blockdata)
+	//log.Trace(b.Transactions[0])
 	if b.Blockdata.Height < uint32(len(self.headerIndex)) {
 		self.persistBlocks(ledger)
 

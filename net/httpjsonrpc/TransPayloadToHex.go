@@ -1,12 +1,13 @@
 package httpjsonrpc
 
 import (
+	"bytes"
+
 	. "DNA_POW/common"
 	"DNA_POW/core/asset"
 	. "DNA_POW/core/contract"
 	. "DNA_POW/core/transaction"
 	"DNA_POW/core/transaction/payload"
-	"bytes"
 )
 
 type PayloadInfo interface{}
@@ -33,10 +34,6 @@ type DeployCodeInfo struct {
 	Description string
 }
 
-//implement PayloadInfo define IssueAssetInfo
-type IssueAssetInfo struct {
-}
-
 type IssuerInfo struct {
 	X, Y string
 }
@@ -44,13 +41,9 @@ type IssuerInfo struct {
 //implement PayloadInfo define RegisterAssetInfo
 type RegisterAssetInfo struct {
 	Asset      *asset.Asset
-	Amount     Fixed64
+	Amount     float64
 	Issuer     IssuerInfo
 	Controller string
-}
-
-//implement PayloadInfo define TransferAssetInfo
-type TransferAssetInfo struct {
 }
 
 type RecordInfo struct {
@@ -116,7 +109,7 @@ func TransPayloadToHex(p Payload) PayloadInfo {
 	case *payload.RegisterAsset:
 		obj := new(RegisterAssetInfo)
 		obj.Asset = object.Asset
-		obj.Amount = object.Amount
+		obj.Amount = float64(object.Amount) / 100000000
 		obj.Issuer.X = object.Issuer.X.String()
 		obj.Issuer.Y = object.Issuer.Y.String()
 		obj.Controller = ToHexString(object.Controller.ToArray())

@@ -1,6 +1,7 @@
 package asset
 
 import (
+	. "DNA_POW/common"
 	"DNA_POW/common/serialization"
 	. "DNA_POW/errors"
 	"errors"
@@ -22,8 +23,6 @@ const (
 	MinPrecision = 0
 )
 
-const AssetPrecisionExpand = 100000000
-
 type AssetRecordType byte
 
 //onchain DNA is planed to support UTXO and Balance
@@ -31,6 +30,17 @@ const (
 	UTXO    AssetRecordType = 0x00
 	Balance AssetRecordType = 0x01
 )
+
+const AssetPrecisionExpand = 100000000
+
+func AssetValuetoFixed64(value float64) Fixed64 {
+	value *= AssetPrecisionExpand
+	return Fixed64(value)
+}
+
+func Fixed64toAssetValue(value Fixed64) float64 {
+	return float64(value) / AssetPrecisionExpand
+}
 
 //define the asset stucture in onchain DNA
 //registered asset will be assigned to contract address

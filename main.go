@@ -2,7 +2,6 @@ package main
 
 import (
 	"DNA_POW/account"
-
 	"DNA_POW/common/config"
 	"DNA_POW/common/log"
 	"DNA_POW/consensus/dbft"
@@ -16,7 +15,6 @@ import (
 	"DNA_POW/net/httprestful"
 	"DNA_POW/net/httpwebsocket"
 	"DNA_POW/net/protocol"
-
 	"os"
 	"runtime"
 	"time"
@@ -36,6 +34,53 @@ func init() {
 	}
 	log.Debug("The Core number is ", coreNum)
 	runtime.GOMAXPROCS(coreNum)
+}
+
+func handleLogFile(consensus string) {
+	switch consensus {
+
+	case "pow":
+		/* TODO */
+
+	case "dbft":
+		go func() {
+			for {
+				time.Sleep(dbft.GenBlockTime)
+				log.Trace("BlockHeight = ", ledger.DefaultLedger.Blockchain.BlockHeight)
+				isNeedNewFile := log.CheckIfNeedNewFile()
+				if isNeedNewFile == true {
+					log.ClosePrintLog()
+					log.Init(log.Path, os.Stdout)
+				}
+			} //for end
+		}()
+	}
+}
+
+func startConsensus(client account.Client, noder protocol.Noder) bool {
+	if protocol.SERVICENODENAME != config.Parameters.NodeType {
+		if config.Parameters.ConsensusType == "pow" &&
+			config.Parameters.PowConfiguration.Switch == "enable" {
+			log.Info("Start POW Services")
+			powServices := pow.NewPowService(client, "logPow", noder)
+			//httpjsonrpc.RegistDbftService(powServices)
+			go powServices.Start()
+			handleLogFile("pow")
+			time.Sleep(5 * time.Second)
+			return true
+		} else if config.Parameters.ConsensusType == "dbft" {
+			log.Info("5. Start DBFT Services")
+			dbftServices := dbft.NewDbftService(client, "logdbft", noder)
+			httpjsonrpc.RegistDbftService(dbftServices)
+			go dbftServices.Start()
+			handleLogFile("dbft")
+			time.Sleep(5 * time.Second)
+			return true
+		} else {
+			return false
+		}
+	}
+	return true
 }
 
 func main() {
@@ -92,37 +137,25 @@ func main() {
 	noder.SyncNodeHeight()
 	noder.WaitForFourPeersStart()
 	noder.WaitForSyncBlkFinish()
-	if protocol.SERVICENODENAME != config.Parameters.NodeType {
-		if config.Parameters.ConsensusType == "pow" {
-			log.Info("Start POW Services")
-			powServices := pow.NewPowService(client, "logPow", noder)
-			//httpjsonrpc.RegistDbftService(powServices)
-			go powServices.Start()
-		} else {
-			log.Info("5. Start DBFT Services")
-			dbftServices := dbft.NewDbftService(client, "logdbft", noder)
-			httpjsonrpc.RegistDbftService(dbftServices)
-			go dbftServices.Start()
-		}
-		time.Sleep(5 * time.Second)
-	}
+	startConsensus(client, noder)
 
 	log.Info("--Start the RPC interface")
 	go httpjsonrpc.StartRPCServer()
 	go httpjsonrpc.StartLocalServer()
 	go httprestful.StartServer(noder)
 	go httpwebsocket.StartServer(noder)
-
-	for {
-		time.Sleep(dbft.GenBlockTime)
-		log.Trace("BlockHeight = ", ledger.DefaultLedger.Blockchain.BlockHeight)
-		isNeedNewFile := log.CheckIfNeedNewFile()
-		if isNeedNewFile == true {
-			log.ClosePrintLog()
-			log.Init(log.Path, os.Stdout)
+	select {}
+	/*
+		for {
+			time.Sleep(dbft.GenBlockTime)
+			log.Trace("BlockHeight = ", ledger.DefaultLedger.Blockchain.BlockHeight)
+			isNeedNewFile := log.CheckIfNeedNewFile()
+			if isNeedNewFile == true {
+				log.ClosePrintLog()
+				log.Init(log.Path, os.Stdout)
+			}
 		}
-	}
-
+	*/
 ERROR:
 	os.Exit(1)
 }

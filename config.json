@@ -29,6 +29,10 @@
     "KeyPath": "./sample-cert-key.pem",
     "CAPath": "./sample-ca.pem",
     "MultiCoreNum": 4,
-    "ConsensusType": "pow"
+    "ConsensusType": "pow",
+    "PowConfiguration":{
+    "Switch": "enable",
+    "PayToAddr": "127.0.0.1:8080"
+    }
   }
 }

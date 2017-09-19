@@ -43,7 +43,9 @@ var GenBlockTime = (MINGENBLOCKTIME * time.Second)
 
 type PowService struct {
 	// Miner's receiving address for earning coin
-	payToAddr string
+	payToAddr  string
+	coinbaseTx tx.Transaction
+	feesTx     []tx.Transaction
 	//	MsgBlock  *ledger.Block
 
 	Mutex sync.Mutex
@@ -74,12 +76,32 @@ func (pow *PowService) CollectTransactions(MsgBlock *ledger.Block) int {
 	return txs
 }
 
+func (pow *PowService) CreateCoinbaseTrx(MsgBlock *ledger.Block) bool {
+	//setp1 combine the coinbase transaction
+	return true
+}
+
+func (pow *PowService) CreateFeesTrx(MsgBlock *ledger.Block) bool {
+	if 0 == len(MsgBlock.Transactions) {
+		return false
+	}
+
+	//setp1 create the fees transaction
+	return true
+}
+
 func (pow *PowService) GenerateBlock(MsgBlock *ledger.Block) bool {
 	if 0 == len(MsgBlock.Transactions) {
 		return false
 	}
 
 	txHash := []Uint256{}
+	txHash = append(txHash, pow.coinbaseTx.Hash())
+
+	for _, t := range pow.feesTx {
+		txHash = append(txHash, t.Hash())
+	}
+
 	for _, t := range MsgBlock.Transactions {
 		txHash = append(txHash, t.Hash())
 	}

@@ -32,7 +32,10 @@
     "ConsensusType": "pow",
     "PowConfiguration":{
     "Switch": "enable",
-    "PayToAddr": "127.0.0.1:8080"
+    "PayToAddr": "127.0.0.1:8080",
+    "MiningServerIP": "127.0.0.1",
+    "MiningServerPort": 5555,
+    "MiningSelfPort": 20339
     }
   }
 }

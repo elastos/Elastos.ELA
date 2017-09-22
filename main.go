@@ -77,6 +77,7 @@ func startConsensus(client account.Client, noder protocol.Noder) bool {
 			time.Sleep(5 * time.Second)
 			return true
 		} else {
+			log.Fatal("Start consensus ERROR,consensusType is: ", config.Parameters.ConsensusType)
 			return false
 		}
 	}
@@ -137,7 +138,9 @@ func main() {
 	noder.SyncNodeHeight()
 	noder.WaitForFourPeersStart()
 	noder.WaitForSyncBlkFinish()
-	startConsensus(client, noder)
+	if !startConsensus(client, noder) {
+		goto ERROR
+	}
 
 	log.Info("--Start the RPC interface")
 	go httpjsonrpc.StartRPCServer()
@@ -145,17 +148,6 @@ func main() {
 	go httprestful.StartServer(noder)
 	go httpwebsocket.StartServer(noder)
 	select {}
-	/*
-		for {
-			time.Sleep(dbft.GenBlockTime)
-			log.Trace("BlockHeight = ", ledger.DefaultLedger.Blockchain.BlockHeight)
-			isNeedNewFile := log.CheckIfNeedNewFile()
-			if isNeedNewFile == true {
-				log.ClosePrintLog()
-				log.Init(log.Path, os.Stdout)
-			}
-		}
-	*/
 ERROR:
 	os.Exit(1)
 }

@@ -15,8 +15,11 @@ const (
 var Version string
 
 type PowConfiguration struct {
-	Switch    string `json:"Switch"`
-	PayToAddr string `json:"PayToAddr"`
+	Switch           string `json:"Switch"`
+	PayToAddr        string `json:"PayToAddr"`
+	MiningServerIP   string `josn:"MiningServerIP"`
+	MiningServerPort int    `josn:"MiningServerPort"`
+	MiningSelfPort   int    `josn:"MiningSelfPort"`
 }
 
 type Configuration struct {

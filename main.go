@@ -41,7 +41,7 @@ func handleLogFile(consensus string) {
 
 	case "pow":
 		/* TODO */
-
+		fallthrough
 	case "dbft":
 		go func() {
 			for {

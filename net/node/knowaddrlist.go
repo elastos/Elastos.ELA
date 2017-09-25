@@ -51,6 +51,15 @@ func (al *KnownAddressList) AddressExisted(uid uint64) bool {
 	return ok
 }
 
+func (al *KnownAddressList) UpdateAddress(id uint64, na NodeAddr) {
+	kaold := al.List[id]
+	if (na.Time > kaold.srcAddr.Time) ||
+		(kaold.srcAddr.Services&na.Services) !=
+			na.Services {
+		kaold.SaveAddr(na)
+	}
+}
+
 func (al *KnownAddressList) AddAddressToKnownAddress(na NodeAddr) {
 	al.Lock()
 	defer al.Unlock()
@@ -58,7 +67,8 @@ func (al *KnownAddressList) AddAddressToKnownAddress(na NodeAddr) {
 	ka := new(KnownAddress)
 	ka.SaveAddr(na)
 	if al.AddressExisted(ka.GetID()) {
-		log.Debug("Insert a existed addr\n")
+		log.Debug("It is a existed addr\n")
+		al.UpdateAddress(ka.GetID(), na)
 	} else {
 		al.List[ka.GetID()] = ka
 		al.addrCount++

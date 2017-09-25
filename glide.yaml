@@ -17,6 +17,7 @@ import:
 - package: github.com/dnaproject/gopass
 - package: github.com/gorilla/websocket
 - package: github.com/pborman/uuid
+- package: github.com/pebbe/zmq4
 ignore:
   - golang.org/x/sys/unix
 

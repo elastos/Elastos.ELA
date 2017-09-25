@@ -407,6 +407,50 @@ func setDebugInfo(params []interface{}) map[string]interface{} {
 	return DnaRpcSuccess
 }
 
+func getInfo(params []interface{}) map[string]interface{} {
+	param := struct {
+		version         int    `josn:"version"`
+		protocolversion int    `josn:"protocolversion"`
+		walletversion   int    `josn:"walletversion"`
+		balance         int    `josn:"balance"`
+		blocks          int    `json:"blocks"`
+		timeoffset      int    `json:"timeoffset"`
+		connections     int    `json:"connections"`
+		proxy           string `json:"proxy"`
+		difficulty      int    `json:"difficulty"`
+		testnet         bool   `json:"testnet"`
+		keypoololdest   int    `json:"keypoololdest"`
+		keypoolsize     int    `json:"keypoolsize"`
+		unlocked_until  int    `json:"unlocked_until"`
+		paytxfee        int    `json:"paytxfee"`
+		relayfee        int    `json:"relayfee"`
+		errors          string `json:"errors"`
+	}{
+		version:         1,
+		protocolversion: 1,
+		walletversion:   1,
+		balance:         1,
+		blocks:          1,
+		timeoffset:      1,
+		connections:     1,
+		proxy:           "5526",
+		difficulty:      1234567,
+		testnet:         true,
+		keypoololdest:   1,
+		keypoolsize:     1,
+		unlocked_until:  1,
+		paytxfee:        1,
+		relayfee:        1,
+		errors:          "no error"}
+	param = param
+	return DnaRpc("return Info")
+}
+
+func help(params []interface{}) map[string]interface{} {
+
+	return DnaRpc("createauxblock==submitauxblock")
+}
+
 func getVersion(params []interface{}) map[string]interface{} {
 	return DnaRpc(config.Version)
 }

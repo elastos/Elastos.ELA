@@ -408,42 +408,41 @@ func setDebugInfo(params []interface{}) map[string]interface{} {
 }
 
 func getInfo(params []interface{}) map[string]interface{} {
-	param := struct {
-		version         int    `josn:"version"`
-		protocolversion int    `josn:"protocolversion"`
-		walletversion   int    `josn:"walletversion"`
-		balance         int    `josn:"balance"`
-		blocks          int    `json:"blocks"`
-		timeoffset      int    `json:"timeoffset"`
-		connections     int    `json:"connections"`
-		proxy           string `json:"proxy"`
-		difficulty      int    `json:"difficulty"`
-		testnet         bool   `json:"testnet"`
-		keypoololdest   int    `json:"keypoololdest"`
-		keypoolsize     int    `json:"keypoolsize"`
-		unlocked_until  int    `json:"unlocked_until"`
-		paytxfee        int    `json:"paytxfee"`
-		relayfee        int    `json:"relayfee"`
-		errors          string `json:"errors"`
+	retVal := struct {
+		Version         int    `josn:"version"`
+		Protocolversion int    `josn:"protocolversion"`
+		Walletversion   int    `josn:"walletversion"`
+		Balance         int    `josn:"balance"`
+		Blocks          int    `json:"blocks"`
+		Timeoffset      int    `json:"timeoffset"`
+		Connections     int    `json:"connections"`
+		Proxy           string `json:"proxy"`
+		Difficulty      int    `json:"difficulty"`
+		Testnet         bool   `json:"testnet"`
+		Keypoololdest   int    `json:"keypoololdest"`
+		Keypoolsize     int    `json:"keypoolsize"`
+		Unlocked_until  int    `json:"unlocked_until"`
+		Paytxfee        int    `json:"paytxfee"`
+		Relayfee        int    `json:"relayfee"`
+		Errors          string `json:"errors"`
 	}{
-		version:         1,
-		protocolversion: 1,
-		walletversion:   1,
-		balance:         1,
-		blocks:          1,
-		timeoffset:      1,
-		connections:     1,
-		proxy:           "5526",
-		difficulty:      1234567,
-		testnet:         true,
-		keypoololdest:   1,
-		keypoolsize:     1,
-		unlocked_until:  1,
-		paytxfee:        1,
-		relayfee:        1,
-		errors:          "no error"}
-	param = param
-	return DnaRpc("return Info")
+		Version:         1,
+		Protocolversion: 1,
+		Walletversion:   1,
+		Balance:         1,
+		Blocks:          1,
+		Timeoffset:      1,
+		Connections:     1,
+		Proxy:           "5526",
+		Difficulty:      1234567,
+		Testnet:         true,
+		Keypoololdest:   1,
+		Keypoolsize:     1,
+		Unlocked_until:  1,
+		Paytxfee:        1,
+		Relayfee:        1,
+		Errors:          "no error"}
+	return DnaRpc(&retVal)
 }
 
 func help(params []interface{}) map[string]interface{} {

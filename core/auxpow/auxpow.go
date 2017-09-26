@@ -1,14 +1,17 @@
 package auxpow
 
 import (
+	"DNA/common/serialization"
 	. "DNA_POW/common"
 	"crypto/sha256"
 	"encoding/binary"
 	"encoding/hex"
+	"io"
 	"strings"
 )
 
 var (
+	AuxPowChainID         = 2
 	pchMergedMiningHeader = []byte{0xfa, 0xbe, 'm', 'm'}
 )
 
@@ -33,6 +36,114 @@ func NewAuxPow(AuxMerkleBranch []Uint256, AuxMerkleIndex int,
 		ParMerkleIndex:    ParMerkleIndex,
 		ParBlockHeader:    ParBlockHeader,
 	}
+}
+
+func (ap *AuxPow) Serialize(w io.Writer) error {
+	count := uint64(len(ap.AuxMerkleBranch))
+	err := serialization.WriteVarUint(w, count)
+	if err != nil {
+		return err
+	}
+
+	for _, amb := range ap.AuxMerkleBranch {
+		_, err = amb.Serialize(w)
+		if err != nil {
+			return err
+		}
+	}
+
+	idx := uint64(ap.AuxMerkleIndex)
+	err = serialization.WriteVarUint(w, idx)
+	if err != nil {
+		return err
+	}
+
+	err = ap.ParCoinbaseTx.Serialize(w)
+	if err != nil {
+		return err
+	}
+
+	count = uint64(len(ap.ParCoinBaseMerkle))
+	err = serialization.WriteVarUint(w, count)
+	if err != nil {
+		return err
+	}
+
+	for _, pcbm := range ap.ParCoinBaseMerkle {
+		_, err = pcbm.Serialize(w)
+		if err != nil {
+			return err
+		}
+	}
+
+	idx = uint64(ap.ParMerkleIndex)
+	err = serialization.WriteVarUint(w, idx)
+	if err != nil {
+		return err
+	}
+
+	err = ap.ParBlockHeader.Serialize(w)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (ap *AuxPow) Deserialize(r io.Reader) error {
+	count, err := serialization.ReadVarUint(r, 0)
+	if err != nil {
+		return err
+	}
+
+	ap.AuxMerkleBranch = make([]Uint256, count)
+	for i := uint64(0); i < count; i++ {
+		temp := Uint256{}
+		err = temp.Deserialize(r)
+		if err != nil {
+			return err
+		}
+		ap.AuxMerkleBranch[i] = temp
+	}
+
+	temp, err := serialization.ReadVarUint(r, 0)
+	if err != nil {
+		return err
+	}
+	ap.AuxMerkleIndex = int(temp)
+
+	err = ap.ParCoinbaseTx.Deserialize(r)
+	if err != nil {
+		return err
+	}
+
+	count, err = serialization.ReadVarUint(r, 0)
+	if err != nil {
+		return err
+	}
+
+	ap.ParCoinBaseMerkle = make([]Uint256, count)
+	for i := uint64(0); i < count; i++ {
+		temp := Uint256{}
+		err = temp.Deserialize(r)
+		if err != nil {
+			return err
+		}
+		ap.ParCoinBaseMerkle[i] = temp
+
+	}
+
+	temp, err = serialization.ReadVarUint(r, 0)
+	if err != nil {
+		return err
+	}
+	ap.ParMerkleIndex = int(temp)
+
+	err = ap.ParBlockHeader.Deserialize(r)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (ap *AuxPow) Check(hashAuxBlock Uint256, chainId int) bool {

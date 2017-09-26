@@ -20,5 +20,3 @@ import:
 - package: github.com/pebbe/zmq4
 ignore:
   - golang.org/x/sys/unix
-
-

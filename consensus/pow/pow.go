@@ -1,6 +1,7 @@
 package pow
 
 import (
+	"DNA/common/config"
 	cl "DNA_POW/account"
 	. "DNA_POW/common"
 	"DNA_POW/common/log"
@@ -96,11 +97,11 @@ func (pow *PowService) GenerateBlock(MsgBlock *ledger.Block) bool {
 	}
 
 	txHash := []Uint256{}
-	txHash = append(txHash, pow.coinbaseTx.Hash())
+	//	txHash = append(txHash, pow.coinbaseTx.Hash())
 
-	for _, t := range pow.feesTx {
-		txHash = append(txHash, t.Hash())
-	}
+	//for _, t := range pow.feesTx {
+	//txHash = append(txHash, t.Hash())
+	//}
 
 	for _, t := range MsgBlock.Transactions {
 		txHash = append(txHash, t.Hash())
@@ -198,8 +199,15 @@ func (pow *PowService) Start() error {
 	pow.blockPersistCompletedSubscriber = ledger.DefaultLedger.Blockchain.BCEvents.Subscribe(events.EventBlockPersistCompleted, pow.BlockPersistCompleted)
 	//pow.newInventorySubscriber = ds.localNet.GetEvent("consensus").Subscribe(events.EventNewInventory,pow.LocalNodeNewInventory)
 
-	pow.timer.Stop()
-	pow.timer.Reset(GenBlockTime)
+	fstBookking, _ := HexToBytes(config.Parameters.BookKeepers[0])
+	acct, _ := pow.Client.GetDefaultAccount()
+	dftPubkey, _ := acct.PubKey().EncodePoint(true)
+	if IsEqualBytes(fstBookking, dftPubkey) {
+		log.Trace(fstBookking)
+		log.Trace(acct.PubKey().EncodePoint(true))
+		pow.timer.Stop()
+		pow.timer.Reset(GenBlockTime)
+	}
 	return nil
 }
 
@@ -226,7 +234,7 @@ func (pow *PowService) BlockPersistCompleted(v interface{}) {
 			log.Warn(err)
 		}
 
-		//pow.localNet.Xmit(block.Hash())
+		pow.localNet.Xmit(block.Hash())
 	}
 
 	//pow.blockReceivedTime = time.Now()

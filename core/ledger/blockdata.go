@@ -3,6 +3,7 @@ package ledger
 import (
 	. "DNA_POW/common"
 	"DNA_POW/common/serialization"
+	"DNA_POW/core/auxpow"
 	"DNA_POW/core/contract/program"
 	sig "DNA_POW/core/signature"
 	. "DNA_POW/errors"
@@ -21,6 +22,7 @@ type Blockdata struct {
 	Nonce            uint32
 	ConsensusData    uint64
 	NextBookKeeper   Uint160
+	AuxPow           auxpow.AuxPow
 	Program          *program.Program
 
 	hash Uint256
@@ -29,6 +31,7 @@ type Blockdata struct {
 //Serialize the blockheader
 func (bd *Blockdata) Serialize(w io.Writer) {
 	bd.SerializeUnsigned(w)
+	bd.AuxPow.Serialize(w)
 	w.Write([]byte{byte(1)})
 	if bd.Program != nil {
 		bd.Program.Serialize(w)
@@ -53,6 +56,7 @@ func (bd *Blockdata) SerializeUnsigned(w io.Writer) error {
 func (bd *Blockdata) Deserialize(r io.Reader) error {
 	//REVD：Blockdata Deserialize
 	bd.DeserializeUnsigned(r)
+	bd.AuxPow.Deserialize(r)
 	p := make([]byte, 1)
 	n, err := r.Read(p)
 	if n > 0 {

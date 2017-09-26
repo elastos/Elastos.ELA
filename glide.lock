@@ -37,4 +37,6 @@ imports:
   version: f6e8084112db1c3aa9c1e4144f024ab549ea08c1
 - name: github.com/whyrusleeping/tar-utils
   version: e8a5890cfc9d59a203361237581468780d945b6e
+- name: github.com/pebbe/zmq4
+  version: 90d69e412a09549f2e90bac70fbb449081f1e5c1
 testImports: []

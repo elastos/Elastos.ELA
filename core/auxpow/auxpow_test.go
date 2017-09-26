@@ -228,4 +228,17 @@ func Test_Check(t *testing.T) {
 		t.Error("Test_Check fail")
 	}
 
+	buf2 := bytes.NewBuffer([]byte{})
+	err := ap.Serialize(buf2)
+	if err != nil {
+		t.Error("AuxPow Serialize error!")
+	}
+
+	var ap2 AuxPow
+	buf3 := bytes.NewBuffer(buf2.Bytes())
+	err = ap2.Deserialize(buf3)
+	if err != nil {
+		t.Error("AuxPow Deserialize error!")
+	}
+
 }

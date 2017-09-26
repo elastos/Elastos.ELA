@@ -5,8 +5,14 @@ import (
 	"DNA_POW/common/log"
 	"DNA_POW/core/ledger"
 	"fmt"
+	"time"
 
 	zmq "github.com/pebbe/zmq4"
+)
+
+const (
+	MSGHASKBLOCK = "hashblock"
+	MSGHASKTX    = "hashtx"
 )
 
 func ZMQClientSend(MsgBlock ledger.Block) {
@@ -23,13 +29,14 @@ func ZMQClientSend(MsgBlock ledger.Block) {
 func ZMQServer() {
 	//  Socket to talk to clients
 	log.Info("ZMQ Service Start")
-	responder, _ := zmq.NewSocket(zmq.REP)
-	defer responder.Close()
+	publisher, _ := zmq.NewSocket(zmq.PUB)
+	defer publisher.Close()
 
 	bindIP := fmt.Sprintf("tcp://*:%d", config.Parameters.PowConfiguration.MiningSelfPort)
-	responder.Bind(bindIP)
+	publisher.Bind(bindIP)
 	for {
-		responder.Recv(0)
+		publisher.Send(MSGHASKTX+"==Coming from elacoin node, glad to see you, Timestamp:"+string(time.Now().Unix()), zmq.SNDMORE)
+		time.Sleep(time.Second * 3)
 		//TODO transfer to verify and save block handling process
 	}
 }

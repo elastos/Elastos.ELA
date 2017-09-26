@@ -407,8 +407,56 @@ func setDebugInfo(params []interface{}) map[string]interface{} {
 	return DnaRpcSuccess
 }
 
+func submitAuxBlock(params []interface{}) map[string]interface{} {
+	auxPow, blockHash := "", ""
+	switch params[0].(type) {
+	case string:
+		blockHash = params[0].(string)
+	default:
+		return DnaRpcInvalidParameter
+	}
+
+	switch params[1].(type) {
+	case string:
+		auxPow = params[1].(string)
+	default:
+		return DnaRpcInvalidParameter
+	}
+	return DnaRpcSuccess
+}
+
+func createAuxBlock(params []interface{}) map[string]interface{} {
+
+	type AuxBlock struct {
+		ChainId           int    `json:"chainid"`
+		Height            int    `json:"height"`
+		CoinBaseValue     int    `json:"coinbasevalue"`
+		Bits              string `json:"bits"`
+		Hash              string `json:"hash"`
+		PreviousBlockHash string `json:"previousblockhash"`
+	}
+
+	switch params[0].(type) {
+	case string:
+		//coinbaseAddr := params[0].(string)
+		SendToAux := AuxBlock{
+			ChainId:           1,
+			Height:            1,
+			CoinBaseValue:     11,
+			Bits:              "bits",
+			Hash:              "temp-hash for test",
+			PreviousBlockHash: "previousblockhash for test"}
+		return DnaRpc(&SendToAux)
+
+	default:
+		return DnaRpc("Hello createAuxBlock")
+
+	}
+	return DnaRpc("Hello createAuxBlock")
+}
+
 func getInfo(params []interface{}) map[string]interface{} {
-	retVal := struct {
+	RetVal := struct {
 		Version         int    `josn:"version"`
 		Protocolversion int    `josn:"protocolversion"`
 		Walletversion   int    `josn:"walletversion"`
@@ -442,10 +490,10 @@ func getInfo(params []interface{}) map[string]interface{} {
 		Paytxfee:        1,
 		Relayfee:        1,
 		Errors:          "no error"}
-	return DnaRpc(&retVal)
+	return DnaRpc(&RetVal)
 }
 
-func help(params []interface{}) map[string]interface{} {
+func auxHelp(params []interface{}) map[string]interface{} {
 
 	return DnaRpc("createauxblock==submitauxblock")
 }

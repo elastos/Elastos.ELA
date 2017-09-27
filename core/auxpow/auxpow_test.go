@@ -228,17 +228,37 @@ func Test_Check(t *testing.T) {
 		t.Error("Test_Check fail")
 	}
 
+}
+
+func Test_Check2(t *testing.T) {
+	auxHashStr := "02F7C9EDFC32335AA1956D16842407AA355A172D5BDF66E3CC15B134EF857467"
+	chainId := 1
+	auxDataStr := "01000000010000000000000000000000000000000000000000000000000000000000000000ffffffff4902e174044c1dcb592f4254432e434f4d2ffabe6d6d02f7c9edfc32335aa1956d16842407aa355a172d5bdf66e3cc15b134ef8574670100000000000000010000001017000000000000ffffffff0200000000000000001976a91489893957178347e87e2bb3850e6f6937de7372b288ac0000000000000000266a24aa21a9ede2f61c3f71d1defd3fa999dfa36953755c690689799962b48bebd836974e8cf900000000262b25ee945edb5655e17484431aaa81688950aa5381009ee1e5e775b5d6e3960000000000000000000000000020f9e2a4a5f4cd21fd1b126170bc12a90acfddb7fea5820e41d59ace0569affd35aef1152384b83c5b6f670cb43a597666803de4d0ad3faf423124553cbe68a454561dcb59ffff7f20561dcb59"
+
+	var auxHash Uint256
+	temp, _ := HexToBytes(auxHashStr)
+	copy(auxHash[:], temp)
+	auxData, _ := HexToBytes(auxDataStr)
+
+	var ap AuxPow
+	buf := bytes.NewBuffer(auxData)
+	err := ap.Deserialize(buf)
+	if err != nil {
+		t.Error("AuxPow Deserialize error!")
+	}
+
 	buf2 := bytes.NewBuffer([]byte{})
-	err := ap.Serialize(buf2)
+	err = ap.Serialize(buf2)
 	if err != nil {
 		t.Error("AuxPow Serialize error!")
 	}
 
-	var ap2 AuxPow
-	buf3 := bytes.NewBuffer(buf2.Bytes())
-	err = ap2.Deserialize(buf3)
-	if err != nil {
-		t.Error("AuxPow Deserialize error!")
+	if reflect.DeepEqual(buf2.Bytes(), auxData) != true {
+		t.Error("AuxPow Serialize error!")
+	}
+
+	if ap.Check(auxHash, chainId) != true {
+		t.Error("Test_Check fail")
 	}
 
 }

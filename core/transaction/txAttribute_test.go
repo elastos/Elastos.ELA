@@ -17,5 +17,5 @@ func TestTxAttribute(t *testing.T) {
 	tm.Deserialize(b)
 	fmt.Println("Deserialize complete.")
 
-	fmt.Printf("Print: Usage= :0x%x,Url Date: %q\n", tm.Usage, tm.Date)
+	fmt.Printf("Print: Usage= :0x%x,Url Date: %q\n", tm.Usage, tm.Data)
 }

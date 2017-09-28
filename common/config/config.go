@@ -22,6 +22,10 @@ type PowConfiguration struct {
 	MiningServerIP   string `josn:"MiningServerIP"`
 	MiningServerPort int    `josn:"MiningServerPort"`
 	MiningSelfPort   int    `josn:"MiningSelfPort"`
+	WalletVersion    int    `json:"WalletVersion"`
+	ProtocolVersion  int    `json:"ProtocolVersion"`
+	TestNet          bool   `json:"testnet"`
+	Proxy            string `json:"Proxy"`
 }
 
 type Configuration struct {

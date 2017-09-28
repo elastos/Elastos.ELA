@@ -28,6 +28,7 @@ const (
 	RegisterAsset  TransactionType = 0x40
 	TransferAsset  TransactionType = 0x80
 	Record         TransactionType = 0x81
+	CoinBase       TransactionType = 0x82
 	DeployCode     TransactionType = 0xd0
 	DataFile       TransactionType = 0x12
 )
@@ -58,7 +59,7 @@ type Transaction struct {
 	BalanceInputs  []*BalanceTxInput
 	Outputs        []*TxOutput
 	Programs       []*program.Program
-
+	Fee            float64
 	//Inputs/Outputs map base on Asset (needn't serialize)
 	AssetOutputs      map[Uint256][]*TxOutput
 	AssetInputAmount  map[Uint256]Fixed64

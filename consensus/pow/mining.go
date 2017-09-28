@@ -15,7 +15,7 @@ const (
 	MSGHASKTX    = "hashtx"
 )
 
-func ZMQClientSend(MsgBlock ledger.Block) {
+func (pow *PowService) ZMQClientSend(MsgBlock ledger.Block) {
 	requester, _ := zmq.NewSocket(zmq.REQ)
 	defer requester.Close()
 
@@ -26,7 +26,7 @@ func ZMQClientSend(MsgBlock ledger.Block) {
 	requester.Send("Hello world", 0)
 }
 
-func ZMQServer() {
+func (pow *PowService) ZMQServer() {
 	//  Socket to talk to clients
 	log.Info("ZMQ Service Start")
 	publisher, _ := zmq.NewSocket(zmq.PUB)
@@ -35,8 +35,11 @@ func ZMQServer() {
 	bindIP := fmt.Sprintf("tcp://*:%d", config.Parameters.PowConfiguration.MiningSelfPort)
 	publisher.Bind(bindIP)
 	for {
-		publisher.Send(MSGHASKTX+"==Coming from elacoin node, glad to see you, Timestamp:"+string(time.Now().Unix()), zmq.SNDMORE)
-		time.Sleep(time.Second * 3)
-		//TODO transfer to verify and save block handling process
+		select {
+		case <-pow.ZMQPublish:
+			log.Info("=====================Receive Channel MSG" + string(time.Now().Unix()))
+			publisher.Send(MSGHASKTX+"==Coming from elacoin node, glad to see you, Timestamp:"+string(time.Now().Unix()), zmq.SNDMORE)
+		}
+
 	}
 }

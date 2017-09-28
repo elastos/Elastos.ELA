@@ -35,7 +35,11 @@
     "PayToAddr": "127.0.0.1:8080",
     "MiningServerIP": "127.0.0.1",
     "MiningServerPort": 5555,
-    "MiningSelfPort": 20339
+    "MiningSelfPort": 20339,
+    "WalletVersion": 1,
+    "ProtocolVersion":1,
+    "TestNet":true,
+    "Proxy":"tcp://*:8888"
     }
   }
 }

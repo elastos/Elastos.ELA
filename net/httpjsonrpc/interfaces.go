@@ -510,6 +510,7 @@ func submitAuxBlock(params []interface{}) map[string]interface{} {
 	default:
 		return DnaRpcInvalidParameter
 	}
+	log.Info(auxPow, blockHash)
 	return DnaRpcSuccess
 }
 
@@ -517,7 +518,7 @@ func createAuxBlock(params []interface{}) map[string]interface{} {
 
 	type AuxBlock struct {
 		ChainId           int    `json:"chainid"`
-		Height            int    `json:"height"`
+		Height            uint64 `json:"height"`
 		CoinBaseValue     int    `json:"coinbasevalue"`
 		Bits              string `json:"bits"`
 		Hash              string `json:"hash"`
@@ -526,34 +527,35 @@ func createAuxBlock(params []interface{}) map[string]interface{} {
 
 	switch params[0].(type) {
 	case string:
-		//coinbaseAddr := params[0].(string)
+		Pow.PayToAddr = params[0].(string)
+		hash := ledger.DefaultLedger.Blockchain.CurrentBlockHash()
+		hashStr := ToHexString(hash.ToArray())
 		SendToAux := AuxBlock{
 			ChainId:           1,
-			Height:            1,
-			CoinBaseValue:     11,
-			Bits:              "bits",
-			Hash:              "temp-hash for test",
-			PreviousBlockHash: "previousblockhash for test"}
+			Height:            node.GetHeight(),
+			CoinBaseValue:     1,                                                  //transaction content
+			Bits:              string(Pow.MsgBlock.Blockdata.Bits),                //difficulty
+			Hash:              Pow.MsgBlock.Blockdata.TransactionsRoot.ToString(), //merkle tree root hash
+			PreviousBlockHash: hashStr}
 		return DnaRpc(&SendToAux)
 
 	default:
-		return DnaRpc("Hello createAuxBlock")
+		return DnaRpcInvalidParameter
 
 	}
-	return DnaRpc("Hello createAuxBlock")
 }
 
 func getInfo(params []interface{}) map[string]interface{} {
 	RetVal := struct {
 		Version         int    `josn:"version"`
-		Protocolversion int    `josn:"protocolversion"`
-		Walletversion   int    `josn:"walletversion"`
+		ProtocolVersion int    `josn:"protocolversion"`
+		WalletVersion   int    `josn:"walletversion"`
 		Balance         int    `josn:"balance"`
-		Blocks          int    `json:"blocks"`
+		Blocks          uint64 `json:"blocks"`
 		Timeoffset      int    `json:"timeoffset"`
-		Connections     int    `json:"connections"`
+		Connections     uint   `json:"connections"`
 		Proxy           string `json:"proxy"`
-		Difficulty      int    `json:"difficulty"`
+		Difficulty      uint32 `json:"difficulty"`
 		Testnet         bool   `json:"testnet"`
 		Keypoololdest   int    `json:"keypoololdest"`
 		Keypoolsize     int    `json:"keypoolsize"`
@@ -562,27 +564,28 @@ func getInfo(params []interface{}) map[string]interface{} {
 		Relayfee        int    `json:"relayfee"`
 		Errors          string `json:"errors"`
 	}{
-		Version:         1,
-		Protocolversion: 1,
-		Walletversion:   1,
-		Balance:         1,
-		Blocks:          1,
-		Timeoffset:      1,
-		Connections:     1,
-		Proxy:           "5526",
-		Difficulty:      1234567,
-		Testnet:         true,
-		Keypoololdest:   1,
-		Keypoolsize:     1,
-		Unlocked_until:  1,
-		Paytxfee:        1,
-		Relayfee:        1,
-		Errors:          "no error"}
+		Version:         config.Parameters.Version,
+		ProtocolVersion: config.Parameters.PowConfiguration.ProtocolVersion,
+		WalletVersion:   config.Parameters.PowConfiguration.WalletVersion,
+		Balance:         0,
+		Blocks:          node.GetHeight(),
+		Timeoffset:      0,
+		Connections:     node.GetConnectionCnt(),
+		Proxy:           config.Parameters.PowConfiguration.Proxy,
+		Difficulty:      Pow.MsgBlock.Blockdata.Bits,
+		Testnet:         config.Parameters.PowConfiguration.TestNet,
+		Keypoololdest:   0,
+		Keypoolsize:     0,
+		Unlocked_until:  0,
+		Paytxfee:        0,
+		Relayfee:        0,
+		Errors:          "Tobe written"}
 	return DnaRpc(&RetVal)
 }
 
 func auxHelp(params []interface{}) map[string]interface{} {
 
+	//TODO  and description for this rpc-interface
 	return DnaRpc("createauxblock==submitauxblock")
 }
 

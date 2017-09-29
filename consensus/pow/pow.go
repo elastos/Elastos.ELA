@@ -369,8 +369,6 @@ func (pow *PowService) Timeout() {
 	}
 	generateStatus := pow.GenerateBlock(msgBlock)
 
-	pow.MsgBlock = msgBlock
-
 	// push notifyed message into ZMQ
 	if true == generateStatus {
 		pow.ZMQPublish <- true

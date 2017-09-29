@@ -41,7 +41,8 @@
     "WalletVersion": 1,
     "ProtocolVersion":1,
     "TestNet":true,
-    "Proxy":"tcp://*:8888"
+    "Proxy":"tcp://*:8888",
+    "CoMining":true
     }
   }
 }

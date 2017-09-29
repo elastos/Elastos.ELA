@@ -316,6 +316,7 @@ func NewPowService(client cl.Client, logDictionary string, localNet net.Neter) *
 		//	MsgBlock:      msgBlock,
 		timer:         time.NewTimer(time.Second * 15),
 		started:       false,
+		ZMQPublish:    make(chan bool, 1),
 		localNet:      localNet,
 		logDictionary: logDictionary,
 	}
@@ -352,14 +353,12 @@ func (pow *PowService) Timeout() {
 
 	blockData := &ledger.Blockdata{
 		//Version: ContextVersion,
-		Version: 0,
-		//PrevBlockHash:    cxt.PrevHash,
+		Version:       0,
+		PrevBlockHash: ledger.DefaultLedger.Blockchain.CurrentBlockHash(),
 		//TransactionsRoot: txRoot,
-		//Timestamp:        cxt.Timestamp,
-		//Height:           cxt.Height,
-		//Bits:             0x1d00ffff,
-		//Bits:           0x2007ffff,
-		Bits: 0x1f07ffff,
+		Timestamp: uint32(time.Now().Unix()),
+		Height:    ledger.DefaultLedger.Blockchain.BlockHeight + 1,
+		Bits:      0x2007ffff,
 		//ConsensusData:  uint64(Nonce),
 		//NextBookKeeper: cxt.NextBookKeeper,
 		Program: &program.Program{},
@@ -376,6 +375,8 @@ func (pow *PowService) Timeout() {
 		return
 	}
 	generateStatus := pow.GenerateBlock(msgBlock)
+
+	pow.MsgBlock = msgBlock
 
 	// push notifyed message into ZMQ
 	if true == generateStatus {

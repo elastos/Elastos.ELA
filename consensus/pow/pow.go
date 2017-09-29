@@ -1,7 +1,6 @@
 package pow
 
 import (
-	"DNA/common/config"
 	cl "DNA_POW/account"
 	. "DNA_POW/common"
 	"DNA_POW/common/log"
@@ -200,15 +199,17 @@ func (pow *PowService) Start() error {
 	pow.blockPersistCompletedSubscriber = ledger.DefaultLedger.Blockchain.BCEvents.Subscribe(events.EventBlockPersistCompleted, pow.BlockPersistCompleted)
 	//pow.newInventorySubscriber = ds.localNet.GetEvent("consensus").Subscribe(events.EventNewInventory,pow.LocalNodeNewInventory)
 
-	fstBookking, _ := HexToBytes(config.Parameters.BookKeepers[0])
-	acct, _ := pow.Client.GetDefaultAccount()
-	dftPubkey, _ := acct.PubKey().EncodePoint(true)
-	if IsEqualBytes(fstBookking, dftPubkey) {
-		log.Trace(fstBookking)
-		log.Trace(acct.PubKey().EncodePoint(true))
-		pow.timer.Stop()
-		pow.timer.Reset(GenBlockTime)
-	}
+	//fstBookking, _ := HexToBytes(config.Parameters.BookKeepers[0])
+	//acct, _ := pow.Client.GetDefaultAccount()
+	//dftPubkey, _ := acct.PubKey().EncodePoint(true)
+	//if IsEqualBytes(fstBookking, dftPubkey) {
+	//	log.Trace(fstBookking)
+	//	log.Trace(acct.PubKey().EncodePoint(true))
+	//	pow.timer.Stop()
+	//	pow.timer.Reset(GenBlockTime)
+	//}
+	pow.timer.Stop()
+	pow.timer.Reset(GenBlockTime)
 	return nil
 }
 
@@ -308,6 +309,7 @@ func NewPowService(client cl.Client, logDictionary string, localNet net.Neter) *
 		//	MsgBlock:      msgBlock,
 		timer:         time.NewTimer(time.Second * 15),
 		started:       false,
+		ZMQPublish:    make(chan bool, 1),
 		localNet:      localNet,
 		logDictionary: logDictionary,
 	}
@@ -344,14 +346,12 @@ func (pow *PowService) Timeout() {
 
 	blockData := &ledger.Blockdata{
 		//Version: ContextVersion,
-		Version: 0,
-		//PrevBlockHash:    cxt.PrevHash,
+		Version:       0,
+		PrevBlockHash: ledger.DefaultLedger.Blockchain.CurrentBlockHash(),
 		//TransactionsRoot: txRoot,
-		//Timestamp:        cxt.Timestamp,
-		//Height:           cxt.Height,
-		//Bits:             0x1d00ffff,
-		//Bits:           0x2007ffff,
-		Bits: 0x1f07ffff,
+		Timestamp: uint32(time.Now().Unix()),
+		Height:    ledger.DefaultLedger.Blockchain.BlockHeight + 1,
+		Bits:      0x2007ffff,
 		//ConsensusData:  uint64(Nonce),
 		//NextBookKeeper: cxt.NextBookKeeper,
 		Program: &program.Program{},
@@ -368,6 +368,8 @@ func (pow *PowService) Timeout() {
 		return
 	}
 	generateStatus := pow.GenerateBlock(msgBlock)
+
+	pow.MsgBlock = msgBlock
 
 	// push notifyed message into ZMQ
 	if true == generateStatus {

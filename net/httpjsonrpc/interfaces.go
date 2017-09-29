@@ -500,6 +500,7 @@ func submitAuxBlock(params []interface{}) map[string]interface{} {
 	switch params[0].(type) {
 	case string:
 		blockHash = params[0].(string)
+
 	default:
 		return DnaRpcInvalidParameter
 	}
@@ -507,6 +508,14 @@ func submitAuxBlock(params []interface{}) map[string]interface{} {
 	switch params[1].(type) {
 	case string:
 		auxPow = params[1].(string)
+		temp, _ := HexToBytes(auxPow)
+		r := bytes.NewBuffer(temp)
+		Pow.MsgBlock.Blockdata.AuxPow.Deserialize(r)
+		err := ledger.DefaultLedger.Blockchain.AddBlock(Pow.MsgBlock)
+		if err != nil {
+			log.Trace(err)
+		}
+
 	default:
 		return DnaRpcInvalidParameter
 	}
@@ -515,6 +524,9 @@ func submitAuxBlock(params []interface{}) map[string]interface{} {
 }
 
 func createAuxBlock(params []interface{}) map[string]interface{} {
+	if nil == Pow.MsgBlock {
+		return DnaRpcNil
+	}
 
 	type AuxBlock struct {
 		ChainId           int    `json:"chainid"`

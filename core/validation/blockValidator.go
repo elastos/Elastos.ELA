@@ -185,8 +185,8 @@ func PowVerifyBlockData(bd *ledger.Blockdata, ledger *ledger.Ledger) error {
 	bigOne := big.NewInt(1)
 	powLimit := new(big.Int).Sub(new(big.Int).Lsh(bigOne, 255), bigOne)
 
-	isAuxPow := config.Parameters.PowConfiguration.CoMing
-	if isAuxPow && bd.AuxPow.Check(bd.Hash(), auxpow.AuxPowChainID) {
+	isAuxPow := config.Parameters.PowConfiguration.CoMining
+	if isAuxPow && !bd.AuxPow.Check(bd.Hash(), auxpow.AuxPowChainID) {
 		return NewDetailErr(errors.New("[BlockValidator] error"), ErrNoCode, "[BlockValidator], block check proof is failed.")
 	}
 	if checkProofOfWork(bd, powLimit, isAuxPow) != nil {

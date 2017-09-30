@@ -208,7 +208,8 @@ func (this *TXNPool) cleanTransactionList(txns []*transaction.Transaction) error
 	cleaned := 0
 	txnsNum := len(txns)
 	for _, txn := range txns {
-		if txn.TxType == transaction.BookKeeping {
+		//if txn.TxType == transaction.BookKeeping {
+		if txn.TxType == transaction.CoinBase {
 			txnsNum = txnsNum - 1
 			continue
 		}

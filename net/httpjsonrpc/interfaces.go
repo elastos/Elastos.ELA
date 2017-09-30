@@ -1,6 +1,7 @@
 package httpjsonrpc
 
 import (
+	//"DNA_POW/consensus/pow"
 	"bytes"
 	"encoding/base64"
 	"encoding/hex"
@@ -436,9 +437,12 @@ func submitAuxBlock(params []interface{}) map[string]interface{} {
 }
 
 func createAuxBlock(params []interface{}) map[string]interface{} {
-	if nil == Pow.MsgBlock {
+	addr := "Abn4A5BMXNBrzEfuRbxWpgtYtGbQ6xqK2m"
+	msgBlock, err := Pow.GenerateBlock(addr)
+	if err != nil {
 		return DnaRpcNil
 	}
+	Pow.MsgBlock = msgBlock
 
 	type AuxBlock struct {
 		ChainId           int    `json:"chainid"`

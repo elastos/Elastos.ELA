@@ -66,7 +66,12 @@ func startConsensus(client account.Client, noder protocol.Noder) bool {
 			log.Info("Start POW Services")
 			powServices := pow.NewPowService(client, "logPow", noder)
 			httpjsonrpc.RegistPowService(powServices)
-			go powServices.Start()
+			isAuxPow := config.Parameters.PowConfiguration.CoMining
+			if !isAuxPow {
+				go powServices.Start()
+			} else {
+				//aux pow
+			}
 			handleLogFile("pow")
 			time.Sleep(5 * time.Second)
 			return true

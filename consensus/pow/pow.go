@@ -5,16 +5,18 @@ import (
 	. "DNA_POW/common"
 	"DNA_POW/common/config"
 	"DNA_POW/common/log"
+	"DNA_POW/core/auxpow"
 	"DNA_POW/core/contract/program"
 	"DNA_POW/core/ledger"
 	tx "DNA_POW/core/transaction"
 	"DNA_POW/core/transaction/payload"
+	"DNA_POW/core/validation"
 	"DNA_POW/crypto"
 	"DNA_POW/events"
 	"DNA_POW/net"
-	msg "DNA_POW/net/message"
+	//	msg "DNA_POW/net/message"
 	//	"bytes"
-	"math/big"
+	//	"math/big"
 	"sync"
 	"time"
 )
@@ -22,7 +24,7 @@ import (
 var TaskCh chan bool
 
 const (
-	MINGENBLOCKTIME = 6
+	MINGENBLOCKTIME = 10
 	// maxNonce is the maximum value a nonce can be in a block header.
 	maxNonce = ^uint32(0) // 2^32 - 1
 
@@ -63,112 +65,100 @@ type PowService struct {
 
 	newInventorySubscriber          events.Subscriber
 	blockPersistCompletedSubscriber events.Subscriber
+
+	submitBlockLock sync.Mutex
+	wg              sync.WaitGroup
+	quit            chan struct{}
 }
 
-func (pow *PowService) CollectTransactions(MsgBlock *ledger.Block) int {
-	txs := 0
-	transactionsPool := pow.localNet.GetTxnPool(true)
-
-	for _, tx := range transactionsPool {
-		log.Trace(tx)
-		MsgBlock.Transactions = append(MsgBlock.Transactions, tx)
-		txs++
+func (pow *PowService) CreateCoinbaseTrx(nextBlockHeight uint32, addr string) (*tx.Transaction, error) {
+	//1. create script hash
+	pkScript, err := ToScriptHash(addr)
+	if err != nil {
+		return nil, err
 	}
 
-	return txs
-}
-
-func (pow *PowService) CreateCoinbaseTrx(MsgBlock *ledger.Block) bool {
-	//setp1 combine the coinbase transaction
-	return true
-}
-
-func (pow *PowService) CreateFeesTrx(MsgBlock *ledger.Block) bool {
-	if 0 == len(MsgBlock.Transactions) {
-		return false
+	//2. create coinbase tx
+	//TODO coinbase payload
+	txn, err := tx.NewCoinBaseTransaction(&payload.CoinBase{})
+	if err != nil {
+		return nil, err
 	}
 
-	//setp1 create the fees transaction
-	return true
-}
-
-func (pow *PowService) GenerateBlock(MsgBlock *ledger.Block) bool {
-	if 0 == len(MsgBlock.Transactions) {
-		return false
+	txn.Outputs = []*tx.TxOutput{
+		&tx.TxOutput{
+			//TODO asset id
+			AssetID: Uint256{},
+			//TODO  calc block subsidy
+			Value:       0,
+			ProgramHash: pkScript,
+		},
 	}
 
+	return txn, nil
+}
+
+func (pow *PowService) GenerateBlock(addr string) (*ledger.Block, error) {
+	//nextBlockHeight := ledger.DefaultLedger.Blockchain.BlockHeight + 1
+	nextBlockHeight := ledger.DefaultLedger.Blockchain.GetBestHeight() + 1
+	coinBaseTx, err := pow.CreateCoinbaseTrx(nextBlockHeight, addr)
+	if err != nil {
+		return &ledger.Block{}, err
+	}
+
+	//TODO TimeSource
+	blockData := &ledger.Blockdata{
+		Version:          0,
+		PrevBlockHash:    ledger.DefaultLedger.Blockchain.CurrentBlockHash(),
+		TransactionsRoot: Uint256{},
+		Timestamp:        uint32(time.Now().Unix()),
+		//Bits:             0x2007ffff,
+		Bits:           0x1e03ffff,
+		Height:         nextBlockHeight,
+		Nonce:          0,
+		ConsensusData:  0,
+		NextBookKeeper: Uint160{},
+		AuxPow:         auxpow.AuxPow{},
+		Program:        &program.Program{},
+	}
+
+	msgBlock := &ledger.Block{
+		Blockdata:    blockData,
+		Transactions: []*tx.Transaction{},
+	}
+
+	msgBlock.Transactions = append(msgBlock.Transactions, coinBaseTx)
 	txHash := []Uint256{}
-	//	txHash = append(txHash, pow.coinbaseTx.Hash())
+	txHash = append(txHash, coinBaseTx.Hash())
 
-	//for _, t := range pow.feesTx {
-	//txHash = append(txHash, t.Hash())
-	//}
-
-	for _, t := range MsgBlock.Transactions {
-		txHash = append(txHash, t.Hash())
+	//TODO tx ordering
+	transactionsPool := pow.localNet.GetTxnPool(true)
+	for _, tx := range transactionsPool {
+		msgBlock.Transactions = append(msgBlock.Transactions, tx)
+		txHash = append(txHash, tx.Hash())
 	}
 
 	txRoot, _ := crypto.ComputeRoot(txHash)
-	MsgBlock.Blockdata.TransactionsRoot = txRoot
-	log.Trace("txRoot: ", txRoot)
+	msgBlock.Blockdata.TransactionsRoot = txRoot
 
-	return true
-}
+	//TODO fee & subsidy
 
-func CompactToBig(compact uint32) *big.Int {
-	// Extract the mantissa, sign bit, and exponent.
-	mantissa := compact & 0x007fffff
-	isNegative := compact&0x00800000 != 0
-	exponent := uint(compact >> 24)
+	prevBlock, _ := ledger.DefaultLedger.GetBlockWithHeight(nextBlockHeight - 1)
+	msgBlock.Blockdata.Bits, err = validation.CalcNextRequiredDifficulty(prevBlock, time.Now())
+	log.Trace("difficulty: ", msgBlock.Blockdata.Bits)
 
-	// Since the base for the exponent is 256, the exponent can be treated
-	// as the number of bytes to represent the full 256-bit number.  So,
-	// treat the exponent as the number of bytes and shift the mantissa
-	// right or left accordingly.  This is equivalent to:
-	// N = mantissa * 256^(exponent-3)
-	var bn *big.Int
-	if exponent <= 3 {
-		mantissa >>= 8 * (3 - exponent)
-		bn = big.NewInt(int64(mantissa))
-	} else {
-		bn = big.NewInt(int64(mantissa))
-		bn.Lsh(bn, 8*(exponent-3))
-	}
-
-	// Make it negative if the sign bit is set.
-	if isNegative {
-		bn = bn.Neg(bn)
-	}
-
-	return bn
-}
-
-// HashToBig converts a chainhash.Hash into a big.Int that can be used to
-// perform math comparisons.
-func HashToBig(hash *Uint256) *big.Int {
-	// A Hash is in little-endian, but the big package wants the bytes in
-	// big-endian, so reverse them.
-	buf := *hash
-	blen := len(buf)
-	for i := 0; i < blen/2; i++ {
-		buf[i], buf[blen-1-i] = buf[blen-1-i], buf[i]
-	}
-
-	return new(big.Int).SetBytes(buf[:])
+	return msgBlock, err
 }
 
 func (pow *PowService) SolveBlock(MsgBlock *ledger.Block) bool {
 	header := MsgBlock.Blockdata
-	header.Timestamp = uint32(time.Now().Unix())
-	header.PrevBlockHash = ledger.DefaultLedger.Blockchain.CurrentBlockHash()
-	header.Height = ledger.DefaultLedger.Blockchain.BlockHeight + 1
-	targetDifficulty := CompactToBig(header.Bits)
+	targetDifficulty := validation.CompactToBig(header.Bits)
 
 	for extraNonce := uint64(0); extraNonce < maxExtraNonce; extraNonce++ {
 		for i := uint32(0); i <= maxNonce; i++ {
 			header.Nonce = i
 			hash := header.Hash()
-			if HashToBig(&hash).Cmp(targetDifficulty) <= 0 {
+			if validation.HashToBig(&hash).Cmp(targetDifficulty) <= 0 {
 				log.Trace(header)
 				log.Trace(hash)
 				return true
@@ -183,23 +173,13 @@ func (pow *PowService) BroadcastBlock(MsgBlock *ledger.Block) error {
 	return nil
 }
 
-/*
-func (pow *PowService) CleanSubmittedTransactions() error {
-	return nil
-}
-*/
-
-func (pow *PowService) ReleaseTransactions() error {
-	return nil
-}
-
 func (pow *PowService) Start() error {
 	pow.Mutex.Lock()
 	defer pow.Mutex.Unlock()
+	pow.wg.Add(1)
 	pow.started = true
 
 	pow.blockPersistCompletedSubscriber = ledger.DefaultLedger.Blockchain.BCEvents.Subscribe(events.EventBlockPersistCompleted, pow.BlockPersistCompleted)
-	//pow.newInventorySubscriber = ds.localNet.GetEvent("consensus").Subscribe(events.EventNewInventory,pow.LocalNodeNewInventory)
 
 	fstBookking, _ := HexToBytes(config.Parameters.BookKeepers[0])
 	acct, _ := pow.Client.GetDefaultAccount()
@@ -213,8 +193,7 @@ func (pow *PowService) Start() error {
 		if IsEqualBytes(fstBookking, dftPubkey) {
 			log.Trace(fstBookking)
 			log.Trace(acct.PubKey().EncodePoint(true))
-			pow.timer.Stop()
-			pow.timer.Reset(GenBlockTime)
+			go pow.Timeout()
 		}
 	}
 	return nil
@@ -230,6 +209,10 @@ func (pow *PowService) Halt() error {
 	if pow.started {
 		ledger.DefaultLedger.Blockchain.BCEvents.UnSubscribe(events.EventBlockPersistCompleted, pow.blockPersistCompletedSubscriber)
 		//pow.localNet.GetEvent("consensus").UnSubscribe(events.EventNewInventory, pow.newInventorySubscriber)
+
+		close(pow.quit)
+		pow.wg.Wait()
+		pow.started = false
 	}
 	return nil
 }
@@ -251,61 +234,12 @@ func (pow *PowService) BlockPersistCompleted(v interface{}) {
 	//go pow.InitializeConsensus(0)
 }
 
-func (pow *PowService) LocalNodeNewInventory(v interface{}) {
-	log.Debug()
-	if inventory, ok := v.(Inventory); ok {
-		if inventory.Type() == CONSENSUS {
-			payload, ret := inventory.(*msg.ConsensusPayload)
-			if ret == true {
-				pow.NewConsensusPayload(payload)
-			}
-		}
-	}
-}
-
 func (pow *PowService) InitializeConsensus(viewNum byte) error {
 	log.Debug("[InitializeConsensus] Start InitializeConsensus.")
 	pow.Mutex.Lock()
 	defer pow.Mutex.Unlock()
 
-	log.Debug("[InitializeConsensus] viewNum: ", viewNum)
-
-	pow.timer.Stop()
-	pow.timer.Reset(GenBlockTime << (viewNum + 1))
-
 	return nil
-}
-
-//TODO: add invenory receiving
-func (pow *PowService) NewConsensusPayload(payload *msg.ConsensusPayload) {
-	/*
-		log.Debug()
-		pow.Mutex.Lock()
-		defer pow.Mutex.Unlock()
-
-		//if payload is not same height with current contex, ignore it
-		if payload.Version != ContextVersion || payload.PrevHash != pow.context.PrevHash || payload.Height != pow.context.Height {
-			return
-		}
-
-		message, err := DeserializeMessage(payload.Data)
-		if err != nil {
-			log.Error(fmt.Sprintf("DeserializeMessage failed: %s\n", err))
-			return
-		}
-
-		if message.ViewNumber() != ds.context.ViewNumber && message.Type() != ChangeViewMsg {
-			return
-		}
-
-		switch message.Type() {
-		case ChangeViewMsg:
-			if cv, ok := message.(*ChangeView); ok {
-				ds.ChangeViewReceived(payload, cv)
-			}
-			break
-		}
-	*/
 }
 
 func NewPowService(client cl.Client, logDictionary string, localNet net.Neter) *PowService {
@@ -325,87 +259,69 @@ func NewPowService(client cl.Client, logDictionary string, localNet net.Neter) *
 		<-pow.timer.C
 	}
 	log.Debug()
-	go pow.timerRoutine()
-	//TODO add condition: if co-mining start
+	//go pow.timerRoutine()
 	go pow.ZMQServer()
 	return pow
 }
 
-func (pow *PowService) CreateBookkeepingTransaction(nonce uint64) *tx.Transaction {
-	log.Debug()
-	//TODO: sysfee
-	bookKeepingPayload := &payload.BookKeeping{
-		Nonce: uint64(time.Now().UnixNano()),
-	}
-	return &tx.Transaction{
-		TxType:         tx.BookKeeping,
-		PayloadVersion: payload.BookKeepingPayloadVersion,
-		Payload:        bookKeepingPayload,
-		Attributes:     []*tx.TxAttribute{},
-		UTXOInputs:     []*tx.UTXOTxInput{},
-		BalanceInputs:  []*tx.BalanceTxInput{},
-		Outputs:        []*tx.TxOutput{},
-		Programs:       []*program.Program{},
-	}
-}
-
 func (pow *PowService) Timeout() {
 
-	blockData := &ledger.Blockdata{
-		//Version: ContextVersion,
-		Version:       0,
-		PrevBlockHash: ledger.DefaultLedger.Blockchain.CurrentBlockHash(),
-		//TransactionsRoot: txRoot,
-		Timestamp: uint32(time.Now().Unix()),
-		Height:    ledger.DefaultLedger.Blockchain.BlockHeight + 1,
-		Bits:      0x2007ffff,
-		//ConsensusData:  uint64(Nonce),
-		//NextBookKeeper: cxt.NextBookKeeper,
-		Program: &program.Program{},
-	}
-
-	msgBlock := &ledger.Block{
-		Blockdata:    blockData,
-		Transactions: []*tx.Transaction{},
-	}
-
-	if 0 == pow.CollectTransactions(msgBlock) {
-		pow.timer.Stop()
-		pow.timer.Reset(GenBlockTime)
-		return
-	}
-	generateStatus := pow.GenerateBlock(msgBlock)
-
-	pow.MsgBlock = msgBlock
-
-	// push notifyed message into ZMQ
-	if true == generateStatus {
-		pow.ZMQPublish <- true
-	}
-
-	//begin to mine the block with POW
-	if generateStatus && false && pow.SolveBlock(msgBlock) {
-		//send the valid block to p2p networkd
-		if msgBlock.Blockdata.Height == ledger.DefaultLedger.Blockchain.BlockHeight+1 {
-
-			if err := ledger.DefaultLedger.Blockchain.AddBlock(msgBlock); err != nil {
-				log.Trace(err)
-				return
-			}
-			//TODO if co-mining condition
-			pow.ZMQClientSend(*msgBlock)
-			pow.BroadcastBlock(msgBlock)
+out:
+	for {
+		// Quit when the miner is stopped.
+		select {
+		case <-pow.quit:
+			break out
+		default:
+			// Non-blocking select to fall through
 		}
-		//when the block send succeed, the transaction need to be removed from transaction pool
-		//pow.localNet.CleanSubmittedTransactions(pow.MsgBlock)
-		//pow.CleanSubmittedTransactions()
-	} else {
-		//if mining failed, have to give transaction back to transaction pool
-		//pow.ReleaseTransactions()
+
+		//time.Sleep(15 * time.Second)
+
+		addr := "Abn4A5BMXNBrzEfuRbxWpgtYtGbQ6xqK2m"
+		msgBlock, err := pow.GenerateBlock(addr)
+		if err != nil {
+			return
+		}
+		//if 0 == len(msgBlock.Transactions) {
+		//	return
+		//}
+
+		pow.MsgBlock = msgBlock
+
+		// push notifyed message into ZMQ
+		generateStatus := true
+		if true == generateStatus {
+			pow.ZMQPublish <- true
+		}
+
+		isAuxPow := config.Parameters.PowConfiguration.CoMining
+		//begin to mine the block with POW
+		if generateStatus && !isAuxPow && pow.SolveBlock(msgBlock) {
+			//send the valid block to p2p networkd
+			if msgBlock.Blockdata.Height == ledger.DefaultLedger.Blockchain.BlockHeight+1 {
+
+				if err := ledger.DefaultLedger.Blockchain.AddBlock(msgBlock); err != nil {
+					log.Trace(err)
+					return
+				}
+				//TODO if co-mining condition
+				pow.ZMQClientSend(*msgBlock)
+				pow.BroadcastBlock(msgBlock)
+			}
+			//when the block send succeed, the transaction need to be removed from transaction pool
+			//pow.localNet.CleanSubmittedTransactions(pow.MsgBlock)
+			//pow.CleanSubmittedTransactions()
+		} else {
+			//if mining failed, have to give transaction back to transaction pool
+			//pow.ReleaseTransactions()
+		}
+
 	}
 
-	pow.timer.Stop()
-	pow.timer.Reset(GenBlockTime)
+	pow.wg.Done()
+	//	pow.timer.Stop()
+	//	pow.timer.Reset(GenBlockTime)
 }
 
 func (pow *PowService) timerRoutine() {
@@ -417,8 +333,4 @@ func (pow *PowService) timerRoutine() {
 			go pow.Timeout()
 		}
 	}
-}
-
-func miner(blkHdrHash []byte) []byte {
-	return nil
 }

@@ -891,6 +891,8 @@ func (bd *ChainStore) persistBlocks(ledger *Ledger) {
 		if !ok {
 			break
 		}
+		log.Trace(block.Blockdata)
+		log.Trace(block.Transactions[0])
 		err := bd.persist(block)
 		if err != nil {
 			log.Fatal("[persistBlocks]: error to persist block:", err.Error())
@@ -898,7 +900,8 @@ func (bd *ChainStore) persistBlocks(ledger *Ledger) {
 		}
 
 		// PersistCompleted event
-		ledger.Blockchain.BlockHeight = block.Blockdata.Height
+		//ledger.Blockchain.BlockHeight = block.Blockdata.Height
+		ledger.Blockchain.UpdateBestHeight(block.Blockdata.Height)
 		bd.mu.Lock()
 		bd.currentBlockHeight = block.Blockdata.Height
 		bd.mu.Unlock()

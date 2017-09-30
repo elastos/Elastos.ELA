@@ -26,7 +26,7 @@ type PowConfiguration struct {
 	ProtocolVersion  int    `json:"ProtocolVersion"`
 	TestNet          bool   `json:"testnet"`
 	Proxy            string `json:"Proxy"`
-	CoMing           bool   `json:"CoMing"`
+	CoMining         bool   `json:"CoMining"`
 }
 
 type Configuration struct {

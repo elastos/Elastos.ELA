@@ -56,6 +56,25 @@ func NewBookKeeperTransaction(pubKey *crypto.PubKey, isAdd bool, cert []byte, is
 	}, nil
 }
 
+func NewCoinBaseTransaction(coinBasePayload *payload.CoinBase) (*Transaction, error) {
+
+	return &Transaction{
+		TxType:         CoinBase,
+		PayloadVersion: payload.CoinBasePayloadVersion,
+		Payload:        coinBasePayload,
+		UTXOInputs:     []*UTXOTxInput{},
+		//UTXOInputs: []*UTXOTxInput{
+		//	&UTXOTxInput{
+		//		ReferTxID:          common.Uint256{},
+		//		ReferTxOutputIndex: 0xffff,
+		//	},
+		//},
+		BalanceInputs: []*BalanceTxInput{},
+		Attributes:    []*TxAttribute{},
+		Programs:      []*program.Program{},
+	}, nil
+}
+
 func NewIssueAssetTransaction(outputs []*TxOutput) (*Transaction, error) {
 
 	assetRegPayload := &payload.IssueAsset{}

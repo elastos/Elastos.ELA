@@ -193,6 +193,8 @@ func (tx *Transaction) DeserializeUnsignedWithoutType(r io.Reader) error {
 		tx.Payload = new(payload.TransferAsset)
 	case BookKeeping:
 		tx.Payload = new(payload.BookKeeping)
+	case CoinBase:
+		tx.Payload = new(payload.CoinBase)
 	case Record:
 		tx.Payload = new(payload.Record)
 	case BookKeeper:

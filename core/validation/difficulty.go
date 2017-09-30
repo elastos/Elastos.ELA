@@ -11,8 +11,10 @@ import (
 )
 
 var (
-	TargetTimespan     = time.Hour * 24 * 14 // 14 days
-	TargetTimePerBlock = time.Minute * 10    // 10 minutes
+	//TargetTimespan = time.Hour * 24 * 14 // 14 days
+	//TargetTimePerBlock = time.Minute * 10    // 10 minutes
+	TargetTimespan     = time.Second * 60 * 5
+	TargetTimePerBlock = time.Second * 30
 
 	targetTimespan     = int64(TargetTimespan / time.Second)
 	targetTimePerBlock = int64(TargetTimePerBlock / time.Second)
@@ -24,9 +26,10 @@ var (
 
 	// mainPowLimit is the highest proof of work value a Bitcoin block can
 	// have for the main network.  It is the value 2^224 - 1.
-	bigOne       = big.NewInt(1)
-	PowLimit     = new(big.Int).Sub(new(big.Int).Lsh(bigOne, 224), bigOne)
-	PowLimitBits = 0x1d00ffff
+	bigOne   = big.NewInt(1)
+	PowLimit = new(big.Int).Sub(new(big.Int).Lsh(bigOne, 245), bigOne)
+	//PowLimitBits = 0x1d00ffff
+	PowLimitBits = 0x1e03ffff
 
 	//timeSource:          config.TimeSource,
 )
@@ -34,6 +37,7 @@ var (
 func CalcNextRequiredDifficulty(block *ledger.Block, newBlockTime time.Time) (uint32, error) {
 	// Genesis block.
 	if block.Blockdata.Height == 0 {
+		log.Trace("Difficulty not retarget at block height 1:", block.Blockdata.Height+1)
 		return uint32(PowLimitBits), nil
 	}
 
@@ -42,6 +46,7 @@ func CalcNextRequiredDifficulty(block *ledger.Block, newBlockTime time.Time) (ui
 	if (block.Blockdata.Height+1)%blocksPerRetarget != 0 {
 		// For the main network (or any unrecognized networks), simply
 		// return the previous block's difficulty requirements.
+		log.Trace("Difficulty not retarget at block height 2:", block.Blockdata.Height+1)
 		return block.Blockdata.Bits, nil
 	}
 
@@ -74,6 +79,7 @@ func CalcNextRequiredDifficulty(block *ledger.Block, newBlockTime time.Time) (ui
 
 	// Limit new value to the proof of work limit.
 	if newTarget.Cmp(PowLimit) > 0 {
+		log.Trace("Difficulty not retarget at block height 3:", block.Blockdata.Height+1)
 		newTarget.Set(PowLimit)
 	}
 
@@ -82,10 +88,10 @@ func CalcNextRequiredDifficulty(block *ledger.Block, newBlockTime time.Time) (ui
 	// newTarget since conversion to the compact representation loses
 	// precision.
 	newTargetBits := BigToCompact(newTarget)
-	log.Debug("Difficulty retarget at block height %d", block.Blockdata.Height+1)
-	log.Debug("Old target %08x (%064x)", block.Blockdata.Bits, oldTarget)
-	log.Debug("New target %08x (%064x)", newTargetBits, CompactToBig(newTargetBits))
-	log.Debug("Actual timespan %v, adjusted timespan %v, target timespan %v",
+	log.Tracef("Difficulty retarget at block height %d", block.Blockdata.Height+1)
+	log.Tracef("Old target %08x (%064x)", block.Blockdata.Bits, oldTarget)
+	log.Tracef("New target %08x (%064x)", newTargetBits, CompactToBig(newTargetBits))
+	log.Tracef("Actual timespan %v, adjusted timespan %v, target timespan %v",
 		time.Duration(actualTimespan)*time.Second,
 		time.Duration(adjustedTimespan)*time.Second,
 		TargetTimespan)

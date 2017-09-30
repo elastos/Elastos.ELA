@@ -61,8 +61,8 @@ const (
 	MAXRETRYCOUNT        = 3
 	MAXSYNCHDRREQ        = 2 //Max Concurrent Sync Header Request
 	NEEDADDRESSTHRESHOLD = 1000
-	MAXOUTBOUNDCNT       = 8
-	DEFAULTMAXPEERS      = 125
+	MAXOUTBOUNDCNT       = 4
+	DEFAULTMAXPEERS      = 6
 	GETADDRMAX           = 2500
 )
 
@@ -152,6 +152,7 @@ type Noder interface {
 	GetDefaultMaxPeers() uint
 	GetMaxOutboundCnt() uint
 	GetGetAddrMax() uint
+	NeedMoreAddresses() bool
 }
 
 func (msg *NodeAddr) Deserialization(p []byte) error {

@@ -44,6 +44,7 @@ const (
 	MINCONNCNT        = 3
 	MAXREQBLKONCE     = 16
 	TIMESOFUPDATETIME = 2
+	MAXCACHEHASH  = 16
 )
 
 const (
@@ -64,6 +65,7 @@ const (
 	MAXOUTBOUNDCNT       = 4
 	DEFAULTMAXPEERS      = 6
 	GETADDRMAX           = 2500
+	MAXIDCACHED      = 5000
 )
 
 // The node state
@@ -155,6 +157,10 @@ type Noder interface {
 	NeedMoreAddresses() bool
 	RandSelectAddresses() []NodeAddr
 	UpdateLastDisconn(id uint64)
+	Relay(Noder, interface{}) error
+	ExistHash(hash common.Uint256) bool
+	CacheHash(hash common.Uint256)
+	ExistFlightHeight(height uint32) bool
 }
 
 func (msg *NodeAddr) Deserialization(p []byte) error {

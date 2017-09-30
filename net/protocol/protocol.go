@@ -153,6 +153,8 @@ type Noder interface {
 	GetMaxOutboundCnt() uint
 	GetGetAddrMax() uint
 	NeedMoreAddresses() bool
+	RandSelectAddresses() []NodeAddr
+	UpdateLastDisconn(id uint64)
 }
 
 func (msg *NodeAddr) Deserialization(p []byte) error {

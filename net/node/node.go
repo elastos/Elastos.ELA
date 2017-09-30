@@ -63,6 +63,10 @@ type node struct {
 	ConnectingNodes
 	RetryConnAddrs
 	SyncReqSem Semaphore
+	KnownAddressList
+	MaxOutboundCnt  uint
+	DefaultMaxPeers uint
+	GetAddrMax      uint
 }
 
 type RetryConnAddrs struct {
@@ -186,16 +190,56 @@ func InitNode(pubKey *crypto.PubKey) Noder {
 	}
 	log.Info(fmt.Sprintf("Init node ID to 0x%x", n.id))
 	n.nbrNodes.init()
+	n.KnownAddressList.init()
 	n.local = n
 	n.publicKey = pubKey
 	n.TXNPool.init()
 	n.eventQueue.init()
+	n.local.SetMaxOutboundCnt()
+	n.local.SetDefaultMaxPeers()
+	n.local.SetGetAddrMax()
 	n.nodeDisconnectSubscriber = n.eventQueue.GetEvent("disconnect").Subscribe(events.EventNodeDisconnect, n.NodeDisconnect)
 	go n.initConnection()
 	go n.updateConnection()
 	go n.updateNodeInfo()
 
 	return n
+}
+
+func (n *node) SetMaxOutboundCnt() {
+	if (Parameters.MaxOutboundCnt < MAXOUTBOUNDCNT) && (Parameters.MaxOutboundCnt > 0) {
+		n.MaxOutboundCnt = Parameters.MaxOutboundCnt
+	} else {
+		n.MaxOutboundCnt = MAXOUTBOUNDCNT
+	}
+}
+
+func (n *node) SetGetAddrMax() {
+	if (Parameters.GetAddrMax < GETADDRMAX) && (Parameters.GetAddrMax > 0) {
+		n.GetAddrMax = Parameters.GetAddrMax
+	} else {
+		n.GetAddrMax = GETADDRMAX
+	}
+}
+
+func (n *node) SetDefaultMaxPeers() {
+	if (Parameters.DefaultMaxPeers < DEFAULTMAXPEERS) && (Parameters.DefaultMaxPeers > 0) {
+		n.DefaultMaxPeers = Parameters.MaxOutboundCnt
+	} else {
+		n.DefaultMaxPeers = DEFAULTMAXPEERS
+	}
+}
+
+func (n *node) GetGetAddrMax() uint {
+	return n.GetAddrMax
+}
+
+func (n *node) GetMaxOutboundCnt() uint {
+	return n.MaxOutboundCnt
+}
+
+func (n *node) GetDefaultMaxPeers() uint {
+	return n.DefaultMaxPeers
 }
 
 func (n *node) NodeDisconnect(v interface{}) {
@@ -505,7 +549,6 @@ func (node *node) RemoveFromRetryList(addr string) {
 			log.Debug("remove addr from retry list", addr)
 		}
 	}
-
 }
 func (node *node) AcqSyncReqSem() {
 	node.SyncReqSem.acquire()

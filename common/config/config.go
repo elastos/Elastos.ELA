@@ -55,6 +55,9 @@ type Configuration struct {
 	ConsensusType    string           `json:"ConsensusType"`
 	PowConfiguration PowConfiguration `json:"PowConfiguration"`
 	MaxHdrSyncReqs   int              `json:"MaxConcurrentSyncHeaderReqs"`
+	DefaultMaxPeers uint     `json:"DefaultMaxPeers"`
+	GetAddrMax      uint     `json:"GetAddrMax"`
+	MaxOutboundCnt  uint     `json:"MaxOutboundCnt"`
 }
 
 type ConfigFile struct {

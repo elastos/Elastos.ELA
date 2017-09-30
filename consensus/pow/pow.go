@@ -109,6 +109,7 @@ func (pow *PowService) GenerateBlock(MsgBlock *ledger.Block) bool {
 
 	txRoot, _ := crypto.ComputeRoot(txHash)
 	MsgBlock.Blockdata.TransactionsRoot = txRoot
+	log.Trace("txRoot: ", txRoot)
 
 	return true
 }
@@ -205,8 +206,15 @@ func (pow *PowService) Start() error {
 	if IsEqualBytes(fstBookking, dftPubkey) {
 		log.Trace(fstBookking)
 		log.Trace(acct.PubKey().EncodePoint(true))
-		pow.timer.Stop()
-		pow.timer.Reset(GenBlockTime)
+		fstBookking, _ := HexToBytes(config.Parameters.BookKeepers[0])
+		acct, _ := pow.Client.GetDefaultAccount()
+		dftPubkey, _ := acct.PubKey().EncodePoint(true)
+		if IsEqualBytes(fstBookking, dftPubkey) {
+			log.Trace(fstBookking)
+			log.Trace(acct.PubKey().EncodePoint(true))
+			pow.timer.Stop()
+			pow.timer.Reset(GenBlockTime)
+		}
 	}
 	return nil
 }

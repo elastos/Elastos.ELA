@@ -1,5 +1,5 @@
 package pow
-/*
+
 import (
 	"DNA_POW/common/config"
 	"DNA_POW/common/log"
@@ -32,4 +32,4 @@ func ZMQServer() {
 		responder.Recv(0)
 		//TODO transfer to verify and save block handling process
 	}
-}*/
+}

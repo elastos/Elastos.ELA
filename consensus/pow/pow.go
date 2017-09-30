@@ -325,7 +325,7 @@ func NewPowService(client cl.Client, logDictionary string, localNet net.Neter) *
 	log.Debug()
 	go pow.timerRoutine()
 	//TODO add condition: if co-mining start
-	//go ZMQServer()
+	go ZMQServer()
 	return pow
 }
 
@@ -386,7 +386,7 @@ func (pow *PowService) Timeout() {
 				return
 			}
 			//TODO if co-mining condition
-			//ZMQClientSend(*msgBlock)
+			ZMQClientSend(*msgBlock)
 			pow.BroadcastBlock(msgBlock)
 		}
 		//when the block send succeed, the transaction need to be removed from transaction pool

@@ -38,10 +38,6 @@ func AssetValuetoFixed64(value float64) Fixed64 {
 	return Fixed64(value)
 }
 
-func Fixed64toAssetValue(value Fixed64) float64 {
-	return float64(value) / AssetPrecisionExpand
-}
-
 //define the asset stucture in onchain DNA
 //registered asset will be assigned to contract address
 type Asset struct {

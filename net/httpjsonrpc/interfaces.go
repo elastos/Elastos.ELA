@@ -20,6 +20,8 @@ import (
 	"DNA_POW/core/transaction/payload"
 	. "DNA_POW/errors"
 	"DNA_POW/sdk"
+
+	"github.com/mitchellh/go-homedir"
 )
 
 const (

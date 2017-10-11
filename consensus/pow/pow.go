@@ -19,6 +19,8 @@ import (
 	"time"
 )
 
+var TaskCh chan bool
+
 const (
 	MINGENBLOCKTIME = 6
 	// maxNonce is the maximum value a nonce can be in a block header.
@@ -44,13 +46,12 @@ var GenBlockTime = (MINGENBLOCKTIME * time.Second)
 
 type PowService struct {
 	// Miner's receiving address for earning coin
-	payToAddr  string
-	coinbaseTx tx.Transaction
-	feesTx     []tx.Transaction
-	//	MsgBlock  *ledger.Block
-
-	Mutex sync.Mutex
-	//context           ConsensusContext
+	PayToAddr         string
+	coinbaseTx        tx.Transaction
+	feesTx            []tx.Transaction
+	MsgBlock          *ledger.Block
+	ZMQPublish        chan bool
+	Mutex             sync.Mutex
 	Client            cl.Client
 	timer             *time.Timer
 	timerHeight       uint32
@@ -315,6 +316,7 @@ func NewPowService(client cl.Client, logDictionary string, localNet net.Neter) *
 		//	MsgBlock:      msgBlock,
 		timer:         time.NewTimer(time.Second * 15),
 		started:       false,
+		ZMQPublish:    make(chan bool, 1),
 		localNet:      localNet,
 		logDictionary: logDictionary,
 	}
@@ -325,7 +327,7 @@ func NewPowService(client cl.Client, logDictionary string, localNet net.Neter) *
 	log.Debug()
 	go pow.timerRoutine()
 	//TODO add condition: if co-mining start
-	go ZMQServer()
+	go pow.ZMQServer()
 	return pow
 }
 
@@ -351,14 +353,12 @@ func (pow *PowService) Timeout() {
 
 	blockData := &ledger.Blockdata{
 		//Version: ContextVersion,
-		Version: 0,
-		//PrevBlockHash:    cxt.PrevHash,
+		Version:       0,
+		PrevBlockHash: ledger.DefaultLedger.Blockchain.CurrentBlockHash(),
 		//TransactionsRoot: txRoot,
-		//Timestamp:        cxt.Timestamp,
-		//Height:           cxt.Height,
-		//Bits:             0x1d00ffff,
-		//Bits:           0x2007ffff,
-		Bits: 0x1f07ffff,
+		Timestamp: uint32(time.Now().Unix()),
+		Height:    ledger.DefaultLedger.Blockchain.BlockHeight + 1,
+		Bits:      0x2007ffff,
 		//ConsensusData:  uint64(Nonce),
 		//NextBookKeeper: cxt.NextBookKeeper,
 		Program: &program.Program{},
@@ -374,10 +374,17 @@ func (pow *PowService) Timeout() {
 		pow.timer.Reset(GenBlockTime)
 		return
 	}
-	pow.GenerateBlock(msgBlock)
+	generateStatus := pow.GenerateBlock(msgBlock)
+
+	pow.MsgBlock = msgBlock
+
+	// push notifyed message into ZMQ
+	if true == generateStatus {
+		pow.ZMQPublish <- true
+	}
 
 	//begin to mine the block with POW
-	if pow.SolveBlock(msgBlock) {
+	if generateStatus && false && pow.SolveBlock(msgBlock) {
 		//send the valid block to p2p networkd
 		if msgBlock.Blockdata.Height == ledger.DefaultLedger.Blockchain.BlockHeight+1 {
 
@@ -386,7 +393,7 @@ func (pow *PowService) Timeout() {
 				return
 			}
 			//TODO if co-mining condition
-			ZMQClientSend(*msgBlock)
+			pow.ZMQClientSend(*msgBlock)
 			pow.BroadcastBlock(msgBlock)
 		}
 		//when the block send succeed, the transaction need to be removed from transaction pool

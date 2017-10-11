@@ -65,7 +65,7 @@ func startConsensus(client account.Client, noder protocol.Noder) bool {
 			config.Parameters.PowConfiguration.Switch == "enable" {
 			log.Info("Start POW Services")
 			powServices := pow.NewPowService(client, "logPow", noder)
-			//httpjsonrpc.RegistDbftService(powServices)
+			httpjsonrpc.RegistPowService(powServices)
 			go powServices.Start()
 			handleLogFile("pow")
 			time.Sleep(5 * time.Second)

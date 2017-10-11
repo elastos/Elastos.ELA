@@ -5,11 +5,17 @@ import (
 	"DNA_POW/common/log"
 	"DNA_POW/core/ledger"
 	"fmt"
+	"time"
 
 	zmq "github.com/pebbe/zmq4"
 )
 
-func ZMQClientSend(MsgBlock ledger.Block) {
+const (
+	MSGHASKBLOCK = "hashblock"
+	MSGHASKTX    = "hashtx"
+)
+
+func (pow *PowService) ZMQClientSend(MsgBlock ledger.Block) {
 	requester, _ := zmq.NewSocket(zmq.REQ)
 	defer requester.Close()
 
@@ -20,16 +26,19 @@ func ZMQClientSend(MsgBlock ledger.Block) {
 	requester.Send("Hello world", 0)
 }
 
-func ZMQServer() {
+func (pow *PowService) ZMQServer() {
 	//  Socket to talk to clients
 	log.Info("ZMQ Service Start")
-	responder, _ := zmq.NewSocket(zmq.REP)
-	defer responder.Close()
+	publisher, _ := zmq.NewSocket(zmq.PUB)
+	defer publisher.Close()
 
 	bindIP := fmt.Sprintf("tcp://*:%d", config.Parameters.PowConfiguration.MiningSelfPort)
-	responder.Bind(bindIP)
+	publisher.Bind(bindIP)
 	for {
-		responder.Recv(0)
-		//TODO transfer to verify and save block handling process
+		select {
+		case <-pow.ZMQPublish:
+			log.Info("=====================Receive Channel MSG" + string(time.Now().Unix()))
+			publisher.Send(MSGHASKTX+"==Coming from elacoin node, glad to see you, Timestamp:"+string(time.Now().Unix()), zmq.SNDMORE)
+		}
 	}
 }

@@ -4,6 +4,7 @@ import (
 	. "DNA_POW/common"
 	"DNA_POW/common/log"
 	"DNA_POW/consensus/dbft"
+	"DNA_POW/consensus/pow"
 	. "DNA_POW/core/transaction"
 	tx "DNA_POW/core/transaction"
 	. "DNA_POW/errors"
@@ -25,6 +26,7 @@ func init() {
 var mainMux ServeMux
 var node Noder
 var dBFT *dbft.DbftService
+var Pow *pow.PowService
 
 //multiplexer that keeps track of every function to be called on specific rpc call
 type ServeMux struct {
@@ -138,6 +140,12 @@ type ConsensusInfo struct {
 func RegistRpcNode(n Noder) {
 	if node == nil {
 		node = n
+	}
+}
+
+func RegistPowService(p *pow.PowService) {
+	if Pow == nil {
+		Pow = p
 	}
 }
 

@@ -181,13 +181,13 @@ func (pow *PowService) Start() error {
 
 	pow.blockPersistCompletedSubscriber = ledger.DefaultLedger.Blockchain.BCEvents.Subscribe(events.EventBlockPersistCompleted, pow.BlockPersistCompleted)
 
-	fstBookking, _ := HexToBytes(config.Parameters.BookKeepers[0])
+	fstBookking, _ := HexStringToBytes(config.Parameters.BookKeepers[0])
 	acct, _ := pow.Client.GetDefaultAccount()
 	dftPubkey, _ := acct.PubKey().EncodePoint(true)
 	if IsEqualBytes(fstBookking, dftPubkey) {
 		log.Trace(fstBookking)
 		log.Trace(acct.PubKey().EncodePoint(true))
-		fstBookking, _ := HexToBytes(config.Parameters.BookKeepers[0])
+		fstBookking, _ := HexStringToBytes(config.Parameters.BookKeepers[0])
 		acct, _ := pow.Client.GetDefaultAccount()
 		dftPubkey, _ := acct.PubKey().EncodePoint(true)
 		if IsEqualBytes(fstBookking, dftPubkey) {

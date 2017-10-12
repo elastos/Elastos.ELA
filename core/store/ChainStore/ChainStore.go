@@ -826,7 +826,7 @@ func (self *ChainStore) SaveBlock(b *Block, ledger *Ledger) error {
 func (db *ChainStore) handleRollbackBlockTask(blockHash Uint256) {
 	block, err := db.GetBlock(blockHash)
 	if err != nil {
-		log.Errorf("block %x can't be found", ToHexString(blockHash.ToArray()))
+		log.Errorf("block %x can't be found", BytesToHexString(blockHash.ToArray()))
 		return
 	}
 	db.rollback(block)
@@ -1086,7 +1086,6 @@ func (bd *ChainStore) GetUnspentsFromProgramHash(programHash Uint160) (map[Uint2
 		ph.Deserialize(rk)
 		var assetid Uint256
 		assetid.Deserialize(rk)
-		log.Tracef("[GetUnspentsFromProgramHash] assetid: %x\n", assetid.ToArray())
 
 		r := bytes.NewReader(iter.Value())
 		listNum, err := serialization.ReadVarUint(r, 0)

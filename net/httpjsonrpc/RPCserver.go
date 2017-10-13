@@ -8,32 +8,37 @@ import (
 )
 
 func StartRPCServer() {
-	log.Debug()
 	http.HandleFunc("/", Handle)
 
+	// get interfaces
 	HandleFunc("getbestblockhash", getBestBlockHash)
 	HandleFunc("getblock", getBlock)
 	HandleFunc("getblockcount", getBlockCount)
 	HandleFunc("getblockhash", getBlockHash)
 	HandleFunc("getconnectioncount", getConnectionCount)
-	HandleFunc("getunspendoutput", getUnspendOutput)
 	HandleFunc("getrawmempool", getRawMemPool)
 	HandleFunc("getrawtransaction", getRawTransaction)
-	HandleFunc("sendrawtransaction", sendRawTransaction)
-	HandleFunc("submitblock", submitBlock)
+	HandleFunc("getneighbor", getNeighbor)
+	HandleFunc("getnodestate", getNodeState)
 	HandleFunc("getversion", getVersion)
-	HandleFunc("getdataile", getDataFile)
-	HandleFunc("catdatarecord", catDataRecord)
-	HandleFunc("regdatafile", regDataFile)
-	HandleFunc("uploadDataFile", uploadDataFile)
+
+	// set interfaces
+	HandleFunc("setdebuginfo", setDebugInfo)
+	HandleFunc("sendtoaddress", sendToAddress)
+
+	// mining interfaces
 	HandleFunc("getinfo", getInfo)
 	HandleFunc("help", auxHelp)
-	HandleFunc("getinfo", getInfo)
 	HandleFunc("submitauxblock", submitAuxBlock)
 	HandleFunc("createauxblock", createAuxBlock)
 	HandleFunc("togglecpumining", toggleCpuMining)
 	HandleFunc("discretemining", discreteCpuMining)
 
+	// wallet interfaces
+	HandleFunc("addaccount", addAccount)
+	HandleFunc("deleteaccount", deleteAccount)
+
+	// TODO: only listen to localhost
 	err := http.ListenAndServe(":"+strconv.Itoa(Parameters.HttpJsonPort), nil)
 	if err != nil {
 		log.Fatal("ListenAndServe: ", err.Error())

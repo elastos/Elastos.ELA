@@ -102,13 +102,12 @@ func main() {
 	var err error
 	var noder protocol.Noder
 	log.Trace("Node version: ", config.Version)
-
 	if len(config.Parameters.BookKeepers) < account.DefaultBookKeeperCount {
 		log.Fatal("At least ", account.DefaultBookKeeperCount, " BookKeepers should be set at config.json")
 		os.Exit(1)
 	}
 
-	log.Info("0. Loading the Ledger")
+	log.Info("1. BlockChain init")
 	ledger.DefaultLedger = new(ledger.Ledger)
 	ledger.DefaultLedger.Store, err = ChainStore.NewLedgerStore()
 	defer ledger.DefaultLedger.Store.Close()
@@ -116,20 +115,15 @@ func main() {
 		log.Fatal("open LedgerStore err:", err)
 		os.Exit(1)
 	}
-	//ledger.DefaultLedger.State = ledger.NewState(ledger.DefaultLedger)
 	ledger.DefaultLedger.Store.InitLedgerStore(ledger.DefaultLedger)
 	transaction.TxStore = ledger.DefaultLedger.Store
 	crypto.SetAlg(config.Parameters.EncryptAlg)
-
-	log.Info("1. BlockChain init")
 	ledger.StandbyBookKeepers = account.GetBookKeepers()
-	//blockChain, err = ledger.NewBlockchainWithGenesisBlock(ledger.StandbyBookKeepers)
 	_, err = ledger.NewBlockchainWithGenesisBlock(ledger.StandbyBookKeepers)
 	if err != nil {
-		log.Fatal(err, "  BlockChain generate failed")
+		log.Fatal(err, "BlockChain generate failed")
 		goto ERROR
 	}
-	//	ledger.DefaultLedger.Blockchain = blockChain
 
 	log.Info("2. Open the account")
 	client = account.GetClient()
@@ -142,31 +136,26 @@ func main() {
 		log.Fatal(err)
 		goto ERROR
 	}
-	log.Info("The Node's PublicKey ", acct.PublicKey)
+	httpjsonrpc.Wallet = client
+
 	log.Info("3. Start the P2P networks")
 	noder = net.StartProtocol(acct.PublicKey)
-	log.Info("3.1 Start the P2P networks")
 	httpjsonrpc.RegistRpcNode(noder)
-	log.Info("3.2 Start the P2P networks")
-	time.Sleep(10 * time.Second)
-	log.Info("3.3 Start the P2P networks")
-	//noder.WaitForFourPeersStart()
-	log.Info("3.4 Start the P2P networks")
 	noder.StartSync()
 	noder.SyncNodeHeight()
-	//noder.WaitForSyncBlkFinish()
 	if !startConsensus(client, noder) {
 		goto ERROR
 	}
 
-	log.Info("4. --Start the RPC interface")
+	log.Info("4. --Start the RPC service")
 	go httpjsonrpc.StartRPCServer()
-	go httpjsonrpc.StartLocalServer()
 	go httprestful.StartServer(noder)
 	go httpwebsocket.StartServer(noder)
 	if config.Parameters.HttpInfoStart {
 		go httpnodeinfo.StartServer(noder)
 	}
+
+
 	select {}
 ERROR:
 	os.Exit(1)

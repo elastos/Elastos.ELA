@@ -147,7 +147,7 @@ func MakeTransferTransaction(wallet account.Client, assetID Uint256, fee string,
 		expected += outputValue
 		address, err := ToScriptHash(o.Address)
 		if err != nil {
-			return nil, err
+			return nil, errors.New("invalid address")
 		}
 		tmp := &transaction.TxOutput{
 			AssetID:     assetID,

@@ -4,6 +4,7 @@ import (
 	. "DNA_POW/common"
 	"DNA_POW/common/log"
 	"DNA_POW/common/serialization"
+	"DNA_POW/core/asset"
 	"DNA_POW/core/contract/program"
 	sig "DNA_POW/core/signature"
 	tx "DNA_POW/core/transaction"
@@ -169,6 +170,11 @@ func GenesisBlockInit(defaultBookKeeper []*crypto.PubKey) (*Block, error) {
 			Parameter: []byte{byte(vm.PUSHT)},
 		},
 	}
+	admin, err := ToCodeHash([]byte{byte(vm.PUSHT)})
+	if err != nil {
+		return nil, NewDetailErr(err, ErrNoCode, "[GenesisBlock], share admin error")
+	}
+
 	//transaction
 	trans := &tx.Transaction{
 		TxType:         tx.BookKeeping,
@@ -182,11 +188,61 @@ func GenesisBlockInit(defaultBookKeeper []*crypto.PubKey) (*Block, error) {
 		Outputs:       []*tx.TxOutput{},
 		Programs:      []*program.Program{},
 	}
+
+	systemToken := &tx.Transaction{
+		TxType:         tx.RegisterAsset,
+		PayloadVersion: 0,
+		Payload: &payload.RegisterAsset{
+			Asset: &asset.Asset{
+				Name:      "ELA",
+				Precision: 0x08,
+				AssetType: 0x01, // share
+			},
+			Amount:     1 * 100000000,
+			Issuer:     defaultBookKeeper[0],
+			Controller: admin,
+		},
+		Attributes: []*tx.TxAttribute{},
+		UTXOInputs: []*tx.UTXOTxInput{},
+		Outputs:    []*tx.TxOutput{},
+		Programs:   []*program.Program{},
+	}
+
+	systemTokenIssurance := &tx.Transaction{
+		TxType:         tx.IssueAsset,
+		PayloadVersion: 0,
+		Payload:        &payload.IssueAsset{},
+		Attributes:     []*tx.TxAttribute{},
+		UTXOInputs:     []*tx.UTXOTxInput{},
+		Outputs: []*tx.TxOutput{
+			{
+				AssetID:     systemToken.Hash(),
+				Value:       1 * 100000000,
+				ProgramHash: admin,
+			},
+		},
+		Programs: []*program.Program{
+			{
+				Code:      []byte{},
+				Parameter: []byte{byte(vm.PUSHT)},
+			},
+		},
+	}
 	//block
 	genesisBlock := &Block{
 		Blockdata:    genesisBlockdata,
-		Transactions: []*tx.Transaction{trans},
+		Transactions: []*tx.Transaction{trans, systemToken, systemTokenIssurance},
 	}
+
+	txHashes := []Uint256{}
+	for _, tx := range genesisBlock.Transactions {
+		txHashes = append(txHashes, tx.Hash())
+	}
+	merkleRoot, err := crypto.ComputeRoot(txHashes)
+	if err != nil {
+		return nil, NewDetailErr(err, ErrNoCode, "[GenesisBlock], merkle root error")
+	}
+	genesisBlock.Blockdata.TransactionsRoot = merkleRoot
 
 	return genesisBlock, nil
 }

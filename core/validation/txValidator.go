@@ -73,53 +73,53 @@ func VerifyTransactionWithBlock(TxPool []*tx.Transaction) error {
 		if err := CheckDuplicateUtxoInBlock(txn, txPoolInputs); err != nil {
 			return err
 		}
-		//3.check issue amount
-		switch txn.TxType {
-		case tx.IssueAsset:
-			//TODO: use delta mode to improve performance
-			results := txn.GetMergedAssetIDValueFromOutputs()
-			for k, _ := range results {
-				//Get the Asset amount when RegisterAsseted.
-				trx, err := tx.TxStore.GetTransaction(k)
-				if trx.TxType != tx.RegisterAsset {
-					return errors.New("[VerifyTransaction], TxType is illegal.")
-				}
-				AssetReg := trx.Payload.(*payload.RegisterAsset)
-
-				//Get the amount has been issued of this assetID
-				var quantity_issued common.Fixed64
-				if AssetReg.Amount < common.Fixed64(0) {
-					continue
-				} else {
-					quantity_issued, err = tx.TxStore.GetQuantityIssued(k)
-					if err != nil {
-						return errors.New("[VerifyTransaction], GetQuantityIssued failed.")
+		/*
+			//3.check issue amount
+			switch txn.TxType {
+			case tx.IssueAsset:
+				//TODO: use delta mode to improve performance
+				results := txn.GetMergedAssetIDValueFromOutputs()
+				for k, _ := range results {
+					//Get the Asset amount when RegisterAsseted.
+					trx, err := tx.TxStore.GetTransaction(k)
+					if trx.TxType != tx.RegisterAsset {
+						return errors.New("[VerifyTransaction], TxType is illegal.")
 					}
-				}
+					AssetReg := trx.Payload.(*payload.RegisterAsset)
 
-				//calc the amounts in txPool which are also IssueAsset
-				var txPoolAmounts common.Fixed64
-				for _, t := range TxPool {
-					if t.TxType == tx.IssueAsset {
-						outputResult := t.GetMergedAssetIDValueFromOutputs()
-						for txidInPool, txValueInPool := range outputResult {
-							if txidInPool == k {
-								txPoolAmounts = txPoolAmounts + txValueInPool
+					//Get the amount has been issued of this assetID
+					var quantity_issued common.Fixed64
+					if AssetReg.Amount < common.Fixed64(0) {
+						continue
+					} else {
+						quantity_issued, err = tx.TxStore.GetQuantityIssued(k)
+						if err != nil {
+							return errors.New("[VerifyTransaction], GetQuantityIssued failed.")
+						}
+					}
+
+					//calc the amounts in txPool which are also IssueAsset
+					var txPoolAmounts common.Fixed64
+					for _, t := range TxPool {
+						if t.TxType == tx.IssueAsset {
+							outputResult := t.GetMergedAssetIDValueFromOutputs()
+							for txidInPool, txValueInPool := range outputResult {
+								if txidInPool == k {
+									txPoolAmounts = txPoolAmounts + txValueInPool
+								}
 							}
 						}
 					}
-				}
 
-				//calc weather out off the amount when Registed.
-				//AssetReg.Amount : amount when RegisterAsset of this assedID
-				//quantity_issued : amount has been issued of this assedID
-				//txPoolAmounts   : amount in transactionPool of this assedID of issue transaction.
-				if AssetReg.Amount-quantity_issued < txPoolAmounts {
-					return errors.New("[VerifyTransaction], Amount check error.")
+					//calc weather out off the amount when Registed.
+					//AssetReg.Amount : amount when RegisterAsset of this assedID
+					//quantity_issued : amount has been issued of this assedID
+					//txPoolAmounts   : amount in transactionPool of this assedID of issue transaction.
+					if AssetReg.Amount-quantity_issued < txPoolAmounts {
+						return errors.New("[VerifyTransaction], Amount check error.")
+					}
 				}
-			}
-		}
-
+			}*/
 	}
 
 	return nil

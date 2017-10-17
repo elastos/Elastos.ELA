@@ -63,6 +63,8 @@ func GetBlockHash(cmd map[string]interface{}) map[string]interface{} {
 	resp["Result"] = ToHexString(hash.ToArrayReverse())
 	return resp
 }
+
+/*
 func GetTotalIssued(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(Err.SUCCESS)
 	assetid, ok := cmd["Assetid"].(string)
@@ -91,6 +93,7 @@ func GetTotalIssued(cmd map[string]interface{}) map[string]interface{} {
 	resp["Result"] = val
 	return resp
 }
+*/
 func GetBlockInfo(block *ledger.Block) BlockInfo {
 	hash := block.Hash()
 	blockHead := &BlockHead{

@@ -5,21 +5,18 @@ import (
 	"DNA_POW/common/config"
 	"DNA_POW/common/log"
 	"DNA_POW/common/serialization"
-	"DNA_POW/core/account"
 	. "DNA_POW/core/asset"
 	"DNA_POW/core/contract/program"
 	. "DNA_POW/core/ledger"
 	. "DNA_POW/core/store"
 	. "DNA_POW/core/store/LevelDBStore"
 	tx "DNA_POW/core/transaction"
-	"DNA_POW/core/transaction/payload"
 	"DNA_POW/core/validation"
 	"DNA_POW/crypto"
 	"DNA_POW/events"
 	"bytes"
 	"errors"
 	"fmt"
-	"math/big"
 	"sort"
 	"sync"
 	"time"
@@ -39,13 +36,17 @@ type persistTask interface{}
 type persistHeaderTask struct {
 	header *Header
 }
+
+type rollbackBlockTask struct {
+	blockHash Uint256
+}
 type persistBlockTask struct {
 	block  *Block
 	ledger *Ledger
 }
 
 type ChainStore struct {
-	st IStore
+	IStore
 
 	taskCh chan persistTask
 	quit   chan chan bool
@@ -83,7 +84,7 @@ func NewChainStore(file string) (*ChainStore, error) {
 	}
 
 	chain := &ChainStore{
-		st:                 st,
+		IStore:             st,
 		headerIndex:        map[uint32]Uint256{},
 		blockCache:         map[Uint256]*Block{},
 		headerCache:        map[Uint256]*Header{},
@@ -103,7 +104,7 @@ func (self *ChainStore) Close() {
 	self.quit <- closed
 	<-closed
 
-	self.st.Close()
+	self.Close()
 }
 
 func (self *ChainStore) loop() {
@@ -121,6 +122,10 @@ func (self *ChainStore) loop() {
 				self.handlePersistBlockTask(task.block, task.ledger)
 				tcall := float64(time.Now().Sub(now)) / float64(time.Second)
 				log.Debugf("handle block exetime: %g num transactions:%d \n", tcall, len(task.block.Transactions))
+			case *rollbackBlockTask:
+				self.handleRollbackBlockTask(task.blockHash)
+				tcall := float64(time.Now().Sub(now)) / float64(time.Second)
+				log.Debugf("handle block rollback exetime: %g \n", tcall)
 			}
 
 		case closed := <-self.quit:
@@ -151,13 +156,12 @@ func (self *ChainStore) clearCache() {
 }
 
 func (bd *ChainStore) InitLedgerStoreWithGenesisBlock(genesisBlock *Block, defaultBookKeeper []*crypto.PubKey) (uint32, error) {
-
 	hash := genesisBlock.Hash()
 	bd.headerIndex[0] = hash
 	log.Debugf("listhash genesis: %x\n", hash)
 
 	prefix := []byte{byte(CFG_Version)}
-	version, err := bd.st.Get(prefix)
+	version, err := bd.Get(prefix)
 	if err != nil {
 		version = []byte{0x00}
 	}
@@ -170,7 +174,7 @@ func (bd *ChainStore) InitLedgerStoreWithGenesisBlock(genesisBlock *Block, defau
 		}
 		// Get Current Block
 		currentBlockPrefix := []byte{byte(SYS_CurrentBlock)}
-		data, err := bd.st.Get(currentBlockPrefix)
+		data, err := bd.Get(currentBlockPrefix)
 		if err != nil {
 			return 0, err
 		}
@@ -184,7 +188,7 @@ func (bd *ChainStore) InitLedgerStoreWithGenesisBlock(genesisBlock *Block, defau
 		log.Debugf("blockHash: %x\n", blockHash.ToArray())
 
 		var listHash Uint256
-		iter := bd.st.NewIterator([]byte{byte(IX_HeaderHashList)})
+		iter := bd.NewIterator([]byte{byte(IX_HeaderHashList)})
 		for iter.Next() {
 			rk := bytes.NewReader(iter.Key())
 			// read prefix
@@ -210,7 +214,7 @@ func (bd *ChainStore) InitLedgerStoreWithGenesisBlock(genesisBlock *Block, defau
 		}
 
 		if bd.storedHeaderCount == 0 {
-			iter = bd.st.NewIterator([]byte{byte(DATA_BlockHash)})
+			iter = bd.NewIterator([]byte{byte(DATA_BlockHash)})
 			for iter.Next() {
 				rk := bytes.NewReader(iter.Key())
 				// read prefix
@@ -250,15 +254,16 @@ func (bd *ChainStore) InitLedgerStoreWithGenesisBlock(genesisBlock *Block, defau
 		return bd.currentBlockHeight, nil
 
 	} else {
+
 		// batch delete old data
-		bd.st.NewBatch()
-		iter := bd.st.NewIterator(nil)
+		bd.NewBatch()
+		iter := bd.NewIterator(nil)
 		for iter.Next() {
-			bd.st.BatchDelete(iter.Key())
+			bd.BatchDelete(iter.Key())
 		}
 		iter.Release()
 
-		err := bd.st.BatchCommit()
+		err := bd.BatchCommit()
 		if err != nil {
 			return 0, err
 		}
@@ -287,14 +292,13 @@ func (bd *ChainStore) InitLedgerStoreWithGenesisBlock(genesisBlock *Block, defau
 		}
 
 		// defaultBookKeeper put value
-		bd.st.Put(bkListKey.Bytes(), bkListValue.Bytes())
+		bd.Put(bkListKey.Bytes(), bkListValue.Bytes())
 		///////////////////////////////////////////////////
-
 		// persist genesis block
 		bd.persist(genesisBlock)
 
 		// put version to db
-		err = bd.st.Put(prefix, []byte{0x01})
+		err = bd.Put(prefix, []byte{0x01})
 		if err != nil {
 			return 0, err
 		}
@@ -310,7 +314,7 @@ func (bd *ChainStore) InitLedgerStore(l *Ledger) error {
 
 func (bd *ChainStore) IsTxHashDuplicate(txhash Uint256) bool {
 	prefix := []byte{byte(DATA_Transaction)}
-	_, err_get := bd.st.Get(append(prefix, txhash.ToArray()...))
+	_, err_get := bd.Get(append(prefix, txhash.ToArray()...))
 	if err_get != nil {
 		return false
 	} else {
@@ -326,7 +330,7 @@ func (bd *ChainStore) IsDoubleSpend(tx *tx.Transaction) bool {
 	unspentPrefix := []byte{byte(IX_Unspent)}
 	for i := 0; i < len(tx.UTXOInputs); i++ {
 		txhash := tx.UTXOInputs[i].ReferTxID
-		unspentValue, err_get := bd.st.Get(append(unspentPrefix, txhash.ToArray()...))
+		unspentValue, err_get := bd.Get(append(unspentPrefix, txhash.ToArray()...))
 		if err_get != nil {
 			return true
 		}
@@ -356,7 +360,7 @@ func (bd *ChainStore) GetBlockHash(height uint32) (Uint256, error) {
 	if err != nil {
 		return Uint256{}, err
 	}
-	blockHash, err_get := bd.st.Get(queryKey.Bytes())
+	blockHash, err_get := bd.Get(queryKey.Bytes())
 	if err_get != nil {
 		//TODO: implement error process
 		return Uint256{}, err_get
@@ -374,19 +378,6 @@ func (bd *ChainStore) GetCurrentBlockHash() Uint256 {
 	defer bd.mu.RUnlock()
 
 	return bd.headerIndex[bd.currentBlockHeight]
-}
-
-func (bd *ChainStore) GetContract(hash []byte) ([]byte, error) {
-	prefix := []byte{byte(DATA_Contract)}
-	bData, err_get := bd.st.Get(append(prefix, hash...))
-	if err_get != nil {
-		//TODO: implement error process
-		return nil, err_get
-	}
-
-	log.Debug("GetContract Data: ", bData)
-
-	return bData, nil
 }
 
 func (bd *ChainStore) dumpCache() {
@@ -479,6 +470,13 @@ func (self *ChainStore) AddHeaders(headers []Header, ledger *Ledger) error {
 
 }
 
+func (db *ChainStore) RollbackBlock(blockHash Uint256) error {
+
+	db.taskCh <- &rollbackBlockTask{blockHash: blockHash}
+
+	return nil
+}
+
 func (bd *ChainStore) GetHeader(hash Uint256) (*Header, error) {
 	bd.mu.RLock()
 	if header, ok := bd.headerCache[hash]; ok {
@@ -494,7 +492,7 @@ func (bd *ChainStore) GetHeader(hash Uint256) (*Header, error) {
 
 	prefix := []byte{byte(DATA_Header)}
 	log.Debug("GetHeader Data:", hash.ToArray())
-	data, err_get := bd.st.Get(append(prefix, hash.ToArray()...))
+	data, err_get := bd.Get(append(prefix, hash.ToArray()...))
 	//log.Debug( "Get Header Data: %x\n",  data )
 	if err_get != nil {
 		//TODO: implement error process
@@ -519,7 +517,7 @@ func (bd *ChainStore) GetHeader(hash Uint256) (*Header, error) {
 	return h, err
 }
 
-func (bd *ChainStore) SaveAsset(assetId Uint256, asset *Asset) error {
+func (bd *ChainStore) PersistAsset(assetId Uint256, asset *Asset) error {
 	w := bytes.NewBuffer(nil)
 
 	asset.Serialize(w)
@@ -534,7 +532,7 @@ func (bd *ChainStore) SaveAsset(assetId Uint256, asset *Asset) error {
 	log.Debug(fmt.Sprintf("asset key: %x\n", assetKey))
 
 	// PUT VALUE
-	err := bd.st.BatchPut(assetKey.Bytes(), w.Bytes())
+	err := bd.BatchPut(assetKey.Bytes(), w.Bytes())
 	if err != nil {
 		return err
 	}
@@ -548,7 +546,7 @@ func (bd *ChainStore) GetAsset(hash Uint256) (*Asset, error) {
 	asset := new(Asset)
 
 	prefix := []byte{byte(ST_Info)}
-	data, err_get := bd.st.Get(append(prefix, hash.ToArray()...))
+	data, err_get := bd.Get(append(prefix, hash.ToArray()...))
 
 	log.Debug(fmt.Sprintf("GetAsset Data: %x\n", data))
 	if err_get != nil {
@@ -577,7 +575,7 @@ func (bd *ChainStore) GetTransaction(hash Uint256) (*tx.Transaction, error) {
 
 func (bd *ChainStore) getTx(tx *tx.Transaction, hash Uint256) error {
 	prefix := []byte{byte(DATA_Transaction)}
-	tHash, err_get := bd.st.Get(append(prefix, hash.ToArray()...))
+	tHash, err_get := bd.Get(append(prefix, hash.ToArray()...))
 	if err_get != nil {
 		//TODO: implement error process
 		return err_get
@@ -597,7 +595,7 @@ func (bd *ChainStore) getTx(tx *tx.Transaction, hash Uint256) error {
 	return err
 }
 
-func (bd *ChainStore) SaveTransaction(tx *tx.Transaction, height uint32) error {
+func (bd *ChainStore) PersistTransaction(tx *tx.Transaction, height uint32) error {
 	//////////////////////////////////////////////////////////////
 	// generate key with DATA_Transaction prefix
 	txhash := bytes.NewBuffer(nil)
@@ -615,7 +613,7 @@ func (bd *ChainStore) SaveTransaction(tx *tx.Transaction, height uint32) error {
 	log.Debug(fmt.Sprintf("transaction tx data: %x\n", w))
 
 	// put value
-	err := bd.st.BatchPut(txhash.Bytes(), w.Bytes())
+	err := bd.BatchPut(txhash.Bytes(), w.Bytes())
 	if err != nil {
 		return err
 	}
@@ -637,7 +635,7 @@ func (bd *ChainStore) GetBlock(hash Uint256) (*Block, error) {
 	b.Blockdata.Program = new(program.Program)
 
 	prefix := []byte{byte(DATA_Header)}
-	bHash, err_get := bd.st.Get(append(prefix, hash.ToArray()...))
+	bHash, err_get := bd.Get(append(prefix, hash.ToArray()...))
 	if err_get != nil {
 		//TODO: implement error process
 		return nil, err_get
@@ -670,7 +668,7 @@ func (bd *ChainStore) GetBlock(hash Uint256) (*Block, error) {
 
 func (self *ChainStore) GetBookKeeperList() ([]*crypto.PubKey, []*crypto.PubKey, error) {
 	prefix := []byte{byte(SYS_CurrentBookKeeper)}
-	bkListValue, err_get := self.st.Get(prefix)
+	bkListValue, err_get := self.Get(prefix)
 	if err_get != nil {
 		return nil, nil, err_get
 	}
@@ -713,386 +711,30 @@ func (self *ChainStore) GetBookKeeperList() ([]*crypto.PubKey, []*crypto.PubKey,
 	return currBookKeeper, nextBookKeeper, nil
 }
 
-func (bd *ChainStore) persist(b *Block) error {
-	utxoUnspents := make(map[Uint160]map[Uint256][]*tx.UTXOUnspent)
-	unspents := make(map[Uint256][]uint16)
-	quantities := make(map[Uint256]Fixed64)
+func (db *ChainStore) rollback(b *Block) error {
+	db.BatchInit()
+	db.RollbackTrimemedBlock(b)
+	db.RollbackBlockHash(b)
+	db.RollbackTransactions(b)
+	db.RollbackUnspendUTXOs(b)
+	db.RollbackUnspend(b)
+	db.RollbackCurrentBlock(b)
+	db.BatchFinish()
 
-	///////////////////////////////////////////////////////////////
-	// Get Unspents for every tx
-	unspentPrefix := []byte{byte(IX_Unspent)}
-	accounts := make(map[Uint160]*account.AccountState, 0)
+	return nil
+}
 
-	///////////////////////////////////////////////////////////////
-	// batch write begin
-	bd.st.NewBatch()
+func (db *ChainStore) persist(b *Block) error {
+	//unspents := make(map[Uint256][]uint16)
 
-	//////////////////////////////////////////////////////////////
-	// generate key with DATA_Header prefix
-	bhhash := bytes.NewBuffer(nil)
-	// add block header prefix.
-	bhhash.WriteByte(byte(DATA_Header))
-	// calc block hash
-	blockHash := b.Hash()
-	blockHash.Serialize(bhhash)
-	log.Debugf("block header + hash: %x\n", bhhash)
-
-	// generate value
-	w := bytes.NewBuffer(nil)
-	var sysfee uint64 = 0xFFFFFFFFFFFFFFFF
-	serialization.WriteUint64(w, sysfee)
-	b.Trim(w)
-
-	// BATCH PUT VALUE
-	bd.st.BatchPut(bhhash.Bytes(), w.Bytes())
-
-	//////////////////////////////////////////////////////////////
-	// generate key with DATA_BlockHash prefix
-	bhash := bytes.NewBuffer(nil)
-	bhash.WriteByte(byte(DATA_BlockHash))
-	err := serialization.WriteUint32(bhash, b.Blockdata.Height)
-	if err != nil {
-		return err
-	}
-	log.Debugf("DATA_BlockHash table key: %x\n", bhash)
-
-	// generate value
-	hashWriter := bytes.NewBuffer(nil)
-	hashValue := b.Blockdata.Hash()
-	hashValue.Serialize(hashWriter)
-	log.Debugf("DATA_BlockHash table value: %x\n", hashValue)
-
-	needUpdateBookKeeper := false
-	currBookKeeper, nextBookKeeper, err := bd.GetBookKeeperList()
-	// update current BookKeeperList
-	if len(currBookKeeper) != len(nextBookKeeper) {
-		needUpdateBookKeeper = true
-	} else {
-		for i := range currBookKeeper {
-			if currBookKeeper[i].X.Cmp(nextBookKeeper[i].X) != 0 ||
-				currBookKeeper[i].Y.Cmp(nextBookKeeper[i].Y) != 0 {
-				needUpdateBookKeeper = true
-				break
-			}
-		}
-	}
-	if needUpdateBookKeeper {
-		currBookKeeper = make([]*crypto.PubKey, len(nextBookKeeper))
-		for i := 0; i < len(nextBookKeeper); i++ {
-			currBookKeeper[i] = new(crypto.PubKey)
-			currBookKeeper[i].X = new(big.Int).Set(nextBookKeeper[i].X)
-			currBookKeeper[i].Y = new(big.Int).Set(nextBookKeeper[i].Y)
-		}
-	}
-
-	// BATCH PUT VALUE
-	bd.st.BatchPut(bhash.Bytes(), hashWriter.Bytes())
-
-	//////////////////////////////////////////////////////////////
-	// save transactions to leveldb
-	nLen := len(b.Transactions)
-
-	for i := 0; i < nLen; i++ {
-
-		// now support RegisterAsset / IssueAsset / TransferAsset and Miner TX ONLY.
-		if b.Transactions[i].TxType == tx.RegisterAsset ||
-			b.Transactions[i].TxType == tx.IssueAsset ||
-			b.Transactions[i].TxType == tx.TransferAsset ||
-			b.Transactions[i].TxType == tx.Record ||
-			b.Transactions[i].TxType == tx.BookKeeper ||
-			b.Transactions[i].TxType == tx.PrivacyPayload ||
-			b.Transactions[i].TxType == tx.BookKeeping ||
-			b.Transactions[i].TxType == tx.DataFile {
-			err = bd.SaveTransaction(b.Transactions[i], b.Blockdata.Height)
-			if err != nil {
-				return err
-			}
-		}
-		if b.Transactions[i].TxType == tx.RegisterAsset {
-			ar := b.Transactions[i].Payload.(*payload.RegisterAsset)
-			err = bd.SaveAsset(b.Transactions[i].Hash(), ar.Asset)
-			if err != nil {
-				return err
-			}
-		}
-
-		if b.Transactions[i].TxType == tx.IssueAsset {
-			results := b.Transactions[i].GetMergedAssetIDValueFromOutputs()
-			for assetId, value := range results {
-				if _, ok := quantities[assetId]; !ok {
-					quantities[assetId] += value
-				} else {
-					quantities[assetId] = value
-				}
-			}
-		}
-
-		for index := 0; index < len(b.Transactions[i].Outputs); index++ {
-			output := b.Transactions[i].Outputs[index]
-			programHash := output.ProgramHash
-			assetId := output.AssetID
-			if value, ok := accounts[programHash]; ok {
-				value.Balances[assetId] += output.Value
-			} else {
-				accountState, err := bd.GetAccount(programHash)
-				if err != nil && err.Error() != ErrDBNotFound.Error() {
-					return err
-				}
-				if accountState != nil {
-					accountState.Balances[assetId] += output.Value
-				} else {
-					balances := make(map[Uint256]Fixed64, 0)
-					balances[assetId] = output.Value
-					accountState = account.NewAccountState(programHash, balances)
-				}
-				accounts[programHash] = accountState
-			}
-
-			// add utxoUnspent
-			if _, ok := utxoUnspents[programHash]; !ok {
-				utxoUnspents[programHash] = make(map[Uint256][]*tx.UTXOUnspent)
-			}
-
-			if _, ok := utxoUnspents[programHash][assetId]; !ok {
-				utxoUnspents[programHash][assetId], err = bd.GetUnspentFromProgramHash(programHash, assetId)
-				if err != nil {
-					utxoUnspents[programHash][assetId] = make([]*tx.UTXOUnspent, 0)
-				}
-			}
-
-			unspent := new(tx.UTXOUnspent)
-			unspent.Txid = b.Transactions[i].Hash()
-			unspent.Index = uint32(index)
-			unspent.Value = output.Value
-
-			utxoUnspents[programHash][assetId] = append(utxoUnspents[programHash][assetId], unspent)
-		}
-
-		for index := 0; index < len(b.Transactions[i].UTXOInputs); index++ {
-			input := b.Transactions[i].UTXOInputs[index]
-			transaction, err := bd.GetTransaction(input.ReferTxID)
-			if err != nil {
-				return err
-			}
-			index := input.ReferTxOutputIndex
-			output := transaction.Outputs[index]
-			programHash := output.ProgramHash
-			assetId := output.AssetID
-			if value, ok := accounts[programHash]; ok {
-				value.Balances[assetId] -= output.Value
-			} else {
-				accountState, err := bd.GetAccount(programHash)
-				if err != nil {
-					return err
-				}
-				accountState.Balances[assetId] -= output.Value
-				accounts[programHash] = accountState
-			}
-			if accounts[programHash].Balances[assetId] < 0 {
-				return errors.New(fmt.Sprintf("account programHash:%v, assetId:%v insufficient of balance", programHash, assetId))
-			}
-
-			// delete utxoUnspent
-			if _, ok := utxoUnspents[programHash]; !ok {
-				utxoUnspents[programHash] = make(map[Uint256][]*tx.UTXOUnspent)
-			}
-
-			if _, ok := utxoUnspents[programHash][assetId]; !ok {
-				utxoUnspents[programHash][assetId], err = bd.GetUnspentFromProgramHash(programHash, assetId)
-				if err != nil {
-					return errors.New(fmt.Sprintf("[persist] utxoUnspents programHash:%v, assetId:%v has no unspent UTXO.", programHash, assetId))
-				}
-			}
-
-			flag := false
-			listnum := len(utxoUnspents[programHash][assetId])
-			for i := 0; i < listnum; i++ {
-				if utxoUnspents[programHash][assetId][i].Txid.CompareTo(transaction.Hash()) == 0 && utxoUnspents[programHash][assetId][i].Index == uint32(index) {
-					utxoUnspents[programHash][assetId][i] = utxoUnspents[programHash][assetId][listnum-1]
-					utxoUnspents[programHash][assetId] = utxoUnspents[programHash][assetId][:listnum-1]
-
-					flag = true
-					break
-				}
-			}
-
-			if !flag {
-				return errors.New(fmt.Sprintf("[persist] utxoUnspents NOT find UTXO by txid: %x, index: %d.", transaction.Hash(), index))
-			}
-
-		}
-
-		// init unspent in tx
-		txhash := b.Transactions[i].Hash()
-		for index := 0; index < len(b.Transactions[i].Outputs); index++ {
-			unspents[txhash] = append(unspents[txhash], uint16(index))
-		}
-
-		// delete unspent when spent in input
-		for index := 0; index < len(b.Transactions[i].UTXOInputs); index++ {
-			txhash := b.Transactions[i].UTXOInputs[index].ReferTxID
-
-			// if get unspent by utxo
-			if _, ok := unspents[txhash]; !ok {
-				unspentValue, err_get := bd.st.Get(append(unspentPrefix, txhash.ToArray()...))
-
-				if err_get != nil {
-					return err_get
-				}
-
-				unspents[txhash], err_get = GetUint16Array(unspentValue)
-				if err_get != nil {
-					return err_get
-				}
-			}
-
-			// find Transactions[i].UTXOInputs[index].ReferTxOutputIndex and delete it
-			unspentLen := len(unspents[txhash])
-			for k, outputIndex := range unspents[txhash] {
-				if outputIndex == uint16(b.Transactions[i].UTXOInputs[index].ReferTxOutputIndex) {
-					unspents[txhash][k] = unspents[txhash][unspentLen-1]
-					unspents[txhash] = unspents[txhash][:unspentLen-1]
-					break
-				}
-			}
-		}
-
-		// bookkeeper
-		if b.Transactions[i].TxType == tx.BookKeeper {
-			bk := b.Transactions[i].Payload.(*payload.BookKeeper)
-
-			switch bk.Action {
-			case payload.BookKeeperAction_ADD:
-				findflag := false
-				for k := 0; k < len(nextBookKeeper); k++ {
-					if bk.PubKey.X.Cmp(nextBookKeeper[k].X) == 0 && bk.PubKey.Y.Cmp(nextBookKeeper[k].Y) == 0 {
-						findflag = true
-						break
-					}
-				}
-
-				if !findflag {
-					needUpdateBookKeeper = true
-					nextBookKeeper = append(nextBookKeeper, bk.PubKey)
-					sort.Sort(crypto.PubKeySlice(nextBookKeeper))
-				}
-			case payload.BookKeeperAction_SUB:
-				ind := -1
-				for k := 0; k < len(nextBookKeeper); k++ {
-					if bk.PubKey.X.Cmp(nextBookKeeper[k].X) == 0 && bk.PubKey.Y.Cmp(nextBookKeeper[k].Y) == 0 {
-						ind = k
-						break
-					}
-				}
-
-				if ind != -1 {
-					needUpdateBookKeeper = true
-					// already sorted
-					nextBookKeeper = append(nextBookKeeper[:ind], nextBookKeeper[ind+1:]...)
-				}
-			}
-
-		}
-
-	}
-
-	if needUpdateBookKeeper {
-		//bookKeeper key
-		bkListKey := bytes.NewBuffer(nil)
-		bkListKey.WriteByte(byte(SYS_CurrentBookKeeper))
-
-		//bookKeeper value
-		bkListValue := bytes.NewBuffer(nil)
-
-		serialization.WriteUint8(bkListValue, uint8(len(currBookKeeper)))
-		for k := 0; k < len(currBookKeeper); k++ {
-			currBookKeeper[k].Serialize(bkListValue)
-		}
-
-		serialization.WriteUint8(bkListValue, uint8(len(nextBookKeeper)))
-		for k := 0; k < len(nextBookKeeper); k++ {
-			nextBookKeeper[k].Serialize(bkListValue)
-		}
-
-		// BookKeeper put value
-		bd.st.BatchPut(bkListKey.Bytes(), bkListValue.Bytes())
-
-		///////////////////////////////////////////////////////
-	}
-	///////////////////////////////////////////////////////
-	//*/
-
-	// batch put the utxoUnspents
-	for programHash, programHash_value := range utxoUnspents {
-		for assetId, unspents := range programHash_value {
-			err := bd.saveUnspentWithProgramHash(programHash, assetId, unspents)
-			if err != nil {
-				return err
-			}
-		}
-	}
-
-	// batch put the unspents
-	for txhash, value := range unspents {
-		unspentKey := bytes.NewBuffer(nil)
-		unspentKey.WriteByte(byte(IX_Unspent))
-		txhash.Serialize(unspentKey)
-
-		if len(value) == 0 {
-			bd.st.BatchDelete(unspentKey.Bytes())
-		} else {
-			unspentArray := ToByteArray(value)
-			bd.st.BatchPut(unspentKey.Bytes(), unspentArray)
-		}
-	}
-
-	// batch put quantities
-	for assetId, value := range quantities {
-		quantityKey := bytes.NewBuffer(nil)
-		quantityKey.WriteByte(byte(ST_QuantityIssued))
-		assetId.Serialize(quantityKey)
-
-		qt, err := bd.GetQuantityIssued(assetId)
-		if err != nil {
-			return err
-		}
-
-		qt = qt + value
-
-		quantityArray := bytes.NewBuffer(nil)
-		qt.Serialize(quantityArray)
-
-		bd.st.BatchPut(quantityKey.Bytes(), quantityArray.Bytes())
-		log.Debug(fmt.Sprintf("quantityKey: %x\n", quantityKey.Bytes()))
-		log.Debug(fmt.Sprintf("quantityArray: %x\n", quantityArray.Bytes()))
-	}
-
-	for programHash, value := range accounts {
-		accountKey := new(bytes.Buffer)
-		accountKey.WriteByte(byte(ST_ACCOUNT))
-		programHash.Serialize(accountKey)
-
-		accountValue := new(bytes.Buffer)
-		value.Serialize(accountValue)
-
-		bd.st.BatchPut(accountKey.Bytes(), accountValue.Bytes())
-	}
-
-	currentBlockKey := bytes.NewBuffer(nil)
-	currentBlockKey.WriteByte(byte(SYS_CurrentBlock))
-
-	currentBlock := bytes.NewBuffer(nil)
-	blockHash.Serialize(currentBlock)
-	serialization.WriteUint32(currentBlock, b.Blockdata.Height)
-
-	// BATCH PUT VALUE
-	bd.st.BatchPut(currentBlockKey.Bytes(), currentBlock.Bytes())
-
-	err = bd.st.BatchCommit()
-
-	if err != nil {
-		return err
-	}
+	db.BatchInit()
+	db.PersistTrimmedBlock(b)
+	db.PersistBlockHash(b)
+	db.PersistTransactions(b)
+	db.PersistUnspendUTXOs(b)
+	db.PersistUnspend(b)
+	db.PersistCurrentBlock(b)
+	db.BatchFinish()
 
 	return nil
 }
@@ -1181,6 +823,15 @@ func (self *ChainStore) SaveBlock(b *Block, ledger *Ledger) error {
 	return nil
 }
 
+func (db *ChainStore) handleRollbackBlockTask(blockHash Uint256) {
+	block, err := db.GetBlock(blockHash)
+	if err != nil {
+		log.Errorf("block %x can't be found", ToHexString(blockHash.ToArray()))
+		return
+	}
+	db.rollback(block)
+}
+
 func (self *ChainStore) handlePersistBlockTask(b *Block, ledger *Ledger) {
 
 	if b.Blockdata.Height <= self.currentBlockHeight {
@@ -1197,7 +848,7 @@ func (self *ChainStore) handlePersistBlockTask(b *Block, ledger *Ledger) {
 	if b.Blockdata.Height < uint32(len(self.headerIndex)) {
 		self.persistBlocks(ledger)
 
-		self.st.NewBatch()
+		self.NewBatch()
 		storedHeaderCount := self.storedHeaderCount
 		for self.currentBlockHeight-storedHeaderCount >= HeaderHashListCount {
 			hashBuffer := new(bytes.Buffer)
@@ -1215,11 +866,11 @@ func (self *ChainStore) handlePersistBlockTask(b *Block, ledger *Ledger) {
 			hhlPrefix.WriteByte(byte(IX_HeaderHashList))
 			serialization.WriteUint32(hhlPrefix, storedHeaderCount)
 
-			self.st.BatchPut(hhlPrefix.Bytes(), hashBuffer.Bytes())
+			self.BatchPut(hhlPrefix.Bytes(), hashBuffer.Bytes())
 			storedHeaderCount += HeaderHashListCount
 		}
 
-		err := self.st.BatchCommit()
+		err := self.BatchCommit()
 		if err != nil {
 			log.Error("failed to persist header hash list:", err)
 			return
@@ -1266,24 +917,6 @@ func (bd *ChainStore) BlockInCache(hash Uint256) bool {
 	return ok
 }
 
-func (bd *ChainStore) GetQuantityIssued(assetId Uint256) (Fixed64, error) {
-	log.Debug(fmt.Sprintf("GetQuantityIssued Hash: %x\n", assetId))
-
-	prefix := []byte{byte(ST_QuantityIssued)}
-	data, err_get := bd.st.Get(append(prefix, assetId.ToArray()...))
-	log.Debug(fmt.Sprintf("GetQuantityIssued Data: %x\n", data))
-
-	var quantity Fixed64
-	if err_get != nil {
-		quantity = Fixed64(0)
-	} else {
-		r := bytes.NewReader(data)
-		quantity.Deserialize(r)
-	}
-
-	return quantity, nil
-}
-
 func (bd *ChainStore) GetUnspent(txid Uint256, index uint16) (*tx.TxOutput, error) {
 	if ok, _ := bd.ContainsUnspent(txid, index); ok {
 		Tx, err := bd.GetTransaction(txid)
@@ -1299,7 +932,7 @@ func (bd *ChainStore) GetUnspent(txid Uint256, index uint16) (*tx.TxOutput, erro
 
 func (bd *ChainStore) ContainsUnspent(txid Uint256, index uint16) (bool, error) {
 	unspentPrefix := []byte{byte(IX_Unspent)}
-	unspentValue, err_get := bd.st.Get(append(unspentPrefix, txid.ToArray()...))
+	unspentValue, err_get := bd.Get(append(unspentPrefix, txid.ToArray()...))
 
 	if err_get != nil {
 		return false, err_get
@@ -1346,21 +979,6 @@ func (bd *ChainStore) GetHeight() uint32 {
 	return bd.currentBlockHeight
 }
 
-func (bd *ChainStore) GetAccount(programHash Uint160) (*account.AccountState, error) {
-	accountPrefix := []byte{byte(ST_ACCOUNT)}
-
-	state, err := bd.st.Get(append(accountPrefix, programHash.ToArray()...))
-
-	if err != nil {
-		return nil, err
-	}
-
-	accountState := new(account.AccountState)
-	accountState.Deserialize(bytes.NewBuffer(state))
-
-	return accountState, nil
-}
-
 func (bd *ChainStore) IsBlockInStore(hash Uint256) bool {
 
 	var b *Block = new(Block)
@@ -1369,7 +987,7 @@ func (bd *ChainStore) IsBlockInStore(hash Uint256) bool {
 	b.Blockdata.Program = new(program.Program)
 
 	prefix := []byte{byte(DATA_Header)}
-	blockData, err_get := bd.st.Get(append(prefix, hash.ToArray()...))
+	blockData, err_get := bd.Get(append(prefix, hash.ToArray()...))
 	if err_get != nil {
 		return false
 	}
@@ -1401,7 +1019,7 @@ func (bd *ChainStore) GetUnspentFromProgramHash(programHash Uint160, assetid Uin
 
 	key := append(prefix, programHash.ToArray()...)
 	key = append(key, assetid.ToArray()...)
-	unspentsData, err := bd.st.Get(key)
+	unspentsData, err := bd.Get(key)
 	if err != nil {
 		return nil, err
 	}
@@ -1429,7 +1047,7 @@ func (bd *ChainStore) GetUnspentFromProgramHash(programHash Uint160, assetid Uin
 	return unspents, nil
 }
 
-func (bd *ChainStore) saveUnspentWithProgramHash(programHash Uint160, assetid Uint256, unspents []*tx.UTXOUnspent) error {
+func (bd *ChainStore) PersistUnspentWithProgramHash(programHash Uint160, assetid Uint256, unspents []*tx.UTXOUnspent) error {
 	prefix := []byte{byte(IX_Unspent_UTXO)}
 
 	key := append(prefix, programHash.ToArray()...)
@@ -1443,8 +1061,7 @@ func (bd *ChainStore) saveUnspentWithProgramHash(programHash Uint160, assetid Ui
 	}
 
 	// BATCH PUT VALUE
-	err := bd.st.BatchPut(key, w.Bytes())
-	if err != nil {
+	if err := bd.BatchPut(key, w.Bytes()); err != nil {
 		return err
 	}
 
@@ -1456,7 +1073,7 @@ func (bd *ChainStore) GetUnspentsFromProgramHash(programHash Uint160) (map[Uint2
 
 	prefix := []byte{byte(IX_Unspent_UTXO)}
 	key := append(prefix, programHash.ToArray()...)
-	iter := bd.st.NewIterator(key)
+	iter := bd.NewIterator(key)
 	for iter.Next() {
 		rk := bytes.NewReader(iter.Key())
 
@@ -1494,7 +1111,7 @@ func (bd *ChainStore) GetUnspentsFromProgramHash(programHash Uint160) (map[Uint2
 func (bd *ChainStore) GetAssets() map[Uint256]*Asset {
 	assets := make(map[Uint256]*Asset)
 
-	iter := bd.st.NewIterator([]byte{byte(ST_Info)})
+	iter := bd.NewIterator([]byte{byte(ST_Info)})
 	for iter.Next() {
 		rk := bytes.NewReader(iter.Key())
 

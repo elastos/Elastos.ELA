@@ -2,7 +2,6 @@ package ledger
 
 import (
 	. "DNA_POW/common"
-	"DNA_POW/core/account"
 	. "DNA_POW/core/asset"
 	tx "DNA_POW/core/transaction"
 	"DNA_POW/crypto"
@@ -24,10 +23,8 @@ type ILedgerStore interface {
 
 	GetTransaction(hash Uint256) (*tx.Transaction, error)
 
-	SaveAsset(assetid Uint256, asset *Asset) error
+	PersistAsset(assetid Uint256, asset *Asset) error
 	GetAsset(hash Uint256) (*Asset, error)
-
-	GetAccount(programHash Uint160) (*account.AccountState, error)
 
 	GetCurrentBlockHash() Uint256
 	GetCurrentHeaderHash() Uint256
@@ -37,8 +34,6 @@ type ILedgerStore interface {
 
 	GetBookKeeperList() ([]*crypto.PubKey, []*crypto.PubKey, error)
 	InitLedgerStoreWithGenesisBlock(genesisblock *Block, defaultBookKeeper []*crypto.PubKey) (uint32, error)
-
-	GetQuantityIssued(assetid Uint256) (Fixed64, error)
 
 	GetUnspent(txid Uint256, index uint16) (*tx.TxOutput, error)
 	ContainsUnspent(txid Uint256, index uint16) (bool, error)

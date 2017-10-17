@@ -6,7 +6,6 @@ import (
 	"DNA_POW/common/log"
 	"DNA_POW/core/ledger"
 	"DNA_POW/core/transaction"
-	"DNA_POW/core/transaction/payload"
 	va "DNA_POW/core/validation"
 	. "DNA_POW/errors"
 	"fmt"
@@ -15,10 +14,10 @@ import (
 
 type TXNPool struct {
 	sync.RWMutex
-	txnCnt        uint64                                      // count
-	txnList       map[common.Uint256]*transaction.Transaction // transaction which have been verifyed will put into this map
-	issueSummary  map[common.Uint256]common.Fixed64           // transaction which pass the verify will summary the amout to this map
-	inputUTXOList map[string]*transaction.Transaction         // transaction which pass the verify will add the UTXO to this map
+	txnCnt  uint64                                      // count
+	txnList map[common.Uint256]*transaction.Transaction // transaction which have been verifyed will put into this map
+	//issueSummary  map[common.Uint256]common.Fixed64           // transaction which pass the verify will summary the amout to this map
+	inputUTXOList map[string]*transaction.Transaction // transaction which pass the verify will add the UTXO to this map
 }
 
 func (this *TXNPool) init() {
@@ -26,7 +25,7 @@ func (this *TXNPool) init() {
 	defer this.Unlock()
 	this.txnCnt = 0
 	this.inputUTXOList = make(map[string]*transaction.Transaction)
-	this.issueSummary = make(map[common.Uint256]common.Fixed64)
+	//this.issueSummary = make(map[common.Uint256]common.Fixed64)
 	this.txnList = make(map[common.Uint256]*transaction.Transaction)
 }
 
@@ -78,7 +77,7 @@ func (this *TXNPool) GetTxnPool(byCount bool) map[common.Uint256]*transaction.Tr
 func (this *TXNPool) CleanSubmittedTransactions(block *ledger.Block) error {
 	this.cleanTransactionList(block.Transactions)
 	this.cleanUTXOList(block.Transactions)
-	this.cleanIssueSummary(block.Transactions)
+	//this.cleanIssueSummary(block.Transactions)
 	return nil
 }
 
@@ -97,12 +96,14 @@ func (this *TXNPool) verifyTransactionWithTxnPool(txn *transaction.Transaction) 
 		log.Info(fmt.Sprintf("txn=%x duplicateTxn UTXO occurs with txn in pool=%x,keep the latest one.", txn.Hash(), duplicateTxn.Hash()))
 		this.removeTransaction(duplicateTxn)
 	}
-	//check issue transaction weather occur exceed issue range.
-	if ok := this.summaryAssetIssueAmount(txn); !ok {
-		log.Info(fmt.Sprintf("Check summary Asset Issue Amount failed with txn=%x", txn.Hash()))
-		this.removeTransaction(txn)
-		return false
-	}
+	/*
+		//check issue transaction weather occur exceed issue range.
+		if ok := this.summaryAssetIssueAmount(txn); !ok {
+			log.Info(fmt.Sprintf("Check summary Asset Issue Amount failed with txn=%x", txn.Hash()))
+			this.removeTransaction(txn)
+			return false
+		}
+	*/
 	return true
 }
 
@@ -119,14 +120,16 @@ func (this *TXNPool) removeTransaction(txn *transaction.Transaction) {
 	for UTXOTxInput, _ := range result {
 		this.delInputUTXOList(UTXOTxInput)
 	}
-	//3.remove From Asset Issue Summary map
-	if txn.TxType != transaction.IssueAsset {
-		return
-	}
-	transactionResult := txn.GetMergedAssetIDValueFromOutputs()
-	for k, delta := range transactionResult {
-		this.decrAssetIssueAmountSummary(k, delta)
-	}
+	/*
+		//3.remove From Asset Issue Summary map
+		if txn.TxType != transaction.IssueAsset {
+			return
+		}
+		transactionResult := txn.GetMergedAssetIDValueFromOutputs()
+		for k, delta := range transactionResult {
+			this.decrAssetIssueAmountSummary(k, delta)
+		}
+	*/
 }
 
 //check and add to utxo list pool
@@ -155,6 +158,7 @@ func (this *TXNPool) cleanUTXOList(txs []*transaction.Transaction) {
 	}
 }
 
+/*
 //check and summary to issue amount Pool
 func (this *TXNPool) summaryAssetIssueAmount(txn *transaction.Transaction) bool {
 	if txn.TxType != transaction.IssueAsset {
@@ -197,6 +201,7 @@ func (this *TXNPool) summaryAssetIssueAmount(txn *transaction.Transaction) bool 
 	}
 	return true
 }
+*/
 
 // clean the trasaction Pool with committed transactions.
 func (this *TXNPool) cleanTransactionList(txns []*transaction.Transaction) error {
@@ -287,6 +292,7 @@ func (this *TXNPool) delInputUTXOList(input *transaction.UTXOTxInput) bool {
 	return true
 }
 
+/*
 func (this *TXNPool) incrAssetIssueAmountSummary(assetId common.Uint256, delta common.Fixed64) {
 	this.Lock()
 	defer this.Unlock()
@@ -323,3 +329,4 @@ func (this *TXNPool) getAssetIssueAmount(assetId common.Uint256) common.Fixed64 
 	defer this.RUnlock()
 	return this.issueSummary[assetId]
 }
+*/

@@ -44,7 +44,7 @@ const (
 	MINCONNCNT        = 3
 	MAXREQBLKONCE     = 16
 	TIMESOFUPDATETIME = 2
-	MAXCACHEHASH  = 16
+	MAXCACHEHASH      = 16
 )
 
 const (
@@ -62,10 +62,10 @@ const (
 	MAXRETRYCOUNT        = 3
 	MAXSYNCHDRREQ        = 2 //Max Concurrent Sync Header Request
 	NEEDADDRESSTHRESHOLD = 1000
-	MAXOUTBOUNDCNT       = 4
-	DEFAULTMAXPEERS      = 6
+	MAXOUTBOUNDCNT       = 8
+	DEFAULTMAXPEERS      = 125
 	GETADDRMAX           = 2500
-	MAXIDCACHED      = 5000
+	MAXIDCACHED          = 5000
 )
 
 // The node state

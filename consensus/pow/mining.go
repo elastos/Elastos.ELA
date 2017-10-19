@@ -16,14 +16,28 @@ const (
 )
 
 func (pow *PowService) ZMQClientSend(MsgBlock ledger.Block) {
-	requester, _ := zmq.NewSocket(zmq.REQ)
+	requester, err := zmq.NewSocket(zmq.REQ)
 	defer requester.Close()
+	if nil != err {
+		log.Error("New ZMQ socket err", err.Error())
+		return
+	}
 
 	serverIP := fmt.Sprintf("tcp://%s:%d", config.Parameters.PowConfiguration.MiningServerIP,
 		config.Parameters.PowConfiguration.MiningServerPort)
 
-	requester.Connect(serverIP)
-	requester.Send("Hello world", 0)
+	err = requester.Connect(serverIP)
+	if nil != err {
+		log.Error("ZMQ Connect err", err.Error())
+		return
+	}
+
+	_, err = requester.Send("Hello world", zmq.SNDMORE)
+	if nil != err {
+		log.Error("ZMQ Send err", err.Error())
+	}
+
+	requester.Disconnect(serverIP)
 }
 
 func (pow *PowService) ZMQServer() {

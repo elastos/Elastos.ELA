@@ -139,7 +139,7 @@ func (bc *Blockchain) GetHeader(hash Uint256) (*Header, error) {
 
 func (bc *Blockchain) ContainsTransaction(hash Uint256) bool {
 	//TODO: implement error catch
-	_, err := DefaultLedger.Store.GetTransaction(hash)
+	_, _, err := DefaultLedger.Store.GetTransaction(hash)
 	if err != nil {
 		return false
 	}

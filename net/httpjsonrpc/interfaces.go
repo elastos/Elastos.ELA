@@ -249,7 +249,7 @@ func getRawTransaction(params []interface{}) map[string]interface{} {
 		if err != nil {
 			return DnaRpcInvalidTransaction
 		}
-		tx, err := ledger.DefaultLedger.Store.GetTransaction(hash)
+		tx, _, err := ledger.DefaultLedger.Store.GetTransaction(hash)
 		if err != nil {
 			return DnaRpcUnknownTransaction
 		}
@@ -645,7 +645,7 @@ func catDataRecord(params []interface{}) map[string]interface{} {
 		if err != nil {
 			return DnaRpcInvalidTransaction
 		}
-		tx, err := ledger.DefaultLedger.Store.GetTransaction(hash)
+		tx, _, err := ledger.DefaultLedger.Store.GetTransaction(hash)
 		if err != nil {
 			return DnaRpcUnknownTransaction
 		}
@@ -674,7 +674,7 @@ func getDataFile(params []interface{}) map[string]interface{} {
 		if err != nil {
 			return DnaRpcInvalidTransaction
 		}
-		tx, err := ledger.DefaultLedger.Store.GetTransaction(hash)
+		tx, _, err := ledger.DefaultLedger.Store.GetTransaction(hash)
 		if err != nil {
 			return DnaRpcUnknownTransaction
 		}

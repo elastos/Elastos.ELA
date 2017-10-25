@@ -85,14 +85,16 @@ type Transactions struct {
 	AssetOutputs      []TxoutputMap
 	AssetInputAmount  []AmountMap
 	AssetOutputAmount []AmountMap
-
-	Hash string
+	Timestamp         uint32 `json:",omitempty"`
+	Confirminations   uint32 `json:",omitempty"`
+	Hash              string
 }
 
 type BlockHead struct {
 	Version          uint32
 	PrevBlockHash    string
 	TransactionsRoot string
+	Difficulty       string
 	Timestamp        uint32
 	Height           uint32
 	ConsensusData    uint64
@@ -103,9 +105,10 @@ type BlockHead struct {
 }
 
 type BlockInfo struct {
-	Hash         string
-	BlockData    *BlockHead
-	Transactions []*Transactions
+	Hash            string
+	BlockData       *BlockHead
+	Transactions    []*Transactions
+	Confirminations uint32
 }
 
 type TxInfo struct {

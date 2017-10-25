@@ -489,39 +489,25 @@ func (bd *ChainStore) GetAsset(hash Uint256) (*Asset, error) {
 	return asset, nil
 }
 
-func (bd *ChainStore) GetTransaction(hash Uint256) (*tx.Transaction, error) {
-	log.Debugf("GetTransaction Hash: %x\n", hash)
-
-	t := new(tx.Transaction)
-	err := bd.getTx(t, hash)
-
+func (bd *ChainStore) GetTransaction(hash Uint256) (*tx.Transaction, uint32, error) {
+	key := append([]byte{byte(DATA_Transaction)}, hash.ToArray()...)
+	value, err := bd.Get(key)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
-	return t, nil
-}
-
-func (bd *ChainStore) getTx(tx *tx.Transaction, hash Uint256) error {
-	prefix := []byte{byte(DATA_Transaction)}
-	tHash, err_get := bd.Get(append(prefix, hash.ToArray()...))
-	if err_get != nil {
-		//TODO: implement error process
-		return err_get
-	}
-
-	r := bytes.NewReader(tHash)
-
-	// get height
-	_, err := serialization.ReadUint32(r)
+	r := bytes.NewReader(value)
+	height, err := serialization.ReadUint32(r)
 	if err != nil {
-		return err
+		return nil, 0, err
 	}
 
-	// Deserialize Transaction
-	err = tx.Deserialize(r)
+	var txn tx.Transaction
+	if err := txn.Deserialize(r); err != nil {
+		return nil, height, err
+	}
 
-	return err
+	return &txn, height, nil
 }
 
 func (bd *ChainStore) PersistTransaction(tx *tx.Transaction, height uint32) error {
@@ -557,31 +543,29 @@ func (bd *ChainStore) GetBlock(hash Uint256) (*Block, error) {
 	b.Blockdata.Program = new(program.Program)
 
 	prefix := []byte{byte(DATA_Header)}
-	bHash, err_get := bd.Get(append(prefix, hash.ToArray()...))
-	if err_get != nil {
-		//TODO: implement error process
-		return nil, err_get
+	bHash, err := bd.Get(append(prefix, hash.ToArray()...))
+	if err != nil {
+		return nil, err
 	}
 
 	r := bytes.NewReader(bHash)
 
 	// first 8 bytes is sys_fee
-	_, err := serialization.ReadUint64(r)
+	_, err = serialization.ReadUint64(r)
 	if err != nil {
 		return nil, err
 	}
 
 	// Deserialize block data
-	err = b.FromTrimmedData(r)
-	if err != nil {
+	if err := b.FromTrimmedData(r); err != nil {
 		return nil, err
 	}
 
 	// Deserialize transaction
-	for i := 0; i < len(b.Transactions); i++ {
-		err = bd.getTx(b.Transactions[i], b.Transactions[i].Hash())
+	for i, txn := range b.Transactions {
+		tmp, _, err := bd.GetTransaction(txn.Hash())
 		if err != nil {
-			return nil, err
+			b.Transactions[i] = tmp
 		}
 	}
 
@@ -817,7 +801,7 @@ func (bd *ChainStore) BlockInCache(hash Uint256) bool {
 
 func (bd *ChainStore) GetUnspent(txid Uint256, index uint16) (*tx.TxOutput, error) {
 	if ok, _ := bd.ContainsUnspent(txid, index); ok {
-		Tx, err := bd.GetTransaction(txid)
+		Tx, _, err := bd.GetTransaction(txid)
 		if err != nil {
 			return nil, err
 		}

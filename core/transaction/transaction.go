@@ -333,7 +333,7 @@ func (tx *Transaction) GetProgramHashes() ([]Uint160, error) {
 			return nil, NewDetailErr(err, ErrNoCode, "[Transaction], GetTransactionResults failed.")
 		}
 		for k := range result {
-			tx, err := TxStore.GetTransaction(k)
+			tx, _, err := TxStore.GetTransaction(k)
 			if err != nil {
 				return nil, NewDetailErr(err, ErrNoCode, fmt.Sprintf("[Transaction], GetTransaction failed With AssetID:=%x", k))
 			}
@@ -456,7 +456,7 @@ func (tx *Transaction) GetReference() (map[*UTXOTxInput]*TxOutput, error) {
 	reference := make(map[*UTXOTxInput]*TxOutput)
 	// Key index，v UTXOInput
 	for _, utxo := range tx.UTXOInputs {
-		transaction, err := TxStore.GetTransaction(utxo.ReferTxID)
+		transaction, _, err := TxStore.GetTransaction(utxo.ReferTxID)
 		if err != nil {
 			return nil, NewDetailErr(err, ErrNoCode, "[Transaction], GetReference failed.")
 		}

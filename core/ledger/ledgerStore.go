@@ -21,8 +21,10 @@ type ILedgerStore interface {
 	//SaveHeader(header *Header,ledger *Ledger) error
 	AddHeaders(headers []Header, ledger *Ledger) error
 	GetHeader(hash Uint256) (*Header, error)
+
 	RollbackBlock(blockHash Uint256) error
-	GetTransaction(hash Uint256) (*tx.Transaction, error)
+
+	GetTransaction(hash Uint256) (*tx.Transaction, uint32, error)
 
 	PersistAsset(assetid Uint256, asset *Asset) error
 	GetAsset(hash Uint256) (*Asset, error)

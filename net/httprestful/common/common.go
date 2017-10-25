@@ -97,6 +97,7 @@ func GetBlockInfo(block *ledger.Block) BlockInfo {
 		Version:          block.Blockdata.Version,
 		PrevBlockHash:    BytesToHexString(block.Blockdata.PrevBlockHash.ToArrayReverse()),
 		TransactionsRoot: BytesToHexString(block.Blockdata.TransactionsRoot.ToArrayReverse()),
+		Difficulty:       strconv.FormatUint(uint64(block.Blockdata.Bits), 16),
 		Timestamp:        block.Blockdata.Timestamp,
 		Height:           block.Blockdata.Height,
 		ConsensusData:    block.Blockdata.ConsensusData,
@@ -114,9 +115,10 @@ func GetBlockInfo(block *ledger.Block) BlockInfo {
 	}
 
 	b := BlockInfo{
-		Hash:         BytesToHexString(hash.ToArrayReverse()),
-		BlockData:    blockHead,
-		Transactions: trans,
+		Hash:            BytesToHexString(hash.ToArrayReverse()),
+		BlockData:       blockHead,
+		Transactions:    trans,
+		Confirminations: ledger.DefaultLedger.Blockchain.BlockHeight - block.Blockdata.Height + 1,
 	}
 	return b
 }
@@ -414,19 +416,22 @@ func GetTransactionByHash(cmd map[string]interface{}) map[string]interface{} {
 		resp["Error"] = Err.INVALID_TRANSACTION
 		return resp
 	}
-	tx, err := ledger.DefaultLedger.Store.GetTransaction(hash)
+	txn, height, err := ledger.DefaultLedger.Store.GetTransaction(hash)
 	if err != nil {
 		resp["Error"] = Err.UNKNOWN_TRANSACTION
 		return resp
 	}
 	if raw, ok := cmd["Raw"].(string); ok && raw == "1" {
 		w := bytes.NewBuffer(nil)
-		tx.Serialize(w)
+		txn.Serialize(w)
 		resp["Result"] = BytesToHexString(w.Bytes())
 		return resp
 	}
-	tran := TransArryByteToHexString(tx)
-	resp["Result"] = tran
+	t := TransArryByteToHexString(txn)
+	t.Timestamp = 123
+	t.Confirminations = ledger.DefaultLedger.Blockchain.BlockHeight - height + 1
+
+	resp["Result"] = t
 	return resp
 }
 func SendRawTransaction(cmd map[string]interface{}) map[string]interface{} {

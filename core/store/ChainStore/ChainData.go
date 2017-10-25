@@ -152,7 +152,7 @@ func (db *ChainStore) PersistUnspendUTXOs(b *Block) error {
 
 		if !txn.IsCoinBaseTx() {
 			for _, input := range txn.UTXOInputs {
-				referTxn, err := db.GetTransaction(input.ReferTxID)
+				referTxn, _, err := db.GetTransaction(input.ReferTxID)
 				if err != nil {
 					return err
 				}
@@ -235,7 +235,7 @@ func (db *ChainStore) RollbackUnspendUTXOs(b *Block) error {
 
 		if !txn.IsCoinBaseTx() {
 			for _, input := range txn.UTXOInputs {
-				referTxn, err := db.GetTransaction(input.ReferTxID)
+				referTxn, _, err := db.GetTransaction(input.ReferTxID)
 				if err != nil {
 					return err
 				}

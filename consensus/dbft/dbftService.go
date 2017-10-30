@@ -153,7 +153,7 @@ func (ds *DbftService) CheckSignatures() error {
 		hash := block.Hash()
 		if !ledger.DefaultLedger.BlockInLedger(hash) {
 			// save block
-			if err := ledger.DefaultLedger.Blockchain.AddBlock(block); err != nil {
+			if _, _, err := ledger.DefaultLedger.Blockchain.AddBlock(block); err != nil {
 				log.Error(fmt.Sprintf("[CheckSignatures] Xmit block Error: %s, blockHash: %d", err.Error(), block.Hash()))
 				return NewDetailErr(err, ErrNoCode, "[DbftService], CheckSignatures AddContract failed.")
 			}

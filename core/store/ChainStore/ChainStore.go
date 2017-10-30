@@ -201,6 +201,7 @@ func (bd *ChainStore) InitLedgerStoreWithGenesisBlock(genesisBlock *Block, defau
 		return 0, errors.New("bookkeepers are not consistent with the chain")
 	}
 	bd.ledger.Blockchain.GenesisHash = hash
+	bd.headerIndex[0] = hash
 	log.Trace("hash2: ", hash)
 
 	// Get Current Block
@@ -1027,29 +1028,29 @@ func (bd *ChainStore) ContainsUnspent(txid Uint256, index uint16) (bool, error) 
 func (bd *ChainStore) GetCurrentHeaderHash() Uint256 {
 	bd.mu.RLock()
 	defer bd.mu.RUnlock()
-	return bd.GetCurrentBlockHash()
-	//return bd.headerIndex[uint32(len(bd.headerIndex)-1)]
+	//return bd.GetCurrentBlockHash()
+	return bd.headerIndex[uint32(len(bd.headerIndex)-1)]
 }
 
 func (bd *ChainStore) GetHeaderHashByHeight(height uint32) Uint256 {
 	bd.mu.RLock()
 	defer bd.mu.RUnlock()
 
-	//return bd.headerIndex[height]
-	hash, err := bd.GetBlockHash(height)
-	if err != nil {
-		return Uint256{}
-	}
-	return hash
+	return bd.headerIndex[height]
+	//hash, err := bd.GetBlockHash(height)
+	//if err != nil {
+	//	return Uint256{}
+	//}
+	//return hash
 }
 
 func (bd *ChainStore) GetHeaderHeight() uint32 {
 	bd.mu.RLock()
 	defer bd.mu.RUnlock()
 
-	return bd.currentBlockHeight
+	//return bd.currentBlockHeight
 
-	//return uint32(len(bd.headerIndex) - 1)
+	return uint32(len(bd.headerIndex) - 1)
 
 }
 

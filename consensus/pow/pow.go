@@ -298,7 +298,7 @@ out:
 			if msgBlock.Blockdata.Height == ledger.DefaultLedger.Blockchain.GetBestHeight()+1 {
 				log.Trace(msgBlock)
 
-				if err := ledger.DefaultLedger.Blockchain.AddBlock(msgBlock); err != nil {
+				if _, _, err := ledger.DefaultLedger.Blockchain.AddBlock(msgBlock); err != nil {
 					log.Trace(err)
 					return
 				}

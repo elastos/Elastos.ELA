@@ -303,7 +303,7 @@ func submitBlock(params []interface{}) map[string]interface{} {
 		if err := block.Deserialize(bytes.NewReader(hex)); err != nil {
 			return DnaRpcInvalidBlock
 		}
-		if err := ledger.DefaultLedger.Blockchain.AddBlock(&block); err != nil {
+		if _, _, err := ledger.DefaultLedger.Blockchain.AddBlock(&block); err != nil {
 			return DnaRpcInvalidBlock
 		}
 		if err := node.Xmit(&block); err != nil {
@@ -422,7 +422,7 @@ func submitAuxBlock(params []interface{}) map[string]interface{} {
 		temp, _ := HexStringToBytes(auxPow)
 		r := bytes.NewBuffer(temp)
 		Pow.MsgBlock.Blockdata.AuxPow.Deserialize(r)
-		err := ledger.DefaultLedger.Blockchain.AddBlock(Pow.MsgBlock)
+		_, _, err := ledger.DefaultLedger.Blockchain.AddBlock(Pow.MsgBlock)
 		if err != nil {
 			log.Trace(err)
 		}

@@ -95,17 +95,17 @@ func (bc *Blockchain) UpdateBestHeight(val uint32) {
 	//defer bc.mutex.Unlock()
 	bc.BlockHeight = val
 }
-func (bc *Blockchain) AddBlock(block *Block) error {
+func (bc *Blockchain) AddBlock(block *Block) (bool, bool, error) {
 	log.Debug()
 	bc.mutex.Lock()
 	defer bc.mutex.Unlock()
 
-	_, _, err := bc.ProcessBlock(block, bc.TimeSource)
+	inMainChain, isOrphan, err := bc.ProcessBlock(block, bc.TimeSource)
 	if err != nil {
-		return err
+		return false, false, err
 	}
 
-	return nil
+	return inMainChain, isOrphan, nil
 }
 
 func (bc *Blockchain) GetHeader(hash Uint256) (*Header, error) {
@@ -167,7 +167,7 @@ func (bc *Blockchain) ProcessOrphans(hash *Uint256) error {
 			bc.RemoveOrphanBlock(orphan)
 			i--
 
-			err := bc.maybeAcceptBlock(orphan.Block)
+			_, err := bc.maybeAcceptBlock(orphan.Block)
 			if err != nil {
 				return err
 			}
@@ -786,14 +786,14 @@ func (bc *Blockchain) BlockExists(hash *Uint256) (bool, error) {
 //	return nil
 //}
 
-func (bc *Blockchain) maybeAcceptBlock(block *Block) error {
+func (bc *Blockchain) maybeAcceptBlock(block *Block) (bool, error) {
 
 	// Get a block node for the block previous to this one.  Will be nil
 	// if this is the genesis block.
 	prevNode, err := bc.GetPrevNodeFromBlock(block)
 	if err != nil {
 		log.Errorf("getPrevNodeFromBlock: %v", err)
-		return err
+		return false, err
 	}
 	fmt.Println("prevNode hash", prevNode.Hash)
 
@@ -806,7 +806,7 @@ func (bc *Blockchain) maybeAcceptBlock(block *Block) error {
 	fmt.Println("block height:", blockHeight)
 
 	if block.Blockdata.Height != blockHeight {
-		return fmt.Errorf("wrong block height!")
+		return false, fmt.Errorf("wrong block height!")
 	}
 	fmt.Println("block height2:", block.Blockdata.Height)
 
@@ -816,14 +816,14 @@ func (bc *Blockchain) maybeAcceptBlock(block *Block) error {
 	err = bc.Ledger.Store.PowCheckBlockContext(block, prevNode, bc.Ledger)
 	if err != nil {
 		log.Error("PowCheckBlockContext error!")
-		return err
+		return false, err
 	}
 
 	// Prune block nodes which are no longer needed before creating
 	// a new node.
 	err = bc.PruneBlockNodes()
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	// Create a new block node for the block and add it to the in-memory
@@ -840,9 +840,9 @@ func (bc *Blockchain) maybeAcceptBlock(block *Block) error {
 	// Connect the passed block to the chain while respecting proper chain
 	// selection according to the chain with the most proof of work.  This
 	// also handles validation of the transaction scripts.
-	err = bc.ConnectBestChain(newNode, block)
+	inMainChain, err := bc.ConnectBestChain(newNode, block)
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	//// Notify the caller that the new block was accepted into the block
@@ -850,10 +850,10 @@ func (bc *Blockchain) maybeAcceptBlock(block *Block) error {
 	//// inventory to other peers.
 	////b.sendNotification(NTBlockAccepted, block)
 
-	return nil
+	return inMainChain, nil
 }
 
-func (bc *Blockchain) ConnectBestChain(node *BlockNode, block *Block) error {
+func (bc *Blockchain) ConnectBestChain(node *BlockNode, block *Block) (bool, error) {
 	// We haven't selected a best chain yet or we are extending the main
 	// (best) chain with a new block.  This is the most common case.
 
@@ -871,7 +871,7 @@ func (bc *Blockchain) ConnectBestChain(node *BlockNode, block *Block) error {
 		// Connect the block to the main chain.
 		err := bc.ConnectBlock(node, block)
 		if err != nil {
-			return err
+			return false, err
 		}
 
 		// Connect the parent node to this node.
@@ -879,7 +879,7 @@ func (bc *Blockchain) ConnectBestChain(node *BlockNode, block *Block) error {
 			node.Parent.Children = append(node.Parent.Children, node)
 		}
 
-		return nil
+		return true, nil
 	}
 
 	// We're extending (or creating) a side chain which may or may not
@@ -919,7 +919,7 @@ func (bc *Blockchain) ConnectBestChain(node *BlockNode, block *Block) error {
 				node.Hash, fork.Height, fork.Hash)
 		}
 
-		return nil
+		return false, nil
 	}
 
 	// We're extending (or creating) a side chain and the cumulative work
@@ -945,12 +945,16 @@ func (bc *Blockchain) ConnectBestChain(node *BlockNode, block *Block) error {
 	fmt.Printf("REORGANIZE: Block %v is causing a reorganize.", node.Hash)
 	err := bc.ReorganizeChain(detachNodes, attachNodes)
 	if err != nil {
-		return err
+		return false, err
 	}
 
-	return nil
+	return true, nil
 }
 
+//(bool, bool, error)
+//1. inMainChain
+//2. isOphan
+//3. error
 func (bc *Blockchain) ProcessBlock(block *Block, timeSource MedianTimeSource) (bool, bool, error) {
 	blockHash := block.Hash()
 	//log.Tracef("[ProcessBLock] 1. blockhash = %v", blockHash)
@@ -998,13 +1002,13 @@ func (bc *Blockchain) ProcessBlock(block *Block, timeSource MedianTimeSource) (b
 			fmt.Printf("Adding orphan block %v with parent %v", blockHash, prevHash)
 			bc.AddOrphanBlock(block)
 
-			return true, false, nil
+			return false, true, nil
 		}
 	}
 
 	//The block has passed all context independent checks and appears sane
 	//enough to potentially accept it into the block chain.
-	err = bc.maybeAcceptBlock(block)
+	inMainChain, err := bc.maybeAcceptBlock(block)
 	if err != nil {
 		return false, true, err
 	}
@@ -1014,12 +1018,13 @@ func (bc *Blockchain) ProcessBlock(block *Block, timeSource MedianTimeSource) (b
 	// there are no more.
 	err = bc.ProcessOrphans(&blockHash)
 	if err != nil {
+		//TODO inMainChain or not
 		return false, false, err
 	}
 
 	//log.Debugf("Accepted block %v", blockHash)
 
-	return false, false, nil
+	return inMainChain, false, nil
 }
 
 //func (bc *Blockchain) DumpState() {
@@ -1160,17 +1165,15 @@ func (b *Blockchain) BlockLocatorFromHash(hash *Uint256) BlockLocator {
 
 	return locator
 }
-func (b *Blockchain) LatestLocatorHeight(locator BlockLocator) int32 {
-	startIdx := int32(1)
+func (b *Blockchain) LatestLocatorHash(locator BlockLocator) Uint256 {
+	var startHash Uint256
 	for _, hash := range locator {
-		//TODO
-		//block, err := ledger.DefaultLedger.Store.GetBlock(*hash)
-		block, err := b.Ledger.Store.GetBlock(*hash)
+		_, err := b.Ledger.Store.GetBlock(*hash)
 		if err == nil {
-			startIdx = int32(block.Blockdata.Height) + 1
+			startHash = *hash
 			break
 		}
 	}
 
-	return startIdx
+	return startHash
 }

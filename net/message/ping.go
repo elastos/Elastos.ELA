@@ -19,7 +19,7 @@ func NewPingMsg() ([]byte, error) {
 	var msg ping
 	msg.msgHdr.Magic = NETMAGIC
 	copy(msg.msgHdr.CMD[0:7], "ping")
-	msg.height = uint64(ledger.DefaultLedger.Store.GetHeaderHeight())
+	msg.height = uint64(ledger.DefaultLedger.Store.GetHeight())
 	tmpBuffer := bytes.NewBuffer([]byte{})
 	serialization.WriteUint64(tmpBuffer, msg.height)
 	b := new(bytes.Buffer)

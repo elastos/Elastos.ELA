@@ -1088,7 +1088,7 @@ func DumpBlockNode(node *BlockNode) {
 
 const MaxBlockLocatorsPerMsg = 500
 
-type BlockLocator []*Uint256
+type BlockLocator []Uint256
 
 func (b *Blockchain) LatestBlockLocator() (BlockLocator, error) {
 	if b.BestChain == nil {
@@ -1107,7 +1107,7 @@ func (b *Blockchain) LatestBlockLocator() (BlockLocator, error) {
 func (b *Blockchain) BlockLocatorFromHash(hash *Uint256) BlockLocator {
 	// The locator contains the requested hash at the very least.
 	locator := make(BlockLocator, 0, MaxBlockLocatorsPerMsg)
-	locator = append(locator, hash)
+	locator = append(locator, *hash)
 
 	// Nothing more to do if a locator for the genesis hash was requested.
 	if hash.CompareTo(b.GenesisHash) == 0 {
@@ -1157,20 +1157,20 @@ func (b *Blockchain) BlockLocatorFromHash(hash *Uint256) BlockLocator {
 			continue
 		}
 
-		locator = append(locator, &h)
+		locator = append(locator, h)
 	}
 
 	// Append the appropriate genesis block.
-	locator = append(locator, &b.GenesisHash)
+	locator = append(locator, b.GenesisHash)
 
 	return locator
 }
 func (b *Blockchain) LatestLocatorHash(locator BlockLocator) Uint256 {
 	var startHash Uint256
 	for _, hash := range locator {
-		_, err := b.Ledger.Store.GetBlock(*hash)
+		_, err := b.Ledger.Store.GetBlock(hash)
 		if err == nil {
-			startHash = *hash
+			startHash = hash
 			break
 		}
 	}

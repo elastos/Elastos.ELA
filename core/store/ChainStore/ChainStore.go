@@ -314,7 +314,15 @@ func (bd *ChainStore) GetBlockHash(height uint32) (Uint256, error) {
 
 	return blockHash256, nil
 }
+func (bd *ChainStore) getHeaderWithCache(hash Uint256) *Header {
+	if _, ok := bd.headerCache[hash]; ok {
+		return bd.headerCache[hash]
+	}
 
+	header, _ := bd.GetHeader(hash)
+
+	return header
+}
 func (bd *ChainStore) GetCurrentBlockHash() Uint256 {
 	hash, err := bd.GetBlockHash(bd.currentBlockHeight)
 	if err != nil {
@@ -353,7 +361,8 @@ func (bd *ChainStore) verifyHeader(header *Header) bool {
 }
 
 func (bd *ChainStore) powVerifyHeader(header *Header) bool {
-	prevHeader, _ := bd.GetHeader(header.Blockdata.PrevBlockHash)
+	//prevHeader, _ := bd.GetHeader(header.Blockdata.PrevBlockHash)
+	prevHeader := bd.getHeaderWithCache(header.Blockdata.PrevBlockHash)
 
 	if prevHeader == nil {
 		log.Error("[verifyHeader] failed, not found prevHeader.")

@@ -461,11 +461,17 @@ func (node *node) SetBookKeeperAddr(pk *crypto.PubKey) {
 func (node *node) SyncNodeHeight() {
 	for {
 		heights, _ := node.GetNeighborHeights()
-		log.Trace(heights)
-		log.Trace(ledger.DefaultLedger.Blockchain.BlockHeight)
 		finishSyncFromBestNode := false
 		if node.isFinishSyncFromSyncNode() == true {
+			log.Trace("node.isFinishSyncFromSyncNode() ", node.isFinishSyncFromSyncNode())
 			finishSyncFromBestNode = true
+			noders := node.local.GetNeighborNoder()
+			for _, n := range noders {
+				if n.IsSyncHeaders() == true {
+					n.SetSyncHeaders(false)
+				}
+			}
+
 		}
 		if CompareHeight(uint64(ledger.DefaultLedger.Blockchain.BlockHeight), heights) {
 			break
@@ -473,6 +479,7 @@ func (node *node) SyncNodeHeight() {
 		if finishSyncFromBestNode == true {
 			ReqBlkHdrFromOthers(node)
 		}
+
 		<-time.After(5 * time.Second)
 	}
 }
@@ -752,6 +759,8 @@ func (node *node) StartSync() {
 	if needSync == true {
 		if node.LocalNode().IsSyncHeaders() == false {
 			n := node.GetBestHeightNoder()
+			log.Trace("!##@$%$#%&^(_")
+			log.Trace("~~~~ start sync from ", n.GetAddr())
 			SendMsgSyncHeaders(n)
 			n.StartRetryTimer()
 		}

@@ -33,9 +33,21 @@ func (msg block) Handle(node Noder) error {
 		log.Debug("Receive ", ReceiveDuplicateBlockCnt, " duplicated block.")
 		return nil
 	}
-	if _, _, err := ledger.DefaultLedger.Blockchain.AddBlock(&msg.blk); err != nil {
+	_, isOrphan, err := ledger.DefaultLedger.Blockchain.AddBlock(&msg.blk)
+	if err != nil {
 		log.Warn("Block add failed: ", err, " ,block hash is ", hash)
 		return err
+	}
+	if isOrphan == true {
+		buf, err := NewHeadersReq(hash)
+		if err != nil {
+			log.Error("failed build a new headersReq")
+		} else {
+			node.LocalNode().SetSyncHeaders(true)
+			node.SetSyncHeaders(true)
+			go node.Tx(buf)
+		}
+		node.StartRetryTimer()
 	}
 	for _, n := range node.LocalNode().GetNeighborNoder() {
 		if n.ExistFlightHeight(msg.blk.Blockdata.Height) {

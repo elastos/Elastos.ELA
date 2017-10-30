@@ -82,6 +82,46 @@ func (node *node) SyncBlk() {
 	}
 }
 
+func (node *node) SyncBlkFromSyncHeaderNode() {
+	headerHeight := ledger.DefaultLedger.Store.GetHeaderHeight()
+	currentBlkHeight := ledger.DefaultLedger.Blockchain.BlockHeight
+	if currentBlkHeight >= headerHeight {
+		return
+	}
+	var dValue int32
+	var reqCnt uint32
+	var i uint32
+	noders := node.local.GetNeighborNoder()
+
+	for _, n := range noders {
+		if n.IsSyncHeaders() == true {
+			n.RemoveFlightHeightLessThan(currentBlkHeight)
+			count := MAXREQBLKONCE - uint32(n.GetFlightHeightCnt())
+			dValue = int32(headerHeight - currentBlkHeight - reqCnt)
+			flights := n.GetFlightHeights()
+			if count == 0 {
+				for _, f := range flights {
+					hash := ledger.DefaultLedger.Store.GetHeaderHashByHeight(f)
+					if ledger.DefaultLedger.Store.BlockInCache(hash) == false {
+						ReqBlkData(n, hash)
+					}
+				}
+
+			}
+			for i = 1; i <= count && dValue >= 0; i++ {
+				hash := ledger.DefaultLedger.Store.GetHeaderHashByHeight(currentBlkHeight + reqCnt)
+
+				if ledger.DefaultLedger.Store.BlockInCache(hash) == false {
+					ReqBlkData(n, hash)
+					n.StoreFlightHeight(currentBlkHeight + reqCnt)
+				}
+				reqCnt++
+				dValue--
+			}
+		}
+	}
+}
+
 func (node *node) SendPingToNbr() {
 	noders := node.local.GetNeighborNoder()
 	for _, n := range noders {
@@ -248,6 +288,7 @@ func (node *node) updateNodeInfo() {
 			node.SendPingToNbr()
 			//node.GetBlkHdrs()
 			//node.SyncBlk()
+			node.SyncBlkFromSyncHeaderNode()
 			node.HeartBeatMonitor()
 		case <-quit:
 			ticker.Stop()

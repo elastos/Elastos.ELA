@@ -156,6 +156,8 @@ func (node *node) GetNbrNodeCnt() uint32 {
 }
 
 func (node *node) RandGetANbr() Noder {
+	node.nbrNodes.RLock()
+	defer node.nbrNodes.RUnlock()
 	for _, n := range node.nbrNodes.List {
 		if n.GetState() == ESTABLISH {
 			return n

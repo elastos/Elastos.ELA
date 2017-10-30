@@ -148,10 +148,11 @@ func main() {
 	httpjsonrpc.RegistRpcNode(noder)
 	log.Info("3.2 Start the P2P networks")
 	time.Sleep(10 * time.Second)
-	noder.SyncNodeHeight()
 	log.Info("3.3 Start the P2P networks")
 	noder.WaitForFourPeersStart()
 	log.Info("3.4 Start the P2P networks")
+	noder.StartSync()
+	noder.SyncNodeHeight()
 	noder.WaitForSyncBlkFinish()
 	if !startConsensus(client, noder) {
 		goto ERROR

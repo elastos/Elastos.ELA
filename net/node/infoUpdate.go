@@ -4,10 +4,10 @@ import (
 	"DNA_POW/common/config"
 	"DNA_POW/common/log"
 	"DNA_POW/core/ledger"
+	"DNA_POW/events"
 	. "DNA_POW/net/message"
 	. "DNA_POW/net/protocol"
 	"math/rand"
-	"DNA_POW/events"
 	"net"
 	"strconv"
 	"time"
@@ -246,8 +246,8 @@ func (node *node) updateNodeInfo() {
 		select {
 		case <-ticker.C:
 			node.SendPingToNbr()
-			node.GetBlkHdrs()
-			node.SyncBlk()
+			//node.GetBlkHdrs()
+			//node.SyncBlk()
 			node.HeartBeatMonitor()
 		case <-quit:
 			ticker.Stop()

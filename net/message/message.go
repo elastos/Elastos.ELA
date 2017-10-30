@@ -232,7 +232,7 @@ func ValidMsgHdr(buf []byte) bool {
 	return magicVerify(h.Magic)
 }
 
-func PayloadLen(buf []byte) (int) {
+func PayloadLen(buf []byte) int {
 	var h msgHdr
 	h.Deserialization(buf)
 	return int(h.Length)

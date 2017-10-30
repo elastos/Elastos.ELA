@@ -32,6 +32,7 @@ func NewHeadersReq() ([]byte, error) {
 
 	h.p.len = 1
 	buf := ledger.DefaultLedger.Store.GetCurrentHeaderHash()
+	log.Trace("~~~~~~ current header height is ", ledger.DefaultLedger.Store.GetHeaderHeight())
 	copy(h.p.hashEnd[:], buf[:])
 
 	p := new(bytes.Buffer)
@@ -156,6 +157,7 @@ func (msg headersReq) Handle(node Noder) error {
 	var stopHash [HASHLEN]byte
 	startHash = msg.p.hashStart
 	stopHash = msg.p.hashEnd
+
 	//FIXME if HeaderHashCount > 1
 	headers, cnt, err := GetHeadersFromHash(startHash, stopHash)
 	if err != nil {
@@ -165,6 +167,7 @@ func (msg headersReq) Handle(node Noder) error {
 	if err != nil {
 		return err
 	}
+
 	go node.Tx(buf)
 	return nil
 }
@@ -174,16 +177,45 @@ func SendMsgSyncHeaders(node Noder) {
 	if err != nil {
 		log.Error("failed build a new headersReq")
 	} else {
+		node.LocalNode().SetSyncHeaders(true)
+		node.SetSyncHeaders(true)
 		go node.Tx(buf)
+	}
+}
+
+func (msg blkHeader) sendGetDataReq(node Noder) {
+	for _, header := range msg.blkHdr {
+		err := ReqBlkData(node, header.Blockdata.Hash())
+		if err != nil {
+			log.Error("failed build a new getdata")
+		}
+	}
+}
+
+func ReqBlkHdrFromOthers(node Noder) {
+	node.SetSyncFailed()
+	noders := node.LocalNode().GetNeighborNoder()
+	for _, noder := range noders {
+		if noder.IsSyncFailed() != true {
+			SendMsgSyncHeaders(noder)
+			break
+		}
 	}
 }
 
 func (msg blkHeader) Handle(node Noder) error {
 	log.Debug()
+	node.StopRetryTimer()
 	err := ledger.DefaultLedger.Store.AddHeaders(msg.blkHdr, ledger.DefaultLedger)
 	if err != nil {
 		log.Warn("Add block Header error")
+		ReqBlkHdrFromOthers(node)
 		return errors.New("Add block Header error, send new header request to another node\n")
+	}
+	msg.sendGetDataReq(node)
+	if msg.cnt == MAXBLKHDRCNT {
+		SendMsgSyncHeaders(node)
+		node.StartRetryTimer()
 	}
 	return nil
 }

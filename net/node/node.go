@@ -56,6 +56,7 @@ type node struct {
 	/*
 	 * |--|--|--|--|--|--|isSyncFailed|isSyncHeaders|
 	 */
+	syncFlag                 uint8
 	flightHeights            []uint32
 	cachelock                sync.RWMutex
 	flightlock               sync.RWMutex
@@ -70,6 +71,7 @@ type node struct {
 	MaxOutboundCnt  uint
 	DefaultMaxPeers uint
 	GetAddrMax      uint
+	TxNotifyChan    chan int
 }
 
 type RetryConnAddrs struct {
@@ -229,7 +231,7 @@ func (n *node) SetGetAddrMax() {
 
 func (n *node) SetDefaultMaxPeers() {
 	if (Parameters.DefaultMaxPeers < DEFAULTMAXPEERS) && (Parameters.DefaultMaxPeers > 0) {
-		n.DefaultMaxPeers = Parameters.DefaultMaxPeers
+		n.DefaultMaxPeers = Parameters.MaxOutboundCnt
 	} else {
 		n.DefaultMaxPeers = DEFAULTMAXPEERS
 	}
@@ -655,4 +657,87 @@ func (node *node) ExistFlightHeight(height uint32) bool {
 		}
 	}
 	return false
+}
+func (node node) IsSyncHeaders() bool {
+	if (node.syncFlag & 0x01) == 0x01 {
+		return true
+	} else {
+		return false
+	}
+}
+
+func (node *node) SetSyncHeaders(b bool) {
+	if b == true {
+		node.syncFlag = node.syncFlag | 0x01
+	} else {
+		node.syncFlag = node.syncFlag & 0xFE
+	}
+}
+
+func (node node) IsSyncFailed() bool {
+	if (node.syncFlag & 0x02) == 0x02 {
+		return true
+	} else {
+		return false
+	}
+}
+
+func (node *node) SetSyncFailed() {
+	node.syncFlag = node.syncFlag | 0x02
+}
+
+func (node *node) StartRetryTimer() {
+	t := time.NewTimer(time.Second * 2)
+	node.TxNotifyChan = make(chan int, 1)
+	go func() {
+		select {
+		case <-t.C:
+			ReqBlkHdrFromOthers(node)
+		case <-node.TxNotifyChan:
+			t.Stop()
+		}
+	}()
+}
+
+func (node node) StopRetryTimer() {
+	node.TxNotifyChan <- 1
+}
+
+func (node *node) needSync() bool {
+	node.local.nbrNodes.RLock()
+	defer node.local.nbrNodes.RUnlock()
+	heights, _ := node.GetNeighborHeights()
+	if CompareHeight(uint64(ledger.DefaultLedger.Blockchain.BlockHeight), heights) {
+		return false
+	}
+	return true
+}
+
+func (node *node) GetBestHeightNoder() Noder {
+	node.nbrNodes.RLock()
+	defer node.nbrNodes.RUnlock()
+	var bestnode Noder
+	for _, n := range node.nbrNodes.List {
+		if n.GetState() == ESTABLISH {
+			if bestnode == nil {
+				bestnode = n
+			} else {
+				if n.GetHeight() > bestnode.GetHeight() {
+					bestnode = n
+				}
+			}
+		}
+	}
+	return bestnode
+}
+
+func (node *node) StartSync() {
+	needSync := node.needSync()
+	if needSync == true {
+		if node.LocalNode().IsSyncHeaders() == false {
+			n := node.GetBestHeightNoder()
+			SendMsgSyncHeaders(n)
+			n.StartRetryTimer()
+		}
+	}
 }

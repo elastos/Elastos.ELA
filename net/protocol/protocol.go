@@ -163,6 +163,13 @@ type Noder interface {
 	ExistHash(hash common.Uint256) bool
 	CacheHash(hash common.Uint256)
 	ExistFlightHeight(height uint32) bool
+	IsSyncHeaders() bool
+	SetSyncHeaders(b bool)
+	IsSyncFailed() bool
+	SetSyncFailed()
+	StartRetryTimer()
+	StopRetryTimer()
+	StartSync()
 }
 
 func (msg *NodeAddr) Deserialization(p []byte) error {

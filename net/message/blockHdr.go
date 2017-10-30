@@ -193,7 +193,7 @@ func (msg blkHeader) sendGetDataReq(node Noder) {
 }
 
 func ReqBlkHdrFromOthers(node Noder) {
-	node.SetSyncFailed()
+	//node.SetSyncFailed()
 	noders := node.LocalNode().GetNeighborNoder()
 	for _, noder := range noders {
 		if noder.IsSyncFailed() != true {
@@ -209,6 +209,10 @@ func (msg blkHeader) Handle(node Noder) error {
 	err := ledger.DefaultLedger.Store.AddHeaders(msg.blkHdr, ledger.DefaultLedger)
 	if err != nil {
 		log.Warn("Add block Header error")
+		node.SetSyncFailed()
+		node.SetState(INACTIVITY)
+		conn := node.GetConn()
+		conn.Close()
 		ReqBlkHdrFromOthers(node)
 		return errors.New("Add block Header error, send new header request to another node\n")
 	}

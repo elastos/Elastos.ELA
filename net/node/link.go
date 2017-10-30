@@ -84,7 +84,7 @@ func unpackNodeBuf(node *node, buf []byte) {
 }
 
 func (node *node) rx() {
-	conn := node.getConn()
+	conn := node.GetConn()
 	buf := make([]byte, MAXBUFLEN)
 	for {
 		len, err := conn.Read(buf[0:(MAXBUFLEN - 1)])
@@ -104,6 +104,11 @@ func (node *node) rx() {
 	}
 
 DISCONNECT:
+	log.Trace("ip is ", node.GetAddr, ", node.IsSyncHeaders() ", node.IsSyncHeaders())
+	if node.IsSyncHeaders() == true {
+		node.SetSyncFailed()
+		node.local.StartSync()
+	}
 	node.local.eventQueue.GetEvent("disconnect").Notify(events.EventNodeDisconnect, node)
 }
 

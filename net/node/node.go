@@ -252,7 +252,7 @@ func (n *node) GetDefaultMaxPeers() uint {
 func (n *node) NodeDisconnect(v interface{}) {
 	if node, ok := v.(*node); ok {
 		node.SetState(INACTIVITY)
-		conn := node.getConn()
+		conn := node.GetConn()
 		conn.Close()
 	}
 }
@@ -276,7 +276,7 @@ func (node *node) GetState() uint32 {
 	return atomic.LoadUint32(&(node.state))
 }
 
-func (node *node) getConn() net.Conn {
+func (node *node) GetConn() net.Conn {
 	return node.conn
 }
 
@@ -463,8 +463,15 @@ func (node *node) SyncNodeHeight() {
 		heights, _ := node.GetNeighborHeights()
 		log.Trace(heights)
 		log.Trace(ledger.DefaultLedger.Blockchain.BlockHeight)
+		finishSyncFromBestNode := false
+		if node.isFinishSyncFromSyncNode() == true {
+			finishSyncFromBestNode = true
+		}
 		if CompareHeight(uint64(ledger.DefaultLedger.Blockchain.BlockHeight), heights) {
 			break
+		}
+		if finishSyncFromBestNode == true {
+			ReqBlkHdrFromOthers(node)
 		}
 		<-time.After(5 * time.Second)
 	}
@@ -687,11 +694,20 @@ func (node *node) SetSyncFailed() {
 }
 
 func (node *node) StartRetryTimer() {
-	t := time.NewTimer(time.Second * 2)
+	var periodUpdateTime uint
+	if Parameters.GenBlockTime > MINGENBLOCKTIME {
+		periodUpdateTime = Parameters.GenBlockTime / TIMESOFUPDATETIME
+	} else {
+		periodUpdateTime = DEFAULTGENBLOCKTIME / TIMESOFUPDATETIME
+	}
+	t := time.NewTimer(time.Second * (time.Duration(periodUpdateTime)) * KEEPALIVETIMEOUT)
+
 	node.TxNotifyChan = make(chan int, 1)
 	go func() {
 		select {
 		case <-t.C:
+			node.SetSyncFailed()
+			node.local.eventQueue.GetEvent("disconnect").Notify(events.EventNodeDisconnect, node)
 			ReqBlkHdrFromOthers(node)
 		case <-node.TxNotifyChan:
 			t.Stop()
@@ -740,4 +756,16 @@ func (node *node) StartSync() {
 			n.StartRetryTimer()
 		}
 	}
+}
+
+func (node *node) isFinishSyncFromSyncNode() bool {
+	noders := node.local.GetNeighborNoder()
+	for _, n := range noders {
+		if n.IsSyncHeaders() == true {
+			if uint64(ledger.DefaultLedger.Blockchain.BlockHeight) >= n.GetHeight() {
+				return true
+			}
+		}
+	}
+	return false
 }

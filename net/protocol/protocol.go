@@ -9,6 +9,7 @@ import (
 	"DNA_POW/events"
 	"bytes"
 	"encoding/binary"
+	"net"
 	"time"
 )
 
@@ -103,6 +104,7 @@ type Noder interface {
 	CloseConn()
 	GetHeight() uint64
 	GetConnectionCnt() uint
+	GetConn() net.Conn
 	GetTxnPool(bool) map[common.Uint256]*transaction.Transaction
 	AppendTxnPool(*transaction.Transaction) ErrCode
 	ExistedID(id common.Uint256) bool

@@ -389,22 +389,22 @@ func (db *ChainStore) RollbackUnspend(b *Block) error {
 		if err := db.BatchDelete(append(unspentPrefix, txnHash.ToArray()...)); err != nil {
 			return err
 		}
-
 		for _, input := range txn.UTXOInputs {
 			referTxnHash := input.ReferTxID
 			referTxnOutIndex := input.ReferTxOutputIndex
 			if _, ok := unspents[referTxnHash]; !ok {
-				unspentValue, err := db.Get(append(unspentPrefix, referTxnHash.ToArray()...))
-				if err != nil {
-					return err
-				}
-				unspents[referTxnHash], err = GetUint16Array(unspentValue)
-				if err != nil {
-					return err
+				var err error
+				unspentValue, _ := db.Get(append(unspentPrefix, referTxnHash.ToArray()...))
+				if len(unspentValue) != 0 {
+					unspents[referTxnHash], err = GetUint16Array(unspentValue)
+					if err != nil {
+						return err
+					}
 				}
 			}
 			unspents[referTxnHash] = append(unspents[referTxnHash], referTxnOutIndex)
 		}
+
 	}
 
 	for txhash, value := range unspents {

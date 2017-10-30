@@ -72,7 +72,7 @@ func PowVerifyBlock(block *ledger.Block, ld *ledger.Ledger, completely bool) err
 	//TODO orphan block
 
 	blockHash := block.Hash()
-	fmt.Printf("Processing block %v", blockHash)
+	log.Tracef("Processing block %v", blockHash)
 
 	if ledger.DefaultLedger.BlockInLedger(blockHash) {
 		log.Debug("Receive ", " duplicated block.")
@@ -189,14 +189,14 @@ func PowVerifyBlockData(bd *ledger.Blockdata, ledger *ledger.Ledger) error {
 	if isAuxPow && !bd.AuxPow.Check(bd.Hash(), auxpow.AuxPowChainID) {
 		return NewDetailErr(errors.New("[BlockValidator] error"), ErrNoCode, "[BlockValidator], block check proof is failed.")
 	}
-	if checkProofOfWork(bd, powLimit, isAuxPow) != nil {
+	if CheckProofOfWork(bd, powLimit, isAuxPow) != nil {
 		return NewDetailErr(errors.New("[BlockValidator] error"), ErrNoCode, "[BlockValidator], block check proof is failed.")
 	}
 
 	return nil
 }
 
-func checkProofOfWork(bd *ledger.Blockdata, powLimit *big.Int, isAuxPow bool) error {
+func CheckProofOfWork(bd *ledger.Blockdata, powLimit *big.Int, isAuxPow bool) error {
 	// The target difficulty must be larger than zero.
 	target := CompactToBig(bd.Bits)
 	if target.Sign() <= 0 {

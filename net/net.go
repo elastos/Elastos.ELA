@@ -20,6 +20,8 @@ type Neter interface {
 	GetNeighborNoder() []protocol.Noder
 	Tx(buf []byte)
 	AppendTxnPool(*transaction.Transaction) ErrCode
+	MaybeAcceptTransaction(txn *transaction.Transaction) error
+	RemoveTransaction(txn *transaction.Transaction)
 }
 
 func StartProtocol(pubKey *crypto.PubKey) protocol.Noder {

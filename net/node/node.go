@@ -459,6 +459,8 @@ func (node *node) SetBookKeeperAddr(pk *crypto.PubKey) {
 func (node *node) SyncNodeHeight() {
 	for {
 		heights, _ := node.GetNeighborHeights()
+		log.Trace(heights)
+		log.Trace(ledger.DefaultLedger.Blockchain.BlockHeight)
 		if CompareHeight(uint64(ledger.DefaultLedger.Blockchain.BlockHeight), heights) {
 			break
 		}

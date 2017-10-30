@@ -6,6 +6,7 @@ import (
 	"DNA_POW/common/log"
 	"DNA_POW/common/serialization"
 	. "DNA_POW/core/asset"
+	"DNA_POW/core/auxpow"
 	"DNA_POW/core/contract/program"
 	. "DNA_POW/core/ledger"
 	. "DNA_POW/core/store"
@@ -17,15 +18,17 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"math/big"
 	"sort"
 	"sync"
 	"time"
 )
 
 const (
-	HeaderHashListCount = 2000
-	CleanCacheThreshold = 2
-	TaskChanCap         = 4
+	HeaderHashListCount  = 2000
+	CleanCacheThreshold  = 2
+	TaskChanCap          = 4
+	MaxTimeOffsetSeconds = 2 * 60 * 60
 )
 
 var (
@@ -35,14 +38,17 @@ var (
 type persistTask interface{}
 type persistHeaderTask struct {
 	header *Header
+	reply  chan bool
 }
 
 type rollbackBlockTask struct {
 	blockHash Uint256
+	reply     chan bool
 }
 type persistBlockTask struct {
 	block  *Block
 	ledger *Ledger
+	reply  chan bool
 }
 
 type ChainStore struct {
@@ -58,12 +64,7 @@ type ChainStore struct {
 
 	currentBlockHeight uint32
 	storedHeaderCount  uint32
-}
-
-func NewStore(file string) (IStore, error) {
-	ldbs, err := NewLevelDBStore(file)
-
-	return ldbs, err
+	ledger             *Ledger
 }
 
 func NewLedgerStore() (ILedgerStore, error) {
@@ -99,6 +100,12 @@ func NewChainStore(file string) (*ChainStore, error) {
 	return chain, nil
 }
 
+func NewStore(file string) (IStore, error) {
+	ldbs, err := NewLevelDBStore(file)
+
+	return ldbs, err
+}
+
 func (self *ChainStore) Close() {
 	closed := make(chan bool)
 	self.quit <- closed
@@ -115,15 +122,18 @@ func (self *ChainStore) loop() {
 			switch task := t.(type) {
 			case *persistHeaderTask:
 				self.handlePersistHeaderTask(task.header)
+				task.reply <- true
 				tcall := float64(time.Now().Sub(now)) / float64(time.Second)
 				log.Debugf("handle header exetime: %g \n", tcall)
 
 			case *persistBlockTask:
 				self.handlePersistBlockTask(task.block, task.ledger)
+				task.reply <- true
 				tcall := float64(time.Now().Sub(now)) / float64(time.Second)
 				log.Debugf("handle block exetime: %g num transactions:%d \n", tcall, len(task.block.Transactions))
 			case *rollbackBlockTask:
 				self.handleRollbackBlockTask(task.blockHash)
+				task.reply <- true
 				tcall := float64(time.Now().Sub(now)) / float64(time.Second)
 				log.Debugf("handle block rollback exetime: %g \n", tcall)
 			}
@@ -136,125 +146,27 @@ func (self *ChainStore) loop() {
 }
 
 // can only be invoked by backend write goroutine
-func (self *ChainStore) clearCache() {
-	self.mu.Lock()
-	defer self.mu.Unlock()
-
-	currBlockHeight := self.currentBlockHeight
-	for hash, header := range self.headerCache {
-		if header.Blockdata.Height+CleanCacheThreshold < currBlockHeight {
-			delete(self.headerCache, hash)
-		}
-	}
-
-	for hash, block := range self.blockCache {
-		if block.Blockdata.Height+CleanCacheThreshold < currBlockHeight {
-			delete(self.blockCache, hash)
-		}
-	}
-
-}
+//func (self *ChainStore) clearCache() {
+//	self.mu.Lock()
+//	defer self.mu.Unlock()
+//
+//	currBlockHeight := self.currentBlockHeight
+//	for hash, header := range self.headerCache {
+//		if header.Blockdata.Height+CleanCacheThreshold < currBlockHeight {
+//			delete(self.headerCache, hash)
+//		}
+//	}
+//}
 
 func (bd *ChainStore) InitLedgerStoreWithGenesisBlock(genesisBlock *Block, defaultBookKeeper []*crypto.PubKey) (uint32, error) {
-	hash := genesisBlock.Hash()
-	bd.headerIndex[0] = hash
-	log.Debugf("listhash genesis: %x\n", hash)
-
 	prefix := []byte{byte(CFG_Version)}
 	version, err := bd.Get(prefix)
 	if err != nil {
 		version = []byte{0x00}
 	}
 
-	if version[0] == 0x01 {
-		// GenesisBlock should exist in chain
-		// Or the bookkeepers are not consistent with the chain
-		if !bd.IsBlockInStore(hash) {
-			return 0, errors.New("bookkeepers are not consistent with the chain")
-		}
-		// Get Current Block
-		currentBlockPrefix := []byte{byte(SYS_CurrentBlock)}
-		data, err := bd.Get(currentBlockPrefix)
-		if err != nil {
-			return 0, err
-		}
-
-		r := bytes.NewReader(data)
-		var blockHash Uint256
-		blockHash.Deserialize(r)
-		bd.currentBlockHeight, err = serialization.ReadUint32(r)
-		current_Header_Height := bd.currentBlockHeight
-
-		log.Debugf("blockHash: %x\n", blockHash.ToArray())
-
-		var listHash Uint256
-		iter := bd.NewIterator([]byte{byte(IX_HeaderHashList)})
-		for iter.Next() {
-			rk := bytes.NewReader(iter.Key())
-			// read prefix
-			_, _ = serialization.ReadBytes(rk, 1)
-			startNum, err := serialization.ReadUint32(rk)
-			if err != nil {
-				return 0, err
-			}
-			log.Debugf("start index: %d\n", startNum)
-
-			r = bytes.NewReader(iter.Value())
-			listNum, err := serialization.ReadVarUint(r, 0)
-			if err != nil {
-				return 0, err
-			}
-
-			for i := 0; i < int(listNum); i++ {
-				listHash.Deserialize(r)
-				bd.headerIndex[startNum+uint32(i)] = listHash
-				bd.storedHeaderCount++
-				//log.Debug( fmt.Sprintf( "listHash %d: %x\n", startNum+uint32(i), listHash ) )
-			}
-		}
-
-		if bd.storedHeaderCount == 0 {
-			iter = bd.NewIterator([]byte{byte(DATA_BlockHash)})
-			for iter.Next() {
-				rk := bytes.NewReader(iter.Key())
-				// read prefix
-				_, _ = serialization.ReadBytes(rk, 1)
-				listheight, err := serialization.ReadUint32(rk)
-				if err != nil {
-					return 0, err
-				}
-				//log.Debug(fmt.Sprintf( "DATA_BlockHash block height: %d\n", listheight ))
-
-				r := bytes.NewReader(iter.Value())
-				listHash.Deserialize(r)
-				//log.Debug(fmt.Sprintf( "DATA_BlockHash block hash: %x\n", listHash ))
-
-				bd.headerIndex[listheight] = listHash
-			}
-		} else if current_Header_Height >= bd.storedHeaderCount {
-			hash = blockHash
-			for {
-				if hash == bd.headerIndex[bd.storedHeaderCount-1] {
-					break
-				}
-
-				header, err := bd.GetHeader(hash)
-				if err != nil {
-					return 0, err
-				}
-
-				//log.Debug(fmt.Sprintf( "header height: %d\n", header.Blockdata.Height ))
-				//log.Debug(fmt.Sprintf( "header hash: %x\n", hash ))
-
-				bd.headerIndex[header.Blockdata.Height] = hash
-				hash = header.Blockdata.PrevBlockHash
-			}
-		}
-
-		return bd.currentBlockHeight, nil
-
-	} else {
-
+	log.Trace("version: ", version)
+	if version[0] == 0x00 {
 		// batch delete old data
 		bd.NewBatch()
 		iter := bd.NewIterator(nil)
@@ -268,32 +180,6 @@ func (bd *ChainStore) InitLedgerStoreWithGenesisBlock(genesisBlock *Block, defau
 			return 0, err
 		}
 
-		///////////////////////////////////////////////////
-		// process defaultBookKeeper
-		///////////////////////////////////////////////////
-		// sort defaultBookKeeper
-		sort.Sort(crypto.PubKeySlice(defaultBookKeeper))
-
-		// currBookKeeper key
-		bkListKey := bytes.NewBuffer(nil)
-		bkListKey.WriteByte(byte(SYS_CurrentBookKeeper))
-
-		// currBookKeeper value
-		bkListValue := bytes.NewBuffer(nil)
-		serialization.WriteUint8(bkListValue, uint8(len(defaultBookKeeper)))
-		for k := 0; k < len(defaultBookKeeper); k++ {
-			defaultBookKeeper[k].Serialize(bkListValue)
-		}
-
-		// nextBookKeeper value
-		serialization.WriteUint8(bkListValue, uint8(len(defaultBookKeeper)))
-		for k := 0; k < len(defaultBookKeeper); k++ {
-			defaultBookKeeper[k].Serialize(bkListValue)
-		}
-
-		// defaultBookKeeper put value
-		bd.Put(bkListKey.Bytes(), bkListValue.Bytes())
-		///////////////////////////////////////////////////
 		// persist genesis block
 		bd.persist(genesisBlock)
 
@@ -303,12 +189,67 @@ func (bd *ChainStore) InitLedgerStoreWithGenesisBlock(genesisBlock *Block, defau
 			return 0, err
 		}
 
-		return 0, nil
 	}
+
+	log.Trace("version2: ", version)
+	// GenesisBlock should exist in chain
+	// Or the bookkeepers are not consistent with the chain
+	hash := genesisBlock.Hash()
+	log.Trace("hash: ", hash)
+	if !bd.IsBlockInStore(hash) {
+		log.Trace("bookkeepers are not consistent with the chain")
+		return 0, errors.New("bookkeepers are not consistent with the chain")
+	}
+	bd.ledger.Blockchain.GenesisHash = hash
+	log.Trace("hash2: ", hash)
+
+	// Get Current Block
+	currentBlockPrefix := []byte{byte(SYS_CurrentBlock)}
+	data, err := bd.Get(currentBlockPrefix)
+	if err != nil {
+		return 0, err
+	}
+
+	r := bytes.NewReader(data)
+	var blockHash Uint256
+	blockHash.Deserialize(r)
+	bd.currentBlockHeight, err = serialization.ReadUint32(r)
+	log.Tracef("blockHash: %x\n", blockHash.ToArray())
+	endHeight := bd.currentBlockHeight
+
+	startHeight := uint32(0)
+	if endHeight > MinMemoryNodes {
+		startHeight = endHeight - MinMemoryNodes
+	}
+	log.Tracef("startHeight: %x, endHeight: %x", startHeight, endHeight)
+
+	for start := startHeight; start <= endHeight; start++ {
+		hash, err := bd.GetBlockHash(start)
+		if err != nil {
+			return 0, err
+		}
+		header, err := bd.GetHeader(hash)
+		if err != nil {
+			return 0, err
+		}
+		node, err := bd.ledger.Blockchain.LoadBlockNode(header.Blockdata, &hash)
+		if err != nil {
+			return 0, err
+		}
+
+		// This node is now the end of the best chain.
+		bd.ledger.Blockchain.BestChain = node
+
+	}
+	bd.ledger.Blockchain.DumpState()
+
+	return bd.currentBlockHeight, nil
+
 }
 
 func (bd *ChainStore) InitLedgerStore(l *Ledger) error {
 	// TODO: InitLedgerStore
+	bd.ledger = l
 	return nil
 }
 
@@ -374,31 +315,16 @@ func (bd *ChainStore) GetBlockHash(height uint32) (Uint256, error) {
 }
 
 func (bd *ChainStore) GetCurrentBlockHash() Uint256 {
-	bd.mu.RLock()
-	defer bd.mu.RUnlock()
-
-	return bd.headerIndex[bd.currentBlockHeight]
-}
-
-func (bd *ChainStore) dumpCache() {
-	for key, data := range bd.headerCache {
-		log.Trace("dumpCache ", key, data.Blockdata)
+	hash, err := bd.GetBlockHash(bd.currentBlockHeight)
+	if err != nil {
+		return Uint256{}
 	}
-}
-func (bd *ChainStore) DumpCache() {
-	bd.dumpCache()
-}
-func (bd *ChainStore) getHeaderWithCache(hash Uint256) *Header {
-	if _, ok := bd.headerCache[hash]; ok {
-		return bd.headerCache[hash]
-	}
-	header, _ := bd.GetHeader(hash)
 
-	return header
+	return hash
 }
 
 func (bd *ChainStore) verifyHeader(header *Header) bool {
-	prevHeader := bd.getHeaderWithCache(header.Blockdata.PrevBlockHash)
+	prevHeader, _ := bd.GetHeader(header.Blockdata.PrevBlockHash)
 
 	if prevHeader == nil {
 		log.Error("[verifyHeader] failed, not found prevHeader.")
@@ -426,7 +352,7 @@ func (bd *ChainStore) verifyHeader(header *Header) bool {
 }
 
 func (bd *ChainStore) powVerifyHeader(header *Header) bool {
-	prevHeader := bd.getHeaderWithCache(header.Blockdata.PrevBlockHash)
+	prevHeader, _ := bd.GetHeader(header.Blockdata.PrevBlockHash)
 
 	if prevHeader == nil {
 		log.Error("[verifyHeader] failed, not found prevHeader.")
@@ -463,7 +389,9 @@ func (self *ChainStore) AddHeaders(headers []Header, ledger *Ledger) error {
 	})
 
 	for i := 0; i < len(headers); i++ {
-		self.taskCh <- &persistHeaderTask{header: &headers[i]}
+		reply := make(chan bool)
+		self.taskCh <- &persistHeaderTask{header: &headers[i], reply: reply}
+		<-reply
 	}
 
 	return nil
@@ -472,26 +400,21 @@ func (self *ChainStore) AddHeaders(headers []Header, ledger *Ledger) error {
 
 func (db *ChainStore) RollbackBlock(blockHash Uint256) error {
 
-	db.taskCh <- &rollbackBlockTask{blockHash: blockHash}
+	reply := make(chan bool)
+	db.taskCh <- &rollbackBlockTask{blockHash: blockHash, reply: reply}
+	<-reply
 
 	return nil
 }
 
 func (bd *ChainStore) GetHeader(hash Uint256) (*Header, error) {
-	bd.mu.RLock()
-	if header, ok := bd.headerCache[hash]; ok {
-		bd.mu.RUnlock()
-		return header, nil
-	}
-	bd.mu.RUnlock()
-
 	var h *Header = new(Header)
 
 	h.Blockdata = new(Blockdata)
 	h.Blockdata.Program = new(program.Program)
 
 	prefix := []byte{byte(DATA_Header)}
-	log.Debug("GetHeader Data:", hash.ToArray())
+	log.Trace("GetHeader Data:", hash.ToArray())
 	data, err_get := bd.Get(append(prefix, hash.ToArray()...))
 	//log.Debug( "Get Header Data: %x\n",  data )
 	if err_get != nil {
@@ -506,7 +429,7 @@ func (bd *ChainStore) GetHeader(hash Uint256) (*Header, error) {
 	if err != nil {
 		return nil, err
 	}
-	log.Debug(fmt.Sprintf("sysfee: %d\n", sysfee))
+	log.Trace(fmt.Sprintf("sysfee: %d\n", sysfee))
 
 	// Deserialize block data
 	err = h.Deserialize(r)
@@ -622,13 +545,6 @@ func (bd *ChainStore) PersistTransaction(tx *tx.Transaction, height uint32) erro
 }
 
 func (bd *ChainStore) GetBlock(hash Uint256) (*Block, error) {
-	bd.mu.RLock()
-	if block, ok := bd.blockCache[hash]; ok {
-		bd.mu.RUnlock()
-		return block, nil
-	}
-	bd.mu.RUnlock()
-
 	var b *Block = new(Block)
 
 	b.Blockdata = new(Blockdata)
@@ -721,6 +637,13 @@ func (db *ChainStore) rollback(b *Block) error {
 	db.RollbackCurrentBlock(b)
 	db.BatchFinish()
 
+	db.ledger.Blockchain.UpdateBestHeight(b.Blockdata.Height - 1)
+	db.mu.Lock()
+	db.currentBlockHeight = b.Blockdata.Height - 1
+	db.mu.Unlock()
+
+	db.ledger.Blockchain.BCEvents.Notify(events.EventRollbackTransaction, b)
+
 	return nil
 }
 
@@ -759,66 +682,211 @@ func (self *ChainStore) handlePersistHeaderTask(header *Header) {
 		return
 	}
 
-	if config.Parameters.ConsensusType == "pow" {
-		if !self.powVerifyHeader(header) {
-			return
-		}
-
-		self.addHeader(header)
-	} else {
-		if !self.verifyHeader(header) {
-			return
-		}
-		self.addHeader(header)
+	//if config.Parameters.ConsensusType == "pow" {
+	if !self.powVerifyHeader(header) {
+		return
 	}
+
+	self.addHeader(header)
+	//} else {
+	//	if !self.verifyHeader(header) {
+	//		return
+	//	}
+	//	self.addHeader(header)
+	//}
 }
 
 func (self *ChainStore) SaveBlock(b *Block, ledger *Ledger) error {
 	log.Debug("SaveBlock()")
-	self.mu.RLock()
-	headerHeight := uint32(len(self.headerIndex))
-	currBlockHeight := self.currentBlockHeight
-	self.mu.RUnlock()
+	//log.Trace("validation.PowVerifyBlock(b, ledger, false)")
+	//err := validation.PowVerifyBlock(b, ledger, false)
+	//if err != nil {
+	//	log.Error("PowVerifyBlock error!")
+	//	return err
+	//}
+	//log.Trace("validation.PowVerifyBlock(b, ledger, false)222222")
 
-	if b.Blockdata.Height <= currBlockHeight {
+	reply := make(chan bool)
+	self.taskCh <- &persistBlockTask{block: b, ledger: ledger, reply: reply}
+	<-reply
+
+	return nil
+}
+
+func (db *ChainStore) PowCheckBlockSanity(block *Block, powLimit *big.Int, timeSource MedianTimeSource) error {
+	header := block.Blockdata
+	isAuxPow := config.Parameters.PowConfiguration.CoMining
+	if isAuxPow && !header.AuxPow.Check(header.Hash(), auxpow.AuxPowChainID) {
+		return errors.New("[PowCheckBlockSanity] block check proof is failed")
+	}
+	if validation.CheckProofOfWork(header, powLimit, isAuxPow) != nil {
+		return errors.New("[PowCheckBlockSanity] block check proof is failed.")
+	}
+
+	//TODO A block timestamp must not have a greater precision than one second.
+
+	// Ensure the block time is not too far in the future.
+	maxTimestamp := timeSource.AdjustedTime().Add(time.Second * MaxTimeOffsetSeconds)
+	tempTime := time.Unix(int64(header.Timestamp), 0)
+	if tempTime.After(maxTimestamp) {
+		return errors.New("[PowCheckBlockSanity] block timestamp of is too far in the future")
+	}
+
+	// A block must have at least one transaction.
+	numTx := len(block.Transactions)
+	if numTx == 0 {
+		return errors.New("[PowCheckBlockSanity]  block does not contain any transactions")
+	}
+
+	// A block must not have more transactions than the max block payload.
+	//TODO
+	//config.Parameters.MaxTxInBlock = 100
+	if numTx > config.Parameters.MaxTxInBlock {
+		return errors.New("[PowCheckBlockSanity]  block contains too many transactions")
+	}
+
+	// TODO The first transaction in a block must be a coinbase.
+	//transactions := block.Transactions
+	//if !IsCoinBase(transactions[0]) {
+	//	return ruleError(ErrFirstTxNotCoinbase, "first transaction in "+
+	//		"block is not a coinbase")
+	//}
+
+	//// A block must not have more than one coinbase.
+	//for i, tx := range transactions[1:] {
+	//	if IsCoinBase(tx) {
+	//		str := fmt.Sprintf("block contains second coinbase at "+
+	//			"index %d", i)
+	//		return ruleError(ErrMultipleCoinbases, str)
+	//	}
+	//}
+
+	// Do some preliminary checks on each transaction to ensure they are
+	// sane before continuing.
+	//for _, tx := range transactions {
+	//	err := CheckTransactionSanity(tx)
+	//	if err != nil {
+	//		return err
+	//	}
+	//}
+
+	// Build merkle tree and ensure the calculated merkle root matches the
+	// entry in the block header.  This also has the effect of caching all
+	// of the transaction hashes in the block to speed up future hash
+	// checks.  Bitcoind builds the tree here and checks the merkle root
+	// after the following checks, but there is no reason not to check the
+	// merkle root matches here.
+	//merkles := BuildMerkleTreeStore(block.Transactions())
+	//calculatedMerkleRoot := merkles[len(merkles)-1]
+	//if !header.MerkleRoot.IsEqual(calculatedMerkleRoot) {
+	//	str := fmt.Sprintf("block merkle root is invalid - block "+
+	//		"header indicates %v, but calculated value is %v",
+	//		header.MerkleRoot, calculatedMerkleRoot)
+	//	return ruleError(ErrBadMerkleRoot, str)
+	//}
+
+	// Check for duplicate transactions.  This check will be fairly quick
+	// since the transaction hashes are already cached due to building the
+	// merkle tree above.
+	//existingTxHashes := make(map[wire.ShaHash]struct{})
+	//for _, tx := range transactions {
+	//	hash := tx.Sha()
+	//	if _, exists := existingTxHashes[*hash]; exists {
+	//		str := fmt.Sprintf("block contains duplicate "+
+	//			"transaction %v", hash)
+	//		return ruleError(ErrDuplicateTx, str)
+	//	}
+	//	existingTxHashes[*hash] = struct{}{}
+	//}
+
+	//// The number of signature operations must be less than the maximum
+	//// allowed per block.
+	//totalSigOps := 0
+	//for _, tx := range transactions {
+	//	// We could potentially overflow the accumulator so check for
+	//	// overflow.
+	//	lastSigOps := totalSigOps
+	//	totalSigOps += CountSigOps(tx)
+	//	if totalSigOps < lastSigOps || totalSigOps > MaxSigOpsPerBlock {
+	//		str := fmt.Sprintf("block contains too many signature "+
+	//			"operations - got %v, max %v", totalSigOps,
+	//			MaxSigOpsPerBlock)
+	//		return ruleError(ErrTooManySigOps, str)
+	//	}
+	//}
+
+	return nil
+}
+
+func (db *ChainStore) PowCheckBlockContext(block *Block, prevNode *BlockNode, ledger *Ledger) error {
+	// The genesis block is valid by definition.
+	if prevNode == nil {
 		return nil
 	}
 
-	if b.Blockdata.Height > headerHeight {
-		log.Infof("Info: [SaveBlock] block height - headerIndex.count >= 1, block height:%d, headerIndex.count:%d",
-			b.Blockdata.Height, headerHeight)
-		return nil
-	}
+	// Perform all block header related validation checks.
+	//header := block.Blockdata
+	// Ensure the difficulty specified in the block header matches
+	// the calculated difficulty based on the previous block and
+	// difficulty retarget rules.
 
-	if b.Blockdata.Height == headerHeight {
-		if config.Parameters.ConsensusType == "pow" {
-			err := validation.PowVerifyBlock(b, ledger, false)
-			if err != nil {
-				log.Error("PowVerifyBlock error!")
-				return err
-			}
-			log.Trace("------------>PowVerifyBlock passs!")
-		} else {
-			err := validation.VerifyBlock(b, ledger, false)
-			if err != nil {
-				log.Error("VerifyBlock error!")
-				return err
-			}
-		}
-		self.taskCh <- &persistHeaderTask{header: &Header{Blockdata: b.Blockdata}}
-	} else {
-		if config.Parameters.ConsensusType == "pow" {
-			// Fixme Consider the Pow case
-		} else {
-			flag, err := validation.VerifySignableData(b)
-			if flag == false || err != nil {
-				log.Error("VerifyBlock error!")
-				return err
-			}
-		}
-	}
+	//if prevHeader.Blockdata.Height+1 != bd.Height {
+	//return NewDetailErr(errors.New("[BlockValidator] error"), ErrNoCode, "[BlockValidator], block height is incorrect.")
+	//}
+	//expectedDifficulty, err := b.CalcNextRequiredDifficulty(prevNode,
+	//	header.Timestamp)
+	//if err != nil {
+	//	return err
+	//}
+	//blockDifficulty := header.Bits
+	//if blockDifficulty != expectedDifficulty {
+	//	str := "block difficulty of %d is not the expected value of %d"
+	//	str = fmt.Sprintf(str, blockDifficulty, expectedDifficulty)
+	//	return ruleError(ErrUnexpectedDifficulty, str)
+	//}
 
-	self.taskCh <- &persistBlockTask{block: b, ledger: ledger}
+	// Ensure the timestamp for the block header is after the
+	// median time of the last several blocks (medianTimeBlocks).
+	//medianTime, err := b.calcPastMedianTime(prevNode)
+	//if err != nil {
+	//	log.Errorf("calcPastMedianTime: %v", err)
+	//	return err
+	//}
+	//if !header.Timestamp.After(medianTime) {
+	//	str := "block timestamp of %v is not after expected %v"
+	//	str = fmt.Sprintf(str, header.Timestamp, medianTime)
+	//	return ruleError(ErrTimeTooOld, str)
+	//}
+
+	// The height of this block is one more than the referenced
+	// previous block.
+	//blockHeight := prevNode.Height + 1
+
+	// Ensure all transactions in the block are finalized.
+	//for _, tx := range block.Transactions() {
+	//	if !IsFinalizedTransaction(tx, blockHeight,
+	//		header.Timestamp) {
+
+	//		str := fmt.Sprintf("block contains unfinalized "+
+	//			"transaction %v", tx.Sha())
+	//		return ruleError(ErrUnfinalizedTx, str)
+	//	}
+	//}
+
+	// Ensure coinbase starts with serialized block heights for
+	// blocks whose version is the serializedHeightVersion or newer
+	// once a majority of the network has upgraded.  This is part of
+	// BIP0034.
+	//if ShouldHaveSerializedBlockHeight(header) &&
+	//	b.isMajorityVersion(serializedHeightVersion, prevNode,
+	//		b.chainParams.BlockEnforceNumRequired) {
+
+	//	coinbaseTx := block.Transactions()[0]
+	//	err := checkSerializedHeight(coinbaseTx, blockHeight)
+	//	if err != nil {
+	//		return err
+	//	}
+	//}
 
 	return nil
 }
@@ -834,90 +902,91 @@ func (db *ChainStore) handleRollbackBlockTask(blockHash Uint256) {
 
 func (self *ChainStore) handlePersistBlockTask(b *Block, ledger *Ledger) {
 
+	log.Trace(b.Blockdata.Height, " ", self.currentBlockHeight)
 	if b.Blockdata.Height <= self.currentBlockHeight {
 		return
 	}
 
-	self.mu.Lock()
-	self.blockCache[b.Hash()] = b
-	self.mu.Unlock()
+	//	self.mu.Lock()
+	//self.blockCache[b.Hash()] = b
+	//self.mu.Unlock()
 
 	//log.Trace(b.Blockdata.Height)
 	//log.Trace(b.Blockdata)
 	//log.Trace(b.Transactions[0])
-	if b.Blockdata.Height < uint32(len(self.headerIndex)) {
-		self.persistBlocks(ledger)
+	//if b.Blockdata.Height < uint32(len(self.headerIndex)) {
+	self.persistBlocks(b, ledger)
 
-		self.NewBatch()
-		storedHeaderCount := self.storedHeaderCount
-		for self.currentBlockHeight-storedHeaderCount >= HeaderHashListCount {
-			hashBuffer := new(bytes.Buffer)
-			serialization.WriteVarUint(hashBuffer, uint64(HeaderHashListCount))
-			var hashArray []byte
-			for i := 0; i < HeaderHashListCount; i++ {
-				index := storedHeaderCount + uint32(i)
-				thash := self.headerIndex[index]
-				thehash := thash.ToArray()
-				hashArray = append(hashArray, thehash...)
-			}
-			hashBuffer.Write(hashArray)
+	//self.NewBatch()
+	//storedHeaderCount := self.storedHeaderCount
+	//for self.currentBlockHeight-storedHeaderCount >= HeaderHashListCount {
+	//	hashBuffer := new(bytes.Buffer)
+	//	serialization.WriteVarUint(hashBuffer, uint64(HeaderHashListCount))
+	//	var hashArray []byte
+	//	for i := 0; i < HeaderHashListCount; i++ {
+	//		index := storedHeaderCount + uint32(i)
+	//		thash := self.headerIndex[index]
+	//		thehash := thash.ToArray()
+	//		hashArray = append(hashArray, thehash...)
+	//	}
+	//	hashBuffer.Write(hashArray)
 
-			hhlPrefix := bytes.NewBuffer(nil)
-			hhlPrefix.WriteByte(byte(IX_HeaderHashList))
-			serialization.WriteUint32(hhlPrefix, storedHeaderCount)
+	//	hhlPrefix := bytes.NewBuffer(nil)
+	//	hhlPrefix.WriteByte(byte(IX_HeaderHashList))
+	//	serialization.WriteUint32(hhlPrefix, storedHeaderCount)
 
-			self.BatchPut(hhlPrefix.Bytes(), hashBuffer.Bytes())
-			storedHeaderCount += HeaderHashListCount
-		}
+	//	self.BatchPut(hhlPrefix.Bytes(), hashBuffer.Bytes())
+	//	storedHeaderCount += HeaderHashListCount
+	//}
 
-		err := self.BatchCommit()
-		if err != nil {
-			log.Error("failed to persist header hash list:", err)
-			return
-		}
-		self.mu.Lock()
-		self.storedHeaderCount = storedHeaderCount
-		self.mu.Unlock()
-
-		self.clearCache()
-	}
+	//err := self.BatchCommit()
+	//if err != nil {
+	//	log.Error("failed to persist header hash list:", err)
+	//	return
+	//}
+	//self.mu.Lock()
+	//self.storedHeaderCount = storedHeaderCount
+	//self.mu.Unlock()
+	//self.clearCache()
+	//}
 }
 
-func (bd *ChainStore) persistBlocks(ledger *Ledger) {
-	stopHeight := uint32(len(bd.headerIndex))
-	for h := bd.currentBlockHeight + 1; h <= stopHeight; h++ {
-		hash := bd.headerIndex[h]
-		block, ok := bd.blockCache[hash]
-		if !ok {
-			break
-		}
-		log.Trace(block.Blockdata)
-		log.Trace(block.Transactions[0])
-		err := bd.persist(block)
-		if err != nil {
-			log.Fatal("[persistBlocks]: error to persist block:", err.Error())
-			return
-		}
-
-		// PersistCompleted event
-		//ledger.Blockchain.BlockHeight = block.Blockdata.Height
-		ledger.Blockchain.UpdateBestHeight(block.Blockdata.Height)
-		bd.mu.Lock()
-		bd.currentBlockHeight = block.Blockdata.Height
-		bd.mu.Unlock()
-
-		ledger.Blockchain.BCEvents.Notify(events.EventBlockPersistCompleted, block)
-		log.Tracef("The latest block height:%d, block hash: %x", block.Blockdata.Height, hash)
+func (bd *ChainStore) persistBlocks(block *Block, ledger *Ledger) {
+	//stopHeight := uint32(len(bd.headerIndex))
+	//for h := bd.currentBlockHeight + 1; h <= stopHeight; h++ {
+	//hash := bd.headerIndex[h]
+	//block, ok := bd.blockCache[hash]
+	//if !ok {
+	//	break
+	//}
+	//log.Trace(block.Blockdata)
+	//log.Trace(block.Transactions[0])
+	err := bd.persist(block)
+	if err != nil {
+		log.Fatal("[persistBlocks]: error to persist block:", err.Error())
+		return
 	}
+
+	// PersistCompleted event
+	//ledger.Blockchain.BlockHeight = block.Blockdata.Height
+	ledger.Blockchain.UpdateBestHeight(block.Blockdata.Height)
+	bd.mu.Lock()
+	bd.currentBlockHeight = block.Blockdata.Height
+	bd.mu.Unlock()
+	log.Trace("persist height", bd.currentBlockHeight)
+	log.Trace("persist height2", bd.ledger.Blockchain.BlockHeight)
+
+	ledger.Blockchain.BCEvents.Notify(events.EventBlockPersistCompleted, block)
+	//log.Tracef("The latest block height:%d, block hash: %x", block.Blockdata.Height, hash)
+	//}
 
 }
 
 func (bd *ChainStore) BlockInCache(hash Uint256) bool {
-	bd.mu.RLock()
-	defer bd.mu.RUnlock()
-
-	_, ok := bd.blockCache[hash]
-	return ok
+	//TODO mutex
+	//_, ok := bd.ledger.Blockchain.Index[hash]
+	//return ok
+	return false
 }
 
 func (bd *ChainStore) GetUnspent(txid Uint256, index uint16) (*tx.TxOutput, error) {
@@ -958,21 +1027,30 @@ func (bd *ChainStore) ContainsUnspent(txid Uint256, index uint16) (bool, error) 
 func (bd *ChainStore) GetCurrentHeaderHash() Uint256 {
 	bd.mu.RLock()
 	defer bd.mu.RUnlock()
-	return bd.headerIndex[uint32(len(bd.headerIndex)-1)]
+	return bd.GetCurrentBlockHash()
+	//return bd.headerIndex[uint32(len(bd.headerIndex)-1)]
 }
 
 func (bd *ChainStore) GetHeaderHashByHeight(height uint32) Uint256 {
 	bd.mu.RLock()
 	defer bd.mu.RUnlock()
 
-	return bd.headerIndex[height]
+	//return bd.headerIndex[height]
+	hash, err := bd.GetBlockHash(height)
+	if err != nil {
+		return Uint256{}
+	}
+	return hash
 }
 
 func (bd *ChainStore) GetHeaderHeight() uint32 {
 	bd.mu.RLock()
 	defer bd.mu.RUnlock()
 
-	return uint32(len(bd.headerIndex) - 1)
+	return bd.currentBlockHeight
+
+	//return uint32(len(bd.headerIndex) - 1)
+
 }
 
 func (bd *ChainStore) GetHeight() uint32 {
@@ -983,7 +1061,6 @@ func (bd *ChainStore) GetHeight() uint32 {
 }
 
 func (bd *ChainStore) IsBlockInStore(hash Uint256) bool {
-
 	var b *Block = new(Block)
 
 	b.Blockdata = new(Blockdata)

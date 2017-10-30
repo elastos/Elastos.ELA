@@ -11,7 +11,7 @@ import (
 )
 
 var (
-	AuxPowChainID         = 2
+	AuxPowChainID         = 1
 	pchMergedMiningHeader = []byte{0xfa, 0xbe, 'm', 'm'}
 )
 

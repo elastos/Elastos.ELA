@@ -31,6 +31,7 @@
     "KeyPath": "./sample-cert-key.pem",
     "CAPath": "./sample-ca.pem",
     "MultiCoreNum": 4,
+	"MaxTransactionInBlock": 100,
     "ConsensusType": "pow",
     "PowConfiguration":{
     "Switch": "enable",

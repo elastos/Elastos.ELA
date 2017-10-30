@@ -49,6 +49,8 @@ func handleLogFile(consensus string) {
 			for {
 				time.Sleep(dbft.GenBlockTime)
 				log.Trace("BlockHeight = ", ledger.DefaultLedger.Blockchain.BlockHeight)
+				log.Trace("BlockHeight = ", ledger.DefaultLedger.Store.GetHeight())
+				//ledger.DefaultLedger.Blockchain.DumpState()
 				isNeedNewFile := log.CheckIfNeedNewFile()
 				if isNeedNewFile == true {
 					log.ClosePrintLog()
@@ -94,7 +96,7 @@ func startConsensus(client account.Client, noder protocol.Noder) bool {
 func main() {
 	var client account.Client
 	var acct *account.Account
-	var blockChain *ledger.Blockchain
+	//var blockChain *ledger.Blockchain
 	var err error
 	var noder protocol.Noder
 	log.Trace("Node version: ", config.Version)
@@ -112,18 +114,21 @@ func main() {
 		log.Fatal("open LedgerStore err:", err)
 		os.Exit(1)
 	}
+	//ledger.DefaultLedger.State = ledger.NewState(ledger.DefaultLedger)
 	ledger.DefaultLedger.Store.InitLedgerStore(ledger.DefaultLedger)
 	transaction.TxStore = ledger.DefaultLedger.Store
 	crypto.SetAlg(config.Parameters.EncryptAlg)
 
 	log.Info("1. BlockChain init")
 	ledger.StandbyBookKeepers = account.GetBookKeepers()
-	blockChain, err = ledger.NewBlockchainWithGenesisBlock(ledger.StandbyBookKeepers)
+	log.Trace("1.NewBlockchainWithGenesisBlock")
+	//blockChain, err = ledger.NewBlockchainWithGenesisBlock(ledger.StandbyBookKeepers)
+	_, err = ledger.NewBlockchainWithGenesisBlock(ledger.StandbyBookKeepers)
 	if err != nil {
 		log.Fatal(err, "  BlockChain generate failed")
 		goto ERROR
 	}
-	ledger.DefaultLedger.Blockchain = blockChain
+	//	ledger.DefaultLedger.Blockchain = blockChain
 
 	log.Info("2. Open the account")
 	client = account.GetClient()
@@ -139,16 +144,20 @@ func main() {
 	log.Info("The Node's PublicKey ", acct.PublicKey)
 	log.Info("3. Start the P2P networks")
 	noder = net.StartProtocol(acct.PublicKey)
+	log.Info("3.1 Start the P2P networks")
 	httpjsonrpc.RegistRpcNode(noder)
+	log.Info("3.2 Start the P2P networks")
 	time.Sleep(10 * time.Second)
 	noder.SyncNodeHeight()
+	log.Info("3.3 Start the P2P networks")
 	noder.WaitForFourPeersStart()
+	log.Info("3.4 Start the P2P networks")
 	noder.WaitForSyncBlkFinish()
 	if !startConsensus(client, noder) {
 		goto ERROR
 	}
 
-	log.Info("--Start the RPC interface")
+	log.Info("4. --Start the RPC interface")
 	go httpjsonrpc.StartRPCServer()
 	go httpjsonrpc.StartLocalServer()
 	go httprestful.StartServer(noder)

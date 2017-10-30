@@ -129,6 +129,8 @@ type Noder interface {
 	GetNeighborHeights() ([]uint64, uint64)
 	SyncNodeHeight()
 	CleanSubmittedTransactions(block *ledger.Block) error
+	MaybeAcceptTransaction(txn *transaction.Transaction) error
+	RemoveTransaction(txn *transaction.Transaction)
 
 	GetNeighborNoder() []Noder
 	GetNbrNodeCnt() uint32

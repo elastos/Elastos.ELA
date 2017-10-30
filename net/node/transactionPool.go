@@ -6,10 +6,16 @@ import (
 	"DNA_POW/common/log"
 	"DNA_POW/core/ledger"
 	"DNA_POW/core/transaction"
+	tx "DNA_POW/core/transaction"
 	va "DNA_POW/core/validation"
 	. "DNA_POW/errors"
 	"fmt"
+	"math"
 	"sync"
+)
+
+var (
+	zeroHash = common.Uint256{}
 )
 
 type TXNPool struct {
@@ -331,3 +337,55 @@ func (this *TXNPool) getAssetIssueAmount(assetId common.Uint256) common.Fixed64 
 	return this.issueSummary[assetId]
 }
 */
+
+func isCoinBaseTx(msgTx *tx.Transaction) bool {
+	// A coin base must only have one transaction input.
+	if len(msgTx.UTXOInputs) != 1 {
+		return false
+	}
+
+	// The previous output of a coin base must have a max value index and
+	// a zero hash.
+	prevOut := msgTx.UTXOInputs[0]
+	if prevOut.ReferTxOutputIndex != math.MaxUint16 || (prevOut.ReferTxID.CompareTo(zeroHash) != 0) {
+		return false
+	}
+
+	return true
+}
+
+func (this *TXNPool) MaybeAcceptTransaction(txn *tx.Transaction) error {
+	txHash := txn.Hash()
+
+	// Don't accept the transaction if it already exists in the pool.  This
+	// applies to orphan transactions as well.  This check is intended to
+	// be a quick check to weed out duplicates.
+	if txn := this.GetTransaction(txHash); txn != nil {
+		return fmt.Errorf("already have transaction")
+	}
+
+	// A standalone transaction must not be a coinbase transaction.
+	if isCoinBaseTx(txn) {
+		return fmt.Errorf("transaction is an individual coinbase")
+	}
+
+	if errCode := this.AppendTxnPool(txn); errCode != ErrNoError {
+		return fmt.Errorf("VerifyTxs failed when AppendTxnPool")
+	}
+
+	return nil
+}
+
+func (this *TXNPool) RemoveTransaction(txn *tx.Transaction) {
+	txHash := txn.Hash()
+	for i := range txn.Outputs {
+		in := tx.UTXOTxInput{
+			ReferTxID:          txHash,
+			ReferTxOutputIndex: uint16(i),
+		}
+		input := in.ToString()
+		if txn, ok := this.inputUTXOList[input]; ok {
+			this.removeTransaction(txn)
+		}
+	}
+}

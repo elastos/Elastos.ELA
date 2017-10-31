@@ -40,7 +40,6 @@ func NewHeadersReq(hash common.Uint256) ([]byte, error) {
 	msg.p.len = uint32(len(blocator))
 
 	msg.p.hashStart = blocator
-	log.Trace("h.p.hashStart[:] ", msg.p.hashStart[:])
 	serialization.WriteUint32(tmpBuffer, uint32(msg.p.len))
 
 	for _, hash := range blocator {
@@ -266,7 +265,7 @@ func GetHeadersFromHash(startHash common.Uint256, stopHash common.Uint256) ([]le
 	headers := []ledger.Header{}
 	var startHeight uint32
 	var stopHeight uint32
-	curHeight := ledger.DefaultLedger.Store.GetHeaderHeight()
+	curHeight := ledger.DefaultLedger.Store.GetHeight()
 	if stopHash == empty {
 		if startHash == empty {
 			if curHeight > MAXBLKHDRCNT {
@@ -306,7 +305,6 @@ func GetHeadersFromHash(startHash common.Uint256, stopHash common.Uint256) ([]le
 
 			if count >= MAXBLKHDRCNT {
 				count = MAXBLKHDRCNT
-				startHeight = stopHeight - MAXBLKHDRCNT
 			}
 		} else {
 			if stopHeight > MAXBLKHDRCNT {

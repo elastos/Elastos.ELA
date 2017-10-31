@@ -153,7 +153,7 @@ func main() {
 	log.Info("3.4 Start the P2P networks")
 	noder.StartSync()
 	noder.SyncNodeHeight()
-	noder.WaitForSyncBlkFinish()
+	//noder.WaitForSyncBlkFinish()
 	if !startConsensus(client, noder) {
 		goto ERROR
 	}

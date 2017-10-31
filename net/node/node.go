@@ -759,8 +759,6 @@ func (node *node) StartSync() {
 	if needSync == true {
 		if node.LocalNode().IsSyncHeaders() == false {
 			n := node.GetBestHeightNoder()
-			log.Trace("!##@$%$#%&^(_")
-			log.Trace("~~~~ start sync from ", n.GetAddr())
 			SendMsgSyncHeaders(n)
 			n.StartRetryTimer()
 		}

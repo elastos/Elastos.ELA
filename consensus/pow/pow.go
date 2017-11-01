@@ -56,7 +56,6 @@ func (pow *PowService) CreateCoinbaseTrx(nextBlockHeight uint32, addr string) (*
 	}
 
 	//2. create coinbase tx
-	//TODO coinbase payload
 	txn, err := tx.NewCoinBaseTransaction(&payload.CoinBase{})
 	if err != nil {
 		return nil, err
@@ -64,19 +63,15 @@ func (pow *PowService) CreateCoinbaseTrx(nextBlockHeight uint32, addr string) (*
 
 	txn.Outputs = []*tx.TxOutput{
 		&tx.TxOutput{
-			//TODO asset id
-			AssetID: Uint256{},
-			//TODO  calc block subsidy
-			Value:       0,
+			AssetID:     ledger.DefaultLedger.Blockchain.AssetID,
+			Value:       10,
 			ProgramHash: pkScript,
 		},
 	}
 
-	//txAttr := tx.NewTxAttribute(tx.Nonce, []byte(strconv.FormatUint(rand.Uint64(), 16)))
 	nonce := make([]byte, 8)
 	binary.BigEndian.PutUint64(nonce, rand.Uint64())
 	txAttr := tx.NewTxAttribute(tx.Nonce, nonce)
-	//txn.Attributes = make([]*tx.TxAttribute, 0)
 	txn.Attributes = append(txn.Attributes, &txAttr)
 
 	return txn, nil
@@ -89,14 +84,14 @@ func (pow *PowService) GenerateBlock(addr string) (*ledger.Block, error) {
 		return nil, err
 	}
 
-	//TODO TimeSource
 	blockData := &ledger.Blockdata{
 		Version:          0,
 		PrevBlockHash:    *ledger.DefaultLedger.Blockchain.BestChain.Hash,
 		TransactionsRoot: Uint256{},
-		Timestamp:        uint32(time.Unix(time.Now().Unix(), 0).Unix()),
+		//Timestamp:        uint32(time.Unix(time.Now().Unix(), 0).Unix()),
+		Timestamp: uint32(ledger.DefaultLedger.Blockchain.MedianAdjustedTime().Unix()),
 		//Bits:             0x2007ffff,
-		Bits:           0x1e03ffff,
+		Bits:           0x1d03ffff,
 		Height:         nextBlockHeight,
 		Nonce:          0,
 		ConsensusData:  0,
@@ -125,8 +120,8 @@ func (pow *PowService) GenerateBlock(addr string) (*ledger.Block, error) {
 	msgBlock.Blockdata.TransactionsRoot = txRoot
 
 	//TODO fee & subsidy
-	prevBlock, _ := ledger.DefaultLedger.GetBlockWithHeight(nextBlockHeight - 1)
-	msgBlock.Blockdata.Bits, err = validation.CalcNextRequiredDifficulty(prevBlock, time.Now())
+	//prevBlock, _ := ledger.DefaultLedger.GetBlockWithHeight(nextBlockHeight - 1)
+	msgBlock.Blockdata.Bits, err = validation.CalcNextRequiredDifficulty(ledger.DefaultLedger.Blockchain.BestChain, time.Now())
 	log.Trace("difficulty: ", msgBlock.Blockdata.Bits)
 
 	return msgBlock, err
@@ -137,7 +132,9 @@ func (pow *PowService) SolveBlock(MsgBlock *ledger.Block, ticker *time.Ticker) b
 	targetDifficulty := validation.CompactToBig(header.Bits)
 
 	for extraNonce := uint64(0); extraNonce < maxExtraNonce; extraNonce++ {
-		//txAttr := tx.NewTxAttribute(tx.Nonce, []byte(strconv.FormatUint(rand.Uint64()+extraNonce, 10)))
+		//nonce := make([]byte, 8)
+		//binary.BigEndian.PutUint64(nonce, rand.Uint64())
+		//txAttr := tx.NewTxAttribute(tx.Nonce, nonce)
 		//MsgBlock.Transactions[0].Attributes[0] = &txAttr
 
 		for i := uint32(0); i <= maxNonce; i++ {
@@ -238,7 +235,7 @@ func (pow *PowService) BlockPersistCompleted(v interface{}) {
 		}
 
 		//TODO commit
-		pow.localNet.Xmit(block.Hash())
+		//pow.localNet.Xmit(block.Hash())
 	}
 
 	ledger.DefaultLedger.Blockchain.DumpState()
@@ -248,8 +245,7 @@ func (pow *PowService) BlockPersistCompleted(v interface{}) {
 func NewPowService(client cl.Client, logDictionary string, localNet net.Neter) *PowService {
 	log.Debug()
 	pow := &PowService{
-		//TODO get PayToaddr from config
-		PayToAddr:     "Abn4A5BMXNBrzEfuRbxWpgtYtGbQ6xqK2m",
+		PayToAddr:     config.Parameters.PowConfiguration.PayToAddr,
 		Client:        client,
 		started:       false,
 		ZMQPublish:    make(chan bool, 1),
@@ -280,7 +276,7 @@ out:
 		msgBlock, err := pow.GenerateBlock(pow.PayToAddr)
 		if err != nil {
 			log.Trace("generage block err", err)
-			return
+			continue
 		}
 
 		pow.MsgBlock = msgBlock
@@ -297,14 +293,17 @@ out:
 			//send the valid block to p2p networkd
 			if msgBlock.Blockdata.Height == ledger.DefaultLedger.Blockchain.GetBestHeight()+1 {
 				log.Trace(msgBlock)
-
-				if _, _, err := ledger.DefaultLedger.Blockchain.AddBlock(msgBlock); err != nil {
+				inMainChain, isOrphan, err := ledger.DefaultLedger.Blockchain.AddBlock(msgBlock)
+				if err != nil {
 					log.Trace(err)
-					return
+					continue
 				}
 				//TODO if co-mining condition
+				if isOrphan || !inMainChain {
+					continue
+				}
 				//pow.ZMQClientSend(*msgBlock)
-				//pow.BroadcastBlock(msgBlock)
+				pow.BroadcastBlock(msgBlock)
 			}
 		}
 

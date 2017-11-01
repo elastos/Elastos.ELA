@@ -10,7 +10,6 @@ import (
 	va "DNA_POW/core/validation"
 	. "DNA_POW/errors"
 	"fmt"
-	"math"
 	"sync"
 )
 
@@ -338,22 +337,6 @@ func (this *TXNPool) getAssetIssueAmount(assetId common.Uint256) common.Fixed64 
 }
 */
 
-func isCoinBaseTx(msgTx *tx.Transaction) bool {
-	// A coin base must only have one transaction input.
-	if len(msgTx.UTXOInputs) != 1 {
-		return false
-	}
-
-	// The previous output of a coin base must have a max value index and
-	// a zero hash.
-	prevOut := msgTx.UTXOInputs[0]
-	if prevOut.ReferTxOutputIndex != math.MaxUint16 || (prevOut.ReferTxID.CompareTo(zeroHash) != 0) {
-		return false
-	}
-
-	return true
-}
-
 func (this *TXNPool) MaybeAcceptTransaction(txn *tx.Transaction) error {
 	txHash := txn.Hash()
 
@@ -365,7 +348,7 @@ func (this *TXNPool) MaybeAcceptTransaction(txn *tx.Transaction) error {
 	}
 
 	// A standalone transaction must not be a coinbase transaction.
-	if isCoinBaseTx(txn) {
+	if txn.IsCoinBaseTx() {
 		return fmt.Errorf("transaction is an individual coinbase")
 	}
 

@@ -14,10 +14,14 @@ import (
 	tx "DNA_POW/core/transaction"
 	"DNA_POW/core/validation"
 	"DNA_POW/crypto"
+	. "DNA_POW/errors"
 	"DNA_POW/events"
 	"bytes"
+	"container/list"
 	"errors"
+
 	"fmt"
+	"math"
 	"math/big"
 	"sort"
 	"sync"
@@ -29,10 +33,12 @@ const (
 	CleanCacheThreshold  = 2
 	TaskChanCap          = 4
 	MaxTimeOffsetSeconds = 2 * 60 * 60
+	MaxBlockBaseSize     = 1000000
 )
 
 var (
 	ErrDBNotFound = errors.New("leveldb: not found")
+	zeroHash      = Uint256{}
 )
 
 type persistTask interface{}
@@ -59,8 +65,9 @@ type ChainStore struct {
 
 	mu          sync.RWMutex // guard the following var
 	headerIndex map[uint32]Uint256
-	blockCache  map[Uint256]*Block
 	headerCache map[Uint256]*Header
+	//blockCache  map[Uint256]*Block
+	headerIdx *list.List
 
 	currentBlockHeight uint32
 	storedHeaderCount  uint32
@@ -85,10 +92,11 @@ func NewChainStore(file string) (*ChainStore, error) {
 	}
 
 	chain := &ChainStore{
-		IStore:             st,
-		headerIndex:        map[uint32]Uint256{},
-		blockCache:         map[Uint256]*Block{},
+		IStore:      st,
+		headerIndex: map[uint32]Uint256{},
+		//blockCache:         map[Uint256]*Block{},
 		headerCache:        map[Uint256]*Header{},
+		headerIdx:          list.New(),
 		currentBlockHeight: 0,
 		storedHeaderCount:  0,
 		taskCh:             make(chan persistTask, TaskChanCap),
@@ -146,17 +154,18 @@ func (self *ChainStore) loop() {
 }
 
 // can only be invoked by backend write goroutine
-//func (self *ChainStore) clearCache() {
-//	self.mu.Lock()
-//	defer self.mu.Unlock()
-//
-//	currBlockHeight := self.currentBlockHeight
-//	for hash, header := range self.headerCache {
-//		if header.Blockdata.Height+CleanCacheThreshold < currBlockHeight {
-//			delete(self.headerCache, hash)
-//		}
-//	}
-//}
+func (self *ChainStore) clearCache(b *Block) {
+	self.mu.Lock()
+	defer self.mu.Unlock()
+
+	for e := self.headerIdx.Front(); e != nil; e = e.Next() {
+		n := e.Value.(Header)
+		h := n.Blockdata.Hash()
+		if h.CompareTo(b.Hash()) == 0 {
+			self.headerIdx.Remove(e)
+		}
+	}
+}
 
 func (bd *ChainStore) InitLedgerStoreWithGenesisBlock(genesisBlock *Block, defaultBookKeeper []*crypto.PubKey) (uint32, error) {
 	prefix := []byte{byte(CFG_Version)}
@@ -201,7 +210,7 @@ func (bd *ChainStore) InitLedgerStoreWithGenesisBlock(genesisBlock *Block, defau
 		return 0, errors.New("bookkeepers are not consistent with the chain")
 	}
 	bd.ledger.Blockchain.GenesisHash = hash
-	bd.headerIndex[0] = hash
+	//bd.headerIndex[0] = hash
 	log.Trace("hash2: ", hash)
 
 	// Get Current Block
@@ -315,13 +324,17 @@ func (bd *ChainStore) GetBlockHash(height uint32) (Uint256, error) {
 	return blockHash256, nil
 }
 func (bd *ChainStore) getHeaderWithCache(hash Uint256) *Header {
-	if _, ok := bd.headerCache[hash]; ok {
-		return bd.headerCache[hash]
+	for e := bd.headerIdx.Front(); e != nil; e = e.Next() {
+		n := e.Value.(Header)
+		eh := n.Blockdata.Hash()
+		if eh.CompareTo(hash) == 0 {
+			return &n
+		}
 	}
 
-	header, _ := bd.GetHeader(hash)
+	h, _ := bd.GetHeader(hash)
 
-	return header
+	return h
 }
 func (bd *ChainStore) GetCurrentBlockHash() Uint256 {
 	hash, err := bd.GetBlockHash(bd.currentBlockHeight)
@@ -333,7 +346,7 @@ func (bd *ChainStore) GetCurrentBlockHash() Uint256 {
 }
 
 func (bd *ChainStore) verifyHeader(header *Header) bool {
-	prevHeader, _ := bd.GetHeader(header.Blockdata.PrevBlockHash)
+	prevHeader := bd.getHeaderWithCache(header.Blockdata.PrevBlockHash)
 
 	if prevHeader == nil {
 		log.Error("[verifyHeader] failed, not found prevHeader.")
@@ -361,7 +374,6 @@ func (bd *ChainStore) verifyHeader(header *Header) bool {
 }
 
 func (bd *ChainStore) powVerifyHeader(header *Header) bool {
-	//prevHeader, _ := bd.GetHeader(header.Blockdata.PrevBlockHash)
 	prevHeader := bd.getHeaderWithCache(header.Blockdata.PrevBlockHash)
 
 	if prevHeader == nil {
@@ -682,15 +694,16 @@ func (bd *ChainStore) addHeader(header *Header) {
 	bd.mu.Lock()
 	bd.headerCache[header.Blockdata.Hash()] = header
 	bd.headerIndex[header.Blockdata.Height] = hash
+	bd.headerIdx.PushBack(*header)
 	bd.mu.Unlock()
 
 	log.Debug("[addHeader]: finish, header height:", header.Blockdata.Height)
 }
 
 func (self *ChainStore) handlePersistHeaderTask(header *Header) {
-	if header.Blockdata.Height != uint32(len(self.headerIndex)) {
-		return
-	}
+	//if header.Blockdata.Height != uint32(len(self.headerIndex)) {
+	//	return
+	//}
 
 	//if config.Parameters.ConsensusType == "pow" {
 	if !self.powVerifyHeader(header) {
@@ -722,6 +735,61 @@ func (self *ChainStore) SaveBlock(b *Block, ledger *Ledger) error {
 
 	return nil
 }
+func (db *ChainStore) CheckTransactionSanity(msgTx *tx.Transaction) error {
+	if len(msgTx.UTXOInputs) == 0 {
+		return errors.New("[CheckTransactionSanity] transaction has no inputs")
+	}
+
+	if len(msgTx.Outputs) == 0 {
+		return errors.New("[CheckTransactionSanity] transaction has no outputs")
+	}
+
+	w := bytes.NewBuffer(nil)
+	msgTx.Serialize(w)
+	serializedTxSize := len(w.Bytes())
+	if serializedTxSize > MaxBlockBaseSize {
+		return errors.New("[CheckTransactionSanity] serialized transaction is too big")
+	}
+
+	var totalSatoshi Fixed64
+	for _, txOut := range msgTx.Outputs {
+		satoshi := txOut.Value
+		if satoshi < 0 {
+			return errors.New("[CheckTransactionSanity] transaction output has negative")
+		}
+		//if satoshi > MaxSatoshi {
+		//	return errors.New("[CheckTransactionSanity] transaction output value is higher than max allowed value")
+		//}
+
+		totalSatoshi += satoshi
+		if totalSatoshi < 0 {
+			return errors.New("[CheckTransactionSanity] total value of all transaction outputs exceeds max allowed value")
+		}
+		//if totalSatoshi > MaxSatoshi {
+		//	return errors.New("[CheckTransactionSanity] total value of all transaction outputs is higher than max allowed value")
+		//}
+	}
+
+	// Check for duplicate transaction inputs.
+	existingTxOut := make(map[tx.UTXOTxInput]struct{})
+	for _, txIn := range msgTx.UTXOInputs {
+		if _, exists := existingTxOut[*txIn]; exists {
+			return errors.New("[CheckTransactionSanity] transaction contains duplicate inputs")
+		}
+		existingTxOut[*txIn] = struct{}{}
+	}
+
+	if !msgTx.IsCoinBaseTx() {
+		for _, txIn := range msgTx.UTXOInputs {
+			if (txIn.ReferTxID.CompareTo(zeroHash) == 0) &&
+				(txIn.ReferTxOutputIndex == math.MaxUint16) {
+				return errors.New("[CheckTransactionSanity] transaction input refers to previous output that is null")
+			}
+		}
+	}
+
+	return nil
+}
 
 func (db *ChainStore) PowCheckBlockSanity(block *Block, powLimit *big.Int, timeSource MedianTimeSource) error {
 	header := block.Blockdata
@@ -733,11 +801,14 @@ func (db *ChainStore) PowCheckBlockSanity(block *Block, powLimit *big.Int, timeS
 		return errors.New("[PowCheckBlockSanity] block check proof is failed.")
 	}
 
-	//TODO A block timestamp must not have a greater precision than one second.
+	// A block timestamp must not have a greater precision than one second.
+	tempTime := time.Unix(int64(header.Timestamp), 0)
+	if !tempTime.Equal(time.Unix(tempTime.Unix(), 0)) {
+		return errors.New("[PowCheckBlockSanity] block timestamp of has a higher precision than one second")
+	}
 
 	// Ensure the block time is not too far in the future.
 	maxTimestamp := timeSource.AdjustedTime().Add(time.Second * MaxTimeOffsetSeconds)
-	tempTime := time.Unix(int64(header.Timestamp), 0)
 	if tempTime.After(maxTimestamp) {
 		return errors.New("[PowCheckBlockSanity] block timestamp of is too far in the future")
 	}
@@ -749,68 +820,73 @@ func (db *ChainStore) PowCheckBlockSanity(block *Block, powLimit *big.Int, timeS
 	}
 
 	// A block must not have more transactions than the max block payload.
-	//TODO
-	//config.Parameters.MaxTxInBlock = 100
 	if numTx > config.Parameters.MaxTxInBlock {
 		return errors.New("[PowCheckBlockSanity]  block contains too many transactions")
 	}
+	// A block must not exceed the maximum allowed block payload when serialized.
+	w := bytes.NewBuffer(nil)
+	block.Serialize(w)
+	serializedSize := len(w.Bytes())
+	if serializedSize > MaxBlockBaseSize {
+		return errors.New("[PowCheckBlockSanity] serialized block is too big")
+	}
 
-	// TODO The first transaction in a block must be a coinbase.
-	//transactions := block.Transactions
-	//if !IsCoinBase(transactions[0]) {
-	//	return ruleError(ErrFirstTxNotCoinbase, "first transaction in "+
-	//		"block is not a coinbase")
-	//}
+	// The first transaction in a block must be a coinbase.
+	transactions := block.Transactions
+	if !transactions[0].IsCoinBaseTx() {
+		return errors.New("[PowCheckBlockSanity] first transaction in block is not a coinbase")
+	}
 
-	//// A block must not have more than one coinbase.
-	//for i, tx := range transactions[1:] {
-	//	if IsCoinBase(tx) {
-	//		str := fmt.Sprintf("block contains second coinbase at "+
-	//			"index %d", i)
-	//		return ruleError(ErrMultipleCoinbases, str)
-	//	}
-	//}
+	// A block must not have more than one coinbase.
+	for _, tx := range transactions[1:] {
+		if tx.IsCoinBaseTx() {
+			return errors.New("[PowCheckBlockSanity] block contains second coinbase")
+		}
+	}
 
 	// Do some preliminary checks on each transaction to ensure they are
 	// sane before continuing.
-	//for _, tx := range transactions {
-	//	err := CheckTransactionSanity(tx)
-	//	if err != nil {
-	//		return err
-	//	}
-	//}
+	for _, tx := range transactions {
+		err := db.CheckTransactionSanity(tx)
+		if err != nil {
+			return err
+		}
+	}
 
-	// Build merkle tree and ensure the calculated merkle root matches the
-	// entry in the block header.  This also has the effect of caching all
-	// of the transaction hashes in the block to speed up future hash
-	// checks.  Bitcoind builds the tree here and checks the merkle root
-	// after the following checks, but there is no reason not to check the
-	// merkle root matches here.
-	//merkles := BuildMerkleTreeStore(block.Transactions())
-	//calculatedMerkleRoot := merkles[len(merkles)-1]
-	//if !header.MerkleRoot.IsEqual(calculatedMerkleRoot) {
-	//	str := fmt.Sprintf("block merkle root is invalid - block "+
-	//		"header indicates %v, but calculated value is %v",
-	//		header.MerkleRoot, calculatedMerkleRoot)
-	//	return ruleError(ErrBadMerkleRoot, str)
-	//}
+	var tharray []Uint256
+	for _, txn := range transactions {
+		txhash := txn.Hash()
+		tharray = append(tharray, txhash)
+	}
+	calcTransactionsRoot, err := crypto.ComputeRoot(tharray)
+	if err != nil {
+		return errors.New("[PowCheckBlockSanity] merkleTree compute failed")
+	}
+	if header.TransactionsRoot.CompareTo(calcTransactionsRoot) != 0 {
+		return errors.New("[PowCheckBlockSanity] block merkle root is invalid")
+	}
 
 	// Check for duplicate transactions.  This check will be fairly quick
 	// since the transaction hashes are already cached due to building the
 	// merkle tree above.
-	//existingTxHashes := make(map[wire.ShaHash]struct{})
-	//for _, tx := range transactions {
-	//	hash := tx.Sha()
-	//	if _, exists := existingTxHashes[*hash]; exists {
-	//		str := fmt.Sprintf("block contains duplicate "+
-	//			"transaction %v", hash)
-	//		return ruleError(ErrDuplicateTx, str)
-	//	}
-	//	existingTxHashes[*hash] = struct{}{}
-	//}
+	existingTxHashes := make(map[Uint256]struct{})
+	for _, txn := range transactions {
+		txHash := txn.Hash()
+		if _, exists := existingTxHashes[txHash]; exists {
+			return errors.New("[PowCheckBlockSanity] block contains duplicate transaction")
+		}
+		existingTxHashes[txHash] = struct{}{}
+	}
 
-	//// The number of signature operations must be less than the maximum
-	//// allowed per block.
+	for _, txVerify := range transactions {
+		if errCode := validation.VerifyTransaction(txVerify); errCode != ErrNoError {
+			return errors.New(fmt.Sprintf("VerifyTransaction failed when verifiy block"))
+		}
+	}
+
+	// TODO check sigops
+	// The number of signature operations must be less than the maximum
+	// allowed per block.
 	//totalSigOps := 0
 	//for _, tx := range transactions {
 	//	// We could potentially overflow the accumulator so check for
@@ -828,75 +904,75 @@ func (db *ChainStore) PowCheckBlockSanity(block *Block, powLimit *big.Int, timeS
 	return nil
 }
 
+func isFinalizedTransaction(msgTx *tx.Transaction, blockHeight uint32) bool {
+	// Lock time of zero means the transaction is finalized.
+	lockTime := msgTx.LockTime
+	if lockTime == 0 {
+		return true
+	}
+
+	//FIXME only height
+	if lockTime < blockHeight {
+		return true
+	}
+
+	// At this point, the transaction's lock time hasn't occurred yet, but
+	// the transaction might still be finalized if the sequence number
+	// for all transaction inputs is maxed out.
+	for _, txIn := range msgTx.UTXOInputs {
+		if txIn.Sequence != math.MaxUint16 {
+			return false
+		}
+	}
+	return true
+}
+
 func (db *ChainStore) PowCheckBlockContext(block *Block, prevNode *BlockNode, ledger *Ledger) error {
 	// The genesis block is valid by definition.
 	if prevNode == nil {
 		return nil
 	}
 
-	// Perform all block header related validation checks.
-	//header := block.Blockdata
-	// Ensure the difficulty specified in the block header matches
-	// the calculated difficulty based on the previous block and
-	// difficulty retarget rules.
+	header := block.Blockdata
+	expectedDifficulty, err := validation.CalcNextRequiredDifficulty(prevNode,
+		time.Unix(int64(header.Timestamp), 0))
+	if err != nil {
+		return err
+	}
 
-	//if prevHeader.Blockdata.Height+1 != bd.Height {
-	//return NewDetailErr(errors.New("[BlockValidator] error"), ErrNoCode, "[BlockValidator], block height is incorrect.")
-	//}
-	//expectedDifficulty, err := b.CalcNextRequiredDifficulty(prevNode,
-	//	header.Timestamp)
-	//if err != nil {
-	//	return err
-	//}
-	//blockDifficulty := header.Bits
-	//if blockDifficulty != expectedDifficulty {
-	//	str := "block difficulty of %d is not the expected value of %d"
-	//	str = fmt.Sprintf(str, blockDifficulty, expectedDifficulty)
-	//	return ruleError(ErrUnexpectedDifficulty, str)
-	//}
+	if header.Bits != expectedDifficulty {
+		return errors.New("block difficulty is not the expected")
+	}
 
 	// Ensure the timestamp for the block header is after the
 	// median time of the last several blocks (medianTimeBlocks).
-	//medianTime, err := b.calcPastMedianTime(prevNode)
-	//if err != nil {
-	//	log.Errorf("calcPastMedianTime: %v", err)
-	//	return err
-	//}
-	//if !header.Timestamp.After(medianTime) {
-	//	str := "block timestamp of %v is not after expected %v"
-	//	str = fmt.Sprintf(str, header.Timestamp, medianTime)
-	//	return ruleError(ErrTimeTooOld, str)
-	//}
+	medianTime := CalcPastMedianTime(prevNode)
+	tempTime := time.Unix(int64(header.Timestamp), 0)
+
+	if !tempTime.After(medianTime) {
+		return errors.New("block timestamp is not after expected")
+	}
 
 	// The height of this block is one more than the referenced
 	// previous block.
-	//blockHeight := prevNode.Height + 1
+	blockHeight := prevNode.Height + 1
 
 	// Ensure all transactions in the block are finalized.
-	//for _, tx := range block.Transactions() {
-	//	if !IsFinalizedTransaction(tx, blockHeight,
-	//		header.Timestamp) {
+	for _, txn := range block.Transactions {
+		if !isFinalizedTransaction(txn, blockHeight) {
+			return errors.New("block contains unfinalized transaction")
+		}
+	}
 
-	//		str := fmt.Sprintf("block contains unfinalized "+
-	//			"transaction %v", tx.Sha())
-	//		return ruleError(ErrUnfinalizedTx, str)
-	//	}
-	//}
+	for _, txVerify := range block.Transactions {
+		if errCode := validation.VerifyTransactionWithLedger(txVerify, db.ledger); errCode != ErrNoError {
+			return errors.New(fmt.Sprintf("VerifyTransactionWithLedger failed when verifiy block"))
+		}
+	}
 
-	// Ensure coinbase starts with serialized block heights for
-	// blocks whose version is the serializedHeightVersion or newer
-	// once a majority of the network has upgraded.  This is part of
-	// BIP0034.
-	//if ShouldHaveSerializedBlockHeight(header) &&
-	//	b.isMajorityVersion(serializedHeightVersion, prevNode,
-	//		b.chainParams.BlockEnforceNumRequired) {
-
-	//	coinbaseTx := block.Transactions()[0]
-	//	err := checkSerializedHeight(coinbaseTx, blockHeight)
-	//	if err != nil {
-	//		return err
-	//	}
-	//}
+	if err := validation.VerifyTransactionWithBlock(block.Transactions[1:]); err != nil {
+		return errors.New(fmt.Sprintf("VerifyTransactionWithBlock failed when verifiy block"))
+	}
 
 	return nil
 }
@@ -957,7 +1033,7 @@ func (self *ChainStore) handlePersistBlockTask(b *Block, ledger *Ledger) {
 	//self.mu.Lock()
 	//self.storedHeaderCount = storedHeaderCount
 	//self.mu.Unlock()
-	//self.clearCache()
+	self.clearCache(b)
 	//}
 }
 
@@ -1037,30 +1113,47 @@ func (bd *ChainStore) ContainsUnspent(txid Uint256, index uint16) (bool, error) 
 func (bd *ChainStore) GetCurrentHeaderHash() Uint256 {
 	bd.mu.RLock()
 	defer bd.mu.RUnlock()
-	//return bd.GetCurrentBlockHash()
-	return bd.headerIndex[uint32(len(bd.headerIndex)-1)]
+	//return bd.headerIndex[uint32(len(bd.headerIndex)-1)]
+	e := bd.headerIdx.Back()
+	if e != nil {
+		n := e.Value.(Header)
+		return n.Blockdata.Hash()
+	}
+
+	return bd.GetCurrentBlockHash()
 }
 
 func (bd *ChainStore) GetHeaderHashByHeight(height uint32) Uint256 {
 	bd.mu.RLock()
 	defer bd.mu.RUnlock()
 
-	return bd.headerIndex[height]
-	//hash, err := bd.GetBlockHash(height)
-	//if err != nil {
-	//	return Uint256{}
-	//}
-	//return hash
+	//return bd.headerIndex[height]
+	for e := bd.headerIdx.Front(); e != nil; e = e.Next() {
+		n := e.Value.(Header)
+		if height == n.Blockdata.Height {
+			return n.Blockdata.Hash()
+		}
+	}
+
+	hash, err := bd.GetBlockHash(height)
+	if err != nil {
+		return Uint256{}
+	}
+	return hash
 }
 
 func (bd *ChainStore) GetHeaderHeight() uint32 {
 	bd.mu.RLock()
 	defer bd.mu.RUnlock()
 
-	//return bd.currentBlockHeight
+	//return uint32(len(bd.headerIndex) - 1)
 
-	return uint32(len(bd.headerIndex) - 1)
-
+	e := bd.headerIdx.Back()
+	if e != nil {
+		n := e.Value.(Header)
+		return n.Blockdata.Height
+	}
+	return bd.currentBlockHeight
 }
 
 func (bd *ChainStore) GetHeight() uint32 {

@@ -2,6 +2,7 @@ package ledger
 
 import (
 	. "DNA_POW/common"
+	"DNA_POW/common/config"
 	"DNA_POW/common/log"
 	"DNA_POW/common/serialization"
 	"DNA_POW/core/asset"
@@ -12,7 +13,9 @@ import (
 	"DNA_POW/crypto"
 	. "DNA_POW/errors"
 	"DNA_POW/vm"
+	"encoding/binary"
 	"io"
+	"math/rand"
 	"time"
 )
 
@@ -159,37 +162,24 @@ func GenesisBlockInit(defaultBookKeeper []*crypto.PubKey) (*Block, error) {
 		Version:          BlockVersion,
 		PrevBlockHash:    Uint256{},
 		TransactionsRoot: Uint256{},
-		Timestamp:        uint32(uint32(time.Date(2017, time.October, 1, 0, 0, 0, 0, time.UTC).Unix())),
-		//Timestamp:      uint32(time.Now().Unix()),
-		Bits:           0x1d00ffff,
-		Nonce:          uint32(0),
-		Height:         uint32(0),
-		ConsensusData:  GenesisNonce,
-		NextBookKeeper: nextBookKeeper,
+		Timestamp:        uint32(time.Unix(time.Date(2017, time.October, 1, 0, 0, 0, 0, time.UTC).Unix(), 0).Unix()),
+		Bits:             0x1d00ffff,
+		Nonce:            uint32(0),
+		Height:           uint32(0),
+		ConsensusData:    GenesisNonce,
+		NextBookKeeper:   nextBookKeeper,
 		Program: &program.Program{
 			Code:      []byte{},
 			Parameter: []byte{byte(vm.PUSHT)},
 		},
 	}
+
 	admin, err := ToCodeHash([]byte{byte(vm.PUSHT)})
 	if err != nil {
 		return nil, NewDetailErr(err, ErrNoCode, "[GenesisBlock], share admin error")
 	}
 
 	//transaction
-	trans := &tx.Transaction{
-		TxType:         tx.BookKeeping,
-		PayloadVersion: payload.BookKeepingPayloadVersion,
-		Payload: &payload.BookKeeping{
-			Nonce: GenesisNonce,
-		},
-		Attributes:    []*tx.TxAttribute{},
-		UTXOInputs:    []*tx.UTXOTxInput{},
-		BalanceInputs: []*tx.BalanceTxInput{},
-		Outputs:       []*tx.TxOutput{},
-		Programs:      []*program.Program{},
-	}
-
 	systemToken := &tx.Transaction{
 		TxType:         tx.RegisterAsset,
 		PayloadVersion: 0,
@@ -229,12 +219,36 @@ func GenesisBlockInit(defaultBookKeeper []*crypto.PubKey) (*Block, error) {
 			},
 		},
 	}
+
+	addr := config.Parameters.PowConfiguration.PayToAddr
+
+	pkScript, err := ToScriptHash(addr)
+	if err != nil {
+		return nil, err
+	}
+
+	trans, err := tx.NewCoinBaseTransaction(&payload.CoinBase{})
+	if err != nil {
+		return nil, err
+	}
+
+	trans.Outputs = []*tx.TxOutput{
+		&tx.TxOutput{
+			AssetID:     systemToken.Hash(),
+			Value:       3300 * 10000 * 100000000,
+			ProgramHash: pkScript,
+		},
+	}
+
+	nonce := make([]byte, 8)
+	binary.BigEndian.PutUint64(nonce, rand.Uint64())
+	txAttr := tx.NewTxAttribute(tx.Nonce, nonce)
+	trans.Attributes = append(trans.Attributes, &txAttr)
 	//block
 	genesisBlock := &Block{
 		Blockdata:    genesisBlockdata,
 		Transactions: []*tx.Transaction{trans, systemToken, systemTokenIssurance},
 	}
-
 	txHashes := []Uint256{}
 	for _, tx := range genesisBlock.Transactions {
 		txHashes = append(txHashes, tx.Hash())

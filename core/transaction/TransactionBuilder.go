@@ -61,15 +61,17 @@ func NewCoinBaseTransaction(coinBasePayload *payload.CoinBase) (*Transaction, er
 		TxType:         CoinBase,
 		PayloadVersion: payload.CoinBasePayloadVersion,
 		Payload:        coinBasePayload,
-		UTXOInputs:     []*UTXOTxInput{},
-		//UTXOInputs: []*UTXOTxInput{
-		//	&UTXOTxInput{
-		//		ReferTxID:          common.Uint256{},
-		//		ReferTxOutputIndex: 0xffff,
-		//	},
-		//},
+		//UTXOInputs:     []*UTXOTxInput{},
+		UTXOInputs: []*UTXOTxInput{
+			&UTXOTxInput{
+				ReferTxID:          common.Uint256{},
+				ReferTxOutputIndex: 0xffff,
+				Sequence:           0xffffffff,
+			},
+		},
 		BalanceInputs: []*BalanceTxInput{},
 		Attributes:    []*TxAttribute{},
+		LockTime:      0,
 
 		Programs: []*program.Program{},
 	}, nil

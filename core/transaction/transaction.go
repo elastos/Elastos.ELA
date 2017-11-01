@@ -58,8 +58,9 @@ type Transaction struct {
 	UTXOInputs     []*UTXOTxInput
 	BalanceInputs  []*BalanceTxInput
 	Outputs        []*TxOutput
+	LockTime       uint32
 	Programs       []*program.Program
-	Fee            float64
+
 	//Inputs/Outputs map base on Asset (needn't serialize)
 	AssetOutputs      map[Uint256][]*TxOutput
 	AssetInputAmount  map[Uint256]Fixed64
@@ -134,6 +135,8 @@ func (tx *Transaction) SerializeUnsigned(w io.Writer) error {
 			output.Serialize(w)
 		}
 	}
+
+	serialization.WriteUint32(w, tx.LockTime)
 
 	return nil
 }
@@ -254,6 +257,13 @@ func (tx *Transaction) DeserializeUnsignedWithoutType(r io.Reader) error {
 			tx.Outputs = append(tx.Outputs, output)
 		}
 	}
+
+	temp, err := serialization.ReadUint32(r)
+	tx.LockTime = uint32(temp)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -397,6 +407,13 @@ func (tx *Transaction) Hash() Uint256 {
 		tx.hash = &f
 	}
 	return *tx.hash
+
+}
+func (tx *Transaction) IsCoinBaseTx() bool {
+	if tx.TxType != CoinBase {
+		return false
+	}
+	return true
 
 }
 

@@ -16,6 +16,9 @@ import (
 
 // VerifyTransaction verifys received single transaction
 func VerifyTransaction(Tx *tx.Transaction) ErrCode {
+	if Tx.IsCoinBaseTx() {
+		return ErrNoError
+	}
 
 	if err := CheckDuplicateInput(Tx); err != nil {
 		log.Warn("[VerifyTransaction],", err)
@@ -52,6 +55,7 @@ func VerifyTransaction(Tx *tx.Transaction) ErrCode {
 
 // VerifyTransactionWithBlock verifys a transaction with current transaction pool in memory
 func VerifyTransactionWithBlock(TxPool []*tx.Transaction) error {
+
 	//initial
 	txnlist := make(map[common.Uint256]*tx.Transaction, 0)
 	var txPoolInputs []string
@@ -127,6 +131,10 @@ func VerifyTransactionWithBlock(TxPool []*tx.Transaction) error {
 
 // VerifyTransactionWithLedger verifys a transaction with history transaction in ledger
 func VerifyTransactionWithLedger(Tx *tx.Transaction, ledger *ledger.Ledger) ErrCode {
+	if Tx.IsCoinBaseTx() {
+		return ErrNoError
+	}
+
 	if IsDoubleSpend(Tx, ledger) {
 		log.Info("[VerifyTransactionWithLedger] IsDoubleSpend check faild.")
 		return ErrDoubleSpend

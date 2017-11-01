@@ -10,13 +10,16 @@ import (
 	"container/list"
 	"fmt"
 	"math/big"
+	"sort"
 	"sync"
 	"time"
 )
 
 const (
-	maxOrphanBlocks = 100
-	MinMemoryNodes  = 2016
+	MaxBlockLocatorsPerMsg = 500
+	maxOrphanBlocks        = 100
+	MinMemoryNodes         = 2016
+	medianTimeBlocks       = 11
 )
 
 var (
@@ -27,23 +30,23 @@ var (
 )
 
 type Blockchain struct {
-	BlockHeight       uint32
-	GenesisHash       Uint256
-	BestChain         *BlockNode
-	Root              *BlockNode
-	Index             map[Uint256]*BlockNode
-	DepNodes          map[Uint256][]*BlockNode
-	Orphans           map[Uint256]*OrphanBlock
-	PrevOrphans       map[Uint256][]*OrphanBlock
-	OldestOrphan      *OrphanBlock
-	BlockCache        map[Uint256]*Block
-	TimeSource        MedianTimeSource
-	PastMedianTime    time.Time
-	PastMedianTimeErr error
-	OrphanLock        sync.RWMutex
-	BCEvents          *events.Event
-	mutex             sync.RWMutex
-	Ledger            *Ledger
+	BlockHeight    uint32
+	GenesisHash    Uint256
+	BestChain      *BlockNode
+	Root           *BlockNode
+	Index          map[Uint256]*BlockNode
+	DepNodes       map[Uint256][]*BlockNode
+	Orphans        map[Uint256]*OrphanBlock
+	PrevOrphans    map[Uint256][]*OrphanBlock
+	OldestOrphan   *OrphanBlock
+	BlockCache     map[Uint256]*Block
+	TimeSource     MedianTimeSource
+	MedianTimePast time.Time
+	OrphanLock     sync.RWMutex
+	BCEvents       *events.Event
+	mutex          sync.RWMutex
+	Ledger         *Ledger
+	AssetID        Uint256
 }
 
 func NewBlockchain(height uint32, ledger *Ledger) *Blockchain {
@@ -61,6 +64,7 @@ func NewBlockchain(height uint32, ledger *Ledger) *Blockchain {
 
 		BCEvents: events.NewEvent(),
 		Ledger:   ledger,
+		AssetID:  Uint256{},
 	}
 }
 
@@ -75,6 +79,8 @@ func NewBlockchainWithGenesisBlock(defaultBookKeeper []*crypto.PubKey) (*Blockch
 
 	blockchain := NewBlockchain(0, DefaultLedger)
 	DefaultLedger.Blockchain = blockchain
+	DefaultLedger.Blockchain.AssetID = genesisBlock.Transactions[0].Outputs[0].AssetID
+	//DefaultLedger.Blockchain.AssetID = genesisBlock.Transactions[1].Hash()
 	height, err := DefaultLedger.Store.InitLedgerStoreWithGenesisBlock(genesisBlock, defaultBookKeeper)
 	if err != nil {
 		return nil, NewDetailErr(err, ErrNoCode, "[Blockchain], InitLevelDBStoreWithGenesisBlock failed.")
@@ -723,6 +729,7 @@ func (bc *Blockchain) DisconnectBlock(node *BlockNode, block *Block) error {
 
 	//// This node's parent is now the end of the best chain.
 	bc.BestChain = node.Parent
+	bc.MedianTimePast = CalcPastMedianTime(bc.BestChain)
 
 	// Notify the caller that the block was disconnected from the main
 	// chain.  The caller would typically want to react with actions such as
@@ -757,6 +764,7 @@ func (bc *Blockchain) ConnectBlock(node *BlockNode, block *Block) error {
 
 	// This node is now the end of the best chain.
 	bc.BestChain = node
+	bc.MedianTimePast = CalcPastMedianTime(bc.BestChain)
 
 	// Notify the caller that the block was connected to the main chain.
 	// The caller would typically want to react with actions such as
@@ -1086,8 +1094,6 @@ func DumpBlockNode(node *BlockNode) {
 	log.Trace("---------------------")
 }
 
-const MaxBlockLocatorsPerMsg = 500
-
 type BlockLocator []Uint256
 
 func (b *Blockchain) LatestBlockLocator() (BlockLocator, error) {
@@ -1176,4 +1182,47 @@ func (b *Blockchain) LatestLocatorHash(locator BlockLocator) Uint256 {
 	}
 
 	return startHash
+}
+
+func (b *Blockchain) MedianAdjustedTime() time.Time {
+	newTimestamp := b.TimeSource.AdjustedTime()
+	minTimestamp := b.MedianTimePast.Add(time.Second)
+
+	if newTimestamp.Before(minTimestamp) {
+		newTimestamp = minTimestamp
+	}
+
+	return newTimestamp
+}
+
+type timeSorter []int64
+
+func (s timeSorter) Len() int {
+	return len(s)
+}
+
+func (s timeSorter) Swap(i, j int) {
+	s[i], s[j] = s[j], s[i]
+}
+
+func (s timeSorter) Less(i, j int) bool {
+	return s[i] < s[j]
+}
+
+func CalcPastMedianTime(node *BlockNode) time.Time {
+	timestamps := make([]int64, medianTimeBlocks)
+	numNodes := 0
+	iterNode := node
+	for i := 0; i < medianTimeBlocks && iterNode != nil; i++ {
+		timestamps[i] = int64(iterNode.Timestamp)
+		numNodes++
+
+		iterNode = iterNode.Parent
+	}
+
+	timestamps = timestamps[:numNodes]
+	sort.Sort(timeSorter(timestamps))
+
+	medianTimestamp := timestamps[numNodes/2]
+	return time.Unix(medianTimestamp, 0)
 }

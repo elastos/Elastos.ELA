@@ -2,9 +2,7 @@ package validation
 
 import (
 	. "DNA_POW/common"
-	"DNA_POW/common/config"
 	"DNA_POW/common/log"
-	"DNA_POW/core/auxpow"
 	"DNA_POW/core/ledger"
 	tx "DNA_POW/core/transaction"
 	. "DNA_POW/errors"
@@ -68,9 +66,6 @@ func VerifyBlock(block *ledger.Block, ld *ledger.Ledger, completely bool) error 
 }
 
 func PowVerifyBlock(block *ledger.Block, ld *ledger.Ledger, completely bool) error {
-	//TODO main chian
-	//TODO orphan block
-
 	blockHash := block.Hash()
 	log.Tracef("Processing block %v", blockHash)
 
@@ -83,10 +78,10 @@ func PowVerifyBlock(block *ledger.Block, ld *ledger.Ledger, completely bool) err
 		return nil
 	}
 
-	err := PowVerifyBlockData(block.Blockdata, ld)
-	if err != nil {
-		return err
-	}
+	//err := PowVerifyBlockData(block.Blockdata, ld)
+	//if err != nil {
+	//	return err
+	//}
 
 	//	flag, err := VerifySignableData(block)
 	//	if flag == false || err != nil {
@@ -155,42 +150,6 @@ func VerifyBlockData(bd *ledger.Blockdata, ledger *ledger.Ledger) error {
 
 	if prevHeader.Blockdata.Timestamp >= bd.Timestamp {
 		return NewDetailErr(errors.New("[BlockValidator] error"), ErrNoCode, "[BlockValidator], block timestamp is incorrect.")
-	}
-
-	return nil
-}
-
-func PowVerifyBlockData(bd *ledger.Blockdata, ledger *ledger.Ledger) error {
-	if bd.Height == 0 {
-		return nil
-	}
-
-	prevHeader, err := ledger.Blockchain.GetHeader(bd.PrevBlockHash)
-	if err != nil {
-		return NewDetailErr(err, ErrNoCode, "[BlockValidator], Cannnot find prevHeader..")
-	}
-	if prevHeader == nil {
-		return NewDetailErr(errors.New("[BlockValidator] error"), ErrNoCode, "[BlockValidator], Cannnot find previous block.")
-	}
-
-	if prevHeader.Blockdata.Height+1 != bd.Height {
-		return NewDetailErr(errors.New("[BlockValidator] error"), ErrNoCode, "[BlockValidator], block height is incorrect.")
-	}
-
-	if prevHeader.Blockdata.Timestamp >= bd.Timestamp {
-		return NewDetailErr(errors.New("[BlockValidator] error"), ErrNoCode, "[BlockValidator], block timestamp is incorrect.")
-	}
-	// TODO temp powLimit
-
-	bigOne := big.NewInt(1)
-	powLimit := new(big.Int).Sub(new(big.Int).Lsh(bigOne, 255), bigOne)
-
-	isAuxPow := config.Parameters.PowConfiguration.CoMining
-	if isAuxPow && !bd.AuxPow.Check(bd.Hash(), auxpow.AuxPowChainID) {
-		return NewDetailErr(errors.New("[BlockValidator] error"), ErrNoCode, "[BlockValidator], block check proof is failed.")
-	}
-	if CheckProofOfWork(bd, powLimit, isAuxPow) != nil {
-		return NewDetailErr(errors.New("[BlockValidator] error"), ErrNoCode, "[BlockValidator], block check proof is failed.")
 	}
 
 	return nil

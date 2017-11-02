@@ -1,6 +1,12 @@
 package ledger
 
 import (
+	"bytes"
+	"encoding/binary"
+	"io"
+	"math/rand"
+	"time"
+
 	. "DNA_POW/common"
 	"DNA_POW/common/config"
 	"DNA_POW/common/log"
@@ -13,14 +19,17 @@ import (
 	"DNA_POW/crypto"
 	. "DNA_POW/errors"
 	"DNA_POW/vm"
-	"encoding/binary"
-	"io"
-	"math/rand"
-	"time"
 )
 
-const BlockVersion uint32 = 0
-const GenesisNonce uint64 = 2083236893
+const (
+	BlockVersion     uint32 = 0
+	GenesisNonce     uint64 = 2083236893
+	InvalidBlockSize int    = -1
+)
+
+var (
+	MaxBlockSize = config.Parameters.MaxBlockSize
+)
 
 type Block struct {
 	Blockdata    *Blockdata
@@ -116,6 +125,15 @@ func (b *Block) FromTrimmedData(r io.Reader) error {
 	return nil
 }
 
+func (tx *Block) GetSize() int {
+	var buffer bytes.Buffer
+	if err := tx.Serialize(&buffer); err != nil {
+		return InvalidBlockSize
+	}
+
+	return buffer.Len()
+}
+
 func (b *Block) GetMessage() []byte {
 	return sig.GetHashData(b)
 }
@@ -187,7 +205,7 @@ func GenesisBlockInit(defaultBookKeeper []*crypto.PubKey) (*Block, error) {
 			Asset: &asset.Asset{
 				Name:      "ELA",
 				Precision: 0x08,
-				AssetType: 0x01, // share
+				AssetType: 0x00,
 			},
 			Amount:     1 * 100000000,
 			Issuer:     defaultBookKeeper[0],
@@ -199,30 +217,7 @@ func GenesisBlockInit(defaultBookKeeper []*crypto.PubKey) (*Block, error) {
 		Programs:   []*program.Program{},
 	}
 
-	systemTokenIssurance := &tx.Transaction{
-		TxType:         tx.IssueAsset,
-		PayloadVersion: 0,
-		Payload:        &payload.IssueAsset{},
-		Attributes:     []*tx.TxAttribute{},
-		UTXOInputs:     []*tx.UTXOTxInput{},
-		Outputs: []*tx.TxOutput{
-			{
-				AssetID:     systemToken.Hash(),
-				Value:       1 * 100000000,
-				ProgramHash: admin,
-			},
-		},
-		Programs: []*program.Program{
-			{
-				Code:      []byte{},
-				Parameter: []byte{byte(vm.PUSHT)},
-			},
-		},
-	}
-
-	addr := config.Parameters.PowConfiguration.PayToAddr
-
-	pkScript, err := ToScriptHash(addr)
+	foundationProgramHash, err := ToScriptHash(FoundationAddress)
 	if err != nil {
 		return nil, err
 	}
@@ -233,10 +228,10 @@ func GenesisBlockInit(defaultBookKeeper []*crypto.PubKey) (*Block, error) {
 	}
 
 	trans.Outputs = []*tx.TxOutput{
-		&tx.TxOutput{
+		{
 			AssetID:     systemToken.Hash(),
 			Value:       3300 * 10000 * 100000000,
-			ProgramHash: pkScript,
+			ProgramHash: foundationProgramHash,
 		},
 	}
 
@@ -247,7 +242,7 @@ func GenesisBlockInit(defaultBookKeeper []*crypto.PubKey) (*Block, error) {
 	//block
 	genesisBlock := &Block{
 		Blockdata:    genesisBlockdata,
-		Transactions: []*tx.Transaction{trans, systemToken, systemTokenIssurance},
+		Transactions: []*tx.Transaction{trans, systemToken},
 	}
 	txHashes := []Uint256{}
 	for _, tx := range genesisBlock.Transactions {

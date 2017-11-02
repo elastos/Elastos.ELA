@@ -23,7 +23,6 @@ const (
 )
 
 var (
-	bigOne    = big.NewInt(1)
 	oneLsh256 = new(big.Int).Lsh(bigOne, 256)
 	zeroHash  = Uint256{}
 	powLimit  = new(big.Int).Sub(new(big.Int).Lsh(bigOne, 255), bigOne)
@@ -774,14 +773,6 @@ func (bc *Blockchain) BlockExists(hash *Uint256) (bool, error) {
 	return false, nil
 }
 
-//func PowCheckBlockContext(block *Block, prevNode *BlockNode, ledger *Ledger) error {
-//
-//	if prevNode == nil {
-//		return nil
-//	}
-//	return nil
-//}
-
 func (bc *Blockchain) maybeAcceptBlock(block *Block) (bool, error) {
 
 	// Get a block node for the block previous to this one.  Will be nil
@@ -791,7 +782,6 @@ func (bc *Blockchain) maybeAcceptBlock(block *Block) (bool, error) {
 		log.Errorf("getPrevNodeFromBlock: %v", err)
 		return false, err
 	}
-	fmt.Println("prevNode hash", prevNode.Hash)
 
 	// The height of this block is one more than the referenced previous
 	// block.
@@ -799,17 +789,14 @@ func (bc *Blockchain) maybeAcceptBlock(block *Block) (bool, error) {
 	if prevNode != nil {
 		blockHeight = prevNode.Height + 1
 	}
-	fmt.Println("block height:", blockHeight)
 
 	if block.Blockdata.Height != blockHeight {
 		return false, fmt.Errorf("wrong block height!")
 	}
-	fmt.Println("block height2:", block.Blockdata.Height)
 
 	// The block must pass all of the validation rules which depend on the
 	// position of the block within the block chain.
-	//TODO
-	err = bc.Ledger.Store.PowCheckBlockContext(block, prevNode, bc.Ledger)
+	err = PowCheckBlockContext(block, prevNode, bc.Ledger)
 	if err != nil {
 		log.Error("PowCheckBlockContext error!")
 		return false, err
@@ -954,10 +941,8 @@ func (bc *Blockchain) ConnectBestChain(node *BlockNode, block *Block) (bool, err
 //3. error
 func (bc *Blockchain) ProcessBlock(block *Block, timeSource MedianTimeSource) (bool, bool, error) {
 	blockHash := block.Hash()
-	//log.Tracef("[ProcessBLock] 1. blockhash = %v", blockHash)
-	fmt.Printf("[ProcessBLock] blockhash = %v\n", blockHash)
+	fmt.Printf("[ProcessBLock] blockhash = %v\n", BytesToHexString(blockHash.ToArray()))
 
-	//	return false, false, nil
 	// The block must not already exist in the main chain or side chains.
 	exists, err := bc.BlockExists(&blockHash)
 	if err != nil {
@@ -978,7 +963,7 @@ func (bc *Blockchain) ProcessBlock(block *Block, timeSource MedianTimeSource) (b
 	fmt.Printf("[ProcessBLock] orphan already exist= %v\n", exists)
 
 	// Perform preliminary sanity checks on the block and its transactions.
-	err = bc.Ledger.Store.PowCheckBlockSanity(block, powLimit, bc.TimeSource)
+	err = PowCheckBlockSanity(block, powLimit, bc.TimeSource)
 	if err != nil {
 		log.Error("PowCheckBlockSanity error!")
 		return false, false, err

@@ -14,6 +14,7 @@ import (
 	sig "DNA_POW/core/signature"
 	"DNA_POW/core/transaction/payload"
 	. "DNA_POW/errors"
+	"bytes"
 )
 
 //for different transaction types with different payload format
@@ -31,6 +32,10 @@ const (
 	CoinBase       TransactionType = 0x82
 	DeployCode     TransactionType = 0xd0
 	DataFile       TransactionType = 0x12
+)
+
+const (
+	InvalidTransactionSize = -1
 )
 
 //Payload define the func for loading the payload data
@@ -267,6 +272,15 @@ func (tx *Transaction) DeserializeUnsignedWithoutType(r io.Reader) error {
 	return nil
 }
 
+func (tx *Transaction) GetSize() int {
+	var buffer bytes.Buffer
+	if err := tx.Serialize(&buffer); err != nil {
+		return InvalidTransactionSize
+	}
+
+	return buffer.Len()
+}
+
 func (tx *Transaction) GetProgramHashes() ([]Uint160, error) {
 	if tx == nil {
 		return []Uint160{}, errors.New("[Transaction],GetProgramHashes transaction is nil.")
@@ -410,11 +424,7 @@ func (tx *Transaction) Hash() Uint256 {
 
 }
 func (tx *Transaction) IsCoinBaseTx() bool {
-	if tx.TxType != CoinBase {
-		return false
-	}
-	return true
-
+	return tx.TxType == CoinBase
 }
 
 func (tx *Transaction) SetHash(hash Uint256) {

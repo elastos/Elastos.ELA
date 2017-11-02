@@ -7,8 +7,9 @@ import (
 	"DNA_POW/core/ledger"
 	"DNA_POW/core/transaction"
 	tx "DNA_POW/core/transaction"
-	va "DNA_POW/core/validation"
 	. "DNA_POW/errors"
+
+	"errors"
 	"fmt"
 	"sync"
 )
@@ -38,11 +39,11 @@ func (this *TXNPool) init() {
 //1.check transaction. 2.check with ledger(db) 3.check with pool
 func (this *TXNPool) AppendTxnPool(txn *transaction.Transaction) ErrCode {
 	//verify transaction with Concurrency
-	if errCode := va.VerifyTransaction(txn); errCode != ErrNoError {
+	if errCode := ledger.CheckTransactionSanity(txn); errCode != ErrNoError {
 		log.Info("Transaction verification failed", txn.Hash())
 		return errCode
 	}
-	if errCode := va.VerifyTransactionWithLedger(txn, ledger.DefaultLedger); errCode != ErrNoError {
+	if errCode := ledger.CheckTransactionContext(txn, ledger.DefaultLedger); errCode != ErrNoError {
 		log.Info("Transaction verification with ledger failed", txn.Hash())
 		return errCode
 	}
@@ -95,20 +96,12 @@ func (this *TXNPool) GetTransaction(hash common.Uint256) *transaction.Transactio
 
 //verify transaction with txnpool
 func (this *TXNPool) verifyTransactionWithTxnPool(txn *transaction.Transaction) bool {
-	//check weather have duplicate UTXO input,if occurs duplicate, just keep the latest txn.
-	ok, duplicateTxn := this.apendToUTXOPool(txn)
-	if !ok && duplicateTxn != nil {
-		log.Info(fmt.Sprintf("txn=%x duplicateTxn UTXO occurs with txn in pool=%x,keep the latest one.", txn.Hash(), duplicateTxn.Hash()))
-		this.removeTransaction(duplicateTxn)
+	// check if the transaction includes double spent UTXO inputs
+	if err := this.verifyDoubleSpend(txn); err != nil {
+		log.Info(err)
+		return false
 	}
-	/*
-		//check issue transaction weather occur exceed issue range.
-		if ok := this.summaryAssetIssueAmount(txn); !ok {
-			log.Info(fmt.Sprintf("Check summary Asset Issue Amount failed with txn=%x", txn.Hash()))
-			this.removeTransaction(txn)
-			return false
-		}
-	*/
+
 	return true
 }
 
@@ -122,35 +115,31 @@ func (this *TXNPool) removeTransaction(txn *transaction.Transaction) {
 		log.Info(fmt.Sprintf("Transaction =%x not Exist in Pool when delete.", txn.Hash()))
 		return
 	}
-	for UTXOTxInput, _ := range result {
+	for UTXOTxInput := range result {
 		this.delInputUTXOList(UTXOTxInput)
 	}
-	/*
-		//3.remove From Asset Issue Summary map
-		if txn.TxType != transaction.IssueAsset {
-			return
-		}
-		transactionResult := txn.GetMergedAssetIDValueFromOutputs()
-		for k, delta := range transactionResult {
-			this.decrAssetIssueAmountSummary(k, delta)
-		}
-	*/
 }
 
 //check and add to utxo list pool
-func (this *TXNPool) apendToUTXOPool(txn *transaction.Transaction) (bool, *transaction.Transaction) {
+func (this *TXNPool) verifyDoubleSpend(txn *transaction.Transaction) error {
 	reference, err := txn.GetReference()
 	if err != nil {
-		return false, nil
+		return err
 	}
-	for k, _ := range reference {
-		t := this.getInputUTXOList(k)
-		if t != nil {
-			return false, t
+	inputs := []*transaction.UTXOTxInput{}
+	for k := range reference {
+		if txn := this.getInputUTXOList(k); txn != nil {
+			return errors.New(fmt.Sprintf("double spent UTXO inputs detected, "+
+				"transaction hash: %x, input: %s, index: %s",
+				txn.Hash(), k.ToString()[:64], k.ToString()[64:]))
 		}
-		this.addInputUTXOList(txn, k)
+		inputs = append(inputs, k)
 	}
-	return true, nil
+	for _, v := range inputs {
+		this.addInputUTXOList(txn, v)
+	}
+
+	return nil
 }
 
 //clean txnpool utxo map
@@ -163,57 +152,11 @@ func (this *TXNPool) cleanUTXOList(txs []*transaction.Transaction) {
 	}
 }
 
-/*
-//check and summary to issue amount Pool
-func (this *TXNPool) summaryAssetIssueAmount(txn *transaction.Transaction) bool {
-	if txn.TxType != transaction.IssueAsset {
-		return true
-	}
-	transactionResult := txn.GetMergedAssetIDValueFromOutputs()
-	for k, delta := range transactionResult {
-		//update the amount in txnPool
-		this.incrAssetIssueAmountSummary(k, delta)
-
-		//Check weather occur exceed the amount when RegisterAsseted
-		//1. Get the Asset amount when RegisterAsseted.
-		txn, err := transaction.TxStore.GetTransaction(k)
-		if err != nil {
-			return false
-		}
-		if txn.TxType != transaction.RegisterAsset {
-			return false
-		}
-		AssetReg := txn.Payload.(*payload.RegisterAsset)
-
-		//2. Get the amount has been issued of this assetID
-		var quantity_issued common.Fixed64
-		if AssetReg.Amount < common.Fixed64(0) {
-			continue
-		} else {
-			quantity_issued, err = transaction.TxStore.GetQuantityIssued(k)
-			if err != nil {
-				return false
-			}
-		}
-
-		//3. calc weather out off the amount when Registed.
-		//AssetReg.Amount : amount when RegisterAsset of this assedID
-		//quantity_issued : amount has been issued of this assedID
-		//txnPool.issueSummary[k] : amount in transactionPool of this assedID
-		if AssetReg.Amount-quantity_issued < this.getAssetIssueAmount(k) {
-			return false
-		}
-	}
-	return true
-}
-*/
-
 // clean the trasaction Pool with committed transactions.
 func (this *TXNPool) cleanTransactionList(txns []*transaction.Transaction) error {
 	cleaned := 0
 	txnsNum := len(txns)
 	for _, txn := range txns {
-		//if txn.TxType == transaction.BookKeeping {
 		if txn.TxType == transaction.CoinBase {
 			txnsNum = txnsNum - 1
 			continue
@@ -297,45 +240,6 @@ func (this *TXNPool) delInputUTXOList(input *transaction.UTXOTxInput) bool {
 	delete(this.inputUTXOList, id)
 	return true
 }
-
-/*
-func (this *TXNPool) incrAssetIssueAmountSummary(assetId common.Uint256, delta common.Fixed64) {
-	this.Lock()
-	defer this.Unlock()
-	this.issueSummary[assetId] = this.issueSummary[assetId] + delta
-}
-
-func (this *TXNPool) decrAssetIssueAmountSummary(assetId common.Uint256, delta common.Fixed64) {
-	this.Lock()
-	defer this.Unlock()
-	amount, ok := this.issueSummary[assetId]
-	if !ok {
-		return
-	}
-	amount = amount - delta
-	if amount < common.Fixed64(0) {
-		amount = common.Fixed64(0)
-	}
-	this.issueSummary[assetId] = amount
-}
-
-func (this *TXNPool) cleanIssueSummary(txs []*transaction.Transaction) {
-	for _, v := range txs {
-		if v.TxType == transaction.IssueAsset {
-			transactionResult := v.GetMergedAssetIDValueFromOutputs()
-			for k, delta := range transactionResult {
-				this.decrAssetIssueAmountSummary(k, delta)
-			}
-		}
-	}
-}
-
-func (this *TXNPool) getAssetIssueAmount(assetId common.Uint256) common.Fixed64 {
-	this.RLock()
-	defer this.RUnlock()
-	return this.issueSummary[assetId]
-}
-*/
 
 func (this *TXNPool) MaybeAcceptTransaction(txn *tx.Transaction) error {
 	txHash := txn.Hash()

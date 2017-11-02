@@ -117,7 +117,6 @@ func (msg blocksReq) Verify(buf []byte) error {
 
 func (msg blocksReq) Handle(node Noder) error {
 	log.Debug()
-	log.Trace("handle blocks request")
 	// lock
 	node.LocalNode().AcqSyncReqSem()
 	defer node.LocalNode().RelSyncReqSem()

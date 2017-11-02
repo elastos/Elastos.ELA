@@ -12,10 +12,8 @@ import (
 type AssetType byte
 
 const (
-	Currency AssetType = 0x00
-	Share    AssetType = 0x01
-	Invoice  AssetType = 0x10
-	Token    AssetType = 0x11
+	Token AssetType = 0x00
+	Share AssetType = 0x01
 )
 
 const (

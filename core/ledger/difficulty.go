@@ -1,13 +1,12 @@
-package validation
+package ledger
 
 import (
-	. "DNA_POW/common"
-	"DNA_POW/common/log"
-	"DNA_POW/core/ledger"
-	//. "DNA_POW/errors"
 	"errors"
 	"math/big"
 	"time"
+
+	. "DNA_POW/common"
+	"DNA_POW/common/log"
 )
 
 var (
@@ -26,16 +25,14 @@ var (
 
 	// mainPowLimit is the highest proof of work value a Bitcoin block can
 	// have for the main network.  It is the value 2^224 - 1.
-	bigOne   = big.NewInt(1)
-	PowLimit = new(big.Int).Sub(new(big.Int).Lsh(bigOne, 245), bigOne)
-	//PowLimitBits = 0x1d00ffff
-	//PowLimitBits = 0x1e03ffff
+	bigOne       = big.NewInt(1)
+	PowLimit     = new(big.Int).Sub(new(big.Int).Lsh(bigOne, 245), bigOne)
 	PowLimitBits = 0x1e01ffff
 
 	//timeSource:          config.TimeSource,
 )
 
-func CalcNextRequiredDifficulty(prevNode *ledger.BlockNode, newBlockTime time.Time) (uint32, error) {
+func CalcNextRequiredDifficulty(prevNode *BlockNode, newBlockTime time.Time) (uint32, error) {
 	// Genesis block.
 	if prevNode.Height == 0 {
 		return uint32(PowLimitBits), nil

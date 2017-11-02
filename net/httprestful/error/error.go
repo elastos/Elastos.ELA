@@ -51,7 +51,8 @@ var ErrMap = map[int64]string{
 	INVALID_VERSION:                "INVALID VERSION",
 	INTERNAL_ERROR:                 "INTERNAL ERROR",
 	SMARTCODE_ERROR:                "SMARTCODE EXEC ERROR",
-	int64(ErrDuplicateInput):       "INTERNAL ERROR, ErrDuplicateInput",
+	int64(ErrInvalidInput):         "INTERNAL ERROR, ErrInvalidInput",
+	int64(ErrInvalidOutput):        "INTERNAL ERROR, ErrInvalidOutput",
 	int64(ErrAssetPrecision):       "INTERNAL ERROR, ErrAssetPrecision",
 	int64(ErrTransactionBalance):   "INTERNAL ERROR, ErrTransactionBalance",
 	int64(ErrAttributeProgram):     "INTERNAL ERROR, ErrAttributeProgram",
@@ -62,4 +63,8 @@ var ErrMap = map[int64]string{
 	int64(ErrStateUpdaterVaild):    "INTERNAL ERROR, ErrStateUpdaterVaild",
 	int64(ErrSummaryAsset):         "INTERNAL ERROR, ErrSummaryAsset",
 	int64(ErrXmitFail):             "INTERNAL ERROR, ErrXmitFail",
+	int64(ErrTransactionSize):      "INTERNAL ERROR, ErrTransactionSize",
+	int64(ErrUnknownReferedTxn):    "INTERNAL ERROR, ErrUnknownReferedTxn",
+	int64(ErrInvalidReferedTxn):    "INTERNAL ERROR, ErrInvalidReferedTxn",
+	int64(ErrIneffectiveCoinbase):  "INTERNAL ERROR, ErrIneffectiveCoinbase",
 }

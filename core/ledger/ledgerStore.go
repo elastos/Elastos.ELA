@@ -5,15 +5,12 @@ import (
 	. "DNA_POW/core/asset"
 	tx "DNA_POW/core/transaction"
 	"DNA_POW/crypto"
-	"math/big"
 )
 
 // ILedgerStore provides func with store package.
 type ILedgerStore interface {
 	//TODO: define the state store func
 
-	PowCheckBlockSanity(block *Block, powLimit *big.Int, timeSource MedianTimeSource) error
-	PowCheckBlockContext(block *Block, prevNode *BlockNode, ledger *Ledger) error
 	SaveBlock(b *Block, ledger *Ledger) error
 	GetBlock(hash Uint256) (*Block, error)
 	BlockInCache(hash Uint256) bool

@@ -149,6 +149,7 @@ func (db *ChainStore) PersistUnspendUTXOs(b *Block) error {
 			}
 			unspendUTXOs[programHash][assetID] = append(unspendUTXOs[programHash][assetID], &u)
 		}
+
 		if !txn.IsCoinBaseTx() {
 			for _, input := range txn.UTXOInputs {
 				referTxn, err := db.GetTransaction(input.ReferTxID)
@@ -340,25 +341,27 @@ func (db *ChainStore) PersistUnspend(b *Block) error {
 		for index := range txn.Outputs {
 			unspents[txnHash] = append(unspents[txnHash], uint16(index))
 		}
-		for index, input := range txn.UTXOInputs {
-			referTxnHash := input.ReferTxID
-			if _, ok := unspents[referTxnHash]; !ok {
-				unspentValue, err := db.Get(append(unspentPrefix, referTxnHash.ToArray()...))
-				if err != nil {
-					return err
+		if !txn.IsCoinBaseTx() {
+			for index, input := range txn.UTXOInputs {
+				referTxnHash := input.ReferTxID
+				if _, ok := unspents[referTxnHash]; !ok {
+					unspentValue, err := db.Get(append(unspentPrefix, referTxnHash.ToArray()...))
+					if err != nil {
+						return err
+					}
+					unspents[referTxnHash], err = GetUint16Array(unspentValue)
+					if err != nil {
+						return err
+					}
 				}
-				unspents[referTxnHash], err = GetUint16Array(unspentValue)
-				if err != nil {
-					return err
-				}
-			}
 
-			unspentLen := len(unspents[referTxnHash])
-			for k, outputIndex := range unspents[referTxnHash] {
-				if outputIndex == uint16(txn.UTXOInputs[index].ReferTxOutputIndex) {
-					unspents[referTxnHash][k] = unspents[referTxnHash][unspentLen-1]
-					unspents[referTxnHash] = unspents[referTxnHash][:unspentLen-1]
-					break
+				unspentLen := len(unspents[referTxnHash])
+				for k, outputIndex := range unspents[referTxnHash] {
+					if outputIndex == uint16(txn.UTXOInputs[index].ReferTxOutputIndex) {
+						unspents[referTxnHash][k] = unspents[referTxnHash][unspentLen-1]
+						unspents[referTxnHash] = unspents[referTxnHash][:unspentLen-1]
+						break
+					}
 				}
 			}
 		}
@@ -392,22 +395,24 @@ func (db *ChainStore) RollbackUnspend(b *Block) error {
 		if err := db.BatchDelete(append(unspentPrefix, txnHash.ToArray()...)); err != nil {
 			return err
 		}
-		for _, input := range txn.UTXOInputs {
-			referTxnHash := input.ReferTxID
-			referTxnOutIndex := input.ReferTxOutputIndex
-			if _, ok := unspents[referTxnHash]; !ok {
-				var err error
-				unspentValue, _ := db.Get(append(unspentPrefix, referTxnHash.ToArray()...))
-				if len(unspentValue) != 0 {
-					unspents[referTxnHash], err = GetUint16Array(unspentValue)
-					if err != nil {
-						return err
+		if !txn.IsCoinBaseTx() {
+
+			for _, input := range txn.UTXOInputs {
+				referTxnHash := input.ReferTxID
+				referTxnOutIndex := input.ReferTxOutputIndex
+				if _, ok := unspents[referTxnHash]; !ok {
+					var err error
+					unspentValue, _ := db.Get(append(unspentPrefix, referTxnHash.ToArray()...))
+					if len(unspentValue) != 0 {
+						unspents[referTxnHash], err = GetUint16Array(unspentValue)
+						if err != nil {
+							return err
+						}
 					}
 				}
+				unspents[referTxnHash] = append(unspents[referTxnHash], referTxnOutIndex)
 			}
-			unspents[referTxnHash] = append(unspents[referTxnHash], referTxnOutIndex)
 		}
-
 	}
 
 	for txhash, value := range unspents {

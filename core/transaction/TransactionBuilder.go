@@ -65,8 +65,8 @@ func NewCoinBaseTransaction(coinBasePayload *payload.CoinBase) (*Transaction, er
 		UTXOInputs: []*UTXOTxInput{
 			&UTXOTxInput{
 				ReferTxID:          common.Uint256{},
-				ReferTxOutputIndex: 0xffff,
-				Sequence:           0xffffffff,
+				ReferTxOutputIndex: 0x0000,
+				Sequence:           0x00000000,
 			},
 		},
 		BalanceInputs: []*BalanceTxInput{},

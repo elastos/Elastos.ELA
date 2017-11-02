@@ -57,6 +57,7 @@ type Configuration struct {
 	EncryptAlg       string           `json:"EncryptAlg"`
 	MaxLogSize       int64            `json:"MaxLogSize"`
 	MaxTxInBlock     int              `json:"MaxTransactionInBlock"`
+	MaxBlockSize     int              `json:"MaxBlockSize"`
 	ConsensusType    string           `json:"ConsensusType"`
 	PowConfiguration PowConfiguration `json:"PowConfiguration"`
 	MaxHdrSyncReqs   int              `json:"MaxConcurrentSyncHeaderReqs"`

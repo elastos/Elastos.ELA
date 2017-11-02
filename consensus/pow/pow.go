@@ -1,6 +1,12 @@
 package pow
 
 import (
+	"encoding/binary"
+	"math"
+	"math/rand"
+	"sync"
+	"time"
+
 	cl "DNA_POW/account"
 	. "DNA_POW/common"
 	"DNA_POW/common/config"
@@ -10,14 +16,9 @@ import (
 	"DNA_POW/core/ledger"
 	tx "DNA_POW/core/transaction"
 	"DNA_POW/core/transaction/payload"
-	"DNA_POW/core/validation"
 	"DNA_POW/crypto"
 	"DNA_POW/events"
 	"DNA_POW/net"
-	"encoding/binary"
-	"math/rand"
-	"sync"
-	"time"
 )
 
 var TaskCh chan bool
@@ -49,23 +50,35 @@ type PowService struct {
 }
 
 func (pow *PowService) CreateCoinbaseTrx(nextBlockHeight uint32, addr string) (*tx.Transaction, error) {
-	//1. create script hash
-	pkScript, err := ToScriptHash(addr)
+	minerProgramHash, err := ToScriptHash(addr)
 	if err != nil {
 		return nil, err
 	}
-
-	//2. create coinbase tx
+	foundationProgramHash, err := ToScriptHash(ledger.FoundationAddress)
+	if err != nil {
+		return nil, err
+	}
 	txn, err := tx.NewCoinBaseTransaction(&payload.CoinBase{})
 	if err != nil {
 		return nil, err
 	}
-
+	txn.UTXOInputs = []*tx.UTXOTxInput{
+		{
+			ReferTxID:          Uint256{},
+			ReferTxOutputIndex: math.MaxUint16,
+			Sequence:           math.MaxUint32,
+		},
+	}
 	txn.Outputs = []*tx.TxOutput{
-		&tx.TxOutput{
+		{
 			AssetID:     ledger.DefaultLedger.Blockchain.AssetID,
-			Value:       10,
-			ProgramHash: pkScript,
+			Value:       3 * 100000000,
+			ProgramHash: minerProgramHash,
+		},
+		{
+			AssetID:     ledger.DefaultLedger.Blockchain.AssetID,
+			Value:       7 * 100000000,
+			ProgramHash: foundationProgramHash,
 		},
 	}
 
@@ -121,22 +134,17 @@ func (pow *PowService) GenerateBlock(addr string) (*ledger.Block, error) {
 
 	//TODO fee & subsidy
 	//prevBlock, _ := ledger.DefaultLedger.GetBlockWithHeight(nextBlockHeight - 1)
-	msgBlock.Blockdata.Bits, err = validation.CalcNextRequiredDifficulty(ledger.DefaultLedger.Blockchain.BestChain, time.Now())
-	log.Trace("difficulty: ", msgBlock.Blockdata.Bits)
+	msgBlock.Blockdata.Bits, err = ledger.CalcNextRequiredDifficulty(ledger.DefaultLedger.Blockchain.BestChain, time.Now())
+	log.Info("difficulty: ", msgBlock.Blockdata.Bits)
 
 	return msgBlock, err
 }
 
 func (pow *PowService) SolveBlock(MsgBlock *ledger.Block, ticker *time.Ticker) bool {
 	header := MsgBlock.Blockdata
-	targetDifficulty := validation.CompactToBig(header.Bits)
+	targetDifficulty := ledger.CompactToBig(header.Bits)
 
 	for extraNonce := uint64(0); extraNonce < maxExtraNonce; extraNonce++ {
-		//nonce := make([]byte, 8)
-		//binary.BigEndian.PutUint64(nonce, rand.Uint64())
-		//txAttr := tx.NewTxAttribute(tx.Nonce, nonce)
-		//MsgBlock.Transactions[0].Attributes[0] = &txAttr
-
 		for i := uint32(0); i <= maxNonce; i++ {
 			select {
 			case <-ticker.C:
@@ -151,8 +159,7 @@ func (pow *PowService) SolveBlock(MsgBlock *ledger.Block, ticker *time.Ticker) b
 
 			header.Nonce = i
 			hash := header.Hash()
-			if validation.HashToBig(&hash).Cmp(targetDifficulty) <= 0 {
-				log.Trace(hash)
+			if ledger.HashToBig(&hash).Cmp(targetDifficulty) <= 0 {
 				return true
 			}
 		}
@@ -179,16 +186,7 @@ func (pow *PowService) Start() error {
 	//acct, _ := pow.Client.GetDefaultAccount()
 	//dftPubkey, _ := acct.PubKey().EncodePoint(true)
 	//if IsEqualBytes(fstBookking, dftPubkey) {
-	//	log.Trace(fstBookking)
-	//	log.Trace(acct.PubKey().EncodePoint(true))
-	//	fstBookking, _ := HexToBytes(config.Parameters.BookKeepers[0])
-	//	acct, _ := pow.Client.GetDefaultAccount()
-	//	dftPubkey, _ := acct.PubKey().EncodePoint(true)
-	//	if IsEqualBytes(fstBookking, dftPubkey) {
-	//		log.Trace(fstBookking)
-	//		log.Trace(acct.PubKey().EncodePoint(true))
-	//go pow.cpuMining()
-	//}
+	//	go pow.cpuMining()
 	//}
 	go pow.cpuMining()
 
@@ -232,13 +230,7 @@ func (pow *PowService) BlockPersistCompleted(v interface{}) {
 		if err != nil {
 			log.Warn(err)
 		}
-
-		//TODO commit
-		//pow.localNet.Xmit(block.Hash())
 	}
-
-	//ledger.DefaultLedger.Blockchain.DumpState()
-
 }
 
 func NewPowService(client cl.Client, logDictionary string, localNet net.Neter) *PowService {

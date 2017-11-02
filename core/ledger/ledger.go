@@ -11,6 +11,10 @@ import (
 	"errors"
 )
 
+const (
+	FoundationAddress = "APMkDSkoc2D6jrQTukVTFMmsFnHGNDh3cG"
+)
+
 var DefaultLedger *Ledger
 var StandbyBookKeepers []*crypto.PubKey
 

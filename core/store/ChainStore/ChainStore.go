@@ -2,11 +2,9 @@ package ChainStore
 
 import (
 	. "DNA_POW/common"
-	"DNA_POW/common/config"
 	"DNA_POW/common/log"
 	"DNA_POW/common/serialization"
 	. "DNA_POW/core/asset"
-	"DNA_POW/core/auxpow"
 	"DNA_POW/core/contract/program"
 	. "DNA_POW/core/ledger"
 	. "DNA_POW/core/store"
@@ -14,26 +12,21 @@ import (
 	tx "DNA_POW/core/transaction"
 	"DNA_POW/core/validation"
 	"DNA_POW/crypto"
-	. "DNA_POW/errors"
 	"DNA_POW/events"
 	"bytes"
 	"container/list"
 	"errors"
 
 	"fmt"
-	"math"
-	"math/big"
 	"sort"
 	"sync"
 	"time"
 )
 
 const (
-	HeaderHashListCount  = 2000
-	CleanCacheThreshold  = 2
-	TaskChanCap          = 4
-	MaxTimeOffsetSeconds = 2 * 60 * 60
-	MaxBlockBaseSize     = 1000000
+	HeaderHashListCount = 2000
+	CleanCacheThreshold = 2
+	TaskChanCap         = 4
 )
 
 var (
@@ -266,14 +259,14 @@ func (bd *ChainStore) IsTxHashDuplicate(txhash Uint256) bool {
 	}
 }
 
-func (bd *ChainStore) IsDoubleSpend(tx *tx.Transaction) bool {
-	if len(tx.UTXOInputs) == 0 {
+func (bd *ChainStore) IsDoubleSpend(txn *tx.Transaction) bool {
+	if len(txn.UTXOInputs) == 0 {
 		return false
 	}
 
 	unspentPrefix := []byte{byte(IX_Unspent)}
-	for i := 0; i < len(tx.UTXOInputs); i++ {
-		txhash := tx.UTXOInputs[i].ReferTxID
+	for i := 0; i < len(txn.UTXOInputs); i++ {
+		txhash := txn.UTXOInputs[i].ReferTxID
 		unspentValue, err_get := bd.Get(append(unspentPrefix, txhash.ToArray()...))
 		if err_get != nil {
 			return true
@@ -282,7 +275,7 @@ func (bd *ChainStore) IsDoubleSpend(tx *tx.Transaction) bool {
 		unspents, _ := GetUint16Array(unspentValue)
 		findFlag := false
 		for k := 0; k < len(unspents); k++ {
-			if unspents[k] == tx.UTXOInputs[i].ReferTxOutputIndex {
+			if unspents[k] == txn.UTXOInputs[i].ReferTxOutputIndex {
 				findFlag = true
 				break
 			}
@@ -437,13 +430,12 @@ func (bd *ChainStore) GetHeader(hash Uint256) (*Header, error) {
 	}
 
 	r := bytes.NewReader(data)
-
 	// first 8 bytes is sys_fee
 	sysfee, err := serialization.ReadUint64(r)
 	if err != nil {
 		return nil, err
 	}
-	log.Trace(fmt.Sprintf("sysfee: %d\n", sysfee))
+	_ = sysfee
 
 	// Deserialize block data
 	err = h.Deserialize(r)
@@ -724,247 +716,6 @@ func (self *ChainStore) SaveBlock(b *Block, ledger *Ledger) error {
 	reply := make(chan bool)
 	self.taskCh <- &persistBlockTask{block: b, ledger: ledger, reply: reply}
 	<-reply
-
-	return nil
-}
-func (db *ChainStore) CheckTransactionSanity(msgTx *tx.Transaction) error {
-	if len(msgTx.UTXOInputs) == 0 {
-		return errors.New("[CheckTransactionSanity] transaction has no inputs")
-	}
-
-	if len(msgTx.Outputs) == 0 {
-		return errors.New("[CheckTransactionSanity] transaction has no outputs")
-	}
-
-	w := bytes.NewBuffer(nil)
-	msgTx.Serialize(w)
-	serializedTxSize := len(w.Bytes())
-	if serializedTxSize > MaxBlockBaseSize {
-		return errors.New("[CheckTransactionSanity] serialized transaction is too big")
-	}
-
-	var totalSatoshi Fixed64
-	for _, txOut := range msgTx.Outputs {
-		satoshi := txOut.Value
-		if satoshi < 0 {
-			return errors.New("[CheckTransactionSanity] transaction output has negative")
-		}
-		//if satoshi > MaxSatoshi {
-		//	return errors.New("[CheckTransactionSanity] transaction output value is higher than max allowed value")
-		//}
-
-		totalSatoshi += satoshi
-		if totalSatoshi < 0 {
-			return errors.New("[CheckTransactionSanity] total value of all transaction outputs exceeds max allowed value")
-		}
-		//if totalSatoshi > MaxSatoshi {
-		//	return errors.New("[CheckTransactionSanity] total value of all transaction outputs is higher than max allowed value")
-		//}
-	}
-
-	// Check for duplicate transaction inputs.
-	existingTxOut := make(map[tx.UTXOTxInput]struct{})
-	for _, txIn := range msgTx.UTXOInputs {
-		if _, exists := existingTxOut[*txIn]; exists {
-			return errors.New("[CheckTransactionSanity] transaction contains duplicate inputs")
-		}
-		existingTxOut[*txIn] = struct{}{}
-	}
-
-	if !msgTx.IsCoinBaseTx() {
-		for _, txIn := range msgTx.UTXOInputs {
-			if (txIn.ReferTxID.CompareTo(zeroHash) == 0) &&
-				(txIn.ReferTxOutputIndex == math.MaxUint16) {
-				return errors.New("[CheckTransactionSanity] transaction input refers to previous output that is null")
-			}
-		}
-	}
-
-	return nil
-}
-
-func (db *ChainStore) PowCheckBlockSanity(block *Block, powLimit *big.Int, timeSource MedianTimeSource) error {
-	header := block.Blockdata
-	isAuxPow := config.Parameters.PowConfiguration.CoMining
-	if isAuxPow && !header.AuxPow.Check(header.Hash(), auxpow.AuxPowChainID) {
-		return errors.New("[PowCheckBlockSanity] block check proof is failed")
-	}
-	if validation.CheckProofOfWork(header, powLimit, isAuxPow) != nil {
-		return errors.New("[PowCheckBlockSanity] block check proof is failed.")
-	}
-
-	// A block timestamp must not have a greater precision than one second.
-	tempTime := time.Unix(int64(header.Timestamp), 0)
-	if !tempTime.Equal(time.Unix(tempTime.Unix(), 0)) {
-		return errors.New("[PowCheckBlockSanity] block timestamp of has a higher precision than one second")
-	}
-
-	// Ensure the block time is not too far in the future.
-	maxTimestamp := timeSource.AdjustedTime().Add(time.Second * MaxTimeOffsetSeconds)
-	if tempTime.After(maxTimestamp) {
-		return errors.New("[PowCheckBlockSanity] block timestamp of is too far in the future")
-	}
-
-	// A block must have at least one transaction.
-	numTx := len(block.Transactions)
-	if numTx == 0 {
-		return errors.New("[PowCheckBlockSanity]  block does not contain any transactions")
-	}
-
-	// A block must not have more transactions than the max block payload.
-	if numTx > config.Parameters.MaxTxInBlock {
-		return errors.New("[PowCheckBlockSanity]  block contains too many transactions")
-	}
-	// A block must not exceed the maximum allowed block payload when serialized.
-	w := bytes.NewBuffer(nil)
-	block.Serialize(w)
-	serializedSize := len(w.Bytes())
-	if serializedSize > MaxBlockBaseSize {
-		return errors.New("[PowCheckBlockSanity] serialized block is too big")
-	}
-
-	// The first transaction in a block must be a coinbase.
-	transactions := block.Transactions
-	if !transactions[0].IsCoinBaseTx() {
-		return errors.New("[PowCheckBlockSanity] first transaction in block is not a coinbase")
-	}
-
-	// A block must not have more than one coinbase.
-	for _, tx := range transactions[1:] {
-		if tx.IsCoinBaseTx() {
-			return errors.New("[PowCheckBlockSanity] block contains second coinbase")
-		}
-	}
-
-	// Do some preliminary checks on each transaction to ensure they are
-	// sane before continuing.
-	for _, tx := range transactions {
-		err := db.CheckTransactionSanity(tx)
-		if err != nil {
-			return err
-		}
-	}
-
-	var tharray []Uint256
-	for _, txn := range transactions {
-		txhash := txn.Hash()
-		tharray = append(tharray, txhash)
-	}
-	calcTransactionsRoot, err := crypto.ComputeRoot(tharray)
-	if err != nil {
-		return errors.New("[PowCheckBlockSanity] merkleTree compute failed")
-	}
-	if header.TransactionsRoot.CompareTo(calcTransactionsRoot) != 0 {
-		return errors.New("[PowCheckBlockSanity] block merkle root is invalid")
-	}
-
-	// Check for duplicate transactions.  This check will be fairly quick
-	// since the transaction hashes are already cached due to building the
-	// merkle tree above.
-	existingTxHashes := make(map[Uint256]struct{})
-	for _, txn := range transactions {
-		txHash := txn.Hash()
-		if _, exists := existingTxHashes[txHash]; exists {
-			return errors.New("[PowCheckBlockSanity] block contains duplicate transaction")
-		}
-		existingTxHashes[txHash] = struct{}{}
-	}
-
-	for _, txVerify := range transactions {
-		if errCode := validation.VerifyTransaction(txVerify); errCode != ErrNoError {
-			return errors.New(fmt.Sprintf("VerifyTransaction failed when verifiy block"))
-		}
-	}
-
-	// TODO check sigops
-	// The number of signature operations must be less than the maximum
-	// allowed per block.
-	//totalSigOps := 0
-	//for _, tx := range transactions {
-	//	// We could potentially overflow the accumulator so check for
-	//	// overflow.
-	//	lastSigOps := totalSigOps
-	//	totalSigOps += CountSigOps(tx)
-	//	if totalSigOps < lastSigOps || totalSigOps > MaxSigOpsPerBlock {
-	//		str := fmt.Sprintf("block contains too many signature "+
-	//			"operations - got %v, max %v", totalSigOps,
-	//			MaxSigOpsPerBlock)
-	//		return ruleError(ErrTooManySigOps, str)
-	//	}
-	//}
-
-	return nil
-}
-
-func isFinalizedTransaction(msgTx *tx.Transaction, blockHeight uint32) bool {
-	// Lock time of zero means the transaction is finalized.
-	lockTime := msgTx.LockTime
-	if lockTime == 0 {
-		return true
-	}
-
-	//FIXME only height
-	if lockTime < blockHeight {
-		return true
-	}
-
-	// At this point, the transaction's lock time hasn't occurred yet, but
-	// the transaction might still be finalized if the sequence number
-	// for all transaction inputs is maxed out.
-	for _, txIn := range msgTx.UTXOInputs {
-		if txIn.Sequence != math.MaxUint16 {
-			return false
-		}
-	}
-	return true
-}
-
-func (db *ChainStore) PowCheckBlockContext(block *Block, prevNode *BlockNode, ledger *Ledger) error {
-	// The genesis block is valid by definition.
-	if prevNode == nil {
-		return nil
-	}
-
-	header := block.Blockdata
-	expectedDifficulty, err := validation.CalcNextRequiredDifficulty(prevNode,
-		time.Unix(int64(header.Timestamp), 0))
-	if err != nil {
-		return err
-	}
-
-	if header.Bits != expectedDifficulty {
-		return errors.New("block difficulty is not the expected")
-	}
-
-	// Ensure the timestamp for the block header is after the
-	// median time of the last several blocks (medianTimeBlocks).
-	medianTime := CalcPastMedianTime(prevNode)
-	tempTime := time.Unix(int64(header.Timestamp), 0)
-
-	if !tempTime.After(medianTime) {
-		return errors.New("block timestamp is not after expected")
-	}
-
-	// The height of this block is one more than the referenced
-	// previous block.
-	blockHeight := prevNode.Height + 1
-
-	// Ensure all transactions in the block are finalized.
-	for _, txn := range block.Transactions {
-		if !isFinalizedTransaction(txn, blockHeight) {
-			return errors.New("block contains unfinalized transaction")
-		}
-	}
-
-	for _, txVerify := range block.Transactions {
-		if errCode := validation.VerifyTransactionWithLedger(txVerify, db.ledger); errCode != ErrNoError {
-			return errors.New(fmt.Sprintf("VerifyTransactionWithLedger failed when verifiy block"))
-		}
-	}
-
-	if err := validation.VerifyTransactionWithBlock(block.Transactions[1:]); err != nil {
-		return errors.New(fmt.Sprintf("VerifyTransactionWithBlock failed when verifiy block"))
-	}
 
 	return nil
 }

@@ -60,6 +60,7 @@ type node struct {
 	flightHeights            []uint32
 	cachelock                sync.RWMutex
 	flightlock               sync.RWMutex
+	invHashLock              sync.RWMutex
 	lastContact              time.Time
 	nodeDisconnectSubscriber events.Subscriber
 	tryTimes                 uint32
@@ -68,10 +69,12 @@ type node struct {
 	RetryConnAddrs
 	SyncReqSem Semaphore
 	KnownAddressList
-	MaxOutboundCnt  uint
-	DefaultMaxPeers uint
-	GetAddrMax      uint
-	TxNotifyChan    chan int
+	MaxOutboundCnt   uint
+	DefaultMaxPeers  uint
+	GetAddrMax       uint
+	TxNotifyChan     chan int
+	headerFirstMode  bool
+	invRequestHashes []Uint256
 }
 
 type RetryConnAddrs struct {
@@ -206,6 +209,8 @@ func InitNode(pubKey *crypto.PubKey) Noder {
 	n.local.SetDefaultMaxPeers()
 	n.local.SetGetAddrMax()
 	n.nodeDisconnectSubscriber = n.eventQueue.GetEvent("disconnect").Subscribe(events.EventNodeDisconnect, n.NodeDisconnect)
+	n.local.headerFirstMode = false
+	n.invRequestHashes = make([]Uint256, 0)
 	go n.initConnection()
 	go n.updateConnection()
 	go n.updateNodeInfo()
@@ -460,7 +465,9 @@ func (node *node) SetBookKeeperAddr(pk *crypto.PubKey) {
 
 func (node *node) SyncNodeHeight() {
 	for {
+		log.Trace("BlockHeight is ", ledger.DefaultLedger.Blockchain.BlockHeight)
 		heights, _ := node.GetNeighborHeights()
+		log.Trace("others height is ", heights)
 		finishSyncFromBestNode := false
 		if node.isFinishSyncFromSyncNode() == true {
 			log.Trace("node.isFinishSyncFromSyncNode() ", node.isFinishSyncFromSyncNode())
@@ -474,10 +481,12 @@ func (node *node) SyncNodeHeight() {
 
 		}
 		if CompareHeight(uint64(ledger.DefaultLedger.Blockchain.BlockHeight), heights) {
+			node.local.SetSyncHeaders(false)
 			break
 		}
 		if finishSyncFromBestNode == true {
-			ReqBlkHdrFromOthers(node)
+			//ReqBlkHdrFromOthers(node)
+			ReqBlksHdrFromOthers(node)
 		}
 
 		<-time.After(5 * time.Second)
@@ -589,6 +598,9 @@ func (node *node) RelSyncReqSem() {
 
 func (node *node) Relay(frmnode Noder, message interface{}) error {
 	log.Debug()
+	if node.LocalNode().IsSyncHeaders() == true {
+		return nil
+	}
 	var buffer []byte
 	var err error
 	isHash := false
@@ -715,7 +727,7 @@ func (node *node) StartRetryTimer() {
 		case <-t.C:
 			node.SetSyncFailed()
 			node.local.eventQueue.GetEvent("disconnect").Notify(events.EventNodeDisconnect, node)
-			ReqBlkHdrFromOthers(node)
+			ReqBlksHdrFromOthers(node)
 		case <-node.TxNotifyChan:
 			t.Stop()
 		}
@@ -759,7 +771,8 @@ func (node *node) StartSync() {
 	if needSync == true {
 		if node.LocalNode().IsSyncHeaders() == false {
 			n := node.GetBestHeightNoder()
-			SendMsgSyncHeaders(n)
+			//SendMsgSyncHeaders(n)
+			SendMsgSyncBlockHeaders(n)
 			n.StartRetryTimer()
 		}
 	}
@@ -775,4 +788,38 @@ func (node *node) isFinishSyncFromSyncNode() bool {
 		}
 	}
 	return false
+}
+
+func (node *node) CacheInvHash(hash Uint256) {
+	node.invHashLock.Lock()
+	defer node.invHashLock.Unlock()
+	node.invRequestHashes = append(node.invRequestHashes, hash)
+	if len(node.invRequestHashes) > MAXINVCACHEHASH {
+		node.invRequestHashes = append(node.invRequestHashes[:0], node.invRequestHashes[1:]...)
+	}
+}
+
+func (node *node) ExistInvHash(hash Uint256) bool {
+	node.invHashLock.Lock()
+	defer node.invHashLock.Unlock()
+	for _, v := range node.invRequestHashes {
+		if v == hash {
+			return true
+		}
+	}
+	return false
+}
+
+func (node *node) DeleteInvHash(hash Uint256) {
+	node.invHashLock.Lock()
+	defer node.invHashLock.Unlock()
+	for i, v := range node.invRequestHashes {
+		if v == hash {
+			node.invRequestHashes = append(node.invRequestHashes[:i], node.invRequestHashes[i+1:]...)
+		}
+	}
+}
+
+func (node *node) GetHeaderFisrtModeStatus() bool {
+	return node.headerFirstMode
 }

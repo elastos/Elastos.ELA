@@ -191,7 +191,6 @@ func (msg headersReq) Handle(node Noder) error {
 	locatorHash = msg.p.hashStart
 	stopHash = msg.p.hashEnd
 
-	//FIXME if HeaderHashCount > 1
 	startHash = ledger.DefaultLedger.Blockchain.LatestLocatorHash(locatorHash)
 	headers, cnt, err := GetHeadersFromHash(startHash, stopHash)
 	if err != nil {

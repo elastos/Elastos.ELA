@@ -25,8 +25,11 @@ type block struct {
 }
 
 func (msg block) Handle(node Noder) error {
-	log.Debug("RX block message")
 	hash := msg.blk.Hash()
+	if node.LocalNode().IsSyncHeaders() == true && node.ExistInvHash(hash) == false {
+		return nil
+	}
+	log.Trace("!@$#$%^^&* RX block message, hash is %x", hash)
 	isSync := false
 	if ledger.DefaultLedger.BlockInLedger(hash) {
 		ReceiveDuplicateBlockCnt++
@@ -36,10 +39,18 @@ func (msg block) Handle(node Noder) error {
 	_, isOrphan, err := ledger.DefaultLedger.Blockchain.AddBlock(&msg.blk)
 	if err != nil {
 		log.Warn("Block add failed: ", err, " ,block hash is ", hash)
+		node.SetSyncFailed()
+		node.SetState(INACTIVITY)
+		conn := node.GetConn()
+		conn.Close()
 		return err
 	}
-	if isOrphan == true {
-		buf, err := NewHeadersReq(hash)
+	node.DeleteInvHash(hash)
+	if isOrphan == true && node.LocalNode().IsSyncHeaders() == false {
+		log.Trace("Is orphan!@#$#@^%&*(")
+		orphanRoot := ledger.DefaultLedger.Blockchain.GetOrphanRoot(&hash)
+		locator, err := ledger.DefaultLedger.Blockchain.LatestBlockLocator()
+		buf, err := NewBlocksReq(locator, *orphanRoot)
 		if err != nil {
 			log.Error("failed build a new headersReq")
 		} else {
@@ -49,14 +60,16 @@ func (msg block) Handle(node Noder) error {
 		}
 		node.StartRetryTimer()
 	}
-	for _, n := range node.LocalNode().GetNeighborNoder() {
-		if n.ExistFlightHeight(msg.blk.Blockdata.Height) {
-			//sync block
-			n.RemoveFlightHeight(msg.blk.Blockdata.Height)
-			isSync = true
+	if !isSync {
+		for _, n := range node.LocalNode().GetNeighborNoder() {
+			if n.ExistFlightHeight(msg.blk.Blockdata.Height) {
+				//sync block
+				n.RemoveFlightHeight(msg.blk.Blockdata.Height)
+				isSync = true
+			}
 		}
 	}
-	if !isSync {
+	if node.LocalNode().IsSyncHeaders() == false {
 		//haven`t require this block ,relay hash
 		node.LocalNode().Relay(node, hash)
 	}

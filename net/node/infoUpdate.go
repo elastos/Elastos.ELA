@@ -260,7 +260,7 @@ func (node *node) updateNodeInfo() {
 		select {
 		case <-ticker.C:
 			node.SendPingToNbr()
-			node.SyncBlk()
+			//node.SyncBlk()
 			node.HeartBeatMonitor()
 		case <-quit:
 			ticker.Stop()

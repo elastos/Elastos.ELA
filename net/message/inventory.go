@@ -10,16 +10,17 @@ import (
 	"crypto/sha256"
 	"encoding/binary"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"io"
 )
 
 type blocksReq struct {
-	msgHdr
-	p struct {
-		HeaderHashCount uint8
-		hashStart       [HASHLEN]byte
-		hashStop        [HASHLEN]byte
+	hdr msgHdr
+	p   struct {
+		len       uint32
+		hashStart []Uint256
+		hashEnd   Uint256
 	}
 }
 
@@ -34,47 +35,103 @@ type Inv struct {
 	P   InvPayload
 }
 
-func NewBlocksReq(n Noder) ([]byte, error) {
-	var h blocksReq
-	log.Debug("request block hash")
-	// Fixme correct with the exactly request length
-	h.p.HeaderHashCount = 1
-	//Fixme! Should get the remote Node height.
-	buf := ledger.DefaultLedger.Blockchain.CurrentBlockHash()
-
-	copy(h.p.hashStart[:], reverse(buf[:]))
-
-	p := new(bytes.Buffer)
-	err := binary.Write(p, binary.LittleEndian, &(h.p))
+func SendMsgSyncBlockHeaders(node Noder) {
+	var emptyHash Uint256
+	currentHash := ledger.DefaultLedger.Store.GetCurrentHeaderHash()
+	blocator := ledger.DefaultLedger.Blockchain.BlockLocatorFromHash(&currentHash)
+	buf, err := NewBlocksReq(blocator, emptyHash)
 	if err != nil {
-		log.Error("Binary Write failed at new blocksReq")
+		log.Error("failed build a new getblocksReq")
+	} else {
+		node.LocalNode().SetSyncHeaders(true)
+		node.SetSyncHeaders(true)
+		log.Trace("Sync from ", node.GetAddr())
+		go node.Tx(buf)
+	}
+}
+
+func ReqBlksHdrFromOthers(node Noder) {
+	//node.SetSyncFailed()
+	noders := node.LocalNode().GetNeighborNoder()
+	for _, noder := range noders {
+		if noder.IsSyncFailed() != true {
+			SendMsgSyncBlockHeaders(noder)
+			break
+		}
+	}
+}
+
+func NewBlocksReq(blocator []Uint256, hash Uint256) ([]byte, error) {
+	var msg blocksReq
+	log.Trace("!#@$#%^$^&*&^(^")
+	log.Trace("")
+	log.Trace("request getblocks hash")
+	log.Trace("")
+	msg.hdr.Magic = NETMAGIC
+	cmd := "getblocks"
+	copy(msg.hdr.CMD[0:len(cmd)], cmd)
+	tmpBuffer := bytes.NewBuffer([]byte{})
+	msg.p.len = uint32(len(blocator))
+	msg.p.hashStart = blocator
+	serialization.WriteUint32(tmpBuffer, uint32(msg.p.len))
+
+	for _, hash := range blocator {
+		_, err := hash.Serialize(tmpBuffer)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	msg.p.hashEnd = hash
+
+	_, err := msg.p.hashEnd.Serialize(tmpBuffer)
+	if err != nil {
+		return nil, err
+	}
+	p := new(bytes.Buffer)
+	err = binary.Write(p, binary.LittleEndian, tmpBuffer.Bytes())
+	if err != nil {
+		log.Error("Binary Write failed at new Msg")
+		return nil, err
+	}
+	s := sha256.Sum256(p.Bytes())
+	s2 := s[:]
+	s = sha256.Sum256(s2)
+	buf := bytes.NewBuffer(s[:4])
+	binary.Read(buf, binary.LittleEndian, &(msg.hdr.Checksum))
+	msg.hdr.Length = uint32(len(p.Bytes()))
+	log.Debug("The message payload length is ", msg.hdr.Length)
+
+	m, err := msg.Serialization()
+	if err != nil {
+		log.Error("Error Convert net message ", err.Error())
 		return nil, err
 	}
 
-	s := checkSum(p.Bytes())
-	h.msgHdr.init("getblocks", s, uint32(len(p.Bytes())))
-
-	m, err := h.Serialization()
-
-	return m, err
+	return m, nil
 }
 
 func (msg blocksReq) Verify(buf []byte) error {
 
 	// TODO verify the message Content
-	err := msg.msgHdr.Verify(buf)
+	err := msg.hdr.Verify(buf)
 	return err
 }
 
 func (msg blocksReq) Handle(node Noder) error {
 	log.Debug()
-	log.Debug("handle blocks request")
-	var starthash Uint256
-	var stophash Uint256
-	starthash = msg.p.hashStart
-	stophash = msg.p.hashStop
-	//FIXME if HeaderHashCount > 1
-	inv, err := GetInvFromBlockHash(starthash, stophash)
+	log.Trace("handle blocks request")
+	// lock
+	node.LocalNode().AcqSyncReqSem()
+	defer node.LocalNode().RelSyncReqSem()
+	var locatorHash []Uint256
+	var startHash [HASHLEN]byte
+	var stopHash [HASHLEN]byte
+	locatorHash = msg.p.hashStart
+	stopHash = msg.p.hashEnd
+
+	startHash = ledger.DefaultLedger.Blockchain.LatestLocatorHash(locatorHash)
+	inv, err := GetInvFromBlockHash(startHash, stopHash)
 	if err != nil {
 		return err
 	}
@@ -87,19 +144,49 @@ func (msg blocksReq) Handle(node Noder) error {
 }
 
 func (msg blocksReq) Serialization() ([]byte, error) {
-	var buf bytes.Buffer
-
-	err := binary.Write(&buf, binary.LittleEndian, msg)
+	hdrBuf, err := msg.hdr.Serialization()
 	if err != nil {
 		return nil, err
 	}
+	buf := bytes.NewBuffer(hdrBuf)
+	err = binary.Write(buf, binary.LittleEndian, msg.p.len)
+	if err != nil {
+		return nil, err
+	}
+	//err = binary.Write(buf, binary.LittleEndian, msg.p.hashStart)
+	for _, hash := range msg.p.hashStart {
+		hash.Serialize(buf)
+	}
+
+	msg.p.hashEnd.Serialize(buf)
 
 	return buf.Bytes(), err
 }
 
 func (msg *blocksReq) Deserialization(p []byte) error {
 	buf := bytes.NewBuffer(p)
-	err := binary.Read(buf, binary.LittleEndian, &msg)
+	err := binary.Read(buf, binary.LittleEndian, &(msg.hdr))
+	if err != nil {
+		return err
+	}
+
+	err = binary.Read(buf, binary.LittleEndian, &(msg.p.len))
+	if err != nil {
+		return err
+	}
+
+	for i := 0; i < int(msg.p.len); i++ {
+		var hash Uint256
+		err := (&hash).Deserialize(buf)
+		msg.p.hashStart = append(msg.p.hashStart, hash)
+		if err != nil {
+			log.Debug("blkHeader req Deserialization failed")
+			goto blksReqErr
+		}
+	}
+
+	err = msg.p.hashEnd.Deserialize(buf)
+blksReqErr:
 	return err
 }
 
@@ -113,7 +200,9 @@ func (msg Inv) Handle(node Noder) error {
 	log.Debug()
 	var id Uint256
 	str := hex.EncodeToString(msg.P.Blk)
-	log.Debug(fmt.Sprintf("The inv type: 0x%x block len: %d, %s\n",
+	log.Trace("!#$#%^&*(&")
+	log.Trace("")
+	log.Trace(fmt.Sprintf("The inv type: 0x%x block len: %d, %s\n",
 		msg.P.InvType, len(msg.P.Blk), str))
 
 	invType := InventoryType(msg.P.InvType)
@@ -127,23 +216,57 @@ func (msg Inv) Handle(node Noder) error {
 		}
 	case BLOCK:
 		log.Debug("RX block message")
+		if node.LocalNode().IsSyncHeaders() == true && node.IsSyncHeaders() == false {
+			log.Trace("Not sync message")
+			return nil
+		}
 		var i uint32
 		count := msg.P.Cnt
-		log.Debug("RX inv-block message, hash is ", msg.P.Blk)
+		log.Tracef("RX inv-block message, hash is %x", msg.P.Blk)
+		hashes := []Uint256{}
 		for i = 0; i < count; i++ {
 			id.Deserialize(bytes.NewReader(msg.P.Blk[HASHLEN*i:]))
-			// TODO check the ID queue
-			if !ledger.DefaultLedger.Store.BlockInCache(id) &&
-				!ledger.DefaultLedger.BlockInLedger(id) {
-				node.CacheHash(id) //cached hash would not relayed
-				if !node.LocalNode().ExistedID(id) {
-					// send the block request
-					log.Infof("inv request block hash: %x", id)
-					ReqBlkData(node, id)
+			hashes = append(hashes, id)
+			if ledger.DefaultLedger.Blockchain.IsKnownOrphan(&id) {
+				orphanRoot := ledger.DefaultLedger.Blockchain.GetOrphanRoot(&id)
+				locator, err := ledger.DefaultLedger.Blockchain.LatestBlockLocator()
+				if err != nil {
+					log.Errorf(" Failed to get block "+
+						"locator for the latest block: "+
+						"%v", err)
+					continue
 				}
-
+				buf, err := NewBlocksReq(locator, *orphanRoot)
+				if err != nil {
+					log.Error("failed build a new getblocksReq")
+					continue
+				} else {
+					go node.Tx(buf)
+				}
+				continue
 			}
-
+			if i == (count - 1) {
+				var emptyHash Uint256
+				blocator := ledger.DefaultLedger.Blockchain.BlockLocatorFromHash(&id)
+				buf, err := NewBlocksReq(blocator, emptyHash)
+				if err != nil {
+					log.Error("failed build a new getblocksReq")
+				} else {
+					go node.Tx(buf)
+				}
+			}
+		}
+		for i, h := range hashes {
+			// TODO check the ID queue
+			if !ledger.DefaultLedger.BlockInLedger(h) {
+				node.CacheHash(id) //cached hash would not relayed
+				if !node.LocalNode().ExistedID(h) && node.ExistInvHash(h) == false {
+					// send the block request
+					node.CacheInvHash(h)
+					log.Tracef("No. ", i, ", inv request block hash: %x", h)
+					ReqBlkData(node, h)
+				}
+			}
 		}
 	case CONSENSUS:
 		log.Debug("RX consensus message")
@@ -193,61 +316,66 @@ func (msg Inv) invType() InventoryType {
 	return msg.P.InvType
 }
 
-func GetInvFromBlockHash(starthash Uint256, stophash Uint256) (*InvPayload, error) {
+func GetInvFromBlockHash(startHash Uint256, stopHash Uint256) (*InvPayload, error) {
 	var count uint32 = 0
-	var i uint32
 	var empty Uint256
-	var startheight uint32
-	var stopheight uint32
-	curHeight := ledger.DefaultLedger.GetLocalBlockChainHeight()
-	if starthash == empty {
-		if stophash == empty {
-			if curHeight > MAXBLKHDRCNT {
-				count = MAXBLKHDRCNT
+	var startHeight uint32
+	var stopHeight uint32
+	curHeight := ledger.DefaultLedger.Store.GetHeight()
+	if stopHash == empty {
+		if startHash == empty {
+			if curHeight > MAXINVHDRCNT {
+				count = MAXINVHDRCNT
 			} else {
 				count = curHeight
 			}
 		} else {
-			bkstop, err := ledger.DefaultLedger.Store.GetHeader(stophash)
+			bkstart, err := ledger.DefaultLedger.Store.GetHeader(startHash)
 			if err != nil {
 				return nil, err
 			}
-			stopheight = bkstop.Blockdata.Height
-			count = curHeight - stopheight
-			if curHeight > MAXINVHDRCNT {
+			startHeight = bkstart.Blockdata.Height
+			count = curHeight - startHeight
+			if count > MAXINVHDRCNT {
 				count = MAXINVHDRCNT
 			}
 		}
 	} else {
-		bkstart, err := ledger.DefaultLedger.Store.GetHeader(starthash)
+		bkstop, err := ledger.DefaultLedger.Store.GetHeader(stopHash)
 		if err != nil {
 			return nil, err
 		}
-		startheight = bkstart.Blockdata.Height
-		if stophash != empty {
-			bkstop, err := ledger.DefaultLedger.Store.GetHeader(stophash)
+		stopHeight = bkstop.Blockdata.Height
+		if startHash != empty {
+			bkstart, err := ledger.DefaultLedger.Store.GetHeader(startHash)
 			if err != nil {
 				return nil, err
 			}
-			stopheight = bkstop.Blockdata.Height
-			count = startheight - stopheight
+			startHeight = bkstart.Blockdata.Height
+
+			// avoid unsigned integer underflow
+			if stopHeight < startHeight {
+				return nil, errors.New("do not have header to send")
+			}
+			count = stopHeight - startHeight
+
 			if count >= MAXINVHDRCNT {
 				count = MAXINVHDRCNT
-				stopheight = startheight + MAXINVHDRCNT
 			}
 		} else {
-
-			if startheight > MAXINVHDRCNT {
+			if stopHeight > MAXINVHDRCNT {
 				count = MAXINVHDRCNT
 			} else {
-				count = startheight
+				count = stopHeight
 			}
 		}
 	}
+
 	tmpBuffer := bytes.NewBuffer([]byte{})
+	var i uint32
 	for i = 1; i <= count; i++ {
 		//FIXME need add error handle for GetBlockWithHash
-		hash, _ := ledger.DefaultLedger.Store.GetBlockHash(stopheight + i)
+		hash, _ := ledger.DefaultLedger.Store.GetBlockHash(startHeight + i)
 		log.Debug("GetInvFromBlockHash i is ", i, " , hash is ", hash)
 		hash.Serialize(tmpBuffer)
 	}
@@ -265,7 +393,6 @@ func NewInvPayload(invType InventoryType, count uint32, msg []byte) *InvPayload 
 
 func NewInv(inv *InvPayload) ([]byte, error) {
 	var msg Inv
-
 	msg.P.Blk = inv.Blk
 	msg.P.InvType = inv.InvType
 	msg.P.Cnt = inv.Cnt
@@ -293,7 +420,9 @@ func NewInv(inv *InvPayload) ([]byte, error) {
 		log.Error("Error Convert net message ", err.Error())
 		return nil, err
 	}
-
+	log.Trace("!#$#%$&^(")
+	log.Trace("")
+	log.Trace("send inv message m is ", m)
 	return m, nil
 }
 

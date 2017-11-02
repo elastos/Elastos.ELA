@@ -387,7 +387,7 @@ func (bd *ChainStore) powVerifyHeader(header *Header) bool {
 		return false
 	}
 
-	if prevHeader.Blockdata.Timestamp >= header.Blockdata.Timestamp {
+	if prevHeader.Blockdata.Timestamp > header.Blockdata.Timestamp {
 		log.Error("[verifyHeader] failed, prevHeader.Timestamp >= header.Timestamp")
 		return false
 	}

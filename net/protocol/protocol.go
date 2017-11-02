@@ -67,6 +67,7 @@ const (
 	DEFAULTMAXPEERS      = 125
 	GETADDRMAX           = 2500
 	MAXIDCACHED          = 5000
+	MAXINVCACHEHASH      = 50000
 )
 
 // The node state
@@ -172,6 +173,10 @@ type Noder interface {
 	StartRetryTimer()
 	StopRetryTimer()
 	StartSync()
+	CacheInvHash(hash common.Uint256)
+	ExistInvHash(hash common.Uint256) bool
+	DeleteInvHash(hash common.Uint256)
+	GetHeaderFisrtModeStatus() bool
 }
 
 func (msg *NodeAddr) Deserialization(p []byte) error {

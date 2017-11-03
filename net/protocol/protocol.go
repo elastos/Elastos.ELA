@@ -177,6 +177,10 @@ type Noder interface {
 	ExistInvHash(hash common.Uint256) bool
 	DeleteInvHash(hash common.Uint256)
 	GetHeaderFisrtModeStatus() bool
+	RequestedBlockExisted(hash common.Uint256) bool
+	AddRequestedBlock(hash common.Uint256)
+	DeleteRequestedBlock(hash common.Uint256)
+	GetRequestBlockList() map[common.Uint256]time.Time
 }
 
 func (msg *NodeAddr) Deserialization(p []byte) error {

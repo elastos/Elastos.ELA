@@ -47,6 +47,7 @@ func SendMsgSyncBlockHeaders(node Noder) {
 		node.SetSyncHeaders(true)
 		log.Trace("Sync from ", node.GetAddr())
 		go node.Tx(buf)
+		node.StartRetryTimer()
 	}
 }
 
@@ -63,10 +64,6 @@ func ReqBlksHdrFromOthers(node Noder) {
 
 func NewBlocksReq(blocator []Uint256, hash Uint256) ([]byte, error) {
 	var msg blocksReq
-	log.Trace("!#@$#%^$^&*&^(^")
-	log.Trace("")
-	log.Trace("request getblocks hash")
-	log.Trace("")
 	msg.hdr.Magic = NETMAGIC
 	cmd := "getblocks"
 	copy(msg.hdr.CMD[0:len(cmd)], cmd)
@@ -200,9 +197,8 @@ func (msg Inv) Handle(node Noder) error {
 	log.Debug()
 	var id Uint256
 	str := hex.EncodeToString(msg.P.Blk)
-	log.Trace("!#$#%^&*(&")
-	log.Trace("")
-	log.Trace(fmt.Sprintf("The inv type: 0x%x block len: %d, %s\n",
+
+	log.Info(fmt.Sprintf("The inv type: 0x%x block len: %d, %s\n",
 		msg.P.InvType, len(msg.P.Blk), str))
 
 	invType := InventoryType(msg.P.InvType)
@@ -216,13 +212,12 @@ func (msg Inv) Handle(node Noder) error {
 		}
 	case BLOCK:
 		log.Debug("RX block message")
+		node.StopRetryTimer()
 		if node.LocalNode().IsSyncHeaders() == true && node.IsSyncHeaders() == false {
-			log.Trace("Not sync message")
 			return nil
 		}
 		var i uint32
 		count := msg.P.Cnt
-		log.Tracef("RX inv-block message, hash is %x", msg.P.Blk)
 		hashes := []Uint256{}
 		for i = 0; i < count; i++ {
 			id.Deserialize(bytes.NewReader(msg.P.Blk[HASHLEN*i:]))
@@ -256,14 +251,13 @@ func (msg Inv) Handle(node Noder) error {
 				}
 			}
 		}
-		for i, h := range hashes {
+		for _, h := range hashes {
 			// TODO check the ID queue
 			if !ledger.DefaultLedger.BlockInLedger(h) {
 				node.CacheHash(id) //cached hash would not relayed
-				if !node.LocalNode().ExistedID(h) && node.ExistInvHash(h) == false {
+				if !node.LocalNode().ExistedID(h) && !node.LocalNode().RequestedBlockExisted(h) {
 					// send the block request
-					node.CacheInvHash(h)
-					log.Tracef("No. ", i, ", inv request block hash: %x", h)
+					node.LocalNode().AddRequestedBlock(h)
 					ReqBlkData(node, h)
 				}
 			}
@@ -420,9 +414,7 @@ func NewInv(inv *InvPayload) ([]byte, error) {
 		log.Error("Error Convert net message ", err.Error())
 		return nil, err
 	}
-	log.Trace("!#$#%$&^(")
-	log.Trace("")
-	log.Trace("send inv message m is ", m)
+
 	return m, nil
 }
 

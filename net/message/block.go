@@ -26,10 +26,9 @@ type block struct {
 
 func (msg block) Handle(node Noder) error {
 	hash := msg.blk.Hash()
-	if node.LocalNode().IsSyncHeaders() == true && node.ExistInvHash(hash) == false {
+	if node.LocalNode().IsSyncHeaders() == true && !node.LocalNode().RequestedBlockExisted(hash) {
 		return nil
 	}
-	log.Trace("!@$#$%^^&* RX block message, hash is %x", hash)
 	isSync := false
 	if ledger.DefaultLedger.BlockInLedger(hash) {
 		ReceiveDuplicateBlockCnt++
@@ -45,9 +44,8 @@ func (msg block) Handle(node Noder) error {
 		conn.Close()
 		return err
 	}
-	node.DeleteInvHash(hash)
+	node.LocalNode().DeleteRequestedBlock(hash)
 	if isOrphan == true && node.LocalNode().IsSyncHeaders() == false {
-		log.Trace("Is orphan!@#$#@^%&*(")
 		orphanRoot := ledger.DefaultLedger.Blockchain.GetOrphanRoot(&hash)
 		locator, err := ledger.DefaultLedger.Blockchain.LatestBlockLocator()
 		buf, err := NewBlocksReq(locator, *orphanRoot)

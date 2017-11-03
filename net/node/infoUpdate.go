@@ -53,6 +53,27 @@ func (node *node) isSyncPeerAlive() (bool, Noder) {
 	return false, nil
 }
 
+func (node *node) SyncBlkInNonCheckpointMode() {
+	needSync := node.needSync()
+	if needSync == false {
+		node.local.SetSyncHeaders(false)
+	} else {
+		var syncNode Noder
+		isSyncPeerAlive, syncNode := node.local.isSyncPeerAlive()
+		if isSyncPeerAlive == false {
+			syncNode = node.GetBestHeightNoder()
+		} else {
+			rb := syncNode.GetRequestBlockList()
+			for k := range rb {
+				if rb[k].Before(time.Now().Add(-3 * time.Second)) {
+					ReqBlkData(syncNode, k)
+				}
+			}
+		}
+		SendMsgSyncBlockHeaders(syncNode)
+	}
+}
+
 func (node *node) SyncBlk() {
 	headerHeight := ledger.DefaultLedger.Store.GetHeaderHeight()
 	currentBlkHeight := ledger.DefaultLedger.Blockchain.BlockHeight
@@ -261,6 +282,7 @@ func (node *node) updateNodeInfo() {
 		case <-ticker.C:
 			node.SendPingToNbr()
 			//node.SyncBlk()
+			node.SyncBlkInNonCheckpointMode()
 			node.HeartBeatMonitor()
 		case <-quit:
 			ticker.Stop()

@@ -61,6 +61,7 @@ type node struct {
 	cachelock                sync.RWMutex
 	flightlock               sync.RWMutex
 	invHashLock              sync.RWMutex
+	requestedBlockLock       sync.RWMutex
 	lastContact              time.Time
 	nodeDisconnectSubscriber events.Subscriber
 	tryTimes                 uint32
@@ -69,12 +70,13 @@ type node struct {
 	RetryConnAddrs
 	SyncReqSem Semaphore
 	KnownAddressList
-	MaxOutboundCnt   uint
-	DefaultMaxPeers  uint
-	GetAddrMax       uint
-	TxNotifyChan     chan int
-	headerFirstMode  bool
-	invRequestHashes []Uint256
+	MaxOutboundCnt     uint
+	DefaultMaxPeers    uint
+	GetAddrMax         uint
+	TxNotifyChan       chan int
+	headerFirstMode    bool
+	invRequestHashes   []Uint256
+	RequestedBlockList map[Uint256]time.Time
 }
 
 type RetryConnAddrs struct {
@@ -211,6 +213,7 @@ func InitNode(pubKey *crypto.PubKey) Noder {
 	n.nodeDisconnectSubscriber = n.eventQueue.GetEvent("disconnect").Subscribe(events.EventNodeDisconnect, n.NodeDisconnect)
 	n.local.headerFirstMode = false
 	n.invRequestHashes = make([]Uint256, 0)
+	n.RequestedBlockList = make(map[Uint256]time.Time)
 	go n.initConnection()
 	go n.updateConnection()
 	go n.updateNodeInfo()
@@ -822,4 +825,43 @@ func (node *node) DeleteInvHash(hash Uint256) {
 
 func (node *node) GetHeaderFisrtModeStatus() bool {
 	return node.headerFirstMode
+}
+
+func (node *node) GetRequestBlockList() map[Uint256]time.Time {
+	return node.RequestedBlockList
+}
+
+func (node *node) RequestedBlockExisted(hash Uint256) bool {
+	node.requestedBlockLock.Lock()
+	defer node.requestedBlockLock.Unlock()
+	_, ok := node.RequestedBlockList[hash]
+	return ok
+}
+
+func (node *node) AddRequestedBlock(hash Uint256) {
+	node.requestedBlockLock.Lock()
+	defer node.requestedBlockLock.Unlock()
+	node.RequestedBlockList[hash] = time.Now()
+	for k := range node.RequestedBlockList {
+		log.Trace("!~#@$%^&**")
+		log.Trace(" ")
+		log.Trace("k is ", k, ", time is ", node.RequestedBlockList[k])
+		log.Trace(" ")
+	}
+}
+
+func (node *node) DeleteRequestedBlock(hash Uint256) {
+	node.requestedBlockLock.Lock()
+	defer node.requestedBlockLock.Unlock()
+	_, ok := node.RequestedBlockList[hash]
+	if ok == false {
+		return
+	}
+	delete(node.RequestedBlockList, hash)
+	for k := range node.RequestedBlockList {
+		log.Trace("!~#@$%^&**")
+		log.Trace(" ")
+		log.Trace("k is ", k, ", time is ", node.RequestedBlockList[k])
+		log.Trace(" ")
+	}
 }

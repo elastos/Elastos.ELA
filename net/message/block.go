@@ -26,7 +26,7 @@ type block struct {
 
 func (msg block) Handle(node Noder) error {
 	hash := msg.blk.Hash()
-	if node.LocalNode().IsSyncHeaders() == true && !node.LocalNode().RequestedBlockExisted(hash) {
+	if node.LocalNode().IsSyncHeaders() == true && node.IsSyncHeaders() == false {
 		return nil
 	}
 	isSync := false

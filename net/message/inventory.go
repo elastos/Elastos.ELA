@@ -212,7 +212,9 @@ func (msg Inv) Handle(node Noder) error {
 		}
 	case BLOCK:
 		log.Debug("RX block message")
-		node.StopRetryTimer()
+		if node.IsSyncHeaders() == true {
+			node.StopRetryTimer()
+		}
 		if node.LocalNode().IsSyncHeaders() == true && node.IsSyncHeaders() == false {
 			return nil
 		}

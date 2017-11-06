@@ -149,37 +149,38 @@ func (db *ChainStore) PersistUnspendUTXOs(b *Block) error {
 			}
 			unspendUTXOs[programHash][assetID] = append(unspendUTXOs[programHash][assetID], &u)
 		}
-
-		for _, input := range txn.UTXOInputs {
-			referTxn, err := db.GetTransaction(input.ReferTxID)
-			if err != nil {
-				return err
-			}
-			index := input.ReferTxOutputIndex
-			referTxnOutput := referTxn.Outputs[index]
-			programHash := referTxnOutput.ProgramHash
-			assetID := referTxnOutput.AssetID
-			if _, ok := unspendUTXOs[programHash]; !ok {
-				unspendUTXOs[programHash] = make(map[Uint256][]*tx.UTXOUnspent)
-			}
-			if _, ok := unspendUTXOs[programHash][assetID]; !ok {
-				unspendUTXOs[programHash][assetID], err = db.GetUnspentFromProgramHash(programHash, assetID)
+		if !txn.IsCoinBaseTx() {
+			for _, input := range txn.UTXOInputs {
+				referTxn, err := db.GetTransaction(input.ReferTxID)
 				if err != nil {
-					return errors.New(fmt.Sprintf("[persist] utxoUnspents programHash:%v, assetId:%v has no unspent UTXO.", programHash, assetID))
+					return err
 				}
-			}
-			flag := false
-			listnum := len(unspendUTXOs[programHash][assetID])
-			for i := 0; i < listnum; i++ {
-				if unspendUTXOs[programHash][assetID][i].Txid.CompareTo(referTxn.Hash()) == 0 && unspendUTXOs[programHash][assetID][i].Index == uint32(index) {
-					unspendUTXOs[programHash][assetID][i] = unspendUTXOs[programHash][assetID][listnum-1]
-					unspendUTXOs[programHash][assetID] = unspendUTXOs[programHash][assetID][:listnum-1]
-					flag = true
-					break
+				index := input.ReferTxOutputIndex
+				referTxnOutput := referTxn.Outputs[index]
+				programHash := referTxnOutput.ProgramHash
+				assetID := referTxnOutput.AssetID
+				if _, ok := unspendUTXOs[programHash]; !ok {
+					unspendUTXOs[programHash] = make(map[Uint256][]*tx.UTXOUnspent)
 				}
-			}
-			if !flag {
-				return errors.New(fmt.Sprintf("[persist] utxoUnspents NOT find UTXO by txid: %x, index: %d.", referTxn.Hash(), index))
+				if _, ok := unspendUTXOs[programHash][assetID]; !ok {
+					unspendUTXOs[programHash][assetID], err = db.GetUnspentFromProgramHash(programHash, assetID)
+					if err != nil {
+						return errors.New(fmt.Sprintf("[persist] utxoUnspents programHash:%v, assetId:%v has no unspent UTXO.", programHash, assetID))
+					}
+				}
+				flag := false
+				listnum := len(unspendUTXOs[programHash][assetID])
+				for i := 0; i < listnum; i++ {
+					if unspendUTXOs[programHash][assetID][i].Txid.CompareTo(referTxn.Hash()) == 0 && unspendUTXOs[programHash][assetID][i].Index == uint32(index) {
+						unspendUTXOs[programHash][assetID][i] = unspendUTXOs[programHash][assetID][listnum-1]
+						unspendUTXOs[programHash][assetID] = unspendUTXOs[programHash][assetID][:listnum-1]
+						flag = true
+						break
+					}
+				}
+				if !flag {
+					return errors.New(fmt.Sprintf("[persist] utxoUnspents NOT find UTXO by txid: %x, index: %d.", referTxn.Hash(), index))
+				}
 			}
 		}
 	}
@@ -231,30 +232,32 @@ func (db *ChainStore) RollbackUnspendUTXOs(b *Block) error {
 			unspendUTXOs[programHash][assetID] = append(unspendUTXOs[programHash][assetID][:position], unspendUTXOs[programHash][assetID][position+1:]...)
 		}
 
-		for _, input := range txn.UTXOInputs {
-			referTxn, err := db.GetTransaction(input.ReferTxID)
-			if err != nil {
-				return err
-			}
-			index := input.ReferTxOutputIndex
-			referTxnOutput := referTxn.Outputs[index]
-			programHash := referTxnOutput.ProgramHash
-			assetID := referTxnOutput.AssetID
-			if _, ok := unspendUTXOs[programHash]; !ok {
-				unspendUTXOs[programHash] = make(map[Uint256][]*tx.UTXOUnspent)
-			}
-			if _, ok := unspendUTXOs[programHash][assetID]; !ok {
-				unspendUTXOs[programHash][assetID], err = db.GetUnspentFromProgramHash(programHash, assetID)
+		if !txn.IsCoinBaseTx() {
+			for _, input := range txn.UTXOInputs {
+				referTxn, err := db.GetTransaction(input.ReferTxID)
 				if err != nil {
-					return errors.New(fmt.Sprintf("[persist] utxoUnspents programHash:%v, assetId:%v has no unspent UTXO.", programHash, assetID))
+					return err
 				}
+				index := input.ReferTxOutputIndex
+				referTxnOutput := referTxn.Outputs[index]
+				programHash := referTxnOutput.ProgramHash
+				assetID := referTxnOutput.AssetID
+				if _, ok := unspendUTXOs[programHash]; !ok {
+					unspendUTXOs[programHash] = make(map[Uint256][]*tx.UTXOUnspent)
+				}
+				if _, ok := unspendUTXOs[programHash][assetID]; !ok {
+					unspendUTXOs[programHash][assetID], err = db.GetUnspentFromProgramHash(programHash, assetID)
+					if err != nil {
+						return errors.New(fmt.Sprintf("[persist] utxoUnspents programHash:%v, assetId:%v has no unspent UTXO.", programHash, assetID))
+					}
+				}
+				u := tx.UTXOUnspent{
+					Txid:  referTxn.Hash(),
+					Index: uint32(index),
+					Value: referTxnOutput.Value,
+				}
+				unspendUTXOs[programHash][assetID] = append(unspendUTXOs[programHash][assetID], &u)
 			}
-			u := tx.UTXOUnspent{
-				Txid:  referTxn.Hash(),
-				Index: uint32(index),
-				Value: referTxnOutput.Value,
-			}
-			unspendUTXOs[programHash][assetID] = append(unspendUTXOs[programHash][assetID], &u)
 		}
 	}
 	// batch put the utxoUnspents

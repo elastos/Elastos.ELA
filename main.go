@@ -49,7 +49,6 @@ func handleLogFile(consensus string) {
 			for {
 				time.Sleep(dbft.GenBlockTime)
 				log.Trace("BlockHeight = ", ledger.DefaultLedger.Blockchain.BlockHeight)
-				log.Trace("BlockHeight = ", ledger.DefaultLedger.Store.GetHeight())
 				//ledger.DefaultLedger.Blockchain.DumpState()
 				isNeedNewFile := log.CheckIfNeedNewFile()
 				if isNeedNewFile == true {
@@ -121,7 +120,6 @@ func main() {
 
 	log.Info("1. BlockChain init")
 	ledger.StandbyBookKeepers = account.GetBookKeepers()
-	log.Trace("1.NewBlockchainWithGenesisBlock")
 	//blockChain, err = ledger.NewBlockchainWithGenesisBlock(ledger.StandbyBookKeepers)
 	_, err = ledger.NewBlockchainWithGenesisBlock(ledger.StandbyBookKeepers)
 	if err != nil {

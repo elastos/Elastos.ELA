@@ -152,7 +152,6 @@ func (pow *PowService) SolveBlock(MsgBlock *ledger.Block, ticker *time.Ticker) b
 			header.Nonce = i
 			hash := header.Hash()
 			if validation.HashToBig(&hash).Cmp(targetDifficulty) <= 0 {
-				log.Trace(header)
 				log.Trace(hash)
 				return true
 			}
@@ -238,7 +237,7 @@ func (pow *PowService) BlockPersistCompleted(v interface{}) {
 		//pow.localNet.Xmit(block.Hash())
 	}
 
-	ledger.DefaultLedger.Blockchain.DumpState()
+	//ledger.DefaultLedger.Blockchain.DumpState()
 
 }
 

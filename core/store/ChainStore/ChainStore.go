@@ -174,7 +174,6 @@ func (bd *ChainStore) InitLedgerStoreWithGenesisBlock(genesisBlock *Block, defau
 		version = []byte{0x00}
 	}
 
-	log.Trace("version: ", version)
 	if version[0] == 0x00 {
 		// batch delete old data
 		bd.NewBatch()
@@ -200,18 +199,14 @@ func (bd *ChainStore) InitLedgerStoreWithGenesisBlock(genesisBlock *Block, defau
 
 	}
 
-	log.Trace("version2: ", version)
 	// GenesisBlock should exist in chain
 	// Or the bookkeepers are not consistent with the chain
 	hash := genesisBlock.Hash()
-	log.Trace("hash: ", hash)
 	if !bd.IsBlockInStore(hash) {
-		log.Trace("bookkeepers are not consistent with the chain")
 		return 0, errors.New("bookkeepers are not consistent with the chain")
 	}
 	bd.ledger.Blockchain.GenesisHash = hash
 	//bd.headerIndex[0] = hash
-	log.Trace("hash2: ", hash)
 
 	// Get Current Block
 	currentBlockPrefix := []byte{byte(SYS_CurrentBlock)}
@@ -224,14 +219,12 @@ func (bd *ChainStore) InitLedgerStoreWithGenesisBlock(genesisBlock *Block, defau
 	var blockHash Uint256
 	blockHash.Deserialize(r)
 	bd.currentBlockHeight, err = serialization.ReadUint32(r)
-	log.Tracef("blockHash: %x\n", blockHash.ToArray())
 	endHeight := bd.currentBlockHeight
 
 	startHeight := uint32(0)
 	if endHeight > MinMemoryNodes {
 		startHeight = endHeight - MinMemoryNodes
 	}
-	log.Tracef("startHeight: %x, endHeight: %x", startHeight, endHeight)
 
 	for start := startHeight; start <= endHeight; start++ {
 		hash, err := bd.GetBlockHash(start)
@@ -251,7 +244,7 @@ func (bd *ChainStore) InitLedgerStoreWithGenesisBlock(genesisBlock *Block, defau
 		bd.ledger.Blockchain.BestChain = node
 
 	}
-	bd.ledger.Blockchain.DumpState()
+	//bd.ledger.Blockchain.DumpState()
 
 	return bd.currentBlockHeight, nil
 
@@ -436,7 +429,6 @@ func (bd *ChainStore) GetHeader(hash Uint256) (*Header, error) {
 	h.Blockdata.Program = new(program.Program)
 
 	prefix := []byte{byte(DATA_Header)}
-	log.Trace("GetHeader Data:", hash.ToArray())
 	data, err_get := bd.Get(append(prefix, hash.ToArray()...))
 	//log.Debug( "Get Header Data: %x\n",  data )
 	if err_get != nil {
@@ -988,7 +980,6 @@ func (db *ChainStore) handleRollbackBlockTask(blockHash Uint256) {
 
 func (self *ChainStore) handlePersistBlockTask(b *Block, ledger *Ledger) {
 
-	log.Trace(b.Blockdata.Height, " ", self.currentBlockHeight)
 	if b.Blockdata.Height <= self.currentBlockHeight {
 		return
 	}
@@ -1059,8 +1050,6 @@ func (bd *ChainStore) persistBlocks(block *Block, ledger *Ledger) {
 	bd.mu.Lock()
 	bd.currentBlockHeight = block.Blockdata.Height
 	bd.mu.Unlock()
-	log.Trace("persist height", bd.currentBlockHeight)
-	log.Trace("persist height2", bd.ledger.Blockchain.BlockHeight)
 
 	ledger.Blockchain.BCEvents.Notify(events.EventBlockPersistCompleted, block)
 	//log.Tracef("The latest block height:%d, block hash: %x", block.Blockdata.Height, hash)

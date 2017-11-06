@@ -35,6 +35,7 @@ type Blockchain struct {
 	BestChain      *BlockNode
 	Root           *BlockNode
 	Index          map[Uint256]*BlockNode
+	IndexLock      sync.RWMutex
 	DepNodes       map[Uint256][]*BlockNode
 	Orphans        map[Uint256]*OrphanBlock
 	PrevOrphans    map[Uint256][]*OrphanBlock
@@ -292,25 +293,6 @@ type BlockNode struct {
 	Children    []*BlockNode
 }
 
-//func DumpBlockNode(node *BlockNode) {
-//	fmt.Printf("---------------------node:%p\n", node)
-//	fmt.Println("Hash:", node.Hash)
-//	fmt.Println("ParentHash:", node.ParentHash)
-//	fmt.Println("Height:", node.Height)
-//	fmt.Println("Version:", node.Version)
-//	fmt.Println("Bits:", node.Bits)
-//	fmt.Println("Timestamp:", node.Timestamp)
-//	fmt.Println("WorkSum:", node.WorkSum)
-//	fmt.Println("InMainChain:", node.InMainChain)
-//	if node.Parent != nil {
-//		fmt.Println("Parent:", node.Parent.Hash)
-//	} else {
-//		fmt.Println("Parent:", node.Parent)
-//	}
-//	fmt.Println("Children:", node.Children)
-//	fmt.Println("---------------------")
-//}
-
 func NewBlockNode(blockHeader *Blockdata, blockSha *Uint256) *BlockNode {
 	prevHash := blockHeader.PrevBlockHash
 	node := BlockNode{
@@ -404,7 +386,8 @@ func (bc *Blockchain) LoadBlockNode(blockHeader *Blockdata, hash *Uint256) (*Blo
 	//  4) Neither 1 or 2 is true, but this is the first node being added
 	//     to the tree, so it's the root.
 	prevHash := &blockHeader.PrevBlockHash
-	if parentNode, ok := bc.Index[*prevHash]; ok {
+	//if parentNode, ok := bc.Index[*prevHash]; ok {
+	if parentNode, ok := bc.LookupNodeInIndex(prevHash); ok {
 		// Case 1 -- This node is a child of an existing block node.
 		// Update the node's work sum with the sum of the parent node's
 		// work sum and this node's work, append the node as a child of
@@ -442,7 +425,8 @@ func (bc *Blockchain) LoadBlockNode(blockHeader *Blockdata, hash *Uint256) (*Blo
 	}
 
 	// Add the new node to the indices for faster lookups.
-	bc.Index[*hash] = node
+	//bc.Index[*hash] = node
+	bc.AddNodeToIndex(node)
 	bc.DepNodes[*prevHash] = append(bc.DepNodes[*prevHash], node)
 
 	return node, nil
@@ -491,7 +475,8 @@ func (bc *Blockchain) RemoveBlockNode(node *BlockNode) error {
 	}
 
 	// Remove the node from the node index.
-	delete(bc.Index, *node.Hash)
+	//delete(bc.Index, *node.Hash)
+	bc.RemoveNodeFromIndex(node)
 
 	// Unlink all of the node's children.
 	for _, child := range node.Children {
@@ -532,7 +517,8 @@ func (bc *Blockchain) GetPrevNodeFromBlock(block *Block) (*BlockNode, error) {
 	}
 
 	// Return the existing previous block node if it's already there.
-	if bn, ok := bc.Index[*prevHash]; ok {
+	//if bn, ok := bc.Index[*prevHash]; ok {
+	if bn, ok := bc.LookupNodeInIndex(prevHash); ok {
 		return bn, nil
 	}
 
@@ -759,7 +745,8 @@ func (bc *Blockchain) ConnectBlock(node *BlockNode, block *Block) error {
 	// Add the new node to the memory main chain indices for faster
 	// lookups.
 	node.InMainChain = true
-	bc.Index[*node.Hash] = node
+	//bc.Index[*node.Hash] = node
+	bc.AddNodeToIndex(node)
 	bc.DepNodes[*prevHash] = append(bc.DepNodes[*prevHash], node)
 
 	// This node is now the end of the best chain.
@@ -777,7 +764,8 @@ func (bc *Blockchain) ConnectBlock(node *BlockNode, block *Block) error {
 
 func (bc *Blockchain) BlockExists(hash *Uint256) (bool, error) {
 	// Check memory chain first (could be main chain or side chain blocks).
-	if _, ok := bc.Index[*hash]; ok {
+	//if _, ok := bc.Index[*hash]; ok {
+	if _, ok := bc.LookupNodeInIndex(hash); ok {
 		return true, nil
 	}
 
@@ -897,7 +885,8 @@ func (bc *Blockchain) ConnectBestChain(node *BlockNode, block *Block) (bool, err
 	//log.Debugf("Adding block %v to side chain cache", node.Hash)
 	fmt.Printf("Adding block %v to side chain cache\n", node.Hash)
 	bc.BlockCache[*node.Hash] = block
-	bc.Index[*node.Hash] = node
+	//bc.Index[*node.Hash] = node
+	bc.AddNodeToIndex(node)
 
 	// Connect the parent node to this node.
 	node.InMainChain = false
@@ -1035,33 +1024,6 @@ func (bc *Blockchain) ProcessBlock(block *Block, timeSource MedianTimeSource) (b
 	return inMainChain, false, nil
 }
 
-//func (bc *Blockchain) DumpState() {
-//	//log.Trace("GenesisHash      : ", bc.GenesisHash, "\n")
-//	//log.Trace("BestChain        : ", bc.BestChain, "\n")
-//	//log.Trace("Root             : ", bc.Root, "\n")
-//	//log.Trace("Index            : ", bc.Index, "\n")
-//	//log.Trace("DepNodes         : ", bc.DepNodes, "\n")
-//	//log.Trace("Orphans          : ", bc.Orphans, "\n")
-//	//log.Trace("PrevOrphans      : ", bc.PrevOrphans, "\n")
-//	//log.Trace("OldestOrphan     : ", bc.OldestOrphan, "\n")
-//	//log.Trace("BlockCache       : ", bc.BlockCache, "\n")
-//	//log.Trace("Ledger           : ", bc.Ledger, "\n")
-//	//log.Trace("TimeSource       : ", bc.TimeSource, "\n")
-//	//log.Trace("PastMedianTime   : ", bc.PastMedianTime, "\n")
-//	//log.Trace("PastMedianTimeErr: ", bc.PastMedianTimeErr, "\n")
-//
-//	fmt.Println("bc.BestChain=", bc.BestChain.Hash)
-//	fmt.Println("bc.Root=", bc.Root.Hash)
-//	fmt.Println("bc.Index=", bc.Index)
-//	fmt.Println("bc.DepNodes=", bc.DepNodes)
-//	for _, nd := range bc.Orphans {
-//		fmt.Println(nd)
-//	}
-//	for _, nd := range bc.Index {
-//		DumpBlockNode(nd)
-//	}
-//}
-
 func (bc *Blockchain) DumpState() {
 	log.Trace("bc.BestChain=", bc.BestChain.Hash)
 	log.Trace("bc.Root=", bc.Root.Hash)
@@ -1109,6 +1071,24 @@ func (b *Blockchain) LatestBlockLocator() (BlockLocator, error) {
 	// The best chain is set, so use its hash.
 	return b.BlockLocatorFromHash(b.BestChain.Hash), nil
 }
+func (b *Blockchain) AddNodeToIndex(node *BlockNode) {
+	b.IndexLock.Lock()
+	defer b.IndexLock.Unlock()
+
+	b.Index[*node.Hash] = node
+}
+func (b *Blockchain) RemoveNodeFromIndex(node *BlockNode) {
+	b.IndexLock.Lock()
+	defer b.IndexLock.Unlock()
+	delete(b.Index, *node.Hash)
+}
+func (b *Blockchain) LookupNodeInIndex(hash *Uint256) (*BlockNode, bool) {
+	b.IndexLock.Lock()
+	defer b.IndexLock.Unlock()
+	node, exist := b.Index[*hash]
+
+	return node, exist
+}
 
 func (b *Blockchain) BlockLocatorFromHash(hash *Uint256) BlockLocator {
 	// The locator contains the requested hash at the very least.
@@ -1124,7 +1104,8 @@ func (b *Blockchain) BlockLocatorFromHash(hash *Uint256) BlockLocator {
 	// passed hash, and if it's on a side chain, also find the height at
 	// which it forks from the main chain.
 	blockHeight := int32(-1)
-	node, exists := b.Index[*hash]
+	//node, exists := b.Index[*hash]
+	node, exists := b.LookupNodeInIndex(hash)
 	if !exists {
 		// Try to look up the height for passed block hash.  Assume an
 		// error means it doesn't exist and just return the locator for

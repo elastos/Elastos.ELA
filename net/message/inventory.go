@@ -198,7 +198,7 @@ func (msg Inv) Handle(node Noder) error {
 	var id Uint256
 	str := hex.EncodeToString(msg.P.Blk)
 
-	log.Info(fmt.Sprintf("The inv type: 0x%x block len: %d, %s\n",
+	log.Debug(fmt.Sprintf("The inv type: 0x%x block len: %d, %s\n",
 		msg.P.InvType, len(msg.P.Blk), str))
 
 	invType := InventoryType(msg.P.InvType)

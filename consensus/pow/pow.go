@@ -30,6 +30,13 @@ const (
 	hashUpdateSecs = 15
 )
 
+var (
+	TargetTimePerBlock = 2
+	OrginAmountOfEla   = 3300 * 10000 * 100000000
+	SubsidyInterval    = 365 * 24 * 60 / TargetTimePerBlock
+	RetargetPersent    = 25
+)
+
 type PowService struct {
 	// Miner's receiving address for earning coin
 	PayToAddr string
@@ -86,8 +93,23 @@ func (pow *PowService) CreateCoinbaseTrx(nextBlockHeight uint32, addr string) (*
 	binary.BigEndian.PutUint64(nonce, rand.Uint64())
 	txAttr := tx.NewTxAttribute(tx.Nonce, nonce)
 	txn.Attributes = append(txn.Attributes, &txAttr)
+	log.Trace("txAttr", txAttr)
 
 	return txn, nil
+}
+
+func calcBlockSubsidy(currentHeight uint32) int64 {
+	ToTalAmountOfEla := int64(OrginAmountOfEla)
+	for i := uint32(0); i < (currentHeight / uint32(SubsidyInterval)); i++ {
+		incr := float64(ToTalAmountOfEla) / float64(RetargetPersent)
+		subsidyPerBlock := int64(float64(incr) / float64(SubsidyInterval))
+		ToTalAmountOfEla += subsidyPerBlock * int64(SubsidyInterval)
+	}
+	incr := float64(ToTalAmountOfEla) / float64(RetargetPersent)
+	subsidyPerBlock := int64(float64(incr) / float64(SubsidyInterval))
+	log.Trace("subsidyPerBlock: ", subsidyPerBlock)
+
+	return subsidyPerBlock
 }
 
 func (pow *PowService) GenerateBlock(addr string) (*ledger.Block, error) {
@@ -101,16 +123,14 @@ func (pow *PowService) GenerateBlock(addr string) (*ledger.Block, error) {
 		Version:          0,
 		PrevBlockHash:    *ledger.DefaultLedger.Blockchain.BestChain.Hash,
 		TransactionsRoot: Uint256{},
-		//Timestamp:        uint32(time.Unix(time.Now().Unix(), 0).Unix()),
-		Timestamp: uint32(ledger.DefaultLedger.Blockchain.MedianAdjustedTime().Unix()),
-		//Bits:             0x2007ffff,
-		Bits:           0x1d03ffff,
-		Height:         nextBlockHeight,
-		Nonce:          0,
-		ConsensusData:  0,
-		NextBookKeeper: Uint160{},
-		AuxPow:         auxpow.AuxPow{},
-		Program:        &program.Program{},
+		Timestamp:        uint32(ledger.DefaultLedger.Blockchain.MedianAdjustedTime().Unix()),
+		Bits:             0x1d03ffff,
+		Height:           nextBlockHeight,
+		Nonce:            0,
+		ConsensusData:    0,
+		NextBookKeeper:   Uint160{},
+		AuxPow:           auxpow.AuxPow{},
+		Program:          &program.Program{},
 	}
 
 	msgBlock := &ledger.Block{
@@ -119,21 +139,41 @@ func (pow *PowService) GenerateBlock(addr string) (*ledger.Block, error) {
 	}
 
 	msgBlock.Transactions = append(msgBlock.Transactions, coinBaseTx)
-	txHash := []Uint256{}
-	txHash = append(txHash, coinBaseTx.Hash())
-
-	//TODO tx ordering
+	calcTxsSize := coinBaseTx.GetSize()
+	calcTxsAmount := 1
+	totalFee := int64(0)
 	transactionsPool := pow.localNet.GetTxnPool(true)
 	for _, tx := range transactionsPool {
+		if (tx.GetSize() + calcTxsSize) > ledger.MaxBlockSize {
+			break
+		}
+		if calcTxsAmount >= config.Parameters.MaxTxInBlock {
+			break
+		}
+		fee := tx.GetFee(ledger.DefaultLedger.Blockchain.AssetID)
+		if fee < 1 {
+			continue
+		}
 		msgBlock.Transactions = append(msgBlock.Transactions, tx)
-		txHash = append(txHash, tx.Hash())
+		calcTxsSize = calcTxsSize + tx.GetSize()
+		calcTxsAmount++
+		totalFee += fee
 	}
 
+	subsidy := calcBlockSubsidy(nextBlockHeight)
+	reward := totalFee + subsidy
+	//reward := totalFee + 10
+	reward_foundation := Fixed64(float64(reward) * 0.3)
+	msgBlock.Transactions[0].Outputs[0].Value = reward_foundation
+	msgBlock.Transactions[0].Outputs[1].Value = Fixed64(reward) - reward_foundation
+
+	txHash := []Uint256{}
+	for _, tx := range msgBlock.Transactions {
+		txHash = append(txHash, tx.Hash())
+	}
 	txRoot, _ := crypto.ComputeRoot(txHash)
 	msgBlock.Blockdata.TransactionsRoot = txRoot
 
-	//TODO fee & subsidy
-	//prevBlock, _ := ledger.DefaultLedger.GetBlockWithHeight(nextBlockHeight - 1)
 	msgBlock.Blockdata.Bits, err = ledger.CalcNextRequiredDifficulty(ledger.DefaultLedger.Blockchain.BestChain, time.Now())
 	log.Info("difficulty: ", msgBlock.Blockdata.Bits)
 
@@ -145,6 +185,10 @@ func (pow *PowService) SolveBlock(MsgBlock *ledger.Block, ticker *time.Ticker) b
 	targetDifficulty := ledger.CompactToBig(header.Bits)
 
 	for extraNonce := uint64(0); extraNonce < maxExtraNonce; extraNonce++ {
+		attr := binary.BigEndian.Uint64(MsgBlock.Transactions[0].Attributes[0].Data)
+		attr += extraNonce
+		binary.BigEndian.PutUint64(MsgBlock.Transactions[0].Attributes[0].Data, attr)
+
 		for i := uint32(0); i <= maxNonce; i++ {
 			select {
 			case <-ticker.C:

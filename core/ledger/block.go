@@ -207,7 +207,7 @@ func GenesisBlockInit(defaultBookKeeper []*crypto.PubKey) (*Block, error) {
 				Precision: 0x08,
 				AssetType: 0x00,
 			},
-			Amount:     1 * 100000000,
+			Amount:     0 * 100000000,
 			Issuer:     defaultBookKeeper[0],
 			Controller: admin,
 		},

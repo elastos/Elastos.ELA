@@ -17,7 +17,6 @@ import (
 
 const (
 	MaxTimeOffsetSeconds = 2 * 60 * 60
-	MaxBlockBaseSize     = 1000000
 )
 
 func PowCheckBlockSanity(block *Block, powLimit *big.Int, timeSource MedianTimeSource) error {
@@ -55,7 +54,7 @@ func PowCheckBlockSanity(block *Block, powLimit *big.Int, timeSource MedianTimeS
 
 	// A block must not exceed the maximum allowed block payload when serialized.
 	blockSize := block.GetSize()
-	if blockSize > MaxBlockBaseSize {
+	if blockSize > MaxBlockSize {
 		return errors.New("[PowCheckBlockSanity] serialized block is too big")
 	}
 

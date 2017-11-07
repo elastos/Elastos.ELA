@@ -281,6 +281,15 @@ func (tx *Transaction) GetSize() int {
 	return buffer.Len()
 }
 
+func (tx *Transaction) GetFee(assetID Uint256) int64 {
+	res, err := tx.GetTransactionResults()
+	if err != nil {
+		return 0
+	}
+
+	return int64(res[assetID])
+}
+
 func (tx *Transaction) GetProgramHashes() ([]Uint160, error) {
 	if tx == nil {
 		return []Uint160{}, errors.New("[Transaction],GetProgramHashes transaction is nil.")

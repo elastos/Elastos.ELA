@@ -283,7 +283,6 @@ out:
 		if generateStatus && !isAuxPow && pow.SolveBlock(msgBlock, ticker) {
 			//send the valid block to p2p networkd
 			if msgBlock.Blockdata.Height == ledger.DefaultLedger.Blockchain.GetBestHeight()+1 {
-				log.Trace(msgBlock)
 				inMainChain, isOrphan, err := ledger.DefaultLedger.Blockchain.AddBlock(msgBlock)
 				if err != nil {
 					log.Trace(err)

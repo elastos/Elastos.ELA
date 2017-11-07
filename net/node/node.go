@@ -842,12 +842,6 @@ func (node *node) AddRequestedBlock(hash Uint256) {
 	node.requestedBlockLock.Lock()
 	defer node.requestedBlockLock.Unlock()
 	node.RequestedBlockList[hash] = time.Now()
-	for k := range node.RequestedBlockList {
-		log.Trace("!~#@$%^&**")
-		log.Trace(" ")
-		log.Trace("k is ", k, ", time is ", node.RequestedBlockList[k])
-		log.Trace(" ")
-	}
 }
 
 func (node *node) DeleteRequestedBlock(hash Uint256) {
@@ -858,10 +852,4 @@ func (node *node) DeleteRequestedBlock(hash Uint256) {
 		return
 	}
 	delete(node.RequestedBlockList, hash)
-	for k := range node.RequestedBlockList {
-		log.Trace("!~#@$%^&**")
-		log.Trace(" ")
-		log.Trace("k is ", k, ", time is ", node.RequestedBlockList[k])
-		log.Trace(" ")
-	}
 }

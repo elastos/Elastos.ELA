@@ -29,8 +29,6 @@ func StartLocalServer() {
 	HandleFunc("closewallet", closeWallet)
 	HandleFunc("recoverwallet", recoverWallet)
 	HandleFunc("getwalletkey", getWalletKey)
-	HandleFunc("makeregtxn", makeRegTxn)
-	HandleFunc("makeissuetxn", makeIssueTxn)
 	HandleFunc("maketransfertxn", makeTransferTxn)
 	HandleFunc("addaccount", addAccount)
 	HandleFunc("deleteaccount", deleteAccount)

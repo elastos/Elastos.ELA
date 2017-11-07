@@ -822,94 +822,11 @@ func deleteAccount(params []interface{}) map[string]interface{} {
 	return DnaRpc(true)
 }
 
-func makeRegTxn(params []interface{}) map[string]interface{} {
-	if len(params) < 2 {
-		return DnaRpcNil
-	}
-	var assetName string
-	var assetValue float64
-	switch params[0].(type) {
-	case string:
-		assetName = params[0].(string)
-	default:
-		return DnaRpcInvalidParameter
-	}
-	switch params[1].(type) {
-	case float64:
-		assetValue = params[1].(float64)
-	default:
-		return DnaRpcInvalidParameter
-	}
-	if walletInstance == nil {
-		return DnaRpc("open wallet first")
-	}
-
-	regTxn, err := sdk.MakeRegTransaction(walletInstance, assetName, assetValue)
-	if err != nil {
-		return DnaRpcInternalError
-	}
-
-	if errCode := VerifyAndSendTx(regTxn); errCode != ErrNoError {
-		return DnaRpcInvalidTransaction
-	}
-	return DnaRpc(true)
-}
-
-func makeIssueTxn(params []interface{}) map[string]interface{} {
-	if len(params) < 3 {
-		return DnaRpcNil
-	}
-	var asset string
-	var value float64
-	var address string
-	switch params[0].(type) {
-	case string:
-		asset = params[0].(string)
-	default:
-		return DnaRpcInvalidParameter
-	}
-	switch params[1].(type) {
-	case float64:
-		value = params[1].(float64)
-	default:
-		return DnaRpcInvalidParameter
-	}
-	switch params[2].(type) {
-	case string:
-		address = params[2].(string)
-	default:
-		return DnaRpcInvalidParameter
-	}
-	if walletInstance == nil {
-		return DnaRpc("open wallet first")
-	}
-	tmp, err := HexStringToBytesReverse(asset)
-	if err != nil {
-		return DnaRpc("invalid asset ID")
-	}
-	var assetID Uint256
-	if err := assetID.Deserialize(bytes.NewReader(tmp)); err != nil {
-		return DnaRpc("invalid asset hash")
-	}
-	issueTxn, err := sdk.MakeIssueTransaction(walletInstance, assetID, address, value)
-	if err != nil {
-		return DnaRpcInternalError
-	}
-
-	if errCode := VerifyAndSendTx(issueTxn); errCode != ErrNoError {
-		return DnaRpcInvalidTransaction
-	}
-
-	return DnaRpc(true)
-}
-
 func makeTransferTxn(params []interface{}) map[string]interface{} {
-	if len(params) < 3 {
+	if len(params) < 4 {
 		return DnaRpcNil
 	}
-	var asset string
-	var value float64
-	var address string
+	var asset, value, fee, address string
 	switch params[0].(type) {
 	case string:
 		asset = params[0].(string)
@@ -918,13 +835,19 @@ func makeTransferTxn(params []interface{}) map[string]interface{} {
 	}
 	switch params[1].(type) {
 	case float64:
-		value = params[1].(float64)
+		value = params[1].(string)
 	default:
 		return DnaRpcInvalidParameter
 	}
 	switch params[2].(type) {
 	case string:
-		address = params[2].(string)
+		fee = params[2].(string)
+	default:
+		return DnaRpcInvalidParameter
+	}
+	switch params[3].(type) {
+	case string:
+		address = params[3].(string)
 	default:
 		return DnaRpcInvalidParameter
 	}
@@ -945,7 +868,7 @@ func makeTransferTxn(params []interface{}) map[string]interface{} {
 	if err := assetID.Deserialize(bytes.NewReader(tmp)); err != nil {
 		return DnaRpc("invalid asset hash")
 	}
-	txn, err := sdk.MakeTransferTransaction(walletInstance, assetID, batchOut)
+	txn, err := sdk.MakeTransferTransaction(walletInstance, assetID, fee, batchOut)
 	if err != nil {
 		return DnaRpcInternalError
 	}

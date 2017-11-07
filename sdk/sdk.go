@@ -17,7 +17,7 @@ import (
 
 type BatchOut struct {
 	Address string
-	Value   float64
+	Value   string
 }
 
 // sortedAccounts used for sequential constructing program hash for verification
@@ -64,7 +64,7 @@ func sortCoinsByValue(coins map[*transaction.UTXOTxInput]*account.Coin) sortedCo
 	return coinList
 }
 
-func MakeRegTransaction(wallet account.Client, name string, value float64) (*transaction.Transaction, error) {
+func MakeRegTransaction(wallet account.Client, name string, value string) (*transaction.Transaction, error) {
 	admin, err := wallet.GetDefaultAccount()
 	if err != nil {
 		return nil, err
@@ -76,7 +76,11 @@ func MakeRegTransaction(wallet account.Client, name string, value float64) (*tra
 		fmt.Println("CreateSignatureContract failed")
 		return nil, err
 	}
-	tx, _ := transaction.NewRegisterAssetTransaction(asset, AssetValuetoFixed64(value), issuer.PubKey(), transactionContract.ProgramHash)
+	fixedValue, err := StringToFixed64(value)
+	if err != nil {
+		return nil, err
+	}
+	tx, _ := transaction.NewRegisterAssetTransaction(asset, fixedValue, issuer.PubKey(), transactionContract.ProgramHash)
 	txAttr := transaction.NewTxAttribute(transaction.Nonce, []byte(strconv.FormatInt(rand.Int63(), 10)))
 	tx.Attributes = make([]*transaction.TxAttribute, 0)
 	tx.Attributes = append(tx.Attributes, &txAttr)
@@ -88,7 +92,7 @@ func MakeRegTransaction(wallet account.Client, name string, value float64) (*tra
 	return tx, nil
 }
 
-func MakeIssueTransaction(wallet account.Client, assetID Uint256, address string, value float64) (*transaction.Transaction, error) {
+func MakeIssueTransaction(wallet account.Client, assetID Uint256, address string, value string) (*transaction.Transaction, error) {
 	admin, err := wallet.GetDefaultAccount()
 	if err != nil {
 		return nil, err
@@ -97,9 +101,13 @@ func MakeIssueTransaction(wallet account.Client, assetID Uint256, address string
 	if err != nil {
 		return nil, err
 	}
+	fixedValue, err := StringToFixed64(value)
+	if err != nil {
+		return nil, err
+	}
 	issueTxOutput := &transaction.TxOutput{
 		AssetID:     assetID,
-		Value:       AssetValuetoFixed64(value),
+		Value:       fixedValue,
 		ProgramHash: programHash,
 	}
 	outputs := []*transaction.TxOutput{issueTxOutput}
@@ -114,7 +122,7 @@ func MakeIssueTransaction(wallet account.Client, assetID Uint256, address string
 	return tx, nil
 }
 
-func MakeTransferTransaction(wallet account.Client, assetID Uint256, batchOut ...BatchOut) (*transaction.Transaction, error) {
+func MakeTransferTransaction(wallet account.Client, assetID Uint256, fee string, batchOut ...BatchOut) (*transaction.Transaction, error) {
 	// get main account which is used to receive changes
 	mainAccount, err := wallet.GetDefaultAccount()
 	if err != nil {
@@ -126,15 +134,24 @@ func MakeTransferTransaction(wallet account.Client, assetID Uint256, batchOut ..
 	var expected Fixed64
 	input := []*transaction.UTXOTxInput{}
 	output := []*transaction.TxOutput{}
+	txnfee, err := StringToFixed64(fee)
+	if err != nil || txnfee <= 0 {
+		return nil, errors.New("invalid transation fee")
+	}
+	expected += txnfee
 	for _, o := range batchOut {
-		expected += AssetValuetoFixed64(o.Value)
+		outputValue, err := StringToFixed64(o.Value)
+		if err != nil {
+			return nil, err
+		}
+		expected += outputValue
 		address, err := ToScriptHash(o.Address)
 		if err != nil {
 			return nil, err
 		}
 		tmp := &transaction.TxOutput{
 			AssetID:     assetID,
-			Value:       AssetValuetoFixed64(o.Value),
+			Value:       outputValue,
 			ProgramHash: address,
 		}
 		output = append(output, tmp)

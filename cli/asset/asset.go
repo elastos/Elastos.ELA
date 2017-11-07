@@ -44,9 +44,14 @@ func assetAction(c *cli.Context) error {
 		cli.ShowSubcommandHelp(c)
 		return nil
 	}
-	value := c.Float64("value")
-	if value == 0.0 {
-		fmt.Println("invalid value [--value]")
+	value := c.String("value")
+	if value == "" {
+		fmt.Println("asset amount is required with [--value]")
+		return nil
+	}
+	fee := c.String("fee")
+	if fee == "" {
+		fmt.Println("transaction fee is required with [--fee]")
 		return nil
 	}
 
@@ -87,8 +92,7 @@ func assetAction(c *cli.Context) error {
 				Address: address,
 				Value:   value,
 			}
-			txn, err = sdk.MakeTransferTransaction(wallet, assetID, batchOut)
-
+			txn, err = sdk.MakeTransferTransaction(wallet, assetID, fee, batchOut)
 		}
 	}
 	if err != nil {
@@ -149,9 +153,15 @@ func NewCommand() *cli.Command {
 				Name:  "to",
 				Usage: "asset to whom",
 			},
-			cli.Float64Flag{
+			cli.StringFlag{
 				Name:  "value, v",
 				Usage: "asset amount",
+				Value: "",
+			},
+			cli.StringFlag{
+				Name:  "fee, f",
+				Usage: "transaction fee",
+				Value: "",
 			},
 		},
 		Action: assetAction,

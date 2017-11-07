@@ -49,7 +49,7 @@ func (this *TXNPool) AppendTxnPool(txn *transaction.Transaction) ErrCode {
 	}
 	//verify transaction by pool with lock
 	if ok := this.verifyTransactionWithTxnPool(txn); !ok {
-		return ErrSummaryAsset
+		return ErrDoubleSpend
 	}
 	//add the transaction to process scope
 	this.addtxnList(txn)

@@ -62,7 +62,7 @@ type ClientImpl struct {
 	coins       map[*transaction.UTXOTxInput]*Coin
 
 	watchOnly     []Uint160
-	currentHeight uint32
+	currentHeight int32
 
 	FileStore
 	isRunning bool
@@ -133,17 +133,17 @@ func (client *ClientImpl) ProcessBlocks() {
 	for client.isRunning {
 		for true {
 			blockHeight := ledger.DefaultLedger.GetLocalBlockChainHeight()
-			if client.currentHeight > blockHeight {
+			if client.currentHeight >= int32(blockHeight) {
 				break
 			}
-			block, err := ledger.DefaultLedger.GetBlockWithHeight(client.currentHeight)
+			block, err := ledger.DefaultLedger.GetBlockWithHeight(uint32(client.currentHeight) + 1)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "fatal error: syncing failed, block missing, height %d\n", client.currentHeight)
 				break
 			}
 			client.ProcessOneBlock(block)
 		}
-		time.Sleep(6 * time.Second)
+		time.Sleep(1 * time.Second)
 	}
 }
 
@@ -186,10 +186,10 @@ func (client *ClientImpl) ProcessOneBlock(block *ledger.Block) {
 	}
 
 	// update height
+	client.currentHeight++
 	bytesBuffer := bytes.NewBuffer([]byte{})
 	binary.Write(bytesBuffer, binary.LittleEndian, &client.currentHeight)
 	client.SaveStoredData("Height", bytesBuffer.Bytes())
-	client.currentHeight++
 }
 
 func (client *ClientImpl) ProcessSignals() {
@@ -225,7 +225,7 @@ func NewClient(path string, password []byte, create bool) *ClientImpl {
 		accounts:      map[Uint160]*Account{},
 		contracts:     map[Uint160]*ct.Contract{},
 		coins:         map[*transaction.UTXOTxInput]*Coin{},
-		currentHeight: 0,
+		currentHeight: -1,
 		FileStore:     FileStore{path: path},
 		isRunning:     true,
 	}
@@ -273,12 +273,12 @@ func NewClient(path string, password []byte, create bool) *ClientImpl {
 
 		// if has local blockchain database, then update wallet block height. Otherwise, wallet block height is 0 by default
 		if ledger.DefaultLedger != nil && ledger.DefaultLedger.Blockchain != nil {
-			client.currentHeight = ledger.DefaultLedger.GetLocalBlockChainHeight()
-			bytesBuffer := bytes.NewBuffer([]byte{})
-			binary.Write(bytesBuffer, binary.LittleEndian, &client.currentHeight)
-			if err := client.SaveStoredData("Height", bytesBuffer.Bytes()); err != nil {
-				return nil
-			}
+			client.currentHeight = int32(ledger.DefaultLedger.GetLocalBlockChainHeight())
+		}
+		bytesBuffer := bytes.NewBuffer([]byte{})
+		binary.Write(bytesBuffer, binary.LittleEndian, &client.currentHeight)
+		if err := client.SaveStoredData("Height", bytesBuffer.Bytes()); err != nil {
+			return nil
 		}
 
 	} else {
@@ -306,7 +306,7 @@ func NewClient(path string, password []byte, create bool) *ClientImpl {
 			return nil
 		}
 		bytesBuffer := bytes.NewBuffer(tmp)
-		var height uint32
+		var height int32
 		binary.Read(bytesBuffer, binary.LittleEndian, &height)
 		client.currentHeight = height
 	}
@@ -636,6 +636,7 @@ func (client *ClientImpl) LoadCoins() error {
 	for input, coin := range loadedCoin {
 		client.coins[input] = coin
 	}
+
 	return nil
 }
 func (client *ClientImpl) SaveCoins() error {
@@ -730,8 +731,8 @@ func (client *ClientImpl) GetAccounts() []*Account {
 
 func (client *ClientImpl) Rebuild() error {
 	// reset wallet block height
-	client.currentHeight = 0
-	var height uint32 = 0
+	client.currentHeight = -1
+	var height int32 = -1
 	bytesBuffer := bytes.NewBuffer([]byte{})
 	binary.Write(bytesBuffer, binary.LittleEndian, &height)
 	if err := client.SaveStoredData("Height", bytesBuffer.Bytes()); err != nil {

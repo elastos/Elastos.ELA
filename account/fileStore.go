@@ -21,7 +21,7 @@ type WalletData struct {
 	PasswordHash string
 	IV           string
 	MasterKey    string
-	Height       uint32
+	Height       int32
 }
 
 type AccountData struct {
@@ -363,7 +363,7 @@ func (cs *FileStore) SaveStoredData(name string, value []byte) error {
 	case "PasswordHash":
 		cs.data.PasswordHash = hexValue
 	case "Height":
-		var height uint32
+		var height int32
 		bytesBuffer := bytes.NewBuffer(value)
 		binary.Read(bytesBuffer, binary.LittleEndian, &height)
 		cs.data.Height = height

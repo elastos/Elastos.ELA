@@ -1,7 +1,7 @@
 package httpjsonrpc
 
 import (
-	//"DNA_POW/consensus/pow"
+	"DNA_POW/core/ledger"
 	"bytes"
 	"encoding/base64"
 	"encoding/hex"
@@ -15,7 +15,6 @@ import (
 	. "DNA_POW/common"
 	"DNA_POW/common/config"
 	"DNA_POW/common/log"
-	"DNA_POW/core/ledger"
 	tx "DNA_POW/core/transaction"
 	. "DNA_POW/errors"
 	"DNA_POW/sdk"
@@ -26,6 +25,10 @@ import (
 const (
 	RANDBYTELEN = 4
 )
+
+var PreChainHeight uint64
+var PreTime int64
+var PreTransactionCount int
 
 func TransArryByteToHexString(ptx *tx.Transaction) *Transactions {
 
@@ -421,8 +424,8 @@ func submitAuxBlock(params []interface{}) map[string]interface{} {
 		auxPow = params[1].(string)
 		temp, _ := HexStringToBytes(auxPow)
 		r := bytes.NewBuffer(temp)
-		Pow.MsgBlock.Blockdata.AuxPow.Deserialize(r)
-		_, _, err := ledger.DefaultLedger.Blockchain.AddBlock(Pow.MsgBlock)
+		Pow.MsgBlock[blockHash].Blockdata.AuxPow.Deserialize(r)
+		_, _, err := ledger.DefaultLedger.Blockchain.AddBlock(Pow.MsgBlock[blockHash])
 		if err != nil {
 			log.Trace(err)
 		}
@@ -434,13 +437,43 @@ func submitAuxBlock(params []interface{}) map[string]interface{} {
 	return DnaRpcSuccess
 }
 
+func generateAuxBlock(addr string) (*ledger.Block, string, bool) {
+	msgBlock := &ledger.Block{}
+
+	if node.GetHeight() == 0 || PreChainHeight != node.GetHeight() || (time.Now().Unix()-PreTime > 60 && Pow.GetTransactionCount() != PreTransactionCount) {
+		if PreChainHeight != node.GetHeight() {
+			PreChainHeight = node.GetHeight()
+			PreTime = time.Now().Unix()
+			PreTransactionCount = Pow.GetTransactionCount()
+		}
+
+		currentTxsCount := Pow.CollectTransactions(msgBlock)
+		if 0 == currentTxsCount {
+			//return nil, "", false  // close this value for test
+		}
+
+		msgBlock, err := Pow.GenerateBlock(addr)
+		if 0 == currentTxsCount || nil != err {
+			//return nil, "", false
+		}
+		curHash := msgBlock.Hash()
+		curHashStr := BytesToHexString(curHash.ToArray())
+		Pow.MsgBlock[curHashStr] = msgBlock
+
+		PreChainHeight = node.GetHeight()
+		PreTime = time.Now().Unix()
+		PreTransactionCount = currentTxsCount // Don't Call GetTransactionCount()
+
+		return msgBlock, curHashStr, true
+	}
+	return nil, "", false
+}
+
 func createAuxBlock(params []interface{}) map[string]interface{} {
-	addr := "Abn4A5BMXNBrzEfuRbxWpgtYtGbQ6xqK2m"
-	msgBlock, err := Pow.GenerateBlock(addr)
-	if err != nil {
+	msgBlock, curHashStr, _ := generateAuxBlock(config.Parameters.PowConfiguration.PayToAddr)
+	if nil == msgBlock {
 		return DnaRpcNil
 	}
-	Pow.MsgBlock = msgBlock
 
 	type AuxBlock struct {
 		ChainId           int    `json:"chainid"`
@@ -454,15 +487,17 @@ func createAuxBlock(params []interface{}) map[string]interface{} {
 	switch params[0].(type) {
 	case string:
 		Pow.PayToAddr = params[0].(string)
-		hash := ledger.DefaultLedger.Blockchain.CurrentBlockHash()
-		hashStr := BytesToHexString(hash.ToArray())
+
+		preHash := ledger.DefaultLedger.Blockchain.CurrentBlockHash()
+		preHashStr := BytesToHexString(preHash.ToArray())
+
 		SendToAux := AuxBlock{
 			ChainId:           1,
 			Height:            node.GetHeight(),
-			CoinBaseValue:     1,                                                  //transaction content
-			Bits:              string(Pow.MsgBlock.Blockdata.Bits),                //difficulty
-			Hash:              Pow.MsgBlock.Blockdata.TransactionsRoot.ToString(), //merkle tree root hash
-			PreviousBlockHash: hashStr}
+			CoinBaseValue:     1,                                          //transaction content
+			Bits:              fmt.Sprintf("%x", msgBlock.Blockdata.Bits), //difficulty
+			Hash:              curHashStr,
+			PreviousBlockHash: preHashStr}
 		return DnaRpc(&SendToAux)
 
 	default:
@@ -481,7 +516,7 @@ func getInfo(params []interface{}) map[string]interface{} {
 		Timeoffset      int    `json:"timeoffset"`
 		Connections     uint   `json:"connections"`
 		Proxy           string `json:"proxy"`
-		Difficulty      uint32 `json:"difficulty"`
+		Difficulty      int    `json:"difficulty"`
 		Testnet         bool   `json:"testnet"`
 		Keypoololdest   int    `json:"keypoololdest"`
 		Keypoolsize     int    `json:"keypoolsize"`
@@ -498,7 +533,7 @@ func getInfo(params []interface{}) map[string]interface{} {
 		Timeoffset:      0,
 		Connections:     node.GetConnectionCnt(),
 		Proxy:           config.Parameters.PowConfiguration.Proxy,
-		Difficulty:      Pow.MsgBlock.Blockdata.Bits,
+		Difficulty:      ledger.PowLimitBits,
 		Testnet:         config.Parameters.PowConfiguration.TestNet,
 		Keypoololdest:   0,
 		Keypoolsize:     0,

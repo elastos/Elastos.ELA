@@ -51,7 +51,6 @@ func (pow *PowService) ZMQServer() {
 	for {
 		select {
 		case <-pow.ZMQPublish:
-			log.Info("=====================Receive Channel MSG" + string(time.Now().Unix()))
 			publisher.Send(MSGHASKTX+"==Coming from elacoin node, glad to see you, Timestamp:"+string(time.Now().Unix()), zmq.SNDMORE)
 		}
 	}

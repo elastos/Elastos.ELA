@@ -41,7 +41,7 @@ type PowService struct {
 	// Miner's receiving address for earning coin
 	PayToAddr string
 	//TODO remove MsgBlock
-	MsgBlock      *ledger.Block
+	MsgBlock      map[string]*ledger.Block
 	ZMQPublish    chan bool
 	Mutex         sync.Mutex
 	Client        cl.Client
@@ -54,6 +54,23 @@ type PowService struct {
 
 	wg   sync.WaitGroup
 	quit chan struct{}
+}
+
+func (pow *PowService) GetTransactionCount() int {
+	transactionsPool := pow.localNet.GetTxnPool(true)
+	return len(transactionsPool)
+}
+
+func (pow *PowService) CollectTransactions(MsgBlock *ledger.Block) int {
+	txs := 0
+	transactionsPool := pow.localNet.GetTxnPool(true)
+
+	for _, tx := range transactionsPool {
+		log.Trace(tx)
+		MsgBlock.Transactions = append(MsgBlock.Transactions, tx)
+		txs++
+	}
+	return txs
 }
 
 func (pow *PowService) CreateCoinbaseTrx(nextBlockHeight uint32, addr string) (*tx.Transaction, error) {
@@ -283,13 +300,14 @@ func NewPowService(client cl.Client, logDictionary string, localNet net.Neter) *
 		PayToAddr:     config.Parameters.PowConfiguration.PayToAddr,
 		Client:        client,
 		started:       false,
+		MsgBlock:      make(map[string]*ledger.Block),
 		ZMQPublish:    make(chan bool, 1),
 		localNet:      localNet,
 		logDictionary: logDictionary,
 	}
 
-	//TODO add pow.quit in ZMQ?
 	go pow.ZMQServer()
+
 	return pow
 }
 
@@ -314,7 +332,9 @@ out:
 			continue
 		}
 
-		pow.MsgBlock = msgBlock
+		hash := msgBlock.Hash()
+		strHash := BytesToHexString(hash.ToArray())
+		pow.MsgBlock[strHash] = msgBlock
 
 		// push notifyed message into ZMQ
 		generateStatus := true

@@ -590,7 +590,7 @@ func sendToAddress(params []interface{}) map[string]interface{} {
 	if len(params) < 4 {
 		return DnaRpcNil
 	}
-	var asset, address, value,fee string
+	var asset, address, value, fee string
 	switch params[0].(type) {
 	case string:
 		asset = params[0].(string)

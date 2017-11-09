@@ -2,6 +2,7 @@ package node
 
 import (
 	. "DNA_POW/common"
+	"DNA_POW/common/config"
 	. "DNA_POW/common/config"
 	"DNA_POW/common/log"
 	"DNA_POW/core/ledger"
@@ -77,6 +78,8 @@ type node struct {
 	headerFirstMode    bool
 	invRequestHashes   []Uint256
 	RequestedBlockList map[Uint256]time.Time
+	// Checkpoints ordered from oldest to newest.
+	Checkpoints []Checkpoint
 }
 
 type RetryConnAddrs struct {
@@ -87,6 +90,12 @@ type RetryConnAddrs struct {
 type ConnectingNodes struct {
 	sync.RWMutex
 	ConnectingAddrs []string
+}
+
+// Checkpoint identifies a known good point in the block chain.
+type Checkpoint struct {
+	Height uint64
+	Hash   Uint256
 }
 
 func (node *node) DumpInfo() {
@@ -214,6 +223,7 @@ func InitNode(pubKey *crypto.PubKey) Noder {
 	n.local.headerFirstMode = false
 	n.invRequestHashes = make([]Uint256, 0)
 	n.RequestedBlockList = make(map[Uint256]time.Time)
+	n.Checkpoints, _ = n.parseCheckpoints(config.Parameters.AddCheckpoints)
 	go n.initConnection()
 	go n.updateConnection()
 	go n.updateNodeInfo()
@@ -481,7 +491,6 @@ func (node *node) SyncNodeHeight() {
 					n.SetSyncHeaders(false)
 				}
 			}
-
 		}
 		if CompareHeight(uint64(ledger.DefaultLedger.Blockchain.BlockHeight), heights) {
 			node.local.SetSyncHeaders(false)
@@ -852,4 +861,50 @@ func (node *node) DeleteRequestedBlock(hash Uint256) {
 		return
 	}
 	delete(node.RequestedBlockList, hash)
+}
+
+// newCheckpointFromStr parses checkpoints in the '<height>:<hash>' format.
+func newCheckpointFromStr(checkpoint string) (Checkpoint, error) {
+	parts := strings.Split(checkpoint, ":")
+	if len(parts) != 2 {
+		return Checkpoint{}, fmt.Errorf("unable to parse "+
+			"checkpoint %q -- use the syntax <height>:<hash>",
+			checkpoint)
+	}
+
+	height, err := strconv.ParseInt(parts[0], 10, 64)
+	if err != nil {
+		return Checkpoint{}, fmt.Errorf("unable to parse "+
+			"checkpoint %q due to malformed height", checkpoint)
+	}
+	fmt.Println(height)
+	if len(parts[1]) == 0 {
+		return Checkpoint{}, fmt.Errorf("unable to parse "+
+			"checkpoint %q due to missing hash", checkpoint)
+	}
+	hash := parts[1]
+	if err != nil {
+		return Checkpoint{}, fmt.Errorf("unable to parse "+
+			"checkpoint %q due to malformed hash", checkpoint)
+	}
+
+	return Checkpoint{
+		Height: uint64(height),
+		Hash:   StringtoUint256(hash),
+	}, nil
+}
+
+func (node *node) parseCheckpoints(checkpointStrings []string) ([]Checkpoint, error) {
+	if len(checkpointStrings) == 0 {
+		return nil, nil
+	}
+	checkpoints := make([]Checkpoint, len(checkpointStrings))
+	for i, cpString := range checkpointStrings {
+		checkpoint, err := newCheckpointFromStr(cpString)
+		if err != nil {
+			return nil, err
+		}
+		checkpoints[i] = checkpoint
+	}
+	return checkpoints, nil
 }

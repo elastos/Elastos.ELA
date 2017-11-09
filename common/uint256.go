@@ -86,3 +86,9 @@ func Uint256ParseFromBytes(f []byte) (Uint256, error) {
 	}
 	return Uint256(hash), nil
 }
+
+func StringtoUint256(s string) Uint256 {
+	b := []byte(s)
+	u, _ := Uint256ParseFromBytes(b)
+	return u
+}

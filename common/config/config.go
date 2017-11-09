@@ -64,6 +64,7 @@ type Configuration struct {
 	DefaultMaxPeers  uint             `json:"DefaultMaxPeers"`
 	GetAddrMax       uint             `json:"GetAddrMax"`
 	MaxOutboundCnt   uint             `json:"MaxOutboundCnt"`
+	AddCheckpoints   []string         `json:"addcheckpoint" description:"Add a custom checkpoint.  Format: '<height>:<hash>'"`
 }
 
 type ConfigFile struct {

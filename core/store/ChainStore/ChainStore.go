@@ -849,6 +849,46 @@ func (bd *ChainStore) ContainsUnspent(txid Uint256, index uint16) (bool, error) 
 
 	return false, nil
 }
+func (bd *ChainStore) GetHeaderHashFront() (Uint256, error) {
+	bd.mu.RLock()
+	defer bd.mu.RUnlock()
+	e := bd.headerIdx.Front()
+	if e != nil {
+		header := e.Value.(Header)
+		return header.Blockdata.Hash(), nil
+	}
+
+	return Uint256{}, errors.New("no element in headerIdx.")
+}
+
+func (bd *ChainStore) GetHeaderHashNext(prevHash Uint256) (Uint256, error) {
+	bd.mu.RLock()
+	defer bd.mu.RUnlock()
+
+	for e := bd.headerIdx.Front(); e != nil; e = e.Next() {
+		n := e.Value.(Header)
+		h := n.Blockdata.Hash()
+		if h.CompareTo(prevHash) == 0 {
+			e2 := e.Next()
+			if e2 != nil {
+				header := e2.Value.(Header)
+				return header.Blockdata.Hash(), nil
+			}
+		}
+	}
+
+	return Uint256{}, errors.New("no element in headerIdx.")
+}
+
+func (bd *ChainStore) RemoveHeaderListElement(hash Uint256) {
+	for e := bd.headerIdx.Front(); e != nil; e = e.Next() {
+		n := e.Value.(Header)
+		h := n.Blockdata.Hash()
+		if h.CompareTo(hash) == 0 {
+			bd.headerIdx.Remove(e)
+		}
+	}
+}
 
 func (bd *ChainStore) GetCurrentHeaderHash() Uint256 {
 	bd.mu.RLock()

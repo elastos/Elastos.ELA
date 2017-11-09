@@ -8,19 +8,19 @@ import (
 const CoinBasePayloadVersion byte = 0x04
 
 type CoinBase struct {
-	data []byte
+	CoinbaseData []byte
 }
 
 func (a *CoinBase) Data(version byte) []byte {
-	return a.data
+	return a.CoinbaseData
 }
 
 func (a *CoinBase) Serialize(w io.Writer, version byte) error {
-	return WriteVarBytes(w, a.data)
+	return WriteVarBytes(w, a.CoinbaseData)
 }
 
 func (a *CoinBase) Deserialize(r io.Reader, version byte) error {
 	temp, err := ReadVarBytes(r)
-	a.data = temp
+	a.CoinbaseData = temp
 	return err
 }

@@ -332,10 +332,6 @@ out:
 			continue
 		}
 
-		hash := msgBlock.Hash()
-		strHash := BytesToHexString(hash.ToArray())
-		pow.MsgBlock[strHash] = msgBlock
-
 		// push notifyed message into ZMQ
 		generateStatus := true
 		if true == generateStatus {

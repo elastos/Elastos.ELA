@@ -33,6 +33,10 @@ type ILedgerStore interface {
 	GetHeight() uint32
 	GetHeaderHashByHeight(height uint32) Uint256
 
+	GetHeaderHashFront() (Uint256, error)
+	GetHeaderHashNext(prevHash Uint256) (Uint256, error)
+	RemoveHeaderListElement(hash Uint256)
+
 	GetBookKeeperList() ([]*crypto.PubKey, []*crypto.PubKey, error)
 	InitLedgerStoreWithGenesisBlock(genesisblock *Block, defaultBookKeeper []*crypto.PubKey) (uint32, error)
 

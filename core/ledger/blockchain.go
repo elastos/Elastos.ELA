@@ -101,12 +101,27 @@ func (bc *Blockchain) UpdateBestHeight(val uint32) {
 	//defer bc.mutex.Unlock()
 	bc.BlockHeight = val
 }
+
+func (bc *Blockchain) AddBlockFast(block *Block) (bool, bool, error) {
+	log.Debug()
+	bc.mutex.Lock()
+	defer bc.mutex.Unlock()
+
+	fastAdd := uint32(1)
+	inMainChain, isOrphan, err := bc.ProcessBlock(block, bc.TimeSource, fastAdd)
+	if err != nil {
+		return false, false, err
+	}
+
+	return inMainChain, isOrphan, nil
+}
 func (bc *Blockchain) AddBlock(block *Block) (bool, bool, error) {
 	log.Debug()
 	bc.mutex.Lock()
 	defer bc.mutex.Unlock()
 
-	inMainChain, isOrphan, err := bc.ProcessBlock(block, bc.TimeSource)
+	noflags := uint32(0)
+	inMainChain, isOrphan, err := bc.ProcessBlock(block, bc.TimeSource, noflags)
 	if err != nil {
 		return false, false, err
 	}
@@ -939,7 +954,7 @@ func (bc *Blockchain) ConnectBestChain(node *BlockNode, block *Block) (bool, err
 //1. inMainChain
 //2. isOphan
 //3. error
-func (bc *Blockchain) ProcessBlock(block *Block, timeSource MedianTimeSource) (bool, bool, error) {
+func (bc *Blockchain) ProcessBlock(block *Block, timeSource MedianTimeSource, flags uint32) (bool, bool, error) {
 	blockHash := block.Hash()
 	fmt.Printf("[ProcessBLock] blockhash = %v\n", BytesToHexString(blockHash.ToArray()))
 

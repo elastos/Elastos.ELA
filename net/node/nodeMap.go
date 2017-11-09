@@ -165,3 +165,15 @@ func (node *node) RandGetANbr() Noder {
 	}
 	return nil
 }
+
+func (node *node) IsNeighborNoder(n Noder) bool {
+	node.nbrNodes.RLock()
+	defer node.nbrNodes.RUnlock()
+
+	for _, noder := range node.nbrNodes.List {
+		if n.GetID() == noder.GetID() {
+			return true
+		}
+	}
+	return false
+}

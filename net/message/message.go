@@ -1,7 +1,6 @@
 package message
 
 import (
-	"DNA_POW/common"
 	"DNA_POW/common/log"
 	. "DNA_POW/net/protocol"
 	"bytes"
@@ -181,9 +180,6 @@ func NewMsg(t string, n Noder) ([]byte, error) {
 		return NewVersion(n)
 	case "verack":
 		return NewVerack()
-	case "getheaders":
-		var emptyHash common.Uint256
-		return NewHeadersReq(emptyHash)
 	case "getaddr":
 		return newGetAddr()
 

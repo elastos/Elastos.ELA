@@ -26,6 +26,9 @@ type block struct {
 
 func (msg block) Handle(node Noder) error {
 	hash := msg.blk.Hash()
+	if node.LocalNode().IsNeighborNoder(node) == false {
+		return errors.New("received headers message from unknown peer")
+	}
 	if node.LocalNode().IsSyncHeaders() == true && node.IsSyncHeaders() == false {
 		return nil
 	}
@@ -35,7 +38,32 @@ func (msg block) Handle(node Noder) error {
 		log.Debug("Receive ", ReceiveDuplicateBlockCnt, " duplicated block.")
 		return nil
 	}
-	_, isOrphan, err := ledger.DefaultLedger.Blockchain.AddBlock(&msg.blk)
+	isCheckpointBlock := false
+	isFastAdd := false
+
+	if node.LocalNode().GetHeaderFisrtModeStatus() {
+		preHash, err := ledger.DefaultLedger.Store.GetHeaderHashFront()
+		if err == nil {
+			if bytes.Equal(hash[:], preHash[:]) {
+				isFastAdd = true
+				nextCheckpointHash, err := node.LocalNode().GetNextCheckpointHash()
+				if err == nil {
+					if bytes.Equal(hash[:], nextCheckpointHash[:]) {
+						isCheckpointBlock = true
+					} else {
+						ledger.DefaultLedger.Store.RemoveHeaderListElement(hash)
+					}
+				}
+			}
+		}
+	}
+	isOrphan := false
+	var err error
+	if isFastAdd {
+		_, isOrphan, err = ledger.DefaultLedger.Blockchain.AddBlockFast(&msg.blk)
+	} else {
+		_, isOrphan, err = ledger.DefaultLedger.Blockchain.AddBlock(&msg.blk)
+	}
 	if err != nil {
 		log.Warn("Block add failed: ", err, " ,block hash is ", hash)
 		node.SetSyncFailed()
@@ -44,20 +72,16 @@ func (msg block) Handle(node Noder) error {
 		conn.Close()
 		return err
 	}
+
+	ledger.DefaultLedger.Store.RemoveHeaderListElement(hash)
 	node.LocalNode().DeleteRequestedBlock(hash)
+
 	if isOrphan == true && node.LocalNode().IsSyncHeaders() == false {
 		orphanRoot := ledger.DefaultLedger.Blockchain.GetOrphanRoot(&hash)
-		locator, err := ledger.DefaultLedger.Blockchain.LatestBlockLocator()
-		buf, err := NewBlocksReq(locator, *orphanRoot)
-		if err != nil {
-			log.Error("failed build a new headersReq")
-		} else {
-			node.LocalNode().SetSyncHeaders(true)
-			node.SetSyncHeaders(true)
-			go node.Tx(buf)
-		}
-		node.StartRetryTimer()
+		locator, _ := ledger.DefaultLedger.Blockchain.LatestBlockLocator()
+		SendMsgSyncBlockHeaders(node, locator, *orphanRoot)
 	}
+
 	if !isSync {
 		for _, n := range node.LocalNode().GetNeighborNoder() {
 			if n.ExistFlightHeight(msg.blk.Blockdata.Height) {
@@ -67,12 +91,63 @@ func (msg block) Handle(node Noder) error {
 			}
 		}
 	}
+
+	// Nothing more to do if we aren't in headers-first mode.
+	if !node.LocalNode().GetHeaderFisrtModeStatus() {
+		return nil
+	}
+
+	if !isCheckpointBlock {
+		requestedBlocks := node.LocalNode().GetRequestBlockList()
+		if err == nil && len(requestedBlocks) < MinInFlightBlocks {
+			fetchHeaderBlocks(node)
+		}
+		return nil
+	}
+
+	prevHeight, _ := node.LocalNode().GetNextCheckpointHeight()
+	nextCheckpoint := node.LocalNode().FindNextHeaderCheckpoint(prevHeight)
+
+	if nextCheckpoint != nil {
+		hash := ledger.DefaultLedger.Store.GetCurrentBlockHash()
+		SendMsgSyncHeaders(node, hash)
+		return nil
+	}
+
+	node.LocalNode().SetHeaderFirstMode(false)
+	currentHash := ledger.DefaultLedger.Store.GetCurrentBlockHash()
+	blocator := ledger.DefaultLedger.Blockchain.BlockLocatorFromHash(&currentHash)
+	var emptyHash common.Uint256
+	SendMsgSyncBlockHeaders(node, blocator, emptyHash)
+
 	if node.LocalNode().IsSyncHeaders() == false {
 		//haven`t require this block ,relay hash
 		node.LocalNode().Relay(node, hash)
 	}
 	node.LocalNode().GetEvent("block").Notify(events.EventNewInventory, &msg.blk)
 	return nil
+}
+
+func fetchHeaderBlocks(node Noder) {
+	// Nothing to do if there is no start header.
+	preHash, err := ledger.DefaultLedger.Store.GetHeaderHashFront()
+	if err != nil {
+		log.Warn("fetchHeaderBlocks called with no start header")
+		return
+	}
+
+	for {
+		err := ReqBlkData(node, preHash)
+		if err != nil {
+			log.Error("failed build a new getdata")
+		}
+		nextHash, erro := ledger.DefaultLedger.Store.GetHeaderHashNext(preHash)
+		if erro != nil {
+			break
+		} else {
+			preHash = nextHash
+		}
+	}
 }
 
 func (msg dataReq) Handle(node Noder) error {
@@ -152,6 +227,7 @@ func NewBlock(bk *ledger.Block) ([]byte, error) {
 }
 
 func ReqBlkData(node Noder, hash common.Uint256) error {
+	node.LocalNode().AddRequestedBlock(hash)
 	var msg dataReq
 	msg.dataType = common.BLOCK
 	msg.hash = hash

@@ -1,6 +1,7 @@
 package node
 
 import (
+	"DNA_POW/common"
 	"DNA_POW/common/config"
 	"DNA_POW/common/log"
 	"DNA_POW/core/ledger"
@@ -17,31 +18,7 @@ func keepAlive(from *Noder, dst *Noder) {
 	// Need move to node function or keep here?
 }
 
-func (node *node) GetBlkHdrs() {
-	if node.local.GetNbrNodeCnt() < MINCONNCNT {
-		return
-	}
-	noders := node.local.GetNeighborNoder()
-	if len(noders) == 0 {
-		return
-	}
-	nodelist := []Noder{}
-	for _, v := range noders {
-		if uint64(ledger.DefaultLedger.Store.GetHeaderHeight()) < v.GetHeight() {
-			nodelist = append(nodelist, v)
-		}
-	}
-	ncout := len(nodelist)
-	if ncout == 0 {
-		return
-	}
-	rand.Seed(time.Now().UnixNano())
-	index := rand.Intn(ncout)
-	n := nodelist[index]
-	SendMsgSyncHeaders(n)
-}
-
-func (node *node) isSyncPeerAlive() (bool, Noder) {
+func (node *node) hasSyncPeer() (bool, Noder) {
 	node.local.nbrNodes.RLock()
 	defer node.local.nbrNodes.RUnlock()
 	noders := node.local.GetNeighborNoder()
@@ -59,8 +36,8 @@ func (node *node) SyncBlkInNonCheckpointMode() {
 		node.local.SetSyncHeaders(false)
 	} else {
 		var syncNode Noder
-		isSyncPeerAlive, syncNode := node.local.isSyncPeerAlive()
-		if isSyncPeerAlive == false {
+		hasSyncPeer, syncNode := node.local.hasSyncPeer()
+		if hasSyncPeer == false {
 			syncNode = node.GetBestHeightNoder()
 		} else {
 			rb := syncNode.GetRequestBlockList()
@@ -70,50 +47,60 @@ func (node *node) SyncBlkInNonCheckpointMode() {
 				}
 			}
 		}
-		SendMsgSyncBlockHeaders(syncNode)
+		hash := ledger.DefaultLedger.Store.GetCurrentBlockHash()
+		blocator := ledger.DefaultLedger.Blockchain.BlockLocatorFromHash(&hash)
+		var emptyHash common.Uint256
+		SendMsgSyncBlockHeaders(syncNode, blocator, emptyHash)
 	}
 }
 
-func (node *node) SyncBlk() {
-	headerHeight := ledger.DefaultLedger.Store.GetHeaderHeight()
-	currentBlkHeight := ledger.DefaultLedger.Blockchain.BlockHeight
-	if currentBlkHeight >= headerHeight {
+func (node *node) SyncBlks() {
+	if !node.GetStartSync() {
 		return
 	}
-	var dValue int32
-	var reqCnt uint32
-	var i uint32
-
-	var syncNode Noder
-	isSyncPeerAlive, syncNode := node.local.isSyncPeerAlive()
-	if isSyncPeerAlive == false {
-		syncNode = node.GetBestHeightNoder()
-		if uint64(headerHeight) < syncNode.GetHeight() {
-			SendMsgSyncHeaders(syncNode)
-			syncNode.StartRetryTimer()
+	needSync := node.needSync()
+	if needSync == false {
+		node.local.SetSyncHeaders(false)
+		syncNode, err := node.FindSyncNode()
+		if err == nil {
+			syncNode.SetSyncHeaders(false)
 		}
-	}
-	syncNode.RemoveFlightHeightLessThan(currentBlkHeight)
-	count := MAXREQBLKONCE - uint32(syncNode.GetFlightHeightCnt())
-	dValue = int32(headerHeight - currentBlkHeight - reqCnt)
-	flights := syncNode.GetFlightHeights()
-	if count == 0 {
-		for _, f := range flights {
-			hash := ledger.DefaultLedger.Store.GetHeaderHashByHeight(f)
-			if ledger.DefaultLedger.Store.BlockInCache(hash) == false {
-				ReqBlkData(syncNode, hash)
+	} else {
+		var syncNode Noder
+		hasSyncPeer, syncNode := node.local.hasSyncPeer()
+
+		if hasSyncPeer == false {
+			syncNode = node.GetBestHeightNoder()
+			hash := ledger.DefaultLedger.Store.GetCurrentBlockHash()
+			if node.LocalNode().GetHeaderFisrtModeStatus() {
+				SendMsgSyncHeaders(syncNode, hash)
+			} else {
+				blocator := ledger.DefaultLedger.Blockchain.BlockLocatorFromHash(&hash)
+				var emptyHash common.Uint256
+				SendMsgSyncBlockHeaders(syncNode, blocator, emptyHash)
+			}
+		} else {
+			rb := syncNode.GetRequestBlockList()
+			if len(rb) == 0 {
+				syncNode.SetSyncFailed()
+				newSyncNode := node.GetBestHeightNoder()
+				hash := ledger.DefaultLedger.Store.GetCurrentBlockHash()
+				if node.LocalNode().GetHeaderFisrtModeStatus() {
+					SendMsgSyncHeaders(newSyncNode, hash)
+				} else {
+					blocator := ledger.DefaultLedger.Blockchain.BlockLocatorFromHash(&hash)
+					var emptyHash common.Uint256
+					SendMsgSyncBlockHeaders(newSyncNode, blocator, emptyHash)
+				}
+			} else {
+				for k := range rb {
+					if rb[k].Before(time.Now().Add(-3 * time.Second)) {
+						log.Info("request block hash ", k)
+						ReqBlkData(syncNode, k)
+					}
+				}
 			}
 		}
-
-	}
-	for i = 1; i <= count && dValue >= 0; i++ {
-		hash := ledger.DefaultLedger.Store.GetHeaderHashByHeight(currentBlkHeight + reqCnt)
-		if ledger.DefaultLedger.Store.BlockInCache(hash) == false {
-			ReqBlkData(syncNode, hash)
-			syncNode.StoreFlightHeight(currentBlkHeight + reqCnt)
-		}
-		reqCnt++
-		dValue--
 	}
 }
 
@@ -275,14 +262,14 @@ func (node *node) updateNodeInfo() {
 	} else {
 		periodUpdateTime = config.DEFAULTGENBLOCKTIME / TIMESOFUPDATETIME
 	}
-	ticker := time.NewTicker(time.Second * (time.Duration(periodUpdateTime)))
+	ticker := time.NewTicker(time.Second * (time.Duration(periodUpdateTime)) * 2)
 	quit := make(chan struct{})
 	for {
 		select {
 		case <-ticker.C:
 			node.SendPingToNbr()
-			//node.SyncBlk()
-			node.SyncBlkInNonCheckpointMode()
+			node.SyncBlks()
+			//node.SyncBlkInNonCheckpointMode()
 			node.HeartBeatMonitor()
 		case <-quit:
 			ticker.Stop()

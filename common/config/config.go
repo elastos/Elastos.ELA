@@ -3,6 +3,7 @@ package config
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
@@ -64,7 +65,8 @@ type Configuration struct {
 	DefaultMaxPeers  uint             `json:"DefaultMaxPeers"`
 	GetAddrMax       uint             `json:"GetAddrMax"`
 	MaxOutboundCnt   uint             `json:"MaxOutboundCnt"`
-	AddCheckpoints   []string         `json:"addcheckpoint" description:"Add a custom checkpoint.  Format: '<height>:<hash>'"`
+	//AddCheckpoints format: "<height>:<hash>"
+	AddCheckpoints []string `json:"AddCheckpoints"`
 }
 
 type ConfigFile struct {
@@ -89,4 +91,6 @@ func init() {
 		os.Exit(1)
 	}
 	Parameters = &(config.ConfigFile)
+	fmt.Println(" Parameters.AddCheckpoints ", Parameters.AddCheckpoints)
+
 }

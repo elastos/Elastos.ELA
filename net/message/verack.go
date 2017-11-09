@@ -65,7 +65,7 @@ func (msg verACK) Handle(node Noder) error {
 		node.Tx(buf)
 	}
 
-	node.DumpInfo()
+	//node.DumpInfo()
 	// Fixme, there is a race condition here,
 	// but it doesn't matter to access the invalid
 	// node which will trigger a warning

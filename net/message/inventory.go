@@ -35,11 +35,8 @@ type Inv struct {
 	P   InvPayload
 }
 
-func SendMsgSyncBlockHeaders(node Noder) {
-	var emptyHash Uint256
-	currentHash := ledger.DefaultLedger.Store.GetCurrentHeaderHash()
-	blocator := ledger.DefaultLedger.Blockchain.BlockLocatorFromHash(&currentHash)
-	buf, err := NewBlocksReq(blocator, emptyHash)
+func SendMsgSyncBlockHeaders(node Noder, blocator []Uint256, hash Uint256) {
+	buf, err := NewBlocksReq(blocator, hash)
 	if err != nil {
 		log.Error("failed build a new getblocksReq")
 	} else {
@@ -56,7 +53,10 @@ func ReqBlksHdrFromOthers(node Noder) {
 	noders := node.LocalNode().GetNeighborNoder()
 	for _, noder := range noders {
 		if noder.IsSyncFailed() != true {
-			SendMsgSyncBlockHeaders(noder)
+			currentHash := ledger.DefaultLedger.Store.GetCurrentBlockHash()
+			blocator := ledger.DefaultLedger.Blockchain.BlockLocatorFromHash(&currentHash)
+			var emptyHash Uint256
+			SendMsgSyncBlockHeaders(noder, blocator, emptyHash)
 			break
 		}
 	}
@@ -109,7 +109,6 @@ func NewBlocksReq(blocator []Uint256, hash Uint256) ([]byte, error) {
 }
 
 func (msg blocksReq) Verify(buf []byte) error {
-
 	// TODO verify the message Content
 	err := msg.hdr.Verify(buf)
 	return err
@@ -149,7 +148,6 @@ func (msg blocksReq) Serialization() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	//err = binary.Write(buf, binary.LittleEndian, msg.p.hashStart)
 	for _, hash := range msg.p.hashStart {
 		hash.Serialize(buf)
 	}
@@ -232,24 +230,13 @@ func (msg Inv) Handle(node Noder) error {
 						"%v", err)
 					continue
 				}
-				buf, err := NewBlocksReq(locator, *orphanRoot)
-				if err != nil {
-					log.Error("failed build a new getblocksReq")
-					continue
-				} else {
-					go node.Tx(buf)
-				}
+				SendMsgSyncBlockHeaders(node, locator, *orphanRoot)
 				continue
 			}
 			if i == (count - 1) {
 				var emptyHash Uint256
 				blocator := ledger.DefaultLedger.Blockchain.BlockLocatorFromHash(&id)
-				buf, err := NewBlocksReq(blocator, emptyHash)
-				if err != nil {
-					log.Error("failed build a new getblocksReq")
-				} else {
-					go node.Tx(buf)
-				}
+				SendMsgSyncBlockHeaders(node, blocator, emptyHash)
 			}
 		}
 		for _, h := range hashes {
@@ -257,8 +244,6 @@ func (msg Inv) Handle(node Noder) error {
 			if !ledger.DefaultLedger.BlockInLedger(h) {
 				node.CacheHash(id) //cached hash would not relayed
 				if !node.LocalNode().ExistedID(h) && !node.LocalNode().RequestedBlockExisted(h) {
-					// send the block request
-					node.LocalNode().AddRequestedBlock(h)
 					ReqBlkData(node, h)
 				}
 			}

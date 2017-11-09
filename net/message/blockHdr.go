@@ -27,15 +27,13 @@ type blkHeader struct {
 	blkHdr []ledger.Header
 }
 
-func NewHeadersReq(hash common.Uint256) ([]byte, error) {
+func NewHeadersReq(startHash common.Uint256, stopHash common.Uint256) ([]byte, error) {
 	var msg headersReq
 	msg.hdr.Magic = NETMAGIC
 	cmd := "getheaders"
 	copy(msg.hdr.CMD[0:len(cmd)], cmd)
 	tmpBuffer := bytes.NewBuffer([]byte{})
-	currentHash := ledger.DefaultLedger.Store.GetCurrentHeaderHash()
-
-	blocator := ledger.DefaultLedger.Blockchain.BlockLocatorFromHash(&currentHash)
+	blocator := ledger.DefaultLedger.Blockchain.BlockLocatorFromHash(&startHash)
 
 	msg.p.len = uint32(len(blocator))
 
@@ -49,7 +47,7 @@ func NewHeadersReq(hash common.Uint256) ([]byte, error) {
 		}
 	}
 
-	msg.p.hashEnd = hash
+	msg.p.hashEnd = stopHash
 
 	_, err := msg.p.hashEnd.Serialize(tmpBuffer)
 	if err != nil {
@@ -100,7 +98,6 @@ func (msg headersReq) Serialization() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	//err = binary.Write(buf, binary.LittleEndian, msg.p.hashStart)
 	for _, hash := range msg.p.hashStart {
 		hash.Serialize(buf)
 	}
@@ -205,23 +202,27 @@ func (msg headersReq) Handle(node Noder) error {
 	return nil
 }
 
-func SendMsgSyncHeaders(node Noder) {
-	var emptyHash common.Uint256
-	buf, err := NewHeadersReq(emptyHash)
+func SendMsgSyncHeaders(node Noder, startHash common.Uint256) {
+	nextCheckpointHash, err := node.LocalNode().GetNextCheckpointHash()
+	buf, err := NewHeadersReq(startHash, nextCheckpointHash)
 	if err != nil {
 		log.Error("failed build a new headersReq")
 	} else {
 		node.LocalNode().SetSyncHeaders(true)
 		node.SetSyncHeaders(true)
 		go node.Tx(buf)
+		node.StartRetryTimer()
 	}
 }
 
 func (msg blkHeader) sendGetDataReq(node Noder) {
 	for _, header := range msg.blkHdr {
-		err := ReqBlkData(node, header.Blockdata.Hash())
-		if err != nil {
-			log.Error("failed build a new getdata")
+		hash := header.Blockdata.Hash()
+		if !ledger.DefaultLedger.BlockInLedger(hash) {
+			err := ReqBlkData(node, hash)
+			if err != nil {
+				log.Error("failed build a new getdata")
+			}
 		}
 	}
 }
@@ -231,7 +232,9 @@ func ReqBlkHdrFromOthers(node Noder) {
 	noders := node.LocalNode().GetNeighborNoder()
 	for _, noder := range noders {
 		if noder.IsSyncFailed() != true {
-			SendMsgSyncHeaders(noder)
+			hash := ledger.DefaultLedger.Store.GetCurrentBlockHash()
+			log.Trace("SendMsgSyncHeaders case 2")
+			SendMsgSyncHeaders(noder, hash)
 			break
 		}
 	}
@@ -239,6 +242,19 @@ func ReqBlkHdrFromOthers(node Noder) {
 
 func (msg blkHeader) Handle(node Noder) error {
 	log.Debug()
+	//If received headers message from unknown peer, return
+	if node.LocalNode().IsNeighborNoder(node) == false {
+		return errors.New("received headers message from unknown peer")
+	}
+	if node.LocalNode().GetHeaderFisrtModeStatus() == false {
+		node.SetState(INACTIVITY)
+		conn := node.GetConn()
+		conn.Close()
+		return errors.New("Not in header first mode")
+	}
+	if len(msg.blkHdr) == 0 {
+		return errors.New("No headers")
+	}
 	node.StopRetryTimer()
 	err := ledger.DefaultLedger.Store.AddHeaders(msg.blkHdr, ledger.DefaultLedger)
 	if err != nil {
@@ -247,14 +263,38 @@ func (msg blkHeader) Handle(node Noder) error {
 		node.SetState(INACTIVITY)
 		conn := node.GetConn()
 		conn.Close()
-		ReqBlkHdrFromOthers(node)
+		//ReqBlkHdrFromOthers(node)
 		return errors.New("Add block Header error, send new header request to another node\n")
 	}
-	//msg.sendGetDataReq(node)
-	if msg.cnt == MAXBLKHDRCNT {
-		SendMsgSyncHeaders(node)
-		node.StartRetryTimer()
+	receivedCheckpoint := false
+	nextCheckpointHeight, err := node.LocalNode().GetNextCheckpointHeight()
+	nextCheckpointHash, err := node.LocalNode().GetNextCheckpointHash()
+	for i := 0; i < len(msg.blkHdr); i++ {
+		if err == nil {
+			if uint64(msg.blkHdr[i].Blockdata.Height) == nextCheckpointHeight {
+				msgBlkHash := msg.blkHdr[i].Blockdata.Hash()
+				if bytes.Equal(msgBlkHash[:], nextCheckpointHash[:]) == true {
+					receivedCheckpoint = true
+				} else {
+					node.SetSyncFailed()
+					node.SetState(INACTIVITY)
+					conn := node.GetConn()
+					conn.Close()
+					//ReqBlkHdrFromOthers(node)
+				}
+				break
+			}
+		}
 	}
+	if receivedCheckpoint {
+		fetchHeaderBlocks(node)
+		return nil
+	}
+
+	//msg.sendGetDataReq(node)
+	lastHeaderHash := msg.blkHdr[len(msg.blkHdr)-1].Blockdata.Hash()
+	SendMsgSyncHeaders(node, lastHeaderHash)
+
 	return nil
 }
 
@@ -275,6 +315,7 @@ func GetHeadersFromHash(startHash common.Uint256, stopHash common.Uint256) ([]le
 		} else {
 			bkstart, err := ledger.DefaultLedger.Store.GetHeader(startHash)
 			if err != nil {
+				log.Error("GetHeader(startHash) err ", err)
 				return nil, 0, err
 			}
 			startHeight = bkstart.Blockdata.Height
@@ -286,6 +327,7 @@ func GetHeadersFromHash(startHash common.Uint256, stopHash common.Uint256) ([]le
 	} else {
 		bkstop, err := ledger.DefaultLedger.Store.GetHeader(stopHash)
 		if err != nil {
+			log.Error("GetHeader(stopHash) err ", err)
 			return nil, 0, err
 		}
 		stopHeight = bkstop.Blockdata.Height

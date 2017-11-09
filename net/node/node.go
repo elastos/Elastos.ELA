@@ -79,7 +79,8 @@ type node struct {
 	invRequestHashes   []Uint256
 	RequestedBlockList map[Uint256]time.Time
 	// Checkpoints ordered from oldest to newest.
-	Checkpoints []Checkpoint
+	NextCheckpoint *Checkpoint
+	IsStartSync    bool
 }
 
 type RetryConnAddrs struct {
@@ -90,12 +91,6 @@ type RetryConnAddrs struct {
 type ConnectingNodes struct {
 	sync.RWMutex
 	ConnectingAddrs []string
-}
-
-// Checkpoint identifies a known good point in the block chain.
-type Checkpoint struct {
-	Height uint64
-	Hash   Uint256
 }
 
 func (node *node) DumpInfo() {
@@ -223,7 +218,6 @@ func InitNode(pubKey *crypto.PubKey) Noder {
 	n.local.headerFirstMode = false
 	n.invRequestHashes = make([]Uint256, 0)
 	n.RequestedBlockList = make(map[Uint256]time.Time)
-	n.Checkpoints, _ = n.parseCheckpoints(config.Parameters.AddCheckpoints)
 	go n.initConnection()
 	go n.updateConnection()
 	go n.updateNodeInfo()
@@ -478,44 +472,37 @@ func (node *node) SetBookKeeperAddr(pk *crypto.PubKey) {
 
 func (node *node) SyncNodeHeight() {
 	for {
+
 		log.Trace("BlockHeight is ", ledger.DefaultLedger.Blockchain.BlockHeight)
 		heights, _ := node.GetNeighborHeights()
 		log.Trace("others height is ", heights)
-		finishSyncFromBestNode := false
-		if node.isFinishSyncFromSyncNode() == true {
-			log.Trace("node.isFinishSyncFromSyncNode() ", node.isFinishSyncFromSyncNode())
-			finishSyncFromBestNode = true
-			noders := node.local.GetNeighborNoder()
-			for _, n := range noders {
-				if n.IsSyncHeaders() == true {
-					n.SetSyncHeaders(false)
+		/*	finishSyncFromBestNode := false
+			if node.isFinishSyncFromSyncNode() == true {
+				log.Trace("node.isFinishSyncFromSyncNode() ", node.isFinishSyncFromSyncNode())
+				finishSyncFromBestNode = true
+				noders := node.local.GetNeighborNoder()
+				for _, n := range noders {
+					if n.IsSyncHeaders() == true {
+						n.SetSyncHeaders(false)
+					}
 				}
 			}
-		}
+		*/
 		if CompareHeight(uint64(ledger.DefaultLedger.Blockchain.BlockHeight), heights) {
 			node.local.SetSyncHeaders(false)
+
 			break
 		}
-		if finishSyncFromBestNode == true {
-			//ReqBlkHdrFromOthers(node)
-			ReqBlksHdrFromOthers(node)
-		}
-
+		/*
+			if finishSyncFromBestNode == true {
+				//ReqBlkHdrFromOthers(node)
+				ReqBlksHdrFromOthers(node)
+			}
+		*/
 		<-time.After(5 * time.Second)
 	}
 }
 
-func (node *node) WaitForSyncBlkFinish() {
-	for {
-		headerHeight := ledger.DefaultLedger.Store.GetHeaderHeight()
-		currentBlkHeight := ledger.DefaultLedger.Blockchain.BlockHeight
-		log.Info("WaitForSyncBlkFinish... current block height is ", currentBlkHeight, " ,current header height is ", headerHeight)
-		if currentBlkHeight >= headerHeight {
-			break
-		}
-		<-time.After(2 * time.Second)
-	}
-}
 func (node *node) WaitForFourPeersStart() {
 	for {
 		log.Debug("WaitForFourPeersStart...")
@@ -739,7 +726,11 @@ func (node *node) StartRetryTimer() {
 		case <-t.C:
 			node.SetSyncFailed()
 			node.local.eventQueue.GetEvent("disconnect").Notify(events.EventNodeDisconnect, node)
-			ReqBlksHdrFromOthers(node)
+			if node.LocalNode().GetHeaderFisrtModeStatus() {
+				ReqBlkHdrFromOthers(node)
+			} else {
+				ReqBlksHdrFromOthers(node)
+			}
 		case <-node.TxNotifyChan:
 			t.Stop()
 		}
@@ -779,14 +770,32 @@ func (node *node) GetBestHeightNoder() Noder {
 }
 
 func (node *node) StartSync() {
+	log.Trace("StartSync !#@#$%$^*&")
 	needSync := node.needSync()
 	if needSync == true {
+		log.Trace("needSync @!#%^&&*(")
+		currentBlkHeight := uint64(ledger.DefaultLedger.Blockchain.BlockHeight)
+		node.NextCheckpoint = node.FindNextHeaderCheckpoint(currentBlkHeight)
+		NextCheckpointHeight, err := node.GetNextCheckpointHeight()
+		log.Error("node.LocalNode().IsSyncHeaders() ", node.LocalNode().IsSyncHeaders())
 		if node.LocalNode().IsSyncHeaders() == false {
-			n := node.GetBestHeightNoder()
-			//SendMsgSyncHeaders(n)
-			SendMsgSyncBlockHeaders(n)
-			n.StartRetryTimer()
+			log.Trace("node.NextCheckpoint ", node.NextCheckpoint, " , err ", err, " , currentBlkHeight ", currentBlkHeight, " , NextCheckpointHeight ", NextCheckpointHeight)
+			if node.NextCheckpoint != nil && err == nil && currentBlkHeight < NextCheckpointHeight {
+				n := node.GetBestHeightNoder()
+				hash := ledger.DefaultLedger.Store.GetCurrentBlockHash()
+				if node.NextCheckpoint != nil {
+					SendMsgSyncHeaders(n, hash)
+					log.Error("StartSync from is ", n.GetAddr())
+					node.SetHeaderFirstMode(true)
+				} else {
+					log.Trace("!@$##%$^&*")
+					blocator := ledger.DefaultLedger.Blockchain.BlockLocatorFromHash(&hash)
+					var emptyHash Uint256
+					SendMsgSyncBlockHeaders(n, blocator, emptyHash)
+				}
+			}
 		}
+		node.SetStartSync()
 	}
 }
 
@@ -837,6 +846,7 @@ func (node *node) GetHeaderFisrtModeStatus() bool {
 }
 
 func (node *node) GetRequestBlockList() map[Uint256]time.Time {
+	log.Trace("length of node.RequestedBlockList ", len(node.RequestedBlockList))
 	return node.RequestedBlockList
 }
 
@@ -851,6 +861,10 @@ func (node *node) AddRequestedBlock(hash Uint256) {
 	node.requestedBlockLock.Lock()
 	defer node.requestedBlockLock.Unlock()
 	node.RequestedBlockList[hash] = time.Now()
+	//for r := range node.RequestedBlockList {
+	log.Trace("len RequestedBlockList ", len(node.RequestedBlockList))
+	//}
+
 }
 
 func (node *node) DeleteRequestedBlock(hash Uint256) {
@@ -882,29 +896,108 @@ func newCheckpointFromStr(checkpoint string) (Checkpoint, error) {
 		return Checkpoint{}, fmt.Errorf("unable to parse "+
 			"checkpoint %q due to missing hash", checkpoint)
 	}
-	hash := parts[1]
+	hashstr := parts[1]
 	if err != nil {
 		return Checkpoint{}, fmt.Errorf("unable to parse "+
 			"checkpoint %q due to malformed hash", checkpoint)
 	}
-
+	bhash, _ := HexStringToBytesReverse(hashstr)
+	var hash Uint256
+	copy(hash[:], bhash)
+	log.Trace("hash is ", hash)
 	return Checkpoint{
 		Height: uint64(height),
-		Hash:   StringtoUint256(hash),
+		Hash:   hash,
 	}, nil
 }
 
-func (node *node) parseCheckpoints(checkpointStrings []string) ([]Checkpoint, error) {
+func parseCheckpoints(checkpointStrings []string) ([]Checkpoint, error) {
+	log.Trace("checkpointStrings ", checkpointStrings)
 	if len(checkpointStrings) == 0 {
+		log.Trace("!@$#$%$^# len(checkpointStrings) ")
 		return nil, nil
 	}
 	checkpoints := make([]Checkpoint, len(checkpointStrings))
 	for i, cpString := range checkpointStrings {
 		checkpoint, err := newCheckpointFromStr(cpString)
 		if err != nil {
+			log.Trace("@!#@$%$ err ", err)
 			return nil, err
 		}
 		checkpoints[i] = checkpoint
 	}
 	return checkpoints, nil
+}
+
+func (node *node) FindNextHeaderCheckpoint(height uint64) *Checkpoint {
+	log.Debug("config.Parameters.AddCheckpoints ", config.Parameters.AddCheckpoints)
+	checkpoints, err := parseCheckpoints(config.Parameters.AddCheckpoints)
+	if err != nil {
+		return nil
+	}
+	if len(checkpoints) == 0 {
+		return nil
+	}
+
+	// There is no next checkpoint if the height is already after the final
+	// checkpoint.
+	finalCheckpoint := &checkpoints[len(checkpoints)-1]
+	if height >= finalCheckpoint.Height {
+		return nil
+	}
+
+	// Find the next checkpoint.
+	nextCheckpoint := finalCheckpoint
+	var i int
+	for i = 0; i <= len(checkpoints)-2; i++ {
+		if height < checkpoints[i].Height {
+			nextCheckpoint = &checkpoints[i]
+			break
+		}
+	}
+	log.Debug("nextCheckpoint height ", nextCheckpoint.Height)
+	node.NextCheckpoint = nextCheckpoint
+	return nextCheckpoint
+}
+
+func (node *node) GetNextCheckpoint() *Checkpoint {
+	return node.NextCheckpoint
+}
+
+func (node *node) GetNextCheckpointHeight() (uint64, error) {
+	if node.NextCheckpoint != nil {
+		return node.NextCheckpoint.Height, nil
+	} else {
+		return 0, errors.New("no next checkpoint any more")
+	}
+}
+
+func (node *node) GetNextCheckpointHash() (Uint256, error) {
+	var hash Uint256
+	if node.NextCheckpoint != nil {
+		return node.NextCheckpoint.Hash, nil
+	} else {
+		return hash, errors.New("no next checkpoint any more")
+	}
+}
+func (node *node) SetHeaderFirstMode(b bool) {
+	node.headerFirstMode = b
+}
+
+func (node *node) FindSyncNode() (Noder, error) {
+	noders := node.local.GetNeighborNoder()
+	for _, n := range noders {
+		if n.IsSyncHeaders() == true {
+			return n, nil
+		}
+	}
+	return nil, errors.New("Not in sync mode")
+}
+
+func (node *node) SetStartSync() {
+	node.IsStartSync = true
+}
+
+func (node *node) GetStartSync() bool {
+	return node.IsStartSync
 }

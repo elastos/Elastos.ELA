@@ -39,7 +39,7 @@ const (
 	HASHLEN           = 32 // hash length in byte
 	MSGHDRLEN         = 24
 	NETMAGIC          = 0x74746e41
-	MAXBLKHDRCNT      = 500
+	MAXBLKHDRCNT      = 2000
 	MAXINVHDRCNT      = 500
 	DIVHASHLEN        = 5
 	MINCONNCNT        = 3
@@ -68,6 +68,7 @@ const (
 	GETADDRMAX           = 2500
 	MAXIDCACHED          = 5000
 	MAXINVCACHEHASH      = 50000
+	MinInFlightBlocks    = 10
 )
 
 // The node state
@@ -144,7 +145,6 @@ type Noder interface {
 	GetLastRXTime() time.Time
 	SetHeight(height uint64)
 	WaitForFourPeersStart()
-	WaitForSyncBlkFinish()
 	GetFlightHeights() []uint32
 	IsAddrInNbrList(addr string) bool
 	SetAddrInConnectingList(addr string) bool
@@ -181,6 +181,20 @@ type Noder interface {
 	AddRequestedBlock(hash common.Uint256)
 	DeleteRequestedBlock(hash common.Uint256)
 	GetRequestBlockList() map[common.Uint256]time.Time
+	IsNeighborNoder(n Noder) bool
+	GetNextCheckpoint() *Checkpoint
+	FindNextHeaderCheckpoint(height uint64) *Checkpoint
+	GetNextCheckpointHeight() (uint64, error)
+	GetNextCheckpointHash() (common.Uint256, error)
+	SetHeaderFirstMode(b bool)
+	FindSyncNode() (Noder, error)
+	GetStartSync() bool
+}
+
+// Checkpoint identifies a known good point in the block chain.
+type Checkpoint struct {
+	Height uint64
+	Hash   common.Uint256
 }
 
 func (msg *NodeAddr) Deserialization(p []byte) error {

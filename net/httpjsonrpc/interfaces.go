@@ -951,3 +951,22 @@ func getBalance(params []interface{}) map[string]interface{} {
 
 	return DnaRpc(balances)
 }
+
+func toggleCpuMining(params []interface{}) map[string]interface{} {
+	var isMining bool
+	switch params[0].(type) {
+	case bool:
+		isMining = params[0].(bool)
+
+	default:
+		return DnaRpcInvalidParameter
+	}
+
+	if isMining {
+		go Pow.Start()
+	} else {
+		go Pow.Halt()
+	}
+
+	return DnaRpcSuccess
+}

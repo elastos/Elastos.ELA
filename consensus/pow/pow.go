@@ -237,6 +237,12 @@ func (pow *PowService) BroadcastBlock(MsgBlock *ledger.Block) error {
 func (pow *PowService) Start() error {
 	pow.Mutex.Lock()
 	defer pow.Mutex.Unlock()
+	if pow.started {
+		log.Trace("cpuMining is already started")
+		return nil
+	}
+
+	pow.quit = make(chan struct{})
 	pow.wg.Add(1)
 	pow.started = true
 

@@ -30,6 +30,7 @@ func StartRPCServer() {
 	HandleFunc("getinfo", getInfo)
 	HandleFunc("submitauxblock", submitAuxBlock)
 	HandleFunc("createauxblock", createAuxBlock)
+	HandleFunc("togglecpumining", toggleCpuMining)
 
 	err := http.ListenAndServe(":"+strconv.Itoa(Parameters.HttpJsonPort), nil)
 	if err != nil {

@@ -461,6 +461,9 @@ func (tx *Transaction) GetReference() (map[*UTXOTxInput]*TxOutput, error) {
 			return nil, NewDetailErr(err, ErrNoCode, "[Transaction], GetReference failed.")
 		}
 		index := utxo.ReferTxOutputIndex
+		if int(index) >= len(transaction.Outputs) {
+			return nil, errors.New("[Transaction], GetReference failed, refIdx out of range.")
+		}
 		reference[utxo] = transaction.Outputs[index]
 	}
 	return reference, nil

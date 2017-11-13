@@ -970,3 +970,33 @@ func toggleCpuMining(params []interface{}) map[string]interface{} {
 
 	return DnaRpcSuccess
 }
+
+func discreteCpuMining(params []interface{}) map[string]interface{} {
+	var numBlocks uint32
+	switch params[0].(type) {
+	case float64:
+		numBlocks = uint32(params[0].(float64))
+	default:
+		return DnaRpcInvalidParameter
+	}
+
+	if numBlocks == 0 {
+		return DnaRpcInvalidParameter
+	}
+
+	ret := make([]string, numBlocks)
+
+	blockHashes, err := Pow.DiscreteMining(numBlocks)
+	if err != nil {
+		return DnaRpcFailed
+	}
+
+	for i, hash := range blockHashes {
+		//ret[i] = hash.ToString()
+		w := bytes.NewBuffer(nil)
+		hash.Serialize(w)
+		ret[i] = BytesToHexString(w.Bytes())
+	}
+
+	return DnaRpc(ret)
+}

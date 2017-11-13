@@ -136,8 +136,8 @@ func PowCheckBlockContext(block *Block, prevNode *BlockNode, ledger *Ledger) err
 	blockHeight := prevNode.Height + 1
 
 	// Ensure all transactions in the block are finalized.
-	for _, txn := range block.Transactions {
-		if !isFinalizedTransaction(txn, blockHeight) {
+	for _, txn := range block.Transactions[1:] {
+		if !IsFinalizedTransaction(txn, blockHeight) {
 			return errors.New("block contains unfinalized transaction")
 		}
 	}
@@ -179,7 +179,7 @@ func CheckProofOfWork(bd *Blockdata, powLimit *big.Int, isAuxPow bool) error {
 	return nil
 }
 
-func isFinalizedTransaction(msgTx *tx.Transaction, blockHeight uint32) bool {
+func IsFinalizedTransaction(msgTx *tx.Transaction, blockHeight uint32) bool {
 	// Lock time of zero means the transaction is finalized.
 	lockTime := msgTx.LockTime
 	if lockTime == 0 {

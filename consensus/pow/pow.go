@@ -2,6 +2,7 @@ package pow
 
 import (
 	"encoding/binary"
+	"errors"
 	"math"
 	"math/rand"
 	"sync"
@@ -41,13 +42,14 @@ type PowService struct {
 	// Miner's receiving address for earning coin
 	PayToAddr string
 	//TODO remove MsgBlock
-	MsgBlock      map[string]*ledger.Block
-	ZMQPublish    chan bool
-	Mutex         sync.Mutex
-	Client        cl.Client
-	logDictionary string
-	started       bool
-	localNet      net.Neter
+	MsgBlock       map[string]*ledger.Block
+	ZMQPublish     chan bool
+	Mutex          sync.Mutex
+	Client         cl.Client
+	logDictionary  string
+	started        bool
+	discreteMining bool
+	localNet       net.Neter
 
 	blockPersistCompletedSubscriber events.Subscriber
 	RollbackTransactionSubscriber   events.Subscriber
@@ -82,7 +84,7 @@ func (pow *PowService) CreateCoinbaseTrx(nextBlockHeight uint32, addr string) (*
 	if err != nil {
 		return nil, err
 	}
-	txn, err := tx.NewCoinBaseTransaction(&payload.CoinBase{})
+	txn, err := tx.NewCoinBaseTransaction(&payload.CoinBase{}, ledger.DefaultLedger.Blockchain.GetBestHeight()+1)
 	if err != nil {
 		return nil, err
 	}
@@ -97,12 +99,12 @@ func (pow *PowService) CreateCoinbaseTrx(nextBlockHeight uint32, addr string) (*
 		{
 			AssetID:     ledger.DefaultLedger.Blockchain.AssetID,
 			Value:       3 * 100000000,
-			ProgramHash: minerProgramHash,
+			ProgramHash: foundationProgramHash,
 		},
 		{
 			AssetID:     ledger.DefaultLedger.Blockchain.AssetID,
 			Value:       7 * 100000000,
-			ProgramHash: foundationProgramHash,
+			ProgramHash: minerProgramHash,
 		},
 	}
 
@@ -167,6 +169,10 @@ func (pow *PowService) GenerateBlock(addr string) (*ledger.Block, error) {
 		if calcTxsAmount >= config.Parameters.MaxTxInBlock {
 			break
 		}
+
+		if !ledger.IsFinalizedTransaction(tx, nextBlockHeight) {
+			continue
+		}
 		fee := tx.GetFee(ledger.DefaultLedger.Blockchain.AssetID)
 		if fee < 1 {
 			continue
@@ -195,6 +201,60 @@ func (pow *PowService) GenerateBlock(addr string) (*ledger.Block, error) {
 	log.Info("difficulty: ", msgBlock.Blockdata.Bits)
 
 	return msgBlock, err
+}
+
+func (pow *PowService) DiscreteMining(n uint32) ([]*Uint256, error) {
+	pow.Mutex.Lock()
+
+	if pow.started || pow.discreteMining {
+		pow.Mutex.Unlock()
+		return nil, errors.New("Server is already CPU mining.")
+	}
+
+	pow.started = true
+	pow.discreteMining = true
+	pow.Mutex.Unlock()
+
+	log.Tracef("Pow generating %d blocks", n)
+	i := uint32(0)
+	blockHashes := make([]*Uint256, n)
+	ticker := time.NewTicker(time.Second * hashUpdateSecs)
+	defer ticker.Stop()
+
+	for {
+		log.Trace("<================Discrete Mining==============>\n")
+
+		msgBlock, err := pow.GenerateBlock(pow.PayToAddr)
+		if err != nil {
+			log.Trace("generage block err", err)
+			continue
+		}
+
+		if pow.SolveBlock(msgBlock, ticker) {
+			if msgBlock.Blockdata.Height == ledger.DefaultLedger.Blockchain.GetBestHeight()+1 {
+				inMainChain, isOrphan, err := ledger.DefaultLedger.Blockchain.AddBlock(msgBlock)
+				if err != nil {
+					log.Trace(err)
+					continue
+				}
+				//TODO if co-mining condition
+				if isOrphan || !inMainChain {
+					continue
+				}
+				pow.BroadcastBlock(msgBlock)
+				h := msgBlock.Hash()
+				blockHashes[i] = &h
+				i++
+				if i == n {
+					pow.Mutex.Lock()
+					pow.started = false
+					pow.discreteMining = false
+					pow.Mutex.Unlock()
+					return blockHashes, nil
+				}
+			}
+		}
+	}
 }
 
 func (pow *PowService) SolveBlock(MsgBlock *ledger.Block, ticker *time.Ticker) bool {
@@ -237,7 +297,7 @@ func (pow *PowService) BroadcastBlock(MsgBlock *ledger.Block) error {
 func (pow *PowService) Start() error {
 	pow.Mutex.Lock()
 	defer pow.Mutex.Unlock()
-	if pow.started {
+	if pow.started || pow.discreteMining {
 		log.Trace("cpuMining is already started")
 		return nil
 	}
@@ -266,14 +326,16 @@ func (pow *PowService) Halt() error {
 	pow.Mutex.Lock()
 	defer pow.Mutex.Unlock()
 
-	if pow.started {
-		ledger.DefaultLedger.Blockchain.BCEvents.UnSubscribe(events.EventBlockPersistCompleted, pow.blockPersistCompletedSubscriber)
-		ledger.DefaultLedger.Blockchain.BCEvents.UnSubscribe(events.EventRollbackTransaction, pow.RollbackTransactionSubscriber)
-
-		close(pow.quit)
-		pow.wg.Wait()
-		pow.started = false
+	if !pow.started || pow.discreteMining {
+		return nil
 	}
+
+	ledger.DefaultLedger.Blockchain.BCEvents.UnSubscribe(events.EventBlockPersistCompleted, pow.blockPersistCompletedSubscriber)
+	ledger.DefaultLedger.Blockchain.BCEvents.UnSubscribe(events.EventRollbackTransaction, pow.RollbackTransactionSubscriber)
+
+	close(pow.quit)
+	pow.wg.Wait()
+	pow.started = false
 	return nil
 }
 func (pow *PowService) RollbackTransaction(v interface{}) {
@@ -303,13 +365,14 @@ func (pow *PowService) BlockPersistCompleted(v interface{}) {
 func NewPowService(client cl.Client, logDictionary string, localNet net.Neter) *PowService {
 	log.Debug()
 	pow := &PowService{
-		PayToAddr:     config.Parameters.PowConfiguration.PayToAddr,
-		Client:        client,
-		started:       false,
-		MsgBlock:      make(map[string]*ledger.Block),
-		ZMQPublish:    make(chan bool, 1),
-		localNet:      localNet,
-		logDictionary: logDictionary,
+		PayToAddr:      config.Parameters.PowConfiguration.PayToAddr,
+		Client:         client,
+		started:        false,
+		discreteMining: false,
+		MsgBlock:       make(map[string]*ledger.Block),
+		ZMQPublish:     make(chan bool, 1),
+		localNet:       localNet,
+		logDictionary:  logDictionary,
 	}
 
 	go pow.ZMQServer()

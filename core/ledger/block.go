@@ -222,7 +222,7 @@ func GenesisBlockInit(defaultBookKeeper []*crypto.PubKey) (*Block, error) {
 		return nil, err
 	}
 
-	trans, err := tx.NewCoinBaseTransaction(&payload.CoinBase{})
+	trans, err := tx.NewCoinBaseTransaction(&payload.CoinBase{}, 0)
 	if err != nil {
 		return nil, err
 	}

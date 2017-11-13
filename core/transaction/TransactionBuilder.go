@@ -56,7 +56,7 @@ func NewBookKeeperTransaction(pubKey *crypto.PubKey, isAdd bool, cert []byte, is
 	}, nil
 }
 
-func NewCoinBaseTransaction(coinBasePayload *payload.CoinBase) (*Transaction, error) {
+func NewCoinBaseTransaction(coinBasePayload *payload.CoinBase, currentHeight uint32) (*Transaction, error) {
 	return &Transaction{
 		TxType:         CoinBase,
 		PayloadVersion: payload.CoinBasePayloadVersion,
@@ -71,7 +71,7 @@ func NewCoinBaseTransaction(coinBasePayload *payload.CoinBase) (*Transaction, er
 		},
 		BalanceInputs: []*BalanceTxInput{},
 		Attributes:    []*TxAttribute{},
-		LockTime:      0,
+		LockTime:      currentHeight,
 
 		Programs: []*program.Program{},
 	}, nil

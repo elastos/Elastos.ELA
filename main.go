@@ -69,7 +69,10 @@ func startConsensus(client account.Client, noder protocol.Noder) bool {
 			httpjsonrpc.RegistPowService(powServices)
 			isAuxPow := config.Parameters.PowConfiguration.CoMining
 			if !isAuxPow {
-				go powServices.Start()
+				isAuto := config.Parameters.PowConfiguration.AutoMining
+				if isAuto {
+					go powServices.Start()
+				}
 			} else {
 				//aux pow
 			}

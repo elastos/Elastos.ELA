@@ -31,12 +31,12 @@
     "KeyPath": "./sample-cert-key.pem",
     "CAPath": "./sample-ca.pem",
     "MultiCoreNum": 4,
-	"MaxTransactionInBlock": 100,
+    "MaxTransactionInBlock": 100,
     "MaxBlockSize": 1000000,
     "ConsensusType": "pow",
     "PowConfiguration":{
     "Switch": "enable",
-	"PayToAddr": "Abn4A5BMXNBrzEfuRbxWpgtYtGbQ6xqK2m",
+    "PayToAddr": "Abn4A5BMXNBrzEfuRbxWpgtYtGbQ6xqK2m",
     "MiningServerIP": "127.0.0.1",
     "MiningServerPort": 5555,
     "MiningSelfPort": 20339,
@@ -44,7 +44,8 @@
     "ProtocolVersion":1,
     "TestNet":true,
     "Proxy":"tcp://*:8888",
-    "CoMining":false
+    "CoMining":false,
+    "AutoMining": true
     }
   }
 }

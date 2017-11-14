@@ -28,6 +28,7 @@ type PowConfiguration struct {
 	TestNet          bool   `json:"testnet"`
 	Proxy            string `json:"Proxy"`
 	CoMining         bool   `json:"CoMining"`
+	AutoMining       bool   `json:"AutoMining"`
 }
 
 type Configuration struct {

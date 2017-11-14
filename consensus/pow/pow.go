@@ -309,8 +309,8 @@ func (pow *PowService) Start() error {
 	pow.wg.Add(1)
 	pow.started = true
 
-	pow.blockPersistCompletedSubscriber = ledger.DefaultLedger.Blockchain.BCEvents.Subscribe(events.EventBlockPersistCompleted, pow.BlockPersistCompleted)
-	pow.RollbackTransactionSubscriber = ledger.DefaultLedger.Blockchain.BCEvents.Subscribe(events.EventRollbackTransaction, pow.RollbackTransaction)
+	//pow.blockPersistCompletedSubscriber = ledger.DefaultLedger.Blockchain.BCEvents.Subscribe(events.EventBlockPersistCompleted, pow.BlockPersistCompleted)
+	//pow.RollbackTransactionSubscriber = ledger.DefaultLedger.Blockchain.BCEvents.Subscribe(events.EventRollbackTransaction, pow.RollbackTransaction)
 
 	//fstBookking, _ := HexToBytes(config.Parameters.BookKeepers[0])
 	//acct, _ := pow.Client.GetDefaultAccount()
@@ -333,8 +333,8 @@ func (pow *PowService) Halt() error {
 		return nil
 	}
 
-	ledger.DefaultLedger.Blockchain.BCEvents.UnSubscribe(events.EventBlockPersistCompleted, pow.blockPersistCompletedSubscriber)
-	ledger.DefaultLedger.Blockchain.BCEvents.UnSubscribe(events.EventRollbackTransaction, pow.RollbackTransactionSubscriber)
+	//ledger.DefaultLedger.Blockchain.BCEvents.UnSubscribe(events.EventBlockPersistCompleted, pow.blockPersistCompletedSubscriber)
+	//ledger.DefaultLedger.Blockchain.BCEvents.UnSubscribe(events.EventRollbackTransaction, pow.RollbackTransactionSubscriber)
 
 	close(pow.quit)
 	pow.wg.Wait()
@@ -376,6 +376,9 @@ func NewPowService(client cl.Client, logDictionary string, localNet net.Neter) *
 		localNet:       localNet,
 		logDictionary:  logDictionary,
 	}
+
+	pow.blockPersistCompletedSubscriber = ledger.DefaultLedger.Blockchain.BCEvents.Subscribe(events.EventBlockPersistCompleted, pow.BlockPersistCompleted)
+	pow.RollbackTransactionSubscriber = ledger.DefaultLedger.Blockchain.BCEvents.Subscribe(events.EventRollbackTransaction, pow.RollbackTransaction)
 
 	go pow.ZMQServer()
 	log.Trace("pow Service Init succeed and ZMQServer start succeed")

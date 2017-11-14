@@ -11,6 +11,8 @@ import (
 	"path/filepath"
 	"time"
 
+	homedir "github.com/mitchellh/go-homedir"
+
 	"DNA_POW/account"
 	. "DNA_POW/common"
 	"DNA_POW/common/config"
@@ -18,12 +20,11 @@ import (
 	tx "DNA_POW/core/transaction"
 	. "DNA_POW/errors"
 	"DNA_POW/sdk"
-
-	"github.com/mitchellh/go-homedir"
 )
 
 const (
-	RANDBYTELEN = 4
+	RANDBYTELEN                         = 4
+	AUXBLOCK_GENERATED_INTERVAL_SECONDS = 60
 )
 
 var PreChainHeight uint64
@@ -414,6 +415,10 @@ func submitAuxBlock(params []interface{}) map[string]interface{} {
 	switch params[0].(type) {
 	case string:
 		blockHash = params[0].(string)
+		if _, ok := Pow.MsgBlock.BlockData[blockHash]; !ok {
+			log.Trace("[json-rpc:submitAuxBlock] receive invalid block hash value:", blockHash)
+			return DnaRpcInvalidHash
+		}
 
 	default:
 		return DnaRpcInvalidParameter
@@ -424,11 +429,19 @@ func submitAuxBlock(params []interface{}) map[string]interface{} {
 		auxPow = params[1].(string)
 		temp, _ := HexStringToBytes(auxPow)
 		r := bytes.NewBuffer(temp)
-		Pow.MsgBlock[blockHash].Blockdata.AuxPow.Deserialize(r)
-		_, _, err := ledger.DefaultLedger.Blockchain.AddBlock(Pow.MsgBlock[blockHash])
+		Pow.MsgBlock.BlockData[blockHash].Blockdata.AuxPow.Deserialize(r)
+		_, _, err := ledger.DefaultLedger.Blockchain.AddBlock(Pow.MsgBlock.BlockData[blockHash])
 		if err != nil {
 			log.Trace(err)
+			return DnaRpcInternalError
 		}
+
+		Pow.MsgBlock.Mutex.Lock()
+		for key, _ := range Pow.MsgBlock.BlockData {
+			delete(Pow.MsgBlock.BlockData, key)
+		}
+		Pow.MsgBlock.Mutex.Unlock()
+		log.Trace("AddBlock called finished and Pow.MsgBlock.BlockData has been deleted completely")
 
 	default:
 		return DnaRpcInvalidParameter
@@ -440,7 +453,7 @@ func submitAuxBlock(params []interface{}) map[string]interface{} {
 func generateAuxBlock(addr string) (*ledger.Block, string, bool) {
 	msgBlock := &ledger.Block{}
 
-	if node.GetHeight() == 0 || PreChainHeight != node.GetHeight() || (time.Now().Unix()-PreTime > 60 && Pow.GetTransactionCount() != PreTransactionCount) {
+	if node.GetHeight() == 0 || PreChainHeight != node.GetHeight() || (time.Now().Unix()-PreTime > AUXBLOCK_GENERATED_INTERVAL_SECONDS && Pow.GetTransactionCount() != PreTransactionCount) {
 		if PreChainHeight != node.GetHeight() {
 			PreChainHeight = node.GetHeight()
 			PreTime = time.Now().Unix()
@@ -449,16 +462,20 @@ func generateAuxBlock(addr string) (*ledger.Block, string, bool) {
 
 		currentTxsCount := Pow.CollectTransactions(msgBlock)
 		if 0 == currentTxsCount {
-			//return nil, "", false  // close this value for test
+			return nil, "currentTxs is nil", false
 		}
 
 		msgBlock, err := Pow.GenerateBlock(addr)
-		if 0 == currentTxsCount || nil != err {
-			//return nil, "", false
+		if nil != err {
+			return nil, "msgBlock generate err", false
 		}
+
 		curHash := msgBlock.Hash()
 		curHashStr := BytesToHexString(curHash.ToArray())
-		Pow.MsgBlock[curHashStr] = msgBlock
+
+		Pow.MsgBlock.Mutex.Lock()
+		Pow.MsgBlock.BlockData[curHashStr] = msgBlock
+		Pow.MsgBlock.Mutex.Unlock()
 
 		PreChainHeight = node.GetHeight()
 		PreTime = time.Now().Unix()

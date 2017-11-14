@@ -38,11 +38,14 @@ var (
 	RetargetPersent    = 25
 )
 
+type msgBlock struct {
+	BlockData map[string]*ledger.Block
+	Mutex     sync.Mutex
+}
+
 type PowService struct {
-	// Miner's receiving address for earning coin
-	PayToAddr string
-	//TODO remove MsgBlock
-	MsgBlock       map[string]*ledger.Block
+	PayToAddr      string
+	MsgBlock       msgBlock
 	ZMQPublish     chan bool
 	Mutex          sync.Mutex
 	Client         cl.Client
@@ -363,20 +366,19 @@ func (pow *PowService) BlockPersistCompleted(v interface{}) {
 }
 
 func NewPowService(client cl.Client, logDictionary string, localNet net.Neter) *PowService {
-	log.Debug()
 	pow := &PowService{
 		PayToAddr:      config.Parameters.PowConfiguration.PayToAddr,
 		Client:         client,
 		started:        false,
 		discreteMining: false,
-		MsgBlock:       make(map[string]*ledger.Block),
+		MsgBlock:       msgBlock{BlockData: make(map[string]*ledger.Block)},
 		ZMQPublish:     make(chan bool, 1),
 		localNet:       localNet,
 		logDictionary:  logDictionary,
 	}
 
 	go pow.ZMQServer()
-
+	log.Trace("pow Service Init succeed and ZMQServer start succeed")
 	return pow
 }
 

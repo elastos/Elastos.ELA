@@ -32,7 +32,7 @@ func (msg block) Handle(node Noder) error {
 	if node.LocalNode().IsSyncHeaders() == true && node.IsSyncHeaders() == false {
 		return nil
 	}
-	isSync := false
+
 	if ledger.DefaultLedger.BlockInLedger(hash) {
 		ReceiveDuplicateBlockCnt++
 		log.Debug("Receive ", ReceiveDuplicateBlockCnt, " duplicated block.")
@@ -72,7 +72,11 @@ func (msg block) Handle(node Noder) error {
 		conn.Close()
 		return err
 	}
-
+	//relay
+	if !node.LocalNode().ExistedID(hash) {
+		node.LocalNode().Relay(node, &msg.blk)
+		log.Info("Relay block")
+	}
 	ledger.DefaultLedger.Store.RemoveHeaderListElement(hash)
 	node.LocalNode().DeleteRequestedBlock(hash)
 
@@ -81,17 +85,6 @@ func (msg block) Handle(node Noder) error {
 		locator, _ := ledger.DefaultLedger.Blockchain.LatestBlockLocator()
 		SendMsgSyncBlockHeaders(node, locator, *orphanRoot)
 	}
-
-	if !isSync {
-		for _, n := range node.LocalNode().GetNeighborNoder() {
-			if n.ExistFlightHeight(msg.blk.Blockdata.Height) {
-				//sync block
-				n.RemoveFlightHeight(msg.blk.Blockdata.Height)
-				isSync = true
-			}
-		}
-	}
-
 	// Nothing more to do if we aren't in headers-first mode.
 	if !node.LocalNode().GetHeaderFisrtModeStatus() {
 		return nil

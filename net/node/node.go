@@ -634,6 +634,14 @@ func (node *node) Relay(frmnode Noder, message interface{}) error {
 			log.Error("Error New inv message")
 			return err
 		}
+	case *ledger.Block:
+		log.Debug("TX block message")
+		blkpayload := message.(*ledger.Block)
+		buffer, err = NewBlock(blkpayload)
+		if err != nil {
+			log.Error("Error new block message: ", err)
+			return err
+		}
 	default:
 		log.Warn("Unknown Relay message type")
 		return errors.New("Unknown Relay message type")

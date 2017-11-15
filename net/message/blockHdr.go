@@ -204,6 +204,14 @@ func (msg headersReq) Handle(node Noder) error {
 
 func SendMsgSyncHeaders(node Noder, startHash common.Uint256) {
 	nextCheckpointHash, err := node.LocalNode().GetNextCheckpointHash()
+	var emptyHash common.Uint256
+	if (bytes.Equal(emptyHash[:], nextCheckpointHash[:])) || (bytes.Equal(startHash[:], nextCheckpointHash[:])) {
+		log.Debug("no more checkpoint")
+		node.LocalNode().SetHeaderFirstMode(false)
+		blocator := ledger.DefaultLedger.Blockchain.BlockLocatorFromHash(&startHash)
+		SendMsgSyncBlockHeaders(node, blocator, emptyHash)
+		return
+	}
 	buf, err := NewHeadersReq(startHash, nextCheckpointHash)
 	if err != nil {
 		log.Error("failed build a new headersReq")
@@ -229,15 +237,9 @@ func (msg blkHeader) sendGetDataReq(node Noder) {
 
 func ReqBlkHdrFromOthers(node Noder) {
 	//node.SetSyncFailed()
-	noders := node.LocalNode().GetNeighborNoder()
-	for _, noder := range noders {
-		if noder.IsSyncFailed() != true {
-			hash := ledger.DefaultLedger.Store.GetCurrentBlockHash()
-			log.Trace("SendMsgSyncHeaders case 2")
-			SendMsgSyncHeaders(noder, hash)
-			break
-		}
-	}
+	n := node.LocalNode().GetBestHeightNoder()
+	hash := ledger.DefaultLedger.Store.GetCurrentBlockHash()
+	SendMsgSyncHeaders(n, hash)
 }
 
 func (msg blkHeader) Handle(node Noder) error {

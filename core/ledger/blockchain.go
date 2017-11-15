@@ -17,7 +17,7 @@ import (
 
 const (
 	MaxBlockLocatorsPerMsg = 500
-	maxOrphanBlocks        = 100
+	maxOrphanBlocks        = 10000
 	MinMemoryNodes         = 2016
 	medianTimeBlocks       = 11
 )

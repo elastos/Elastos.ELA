@@ -26,11 +26,9 @@ type block struct {
 
 func (msg block) Handle(node Noder) error {
 	hash := msg.blk.Hash()
+	log.Debugf("hash is %x", hash.ToArrayReverse())
 	if node.LocalNode().IsNeighborNoder(node) == false {
 		return errors.New("received headers message from unknown peer")
-	}
-	if node.LocalNode().IsSyncHeaders() == true && node.IsSyncHeaders() == false {
-		return nil
 	}
 
 	if ledger.DefaultLedger.BlockInLedger(hash) {
@@ -50,8 +48,6 @@ func (msg block) Handle(node Noder) error {
 				if err == nil {
 					if bytes.Equal(hash[:], nextCheckpointHash[:]) {
 						isCheckpointBlock = true
-					} else {
-						ledger.DefaultLedger.Store.RemoveHeaderListElement(hash)
 					}
 				}
 			}
@@ -65,26 +61,28 @@ func (msg block) Handle(node Noder) error {
 		_, isOrphan, err = ledger.DefaultLedger.Blockchain.AddBlock(&msg.blk)
 	}
 	if err != nil {
-		log.Warn("Block add failed: ", err, " ,block hash is ", hash)
-		node.SetSyncFailed()
-		node.SetState(INACTIVITY)
-		conn := node.GetConn()
-		conn.Close()
+		log.Warn("Block add failed: ", err, " ,block hash is ", hash.ToArrayReverse())
 		return err
 	}
 	//relay
-	if !node.LocalNode().ExistedID(hash) {
-		node.LocalNode().Relay(node, &msg.blk)
-		log.Info("Relay block")
+	if node.LocalNode().IsSyncHeaders() == false {
+		if !node.LocalNode().ExistedID(hash) {
+			node.LocalNode().Relay(node, &msg.blk)
+			log.Debug("Relay block")
+		}
 	}
+
+	if isOrphan == true && node.LocalNode().IsSyncHeaders() == false {
+		if !node.LocalNode().RequestedBlockExisted(hash) {
+			orphanRoot := ledger.DefaultLedger.Blockchain.GetOrphanRoot(&hash)
+			locator, _ := ledger.DefaultLedger.Blockchain.LatestBlockLocator()
+			SendMsgSyncBlockHeaders(node, locator, *orphanRoot)
+		}
+	}
+
 	ledger.DefaultLedger.Store.RemoveHeaderListElement(hash)
 	node.LocalNode().DeleteRequestedBlock(hash)
 
-	if isOrphan == true && node.LocalNode().IsSyncHeaders() == false {
-		orphanRoot := ledger.DefaultLedger.Blockchain.GetOrphanRoot(&hash)
-		locator, _ := ledger.DefaultLedger.Blockchain.LatestBlockLocator()
-		SendMsgSyncBlockHeaders(node, locator, *orphanRoot)
-	}
 	// Nothing more to do if we aren't in headers-first mode.
 	if !node.LocalNode().GetHeaderFisrtModeStatus() {
 		return nil

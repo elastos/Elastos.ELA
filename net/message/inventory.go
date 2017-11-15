@@ -42,7 +42,6 @@ func SendMsgSyncBlockHeaders(node Noder, blocator []Uint256, hash Uint256) {
 	} else {
 		node.LocalNode().SetSyncHeaders(true)
 		node.SetSyncHeaders(true)
-		log.Trace("Sync from ", node.GetAddr())
 		go node.Tx(buf)
 		node.StartRetryTimer()
 	}
@@ -124,7 +123,6 @@ func (msg blocksReq) Handle(node Noder) error {
 	var stopHash [HASHLEN]byte
 	locatorHash = msg.p.hashStart
 	stopHash = msg.p.hashEnd
-
 	startHash = ledger.DefaultLedger.Blockchain.LatestLocatorHash(locatorHash)
 	inv, err := GetInvFromBlockHash(startHash, stopHash)
 	if err != nil {
@@ -212,9 +210,11 @@ func (msg Inv) Handle(node Noder) error {
 		if node.IsSyncHeaders() == true {
 			node.StopRetryTimer()
 		}
+
 		if node.LocalNode().IsSyncHeaders() == true && node.IsSyncHeaders() == false {
 			return nil
 		}
+
 		var i uint32
 		count := msg.P.Cnt
 		hashes := []Uint256{}
@@ -239,11 +239,12 @@ func (msg Inv) Handle(node Noder) error {
 				SendMsgSyncBlockHeaders(node, blocator, emptyHash)
 			}
 		}
+
 		for _, h := range hashes {
 			// TODO check the ID queue
 			if !ledger.DefaultLedger.BlockInLedger(h) {
 				node.CacheHash(id) //cached hash would not relayed
-				if !node.LocalNode().ExistedID(h) && !node.LocalNode().RequestedBlockExisted(h) {
+				if !node.LocalNode().RequestedBlockExisted(h) {
 					ReqBlkData(node, h)
 				}
 			}
@@ -356,10 +357,8 @@ func GetInvFromBlockHash(startHash Uint256, stopHash Uint256) (*InvPayload, erro
 	for i = 1; i <= count; i++ {
 		//FIXME need add error handle for GetBlockWithHash
 		hash, _ := ledger.DefaultLedger.Store.GetBlockHash(startHeight + i)
-		log.Debug("GetInvFromBlockHash i is ", i, " , hash is ", hash)
 		hash.Serialize(tmpBuffer)
 	}
-	log.Debug("GetInvFromBlockHash hash is ", tmpBuffer.Bytes())
 	return NewInvPayload(BLOCK, count, tmpBuffer.Bytes()), nil
 }
 

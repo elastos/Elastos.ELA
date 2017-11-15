@@ -766,9 +766,11 @@ func (node *node) GetBestHeightNoder() Noder {
 	for _, n := range node.nbrNodes.List {
 		if n.GetState() == ESTABLISH {
 			if bestnode == nil {
-				bestnode = n
+				if !n.IsSyncFailed() {
+					bestnode = n
+				}
 			} else {
-				if n.GetHeight() > bestnode.GetHeight() {
+				if (n.GetHeight() > bestnode.GetHeight()) && !n.IsSyncFailed() {
 					bestnode = n
 				}
 			}
@@ -778,25 +780,19 @@ func (node *node) GetBestHeightNoder() Noder {
 }
 
 func (node *node) StartSync() {
-	log.Trace("StartSync !#@#$%$^*&")
 	needSync := node.needSync()
 	if needSync == true {
-		log.Trace("needSync @!#%^&&*(")
 		currentBlkHeight := uint64(ledger.DefaultLedger.Blockchain.BlockHeight)
 		node.NextCheckpoint = node.FindNextHeaderCheckpoint(currentBlkHeight)
 		NextCheckpointHeight, err := node.GetNextCheckpointHeight()
-		log.Error("node.LocalNode().IsSyncHeaders() ", node.LocalNode().IsSyncHeaders())
 		if node.LocalNode().IsSyncHeaders() == false {
-			log.Trace("node.NextCheckpoint ", node.NextCheckpoint, " , err ", err, " , currentBlkHeight ", currentBlkHeight, " , NextCheckpointHeight ", NextCheckpointHeight)
 			if node.NextCheckpoint != nil && err == nil && currentBlkHeight < NextCheckpointHeight {
 				n := node.GetBestHeightNoder()
 				hash := ledger.DefaultLedger.Store.GetCurrentBlockHash()
 				if node.NextCheckpoint != nil {
 					SendMsgSyncHeaders(n, hash)
-					log.Error("StartSync from is ", n.GetAddr())
 					node.SetHeaderFirstMode(true)
 				} else {
-					log.Trace("!@$##%$^&*")
 					blocator := ledger.DefaultLedger.Blockchain.BlockLocatorFromHash(&hash)
 					var emptyHash Uint256
 					SendMsgSyncBlockHeaders(n, blocator, emptyHash)
@@ -854,7 +850,6 @@ func (node *node) GetHeaderFisrtModeStatus() bool {
 }
 
 func (node *node) GetRequestBlockList() map[Uint256]time.Time {
-	log.Trace("length of node.RequestedBlockList ", len(node.RequestedBlockList))
 	return node.RequestedBlockList
 }
 
@@ -869,10 +864,6 @@ func (node *node) AddRequestedBlock(hash Uint256) {
 	node.requestedBlockLock.Lock()
 	defer node.requestedBlockLock.Unlock()
 	node.RequestedBlockList[hash] = time.Now()
-	//for r := range node.RequestedBlockList {
-	log.Trace("len RequestedBlockList ", len(node.RequestedBlockList))
-	//}
-
 }
 
 func (node *node) DeleteRequestedBlock(hash Uint256) {

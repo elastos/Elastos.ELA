@@ -29,6 +29,7 @@ type PowConfiguration struct {
 	Proxy            string `json:"Proxy"`
 	CoMining         bool   `json:"CoMining"`
 	AutoMining       bool   `json:"AutoMining"`
+	MinerInfo        string `json:"MinerInfo"`
 }
 
 type Configuration struct {

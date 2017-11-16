@@ -565,8 +565,9 @@ func (bd *ChainStore) GetBlock(hash Uint256) (*Block, error) {
 	for i, txn := range b.Transactions {
 		tmp, _, err := bd.GetTransaction(txn.Hash())
 		if err != nil {
-			b.Transactions[i] = tmp
+			return nil, err
 		}
+		b.Transactions[i] = tmp
 	}
 
 	return b, nil

@@ -43,6 +43,9 @@ type TxAttributeInfo struct {
 type UTXOTxInputInfo struct {
 	ReferTxID          string
 	ReferTxOutputIndex uint16
+	Sequence           uint32
+	Address            string
+	Value              string
 }
 
 type BalanceTxInputInfo struct {
@@ -80,6 +83,7 @@ type Transactions struct {
 	UTXOInputs     []UTXOTxInputInfo
 	BalanceInputs  []BalanceTxInputInfo
 	Outputs        []TxoutputInfo
+	LockTime       uint32
 	Programs       []ProgramInfo
 
 	AssetOutputs      []TxoutputMap
@@ -87,6 +91,7 @@ type Transactions struct {
 	AssetOutputAmount []AmountMap
 	Timestamp         uint32 `json:",omitempty"`
 	Confirminations   uint32 `json:",omitempty"`
+	TxSize            uint32 `json:",omitempty"`
 	Hash              string
 }
 
@@ -94,12 +99,14 @@ type BlockHead struct {
 	Version          uint32
 	PrevBlockHash    string
 	TransactionsRoot string
-	Difficulty       string
 	Timestamp        uint32
+	Bits             uint32
 	Height           uint32
+	Nonce            uint32
 	ConsensusData    uint64
 	NextBookKeeper   string
-	Program          ProgramInfo
+	//AuxPow           AuxPowInfo
+	Program ProgramInfo
 
 	Hash string
 }
@@ -109,6 +116,7 @@ type BlockInfo struct {
 	BlockData       *BlockHead
 	Transactions    []*Transactions
 	Confirminations uint32
+	MinerInfo       string
 }
 
 type TxInfo struct {

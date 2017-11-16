@@ -4,6 +4,7 @@ import (
 	. "DNA_POW/common"
 	"DNA_POW/core/ledger"
 	tx "DNA_POW/core/transaction"
+	"DNA_POW/core/transaction/payload"
 	. "DNA_POW/errors"
 	. "DNA_POW/net/httpjsonrpc"
 	Err "DNA_POW/net/httprestful/error"
@@ -97,9 +98,10 @@ func GetBlockInfo(block *ledger.Block) BlockInfo {
 		Version:          block.Blockdata.Version,
 		PrevBlockHash:    BytesToHexString(block.Blockdata.PrevBlockHash.ToArrayReverse()),
 		TransactionsRoot: BytesToHexString(block.Blockdata.TransactionsRoot.ToArrayReverse()),
-		Difficulty:       strconv.FormatUint(uint64(block.Blockdata.Bits), 16),
+		Bits:             block.Blockdata.Bits,
 		Timestamp:        block.Blockdata.Timestamp,
 		Height:           block.Blockdata.Height,
+		Nonce:            block.Blockdata.Nonce,
 		ConsensusData:    block.Blockdata.ConsensusData,
 		NextBookKeeper:   BytesToHexString(block.Blockdata.NextBookKeeper.ToArrayReverse()),
 		Program: ProgramInfo{
@@ -112,13 +114,21 @@ func GetBlockInfo(block *ledger.Block) BlockInfo {
 	trans := make([]*Transactions, len(block.Transactions))
 	for i := 0; i < len(block.Transactions); i++ {
 		trans[i] = TransArryByteToHexString(block.Transactions[i])
+		trans[i].Timestamp = block.Blockdata.Timestamp
+		trans[i].Confirminations = ledger.DefaultLedger.Blockchain.GetBestHeight() - block.Blockdata.Height + 1
+		w := bytes.NewBuffer(nil)
+		block.Transactions[i].Serialize(w)
+		trans[i].TxSize = uint32(len(w.Bytes()))
+
 	}
 
+	coinbasePd := block.Transactions[0].Payload.(*payload.CoinBase)
 	b := BlockInfo{
 		Hash:            BytesToHexString(hash.ToArrayReverse()),
 		BlockData:       blockHead,
 		Transactions:    trans,
-		Confirminations: ledger.DefaultLedger.Blockchain.BlockHeight - block.Blockdata.Height + 1,
+		Confirminations: ledger.DefaultLedger.Blockchain.GetBestHeight() - block.Blockdata.Height + 1,
+		MinerInfo:       string(coinbasePd.CoinbaseData),
 	}
 	return b
 }
@@ -427,9 +437,22 @@ func GetTransactionByHash(cmd map[string]interface{}) map[string]interface{} {
 		resp["Result"] = BytesToHexString(w.Bytes())
 		return resp
 	}
+	bHash, err := ledger.DefaultLedger.Store.GetBlockHash(height)
+	if err != nil {
+		resp["Error"] = Err.UNKNOWN_BLOCK
+		return resp
+	}
+	header, err := ledger.DefaultLedger.Store.GetHeader(bHash)
+	if err != nil {
+		resp["Error"] = Err.UNKNOWN_BLOCK
+		return resp
+	}
 	t := TransArryByteToHexString(txn)
-	t.Timestamp = 123
-	t.Confirminations = ledger.DefaultLedger.Blockchain.BlockHeight - height + 1
+	t.Timestamp = header.Blockdata.Timestamp
+	t.Confirminations = ledger.DefaultLedger.Blockchain.GetBestHeight() - height + 1
+	w := bytes.NewBuffer(nil)
+	txn.Serialize(w)
+	t.TxSize = uint32(len(w.Bytes()))
 
 	resp["Result"] = t
 	return resp

@@ -87,7 +87,12 @@ func (pow *PowService) CreateCoinbaseTrx(nextBlockHeight uint32, addr string) (*
 	if err != nil {
 		return nil, err
 	}
-	txn, err := tx.NewCoinBaseTransaction(&payload.CoinBase{}, ledger.DefaultLedger.Blockchain.GetBestHeight()+1)
+
+	pd := &payload.CoinBase{
+		CoinbaseData: []byte(config.Parameters.PowConfiguration.MinerInfo),
+	}
+
+	txn, err := tx.NewCoinBaseTransaction(pd, ledger.DefaultLedger.Blockchain.GetBestHeight()+1)
 	if err != nil {
 		return nil, err
 	}

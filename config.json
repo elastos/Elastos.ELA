@@ -45,7 +45,8 @@
     "TestNet":true,
     "Proxy":"tcp://*:8888",
     "CoMining":false,
-    "AutoMining": true
+    "AutoMining": true,
+    "MinerInfo": "ELA"
     }
   }
 }

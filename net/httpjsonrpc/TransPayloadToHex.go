@@ -64,6 +64,10 @@ type DataFileInfo struct {
 	Issuer   IssuerInfo
 }
 
+type CoinbaseInfo struct {
+	CoinbaseData string
+}
+
 type PrivacyPayloadInfo struct {
 	PayloadType uint8
 	Payload     string
@@ -134,6 +138,10 @@ func TransPayloadToHex(p Payload) PayloadInfo {
 		obj.Note = object.Note
 		obj.Issuer.X = object.Issuer.X.String()
 		obj.Issuer.Y = object.Issuer.Y.String()
+		return obj
+	case *payload.CoinBase:
+		obj := new(CoinbaseInfo)
+		obj.CoinbaseData = string(object.CoinbaseData)
 		return obj
 	}
 	return nil

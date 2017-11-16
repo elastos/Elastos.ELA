@@ -2,6 +2,7 @@ package httpjsonrpc
 
 import (
 	"DNA_POW/core/ledger"
+	"DNA_POW/core/transaction/payload"
 	"bytes"
 	"encoding/base64"
 	"encoding/hex"
@@ -47,10 +48,21 @@ func TransArryByteToHexString(ptx *tx.Transaction) *Transactions {
 	}
 
 	n = 0
+	isCoinbase := ptx.IsCoinBaseTx()
+	reference, _ := ptx.GetReference()
 	trans.UTXOInputs = make([]UTXOTxInputInfo, len(ptx.UTXOInputs))
 	for _, v := range ptx.UTXOInputs {
 		trans.UTXOInputs[n].ReferTxID = BytesToHexString(v.ReferTxID.ToArrayReverse())
 		trans.UTXOInputs[n].ReferTxOutputIndex = v.ReferTxOutputIndex
+		trans.UTXOInputs[n].Sequence = v.Sequence
+		if isCoinbase {
+			trans.UTXOInputs[n].Address = ""
+			trans.UTXOInputs[n].Value = ""
+		} else {
+			prevOutput := reference[v]
+			trans.UTXOInputs[n].Address, _ = prevOutput.ProgramHash.ToAddress()
+			trans.UTXOInputs[n].Value = prevOutput.Value.String()
+		}
 		n++
 	}
 
@@ -94,6 +106,8 @@ func TransArryByteToHexString(ptx *tx.Transaction) *Transactions {
 		}
 		n += 1
 	}
+
+	trans.LockTime = ptx.LockTime
 
 	n = 0
 	trans.AssetInputAmount = make([]AmountMap, len(ptx.AssetInputAmount))
@@ -169,7 +183,9 @@ func getBlock(params []interface{}) map[string]interface{} {
 		PrevBlockHash:    BytesToHexString(block.Blockdata.PrevBlockHash.ToArrayReverse()),
 		TransactionsRoot: BytesToHexString(block.Blockdata.TransactionsRoot.ToArrayReverse()),
 		Timestamp:        block.Blockdata.Timestamp,
+		Bits:             block.Blockdata.Bits,
 		Height:           block.Blockdata.Height,
+		Nonce:            block.Blockdata.Nonce,
 		ConsensusData:    block.Blockdata.ConsensusData,
 		NextBookKeeper:   BytesToHexString(block.Blockdata.NextBookKeeper.ToArrayReverse()),
 		Program: ProgramInfo{
@@ -182,12 +198,21 @@ func getBlock(params []interface{}) map[string]interface{} {
 	trans := make([]*Transactions, len(block.Transactions))
 	for i := 0; i < len(block.Transactions); i++ {
 		trans[i] = TransArryByteToHexString(block.Transactions[i])
+		trans[i].Timestamp = block.Blockdata.Timestamp
+		trans[i].Confirminations = ledger.DefaultLedger.Blockchain.GetBestHeight() - block.Blockdata.Height + 1
+		w := bytes.NewBuffer(nil)
+		block.Transactions[i].Serialize(w)
+		trans[i].TxSize = uint32(len(w.Bytes()))
+
 	}
 
+	coinbasePd := block.Transactions[0].Payload.(*payload.CoinBase)
 	b := BlockInfo{
-		Hash:         BytesToHexString(hash.ToArrayReverse()),
-		BlockData:    blockHead,
-		Transactions: trans,
+		Hash:            BytesToHexString(hash.ToArrayReverse()),
+		BlockData:       blockHead,
+		Transactions:    trans,
+		Confirminations: ledger.DefaultLedger.Blockchain.GetBestHeight() - block.Blockdata.Height + 1,
+		MinerInfo:       string(coinbasePd.CoinbaseData),
 	}
 	return DnaRpc(b)
 }
@@ -249,11 +274,25 @@ func getRawTransaction(params []interface{}) map[string]interface{} {
 		if err != nil {
 			return DnaRpcInvalidTransaction
 		}
-		tx, _, err := ledger.DefaultLedger.Store.GetTransaction(hash)
+		tx, height, err := ledger.DefaultLedger.Store.GetTransaction(hash)
+		if err != nil {
+			return DnaRpcUnknownTransaction
+		}
+		bHash, err := ledger.DefaultLedger.Store.GetBlockHash(height)
+		if err != nil {
+			return DnaRpcUnknownTransaction
+		}
+		header, err := ledger.DefaultLedger.Store.GetHeader(bHash)
 		if err != nil {
 			return DnaRpcUnknownTransaction
 		}
 		tran := TransArryByteToHexString(tx)
+		tran.Timestamp = header.Blockdata.Timestamp
+		tran.Confirminations = ledger.DefaultLedger.Blockchain.GetBestHeight() - height + 1
+		w := bytes.NewBuffer(nil)
+		tx.Serialize(w)
+		tran.TxSize = uint32(len(w.Bytes()))
+
 		return DnaRpc(tran)
 	default:
 		return DnaRpcInvalidParameter
@@ -533,14 +572,14 @@ func getInfo(params []interface{}) map[string]interface{} {
 		Timeoffset      int    `json:"timeoffset"`
 		Connections     uint   `json:"connections"`
 		Proxy           string `json:"proxy"`
-		Difficulty      int    `json:"difficulty"`
-		Testnet         bool   `json:"testnet"`
-		Keypoololdest   int    `json:"keypoololdest"`
-		Keypoolsize     int    `json:"keypoolsize"`
-		Unlocked_until  int    `json:"unlocked_until"`
-		Paytxfee        int    `json:"paytxfee"`
-		Relayfee        int    `json:"relayfee"`
-		Errors          string `json:"errors"`
+		//Difficulty      int    `json:"difficulty"`
+		Testnet        bool   `json:"testnet"`
+		Keypoololdest  int    `json:"keypoololdest"`
+		Keypoolsize    int    `json:"keypoolsize"`
+		Unlocked_until int    `json:"unlocked_until"`
+		Paytxfee       int    `json:"paytxfee"`
+		Relayfee       int    `json:"relayfee"`
+		Errors         string `json:"errors"`
 	}{
 		Version:         config.Parameters.Version,
 		ProtocolVersion: config.Parameters.PowConfiguration.ProtocolVersion,
@@ -550,14 +589,14 @@ func getInfo(params []interface{}) map[string]interface{} {
 		Timeoffset:      0,
 		Connections:     node.GetConnectionCnt(),
 		Proxy:           config.Parameters.PowConfiguration.Proxy,
-		Difficulty:      ledger.PowLimitBits,
-		Testnet:         config.Parameters.PowConfiguration.TestNet,
-		Keypoololdest:   0,
-		Keypoolsize:     0,
-		Unlocked_until:  0,
-		Paytxfee:        0,
-		Relayfee:        0,
-		Errors:          "Tobe written"}
+		//Difficulty:      ledger.PowLimitBits,
+		Testnet:        config.Parameters.PowConfiguration.TestNet,
+		Keypoololdest:  0,
+		Keypoolsize:    0,
+		Unlocked_until: 0,
+		Paytxfee:       0,
+		Relayfee:       0,
+		Errors:         "Tobe written"}
 	return DnaRpc(&RetVal)
 }
 
@@ -1016,4 +1055,53 @@ func discreteCpuMining(params []interface{}) map[string]interface{} {
 	}
 
 	return DnaRpc(ret)
+}
+
+func getUnspendOutput(params []interface{}) map[string]interface{} {
+	if len(params) < 1 {
+		return DnaRpcNil
+	}
+	var programHash Uint160
+	var assetHash Uint256
+
+	switch params[0].(type) {
+	case string:
+		addr := params[0].(string)
+		var err error
+		programHash, err = ToScriptHash(addr)
+		if err != nil {
+			return DnaRpcInvalidParameter
+		}
+	default:
+		return DnaRpcInvalidParameter
+	}
+
+	switch params[1].(type) {
+	case string:
+		assetid := params[1].(string)
+		bys, err := HexStringToBytesReverse(assetid)
+		if err != nil {
+			return DnaRpcInvalidParameter
+		}
+		if err := assetHash.Deserialize(bytes.NewReader(bys)); err != nil {
+			return DnaRpcInvalidParameter
+		}
+	default:
+		return DnaRpcInvalidParameter
+	}
+
+	type UTXOUnspentInfo struct {
+		Txid  string
+		Index uint32
+		Value string
+	}
+	infos, err := ledger.DefaultLedger.Store.GetUnspentFromProgramHash(programHash, assetHash)
+	if err != nil {
+		return DnaRpcInvalidParameter
+	}
+	var UTXOoutputs []UTXOUnspentInfo
+	for _, v := range infos {
+		UTXOoutputs = append(UTXOoutputs, UTXOUnspentInfo{Txid: BytesToHexString(v.Txid.ToArrayReverse()), Index: v.Index, Value: v.Value.String()})
+	}
+	return DnaRpc(UTXOoutputs)
 }

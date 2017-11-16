@@ -91,7 +91,7 @@ func CheckTransactionContext(txn *tx.Transaction, ledger *Ledger) ErrCode {
 	for _, input := range txn.UTXOInputs {
 		referHash := input.ReferTxID
 		referTxnOutIndex := input.ReferTxOutputIndex
-		referTxn, err := ledger.Store.GetTransaction(referHash)
+		referTxn, _, err := ledger.Store.GetTransaction(referHash)
 		if err != nil {
 			log.Warn("Referenced transaction can not be found", common.BytesToHexString(referHash.ToArray()))
 			return ErrUnknownReferedTxn

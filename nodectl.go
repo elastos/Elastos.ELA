@@ -10,6 +10,7 @@ import (
 	. "DNA_POW/cli/common"
 	"DNA_POW/cli/data"
 	"DNA_POW/cli/debug"
+	"DNA_POW/cli/dnatst"
 	"DNA_POW/cli/info"
 	"DNA_POW/cli/mining"
 	"DNA_POW/cli/privpayload"
@@ -48,6 +49,7 @@ func main() {
 		*bookkeeper.NewCommand(),
 		*recover.NewCommand(),
 		*mining.NewCommand(),
+		*dnatst.NewCommand(),
 	}
 	sort.Sort(cli.CommandsByName(app.Commands))
 	sort.Sort(cli.FlagsByName(app.Flags))

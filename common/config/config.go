@@ -32,6 +32,7 @@ type PowConfiguration struct {
 	TargetTimeSpan     int64  `json:"TargetTimeSpan"`
 	TargetTimePerBlock int64  `json:"TargetTimePerBlock"`
 	PowLimitBits       uint32 `json:"PowLimitBits"`
+	SpendCoinbaseSpan  uint32 `json:"SpendCoinbaseSpan"`
 }
 
 type Configuration struct {

@@ -1,6 +1,7 @@
 package ledger
 
 import (
+	"DNA_POW/common/config"
 	"errors"
 	"fmt"
 	"math"
@@ -105,7 +106,7 @@ func CheckTransactionContext(txn *tx.Transaction, ledger *Ledger) ErrCode {
 		if referTxn.IsCoinBaseTx() {
 			lockHeight := referTxn.LockTime
 			currentHeight := ledger.Store.GetHeight()
-			if currentHeight-lockHeight < SpendCoinbaseSpan {
+			if currentHeight-lockHeight < config.Parameters.PowConfiguration.SpendCoinbaseSpan {
 				return ErrIneffectiveCoinbase
 			}
 		}

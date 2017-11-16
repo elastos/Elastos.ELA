@@ -41,4 +41,6 @@ imports:
   version: e8a5890cfc9d59a203361237581468780d945b6e
 - name: github.com/pebbe/zmq4
   version: 90d69e412a09549f2e90bac70fbb449081f1e5c1
+- name: github.com/yuin/gopher-lua
+  version: 609c9cd2697344dec90fe0543c6493e3b8da3435
 testImports: []

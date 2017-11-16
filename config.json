@@ -48,8 +48,8 @@
     "MinerInfo": "ELA",
     "TargetTimeSpan": 10,
     "TargetTimePerBlock": 1,
-    "PowLimitBits": 545259519
-
+    "PowLimitBits": 545259519,
+	"SpendCoinbaseSpan" : 100
     }
   }
 }

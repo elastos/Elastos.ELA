@@ -154,8 +154,6 @@ func main() {
 	if config.Parameters.HttpInfoStart {
 		go httpnodeinfo.StartServer(noder)
 	}
-
-
 	select {}
 ERROR:
 	os.Exit(1)

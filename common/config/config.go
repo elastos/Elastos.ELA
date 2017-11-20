@@ -3,7 +3,6 @@ package config
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
@@ -95,6 +94,4 @@ func init() {
 		os.Exit(1)
 	}
 	Parameters = &(config.ConfigFile)
-	fmt.Println(" Parameters.AddCheckpoints ", Parameters.AddCheckpoints)
-
 }

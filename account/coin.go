@@ -1,47 +1,38 @@
 package account
 
 import (
-	"DNA_POW/core/transaction"
 	"io"
+
+	"DNA_POW/core/transaction"
+	"DNA_POW/common/serialization"
+)
+type AddressType byte
+
+const (
+	SingleSign AddressType = 0
+	MultiSign  AddressType = 1
 )
 
-type CoinState byte
-
-//const (
-//	Unconfirmed     CoinState = 0
-//	Unspent         CoinState = 1
-//	Spending        CoinState = 2
-//	Spent           CoinState = 3
-//	SpentAndClaimed CoinState = 4
-//)
-
 type Coin struct {
-	//input  *transaction.UTXOTxInput
-	Output *transaction.TxOutput
-	//CoinState
+	Output      *transaction.TxOutput
+	AddressType AddressType
 }
 
-func (coin *Coin) Serialize(w io.Writer) error {
-	//coin.input.Serialize(w)
+func (coin *Coin) Serialize(w io.Writer, version string) error {
 	coin.Output.Serialize(w)
-	//w.Write([]byte{byte(coin.CoinState)})
+	w.Write([]byte{byte(coin.AddressType)})
+
 	return nil
 }
 
-func (coin *Coin) Deserialize(r io.Reader) error {
-	//coin.input = new(transaction.UTXOTxInput)
-	//if err := coin.input.Deserialize(r); err != nil {
-	//	return err
-	//}
-
+func (coin *Coin) Deserialize(r io.Reader, version string) error {
 	coin.Output = new(transaction.TxOutput)
 	coin.Output.Deserialize(r)
-	//
-	//state, err := serialization.ReadUint8(r)
-	//if err != nil {
-	//	return err
-	//}
-	//coin.CoinState = CoinState(state)
+	addrType, err := serialization.ReadUint8(r)
+	if err != nil {
+		return err
+	}
+	coin.AddressType = AddressType(addrType)
 
 	return nil
 }

@@ -45,8 +45,12 @@
     "TestNet":true,
     "Proxy":"tcp://*:8888",
     "CoMining":false,
-    "AutoMining": true,
-    "MinerInfo": "ELA"
+    "AutoMining": false,
+    "MinerInfo": "ELA",
+    "TargetTimeSpan": 10,
+    "TargetTimePerBlock": 1,
+    "PowLimitBits": 545259519
+
     }
   }
 }

@@ -2,6 +2,7 @@ package message
 
 import (
 	"DNA_POW/common"
+	"DNA_POW/common/config"
 	"DNA_POW/common/log"
 	"DNA_POW/core/ledger"
 	"DNA_POW/core/transaction"
@@ -107,7 +108,7 @@ func NewTxn(txn *transaction.Transaction) ([]byte, error) {
 	log.Debug()
 	var msg trn
 
-	msg.msgHdr.Magic = NETMAGIC
+	msg.msgHdr.Magic = config.Parameters.Magic
 	cmd := "tx"
 	copy(msg.msgHdr.CMD[0:len(cmd)], cmd)
 	tmpBuffer := bytes.NewBuffer([]byte{})

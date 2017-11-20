@@ -18,22 +18,25 @@ const (
 var Version string
 
 type PowConfiguration struct {
-	Switch           string `json:"Switch"`
-	PayToAddr        string `json:"PayToAddr"`
-	MiningServerIP   string `josn:"MiningServerIP"`
-	MiningServerPort int    `josn:"MiningServerPort"`
-	MiningSelfPort   int    `josn:"MiningSelfPort"`
-	WalletVersion    int    `json:"WalletVersion"`
-	ProtocolVersion  int    `json:"ProtocolVersion"`
-	TestNet          bool   `json:"testnet"`
-	Proxy            string `json:"Proxy"`
-	CoMining         bool   `json:"CoMining"`
-	AutoMining       bool   `json:"AutoMining"`
-	MinerInfo        string `json:"MinerInfo"`
+	Switch             string `json:"Switch"`
+	PayToAddr          string `json:"PayToAddr"`
+	MiningServerIP     string `josn:"MiningServerIP"`
+	MiningServerPort   int    `josn:"MiningServerPort"`
+	MiningSelfPort     int    `josn:"MiningSelfPort"`
+	WalletVersion      int    `json:"WalletVersion"`
+	ProtocolVersion    int    `json:"ProtocolVersion"`
+	TestNet            bool   `json:"testnet"`
+	Proxy              string `json:"Proxy"`
+	CoMining           bool   `json:"CoMining"`
+	AutoMining         bool   `json:"AutoMining"`
+	MinerInfo          string `json:"MinerInfo"`
+	TargetTimeSpan     int64  `json:"TargetTimeSpan"`
+	TargetTimePerBlock int64  `json:"TargetTimePerBlock"`
+	PowLimitBits       uint32 `json:"PowLimitBits"`
 }
 
 type Configuration struct {
-	Magic            int64            `json:"Magic"`
+	Magic            uint32           `json:"Magic"`
 	Version          int              `json:"Version"`
 	SeedList         []string         `json:"SeedList"`
 	BookKeepers      []string         `json:"BookKeepers"` // The default book keepers' publickey

@@ -1,6 +1,7 @@
 package message
 
 import (
+	"DNA_POW/common/config"
 	"DNA_POW/common/log"
 	. "DNA_POW/net/protocol"
 	"bytes"
@@ -49,7 +50,7 @@ func NewAddrs(nodeaddrs []NodeAddr, count uint64) ([]byte, error) {
 	var msg addr
 	msg.nodeAddrs = nodeaddrs
 	msg.nodeCnt = count
-	msg.hdr.Magic = NETMAGIC
+	msg.hdr.Magic = config.Parameters.Magic
 	cmd := "addr"
 	copy(msg.hdr.CMD[0:7], cmd)
 	p := new(bytes.Buffer)

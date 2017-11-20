@@ -2,6 +2,7 @@ package message
 
 import (
 	. "DNA_POW/common"
+	"DNA_POW/common/config"
 	"DNA_POW/common/log"
 	"DNA_POW/common/serialization"
 	"DNA_POW/core/ledger"
@@ -63,7 +64,7 @@ func ReqBlksHdrFromOthers(node Noder) {
 
 func NewBlocksReq(blocator []Uint256, hash Uint256) ([]byte, error) {
 	var msg blocksReq
-	msg.hdr.Magic = NETMAGIC
+	msg.hdr.Magic = config.Parameters.Magic
 	cmd := "getblocks"
 	copy(msg.hdr.CMD[0:len(cmd)], cmd)
 	tmpBuffer := bytes.NewBuffer([]byte{})
@@ -375,7 +376,7 @@ func NewInv(inv *InvPayload) ([]byte, error) {
 	msg.P.Blk = inv.Blk
 	msg.P.InvType = inv.InvType
 	msg.P.Cnt = inv.Cnt
-	msg.Hdr.Magic = NETMAGIC
+	msg.Hdr.Magic = config.Parameters.Magic
 	cmd := "inv"
 	copy(msg.Hdr.CMD[0:len(cmd)], cmd)
 	tmpBuffer := bytes.NewBuffer([]byte{})

@@ -2,6 +2,7 @@ package message
 
 import (
 	"DNA_POW/common"
+	"DNA_POW/common/config"
 	"DNA_POW/common/log"
 	"DNA_POW/core/ledger"
 	"DNA_POW/events"
@@ -189,7 +190,7 @@ func NewBlock(bk *ledger.Block) ([]byte, error) {
 	log.Debug()
 	var msg block
 	msg.blk = *bk
-	msg.msgHdr.Magic = NETMAGIC
+	msg.msgHdr.Magic = config.Parameters.Magic
 	cmd := "block"
 	copy(msg.msgHdr.CMD[0:len(cmd)], cmd)
 	tmpBuffer := bytes.NewBuffer([]byte{})
@@ -223,7 +224,7 @@ func ReqBlkData(node Noder, hash common.Uint256) error {
 	msg.dataType = common.BLOCK
 	msg.hash = hash
 
-	msg.msgHdr.Magic = NETMAGIC
+	msg.msgHdr.Magic = config.Parameters.Magic
 	copy(msg.msgHdr.CMD[0:7], "getdata")
 	p := bytes.NewBuffer([]byte{})
 	err := binary.Write(p, binary.LittleEndian, &(msg.dataType))

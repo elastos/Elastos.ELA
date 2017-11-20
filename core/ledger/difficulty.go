@@ -1,6 +1,7 @@
 package ledger
 
 import (
+	"DNA_POW/common/config"
 	"errors"
 	"math/big"
 	"time"
@@ -10,24 +11,16 @@ import (
 )
 
 var (
-	//TargetTimespan = time.Hour * 24 * 14 // 14 days
-	//TargetTimePerBlock = time.Minute * 10    // 10 minutes
-	TargetTimespan     = time.Second * 60 * 5
-	TargetTimePerBlock = time.Second * 30
-
-	targetTimespan     = int64(TargetTimespan / time.Second)
-	targetTimePerBlock = int64(TargetTimePerBlock / time.Second)
-	blocksPerRetarget  = uint32(targetTimespan / targetTimePerBlock)
+	blocksPerRetarget = uint32(config.Parameters.PowConfiguration.TargetTimeSpan / config.Parameters.PowConfiguration.TargetTimePerBlock)
 
 	adjustmentFactor    = int64(4) // 25% less, 400% more
-	minRetargetTimespan = int64(targetTimespan / adjustmentFactor)
-	maxRetargetTimespan = int64(targetTimespan * adjustmentFactor)
+	minRetargetTimespan = int64(config.Parameters.PowConfiguration.TargetTimeSpan / adjustmentFactor)
+	maxRetargetTimespan = int64(config.Parameters.PowConfiguration.TargetTimeSpan * adjustmentFactor)
 
 	// mainPowLimit is the highest proof of work value a Bitcoin block can
 	// have for the main network.  It is the value 2^224 - 1.
-	bigOne       = big.NewInt(1)
-	PowLimit     = new(big.Int).Sub(new(big.Int).Lsh(bigOne, 245), bigOne)
-	PowLimitBits = 0x1e01ffff
+	bigOne   = big.NewInt(1)
+	PowLimit = new(big.Int).Sub(new(big.Int).Lsh(bigOne, 255), bigOne)
 
 	//timeSource:          config.TimeSource,
 )
@@ -35,7 +28,7 @@ var (
 func CalcNextRequiredDifficulty(prevNode *BlockNode, newBlockTime time.Time) (uint32, error) {
 	// Genesis block.
 	if prevNode.Height == 0 {
-		return uint32(PowLimitBits), nil
+		return uint32(config.Parameters.PowConfiguration.PowLimitBits), nil
 	}
 
 	// Return the previous block's difficulty requirements if this block
@@ -72,8 +65,7 @@ func CalcNextRequiredDifficulty(prevNode *BlockNode, newBlockTime time.Time) (ui
 	// result.
 	oldTarget := CompactToBig(prevNode.Bits)
 	newTarget := new(big.Int).Mul(oldTarget, big.NewInt(adjustedTimespan))
-	targetTimeSpan := int64(TargetTimespan / time.Second)
-	newTarget.Div(newTarget, big.NewInt(targetTimeSpan))
+	newTarget.Div(newTarget, big.NewInt(config.Parameters.PowConfiguration.TargetTimeSpan))
 
 	// Limit new value to the proof of work limit.
 	if newTarget.Cmp(PowLimit) > 0 {
@@ -91,75 +83,10 @@ func CalcNextRequiredDifficulty(prevNode *BlockNode, newBlockTime time.Time) (ui
 	log.Tracef("Actual timespan %v, adjusted timespan %v, target timespan %v",
 		time.Duration(actualTimespan)*time.Second,
 		time.Duration(adjustedTimespan)*time.Second,
-		TargetTimespan)
+		config.Parameters.PowConfiguration.TargetTimeSpan)
 
 	return newTargetBits, nil
 }
-
-//func CalcNextRequiredDifficulty(block *ledger.Block, newBlockTime time.Time) (uint32, error) {
-//	// Genesis block.
-//	if block.Blockdata.Height == 0 {
-//		log.Trace("Difficulty not retarget at block height 1:", block.Blockdata.Height+1)
-//		return uint32(PowLimitBits), nil
-//	}
-//
-//	// Return the previous block's difficulty requirements if this block
-//	// is not at a difficulty retarget interval.
-//	if (block.Blockdata.Height+1)%blocksPerRetarget != 0 {
-//		// For the main network (or any unrecognized networks), simply
-//		// return the previous block's difficulty requirements.
-//		log.Trace("Difficulty not retarget at block height 2:", block.Blockdata.Height+1)
-//		return block.Blockdata.Bits, nil
-//	}
-//
-//	// Get the block node at the previous retarget (targetTimespan days
-//	// worth of blocks).
-//	firstBlock, err := ledger.DefaultLedger.GetBlockWithHeight(block.Blockdata.Height - blocksPerRetarget + 1)
-//	if err != nil {
-//		return 0, NewDetailErr(errors.New("[CalcNextRequiredDifficulty] error"), ErrNoCode, "[CalcNextRequiredDifficulty], unable to obtain previous retarget block.")
-//	}
-//
-//	// Limit the amount of adjustment that can occur to the previous
-//	// difficulty.
-//	actualTimespan := int64(block.Blockdata.Timestamp - firstBlock.Blockdata.Timestamp)
-//	adjustedTimespan := actualTimespan
-//	if actualTimespan < minRetargetTimespan {
-//		adjustedTimespan = minRetargetTimespan
-//	} else if actualTimespan > maxRetargetTimespan {
-//		adjustedTimespan = maxRetargetTimespan
-//	}
-//
-//	// Calculate new target difficulty as:
-//	//  currentDifficulty * (adjustedTimespan / targetTimespan)
-//	// The result uses integer division which means it will be slightly
-//	// rounded down.  Bitcoind also uses integer division to calculate this
-//	// result.
-//	oldTarget := CompactToBig(block.Blockdata.Bits)
-//	newTarget := new(big.Int).Mul(oldTarget, big.NewInt(adjustedTimespan))
-//	targetTimeSpan := int64(TargetTimespan / time.Second)
-//	newTarget.Div(newTarget, big.NewInt(targetTimeSpan))
-//
-//	// Limit new value to the proof of work limit.
-//	if newTarget.Cmp(PowLimit) > 0 {
-//		log.Trace("Difficulty not retarget at block height 3:", block.Blockdata.Height+1)
-//		newTarget.Set(PowLimit)
-//	}
-//
-//	// Log new target difficulty and return it.  The new target logging is
-//	// intentionally converting the bits back to a number instead of using
-//	// newTarget since conversion to the compact representation loses
-//	// precision.
-//	newTargetBits := BigToCompact(newTarget)
-//	log.Tracef("Difficulty retarget at block height %d", block.Blockdata.Height+1)
-//	log.Tracef("Old target %08x (%064x)", block.Blockdata.Bits, oldTarget)
-//	log.Tracef("New target %08x (%064x)", newTargetBits, CompactToBig(newTargetBits))
-//	log.Tracef("Actual timespan %v, adjusted timespan %v, target timespan %v",
-//		time.Duration(actualTimespan)*time.Second,
-//		time.Duration(adjustedTimespan)*time.Second,
-//		TargetTimespan)
-//
-//	return newTargetBits, nil
-//}
 
 func BigToCompact(n *big.Int) uint32 {
 	// No need to do any work if it's zero.

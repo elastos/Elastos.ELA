@@ -151,7 +151,7 @@ func (pow *PowService) GenerateBlock(addr string) (*ledger.Block, error) {
 		PrevBlockHash:    *ledger.DefaultLedger.Blockchain.BestChain.Hash,
 		TransactionsRoot: Uint256{},
 		Timestamp:        uint32(ledger.DefaultLedger.Blockchain.MedianAdjustedTime().Unix()),
-		Bits:             0x1d03ffff,
+		Bits:             config.Parameters.PowConfiguration.PowLimitBits,
 		Height:           nextBlockHeight,
 		Nonce:            0,
 		ConsensusData:    0,

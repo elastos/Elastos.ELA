@@ -2,6 +2,7 @@ package message
 
 import (
 	"DNA_POW/common"
+	"DNA_POW/common/config"
 	"DNA_POW/common/log"
 	. "DNA_POW/net/protocol"
 	"bytes"
@@ -19,7 +20,7 @@ func NewNotFound(hash common.Uint256) ([]byte, error) {
 	log.Debug()
 	var msg notFound
 	msg.hash = hash
-	msg.msgHdr.Magic = NETMAGIC
+	msg.msgHdr.Magic = config.Parameters.Magic
 	cmd := "notfound"
 	copy(msg.msgHdr.CMD[0:len(cmd)], cmd)
 	tmpBuffer := bytes.NewBuffer([]byte{})

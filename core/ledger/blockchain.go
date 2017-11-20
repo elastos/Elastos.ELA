@@ -25,7 +25,6 @@ const (
 var (
 	oneLsh256 = new(big.Int).Lsh(bigOne, 256)
 	zeroHash  = Uint256{}
-	powLimit  = new(big.Int).Sub(new(big.Int).Lsh(bigOne, 255), bigOne)
 )
 
 type Blockchain struct {
@@ -978,7 +977,7 @@ func (bc *Blockchain) ProcessBlock(block *Block, timeSource MedianTimeSource, fl
 	fmt.Printf("[ProcessBLock] orphan already exist= %v\n", exists)
 
 	// Perform preliminary sanity checks on the block and its transactions.
-	err = PowCheckBlockSanity(block, powLimit, bc.TimeSource)
+	err = PowCheckBlockSanity(block, PowLimit, bc.TimeSource)
 	if err != nil {
 		log.Error("PowCheckBlockSanity error!")
 		return false, false, err

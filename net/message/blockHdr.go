@@ -2,6 +2,7 @@ package message
 
 import (
 	"DNA_POW/common"
+	"DNA_POW/common/config"
 	"DNA_POW/common/log"
 	"DNA_POW/common/serialization"
 	"DNA_POW/core/ledger"
@@ -29,7 +30,7 @@ type blkHeader struct {
 
 func NewHeadersReq(startHash common.Uint256, stopHash common.Uint256) ([]byte, error) {
 	var msg headersReq
-	msg.hdr.Magic = NETMAGIC
+	msg.hdr.Magic = config.Parameters.Magic
 	cmd := "getheaders"
 	copy(msg.hdr.CMD[0:len(cmd)], cmd)
 	tmpBuffer := bytes.NewBuffer([]byte{})
@@ -376,7 +377,7 @@ func NewHeaders(headers []ledger.Header, count uint32) ([]byte, error) {
 	var msg blkHeader
 	msg.cnt = count
 	msg.blkHdr = headers
-	msg.hdr.Magic = NETMAGIC
+	msg.hdr.Magic = config.Parameters.Magic
 	cmd := "headers"
 	copy(msg.hdr.CMD[0:len(cmd)], cmd)
 

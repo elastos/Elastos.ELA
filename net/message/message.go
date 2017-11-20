@@ -1,6 +1,7 @@
 package message
 
 import (
+	"DNA_POW/common/config"
 	"DNA_POW/common/log"
 	. "DNA_POW/net/protocol"
 	"bytes"
@@ -217,7 +218,7 @@ func HandleNodeMsg(node Noder, buf []byte, len int) error {
 }
 
 func magicVerify(magic uint32) bool {
-	if magic != NETMAGIC {
+	if magic != config.Parameters.Magic {
 		return false
 	}
 	return true
@@ -264,7 +265,7 @@ func reverse(input []byte) []byte {
 }
 
 func (hdr *msgHdr) init(cmd string, checksum []byte, length uint32) {
-	hdr.Magic = NETMAGIC
+	hdr.Magic = config.Parameters.Magic
 	copy(hdr.CMD[0:uint32(len(cmd))], cmd)
 	copy(hdr.Checksum[:], checksum[:CHECKSUMLEN])
 	hdr.Length = length

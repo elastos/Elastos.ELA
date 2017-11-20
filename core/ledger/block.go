@@ -181,7 +181,7 @@ func GenesisBlockInit(defaultBookKeeper []*crypto.PubKey) (*Block, error) {
 		PrevBlockHash:    Uint256{},
 		TransactionsRoot: Uint256{},
 		Timestamp:        uint32(time.Unix(time.Date(2017, time.October, 1, 0, 0, 0, 0, time.UTC).Unix(), 0).Unix()),
-		Bits:             0x1d00ffff,
+		Bits:             config.Parameters.PowConfiguration.PowLimitBits,
 		Nonce:            uint32(0),
 		Height:           uint32(0),
 		ConsensusData:    GenesisNonce,

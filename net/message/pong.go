@@ -1,6 +1,7 @@
 package message
 
 import (
+	"DNA_POW/common/config"
 	"DNA_POW/common/log"
 	"DNA_POW/common/serialization"
 	"DNA_POW/core/ledger"
@@ -17,7 +18,7 @@ type pong struct {
 
 func NewPongMsg() ([]byte, error) {
 	var msg pong
-	msg.msgHdr.Magic = NETMAGIC
+	msg.msgHdr.Magic = config.Parameters.Magic
 	copy(msg.msgHdr.CMD[0:7], "pong")
 	msg.height = uint64(ledger.DefaultLedger.Store.GetHeight())
 	tmpBuffer := bytes.NewBuffer([]byte{})

@@ -71,7 +71,7 @@ func NewVersion(n Noder) ([]byte, error) {
 	// TODO the function to wrap below process
 	// msg.HDR.init("version", n.GetID(), uint32(len(p.Bytes())))
 
-	msg.Hdr.Magic = NETMAGIC
+	msg.Hdr.Magic = config.Parameters.Magic
 	copy(msg.Hdr.CMD[0:7], "version")
 	p := bytes.NewBuffer([]byte{})
 	err := binary.Write(p, binary.LittleEndian, &(msg.P))

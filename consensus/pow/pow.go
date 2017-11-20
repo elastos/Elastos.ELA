@@ -1,6 +1,7 @@
 package pow
 
 import (
+	"DNA_POW/net/protocol"
 	"encoding/binary"
 	"errors"
 	"math"
@@ -19,7 +20,7 @@ import (
 	"DNA_POW/core/transaction/payload"
 	"DNA_POW/crypto"
 	"DNA_POW/events"
-	"DNA_POW/net"
+	//	"DNA_POW/net"
 )
 
 var TaskCh chan bool
@@ -52,7 +53,7 @@ type PowService struct {
 	logDictionary  string
 	started        bool
 	discreteMining bool
-	localNet       net.Neter
+	localNet       protocol.Noder
 
 	blockPersistCompletedSubscriber events.Subscriber
 	RollbackTransactionSubscriber   events.Subscriber
@@ -367,10 +368,11 @@ func (pow *PowService) BlockPersistCompleted(v interface{}) {
 		if err != nil {
 			log.Warn(err)
 		}
+		pow.localNet.SetHeight(uint64(ledger.DefaultLedger.Blockchain.GetBestHeight()))
 	}
 }
 
-func NewPowService(client cl.Client, logDictionary string, localNet net.Neter) *PowService {
+func NewPowService(client cl.Client, logDictionary string, localNet protocol.Noder) *PowService {
 	pow := &PowService{
 		PayToAddr:      config.Parameters.PowConfiguration.PayToAddr,
 		Client:         client,

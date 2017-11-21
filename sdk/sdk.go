@@ -13,6 +13,7 @@ import (
 	"DNA_POW/core/contract"
 	"DNA_POW/core/signature"
 	"DNA_POW/core/transaction"
+	"DNA_POW/core/ledger"
 )
 
 type BatchOut struct {
@@ -38,14 +39,16 @@ func (sc sortedCoins) Less(i, j int) bool {
 	}
 }
 
-func sortCoinsByValue(coins map[*transaction.UTXOTxInput]*account.Coin) sortedCoins {
+func sortAvailableCoinsByValue(coins map[*transaction.UTXOTxInput]*account.Coin) sortedCoins {
 	var coinList sortedCoins
 	for in, c := range coins {
-		tmp := &sortedCoinsItem{
-			input: in,
-			coin:  c,
+		if c.Height <= ledger.DefaultLedger.Blockchain.GetBestHeight() {
+			tmp := &sortedCoinsItem{
+				input: in,
+				coin:  c,
+			}
+			coinList = append(coinList, tmp)
 		}
-		coinList = append(coinList, tmp)
 	}
 	sort.Sort(coinList)
 	return coinList
@@ -145,7 +148,7 @@ func MakeTransferTransaction(wallet account.Client, assetID Uint256, fee string,
 
 	// construct transaction inputs and changes
 	coins := wallet.GetCoins()
-	sorted := sortCoinsByValue(coins)
+	sorted := sortAvailableCoinsByValue(coins)
 	for _, coinItem := range sorted {
 		if coinItem.coin.Output.AssetID == assetID {
 			input = append(input, coinItem.input)
@@ -168,7 +171,7 @@ func MakeTransferTransaction(wallet account.Client, assetID Uint256, fee string,
 		}
 	}
 	if expected > 0 {
-		return nil, errors.New("token is not enough")
+		return nil, errors.New("available token is not enough")
 	}
 
 	// construct transaction

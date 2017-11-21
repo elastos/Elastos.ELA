@@ -472,33 +472,16 @@ func (node *node) SetBookKeeperAddr(pk *crypto.PubKey) {
 
 func (node *node) SyncNodeHeight() {
 	for {
-
 		log.Trace("BlockHeight is ", ledger.DefaultLedger.Blockchain.BlockHeight)
 		heights, _ := node.GetNeighborHeights()
 		log.Trace("others height is ", heights)
-		/*	finishSyncFromBestNode := false
-			if node.isFinishSyncFromSyncNode() == true {
-				log.Trace("node.isFinishSyncFromSyncNode() ", node.isFinishSyncFromSyncNode())
-				finishSyncFromBestNode = true
-				noders := node.local.GetNeighborNoder()
-				for _, n := range noders {
-					if n.IsSyncHeaders() == true {
-						n.SetSyncHeaders(false)
-					}
-				}
-			}
-		*/
+
 		if CompareHeight(uint64(ledger.DefaultLedger.Blockchain.BlockHeight), heights) {
 			node.local.SetSyncHeaders(false)
 
 			break
 		}
-		/*
-			if finishSyncFromBestNode == true {
-				//ReqBlkHdrFromOthers(node)
-				ReqBlksHdrFromOthers(node)
-			}
-		*/
+
 		<-time.After(5 * time.Second)
 	}
 }
@@ -781,6 +764,7 @@ func (node *node) GetBestHeightNoder() Noder {
 
 func (node *node) StartSync() {
 	needSync := node.needSync()
+	log.Info("needSync ", needSync)
 	if needSync == true {
 		currentBlkHeight := uint64(ledger.DefaultLedger.Blockchain.BlockHeight)
 		node.NextCheckpoint = node.FindNextHeaderCheckpoint(currentBlkHeight)
@@ -911,16 +895,14 @@ func newCheckpointFromStr(checkpoint string) (Checkpoint, error) {
 }
 
 func parseCheckpoints(checkpointStrings []string) ([]Checkpoint, error) {
-	log.Trace("checkpointStrings ", checkpointStrings)
+	log.Debug("checkpointStrings ", checkpointStrings)
 	if len(checkpointStrings) == 0 {
-		log.Trace("!@$#$%$^# len(checkpointStrings) ")
 		return nil, nil
 	}
 	checkpoints := make([]Checkpoint, len(checkpointStrings))
 	for i, cpString := range checkpointStrings {
 		checkpoint, err := newCheckpointFromStr(cpString)
 		if err != nil {
-			log.Trace("@!#@$%$ err ", err)
 			return nil, err
 		}
 		checkpoints[i] = checkpoint

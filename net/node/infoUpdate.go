@@ -59,6 +59,7 @@ func (node *node) SyncBlks() {
 		return
 	}
 	needSync := node.needSync()
+	log.Debug("needSync: ", needSync)
 	if needSync == false {
 		node.local.SetSyncHeaders(false)
 		syncNode, err := node.FindSyncNode()
@@ -80,10 +81,22 @@ func (node *node) SyncBlks() {
 			}
 		} else {
 			rb := syncNode.GetRequestBlockList()
-			for k := range rb {
-				if rb[k].Before(time.Now().Add(-3 * time.Second)) {
-					log.Debug("request block hash ", k)
-					ReqBlkData(syncNode, k)
+			if len(rb) == 0 {
+				newSyncNode := node.GetBestHeightNoder()
+				hash := ledger.DefaultLedger.Store.GetCurrentBlockHash()
+				if node.LocalNode().GetHeaderFisrtModeStatus() {
+					SendMsgSyncHeaders(newSyncNode, hash)
+				} else {
+					blocator := ledger.DefaultLedger.Blockchain.BlockLocatorFromHash(&hash)
+					var emptyHash common.Uint256
+					SendMsgSyncBlockHeaders(newSyncNode, blocator, emptyHash)
+				}
+			} else {
+				for k := range rb {
+					if rb[k].Before(time.Now().Add(-3 * time.Second)) {
+						log.Info("request block hash ", k)
+						ReqBlkData(syncNode, k)
+					}
 				}
 			}
 		}

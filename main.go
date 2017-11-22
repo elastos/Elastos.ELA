@@ -141,6 +141,7 @@ func main() {
 	log.Info("3. Start the P2P networks")
 	noder = net.StartProtocol(acct.PublicKey)
 	httpjsonrpc.RegistRpcNode(noder)
+	time.Sleep(10 * time.Second)
 	noder.StartSync()
 	noder.SyncNodeHeight()
 	if !startConsensus(client, noder) {

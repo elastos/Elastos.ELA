@@ -287,7 +287,6 @@ func parseBlockMsg(resp []byte) *ledger.Block {
 		Height:           uint32(height),
 		Nonce:            uint32(nonce),
 		ConsensusData:    0,
-		NextBookKeeper:   Uint160{},
 		AuxPow:           auxpow.AuxPow{},
 		Program:          &program.Program{},
 	}

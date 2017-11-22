@@ -8,7 +8,6 @@ import (
 	"DNA_POW/account"
 	"DNA_POW/common/config"
 	"DNA_POW/common/log"
-	"DNA_POW/consensus/dbft"
 	"DNA_POW/consensus/pow"
 	"DNA_POW/core/ledger"
 	"DNA_POW/core/store/ChainStore"
@@ -40,14 +39,10 @@ func init() {
 
 func handleLogFile(consensus string) {
 	switch consensus {
-
 	case "pow":
-		/* TODO */
-		fallthrough
-	case "dbft":
 		go func() {
 			for {
-				time.Sleep(dbft.GenBlockTime)
+				time.Sleep(6 * time.Second)
 				log.Trace("BlockHeight = ", ledger.DefaultLedger.Blockchain.BlockHeight)
 				//ledger.DefaultLedger.Blockchain.DumpState()
 				isNeedNewFile := log.CheckIfNeedNewFile()
@@ -79,14 +74,6 @@ func startConsensus(client account.Client, noder protocol.Noder) bool {
 			handleLogFile("pow")
 			time.Sleep(5 * time.Second)
 			return true
-		} else if config.Parameters.ConsensusType == "dbft" {
-			log.Info("5. Start DBFT Services")
-			dbftServices := dbft.NewDbftService(client, "logdbft", noder)
-			httpjsonrpc.RegistDbftService(dbftServices)
-			go dbftServices.Start()
-			handleLogFile("dbft")
-			time.Sleep(5 * time.Second)
-			return true
 		} else {
 			log.Fatal("Start consensus ERROR,consensusType is: ", config.Parameters.ConsensusType)
 			return false
@@ -102,11 +89,6 @@ func main() {
 	var err error
 	var noder protocol.Noder
 	log.Trace("Node version: ", config.Version)
-	if len(config.Parameters.BookKeepers) < account.DefaultBookKeeperCount {
-		log.Fatal("At least ", account.DefaultBookKeeperCount, " BookKeepers should be set at config.json")
-		os.Exit(1)
-	}
-
 	log.Info("1. BlockChain init")
 	ledger.DefaultLedger = new(ledger.Ledger)
 	ledger.DefaultLedger.Store, err = ChainStore.NewLedgerStore()
@@ -118,8 +100,7 @@ func main() {
 	ledger.DefaultLedger.Store.InitLedgerStore(ledger.DefaultLedger)
 	transaction.TxStore = ledger.DefaultLedger.Store
 	crypto.SetAlg(config.Parameters.EncryptAlg)
-	ledger.StandbyBookKeepers = account.GetBookKeepers()
-	_, err = ledger.NewBlockchainWithGenesisBlock(ledger.StandbyBookKeepers)
+	_, err = ledger.NewBlockchainWithGenesisBlock()
 	if err != nil {
 		log.Fatal(err, "BlockChain generate failed")
 		goto ERROR

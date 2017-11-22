@@ -39,7 +39,6 @@ type Configuration struct {
 	Magic            uint32           `json:"Magic"`
 	Version          int              `json:"Version"`
 	SeedList         []string         `json:"SeedList"`
-	BookKeepers      []string         `json:"BookKeepers"` // The default book keepers' publickey
 	HttpRestPort     int              `json:"HttpRestPort"`
 	RestCertPath     string           `json:"RestCertPath"`
 	RestKeyPath      string           `json:"RestKeyPath"`

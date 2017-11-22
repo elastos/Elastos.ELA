@@ -3,7 +3,6 @@ package httpjsonrpc
 import (
 	. "DNA_POW/common"
 	"DNA_POW/common/log"
-	"DNA_POW/consensus/dbft"
 	"DNA_POW/consensus/pow"
 	. "DNA_POW/core/transaction"
 	tx "DNA_POW/core/transaction"
@@ -25,7 +24,6 @@ func init() {
 //an instance of the multiplexer
 var mainMux ServeMux
 var node Noder
-var dBFT *dbft.DbftService
 var Pow *pow.PowService
 
 //multiplexer that keeps track of every function to be called on specific rpc call
@@ -104,7 +102,6 @@ type BlockHead struct {
 	Height           uint32
 	Nonce            uint32
 	ConsensusData    uint64
-	NextBookKeeper   string
 	//AuxPow           AuxPowInfo
 	Program ProgramInfo
 
@@ -157,12 +154,6 @@ func RegistRpcNode(n Noder) {
 func RegistPowService(p *pow.PowService) {
 	if Pow == nil {
 		Pow = p
-	}
-}
-
-func RegistDbftService(d *dbft.DbftService) {
-	if dBFT == nil {
-		dBFT = d
 	}
 }
 

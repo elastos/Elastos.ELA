@@ -156,7 +156,6 @@ func (pow *PowService) GenerateBlock(addr string) (*ledger.Block, error) {
 		Height:           nextBlockHeight,
 		Nonce:            0,
 		ConsensusData:    0,
-		NextBookKeeper:   Uint160{},
 		AuxPow:           auxpow.AuxPow{},
 		Program:          &program.Program{},
 	}

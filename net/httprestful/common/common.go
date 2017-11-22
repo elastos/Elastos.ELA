@@ -103,7 +103,6 @@ func GetBlockInfo(block *ledger.Block) BlockInfo {
 		Height:           block.Blockdata.Height,
 		Nonce:            block.Blockdata.Nonce,
 		ConsensusData:    block.Blockdata.ConsensusData,
-		NextBookKeeper:   BytesToHexString(block.Blockdata.NextBookKeeper.ToArrayReverse()),
 		Program: ProgramInfo{
 			Code:      BytesToHexString(block.Blockdata.Program.Code),
 			Parameter: BytesToHexString(block.Blockdata.Program.Parameter),

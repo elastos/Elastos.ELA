@@ -40,7 +40,7 @@ type ILedgerStore interface {
 	RemoveHeaderListElement(hash Uint256)
 
 	GetBookKeeperList() ([]*crypto.PubKey, []*crypto.PubKey, error)
-	InitLedgerStoreWithGenesisBlock(genesisblock *Block, defaultBookKeeper []*crypto.PubKey) (uint32, error)
+	InitLedgerStoreWithGenesisBlock(genesisblock *Block) (uint32, error)
 
 	GetUnspent(txid Uint256, index uint16) (*tx.TxOutput, error)
 	ContainsUnspent(txid Uint256, index uint16) (bool, error)

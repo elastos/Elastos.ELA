@@ -160,7 +160,7 @@ func (self *ChainStore) clearCache(b *Block) {
 	}
 }
 
-func (bd *ChainStore) InitLedgerStoreWithGenesisBlock(genesisBlock *Block, defaultBookKeeper []*crypto.PubKey) (uint32, error) {
+func (bd *ChainStore) InitLedgerStoreWithGenesisBlock(genesisBlock *Block) (uint32, error) {
 	prefix := []byte{byte(CFG_Version)}
 	version, err := bd.Get(prefix)
 	if err != nil {

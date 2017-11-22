@@ -4,14 +4,11 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"encoding/binary"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"math/rand"
 	"os"
 	"os/signal"
-	"sort"
-	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -678,15 +675,6 @@ func (client *ClientImpl) DeleteCoins() error {
 	return nil
 }
 
-func clientIsDefaultBookKeeper(publicKey string) bool {
-	for _, bookKeeper := range config.Parameters.BookKeepers {
-		if strings.Compare(bookKeeper, publicKey) == 0 {
-			return true
-		}
-	}
-	return false
-}
-
 func nodeType(typeName string) int {
 	if "service" == config.Parameters.NodeType {
 		return protocol.SERVICENODE
@@ -710,24 +698,6 @@ func GetClient() Client {
 		return nil
 	}
 	return c
-}
-
-func GetBookKeepers() []*crypto.PubKey {
-	var pubKeys = []*crypto.PubKey{}
-	sort.Strings(config.Parameters.BookKeepers)
-	for _, key := range config.Parameters.BookKeepers {
-		pubKey := []byte(key)
-		pubKey, err := hex.DecodeString(key)
-		// TODO Convert the key string to byte
-		k, err := crypto.DecodePoint(pubKey)
-		if err != nil {
-			log.Error("Incorrectly book keepers key")
-			return nil
-		}
-		pubKeys = append(pubKeys, k)
-	}
-
-	return pubKeys
 }
 
 func (client *ClientImpl) GetCoins() map[*transaction.UTXOTxInput]*Coin {

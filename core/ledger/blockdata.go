@@ -21,7 +21,6 @@ type Blockdata struct {
 	Height           uint32
 	Nonce            uint32
 	ConsensusData    uint64
-	NextBookKeeper   Uint160
 	AuxPow           auxpow.AuxPow
 	Program          *program.Program
 
@@ -49,7 +48,6 @@ func (bd *Blockdata) SerializeUnsigned(w io.Writer) error {
 	serialization.WriteUint32(w, bd.Nonce)
 	serialization.WriteUint32(w, bd.Height)
 	serialization.WriteUint64(w, bd.ConsensusData)
-	bd.NextBookKeeper.Serialize(w)
 	return nil
 }
 
@@ -121,33 +119,11 @@ func (bd *Blockdata) DeserializeUnsigned(r io.Reader) error {
 	//consensusData
 	bd.ConsensusData, _ = serialization.ReadUint64(r)
 
-	//NextBookKeeper
-	bd.NextBookKeeper.Deserialize(r)
-
 	return nil
 }
 
 func (bd *Blockdata) GetProgramHashes() ([]Uint160, error) {
-	programHashes := []Uint160{}
-	zero := Uint256{}
-
-	if bd.PrevBlockHash == zero {
-		pg := *bd.Program
-		outputHashes, err := ToCodeHash(pg.Code)
-		if err != nil {
-			return nil, NewDetailErr(err, ErrNoCode, "[Blockdata], GetProgramHashes failed.")
-		}
-		programHashes = append(programHashes, outputHashes)
-		return programHashes, nil
-	} else {
-		prev_header, err := DefaultLedger.Store.GetHeader(bd.PrevBlockHash)
-		if err != nil {
-			return programHashes, err
-		}
-		programHashes = append(programHashes, prev_header.Blockdata.NextBookKeeper)
-		return programHashes, nil
-	}
-
+	return nil, nil
 }
 
 func (bd *Blockdata) SetPrograms(programs []*program.Program) {

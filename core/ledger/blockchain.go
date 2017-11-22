@@ -3,8 +3,6 @@ package ledger
 import (
 	. "DNA_POW/common"
 	"DNA_POW/common/log"
-	tx "DNA_POW/core/transaction"
-	"DNA_POW/crypto"
 	. "DNA_POW/errors"
 	"DNA_POW/events"
 	"container/list"
@@ -67,8 +65,8 @@ func NewBlockchain(height uint32, ledger *Ledger) *Blockchain {
 	}
 }
 
-func NewBlockchainWithGenesisBlock(defaultBookKeeper []*crypto.PubKey) (*Blockchain, error) {
-	genesisBlock, err := GenesisBlockInit(defaultBookKeeper)
+func NewBlockchainWithGenesisBlock() (*Blockchain, error) {
+	genesisBlock, err := GenesisBlockInit()
 	if err != nil {
 		return nil, NewDetailErr(err, ErrNoCode, "[Blockchain], NewBlockchainWithGenesisBlock failed.")
 	}
@@ -79,8 +77,7 @@ func NewBlockchainWithGenesisBlock(defaultBookKeeper []*crypto.PubKey) (*Blockch
 	blockchain := NewBlockchain(0, DefaultLedger)
 	DefaultLedger.Blockchain = blockchain
 	DefaultLedger.Blockchain.AssetID = genesisBlock.Transactions[0].Outputs[0].AssetID
-	//DefaultLedger.Blockchain.AssetID = genesisBlock.Transactions[1].Hash()
-	height, err := DefaultLedger.Store.InitLedgerStoreWithGenesisBlock(genesisBlock, defaultBookKeeper)
+	height, err := DefaultLedger.Store.InitLedgerStoreWithGenesisBlock(genesisBlock)
 	if err != nil {
 		return nil, NewDetailErr(err, ErrNoCode, "[Blockchain], InitLevelDBStoreWithGenesisBlock failed.")
 	}
@@ -143,20 +140,6 @@ func (bc *Blockchain) ContainsTransaction(hash Uint256) bool {
 		return false
 	}
 	return true
-}
-
-func (bc *Blockchain) GetBookKeepersByTXs(others []*tx.Transaction) []*crypto.PubKey {
-	//TODO: GetBookKeepers()
-	//TODO: Just for TestUse
-
-	return StandbyBookKeepers
-}
-
-func (bc *Blockchain) GetBookKeepers() []*crypto.PubKey {
-	//TODO: GetBookKeepers()
-	//TODO: Just for TestUse
-
-	return StandbyBookKeepers
 }
 
 func (bc *Blockchain) CurrentBlockHash() Uint256 {

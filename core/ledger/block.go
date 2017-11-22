@@ -169,13 +169,7 @@ func (b *Block) Type() InventoryType {
 	return BLOCK
 }
 
-func GenesisBlockInit(defaultBookKeeper []*crypto.PubKey) (*Block, error) {
-	//getBookKeeper
-	nextBookKeeper, err := GetBookKeeperAddress(defaultBookKeeper)
-	if err != nil {
-		return nil, NewDetailErr(err, ErrNoCode, "[Block],GenesisBlockInit err with GetBookKeeperAddress")
-	}
-	//blockdata
+func GenesisBlockInit() (*Block, error) {
 	genesisBlockdata := &Blockdata{
 		Version:          BlockVersion,
 		PrevBlockHash:    Uint256{},
@@ -185,7 +179,6 @@ func GenesisBlockInit(defaultBookKeeper []*crypto.PubKey) (*Block, error) {
 		Nonce:            uint32(0),
 		Height:           uint32(0),
 		ConsensusData:    GenesisNonce,
-		NextBookKeeper:   nextBookKeeper,
 		Program: &program.Program{
 			Code:      []byte{},
 			Parameter: []byte{byte(vm.PUSHT)},
@@ -208,7 +201,7 @@ func GenesisBlockInit(defaultBookKeeper []*crypto.PubKey) (*Block, error) {
 				AssetType: 0x00,
 			},
 			Amount:     0 * 100000000,
-			Issuer:     defaultBookKeeper[0],
+			//Issuer:     ,
 			Controller: admin,
 		},
 		Attributes: []*tx.TxAttribute{},

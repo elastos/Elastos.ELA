@@ -13,32 +13,8 @@ import (
 	"github.com/urfave/cli"
 )
 
-var (
-	Ip   string
-	Port string
-)
-
-func NewIpFlag() cli.Flag {
-	return cli.StringFlag{
-		Name:        "ip",
-		Usage:       "node's ip address",
-		Value:       "localhost",
-		Destination: &Ip,
-	}
-}
-
-func NewPortFlag() cli.Flag {
-	return cli.StringFlag{
-		Name:        "port",
-		Usage:       "node's RPC port",
-		Value:       strconv.Itoa(config.Parameters.HttpJsonPort),
-		Destination: &Port,
-	}
-}
-
 func Address() string {
-	address := "http://" + Ip + ":" + Port
-	return address
+	return "http://localhost" + ":" + strconv.Itoa(config.Parameters.HttpJsonPort)
 }
 
 func PrintError(c *cli.Context, err error, cmd string) {

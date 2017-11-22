@@ -16,10 +16,6 @@ import (
 	. "DNA_POW/errors"
 )
 
-const (
-	SpendCoinbaseSpan = 100
-)
-
 // CheckTransactionSanity verifys received single transaction
 func CheckTransactionSanity(txn *tx.Transaction) ErrCode {
 	if err := CheckTransactionSize(txn); err != nil {

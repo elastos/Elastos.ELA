@@ -102,7 +102,6 @@ type BlockHead struct {
 	Height           uint32
 	Nonce            uint32
 	//AuxPow           AuxPowInfo
-	Program ProgramInfo
 
 	Hash string
 }

@@ -18,7 +18,6 @@ import (
 	"DNA_POW/core/transaction/payload"
 	"DNA_POW/crypto"
 	. "DNA_POW/errors"
-	"DNA_POW/vm"
 )
 
 const (
@@ -178,10 +177,6 @@ func GenesisBlockInit() (*Block, error) {
 		Bits:             0x1d03ffff,
 		Nonce:            GenesisNonce,
 		Height:           uint32(0),
-		Program: &program.Program{
-			Code:      []byte{},
-			Parameter: []byte{byte(vm.PUSHT)},
-		},
 	}
 
 	//transaction

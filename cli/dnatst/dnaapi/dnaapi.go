@@ -10,7 +10,6 @@ import (
 	. "DNA_POW/cli/common"
 	. "DNA_POW/common"
 	"DNA_POW/core/auxpow"
-	"DNA_POW/core/contract/program"
 	"DNA_POW/core/ledger"
 	tx "DNA_POW/core/transaction"
 	"DNA_POW/net/httpjsonrpc"
@@ -282,7 +281,6 @@ func parseBlockMsg(resp []byte) *ledger.Block {
 		Height:           uint32(height),
 		Nonce:            uint32(nonce),
 		AuxPow:           auxpow.AuxPow{},
-		Program:          &program.Program{},
 	}
 
 	b := &ledger.Block{

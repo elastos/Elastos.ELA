@@ -31,9 +31,6 @@ func (bd *Blockdata) Serialize(w io.Writer) {
 	bd.SerializeUnsigned(w)
 	bd.AuxPow.Serialize(w)
 	w.Write([]byte{byte(1)})
-	if bd.Program != nil {
-		bd.Program.Serialize(w)
-	}
 }
 
 //Serialize the blockheader data without program
@@ -55,7 +52,7 @@ func (bd *Blockdata) Deserialize(r io.Reader) error {
 	bd.DeserializeUnsigned(r)
 	bd.AuxPow.Deserialize(r)
 	p := make([]byte, 1)
-	n, err := r.Read(p)
+	n, _ := r.Read(p)
 	if n > 0 {
 		x := []byte(p[:])
 
@@ -66,12 +63,6 @@ func (bd *Blockdata) Deserialize(r io.Reader) error {
 		return NewDetailErr(errors.New("Blockdata Deserialize get format error."), ErrNoCode, "")
 	}
 
-	pg := new(program.Program)
-	err = pg.Deserialize(r)
-	if err != nil {
-		return NewDetailErr(err, ErrNoCode, "Blockdata item Program Deserialize failed.")
-	}
-	bd.Program = pg
 	return nil
 }
 
@@ -123,14 +114,10 @@ func (bd *Blockdata) GetProgramHashes() ([]Uint160, error) {
 }
 
 func (bd *Blockdata) SetPrograms(programs []*program.Program) {
-	if len(programs) != 1 {
-		return
-	}
-	bd.Program = programs[0]
 }
 
 func (bd *Blockdata) GetPrograms() []*program.Program {
-	return []*program.Program{bd.Program}
+	return nil
 }
 
 func (bd *Blockdata) Hash() Uint256 {

@@ -930,10 +930,7 @@ func (bd *ChainStore) GetHeight() uint32 {
 
 func (bd *ChainStore) IsBlockInStore(hash Uint256) bool {
 	var b *Block = new(Block)
-
 	b.Blockdata = new(Blockdata)
-	b.Blockdata.Program = new(program.Program)
-
 	prefix := []byte{byte(DATA_Header)}
 	blockData, err_get := bd.Get(append(prefix, hash.ToArray()...))
 	if err_get != nil {

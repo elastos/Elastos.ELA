@@ -14,7 +14,6 @@ import (
 	"DNA_POW/common/config"
 	"DNA_POW/common/log"
 	"DNA_POW/core/auxpow"
-	"DNA_POW/core/contract/program"
 	"DNA_POW/core/ledger"
 	tx "DNA_POW/core/transaction"
 	"DNA_POW/core/transaction/payload"
@@ -156,7 +155,6 @@ func (pow *PowService) GenerateBlock(addr string) (*ledger.Block, error) {
 		Height:           nextBlockHeight,
 		Nonce:            0,
 		AuxPow:           auxpow.AuxPow{},
-		Program:          &program.Program{},
 	}
 
 	msgBlock := &ledger.Block{

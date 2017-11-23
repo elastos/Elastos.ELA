@@ -173,10 +173,6 @@ func getBlock(params []interface{}) map[string]interface{} {
 		Bits:             block.Blockdata.Bits,
 		Height:           block.Blockdata.Height,
 		Nonce:            block.Blockdata.Nonce,
-		Program: ProgramInfo{
-			Code:      BytesToHexString(block.Blockdata.Program.Code),
-			Parameter: BytesToHexString(block.Blockdata.Program.Parameter),
-		},
 		Hash: BytesToHexString(hash.ToArrayReverse()),
 	}
 
@@ -639,4 +635,58 @@ func sendToAddress(params []interface{}) map[string]interface{} {
 	}
 	txHash := txn.Hash()
 	return DnaRpc(BytesToHexString(txHash.ToArrayReverse()))
+}
+
+// A JSON example for sendrawtransaction method as following:
+//   {"jsonrpc": "2.0", "method": "sendrawtransaction", "params": ["raw transactioin in hex"], "id": 0}
+func sendRawTransaction(params []interface{}) map[string]interface{} {
+	if len(params) < 1 {
+		return DnaRpcNil
+	}
+	var hash Uint256
+	switch params[0].(type) {
+	case string:
+		str := params[0].(string)
+		hex, err := HexStringToBytes(str)
+		if err != nil {
+			return DnaRpcInvalidParameter
+		}
+		var txn tx.Transaction
+		if err := txn.Deserialize(bytes.NewReader(hex)); err != nil {
+			return DnaRpcInvalidTransaction
+		}
+		hash = txn.Hash()
+		if errCode := VerifyAndSendTx(&txn); errCode != ErrNoError {
+			return DnaRpc(errCode.Error())
+		}
+	default:
+		return DnaRpcInvalidParameter
+	}
+	return DnaRpc(BytesToHexString(hash.ToArrayReverse()))
+}
+
+// A JSON example for submitblock method as following:
+//   {"jsonrpc": "2.0", "method": "submitblock", "params": ["raw block in hex"], "id": 0}
+func submitBlock(params []interface{}) map[string]interface{} {
+	if len(params) < 1 {
+		return DnaRpcNil
+	}
+	switch params[0].(type) {
+	case string:
+		str := params[0].(string)
+		hex, _ := HexStringToBytes(str)
+		var block ledger.Block
+		if err := block.Deserialize(bytes.NewReader(hex)); err != nil {
+			return DnaRpcInvalidBlock
+		}
+		if _, _, err := ledger.DefaultLedger.Blockchain.AddBlock(&block); err != nil {
+			return DnaRpcInvalidBlock
+		}
+		if err := node.Xmit(&block); err != nil {
+			return DnaRpcInternalError
+		}
+	default:
+		return DnaRpcInvalidParameter
+	}
+	return DnaRpcSuccess
 }

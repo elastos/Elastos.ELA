@@ -1,14 +1,14 @@
 package dnaapi
 
 import (
-	. "DNA_POW/common"
-	"DNA_POW/core/auxpow"
-	"DNA_POW/core/contract/program"
-	"DNA_POW/core/ledger"
-	tx "DNA_POW/core/transaction"
 	"bytes"
 	"encoding/hex"
 	"fmt"
+
+	. "DNA_POW/common"
+	"DNA_POW/core/auxpow"
+	"DNA_POW/core/ledger"
+	tx "DNA_POW/core/transaction"
 
 	"github.com/yuin/gopher-lua"
 )
@@ -57,7 +57,6 @@ func newBlockdata(L *lua.LState) int {
 		Height:           height,
 		Nonce:            nonce,
 		AuxPow:           auxpow.AuxPow{},
-		Program:          &program.Program{},
 	}
 	ud := L.NewUserData()
 	ud.Value = bd

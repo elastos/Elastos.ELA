@@ -23,7 +23,7 @@ import (
 
 const (
 	BlockVersion     uint32 = 0
-	GenesisNonce     uint64 = 2083236893
+	GenesisNonce     uint32 = 2083236893
 	InvalidBlockSize int    = -1
 )
 
@@ -176,9 +176,8 @@ func GenesisBlockInit() (*Block, error) {
 		TransactionsRoot: Uint256{},
 		Timestamp:        uint32(time.Unix(time.Date(2017, time.October, 1, 0, 0, 0, 0, time.UTC).Unix(), 0).Unix()),
 		Bits:             0x1d03ffff,
-		Nonce:            uint32(0),
+		Nonce:            GenesisNonce,
 		Height:           uint32(0),
-		ConsensusData:    GenesisNonce,
 		Program: &program.Program{
 			Code:      []byte{},
 			Parameter: []byte{byte(vm.PUSHT)},

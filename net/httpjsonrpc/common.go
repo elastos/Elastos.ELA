@@ -101,7 +101,6 @@ type BlockHead struct {
 	Bits             uint32
 	Height           uint32
 	Nonce            uint32
-	ConsensusData    uint64
 	//AuxPow           AuxPowInfo
 	Program ProgramInfo
 

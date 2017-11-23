@@ -102,7 +102,6 @@ func GetBlockInfo(block *ledger.Block) BlockInfo {
 		Timestamp:        block.Blockdata.Timestamp,
 		Height:           block.Blockdata.Height,
 		Nonce:            block.Blockdata.Nonce,
-		ConsensusData:    block.Blockdata.ConsensusData,
 		Program: ProgramInfo{
 			Code:      BytesToHexString(block.Blockdata.Program.Code),
 			Parameter: BytesToHexString(block.Blockdata.Program.Parameter),

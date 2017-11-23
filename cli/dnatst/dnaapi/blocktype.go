@@ -56,7 +56,6 @@ func newBlockdata(L *lua.LState) int {
 		Bits:             bits,
 		Height:           height,
 		Nonce:            nonce,
-		ConsensusData:    0,
 		AuxPow:           auxpow.AuxPow{},
 		Program:          &program.Program{},
 	}

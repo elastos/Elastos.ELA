@@ -173,7 +173,6 @@ func getBlock(params []interface{}) map[string]interface{} {
 		Bits:             block.Blockdata.Bits,
 		Height:           block.Blockdata.Height,
 		Nonce:            block.Blockdata.Nonce,
-		ConsensusData:    block.Blockdata.ConsensusData,
 		Program: ProgramInfo{
 			Code:      BytesToHexString(block.Blockdata.Program.Code),
 			Parameter: BytesToHexString(block.Blockdata.Program.Parameter),

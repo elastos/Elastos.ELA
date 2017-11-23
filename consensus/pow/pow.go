@@ -155,7 +155,6 @@ func (pow *PowService) GenerateBlock(addr string) (*ledger.Block, error) {
 		Bits:             config.Parameters.PowConfiguration.PowLimitBits,
 		Height:           nextBlockHeight,
 		Nonce:            0,
-		ConsensusData:    0,
 		AuxPow:           auxpow.AuxPow{},
 		Program:          &program.Program{},
 	}

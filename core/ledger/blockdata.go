@@ -20,7 +20,6 @@ type Blockdata struct {
 	Bits             uint32
 	Height           uint32
 	Nonce            uint32
-	ConsensusData    uint64
 	AuxPow           auxpow.AuxPow
 	Program          *program.Program
 
@@ -47,7 +46,7 @@ func (bd *Blockdata) SerializeUnsigned(w io.Writer) error {
 	serialization.WriteUint32(w, bd.Bits)
 	serialization.WriteUint32(w, bd.Nonce)
 	serialization.WriteUint32(w, bd.Height)
-	serialization.WriteUint64(w, bd.ConsensusData)
+
 	return nil
 }
 
@@ -115,9 +114,6 @@ func (bd *Blockdata) DeserializeUnsigned(r io.Reader) error {
 	//Height
 	temp, _ = serialization.ReadUint32(r)
 	bd.Height = uint32(temp)
-
-	//consensusData
-	bd.ConsensusData, _ = serialization.ReadUint64(r)
 
 	return nil
 }

@@ -41,26 +41,16 @@ func newTransaction(L *lua.LState) int {
 	ud := L.CheckUserData(3)
 	var pload tx.Payload
 	switch ud.Value.(type) {
-	case *payload.BookKeeping:
-		pload, _ = ud.Value.(*payload.BookKeeping)
-	case *payload.IssueAsset:
-		pload, _ = ud.Value.(*payload.IssueAsset)
-	case *payload.BookKeeper:
-		pload, _ = ud.Value.(*payload.BookKeeper)
-	case *payload.PrivacyPayload:
-		pload, _ = ud.Value.(*payload.PrivacyPayload)
+	case *payload.CoinBase:
+		pload, _ = ud.Value.(*payload.CoinBase)
 	case *payload.RegisterAsset:
 		pload, _ = ud.Value.(*payload.RegisterAsset)
 	case *payload.TransferAsset:
 		pload, _ = ud.Value.(*payload.TransferAsset)
 	case *payload.Record:
 		pload, _ = ud.Value.(*payload.Record)
-	case *payload.CoinBase:
-		pload, _ = ud.Value.(*payload.CoinBase)
 	case *payload.DeployCode:
 		pload, _ = ud.Value.(*payload.DeployCode)
-	case *payload.DataFile:
-		pload, _ = ud.Value.(*payload.DataFile)
 	}
 
 	lockTime := uint32(L.ToInt(4))

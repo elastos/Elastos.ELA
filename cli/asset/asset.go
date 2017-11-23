@@ -10,10 +10,6 @@ import (
 	"github.com/urfave/cli"
 )
 
-const (
-	RANDBYTELEN = 4
-)
-
 func assetAction(c *cli.Context) error {
 	if c.NumFlags() == 0 {
 		cli.ShowSubcommandHelp(c)

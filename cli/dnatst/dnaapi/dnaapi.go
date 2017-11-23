@@ -1,6 +1,12 @@
 package dnaapi
 
 import (
+	"bytes"
+	"encoding/hex"
+	"strconv"
+	"strings"
+	"fmt"
+
 	. "DNA_POW/cli/common"
 	. "DNA_POW/common"
 	"DNA_POW/core/auxpow"
@@ -8,12 +14,6 @@ import (
 	"DNA_POW/core/ledger"
 	tx "DNA_POW/core/transaction"
 	"DNA_POW/net/httpjsonrpc"
-	"bytes"
-	"encoding/hex"
-	"strconv"
-	"strings"
-
-	"fmt"
 
 	. "github.com/bitly/go-simplejson"
 	"github.com/yuin/gopher-lua"
@@ -56,15 +56,10 @@ func RegisterDataType(L *lua.LState) int {
 	RegisterTxAttributeType(L)
 	RegisterUTXOTxInputType(L)
 	RegisterTxOutputType(L)
-	RegisterBookKeeperType(L)
-	RegisterBookKeepingType(L)
 	RegisterCoinBaseType(L)
-	RegisterIssueAssetType(L)
 	RegisterTransferAssetType(L)
 	RegisterRegisterAssetType(L)
 	RegisterRecordType(L)
-	RegisterDataFileType(L)
-	RegisterPrivacyPayloadType(L)
 	RegisterDeployCodeType(L)
 	RegisterTransactionType(L)
 	RegisterBlockdataType(L)

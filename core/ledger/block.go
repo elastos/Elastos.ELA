@@ -185,11 +185,6 @@ func GenesisBlockInit() (*Block, error) {
 		},
 	}
 
-	admin, err := ToCodeHash([]byte{byte(vm.PUSHT)})
-	if err != nil {
-		return nil, NewDetailErr(err, ErrNoCode, "[GenesisBlock], share admin error")
-	}
-
 	//transaction
 	systemToken := &tx.Transaction{
 		TxType:         tx.RegisterAsset,
@@ -201,8 +196,7 @@ func GenesisBlockInit() (*Block, error) {
 				AssetType: 0x00,
 			},
 			Amount:     0 * 100000000,
-			//Issuer:     ,
-			Controller: admin,
+			Controller: Uint160{},
 		},
 		Attributes: []*tx.TxAttribute{},
 		UTXOInputs: []*tx.UTXOTxInput{},

@@ -3,13 +3,11 @@ package transaction
 import (
 	"crypto/sha256"
 	"errors"
-	"fmt"
 	"io"
 	"sort"
 
 	. "DNA_POW/common"
 	"DNA_POW/common/serialization"
-	"DNA_POW/core/contract"
 	"DNA_POW/core/contract/program"
 	sig "DNA_POW/core/signature"
 	"DNA_POW/core/transaction/payload"
@@ -22,16 +20,11 @@ import (
 type TransactionType byte
 
 const (
-	BookKeeping    TransactionType = 0x00
-	IssueAsset     TransactionType = 0x01
-	BookKeeper     TransactionType = 0x02
-	PrivacyPayload TransactionType = 0x20
-	RegisterAsset  TransactionType = 0x40
-	TransferAsset  TransactionType = 0x80
-	Record         TransactionType = 0x81
-	CoinBase       TransactionType = 0x82
-	DeployCode     TransactionType = 0xd0
-	DataFile       TransactionType = 0x12
+	CoinBase       TransactionType = 0x00
+	RegisterAsset  TransactionType = 0x01
+	TransferAsset  TransactionType = 0x02
+	Record         TransactionType = 0x03
+	Deploy         TransactionType = 0x04
 )
 
 const (
@@ -49,9 +42,6 @@ type Payload interface {
 
 	Deserialize(r io.Reader, version byte) error
 }
-
-//Transaction is used for carry information or action to Ledger
-//validated transaction will be added to block and updates state correspondingly
 
 var TxStore ILedgerStore
 
@@ -190,29 +180,19 @@ func (tx *Transaction) DeserializeUnsignedWithoutType(r io.Reader) error {
 		return err
 	}
 
-	//payload
-	//tx.Payload.Deserialize(r)
 	switch tx.TxType {
-	case RegisterAsset:
-		tx.Payload = new(payload.RegisterAsset)
-	case IssueAsset:
-		tx.Payload = new(payload.IssueAsset)
-	case TransferAsset:
-		tx.Payload = new(payload.TransferAsset)
-	case BookKeeping:
-		tx.Payload = new(payload.BookKeeping)
 	case CoinBase:
 		tx.Payload = new(payload.CoinBase)
+	case RegisterAsset:
+		tx.Payload = new(payload.RegisterAsset)
+	case TransferAsset:
+		tx.Payload = new(payload.TransferAsset)
 	case Record:
 		tx.Payload = new(payload.Record)
-	case BookKeeper:
-		tx.Payload = new(payload.BookKeeper)
-	case PrivacyPayload:
-		tx.Payload = new(payload.PrivacyPayload)
-	case DataFile:
-		tx.Payload = new(payload.DataFile)
+	case Deploy:
+		tx.Payload = new(payload.DeployCode)
 	default:
-		return errors.New("[Transaction],invalide transaction type.")
+		return errors.New("[Transaction], invalid transaction type.")
 	}
 	err = tx.Payload.Deserialize(r, tx.PayloadVersion)
 	if err != nil {
@@ -316,78 +296,12 @@ func (tx *Transaction) GetProgramHashes() ([]Uint160, error) {
 	}
 	switch tx.TxType {
 	case RegisterAsset:
-		issuer := tx.Payload.(*payload.RegisterAsset).Issuer
-		signatureRedeemScript, err := contract.CreateSignatureRedeemScript(issuer)
-		if err != nil {
-			return nil, NewDetailErr(err, ErrNoCode, "[Transaction], GetProgramHashes CreateSignatureRedeemScript failed.")
-		}
-
-		astHash, err := ToCodeHash(signatureRedeemScript)
-		if err != nil {
-			return nil, NewDetailErr(err, ErrNoCode, "[Transaction], GetProgramHashes ToCodeHash failed.")
-		}
-		hashs = append(hashs, astHash)
-	case IssueAsset:
-		result := tx.GetMergedAssetIDValueFromOutputs()
-		if err != nil {
-			return nil, NewDetailErr(err, ErrNoCode, "[Transaction], GetTransactionResults failed.")
-		}
-		for k := range result {
-			tx, _, err := TxStore.GetTransaction(k)
-			if err != nil {
-				return nil, NewDetailErr(err, ErrNoCode, fmt.Sprintf("[Transaction], GetTransaction failed With AssetID:=%x", k))
-			}
-			if tx.TxType != RegisterAsset {
-				return nil, NewDetailErr(errors.New("[Transaction] error"), ErrNoCode, fmt.Sprintf("[Transaction], Transaction Type ileage With AssetID:=%x", k))
-			}
-
-			switch v1 := tx.Payload.(type) {
-			case *payload.RegisterAsset:
-				hashs = append(hashs, v1.Controller)
-			default:
-				return nil, NewDetailErr(errors.New("[Transaction] error"), ErrNoCode, fmt.Sprintf("[Transaction], payload is illegal", k))
-			}
-		}
-	case DataFile:
-		issuer := tx.Payload.(*payload.DataFile).Issuer
-		signatureRedeemScript, err := contract.CreateSignatureRedeemScript(issuer)
-		if err != nil {
-			return nil, NewDetailErr(err, ErrNoCode, "[Transaction], GetProgramHashes CreateSignatureRedeemScript failed.")
-		}
-
-		astHash, err := ToCodeHash(signatureRedeemScript)
-		if err != nil {
-			return nil, NewDetailErr(err, ErrNoCode, "[Transaction], GetProgramHashes ToCodeHash failed.")
-		}
-		hashs = append(hashs, astHash)
 	case TransferAsset:
 	case Record:
-	case BookKeeper:
-		issuer := tx.Payload.(*payload.BookKeeper).Issuer
-		signatureRedeemScript, err := contract.CreateSignatureRedeemScript(issuer)
-		if err != nil {
-			return nil, NewDetailErr(err, ErrNoCode, "[Transaction - BookKeeper], GetProgramHashes CreateSignatureRedeemScript failed.")
-		}
-
-		astHash, err := ToCodeHash(signatureRedeemScript)
-		if err != nil {
-			return nil, NewDetailErr(err, ErrNoCode, "[Transaction - BookKeeper], GetProgramHashes ToCodeHash failed.")
-		}
-		hashs = append(hashs, astHash)
-	case PrivacyPayload:
-		issuer := tx.Payload.(*payload.PrivacyPayload).EncryptAttr.(*payload.EcdhAes256).FromPubkey
-		signatureRedeemScript, err := contract.CreateSignatureRedeemScript(issuer)
-		if err != nil {
-			return nil, NewDetailErr(err, ErrNoCode, "[Transaction], GetProgramHashes CreateSignatureRedeemScript failed.")
-		}
-
-		astHash, err := ToCodeHash(signatureRedeemScript)
-		if err != nil {
-			return nil, NewDetailErr(err, ErrNoCode, "[Transaction], GetProgramHashes ToCodeHash failed.")
-		}
-		hashs = append(hashs, astHash)
+	case Deploy:
 	default:
 	}
+
 	//remove dupilicated hashes
 	uniq := make(map[Uint160]bool)
 	for _, v := range hashs {

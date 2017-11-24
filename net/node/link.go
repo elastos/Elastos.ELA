@@ -104,10 +104,6 @@ func (node *node) rx() {
 	}
 
 DISCONNECT:
-	if node.IsSyncHeaders() == true {
-		node.SetSyncFailed()
-		node.local.StartSync()
-	}
 	node.local.eventQueue.GetEvent("disconnect").Notify(events.EventNodeDisconnect, node)
 }
 

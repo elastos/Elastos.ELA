@@ -40,7 +40,7 @@ const (
 	MSGHDRLEN         = 24
 	NETMAGIC          = 0x74746e41
 	MAXBLKHDRCNT      = 400
-	MAXINVHDRCNT      = 100
+	MAXINVHDRCNT      = 50
 	DIVHASHLEN        = 5
 	MINCONNCNT        = 3
 	MAXREQBLKONCE     = 16
@@ -190,6 +190,8 @@ type Noder interface {
 	FindSyncNode() (Noder, error)
 	GetStartSync() bool
 	GetBestHeightNoder() Noder
+	AcqSyncBlkReqSem()
+	RelSyncBlkReqSem()
 }
 
 // Checkpoint identifies a known good point in the block chain.

@@ -86,20 +86,20 @@ func (ka *KnownAddress) chance() float64 {
 // All addresses that meet these criteria are assumed to be worthless and not
 // worth keeping hold of.
 func (ka *KnownAddress) isBad() bool {
-	// just tried in one minute?
-	if ka.lastattempt.After(time.Now().Add(-1 * time.Minute)) {
-		return false
-	}
+	// just tried in one minute? This isn't suitable for very few peers.
+	//if ka.lastattempt.After(time.Now().Add(-1 * time.Minute)) {
+	//	return true
+	//}
 
 	// Over a month old?
 	if ka.srcAddr.Time < (time.Now().Add(-1 * numMissingDays * time.Hour * 24)).UnixNano() {
 		return true
 	}
 
-	// Just disconnected in one minute?
-	if ka.lastDisconnect.After(time.Now().Add(-1 * time.Minute)) {
-		return true
-	}
+	// Just disconnected in one minute? This isn't suitable for very few peers.
+	//if ka.lastDisconnect.After(time.Now().Add(-1 * time.Minute)) {
+	//	return true
+	//}
 
 	// tried too many times?
 	if ka.attempts >= numRetries {

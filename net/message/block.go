@@ -61,6 +61,10 @@ func (msg block) Handle(node Noder) error {
 	} else {
 		_, isOrphan, err = ledger.DefaultLedger.Blockchain.AddBlock(&msg.blk)
 	}
+
+	ledger.DefaultLedger.Store.RemoveHeaderListElement(hash)
+	node.LocalNode().DeleteRequestedBlock(hash)
+
 	if err != nil {
 		log.Warn("Block add failed: ", err, " ,block hash is ", hash.ToArrayReverse())
 		return err
@@ -80,9 +84,6 @@ func (msg block) Handle(node Noder) error {
 			SendMsgSyncBlockHeaders(node, locator, *orphanRoot)
 		}
 	}
-
-	ledger.DefaultLedger.Store.RemoveHeaderListElement(hash)
-	node.LocalNode().DeleteRequestedBlock(hash)
 
 	// Nothing more to do if we aren't in headers-first mode.
 	if !node.LocalNode().GetHeaderFisrtModeStatus() {

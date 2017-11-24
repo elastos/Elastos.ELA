@@ -80,7 +80,9 @@ func (node *node) SyncBlks() {
 				SendMsgSyncBlockHeaders(syncNode, blocator, emptyHash)
 			}
 		} else {
-			rb := syncNode.GetRequestBlockList()
+			rb := syncNode.LocalNode().GetRequestBlockList()
+			node.requestedBlockLock.Lock()
+			defer node.requestedBlockLock.Unlock()
 			if len(rb) == 0 {
 				newSyncNode := node.GetBestHeightNoder()
 				hash := ledger.DefaultLedger.Store.GetCurrentBlockHash()
@@ -268,7 +270,6 @@ func (node *node) updateNodeInfo() {
 		case <-ticker.C:
 			node.SendPingToNbr()
 			node.SyncBlks()
-			//node.SyncBlkInNonCheckpointMode()
 			node.HeartBeatMonitor()
 		case <-quit:
 			ticker.Stop()

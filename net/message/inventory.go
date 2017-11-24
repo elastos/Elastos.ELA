@@ -44,7 +44,6 @@ func SendMsgSyncBlockHeaders(node Noder, blocator []Uint256, hash Uint256) {
 		node.LocalNode().SetSyncHeaders(true)
 		node.SetSyncHeaders(true)
 		go node.Tx(buf)
-		node.StartRetryTimer()
 	}
 }
 
@@ -117,8 +116,8 @@ func (msg blocksReq) Verify(buf []byte) error {
 func (msg blocksReq) Handle(node Noder) error {
 	log.Debug()
 	// lock
-	node.LocalNode().AcqSyncReqSem()
-	defer node.LocalNode().RelSyncReqSem()
+	node.LocalNode().AcqSyncBlkReqSem()
+	defer node.LocalNode().RelSyncBlkReqSem()
 	var locatorHash []Uint256
 	var startHash [HASHLEN]byte
 	var stopHash [HASHLEN]byte
@@ -208,10 +207,6 @@ func (msg Inv) Handle(node Noder) error {
 		}
 	case BLOCK:
 		log.Debug("RX block message")
-		if node.IsSyncHeaders() == true {
-			node.StopRetryTimer()
-		}
-
 		if node.LocalNode().IsSyncHeaders() == true && node.IsSyncHeaders() == false {
 			return nil
 		}
@@ -233,11 +228,6 @@ func (msg Inv) Handle(node Noder) error {
 				}
 				SendMsgSyncBlockHeaders(node, locator, *orphanRoot)
 				continue
-			}
-			if i == (count - 1) {
-				var emptyHash Uint256
-				blocator := ledger.DefaultLedger.Blockchain.BlockLocatorFromHash(&id)
-				SendMsgSyncBlockHeaders(node, blocator, emptyHash)
 			}
 		}
 

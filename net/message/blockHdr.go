@@ -220,7 +220,6 @@ func SendMsgSyncHeaders(node Noder, startHash common.Uint256) {
 		node.LocalNode().SetSyncHeaders(true)
 		node.SetSyncHeaders(true)
 		go node.Tx(buf)
-		node.StartRetryTimer()
 	}
 }
 
@@ -258,15 +257,13 @@ func (msg blkHeader) Handle(node Noder) error {
 	if len(msg.blkHdr) == 0 {
 		return errors.New("No headers")
 	}
-	node.StopRetryTimer()
+
 	err := ledger.DefaultLedger.Store.AddHeaders(msg.blkHdr, ledger.DefaultLedger)
 	if err != nil {
 		log.Warn("Add block Header error")
-		node.SetSyncFailed()
 		node.SetState(INACTIVITY)
 		conn := node.GetConn()
 		conn.Close()
-		//ReqBlkHdrFromOthers(node)
 		return errors.New("Add block Header error, send new header request to another node\n")
 	}
 	receivedCheckpoint := false
@@ -279,11 +276,9 @@ func (msg blkHeader) Handle(node Noder) error {
 				if bytes.Equal(msgBlkHash[:], nextCheckpointHash[:]) == true {
 					receivedCheckpoint = true
 				} else {
-					node.SetSyncFailed()
 					node.SetState(INACTIVITY)
 					conn := node.GetConn()
 					conn.Close()
-					//ReqBlkHdrFromOthers(node)
 				}
 				break
 			}

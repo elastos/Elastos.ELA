@@ -81,6 +81,7 @@ type node struct {
 	// Checkpoints ordered from oldest to newest.
 	NextCheckpoint *Checkpoint
 	IsStartSync    bool
+	SyncBlkReqSem  Semaphore
 }
 
 type RetryConnAddrs struct {
@@ -188,7 +189,7 @@ func InitNode(pubKey *crypto.PubKey) Noder {
 	} else {
 		n.SyncReqSem = MakeSemaphore(Parameters.MaxHdrSyncReqs)
 	}
-
+	n.SyncBlkReqSem = MakeSemaphore(MAXSYNCHDRREQ)
 	n.link.port = uint16(Parameters.NodePort)
 	n.relay = true
 	// TODO is it neccessary to init the rand seed here?
@@ -981,4 +982,12 @@ func (node *node) SetStartSync() {
 
 func (node *node) GetStartSync() bool {
 	return node.IsStartSync
+}
+
+func (node *node) AcqSyncBlkReqSem() {
+	node.SyncBlkReqSem.acquire()
+}
+
+func (node *node) RelSyncBlkReqSem() {
+	node.SyncBlkReqSem.release()
 }

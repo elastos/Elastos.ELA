@@ -1,6 +1,10 @@
 package common
 
 import (
+	"bytes"
+	"fmt"
+	"strconv"
+
 	. "DNA_POW/common"
 	"DNA_POW/core/ledger"
 	tx "DNA_POW/core/transaction"
@@ -9,9 +13,6 @@ import (
 	. "DNA_POW/net/httpjsonrpc"
 	Err "DNA_POW/net/httprestful/error"
 	. "DNA_POW/net/protocol"
-	"bytes"
-	"fmt"
-	"strconv"
 )
 
 var node Noder
@@ -61,6 +62,18 @@ func GetBlockHash(cmd map[string]interface{}) map[string]interface{} {
 		return resp
 	}
 	resp["Result"] = BytesToHexString(hash.ToArrayReverse())
+	return resp
+}
+
+func GetTransactionPool(cmd map[string]interface{}) map[string]interface{} {
+	resp := ResponsePack(Err.SUCCESS)
+
+	txs := []*Transactions{}
+	txpool := node.GetTxnPool(false)
+	for _, t := range txpool {
+		txs = append(txs, TransArryByteToHexString(t))
+	}
+	resp["Result"] = txs
 	return resp
 }
 

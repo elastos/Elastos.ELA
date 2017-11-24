@@ -48,6 +48,7 @@ const (
 	Api_GetUTXObyAsset      = "/api/v1/asset/utxo/:addr/:assetid"
 	Api_GetUTXObyAddr       = "/api/v1/asset/utxos/:addr"
 	Api_SendRawTx           = "/api/v1/transaction"
+	Api_GetTransactionPool  = "/api/v1/transactionpool"
 	Api_SendRcdTxByTrans    = "/api/v1/custom/transaction/record"
 	Api_GetStateUpdate      = "/api/v1/stateupdate/:namespace/:key"
 	Api_OauthServerUrl      = "/api/v1/config/oauthserver/url"
@@ -143,6 +144,7 @@ func (rt *restServer) registryMethod() {
 		Api_Getblockbyhash:      {name: "getblockbyhash", handler: GetBlockByHash},
 		Api_Getblockheight:      {name: "getblockheight", handler: GetBlockHeight},
 		Api_Getblockhash:        {name: "getblockhash", handler: GetBlockHash},
+		Api_GetTransactionPool:  {name: "gettransactionpool", handler: GetTransactionPool},
 		//Api_GetTotalIssued:      {name: "gettotalissued", handler: GetTotalIssued},
 		Api_Gettransaction:    {name: "gettransaction", handler: GetTransactionByHash},
 		Api_Getasset:          {name: "getasset", handler: GetAssetByHash},
@@ -225,6 +227,8 @@ func (rt *restServer) getParams(r *http.Request, url string, req map[string]inte
 		req["Hash"] = getParam(r, "hash")
 		break
 	case Api_Getblockheight:
+		break
+	case Api_GetTransactionPool:
 		break
 	case Api_Getblockhash:
 		req["Height"] = getParam(r, "height")

@@ -27,7 +27,7 @@ var (
 
 func CalcNextRequiredDifficulty(prevNode *BlockNode, newBlockTime time.Time) (uint32, error) {
 	// Genesis block.
-	if prevNode.Height == 0 {
+	if (prevNode.Height == 0) || (config.Parameters.PowConfiguration.FixedBits) {
 		return uint32(config.Parameters.PowConfiguration.PowLimitBits), nil
 	}
 

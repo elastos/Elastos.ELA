@@ -35,6 +35,7 @@
     "CoMining":false,
     "AutoMining": false,
     "MinerInfo": "ELA",
+	"FixedBits": false,
     "TargetTimeSpan": 10,
     "TargetTimePerBlock": 1,
     "PowLimitBits": 503447551,

@@ -181,8 +181,6 @@ blkHdrErr:
 func (msg headersReq) Handle(node Noder) error {
 	log.Debug()
 	// lock
-	node.LocalNode().AcqSyncReqSem()
-	defer node.LocalNode().RelSyncReqSem()
 	var locatorHash []common.Uint256
 	var startHash [HASHLEN]byte
 	var stopHash [HASHLEN]byte

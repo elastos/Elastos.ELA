@@ -59,7 +59,7 @@ func (node *node) SyncBlks() {
 		return
 	}
 	needSync := node.needSync()
-	log.Debug("needSync: ", needSync)
+	log.Info("needSync: ", needSync)
 	if needSync == false {
 		node.local.SetSyncHeaders(false)
 		syncNode, err := node.FindSyncNode()
@@ -80,9 +80,20 @@ func (node *node) SyncBlks() {
 				SendMsgSyncBlockHeaders(syncNode, blocator, emptyHash)
 			}
 		} else {
-			rb := syncNode.LocalNode().GetRequestBlockList()
+			//rb := syncNode.LocalNode().GetRequestBlockList()
+			rb1 := syncNode.LocalNode().GetRequestBlockList()
+
+			var rb = make(map[common.Uint256]time.Time, 50)
+			x := 1
 			node.requestedBlockLock.Lock()
-			defer node.requestedBlockLock.Unlock()
+			for i, v := range rb1 {
+				if x == 50 {
+					break
+				}
+				rb[i] = v
+				x += 1
+			}
+			node.requestedBlockLock.Unlock()
 			if len(rb) == 0 {
 				newSyncNode := node.GetBestHeightNoder()
 				hash := ledger.DefaultLedger.Store.GetCurrentBlockHash()
@@ -96,7 +107,7 @@ func (node *node) SyncBlks() {
 			} else {
 				for k := range rb {
 					if rb[k].Before(time.Now().Add(-3 * time.Second)) {
-						log.Info("request block hash ", k)
+						log.Infof("request block hash %x ", k.ToArrayReverse())
 						ReqBlkData(syncNode, k)
 					}
 				}
@@ -264,16 +275,12 @@ func (node *node) updateNodeInfo() {
 		periodUpdateTime = config.DEFAULTGENBLOCKTIME / TIMESOFUPDATETIME
 	}
 	ticker := time.NewTicker(time.Second * (time.Duration(periodUpdateTime)) * 2)
-	quit := make(chan struct{})
 	for {
 		select {
 		case <-ticker.C:
 			node.SendPingToNbr()
 			node.SyncBlks()
 			node.HeartBeatMonitor()
-		case <-quit:
-			ticker.Stop()
-			return
 		}
 	}
 	// TODO when to close the timer

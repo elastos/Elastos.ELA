@@ -2,6 +2,7 @@ package ledger
 
 import (
 	. "DNA_POW/common"
+	"DNA_POW/common/config"
 	"DNA_POW/common/log"
 	. "DNA_POW/errors"
 	"DNA_POW/events"
@@ -15,9 +16,12 @@ import (
 
 const (
 	MaxBlockLocatorsPerMsg = 500
-	maxOrphanBlocks        = 10000
-	MinMemoryNodes         = 2016
 	medianTimeBlocks       = 11
+)
+
+var (
+	maxOrphanBlocks = config.Parameters.PowConfiguration.MaxOrphanBlocks
+	MinMemoryNodes  = config.Parameters.PowConfiguration.MinMemoryNodes
 )
 
 var (
@@ -47,6 +51,7 @@ type Blockchain struct {
 }
 
 func NewBlockchain(height uint32, ledger *Ledger) *Blockchain {
+
 	return &Blockchain{
 		BlockHeight:  height,
 		Root:         nil,
@@ -166,10 +171,10 @@ func (bc *Blockchain) ProcessOrphans(hash *Uint256) error {
 			}
 
 			orphanHash := orphan.Block.Hash()
-			fmt.Println("process:", orphanHash)
 			bc.RemoveOrphanBlock(orphan)
 			i--
 
+			//log.Trace("deal with orphan block %x", orphanHash.ToArrayReverse())
 			_, err := bc.maybeAcceptBlock(orphan.Block)
 			if err != nil {
 				return err
@@ -345,7 +350,6 @@ func CalcWork(bits uint32) *big.Int {
 func AddChildrenWork(node *BlockNode, work *big.Int) {
 	for _, childNode := range node.Children {
 		childNode.WorkSum.Add(childNode.WorkSum, work)
-		fmt.Println("childNode.WorkSum", childNode.WorkSum)
 		AddChildrenWork(childNode, work)
 	}
 }
@@ -434,7 +438,7 @@ func (bc *Blockchain) PruneBlockNodes() error {
 	}
 
 	newRootNode := bc.BestChain
-	for i := int32(0); i < MinMemoryNodes-1 && newRootNode != nil; i++ {
+	for i := uint32(0); i < MinMemoryNodes-1 && newRootNode != nil; i++ {
 		newRootNode = newRootNode.Parent
 	}
 
@@ -485,9 +489,6 @@ func (bc *Blockchain) RemoveBlockNode(node *BlockNode) error {
 	if children, ok := bc.DepNodes[*prevHash]; ok {
 		// Find the node amongst the children of the
 		// dependencies for the parent hash and remove it.
-		fmt.Println("remove childNode", prevHash)
-		fmt.Println("childNode", children)
-		fmt.Println("Node", children)
 		bc.DepNodes[*prevHash] = RemoveChildNode(children, node)
 
 		// Remove the map entry altogether if there are no
@@ -617,8 +618,8 @@ func (bc *Blockchain) ReorganizeChain(detachNodes, attachNodes *list.List) error
 	for e := attachNodes.Front(); e != nil; e = e.Next() {
 		n := e.Value.(*BlockNode)
 		if _, exists := bc.BlockCache[*n.Hash]; !exists {
-			return fmt.Errorf("block %v is missing from the side "+
-				"chain block cache", n.Hash)
+			return fmt.Errorf("block %x is missing from the side "+
+				"chain block cache", n.Hash.ToArrayReverse())
 		}
 	}
 
@@ -694,8 +695,7 @@ func (bc *Blockchain) DisconnectBlock(node *BlockNode, block *Block) error {
 	}
 
 	// Remove the block from the database which houses the main chain.
-	prevNode, err := bc.GetPrevNodeFromNode(node)
-	fmt.Println(prevNode)
+	_, err := bc.GetPrevNodeFromNode(node)
 	if err != nil {
 		return err
 	}
@@ -795,7 +795,7 @@ func (bc *Blockchain) maybeAcceptBlock(block *Block) (bool, error) {
 	// position of the block within the block chain.
 	err = PowCheckBlockContext(block, prevNode, bc.Ledger)
 	if err != nil {
-		log.Error("PowCheckBlockContext error!")
+		log.Error("PowCheckBlockContext error!", err)
 		return false, err
 	}
 
@@ -866,8 +866,7 @@ func (bc *Blockchain) ConnectBestChain(node *BlockNode, block *Block) (bool, err
 	// become the main chain, but in either case we need the block stored
 	// for future processing, so add the block to the side chain holding
 	// cache.
-	//log.Debugf("Adding block %v to side chain cache", node.Hash)
-	fmt.Printf("Adding block %v to side chain cache\n", node.Hash)
+	log.Debugf("Adding block %x to side chain cache", node.Hash.ToArrayReverse())
 	bc.BlockCache[*node.Hash] = block
 	//bc.Index[*node.Hash] = node
 	bc.AddNodeToIndex(node)
@@ -890,14 +889,13 @@ func (bc *Blockchain) ConnectBestChain(node *BlockNode, block *Block) (bool, err
 
 		// Log information about how the block is forking the chain.
 		if fork.Hash.CompareTo(*node.Parent.Hash) == 0 {
-			//log.Infof("FORK: Block %v forks the chain at height %d"+
-			fmt.Printf("FORK: Block %v forks the chain at height %d"+
-				"/block %v, but does not cause a reorganize",
-				node.Hash, fork.Height, fork.Hash)
+			log.Infof("FORK: Block %x forks the chain at height %d"+
+				"/block %x, but does not cause a reorganize",
+				node.Hash.ToArrayReverse(), fork.Height, fork.Hash.ToArrayReverse())
 		} else {
-			fmt.Printf("EXTEND FORK: Block %v extends a side chain "+
-				"which forks the chain at height %d/block %v",
-				node.Hash, fork.Height, fork.Hash)
+			log.Infof("EXTEND FORK: Block %x extends a side chain "+
+				"which forks the chain at height %d/block %x",
+				node.Hash.ToArrayReverse(), fork.Height, fork.Hash.ToArrayReverse())
 		}
 
 		return false, nil
@@ -911,19 +909,18 @@ func (bc *Blockchain) ConnectBestChain(node *BlockNode, block *Block) (bool, err
 	// the blocks that form the new chain to the main chain starting at the
 	// common ancenstor (the point where the chain forked).
 	detachNodes, attachNodes := bc.GetReorganizeNodes(node)
-	for e := detachNodes.Front(); e != nil; e = e.Next() {
-		n := e.Value.(*BlockNode)
-		fmt.Println("detach", n.Hash)
-	}
+	//for e := detachNodes.Front(); e != nil; e = e.Next() {
+	//	n := e.Value.(*BlockNode)
+	//	fmt.Println("detach", n.Hash)
+	//}
 
-	for e := attachNodes.Front(); e != nil; e = e.Next() {
-		n := e.Value.(*BlockNode)
-		fmt.Println("attach", n.Hash)
-	}
+	//for e := attachNodes.Front(); e != nil; e = e.Next() {
+	//	n := e.Value.(*BlockNode)
+	//	fmt.Println("attach", n.Hash)
+	//}
 
 	// Reorganize the chain.
-	//log.Infof("REORGANIZE: Block %v is causing a reorganize.", node.Hash)
-	fmt.Printf("REORGANIZE: Block %v is causing a reorganize.", node.Hash)
+	log.Infof("REORGANIZE: Block %v is causing a reorganize.", node.Hash)
 	err := bc.ReorganizeChain(detachNodes, attachNodes)
 	if err != nil {
 		return false, err
@@ -938,26 +935,26 @@ func (bc *Blockchain) ConnectBestChain(node *BlockNode, block *Block) (bool, err
 //3. error
 func (bc *Blockchain) ProcessBlock(block *Block, timeSource MedianTimeSource, flags uint32) (bool, bool, error) {
 	blockHash := block.Hash()
-	fmt.Printf("[ProcessBLock] blockhash = %v\n", BytesToHexString(blockHash.ToArray()))
+	log.Tracef("[ProcessBLock] height = %d, hash = %x", block.Blockdata.Height, blockHash.ToArrayReverse())
 
 	// The block must not already exist in the main chain or side chains.
 	exists, err := bc.BlockExists(&blockHash)
 	if err != nil {
-		fmt.Printf("[ProcessBLock] block exists err")
+		log.Trace("[ProcessBLock] block exists err")
 		return false, false, err
 	}
 	if exists {
-		str := fmt.Sprintf("already have block %v", blockHash)
+		str := fmt.Sprintf("already have block %x\n", blockHash.ToArrayReverse())
 		return false, false, fmt.Errorf(str)
 	}
-	fmt.Printf("[ProcessBLock] block exist= %v\n", exists)
 
 	// The block must not already exist as an orphan.
 	if _, exists := bc.Orphans[blockHash]; exists {
 		str := fmt.Sprintf("already have block (orphan) %v", blockHash)
 		return false, false, fmt.Errorf(str)
 	}
-	fmt.Printf("[ProcessBLock] orphan already exist= %v\n", exists)
+
+	log.Tracef("[ProcessBLock] orphan already exist= %v", exists)
 
 	// Perform preliminary sanity checks on the block and its transactions.
 	err = PowCheckBlockSanity(block, PowLimit, bc.TimeSource)
@@ -975,10 +972,9 @@ func (bc *Blockchain) ProcessBlock(block *Block, timeSource MedianTimeSource, fl
 		if err != nil {
 			return false, false, err
 		}
-		fmt.Printf("[ProcessBLock] prev block already exist= %v\n", prevHashExists)
+		//log.Tracef("[ProcessBLock] prev block already exist= %v\n", prevHashExists)
 		if !prevHashExists {
-			//log.Tracef("Adding orphan block %v with parent %v", blockHash, prevHash)
-			fmt.Printf("Adding orphan block %v with parent %v", blockHash, prevHash)
+			log.Tracef("Adding orphan block %x with parent %x", blockHash.ToArrayReverse(), prevHash.ToArrayReverse())
 			bc.AddOrphanBlock(block)
 
 			return false, true, nil
@@ -1009,14 +1005,14 @@ func (bc *Blockchain) ProcessBlock(block *Block, timeSource MedianTimeSource, fl
 func (bc *Blockchain) DumpState() {
 	log.Trace("bc.BestChain=", bc.BestChain.Hash)
 	log.Trace("bc.Root=", bc.Root.Hash)
-	log.Trace("bc.Index=", bc.Index)
-	log.Trace("bc.DepNodes=", bc.DepNodes)
-	for _, nd := range bc.Orphans {
-		log.Trace(nd)
-	}
-	for _, nd := range bc.Index {
-		DumpBlockNode(nd)
-	}
+	//log.Trace("bc.Index=", bc.Index)
+	//log.Trace("bc.DepNodes=", bc.DepNodes)
+	//for _, nd := range bc.Orphans {
+	//	log.Trace(nd)
+	//}
+	//	for _, nd := range bc.Index {
+	//		DumpBlockNode(nd)
+	//	}
 }
 
 func DumpBlockNode(node *BlockNode) {
@@ -1144,6 +1140,7 @@ func (b *Blockchain) LatestLocatorHash(locator BlockLocator) Uint256 {
 		}
 	}
 
+	//	log.Error("locator:", BytesToHexString(startHash.ToArrayReverse()))
 	return startHash
 }
 

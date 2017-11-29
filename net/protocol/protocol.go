@@ -151,8 +151,6 @@ type Noder interface {
 	RemoveAddrInConnectingList(addr string)
 	AddInRetryList(addr string)
 	RemoveFromRetryList(addr string)
-	AcqSyncReqSem()
-	RelSyncReqSem()
 	GetAddressCnt() uint64
 	AddAddressToKnownAddress(na NodeAddr)
 	RandGetAddresses(nbrAddrs []NodeAddr) []NodeAddr
@@ -192,6 +190,12 @@ type Noder interface {
 	GetBestHeightNoder() Noder
 	AcqSyncBlkReqSem()
 	RelSyncBlkReqSem()
+	AcqSyncHdrReqSem()
+	RelSyncHdrReqSem()
+	SetStartHash(hash common.Uint256)
+	GetStartHash() common.Uint256
+	SetStopHash(hash common.Uint256)
+	GetStopHash() common.Uint256
 }
 
 // Checkpoint identifies a known good point in the block chain.

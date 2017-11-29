@@ -58,6 +58,7 @@ type node struct {
 	 * |--|--|--|--|--|--|isSyncFailed|isSyncHeaders|
 	 */
 	syncFlag                 uint8
+	flagLock                 sync.RWMutex
 	flightHeights            []uint32
 	cachelock                sync.RWMutex
 	flightlock               sync.RWMutex
@@ -69,7 +70,6 @@ type node struct {
 	cachedHashes             []Uint256
 	ConnectingNodes
 	RetryConnAddrs
-	SyncReqSem Semaphore
 	KnownAddressList
 	MaxOutboundCnt     uint
 	DefaultMaxPeers    uint
@@ -82,6 +82,9 @@ type node struct {
 	NextCheckpoint *Checkpoint
 	IsStartSync    bool
 	SyncBlkReqSem  Semaphore
+	SyncHdrReqSem  Semaphore
+	StartHash      Uint256
+	StopHash       Uint256
 }
 
 type RetryConnAddrs struct {
@@ -185,11 +188,13 @@ func InitNode(pubKey *crypto.PubKey) Noder {
 	}
 
 	if Parameters.MaxHdrSyncReqs <= 0 {
-		n.SyncReqSem = MakeSemaphore(MAXSYNCHDRREQ)
+		n.SyncBlkReqSem = MakeSemaphore(MAXSYNCHDRREQ)
+		n.SyncHdrReqSem = MakeSemaphore(MAXSYNCHDRREQ)
 	} else {
-		n.SyncReqSem = MakeSemaphore(Parameters.MaxHdrSyncReqs)
+		n.SyncBlkReqSem = MakeSemaphore(Parameters.MaxHdrSyncReqs)
+		n.SyncHdrReqSem = MakeSemaphore(Parameters.MaxHdrSyncReqs)
 	}
-	n.SyncBlkReqSem = MakeSemaphore(MAXSYNCHDRREQ)
+
 	n.link.port = uint16(Parameters.NodePort)
 	n.relay = true
 	// TODO is it neccessary to init the rand seed here?
@@ -474,6 +479,12 @@ func (node *node) SetBookKeeperAddr(pk *crypto.PubKey) {
 func (node *node) SyncNodeHeight() {
 	for {
 		log.Trace("BlockHeight is ", ledger.DefaultLedger.Blockchain.BlockHeight)
+		bc := ledger.DefaultLedger.Blockchain
+		log.Info("[", len(bc.Index), len(bc.BlockCache), len(bc.Orphans), "]")
+		//for x, _ := range node.RequestedBlockList {
+		//	log.Info(x)
+		//}
+
 		heights, _ := node.GetNeighborHeights()
 		log.Trace("others height is ", heights)
 
@@ -570,13 +581,6 @@ func (node *node) RemoveFromRetryList(addr string) {
 			log.Debug("remove addr from retry list", addr)
 		}
 	}
-}
-func (node *node) AcqSyncReqSem() {
-	node.SyncReqSem.acquire()
-}
-
-func (node *node) RelSyncReqSem() {
-	node.SyncReqSem.release()
 }
 
 func (node *node) Relay(frmnode Noder, message interface{}) error {
@@ -676,6 +680,8 @@ func (node *node) ExistFlightHeight(height uint32) bool {
 	return false
 }
 func (node node) IsSyncHeaders() bool {
+	node.flagLock.RLock()
+	defer node.flagLock.RUnlock()
 	if (node.syncFlag & 0x01) == 0x01 {
 		return true
 	} else {
@@ -684,6 +690,8 @@ func (node node) IsSyncHeaders() bool {
 }
 
 func (node *node) SetSyncHeaders(b bool) {
+	node.flagLock.Lock()
+	defer node.flagLock.Unlock()
 	if b == true {
 		node.syncFlag = node.syncFlag | 0x01
 	} else {
@@ -692,6 +700,8 @@ func (node *node) SetSyncHeaders(b bool) {
 }
 
 func (node node) IsSyncFailed() bool {
+	node.flagLock.RLock()
+	defer node.flagLock.RUnlock()
 	if (node.syncFlag & 0x02) == 0x02 {
 		return true
 	} else {
@@ -700,6 +710,8 @@ func (node node) IsSyncFailed() bool {
 }
 
 func (node *node) SetSyncFailed() {
+	node.flagLock.Lock()
+	defer node.flagLock.Unlock()
 	node.syncFlag = node.syncFlag | 0x02
 }
 
@@ -737,6 +749,7 @@ func (node *node) needSync() bool {
 	node.local.nbrNodes.RLock()
 	defer node.local.nbrNodes.RUnlock()
 	heights, _ := node.GetNeighborHeights()
+	log.Info("nbr heigh-->", heights, ledger.DefaultLedger.Blockchain.BlockHeight)
 	if CompareHeight(uint64(ledger.DefaultLedger.Blockchain.BlockHeight), heights) {
 		return false
 	}
@@ -784,8 +797,8 @@ func (node *node) StartSync() {
 				}
 			}
 		}
-		node.SetStartSync()
 	}
+	node.SetStartSync()
 }
 
 func (node *node) isFinishSyncFromSyncNode() bool {
@@ -990,4 +1003,27 @@ func (node *node) AcqSyncBlkReqSem() {
 
 func (node *node) RelSyncBlkReqSem() {
 	node.SyncBlkReqSem.release()
+}
+func (node *node) AcqSyncHdrReqSem() {
+	node.SyncHdrReqSem.acquire()
+}
+
+func (node *node) RelSyncHdrReqSem() {
+	node.SyncHdrReqSem.release()
+}
+
+func (node *node) SetStartHash(hash Uint256) {
+	node.StartHash = hash
+}
+
+func (node *node) GetStartHash() Uint256 {
+	return node.StartHash
+}
+
+func (node *node) SetStopHash(hash Uint256) {
+	node.StopHash = hash
+}
+
+func (node *node) GetStopHash() Uint256 {
+	return node.StopHash
 }

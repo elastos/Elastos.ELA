@@ -33,6 +33,8 @@ type PowConfiguration struct {
 	TargetTimePerBlock int64  `json:"TargetTimePerBlock"`
 	PowLimitBits       uint32 `json:"PowLimitBits"`
 	FixedBits          bool   `json:"FixedBits"`
+	MaxOrphanBlocks    int    `json:"MaxOrphanBlocks"`
+	MinMemoryNodes     uint32 `json:"MinMemoryNodes"`
 	SpendCoinbaseSpan  uint32 `json:"SpendCoinbaseSpan"`
 }
 

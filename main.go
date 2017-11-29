@@ -44,6 +44,9 @@ func handleLogFile(consensus string) {
 			for {
 				time.Sleep(6 * time.Second)
 				log.Trace("BlockHeight = ", ledger.DefaultLedger.Blockchain.BlockHeight)
+				ledger.DefaultLedger.Blockchain.DumpState()
+				bc := ledger.DefaultLedger.Blockchain
+				log.Info("[", len(bc.Index), len(bc.BlockCache), len(bc.Orphans), "]")
 				//ledger.DefaultLedger.Blockchain.DumpState()
 				isNeedNewFile := log.CheckIfNeedNewFile()
 				if isNeedNewFile == true {

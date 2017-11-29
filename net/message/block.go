@@ -27,16 +27,20 @@ type block struct {
 
 func (msg block) Handle(node Noder) error {
 	hash := msg.blk.Hash()
-	log.Debugf("hash is %x", hash.ToArrayReverse())
+	node.LocalNode().AcqSyncBlkReqSem()
+	defer node.LocalNode().RelSyncBlkReqSem()
+	//log.Tracef("hash is %x", hash.ToArrayReverse())
 	if node.LocalNode().IsNeighborNoder(node) == false {
+		log.Trace("received headers message from unknown peer")
 		return errors.New("received headers message from unknown peer")
 	}
 
 	if ledger.DefaultLedger.BlockInLedger(hash) {
 		ReceiveDuplicateBlockCnt++
-		log.Debug("Receive ", ReceiveDuplicateBlockCnt, " duplicated block.")
+		log.Trace("Receive ", ReceiveDuplicateBlockCnt, " duplicated block.")
 		return nil
 	}
+
 	isCheckpointBlock := false
 	isFastAdd := false
 
@@ -54,6 +58,9 @@ func (msg block) Handle(node Noder) error {
 			}
 		}
 	}
+
+	ledger.DefaultLedger.Store.RemoveHeaderListElement(hash)
+	node.LocalNode().DeleteRequestedBlock(hash)
 	isOrphan := false
 	var err error
 	if isFastAdd {
@@ -61,9 +68,6 @@ func (msg block) Handle(node Noder) error {
 	} else {
 		_, isOrphan, err = ledger.DefaultLedger.Blockchain.AddBlock(&msg.blk)
 	}
-
-	ledger.DefaultLedger.Store.RemoveHeaderListElement(hash)
-	node.LocalNode().DeleteRequestedBlock(hash)
 
 	if err != nil {
 		log.Warn("Block add failed: ", err, " ,block hash is ", hash.ToArrayReverse())
@@ -112,7 +116,6 @@ func (msg block) Handle(node Noder) error {
 	blocator := ledger.DefaultLedger.Blockchain.BlockLocatorFromHash(&currentHash)
 	var emptyHash common.Uint256
 	SendMsgSyncBlockHeaders(node, blocator, emptyHash)
-
 	if node.LocalNode().IsSyncHeaders() == false {
 		//haven`t require this block ,relay hash
 		node.LocalNode().Relay(node, hash)

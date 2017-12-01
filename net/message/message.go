@@ -204,17 +204,35 @@ func HandleNodeMsg(node Noder, buf []byte, len int) error {
 		return err
 	}
 
-	msg := AllocMsg(s, len)
-	if msg == nil {
-		log.Error(fmt.Sprintf("Allocation message %s failed", s))
-		return errors.New("Allocation message failed")
-	}
-	// Todo attach a node pointer to each message
-	// Todo drop the message when verify/deseria packet error
-	msg.Deserialization(buf[:len])
-	msg.Verify(buf[MSGHDRLEN:len])
+	if s == "inv" || s == "block" {
+		node.LocalNode().AcqSyncBlkReqSem()
+		msg := AllocMsg(s, len)
+		if msg == nil {
+			log.Error(fmt.Sprintf("Allocation message %s failed", s))
+			return errors.New("Allocation message failed")
+		}
+		// Todo attach a node pointer to each message
+		// Todo drop the message when verify/deseria packet error
+		msg.Deserialization(buf[:len])
+		msg.Verify(buf[MSGHDRLEN:len])
 
-	return msg.Handle(node)
+		errr := msg.Handle(node)
+		node.LocalNode().RelSyncBlkReqSem()
+		return errr
+	} else {
+		msg := AllocMsg(s, len)
+		if msg == nil {
+			log.Error(fmt.Sprintf("Allocation message %s failed", s))
+			return errors.New("Allocation message failed")
+		}
+		// Todo attach a node pointer to each message
+		// Todo drop the message when verify/deseria packet error
+		msg.Deserialization(buf[:len])
+		msg.Verify(buf[MSGHDRLEN:len])
+
+		errr := msg.Handle(node)
+		return errr
+	}
 }
 
 func magicVerify(magic uint32) bool {

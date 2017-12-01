@@ -295,10 +295,14 @@ type BlockNode struct {
 }
 
 func NewBlockNode(blockHeader *Blockdata, blockSha *Uint256) *BlockNode {
-	prevHash := blockHeader.PrevBlockHash
+	//prevHash := blockHeader.PrevBlockHash
+
+	var prevhash, hash Uint256
+	copy(hash[:], blockSha[:])
+	copy(prevhash[:], blockHeader.PrevBlockHash[:])
 	node := BlockNode{
-		Hash:       blockSha,
-		ParentHash: &prevHash,
+		Hash:       &hash,
+		ParentHash: &prevhash,
 		Height:     blockHeader.Height,
 		Version:    blockHeader.Version,
 		Bits:       blockHeader.Bits,
@@ -1037,17 +1041,19 @@ func DumpBlockNode(node *BlockNode) {
 type BlockLocator []Uint256
 
 func (b *Blockchain) LatestBlockLocator() (BlockLocator, error) {
+	b.mutex.RLock()
+	defer b.mutex.RUnlock()
 	if b.BestChain == nil {
 		// Get the latest block hash for the main chain from the
 		// database.
 
 		// Get Current Block
 		blockHash := b.Ledger.Store.GetCurrentBlockHash()
-		return b.BlockLocatorFromHash(&blockHash), nil
+		return b.blockLocatorFromHash(&blockHash), nil
 	}
 
 	// The best chain is set, so use its hash.
-	return b.BlockLocatorFromHash(b.BestChain.Hash), nil
+	return b.blockLocatorFromHash(b.BestChain.Hash), nil
 }
 func (b *Blockchain) AddNodeToIndex(node *BlockNode) {
 	b.IndexLock.Lock()
@@ -1068,10 +1074,18 @@ func (b *Blockchain) LookupNodeInIndex(hash *Uint256) (*BlockNode, bool) {
 	return node, exist
 }
 
-func (b *Blockchain) BlockLocatorFromHash(hash *Uint256) BlockLocator {
+func (b *Blockchain) BlockLocatorFromHash(inhash *Uint256) BlockLocator {
+	b.mutex.RLock()
+	defer b.mutex.RUnlock()
+	return b.blockLocatorFromHash(inhash)
+}
+func (b *Blockchain) blockLocatorFromHash(inhash *Uint256) BlockLocator {
 	// The locator contains the requested hash at the very least.
-	locator := make(BlockLocator, 0, MaxBlockLocatorsPerMsg)
-	locator = append(locator, *hash)
+	var hash Uint256
+	copy(hash[:], inhash[:])
+	//locator := make(BlockLocator, 0, MaxBlockLocatorsPerMsg)
+	locator := make(BlockLocator, 0)
+	locator = append(locator, hash)
 
 	// Nothing more to do if a locator for the genesis hash was requested.
 	if hash.CompareTo(b.GenesisHash) == 0 {
@@ -1083,13 +1097,13 @@ func (b *Blockchain) BlockLocatorFromHash(hash *Uint256) BlockLocator {
 	// which it forks from the main chain.
 	blockHeight := int32(-1)
 	//node, exists := b.Index[*hash]
-	node, exists := b.LookupNodeInIndex(hash)
+	node, exists := b.LookupNodeInIndex(&hash)
 	if !exists {
 		// Try to look up the height for passed block hash.  Assume an
 		// error means it doesn't exist and just return the locator for
 		// the block itself.
 
-		block, err := b.Ledger.Store.GetBlock(*hash)
+		block, err := b.Ledger.Store.GetBlock(hash)
 		if err != nil {
 			return locator
 		}
@@ -1130,6 +1144,7 @@ func (b *Blockchain) BlockLocatorFromHash(hash *Uint256) BlockLocator {
 
 	return locator
 }
+
 func (b *Blockchain) LatestLocatorHash(locator BlockLocator) Uint256 {
 	var startHash Uint256
 	for _, hash := range locator {

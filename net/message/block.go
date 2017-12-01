@@ -27,8 +27,8 @@ type block struct {
 
 func (msg block) Handle(node Noder) error {
 	hash := msg.blk.Hash()
-	node.LocalNode().AcqSyncBlkReqSem()
-	defer node.LocalNode().RelSyncBlkReqSem()
+	//node.LocalNode().AcqSyncBlkReqSem()
+	//defer node.LocalNode().RelSyncBlkReqSem()
 	//log.Tracef("hash is %x", hash.ToArrayReverse())
 	if node.LocalNode().IsNeighborNoder(node) == false {
 		log.Trace("received headers message from unknown peer")

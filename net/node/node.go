@@ -746,8 +746,6 @@ func (node node) StopRetryTimer() {
 }
 
 func (node *node) needSync() bool {
-	node.local.nbrNodes.RLock()
-	defer node.local.nbrNodes.RUnlock()
 	heights, _ := node.GetNeighborHeights()
 	log.Info("nbr heigh-->", heights, ledger.DefaultLedger.Blockchain.BlockHeight)
 	if CompareHeight(uint64(ledger.DefaultLedger.Blockchain.BlockHeight), heights) {

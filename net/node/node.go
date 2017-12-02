@@ -715,36 +715,6 @@ func (node *node) SetSyncFailed() {
 	node.syncFlag = node.syncFlag | 0x02
 }
 
-func (node *node) StartRetryTimer() {
-	var periodUpdateTime uint
-	if Parameters.GenBlockTime > MINGENBLOCKTIME {
-		periodUpdateTime = Parameters.GenBlockTime / TIMESOFUPDATETIME
-	} else {
-		periodUpdateTime = DEFAULTGENBLOCKTIME / TIMESOFUPDATETIME
-	}
-	t := time.NewTimer(time.Second * (time.Duration(periodUpdateTime)) * KEEPALIVETIMEOUT)
-
-	node.TxNotifyChan = make(chan int, 1)
-	go func() {
-		select {
-		case <-t.C:
-			node.SetSyncFailed()
-			node.local.eventQueue.GetEvent("disconnect").Notify(events.EventNodeDisconnect, node)
-			if node.LocalNode().GetHeaderFisrtModeStatus() {
-				ReqBlkHdrFromOthers(node)
-			} else {
-				ReqBlksHdrFromOthers(node)
-			}
-		case <-node.TxNotifyChan:
-			t.Stop()
-		}
-	}()
-}
-
-func (node node) StopRetryTimer() {
-	node.TxNotifyChan <- 1
-}
-
 func (node *node) needSync() bool {
 	heights, _ := node.GetNeighborHeights()
 	log.Info("nbr heigh-->", heights, ledger.DefaultLedger.Blockchain.BlockHeight)
@@ -860,6 +830,13 @@ func (node *node) AddRequestedBlock(hash Uint256) {
 	node.requestedBlockLock.Lock()
 	defer node.requestedBlockLock.Unlock()
 	node.RequestedBlockList[hash] = time.Now()
+}
+
+func (node *node) ResetRequestedBlock() {
+	node.requestedBlockLock.Lock()
+	defer node.requestedBlockLock.Unlock()
+
+	node.RequestedBlockList = make(map[Uint256]time.Time)
 }
 
 func (node *node) DeleteRequestedBlock(hash Uint256) {

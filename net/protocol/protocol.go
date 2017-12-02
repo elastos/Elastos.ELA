@@ -168,8 +168,6 @@ type Noder interface {
 	SetSyncHeaders(b bool)
 	IsSyncFailed() bool
 	SetSyncFailed()
-	StartRetryTimer()
-	StopRetryTimer()
 	StartSync()
 	CacheInvHash(hash common.Uint256)
 	ExistInvHash(hash common.Uint256) bool
@@ -196,6 +194,7 @@ type Noder interface {
 	GetStartHash() common.Uint256
 	SetStopHash(hash common.Uint256)
 	GetStopHash() common.Uint256
+	ResetRequestedBlock()
 }
 
 // Checkpoint identifies a known good point in the block chain.

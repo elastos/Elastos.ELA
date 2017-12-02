@@ -66,10 +66,12 @@ func (node *node) SyncBlks() {
 		if err == nil {
 			syncNode.SetSyncHeaders(false)
 		}
+		node.LocalNode().ResetRequestedBlock()
 	} else {
 		var syncNode Noder
 		hasSyncPeer, syncNode := node.local.hasSyncPeer()
 		if hasSyncPeer == false {
+			node.LocalNode().ResetRequestedBlock()
 			syncNode = node.GetBestHeightNoder()
 			hash := ledger.DefaultLedger.Store.GetCurrentBlockHash()
 			if node.LocalNode().GetHeaderFisrtModeStatus() {
@@ -82,7 +84,6 @@ func (node *node) SyncBlks() {
 		} else {
 			//rb := syncNode.LocalNode().GetRequestBlockList()
 			rb1 := syncNode.LocalNode().GetRequestBlockList()
-
 			var rb = make(map[common.Uint256]time.Time, 50)
 			x := 1
 			node.requestedBlockLock.Lock()
@@ -95,6 +96,7 @@ func (node *node) SyncBlks() {
 			}
 			node.requestedBlockLock.Unlock()
 			if len(rb) == 0 {
+				syncNode.SetSyncHeaders(false)
 				newSyncNode := node.GetBestHeightNoder()
 				hash := ledger.DefaultLedger.Store.GetCurrentBlockHash()
 				if node.LocalNode().GetHeaderFisrtModeStatus() {

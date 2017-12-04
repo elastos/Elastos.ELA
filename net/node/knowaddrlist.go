@@ -211,6 +211,7 @@ func (al *KnownAddressList) RandGetAddresses(nbrAddrs []NodeAddr) []NodeAddr {
 			keys = append(keys, k)
 		}
 	}
+
 	addrLen := len(keys)
 	var i int
 	addrs := []NodeAddr{}
@@ -220,6 +221,8 @@ func (al *KnownAddressList) RandGetAddresses(nbrAddrs []NodeAddr) []NodeAddr {
 			if !ok {
 				continue
 			}
+			ka.increaseAttempts()
+			ka.updateLastAttempt()
 			addrs = append(addrs, ka.srcAddr)
 		}
 	} else {

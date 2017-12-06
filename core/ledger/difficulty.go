@@ -11,24 +11,18 @@ import (
 )
 
 var (
-	blocksPerRetarget = uint32(config.Parameters.PowConfiguration.TargetTimeSpan / config.Parameters.PowConfiguration.TargetTimePerBlock)
-
-	adjustmentFactor    = int64(4) // 25% less, 400% more
-	minRetargetTimespan = int64(config.Parameters.PowConfiguration.TargetTimeSpan / adjustmentFactor)
-	maxRetargetTimespan = int64(config.Parameters.PowConfiguration.TargetTimeSpan * adjustmentFactor)
-
-	// mainPowLimit is the highest proof of work value a Bitcoin block can
-	// have for the main network.  It is the value 2^224 - 1.
-	bigOne   = big.NewInt(1)
-	PowLimit = new(big.Int).Sub(new(big.Int).Lsh(bigOne, 255), bigOne)
-
-	//timeSource:          config.TimeSource,
+	targetTimespan      = int64(config.Parameters.ChainParam.TargetTimespan / time.Second)
+	targetTimePerBlock  = int64(config.Parameters.ChainParam.TargetTimePerBlock / time.Second)
+	blocksPerRetarget   = uint32(targetTimespan / targetTimePerBlock)
+	minRetargetTimespan = int64(targetTimespan / config.Parameters.ChainParam.AdjustmentFactor)
+	maxRetargetTimespan = int64(targetTimespan * config.Parameters.ChainParam.AdjustmentFactor)
 )
 
 func CalcNextRequiredDifficulty(prevNode *BlockNode, newBlockTime time.Time) (uint32, error) {
 	// Genesis block.
-	if (prevNode.Height == 0) || (config.Parameters.PowConfiguration.FixedBits) {
-		return uint32(config.Parameters.PowConfiguration.PowLimitBits), nil
+	if (prevNode.Height == 0) || (config.Parameters.ChainParam.Name == "RegNet") {
+		return uint32(config.Parameters.ChainParam.PowLimitBits), nil
+
 	}
 
 	// Return the previous block's difficulty requirements if this block
@@ -65,11 +59,11 @@ func CalcNextRequiredDifficulty(prevNode *BlockNode, newBlockTime time.Time) (ui
 	// result.
 	oldTarget := CompactToBig(prevNode.Bits)
 	newTarget := new(big.Int).Mul(oldTarget, big.NewInt(adjustedTimespan))
-	newTarget.Div(newTarget, big.NewInt(config.Parameters.PowConfiguration.TargetTimeSpan))
+	newTarget.Div(newTarget, big.NewInt(targetTimespan))
 
 	// Limit new value to the proof of work limit.
-	if newTarget.Cmp(PowLimit) > 0 {
-		newTarget.Set(PowLimit)
+	if newTarget.Cmp(config.Parameters.ChainParam.PowLimit) > 0 {
+		newTarget.Set(config.Parameters.ChainParam.PowLimit)
 	}
 
 	// Log new target difficulty and return it.  The new target logging is
@@ -83,7 +77,7 @@ func CalcNextRequiredDifficulty(prevNode *BlockNode, newBlockTime time.Time) (ui
 	log.Tracef("Actual timespan %v, adjusted timespan %v, target timespan %v",
 		time.Duration(actualTimespan)*time.Second,
 		time.Duration(adjustedTimespan)*time.Second,
-		config.Parameters.PowConfiguration.TargetTimeSpan)
+		config.Parameters.ChainParam.TargetTimespan)
 
 	return newTargetBits, nil
 }

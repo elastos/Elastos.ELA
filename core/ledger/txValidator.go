@@ -101,7 +101,7 @@ func CheckTransactionContext(txn *tx.Transaction, ledger *Ledger) ErrCode {
 		if referTxn.IsCoinBaseTx() {
 			lockHeight := referTxn.LockTime
 			currentHeight := ledger.Store.GetHeight()
-			if currentHeight-lockHeight < config.Parameters.PowConfiguration.SpendCoinbaseSpan {
+			if currentHeight-lockHeight < config.Parameters.ChainParam.SpendCoinbaseSpan {
 				return ErrIneffectiveCoinbase
 			}
 		}

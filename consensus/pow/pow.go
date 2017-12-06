@@ -32,10 +32,11 @@ const (
 )
 
 var (
-	TargetTimePerBlock = 2
-	OrginAmountOfEla   = 3300 * 10000 * 100000000
-	SubsidyInterval    = 365 * 24 * 60 / TargetTimePerBlock
-	RetargetPersent    = 25
+	TargetTimePerBlock = int64(config.Parameters.ChainParam.TargetTimePerBlock / time.Second)
+
+	OrginAmountOfEla = 3300 * 10000 * 100000000
+	SubsidyInterval  = 365 * 24 * 60 * 60 / TargetTimePerBlock
+	RetargetPersent  = 25
 )
 
 type msgBlock struct {
@@ -151,7 +152,7 @@ func (pow *PowService) GenerateBlock(addr string) (*ledger.Block, error) {
 		PrevBlockHash:    *ledger.DefaultLedger.Blockchain.BestChain.Hash,
 		TransactionsRoot: Uint256{},
 		Timestamp:        uint32(ledger.DefaultLedger.Blockchain.MedianAdjustedTime().Unix()),
-		Bits:             config.Parameters.PowConfiguration.PowLimitBits,
+		Bits:             config.Parameters.ChainParam.PowLimitBits,
 		Height:           nextBlockHeight,
 		Nonce:            0,
 		AuxPow:           auxpow.AuxPow{},

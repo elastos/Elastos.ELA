@@ -35,14 +35,7 @@
     "CoMining":false,
     "AutoMining": false,
     "MinerInfo": "ELA",
-	"FixedBits": false,
-    "TargetTimeSpan": 10,
-    "TargetTimePerBlock": 1,
-    "PowLimitBits": 503447551,
-	"MaxOrphanBlocks" :  10000,
-	"MinMemoryNodes" : 20160,
-	"SpendCoinbaseSpan" : 100
-
+    "ActiveNet": "MainNet"
     }
   }
 }

@@ -174,9 +174,10 @@ func GenesisBlockInit() (*Block, error) {
 		PrevBlockHash:    Uint256{},
 		TransactionsRoot: Uint256{},
 		Timestamp:        uint32(time.Unix(time.Date(2017, time.October, 1, 0, 0, 0, 0, time.UTC).Unix(), 0).Unix()),
-		Bits:             0x1d03ffff,
-		Nonce:            GenesisNonce,
-		Height:           uint32(0),
+		//Bits:             0x1d03ffff,
+		Bits:   config.Parameters.ChainParam.PowLimitBits,
+		Nonce:  GenesisNonce,
+		Height: uint32(0),
 	}
 
 	//transaction

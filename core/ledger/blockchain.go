@@ -20,12 +20,12 @@ const (
 )
 
 var (
-	maxOrphanBlocks = config.Parameters.PowConfiguration.MaxOrphanBlocks
-	MinMemoryNodes  = config.Parameters.PowConfiguration.MinMemoryNodes
+	maxOrphanBlocks = config.Parameters.ChainParam.MaxOrphanBlocks
+	MinMemoryNodes  = config.Parameters.ChainParam.MinMemoryNodes
 )
 
 var (
-	oneLsh256 = new(big.Int).Lsh(bigOne, 256)
+	oneLsh256 = new(big.Int).Lsh(big.NewInt(1), 256)
 	zeroHash  = Uint256{}
 )
 
@@ -347,7 +347,9 @@ func CalcWork(bits uint32) *big.Int {
 		return big.NewInt(0)
 	}
 
-	denominator := new(big.Int).Add(difficultyNum, bigOne)
+	//denominator := new(big.Int).Add(difficultyNum, bigOne)
+	denominator := new(big.Int).Add(difficultyNum, big.NewInt(1))
+
 	return new(big.Int).Div(oneLsh256, denominator)
 }
 
@@ -961,7 +963,9 @@ func (bc *Blockchain) ProcessBlock(block *Block, timeSource MedianTimeSource, fl
 	log.Tracef("[ProcessBLock] orphan already exist= %v", exists)
 
 	// Perform preliminary sanity checks on the block and its transactions.
-	err = PowCheckBlockSanity(block, PowLimit, bc.TimeSource)
+	//err = PowCheckBlockSanity(block, PowLimit, bc.TimeSource)
+	err = PowCheckBlockSanity(block, config.Parameters.ChainParam.PowLimit, bc.TimeSource)
+
 	if err != nil {
 		log.Error("PowCheckBlockSanity error!")
 		return false, false, err

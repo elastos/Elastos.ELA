@@ -5,7 +5,9 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"log"
+	"math/big"
 	"os"
+	"time"
 )
 
 const (
@@ -14,28 +16,58 @@ const (
 	DEFAULTGENBLOCKTIME   = 6
 )
 
-var Version string
+var (
+	Parameters configParams
+	Version    string
+	mainNet    *ChainParams = &ChainParams{
+		Name:               "MainNet",
+		PowLimit:           new(big.Int).Sub(new(big.Int).Lsh(big.NewInt(1), 255), big.NewInt(1)),
+		PowLimitBits:       0x1f0008ff,
+		TargetTimespan:     time.Second * 60 * 2 * 720,
+		TargetTimePerBlock: time.Second * 60 * 2,
+		AdjustmentFactor:   int64(4),
+		MaxOrphanBlocks:    10000,
+		MinMemoryNodes:     20160,
+		SpendCoinbaseSpan:  100,
+	}
+	testNet *ChainParams = &ChainParams{
+		Name:               "TestNet",
+		PowLimit:           new(big.Int).Sub(new(big.Int).Lsh(big.NewInt(1), 255), big.NewInt(1)),
+		PowLimitBits:       0x1e1da5ff,
+		TargetTimespan:     time.Second * 10 * 10,
+		TargetTimePerBlock: time.Second * 10,
+		AdjustmentFactor:   int64(4),
+		MaxOrphanBlocks:    10000,
+		MinMemoryNodes:     20160,
+		SpendCoinbaseSpan:  100,
+	}
+	regNet *ChainParams = &ChainParams{
+		Name:               "RegNet",
+		PowLimit:           new(big.Int).Sub(new(big.Int).Lsh(big.NewInt(1), 255), big.NewInt(1)),
+		PowLimitBits:       0x207fffff,
+		TargetTimespan:     time.Second * 1 * 10,
+		TargetTimePerBlock: time.Second * 1,
+		AdjustmentFactor:   int64(4),
+		MaxOrphanBlocks:    10000,
+		MinMemoryNodes:     20160,
+		SpendCoinbaseSpan:  100,
+	}
+)
 
 type PowConfiguration struct {
-	Switch             string `json:"Switch"`
-	PayToAddr          string `json:"PayToAddr"`
-	MiningServerIP     string `josn:"MiningServerIP"`
-	MiningServerPort   int    `josn:"MiningServerPort"`
-	MiningSelfPort     int    `josn:"MiningSelfPort"`
-	WalletVersion      int    `json:"WalletVersion"`
-	ProtocolVersion    int    `json:"ProtocolVersion"`
-	TestNet            bool   `json:"testnet"`
-	Proxy              string `json:"Proxy"`
-	CoMining           bool   `json:"CoMining"`
-	AutoMining         bool   `json:"AutoMining"`
-	MinerInfo          string `json:"MinerInfo"`
-	TargetTimeSpan     int64  `json:"TargetTimeSpan"`
-	TargetTimePerBlock int64  `json:"TargetTimePerBlock"`
-	PowLimitBits       uint32 `json:"PowLimitBits"`
-	FixedBits          bool   `json:"FixedBits"`
-	MaxOrphanBlocks    int    `json:"MaxOrphanBlocks"`
-	MinMemoryNodes     uint32 `json:"MinMemoryNodes"`
-	SpendCoinbaseSpan  uint32 `json:"SpendCoinbaseSpan"`
+	Switch           string `json:"Switch"`
+	PayToAddr        string `json:"PayToAddr"`
+	MiningServerIP   string `josn:"MiningServerIP"`
+	MiningServerPort int    `josn:"MiningServerPort"`
+	MiningSelfPort   int    `josn:"MiningSelfPort"`
+	WalletVersion    int    `json:"WalletVersion"`
+	ProtocolVersion  int    `json:"ProtocolVersion"`
+	TestNet          bool   `json:"testnet"`
+	Proxy            string `json:"Proxy"`
+	CoMining         bool   `json:"CoMining"`
+	AutoMining       bool   `json:"AutoMining"`
+	MinerInfo        string `json:"MinerInfo"`
+	ActiveNet        string `json:"ActiveNet"`
 }
 
 type Configuration struct {
@@ -79,7 +111,22 @@ type ConfigFile struct {
 	ConfigFile Configuration `json:"Configuration"`
 }
 
-var Parameters *Configuration
+type ChainParams struct {
+	Name               string
+	PowLimit           *big.Int
+	PowLimitBits       uint32
+	TargetTimespan     time.Duration
+	TargetTimePerBlock time.Duration
+	AdjustmentFactor   int64
+	MaxOrphanBlocks    int
+	MinMemoryNodes     uint32
+	SpendCoinbaseSpan  uint32
+}
+
+type configParams struct {
+	*Configuration
+	ChainParam *ChainParams
+}
 
 func init() {
 	file, e := ioutil.ReadFile(DefaultConfigFilename)
@@ -96,5 +143,14 @@ func init() {
 		log.Fatalf("Unmarshal json file erro %v", e)
 		os.Exit(1)
 	}
-	Parameters = &(config.ConfigFile)
+	//	Parameters = &(config.ConfigFile)
+	Parameters.Configuration = &(config.ConfigFile)
+	if Parameters.PowConfiguration.ActiveNet == "MainNet" {
+		Parameters.ChainParam = mainNet
+	} else if Parameters.PowConfiguration.ActiveNet == "TestNet" {
+		Parameters.ChainParam = testNet
+	} else if Parameters.PowConfiguration.ActiveNet == "RegNet" {
+		Parameters.ChainParam = regNet
+	}
+
 }

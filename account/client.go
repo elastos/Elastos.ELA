@@ -166,10 +166,10 @@ func (client *ClientImpl) ProcessOneBlock(block *ledger.Block) {
 					// If it's not Coinbase transaction, the new created utxos could be spent in next block height.
 					// Otherwise, could be spent when block height reaches to current height + SpendCoinbaseSpan
 					h := uint32(0)
-					if tx.IsCoinBaseTx(){
-						h = block.Blockdata.Height + config.Parameters.PowConfiguration.SpendCoinbaseSpan
+					if tx.IsCoinBaseTx() {
+						h = block.Blockdata.Height + config.Parameters.ChainParam.SpendCoinbaseSpan
 					}
-					newCoin := &Coin{Output: output,AddressType: SingleSign, Height: h}
+					newCoin := &Coin{Output: output, AddressType: SingleSign, Height: h}
 					client.coins[input] = newCoin
 					needUpdate = true
 				}

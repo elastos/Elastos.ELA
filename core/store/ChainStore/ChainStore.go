@@ -196,7 +196,7 @@ func (bd *ChainStore) InitLedgerStoreWithGenesisBlock(genesisBlock *Block) (uint
 	// Or the bookkeepers are not consistent with the chain
 	hash := genesisBlock.Hash()
 	if !bd.IsBlockInStore(hash) {
-		return 0, errors.New("bookkeepers are not consistent with the chain")
+		return 0, errors.New("genesis block is not consistent with the chain")
 	}
 	bd.ledger.Blockchain.GenesisHash = hash
 	//bd.headerIndex[0] = hash

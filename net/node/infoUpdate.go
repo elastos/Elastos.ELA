@@ -65,6 +65,9 @@ func (node *node) SyncBlks() {
 		syncNode, err := node.FindSyncNode()
 		if err == nil {
 			syncNode.SetSyncHeaders(false)
+			var emptyHash common.Uint256
+			node.local.SetStartHash(emptyHash)
+			node.local.SetStopHash(emptyHash)
 		}
 		node.LocalNode().ResetRequestedBlock()
 	} else {
@@ -97,13 +100,15 @@ func (node *node) SyncBlks() {
 			node.requestedBlockLock.Unlock()
 			if len(rb) == 0 {
 				syncNode.SetSyncHeaders(false)
+				var emptyHash common.Uint256
+				node.local.SetStartHash(emptyHash)
+				node.local.SetStopHash(emptyHash)
 				newSyncNode := node.GetBestHeightNoder()
 				hash := ledger.DefaultLedger.Store.GetCurrentBlockHash()
 				if node.LocalNode().GetHeaderFisrtModeStatus() {
 					SendMsgSyncHeaders(newSyncNode, hash)
 				} else {
 					blocator := ledger.DefaultLedger.Blockchain.BlockLocatorFromHash(&hash)
-					var emptyHash common.Uint256
 					SendMsgSyncBlockHeaders(newSyncNode, blocator, emptyHash)
 				}
 			} else {

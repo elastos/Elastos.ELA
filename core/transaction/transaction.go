@@ -1,11 +1,7 @@
 package transaction
 
 import (
-	"crypto/sha256"
-	"errors"
-	"io"
-	"sort"
-
+	"DNA/common/log"
 	. "DNA_POW/common"
 	"DNA_POW/common/serialization"
 	"DNA_POW/core/contract/program"
@@ -13,6 +9,10 @@ import (
 	"DNA_POW/core/transaction/payload"
 	. "DNA_POW/errors"
 	"bytes"
+	"crypto/sha256"
+	"errors"
+	"io"
+	"sort"
 )
 
 //for different transaction types with different payload format
@@ -20,15 +20,28 @@ import (
 type TransactionType byte
 
 const (
-	CoinBase       TransactionType = 0x00
-	RegisterAsset  TransactionType = 0x01
-	TransferAsset  TransactionType = 0x02
-	Record         TransactionType = 0x03
-	Deploy         TransactionType = 0x04
+	CoinBase      TransactionType = 0x00
+	RegisterAsset TransactionType = 0x01
+	TransferAsset TransactionType = 0x02
+	Record        TransactionType = 0x03
+	Deploy        TransactionType = 0x04
 )
 
 const (
 	InvalidTransactionSize = -1
+)
+
+const (
+	// encoded public key length 0x21 || encoded public key (33 bytes) || OP_CHECKSIG(0xac)
+	PublickKeyScriptLen = 35
+
+	// signature length(0x40) || 64 bytes signature
+	SignatureScriptLen = 65
+
+	// 1byte m || 3 encoded public keys with leading 0x40 (34 bytes * 3) ||
+	// 1byte n + 1byte OP_CHECKMULTISIG
+	// FIXME: if want to support 1/2 multisig
+	MinMultisigCodeLen = 105
 )
 
 //Payload define the func for loading the payload data
@@ -433,6 +446,80 @@ func (tx *Transaction) GetMergedAssetIDValueFromReference() (TransactionResult, 
 		}
 	}
 	return result, nil
+}
+
+func ParseMultisigTransactionCode(code []byte) []Uint160 {
+	if len(code) < MinMultisigCodeLen {
+		log.Error("short code in multisig transaction detected")
+		return nil
+	}
+
+	// remove last byte CHECKMULTISIG
+	code = code[:len(code)-1]
+	// remove m
+	code = code[1:]
+	// remove n
+	code = code[:len(code)-1]
+	if len(code)%(PublickKeyScriptLen-1) != 0 {
+		log.Error("invalid code in multisig transaction detected")
+		return nil
+	}
+
+	var programHash []Uint160
+	i := 0
+	for i < len(code) {
+		script := make([]byte, PublickKeyScriptLen-1)
+		copy(script, code[i:i+PublickKeyScriptLen-1])
+		script = append(script, 0xac)
+		i += PublickKeyScriptLen - 1
+		hash, _ := ToCodeHash(script)
+		programHash = append(programHash, hash)
+	}
+
+	return programHash
+}
+
+func (tx *Transaction) ParseTransactionCode() []Uint160 {
+	// TODO: parse Programs[1:]
+	code := make([]byte, len(tx.Programs[0].Code))
+	copy(code, tx.Programs[0].Code)
+
+	return ParseMultisigTransactionCode(code)
+}
+
+func (tx *Transaction) ParseTransactionSig() (havesig, needsig int, err error) {
+	if len(tx.Programs) <= 0 {
+		return -1, -1, errors.New("missing transation program")
+	}
+	x := len(tx.Programs[0].Parameter) / SignatureScriptLen
+	y := len(tx.Programs[0].Parameter) % SignatureScriptLen
+
+	return x, y, nil
+}
+
+func (tx *Transaction) AppendNewSignature(sig []byte) error {
+	if len(tx.Programs) <= 0 {
+		return errors.New("missing transation program")
+	}
+
+	newsig := []byte{}
+	newsig = append(newsig, byte(len(sig)))
+	newsig = append(newsig, sig...)
+
+	havesig, _, err := tx.ParseTransactionSig()
+	if err != nil {
+		return err
+	}
+
+	existedsigs := tx.Programs[0].Parameter[0 : havesig*SignatureScriptLen]
+	leftsigs := tx.Programs[0].Parameter[havesig*SignatureScriptLen+1:]
+
+	tx.Programs[0].Parameter = nil
+	tx.Programs[0].Parameter = append(tx.Programs[0].Parameter, existedsigs...)
+	tx.Programs[0].Parameter = append(tx.Programs[0].Parameter, newsig...)
+	tx.Programs[0].Parameter = append(tx.Programs[0].Parameter, leftsigs...)
+
+	return nil
 }
 
 type byProgramHashes []Uint160

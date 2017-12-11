@@ -27,6 +27,8 @@ func StartRPCServer() {
 	HandleFunc("sendtoaddress", sendToAddress)
 	HandleFunc("sendrawtransaction", sendRawTransaction)
 	HandleFunc("submitblock", submitBlock)
+	HandleFunc("createmultisigtransaction", createMultisigTransaction)
+	HandleFunc("signmultisigtransaction", signMultisigTransaction)
 
 	// mining interfaces
 	HandleFunc("getinfo", getInfo)

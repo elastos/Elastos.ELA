@@ -10,6 +10,7 @@ import (
 	"DNA_POW/cli/dnatst"
 	"DNA_POW/cli/info"
 	"DNA_POW/cli/mining"
+	"DNA_POW/cli/multisig"
 	"DNA_POW/cli/recover"
 	"DNA_POW/cli/wallet"
 
@@ -36,6 +37,7 @@ func main() {
 		*recover.NewCommand(),
 		*mining.NewCommand(),
 		*dnatst.NewCommand(),
+		*multisig.NewCommand(),
 	}
 	sort.Sort(cli.CommandsByName(app.Commands))
 	sort.Sort(cli.FlagsByName(app.Flags))

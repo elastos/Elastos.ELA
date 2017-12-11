@@ -5,13 +5,14 @@ import (
 	"fmt"
 	"time"
 
-	"DNA_POW/core/ledger"
-	"DNA_POW/core/transaction/payload"
 	"DNA_POW/account"
 	. "DNA_POW/common"
 	"DNA_POW/common/config"
 	"DNA_POW/common/log"
+	"DNA_POW/core/ledger"
+	"DNA_POW/core/signature"
 	tx "DNA_POW/core/transaction"
+	"DNA_POW/core/transaction/payload"
 	. "DNA_POW/errors"
 	"DNA_POW/sdk"
 )
@@ -173,7 +174,7 @@ func getBlock(params []interface{}) map[string]interface{} {
 		Bits:             block.Blockdata.Bits,
 		Height:           block.Blockdata.Height,
 		Nonce:            block.Blockdata.Nonce,
-		Hash: BytesToHexString(hash.ToArrayReverse()),
+		Hash:             BytesToHexString(hash.ToArrayReverse()),
 	}
 
 	trans := make([]*Transactions, len(block.Transactions))
@@ -344,7 +345,7 @@ func submitAuxBlock(params []interface{}) map[string]interface{} {
 		}
 
 		Pow.MsgBlock.Mutex.Lock()
-		for key, _ := range Pow.MsgBlock.BlockData {
+		for key := range Pow.MsgBlock.BlockData {
 			delete(Pow.MsgBlock.BlockData, key)
 		}
 		Pow.MsgBlock.Mutex.Unlock()
@@ -477,7 +478,6 @@ func auxHelp(params []interface{}) map[string]interface{} {
 func getVersion(params []interface{}) map[string]interface{} {
 	return DnaRpc(config.Version)
 }
-
 
 func addAccount(params []interface{}) map[string]interface{} {
 	if Wallet == nil {
@@ -625,7 +625,7 @@ func sendToAddress(params []interface{}) map[string]interface{} {
 	if err := assetID.Deserialize(bytes.NewReader(tmp)); err != nil {
 		return DnaRpc("error: invalid asset hash")
 	}
-	txn, err := sdk.MakeTransferTransaction(Wallet, assetID, fee,batchOut)
+	txn, err := sdk.MakeTransferTransaction(Wallet, assetID, fee, batchOut)
 	if err != nil {
 		return DnaRpc("error: " + err.Error())
 	}
@@ -689,4 +689,127 @@ func submitBlock(params []interface{}) map[string]interface{} {
 		return DnaRpcInvalidParameter
 	}
 	return DnaRpcSuccess
+}
+
+func signMultisigTransaction(params []interface{}) map[string]interface{} {
+	if len(params) < 1 {
+		return DnaRpcNil
+	}
+	var signedrawtxn string
+	switch params[0].(type) {
+	case string:
+		signedrawtxn = params[0].(string)
+	default:
+		return DnaRpcInvalidParameter
+	}
+
+	rawtxn, _ := HexStringToBytes(signedrawtxn)
+	var txn tx.Transaction
+	txn.Deserialize(bytes.NewReader(rawtxn))
+	if len(txn.Programs) <= 0 {
+		return DnaRpc("missing the first signature")
+	}
+
+	found := false
+	programHashes := txn.ParseTransactionCode()
+	for _, hash := range programHashes {
+		acct := Wallet.GetAccountByProgramHash(hash)
+		if acct != nil {
+			found = true
+			sig, _ := signature.SignBySigner(&txn, acct)
+			txn.AppendNewSignature(sig)
+		}
+	}
+	if !found {
+		return DnaRpc("error: no available account detected")
+	}
+
+	_, needsig, err := txn.ParseTransactionSig()
+	if err != nil {
+		return DnaRpc("error: " + err.Error())
+	}
+	if needsig == 0 {
+		txnHash := txn.Hash()
+		if errCode := VerifyAndSendTx(&txn); errCode != ErrNoError {
+			return DnaRpc(errCode.Error())
+		}
+		return DnaRpc(BytesToHexString(txnHash.ToArrayReverse()))
+	} else {
+		var buffer bytes.Buffer
+		txn.Serialize(&buffer)
+		return DnaRpc(BytesToHexString(buffer.Bytes()))
+	}
+}
+
+func createMultisigTransaction(params []interface{}) map[string]interface{} {
+	if len(params) < 4 {
+		return DnaRpcNil
+	}
+	var asset, from, address, value, fee string
+	switch params[0].(type) {
+	case string:
+		asset = params[0].(string)
+	default:
+		return DnaRpcInvalidParameter
+	}
+	switch params[1].(type) {
+	case string:
+		from = params[1].(string)
+	default:
+		return DnaRpcInvalidParameter
+	}
+	switch params[2].(type) {
+	case string:
+		address = params[2].(string)
+	default:
+		return DnaRpcInvalidParameter
+	}
+	switch params[3].(type) {
+	case string:
+		value = params[3].(string)
+	default:
+		return DnaRpcInvalidParameter
+	}
+	switch params[4].(type) {
+	case string:
+		fee = params[4].(string)
+	default:
+		return DnaRpcInvalidParameter
+	}
+	if Wallet == nil {
+		return DnaRpc("error : wallet is not opened")
+	}
+
+	batchOut := sdk.BatchOut{
+		Address: address,
+		Value:   value,
+	}
+	tmp, err := HexStringToBytesReverse(asset)
+	if err != nil {
+		return DnaRpc("error: invalid asset ID")
+	}
+	var assetID Uint256
+	if err := assetID.Deserialize(bytes.NewReader(tmp)); err != nil {
+		return DnaRpc("error: invalid asset hash")
+	}
+	txn, err := sdk.MakeMultisigTransferTransaction(Wallet, assetID, from, fee, batchOut)
+	if err != nil {
+		return DnaRpc("error:" + err.Error())
+	}
+
+	_, needsig, err := txn.ParseTransactionSig()
+	if err != nil {
+		return DnaRpc("error: " + err.Error())
+	}
+	if needsig == 0 {
+		txnHash := txn.Hash()
+		if errCode := VerifyAndSendTx(txn); errCode != ErrNoError {
+			return DnaRpc(errCode.Error())
+		}
+		return DnaRpc(BytesToHexString(txnHash.ToArrayReverse()))
+	} else {
+		var buffer bytes.Buffer
+		txn.Serialize(&buffer)
+		return DnaRpc(BytesToHexString(buffer.Bytes()))
+	}
 }

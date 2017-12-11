@@ -14,6 +14,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"time"
 )
 
 type blocksReq struct {
@@ -249,6 +250,7 @@ func (msg Inv) Handle(node Noder) error {
 			// TODO check the ID queue
 			if !ledger.DefaultLedger.BlockInLedger(h) {
 				if !(node.LocalNode().RequestedBlockExisted(h) || ledger.DefaultLedger.Blockchain.IsKnownOrphan(&h)) {
+					<-time.After(time.Millisecond * 50)
 					ReqBlkData(node, h)
 				}
 			}

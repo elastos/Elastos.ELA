@@ -14,8 +14,8 @@ import (
 
 var ws *websocket.WsServer
 var (
-	pushBlockFlag    bool = false
-	pushRawBlockFlag bool = false
+	pushBlockFlag    bool = true
+	pushRawBlockFlag bool = true
 	pushBlockTxsFlag bool = false
 )
 

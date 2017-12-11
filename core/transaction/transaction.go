@@ -1,8 +1,8 @@
 package transaction
 
 import (
-	"DNA/common/log"
 	. "DNA_POW/common"
+	"DNA_POW/common/log"
 	"DNA_POW/common/serialization"
 	"DNA_POW/core/contract/program"
 	sig "DNA_POW/core/signature"

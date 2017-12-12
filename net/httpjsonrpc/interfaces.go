@@ -581,7 +581,7 @@ func discreteCpuMining(params []interface{}) map[string]interface{} {
 	return DnaRpc(ret)
 }
 
-func sendToAddress(params []interface{}) map[string]interface{} {
+func sendTransaction(params []interface{}) map[string]interface{} {
 	if len(params) < 4 {
 		return DnaRpcNil
 	}
@@ -835,6 +835,7 @@ func createMultiSignTransaction(params []interface{}) map[string]interface{} {
 	default:
 		return DnaRpcInvalidParameter
 	}
+
 	if Wallet == nil {
 		return DnaRpc("error : wallet is not opened")
 	}
@@ -856,25 +857,13 @@ func createMultiSignTransaction(params []interface{}) map[string]interface{} {
 		return DnaRpc("error:" + err.Error())
 	}
 
-	_, needsig, err := txn.ParseTransactionSig()
-	if err != nil {
-		return DnaRpc("error: " + err.Error())
-	}
-	if needsig == 0 {
-		txnHash := txn.Hash()
-		if errCode := VerifyAndSendTx(txn); errCode != ErrNoError {
-			return DnaRpc(errCode.Error())
-		}
-		return DnaRpc(BytesToHexString(txnHash.ToArrayReverse()))
-	} else {
-		var buffer bytes.Buffer
-		txn.Serialize(&buffer)
-		return DnaRpc(BytesToHexString(buffer.Bytes()))
-	}
+	var buffer bytes.Buffer
+	txn.Serialize(&buffer)
+	return DnaRpc(BytesToHexString(buffer.Bytes()))
 }
 
 func createBatchOutMultiSignTransaction(params []interface{}) map[string]interface{} {
-	if len(params) < 5 {
+	if len(params) < 4 {
 		return DnaRpcNil
 	}
 	var asset, from, fee string
@@ -925,24 +914,13 @@ func createBatchOutMultiSignTransaction(params []interface{}) map[string]interfa
 	if err := assetID.Deserialize(bytes.NewReader(tmp)); err != nil {
 		return DnaRpc("error: invalid asset hash")
 	}
+
 	txn, err := sdk.MakeMultisigTransferTransaction(Wallet, assetID, from, fee, batchOut...)
 	if err != nil {
 		return DnaRpc("error:" + err.Error())
 	}
 
-	_, needsig, err := txn.ParseTransactionSig()
-	if err != nil {
-		return DnaRpc("error: " + err.Error())
-	}
-	if needsig == 0 {
-		txnHash := txn.Hash()
-		if errCode := VerifyAndSendTx(txn); errCode != ErrNoError {
-			return DnaRpc(errCode.Error())
-		}
-		return DnaRpc(BytesToHexString(txnHash.ToArrayReverse()))
-	} else {
-		var buffer bytes.Buffer
-		txn.Serialize(&buffer)
-		return DnaRpc(BytesToHexString(buffer.Bytes()))
-	}
+	var buffer bytes.Buffer
+	txn.Serialize(&buffer)
+	return DnaRpc(BytesToHexString(buffer.Bytes()))
 }

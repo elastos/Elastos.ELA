@@ -12,6 +12,7 @@ import (
 	"math/rand"
 	"sort"
 	"strconv"
+	"DNA_POW/common/log"
 )
 
 type BatchOut struct {
@@ -172,14 +173,14 @@ func MakeMultisigTransferTransaction(wallet account.Client, assetID Uint256, fro
 		}
 		output = append(output, tmp)
 	}
-	fmt.Printf("expected = %v\n", expected)
+	log.Debug("expected = %v\n", expected)
 	// construct transaction inputs and changes
 	coins := wallet.GetCoins()
 	sorted := sortAvailableCoinsByValue(coins, account.MultiSign)
 	for _, coinItem := range sorted {
 		if coinItem.coin.Output.AssetID == assetID && coinItem.coin.Output.ProgramHash == spendAddress {
 			input = append(input, coinItem.input)
-			fmt.Printf("coinItem.coin.Output.Value = %v ProgramHash = %x\n", coinItem.coin.Output.Value, spendAddress.ToArrayReverse())
+			log.Debug("coinItem.coin.Output.Value = %v ProgramHash = %x\n", coinItem.coin.Output.Value, spendAddress.ToArrayReverse())
 			if coinItem.coin.Output.Value > expected {
 				changes := &transaction.TxOutput{
 					AssetID:     assetID,

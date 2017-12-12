@@ -24,7 +24,7 @@ func StartRPCServer() {
 
 	// set interfaces
 	HandleFunc("setdebuginfo", setDebugInfo)
-	HandleFunc("sendtoaddress", sendToAddress)
+	HandleFunc("sendtransaction", sendTransaction)
 	HandleFunc("sendbatchouttransaction", sendBatchOutTransaction)
 	HandleFunc("sendrawtransaction", sendRawTransaction)
 	HandleFunc("submitblock", submitBlock)

@@ -39,7 +39,7 @@ func assetAction(c *cli.Context) error {
 		fmt.Println("transaction fee is required with [--fee]")
 		return nil
 	}
-	resp, err := httpjsonrpc.Call(Address(), "sendtoaddress", 0, []interface{}{asset, address, value,fee})
+	resp, err := httpjsonrpc.Call(Address(), "sendtransaction", 0, []interface{}{asset, address, value,fee})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return err

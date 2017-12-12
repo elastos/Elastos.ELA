@@ -8,10 +8,10 @@
     "HttpInfoPort": 20333,
     "HttpInfoStart": true,
     "HttpRestPort": 20334,
-    "HttpWsPort":20335,
+    "HttpWsPort": 20335,
     "HttpJsonPort": 20336,
-    "NoticeServerUrl":"",
-    "OauthServerUrl":"",
+    "NoticeServerUrl": "",
+    "OauthServerUrl": "",
     "NodePort": 20338,
     "PrintLevel": 1,
     "IsTLS": false,
@@ -22,20 +22,20 @@
     "MaxTransactionInBlock": 100,
     "MaxBlockSize": 1000000,
     "ConsensusType": "pow",
-    "PowConfiguration":{
-    "Switch": "enable",
-    "PayToAddr": "ENvQCxmdXR8p134Crymff94BNbKicFJBLv",
-    "MiningServerIP": "127.0.0.1",
-    "MiningServerPort": 5555,
-    "MiningSelfPort": 20339,
-    "WalletVersion": 1,
-    "ProtocolVersion":1,
-    "TestNet":true,
-    "Proxy":"tcp://*:8888",
-    "CoMining":false,
-    "AutoMining": false,
-    "MinerInfo": "ELA",
-    "ActiveNet": "MainNet"
+    "PowConfiguration": {
+      "Switch": "enable",
+      "PayToAddr": "ENvQCxmdXR8p134Crymff94BNbKicFJBLv",
+      "MiningServerIP": "127.0.0.1",
+      "MiningServerPort": 5555,
+      "MiningSelfPort": 20339,
+      "WalletVersion": 1,
+      "ProtocolVersion": 1,
+      "TestNet": true,
+      "Proxy": "tcp://*:8888",
+      "CoMining": false,
+      "AutoMining": false,
+      "MinerInfo": "ELA",
+      "ActiveNet": "MainNet"
     }
   }
 }

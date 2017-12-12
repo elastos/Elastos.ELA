@@ -1,15 +1,16 @@
 package wallet
 
 import (
-	"DNA_POW/account"
-	. "DNA_POW/cli/common"
-	. "DNA_POW/common"
-	"DNA_POW/common/password"
-	"DNA_POW/crypto"
 	"fmt"
 	"os"
 	"strconv"
 	"strings"
+
+	"DNA_POW/crypto"
+	"DNA_POW/account"
+	. "DNA_POW/common"
+	. "DNA_POW/cli/common"
+	"DNA_POW/common/password"
 
 	"github.com/urfave/cli"
 )
@@ -220,42 +221,44 @@ func walletAction(c *cli.Context) error {
 	if multikeys != "" {
 		publicKeys := strings.Split(multikeys, ":")
 		if len(publicKeys) < MinMultiSignKey {
-			fmt.Fprintln(os.Stderr, "public keys is not enough")
-			os.Exit(1)
+			fmt.Print("error: public keys is not enough")
+			return nil
 		}
 		var keys []*crypto.PubKey
 		for _, v := range publicKeys {
 			byteKey, err := HexStringToBytes(v)
 			if err != nil {
-				fmt.Fprintln(os.Stderr, "invalid public key")
-				os.Exit(1)
+				fmt.Print("error: invalid public key")
+				return nil
 			}
 			rawKey, err := crypto.DecodePoint(byteKey)
 			if err != nil {
-				fmt.Fprintln(os.Stderr, "invalid encoded public key")
-				os.Exit(1)
+				fmt.Print("error: invalid encoded public key")
+				return nil
 			}
 			keys = append(keys, rawKey)
 		}
 		wallet, err := account.Open(name, getPassword(passwd))
 		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			os.Exit(1)
+			fmt.Print("error: can not open wallet,", err)
+			return nil
 		}
 		mainAccount, err := wallet.GetDefaultAccount()
 		if err != nil {
-			fmt.Fprintln(os.Stderr, "wallet is broken, main account missing")
-			os.Exit(1)
+			fmt.Print("error: wallet is broken, main account missing")
+			return nil
 		}
 		// generate M/N multsig contract
 		// M = N/2+1
 		// M/N could be 2/3, 3/4, 3/5, 4/6, 4/7 ...
 		var M = len(keys)/2 + 1
-		if err := wallet.CreateMultiSignContract(mainAccount.ProgramHash, M, keys); err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			os.Exit(1)
+		ct, err := wallet.CreateMultiSignContract(mainAccount.ProgramHash, M, keys);
+		if err != nil {
+			fmt.Print("error: create multi sign contract failed,", err)
+			return nil
 		}
-		fmt.Printf("a multisig account created\n")
+		address, err := ct.ProgramHash.ToAddress()
+		fmt.Print(address)
 		return nil
 	}
 

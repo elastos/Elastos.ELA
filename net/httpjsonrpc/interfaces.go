@@ -15,6 +15,7 @@ import (
 	"DNA_POW/core/transaction/payload"
 	. "DNA_POW/errors"
 	"DNA_POW/sdk"
+	"encoding/json"
 )
 
 const (
@@ -147,7 +148,7 @@ func getBlock(params []interface{}) map[string]interface{} {
 		if err != nil {
 			return DnaRpcUnknownBlock
 		}
-	// block hash
+		// block hash
 	case string:
 		str := params[0].(string)
 		hex, err := HexStringToBytesReverse(str)
@@ -637,6 +638,64 @@ func sendToAddress(params []interface{}) map[string]interface{} {
 	return DnaRpc(BytesToHexString(txHash.ToArrayReverse()))
 }
 
+func sendBatchOutTransaction(params []interface{}) map[string]interface{} {
+	if len(params) < 3 {
+		return DnaRpcNil
+	}
+	var asset, fee string
+	var batchOutArray []interface{}
+	switch params[0].(type) {
+	case string:
+		asset = params[0].(string)
+	default:
+		return DnaRpcInvalidParameter
+	}
+	switch params[1].(type) {
+	case []interface{}:
+		batchOutArray = params[1].([]interface{})
+	default:
+		return DnaRpcInvalidParameter
+	}
+	switch params[2].(type) {
+	case string:
+		fee = params[2].(string)
+	default:
+		return DnaRpcInvalidParameter
+	}
+	if Wallet == nil {
+		return DnaRpc("error : wallet is not opened")
+	}
+
+	content, err := json.Marshal(batchOutArray)
+	if err != nil {
+		return DnaRpc("error : batch out marshal failed")
+	}
+	batchOut := []sdk.BatchOut{}
+	err = json.Unmarshal(content, &batchOut)
+	if err != nil {
+		return DnaRpc("error : batch out unmarshal failed")
+	}
+
+	tmp, err := HexStringToBytesReverse(asset)
+	if err != nil {
+		return DnaRpc("error: invalid asset ID")
+	}
+	var assetID Uint256
+	if err := assetID.Deserialize(bytes.NewReader(tmp)); err != nil {
+		return DnaRpc("error: invalid asset hash")
+	}
+	txn, err := sdk.MakeTransferTransaction(Wallet, assetID, fee, batchOut...)
+	if err != nil {
+		return DnaRpc("error: " + err.Error())
+	}
+
+	if errCode := VerifyAndSendTx(txn); errCode != ErrNoError {
+		return DnaRpc("error: " + errCode.Error())
+	}
+	txHash := txn.Hash()
+	return DnaRpc(BytesToHexString(txHash.ToArrayReverse()))
+}
+
 // A JSON example for sendrawtransaction method as following:
 //   {"jsonrpc": "2.0", "method": "sendrawtransaction", "params": ["raw transactioin in hex"], "id": 0}
 func sendRawTransaction(params []interface{}) map[string]interface{} {
@@ -691,7 +750,7 @@ func submitBlock(params []interface{}) map[string]interface{} {
 	return DnaRpcSuccess
 }
 
-func signMultisigTransaction(params []interface{}) map[string]interface{} {
+func signMultiSignTransaction(params []interface{}) map[string]interface{} {
 	if len(params) < 1 {
 		return DnaRpcNil
 	}
@@ -741,8 +800,8 @@ func signMultisigTransaction(params []interface{}) map[string]interface{} {
 	}
 }
 
-func createMultisigTransaction(params []interface{}) map[string]interface{} {
-	if len(params) < 4 {
+func createMultiSignTransaction(params []interface{}) map[string]interface{} {
+	if len(params) < 5 {
 		return DnaRpcNil
 	}
 	var asset, from, address, value, fee string
@@ -793,6 +852,80 @@ func createMultisigTransaction(params []interface{}) map[string]interface{} {
 		return DnaRpc("error: invalid asset hash")
 	}
 	txn, err := sdk.MakeMultisigTransferTransaction(Wallet, assetID, from, fee, batchOut)
+	if err != nil {
+		return DnaRpc("error:" + err.Error())
+	}
+
+	_, needsig, err := txn.ParseTransactionSig()
+	if err != nil {
+		return DnaRpc("error: " + err.Error())
+	}
+	if needsig == 0 {
+		txnHash := txn.Hash()
+		if errCode := VerifyAndSendTx(txn); errCode != ErrNoError {
+			return DnaRpc(errCode.Error())
+		}
+		return DnaRpc(BytesToHexString(txnHash.ToArrayReverse()))
+	} else {
+		var buffer bytes.Buffer
+		txn.Serialize(&buffer)
+		return DnaRpc(BytesToHexString(buffer.Bytes()))
+	}
+}
+
+func createBatchOutMultiSignTransaction(params []interface{}) map[string]interface{} {
+	if len(params) < 5 {
+		return DnaRpcNil
+	}
+	var asset, from, fee string
+	var batchOutArray []interface{}
+	switch params[0].(type) {
+	case string:
+		asset = params[0].(string)
+	default:
+		return DnaRpcInvalidParameter
+	}
+	switch params[1].(type) {
+	case string:
+		from = params[1].(string)
+	default:
+		return DnaRpcInvalidParameter
+	}
+	switch params[2].(type) {
+	case []interface{}:
+		batchOutArray = params[2].([]interface{})
+	default:
+		return DnaRpcInvalidParameter
+	}
+	switch params[3].(type) {
+	case string:
+		fee = params[3].(string)
+	default:
+		return DnaRpcInvalidParameter
+	}
+	if Wallet == nil {
+		return DnaRpc("error : wallet is not opened")
+	}
+
+	content, err := json.Marshal(batchOutArray)
+	if err != nil {
+		return DnaRpc("error : batch out marshal failed")
+	}
+	batchOut := []sdk.BatchOut{}
+	err = json.Unmarshal(content, &batchOut)
+	if err != nil {
+		return DnaRpc("error : batch out unmarshal failed")
+	}
+
+	tmp, err := HexStringToBytesReverse(asset)
+	if err != nil {
+		return DnaRpc("error: invalid asset ID")
+	}
+	var assetID Uint256
+	if err := assetID.Deserialize(bytes.NewReader(tmp)); err != nil {
+		return DnaRpc("error: invalid asset hash")
+	}
+	txn, err := sdk.MakeMultisigTransferTransaction(Wallet, assetID, from, fee, batchOut...)
 	if err != nil {
 		return DnaRpc("error:" + err.Error())
 	}

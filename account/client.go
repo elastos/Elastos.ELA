@@ -48,7 +48,7 @@ type Client interface {
 	GetAccounts() []*Account
 
 	CreateContract(account *Account) error
-	CreateMultiSignContract(contractOwner Uint160, m int, publicKeys []*crypto.PubKey) error
+	CreateMultiSignContract(contractOwner Uint160, m int, publicKeys []*crypto.PubKey) (*ct.Contract, error)
 	GetContracts() []*ct.Contract
 	DeleteContract(programHash Uint160) error
 
@@ -622,15 +622,15 @@ func (cl *ClientImpl) CreateContract(account *Account) error {
 }
 
 // CreateMultiSignContract creates a multisig contract to wallet
-func (cl *ClientImpl) CreateMultiSignContract(contractOwner Uint160, m int, publicKeys []*crypto.PubKey) error {
+func (cl *ClientImpl) CreateMultiSignContract(contractOwner Uint160, m int, publicKeys []*crypto.PubKey) (*ct.Contract, error) {
 	contract, err := contract.CreateMultiSigContract(contractOwner, m, publicKeys)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if err := cl.SaveContract(contract); err != nil {
-		return err
+		return nil, err
 	}
-	return nil
+	return contract, err
 }
 
 func (cl *ClientImpl) DeleteContract(programHash Uint160) error {

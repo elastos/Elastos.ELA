@@ -337,7 +337,7 @@ func NewCommand() *cli.Command {
 			},
 			cli.StringFlag{
 				Name:  "list, l",
-				Usage: "list wallet information [account, balance, verbose]",
+				Usage: "list wallet information [account, balance, verbose, multisig]",
 			},
 			cli.IntFlag{
 				Name:  "addaccount",

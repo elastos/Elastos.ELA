@@ -37,52 +37,34 @@ func init() {
 	runtime.GOMAXPROCS(coreNum)
 }
 
-func handleLogFile(consensus string) {
-	switch consensus {
-	case "pow":
-		go func() {
-			for {
-				time.Sleep(6 * time.Second)
-				log.Trace("BlockHeight = ", ledger.DefaultLedger.Blockchain.BlockHeight)
-				ledger.DefaultLedger.Blockchain.DumpState()
-				bc := ledger.DefaultLedger.Blockchain
-				log.Info("[", len(bc.Index), len(bc.BlockCache), len(bc.Orphans), "]")
-				//ledger.DefaultLedger.Blockchain.DumpState()
-				isNeedNewFile := log.CheckIfNeedNewFile()
-				if isNeedNewFile == true {
-					log.ClosePrintLog()
-					log.Init(log.Path, os.Stdout)
-				}
-			} //for end
-		}()
-	}
+func handleLogFile() {
+	go func() {
+		for {
+			time.Sleep(6 * time.Second)
+			log.Trace("BlockHeight = ", ledger.DefaultLedger.Blockchain.BlockHeight)
+			ledger.DefaultLedger.Blockchain.DumpState()
+			bc := ledger.DefaultLedger.Blockchain
+			log.Info("[", len(bc.Index), len(bc.BlockCache), len(bc.Orphans), "]")
+			//ledger.DefaultLedger.Blockchain.DumpState()
+			isNeedNewFile := log.CheckIfNeedNewFile()
+			if isNeedNewFile {
+				log.ClosePrintLog()
+				log.Init(log.Path, os.Stdout)
+			}
+		} //for end
+	}()
+
 }
 
 func startConsensus(client account.Client, noder protocol.Noder) bool {
-	if protocol.SERVICENODENAME != config.Parameters.NodeType {
-		if config.Parameters.ConsensusType == "pow" &&
-			config.Parameters.PowConfiguration.Switch == "enable" {
-			log.Info("Start POW Services")
-			powServices := pow.NewPowService(client, "logPow", noder)
-			httpjsonrpc.RegistPowService(powServices)
-			isAuxPow := config.Parameters.PowConfiguration.CoMining
-			if !isAuxPow {
-				isAuto := config.Parameters.PowConfiguration.AutoMining
-				if isAuto {
-					go powServices.Start()
-				}
-			} else {
-				//aux pow
-			}
-			handleLogFile("pow")
-			time.Sleep(5 * time.Second)
-			return true
-		} else {
-			log.Fatal("Start consensus ERROR,consensusType is: ", config.Parameters.ConsensusType)
-			return false
-		}
+	log.Info("Start POW Services")
+	powServices := pow.NewPowService(client, "logPow", noder)
+	httpjsonrpc.RegistPowService(powServices)
+	if config.Parameters.PowConfiguration.AutoMining {
+		go powServices.Start()
 	}
 	return true
+
 }
 
 func main() {
@@ -131,6 +113,8 @@ func main() {
 	if !startConsensus(client, noder) {
 		goto ERROR
 	}
+
+	handleLogFile()
 
 	log.Info("4. --Start the RPC service")
 	go httpjsonrpc.StartRPCServer()

@@ -766,38 +766,35 @@ func signMultiSignTransaction(params []interface{}) map[string]interface{} {
 	var txn tx.Transaction
 	txn.Deserialize(bytes.NewReader(rawtxn))
 	if len(txn.Programs) <= 0 {
-		return DnaRpc("missing the first signature")
+		return DnaRpc("error: missing the first signature")
 	}
 
-	found := false
-	programHashes := txn.ParseTransactionCode()
-	for _, hash := range programHashes {
-		acct := Wallet.GetAccountByProgramHash(hash)
-		if acct != nil {
-			found = true
+	_, needSign, err := txn.ParseTransactionSig()
+	if err != nil {
+		return DnaRpc("error: " + err.Error())
+	}
+
+	if needSign > 0 {
+		var acct *account.Account
+		programHashes := txn.ParseTransactionCode()
+		for _, hash := range programHashes {
+			acct = Wallet.GetAccountByProgramHash(hash)
+			if acct != nil {
+				break
+			}
+		}
+
+		if acct == nil {
+			return DnaRpc("error: no available account detected")
+		} else {
 			sig, _ := signature.SignBySigner(&txn, acct)
 			txn.AppendNewSignature(sig)
 		}
 	}
-	if !found {
-		return DnaRpc("error: no available account detected")
-	}
 
-	_, needsig, err := txn.ParseTransactionSig()
-	if err != nil {
-		return DnaRpc("error: " + err.Error())
-	}
-	if needsig == 0 {
-		txnHash := txn.Hash()
-		if errCode := VerifyAndSendTx(&txn); errCode != ErrNoError {
-			return DnaRpc(errCode.Error())
-		}
-		return DnaRpc(BytesToHexString(txnHash.ToArrayReverse()))
-	} else {
-		var buffer bytes.Buffer
-		txn.Serialize(&buffer)
-		return DnaRpc(BytesToHexString(buffer.Bytes()))
-	}
+	var buffer bytes.Buffer
+	txn.Serialize(&buffer)
+	return DnaRpc(BytesToHexString(buffer.Bytes()))
 }
 
 func createMultiSignTransaction(params []interface{}) map[string]interface{} {

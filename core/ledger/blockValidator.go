@@ -25,7 +25,7 @@ func PowCheckBlockSanity(block *Block, powLimit *big.Int, timeSource MedianTimeS
 	if isAuxPow && !header.AuxPow.Check(header.Hash(), auxpow.AuxPowChainID) {
 		return errors.New("[PowCheckBlockSanity] block check proof is failed")
 	}
-	if CheckProofOfWork(header, powLimit, isAuxPow) != nil {
+	if CheckProofOfWork(header, powLimit) != nil {
 		return errors.New("[PowCheckBlockSanity] block check proof is failed.")
 	}
 
@@ -152,7 +152,7 @@ func PowCheckBlockContext(block *Block, prevNode *BlockNode, ledger *Ledger) err
 	return nil
 }
 
-func CheckProofOfWork(bd *Blockdata, powLimit *big.Int, isAuxPow bool) error {
+func CheckProofOfWork(bd *Blockdata, powLimit *big.Int) error {
 	// The target difficulty must be larger than zero.
 	target := CompactToBig(bd.Bits)
 	if target.Sign() <= 0 {
@@ -166,11 +166,9 @@ func CheckProofOfWork(bd *Blockdata, powLimit *big.Int, isAuxPow bool) error {
 
 	// The block hash must be less than the claimed target.
 	var hash Uint256
-	if isAuxPow {
-		hash = bd.AuxPow.ParBlockHeader.Hash()
-	} else {
-		hash = bd.Hash()
-	}
+
+	hash = bd.AuxPow.ParBlockHeader.Hash()
+
 	hashNum := HashToBig(&hash)
 	if hashNum.Cmp(target) > 0 {
 		return NewDetailErr(errors.New("[BlockValidator] error"), ErrNoCode, "[BlockValidator], block target difficulty is higher than expected difficulty.")

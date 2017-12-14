@@ -2,6 +2,7 @@ package pow
 
 import (
 	"DNA_POW/net/protocol"
+	"crypto/sha256"
 	"encoding/binary"
 	"errors"
 	"math"
@@ -285,6 +286,32 @@ func (pow *PowService) DiscreteMining(n uint32) ([]*Uint256, error) {
 }
 
 func (pow *PowService) SolveBlock(MsgBlock *ledger.Block, ticker *time.Ticker) bool {
+
+	auxMerkleBranch := make([]Uint256, 2)
+	auxMerkleIndex := 0
+	btcTxin := make([]*auxpow.BtcTxIn, 0)
+	btcTxout := make([]*auxpow.BtcTxOut, 0)
+	parCoinbaseTx := auxpow.NewBtcTx(btcTxin, btcTxout)
+	parCoinBaseMerkle := make([]Uint256, 2)
+	parMerkleIndex := 0
+	parBlockHeader := auxpow.BtcBlockHeader{
+		Version:    0,
+		PrevBlock:  sha256.Sum256([]byte("a")),
+		MerkleRoot: sha256.Sum256([]byte("b")),
+		Timestamp:  uint32(time.Now().Unix()),
+		Bits:       0, // do not care about parent block diff
+		Nonce:      0, // to be solved
+	}
+
+	auxPow := auxpow.NewAuxPow(
+		auxMerkleBranch,
+		auxMerkleIndex,
+		*parCoinbaseTx,
+		parCoinBaseMerkle,
+		parMerkleIndex,
+		parBlockHeader,
+	)
+
 	header := MsgBlock.Blockdata
 	targetDifficulty := ledger.CompactToBig(header.Bits)
 
@@ -305,9 +332,10 @@ func (pow *PowService) SolveBlock(MsgBlock *ledger.Block, ticker *time.Ticker) b
 				// Non-blocking select to fall through
 			}
 
-			header.Nonce = i
-			hash := header.Hash()
+			auxPow.ParBlockHeader.Nonce = i
+			hash := auxPow.ParBlockHeader.Hash() // solve parBlockHeader hash
 			if ledger.HashToBig(&hash).Cmp(targetDifficulty) <= 0 {
+				MsgBlock.Blockdata.AuxPow = *auxPow
 				return true
 			}
 		}

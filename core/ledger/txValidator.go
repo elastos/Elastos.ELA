@@ -225,7 +225,7 @@ func CheckTransactionBalance(Tx *tx.Transaction) error {
 	}
 	for k, v := range results {
 
-		if v <= 0 {
+		if v < common.Fixed64(config.Parameters.PowConfiguration.MinTxFee) {
 			log.Debug(fmt.Sprintf("AssetID %x in Transfer transactions %x , input <= output .\n", k, Tx.Hash()))
 			return errors.New(fmt.Sprintf("AssetID %x in Transfer transactions %x , input <= output .\n", k, Tx.Hash()))
 		}

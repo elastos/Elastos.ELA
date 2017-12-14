@@ -73,6 +73,8 @@ type Transaction struct {
 	AssetOutputs      map[Uint256][]*TxOutput
 	AssetInputAmount  map[Uint256]Fixed64
 	AssetOutputAmount map[Uint256]Fixed64
+	Fee               Fixed64
+	FeePerKB          Fixed64
 
 	hash *Uint256
 }

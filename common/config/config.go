@@ -67,6 +67,7 @@ type PowConfiguration struct {
 	CoMining         bool   `json:"CoMining"`
 	AutoMining       bool   `json:"AutoMining"`
 	MinerInfo        string `json:"MinerInfo"`
+	MinTxFee         int    `json:"MinTxFee"`
 	ActiveNet        string `json:"ActiveNet"`
 }
 

@@ -19,7 +19,7 @@
     "KeyPath": "./sample-cert-key.pem",
     "CAPath": "./sample-ca.pem",
     "MultiCoreNum": 4,
-    "MaxTransactionInBlock": 100,
+    "MaxTransactionInBlock": 10000,
     "MaxBlockSize": 1000000,
     "ConsensusType": "pow",
     "PowConfiguration":{
@@ -35,6 +35,7 @@
     "CoMining":false,
     "AutoMining": false,
     "MinerInfo": "ELA",
+	"MinTxFee": 1000,
     "ActiveNet": "MainNet"
     }
   }

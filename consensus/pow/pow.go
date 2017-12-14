@@ -6,6 +6,7 @@ import (
 	"errors"
 	"math"
 	"math/rand"
+	"sort"
 	"sync"
 	"time"
 
@@ -107,12 +108,12 @@ func (pow *PowService) CreateCoinbaseTrx(nextBlockHeight uint32, addr string) (*
 	txn.Outputs = []*tx.TxOutput{
 		{
 			AssetID:     ledger.DefaultLedger.Blockchain.AssetID,
-			Value:       3 * 100000000,
+			Value:       0,
 			ProgramHash: foundationProgramHash,
 		},
 		{
 			AssetID:     ledger.DefaultLedger.Blockchain.AssetID,
-			Value:       7 * 100000000,
+			Value:       0,
 			ProgramHash: minerProgramHash,
 		},
 	}
@@ -138,6 +139,20 @@ func calcBlockSubsidy(currentHeight uint32) int64 {
 	log.Trace("subsidyPerBlock: ", subsidyPerBlock)
 
 	return subsidyPerBlock
+}
+
+type txSorter []*tx.Transaction
+
+func (s txSorter) Len() int {
+	return len(s)
+}
+
+func (s txSorter) Swap(i, j int) {
+	s[i], s[j] = s[j], s[i]
+}
+
+func (s txSorter) Less(i, j int) bool {
+	return s[i].FeePerKB < s[j].FeePerKB
 }
 
 func (pow *PowService) GenerateBlock(addr string) (*ledger.Block, error) {
@@ -167,8 +182,15 @@ func (pow *PowService) GenerateBlock(addr string) (*ledger.Block, error) {
 	calcTxsSize := coinBaseTx.GetSize()
 	calcTxsAmount := 1
 	totalFee := int64(0)
-	transactionsPool := pow.localNet.GetTxnPool(true)
-	for _, tx := range transactionsPool {
+	var txPool txSorter
+	txPool = make([]*tx.Transaction, 0)
+	transactionsPool := pow.localNet.GetTxnPool(false)
+	for _, v := range transactionsPool {
+		txPool = append(txPool, v)
+	}
+	sort.Sort(sort.Reverse(txPool))
+
+	for _, tx := range txPool {
 		if (tx.GetSize() + calcTxsSize) > ledger.MaxBlockSize {
 			break
 		}
@@ -180,7 +202,7 @@ func (pow *PowService) GenerateBlock(addr string) (*ledger.Block, error) {
 			continue
 		}
 		fee := tx.GetFee(ledger.DefaultLedger.Blockchain.AssetID)
-		if fee < 1 {
+		if fee != int64(tx.Fee) {
 			continue
 		}
 		msgBlock.Transactions = append(msgBlock.Transactions, tx)
@@ -191,7 +213,6 @@ func (pow *PowService) GenerateBlock(addr string) (*ledger.Block, error) {
 
 	subsidy := calcBlockSubsidy(nextBlockHeight)
 	reward := totalFee + subsidy
-	//reward := totalFee + 10
 	reward_foundation := Fixed64(float64(reward) * 0.3)
 	msgBlock.Transactions[0].Outputs[0].Value = reward_foundation
 	msgBlock.Transactions[0].Outputs[1].Value = Fixed64(reward) - reward_foundation

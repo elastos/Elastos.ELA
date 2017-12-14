@@ -8,6 +8,7 @@ import (
 	"DNA_POW/core/transaction"
 	tx "DNA_POW/core/transaction"
 	. "DNA_POW/errors"
+	"bytes"
 
 	"errors"
 	"fmt"
@@ -51,6 +52,11 @@ func (this *TXNPool) AppendTxnPool(txn *transaction.Transaction) ErrCode {
 	if ok := this.verifyTransactionWithTxnPool(txn); !ok {
 		return ErrDoubleSpend
 	}
+
+	txn.Fee = common.Fixed64(txn.GetFee(ledger.DefaultLedger.Blockchain.AssetID))
+	b_buf := new(bytes.Buffer)
+	txn.Serialize(b_buf)
+	txn.FeePerKB = txn.Fee * 1000 / common.Fixed64(len(b_buf.Bytes()))
 	//add the transaction to process scope
 	this.addtxnList(txn)
 	return ErrNoError

@@ -8,8 +8,8 @@ import (
 	"DNA_POW/core/transaction"
 	tx "DNA_POW/core/transaction"
 	. "DNA_POW/errors"
+	"DNA_POW/events"
 	"bytes"
-
 	"errors"
 	"fmt"
 	"sync"
@@ -186,6 +186,7 @@ func (this *TXNPool) addtxnList(txn *transaction.Transaction) bool {
 		return false
 	}
 	this.txnList[txnHash] = txn
+	ledger.DefaultLedger.Blockchain.BCEvents.Notify(events.EventNewTransactionPutInPool, txn)
 	return true
 }
 

@@ -118,6 +118,9 @@ func (rt *restServer) setWebsocketState(cmd map[string]interface{}) map[string]i
 	if b, ok := cmd["PushBlockTxs"].(bool); ok {
 		httpwebsocket.SetPushBlockTxsFlag(b)
 	}
+	if b, ok := cmd["PushNewTransaction"].(bool); ok {
+		httpwebsocket.SetPushNewTxsFlag(b)
+	}
 	if wsPort, ok := cmd["Port"].(float64); ok && wsPort != 0 {
 		Parameters.HttpWsPort = int(wsPort)
 	}

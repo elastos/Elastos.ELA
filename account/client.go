@@ -353,7 +353,7 @@ func (cl *ClientImpl) GetAccount(pubKey *crypto.PubKey) (*Account, error) {
 	if err != nil {
 		return nil, NewDetailErr(err, ErrNoCode, "CreateSignatureRedeemScript failed")
 	}
-	programHash, err := ToCodeHash(signatureRedeemScript)
+	programHash, err := ToCodeHash(signatureRedeemScript, 1)
 	if err != nil {
 		return nil, NewDetailErr(err, ErrNoCode, "ToCodeHash failed")
 	}
@@ -414,7 +414,7 @@ func (cl *ClientImpl) ContainsAccount(pubKey *crypto.PubKey) bool {
 	if err != nil {
 		return false
 	}
-	programHash, err := ToCodeHash(signatureRedeemScript)
+	programHash, err := ToCodeHash(signatureRedeemScript, 1)
 	if err != nil {
 		return false
 	}

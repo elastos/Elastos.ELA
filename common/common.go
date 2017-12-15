@@ -1,7 +1,6 @@
 package common
 
 import (
-	"DNA_POW/common/log"
 	. "DNA_POW/errors"
 	"bytes"
 	"crypto/sha256"
@@ -10,28 +9,26 @@ import (
 	"errors"
 	"github.com/golang/crypto/ripemd160"
 	"io"
-	"math/rand"
 	"os"
 )
 
-func ToCodeHash(code []byte) (Uint160, error) {
+func ToCodeHash(code []byte, signType int) (Uint160, error) {
 	temp := sha256.Sum256(code)
 	md := ripemd160.New()
 	io.WriteString(md, string(temp[:]))
 	f := md.Sum(nil)
+
+	if signType == 1 {
+		f = append([]byte{33}, f...)
+	} else if signType == 2 {
+		f = append([]byte{18}, f...)
+	}
 
 	hash, err := Uint160ParseFromBytes(f)
 	if err != nil {
 		return Uint160{}, NewDetailErr(errors.New("[Common] , ToCodeHash err."), ErrNoCode, "")
 	}
 	return hash, nil
-}
-
-func GetNonce() uint64 {
-	log.Debug()
-	// Fixme replace with the real random number generator
-	nonce := uint64(rand.Uint32())<<32 + uint64(rand.Uint32())
-	return nonce
 }
 
 func IntToBytes(n int) []byte {

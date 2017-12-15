@@ -218,6 +218,7 @@ func MakeMultisigTransferTransaction(wallet account.Client, assetID Uint256, fro
 	if err != nil {
 		fmt.Println(err)
 	}
+
 	if ctx.IsCompleted() {
 		txn.SetPrograms(ctx.GetPrograms())
 	} else {

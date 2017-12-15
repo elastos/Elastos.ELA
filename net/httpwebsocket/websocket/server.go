@@ -10,12 +10,13 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"errors"
-	"github.com/gorilla/websocket"
 	"net"
 	"net/http"
 	"strconv"
 	"sync"
 	"time"
+
+	"github.com/gorilla/websocket"
 )
 
 type handler func(map[string]interface{}) map[string]interface{}
@@ -162,7 +163,7 @@ func (ws *WsServer) Restart() {
 }
 
 func (ws *WsServer) checkSessionsTimeout(done chan bool) {
-	ticker := time.NewTicker(time.Second * 10)
+	ticker := time.NewTicker(time.Second * Parameters.Configuration.WsHeartbeatInterval)
 	defer ticker.Stop()
 	for {
 		select {

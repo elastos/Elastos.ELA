@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	FoundationAddress = "ENvQCxmdXR8p134Crymff94BNbKicFJBLv"
+	FoundationAddress = "EZkAEwCzR5x6vup3MK5ozLyiUpafkrnkQC"
 )
 
 var DefaultLedger *Ledger

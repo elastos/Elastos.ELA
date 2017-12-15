@@ -20,11 +20,11 @@ func CreateSignatureContract(ownerPubKey *crypto.PubKey) (*Contract, error) {
 	if err != nil {
 		return nil, NewDetailErr(err, ErrNoCode, "[Contract],CreateSignatureContract failed.")
 	}
-	hash, err := ToCodeHash(temp)
+	hash, err := ToCodeHash(temp, 1)
 	if err != nil {
 		return nil, NewDetailErr(err, ErrNoCode, "[Contract],CreateSignatureContract failed.")
 	}
-	signatureRedeemScriptHashToCodeHash, err := ToCodeHash(signatureRedeemScript)
+	signatureRedeemScriptHashToCodeHash, err := ToCodeHash(signatureRedeemScript, 1)
 	if err != nil {
 		return nil, NewDetailErr(err, ErrNoCode, "[Contract],CreateSignatureContract failed.")
 	}
@@ -58,7 +58,7 @@ func CreateMultiSigContract(publicKeyHash Uint160, m int, publicKeys []*crypto.P
 	if err != nil {
 		return nil, NewDetailErr(err, ErrNoCode, "[Contract],CreateSignatureRedeemScript failed.")
 	}
-	signatureRedeemScriptHashToCodeHash, err := ToCodeHash(MultiSigRedeemScript)
+	signatureRedeemScriptHashToCodeHash, err := ToCodeHash(MultiSigRedeemScript, 2)
 	if err != nil {
 		return nil, NewDetailErr(err, ErrNoCode, "[Contract],CreateSignatureContract failed.")
 	}

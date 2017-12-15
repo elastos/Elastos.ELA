@@ -25,7 +25,7 @@ func VerifySignableData(signableData sig.SignableData) (bool, error) {
 
 	programs = signableData.GetPrograms()
 	for i := 0; i < len(programs); i++ {
-		temp, _ := ToCodeHash(programs[i].Code)
+		temp, _ := ToCodeHash(programs[i].Code, 1)
 		if hashes[i] != temp {
 			return false, errors.New("The data hashes is different with corresponding program code.")
 		}

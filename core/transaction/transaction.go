@@ -472,7 +472,7 @@ func ParseMultisigTransactionCode(code []byte) []Uint160 {
 		copy(script, code[i:i+PublickKeyScriptLen-1])
 		script = append(script, 0xac)
 		i += PublickKeyScriptLen - 1
-		hash, _ := ToCodeHash(script)
+		hash, _ := ToCodeHash(script, 2)
 		programHash = append(programHash, hash)
 	}
 

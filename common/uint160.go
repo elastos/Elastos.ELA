@@ -12,7 +12,9 @@ import (
 	"github.com/itchyny/base58-go"
 )
 
-const UINT160SIZE int = 20
+//This is a magical change of Uint160, with length from 20 to 21.
+//In fact, It is UINT168 now.
+const UINT160SIZE int = 21
 
 type Uint160 [UINT160SIZE]uint8
 
@@ -34,7 +36,7 @@ func (u *Uint160) CompareTo(o Uint160) int {
 
 func (u *Uint160) ToArray() []byte {
 	var x []byte = make([]byte, UINT160SIZE)
-	for i := 0; i < 20; i++ {
+	for i := 0; i < UINT160SIZE; i++ {
 		x[i] = byte(u[i])
 	}
 
@@ -75,7 +77,7 @@ func (f *Uint160) Deserialize(r io.Reader) error {
 }
 
 func (f *Uint160) ToAddress() (string, error) {
-	data := append([]byte{33}, f.ToArray()...)
+	data := f.ToArray()
 	temp := sha256.Sum256(data)
 	temps := sha256.Sum256(temp[:])
 	data = append(data, temps[0:4]...)
@@ -90,12 +92,13 @@ func (f *Uint160) ToAddress() (string, error) {
 }
 
 func Uint160ParseFromBytes(f []byte) (Uint160, error) {
+
 	if len(f) != UINT160SIZE {
-		return Uint160{}, NewDetailErr(errors.New("[Common]: Uint160ParseFromBytes err, len != 20"), ErrNoCode, "")
+		return Uint160{}, NewDetailErr(errors.New("[Common]: Uint160ParseFromBytes err, len != 21"), ErrNoCode, "")
 	}
 
-	var hash [20]uint8
-	for i := 0; i < 20; i++ {
+	var hash [UINT160SIZE]uint8
+	for i := 0; i < UINT160SIZE; i++ {
 		hash[i] = f[i]
 	}
 	return Uint160(hash), nil
@@ -109,7 +112,8 @@ func ToScriptHash(address string) (Uint160, error) {
 	}
 
 	x, _ := new(big.Int).SetString(string(decoded), 10)
-	ph, err := Uint160ParseFromBytes(x.Bytes()[1:21])
+
+	ph, err := Uint160ParseFromBytes(x.Bytes()[0:21])
 	if err != nil {
 		return Uint160{}, err
 	}

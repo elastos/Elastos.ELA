@@ -154,7 +154,7 @@ func (c *Contract) Serialize(w io.Writer) error {
 	if err != nil {
 		return err
 	}
-	if len != 20 {
+	if len != UINT160SIZE {
 		return NewDetailErr(errors.New("PubkeyHash.Serialize(): len != len(Uint160)"), ErrNoCode, "")
 	}
 

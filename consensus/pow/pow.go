@@ -2,7 +2,6 @@ package pow
 
 import (
 	"DNA_POW/net/protocol"
-	"crypto/sha256"
 	"encoding/binary"
 	"errors"
 	"math"
@@ -286,58 +285,28 @@ func (pow *PowService) DiscreteMining(n uint32) ([]*Uint256, error) {
 }
 
 func (pow *PowService) SolveBlock(MsgBlock *ledger.Block, ticker *time.Ticker) bool {
-
-	auxMerkleBranch := make([]Uint256, 2)
-	auxMerkleIndex := 0
-	btcTxin := make([]*auxpow.BtcTxIn, 0)
-	btcTxout := make([]*auxpow.BtcTxOut, 0)
-	parCoinbaseTx := auxpow.NewBtcTx(btcTxin, btcTxout)
-	parCoinBaseMerkle := make([]Uint256, 2)
-	parMerkleIndex := 0
-	parBlockHeader := auxpow.BtcBlockHeader{
-		Version:    0,
-		PrevBlock:  sha256.Sum256([]byte("a")),
-		MerkleRoot: sha256.Sum256([]byte("b")),
-		Timestamp:  uint32(time.Now().Unix()),
-		Bits:       0, // do not care about parent block diff
-		Nonce:      0, // to be solved
-	}
-
-	auxPow := auxpow.NewAuxPow(
-		auxMerkleBranch,
-		auxMerkleIndex,
-		*parCoinbaseTx,
-		parCoinBaseMerkle,
-		parMerkleIndex,
-		parBlockHeader,
-	)
-
+	// fake a btc blockheader and coinbase
+	auxPow := generateAuxPow(MsgBlock.Hash())
 	header := MsgBlock.Blockdata
 	targetDifficulty := ledger.CompactToBig(header.Bits)
 
-	for extraNonce := uint64(0); extraNonce < maxExtraNonce; extraNonce++ {
-		attr := binary.BigEndian.Uint64(MsgBlock.Transactions[0].Attributes[0].Data)
-		attr += extraNonce
-		binary.BigEndian.PutUint64(MsgBlock.Transactions[0].Attributes[0].Data, attr)
-
-		for i := uint32(0); i <= maxNonce; i++ {
-			select {
-			case <-ticker.C:
-				if MsgBlock.Blockdata.PrevBlockHash.CompareTo(*ledger.DefaultLedger.Blockchain.BestChain.Hash) != 0 {
-					return false
-				}
-				//UpdateBlockTime(msgBlock, m.server.blockManager)
-
-			default:
-				// Non-blocking select to fall through
+	for i := uint32(0); i <= maxNonce; i++ {
+		select {
+		case <-ticker.C:
+			if MsgBlock.Blockdata.PrevBlockHash.CompareTo(*ledger.DefaultLedger.Blockchain.BestChain.Hash) != 0 {
+				return false
 			}
+			//UpdateBlockTime(msgBlock, m.server.blockManager)
 
-			auxPow.ParBlockHeader.Nonce = i
-			hash := auxPow.ParBlockHeader.Hash() // solve parBlockHeader hash
-			if ledger.HashToBig(&hash).Cmp(targetDifficulty) <= 0 {
-				MsgBlock.Blockdata.AuxPow = *auxPow
-				return true
-			}
+		default:
+			// Non-blocking select to fall through
+		}
+
+		auxPow.ParBlockHeader.Nonce = i
+		hash := auxPow.ParBlockHeader.Hash() // solve parBlockHeader hash
+		if ledger.HashToBig(&hash).Cmp(targetDifficulty) <= 0 {
+			MsgBlock.Blockdata.AuxPow = *auxPow
+			return true
 		}
 	}
 

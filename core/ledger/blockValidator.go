@@ -21,8 +21,7 @@ const (
 
 func PowCheckBlockSanity(block *Block, powLimit *big.Int, timeSource MedianTimeSource) error {
 	header := block.Blockdata
-	isAuxPow := config.Parameters.PowConfiguration.CoMining
-	if isAuxPow && !header.AuxPow.Check(header.Hash(), auxpow.AuxPowChainID) {
+	if !header.AuxPow.Check(header.Hash(), auxpow.AuxPowChainID) {
 		return errors.New("[PowCheckBlockSanity] block check proof is failed")
 	}
 	if CheckProofOfWork(header, powLimit) != nil {

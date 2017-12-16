@@ -49,11 +49,11 @@ func generateAuxPow(msgBlockHash Uint256) *auxpow.AuxPow {
 	auxMerkleIndex := 0
 	parCoinbaseTx := getBtcCoinbase(msgBlockHash)
 	parCoinBaseMerkle := make([]Uint256, 0)
-	parMerkleIndex := -1
+	parMerkleIndex := 0
 	parBlockHeader := auxpow.BtcBlockHeader{
 		Version:    0x7fffffff,
 		PrevBlock:  Uint256{},
-		MerkleRoot: Uint256{},
+		MerkleRoot: parCoinbaseTx.Hash(),
 		Timestamp:  uint32(time.Now().Unix()),
 		Bits:       0, // do not care about parent block diff
 		Nonce:      0, // to be solved

@@ -60,25 +60,13 @@ func viewHandler(w http.ResponseWriter, r *http.Request) {
 	var ngbHttpInfoAddr string
 
 	curNodeType := serviceNode
-	bookKeepers, _, _ := ledger.DefaultLedger.Store.GetBookKeeperList()
-	bookKeeperLen := len(bookKeepers)
-	for i := 0; i < bookKeeperLen; i++ {
-		if node.GetPubKey().X.Cmp(bookKeepers[i].X) == 0 {
-			curNodeType = verifyNode
-			break
-		}
-	}
+
 
 	ngbrNoders := node.GetNeighborNoder()
 	ngbrsLen := len(ngbrNoders)
 	for i := 0; i < ngbrsLen; i++ {
 		ngbType = serviceNode
-		for j := 0; j < bookKeeperLen; j++ {
-			if ngbrNoders[i].GetPubKey().X.Cmp(bookKeepers[j].X) == 0 {
-				ngbType = verifyNode
-				break
-			}
-		}
+
 
 		ngbAddr = ngbrNoders[i].GetAddr()
 		ngbInfoPort = ngbrNoders[i].GetHttpInfoPort()

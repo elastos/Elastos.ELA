@@ -111,7 +111,6 @@ type Noder interface {
 	AppendTxnPool(*transaction.Transaction) ErrCode
 	ExistedID(id common.Uint256) bool
 	ReqNeighborList()
-	DumpInfo()
 	UpdateInfo(t time.Time, version uint32, services uint64,
 		port uint16, nonce uint64, relay uint8, height uint64)
 	ConnectSeeds()
@@ -156,7 +155,6 @@ type Noder interface {
 	RandGetAddresses(nbrAddrs []NodeAddr) []NodeAddr
 	GetDefaultMaxPeers() uint
 	GetMaxOutboundCnt() uint
-	GetGetAddrMax() uint
 	NeedMoreAddresses() bool
 	RandSelectAddresses() []NodeAddr
 	UpdateLastDisconn(id uint64)

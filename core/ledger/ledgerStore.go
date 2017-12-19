@@ -4,7 +4,6 @@ import (
 	. "DNA_POW/common"
 	. "DNA_POW/core/asset"
 	tx "DNA_POW/core/transaction"
-	"DNA_POW/crypto"
 )
 
 // ILedgerStore provides func with store package.
@@ -39,7 +38,6 @@ type ILedgerStore interface {
 	GetHeaderHashNext(prevHash Uint256) (Uint256, error)
 	RemoveHeaderListElement(hash Uint256)
 
-	GetBookKeeperList() ([]*crypto.PubKey, []*crypto.PubKey, error)
 	InitLedgerStoreWithGenesisBlock(genesisblock *Block) (uint32, error)
 
 	GetUnspent(txid Uint256, index uint16) (*tx.TxOutput, error)

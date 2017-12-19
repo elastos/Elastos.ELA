@@ -21,7 +21,7 @@
     "CAPath": "./sample-ca.pem",
     "MultiCoreNum": 4,
     "MaxTransactionInBlock": 10000,
-    "MaxBlockSize": 1000000,
+    "MaxBlockSize": 8000000,
     "ConsensusType": "pow",
     "PowConfiguration":{
     "Switch": "enable",

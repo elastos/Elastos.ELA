@@ -1,14 +1,14 @@
-package dnaapi
+package elaapi
 
 import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
 
-	. "DNA_POW/common"
-	"DNA_POW/core/auxpow"
-	"DNA_POW/core/ledger"
-	tx "DNA_POW/core/transaction"
+	. "ELA/common"
+	"ELA/core/auxpow"
+	"ELA/core/ledger"
+	tx "ELA/core/transaction"
 
 	"github.com/yuin/gopher-lua"
 )

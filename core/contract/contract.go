@@ -5,10 +5,10 @@ import (
 	"errors"
 	"io"
 
-	. "DNA_POW/common"
-	"DNA_POW/common/serialization"
-	. "DNA_POW/errors"
-	"DNA_POW/vm"
+	. "ELA/common"
+	"ELA/common/serialization"
+	. "ELA/errors"
+	"ELA/vm"
 )
 
 //Contract address is the hash of contract program .

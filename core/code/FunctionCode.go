@@ -1,10 +1,10 @@
 package code
 
 import (
-	"DNA_POW/common/log"
-	. "DNA_POW/common"
-	. "DNA_POW/core/contract"
-	"DNA_POW/common/serialization"
+	"ELA/common/log"
+	. "ELA/common"
+	. "ELA/core/contract"
+	"ELA/common/serialization"
 	"fmt"
 	"io"
 )

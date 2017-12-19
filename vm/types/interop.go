@@ -2,7 +2,7 @@ package types
 
 import (
 	"math/big"
-	"DNA_POW/vm/interfaces"
+	"ELA/vm/interfaces"
 )
 
 type InteropInterface struct {

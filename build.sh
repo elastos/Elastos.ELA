@@ -79,7 +79,7 @@ install_package_macosx()
 # $HOME
 #  dev/         - DEV_ROOT - GOPATH
 #    src/       - SRC_ROOT
-#      DNA_POW/ - SRC_PATH
+#      ELA/ - SRC_PATH
 #        deps/  - Depended C source code
 #
 setenv()

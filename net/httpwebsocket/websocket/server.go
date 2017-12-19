@@ -1,11 +1,11 @@
 package websocket
 
 import (
-	. "DNA_POW/common/config"
-	"DNA_POW/common/log"
-	. "DNA_POW/net/httprestful/common"
-	Err "DNA_POW/net/httprestful/error"
-	. "DNA_POW/net/httpwebsocket/session"
+	. "ELA/common/config"
+	"ELA/common/log"
+	. "ELA/net/httprestful/common"
+	Err "ELA/net/httprestful/error"
+	. "ELA/net/httpwebsocket/session"
 	"context"
 	"crypto/tls"
 	"encoding/json"

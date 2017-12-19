@@ -6,11 +6,11 @@ import (
 	"strconv"
 	"strings"
 
-	"DNA_POW/crypto"
-	"DNA_POW/account"
-	. "DNA_POW/common"
-	. "DNA_POW/cli/common"
-	"DNA_POW/common/password"
+	"ELA/crypto"
+	"ELA/account"
+	. "ELA/common"
+	. "ELA/cli/common"
+	"ELA/common/password"
 
 	"github.com/urfave/cli"
 )

@@ -1,7 +1,7 @@
 package common
 
 import (
-	. "DNA_POW/errors"
+	. "ELA/errors"
 	"bytes"
 	"crypto/sha256"
 	"encoding/binary"

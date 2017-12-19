@@ -1,11 +1,11 @@
 package node
 
 import (
-	. "DNA_POW/common/config"
-	"DNA_POW/common/log"
-	"DNA_POW/events"
-	msg "DNA_POW/net/message"
-	. "DNA_POW/net/protocol"
+	. "ELA/common/config"
+	"ELA/common/log"
+	"ELA/events"
+	msg "ELA/net/message"
+	. "ELA/net/protocol"
 	"crypto/tls"
 	"crypto/x509"
 	"errors"

@@ -1,7 +1,7 @@
 package log
 
 import (
-	"DNA_POW/common/config"
+	"ELA/common/config"
 	"bytes"
 	"errors"
 	"fmt"

@@ -1,8 +1,8 @@
 package vm
 
 import (
-	"DNA_POW/vm/errors"
-	"DNA_POW/vm/types"
+	"ELA/vm/errors"
+	"ELA/vm/types"
 	"encoding/binary"
 	"math/big"
 	"reflect"

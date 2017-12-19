@@ -1,12 +1,12 @@
 package ledger
 
 import (
-	. "DNA_POW/common"
-	"DNA_POW/common/serialization"
-	"DNA_POW/core/auxpow"
-	"DNA_POW/core/contract/program"
-	sig "DNA_POW/core/signature"
-	. "DNA_POW/errors"
+	. "ELA/common"
+	"ELA/common/serialization"
+	"ELA/core/auxpow"
+	"ELA/core/contract/program"
+	sig "ELA/core/signature"
+	. "ELA/errors"
 	"crypto/sha256"
 	"errors"
 	"io"

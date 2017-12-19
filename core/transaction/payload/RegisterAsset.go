@@ -1,9 +1,9 @@
 package payload
 
 import (
-	"DNA_POW/common"
-	"DNA_POW/core/asset"
-	. "DNA_POW/errors"
+	"ELA/common"
+	"ELA/core/asset"
+	. "ELA/errors"
 	"io"
 )
 

@@ -1,4 +1,4 @@
-package dnaapi
+package elaapi
 
 import (
 	"bytes"
@@ -7,12 +7,12 @@ import (
 	"strings"
 	"fmt"
 
-	. "DNA_POW/cli/common"
-	. "DNA_POW/common"
-	"DNA_POW/core/auxpow"
-	"DNA_POW/core/ledger"
-	tx "DNA_POW/core/transaction"
-	"DNA_POW/net/httpjsonrpc"
+	. "ELA/cli/common"
+	. "ELA/common"
+	"ELA/core/auxpow"
+	"ELA/core/ledger"
+	tx "ELA/core/transaction"
+	"ELA/net/httpjsonrpc"
 
 	. "github.com/bitly/go-simplejson"
 	"github.com/yuin/gopher-lua"

@@ -1,7 +1,7 @@
 package pow
 
 import (
-	"DNA_POW/net/protocol"
+	"ELA/net/protocol"
 	"encoding/binary"
 	"errors"
 	"math"
@@ -10,17 +10,17 @@ import (
 	"sync"
 	"time"
 
-	cl "DNA_POW/account"
-	. "DNA_POW/common"
-	"DNA_POW/common/config"
-	"DNA_POW/common/log"
-	"DNA_POW/core/auxpow"
-	"DNA_POW/core/ledger"
-	tx "DNA_POW/core/transaction"
-	"DNA_POW/core/transaction/payload"
-	"DNA_POW/crypto"
-	"DNA_POW/events"
-	//	"DNA_POW/net"
+	cl "ELA/account"
+	. "ELA/common"
+	"ELA/common/config"
+	"ELA/common/log"
+	"ELA/core/auxpow"
+	"ELA/core/ledger"
+	tx "ELA/core/transaction"
+	"ELA/core/transaction/payload"
+	"ELA/crypto"
+	"ELA/events"
+	//	"ELA/net"
 )
 
 var TaskCh chan bool

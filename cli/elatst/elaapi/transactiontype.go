@@ -1,11 +1,11 @@
-package dnaapi
+package elaapi
 
 import (
-	"DNA_POW/account"
-	"DNA_POW/core/contract"
-	"DNA_POW/core/signature"
-	tx "DNA_POW/core/transaction"
-	"DNA_POW/core/transaction/payload"
+	"ELA/account"
+	"ELA/core/contract"
+	"ELA/core/signature"
+	tx "ELA/core/transaction"
+	"ELA/core/transaction/payload"
 	"bytes"
 	"encoding/hex"
 

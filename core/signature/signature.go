@@ -1,12 +1,12 @@
 package signature
 
 import (
-	"DNA_POW/common"
-	"DNA_POW/common/log"
-	"DNA_POW/core/contract/program"
-	"DNA_POW/crypto"
-	. "DNA_POW/errors"
-	"DNA_POW/vm/interfaces"
+	"ELA/common"
+	"ELA/common/log"
+	"ELA/core/contract/program"
+	"ELA/crypto"
+	. "ELA/errors"
+	"ELA/vm/interfaces"
 	"bytes"
 	"crypto/sha256"
 	"io"

@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"os"
 
-	"DNA_POW/account"
-	. "DNA_POW/cli/common"
-	"DNA_POW/common"
-	"DNA_POW/core/transaction"
-	"DNA_POW/net/httpjsonrpc"
+	"ELA/account"
+	. "ELA/cli/common"
+	"ELA/common"
+	"ELA/core/transaction"
+	"ELA/net/httpjsonrpc"
 
 	"github.com/urfave/cli"
 )

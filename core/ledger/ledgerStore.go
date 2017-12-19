@@ -1,10 +1,10 @@
 package ledger
 
 import (
-	. "DNA_POW/common"
-	. "DNA_POW/core/asset"
-	tx "DNA_POW/core/transaction"
-	"DNA_POW/crypto"
+	. "ELA/common"
+	. "ELA/core/asset"
+	tx "ELA/core/transaction"
+	"ELA/crypto"
 )
 
 // ILedgerStore provides func with store package.

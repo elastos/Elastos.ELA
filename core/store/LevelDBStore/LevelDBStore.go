@@ -1,7 +1,7 @@
 package LevelDBStore
 
 import (
-	. "DNA_POW/core/store"
+	. "ELA/core/store"
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/errors"
 	"github.com/syndtr/goleveldb/leveldb/filter"

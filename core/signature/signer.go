@@ -1,7 +1,7 @@
 package signature
 
 import (
-	"DNA_POW/crypto"
+	"ELA/crypto"
 )
 
 //Signer is the abstract interface of user's information(Keys) for signing data.

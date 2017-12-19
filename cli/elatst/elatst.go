@@ -1,13 +1,13 @@
-package dnatst
+package elatst
 
 import (
-	. "DNA_POW/cli/common"
-	"DNA_POW/cli/dnatst/dnaapi"
+	. "ELA/cli/common"
+	"ELA/cli/elatst/elaapi"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
-	//. "DNA_POW/common"
+	//. "ELA/common"
 
 	"github.com/urfave/cli"
 	"github.com/yuin/gopher-lua"
@@ -31,7 +31,7 @@ func WalkDir(dirPth, suffix string) (files []string, err error) {
 	return files, err
 }
 
-func dnaTstAction(c *cli.Context) (err error) {
+func elaTstAction(c *cli.Context) (err error) {
 	if c.NumFlags() == 0 {
 		cli.ShowSubcommandHelp(c)
 		return nil
@@ -44,28 +44,28 @@ func dnaTstAction(c *cli.Context) (err error) {
 
 	L := lua.NewState()
 	defer L.Close()
-	L.PreloadModule("dnaapi", dnaapi.Loader)
-	dnaapi.RegisterDataType(L)
-	//dnaapi.RegisterAssetType(L)
-	//dnaapi.RegisterBalanceTxInputType(L)
-	//dnaapi.RegisterClientType(L)
-	//dnaapi.RegisterFunctionCodeType(L)
-	//dnaapi.RegisterTxAttributeType(L)
-	//dnaapi.RegisterUTXOTxInputType(L)
-	//dnaapi.RegisterTxOutputType(L)
-	//dnaapi.RegisterBookKeeperType(L)
-	//dnaapi.RegisterBookKeepingType(L)
-	//dnaapi.RegisterCoinBaseType(L)
-	//dnaapi.RegisterIssueAssetType(L)
-	//dnaapi.RegisterTransferAssetType(L)
-	//dnaapi.RegisterRegisterAssetType(L)
-	//dnaapi.RegisterRecordType(L)
-	//dnaapi.RegisterDataFileType(L)
-	//dnaapi.RegisterPrivacyPayloadType(L)
-	//dnaapi.RegisterDeployCodeType(L)
-	//dnaapi.RegisterTransactionType(L)
-	//dnaapi.RegisterBlockdataType(L)
-	//dnaapi.RegisterBlockType(L)
+	L.PreloadModule("elaapi", elaapi.Loader)
+	elaapi.RegisterDataType(L)
+	//elaapi.RegisterAssetType(L)
+	//elaapi.RegisterBalanceTxInputType(L)
+	//elaapi.RegisterClientType(L)
+	//elaapi.RegisterFunctionCodeType(L)
+	//elaapi.RegisterTxAttributeType(L)
+	//elaapi.RegisterUTXOTxInputType(L)
+	//elaapi.RegisterTxOutputType(L)
+	//elaapi.RegisterBookKeeperType(L)
+	//elaapi.RegisterBookKeepingType(L)
+	//elaapi.RegisterCoinBaseType(L)
+	//elaapi.RegisterIssueAssetType(L)
+	//elaapi.RegisterTransferAssetType(L)
+	//elaapi.RegisterRegisterAssetType(L)
+	//elaapi.RegisterRecordType(L)
+	//elaapi.RegisterDataFileType(L)
+	//elaapi.RegisterPrivacyPayloadType(L)
+	//elaapi.RegisterDeployCodeType(L)
+	//elaapi.RegisterTransactionType(L)
+	//elaapi.RegisterBlockdataType(L)
+	//elaapi.RegisterBlockType(L)
 
 	if strTest {
 		fmt.Println("str test")
@@ -95,7 +95,7 @@ func dnaTstAction(c *cli.Context) (err error) {
 
 func NewCommand() *cli.Command {
 	return &cli.Command{
-		Name:        "dnatst",
+		Name:        "elatst",
 		Usage:       "blockchain test.",
 		Description: "With nodectl test, you could test blockchain.",
 		ArgsUsage:   "[args]",
@@ -118,9 +118,9 @@ func NewCommand() *cli.Command {
 				Usage: "content",
 			},
 		},
-		Action: dnaTstAction,
+		Action: elaTstAction,
 		OnUsageError: func(c *cli.Context, err error, isSubcommand bool) error {
-			PrintError(c, err, "dnatst")
+			PrintError(c, err, "elatst")
 			return cli.NewExitError("", 1)
 		},
 	}

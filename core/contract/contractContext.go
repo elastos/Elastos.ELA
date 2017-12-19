@@ -1,12 +1,12 @@
 package contract
 
 import (
-	. "DNA_POW/common"
-	"DNA_POW/common/log"
-	pg "DNA_POW/core/contract/program"
-	sig "DNA_POW/core/signature"
-	"DNA_POW/crypto"
-	_ "DNA_POW/errors"
+	. "ELA/common"
+	"ELA/common/log"
+	pg "ELA/core/contract/program"
+	sig "ELA/core/signature"
+	"ELA/crypto"
+	_ "ELA/errors"
 	"errors"
 	"math/big"
 	"sort"

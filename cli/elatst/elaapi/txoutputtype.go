@@ -1,8 +1,8 @@
-package dnaapi
+package elaapi
 
 import (
-	. "DNA_POW/common"
-	tx "DNA_POW/core/transaction"
+	. "ELA/common"
+	tx "ELA/core/transaction"
 	"encoding/hex"
 
 	"fmt"

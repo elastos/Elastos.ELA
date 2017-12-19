@@ -1,6 +1,6 @@
 package error
 
-import . "DNA_POW/errors"
+import . "ELA/errors"
 
 const (
 	SUCCESS            int64 = 0

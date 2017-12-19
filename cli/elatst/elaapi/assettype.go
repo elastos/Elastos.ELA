@@ -1,7 +1,7 @@
-package dnaapi
+package elaapi
 
 import (
-	"DNA_POW/core/asset"
+	"ELA/core/asset"
 
 	"fmt"
 

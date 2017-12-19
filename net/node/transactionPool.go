@@ -1,14 +1,14 @@
 package node
 
 import (
-	"DNA_POW/common"
-	"DNA_POW/common/config"
-	"DNA_POW/common/log"
-	"DNA_POW/core/ledger"
-	"DNA_POW/core/transaction"
-	tx "DNA_POW/core/transaction"
-	. "DNA_POW/errors"
-	"DNA_POW/events"
+	"ELA/common"
+	"ELA/common/config"
+	"ELA/common/log"
+	"ELA/core/ledger"
+	"ELA/core/transaction"
+	tx "ELA/core/transaction"
+	. "ELA/errors"
+	"ELA/events"
 	"bytes"
 	"errors"
 	"fmt"

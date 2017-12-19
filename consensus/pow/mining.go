@@ -1,9 +1,9 @@
 package pow
 
 import (
-	"DNA_POW/common/config"
-	"DNA_POW/common/log"
-	"DNA_POW/core/ledger"
+	"ELA/common/config"
+	"ELA/common/log"
+	"ELA/core/ledger"
 	"fmt"
 	"time"
 

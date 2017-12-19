@@ -5,16 +5,16 @@ import (
 	"fmt"
 	"time"
 
-	"DNA_POW/account"
-	. "DNA_POW/common"
-	"DNA_POW/common/config"
-	"DNA_POW/common/log"
-	"DNA_POW/core/ledger"
-	"DNA_POW/core/signature"
-	tx "DNA_POW/core/transaction"
-	"DNA_POW/core/transaction/payload"
-	. "DNA_POW/errors"
-	"DNA_POW/sdk"
+	"ELA/account"
+	. "ELA/common"
+	"ELA/common/config"
+	"ELA/common/log"
+	"ELA/core/ledger"
+	"ELA/core/signature"
+	tx "ELA/core/transaction"
+	"ELA/core/transaction/payload"
+	. "ELA/errors"
+	"ELA/sdk"
 	"encoding/json"
 )
 
@@ -128,7 +128,7 @@ func TransArryByteToHexString(ptx *tx.Transaction) *Transactions {
 
 func getBestBlockHash(params []interface{}) map[string]interface{} {
 	hash := ledger.DefaultLedger.Blockchain.CurrentBlockHash()
-	return DnaRpc(BytesToHexString(hash.ToArrayReverse()))
+	return ElaRpc(BytesToHexString(hash.ToArrayReverse()))
 }
 
 // Input JSON string examples for getblock method as following:
@@ -136,7 +136,7 @@ func getBestBlockHash(params []interface{}) map[string]interface{} {
 //   {"jsonrpc": "2.0", "method": "getblock", "params": ["aabbcc.."], "id": 0}
 func getBlock(params []interface{}) map[string]interface{} {
 	if len(params) < 1 {
-		return DnaRpcNil
+		return ElaRpcNil
 	}
 	var err error
 	var hash Uint256
@@ -146,25 +146,25 @@ func getBlock(params []interface{}) map[string]interface{} {
 		index := uint32(params[0].(float64))
 		hash, err = ledger.DefaultLedger.Store.GetBlockHash(index)
 		if err != nil {
-			return DnaRpcUnknownBlock
+			return ElaRpcUnknownBlock
 		}
 		// block hash
 	case string:
 		str := params[0].(string)
 		hex, err := HexStringToBytesReverse(str)
 		if err != nil {
-			return DnaRpcInvalidParameter
+			return ElaRpcInvalidParameter
 		}
 		if err := hash.Deserialize(bytes.NewReader(hex)); err != nil {
-			return DnaRpcInvalidTransaction
+			return ElaRpcInvalidTransaction
 		}
 	default:
-		return DnaRpcInvalidParameter
+		return ElaRpcInvalidParameter
 	}
 
 	block, err := ledger.DefaultLedger.Store.GetBlock(hash)
 	if err != nil {
-		return DnaRpcUnknownBlock
+		return ElaRpcUnknownBlock
 	}
 
 	blockHead := &BlockHead{
@@ -197,34 +197,34 @@ func getBlock(params []interface{}) map[string]interface{} {
 		Confirminations: ledger.DefaultLedger.Blockchain.GetBestHeight() - block.Blockdata.Height + 1,
 		MinerInfo:       string(coinbasePd.CoinbaseData),
 	}
-	return DnaRpc(b)
+	return ElaRpc(b)
 }
 
 func getBlockCount(params []interface{}) map[string]interface{} {
-	return DnaRpc(ledger.DefaultLedger.Blockchain.BlockHeight + 1)
+	return ElaRpc(ledger.DefaultLedger.Blockchain.BlockHeight + 1)
 }
 
 // A JSON example for getblockhash method as following:
 //   {"jsonrpc": "2.0", "method": "getblockhash", "params": [1], "id": 0}
 func getBlockHash(params []interface{}) map[string]interface{} {
 	if len(params) < 1 {
-		return DnaRpcNil
+		return ElaRpcNil
 	}
 	switch params[0].(type) {
 	case float64:
 		height := uint32(params[0].(float64))
 		hash, err := ledger.DefaultLedger.Store.GetBlockHash(height)
 		if err != nil {
-			return DnaRpcUnknownBlock
+			return ElaRpcUnknownBlock
 		}
-		return DnaRpc(BytesToHexString(hash.ToArrayReverse()))
+		return ElaRpc(BytesToHexString(hash.ToArrayReverse()))
 	default:
-		return DnaRpcInvalidParameter
+		return ElaRpcInvalidParameter
 	}
 }
 
 func getConnectionCount(params []interface{}) map[string]interface{} {
-	return DnaRpc(node.GetConnectionCnt())
+	return ElaRpc(node.GetConnectionCnt())
 }
 
 func getRawMemPool(params []interface{}) map[string]interface{} {
@@ -234,40 +234,40 @@ func getRawMemPool(params []interface{}) map[string]interface{} {
 		txs = append(txs, TransArryByteToHexString(t))
 	}
 	if len(txs) == 0 {
-		return DnaRpcNil
+		return ElaRpcNil
 	}
-	return DnaRpc(txs)
+	return ElaRpc(txs)
 }
 
 // A JSON example for getrawtransaction method as following:
 //   {"jsonrpc": "2.0", "method": "getrawtransaction", "params": ["transactioin hash in hex"], "id": 0}
 func getRawTransaction(params []interface{}) map[string]interface{} {
 	if len(params) < 1 {
-		return DnaRpcNil
+		return ElaRpcNil
 	}
 	switch params[0].(type) {
 	case string:
 		str := params[0].(string)
 		hex, err := HexStringToBytesReverse(str)
 		if err != nil {
-			return DnaRpcInvalidParameter
+			return ElaRpcInvalidParameter
 		}
 		var hash Uint256
 		err = hash.Deserialize(bytes.NewReader(hex))
 		if err != nil {
-			return DnaRpcInvalidTransaction
+			return ElaRpcInvalidTransaction
 		}
 		tx, height, err := ledger.DefaultLedger.Store.GetTransaction(hash)
 		if err != nil {
-			return DnaRpcUnknownTransaction
+			return ElaRpcUnknownTransaction
 		}
 		bHash, err := ledger.DefaultLedger.Store.GetBlockHash(height)
 		if err != nil {
-			return DnaRpcUnknownTransaction
+			return ElaRpcUnknownTransaction
 		}
 		header, err := ledger.DefaultLedger.Store.GetHeader(bHash)
 		if err != nil {
-			return DnaRpcUnknownTransaction
+			return ElaRpcUnknownTransaction
 		}
 		tran := TransArryByteToHexString(tx)
 		tran.Timestamp = header.Blockdata.Timestamp
@@ -276,15 +276,15 @@ func getRawTransaction(params []interface{}) map[string]interface{} {
 		tx.Serialize(w)
 		tran.TxSize = uint32(len(w.Bytes()))
 
-		return DnaRpc(tran)
+		return ElaRpc(tran)
 	default:
-		return DnaRpcInvalidParameter
+		return ElaRpcInvalidParameter
 	}
 }
 
 func getNeighbor(params []interface{}) map[string]interface{} {
 	addr, _ := node.GetNeighborAddrs()
-	return DnaRpc(addr)
+	return ElaRpc(addr)
 }
 
 func getNodeState(params []interface{}) map[string]interface{} {
@@ -300,23 +300,23 @@ func getNodeState(params []interface{}) map[string]interface{} {
 		TxnCnt:   node.GetTxnCnt(),
 		RxTxnCnt: node.GetRxTxnCnt(),
 	}
-	return DnaRpc(n)
+	return ElaRpc(n)
 }
 
 func setDebugInfo(params []interface{}) map[string]interface{} {
 	if len(params) < 1 {
-		return DnaRpcInvalidParameter
+		return ElaRpcInvalidParameter
 	}
 	switch params[0].(type) {
 	case float64:
 		level := params[0].(float64)
 		if err := log.Log.SetDebugLevel(int(level)); err != nil {
-			return DnaRpcInvalidParameter
+			return ElaRpcInvalidParameter
 		}
 	default:
-		return DnaRpcInvalidParameter
+		return ElaRpcInvalidParameter
 	}
-	return DnaRpcSuccess
+	return ElaRpcSuccess
 }
 
 func submitAuxBlock(params []interface{}) map[string]interface{} {
@@ -326,11 +326,11 @@ func submitAuxBlock(params []interface{}) map[string]interface{} {
 		blockHash = params[0].(string)
 		if _, ok := Pow.MsgBlock.BlockData[blockHash]; !ok {
 			log.Trace("[json-rpc:submitAuxBlock] receive invalid block hash value:", blockHash)
-			return DnaRpcInvalidHash
+			return ElaRpcInvalidHash
 		}
 
 	default:
-		return DnaRpcInvalidParameter
+		return ElaRpcInvalidParameter
 	}
 
 	switch params[1].(type) {
@@ -342,7 +342,7 @@ func submitAuxBlock(params []interface{}) map[string]interface{} {
 		_, _, err := ledger.DefaultLedger.Blockchain.AddBlock(Pow.MsgBlock.BlockData[blockHash])
 		if err != nil {
 			log.Trace(err)
-			return DnaRpcInternalError
+			return ElaRpcInternalError
 		}
 
 		Pow.MsgBlock.Mutex.Lock()
@@ -353,10 +353,10 @@ func submitAuxBlock(params []interface{}) map[string]interface{} {
 		log.Trace("AddBlock called finished and Pow.MsgBlock.BlockData has been deleted completely")
 
 	default:
-		return DnaRpcInvalidParameter
+		return ElaRpcInvalidParameter
 	}
 	log.Info(auxPow, blockHash)
-	return DnaRpcSuccess
+	return ElaRpcSuccess
 }
 
 func generateAuxBlock(addr string) (*ledger.Block, string, bool) {
@@ -398,7 +398,7 @@ func generateAuxBlock(addr string) (*ledger.Block, string, bool) {
 func createAuxBlock(params []interface{}) map[string]interface{} {
 	msgBlock, curHashStr, _ := generateAuxBlock(config.Parameters.PowConfiguration.PayToAddr)
 	if nil == msgBlock {
-		return DnaRpcNil
+		return ElaRpcNil
 	}
 
 	type AuxBlock struct {
@@ -424,10 +424,10 @@ func createAuxBlock(params []interface{}) map[string]interface{} {
 			Bits:              fmt.Sprintf("%x", msgBlock.Blockdata.Bits), //difficulty
 			Hash:              curHashStr,
 			PreviousBlockHash: preHashStr}
-		return DnaRpc(&SendToAux)
+		return ElaRpc(&SendToAux)
 
 	default:
-		return DnaRpcInvalidParameter
+		return ElaRpcInvalidParameter
 
 	}
 }
@@ -467,69 +467,69 @@ func getInfo(params []interface{}) map[string]interface{} {
 		Paytxfee:       0,
 		Relayfee:       0,
 		Errors:         "Tobe written"}
-	return DnaRpc(&RetVal)
+	return ElaRpc(&RetVal)
 }
 
 func auxHelp(params []interface{}) map[string]interface{} {
 
 	//TODO  and description for this rpc-interface
-	return DnaRpc("createauxblock==submitauxblock")
+	return ElaRpc("createauxblock==submitauxblock")
 }
 
 func getVersion(params []interface{}) map[string]interface{} {
-	return DnaRpc(config.Version)
+	return ElaRpc(config.Version)
 }
 
 func addAccount(params []interface{}) map[string]interface{} {
 	if Wallet == nil {
-		return DnaRpc("open wallet first")
+		return ElaRpc("open wallet first")
 	}
 	account, err := Wallet.CreateAccount()
 	if err != nil {
-		return DnaRpc("create account error:" + err.Error())
+		return ElaRpc("create account error:" + err.Error())
 	}
 
 	if err := Wallet.CreateContract(account); err != nil {
-		return DnaRpc("create contract error:" + err.Error())
+		return ElaRpc("create contract error:" + err.Error())
 	}
 
 	address, err := account.ProgramHash.ToAddress()
 	if err != nil {
-		return DnaRpc("generate address error:" + err.Error())
+		return ElaRpc("generate address error:" + err.Error())
 	}
 
-	return DnaRpc(address)
+	return ElaRpc(address)
 }
 
 func deleteAccount(params []interface{}) map[string]interface{} {
 	if len(params) < 1 {
-		return DnaRpcNil
+		return ElaRpcNil
 	}
 	var address string
 	switch params[0].(type) {
 	case string:
 		address = params[0].(string)
 	default:
-		return DnaRpcInvalidParameter
+		return ElaRpcInvalidParameter
 	}
 	if Wallet == nil {
-		return DnaRpc("open wallet first")
+		return ElaRpc("open wallet first")
 	}
 	programHash, err := ToScriptHash(address)
 	if err != nil {
-		return DnaRpc("invalid address:" + err.Error())
+		return ElaRpc("invalid address:" + err.Error())
 	}
 	if err := Wallet.DeleteAccount(programHash); err != nil {
-		return DnaRpc("Delete account error:" + err.Error())
+		return ElaRpc("Delete account error:" + err.Error())
 	}
 	if err := Wallet.DeleteContract(programHash); err != nil {
-		return DnaRpc("Delete contract error:" + err.Error())
+		return ElaRpc("Delete contract error:" + err.Error())
 	}
 	if err := Wallet.DeleteCoinsData(programHash); err != nil {
-		return DnaRpc("Delete coins error:" + err.Error())
+		return ElaRpc("Delete coins error:" + err.Error())
 	}
 
-	return DnaRpc(true)
+	return ElaRpc(true)
 }
 
 func toggleCpuMining(params []interface{}) map[string]interface{} {
@@ -539,7 +539,7 @@ func toggleCpuMining(params []interface{}) map[string]interface{} {
 		isMining = params[0].(bool)
 
 	default:
-		return DnaRpcInvalidParameter
+		return ElaRpcInvalidParameter
 	}
 
 	if isMining {
@@ -548,7 +548,7 @@ func toggleCpuMining(params []interface{}) map[string]interface{} {
 		go Pow.Halt()
 	}
 
-	return DnaRpcSuccess
+	return ElaRpcSuccess
 }
 
 func discreteCpuMining(params []interface{}) map[string]interface{} {
@@ -557,18 +557,18 @@ func discreteCpuMining(params []interface{}) map[string]interface{} {
 	case float64:
 		numBlocks = uint32(params[0].(float64))
 	default:
-		return DnaRpcInvalidParameter
+		return ElaRpcInvalidParameter
 	}
 
 	if numBlocks == 0 {
-		return DnaRpcInvalidParameter
+		return ElaRpcInvalidParameter
 	}
 
 	ret := make([]string, numBlocks)
 
 	blockHashes, err := Pow.DiscreteMining(numBlocks)
 	if err != nil {
-		return DnaRpcFailed
+		return ElaRpcFailed
 	}
 
 	for i, hash := range blockHashes {
@@ -578,40 +578,40 @@ func discreteCpuMining(params []interface{}) map[string]interface{} {
 		ret[i] = BytesToHexString(w.Bytes())
 	}
 
-	return DnaRpc(ret)
+	return ElaRpc(ret)
 }
 
 func sendTransaction(params []interface{}) map[string]interface{} {
 	if len(params) < 4 {
-		return DnaRpcNil
+		return ElaRpcNil
 	}
 	var asset, address, value, fee string
 	switch params[0].(type) {
 	case string:
 		asset = params[0].(string)
 	default:
-		return DnaRpcInvalidParameter
+		return ElaRpcInvalidParameter
 	}
 	switch params[1].(type) {
 	case string:
 		address = params[1].(string)
 	default:
-		return DnaRpcInvalidParameter
+		return ElaRpcInvalidParameter
 	}
 	switch params[2].(type) {
 	case string:
 		value = params[2].(string)
 	default:
-		return DnaRpcInvalidParameter
+		return ElaRpcInvalidParameter
 	}
 	switch params[3].(type) {
 	case string:
 		fee = params[3].(string)
 	default:
-		return DnaRpcInvalidParameter
+		return ElaRpcInvalidParameter
 	}
 	if Wallet == nil {
-		return DnaRpc("error : wallet is not opened")
+		return ElaRpc("error : wallet is not opened")
 	}
 
 	batchOut := sdk.BatchOut{
@@ -620,27 +620,27 @@ func sendTransaction(params []interface{}) map[string]interface{} {
 	}
 	tmp, err := HexStringToBytesReverse(asset)
 	if err != nil {
-		return DnaRpc("error: invalid asset ID")
+		return ElaRpc("error: invalid asset ID")
 	}
 	var assetID Uint256
 	if err := assetID.Deserialize(bytes.NewReader(tmp)); err != nil {
-		return DnaRpc("error: invalid asset hash")
+		return ElaRpc("error: invalid asset hash")
 	}
 	txn, err := sdk.MakeTransferTransaction(Wallet, assetID, fee, batchOut)
 	if err != nil {
-		return DnaRpc("error: " + err.Error())
+		return ElaRpc("error: " + err.Error())
 	}
 
 	if errCode := VerifyAndSendTx(txn); errCode != ErrNoError {
-		return DnaRpc("error: " + errCode.Error())
+		return ElaRpc("error: " + errCode.Error())
 	}
 	txHash := txn.Hash()
-	return DnaRpc(BytesToHexString(txHash.ToArrayReverse()))
+	return ElaRpc(BytesToHexString(txHash.ToArrayReverse()))
 }
 
 func sendBatchOutTransaction(params []interface{}) map[string]interface{} {
 	if len(params) < 3 {
-		return DnaRpcNil
+		return ElaRpcNil
 	}
 	var asset, fee string
 	var batchOutArray []interface{}
@@ -648,59 +648,59 @@ func sendBatchOutTransaction(params []interface{}) map[string]interface{} {
 	case string:
 		asset = params[0].(string)
 	default:
-		return DnaRpcInvalidParameter
+		return ElaRpcInvalidParameter
 	}
 	switch params[1].(type) {
 	case []interface{}:
 		batchOutArray = params[1].([]interface{})
 	default:
-		return DnaRpcInvalidParameter
+		return ElaRpcInvalidParameter
 	}
 	switch params[2].(type) {
 	case string:
 		fee = params[2].(string)
 	default:
-		return DnaRpcInvalidParameter
+		return ElaRpcInvalidParameter
 	}
 	if Wallet == nil {
-		return DnaRpc("error : wallet is not opened")
+		return ElaRpc("error : wallet is not opened")
 	}
 
 	content, err := json.Marshal(batchOutArray)
 	if err != nil {
-		return DnaRpc("error : batch out marshal failed")
+		return ElaRpc("error : batch out marshal failed")
 	}
 	batchOut := []sdk.BatchOut{}
 	err = json.Unmarshal(content, &batchOut)
 	if err != nil {
-		return DnaRpc("error : batch out unmarshal failed")
+		return ElaRpc("error : batch out unmarshal failed")
 	}
 
 	tmp, err := HexStringToBytesReverse(asset)
 	if err != nil {
-		return DnaRpc("error: invalid asset ID")
+		return ElaRpc("error: invalid asset ID")
 	}
 	var assetID Uint256
 	if err := assetID.Deserialize(bytes.NewReader(tmp)); err != nil {
-		return DnaRpc("error: invalid asset hash")
+		return ElaRpc("error: invalid asset hash")
 	}
 	txn, err := sdk.MakeTransferTransaction(Wallet, assetID, fee, batchOut...)
 	if err != nil {
-		return DnaRpc("error: " + err.Error())
+		return ElaRpc("error: " + err.Error())
 	}
 
 	if errCode := VerifyAndSendTx(txn); errCode != ErrNoError {
-		return DnaRpc("error: " + errCode.Error())
+		return ElaRpc("error: " + errCode.Error())
 	}
 	txHash := txn.Hash()
-	return DnaRpc(BytesToHexString(txHash.ToArrayReverse()))
+	return ElaRpc(BytesToHexString(txHash.ToArrayReverse()))
 }
 
 // A JSON example for sendrawtransaction method as following:
 //   {"jsonrpc": "2.0", "method": "sendrawtransaction", "params": ["raw transactioin in hex"], "id": 0}
 func sendRawTransaction(params []interface{}) map[string]interface{} {
 	if len(params) < 1 {
-		return DnaRpcNil
+		return ElaRpcNil
 	}
 	var hash Uint256
 	switch params[0].(type) {
@@ -708,27 +708,27 @@ func sendRawTransaction(params []interface{}) map[string]interface{} {
 		str := params[0].(string)
 		hex, err := HexStringToBytes(str)
 		if err != nil {
-			return DnaRpcInvalidParameter
+			return ElaRpcInvalidParameter
 		}
 		var txn tx.Transaction
 		if err := txn.Deserialize(bytes.NewReader(hex)); err != nil {
-			return DnaRpcInvalidTransaction
+			return ElaRpcInvalidTransaction
 		}
 		hash = txn.Hash()
 		if errCode := VerifyAndSendTx(&txn); errCode != ErrNoError {
-			return DnaRpc(errCode.Error())
+			return ElaRpc(errCode.Error())
 		}
 	default:
-		return DnaRpcInvalidParameter
+		return ElaRpcInvalidParameter
 	}
-	return DnaRpc(BytesToHexString(hash.ToArrayReverse()))
+	return ElaRpc(BytesToHexString(hash.ToArrayReverse()))
 }
 
 // A JSON example for submitblock method as following:
 //   {"jsonrpc": "2.0", "method": "submitblock", "params": ["raw block in hex"], "id": 0}
 func submitBlock(params []interface{}) map[string]interface{} {
 	if len(params) < 1 {
-		return DnaRpcNil
+		return ElaRpcNil
 	}
 	switch params[0].(type) {
 	case string:
@@ -736,42 +736,42 @@ func submitBlock(params []interface{}) map[string]interface{} {
 		hex, _ := HexStringToBytes(str)
 		var block ledger.Block
 		if err := block.Deserialize(bytes.NewReader(hex)); err != nil {
-			return DnaRpcInvalidBlock
+			return ElaRpcInvalidBlock
 		}
 		if _, _, err := ledger.DefaultLedger.Blockchain.AddBlock(&block); err != nil {
-			return DnaRpcInvalidBlock
+			return ElaRpcInvalidBlock
 		}
 		if err := node.Xmit(&block); err != nil {
-			return DnaRpcInternalError
+			return ElaRpcInternalError
 		}
 	default:
-		return DnaRpcInvalidParameter
+		return ElaRpcInvalidParameter
 	}
-	return DnaRpcSuccess
+	return ElaRpcSuccess
 }
 
 func signMultiSignTransaction(params []interface{}) map[string]interface{} {
 	if len(params) < 1 {
-		return DnaRpcNil
+		return ElaRpcNil
 	}
 	var signedrawtxn string
 	switch params[0].(type) {
 	case string:
 		signedrawtxn = params[0].(string)
 	default:
-		return DnaRpcInvalidParameter
+		return ElaRpcInvalidParameter
 	}
 
 	rawtxn, _ := HexStringToBytes(signedrawtxn)
 	var txn tx.Transaction
 	txn.Deserialize(bytes.NewReader(rawtxn))
 	if len(txn.Programs) <= 0 {
-		return DnaRpc("error: missing the first signature")
+		return ElaRpc("error: missing the first signature")
 	}
 
 	_, needSign, err := txn.ParseTransactionSig()
 	if err != nil {
-		return DnaRpc("error: " + err.Error())
+		return ElaRpc("error: " + err.Error())
 	}
 
 	if needSign > 0 {
@@ -785,7 +785,7 @@ func signMultiSignTransaction(params []interface{}) map[string]interface{} {
 		}
 
 		if acct == nil {
-			return DnaRpc("error: no available account detected")
+			return ElaRpc("error: no available account detected")
 		} else {
 			sig, _ := signature.SignBySigner(&txn, acct)
 			txn.AppendNewSignature(sig)
@@ -794,47 +794,47 @@ func signMultiSignTransaction(params []interface{}) map[string]interface{} {
 
 	var buffer bytes.Buffer
 	txn.Serialize(&buffer)
-	return DnaRpc(BytesToHexString(buffer.Bytes()))
+	return ElaRpc(BytesToHexString(buffer.Bytes()))
 }
 
 func createMultiSignTransaction(params []interface{}) map[string]interface{} {
 	if len(params) < 5 {
-		return DnaRpcNil
+		return ElaRpcNil
 	}
 	var asset, from, address, value, fee string
 	switch params[0].(type) {
 	case string:
 		asset = params[0].(string)
 	default:
-		return DnaRpcInvalidParameter
+		return ElaRpcInvalidParameter
 	}
 	switch params[1].(type) {
 	case string:
 		from = params[1].(string)
 	default:
-		return DnaRpcInvalidParameter
+		return ElaRpcInvalidParameter
 	}
 	switch params[2].(type) {
 	case string:
 		address = params[2].(string)
 	default:
-		return DnaRpcInvalidParameter
+		return ElaRpcInvalidParameter
 	}
 	switch params[3].(type) {
 	case string:
 		value = params[3].(string)
 	default:
-		return DnaRpcInvalidParameter
+		return ElaRpcInvalidParameter
 	}
 	switch params[4].(type) {
 	case string:
 		fee = params[4].(string)
 	default:
-		return DnaRpcInvalidParameter
+		return ElaRpcInvalidParameter
 	}
 
 	if Wallet == nil {
-		return DnaRpc("error : wallet is not opened")
+		return ElaRpc("error : wallet is not opened")
 	}
 
 	batchOut := sdk.BatchOut{
@@ -843,25 +843,25 @@ func createMultiSignTransaction(params []interface{}) map[string]interface{} {
 	}
 	tmp, err := HexStringToBytesReverse(asset)
 	if err != nil {
-		return DnaRpc("error: invalid asset ID")
+		return ElaRpc("error: invalid asset ID")
 	}
 	var assetID Uint256
 	if err := assetID.Deserialize(bytes.NewReader(tmp)); err != nil {
-		return DnaRpc("error: invalid asset hash")
+		return ElaRpc("error: invalid asset hash")
 	}
 	txn, err := sdk.MakeMultisigTransferTransaction(Wallet, assetID, from, fee, batchOut)
 	if err != nil {
-		return DnaRpc("error:" + err.Error())
+		return ElaRpc("error:" + err.Error())
 	}
 
 	var buffer bytes.Buffer
 	txn.Serialize(&buffer)
-	return DnaRpc(BytesToHexString(buffer.Bytes()))
+	return ElaRpc(BytesToHexString(buffer.Bytes()))
 }
 
 func createBatchOutMultiSignTransaction(params []interface{}) map[string]interface{} {
 	if len(params) < 4 {
-		return DnaRpcNil
+		return ElaRpcNil
 	}
 	var asset, from, fee string
 	var batchOutArray []interface{}
@@ -869,55 +869,55 @@ func createBatchOutMultiSignTransaction(params []interface{}) map[string]interfa
 	case string:
 		asset = params[0].(string)
 	default:
-		return DnaRpcInvalidParameter
+		return ElaRpcInvalidParameter
 	}
 	switch params[1].(type) {
 	case string:
 		from = params[1].(string)
 	default:
-		return DnaRpcInvalidParameter
+		return ElaRpcInvalidParameter
 	}
 	switch params[2].(type) {
 	case []interface{}:
 		batchOutArray = params[2].([]interface{})
 	default:
-		return DnaRpcInvalidParameter
+		return ElaRpcInvalidParameter
 	}
 	switch params[3].(type) {
 	case string:
 		fee = params[3].(string)
 	default:
-		return DnaRpcInvalidParameter
+		return ElaRpcInvalidParameter
 	}
 	if Wallet == nil {
-		return DnaRpc("error : wallet is not opened")
+		return ElaRpc("error : wallet is not opened")
 	}
 
 	content, err := json.Marshal(batchOutArray)
 	if err != nil {
-		return DnaRpc("error : batch out marshal failed")
+		return ElaRpc("error : batch out marshal failed")
 	}
 	batchOut := []sdk.BatchOut{}
 	err = json.Unmarshal(content, &batchOut)
 	if err != nil {
-		return DnaRpc("error : batch out unmarshal failed")
+		return ElaRpc("error : batch out unmarshal failed")
 	}
 
 	tmp, err := HexStringToBytesReverse(asset)
 	if err != nil {
-		return DnaRpc("error: invalid asset ID")
+		return ElaRpc("error: invalid asset ID")
 	}
 	var assetID Uint256
 	if err := assetID.Deserialize(bytes.NewReader(tmp)); err != nil {
-		return DnaRpc("error: invalid asset hash")
+		return ElaRpc("error: invalid asset hash")
 	}
 
 	txn, err := sdk.MakeMultisigTransferTransaction(Wallet, assetID, from, fee, batchOut...)
 	if err != nil {
-		return DnaRpc("error:" + err.Error())
+		return ElaRpc("error:" + err.Error())
 	}
 
 	var buffer bytes.Buffer
 	txn.Serialize(&buffer)
-	return DnaRpc(BytesToHexString(buffer.Bytes()))
+	return ElaRpc(BytesToHexString(buffer.Bytes()))
 }

@@ -1,12 +1,12 @@
 package protocol
 
 import (
-	"DNA_POW/common"
-	"DNA_POW/core/ledger"
-	"DNA_POW/core/transaction"
-	"DNA_POW/crypto"
-	. "DNA_POW/errors"
-	"DNA_POW/events"
+	"ELA/common"
+	"ELA/core/ledger"
+	"ELA/core/transaction"
+	"ELA/crypto"
+	. "ELA/errors"
+	"ELA/events"
 	"bytes"
 	"encoding/binary"
 	"net"

@@ -1,13 +1,13 @@
 package ledger
 
 import (
-	"DNA_POW/common/config"
+	"ELA/common/config"
 	"errors"
 	"math/big"
 	"time"
 
-	. "DNA_POW/common"
-	"DNA_POW/common/log"
+	. "ELA/common"
+	"ELA/common/log"
 )
 
 var (

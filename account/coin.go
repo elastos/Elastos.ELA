@@ -3,8 +3,8 @@ package account
 import (
 	"io"
 
-	"DNA_POW/core/transaction"
-	"DNA_POW/common/serialization"
+	"ELA/core/transaction"
+	"ELA/common/serialization"
 )
 type AddressType byte
 

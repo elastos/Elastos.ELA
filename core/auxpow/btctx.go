@@ -1,8 +1,8 @@
 package auxpow
 
 import (
-	. "DNA_POW/common"
-	"DNA_POW/common/serialization"
+	. "ELA/common"
+	"ELA/common/serialization"
 	"bytes"
 	"crypto/sha256"
 	"encoding/binary"

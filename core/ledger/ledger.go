@@ -1,11 +1,11 @@
 package ledger
 
 import (
-	. "DNA_POW/common"
-	"DNA_POW/core/asset"
-	tx "DNA_POW/core/transaction"
-	"DNA_POW/crypto"
-	. "DNA_POW/errors"
+	. "ELA/common"
+	"ELA/core/asset"
+	tx "ELA/core/transaction"
+	"ELA/crypto"
+	. "ELA/errors"
 )
 
 const (

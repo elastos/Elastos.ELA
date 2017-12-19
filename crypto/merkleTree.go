@@ -1,8 +1,8 @@
 package crypto
 
 import (
-	. "DNA_POW/common"
-	. "DNA_POW/errors"
+	. "ELA/common"
+	. "ELA/errors"
 	"bytes"
 	"crypto/sha256"
 	"errors"

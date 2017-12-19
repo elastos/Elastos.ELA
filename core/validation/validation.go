@@ -1,12 +1,12 @@
 package validation
 
 import (
-	. "DNA_POW/common"
-	sig "DNA_POW/core/signature"
-	"DNA_POW/crypto"
-	. "DNA_POW/errors"
-	"DNA_POW/vm"
-	"DNA_POW/vm/interfaces"
+	. "ELA/common"
+	sig "ELA/core/signature"
+	"ELA/crypto"
+	. "ELA/errors"
+	"ELA/vm"
+	"ELA/vm/interfaces"
 	"errors"
 )
 

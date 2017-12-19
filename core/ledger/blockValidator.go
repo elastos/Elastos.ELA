@@ -1,12 +1,12 @@
 package ledger
 
 import (
-	. "DNA_POW/common"
-	"DNA_POW/common/config"
-	"DNA_POW/core/auxpow"
-	tx "DNA_POW/core/transaction"
-	"DNA_POW/crypto"
-	. "DNA_POW/errors"
+	. "ELA/common"
+	"ELA/common/config"
+	"ELA/core/auxpow"
+	tx "ELA/core/transaction"
+	"ELA/crypto"
+	. "ELA/errors"
 
 	"errors"
 	"fmt"

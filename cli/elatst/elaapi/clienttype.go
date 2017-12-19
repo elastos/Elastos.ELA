@@ -1,7 +1,7 @@
-package dnaapi
+package elaapi
 
 import (
-	"DNA_POW/account"
+	"ELA/account"
 	"encoding/hex"
 	"fmt"
 

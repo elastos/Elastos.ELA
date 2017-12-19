@@ -1,6 +1,6 @@
 --ErrInvalidInput
 print("------------start testErrTxDuplicate------------")
-local m = require("dnaapi")
+local m = require("elaapi")
 wallet = client.new("wallet_test.dat", "pwd", false)
 addr = wallet:getAddr()
 pubkey = wallet:getPubkey()

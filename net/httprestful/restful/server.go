@@ -1,11 +1,11 @@
 package restful
 
 import (
-	. "DNA_POW/common/config"
-	"DNA_POW/common/log"
-	. "DNA_POW/net/httprestful/common"
-	Err "DNA_POW/net/httprestful/error"
-	"DNA_POW/net/httpwebsocket"
+	. "ELA/common/config"
+	"ELA/common/log"
+	. "ELA/net/httprestful/common"
+	Err "ELA/net/httprestful/error"
+	"ELA/net/httpwebsocket"
 	"context"
 	"crypto/tls"
 	"encoding/json"

@@ -1,13 +1,13 @@
 package httpjsonrpc
 
 import (
-	. "DNA_POW/common"
-	"DNA_POW/common/log"
-	"DNA_POW/consensus/pow"
-	. "DNA_POW/core/transaction"
-	tx "DNA_POW/core/transaction"
-	. "DNA_POW/errors"
-	. "DNA_POW/net/protocol"
+	. "ELA/common"
+	"ELA/common/log"
+	"ELA/consensus/pow"
+	. "ELA/core/transaction"
+	tx "ELA/core/transaction"
+	. "ELA/errors"
+	. "ELA/net/protocol"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"

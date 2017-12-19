@@ -1,18 +1,18 @@
 package sdk
 
 import (
-	"DNA_POW/account"
-	. "DNA_POW/common"
-	"DNA_POW/core/contract"
-	"DNA_POW/core/ledger"
-	"DNA_POW/core/signature"
-	"DNA_POW/core/transaction"
+	"ELA/account"
+	. "ELA/common"
+	"ELA/core/contract"
+	"ELA/core/ledger"
+	"ELA/core/signature"
+	"ELA/core/transaction"
 	"errors"
 	"fmt"
 	"math/rand"
 	"sort"
 	"strconv"
-	"DNA_POW/common/log"
+	"ELA/common/log"
 )
 
 type BatchOut struct {

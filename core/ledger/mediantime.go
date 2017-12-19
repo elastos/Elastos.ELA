@@ -5,7 +5,7 @@
 package ledger
 
 import (
-	"DNA_POW/common/log"
+	"ELA/common/log"
 	"math"
 	"sort"
 	"sync"

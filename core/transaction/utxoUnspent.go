@@ -1,8 +1,8 @@
 package transaction
 
 import (
-	"DNA_POW/common"
-	"DNA_POW/common/serialization"
+	"ELA/common"
+	"ELA/common/serialization"
 	"io"
 )
 

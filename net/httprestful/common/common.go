@@ -5,14 +5,14 @@ import (
 	"fmt"
 	"strconv"
 
-	. "DNA_POW/common"
-	"DNA_POW/core/ledger"
-	tx "DNA_POW/core/transaction"
-	"DNA_POW/core/transaction/payload"
-	. "DNA_POW/errors"
-	. "DNA_POW/net/httpjsonrpc"
-	Err "DNA_POW/net/httprestful/error"
-	. "DNA_POW/net/protocol"
+	. "ELA/common"
+	"ELA/core/ledger"
+	tx "ELA/core/transaction"
+	"ELA/core/transaction/payload"
+	. "ELA/errors"
+	. "ELA/net/httpjsonrpc"
+	Err "ELA/net/httprestful/error"
+	. "ELA/net/protocol"
 )
 
 var node Noder

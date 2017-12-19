@@ -1,8 +1,8 @@
 package code
 
 import (
-	. "DNA_POW/common"
-	. "DNA_POW/core/contract"
+	. "ELA/common"
+	. "ELA/core/contract"
 )
 //ICode is the abstract interface of smart contract code.
 type ICode interface {

@@ -1,18 +1,18 @@
 package ledger
 
 import (
-	"DNA_POW/common/config"
+	"ELA/common/config"
 	"errors"
 	"fmt"
 	"math"
 
-	"DNA_POW/common"
-	"DNA_POW/common/log"
-	"DNA_POW/core/asset"
-	tx "DNA_POW/core/transaction"
-	"DNA_POW/core/transaction/payload"
-	"DNA_POW/core/validation"
-	. "DNA_POW/errors"
+	"ELA/common"
+	"ELA/common/log"
+	"ELA/core/asset"
+	tx "ELA/core/transaction"
+	"ELA/core/transaction/payload"
+	"ELA/core/validation"
+	. "ELA/errors"
 )
 
 // CheckTransactionSanity verifys received single transaction

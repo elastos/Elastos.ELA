@@ -1,9 +1,9 @@
 package transaction
 
 import (
-	"DNA_POW/common"
-	"DNA_POW/core/contract/program"
-	"DNA_POW/core/transaction/payload"
+	"ELA/common"
+	"ELA/core/contract/program"
+	"ELA/core/transaction/payload"
 )
 
 func NewCoinBaseTransaction(coinBasePayload *payload.CoinBase, currentHeight uint32) (*Transaction, error) {

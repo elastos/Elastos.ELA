@@ -5,11 +5,11 @@ import (
 	"errors"
 	"fmt"
 
-	. "DNA_POW/common"
-	"DNA_POW/common/serialization"
-	. "DNA_POW/core/ledger"
-	tx "DNA_POW/core/transaction"
-	"DNA_POW/core/transaction/payload"
+	. "ELA/common"
+	"ELA/common/serialization"
+	. "ELA/core/ledger"
+	tx "ELA/core/transaction"
+	"ELA/core/transaction/payload"
 )
 
 func (db *ChainStore) BatchInit() error {

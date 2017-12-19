@@ -1,10 +1,10 @@
 package httpjsonrpc
 
 import (
-	. "DNA_POW/common"
-	"DNA_POW/core/asset"
-	. "DNA_POW/core/transaction"
-	"DNA_POW/core/transaction/payload"
+	. "ELA/common"
+	"ELA/core/asset"
+	. "ELA/core/transaction"
+	"ELA/core/transaction/payload"
 )
 
 type PayloadInfo interface{}

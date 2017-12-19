@@ -1,6 +1,6 @@
 package vm
 
-import "DNA_POW/vm/utils"
+import "ELA/vm/utils"
 
 type ExecutionContext struct {
 	Script             []byte

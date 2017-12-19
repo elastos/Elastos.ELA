@@ -1,8 +1,8 @@
 package asset
 
 import (
-	"DNA_POW/common/serialization"
-	. "DNA_POW/errors"
+	"ELA/common/serialization"
+	. "ELA/errors"
 	"errors"
 	"io"
 )

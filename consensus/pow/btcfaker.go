@@ -1,8 +1,8 @@
 package pow
 
 import (
-	. "DNA_POW/common"
-	"DNA_POW/core/auxpow"
+	. "ELA/common"
+	"ELA/core/auxpow"
 	"bytes"
 	"encoding/binary"
 	"time"

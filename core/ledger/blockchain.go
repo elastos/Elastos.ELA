@@ -1,11 +1,11 @@
 package ledger
 
 import (
-	. "DNA_POW/common"
-	"DNA_POW/common/config"
-	"DNA_POW/common/log"
-	. "DNA_POW/errors"
-	"DNA_POW/events"
+	. "ELA/common"
+	"ELA/common/config"
+	"ELA/common/log"
+	. "ELA/errors"
+	"ELA/events"
 	"container/list"
 	"fmt"
 	"math/big"

@@ -10,11 +10,11 @@ import (
 	"os"
 	"sync"
 
-	. "DNA_POW/common"
-	"DNA_POW/common/serialization"
-	ct "DNA_POW/core/contract"
-	"DNA_POW/core/transaction"
-	. "DNA_POW/errors"
+	. "ELA/common"
+	"ELA/common/serialization"
+	ct "ELA/core/contract"
+	"ELA/core/transaction"
+	. "ELA/errors"
 )
 
 const (

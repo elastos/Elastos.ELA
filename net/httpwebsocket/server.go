@@ -1,16 +1,16 @@
 package httpwebsocket
 
 import (
-	. "DNA_POW/common"
-	. "DNA_POW/common/config"
-	"DNA_POW/core/ledger"
-	"DNA_POW/core/transaction"
-	"DNA_POW/events"
-	. "DNA_POW/net/httpjsonrpc"
-	"DNA_POW/net/httprestful/common"
-	Err "DNA_POW/net/httprestful/error"
-	"DNA_POW/net/httpwebsocket/websocket"
-	. "DNA_POW/net/protocol"
+	. "ELA/common"
+	. "ELA/common/config"
+	"ELA/core/ledger"
+	"ELA/core/transaction"
+	"ELA/events"
+	. "ELA/net/httpjsonrpc"
+	"ELA/net/httprestful/common"
+	Err "ELA/net/httprestful/error"
+	"ELA/net/httpwebsocket/websocket"
+	. "ELA/net/protocol"
 	"bytes"
 )
 

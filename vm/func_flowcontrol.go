@@ -1,7 +1,7 @@
 package vm
 
 import (
-	"DNA_POW/vm/errors"
+	"ELA/vm/errors"
 	"io"
 	"time"
 )

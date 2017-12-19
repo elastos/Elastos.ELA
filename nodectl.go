@@ -4,15 +4,15 @@ import (
 	"os"
 	"sort"
 
-	_ "DNA_POW/cli"
-	"DNA_POW/cli/asset"
-	"DNA_POW/cli/debug"
-	"DNA_POW/cli/dnatst"
-	"DNA_POW/cli/info"
-	"DNA_POW/cli/mining"
-	"DNA_POW/cli/multisig"
-	"DNA_POW/cli/recover"
-	"DNA_POW/cli/wallet"
+	_ "ELA/cli"
+	"ELA/cli/asset"
+	"ELA/cli/debug"
+	"ELA/cli/elatst"
+	"ELA/cli/info"
+	"ELA/cli/mining"
+	"ELA/cli/multisig"
+	"ELA/cli/recover"
+	"ELA/cli/wallet"
 
 	"github.com/urfave/cli"
 )
@@ -36,7 +36,7 @@ func main() {
 		*asset.NewCommand(),
 		*recover.NewCommand(),
 		*mining.NewCommand(),
-		*dnatst.NewCommand(),
+		*elatst.NewCommand(),
 		*multisig.NewCommand(),
 	}
 	sort.Sort(cli.CommandsByName(app.Commands))

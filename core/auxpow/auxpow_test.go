@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"testing"
 
-	. "DNA_POW/common"
+	. "ELA/common"
 )
 
 func Test_BtcTx(t *testing.T) {

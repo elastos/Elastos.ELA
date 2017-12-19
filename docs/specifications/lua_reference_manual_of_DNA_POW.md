@@ -1,27 +1,27 @@
-# package dnaapi
+# package elaapi
 
-dnaapi: the lua API of DNA_POW
+elaapi: the lua API of ELA
 vesion: 0.1
 date: 2017.11.15
 
 ## Index
 * [1. module](#module)
- + [1.1 dnaapi](#dnaapi)
-   - [1.1.1 hexStrReverse](#dnaapi_hexStrReverse)
-   - [1.1.2 sendRawTx](#dnaapi_sendRawTx)
-   - [1.1.3 getRawTx](#dnaapi_getRawTx)
-   - [1.1.4 getAssetID](#dnaapi_getAssetID)
-   - [1.1.5 getCoinbaseHashByHeight](#dnaapi_getCoinbaseHashByHeight)
-   - [1.1.6 getBlockByHeight](#dnaapi_getBlockByHeight)
-   - [1.1.7 getBlockByHash](#dnaapi_getBlockByHash)
-   - [1.1.8 getCurrentBlockHash](#dnaapi_getCurrentBlockHash)
-   - [1.1.9 getCurrentBlockHeight](#dnaapi_getCurrentBlockHeight)
-   - [1.1.10 getCurrentTimeStamp](#dnaapi_getCurrentTimeStamp)
-   - [1.1.11 submitBlock](#dnaapi_submitBlock)
-   - [1.1.12 togglemining](#dnaapi_togglemining)
-   - [1.1.13 discreteMining](#dnaapi_discreteMining)
-   - [1.1.14 getUnspendOutput](#dnaapi_getUnspendOutput)
-   - [1.1.15 getCurrentBits](#dnaapi_getCurrentBits)
+ + [1.1 elaapi](#elaapi)
+   - [1.1.1 hexStrReverse](#elaapi_hexStrReverse)
+   - [1.1.2 sendRawTx](#elaapi_sendRawTx)
+   - [1.1.3 getRawTx](#elaapi_getRawTx)
+   - [1.1.4 getAssetID](#elaapi_getAssetID)
+   - [1.1.5 getCoinbaseHashByHeight](#elaapi_getCoinbaseHashByHeight)
+   - [1.1.6 getBlockByHeight](#elaapi_getBlockByHeight)
+   - [1.1.7 getBlockByHash](#elaapi_getBlockByHash)
+   - [1.1.8 getCurrentBlockHash](#elaapi_getCurrentBlockHash)
+   - [1.1.9 getCurrentBlockHeight](#elaapi_getCurrentBlockHeight)
+   - [1.1.10 getCurrentTimeStamp](#elaapi_getCurrentTimeStamp)
+   - [1.1.11 submitBlock](#elaapi_submitBlock)
+   - [1.1.12 togglemining](#elaapi_togglemining)
+   - [1.1.13 discreteMining](#elaapi_discreteMining)
+   - [1.1.14 getUnspendOutput](#elaapi_getUnspendOutput)
+   - [1.1.15 getCurrentBits](#elaapi_getCurrentBits)
 * [2. types](#types)
  + [2.1 asset](#asset)
    - [2.1.1 new](asset_new)
@@ -108,13 +108,13 @@ date: 2017.11.15
 
 ## Package Files
 assettype.go       blocktype.go       codetype.go        payloadtype.go     txattributetype.go utxotxinputtype.go
-balancetxinput.go  clienttype.go      dnaapi.go          transactiontype.go txoutputtype.go
+balancetxinput.go  clienttype.go      elaapi.go          transactiontype.go txoutputtype.go
 
 ## API reference
 
 <h3 id="module">1. module</h3> 
-<h4 id="dnaapi">1.1 dnaapi</h4> 
-<h5 id="dnaapi_hexStrReverse">1.1.1 hexStrReverse</h5> 
+<h4 id="elaapi">1.1 elaapi</h4> 
+<h5 id="elaapi_hexStrReverse">1.1.1 hexStrReverse</h5> 
 
 ``` go
 name: hexStrReverse
@@ -123,25 +123,25 @@ params: hexStr [string]
 return: hex string reversed [string]
 ```
 
-<h5 id="dnaapi_sendRawTx">1.1.2 sendRawTx</h5> 
+<h5 id="elaapi_sendRawTx">1.1.2 sendRawTx</h5> 
 
 ``` go
 name: sendRawTx
-usage: send raw transaction to DNA_POW node.
+usage: send raw transaction to ELA node.
 params: txn [transaction]
 return: error code or tx hash. [string]
 ```
 
-<h5 id="dnaapi_getRawTx">1.1.3 getRawTx</h5> 
+<h5 id="elaapi_getRawTx">1.1.3 getRawTx</h5> 
 
 ``` go
 name: getRawTx
-usage: get raw transaction from DNA_POW node.
+usage: get raw transaction from ELA node.
 params: txn hash [string]
 return: transaction, timestamp and confirmination. [transaction, number, number]
 ```
 
-<h5 id="dnaapi_getAssetID">1.1.4 getAssetID</h5> 
+<h5 id="elaapi_getAssetID">1.1.4 getAssetID</h5> 
 
 ``` go
 name: getAssetID
@@ -150,7 +150,7 @@ params: null
 return: asset ID. [string]
 ```
 
-<h5 id="dnaapi_getCoinbaseHashByHeight">1.1.5 getCoinbaseHashByHeight</h5> 
+<h5 id="elaapi_getCoinbaseHashByHeight">1.1.5 getCoinbaseHashByHeight</h5> 
 
 ``` go
 name: getCoinbaseHashByHeight
@@ -159,7 +159,7 @@ params: height [number]
 return: coinbase hash. [string]
 ```
 
-<h5 id="dnaapi_getBlockByHeight">1.1.6 getBlockByHeight</h5> 
+<h5 id="elaapi_getBlockByHeight">1.1.6 getBlockByHeight</h5> 
 
 ```  go
 name: getBlockByHeight
@@ -168,7 +168,7 @@ params: height [number]
 return: block, confirmination [block, number]
 ```
 
-<h5 id="dnaapi_getBlockByHash">1.1.7 getBlockByHash</h5> 
+<h5 id="elaapi_getBlockByHash">1.1.7 getBlockByHash</h5> 
 
 ```  go
 name: getBlockByHash
@@ -177,7 +177,7 @@ params: hash [string]
 return: block, confirmination [block, number]
 ```
 
-<h5 id="dnaapi_getCurrentBlockHash">1.1.8 getCurrentBlockHash</h5> 
+<h5 id="elaapi_getCurrentBlockHash">1.1.8 getCurrentBlockHash</h5> 
 
 ``` go
 name: getCurrentBlockHash
@@ -186,7 +186,7 @@ params: null
 return: current block hash [string]
 ```
 
-<h5 id="dnaapi_getCurrentBlockHeight">1.1.9 getCurrentBlockHeight</h5> 
+<h5 id="elaapi_getCurrentBlockHeight">1.1.9 getCurrentBlockHeight</h5> 
 
 ``` go
 name: getCurrentBlockHeight
@@ -195,7 +195,7 @@ params: null
 return: current block height[number]
 ```
 
-<h5 id="dnaapi_getCurrentTimeStamp">1.1.10 getCurrentTimeStamp</h5> 
+<h5 id="elaapi_getCurrentTimeStamp">1.1.10 getCurrentTimeStamp</h5> 
 
 ``` go
 name: getCurrentTimeStamp
@@ -204,16 +204,16 @@ params: null
 return: timestamp of current block [number]
 ```
 
-<h5 id="dnaapi_submitBlock">1.1.11 submitBlock</h5> 
+<h5 id="elaapi_submitBlock">1.1.11 submitBlock</h5> 
 
 ``` go
 name: submitBlock
-usage: submit a block to DNA_POW node.
+usage: submit a block to ELA node.
 params: a block [block]
 return: error code or block hash [string]
 ```
 
-<h5 id="dnaapi_togglemining">1.1.12 togglemining</h5> 
+<h5 id="elaapi_togglemining">1.1.12 togglemining</h5> 
 
 ``` go
 name: togglemining 
@@ -222,7 +222,7 @@ params: mining or not [bool]
 return: null
 ```
 
-<h5 id="dnaapi_discreteMining">1.1.13 discreteMining</h5> 
+<h5 id="elaapi_discreteMining">1.1.13 discreteMining</h5> 
 
 ``` go
 name: discreteMining
@@ -231,7 +231,7 @@ params: number of block to mine [number]
 return: null
 ```
 
-<h5 id="dnaapi_getUnspendOutput">1.1.14 getUnspendOutput</h5> 
+<h5 id="elaapi_getUnspendOutput">1.1.14 getUnspendOutput</h5> 
 
 ``` go
 name: getUnspendOutput
@@ -241,7 +241,7 @@ params: address [string]
 return: null
 ```
 
-<h5 id="dnaapi_getUnspendOutput">1.1.15 getCurrentBits</h5> 
+<h5 id="elaapi_getUnspendOutput">1.1.15 getCurrentBits</h5> 
 
 ``` go
 name: getCurrentBits

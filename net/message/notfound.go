@@ -1,10 +1,10 @@
 package message
 
 import (
-	"DNA_POW/common"
-	"DNA_POW/common/config"
-	"DNA_POW/common/log"
-	. "DNA_POW/net/protocol"
+	"ELA/common"
+	"ELA/common/config"
+	"ELA/common/log"
+	. "ELA/net/protocol"
 	"bytes"
 	"crypto/sha256"
 	"encoding/binary"

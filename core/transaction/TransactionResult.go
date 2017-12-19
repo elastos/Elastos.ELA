@@ -1,6 +1,6 @@
 package transaction
 
-import "DNA_POW/common"
+import "ELA/common"
 
 //	Key  : AssetId common.Uint256
 //	Value: Amount common.Fixed64

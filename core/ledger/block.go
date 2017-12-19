@@ -7,17 +7,17 @@ import (
 	"math/rand"
 	"time"
 
-	. "DNA_POW/common"
-	"DNA_POW/common/config"
-	"DNA_POW/common/log"
-	"DNA_POW/common/serialization"
-	"DNA_POW/core/asset"
-	"DNA_POW/core/contract/program"
-	sig "DNA_POW/core/signature"
-	tx "DNA_POW/core/transaction"
-	"DNA_POW/core/transaction/payload"
-	"DNA_POW/crypto"
-	. "DNA_POW/errors"
+	. "ELA/common"
+	"ELA/common/config"
+	"ELA/common/log"
+	"ELA/common/serialization"
+	"ELA/core/asset"
+	"ELA/core/contract/program"
+	sig "ELA/core/signature"
+	tx "ELA/core/transaction"
+	"ELA/core/transaction/payload"
+	"ELA/crypto"
+	. "ELA/errors"
 )
 
 const (

@@ -1,7 +1,7 @@
 package node
 
 import (
-	. "DNA_POW/net/protocol"
+	. "ELA/net/protocol"
 	"fmt"
 	"sync"
 )

@@ -1,8 +1,8 @@
 package node
 
 import (
-	"DNA_POW/common/log"
-	. "DNA_POW/net/protocol"
+	"ELA/common/log"
+	. "ELA/net/protocol"
 	"math/rand"
 	"sync"
 	"time"

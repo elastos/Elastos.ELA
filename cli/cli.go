@@ -4,9 +4,9 @@ import (
 	"math/rand"
 	"time"
 
-	"DNA_POW/common/config"
-	"DNA_POW/common/log"
-	"DNA_POW/crypto"
+	"ELA/common/config"
+	"ELA/common/log"
+	"ELA/crypto"
 )
 
 func init() {

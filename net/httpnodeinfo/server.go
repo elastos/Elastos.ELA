@@ -1,9 +1,9 @@
 package httpnodeinfo
 
 import (
-	"DNA_POW/common/config"
-	"DNA_POW/core/ledger"
-	. "DNA_POW/net/protocol"
+	"ELA/common/config"
+	"ELA/core/ledger"
+	. "ELA/net/protocol"
 	"fmt"
 	"html/template"
 	"net/http"

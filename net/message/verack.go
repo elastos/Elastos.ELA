@@ -1,8 +1,8 @@
 package message
 
 import (
-	"DNA_POW/common/log"
-	. "DNA_POW/net/protocol"
+	"ELA/common/log"
+	. "ELA/net/protocol"
 	"encoding/hex"
 	"errors"
 	"strconv"

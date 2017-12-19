@@ -1,11 +1,11 @@
 package common
 
 import (
-	. "DNA_POW/common"
-	tx "DNA_POW/core/transaction"
-	. "DNA_POW/errors"
-	. "DNA_POW/net/httpjsonrpc"
-	Err "DNA_POW/net/httprestful/error"
+	. "ELA/common"
+	tx "ELA/core/transaction"
+	. "ELA/errors"
+	. "ELA/net/httpjsonrpc"
+	Err "ELA/net/httprestful/error"
 	"bytes"
 	"encoding/json"
 	"time"

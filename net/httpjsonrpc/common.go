@@ -53,9 +53,10 @@ type BalanceTxInputInfo struct {
 }
 
 type TxoutputInfo struct {
-	AssetID string
-	Value   string
-	Address string
+	AssetID    string
+	Value      string
+	Address    string
+	OutputLock uint32
 }
 
 type TxoutputMap struct {

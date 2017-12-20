@@ -77,6 +77,7 @@ func TransArryByteToHexString(ptx *tx.Transaction) *Transactions {
 		trans.Outputs[n].Value = v.Value.String()
 		address, _ := v.ProgramHash.ToAddress()
 		trans.Outputs[n].Address = address
+		trans.Outputs[n].OutputLock = v.OutputLock
 		n++
 	}
 
@@ -98,6 +99,7 @@ func TransArryByteToHexString(ptx *tx.Transaction) *Transactions {
 			trans.AssetOutputs[n].Txout[m].Value = v[m].Value.String()
 			address, _ := v[m].ProgramHash.ToAddress()
 			trans.AssetOutputs[n].Txout[m].Address = address
+			trans.AssetOutputs[n].Txout[m].OutputLock = v[m].OutputLock
 		}
 		n += 1
 	}
@@ -585,7 +587,8 @@ func sendTransaction(params []interface{}) map[string]interface{} {
 	if len(params) < 4 {
 		return ElaRpcNil
 	}
-	var asset, address, value, fee string
+
+	var asset, address, value, fee, utxolock string
 	switch params[0].(type) {
 	case string:
 		asset = params[0].(string)
@@ -610,6 +613,12 @@ func sendTransaction(params []interface{}) map[string]interface{} {
 	default:
 		return ElaRpcInvalidParameter
 	}
+	switch params[4].(type) {
+	case string:
+		utxolock = params[4].(string)
+	default:
+		return DnaRpcInvalidParameter
+	}
 	if Wallet == nil {
 		return ElaRpc("error : wallet is not opened")
 	}
@@ -626,7 +635,7 @@ func sendTransaction(params []interface{}) map[string]interface{} {
 	if err := assetID.Deserialize(bytes.NewReader(tmp)); err != nil {
 		return ElaRpc("error: invalid asset hash")
 	}
-	txn, err := sdk.MakeTransferTransaction(Wallet, assetID, fee, batchOut)
+	txn, err := sdk.MakeTransferTransaction(Wallet, assetID, fee, utxolock, batchOut)
 	if err != nil {
 		return ElaRpc("error: " + err.Error())
 	}

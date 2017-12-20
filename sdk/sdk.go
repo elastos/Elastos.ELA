@@ -9,6 +9,7 @@ import (
 	"ELA/core/transaction"
 	"errors"
 	"fmt"
+	"math"
 	"math/rand"
 	"sort"
 	"strconv"
@@ -55,13 +56,16 @@ func sortAvailableCoinsByValue(coins map[*transaction.UTXOTxInput]*account.Coin,
 	return coinList
 }
 
-func MakeTransferTransaction(wallet account.Client, assetID Uint256, fee string, batchOut ...BatchOut) (*transaction.Transaction, error) {
+func MakeTransferTransaction(wallet account.Client, assetID Uint256, fee string, lock string, batchOut ...BatchOut) (*transaction.Transaction, error) {
 	// get main account which is used to receive changes
 	mainAccount, err := wallet.GetDefaultAccount()
 	if err != nil {
 		return nil, err
 	}
-
+	utxolock, err := strconv.ParseUint(lock, 10, 32)
+	if err != nil {
+		return nil, err
+	}
 	// construct transaction outputs
 	var expected Fixed64
 	input := []*transaction.UTXOTxInput{}
@@ -84,6 +88,7 @@ func MakeTransferTransaction(wallet account.Client, assetID Uint256, fee string,
 		tmp := &transaction.TxOutput{
 			AssetID:     assetID,
 			Value:       outputValue,
+			OutputLock:  uint32(utxolock),
 			ProgramHash: address,
 		}
 		output = append(output, tmp)
@@ -94,11 +99,20 @@ func MakeTransferTransaction(wallet account.Client, assetID Uint256, fee string,
 	sorted := sortAvailableCoinsByValue(coins, account.SingleSign)
 	for _, coinItem := range sorted {
 		if coinItem.coin.Output.AssetID == assetID {
+			if coinItem.coin.Output.OutputLock > 0 {
+				//can not unlock
+				if ledger.DefaultLedger.Blockchain.GetBestHeight() < coinItem.coin.Output.OutputLock {
+					continue
+				}
+				//spend locked utxo,change the  input Sequence
+				coinItem.input.Sequence = math.MaxUint32 - 1
+			}
 			input = append(input, coinItem.input)
 			if coinItem.coin.Output.Value > expected {
 				changes := &transaction.TxOutput{
 					AssetID:     assetID,
 					Value:       coinItem.coin.Output.Value - expected,
+					OutputLock:  0,
 					ProgramHash: mainAccount.ProgramHash,
 				}
 				// if any, the changes output of transaction will be the last one
@@ -122,6 +136,8 @@ func MakeTransferTransaction(wallet account.Client, assetID Uint256, fee string,
 	if err != nil {
 		return nil, err
 	}
+	txn.LockTime = ledger.DefaultLedger.Blockchain.GetBestHeight()
+
 	txAttr := transaction.NewTxAttribute(transaction.Nonce, []byte(strconv.FormatInt(rand.Int63(), 10)))
 	txn.Attributes = make([]*transaction.TxAttribute, 0)
 	txn.Attributes = append(txn.Attributes, &txAttr)

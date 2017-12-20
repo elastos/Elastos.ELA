@@ -17,6 +17,7 @@ import (
 
 // CheckTransactionSanity verifys received single transaction
 func CheckTransactionSanity(txn *tx.Transaction) ErrCode {
+
 	if err := CheckTransactionSize(txn); err != nil {
 		log.Warn("[CheckTransactionSize],", err)
 		return ErrTransactionSize
@@ -30,6 +31,11 @@ func CheckTransactionSanity(txn *tx.Transaction) ErrCode {
 	if err := CheckTransactionOutput(txn); err != nil {
 		log.Warn("[CheckTransactionOutput],", err)
 		return ErrInvalidOutput
+	}
+
+	if err := CheckTransactionUTXOLock(txn); err != nil {
+		log.Warn("[CheckTransactionUTXOLock],", err)
+		return ErrUTXOLocked
 	}
 
 	if err := CheckAssetPrecision(txn); err != nil {
@@ -175,6 +181,33 @@ func CheckTransactionOutput(txn *tx.Transaction) error {
 	return nil
 }
 
+func CheckTransactionUTXOLock(txn *tx.Transaction) error {
+	if txn.IsCoinBaseTx() {
+		return nil
+	}
+	if len(txn.UTXOInputs) <= 0 {
+		return errors.New("Transaction has no inputs")
+	}
+	referenceWithUTXO_Output, err := txn.GetReference()
+	if err != nil {
+		return errors.New(fmt.Sprintf("GetReference failed: %x", txn.Hash()))
+	}
+	for input, output := range referenceWithUTXO_Output {
+
+		if output.OutputLock == 0 {
+			//check next utxo
+			continue
+		}
+		if input.Sequence != math.MaxUint32-1 {
+			return errors.New("Invalid input sequence")
+		}
+		if txn.LockTime < output.OutputLock {
+			return errors.New("UTXO output locked")
+		}
+	}
+	return nil
+}
+
 func CheckTransactionSize(txn *tx.Transaction) error {
 	size := txn.GetSize()
 	if size <= 0 || size > MaxBlockSize {
@@ -226,8 +259,8 @@ func CheckTransactionBalance(Tx *tx.Transaction) error {
 	for k, v := range results {
 
 		if v < common.Fixed64(config.Parameters.PowConfiguration.MinTxFee) {
-			log.Debug(fmt.Sprintf("AssetID %x in Transfer transactions %x , input <= output .\n", k, Tx.Hash()))
-			return errors.New(fmt.Sprintf("AssetID %x in Transfer transactions %x , input <= output .\n", k, Tx.Hash()))
+			log.Debug(fmt.Sprintf("AssetID %x in Transfer transactions %x , input < output .\n", k, Tx.Hash()))
+			return errors.New(fmt.Sprintf("AssetID %x in Transfer transactions %x , input < output .\n", k, Tx.Hash()))
 		}
 	}
 	return nil

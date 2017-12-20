@@ -31,6 +31,7 @@ const (
 	ErrUnknownReferedTxn    ErrCode = 45016
 	ErrInvalidReferedTxn    ErrCode = 45017
 	ErrIneffectiveCoinbase  ErrCode = 45018
+	ErrUTXOLocked           ErrCode = 45019
 )
 
 func (err ErrCode) Error() string {
@@ -75,6 +76,8 @@ func (err ErrCode) Error() string {
 		return "invalid referenced transaction"
 	case ErrIneffectiveCoinbase:
 		return "ineffective coinbase"
+	case ErrUTXOLocked:
+		return "unspend utxo locked"
 	}
 
 	return fmt.Sprintf("Unknown error? Error code = %d", err)

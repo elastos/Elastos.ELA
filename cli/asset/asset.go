@@ -39,7 +39,12 @@ func assetAction(c *cli.Context) error {
 		fmt.Println("transaction fee is required with [--fee]")
 		return nil
 	}
-	resp, err := httpjsonrpc.Call(Address(), "sendtransaction", 0, []interface{}{asset, address, value,fee})
+
+	utxolock := c.String("utxolock")
+	if utxolock == "" {
+		utxolock = "0"
+	}
+	resp, err := httpjsonrpc.Call(Address(), "sendtoaddress", 0, []interface{}{asset, address, value, fee, utxolock})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return err
@@ -76,6 +81,11 @@ func NewCommand() *cli.Command {
 			cli.StringFlag{
 				Name:  "fee, f",
 				Usage: "transaction fee",
+				Value: "",
+			},
+			cli.StringFlag{
+				Name:  "utxolock",
+				Usage: "utxo lock height",
 				Value: "",
 			},
 		},

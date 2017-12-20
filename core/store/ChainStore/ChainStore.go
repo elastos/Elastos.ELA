@@ -69,17 +69,7 @@ type ChainStore struct {
 
 func NewLedgerStore() (ILedgerStore, error) {
 	// TODO: read config file decide which db to use.
-	cs, err := NewChainStore("Chain")
-	if err != nil {
-		return nil, err
-	}
-
-	return cs, nil
-}
-
-func NewChainStore(file string) (*ChainStore, error) {
-
-	st, err := NewStore(file)
+	st, err := NewLevelDBStore("Chain")
 	if err != nil {
 		return nil, err
 	}
@@ -99,12 +89,6 @@ func NewChainStore(file string) (*ChainStore, error) {
 	go chain.loop()
 
 	return chain, nil
-}
-
-func NewStore(file string) (IStore, error) {
-	ldbs, err := NewLevelDBStore(file)
-
-	return ldbs, err
 }
 
 func (self *ChainStore) Close() {

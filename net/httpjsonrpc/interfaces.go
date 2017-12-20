@@ -617,7 +617,7 @@ func sendTransaction(params []interface{}) map[string]interface{} {
 	case string:
 		utxolock = params[4].(string)
 	default:
-		return DnaRpcInvalidParameter
+		return ElaRpcInvalidParameter
 	}
 	if Wallet == nil {
 		return ElaRpc("error : wallet is not opened")
@@ -651,7 +651,7 @@ func sendBatchOutTransaction(params []interface{}) map[string]interface{} {
 	if len(params) < 3 {
 		return ElaRpcNil
 	}
-	var asset, fee string
+	var asset, fee, utxolock string
 	var batchOutArray []interface{}
 	switch params[0].(type) {
 	case string:
@@ -668,6 +668,12 @@ func sendBatchOutTransaction(params []interface{}) map[string]interface{} {
 	switch params[2].(type) {
 	case string:
 		fee = params[2].(string)
+	default:
+		return ElaRpcInvalidParameter
+	}
+	switch params[3].(type) {
+	case string:
+		utxolock = params[3].(string)
 	default:
 		return ElaRpcInvalidParameter
 	}
@@ -693,7 +699,7 @@ func sendBatchOutTransaction(params []interface{}) map[string]interface{} {
 	if err := assetID.Deserialize(bytes.NewReader(tmp)); err != nil {
 		return ElaRpc("error: invalid asset hash")
 	}
-	txn, err := sdk.MakeTransferTransaction(Wallet, assetID, fee, batchOut...)
+	txn, err := sdk.MakeTransferTransaction(Wallet, assetID, fee, utxolock, batchOut...)
 	if err != nil {
 		return ElaRpc("error: " + err.Error())
 	}

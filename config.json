@@ -25,7 +25,7 @@
     "ConsensusType": "pow",
     "PowConfiguration":{
     "Switch": "enable",
-    "PayToAddr": "EWFW3PiKwENRC7QoygqiqKrR1aWmn9d3mV",
+    "PayToAddr": "8cmd3bWRMYEJa9eFgVcL3Gq7ywf4wUjG6P",
     "MiningServerIP": "127.0.0.1",
     "MiningServerPort": 5555,
     "MiningSelfPort": 20339,

@@ -9,8 +9,7 @@ import (
 )
 
 const (
-	//FoundationAddress = "EZkAEwCzR5x6vup3MK5ozLyiUpafkrnkQC"
-	FoundationAddress = "8aU1xUNftwZkmkULGiJvXtHD7TSgwZ8LST" //预演使用的多签地址
+	FoundationAddress = "8cmd3bWRMYEJa9eFgVcL3Gq7ywf4wUjG6P"
 )
 
 var DefaultLedger *Ledger

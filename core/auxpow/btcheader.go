@@ -9,7 +9,7 @@ import (
 )
 
 type BtcBlockHeader struct {
-	Version    int32
+	Version    uint32
 	PrevBlock  Uint256
 	MerkleRoot Uint256
 	Timestamp  uint32
@@ -33,7 +33,7 @@ func (bh *BtcBlockHeader) Deserialize(r io.Reader) error {
 	if err != nil {
 		return err
 	}
-	bh.Version = int32(temp)
+	bh.Version = uint32(temp)
 
 	//PrevBlockHash
 	preBlock := new(Uint256)

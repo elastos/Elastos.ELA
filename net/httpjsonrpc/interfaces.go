@@ -584,10 +584,11 @@ func discreteCpuMining(params []interface{}) map[string]interface{} {
 }
 
 func sendTransaction(params []interface{}) map[string]interface{} {
+	log.Debug(">>>>> Enter send transaction")
 	if len(params) < 4 {
 		return ElaRpcNil
 	}
-
+	log.Debug(">>>>> Get parameters")
 	var asset, address, value, fee, utxolock string
 	switch params[0].(type) {
 	case string:
@@ -619,9 +620,11 @@ func sendTransaction(params []interface{}) map[string]interface{} {
 	default:
 		return ElaRpcInvalidParameter
 	}
+	log.Debug(">>>>> Parameters OK!")
 	if Wallet == nil {
 		return ElaRpc("error : wallet is not opened")
 	}
+	log.Debug(">>>>> Wallet OK!")
 
 	batchOut := sdk.BatchOut{
 		Address: address,
@@ -631,18 +634,23 @@ func sendTransaction(params []interface{}) map[string]interface{} {
 	if err != nil {
 		return ElaRpc("error: invalid asset ID")
 	}
+	log.Debug(">>>>> AssetID OK!")
 	var assetID Uint256
 	if err := assetID.Deserialize(bytes.NewReader(tmp)); err != nil {
 		return ElaRpc("error: invalid asset hash")
 	}
+	log.Debug(">>>>> Start make transaction")
 	txn, err := sdk.MakeTransferTransaction(Wallet, assetID, fee, utxolock, batchOut)
 	if err != nil {
 		return ElaRpc("error: " + err.Error())
 	}
+	log.Debug(">>>>> Make transaction OK!")
 
 	if errCode := VerifyAndSendTx(txn); errCode != ErrNoError {
 		return ElaRpc("error: " + errCode.Error())
 	}
+	log.Debug(">>>>> Return transaction hash")
+
 	txHash := txn.Hash()
 	return ElaRpc(BytesToHexString(txHash.ToArrayReverse()))
 }

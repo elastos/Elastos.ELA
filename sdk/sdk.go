@@ -40,6 +40,7 @@ func (sc sortedCoins) Less(i, j int) bool {
 }
 
 func sortAvailableCoinsByValue(coins map[*transaction.UTXOTxInput]*account.Coin, addrtype account.AddressType) sortedCoins {
+	log.Debug(">>>>> Enter sort coin")
 	var coinList sortedCoins
 	for in, c := range coins {
 		if c.Height <= ledger.DefaultLedger.Blockchain.GetBestHeight() {
@@ -53,19 +54,23 @@ func sortAvailableCoinsByValue(coins map[*transaction.UTXOTxInput]*account.Coin,
 		}
 	}
 	sort.Sort(coinList)
+	log.Debug(">>>>> Return sort coin")
 	return coinList
 }
 
 func MakeTransferTransaction(wallet account.Client, assetID Uint256, fee string, lock string, batchOut ...BatchOut) (*transaction.Transaction, error) {
+	log.Debug(">>>>> Enter make transfer transaction")
 	// get main account which is used to receive changes
 	mainAccount, err := wallet.GetDefaultAccount()
 	if err != nil {
 		return nil, err
 	}
+	log.Debug(">>>>> Get main account OK!")
 	utxolock, err := strconv.ParseUint(lock, 10, 32)
 	if err != nil {
 		return nil, err
 	}
+	log.Debug(">>>>> UTXO lock OK!")
 	// construct transaction outputs
 	var expected Fixed64
 	input := []*transaction.UTXOTxInput{}
@@ -74,17 +79,21 @@ func MakeTransferTransaction(wallet account.Client, assetID Uint256, fee string,
 	if err != nil || txnfee <= 0 {
 		return nil, errors.New("invalid transation fee")
 	}
+	log.Debug(">>>>> Transaction fee OK!")
 	expected += txnfee
-	for _, o := range batchOut {
+	for i, o := range batchOut {
+		log.Debug(">>>>> Enter batck out loop:", i)
 		outputValue, err := StringToFixed64(o.Value)
 		if err != nil {
 			return nil, err
 		}
+		log.Debug(">>>>> Batch out value OK!")
 		expected += outputValue
 		address, err := ToScriptHash(o.Address)
 		if err != nil {
 			return nil, errors.New("invalid address")
 		}
+		log.Debug(">>>>> Batch out address OK!")
 		tmp := &transaction.TxOutput{
 			AssetID:     assetID,
 			Value:       outputValue,
@@ -92,12 +101,16 @@ func MakeTransferTransaction(wallet account.Client, assetID Uint256, fee string,
 			ProgramHash: address,
 		}
 		output = append(output, tmp)
+		log.Debug(">>>>> Create output OK!")
 	}
 
 	// construct transaction inputs and changes
 	coins := wallet.GetCoins()
+	log.Debug(">>>>> Wallet coins:", coins)
 	sorted := sortAvailableCoinsByValue(coins, account.SingleSign)
-	for _, coinItem := range sorted {
+	log.Debug(">>>>> Wallet coins sorted:", sorted)
+	for i, coinItem := range sorted {
+		log.Debug(">>>>> Enter coin item loop:", i)
 		if coinItem.coin.Output.AssetID == assetID {
 			if coinItem.coin.Output.OutputLock > 0 {
 				//can not unlock
@@ -131,11 +144,13 @@ func MakeTransferTransaction(wallet account.Client, assetID Uint256, fee string,
 		return nil, errors.New("available token is not enough")
 	}
 
+	log.Debug(">>>>> Start new transfer asset transaction!")
 	// construct transaction
 	txn, err := transaction.NewTransferAssetTransaction(input, output)
 	if err != nil {
 		return nil, err
 	}
+	log.Debug(">>>>> Create transaction content!")
 	txn.LockTime = ledger.DefaultLedger.Blockchain.GetBestHeight()
 
 	txAttr := transaction.NewTxAttribute(transaction.Nonce, []byte(strconv.FormatInt(rand.Int63(), 10)))
@@ -143,10 +158,12 @@ func MakeTransferTransaction(wallet account.Client, assetID Uint256, fee string,
 	txn.Attributes = append(txn.Attributes, &txAttr)
 
 	// sign transaction contract
+	log.Debug(">>>>> Add contract context!")
 	ctx := contract.NewContractContext(txn)
 	wallet.Sign(ctx)
 	txn.SetPrograms(ctx.GetPrograms())
 
+	log.Debug(">>>>> Return transaction!")
 	return txn, nil
 }
 

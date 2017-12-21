@@ -743,7 +743,9 @@ func GetClient() Client {
 }
 
 func (client *ClientImpl) GetCoins() map[*transaction.UTXOTxInput]*Coin {
+	log.Debug(">>>>> Enter get coins")
 	client.mu.Lock()
+	log.Debug(">>>>> After lock get coins")
 	defer client.mu.Unlock()
 
 	return client.coins

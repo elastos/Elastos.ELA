@@ -44,7 +44,7 @@ func assetAction(c *cli.Context) error {
 	if utxolock == "" {
 		utxolock = "0"
 	}
-	resp, err := httpjsonrpc.Call(Address(), "sendtoaddress", 0, []interface{}{asset, address, value, fee, utxolock})
+	resp, err := httpjsonrpc.Call(Address(), "sendtransaction", 0, []interface{}{asset, address, value, fee, utxolock})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return err

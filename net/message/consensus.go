@@ -212,7 +212,7 @@ func (cp *ConsensusPayload) DeserializeUnsigned(r io.Reader) error {
 		return errors.New("consensus item Data Deserialize failed.")
 	}
 	pk := new(crypto.PubKey)
-	err = pk.DeSerialize(r)
+	err = pk.Deserialize(r)
 	if err != nil {
 		log.Warn("consensus item Owner deserialize failed.")
 		return errors.New("consensus item Owner deserialize failed.")

@@ -135,7 +135,7 @@ func (msg *version) Deserialization(p []byte) error {
 	}
 
 	pk := new(crypto.PubKey)
-	err = pk.DeSerialize(buf)
+	err = pk.Deserialize(buf)
 	if err != nil {
 		return errors.New("Parse pubkey Deserialize failed.")
 	}

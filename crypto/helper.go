@@ -4,23 +4,22 @@ import (
 	"errors"
 	"crypto/aes"
 	"crypto/cipher"
-	"bytes"
 	"crypto/sha256"
 	. "Elastos.ELA/common"
 )
 
-func ToAesKey( pwd []byte ) []byte {
+func ToAesKey(pwd []byte) []byte {
 	pwdhash := sha256.Sum256(pwd)
 	pwdhash2 := sha256.Sum256(pwdhash[:])
 
 	// Fixme clean the password buffer
 	// ClearBytes(pwd,len(pwd))
-	ClearBytes(pwdhash[:],32)
+	ClearBytes(pwdhash[:], 32)
 
 	return pwdhash2[:]
 }
 
-func AesEncrypt(plaintext []byte, key []byte, iv[]byte) ([]byte, error) {
+func AesEncrypt(plaintext []byte, key []byte, iv []byte) ([]byte, error) {
 	block, err := aes.NewCipher(key)
 	if err != nil {
 		return nil, errors.New("invalid decrypt key")
@@ -35,7 +34,7 @@ func AesEncrypt(plaintext []byte, key []byte, iv[]byte) ([]byte, error) {
 	return ciphertext, nil
 }
 
-func AesDecrypt(ciphertext []byte, key []byte, iv[]byte) ([]byte, error) {
+func AesDecrypt(ciphertext []byte, key []byte, iv []byte) ([]byte, error) {
 
 	block, err := aes.NewCipher(key)
 	if err != nil {
@@ -59,17 +58,4 @@ func AesDecrypt(ciphertext []byte, key []byte, iv[]byte) ([]byte, error) {
 	//plaintext = PKCS5UnPadding(plaintext)
 
 	return plaintext, nil
-}
-
-func PKCS5Padding(src []byte, blockSize int) []byte {
-	padding := blockSize - len(src)%blockSize
-	padtext := bytes.Repeat([]byte{byte(padding)}, padding)
-
-	return append(src, padtext...)
-}
-
-func PKCS5UnPadding(src []byte) []byte {
-	length := len(src)
-	unpadding := int(src[length-1])
-	return src[:(length - unpadding)]
 }

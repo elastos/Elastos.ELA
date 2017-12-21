@@ -10,7 +10,6 @@ import (
 
 func TestClient(t *testing.T) {
 	t.Log("created client start!")
-	crypto.SetAlg(crypto.P256R1)
 	dir := "./data/"
 	err := os.MkdirAll(dir, 0777)
 	if err != nil {

@@ -11,12 +11,11 @@ import (
 	. "Elastos.ELA/core/store/LevelDBStore"
 	tx "Elastos.ELA/core/transaction"
 	"Elastos.ELA/core/validation"
-	"Elastos.ELA/crypto"
 	"Elastos.ELA/events"
+
 	"bytes"
 	"container/list"
 	"errors"
-
 	"fmt"
 	"sort"
 	"sync"
@@ -555,51 +554,6 @@ func (bd *ChainStore) GetBlock(hash Uint256) (*Block, error) {
 	}
 
 	return b, nil
-}
-
-func (self *ChainStore) GetBookKeeperList() ([]*crypto.PubKey, []*crypto.PubKey, error) {
-	prefix := []byte{byte(SYS_CurrentBookKeeper)}
-	bkListValue, err_get := self.Get(prefix)
-	if err_get != nil {
-		return nil, nil, err_get
-	}
-
-	r := bytes.NewReader(bkListValue)
-
-	// first 1 bytes is length of list
-	currCount, err := serialization.ReadUint8(r)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	var currBookKeeper = make([]*crypto.PubKey, currCount)
-	for i := uint8(0); i < currCount; i++ {
-		bk := new(crypto.PubKey)
-		err := bk.DeSerialize(r)
-		if err != nil {
-			return nil, nil, err
-		}
-
-		currBookKeeper[i] = bk
-	}
-
-	nextCount, err := serialization.ReadUint8(r)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	var nextBookKeeper = make([]*crypto.PubKey, nextCount)
-	for i := uint8(0); i < nextCount; i++ {
-		bk := new(crypto.PubKey)
-		err := bk.DeSerialize(r)
-		if err != nil {
-			return nil, nil, err
-		}
-
-		nextBookKeeper[i] = bk
-	}
-
-	return currBookKeeper, nextBookKeeper, nil
 }
 
 func (db *ChainStore) rollback(b *Block) error {

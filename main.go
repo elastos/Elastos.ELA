@@ -12,7 +12,6 @@ import (
 	"Elastos.ELA/core/ledger"
 	"Elastos.ELA/core/store/ChainStore"
 	"Elastos.ELA/core/transaction"
-	"Elastos.ELA/crypto"
 	"Elastos.ELA/net"
 	"Elastos.ELA/net/httpjsonrpc"
 	"Elastos.ELA/net/httpnodeinfo"
@@ -84,7 +83,6 @@ func main() {
 	}
 	ledger.DefaultLedger.Store.InitLedgerStore(ledger.DefaultLedger)
 	transaction.TxStore = ledger.DefaultLedger.Store
-	crypto.SetAlg(config.Parameters.EncryptAlg)
 	_, err = ledger.NewBlockchainWithGenesisBlock()
 	if err != nil {
 		log.Fatal(err, "BlockChain generate failed")
@@ -103,7 +101,6 @@ func main() {
 		goto ERROR
 	}
 	httpjsonrpc.Wallet = client
-
 	log.Info("3. Start the P2P networks")
 	noder = net.StartProtocol(acct.PublicKey)
 	httpjsonrpc.RegistRpcNode(noder)

@@ -2,94 +2,84 @@ package crypto
 
 import (
 	"Elastos.ELA/common/serialization"
-	"Elastos.ELA/crypto/p256r1"
-	"Elastos.ELA/crypto/sm2"
-	"Elastos.ELA/crypto/util"
-	"crypto/sha256"
 	"errors"
 	"fmt"
 	"io"
 	"math/big"
-	"strings"
+	"crypto/ecdsa"
+	"crypto/rand"
+	"crypto/elliptic"
+	"crypto/sha256"
 )
 
 const (
-	P256R1 = 0
-	SM2    = 1
+	SIGNRLEN     = 32
+	SIGNATURELEN = 64
+	NEGBIGNUMLEN = 33
 )
 
-//It can be P256R1 or SM2
+type CryptoAlgSet struct {
+	EccParams elliptic.CurveParams
+	Curve     elliptic.Curve
+}
+
 var AlgChoice int
 
-var algSet util.CryptoAlgSet
+var algSet CryptoAlgSet
 
 type PubKey struct {
 	X, Y *big.Int
 }
 
 func init() {
-	AlgChoice = 0
-}
-
-func SetAlg(algChoice string) {
-	if strings.Compare("SM2", algChoice) == 0 {
-		AlgChoice = SM2
-		sm2.Init(&algSet)
-	} else {
-		AlgChoice = P256R1
-		p256r1.Init(&algSet)
-	}
-	return
+	algSet.Curve = elliptic.P256()
+	algSet.EccParams = *(algSet.Curve.Params())
 }
 
 func GenKeyPair() ([]byte, PubKey, error) {
+
+	privateKey, err := ecdsa.GenerateKey(algSet.Curve, rand.Reader)
+	if err != nil {
+		return nil, PubKey{}, errors.New("Generate key pair error")
+	}
+
 	mPubKey := new(PubKey)
-	var privateD []byte
-	var X *big.Int
-	var Y *big.Int
-	var err error
+	mPubKey.X = new(big.Int).Set(privateKey.PublicKey.X)
+	mPubKey.Y = new(big.Int).Set(privateKey.PublicKey.Y)
 
-	if SM2 == AlgChoice {
-		privateD, X, Y, err = sm2.GenKeyPair(&algSet)
-	} else {
-		privateD, X, Y, err = p256r1.GenKeyPair(&algSet)
-	}
-
-	if nil != err {
-		return nil, *mPubKey, err
-	}
-
-	mPubKey.X = new(big.Int).Set(X)
-	mPubKey.Y = new(big.Int).Set(Y)
-	return privateD, *mPubKey, nil
+	return privateKey.D.Bytes(), *mPubKey, nil
 }
 
-func Sign(privateKey []byte, data []byte) ([]byte, error) {
-	var r *big.Int
-	var s *big.Int
-	var err error
+func Sign(priKey []byte, data []byte) ([]byte, error) {
 
-	if SM2 == AlgChoice {
-		r, s, err = sm2.Sign(&algSet, privateKey, data)
-	} else {
-		r, s, err = p256r1.Sign(&algSet, privateKey, data)
-	}
+	digest := sha256.Sum256(data)
+
+	privateKey := new(ecdsa.PrivateKey)
+	privateKey.Curve = algSet.Curve
+	privateKey.D = big.NewInt(0)
+	privateKey.D.SetBytes(priKey)
+
+	r := big.NewInt(0)
+	s := big.NewInt(0)
+
+	r, s, err := ecdsa.Sign(rand.Reader, privateKey, digest[:])
 	if err != nil {
+		fmt.Printf("Sign error\n")
 		return nil, err
 	}
 
-	signature := make([]byte, util.SIGNATURELEN)
+	signature := make([]byte, SIGNATURELEN)
 
 	lenR := len(r.Bytes())
 	lenS := len(s.Bytes())
-	copy(signature[util.SIGNRLEN-lenR:], r.Bytes())
-	copy(signature[util.SIGNATURELEN-lenS:], s.Bytes())
+	copy(signature[SIGNRLEN-lenR:], r.Bytes())
+	copy(signature[SIGNATURELEN-lenS:], s.Bytes())
 	return signature, nil
 }
 
 func Verify(publicKey PubKey, data []byte, signature []byte) error {
 	len := len(signature)
-	if len != util.SIGNATURELEN {
+	if len != SIGNATURELEN {
 		fmt.Printf("Unknown signature length %d\n", len)
 		return errors.New("Unknown signature length")
 	}
@@ -97,10 +87,20 @@ func Verify(publicKey PubKey, data []byte, signature []byte) error {
 	r := new(big.Int).SetBytes(signature[:len/2])
 	s := new(big.Int).SetBytes(signature[len/2:])
 
-	if SM2 == AlgChoice {
-		return sm2.Verify(&algSet, publicKey.X, publicKey.Y, data, r, s)
+	digest := sha256.Sum256(data)
+
+	pub := new(ecdsa.PublicKey)
+	pub.Curve = algSet.Curve
+
+	pub.X = new(big.Int).Set(publicKey.X)
+	pub.Y = new(big.Int).Set(publicKey.Y)
+
+	if ecdsa.Verify(pub, digest[:], r, s) {
+		return nil
+	} else {
+		return errors.New("[Validation], Verify failed.")
 	}
-	return p256r1.Verify(&algSet, publicKey.X, publicKey.Y, data, r, s)
+
 }
 
 func (e *PubKey) Serialize(w io.Writer) error {
@@ -127,14 +127,14 @@ func (e *PubKey) Serialize(w io.Writer) error {
 	return nil
 }
 
-func (e *PubKey) DeSerialize(r io.Reader) error {
+func (e *PubKey) Deserialize(r io.Reader) error {
 	bufX, err := serialization.ReadVarBytes(r)
 	if err != nil {
 		return err
 	}
 	e.X = big.NewInt(0)
 	e.X = e.X.SetBytes(bufX)
-	if len(bufX) == util.NEGBIGNUMLEN {
+	if len(bufX) == NEGBIGNUMLEN {
 		e.X.Neg(e.X)
 	}
 	bufY, err := serialization.ReadVarBytes(r)
@@ -143,7 +143,7 @@ func (e *PubKey) DeSerialize(r io.Reader) error {
 	}
 	e.Y = big.NewInt(0)
 	e.Y = e.Y.SetBytes(bufY)
-	if len(bufY) == util.NEGBIGNUMLEN {
+	if len(bufY) == NEGBIGNUMLEN {
 		e.Y.Neg(e.Y)
 	}
 	return nil
@@ -161,13 +161,6 @@ func (p PubKeySlice) Less(i, j int) bool {
 }
 func (p PubKeySlice) Swap(i, j int) {
 	p[i], p[j] = p[j], p[i]
-}
-
-func Sha256(value []byte) []byte {
-	data := make([]byte, 32)
-	digest := sha256.Sum256(value)
-	copy(data, digest[0:32])
-	return data
 }
 
 func Equal(e1 *PubKey, e2 *PubKey) bool {

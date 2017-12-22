@@ -25,7 +25,7 @@
     "ConsensusType": "pow",
     "PowConfiguration":{
     "Switch": "enable",
-    "PayToAddr": "8cmd3bWRMYEJa9eFgVcL3Gq7ywf4wUjG6P",
+    "PayToAddr": "8VYXVxKKSAxkmRrfmGpQR2Kc66XhG6m3ta",
     "MiningServerIP": "127.0.0.1",
     "MiningServerPort": 5555,
     "MiningSelfPort": 20339,
@@ -36,7 +36,7 @@
     "CoMining":false,
     "AutoMining": false,
     "MinerInfo": "ELA",
-	"MinTxFee": 1000,
+	"MinTxFee": 100,
     "ActiveNet": "MainNet"
     }
   }

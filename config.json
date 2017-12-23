@@ -1,6 +1,6 @@
 ﻿{
   "Configuration": {
-    "Magic": 7630401,
+    "Magic": 1234567,
     "Version": 23,
     "SeedList": [
       ""
@@ -15,7 +15,7 @@
     "OauthServerUrl": "",
     "NodePort": 20338,
     "PrintLevel": 1,
-    "IsTLS": false,
+    "IsTLS": true,
     "CertPath": "./sample-cert.pem",
     "KeyPath": "./sample-cert-key.pem",
     "CAPath": "./sample-ca.pem",
@@ -25,13 +25,13 @@
     "ConsensusType": "pow",
     "PowConfiguration":{
     "Switch": "enable",
-    "PayToAddr": "8VYXVxKKSAxkmRrfmGpQR2Kc66XhG6m3ta",
+    "PayToAddr": "8ZNizBf4KhhPjeJRGpox6rPcHE5Np6tFx3",
     "MiningServerIP": "127.0.0.1",
     "MiningServerPort": 5555,
     "MiningSelfPort": 20339,
     "WalletVersion": 1,
     "ProtocolVersion":1,
-    "TestNet":true,
+    "TestNet":false,
     "Proxy":"tcp://*:8888",
     "CoMining":false,
     "AutoMining": false,

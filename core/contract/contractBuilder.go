@@ -1,11 +1,11 @@
 package contract
 
 import (
-	. "ELA/common"
-	pg "ELA/core/contract/program"
-	"ELA/crypto"
-	. "ELA/errors"
-	"ELA/vm"
+	. "Elastos.ELA/common"
+	pg "Elastos.ELA/core/contract/program"
+	"Elastos.ELA/crypto"
+	. "Elastos.ELA/errors"
+	"Elastos.ELA/vm"
 	"math/big"
 	"sort"
 )

@@ -1,7 +1,7 @@
 package elaapi
 
 import (
-	tx "ELA/core/transaction"
+	tx "Elastos.ELA/core/transaction"
 	"encoding/hex"
 
 	"fmt"

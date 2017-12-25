@@ -1,12 +1,12 @@
 package ledger
 
 import (
-	. "ELA/common"
-	"ELA/common/config"
-	"ELA/core/auxpow"
-	tx "ELA/core/transaction"
-	"ELA/crypto"
-	. "ELA/errors"
+	. "Elastos.ELA/common"
+	"Elastos.ELA/common/config"
+	"Elastos.ELA/core/auxpow"
+	tx "Elastos.ELA/core/transaction"
+	"Elastos.ELA/crypto"
+	. "Elastos.ELA/errors"
 
 	"errors"
 	"fmt"

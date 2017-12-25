@@ -1,8 +1,8 @@
 package program
 
 import (
-	"ELA/common/serialization"
-	. "ELA/errors"
+	"Elastos.ELA/common/serialization"
+	. "Elastos.ELA/errors"
 	"io"
 )
 

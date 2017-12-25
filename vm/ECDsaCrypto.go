@@ -1,9 +1,9 @@
 package vm
 
 import (
-	"ELA/crypto"
-	. "ELA/errors"
-	"ELA/common/log"
+	"Elastos.ELA/crypto"
+	. "Elastos.ELA/errors"
+	"Elastos.ELA/common/log"
 	"errors"
 )
 

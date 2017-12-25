@@ -1,9 +1,9 @@
 package common
 
 import (
-	. "ELA/common/config"
-	"ELA/common/log"
-	Err "ELA/net/httprestful/error"
+	. "Elastos.ELA/common/config"
+	"Elastos.ELA/common/log"
+	Err "Elastos.ELA/net/httprestful/error"
 	"bytes"
 	"encoding/json"
 	"io/ioutil"
@@ -11,7 +11,7 @@ import (
 	"net/http"
 	"regexp"
 	"time"
-	"ELA/errors"
+	"Elastos.ELA/errors"
 )
 
 var oauthClient = NewOauthClient()

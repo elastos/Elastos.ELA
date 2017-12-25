@@ -6,11 +6,11 @@ import (
 	"strconv"
 	"strings"
 
-	"ELA/crypto"
-	"ELA/account"
-	. "ELA/common"
-	. "ELA/cli/common"
-	"ELA/common/password"
+	"Elastos.ELA/crypto"
+	"Elastos.ELA/account"
+	. "Elastos.ELA/common"
+	. "Elastos.ELA/cli/common"
+	"Elastos.ELA/common/password"
 
 	"github.com/urfave/cli"
 )

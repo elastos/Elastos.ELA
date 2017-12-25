@@ -3,8 +3,8 @@ package account
 import (
 	"io"
 
-	"ELA/core/transaction"
-	"ELA/common/serialization"
+	"Elastos.ELA/core/transaction"
+	"Elastos.ELA/common/serialization"
 )
 type AddressType byte
 

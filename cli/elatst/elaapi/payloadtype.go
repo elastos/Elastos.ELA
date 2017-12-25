@@ -4,8 +4,8 @@ import (
 	"encoding/hex"
 	"fmt"
 
-	. "ELA/common"
-	"ELA/core/transaction/payload"
+	. "Elastos.ELA/common"
+	"Elastos.ELA/core/transaction/payload"
 
 	"github.com/yuin/gopher-lua"
 )

@@ -1,12 +1,12 @@
 package signature
 
 import (
-	"ELA/common"
-	"ELA/common/log"
-	"ELA/core/contract/program"
-	"ELA/crypto"
-	. "ELA/errors"
-	"ELA/vm/interfaces"
+	"Elastos.ELA/common"
+	"Elastos.ELA/common/log"
+	"Elastos.ELA/core/contract/program"
+	"Elastos.ELA/crypto"
+	. "Elastos.ELA/errors"
+	"Elastos.ELA/vm/interfaces"
 	"bytes"
 	"crypto/sha256"
 	"io"

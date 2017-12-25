@@ -1,7 +1,7 @@
 package common
 
 import (
-	. "ELA/errors"
+	. "Elastos.ELA/errors"
 	"bytes"
 	"crypto/sha256"
 	"encoding/binary"

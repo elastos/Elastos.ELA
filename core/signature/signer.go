@@ -1,7 +1,7 @@
 package signature
 
 import (
-	"ELA/crypto"
+	"Elastos.ELA/crypto"
 )
 
 //Signer is the abstract interface of user's information(Keys) for signing data.

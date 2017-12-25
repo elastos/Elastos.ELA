@@ -1,10 +1,10 @@
 package account
 
 import (
-	"ELA/common"
+	"Elastos.ELA/common"
 	"io"
 	"bytes"
-	"ELA/common/serialization"
+	"Elastos.ELA/common/serialization"
 )
 
 type AccountState struct {

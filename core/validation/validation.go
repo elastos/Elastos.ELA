@@ -1,12 +1,12 @@
 package validation
 
 import (
-	. "ELA/common"
-	sig "ELA/core/signature"
-	"ELA/crypto"
-	. "ELA/errors"
-	"ELA/vm"
-	"ELA/vm/interfaces"
+	. "Elastos.ELA/common"
+	sig "Elastos.ELA/core/signature"
+	"Elastos.ELA/crypto"
+	. "Elastos.ELA/errors"
+	"Elastos.ELA/vm"
+	"Elastos.ELA/vm/interfaces"
 	"errors"
 )
 

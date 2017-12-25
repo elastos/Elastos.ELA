@@ -5,9 +5,9 @@ import (
 	"os"
 	"time"
 
-	"ELA/account"
-	. "ELA/cli/common"
-	"ELA/common/password"
+	"Elastos.ELA/account"
+	. "Elastos.ELA/cli/common"
+	"Elastos.ELA/common/password"
 	"github.com/urfave/cli"
 )
 

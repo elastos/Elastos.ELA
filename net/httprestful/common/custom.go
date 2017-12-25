@@ -1,11 +1,11 @@
 package common
 
 import (
-	. "ELA/common"
-	tx "ELA/core/transaction"
-	. "ELA/errors"
-	. "ELA/net/httpjsonrpc"
-	Err "ELA/net/httprestful/error"
+	. "Elastos.ELA/common"
+	tx "Elastos.ELA/core/transaction"
+	. "Elastos.ELA/errors"
+	. "Elastos.ELA/net/httpjsonrpc"
+	Err "Elastos.ELA/net/httprestful/error"
 	"bytes"
 	"encoding/json"
 	"time"

@@ -1,8 +1,8 @@
 package httpjsonrpc
 
 import (
-	. "ELA/common/config"
-	"ELA/common/log"
+	. "Elastos.ELA/common/config"
+	"Elastos.ELA/common/log"
 	"net/http"
 	"strconv"
 )

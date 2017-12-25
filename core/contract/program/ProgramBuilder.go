@@ -1,8 +1,8 @@
 package program
 
 import (
-	. "ELA/common"
-	"ELA/vm"
+	. "Elastos.ELA/common"
+	"Elastos.ELA/vm"
 	"bytes"
 	"math/big"
 )

@@ -1,7 +1,7 @@
 package crypto
 
 import (
-	. "ELA/common"
+	. "Elastos.ELA/common"
 	"crypto/sha256"
 	"fmt"
 	"testing"

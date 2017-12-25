@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"testing"
 
-	. "ELA/common"
+	. "Elastos.ELA/common"
 )
 
 func Test_BtcTx(t *testing.T) {

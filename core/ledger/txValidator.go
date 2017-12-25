@@ -1,18 +1,18 @@
 package ledger
 
 import (
-	"ELA/common/config"
+	"Elastos.ELA/common/config"
 	"errors"
 	"fmt"
 	"math"
 
-	"ELA/common"
-	"ELA/common/log"
-	"ELA/core/asset"
-	tx "ELA/core/transaction"
-	"ELA/core/transaction/payload"
-	"ELA/core/validation"
-	. "ELA/errors"
+	"Elastos.ELA/common"
+	"Elastos.ELA/common/log"
+	"Elastos.ELA/core/asset"
+	tx "Elastos.ELA/core/transaction"
+	"Elastos.ELA/core/transaction/payload"
+	"Elastos.ELA/core/validation"
+	. "Elastos.ELA/errors"
 )
 
 // CheckTransactionSanity verifys received single transaction

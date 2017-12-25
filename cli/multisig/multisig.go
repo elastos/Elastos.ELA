@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"os"
 
-	"ELA/account"
-	. "ELA/cli/common"
-	"ELA/common"
-	"ELA/core/transaction"
-	"ELA/net/httpjsonrpc"
+	"Elastos.ELA/account"
+	. "Elastos.ELA/cli/common"
+	"Elastos.ELA/common"
+	"Elastos.ELA/core/transaction"
+	"Elastos.ELA/net/httpjsonrpc"
 
 	"github.com/urfave/cli"
 )

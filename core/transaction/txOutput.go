@@ -2,8 +2,8 @@ package transaction
 
 import (
 
-	"ELA/common"
-	"ELA/common/serialization"
+	"Elastos.ELA/common"
+	"Elastos.ELA/common/serialization"
 	"io"
 )
 

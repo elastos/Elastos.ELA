@@ -1,12 +1,12 @@
 package protocol
 
 import (
-	"ELA/common"
-	"ELA/core/ledger"
-	"ELA/core/transaction"
-	"ELA/crypto"
-	. "ELA/errors"
-	"ELA/events"
+	"Elastos.ELA/common"
+	"Elastos.ELA/core/ledger"
+	"Elastos.ELA/core/transaction"
+	"Elastos.ELA/crypto"
+	. "Elastos.ELA/errors"
+	"Elastos.ELA/events"
 	"bytes"
 	"encoding/binary"
 	"net"

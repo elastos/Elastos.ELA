@@ -7,8 +7,8 @@ import (
 	"os"
 	"strconv"
 
-	"ELA/common/config"
-	"ELA/common/password"
+	"Elastos.ELA/common/config"
+	"Elastos.ELA/common/password"
 
 	"github.com/urfave/cli"
 )

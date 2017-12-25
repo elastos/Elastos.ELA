@@ -1,7 +1,7 @@
 package consensus
 
 import (
-	"ELA/common/log"
+	"Elastos.ELA/common/log"
 	"fmt"
 	"time"
 )

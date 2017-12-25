@@ -1,14 +1,14 @@
 package main
 
 import (
-	"ELA/core/store/ChainStore"
-	"ELA/core/store/LevelDBStore"
+	"Elastos.ELA/core/store/ChainStore"
+	"Elastos.ELA/core/store/LevelDBStore"
 	"os"
 	"strconv"
 	"fmt"
 	"bytes"
-	"ELA/common/serialization"
-	"ELA/common"
+	"Elastos.ELA/common/serialization"
+	"Elastos.ELA/common"
 )
 
 func main() {

@@ -1,8 +1,8 @@
 package sm2
 
 import (
-	"ELA/crypto/sm3"
-	"ELA/crypto/util"
+	"Elastos.ELA/crypto/sm3"
+	"Elastos.ELA/crypto/util"
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/elliptic"

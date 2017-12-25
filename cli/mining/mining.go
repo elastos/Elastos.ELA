@@ -1,8 +1,8 @@
 package mining
 
 import (
-	. "ELA/cli/common"
-	"ELA/net/httpjsonrpc"
+	. "Elastos.ELA/cli/common"
+	"Elastos.ELA/net/httpjsonrpc"
 	"errors"
 
 	"github.com/urfave/cli"

@@ -1,16 +1,16 @@
 package httpwebsocket
 
 import (
-	. "ELA/common"
-	. "ELA/common/config"
-	"ELA/core/ledger"
-	"ELA/core/transaction"
-	"ELA/events"
-	. "ELA/net/httpjsonrpc"
-	"ELA/net/httprestful/common"
-	Err "ELA/net/httprestful/error"
-	"ELA/net/httpwebsocket/websocket"
-	. "ELA/net/protocol"
+	. "Elastos.ELA/common"
+	. "Elastos.ELA/common/config"
+	"Elastos.ELA/core/ledger"
+	"Elastos.ELA/core/transaction"
+	"Elastos.ELA/events"
+	. "Elastos.ELA/net/httpjsonrpc"
+	"Elastos.ELA/net/httprestful/common"
+	Err "Elastos.ELA/net/httprestful/error"
+	"Elastos.ELA/net/httpwebsocket/websocket"
+	. "Elastos.ELA/net/protocol"
 	"bytes"
 )
 

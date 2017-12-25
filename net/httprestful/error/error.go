@@ -1,6 +1,6 @@
 package error
 
-import . "ELA/errors"
+import . "Elastos.ELA/errors"
 
 const (
 	SUCCESS             ErrCode = 0

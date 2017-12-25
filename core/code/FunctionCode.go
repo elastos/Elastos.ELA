@@ -1,10 +1,10 @@
 package code
 
 import (
-	"ELA/common/log"
-	. "ELA/common"
-	. "ELA/core/contract"
-	"ELA/common/serialization"
+	"Elastos.ELA/common/log"
+	. "Elastos.ELA/common"
+	. "Elastos.ELA/core/contract"
+	"Elastos.ELA/common/serialization"
 	"fmt"
 	"io"
 )

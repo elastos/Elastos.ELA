@@ -6,7 +6,7 @@ import (
 	"errors"
 	"io"
 
-	. "ELA/errors"
+	. "Elastos.ELA/errors"
 )
 
 const UINT256SIZE int = 32

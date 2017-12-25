@@ -1,6 +1,6 @@
 package vm
 
-import "ELA/vm/utils"
+import "Elastos.ELA/vm/utils"
 
 type ExecutionContext struct {
 	Script             []byte

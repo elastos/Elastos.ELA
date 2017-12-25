@@ -10,11 +10,11 @@ import (
 	"os"
 	"sync"
 
-	. "ELA/common"
-	"ELA/common/serialization"
-	ct "ELA/core/contract"
-	"ELA/core/transaction"
-	. "ELA/errors"
+	. "Elastos.ELA/common"
+	"Elastos.ELA/common/serialization"
+	ct "Elastos.ELA/core/contract"
+	"Elastos.ELA/core/transaction"
+	. "Elastos.ELA/errors"
 )
 
 const (

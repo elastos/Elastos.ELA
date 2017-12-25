@@ -1,11 +1,11 @@
 package elaapi
 
 import (
-	"ELA/account"
-	"ELA/core/contract"
-	"ELA/core/signature"
-	tx "ELA/core/transaction"
-	"ELA/core/transaction/payload"
+	"Elastos.ELA/account"
+	"Elastos.ELA/core/contract"
+	"Elastos.ELA/core/signature"
+	tx "Elastos.ELA/core/transaction"
+	"Elastos.ELA/core/transaction/payload"
 	"bytes"
 	"encoding/hex"
 

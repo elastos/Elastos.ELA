@@ -1,11 +1,11 @@
 package restful
 
 import (
-	. "ELA/common/config"
-	"ELA/common/log"
-	. "ELA/net/httprestful/common"
-	Err "ELA/net/httprestful/error"
-	"ELA/net/httpwebsocket"
+	. "Elastos.ELA/common/config"
+	"Elastos.ELA/common/log"
+	. "Elastos.ELA/net/httprestful/common"
+	Err "Elastos.ELA/net/httprestful/error"
+	"Elastos.ELA/net/httpwebsocket"
 	"context"
 	"crypto/tls"
 	"encoding/json"
@@ -16,7 +16,7 @@ import (
 	"strings"
 	"sync"
 	"time"
-	"ELA/errors"
+	"Elastos.ELA/errors"
 )
 
 type handler func(map[string]interface{}) map[string]interface{}

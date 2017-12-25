@@ -1,9 +1,9 @@
 package transaction
 
 import (
-	"ELA/common"
-	"ELA/core/contract/program"
-	"ELA/core/transaction/payload"
+	"Elastos.ELA/common"
+	"Elastos.ELA/core/contract/program"
+	"Elastos.ELA/core/transaction/payload"
 )
 
 func NewCoinBaseTransaction(coinBasePayload *payload.CoinBase, currentHeight uint32) (*Transaction, error) {

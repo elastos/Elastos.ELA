@@ -1,8 +1,8 @@
 package elatst
 
 import (
-	. "ELA/cli/common"
-	"ELA/cli/elatst/elaapi"
+	. "Elastos.ELA/cli/common"
+	"Elastos.ELA/cli/elatst/elaapi"
 	"fmt"
 	"os"
 	"path/filepath"

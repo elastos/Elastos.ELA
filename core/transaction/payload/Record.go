@@ -1,8 +1,8 @@
 package payload
 
 import (
-	"ELA/common/serialization"
-	. "ELA/errors"
+	"Elastos.ELA/common/serialization"
+	. "Elastos.ELA/errors"
 	"errors"
 	"io"
 )

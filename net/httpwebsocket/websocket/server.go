@@ -1,11 +1,11 @@
 package websocket
 
 import (
-	. "ELA/common/config"
-	"ELA/common/log"
-	. "ELA/net/httprestful/common"
-	Err "ELA/net/httprestful/error"
-	. "ELA/net/httpwebsocket/session"
+	. "Elastos.ELA/common/config"
+	"Elastos.ELA/common/log"
+	. "Elastos.ELA/net/httprestful/common"
+	Err "Elastos.ELA/net/httprestful/error"
+	. "Elastos.ELA/net/httpwebsocket/session"
 	"context"
 	"crypto/tls"
 	"encoding/json"
@@ -17,7 +17,7 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
-	errors2 "ELA/errors"
+	errors2 "Elastos.ELA/errors"
 )
 
 type handler func(map[string]interface{}) map[string]interface{}

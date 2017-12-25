@@ -1,7 +1,7 @@
 package vm
 
 import (
-	"ELA/vm/errors"
+	"Elastos.ELA/vm/errors"
 	"io"
 	"time"
 )

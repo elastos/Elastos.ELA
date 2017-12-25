@@ -1,8 +1,8 @@
 package crypto
 
 import (
-	. "ELA/common"
-	. "ELA/errors"
+	. "Elastos.ELA/common"
+	. "Elastos.ELA/errors"
 	"bytes"
 	"crypto/sha256"
 	"errors"

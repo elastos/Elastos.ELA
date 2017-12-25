@@ -1,8 +1,8 @@
 package common
 
 import (
-	. "ELA/common/config"
-	Err "ELA/net/httprestful/error"
+	. "Elastos.ELA/common/config"
+	Err "Elastos.ELA/net/httprestful/error"
 	"bytes"
 	"encoding/json"
 	"io/ioutil"

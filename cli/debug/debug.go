@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 
-	. "ELA/cli/common"
-	"ELA/net/httpjsonrpc"
+	. "Elastos.ELA/cli/common"
+	"Elastos.ELA/net/httpjsonrpc"
 
 	"github.com/urfave/cli"
 )

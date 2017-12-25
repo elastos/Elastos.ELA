@@ -1,8 +1,8 @@
 package vm
 
 import (
-	"ELA/vm/interfaces"
-	"ELA/vm/utils"
+	"Elastos.ELA/vm/interfaces"
+	"Elastos.ELA/vm/utils"
 	"io"
 	_ "math/big"
 	_ "sort"

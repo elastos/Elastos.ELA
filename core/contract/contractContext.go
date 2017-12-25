@@ -1,12 +1,12 @@
 package contract
 
 import (
-	. "ELA/common"
-	"ELA/common/log"
-	pg "ELA/core/contract/program"
-	sig "ELA/core/signature"
-	"ELA/crypto"
-	_ "ELA/errors"
+	. "Elastos.ELA/common"
+	"Elastos.ELA/common/log"
+	pg "Elastos.ELA/core/contract/program"
+	sig "Elastos.ELA/core/signature"
+	"Elastos.ELA/crypto"
+	_ "Elastos.ELA/errors"
 	"errors"
 	"math/big"
 	"sort"

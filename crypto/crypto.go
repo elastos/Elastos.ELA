@@ -1,10 +1,10 @@
 package crypto
 
 import (
-	"ELA/common/serialization"
-	"ELA/crypto/p256r1"
-	"ELA/crypto/sm2"
-	"ELA/crypto/util"
+	"Elastos.ELA/common/serialization"
+	"Elastos.ELA/crypto/p256r1"
+	"Elastos.ELA/crypto/sm2"
+	"Elastos.ELA/crypto/util"
 	"crypto/sha256"
 	"errors"
 	"fmt"

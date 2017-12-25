@@ -1,9 +1,9 @@
 package payload
 
 import (
-	"ELA/common"
-	"ELA/core/asset"
-	. "ELA/errors"
+	"Elastos.ELA/common"
+	"Elastos.ELA/core/asset"
+	. "Elastos.ELA/errors"
 	"io"
 )
 

@@ -1,7 +1,7 @@
 package node
 
 import (
-	"ELA/events"
+	"Elastos.ELA/events"
 	"fmt"
 )
 

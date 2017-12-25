@@ -1,7 +1,7 @@
 package crypto
 
 import (
-	. "ELA/errors"
+	. "Elastos.ELA/errors"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"

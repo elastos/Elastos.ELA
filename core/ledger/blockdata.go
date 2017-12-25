@@ -1,12 +1,12 @@
 package ledger
 
 import (
-	. "ELA/common"
-	"ELA/common/serialization"
-	"ELA/core/auxpow"
-	"ELA/core/contract/program"
-	sig "ELA/core/signature"
-	. "ELA/errors"
+	. "Elastos.ELA/common"
+	"Elastos.ELA/common/serialization"
+	"Elastos.ELA/core/auxpow"
+	"Elastos.ELA/core/contract/program"
+	sig "Elastos.ELA/core/signature"
+	. "Elastos.ELA/errors"
 	"crypto/sha256"
 	"errors"
 	"io"

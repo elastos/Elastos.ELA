@@ -1,10 +1,10 @@
 package httpjsonrpc
 
 import (
-	. "ELA/common"
-	"ELA/core/asset"
-	. "ELA/core/transaction"
-	"ELA/core/transaction/payload"
+	. "Elastos.ELA/common"
+	"Elastos.ELA/core/asset"
+	. "Elastos.ELA/core/transaction"
+	"Elastos.ELA/core/transaction/payload"
 )
 
 type PayloadInfo interface{}

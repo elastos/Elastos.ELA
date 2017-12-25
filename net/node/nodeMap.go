@@ -1,7 +1,7 @@
 package node
 
 import (
-	. "ELA/net/protocol"
+	. "Elastos.ELA/net/protocol"
 	"fmt"
 	"sync"
 )

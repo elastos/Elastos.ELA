@@ -1,7 +1,7 @@
 package util
 
 import (
-	"ELA/crypto/sm3"
+	"Elastos.ELA/crypto/sm3"
 	"crypto/elliptic"
 	"crypto/hmac"
 	"crypto/rand"

@@ -1,8 +1,8 @@
 package account
 
 import (
-	. "ELA/common"
-	ct "ELA/core/contract"
+	. "Elastos.ELA/common"
+	ct "Elastos.ELA/core/contract"
 )
 
 type IClientStore interface {

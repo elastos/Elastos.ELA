@@ -1,11 +1,11 @@
 package node
 
 import (
-	. "ELA/common/config"
-	"ELA/common/log"
-	"ELA/events"
-	msg "ELA/net/message"
-	. "ELA/net/protocol"
+	. "Elastos.ELA/common/config"
+	"Elastos.ELA/common/log"
+	"Elastos.ELA/events"
+	msg "Elastos.ELA/net/message"
+	. "Elastos.ELA/net/protocol"
 	"crypto/tls"
 	"crypto/x509"
 	"errors"

@@ -1,13 +1,13 @@
 package transaction
 
 import (
-	. "ELA/common"
-	"ELA/common/log"
-	"ELA/common/serialization"
-	"ELA/core/contract/program"
-	sig "ELA/core/signature"
-	"ELA/core/transaction/payload"
-	. "ELA/errors"
+	. "Elastos.ELA/common"
+	"Elastos.ELA/common/log"
+	"Elastos.ELA/common/serialization"
+	"Elastos.ELA/core/contract/program"
+	sig "Elastos.ELA/core/signature"
+	"Elastos.ELA/core/transaction/payload"
+	. "Elastos.ELA/errors"
 	"bytes"
 	"crypto/sha256"
 	"errors"

@@ -5,10 +5,10 @@ import (
 	"errors"
 	"io"
 
-	. "ELA/common"
-	"ELA/common/serialization"
-	. "ELA/errors"
-	"ELA/vm"
+	. "Elastos.ELA/common"
+	"Elastos.ELA/common/serialization"
+	. "Elastos.ELA/errors"
+	"Elastos.ELA/vm"
 )
 
 //Contract address is the hash of contract program .

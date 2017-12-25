@@ -1,7 +1,7 @@
 package elaapi
 
 import (
-	"ELA/account"
+	"Elastos.ELA/account"
 	"encoding/hex"
 	"fmt"
 

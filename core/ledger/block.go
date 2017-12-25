@@ -7,17 +7,17 @@ import (
 	"math/rand"
 	"time"
 
-	. "ELA/common"
-	"ELA/common/config"
-	"ELA/common/log"
-	"ELA/common/serialization"
-	"ELA/core/asset"
-	"ELA/core/contract/program"
-	sig "ELA/core/signature"
-	tx "ELA/core/transaction"
-	"ELA/core/transaction/payload"
-	"ELA/crypto"
-	. "ELA/errors"
+	. "Elastos.ELA/common"
+	"Elastos.ELA/common/config"
+	"Elastos.ELA/common/log"
+	"Elastos.ELA/common/serialization"
+	"Elastos.ELA/core/asset"
+	"Elastos.ELA/core/contract/program"
+	sig "Elastos.ELA/core/signature"
+	tx "Elastos.ELA/core/transaction"
+	"Elastos.ELA/core/transaction/payload"
+	"Elastos.ELA/crypto"
+	. "Elastos.ELA/errors"
 )
 
 const (

@@ -1,12 +1,12 @@
 package message
 
 import (
-	"ELA/common"
-	"ELA/common/config"
-	"ELA/common/log"
-	"ELA/core/ledger"
-	"ELA/events"
-	. "ELA/net/protocol"
+	"Elastos.ELA/common"
+	"Elastos.ELA/common/config"
+	"Elastos.ELA/common/log"
+	"Elastos.ELA/core/ledger"
+	"Elastos.ELA/events"
+	. "Elastos.ELA/net/protocol"
 	"bytes"
 	"crypto/sha256"
 	"encoding/binary"

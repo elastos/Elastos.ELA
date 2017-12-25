@@ -4,9 +4,9 @@ import (
 	"math/rand"
 	"time"
 
-	"ELA/common/config"
-	"ELA/common/log"
-	"ELA/crypto"
+	"Elastos.ELA/common/config"
+	"Elastos.ELA/common/log"
+	"Elastos.ELA/crypto"
 )
 
 func init() {

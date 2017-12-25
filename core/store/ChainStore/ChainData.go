@@ -5,11 +5,11 @@ import (
 	"errors"
 	"fmt"
 
-	. "ELA/common"
-	"ELA/common/serialization"
-	. "ELA/core/ledger"
-	tx "ELA/core/transaction"
-	"ELA/core/transaction/payload"
+	. "Elastos.ELA/common"
+	"Elastos.ELA/common/serialization"
+	. "Elastos.ELA/core/ledger"
+	tx "Elastos.ELA/core/transaction"
+	"Elastos.ELA/core/transaction/payload"
 )
 
 func (db *ChainStore) BatchInit() error {

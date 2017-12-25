@@ -7,12 +7,12 @@ import (
 	"strings"
 	"fmt"
 
-	. "ELA/cli/common"
-	. "ELA/common"
-	"ELA/core/auxpow"
-	"ELA/core/ledger"
-	tx "ELA/core/transaction"
-	"ELA/net/httpjsonrpc"
+	. "Elastos.ELA/cli/common"
+	. "Elastos.ELA/common"
+	"Elastos.ELA/core/auxpow"
+	"Elastos.ELA/core/ledger"
+	tx "Elastos.ELA/core/transaction"
+	"Elastos.ELA/net/httpjsonrpc"
 
 	. "github.com/bitly/go-simplejson"
 	"github.com/yuin/gopher-lua"

@@ -1,7 +1,7 @@
 package account
 
 import (
-	"ELA/crypto"
+	"Elastos.ELA/crypto"
 	"fmt"
 	"os"
 	"path"

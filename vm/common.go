@@ -1,8 +1,8 @@
 package vm
 
 import (
-	"ELA/vm/errors"
-	"ELA/vm/types"
+	"Elastos.ELA/vm/errors"
+	"Elastos.ELA/vm/types"
 	"encoding/binary"
 	"math/big"
 	"reflect"

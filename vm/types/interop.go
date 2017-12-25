@@ -2,7 +2,7 @@ package types
 
 import (
 	"math/big"
-	"ELA/vm/interfaces"
+	"Elastos.ELA/vm/interfaces"
 )
 
 type InteropInterface struct {

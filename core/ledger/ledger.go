@@ -1,11 +1,11 @@
 package ledger
 
 import (
-	. "ELA/common"
-	"ELA/core/asset"
-	tx "ELA/core/transaction"
-	"ELA/crypto"
-	. "ELA/errors"
+	. "Elastos.ELA/common"
+	"Elastos.ELA/core/asset"
+	tx "Elastos.ELA/core/transaction"
+	"Elastos.ELA/crypto"
+	. "Elastos.ELA/errors"
 )
 
 const (

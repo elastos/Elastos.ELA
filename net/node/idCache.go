@@ -1,8 +1,8 @@
 package node
 
 import (
-	"ELA/common"
-	"ELA/net/protocol"
+	"Elastos.ELA/common"
+	"Elastos.ELA/net/protocol"
 	"sync"
 )
 

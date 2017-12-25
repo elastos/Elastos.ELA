@@ -1,7 +1,7 @@
 package pow
 
 import (
-	"ELA/net/protocol"
+	"Elastos.ELA/net/protocol"
 	"encoding/binary"
 	"errors"
 	"math"
@@ -10,16 +10,16 @@ import (
 	"sync"
 	"time"
 
-	cl "ELA/account"
-	. "ELA/common"
-	"ELA/common/config"
-	"ELA/common/log"
-	"ELA/core/auxpow"
-	"ELA/core/ledger"
-	tx "ELA/core/transaction"
-	"ELA/core/transaction/payload"
-	"ELA/crypto"
-	"ELA/events"
+	cl "Elastos.ELA/account"
+	. "Elastos.ELA/common"
+	"Elastos.ELA/common/config"
+	"Elastos.ELA/common/log"
+	"Elastos.ELA/core/auxpow"
+	"Elastos.ELA/core/ledger"
+	tx "Elastos.ELA/core/transaction"
+	"Elastos.ELA/core/transaction/payload"
+	"Elastos.ELA/crypto"
+	"Elastos.ELA/events"
 	//	"ELA/net"
 )
 

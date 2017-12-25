@@ -1,9 +1,9 @@
 package pow
 
 import (
-	"ELA/common/config"
-	"ELA/common/log"
-	"ELA/core/ledger"
+	"Elastos.ELA/common/config"
+	"Elastos.ELA/common/log"
+	"Elastos.ELA/core/ledger"
 	"fmt"
 	"time"
 

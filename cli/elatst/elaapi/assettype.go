@@ -1,7 +1,7 @@
 package elaapi
 
 import (
-	"ELA/core/asset"
+	"Elastos.ELA/core/asset"
 
 	"fmt"
 

@@ -1,10 +1,10 @@
 package account
 
 import (
-	. "ELA/common"
-	"ELA/core/contract"
-	"ELA/crypto"
-	. "ELA/errors"
+	. "Elastos.ELA/common"
+	"Elastos.ELA/core/contract"
+	"Elastos.ELA/crypto"
+	. "Elastos.ELA/errors"
 	"errors"
 )
 

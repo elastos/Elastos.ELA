@@ -1,8 +1,8 @@
 package auxpow
 
 import (
-	. "ELA/common"
-	"ELA/common/serialization"
+	. "Elastos.ELA/common"
+	"Elastos.ELA/common/serialization"
 	"bytes"
 	"crypto/sha256"
 	"io"

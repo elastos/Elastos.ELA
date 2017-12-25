@@ -55,7 +55,7 @@ func CheckTransactionSanity(txn *tx.Transaction) ErrCode {
 
 	// check iterms above for Coinbase transaction
 	if txn.IsCoinBaseTx() {
-		return ErrNoError
+		return Success
 	}
 
 	if err := CheckTransactionBalance(txn); err != nil {
@@ -68,7 +68,7 @@ func CheckTransactionSanity(txn *tx.Transaction) ErrCode {
 		return ErrTransactionContracts
 	}
 
-	return ErrNoError
+	return Success
 }
 
 // CheckTransactionContext verifys a transaction with history transaction in ledger
@@ -80,7 +80,7 @@ func CheckTransactionContext(txn *tx.Transaction, ledger *Ledger) ErrCode {
 	}
 
 	if txn.IsCoinBaseTx() {
-		return ErrNoError
+		return Success
 	}
 
 	// check double spent transaction
@@ -113,7 +113,7 @@ func CheckTransactionContext(txn *tx.Transaction, ledger *Ledger) ErrCode {
 		}
 	}
 
-	return ErrNoError
+	return Success
 }
 
 //validate the transaction of duplicate UTXO input

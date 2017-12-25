@@ -3,7 +3,6 @@ package common
 import (
 	. "Elastos.ELA/common/config"
 	"Elastos.ELA/common/log"
-	Err "Elastos.ELA/net/httprestful/error"
 	"bytes"
 	"encoding/json"
 	"io/ioutil"
@@ -11,23 +10,23 @@ import (
 	"net/http"
 	"regexp"
 	"time"
-	"Elastos.ELA/errors"
+	. "Elastos.ELA/errors"
 )
 
 var oauthClient = NewOauthClient()
 
 //config
 func GetOauthServerUrl(cmd map[string]interface{}) map[string]interface{} {
-	resp := ResponsePack(Err.SUCCESS)
+	resp := ResponsePack(Success)
 	resp["Result"] = Parameters.OauthServerUrl
 	return resp
 }
 func SetOauthServerUrl(cmd map[string]interface{}) map[string]interface{} {
-	resp := ResponsePack(Err.SUCCESS)
+	resp := ResponsePack(Success)
 
 	addr, ok := cmd["Url"].(string)
 	if !ok {
-		resp["Error"] = Err.INVALID_PARAMS
+		resp["Error"] = InvalidParams
 		return resp
 	}
 	if len(addr) > 0 {
@@ -35,7 +34,7 @@ func SetOauthServerUrl(cmd map[string]interface{}) map[string]interface{} {
 		pattern := `((http|https)://)(([a-zA-Z0-9\._-]+\.[a-zA-Z]{2,6})|([0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}))(:[0-9]{1,4})*(/[a-zA-Z0-9\&%_\./-~-]*)?`
 		reg = regexp.MustCompile(pattern)
 		if !reg.Match([]byte(addr)) {
-			resp["Error"] = Err.INVALID_PARAMS
+			resp["Error"] = InvalidParams
 			return resp
 		}
 	}
@@ -104,10 +103,10 @@ func OauthRequest(method string, cmd map[string]interface{}, url string) (map[st
 
 	return repMsg, err
 }
-func CheckAccessToken(auth_type, access_token string) (cakey string, errCode errors.ErrCode, result interface{}) {
+func CheckAccessToken(auth_type, access_token string) (cakey string, errCode ErrCode, result interface{}) {
 
 	if len(Parameters.OauthServerUrl) == 0 {
-		return "", Err.SUCCESS, ""
+		return "", Success, ""
 	}
 	req := make(map[string]interface{})
 	req["token"] = access_token
@@ -115,16 +114,16 @@ func CheckAccessToken(auth_type, access_token string) (cakey string, errCode err
 	rep, err := OauthRequest("GET", req, Parameters.OauthServerUrl+"/"+access_token+"?auth_type="+auth_type)
 	if err != nil {
 		log.Error("Oauth timeout:", err)
-		return "", Err.OAUTH_TIMEOUT, rep
+		return "", OauthTimeout, rep
 	}
 	if errcode, ok := rep["Error"].(float64); ok && errcode == 0 {
 		result, ok := rep["Result"].(map[string]interface{})
 		if !ok {
-			return "", Err.INVALID_TOKEN, rep
+			return "", InvalidToken, rep
 		}
 		if CAkey, ok := result["CaKey"].(string); ok {
-			return CAkey, Err.SUCCESS, rep
+			return CAkey, Success, rep
 		}
 	}
-	return "", Err.INVALID_TOKEN, rep
+	return "", InvalidToken, rep
 }

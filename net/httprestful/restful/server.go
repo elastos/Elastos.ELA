@@ -4,7 +4,6 @@ import (
 	. "Elastos.ELA/common/config"
 	"Elastos.ELA/common/log"
 	. "Elastos.ELA/net/httprestful/common"
-	Err "Elastos.ELA/net/httprestful/error"
 	"Elastos.ELA/net/httpwebsocket"
 	"context"
 	"crypto/tls"
@@ -16,7 +15,7 @@ import (
 	"strings"
 	"sync"
 	"time"
-	"Elastos.ELA/errors"
+	. "Elastos.ELA/errors"
 )
 
 type handler func(map[string]interface{}) map[string]interface{}
@@ -31,7 +30,7 @@ type restServer struct {
 	server           *http.Server
 	postMap          map[string]Action
 	getMap           map[string]Action
-	checkAccessToken func(auth_type, access_token string) (string, errors.ErrCode, interface{})
+	checkAccessToken func(auth_type, access_token string) (string, ErrCode, interface{})
 }
 
 const (
@@ -60,7 +59,7 @@ const (
 	Api_GetContract         = "/api/v1/contract/:hash"
 )
 
-func InitRestServer(checkAccessToken func(string, string) (string, errors.ErrCode, interface{})) ApiServer {
+func InitRestServer(checkAccessToken func(string, string) (string, ErrCode, interface{})) ApiServer {
 	rt := &restServer{}
 	rt.checkAccessToken = checkAccessToken
 
@@ -104,10 +103,10 @@ func (rt *restServer) Start() error {
 	return nil
 }
 func (rt *restServer) setWebsocketState(cmd map[string]interface{}) map[string]interface{} {
-	resp := ResponsePack(Err.SUCCESS)
+	resp := ResponsePack(Success)
 	startFlag, ok := cmd["Open"].(bool)
 	if !ok {
-		resp["Error"] = Err.INVALID_PARAMS
+		resp["Error"] = InvalidParams
 		return resp
 	}
 	if b, ok := cmd["PushBlock"].(bool); ok {
@@ -314,7 +313,7 @@ func (rt *restServer) initGetHandler() {
 				resp = h.handler(req)
 				resp["Action"] = h.name
 			} else {
-				resp = ResponsePack(Err.INVALID_METHOD)
+				resp = ResponsePack(InvalidMethod)
 			}
 			rt.response(w, resp)
 		})
@@ -347,11 +346,11 @@ func (rt *restServer) initPostHandler() {
 					resp = h.handler(req)
 					resp["Action"] = h.name
 				} else {
-					resp = ResponsePack(Err.ILLEGAL_DATAFORMAT)
+					resp = ResponsePack(IllegalDataFormat)
 					resp["Action"] = h.name
 				}
 			} else {
-				resp = ResponsePack(Err.INVALID_METHOD)
+				resp = ResponsePack(InvalidMethod)
 			}
 			rt.response(w, resp)
 		})
@@ -371,7 +370,7 @@ func (rt *restServer) write(w http.ResponseWriter, data []byte) {
 	w.Write(data)
 }
 func (rt *restServer) response(w http.ResponseWriter, resp map[string]interface{}) {
-	resp["Desc"] = Err.ErrMap[resp["Error"].(errors.ErrCode)]
+	resp["Desc"] = ErrMap[resp["Error"].(ErrCode)]
 	data, err := json.Marshal(resp)
 	if err != nil {
 		log.Fatal("HTTP Handle - json.Marshal: %v", err)
@@ -393,7 +392,7 @@ func (rt *restServer) Restart(cmd map[string]interface{}) map[string]interface{}
 		go rt.Start()
 	}()
 
-	var resp = ResponsePack(Err.SUCCESS)
+	var resp = ResponsePack(Success)
 	return resp
 }
 func (rt *restServer) initTlsListen() (net.Listener, error) {

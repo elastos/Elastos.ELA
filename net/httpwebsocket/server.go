@@ -8,18 +8,18 @@ import (
 	"Elastos.ELA/events"
 	. "Elastos.ELA/net/httpjsonrpc"
 	"Elastos.ELA/net/httprestful/common"
-	Err "Elastos.ELA/net/httprestful/error"
 	"Elastos.ELA/net/httpwebsocket/websocket"
 	. "Elastos.ELA/net/protocol"
+	. "Elastos.ELA/errors"
 	"bytes"
 )
 
 var ws *websocket.WsServer
 var (
-	pushBlockFlag    bool = true
-	pushRawBlockFlag bool = false
-	pushBlockTxsFlag bool = false
-	pushNewTxsFlag   bool = true
+	pushBlockFlag    = true
+	pushRawBlockFlag = false
+	pushBlockTxsFlag = false
+	pushNewTxsFlag   = true
 )
 
 func StartServer(n Noder) {
@@ -98,7 +98,7 @@ func PushBlock(v interface{}) {
 	if ws == nil {
 		return
 	}
-	resp := common.ResponsePack(Err.SUCCESS)
+	resp := common.ResponsePack(Success)
 	if block, ok := v.(*ledger.Block); ok {
 		if pushRawBlockFlag {
 			w := bytes.NewBuffer(nil)
@@ -116,7 +116,7 @@ func PushNewTransaction(v interface{}) {
 	if ws == nil {
 		return
 	}
-	resp := common.ResponsePack(Err.SUCCESS)
+	resp := common.ResponsePack(Success)
 	if trx, ok := v.(*transaction.Transaction); ok {
 		if pushNewTxsFlag {
 			resp["Result"] = TransArryByteToHexString(trx)
@@ -130,7 +130,7 @@ func PushBlockTransactions(v interface{}) {
 	if ws == nil {
 		return
 	}
-	resp := common.ResponsePack(Err.SUCCESS)
+	resp := common.ResponsePack(Success)
 	if block, ok := v.(*ledger.Block); ok {
 		if pushBlockTxsFlag {
 			resp["Result"] = common.GetBlockTransactions(block)

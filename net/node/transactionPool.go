@@ -40,11 +40,11 @@ func (this *TXNPool) init() {
 //1.check transaction. 2.check with ledger(db) 3.check with pool
 func (this *TXNPool) AppendTxnPool(txn *transaction.Transaction) ErrCode {
 	//verify transaction with Concurrency
-	if errCode := ledger.CheckTransactionSanity(txn); errCode != ErrNoError {
+	if errCode := ledger.CheckTransactionSanity(txn); errCode != Success {
 		log.Info("Transaction verification failed", txn.Hash())
 		return errCode
 	}
-	if errCode := ledger.CheckTransactionContext(txn, ledger.DefaultLedger); errCode != ErrNoError {
+	if errCode := ledger.CheckTransactionContext(txn, ledger.DefaultLedger); errCode != Success {
 		log.Info("Transaction verification with ledger failed", txn.Hash())
 		return errCode
 	}
@@ -59,7 +59,7 @@ func (this *TXNPool) AppendTxnPool(txn *transaction.Transaction) ErrCode {
 	txn.FeePerKB = txn.Fee * 1000 / common.Fixed64(len(b_buf.Bytes()))
 	//add the transaction to process scope
 	this.addtxnList(txn)
-	return ErrNoError
+	return Success
 }
 
 //get the transaction in txnpool
@@ -263,7 +263,7 @@ func (this *TXNPool) MaybeAcceptTransaction(txn *tx.Transaction) error {
 		return fmt.Errorf("transaction is an individual coinbase")
 	}
 
-	if errCode := this.AppendTxnPool(txn); errCode != ErrNoError {
+	if errCode := this.AppendTxnPool(txn); errCode != Success {
 		return fmt.Errorf("VerifyTxs failed when AppendTxnPool")
 	}
 

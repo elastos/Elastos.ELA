@@ -2,9 +2,9 @@ package websocket
 
 import (
 	. "Elastos.ELA/common/config"
+	. "Elastos.ELA/errors"
 	"Elastos.ELA/common/log"
 	. "Elastos.ELA/net/httprestful/common"
-	Err "Elastos.ELA/net/httprestful/error"
 	. "Elastos.ELA/net/httpwebsocket/session"
 	"context"
 	"crypto/tls"
@@ -90,7 +90,7 @@ func (ws *WsServer) Start() error {
 
 func (ws *WsServer) registryMethod() {
 	gettxhashmap := func(cmd map[string]interface{}) map[string]interface{} {
-		resp := ResponsePack(Err.SUCCESS)
+		resp := ResponsePack(Success)
 		ws.Lock()
 		defer ws.Unlock()
 		resp["Result"] = len(ws.TxHashMap)
@@ -107,7 +107,7 @@ func (ws *WsServer) registryMethod() {
 		return resp
 	}
 	heartbeat := func(cmd map[string]interface{}) map[string]interface{} {
-		resp := ResponsePack(Err.SUCCESS)
+		resp := ResponsePack(Success)
 		resp["Action"] = "heartbeat"
 		resp["Result"] = cmd["Userid"]
 		return resp
@@ -115,14 +115,14 @@ func (ws *WsServer) registryMethod() {
 	sendtest := func(cmd map[string]interface{}) map[string]interface{} {
 		go func() {
 			time.Sleep(time.Second * 5)
-			resp := ResponsePack(Err.SUCCESS)
+			resp := ResponsePack(Success)
 			resp["Action"] = "pushresult"
 			ws.PushTxResult(cmd["Userid"].(string), resp)
 		}()
 		return heartbeat(cmd)
 	}
 	getsessioncount := func(cmd map[string]interface{}) map[string]interface{} {
-		resp := ResponsePack(Err.SUCCESS)
+		resp := ResponsePack(Success)
 		resp["Action"] = "getsessioncount"
 		resp["Result"] = ws.SessionList.GetSessionCount()
 		return resp
@@ -172,7 +172,7 @@ func (ws *WsServer) checkSessionsTimeout(done chan bool) {
 			var closeList []*Session
 			ws.SessionList.ForEachSession(func(v *Session) {
 				if v.SessionTimeoverCheck() {
-					resp := ResponsePack(Err.SESSION_EXPIRED)
+					resp := ResponsePack(SessionExpired)
 					ws.response(v.GetSessionId(), resp)
 					closeList = append(closeList, v)
 				}
@@ -243,25 +243,25 @@ func (ws *WsServer) OnDataHandle(curSession *Session, bysMsg []byte, r *http.Req
 	var req = make(map[string]interface{})
 
 	if err := json.Unmarshal(bysMsg, &req); err != nil {
-		resp := ResponsePack(Err.ILLEGAL_DATAFORMAT)
+		resp := ResponsePack(IllegalDataFormat)
 		ws.response(curSession.GetSessionId(), resp)
 		log.Error("websocket OnDataHandle:", err)
 		return false
 	}
 	actionName, ok := req["Action"].(string)
 	if !ok {
-		resp := ResponsePack(Err.INVALID_METHOD)
+		resp := ResponsePack(InvalidMethod)
 		ws.response(curSession.GetSessionId(), resp)
 		return false
 	}
 	action, ok := ws.ActionMap[actionName]
 	if !ok {
-		resp := ResponsePack(Err.INVALID_METHOD)
+		resp := ResponsePack(InvalidMethod)
 		ws.response(curSession.GetSessionId(), resp)
 		return false
 	}
 	if !ws.IsValidMsg(req) {
-		resp := ResponsePack(Err.INVALID_PARAMS)
+		resp := ResponsePack(InvalidParams)
 		ws.response(curSession.GetSessionId(), resp)
 		return true
 	}
@@ -316,7 +316,7 @@ func (ws *WsServer) deleteTxHashs(sSessionId string) {
 	}
 }
 func (ws *WsServer) response(sSessionId string, resp map[string]interface{}) {
-	resp["Desc"] = Err.ErrMap[resp["Error"].(errors2.ErrCode)]
+	resp["Desc"] = ErrMap[resp["Error"].(errors2.ErrCode)]
 	data, err := json.Marshal(resp)
 	if err != nil {
 		log.Error("Websocket response:", err)
@@ -334,7 +334,7 @@ func (ws *WsServer) PushTxResult(txHashStr string, resp map[string]interface{}) 
 	}
 }
 func (ws *WsServer) PushResult(resp map[string]interface{}) {
-	resp["Desc"] = Err.ErrMap[resp["Error"].(errors2.ErrCode)]
+	resp["Desc"] = ErrMap[resp["Error"].(errors2.ErrCode)]
 	data, err := json.Marshal(resp)
 	if err != nil {
 		log.Error("Websocket PushResult:", err)

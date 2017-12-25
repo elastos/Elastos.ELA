@@ -640,7 +640,7 @@ func sendTransaction(params []interface{}) map[string]interface{} {
 		return ElaRpc("error: " + err.Error())
 	}
 
-	if errCode := VerifyAndSendTx(txn); errCode != ErrNoError {
+	if errCode := VerifyAndSendTx(txn); errCode != Success {
 		return ElaRpc("error: " + errCode.Error())
 	}
 	txHash := txn.Hash()
@@ -704,7 +704,7 @@ func sendBatchOutTransaction(params []interface{}) map[string]interface{} {
 		return ElaRpc("error: " + err.Error())
 	}
 
-	if errCode := VerifyAndSendTx(txn); errCode != ErrNoError {
+	if errCode := VerifyAndSendTx(txn); errCode != Success {
 		return ElaRpc("error: " + errCode.Error())
 	}
 	txHash := txn.Hash()
@@ -730,7 +730,7 @@ func sendRawTransaction(params []interface{}) map[string]interface{} {
 			return ElaRpcInvalidTransaction
 		}
 		hash = txn.Hash()
-		if errCode := VerifyAndSendTx(&txn); errCode != ErrNoError {
+		if errCode := VerifyAndSendTx(&txn); errCode != Success {
 			return ElaRpc(errCode.Error())
 		}
 	default:

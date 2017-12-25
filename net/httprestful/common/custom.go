@@ -5,7 +5,6 @@ import (
 	tx "Elastos.ELA/core/transaction"
 	. "Elastos.ELA/errors"
 	. "Elastos.ELA/net/httpjsonrpc"
-	Err "Elastos.ELA/net/httprestful/error"
 	"bytes"
 	"encoding/json"
 	"time"
@@ -18,13 +17,13 @@ func getRecordData(cmd map[string]interface{}) ([]byte, ErrCode) {
 	if raw, ok := cmd["Raw"].(string); ok && raw == "1" {
 		str, ok := cmd["RecordData"].(string)
 		if !ok {
-			return nil, Err.INVALID_PARAMS
+			return nil, InvalidParams
 		}
 		bys, err := HexStringToBytes(str)
 		if err != nil {
-			return nil, Err.INVALID_PARAMS
+			return nil, InvalidParams
 		}
-		return bys, Err.SUCCESS
+		return bys, Success
 	}
 	type Data struct {
 		Algrithem string `json:Algrithem`
@@ -42,25 +41,25 @@ func getRecordData(cmd map[string]interface{}) ([]byte, ErrCode) {
 	tmp := &RecordData{}
 	reqRecordData, ok := cmd["RecordData"].(map[string]interface{})
 	if !ok {
-		return nil, Err.INVALID_PARAMS
+		return nil, InvalidParams
 	}
 	reqBtys, err := json.Marshal(reqRecordData)
 	if err != nil {
-		return nil, Err.INVALID_PARAMS
+		return nil, InvalidParams
 	}
 
 	if err := json.Unmarshal(reqBtys, tmp); err != nil {
-		return nil, Err.INVALID_PARAMS
+		return nil, InvalidParams
 	}
 	tmp.CAkey, ok = cmd["CAkey"].(string)
 	if !ok {
-		return nil, Err.INVALID_PARAMS
+		return nil, InvalidParams
 	}
 	repBtys, err := json.Marshal(tmp)
 	if err != nil {
-		return nil, Err.INVALID_PARAMS
+		return nil, InvalidParams
 	}
-	return repBtys, Err.SUCCESS
+	return repBtys, Success
 }
 func getInnerTimestamp() ([]byte, ErrCode) {
 	type InnerTimestamp struct {
@@ -69,12 +68,12 @@ func getInnerTimestamp() ([]byte, ErrCode) {
 	tmp := &InnerTimestamp{InnerTimestamp: float64(time.Now().Unix())}
 	repBtys, err := json.Marshal(tmp)
 	if err != nil {
-		return nil, Err.INVALID_PARAMS
+		return nil, InvalidParams
 	}
-	return repBtys, Err.SUCCESS
+	return repBtys, Success
 }
 func SendRecord(cmd map[string]interface{}) map[string]interface{} {
-	resp := ResponsePack(Err.SUCCESS)
+	resp := ResponsePack(Success)
 	var recordData []byte
 	var innerTime []byte
 	innerTime, resp["Error"] = getInnerTimestamp()
@@ -107,7 +106,7 @@ func SendRecord(cmd map[string]interface{}) map[string]interface{} {
 		record := tx.NewTxAttribute(tx.Description, data)
 		transferTx.Attributes = append(transferTx.Attributes, &record)
 	}
-	if errCode := VerifyAndSendTx(transferTx); errCode != ErrNoError {
+	if errCode := VerifyAndSendTx(transferTx); errCode != Success {
 		resp["Error"] = int64(errCode)
 		return resp
 	}
@@ -117,7 +116,7 @@ func SendRecord(cmd map[string]interface{}) map[string]interface{} {
 }
 
 func SendRecordTransaction(cmd map[string]interface{}) map[string]interface{} {
-	resp := ResponsePack(Err.SUCCESS)
+	resp := ResponsePack(Success)
 	var recordData []byte
 	recordData, resp["Error"] = getRecordData(cmd)
 	if recordData == nil {
@@ -128,7 +127,7 @@ func SendRecordTransaction(cmd map[string]interface{}) map[string]interface{} {
 
 	hash := recordTx.Hash()
 	resp["Result"] = BytesToHexString(hash.ToArrayReverse())
-	if errCode := VerifyAndSendTx(recordTx); errCode != ErrNoError {
+	if errCode := VerifyAndSendTx(recordTx); errCode != Success {
 		resp["Error"] = int64(errCode)
 		return resp
 	}

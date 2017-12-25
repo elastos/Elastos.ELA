@@ -280,7 +280,7 @@ func Call(address string, method string, id interface{}, params []interface{}) (
 
 func VerifyAndSendTx(txn *tx.Transaction) ErrCode {
 	// if transaction is verified unsucessfully then will not put it into transaction pool
-	if errCode := node.AppendTxnPool(txn); errCode != ErrNoError {
+	if errCode := node.AppendTxnPool(txn); errCode != Success {
 		log.Warn("Can NOT add the transaction to TxnPool")
 		log.Info("[httpjsonrpc] VerifyTransaction failed when AppendTxnPool.")
 		return errCode
@@ -289,5 +289,5 @@ func VerifyAndSendTx(txn *tx.Transaction) ErrCode {
 		log.Error("Xmit Tx Error:Xmit transaction failed.", err)
 		return ErrXmitFail
 	}
-	return ErrNoError
+	return Success
 }

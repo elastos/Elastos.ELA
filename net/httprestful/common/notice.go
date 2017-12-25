@@ -2,7 +2,7 @@ package common
 
 import (
 	. "Elastos.ELA/common/config"
-	Err "Elastos.ELA/net/httprestful/error"
+	. "Elastos.ELA/errors"
 	"bytes"
 	"encoding/json"
 	"io/ioutil"
@@ -18,15 +18,15 @@ func CheckPushBlock() bool {
 	return pushBlockFlag
 }
 func GetNoticeServerUrl(cmd map[string]interface{}) map[string]interface{} {
-	resp := ResponsePack(Err.SUCCESS)
+	resp := ResponsePack(Success)
 	resp["Result"] = Parameters.NoticeServerUrl
 	return resp
 }
 func SetPushBlockFlag(cmd map[string]interface{}) map[string]interface{} {
-	resp := ResponsePack(Err.SUCCESS)
+	resp := ResponsePack(Success)
 	open, ok := cmd["Open"].(bool)
 	if !ok {
-		resp["Error"] = Err.INVALID_PARAMS
+		resp["Error"] = InvalidParams
 		return resp
 	}
 	pushBlockFlag = open
@@ -34,18 +34,18 @@ func SetPushBlockFlag(cmd map[string]interface{}) map[string]interface{} {
 	return resp
 }
 func SetNoticeServerUrl(cmd map[string]interface{}) map[string]interface{} {
-	resp := ResponsePack(Err.SUCCESS)
+	resp := ResponsePack(Success)
 
 	addr, ok := cmd["Url"].(string)
 	if !ok || len(addr) == 0 {
-		resp["Error"] = Err.INVALID_PARAMS
+		resp["Error"] = InvalidParams
 		return resp
 	}
 	var reg *regexp.Regexp
 	pattern := `((http|https)://)(([a-zA-Z0-9\._-]+\.[a-zA-Z]{2,6})|([0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}))(:[0-9]{1,4})*(/[a-zA-Z0-9\&%_\./-~-]*)?`
 	reg = regexp.MustCompile(pattern)
 	if !reg.Match([]byte(addr)) {
-		resp["Error"] = Err.INVALID_PARAMS
+		resp["Error"] = InvalidParams
 		return resp
 	}
 	Parameters.NoticeServerUrl = addr

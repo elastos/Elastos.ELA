@@ -16,6 +16,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"ELA/errors"
 )
 
 type handler func(map[string]interface{}) map[string]interface{}
@@ -30,7 +31,7 @@ type restServer struct {
 	server           *http.Server
 	postMap          map[string]Action
 	getMap           map[string]Action
-	checkAccessToken func(auth_type, access_token string) (string, int64, interface{})
+	checkAccessToken func(auth_type, access_token string) (string, errors.ErrCode, interface{})
 }
 
 const (
@@ -59,7 +60,7 @@ const (
 	Api_GetContract         = "/api/v1/contract/:hash"
 )
 
-func InitRestServer(checkAccessToken func(string, string) (string, int64, interface{})) ApiServer {
+func InitRestServer(checkAccessToken func(string, string) (string, errors.ErrCode, interface{})) ApiServer {
 	rt := &restServer{}
 	rt.checkAccessToken = checkAccessToken
 
@@ -370,7 +371,7 @@ func (rt *restServer) write(w http.ResponseWriter, data []byte) {
 	w.Write(data)
 }
 func (rt *restServer) response(w http.ResponseWriter, resp map[string]interface{}) {
-	resp["Desc"] = Err.ErrMap[resp["Error"].(int64)]
+	resp["Desc"] = Err.ErrMap[resp["Error"].(errors.ErrCode)]
 	data, err := json.Marshal(resp)
 	if err != nil {
 		log.Fatal("HTTP Handle - json.Marshal: %v", err)

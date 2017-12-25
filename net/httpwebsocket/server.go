@@ -93,22 +93,7 @@ func SetTxHashMap(txhash string, sessionid string) {
 	}
 	ws.SetTxHashMap(txhash, sessionid)
 }
-func PushSmartCodeInvokeResult(txHash Uint256, errcode int64, result interface{}) {
-	if ws == nil {
-		return
-	}
-	resp := common.ResponsePack(Err.SUCCESS)
-	var Result = make(map[string]interface{})
-	txHashStr := BytesToHexString(txHash.ToArray())
-	Result["TxHash"] = txHashStr
-	Result["ExecResult"] = result
 
-	resp["Result"] = Result
-	resp["Action"] = "sendsmartcodeinvoke"
-	resp["Error"] = errcode
-	resp["Desc"] = Err.ErrMap[errcode]
-	ws.PushTxResult(txHashStr, resp)
-}
 func PushBlock(v interface{}) {
 	if ws == nil {
 		return

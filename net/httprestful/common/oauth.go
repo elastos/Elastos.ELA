@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"regexp"
 	"time"
+	"ELA/errors"
 )
 
 var oauthClient = NewOauthClient()
@@ -103,7 +104,7 @@ func OauthRequest(method string, cmd map[string]interface{}, url string) (map[st
 
 	return repMsg, err
 }
-func CheckAccessToken(auth_type, access_token string) (cakey string, errCode int64, result interface{}) {
+func CheckAccessToken(auth_type, access_token string) (cakey string, errCode errors.ErrCode, result interface{}) {
 
 	if len(Parameters.OauthServerUrl) == 0 {
 		return "", Err.SUCCESS, ""

@@ -2,13 +2,10 @@ package errors
 
 import (
 	"fmt"
+	"errors"
 )
 
-type ErrCoder interface {
-	GetErrCode() ErrCode
-}
-
-type ErrCode int32
+type ErrCode int
 
 const (
 	ErrNoCode               ErrCode = -2
@@ -82,9 +79,7 @@ func (err ErrCode) Error() string {
 
 	return fmt.Sprintf("Unknown error? Error code = %d", err)
 }
-func ErrerCode(err error) ErrCode {
-	if err, ok := err.(ErrCoder); ok {
-		return err.GetErrCode()
-	}
-	return ErrUnknown
+
+func NewDetailErr(err error, errcode ErrCode, errmsg string) error {
+	return errors.New(errmsg)
 }

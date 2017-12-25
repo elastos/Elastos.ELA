@@ -159,7 +159,7 @@ func GetBlockTransactions(block *ledger.Block) interface{} {
 	}
 	return b
 }
-func getBlock(hash Uint256, getTxBytes bool) (interface{}, int64) {
+func getBlock(hash Uint256, getTxBytes bool) (interface{}, ErrCode) {
 	block, err := ledger.DefaultLedger.Store.GetBlock(hash)
 	if err != nil {
 		return "", Err.UNKNOWN_BLOCK
@@ -517,7 +517,7 @@ func GetStateUpdate(cmd map[string]interface{}) map[string]interface{} {
 	return resp
 }
 
-func ResponsePack(errCode int64) map[string]interface{} {
+func ResponsePack(errCode ErrCode) map[string]interface{} {
 	resp := map[string]interface{}{
 		"Action":  "",
 		"Result":  "",

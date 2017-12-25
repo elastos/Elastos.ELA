@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+	errors2 "ELA/errors"
 )
 
 type handler func(map[string]interface{}) map[string]interface{}
@@ -33,10 +34,10 @@ type WsServer struct {
 	SessionList      *SessionList
 	ActionMap        map[string]Handler
 	TxHashMap        map[string]string //key: txHash   value:sessionid
-	checkAccessToken func(auth_type, access_token string) (string, int64, interface{})
+	checkAccessToken func(auth_type, access_token string) (string, errors2.ErrCode, interface{})
 }
 
-func InitWsServer(checkAccessToken func(string, string) (string, int64, interface{})) *WsServer {
+func InitWsServer(checkAccessToken func(string, string) (string, errors2.ErrCode, interface{})) *WsServer {
 	ws := &WsServer{
 		Upgrader:    websocket.Upgrader{},
 		SessionList: NewSessionList(),
@@ -281,7 +282,7 @@ func (ws *WsServer) OnDataHandle(curSession *Session, bysMsg []byte, r *http.Req
 	if actionName != "heartbeat" {
 		CAkey, errCode, result := ws.checkAccessToken(auth_type, access_token)
 		if errCode > 0 {
-			resp := ResponsePack(errCode)
+			resp := ResponsePack(errors2.ErrCode(errCode))
 			resp["Result"] = result
 			ws.response(curSession.GetSessionId(), resp)
 			return true
@@ -315,7 +316,7 @@ func (ws *WsServer) deleteTxHashs(sSessionId string) {
 	}
 }
 func (ws *WsServer) response(sSessionId string, resp map[string]interface{}) {
-	resp["Desc"] = Err.ErrMap[resp["Error"].(int64)]
+	resp["Desc"] = Err.ErrMap[resp["Error"].(errors2.ErrCode)]
 	data, err := json.Marshal(resp)
 	if err != nil {
 		log.Error("Websocket response:", err)
@@ -333,7 +334,7 @@ func (ws *WsServer) PushTxResult(txHashStr string, resp map[string]interface{}) 
 	}
 }
 func (ws *WsServer) PushResult(resp map[string]interface{}) {
-	resp["Desc"] = Err.ErrMap[resp["Error"].(int64)]
+	resp["Desc"] = Err.ErrMap[resp["Error"].(errors2.ErrCode)]
 	data, err := json.Marshal(resp)
 	if err != nil {
 		log.Error("Websocket PushResult:", err)

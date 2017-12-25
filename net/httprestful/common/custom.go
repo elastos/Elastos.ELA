@@ -14,7 +14,7 @@ import (
 const AttributeMaxLen = 252
 
 //record
-func getRecordData(cmd map[string]interface{}) ([]byte, int64) {
+func getRecordData(cmd map[string]interface{}) ([]byte, ErrCode) {
 	if raw, ok := cmd["Raw"].(string); ok && raw == "1" {
 		str, ok := cmd["RecordData"].(string)
 		if !ok {
@@ -62,7 +62,7 @@ func getRecordData(cmd map[string]interface{}) ([]byte, int64) {
 	}
 	return repBtys, Err.SUCCESS
 }
-func getInnerTimestamp() ([]byte, int64) {
+func getInnerTimestamp() ([]byte, ErrCode) {
 	type InnerTimestamp struct {
 		InnerTimestamp float64 `json:InnerTimestamp`
 	}

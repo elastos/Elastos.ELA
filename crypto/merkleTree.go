@@ -8,18 +8,6 @@ import (
 	"errors"
 )
 
-var (
-	DOUBLE_SHA256 = func(s []Uint256) Uint256 {
-		b := new(bytes.Buffer)
-		for _, d := range s {
-			d.Serialize(b)
-		}
-		temp := sha256.Sum256(b.Bytes())
-		f := sha256.Sum256(temp[:])
-		return Uint256(f)
-	}
-)
-
 type MerkleTree struct {
 	Depth uint
 	Root  *MerkleTreeNode
@@ -31,6 +19,16 @@ type MerkleTreeNode struct {
 	Right *MerkleTreeNode
 }
 
+func DoubleSHA256(s []Uint256) Uint256 {
+	b := new(bytes.Buffer)
+	for _, d := range s {
+		d.Serialize(b)
+	}
+	temp := sha256.Sum256(b.Bytes())
+	f := sha256.Sum256(temp[:])
+	return Uint256(f)
+}
+
 func (t *MerkleTreeNode) IsLeaf() bool {
 	return t.Left == nil && t.Right == nil
 }
@@ -40,9 +38,8 @@ func NewMerkleTree(hashes []Uint256) (*MerkleTree, error) {
 	if len(hashes) == 0 {
 		return nil, NewDetailErr(errors.New("NewMerkleTree input no item error."), ErrNoCode, "")
 	}
-	var height uint
 
-	height = 1
+	var height uint = 1
 	nodes := generateLeaves(hashes)
 	for len(nodes) > 1 {
 		nodes = levelUp(nodes)
@@ -75,7 +72,7 @@ func levelUp(nodes []*MerkleTreeNode) []*MerkleTreeNode {
 		var data []Uint256
 		data = append(data, nodes[i*2].Hash)
 		data = append(data, nodes[i*2+1].Hash)
-		hash := DOUBLE_SHA256(data)
+		hash := DoubleSHA256(data)
 		node := &MerkleTreeNode{
 			Hash:  hash,
 			Left:  nodes[i*2],
@@ -87,7 +84,7 @@ func levelUp(nodes []*MerkleTreeNode) []*MerkleTreeNode {
 		var data []Uint256
 		data = append(data, nodes[len(nodes)-1].Hash)
 		data = append(data, nodes[len(nodes)-1].Hash)
-		hash := DOUBLE_SHA256(data)
+		hash := DoubleSHA256(data)
 		node := &MerkleTreeNode{
 			Hash:  hash,
 			Left:  nodes[len(nodes)-1],

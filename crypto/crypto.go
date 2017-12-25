@@ -23,8 +23,6 @@ type CryptoAlgSet struct {
 	Curve     elliptic.Curve
 }
 
-var AlgChoice int
-
 var algSet CryptoAlgSet
 
 type PubKey struct {
@@ -90,10 +88,10 @@ func Verify(publicKey PubKey, data []byte, signature []byte) error {
 	digest := sha256.Sum256(data)
 
 	pub := new(ecdsa.PublicKey)
-	pub.Curve = algSet.Curve
 
-	pub.X = new(big.Int).Set(publicKey.X)
-	pub.Y = new(big.Int).Set(publicKey.Y)
+	pub.Curve = algSet.Curve
+	pub.X     = new(big.Int).Set(publicKey.X)
+	pub.Y     = new(big.Int).Set(publicKey.Y)
 
 	if ecdsa.Verify(pub, digest[:], r, s) {
 		return nil
@@ -151,14 +149,19 @@ func (e *PubKey) Deserialize(r io.Reader) error {
 
 type PubKeySlice []*PubKey
 
-func (p PubKeySlice) Len() int { return len(p) }
+func (p PubKeySlice) Len() int {
+	return len(p)
+}
+
 func (p PubKeySlice) Less(i, j int) bool {
 	r := p[i].X.Cmp(p[j].X)
 	if r <= 0 {
 		return true
+	} else {
+		return false
 	}
-	return false
 }
+
 func (p PubKeySlice) Swap(i, j int) {
 	p[i], p[j] = p[j], p[i]
 }

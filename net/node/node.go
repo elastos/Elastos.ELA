@@ -452,30 +452,6 @@ func (node *node) GetTime() int64 {
 	return t.UnixNano()
 }
 
-func (node *node) GetBookKeeperAddr() *crypto.PubKey {
-	return node.publicKey
-}
-
-func (node *node) GetBookKeepersAddrs() ([]*crypto.PubKey, uint64) {
-	pks := make([]*crypto.PubKey, 1)
-	pks[0] = node.publicKey
-	var i uint64
-	i = 1
-	//TODO read lock
-	for _, n := range node.nbrNodes.List {
-		if n.GetState() == ESTABLISH && n.services != SERVICENODE {
-			pktmp := n.GetBookKeeperAddr()
-			pks = append(pks, pktmp)
-			i++
-		}
-	}
-	return pks, i
-}
-
-func (node *node) SetBookKeeperAddr(pk *crypto.PubKey) {
-	node.publicKey = pk
-}
-
 func (node *node) SyncNodeHeight() {
 	for {
 		log.Trace("BlockHeight is ", ledger.DefaultLedger.Blockchain.BlockHeight)

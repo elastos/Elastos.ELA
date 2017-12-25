@@ -29,7 +29,6 @@ import (
 )
 
 const (
-	DefaultBookKeeperCount = 4
 	WalletFileName         = "wallet.dat"
 	MAINACCOUNT            = "main-account"
 	SUBACCOUNT             = "sub-account"

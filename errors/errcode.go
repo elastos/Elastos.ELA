@@ -9,7 +9,7 @@ import (
 type ErrCode int
 
 const (
-	ErrNoCode               ErrCode = -2
+	ErrNoCode               ErrCode = -1
 	Success                 ErrCode = 0
 	ErrInvalidInput         ErrCode = 45003
 	ErrInvalidOutput        ErrCode = 45004
@@ -115,7 +115,7 @@ func (err ErrCode) Error() string {
 
 func NewDetailErr(err error, errCode ErrCode, errmsg string) error {
 	if errCode != 0 {
-		//TO DO: 这里的错误机制需要重写，但我还没想好怎么改
+		//TODO: 这里的错误机制需要重写，但我还没想好怎么改
 		//现在我只是把多余的代码删掉了，但它的设计也很糟糕，所以要重新设计
 		//目前初步设想是要有一个错误码
 		//但是错误码在对外的API肯定有用，内部报错不确定要不要用，这个要看具体业务，所以我得先把代码看完。

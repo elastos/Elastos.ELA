@@ -35,7 +35,7 @@ func showMultisigInfo(wallet account.Client) {
 	accounts := wallet.GetAccounts()
 	coins := wallet.GetCoins()
 
-	multisign := []Uint160{}
+	multisign := []Uint168{}
 	// find multisign address
 	for _, contract := range contracts {
 		found := false

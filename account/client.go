@@ -41,19 +41,19 @@ type Client interface {
 
 	ContainsAccount(pubKey *crypto.PubKey) bool
 	CreateAccount() (*Account, error)
-	DeleteAccount(programHash Uint160) error
+	DeleteAccount(programHash Uint168) error
 	GetAccount(pubKey *crypto.PubKey) (*Account, error)
 	GetDefaultAccount() (*Account, error)
-	GetAccountByProgramHash(programHash Uint160) *Account
+	GetAccountByProgramHash(programHash Uint168) *Account
 	GetAccounts() []*Account
 
 	CreateContract(account *Account) error
-	CreateMultiSignContract(contractOwner Uint160, m int, publicKeys []*crypto.PubKey) (*ct.Contract, error)
+	CreateMultiSignContract(contractOwner Uint168, m int, publicKeys []*crypto.PubKey) (*ct.Contract, error)
 	GetContracts() []*ct.Contract
-	DeleteContract(programHash Uint160) error
+	DeleteContract(programHash Uint168) error
 
 	GetCoins() map[*transaction.UTXOTxInput]*Coin
-	DeleteCoinsData(programHash Uint160) error
+	DeleteCoinsData(programHash Uint168) error
 }
 
 type ClientImpl struct {
@@ -63,12 +63,12 @@ type ClientImpl struct {
 	iv        []byte
 	masterKey []byte
 
-	mainAccount Uint160
-	accounts    map[Uint160]*Account
-	contracts   map[Uint160]*ct.Contract
+	mainAccount Uint168
+	accounts    map[Uint168]*Account
+	contracts   map[Uint168]*ct.Contract
 	coins       map[*transaction.UTXOTxInput]*Coin
 
-	watchOnly     []Uint160
+	watchOnly     []Uint168
 	currentHeight int32
 
 	FileStore
@@ -241,8 +241,8 @@ func (client *ClientImpl) ProcessSignals() {
 func NewClient(path string, password []byte, create bool) *ClientImpl {
 	client := &ClientImpl{
 		path:          path,
-		accounts:      map[Uint160]*Account{},
-		contracts:     map[Uint160]*ct.Contract{},
+		accounts:      map[Uint168]*Account{},
+		contracts:     map[Uint168]*ct.Contract{},
 		coins:         map[*transaction.UTXOTxInput]*Coin{},
 		currentHeight: -1,
 		FileStore:     FileStore{path: path},
@@ -256,7 +256,7 @@ func NewClient(path string, password []byte, create bool) *ClientImpl {
 		//create new client
 		client.iv = make([]byte, 16)
 		client.masterKey = make([]byte, 32)
-		client.watchOnly = []Uint160{}
+		client.watchOnly = []Uint168{}
 
 		//generate random number for iv/masterkey
 		r := rand.New(rand.NewSource(time.Now().UnixNano()))
@@ -360,7 +360,7 @@ func (cl *ClientImpl) GetAccount(pubKey *crypto.PubKey) (*Account, error) {
 	return cl.GetAccountByProgramHash(programHash), nil
 }
 
-func (cl *ClientImpl) GetAccountByProgramHash(programHash Uint160) *Account {
+func (cl *ClientImpl) GetAccountByProgramHash(programHash Uint168) *Account {
 	cl.mu.Lock()
 	defer cl.mu.Unlock()
 	if account, ok := cl.accounts[programHash]; ok {
@@ -369,7 +369,7 @@ func (cl *ClientImpl) GetAccountByProgramHash(programHash Uint160) *Account {
 	return nil
 }
 
-func (cl *ClientImpl) GetContract(programHash Uint160) *ct.Contract {
+func (cl *ClientImpl) GetContract(programHash Uint168) *ct.Contract {
 	cl.mu.Lock()
 	defer cl.mu.Unlock()
 	if contract, ok := cl.contracts[programHash]; ok {
@@ -526,7 +526,7 @@ func (cl *ClientImpl) CreateAccount() (*Account, error) {
 	return account, nil
 }
 
-func (cl *ClientImpl) DeleteAccount(programHash Uint160) error {
+func (cl *ClientImpl) DeleteAccount(programHash Uint168) error {
 	// remove from memory
 	delete(cl.accounts, programHash)
 	// remove from db
@@ -583,7 +583,7 @@ func (cl *ClientImpl) SaveAccount(ac *Account) error {
 
 // LoadAccounts loads all accounts from db to memory
 func (cl *ClientImpl) LoadAccounts() error {
-	accounts := map[Uint160]*Account{}
+	accounts := map[Uint168]*Account{}
 
 	account, err := cl.LoadAccountData()
 	if err != nil {
@@ -592,7 +592,7 @@ func (cl *ClientImpl) LoadAccounts() error {
 	for _, a := range account {
 		if a.Type == MAINACCOUNT {
 			p, _ := HexStringToBytes(a.ProgramHash)
-			cl.mainAccount, _ = Uint160ParseFromBytes(p)
+			cl.mainAccount, _ = Uint168ParseFromBytes(p)
 		}
 		encryptedKeyPair, _ := HexStringToBytes(a.PrivateKeyEncrypted)
 		keyPair, err := cl.DecryptPrivateKey(encryptedKeyPair)
@@ -622,7 +622,7 @@ func (cl *ClientImpl) CreateContract(account *Account) error {
 }
 
 // CreateMultiSignContract creates a multisig contract to wallet
-func (cl *ClientImpl) CreateMultiSignContract(contractOwner Uint160, m int, publicKeys []*crypto.PubKey) (*ct.Contract, error) {
+func (cl *ClientImpl) CreateMultiSignContract(contractOwner Uint168, m int, publicKeys []*crypto.PubKey) (*ct.Contract, error) {
 	contract, err := contract.CreateMultiSigContract(contractOwner, m, publicKeys)
 	if err != nil {
 		return nil, err
@@ -633,7 +633,7 @@ func (cl *ClientImpl) CreateMultiSignContract(contractOwner Uint160, m int, publ
 	return contract, err
 }
 
-func (cl *ClientImpl) DeleteContract(programHash Uint160) error {
+func (cl *ClientImpl) DeleteContract(programHash Uint168) error {
 	delete(cl.contracts, programHash)
 	return cl.DeleteContractData(BytesToHexString(programHash.ToArray()))
 }
@@ -652,7 +652,7 @@ func (cl *ClientImpl) SaveContract(ct *contract.Contract) error {
 
 // LoadContracts loads all contracts from db to memory
 func (cl *ClientImpl) LoadContracts() error {
-	contracts := map[Uint160]*ct.Contract{}
+	contracts := map[Uint168]*ct.Contract{}
 
 	contract, err := cl.LoadContractData()
 	if err != nil {
@@ -665,7 +665,7 @@ func (cl *ClientImpl) LoadContracts() error {
 		ct.Deserialize(rdreader)
 
 		programHash, _ := HexStringToBytes(c.ProgramHash)
-		programhash, _ := Uint160ParseFromBytes(programHash)
+		programhash, _ := Uint168ParseFromBytes(programHash)
 		ct.ProgramHash = programhash
 		contracts[ct.ProgramHash] = ct
 	}

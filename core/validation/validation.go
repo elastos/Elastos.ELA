@@ -28,7 +28,7 @@ func VerifySignableData(signableData sig.SignableData) (bool, error) {
 	for i := 0; i < len(programs); i++ {
 
 		//TODO:暂时先按此方式验证，以后改为按Code的结构确定是那种脚本以及对应的前缀
-		var temp Uint160
+		var temp Uint168
 		if hashes[i][0] == 18 {
 			temp, _ = ToCodeHash(programs[i].Code, 2)
 		} else if hashes[i][0] == 33 {

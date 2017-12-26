@@ -288,7 +288,7 @@ func GetBalanceByAddr(cmd map[string]interface{}) map[string]interface{} {
 		resp["Error"] = Err.INVALID_PARAMS
 		return resp
 	}
-	var programHash Uint160
+	var programHash Uint168
 	programHash, err := ToScriptHash(addr)
 	if err != nil {
 		resp["Error"] = Err.INVALID_PARAMS
@@ -312,7 +312,7 @@ func GetBalanceByAsset(cmd map[string]interface{}) map[string]interface{} {
 		resp["Error"] = Err.INVALID_PARAMS
 		return resp
 	}
-	var programHash Uint160
+	var programHash Uint168
 	programHash, err := ToScriptHash(addr)
 	if err != nil {
 		resp["Error"] = Err.INVALID_PARAMS
@@ -338,7 +338,7 @@ func GetUnspends(cmd map[string]interface{}) map[string]interface{} {
 		resp["Error"] = Err.INVALID_PARAMS
 		return resp
 	}
-	var programHash Uint160
+	var programHash Uint168
 
 	programHash, err := ToScriptHash(addr)
 	if err != nil {
@@ -383,7 +383,7 @@ func GetUnspendOutput(cmd map[string]interface{}) map[string]interface{} {
 		return resp
 	}
 
-	var programHash Uint160
+	var programHash Uint168
 	var assetHash Uint256
 	programHash, err := ToScriptHash(addr)
 	if err != nil {
@@ -535,7 +535,7 @@ func GetContract(cmd map[string]interface{}) map[string]interface{} {
 		resp["Error"] = Err.INVALID_PARAMS
 		return resp
 	}
-	var hash Uint160
+	var hash Uint168
 	err = hash.Deserialize(bytes.NewReader(bys))
 	if err != nil {
 		resp["Error"] = Err.INVALID_PARAMS

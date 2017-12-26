@@ -11,7 +11,7 @@ type TxOutput struct {
 	AssetID     common.Uint256
 	Value       common.Fixed64
 	OutputLock  uint32
-	ProgramHash common.Uint160
+	ProgramHash common.Uint168
 }
 
 func (o *TxOutput) Serialize(w io.Writer) {

@@ -8,12 +8,12 @@ import (
 )
 
 type AccountState struct {
-	ProgramHash common.Uint160
+	ProgramHash common.Uint168
 	IsFrozen bool
 	Balances map[common.Uint256]common.Fixed64
 }
 
-func NewAccountState(programHash common.Uint160, balances map[common.Uint256]common.Fixed64) *AccountState {
+func NewAccountState(programHash common.Uint168, balances map[common.Uint256]common.Fixed64) *AccountState {
 	var accountState AccountState
 	accountState.ProgramHash = programHash
 	accountState.Balances = balances

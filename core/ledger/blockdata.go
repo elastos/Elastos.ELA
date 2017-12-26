@@ -109,7 +109,7 @@ func (bd *Blockdata) DeserializeUnsigned(r io.Reader) error {
 	return nil
 }
 
-func (bd *Blockdata) GetProgramHashes() ([]Uint160, error) {
+func (bd *Blockdata) GetProgramHashes() ([]Uint168, error) {
 	return nil, nil
 }
 

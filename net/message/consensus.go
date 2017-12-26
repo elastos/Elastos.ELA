@@ -55,7 +55,7 @@ func (cp *ConsensusPayload) InvertoryType() common.InventoryType {
 	return common.CONSENSUS
 }
 
-func (cp *ConsensusPayload) GetProgramHashes() ([]common.Uint160, error) {
+func (cp *ConsensusPayload) GetProgramHashes() ([]common.Uint168, error) {
 	log.Debug()
 
 	if ledger.DefaultLedger == nil {
@@ -78,7 +78,7 @@ func (cp *ConsensusPayload) GetProgramHashes() ([]common.Uint160, error) {
 	//if err != nil {
 	//	return  nil, NewDetailErr(err, ErrNoCode, "[Consensus], ToCodeHash failed.")
 	//}
-	programhashes := []common.Uint160{}
+	programhashes := []common.Uint168{}
 	programhashes = append(programhashes, hash)
 	return programhashes, nil
 }

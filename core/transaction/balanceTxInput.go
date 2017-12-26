@@ -9,7 +9,7 @@ import (
 type BalanceTxInput struct {
 	AssetID common.Uint256
 	Value common.Fixed64
-	ProgramHash common.Uint160
+	ProgramHash common.Uint168
 }
 
 func (bi *BalanceTxInput) Serialize(w io.Writer)  {

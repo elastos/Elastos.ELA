@@ -16,7 +16,7 @@ type SignableData interface {
 	interfaces.ISignableObject
 
 	//Get the the SignableData's program hashes
-	GetProgramHashes() ([]common.Uint160, error)
+	GetProgramHashes() ([]common.Uint168, error)
 
 	SetPrograms([]*program.Program)
 

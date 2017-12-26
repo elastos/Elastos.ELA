@@ -34,7 +34,7 @@ func newBalanceTxInput(L *lua.LState) int {
 
 	//TODO programhash to address
 	programHashSlice, _ := hex.DecodeString(programHashStr)
-	var programHash Uint160
+	var programHash Uint168
 	copy(programHash[:], programHashSlice[0:20])
 
 	balance := &tx.BalanceTxInput{

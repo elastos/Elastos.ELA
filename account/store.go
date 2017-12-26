@@ -13,10 +13,10 @@ type IClientStore interface {
 
 	CreateAccount() (*Account, error)
 	CreateAccountByPrivateKey(privateKey []byte) (*Account, error)
-	LoadAccounts() map[Uint160]*Account
+	LoadAccounts() map[Uint168]*Account
 
 	CreateContract(account *Account) error
-	LoadContracts() map[Uint160]*ct.Contract
+	LoadContracts() map[Uint168]*ct.Contract
 
 	SaveHeight(height uint32) error
 	LoadHeight() (uint32, error)

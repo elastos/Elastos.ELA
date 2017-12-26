@@ -134,7 +134,7 @@ func (cs *FileStore) SaveAccountData(programHash []byte, encryptedPrivateKey []b
 		accountType = SUBACCOUNT
 	}
 
-	pHash, err := Uint160ParseFromBytes(programHash)
+	pHash, err := Uint168ParseFromBytes(programHash)
 	if err != nil {
 		return errors.New("invalid program hash")
 	}
@@ -287,7 +287,7 @@ func (cs *FileStore) SaveCoinsData(coins map[*transaction.UTXOTxInput]*Coin) err
 	return nil
 }
 
-func (cs *FileStore) DeleteCoinsData(programHash Uint160) error {
+func (cs *FileStore) DeleteCoinsData(programHash Uint168) error {
 	JSONData, err := cs.readDB()
 	if err != nil {
 		return errors.New("error: reading db")

@@ -137,7 +137,7 @@ func (b *Block) GetMessage() []byte {
 	return sig.GetHashData(b)
 }
 
-func (b *Block) GetProgramHashes() ([]Uint160, error) {
+func (b *Block) GetProgramHashes() ([]Uint168, error) {
 
 	return b.Blockdata.GetProgramHashes()
 }
@@ -191,7 +191,7 @@ func GenesisBlockInit() (*Block, error) {
 				AssetType: 0x00,
 			},
 			Amount:     0 * 100000000,
-			Controller: Uint160{},
+			Controller: Uint168{},
 		},
 		Attributes: []*tx.TxAttribute{},
 		UTXOInputs: []*tx.UTXOTxInput{},

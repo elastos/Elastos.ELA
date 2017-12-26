@@ -13,7 +13,7 @@ type ICode interface {
 
 	GetReturnTypes() []ContractParameterType
 
-	CodeHash() Uint160
+	CodeHash() Uint168
 
 }
 

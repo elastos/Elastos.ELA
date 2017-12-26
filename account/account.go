@@ -11,7 +11,7 @@ import (
 type Account struct {
 	PrivateKey  []byte
 	PublicKey   *crypto.PubKey
-	ProgramHash Uint160
+	ProgramHash Uint168
 }
 
 func NewAccount() (*Account, error) {

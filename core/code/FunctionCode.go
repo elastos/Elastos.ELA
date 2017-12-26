@@ -71,11 +71,11 @@ func (fc *FunctionCode) GetReturnTypes() []ContractParameterType {
 
 // method of ICode
 // Get the hash of the smart contract
-func (fc *FunctionCode) CodeHash() Uint160 {
+func (fc *FunctionCode) CodeHash() Uint168 {
 	hash,err := ToCodeHash(fc.Code, 1)
 	if err != nil {
 		log.Debug( fmt.Sprintf("[FunctionCode] ToCodeHash err=%s",err) )
-		return Uint160{0}
+		return Uint168{0}
 	}
 
 	return hash

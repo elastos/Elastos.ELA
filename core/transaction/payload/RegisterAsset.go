@@ -12,7 +12,7 @@ const RegisterPayloadVersion byte = 0x00
 type RegisterAsset struct {
 	Asset  *asset.Asset
 	Amount common.Fixed64
-	Controller common.Uint160
+	Controller common.Uint168
 }
 
 func (a *RegisterAsset) Data(version byte) []byte {
@@ -43,8 +43,8 @@ func (a *RegisterAsset) Deserialize(r io.Reader, version byte) error {
 		return NewDetailErr(err, ErrNoCode, "[RegisterAsset], Ammount Deserialize failed.")
 	}
 
-	//Controller *common.Uint160
-	a.Controller = *new(common.Uint160)
+	//Controller *common.Uint168
+	a.Controller = *new(common.Uint168)
 	err = a.Controller.Deserialize(r)
 	if err != nil {
 		return NewDetailErr(err, ErrNoCode, "[RegisterAsset], Ammount Deserialize failed.")

@@ -123,7 +123,7 @@ func (db *ChainStore) RollbackCurrentBlock(b *Block) error {
 }
 
 func (db *ChainStore) PersistUnspendUTXOs(b *Block) error {
-	unspendUTXOs := make(map[Uint160]map[Uint256]map[uint32][]*tx.UTXOUnspent)
+	unspendUTXOs := make(map[Uint168]map[Uint256]map[uint32][]*tx.UTXOUnspent)
 	curHeight := b.Blockdata.Height
 
 	for _, txn := range b.Transactions {
@@ -221,7 +221,7 @@ func (db *ChainStore) PersistUnspendUTXOs(b *Block) error {
 }
 
 func (db *ChainStore) RollbackUnspendUTXOs(b *Block) error {
-	unspendUTXOs := make(map[Uint160]map[Uint256]map[uint32][]*tx.UTXOUnspent)
+	unspendUTXOs := make(map[Uint168]map[Uint256]map[uint32][]*tx.UTXOUnspent)
 	height := b.Blockdata.Height
 	for _, txn := range b.Transactions {
 		if txn.TxType == tx.RegisterAsset {

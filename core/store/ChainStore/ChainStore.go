@@ -896,7 +896,7 @@ func (bd *ChainStore) IsBlockInStore(hash Uint256) bool {
 	return true
 }
 
-func (bd *ChainStore) GetUnspentElementFromProgramHash(programHash Uint160, assetid Uint256, height uint32) ([]*tx.UTXOUnspent, error) {
+func (bd *ChainStore) GetUnspentElementFromProgramHash(programHash Uint168, assetid Uint256, height uint32) ([]*tx.UTXOUnspent, error) {
 	prefix := []byte{byte(IX_Unspent_UTXO)}
 	prefix = append(prefix, programHash.ToArray()...)
 	prefix = append(prefix, assetid.ToArray()...)
@@ -930,7 +930,7 @@ func (bd *ChainStore) GetUnspentElementFromProgramHash(programHash Uint160, asse
 	return unspents, nil
 }
 
-func (bd *ChainStore) GetUnspentFromProgramHash(programHash Uint160, assetid Uint256) ([]*tx.UTXOUnspent, error) {
+func (bd *ChainStore) GetUnspentFromProgramHash(programHash Uint168, assetid Uint256) ([]*tx.UTXOUnspent, error) {
 	unspents := make([]*tx.UTXOUnspent, 0)
 
 	key := []byte{byte(IX_Unspent_UTXO)}
@@ -959,7 +959,7 @@ func (bd *ChainStore) GetUnspentFromProgramHash(programHash Uint160, assetid Uin
 	return unspents, nil
 
 }
-func (bd *ChainStore) GetUnspentsFromProgramHash(programHash Uint160) (map[Uint256][]*tx.UTXOUnspent, error) {
+func (bd *ChainStore) GetUnspentsFromProgramHash(programHash Uint168) (map[Uint256][]*tx.UTXOUnspent, error) {
 	uxtoUnspents := make(map[Uint256][]*tx.UTXOUnspent)
 
 	prefix := []byte{byte(IX_Unspent_UTXO)}
@@ -970,7 +970,7 @@ func (bd *ChainStore) GetUnspentsFromProgramHash(programHash Uint160) (map[Uint2
 
 		// read prefix
 		_, _ = serialization.ReadBytes(rk, 1)
-		var ph Uint160
+		var ph Uint168
 		ph.Deserialize(rk)
 		var assetid Uint256
 		assetid.Deserialize(rk)
@@ -998,7 +998,7 @@ func (bd *ChainStore) GetUnspentsFromProgramHash(programHash Uint160) (map[Uint2
 	return uxtoUnspents, nil
 }
 
-func (bd *ChainStore) PersistUnspentWithProgramHash(programHash Uint160, assetid Uint256, height uint32, unspents []*tx.UTXOUnspent) error {
+func (bd *ChainStore) PersistUnspentWithProgramHash(programHash Uint168, assetid Uint256, height uint32, unspents []*tx.UTXOUnspent) error {
 	prefix := []byte{byte(IX_Unspent_UTXO)}
 	prefix = append(prefix, programHash.ToArray()...)
 	prefix = append(prefix, assetid.ToArray()...)

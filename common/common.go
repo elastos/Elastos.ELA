@@ -12,7 +12,7 @@ import (
 	"os"
 )
 
-func ToCodeHash(code []byte, signType int) (Uint160, error) {
+func ToCodeHash(code []byte, signType int) (Uint168, error) {
 	temp := sha256.Sum256(code)
 	md := ripemd160.New()
 	io.WriteString(md, string(temp[:]))
@@ -24,9 +24,9 @@ func ToCodeHash(code []byte, signType int) (Uint160, error) {
 		f = append([]byte{18}, f...)
 	}
 
-	hash, err := Uint160ParseFromBytes(f)
+	hash, err := Uint168ParseFromBytes(f)
 	if err != nil {
-		return Uint160{}, NewDetailErr(errors.New("[Common] , ToCodeHash err."), ErrNoCode, "")
+		return Uint168{}, NewDetailErr(errors.New("[Common] , ToCodeHash err."), ErrNoCode, "")
 	}
 	return hash, nil
 }

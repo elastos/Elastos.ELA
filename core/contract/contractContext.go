@@ -14,7 +14,7 @@ import (
 
 type ContractContext struct {
 	Data          sig.SignableData
-	ProgramHashes []Uint160
+	ProgramHashes []Uint168
 	Codes         [][]byte
 	Parameters    [][][]byte
 
@@ -183,7 +183,7 @@ func (cxt *ContractContext) ParseContractPubKeys(contract *Contract) (map[string
 	return pubkeyIndex, nil
 }
 
-func (cxt *ContractContext) GetIndex(programHash Uint160) int {
+func (cxt *ContractContext) GetIndex(programHash Uint168) int {
 	for i := 0; i < len(cxt.ProgramHashes); i++ {
 		if cxt.ProgramHashes[i] == programHash {
 			return i

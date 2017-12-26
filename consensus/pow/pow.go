@@ -429,14 +429,10 @@ out:
 		}
 
 		// push notifyed message into ZMQ
-		generateStatus := true
-		if true == generateStatus {
 			pow.ZMQPublish <- true
-		}
 
-		isAuxPow := config.Parameters.PowConfiguration.CoMining
 		//begin to mine the block with POW
-		if generateStatus && !isAuxPow && pow.SolveBlock(msgBlock, ticker) {
+		if pow.SolveBlock(msgBlock, ticker) {
 			//send the valid block to p2p networkd
 			if msgBlock.Blockdata.Height == ledger.DefaultLedger.Blockchain.GetBestHeight()+1 {
 				inMainChain, isOrphan, err := ledger.DefaultLedger.Blockchain.AddBlock(msgBlock)

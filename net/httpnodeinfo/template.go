@@ -40,7 +40,7 @@ const page = `
 <td width="80%">
 	<table class="font" width="100%">
 	<tr><td colspan="1" width="25%">Node Version:</td><td width="25%">{{.NodeVersion}}</td><td width="25%">NodeID:</td><td width="25%">{{.NodeId}}</td></tr>
-	<tr><td width="25%">NodeType:</td><td width="25%">{{.NodeType}}</td><td width="25%">NodePort:</td><td width="25%">{{.NodePort}}</td></tr>
+	<tr><td width="25%">NodePort:</td><td width="25%">{{.NodePort}}</td></tr>
 	<tr><td width="25%">HttpRestPort:</td><td width="25%">{{.HttpRestPort}}</td><td width="25%">HttpWsPort:</td><td width="25%">{{.HttpWsPort}}</td></tr>
 	<tr><td width="25%">HttpJsonPort:</td><td width="25%">{{.HttpJsonPort}}</td></tr>
 	</table>
@@ -64,12 +64,12 @@ const page = `
 </td>
 <td width="80%">
 	<table class="font" width="100%">
-	<tr><th>Neighbor IP</th><th>Neighbor Id</th><th>Neighbor Type</th></tr>
+	<tr><th>Neighbor IP</th><th>Neighbor Id</th></tr>
 	{{range .Neighbors}}
 	{{if .HttpInfoStart}}
-	<tr><td align="center">{{.NgbAddr}}</td><td align="center"><a href="http://{{.HttpInfoAddr}}/info" style="cursor:hand">{{.NgbId}}</a></td><td align="center">{{.NgbType}}</td></tr>
+	<tr><td align="center">{{.NgbAddr}}</td><td align="center"><a href="http://{{.HttpInfoAddr}}/info" style="cursor:hand">{{.NgbId}}</a></td></tr>
 	{{else}}
-	<tr><td align="center">{{.NgbAddr}}</td><td align="center">{{.NgbId}}</td><td align="center">{{.NgbType}}</td></tr>
+	<tr><td align="center">{{.NgbAddr}}</td><td align="center">{{.NgbId}}</td></tr>
 	{{end}}
 	{{end}}
 	</table>

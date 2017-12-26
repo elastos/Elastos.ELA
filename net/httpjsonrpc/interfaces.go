@@ -437,13 +437,10 @@ func createAuxBlock(params []interface{}) map[string]interface{} {
 func getInfo(params []interface{}) map[string]interface{} {
 	RetVal := struct {
 		Version         int    `json:"version"`
-		ProtocolVersion int    `json:"protocolversion"`
-		WalletVersion   int    `json:"walletversion"`
 		Balance         int    `json:"balance"`
 		Blocks          uint64 `json:"blocks"`
 		Timeoffset      int    `json:"timeoffset"`
 		Connections     uint   `json:"connections"`
-		Proxy           string `json:"proxy"`
 		//Difficulty      int    `json:"difficulty"`
 		Testnet        bool   `json:"testnet"`
 		Keypoololdest  int    `json:"keypoololdest"`
@@ -454,13 +451,10 @@ func getInfo(params []interface{}) map[string]interface{} {
 		Errors         string `json:"errors"`
 	}{
 		Version:         config.Parameters.Version,
-		ProtocolVersion: config.Parameters.PowConfiguration.ProtocolVersion,
-		WalletVersion:   config.Parameters.PowConfiguration.WalletVersion,
 		Balance:         0,
 		Blocks:          node.GetHeight(),
 		Timeoffset:      0,
 		Connections:     node.GetConnectionCnt(),
-		Proxy:           config.Parameters.PowConfiguration.Proxy,
 		//Difficulty:      ledger.PowLimitBits,
 		Testnet:        config.Parameters.PowConfiguration.TestNet,
 		Keypoololdest:  0,

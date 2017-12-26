@@ -181,11 +181,6 @@ func NewNode() *node {
 func InitNode(pubKey *crypto.PubKey) Noder {
 	n := NewNode()
 	n.version = PROTOCOLVERSION
-	if Parameters.NodeType == SERVICENODENAME {
-		n.services = uint64(SERVICENODE)
-	} else if Parameters.NodeType == VERIFYNODENAME {
-		n.services = uint64(VERIFYNODE)
-	}
 
 	if Parameters.MaxHdrSyncReqs <= 0 {
 		n.SyncBlkReqSem = MakeSemaphore(MAXSYNCHDRREQ)

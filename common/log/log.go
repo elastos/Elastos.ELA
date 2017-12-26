@@ -337,7 +337,7 @@ func Init(a ...interface{}) {
 		}
 	}
 	fileAndStdoutWrite := io.MultiWriter(writers...)
-	var printlevel int = config.Parameters.PrintLevel
+	var printlevel = config.Parameters.PrintLevel
 	Log = New(fileAndStdoutWrite, "", log.Ldate|log.Lmicroseconds, printlevel, logFile)
 }
 

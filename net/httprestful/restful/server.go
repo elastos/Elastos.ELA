@@ -76,8 +76,7 @@ func (rt *restServer) Start() error {
 		return nil
 	}
 
-	tlsFlag := false
-	if tlsFlag || Parameters.HttpRestPort%1000 == TlsPort {
+	if Parameters.HttpRestPort%1000 == TlsPort {
 		var err error
 		rt.listener, err = rt.initTlsListen()
 		if err != nil {

@@ -19,7 +19,7 @@ const (
 var (
 	Parameters configParams
 	Version    string
-	mainNet    *ChainParams = &ChainParams{
+	mainNet = &ChainParams{
 		Name:               "MainNet",
 		PowLimit:           new(big.Int).Sub(new(big.Int).Lsh(big.NewInt(1), 255), big.NewInt(1)),
 		PowLimitBits:       0x1f0008ff,
@@ -30,7 +30,7 @@ var (
 		MinMemoryNodes:     20160,
 		SpendCoinbaseSpan:  100,
 	}
-	testNet *ChainParams = &ChainParams{
+	testNet = &ChainParams{
 		Name:               "TestNet",
 		PowLimit:           new(big.Int).Sub(new(big.Int).Lsh(big.NewInt(1), 255), big.NewInt(1)),
 		PowLimitBits:       0x1e1da5ff,
@@ -41,7 +41,7 @@ var (
 		MinMemoryNodes:     20160,
 		SpendCoinbaseSpan:  100,
 	}
-	regNet *ChainParams = &ChainParams{
+	regNet = &ChainParams{
 		Name:               "RegNet",
 		PowLimit:           new(big.Int).Sub(new(big.Int).Lsh(big.NewInt(1), 255), big.NewInt(1)),
 		PowLimitBits:       0x207fffff,
@@ -55,16 +55,11 @@ var (
 )
 
 type PowConfiguration struct {
-	Switch           string `json:"Switch"`
 	PayToAddr        string `json:"PayToAddr"`
 	MiningServerIP   string `josn:"MiningServerIP"`
 	MiningServerPort int    `josn:"MiningServerPort"`
 	MiningSelfPort   int    `josn:"MiningSelfPort"`
-	WalletVersion    int    `json:"WalletVersion"`
-	ProtocolVersion  int    `json:"ProtocolVersion"`
 	TestNet          bool   `json:"testnet"`
-	Proxy            string `json:"Proxy"`
-	CoMining         bool   `json:"CoMining"`
 	AutoMining       bool   `json:"AutoMining"`
 	MinerInfo        string `json:"MinerInfo"`
 	MinTxFee         int    `json:"MinTxFee"`
@@ -86,7 +81,6 @@ type Configuration struct {
 	OauthServerUrl      string           `json:"OauthServerUrl"`
 	NoticeServerUrl     string           `json:"NoticeServerUrl"`
 	NodePort            int              `json:"NodePort"`
-	NodeType            string           `json:"NodeType"`
 	WebSocketPort       int              `json:"WebSocketPort"`
 	PrintLevel          int              `json:"PrintLevel"`
 	IsTLS               bool             `json:"IsTLS"`
@@ -95,11 +89,9 @@ type Configuration struct {
 	CAPath              string           `json:"CAPath"`
 	GenBlockTime        uint             `json:"GenBlockTime"`
 	MultiCoreNum        uint             `json:"MultiCoreNum"`
-	EncryptAlg          string           `json:"EncryptAlg"`
 	MaxLogSize          int64            `json:"MaxLogSize"`
 	MaxTxInBlock        int              `json:"MaxTransactionInBlock"`
 	MaxBlockSize        int              `json:"MaxBlockSize"`
-	ConsensusType       string           `json:"ConsensusType"`
 	PowConfiguration    PowConfiguration `json:"PowConfiguration"`
 	MaxHdrSyncReqs      int              `json:"MaxConcurrentSyncHeaderReqs"`
 	DefaultMaxPeers     uint             `json:"DefaultMaxPeers"`

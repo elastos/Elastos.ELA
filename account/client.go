@@ -25,7 +25,6 @@ import (
 	"Elastos.ELA/crypto"
 	. "Elastos.ELA/errors"
 	"Elastos.ELA/events/signalset"
-	"Elastos.ELA/net/protocol"
 )
 
 const (
@@ -715,14 +714,6 @@ func (client *ClientImpl) DeleteCoins() error {
 		}
 	}
 	return nil
-}
-
-func nodeType(typeName string) int {
-	if "service" == config.Parameters.NodeType {
-		return protocol.SERVICENODE
-	} else {
-		return protocol.VERIFYNODE
-	}
 }
 
 func GetClient() Client {

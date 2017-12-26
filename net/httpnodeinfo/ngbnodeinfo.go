@@ -4,7 +4,6 @@ import "strings"
 
 type NgbNodeInfo struct {
 	NgbId         string
-	NgbType       string
 	NgbAddr       string
 	HttpInfoAddr  string
 	HttpInfoPort  int

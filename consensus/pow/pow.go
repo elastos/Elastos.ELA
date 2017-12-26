@@ -46,15 +46,15 @@ type msgBlock struct {
 }
 
 type PowService struct {
-	PayToAddr      string
-	MsgBlock       msgBlock
-	ZMQPublish     chan bool
-	Mutex          sync.Mutex
-	Client         cl.Client
-	logDictionary  string
-	started        bool
-	discreteMining bool
-	localNet       protocol.Noder
+	PayToAddr     string
+	MsgBlock      msgBlock
+	ZMQPublish    chan bool
+	Mutex         sync.Mutex
+	Client        cl.Client
+	logDictionary string
+	started       bool
+	manualMining  bool
+	localNet      protocol.Noder
 
 	blockPersistCompletedSubscriber events.Subscriber
 	RollbackTransactionSubscriber   events.Subscriber
@@ -230,16 +230,16 @@ func (pow *PowService) GenerateBlock(addr string) (*ledger.Block, error) {
 	return msgBlock, err
 }
 
-func (pow *PowService) DiscreteMining(n uint32) ([]*Uint256, error) {
+func (pow *PowService) ManualMining(n uint32) ([]*Uint256, error) {
 	pow.Mutex.Lock()
 
-	if pow.started || pow.discreteMining {
+	if pow.started || pow.manualMining {
 		pow.Mutex.Unlock()
 		return nil, errors.New("Server is already CPU mining.")
 	}
 
 	pow.started = true
-	pow.discreteMining = true
+	pow.manualMining = true
 	pow.Mutex.Unlock()
 
 	log.Tracef("Pow generating %d blocks", n)
@@ -249,7 +249,7 @@ func (pow *PowService) DiscreteMining(n uint32) ([]*Uint256, error) {
 	defer ticker.Stop()
 
 	for {
-		log.Trace("<================Discrete Mining==============>\n")
+		log.Trace("<================Manual Mining==============>\n")
 
 		msgBlock, err := pow.GenerateBlock(pow.PayToAddr)
 		if err != nil {
@@ -275,7 +275,7 @@ func (pow *PowService) DiscreteMining(n uint32) ([]*Uint256, error) {
 				if i == n {
 					pow.Mutex.Lock()
 					pow.started = false
-					pow.discreteMining = false
+					pow.manualMining = false
 					pow.Mutex.Unlock()
 					return blockHashes, nil
 				}
@@ -321,7 +321,7 @@ func (pow *PowService) BroadcastBlock(MsgBlock *ledger.Block) error {
 func (pow *PowService) Start() error {
 	pow.Mutex.Lock()
 	defer pow.Mutex.Unlock()
-	if pow.started || pow.discreteMining {
+	if pow.started || pow.manualMining {
 		log.Trace("cpuMining is already started")
 		return nil
 	}
@@ -330,15 +330,6 @@ func (pow *PowService) Start() error {
 	pow.wg.Add(1)
 	pow.started = true
 
-	//pow.blockPersistCompletedSubscriber = ledger.DefaultLedger.Blockchain.BCEvents.Subscribe(events.EventBlockPersistCompleted, pow.BlockPersistCompleted)
-	//pow.RollbackTransactionSubscriber = ledger.DefaultLedger.Blockchain.BCEvents.Subscribe(events.EventRollbackTransaction, pow.RollbackTransaction)
-
-	//fstBookking, _ := HexToBytes(config.Parameters.BookKeepers[0])
-	//acct, _ := pow.Client.GetDefaultAccount()
-	//dftPubkey, _ := acct.PubKey().EncodePoint(true)
-	//if IsEqualBytes(fstBookking, dftPubkey) {
-	//	go pow.cpuMining()
-	//}
 	go pow.cpuMining()
 
 	return nil
@@ -350,7 +341,7 @@ func (pow *PowService) Halt() error {
 	pow.Mutex.Lock()
 	defer pow.Mutex.Unlock()
 
-	if !pow.started || pow.discreteMining {
+	if !pow.started || pow.manualMining {
 		return nil
 	}
 
@@ -389,14 +380,14 @@ func (pow *PowService) BlockPersistCompleted(v interface{}) {
 
 func NewPowService(client cl.Client, logDictionary string, localNet protocol.Noder) *PowService {
 	pow := &PowService{
-		PayToAddr:      config.Parameters.PowConfiguration.PayToAddr,
-		Client:         client,
-		started:        false,
-		discreteMining: false,
-		MsgBlock:       msgBlock{BlockData: make(map[string]*ledger.Block)},
-		ZMQPublish:     make(chan bool, 1),
-		localNet:       localNet,
-		logDictionary:  logDictionary,
+		PayToAddr:     config.Parameters.PowConfiguration.PayToAddr,
+		Client:        client,
+		started:       false,
+		manualMining:  false,
+		MsgBlock:      msgBlock{BlockData: make(map[string]*ledger.Block)},
+		ZMQPublish:    make(chan bool, 1),
+		localNet:      localNet,
+		logDictionary: logDictionary,
 	}
 
 	pow.blockPersistCompletedSubscriber = ledger.DefaultLedger.Blockchain.BCEvents.Subscribe(events.EventBlockPersistCompleted, pow.BlockPersistCompleted)

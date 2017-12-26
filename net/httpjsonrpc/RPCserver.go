@@ -38,7 +38,7 @@ func StartRPCServer() {
 	HandleFunc("submitauxblock", submitAuxBlock)
 	HandleFunc("createauxblock", createAuxBlock)
 	HandleFunc("togglecpumining", toggleCpuMining)
-	HandleFunc("discretemining", discreteCpuMining)
+	HandleFunc("manualmining", manualCpuMining)
 
 	// wallet interfaces
 	HandleFunc("addaccount", addAccount)

@@ -256,7 +256,7 @@ func toggleMining(L *lua.LState) int {
 
 func DiscreteMining(L *lua.LState) int {
 	numBlocks := L.ToInt(1)
-	resp, _ := httpjsonrpc.Call(Address(), "discretemining", 0, []interface{}{numBlocks})
+	resp, _ := httpjsonrpc.Call(Address(), "manualmining", 0, []interface{}{numBlocks})
 	FormatOutput(resp)
 
 	return 0

@@ -15,7 +15,7 @@ func miningAction(c *cli.Context) (err error) {
 	}
 
 	toggle := c.Bool("toggle")
-	discrete := c.Bool("discrete")
+	manual := c.Bool("manual")
 	if toggle {
 		control := c.String("control")
 		var isMining bool
@@ -31,12 +31,12 @@ func miningAction(c *cli.Context) (err error) {
 		return nil
 	}
 
-	if discrete {
+	if manual {
 		numBlocks := c.Int("num")
 		if numBlocks < 1 {
 			return errors.New("argument 'num' is must be larger than 0")
 		}
-		resp, _ := httpjsonrpc.Call(Address(), "discretemining", 0, []interface{}{numBlocks})
+		resp, _ := httpjsonrpc.Call(Address(), "manualmining", 0, []interface{}{numBlocks})
 		FormatOutput(resp)
 		return nil
 	}
@@ -60,8 +60,8 @@ func NewCommand() *cli.Command {
 				Usage: "control mining",
 			},
 			cli.BoolFlag{
-				Name:  "discrete, d",
-				Usage: "discrete mining",
+				Name:  "manual, m",
+				Usage: "manual mining",
 			},
 			cli.IntFlag{
 				Name:  "num, n",

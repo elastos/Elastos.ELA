@@ -547,7 +547,7 @@ func toggleCpuMining(params []interface{}) map[string]interface{} {
 	return ElaRpcSuccess
 }
 
-func discreteCpuMining(params []interface{}) map[string]interface{} {
+func manualCpuMining(params []interface{}) map[string]interface{} {
 	var numBlocks uint32
 	switch params[0].(type) {
 	case float64:
@@ -562,7 +562,7 @@ func discreteCpuMining(params []interface{}) map[string]interface{} {
 
 	ret := make([]string, numBlocks)
 
-	blockHashes, err := Pow.DiscreteMining(numBlocks)
+	blockHashes, err := Pow.ManualMining(numBlocks)
 	if err != nil {
 		return ElaRpcFailed
 	}

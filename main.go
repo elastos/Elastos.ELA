@@ -55,15 +55,13 @@ func handleLogFile() {
 
 }
 
-func startConsensus(client account.Client, noder protocol.Noder) bool {
+func startConsensus(client account.Client, noder protocol.Noder) {
 	log.Info("Start POW Services")
 	powServices := pow.NewPowService(client, "logPow", noder)
 	httpjsonrpc.RegistPowService(powServices)
 	if config.Parameters.PowConfiguration.AutoMining {
 		go powServices.Start()
 	}
-	return true
-
 }
 
 func main() {
@@ -107,9 +105,7 @@ func main() {
 	time.Sleep(3 * time.Second)
 	noder.StartSync()
 	noder.SyncNodeHeight()
-	if !startConsensus(client, noder) {
-		goto ERROR
-	}
+	startConsensus(client, noder)
 
 	handleLogFile()
 

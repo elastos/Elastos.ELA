@@ -330,15 +330,6 @@ func (pow *PowService) Start() error {
 	pow.wg.Add(1)
 	pow.started = true
 
-	//pow.blockPersistCompletedSubscriber = ledger.DefaultLedger.Blockchain.BCEvents.Subscribe(events.EventBlockPersistCompleted, pow.BlockPersistCompleted)
-	//pow.RollbackTransactionSubscriber = ledger.DefaultLedger.Blockchain.BCEvents.Subscribe(events.EventRollbackTransaction, pow.RollbackTransaction)
-
-	//fstBookking, _ := HexToBytes(config.Parameters.BookKeepers[0])
-	//acct, _ := pow.Client.GetDefaultAccount()
-	//dftPubkey, _ := acct.PubKey().EncodePoint(true)
-	//if IsEqualBytes(fstBookking, dftPubkey) {
-	//	go pow.cpuMining()
-	//}
 	go pow.cpuMining()
 
 	return nil

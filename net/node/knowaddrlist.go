@@ -87,7 +87,7 @@ func (ka *KnownAddress) chance() float64 {
 // worth keeping hold of.
 func (ka *KnownAddress) isBad() bool {
 	// just tried in one minute? This isn't suitable for very few peers.
-	//if ka.lastattempt.After(time.Now().Add(-1 * time.Minute)) {
+	//if ka.lastattempt.After(Time.Now().Add(-1 * Time.Minute)) {
 	//	return true
 	//}
 
@@ -97,7 +97,7 @@ func (ka *KnownAddress) isBad() bool {
 	}
 
 	// Just disconnected in one minute? This isn't suitable for very few peers.
-	//if ka.lastDisconnect.After(time.Now().Add(-1 * time.Minute)) {
+	//if ka.lastDisconnect.After(Time.Now().Add(-1 * Time.Minute)) {
 	//	return true
 	//}
 
@@ -215,7 +215,7 @@ func (al *KnownAddressList) RandGetAddresses(nbrAddrs []NodeAddr) []NodeAddr {
 	addrLen := len(keys)
 	var i int
 	addrs := []NodeAddr{}
-	if MAXOUTBOUNDCNT-len(nbrAddrs) > addrLen {
+	if MaxOutBoundCount-len(nbrAddrs) > addrLen {
 		for _, v := range keys {
 			ka, ok := al.List[v]
 			if !ok {
@@ -228,7 +228,7 @@ func (al *KnownAddressList) RandGetAddresses(nbrAddrs []NodeAddr) []NodeAddr {
 	} else {
 		order := rand.Perm(addrLen)
 		var count int
-		count = MAXOUTBOUNDCNT - len(nbrAddrs)
+		count = MaxOutBoundCount - len(nbrAddrs)
 		for i = 0; i < count; i++ {
 			for j, v := range keys {
 				if j == order[j] {
@@ -260,10 +260,10 @@ func (al *KnownAddressList) RandSelectAddresses() []NodeAddr {
 	addrLen := len(keys)
 
 	var count int
-	if MAXOUTBOUNDCNT > addrLen {
+	if MaxOutBoundCount > addrLen {
 		count = addrLen
 	} else {
-		count = MAXOUTBOUNDCNT
+		count = MaxOutBoundCount
 	}
 	for i, v := range keys {
 		if i < count {

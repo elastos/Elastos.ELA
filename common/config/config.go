@@ -87,18 +87,11 @@ type Configuration struct {
 	CertPath            string           `json:"CertPath"`
 	KeyPath             string           `json:"KeyPath"`
 	CAPath              string           `json:"CAPath"`
-	GenBlockTime        uint             `json:"GenBlockTime"`
 	MultiCoreNum        uint             `json:"MultiCoreNum"`
 	MaxLogSize          int64            `json:"MaxLogSize"`
 	MaxTxInBlock        int              `json:"MaxTransactionInBlock"`
 	MaxBlockSize        int              `json:"MaxBlockSize"`
 	PowConfiguration    PowConfiguration `json:"PowConfiguration"`
-	MaxHdrSyncReqs      int              `json:"MaxConcurrentSyncHeaderReqs"`
-	DefaultMaxPeers     uint             `json:"DefaultMaxPeers"`
-	GetAddrMax          uint             `json:"GetAddrMax"`
-	MaxOutboundCnt      uint             `json:"MaxOutboundCnt"`
-	//AddCheckpoints format: "<height>:<hash>"
-	AddCheckpoints []string `json:"AddCheckpoints"`
 }
 
 type ConfigFile struct {

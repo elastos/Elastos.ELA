@@ -12,11 +12,11 @@ import (
 	"Elastos.ELA/core/ledger"
 	"Elastos.ELA/core/store/ChainStore"
 	"Elastos.ELA/core/transaction"
-	"Elastos.ELA/net"
 	"Elastos.ELA/net/httpjsonrpc"
 	"Elastos.ELA/net/httpnodeinfo"
 	"Elastos.ELA/net/httprestful"
 	"Elastos.ELA/net/httpwebsocket"
+	"Elastos.ELA/net/node"
 	"Elastos.ELA/net/protocol"
 )
 
@@ -56,11 +56,10 @@ func handleLogFile() {
 }
 
 func startConsensus(client account.Client, noder protocol.Noder) {
-	log.Info("Start POW Services")
-	powServices := pow.NewPowService(client, "logPow", noder)
-	httpjsonrpc.RegistPowService(powServices)
+	httpjsonrpc.Pow = pow.NewPowService(client, "logPow", noder)
 	if config.Parameters.PowConfiguration.AutoMining {
-		go powServices.Start()
+		log.Info("Start POW Services")
+		go httpjsonrpc.Pow.Start()
 	}
 }
 
@@ -100,11 +99,10 @@ func main() {
 	}
 	httpjsonrpc.Wallet = client
 	log.Info("3. Start the P2P networks")
-	noder = net.StartProtocol(acct.PublicKey)
+	noder = node.InitNode(acct.PublicKey)
+	noder.WaitForSyncFinish()
+
 	httpjsonrpc.RegistRpcNode(noder)
-	time.Sleep(3 * time.Second)
-	noder.StartSync()
-	noder.SyncNodeHeight()
 	startConsensus(client, noder)
 
 	handleLogFile()

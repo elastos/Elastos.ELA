@@ -202,23 +202,9 @@ func (msg headersReq) Handle(node Noder) error {
 }
 
 func SendMsgSyncHeaders(node Noder, startHash common.Uint256) {
-	nextCheckpointHash, err := node.LocalNode().GetNextCheckpointHash()
 	var emptyHash common.Uint256
-	if (bytes.Equal(emptyHash[:], nextCheckpointHash[:])) || (bytes.Equal(startHash[:], nextCheckpointHash[:])) {
-		log.Debug("no more checkpoint")
-		node.LocalNode().SetHeaderFirstMode(false)
-		blocator := ledger.DefaultLedger.Blockchain.BlockLocatorFromHash(&startHash)
-		SendMsgSyncBlockHeaders(node, blocator, emptyHash)
-		return
-	}
-	buf, err := NewHeadersReq(startHash, nextCheckpointHash)
-	if err != nil {
-		log.Error("failed build a new headersReq")
-	} else {
-		node.LocalNode().SetSyncHeaders(true)
-		node.SetSyncHeaders(true)
-		go node.Tx(buf)
-	}
+	blocator := ledger.DefaultLedger.Blockchain.BlockLocatorFromHash(&startHash)
+	SendMsgSyncBlockHeaders(node, blocator, emptyHash)
 }
 
 func (msg blkHeader) sendGetDataReq(node Noder) {
@@ -231,13 +217,6 @@ func (msg blkHeader) sendGetDataReq(node Noder) {
 			}
 		}
 	}
-}
-
-func ReqBlkHdrFromOthers(node Noder) {
-	//node.SetSyncFailed()
-	n := node.LocalNode().GetBestHeightNoder()
-	hash := ledger.DefaultLedger.Store.GetCurrentBlockHash()
-	SendMsgSyncHeaders(n, hash)
 }
 
 func (msg blkHeader) Handle(node Noder) error {
@@ -263,28 +242,6 @@ func (msg blkHeader) Handle(node Noder) error {
 		conn := node.GetConn()
 		conn.Close()
 		return errors.New("Add block Header error, send new header request to another node\n")
-	}
-	receivedCheckpoint := false
-	nextCheckpointHeight, err := node.LocalNode().GetNextCheckpointHeight()
-	nextCheckpointHash, err := node.LocalNode().GetNextCheckpointHash()
-	for i := 0; i < len(msg.blkHdr); i++ {
-		if err == nil {
-			if uint64(msg.blkHdr[i].Blockdata.Height) == nextCheckpointHeight {
-				msgBlkHash := msg.blkHdr[i].Blockdata.Hash()
-				if bytes.Equal(msgBlkHash[:], nextCheckpointHash[:]) == true {
-					receivedCheckpoint = true
-				} else {
-					node.SetState(INACTIVITY)
-					conn := node.GetConn()
-					conn.Close()
-				}
-				break
-			}
-		}
-	}
-	if receivedCheckpoint {
-		fetchHeaderBlocks(node)
-		return nil
 	}
 
 	//msg.sendGetDataReq(node)

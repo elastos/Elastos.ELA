@@ -150,12 +150,6 @@ func RegistRpcNode(n Noder) {
 	}
 }
 
-func RegistPowService(p *pow.PowService) {
-	if Pow == nil {
-		Pow = p
-	}
-}
-
 //a function to register functions to be called for specific rpc calls
 func HandleFunc(pattern string, handler func([]interface{}) map[string]interface{}) {
 	mainMux.Lock()

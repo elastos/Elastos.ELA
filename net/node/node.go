@@ -2,7 +2,6 @@ package node
 
 import (
 	. "Elastos.ELA/common"
-	"Elastos.ELA/common/config"
 	. "Elastos.ELA/common/config"
 	"Elastos.ELA/common/log"
 	"Elastos.ELA/core/ledger"
@@ -47,49 +46,31 @@ type node struct {
 	rxTxnCnt  uint64   // The transaction received by this node
 	publicKey *crypto.PubKey
 	// TODO does this channel should be a buffer channel
-	chF        chan func() error // Channel used to operate the node without lock
-	link                         // The link status and infomation
-	local      *node             // The pointer to local node
-	nbrNodes                     // The neighbor node connect with currently node except itself
-	eventQueue                   // The event queue to notice notice other modules
-	TXNPool                      // Unconfirmed transaction pool
-	idCache                      // The buffer to store the id of the items which already be processed
+	chF   chan func() error // Channel used to operate the node without lock
+	link                    // The link status and infomation
+	local *node             // The pointer to local node
+	nbrNodes                // The neighbor node connect with currently node except itself
+	eventQueue              // The event queue to notice notice other modules
+	TXNPool                 // Unconfirmed transaction pool
+	idCache                 // The buffer to store the id of the items which already be processed
 	/*
 	 * |--|--|--|--|--|--|isSyncFailed|isSyncHeaders|
 	 */
 	syncFlag                 uint8
 	flagLock                 sync.RWMutex
-	flightHeights            []uint32
 	cachelock                sync.RWMutex
-	flightlock               sync.RWMutex
-	invHashLock              sync.RWMutex
 	requestedBlockLock       sync.RWMutex
-	lastContact              time.Time
 	nodeDisconnectSubscriber events.Subscriber
-	tryTimes                 uint32
 	cachedHashes             []Uint256
 	ConnectingNodes
-	RetryConnAddrs
 	KnownAddressList
-	MaxOutboundCnt     uint
-	DefaultMaxPeers    uint
-	GetAddrMax         uint
-	TxNotifyChan       chan int
-	headerFirstMode    bool
-	invRequestHashes   []Uint256
-	RequestedBlockList map[Uint256]time.Time
-	// Checkpoints ordered from oldest to newest.
-	NextCheckpoint *Checkpoint
-	IsStartSync    bool
+	DefaultMaxPeers          uint
+	headerFirstMode          bool
+	RequestedBlockList       map[Uint256]time.Time
 	SyncBlkReqSem  Semaphore
 	SyncHdrReqSem  Semaphore
 	StartHash      Uint256
 	StopHash       Uint256
-}
-
-type RetryConnAddrs struct {
-	sync.RWMutex
-	RetryAddrs map[string]int
 }
 
 type ConnectingNodes struct {
@@ -155,7 +136,7 @@ func (node *node) RemoveAddrInConnectingList(addr string) {
 func (node *node) UpdateInfo(t time.Time, version uint32, services uint64,
 	port uint16, nonce uint64, relay uint8, height uint64) {
 
-	node.UpdateRXTime(t)
+	node.Time = t
 	node.id = nonce
 	node.version = version
 	node.services = services
@@ -182,13 +163,8 @@ func InitNode(pubKey *crypto.PubKey) Noder {
 	n := NewNode()
 	n.version = PROTOCOLVERSION
 
-	if Parameters.MaxHdrSyncReqs <= 0 {
-		n.SyncBlkReqSem = MakeSemaphore(MAXSYNCHDRREQ)
-		n.SyncHdrReqSem = MakeSemaphore(MAXSYNCHDRREQ)
-	} else {
-		n.SyncBlkReqSem = MakeSemaphore(Parameters.MaxHdrSyncReqs)
-		n.SyncHdrReqSem = MakeSemaphore(Parameters.MaxHdrSyncReqs)
-	}
+	n.SyncBlkReqSem = MakeSemaphore(MAXSYNCHDRREQ)
+	n.SyncHdrReqSem = MakeSemaphore(MAXSYNCHDRREQ)
 
 	n.link.port = uint16(Parameters.NodePort)
 	n.relay = true
@@ -212,54 +188,13 @@ func InitNode(pubKey *crypto.PubKey) Noder {
 	n.eventQueue.init()
 	n.idCache.init()
 	n.cachedHashes = make([]Uint256, 0)
-	n.local.SetMaxOutboundCnt()
-	n.local.SetDefaultMaxPeers()
-	n.local.SetGetAddrMax()
 	n.nodeDisconnectSubscriber = n.eventQueue.GetEvent("disconnect").Subscribe(events.EventNodeDisconnect, n.NodeDisconnect)
-	n.local.headerFirstMode = false
-	n.invRequestHashes = make([]Uint256, 0)
 	n.RequestedBlockList = make(map[Uint256]time.Time)
 	go n.initConnection()
 	go n.updateConnection()
 	go n.updateNodeInfo()
 
 	return n
-}
-
-func (n *node) SetMaxOutboundCnt() {
-	if (Parameters.MaxOutboundCnt < MAXOUTBOUNDCNT) && (Parameters.MaxOutboundCnt > 0) {
-		n.MaxOutboundCnt = Parameters.MaxOutboundCnt
-	} else {
-		n.MaxOutboundCnt = MAXOUTBOUNDCNT
-	}
-}
-
-func (n *node) SetGetAddrMax() {
-	if (Parameters.GetAddrMax < GETADDRMAX) && (Parameters.GetAddrMax > 0) {
-		n.GetAddrMax = Parameters.GetAddrMax
-	} else {
-		n.GetAddrMax = GETADDRMAX
-	}
-}
-
-func (n *node) SetDefaultMaxPeers() {
-	if (Parameters.DefaultMaxPeers < DEFAULTMAXPEERS) && (Parameters.DefaultMaxPeers > 0) {
-		n.DefaultMaxPeers = Parameters.MaxOutboundCnt
-	} else {
-		n.DefaultMaxPeers = DEFAULTMAXPEERS
-	}
-}
-
-func (n *node) GetGetAddrMax() uint {
-	return n.GetAddrMax
-}
-
-func (n *node) GetMaxOutboundCnt() uint {
-	return n.MaxOutboundCnt
-}
-
-func (n *node) GetDefaultMaxPeers() uint {
-	return n.DefaultMaxPeers
 }
 
 func (n *node) NodeDisconnect(v interface{}) {
@@ -370,10 +305,6 @@ func (node *node) SetHeight(height uint64) {
 	node.height = height
 }
 
-func (node *node) UpdateRXTime(t time.Time) {
-	node.time = t
-}
-
 func (node *node) Xmit(message interface{}) error {
 	log.Debug()
 	var buffer []byte
@@ -471,21 +402,17 @@ func (node *node) SetBookKeeperAddr(pk *crypto.PubKey) {
 	node.publicKey = pk
 }
 
-func (node *node) SyncNodeHeight() {
+func (node *node) WaitForSyncFinish() {
 	for {
 		log.Trace("BlockHeight is ", ledger.DefaultLedger.Blockchain.BlockHeight)
 		bc := ledger.DefaultLedger.Blockchain
 		log.Info("[", len(bc.Index), len(bc.BlockCache), len(bc.Orphans), "]")
-		//for x, _ := range node.RequestedBlockList {
-		//	log.Info(x)
-		//}
 
 		heights, _ := node.GetNeighborHeights()
 		log.Trace("others height is ", heights)
 
 		if CompareHeight(uint64(ledger.DefaultLedger.Blockchain.BlockHeight), heights) {
 			node.local.SetSyncHeaders(false)
-
 			break
 		}
 
@@ -493,89 +420,8 @@ func (node *node) SyncNodeHeight() {
 	}
 }
 
-func (node *node) WaitForFourPeersStart() {
-	for {
-		log.Debug("WaitForFourPeersStart...")
-		cnt := node.local.GetNbrNodeCnt()
-		if cnt >= MINCONNCNT {
-			break
-		}
-		<-time.After(2 * time.Second)
-	}
-}
-
-func (node *node) StoreFlightHeight(height uint32) {
-	node.flightlock.Lock()
-	defer node.flightlock.Unlock()
-	node.flightHeights = append(node.flightHeights, height)
-}
-
-func (node *node) GetFlightHeightCnt() int {
-	return len(node.flightHeights)
-}
-func (node *node) GetFlightHeights() []uint32 {
-	return node.flightHeights
-}
-
-func (node *node) RemoveFlightHeightLessThan(h uint32) {
-	node.flightlock.Lock()
-	defer node.flightlock.Unlock()
-	heights := node.flightHeights
-	p := len(heights)
-	i := 0
-
-	for i < p {
-		if heights[i] < h {
-			p--
-			heights[p], heights[i] = heights[i], heights[p]
-		} else {
-			i++
-		}
-	}
-	node.flightHeights = heights[:p]
-}
-
-func (node *node) RemoveFlightHeight(height uint32) {
-	node.flightlock.Lock()
-	defer node.flightlock.Unlock()
-	log.Debug("height is ", height)
-	for _, h := range node.flightHeights {
-		log.Debug("flight height ", h)
-	}
-	node.flightHeights = SliceRemove(node.flightHeights, height)
-	for _, h := range node.flightHeights {
-		log.Debug("after flight height ", h)
-	}
-}
-
 func (node *node) GetLastRXTime() time.Time {
-	return node.time
-}
-
-func (node *node) AddInRetryList(addr string) {
-	node.RetryConnAddrs.Lock()
-	defer node.RetryConnAddrs.Unlock()
-	if node.RetryAddrs == nil {
-		node.RetryAddrs = make(map[string]int)
-	}
-	if _, ok := node.RetryAddrs[addr]; ok {
-		delete(node.RetryAddrs, addr)
-		log.Debug("remove exsit addr from retry list", addr)
-	}
-	//alway set retry to 0
-	node.RetryAddrs[addr] = 0
-	log.Debug("add addr to retry list", addr)
-}
-
-func (node *node) RemoveFromRetryList(addr string) {
-	node.RetryConnAddrs.Lock()
-	defer node.RetryConnAddrs.Unlock()
-	if len(node.RetryAddrs) > 0 {
-		if _, ok := node.RetryAddrs[addr]; ok {
-			delete(node.RetryAddrs, addr)
-			log.Debug("remove addr from retry list", addr)
-		}
-	}
+	return node.Time
 }
 
 func (node *node) Relay(frmnode Noder, message interface{}) error {
@@ -644,15 +490,6 @@ func (node *node) Relay(frmnode Noder, message interface{}) error {
 	return nil
 }
 
-func (node *node) CacheHash(hash Uint256) {
-	node.cachelock.Lock()
-	defer node.cachelock.Unlock()
-	node.cachedHashes = append(node.cachedHashes, hash)
-	if len(node.cachedHashes) > MAXCACHEHASH {
-		node.cachedHashes = append(node.cachedHashes[:0], node.cachedHashes[1:]...)
-	}
-}
-
 func (node *node) ExistHash(hash Uint256) bool {
 	node.cachelock.Lock()
 	defer node.cachelock.Unlock()
@@ -664,16 +501,6 @@ func (node *node) ExistHash(hash Uint256) bool {
 	return false
 }
 
-func (node *node) ExistFlightHeight(height uint32) bool {
-	node.flightlock.Lock()
-	defer node.flightlock.Unlock()
-	for _, v := range node.flightHeights {
-		if v == height {
-			return true
-		}
-	}
-	return false
-}
 func (node node) IsSyncHeaders() bool {
 	node.flagLock.RLock()
 	defer node.flagLock.RUnlock()
@@ -704,12 +531,6 @@ func (node node) IsSyncFailed() bool {
 	}
 }
 
-func (node *node) SetSyncFailed() {
-	node.flagLock.Lock()
-	defer node.flagLock.Unlock()
-	node.syncFlag = node.syncFlag | 0x02
-}
-
 func (node *node) needSync() bool {
 	heights, _ := node.GetNeighborHeights()
 	log.Info("nbr heigh-->", heights, ledger.DefaultLedger.Blockchain.BlockHeight)
@@ -737,73 +558,6 @@ func (node *node) GetBestHeightNoder() Noder {
 		}
 	}
 	return bestnode
-}
-
-func (node *node) StartSync() {
-	needSync := node.needSync()
-	log.Info("needSync ", needSync)
-	if needSync == true {
-		currentBlkHeight := uint64(ledger.DefaultLedger.Blockchain.BlockHeight)
-		node.NextCheckpoint = node.FindNextHeaderCheckpoint(currentBlkHeight)
-		NextCheckpointHeight, err := node.GetNextCheckpointHeight()
-		if node.LocalNode().IsSyncHeaders() == false {
-			if node.NextCheckpoint != nil && err == nil && currentBlkHeight < NextCheckpointHeight {
-				n := node.GetBestHeightNoder()
-				hash := ledger.DefaultLedger.Store.GetCurrentBlockHash()
-				if node.NextCheckpoint != nil {
-					SendMsgSyncHeaders(n, hash)
-					node.SetHeaderFirstMode(true)
-				} else {
-					blocator := ledger.DefaultLedger.Blockchain.BlockLocatorFromHash(&hash)
-					var emptyHash Uint256
-					SendMsgSyncBlockHeaders(n, blocator, emptyHash)
-				}
-			}
-		}
-	}
-	node.SetStartSync()
-}
-
-func (node *node) isFinishSyncFromSyncNode() bool {
-	noders := node.local.GetNeighborNoder()
-	for _, n := range noders {
-		if n.IsSyncHeaders() == true {
-			if uint64(ledger.DefaultLedger.Blockchain.BlockHeight) >= n.GetHeight() {
-				return true
-			}
-		}
-	}
-	return false
-}
-
-func (node *node) CacheInvHash(hash Uint256) {
-	node.invHashLock.Lock()
-	defer node.invHashLock.Unlock()
-	node.invRequestHashes = append(node.invRequestHashes, hash)
-	if len(node.invRequestHashes) > MAXINVCACHEHASH {
-		node.invRequestHashes = append(node.invRequestHashes[:0], node.invRequestHashes[1:]...)
-	}
-}
-
-func (node *node) ExistInvHash(hash Uint256) bool {
-	node.invHashLock.Lock()
-	defer node.invHashLock.Unlock()
-	for _, v := range node.invRequestHashes {
-		if v == hash {
-			return true
-		}
-	}
-	return false
-}
-
-func (node *node) DeleteInvHash(hash Uint256) {
-	node.invHashLock.Lock()
-	defer node.invHashLock.Unlock()
-	for i, v := range node.invRequestHashes {
-		if v == hash {
-			node.invRequestHashes = append(node.invRequestHashes[:i], node.invRequestHashes[i+1:]...)
-		}
-	}
 }
 
 func (node *node) GetHeaderFisrtModeStatus() bool {
@@ -844,111 +598,6 @@ func (node *node) DeleteRequestedBlock(hash Uint256) {
 	delete(node.RequestedBlockList, hash)
 }
 
-// newCheckpointFromStr parses checkpoints in the '<height>:<hash>' format.
-func newCheckpointFromStr(checkpoint string) (Checkpoint, error) {
-	parts := strings.Split(checkpoint, ":")
-	if len(parts) != 2 {
-		return Checkpoint{}, fmt.Errorf("unable to parse "+
-			"checkpoint %q -- use the syntax <height>:<hash>",
-			checkpoint)
-	}
-
-	height, err := strconv.ParseInt(parts[0], 10, 64)
-	if err != nil {
-		return Checkpoint{}, fmt.Errorf("unable to parse "+
-			"checkpoint %q due to malformed height", checkpoint)
-	}
-	fmt.Println(height)
-	if len(parts[1]) == 0 {
-		return Checkpoint{}, fmt.Errorf("unable to parse "+
-			"checkpoint %q due to missing hash", checkpoint)
-	}
-	hashstr := parts[1]
-	if err != nil {
-		return Checkpoint{}, fmt.Errorf("unable to parse "+
-			"checkpoint %q due to malformed hash", checkpoint)
-	}
-	bhash, _ := HexStringToBytesReverse(hashstr)
-	var hash Uint256
-	copy(hash[:], bhash)
-	log.Trace("hash is ", hash)
-	return Checkpoint{
-		Height: uint64(height),
-		Hash:   hash,
-	}, nil
-}
-
-func parseCheckpoints(checkpointStrings []string) ([]Checkpoint, error) {
-	log.Debug("checkpointStrings ", checkpointStrings)
-	if len(checkpointStrings) == 0 {
-		return nil, nil
-	}
-	checkpoints := make([]Checkpoint, len(checkpointStrings))
-	for i, cpString := range checkpointStrings {
-		checkpoint, err := newCheckpointFromStr(cpString)
-		if err != nil {
-			return nil, err
-		}
-		checkpoints[i] = checkpoint
-	}
-	return checkpoints, nil
-}
-
-func (node *node) FindNextHeaderCheckpoint(height uint64) *Checkpoint {
-	log.Debug("config.Parameters.AddCheckpoints ", config.Parameters.AddCheckpoints)
-	checkpoints, err := parseCheckpoints(config.Parameters.AddCheckpoints)
-	if err != nil {
-		return nil
-	}
-	if len(checkpoints) == 0 {
-		return nil
-	}
-
-	// There is no next checkpoint if the height is already after the final
-	// checkpoint.
-	finalCheckpoint := &checkpoints[len(checkpoints)-1]
-	if height >= finalCheckpoint.Height {
-		return nil
-	}
-
-	// Find the next checkpoint.
-	nextCheckpoint := finalCheckpoint
-	var i int
-	for i = 0; i <= len(checkpoints)-2; i++ {
-		if height < checkpoints[i].Height {
-			nextCheckpoint = &checkpoints[i]
-			break
-		}
-	}
-	log.Debug("nextCheckpoint height ", nextCheckpoint.Height)
-	node.NextCheckpoint = nextCheckpoint
-	return nextCheckpoint
-}
-
-func (node *node) GetNextCheckpoint() *Checkpoint {
-	return node.NextCheckpoint
-}
-
-func (node *node) GetNextCheckpointHeight() (uint64, error) {
-	if node.NextCheckpoint != nil {
-		return node.NextCheckpoint.Height, nil
-	} else {
-		return 0, errors.New("no next checkpoint any more")
-	}
-}
-
-func (node *node) GetNextCheckpointHash() (Uint256, error) {
-	var hash Uint256
-	if node.NextCheckpoint != nil {
-		return node.NextCheckpoint.Hash, nil
-	} else {
-		return hash, errors.New("no next checkpoint any more")
-	}
-}
-func (node *node) SetHeaderFirstMode(b bool) {
-	node.headerFirstMode = b
-}
-
 func (node *node) FindSyncNode() (Noder, error) {
 	noders := node.local.GetNeighborNoder()
 	for _, n := range noders {
@@ -957,14 +606,6 @@ func (node *node) FindSyncNode() (Noder, error) {
 		}
 	}
 	return nil, errors.New("Not in sync mode")
-}
-
-func (node *node) SetStartSync() {
-	node.IsStartSync = true
-}
-
-func (node *node) GetStartSync() bool {
-	return node.IsStartSync
 }
 
 func (node *node) AcqSyncBlkReqSem() {

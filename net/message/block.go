@@ -5,7 +5,6 @@ import (
 	"Elastos.ELA/common/config"
 	"Elastos.ELA/common/log"
 	"Elastos.ELA/core/ledger"
-	"Elastos.ELA/events"
 	. "Elastos.ELA/net/protocol"
 	"bytes"
 	"crypto/sha256"
@@ -41,7 +40,6 @@ func (msg block) Handle(node Noder) error {
 		return nil
 	}
 
-	isCheckpointBlock := false
 	isFastAdd := false
 
 	if node.LocalNode().GetHeaderFisrtModeStatus() {
@@ -49,12 +47,6 @@ func (msg block) Handle(node Noder) error {
 		if err == nil {
 			if bytes.Equal(hash[:], preHash[:]) {
 				isFastAdd = true
-				nextCheckpointHash, err := node.LocalNode().GetNextCheckpointHash()
-				if err == nil {
-					if bytes.Equal(hash[:], nextCheckpointHash[:]) {
-						isCheckpointBlock = true
-					}
-				}
 			}
 		}
 	}
@@ -94,33 +86,10 @@ func (msg block) Handle(node Noder) error {
 		return nil
 	}
 
-	if !isCheckpointBlock {
-		requestedBlocks := node.LocalNode().GetRequestBlockList()
-		if err == nil && len(requestedBlocks) < MinInFlightBlocks {
-			fetchHeaderBlocks(node)
-		}
-		return nil
+	requestedBlocks := node.LocalNode().GetRequestBlockList()
+	if err == nil && len(requestedBlocks) < MinInFlightBlocks {
+		fetchHeaderBlocks(node)
 	}
-
-	prevHeight, _ := node.LocalNode().GetNextCheckpointHeight()
-	nextCheckpoint := node.LocalNode().FindNextHeaderCheckpoint(prevHeight)
-
-	if nextCheckpoint != nil {
-		hash := ledger.DefaultLedger.Store.GetCurrentBlockHash()
-		SendMsgSyncHeaders(node, hash)
-		return nil
-	}
-
-	node.LocalNode().SetHeaderFirstMode(false)
-	currentHash := ledger.DefaultLedger.Store.GetCurrentBlockHash()
-	blocator := ledger.DefaultLedger.Blockchain.BlockLocatorFromHash(&currentHash)
-	var emptyHash common.Uint256
-	SendMsgSyncBlockHeaders(node, blocator, emptyHash)
-	if node.LocalNode().IsSyncHeaders() == false {
-		//haven`t require this block ,relay hash
-		node.LocalNode().Relay(node, hash)
-	}
-	node.LocalNode().GetEvent("block").Notify(events.EventNewInventory, &msg.blk)
 	return nil
 }
 

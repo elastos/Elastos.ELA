@@ -29,16 +29,6 @@ type msgHdr struct {
 }
 
 // The message body and header
-type msgCont struct {
-	hdr msgHdr
-	p   interface{}
-}
-
-type varStr struct {
-	len uint
-	buf []byte
-}
-
 type filteradd struct {
 	msgHdr
 	//TBD
@@ -235,18 +225,14 @@ func HandleNodeMsg(node Noder, buf []byte, len int) error {
 	}
 }
 
-func magicVerify(magic uint32) bool {
-	if magic != config.Parameters.Magic {
-		return false
-	}
-	return true
-}
-
 func ValidMsgHdr(buf []byte) bool {
 	var h msgHdr
 	h.Deserialization(buf)
 	//TODO: verify hdr checksum
-	return magicVerify(h.Magic)
+	if h.Magic != config.Parameters.Magic {
+		return false
+	}
+	return true
 }
 
 func PayloadLen(buf []byte) int {
@@ -255,32 +241,7 @@ func PayloadLen(buf []byte) int {
 	return int(h.Length)
 }
 
-func LocateMsgHdr(buf []byte) []byte {
-	var h msgHdr
-	for i := 0; i <= len(buf)-MSGHDRLEN; i++ {
-		if magicVerify(binary.LittleEndian.Uint32(buf[i:])) {
-			buf = append(buf[:0], buf[i:]...)
-			h.Deserialization(buf)
-			return buf
-		}
-	}
-	return nil
-}
 
-func checkSum(p []byte) []byte {
-	t := sha256.Sum256(p)
-	s := sha256.Sum256(t[:])
-
-	// Currently we only need the front 4 bytes as checksum
-	return s[:CHECKSUMLEN]
-}
-
-func reverse(input []byte) []byte {
-	if len(input) == 0 {
-		return input
-	}
-	return append(reverse(input[1:]), input[0])
-}
 
 func (hdr *msgHdr) init(cmd string, checksum []byte, length uint32) {
 	hdr.Magic = config.Parameters.Magic
@@ -293,11 +254,15 @@ func (hdr *msgHdr) init(cmd string, checksum []byte, length uint32) {
 // Verify the message header information
 // @p payload of the message
 func (hdr msgHdr) Verify(buf []byte) error {
-	if magicVerify(hdr.Magic) == false {
-		log.Warn(fmt.Sprintf("Unmatched magic number 0x%0x", hdr.Magic))
+	if hdr.Magic != config.Parameters.Magic {
+		log.Error(fmt.Sprintf("Unmatched magic number 0x%0x", hdr.Magic))
 		return errors.New("Unmatched magic number")
 	}
-	checkSum := checkSum(buf)
+	t := sha256.Sum256(buf)
+	s := sha256.Sum256(t[:])
+	// Currently we only need the front 4 bytes as checksum
+	checkSum := s[:CHECKSUMLEN]
+
 	if bytes.Equal(hdr.Checksum[:], checkSum[:]) == false {
 		str1 := hex.EncodeToString(hdr.Checksum[:])
 		str2 := hex.EncodeToString(checkSum[:])

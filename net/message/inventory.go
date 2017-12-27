@@ -55,20 +55,6 @@ func SendMsgSyncBlockHeaders(node Noder, blocator []Uint256, hash Uint256) {
 	}
 }
 
-func ReqBlksHdrFromOthers(node Noder) {
-	//node.SetSyncFailed()
-	noders := node.LocalNode().GetNeighborNoder()
-	for _, noder := range noders {
-		if noder.IsSyncFailed() != true {
-			currentHash := ledger.DefaultLedger.Store.GetCurrentBlockHash()
-			blocator := ledger.DefaultLedger.Blockchain.BlockLocatorFromHash(&currentHash)
-			var emptyHash Uint256
-			SendMsgSyncBlockHeaders(noder, blocator, emptyHash)
-			break
-		}
-	}
-}
-
 func NewBlocksReq(blocator []Uint256, hash Uint256) ([]byte, error) {
 	var msg blocksReq
 	msg.hdr.Magic = config.Parameters.Magic

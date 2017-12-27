@@ -25,7 +25,7 @@ type link struct {
 	conn         net.Conn  // Connect socket with the peer node
 	port         uint16    // The server port of the node
 	httpInfoPort uint16    // The node information server port of the node
-	time         time.Time // The latest time the node activity
+	Time         time.Time // The latest Time the node activity
 	rxBuf        struct {  // The RX buffer of this node to solve mutliple packets problem
 		p   []byte
 		len int
@@ -92,7 +92,7 @@ func (node *node) rx() {
 		switch err {
 		case nil:
 			t := time.Now()
-			node.UpdateRXTime(t)
+			node.Time = t
 			unpackNodeBuf(node, buf[0:len])
 		case io.EOF:
 			log.Error("Rx io.EOF: ", err, ", node id is ", node.GetID())
@@ -158,7 +158,6 @@ func (n *node) initConnection() {
 }
 
 func initNonTlsListen() (net.Listener, error) {
-	log.Debug()
 	listener, err := net.Listen("tcp", ":"+strconv.Itoa(Parameters.NodePort))
 	if err != nil {
 		log.Error("Error listening\n", err.Error())

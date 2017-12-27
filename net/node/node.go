@@ -301,7 +301,7 @@ func (node *node) GetHttpInfoPort() int {
 	return int(node.httpInfoPort)
 }
 
-func (node *node) SetHttpInfoPort(nodeInfoPort uint16) {
+func (node *node) SetHttpInfoPort(nodeInfoPort int) {
 	node.httpInfoPort = nodeInfoPort
 }
 

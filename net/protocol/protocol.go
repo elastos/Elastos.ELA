@@ -91,7 +91,7 @@ type Noder interface {
 	GetAddr16() ([16]byte, error)
 	GetPort() uint16
 	GetHttpInfoPort() int
-	SetHttpInfoPort(uint16)
+	SetHttpInfoPort(int)
 	GetHttpInfoState() bool
 	SetHttpInfoState(bool)
 	GetState() uint32

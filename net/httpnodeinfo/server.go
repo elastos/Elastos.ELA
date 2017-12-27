@@ -3,11 +3,11 @@ package httpnodeinfo
 import (
 	"Elastos.ELA/common/config"
 	"Elastos.ELA/core/ledger"
-	. "Elastos.ELA/net/protocol"
 	"fmt"
 	"html/template"
 	"net/http"
 	"strconv"
+	. "Elastos.ELA/net/protocol"
 )
 
 type Info struct {

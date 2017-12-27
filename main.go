@@ -4,7 +4,6 @@ import (
 	"os"
 	"time"
 	"runtime"
-
 	"Elastos.ELA/net/node"
 	"Elastos.ELA/common/log"
 	"Elastos.ELA/core/ledger"
@@ -14,9 +13,10 @@ import (
 	"Elastos.ELA/net/httpjsonrpc"
 	"Elastos.ELA/net/httprestful"
 	"Elastos.ELA/core/transaction"
-	"Elastos.ELA/net/httpnodeinfo"
-	"Elastos.ELA/net/httpwebsocket"
 	"Elastos.ELA/core/store/ChainStore"
+	"Elastos.ELA/net/httprestful/common"
+	"Elastos.ELA/net/httpwebsocket"
+	"Elastos.ELA/net/httpnodeinfo"
 )
 
 const (
@@ -92,14 +92,19 @@ func main() {
 
 	handleLogFile()
 
-	log.Info("3. --Start the RPC service")
-	go httpjsonrpc.StartRPCServer()
-	go httprestful.StartServer(noder)
-	go httpwebsocket.StartServer(noder)
-	if config.Parameters.HttpInfoStart {
-		go httpnodeinfo.StartServer(noder)
-	}
+	log.Info("4. --Start the RPC service")
+	StartServers(noder)
 	select {}
 ERROR:
 	os.Exit(1)
+}
+
+func StartServers(noder protocol.Noder) {
+	common.SetNode(noder)
+	go httpjsonrpc.StartRPCServer()
+	go httprestful.StartServer()
+	go httpwebsocket.StartServer()
+	if config.Parameters.HttpInfoStart {
+		go httpnodeinfo.StartServer(noder)
+	}
 }

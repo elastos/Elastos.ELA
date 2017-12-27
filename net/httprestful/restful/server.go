@@ -59,9 +59,9 @@ const (
 	Api_GetContract         = "/api/v1/contract/:hash"
 )
 
-func InitRestServer(checkAccessToken func(string, string) (string, ErrCode, interface{})) ApiServer {
+func InitRestServer() ApiServer {
 	rt := &restServer{}
-	rt.checkAccessToken = checkAccessToken
+	rt.checkAccessToken = CheckAccessToken
 
 	rt.router = NewRouter()
 	rt.registryMethod()
@@ -101,39 +101,48 @@ func (rt *restServer) Start() error {
 
 	return nil
 }
-func (rt *restServer) setWebsocketState(cmd map[string]interface{}) map[string]interface{} {
+
+func (rt *restServer) setWebSocketState(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(Success)
 	startFlag, ok := cmd["Open"].(bool)
 	if !ok {
 		resp["Error"] = InvalidParams
 		return resp
 	}
-	if b, ok := cmd["PushBlock"].(bool); ok {
-		httpwebsocket.SetWsPushBlockFlag(b)
+
+	ws := httpwebsocket.WebSocketServer
+	if  ws == nil {
+		resp["Error"] = InternalError
+		return resp
 	}
-	if b, ok := cmd["PushRawBlock"].(bool); ok {
-		httpwebsocket.SetPushRawBlockFlag(b)
+	if value, ok := cmd["PushBlock"]; ok {
+		httpwebsocket.PushBlockFlag = value.(bool)
+	}
+	if b, ok := cmd["PushRawBlock"]; ok {
+		httpwebsocket.PushRawBlockFlag = b.(bool)
 	}
 	if b, ok := cmd["PushBlockTxs"].(bool); ok {
-		httpwebsocket.SetPushBlockTxsFlag(b)
+		httpwebsocket.PushBlockTxsFlag = b
 	}
 	if b, ok := cmd["PushNewTransaction"].(bool); ok {
-		httpwebsocket.SetPushNewTxsFlag(b)
+		httpwebsocket.PushNewTxsFlag = b
 	}
 	if wsPort, ok := cmd["Port"].(float64); ok && wsPort != 0 {
 		Parameters.HttpWsPort = int(wsPort)
 	}
+
+	ws.Stop()
+
 	if startFlag {
-		httpwebsocket.ReStartServer()
-	} else {
-		httpwebsocket.Stop()
+		ws.Start()
 	}
+
 	var result = make(map[string]interface{})
 	result["Open"] = startFlag
 	result["Port"] = Parameters.HttpWsPort
-	result["PushBlock"] = httpwebsocket.GetWsPushBlockFlag()
-	result["PushRawBlock"] = httpwebsocket.GetPushRawBlockFlag()
-	result["PushBlockTxs"] = httpwebsocket.GetPushBlockTxsFlag()
+	result["PushBlock"] = httpwebsocket.PushBlockFlag
+	result["PushRawBlock"] = httpwebsocket.PushRawBlockFlag
+	result["PushBlockTxs"] = httpwebsocket.PushBlockTxsFlag
 	resp["Result"] = result
 	return resp
 }
@@ -147,7 +156,6 @@ func (rt *restServer) registryMethod() {
 		Api_Getblockheight:      {name: "getblockheight", handler: GetBlockHeight},
 		Api_Getblockhash:        {name: "getblockhash", handler: GetBlockHash},
 		Api_GetTransactionPool:  {name: "gettransactionpool", handler: GetTransactionPool},
-		//Api_GetTotalIssued:      {name: "gettotalissued", handler: GetTotalIssued},
 		Api_Gettransaction:    {name: "gettransaction", handler: GetTransactionByHash},
 		Api_Getasset:          {name: "getasset", handler: GetAssetByHash},
 		Api_GetContract:       {name: "getcontract", handler: GetContract},
@@ -161,26 +169,17 @@ func (rt *restServer) registryMethod() {
 		Api_GetStateUpdate:    {name: "getstateupdate", handler: GetStateUpdate},
 	}
 
-	sendRawTransaction := func(cmd map[string]interface{}) map[string]interface{} {
-		resp := SendRawTransaction(cmd)
-		if userid, ok := resp["Userid"].(string); ok && len(userid) > 0 {
-			if result, ok := resp["Result"].(string); ok {
-				httpwebsocket.SetTxHashMap(result, userid)
-			}
-			delete(resp, "Userid")
-		}
-		return resp
-	}
 	postMethodMap := map[string]Action{
-		Api_SendRawTx:         {name: "sendrawtransaction", handler: sendRawTransaction},
+		Api_SendRawTx:         {name: "sendrawtransaction", handler: SendRawTransaction},
 		Api_OauthServerUrl:    {name: "setoauthserverurl", handler: SetOauthServerUrl},
 		Api_NoticeServerUrl:   {name: "setnoticeserverurl", handler: SetNoticeServerUrl},
 		Api_NoticeServerState: {name: "setpostblock", handler: SetPushBlockFlag},
-		Api_WebsocketState:    {name: "setwebsocketstate", handler: rt.setWebsocketState},
+		Api_WebsocketState:    {name: "setwebsocketstate", handler: rt.setWebSocketState},
 	}
 	rt.postMap = postMethodMap
 	rt.getMap = getMethodMap
 }
+
 func (rt *restServer) getPath(url string) string {
 
 	if strings.Contains(url, strings.TrimRight(Api_GetblockTxsByHeight, ":height")) {

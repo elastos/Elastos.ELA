@@ -14,9 +14,9 @@ import (
 	. "Elastos.ELA/net/protocol"
 )
 
-var node Noder
+var Node Noder
 
-const TlsPort int = 443
+const TlsPort = 443
 
 type ApiServer interface {
 	Start() error
@@ -24,14 +24,14 @@ type ApiServer interface {
 }
 
 func SetNode(n Noder) {
-	node = n
+	Node = n
 }
 
 //Node
 func GetConnectionCount(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(Success)
-	if node != nil {
-		resp["Result"] = node.GetConnectionCnt()
+	if Node != nil {
+		resp["Result"] = Node.GetConnectionCnt()
 	}
 
 	return resp
@@ -68,7 +68,7 @@ func GetTransactionPool(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(Success)
 
 	txs := []*Transactions{}
-	txpool := node.GetTxnPool(false)
+	txpool := Node.GetTxnPool(false)
 	for _, t := range txpool {
 		txs = append(txs, TransArryByteToHexString(t))
 	}

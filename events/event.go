@@ -5,7 +5,21 @@ import (
 	"errors"
 )
 
+type EventType int16
 
+const (
+	EventSaveBlock               EventType = 0
+	EventReplyTx                 EventType = 1
+	EventBlockPersistCompleted   EventType = 2
+	EventNewInventory            EventType = 3
+	EventNodeDisconnect          EventType = 4
+	EventRollbackTransaction     EventType = 5
+	EventNewTransactionPutInPool EventType = 6
+)
+
+type EventFunc func(v interface{})
+
+type Subscriber chan interface{}
 
 type Event struct {
 	m           sync.RWMutex
@@ -54,37 +68,13 @@ func (e *Event) UnSubscribe(eventtype EventType,subscriber Subscriber) (err erro
 func (e *Event) Notify(eventtype EventType,value interface{}) (err error){
 	e.m.RLock()
 	defer e.m.RUnlock()
-
 	subs,ok := e.subscribers[eventtype]
 	if !ok {
 		err = errors.New("No event type.")
 		return
 	}
-
 	for _, event := range subs {
-		go e.NotifySubscriber(event,value)
+		go func(eventFunc EventFunc, value interface{}) { eventFunc(value) }(event, value)
 	}
 	return
-}
-
-func (e *Event) NotifySubscriber(eventfunc EventFunc, value interface{}) {
-	if eventfunc == nil { return }
-
-	//invode subscriber event func
-	eventfunc(value)
-
-}
-
-//Notify all event subscribers
-func (e *Event) NotifyAll() (errs []error){
-	e.m.RLock()
-	defer e.m.RUnlock()
-
-	for eventtype, _ := range e.subscribers{
-		if err := e.Notify(eventtype,nil);err != nil {
-			errs = append(errs, err)
-		}
-	}
-
-	return errs
 }

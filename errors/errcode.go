@@ -7,7 +7,7 @@ import (
 type ErrCode int
 
 const (
-	ErrNoCode               ErrCode = -1
+	Error                   ErrCode = -1
 	Success                 ErrCode = 0
 	ErrInvalidInput         ErrCode = 45003
 	ErrInvalidOutput        ErrCode = 45004
@@ -39,6 +39,7 @@ const (
 )
 
 var ErrMap = map[ErrCode]string{
+	Error:                   "Unclassified error",
 	Success:                 "Success",
 	SessionExpired:          "Session expired",
 	IllegalDataFormat:       "Illegal Dataformat",
@@ -70,8 +71,8 @@ var ErrMap = map[ErrCode]string{
 
 func (err ErrCode) Error() string {
 	switch err {
-	case ErrNoCode:
-		return "no error code"
+	case Error:
+		return "Unclassified error"
 	case Success:
 		return "not an error"
 	case ErrInvalidInput:

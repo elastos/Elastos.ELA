@@ -1,14 +1,14 @@
 package main
 
 import (
+	"Elastos.ELA/common"
+	"Elastos.ELA/common/serialization"
 	"Elastos.ELA/core/store/ChainStore"
 	"Elastos.ELA/core/store/LevelDBStore"
+	"bytes"
+	"fmt"
 	"os"
 	"strconv"
-	"fmt"
-	"bytes"
-	"Elastos.ELA/common/serialization"
-	"Elastos.ELA/common"
 )
 
 func main() {
@@ -16,10 +16,10 @@ func main() {
 	wantheightInt32 := uint32(wantHeight)
 
 	st, err := LevelDBStore.NewLevelDBStore("Chain")
-    if err != nil {
-        fmt.Println("connect leveldb failed!")
-        fmt.Println(err)
-    }
+	if err != nil {
+		fmt.Println("connect leveldb failed!")
+		fmt.Println(err)
+	}
 
 	chain := &ChainStore.ChainStore{
 		IStore: st,
@@ -39,7 +39,7 @@ func main() {
 	}
 
 	for i := realHeight; i > wantheightInt32; i-- {
-        fmt.Println("i is", i)
+		fmt.Println("i is", i)
 		blockHashBefore, _ := chain.GetBlockHash(i)
 		fmt.Println("blockhash before")
 		fmt.Println(blockHashBefore)

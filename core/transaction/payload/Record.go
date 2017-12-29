@@ -2,7 +2,6 @@ package payload
 
 import (
 	"Elastos.ELA/common/serialization"
-	. "Elastos.ELA/errors"
 	"errors"
 	"io"
 )
@@ -23,11 +22,11 @@ func (a *Record) Data(version byte) []byte {
 func (a *Record) Serialize(w io.Writer, version byte) error {
 	err := serialization.WriteVarString(w, a.RecordType)
 	if err != nil {
-		return NewDetailErr(err, ErrNoCode, "[RecordDetail], RecordType serialize failed.")
+		return errors.New("[RecordDetail], RecordType serialize failed.")
 	}
 	err = serialization.WriteVarBytes(w, a.RecordData)
 	if err != nil {
-		return NewDetailErr(err, ErrNoCode, "[RecordDetail], RecordData serialize failed.")
+		return errors.New("[RecordDetail], RecordData serialize failed.")
 	}
 	return nil
 }
@@ -37,11 +36,11 @@ func (a *Record) Deserialize(r io.Reader, version byte) error {
 	var err error
 	a.RecordType, err = serialization.ReadVarString(r)
 	if err != nil {
-		return NewDetailErr(errors.New("[RecordDetail], RecordType deserialize failed."), ErrNoCode, "")
+		return errors.New("[RecordDetail], RecordType deserialize failed.")
 	}
 	a.RecordData, err = serialization.ReadVarBytes(r)
 	if err != nil {
-		return NewDetailErr(errors.New("[RecordDetail], RecordData deserialize failed."), ErrNoCode, "")
+		return errors.New("[RecordDetail], RecordData deserialize failed.")
 	}
 	return nil
 }

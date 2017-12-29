@@ -155,12 +155,12 @@ func CheckProofOfWork(bd *Blockdata, powLimit *big.Int) error {
 	// The target difficulty must be larger than zero.
 	target := CompactToBig(bd.Bits)
 	if target.Sign() <= 0 {
-		return NewDetailErr(errors.New("[BlockValidator] error"), ErrNoCode, "[BlockValidator], block target difficulty is too low.")
+		return errors.New("[BlockValidator], block target difficulty is too low.")
 	}
 
 	// The target difficulty must be less than the maximum allowed.
 	if target.Cmp(powLimit) > 0 {
-		return NewDetailErr(errors.New("[BlockValidator] error"), ErrNoCode, "[BlockValidator], block target difficulty is higher than max of limit.")
+		return errors.New("[BlockValidator], block target difficulty is higher than max of limit.")
 	}
 
 	// The block hash must be less than the claimed target.
@@ -170,7 +170,7 @@ func CheckProofOfWork(bd *Blockdata, powLimit *big.Int) error {
 
 	hashNum := HashToBig(&hash)
 	if hashNum.Cmp(target) > 0 {
-		return NewDetailErr(errors.New("[BlockValidator] error"), ErrNoCode, "[BlockValidator], block target difficulty is higher than expected difficulty.")
+		return errors.New("[BlockValidator], block target difficulty is higher than expected difficulty.")
 	}
 
 	return nil

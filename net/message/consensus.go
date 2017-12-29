@@ -10,7 +10,6 @@ import (
 	"Elastos.ELA/core/ledger"
 	sig "Elastos.ELA/core/signature"
 	"Elastos.ELA/crypto"
-	. "Elastos.ELA/errors"
 	"Elastos.ELA/events"
 	. "Elastos.ELA/net/protocol"
 	"bytes"
@@ -71,12 +70,12 @@ func (cp *ConsensusPayload) GetProgramHashes() ([]common.Uint168, error) {
 
 	//signatureRedeemScript, err := contract.CreateSignatureRedeemScript(bookKeepers[cp.BookKeeperIndex])
 	if err != nil {
-		return nil, NewDetailErr(err, ErrNoCode, "[Consensus], CreateSignatureContract failed.")
+		return nil, errors.New("[Consensus], CreateSignatureContract failed.")
 	}
 
 	//hash, err:=common.ToCodeHash(signatureRedeemScript)
 	//if err != nil {
-	//	return  nil, NewDetailErr(err, ErrNoCode, "[Consensus], ToCodeHash failed.")
+	//	return  nil, err, ErrNoCode, "[Consensus], ToCodeHash failed.")
 	//}
 	programhashes := []common.Uint168{}
 	programhashes = append(programhashes, hash)
@@ -229,7 +228,7 @@ func (cp *ConsensusPayload) Deserialize(r io.Reader) error {
 	err = pg.Deserialize(r)
 	if err != nil {
 		log.Error("Blockdata item Program Deserialize failed")
-		return NewDetailErr(err, ErrNoCode, "Blockdata item Program Deserialize failed.")
+		return errors.New("Blockdata item Program Deserialize failed.")
 	}
 	cp.Program = pg
 	return err

@@ -3,15 +3,15 @@ package payload
 import (
 	"Elastos.ELA/common"
 	"Elastos.ELA/core/asset"
-	. "Elastos.ELA/errors"
 	"io"
+	"errors"
 )
 
 const RegisterPayloadVersion byte = 0x00
 
 type RegisterAsset struct {
-	Asset  *asset.Asset
-	Amount common.Fixed64
+	Asset      *asset.Asset
+	Amount     common.Fixed64
 	Controller common.Uint168
 }
 
@@ -33,21 +33,21 @@ func (a *RegisterAsset) Deserialize(r io.Reader, version byte) error {
 	a.Asset = new(asset.Asset)
 	err := a.Asset.Deserialize(r)
 	if err != nil {
-		return NewDetailErr(err, ErrNoCode, "[RegisterAsset], Asset Deserialize failed.")
+		return errors.New("[RegisterAsset], Asset Deserialize failed.")
 	}
 
 	//Amount
 	a.Amount = *new(common.Fixed64)
 	err = a.Amount.Deserialize(r)
 	if err != nil {
-		return NewDetailErr(err, ErrNoCode, "[RegisterAsset], Ammount Deserialize failed.")
+		return errors.New("[RegisterAsset], Ammount Deserialize failed.")
 	}
 
 	//Controller *common.Uint168
 	a.Controller = *new(common.Uint168)
 	err = a.Controller.Deserialize(r)
 	if err != nil {
-		return NewDetailErr(err, ErrNoCode, "[RegisterAsset], Ammount Deserialize failed.")
+		return errors.New("[RegisterAsset], Ammount Deserialize failed.")
 	}
 	return nil
 }

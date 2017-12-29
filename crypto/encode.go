@@ -1,7 +1,6 @@
 package crypto
 
 import (
-	. "Elastos.ELA/errors"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
@@ -222,7 +221,7 @@ func deCompress(yTilde int, xValue []byte, curve *elliptic.CurveParams) (*PubKey
 
 	yValue := curveSqrt(ySqare, curve)
 	if nil == yValue {
-		return nil, NewDetailErr(errors.New("Invalid point compression"), ErrNoCode, "")
+		return nil, errors.New("Invalid point compression")
 	}
 
 	yCoord := big.NewInt(0)
@@ -236,7 +235,7 @@ func deCompress(yTilde int, xValue []byte, curve *elliptic.CurveParams) (*PubKey
 
 func DecodePoint(encodeData []byte) (*PubKey, error) {
 	if nil == encodeData {
-		return nil, NewDetailErr(errors.New("The encodeData cann't be nil"), ErrNoCode, "")
+		return nil, errors.New("The encodeData cann't be nil")
 	}
 
 	expectedLength := (algSet.EccParams.P.BitLen() + 7) / 8
@@ -247,14 +246,14 @@ func DecodePoint(encodeData []byte) (*PubKey, error) {
 
 	case 0x02, 0x03: //compressed
 		if len(encodeData) != expectedLength+1 {
-			return nil, NewDetailErr(errors.New("The encodeData format is error"), ErrNoCode, "")
+			return nil, errors.New("The encodeData format is error")
 		}
 
 		yTilde := int(encodeData[0] & 1)
 		pubKey, err := deCompress(yTilde, encodeData[FLAGLEN:FLAGLEN+XORYVALUELEN],
 			&algSet.EccParams)
 		if nil != err {
-			return nil, NewDetailErr(err, ErrNoCode, "Invalid point encoding")
+			return nil, errors.New("Invalid point encoding")
 		}
 		return pubKey, nil
 
@@ -264,7 +263,7 @@ func DecodePoint(encodeData []byte) (*PubKey, error) {
 		return &PubKey{pubKeyX, pubKeyY}, nil
 
 	default:
-		return nil, NewDetailErr(errors.New("The encodeData format is error"), ErrNoCode, "")
+		return nil, errors.New("The encodeData format is error")
 	}
 }
 

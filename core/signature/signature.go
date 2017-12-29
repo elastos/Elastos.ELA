@@ -5,10 +5,10 @@ import (
 	"Elastos.ELA/common/log"
 	"Elastos.ELA/core/contract/program"
 	"Elastos.ELA/crypto"
-	. "Elastos.ELA/errors"
 	"Elastos.ELA/vm/interfaces"
 	"bytes"
 	"io"
+	"errors"
 )
 
 //SignableData describe the data need be signed.
@@ -32,7 +32,7 @@ func SignBySigner(data SignableData, signer Signer) ([]byte, error) {
 	rtx, err := crypto.Sign(signer.PrivKey(), GetHashData(data))
 
 	if err != nil {
-		return nil, NewDetailErr(err, ErrNoCode, "[Signature],SignBySigner failed.")
+		return nil, errors.New("[Signature],SignBySigner failed.")
 	}
 	return rtx, nil
 }

@@ -2,8 +2,6 @@ package errors
 
 import (
 	"fmt"
-	"errors"
-	"runtime/debug"
 )
 
 type ErrCode int
@@ -26,20 +24,18 @@ const (
 	ErrInvalidReferedTxn    ErrCode = 45017
 	ErrIneffectiveCoinbase  ErrCode = 45018
 	ErrUTXOLocked           ErrCode = 45019
-
-	//what the hell
-	SessionExpired     		ErrCode = 41001
-	IllegalDataFormat  		ErrCode = 41003
-	OauthTimeout       		ErrCode = 41004
-	InvalidMethod      		ErrCode = 42001
-	InvalidParams      		ErrCode = 42002
-	InvalidToken       		ErrCode = 42003
-	InvalidTransaction 		ErrCode = 43001
-	InvalidAsset       		ErrCode = 43002
-	UnknownTransaction 		ErrCode = 44001
-	UnknownAsset       		ErrCode = 44002
-	UnknownBlock       		ErrCode = 44003
-	InternalError      		ErrCode = 45002
+	SessionExpired          ErrCode = 41001
+	IllegalDataFormat       ErrCode = 41003
+	OauthTimeout            ErrCode = 41004
+	InvalidMethod           ErrCode = 42001
+	InvalidParams           ErrCode = 42002
+	InvalidToken            ErrCode = 42003
+	InvalidTransaction      ErrCode = 43001
+	InvalidAsset            ErrCode = 43002
+	UnknownTransaction      ErrCode = 44001
+	UnknownAsset            ErrCode = 44002
+	UnknownBlock            ErrCode = 44003
+	InternalError           ErrCode = 45002
 )
 
 var ErrMap = map[ErrCode]string{
@@ -111,21 +107,4 @@ func (err ErrCode) Error() string {
 	}
 
 	return fmt.Sprintf("Unknown error? Error code = %d", err)
-}
-
-func NewDetailErr(err error, errCode ErrCode, errmsg string) error {
-	if errCode != 0 {
-		//TODO: 这里的错误机制需要重写，但我还没想好怎么改
-		//现在我只是把多余的代码删掉了，但它的设计也很糟糕，所以要重新设计
-		//目前初步设想是要有一个错误码
-		//但是错误码在对外的API肯定有用，内部报错不确定要不要用，这个要看具体业务，所以我得先把代码看完。
-		//堆栈是肯定要打的，为了排错，所以我先把堆栈加上。
-	}
-	fmt.Println(string(debug.Stack()))
-
-	if err.Error() == "" {
-		return errors.New(errmsg)
-	} else {
-		return err
-	}
 }

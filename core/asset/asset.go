@@ -2,7 +2,6 @@ package asset
 
 import (
 	"Elastos.ELA/common/serialization"
-	. "Elastos.ELA/errors"
 	"errors"
 	"io"
 )
@@ -42,23 +41,23 @@ type Asset struct {
 func (a *Asset) Serialize(w io.Writer) error {
 	err := serialization.WriteVarString(w, a.Name)
 	if err != nil {
-		return NewDetailErr(err, ErrNoCode, "[Asset], Name serialize failed.")
+		return errors.New("[Asset], Name serialize failed.")
 	}
 	err = serialization.WriteVarString(w, a.Description)
 	if err != nil {
-		return NewDetailErr(err, ErrNoCode, "[Asset], Description serialize failed.")
+		return errors.New("[Asset], Description serialize failed.")
 	}
 	_, err = w.Write([]byte{byte(a.Precision)})
 	if err != nil {
-		return NewDetailErr(err, ErrNoCode, "[Asset], Precision serialize failed.")
+		return errors.New("[Asset], Precision serialize failed.")
 	}
 	_, err = w.Write([]byte{byte(a.AssetType)})
 	if err != nil {
-		return NewDetailErr(err, ErrNoCode, "[Asset], AssetType serialize failed.")
+		return errors.New("[Asset], AssetType serialize failed.")
 	}
 	_, err = w.Write([]byte{byte(a.RecordType)})
 	if err != nil {
-		return NewDetailErr(err, ErrNoCode, "[Asset], RecordType serialize failed.")
+		return errors.New("[Asset], RecordType serialize failed.")
 	}
 	return nil
 }
@@ -67,12 +66,12 @@ func (a *Asset) Serialize(w io.Writer) error {
 func (a *Asset) Deserialize(r io.Reader) error {
 	name, err := serialization.ReadVarString(r)
 	if err != nil {
-		return NewDetailErr(errors.New("[Asset], Name deserialize failed."), ErrNoCode, "")
+		return errors.New("[Asset], Name deserialize failed.")
 	}
 	a.Name = name
 	description, err := serialization.ReadVarString(r)
 	if err != nil {
-		return NewDetailErr(errors.New("[Asset], Description deserialize failed."), ErrNoCode, "")
+		return errors.New("[Asset], Description deserialize failed.")
 	}
 	a.Description = description
 	p := make([]byte, 1)
@@ -80,19 +79,19 @@ func (a *Asset) Deserialize(r io.Reader) error {
 	if n > 0 {
 		a.Precision = p[0]
 	} else {
-		return NewDetailErr(errors.New("[Asset], Precision deserialize failed."), ErrNoCode, "")
+		return errors.New("[Asset], Precision deserialize failed.")
 	}
 	n, err = r.Read(p)
 	if n > 0 {
 		a.AssetType = AssetType(p[0])
 	} else {
-		return NewDetailErr(errors.New("[Asset], AssetType deserialize failed."), ErrNoCode, "")
+		return errors.New("[Asset], AssetType deserialize failed.")
 	}
 	n, err = r.Read(p)
 	if n > 0 {
 		a.RecordType = AssetRecordType(p[0])
 	} else {
-		return NewDetailErr(errors.New("[Asset], RecordType deserialize failed."), ErrNoCode, "")
+		return errors.New("[Asset], RecordType deserialize failed.")
 	}
 	return nil
 }

@@ -4,7 +4,6 @@ import (
 	. "Elastos.ELA/common"
 	"Elastos.ELA/core/contract"
 	"Elastos.ELA/crypto"
-	. "Elastos.ELA/errors"
 	"errors"
 )
 
@@ -18,11 +17,11 @@ func NewAccount() (*Account, error) {
 	priKey, pubKey, _ := crypto.GenKeyPair()
 	signatureRedeemScript, err := contract.CreateSignatureRedeemScript(&pubKey)
 	if err != nil {
-		return nil, NewDetailErr(err, ErrNoCode, "CreateSignatureRedeemScript failed")
+		return nil, errors.New("CreateSignatureRedeemScript failed")
 	}
 	programHash, err := ToCodeHash(signatureRedeemScript, 1)
 	if err != nil {
-		return nil, NewDetailErr(err, ErrNoCode, "ToCodeHash failed")
+		return nil, errors.New("ToCodeHash failed")
 	}
 	return &Account{
 		PrivateKey:  priKey,
@@ -41,11 +40,11 @@ func NewAccountWithPrivatekey(privateKey []byte) (*Account, error) {
 	pubKey := crypto.NewPubKey(privateKey)
 	signatureRedeemScript, err := contract.CreateSignatureRedeemScript(pubKey)
 	if err != nil {
-		return nil, NewDetailErr(err, ErrNoCode, "CreateSignatureRedeemScript failed")
+		return nil, errors.New("CreateSignatureRedeemScript failed")
 	}
 	programHash, err := ToCodeHash(signatureRedeemScript, 1)
 	if err != nil {
-		return nil, NewDetailErr(err, ErrNoCode, "ToCodeHash failed")
+		return nil, errors.New("ToCodeHash failed")
 	}
 	return &Account{
 		PrivateKey:  privateKey,

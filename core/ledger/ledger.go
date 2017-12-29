@@ -5,7 +5,7 @@ import (
 	"Elastos.ELA/core/asset"
 	tx "Elastos.ELA/core/transaction"
 	"Elastos.ELA/crypto"
-	. "Elastos.ELA/errors"
+	"errors"
 )
 
 const (
@@ -34,7 +34,7 @@ func (l *Ledger) IsDoubleSpend(Tx *tx.Transaction) bool {
 func (l *Ledger) GetAsset(assetId Uint256) (*asset.Asset, error) {
 	asset, err := l.Store.GetAsset(assetId)
 	if err != nil {
-		return nil, NewDetailErr(err, ErrNoCode, "[Ledger],GetAsset failed with assetId ="+assetId.ToString())
+		return nil, errors.New("[Ledger],GetAsset failed with assetId ="+assetId.ToString())
 	}
 	return asset, nil
 }
@@ -43,11 +43,11 @@ func (l *Ledger) GetAsset(assetId Uint256) (*asset.Asset, error) {
 func (l *Ledger) GetBlockWithHeight(height uint32) (*Block, error) {
 	temp, err := l.Store.GetBlockHash(height)
 	if err != nil {
-		return nil, NewDetailErr(err, ErrNoCode, "[Ledger],GetBlockWithHeight failed with height="+string(height))
+		return nil, errors.New("[Ledger],GetBlockWithHeight failed with height="+string(height))
 	}
 	bk, err := DefaultLedger.Store.GetBlock(temp)
 	if err != nil {
-		return nil, NewDetailErr(err, ErrNoCode, "[Ledger],GetBlockWithHeight failed with hash="+temp.ToString())
+		return nil, errors.New("[Ledger],GetBlockWithHeight failed with hash="+temp.ToString())
 	}
 	return bk, nil
 }
@@ -56,7 +56,7 @@ func (l *Ledger) GetBlockWithHeight(height uint32) (*Block, error) {
 func (l *Ledger) GetBlockWithHash(hash Uint256) (*Block, error) {
 	bk, err := l.Store.GetBlock(hash)
 	if err != nil {
-		return nil, NewDetailErr(err, ErrNoCode, "[Ledger],GetBlockWithHeight failed with hash="+hash.ToString())
+		return nil, errors.New("[Ledger],GetBlockWithHeight failed with hash="+hash.ToString())
 	}
 	return bk, nil
 }
@@ -70,7 +70,7 @@ func (l *Ledger) BlockInLedger(hash Uint256) bool {
 func (l *Ledger) GetTransactionWithHash(hash Uint256) (*tx.Transaction, error) {
 	tx, _, err := l.Store.GetTransaction(hash)
 	if err != nil {
-		return nil, NewDetailErr(err, ErrNoCode, "[Ledger],GetTransactionWithHash failed with hash="+hash.ToString())
+		return nil, errors.New("[Ledger],GetTransactionWithHash failed with hash="+hash.ToString())
 	}
 	return tx, nil
 }

@@ -14,11 +14,10 @@ import (
 	"Elastos.ELA/common/serialization"
 	ct "Elastos.ELA/core/contract"
 	"Elastos.ELA/core/transaction"
-	. "Elastos.ELA/errors"
 )
 
 const (
-       WalletStoreVersion = "1.0.0"
+	WalletStoreVersion = "1.0.0"
 )
 
 type WalletData struct {
@@ -78,7 +77,7 @@ func (cs *FileStore) readDB() ([]byte, error) {
 		}
 		return data, nil
 	} else {
-		return nil, NewDetailErr(errors.New("[readDB] file handle is nil"), ErrNoCode, "")
+		return nil, errors.New("[readDB] file handle is nil")
 	}
 }
 

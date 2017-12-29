@@ -1,7 +1,6 @@
 package common
 
 import (
-	. "Elastos.ELA/errors"
 	"bytes"
 	"crypto/sha256"
 	"encoding/binary"
@@ -94,7 +93,7 @@ func (f *Uint168) ToAddress() (string, error) {
 func Uint168ParseFromBytes(f []byte) (Uint168, error) {
 
 	if len(f) != UINT168SIZE {
-		return Uint168{}, NewDetailErr(errors.New("[Common]: Uint168ParseFromBytes err, len != 21"), ErrNoCode, "")
+		return Uint168{}, errors.New("[Common]: Uint168ParseFromBytes err, len != 21")
 	}
 
 	var hash [UINT168SIZE]uint8

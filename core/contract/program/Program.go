@@ -2,12 +2,11 @@ package program
 
 import (
 	"Elastos.ELA/common/serialization"
-	. "Elastos.ELA/errors"
 	"io"
+	"errors"
 )
 
 type Program struct {
-
 	//the contract program code,which will be run on VM or specific envrionment
 	Code []byte
 
@@ -18,11 +17,11 @@ type Program struct {
 //Serialize the Program
 func (p *Program) Serialize(w io.Writer) error {
 	if err := serialization.WriteVarBytes(w, p.Parameter); err != nil {
-		return NewDetailErr(err, ErrNoCode, "Execute Program Serialize Parameter failed.")
+		return errors.New("Execute Program Serialize Parameter failed.")
 	}
 
 	if err := serialization.WriteVarBytes(w, p.Code); err != nil {
-		return NewDetailErr(err, ErrNoCode, "Execute Program Serialize Code failed.")
+		return errors.New("Execute Program Serialize Code failed.")
 	}
 
 	return nil
@@ -32,13 +31,13 @@ func (p *Program) Serialize(w io.Writer) error {
 func (p *Program) Deserialize(w io.Reader) error {
 	parameter, err := serialization.ReadVarBytes(w)
 	if err != nil {
-		return NewDetailErr(err, ErrNoCode, "Execute Program Deserialize Parameter failed.")
+		return errors.New("Execute Program Deserialize Parameter failed.")
 	}
 	p.Parameter = parameter
 
 	code, err := serialization.ReadVarBytes(w)
 	if err != nil {
-		return NewDetailErr(err, ErrNoCode, "Execute Program Deserialize Code failed.")
+		return errors.New("Execute Program Deserialize Code failed.")
 	}
 	p.Code = code
 

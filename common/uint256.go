@@ -5,8 +5,6 @@ import (
 	"encoding/binary"
 	"errors"
 	"io"
-
-	. "Elastos.ELA/errors"
 )
 
 const UINT256SIZE int = 32
@@ -77,7 +75,7 @@ func (u *Uint256) ToString() string {
 
 func Uint256ParseFromBytes(f []byte) (Uint256, error) {
 	if len(f) != UINT256SIZE {
-		return Uint256{}, NewDetailErr(errors.New("[Common]: Uint256ParseFromBytes err, len != 32"), ErrNoCode, "")
+		return Uint256{}, errors.New("[Common]: Uint256ParseFromBytes err, len != 32")
 	}
 
 	var hash [32]uint8

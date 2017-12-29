@@ -7,7 +7,6 @@ import (
 	"Elastos.ELA/core/contract/program"
 	sig "Elastos.ELA/core/signature"
 	"Elastos.ELA/core/transaction/payload"
-	. "Elastos.ELA/errors"
 	"bytes"
 	"crypto/sha256"
 	"errors"
@@ -84,19 +83,19 @@ func (tx *Transaction) Serialize(w io.Writer) error {
 
 	err := tx.SerializeUnsigned(w)
 	if err != nil {
-		return NewDetailErr(err, ErrNoCode, "Transaction txSerializeUnsigned Serialize failed.")
+		return errors.New("Transaction txSerializeUnsigned Serialize failed.")
 	}
 	//Serialize  Transaction's programs
 	lens := uint64(len(tx.Programs))
 	err = serialization.WriteVarUint(w, lens)
 	if err != nil {
-		return NewDetailErr(err, ErrNoCode, "Transaction WriteVarUint failed.")
+		return errors.New("Transaction WriteVarUint failed.")
 	}
 	if lens > 0 {
 		for _, p := range tx.Programs {
 			err = p.Serialize(w)
 			if err != nil {
-				return NewDetailErr(err, ErrNoCode, "Transaction Programs Serialize failed.")
+				return errors.New("Transaction Programs Serialize failed.")
 			}
 		}
 	}
@@ -117,7 +116,7 @@ func (tx *Transaction) SerializeUnsigned(w io.Writer) error {
 	//[]*txAttribute
 	err := serialization.WriteVarUint(w, uint64(len(tx.Attributes)))
 	if err != nil {
-		return NewDetailErr(err, ErrNoCode, "Transaction item txAttribute length serialization failed.")
+		return errors.New("Transaction item txAttribute length serialization failed.")
 	}
 	if len(tx.Attributes) > 0 {
 		for _, attr := range tx.Attributes {
@@ -127,7 +126,7 @@ func (tx *Transaction) SerializeUnsigned(w io.Writer) error {
 	//[]*UTXOInputs
 	err = serialization.WriteVarUint(w, uint64(len(tx.UTXOInputs)))
 	if err != nil {
-		return NewDetailErr(err, ErrNoCode, "Transaction item UTXOInputs length serialization failed.")
+		return errors.New("Transaction item UTXOInputs length serialization failed.")
 	}
 	if len(tx.UTXOInputs) > 0 {
 		for _, utxo := range tx.UTXOInputs {
@@ -138,7 +137,7 @@ func (tx *Transaction) SerializeUnsigned(w io.Writer) error {
 	//[]*Outputs
 	err = serialization.WriteVarUint(w, uint64(len(tx.Outputs)))
 	if err != nil {
-		return NewDetailErr(err, ErrNoCode, "Transaction item Outputs length serialization failed.")
+		return errors.New("Transaction item Outputs length serialization failed.")
 	}
 	if len(tx.Outputs) > 0 {
 		for _, output := range tx.Outputs {
@@ -156,13 +155,13 @@ func (tx *Transaction) Deserialize(r io.Reader) error {
 	// tx deserialize
 	err := tx.DeserializeUnsigned(r)
 	if err != nil {
-		return NewDetailErr(err, ErrNoCode, "transaction Deserialize error")
+		return errors.New("transaction Deserialize error")
 	}
 
 	// tx program
 	lens, err := serialization.ReadVarUint(r, 0)
 	if err != nil {
-		return NewDetailErr(err, ErrNoCode, "transaction tx program Deserialize error")
+		return errors.New("transaction tx program Deserialize error")
 	}
 
 	programHashes := []*program.Program{}
@@ -211,7 +210,7 @@ func (tx *Transaction) DeserializeUnsignedWithoutType(r io.Reader) error {
 	}
 	err = tx.Payload.Deserialize(r, tx.PayloadVersion)
 	if err != nil {
-		return NewDetailErr(err, ErrNoCode, "Payload Parse error")
+		return errors.New("Payload Parse error")
 	}
 	//attributes
 	Len, err := serialization.ReadVarUint(r, 0)
@@ -294,7 +293,7 @@ func (tx *Transaction) GetProgramHashes() ([]Uint168, error) {
 	// add inputUTXO's transaction
 	referenceWithUTXO_Output, err := tx.GetReference()
 	if err != nil {
-		return nil, NewDetailErr(err, ErrNoCode, "[Transaction], GetProgramHashes failed.")
+		return nil, errors.New("[Transaction], GetProgramHashes failed.")
 	}
 	for _, output := range referenceWithUTXO_Output {
 		programHash := output.ProgramHash
@@ -304,7 +303,7 @@ func (tx *Transaction) GetProgramHashes() ([]Uint168, error) {
 		if attribute.Usage == Script {
 			dataHash, err := Uint168ParseFromBytes(attribute.Data)
 			if err != nil {
-				return nil, NewDetailErr(errors.New("[Transaction], GetProgramHashes err."), ErrNoCode, "")
+				return nil, errors.New("[Transaction], GetProgramHashes err.")
 			}
 			hashs = append(hashs, Uint168(dataHash))
 		}
@@ -387,7 +386,7 @@ func (tx *Transaction) GetReference() (map[*UTXOTxInput]*TxOutput, error) {
 	for _, utxo := range tx.UTXOInputs {
 		transaction, _, err := TxStore.GetTransaction(utxo.ReferTxID)
 		if err != nil {
-			return nil, NewDetailErr(err, ErrNoCode, "[Transaction], GetReference failed.")
+			return nil, errors.New("[Transaction], GetReference failed.")
 		}
 		index := utxo.ReferTxOutputIndex
 		if int(index) >= len(transaction.Outputs) {
@@ -513,7 +512,7 @@ func (tx *Transaction) AppendNewSignature(sig []byte) error {
 		return err
 	}
 
-	existedsigs := tx.Programs[0].Parameter[0 : havesig*SignatureScriptLen]
+	existedsigs := tx.Programs[0].Parameter[0: havesig*SignatureScriptLen]
 	leftsigs := tx.Programs[0].Parameter[havesig*SignatureScriptLen+1:]
 
 	tx.Programs[0].Parameter = nil

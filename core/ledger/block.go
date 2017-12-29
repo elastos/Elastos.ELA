@@ -17,7 +17,7 @@ import (
 	tx "Elastos.ELA/core/transaction"
 	"Elastos.ELA/core/transaction/payload"
 	"Elastos.ELA/crypto"
-	. "Elastos.ELA/errors"
+	"errors"
 )
 
 const (
@@ -41,7 +41,7 @@ func (b *Block) Serialize(w io.Writer) error {
 	b.Blockdata.Serialize(w)
 	err := serialization.WriteUint32(w, uint32(len(b.Transactions)))
 	if err != nil {
-		return NewDetailErr(err, ErrNoCode, "Block item Transactions length serialization failed.")
+		return errors.New("Block item Transactions length serialization failed.")
 	}
 
 	for _, transaction := range b.Transactions {
@@ -74,7 +74,7 @@ func (b *Block) Deserialize(r io.Reader) error {
 
 	b.Blockdata.TransactionsRoot, err = crypto.ComputeRoot(tharray)
 	if err != nil {
-		return NewDetailErr(err, ErrNoCode, "Block Deserialize merkleTree compute failed")
+		return errors.New("Block Deserialize merkleTree compute failed")
 	}
 
 	return nil
@@ -84,7 +84,7 @@ func (b *Block) Trim(w io.Writer) error {
 	b.Blockdata.Serialize(w)
 	err := serialization.WriteUint32(w, uint32(len(b.Transactions)))
 	if err != nil {
-		return NewDetailErr(err, ErrNoCode, "Block item Transactions length serialization failed.")
+		return errors.New("Block item Transactions length serialization failed.")
 	}
 	for _, transaction := range b.Transactions {
 		temp := *transaction
@@ -118,7 +118,7 @@ func (b *Block) FromTrimmedData(r io.Reader) error {
 
 	b.Blockdata.TransactionsRoot, err = crypto.ComputeRoot(tharray)
 	if err != nil {
-		return NewDetailErr(err, ErrNoCode, "Block Deserialize merkleTree compute failed")
+		return errors.New("Block Deserialize merkleTree compute failed")
 	}
 
 	return nil
@@ -232,7 +232,7 @@ func GenesisBlockInit() (*Block, error) {
 	}
 	merkleRoot, err := crypto.ComputeRoot(txHashes)
 	if err != nil {
-		return nil, NewDetailErr(err, ErrNoCode, "[GenesisBlock], merkle root error")
+		return nil, errors.New("[GenesisBlock], merkle root error")
 	}
 	genesisBlock.Blockdata.TransactionsRoot = merkleRoot
 
@@ -247,7 +247,7 @@ func (b *Block) RebuildMerkleRoot() error {
 	}
 	hash, err := crypto.ComputeRoot(transactionHashes)
 	if err != nil {
-		return NewDetailErr(err, ErrNoCode, "[Block] , RebuildMerkleRoot ComputeRoot failed.")
+		return errors.New("[Block] , RebuildMerkleRoot ComputeRoot failed.")
 	}
 	b.Blockdata.TransactionsRoot = hash
 	return nil

@@ -4,7 +4,6 @@ import (
 	. "Elastos.ELA/common"
 	"Elastos.ELA/common/config"
 	"Elastos.ELA/common/log"
-	. "Elastos.ELA/errors"
 	"Elastos.ELA/events"
 	"container/list"
 	"fmt"
@@ -12,6 +11,7 @@ import (
 	"sort"
 	"sync"
 	"time"
+	"errors"
 )
 
 const (
@@ -73,7 +73,7 @@ func NewBlockchain(height uint32, ledger *Ledger) *Blockchain {
 func NewBlockchainWithGenesisBlock() (*Blockchain, error) {
 	genesisBlock, err := GenesisBlockInit()
 	if err != nil {
-		return nil, NewDetailErr(err, ErrNoCode, "[Blockchain], NewBlockchainWithGenesisBlock failed.")
+		return nil, errors.New("[Blockchain], NewBlockchainWithGenesisBlock failed.")
 	}
 	genesisBlock.RebuildMerkleRoot()
 	hashx := genesisBlock.Hash()
@@ -84,7 +84,7 @@ func NewBlockchainWithGenesisBlock() (*Blockchain, error) {
 	DefaultLedger.Blockchain.AssetID = genesisBlock.Transactions[0].Outputs[0].AssetID
 	height, err := DefaultLedger.Store.InitLedgerStoreWithGenesisBlock(genesisBlock)
 	if err != nil {
-		return nil, NewDetailErr(err, ErrNoCode, "[Blockchain], InitLevelDBStoreWithGenesisBlock failed.")
+		return nil, errors.New("[Blockchain], InitLevelDBStoreWithGenesisBlock failed.")
 	}
 	DefaultLedger.Blockchain.UpdateBestHeight(height)
 
@@ -133,7 +133,7 @@ func (bc *Blockchain) AddBlock(block *Block) (bool, bool, error) {
 func (bc *Blockchain) GetHeader(hash Uint256) (*Header, error) {
 	header, err := DefaultLedger.Store.GetHeader(hash)
 	if err != nil {
-		return nil, NewDetailErr(err, ErrNoCode, "[Blockchain], GetHeader failed.")
+		return nil, errors.New("[Blockchain], GetHeader failed.")
 	}
 	return header, nil
 }

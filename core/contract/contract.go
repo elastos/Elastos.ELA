@@ -7,7 +7,6 @@ import (
 
 	. "Elastos.ELA/common"
 	"Elastos.ELA/common/serialization"
-	. "Elastos.ELA/errors"
 	"Elastos.ELA/vm"
 )
 
@@ -155,7 +154,7 @@ func (c *Contract) Serialize(w io.Writer) error {
 		return err
 	}
 	if len != UINT168SIZE {
-		return NewDetailErr(errors.New("PubkeyHash.Serialize(): len != len(Uint168)"), ErrNoCode, "")
+		return errors.New("PubkeyHash.Serialize(): len != len(Uint168)")
 	}
 
 	err = serialization.WriteVarBytes(w, ContractParameterTypeToByte(c.Parameters))

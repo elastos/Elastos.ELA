@@ -1,7 +1,6 @@
 package common
 
 import (
-	. "Elastos.ELA/errors"
 	"bytes"
 	"crypto/sha256"
 	"encoding/binary"
@@ -26,7 +25,7 @@ func ToCodeHash(code []byte, signType int) (Uint168, error) {
 
 	hash, err := Uint168ParseFromBytes(f)
 	if err != nil {
-		return Uint168{}, NewDetailErr(errors.New("[Common] , ToCodeHash err."), ErrNoCode, "")
+		return Uint168{}, errors.New("[Common] , ToCodeHash err.")
 	}
 	return hash, nil
 }
@@ -101,11 +100,11 @@ func CompareHeight(blockHeight uint64, heights []uint64) bool {
 
 func GetUint16Array(source []byte) ([]uint16, error) {
 	if source == nil {
-		return nil, NewDetailErr(errors.New("[Common] , GetUint16Array err, source = nil"), ErrNoCode, "")
+		return nil, errors.New("[Common] , GetUint16Array err, source = nil")
 	}
 
 	if len(source)%2 != 0 {
-		return nil, NewDetailErr(errors.New("[Common] , GetUint16Array err, length of source is odd."), ErrNoCode, "")
+		return nil, errors.New("[Common] , GetUint16Array err, length of source is odd.")
 	}
 
 	dst := make([]uint16, len(source)/2)

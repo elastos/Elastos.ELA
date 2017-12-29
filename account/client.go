@@ -23,7 +23,6 @@ import (
 	sig "Elastos.ELA/core/signature"
 	"Elastos.ELA/core/transaction"
 	"Elastos.ELA/crypto"
-	. "Elastos.ELA/errors"
 	"Elastos.ELA/events/signalset"
 )
 
@@ -350,11 +349,11 @@ func (cl *ClientImpl) GetDefaultAccount() (*Account, error) {
 func (cl *ClientImpl) GetAccount(pubKey *crypto.PubKey) (*Account, error) {
 	signatureRedeemScript, err := contract.CreateSignatureRedeemScript(pubKey)
 	if err != nil {
-		return nil, NewDetailErr(err, ErrNoCode, "CreateSignatureRedeemScript failed")
+		return nil, errors.New("CreateSignatureRedeemScript failed")
 	}
 	programHash, err := ToCodeHash(signatureRedeemScript, 1)
 	if err != nil {
-		return nil, NewDetailErr(err, ErrNoCode, "ToCodeHash failed")
+		return nil, errors.New("ToCodeHash failed")
 	}
 	return cl.GetAccountByProgramHash(programHash), nil
 }
@@ -498,10 +497,10 @@ func (cl *ClientImpl) EncryptPrivateKey(prikey []byte) ([]byte, error) {
 
 func (cl *ClientImpl) DecryptPrivateKey(prikey []byte) ([]byte, error) {
 	if prikey == nil {
-		return nil, NewDetailErr(errors.New("The PriKey is nil"), ErrNoCode, "")
+		return nil, errors.New("The PriKey is nil")
 	}
 	if len(prikey) != 96 {
-		return nil, NewDetailErr(errors.New("The len of PriKeyEnc is not 96bytes"), ErrNoCode, "")
+		return nil, errors.New("The len of PriKeyEnc is not 96bytes")
 	}
 
 	dec, err := crypto.AesDecrypt(prikey, cl.masterKey, cl.iv)

@@ -6,7 +6,6 @@ import (
 	"Elastos.ELA/core/auxpow"
 	"Elastos.ELA/core/contract/program"
 	sig "Elastos.ELA/core/signature"
-	. "Elastos.ELA/errors"
 	"crypto/sha256"
 	"errors"
 	"io"
@@ -57,10 +56,10 @@ func (bd *Blockdata) Deserialize(r io.Reader) error {
 		x := []byte(p[:])
 
 		if x[0] != byte(1) {
-			return NewDetailErr(errors.New("Blockdata Deserialize get format error."), ErrNoCode, "")
+			return errors.New("Blockdata Deserialize get format error.")
 		}
 	} else {
-		return NewDetailErr(errors.New("Blockdata Deserialize get format error."), ErrNoCode, "")
+		return errors.New("Blockdata Deserialize get format error.")
 	}
 
 	return nil
@@ -70,7 +69,7 @@ func (bd *Blockdata) DeserializeUnsigned(r io.Reader) error {
 	//Version
 	temp, err := serialization.ReadUint32(r)
 	if err != nil {
-		return NewDetailErr(err, ErrNoCode, "Blockdata item Version Deserialize failed.")
+		return errors.New("Blockdata item Version Deserialize failed.")
 	}
 	bd.Version = temp
 
@@ -78,7 +77,7 @@ func (bd *Blockdata) DeserializeUnsigned(r io.Reader) error {
 	preBlock := new(Uint256)
 	err = preBlock.Deserialize(r)
 	if err != nil {
-		return NewDetailErr(err, ErrNoCode, "Blockdata item preBlock Deserialize failed.")
+		return errors.New("Blockdata item preBlock Deserialize failed.")
 	}
 	bd.PrevBlockHash = *preBlock
 

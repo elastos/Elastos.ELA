@@ -4,7 +4,6 @@ import (
 	. "Elastos.ELA/common"
 	sig "Elastos.ELA/core/signature"
 	"Elastos.ELA/crypto"
-	. "Elastos.ELA/errors"
 	"Elastos.ELA/vm"
 	"Elastos.ELA/vm/interfaces"
 	"errors"
@@ -49,16 +48,16 @@ func VerifySignableData(signableData sig.SignableData) (bool, error) {
 		se.Execute()
 
 		if se.GetState() != vm.HALT {
-			return false, NewDetailErr(errors.New("[VM] Finish State not equal to HALT."), ErrNoCode, "")
+			return false, errors.New("[VM] Finish State not equal to HALT.")
 		}
 
 		if se.GetEvaluationStack().Count() != 1 {
-			return false, NewDetailErr(errors.New("[VM] Execute Engine Stack Count Error."), ErrNoCode, "")
+			return false, errors.New("[VM] Execute Engine Stack Count Error.")
 		}
 
 		flag := se.GetExecuteResult()
 		if !flag {
-			return false, NewDetailErr(errors.New("[VM] Check Sig FALSE."), ErrNoCode, "")
+			return false, errors.New("[VM] Check Sig FALSE.")
 		}
 	}
 
@@ -68,7 +67,7 @@ func VerifySignableData(signableData sig.SignableData) (bool, error) {
 func VerifySignature(signableData sig.SignableData, pubkey *crypto.PubKey, signature []byte) (bool, error) {
 	err := crypto.Verify(*pubkey, sig.GetHashData(signableData), signature)
 	if err != nil {
-		return false, NewDetailErr(err, ErrNoCode, "[Validation], VerifySignature failed.")
+		return false, errors.New("[Validation], VerifySignature failed.")
 	} else {
 		return true, nil
 	}

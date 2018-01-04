@@ -30,9 +30,6 @@ func (c *idCache) add(id common.Uint256) {
 	c.index = c.index % protocol.MAXIDCACHED
 }
 
-func (c *idCache) del() {
-}
-
 func (c *idCache) ExistedID(id common.Uint256) bool {
 	// TODO
 	c.Lock()

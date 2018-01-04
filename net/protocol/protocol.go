@@ -77,7 +77,6 @@ type Noder interface {
 	GetState() uint32
 	GetRelay() bool
 	SetState(state uint32)
-	GetPubKey() *crypto.PubKey
 	CompareAndSetState(old, new uint32) bool
 	LocalNode() Noder
 	DelNbrNode(id uint64) (Noder, bool)
@@ -106,9 +105,8 @@ type Noder interface {
 	GetRxTxnCnt() uint64
 
 	Xmit(interface{}) error
-	GetBookKeeperAddr() *crypto.PubKey
-	GetBookKeepersAddrs() ([]*crypto.PubKey, uint64)
-	SetBookKeeperAddr(pk *crypto.PubKey)
+	GetPublicKey() *crypto.PubKey
+	SetPublicKey(pk *crypto.PubKey)
 	GetNeighborHeights() ([]uint64, uint64)
 	WaitForSyncFinish()
 	CleanSubmittedTransactions(block *ledger.Block) error

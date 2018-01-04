@@ -284,10 +284,6 @@ func (node *node) SetState(state uint32) {
 	atomic.StoreUint32(&(node.state), state)
 }
 
-func (node *node) GetPubKey() *crypto.PubKey {
-	return node.publicKey
-}
-
 func (node *node) CompareAndSetState(old, new uint32) bool {
 	return atomic.CompareAndSwapUint32(&(node.state), old, new)
 }
@@ -327,26 +323,6 @@ func (node *node) Xmit(message interface{}) error {
 			log.Error("Error New Block message: ", err)
 			return err
 		}
-	case *ConsensusPayload:
-		log.Debug("TX consensus message")
-		consensusPayload := message.(*ConsensusPayload)
-		buffer, err = NewConsensus(consensusPayload)
-		if err != nil {
-			log.Error("Error New consensus message: ", err)
-			return err
-		}
-	case Uint256:
-		log.Debug("TX block hash message")
-		hash := message.(Uint256)
-		buf := bytes.NewBuffer([]byte{})
-		hash.Serialize(buf)
-		// construct inv message
-		invPayload := NewInvPayload(BLOCK, 1, buf.Bytes())
-		buffer, err = NewInv(invPayload)
-		if err != nil {
-			log.Error("Error New inv message")
-			return err
-		}
 	default:
 		log.Warn("Unknown Xmit message type")
 		return errors.New("Unknown Xmit message type")
@@ -378,27 +354,11 @@ func (node *node) GetTime() int64 {
 	return t.UnixNano()
 }
 
-func (node *node) GetBookKeeperAddr() *crypto.PubKey {
+func (node *node) GetPublicKey() *crypto.PubKey {
 	return node.publicKey
 }
 
-func (node *node) GetBookKeepersAddrs() ([]*crypto.PubKey, uint64) {
-	pks := make([]*crypto.PubKey, 1)
-	pks[0] = node.publicKey
-	var i uint64
-	i = 1
-	//TODO read lock
-	for _, n := range node.nbrNodes.List {
-		if n.GetState() == ESTABLISH && n.services != SERVICENODE {
-			pktmp := n.GetBookKeeperAddr()
-			pks = append(pks, pktmp)
-			i++
-		}
-	}
-	return pks, i
-}
-
-func (node *node) SetBookKeeperAddr(pk *crypto.PubKey) {
+func (node *node) SetPublicKey(pk *crypto.PubKey) {
 	node.publicKey = pk
 }
 
@@ -442,27 +402,6 @@ func (node *node) Relay(frmnode Noder, message interface{}) error {
 			return err
 		}
 		node.txnCnt++
-	case *ConsensusPayload:
-		log.Debug("TX consensus message")
-		consensusPayload := message.(*ConsensusPayload)
-		buffer, err = NewConsensus(consensusPayload)
-		if err != nil {
-			log.Error("Error New consensus message: ", err)
-			return err
-		}
-	case Uint256:
-		log.Debug("TX block hash message")
-		hash := message.(Uint256)
-		isHash = true
-		buf := bytes.NewBuffer([]byte{})
-		hash.Serialize(buf)
-		// construct inv message
-		invPayload := NewInvPayload(BLOCK, 1, buf.Bytes())
-		buffer, err = NewInv(invPayload)
-		if err != nil {
-			log.Error("Error New inv message")
-			return err
-		}
 	case *ledger.Block:
 		log.Debug("TX block message")
 		blkpayload := message.(*ledger.Block)

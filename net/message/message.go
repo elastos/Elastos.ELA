@@ -28,21 +28,8 @@ type msgHdr struct {
 	Checksum [CHECKSUMLEN]byte
 }
 
-// The message body and header
-type filteradd struct {
-	msgHdr
-	//TBD
-}
 
-type filterclear struct {
-	msgHdr
-	//TBD
-}
 
-type filterload struct {
-	msgHdr
-	//TBD
-}
 
 // Alloc different message stucture
 // @t the message name or type
@@ -54,9 +41,6 @@ type filterload struct {
 // FixMe fix the ugly multiple return.
 func AllocMsg(t string, length int) Messager {
 	switch t {
-	case "msgheader":
-		var msg msgHdr
-		return &msg
 	case "version":
 		var msg version
 		// TODO fill the header and type
@@ -65,15 +49,6 @@ func AllocMsg(t string, length int) Messager {
 	case "verack":
 		var msg verACK
 		copy(msg.msgHdr.CMD[0:len(t)], t)
-		return &msg
-	case "getheaders":
-		var msg headersReq
-		// TODO fill the header and type
-		copy(msg.hdr.CMD[0:len(t)], t)
-		return &msg
-	case "headers":
-		var msg blkHeader
-		copy(msg.hdr.CMD[0:len(t)], t)
 		return &msg
 	case "getaddr":
 		var msg addrReq
@@ -103,36 +78,10 @@ func AllocMsg(t string, length int) Messager {
 		//if (message.Payload.Length <= 1024 * 1024)
 		//OnInventoryReceived(Transaction.DeserializeFrom(message.Payload));
 		return &msg
-	case "consensus":
-		var msg consensus
-		copy(msg.msgHdr.CMD[0:len(t)], t)
-		return &msg
-	case "filteradd":
-		var msg filteradd
-		copy(msg.msgHdr.CMD[0:len(t)], t)
-		return &msg
-	case "filterclear":
-		var msg filterclear
-		copy(msg.msgHdr.CMD[0:len(t)], t)
-		return &msg
-	case "filterload":
-		var msg filterload
-		copy(msg.msgHdr.CMD[0:len(t)], t)
-		return &msg
 	case "getblocks":
 		var msg blocksReq
 		copy(msg.hdr.CMD[0:len(t)], t)
 		return &msg
-	case "txnpool":
-		var msg txnPool
-		copy(msg.msgHdr.CMD[0:len(t)], t)
-		return &msg
-	case "alert":
-		log.Warn("Not supported message type - alert")
-		return nil
-	case "merkleblock":
-		log.Warn("Not supported message type - merkleblock")
-		return nil
 	case "notfound":
 		var msg notFound
 		copy(msg.msgHdr.CMD[0:len(t)], t)
@@ -145,9 +94,6 @@ func AllocMsg(t string, length int) Messager {
 		var msg pong
 		copy(msg.msgHdr.CMD[0:len(t)], t)
 		return &msg
-	case "reject":
-		log.Warn("Not supported message type - reject")
-		return nil
 	default:
 		log.Warn("Unknown message type")
 		return nil
@@ -248,7 +194,6 @@ func (hdr *msgHdr) init(cmd string, checksum []byte, length uint32) {
 	copy(hdr.CMD[0:uint32(len(cmd))], cmd)
 	copy(hdr.Checksum[:], checksum[:CHECKSUMLEN])
 	hdr.Length = length
-	//hdr.ID = id
 }
 
 // Verify the message header information

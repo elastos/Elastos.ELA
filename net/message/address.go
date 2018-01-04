@@ -24,10 +24,6 @@ type addr struct {
 	nodeAddrs []NodeAddr
 }
 
-const (
-	NODEADDRSIZE = 30
-)
-
 func newGetAddr() ([]byte, error) {
 	var msg addrReq
 	// Fixme the check is the []byte{0} instead of 0

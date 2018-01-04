@@ -66,7 +66,7 @@ func NewVersion(n Noder) ([]byte, error) {
 		msg.P.Relay = 0
 	}
 
-	msg.pk = n.GetBookKeeperAddr()
+	msg.pk = n.GetPublicKey()
 	log.Debug("new version msg.pk is ", msg.pk)
 	// TODO the function to wrap below process
 	// msg.HDR.init("version", n.GetID(), uint32(len(p.Bytes())))
@@ -192,7 +192,7 @@ func (msg version) Handle(node Noder) error {
 		node.SetHttpInfoState(false)
 	}
 	node.SetHttpInfoPort(msg.P.HttpInfoPort)
-	node.SetBookKeeperAddr(msg.pk)
+	node.SetPublicKey(msg.pk)
 	node.UpdateInfo(time.Now(), msg.P.Version, msg.P.Services,
 		msg.P.Port, msg.P.Nonce, msg.P.Relay, msg.P.StartHeight)
 	localNode.AddNbrNode(node)

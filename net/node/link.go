@@ -46,8 +46,7 @@ func unpackNodeBuf(node *node, buf []byte) {
 	if node.rxBuf.len == 0 {
 		length := MSGHDRLEN - len(node.rxBuf.p)
 		if length > len(buf) {
-			length = len(buf)
-			node.rxBuf.p = append(node.rxBuf.p, buf[0:length]...)
+			node.rxBuf.p = append(node.rxBuf.p, buf...)
 			return
 		}
 

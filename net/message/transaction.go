@@ -158,16 +158,3 @@ func (msg *trn) Deserialization(p []byte) error {
 
 	return nil
 }
-
-type txnPool struct {
-	msgHdr
-	//TBD
-}
-
-func ReqTxnPool(node Noder) error {
-	msg := AllocMsg("txnpool", 0)
-	buf, _ := msg.Serialization()
-	go node.Tx(buf)
-
-	return nil
-}

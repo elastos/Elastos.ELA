@@ -5,13 +5,13 @@ import (
 	"Elastos.ELA/common/log"
 	"Elastos.ELA/common/serialization"
 	"Elastos.ELA/core/contract/program"
-	sig "Elastos.ELA/core/signature"
 	"Elastos.ELA/core/transaction/payload"
 	"bytes"
 	"crypto/sha256"
 	"errors"
 	"io"
 	"sort"
+	"Elastos.ELA/core/signature"
 )
 
 //for different transaction types with different payload format
@@ -346,14 +346,13 @@ func (tx *Transaction) GenerateAssetMaps() {
 	//TODO: implement Transaction.GenerateAssetMaps()
 }
 
-func (tx *Transaction) GetMessage() []byte {
-	return sig.GetHashData(tx)
+func (tx *Transaction) GetDataContent() []byte {
+	return signature.GetDataContent(tx)
 }
 
 func (tx *Transaction) Hash() Uint256 {
 	if tx.hash == nil {
-		d := sig.GetHashData(tx)
-		temp := sha256.Sum256([]byte(d))
+		temp := sha256.Sum256(tx.GetDataContent())
 		f := Uint256(sha256.Sum256(temp[:]))
 		tx.hash = &f
 	}

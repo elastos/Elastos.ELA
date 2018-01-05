@@ -1,9 +1,9 @@
 package interfaces
 
 type ICrypto interface {
-	Hash160(message []byte) ([]byte)
+	Hash160(dataContent []byte) ([]byte)
 
-	Hash256(message []byte) ([]byte)
+	Hash256(dateContent []byte) ([]byte)
 
-	VerifySignature(message []byte,signature []byte, pubkey []byte) (bool,error)
+	VerifySignature(dataContent []byte, signature []byte, pubkey []byte) (bool, error)
 }

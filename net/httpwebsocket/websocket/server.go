@@ -136,7 +136,6 @@ func (ws *WsServer) registryMethod() {
 		"getunspendoutput":   {handler: GetUnspendOutput},
 
 		"sendrawtransaction": {handler: sendRawTransaction},
-		"sendrecord":         {handler: SendRecord},
 		"heartbeat":          {handler: heartbeat},
 
 		"sendtest": {handler: sendtest, pushFlag: true},

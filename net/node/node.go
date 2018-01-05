@@ -6,15 +6,11 @@ import (
 	"Elastos.ELA/common/log"
 	"Elastos.ELA/core/ledger"
 	"Elastos.ELA/core/transaction"
-	"Elastos.ELA/crypto"
 	"Elastos.ELA/events"
 	. "Elastos.ELA/net/message"
 	. "Elastos.ELA/net/protocol"
-	"bytes"
-	"encoding/binary"
 	"errors"
 	"fmt"
-	"math/rand"
 	"net"
 	"runtime"
 	"strconv"
@@ -35,16 +31,15 @@ func (s Semaphore) release() { <-s }
 
 type node struct {
 	//sync.RWMutex	//The Lock not be used as expected to use function channel instead of lock
-	state     uint32   // node state
-	id        uint64   // The nodes's id
-	cap       [32]byte // The node capability set
-	version   uint32   // The network protocol the node used
-	services  uint64   // The services the node supplied
-	relay     bool     // The relay capability of the node (merge into capbility flag)
-	height    uint64   // The node latest block height
-	txnCnt    uint64   // The transactions be transmit by this node
-	rxTxnCnt  uint64   // The transaction received by this node
-	publicKey *crypto.PubKey
+	state    uint32   // node state
+	id       uint64   // The nodes's id
+	cap      [32]byte // The node capability set
+	version  uint32   // The network protocol the node used
+	services uint64   // The services the node supplied
+	relay    bool     // The relay capability of the node (merge into capbility flag)
+	height   uint64   // The node latest block height
+	txnCnt   uint64   // The transactions be transmit by this node
+	rxTxnCnt uint64   // The transaction received by this node
 	// TODO does this channel should be a buffer channel
 	chF   chan func() error // Channel used to operate the node without lock
 	link                    // The link status and infomation
@@ -67,10 +62,10 @@ type node struct {
 	DefaultMaxPeers          uint
 	headerFirstMode          bool
 	RequestedBlockList       map[Uint256]time.Time
-	SyncBlkReqSem  Semaphore
-	SyncHdrReqSem  Semaphore
-	StartHash      Uint256
-	StopHash       Uint256
+	SyncBlkReqSem            Semaphore
+	SyncHdrReqSem            Semaphore
+	StartHash                Uint256
+	StopHash                 Uint256
 }
 
 type ConnectingNodes struct {
@@ -159,7 +154,7 @@ func NewNode() *node {
 	return &n
 }
 
-func InitNode(pubKey *crypto.PubKey) Noder {
+func InitNode() Noder {
 	n := NewNode()
 	n.version = PROTOCOLVERSION
 
@@ -168,22 +163,13 @@ func InitNode(pubKey *crypto.PubKey) Noder {
 
 	n.link.port = uint16(Parameters.NodePort)
 	n.relay = true
-	// TODO is it neccessary to init the rand seed here?
-	rand.Seed(time.Now().UTC().UnixNano())
+	// TODO init node id
+	n.id = uint64(123456 + n.link.port)
 
-	key, err := pubKey.EncodePoint(true)
-	if err != nil {
-		log.Error(err)
-	}
-	err = binary.Read(bytes.NewBuffer(key[:8]), binary.LittleEndian, &(n.id))
-	if err != nil {
-		log.Error(err)
-	}
 	log.Info(fmt.Sprintf("Init node ID to 0x%x", n.id))
 	n.nbrNodes.init()
 	n.KnownAddressList.init()
 	n.local = n
-	n.publicKey = pubKey
 	n.TXNPool.init()
 	n.eventQueue.init()
 	n.idCache.init()
@@ -352,14 +338,6 @@ func (node *node) GetAddr16() ([16]byte, error) {
 func (node *node) GetTime() int64 {
 	t := time.Now()
 	return t.UnixNano()
-}
-
-func (node *node) GetPublicKey() *crypto.PubKey {
-	return node.publicKey
-}
-
-func (node *node) SetPublicKey(pk *crypto.PubKey) {
-	node.publicKey = pk
 }
 
 func (node *node) WaitForSyncFinish() {

@@ -1,14 +1,14 @@
 package ledger
 
 import (
+	"io"
 	. "Elastos.ELA/common"
 	"Elastos.ELA/common/serialization"
 	"Elastos.ELA/core/auxpow"
 	"Elastos.ELA/core/contract/program"
-	sig "Elastos.ELA/core/signature"
 	"crypto/sha256"
 	"errors"
-	"io"
+	"Elastos.ELA/core/signature"
 )
 
 type Blockdata struct {
@@ -120,16 +120,15 @@ func (bd *Blockdata) GetPrograms() []*program.Program {
 }
 
 func (bd *Blockdata) Hash() Uint256 {
-
-	d := sig.GetHashData(bd)
-	temp := sha256.Sum256([]byte(d))
+	temp := sha256.Sum256(bd.GetDataContent())
 	f := sha256.Sum256(temp[:])
 	hash := Uint256(f)
+
 	return hash
 }
 
-func (bd *Blockdata) GetMessage() []byte {
-	return sig.GetHashData(bd)
+func (bd *Blockdata) GetDataContent() []byte {
+	return signature.GetDataContent(bd)
 }
 
 func (bd *Blockdata) GetPreBlockHash() Uint256 {

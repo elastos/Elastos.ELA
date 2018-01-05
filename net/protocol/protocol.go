@@ -4,7 +4,6 @@ import (
 	"Elastos.ELA/common"
 	"Elastos.ELA/core/ledger"
 	"Elastos.ELA/core/transaction"
-	"Elastos.ELA/crypto"
 	. "Elastos.ELA/errors"
 	"Elastos.ELA/events"
 	"bytes"
@@ -39,16 +38,16 @@ const (
 )
 
 const (
-	MAXBUFLEN            = 1024 * 16 // Fixme The maximum buffer to receive message
-	PROTOCOLVERSION      = 0
-	KEEPALIVETIMEOUT     = 3
-	DIALTIMEOUT          = 6
-	CONNMONITOR          = 6
-	MAXSYNCHDRREQ        = 2 //Max Concurrent Sync Header Request
-	MaxOutBoundCount     = 8
-	DefaultMaxPeers      = 125
-	MAXIDCACHED          = 5000
-	MinInFlightBlocks    = 10
+	MAXBUFLEN         = 1024 * 16 // Fixme The maximum buffer to receive message
+	PROTOCOLVERSION   = 0
+	KEEPALIVETIMEOUT  = 3
+	DIALTIMEOUT       = 6
+	CONNMONITOR       = 6
+	MAXSYNCHDRREQ     = 2 //Max Concurrent Sync Header Request
+	MaxOutBoundCount  = 8
+	DefaultMaxPeers   = 125
+	MAXIDCACHED       = 5000
+	MinInFlightBlocks = 10
 )
 
 // The node state
@@ -105,8 +104,6 @@ type Noder interface {
 	GetRxTxnCnt() uint64
 
 	Xmit(interface{}) error
-	GetPublicKey() *crypto.PubKey
-	SetPublicKey(pk *crypto.PubKey)
 	GetNeighborHeights() ([]uint64, uint64)
 	WaitForSyncFinish()
 	CleanSubmittedTransactions(block *ledger.Block) error
@@ -149,7 +146,6 @@ type Noder interface {
 	GetStopHash() common.Uint256
 	ResetRequestedBlock()
 }
-
 
 func (msg *NodeAddr) Deserialization(p []byte) error {
 	buf := bytes.NewBuffer(p)

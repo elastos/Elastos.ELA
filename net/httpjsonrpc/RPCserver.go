@@ -1,10 +1,11 @@
 package httpjsonrpc
 
 import (
-	. "Elastos.ELA/common/config"
-	"Elastos.ELA/common/log"
-	"net/http"
 	"strconv"
+	"net/http"
+
+	"Elastos.ELA/common/log"
+	. "Elastos.ELA/common/config"
 )
 
 func StartRPCServer() {
@@ -24,13 +25,8 @@ func StartRPCServer() {
 
 	// set interfaces
 	HandleFunc("setdebuginfo", setDebugInfo)
-	HandleFunc("sendtransaction", sendTransaction)
-	HandleFunc("sendbatchouttransaction", sendBatchOutTransaction)
 	HandleFunc("sendrawtransaction", sendRawTransaction)
 	HandleFunc("submitblock", submitBlock)
-	HandleFunc("createmultisigtransaction", createMultiSignTransaction)
-	HandleFunc("createbatchoutmultisigtransaction", createBatchOutMultiSignTransaction)
-	HandleFunc("signmultisigtransaction", signMultiSignTransaction)
 
 	// mining interfaces
 	HandleFunc("getinfo", getInfo)
@@ -39,10 +35,6 @@ func StartRPCServer() {
 	HandleFunc("createauxblock", createAuxBlock)
 	HandleFunc("togglecpumining", toggleCpuMining)
 	HandleFunc("manualmining", manualCpuMining)
-
-	// wallet interfaces
-	HandleFunc("addaccount", addAccount)
-	HandleFunc("deleteaccount", deleteAccount)
 
 	// TODO: only listen to localhost
 	err := http.ListenAndServe(":"+strconv.Itoa(Parameters.HttpJsonPort), nil)

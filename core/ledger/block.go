@@ -1,23 +1,23 @@
 package ledger
 
 import (
-	"bytes"
-	"encoding/binary"
 	"io"
-	"math/rand"
 	"time"
-
-	. "Elastos.ELA/common"
-	"Elastos.ELA/common/config"
-	"Elastos.ELA/common/log"
-	"Elastos.ELA/common/serialization"
-	"Elastos.ELA/core/asset"
-	"Elastos.ELA/core/contract/program"
-	sig "Elastos.ELA/core/signature"
-	tx "Elastos.ELA/core/transaction"
-	"Elastos.ELA/core/transaction/payload"
-	"Elastos.ELA/crypto"
+	"bytes"
 	"errors"
+	"math/rand"
+	"encoding/binary"
+
+	"Elastos.ELA/crypto"
+	. "Elastos.ELA/common"
+	"Elastos.ELA/core/asset"
+	"Elastos.ELA/common/log"
+	"Elastos.ELA/common/config"
+	"Elastos.ELA/core/signature"
+	tx "Elastos.ELA/core/transaction"
+	"Elastos.ELA/common/serialization"
+	"Elastos.ELA/core/contract/program"
+	"Elastos.ELA/core/transaction/payload"
 )
 
 const (
@@ -133,18 +133,16 @@ func (tx *Block) GetSize() int {
 	return buffer.Len()
 }
 
-func (b *Block) GetMessage() []byte {
-	return sig.GetHashData(b)
+func (b *Block) GetDataContent() []byte {
+	return signature.GetDataContent(b)
 }
 
 func (b *Block) GetProgramHashes() ([]Uint168, error) {
-
 	return b.Blockdata.GetProgramHashes()
 }
 
 func (b *Block) SetPrograms(prog []*program.Program) {
 	b.Blockdata.SetPrograms(prog)
-	return
 }
 
 func (b *Block) GetPrograms() []*program.Program {

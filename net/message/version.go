@@ -4,7 +4,6 @@ import (
 	"Elastos.ELA/common/config"
 	"Elastos.ELA/common/log"
 	"Elastos.ELA/core/ledger"
-	"Elastos.ELA/crypto"
 	. "Elastos.ELA/net/protocol"
 	"bytes"
 	"crypto/sha256"
@@ -20,7 +19,7 @@ const (
 
 type version struct {
 	Hdr msgHdr
-	P   struct {
+	P struct {
 		Version      uint32
 		Services     uint64
 		TimeStamp    uint32
@@ -34,7 +33,6 @@ type version struct {
 		// FIXME check with the specify relay type length
 		Relay uint8
 	}
-	pk *crypto.PubKey
 }
 
 func (msg *version) init(n Noder) {
@@ -66,16 +64,10 @@ func NewVersion(n Noder) ([]byte, error) {
 		msg.P.Relay = 0
 	}
 
-	msg.pk = n.GetPublicKey()
-	log.Debug("new version msg.pk is ", msg.pk)
-	// TODO the function to wrap below process
-	// msg.HDR.init("version", n.GetID(), uint32(len(p.Bytes())))
-
 	msg.Hdr.Magic = config.Parameters.Magic
 	copy(msg.Hdr.CMD[0:7], "version")
 	p := bytes.NewBuffer([]byte{})
 	err := binary.Write(p, binary.LittleEndian, &(msg.P))
-	msg.pk.Serialize(p)
 	if err != nil {
 		log.Error("Binary Write failed at new Msg")
 		return nil, err
@@ -114,7 +106,6 @@ func (msg version) Serialization() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	msg.pk.Serialize(buf)
 
 	return buf.Bytes(), err
 }
@@ -134,12 +125,6 @@ func (msg *version) Deserialization(p []byte) error {
 		return errors.New("Parse version P message error")
 	}
 
-	pk := new(crypto.PubKey)
-	err = pk.Deserialize(buf)
-	if err != nil {
-		return errors.New("Parse pubkey Deserialize failed.")
-	}
-	msg.pk = pk
 	return err
 }
 
@@ -185,14 +170,12 @@ func (msg version) Handle(node Noder) error {
 		n.CloseConn()
 	}
 
-	log.Debug("handle version msg.pk is ", msg.pk)
 	if msg.P.Cap[HTTPINFOFLAG] == 0x01 {
 		node.SetHttpInfoState(true)
 	} else {
 		node.SetHttpInfoState(false)
 	}
 	node.SetHttpInfoPort(msg.P.HttpInfoPort)
-	node.SetPublicKey(msg.pk)
 	node.UpdateInfo(time.Now(), msg.P.Version, msg.P.Services,
 		msg.P.Port, msg.P.Nonce, msg.P.Relay, msg.P.StartHeight)
 	localNode.AddNbrNode(node)

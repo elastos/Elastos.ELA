@@ -24,33 +24,3 @@ func NewCoinBaseTransaction(coinBasePayload *payload.CoinBase, currentHeight uin
 		Programs:      []*program.Program{},
 	}, nil
 }
-
-func NewTransferAssetTransaction(inputs []*UTXOTxInput, outputs []*TxOutput) (*Transaction, error) {
-	assetRegPayload := &payload.TransferAsset{}
-
-	return &Transaction{
-		TxType:        TransferAsset,
-		Payload:       assetRegPayload,
-		Attributes:    []*TxAttribute{},
-		UTXOInputs:    inputs,
-		BalanceInputs: []*BalanceTxInput{},
-		Outputs:       outputs,
-		Programs:      []*program.Program{},
-	}, nil
-}
-
-func NewRecordTransaction(recordType string, recordData []byte) (*Transaction, error) {
-	recordPayload := &payload.Record{
-		RecordType: recordType,
-		RecordData: recordData,
-	}
-
-	return &Transaction{
-		TxType:        Record,
-		Payload:       recordPayload,
-		Attributes:    []*TxAttribute{},
-		UTXOInputs:    []*UTXOTxInput{},
-		BalanceInputs: []*BalanceTxInput{},
-		Programs:      []*program.Program{},
-	}, nil
-}

@@ -2,22 +2,21 @@ package main
 
 import (
 	"os"
-	"runtime"
 	"time"
+	"runtime"
 
-	"Elastos.ELA/account"
-	"Elastos.ELA/common/config"
-	"Elastos.ELA/common/log"
-	"Elastos.ELA/consensus/pow"
-	"Elastos.ELA/core/ledger"
-	"Elastos.ELA/core/store/ChainStore"
-	"Elastos.ELA/core/transaction"
-	"Elastos.ELA/net/httpjsonrpc"
-	"Elastos.ELA/net/httpnodeinfo"
-	"Elastos.ELA/net/httprestful"
-	"Elastos.ELA/net/httpwebsocket"
 	"Elastos.ELA/net/node"
+	"Elastos.ELA/common/log"
+	"Elastos.ELA/core/ledger"
 	"Elastos.ELA/net/protocol"
+	"Elastos.ELA/consensus/pow"
+	"Elastos.ELA/common/config"
+	"Elastos.ELA/net/httpjsonrpc"
+	"Elastos.ELA/net/httprestful"
+	"Elastos.ELA/core/transaction"
+	"Elastos.ELA/net/httpnodeinfo"
+	"Elastos.ELA/net/httpwebsocket"
+	"Elastos.ELA/core/store/ChainStore"
 )
 
 const (
@@ -55,8 +54,8 @@ func handleLogFile() {
 
 }
 
-func startConsensus(client account.Client, noder protocol.Noder) {
-	httpjsonrpc.Pow = pow.NewPowService(client, "logPow", noder)
+func startConsensus(noder protocol.Noder) {
+	httpjsonrpc.Pow = pow.NewPowService("logPow", noder)
 	if config.Parameters.PowConfiguration.AutoMining {
 		log.Info("Start POW Services")
 		go httpjsonrpc.Pow.Start()
@@ -64,8 +63,6 @@ func startConsensus(client account.Client, noder protocol.Noder) {
 }
 
 func main() {
-	var client account.Client
-	var acct *account.Account
 	//var blockChain *ledger.Blockchain
 	var err error
 	var noder protocol.Noder
@@ -86,28 +83,16 @@ func main() {
 		goto ERROR
 	}
 
-	log.Info("2. Open the account")
-	client = account.GetClient()
-	if client == nil {
-		log.Fatal("Can't get local account.")
-		goto ERROR
-	}
-	acct, err = client.GetDefaultAccount()
-	if err != nil {
-		log.Fatal(err)
-		goto ERROR
-	}
-	httpjsonrpc.Wallet = client
-	log.Info("3. Start the P2P networks")
-	noder = node.InitNode(acct.PublicKey)
+	log.Info("2. Start the P2P networks")
+	noder = node.InitNode()
 	noder.WaitForSyncFinish()
 
 	httpjsonrpc.RegistRpcNode(noder)
-	startConsensus(client, noder)
+	startConsensus(noder)
 
 	handleLogFile()
 
-	log.Info("4. --Start the RPC service")
+	log.Info("3. --Start the RPC service")
 	go httpjsonrpc.StartRPCServer()
 	go httprestful.StartServer(noder)
 	go httpwebsocket.StartServer(noder)

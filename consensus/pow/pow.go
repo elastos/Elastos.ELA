@@ -10,7 +10,6 @@ import (
 	"sync"
 	"time"
 
-	cl "Elastos.ELA/account"
 	. "Elastos.ELA/common"
 	"Elastos.ELA/common/config"
 	"Elastos.ELA/common/log"
@@ -50,7 +49,6 @@ type PowService struct {
 	MsgBlock      msgBlock
 	ZMQPublish    chan bool
 	Mutex         sync.Mutex
-	Client        cl.Client
 	logDictionary string
 	started       bool
 	manualMining  bool
@@ -378,10 +376,9 @@ func (pow *PowService) BlockPersistCompleted(v interface{}) {
 	}
 }
 
-func NewPowService(client cl.Client, logDictionary string, localNet protocol.Noder) *PowService {
+func NewPowService(logDictionary string, localNet protocol.Noder) *PowService {
 	pow := &PowService{
 		PayToAddr:     config.Parameters.PowConfiguration.PayToAddr,
-		Client:        client,
 		started:       false,
 		manualMining:  false,
 		MsgBlock:      msgBlock{BlockData: make(map[string]*ledger.Block)},
@@ -420,7 +417,7 @@ out:
 		}
 
 		// push notifyed message into ZMQ
-			pow.ZMQPublish <- true
+		pow.ZMQPublish <- true
 
 		//begin to mine the block with POW
 		if pow.SolveBlock(msgBlock, ticker) {

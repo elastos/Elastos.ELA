@@ -173,7 +173,6 @@ func (rt *restServer) registryMethod() {
 	}
 	postMethodMap := map[string]Action{
 		Api_SendRawTx:         {name: "sendrawtransaction", handler: sendRawTransaction},
-		Api_SendRcdTxByTrans:  {name: "sendrecord", handler: SendRecord},
 		Api_OauthServerUrl:    {name: "setoauthserverurl", handler: SetOauthServerUrl},
 		Api_NoticeServerUrl:   {name: "setnoticeserverurl", handler: SetNoticeServerUrl},
 		Api_NoticeServerState: {name: "setpostblock", handler: SetPushBlockFlag},

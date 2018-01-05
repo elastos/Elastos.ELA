@@ -26,7 +26,7 @@ func opCheckSig(e *ExecutionEngine) (VMState, error) {
 	}
 	pubkey := AssertStackItem(e.evaluationStack.Pop()).GetByteArray()
 	signature := AssertStackItem(e.evaluationStack.Pop()).GetByteArray()
-	ver, err := e.crypto.VerifySignature(e.scriptContainer.GetMessage(), signature, pubkey)
+	ver, err := e.crypto.VerifySignature(e.scriptContainer.GetDataContent(), signature, pubkey)
 	err = pushData(e, ver)
 	if err != nil {
 		return FAULT, err
@@ -69,7 +69,7 @@ func opCheckMultiSig(e *ExecutionEngine) (VMState, error) {
 		signatures[i] = AssertStackItem(e.evaluationStack.Pop()).GetByteArray()
 	}
 
-	message := e.scriptContainer.GetMessage()
+	message := e.scriptContainer.GetDataContent()
 	fSuccess := true
 	count := 0
 	for _, sig := range signatures {

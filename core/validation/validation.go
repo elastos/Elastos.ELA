@@ -1,12 +1,12 @@
 package validation
 
 import (
-	. "Elastos.ELA/common"
-	sig "Elastos.ELA/core/signature"
-	"Elastos.ELA/crypto"
-	"Elastos.ELA/vm"
-	"Elastos.ELA/vm/interfaces"
 	"errors"
+
+	"Elastos.ELA/vm"
+	. "Elastos.ELA/common"
+	"Elastos.ELA/vm/interfaces"
+	sig "Elastos.ELA/core/signature"
 )
 
 func VerifySignableData(signableData sig.SignableData) (bool, error) {
@@ -62,13 +62,4 @@ func VerifySignableData(signableData sig.SignableData) (bool, error) {
 	}
 
 	return true, nil
-}
-
-func VerifySignature(signableData sig.SignableData, pubkey *crypto.PubKey, signature []byte) (bool, error) {
-	err := crypto.Verify(*pubkey, sig.GetHashData(signableData), signature)
-	if err != nil {
-		return false, errors.New("[Validation], VerifySignature failed.")
-	} else {
-		return true, nil
-	}
 }

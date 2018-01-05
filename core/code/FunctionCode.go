@@ -1,12 +1,10 @@
 package code
 
 import (
-	"Elastos.ELA/common/log"
-	. "Elastos.ELA/common"
+	"io"
+
 	. "Elastos.ELA/core/contract"
 	"Elastos.ELA/common/serialization"
-	"fmt"
-	"io"
 )
 
 type FunctionCode struct {
@@ -22,12 +20,12 @@ type FunctionCode struct {
 
 // method of SerializableData
 func (fc *FunctionCode) Serialize(w io.Writer) error {
-	err := serialization.WriteVarBytes(w,ContractParameterTypeToByte(fc.ParameterTypes))
+	err := serialization.WriteVarBytes(w, ContractParameterTypeToByte(fc.ParameterTypes))
 	if err != nil {
 		return err
 	}
 
-	err = serialization.WriteVarBytes(w,fc.Code)
+	err = serialization.WriteVarBytes(w, fc.Code)
 	if err != nil {
 		return err
 	}
@@ -37,46 +35,16 @@ func (fc *FunctionCode) Serialize(w io.Writer) error {
 
 // method of SerializableData
 func (fc *FunctionCode) Deserialize(r io.Reader) error {
-	p,err := serialization.ReadVarBytes(r)
+	p, err := serialization.ReadVarBytes(r)
 	if err != nil {
 		return err
 	}
 	fc.ParameterTypes = ByteToContractParameterType(p)
 
-	fc.Code,err = serialization.ReadVarBytes(r)
+	fc.Code, err = serialization.ReadVarBytes(r)
 	if err != nil {
 		return err
 	}
 
 	return nil
-}
-
-// method of ICode
-// Get code
-func (fc *FunctionCode) GetCode() []byte {
-	return fc.Code
-}
-
-// method of ICode
-// Get the list of parameter value
-func (fc *FunctionCode) GetParameterTypes() []ContractParameterType {
-	return fc.ParameterTypes
-}
-
-// method of ICode
-// Get the list of return value
-func (fc *FunctionCode) GetReturnTypes() []ContractParameterType {
-	return fc.ReturnTypes
-}
-
-// method of ICode
-// Get the hash of the smart contract
-func (fc *FunctionCode) CodeHash() Uint168 {
-	hash,err := ToCodeHash(fc.Code, 1)
-	if err != nil {
-		log.Debug( fmt.Sprintf("[FunctionCode] ToCodeHash err=%s",err) )
-		return Uint168{0}
-	}
-
-	return hash
 }

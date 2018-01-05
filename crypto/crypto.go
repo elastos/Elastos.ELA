@@ -7,7 +7,6 @@ import (
 	"io"
 	"math/big"
 	"crypto/ecdsa"
-	"crypto/rand"
 	"crypto/elliptic"
 	"crypto/sha256"
 )
@@ -34,47 +33,6 @@ func init() {
 	algSet.EccParams = *(algSet.Curve.Params())
 }
 
-func GenKeyPair() ([]byte, PubKey, error) {
-
-	privateKey, err := ecdsa.GenerateKey(algSet.Curve, rand.Reader)
-	if err != nil {
-		return nil, PubKey{}, errors.New("Generate key pair error")
-	}
-
-	mPubKey := new(PubKey)
-	mPubKey.X = new(big.Int).Set(privateKey.PublicKey.X)
-	mPubKey.Y = new(big.Int).Set(privateKey.PublicKey.Y)
-
-	return privateKey.D.Bytes(), *mPubKey, nil
-}
-
-func Sign(priKey []byte, data []byte) ([]byte, error) {
-
-	digest := sha256.Sum256(data)
-
-	privateKey := new(ecdsa.PrivateKey)
-	privateKey.Curve = algSet.Curve
-	privateKey.D = big.NewInt(0)
-	privateKey.D.SetBytes(priKey)
-
-	r := big.NewInt(0)
-	s := big.NewInt(0)
-
-	r, s, err := ecdsa.Sign(rand.Reader, privateKey, digest[:])
-	if err != nil {
-		fmt.Printf("Sign error\n")
-		return nil, err
-	}
-
-	signature := make([]byte, SIGNATURELEN)
-
-	lenR := len(r.Bytes())
-	lenS := len(s.Bytes())
-	copy(signature[SIGNRLEN-lenR:], r.Bytes())
-	copy(signature[SIGNATURELEN-lenS:], s.Bytes())
-	return signature, nil
-}
-
 func Verify(publicKey PubKey, data []byte, signature []byte) error {
 	len := len(signature)
 	if len != SIGNATURELEN {
@@ -90,8 +48,8 @@ func Verify(publicKey PubKey, data []byte, signature []byte) error {
 	pub := new(ecdsa.PublicKey)
 
 	pub.Curve = algSet.Curve
-	pub.X     = new(big.Int).Set(publicKey.X)
-	pub.Y     = new(big.Int).Set(publicKey.Y)
+	pub.X = new(big.Int).Set(publicKey.X)
+	pub.Y = new(big.Int).Set(publicKey.Y)
 
 	if ecdsa.Verify(pub, digest[:], r, s) {
 		return nil
@@ -145,35 +103,4 @@ func (e *PubKey) Deserialize(r io.Reader) error {
 		e.Y.Neg(e.Y)
 	}
 	return nil
-}
-
-type PubKeySlice []*PubKey
-
-func (p PubKeySlice) Len() int {
-	return len(p)
-}
-
-func (p PubKeySlice) Less(i, j int) bool {
-	r := p[i].X.Cmp(p[j].X)
-	if r <= 0 {
-		return true
-	} else {
-		return false
-	}
-}
-
-func (p PubKeySlice) Swap(i, j int) {
-	p[i], p[j] = p[j], p[i]
-}
-
-func Equal(e1 *PubKey, e2 *PubKey) bool {
-	r := e1.X.Cmp(e2.X)
-	if r != 0 {
-		return false
-	}
-	r = e1.Y.Cmp(e2.Y)
-	if r == 0 {
-		return true
-	}
-	return false
 }

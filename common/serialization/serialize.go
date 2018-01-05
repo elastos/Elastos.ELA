@@ -20,18 +20,6 @@ type SerializableData interface {
 	//read data to reader
 	Deserialize(r io.Reader) error
 }
-
-func WriteDataList(w io.Writer, list []SerializableData) error {
-	len := uint64(len(list))
-	WriteVarUint(w, len)
-
-	for _, data := range list {
-		data.Serialize(w)
-	}
-
-	return nil
-}
-
 /*
  ******************************************************************************
  * public func for outside calling
@@ -165,18 +153,6 @@ func ReadVarString(reader io.Reader) (string, error) {
 		return "", err
 	}
 	return string(val), nil
-}
-
-func GetVarUintSize(value uint64) int {
-	if value < 0xfd {
-		return 1
-	} else if value <= 0xffff {
-		return 3
-	} else if value <= 0xFFFFFFFF {
-		return 5
-	} else {
-		return 9
-	}
 }
 
 func ReadBytes(reader io.Reader, length uint64) ([]byte, error) {

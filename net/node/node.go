@@ -164,7 +164,7 @@ func InitNode() Noder {
 	n.link.port = uint16(Parameters.NodePort)
 	n.relay = true
 	// TODO init node id
-	n.id = uint64(123456 + n.link.port)
+	n.id = uint64(123 + n.link.port)
 
 	log.Info(fmt.Sprintf("Init node ID to 0x%x", n.id))
 	n.nbrNodes.init()

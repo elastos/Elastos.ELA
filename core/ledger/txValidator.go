@@ -74,20 +74,20 @@ func CheckTransactionSanity(txn *tx.Transaction) ErrCode {
 // CheckTransactionContext verifys a transaction with history transaction in ledger
 func CheckTransactionContext(txn *tx.Transaction, ledger *Ledger) ErrCode {
 	// check if duplicated with transaction in ledger
-	if exist := ledger.Store.IsTxHashDuplicate(txn.Hash()); exist {
-		log.Info("[CheckTransactionContext] duplicate transaction check faild.")
-		return ErrTxHashDuplicate
-	}
+	// if exist := ledger.Store.IsTxHashDuplicate(txn.Hash()); exist {
+	// 	log.Info("[CheckTransactionContext] duplicate transaction check faild.")
+	// 	return ErrTxHashDuplicate
+	// }
 
 	if txn.IsCoinBaseTx() {
 		return ErrNoError
 	}
 
 	// check double spent transaction
-	if IsDoubleSpend(txn, ledger) {
-		log.Info("[CheckTransactionContext] IsDoubleSpend check faild.")
-		return ErrDoubleSpend
-	}
+	// if IsDoubleSpend(txn, ledger) {
+	// 	log.Info("[CheckTransactionContext] IsDoubleSpend check faild.")
+	// 	return ErrDoubleSpend
+	// }
 
 	// check referenced Output value
 	for _, input := range txn.UTXOInputs {

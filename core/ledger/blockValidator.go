@@ -141,12 +141,13 @@ func PowCheckBlockContext(block *Block, prevNode *BlockNode, ledger *Ledger) err
 		}
 	}
 
-	for _, txVerify := range block.Transactions {
-		if errCode := CheckTransactionContext(txVerify, ledger); errCode != Success {
-			fmt.Println("CheckTransactionContext failed when verifiy block", errCode)
-			return errors.New(fmt.Sprintf("CheckTransactionContext failed when verifiy block"))
-		}
-	}
+
+	// for _, txVerify := range block.Transactions {
+	// 	if errCode := CheckTransactionContext(txVerify, ledger); errCode != ErrNoError {
+	// 		fmt.Println("CheckTransactionContext failed when verifiy block", errCode)
+	// 		return errors.New(fmt.Sprintf("CheckTransactionContext failed when verifiy block"))
+	// 	}
+	// }
 
 	return nil
 }

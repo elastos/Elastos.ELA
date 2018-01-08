@@ -18,6 +18,8 @@ import (
 	"Elastos.ELA/core/transaction/payload"
 )
 
+const TlsPort = 443
+
 //an instance of the multiplexer
 var NodeForServers Noder
 var Pow *pow.PowService
@@ -78,7 +80,7 @@ type Transactions struct {
 	AssetInputAmount  []AmountMap
 	AssetOutputAmount []AmountMap
 	Timestamp         uint32 `json:",omitempty"`
-	Confirminations   uint32 `json:",omitempty"`
+	Confirmations   uint32 `json:",omitempty"`
 	TxSize            uint32 `json:",omitempty"`
 	Hash              string
 }
@@ -100,7 +102,7 @@ type BlockInfo struct {
 	Hash            string
 	BlockData       *BlockHead
 	Transactions    []*Transactions
-	Confirminations uint32
+	Confirmations uint32
 	MinerInfo       string
 }
 

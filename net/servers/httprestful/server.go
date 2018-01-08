@@ -41,8 +41,6 @@ const (
 
 var node = NodeForServers
 
-const TlsPort = 443
-
 type Action struct {
 	sync.RWMutex
 	name    string
@@ -58,7 +56,7 @@ type restServer struct {
 }
 
 type ApiServer interface {
-	Start() error
+	Start()
 	Stop()
 }
 
@@ -76,10 +74,9 @@ func InitRestServer() ApiServer {
 	return rt
 }
 
-func (rt *restServer) Start() error {
+func (rt *restServer) Start() {
 	if Parameters.HttpRestPort == 0 {
 		log.Fatal("Not configure HttpRestPort port ")
-		return nil
 	}
 
 	if Parameters.HttpRestPort%1000 == TlsPort {
@@ -87,14 +84,12 @@ func (rt *restServer) Start() error {
 		rt.listener, err = rt.initTlsListen()
 		if err != nil {
 			log.Error("Https Cert: ", err.Error())
-			return err
 		}
 	} else {
 		var err error
 		rt.listener, err = net.Listen("tcp", ":"+strconv.Itoa(Parameters.HttpRestPort))
 		if err != nil {
 			log.Fatal("net.Listen: ", err.Error())
-			return err
 		}
 	}
 	rt.server = &http.Server{Handler: rt.router}
@@ -102,10 +97,7 @@ func (rt *restServer) Start() error {
 
 	if err != nil {
 		log.Fatal("ListenAndServe: ", err.Error())
-		return err
 	}
-
-	return nil
 }
 
 func (rt *restServer) initializeMethod() {

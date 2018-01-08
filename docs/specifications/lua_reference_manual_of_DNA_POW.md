@@ -138,7 +138,7 @@ return: error code or tx hash. [string]
 name: getRawTx
 usage: get raw transaction from ELA node.
 params: txn hash [string]
-return: transaction, timestamp and confirmination. [transaction, number, number]
+return: transaction, timestamp and confirmation. [transaction, number, number]
 ```
 
 <h5 id="elaapi_getAssetID">1.1.4 getAssetID</h5> 
@@ -165,7 +165,7 @@ return: coinbase hash. [string]
 name: getBlockByHeight
 usage: get block by height.
 params: height [number]
-return: block, confirmination [block, number]
+return: block, confirmation [block, number]
 ```
 
 <h5 id="elaapi_getBlockByHash">1.1.7 getBlockByHash</h5> 
@@ -174,7 +174,7 @@ return: block, confirmination [block, number]
 name: getBlockByHash
 usage: get block by hash.
 params: hash [string]
-return: block, confirmination [block, number]
+return: block, confirmation [block, number]
 ```
 
 <h5 id="elaapi_getCurrentBlockHash">1.1.8 getCurrentBlockHash</h5> 

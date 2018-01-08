@@ -158,7 +158,7 @@ func GetRawTransaction(cmd map[string]interface{}) map[string]interface{} {
 		}
 		tran := TransArrayByteToHexString(tx)
 		tran.Timestamp = header.Blockdata.Timestamp
-		tran.Confirminations = ledger.DefaultLedger.Blockchain.GetBestHeight() - height + 1
+		tran.Confirmations = ledger.DefaultLedger.Blockchain.GetBestHeight() - height + 1
 		w := bytes.NewBuffer(nil)
 		tx.Serialize(w)
 		tran.TxSize = uint32(len(w.Bytes()))
@@ -497,7 +497,7 @@ func GetBlockInfo(block *ledger.Block) BlockInfo {
 	for i := 0; i < len(block.Transactions); i++ {
 		trans[i] = TransArrayByteToHexString(block.Transactions[i])
 		trans[i].Timestamp = block.Blockdata.Timestamp
-		trans[i].Confirminations = ledger.DefaultLedger.Blockchain.GetBestHeight() - block.Blockdata.Height + 1
+		trans[i].Confirmations = ledger.DefaultLedger.Blockchain.GetBestHeight() - block.Blockdata.Height + 1
 		w := bytes.NewBuffer(nil)
 		block.Transactions[i].Serialize(w)
 		trans[i].TxSize = uint32(len(w.Bytes()))
@@ -509,7 +509,7 @@ func GetBlockInfo(block *ledger.Block) BlockInfo {
 		Hash:            BytesToHexString(hash.ToArrayReverse()),
 		BlockData:       blockHead,
 		Transactions:    trans,
-		Confirminations: ledger.DefaultLedger.Blockchain.GetBestHeight() - block.Blockdata.Height + 1,
+		Confirmations: ledger.DefaultLedger.Blockchain.GetBestHeight() - block.Blockdata.Height + 1,
 		MinerInfo:       string(coinbasePd.CoinbaseData),
 	}
 	return b
@@ -905,7 +905,7 @@ func GetTransactionByHash(cmd map[string]interface{}) map[string]interface{} {
 	}
 	t := TransArrayByteToHexString(txn)
 	t.Timestamp = header.Blockdata.Timestamp
-	t.Confirminations = ledger.DefaultLedger.Blockchain.GetBestHeight() - height + 1
+	t.Confirmations = ledger.DefaultLedger.Blockchain.GetBestHeight() - height + 1
 	w := bytes.NewBuffer(nil)
 	txn.Serialize(w)
 	t.TxSize = uint32(len(w.Bytes()))

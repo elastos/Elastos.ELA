@@ -17,6 +17,7 @@ import (
 	"Elastos.ELA/core/store/ChainStore"
 	"Elastos.ELA/net/servers/httprestful"
 	"Elastos.ELA/net/servers"
+	"Elastos.ELA/net/servers/httpwebsocket"
 )
 
 const (
@@ -95,7 +96,7 @@ func main() {
 	log.Info("3. --Start the RPC service")
 	go httpjsonrpc.StartRPCServer()
 	go httprestful.StartServer()
-	//go httpwebsocket.StartServer()
+	go httpwebsocket.StartServer()
 	if config.Parameters.HttpInfoStart {
 		go httpnodeinfo.StartServer()
 	}

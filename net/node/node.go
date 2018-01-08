@@ -18,6 +18,9 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+	"encoding/binary"
+	"bytes"
+	"crypto/sha256"
 )
 
 type Semaphore chan struct{}
@@ -163,8 +166,8 @@ func InitNode() Noder {
 
 	n.link.port = uint16(Parameters.NodePort)
 	n.relay = true
-	// TODO init node id
-	n.id = uint64(123 + n.link.port)
+	idHash := sha256.Sum256([]byte(IPv4Addr() + strconv.Itoa(Parameters.NodePort)))
+	binary.Read(bytes.NewBuffer(idHash[:8]), binary.LittleEndian, &(n.id))
 
 	log.Info(fmt.Sprintf("Init node ID to 0x%x", n.id))
 	n.nbrNodes.init()

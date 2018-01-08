@@ -316,12 +316,11 @@ func (pow *PowService) BroadcastBlock(MsgBlock *ledger.Block) error {
 	return nil
 }
 
-func (pow *PowService) Start() error {
+func (pow *PowService) Start() {
 	pow.Mutex.Lock()
 	defer pow.Mutex.Unlock()
 	if pow.started || pow.manualMining {
 		log.Trace("cpuMining is already started")
-		return nil
 	}
 
 	pow.quit = make(chan struct{})
@@ -329,28 +328,22 @@ func (pow *PowService) Start() error {
 	pow.started = true
 
 	go pow.cpuMining()
-
-	return nil
 }
 
-func (pow *PowService) Halt() error {
-	log.Debug()
+func (pow *PowService) Halt() {
 	log.Info("POW Stop")
 	pow.Mutex.Lock()
 	defer pow.Mutex.Unlock()
 
 	if !pow.started || pow.manualMining {
-		return nil
+		return
 	}
-
-	//ledger.DefaultLedger.Blockchain.BCEvents.UnSubscribe(events.EventBlockPersistCompleted, pow.blockPersistCompletedSubscriber)
-	//ledger.DefaultLedger.Blockchain.BCEvents.UnSubscribe(events.EventRollbackTransaction, pow.RollbackTransactionSubscriber)
 
 	close(pow.quit)
 	pow.wg.Wait()
 	pow.started = false
-	return nil
 }
+
 func (pow *PowService) RollbackTransaction(v interface{}) {
 	if block, ok := v.(*ledger.Block); ok {
 		for _, tx := range block.Transactions[1:] {

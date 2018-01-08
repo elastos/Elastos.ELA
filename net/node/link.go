@@ -106,14 +106,16 @@ DISCONNECT:
 	node.local.eventQueue.GetEvent("disconnect").Notify(events.EventNodeDisconnect, node)
 }
 
-func printIPAddr() {
+func IPv4Addr() string {
 	host, _ := os.Hostname()
 	addrs, _ := net.LookupIP(host)
 	for _, addr := range addrs {
 		if ipv4 := addr.To4(); ipv4 != nil {
 			log.Info("IPv4: ", ipv4)
+			return ipv4.String()
 		}
 	}
+	return ""
 }
 
 func (link *link) CloseConn() {

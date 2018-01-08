@@ -1,10 +1,9 @@
-package restful
+package httprestful
 
 import (
 	. "Elastos.ELA/common/config"
 	"Elastos.ELA/common/log"
-	. "Elastos.ELA/net/httprestful/common"
-	"Elastos.ELA/net/httpwebsocket"
+	. "Elastos.ELA/net/servers"
 	"context"
 	"crypto/tls"
 	"encoding/json"
@@ -14,24 +13,8 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"time"
 	. "Elastos.ELA/errors"
 )
-
-type handler func(map[string]interface{}) map[string]interface{}
-type Action struct {
-	sync.RWMutex
-	name    string
-	handler handler
-}
-type restServer struct {
-	router           *Router
-	listener         net.Listener
-	server           *http.Server
-	postMap          map[string]Action
-	getMap           map[string]Action
-	checkAccessToken func(auth_type, access_token string) (string, ErrCode, interface{})
-}
 
 const (
 	Api_Getconnectioncount  = "/api/v1/node/connectioncount"
@@ -51,20 +34,43 @@ const (
 	Api_GetTransactionPool  = "/api/v1/transactionpool"
 	Api_SendRcdTxByTrans    = "/api/v1/custom/transaction/record"
 	Api_GetStateUpdate      = "/api/v1/stateupdate/:namespace/:key"
-	Api_OauthServerUrl      = "/api/v1/config/oauthserver/url"
-	Api_NoticeServerUrl     = "/api/v1/config/noticeserver/url"
-	Api_NoticeServerState   = "/api/v1/config/noticeserver/state"
 	Api_WebsocketState      = "/api/v1/config/websocket/state"
 	Api_Restart             = "/api/v1/restart"
 	Api_GetContract         = "/api/v1/contract/:hash"
 )
 
-func InitRestServer(checkAccessToken func(string, string) (string, ErrCode, interface{})) ApiServer {
-	rt := &restServer{}
-	rt.checkAccessToken = checkAccessToken
+var node = NodeForServers
 
-	rt.router = NewRouter()
-	rt.registryMethod()
+const TlsPort = 443
+
+type Action struct {
+	sync.RWMutex
+	name    string
+	handler func(map[string]interface{}) map[string]interface{}
+}
+
+type restServer struct {
+	router   *Router
+	listener net.Listener
+	server   *http.Server
+	postMap  map[string]Action
+	getMap   map[string]Action
+}
+
+type ApiServer interface {
+	Start() error
+	Stop()
+}
+
+func StartServer() {
+	rest := InitRestServer()
+	rest.Start()
+}
+
+func InitRestServer() ApiServer {
+	rt := &restServer{}
+	rt.router = &Router{}
+	rt.initializeMethod()
 	rt.initGetHandler()
 	rt.initPostHandler()
 	return rt
@@ -101,43 +107,8 @@ func (rt *restServer) Start() error {
 
 	return nil
 }
-func (rt *restServer) setWebsocketState(cmd map[string]interface{}) map[string]interface{} {
-	resp := ResponsePack(Success)
-	startFlag, ok := cmd["Open"].(bool)
-	if !ok {
-		resp["Error"] = InvalidParams
-		return resp
-	}
-	if b, ok := cmd["PushBlock"].(bool); ok {
-		httpwebsocket.SetWsPushBlockFlag(b)
-	}
-	if b, ok := cmd["PushRawBlock"].(bool); ok {
-		httpwebsocket.SetPushRawBlockFlag(b)
-	}
-	if b, ok := cmd["PushBlockTxs"].(bool); ok {
-		httpwebsocket.SetPushBlockTxsFlag(b)
-	}
-	if b, ok := cmd["PushNewTransaction"].(bool); ok {
-		httpwebsocket.SetPushNewTxsFlag(b)
-	}
-	if wsPort, ok := cmd["Port"].(float64); ok && wsPort != 0 {
-		Parameters.HttpWsPort = int(wsPort)
-	}
-	if startFlag {
-		httpwebsocket.ReStartServer()
-	} else {
-		httpwebsocket.Stop()
-	}
-	var result = make(map[string]interface{})
-	result["Open"] = startFlag
-	result["Port"] = Parameters.HttpWsPort
-	result["PushBlock"] = httpwebsocket.GetWsPushBlockFlag()
-	result["PushRawBlock"] = httpwebsocket.GetPushRawBlockFlag()
-	result["PushBlockTxs"] = httpwebsocket.GetPushBlockTxsFlag()
-	resp["Result"] = result
-	return resp
-}
-func (rt *restServer) registryMethod() {
+
+func (rt *restServer) initializeMethod() {
 
 	getMethodMap := map[string]Action{
 		Api_Getconnectioncount:  {name: "getconnectioncount", handler: GetConnectionCount},
@@ -147,40 +118,22 @@ func (rt *restServer) registryMethod() {
 		Api_Getblockheight:      {name: "getblockheight", handler: GetBlockHeight},
 		Api_Getblockhash:        {name: "getblockhash", handler: GetBlockHash},
 		Api_GetTransactionPool:  {name: "gettransactionpool", handler: GetTransactionPool},
-		//Api_GetTotalIssued:      {name: "gettotalissued", handler: GetTotalIssued},
-		Api_Gettransaction:    {name: "gettransaction", handler: GetTransactionByHash},
-		Api_Getasset:          {name: "getasset", handler: GetAssetByHash},
-		Api_GetContract:       {name: "getcontract", handler: GetContract},
-		Api_GetUTXObyAddr:     {name: "getutxobyaddr", handler: GetUnspends},
-		Api_GetUTXObyAsset:    {name: "getutxobyasset", handler: GetUnspendOutput},
-		Api_GetBalanceByAddr:  {name: "getbalancebyaddr", handler: GetBalanceByAddr},
-		Api_GetBalancebyAsset: {name: "getbalancebyasset", handler: GetBalanceByAsset},
-		Api_OauthServerUrl:    {name: "getoauthserverurl", handler: GetOauthServerUrl},
-		Api_NoticeServerUrl:   {name: "getnoticeserverurl", handler: GetNoticeServerUrl},
-		Api_Restart:           {name: "restart", handler: rt.Restart},
-		Api_GetStateUpdate:    {name: "getstateupdate", handler: GetStateUpdate},
+		Api_Gettransaction:      {name: "gettransaction", handler: GetTransactionByHash},
+		Api_Getasset:            {name: "getasset", handler: GetAssetByHash},
+		Api_GetUTXObyAddr:       {name: "getutxobyaddr", handler: GetUnspends},
+		Api_GetUTXObyAsset:      {name: "getutxobyasset", handler: GetUnspendOutput},
+		Api_GetBalanceByAddr:    {name: "getbalancebyaddr", handler: GetBalanceByAddr},
+		Api_GetBalancebyAsset:   {name: "getbalancebyasset", handler: GetBalanceByAsset},
+		Api_Restart:             {name: "restart", handler: rt.Restart},
 	}
 
-	sendRawTransaction := func(cmd map[string]interface{}) map[string]interface{} {
-		resp := SendRawTransaction(cmd)
-		if userid, ok := resp["Userid"].(string); ok && len(userid) > 0 {
-			if result, ok := resp["Result"].(string); ok {
-				httpwebsocket.SetTxHashMap(result, userid)
-			}
-			delete(resp, "Userid")
-		}
-		return resp
-	}
 	postMethodMap := map[string]Action{
-		Api_SendRawTx:         {name: "sendrawtransaction", handler: sendRawTransaction},
-		Api_OauthServerUrl:    {name: "setoauthserverurl", handler: SetOauthServerUrl},
-		Api_NoticeServerUrl:   {name: "setnoticeserverurl", handler: SetNoticeServerUrl},
-		Api_NoticeServerState: {name: "setpostblock", handler: SetPushBlockFlag},
-		Api_WebsocketState:    {name: "setwebsocketstate", handler: rt.setWebsocketState},
+		Api_SendRawTx: {name: "sendrawtransaction", handler: SendRawTransaction},
 	}
 	rt.postMap = postMethodMap
 	rt.getMap = getMethodMap
 }
+
 func (rt *restServer) getPath(url string) string {
 
 	if strings.Contains(url, strings.TrimRight(Api_GetblockTxsByHeight, ":height")) {
@@ -212,6 +165,7 @@ func (rt *restServer) getPath(url string) string {
 	}
 	return url
 }
+
 func (rt *restServer) getParams(r *http.Request, url string, req map[string]interface{}) map[string]interface{} {
 	switch url {
 	case Api_Getconnectioncount:
@@ -278,15 +232,13 @@ func (rt *restServer) getParams(r *http.Request, url string, req map[string]inte
 		req["Namespace"] = getParam(r, "namespace")
 		req["Key"] = getParam(r, "key")
 		break
-	case Api_OauthServerUrl:
-	case Api_NoticeServerUrl:
-	case Api_NoticeServerState:
 	case Api_WebsocketState:
 		break
 	default:
 	}
 	return req
 }
+
 func (rt *restServer) initGetHandler() {
 
 	for k, _ := range rt.getMap {
@@ -294,19 +246,10 @@ func (rt *restServer) initGetHandler() {
 
 			var req = make(map[string]interface{})
 			var resp map[string]interface{}
-			access_token := r.FormValue("access_token")
-			auth_type := r.FormValue("auth_type")
 
-			CAkey, errCode, result := rt.checkAccessToken(auth_type, access_token)
 			url := rt.getPath(r.URL.Path)
-			if errCode > 0 && r.URL.Path != Api_OauthServerUrl {
-				resp = ResponsePack(errCode)
-				resp["Result"] = result
-				rt.response(w, resp)
-				return
-			}
+
 			if h, ok := rt.getMap[url]; ok {
-				req["CAkey"] = CAkey
 				req = rt.getParams(r, url, req)
 				resp = h.handler(req)
 				resp["Action"] = h.name
@@ -317,6 +260,7 @@ func (rt *restServer) initGetHandler() {
 		})
 	}
 }
+
 func (rt *restServer) initPostHandler() {
 	for k, _ := range rt.postMap {
 		rt.router.Post(k, func(w http.ResponseWriter, r *http.Request) {
@@ -326,20 +270,10 @@ func (rt *restServer) initPostHandler() {
 
 			var req = make(map[string]interface{})
 			var resp map[string]interface{}
-			access_token := r.FormValue("access_token")
-			auth_type := r.FormValue("auth_type")
 
-			CAkey, errCode, result := rt.checkAccessToken(auth_type, access_token)
 			url := rt.getPath(r.URL.Path)
-			if errCode > 0 && r.URL.Path != Api_OauthServerUrl {
-				resp = ResponsePack(errCode)
-				resp["Result"] = result
-				rt.response(w, resp)
-				return
-			}
 			if h, ok := rt.postMap[url]; ok {
 				if err := json.Unmarshal(body, &req); err == nil {
-					req["CAkey"] = CAkey
 					req = rt.getParams(r, url, req)
 					resp = h.handler(req)
 					resp["Action"] = h.name
@@ -361,12 +295,14 @@ func (rt *restServer) initPostHandler() {
 	}
 
 }
+
 func (rt *restServer) write(w http.ResponseWriter, data []byte) {
 	w.Header().Add("Access-Control-Allow-Headers", "Content-Type")
 	w.Header().Set("content-type", "application/json;charset=utf-8")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Write(data)
 }
+
 func (rt *restServer) response(w http.ResponseWriter, resp map[string]interface{}) {
 	resp["Desc"] = ErrMap[resp["Error"].(ErrCode)]
 	data, err := json.Marshal(resp)
@@ -376,23 +312,24 @@ func (rt *restServer) response(w http.ResponseWriter, resp map[string]interface{
 	}
 	rt.write(w, data)
 }
+
 func (rt *restServer) Stop() {
 	if rt.server != nil {
 		rt.server.Shutdown(context.Background())
 		log.Error("Close restful ")
 	}
 }
+
 func (rt *restServer) Restart(cmd map[string]interface{}) map[string]interface{} {
 	go func() {
-		time.Sleep(time.Second)
 		rt.Stop()
-		time.Sleep(time.Second)
-		go rt.Start()
+		rt.Start()
 	}()
 
 	var resp = ResponsePack(Success)
 	return resp
 }
+
 func (rt *restServer) initTlsListen() (net.Listener, error) {
 
 	CertPath := Parameters.RestCertPath

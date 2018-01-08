@@ -1,7 +1,6 @@
 package crypto
 
 import (
-	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
 	"errors"
@@ -258,60 +257,11 @@ func DecodePoint(encodeData []byte) (*PubKey, error) {
 		return pubKey, nil
 
 	case 0x04, 0x06, 0x07: //uncompressed
-		pubKeyX := new(big.Int).SetBytes(encodeData[FLAGLEN : FLAGLEN+XORYVALUELEN])
-		pubKeyY := new(big.Int).SetBytes(encodeData[FLAGLEN+XORYVALUELEN : NOCOMPRESSEDLEN])
+		pubKeyX := new(big.Int).SetBytes(encodeData[FLAGLEN: FLAGLEN+XORYVALUELEN])
+		pubKeyY := new(big.Int).SetBytes(encodeData[FLAGLEN+XORYVALUELEN: NOCOMPRESSEDLEN])
 		return &PubKey{pubKeyX, pubKeyY}, nil
 
 	default:
 		return nil, errors.New("The encodeData format is error")
 	}
-}
-
-func (e *PubKey) EncodePoint(isCommpressed bool) ([]byte, error) {
-	//if X is infinity, then Y cann't be computed, so here used "||"
-	if nil == e.X || nil == e.Y {
-		infinity := make([]byte, INFINITYLEN)
-		return infinity, nil
-	}
-
-	var encodedData []byte
-
-	if isCommpressed {
-		encodedData = make([]byte, COMPRESSEDLEN)
-	} else {
-		encodedData = make([]byte, NOCOMPRESSEDLEN)
-
-		yBytes := e.Y.Bytes()
-		copy(encodedData[NOCOMPRESSEDLEN-len(yBytes):], yBytes)
-	}
-	xBytes := e.X.Bytes()
-	copy(encodedData[COMPRESSEDLEN-len(xBytes):COMPRESSEDLEN], xBytes)
-
-	if isCommpressed {
-		if isEven(e.Y) {
-			encodedData[0] = COMPEVENFLAG
-		} else {
-			encodedData[0] = COMPODDFLAG
-		}
-	} else {
-		encodedData[0] = NOCOMPRESSEDFLAG
-	}
-
-	return encodedData, nil
-}
-
-func NewPubKey(priKey []byte) *PubKey {
-	privateKey := new(ecdsa.PrivateKey)
-	privateKey.PublicKey.Curve = algSet.Curve
-
-	k := new(big.Int)
-	k.SetBytes(priKey)
-	privateKey.D = k
-
-	privateKey.PublicKey.X, privateKey.PublicKey.Y = algSet.Curve.ScalarBaseMult(k.Bytes())
-
-	pubKey := new(PubKey)
-	pubKey.X = privateKey.PublicKey.X
-	pubKey.Y = privateKey.PublicKey.Y
-	return pubKey
 }

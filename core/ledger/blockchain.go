@@ -7,6 +7,7 @@ import (
 	. "ELA/errors"
 	"ELA/events"
 	"container/list"
+	"errors"
 	"fmt"
 	"math/big"
 	"sort"
@@ -731,6 +732,14 @@ func (bc *Blockchain) DisconnectBlock(node *BlockNode, block *Block) error {
 // connectBlock handles connecting the passed node/block to the end of the main
 // (best) chain.
 func (bc *Blockchain) ConnectBlock(node *BlockNode, block *Block) error {
+
+	for _, txVerify := range block.Transactions {
+		if errCode := CheckTransactionContext(txVerify, bc.Ledger); errCode != ErrNoError {
+			fmt.Println("CheckTransactionContext failed when verifiy block", errCode)
+			return errors.New(fmt.Sprintf("CheckTransactionContext failed when verifiy block"))
+		}
+	}
+
 	// Make sure it's extending the end of the best chain.
 	prevHash := &block.Blockdata.PrevBlockHash
 	if bc.BestChain != nil && (prevHash.CompareTo(*bc.BestChain.Hash) != 0) {

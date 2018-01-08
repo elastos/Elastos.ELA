@@ -1,4 +1,4 @@
-package restful
+package httprestful
 
 import (
 	"context"
@@ -22,10 +22,6 @@ type Router struct {
 }
 
 var paramsRegexp = regexp.MustCompile(`:(\w+)`)
-
-func NewRouter() *Router {
-	return &Router{}
-}
 
 func (r *Router) Try(path string, method string) (http.HandlerFunc, Params, error) {
 

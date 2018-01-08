@@ -1,4 +1,4 @@
-package httpjsonrpc
+package servers
 
 var (
 	ElaRpcInvalidHash        = responsePacking("invalid hash")
@@ -17,9 +17,12 @@ var (
 	ElaRpcSuccess       = responsePacking(true)
 	ElaRpcFailed        = responsePacking(false)
 
-	// error code for wallet
-	ElaRpcWalletAlreadyExists = responsePacking("wallet already exist")
-	ElaRpcWalletNotExists     = responsePacking("wallet doesn't exist")
-
 	ElaRpc = responsePacking
 )
+
+func responsePacking(result interface{}) map[string]interface{} {
+	resp := map[string]interface{}{
+		"result": result,
+	}
+	return resp
+}

@@ -3,11 +3,11 @@ package httpnodeinfo
 import (
 	"Elastos.ELA/common/config"
 	"Elastos.ELA/core/ledger"
-	. "Elastos.ELA/net/protocol"
 	"fmt"
 	"html/template"
 	"net/http"
 	"strconv"
+	"Elastos.ELA/net/servers"
 )
 
 type Info struct {
@@ -31,7 +31,7 @@ type NgbNodeInfo struct {
 	HttpInfoStart bool
 }
 
-var node Noder
+var node = servers.NodeForServers
 
 var templates = template.Must(template.New("info").Parse(page))
 
@@ -69,8 +69,7 @@ func viewHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func StartServer(n Noder) {
-	node = n
+func StartServer() {
 	http.HandleFunc("/info", viewHandler)
 	http.ListenAndServe(":"+strconv.Itoa(int(config.Parameters.HttpInfoPort)), nil)
 }

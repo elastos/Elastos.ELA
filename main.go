@@ -11,12 +11,12 @@ import (
 	"Elastos.ELA/net/protocol"
 	"Elastos.ELA/consensus/pow"
 	"Elastos.ELA/common/config"
-	"Elastos.ELA/net/httpjsonrpc"
-	"Elastos.ELA/net/httprestful"
+	"Elastos.ELA/net/servers/httpjsonrpc"
 	"Elastos.ELA/core/transaction"
-	"Elastos.ELA/net/httpnodeinfo"
-	"Elastos.ELA/net/httpwebsocket"
+	"Elastos.ELA/net/servers/httpnodeinfo"
 	"Elastos.ELA/core/store/ChainStore"
+	"Elastos.ELA/net/servers/httprestful"
+	"Elastos.ELA/net/servers"
 )
 
 const (
@@ -55,10 +55,10 @@ func handleLogFile() {
 }
 
 func startConsensus(noder protocol.Noder) {
-	httpjsonrpc.Pow = pow.NewPowService("logPow", noder)
+	servers.Pow = pow.NewPowService("logPow", noder)
 	if config.Parameters.PowConfiguration.AutoMining {
 		log.Info("Start POW Services")
-		go httpjsonrpc.Pow.Start()
+		go servers.Pow.Start()
 	}
 }
 
@@ -66,7 +66,7 @@ func main() {
 	//var blockChain *ledger.Blockchain
 	var err error
 	var noder protocol.Noder
-	log.Trace("Node version: ", config.Version)
+	log.Trace("NodeForServers version: ", config.Version)
 	log.Info("1. BlockChain init")
 	ledger.DefaultLedger = new(ledger.Ledger)
 	ledger.DefaultLedger.Store, err = ChainStore.NewLedgerStore()
@@ -87,17 +87,17 @@ func main() {
 	noder = node.InitNode()
 	noder.WaitForSyncFinish()
 
-	httpjsonrpc.RegistRpcNode(noder)
+	servers.NodeForServers = noder
 	startConsensus(noder)
 
 	handleLogFile()
 
 	log.Info("3. --Start the RPC service")
 	go httpjsonrpc.StartRPCServer()
-	go httprestful.StartServer(noder)
-	go httpwebsocket.StartServer(noder)
+	go httprestful.StartServer()
+	//go httpwebsocket.StartServer()
 	if config.Parameters.HttpInfoStart {
-		go httpnodeinfo.StartServer(noder)
+		go httpnodeinfo.StartServer()
 	}
 	select {}
 ERROR:

@@ -290,13 +290,13 @@ type SolvedState struct {
 	stateLock sync.RWMutex
 }
 
-func (s *SolvedState) setState(solved bool) {
+func (s *SolvedState) setSolvedState(solved bool) {
 	s.stateLock.Lock()
 	s.solved = solved
 	s.stateLock.Unlock()
 }
 
-func (s *SolvedState) getState() bool {
+func (s *SolvedState) getSolvedState() bool {
 	s.stateLock.Lock()
 	solved := s.solved
 	s.stateLock.Unlock()
@@ -316,8 +316,32 @@ func (s *SolvedState) getNonce() uint32 {
 	return nonce
 }
 
-func threadMiner(beginNonce uint32, endNonce uint32, state *SolvedState, wg *sync.WaitGroup) {
+func threadMiner(beginNonce uint32, endNonce uint32, state *SolvedState, wg *sync.WaitGroup, auxPow *auxpow.AuxPow, ticker *time.Ticker) {
 	defer wg.Done()
+
+	for i := beginNonce; i < endNonce; i++ {
+		select {
+		case <-ticker.C:
+			// if MsgBlock.Blockdata.PrevBlockHash.CompareTo(*ledger.DefaultLedger.Blockchain.BestChain.Hash) != 0 {
+			// 	return false
+			// }
+			if state.getSolvedState() {
+				return false
+			}
+		default:
+			// Non-blocking select to fall through
+		}
+
+		auxPow.ParBlockHeader.Nonce = i
+		hash := auxPow.ParBlockHeader.Hash() // solve parBlockHeader hash
+		if ledger.HashToBig(&hash).Cmp(targetDifficulty) <= 0 {
+			state.setSolvedState(true)
+			state.setNonce(i)
+			return true
+		}
+	}
+
+	return false
 }
 
 func (pow *PowService) SolveBlock(MsgBlock *ledger.Block, ticker *time.Ticker) bool {
@@ -326,7 +350,7 @@ func (pow *PowService) SolveBlock(MsgBlock *ledger.Block, ticker *time.Ticker) b
 	header := MsgBlock.Blockdata
 	targetDifficulty := ledger.CompactToBig(header.Bits)
 
-	// multi thread mining
+	// multi thread mining
 	var wg sync.WaitGroup
 	var solvedState SolvedState
 	solvedState.setState(false)
@@ -344,25 +368,12 @@ func (pow *PowService) SolveBlock(MsgBlock *ledger.Block, ticker *time.Ticker) b
 
 	wg.Wait()
 
-	for i := uint32(0); i <= maxNonce; i++ {
-		select {
-		case <-ticker.C:
-			if MsgBlock.Blockdata.PrevBlockHash.CompareTo(*ledger.DefaultLedger.Blockchain.BestChain.Hash) != 0 {
-				return false
-			}
-			//UpdateBlockTime(msgBlock, m.server.blockManager)
-
-		default:
-			// Non-blocking select to fall through
-		}
-
 		auxPow.ParBlockHeader.Nonce = i
 		hash := auxPow.ParBlockHeader.Hash() // solve parBlockHeader hash
 		if ledger.HashToBig(&hash).Cmp(targetDifficulty) <= 0 {
 			MsgBlock.Blockdata.AuxPow = *auxPow
 			return true
 		}
-	}
 
 	return false
 }
@@ -456,7 +467,7 @@ func NewPowService(client cl.Client, logDictionary string, localNet protocol.Nod
 	pow.blockPersistCompletedSubscriber = ledger.DefaultLedger.Blockchain.BCEvents.Subscribe(events.EventBlockPersistCompleted, pow.BlockPersistCompleted)
 	pow.RollbackTransactionSubscriber = ledger.DefaultLedger.Blockchain.BCEvents.Subscribe(events.EventRollbackTransaction, pow.RollbackTransaction)
 
-	go pow.ZMQServer()
+	// go pow.ZMQServer()  
 	log.Trace("pow Service Init succeed and ZMQServer start succeed")
 	return pow
 }

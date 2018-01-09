@@ -85,7 +85,7 @@ type Noder interface {
 	GetConnectionCnt() uint
 	GetConn() net.Conn
 	GetTxnPool(bool) map[common.Uint256]*transaction.Transaction
-	AppendTxnPool(*transaction.Transaction) ErrCode
+	AppendToTxnPool(*transaction.Transaction) ErrCode
 	ExistedID(id common.Uint256) bool
 	ReqNeighborList()
 	DumpInfo()

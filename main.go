@@ -67,7 +67,6 @@ func main() {
 	//var blockChain *ledger.Blockchain
 	var err error
 	var noder protocol.Noder
-	log.Trace("NodeForServers version: ", config.Version)
 	log.Info("1. BlockChain init")
 	ledger.DefaultLedger = new(ledger.Ledger)
 	ledger.DefaultLedger.Store, err = ChainStore.NewLedgerStore()

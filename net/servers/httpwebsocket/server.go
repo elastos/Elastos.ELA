@@ -84,17 +84,11 @@ func (ws *WsServer) Start() {
 
 func (ws *WsServer) initializeMethods() {
 	heartbeat := func(cmd map[string]interface{}) map[string]interface{} {
-		resp := ResponsePack(Success)
-		resp["Action"] = "heartbeat"
-		resp["Result"] = cmd["Userid"]
-		return resp
+		return ResponsePack("heartbeat", Success, cmd["Userid"])
 	}
 
 	getsessioncount := func(cmd map[string]interface{}) map[string]interface{} {
-		resp := ResponsePack(Success)
-		resp["Action"] = "getsessioncount"
-		resp["Result"] = len(ws.SessionList.OnlineList)
-		return resp
+		return ResponsePack("getsessioncount", Success,len(ws.SessionList.OnlineList))
 	}
 	ws.ActionMap = map[string]Handler{
 		"getconnectioncount": GetConnectionCount,
@@ -124,7 +118,7 @@ func (ws *WsServer) checkSessionsTimeout(done chan bool) {
 			var closeList []*Session
 			ws.SessionList.ForEachSession(func(v *Session) {
 				if v.SessionTimeoverCheck() {
-					resp := ResponsePack(SessionExpired)
+					resp := ResponsePack("checksessionstimeout", SessionExpired, "")
 					ws.response(v.SessionId, resp)
 					closeList = append(closeList, v)
 				}
@@ -194,7 +188,7 @@ func (ws *WsServer) OnDataHandle(currentSession *Session, bysMsg []byte, r *http
 	var req = make(map[string]interface{})
 
 	if err := json.Unmarshal(bysMsg, &req); err != nil {
-		resp := ResponsePack(IllegalDataFormat)
+		resp := ResponsePack("", IllegalDataFormat, "")
 		ws.response(currentSession.SessionId, resp)
 		log.Error("websocket OnDataHandle:", err)
 		return false
@@ -203,12 +197,12 @@ func (ws *WsServer) OnDataHandle(currentSession *Session, bysMsg []byte, r *http
 
 	action, ok := ws.ActionMap[actionName]
 	if !ok {
-		resp := ResponsePack(InvalidMethod)
+		resp := ResponsePack(actionName, InvalidMethod, "")
 		ws.response(currentSession.SessionId, resp)
 		return false
 	}
 	if !ws.IsValidMsg(req) {
-		resp := ResponsePack(InvalidParams)
+		resp := ResponsePack(actionName, InvalidParams, "")
 		ws.response(currentSession.SessionId, resp)
 		return true
 	}
@@ -264,33 +258,31 @@ func SendBlock2WSclient(v interface{}) {
 }
 
 func (ws *WsServer) PushResult(action string, v interface{}) {
-	resp := ResponsePack(Success)
-
+	var result interface{}
 	switch action {
 	case "sendblock":
 		if block, ok := v.(*ledger.Block); ok {
-			resp["Result"] = GetBlockInfo(block)
+			result = GetBlockInfo(block)
 		}
 	case "sendrawblock":
 		if block, ok := v.(*ledger.Block); ok {
 			w := bytes.NewBuffer(nil)
 			block.Serialize(w)
-			resp["Result"] = BytesToHexString(w.Bytes())
+			result = BytesToHexString(w.Bytes())
 		}
 	case "sendblocktransactions":
 		if block, ok := v.(*ledger.Block); ok {
-			resp["Result"] = GetBlockTransactions(block)
+			result = GetBlockTransactions(block)
 		}
 	case "sendnewtransaction":
 		if trx, ok := v.(*transaction.Transaction); ok {
-			resp["Result"] = TransArrayByteToHexString(trx)
+			result = TransArrayByteToHexString(trx)
 		}
 	default:
 		log.Error("httpwebsocket/server.go in pushresult function: unknown action")
 	}
 
-	resp["Action"] = action
-	resp["Desc"] = ErrMap[resp["Error"].(ErrCode)]
+	resp := ResponsePack(action, Success, result)
 
 	data, err := json.Marshal(resp)
 	if err != nil {

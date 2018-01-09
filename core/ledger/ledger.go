@@ -16,7 +16,6 @@ var DefaultLedger *Ledger
 // Ledger - the struct for onchainDNA ledger
 type Ledger struct {
 	Blockchain *Blockchain
-	State      *State
 	Store      ILedgerStore
 }
 

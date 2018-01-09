@@ -244,9 +244,8 @@ func (rt *restServer) initGetHandler() {
 			if h, ok := rt.getMap[url]; ok {
 				req = rt.getParams(r, url, req)
 				resp = h.handler(req)
-				resp["Action"] = h.name
 			} else {
-				resp = ResponsePack(InvalidMethod)
+				resp = ResponsePack("", InvalidMethod, "")
 			}
 			rt.response(w, resp)
 		})
@@ -268,13 +267,11 @@ func (rt *restServer) initPostHandler() {
 				if err := json.Unmarshal(body, &req); err == nil {
 					req = rt.getParams(r, url, req)
 					resp = h.handler(req)
-					resp["Action"] = h.name
 				} else {
-					resp = ResponsePack(IllegalDataFormat)
-					resp["Action"] = h.name
+					resp = ResponsePack(h.name, IllegalDataFormat, "")
 				}
 			} else {
-				resp = ResponsePack(InvalidMethod)
+				resp = ResponsePack("", InvalidMethod, "")
 			}
 			rt.response(w, resp)
 		})
@@ -318,8 +315,7 @@ func (rt *restServer) Restart(cmd map[string]interface{}) map[string]interface{}
 		rt.Start()
 	}()
 
-	var resp = ResponsePack(Success)
-	return resp
+	return ResponsePack("restart", Success, "")
 }
 
 func (rt *restServer) initTlsListen() (net.Listener, error) {

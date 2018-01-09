@@ -9,47 +9,42 @@ import (
 	. "Elastos.ELA/net/servers"
 	"io/ioutil"
 	"encoding/json"
-	"sync"
 )
 
 //an instance of the multiplexer
-var mainMux ServeMux
+var mainMux map[string]func(map[string]interface{}) map[string]interface{}
 
 //multiplexer that keeps track of every function to be called on specific rpc call
-type ServeMux struct {
-	sync.RWMutex
-	m map[string]func(map[string]interface{}) map[string]interface{}
-}
 
 func init() {
-	mainMux.m = make(map[string]func(map[string]interface{}) map[string]interface{})
+	mainMux = make(map[string]func(map[string]interface{}) map[string]interface{})
 }
 
 func StartRPCServer() {
 	http.HandleFunc("/", Handle)
 
 	// get interfaces
-	HandleFunc("getblock", GetBlockByHash)
-	HandleFunc("getcurrentheight", GetCurrentHeight)
-	HandleFunc("getblockhashbyheight", GetBlockHashByHeight)
-	HandleFunc("getconnectioncount", GetConnectionCount)
-	HandleFunc("gettxpool", GetTransactionPool)
-	HandleFunc("getrawtransaction", GetRawTransaction)
-	HandleFunc("getneighbor", GetNeighbor)
-	HandleFunc("getnodestate", GetNodeState)
+	AddMethod("getblock", GetBlockByHash)
+	AddMethod("getcurrentheight", GetCurrentHeight)
+	AddMethod("getblockhashbyheight", GetBlockHashByHeight)
+	AddMethod("getconnectioncount", GetConnectionCount)
+	AddMethod("gettxpool", GetTransactionPool)
+	AddMethod("getrawtransaction", GetRawTransaction)
+	AddMethod("getneighbor", GetNeighbor)
+	AddMethod("getnodestate", GetNodeState)
 
 	// set interfaces
-	HandleFunc("setloglevel", SetLogLevel)
-	HandleFunc("sendrawtransaction", SendRawTransaction)
-	HandleFunc("submitblock", SubmitBlock)
+	AddMethod("setloglevel", SetLogLevel)
+	AddMethod("sendrawtransaction", SendRawTransaction)
+	AddMethod("submitblock", SubmitBlock)
 
 	// mining interfaces
-	HandleFunc("getinfo", GetInfo)
-	HandleFunc("help", AuxHelp)
-	HandleFunc("submitauxblock", SubmitAuxBlock)
-	HandleFunc("createauxblock", CreateAuxBlock)
-	HandleFunc("togglecpumining", ToggleCpuMining)
-	HandleFunc("manualmining", ManualCpuMining)
+	AddMethod("getinfo", GetInfo)
+	AddMethod("help", AuxHelp)
+	AddMethod("submitauxblock", SubmitAuxBlock)
+	AddMethod("createauxblock", CreateAuxBlock)
+	AddMethod("togglecpumining", ToggleCpuMining)
+	AddMethod("manualmining", ManualCpuMining)
 
 	// TODO: only listen to localhost
 	err := http.ListenAndServe(":"+strconv.Itoa(Parameters.HttpJsonPort), nil)
@@ -59,15 +54,13 @@ func StartRPCServer() {
 }
 
 //a function to register functions to be called for specific rpc calls
-func HandleFunc(pattern string, handler func(map[string]interface{}) map[string]interface{}) {
-	mainMux.m[pattern] = handler
+func AddMethod(pattern string, handler func(map[string]interface{}) map[string]interface{}) {
+	mainMux[pattern] = handler
 }
 
 //this is the funciton that should be called in order to answer an rpc call
-//should be registered like "http.HandleFunc("/", httpjsonrpc.Handle)"
+//should be registered like "http.AddMethod("/", httpjsonrpc.Handle)"
 func Handle(w http.ResponseWriter, r *http.Request) {
-	mainMux.RLock()
-	defer mainMux.RUnlock()
 	//JSON RPC commands should be POSTs
 	if r.Method != "POST" {
 		log.Warn("HTTP JSON RPC Handle - Method!=\"POST\"")
@@ -76,7 +69,6 @@ func Handle(w http.ResponseWriter, r *http.Request) {
 
 	//check if there is Request Body to read
 	if r.Body == nil {
-
 		log.Warn("HTTP JSON RPC Handle - Request body is nil")
 		return
 	}
@@ -95,13 +87,12 @@ func Handle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//get the corresponding function
-	function, ok := mainMux.m[request["method"].(string)]
+	function, ok := mainMux[request["method"].(string)]
 	if ok {
 		response := function(request["params"].(map[string]interface{}))
 		data, err := json.Marshal(map[string]interface{}{
 			"jsonpc": "2.0",
 			"result": response["result"],
-			"id":     request["id"],
 		})
 		if err != nil {
 			log.Error("HTTP JSON RPC Handle - json.Marshal: ", err)
@@ -111,19 +102,14 @@ func Handle(w http.ResponseWriter, r *http.Request) {
 	} else {
 		//if the function does not exist
 		log.Warn("HTTP JSON RPC Handle - No function to call for ", request["method"])
-		data, err := json.Marshal(map[string]interface{}{
+		data, _ := json.Marshal(map[string]interface{}{
 			"result": nil,
 			"error": map[string]interface{}{
 				"code":    -32601,
 				"message": "Method not found",
 				"data":    "The called method was not found on the server",
 			},
-			"id": request["id"],
 		})
-		if err != nil {
-			log.Error("HTTP JSON RPC Handle - json.Marshal: ", err)
-			return
-		}
 		w.Write(data)
 	}
 }

@@ -52,7 +52,6 @@ func viewHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	pageInfo := &Info{
-		NodeVersion:  config.Version,
 		BlockHeight:  ledger.DefaultLedger.Blockchain.BlockHeight,
 		NeighborCnt:  len(ngbrNoders),
 		Neighbors:    ngbrNodersInfo,

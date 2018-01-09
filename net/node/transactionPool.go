@@ -38,7 +38,7 @@ func (this *TXNPool) init() {
 
 //append transaction to txnpool when check ok.
 //1.check transaction. 2.check with ledger(db) 3.check with pool
-func (this *TXNPool) AppendTxnPool(txn *transaction.Transaction) ErrCode {
+func (this *TXNPool) AppendToTxnPool(txn *transaction.Transaction) ErrCode {
 	//verify transaction with Concurrency
 	if errCode := ledger.CheckTransactionSanity(txn); errCode != Success {
 		log.Info("Transaction verification failed", txn.Hash())
@@ -263,8 +263,8 @@ func (this *TXNPool) MaybeAcceptTransaction(txn *tx.Transaction) error {
 		return fmt.Errorf("transaction is an individual coinbase")
 	}
 
-	if errCode := this.AppendTxnPool(txn); errCode != Success {
-		return fmt.Errorf("VerifyTxs failed when AppendTxnPool")
+	if errCode := this.AppendToTxnPool(txn); errCode != Success {
+		return fmt.Errorf("VerifyTxs failed when AppendToTxnPool")
 	}
 
 	return nil

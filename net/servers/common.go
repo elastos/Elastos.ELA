@@ -8,19 +8,12 @@ import (
 	tx "Elastos.ELA/core/transaction"
 	. "Elastos.ELA/errors"
 	. "Elastos.ELA/net/protocol"
-	"encoding/json"
-	"fmt"
-	"io/ioutil"
-	"net/http"
-	"os"
-	"strings"
 	"Elastos.ELA/core/asset"
 	"Elastos.ELA/core/transaction/payload"
 )
 
 const TlsPort = 443
 
-//an instance of the multiplexer
 var NodeForServers Noder
 var Pow *pow.PowService
 
@@ -80,7 +73,7 @@ type Transactions struct {
 	AssetInputAmount  []AmountMap
 	AssetOutputAmount []AmountMap
 	Timestamp         uint32 `json:",omitempty"`
-	Confirmations   uint32 `json:",omitempty"`
+	Confirmations     uint32 `json:",omitempty"`
 	TxSize            uint32 `json:",omitempty"`
 	Hash              string
 }
@@ -99,11 +92,11 @@ type BlockHead struct {
 }
 
 type BlockInfo struct {
-	Hash            string
-	BlockData       *BlockHead
-	Transactions    []*Transactions
+	Hash          string
+	BlockData     *BlockHead
+	Transactions  []*Transactions
 	Confirmations uint32
-	MinerInfo       string
+	MinerInfo     string
 }
 
 type NodeInfo struct {
@@ -131,26 +124,6 @@ type RegisterAssetInfo struct {
 	Controller string
 }
 
-type RecordInfo struct {
-	RecordType string
-	RecordData string
-}
-
-type FunctionCodeInfo struct {
-	Code           string
-	ParameterTypes string
-	ReturnTypes    string
-}
-
-type DeployCodeInfo struct {
-	Code        *FunctionCodeInfo
-	Name        string
-	CodeVersion string
-	Author      string
-	Email       string
-	Description string
-}
-
 func TransPayloadToHex(p Payload) PayloadInfo {
 	switch object := p.(type) {
 	case *payload.CoinBase:
@@ -170,38 +143,11 @@ func TransPayloadToHex(p Payload) PayloadInfo {
 	return nil
 }
 
-// Call sends RPC request to server
-func Call(address string, method string, id interface{}, params []interface{}) ([]byte, error) {
-	data, err := json.Marshal(map[string]interface{}{
-		"method": method,
-		"id":     id,
-		"params": params,
-	})
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Marshal JSON request: %v\n", err)
-		return nil, err
-	}
-	resp, err := http.Post(address, "application/json", strings.NewReader(string(data)))
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "POST request: %v\n", err)
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "GET response: %v\n", err)
-		return nil, err
-	}
-
-	return body, nil
-}
-
 func VerifyAndSendTx(txn *tx.Transaction) ErrCode {
 	// if transaction is verified unsucessfully then will not put it into transaction pool
-	if errCode := NodeForServers.AppendTxnPool(txn); errCode != Success {
+	if errCode := NodeForServers.AppendToTxnPool(txn); errCode != Success {
 		log.Warn("Can NOT add the transaction to TxnPool")
-		log.Info("[httpjsonrpc] VerifyTransaction failed when AppendTxnPool.")
+		log.Info("[httpjsonrpc] VerifyTransaction failed when AppendToTxnPool.")
 		return errCode
 	}
 	if err := NodeForServers.Xmit(txn); err != nil {
@@ -209,4 +155,8 @@ func VerifyAndSendTx(txn *tx.Transaction) ErrCode {
 		return ErrXmitFail
 	}
 	return Success
+}
+
+func ResponsePack(action string, errCode ErrCode, result interface{}) map[string]interface{} {
+	return map[string]interface{}{"Action": action, "Result": result, "Error": errCode}
 }

@@ -317,7 +317,7 @@ func (s *SolvedState) getNonce() uint32 {
 	return nonce
 }
 
-func threadMiner(beginNonce uint32, endNonce uint32, targetDifficulty big.Int, auxPow auxpow.AuxPow, state *SolvedState, wg *sync.WaitGroup) {
+func threadMiner(beginNonce uint32, endNonce uint32, targetDifficulty big.Int, auxPow auxpow.AuxPow, state *SolvedState, wg *sync.WaitGroup) bool {
 	ticker := time.NewTicker(time.Second * 2)
 	defer ticker.Stop()
 	defer wg.Done()
@@ -337,7 +337,7 @@ func threadMiner(beginNonce uint32, endNonce uint32, targetDifficulty big.Int, a
 
 		auxPow.ParBlockHeader.Nonce = i
 		hash := auxPow.ParBlockHeader.Hash() // solve parBlockHeader hash
-		if ledger.HashToBig(&hash).Cmp(targetDifficulty) <= 0 {
+		if ledger.HashToBig(&hash).Cmp(&targetDifficulty) <= 0 {
 			state.setSolvedState(true)
 			state.setNonce(i)
 			return true
@@ -356,7 +356,7 @@ func (pow *PowService) SolveBlock(MsgBlock *ledger.Block, ticker *time.Ticker) b
 	// multi thread mining
 	var wg sync.WaitGroup
 	var solvedState SolvedState
-	solvedState.setState(false)
+	solvedState.setSolvedState(false)
 	solvedState.setNonce(0)
 
 	MAXMINERS := uint32(10)

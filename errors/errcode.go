@@ -1,9 +1,5 @@
 package errors
 
-import (
-	"fmt"
-)
-
 type ErrCode int
 
 const (
@@ -67,45 +63,4 @@ var ErrMap = map[ErrCode]string{
 	ErrUnknownReferedTxn:    "INTERNAL ERROR, ErrUnknownReferedTxn",
 	ErrInvalidReferedTxn:    "INTERNAL ERROR, ErrInvalidReferedTxn",
 	ErrIneffectiveCoinbase:  "INTERNAL ERROR, ErrIneffectiveCoinbase",
-}
-
-func (err ErrCode) Error() string {
-	switch err {
-	case Error:
-		return "Unclassified error"
-	case Success:
-		return "not an error"
-	case ErrInvalidInput:
-		return "invalid transaction input detected"
-	case ErrInvalidOutput:
-		return "invalid transaction output detected"
-	case ErrAssetPrecision:
-		return "invalid asset precision"
-	case ErrTransactionBalance:
-		return "transaction balance unmatched"
-	case ErrAttributeProgram:
-		return "attribute program error"
-	case ErrTransactionContracts:
-		return "invalid transaction contract"
-	case ErrTransactionPayload:
-		return "invalid transaction payload"
-	case ErrDoubleSpend:
-		return "double spent transaction detected"
-	case ErrTxHashDuplicate:
-		return "duplicated transaction hash detected"
-	case ErrXmitFail:
-		return "transmit error"
-	case ErrTransactionSize:
-		return "invalid transaction size"
-	case ErrUnknownReferedTxn:
-		return "unknown referenced transaction"
-	case ErrInvalidReferedTxn:
-		return "invalid referenced transaction"
-	case ErrIneffectiveCoinbase:
-		return "ineffective coinbase"
-	case ErrUTXOLocked:
-		return "unspend utxo locked"
-	}
-
-	return fmt.Sprintf("Unknown error? Error code = %d", err)
 }

@@ -12,7 +12,7 @@ import (
 	"sort"
 	"sync"
 	"time"
-	"errors"
+	. "Elastos.ELA/errors"
 )
 
 const (
@@ -734,7 +734,7 @@ func (bc *Blockchain) DisconnectBlock(node *BlockNode, block *Block) error {
 func (bc *Blockchain) ConnectBlock(node *BlockNode, block *Block) error {
 
 	for _, txVerify := range block.Transactions {
-		if errCode := CheckTransactionContext(txVerify, bc.Ledger); errCode != ErrNoError {
+		if errCode := CheckTransactionContext(txVerify, bc.Ledger); errCode != Success {
 			fmt.Println("CheckTransactionContext failed when verifiy block", errCode)
 			return errors.New(fmt.Sprintf("CheckTransactionContext failed when verifiy block"))
 		}

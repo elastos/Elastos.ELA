@@ -129,32 +129,33 @@ func TransArrayByteToHexString(ptx *tx.Transaction) *Transactions {
 //   {"jsonrpc": "2.0", "method": "getblock", "params": ["aabbcc.."], "id": 0}
 
 func GetRawTransaction(cmd map[string]interface{}) map[string]interface{} {
+	action := "getrawtransaction"
 	if len(cmd) < 1 {
-		return ElaRpcNil
+		return ResponsePack(action, InvalidParams, "")
 	}
 	switch cmd["txid"].(type) {
 	case string:
 		str := cmd["txid"].(string)
 		hex, err := HexStringToBytesReverse(str)
 		if err != nil {
-			return ElaRpcInvalidParameter
+			return ResponsePack(action, InvalidParams, "")
 		}
 		var hash Uint256
 		err = hash.Deserialize(bytes.NewReader(hex))
 		if err != nil {
-			return ElaRpcInvalidTransaction
+			return ResponsePack(action, InvalidTransaction, "")
 		}
 		tx, height, err := ledger.DefaultLedger.Store.GetTransaction(hash)
 		if err != nil {
-			return ElaRpcUnknownTransaction
+			return ResponsePack(action, UnknownTransaction, "")
 		}
 		bHash, err := ledger.DefaultLedger.Store.GetBlockHash(height)
 		if err != nil {
-			return ElaRpcUnknownTransaction
+			return ResponsePack(action, UnknownTransaction, "")
 		}
 		header, err := ledger.DefaultLedger.Store.GetHeader(bHash)
 		if err != nil {
-			return ElaRpcUnknownTransaction
+			return ResponsePack(action, UnknownTransaction, "")
 		}
 		tran := TransArrayByteToHexString(tx)
 		tran.Timestamp = header.Blockdata.Timestamp
@@ -163,15 +164,15 @@ func GetRawTransaction(cmd map[string]interface{}) map[string]interface{} {
 		tx.Serialize(w)
 		tran.TxSize = uint32(len(w.Bytes()))
 
-		return ElaRpc(tran)
+		return ResponsePack(action, Success, tran)
 	default:
-		return ElaRpcInvalidParameter
+		return ResponsePack(action, InvalidParams, "")
 	}
 }
 
 func GetNeighbor(cmd map[string]interface{}) map[string]interface{} {
 	addr, _ := NodeForServers.GetNeighborAddrs()
-	return ElaRpc(addr)
+	return ResponsePack("getneighbor", Success, addr)
 }
 
 func GetNodeState(cmd map[string]interface{}) map[string]interface{} {
@@ -187,37 +188,39 @@ func GetNodeState(cmd map[string]interface{}) map[string]interface{} {
 		TxnCnt:   NodeForServers.GetTxnCnt(),
 		RxTxnCnt: NodeForServers.GetRxTxnCnt(),
 	}
-	return ElaRpc(n)
+	return ResponsePack("getnodestate", Success, n)
 }
 
 func SetLogLevel(cmd map[string]interface{}) map[string]interface{} {
+	action := "setloglevel"
 	if len(cmd) < 1 {
-		return ElaRpcInvalidParameter
+		return ResponsePack(action, InvalidParams, "")
 	}
 	switch cmd["level"].(type) {
 	case float64:
 		level := cmd["level"].(float64)
 		if err := log.Log.SetDebugLevel(int(level)); err != nil {
-			return ElaRpcInvalidParameter
+			return ResponsePack(action, InvalidParams, "")
 		}
 	default:
-		return ElaRpcInvalidParameter
+		return ResponsePack(action, InvalidParams, "")
 	}
-	return ElaRpcSuccess
+	return ResponsePack(action, Success, "")
 }
 
 func SubmitAuxBlock(cmd map[string]interface{}) map[string]interface{} {
+	action := "submitauxblock"
 	auxPow, blockHash := "", ""
 	switch cmd["blockhash"].(type) {
 	case string:
 		blockHash = cmd["blockhash"].(string)
 		if _, ok := Pow.MsgBlock.BlockData[blockHash]; !ok {
 			log.Trace("[json-rpc:SubmitAuxBlock] receive invalid block hash value:", blockHash)
-			return ElaRpcInvalidHash
+			return ResponsePack(action, InvalidParams, "")
 		}
 
 	default:
-		return ElaRpcInvalidParameter
+		return ResponsePack(action, InvalidParams, "")
 	}
 
 	switch cmd["auxpow"].(type) {
@@ -229,7 +232,7 @@ func SubmitAuxBlock(cmd map[string]interface{}) map[string]interface{} {
 		_, _, err := ledger.DefaultLedger.Blockchain.AddBlock(Pow.MsgBlock.BlockData[blockHash])
 		if err != nil {
 			log.Trace(err)
-			return ElaRpcInternalError
+			return ResponsePack(action, InternalError, "")
 		}
 
 		Pow.MsgBlock.Mutex.Lock()
@@ -240,10 +243,10 @@ func SubmitAuxBlock(cmd map[string]interface{}) map[string]interface{} {
 		log.Trace("AddBlock called finished and Pow.MsgBlock.BlockData has been deleted completely")
 
 	default:
-		return ElaRpcInvalidParameter
+		return ResponsePack(action, InvalidParams, "")
 	}
 	log.Info(auxPow, blockHash)
-	return ElaRpcSuccess
+	return ResponsePack(action, Success, "")
 }
 
 func GenerateAuxBlock(addr string) (*ledger.Block, string, bool) {
@@ -283,9 +286,10 @@ func GenerateAuxBlock(addr string) (*ledger.Block, string, bool) {
 }
 
 func CreateAuxBlock(cmd map[string]interface{}) map[string]interface{} {
+	action := "createauxblock"
 	msgBlock, curHashStr, _ := GenerateAuxBlock(config.Parameters.PowConfiguration.PayToAddr)
 	if nil == msgBlock {
-		return ElaRpcNil
+		return ResponsePack(action, UnknownBlock, "")
 	}
 
 	type AuxBlock struct {
@@ -311,10 +315,10 @@ func CreateAuxBlock(cmd map[string]interface{}) map[string]interface{} {
 			Bits:              fmt.Sprintf("%x", msgBlock.Blockdata.Bits), //difficulty
 			Hash:              curHashStr,
 			PreviousBlockHash: preHashStr}
-		return ElaRpc(&SendToAux)
+		return ResponsePack(action, Success, &SendToAux)
 
 	default:
-		return ElaRpcInvalidParameter
+		return ResponsePack(action, InvalidParams, "")
 
 	}
 }
@@ -346,13 +350,13 @@ func GetInfo(cmd map[string]interface{}) map[string]interface{} {
 		Paytxfee:       0,
 		Relayfee:       0,
 		Errors:         "Tobe written"}
-	return ElaRpc(&RetVal)
+	return ResponsePack("getinfo", Success, &RetVal)
 }
 
 func AuxHelp(cmd map[string]interface{}) map[string]interface{} {
 
 	//TODO  and description for this rpc-interface
-	return ElaRpc("createauxblock==submitauxblock")
+	return ResponsePack("auxhelp", Success, "createauxblock==submitauxblock")
 }
 
 func ToggleCpuMining(cmd map[string]interface{}) map[string]interface{} {
@@ -362,7 +366,7 @@ func ToggleCpuMining(cmd map[string]interface{}) map[string]interface{} {
 		isMining = cmd["mining"].(bool)
 
 	default:
-		return ElaRpcInvalidParameter
+		return ResponsePack("togglecpumining", InvalidParams, "")
 	}
 
 	if isMining {
@@ -371,27 +375,29 @@ func ToggleCpuMining(cmd map[string]interface{}) map[string]interface{} {
 		go Pow.Halt()
 	}
 
-	return ElaRpcSuccess
+	return ResponsePack("togglecpumining", Success, "")
 }
 
 func ManualCpuMining(cmd map[string]interface{}) map[string]interface{} {
+	action := "manualcpumining"
 	var blockcount uint32
 	switch cmd["count"].(type) {
 	case float64:
 		blockcount = uint32(cmd["count"].(float64))
 	default:
-		return ElaRpcInvalidParameter
+		return ResponsePack(action, InvalidParams, "")
 	}
 
 	if blockcount == 0 {
-		return ElaRpcInvalidParameter
+		return ResponsePack(action, InvalidParams, "")
 	}
 
 	ret := make([]string, blockcount)
 
 	blockHashes, err := Pow.ManualMining(blockcount)
 	if err != nil {
-		return ElaRpcFailed
+		return ResponsePack(action, Error, err)
+
 	}
 
 	for i, hash := range blockHashes {
@@ -401,14 +407,15 @@ func ManualCpuMining(cmd map[string]interface{}) map[string]interface{} {
 		ret[i] = BytesToHexString(w.Bytes())
 	}
 
-	return ElaRpc(ret)
+	return ResponsePack(action, Success, ret)
 }
 
 // A JSON example for submitblock method as following:
 //   {"jsonrpc": "2.0", "method": "submitblock", "params": ["raw block in hex"], "id": 0}
 func SubmitBlock(cmd map[string]interface{}) map[string]interface{} {
+	action := "submitblock"
 	if len(cmd) < 1 {
-		return ElaRpcNil
+		return ResponsePack(action, InvalidParams, "")
 	}
 	switch cmd["block"].(type) {
 	case string:
@@ -416,18 +423,18 @@ func SubmitBlock(cmd map[string]interface{}) map[string]interface{} {
 		hex, _ := HexStringToBytes(str)
 		var block ledger.Block
 		if err := block.Deserialize(bytes.NewReader(hex)); err != nil {
-			return ElaRpcInvalidBlock
+			return ResponsePack(action, UnknownBlock, "")
 		}
 		if _, _, err := ledger.DefaultLedger.Blockchain.AddBlock(&block); err != nil {
-			return ElaRpcInvalidBlock
+			return ResponsePack(action, UnknownBlock, "")
 		}
 		if err := NodeForServers.Xmit(&block); err != nil {
-			return ElaRpcInternalError
+			return ResponsePack(action, InternalError, "")
 		}
 	default:
-		return ElaRpcInvalidParameter
+		return ResponsePack(action, InvalidParams, "")
 	}
-	return ElaRpcSuccess
+	return ResponsePack(action, Success, "")
 }
 
 func GetConnectionCount(cmd map[string]interface{}) map[string]interface{} {
@@ -761,6 +768,7 @@ func GetUnspends(cmd map[string]interface{}) map[string]interface{} {
 	}
 	return ResponsePack(action, Success, results)
 }
+
 func GetUnspendOutput(cmd map[string]interface{}) map[string]interface{} {
 	action := "getunspendoutput"
 	addr, ok := cmd["Addr"].(string)

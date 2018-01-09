@@ -14,48 +14,36 @@ import (
 //an instance of the multiplexer
 var mainMux map[string]func(map[string]interface{}) map[string]interface{}
 
-//multiplexer that keeps track of every function to be called on specific rpc call
-
-func init() {
-	mainMux = make(map[string]func(map[string]interface{}) map[string]interface{})
-}
-
 func StartRPCServer() {
+	mainMux = make(map[string]func(map[string]interface{}) map[string]interface{})
+
 	http.HandleFunc("/", Handle)
 
-	// get interfaces
-	AddMethod("getblock", GetBlockByHash)
-	AddMethod("getcurrentheight", GetCurrentHeight)
-	AddMethod("getblockhashbyheight", GetBlockHashByHeight)
-	AddMethod("getconnectioncount", GetConnectionCount)
-	AddMethod("gettxpool", GetTransactionPool)
-	AddMethod("getrawtransaction", GetRawTransaction)
-	AddMethod("getneighbor", GetNeighbor)
-	AddMethod("getnodestate", GetNodeState)
-
-	// set interfaces
-	AddMethod("setloglevel", SetLogLevel)
-	AddMethod("sendrawtransaction", SendRawTransaction)
-	AddMethod("submitblock", SubmitBlock)
+	mainMux["getblock"] 			= GetBlockByHash
+	mainMux["getcurrentheight"] 	= GetCurrentHeight
+	mainMux["getblockhashbyheight"] = GetBlockHashByHeight
+	mainMux["getconnectioncount"] 	= GetConnectionCount
+	mainMux["gettxpool"] 			= GetTransactionPool
+	mainMux["getrawtransaction"] 	= GetRawTransaction
+	mainMux["getneighbor"] 			= GetNeighbor
+	mainMux["getnodestate"] 		= GetNodeState
+	mainMux["setloglevel"] 			= SetLogLevel
+	mainMux["sendrawtransaction"] 	= SendRawTransaction
+	mainMux["submitblock"] 			= SubmitBlock
 
 	// mining interfaces
-	AddMethod("getinfo", GetInfo)
-	AddMethod("help", AuxHelp)
-	AddMethod("submitauxblock", SubmitAuxBlock)
-	AddMethod("createauxblock", CreateAuxBlock)
-	AddMethod("togglecpumining", ToggleCpuMining)
-	AddMethod("manualmining", ManualCpuMining)
+	mainMux["getinfo"] 				= GetInfo
+	mainMux["help"] 				= AuxHelp
+	mainMux["submitauxblock"] 		= SubmitAuxBlock
+	mainMux["createauxblock"] 		= CreateAuxBlock
+	mainMux["togglecpumining"] 		= ToggleCpuMining
+	mainMux["manualmining"] 		= ManualCpuMining
 
 	// TODO: only listen to localhost
 	err := http.ListenAndServe(":"+strconv.Itoa(Parameters.HttpJsonPort), nil)
 	if err != nil {
 		log.Fatal("ListenAndServe: ", err.Error())
 	}
-}
-
-//a function to register functions to be called for specific rpc calls
-func AddMethod(pattern string, handler func(map[string]interface{}) map[string]interface{}) {
-	mainMux[pattern] = handler
 }
 
 //this is the funciton that should be called in order to answer an rpc call

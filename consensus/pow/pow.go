@@ -284,11 +284,65 @@ func (pow *PowService) DiscreteMining(n uint32) ([]*Uint256, error) {
 	}
 }
 
+type SolvedState struct {
+	solved    bool
+	nonce     uint32
+	stateLock sync.RWMutex
+}
+
+func (s *SolvedState) setState(solved bool) {
+	s.stateLock.Lock()
+	s.solved = solved
+	s.stateLock.Unlock()
+}
+
+func (s *SolvedState) getState() bool {
+	s.stateLock.Lock()
+	solved := s.solved
+	s.stateLock.Unlock()
+	return solved
+}
+
+func (s *SolvedState) setNonce(nonce uint32) {
+	s.stateLock.Lock()
+	s.nonce = nonce
+	s.stateLock.Unlock()
+}
+
+func (s *SolvedState) getNonce() uint32 {
+	s.stateLock.Lock()
+	nonce := s.nonce
+	s.stateLock.Unlock()
+	return nonce
+}
+
+func threadMiner(beginNonce uint32, endNonce uint32, state *SolvedState, wg *sync.WaitGroup) {
+	defer wg.Done()
+}
+
 func (pow *PowService) SolveBlock(MsgBlock *ledger.Block, ticker *time.Ticker) bool {
 	// fake a btc blockheader and coinbase
 	auxPow := generateAuxPow(MsgBlock.Hash())
 	header := MsgBlock.Blockdata
 	targetDifficulty := ledger.CompactToBig(header.Bits)
+
+	// multi thread mining
+	var wg sync.WaitGroup
+	var solvedState SolvedState
+	solvedState.setState(false)
+
+	MAXMINERS := uint32(10)
+	nonceUnit := maxNonce / MAXMINERS
+
+	wg.Add(int(MAXMINERS))
+
+	for i := uint32(0); i < MAXMINERS; i++ {
+		beginNonce := i * nonceUnit
+		endNonce := (i + 1) * nonceUnit
+		go threadMiner(beginNonce, endNonce, &solvedState, &wg)
+	}
+
+	wg.Wait()
 
 	for i := uint32(0); i <= maxNonce; i++ {
 		select {

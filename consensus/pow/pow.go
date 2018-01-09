@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"math"
+	"math/big"
 	"math/rand"
 	"sort"
 	"sync"
@@ -316,7 +317,9 @@ func (s *SolvedState) getNonce() uint32 {
 	return nonce
 }
 
-func threadMiner(beginNonce uint32, endNonce uint32, state *SolvedState, wg *sync.WaitGroup, auxPow *auxpow.AuxPow, ticker *time.Ticker) {
+func threadMiner(beginNonce uint32, endNonce uint32, targetDifficulty big.Int, auxPow auxpow.AuxPow, state *SolvedState, wg *sync.WaitGroup) {
+	ticker := time.NewTicker(time.Second * 2)
+	defer ticker.Stop()
 	defer wg.Done()
 
 	for i := beginNonce; i < endNonce; i++ {
@@ -354,6 +357,7 @@ func (pow *PowService) SolveBlock(MsgBlock *ledger.Block, ticker *time.Ticker) b
 	var wg sync.WaitGroup
 	var solvedState SolvedState
 	solvedState.setState(false)
+	solvedState.setNonce(0)
 
 	MAXMINERS := uint32(10)
 	nonceUnit := maxNonce / MAXMINERS
@@ -363,17 +367,21 @@ func (pow *PowService) SolveBlock(MsgBlock *ledger.Block, ticker *time.Ticker) b
 	for i := uint32(0); i < MAXMINERS; i++ {
 		beginNonce := i * nonceUnit
 		endNonce := (i + 1) * nonceUnit
-		go threadMiner(beginNonce, endNonce, &solvedState, &wg)
+		go threadMiner(beginNonce, endNonce, *targetDifficulty, *auxPow, &solvedState, &wg)
 	}
 
 	wg.Wait()
 
-		auxPow.ParBlockHeader.Nonce = i
+	solved := solvedState.getSolvedState()
+	if solved {
+		nonce := solvedState.getNonce()
+		auxPow.ParBlockHeader.Nonce = nonce
 		hash := auxPow.ParBlockHeader.Hash() // solve parBlockHeader hash
 		if ledger.HashToBig(&hash).Cmp(targetDifficulty) <= 0 {
 			MsgBlock.Blockdata.AuxPow = *auxPow
 			return true
 		}
+	}
 
 	return false
 }
@@ -467,7 +475,7 @@ func NewPowService(client cl.Client, logDictionary string, localNet protocol.Nod
 	pow.blockPersistCompletedSubscriber = ledger.DefaultLedger.Blockchain.BCEvents.Subscribe(events.EventBlockPersistCompleted, pow.BlockPersistCompleted)
 	pow.RollbackTransactionSubscriber = ledger.DefaultLedger.Blockchain.BCEvents.Subscribe(events.EventRollbackTransaction, pow.RollbackTransaction)
 
-	// go pow.ZMQServer()  
+	// go pow.ZMQServer()
 	log.Trace("pow Service Init succeed and ZMQServer start succeed")
 	return pow
 }

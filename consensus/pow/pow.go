@@ -475,7 +475,7 @@ func NewPowService(client cl.Client, logDictionary string, localNet protocol.Nod
 	pow.blockPersistCompletedSubscriber = ledger.DefaultLedger.Blockchain.BCEvents.Subscribe(events.EventBlockPersistCompleted, pow.BlockPersistCompleted)
 	pow.RollbackTransactionSubscriber = ledger.DefaultLedger.Blockchain.BCEvents.Subscribe(events.EventRollbackTransaction, pow.RollbackTransaction)
 
-	// go pow.ZMQServer()
+	go pow.ZMQServer()
 	log.Trace("pow Service Init succeed and ZMQServer start succeed")
 	return pow
 }

@@ -84,11 +84,11 @@ func (ws *WsServer) Start() {
 
 func (ws *WsServer) initializeMethods() {
 	heartbeat := func(cmd map[string]interface{}) map[string]interface{} {
-		return ResponsePack("heartbeat", Success, cmd["Userid"])
+		return ResponsePack(Success, cmd["Userid"])
 	}
 
 	getsessioncount := func(cmd map[string]interface{}) map[string]interface{} {
-		return ResponsePack("getsessioncount", Success,len(ws.SessionList.OnlineList))
+		return ResponsePack( Success,len(ws.SessionList.OnlineList))
 	}
 	ws.ActionMap = map[string]Handler{
 		"getconnectioncount": GetConnectionCount,
@@ -118,7 +118,7 @@ func (ws *WsServer) checkSessionsTimeout(done chan bool) {
 			var closeList []*Session
 			ws.SessionList.ForEachSession(func(v *Session) {
 				if v.SessionTimeoverCheck() {
-					resp := ResponsePack("checksessionstimeout", SessionExpired, "")
+					resp := ResponsePack( SessionExpired, "")
 					ws.response(v.SessionId, resp)
 					closeList = append(closeList, v)
 				}
@@ -188,7 +188,7 @@ func (ws *WsServer) OnDataHandle(currentSession *Session, bysMsg []byte, r *http
 	var req = make(map[string]interface{})
 
 	if err := json.Unmarshal(bysMsg, &req); err != nil {
-		resp := ResponsePack("", IllegalDataFormat, "")
+		resp := ResponsePack( IllegalDataFormat, "")
 		ws.response(currentSession.SessionId, resp)
 		log.Error("websocket OnDataHandle:", err)
 		return false
@@ -197,12 +197,12 @@ func (ws *WsServer) OnDataHandle(currentSession *Session, bysMsg []byte, r *http
 
 	action, ok := ws.ActionMap[actionName]
 	if !ok {
-		resp := ResponsePack(actionName, InvalidMethod, "")
+		resp := ResponsePack(InvalidMethod, "")
 		ws.response(currentSession.SessionId, resp)
 		return false
 	}
 	if !ws.IsValidMsg(req) {
-		resp := ResponsePack(actionName, InvalidParams, "")
+		resp := ResponsePack(InvalidParams, "")
 		ws.response(currentSession.SessionId, resp)
 		return true
 	}
@@ -282,7 +282,7 @@ func (ws *WsServer) PushResult(action string, v interface{}) {
 		log.Error("httpwebsocket/server.go in pushresult function: unknown action")
 	}
 
-	resp := ResponsePack(action, Success, result)
+	resp := ResponsePack(Success, result)
 
 	data, err := json.Marshal(resp)
 	if err != nil {

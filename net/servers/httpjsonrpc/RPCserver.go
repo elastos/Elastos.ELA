@@ -80,6 +80,7 @@ func Handle(w http.ResponseWriter, r *http.Request) {
 		response := function(request["params"].(map[string]interface{}))
 		data, err := json.Marshal(map[string]interface{}{
 			"jsonpc": "2.0",
+			"code":   response["Error"],
 			"result": response["Result"],
 		})
 		if err != nil {
@@ -95,7 +96,7 @@ func Handle(w http.ResponseWriter, r *http.Request) {
 			"error": map[string]interface{}{
 				"code":    -32601,
 				"message": "Method not found",
-				"data":    "The called method was not found on the server",
+				"data":    "The method" + request["method"].(string) + "was not found",
 			},
 		})
 		w.Write(data)

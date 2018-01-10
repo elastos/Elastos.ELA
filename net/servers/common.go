@@ -157,6 +157,6 @@ func VerifyAndSendTx(txn *tx.Transaction) ErrCode {
 	return Success
 }
 
-func ResponsePack(action string, errCode ErrCode, result interface{}) map[string]interface{} {
-	return map[string]interface{}{"Action": action, "Result": result, "Error": errCode}
+func ResponsePack(errCode ErrCode, result interface{}) map[string]interface{} {
+	return map[string]interface{}{"Result": result, "Error": errCode}
 }

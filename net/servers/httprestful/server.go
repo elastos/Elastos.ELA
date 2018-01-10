@@ -245,7 +245,7 @@ func (rt *restServer) initGetHandler() {
 				req = rt.getParams(r, url, req)
 				resp = h.handler(req)
 			} else {
-				resp = ResponsePack("", InvalidMethod, "")
+				resp = ResponsePack(InvalidMethod, "")
 			}
 			rt.response(w, resp)
 		})
@@ -268,10 +268,10 @@ func (rt *restServer) initPostHandler() {
 					req = rt.getParams(r, url, req)
 					resp = h.handler(req)
 				} else {
-					resp = ResponsePack(h.name, IllegalDataFormat, "")
+					resp = ResponsePack(IllegalDataFormat, "")
 				}
 			} else {
-				resp = ResponsePack("", InvalidMethod, "")
+				resp = ResponsePack(InvalidMethod, "")
 			}
 			rt.response(w, resp)
 		})
@@ -315,7 +315,7 @@ func (rt *restServer) Restart(cmd map[string]interface{}) map[string]interface{}
 		rt.Start()
 	}()
 
-	return ResponsePack("restart", Success, "")
+	return ResponsePack(Success, "")
 }
 
 func (rt *restServer) initTlsListen() (net.Listener, error) {

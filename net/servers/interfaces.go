@@ -129,33 +129,32 @@ func TransArrayByteToHexString(ptx *tx.Transaction) *Transactions {
 //   {"jsonrpc": "2.0", "method": "getblock", "params": ["aabbcc.."], "id": 0}
 
 func GetRawTransaction(cmd map[string]interface{}) map[string]interface{} {
-	action := "getrawtransaction"
 	if len(cmd) < 1 {
-		return ResponsePack(action, InvalidParams, "")
+		return ResponsePack(InvalidParams, "")
 	}
 	switch cmd["txid"].(type) {
 	case string:
 		str := cmd["txid"].(string)
 		hex, err := HexStringToBytesReverse(str)
 		if err != nil {
-			return ResponsePack(action, InvalidParams, "")
+			return ResponsePack(InvalidParams, "")
 		}
 		var hash Uint256
 		err = hash.Deserialize(bytes.NewReader(hex))
 		if err != nil {
-			return ResponsePack(action, InvalidTransaction, "")
+			return ResponsePack(InvalidTransaction, "")
 		}
 		tx, height, err := ledger.DefaultLedger.Store.GetTransaction(hash)
 		if err != nil {
-			return ResponsePack(action, UnknownTransaction, "")
+			return ResponsePack(UnknownTransaction, "")
 		}
 		bHash, err := ledger.DefaultLedger.Store.GetBlockHash(height)
 		if err != nil {
-			return ResponsePack(action, UnknownTransaction, "")
+			return ResponsePack(UnknownTransaction, "")
 		}
 		header, err := ledger.DefaultLedger.Store.GetHeader(bHash)
 		if err != nil {
-			return ResponsePack(action, UnknownTransaction, "")
+			return ResponsePack(UnknownTransaction, "")
 		}
 		tran := TransArrayByteToHexString(tx)
 		tran.Timestamp = header.Blockdata.Timestamp
@@ -164,15 +163,15 @@ func GetRawTransaction(cmd map[string]interface{}) map[string]interface{} {
 		tx.Serialize(w)
 		tran.TxSize = uint32(len(w.Bytes()))
 
-		return ResponsePack(action, Success, tran)
+		return ResponsePack(Success, tran)
 	default:
-		return ResponsePack(action, InvalidParams, "")
+		return ResponsePack(InvalidParams, "")
 	}
 }
 
 func GetNeighbor(cmd map[string]interface{}) map[string]interface{} {
 	addr, _ := NodeForServers.GetNeighborAddrs()
-	return ResponsePack("getneighbor", Success, addr)
+	return ResponsePack(Success, addr)
 }
 
 func GetNodeState(cmd map[string]interface{}) map[string]interface{} {
@@ -188,39 +187,37 @@ func GetNodeState(cmd map[string]interface{}) map[string]interface{} {
 		TxnCnt:   NodeForServers.GetTxnCnt(),
 		RxTxnCnt: NodeForServers.GetRxTxnCnt(),
 	}
-	return ResponsePack("getnodestate", Success, n)
+	return ResponsePack(Success, n)
 }
 
 func SetLogLevel(cmd map[string]interface{}) map[string]interface{} {
-	action := "setloglevel"
 	if len(cmd) < 1 {
-		return ResponsePack(action, InvalidParams, "")
+		return ResponsePack(InvalidParams, "")
 	}
 	switch cmd["level"].(type) {
 	case float64:
 		level := cmd["level"].(float64)
 		if err := log.Log.SetDebugLevel(int(level)); err != nil {
-			return ResponsePack(action, InvalidParams, "")
+			return ResponsePack(InvalidParams, "")
 		}
 	default:
-		return ResponsePack(action, InvalidParams, "")
+		return ResponsePack(InvalidParams, "")
 	}
-	return ResponsePack(action, Success, "")
+	return ResponsePack(Success, "")
 }
 
 func SubmitAuxBlock(cmd map[string]interface{}) map[string]interface{} {
-	action := "submitauxblock"
 	auxPow, blockHash := "", ""
 	switch cmd["blockhash"].(type) {
 	case string:
 		blockHash = cmd["blockhash"].(string)
 		if _, ok := Pow.MsgBlock.BlockData[blockHash]; !ok {
 			log.Trace("[json-rpc:SubmitAuxBlock] receive invalid block hash value:", blockHash)
-			return ResponsePack(action, InvalidParams, "")
+			return ResponsePack(InvalidParams, "")
 		}
 
 	default:
-		return ResponsePack(action, InvalidParams, "")
+		return ResponsePack(InvalidParams, "")
 	}
 
 	switch cmd["auxpow"].(type) {
@@ -232,7 +229,7 @@ func SubmitAuxBlock(cmd map[string]interface{}) map[string]interface{} {
 		_, _, err := ledger.DefaultLedger.Blockchain.AddBlock(Pow.MsgBlock.BlockData[blockHash])
 		if err != nil {
 			log.Trace(err)
-			return ResponsePack(action, InternalError, "")
+			return ResponsePack(InternalError, "")
 		}
 
 		Pow.MsgBlock.Mutex.Lock()
@@ -243,10 +240,10 @@ func SubmitAuxBlock(cmd map[string]interface{}) map[string]interface{} {
 		log.Trace("AddBlock called finished and Pow.MsgBlock.BlockData has been deleted completely")
 
 	default:
-		return ResponsePack(action, InvalidParams, "")
+		return ResponsePack(InvalidParams, "")
 	}
 	log.Info(auxPow, blockHash)
-	return ResponsePack(action, Success, "")
+	return ResponsePack(Success, "")
 }
 
 func GenerateAuxBlock(addr string) (*ledger.Block, string, bool) {
@@ -286,10 +283,9 @@ func GenerateAuxBlock(addr string) (*ledger.Block, string, bool) {
 }
 
 func CreateAuxBlock(cmd map[string]interface{}) map[string]interface{} {
-	action := "createauxblock"
 	msgBlock, curHashStr, _ := GenerateAuxBlock(config.Parameters.PowConfiguration.PayToAddr)
 	if nil == msgBlock {
-		return ResponsePack(action, UnknownBlock, "")
+		return ResponsePack(UnknownBlock, "")
 	}
 
 	type AuxBlock struct {
@@ -315,10 +311,10 @@ func CreateAuxBlock(cmd map[string]interface{}) map[string]interface{} {
 			Bits:              fmt.Sprintf("%x", msgBlock.Blockdata.Bits), //difficulty
 			Hash:              curHashStr,
 			PreviousBlockHash: preHashStr}
-		return ResponsePack(action, Success, &SendToAux)
+		return ResponsePack(Success, &SendToAux)
 
 	default:
-		return ResponsePack(action, InvalidParams, "")
+		return ResponsePack(InvalidParams, "")
 
 	}
 }
@@ -350,13 +346,13 @@ func GetInfo(cmd map[string]interface{}) map[string]interface{} {
 		Paytxfee:       0,
 		Relayfee:       0,
 		Errors:         "Tobe written"}
-	return ResponsePack("getinfo", Success, &RetVal)
+	return ResponsePack(Success, &RetVal)
 }
 
 func AuxHelp(cmd map[string]interface{}) map[string]interface{} {
 
 	//TODO  and description for this rpc-interface
-	return ResponsePack("auxhelp", Success, "createauxblock==submitauxblock")
+	return ResponsePack(Success, "createauxblock==submitauxblock")
 }
 
 func ToggleCpuMining(cmd map[string]interface{}) map[string]interface{} {
@@ -366,7 +362,7 @@ func ToggleCpuMining(cmd map[string]interface{}) map[string]interface{} {
 		isMining = cmd["mining"].(bool)
 
 	default:
-		return ResponsePack("togglecpumining", InvalidParams, "")
+		return ResponsePack(InvalidParams, "")
 	}
 
 	if isMining {
@@ -375,28 +371,27 @@ func ToggleCpuMining(cmd map[string]interface{}) map[string]interface{} {
 		go Pow.Halt()
 	}
 
-	return ResponsePack("togglecpumining", Success, "")
+	return ResponsePack(Success, "")
 }
 
 func ManualCpuMining(cmd map[string]interface{}) map[string]interface{} {
-	action := "manualcpumining"
 	var blockcount uint32
 	switch cmd["count"].(type) {
 	case float64:
 		blockcount = uint32(cmd["count"].(float64))
 	default:
-		return ResponsePack(action, InvalidParams, "")
+		return ResponsePack(InvalidParams, "")
 	}
 
 	if blockcount == 0 {
-		return ResponsePack(action, InvalidParams, "")
+		return ResponsePack(InvalidParams, "")
 	}
 
 	ret := make([]string, blockcount)
 
 	blockHashes, err := Pow.ManualMining(blockcount)
 	if err != nil {
-		return ResponsePack(action, Error, err)
+		return ResponsePack(Error, err)
 
 	}
 
@@ -407,15 +402,14 @@ func ManualCpuMining(cmd map[string]interface{}) map[string]interface{} {
 		ret[i] = BytesToHexString(w.Bytes())
 	}
 
-	return ResponsePack(action, Success, ret)
+	return ResponsePack(Success, ret)
 }
 
 // A JSON example for submitblock method as following:
 //   {"jsonrpc": "2.0", "method": "submitblock", "params": ["raw block in hex"], "id": 0}
 func SubmitBlock(cmd map[string]interface{}) map[string]interface{} {
-	action := "submitblock"
 	if len(cmd) < 1 {
-		return ResponsePack(action, InvalidParams, "")
+		return ResponsePack(InvalidParams, "")
 	}
 	switch cmd["block"].(type) {
 	case string:
@@ -423,44 +417,43 @@ func SubmitBlock(cmd map[string]interface{}) map[string]interface{} {
 		hex, _ := HexStringToBytes(str)
 		var block ledger.Block
 		if err := block.Deserialize(bytes.NewReader(hex)); err != nil {
-			return ResponsePack(action, UnknownBlock, "")
+			return ResponsePack(UnknownBlock, "")
 		}
 		if _, _, err := ledger.DefaultLedger.Blockchain.AddBlock(&block); err != nil {
-			return ResponsePack(action, UnknownBlock, "")
+			return ResponsePack(UnknownBlock, "")
 		}
 		if err := NodeForServers.Xmit(&block); err != nil {
-			return ResponsePack(action, InternalError, "")
+			return ResponsePack(InternalError, "")
 		}
 	default:
-		return ResponsePack(action, InvalidParams, "")
+		return ResponsePack(InvalidParams, "")
 	}
-	return ResponsePack(action, Success, "")
+	return ResponsePack(Success, "")
 }
 
 func GetConnectionCount(cmd map[string]interface{}) map[string]interface{} {
-	return ResponsePack("getconnectioncount", Success, NodeForServers.GetConnectionCnt())
+	return ResponsePack(Success, NodeForServers.GetConnectionCnt())
 }
 
 //Block
 func GetCurrentHeight(cmd map[string]interface{}) map[string]interface{} {
-	return ResponsePack("getcurrentheight", Success, ledger.DefaultLedger.Blockchain.BlockHeight)
+	return ResponsePack(Success, ledger.DefaultLedger.Blockchain.BlockHeight)
 }
 
 func GetBlockHashByHeight(cmd map[string]interface{}) map[string]interface{} {
-	action := "getblockhashbyheight"
 	param := cmd["Height"].(string)
 	if len(param) == 0 {
-		return ResponsePack(action, InvalidParams, "")
+		return ResponsePack(InvalidParams, "")
 	}
 	height, err := strconv.ParseInt(param, 10, 64)
 	if err != nil {
-		return ResponsePack(action, InvalidParams, "")
+		return ResponsePack(InvalidParams, "")
 	}
 	hash, err := ledger.DefaultLedger.Store.GetBlockHash(uint32(height))
 	if err != nil {
-		return ResponsePack(action, InvalidParams, "")
+		return ResponsePack(InvalidParams, "")
 	}
-	return ResponsePack(action, Success, BytesToHexString(hash.ToArrayReverse()))
+	return ResponsePack(Success, BytesToHexString(hash.ToArrayReverse()))
 }
 
 func GetTransactionPool(cmd map[string]interface{}) map[string]interface{} {
@@ -469,7 +462,7 @@ func GetTransactionPool(cmd map[string]interface{}) map[string]interface{} {
 	for _, t := range txpool {
 		txs = append(txs, TransArrayByteToHexString(t))
 	}
-	return ResponsePack("gettransactionpoll", Success, txs)
+	return ResponsePack(Success, txs)
 }
 
 func GetBlockInfo(block *ledger.Block) BlockInfo {
@@ -522,10 +515,9 @@ func getBlock(hash Uint256, getTxBytes bool) (interface{}, ErrCode) {
 }
 
 func GetBlockByHash(cmd map[string]interface{}) map[string]interface{} {
-	action := "getblockbyhash"
 	param := cmd["Hash"].(string)
 	if len(param) == 0 {
-		return ResponsePack(action, InvalidParams, "")
+		return ResponsePack(InvalidParams, "")
 	}
 	var getTxBytes bool = false
 	if raw, ok := cmd["Raw"].(string); ok && raw == "1" {
@@ -534,60 +526,57 @@ func GetBlockByHash(cmd map[string]interface{}) map[string]interface{} {
 	var hash Uint256
 	hex, err := HexStringToBytesReverse(param)
 	if err != nil {
-		return ResponsePack(action, InvalidParams, "")
+		return ResponsePack(InvalidParams, "")
 	}
 	if err := hash.Deserialize(bytes.NewReader(hex)); err != nil {
-		ResponsePack(action, InvalidTransaction, "")
+		ResponsePack(InvalidTransaction, "")
 	}
 
 	result, error := getBlock(hash, getTxBytes)
 
-	return ResponsePack(action, error, result)
+	return ResponsePack(error, result)
 }
 
 func SendRawTransaction(cmd map[string]interface{}) map[string]interface{} {
-	action := "sendrawtransaction"
-
 	str, ok := cmd["Data"].(string)
 	if !ok {
-		return ResponsePack(action, InvalidParams, "")
+		return ResponsePack(InvalidParams, "")
 	}
 	bys, err := HexStringToBytes(str)
 	if err != nil {
-		return ResponsePack(action, InvalidParams, "")
+		return ResponsePack(InvalidParams, "")
 	}
 	var txn tx.Transaction
 	if err := txn.Deserialize(bytes.NewReader(bys)); err != nil {
-		return ResponsePack(action, InvalidTransaction, "")
+		return ResponsePack(InvalidTransaction, "")
 	}
 	var hash Uint256
 	hash = txn.Hash()
 	if errCode := VerifyAndSendTx(&txn); errCode != Success {
-		return ResponsePack(action, errCode, "")
+		return ResponsePack(errCode, "")
 	}
 
-	return ResponsePack(action, Success, BytesToHexString(hash.ToArrayReverse()))
+	return ResponsePack(Success, BytesToHexString(hash.ToArrayReverse()))
 }
 
 func GetBlockHeight(cmd map[string]interface{}) map[string]interface{} {
-	return ResponsePack("getblockheight", Success, ledger.DefaultLedger.Blockchain.BlockHeight)
+	return ResponsePack(Success, ledger.DefaultLedger.Blockchain.BlockHeight)
 }
 
 func GetBlockHash(cmd map[string]interface{}) map[string]interface{} {
-	action := "getblockhash"
 	param := cmd["Height"].(string)
 	if len(param) == 0 {
-		return ResponsePack(action, InvalidParams, "")
+		return ResponsePack(InvalidParams, "")
 	}
 	height, err := strconv.ParseInt(param, 10, 64)
 	if err != nil {
-		return ResponsePack(action, InvalidParams, "")
+		return ResponsePack(InvalidParams, "")
 	}
 	hash, err := ledger.DefaultLedger.Store.GetBlockHash(uint32(height))
 	if err != nil {
-		return ResponsePack(action, InvalidParams, "")
+		return ResponsePack(InvalidParams, "")
 	}
-	return ResponsePack(action, Success, BytesToHexString(hash.ToArrayReverse()))
+	return ResponsePack(Success, BytesToHexString(hash.ToArrayReverse()))
 }
 
 func GetBlockTransactions(block *ledger.Block) interface{} {
@@ -611,34 +600,32 @@ func GetBlockTransactions(block *ledger.Block) interface{} {
 }
 
 func GetBlockTxsByHeight(cmd map[string]interface{}) map[string]interface{} {
-	action := "getblocktxsbyheight"
 
 	param := cmd["Height"].(string)
 	if len(param) == 0 {
-		return ResponsePack(action, InvalidParams, "")
+		return ResponsePack(InvalidParams, "")
 	}
 	height, err := strconv.ParseInt(param, 10, 64)
 	if err != nil {
-		return ResponsePack(action, InvalidParams, "")
+		return ResponsePack(InvalidParams, "")
 	}
 	index := uint32(height)
 	hash, err := ledger.DefaultLedger.Store.GetBlockHash(index)
 	if err != nil {
-		return ResponsePack(action, UnknownBlock, "")
+		return ResponsePack(UnknownBlock, "")
 
 	}
 	block, err := ledger.DefaultLedger.Store.GetBlock(hash)
 	if err != nil {
-		return ResponsePack(action, UnknownBlock, "")
+		return ResponsePack(UnknownBlock, "")
 	}
-	return ResponsePack(action, Success, GetBlockTransactions(block))
+	return ResponsePack(Success, GetBlockTransactions(block))
 }
 
 func GetBlockByHeight(cmd map[string]interface{}) map[string]interface{} {
-	action := "getblockbyheight"
 	param := cmd["Height"].(string)
 	if len(param) == 0 {
-		return ResponsePack(action, InvalidParams, "")
+		return ResponsePack(InvalidParams, "")
 	}
 	var getTxBytes bool = false
 	if raw, ok := cmd["Raw"].(string); ok && raw == "1" {
@@ -646,52 +633,50 @@ func GetBlockByHeight(cmd map[string]interface{}) map[string]interface{} {
 	}
 	height, err := strconv.ParseInt(param, 10, 64)
 	if err != nil {
-		return ResponsePack(action, InvalidParams, "")
+		return ResponsePack(InvalidParams, "")
 	}
 	index := uint32(height)
 	hash, err := ledger.DefaultLedger.Store.GetBlockHash(index)
 	if err != nil {
-		return ResponsePack(action, UnknownBlock, "")
+		return ResponsePack(UnknownBlock, "")
 	}
 	result, errCode := getBlock(hash, getTxBytes)
-	return ResponsePack(action, errCode, result)
+	return ResponsePack(errCode, result)
 }
 
 //Asset
 func GetAssetByHash(cmd map[string]interface{}) map[string]interface{} {
-	action := "getassetbyhash"
 	str := cmd["Hash"].(string)
 	hex, err := HexStringToBytesReverse(str)
 	if err != nil {
-		return ResponsePack(action, InvalidParams, "")
+		return ResponsePack(InvalidParams, "")
 	}
 	var hash Uint256
 	err = hash.Deserialize(bytes.NewReader(hex))
 	if err != nil {
-		return ResponsePack(action, InvalidAsset, "")
+		return ResponsePack(InvalidAsset, "")
 	}
 	asset, err := ledger.DefaultLedger.Store.GetAsset(hash)
 	if err != nil {
-		return ResponsePack(action, UnknownAsset, "")
+		return ResponsePack(UnknownAsset, "")
 	}
 	if raw, ok := cmd["Raw"].(string); ok && raw == "1" {
 		w := bytes.NewBuffer(nil)
 		asset.Serialize(w)
-		return ResponsePack(action, Success, BytesToHexString(w.Bytes()))
+		return ResponsePack(Success, BytesToHexString(w.Bytes()))
 	}
-	return ResponsePack(action, Success, asset)
+	return ResponsePack(Success, asset)
 }
 
 func GetBalanceByAddr(cmd map[string]interface{}) map[string]interface{} {
-	action := "getbalancebyaddr"
 	addr, ok := cmd["Addr"].(string)
 	if !ok {
-		return ResponsePack(action, InvalidParams, "")
+		return ResponsePack(InvalidParams, "")
 	}
 	var programHash Uint168
 	programHash, err := ToScriptHash(addr)
 	if err != nil {
-		return ResponsePack(action, InvalidParams, "")
+		return ResponsePack(InvalidParams, "")
 	}
 	unspends, err := ledger.DefaultLedger.Store.GetUnspentsFromProgramHash(programHash)
 	var balance Fixed64 = 0
@@ -700,20 +685,19 @@ func GetBalanceByAddr(cmd map[string]interface{}) map[string]interface{} {
 			balance = balance + v.Value
 		}
 	}
-	return ResponsePack(action, Success, balance.String())
+	return ResponsePack(Success, balance.String())
 }
 
 func GetBalanceByAsset(cmd map[string]interface{}) map[string]interface{} {
-	action := "getbalancebyasset"
 	addr, ok := cmd["Addr"].(string)
 	assetid, k := cmd["Assetid"].(string)
 	if !ok || !k {
-		return ResponsePack(action, InvalidParams, "")
+		return ResponsePack(InvalidParams, "")
 	}
 	var programHash Uint168
 	programHash, err := ToScriptHash(addr)
 	if err != nil {
-		return ResponsePack(action, InvalidParams, "")
+		return ResponsePack(InvalidParams, "")
 
 	}
 	unspends, err := ledger.DefaultLedger.Store.GetUnspentsFromProgramHash(programHash)
@@ -726,20 +710,19 @@ func GetBalanceByAsset(cmd map[string]interface{}) map[string]interface{} {
 			}
 		}
 	}
-	return ResponsePack(action, Success, balance.String())
+	return ResponsePack(Success, balance.String())
 }
 
 func GetUnspends(cmd map[string]interface{}) map[string]interface{} {
-	action := "getunspends"
 	addr, ok := cmd["Addr"].(string)
 	if !ok {
-		return ResponsePack(action, InvalidParams, "")
+		return ResponsePack(InvalidParams, "")
 	}
 	var programHash Uint168
 
 	programHash, err := ToScriptHash(addr)
 	if err != nil {
-		return ResponsePack(action, InvalidParams, "")
+		return ResponsePack(InvalidParams, "")
 	}
 	type UTXOUnspentInfo struct {
 		Txid  string
@@ -758,7 +741,7 @@ func GetUnspends(cmd map[string]interface{}) map[string]interface{} {
 		assetid := BytesToHexString(k.ToArrayReverse())
 		asset, err := ledger.DefaultLedger.Store.GetAsset(k)
 		if err != nil {
-			return ResponsePack(action, InternalError, "")
+			return ResponsePack(InternalError, "")
 		}
 		var unspendsInfo []UTXOUnspentInfo
 		for _, v := range u {
@@ -766,15 +749,14 @@ func GetUnspends(cmd map[string]interface{}) map[string]interface{} {
 		}
 		results = append(results, Result{assetid, asset.Name, unspendsInfo})
 	}
-	return ResponsePack(action, Success, results)
+	return ResponsePack(Success, results)
 }
 
 func GetUnspendOutput(cmd map[string]interface{}) map[string]interface{} {
-	action := "getunspendoutput"
 	addr, ok := cmd["Addr"].(string)
 	assetid, k := cmd["Assetid"].(string)
 	if !ok || !k {
-		return ResponsePack(action, InvalidParams, "")
+		return ResponsePack(InvalidParams, "")
 
 	}
 
@@ -782,14 +764,14 @@ func GetUnspendOutput(cmd map[string]interface{}) map[string]interface{} {
 	var assetHash Uint256
 	programHash, err := ToScriptHash(addr)
 	if err != nil {
-		return ResponsePack(action, InvalidParams, "")
+		return ResponsePack(InvalidParams, "")
 	}
 	bys, err := HexStringToBytesReverse(assetid)
 	if err != nil {
-		return ResponsePack(action, InvalidParams, "")
+		return ResponsePack(InvalidParams, "")
 	}
 	if err := assetHash.Deserialize(bytes.NewReader(bys)); err != nil {
-		return ResponsePack(action, InvalidParams, "")
+		return ResponsePack(InvalidParams, "")
 	}
 	type UTXOUnspentInfo struct {
 		Txid  string
@@ -798,46 +780,44 @@ func GetUnspendOutput(cmd map[string]interface{}) map[string]interface{} {
 	}
 	infos, err := ledger.DefaultLedger.Store.GetUnspentFromProgramHash(programHash, assetHash)
 	if err != nil {
-		return ResponsePack(action, InvalidParams, "")
+		return ResponsePack(InvalidParams, "")
 
 	}
 	var UTXOoutputs []UTXOUnspentInfo
 	for _, v := range infos {
 		UTXOoutputs = append(UTXOoutputs, UTXOUnspentInfo{Txid: BytesToHexString(v.Txid.ToArrayReverse()), Index: v.Index, Value: v.Value.String()})
 	}
-	return ResponsePack(action, Success, UTXOoutputs)
+	return ResponsePack(Success, UTXOoutputs)
 }
 
 //Transaction
 func GetTransactionByHash(cmd map[string]interface{}) map[string]interface{} {
-	action := "gettransactionbyhash"
-
 	str := cmd["Hash"].(string)
 	bys, err := HexStringToBytesReverse(str)
 	if err != nil {
-		return ResponsePack(action, InvalidParams, "")
+		return ResponsePack(InvalidParams, "")
 	}
 	var hash Uint256
 	err = hash.Deserialize(bytes.NewReader(bys))
 	if err != nil {
-		return ResponsePack(action, InvalidTransaction, "")
+		return ResponsePack(InvalidTransaction, "")
 	}
 	txn, height, err := ledger.DefaultLedger.Store.GetTransaction(hash)
 	if err != nil {
-		return ResponsePack(action, UnknownTransaction, "")
+		return ResponsePack(UnknownTransaction, "")
 	}
 	if raw, ok := cmd["Raw"].(string); ok && raw == "1" {
 		w := bytes.NewBuffer(nil)
 		txn.Serialize(w)
-		return ResponsePack(action, Success, BytesToHexString(w.Bytes()))
+		return ResponsePack(Success, BytesToHexString(w.Bytes()))
 	}
 	bHash, err := ledger.DefaultLedger.Store.GetBlockHash(height)
 	if err != nil {
-		return ResponsePack(action, UnknownBlock, "")
+		return ResponsePack(UnknownBlock, "")
 	}
 	header, err := ledger.DefaultLedger.Store.GetHeader(bHash)
 	if err != nil {
-		return ResponsePack(action, UnknownBlock, "")
+		return ResponsePack(UnknownBlock, "")
 	}
 	t := TransArrayByteToHexString(txn)
 	t.Timestamp = header.Blockdata.Timestamp
@@ -846,5 +826,5 @@ func GetTransactionByHash(cmd map[string]interface{}) map[string]interface{} {
 	txn.Serialize(w)
 	t.TxSize = uint32(len(w.Bytes()))
 
-	return ResponsePack(action, Success, t)
+	return ResponsePack(Success, t)
 }

@@ -80,7 +80,7 @@ func Handle(w http.ResponseWriter, r *http.Request) {
 		response := function(request["params"].(map[string]interface{}))
 		data, err := json.Marshal(map[string]interface{}{
 			"jsonpc": "2.0",
-			"result": response["result"],
+			"result": response["Result"],
 		})
 		if err != nil {
 			log.Error("HTTP JSON RPC Handle - json.Marshal: ", err)

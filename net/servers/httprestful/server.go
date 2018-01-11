@@ -104,7 +104,7 @@ func (rt *restServer) initializeMethod() {
 
 	getMethodMap := map[string]Action{
 		Api_Getconnectioncount:  {name: "getconnectioncount", handler: GetConnectionCount},
-		Api_GetblockTxsByHeight: {name: "getblocktransactionsbyheight", handler: GetBlockTxsByHeight},
+		Api_GetblockTxsByHeight: {name: "getblocktransactionsbyheight", handler: GetTransactionsByHeight},
 		Api_Getblockbyheight:    {name: "getblockbyheight", handler: GetBlockByHeight},
 		Api_Getblockbyhash:      {name: "getblockbyhash", handler: GetBlockByHash},
 		Api_Getblockheight:      {name: "getblockheight", handler: GetBlockHeight},
@@ -163,52 +163,48 @@ func (rt *restServer) getParams(r *http.Request, url string, req map[string]inte
 	case Api_Getconnectioncount:
 		break
 	case Api_GetblockTxsByHeight:
-		req["Height"] = getParam(r, "height")
-		break
+		req["height"] = getParam(r, "height")
+
 	case Api_Getblockbyheight:
-		req["Raw"] = r.FormValue("raw")
-		req["Height"] = getParam(r, "height")
-		break
+		req["height"] = getParam(r, "height")
+		req["raw"] = r.FormValue("raw")
+
 	case Api_Getblockbyhash:
-		req["Raw"] = r.FormValue("raw")
-		req["Hash"] = getParam(r, "hash")
-		break
+		req["hash"] = getParam(r, "hash")
+		req["raw"] = r.FormValue("raw")
+
 	case Api_Getblockheight:
 		break
 	case Api_GetTransactionPool:
 		break
 	case Api_Getblockhash:
-		req["Height"] = getParam(r, "height")
-		break
+		req["height"] = getParam(r, "height")
+
 	case Api_GetTotalIssued:
-		req["Assetid"] = getParam(r, "assetid")
-		break
+		req["assetid"] = getParam(r, "assetid")
+
 	case Api_Gettransaction:
-		req["Hash"] = getParam(r, "hash")
-		req["Raw"] = r.FormValue("raw")
-		break
-	case Api_GetContract:
-		req["Hash"] = getParam(r, "hash")
-		req["Raw"] = r.FormValue("raw")
-		break
+		req["hash"] = getParam(r, "hash")
+		req["raw"] = r.FormValue("raw")
+
 	case Api_Getasset:
-		req["Hash"] = getParam(r, "hash")
-		req["Raw"] = r.FormValue("raw")
-		break
+		req["hash"] = getParam(r, "hash")
+		req["raw"] = r.FormValue("raw")
+
 	case Api_GetBalancebyAsset:
-		req["Addr"] = getParam(r, "addr")
-		req["Assetid"] = getParam(r, "assetid")
-		break
+		req["addr"] = getParam(r, "addr")
+		req["assetid"] = getParam(r, "assetid")
+
 	case Api_GetBalanceByAddr:
-		req["Addr"] = getParam(r, "addr")
-		break
+		req["addr"] = getParam(r, "addr")
+
 	case Api_GetUTXObyAddr:
-		req["Addr"] = getParam(r, "addr")
-		break
+		req["addr"] = getParam(r, "addr")
+
 	case Api_GetUTXObyAsset:
-		req["Addr"] = getParam(r, "addr")
-		req["Assetid"] = getParam(r, "assetid")
-		break
+		req["addr"] = getParam(r, "addr")
+		req["assetid"] = getParam(r, "assetid")
+
 	case Api_Restart:
 		break
 	case Api_SendRawTx:

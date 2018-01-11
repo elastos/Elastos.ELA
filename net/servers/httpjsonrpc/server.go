@@ -19,25 +19,26 @@ func StartRPCServer() {
 
 	http.HandleFunc("/", Handle)
 
-	mainMux["getblock"] 			= GetBlockByHash
-	mainMux["getcurrentheight"] 	= GetCurrentHeight
-	mainMux["getblockhashbyheight"] = GetBlockHashByHeight
-	mainMux["getconnectioncount"] 	= GetConnectionCount
-	mainMux["gettxpool"] 			= GetTransactionPool
-	mainMux["getrawtransaction"] 	= GetRawTransaction
-	mainMux["getneighbor"] 			= GetNeighbor
-	mainMux["getnodestate"] 		= GetNodeState
-	mainMux["setloglevel"] 			= SetLogLevel
-	mainMux["sendrawtransaction"] 	= SendRawTransaction
-	mainMux["submitblock"] 			= SubmitBlock
+	mainMux["getblockbyhash"] = GetBlockByHash
+	mainMux["getblockbyheight"] = GetBlockByHeight
+	mainMux["getcurrentheight"] = GetCurrentHeight
+	mainMux["getblockhash"] = GetBlockHash
+	mainMux["getconnectioncount"] = GetConnectionCount
+	mainMux["gettxpool"] = GetTransactionPool
+	mainMux["getrawtransaction"] = GetRawTransaction
+	mainMux["getneighbors"] = GetNeighbors
+	mainMux["getnodestate"] = GetNodeState
+	mainMux["setloglevel"] = SetLogLevel
+	mainMux["sendrawtransaction"] = SendRawTransaction
+	mainMux["submitblock"] = SubmitBlock
 
 	// mining interfaces
-	mainMux["getinfo"] 				= GetInfo
-	mainMux["help"] 				= AuxHelp
-	mainMux["submitauxblock"] 		= SubmitAuxBlock
-	mainMux["createauxblock"] 		= CreateAuxBlock
-	mainMux["togglecpumining"] 		= ToggleCpuMining
-	mainMux["manualmining"] 		= ManualCpuMining
+	mainMux["getinfo"] = GetInfo
+	mainMux["help"] = AuxHelp
+	mainMux["submitauxblock"] = SubmitAuxBlock
+	mainMux["createauxblock"] = CreateAuxBlock
+	mainMux["togglemining"] = ToggleMining
+	mainMux["manualmining"] = ManualMining
 
 	// TODO: only listen to localhost
 	err := http.ListenAndServe(":"+strconv.Itoa(Parameters.HttpJsonPort), nil)

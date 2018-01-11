@@ -24,7 +24,7 @@ type addr struct {
 	nodeAddrs []NodeAddr
 }
 
-func newGetAddr() ([]byte, error) {
+func NewGetAddr() ([]byte, error) {
 	var msg addrReq
 	// Fixme the check is the []byte{0} instead of 0
 	var sum []byte

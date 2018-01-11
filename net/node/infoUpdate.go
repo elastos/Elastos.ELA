@@ -123,7 +123,7 @@ func (node *node) HeartBeatMonitor() {
 }
 
 func (node *node) ReqNeighborList() {
-	buf, _ := NewMsg("getaddr", node.local)
+	buf, _ := NewGetAddr()
 	go node.Tx(buf)
 }
 
@@ -221,4 +221,10 @@ func (node *node) updateConnection() {
 			node.CheckConnCnt()
 		}
 	}
+}
+
+func SendMsgSyncHeaders(node Noder, startHash common.Uint256) {
+	var emptyHash common.Uint256
+	blocator := ledger.DefaultLedger.Blockchain.BlockLocatorFromHash(&startHash)
+	SendMsgSyncBlockHeaders(node, blocator, emptyHash)
 }

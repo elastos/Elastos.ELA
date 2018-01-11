@@ -58,12 +58,6 @@ func AllocMsg(t string, length int) Messager {
 		var msg addr
 		copy(msg.hdr.CMD[0:len(t)], t)
 		return &msg
-	case "inv":
-		var msg Inv
-		copy(msg.Hdr.CMD[0:len(t)], t)
-		// the 1 is the inv type lenght
-		msg.P.Blk = make([]byte, length-MSGHDRLEN-1)
-		return &msg
 	case "getdata":
 		var msg dataReq
 		copy(msg.messageHeader.CMD[0:len(t)], t)
@@ -108,21 +102,6 @@ func MsgType(buf []byte) (string, error) {
 	}
 	s := string(cmd[:n])
 	return s, nil
-}
-
-// TODO combine all of message alloc in one function via interface
-func NewMsg(t string, n Noder) ([]byte, error) {
-	switch t {
-	case "version":
-		return NewVersion(n)
-	case "verack":
-		return NewVerack()
-	case "getaddr":
-		return newGetAddr()
-
-	default:
-		return nil, errors.New("Unknown message type")
-	}
 }
 
 // FIXME the length exceed int32 case?

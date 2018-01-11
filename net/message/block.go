@@ -12,11 +12,6 @@ import (
 	"errors"
 )
 
-type blockReq struct {
-	messageHeader
-	//TBD
-}
-
 type block struct {
 	messageHeader
 	blk ledger.Block

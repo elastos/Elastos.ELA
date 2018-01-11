@@ -10,16 +10,13 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"encoding/binary"
-	"encoding/hex"
 	"errors"
-	"fmt"
 	"io"
-	"time"
 )
 
 type blocksReq struct {
 	hdr messageHeader
-	p   struct {
+	p struct {
 		len       uint32
 		hashStart []Uint256
 		hashEnd   Uint256
@@ -183,77 +180,6 @@ blksReqErr:
 	return err
 }
 
-func (msg Inv) Verify(buf []byte) error {
-	// TODO verify the message Content
-	err := msg.Hdr.Verify(buf)
-	return err
-}
-
-func (msg Inv) Handle(node Noder) error {
-	log.Debug()
-	var id Uint256
-	str := hex.EncodeToString(msg.P.Blk)
-
-	log.Debug(fmt.Sprintf("The inv type: 0x%x block len: %d, %s\n",
-		msg.P.InvType, len(msg.P.Blk), str))
-
-	invType := InventoryType(msg.P.InvType)
-	switch invType {
-	case Transaction:
-		log.Debug("RX TRX message")
-		// TODO check the ID queue
-		id.Deserialize(bytes.NewReader(msg.P.Blk[:32]))
-		if !node.ExistedID(id) {
-			reqTxnData(node, id)
-		}
-	case Block:
-		log.Debug("RX block message")
-		if node.LocalNode().IsSyncHeaders() == true && node.IsSyncHeaders() == false {
-			return nil
-		}
-
-		//return nil
-		var i uint32
-		count := msg.P.Cnt
-		hashes := []Uint256{}
-		for i = 0; i < count; i++ {
-			id.Deserialize(bytes.NewReader(msg.P.Blk[HASHLEN*i:]))
-			hashes = append(hashes, id)
-			if ledger.DefaultLedger.Blockchain.IsKnownOrphan(&id) {
-				orphanRoot := ledger.DefaultLedger.Blockchain.GetOrphanRoot(&id)
-				locator, err := ledger.DefaultLedger.Blockchain.LatestBlockLocator()
-				if err != nil {
-					log.Errorf(" Failed to get block "+
-						"locator for the latest block: "+
-						"%v", err)
-					continue
-				}
-				SendMsgSyncBlockHeaders(node, locator, *orphanRoot)
-				continue
-			}
-
-			if i == (count - 1) {
-				var emptyHash Uint256
-				blocator := ledger.DefaultLedger.Blockchain.BlockLocatorFromHash(&id)
-				SendMsgSyncBlockHeaders(node, blocator, emptyHash)
-			}
-		}
-
-		for _, h := range hashes {
-			// TODO check the ID queue
-			if !ledger.DefaultLedger.BlockInLedger(h) {
-				if !(node.LocalNode().RequestedBlockExisted(h) || ledger.DefaultLedger.Blockchain.IsKnownOrphan(&h)) {
-					<-time.After(time.Millisecond * 50)
-					ReqBlkData(node, h)
-				}
-			}
-		}
-	default:
-		log.Warn("RX unknown inventory message")
-	}
-	return nil
-}
-
 func (msg Inv) Serialization() ([]byte, error) {
 	hdrBuf, err := msg.Hdr.Serialization()
 	if err != nil {
@@ -263,33 +189,6 @@ func (msg Inv) Serialization() ([]byte, error) {
 	msg.P.Serialization(buf)
 
 	return buf.Bytes(), err
-}
-
-func (msg *Inv) Deserialization(p []byte) error {
-	err := msg.Hdr.Deserialization(p)
-	if err != nil {
-		return err
-	}
-
-	buf := bytes.NewBuffer(p[MSGHDRLEN:])
-	invType, err := serialization.ReadUint8(buf)
-	if err != nil {
-		return err
-	}
-	msg.P.InvType = InventoryType(invType)
-	msg.P.Cnt, err = serialization.ReadUint32(buf)
-	if err != nil {
-		return err
-	}
-
-	msg.P.Blk = make([]byte, msg.P.Cnt*HASHLEN)
-	err = binary.Read(buf, binary.LittleEndian, &(msg.P.Blk))
-
-	return err
-}
-
-func (msg Inv) invType() InventoryType {
-	return msg.P.InvType
 }
 
 func GetInvFromBlockHash(startHash Uint256, stopHash Uint256) (*InvPayload, error) {

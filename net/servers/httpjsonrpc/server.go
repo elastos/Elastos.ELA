@@ -19,16 +19,16 @@ func StartRPCServer() {
 
 	http.HandleFunc("/", Handle)
 
+	mainMux["setloglevel"] = SetLogLevel
 	mainMux["getblockbyhash"] = GetBlockByHash
 	mainMux["getblockbyheight"] = GetBlockByHeight
 	mainMux["getcurrentheight"] = GetCurrentHeight
 	mainMux["getblockhash"] = GetBlockHash
 	mainMux["getconnectioncount"] = GetConnectionCount
-	mainMux["gettxpool"] = GetTransactionPool
+	mainMux["gettransactionpool"] = GetTransactionPool
 	mainMux["getrawtransaction"] = GetRawTransaction
 	mainMux["getneighbors"] = GetNeighbors
 	mainMux["getnodestate"] = GetNodeState
-	mainMux["setloglevel"] = SetLogLevel
 	mainMux["sendrawtransaction"] = SendRawTransaction
 	mainMux["submitblock"] = SubmitBlock
 

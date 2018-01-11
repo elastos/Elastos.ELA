@@ -95,7 +95,7 @@ func (node *node) IsAddrInNbrList(addr string) bool {
 	node.nbrNodes.RLock()
 	defer node.nbrNodes.RUnlock()
 	for _, n := range node.nbrNodes.List {
-		if n.GetState() == HAND || n.GetState() == HANDSHAKE || n.GetState() == ESTABLISH {
+		if n.GetState() == Hand || n.GetState() == HandShake || n.GetState() == Establish {
 			addr := n.GetAddr()
 			port := n.GetPort()
 			na := addr + ":" + strconv.Itoa(int(port))
@@ -149,7 +149,7 @@ func (node *node) UpdateInfo(t time.Time, version uint32, services uint64,
 
 func NewNode() *node {
 	n := node{
-		state: INIT,
+		state: Init,
 		chF:   make(chan func() error),
 	}
 	runtime.SetFinalizer(&n, rmNode)
@@ -188,7 +188,7 @@ func InitNode() Noder {
 
 func (n *node) NodeDisconnect(v interface{}) {
 	if node, ok := v.(*node); ok {
-		node.SetState(INACTIVITY)
+		node.SetState(Inactive)
 		conn := node.GetConn()
 		conn.Close()
 	}
@@ -398,7 +398,7 @@ func (node *node) Relay(frmnode Noder, message interface{}) error {
 
 	node.nbrNodes.RLock()
 	for _, n := range node.nbrNodes.List {
-		if n.state == ESTABLISH && n.relay == true &&
+		if n.state == Establish && n.relay == true &&
 			n.id != frmnode.GetID() {
 			if isHash && n.ExistHash(message.(Uint256)) {
 				continue
@@ -465,7 +465,7 @@ func (node *node) GetBestHeightNoder() Noder {
 	defer node.nbrNodes.RUnlock()
 	var bestnode Noder
 	for _, n := range node.nbrNodes.List {
-		if n.GetState() == ESTABLISH {
+		if n.GetState() == Establish {
 			if bestnode == nil {
 				if !n.IsSyncFailed() {
 					bestnode = n

@@ -52,12 +52,12 @@ const (
 
 // The node state
 const (
-	INIT       = 0
-	HAND       = 1
-	HANDSHAKE  = 2
-	HANDSHAKED = 3
-	ESTABLISH  = 4
-	INACTIVITY = 5
+	Init       = 0
+	Hand       = 1
+	HandShake  = 2
+	HandShaked = 3
+	Establish  = 4
+	Inactive   = 5
 )
 
 var ReceiveDuplicateBlockCnt uint64 //an index to detecting networking status

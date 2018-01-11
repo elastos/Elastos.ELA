@@ -14,12 +14,12 @@ import (
 )
 
 type addrReq struct {
-	Hdr msgHdr
+	Hdr messageHeader
 	// No payload
 }
 
 type addr struct {
-	hdr       msgHdr
+	hdr       messageHeader
 	nodeCnt   uint64
 	nodeAddrs []NodeAddr
 }

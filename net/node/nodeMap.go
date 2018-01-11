@@ -17,7 +17,7 @@ func (nm *nbrNodes) Broadcast(buf []byte) {
 	nm.RLock()
 	defer nm.RUnlock()
 	for _, node := range nm.List {
-		if node.state == ESTABLISH && node.relay == true {
+		if node.state == Establish && node.relay == true {
 			node.Tx(buf)
 		}
 	}
@@ -62,7 +62,7 @@ func (nm *nbrNodes) GetConnectionCnt() uint {
 
 	var cnt uint
 	for _, node := range nm.List {
-		if node.state == ESTABLISH {
+		if node.state == Establish {
 			cnt++
 		}
 	}
@@ -82,7 +82,7 @@ func (nm *nbrNodes) NodeEstablished(id uint64) bool {
 		return false
 	}
 
-	if n.state != ESTABLISH {
+	if n.state != Establish {
 		return false
 	}
 
@@ -96,7 +96,7 @@ func (node *node) GetNeighborAddrs() ([]NodeAddr, uint64) {
 	var i uint64
 	var addrs []NodeAddr
 	for _, n := range node.nbrNodes.List {
-		if n.GetState() != ESTABLISH {
+		if n.GetState() != Establish {
 			continue
 		}
 		var addr NodeAddr
@@ -120,7 +120,7 @@ func (node *node) GetNeighborHeights() ([]uint64, uint64) {
 	var i uint64
 	heights := []uint64{}
 	for _, n := range node.nbrNodes.List {
-		if n.GetState() == ESTABLISH {
+		if n.GetState() == Establish {
 			height := n.GetHeight()
 			heights = append(heights, height)
 			i++
@@ -135,7 +135,7 @@ func (node *node) GetNeighborNoder() []Noder {
 
 	nodes := []Noder{}
 	for _, n := range node.nbrNodes.List {
-		if n.GetState() == ESTABLISH {
+		if n.GetState() == Establish {
 			node := n
 			nodes = append(nodes, node)
 		}
@@ -148,7 +148,7 @@ func (node *node) GetNbrNodeCnt() uint32 {
 	defer node.nbrNodes.RUnlock()
 	var count uint32
 	for _, n := range node.nbrNodes.List {
-		if n.GetState() == ESTABLISH {
+		if n.GetState() == Establish {
 			count++
 		}
 	}
@@ -159,7 +159,7 @@ func (node *node) RandGetANbr() Noder {
 	node.nbrNodes.RLock()
 	defer node.nbrNodes.RUnlock()
 	for _, n := range node.nbrNodes.List {
-		if n.GetState() == ESTABLISH {
+		if n.GetState() == Establish {
 			return n
 		}
 	}

@@ -18,56 +18,42 @@ const (
 )
 
 type version struct {
-	Hdr msgHdr
-	P struct {
+	Header messageHeader
+	Body struct {
 		Version      uint32
 		Services     uint64
 		TimeStamp    uint32
 		Port         uint16
-		HttpInfoPort uint16
-		Cap          [32]byte
 		Nonce        uint64
 		// TODO remove tempory to get serilization function passed
-		UserAgent   uint8
 		StartHeight uint64
 		// FIXME check with the specify relay type length
 		Relay uint8
 	}
 }
 
-func (msg *version) init(n Noder) {
-	// Do the init
-}
-
 func NewVersion(n Noder) ([]byte, error) {
 	log.Debug()
 	var msg version
 
-	msg.P.Version = n.Version()
-	msg.P.Services = n.Services()
-	msg.P.HttpInfoPort = config.Parameters.HttpInfoPort
-	if config.Parameters.HttpInfoStart {
-		msg.P.Cap[HTTPINFOFLAG] = 0x01
-	} else {
-		msg.P.Cap[HTTPINFOFLAG] = 0x00
-	}
+	msg.Body.Version = n.Version()
+	msg.Body.Services = n.Services()
 
 	// FIXME Time overflow
-	msg.P.TimeStamp = uint32(time.Now().UTC().UnixNano())
-	msg.P.Port = n.GetPort()
-	msg.P.Nonce = n.GetID()
-	msg.P.UserAgent = 0x00
-	msg.P.StartHeight = uint64(ledger.DefaultLedger.GetLocalBlockChainHeight())
+	msg.Body.TimeStamp = uint32(time.Now().UTC().UnixNano())
+	msg.Body.Port = n.GetPort()
+	msg.Body.Nonce = n.GetID()
+	msg.Body.StartHeight = uint64(ledger.DefaultLedger.GetLocalBlockChainHeight())
 	if n.GetRelay() {
-		msg.P.Relay = 1
+		msg.Body.Relay = 1
 	} else {
-		msg.P.Relay = 0
+		msg.Body.Relay = 0
 	}
 
-	msg.Hdr.Magic = config.Parameters.Magic
-	copy(msg.Hdr.CMD[0:7], "version")
+	msg.Header.Magic = config.Parameters.Magic
+	copy(msg.Header.CMD[0:7], "version")
 	p := bytes.NewBuffer([]byte{})
-	err := binary.Write(p, binary.LittleEndian, &(msg.P))
+	err := binary.Write(p, binary.LittleEndian, &(msg.Body))
 	if err != nil {
 		log.Error("Binary Write failed at new Msg")
 		return nil, err
@@ -76,9 +62,9 @@ func NewVersion(n Noder) ([]byte, error) {
 	s2 := s[:]
 	s = sha256.Sum256(s2)
 	buf := bytes.NewBuffer(s[:4])
-	binary.Read(buf, binary.LittleEndian, &(msg.Hdr.Checksum))
-	msg.Hdr.Length = uint32(len(p.Bytes()))
-	log.Debug("The message payload length is ", msg.Hdr.Length)
+	binary.Read(buf, binary.LittleEndian, &(msg.Header.Checksum))
+	msg.Header.Length = uint32(len(p.Bytes()))
+	log.Debug("The message payload length is ", msg.Header.Length)
 
 	m, err := msg.Serialization()
 	if err != nil {
@@ -90,19 +76,19 @@ func NewVersion(n Noder) ([]byte, error) {
 }
 
 func (msg version) Verify(buf []byte) error {
-	err := msg.Hdr.Verify(buf)
+	err := msg.Header.Verify(buf)
 	// TODO verify the message Content
 	// TODO check version compatible or not
 	return err
 }
 
 func (msg version) Serialization() ([]byte, error) {
-	hdrBuf, err := msg.Hdr.Serialization()
+	hdrBuf, err := msg.Header.Serialization()
 	if err != nil {
 		return nil, err
 	}
 	buf := bytes.NewBuffer(hdrBuf)
-	err = binary.Write(buf, binary.LittleEndian, msg.P)
+	err = binary.Write(buf, binary.LittleEndian, msg.Body)
 	if err != nil {
 		return nil, err
 	}
@@ -113,16 +99,16 @@ func (msg version) Serialization() ([]byte, error) {
 func (msg *version) Deserialization(p []byte) error {
 	buf := bytes.NewBuffer(p)
 
-	err := binary.Read(buf, binary.LittleEndian, &(msg.Hdr))
+	err := binary.Read(buf, binary.LittleEndian, &(msg.Header))
 	if err != nil {
 		log.Warn("Parse version message hdr error")
 		return errors.New("Parse version message hdr error")
 	}
 
-	err = binary.Read(buf, binary.LittleEndian, &(msg.P))
+	err = binary.Read(buf, binary.LittleEndian, &(msg.Body))
 	if err != nil {
-		log.Warn("Parse version P message error")
-		return errors.New("Parse version P message error")
+		log.Warn("Parse version Body message error")
+		return errors.New("Parse version Body message error")
 	}
 
 	return err
@@ -130,17 +116,17 @@ func (msg *version) Deserialization(p []byte) error {
 
 /*
  * The node state switch table after rx message, there is time limitation for each action
- * The Handshake status will switch to INIT after TIMEOUT if not received the VerACK
+ * The Handshake status will switch to Init after TIMEOUT if not received the VerACK
  * in this time window
  *  _______________________________________________________________________
- * |          |    INIT         | HANDSHAKE |  ESTABLISH | INACTIVITY      |
+ * |          |    Init         | HandShake |  Establish | Inactive      |
  * |-----------------------------------------------------------------------|
- * | version  | HANDSHAKE(timer)|           |            | HANDSHAKE(timer)|
+ * | version  | HandShake(timer)|           |            | HandShake(timer)|
  * |          | if helloTime > 3| Tx verack | Depend on  | if helloTime > 3|
  * |          | Tx version      |           | node update| Tx version      |
  * |          | then Tx verack  |           |            | then Tx verack  |
  * |-----------------------------------------------------------------------|
- * | verack   |                 | ESTABLISH |            |                 |
+ * | verack   |                 | Establish |            |                 |
  * |          |   No Action     |           | No Action  | No Action       |
  * |------------------------------------------------------------------------
  */
@@ -149,53 +135,47 @@ func (msg version) Handle(node Noder) error {
 	localNode := node.LocalNode()
 
 	// Exclude the node itself
-	if msg.P.Nonce == localNode.GetID() {
-		log.Warn("The node handshark with itself")
+	if msg.Body.Nonce == localNode.GetID() {
+		log.Warn("The node handshake with itself")
 		node.CloseConn()
-		return errors.New("The node handshark with itself")
+		return errors.New("The node handshake with itself")
 	}
 
 	s := node.GetState()
-	if s != INIT && s != HAND {
-		log.Warn("Unknow status to received version")
-		return errors.New("Unknow status to received version")
+	if s != Init && s != Hand {
+		log.Warn("Unknow status to receive version")
+		return errors.New("Unknow status to receive version")
 	}
 
 	// Obsolete node
-	n, ret := localNode.DelNbrNode(msg.P.Nonce)
+	n, ret := localNode.DelNbrNode(msg.Body.Nonce)
 	if ret == true {
-		log.Info(fmt.Sprintf("Node reconnect 0x%x", msg.P.Nonce))
+		log.Info(fmt.Sprintf("Node reconnect 0x%x", msg.Body.Nonce))
 		// Close the connection and release the node soure
-		n.SetState(INACTIVITY)
+		n.SetState(Inactive)
 		n.CloseConn()
 	}
 
-	if msg.P.Cap[HTTPINFOFLAG] == 0x01 {
-		node.SetHttpInfoState(true)
-	} else {
-		node.SetHttpInfoState(false)
-	}
-	node.SetHttpInfoPort(msg.P.HttpInfoPort)
-	node.UpdateInfo(time.Now(), msg.P.Version, msg.P.Services,
-		msg.P.Port, msg.P.Nonce, msg.P.Relay, msg.P.StartHeight)
+	node.UpdateInfo(time.Now(), msg.Body.Version, msg.Body.Services,
+		msg.Body.Port, msg.Body.Nonce, msg.Body.Relay, msg.Body.StartHeight)
 	localNode.AddNbrNode(node)
 
 	ip, _ := node.GetAddr16()
 	addr := NodeAddr{
 		Time:     node.GetTime(),
-		Services: msg.P.Services,
+		Services: msg.Body.Services,
 		IpAddr:   ip,
-		Port:     msg.P.Port,
-		ID:       msg.P.Nonce,
+		Port:     msg.Body.Port,
+		ID:       msg.Body.Nonce,
 	}
 	localNode.AddAddressToKnownAddress(addr)
 
 	var buf []byte
-	if s == INIT {
-		node.SetState(HANDSHAKE)
+	if s == Init {
+		node.SetState(HandShake)
 		buf, _ = NewVersion(localNode)
-	} else if s == HAND {
-		node.SetState(HANDSHAKED)
+	} else if s == Hand {
+		node.SetState(HandShaked)
 		buf, _ = NewVerack()
 	}
 	node.Tx(buf)

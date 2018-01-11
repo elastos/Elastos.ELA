@@ -13,12 +13,12 @@ import (
 )
 
 type blockReq struct {
-	msgHdr
+	messageHeader
 	//TBD
 }
 
 type block struct {
-	msgHdr
+	messageHeader
 	blk ledger.Block
 	// TBD
 	//event *events.Event
@@ -117,10 +117,10 @@ func fetchHeaderBlocks(node Noder) {
 
 func (msg dataReq) Handle(node Noder) error {
 	log.Debug()
-	reqtype := common.InventoryType(msg.dataType)
+	reqtype := InventoryType(msg.dataType)
 	hash := msg.hash
 	switch reqtype {
-	case common.BLOCK:
+	case Block:
 		block, err := NewBlockFromHash(hash)
 		if err != nil {
 			log.Debug("Can't get block from hash: ", hash, " ,send not found message")
@@ -136,7 +136,7 @@ func (msg dataReq) Handle(node Noder) error {
 		}
 		node.Tx(buf)
 
-	case common.TRANSACTION:
+	case Transaction:
 		txn, err := NewTxnFromHash(hash)
 		if err != nil {
 			return err
@@ -163,9 +163,9 @@ func NewBlock(bk *ledger.Block) ([]byte, error) {
 	log.Debug()
 	var msg block
 	msg.blk = *bk
-	msg.msgHdr.Magic = config.Parameters.Magic
+	msg.messageHeader.Magic = config.Parameters.Magic
 	cmd := "block"
-	copy(msg.msgHdr.CMD[0:len(cmd)], cmd)
+	copy(msg.messageHeader.CMD[0:len(cmd)], cmd)
 	tmpBuffer := bytes.NewBuffer([]byte{})
 	bk.Serialize(tmpBuffer)
 	p := new(bytes.Buffer)
@@ -178,9 +178,9 @@ func NewBlock(bk *ledger.Block) ([]byte, error) {
 	s2 := s[:]
 	s = sha256.Sum256(s2)
 	buf := bytes.NewBuffer(s[:4])
-	binary.Read(buf, binary.LittleEndian, &(msg.msgHdr.Checksum))
-	msg.msgHdr.Length = uint32(len(p.Bytes()))
-	log.Debug("The message payload length is ", msg.msgHdr.Length)
+	binary.Read(buf, binary.LittleEndian, &(msg.messageHeader.Checksum))
+	msg.messageHeader.Length = uint32(len(p.Bytes()))
+	log.Debug("The message payload length is ", msg.messageHeader.Length)
 
 	m, err := msg.Serialization()
 	if err != nil {
@@ -194,11 +194,11 @@ func NewBlock(bk *ledger.Block) ([]byte, error) {
 func ReqBlkData(node Noder, hash common.Uint256) error {
 	node.LocalNode().AddRequestedBlock(hash)
 	var msg dataReq
-	msg.dataType = common.BLOCK
+	msg.dataType = Block
 	msg.hash = hash
 
-	msg.msgHdr.Magic = config.Parameters.Magic
-	copy(msg.msgHdr.CMD[0:7], "getdata")
+	msg.messageHeader.Magic = config.Parameters.Magic
+	copy(msg.messageHeader.CMD[0:7], "getdata")
 	p := bytes.NewBuffer([]byte{})
 	err := binary.Write(p, binary.LittleEndian, &(msg.dataType))
 	msg.hash.Serialize(p)
@@ -210,9 +210,9 @@ func ReqBlkData(node Noder, hash common.Uint256) error {
 	s2 := s[:]
 	s = sha256.Sum256(s2)
 	buf := bytes.NewBuffer(s[:4])
-	binary.Read(buf, binary.LittleEndian, &(msg.msgHdr.Checksum))
-	msg.msgHdr.Length = uint32(len(p.Bytes()))
-	log.Debug("The message payload length is ", msg.msgHdr.Length)
+	binary.Read(buf, binary.LittleEndian, &(msg.messageHeader.Checksum))
+	msg.messageHeader.Length = uint32(len(p.Bytes()))
+	log.Debug("The message payload length is ", msg.messageHeader.Length)
 
 	sendBuf, err := msg.Serialization()
 	if err != nil {
@@ -226,13 +226,13 @@ func ReqBlkData(node Noder, hash common.Uint256) error {
 }
 
 func (msg block) Verify(buf []byte) error {
-	err := msg.msgHdr.Verify(buf)
+	err := msg.messageHeader.Verify(buf)
 	// TODO verify the message Content
 	return err
 }
 
 func (msg block) Serialization() ([]byte, error) {
-	hdrBuf, err := msg.msgHdr.Serialization()
+	hdrBuf, err := msg.messageHeader.Serialization()
 	if err != nil {
 		return nil, err
 	}
@@ -245,7 +245,7 @@ func (msg block) Serialization() ([]byte, error) {
 func (msg *block) Deserialization(p []byte) error {
 	buf := bytes.NewBuffer(p)
 
-	err := binary.Read(buf, binary.LittleEndian, &(msg.msgHdr))
+	err := binary.Read(buf, binary.LittleEndian, &(msg.messageHeader))
 	if err != nil {
 		log.Warn("Parse block message hdr error")
 		return errors.New("Parse block message hdr error")

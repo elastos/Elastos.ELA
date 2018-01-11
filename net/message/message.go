@@ -20,7 +20,7 @@ type Messager interface {
 }
 
 // The network communication message header
-type msgHdr struct {
+type messageHeader struct {
 	Magic uint32
 	//ID	 uint64
 	CMD      [MSGCMDLEN]byte // The message type
@@ -44,11 +44,11 @@ func AllocMsg(t string, length int) Messager {
 	case "version":
 		var msg version
 		// TODO fill the header and type
-		copy(msg.Hdr.CMD[0:len(t)], t)
+		copy(msg.Header.CMD[0:len(t)], t)
 		return &msg
 	case "verack":
 		var msg verACK
-		copy(msg.msgHdr.CMD[0:len(t)], t)
+		copy(msg.messageHeader.CMD[0:len(t)], t)
 		return &msg
 	case "getaddr":
 		var msg addrReq
@@ -66,15 +66,15 @@ func AllocMsg(t string, length int) Messager {
 		return &msg
 	case "getdata":
 		var msg dataReq
-		copy(msg.msgHdr.CMD[0:len(t)], t)
+		copy(msg.messageHeader.CMD[0:len(t)], t)
 		return &msg
 	case "block":
 		var msg block
-		copy(msg.msgHdr.CMD[0:len(t)], t)
+		copy(msg.messageHeader.CMD[0:len(t)], t)
 		return &msg
 	case "tx":
 		var msg trn
-		copy(msg.msgHdr.CMD[0:len(t)], t)
+		copy(msg.messageHeader.CMD[0:len(t)], t)
 		//if (message.Payload.Length <= 1024 * 1024)
 		//OnInventoryReceived(Transaction.DeserializeFrom(message.Payload));
 		return &msg
@@ -84,15 +84,15 @@ func AllocMsg(t string, length int) Messager {
 		return &msg
 	case "notfound":
 		var msg notFound
-		copy(msg.msgHdr.CMD[0:len(t)], t)
+		copy(msg.messageHeader.CMD[0:len(t)], t)
 		return &msg
 	case "ping":
 		var msg ping
-		copy(msg.msgHdr.CMD[0:len(t)], t)
+		copy(msg.messageHeader.CMD[0:len(t)], t)
 		return &msg
 	case "pong":
 		var msg pong
-		copy(msg.msgHdr.CMD[0:len(t)], t)
+		copy(msg.messageHeader.CMD[0:len(t)], t)
 		return &msg
 	default:
 		log.Warn("Unknown message type")
@@ -172,7 +172,7 @@ func HandleNodeMsg(node Noder, buf []byte, len int) error {
 }
 
 func ValidMsgHdr(buf []byte) bool {
-	var h msgHdr
+	var h messageHeader
 	h.Deserialization(buf)
 	//TODO: verify hdr checksum
 	if h.Magic != config.Parameters.Magic {
@@ -182,14 +182,14 @@ func ValidMsgHdr(buf []byte) bool {
 }
 
 func PayloadLen(buf []byte) int {
-	var h msgHdr
+	var h messageHeader
 	h.Deserialization(buf)
 	return int(h.Length)
 }
 
 
 
-func (hdr *msgHdr) init(cmd string, checksum []byte, length uint32) {
+func (hdr *messageHeader) init(cmd string, checksum []byte, length uint32) {
 	hdr.Magic = config.Parameters.Magic
 	copy(hdr.CMD[0:uint32(len(cmd))], cmd)
 	copy(hdr.Checksum[:], checksum[:CHECKSUMLEN])
@@ -198,7 +198,7 @@ func (hdr *msgHdr) init(cmd string, checksum []byte, length uint32) {
 
 // Verify the message header information
 // @p payload of the message
-func (hdr msgHdr) Verify(buf []byte) error {
+func (hdr messageHeader) Verify(buf []byte) error {
 	if hdr.Magic != config.Parameters.Magic {
 		log.Error(fmt.Sprintf("Unmatched magic number 0x%0x", hdr.Magic))
 		return errors.New("Unmatched magic number")
@@ -219,7 +219,7 @@ func (hdr msgHdr) Verify(buf []byte) error {
 	return nil
 }
 
-func (msg *msgHdr) Deserialization(p []byte) error {
+func (msg *messageHeader) Deserialization(p []byte) error {
 
 	buf := bytes.NewBuffer(p[0:MSGHDRLEN])
 	err := binary.Read(buf, binary.LittleEndian, msg)
@@ -228,7 +228,7 @@ func (msg *msgHdr) Deserialization(p []byte) error {
 
 // FIXME how to avoid duplicate serial/deserial function as
 // most of them are the same
-func (hdr msgHdr) Serialization() ([]byte, error) {
+func (hdr messageHeader) Serialization() ([]byte, error) {
 	var buf bytes.Buffer
 	err := binary.Write(&buf, binary.LittleEndian, hdr)
 	if err != nil {
@@ -238,7 +238,7 @@ func (hdr msgHdr) Serialization() ([]byte, error) {
 	return buf.Bytes(), err
 }
 
-func (hdr msgHdr) Handle(n Noder) error {
+func (hdr messageHeader) Handle(n Noder) error {
 	log.Debug()
 	// TBD
 	return nil

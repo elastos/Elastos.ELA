@@ -70,11 +70,12 @@ func main() {
 	log.Info("1. BlockChain init")
 	ledger.DefaultLedger = new(ledger.Ledger)
 	ledger.DefaultLedger.Store, err = ChainStore.NewLedgerStore()
-	defer ledger.DefaultLedger.Store.Close()
 	if err != nil {
 		log.Fatal("open LedgerStore err:", err)
 		os.Exit(1)
 	}
+	defer ledger.DefaultLedger.Store.Close()
+
 	ledger.DefaultLedger.Store.InitLedgerStore(ledger.DefaultLedger)
 	transaction.TxStore = ledger.DefaultLedger.Store
 	_, err = ledger.NewBlockchainWithGenesisBlock()

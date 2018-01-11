@@ -18,7 +18,7 @@ import (
 )
 
 type blocksReq struct {
-	hdr msgHdr
+	hdr messageHeader
 	p   struct {
 		len       uint32
 		hashStart []Uint256
@@ -33,7 +33,7 @@ type InvPayload struct {
 }
 
 type Inv struct {
-	Hdr msgHdr
+	Hdr messageHeader
 	P   InvPayload
 }
 

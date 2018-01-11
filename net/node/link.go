@@ -255,7 +255,7 @@ func (node *node) Connect(nodeAddr string) error {
 		conn.RemoteAddr().Network()))
 	go n.rx()
 
-	n.SetState(HAND)
+	n.SetState(Hand)
 	buf, _ := msg.NewVersion(node)
 	n.Tx(buf)
 
@@ -306,7 +306,7 @@ func TLSDial(nodeAddr string) (net.Conn, error) {
 func (node *node) Tx(buf []byte) {
 	log.Debugf("TX buf length: %d\n%x", len(buf), buf)
 
-	if node.GetState() == INACTIVITY {
+	if node.GetState() == Inactive {
 		return
 	}
 	_, err := node.conn.Write(buf)

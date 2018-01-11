@@ -24,11 +24,8 @@ type Info struct {
 }
 
 type NgbNodeInfo struct {
-	NgbId         string
-	NgbAddr       string
-	HttpInfoAddr  string
-	HttpInfoPort  int
-	HttpInfoStart bool
+	NgbId   string
+	NbrAddr string
 }
 
 var node = servers.NodeForServers
@@ -40,15 +37,10 @@ func viewHandler(w http.ResponseWriter, r *http.Request) {
 	ngbrNoders := node.GetNeighborNoder()
 
 	for i := 0; i < len(ngbrNoders); i++ {
-		ngbHttpInfoAddr := ngbrNoders[i].GetAddr() + ":" + strconv.Itoa(ngbrNoders[i].GetHttpInfoPort())
-		ngbrInfo := &NgbNodeInfo{
-			NgbId:         fmt.Sprintf("0x%x", ngbrNoders[i].GetID()),
-			NgbAddr:       ngbrNoders[i].GetAddr(),
-			HttpInfoAddr:  ngbHttpInfoAddr,
-			HttpInfoPort:  ngbrNoders[i].GetHttpInfoPort(),
-			HttpInfoStart: ngbrNoders[i].GetHttpInfoState(),
-		}
-		ngbrNodersInfo = append(ngbrNodersInfo, *ngbrInfo)
+		ngbrNodersInfo = append(ngbrNodersInfo, NgbNodeInfo{
+			NgbId:   fmt.Sprintf("0x%x", ngbrNoders[i].GetID()),
+			NbrAddr: ngbrNoders[i].GetAddr() + ":" + strconv.Itoa(ngbrNoders[i].GetHttpInfoPort()),
+		})
 	}
 
 	pageInfo := &Info{

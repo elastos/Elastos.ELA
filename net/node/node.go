@@ -36,7 +36,6 @@ type node struct {
 	//sync.RWMutex	//The Lock not be used as expected to use function channel instead of lock
 	state    uint32   // node state
 	id       uint64   // The nodes's id
-	cap      [32]byte // The node capability set
 	version  uint32   // The network protocol the node used
 	services uint64   // The services the node supplied
 	relay    bool     // The relay capability of the node (merge into capbility flag)
@@ -82,7 +81,6 @@ func (node *node) DumpInfo() {
 	log.Info(fmt.Sprintf("\t id = 0x%x", node.id))
 	log.Info("\t addr = ", node.addr)
 	log.Info("\t conn = ", node.conn)
-	log.Info("\t cap = ", node.cap)
 	log.Info("\t version = ", node.version)
 	log.Info("\t services = ", node.services)
 	log.Info("\t port = ", node.port)
@@ -227,22 +225,6 @@ func (node *node) GetHttpInfoPort() int {
 
 func (node *node) SetHttpInfoPort(nodeInfoPort uint16) {
 	node.httpInfoPort = nodeInfoPort
-}
-
-func (node *node) GetHttpInfoState() bool {
-	if node.cap[HTTPINFOFLAG] == 0x01 {
-		return true
-	} else {
-		return false
-	}
-}
-
-func (node *node) SetHttpInfoState(nodeInfo bool) {
-	if nodeInfo {
-		node.cap[HTTPINFOFLAG] = 0x01
-	} else {
-		node.cap[HTTPINFOFLAG] = 0x00
-	}
 }
 
 func (node *node) GetRelay() bool {

@@ -67,7 +67,7 @@ const page = `
 	<tr><th>Neighbor IP</th><th>Neighbor Id</th></tr>
 	{{range .Neighbors}}
 	{{if .HttpInfoStart}}
-	<tr><td align="center">{{.NgbAddr}}</td><td align="center"><a href="http://{{.HttpInfoAddr}}/info" style="cursor:hand">{{.NgbId}}</a></td></tr>
+	<tr><td align="center">{{.NgbAddr}}</td><td align="center"><a href="http://{{.NbrAddr}}/info" style="cursor:hand">{{.NgbId}}</a></td></tr>
 	{{else}}
 	<tr><td align="center">{{.NgbAddr}}</td><td align="center">{{.NgbId}}</td></tr>
 	{{end}}

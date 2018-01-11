@@ -71,8 +71,6 @@ type Noder interface {
 	GetPort() uint16
 	GetHttpInfoPort() int
 	SetHttpInfoPort(uint16)
-	GetHttpInfoState() bool
-	SetHttpInfoState(bool)
 	GetState() uint32
 	GetRelay() bool
 	SetState(state uint32)

@@ -32,11 +32,9 @@ const (
 	Api_GetUTXObyAddr      = "/api/v1/asset/utxos/:addr"
 	Api_SendRawTransaction = "/api/v1/transaction"
 	Api_GetTransactionPool = "/api/v1/transactionpool"
-	Api_WebsocketState     = "/api/v1/config/websocket/state"
 	Api_Restart            = "/api/v1/restart"
 )
 
-var node = NodeForServers
 
 type Action struct {
 	sync.RWMutex
@@ -202,7 +200,6 @@ func (rt *restServer) getParams(r *http.Request, url string, req map[string]inte
 
 	case Api_SendRawTransaction:
 
-	case Api_WebsocketState:
 	}
 	return req
 }

@@ -162,10 +162,6 @@ func (b *Block) Verify() error {
 	return nil
 }
 
-func (b *Block) Type() InventoryType {
-	return BLOCK
-}
-
 func GenesisBlockInit() (*Block, error) {
 	genesisBlockdata := &Blockdata{
 		Version:          BlockVersion,

@@ -367,9 +367,6 @@ func (tx *Transaction) SetHash(hash Uint256) {
 	tx.hash = &hash
 }
 
-func (tx *Transaction) Type() InventoryType {
-	return TRANSACTION
-}
 func (tx *Transaction) Verify() error {
 	//TODO: Verify()
 	return nil

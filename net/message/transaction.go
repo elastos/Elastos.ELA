@@ -12,11 +12,12 @@ import (
 	"crypto/sha256"
 	"encoding/binary"
 	"errors"
+	"hash"
 )
 
 type dataReq struct {
 	msgHdr
-	dataType common.InventoryType
+	dataType InventoryType
 	hash     common.Uint256
 }
 
@@ -38,7 +39,7 @@ func (msg trn) Handle(node Noder) error {
 			return errors.New("[message] VerifyTransaction failed when AppendToTxnPool.")
 		}
 		node.LocalNode().Relay(node, tx)
-		log.Info("Relay transaction")
+		log.Info("Relay Transaction")
 		node.LocalNode().IncRxTxnCnt()
 		log.Debug("RX Transaction message hash", msg.txn.Hash())
 		log.Debug("RX Transaction message type", msg.txn.TxType)
@@ -49,7 +50,7 @@ func (msg trn) Handle(node Noder) error {
 
 func reqTxnData(node Noder, hash common.Uint256) error {
 	var msg dataReq
-	msg.dataType = common.TRANSACTION
+	msg.dataType = transaction
 	// TODO handle the hash array case
 	//msg.hash = hash
 
@@ -98,7 +99,7 @@ func (msg *dataReq) Deserialization(p []byte) error {
 func NewTxnFromHash(hash common.Uint256) (*transaction.Transaction, error) {
 	txn, err := ledger.DefaultLedger.GetTransactionWithHash(hash)
 	if err != nil {
-		log.Error("Get transaction with hash error: ", err.Error())
+		log.Error("Get Transaction with hash error: ", err.Error())
 		return nil, err
 	}
 

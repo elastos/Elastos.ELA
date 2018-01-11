@@ -37,6 +37,13 @@ type Inv struct {
 	P   InvPayload
 }
 
+type InventoryType byte
+
+const (
+	Transaction InventoryType = 0x01
+	Block       InventoryType = 0x02
+)
+
 func SendMsgSyncBlockHeaders(node Noder, blocator []Uint256, hash Uint256) {
 	if node.LocalNode().GetStartHash() == blocator[0] &&
 		node.LocalNode().GetStopHash() == hash {
@@ -192,14 +199,14 @@ func (msg Inv) Handle(node Noder) error {
 
 	invType := InventoryType(msg.P.InvType)
 	switch invType {
-	case TRANSACTION:
+	case Transaction:
 		log.Debug("RX TRX message")
 		// TODO check the ID queue
 		id.Deserialize(bytes.NewReader(msg.P.Blk[:32]))
 		if !node.ExistedID(id) {
 			reqTxnData(node, id)
 		}
-	case BLOCK:
+	case Block:
 		log.Debug("RX block message")
 		if node.LocalNode().IsSyncHeaders() == true && node.IsSyncHeaders() == false {
 			return nil
@@ -241,10 +248,6 @@ func (msg Inv) Handle(node Noder) error {
 				}
 			}
 		}
-	case CONSENSUS:
-		log.Debug("RX consensus message")
-		id.Deserialize(bytes.NewReader(msg.P.Blk[:32]))
-		reqConsensusData(node, id)
 	default:
 		log.Warn("RX unknown inventory message")
 	}
@@ -351,7 +354,7 @@ func GetInvFromBlockHash(startHash Uint256, stopHash Uint256) (*InvPayload, erro
 		hash, _ := ledger.DefaultLedger.Store.GetBlockHash(startHeight + i)
 		hash.Serialize(tmpBuffer)
 	}
-	return NewInvPayload(BLOCK, count, tmpBuffer.Bytes()), nil
+	return NewInvPayload(Block, count, tmpBuffer.Bytes()), nil
 }
 
 func NewInvPayload(invType InventoryType, count uint32, msg []byte) *InvPayload {

@@ -211,7 +211,7 @@ func SetLogLevel(param map[string]interface{}) map[string]interface{} {
 		return ResponsePack(InvalidParams, "")
 	}
 
-	if err := log.Log.SetDebugLevel(level); err != nil {
+	if err := log.Log.SetDebugLevel(int(level)); err != nil {
 		return ResponsePack(InvalidParams, "")
 	}
 	return ResponsePack(Success, "")

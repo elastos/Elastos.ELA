@@ -19,24 +19,21 @@ import (
 const (
 	Api_Getconnectioncount  = "/api/v1/node/connectioncount"
 	Api_GetblockTxsByHeight = "/api/v1/block/transactions/height/:height"
-	Api_Getblockbyheight    = "/api/v1/block/details/height/:height"
-	Api_Getblockbyhash      = "/api/v1/block/details/hash/:hash"
-	Api_Getblockheight      = "/api/v1/block/height"
-	Api_Getblockhash        = "/api/v1/block/hash/:height"
-	Api_GetTotalIssued      = "/api/v1/totalissued/:assetid"
-	Api_Gettransaction      = "/api/v1/transaction/:hash"
-	Api_Getasset            = "/api/v1/asset/:hash"
-	Api_GetBalanceByAddr    = "/api/v1/asset/balances/:addr"
-	Api_GetBalancebyAsset   = "/api/v1/asset/balance/:addr/:assetid"
-	Api_GetUTXObyAsset      = "/api/v1/asset/utxo/:addr/:assetid"
-	Api_GetUTXObyAddr       = "/api/v1/asset/utxos/:addr"
-	Api_SendRawTx           = "/api/v1/transaction"
-	Api_GetTransactionPool  = "/api/v1/transactionpool"
-	Api_SendRcdTxByTrans    = "/api/v1/custom/transaction/record"
-	Api_GetStateUpdate      = "/api/v1/stateupdate/:namespace/:key"
-	Api_WebsocketState      = "/api/v1/config/websocket/state"
-	Api_Restart             = "/api/v1/restart"
-	Api_GetContract         = "/api/v1/contract/:hash"
+	Api_Getblockbyheight    = "/api/v1/block/details/height/:height/:raw"
+	Api_Getblockbyhash      = "/api/v1/block/details/hash/:hash/:raw"
+	Api_Getblockheight     = "/api/v1/block/height"
+	Api_Getblockhash       = "/api/v1/block/hash/:height"
+	Api_GetTotalIssued     = "/api/v1/totalissued/:assetid"
+	Api_Gettransaction     = "/api/v1/transaction/:hash/:raw"
+	Api_Getasset           = "/api/v1/asset/:hash"
+	Api_GetBalanceByAddr   = "/api/v1/asset/balances/:addr"
+	Api_GetBalancebyAsset  = "/api/v1/asset/balance/:addr/:assetid"
+	Api_GetUTXObyAsset     = "/api/v1/asset/utxo/:addr/:assetid"
+	Api_GetUTXObyAddr      = "/api/v1/asset/utxos/:addr"
+	Api_SendRawTransaction = "/api/v1/transaction"
+	Api_GetTransactionPool = "/api/v1/transactionpool"
+	Api_WebsocketState     = "/api/v1/config/websocket/state"
+	Api_Restart            = "/api/v1/restart"
 )
 
 var node = NodeForServers
@@ -120,7 +117,7 @@ func (rt *restServer) initializeMethod() {
 	}
 
 	postMethodMap := map[string]Action{
-		Api_SendRawTx: {name: "sendrawtransaction", handler: SendRawTransaction},
+		Api_SendRawTransaction: {name: "sendrawtransaction", handler: SendRawTransaction},
 	}
 	rt.postMap = postMethodMap
 	rt.getMap = getMethodMap
@@ -130,18 +127,16 @@ func (rt *restServer) getPath(url string) string {
 
 	if strings.Contains(url, strings.TrimRight(Api_GetblockTxsByHeight, ":height")) {
 		return Api_GetblockTxsByHeight
-	} else if strings.Contains(url, strings.TrimRight(Api_Getblockbyheight, ":height")) {
+	} else if strings.Contains(url, strings.TrimRight(Api_Getblockbyheight, ":height/:raw")) {
 		return Api_Getblockbyheight
+	} else if strings.Contains(url, strings.TrimRight(Api_Getblockbyhash, ":hash/:raw")) {
+		return Api_Getblockbyhash
 	} else if strings.Contains(url, strings.TrimRight(Api_Getblockhash, ":height")) {
 		return Api_Getblockhash
-	} else if strings.Contains(url, strings.TrimRight(Api_Getblockbyhash, ":hash")) {
-		return Api_Getblockbyhash
 	} else if strings.Contains(url, strings.TrimRight(Api_GetTotalIssued, ":assetid")) {
 		return Api_GetTotalIssued
-	} else if strings.Contains(url, strings.TrimRight(Api_Gettransaction, ":hash")) {
+	} else if strings.Contains(url, strings.TrimRight(Api_Gettransaction, ":hash/:raw")) {
 		return Api_Gettransaction
-	} else if strings.Contains(url, strings.TrimRight(Api_GetContract, ":hash")) {
-		return Api_GetContract
 	} else if strings.Contains(url, strings.TrimRight(Api_GetBalanceByAddr, ":addr")) {
 		return Api_GetBalanceByAddr
 	} else if strings.Contains(url, strings.TrimRight(Api_GetBalancebyAsset, ":addr/:assetid")) {
@@ -152,8 +147,6 @@ func (rt *restServer) getPath(url string) string {
 		return Api_GetUTXObyAsset
 	} else if strings.Contains(url, strings.TrimRight(Api_Getasset, ":hash")) {
 		return Api_Getasset
-	} else if strings.Contains(url, strings.TrimRight(Api_GetStateUpdate, ":namespace/:key")) {
-		return Api_GetStateUpdate
 	}
 	return url
 }
@@ -161,7 +154,7 @@ func (rt *restServer) getPath(url string) string {
 func (rt *restServer) getParams(r *http.Request, url string, req map[string]interface{}) map[string]interface{} {
 	switch url {
 	case Api_Getconnectioncount:
-		break
+
 	case Api_GetblockTxsByHeight:
 		req["height"] = getParam(r, "height")
 
@@ -174,9 +167,9 @@ func (rt *restServer) getParams(r *http.Request, url string, req map[string]inte
 		req["raw"] = r.FormValue("raw")
 
 	case Api_Getblockheight:
-		break
+
 	case Api_GetTransactionPool:
-		break
+
 	case Api_Getblockhash:
 		req["height"] = getParam(r, "height")
 
@@ -206,23 +199,10 @@ func (rt *restServer) getParams(r *http.Request, url string, req map[string]inte
 		req["assetid"] = getParam(r, "assetid")
 
 	case Api_Restart:
-		break
-	case Api_SendRawTx:
-		userid := r.FormValue("userid")
-		if len(userid) == 0 {
-			req["Userid"] = getParam(r, "userid")
-		}
-		break
-	case Api_SendRcdTxByTrans:
-		req["Raw"] = r.FormValue("raw")
-		break
-	case Api_GetStateUpdate:
-		req["Namespace"] = getParam(r, "namespace")
-		req["Key"] = getParam(r, "key")
-		break
+
+	case Api_SendRawTransaction:
+
 	case Api_WebsocketState:
-		break
-	default:
 	}
 	return req
 }

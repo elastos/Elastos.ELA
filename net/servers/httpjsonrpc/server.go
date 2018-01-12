@@ -9,6 +9,7 @@ import (
 	. "Elastos.ELA/net/servers"
 	"io/ioutil"
 	"encoding/json"
+	"Elastos.ELA/errors"
 )
 
 //an instance of the multiplexer
@@ -76,30 +77,69 @@ func Handle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//get the corresponding function
-	function, ok := mainMux[request["method"].(string)]
-	if ok {
-		response := function(request["params"].(map[string]interface{}))
-		data, err := json.Marshal(map[string]interface{}{
-			"jsonpc": "2.0",
-			"code":   response["Error"],
-			"result": response["Result"],
-		})
-		if err != nil {
-			log.Error("HTTP JSON RPC Handle - json.Marshal: ", err)
-			return
-		}
-		w.Write(data)
-	} else {
-		//if the function does not exist
-		log.Warn("HTTP JSON RPC Handle - No function to call for ", request["method"])
-		data, _ := json.Marshal(map[string]interface{}{
-			"result": nil,
-			"error": map[string]interface{}{
-				"code":    -32601,
-				"message": "Method not found",
-				"data":    "The method" + request["method"].(string) + "was not found",
-			},
-		})
-		w.Write(data)
+	function, method, ok := checkMethod(request)
+	if !ok {
+		Error(w, errors.InvalidMethod, method)
+		return
 	}
+
+	params, ok := checkParams(request)
+	if !ok {
+		Error(w, errors.InvalidParams, method)
+		return
+	}
+
+	response := function(params)
+	data, err := json.Marshal(map[string]interface{}{
+		"jsonpc": "2.0",
+		"code":   response["Error"],
+		"result": response["Result"],
+	})
+	if err != nil {
+		log.Error("HTTP JSON RPC Handle - json.Marshal: ", err)
+		return
+	}
+	w.Write(data)
+}
+
+func checkMethod(request map[string]interface{}) (func(map[string]interface{}) map[string]interface{}, interface{}, bool) {
+	method := request["method"]
+	if method == nil {
+		return nil, method, false
+	}
+	switch method.(type) {
+	case string:
+	default:
+		return nil, method, false
+	}
+	function, ok := mainMux[request["method"].(string)]
+	if !ok {
+		return nil, method, false
+	}
+	return function, nil, true
+}
+
+func checkParams(request map[string]interface{}) (map[string]interface{}, bool) {
+	params := request["params"]
+	if params == nil {
+		return map[string]interface{}{}, true
+	}
+	switch params.(type) {
+	case map[string]interface{}:
+		return params.(map[string]interface{}), true
+	default:
+		return nil, false
+	}
+	return nil, false
+}
+
+func Error(w http.ResponseWriter, code errors.ErrCode, method interface{}) {
+	//if the function does not exist
+	log.Warn("HTTP JSON RPC Handle - No function to call for ", method)
+	data, _ := json.Marshal(map[string]interface{}{
+		"jsonpc": "2.0",
+		"code":   code,
+		"result": code.Message(),
+	})
+	w.Write(data)
 }

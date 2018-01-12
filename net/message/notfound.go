@@ -1,3 +1,4 @@
+//warning: this message type is not used by now. But it may be useful in the future. So I did not delete it.
 package message
 
 import (
@@ -48,12 +49,6 @@ func NewNotFound(hash common.Uint256) ([]byte, error) {
 	return m, nil
 }
 
-func (msg notFound) Verify(buf []byte) error {
-	err := msg.messageHeader.Verify(buf)
-	// TODO verify the message Content
-	return err
-}
-
 func (msg notFound) Serialization() ([]byte, error) {
 	hdrBuf, err := msg.messageHeader.Serialization()
 	if err != nil {
@@ -84,6 +79,6 @@ func (msg *notFound) Deserialization(p []byte) error {
 }
 
 func (msg notFound) Handle(node Noder) error {
-	log.Debug("RX notfound message, hash is ", msg.hash)
+	log.Warn("RX notfound message, hash is ", msg.hash)
 	return nil
 }

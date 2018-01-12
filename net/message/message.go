@@ -21,15 +21,11 @@ type Messager interface {
 
 // The network communication message header
 type messageHeader struct {
-	Magic uint32
-	//ID	 uint64
+	Magic    uint32
 	CMD      [MSGCMDLEN]byte // The message type
 	Length   uint32
 	Checksum [CHECKSUMLEN]byte
 }
-
-
-
 
 // Alloc different message stucture
 // @t the message name or type
@@ -44,49 +40,55 @@ func AllocMsg(t string, length int) Messager {
 	case "version":
 		var msg version
 		// TODO fill the header and type
-		copy(msg.Header.CMD[0:len(t)], t)
+		copy(msg.CMD[0:len(t)], t)
 		return &msg
 	case "verack":
 		var msg verACK
-		copy(msg.messageHeader.CMD[0:len(t)], t)
+		copy(msg.CMD[0:len(t)], t)
 		return &msg
 	case "getaddr":
-		var msg addrReq
-		copy(msg.Hdr.CMD[0:len(t)], t)
+		var msg addressesRequest
+		copy(msg.CMD[0:len(t)], t)
 		return &msg
 	case "addr":
 		var msg addr
-		copy(msg.hdr.CMD[0:len(t)], t)
+		copy(msg.CMD[0:len(t)], t)
 		return &msg
 	case "getdata":
-		var msg dataReq
-		copy(msg.messageHeader.CMD[0:len(t)], t)
+		var msg dataRequest
+		copy(msg.CMD[0:len(t)], t)
 		return &msg
 	case "block":
 		var msg block
-		copy(msg.messageHeader.CMD[0:len(t)], t)
+		copy(msg.CMD[0:len(t)], t)
+		return &msg
+	case "inv":
+		var msg Inv
+		copy(msg.CMD[0:len(t)], t)
+		// the 1 is the inv type lenght
+		msg.P.Blk = make([]byte, length-MSGHDRLEN-1)
 		return &msg
 	case "tx":
-		var msg trn
-		copy(msg.messageHeader.CMD[0:len(t)], t)
+		var msg txn
+		copy(msg.CMD[0:len(t)], t)
 		//if (message.Payload.Length <= 1024 * 1024)
 		//OnInventoryReceived(Transaction.DeserializeFrom(message.Payload));
 		return &msg
 	case "getblocks":
-		var msg blocksReq
-		copy(msg.hdr.CMD[0:len(t)], t)
+		var msg blocksRequest
+		copy(msg.CMD[0:len(t)], t)
 		return &msg
 	case "notfound":
 		var msg notFound
-		copy(msg.messageHeader.CMD[0:len(t)], t)
+		copy(msg.CMD[0:len(t)], t)
 		return &msg
 	case "ping":
 		var msg ping
-		copy(msg.messageHeader.CMD[0:len(t)], t)
+		copy(msg.CMD[0:len(t)], t)
 		return &msg
 	case "pong":
 		var msg pong
-		copy(msg.messageHeader.CMD[0:len(t)], t)
+		copy(msg.CMD[0:len(t)], t)
 		return &msg
 	default:
 		log.Warn("Unknown message type")
@@ -150,36 +152,24 @@ func HandleNodeMsg(node Noder, buf []byte, len int) error {
 	}
 }
 
-func ValidMsgHdr(buf []byte) bool {
-	var h messageHeader
-	h.Deserialization(buf)
-	//TODO: verify hdr checksum
-	if h.Magic != config.Parameters.Magic {
-		return false
-	}
-	return true
-}
-
 func PayloadLen(buf []byte) int {
 	var h messageHeader
 	h.Deserialization(buf)
 	return int(h.Length)
 }
 
-
-
-func (hdr *messageHeader) init(cmd string, checksum []byte, length uint32) {
-	hdr.Magic = config.Parameters.Magic
-	copy(hdr.CMD[0:uint32(len(cmd))], cmd)
-	copy(hdr.Checksum[:], checksum[:CHECKSUMLEN])
-	hdr.Length = length
+func (header *messageHeader) init(cmd string, checksum []byte, length uint32) {
+	header.Magic = config.Parameters.Magic
+	copy(header.CMD[0:uint32(len(cmd))], cmd)
+	copy(header.Checksum[:], checksum[:CHECKSUMLEN])
+	header.Length = length
 }
 
 // Verify the message header information
 // @p payload of the message
-func (hdr messageHeader) Verify(buf []byte) error {
-	if hdr.Magic != config.Parameters.Magic {
-		log.Error(fmt.Sprintf("Unmatched magic number 0x%0x", hdr.Magic))
+func (header messageHeader) Verify(buf []byte) error {
+	if header.Magic != config.Parameters.Magic {
+		log.Error(fmt.Sprintf("Unmatched magic number 0x%0x", header.Magic))
 		return errors.New("Unmatched magic number")
 	}
 	t := sha256.Sum256(buf)
@@ -187,8 +177,8 @@ func (hdr messageHeader) Verify(buf []byte) error {
 	// Currently we only need the front 4 bytes as checksum
 	checkSum := s[:CHECKSUMLEN]
 
-	if bytes.Equal(hdr.Checksum[:], checkSum[:]) == false {
-		str1 := hex.EncodeToString(hdr.Checksum[:])
+	if bytes.Equal(header.Checksum[:], checkSum[:]) == false {
+		str1 := hex.EncodeToString(header.Checksum[:])
 		str2 := hex.EncodeToString(checkSum[:])
 		log.Warn(fmt.Sprintf("Message Checksum error, Received checksum %s Wanted checksum: %s",
 			str1, str2))
@@ -198,27 +188,23 @@ func (hdr messageHeader) Verify(buf []byte) error {
 	return nil
 }
 
-func (msg *messageHeader) Deserialization(p []byte) error {
-
+func (header *messageHeader) Deserialization(p []byte) error {
 	buf := bytes.NewBuffer(p[0:MSGHDRLEN])
-	err := binary.Read(buf, binary.LittleEndian, msg)
+	err := binary.Read(buf, binary.LittleEndian, header)
 	return err
 }
 
 // FIXME how to avoid duplicate serial/deserial function as
 // most of them are the same
-func (hdr messageHeader) Serialization() ([]byte, error) {
-	var buf bytes.Buffer
-	err := binary.Write(&buf, binary.LittleEndian, hdr)
+func (header messageHeader) Serialization() ([]byte, error) {
+	var buffer bytes.Buffer
+	err := binary.Write(&buffer, binary.LittleEndian, header)
 	if err != nil {
 		return nil, err
 	}
-
-	return buf.Bytes(), err
+	return buffer.Bytes(), err
 }
 
-func (hdr messageHeader) Handle(n Noder) error {
-	log.Debug()
-	// TBD
+func (header messageHeader) Handle(n Noder) error {
 	return nil
 }

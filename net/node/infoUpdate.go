@@ -50,7 +50,7 @@ func (node *node) SyncBlks() {
 			} else {
 				blocator := ledger.DefaultLedger.Blockchain.BlockLocatorFromHash(&hash)
 				var emptyHash common.Uint256
-				SendMsgSyncBlockHeaders(syncNode, blocator, emptyHash)
+				SendMessageSyncBlockHeaders(syncNode, blocator, emptyHash)
 			}
 		} else {
 			//rb := syncNode.LocalNode().GetRequestBlockList()
@@ -77,7 +77,7 @@ func (node *node) SyncBlks() {
 					SendMsgSyncHeaders(newSyncNode, hash)
 				} else {
 					blocator := ledger.DefaultLedger.Blockchain.BlockLocatorFromHash(&hash)
-					SendMsgSyncBlockHeaders(newSyncNode, blocator, emptyHash)
+					SendMessageSyncBlockHeaders(newSyncNode, blocator, emptyHash)
 				}
 			} else {
 				for k := range rb {
@@ -85,7 +85,7 @@ func (node *node) SyncBlks() {
 						log.Infof("request block hash %x ", k.ToArrayReverse())
 						<-time.After(time.Millisecond * 50)
 
-						ReqBlkData(syncNode, k)
+						RequestBlockData(syncNode, k)
 					}
 				}
 			}
@@ -226,5 +226,5 @@ func (node *node) updateConnection() {
 func SendMsgSyncHeaders(node Noder, startHash common.Uint256) {
 	var emptyHash common.Uint256
 	blocator := ledger.DefaultLedger.Blockchain.BlockLocatorFromHash(&startHash)
-	SendMsgSyncBlockHeaders(node, blocator, emptyHash)
+	SendMessageSyncBlockHeaders(node, blocator, emptyHash)
 }

@@ -14,13 +14,11 @@ import (
 
 type block struct {
 	messageHeader
-	blk ledger.Block
-	// TBD
-	//event *events.Event
+	block ledger.Block
 }
 
-func (msg block) Handle(node Noder) error {
-	hash := msg.blk.Hash()
+func (message block) Handle(node Noder) error {
+	hash := message.block.Hash()
 	//node.LocalNode().AcqSyncBlkReqSem()
 	//defer node.LocalNode().RelSyncBlkReqSem()
 	//log.Tracef("hash is %x", hash.ToArrayReverse())
@@ -51,9 +49,9 @@ func (msg block) Handle(node Noder) error {
 	isOrphan := false
 	var err error
 	if isFastAdd {
-		_, isOrphan, err = ledger.DefaultLedger.Blockchain.AddBlockFast(&msg.blk)
+		_, isOrphan, err = ledger.DefaultLedger.Blockchain.AddBlockFast(&message.block)
 	} else {
-		_, isOrphan, err = ledger.DefaultLedger.Blockchain.AddBlock(&msg.blk)
+		_, isOrphan, err = ledger.DefaultLedger.Blockchain.AddBlock(&message.block)
 	}
 
 	if err != nil {
@@ -63,7 +61,7 @@ func (msg block) Handle(node Noder) error {
 	//relay
 	if node.LocalNode().IsSyncHeaders() == false {
 		if !node.LocalNode().ExistedID(hash) {
-			node.LocalNode().Relay(node, &msg.blk)
+			node.LocalNode().Relay(node, &message.block)
 			log.Debug("Relay block")
 		}
 	}
@@ -72,7 +70,7 @@ func (msg block) Handle(node Noder) error {
 		if !node.LocalNode().RequestedBlockExisted(hash) {
 			orphanRoot := ledger.DefaultLedger.Blockchain.GetOrphanRoot(&hash)
 			locator, _ := ledger.DefaultLedger.Blockchain.LatestBlockLocator()
-			SendMsgSyncBlockHeaders(node, locator, *orphanRoot)
+			SendMessageSyncBlockHeaders(node, locator, *orphanRoot)
 		}
 	}
 
@@ -97,7 +95,7 @@ func fetchHeaderBlocks(node Noder) {
 	}
 
 	for {
-		err := ReqBlkData(node, preHash)
+		err := RequestBlockData(node, preHash)
 		if err != nil {
 			log.Error("failed build a new getdata")
 		}
@@ -110,54 +108,10 @@ func fetchHeaderBlocks(node Noder) {
 	}
 }
 
-func (msg dataReq) Handle(node Noder) error {
-	log.Debug()
-	reqtype := InventoryType(msg.dataType)
-	hash := msg.hash
-	switch reqtype {
-	case Block:
-		block, err := NewBlockFromHash(hash)
-		if err != nil {
-			log.Debug("Can't get block from hash: ", hash, " ,send not found message")
-			//call notfound message
-			b, err := NewNotFound(hash)
-			node.Tx(b)
-			return err
-		}
-		log.Debug("block height is ", block.Blockdata.Height, " ,hash is ", hash)
-		buf, err := NewBlock(block)
-		if err != nil {
-			return err
-		}
-		node.Tx(buf)
-
-	case Transaction:
-		txn, err := NewTxnFromHash(hash)
-		if err != nil {
-			return err
-		}
-		buf, err := NewTxn(txn)
-		if err != nil {
-			return err
-		}
-		go node.Tx(buf)
-	}
-	return nil
-}
-
-func NewBlockFromHash(hash common.Uint256) (*ledger.Block, error) {
-	bk, err := ledger.DefaultLedger.Store.GetBlock(hash)
-	if err != nil {
-		log.Errorf("Get Block error: %s, block hash: %x", err.Error(), hash)
-		return nil, err
-	}
-	return bk, nil
-}
-
 func NewBlock(bk *ledger.Block) ([]byte, error) {
 	log.Debug()
 	var msg block
-	msg.blk = *bk
+	msg.block = *bk
 	msg.messageHeader.Magic = config.Parameters.Magic
 	cmd := "block"
 	copy(msg.messageHeader.CMD[0:len(cmd)], cmd)
@@ -186,21 +140,14 @@ func NewBlock(bk *ledger.Block) ([]byte, error) {
 	return m, nil
 }
 
-func ReqBlkData(node Noder, hash common.Uint256) error {
+func RequestBlockData(node Noder, hash common.Uint256) error {
 	node.LocalNode().AddRequestedBlock(hash)
-	var msg dataReq
-	msg.dataType = Block
+	var msg dataRequest
 	msg.hash = hash
 
 	msg.messageHeader.Magic = config.Parameters.Magic
 	copy(msg.messageHeader.CMD[0:7], "getdata")
 	p := bytes.NewBuffer([]byte{})
-	err := binary.Write(p, binary.LittleEndian, &(msg.dataType))
-	msg.hash.Serialize(p)
-	if err != nil {
-		log.Error("Binary Write failed at new getdata Msg")
-		return err
-	}
 	s := sha256.Sum256(p.Bytes())
 	s2 := s[:]
 	s = sha256.Sum256(s2)
@@ -220,33 +167,27 @@ func ReqBlkData(node Noder, hash common.Uint256) error {
 	return nil
 }
 
-func (msg block) Verify(buf []byte) error {
-	err := msg.messageHeader.Verify(buf)
-	// TODO verify the message Content
-	return err
-}
-
-func (msg block) Serialization() ([]byte, error) {
-	hdrBuf, err := msg.messageHeader.Serialization()
+func (message block) Serialization() ([]byte, error) {
+	hdrBuf, err := message.messageHeader.Serialization()
 	if err != nil {
 		return nil, err
 	}
 	buf := bytes.NewBuffer(hdrBuf)
-	msg.blk.Serialize(buf)
+	message.block.Serialize(buf)
 
 	return buf.Bytes(), err
 }
 
-func (msg *block) Deserialization(p []byte) error {
+func (message *block) Deserialization(p []byte) error {
 	buf := bytes.NewBuffer(p)
 
-	err := binary.Read(buf, binary.LittleEndian, &(msg.messageHeader))
+	err := binary.Read(buf, binary.LittleEndian, &(message.messageHeader))
 	if err != nil {
 		log.Warn("Parse block message hdr error")
 		return errors.New("Parse block message hdr error")
 	}
 
-	err = msg.blk.Deserialize(buf)
+	err = message.block.Deserialize(buf)
 	if err != nil {
 		log.Warn("Parse block message error")
 		return errors.New("Parse block message error")

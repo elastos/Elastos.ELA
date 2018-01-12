@@ -1,10 +1,8 @@
 package message
 
 import (
-	"Elastos.ELA/common"
 	"Elastos.ELA/common/config"
 	"Elastos.ELA/common/log"
-	"Elastos.ELA/core/ledger"
 	"Elastos.ELA/core/transaction"
 	. "Elastos.ELA/errors"
 	. "Elastos.ELA/net/protocol"
@@ -14,95 +12,40 @@ import (
 	"errors"
 )
 
-type dataReq struct {
-	messageHeader
-	dataType InventoryType
-	hash     common.Uint256
-}
-
 // Transaction message
-type trn struct {
+type txn struct {
 	messageHeader
-	// TBD
-	//txn []byte
 	txn transaction.Transaction
-	//hash common.Uint256
 }
 
-func (msg trn) Handle(node Noder) error {
+func (message txn) Handle(node Noder) error {
 	log.Debug()
 	log.Debug("RX Transaction message")
-	tx := &msg.txn
+	tx := &message.txn
 	if !node.LocalNode().ExistedID(tx.Hash()) {
-		if errCode := node.LocalNode().AppendToTxnPool(&(msg.txn)); errCode != Success {
+		if errCode := node.LocalNode().AppendToTxnPool(&(message.txn)); errCode != Success {
 			return errors.New("[message] VerifyTransaction failed when AppendToTxnPool.")
 		}
 		node.LocalNode().Relay(node, tx)
 		log.Info("Relay Transaction")
 		node.LocalNode().IncRxTxnCnt()
-		log.Debug("RX Transaction message hash", msg.txn.Hash())
-		log.Debug("RX Transaction message type", msg.txn.TxType)
+		log.Debug("RX Transaction message hash", message.txn.Hash())
+		log.Debug("RX Transaction message type", message.txn.TxType)
 	}
 
 	return nil
 }
 
-func (msg dataReq) Serialization() ([]byte, error) {
-	hdrBuf, err := msg.messageHeader.Serialization()
-	if err != nil {
-		return nil, err
-	}
-	buf := bytes.NewBuffer(hdrBuf)
-	err = binary.Write(buf, binary.LittleEndian, msg.dataType)
-	if err != nil {
-		return nil, err
-	}
-	msg.hash.Serialize(buf)
-
-	return buf.Bytes(), err
-}
-
-func (msg *dataReq) Deserialization(p []byte) error {
-	buf := bytes.NewBuffer(p)
-	err := binary.Read(buf, binary.LittleEndian, &(msg.messageHeader))
-	if err != nil {
-		log.Warn("Parse datareq message hdr error")
-		return errors.New("Parse datareq message hdr error")
-	}
-
-	err = binary.Read(buf, binary.LittleEndian, &(msg.dataType))
-	if err != nil {
-		log.Warn("Parse datareq message dataType error")
-		return errors.New("Parse datareq message dataType error")
-	}
-
-	err = msg.hash.Deserialize(buf)
-	if err != nil {
-		log.Warn("Parse datareq message hash error")
-		return errors.New("Parse datareq message hash error")
-	}
-	return nil
-}
-
-func NewTxnFromHash(hash common.Uint256) (*transaction.Transaction, error) {
-	txn, err := ledger.DefaultLedger.GetTransactionWithHash(hash)
-	if err != nil {
-		log.Error("Get Transaction with hash error: ", err.Error())
-		return nil, err
-	}
-
-	return txn, nil
-}
-func NewTxn(txn *transaction.Transaction) ([]byte, error) {
+func NewTxn(transaction *transaction.Transaction) ([]byte, error) {
 	log.Debug()
-	var msg trn
+	var msg txn
 
 	msg.messageHeader.Magic = config.Parameters.Magic
 	cmd := "tx"
 	copy(msg.messageHeader.CMD[0:len(cmd)], cmd)
 	tmpBuffer := bytes.NewBuffer([]byte{})
-	txn.Serialize(tmpBuffer)
-	msg.txn = *txn
+	transaction.Serialize(tmpBuffer)
+	msg.txn = *transaction
 	b := new(bytes.Buffer)
 	err := binary.Write(b, binary.LittleEndian, tmpBuffer.Bytes())
 	if err != nil {
@@ -126,21 +69,21 @@ func NewTxn(txn *transaction.Transaction) ([]byte, error) {
 	return m, nil
 }
 
-func (msg trn) Serialization() ([]byte, error) {
-	hdrBuf, err := msg.messageHeader.Serialization()
+func (message txn) Serialization() ([]byte, error) {
+	headerBuffer, err := message.messageHeader.Serialization()
 	if err != nil {
 		return nil, err
 	}
-	buf := bytes.NewBuffer(hdrBuf)
-	msg.txn.Serialize(buf)
+	buffer := bytes.NewBuffer(headerBuffer)
+	message.txn.Serialize(buffer)
 
-	return buf.Bytes(), err
+	return buffer.Bytes(), err
 }
 
-func (msg *trn) Deserialization(p []byte) error {
+func (message *txn) Deserialization(p []byte) error {
 	buf := bytes.NewBuffer(p)
-	err := binary.Read(buf, binary.LittleEndian, &(msg.messageHeader))
-	err = msg.txn.Deserialize(buf)
+	err := binary.Read(buf, binary.LittleEndian, &(message.messageHeader))
+	err = message.txn.Deserialize(buf)
 	if err != nil {
 		return err
 	}

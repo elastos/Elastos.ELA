@@ -3,8 +3,6 @@ package message
 import (
 	"Elastos.ELA/common/log"
 	. "Elastos.ELA/net/protocol"
-	"bytes"
-	"encoding/binary"
 	"encoding/hex"
 )
 
@@ -44,20 +42,4 @@ func (msg addrReq) Handle(node Noder) error {
 	}
 	go node.Tx(buf)
 	return nil
-}
-
-func (msg addrReq) Serialization() ([]byte, error) {
-	var buf bytes.Buffer
-	err := binary.Write(&buf, binary.LittleEndian, msg)
-	if err != nil {
-		return nil, err
-	}
-
-	return buf.Bytes(), err
-}
-
-func (msg *addrReq) Deserialization(p []byte) error {
-	buf := bytes.NewBuffer(p)
-	err := binary.Read(buf, binary.LittleEndian, msg)
-	return err
 }

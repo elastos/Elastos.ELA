@@ -150,5 +150,9 @@ func GetInvFromBlockHash(startHash Uint256, stopHash Uint256) (*InvPayload, erro
 		hash, _ := ledger.DefaultLedger.Store.GetBlockHash(startHeight + i)
 		hash.Serialize(tmpBuffer)
 	}
-	return NewInvPayload(count, tmpBuffer.Bytes()), nil
+
+	return &InvPayload{
+		Cnt: count,
+		Blk: tmpBuffer.Bytes(),
+	}, nil
 }

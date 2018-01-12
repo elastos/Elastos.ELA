@@ -51,13 +51,6 @@ func unpackNodeBuf(node *node, buf []byte) {
 		}
 
 		node.rxBuf.p = append(node.rxBuf.p, buf[0:length]...)
-		if msg.ValidMsgHdr(node.rxBuf.p) == false {
-			node.rxBuf.p = nil
-			node.rxBuf.len = 0
-			log.Warn("Get error message header, TODO: relocate the msg header")
-			// TODO Relocate the message header
-			return
-		}
 
 		node.rxBuf.len = msg.PayloadLen(node.rxBuf.p)
 		buf = buf[length:]

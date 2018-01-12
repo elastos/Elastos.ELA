@@ -173,13 +173,6 @@ func (msg *Inv) Deserialization(p []byte) error {
 	return err
 }
 
-func NewInvPayload(count uint32, msg []byte) *InvPayload {
-	return &InvPayload{
-		Cnt:     count,
-		Blk:     msg,
-	}
-}
-
 func NewInv(inv *InvPayload) ([]byte, error) {
 	var msg Inv
 	msg.P.Blk = inv.Blk

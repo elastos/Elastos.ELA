@@ -102,6 +102,7 @@ func Uint168ParseFromBytes(f []byte) (Uint168, error) {
 	}
 	return Uint168(hash), nil
 }
+
 func ToScriptHash(address string) (Uint168, error) {
 	encoding := base58.BitcoinEncoding
 

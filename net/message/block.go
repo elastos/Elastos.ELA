@@ -137,12 +137,6 @@ func ReqBlkData(node Noder, hash common.Uint256) error {
 	return nil
 }
 
-func (msg block) Verify(buf []byte) error {
-	err := msg.messageHeader.Verify(buf)
-	// TODO verify the message Content
-	return err
-}
-
 func (msg block) Serialization() ([]byte, error) {
 	hdrBuf, err := msg.messageHeader.Serialization()
 	if err != nil {

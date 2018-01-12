@@ -32,7 +32,7 @@
       "AutoMining": false,
       "MinerInfo": "ELA",
       "MinTxFee": 100,
-      "ActiveNet": "MainNet"
+      "ActiveNet": "RegNet"
     }
   }
 }

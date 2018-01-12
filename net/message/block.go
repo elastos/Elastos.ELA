@@ -113,18 +113,11 @@ func fetchHeaderBlocks(node Noder) {
 func ReqBlkData(node Noder, hash common.Uint256) error {
 	node.LocalNode().AddRequestedBlock(hash)
 	var msg dataReq
-	msg.dataType = Block
 	msg.hash = hash
-
 	msg.messageHeader.Magic = config.Parameters.Magic
 	copy(msg.messageHeader.CMD[0:7], "getdata")
 	p := bytes.NewBuffer([]byte{})
-	err := binary.Write(p, binary.LittleEndian, &(msg.dataType))
 	msg.hash.Serialize(p)
-	if err != nil {
-		log.Error("Binary Write failed at new getdata Msg")
-		return err
-	}
 	s := sha256.Sum256(p.Bytes())
 	s2 := s[:]
 	s = sha256.Sum256(s2)

@@ -1,10 +1,8 @@
 package message
 
 import (
-	"Elastos.ELA/common"
 	"Elastos.ELA/common/config"
 	"Elastos.ELA/common/log"
-	"Elastos.ELA/core/ledger"
 	"Elastos.ELA/core/transaction"
 	. "Elastos.ELA/errors"
 	. "Elastos.ELA/net/protocol"
@@ -41,26 +39,6 @@ func (msg trn) Handle(node Noder) error {
 	return nil
 }
 
-func reqTxnData(node Noder, hash common.Uint256) error {
-	var msg dataReq
-	msg.dataType = Transaction
-	// TODO handle the hash array case
-	//msg.hash = hash
-
-	buf, _ := msg.Serialization()
-	go node.Tx(buf)
-	return nil
-}
-
-func NewTxnFromHash(hash common.Uint256) (*transaction.Transaction, error) {
-	txn, err := ledger.DefaultLedger.GetTransactionWithHash(hash)
-	if err != nil {
-		log.Error("Get Transaction with hash error: ", err.Error())
-		return nil, err
-	}
-
-	return txn, nil
-}
 func NewTxn(txn *transaction.Transaction) ([]byte, error) {
 	log.Debug()
 	var msg trn

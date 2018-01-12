@@ -72,7 +72,7 @@ func NewVersion(n Noder) ([]byte, error) {
 }
 
 func (msg version) Serialization() ([]byte, error) {
-	hdrBuf, err := msg.Serialization()
+	hdrBuf, err := msg.messageHeader.Serialization()
 	if err != nil {
 		return nil, err
 	}

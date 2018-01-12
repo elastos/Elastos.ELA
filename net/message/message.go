@@ -60,21 +60,21 @@ func AllocMsg(t string, length int) Messager {
 		return &msg
 	case "inv":
 		var msg Inv
-		copy(msg.Hdr.CMD[0:len(t)], t)
+		copy(msg.CMD[0:len(t)], t)
 		// the 1 is the inv type lenght
-		msg.P.Blk = make([]byte, length-MSGHDRLEN-1)
+		msg.P.Blk = make([]byte, length-MSGHDRLEN)
 		return &msg
 	case "getdata":
 		var msg dataReq
-		copy(msg.messageHeader.CMD[0:len(t)], t)
+		copy(msg.CMD[0:len(t)], t)
 		return &msg
 	case "block":
 		var msg block
-		copy(msg.messageHeader.CMD[0:len(t)], t)
+		copy(msg.CMD[0:len(t)], t)
 		return &msg
 	case "tx":
 		var msg trn
-		copy(msg.messageHeader.CMD[0:len(t)], t)
+		copy(msg.CMD[0:len(t)], t)
 		//if (message.Payload.Length <= 1024 * 1024)
 		//OnInventoryReceived(Transaction.DeserializeFrom(message.Payload));
 		return &msg
@@ -84,15 +84,15 @@ func AllocMsg(t string, length int) Messager {
 		return &msg
 	case "notfound":
 		var msg notFound
-		copy(msg.messageHeader.CMD[0:len(t)], t)
+		copy(msg.CMD[0:len(t)], t)
 		return &msg
 	case "ping":
 		var msg ping
-		copy(msg.messageHeader.CMD[0:len(t)], t)
+		copy(msg.CMD[0:len(t)], t)
 		return &msg
 	case "pong":
 		var msg pong
-		copy(msg.messageHeader.CMD[0:len(t)], t)
+		copy(msg.CMD[0:len(t)], t)
 		return &msg
 	default:
 		log.Warn("Unknown message type")
@@ -187,8 +187,6 @@ func PayloadLen(buf []byte) int {
 	return int(h.Length)
 }
 
-
-
 func (hdr *messageHeader) init(cmd string, checksum []byte, length uint32) {
 	hdr.Magic = config.Parameters.Magic
 	copy(hdr.CMD[0:uint32(len(cmd))], cmd)
@@ -239,7 +237,5 @@ func (hdr messageHeader) Serialization() ([]byte, error) {
 }
 
 func (hdr messageHeader) Handle(n Noder) error {
-	log.Debug()
-	// TBD
 	return nil
 }

@@ -64,3 +64,7 @@ var ErrMap = map[ErrCode]string{
 	ErrInvalidReferedTxn:    "INTERNAL ERROR, ErrInvalidReferedTxn",
 	ErrIneffectiveCoinbase:  "INTERNAL ERROR, ErrIneffectiveCoinbase",
 }
+
+func (code ErrCode) Message() string {
+	return ErrMap[code]
+}

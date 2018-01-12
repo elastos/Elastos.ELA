@@ -125,6 +125,9 @@ func TransArrayByteToHexString(ptx *tx.Transaction) *Transactions {
 }
 
 func checkParam(param map[string]interface{}, keys ...string) bool {
+	if param == nil {
+		return false
+	}
 	if len(param) < len(keys) {
 		return false
 	}

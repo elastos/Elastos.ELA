@@ -13,10 +13,6 @@ import (
 	"time"
 )
 
-const (
-	HTTPINFOFLAG = 0
-)
-
 type version struct {
 	Header messageHeader
 	Body struct {

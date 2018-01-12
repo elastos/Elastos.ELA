@@ -222,3 +222,9 @@ func (node *node) updateConnection() {
 		}
 	}
 }
+
+func SendMsgSyncHeaders(node Noder, startHash common.Uint256) {
+	var emptyHash common.Uint256
+	blocator := ledger.DefaultLedger.Blockchain.BlockLocatorFromHash(&startHash)
+	SendMsgSyncBlockHeaders(node, blocator, emptyHash)
+}

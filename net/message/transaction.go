@@ -58,43 +58,6 @@ func reqTxnData(node Noder, hash common.Uint256) error {
 	return nil
 }
 
-func (msg dataReq) Serialization() ([]byte, error) {
-	hdrBuf, err := msg.messageHeader.Serialization()
-	if err != nil {
-		return nil, err
-	}
-	buf := bytes.NewBuffer(hdrBuf)
-	err = binary.Write(buf, binary.LittleEndian, msg.dataType)
-	if err != nil {
-		return nil, err
-	}
-	msg.hash.Serialize(buf)
-
-	return buf.Bytes(), err
-}
-
-func (msg *dataReq) Deserialization(p []byte) error {
-	buf := bytes.NewBuffer(p)
-	err := binary.Read(buf, binary.LittleEndian, &(msg.messageHeader))
-	if err != nil {
-		log.Warn("Parse datareq message hdr error")
-		return errors.New("Parse datareq message hdr error")
-	}
-
-	err = binary.Read(buf, binary.LittleEndian, &(msg.dataType))
-	if err != nil {
-		log.Warn("Parse datareq message dataType error")
-		return errors.New("Parse datareq message dataType error")
-	}
-
-	err = msg.hash.Deserialize(buf)
-	if err != nil {
-		log.Warn("Parse datareq message hash error")
-		return errors.New("Parse datareq message hash error")
-	}
-	return nil
-}
-
 func NewTxnFromHash(hash common.Uint256) (*transaction.Transaction, error) {
 	txn, err := ledger.DefaultLedger.GetTransactionWithHash(hash)
 	if err != nil {

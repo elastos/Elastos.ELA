@@ -14,12 +14,6 @@ import (
 	"errors"
 )
 
-type dataReq struct {
-	messageHeader
-	dataType InventoryType
-	hash     common.Uint256
-}
-
 // Transaction message
 type trn struct {
 	messageHeader

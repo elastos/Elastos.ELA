@@ -12,6 +12,12 @@ import (
 	"errors"
 )
 
+type dataReq struct {
+	messageHeader
+	dataType InventoryType
+	hash     common.Uint256
+}
+
 func (msg dataReq) Handle(node Noder) error {
 	log.Debug()
 	reqtype := InventoryType(msg.dataType)

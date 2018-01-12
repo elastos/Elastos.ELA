@@ -9,8 +9,7 @@ import (
 )
 
 type addrReq struct {
-	Hdr messageHeader
-	// No payload
+	messageHeader
 }
 
 func newGetAddr() ([]byte, error) {
@@ -18,7 +17,7 @@ func newGetAddr() ([]byte, error) {
 	// Fixme the check is the []byte{0} instead of 0
 	var sum []byte
 	sum = []byte{0x5d, 0xf6, 0xe0, 0xe2}
-	msg.Hdr.init("getaddr", sum, 0)
+	msg.init("getaddr", sum, 0)
 
 	buf, err := msg.Serialization()
 	if err != nil {
@@ -29,12 +28,6 @@ func newGetAddr() ([]byte, error) {
 	log.Debug("The message get addr length is: ", len(buf), " ", str)
 
 	return buf, err
-}
-
-func (msg addrReq) Verify(buf []byte) error {
-	// TODO Verify the message Content
-	err := msg.Hdr.Verify(buf)
-	return err
 }
 
 func (msg addrReq) Handle(node Noder) error {

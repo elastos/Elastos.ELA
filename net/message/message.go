@@ -44,7 +44,7 @@ func AllocMsg(t string, length int) Messager {
 	case "version":
 		var msg version
 		// TODO fill the header and type
-		copy(msg.Header.CMD[0:len(t)], t)
+		copy(msg.CMD[0:len(t)], t)
 		return &msg
 	case "verack":
 		var msg verACK
@@ -52,11 +52,11 @@ func AllocMsg(t string, length int) Messager {
 		return &msg
 	case "getaddr":
 		var msg addrReq
-		copy(msg.Hdr.CMD[0:len(t)], t)
+		copy(msg.CMD[0:len(t)], t)
 		return &msg
 	case "addr":
 		var msg addr
-		copy(msg.hdr.CMD[0:len(t)], t)
+		copy(msg.CMD[0:len(t)], t)
 		return &msg
 	case "inv":
 		var msg Inv
@@ -80,7 +80,7 @@ func AllocMsg(t string, length int) Messager {
 		return &msg
 	case "getblocks":
 		var msg blocksReq
-		copy(msg.hdr.CMD[0:len(t)], t)
+		copy(msg.CMD[0:len(t)], t)
 		return &msg
 	case "notfound":
 		var msg notFound

@@ -13,7 +13,7 @@ import (
 )
 
 type addr struct {
-	hdr       messageHeader
+	messageHeader
 	nodeCnt   uint64
 	nodeAddrs []NodeAddr
 }
@@ -22,9 +22,9 @@ func NewAddrs(nodeaddrs []NodeAddr, count uint64) ([]byte, error) {
 	var msg addr
 	msg.nodeAddrs = nodeaddrs
 	msg.nodeCnt = count
-	msg.hdr.Magic = config.Parameters.Magic
+	msg.Magic = config.Parameters.Magic
 	cmd := "addr"
-	copy(msg.hdr.CMD[0:7], cmd)
+	copy(msg.CMD[0:7], cmd)
 	p := new(bytes.Buffer)
 	err := binary.Write(p, binary.LittleEndian, msg.nodeCnt)
 	if err != nil {
@@ -41,9 +41,9 @@ func NewAddrs(nodeaddrs []NodeAddr, count uint64) ([]byte, error) {
 	s2 := s[:]
 	s = sha256.Sum256(s2)
 	buf := bytes.NewBuffer(s[:4])
-	binary.Read(buf, binary.LittleEndian, &(msg.hdr.Checksum))
-	msg.hdr.Length = uint32(len(p.Bytes()))
-	log.Debug("The message payload length is ", msg.hdr.Length)
+	binary.Read(buf, binary.LittleEndian, &(msg.Checksum))
+	msg.Length = uint32(len(p.Bytes()))
+	log.Debug("The message payload length is ", msg.Length)
 
 	m, err := msg.Serialization()
 	if err != nil {
@@ -56,7 +56,7 @@ func NewAddrs(nodeaddrs []NodeAddr, count uint64) ([]byte, error) {
 
 func (msg addr) Serialization() ([]byte, error) {
 	var buf bytes.Buffer
-	err := binary.Write(&buf, binary.LittleEndian, msg.hdr)
+	err := binary.Write(&buf, binary.LittleEndian, msg.messageHeader)
 
 	if err != nil {
 		return nil, err
@@ -77,7 +77,7 @@ func (msg addr) Serialization() ([]byte, error) {
 
 func (msg *addr) Deserialization(p []byte) error {
 	buf := bytes.NewBuffer(p)
-	err := binary.Read(buf, binary.LittleEndian, &(msg.hdr))
+	err := binary.Read(buf, binary.LittleEndian, &(msg.messageHeader))
 	err = binary.Read(buf, binary.LittleEndian, &(msg.nodeCnt))
 	log.Debug("The address count is ", msg.nodeCnt)
 	msg.nodeAddrs = make([]NodeAddr, msg.nodeCnt)
@@ -88,12 +88,6 @@ func (msg *addr) Deserialization(p []byte) error {
 		}
 	}
 err:
-	return err
-}
-
-func (msg addr) Verify(buf []byte) error {
-	err := msg.hdr.Verify(buf)
-	// TODO Verify the message Content, check the ipaddr number
 	return err
 }
 

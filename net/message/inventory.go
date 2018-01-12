@@ -54,9 +54,9 @@ func SendMsgSyncBlockHeaders(node Noder, blocator []Uint256, hash Uint256) {
 
 func NewBlocksReq(blocator []Uint256, hash Uint256) ([]byte, error) {
 	var msg blocksReq
-	msg.hdr.Magic = config.Parameters.Magic
+	msg.Magic = config.Parameters.Magic
 	cmd := "getblocks"
-	copy(msg.hdr.CMD[0:len(cmd)], cmd)
+	copy(msg.CMD[0:len(cmd)], cmd)
 	tmpBuffer := bytes.NewBuffer([]byte{})
 	msg.p.len = uint32(len(blocator))
 	msg.p.hashStart = blocator
@@ -85,9 +85,9 @@ func NewBlocksReq(blocator []Uint256, hash Uint256) ([]byte, error) {
 	s2 := s[:]
 	s = sha256.Sum256(s2)
 	buf := bytes.NewBuffer(s[:4])
-	binary.Read(buf, binary.LittleEndian, &(msg.hdr.Checksum))
-	msg.hdr.Length = uint32(len(p.Bytes()))
-	log.Debug("The message payload length is ", msg.hdr.Length)
+	binary.Read(buf, binary.LittleEndian, &(msg.Checksum))
+	msg.Length = uint32(len(p.Bytes()))
+	log.Debug("The message payload length is ", msg.Length)
 
 	m, err := msg.Serialization()
 	if err != nil {

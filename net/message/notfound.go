@@ -20,7 +20,7 @@ func NewNotFound(hash common.Uint256) ([]byte, error) {
 	log.Debug()
 	var msg notFound
 	msg.hash = hash
-	msg.messageHeader.Magic = config.Parameters.Magic
+	msg.Magic = config.Parameters.Magic
 	cmd := "notfound"
 	copy(msg.messageHeader.CMD[0:len(cmd)], cmd)
 	tmpBuffer := bytes.NewBuffer([]byte{})
@@ -35,9 +35,9 @@ func NewNotFound(hash common.Uint256) ([]byte, error) {
 	s2 := s[:]
 	s = sha256.Sum256(s2)
 	buf := bytes.NewBuffer(s[:4])
-	binary.Read(buf, binary.LittleEndian, &(msg.messageHeader.Checksum))
+	binary.Read(buf, binary.LittleEndian, &(msg.Checksum))
 	msg.messageHeader.Length = uint32(len(p.Bytes()))
-	log.Debug("The message payload length is ", msg.messageHeader.Length)
+	log.Debug("The message payload length is ", msg.Length)
 
 	m, err := msg.Serialization()
 	if err != nil {
@@ -46,12 +46,6 @@ func NewNotFound(hash common.Uint256) ([]byte, error) {
 	}
 
 	return m, nil
-}
-
-func (msg notFound) Verify(buf []byte) error {
-	err := msg.messageHeader.Verify(buf)
-	// TODO verify the message Content
-	return err
 }
 
 func (msg notFound) Serialization() ([]byte, error) {

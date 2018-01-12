@@ -14,7 +14,7 @@ import (
 )
 
 type version struct {
-	Header messageHeader
+	messageHeader
 	Body struct {
 		Version      uint32
 		Services     uint64
@@ -46,8 +46,8 @@ func NewVersion(n Noder) ([]byte, error) {
 		msg.Body.Relay = 0
 	}
 
-	msg.Header.Magic = config.Parameters.Magic
-	copy(msg.Header.CMD[0:7], "version")
+	msg.Magic = config.Parameters.Magic
+	copy(msg.CMD[0:7], "version")
 	p := bytes.NewBuffer([]byte{})
 	err := binary.Write(p, binary.LittleEndian, &(msg.Body))
 	if err != nil {
@@ -58,9 +58,9 @@ func NewVersion(n Noder) ([]byte, error) {
 	s2 := s[:]
 	s = sha256.Sum256(s2)
 	buf := bytes.NewBuffer(s[:4])
-	binary.Read(buf, binary.LittleEndian, &(msg.Header.Checksum))
-	msg.Header.Length = uint32(len(p.Bytes()))
-	log.Debug("The message payload length is ", msg.Header.Length)
+	binary.Read(buf, binary.LittleEndian, &(msg.Checksum))
+	msg.Length = uint32(len(p.Bytes()))
+	log.Debug("The message payload length is ", msg.Length)
 
 	m, err := msg.Serialization()
 	if err != nil {
@@ -71,15 +71,8 @@ func NewVersion(n Noder) ([]byte, error) {
 	return m, nil
 }
 
-func (msg version) Verify(buf []byte) error {
-	err := msg.Header.Verify(buf)
-	// TODO verify the message Content
-	// TODO check version compatible or not
-	return err
-}
-
 func (msg version) Serialization() ([]byte, error) {
-	hdrBuf, err := msg.Header.Serialization()
+	hdrBuf, err := msg.Serialization()
 	if err != nil {
 		return nil, err
 	}
@@ -95,7 +88,7 @@ func (msg version) Serialization() ([]byte, error) {
 func (msg *version) Deserialization(p []byte) error {
 	buf := bytes.NewBuffer(p)
 
-	err := binary.Read(buf, binary.LittleEndian, &(msg.Header))
+	err := binary.Read(buf, binary.LittleEndian, &(msg.messageHeader))
 	if err != nil {
 		log.Warn("Parse version message hdr error")
 		return errors.New("Parse version message hdr error")

@@ -194,12 +194,13 @@ func GetNodeState(param map[string]interface{}) map[string]interface{} {
 		Time:     NodeForServers.GetTime(),
 		Port:     NodeForServers.GetPort(),
 		ID:       NodeForServers.GetID(),
-		Version:  NodeForServers.Version(),
+		Version:  config.Version,
 		Services: NodeForServers.Services(),
 		Relay:    NodeForServers.GetRelay(),
 		Height:   NodeForServers.GetHeight(),
 		TxnCnt:   NodeForServers.GetTxnCnt(),
 		RxTxnCnt: NodeForServers.GetRxTxnCnt(),
+		Mining:   LocalPow.Started,
 	}
 	return ResponsePack(Success, n)
 }
@@ -226,7 +227,7 @@ func SubmitAuxBlock(param map[string]interface{}) map[string]interface{} {
 	}
 
 	blockHash := param["blockhash"].(string)
-	if _, ok := Pow.MsgBlock.BlockData[blockHash]; !ok {
+	if _, ok := LocalPow.MsgBlock.BlockData[blockHash]; !ok {
 		log.Trace("[json-rpc:SubmitAuxBlock] receive invalid block hash value:", blockHash)
 		return ResponsePack(InvalidParams, "")
 	}
@@ -234,19 +235,19 @@ func SubmitAuxBlock(param map[string]interface{}) map[string]interface{} {
 	auxPow := param["auxpow"].(string)
 	temp, _ := HexStringToBytes(auxPow)
 	r := bytes.NewBuffer(temp)
-	Pow.MsgBlock.BlockData[blockHash].Blockdata.AuxPow.Deserialize(r)
-	_, _, err := ledger.DefaultLedger.Blockchain.AddBlock(Pow.MsgBlock.BlockData[blockHash])
+	LocalPow.MsgBlock.BlockData[blockHash].Blockdata.AuxPow.Deserialize(r)
+	_, _, err := ledger.DefaultLedger.Blockchain.AddBlock(LocalPow.MsgBlock.BlockData[blockHash])
 	if err != nil {
 		log.Trace(err)
 		return ResponsePack(InternalError, "")
 	}
 
-	Pow.MsgBlock.Mutex.Lock()
-	for key := range Pow.MsgBlock.BlockData {
-		delete(Pow.MsgBlock.BlockData, key)
+	LocalPow.MsgBlock.Mutex.Lock()
+	for key := range LocalPow.MsgBlock.BlockData {
+		delete(LocalPow.MsgBlock.BlockData, key)
 	}
-	Pow.MsgBlock.Mutex.Unlock()
-	log.Trace("AddBlock called finished and Pow.MsgBlock.BlockData has been deleted completely")
+	LocalPow.MsgBlock.Mutex.Unlock()
+	log.Trace("AddBlock called finished and LocalPow.MsgBlock.BlockData has been deleted completely")
 
 	log.Info(auxPow, blockHash)
 	return ResponsePack(Success, "")
@@ -255,19 +256,19 @@ func SubmitAuxBlock(param map[string]interface{}) map[string]interface{} {
 func GenerateAuxBlock(addr string) (*ledger.Block, string, bool) {
 	msgBlock := &ledger.Block{}
 
-	if NodeForServers.GetHeight() == 0 || PreChainHeight != NodeForServers.GetHeight() || (time.Now().Unix()-PreTime > AUXBLOCK_GENERATED_INTERVAL_SECONDS && Pow.GetTransactionCount() != PreTransactionCount) {
+	if NodeForServers.GetHeight() == 0 || PreChainHeight != NodeForServers.GetHeight() || (time.Now().Unix()-PreTime > AUXBLOCK_GENERATED_INTERVAL_SECONDS && LocalPow.GetTransactionCount() != PreTransactionCount) {
 		if PreChainHeight != NodeForServers.GetHeight() {
 			PreChainHeight = NodeForServers.GetHeight()
 			PreTime = time.Now().Unix()
-			PreTransactionCount = Pow.GetTransactionCount()
+			PreTransactionCount = LocalPow.GetTransactionCount()
 		}
 
-		currentTxsCount := Pow.CollectTransactions(msgBlock)
+		currentTxsCount := LocalPow.CollectTransactions(msgBlock)
 		if 0 == currentTxsCount {
 			return nil, "currentTxs is nil", false
 		}
 
-		msgBlock, err := Pow.GenerateBlock(addr)
+		msgBlock, err := LocalPow.GenerateBlock(addr)
 		if nil != err {
 			return nil, "msgBlock generate err", false
 		}
@@ -275,9 +276,9 @@ func GenerateAuxBlock(addr string) (*ledger.Block, string, bool) {
 		curHash := msgBlock.Hash()
 		curHashStr := BytesToHexString(curHash.ToArray())
 
-		Pow.MsgBlock.Mutex.Lock()
-		Pow.MsgBlock.BlockData[curHashStr] = msgBlock
-		Pow.MsgBlock.Mutex.Unlock()
+		LocalPow.MsgBlock.Mutex.Lock()
+		LocalPow.MsgBlock.BlockData[curHashStr] = msgBlock
+		LocalPow.MsgBlock.Mutex.Unlock()
 
 		PreChainHeight = NodeForServers.GetHeight()
 		PreTime = time.Now().Unix()
@@ -307,7 +308,7 @@ func CreateAuxBlock(param map[string]interface{}) map[string]interface{} {
 		PreviousBlockHash string `json:"previousblockhash"`
 	}
 
-	Pow.PayToAddr = param["paytoaddress"].(string)
+	LocalPow.PayToAddr = param["paytoaddress"].(string)
 
 	preHash := ledger.DefaultLedger.Blockchain.CurrentBlockHash()
 	preHashStr := BytesToHexString(preHash.ToArray())
@@ -365,9 +366,9 @@ func ToggleMining(param map[string]interface{}) map[string]interface{} {
 	}
 
 	if param["mining"] == "start" {
-		go Pow.Start()
+		go LocalPow.Start()
 	} else {
-		go Pow.Halt()
+		go LocalPow.Halt()
 	}
 
 	return ResponsePack(Success, "")
@@ -389,7 +390,7 @@ func ManualMining(param map[string]interface{}) map[string]interface{} {
 
 	ret := make([]string, count)
 
-	blockHashes, err := Pow.ManualMining(uint32(count))
+	blockHashes, err := LocalPow.ManualMining(uint32(count))
 	if err != nil {
 		return ResponsePack(Error, err)
 	}

@@ -15,7 +15,7 @@ import (
 const TlsPort = 443
 
 var NodeForServers Noder
-var Pow *pow.PowService
+var LocalPow *pow.PowService
 
 type TxAttributeInfo struct {
 	Usage TransactionAttributeUsage
@@ -114,12 +114,13 @@ type NodeInfo struct {
 	Port     uint16 // The nodes's port
 	ID       uint64 // The nodes's id
 	Time     int64
-	Version  uint32 // The network protocol the NodeForServers used
+	Version  string // node's version
 	Services uint64 // The services the NodeForServers supplied
 	Relay    bool   // The relay capability of the NodeForServers (merge into capbility flag)
 	Height   uint64 // The NodeForServers latest block height
 	TxnCnt   uint64 // The transactions be transmit by this NodeForServers
 	RxTxnCnt uint64 // The transaction received by this NodeForServers
+	Mining   bool   // Is this node mining or not
 }
 
 type PayloadInfo interface{}

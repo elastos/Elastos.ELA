@@ -102,7 +102,7 @@ func (server *WebSocketServer) initializeMethods() {
 }
 
 func (server *WebSocketServer) hearBeat(cmd map[string]interface{}) map[string]interface{} {
-	return ResponsePack(Success, cmd["Userid"])
+	return ResponsePack(Success, "123")
 }
 
 func (server *WebSocketServer) getSessionCount(cmd map[string]interface{}) map[string]interface{} {

@@ -331,7 +331,6 @@ func GetInfo(param map[string]interface{}) map[string]interface{} {
 		Blocks         uint64 `json:"blocks"`
 		Timeoffset     int    `json:"timeoffset"`
 		Connections    uint   `json:"connections"`
-		Testnet        bool   `json:"testnet"`
 		Keypoololdest  int    `json:"keypoololdest"`
 		Keypoolsize    int    `json:"keypoolsize"`
 		Unlocked_until int    `json:"unlocked_until"`
@@ -344,7 +343,6 @@ func GetInfo(param map[string]interface{}) map[string]interface{} {
 		Blocks:         NodeForServers.GetHeight(),
 		Timeoffset:     0,
 		Connections:    NodeForServers.GetConnectionCnt(),
-		Testnet:        config.Parameters.PowConfiguration.TestNet,
 		Keypoololdest:  0,
 		Keypoolsize:    0,
 		Unlocked_until: 0,

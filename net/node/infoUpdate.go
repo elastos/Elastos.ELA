@@ -36,6 +36,8 @@ func (node *node) SyncBlks() {
 			var emptyHash common.Uint256
 			node.local.SetStartHash(emptyHash)
 			node.local.SetStopHash(emptyHash)
+		} else {
+			log.Info(err)
 		}
 		node.LocalNode().ResetRequestedBlock()
 	} else {
@@ -52,7 +54,7 @@ func (node *node) SyncBlks() {
 		} else {
 			//rb := syncNode.LocalNode().GetRequestBlockList()
 			rb1 := syncNode.LocalNode().GetRequestBlockList()
-			var rb = make(map[common.Uint256]time.Time, 50)
+			var rb = make(map[common.Uint256]time.Time, MAXINVHDRCNT)
 			x := 1
 			node.requestedBlockLock.Lock()
 			for i, v := range rb1 {

@@ -27,7 +27,7 @@ const (
 	HASHLEN            = 32 // hash length in byte
 	MSGHDRLEN          = 24
 	MAXBLKHDRCNT       = 400
-	MAXINVHDRCNT       = 50
+	MAXINVHDRCNT       = 20
 	MinConnectionCount = 3
 	TIMESOFUPDATETIME  = 2
 )

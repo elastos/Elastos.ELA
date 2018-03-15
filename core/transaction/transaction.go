@@ -2,6 +2,7 @@ package transaction
 
 import (
 	"io"
+	"fmt"
 	"sort"
 	"bytes"
 	"errors"
@@ -12,7 +13,6 @@ import (
 	"Elastos.ELA/common/serialization"
 	"Elastos.ELA/core/contract/program"
 	"Elastos.ELA/core/transaction/payload"
-	"fmt"
 )
 
 //for different transaction types with different payload format

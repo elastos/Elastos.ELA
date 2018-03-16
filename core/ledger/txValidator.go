@@ -1,17 +1,17 @@
 package ledger
 
 import (
+	"Elastos.ELA/common/config"
+	"errors"
 	"fmt"
 	"math"
-	"errors"
 
 	"Elastos.ELA/common"
-	. "Elastos.ELA/errors"
 	"Elastos.ELA/common/log"
 	"Elastos.ELA/core/asset"
-	"Elastos.ELA/common/config"
 	tx "Elastos.ELA/core/transaction"
 	"Elastos.ELA/core/transaction/payload"
+	. "Elastos.ELA/errors"
 )
 
 // CheckTransactionSanity verifys received single transaction
@@ -160,11 +160,8 @@ func CheckTransactionOutput(txn *tx.Transaction) error {
 			if output.AssetID != DefaultLedger.Blockchain.AssetID {
 				return errors.New("asset ID in coinbase is invalid")
 			}
-			address, err := output.ProgramHash.ToAddress()
-			if err != nil {
-				return err
-			}
-			if address == FoundationAddress {
+			addrInCoinbaseOutput, _ := output.ProgramHash.ToAddress()
+			if addrInCoinbaseOutput == FoundationAddress {
 				found = true
 			}
 		}
@@ -175,19 +172,8 @@ func CheckTransactionOutput(txn *tx.Transaction) error {
 		return nil
 	}
 
-	if len(txn.Outputs) < 1 {
+	if len(txn.Outputs) <= 0 {
 		return errors.New("transaction has no outputs")
-	}
-
-	// check if output address is valid
-	for _, output := range txn.Outputs {
-		if output.AssetID != DefaultLedger.Blockchain.AssetID {
-			return errors.New("asset ID in coinbase is invalid")
-		}
-
-		if !output.ProgramHash.Valid() {
-			return errors.New("output address is invalid")
-		}
 	}
 
 	return nil

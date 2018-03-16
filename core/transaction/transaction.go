@@ -12,7 +12,6 @@ import (
 	"Elastos.ELA/common/serialization"
 	"Elastos.ELA/core/contract/program"
 	"Elastos.ELA/core/transaction/payload"
-	"fmt"
 )
 
 //for different transaction types with different payload format
@@ -26,23 +25,6 @@ const (
 	Record        TransactionType = 0x03
 	Deploy        TransactionType = 0x04
 )
-
-func (self TransactionType) Name() string {
-	switch self {
-	case CoinBase:
-		return "CoinBase"
-	case RegisterAsset:
-		return "RegisterAsset"
-	case TransferAsset:
-		return "TransferAsset"
-	case Record:
-		return "Record"
-	case Deploy:
-		return "Deploy"
-	default:
-		return "Unknown"
-	}
-}
 
 const (
 	InvalidTransactionSize = -1
@@ -89,22 +71,6 @@ type Transaction struct {
 	FeePerKB          Fixed64
 
 	hash *Uint256
-}
-
-func (tx *Transaction) String() string {
-	tx.Hash()
-	return "Transaction: {\n\t" +
-		"Hash: " + tx.hash.String() + "\n\t" +
-		"TxType: " + tx.TxType.Name() + "\n\t" +
-		"PayloadVersion: " + fmt.Sprint(tx.PayloadVersion) + "\n\t" +
-		"Payload: " + BytesToHexString(tx.Payload.Data(tx.PayloadVersion)) + "\n\t" +
-		"Attributes: " + fmt.Sprint(tx.Attributes) + "\n\t" +
-		"UTXOInputs: " + fmt.Sprint(tx.UTXOInputs) + "\n\t" +
-		"BalanceInputs: " + fmt.Sprint(tx.BalanceInputs) + "\n\t" +
-		"Outputs: " + fmt.Sprint(tx.Outputs) + "\n\t" +
-		"LockTime: " + fmt.Sprint(tx.LockTime) + "\n\t" +
-		"Programs: " + fmt.Sprint(tx.Programs) + "\n\t" +
-		"}\n"
 }
 
 //Serialize the Transaction
@@ -170,10 +136,7 @@ func (tx *Transaction) SerializeUnsigned(w io.Writer) error {
 	}
 	if len(tx.Outputs) > 0 {
 		for _, output := range tx.Outputs {
-			err = output.Serialize(w)
-			if err != nil {
-				return err
-			}
+			output.Serialize(w)
 		}
 	}
 
@@ -200,10 +163,7 @@ func (tx *Transaction) Deserialize(r io.Reader) error {
 	if lens > 0 {
 		for i := 0; i < int(lens); i++ {
 			outputHashes := new(program.Program)
-			err = outputHashes.Deserialize(r)
-			if err != nil {
-				return err
-			}
+			outputHashes.Deserialize(r)
 			programHashes = append(programHashes, outputHashes)
 		}
 		tx.Programs = programHashes
@@ -286,10 +246,8 @@ func (tx *Transaction) DeserializeUnsignedWithoutType(r io.Reader) error {
 	if Len > uint64(0) {
 		for i := uint64(0); i < Len; i++ {
 			output := new(TxOutput)
-			err = output.Deserialize(r)
-			if err != nil {
-				return err
-			}
+			output.Deserialize(r)
+
 			tx.Outputs = append(tx.Outputs, output)
 		}
 	}
@@ -342,7 +300,7 @@ func (tx *Transaction) GetProgramHashes() ([]Uint168, error) {
 			if err != nil {
 				return nil, errors.New("[Transaction], GetProgramHashes err.")
 			}
-			hashs = append(hashs, dataHash)
+			hashs = append(hashs, Uint168(dataHash))
 		}
 	}
 	switch tx.TxType {

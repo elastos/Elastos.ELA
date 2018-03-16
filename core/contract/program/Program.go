@@ -1,11 +1,9 @@
 package program
 
 import (
+	"Elastos.ELA/common/serialization"
 	"io"
 	"errors"
-
-	"Elastos.ELA/common"
-	"Elastos.ELA/common/serialization"
 )
 
 type Program struct {
@@ -14,13 +12,6 @@ type Program struct {
 
 	//the program code's parameter
 	Parameter []byte
-}
-
-func (self Program) String() string {
-	return "Program: {\n\t\t" +
-		"Code: " + common.BytesToHexString(self.Code) + "\n\t\t" +
-		"Parameter: " + common.BytesToHexString(self.Parameter) + "\n\t\t" +
-		"}"
 }
 
 //Serialize the Program

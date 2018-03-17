@@ -158,11 +158,11 @@ func (ap *AuxPow) Deserialize(r io.Reader) error {
 }
 
 func (ap *AuxPow) Check(hashAuxBlock Uint256, chainId int) bool {
-	if CheckMerkleBranch(ap.ParCoinbaseTx.Hash(), ap.ParCoinBaseMerkle, ap.ParMerkleIndex) != ap.ParBlockHeader.MerkleRoot {
+	auxRootHash := GetMerkleRoot(ap.ParCoinbaseTx.Hash(), ap.ParCoinBaseMerkle, ap.ParMerkleIndex)
+
+	if auxRootHash != ap.ParBlockHeader.MerkleRoot {
 		return false
 	}
-
-	auxRootHash := CheckMerkleBranch(hashAuxBlock, ap.AuxMerkleBranch, ap.AuxMerkleIndex)
 
 	script := ap.ParCoinbaseTx.TxIn[0].SignatureScript
 	scriptStr := hex.EncodeToString(script)
@@ -190,13 +190,13 @@ func (ap *AuxPow) Check(hashAuxBlock Uint256, chainId int) bool {
 		return false
 	}
 
-	size := binary.LittleEndian.Uint32(script[rootHashIndex/2 : rootHashIndex/2+4])
+	size := binary.LittleEndian.Uint32(script[rootHashIndex/2: rootHashIndex/2+4])
 	merkleHeight := len(ap.AuxMerkleBranch)
 	if size != uint32(1<<uint32(merkleHeight)) {
 		return false
 	}
 
-	nonce := binary.LittleEndian.Uint32(script[rootHashIndex/2+4 : rootHashIndex/2+8])
+	nonce := binary.LittleEndian.Uint32(script[rootHashIndex/2+4: rootHashIndex/2+8])
 	if ap.AuxMerkleIndex != GetExpectedIndex(nonce, chainId, merkleHeight) {
 		return false
 	}
@@ -204,20 +204,16 @@ func (ap *AuxPow) Check(hashAuxBlock Uint256, chainId int) bool {
 	return true
 }
 
-func CheckMerkleBranch(hash Uint256, merkleBranch []Uint256, index int) Uint256 {
+func GetMerkleRoot(hash Uint256, merkleBranch []Uint256, index int) Uint256 {
 	if index == -1 {
 		return Uint256{}
 	}
 	for _, it := range merkleBranch {
 		if (index & 1) == 1 {
-			temp := make([]uint8, 0)
-			temp = append(temp, it[:]...)
-			temp = append(temp, hash[:]...)
+			temp := append(it[:], hash[:]...)
 			hash = Uint256(sha256.Sum256(temp))
 		} else {
-			temp := make([]uint8, 0)
-			temp = append(temp, hash[:]...)
-			temp = append(temp, it[:]...)
+			temp := append(hash[:], it[:]...)
 			hash = Uint256(sha256.Sum256(temp))
 		}
 		index >>= 1

@@ -140,12 +140,12 @@ func Test_CheckMerkleBranch(t *testing.T) {
 		auxPath = append(auxPath, temp2)
 	}
 
-	res := CheckMerkleBranch(auxHash, auxPath, auxIdx)
+	res := GetMerkleRoot(auxHash, auxPath, auxIdx)
 	if reflect.DeepEqual(res[:], auxRoot[:]) != true {
 		t.Error("Test_CheckMerkleBranch fail.")
 	}
 
-	res = CheckMerkleBranch(auxRoot, []Uint256{}, 0)
+	res = GetMerkleRoot(auxRoot, []Uint256{}, 0)
 	if reflect.DeepEqual(res[:], auxRoot[:]) != true {
 		t.Error("Test_CheckMerkleBranch fail.")
 	}

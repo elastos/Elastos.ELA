@@ -363,14 +363,14 @@ func ToggleMining(param map[string]interface{}) map[string]interface{} {
 	if !checkParam(param, "mining") {
 		return ResponsePack(InvalidParams, "")
 	}
-
-	if param["mining"] == "start" {
+	action := param["mining"].(string)
+	if action == "start" {
 		go LocalPow.Start()
 	} else {
 		go LocalPow.Halt()
 	}
 
-	return ResponsePack(Success, "")
+	return ResponsePack(Success, "mining " + action + " success")
 }
 
 func ManualMining(param map[string]interface{}) map[string]interface{} {

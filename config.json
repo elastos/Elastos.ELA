@@ -12,7 +12,7 @@
     "HttpWsPort": 20335,
     "WsHeartbeatInterval": 60,
     "HttpJsonPort": 20336,
-    "NodePort": 30338,
+    "NodePort": 20338,
     "PrintLevel": 1,
     "IsTLS": false,
     "CertPath": "./sample-cert.pem",

@@ -280,7 +280,32 @@ func CheckTransactionBalance(Tx *tx.Transaction) error {
 
 func CheckAttributeProgram(txn *tx.Transaction) error {
 	//TODO: implement CheckAttributeProgram
+	for _, v := range txn.Outputs {
+		address, _ := v.ProgramHash.ToAddress()
+		prefix := address[0:1]
+		if (prefix != "E" && prefix != "8") && !InAddressList(address) {
+			return errors.New("invalid prefix " + prefix + " in address " + address)
+		}
+	}
 	return nil
+}
+
+func InAddressList(address string) bool {
+	addresses := [7]string{
+	"AY88Sf2PqvDwrPefskbpsLQjfRHG4C6XY7",
+	"AHC2skXznXvZFcv8jTdVy3qovLbZdDgEcZ",
+	"APP7fGVJkiCHhURuPotxKFXf5HjyvpH52r",
+	"AUtUKTsQVEAGjj4cE83jMQbsvyjqm3spNf",
+	"AexFnGMhF1EnACJkd7iKhh8eKG2qPJcDcf",
+	"AS3N7PWLPNARFBgkc9SW9qwiMqND17kSS7",
+	"AKLMhPk1CW9HsV6UW5bMLrqz2y1ZKHcrSn",
+	}
+	for _, v := range addresses {
+		if v == address {
+			return true
+		}
+	}
+	return false
 }
 
 func CheckTransactionSignature(txn *tx.Transaction) error {

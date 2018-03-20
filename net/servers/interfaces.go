@@ -25,102 +25,92 @@ var PreChainHeight uint64
 var PreTime int64
 var PreTransactionCount int
 
-func TransArrayByteToHexString(ptx *tx.Transaction) *Transactions {
+func GetTransactionInfo(txn *tx.Transaction) *TransactionInfo {
 
-	trans := new(Transactions)
-	trans.TxType = ptx.TxType
-	trans.PayloadVersion = ptx.PayloadVersion
-	trans.Payload = TransPayloadToHex(ptx.Payload)
+	trans := new(TransactionInfo)
+	trans.TxType = txn.TxType
+	trans.PayloadVersion = txn.PayloadVersion
+	trans.Payload = TransPayloadToHex(txn.Payload)
 
-	n := 0
-	trans.Attributes = make([]TxAttributeInfo, len(ptx.Attributes))
-	for _, v := range ptx.Attributes {
+	trans.Attributes = make([]TxAttributeInfo, len(txn.Attributes))
+	for n, v := range txn.Attributes {
 		trans.Attributes[n].Usage = v.Usage
 		trans.Attributes[n].Data = BytesToHexString(v.Data)
-		n++
 	}
 
-	n = 0
-	isCoinbase := ptx.IsCoinBaseTx()
-	reference, _ := ptx.GetReference()
-	trans.UTXOInputs = make([]UTXOTxInputInfo, len(ptx.UTXOInputs))
-	for _, v := range ptx.UTXOInputs {
-		trans.UTXOInputs[n].ReferTxID = BytesToHexString(v.ReferTxID.ToArrayReverse())
-		trans.UTXOInputs[n].ReferTxOutputIndex = v.ReferTxOutputIndex
-		trans.UTXOInputs[n].Sequence = v.Sequence
+	isCoinbase := txn.IsCoinBaseTx()
+	reference, _ := txn.GetReference()
+	trans.UTXOInputs = make([]UTXOTxInputInfo, len(txn.UTXOInputs))
+	for n, input := range txn.UTXOInputs {
+		trans.UTXOInputs[n].ReferTxID = BytesToHexString(input.ReferTxID.ToArrayReverse())
+		trans.UTXOInputs[n].ReferTxOutputIndex = input.ReferTxOutputIndex
+		trans.UTXOInputs[n].Sequence = input.Sequence
 		if isCoinbase {
 			trans.UTXOInputs[n].Address = ""
 			trans.UTXOInputs[n].Value = ""
 		} else {
-			prevOutput := reference[v]
+			prevOutput := reference[input]
 			trans.UTXOInputs[n].Address, _ = prevOutput.ProgramHash.ToAddress()
 			trans.UTXOInputs[n].Value = prevOutput.Value.String()
 		}
-		n++
 	}
 
-	n = 0
-	trans.BalanceInputs = make([]BalanceTxInputInfo, len(ptx.BalanceInputs))
-	for _, v := range ptx.BalanceInputs {
-		trans.BalanceInputs[n].AssetID = BytesToHexString(v.AssetID.ToArrayReverse())
-		trans.BalanceInputs[n].Value = v.Value
-		trans.BalanceInputs[n].ProgramHash = BytesToHexString(v.ProgramHash.ToArrayReverse())
-		n++
+	trans.BalanceInputs = make([]BalanceTxInputInfo, len(txn.BalanceInputs))
+	for n, input := range txn.BalanceInputs {
+		trans.BalanceInputs[n].AssetID = BytesToHexString(input.AssetID.ToArrayReverse())
+		trans.BalanceInputs[n].Value = input.Value
+		trans.BalanceInputs[n].ProgramHash = BytesToHexString(input.ProgramHash.ToArrayReverse())
 	}
 
-	n = 0
-	trans.Outputs = make([]TxoutputInfo, len(ptx.Outputs))
-	for _, v := range ptx.Outputs {
-		trans.Outputs[n].AssetID = BytesToHexString(v.AssetID.ToArrayReverse())
-		trans.Outputs[n].Value = v.Value.String()
-		address, _ := v.ProgramHash.ToAddress()
+	trans.Outputs = make([]TxoutputInfo, len(txn.Outputs))
+	for n, output := range txn.Outputs {
+		trans.Outputs[n].AssetID = BytesToHexString(output.AssetID.ToArrayReverse())
+		trans.Outputs[n].Value = output.Value.String()
+		address, _ := output.ProgramHash.ToAddress()
 		trans.Outputs[n].Address = address
-		trans.Outputs[n].OutputLock = v.OutputLock
-		n++
+		trans.Outputs[n].OutputLock = output.OutputLock
 	}
 
-	n = 0
-	trans.Programs = make([]ProgramInfo, len(ptx.Programs))
-	for _, v := range ptx.Programs {
-		trans.Programs[n].Code = BytesToHexString(v.Code)
-		trans.Programs[n].Parameter = BytesToHexString(v.Parameter)
-		n++
+	trans.Programs = make([]ProgramInfo, len(txn.Programs))
+	for n, program := range txn.Programs {
+		trans.Programs[n].Code = BytesToHexString(program.Code)
+		trans.Programs[n].Parameter = BytesToHexString(program.Parameter)
 	}
 
-	n = 0
-	trans.AssetOutputs = make([]TxoutputMap, len(ptx.AssetOutputs))
-	for k, v := range ptx.AssetOutputs {
+	n := 0
+	trans.AssetOutputs = make([]TxoutputMap, len(txn.AssetOutputs))
+	for k, outputs := range txn.AssetOutputs {
 		trans.AssetOutputs[n].Key = k
-		trans.AssetOutputs[n].Txout = make([]TxoutputInfo, len(v))
-		for m := 0; m < len(v); m++ {
-			trans.AssetOutputs[n].Txout[m].AssetID = BytesToHexString(v[m].AssetID.ToArrayReverse())
-			trans.AssetOutputs[n].Txout[m].Value = v[m].Value.String()
-			address, _ := v[m].ProgramHash.ToAddress()
+		trans.AssetOutputs[n].Txout = make([]TxoutputInfo, len(outputs))
+		for m := 0; m < len(outputs); m++ {
+			trans.AssetOutputs[n].Txout[m].AssetID = BytesToHexString(outputs[m].AssetID.ToArrayReverse())
+			trans.AssetOutputs[n].Txout[m].Value = outputs[m].Value.String()
+			address, _ := outputs[m].ProgramHash.ToAddress()
 			trans.AssetOutputs[n].Txout[m].Address = address
-			trans.AssetOutputs[n].Txout[m].OutputLock = v[m].OutputLock
+			trans.AssetOutputs[n].Txout[m].OutputLock = outputs[m].OutputLock
 		}
 		n += 1
 	}
 
-	trans.LockTime = ptx.LockTime
+	trans.LockTime = txn.LockTime
 
 	n = 0
-	trans.AssetInputAmount = make([]AmountMap, len(ptx.AssetInputAmount))
-	for k, v := range ptx.AssetInputAmount {
+	trans.AssetInputAmount = make([]AmountMap, len(txn.AssetInputAmount))
+	for k, amount := range txn.AssetInputAmount {
 		trans.AssetInputAmount[n].Key = k
-		trans.AssetInputAmount[n].Value = v
+		trans.AssetInputAmount[n].Value = amount
 		n += 1
 	}
 
 	n = 0
-	trans.AssetOutputAmount = make([]AmountMap, len(ptx.AssetOutputAmount))
-	for k, v := range ptx.AssetOutputAmount {
+	trans.AssetOutputAmount = make([]AmountMap, len(txn.AssetOutputAmount))
+	for k, amount := range txn.AssetOutputAmount {
 		trans.AssetInputAmount[n].Key = k
-		trans.AssetInputAmount[n].Value = v
+		trans.AssetInputAmount[n].Value = amount
 		n += 1
 	}
 
-	mHash := ptx.Hash()
+	mHash := txn.Hash()
 	trans.Hash = BytesToHexString(mHash.ToArrayReverse())
 
 	return trans
@@ -175,7 +165,7 @@ func GetRawTransaction(param map[string]interface{}) map[string]interface{} {
 	if err != nil {
 		return ResponsePack(UnknownTransaction, "")
 	}
-	tran := TransArrayByteToHexString(tx)
+	tran := GetTransactionInfo(tx)
 	tran.Timestamp = header.Blockdata.Timestamp
 	tran.Confirmations = ledger.DefaultLedger.Blockchain.GetBestHeight() - height + 1
 	w := bytes.NewBuffer(nil)
@@ -439,10 +429,10 @@ func GetCurrentHeight(param map[string]interface{}) map[string]interface{} {
 }
 
 func GetTransactionPool(param map[string]interface{}) map[string]interface{} {
-	txs := []*Transactions{}
+	txs := []*TransactionInfo{}
 	txpool := NodeForServers.GetTxnPool(false)
-	for _, t := range txpool {
-		txs = append(txs, TransArrayByteToHexString(t))
+	for _, tx := range txpool {
+		txs = append(txs, GetTransactionInfo(tx))
 	}
 	return ResponsePack(Success, txs)
 }
@@ -472,9 +462,9 @@ func GetBlockInfo(block *ledger.Block) BlockInfo {
 		Hash: BytesToHexString(hash.ToArrayReverse()),
 	}
 
-	trans := make([]*Transactions, len(block.Transactions))
+	trans := make([]*TransactionInfo, len(block.Transactions))
 	for i := 0; i < len(block.Transactions); i++ {
-		trans[i] = TransArrayByteToHexString(block.Transactions[i])
+		trans[i] = GetTransactionInfo(block.Transactions[i])
 		trans[i].Timestamp = block.Blockdata.Timestamp
 		trans[i].Confirmations = ledger.DefaultLedger.Blockchain.GetBestHeight() - block.Blockdata.Height + 1
 		w := bytes.NewBuffer(nil)
@@ -807,7 +797,7 @@ func GetTransactionByHash(param map[string]interface{}) map[string]interface{} {
 	if err != nil {
 		return ResponsePack(UnknownBlock, "")
 	}
-	t := TransArrayByteToHexString(txn)
+	t := GetTransactionInfo(txn)
 	t.Timestamp = header.Blockdata.Timestamp
 	t.Confirmations = ledger.DefaultLedger.Blockchain.GetBestHeight() - height + 1
 	w := bytes.NewBuffer(nil)

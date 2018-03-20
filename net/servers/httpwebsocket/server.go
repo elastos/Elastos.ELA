@@ -24,8 +24,6 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-var instance *WebSocketServer
-
 var (
 	PushBlockFlag    = true
 	PushRawBlockFlag = false
@@ -46,14 +44,17 @@ type WebSocketServer struct {
 }
 
 func StartServer() {
-	instance = &WebSocketServer{
+	server := &WebSocketServer{
 		Upgrader:    websocket.Upgrader{},
 		SessionList: &SessionList{OnlineList: make(map[string]*Session)},
 	}
-	instance.Start()
 
-	ledger.DefaultLedger.Blockchain.BCEvents.Subscribe(events.EventBlockPersistCompleted, SendBlock2WSclient)
-	ledger.DefaultLedger.Blockchain.BCEvents.Subscribe(events.EventNewTransactionPutInPool, SendTransaction2WSclient)
+	ledger.DefaultLedger.Blockchain.BCEvents.Subscribe(
+		events.EventBlockPersistCompleted, server.pushBlockToClients)
+	ledger.DefaultLedger.Blockchain.BCEvents.Subscribe(
+		events.EventNewTransactionPutInPool, server.pushNewTxToClients)
+
+	go server.Start()
 }
 
 func (server *WebSocketServer) Start() {
@@ -101,7 +102,7 @@ func (server *WebSocketServer) initializeMethods() {
 }
 
 func (server *WebSocketServer) hearBeat(cmd map[string]interface{}) map[string]interface{} {
-	return ResponsePack(Success, cmd["Userid"])
+	return ResponsePack(Success, cmd["UserId"])
 }
 
 func (server *WebSocketServer) getSessionCount(cmd map[string]interface{}) map[string]interface{} {
@@ -121,7 +122,7 @@ func (server *WebSocketServer) checkSessionsTimeout(done chan bool) {
 		case <-ticker.C:
 			var closeList []*Session
 			server.SessionList.ForEachSession(func(v *Session) {
-				if v.SessionTimeoverCheck() {
+				if v.IsTimeOut() {
 					resp := ResponsePack(SessionExpired, "")
 					server.response(v.SessionId, resp)
 					closeList = append(closeList, v)
@@ -134,7 +135,6 @@ func (server *WebSocketServer) checkSessionsTimeout(done chan bool) {
 			return
 		}
 	}
-
 }
 
 //webSocketHandler
@@ -147,22 +147,20 @@ func (server *WebSocketServer) webSocketHandler(w http.ResponseWriter, r *http.R
 	}
 	defer wsConn.Close()
 
-	newSession := &Session{
+	session := &Session{
 		Connection: wsConn,
 		LastActive: time.Now().Unix(),
 		SessionId:  uuid.NewUUID().String(),
 	}
-	server.SessionList.OnlineList[newSession.SessionId] = newSession
+	server.SessionList.OnlineList[session.SessionId] = session
 
-	defer func() {
-		server.SessionList.CloseSession(newSession)
-	}()
+	defer server.SessionList.CloseSession(session)
 
 	for {
 		_, bysMsg, err := wsConn.ReadMessage()
 		if err == nil {
-			if server.OnDataHandle(newSession, bysMsg, r) {
-				newSession.LastActive = time.Now().Unix()
+			if server.OnDataHandle(session, bysMsg, r) {
+				session.LastActive = time.Now().Unix()
 			}
 			continue
 		}
@@ -235,57 +233,33 @@ func (server *WebSocketServer) response(sessionId string, resp map[string]interf
 	server.SessionList.OnlineList[sessionId].Send(data)
 }
 
-func SendTransaction2WSclient(v interface{}) {
+func (server *WebSocketServer) pushNewTxToClients(v interface{}) {
 	if PushNewTxsFlag {
-		go func() {
-			instance.PushResult("sendnewtransaction", v)
-		}()
-	}
-}
-
-func SendBlock2WSclient(v interface{}) {
-	if PushBlockFlag {
-		go func() {
-			instance.PushResult("sendblock", v)
-		}()
-	}
-	if PushRawBlockFlag {
-		go func() {
-			instance.PushResult("sendrawblock", v)
-		}()
-	}
-	if PushBlockTxsFlag {
-		go func() {
-			instance.PushResult("sendblocktransactions", v)
-		}()
-	}
-}
-
-func (server *WebSocketServer) PushResult(action string, v interface{}) {
-	var result interface{}
-	switch action {
-	case "sendblock":
-		if block, ok := v.(*ledger.Block); ok {
-			result = GetBlockInfo(block)
-		}
-	case "sendrawblock":
-		if block, ok := v.(*ledger.Block); ok {
-			w := bytes.NewBuffer(nil)
-			block.Serialize(w)
-			result = BytesToHexString(w.Bytes())
-		}
-	case "sendblocktransactions":
-		if block, ok := v.(*ledger.Block); ok {
-			result = GetBlockTransactions(block)
-		}
-	case "sendnewtransaction":
 		if trx, ok := v.(*transaction.Transaction); ok {
-			result = TransArrayByteToHexString(trx)
+			go server.broadcast(GetTransactionInfo(trx))
 		}
-	default:
-		log.Error("httpwebsocket/server.go in pushresult function: unknown action")
 	}
+}
 
+func (server *WebSocketServer) pushBlockToClients(v interface{}) {
+	if block, ok := v.(*ledger.Block); ok {
+		if PushBlockFlag {
+			go server.broadcast(GetBlockInfo(block))
+		}
+		if PushRawBlockFlag {
+			go func() {
+				buf := new(bytes.Buffer)
+				block.Serialize(buf)
+				server.broadcast(BytesToHexString(buf.Bytes()))
+			}()
+		}
+		if PushBlockTxsFlag {
+			go server.broadcast(GetBlockTransactions(block))
+		}
+	}
+}
+
+func (server *WebSocketServer) broadcast(result interface{}) {
 	resp := ResponsePack(Success, result)
 
 	data, err := json.Marshal(resp)
@@ -293,14 +267,10 @@ func (server *WebSocketServer) PushResult(action string, v interface{}) {
 		log.Error("Websocket PushResult:", err)
 		return
 	}
-	server.broadcast(data)
-}
 
-func (server *WebSocketServer) broadcast(data []byte) error {
-	server.SessionList.ForEachSession(func(v *Session) {
-		v.Send(data)
+	server.SessionList.ForEachSession(func(session *Session) {
+		session.Send(data)
 	})
-	return nil
 }
 
 func (server *WebSocketServer) initTlsListen() (net.Listener, error) {

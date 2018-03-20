@@ -1,9 +1,12 @@
 package servers
 
 import (
+	"ELA/core/auxpow"
 	"bytes"
 	"fmt"
 	"time"
+
+	"strconv"
 
 	. "Elastos.ELA/common"
 	"Elastos.ELA/common/config"
@@ -12,7 +15,6 @@ import (
 	tx "Elastos.ELA/core/transaction"
 	"Elastos.ELA/core/transaction/payload"
 	. "Elastos.ELA/errors"
-	"strconv"
 )
 
 const (
@@ -245,7 +247,7 @@ func SubmitAuxBlock(param map[string]interface{}) map[string]interface{} {
 func GenerateAuxBlock(addr string) (*ledger.Block, string, bool) {
 	msgBlock := &ledger.Block{}
 
-	if NodeForServers.GetHeight() == 0 || PreChainHeight != NodeForServers.GetHeight() || (time.Now().Unix()-PreTime > AUXBLOCK_GENERATED_INTERVAL_SECONDS && Pow.GetTransactionCount() != PreTransactionCount) {
+	if NodeForServers.GetHeight() == 0 || PreChainHeight != NodeForServers.GetHeight() || (time.Now().Unix()-PreTime > AUXBLOCK_GENERATED_INTERVAL_SECONDS) {
 		if PreChainHeight != NodeForServers.GetHeight() {
 			PreChainHeight = NodeForServers.GetHeight()
 			PreTime = time.Now().Unix()
@@ -254,7 +256,7 @@ func GenerateAuxBlock(addr string) (*ledger.Block, string, bool) {
 
 		currentTxsCount := Pow.CollectTransactions(msgBlock)
 		if 0 == currentTxsCount {
-			return nil, "currentTxs is nil", false
+			// return nil, "currentTxs is nil", false
 		}
 
 		msgBlock, err := Pow.GenerateBlock(addr)
@@ -303,7 +305,7 @@ func CreateAuxBlock(param map[string]interface{}) map[string]interface{} {
 	preHashStr := BytesToHexString(preHash.ToArray())
 
 	SendToAux := AuxBlock{
-		ChainId:           1,
+		ChainId:           auxpow.AuxPowChainID,
 		Height:            NodeForServers.GetHeight(),
 		CoinBaseValue:     1,                                          //transaction content
 		Bits:              fmt.Sprintf("%x", msgBlock.Blockdata.Bits), //difficulty

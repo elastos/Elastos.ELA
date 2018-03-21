@@ -34,14 +34,14 @@ func (s Semaphore) release() { <-s }
 
 type node struct {
 	//sync.RWMutex	//The Lock not be used as expected to use function channel instead of lock
-	state    uint32   // node state
-	id       uint64   // The nodes's id
-	version  uint32   // The network protocol the node used
-	services uint64   // The services the node supplied
-	relay    bool     // The relay capability of the node (merge into capbility flag)
-	height   uint64   // The node latest block height
-	txnCnt   uint64   // The transactions be transmit by this node
-	rxTxnCnt uint64   // The transaction received by this node
+	state    uint32 // node state
+	id       uint64 // The nodes's id
+	version  uint32 // The network protocol the node used
+	services uint64 // The services the node supplied
+	relay    bool   // The relay capability of the node (merge into capbility flag)
+	height   uint64 // The node latest block height
+	txnCnt   uint64 // The transactions be transmit by this node
+	rxTxnCnt uint64 // The transaction received by this node
 	// TODO does this channel should be a buffer channel
 	chF   chan func() error // Channel used to operate the node without lock
 	link                    // The link status and infomation
@@ -164,7 +164,7 @@ func InitNode() Noder {
 
 	n.link.port = uint16(Parameters.NodePort)
 	n.relay = true
-	idHash := sha256.Sum256([]byte(IPv4Addr() + strconv.Itoa(Parameters.NodePort)))
+	idHash := sha256.Sum256([]byte(strconv.Itoa(int(time.Now().UnixNano()))))
 	binary.Read(bytes.NewBuffer(idHash[:8]), binary.LittleEndian, &(n.id))
 
 	log.Info(fmt.Sprintf("Init node ID to 0x%x", n.id))

@@ -158,20 +158,23 @@ func (ap *AuxPow) Deserialize(r io.Reader) error {
 }
 
 func (ap *AuxPow) Check(hashAuxBlock Uint256, chainId int) bool {
-	auxRootHash := GetMerkleRoot(ap.ParCoinbaseTx.Hash(), ap.ParCoinBaseMerkle, ap.ParMerkleIndex)
+	txMerkelRoot := GetMerkleRoot(ap.ParCoinbaseTx.Hash(), ap.ParCoinBaseMerkle, ap.ParMerkleIndex)
 
-	if auxRootHash != ap.ParBlockHeader.MerkleRoot {
+	if txMerkelRoot != ap.ParBlockHeader.MerkleRoot {
 		return false
 	}
 
-	hashAuxBlockBytes := hashAuxBlock.ToArrayReverse()
-	hashAuxBlockReverse, _ := Uint256ParseFromBytes(hashAuxBlockBytes)
-	auxRootHash := CheckMerkleBranch(hashAuxBlockReverse, ap.AuxMerkleBranch, ap.AuxMerkleIndex)
+	if len(ap.AuxMerkleBranch) > 0 {
+		hashAuxBlockBytes := hashAuxBlock.ToArrayReverse()
+		hashAuxBlock, _ = Uint256ParseFromBytes(hashAuxBlockBytes)
+	}
+
+	auxRootHashReverse := GetMerkleRoot(hashAuxBlock, ap.AuxMerkleBranch, ap.AuxMerkleIndex)
 
 	script := ap.ParCoinbaseTx.TxIn[0].SignatureScript
 	scriptStr := hex.EncodeToString(script)
 	//fixme reverse
-	auxRootHashStr := hex.EncodeToString(auxRootHash.ToArray())
+	auxRootHashStr := hex.EncodeToString(auxRootHashReverse.ToArray())
 	pchMergedMiningHeaderStr := hex.EncodeToString(pchMergedMiningHeader)
 
 	headerIndex := strings.Index(scriptStr, pchMergedMiningHeaderStr)
@@ -194,13 +197,13 @@ func (ap *AuxPow) Check(hashAuxBlock Uint256, chainId int) bool {
 		return false
 	}
 
-	size := binary.LittleEndian.Uint32(script[rootHashIndex/2: rootHashIndex/2+4])
+	size := binary.LittleEndian.Uint32(script[rootHashIndex/2 : rootHashIndex/2+4])
 	merkleHeight := len(ap.AuxMerkleBranch)
 	if size != uint32(1<<uint32(merkleHeight)) {
 		return false
 	}
 
-	nonce := binary.LittleEndian.Uint32(script[rootHashIndex/2+4: rootHashIndex/2+8])
+	nonce := binary.LittleEndian.Uint32(script[rootHashIndex/2+4 : rootHashIndex/2+8])
 	if ap.AuxMerkleIndex != GetExpectedIndex(nonce, chainId, merkleHeight) {
 		return false
 	}

@@ -127,6 +127,7 @@ func NewMsg(t string, n Noder) ([]byte, error) {
 
 // FIXME the length exceed int32 case?
 func HandleNodeMsg(node Noder, buf []byte, len int) error {
+	var err error
 	if len < MSGHDRLEN {
 		log.Warn("Unexpected size of received message")
 		return errors.New("Unexpected size of received message")
@@ -150,11 +151,14 @@ func HandleNodeMsg(node Noder, buf []byte, len int) error {
 		// Todo attach a node pointer to each message
 		// Todo drop the message when verify/deseria packet error
 		msg.Deserialization(buf[:len])
-		msg.Verify(buf[MSGHDRLEN:len])
+		err := msg.Verify(buf[MSGHDRLEN:len])
 
-		errr := msg.Handle(node)
+		if err != nil {
+			return err
+		}
+		err = msg.Handle(node)
 		node.LocalNode().RelSyncBlkReqSem()
-		return errr
+		return err
 	} else {
 		msg := AllocMsg(s, len)
 		if msg == nil {
@@ -166,19 +170,13 @@ func HandleNodeMsg(node Noder, buf []byte, len int) error {
 		msg.Deserialization(buf[:len])
 		msg.Verify(buf[MSGHDRLEN:len])
 
-		errr := msg.Handle(node)
-		return errr
-	}
-}
+		if err != nil {
+			return err
+		}
 
-func ValidMsgHdr(buf []byte) bool {
-	var h messageHeader
-	h.Deserialization(buf)
-	//TODO: verify hdr checksum
-	if h.Magic != config.Parameters.Magic {
-		return false
+		err := msg.Handle(node)
+		return err
 	}
-	return true
 }
 
 func PayloadLen(buf []byte) int {

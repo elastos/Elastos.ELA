@@ -349,9 +349,6 @@ func (node *node) GetLastRXTime() time.Time {
 
 func (node *node) Relay(frmnode Noder, message interface{}) error {
 	log.Debug()
-	if node.LocalNode().IsSyncHeaders() == true {
-		return nil
-	}
 	var buffer []byte
 	var err error
 	isHash := false

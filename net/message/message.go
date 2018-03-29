@@ -179,6 +179,17 @@ func HandleNodeMsg(node Noder, buf []byte, len int) error {
 	}
 }
 
+func ValidMsgHdr(buf []byte) bool {
+	var header messageHeader
+	header.Deserialization(buf)
+	if header.Magic != config.Parameters.Magic {
+		log.Error("unmatched magic.")
+		return false
+	}
+
+	return true
+}
+
 func PayloadLen(buf []byte) int {
 	var h messageHeader
 	h.Deserialization(buf)
@@ -195,10 +206,6 @@ func (hdr *messageHeader) init(cmd string, checksum []byte, length uint32) {
 // Verify the message header information
 // @p payload of the message
 func (hdr messageHeader) Verify(buf []byte) error {
-	if hdr.Magic != config.Parameters.Magic {
-		log.Error(fmt.Sprintf("Unmatched magic number 0x%0x", hdr.Magic))
-		return errors.New("Unmatched magic number")
-	}
 	t := sha256.Sum256(buf)
 	s := sha256.Sum256(t[:])
 	// Currently we only need the front 4 bytes as checksum

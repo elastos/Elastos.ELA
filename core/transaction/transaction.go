@@ -35,7 +35,7 @@ const (
 	// 1byte m || 3 encoded public keys with leading 0x40 (34 bytes * 3) ||
 	// 1byte n + 1byte OP_CHECKMULTISIG
 	// FIXME: if want to support 1/2 multisig
-	MinMultiSignCodeLength = 105
+	MinMultiSignCodeLength = 71
 )
 
 //Payload define the func for loading the payload data

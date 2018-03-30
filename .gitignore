@@ -18,4 +18,5 @@ Chain/*
 cscope*
 deps/
 /node
-/glide.lock
+glide.lock
+config.json

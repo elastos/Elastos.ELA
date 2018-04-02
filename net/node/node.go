@@ -181,6 +181,10 @@ func InitNode() Noder {
 	go n.updateConnection()
 	go n.updateNodeInfo()
 
+	//here, we connect the seeds, start the syncing block process and block the pow mining services.
+	// this is not a good design. We will fix it later.
+	n.ConnectSeeds()
+
 	return n
 }
 

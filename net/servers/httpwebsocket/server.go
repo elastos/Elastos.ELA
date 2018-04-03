@@ -4,7 +4,6 @@ import (
 	"net"
 	"sync"
 	"time"
-	"bytes"
 	"strconv"
 	"context"
 	"net/http"
@@ -12,7 +11,6 @@ import (
 	"encoding/json"
 
 	"Elastos.ELA/events"
-	. "Elastos.ELA/common"
 	. "Elastos.ELA/errors"
 	"Elastos.ELA/common/log"
 	"Elastos.ELA/core/ledger"
@@ -245,11 +243,11 @@ func SendTransaction2WSclient(v interface{}) {
 }
 
 func SendBlock2WSclient(v interface{}) {
-	if PushBlockFlag {
-		go func() {
-			instance.PushResult("sendblock", v)
-		}()
-	}
+	//if PushBlockFlag {
+	//	go func() {
+	//		instance.PushResult("sendblock", v)
+	//	}()
+	//}
 	if PushRawBlockFlag {
 		go func() {
 			instance.PushResult("sendrawblock", v)
@@ -265,16 +263,16 @@ func SendBlock2WSclient(v interface{}) {
 func (server *WebSocketServer) PushResult(action string, v interface{}) {
 	var result interface{}
 	switch action {
-	case "sendblock":
+	case "sendblock", "sendrawblock":
 		if block, ok := v.(*ledger.Block); ok {
 			result = GetBlockInfo(block)
 		}
-	case "sendrawblock":
-		if block, ok := v.(*ledger.Block); ok {
-			w := bytes.NewBuffer(nil)
-			block.Serialize(w)
-			result = BytesToHexString(w.Bytes())
-		}
+		//case "sendrawblock":
+		//	if block, ok := v.(*ledger.Block); ok {
+		//		w := bytes.NewBuffer(nil)
+		//		block.Serialize(w)
+		//		result = BytesToHexString(w.Bytes())
+		//	}
 	case "sendblocktransactions":
 		if block, ok := v.(*ledger.Block); ok {
 			result = GetBlockTransactions(block)

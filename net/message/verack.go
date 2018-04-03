@@ -9,7 +9,7 @@ import (
 )
 
 type verACK struct {
-	messageHeader
+	Header
 	// No payload
 }
 
@@ -18,9 +18,9 @@ func NewVerack() ([]byte, error) {
 	// Fixme the check is the []byte{0} instead of 0
 	var sum []byte
 	sum = []byte{0x5d, 0xf6, 0xe0, 0xe2}
-	msg.messageHeader.init("verack", sum, 0)
+	msg.Header.init("verack", sum, 0)
 
-	buf, err := msg.Serialization()
+	buf, err := msg.Serialize()
 	if err != nil {
 		return nil, err
 	}
@@ -51,7 +51,7 @@ func NewVerack() ([]byte, error) {
 // TODO The process should be adjusted based on above table
 func (msg verACK) Handle(node Noder) error {
 
-	s := node.GetState()
+	s := node.State()
 	if s != HandShake && s != HandShaked {
 		log.Warn("Unknow status to received verack")
 		return errors.New("Unknow status to received verack")
@@ -71,8 +71,8 @@ func (msg verACK) Handle(node Noder) error {
 	if node.LocalNode().NeedMoreAddresses() {
 		node.ReqNeighborList()
 	}
-	addr := node.GetAddr()
-	port := node.GetPort()
+	addr := node.Addr()
+	port := node.Port()
 	nodeAddr := addr + ":" + strconv.Itoa(int(port))
 	node.LocalNode().RemoveAddrInConnectingList(nodeAddr)
 	return nil

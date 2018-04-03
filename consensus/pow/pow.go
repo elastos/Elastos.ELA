@@ -52,7 +52,7 @@ type PowService struct {
 	logDictionary string
 	started       bool
 	manualMining  bool
-	localNet      protocol.Noder
+	localNode     protocol.Noder
 
 	blockPersistCompletedSubscriber events.Subscriber
 	RollbackTransactionSubscriber   events.Subscriber
@@ -62,13 +62,13 @@ type PowService struct {
 }
 
 func (pow *PowService) GetTransactionCount() int {
-	transactionsPool := pow.localNet.GetTxnPool(true)
+	transactionsPool := pow.localNode.GetTxnPool(true)
 	return len(transactionsPool)
 }
 
 func (pow *PowService) CollectTransactions(MsgBlock *ledger.Block) int {
 	txs := 0
-	transactionsPool := pow.localNet.GetTxnPool(true)
+	transactionsPool := pow.localNode.GetTxnPool(true)
 
 	for _, tx := range transactionsPool {
 		log.Trace(tx)
@@ -182,7 +182,7 @@ func (pow *PowService) GenerateBlock(addr string) (*ledger.Block, error) {
 	totalFee := int64(0)
 	var txPool txSorter
 	txPool = make([]*tx.Transaction, 0)
-	transactionsPool := pow.localNet.GetTxnPool(false)
+	transactionsPool := pow.localNode.GetTxnPool(false)
 	for _, v := range transactionsPool {
 		txPool = append(txPool, v)
 	}
@@ -312,8 +312,7 @@ func (pow *PowService) SolveBlock(MsgBlock *ledger.Block, ticker *time.Ticker) b
 }
 
 func (pow *PowService) BroadcastBlock(MsgBlock *ledger.Block) error {
-	pow.localNet.Xmit(MsgBlock)
-	return nil
+	return pow.localNode.Relay(nil, MsgBlock)
 }
 
 func (pow *PowService) Start() {
@@ -347,9 +346,9 @@ func (pow *PowService) Halt() {
 func (pow *PowService) RollbackTransaction(v interface{}) {
 	if block, ok := v.(*ledger.Block); ok {
 		for _, tx := range block.Transactions[1:] {
-			err := pow.localNet.MaybeAcceptTransaction(tx)
+			err := pow.localNode.MaybeAcceptTransaction(tx)
 			if err == nil {
-				pow.localNet.RemoveTransaction(tx)
+				pow.localNode.RemoveTransaction(tx)
 			} else {
 				log.Error(err)
 			}
@@ -361,21 +360,21 @@ func (pow *PowService) BlockPersistCompleted(v interface{}) {
 	log.Debug()
 	if block, ok := v.(*ledger.Block); ok {
 		log.Infof("persist block: %x", block.Hash())
-		err := pow.localNet.CleanSubmittedTransactions(block)
+		err := pow.localNode.CleanSubmittedTransactions(block)
 		if err != nil {
 			log.Warn(err)
 		}
-		pow.localNet.SetHeight(uint64(ledger.DefaultLedger.Blockchain.GetBestHeight()))
+		pow.localNode.SetHeight(uint64(ledger.DefaultLedger.Blockchain.GetBestHeight()))
 	}
 }
 
-func NewPowService(logDictionary string, localNet protocol.Noder) *PowService {
+func NewPowService(logDictionary string, localNode protocol.Noder) *PowService {
 	pow := &PowService{
 		PayToAddr:     config.Parameters.PowConfiguration.PayToAddr,
 		started:       false,
 		manualMining:  false,
 		MsgBlock:      msgBlock{BlockData: make(map[string]*ledger.Block)},
-		localNet:      localNet,
+		localNode:     localNode,
 		logDictionary: logDictionary,
 	}
 

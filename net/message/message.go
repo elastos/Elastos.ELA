@@ -1,26 +1,37 @@
 package message
 
 import (
-	"Elastos.ELA/common/config"
-	"Elastos.ELA/common/log"
-	. "Elastos.ELA/net/protocol"
 	"bytes"
 	"crypto/sha256"
 	"encoding/binary"
 	"encoding/hex"
 	"errors"
 	"fmt"
+
+	. "Elastos.ELA/common"
+	"Elastos.ELA/common/config"
+	"Elastos.ELA/common/log"
+	. "Elastos.ELA/net/protocol"
 )
 
 type Messager interface {
 	Verify([]byte) error
-	Serialization() ([]byte, error)
-	Deserialization([]byte) error
+	Serialize() ([]byte, error)
+	Deserialize([]byte) error
 	Handle(Noder) error
 }
 
+func BuildMessage(cmd string, body []byte) ([]byte, error) {
+	hdr, err := BuildHeader(cmd, body).Serialize()
+	if err != nil {
+		return nil, err
+	}
+
+	return append(hdr, body...), nil
+}
+
 // The network communication message header
-type messageHeader struct {
+type Header struct {
 	Magic uint32
 	//ID	 uint64
 	CMD      [MSGCMDLEN]byte // The message type
@@ -28,8 +39,25 @@ type messageHeader struct {
 	Checksum [CHECKSUMLEN]byte
 }
 
+func NewHeader(cmd string, checksum []byte, length int) *Header {
+	header := new(Header)
+	// Write Magic
+	header.Magic = config.Parameters.Magic
+	// Write CMD
+	copy(header.CMD[:len(cmd)], cmd)
+	// Write length
+	header.Length = uint32(length)
+	// Write checksum
+	copy(header.Checksum[:], checksum[:CHECKSUMLEN])
 
+	return header
+}
 
+func BuildHeader(cmd string, msg []byte) *Header {
+	// Calculate checksum
+	checksum := Sha256D(msg)
+	return NewHeader(cmd, checksum[:], len(msg))
+}
 
 // Alloc different message stucture
 // @t the message name or type
@@ -48,7 +76,7 @@ func AllocMsg(t string, length int) Messager {
 		return &msg
 	case "verack":
 		var msg verACK
-		copy(msg.messageHeader.CMD[0:len(t)], t)
+		copy(msg.Header.CMD[0:len(t)], t)
 		return &msg
 	case "getaddr":
 		var msg addrReq
@@ -56,6 +84,10 @@ func AllocMsg(t string, length int) Messager {
 		return &msg
 	case "addr":
 		var msg addr
+		copy(msg.CMD[0:len(t)], t)
+		return &msg
+	case "filterload":
+		var msg FilterLoad
 		copy(msg.CMD[0:len(t)], t)
 		return &msg
 	case "inv":
@@ -101,7 +133,7 @@ func AllocMsg(t string, length int) Messager {
 }
 
 func MsgType(buf []byte) (string, error) {
-	cmd := buf[CMDOFFSET : CMDOFFSET+MSGCMDLEN]
+	cmd := buf[CMDOFFSET: CMDOFFSET+MSGCMDLEN]
 	n := bytes.IndexByte(cmd, 0)
 	if n < 0 || n >= MSGCMDLEN {
 		return "", errors.New("Unexpected length of CMD command")
@@ -140,6 +172,13 @@ func HandleNodeMsg(node Noder, buf []byte, len int) error {
 		return err
 	}
 
+	log.Debug("Receive message type:", s)
+	if err := FilterMessage(node, s); err != nil {
+		log.Error("Filter message error:", err)
+		node.CloseConn()
+		return err
+	}
+
 	if s == "inv" || s == "block" {
 		node.LocalNode().AcqSyncBlkReqSem()
 		msg := AllocMsg(s, len)
@@ -149,7 +188,7 @@ func HandleNodeMsg(node Noder, buf []byte, len int) error {
 		}
 		// Todo attach a node pointer to each message
 		// Todo drop the message when verify/deseria packet error
-		msg.Deserialization(buf[:len])
+		msg.Deserialize(buf[:len])
 		msg.Verify(buf[MSGHDRLEN:len])
 
 		errr := msg.Handle(node)
@@ -163,7 +202,7 @@ func HandleNodeMsg(node Noder, buf []byte, len int) error {
 		}
 		// Todo attach a node pointer to each message
 		// Todo drop the message when verify/deseria packet error
-		msg.Deserialization(buf[:len])
+		msg.Deserialize(buf[:len])
 		msg.Verify(buf[MSGHDRLEN:len])
 
 		errr := msg.Handle(node)
@@ -172,8 +211,8 @@ func HandleNodeMsg(node Noder, buf []byte, len int) error {
 }
 
 func ValidMsgHdr(buf []byte) bool {
-	var h messageHeader
-	h.Deserialization(buf)
+	var h Header
+	h.Deserialize(buf)
 	//TODO: verify hdr checksum
 	if h.Magic != config.Parameters.Magic {
 		return false
@@ -182,12 +221,12 @@ func ValidMsgHdr(buf []byte) bool {
 }
 
 func PayloadLen(buf []byte) int {
-	var h messageHeader
-	h.Deserialization(buf)
+	var h Header
+	h.Deserialize(buf)
 	return int(h.Length)
 }
 
-func (hdr *messageHeader) init(cmd string, checksum []byte, length uint32) {
+func (hdr *Header) init(cmd string, checksum []byte, length uint32) {
 	hdr.Magic = config.Parameters.Magic
 	copy(hdr.CMD[0:uint32(len(cmd))], cmd)
 	copy(hdr.Checksum[:], checksum[:CHECKSUMLEN])
@@ -196,7 +235,7 @@ func (hdr *messageHeader) init(cmd string, checksum []byte, length uint32) {
 
 // Verify the message header information
 // @p payload of the message
-func (hdr messageHeader) Verify(buf []byte) error {
+func (hdr Header) Verify(buf []byte) error {
 	if hdr.Magic != config.Parameters.Magic {
 		log.Error(fmt.Sprintf("Unmatched magic number 0x%0x", hdr.Magic))
 		return errors.New("Unmatched magic number")
@@ -217,7 +256,7 @@ func (hdr messageHeader) Verify(buf []byte) error {
 	return nil
 }
 
-func (msg *messageHeader) Deserialization(p []byte) error {
+func (msg *Header) Deserialize(p []byte) error {
 
 	buf := bytes.NewBuffer(p[0:MSGHDRLEN])
 	err := binary.Read(buf, binary.LittleEndian, msg)
@@ -226,7 +265,7 @@ func (msg *messageHeader) Deserialization(p []byte) error {
 
 // FIXME how to avoid duplicate serial/deserial function as
 // most of them are the same
-func (hdr messageHeader) Serialization() ([]byte, error) {
+func (hdr Header) Serialize() ([]byte, error) {
 	var buf bytes.Buffer
 	err := binary.Write(&buf, binary.LittleEndian, hdr)
 	if err != nil {
@@ -236,6 +275,6 @@ func (hdr messageHeader) Serialization() ([]byte, error) {
 	return buf.Bytes(), err
 }
 
-func (hdr messageHeader) Handle(n Noder) error {
+func (hdr Header) Handle(n Noder) error {
 	return nil
 }

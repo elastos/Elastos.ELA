@@ -3,7 +3,6 @@ package crypto
 import (
 	. "Elastos.ELA/common"
 	"bytes"
-	"crypto/sha256"
 	"errors"
 )
 
@@ -23,9 +22,7 @@ func DoubleSHA256(s []Uint256) Uint256 {
 	for _, d := range s {
 		d.Serialize(b)
 	}
-	temp := sha256.Sum256(b.Bytes())
-	f := sha256.Sum256(temp[:])
-	return Uint256(f)
+	return Uint256(Sha256D(b.Bytes()))
 }
 
 func (t *MerkleTreeNode) IsLeaf() bool {

@@ -168,8 +168,8 @@ func VerifyAndSendTx(txn *tx.Transaction) ErrCode {
 		log.Info("[httpjsonrpc] VerifyTransaction failed when AppendToTxnPool.")
 		return errCode
 	}
-	if err := NodeForServers.Xmit(txn); err != nil {
-		log.Error("Xmit Tx Error:Xmit transaction failed.", err)
+	if err := NodeForServers.Relay(nil, txn); err != nil {
+		log.Error("Xmit Tx Error:Relay transaction failed.", err)
 		return ErrXmitFail
 	}
 	return Success

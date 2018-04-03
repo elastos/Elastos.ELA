@@ -72,10 +72,11 @@ func (b *Block) Deserialize(r io.Reader) error {
 		tharray = append(tharray, txhash)
 	}
 
-	b.Blockdata.TransactionsRoot, err = crypto.ComputeRoot(tharray)
+	merkleRoot, err := crypto.ComputeRoot(tharray)
 	if err != nil {
 		return errors.New("Block Deserialize merkleTree compute failed")
 	}
+	b.Blockdata.TransactionsRoot = merkleRoot
 
 	return nil
 }
@@ -116,10 +117,11 @@ func (b *Block) FromTrimmedData(r io.Reader) error {
 		tharray = append(tharray, txhash)
 	}
 
-	b.Blockdata.TransactionsRoot, err = crypto.ComputeRoot(tharray)
+	merkleRoot, err := crypto.ComputeRoot(tharray)
 	if err != nil {
 		return errors.New("Block Deserialize merkleTree compute failed")
 	}
+	b.Blockdata.TransactionsRoot = merkleRoot
 
 	return nil
 }

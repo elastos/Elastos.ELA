@@ -2,12 +2,10 @@ package transaction
 
 import (
 	"bytes"
-	"crypto/sha256"
 	"errors"
+	"fmt"
 	"io"
 	"sort"
-
-	"fmt"
 
 	. "Elastos.ELA/common"
 	"Elastos.ELA/common/serialization"
@@ -396,9 +394,8 @@ func (tx *Transaction) GetDataContent() []byte {
 
 func (tx *Transaction) Hash() Uint256 {
 	if tx.hash == nil {
-		temp := sha256.Sum256(tx.GetDataContent())
-		f := Uint256(sha256.Sum256(temp[:]))
-		tx.hash = &f
+		tx.hash = new(Uint256)
+		*tx.hash = Sha256D(tx.GetDataContent())
 	}
 	return *tx.hash
 

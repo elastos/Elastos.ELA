@@ -1,15 +1,17 @@
 package protocol
 
 import (
+	"bytes"
+	"encoding/binary"
+	"net"
+	"time"
+
 	"Elastos.ELA/common"
 	"Elastos.ELA/core/ledger"
 	"Elastos.ELA/core/transaction"
 	. "Elastos.ELA/errors"
 	"Elastos.ELA/events"
-	"bytes"
-	"encoding/binary"
-	"net"
-	"time"
+	"Elastos.ELA/bloom"
 )
 
 type NodeAddr struct {
@@ -33,15 +35,15 @@ const (
 )
 
 const (
-	MAXBUFLEN         = 1024 * 16 // Fixme The maximum buffer to receive message
-	PROTOCOLVERSION   = 0
-	KEEPALIVETIMEOUT  = 3
-	DIALTIMEOUT       = 6
-	CONNMONITOR       = 6
-	MAXSYNCHDRREQ     = 2 //Max Concurrent Sync Header Request
-	MaxOutBoundCount  = 8
-	DefaultMaxPeers   = 125
-	MAXIDCACHED       = 5000
+	MAXBUFLEN        = 1024 * 16 // Fixme The maximum buffer to receive message
+	PROTOCOLVERSION  = 1
+	KEEPALIVETIMEOUT = 3
+	DIALTIMEOUT      = 6
+	CONNMONITOR      = 6
+	MAXSYNCHDRREQ    = 2 //Max Concurrent Sync Header Request
+	MaxOutBoundCount = 8
+	DefaultMaxPeers  = 125
+	MAXIDCACHED      = 5000
 )
 
 // The node state
@@ -54,26 +56,32 @@ const (
 	Inactive   = 5
 )
 
+const (
+	SPVPort    = 20866
+	SPVService = 1 << 2
+)
+
 var ReceiveDuplicateBlockCnt uint64 //an index to detecting networking status
 
 type Noder interface {
 	Version() uint32
-	GetID() uint64
+	ID() uint64
 	Services() uint64
-	GetAddr() string
-	GetAddr16() ([16]byte, error)
-	GetPort() uint16
-	GetHttpInfoPort() int
+	Addr() string
+	Addr16() ([16]byte, error)
+	Port() uint16
+	LocalPort() uint16
+	HttpInfoPort() int
 	SetHttpInfoPort(uint16)
-	GetState() uint32
-	GetRelay() bool
+	State() uint32
+	IsRelay() bool
 	SetState(state uint32)
 	CompareAndSetState(old, new uint32) bool
 	LocalNode() Noder
 	DelNbrNode(id uint64) (Noder, bool)
 	AddNbrNode(Noder)
 	CloseConn()
-	GetHeight() uint64
+	Height() uint64
 	GetConnectionCnt() uint
 	GetConn() net.Conn
 	GetTxnPool(bool) map[common.Uint256]*transaction.Transaction
@@ -85,6 +93,8 @@ type Noder interface {
 		port uint16, nonce uint64, relay uint8, height uint64)
 	ConnectSeeds()
 	Connect(nodeAddr string) error
+	LoadFilter(filter *bloom.Filter)
+	GetFilter() *bloom.Filter
 	Tx(buf []byte)
 	GetTime() int64
 	NodeEstablished(uid uint64) bool
@@ -95,7 +105,6 @@ type Noder interface {
 	GetTxnCnt() uint64
 	GetRxTxnCnt() uint64
 
-	Xmit(interface{}) error
 	GetNeighborHeights() ([]uint64, uint64)
 	WaitForSyncFinish()
 	CleanSubmittedTransactions(block *ledger.Block) error

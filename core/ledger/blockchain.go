@@ -502,22 +502,22 @@ func (bc *Blockchain) RemoveBlockNode(node *BlockNode) error {
 // The returned node will be nil if the genesis block is passed.
 func (bc *Blockchain) GetPrevNodeFromBlock(block *Block) (*BlockNode, error) {
 	// Genesis block.
-	prevHash := &block.Blockdata.PrevBlockHash
+	prevHash := block.Blockdata.PrevBlockHash
 	if prevHash.CompareTo(zeroHash) == 0 {
 		return nil, nil
 	}
 
 	// Return the existing previous block node if it's already there.
 	//if bn, ok := bc.Index[*prevHash]; ok {
-	if bn, ok := bc.LookupNodeInIndex(prevHash); ok {
+	if bn, ok := bc.LookupNodeInIndex(&prevHash); ok {
 		return bn, nil
 	}
 
-	header, err := bc.GetHeader(*prevHash)
+	header, err := bc.GetHeader(prevHash)
 	if err != nil {
 		return nil, err
 	}
-	prevBlockNode, err := bc.LoadBlockNode(header.Blockdata, prevHash)
+	prevBlockNode, err := bc.LoadBlockNode(header.Blockdata, &prevHash)
 	if err != nil {
 		return nil, err
 	}

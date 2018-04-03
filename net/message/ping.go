@@ -12,14 +12,14 @@ import (
 )
 
 type ping struct {
-	messageHeader
+	Header
 	height uint64
 }
 
 func NewPingMsg() ([]byte, error) {
 	var msg ping
-	msg.messageHeader.Magic = config.Parameters.Magic
-	copy(msg.messageHeader.CMD[0:7], "ping")
+	msg.Header.Magic = config.Parameters.Magic
+	copy(msg.Header.CMD[0:7], "ping")
 	msg.height = uint64(ledger.DefaultLedger.Store.GetHeight())
 	tmpBuffer := bytes.NewBuffer([]byte{})
 	serialization.WriteUint64(tmpBuffer, msg.height)
@@ -33,10 +33,10 @@ func NewPingMsg() ([]byte, error) {
 	s2 := s[:]
 	s = sha256.Sum256(s2)
 	buf := bytes.NewBuffer(s[:4])
-	binary.Read(buf, binary.LittleEndian, &(msg.messageHeader.Checksum))
-	msg.messageHeader.Length = uint32(len(b.Bytes()))
+	binary.Read(buf, binary.LittleEndian, &(msg.Header.Checksum))
+	msg.Header.Length = uint32(len(b.Bytes()))
 
-	m, err := msg.Serialization()
+	m, err := msg.Serialize()
 	if err != nil {
 		log.Error("Error Convert net message ", err.Error())
 		return nil, err
@@ -55,8 +55,8 @@ func (msg ping) Handle(node Noder) error {
 	return err
 }
 
-func (msg ping) Serialization() ([]byte, error) {
-	hdrBuf, err := msg.messageHeader.Serialization()
+func (msg ping) Serialize() ([]byte, error) {
+	hdrBuf, err := msg.Header.Serialize()
 	if err != nil {
 		return nil, err
 	}
@@ -69,9 +69,9 @@ func (msg ping) Serialization() ([]byte, error) {
 
 }
 
-func (msg *ping) Deserialization(p []byte) error {
+func (msg *ping) Deserialize(p []byte) error {
 	buf := bytes.NewBuffer(p)
-	err := binary.Read(buf, binary.LittleEndian, &(msg.messageHeader))
+	err := binary.Read(buf, binary.LittleEndian, &(msg.Header))
 	if err != nil {
 		return err
 	}

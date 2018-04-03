@@ -12,7 +12,7 @@ import (
 )
 
 type notFound struct {
-	messageHeader
+	Header
 	hash common.Uint256
 }
 
@@ -22,7 +22,7 @@ func NewNotFound(hash common.Uint256) ([]byte, error) {
 	msg.hash = hash
 	msg.Magic = config.Parameters.Magic
 	cmd := "notfound"
-	copy(msg.messageHeader.CMD[0:len(cmd)], cmd)
+	copy(msg.Header.CMD[0:len(cmd)], cmd)
 	tmpBuffer := bytes.NewBuffer([]byte{})
 	msg.hash.Serialize(tmpBuffer)
 	p := new(bytes.Buffer)
@@ -36,10 +36,10 @@ func NewNotFound(hash common.Uint256) ([]byte, error) {
 	s = sha256.Sum256(s2)
 	buf := bytes.NewBuffer(s[:4])
 	binary.Read(buf, binary.LittleEndian, &(msg.Checksum))
-	msg.messageHeader.Length = uint32(len(p.Bytes()))
+	msg.Header.Length = uint32(len(p.Bytes()))
 	log.Debug("The message payload length is ", msg.Length)
 
-	m, err := msg.Serialization()
+	m, err := msg.Serialize()
 	if err != nil {
 		log.Error("Error Convert net message ", err.Error())
 		return nil, err
@@ -48,8 +48,8 @@ func NewNotFound(hash common.Uint256) ([]byte, error) {
 	return m, nil
 }
 
-func (msg notFound) Serialization() ([]byte, error) {
-	hdrBuf, err := msg.messageHeader.Serialization()
+func (msg notFound) Serialize() ([]byte, error) {
+	hdrBuf, err := msg.Header.Serialize()
 	if err != nil {
 		return nil, err
 	}
@@ -59,10 +59,10 @@ func (msg notFound) Serialization() ([]byte, error) {
 	return buf.Bytes(), err
 }
 
-func (msg *notFound) Deserialization(p []byte) error {
+func (msg *notFound) Deserialize(p []byte) error {
 	buf := bytes.NewBuffer(p)
 
-	err := binary.Read(buf, binary.LittleEndian, &(msg.messageHeader))
+	err := binary.Read(buf, binary.LittleEndian, &(msg.Header))
 	if err != nil {
 		log.Warn("Parse notfound message hdr error")
 		return errors.New("Parse notfound message hdr error")

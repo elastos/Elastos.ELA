@@ -2,18 +2,16 @@ package message
 
 import (
 	"Elastos.ELA/common"
-	"Elastos.ELA/common/config"
 	"Elastos.ELA/common/log"
 	"Elastos.ELA/core/ledger"
 	. "Elastos.ELA/net/protocol"
 	"bytes"
-	"crypto/sha256"
 	"encoding/binary"
 	"errors"
 )
 
 type block struct {
-	messageHeader
+	Header
 	blk ledger.Block
 	// TBD
 	//event *events.Event
@@ -64,48 +62,43 @@ func (msg block) Handle(node Noder) error {
 	return nil
 }
 
-func ReqBlkData(node Noder, hash common.Uint256) error {
-	node.LocalNode().AddRequestedBlock(hash)
-	var msg dataReq
-	msg.hash = hash
-	msg.messageHeader.Magic = config.Parameters.Magic
-	copy(msg.messageHeader.CMD[0:7], "getdata")
-	p := bytes.NewBuffer([]byte{})
-	msg.hash.Serialize(p)
-	s := sha256.Sum256(p.Bytes())
-	s2 := s[:]
-	s = sha256.Sum256(s2)
-	buf := bytes.NewBuffer(s[:4])
-	binary.Read(buf, binary.LittleEndian, &(msg.messageHeader.Checksum))
-	msg.messageHeader.Length = uint32(len(p.Bytes()))
-	log.Debug("The message payload length is ", msg.messageHeader.Length)
-
-	sendBuf, err := msg.Serialization()
+func NewBlockFromHash(hash common.Uint256) (*ledger.Block, error) {
+	bk, err := ledger.DefaultLedger.Store.GetBlock(hash)
 	if err != nil {
-		log.Error("Error Convert net message ", err.Error())
-		return err
+		log.Errorf("Get Block error: %s, block hash: %x", err.Error(), hash)
+		return nil, err
 	}
-
-	node.Tx(sendBuf)
-
-	return nil
+	return bk, nil
 }
 
-func (msg block) Serialization() ([]byte, error) {
-	hdrBuf, err := msg.messageHeader.Serialization()
+func NewBlock(bk *ledger.Block) ([]byte, error) {
+	log.Debug()
+	var msg block
+	msg.blk = *bk
+
+	body, err := msg.Serialize()
+	if err != nil {
+		log.Error("Error Convert net message ", err.Error())
+		return nil, err
+	}
+
+	return BuildMessage("block", body)
+}
+
+func (msg block) Serialize() ([]byte, error) {
+	buf := new(bytes.Buffer)
+	err := msg.blk.Serialize(buf)
 	if err != nil {
 		return nil, err
 	}
-	buf := bytes.NewBuffer(hdrBuf)
-	msg.blk.Serialize(buf)
 
-	return buf.Bytes(), err
+	return buf.Bytes(), nil
 }
 
-func (msg *block) Deserialization(p []byte) error {
+func (msg *block) Deserialize(p []byte) error {
 	buf := bytes.NewBuffer(p)
 
-	err := binary.Read(buf, binary.LittleEndian, &(msg.messageHeader))
+	err := binary.Read(buf, binary.LittleEndian, &(msg.Header))
 	if err != nil {
 		log.Warn("Parse block message hdr error")
 		return errors.New("Parse block message hdr error")

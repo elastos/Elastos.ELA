@@ -102,11 +102,11 @@ type BlockHead struct {
 }
 
 type BlockInfo struct {
-	Hash          string
-	BlockData     *BlockHead
-	Transactions  []*Transactions
-	Confirmations uint32
-	MinerInfo     string
+	Hash            string
+	BlockData       *BlockHead
+	Transactions    []*Transactions
+	Confirminations uint32
+	MinerInfo       string
 }
 
 type NodeInfo struct {
@@ -172,5 +172,6 @@ func ResponsePack(errCode ErrCode, result interface{}) map[string]interface{} {
 	if errCode != 0 && (result == "" || result == nil) {
 		result = ErrMap[errCode]
 	}
-	return map[string]interface{}{"Result": result, "Error": errCode}
+	desc := ErrMap[errCode]
+	return map[string]interface{}{"Result": result, "Error": errCode, "Desc": desc, "Version": "1.0.0"}
 }

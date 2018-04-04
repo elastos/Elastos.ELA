@@ -36,7 +36,7 @@ const (
 
 var ErrMap = map[ErrCode]string{
 	Error:                   "Unclassified error",
-	Success:                 "Success",
+	Success:                 "SUCCESS",
 	SessionExpired:          "Session expired",
 	IllegalDataFormat:       "Illegal Dataformat",
 	OauthTimeout:            "Connect to oauth timeout",

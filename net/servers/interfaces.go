@@ -482,11 +482,11 @@ func GetBlockInfo(block *ledger.Block) BlockInfo {
 
 	coinbasePd := block.Transactions[0].Payload.(*payload.CoinBase)
 	b := BlockInfo{
-		Hash:          BytesToHexString(hash.ToArrayReverse()),
-		BlockData:     blockHead,
-		Transactions:  trans,
-		Confirmations: ledger.DefaultLedger.Blockchain.GetBestHeight() - block.Blockdata.Height + 1,
-		MinerInfo:     string(coinbasePd.CoinbaseData),
+		Hash:            BytesToHexString(hash.ToArrayReverse()),
+		BlockData:       blockHead,
+		Transactions:    trans,
+		Confirminations: ledger.DefaultLedger.Blockchain.GetBestHeight() - block.Blockdata.Height + 1,
+		MinerInfo:       string(coinbasePd.CoinbaseData),
 	}
 	return b
 }

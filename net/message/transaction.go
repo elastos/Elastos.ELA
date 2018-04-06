@@ -1,45 +1,46 @@
 package message
 
 import (
-	"Elastos.ELA/common/config"
-	"Elastos.ELA/common/log"
-	"Elastos.ELA/core/transaction"
-	. "Elastos.ELA/errors"
-	. "Elastos.ELA/net/protocol"
 	"bytes"
 	"crypto/sha256"
 	"encoding/binary"
 	"errors"
+
+	. "github.com/elastos/Elastos.ELA.Utility/errors"
+	"github.com/elastos/Elastos.ELA/common/config"
+	"github.com/elastos/Elastos.ELA/common/log"
+	"github.com/elastos/Elastos.ELA/core/transaction"
+	. "github.com/elastos/Elastos.ELA/net/protocol"
 )
 
-// Transaction message
+// NodeTransaction message
 type trn struct {
 	messageHeader
 	// TBD
 	//txn []byte
-	txn transaction.Transaction
+	txn transaction.NodeTransaction
 	//hash common.Uint256
 }
 
 func (msg trn) Handle(node Noder) error {
 	log.Debug()
-	log.Debug("RX Transaction message")
+	log.Debug("RX NodeTransaction message")
 	tx := &msg.txn
 	if !node.LocalNode().ExistedID(tx.Hash()) {
 		if errCode := node.LocalNode().AppendToTxnPool(&(msg.txn)); errCode != Success {
 			return errors.New("[message] VerifyTransaction failed when AppendToTxnPool.")
 		}
 		node.LocalNode().Relay(node, tx)
-		log.Info("Relay Transaction")
+		log.Info("Relay NodeTransaction")
 		node.LocalNode().IncRxTxnCnt()
-		log.Debug("RX Transaction message hash", msg.txn.Hash())
-		log.Debug("RX Transaction message type", msg.txn.TxType)
+		log.Debug("RX NodeTransaction message hash", msg.txn.Hash())
+		log.Debug("RX NodeTransaction message type", msg.txn.TxType)
 	}
 
 	return nil
 }
 
-func NewTxn(txn *transaction.Transaction) ([]byte, error) {
+func NewTxn(txn *transaction.NodeTransaction) ([]byte, error) {
 	log.Debug()
 	var msg trn
 

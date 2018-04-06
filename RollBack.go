@@ -1,12 +1,12 @@
 package main
 
 import (
-	"Elastos.ELA/common"
-	"Elastos.ELA/common/serialization"
-	"Elastos.ELA/core/store/ChainStore"
-	"Elastos.ELA/core/store/LevelDBStore"
 	"bytes"
 	"fmt"
+	"github.com/elastos/Elastos.ELA.Utility/common"
+	"github.com/elastos/Elastos.ELA.Utility/common/serialization"
+	"github.com/elastos/Elastos.ELA/core/store/ChainStore"
+	"github.com/elastos/Elastos.ELA/core/store/LevelDBStore"
 	"os"
 	"strconv"
 )

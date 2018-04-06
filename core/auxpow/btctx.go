@@ -1,12 +1,13 @@
 package auxpow
 
 import (
-	. "Elastos.ELA/common"
-	"Elastos.ELA/common/serialization"
 	"bytes"
 	"crypto/sha256"
 	"encoding/binary"
 	"io"
+
+	. "github.com/elastos/Elastos.ELA.Utility/common"
+	"github.com/elastos/Elastos.ELA.Utility/common/serialization"
 )
 
 type BtcOutPoint struct {

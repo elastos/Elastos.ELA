@@ -1,10 +1,11 @@
 package ledger
 
 import (
-	. "Elastos.ELA/common"
-	"Elastos.ELA/core/asset"
-	tx "Elastos.ELA/core/transaction"
 	"errors"
+
+	. "github.com/elastos/Elastos.ELA.Utility/common"
+	"github.com/elastos/Elastos.ELA.Utility/core/asset"
+	tx "github.com/elastos/Elastos.ELA/core/transaction"
 )
 
 const (
@@ -20,7 +21,7 @@ type Ledger struct {
 }
 
 //check weather the transaction contains the doubleSpend.
-func (l *Ledger) IsDoubleSpend(Tx *tx.Transaction) bool {
+func (l *Ledger) IsDoubleSpend(Tx *tx.NodeTransaction) bool {
 	return DefaultLedger.Store.IsDoubleSpend(Tx)
 }
 
@@ -64,7 +65,7 @@ func (l *Ledger) BlockInLedger(hash Uint256) bool {
 }
 
 //Get transaction with hash.
-func (l *Ledger) GetTransactionWithHash(hash Uint256) (*tx.Transaction, error) {
+func (l *Ledger) GetTransactionWithHash(hash Uint256) (*tx.NodeTransaction, error) {
 	tx, _, err := l.Store.GetTransaction(hash)
 	if err != nil {
 		return nil, errors.New("[Ledger],GetTransactionWithHash failed with hash=" + hash.String())

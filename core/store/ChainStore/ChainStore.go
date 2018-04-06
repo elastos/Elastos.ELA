@@ -1,23 +1,24 @@
 package ChainStore
 
 import (
+	"bytes"
+	"container/list"
+	"errors"
 	"fmt"
 	"sync"
 	"time"
-	"bytes"
-	"errors"
-	"container/list"
 
-	"Elastos.ELA/events"
-	. "Elastos.ELA/common"
-	"Elastos.ELA/common/log"
-	. "Elastos.ELA/core/asset"
-	. "Elastos.ELA/core/store"
-	. "Elastos.ELA/core/ledger"
-	tx "Elastos.ELA/core/transaction"
-	"Elastos.ELA/common/serialization"
-	"Elastos.ELA/core/contract/program"
-	. "Elastos.ELA/core/store/LevelDBStore"
+	. "github.com/elastos/Elastos.ELA.Utility/common"
+	"github.com/elastos/Elastos.ELA.Utility/common/serialization"
+	. "github.com/elastos/Elastos.ELA.Utility/core/asset"
+	"github.com/elastos/Elastos.ELA.Utility/core/contract/program"
+	uti_tx "github.com/elastos/Elastos.ELA.Utility/core/transaction"
+	"github.com/elastos/Elastos.ELA/common/log"
+	. "github.com/elastos/Elastos.ELA/core/ledger"
+	. "github.com/elastos/Elastos.ELA/core/store"
+	. "github.com/elastos/Elastos.ELA/core/store/LevelDBStore"
+	tx "github.com/elastos/Elastos.ELA/core/transaction"
+	"github.com/elastos/Elastos.ELA/events"
 )
 
 const TaskChanCap = 4
@@ -226,7 +227,7 @@ func (bd *ChainStore) IsTxHashDuplicate(txhash Uint256) bool {
 	}
 }
 
-func (bd *ChainStore) IsDoubleSpend(txn *tx.Transaction) bool {
+func (bd *ChainStore) IsDoubleSpend(txn *tx.NodeTransaction) bool {
 	if len(txn.UTXOInputs) == 0 {
 		return false
 	}
@@ -383,7 +384,7 @@ func (bd *ChainStore) GetAsset(hash Uint256) (*Asset, error) {
 	return asset, nil
 }
 
-func (bd *ChainStore) GetTransaction(hash Uint256) (*tx.Transaction, uint32, error) {
+func (bd *ChainStore) GetTransaction(hash Uint256) (*tx.NodeTransaction, uint32, error) {
 	key := append([]byte{byte(DATA_Transaction)}, hash.ToArray()...)
 	value, err := bd.Get(key)
 	if err != nil {
@@ -396,7 +397,7 @@ func (bd *ChainStore) GetTransaction(hash Uint256) (*tx.Transaction, uint32, err
 		return nil, 0, err
 	}
 
-	var txn tx.Transaction
+	var txn tx.NodeTransaction
 	if err := txn.Deserialize(r); err != nil {
 		return nil, height, err
 	}
@@ -404,7 +405,7 @@ func (bd *ChainStore) GetTransaction(hash Uint256) (*tx.Transaction, uint32, err
 	return &txn, height, nil
 }
 
-func (bd *ChainStore) PersistTransaction(tx *tx.Transaction, height uint32) error {
+func (bd *ChainStore) PersistTransaction(tx *tx.NodeTransaction, height uint32) error {
 	//////////////////////////////////////////////////////////////
 	// generate key with DATA_Transaction prefix
 	txhash := bytes.NewBuffer(nil)
@@ -630,7 +631,7 @@ func (bd *ChainStore) BlockInCache(hash Uint256) bool {
 	return false
 }
 
-func (bd *ChainStore) GetUnspent(txid Uint256, index uint16) (*tx.TxOutput, error) {
+func (bd *ChainStore) GetUnspent(txid Uint256, index uint16) (*uti_tx.TxOutput, error) {
 	if ok, _ := bd.ContainsUnspent(txid, index); ok {
 		Tx, _, err := bd.GetTransaction(txid)
 		if err != nil {

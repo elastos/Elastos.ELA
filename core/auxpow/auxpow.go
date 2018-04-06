@@ -7,8 +7,8 @@ import (
 	"io"
 	"strings"
 
-	. "Elastos.ELA/common"
-	"Elastos.ELA/common/serialization"
+	. "github.com/elastos/Elastos.ELA.Utility/common"
+	"github.com/elastos/Elastos.ELA.Utility/common/serialization"
 )
 
 var (

@@ -1,15 +1,16 @@
 package servers
 
 import (
-	. "Elastos.ELA/common"
-	"Elastos.ELA/common/log"
-	"Elastos.ELA/consensus/pow"
-	"Elastos.ELA/core/asset"
-	. "Elastos.ELA/core/transaction"
-	tx "Elastos.ELA/core/transaction"
-	"Elastos.ELA/core/transaction/payload"
-	. "Elastos.ELA/errors"
-	. "Elastos.ELA/net/protocol"
+	. "github.com/elastos/Elastos.ELA.Utility/common"
+	"github.com/elastos/Elastos.ELA.Utility/core/asset"
+	. "github.com/elastos/Elastos.ELA.Utility/core/transaction"
+	uti_payload "github.com/elastos/Elastos.ELA.Utility/core/transaction/payload"
+	. "github.com/elastos/Elastos.ELA.Utility/errors"
+	"github.com/elastos/Elastos.ELA/common/log"
+	"github.com/elastos/Elastos.ELA/consensus/pow"
+	tx "github.com/elastos/Elastos.ELA/core/transaction"
+	"github.com/elastos/Elastos.ELA/core/transaction/payload"
+	. "github.com/elastos/Elastos.ELA/net/protocol"
 )
 
 const TlsPort = 443
@@ -124,7 +125,7 @@ type NodeInfo struct {
 
 type ArbitratorGroupInfo struct {
 	OnDutyArbitratorIndex int
-	Arbitrators []string
+	Arbitrators           []string
 }
 
 type PayloadInfo interface{}
@@ -153,11 +154,11 @@ type WithdrawTokenInfo struct {
 
 func TransPayloadToHex(p Payload) PayloadInfo {
 	switch object := p.(type) {
-	case *payload.CoinBase:
+	case *uti_payload.CoinBase:
 		obj := new(CoinbaseInfo)
 		obj.CoinbaseData = string(object.CoinbaseData)
 		return obj
-	case *payload.RegisterAsset:
+	case *uti_payload.RegisterAsset:
 		obj := new(RegisterAssetInfo)
 		obj.Asset = object.Asset
 		obj.Amount = object.Amount.String()
@@ -175,14 +176,14 @@ func TransPayloadToHex(p Payload) PayloadInfo {
 		obj := new(TransferCrossChainAssetInfo)
 		obj.AddressesMap = object.AddressesMap
 		return obj
-	case *payload.TransferAsset:
-	case *payload.Record:
-	case *payload.DeployCode:
+	case *uti_payload.TransferAsset:
+	case *uti_payload.Record:
+	case *uti_payload.DeployCode:
 	}
 	return nil
 }
 
-func VerifyAndSendTx(txn *tx.Transaction) ErrCode {
+func VerifyAndSendTx(txn *tx.NodeTransaction) ErrCode {
 	// if transaction is verified unsucessfully then will not put it into transaction pool
 	if errCode := NodeForServers.AppendToTxnPool(txn); errCode != Success {
 		log.Warn("Can NOT add the transaction to TxnPool")

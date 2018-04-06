@@ -1,15 +1,15 @@
 package httpjsonrpc
 
 import (
-	"strconv"
 	"net/http"
+	"strconv"
 
-	"Elastos.ELA/common/log"
-	. "Elastos.ELA/common/config"
-	. "Elastos.ELA/net/servers"
-	"io/ioutil"
 	"encoding/json"
-	"Elastos.ELA/errors"
+	"github.com/elastos/Elastos.ELA.Utility/errors"
+	. "github.com/elastos/Elastos.ELA/common/config"
+	"github.com/elastos/Elastos.ELA/common/log"
+	. "github.com/elastos/Elastos.ELA/net/servers"
+	"io/ioutil"
 )
 
 //an instance of the multiplexer
@@ -96,7 +96,6 @@ func Handle(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-
 	response := function(params)
 	data, err := json.Marshal(map[string]interface{}{
 		"jsonpc": "2.0",
@@ -152,7 +151,7 @@ func Error(w http.ResponseWriter, code errors.ErrCode, method interface{}) {
 	w.Write(data)
 }
 
-func fixAuxInterfaces(request map[string]interface{}) map[string]interface{}{
+func fixAuxInterfaces(request map[string]interface{}) map[string]interface{} {
 	method := request["method"].(string)
 	params := request["params"].([]interface{})
 	if method == "createauxblock" {

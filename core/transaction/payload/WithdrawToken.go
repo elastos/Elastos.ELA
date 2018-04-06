@@ -1,9 +1,10 @@
 package payload
 
 import (
-	"Elastos.ELA/common/serialization"
 	"errors"
 	"io"
+
+	"github.com/elastos/Elastos.ELA.Utility/common/serialization"
 )
 
 const WithdrawTokenPayloadVersion byte = 0x00

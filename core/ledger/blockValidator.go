@@ -1,18 +1,18 @@
 package ledger
 
 import (
-	. "Elastos.ELA/common"
-	"Elastos.ELA/common/config"
-	"Elastos.ELA/core/auxpow"
-	tx "Elastos.ELA/core/transaction"
-	"Elastos.ELA/crypto"
-	. "Elastos.ELA/errors"
-
 	"errors"
 	"fmt"
 	"math"
 	"math/big"
 	"time"
+
+	. "github.com/elastos/Elastos.ELA.Utility/common"
+	"github.com/elastos/Elastos.ELA.Utility/crypto"
+	. "github.com/elastos/Elastos.ELA.Utility/errors"
+	"github.com/elastos/Elastos.ELA/common/config"
+	"github.com/elastos/Elastos.ELA/core/auxpow"
+	tx "github.com/elastos/Elastos.ELA/core/transaction"
 )
 
 const (
@@ -141,7 +141,6 @@ func PowCheckBlockContext(block *Block, prevNode *BlockNode, ledger *Ledger) err
 		}
 	}
 
-
 	// for _, txVerify := range block.Transactions {
 	// 	if errCode := CheckTransactionContext(txVerify, ledger); errCode != ErrNoError {
 	// 		fmt.Println("CheckTransactionContext failed when verifiy block", errCode)
@@ -177,7 +176,7 @@ func CheckProofOfWork(bd *Blockdata, powLimit *big.Int) error {
 	return nil
 }
 
-func IsFinalizedTransaction(msgTx *tx.Transaction, blockHeight uint32) bool {
+func IsFinalizedTransaction(msgTx *tx.NodeTransaction, blockHeight uint32) bool {
 	// Lock time of zero means the transaction is finalized.
 	lockTime := msgTx.LockTime
 	if lockTime == 0 {

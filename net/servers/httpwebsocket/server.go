@@ -1,27 +1,27 @@
 package httpwebsocket
 
 import (
-	"net"
-	"sync"
-	"time"
 	"bytes"
-	"strconv"
 	"context"
-	"net/http"
 	"crypto/tls"
 	"encoding/json"
+	"net"
+	"net/http"
+	"strconv"
+	"sync"
+	"time"
 
-	"Elastos.ELA/events"
-	. "Elastos.ELA/common"
-	. "Elastos.ELA/errors"
-	"Elastos.ELA/common/log"
-	"Elastos.ELA/core/ledger"
-	. "Elastos.ELA/net/servers"
-	. "Elastos.ELA/common/config"
-	"Elastos.ELA/core/transaction"
+	. "github.com/elastos/Elastos.ELA.Utility/common"
+	. "github.com/elastos/Elastos.ELA.Utility/errors"
+	. "github.com/elastos/Elastos.ELA/common/config"
+	"github.com/elastos/Elastos.ELA/common/log"
+	"github.com/elastos/Elastos.ELA/core/ledger"
+	"github.com/elastos/Elastos.ELA/core/transaction"
+	"github.com/elastos/Elastos.ELA/events"
+	. "github.com/elastos/Elastos.ELA/net/servers"
 
-	"github.com/pborman/uuid"
 	"github.com/gorilla/websocket"
+	"github.com/pborman/uuid"
 )
 
 var instance *WebSocketServer
@@ -279,7 +279,7 @@ func (server *WebSocketServer) PushResult(action string, v interface{}) {
 			result = GetBlockTransactions(block)
 		}
 	case "sendnewtransaction":
-		if trx, ok := v.(*transaction.Transaction); ok {
+		if trx, ok := v.(*transaction.NodeTransaction); ok {
 			result = TransArrayByteToHexString(trx)
 		}
 	default:

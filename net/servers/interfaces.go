@@ -7,14 +7,14 @@ import (
 
 	"strconv"
 
-	. "Elastos.ELA/common"
-	"Elastos.ELA/common/config"
-	"Elastos.ELA/common/log"
-	"Elastos.ELA/core/auxpow"
-	"Elastos.ELA/core/ledger"
-	tx "Elastos.ELA/core/transaction"
-	"Elastos.ELA/core/transaction/payload"
-	. "Elastos.ELA/errors"
+	. "github.com/elastos/Elastos.ELA.Utility/common"
+	"github.com/elastos/Elastos.ELA.Utility/core/transaction/payload"
+	. "github.com/elastos/Elastos.ELA.Utility/errors"
+	"github.com/elastos/Elastos.ELA/common/config"
+	"github.com/elastos/Elastos.ELA/common/log"
+	"github.com/elastos/Elastos.ELA/core/auxpow"
+	"github.com/elastos/Elastos.ELA/core/ledger"
+	tx "github.com/elastos/Elastos.ELA/core/transaction"
 )
 
 const (
@@ -25,7 +25,7 @@ var PreChainHeight uint64
 var PreTime int64
 var PreTransactionCount int
 
-func TransArrayByteToHexString(ptx *tx.Transaction) *Transactions {
+func TransArrayByteToHexString(ptx *tx.NodeTransaction) *Transactions {
 
 	trans := new(Transactions)
 	trans.TxType = ptx.TxType
@@ -535,7 +535,7 @@ func SendRawTransaction(param map[string]interface{}) map[string]interface{} {
 	if err != nil {
 		return ResponsePack(InvalidParams, "")
 	}
-	var txn tx.Transaction
+	var txn tx.NodeTransaction
 	if err := txn.Deserialize(bytes.NewReader(bys)); err != nil {
 		return ResponsePack(InvalidTransaction, "")
 	}
@@ -666,9 +666,9 @@ func GetArbitratorGroupByHeight(param map[string]interface{}) map[string]interfa
 		arbitrators = append(arbitrators, BytesToHexString(data))
 	}
 
-	result := ArbitratorGroupInfo {
-		OnDutyArbitratorIndex:index,
-		Arbitrators: arbitrators,
+	result := ArbitratorGroupInfo{
+		OnDutyArbitratorIndex: index,
+		Arbitrators:           arbitrators,
 	}
 
 	return ResponsePack(Success, result)
@@ -817,7 +817,7 @@ func GetUnspendOutput(param map[string]interface{}) map[string]interface{} {
 	return ResponsePack(Success, UTXOoutputs)
 }
 
-//Transaction
+//NodeTransaction
 func GetTransactionByHash(param map[string]interface{}) map[string]interface{} {
 	if !checkParam(param, "hash") {
 		return ResponsePack(InvalidParams, "")

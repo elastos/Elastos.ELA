@@ -705,12 +705,11 @@ func GetBalanceByAddr(param map[string]interface{}) map[string]interface{} {
 		return ResponsePack(InvalidParams, "")
 	}
 
-	var programHash Uint168
-	programHash, err := Uint68FromAddress(param["addr"].(string))
+	programHash, err := Uint168FromAddress(param["addr"].(string))
 	if err != nil {
 		return ResponsePack(InvalidParams, "")
 	}
-	unspends, err := ledger.DefaultLedger.Store.GetUnspentsFromProgramHash(programHash)
+	unspends, err := ledger.DefaultLedger.Store.GetUnspentsFromProgramHash(*programHash)
 	var balance Fixed64 = 0
 	for _, u := range unspends {
 		for _, v := range u {
@@ -725,12 +724,12 @@ func GetBalanceByAsset(param map[string]interface{}) map[string]interface{} {
 		return ResponsePack(InvalidParams, "")
 	}
 
-	programHash, err := Uint68FromAddress(param["addr"].(string))
+	programHash, err := Uint168FromAddress(param["addr"].(string))
 	if err != nil {
 		return ResponsePack(InvalidParams, "")
 	}
 
-	unspends, err := ledger.DefaultLedger.Store.GetUnspentsFromProgramHash(programHash)
+	unspends, err := ledger.DefaultLedger.Store.GetUnspentsFromProgramHash(*programHash)
 	var balance Fixed64 = 0
 	for k, u := range unspends {
 		assid := BytesToHexString(k.ToArrayReverse())
@@ -747,9 +746,8 @@ func GetUnspends(param map[string]interface{}) map[string]interface{} {
 	if !checkParam(param, "addr") {
 		return ResponsePack(InvalidParams, "")
 	}
-	var programHash Uint168
 
-	programHash, err := Uint68FromAddress(param["addr"].(string))
+	programHash, err := Uint168FromAddress(param["addr"].(string))
 	if err != nil {
 		return ResponsePack(InvalidParams, "")
 	}
@@ -764,7 +762,7 @@ func GetUnspends(param map[string]interface{}) map[string]interface{} {
 		Utxo      []UTXOUnspentInfo
 	}
 	var results []Result
-	unspends, err := ledger.DefaultLedger.Store.GetUnspentsFromProgramHash(programHash)
+	unspends, err := ledger.DefaultLedger.Store.GetUnspentsFromProgramHash(*programHash)
 
 	for k, u := range unspends {
 		assetid := BytesToHexString(k.ToArrayReverse())
@@ -787,7 +785,7 @@ func GetUnspendOutput(param map[string]interface{}) map[string]interface{} {
 
 	}
 
-	programHash, err := Uint68FromAddress(param["addr"].(string))
+	programHash, err := Uint168FromAddress(param["addr"].(string))
 	if err != nil {
 		return ResponsePack(InvalidParams, "")
 	}
@@ -805,7 +803,7 @@ func GetUnspendOutput(param map[string]interface{}) map[string]interface{} {
 		Index uint32
 		Value string
 	}
-	infos, err := ledger.DefaultLedger.Store.GetUnspentFromProgramHash(programHash, assetHash)
+	infos, err := ledger.DefaultLedger.Store.GetUnspentFromProgramHash(*programHash, assetHash)
 	if err != nil {
 		return ResponsePack(InvalidParams, "")
 

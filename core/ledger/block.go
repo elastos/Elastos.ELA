@@ -196,7 +196,7 @@ func GenesisBlockInit() (*Block, error) {
 		},
 	}
 
-	foundationProgramHash, err := Uint68FromAddress(FoundationAddress)
+	foundationProgramHash, err := Uint168FromAddress(FoundationAddress)
 	if err != nil {
 		return nil, err
 	}
@@ -210,7 +210,7 @@ func GenesisBlockInit() (*Block, error) {
 		{
 			AssetID:     systemToken.Hash(),
 			Value:       3300 * 10000 * 100000000,
-			ProgramHash: foundationProgramHash,
+			ProgramHash: *foundationProgramHash,
 		},
 	}
 

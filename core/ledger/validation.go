@@ -33,7 +33,7 @@ func VerifySignature(txn *tx.NodeTransaction) (bool, error) {
 			return false, err
 		}
 
-		if hashes[i] != programHash {
+		if hashes[i] != *programHash {
 			return false, errors.New("The data hashes is different with corresponding program code.")
 		}
 		// Get transaction type

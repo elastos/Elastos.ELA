@@ -125,7 +125,7 @@ func (txn *NodeTransaction) GetProgramHashes() ([]Uint168, error) {
 			if err != nil {
 				return nil, errors.New("[NodeTransaction], GetProgramHashes err.")
 			}
-			hashs = append(hashs, dataHash)
+			hashs = append(hashs, *dataHash)
 		}
 	}
 	switch txn.TxType {

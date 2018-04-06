@@ -79,11 +79,11 @@ func (pow *PowService) CollectTransactions(MsgBlock *ledger.Block) int {
 }
 
 func (pow *PowService) CreateCoinbaseTrx(nextBlockHeight uint32, addr string) (*tx.NodeTransaction, error) {
-	minerProgramHash, err := Uint68FromAddress(addr)
+	minerProgramHash, err := Uint168FromAddress(addr)
 	if err != nil {
 		return nil, err
 	}
-	foundationProgramHash, err := Uint68FromAddress(ledger.FoundationAddress)
+	foundationProgramHash, err := Uint168FromAddress(ledger.FoundationAddress)
 	if err != nil {
 		return nil, err
 	}
@@ -107,12 +107,12 @@ func (pow *PowService) CreateCoinbaseTrx(nextBlockHeight uint32, addr string) (*
 		{
 			AssetID:     ledger.DefaultLedger.Blockchain.AssetID,
 			Value:       0,
-			ProgramHash: foundationProgramHash,
+			ProgramHash: *foundationProgramHash,
 		},
 		{
 			AssetID:     ledger.DefaultLedger.Blockchain.AssetID,
 			Value:       0,
-			ProgramHash: minerProgramHash,
+			ProgramHash: *minerProgramHash,
 		},
 	}
 

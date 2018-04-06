@@ -1,5 +1,7 @@
-package: Elastos.ELA
+package: github.com/elastos/Elastos.ELA
 import:
+- package: github.com/elastos/Elastos.ELA.Utility
+  version: refactor
 - package: github.com/golang/crypto
   subpackages:
   - ripemd160
@@ -15,3 +17,4 @@ import:
 - package: github.com/pborman/uuid
 ignore:
   - golang.org/x/sys/unix
+  - golang.org/x/sys/windows

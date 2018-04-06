@@ -2,7 +2,7 @@
 
 ## Summary
 
-Elacoin is the digital currency solution within Elastos eco system.
+This repo is used to hold source code of ELA main chain, and only holds exclusive source code of main chain. This repo depends on Elastos.ELA.Core which holds the common source code used by both ELA main chain and side chain.
 
 ## Build
 

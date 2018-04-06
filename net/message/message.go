@@ -1,15 +1,16 @@
 package message
 
 import (
-	"Elastos.ELA/common/config"
-	"Elastos.ELA/common/log"
-	. "Elastos.ELA/net/protocol"
 	"bytes"
 	"crypto/sha256"
 	"encoding/binary"
 	"encoding/hex"
 	"errors"
 	"fmt"
+
+	"github.com/elastos/Elastos.ELA/common/config"
+	"github.com/elastos/Elastos.ELA/common/log"
+	. "github.com/elastos/Elastos.ELA/net/protocol"
 )
 
 type Messager interface {
@@ -27,9 +28,6 @@ type messageHeader struct {
 	Length   uint32
 	Checksum [CHECKSUMLEN]byte
 }
-
-
-
 
 // Alloc different message stucture
 // @t the message name or type

@@ -1,15 +1,16 @@
 package protocol
 
 import (
-	"Elastos.ELA/common"
-	"Elastos.ELA/core/ledger"
-	"Elastos.ELA/core/transaction"
-	. "Elastos.ELA/errors"
-	"Elastos.ELA/events"
 	"bytes"
 	"encoding/binary"
 	"net"
 	"time"
+
+	"github.com/elastos/Elastos.ELA.Utility/common"
+	. "github.com/elastos/Elastos.ELA.Utility/errors"
+	"github.com/elastos/Elastos.ELA/core/ledger"
+	"github.com/elastos/Elastos.ELA/core/transaction"
+	"github.com/elastos/Elastos.ELA/events"
 )
 
 type NodeAddr struct {
@@ -33,15 +34,15 @@ const (
 )
 
 const (
-	MAXBUFLEN         = 1024 * 16 // Fixme The maximum buffer to receive message
-	PROTOCOLVERSION   = 0
-	KEEPALIVETIMEOUT  = 3
-	DIALTIMEOUT       = 6
-	CONNMONITOR       = 6
-	MAXSYNCHDRREQ     = 2 //Max Concurrent Sync Header Request
-	MaxOutBoundCount  = 8
-	DefaultMaxPeers   = 125
-	MAXIDCACHED       = 5000
+	MAXBUFLEN        = 1024 * 16 // Fixme The maximum buffer to receive message
+	PROTOCOLVERSION  = 0
+	KEEPALIVETIMEOUT = 3
+	DIALTIMEOUT      = 6
+	CONNMONITOR      = 6
+	MAXSYNCHDRREQ    = 2 //Max Concurrent Sync Header Request
+	MaxOutBoundCount = 8
+	DefaultMaxPeers  = 125
+	MAXIDCACHED      = 5000
 )
 
 // The node state
@@ -76,8 +77,8 @@ type Noder interface {
 	GetHeight() uint64
 	GetConnectionCnt() uint
 	GetConn() net.Conn
-	GetTxnPool(bool) map[common.Uint256]*transaction.Transaction
-	AppendToTxnPool(*transaction.Transaction) ErrCode
+	GetTxnPool(bool) map[common.Uint256]*transaction.NodeTransaction
+	AppendToTxnPool(*transaction.NodeTransaction) ErrCode
 	ExistedID(id common.Uint256) bool
 	ReqNeighborList()
 	DumpInfo()
@@ -90,7 +91,7 @@ type Noder interface {
 	NodeEstablished(uid uint64) bool
 	GetEvent(eventName string) *events.Event
 	GetNeighborAddrs() ([]NodeAddr, uint64)
-	GetTransaction(hash common.Uint256) *transaction.Transaction
+	GetTransaction(hash common.Uint256) *transaction.NodeTransaction
 	IncRxTxnCnt()
 	GetTxnCnt() uint64
 	GetRxTxnCnt() uint64
@@ -99,8 +100,8 @@ type Noder interface {
 	GetNeighborHeights() ([]uint64, uint64)
 	WaitForSyncFinish()
 	CleanSubmittedTransactions(block *ledger.Block) error
-	MaybeAcceptTransaction(txn *transaction.Transaction) error
-	RemoveTransaction(txn *transaction.Transaction)
+	MaybeAcceptTransaction(txn *transaction.NodeTransaction) error
+	RemoveTransaction(txn *transaction.NodeTransaction)
 
 	GetNeighborNoder() []Noder
 	GetNbrNodeCnt() uint32

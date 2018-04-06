@@ -2,13 +2,14 @@ package ledger
 
 import (
 	"io"
-	. "Elastos.ELA/common"
-	"Elastos.ELA/common/serialization"
-	"Elastos.ELA/core/auxpow"
-	"Elastos.ELA/core/contract/program"
 	"crypto/sha256"
 	"errors"
-	"Elastos.ELA/core/signature"
+
+	. "github.com/elastos/Elastos.ELA.Utility/common"
+	"github.com/elastos/Elastos.ELA.Utility/common/serialization"
+	"github.com/elastos/Elastos.ELA/core/auxpow"
+	"github.com/elastos/Elastos.ELA.Utility/core/contract/program"
+	"github.com/elastos/Elastos.ELA.Utility/core/signature"
 )
 
 type Blockdata struct {

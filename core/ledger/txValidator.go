@@ -5,17 +5,19 @@ import (
 	"fmt"
 	"math"
 
-	"Elastos.ELA/common"
-	"Elastos.ELA/common/config"
-	"Elastos.ELA/common/log"
-	"Elastos.ELA/core/asset"
-	tx "Elastos.ELA/core/transaction"
-	"Elastos.ELA/core/transaction/payload"
-	. "Elastos.ELA/errors"
+	"github.com/elastos/Elastos.ELA.Utility/common"
+	"github.com/elastos/Elastos.ELA.Utility/core/asset"
+	uti_tx "github.com/elastos/Elastos.ELA.Utility/core/transaction"
+	uti_payload "github.com/elastos/Elastos.ELA.Utility/core/transaction/payload"
+	. "github.com/elastos/Elastos.ELA.Utility/errors"
+	"github.com/elastos/Elastos.ELA/common/config"
+	"github.com/elastos/Elastos.ELA/common/log"
+	tx "github.com/elastos/Elastos.ELA/core/transaction"
+	"github.com/elastos/Elastos.ELA/core/transaction/payload"
 )
 
 // CheckTransactionSanity verifys received single transaction
-func CheckTransactionSanity(txn *tx.Transaction) ErrCode {
+func CheckTransactionSanity(txn *tx.NodeTransaction) ErrCode {
 
 	if err := CheckTransactionSize(txn); err != nil {
 		log.Warn("[CheckTransactionSize],", err)
@@ -56,7 +58,7 @@ func CheckTransactionSanity(txn *tx.Transaction) ErrCode {
 }
 
 // CheckTransactionContext verifys a transaction with history transaction in ledger
-func CheckTransactionContext(txn *tx.Transaction, ledger *Ledger) ErrCode {
+func CheckTransactionContext(txn *tx.NodeTransaction, ledger *Ledger) ErrCode {
 	// check if duplicated with transaction in ledger
 	if exist := ledger.Store.IsTxHashDuplicate(txn.Hash()); exist {
 		log.Info("[CheckTransactionContext] duplicate transaction check faild.")
@@ -115,7 +117,7 @@ func CheckTransactionContext(txn *tx.Transaction, ledger *Ledger) ErrCode {
 }
 
 //validate the transaction of duplicate UTXO input
-func CheckTransactionInput(txn *tx.Transaction) error {
+func CheckTransactionInput(txn *tx.NodeTransaction) error {
 	var zeroHash common.Uint256
 	if txn.IsCoinBaseTx() {
 		if len(txn.UTXOInputs) != 1 {
@@ -150,7 +152,7 @@ func CheckTransactionInput(txn *tx.Transaction) error {
 	return nil
 }
 
-func CheckTransactionOutput(txn *tx.Transaction) error {
+func CheckTransactionOutput(txn *tx.NodeTransaction) error {
 	if txn.IsCoinBaseTx() {
 		if len(txn.Outputs) < 2 {
 			return errors.New("coinbase output is not enough, at least 2")
@@ -193,12 +195,12 @@ func CheckTransactionOutput(txn *tx.Transaction) error {
 	return nil
 }
 
-func CheckTransactionUTXOLock(txn *tx.Transaction) error {
+func CheckTransactionUTXOLock(txn *tx.NodeTransaction) error {
 	if txn.IsCoinBaseTx() {
 		return nil
 	}
 	if len(txn.UTXOInputs) <= 0 {
-		return errors.New("Transaction has no inputs")
+		return errors.New("NodeTransaction has no inputs")
 	}
 	referenceWithUTXO_Output, err := txn.GetReference()
 	if err != nil {
@@ -220,7 +222,7 @@ func CheckTransactionUTXOLock(txn *tx.Transaction) error {
 	return nil
 }
 
-func CheckTransactionSize(txn *tx.Transaction) error {
+func CheckTransactionSize(txn *tx.NodeTransaction) error {
 	size := txn.GetSize()
 	if size <= 0 || size > MaxBlockSize {
 		return errors.New(fmt.Sprintf("Invalid transaction size: %d bytes", size))
@@ -229,15 +231,15 @@ func CheckTransactionSize(txn *tx.Transaction) error {
 	return nil
 }
 
-func IsDoubleSpend(tx *tx.Transaction, ledger *Ledger) bool {
+func IsDoubleSpend(tx *tx.NodeTransaction, ledger *Ledger) bool {
 	return ledger.IsDoubleSpend(tx)
 }
 
-func CheckAssetPrecision(Tx *tx.Transaction) error {
+func CheckAssetPrecision(Tx *tx.NodeTransaction) error {
 	if len(Tx.Outputs) == 0 {
 		return nil
 	}
-	assetOutputs := make(map[common.Uint256][]*tx.TxOutput, len(Tx.Outputs))
+	assetOutputs := make(map[common.Uint256][]*uti_tx.TxOutput, len(Tx.Outputs))
 
 	for _, v := range Tx.Outputs {
 		assetOutputs[v.AssetID] = append(assetOutputs[v.AssetID], v)
@@ -257,7 +259,7 @@ func CheckAssetPrecision(Tx *tx.Transaction) error {
 	return nil
 }
 
-func CheckTransactionBalance(Tx *tx.Transaction) error {
+func CheckTransactionBalance(Tx *tx.NodeTransaction) error {
 	// TODO: check coinbase balance 30%-70%
 	for _, v := range Tx.Outputs {
 		if v.Value <= common.Fixed64(0) {
@@ -278,12 +280,12 @@ func CheckTransactionBalance(Tx *tx.Transaction) error {
 	return nil
 }
 
-func CheckAttributeProgram(txn *tx.Transaction) error {
+func CheckAttributeProgram(txn *tx.NodeTransaction) error {
 	//TODO: implement CheckAttributeProgram
 	return nil
 }
 
-func CheckTransactionSignature(txn *tx.Transaction) error {
+func CheckTransactionSignature(txn *tx.NodeTransaction) error {
 	flag, err := VerifySignature(txn)
 	if flag && err == nil {
 		return nil
@@ -296,20 +298,20 @@ func checkAmountPrecise(amount common.Fixed64, precision byte) bool {
 	return amount.GetData()%int64(math.Pow(10, 8-float64(precision))) != 0
 }
 
-func CheckTransactionPayload(Tx *tx.Transaction) error {
+func CheckTransactionPayload(Tx *tx.NodeTransaction) error {
 
 	switch pld := Tx.Payload.(type) {
-	case *payload.RegisterAsset:
+	case *uti_payload.RegisterAsset:
 		if pld.Asset.Precision < asset.MinPrecision || pld.Asset.Precision > asset.MaxPrecision {
 			return errors.New("Invalide asset Precision.")
 		}
 		if checkAmountPrecise(pld.Amount, pld.Asset.Precision) {
 			return errors.New("Invalide asset value,out of precise.")
 		}
-	case *payload.TransferAsset:
-	case *payload.Record:
-	case *payload.DeployCode:
-	case *payload.CoinBase:
+	case *uti_payload.TransferAsset:
+	case *uti_payload.Record:
+	case *uti_payload.DeployCode:
+	case *uti_payload.CoinBase:
 	case *payload.SideMining:
 	case *payload.WithdrawToken:
 	case *payload.TransferCrossChainAsset:

@@ -1,23 +1,24 @@
 package ledger
 
 import (
-	"io"
-	"time"
 	"bytes"
-	"errors"
-	"math/rand"
 	"encoding/binary"
+	"errors"
+	"io"
+	"math/rand"
+	"time"
 
-	"Elastos.ELA/crypto"
-	. "Elastos.ELA/common"
-	"Elastos.ELA/core/asset"
-	"Elastos.ELA/common/log"
-	"Elastos.ELA/common/config"
-	"Elastos.ELA/core/signature"
-	tx "Elastos.ELA/core/transaction"
-	"Elastos.ELA/common/serialization"
-	"Elastos.ELA/core/contract/program"
-	"Elastos.ELA/core/transaction/payload"
+	. "github.com/elastos/Elastos.ELA.Utility/common"
+	"github.com/elastos/Elastos.ELA.Utility/common/serialization"
+	"github.com/elastos/Elastos.ELA.Utility/core/asset"
+	"github.com/elastos/Elastos.ELA.Utility/core/contract/program"
+	"github.com/elastos/Elastos.ELA.Utility/core/signature"
+	uti_tx "github.com/elastos/Elastos.ELA.Utility/core/transaction"
+	"github.com/elastos/Elastos.ELA.Utility/core/transaction/payload"
+	"github.com/elastos/Elastos.ELA.Utility/crypto"
+	"github.com/elastos/Elastos.ELA/common/config"
+	"github.com/elastos/Elastos.ELA/common/log"
+	tx "github.com/elastos/Elastos.ELA/core/transaction"
 )
 
 const (
@@ -32,7 +33,7 @@ var (
 
 type Block struct {
 	Blockdata    *Blockdata
-	Transactions []*tx.Transaction
+	Transactions []*tx.NodeTransaction
 
 	hash *Uint256
 }
@@ -65,7 +66,7 @@ func (b *Block) Deserialize(r io.Reader) error {
 	var txhash Uint256
 	var tharray []Uint256
 	for i = 0; i < Len; i++ {
-		transaction := new(tx.Transaction)
+		transaction := new(tx.NodeTransaction)
 		transaction.Deserialize(r)
 		txhash = transaction.Hash()
 		b.Transactions = append(b.Transactions, transaction)
@@ -110,7 +111,7 @@ func (b *Block) FromTrimmedData(r io.Reader) error {
 	var tharray []Uint256
 	for i = 0; i < Len; i++ {
 		txhash.Deserialize(r)
-		transaction := new(tx.Transaction)
+		transaction := new(tx.NodeTransaction)
 		transaction.SetHash(txhash)
 		b.Transactions = append(b.Transactions, transaction)
 		tharray = append(tharray, txhash)
@@ -175,22 +176,24 @@ func GenesisBlockInit() (*Block, error) {
 	}
 
 	//transaction
-	systemToken := &tx.Transaction{
-		TxType:         tx.RegisterAsset,
-		PayloadVersion: 0,
-		Payload: &payload.RegisterAsset{
-			Asset: &asset.Asset{
-				Name:      "ELA",
-				Precision: 0x08,
-				AssetType: 0x00,
+	systemToken := &tx.NodeTransaction{
+		Transaction: uti_tx.Transaction{
+			TxType:         uti_tx.RegisterAsset,
+			PayloadVersion: 0,
+			Payload: &payload.RegisterAsset{
+				Asset: &asset.Asset{
+					Name:      "ELA",
+					Precision: 0x08,
+					AssetType: 0x00,
+				},
+				Amount:     0 * 100000000,
+				Controller: EmptyValue,
 			},
-			Amount:     0 * 100000000,
-			Controller: EmptyValue,
+			Attributes: []*uti_tx.TxAttribute{},
+			UTXOInputs: []*uti_tx.UTXOTxInput{},
+			Outputs:    []*uti_tx.TxOutput{},
+			Programs:   []*program.Program{},
 		},
-		Attributes: []*tx.TxAttribute{},
-		UTXOInputs: []*tx.UTXOTxInput{},
-		Outputs:    []*tx.TxOutput{},
-		Programs:   []*program.Program{},
 	}
 
 	foundationProgramHash, err := Uint68FromAddress(FoundationAddress)
@@ -203,7 +206,7 @@ func GenesisBlockInit() (*Block, error) {
 		return nil, err
 	}
 
-	trans.Outputs = []*tx.TxOutput{
+	trans.Outputs = []*uti_tx.TxOutput{
 		{
 			AssetID:     systemToken.Hash(),
 			Value:       3300 * 10000 * 100000000,
@@ -213,12 +216,12 @@ func GenesisBlockInit() (*Block, error) {
 
 	nonce := make([]byte, 8)
 	binary.BigEndian.PutUint64(nonce, rand.Uint64())
-	txAttr := tx.NewTxAttribute(tx.Nonce, nonce)
+	txAttr := uti_tx.NewTxAttribute(uti_tx.Nonce, nonce)
 	trans.Attributes = append(trans.Attributes, &txAttr)
 	//block
 	genesisBlock := &Block{
 		Blockdata:    genesisBlockdata,
-		Transactions: []*tx.Transaction{trans, systemToken},
+		Transactions: []*tx.NodeTransaction{trans, systemToken},
 	}
 	txHashes := []Uint256{}
 	for _, tx := range genesisBlock.Transactions {

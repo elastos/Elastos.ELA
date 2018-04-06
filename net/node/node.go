@@ -1,14 +1,9 @@
 package node
 
 import (
-	. "Elastos.ELA/common"
-	. "Elastos.ELA/common/config"
-	"Elastos.ELA/common/log"
-	"Elastos.ELA/core/ledger"
-	"Elastos.ELA/core/transaction"
-	"Elastos.ELA/events"
-	. "Elastos.ELA/net/message"
-	. "Elastos.ELA/net/protocol"
+	"bytes"
+	"crypto/sha256"
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"net"
@@ -18,9 +13,15 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
-	"encoding/binary"
-	"bytes"
-	"crypto/sha256"
+
+	. "github.com/elastos/Elastos.ELA.Utility/common"
+	. "github.com/elastos/Elastos.ELA/common/config"
+	"github.com/elastos/Elastos.ELA/common/log"
+	"github.com/elastos/Elastos.ELA/core/ledger"
+	"github.com/elastos/Elastos.ELA/core/transaction"
+	"github.com/elastos/Elastos.ELA/events"
+	. "github.com/elastos/Elastos.ELA/net/message"
+	. "github.com/elastos/Elastos.ELA/net/protocol"
 )
 
 type Semaphore chan struct{}
@@ -34,22 +35,22 @@ func (s Semaphore) release() { <-s }
 
 type node struct {
 	//sync.RWMutex	//The Lock not be used as expected to use function channel instead of lock
-	state    uint32   // node state
-	id       uint64   // The nodes's id
-	version  uint32   // The network protocol the node used
-	services uint64   // The services the node supplied
-	relay    bool     // The relay capability of the node (merge into capbility flag)
-	height   uint64   // The node latest block height
-	txnCnt   uint64   // The transactions be transmit by this node
-	rxTxnCnt uint64   // The transaction received by this node
+	state    uint32 // node state
+	id       uint64 // The nodes's id
+	version  uint32 // The network protocol the node used
+	services uint64 // The services the node supplied
+	relay    bool   // The relay capability of the node (merge into capbility flag)
+	height   uint64 // The node latest block height
+	txnCnt   uint64 // The transactions be transmit by this node
+	rxTxnCnt uint64 // The transaction received by this node
 	// TODO does this channel should be a buffer channel
-	chF   chan func() error // Channel used to operate the node without lock
-	link                    // The link status and infomation
-	local *node             // The pointer to local node
-	nbrNodes                // The neighbor node connect with currently node except itself
-	eventQueue              // The event queue to notice notice other modules
-	TXNPool                 // Unconfirmed transaction pool
-	idCache                 // The buffer to store the id of the items which already be processed
+	chF        chan func() error // Channel used to operate the node without lock
+	link                         // The link status and infomation
+	local      *node             // The pointer to local node
+	nbrNodes                     // The neighbor node connect with currently node except itself
+	eventQueue                   // The event queue to notice notice other modules
+	TXNPool                      // Unconfirmed transaction pool
+	idCache                      // The buffer to store the id of the items which already be processed
 	/*
 	 * |--|--|--|--|--|--|isSyncFailed|isSyncHeaders|
 	 */
@@ -61,13 +62,13 @@ type node struct {
 	cachedHashes             []Uint256
 	ConnectingNodes
 	KnownAddressList
-	DefaultMaxPeers          uint
-	headerFirstMode          bool
-	RequestedBlockList       map[Uint256]time.Time
-	SyncBlkReqSem            Semaphore
-	SyncHdrReqSem            Semaphore
-	StartHash                Uint256
-	StopHash                 Uint256
+	DefaultMaxPeers    uint
+	headerFirstMode    bool
+	RequestedBlockList map[Uint256]time.Time
+	SyncBlkReqSem      Semaphore
+	SyncHdrReqSem      Semaphore
+	StartHash          Uint256
+	StopHash           Uint256
 }
 
 type ConnectingNodes struct {
@@ -277,9 +278,9 @@ func (node *node) Xmit(message interface{}) error {
 	var buffer []byte
 	var err error
 	switch message.(type) {
-	case *transaction.Transaction:
+	case *transaction.NodeTransaction:
 		log.Debug("TX transaction message")
-		txn := message.(*transaction.Transaction)
+		txn := message.(*transaction.NodeTransaction)
 		buffer, err = NewTxn(txn)
 		if err != nil {
 			log.Error("Error New Tx message: ", err)
@@ -356,9 +357,9 @@ func (node *node) Relay(frmnode Noder, message interface{}) error {
 	var err error
 	isHash := false
 	switch message.(type) {
-	case *transaction.Transaction:
+	case *transaction.NodeTransaction:
 		log.Debug("TX transaction message")
-		txn := message.(*transaction.Transaction)
+		txn := message.(*transaction.NodeTransaction)
 		buffer, err = NewTxn(txn)
 		if err != nil {
 			log.Error("Error New Tx message: ", err)

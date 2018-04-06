@@ -3,7 +3,7 @@ package payload
 import (
 	"io"
 
-	"Elastos.ELA/common"
+	"github.com/elastos/Elastos.ELA.Utility/common"
 )
 
 const SideMiningPayloadVersion byte = 0x00

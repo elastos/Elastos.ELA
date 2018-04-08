@@ -9,16 +9,15 @@ import (
 
 const (
 	SideMining              TransactionType = 0x05
-	IssueToken              TransactionType = 0x06
 	WithdrawToken           TransactionType = 0x07
 	TransferCrossChainAsset TransactionType = 0x08
 )
 
-type PayloadFactoryNodeImpl struct {
+type PayloadFactoryMainNodeImpl struct {
 	innerFactory *PayloadFactoryImpl
 }
 
-func (factor *PayloadFactoryNodeImpl) Name(txType TransactionType) string {
+func (factor *PayloadFactoryMainNodeImpl) Name(txType TransactionType) string {
 	if name := factor.innerFactory.Name(txType); name != "Unknown" {
 		return name
 	}
@@ -26,8 +25,6 @@ func (factor *PayloadFactoryNodeImpl) Name(txType TransactionType) string {
 	switch txType {
 	case SideMining:
 		return "SideMining"
-	case IssueToken:
-		return "IssueToken"
 	case WithdrawToken:
 		return "WithdrawToken"
 	case TransferCrossChainAsset:
@@ -37,7 +34,7 @@ func (factor *PayloadFactoryNodeImpl) Name(txType TransactionType) string {
 	}
 }
 
-func (factor *PayloadFactoryNodeImpl) Create(txType TransactionType) (Payload, error) {
+func (factor *PayloadFactoryMainNodeImpl) Create(txType TransactionType) (Payload, error) {
 	if p, _ := factor.innerFactory.Create(txType); p != nil {
 		return p, nil
 	}
@@ -55,5 +52,5 @@ func (factor *PayloadFactoryNodeImpl) Create(txType TransactionType) (Payload, e
 }
 
 func init() {
-	PayloadFactorySingleton = &PayloadFactoryNodeImpl{innerFactory: &PayloadFactoryImpl{}}
+	PayloadFactorySingleton = &PayloadFactoryMainNodeImpl{innerFactory: &PayloadFactoryImpl{}}
 }

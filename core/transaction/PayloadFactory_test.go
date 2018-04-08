@@ -39,11 +39,6 @@ func TestPayloadFactoryNodeImpl_Name(t *testing.T) {
 		t.Errorf("TransactionTypeName: [%v], actually: [%v]", "Deploy", name)
 	}
 
-	name = uti_tx.PayloadFactorySingleton.Name(IssueToken)
-	if name != "IssueToken" {
-		t.Errorf("TransactionTypeName: [%v], actually: [%v]", "Deploy", name)
-	}
-
 	name = uti_tx.PayloadFactorySingleton.Name(WithdrawToken)
 	if name != "WithdrawToken" {
 		t.Errorf("TransactionTypeName: [%v], actually: [%v]", "Deploy", name)

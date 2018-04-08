@@ -7,14 +7,14 @@ import (
 
 	"strconv"
 
+	"github.com/elastos/Elastos.ELA.Core/common/config"
+	"github.com/elastos/Elastos.ELA.Core/common/log"
+	"github.com/elastos/Elastos.ELA.Core/core/auxpow"
+	"github.com/elastos/Elastos.ELA.Core/core/ledger"
+	tx "github.com/elastos/Elastos.ELA.Core/core/transaction"
 	. "github.com/elastos/Elastos.ELA.Utility/common"
 	"github.com/elastos/Elastos.ELA.Utility/core/transaction/payload"
 	. "github.com/elastos/Elastos.ELA.Utility/errors"
-	"github.com/elastos/Elastos.ELA/common/config"
-	"github.com/elastos/Elastos.ELA/common/log"
-	"github.com/elastos/Elastos.ELA/core/auxpow"
-	"github.com/elastos/Elastos.ELA/core/ledger"
-	tx "github.com/elastos/Elastos.ELA/core/transaction"
 )
 
 const (
@@ -450,12 +450,12 @@ func GetTransactionPool(param map[string]interface{}) map[string]interface{} {
 func GetBlockInfo(block *ledger.Block) BlockInfo {
 	hash := block.Hash()
 	auxInfo := &AuxInfo{
-		Version:    block.Blockdata.AuxPow.ParBlockHeader.Version,
+		Version:    block.Blockdata.AuxPow.GetBlockHeader().Version,
 		PrevBlock:  BytesToHexString(new(Uint256).ToArrayReverse()),
-		MerkleRoot: BytesToHexString(block.Blockdata.AuxPow.ParBlockHeader.MerkleRoot.ToArrayReverse()),
-		Timestamp:  block.Blockdata.AuxPow.ParBlockHeader.Timestamp,
+		MerkleRoot: BytesToHexString(block.Blockdata.AuxPow.GetBlockHeader().MerkleRoot.ToArrayReverse()),
+		Timestamp:  block.Blockdata.AuxPow.GetBlockHeader().Timestamp,
 		Bits:       0,
-		Nonce:      block.Blockdata.AuxPow.ParBlockHeader.Nonce,
+		Nonce:      block.Blockdata.AuxPow.GetBlockHeader().Nonce,
 	}
 	blockHead := &BlockHead{
 		Version:          block.Blockdata.Version,

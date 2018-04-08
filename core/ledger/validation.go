@@ -3,9 +3,10 @@ package ledger
 import (
 	"errors"
 
+	core_ledger "github.com/elastos/Elastos.ELA.Core/core/ledger"
+	tx "github.com/elastos/Elastos.ELA.Core/core/transaction"
 	. "github.com/elastos/Elastos.ELA.Utility/core/signature"
 	"github.com/elastos/Elastos.ELA.Utility/crypto"
-	tx "github.com/elastos/Elastos.ELA/core/transaction"
 	"github.com/elastos/Elastos.ELA/core/transaction/payload"
 )
 
@@ -133,12 +134,12 @@ func checkCrossChainArbitrators(txn *tx.NodeTransaction, publicKeys [][]byte) er
 		return errors.New("Invalid payload type.")
 	}
 
-	hash, err := DefaultLedger.Store.GetBlockHash(uint32(withdrawPayload.BlockHeight))
+	hash, err := core_ledger.DefaultLedger.Store.GetBlockHash(uint32(withdrawPayload.BlockHeight))
 	if err != nil {
 		return err
 	}
 
-	block, err := DefaultLedger.Store.GetBlock(hash)
+	block, err := core_ledger.DefaultLedger.Store.GetBlock(hash)
 	if err != nil {
 		return err
 	}

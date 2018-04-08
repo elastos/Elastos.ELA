@@ -2,16 +2,12 @@ package: github.com/elastos/Elastos.ELA
 import:
 - package: github.com/elastos/Elastos.ELA.Utility
   version: refactor
+- package: github.com/elastos/Elastos.ELA.Core
+  version: refactor
 - package: github.com/golang/crypto
   subpackages:
   - ripemd160
   - ssh/terminal
-- package: github.com/syndtr/goleveldb
-  subpackages:
-  - leveldb
-  - leveldb/errors
-  - leveldb/iterator
-  - leveldb/opt
 - package: github.com/itchyny/base58-go
 - package: github.com/gorilla/websocket
 - package: github.com/pborman/uuid

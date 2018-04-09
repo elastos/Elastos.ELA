@@ -257,10 +257,20 @@ func (bd *Block) SerializeUnsigned(w io.Writer) error {
 
 func (b *Block) GetArbitrators() ([][]byte, error) {
 	//todo finish this when arbitrator election scenario is done
-	return nil, nil
+	arbitersStr := config.Parameters.Arbiters
+	var arbitersByte [][]byte
+	for _, arbiter := range arbitersStr {
+		arbiterByte, err := HexStringToBytes(arbiter)
+		if err != nil {
+			return nil, err
+		}
+		arbitersByte = append(arbitersByte, arbiterByte)
+	}
+
+	return arbitersByte, nil
 }
 
 func (b *Block) GetCurrentArbitratorIndex() (int, error) {
 	//todo finish this when arbitrator election scenario is done
-	return 0, nil
+	return int(b.Blockdata.Height) % len(config.Parameters.Arbiters), nil
 }

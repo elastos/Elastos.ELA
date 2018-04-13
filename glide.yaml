@@ -2,8 +2,6 @@ package: github.com/elastos/Elastos.ELA
 import:
 - package: github.com/elastos/Elastos.ELA.Utility
   version: refactor
-- package: github.com/elastos/Elastos.ELA.Core
-  version: refactor
 - package: github.com/golang/crypto
   subpackages:
   - ripemd160

@@ -9,18 +9,17 @@ import (
 	"sync"
 	"time"
 
-	"github.com/elastos/Elastos.ELA.Core/common/config"
-	"github.com/elastos/Elastos.ELA.Core/common/log"
-	core_pow "github.com/elastos/Elastos.ELA.Core/consensus/pow"
-	"github.com/elastos/Elastos.ELA.Core/core/auxpow"
-	"github.com/elastos/Elastos.ELA.Core/core/ledger"
-	tx "github.com/elastos/Elastos.ELA.Core/core/transaction"
-	"github.com/elastos/Elastos.ELA.Core/events"
-	"github.com/elastos/Elastos.ELA.Core/net/protocol"
 	. "github.com/elastos/Elastos.ELA.Utility/common"
 	uti_tx "github.com/elastos/Elastos.ELA.Utility/core/transaction"
 	"github.com/elastos/Elastos.ELA.Utility/core/transaction/payload"
 	"github.com/elastos/Elastos.ELA.Utility/crypto"
+	"github.com/elastos/Elastos.ELA/common/config"
+	"github.com/elastos/Elastos.ELA/common/log"
+	"github.com/elastos/Elastos.ELA/core/auxpow"
+	"github.com/elastos/Elastos.ELA/core/ledger"
+	tx "github.com/elastos/Elastos.ELA/core/transaction"
+	"github.com/elastos/Elastos.ELA/events"
+	"github.com/elastos/Elastos.ELA/net/protocol"
 	//	"ELA/net"
 )
 
@@ -285,7 +284,7 @@ func (pow *PowService) ManualMining(n uint32) ([]*Uint256, error) {
 
 func (pow *PowService) SolveBlock(MsgBlock *ledger.Block, ticker *time.Ticker) bool {
 	// fake a btc blockheader and coinbase
-	auxPow := core_pow.GenerateAuxPow(MsgBlock.Hash())
+	auxPow := GenerateAuxPow(MsgBlock.Hash())
 	header := MsgBlock.Blockdata
 	targetDifficulty := ledger.CompactToBig(header.Bits)
 

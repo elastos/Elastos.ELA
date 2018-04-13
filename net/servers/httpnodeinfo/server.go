@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/elastos/Elastos.ELA.Core/common/config"
-	"github.com/elastos/Elastos.ELA.Core/core/ledger"
+	"github.com/elastos/Elastos.ELA/common/config"
+	"github.com/elastos/Elastos.ELA/core/ledger"
 	"github.com/elastos/Elastos.ELA/net/servers"
 )
 

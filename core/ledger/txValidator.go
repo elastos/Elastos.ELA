@@ -332,7 +332,7 @@ func (txValiator *TransactionValidatorImpl) CheckTransactionPayload(Tx *tx.NodeT
 	case *uti_payload.Record:
 	case *uti_payload.DeployCode:
 	case *uti_payload.CoinBase:
-	case *payload.WithdrawToken:
+	case *payload.WithdrawAsset:
 	case *payload.TransferCrossChainAsset:
 	default:
 		return errors.New("[txValidator],invalidate transaction payload type.")

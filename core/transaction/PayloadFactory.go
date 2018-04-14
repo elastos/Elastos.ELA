@@ -9,7 +9,7 @@ import (
 
 const (
 	SideMining              TransactionType = 0x05
-	WithdrawToken           TransactionType = 0x07
+	WithdrawAsset           TransactionType = 0x07
 	TransferCrossChainAsset TransactionType = 0x08
 )
 
@@ -25,8 +25,8 @@ func (factor *PayloadFactoryMainNodeImpl) Name(txType TransactionType) string {
 	switch txType {
 	case SideMining:
 		return "SideMining"
-	case WithdrawToken:
-		return "WithdrawToken"
+	case WithdrawAsset:
+		return "WithdrawAsset"
 	case TransferCrossChainAsset:
 		return "TransferCrossChainAsset"
 	default:
@@ -42,8 +42,8 @@ func (factor *PayloadFactoryMainNodeImpl) Create(txType TransactionType) (Payloa
 	switch txType {
 	case SideMining:
 		return new(payload.SideMining), nil
-	case WithdrawToken:
-		return new(payload.WithdrawToken), nil
+	case WithdrawAsset:
+		return new(payload.WithdrawAsset), nil
 	case TransferCrossChainAsset:
 		return new(payload.TransferCrossChainAsset), nil
 	default:

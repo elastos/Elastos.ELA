@@ -148,7 +148,7 @@ type TransferCrossChainAssetInfo struct {
 	AddressesMap map[string]uint64
 }
 
-type WithdrawTokenInfo struct {
+type WithdrawAssetInfo struct {
 	BlockHeight uint32
 }
 
@@ -168,8 +168,8 @@ func TransPayloadToHex(p Payload) PayloadInfo {
 		obj := new(SideMiningInfo)
 		obj.SideBlockHash = object.SideBlockHash.String()
 		return obj
-	case *payload.WithdrawToken:
-		obj := new(WithdrawTokenInfo)
+	case *payload.WithdrawAsset:
+		obj := new(WithdrawAssetInfo)
 		obj.BlockHeight = object.BlockHeight
 		return obj
 	case *payload.TransferCrossChainAsset:

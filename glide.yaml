@@ -9,6 +9,7 @@ import:
 - package: github.com/itchyny/base58-go
 - package: github.com/gorilla/websocket
 - package: github.com/pborman/uuid
+- package: github.com/mattn/go-sqlite3
 ignore:
   - golang.org/x/sys/unix
   - golang.org/x/sys/windows

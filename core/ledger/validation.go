@@ -5,6 +5,7 @@ import (
 
 	. "github.com/elastos/Elastos.ELA.Utility/core/signature"
 	"github.com/elastos/Elastos.ELA.Utility/crypto"
+	"github.com/elastos/Elastos.ELA/core/store/SideChainStore"
 	tx "github.com/elastos/Elastos.ELA/core/transaction"
 	"github.com/elastos/Elastos.ELA/core/transaction/payload"
 )
@@ -128,9 +129,21 @@ func checkMultiSignSignatures(code, param, content []byte, publicKeys [][]byte) 
 }
 
 func checkCrossChainArbitrators(txn *tx.NodeTransaction, publicKeys [][]byte) error {
-	withdrawPayload, ok := txn.Payload.(*payload.WithdrawToken)
+	withdrawPayload, ok := txn.Payload.(*payload.WithdrawAsset)
 	if !ok {
 		return errors.New("Invalid payload type.")
+	}
+
+	ok, err := SideChainStore.DbCache.HashSideChainTx(withdrawPayload.SideChainTransactionHash)
+	if err != nil {
+		return err
+	}
+	if ok {
+		return errors.New("Reduplicate withdraw transaction.")
+	}
+	err = SideChainStore.DbCache.AddSideChainTx(withdrawPayload.SideChainTransactionHash, withdrawPayload.GenesisBlockAddress)
+	if err != nil {
+		return err
 	}
 
 	hash, err := DefaultLedger.Store.GetBlockHash(uint32(withdrawPayload.BlockHeight))
@@ -148,7 +161,7 @@ func checkCrossChainArbitrators(txn *tx.NodeTransaction, publicKeys [][]byte) er
 		return err
 	}
 	if len(arbitrators) != len(publicKeys) {
-		return errors.New("Invalid arbitrator account.")
+		return errors.New("Invalid arbitrator count.")
 	}
 
 	for arbitrator := range arbitrators {

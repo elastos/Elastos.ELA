@@ -39,8 +39,8 @@ func TestPayloadFactoryNodeImpl_Name(t *testing.T) {
 		t.Errorf("TransactionTypeName: [%v], actually: [%v]", "Deploy", name)
 	}
 
-	name = uti_tx.PayloadFactorySingleton.Name(WithdrawToken)
-	if name != "WithdrawToken" {
+	name = uti_tx.PayloadFactorySingleton.Name(WithdrawAsset)
+	if name != "WithdrawAsset" {
 		t.Errorf("TransactionTypeName: [%v], actually: [%v]", "Deploy", name)
 	}
 
@@ -104,8 +104,8 @@ func TestPayloadFactoryNodeImpl_Create(t *testing.T) {
 		t.Error("Unexpect error.")
 	}
 
-	payload, err = uti_tx.PayloadFactorySingleton.Create(WithdrawToken)
-	if _, ok := payload.(*p.WithdrawToken); !ok {
+	payload, err = uti_tx.PayloadFactorySingleton.Create(WithdrawAsset)
+	if _, ok := payload.(*p.WithdrawAsset); !ok {
 		t.Error("Payload create error.")
 	}
 	if err != nil {

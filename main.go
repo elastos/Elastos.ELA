@@ -10,6 +10,7 @@ import (
 	"github.com/elastos/Elastos.ELA/consensus/pow"
 	"github.com/elastos/Elastos.ELA/core/ledger"
 	"github.com/elastos/Elastos.ELA/core/store/ChainStore"
+	"github.com/elastos/Elastos.ELA/core/store/SideChainStore"
 	"github.com/elastos/Elastos.ELA/core/transaction"
 	"github.com/elastos/Elastos.ELA/net/node"
 	"github.com/elastos/Elastos.ELA/net/protocol"
@@ -78,6 +79,14 @@ func main() {
 
 	ledger.DefaultLedger.Store.InitLedgerStore(ledger.DefaultLedger)
 	transaction.TxStore = ledger.DefaultLedger.Store
+
+	sideChainCache, err := SideChainStore.OpenDataStore()
+	if err != nil {
+		log.Fatal("open SideChainCache err:", err)
+		os.Exit(1)
+	}
+	SideChainStore.DbCache = sideChainCache
+
 	_, err = ledger.NewBlockchainWithGenesisBlock()
 	if err != nil {
 		log.Fatal(err, "BlockChain generate failed")

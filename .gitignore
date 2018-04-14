@@ -19,3 +19,4 @@ cscope*
 deps/
 /node
 glide.lock
+*.db

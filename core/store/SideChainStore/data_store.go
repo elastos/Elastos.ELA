@@ -2,7 +2,6 @@ package SideChainStore
 
 import (
 	"database/sql"
-	"math"
 	"os"
 	"sync"
 
@@ -14,7 +13,6 @@ const (
 	DriverName      = "sqlite3"
 	DBName          = "./sideChainCache.db"
 	QueryHeightCode = 0
-	ResetHeightCode = math.MaxUint32
 )
 
 const (
@@ -46,7 +44,6 @@ type DataStore interface {
 }
 
 type DataStoreImpl struct {
-	mainMux   *sync.Mutex
 	sideMux   *sync.Mutex
 	miningMux *sync.Mutex
 
@@ -58,7 +55,7 @@ func OpenDataStore() (DataStore, error) {
 	if err != nil {
 		return nil, err
 	}
-	dataStore := &DataStoreImpl{DB: db, mainMux: new(sync.Mutex), sideMux: new(sync.Mutex), miningMux: new(sync.Mutex)}
+	dataStore := &DataStoreImpl{DB: db, sideMux: new(sync.Mutex), miningMux: new(sync.Mutex)}
 
 	// Handle system interrupt signals
 	dataStore.catchSystemSignals()
@@ -88,7 +85,6 @@ func initDB() (*sql.DB, error) {
 
 func (store *DataStoreImpl) catchSystemSignals() {
 	HandleSignal(func() {
-		store.mainMux.Lock()
 		store.sideMux.Lock()
 		store.miningMux.Lock()
 		store.Close()
@@ -191,8 +187,8 @@ func (store *DataStoreImpl) AddSideChainTx(transactionHash, genesisBlockAddress 
 }
 
 func (store *DataStoreImpl) HashSideChainTx(transactionHash string) (bool, error) {
-	store.mainMux.Lock()
-	defer store.mainMux.Unlock()
+	store.sideMux.Lock()
+	defer store.sideMux.Unlock()
 
 	rows, err := store.Query(`SELECT GenesisBlockAddress FROM SideChainTxs WHERE TransactionHash=?`, transactionHash)
 	defer rows.Close()

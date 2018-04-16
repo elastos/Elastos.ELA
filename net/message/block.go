@@ -5,7 +5,7 @@ import (
 	"Elastos.ELA/common/config"
 	"Elastos.ELA/common/log"
 	"Elastos.ELA/core/ledger"
-	. "Elastos.ELA/net/protocol"
+	. "github.com/elastos/Elastos.ELA/net/protocol"
 	"bytes"
 	"crypto/sha256"
 	"encoding/binary"

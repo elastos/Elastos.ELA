@@ -4,7 +4,7 @@ import (
 	. "Elastos.ELA/common"
 	"Elastos.ELA/common/log"
 	"Elastos.ELA/core/ledger"
-	. "Elastos.ELA/net/protocol"
+	. "github.com/elastos/Elastos.ELA/net/protocol"
 	"bytes"
 	"encoding/binary"
 	"errors"

@@ -1,7 +1,7 @@
 package crypto
 
 import (
-	"Elastos.ELA/common/serialization"
+	"github.com/elastos/Elastos.ELA/common/serialization"
 	"errors"
 	"fmt"
 	"io"

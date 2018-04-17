@@ -3,7 +3,7 @@ package httprestful
 import (
 	. "Elastos.ELA/common/config"
 	"Elastos.ELA/common/log"
-	. "Elastos.ELA/net/servers"
+	. "github.com/elastos/Elastos.ELA/net/servers"
 	"context"
 	"crypto/tls"
 	"encoding/json"
@@ -13,7 +13,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	. "Elastos.ELA/errors"
+	. "github.com/elastos/Elastos.ELA/errors"
 )
 
 const (

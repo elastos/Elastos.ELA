@@ -1,8 +1,8 @@
 package pow
 
 import (
-	. "Elastos.ELA/common"
-	"Elastos.ELA/core/auxpow"
+	. "github.com/elastos/Elastos.ELA/common"
+	"github.com/elastos/Elastos.ELA/core/auxpow"
 	"bytes"
 	"encoding/binary"
 	"time"

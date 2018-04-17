@@ -1,7 +1,7 @@
 package log
 
 import (
-	"Elastos.ELA/common/config"
+	"github.com/elastos/Elastos.ELA/common/config"
 	"bytes"
 	"errors"
 	"fmt"

@@ -2,7 +2,7 @@ package message
 
 import (
 	"Elastos.ELA/common/log"
-	. "Elastos.ELA/net/protocol"
+	. "github.com/elastos/Elastos.ELA/net/protocol"
 	"encoding/hex"
 	"errors"
 	"strconv"

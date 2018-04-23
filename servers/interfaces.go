@@ -3,7 +3,6 @@ package servers
 import (
 	"bytes"
 	"fmt"
-	"strconv"
 	"time"
 
 	chain "github.com/elastos/Elastos.ELA/blockchain"

@@ -9,11 +9,11 @@ import (
 	"sync"
 	"time"
 
+	chain "github.com/elastos/Elastos.ELA/blockchain"
 	"github.com/elastos/Elastos.ELA/config"
 	"github.com/elastos/Elastos.ELA/events"
 	"github.com/elastos/Elastos.ELA/log"
 	"github.com/elastos/Elastos.ELA/protocol"
-	chain "github.com/elastos/Elastos.ELA/blockchain"
 
 	. "github.com/elastos/Elastos.ELA.Utility/core"
 	. "github.com/elastos/Elastos.ELA.Utility/common"
@@ -80,7 +80,7 @@ func (pow *PowService) CreateCoinbaseTrx(nextBlockHeight uint32, addr string) (*
 	if err != nil {
 		return nil, err
 	}
-	foundationProgramHash, err := Uint168FromAddress(chain.FoundationAddress)
+	foundationProgramHash, err := Uint168FromAddress(FoundationAddress)
 	if err != nil {
 		return nil, err
 	}
@@ -89,10 +89,7 @@ func (pow *PowService) CreateCoinbaseTrx(nextBlockHeight uint32, addr string) (*
 		CoinbaseData: []byte(config.Parameters.PowConfiguration.MinerInfo),
 	}
 
-	txn, err := chain.NewCoinBaseTransaction(pd, chain.DefaultLedger.Blockchain.GetBestHeight()+1)
-	if err != nil {
-		return nil, err
-	}
+	txn := NewCoinBaseTransaction(pd, chain.DefaultLedger.Blockchain.GetBestHeight()+1)
 	txn.Inputs = []*Input{
 		{
 			Previous: OutPoint{

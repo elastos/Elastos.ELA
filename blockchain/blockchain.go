@@ -3,10 +3,8 @@ package blockchain
 import (
 	"container/list"
 	"errors"
-	"encoding/binary"
 	"fmt"
 	"math/big"
-	"math/rand"
 	"sort"
 	"sync"
 	"time"
@@ -18,7 +16,6 @@ import (
 
 	. "github.com/elastos/Elastos.ELA.Utility/core"
 	. "github.com/elastos/Elastos.ELA.Utility/common"
-	"github.com/elastos/Elastos.ELA.Utility/crypto"
 )
 
 const (
@@ -74,19 +71,10 @@ func NewBlockchain(height uint32) *Blockchain {
 }
 
 func Init(store IChainStore) error {
-	genesisBlock, err := GenesisBlockInit()
+	genesisBlock, err := GetGenesisBlock()
 	if err != nil {
 		return errors.New("[Blockchain], NewBlockchainWithGenesisBlock failed.")
 	}
-	transactionHashes := make([]Uint256, 0, len(genesisBlock.Transactions))
-	for _, tx := range genesisBlock.Transactions {
-		transactionHashes = append(transactionHashes, tx.Hash())
-	}
-	hash, err := crypto.ComputeRoot(transactionHashes)
-	if err != nil {
-		return errors.New("[Blockchain] , BuildMerkleRoot ComputeRoot failed.")
-	}
-	genesisBlock.Header.MerkleRoot = hash
 
 	DefaultLedger = new(Ledger)
 	DefaultLedger.Blockchain = NewBlockchain(0)
@@ -99,97 +87,6 @@ func Init(store IChainStore) error {
 
 	DefaultLedger.Blockchain.UpdateBestHeight(height)
 	return nil
-}
-
-func GenesisBlockInit() (*Block, error) {
-	genesisBlockdata := &Header{
-		Version:    BlockVersion,
-		Previous:   EmptyHash,
-		MerkleRoot: EmptyHash,
-		Timestamp:  uint32(time.Unix(time.Date(2017, time.December, 22, 10, 0, 0, 0, time.UTC).Unix(), 0).Unix()),
-		Bits:       0x1d03ffff,
-		//Bits:   config.Parameters.ChainParam.PowLimitBits,
-		Nonce:  GenesisNonce,
-		Height: uint32(0),
-	}
-
-	//transaction
-	systemToken := &Transaction{
-		TxType:         RegisterAsset,
-		PayloadVersion: 0,
-		Payload: &PayloadRegisterAsset{
-			Asset: Asset{
-				Name:      "ELA",
-				Precision: 0x08,
-				AssetType: 0x00,
-			},
-			Amount:     0 * 100000000,
-			Controller: Uint168{},
-		},
-		Attributes: []*Attribute{},
-		Inputs:     []*Input{},
-		Outputs:    []*Output{},
-		Programs:   []*Program{},
-	}
-
-	foundationProgramHash, err := Uint168FromAddress(FoundationAddress)
-	if err != nil {
-		return nil, err
-	}
-
-	trans, err := NewCoinBaseTransaction(&PayloadCoinBase{}, 0)
-	if err != nil {
-		return nil, err
-	}
-
-	trans.Outputs = []*Output{
-		{
-			AssetID:     systemToken.Hash(),
-			Value:       3300 * 10000 * 100000000,
-			ProgramHash: *foundationProgramHash,
-		},
-	}
-
-	nonce := make([]byte, 8)
-	binary.BigEndian.PutUint64(nonce, rand.Uint64())
-	txAttr := NewAttribute(Nonce, nonce)
-	trans.Attributes = append(trans.Attributes, &txAttr)
-	//block
-	genesisBlock := &Block{
-		Header:       genesisBlockdata,
-		Transactions: []*Transaction{trans, systemToken},
-	}
-	txHashes := []Uint256{}
-	for _, tx := range genesisBlock.Transactions {
-		txHashes = append(txHashes, tx.Hash())
-	}
-	merkleRoot, err := crypto.ComputeRoot(txHashes)
-	if err != nil {
-		return nil, errors.New("[GenesisBlock], merkle root error")
-	}
-	genesisBlock.Header.MerkleRoot = merkleRoot
-
-	return genesisBlock, nil
-}
-
-func NewCoinBaseTransaction(coinBasePayload *PayloadCoinBase, currentHeight uint32) (*Transaction, error) {
-	return &Transaction{
-		TxType:         CoinBase,
-		PayloadVersion: PayloadCoinBaseVersion,
-		Payload:        coinBasePayload,
-		Inputs: []*Input{
-			{
-				Previous: OutPoint{
-					TxID:  EmptyHash,
-					Index: 0x0000,
-				},
-				Sequence: 0x00000000,
-			},
-		},
-		Attributes: []*Attribute{},
-		LockTime:   currentHeight,
-		Programs:   []*Program{},
-	}, nil
 }
 
 func (bc *Blockchain) GetBestHeight() uint32 {

@@ -73,7 +73,7 @@ type Transactions struct {
 	AssetInputAmount  []AmountMap
 	AssetOutputAmount []AmountMap
 	Timestamp         uint32 `json:",omitempty"`
-	Confirmations     uint32 `json:",omitempty"`
+	Confirminations   uint32 `json:",omitempty"`
 	TxSize            uint32 `json:",omitempty"`
 	Hash              string
 }

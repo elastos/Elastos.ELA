@@ -213,8 +213,10 @@ func (rt *restServer) initGetHandler() {
 			if h, ok := rt.getMap[url]; ok {
 				req = rt.getParams(r, url, req)
 				resp = h.handler(req)
+				resp["Action"] = h.name
 			} else {
 				resp = ResponsePack(InvalidMethod, "")
+				resp["Action"] = h.name
 			}
 			rt.response(w, resp)
 		})
@@ -236,12 +238,16 @@ func (rt *restServer) initPostHandler() {
 				if err := json.Unmarshal(body, &req); err == nil {
 					req = rt.getParams(r, url, req)
 					resp = h.handler(req)
+					resp["Action"] = h.name
 				} else {
 					resp = ResponsePack(IllegalDataFormat, "")
+					resp["Action"] = h.name
 				}
 			} else {
 				resp = ResponsePack(InvalidMethod, "")
+				resp["Action"] = h.name
 			}
+
 			rt.response(w, resp)
 		})
 	}

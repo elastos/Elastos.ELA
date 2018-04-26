@@ -185,9 +185,6 @@ func CheckTransactionOutput(txn *tx.Transaction) error {
 			return errors.New("asset ID in coinbase is invalid")
 		}
 
-		if !output.ProgramHash.Valid() {
-			return errors.New("output address is invalid")
-		}
 	}
 
 	return nil

@@ -22,7 +22,7 @@ result:
 | ------ | ---- | ----------- |
 | blockhash | string | the hash of the most recent block | 
 
-arguements sample:
+arguments sample:
 ```json
 {
   "method":"getbestblockhash"
@@ -44,14 +44,14 @@ paramters:
 
 | name | type | description |
 | ---- | ---- | ----------- |
-| height | integer | the height of blockchain |
+| index | integer | the height of blockchain |
 
 result:
 | name   | type | description |
 | ------ | ---- | ----------- |
 | blockhash | string | the hash of the block | 
 
-arguements sample:
+arguments sample:
 ```json
 {
 	"method":"getblockhash",
@@ -82,7 +82,7 @@ result:
 | ---- | ---- | ----------- |
 | hash | string | the blockchain hash |
 | confirmations | integer | confirmations |
-| size | integer | the size of block in bytes |
+| size | integer | the size of a block in bytes |
 | strippedsize | integer | equals to size |
 | weight | integer | This block’s weight |
 | height | integer | the height of block |
@@ -90,16 +90,16 @@ result:
 | versionhex | string | block header's version in hex format |
 | merkleroot | string | the merkleroot hash of this block |
 | tx | array[string] | tx hashes of this block, in an array|
-| time | integer | the unix time stamp of this block |
+| time | integer | the Unix timestamp of this block |
 | mediantime | integer | equals to time |
 | nonce | integer | the nonce of this block |
 | bits | integer | bits of this block |
-| diffculty | string | diffculty of this block |
+| difficulty | string | difficulty of this block |
 | chainwork | string | The estimated number of block header hashes miners had to check from the genesis block to this block, encoded as big-endian hex |
 | previousblockhash | string | previous block hash |
 | nextblockhash | string | next block hash |
-| auxpow | string | aux pow informations in hex format |
-arguements sample:
+| auxpow | string | Auxpow information in hex format |
+arguments sample:
 ```javascript
 {
   "method":"getblock",
@@ -145,7 +145,7 @@ description: get block count
 
 parameters: none
 
-arguement sample:
+argument sample:
 ```javascript
 {   
   "method":"getblockcount"
@@ -160,7 +160,7 @@ result sample:
 
 5. getrawtransaction
 
-description: get txn info of given tx hash.
+description: get transaction infomation of given transaction hash.
 
 parameters:
 
@@ -183,7 +183,7 @@ results:
 | vout | array | output utxo vector of this transaction |
 | assetid | string | asset id |
 | outputlock | string | outputlock of this transaction |
-arguement sample:
+argument sample:
 ```javascript
 {
 	"method":"getrawtransaction",
@@ -251,7 +251,7 @@ description: return hashes of txns in memory pool.
 
 parameters: none
 
-arguement sample:
+argument sample:
 ```javascript
 {
   "method":"getrawmempool"
@@ -277,7 +277,7 @@ parameters:
 result:
 please see below
 
-arguement sample:
+argument sample:
 ```json
 {
 	"method":"setloglevel",
@@ -301,7 +301,7 @@ description: get current height of this blockchain
 
 parameters: none
 
-arguement sample:
+argument sample:
 ```javascript
 {
     "id": null,
@@ -321,7 +321,7 @@ result sample:
 
 description: get peer's count of this node
 
-arguement sample:
+argument sample:
 ```javascript
 {
   "method": "getconnectioncount"
@@ -352,7 +352,7 @@ results:
 | Port | integer | p2p network port |
 | ID | integer | node's id | 
 
-arguement sample:
+argument sample:
 ```json
 {
   "method":"getneighbors"
@@ -397,7 +397,7 @@ results:
 | Port | integer | p2p network port |
 | ID | integer | node's id | 
 
-arguement sample:
+argument sample:
 ```json
 {
   "method":"getnodestate"
@@ -439,7 +439,7 @@ result:
 | ---- | ---- | ----------- |
 | hash | string | transaction hash |
 
-arguement sample:
+argument sample:
 ```json
 {
   "method":"sendrawtransaction",
@@ -464,7 +464,7 @@ parameters:
 | ---- | ---- | ----------- |
 | mining | bool | whether mine or not | 
 
-arguement sample:
+argument sample:
 ```json
 {
 	"method":"togglemining",
@@ -490,7 +490,7 @@ parameters:
 | ---- | ---- | ----------- |
 | count | integer | count of blocks | 
 
-arguement sample:
+argument sample:
 ```json
 {
 	"method":"manualmining",
@@ -510,5 +510,5 @@ result sample:
 ```
 #### getinfo
 
-description: return node informations 
+description: return node information.  
 warning: this interface is ready to be deprecated. So no api informations will be supplied.

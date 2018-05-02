@@ -5,19 +5,20 @@ this is the document of ela json rpc interfaces.
 it follows json-rpc 2.0 protocol but also keeps compatible with 1.0 version. 
 That means both named params and positional params are acceptable.
 
-"id" is optional, which will be send back in the result samely if you add it in a request. 
+"id" is optional, which will be sent back in the result samely if you add it in a request. 
 It is needed when you want to distinguish different requests.
 
 "jsonrpc" is optional. It tells which version this request uses.
 In version 2.0 it is required, while in version 1.0 it does not exist.
 
-1. getbestblockhash  
+#### getbestblockhash  
 description: return the hash of the most recent block 
 
 parameters: none
 
-result:
-| name   | type | description |
+result: 
+
+| name   | type | description |
 | ------ | ---- | ----------- |
 | blockhash | string | the hash of the most recent block | 
 
@@ -36,7 +37,7 @@ result sample:
     "result": "68692d63a8bfc8887553b97f99f09e523d34a2b599bf5b388436b2ddc85ed76e"
 }
 ```
-2. getblockhash  
+#### getblockhash  
 description: return the hash of the specific blockchain height.
 
 paramters: 
@@ -66,7 +67,7 @@ result sample:
 }
 ```
 
-3. getblock  
+#### getblock  
 description: return the block information of the specific blockchain hash.
 
 parameters:
@@ -76,6 +77,7 @@ parameters:
 | hash | string | the blockchain hash | 
 
 result:
+
 | name | type | description |
 | ---- | ---- | ----------- |
 | hash | string | the blockchain hash |
@@ -137,7 +139,7 @@ result sample
 }
 ```
 
-4. getblockcount
+#### getblockcount
 
 description: get block count
 
@@ -161,6 +163,7 @@ result sample:
 description: get txn info of given tx hash.
 
 parameters:
+
 | name | type | description |
 | ---- | ---- | ----------- |
 | hash | string | transaction hash |
@@ -242,7 +245,7 @@ result sample:
 }
 ```
 
-6. getrawmempool
+#### getrawmempool
 
 description: return hashes of txns in memory pool.
 
@@ -292,7 +295,7 @@ result sample:
     "result": "log level has been set to 0"
 }
 ```
-8. getcurrentheight
+#### getcurrentheight
 
 description: get current height of this blockchain
 
@@ -314,7 +317,7 @@ result sample:
  "result": 13251
 }
 ```
-9. getconnectioncount
+#### getconnectioncount
 
 description: get peer's count of this node
 
@@ -333,13 +336,14 @@ result sample:
     "result": 0
 }
 ```
-10. getneighbors
+#### getneighbors
 
 description: get peer's info
 
 parameters: none
 
 results:
+
 | name | type | description |
 | ---- | ---- | ----------- |
 | Time | integer | current time in unix nano format |
@@ -371,13 +375,14 @@ result sample:
 }
 ```
 
-11. getnodestate
+#### getnodestate
 
 description: get node state
 
 parameters: none
 
 results:
+
 | name | type | description |
 | ---- | ---- | ----------- |
 | Time | integer | current time in unix nano format |
@@ -418,11 +423,12 @@ arguement sample:
 }
 ```
 
-12. sendrawtransaction
+#### sendrawtransaction
 
 description: send a raw transaction to node
 
 parameters: 
+
 | name | type | description |
 | ---- | ---- | ----------- |
 | data | string | raw transaction data in hex |
@@ -448,9 +454,11 @@ result sample:
 }
 ```
 
-13. togglemining
+#### togglemining
 
 description: the switch of mining
+
+parameters:
 
 | name | type | description |
 | ---- | ---- | ----------- |
@@ -473,9 +481,11 @@ result sample:
 }
 ```
 
-14. manualmining
+#### manualmining
 
-description: generate one or more blocks manually
+description: generate one or more blocks manually  
+parameters:
+
 | name | type | description |
 | ---- | ---- | ----------- |
 | count | integer | count of blocks | 
@@ -498,7 +508,7 @@ result sample:
     ]
 }
 ```
-15. getinfo
+#### getinfo
 
 description: return node informations 
 warning: this interface is ready to be deprecated. So no api informations will be supplied.

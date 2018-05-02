@@ -47,6 +47,7 @@ paramters:
 | index | integer | the height of blockchain |
 
 result:
+
 | name   | type | description |
 | ------ | ---- | ----------- |
 | blockhash | string | the hash of the block | 
@@ -89,7 +90,7 @@ result:
 | version | integer | block header's version |
 | versionhex | string | block header's version in hex format |
 | merkleroot | string | the merkleroot hash of this block |
-| tx | array[string] | tx hashes of this block, in an array|
+| tx | array[string] | transaction hashes of this block, in an array|
 | time | integer | the Unix timestamp of this block |
 | mediantime | integer | equals to time |
 | nonce | integer | the nonce of this block |
@@ -99,6 +100,7 @@ result:
 | previousblockhash | string | previous block hash |
 | nextblockhash | string | next block hash |
 | auxpow | string | Auxpow information in hex format |
+
 arguments sample:
 ```javascript
 {
@@ -158,7 +160,7 @@ result sample:
 }
 ```
 
-5. getrawtransaction
+#### getrawtransaction
 
 description: get transaction infomation of given transaction hash.
 
@@ -183,6 +185,7 @@ results:
 | vout | array | output utxo vector of this transaction |
 | assetid | string | asset id |
 | outputlock | string | outputlock of this transaction |
+
 argument sample:
 ```javascript
 {
@@ -247,7 +250,7 @@ result sample:
 
 #### getrawmempool
 
-description: return hashes of txns in memory pool.
+description: return hashes of transactions in memory pool.
 
 parameters: none
 
@@ -265,11 +268,12 @@ result sample:
  "result":["aaaaa", "bbbbb"]
 }
 ```
-7. setloglevel
+#### setloglevel
 
 description: set log level
 
 parameters: 
+
 | name | type | description |
 | ---- | ---- | ----------- |
 | level | integer | the log level |

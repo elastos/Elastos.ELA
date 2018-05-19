@@ -7,9 +7,8 @@ import (
 	"errors"
 )
 
-const (
-	FoundationAddress = "8VYXVxKKSAxkmRrfmGpQR2Kc66XhG6m3ta"
-)
+var	FoundationAddress string
+
 
 var DefaultLedger *Ledger
 

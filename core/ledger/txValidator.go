@@ -278,13 +278,13 @@ func CheckAttributeProgram(txn *tx.Transaction) error {
 
 func InAddressList(address string) bool {
 	addresses := [7]string{
-	"AY88Sf2PqvDwrPefskbpsLQjfRHG4C6XY7",
-	"AHC2skXznXvZFcv8jTdVy3qovLbZdDgEcZ",
-	"APP7fGVJkiCHhURuPotxKFXf5HjyvpH52r",
-	"AUtUKTsQVEAGjj4cE83jMQbsvyjqm3spNf",
-	"AexFnGMhF1EnACJkd7iKhh8eKG2qPJcDcf",
-	"AS3N7PWLPNARFBgkc9SW9qwiMqND17kSS7",
-	"AKLMhPk1CW9HsV6UW5bMLrqz2y1ZKHcrSn",
+		"AY88Sf2PqvDwrPefskbpsLQjfRHG4C6XY7",
+		"AHC2skXznXvZFcv8jTdVy3qovLbZdDgEcZ",
+		"APP7fGVJkiCHhURuPotxKFXf5HjyvpH52r",
+		"AUtUKTsQVEAGjj4cE83jMQbsvyjqm3spNf",
+		"AexFnGMhF1EnACJkd7iKhh8eKG2qPJcDcf",
+		"AS3N7PWLPNARFBgkc9SW9qwiMqND17kSS7",
+		"AKLMhPk1CW9HsV6UW5bMLrqz2y1ZKHcrSn",
 	}
 	for _, v := range addresses {
 		if v == address {
@@ -295,12 +295,7 @@ func InAddressList(address string) bool {
 }
 
 func CheckTransactionSignature(txn *tx.Transaction) error {
-	flag, err := tx.VerifySignature(txn)
-	if flag && err == nil {
-		return nil
-	} else {
-		return err
-	}
+	return tx.VerifySignature(txn)
 }
 
 func checkAmountPrecise(amount common.Fixed64, precision byte) bool {

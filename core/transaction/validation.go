@@ -19,8 +19,6 @@ func VerifySignature(txn *Transaction) error {
 		return errors.New("The number of data hashes is different with number of programs.")
 	}
 
-	programs = txn.GetPrograms()
-
 	for i := 0; i < len(programs); i++ {
 
 		code := programs[i].Code
@@ -42,11 +40,7 @@ func VerifySignature(txn *Transaction) error {
 		if signType == STANDARD {
 			// Remove length byte and sign type byte
 			publicKeyBytes := code[1:len(code)-1]
-			content := txn.GetDataContent()
-			// Remove length byte
-			signature := param[1:]
-
-			if err = checkStandardSignature(publicKeyBytes, content, signature); err != nil {
+			if err = checkStandardSignature(publicKeyBytes, txn.GetDataContent(), param); err != nil {
 				return err
 			}
 

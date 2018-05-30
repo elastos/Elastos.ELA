@@ -435,19 +435,16 @@ func (tx *Transaction) GetMergedAssetIDValueFromReference() (TransactionResult, 
 	return result, nil
 }
 
-func (tx *Transaction) GetTransactionCode() ([]byte, error) {
-	code := tx.GetPrograms()[0].Code
+func (tx *Transaction) GetProgram(index int) ([]byte, error) {
+	code := tx.Programs[index].Code
 	if code == nil {
 		return nil, errors.New("invalid transaction type, redeem script not found")
 	}
 	return code, nil
 }
 
-func (tx *Transaction) GetMultiSignPublicKeys() ([][]byte, error) {
-	code, err := tx.GetTransactionCode()
-	if err != nil {
-		return nil, err
-	}
+func (tx *Transaction) GetMultiSignPublicKeys(index int) ([][]byte, error) {
+	code := tx.Programs[index].Code
 	if len(code) < MinMultiSignCodeLength || code[len(code)-1] != MULTISIG {
 		return nil, errors.New("not a valid multi sign transaction code, length not enough")
 	}
@@ -472,8 +469,8 @@ func (tx *Transaction) GetMultiSignPublicKeys() ([][]byte, error) {
 	return publicKeys, nil
 }
 
-func (tx *Transaction) GetTransactionType() (byte, error) {
-	code, err := tx.GetTransactionCode()
+func (tx *Transaction) GetOpCode(index int) (byte, error) {
+	code, err := tx.GetProgram(index)
 	if err != nil {
 		return 0, err
 	}

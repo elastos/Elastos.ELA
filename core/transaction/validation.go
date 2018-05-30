@@ -21,6 +21,8 @@ func VerifySignature(txn *Transaction) error {
 		return errors.New("The number of data hashes is different with number of programs.")
 	}
 
+	data := txn.GetDataContent()
+
 	for i := 0; i < len(programs); i++ {
 
 		code := programs[i].Code
@@ -35,23 +37,23 @@ func VerifySignature(txn *Transaction) error {
 			return errors.New("The data hashes is different with corresponding program code.")
 		}
 		// Get transaction type
-		signType, err := txn.GetTransactionType()
+		signType, err := txn.GetOpCode(i)
 		if err != nil {
 			return err
 		}
 		if signType == STANDARD {
 			// Remove length byte and sign type byte
 			publicKeyBytes := code[1:len(code)-1]
-			if err = checkStandardSignature(publicKeyBytes, txn.GetDataContent(), param); err != nil {
+			if err = checkStandardSignature(publicKeyBytes, data, param); err != nil {
 				return err
 			}
 
 		} else if signType == MULTISIG {
-			publicKeys, err := txn.GetMultiSignPublicKeys()
+			publicKeys, err := txn.GetMultiSignPublicKeys(i)
 			if err != nil {
 				return err
 			}
-			if err = checkMultiSignSignatures(code, param, txn.GetDataContent(), publicKeys); err != nil {
+			if err = checkMultiSignSignatures(code, param, data, publicKeys); err != nil {
 				return err
 			}
 
@@ -87,12 +89,21 @@ func checkMultiSignSignatures(code, param, content []byte, publicKeys [][]byte) 
 	if len(publicKeys) != n {
 		return errors.New("invalid multi sign public key script count")
 	}
+	if len(param)%SignatureScriptLength != 0 {
+		return errors.New("invalid multi sign signatures, length not match")
+	}
+	if len(param)/SignatureScriptLength < m {
+		return errors.New("invalid signatures, not enough signatures")
+	}
+	if len(param)/SignatureScriptLength > n {
+		return errors.New("invalid signatures, too many signatures")
+	}
 
 	var verified = make(map[common.Uint256]struct{})
 	for i := 0; i < len(param); i += SignatureScriptLength {
 		// Remove length byte
 		sign := param[i: i+SignatureScriptLength][1:]
-		// Get signature index, if signature exists index will not be -1
+		// Match public key with signature
 		for _, publicKey := range publicKeys {
 			pubKey, err := crypto.DecodePoint(publicKey[1:])
 			if err != nil {
@@ -100,8 +111,7 @@ func checkMultiSignSignatures(code, param, content []byte, publicKeys [][]byte) 
 			}
 			err = crypto.Verify(*pubKey, content, sign)
 			if err == nil {
-				pkBytes := append(pubKey.X.Bytes(), pubKey.Y.Bytes()...)
-				hash := sha256.Sum256(pkBytes)
+				hash := sha256.Sum256(publicKey)
 				if _, ok := verified[hash]; ok {
 					return errors.New("duplicated signatures")
 				}
@@ -110,9 +120,10 @@ func checkMultiSignSignatures(code, param, content []byte, publicKeys [][]byte) 
 			}
 		}
 	}
-	// Check signature count
-	if len(verified) != m {
-		return errors.New("invalid signature count")
+
+	// Check signatures count
+	if len(verified) < m {
+		return errors.New("matched signatures not enough")
 	}
 
 	return nil

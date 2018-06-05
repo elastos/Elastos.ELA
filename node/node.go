@@ -1,9 +1,6 @@
 package node
 
 import (
-	"bytes"
-	"crypto/sha256"
-	"encoding/binary"
 	"errors"
 	"fmt"
 	"net"
@@ -88,7 +85,7 @@ func NewNode(magic uint32, conn net.Conn) *node {
 	return node
 }
 
-func InitLocalNode() protocol.Noder {
+func InitLocalNode(chainID uint64) protocol.Noder {
 	LocalNode = NewNode(Parameters.Magic, nil)
 	LocalNode.version = protocol.ProtocolVersion
 
@@ -100,8 +97,7 @@ func InitLocalNode() protocol.Noder {
 		LocalNode.services += protocol.OpenService
 	}
 	LocalNode.relay = true
-	idHash := sha256.Sum256([]byte(strconv.Itoa(int(time.Now().UnixNano()))))
-	binary.Read(bytes.NewBuffer(idHash[:8]), binary.LittleEndian, &(LocalNode.id))
+	LocalNode.id = chainID
 
 	log.Info(fmt.Sprintf("Init node ID to 0x%x", LocalNode.id))
 	LocalNode.nbrNodes.init()

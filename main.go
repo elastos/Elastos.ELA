@@ -3,6 +3,8 @@ package main
 import (
 	"os"
 	"runtime"
+
+	"github.com/elastos/Elastos.ELA/blockchain"
 	"github.com/elastos/Elastos.ELA/config"
 	"github.com/elastos/Elastos.ELA/log"
 	"github.com/elastos/Elastos.ELA/node"
@@ -13,7 +15,6 @@ import (
 	"github.com/elastos/Elastos.ELA/servers/httpnodeinfo"
 	"github.com/elastos/Elastos.ELA/servers/httprestful"
 	"github.com/elastos/Elastos.ELA/servers/httpwebsocket"
-	"github.com/elastos/Elastos.ELA/blockchain"
 )
 
 const (
@@ -70,7 +71,7 @@ func main() {
 	}
 
 	log.Info("2. Start the P2P networks")
-	noder = node.InitLocalNode()
+	noder = node.InitLocalNode(chainStore.GetChainID())
 	noder.WaitForSyncFinish()
 
 	servers.NodeForServers = noder

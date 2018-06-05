@@ -3,6 +3,8 @@ package blockchain
 import (
 	"bytes"
 	"container/list"
+	"crypto/rand"
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"sync"
@@ -13,6 +15,7 @@ import (
 	"github.com/elastos/Elastos.ELA/log"
 
 	. "github.com/elastos/Elastos.ELA.Utility/common"
+	"github.com/syndtr/goleveldb/leveldb"
 )
 
 const TaskChanCap = 4
@@ -71,10 +74,23 @@ func NewChainStore() (IChainStore, error) {
 	return store, nil
 }
 
+func (c *ChainStore) GetChainID() uint64 {
+	var id uint64
+	idByte, err := c.Get([]byte{byte(SYS_ID)})
+	if err == leveldb.ErrNotFound {
+		var sysId [8]byte
+		rand.Read(sysId[:])
+		idByte = sysId[:]
+		c.Put([]byte{byte(SYS_ID)}, idByte)
+	}
+	binary.Read(bytes.NewBuffer(idByte), binary.LittleEndian, &id)
+	return id
+}
+
 func (c *ChainStore) Close() {
 	closed := make(chan bool)
 	c.quit <- closed
-	<- closed
+	<-closed
 	c.IStore.Close()
 }
 

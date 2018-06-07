@@ -130,8 +130,8 @@ func GetRawTransaction(param Params) map[string]interface{} {
 		return ResponsePack(UnknownTransaction, "")
 	}
 
-	verbose, ok := param.Bool("verbose")
-	if verbose {
+	verbosity, ok := param.Bool("verbosity")
+	if verbosity {
 		return ResponsePack(Success, GetTransactionInfo(header, tx))
 	} else {
 		buf := new(bytes.Buffer)
@@ -369,9 +369,9 @@ func GetTransactionPool(param Params) map[string]interface{} {
 	return ResponsePack(Success, txs)
 }
 
-func GetBlockInfo(block *Block, verbose bool) BlockInfo {
+func GetBlockInfo(block *Block, verbosity bool) BlockInfo {
 	var txs []interface{}
-	if verbose {
+	if verbosity {
 		for _, tx := range block.Transactions {
 			txs = append(txs, GetTransactionInfo(&block.Header, tx))
 		}
@@ -414,12 +414,12 @@ func GetBlockInfo(block *Block, verbose bool) BlockInfo {
 	}
 }
 
-func getBlock(hash Uint256, verbose uint32) (interface{}, ErrCode) {
+func getBlock(hash Uint256, verbosity uint32) (interface{}, ErrCode) {
 	block, err := chain.DefaultLedger.Store.GetBlock(hash)
 	if err != nil {
 		return "", UnknownBlock
 	}
-	switch verbose {
+	switch verbosity {
 	case 0:
 		w := new(bytes.Buffer)
 		block.Serialize(w)

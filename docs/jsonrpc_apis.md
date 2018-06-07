@@ -272,7 +272,7 @@ parameters:
 | name | type | description |
 | ---- | ---- | ----------- |
 | txid | string | transaction hash |
-| verbose | bool | verbose of result |
+| verbosity | bool | verbosity of result |
 
 results:
 
@@ -297,7 +297,7 @@ argument sample:
 	"params":["caa0d52ea2b90a08480834b97c271a8b847aadf90057318a33ccc8674b77c796"]
 }
 ```
-result sample:(verbose=true)
+result sample:(verbosity=true)
 ```javascript
 {
     "id": null,
@@ -352,7 +352,7 @@ result sample:(verbose=true)
     }
 }
 ```
-result sample:(verbose=false)
+result sample:(verbosity=false)
 
 return raw data
 ```

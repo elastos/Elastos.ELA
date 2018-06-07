@@ -167,7 +167,7 @@ func convertParams(method string, params []interface{}) Params {
 	case "setloglevel":
 		return FromArray(params, "level")
 	case "getrawtransaction":
-		return FromArray(params, "txid", "verbose")
+		return FromArray(params, "txid", "verbosity")
 	case "getarbitratorgroupbyheight":
 		return FromArray(params, "height")
 	case "togglemining":

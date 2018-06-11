@@ -12,6 +12,7 @@ import:
 - package: github.com/mattn/go-sqlite3
 - package: github.com/pborman/uuid
 - package: github.com/syndtr/goleveldb
+- package: github.com/itchyny/base58-go
   subpackages:
   - leveldb
   - leveldb/errors

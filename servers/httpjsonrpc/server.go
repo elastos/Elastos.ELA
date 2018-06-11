@@ -43,7 +43,6 @@ func StartRPCServer() {
 	mainMux["getarbitratorgroupbyheight"] = GetArbitratorGroupByHeight
 	mainMux["getbestblockhash"] = GetBestBlockHash
 	mainMux["getblockcount"] = GetBlockCount
-	mainMux["gettransaction"] = GetTransactionByHash
 	mainMux["getblockbyheight"] = GetBlockByHeight
 
 	// aux interfaces

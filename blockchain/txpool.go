@@ -90,12 +90,45 @@ func (pool *TxPool) GetTxnPool(byCount bool) map[Uint256]*Transaction {
 
 //clean the trasaction Pool with committed block.
 func (pool *TxPool) CleanSubmittedTransactions(block *Block) error {
-	pool.cleanTransactionList(block.Transactions)
-	pool.cleanUTXOList(block.Transactions)
-	//pool.cleanIssueSummary(block.Transactions)
+	pool.CleanTransactionsWithUsedUTXOs(block.Transactions)
 	pool.cleanSidechainTx(block.Transactions)
 
 	return nil
+}
+
+func (pool *TxPool) CleanTransactionsWithUsedUTXOs(blockTxs []*Transaction) error {
+	for _, blockTx := range blockTxs {
+		if blockTx.TxType == CoinBase {
+			continue
+		}
+		references, err := DefaultLedger.Store.GetTxReference(blockTx)
+		if err != nil {
+			return err
+		}
+		for reference := range references {
+			// we search transactions in transaction pool which have the same utxos with those transactions
+			// in block. That is, if a transaction in the new-coming block uses the same utxo which a transaction
+			// in transaction pool uses, then the latter one should be deleted, because one of its utxos has been used
+			// by a confirmed transaction packed in the new-coming block.
+			if tx := pool.getInputUTXOList(reference); tx != nil {
+				if tx.Hash() == blockTx.Hash() {
+					// it is evidently that two transactions with the same transaction id has exactly the same utxos with each
+					// other. This is a special case of what we've said above.
+					log.Infof("duplicated transactions detected when adding a new block. " +
+						" Delete transaction in the transaction pool. Transaction id: %x", tx.Hash())
+				} else {
+					log.Infof("double spent UTXO inputs detected in transaction pool when adding a new block. "+
+						"Delete transaction in the transaction pool. "+
+						"block transaction hash: %x, transaction hash: %x, the same input: %s, index: %d",
+						blockTx.Hash(), tx.Hash(), reference.Previous.TxID, reference.Previous.Index)
+				}
+				pool.delFromTxList(tx.Hash())
+				pool.delInputUTXOList(reference)
+			}
+		}
+	}
+	return nil
+
 }
 
 //get the transaction by hash
@@ -214,16 +247,6 @@ func (pool *TxPool) replaceDuplicateSideChainPowTx(txn *Transaction) {
 	}
 }
 
-//clean txnpool utxo map
-func (pool *TxPool) cleanUTXOList(txs []*Transaction) {
-	for _, txn := range txs {
-		inputUtxos, _ := DefaultLedger.Store.GetTxReference(txn)
-		for Utxoinput := range inputUtxos {
-			pool.delInputUTXOList(Utxoinput)
-		}
-	}
-}
-
 // clean the sidechain tx pool
 func (pool *TxPool) cleanSidechainTx(txs []*Transaction) {
 	for _, txn := range txs {
@@ -234,26 +257,6 @@ func (pool *TxPool) cleanSidechainTx(txs []*Transaction) {
 			}
 		}
 	}
-}
-
-// clean the trasaction Pool with committed transactions.
-func (pool *TxPool) cleanTransactionList(txns []*Transaction) error {
-	cleaned := 0
-	txnsNum := len(txns)
-	for _, txn := range txns {
-		if txn.TxType == CoinBase {
-			txnsNum = txnsNum - 1
-			continue
-		}
-		if pool.delFromTxList(txn.Hash()) {
-			cleaned++
-		}
-	}
-	if txnsNum != cleaned {
-		log.Infof("The Transactions num Unmatched. Expect %d, got %d .", txnsNum, cleaned)
-	}
-	log.Debug(fmt.Sprintf("[cleanTransactionList],transaction %d Requested, %d cleaned, Remains %d in TxPool", txnsNum, cleaned, pool.GetTransactionCount()))
-	return nil
 }
 
 func (pool *TxPool) addToTxList(txn *Transaction) bool {

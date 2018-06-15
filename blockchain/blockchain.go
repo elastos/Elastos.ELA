@@ -134,7 +134,7 @@ func GetGenesisBlock() (*Block, error) {
 
 	nonce := make([]byte, 8)
 	binary.BigEndian.PutUint64(nonce, rand.Uint64())
-	txAttr := NewAttribute(Nonce, nonce)
+	txAttr := Attribute{Nonce, nonce}
 	coinBase.Attributes = append(coinBase.Attributes, &txAttr)
 
 	//block

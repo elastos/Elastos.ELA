@@ -13,9 +13,9 @@ type AttributeUsage byte
 const (
 	Nonce          AttributeUsage = 0x00
 	Script         AttributeUsage = 0x20
-	DescriptionUrl AttributeUsage = 0x81
+	Memo           AttributeUsage = 0x81
 	Description    AttributeUsage = 0x90
-	Memo           AttributeUsage = 0x91
+	DescriptionUrl AttributeUsage = 0x91
 )
 
 func (self AttributeUsage) Name() string {
@@ -24,10 +24,12 @@ func (self AttributeUsage) Name() string {
 		return "Nonce"
 	case Script:
 		return "Script"
-	case DescriptionUrl:
-		return "DescriptionUrl"
+	case Memo:
+		return "Memo"
 	case Description:
 		return "Description"
+	case DescriptionUrl:
+		return "DescriptionUrl"
 	default:
 		return "Unknown"
 	}
@@ -35,7 +37,7 @@ func (self AttributeUsage) Name() string {
 
 func IsValidAttributeType(usage AttributeUsage) bool {
 	return usage == Nonce || usage == Script ||
-		usage == DescriptionUrl || usage == Description || usage == Memo
+		usage == Memo || usage == Description || usage == DescriptionUrl
 }
 
 type Attribute struct {
@@ -59,7 +61,7 @@ func NewAttribute(u AttributeUsage, d []byte) Attribute {
 }
 
 func (u *Attribute) GetSize() uint32 {
-	if u.Usage == DescriptionUrl {
+	if u.Usage == Memo {
 		return uint32(len([]byte{(byte(0xff))}) + len([]byte{(byte(0xff))}) + len(u.Data))
 	}
 	return 0

@@ -73,17 +73,14 @@ type Noder interface {
 	NodeEstablished(uid uint64) bool
 	GetEvent(eventName string) *events.Event
 	GetNeighbourAddresses() []p2p.NetAddress
-	GetTransaction(hash common.Uint256) *core.Transaction
 	IncRxTxnCnt()
 	GetTxnCnt() uint64
 	GetRxTxnCnt() uint64
 
 	GetNeighborHeights() []uint64
 	WaitForSyncFinish()
-	CleanSubmittedTransactions(block *core.Block) error
-	MaybeAcceptTransaction(txn *core.Transaction) error
-	RemoveTransaction(txn *core.Transaction)
-
+	CleanTxPool(block *core.Block) error
+	RemoveSubsequentTransactions(txn *core.Transaction)
 	GetNeighborNoder() []Noder
 	GetNeighbourCount() uint32
 	UpdateLastActive()

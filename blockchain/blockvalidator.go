@@ -58,6 +58,7 @@ func PowCheckBlockSanity(block *Block, powLimit *big.Int, timeSource MedianTimeS
 		return errors.New("[PowCheckBlockSanity] serialized block is too big")
 	}
 
+	s
 	transactions := block.Transactions
 	var rewardInCoinbase = Fixed64(0)
 	var totalTxFee = Fixed64(0)

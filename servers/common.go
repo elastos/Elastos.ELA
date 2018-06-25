@@ -118,7 +118,7 @@ type TransferCrossChainAssetInfo struct {
 
 type WithdrawFromSideChainInfo struct {
 	BlockHeight                uint32
-	GenesisBlockAddress        string
+	GenesisBlockAddress        common.Uint168
 	SideChainTransactionHashes []string
 }
 

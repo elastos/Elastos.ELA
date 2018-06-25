@@ -12,7 +12,7 @@ const WithdrawFromSideChainPayloadVersion byte = 0x00
 
 type PayloadWithdrawFromSideChain struct {
 	BlockHeight                uint32
-	GenesisBlockAddress        string
+	GenesisBlockAddress        common.Uint168
 	SideChainTransactionHashes []common.Uint256
 }
 
@@ -29,7 +29,7 @@ func (t *PayloadWithdrawFromSideChain) Serialize(w io.Writer, version byte) erro
 	if err := common.WriteUint32(w, t.BlockHeight); err != nil {
 		return errors.New("[PayloadWithdrawFromSideChain], BlockHeight serialize failed.")
 	}
-	if err := common.WriteVarString(w, t.GenesisBlockAddress); err != nil {
+	if err := t.GenesisBlockAddress.Serialize(w); err != nil {
 		return errors.New("[PayloadWithdrawFromSideChain], GenesisBlockAddress serialize failed.")
 	}
 
@@ -51,7 +51,8 @@ func (t *PayloadWithdrawFromSideChain) Deserialize(r io.Reader, version byte) er
 	if err != nil {
 		return errors.New("[PayloadWithdrawFromSideChain], BlockHeight deserialize failed.")
 	}
-	address, err := common.ReadVarString(r)
+	var address common.Uint168
+	err = address.Deserialize(r)
 	if err != nil {
 		return errors.New("[PayloadWithdrawFromSideChain], GenesisBlockAddress deserialize failed.")
 	}

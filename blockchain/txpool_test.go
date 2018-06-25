@@ -56,9 +56,10 @@ func TestTxPool_VerifyDuplicateSidechainTx(t *testing.T) {
 	// 1. Generate a withdraw transaction
 	txn1 := new(core.Transaction)
 	txn1.TxType = core.WithdrawFromSideChain
+	addressUint168, err := common.Uint168FromAddress("eb7adb1fea0dd6185b09a43bdcd4924bb22bff7151f0b1b4e08699840ab1384b")
 	txn1.Payload = &core.PayloadWithdrawFromSideChain{
 		BlockHeight:         100,
-		GenesisBlockAddress: "eb7adb1fea0dd6185b09a43bdcd4924bb22bff7151f0b1b4e08699840ab1384b",
+		GenesisBlockAddress: *addressUint168,
 		SideChainTransactionHashes: []common.Uint256{
 			*hash1,
 			*hash2,
@@ -79,14 +80,14 @@ func TestTxPool_VerifyDuplicateSidechainTx(t *testing.T) {
 	txn2.TxType = core.WithdrawFromSideChain
 	txn2.Payload = &core.PayloadWithdrawFromSideChain{
 		BlockHeight:         100,
-		GenesisBlockAddress: "eb7adb1fea0dd6185b09a43bdcd4924bb22bff7151f0b1b4e08699840ab1384b",
+		GenesisBlockAddress: *addressUint168,
 		SideChainTransactionHashes: []common.Uint256{
 			*hash1, // duplicate sidechain Tx
 		},
 	}
 
 	// 4. Run verifyDuplicateSidechainTx
-	err := txPool.verifyDuplicateSidechainTx(txn2)
+	err = txPool.verifyDuplicateSidechainTx(txn2)
 	if err == nil {
 		t.Error("Should find the duplicate sidechain tx")
 	}
@@ -112,9 +113,10 @@ func TestTxPool_CleanSidechainTx(t *testing.T) {
 	// 1. Generate some withdraw transactions
 	txn1 := new(core.Transaction)
 	txn1.TxType = core.WithdrawFromSideChain
+	addressUint168, _ := common.Uint168FromAddress("eb7adb1fea0dd6185b09a43bdcd4924bb22bff7151f0b1b4e08699840ab1384b")
 	txn1.Payload = &core.PayloadWithdrawFromSideChain{
 		BlockHeight:         100,
-		GenesisBlockAddress: "eb7adb1fea0dd6185b09a43bdcd4924bb22bff7151f0b1b4e08699840ab1384b",
+		GenesisBlockAddress: *addressUint168,
 		SideChainTransactionHashes: []common.Uint256{
 			*hash1,
 			*hash2,
@@ -125,7 +127,7 @@ func TestTxPool_CleanSidechainTx(t *testing.T) {
 	txn2.TxType = core.WithdrawFromSideChain
 	txn2.Payload = &core.PayloadWithdrawFromSideChain{
 		BlockHeight:         100,
-		GenesisBlockAddress: "eb7adb1fea0dd6185b09a43bdcd4924bb22bff7151f0b1b4e08699840ab1384b",
+		GenesisBlockAddress: *addressUint168,
 		SideChainTransactionHashes: []common.Uint256{
 			*hash3,
 		},
@@ -135,7 +137,7 @@ func TestTxPool_CleanSidechainTx(t *testing.T) {
 	txn3.TxType = core.WithdrawFromSideChain
 	txn3.Payload = &core.PayloadWithdrawFromSideChain{
 		BlockHeight:         100,
-		GenesisBlockAddress: "eb7adb1fea0dd6185b09a43bdcd4924bb22bff7151f0b1b4e08699840ab1384b",
+		GenesisBlockAddress: *addressUint168,
 		SideChainTransactionHashes: []common.Uint256{
 			*hash4,
 			*hash5,
@@ -222,13 +224,14 @@ func TestTxPool_IsDuplicateSidechainTx(t *testing.T) {
 	var sideTx2 common.Uint256
 	rand.Read(sideTx1[:])
 	rand.Read(sideTx2[:])
+	addressUint168, _ := common.Uint168FromAddress("eb7adb1fea0dd6185b09a43bdcd4924bb22bff7151f0b1b4e08699840ab1384b")
 
 	// 1. Generate a withdraw transaction
 	txn1 := new(core.Transaction)
 	txn1.TxType = core.WithdrawFromSideChain
 	txn1.Payload = &core.PayloadWithdrawFromSideChain{
 		BlockHeight:         100,
-		GenesisBlockAddress: "eb7adb1fea0dd6185b09a43bdcd4924bb22bff7151f0b1b4e08699840ab1384b",
+		GenesisBlockAddress: *addressUint168,
 		SideChainTransactionHashes: []common.Uint256{
 			sideTx1,
 			sideTx2,

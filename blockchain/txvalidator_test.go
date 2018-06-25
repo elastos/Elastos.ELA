@@ -336,13 +336,14 @@ func TestCheckDuplicateSidechainTx(t *testing.T) {
 	hashStr2 := "cc62e14f5f9526b7f4ff9d34dcd0643dacb7886707c57f49ec97b95ec5c4edac"
 	hashBytes2, _ := common.HexStringToBytes(hashStr2)
 	hash2, _ := common.Uint256FromBytes(hashBytes2)
+	addressUint168, _ := common.Uint168FromAddress("eb7adb1fea0dd6185b09a43bdcd4924bb22bff7151f0b1b4e08699840ab1384b")
 
 	// 1. Generate the ill withdraw transaction which have duplicate sidechain tx
 	txn := new(core.Transaction)
 	txn.TxType = core.WithdrawFromSideChain
 	txn.Payload = &core.PayloadWithdrawFromSideChain{
 		BlockHeight:         100,
-		GenesisBlockAddress: "eb7adb1fea0dd6185b09a43bdcd4924bb22bff7151f0b1b4e08699840ab1384b",
+		GenesisBlockAddress: *addressUint168,
 		SideChainTransactionHashes: []common.Uint256{
 			*hash1,
 			*hash2,

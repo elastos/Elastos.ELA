@@ -97,7 +97,7 @@ func CheckTransactionContext(txn *tx.Transaction, ledger *Ledger) ErrCode {
 			return ErrUnknownReferedTxn
 		}
 		referTxnOut := referTxn.Outputs[referTxnOutIndex]
-		if referTxnOut.Value <= 0 {
+		if referTxnOut.Value < 0 {
 			log.Warn("Value of referenced transaction output is invalid")
 			return ErrInvalidReferedTxn
 		}
@@ -246,7 +246,7 @@ func CheckAssetPrecision(Tx *tx.Transaction) error {
 func CheckTransactionBalance(Tx *tx.Transaction) error {
 	// TODO: check coinbase balance 30%-70%
 	for _, v := range Tx.Outputs {
-		if v.Value <= common.Fixed64(0) {
+		if v.Value < common.Fixed64(0) {
 			return errors.New("Invalide transaction UTXO output.")
 		}
 	}

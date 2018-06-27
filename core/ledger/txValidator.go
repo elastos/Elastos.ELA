@@ -16,6 +16,10 @@ import (
 
 // CheckTransactionSanity verifys received single transaction
 func CheckTransactionSanity(txn *tx.Transaction) ErrCode {
+	// we don't check new type transactions
+	if txn.TxType > tx.Deploy {
+		return Success
+	}
 
 	if err := CheckTransactionSize(txn); err != nil {
 		log.Warn("[CheckTransactionSize],", err)
@@ -57,6 +61,10 @@ func CheckTransactionSanity(txn *tx.Transaction) ErrCode {
 
 // CheckTransactionContext verifys a transaction with history transaction in ledger
 func CheckTransactionContext(txn *tx.Transaction, ledger *Ledger) ErrCode {
+	// we don't check new type transactions
+	if txn.TxType > tx.Deploy {
+		return Success
+	}
 	// check if duplicated with transaction in ledger
 	if exist := ledger.Store.IsTxHashDuplicate(txn.Hash()); exist {
 		log.Info("[CheckTransactionContext] duplicate transaction check faild.")

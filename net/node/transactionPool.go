@@ -39,6 +39,10 @@ func (this *TXNPool) init() {
 //append transaction to txnpool when check ok.
 //1.check transaction. 2.check with ledger(db) 3.check with pool
 func (this *TXNPool) AppendToTxnPool(txn *transaction.Transaction) ErrCode {
+	if txn.TxType > tx.Deploy {
+		log.Error("do not accept this kind of transaction. type:", txn.TxType)
+		return InvalidTransaction
+	}
 	//verify transaction with Concurrency
 	if errCode := ledger.CheckTransactionSanity(txn); errCode != Success {
 		log.Info("Transaction verification failed", txn.Hash())

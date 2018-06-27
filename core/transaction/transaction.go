@@ -1,16 +1,16 @@
 package transaction
 
 import (
+	"bytes"
+	"crypto/sha256"
+	"errors"
 	"io"
 	"sort"
-	"bytes"
-	"errors"
-	"crypto/sha256"
 
 	. "Elastos.ELA/common"
-	. "Elastos.ELA/core/signature"
 	"Elastos.ELA/common/serialization"
 	"Elastos.ELA/core/contract/program"
+	. "Elastos.ELA/core/signature"
 	"Elastos.ELA/core/transaction/payload"
 )
 
@@ -19,11 +19,15 @@ import (
 type TransactionType byte
 
 const (
-	CoinBase      TransactionType = 0x00
-	RegisterAsset TransactionType = 0x01
-	TransferAsset TransactionType = 0x02
-	Record        TransactionType = 0x03
-	Deploy        TransactionType = 0x04
+	CoinBase                TransactionType = 0x00
+	RegisterAsset           TransactionType = 0x01
+	TransferAsset           TransactionType = 0x02
+	Record                  TransactionType = 0x03
+	Deploy                  TransactionType = 0x04
+	SideChainPow            TransactionType = 0x05
+	RechargeToSideChain     TransactionType = 0x06
+	WithdrawFromSideChain   TransactionType = 0x07
+	TransferCrossChainAsset TransactionType = 0x08
 )
 
 const (
@@ -200,6 +204,12 @@ func (tx *Transaction) DeserializeUnsignedWithoutType(r io.Reader) error {
 		tx.Payload = new(payload.Record)
 	case Deploy:
 		tx.Payload = new(payload.DeployCode)
+	case SideChainPow:
+		tx.Payload = new(payload.SideChainPow)
+	case WithdrawFromSideChain:
+		tx.Payload = new(payload.WithdrawFromSideChain)
+	case TransferCrossChainAsset:
+		tx.Payload = new(payload.TransferCrossChainAsset)
 	default:
 		return errors.New("[Transaction], invalid transaction type.")
 	}

@@ -181,7 +181,7 @@ func (h *HandlerBase) onVerAck(verAck *msg.VerAck) error {
 
 func (h *HandlerBase) onGetAddr(getAddr *msg.GetAddr) error {
 	var addrs []p2p.NetAddress
-	// Only send addresses that enabled SPV service
+	// Only send addresses that enabled open service
 	if h.node.IsFromExtraNet() {
 		for _, addr := range LocalNode.RandSelectAddresses() {
 			if addr.Services&protocol.OpenService == protocol.OpenService {

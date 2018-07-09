@@ -167,6 +167,7 @@ func (h *HandlerBase) onVerAck(verAck *msg.VerAck) error {
 	}
 
 	node.SetState(p2p.ESTABLISH)
+	go node.Heartbeat()
 
 	if LocalNode.NeedMoreAddresses() {
 		node.RequireNeighbourList()
@@ -181,7 +182,7 @@ func (h *HandlerBase) onVerAck(verAck *msg.VerAck) error {
 
 func (h *HandlerBase) onGetAddr(getAddr *msg.GetAddr) error {
 	var addrs []p2p.NetAddress
-	// Only send addresses that enabled SPV service
+	// Only send addresses that enabled open service
 	if h.node.IsFromExtraNet() {
 		for _, addr := range LocalNode.RandSelectAddresses() {
 			if addr.Services&protocol.OpenService == protocol.OpenService {
@@ -240,8 +241,6 @@ func SendGetBlocks(node protocol.Noder, locator []*common.Uint256, hashStop comm
 		return
 	}
 
-	LocalNode.SetSyncHeaders(true)
-	node.SetSyncHeaders(true)
 	LocalNode.SetStartHash(*locator[0])
 	LocalNode.SetStopHash(hashStop)
 	node.Send(msg.NewGetBlocks(locator, hashStop))

@@ -129,4 +129,5 @@ type UTXOInfo struct {
 	Address       string `json:"address"`
 	Amount        string `json:"amount"`
 	Confirmations uint32 `json:"confirmations"`
+	LockTime      uint32 `json:"LockTime"`
 }

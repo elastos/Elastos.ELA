@@ -708,7 +708,7 @@ func ListUnspent(param Params) map[string]interface{} {
 
 		unspents := unspends[chain.DefaultLedger.Blockchain.AssetID]
 		for _, unspent := range unspents {
-			_, height, err := chain.DefaultLedger.Store.GetTransaction(unspent.TxId)
+			tx, height, err := chain.DefaultLedger.Store.GetTransaction(unspent.TxId)
 			if err != nil {
 				return ResponsePack(InternalError,
 					"unknown transaction "+unspent.TxId.String()+" from persisted utxo")
@@ -720,6 +720,7 @@ func ListUnspent(param Params) map[string]interface{} {
 				Amount:        unspent.Value.String(),
 				Address:       address,
 				Confirmations: bestHeight - height + 1,
+				LockTime:      tx.Outputs[unspent.Index].OutputLock,
 			})
 		}
 	}

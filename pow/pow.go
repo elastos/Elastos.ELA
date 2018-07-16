@@ -97,7 +97,7 @@ func (pow *PowService) CreateCoinbaseTx(nextBlockHeight uint32, addr string) (*T
 
 	nonce := make([]byte, 8)
 	binary.BigEndian.PutUint64(nonce, rand.Uint64())
-	txAttr := NewAttribute(Nonce, nonce)
+	txAttr := Attribute{Nonce, nonce}
 	txn.Attributes = append(txn.Attributes, &txAttr)
 
 	return txn, nil

@@ -2,7 +2,6 @@ package core
 
 import (
 	"errors"
-	"fmt"
 	"io"
 
 	. "github.com/elastos/Elastos.ELA.Utility/common"
@@ -13,21 +12,23 @@ type AttributeUsage byte
 const (
 	Nonce          AttributeUsage = 0x00
 	Script         AttributeUsage = 0x20
-	DescriptionUrl AttributeUsage = 0x81
+	Memo           AttributeUsage = 0x81
 	Description    AttributeUsage = 0x90
-	Memo           AttributeUsage = 0x91
+	DescriptionUrl AttributeUsage = 0x91
 )
 
-func (self AttributeUsage) Name() string {
-	switch self {
+func (usage AttributeUsage) Name() string {
+	switch usage {
 	case Nonce:
 		return "Nonce"
 	case Script:
 		return "Script"
-	case DescriptionUrl:
-		return "DescriptionUrl"
+	case Memo:
+		return "Memo"
 	case Description:
 		return "Description"
+	case DescriptionUrl:
+		return "DescriptionUrl"
 	default:
 		return "Unknown"
 	}
@@ -35,59 +36,44 @@ func (self AttributeUsage) Name() string {
 
 func IsValidAttributeType(usage AttributeUsage) bool {
 	return usage == Nonce || usage == Script ||
-		usage == DescriptionUrl || usage == Description || usage == Memo
+		usage == Memo || usage == Description || usage == DescriptionUrl
 }
 
 type Attribute struct {
 	Usage AttributeUsage
 	Data  []byte
-	Size  uint32
 }
 
-func (self Attribute) String() string {
+func (attr Attribute) String() string {
 	return "Attribute: {\n\t\t" +
-		"Usage: " + self.Usage.Name() + "\n\t\t" +
-		"Data: " + BytesToHexString(self.Data) + "\n\t\t" +
-		"Size: " + fmt.Sprint(self.Size) + "\n\t" +
+		"Usage: " + attr.Usage.Name() + "\n\t\t" +
+		"Data: " + BytesToHexString(attr.Data) + "\n\t\t" +
 		"}"
 }
 
-func NewAttribute(u AttributeUsage, d []byte) Attribute {
-	tx := Attribute{u, d, 0}
-	tx.Size = tx.GetSize()
-	return tx
-}
-
-func (u *Attribute) GetSize() uint32 {
-	if u.Usage == DescriptionUrl {
-		return uint32(len([]byte{(byte(0xff))}) + len([]byte{(byte(0xff))}) + len(u.Data))
-	}
-	return 0
-}
-
-func (tx *Attribute) Serialize(w io.Writer) error {
-	if err := WriteUint8(w, byte(tx.Usage)); err != nil {
+func (attr *Attribute) Serialize(w io.Writer) error {
+	if err := WriteUint8(w, byte(attr.Usage)); err != nil {
 		return errors.New("Transaction attribute Usage serialization error.")
 	}
-	if !IsValidAttributeType(tx.Usage) {
+	if !IsValidAttributeType(attr.Usage) {
 		return errors.New("[Attribute error] Unsupported attribute Description.")
 	}
-	if err := WriteVarBytes(w, tx.Data); err != nil {
+	if err := WriteVarBytes(w, attr.Data); err != nil {
 		return errors.New("Transaction attribute Data serialization error.")
 	}
 	return nil
 }
 
-func (tx *Attribute) Deserialize(r io.Reader) error {
-	val, err := ReadBytes(r, 1)
+func (attr *Attribute) Deserialize(r io.Reader) error {
+	usage, err := ReadUint8(r)
 	if err != nil {
 		return errors.New("Transaction attribute Usage deserialization error.")
 	}
-	tx.Usage = AttributeUsage(val[0])
-	if !IsValidAttributeType(tx.Usage) {
+	attr.Usage = AttributeUsage(usage)
+	if !IsValidAttributeType(attr.Usage) {
 		return errors.New("[Attribute error] Unsupported attribute Description.")
 	}
-	tx.Data, err = ReadVarBytes(r)
+	attr.Data, err = ReadVarBytes(r)
 	if err != nil {
 		return errors.New("Transaction attribute Data deserialization error.")
 	}

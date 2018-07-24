@@ -44,7 +44,7 @@ func (pool *TxPool) Init() {
 //append transaction to transaction pool when check is ok.
 //1.refuse coinbase transaction  2.check with ledger(db) 3.check with pool 4. add transaction
 func (pool *TxPool) AppendToTxnPool(txn *Transaction) ErrCode {
-
+	log.Info("transaction ready to validate:", txn.Hash().String())
 	if txn.IsCoinBaseTx() {
 		log.Warn("coinbase cannot be added into transaction pool", txn.Hash().String())
 		return ErrIneffectiveCoinbase
@@ -73,6 +73,7 @@ func (pool *TxPool) AppendToTxnPool(txn *Transaction) ErrCode {
 	txn.FeePerKB = txn.Fee * 1000 / Fixed64(len(buf.Bytes()))
 
 	// add transaction
+	log.Info("add transaction:", txn.Hash().String())
 	pool.addTransaction(txn)
 
 	return Success

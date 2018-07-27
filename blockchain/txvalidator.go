@@ -183,8 +183,8 @@ func CheckTransactionOutput(version uint32, txn *Transaction) error {
 	}
 
 	if txn.IsCoinBaseTx() {
-		if len(txn.Outputs) < 2 {
-			return errors.New("coinbase output is not enough, at least 2")
+		if len(txn.Outputs) < 3 {
+			return errors.New("coinbase output is not enough, at least 3")
 		}
 
 		var totalReward = Fixed64(0)

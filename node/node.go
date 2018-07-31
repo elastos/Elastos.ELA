@@ -75,7 +75,7 @@ type node struct {
 
 type ConnectingNodes struct {
 	sync.RWMutex
-	ConnectingAddrs []string
+	ConnectingAddrs map[string]struct{}
 }
 
 func NewNode(magic uint32, conn net.Conn) *node {
@@ -158,28 +158,20 @@ func (node *node) IsAddrInNbrList(addr string) bool {
 	return false
 }
 
-func (node *node) AddToConnectingList(addr string) (added bool) {
+func (node *node) AddToConnectingList(addr string) bool {
 	node.ConnectingNodes.Lock()
 	defer node.ConnectingNodes.Unlock()
-	for _, a := range node.ConnectingAddrs {
-		if strings.Compare(a, addr) == 0 {
-			return false
-		}
+	if _, ok := node.ConnectingAddrs[addr]; ok {
+		return false
 	}
-	node.ConnectingAddrs = append(node.ConnectingAddrs, addr)
+	node.ConnectingAddrs[addr] = struct{}{}
 	return true
 }
 
 func (node *node) RemoveFromConnectingList(addr string) {
 	node.ConnectingNodes.Lock()
 	defer node.ConnectingNodes.Unlock()
-	addrs := []string{}
-	for i, a := range node.ConnectingAddrs {
-		if strings.Compare(a, addr) == 0 {
-			addrs = append(node.ConnectingAddrs[:i], node.ConnectingAddrs[i+1:]...)
-		}
-	}
-	node.ConnectingAddrs = addrs
+	delete(node.ConnectingAddrs, addr)
 }
 
 func (node *node) UpdateInfo(t time.Time, version uint32, services uint64,

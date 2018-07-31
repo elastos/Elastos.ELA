@@ -144,31 +144,35 @@ func parseIPaddr(s string) (string, error) {
 	return s[:i], nil
 }
 
-func (node *node) Connect(nodeAddr string) error {
+func (node *node) Connect(addr string) error {
 	log.Debug()
 
-	if node.IsAddrInNbrList(nodeAddr) {
+	if node.IsAddrInNbrList(addr) {
+		log.Debugf("addr %s in neighbor list, cancel", addr)
 		return nil
 	}
-	if !node.AddToConnectingList(nodeAddr) {
-		return errors.New("node exist in connecting list, cancel")
+	if !node.AddToConnectingList(addr) {
+		log.Debugf("addr %s in connecting list, cancel", addr)
+		return nil
 	}
 
 	isTls := Parameters.IsTLS
 	var conn net.Conn
 	var err error
 
+	// Make sure address remove from connecting list
+	// whether connection succeed or error
+	defer node.RemoveFromConnectingList(addr)
+
 	if isTls {
-		conn, err = TLSDial(nodeAddr)
+		conn, err = TLSDial(addr)
 		if err != nil {
-			node.RemoveFromConnectingList(nodeAddr)
 			log.Error("TLS connect failed:", err)
 			return err
 		}
 	} else {
-		conn, err = NonTLSDial(nodeAddr)
+		conn, err = NonTLSDial(addr)
 		if err != nil {
-			node.RemoveFromConnectingList(nodeAddr)
 			log.Error("non TLS connect failed:", err)
 			return err
 		}

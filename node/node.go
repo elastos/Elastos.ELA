@@ -78,6 +78,10 @@ type ConnectingNodes struct {
 	ConnectingAddrs map[string]struct{}
 }
 
+func (cn *ConnectingNodes) init() {
+	cn.ConnectingAddrs = make(map[string]struct{})
+}
+
 func NewNode(magic uint32, conn net.Conn) *node {
 	node := new(node)
 	node.conn = conn
@@ -103,6 +107,7 @@ func InitLocalNode() protocol.Noder {
 
 	log.Info(fmt.Sprintf("Init node ID to 0x%x", LocalNode.id))
 	LocalNode.neighbourNodes.init()
+	LocalNode.ConnectingNodes.init()
 	LocalNode.KnownAddressList.init()
 	LocalNode.TxPool.Init()
 	LocalNode.eventQueue.init()

@@ -11,13 +11,16 @@ type TransactionAttributeUsage byte
 const (
 	Nonce          TransactionAttributeUsage = 0x00
 	Script         TransactionAttributeUsage = 0x20
-	DescriptionUrl TransactionAttributeUsage = 0x81
+	Memo           TransactionAttributeUsage = 0x81
 	Description    TransactionAttributeUsage = 0x90
+	DescriptionUrl TransactionAttributeUsage = 0x91
+	Confirmations  TransactionAttributeUsage = 0x92
 )
 
 func IsValidAttributeType(usage TransactionAttributeUsage) bool {
 	return usage == Nonce || usage == Script ||
-		usage == DescriptionUrl || usage == Description
+		usage == Memo || usage == Description || usage == DescriptionUrl ||
+		usage == Confirmations
 }
 
 type TxAttribute struct {
@@ -33,7 +36,7 @@ func NewTxAttribute(u TransactionAttributeUsage, d []byte) TxAttribute {
 }
 
 func (u *TxAttribute) GetSize() uint32 {
-	if u.Usage == DescriptionUrl {
+	if u.Usage == Memo {
 		return uint32(len([]byte{(byte(0xff))}) + len([]byte{(byte(0xff))}) + len(u.Data))
 	}
 	return 0

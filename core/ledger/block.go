@@ -1,23 +1,23 @@
 package ledger
 
 import (
-	"io"
-	"time"
 	"bytes"
-	"errors"
-	"math/rand"
 	"encoding/binary"
+	"errors"
+	"io"
+	"math/rand"
+	"time"
 
-	"Elastos.ELA/crypto"
 	. "Elastos.ELA/common"
-	"Elastos.ELA/core/asset"
-	"Elastos.ELA/common/log"
 	"Elastos.ELA/common/config"
+	"Elastos.ELA/common/log"
+	"Elastos.ELA/common/serialization"
+	"Elastos.ELA/core/asset"
+	"Elastos.ELA/core/contract/program"
 	"Elastos.ELA/core/signature"
 	tx "Elastos.ELA/core/transaction"
-	"Elastos.ELA/common/serialization"
-	"Elastos.ELA/core/contract/program"
 	"Elastos.ELA/core/transaction/payload"
+	"Elastos.ELA/crypto"
 )
 
 const (
@@ -66,7 +66,10 @@ func (b *Block) Deserialize(r io.Reader) error {
 	var tharray []Uint256
 	for i = 0; i < Len; i++ {
 		transaction := new(tx.Transaction)
-		transaction.Deserialize(r)
+		err := transaction.Deserialize(r)
+		if err != nil {
+			return errors.New("transaction deserialize error:" + err.Error())
+		}
 		txhash = transaction.Hash()
 		b.Transactions = append(b.Transactions, transaction)
 		tharray = append(tharray, txhash)

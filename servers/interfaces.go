@@ -161,7 +161,7 @@ func GetNodeState(param Params) map[string]interface{} {
 		Time:     NodeForServers.GetTime(),
 		Port:     NodeForServers.Port(),
 		ID:       NodeForServers.ID(),
-		Version:  NodeForServers.Version(),
+		Version:  config.Version,
 		Services: NodeForServers.Services(),
 		Relay:    NodeForServers.IsRelay(),
 		Height:   NodeForServers.Height(),

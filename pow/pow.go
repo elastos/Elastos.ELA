@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"math"
+	"math/big"
 	"math/rand"
 	"sort"
 	"sync"
@@ -29,6 +30,7 @@ const (
 	maxExtraNonce  = ^uint64(0) // 2^64 - 1
 	hpsUpdateSecs  = 10
 	hashUpdateSecs = 15
+	maxMinerThread = uint32(8)
 )
 
 type msgBlock struct {
@@ -258,19 +260,24 @@ func (pow *PowService) SolveBlock(MsgBlock *Block, ticker *time.Ticker) bool {
 	header := MsgBlock.Header
 	targetDifficulty := CompactToBig(header.Bits)
 
-	for i := uint32(0); i <= maxNonce; i++ {
-		select {
-		case <-ticker.C:
-			// if !MsgBlock.Header.Previous.IsEqual(*DefaultLedger.Blockchain.BestChain.Hash) {
-			// 	return false
-			// }
-			return false
+	// multi thread mining
+	var wg sync.WaitGroup
+	var solvedState SolvedState
+	solvedState.setNonceAndState(0, false)
+	nonceUnit := maxNonce / maxMinerThread
 
-		default:
-			// Non-blocking select to fall through
-		}
+	wg.Add(int(maxMinerThread))
+	for i := uint32(0); i < maxMinerThread; i++ {
+		beginNonce := i * nonceUnit
+		endNonce := (i + 1) * nonceUnit
+		go minerThread(beginNonce, endNonce, *targetDifficulty, *auxPow, &solvedState, &wg)
+	}
+	wg.Wait()
 
-		auxPow.ParBlockHeader.Nonce = i
+	solved := solvedState.getSolvedState()
+	if solved {
+		nonce := solvedState.getNonce()
+		auxPow.ParBlockHeader.Nonce = nonce
 		hash := auxPow.ParBlockHeader.Hash() // solve parBlockHeader hash
 		if HashToBig(&hash).Cmp(targetDifficulty) <= 0 {
 			MsgBlock.Header.AuxPow = *auxPow
@@ -395,4 +402,61 @@ out:
 	}
 
 	pow.wg.Done()
+}
+
+type SolvedState struct {
+	solved    bool
+	nonce     uint32
+	stateLock sync.Mutex
+}
+
+func (s *SolvedState) getSolvedState() bool {
+	s.stateLock.Lock()
+	solved := s.solved
+	s.stateLock.Unlock()
+	return solved
+}
+
+func (s *SolvedState) setNonceAndState(nonce uint32, solved bool) {
+	s.stateLock.Lock()
+	s.nonce = nonce
+	s.solved = solved
+	s.stateLock.Unlock()
+}
+
+func (s *SolvedState) getNonce() uint32 {
+	s.stateLock.Lock()
+	nonce := s.nonce
+	s.stateLock.Unlock()
+	return nonce
+}
+
+func minerThread(beginNonce uint32, endNonce uint32, targetDifficulty big.Int, auxPow auxpow.AuxPow, state *SolvedState, wg *sync.WaitGroup) bool {
+	watchTicker := time.NewTicker(time.Millisecond * 200)
+	endTicker := time.NewTicker(time.Second * 5)
+	defer watchTicker.Stop()
+	defer endTicker.Stop()
+	defer wg.Done()
+
+	for i := beginNonce; i < endNonce; i++ {
+		select {
+		case <-watchTicker.C:
+			if state.getSolvedState() {
+				return false
+			}
+		case <-endTicker.C:
+			return false
+		default:
+			// Non-blocking select to fall through
+		}
+
+		auxPow.ParBlockHeader.Nonce = i
+		hash := auxPow.ParBlockHeader.Hash() // solve parBlockHeader hash
+		if HashToBig(&hash).Cmp(&targetDifficulty) <= 0 {
+			state.setNonceAndState(i, true)
+			return true
+		}
+	}
+
+	return false
 }

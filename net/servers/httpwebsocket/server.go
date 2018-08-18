@@ -1,25 +1,25 @@
 package httpwebsocket
 
 import (
-	"net"
-	"sync"
-	"time"
-	"strconv"
 	"context"
-	"net/http"
 	"crypto/tls"
 	"encoding/json"
+	"net"
+	"net/http"
+	"strconv"
+	"sync"
+	"time"
 
-	"Elastos.ELA/events"
-	. "Elastos.ELA/errors"
+	. "Elastos.ELA/common/config"
 	"Elastos.ELA/common/log"
 	"Elastos.ELA/core/ledger"
-	. "Elastos.ELA/net/servers"
-	. "Elastos.ELA/common/config"
 	"Elastos.ELA/core/transaction"
+	. "Elastos.ELA/errors"
+	"Elastos.ELA/events"
+	. "Elastos.ELA/net/servers"
 
-	"github.com/pborman/uuid"
 	"github.com/gorilla/websocket"
+	"github.com/pborman/uuid"
 )
 
 var instance *WebSocketServer
@@ -151,7 +151,7 @@ func (server *WebSocketServer) webSocketHandler(w http.ResponseWriter, r *http.R
 		LastActive: time.Now().Unix(),
 		SessionId:  uuid.NewUUID().String(),
 	}
-	server.SessionList.OnlineList[newSession.SessionId] = newSession
+	server.SessionList.AddNewSession(newSession)
 
 	defer func() {
 		server.SessionList.CloseSession(newSession)

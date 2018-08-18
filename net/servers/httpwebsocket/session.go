@@ -53,3 +53,9 @@ func (sl *SessionList) ForEachSession(visit func(*Session)) {
 		visit(v)
 	}
 }
+
+func (sl *SessionList) AddNewSession(session *Session) {
+	sl.Lock()
+	defer sl.Unlock()
+	sl.OnlineList[session.SessionId] = session
+}

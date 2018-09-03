@@ -77,7 +77,7 @@ func main() {
 	}
 
 	log.Info("2. Start the P2P networks")
-	noder = node.InitLocalNode()
+	noder = node.InitLocalNode(nil)
 
 	servers.ServerNode = noder
 

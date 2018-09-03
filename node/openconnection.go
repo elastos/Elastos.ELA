@@ -45,7 +45,7 @@ func listenNodeOpenPort() {
 		}
 		log.Infof("Remote node %v connect with %v", conn.RemoteAddr(), conn.LocalAddr())
 
-		node := NewNode(config.Parameters.Magic, conn)
+		node := NewNode(config.Parameters.Magic, conn, nil)
 		node.addr, err = parseIPaddr(conn.RemoteAddr().String())
 		node.external = true
 		node.Read()

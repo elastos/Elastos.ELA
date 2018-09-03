@@ -38,21 +38,21 @@ func (s Semaphore) release() { <-s }
 
 type node struct {
 	//sync.RWMutex	//The Lock not be used as expected to use function channel instead of lock
-	p2p.PeerState          // node state
-	id       uint64        // The nodes's id
-	version  uint32        // The network protocol the node used
-	services uint64        // The services the node supplied
-	relay    bool          // The relay capability of the node (merge into capbility flag)
-	height   uint64        // The node latest block height
-	external bool          // Indicate if this is an external node
-	txnCnt   uint64        // The transactions be transmit by this node
-	rxTxnCnt uint64        // The transaction received by this node
-	link                   // The link status and infomation
-	neighbours             // The neighbor node connect with currently node except itself
-	events   *events.Event // The event queue to notice notice other modules
-	chain.TxPool           // Unconfirmed transaction pool
-	idCache                // The buffer to store the id of the items which already be processed
-	filter   *bloom.Filter // The bloom filter of a spv node
+	p2p.PeerState               // node state
+	id            uint64        // The nodes's id
+	version       uint32        // The network protocol the node used
+	services      uint64        // The services the node supplied
+	relay         bool          // The relay capability of the node (merge into capbility flag)
+	height        uint64        // The node latest block height
+	external      bool          // Indicate if this is an external node
+	txnCnt        uint64        // The transactions be transmit by this node
+	rxTxnCnt      uint64        // The transaction received by this node
+	link                        // The link status and infomation
+	neighbours                  // The neighbor node connect with currently node except itself
+	events        *events.Event // The event queue to notice notice other modules
+	chain.TxPool                // Unconfirmed transaction pool
+	idCache                     // The buffer to store the id of the items which already be processed
+	filter        *bloom.Filter // The bloom filter of a spv node
 	/*
 	 * |--|--|--|--|--|--|isSyncFailed|isSyncHeaders|
 	 */
@@ -97,17 +97,17 @@ func (cn *ConnectingNodes) del(addr string) {
 	delete(cn.List, addr)
 }
 
-func NewNode(magic uint32, conn net.Conn) *node {
+func NewNode(magic uint32, conn net.Conn, listener protocol.DposListener) *node {
 	node := new(node)
 	node.conn = conn
 	node.filter = bloom.LoadFilter(nil)
-	node.MsgHelper = p2p.NewMsgHelper(magic, uint32(Parameters.MaxBlockSize), conn, NewHandlerBase(node))
+	node.MsgHelper = p2p.NewMsgHelper(magic, uint32(Parameters.MaxBlockSize), conn, NewHandlerBase(node, listener))
 	runtime.SetFinalizer(node, rmNode)
 	return node
 }
 
-func InitLocalNode() protocol.Noder {
-	LocalNode = NewNode(Parameters.Magic, nil)
+func InitLocalNode(listener protocol.DposListener) protocol.Noder {
+	LocalNode = NewNode(Parameters.Magic, nil, listener)
 	LocalNode.version = protocol.ProtocolVersion
 
 	LocalNode.SyncBlkReqSem = MakeSemaphore(protocol.MaxSyncHdrReq)
@@ -131,19 +131,19 @@ func InitLocalNode() protocol.Noder {
 	LocalNode.RequestedBlockList = make(map[Uint256]time.Time)
 	LocalNode.handshakeQueue.init()
 	LocalNode.syncTimer = newSyncTimer(LocalNode.stopSyncing)
-	LocalNode.initConnection()
-	go LocalNode.Start()
+	LocalNode.initConnection(listener)
+	go LocalNode.Start(listener)
 	go monitorNodeState()
 	return LocalNode
 }
 
-func (node *node) Start() {
-	node.ConnectNodes()
+func (node *node) Start(listener protocol.DposListener) {
+	node.ConnectNodes(listener)
 	node.waitForNeighbourConnections()
 
 	ticker := time.NewTicker(time.Second * protocol.HeartbeatDuration)
 	for {
-		go node.ConnectNodes()
+		go node.ConnectNodes(listener)
 		go node.SyncBlocks()
 		<-ticker.C
 	}

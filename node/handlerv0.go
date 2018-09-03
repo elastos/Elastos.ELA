@@ -20,8 +20,8 @@ type HandlerV0 struct {
 	duplicateBlocks int
 }
 
-func NewHandlerV0(node protocol.Noder) *HandlerV0 {
-	return &HandlerV0{HandlerBase: HandlerBase{node: node}}
+func NewHandlerV0(node protocol.Noder, listener protocol.DposListener) *HandlerV0 {
+	return &HandlerV0{HandlerBase: HandlerBase{node: node, listener: listener}}
 }
 
 // After message header decoded, this method will be
@@ -223,6 +223,9 @@ func (h *HandlerV0) onBlock(msgBlock *msg.Block) error {
 		}
 	}
 
+	if h.HandlerBase.listener != nil {
+		h.HandlerBase.listener.OnBlock()
+	}
 	return nil
 }
 

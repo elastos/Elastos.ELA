@@ -4,12 +4,12 @@ import (
 	"net"
 	"time"
 
-	"github.com/elastos/Elastos.ELA/bloom"
-	"github.com/elastos/Elastos.ELA/core"
-	"github.com/elastos/Elastos.ELA/errors"
 	"github.com/elastos/Elastos.ELA.Utility/common"
 	"github.com/elastos/Elastos.ELA.Utility/p2p"
 	"github.com/elastos/Elastos.ELA.Utility/p2p/msg"
+	"github.com/elastos/Elastos.ELA/bloom"
+	"github.com/elastos/Elastos.ELA/core"
+	"github.com/elastos/Elastos.ELA/errors"
 )
 
 const (
@@ -29,6 +29,10 @@ const (
 const (
 	OpenService = 1 << 2
 )
+
+type DposListener interface {
+	OnBlock()
+}
 
 type Noder interface {
 	Version() uint32
@@ -61,8 +65,8 @@ type Noder interface {
 	UpdateInfo(t time.Time, version uint32, services uint64,
 		port uint16, nonce uint64, relay uint8, height uint64)
 	UpdateMsgHelper(handler p2p.MsgHandler)
-	ConnectNodes()
-	Connect(nodeAddr string) error
+	ConnectNodes(listener DposListener)
+	Connect(nodeAddr string, listener DposListener) error
 	LoadFilter(filter *msg.FilterLoad)
 	BloomFilter() *bloom.Filter
 	Send(msg p2p.Message)

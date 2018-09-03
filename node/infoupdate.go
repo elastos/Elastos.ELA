@@ -165,18 +165,18 @@ func (node *node) RequireNeighbourList() {
 	node.Send(new(msg.GetAddr))
 }
 
-func (node *node) ConnectNodes() {
+func (node *node) ConnectNodes(listener DposListener) {
 	log.Debug()
 	internal, total := node.GetConnectionCount()
 	if internal < MinConnectionCount {
 		for _, seed := range config.Parameters.SeedList {
-			node.Connect(seed)
+			node.Connect(seed, listener)
 		}
 	}
 
 	if total < MaxOutBoundCount {
 		for _, addr := range node.RandGetAddresses() {
-			node.Connect(addr.String())
+			node.Connect(addr.String(), listener)
 		}
 	}
 

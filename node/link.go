@@ -45,15 +45,15 @@ func (node *node) GetLastActiveTime() time.Time {
 	return node.lastActive
 }
 
-func (node *node) initConnection() {
-	go listenNodePort()
+func (node *node) initConnection(listener DposListener) {
+	go listenNodePort(listener)
 	// Listen open port if OpenService enabled
 	if Parameters.OpenService {
 		go listenNodeOpenPort()
 	}
 }
 
-func listenNodePort() {
+func listenNodePort(dposListener DposListener) {
 	var err error
 	var listener net.Listener
 
@@ -80,7 +80,7 @@ func listenNodePort() {
 		}
 		log.Infof("Remote node %v connect with %v", conn.RemoteAddr(), conn.LocalAddr())
 
-		node := NewNode(Parameters.Magic, conn)
+		node := NewNode(Parameters.Magic, conn, dposListener)
 		node.addr, err = parseIPaddr(conn.RemoteAddr().String())
 		node.Read()
 		LocalNode.AddToHandshakeQueue(conn.RemoteAddr().String(), node)
@@ -154,7 +154,7 @@ func resolveTCPAddr(addr string) (string, error) {
 	return tcpAddr.String(), nil
 }
 
-func (node *node) Connect(addr string) error {
+func (node *node) Connect(addr string, listener DposListener) error {
 	// Resolve tcpAddr address first
 	tcpAddr, err := resolveTCPAddr(addr)
 	if err != nil {
@@ -188,7 +188,7 @@ func (node *node) Connect(addr string) error {
 			return err
 		}
 	}
-	n := NewNode(Parameters.Magic, conn)
+	n := NewNode(Parameters.Magic, conn, listener)
 	n.addr, err = parseIPaddr(conn.RemoteAddr().String())
 
 	log.Infof("Local node %s connect with %s with %s",

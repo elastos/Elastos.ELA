@@ -17,12 +17,13 @@ import (
 )
 
 type HandlerBase struct {
-	node protocol.Noder
+	node     protocol.Noder
+	listener protocol.DposListener
 }
 
 // NewHandlerBase create a new HandlerBase instance
-func NewHandlerBase(node protocol.Noder) *HandlerBase {
-	return &HandlerBase{node: node}
+func NewHandlerBase(node protocol.Noder, listener protocol.DposListener) *HandlerBase {
+	return &HandlerBase{node: node, listener: listener}
 }
 
 // When something wrong on read or decode message
@@ -121,7 +122,7 @@ func (h *HandlerBase) onVersion(version *msg.Version) error {
 
 	// Update message handler according to the protocol version
 	if version.Version < p2p.EIP001Version {
-		node.UpdateMsgHelper(NewHandlerV0(node))
+		node.UpdateMsgHelper(NewHandlerV0(node, h.listener))
 	} else {
 		node.UpdateMsgHelper(NewHandlerEIP001(node))
 	}

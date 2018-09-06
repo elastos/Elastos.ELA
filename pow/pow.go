@@ -46,8 +46,22 @@ type PowService struct {
 	blockPersistCompletedSubscriber events.Subscriber
 	RollbackTransactionSubscriber   events.Subscriber
 
-	wg   sync.WaitGroup
-	quit chan struct{}
+	wg      sync.WaitGroup
+	quit    chan struct{}
+	proceed chan struct{}
+}
+
+func (pow *PowService) ContinuePow() {
+	pow.proceed <- struct{}{}
+}
+
+func (pow *PowService) OnUnconfirmedBlock(block *Block) {
+	log.Info("[OnUnconfirmedBlock] received unconfirmed block")
+}
+
+func (pow *PowService) OnConfirmedBlock() {
+	log.Info("[OnConfirmedBlock] received confirmed block")
+	pow.proceed <- struct{}{}
 }
 
 func (pow *PowService) CollectTransactions(MsgBlock *Block) int {
@@ -293,6 +307,7 @@ func (pow *PowService) Start() {
 	}
 
 	pow.quit = make(chan struct{})
+	pow.proceed = make(chan struct{})
 	pow.wg.Add(1)
 	pow.Started = true
 
@@ -309,6 +324,7 @@ func (pow *PowService) Halt() {
 	}
 
 	close(pow.quit)
+	close(pow.proceed)
 	pow.wg.Wait()
 	pow.Started = false
 }
@@ -379,16 +395,13 @@ out:
 			log.Trace("<================Solved Block==============>")
 			//send the valid block to p2p networkd
 			if msgBlock.Header.Height == DefaultLedger.Blockchain.GetBestHeight()+1 {
-				inMainChain, isOrphan, err := DefaultLedger.Blockchain.AddBlock(msgBlock)
-				if err != nil {
-					log.Trace(err)
-					continue
-				}
-				//TODO if co-mining condition
-				if isOrphan || !inMainChain {
-					continue
-				}
+				//todo [dpos] check block only not add block
+				log.Info("Create and broadcast a new block, hash:", msgBlock.Hash().String(), "height:", msgBlock.Height)
+				DefaultLedger.Blockchain.AddUnconfirmedBlock(msgBlock)
 				pow.BroadcastBlock(msgBlock)
+				log.Info("[cpuMining] Wait")
+				<-pow.proceed
+				log.Info("[cpuMining] Continue")
 			}
 		}
 

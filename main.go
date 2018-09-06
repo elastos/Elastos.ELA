@@ -52,7 +52,6 @@ func init() {
 }
 
 func startConsensus() {
-	servers.LocalPow = pow.NewPowService()
 	if config.Parameters.PowConfiguration.AutoMining {
 		log.Info("Start POW Services")
 		go servers.LocalPow.Start()
@@ -76,8 +75,9 @@ func main() {
 		goto ERROR
 	}
 
+	servers.LocalPow = pow.NewPowService()
 	log.Info("2. Start the P2P networks")
-	noder = node.InitLocalNode(nil)
+	noder = node.InitLocalNode(servers.LocalPow)
 
 	servers.ServerNode = noder
 

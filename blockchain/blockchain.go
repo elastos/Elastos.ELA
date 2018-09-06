@@ -35,37 +35,41 @@ var (
 )
 
 type Blockchain struct {
-	BlockHeight    uint32
-	GenesisHash    Uint256
-	BestChain      *BlockNode
-	Root           *BlockNode
-	Index          map[Uint256]*BlockNode
-	IndexLock      sync.RWMutex
-	DepNodes       map[Uint256][]*BlockNode
-	Orphans        map[Uint256]*OrphanBlock
-	PrevOrphans    map[Uint256][]*OrphanBlock
-	OldestOrphan   *OrphanBlock
-	BlockCache     map[Uint256]*Block
-	TimeSource     MedianTimeSource
-	MedianTimePast time.Time
-	OrphanLock     sync.RWMutex
-	BCEvents       *events.Event
-	mutex          sync.RWMutex
-	AssetID        Uint256
+	BlockHeight       uint32
+	GenesisHash       Uint256
+	BestChain         *BlockNode
+	Root              *BlockNode
+	Index             map[Uint256]*BlockNode
+	IndexLock         sync.RWMutex
+	DepNodes          map[Uint256][]*BlockNode
+	Orphans           map[Uint256]*OrphanBlock
+	PrevOrphans       map[Uint256][]*OrphanBlock
+	OrphanLock        sync.RWMutex
+	OldestOrphan      *OrphanBlock
+	BlockCache        map[Uint256]*Block
+	UnconfirmedBlocks map[Uint256]*Block
+	UnconfirmLock     sync.Mutex
+	TimeSource        MedianTimeSource
+	MedianTimePast    time.Time
+	BCEvents          *events.Event
+	AssetID           Uint256
+
+	mutex sync.RWMutex
 }
 
 func NewBlockchain(height uint32) *Blockchain {
 	return &Blockchain{
-		BlockHeight:  height,
-		Root:         nil,
-		BestChain:    nil,
-		Index:        make(map[Uint256]*BlockNode),
-		DepNodes:     make(map[Uint256][]*BlockNode),
-		OldestOrphan: nil,
-		Orphans:      make(map[Uint256]*OrphanBlock),
-		PrevOrphans:  make(map[Uint256][]*OrphanBlock),
-		BlockCache:   make(map[Uint256]*Block),
-		TimeSource:   NewMedianTime(),
+		BlockHeight:       height,
+		Root:              nil,
+		BestChain:         nil,
+		Index:             make(map[Uint256]*BlockNode),
+		DepNodes:          make(map[Uint256][]*BlockNode),
+		OldestOrphan:      nil,
+		Orphans:           make(map[Uint256]*OrphanBlock),
+		PrevOrphans:       make(map[Uint256][]*OrphanBlock),
+		BlockCache:        make(map[Uint256]*Block),
+		UnconfirmedBlocks: make(map[Uint256]*Block),
+		TimeSource:        NewMedianTime(),
 
 		BCEvents: events.NewEvent(),
 		AssetID:  EmptyHash,
@@ -316,6 +320,33 @@ func (bc *Blockchain) AddOrphanBlock(block *Block) {
 	bc.PrevOrphans[*prevHash] = append(bc.PrevOrphans[*prevHash], oBlock)
 
 	return
+}
+
+func (bc *Blockchain) AddUnconfirmedBlock(block *Block) {
+	bc.UnconfirmLock.Lock()
+	defer bc.UnconfirmLock.Unlock()
+
+	log.Debug("Received unconfirmed block")
+	bc.UnconfirmedBlocks[block.Hash()] = block
+}
+
+func (bc *Blockchain) GetUnconfirmedBlock(hash *Uint256) (*Block, bool) {
+	bc.UnconfirmLock.Lock()
+	defer bc.UnconfirmLock.Unlock()
+
+	log.Debug("Get unconfirmed block")
+	if block, ok := bc.UnconfirmedBlocks[*hash]; ok {
+		return block, true
+	}
+	return nil, false
+}
+
+func (bc *Blockchain) ClearUnConfirmedBlock() {
+	bc.UnconfirmLock.Lock()
+	defer bc.UnconfirmLock.Unlock()
+
+	log.Debug("Clear unconfirmed block")
+	bc.UnconfirmedBlocks = make(map[Uint256]*Block)
 }
 
 func (bc *Blockchain) IsKnownOrphan(hash *Uint256) bool {

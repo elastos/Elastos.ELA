@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	ProtocolVersion    = 0
+	ProtocolVersion    = 30000
 	HandshakeTimeout   = 2
 	MinConnectionCount = 3
 	KeepAliveTimeout   = 30
@@ -31,7 +31,8 @@ const (
 )
 
 type DposListener interface {
-	OnBlock()
+	OnUnconfirmedBlock(block *core.Block)
+	OnConfirmedBlock()
 }
 
 type Noder interface {

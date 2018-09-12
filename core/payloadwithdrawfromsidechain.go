@@ -3,12 +3,15 @@ package core
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"io"
 
 	"github.com/elastos/Elastos.ELA.Utility/common"
 )
 
 const WithdrawFromSideChainPayloadVersion byte = 0x00
+
+const MaxSideChainTxPerPayload = 10000
 
 type PayloadWithdrawFromSideChain struct {
 	BlockHeight                uint32
@@ -49,27 +52,30 @@ func (t *PayloadWithdrawFromSideChain) Serialize(w io.Writer, version byte) erro
 func (t *PayloadWithdrawFromSideChain) Deserialize(r io.Reader, version byte) error {
 	height, err := common.ReadUint32(r)
 	if err != nil {
-		return errors.New("[PayloadWithdrawFromSideChain], BlockHeight deserialize failed.")
+		return errors.New("[PayloadWithdrawFromSideChain], BlockHeight deserialize failed")
 	}
 	address, err := common.ReadVarString(r)
 	if err != nil {
-		return errors.New("[PayloadWithdrawFromSideChain], GenesisBlockAddress deserialize failed.")
+		return errors.New("[PayloadWithdrawFromSideChain], GenesisBlockAddress deserialize failed")
 	}
 
-	length, err := common.ReadVarUint(r, 0)
+	count, err := common.ReadVarUint(r, 0)
 	if err != nil {
-		return errors.New("[PayloadWithdrawFromSideChain], SideChainTransactionHashes length deserialize failed")
+		return errors.New("[PayloadWithdrawFromSideChain], SideChainTransactionHashes count deserialize failed")
+	}
+	if count > MaxSideChainTxPerPayload {
+		return fmt.Errorf("PayloadWithdrawFromSideChain.Deserialize too many side chain"+
+			" txs for message [count %v, max %v]", count, MaxSideChainTxPerPayload)
 	}
 
-	t.SideChainTransactionHashes = nil
-	t.SideChainTransactionHashes = make([]common.Uint256, length)
-	for i := uint64(0); i < length; i++ {
+	t.SideChainTransactionHashes = make([]common.Uint256,0, count)
+	for i := uint64(0); i < count; i++ {
 		var hash common.Uint256
 		err := hash.Deserialize(r)
 		if err != nil {
-			return errors.New("[WithdrawFromSideChain], SideChainTransactionHashes deserialize failed.")
+			return errors.New("[PayloadWithdrawFromSideChain], hash deserialize failed")
 		}
-		t.SideChainTransactionHashes[i] = hash
+		t.SideChainTransactionHashes = append(t.SideChainTransactionHashes, hash)
 	}
 
 	t.BlockHeight = height

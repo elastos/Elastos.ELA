@@ -951,6 +951,27 @@ func getPayloadInfo(p Payload) PayloadInfo {
 		return obj
 	case *PayloadTransferAsset:
 	case *PayloadRecord:
+	case *PayloadRegisterSidechain:
+		obj := new(RegisterSidechainInfo)
+		obj.GenesisHash = object.GenesisHash.String()
+		obj.CoinIndex = object.CoinIndex
+		obj.Name = object.Name
+		obj.SideChainType = object.SideChainType
+		obj.KnownPeers = object.KnownPeers
+		obj.CheckPoint = CheckPointInfo{
+			Height:    object.CheckPoint.Height,
+			Hash:      object.CheckPoint.Hash.String(),
+			Timestamp: object.CheckPoint.Timestamp,
+			Bits:      object.CheckPoint.Bits,
+		}
+		obj.ConsensusType = object.ConsensusType
+		obj.BlockType = object.BlockType
+		obj.TransactionType = object.TransactionType
+		obj.ECType = object.ECType
+		obj.AddressType = object.AddressType
+		obj.MinFee = object.MinFee
+		obj.Rate = object.Rate
+		return obj
 	}
 	return nil
 }

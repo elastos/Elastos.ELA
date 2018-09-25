@@ -139,6 +139,29 @@ type WithdrawFromSideChainInfo struct {
 	SideChainTransactionHashes []string
 }
 
+type CheckPointInfo struct {
+	Height    uint32 `json:"height"`
+	Hash      string `json:"hash"`
+	Timestamp uint32 `json:"timestamp"`
+	Bits      uint32 `json:"bits"`
+}
+
+type RegisterSidechainInfo struct {
+	GenesisHash     string         `json:"genesishash"`
+	CoinIndex       uint32         `json:"coinindex"`
+	Name            string         `json:"name"`
+	SideChainType   SideChainType  `json:"sidechaintype"`
+	KnownPeers      []string       `json:"knownpeers"`
+	CheckPoint      CheckPointInfo `json:"checkpoint"`
+	ConsensusType   ConsensusType  `json:"consensustype"`
+	BlockType       string         `json:"blocktype"`
+	TransactionType string         `json:"transactiontype"`
+	ECType          ECType         `json:"ectype"`
+	AddressType     string         `json:"addresstype"`
+	MinFee          common.Fixed64 `json:"minfee"`
+	Rate            uint32         `json:"rate"`
+}
+
 type UTXOInfo struct {
 	AssetId       string `json:"assetid"`
 	Txid          string `json:"txid"`

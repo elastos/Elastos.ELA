@@ -916,6 +916,33 @@ func GetExistWithdrawTransactions(param Params) map[string]interface{} {
 	return ResponsePack(Success, resultTxHashes)
 }
 
+func GetSidechainInfoByHash(param Params) map[string]interface{} {
+	hashStr, ok := param.String("genesishash")
+	if !ok {
+		return ResponsePack(InvalidParams, "")
+	}
+	hash, err := Uint256FromHexString(hashStr)
+	if err != nil {
+		return ResponsePack(InvalidParams, "")
+	}
+
+	var payloadRegSidechain PayloadRegisterSidechain
+	regInfoBuf, err := chain.DefaultLedger.Store.GetSidechainRegInfo(*hash)
+	if err != nil {
+		return ResponsePack(InvalidSideChainHash, "")
+	}
+
+	if err := payloadRegSidechain.Deserialize(bytes.NewBuffer(regInfoBuf), RegisterSidechainPayloadVersion); err != nil {
+		return ResponsePack(InvalidSideChainHash, "")
+	}
+
+	var payload Payload
+	payload = &payloadRegSidechain
+	sidechainInfo := getPayloadInfo(payload)
+
+	return ResponsePack(Success, sidechainInfo)
+}
+
 func getPayloadInfo(p Payload) PayloadInfo {
 	switch object := p.(type) {
 	case *PayloadCoinBase:

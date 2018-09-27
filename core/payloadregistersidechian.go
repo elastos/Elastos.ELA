@@ -7,6 +7,8 @@ import (
 	. "github.com/elastos/Elastos.ELA.Utility/common"
 )
 
+const RegisterSidechainPayloadVersion byte = 0x00
+
 type SideChainType byte
 
 const (

@@ -31,6 +31,7 @@ const (
 	InvalidToken         ErrCode = 42003
 	InvalidTransaction   ErrCode = 43001
 	InvalidAsset         ErrCode = 43002
+	InvalidSideChainHash ErrCode = 43003
 	UnknownTransaction   ErrCode = 44001
 	UnknownAsset         ErrCode = 44002
 	UnknownBlock         ErrCode = 44003
@@ -48,6 +49,7 @@ var ErrMap = map[ErrCode]string{
 	InvalidToken:             "Verify token error",
 	InvalidTransaction:       "Invalid transaction",
 	InvalidAsset:             "Invalid asset",
+	InvalidSideChainHash:     "Invalide side chain",
 	UnknownTransaction:       "Unknown Transaction",
 	UnknownAsset:             "Unknown asset",
 	UnknownBlock:             "Unknown Block",

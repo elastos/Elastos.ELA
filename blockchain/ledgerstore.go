@@ -28,6 +28,8 @@ type IChainStore interface {
 	PersistSidechainTx(sidechainTxHash Uint256)
 	GetSidechainTx(sidechainTxHash Uint256) (byte, error)
 
+	GetSidechainRegInfo(genesisHash Uint256) ([]byte, error)
+
 	GetCurrentBlockHash() Uint256
 	GetHeight() uint32
 

@@ -10,10 +10,14 @@ const (
 	DATA_Transaction DataEntryPrefix = 0x02
 
 	// INDEX
-	IX_HeaderHashList DataEntryPrefix = 0x80
-	IX_Unspent        DataEntryPrefix = 0x90
-	IX_Unspent_UTXO   DataEntryPrefix = 0x91
-	IX_SideChain_Tx   DataEntryPrefix = 0x92
+	IX_HeaderHashList        DataEntryPrefix = 0x80
+	IX_Unspent               DataEntryPrefix = 0x90
+	IX_Unspent_UTXO          DataEntryPrefix = 0x91
+	IX_SideChain_Withdraw_Tx DataEntryPrefix = 0x92
+	IX_SideChain_RegInfo     DataEntryPrefix = 0x93
+	IX_SideChain_GenesisHash DataEntryPrefix = 0x94
+	IX_SideChain_CoinIndex   DataEntryPrefix = 0x95
+	IX_SideChain_Name        DataEntryPrefix = 0x96
 
 	// ASSET
 	ST_Info DataEntryPrefix = 0xc0

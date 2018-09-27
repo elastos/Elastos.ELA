@@ -141,12 +141,78 @@ func TestChainStore_IsSidechainTxHashDuplicate(t *testing.T) {
 	}
 }
 
+func TestChainStore_PersistSidechianRegInfo(t *testing.T) {
+	// Assume the sidechain Tx hash
+	hashBytes, _ := common.HexStringToBytes("8d43921dbd91a9c9f46fe562fb14f274fec98cd647be54002f41cd4d20ae4cc7")
+	genesisHash, _ := common.Uint256FromBytes(hashBytes)
+	coinIndex := uint32(0)
+	name := "test_chain"
+	payload := []byte{byte(10)}
+
+	// 1. The register info should not exist in DB.
+	_, err := testChainStore.GetSidechainRegInfo(*genesisHash)
+	if err == nil {
+		t.Error("Found the sidechain register info which should not exist in DB")
+	}
+
+	// 2. Run PersistSidechianRegInfo
+	testChainStore.PersistSidechianRegInfo(*genesisHash, coinIndex, name, payload)
+	testChainStore.BatchCommit()
+
+	// 3. Verify PersistSidechianRegInfo
+	_, err = testChainStore.GetSidechainRegInfo(*genesisHash)
+	if err != nil {
+		t.Error("Sidechain register info is not found")
+	}
+}
+
+func TestChainStore_RollbackSidechainRegInfo(t *testing.T) {
+	// Assume the sidechain Tx hash
+	hashBytes, _ := common.HexStringToBytes("8d43921dbd91a9c9f46fe562fb14f274fec98cd647be54002f41cd4d20ae4cc7")
+	genesisHash, _ := common.Uint256FromBytes(hashBytes)
+	coinIndex := uint32(0)
+	name := "test_chain"
+	//payload := []byte{byte(10)}
+
+	// 1. The register info should exist in DB.
+	data, err := testChainStore.GetSidechainRegInfo(*genesisHash)
+	if err != nil {
+		t.Error("Not found the sidechain info")
+	}
+	if data[0] != byte(10) {
+		t.Error("Sidechain info matched wrong value")
+	}
+
+	// 2. Run Rollback
+	err = testChainStore.RollbackSidechainRegInfo(*genesisHash, coinIndex, name)
+	if err != nil {
+		t.Error("Rollback the sidechain register info failed")
+	}
+	testChainStore.BatchCommit()
+
+	// 3. Verify GetSidechainRegInfo
+	_, err = testChainStore.GetSidechainRegInfo(*genesisHash)
+	if err == nil {
+		t.Error("Found the sidechain register info which should been deleted")
+	}
+}
+
 func TestChainStoreDone(t *testing.T) {
 	if testChainStore == nil {
 		t.Error("Chainstore init failed")
 	}
 
 	err := testChainStore.RollbackSidechainTx(sidechainTxHash)
+	if err != nil {
+		t.Error("Rollback the sidechain Tx failed")
+	}
+
+	hashBytes, _ := common.HexStringToBytes("8d43921dbd91a9c9f46fe562fb14f274fec98cd647be54002f41cd4d20ae4cc7")
+	genesisHash, _ := common.Uint256FromBytes(hashBytes)
+	coinIndex := uint32(0)
+	name := "test_chain"
+
+	err = testChainStore.RollbackSidechainRegInfo(*genesisHash, coinIndex, name)
 	if err != nil {
 		t.Error("Rollback the sidechain Tx failed")
 	}

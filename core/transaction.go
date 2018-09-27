@@ -260,6 +260,10 @@ func (tx *Transaction) Hash() Uint256 {
 	return *tx.hash
 }
 
+func (tx *Transaction) IsRegisterSideChain() bool {
+	return tx.TxType == RegisterSidechain
+}
+
 func (tx *Transaction) IsSideChainPowTx() bool {
 	return tx.TxType == SideChainPow
 }

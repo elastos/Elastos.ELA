@@ -300,16 +300,25 @@ func (c *ChainStore) PersistTransactions(b *Block) error {
 		if err := c.PersistTransaction(txn, b.Header.Height); err != nil {
 			return err
 		}
+
 		if txn.TxType == RegisterAsset {
 			regPayload := txn.Payload.(*PayloadRegisterAsset)
 			if err := c.PersistAsset(txn.Hash(), regPayload.Asset); err != nil {
 				return err
 			}
-		}
-		if txn.TxType == WithdrawFromSideChain {
+		} else if txn.TxType == WithdrawFromSideChain {
 			witPayload := txn.Payload.(*PayloadWithdrawFromSideChain)
 			for _, hash := range witPayload.SideChainTransactionHashes {
 				c.PersistSidechainTx(hash)
+			}
+		} else if txn.TxType == RegisterSidechain {
+			regInfoPayload := txn.Payload.(*PayloadRegisterSidechain)
+			regInfoBuf := new(bytes.Buffer)
+			if err := regInfoPayload.Serialize(regInfoBuf, txn.PayloadVersion); err != nil {
+				return err
+			}
+			if err := c.PersistSidechianRegInfo(regInfoPayload.GenesisHash, regInfoPayload.CoinIndex, regInfoPayload.Name, regInfoBuf.Bytes()); err != nil {
+				return err
 			}
 		}
 	}
@@ -321,17 +330,22 @@ func (c *ChainStore) RollbackTransactions(b *Block) error {
 		if err := c.RollbackTransaction(txn); err != nil {
 			return err
 		}
+
 		if txn.TxType == RegisterAsset {
 			if err := c.RollbackAsset(txn.Hash()); err != nil {
 				return err
 			}
-		}
-		if txn.TxType == WithdrawFromSideChain {
+		} else if txn.TxType == WithdrawFromSideChain {
 			witPayload := txn.Payload.(*PayloadWithdrawFromSideChain)
 			for _, hash := range witPayload.SideChainTransactionHashes {
 				if err := c.RollbackSidechainTx(hash); err != nil {
 					return err
 				}
+			}
+		} else if txn.TxType == RegisterSidechain {
+			regInfoPayload := txn.Payload.(*PayloadRegisterSidechain)
+			if err := c.RollbackSidechainRegInfo(regInfoPayload.GenesisHash, regInfoPayload.CoinIndex, regInfoPayload.Name); err != nil {
+				return err
 			}
 		}
 	}
@@ -364,10 +378,34 @@ func (c *ChainStore) RollbackAsset(assetId Uint256) error {
 }
 
 func (c *ChainStore) RollbackSidechainTx(sidechainTxHash Uint256) error {
-	key := []byte{byte(IX_SideChain_Tx)}
+	key := []byte{byte(IX_SideChain_Withdraw_Tx)}
 	key = append(key, sidechainTxHash.Bytes()...)
 
 	c.BatchDelete(key)
+	return nil
+}
+
+func (c *ChainStore) RollbackSidechainRegInfo(genesisHash Uint256, coinIndex uint32, name string) error {
+	keyHash := []byte{byte(IX_SideChain_GenesisHash)}
+	keyHash = append(keyHash, genesisHash.Bytes()...)
+	c.BatchDelete(keyHash)
+
+	keyCoinIndex := new(bytes.Buffer)
+	keyCoinIndex.WriteByte(byte(IX_SideChain_CoinIndex))
+	err := WriteUint32(keyCoinIndex, coinIndex)
+	if err != nil {
+		return err
+	}
+	c.BatchDelete(keyCoinIndex.Bytes())
+
+	keyName := []byte{byte(IX_SideChain_Name)}
+	keyName = append(keyName, []byte(name)...)
+	c.BatchDelete(keyName)
+
+	keySidechain := []byte{byte(IX_SideChain_Withdraw_Tx)}
+	keySidechain = append(keySidechain, genesisHash.Bytes()...)
+	c.BatchDelete(keySidechain)
+
 	return nil
 }
 

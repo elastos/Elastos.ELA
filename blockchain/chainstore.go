@@ -210,7 +210,7 @@ func (c *ChainStore) IsTxHashDuplicate(txhash Uint256) bool {
 }
 
 func (c *ChainStore) IsSidechainTxHashDuplicate(sidechainTxHash Uint256) bool {
-	prefix := []byte{byte(IX_SideChain_Tx)}
+	prefix := []byte{byte(IX_SideChain_Withdraw_Tx)}
 	_, err := c.Get(append(prefix, sidechainTxHash.Bytes()...))
 	if err != nil {
 		return false
@@ -366,7 +366,7 @@ func (c *ChainStore) GetAsset(hash Uint256) (*Asset, error) {
 }
 
 func (c *ChainStore) PersistSidechainTx(sidechainTxHash Uint256) {
-	key := []byte{byte(IX_SideChain_Tx)}
+	key := []byte{byte(IX_SideChain_Withdraw_Tx)}
 	key = append(key, sidechainTxHash.Bytes()...)
 
 	// PUT VALUE
@@ -374,13 +374,49 @@ func (c *ChainStore) PersistSidechainTx(sidechainTxHash Uint256) {
 }
 
 func (c *ChainStore) GetSidechainTx(sidechainTxHash Uint256) (byte, error) {
-	key := []byte{byte(IX_SideChain_Tx)}
+	key := []byte{byte(IX_SideChain_Withdraw_Tx)}
 	data, err := c.Get(append(key, sidechainTxHash.Bytes()...))
 	if err != nil {
 		return ValueNone, err
 	}
 
 	return data[0], nil
+}
+
+func (c *ChainStore) PersistSidechianRegInfo(genesisHash Uint256, coinIndex uint32, name string, payload []byte) error {
+	keyHash := []byte{byte(IX_SideChain_GenesisHash)}
+	keyHash = append(keyHash, genesisHash.Bytes()...)
+	c.BatchPut(keyHash, []byte{0})
+
+	keyCoinIndex := new(bytes.Buffer)
+	keyCoinIndex.WriteByte(byte(IX_SideChain_CoinIndex))
+	err := WriteUint32(keyCoinIndex, coinIndex)
+	if err != nil {
+		return err
+	}
+	c.BatchPut(keyCoinIndex.Bytes(), []byte{0})
+
+	keyName := []byte{byte(IX_SideChain_Name)}
+	keyName = append(keyName, []byte(name)...)
+	c.BatchPut(keyName, []byte{0})
+
+	keySidechain := []byte{byte(IX_SideChain_Withdraw_Tx)}
+	keySidechain = append(keySidechain, genesisHash.Bytes()...)
+	c.BatchPut(keySidechain, payload)
+
+	return nil
+}
+
+func (c *ChainStore) GetSidechainRegInfo(genesisHash Uint256) ([]byte, error) {
+	keySidechain := []byte{byte(IX_SideChain_Withdraw_Tx)}
+	keySidechain = append(keySidechain, genesisHash.Bytes()...)
+
+	data, err := c.Get(keySidechain)
+	if err != nil {
+		return nil, err
+	}
+
+	return data, nil
 }
 
 func (c *ChainStore) GetTransaction(txId Uint256) (*Transaction, uint32, error) {

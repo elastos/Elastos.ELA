@@ -70,9 +70,7 @@ func CheckTransactionContext(txn *Transaction) ErrCode {
 
 	if txn.IsCoinBaseTx() {
 		return Success
-	}
-
-	if txn.IsSideChainPowTx() {
+	} else if txn.IsSideChainPowTx() {
 		arbitrtor, err := GetCurrentArbiter()
 		if err != nil {
 			return ErrSideChainPowConsensus
@@ -81,19 +79,20 @@ func CheckTransactionContext(txn *Transaction) ErrCode {
 			log.Warn("[CheckSideChainPowConsensus],", err)
 			return ErrSideChainPowConsensus
 		}
-	}
-
-	if txn.IsWithdrawFromSideChainTx() {
+	} else if txn.IsWithdrawFromSideChainTx() {
 		if err := CheckWithdrawFromSideChainTransaction(txn); err != nil {
 			log.Warn("[CheckWithdrawFromSideChainTransaction],", err)
 			return ErrSidechainTxDuplicate
 		}
-	}
-
-	if txn.IsTransferCrossChainAssetTx() {
+	} else if txn.IsTransferCrossChainAssetTx() {
 		if err := CheckTransferCrossChainAssetTransaction(txn); err != nil {
 			log.Warn("[CheckTransferCrossChainAssetTransaction],", err)
 			return ErrInvalidOutput
+		}
+	} else if txn.IsRegisterSideChainTx() {
+		if err := CheckRegisterSideChainTransaction(txn); err != nil {
+			log.Warn("[CheckRegisterSideChainTransaction],", err)
+			return ErrSideChainRegisterInfo
 		}
 	}
 
@@ -533,6 +532,17 @@ func CheckTransferCrossChainAssetTransaction(txn *Transaction) error {
 
 	if totalInput-totalOutput < Fixed64(config.Parameters.MinCrossChainTxFee) {
 		return errors.New("Invalid transaction fee")
+	}
+	return nil
+}
+
+func CheckRegisterSideChainTransaction(txn *Transaction) error {
+	regPayload, ok := txn.Payload.(*PayloadRegisterSidechain)
+	if !ok {
+		return errors.New("Invalid register sidechain payload type")
+	}
+	if err := DefaultLedger.Store.IsSidechianRegInfoValid(regPayload.GenesisHash, regPayload.CoinIndex, regPayload.Name); err != nil {
+		return err
 	}
 	return nil
 }

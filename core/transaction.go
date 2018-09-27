@@ -260,7 +260,7 @@ func (tx *Transaction) Hash() Uint256 {
 	return *tx.hash
 }
 
-func (tx *Transaction) IsRegisterSideChain() bool {
+func (tx *Transaction) IsRegisterSideChainTx() bool {
 	return tx.TxType == RegisterSidechain
 }
 

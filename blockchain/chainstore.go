@@ -384,9 +384,20 @@ func (c *ChainStore) GetSidechainTx(sidechainTxHash Uint256) (byte, error) {
 }
 
 func (c *ChainStore) PersistSidechianRegInfo(genesisHash Uint256, coinIndex uint32, name string, payload []byte) error {
+	uniqueIndex := new(bytes.Buffer)
+	if _, err := uniqueIndex.Write(genesisHash.Bytes()); err != nil {
+		return err
+	}
+	if err := WriteUint32(uniqueIndex, coinIndex); err != nil {
+		return err
+	}
+	if _, err := uniqueIndex.WriteString(name); err != nil {
+		return err
+	}
+
 	keyHash := []byte{byte(IX_SideChain_GenesisHash)}
 	keyHash = append(keyHash, genesisHash.Bytes()...)
-	c.BatchPut(keyHash, []byte{0})
+	c.BatchPut(keyHash, uniqueIndex.Bytes())
 
 	keyCoinIndex := new(bytes.Buffer)
 	keyCoinIndex.WriteByte(byte(IX_SideChain_CoinIndex))
@@ -394,11 +405,11 @@ func (c *ChainStore) PersistSidechianRegInfo(genesisHash Uint256, coinIndex uint
 	if err != nil {
 		return err
 	}
-	c.BatchPut(keyCoinIndex.Bytes(), []byte{0})
+	c.BatchPut(keyCoinIndex.Bytes(), uniqueIndex.Bytes())
 
 	keyName := []byte{byte(IX_SideChain_Name)}
 	keyName = append(keyName, []byte(name)...)
-	c.BatchPut(keyName, []byte{0})
+	c.BatchPut(keyName, uniqueIndex.Bytes())
 
 	keySidechain := []byte{byte(IX_SideChain_Withdraw_Tx)}
 	keySidechain = append(keySidechain, genesisHash.Bytes()...)
@@ -417,6 +428,46 @@ func (c *ChainStore) GetSidechainRegInfo(genesisHash Uint256) ([]byte, error) {
 	}
 
 	return data, nil
+}
+
+func (c *ChainStore) IsSidechianRegInfoValid(genesisHash Uint256, coinIndex uint32, name string) error {
+	uniqueIndex := new(bytes.Buffer)
+	if _, err := uniqueIndex.Write(genesisHash.Bytes()); err != nil {
+		return err
+	}
+	if err := WriteUint32(uniqueIndex, coinIndex); err != nil {
+		return err
+	}
+	if _, err := uniqueIndex.WriteString(name); err != nil {
+		return err
+	}
+
+	keyHash := []byte{byte(IX_SideChain_GenesisHash)}
+	keyHash = append(keyHash, genesisHash.Bytes()...)
+	index, err := c.Get(keyHash)
+	if err == nil && !bytes.Equal(index, uniqueIndex.Bytes()) {
+		return errors.New("sidechain genesishash duplicated")
+	}
+
+	keyCoinIndex := new(bytes.Buffer)
+	keyCoinIndex.WriteByte(byte(IX_SideChain_CoinIndex))
+	err = WriteUint32(keyCoinIndex, coinIndex)
+	if err != nil {
+		return err
+	}
+	index, err = c.Get(keyCoinIndex.Bytes())
+	if err == nil && !bytes.Equal(index, uniqueIndex.Bytes()) {
+		return errors.New("sidechain coinindex duplicated")
+	}
+
+	keyName := []byte{byte(IX_SideChain_Name)}
+	keyName = append(keyName, []byte(name)...)
+	index, err = c.Get(keyName)
+	if err == nil && !bytes.Equal(index, uniqueIndex.Bytes()) {
+		return errors.New("sidechain name duplicated")
+	}
+
+	return nil
 }
 
 func (c *ChainStore) GetTransaction(txId Uint256) (*Transaction, uint32, error) {

@@ -197,6 +197,30 @@ func TestChainStore_RollbackSidechainRegInfo(t *testing.T) {
 	}
 }
 
+func TestChainStore_IsSidechianRegInfoValid(t *testing.T) {
+	// Assume the sidechain Tx hash
+	hashBytes, _ := common.HexStringToBytes("8d43921dbd91a9c9f46fe562fb14f274fec98cd647be54002f41cd4d20ae4cc7")
+	genesisHash, _ := common.Uint256FromBytes(hashBytes)
+	coinIndex := uint32(0)
+	name := "test_chain"
+	payload := []byte{byte(10)}
+
+	// 1. Persist sidechian register info
+	testChainStore.PersistSidechianRegInfo(*genesisHash, coinIndex, name, payload)
+	testChainStore.BatchCommit()
+
+	// 2. Verify PersistSidechianRegInfo
+	_, err := testChainStore.GetSidechainRegInfo(*genesisHash)
+	if err != nil {
+		t.Error("Sidechain register info is not found")
+	}
+
+	coinIndex = uint32(1)
+	if err := testChainStore.IsSidechianRegInfoValid(*genesisHash, coinIndex, name); err == nil {
+		t.Error("Sidechain info should invalid")
+	}
+}
+
 func TestChainStoreDone(t *testing.T) {
 	if testChainStore == nil {
 		t.Error("Chainstore init failed")

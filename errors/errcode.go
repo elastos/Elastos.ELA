@@ -22,6 +22,7 @@ const (
 	ErrIneffectiveCoinbase   ErrCode = 45018
 	ErrUTXOLocked            ErrCode = 45019
 	ErrSideChainPowConsensus ErrCode = 45020
+	ErrSideChainRegisterInfo ErrCode = 45021
 
 	SessionExpired       ErrCode = 41001
 	IllegalDataFormat    ErrCode = 41003

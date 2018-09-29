@@ -18,23 +18,25 @@ import (
 )
 
 const (
-	Api_Getconnectioncount     = "/api/v1/node/connectioncount"
-	Api_GetNodeState           = "/api/v1/node/state"
-	Api_GetblockTxsByHeight    = "/api/v1/block/transactions/height/:height"
-	Api_Getblockbyheight       = "/api/v1/block/details/height/:height"
-	Api_Getblockbyhash         = "/api/v1/block/details/hash/:hash"
-	Api_Getblockheight         = "/api/v1/block/height"
-	Api_Getblockhash           = "/api/v1/block/hash/:height"
-	Api_Gettransaction         = "/api/v1/transaction/:hash"
-	Api_Getasset               = "/api/v1/asset/:hash"
-	Api_GetBalanceByAddr       = "/api/v1/asset/balances/:addr"
-	Api_GetBalancebyAsset      = "/api/v1/asset/balance/:addr/:assetid"
-	Api_GetUTXObyAsset         = "/api/v1/asset/utxo/:addr/:assetid"
-	Api_GetUTXObyAddr          = "/api/v1/asset/utxos/:addr"
-	Api_SendRawTransaction     = "/api/v1/transaction"
-	Api_GetTransactionPool     = "/api/v1/transactionpool"
-	Api_GetSidechainInfoByHash = "/api/v1/sidechain/:genesishash"
-	Api_Restart                = "/api/v1/restart"
+	Api_Getconnectioncount      = "/api/v1/node/connectioncount"
+	Api_GetNodeState            = "/api/v1/node/state"
+	Api_GetblockTxsByHeight     = "/api/v1/block/transactions/height/:height"
+	Api_Getblockbyheight        = "/api/v1/block/details/height/:height"
+	Api_Getblockbyhash          = "/api/v1/block/details/hash/:hash"
+	Api_Getblockheight          = "/api/v1/block/height"
+	Api_Getblockhash            = "/api/v1/block/hash/:height"
+	Api_Gettransaction          = "/api/v1/transaction/:hash"
+	Api_Getasset                = "/api/v1/asset/:hash"
+	Api_GetBalanceByAddr        = "/api/v1/asset/balances/:addr"
+	Api_GetBalancebyAsset       = "/api/v1/asset/balance/:addr/:assetid"
+	Api_GetUTXObyAsset          = "/api/v1/asset/utxo/:addr/:assetid"
+	Api_GetUTXObyAddr           = "/api/v1/asset/utxos/:addr"
+	Api_SendRawTransaction      = "/api/v1/transaction"
+	Api_GetTransactionPool      = "/api/v1/transactionpool"
+	Api_GetSidechainByHash      = "/api/v1/sidechain/hash/:genesishash"
+	Api_GetSidechainByCoinIndex = "/api/v1/sidechain/coinindex/:coinindex"
+	Api_GetSidechainByName      = "/api/v1/sidechain/name/:name"
+	Api_Restart                 = "/api/v1/restart"
 )
 
 type Action struct {
@@ -99,22 +101,24 @@ func (rt *restServer) Start() {
 func (rt *restServer) initializeMethod() {
 
 	getMethodMap := map[string]Action{
-		Api_Getconnectioncount:     {name: "getconnectioncount", handler: servers.GetConnectionCount},
-		Api_GetNodeState:           {name: "getnodestate", handler: servers.GetNodeState},
-		Api_GetblockTxsByHeight:    {name: "getblocktransactionsbyheight", handler: servers.GetTransactionsByHeight},
-		Api_Getblockbyheight:       {name: "getblockbyheight", handler: servers.GetBlockByHeight},
-		Api_Getblockbyhash:         {name: "getblockbyhash", handler: servers.GetBlockByHash},
-		Api_Getblockheight:         {name: "getblockheight", handler: servers.GetBlockHeight},
-		Api_Getblockhash:           {name: "getblockhash", handler: servers.GetBlockHash},
-		Api_GetTransactionPool:     {name: "gettransactionpool", handler: servers.GetTransactionPool},
-		Api_Gettransaction:         {name: "gettransaction", handler: servers.GetTransactionByHash},
-		Api_Getasset:               {name: "getasset", handler: servers.GetAssetByHash},
-		Api_GetUTXObyAddr:          {name: "getutxobyaddr", handler: servers.GetUnspends},
-		Api_GetUTXObyAsset:         {name: "getutxobyasset", handler: servers.GetUnspendOutput},
-		Api_GetBalanceByAddr:       {name: "getbalancebyaddr", handler: servers.GetBalanceByAddr},
-		Api_GetBalancebyAsset:      {name: "getbalancebyasset", handler: servers.GetBalanceByAsset},
-		Api_GetSidechainInfoByHash: {name: "getsidechainbyhash", handler: servers.GetSidechainInfoByHash},
-		Api_Restart:                {name: "restart", handler: rt.Restart},
+		Api_Getconnectioncount:      {name: "getconnectioncount", handler: servers.GetConnectionCount},
+		Api_GetNodeState:            {name: "getnodestate", handler: servers.GetNodeState},
+		Api_GetblockTxsByHeight:     {name: "getblocktransactionsbyheight", handler: servers.GetTransactionsByHeight},
+		Api_Getblockbyheight:        {name: "getblockbyheight", handler: servers.GetBlockByHeight},
+		Api_Getblockbyhash:          {name: "getblockbyhash", handler: servers.GetBlockByHash},
+		Api_Getblockheight:          {name: "getblockheight", handler: servers.GetBlockHeight},
+		Api_Getblockhash:            {name: "getblockhash", handler: servers.GetBlockHash},
+		Api_GetTransactionPool:      {name: "gettransactionpool", handler: servers.GetTransactionPool},
+		Api_Gettransaction:          {name: "gettransaction", handler: servers.GetTransactionByHash},
+		Api_Getasset:                {name: "getasset", handler: servers.GetAssetByHash},
+		Api_GetUTXObyAddr:           {name: "getutxobyaddr", handler: servers.GetUnspends},
+		Api_GetUTXObyAsset:          {name: "getutxobyasset", handler: servers.GetUnspendOutput},
+		Api_GetBalanceByAddr:        {name: "getbalancebyaddr", handler: servers.GetBalanceByAddr},
+		Api_GetBalancebyAsset:       {name: "getbalancebyasset", handler: servers.GetBalanceByAsset},
+		Api_GetSidechainByHash:      {name: "getsidechainbyhash", handler: servers.GetSidechainByHash},
+		Api_GetSidechainByCoinIndex: {name: "getsidechainbycoinindex", handler: servers.GetSidechainByCoinIndex},
+		Api_GetSidechainByName:      {name: "getsidechainbyname", handler: servers.GetSidechainByName},
+		Api_Restart:                 {name: "restart", handler: rt.Restart},
 	}
 
 	postMethodMap := map[string]Action{
@@ -146,8 +150,12 @@ func (rt *restServer) getPath(url string) string {
 		return Api_GetUTXObyAsset
 	} else if strings.Contains(url, strings.TrimRight(Api_Getasset, ":hash")) {
 		return Api_Getasset
-	} else if strings.Contains(url, strings.TrimRight(Api_GetSidechainInfoByHash, ":genesishash")) {
-		return Api_GetSidechainInfoByHash
+	} else if strings.Contains(url, strings.TrimRight(Api_GetSidechainByHash, ":genesishash")) {
+		return Api_GetSidechainByHash
+	} else if strings.Contains(url, strings.TrimRight(Api_GetSidechainByCoinIndex, ":coinindex")) {
+		return Api_GetSidechainByCoinIndex
+	} else if strings.Contains(url, strings.TrimRight(Api_GetSidechainByName, ":name")) {
+		return Api_GetSidechainByName
 	}
 	return url
 }
@@ -198,9 +206,14 @@ func (rt *restServer) getParams(r *http.Request, url string, req map[string]inte
 
 	case Api_SendRawTransaction:
 
-	case Api_GetSidechainInfoByHash:
+	case Api_GetSidechainByHash:
 		req["genesishash"] = getParam(r, "genesishash")
+	case Api_GetSidechainByCoinIndex:
+		req["coinindex"] = getParam(r, "coinindex")
+	case Api_GetSidechainByName:
+		req["name"] = getParam(r, "name")
 	}
+
 	return req
 }
 

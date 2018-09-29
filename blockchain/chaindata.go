@@ -402,7 +402,7 @@ func (c *ChainStore) RollbackSidechainRegInfo(genesisHash Uint256, coinIndex uin
 	keyName = append(keyName, []byte(name)...)
 	c.BatchDelete(keyName)
 
-	keySidechain := []byte{byte(IX_SideChain_Withdraw_Tx)}
+	keySidechain := []byte{byte(IX_SideChain_RegInfo)}
 	keySidechain = append(keySidechain, genesisHash.Bytes()...)
 	c.BatchDelete(keySidechain)
 

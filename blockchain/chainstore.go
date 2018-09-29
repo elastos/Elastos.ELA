@@ -411,16 +411,65 @@ func (c *ChainStore) PersistSidechianRegInfo(genesisHash Uint256, coinIndex uint
 	keyName = append(keyName, []byte(name)...)
 	c.BatchPut(keyName, uniqueIndex.Bytes())
 
-	keySidechain := []byte{byte(IX_SideChain_Withdraw_Tx)}
-	keySidechain = append(keySidechain, genesisHash.Bytes()...)
+	keySidechain := []byte{byte(IX_SideChain_RegInfo)}
+	keySidechain = append(keySidechain, uniqueIndex.Bytes()...)
 	c.BatchPut(keySidechain, payload)
 
 	return nil
 }
 
-func (c *ChainStore) GetSidechainRegInfo(genesisHash Uint256) ([]byte, error) {
-	keySidechain := []byte{byte(IX_SideChain_Withdraw_Tx)}
-	keySidechain = append(keySidechain, genesisHash.Bytes()...)
+func (c *ChainStore) GetSidechainByHash(genesisHash Uint256) ([]byte, error) {
+	keyHash := []byte{byte(IX_SideChain_GenesisHash)}
+	keyHash = append(keyHash, genesisHash.Bytes()...)
+	uniqueIndex, err := c.Get(keyHash)
+	if err != nil {
+		return nil, err
+	}
+
+	keySidechain := []byte{byte(IX_SideChain_RegInfo)}
+	keySidechain = append(keySidechain, uniqueIndex...)
+
+	data, err := c.Get(keySidechain)
+	if err != nil {
+		return nil, err
+	}
+
+	return data, nil
+}
+
+func (c *ChainStore) GetSidechainByCoinIndex(coinIndex uint32) ([]byte, error) {
+	keyCoinIndex := new(bytes.Buffer)
+	keyCoinIndex.WriteByte(byte(IX_SideChain_CoinIndex))
+	err := WriteUint32(keyCoinIndex, coinIndex)
+	if err != nil {
+		return nil, err
+	}
+	uniqueIndex, err := c.Get(keyCoinIndex.Bytes())
+	if err != nil {
+		return nil, err
+	}
+
+	keySidechain := []byte{byte(IX_SideChain_RegInfo)}
+	keySidechain = append(keySidechain, uniqueIndex...)
+
+	data, err := c.Get(keySidechain)
+	if err != nil {
+		return nil, err
+	}
+
+	return data, nil
+}
+
+func (c *ChainStore) GetSidechainByName(name string) ([]byte, error) {
+	keyName := []byte{byte(IX_SideChain_Name)}
+	keyName = append(keyName, []byte(name)...)
+	uniqueIndex, err := c.Get(keyName)
+	if err != nil {
+		return nil, err
+	}
+
+	keySidechain := []byte{byte(IX_SideChain_RegInfo)}
+	keySidechain = append(keySidechain, uniqueIndex...)
 
 	data, err := c.Get(keySidechain)
 	if err != nil {

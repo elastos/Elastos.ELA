@@ -150,7 +150,7 @@ func TestChainStore_PersistSidechianRegInfo(t *testing.T) {
 	payload := []byte{byte(10)}
 
 	// 1. The register info should not exist in DB.
-	_, err := testChainStore.GetSidechainRegInfo(*genesisHash)
+	_, err := testChainStore.GetSidechainByHash(*genesisHash)
 	if err == nil {
 		t.Error("Found the sidechain register info which should not exist in DB")
 	}
@@ -160,7 +160,7 @@ func TestChainStore_PersistSidechianRegInfo(t *testing.T) {
 	testChainStore.BatchCommit()
 
 	// 3. Verify PersistSidechianRegInfo
-	_, err = testChainStore.GetSidechainRegInfo(*genesisHash)
+	_, err = testChainStore.GetSidechainByHash(*genesisHash)
 	if err != nil {
 		t.Error("Sidechain register info is not found")
 	}
@@ -175,7 +175,7 @@ func TestChainStore_RollbackSidechainRegInfo(t *testing.T) {
 	//payload := []byte{byte(10)}
 
 	// 1. The register info should exist in DB.
-	data, err := testChainStore.GetSidechainRegInfo(*genesisHash)
+	data, err := testChainStore.GetSidechainByHash(*genesisHash)
 	if err != nil {
 		t.Error("Not found the sidechain info")
 	}
@@ -190,8 +190,8 @@ func TestChainStore_RollbackSidechainRegInfo(t *testing.T) {
 	}
 	testChainStore.BatchCommit()
 
-	// 3. Verify GetSidechainRegInfo
-	_, err = testChainStore.GetSidechainRegInfo(*genesisHash)
+	// 3. Verify GetSidechainByHash
+	_, err = testChainStore.GetSidechainByHash(*genesisHash)
 	if err == nil {
 		t.Error("Found the sidechain register info which should been deleted")
 	}
@@ -210,7 +210,7 @@ func TestChainStore_IsSidechianRegInfoValid(t *testing.T) {
 	testChainStore.BatchCommit()
 
 	// 2. Verify PersistSidechianRegInfo
-	_, err := testChainStore.GetSidechainRegInfo(*genesisHash)
+	_, err := testChainStore.GetSidechainByHash(*genesisHash)
 	if err != nil {
 		t.Error("Sidechain register info is not found")
 	}

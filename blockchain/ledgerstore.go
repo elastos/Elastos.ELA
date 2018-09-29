@@ -28,7 +28,9 @@ type IChainStore interface {
 	PersistSidechainTx(sidechainTxHash Uint256)
 	GetSidechainTx(sidechainTxHash Uint256) (byte, error)
 
-	GetSidechainRegInfo(genesisHash Uint256) ([]byte, error)
+	GetSidechainByHash(genesisHash Uint256) ([]byte, error)
+	GetSidechainByCoinIndex(coinIndex uint32) ([]byte, error)
+	GetSidechainByName(name string) ([]byte, error)
 	IsSidechianRegInfoValid(genesisHash Uint256, coinIndex uint32, name string) error
 
 	GetCurrentBlockHash() Uint256

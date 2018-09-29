@@ -916,7 +916,7 @@ func GetExistWithdrawTransactions(param Params) map[string]interface{} {
 	return ResponsePack(Success, resultTxHashes)
 }
 
-func GetSidechainInfoByHash(param Params) map[string]interface{} {
+func GetSidechainByHash(param Params) map[string]interface{} {
 	hashStr, ok := param.String("genesishash")
 	if !ok {
 		return ResponsePack(InvalidParams, "")
@@ -927,7 +927,53 @@ func GetSidechainInfoByHash(param Params) map[string]interface{} {
 	}
 
 	var payloadRegSidechain PayloadRegisterSidechain
-	regInfoBuf, err := chain.DefaultLedger.Store.GetSidechainRegInfo(*hash)
+	regInfoBuf, err := chain.DefaultLedger.Store.GetSidechainByHash(*hash)
+	if err != nil {
+		return ResponsePack(InvalidSideChainHash, "")
+	}
+
+	if err := payloadRegSidechain.Deserialize(bytes.NewBuffer(regInfoBuf), RegisterSidechainPayloadVersion); err != nil {
+		return ResponsePack(InvalidSideChainHash, "")
+	}
+
+	var payload Payload
+	payload = &payloadRegSidechain
+	sidechainInfo := getPayloadInfo(payload)
+
+	return ResponsePack(Success, sidechainInfo)
+}
+
+func GetSidechainByCoinIndex(param Params) map[string]interface{} {
+	coinIndex, ok := param.Uint("coinindex")
+	if !ok {
+		return ResponsePack(InvalidParams, "")
+	}
+
+	var payloadRegSidechain PayloadRegisterSidechain
+	regInfoBuf, err := chain.DefaultLedger.Store.GetSidechainByCoinIndex(coinIndex)
+	if err != nil {
+		return ResponsePack(InvalidSideChainHash, "")
+	}
+
+	if err := payloadRegSidechain.Deserialize(bytes.NewBuffer(regInfoBuf), RegisterSidechainPayloadVersion); err != nil {
+		return ResponsePack(InvalidSideChainHash, "")
+	}
+
+	var payload Payload
+	payload = &payloadRegSidechain
+	sidechainInfo := getPayloadInfo(payload)
+
+	return ResponsePack(Success, sidechainInfo)
+}
+
+func GetSidechainByName(param Params) map[string]interface{} {
+	name, ok := param.String("name")
+	if !ok {
+		return ResponsePack(InvalidParams, "")
+	}
+
+	var payloadRegSidechain PayloadRegisterSidechain
+	regInfoBuf, err := chain.DefaultLedger.Store.GetSidechainByName(name)
 	if err != nil {
 		return ResponsePack(InvalidSideChainHash, "")
 	}

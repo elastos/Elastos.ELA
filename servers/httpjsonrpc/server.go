@@ -48,7 +48,9 @@ func StartRPCServer() {
 	mainMux["getexistwithdrawtransactions"] = GetExistWithdrawTransactions
 	mainMux["listunspent"] = ListUnspent
 	mainMux["getreceivedbyaddress"] = GetReceivedByAddress
-	mainMux["getsidechaininfobyhash"] = GetSidechainInfoByHash
+	mainMux["getsidechainbyhash"] = GetSidechainByHash
+	mainMux["getsidechainbycoinindex"] = GetSidechainByCoinIndex
+	mainMux["getsidechainbyname"] = GetSidechainByName
 	// aux interfaces
 	mainMux["help"] = AuxHelp
 	mainMux["submitauxblock"] = SubmitAuxBlock

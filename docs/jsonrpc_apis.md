@@ -812,6 +812,92 @@ result sample:
 }
 ```
 
+#### getsidechainbyhash
+
+description: get sidechain information by its genesis block hash  
+parameters:
+
+| name | type | description |
+| ---- | ---- | ----------- |
+| genesishash | string | genesis block hash of the sidechain | 
+
+argument sample:
+```json
+{
+	"method":"getsidechainbyhash",
+	"params":{"genesishash":"d97620cb6fa7b1b59287d5717c85fe811e03dd94df78e27f10bff35fe93cb64e"
+	}
+}
+```
+
+#### getsidechainbycoinindex
+
+description: get sidechain information by its coin index
+parameters:
+
+| name | type | description |
+| ---- | ---- | ----------- |
+| coinindex | integer | coin index of the sidechain | 
+
+argument sample:
+```json
+{
+	"method":"getsidechainbycoinindex",
+	"params":{"coinindex":"5"
+	}
+}
+```
+
+#### getsidechainbyname
+
+description: get sidechain information by its chain name  
+parameters:
+
+| name | type | description |
+| ---- | ---- | ----------- |
+| name | string | chain name of the sidechain | 
+
+argument sample:
+```json
+{
+	"method":"getsidechainbyname",
+	"params":{"name":"test"
+	}
+}
+```
+
+result sample:
+```json
+{
+    "error": null,
+    "id": null,
+    "jsonrpc": "2.0",
+    "result": {
+        "genesishash": "d97620cb6fa7b1b59287d5717c85fe811e03dd94df78e27f10bff35fe93cb64e",
+        "coinindex": 5,
+        "name": "test",
+        "sidechaintype": 5,
+        "knownpeers": [
+            "127.0.0.1",
+            "192.168.1.2"
+        ],
+        "checkpoint": {
+            "height": 1001,
+            "hash": "669b776605034d71fc588e86d6db9a3b8aa37bb966558558ef8f56f734551090",
+            "timestamp": 1538210727,
+            "bits": 545259519
+        },
+        "consensustype": 4,
+        "blocktype": "ela",
+        "transactiontype": "ela",
+        "ectype": 5,
+        "addresstype": "ela1",
+        "minfee": 5000,
+        "rate": 1
+    }
+}
+```
+
 #### getinfo
 
 description: return node information.  

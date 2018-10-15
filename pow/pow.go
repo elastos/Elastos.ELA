@@ -213,8 +213,6 @@ func (pow *PowService) DiscreteMining(n uint32) ([]*common.Uint256, error) {
 	log.Tracef("Pow generating %d blocks", n)
 	i := uint32(0)
 	blockHashes := make([]*common.Uint256, n)
-	ticker := time.NewTicker(time.Second * hashUpdateSecs)
-	defer ticker.Stop()
 
 	for {
 		log.Trace("<================Discrete Mining==============>\n")
@@ -225,7 +223,7 @@ func (pow *PowService) DiscreteMining(n uint32) ([]*common.Uint256, error) {
 			continue
 		}
 
-		if pow.SolveBlock(msgBlock, ticker) {
+		if pow.SolveBlock(msgBlock) {
 			if msgBlock.Header.Height == DefaultLedger.Blockchain.GetBestHeight()+1 {
 				inMainChain, isOrphan, err := DefaultLedger.Blockchain.AddBlock(msgBlock)
 				if err != nil {
@@ -252,7 +250,10 @@ func (pow *PowService) DiscreteMining(n uint32) ([]*common.Uint256, error) {
 	}
 }
 
-func (pow *PowService) SolveBlock(MsgBlock *Block, ticker *time.Ticker) bool {
+func (pow *PowService) SolveBlock(MsgBlock *Block) bool {
+	ticker := time.NewTicker(time.Second * hashUpdateSecs)
+	defer ticker.Stop()
+
 	// fake a btc blockheader and coinbase
 	auxPow := auxpow.GenerateAuxPow(MsgBlock.Hash())
 	header := MsgBlock.Header
@@ -354,8 +355,6 @@ func NewPowService() *PowService {
 }
 
 func (pow *PowService) cpuMining() {
-	ticker := time.NewTicker(time.Second * hashUpdateSecs)
-	defer ticker.Stop()
 
 out:
 	for {
@@ -375,7 +374,7 @@ out:
 		}
 
 		//begin to mine the block with POW
-		if pow.SolveBlock(msgBlock, ticker) {
+		if pow.SolveBlock(msgBlock) {
 			log.Trace("<================Solved Block==============>")
 			//send the valid block to p2p networkd
 			if msgBlock.Header.Height == DefaultLedger.Blockchain.GetBestHeight()+1 {

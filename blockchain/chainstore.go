@@ -21,6 +21,13 @@ const TaskChanCap = 4
 
 type persistTask interface{}
 
+var txCache sync.Map
+
+type txCacheValue struct {
+	tx     Transaction
+	height uint32
+}
+
 type rollbackBlockTask struct {
 	blockHash Uint256
 	reply     chan bool
@@ -384,24 +391,29 @@ func (c *ChainStore) GetSidechainTx(sidechainTxHash Uint256) (byte, error) {
 }
 
 func (c *ChainStore) GetTransaction(txId Uint256) (*Transaction, uint32, error) {
-	key := append([]byte{byte(DATA_Transaction)}, txId.Bytes()...)
-	value, err := c.Get(key)
-	if err != nil {
-		return nil, 0, err
-	}
+	if cacheValue, ok := txCache.Load(txId); ok {
+		value := cacheValue.(txCacheValue)
+		return &value.tx, value.height, nil
+	} else {
+		key := append([]byte{byte(DATA_Transaction)}, txId.Bytes()...)
+		value, err := c.Get(key)
+		if err != nil {
+			return nil, 0, err
+		}
 
-	r := bytes.NewReader(value)
-	height, err := ReadUint32(r)
-	if err != nil {
-		return nil, 0, err
-	}
+		r := bytes.NewReader(value)
+		height, err := ReadUint32(r)
+		if err != nil {
+			return nil, 0, err
+		}
 
-	var txn Transaction
-	if err := txn.Deserialize(r); err != nil {
-		return nil, height, err
+		var txn Transaction
+		if err := txn.Deserialize(r); err != nil {
+			return nil, height, err
+		}
+		txCache.Store(txId, txCacheValue{txn,height})
+		return &txn, height, nil
 	}
-
-	return &txn, height, nil
 }
 
 func (c *ChainStore) GetTxReference(tx *Transaction) (map[*Input]*Output, error) {

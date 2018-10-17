@@ -148,9 +148,15 @@ func CheckDestructionAddress(references map[*Input]*Output) error {
 }
 
 func CheckTransactionCoinbaseOutputLock(txn *Transaction) error {
+	transactionCache := make(map[Uint256]*Transaction)
+	var referTxn *Transaction
 	for _, input := range txn.Inputs {
 		referHash := input.Previous.TxID
-		referTxn, _, _ := DefaultLedger.Store.GetTransaction(referHash)
+		referTxn = transactionCache[referHash]
+		if referTxn == nil {
+			referTxn, _, _ = DefaultLedger.Store.GetTransaction(referHash)
+			transactionCache[referHash] = referTxn
+		}
 		if referTxn.IsCoinBaseTx() {
 			lockHeight := referTxn.LockTime
 			currentHeight := DefaultLedger.Store.GetHeight()

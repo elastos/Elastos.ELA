@@ -148,21 +148,29 @@ func CheckDestructionAddress(references map[*Input]*Output) error {
 }
 
 func CheckTransactionCoinbaseOutputLock(txn *Transaction) error {
-	transactionCache := make(map[Uint256]*Transaction)
+	type lockTxInfo struct {
+		isCoinbaseTx bool
+		locktime     uint32
+	}
+	transactionCache := make(map[Uint256]lockTxInfo)
+	currentHeight := DefaultLedger.Store.GetHeight()
 	var referTxn *Transaction
 	for _, input := range txn.Inputs {
+		var lockHeight uint32
+		var isCoinbase bool
 		referHash := input.Previous.TxID
-		referTxn = transactionCache[referHash]
-		if referTxn == nil {
+		if _, ok := transactionCache[referHash]; ok {
+			lockHeight = transactionCache[referHash].locktime
+			isCoinbase = transactionCache[referHash].isCoinbaseTx
+		} else {
 			referTxn, _, _ = DefaultLedger.Store.GetTransaction(referHash)
-			transactionCache[referHash] = referTxn
+			lockHeight = referTxn.LockTime
+			isCoinbase = referTxn.IsCoinBaseTx()
+			transactionCache[referHash] = lockTxInfo{isCoinbase, lockHeight}
 		}
-		if referTxn.IsCoinBaseTx() {
-			lockHeight := referTxn.LockTime
-			currentHeight := DefaultLedger.Store.GetHeight()
-			if currentHeight-lockHeight < config.Parameters.ChainParam.CoinbaseLockTime {
-				return errors.New("cannot unlock coinbase transaction output")
-			}
+
+		if isCoinbase && currentHeight-lockHeight < config.Parameters.ChainParam.CoinbaseLockTime {
+			return errors.New("cannot unlock coinbase transaction output")
 		}
 	}
 	return nil

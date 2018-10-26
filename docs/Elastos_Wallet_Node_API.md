@@ -1,10 +1,10 @@
 # The Node API Of Elastos Wallet
 
-`ELA Node` 使用 `2*334` 端口提供如下接口服务：
+`ELA Node` uses the `2*334` port to provide the following interface services:
 
-* `/api/v1/node/connectioncount` : 获取当前节点所连接到的节点数量
+* `/api/v1/node/connectioncount` : Get the number of nodes to which the current node is connected
 
-   示例：
+   Example:
 
     ```bash
     curl http://localhost:20334/api/v1/node/connectioncount
@@ -15,9 +15,9 @@
     }
     ```
 
-* `/api/v1/node/state` : 获取当前节点状态
+* `/api/v1/node/state` : Get status of the current node
 
-   示例：
+   Example:
 
     ```bash
     curl http://localhost:20334/api/v1/node/state
@@ -63,9 +63,9 @@
     }
     ```
 
-* `/api/v1/block/height` : 获取节点区块总高度
+* `/api/v1/block/height` : Get the total height of the node block
 
-   示例：
+   Example:
 
     ```bash
     curl http://localhost:20334/api/v1/block/height
@@ -76,9 +76,9 @@
     }
     ```
 
-* `/api/v1/transactionpool` : 获取节点交易池数据
+* `/api/v1/transactionpool` : Get node transaction pool data
 
-    示例：
+    Example:
 
     ```bash
     curl http://localhost:20334/api/v1/transactionpool
@@ -128,11 +128,11 @@
     }
     ```
 
-* `/api/v1/restart` : 重新启动节点restful服务
+* `/api/v1/restart` : Restart node restful service
 
-* `/api/v1/block/hash/<height>` : 根据区块 `height` 获取区块 `hash`
+* `/api/v1/block/hash/<height>` : Get the block `hash` according to the block `height`
 
-    示例：
+    Example:
 
     ```bash
     curl http://localhost:20334/api/v1/block/hash/123
@@ -143,9 +143,9 @@
     }
     ```
 
-* `/api/v1/block/details/height/<height>` : 根据区块 `height` 获取区块详细信息
+* `/api/v1/block/details/height/<height>` : Get block details based on block `height`
 
-    示例：
+    Example:
 
     ```bash
     curl http://localhost:20334/api/v1/block/details/height/123
@@ -215,9 +215,9 @@
     }
     ```
 
-* `/api/v1/block/details/hash/<hash>` : 根据区块 `hash` 获取区块详细信息
+* `/api/v1/block/details/hash/<hash>` : Get block details based on block `hash`
 
-    示例：
+    Example:
 
     ```bash
     curl http://localhost:20334/api/v1/block/details/hash/b9450e180aba1a96a93003be1ba775499577f856bb17a82177e74ae4d94db3fb
@@ -248,9 +248,9 @@
     }
     ```
 
-* `/api/v1/block/transactions/height/<height>` : 根据区块 `height` 获取区块所有交易 `hash`
+* `/api/v1/block/transactions/height/<height>` : Get all transactions `hash` in the block according to the block `height`
 
-   示例：
+   Example:
 
     ```bash
     curl http://localhost:20334/api/v1/block/transactions/height/16000
@@ -265,9 +265,9 @@
     }
     ```
 
-* `/api/v1/transaction/<hash>` : 根据交易 `hash` 获取区块所有交易信息
+* `/api/v1/transaction/<hash>` : Get all trading information of the block according to the transaction `hash`
 
-    示例：
+    Example:
 
     ```bash
     curl http://localhost:20334/api/v1/transaction/5c0a30ad3764e6524803ac673d552af59acac910cea36f1678d5b0ae03c67078
@@ -317,9 +317,9 @@
     }
     ```
 
-* `/api/v1/asset/balances/<addr>` : 根据钱包地址获取钱包余额
+* `/api/v1/asset/balances/<addr>` : Get wallet balance based on wallet address
 
-    示例：
+    Example:
 
     ```bash
     curl http://localhost:20334/api/v1/asset/balances/EgHPRhodCsDKuDBPApCK3KLayiBomrJrbH
@@ -330,9 +330,9 @@
     }
     ```
 
-* `/api/v1/asset/<hash>` : 资产查询
+* `/api/v1/asset/<hash>` : Asset inquiry
 
-    示例：
+    Example:
 
     ```bash
     curl http://localhost:20334/api/v1/asset/a3d0eaa466df74983b5d7c543de6904f4c9418ead5ffd6d25814234a96db37b0
@@ -349,9 +349,9 @@
     }
     ```
 
-* `/api/v1/asset/utxos/<addr>` : 获取一个地址所有 `UTXO`
+* `/api/v1/asset/utxos/<addr>` : Get all the `UTXO` on an address
 
-    示例：
+    Example:
 
     ```bash
     curl http://localhost:20334/api/v1/asset/utxos/EgHPRhodCsDKuDBPApCK3KLayiBomrJrbH
@@ -374,9 +374,9 @@
     }
     ```
 
-* `/api/v1/asset/balance/<addr>/<assetid>` : 根据地址和AssetID查询余额
+* `/api/v1/asset/balance/<addr>/<assetid>` : Check balance based on address and AssetID
 
-    示例：
+    Example:
 
     ```bash
     curl http://localhost:20334/api/v1/asset/balance/EgHPRhodCsDKuDBPApCK3KLayiBomrJrbH/a3d0eaa466df74983b5d7c543de6904f4c9418ead5ffd6d25814234a96db37b0
@@ -387,9 +387,9 @@
     }
     ```
 
-* `/api/v1/asset/utxo/<addr>/<assetid>` : 根据地址和AssetID查询UTXO
+* `/api/v1/asset/utxo/<addr>/<assetid>` : Query UTXO based on address and AssetID
 
-    示例：
+    Example:
 
     ```bash
     curl http://localhost:20334/api/v1/asset/utxo/EgHPRhodCsDKuDBPApCK3KLayiBomrJrbH/a3d0eaa466df74983b5d7c543de6904f4c9418ead5ffd6d25814234a96db37b0
@@ -408,9 +408,9 @@
     }
     ```
 
-* `/api/v1/transaction` : 将签名后的交易数据广播至节点
+* `/api/v1/transaction` : Broadcast the signed transaction data to the node
 
-    示例：
+    Example:
 
     ```bash
     curl -X POST http://localhost:21334/api/v1/transaction -H "Content-Type: application/json" -d '{"Action": "sendrawtransaction", "data": "020001001335353737303036373931393437373739343130010faf7e6f2f43ebdc2723e50014280d4cdac1975f9f883dc57e60aa7e96047b5401000000000002b037db964a231458d2d6ffd5ea18944c4f90e63d547c5d3b9874df66a4ead0a300e1f505000000000000000021132c86ebad33299ecc15dff410d4b0a76b4f9e17b037db964a231458d2d6ffd5ea18944c4f90e63d547c5d3b9874df66a4ead0a3a02bb459e4050000000000002136c6f2ad6785cef94fab1216b776add14bd756a850ab0100014140cbd0fb92a390dcd802ecef745091045ccb3033f097e6a42cc18822b000360e48d1a09388db077ca9c7cfc889c0eca427ca1f5f05490658a854f752ea1fb57b7c2321032f4540e915134f38ba24cdc08621ad7f5b8b62db36843ae8fa9422c047a04be8ac"}'
@@ -421,18 +421,18 @@
     }
     ```
 
-    这个接口里面data参数值(签名后的交易数据)的生成可以使用两种方法：
+    The generation of the data parameter value (the signed transaction data) in this interface can be done in two ways:
 
-    1. 使用 [Elastos.ELA.Client](https://github.com/elastos/Elastos.ELA.Client) 命令行工具，示例如下
+    1. Use the [Elastos.ELA.Client](https://github.com/elastos/Elastos.ELA.Client) command line tool, examples are as follows
     ```bash
     ./ela-cli wallet -t create --from EdAEC51BmmzJFHUdMJ6bR5fZB4oo919E8n --amount 10 --fee 0.001 --to EZmpNht7UAHtpqVBMDfPRDtQCmAY6eYjgV
     ```
 
-    请使用实际的ELA Address替换示例中的 --from 和 --to 的参数值
+    Please replace the parameter values of --from and --to in the example with the actual ELA Address.
     ```bash
     ./ela-cli wallet -t sign --file to_be_signed.txn
     ```
 
-    这里需要输入你本地钱包的密码，这个命令返回的一长串十六进制的字符就是签名后的交易数据
+    Here you need to enter the password of your local wallet. The long string of hexadecimal characters returned by this command is the signed transaction data.
 
-    2. 使用 [Elastos.ELA.Utilities.Java](https://github.com/elastos/Elastos.ELA.Utilities.Java) 工具库提供的相关工具生成，具体参考仓库的文档
+    2. Use the relevant tools provided by the [Elastos.ELA.Utilities.Java](https://github.com/elastos/Elastos.ELA.Utilities.Java) tool library to generate specific reference to the documentation of the warehouse.

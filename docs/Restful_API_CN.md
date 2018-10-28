@@ -63,7 +63,7 @@
     }
     ```
 
-* `/api/v1/block/height` : 获取节点区块总高度
+* `/api/v1/block/height` : 获取节点区块高度
 
    示例：
 

@@ -1,8 +1,8 @@
-# The Node API Of Elastos Wallet
+# The RESTFUL API Of Elastos Node
 
 `ELA Node` uses the `2*334` port to provide the following interface services:
 
-* `/api/v1/node/connectioncount` : Get the number of nodes to which the current node is connected
+* `/api/v1/node/connectioncount` : Returns the number of nodes to which the node is connected
 
    Example:
 
@@ -15,7 +15,7 @@
     }
     ```
 
-* `/api/v1/node/state` : Get status of the current node
+* `/api/v1/node/state` : Returns status of the node
 
    Example:
 
@@ -63,7 +63,7 @@
     }
     ```
 
-* `/api/v1/block/height` : Get the total height of the node block
+* `/api/v1/block/height` : Returns the block height of the node
 
    Example:
 
@@ -76,7 +76,7 @@
     }
     ```
 
-* `/api/v1/transactionpool` : Get node transaction pool data
+* `/api/v1/transactionpool` : Returns various information about the TX mempool
 
     Example:
 
@@ -128,9 +128,9 @@
     }
     ```
 
-* `/api/v1/restart` : Restart node restful service
+* `/api/v1/restart` : Restart the restful service
 
-* `/api/v1/block/hash/<height>` : Get the block `hash` according to the block `height`
+* `/api/v1/block/hash/<height>` : Returns the block `hash` according to the block `height`
 
     Example:
 
@@ -143,7 +143,7 @@
     }
     ```
 
-* `/api/v1/block/details/height/<height>` : Get block details based on block `height`
+* `/api/v1/block/details/height/<height>` : Returns information about the given block `height`
 
     Example:
 
@@ -215,7 +215,7 @@
     }
     ```
 
-* `/api/v1/block/details/hash/<hash>` : Get block details based on block `hash`
+* `/api/v1/block/details/hash/<hash>` : Returns information about the given block `hash`
 
     Example:
 
@@ -248,7 +248,7 @@
     }
     ```
 
-* `/api/v1/block/transactions/height/<height>` : Get all transactions `hash` in the block according to the block `height`
+* `/api/v1/block/transactions/height/<height>` : Returns all `hash`es of the transactions in the block according to the block `height`
 
    Example:
 
@@ -265,7 +265,7 @@
     }
     ```
 
-* `/api/v1/transaction/<hash>` : Get all trading information of the block according to the transaction `hash`
+* `/api/v1/transaction/<hash>` : Returns all trading information of the block according to the transaction `hash`
 
     Example:
 
@@ -317,7 +317,7 @@
     }
     ```
 
-* `/api/v1/asset/balances/<addr>` : Get wallet balance based on wallet address
+* `/api/v1/asset/balances/<addr>` : Returns the balance of the address
 
     Example:
 
@@ -330,7 +330,7 @@
     }
     ```
 
-* `/api/v1/asset/<hash>` : Asset inquiry
+* `/api/v1/asset/<hash>` : Returns information about the given asset `hash`
 
     Example:
 
@@ -349,7 +349,7 @@
     }
     ```
 
-* `/api/v1/asset/utxos/<addr>` : Get all the `UTXO` on an address
+* `/api/v1/asset/utxos/<addr>` : Returns the `UTXO`s according to the given address
 
     Example:
 
@@ -374,7 +374,7 @@
     }
     ```
 
-* `/api/v1/asset/balance/<addr>/<assetid>` : Check balance based on address and AssetID
+* `/api/v1/asset/balance/<addr>/<assetid>` : Returns the balance about the given address and AssetID
 
     Example:
 
@@ -387,7 +387,7 @@
     }
     ```
 
-* `/api/v1/asset/utxo/<addr>/<assetid>` : Query UTXO based on address and AssetID
+* `/api/v1/asset/utxo/<addr>/<assetid>` : Returns the UTXO according to the given address and AssetID
 
     Example:
 
@@ -408,7 +408,7 @@
     }
     ```
 
-* `/api/v1/transaction` : Broadcast the signed transaction data to the node
+* `/api/v1/transaction` : Broadcasts the transaction data to the node
 
     Example:
 
@@ -428,11 +428,11 @@
     ./ela-cli wallet -t create --from EdAEC51BmmzJFHUdMJ6bR5fZB4oo919E8n --amount 10 --fee 0.001 --to EZmpNht7UAHtpqVBMDfPRDtQCmAY6eYjgV
     ```
 
-    Please replace the parameter values of --from and --to in the example with the actual ELA Address.
+    Please replace the parameter values of `--from` and `--to` in the example with the actual ELA Address.
     ```bash
     ./ela-cli wallet -t sign --file to_be_signed.txn
     ```
 
     Here you need to enter the password of your local wallet. The long string of hexadecimal characters returned by this command is the signed transaction data.
 
-    2. Use the relevant tools provided by the [Elastos.ELA.Utilities.Java](https://github.com/elastos/Elastos.ELA.Utilities.Java) tool library to generate specific reference to the documentation of the warehouse.
+    2. Use the relevant tools provided by the [Elastos.ELA.Utilities.Java](https://github.com/elastos/Elastos.ELA.Utilities.Java) tool library to generate specific reference to the documentation of the repository.

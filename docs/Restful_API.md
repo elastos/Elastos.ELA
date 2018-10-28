@@ -130,7 +130,7 @@
 
 * `/api/v1/restart` : Restart the restful service
 
-* `/api/v1/block/hash/<height>` : Returns the block `hash` according to the block `height`
+* `/api/v1/block/hash/<height>` : Returns the block `hash` about the given block `height`
 
     Example:
 
@@ -265,7 +265,7 @@
     }
     ```
 
-* `/api/v1/transaction/<hash>` : Returns all trading information of the block according to the transaction `hash`
+* `/api/v1/transaction/<hash>` : Returns information about the given transaction `hash`
 
     Example:
 
@@ -387,7 +387,7 @@
     }
     ```
 
-* `/api/v1/asset/utxo/<addr>/<assetid>` : Returns the UTXO according to the given address and AssetID
+* `/api/v1/asset/utxo/<addr>/<assetid>` : Returns the UTXO(s) according to the given address and AssetID
 
     Example:
 

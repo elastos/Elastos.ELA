@@ -940,9 +940,13 @@ func getPayloadInfo(p Payload) PayloadInfo {
 		return obj
 	case *PayloadTransferCrossChainAsset:
 		obj := new(TransferCrossChainAssetInfo)
-		obj.CrossChainAddresses = object.CrossChainAddresses
-		obj.OutputIndexes = object.OutputIndexes
-		obj.CrossChainAmounts = object.CrossChainAmounts
+		for _, a := range object.Assets {
+			obj.Assets = append(obj.Assets, CrossChainAssetInfo{
+				CrossChainAddress: a.CrossChainAddress,
+				OutputIndex:       a.OutputIndex,
+				CrossChainAmount:  a.CrossChainAmount.String(),
+			})
+		}
 		return obj
 	case *PayloadTransferAsset:
 	case *PayloadRecord:

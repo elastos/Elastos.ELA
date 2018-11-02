@@ -1,7 +1,6 @@
 package servers
 
 import (
-	"github.com/elastos/Elastos.ELA.Utility/common"
 	. "github.com/elastos/Elastos.ELA/core"
 )
 
@@ -127,10 +126,14 @@ type SideChainPowInfo struct {
 	SignedData      string
 }
 
+type CrossChainAssetInfo struct {
+	CrossChainAddress string
+	OutputIndex       uint64
+	CrossChainAmount  string
+}
+
 type TransferCrossChainAssetInfo struct {
-	CrossChainAddresses []string
-	OutputIndexes       []uint64
-	CrossChainAmounts   []common.Fixed64
+	Assets []CrossChainAssetInfo
 }
 
 type WithdrawFromSideChainInfo struct {

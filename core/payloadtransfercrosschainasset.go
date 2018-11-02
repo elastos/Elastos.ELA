@@ -8,10 +8,22 @@ import (
 	"github.com/elastos/Elastos.ELA.Utility/common"
 )
 
+type CrossChainAsset struct {
+	CrossChainAddress string
+	OutputIndex       uint64
+	CrossChainAmount  common.Fixed64
+}
+
 type PayloadTransferCrossChainAsset struct {
-	CrossChainAddresses []string
-	OutputIndexes       []uint64
-	CrossChainAmounts   []common.Fixed64
+	Assets []CrossChainAsset
+}
+
+func (a *CrossChainAsset) Serialize(w io.Writer, version byte) error {
+	return common.WriteElements(w, a.CrossChainAddress, a.OutputIndex, a.CrossChainAmount)
+}
+
+func (a *CrossChainAsset) Deserialize(r io.Reader, version byte) error {
+	return common.ReadElements(r, a.CrossChainAddress, a.OutputIndex, a.CrossChainAmount)
 }
 
 func (a *PayloadTransferCrossChainAsset) Data(version byte) []byte {
@@ -24,26 +36,15 @@ func (a *PayloadTransferCrossChainAsset) Data(version byte) []byte {
 }
 
 func (a *PayloadTransferCrossChainAsset) Serialize(w io.Writer, version byte) error {
-	if len(a.CrossChainAddresses) != len(a.OutputIndexes) || len(a.OutputIndexes) != len(a.CrossChainAmounts) {
-		return errors.New("Invalid cross chain asset")
+
+	if err := common.WriteVarUint(w, uint64(len(a.Assets))); err != nil {
+		return errors.New("[PayloadTransferCrossChainAsset], Assets length serialize failed.")
 	}
 
-	if err := common.WriteVarUint(w, uint64(len(a.CrossChainAddresses))); err != nil {
-		return errors.New("PayloadTransferCrossChainAsset length serialize failed")
-	}
-
-	for i := 0; i < len(a.CrossChainAddresses); i++ {
-		if err := common.WriteVarString(w, a.CrossChainAddresses[i]); err != nil {
-			return errors.New("CrossChainAddresses serialize failed")
-		}
-
-		if err := common.WriteVarUint(w, a.OutputIndexes[i]); err != nil {
-			return errors.New("OutputIndexes serialize failed")
-		}
-
-		err := a.CrossChainAmounts[i].Serialize(w)
+	for _, asset := range a.Assets {
+		err := asset.Serialize(w, version)
 		if err != nil {
-			return errors.New("CrossChainAmounts serialize failed")
+			return errors.New("[PayloadTransferCrossChainAsset], Assets serialize failed.")
 		}
 	}
 
@@ -53,29 +54,17 @@ func (a *PayloadTransferCrossChainAsset) Serialize(w io.Writer, version byte) er
 func (a *PayloadTransferCrossChainAsset) Deserialize(r io.Reader, version byte) error {
 	length, err := common.ReadVarUint(r, 0)
 	if err != nil {
-		return errors.New("PayloadTransferCrossChainAsset length deserialize failed")
+		return errors.New("[PayloadTransferCrossChainAsset], Length deserialize failed.")
 	}
 
+	a.Assets = make([]CrossChainAsset, 0)
 	for i := uint64(0); i < length; i++ {
-		address, err := common.ReadVarString(r)
+		var csAsset CrossChainAsset
+		err := csAsset.Deserialize(r, version)
 		if err != nil {
-			return errors.New("CrossChainAddresses deserialize failed")
+			return errors.New("[PayloadTransferCrossChainAsset], Assets deserialize failed.")
 		}
-
-		index, err := common.ReadVarUint(r, 0)
-		if err != nil {
-			return errors.New("OutputIndexes index deserialize failed")
-		}
-
-		var amount common.Fixed64
-		err = amount.Deserialize(r)
-		if err != nil {
-			return errors.New("CrossChainAmounts deserialize failed")
-		}
-
-		a.CrossChainAddresses = append(a.CrossChainAddresses, address)
-		a.OutputIndexes = append(a.OutputIndexes, index)
-		a.CrossChainAmounts = append(a.CrossChainAmounts, amount)
+		a.Assets = append(a.Assets, csAsset)
 	}
 
 	return nil

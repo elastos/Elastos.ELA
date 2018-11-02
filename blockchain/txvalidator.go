@@ -482,35 +482,27 @@ func CheckTransferCrossChainAssetTransaction(txn *Transaction) error {
 	if !ok {
 		return errors.New("Invalid transfer cross chain asset payload type")
 	}
-	if len(payloadObj.CrossChainAddresses) == 0 ||
-		len(payloadObj.CrossChainAddresses) > len(txn.Outputs) ||
-		len(payloadObj.CrossChainAddresses) != len(payloadObj.CrossChainAmounts) ||
-		len(payloadObj.CrossChainAmounts) != len(payloadObj.OutputIndexes) {
+	if len(payloadObj.Assets) == 0 ||
+		len(payloadObj.Assets) > len(txn.Outputs) {
 		return errors.New("Invalid transaction payload content")
 	}
 
-	//check cross chain output index in payload
+	//check cross chain output index and address and cross chain amount in payload
 	outputIndexMap := make(map[uint64]struct{})
-	for _, outputIndex := range payloadObj.OutputIndexes {
-		if _, exist := outputIndexMap[outputIndex]; exist || int(outputIndex) >= len(txn.Outputs) {
+	for _, a := range payloadObj.Assets {
+		if _, exist := outputIndexMap[a.OutputIndex]; exist || int(a.OutputIndex) >= len(txn.Outputs) {
 			return errors.New("Invalid transaction payload cross chain index")
 		}
-		outputIndexMap[outputIndex] = struct{}{}
-	}
+		outputIndexMap[a.OutputIndex] = struct{}{}
 
-	//check address in outputs and payload
-	for i := 0; i < len(payloadObj.CrossChainAddresses); i++ {
-		if bytes.Compare(txn.Outputs[payloadObj.OutputIndexes[i]].ProgramHash[0:1], []byte{PrefixCrossChain}) != 0 {
+		if bytes.Compare(txn.Outputs[a.OutputIndex].ProgramHash[0:1], []byte{PrefixCrossChain}) != 0 {
 			return errors.New("Invalid transaction output address, without \"X\" at beginning")
 		}
-		if payloadObj.CrossChainAddresses[i] == "" {
+		if a.CrossChainAddress == "" {
 			return errors.New("Invalid transaction cross chain address ")
 		}
-	}
 
-	//check cross chain amount in payload
-	for i := 0; i < len(payloadObj.CrossChainAmounts); i++ {
-		if payloadObj.CrossChainAmounts[i] < 0 || payloadObj.CrossChainAmounts[i] > txn.Outputs[payloadObj.OutputIndexes[i]].Value-Fixed64(config.Parameters.MinCrossChainTxFee) {
+		if a.CrossChainAmount < 0 || a.CrossChainAmount > txn.Outputs[a.OutputIndex].Value-Fixed64(config.Parameters.MinCrossChainTxFee) {
 			return errors.New("Invalid transaction cross chain amount")
 		}
 	}

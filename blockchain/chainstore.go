@@ -383,6 +383,150 @@ func (c *ChainStore) GetSidechainTx(sidechainTxHash Uint256) (byte, error) {
 	return data[0], nil
 }
 
+func (c *ChainStore) PersistRegisterProducer(payload *PayloadRegisterProducer) error {
+	key := []byte{byte(VOTE_RegisterProducer)}
+	producerBytes, err := c.GetRegisteredProducers()
+	if err != nil {
+		log.Info("")
+		value := new(bytes.Buffer)
+		WriteUint64(value, uint64(1))
+		c.BatchPut(key, append(value.Bytes(), payload.Data(PayloadRegisterProducerVersion)...))
+		return nil
+	}
+	r := bytes.NewReader(producerBytes)
+	length, err := ReadUint64(r)
+	if err != nil {
+		return err
+	}
+
+	for i := uint64(0); i < length; i++ {
+		var p PayloadRegisterProducer
+		err := p.Deserialize(r, PayloadRegisterProducerVersion)
+		if err != nil {
+			return err
+		}
+		if p.NickName == payload.NickName {
+			return errors.New("duplicated nickname")
+		}
+		if p.PublicKey == payload.PublicKey {
+			return errors.New("duplicated public key")
+		}
+	}
+
+	// PUT VALUE: length(uint64),oldProducers,newProducer
+	value := new(bytes.Buffer)
+	WriteUint64(value, length+uint64(1))
+	c.BatchPut(key, append(append(value.Bytes(), producerBytes[8:]...), payload.Data(PayloadRegisterProducerVersion)...))
+
+	return nil
+}
+
+func (c *ChainStore) PersistCancelProducer(payload *PayloadCancelProducer) error {
+	//remove from VOTE_RegisterProducer
+	key := []byte{byte(VOTE_RegisterProducer)}
+	producerBytes, err := c.GetRegisteredProducers()
+	if err != nil {
+		return err
+	}
+	r := bytes.NewReader(producerBytes)
+	length, err := ReadUint64(r)
+	if err != nil {
+		return err
+	}
+
+	var newProducerBytes []byte
+	var count uint64
+	for i := uint64(0); i < length; i++ {
+		var p PayloadRegisterProducer
+		err := p.Deserialize(r, PayloadRegisterProducerVersion)
+		if err != nil {
+			return err
+		}
+		if p.PublicKey != payload.PublicKey {
+			buf := new(bytes.Buffer)
+			p.Serialize(buf, PayloadRegisterProducerVersion)
+			newProducerBytes = append(newProducerBytes, buf.Bytes()...)
+			count++
+		}
+	}
+
+	value := new(bytes.Buffer)
+	WriteUint64(value, count)
+	newProducerBytes = append(value.Bytes(), newProducerBytes...)
+
+	c.BatchPut(key, newProducerBytes)
+
+	//remove from VOTE_VoteProducer
+	key = []byte{byte(VOTE_VoteProducer)}
+	pkBytes, err := HexStringToBytes(payload.PublicKey)
+	if err != nil {
+		return errors.New("[PersistCancelProducer], Invalid publick key in payload ")
+	}
+	_, err = c.GetProducerVote(pkBytes)
+	if err == nil {
+		c.BatchDelete(append(key, pkBytes...))
+	}
+
+	return nil
+}
+
+func (c *ChainStore) PersistVoteProducer(payload *PayloadVoteProducer) error {
+	key := []byte{byte(VOTE_VoteProducer)}
+	stake, err := payload.Stake.Bytes()
+	if err != nil {
+		return err
+	}
+
+	for _, pk := range payload.PublicKeys {
+		pkBytes, err := HexStringToBytes(pk)
+		if err != nil {
+			return errors.New("[PersistVoteProducer], Invalid publick key in payload ")
+		}
+		k := append(key, pkBytes...)
+		oldStake, err := c.GetProducerVote(k)
+		if err != nil {
+			c.BatchPut(k, stake)
+		} else {
+			votes := payload.Stake + *oldStake
+			votesBytes, err := votes.Bytes()
+			if err != nil {
+				return err
+			}
+			c.BatchPut(k, votesBytes)
+		}
+	}
+
+	return nil
+}
+
+func (c *ChainStore) GetRegisteredProducers() ([]byte, error) {
+	key := []byte{byte(VOTE_RegisterProducer)}
+	data, err := c.Get(key)
+	if err != nil {
+		return nil, err
+	}
+
+	return data, nil
+}
+
+func (c *ChainStore) GetProducerVote(publicKey []byte) (*Fixed64, error) {
+	key := []byte{byte(VOTE_VoteProducer)}
+	key = append(key, publicKey...)
+
+	// PUT VALUE
+	data, err := c.Get(key)
+	if err != nil {
+		return nil, err
+	}
+
+	value, err := Fixed64FromBytes(data)
+	if err != nil {
+		return nil, err
+	}
+
+	return value, nil
+}
+
 func (c *ChainStore) GetTransaction(txId Uint256) (*Transaction, uint32, error) {
 	key := append([]byte{byte(DATA_Transaction)}, txId.Bytes()...)
 	value, err := c.Get(key)

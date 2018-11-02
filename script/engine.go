@@ -8,7 +8,9 @@ package script
 import (
 	"errors"
 	"fmt"
+
 	"github.com/elastos/Elastos.ELA/log"
+	"github.com/elastos/Elastos.ELA/core"
 )
 
 const (
@@ -33,6 +35,8 @@ type Engine struct {
 	inputAmount     int64
 	bip16           bool     // treat execution as pay-to-script-hash
 	savedFirstStack [][]byte // stack from first script for bip16 scripts
+	tx              core.Transaction
+	txIdx           int
 }
 
 // isBranchExecuting returns whether or not the current conditional branch is
@@ -45,7 +49,6 @@ func (vm *Engine) isBranchExecuting() bool {
 	}
 	return vm.condStack[len(vm.condStack)-1] == OpCondTrue
 }
-
 
 // popIfBool enforces the "minimal if" policy during script execution if the
 // particular flag is set.  If so, in order to eliminate an additional source
@@ -102,14 +105,25 @@ func (vm *Engine) SetAltStack(data [][]byte) {
 	setStack(&vm.astack, data)
 }
 
-func NewEngine(script []byte) (*Engine, error) {
+func NewEngine(script []byte, tx *core.Transaction, txIdx int) (*Engine, error) {
 	if len(script) == 0 {
 		return nil, errors.New("false stack entry at end of script execution")
 	}
+
+	// The provided transaction input index must refer to a valid input.
+	if txIdx < 0 || txIdx >= len(tx.Inputs) {
+		str := fmt.Sprintf("transaction input index %d is negative or "+
+			">= %d", txIdx, len(tx.Inputs))
+		return nil, scriptError(ErrInvalidIndex, str)
+	}
+
 	vm := Engine{}
 
 	scripts := [][]byte{script}
 	vm.scripts = make([][]parsedOpcode, len(scripts))
+	vm.tx = *tx
+	vm.txIdx = txIdx
+
 	for i, scr := range scripts {
 		if len(scr) > MaxScriptSize {
 			str := fmt.Sprintf("script size %d is larger than max "+

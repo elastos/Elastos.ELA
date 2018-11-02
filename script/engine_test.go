@@ -11,6 +11,8 @@ import (
 	"strconv"
 	"encoding/hex"
 	"errors"
+	"github.com/elastos/Elastos.ELA/core"
+	"github.com/elastos/Elastos.ELA.Utility/common"
 )
 
 // parse hex string into a []byte.
@@ -113,8 +115,31 @@ func TestOPIF(t *testing.T)  {
 	t.Parallel()
 
 	pkScript := mustParseShortForm("TRUE OP_IF 2 3 OP_ADD OP_ELSE 1 1 OP_ADD OP_ENDIF")
+	hashBytes := []byte{0xc9, 0x97, 0xa5, 0xe5,
+		0x6e, 0x10, 0x41, 0x02,
+		0xfa, 0x20, 0x9c, 0x6a,
+		0x85, 0x2d, 0xd9, 0x06,
+		0x60, 0xa2, 0x0b, 0x2d,
+		0x9c, 0x35, 0x24, 0x23,
+		0xed, 0xce, 0x25, 0x85,
+		0x7f, 0xcd, 0x37, 0x04}
+	hash, _ := common.Uint256FromBytes(hashBytes)
+	tx := core.Transaction{
+		Inputs: []*core.Input{{
+			Previous:core.OutPoint{
+				TxID:*hash,
+				Index:0,
+			},
+			Sequence:4294967295,
+		},
+		},
+		Outputs:[]*core.Output {{
+			Value: 1000000000,
+		}},
+		LockTime: 0,
+	}
 
-	vm, err := NewEngine(pkScript)
+	vm, err := NewEngine(pkScript, &tx, 0)
 	if err != nil {
 		t.Errorf("failed to create script: %v", err)
 	}

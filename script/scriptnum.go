@@ -5,7 +5,6 @@
 package script
 
 import (
-	"errors"
 	"fmt"
 )
 
@@ -68,7 +67,7 @@ func checkMinimalDataEncoding(v []byte) error {
 		if len(v) == 1 || v[len(v)-2]&0x80 == 0 {
 			str := fmt.Sprintf("numeric value encoded as %x is "+
 				"not minimally encoded", v)
-			return errors.New(str)
+			return scriptError(ErrMinimalData, str)
 		}
 	}
 
@@ -190,7 +189,7 @@ func makeScriptNum(v []byte, requireMinimal bool, scriptNumLen int) (scriptNum, 
 		str := fmt.Sprintf("numeric value encoded as %x is %d bytes "+
 			"which exceeds the max allowed of %d", v, len(v),
 			scriptNumLen)
-		return 0, errors.New(str)
+		return 0, scriptError(ErrNumberTooBig, str)
 	}
 
 	// Enforce minimal encoded if requested.

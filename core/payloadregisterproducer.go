@@ -8,6 +8,8 @@ import (
 	. "github.com/elastos/Elastos.ELA.Utility/common"
 )
 
+const PayloadRegisterProducerVersion byte = 0x00
+
 type PayloadRegisterProducer struct {
 	PublicKey string
 	NickName  string

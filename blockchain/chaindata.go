@@ -312,6 +312,24 @@ func (c *ChainStore) PersistTransactions(b *Block) error {
 				c.PersistSidechainTx(hash)
 			}
 		}
+		if txn.TxType == RegisterProducer {
+			err := c.PersistRegisterProducer(txn.Payload.(*PayloadRegisterProducer))
+			if err != nil {
+				return err
+			}
+		}
+		if txn.TxType == CancelProducer {
+			err := c.PersistCancelProducer(txn.Payload.(*PayloadCancelProducer))
+			if err != nil {
+				return err
+			}
+		}
+		if txn.TxType == VoteProducer {
+			err := c.PersistVoteProducer(txn.Payload.(*PayloadVoteProducer))
+			if err != nil {
+				return err
+			}
+		}
 	}
 	return nil
 }

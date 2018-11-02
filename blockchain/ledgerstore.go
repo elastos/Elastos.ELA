@@ -28,6 +28,12 @@ type IChainStore interface {
 	PersistSidechainTx(sidechainTxHash Uint256)
 	GetSidechainTx(sidechainTxHash Uint256) (byte, error)
 
+	PersistRegisterProducer(payload *PayloadRegisterProducer) error
+	PersistCancelProducer(payload *PayloadCancelProducer) error
+	PersistVoteProducer(payload *PayloadVoteProducer) error
+	GetRegisteredProducers() ([]byte, error)
+	GetProducerVote(publicKey []byte) (*Fixed64, error)
+
 	GetCurrentBlockHash() Uint256
 	GetHeight() uint32
 

@@ -17,6 +17,9 @@ import (
 	. "github.com/elastos/Elastos.ELA/protocol"
 
 	. "github.com/elastos/Elastos.ELA.Utility/common"
+	"github.com/elastos/Elastos.ELA.Utility/crypto"
+	"math"
+	"sort"
 )
 
 const (
@@ -909,6 +912,213 @@ func GetExistWithdrawTransactions(param Params) map[string]interface{} {
 	}
 
 	return ResponsePack(Success, resultTxHashes)
+}
+
+type Producer struct {
+	address  string `json:"address"`
+	nickname string `json:"nickname"`
+	url      string `json:"url"`
+	location uint64 `json:"location"`
+	active   bool   `json:"active"`
+	votes    string `json:"votes"`
+}
+
+type Producers struct {
+	producers   []Producer `json:"producers"`
+	total_votes string     `json:"total_votes"`
+}
+
+type producerSorter []Producer
+
+func (s producerSorter) Len() int {
+	return len(s)
+}
+
+func (s producerSorter) Swap(i, j int) {
+	s[i], s[j] = s[j], s[i]
+}
+
+func (s producerSorter) Less(i, j int) bool {
+	ivalue, _ := StringToFixed64(s[i].votes)
+	jvalue, _ := StringToFixed64(s[j].votes)
+	if ivalue == nil || jvalue == nil {
+		log.Error("[producerSorter], Sort failed.")
+		return false
+	}
+	return *ivalue > *jvalue
+}
+
+func ListProducers(param Params) map[string]interface{} {
+	start, _ := param.Int("start")
+	limit, ok := param.Int("limit")
+	if !ok {
+		limit = math.MaxInt64
+	}
+
+	producers := getProducers()
+	var ps []Producer
+	for _, p := range producers {
+
+		address, err := getAddress(p.PublicKey)
+		if err != nil {
+			return ResponsePack(Error, "invalid public key")
+		}
+		var active bool
+		state := chain.DefaultLedger.Store.GetProducerStatus(p.PublicKey)
+		if state == chain.ProducerRegistered {
+			active = true
+		}
+		vote := chain.DefaultLedger.Store.GetProducerVote(p.PublicKey)
+		producer := Producer{
+			address:  address,
+			nickname: p.NickName,
+			url:      p.Url,
+			location: p.Location,
+			active:   active,
+			votes:    vote.String(),
+		}
+
+		ps = append(ps, producer)
+	}
+
+	sort.Sort(producerSorter(ps))
+	var resultPs []Producer
+	var totalVotes Fixed64
+	for i := start; i < limit && i < int64(len(ps)); i++ {
+		resultPs = append(resultPs, ps[i])
+		v, _ := StringToFixed64(ps[i].votes)
+		totalVotes += *v
+	}
+
+	result := Producers{
+		producers:   resultPs,
+		total_votes: totalVotes.String(),
+	}
+
+	return ResponsePack(Success, result)
+}
+
+func Producerstatus(param Params) map[string]interface{} {
+	address, ok := param.String("address")
+	if !ok {
+		return ResponsePack(InvalidParams, "address not found.")
+	}
+
+	producers := getProducers()
+	for _, p := range producers {
+		addr, err := getAddress(p.PublicKey)
+		if err != nil {
+			return ResponsePack(Error, "invalid public key")
+		}
+		if addr == address {
+			return ResponsePack(Success, chain.DefaultLedger.Store.GetProducerStatus(p.PublicKey))
+		}
+	}
+
+	return ResponsePack(Error, "not found producer.")
+}
+
+func VoteStatus(param Params) map[string]interface{} {
+	address, ok := param.String("address")
+	if !ok {
+		return ResponsePack(InvalidParams, "address not found.")
+	}
+
+	producers := getProducers()
+	for _, p := range producers {
+		addr, err := getAddress(p.PublicKey)
+		if err != nil {
+			return ResponsePack(Error, "invalid public key")
+		}
+		if addr == address {
+			programHash, err := Uint168FromAddress(address)
+			if err != nil {
+				return ResponsePack(InvalidParams, "Invalid address: "+address)
+			}
+			unspents, err := chain.DefaultLedger.Store.GetUnspentsFromProgramHash(*programHash)
+			if err != nil {
+				return ResponsePack(InvalidParams, "cannot get asset with program")
+			}
+
+			var total Fixed64
+			var voting Fixed64
+			for _, unspent := range unspents[chain.DefaultLedger.Blockchain.AssetID] {
+				if unspent.Index == 0 {
+					tx, _, err := chain.DefaultLedger.Store.GetTransaction(unspent.TxId)
+					if err != nil {
+						return ResponsePack(InternalError, "unknown transaction "+unspent.TxId.String()+" from persisted utxo")
+					}
+					if tx.TxType == VoteProducer {
+						voting += unspent.Value
+					}
+				}
+				total += unspent.Value
+			}
+			return ResponsePack(Success, chain.DefaultLedger.Store.GetProducerStatus(p.PublicKey))
+		}
+	}
+
+	return ResponsePack(Error, "not found producer.")
+}
+
+func getAddress(publicKey string) (string, error) {
+	pkBytes, err := HexStringToBytes(publicKey)
+	if err != nil {
+		return "", err
+	}
+	pk, err := crypto.DecodePoint(pkBytes)
+	if err != nil {
+		return "", err
+	}
+	// Set redeem script
+	redeemScript, err := crypto.CreateStandardRedeemScript(pk)
+	if err != nil {
+		return "", err
+	}
+
+	// Set program hash
+	programHash, err := crypto.ToProgramHash(redeemScript)
+	if err != nil {
+		return "", err
+	}
+
+	// Set address
+	address, err := programHash.ToAddress()
+	if err != nil {
+		return "", err
+	}
+	return address, nil
+}
+
+func getProducers() []*PayloadRegisterProducer {
+	producerBytes, err := chain.DefaultLedger.Store.GetRegisteredProducers()
+	if err != nil {
+		return nil
+	}
+	r := bytes.NewReader(producerBytes)
+	length, err := ReadUint64(r)
+	if err != nil {
+		log.Error("[ListProducers] read length faild:", err.Error())
+		return nil
+	}
+
+	producers := make([]*PayloadRegisterProducer, 0)
+	for i := uint64(0); i < length; i++ {
+		_, err := ReadUint32(r)
+		if err != nil {
+			log.Error("[ListProducers] read height faild:", err.Error())
+			return nil
+		}
+		var p PayloadRegisterProducer
+		err = p.Deserialize(r, PayloadRegisterProducerVersion)
+		if err != nil {
+			log.Error("[ListProducers] deserialize payload faild:", err.Error())
+			return nil
+		}
+		producers = append(producers, &p)
+	}
+
+	return producers
 }
 
 func getPayloadInfo(p Payload) PayloadInfo {

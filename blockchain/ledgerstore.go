@@ -32,7 +32,8 @@ type IChainStore interface {
 	PersistCancelProducer(payload *PayloadCancelProducer) error
 	PersistVoteProducer(payload *PayloadVoteProducer) error
 	GetRegisteredProducers() ([]byte, error)
-	GetProducerVote(publicKey []byte) (*Fixed64, error)
+	GetProducerVote(publicKey string) Fixed64
+	GetProducerStatus(publicKey string) ProducerState
 
 	GetCurrentBlockHash() Uint256
 	GetHeight() uint32

@@ -9,6 +9,7 @@ import (
 // IChainStore provides func with store package.
 type IChainStore interface {
 	InitWithGenesisBlock(genesisblock *Block) (uint32, error)
+	InitProducerVotes() error
 
 	SaveBlock(b *Block) error
 	GetBlock(hash Uint256) (*Block, error)

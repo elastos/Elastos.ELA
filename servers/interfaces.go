@@ -5,6 +5,8 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
+	"math"
+	"sort"
 	"time"
 
 	aux "github.com/elastos/Elastos.ELA/auxpow"
@@ -18,8 +20,6 @@ import (
 
 	. "github.com/elastos/Elastos.ELA.Utility/common"
 	"github.com/elastos/Elastos.ELA.Utility/crypto"
-	"math"
-	"sort"
 )
 
 const (

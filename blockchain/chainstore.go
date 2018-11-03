@@ -14,10 +14,23 @@ import (
 	. "github.com/elastos/Elastos.ELA.Utility/common"
 )
 
-const ValueNone = 0
-const ValueExist = 1
+const (
+	ValueNone  = 0
+	ValueExist = 1
 
-const TaskChanCap = 4
+	TaskChanCap = 4
+
+	ProducerUnRegistered ProducerState = 0x00
+	ProducerRegistered   ProducerState = 0x01
+	ProducerRegistering  ProducerState = 0x02
+)
+
+type ProducerState byte
+
+type ProducerInfo struct {
+	RegHeight uint32
+	Vote      Fixed64
+}
 
 type persistTask interface{}
 
@@ -44,6 +57,8 @@ type ChainStore struct {
 
 	currentBlockHeight uint32
 	storedHeaderCount  uint32
+
+	producerVotes map[string]*ProducerInfo
 }
 
 func NewChainStore() (IChainStore, error) {
@@ -61,6 +76,7 @@ func NewChainStore() (IChainStore, error) {
 		storedHeaderCount:  0,
 		taskCh:             make(chan persistTask, TaskChanCap),
 		quit:               make(chan chan bool, 1),
+		producerVotes:      make(map[string]*ProducerInfo, 0),
 	}
 
 	go store.loop()
@@ -385,12 +401,15 @@ func (c *ChainStore) GetSidechainTx(sidechainTxHash Uint256) (byte, error) {
 
 func (c *ChainStore) PersistRegisterProducer(payload *PayloadRegisterProducer) error {
 	key := []byte{byte(VOTE_RegisterProducer)}
+	hBuf := new(bytes.Buffer)
+	height := c.GetHeight()
+	WriteUint32(hBuf, height)
 	producerBytes, err := c.GetRegisteredProducers()
 	if err != nil {
 		log.Info("")
-		value := new(bytes.Buffer)
-		WriteUint64(value, uint64(1))
-		c.BatchPut(key, append(value.Bytes(), payload.Data(PayloadRegisterProducerVersion)...))
+		count := new(bytes.Buffer)
+		WriteUint64(count, uint64(1))
+		c.BatchPut(key, append(count.Bytes(), append(hBuf.Bytes(), payload.Data(PayloadRegisterProducerVersion)...)...))
 		return nil
 	}
 	r := bytes.NewReader(producerBytes)
@@ -400,8 +419,12 @@ func (c *ChainStore) PersistRegisterProducer(payload *PayloadRegisterProducer) e
 	}
 
 	for i := uint64(0); i < length; i++ {
+		_, err := ReadUint32(r)
+		if err != nil {
+			return err
+		}
 		var p PayloadRegisterProducer
-		err := p.Deserialize(r, PayloadRegisterProducerVersion)
+		err = p.Deserialize(r, PayloadRegisterProducerVersion)
 		if err != nil {
 			return err
 		}
@@ -413,10 +436,18 @@ func (c *ChainStore) PersistRegisterProducer(payload *PayloadRegisterProducer) e
 		}
 	}
 
-	// PUT VALUE: length(uint64),oldProducers,newProducer
+	// PUT VALUE: length(uint64),oldProducers(height+payload),newProducer
 	value := new(bytes.Buffer)
 	WriteUint64(value, length+uint64(1))
-	c.BatchPut(key, append(append(value.Bytes(), producerBytes[8:]...), payload.Data(PayloadRegisterProducerVersion)...))
+	c.BatchPut(key, append(append(value.Bytes(), producerBytes[8:]...),
+		append(hBuf.Bytes(), payload.Data(PayloadRegisterProducerVersion)...)...))
+
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.producerVotes[payload.PublicKey] = &ProducerInfo{
+		RegHeight: height,
+		Vote:      Fixed64(0),
+	}
 
 	return nil
 }
@@ -437,13 +468,18 @@ func (c *ChainStore) PersistCancelProducer(payload *PayloadCancelProducer) error
 	var newProducerBytes []byte
 	var count uint64
 	for i := uint64(0); i < length; i++ {
+		h, err := ReadUint32(r)
+		if err != nil {
+			return err
+		}
 		var p PayloadRegisterProducer
-		err := p.Deserialize(r, PayloadRegisterProducerVersion)
+		err = p.Deserialize(r, PayloadRegisterProducerVersion)
 		if err != nil {
 			return err
 		}
 		if p.PublicKey != payload.PublicKey {
 			buf := new(bytes.Buffer)
+			WriteUint32(buf, h)
 			p.Serialize(buf, PayloadRegisterProducerVersion)
 			newProducerBytes = append(newProducerBytes, buf.Bytes()...)
 			count++
@@ -460,13 +496,21 @@ func (c *ChainStore) PersistCancelProducer(payload *PayloadCancelProducer) error
 	key = []byte{byte(VOTE_VoteProducer)}
 	pkBytes, err := HexStringToBytes(payload.PublicKey)
 	if err != nil {
-		return errors.New("[PersistCancelProducer], Invalid publick key in payload ")
+		return errors.New("[PersistCancelProducer], Invalid publick key in payload.")
 	}
-	_, err = c.GetProducerVote(pkBytes)
+	_, err = c.getProducerVote(payload.PublicKey)
 	if err == nil {
 		c.BatchDelete(append(key, pkBytes...))
 	}
 
+	//remove from mempool
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	_, ok := c.producerVotes[payload.PublicKey]
+	if !ok {
+		return errors.New("[PersistCancelProducer], Not found producer in mempool.")
+	}
+	delete(c.producerVotes, payload.PublicKey)
 	return nil
 }
 
@@ -480,20 +524,30 @@ func (c *ChainStore) PersistVoteProducer(payload *PayloadVoteProducer) error {
 	for _, pk := range payload.PublicKeys {
 		pkBytes, err := HexStringToBytes(pk)
 		if err != nil {
-			return errors.New("[PersistVoteProducer], Invalid publick key in payload ")
+			log.Error("[PersistVoteProducer], Invalid publick key in payload ")
+			continue
 		}
+		//add vote to level db
 		k := append(key, pkBytes...)
-		oldStake, err := c.GetProducerVote(k)
+		oldStake, err := c.getProducerVote(pk)
 		if err != nil {
 			c.BatchPut(k, stake)
 		} else {
-			votes := payload.Stake + *oldStake
+			votes := payload.Stake + oldStake
 			votesBytes, err := votes.Bytes()
 			if err != nil {
 				return err
 			}
 			c.BatchPut(k, votesBytes)
 		}
+
+		//add vote to mempool
+		c.mu.Lock()
+		v, ok := c.producerVotes[pk]
+		if ok {
+			c.producerVotes[pk].Vote = v.Vote + payload.Stake
+		}
+		c.mu.Unlock()
 	}
 
 	return nil
@@ -509,22 +563,52 @@ func (c *ChainStore) GetRegisteredProducers() ([]byte, error) {
 	return data, nil
 }
 
-func (c *ChainStore) GetProducerVote(publicKey []byte) (*Fixed64, error) {
+func (c *ChainStore) GetProducerVote(publicKey string) Fixed64 {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	info, ok := c.producerVotes[publicKey]
+	if !ok {
+		return Fixed64(0)
+	}
+
+	return info.Vote
+}
+
+func (c *ChainStore) getProducerVote(publicKey string) (Fixed64, error) {
+	pk, err := HexStringToBytes(publicKey)
+	if err != nil {
+		return Fixed64(0), err
+	}
 	key := []byte{byte(VOTE_VoteProducer)}
-	key = append(key, publicKey...)
+	key = append(key, pk...)
 
 	// PUT VALUE
 	data, err := c.Get(key)
 	if err != nil {
-		return nil, err
+		return Fixed64(0), err
 	}
 
 	value, err := Fixed64FromBytes(data)
 	if err != nil {
-		return nil, err
+		return Fixed64(0), err
 	}
 
-	return value, nil
+	return *value, nil
+}
+
+func (c *ChainStore) GetProducerStatus(publicKey string) ProducerState {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	if p, ok := c.producerVotes[publicKey]; ok {
+		if c.currentBlockHeight-p.RegHeight >= 6 {
+			return ProducerRegistered
+		} else {
+			return ProducerRegistering
+		}
+	}
+	return ProducerUnRegistered
 }
 
 func (c *ChainStore) GetTransaction(txId Uint256) (*Transaction, uint32, error) {

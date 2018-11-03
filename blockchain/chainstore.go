@@ -130,6 +130,40 @@ func (c *ChainStore) clearCache(b *Block) {
 	}
 }
 
+func (c *ChainStore) InitProducerVotes() error {
+	producerBytes, err := c.GetRegisteredProducers()
+	if err != nil {
+		return err
+	}
+	r := bytes.NewReader(producerBytes)
+	length, err := ReadUint64(r)
+	if err != nil {
+		return err
+	}
+
+	for i := uint64(0); i < length; i++ {
+		h, err := ReadUint32(r)
+		if err != nil {
+			return err
+		}
+		var p PayloadRegisterProducer
+		err = p.Deserialize(r, PayloadRegisterProducerVersion)
+		if err != nil {
+			return err
+		}
+
+		vote, err := c.getProducerVote(p.PublicKey)
+		if err != nil {
+			return err
+		}
+		c.producerVotes[p.PublicKey] = &ProducerInfo{
+			RegHeight: h,
+			Vote:      vote,
+		}
+	}
+	return nil
+}
+
 func (c *ChainStore) InitWithGenesisBlock(genesisBlock *Block) (uint32, error) {
 	prefix := []byte{byte(CFG_Version)}
 	version, err := c.Get(prefix)

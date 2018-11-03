@@ -86,6 +86,7 @@ func Init(store IChainStore) error {
 	if err != nil {
 		return errors.New("[Blockchain], InitLevelDBStoreWithGenesisBlock failed.")
 	}
+	DefaultLedger.Store.InitProducerVotes()
 
 	DefaultLedger.Blockchain.UpdateBestHeight(height)
 	return nil

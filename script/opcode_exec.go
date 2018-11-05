@@ -154,12 +154,23 @@ var opcodeArray = [256]opcode{
 	OP_15:      {OP_15, "OP_15", 1, opcodeN},
 	OP_16:      {OP_16, "OP_16", 1, opcodeN},
 
-	OP_IF:    {OP_IF, "OP_IF", 1, opcodeIf},
-	OP_NOTIF: {OP_NOTIF, "OP_NOTIF", 1, opcodeNotIf},
-	OP_ELSE:  {OP_ELSE, "OP_ELSE", 1, opcodeElse},
-	OP_ENDIF: {OP_ENDIF, "OP_ENDIF", 1, opcodeEndif},
+	OP_IF:     {OP_IF, "OP_IF", 1, opcodeIf},
+	OP_NOTIF:  {OP_NOTIF, "OP_NOTIF", 1, opcodeNotIf},
+	OP_ELSE:   {OP_ELSE, "OP_ELSE", 1, opcodeElse},
+	OP_ENDIF:  {OP_ENDIF, "OP_ENDIF", 1, opcodeEndif},
+	OP_VERIFY: {OP_VERIFY, "OP_VERIFY", 1, opcodeVerify},
 
-	OP_ADD: {OP_ADD, "OP_ADD", 1, opcodeAdd},
+	OP_DUP:         {OP_DUP, "OP_DUP", 1, opcodeDup},
+	OP_ADD:         {OP_ADD, "OP_ADD", 1, opcodeAdd},
+	OP_EQUALVERIFY: {OP_EQUALVERIFY, "OP_EQUALVERIFY", 1, opcodeEqualVerify},
+
+	OP_HASH160: {OP_HASH160, "OP_HASH160", 1, opcodeHash160},
+	OP_HASH256: {OP_HASH256, "OP_HASH256", 1, opcodeHash256},
+
+	OP_CHECKSIG:            {OP_CHECKSIG, "OP_CHECKSIG", 1, opcodeCheckSig},
+	OP_CHECKSIGVERIFY:      {OP_CHECKSIGVERIFY, "OP_CHECKSIGVERIFY", 1, opcodeCheckSigVerify},
+	OP_CHECKMULTISIG:       {OP_CHECKMULTISIG, "OP_CHECKMULTISIG", 1, opcodeCheckMultiSig},
+	OP_CHECKMULTISIGVERIFY: {OP_CHECKMULTISIGVERIFY, "OP_CHECKMULTISIGVERIFY", 1, opcodeCheckMultiSigVerify},
 
 	OP_CHECKLOCKTIMEVERIFY: {OP_CHECKLOCKTIMEVERIFY, "OP_CHECKLOCKTIMEVERIFY", 1, opcodeCheckLockTimeVerify},
 	OP_CHECKSEQUENCEVERIFY: {OP_CHECKSEQUENCEVERIFY, "OP_CHECKSEQUENCEVERIFY", 1, opcodeCheckSequenceVerify},

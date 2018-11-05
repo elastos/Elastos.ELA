@@ -164,7 +164,7 @@ func (s *stack) Tuck() error {
 func (s *stack) DropN(n int32) error {
 	if n < 1 {
 		str := fmt.Sprintf("attempt to drop %d items from stack", n)
-		return  scriptError(ErrInvalidStackOperation, str)
+		return scriptError(ErrInvalidStackOperation, str)
 	}
 
 	for ; n > 0; n-- {
@@ -316,7 +316,6 @@ func (s *stack) NipN(idx int32) error {
 	_, err := s.nipN(idx)
 	return err
 }
-
 
 // nipN is an internal function that removes the nth item on the stack and
 // returns it.

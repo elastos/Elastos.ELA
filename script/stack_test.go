@@ -8,7 +8,7 @@ import (
 	"errors"
 )
 
-func TestStackSelf(t *testing.T)  {
+func TestStackSelf(t *testing.T) {
 	a := [][]byte{{1}, {2}, {3}, {4}, {5}}
 	st := stack{}
 	st.stk = a

@@ -52,7 +52,6 @@ type ScriptBuilder struct {
 	err    error
 }
 
-
 // AddOp pushes the passed opcode to the end of the script.  The script will not
 // be modified if pushing the opcode would cause the script to exceed the
 // maximum allowed script engine size.
@@ -184,7 +183,6 @@ func (b *ScriptBuilder) AddFullData(data []byte) *ScriptBuilder {
 	return b.addData(data)
 }
 
-
 // AddData pushes the passed data to the end of the script.  It automatically
 // chooses canonical opcodes depending on the length of the data.  A zero length
 // buffer will lead to a push of empty data onto the stack (OP_0) and any push
@@ -221,7 +219,6 @@ func (b *ScriptBuilder) AddData(data []byte) *ScriptBuilder {
 
 	return b.addData(data)
 }
-
 
 // AddInt64 pushes the passed integer to the end of the script.  The script will
 // not be modified if pushing the data would cause the script to exceed the

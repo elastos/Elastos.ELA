@@ -5,15 +5,286 @@
 package script
 
 import (
-	"testing"
 	"fmt"
 	"strings"
 	"strconv"
 	"encoding/hex"
 	"errors"
-	"github.com/elastos/Elastos.ELA/core"
+	"testing"
+
 	"github.com/elastos/Elastos.ELA.Utility/common"
+
+	"github.com/elastos/Elastos.ELA/core"
+	"github.com/elastos/Elastos.ELA.Utility/crypto"
+	"github.com/elastos/Elastos.ELA/log"
 )
+
+func Test_LockTime(t *testing.T) {
+	log.Init(0, 0, 0)
+
+	builder := NewScriptBuilder()
+	builder.AddInt64(1541313751)
+	builder.AddOp(OP_CHECKLOCKTIMEVERIFY)
+
+	hashBytes := []byte{0xc9, 0x97, 0xa5, 0xe5,
+		0x6e, 0x10, 0x41, 0x02,
+		0xfa, 0x20, 0x9c, 0x6a,
+		0x85, 0x2d, 0xd9, 0x06,
+		0x60, 0xa2, 0x0b, 0x2d,
+		0x9c, 0x35, 0x24, 0x23,
+		0xed, 0xce, 0x25, 0x85,
+		0x7f, 0xcd, 0x37, 0x04}
+	hash, _ := common.Uint256FromBytes(hashBytes)
+	tx := core.Transaction{
+		Inputs: []*core.Input{{
+			Previous: core.OutPoint{
+				TxID:  *hash,
+				Index: 0,
+			},
+			Sequence: 1541313752,
+		},
+		},
+		Outputs: []*core.Output{{
+			Value: 1000000000,
+		}},
+		LockTime: 1541313753,
+	}
+
+	script, _ := builder.Script()
+	vm, err := NewEngine(script, &tx, 0, 0)
+	if err != nil {
+		t.Errorf("failed to create script: %v", err)
+	}
+	err = vm.Execute()
+	if err != nil {
+		t.Errorf("failed to Execute script: %v", err)
+	}
+}
+
+func Test_Sequence(t *testing.T) {
+	log.Init(0, 0, 0)
+
+	builder := NewScriptBuilder()
+	builder.AddInt64(1541313752)
+	builder.AddOp(OP_CHECKSEQUENCEVERIFY)
+
+	hashBytes := []byte{0xc9, 0x97, 0xa5, 0xe5,
+		0x6e, 0x10, 0x41, 0x02,
+		0xfa, 0x20, 0x9c, 0x6a,
+		0x85, 0x2d, 0xd9, 0x06,
+		0x60, 0xa2, 0x0b, 0x2d,
+		0x9c, 0x35, 0x24, 0x23,
+		0xed, 0xce, 0x25, 0x85,
+		0x7f, 0xcd, 0x37, 0x04}
+	hash, _ := common.Uint256FromBytes(hashBytes)
+	tx := core.Transaction{
+		Inputs: []*core.Input{{
+			Previous: core.OutPoint{
+				TxID:  *hash,
+				Index: 0,
+			},
+			Sequence: 1541313752,
+		},
+		},
+		Outputs: []*core.Output{{
+			Value: 1000000000,
+		}},
+		LockTime: 0,
+	}
+
+	script, _ := builder.Script()
+	vm, err := NewEngine(script, &tx, 0, 0)
+	if err != nil {
+		t.Errorf("failed to create script: %v", err)
+	}
+	err = vm.Execute()
+	if err != nil {
+		t.Errorf("failed to Execute script: %v", err)
+	}
+}
+
+//[... dummy [sig ...] numsigs [pubkey ...] numpubkeys] -> [... bool]
+func TestMultisig(t *testing.T) {
+	log.Init(0, 0, 0)
+	hashBytes := []byte{0xc9, 0x97, 0xa5, 0xe5,
+		0x6e, 0x10, 0x41, 0x02,
+		0xfa, 0x20, 0x9c, 0x6a,
+		0x85, 0x2d, 0xd9, 0x06,
+		0x60, 0xa2, 0x0b, 0x2d,
+		0x9c, 0x35, 0x24, 0x23,
+		0xed, 0xce, 0x25, 0x85,
+		0x7f, 0xcd, 0x37, 0x04}
+	hash, _ := common.Uint256FromBytes(hashBytes)
+	tx := core.Transaction{
+		Inputs: []*core.Input{{
+			Previous: core.OutPoint{
+				TxID:  *hash,
+				Index: 0,
+			},
+			Sequence: 4294967295,
+		},
+		},
+		Outputs: []*core.Output{{
+			Value: 1000000000,
+		}},
+		LockTime: 0,
+	}
+	privateKeys := make([][]byte, 0)
+	pubkeys := make([]*crypto.PublicKey, 0)
+	sigDatas := make([][]byte, 0)
+	data := getTxData(&tx)
+	count := 10
+	for i := 0; i < count; i++ {
+		priKey, pubkey, err := crypto.GenerateKeyPair()
+
+		if err != nil {
+			t.Errorf("failed to GenerateKeyPair: %v", err)
+		}
+		privateKeys = append(privateKeys, priKey)
+		pubkeys = append(pubkeys, pubkey)
+		signData, err := crypto.Sign(priKey, data)
+		if err != nil {
+			t.Errorf("failed to Sign data: %v", err)
+		}
+		sigDatas = append(sigDatas, signData)
+	}
+
+	builder := NewScriptBuilder()
+
+	for i := 0; i < count; i++ {
+		builder.addData(sigDatas[i])
+	}
+	builder.AddOp(OP_10)
+
+	for i := 0; i < count; i++ {
+		pubBytes, _ := pubkeys[i].EncodePoint(true)
+		builder.addData(pubBytes)
+	}
+	builder.AddOp(OP_10)
+	builder.AddOp(OP_CHECKMULTISIG)
+
+	script, _ := builder.Script()
+	vm, err := NewEngine(script, &tx, 0, 0)
+	if err != nil {
+		t.Errorf("failed to create script: %v", err)
+	}
+	err = vm.Execute()
+	if err != nil {
+		fmt.Println(err)
+	}
+}
+
+func TestCheckSig(t *testing.T) {
+	//Stack transformation: [... signature pubkey] -> [... bool]
+	log.Init(0, 0, 0)
+	hashBytes := []byte{0xc9, 0x97, 0xa5, 0xe5,
+		0x6e, 0x10, 0x41, 0x02,
+		0xfa, 0x20, 0x9c, 0x6a,
+		0x85, 0x2d, 0xd9, 0x06,
+		0x60, 0xa2, 0x0b, 0x2d,
+		0x9c, 0x35, 0x24, 0x23,
+		0xed, 0xce, 0x25, 0x85,
+		0x7f, 0xcd, 0x37, 0x04}
+	hash, _ := common.Uint256FromBytes(hashBytes)
+	tx := core.Transaction{
+		Inputs: []*core.Input{{
+			Previous: core.OutPoint{
+				TxID:  *hash,
+				Index: 0,
+			},
+			Sequence: 4294967295,
+		},
+		},
+		Outputs: []*core.Output{{
+			Value: 1000000000,
+		}},
+		LockTime: 0,
+	}
+
+	priKey, pubkey, err := crypto.GenerateKeyPair()
+	if err != nil {
+		t.Errorf("failed to GenerateKeyPair: %v", err)
+	}
+	signData, err := crypto.Sign(priKey, getTxData(&tx))
+	if err != nil {
+		t.Errorf("failed to Sign data: %v", err)
+	}
+	builder := NewScriptBuilder()
+	builder.addData(signData)
+	pubBytes, _ := pubkey.EncodePoint(true)
+	builder.addData(pubBytes)
+	builder.AddOp(OP_CHECKSIG)
+	script, _ := builder.Script()
+	vm, err := NewEngine(script, &tx, 0, 0)
+	if err != nil {
+		t.Errorf("failed to create script: %v", err)
+	}
+	err = vm.Execute()
+	if err != nil {
+		fmt.Println(err)
+	}
+}
+
+func TestOPIF(t *testing.T) {
+	log.Init(0, 0, 0)
+	pkScript := mustParseShortForm("TRUE OP_IF 2 3 OP_ADD OP_ELSE 1 1 OP_ADD OP_ENDIF")
+	vm, err := NewEngine(pkScript, nil, 0, 0)
+	if err != nil {
+		t.Errorf("failed to create script: %v", err)
+	}
+	err = vm.Execute()
+	if err != nil {
+		t.Errorf("failed to Execute script: %v", err)
+	}
+}
+
+func TestHash256(t *testing.T) {
+	log.Init(0, 0, 0)
+	data := []byte{1, 3, 4, 5, 6, 7, 9, 9}
+	builder := NewScriptBuilder()
+	builder.addData(data)
+	builder.AddOp(OP_HASH256)
+	script, _ := builder.Script()
+	vm, err := NewEngine(script, nil, 0, 0)
+	if err != nil {
+		t.Errorf("failed to create script: %v", err)
+	}
+
+	done := false
+	for !done {
+		done, err = vm.Step()
+		if err != nil {
+			t.Errorf("%v", err)
+		}
+		var dstr, astr string
+		// if we're tracing, dump the stacks.
+		if vm.dstack.Depth() != 0 {
+			dstr = "Stack:\n" + vm.dstack.String()
+		}
+		if vm.astack.Depth() != 0 {
+			astr = "AltStack:\n" + vm.astack.String()
+		}
+		str := dstr + astr
+		log.Infof("%s", str)
+	}
+	if err != nil {
+		fmt.Println(err)
+	}
+	stackData := vm.GetStack()
+	if len(stackData) <= 0 {
+		t.Errorf("opHash256 error")
+	}
+	stackHash := stackData[0]
+	hash := common.Sha256D(data)
+	if len(stackHash) != 32 {
+		t.Errorf("opHash256 length error")
+	}
+	for i := 0; i < len(hash); i++ {
+		if hash[i] != stackHash[i] {
+			t.Errorf("opHash256 error")
+		}
+	}
+}
 
 // parse hex string into a []byte.
 func parseHex(tok string) ([]byte, error) {
@@ -100,7 +371,7 @@ func parseShortForm(script string) ([]byte, error) {
 				builder.script = append(builder.script, bts...)
 			}
 		} else if len(tok) >= 2 && tok[0] == '\'' && tok[len(tok)-1] == '\'' {
-			builder.AddFullData([]byte(tok[1 : len(tok)-1]))
+			builder.AddFullData([]byte(tok[1:len(tok)-1]))
 		} else if opcode, ok := shortFormOps[tok]; ok {
 			builder.AddOp(opcode)
 		} else {
@@ -109,66 +380,4 @@ func parseShortForm(script string) ([]byte, error) {
 
 	}
 	return builder.Script()
-}
-
-func TestOPIF(t *testing.T)  {
-	t.Parallel()
-
-	pkScript := mustParseShortForm("TRUE OP_IF 2 3 OP_ADD OP_ELSE 1 1 OP_ADD OP_ENDIF")
-	hashBytes := []byte{0xc9, 0x97, 0xa5, 0xe5,
-		0x6e, 0x10, 0x41, 0x02,
-		0xfa, 0x20, 0x9c, 0x6a,
-		0x85, 0x2d, 0xd9, 0x06,
-		0x60, 0xa2, 0x0b, 0x2d,
-		0x9c, 0x35, 0x24, 0x23,
-		0xed, 0xce, 0x25, 0x85,
-		0x7f, 0xcd, 0x37, 0x04}
-	hash, _ := common.Uint256FromBytes(hashBytes)
-	tx := core.Transaction{
-		Inputs: []*core.Input{{
-			Previous:core.OutPoint{
-				TxID:*hash,
-				Index:0,
-			},
-			Sequence:4294967295,
-		},
-		},
-		Outputs:[]*core.Output {{
-			Value: 1000000000,
-		}},
-		LockTime: 0,
-	}
-
-	vm, err := NewEngine(pkScript, &tx, 0)
-	if err != nil {
-		t.Errorf("failed to create script: %v", err)
-	}
-
-	for i := 0; i < len(pkScript)-1; i++ {
-		done, err := vm.Step()
-		if err != nil {
-			t.Fatalf("failed to step %dth time: %v", i, err)
-		}
-		if done {
-			t.Fatalf("finshed early on %dth time", i)
-		}
-
-		err = vm.CheckErrorCondition(false)
-		if !IsErrorCode(err, ErrScriptUnfinished) {
-			t.Fatalf("got unexepected error %v on %dth iteration",
-				err, i)
-		}
-
-	}
-	data := vm.GetStack()
-	fmt.Println(data)
-	if err != nil {
-		t.Fatalf("final step failed %v", err)
-	}
-
-	err = vm.CheckErrorCondition(false)
-	if err != nil {
-		t.Errorf("unexpected error %v on final check", err)
-	}
-
 }

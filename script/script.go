@@ -16,6 +16,22 @@ const (
 	MaxScriptElementSize  = 520 // Max bytes pushable to the stack.
 )
 
+// SigHashType represents hash type bits at the end of a signature.
+type SigHashType uint32
+
+// Hash type bits from the end of a signature.
+const (
+	SigHashOld          SigHashType = 0x0
+	SigHashAll          SigHashType = 0x1
+	SigHashNone         SigHashType = 0x2
+	SigHashSingle       SigHashType = 0x3
+	SigHashAnyOneCanPay SigHashType = 0x80
+
+	// sigHashMask defines the number of bits of the hash type which is used
+	// to identify which outputs are signed.
+	sigHashMask = 0x1f
+)
+
 // parseScriptTemplate is the same as parseScript but allows the passing of the
 // template list for testing purposes.  When there are parse errors, it returns
 // the list of parsed opcodes up to the point of failure along with the error.
@@ -99,4 +115,33 @@ func parseScriptTemplate(script []byte, opcodes *[256]opcode) ([]parsedOpcode, e
 // applying a number of sanity checks.
 func parseScript(script []byte) ([]parsedOpcode, error) {
 	return parseScriptTemplate(script, &opcodeArray)
+}
+
+// IsPushOnlyScript returns whether or not the passed script only pushes data.
+//
+// False will be returned when the script does not parse.
+func IsPushOnlyScript(script []byte) bool {
+	pops, err := parseScript(script)
+	if err != nil {
+		return false
+	}
+	return isPushOnly(pops)
+}
+
+// isPushOnly returns true if the script only pushes data, false otherwise.
+func isPushOnly(pops []parsedOpcode) bool {
+	// NOTE: This function does NOT verify opcodes directly since it is
+	// internal and is only called with parsed opcodes for scripts that did
+	// not have any parse errors.  Thus, consensus is properly maintained.
+
+	for _, pop := range pops {
+		// All opcodes up to OP_16 are data push instructions.
+		// NOTE: This does consider OP_RESERVED to be a data push
+		// instruction, but execution of OP_RESERVED will fail anyways
+		// and matches the behavior required by consensus.
+		if pop.opcode.value > OP_16 {
+			return false
+		}
+	}
+	return true
 }

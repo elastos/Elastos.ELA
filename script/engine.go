@@ -6,11 +6,91 @@
 package script
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/elastos/Elastos.ELA/log"
 	"github.com/elastos/Elastos.ELA/core"
+)
+
+// ScriptFlags is a bitmask defining additional operations or tests that will be
+// done when executing a script pair.
+type ScriptFlags uint32
+
+const (
+	// ScriptBip16 defines whether the bip16 threshold has passed and thus
+	// pay-to-script hash transactions will be fully validated.
+	ScriptBip16 ScriptFlags = 1 << iota
+
+	// ScriptStrictMultiSig defines whether to verify the stack item
+	// used by CHECKMULTISIG is zero length.
+	ScriptStrictMultiSig
+
+	// ScriptDiscourageUpgradableNops defines whether to verify that
+	// NOP1 through NOP10 are reserved for future soft-fork upgrades.  This
+	// flag must not be used for consensus critical code nor applied to
+	// blocks as this flag is only for stricter standard transaction
+	// checks.  This flag is only applied when the above opcodes are
+	// executed.
+	ScriptDiscourageUpgradableNops
+
+	// ScriptVerifyCheckLockTimeVerify defines whether to verify that
+	// a transaction output is spendable based on the locktime.
+	// This is BIP0065.
+	ScriptVerifyCheckLockTimeVerify
+
+	// ScriptVerifyCheckSequenceVerify defines whether to allow execution
+	// pathways of a script to be restricted based on the age of the output
+	// being spent.  This is BIP0112.
+	ScriptVerifyCheckSequenceVerify
+
+	// ScriptVerifyCleanStack defines that the stack must contain only
+	// one stack element after evaluation and that the element must be
+	// true if interpreted as a boolean.  This is rule 6 of BIP0062.
+	// This flag should never be used without the ScriptBip16 flag nor the
+	// ScriptVerifyWitness flag.
+	ScriptVerifyCleanStack
+
+	// ScriptVerifyDERSignatures defines that signatures are required
+	// to compily with the DER format.
+	ScriptVerifyDERSignatures
+
+	// ScriptVerifyLowS defines that signtures are required to comply with
+	// the DER format and whose S value is <= order / 2.  This is rule 5
+	// of BIP0062.
+	ScriptVerifyLowS
+
+	// ScriptVerifyMinimalData defines that signatures must use the smallest
+	// push operator. This is both rules 3 and 4 of BIP0062.
+	ScriptVerifyMinimalData
+
+	// ScriptVerifyNullFail defines that signatures must be empty if
+	// a CHECKSIG or CHECKMULTISIG operation fails.
+	ScriptVerifyNullFail
+
+	// ScriptVerifySigPushOnly defines that signature scripts must contain
+	// only pushed data.  This is rule 2 of BIP0062.
+	ScriptVerifySigPushOnly
+
+	// ScriptVerifyStrictEncoding defines that signature scripts and
+	// public keys must follow the strict encoding requirements.
+	ScriptVerifyStrictEncoding
+
+	// ScriptVerifyWitness defines whether or not to verify a transaction
+	// output using a witness program template.
+	ScriptVerifyWitness
+
+	// ScriptVerifyDiscourageUpgradeableWitnessProgram makes witness
+	// program with versions 2-16 non-standard.
+	ScriptVerifyDiscourageUpgradeableWitnessProgram
+
+	// ScriptVerifyMinimalIf makes a script with an OP_IF/OP_NOTIF whose
+	// operand is anything other than empty vector or [0x01] non-standard.
+	ScriptVerifyMinimalIf
+
+	// ScriptVerifyWitnessPubKeyType makes a script within a check-sig
+	// operation whose public key isn't serialized in a compressed format
+	// non-standard.
+	ScriptVerifyWitnessPubKeyType
 )
 
 const (
@@ -37,6 +117,12 @@ type Engine struct {
 	savedFirstStack [][]byte // stack from first script for bip16 scripts
 	tx              core.Transaction
 	txIdx           int
+	flags           ScriptFlags
+}
+
+// hasFlag returns whether the script engine instance has the passed flag set.
+func (vm *Engine) hasFlag(flag ScriptFlags) bool {
+	return vm.flags&flag == flag
 }
 
 // isBranchExecuting returns whether or not the current conditional branch is
@@ -105,30 +191,38 @@ func (vm *Engine) SetAltStack(data [][]byte) {
 	setStack(&vm.astack, data)
 }
 
-func NewEngine(script []byte, tx *core.Transaction, txIdx int) (*Engine, error) {
+func NewEngine(script []byte, tx *core.Transaction, txIdx int, flags ScriptFlags) (*Engine, error) {
+	//todo add scriptsig param
 	if len(script) == 0 {
-		return nil, errors.New("false stack entry at end of script execution")
+		return nil, scriptError(ErrEvalFalse, "false stack entry at end of script execution")
 	}
 
 	// The provided transaction input index must refer to a valid input.
-	if txIdx < 0 || txIdx >= len(tx.Inputs) {
+	if txIdx < 0 || (tx != nil && txIdx >= len(tx.Inputs)) {
 		str := fmt.Sprintf("transaction input index %d is negative or "+
 			">= %d", txIdx, len(tx.Inputs))
 		return nil, scriptError(ErrInvalidIndex, str)
 	}
 
-	vm := Engine{}
+	vm := Engine{flags: flags}
+	if vm.hasFlag(ScriptVerifyCleanStack) && (!vm.hasFlag(ScriptBip16) &&
+		!vm.hasFlag(ScriptVerifyWitness)) {
+		return nil, scriptError(ErrInvalidFlags,
+			"invalid flags combination")
+	}
 
 	scripts := [][]byte{script}
 	vm.scripts = make([][]parsedOpcode, len(scripts))
-	vm.tx = *tx
+	if tx != nil {
+		vm.tx = *tx
+	}
 	vm.txIdx = txIdx
 
 	for i, scr := range scripts {
 		if len(scr) > MaxScriptSize {
 			str := fmt.Sprintf("script size %d is larger than max "+
 				"allowed size %d", len(scr), MaxScriptSize)
-			return nil, errors.New(str)
+			return nil, scriptError(ErrScriptTooBig, str)
 		}
 		var err error
 		vm.scripts[i], err = parseScript(scr)
@@ -155,7 +249,7 @@ func (vm *Engine) DisasmScript(idx int) (string, error) {
 	if idx >= len(vm.scripts) {
 		str := fmt.Sprintf("script index %d >= total scripts %d", idx,
 			len(vm.scripts))
-		return "", errors.New(str)
+		return "", scriptError(ErrInvalidIndex, str)
 	}
 
 	var disstr string
@@ -173,6 +267,16 @@ func (vm *Engine) CheckErrorCondition(finalScript bool) error {
 	// array there are no more scripts to run.
 	if vm.scriptIdx < len(vm.scripts) {
 		return scriptError(ErrScriptUnfinished, "error check when script unfinished")
+	}
+
+	if finalScript && vm.hasFlag(ScriptVerifyCleanStack) &&
+		vm.dstack.Depth() != 1 {
+
+		str := fmt.Sprintf("stack contains %d unexpected items",
+			vm.dstack.Depth()-1)
+		return scriptError(ErrCleanStack, str)
+	} else if vm.dstack.Depth() < 1 {
+		return scriptError(ErrEmptyStack, "stack empty at end of script execution")
 	}
 
 	v, err := vm.dstack.PopBool()
@@ -218,14 +322,15 @@ func (vm *Engine) Step() (done bool, err error) {
 	if combinedStackSize > MaxStackSize {
 		str := fmt.Sprintf("combined stack size %d > max allowed %d",
 			combinedStackSize, MaxStackSize)
-		return false, errors.New(str)
+		return false, scriptError(ErrStackOverflow, str)
 	}
 
 	// Prepare for next instruction.
 	if vm.scriptOff >= len(vm.scripts[vm.scriptIdx]) {
 		// Illegal to have an `if' that straddles two scripts.
 		if err == nil && len(vm.condStack) != 0 {
-			return false, errors.New("end of script reached in conditional execution")
+			return false, scriptError(ErrUnbalancedConditional,
+				"end of script reached in conditional execution")
 		}
 
 		// Alt stack doesn't persist.
@@ -287,7 +392,8 @@ func (vm *Engine) Execute() (err error) {
 		if vm.astack.Depth() != 0 {
 			astr = "AltStack:\n" + vm.astack.String()
 		}
-		log.Info(dstr + astr)
+		str := dstr + astr
+		log.Infof("%s", str)
 	}
 	return vm.CheckErrorCondition(true)
 }
@@ -300,14 +406,14 @@ func (vm *Engine) executeOpcode(pop *parsedOpcode) error {
 	if pop.isDisabled() {
 		str := fmt.Sprintf("attempt to execute disabled opcode %s",
 			pop.opcode.name)
-		return errors.New(str)
+		return scriptError(ErrDisabledOpcode, str)
 	}
 
 	// Always-illegal opcodes are fail on program counter.
 	if pop.alwaysIllegal() {
 		str := fmt.Sprintf("attempt to execute reserved opcode %s",
 			pop.opcode.name)
-		return errors.New(str)
+		return scriptError(ErrReservedOpcode, str)
 	}
 
 	// Note that this includes OP_RESERVED which counts as a push operation.
@@ -316,13 +422,13 @@ func (vm *Engine) executeOpcode(pop *parsedOpcode) error {
 		if vm.numOps > MaxOpsPerScript {
 			str := fmt.Sprintf("exceeded max operation limit of %d",
 				MaxOpsPerScript)
-			return errors.New(str)
+			return scriptError(ErrTooManyOperations, str)
 		}
 
 	} else if len(pop.data) > MaxScriptElementSize {
 		str := fmt.Sprintf("element size %d exceeds max allowed size %d",
 			len(pop.data), MaxScriptElementSize)
-		return errors.New(str)
+		return scriptError(ErrElementTooBig, str)
 	}
 
 	// Nothing left to do when this is not a conditional opcode and it is
@@ -350,13 +456,28 @@ func (vm *Engine) validPC() error {
 	if vm.scriptIdx >= len(vm.scripts) {
 		str := fmt.Sprintf("past input scripts %v:%v %v:xxxx",
 			vm.scriptIdx, vm.scriptOff, len(vm.scripts))
-		return errors.New(str)
+		return scriptError(ErrInvalidProgramCounter, str)
 	}
 	if vm.scriptOff >= len(vm.scripts[vm.scriptIdx]) {
 		str := fmt.Sprintf("past input scripts %v:%v %v:%04d",
 			vm.scriptIdx, vm.scriptOff, vm.scriptIdx,
 			len(vm.scripts[vm.scriptIdx]))
-		return errors.New(str)
+		return scriptError(ErrInvalidProgramCounter, str)
 	}
 	return nil
+}
+
+// curPC returns either the current script and offset, or an error if the
+// position isn't valid.
+func (vm *Engine) curPC() (script int, off int, err error) {
+	err = vm.validPC()
+	if err != nil {
+		return 0, 0, err
+	}
+	return vm.scriptIdx, vm.scriptOff, nil
+}
+
+// subScript returns the script since the last OP_CODESEPARATOR.
+func (vm *Engine) subScript() []parsedOpcode {
+	return vm.scripts[vm.scriptIdx][vm.lastCodeSep:]
 }

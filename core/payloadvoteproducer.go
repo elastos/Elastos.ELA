@@ -23,10 +23,16 @@ func (a *PayloadVoteProducer) Data(version byte) []byte {
 }
 
 func (a *PayloadVoteProducer) Serialize(w io.Writer, version byte) error {
-	err := WriteElements(w, a.Voter, a.Stake)
+	err := WriteVarString(w, a.Voter)
 	if err != nil {
-		return errors.New("[PayloadVoteProducer], Voter or Stake serialize failed.")
+		return errors.New("[PayloadVoteProducer], Voter serialize failed.")
 	}
+
+	err = a.Stake.Serialize(w)
+	if err != nil {
+		return errors.New("[PayloadVoteProducer], Stake serialize failed.")
+	}
+
 	if err := WriteVarUint(w, uint64(len(a.PublicKeys))); err != nil {
 		return errors.New("[PayloadVoteProducer], PublicKeys length serialize failed.")
 	}
@@ -40,9 +46,15 @@ func (a *PayloadVoteProducer) Serialize(w io.Writer, version byte) error {
 }
 
 func (a *PayloadVoteProducer) Deserialize(r io.Reader, version byte) error {
-	err := ReadElements(r, a.Voter, a.Stake)
+	voter, err := ReadVarString(r)
 	if err != nil {
-		return errors.New("[PayloadVoteProducer], Voter or Stake deserialize failed.")
+		return errors.New("[PayloadVoteProducer], Voter deserialize failed.")
+	}
+	a.Voter = voter
+
+	err = a.Stake.Deserialize(r)
+	if err != nil {
+		return errors.New("[PayloadVoteProducer], Stake deserialize failed.")
 	}
 
 	length, err := ReadVarUint(r, 0)

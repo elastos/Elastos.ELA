@@ -915,17 +915,17 @@ func GetExistWithdrawTransactions(param Params) map[string]interface{} {
 }
 
 type Producer struct {
-	address  string `json:"address"`
-	nickname string `json:"nickname"`
-	url      string `json:"url"`
-	location uint64 `json:"location"`
-	active   bool   `json:"active"`
-	votes    string `json:"votes"`
+	Address  string `json:"address"`
+	Nickname string `json:"nickname"`
+	Url      string `json:"url"`
+	Location uint64 `json:"location"`
+	Active   bool   `json:"active"`
+	Votes    string `json:"votes"`
 }
 
 type Producers struct {
-	producers   []Producer `json:"producers"`
-	total_votes string     `json:"total_votes"`
+	Producers   []Producer `json:"producers"`
+	Total_votes string     `json:"total_votes"`
 }
 
 type producerSorter []Producer
@@ -939,8 +939,8 @@ func (s producerSorter) Swap(i, j int) {
 }
 
 func (s producerSorter) Less(i, j int) bool {
-	ivalue, _ := StringToFixed64(s[i].votes)
-	jvalue, _ := StringToFixed64(s[j].votes)
+	ivalue, _ := StringToFixed64(s[i].Votes)
+	jvalue, _ := StringToFixed64(s[j].Votes)
 	if ivalue == nil || jvalue == nil {
 		log.Error("[producerSorter], Sort failed.")
 		return false
@@ -970,12 +970,12 @@ func ListProducers(param Params) map[string]interface{} {
 		}
 		vote := chain.DefaultLedger.Store.GetProducerVote(p.PublicKey)
 		producer := Producer{
-			address:  address,
-			nickname: p.NickName,
-			url:      p.Url,
-			location: p.Location,
-			active:   active,
-			votes:    vote.String(),
+			Address:  address,
+			Nickname: p.NickName,
+			Url:      p.Url,
+			Location: p.Location,
+			Active:   active,
+			Votes:    vote.String(),
 		}
 
 		ps = append(ps, producer)
@@ -986,13 +986,13 @@ func ListProducers(param Params) map[string]interface{} {
 	var totalVotes Fixed64
 	for i := start; i < limit && i < int64(len(ps)); i++ {
 		resultPs = append(resultPs, ps[i])
-		v, _ := StringToFixed64(ps[i].votes)
+		v, _ := StringToFixed64(ps[i].Votes)
 		totalVotes += *v
 	}
 
-	result := Producers{
-		producers:   resultPs,
-		total_votes: totalVotes.String(),
+	result := &Producers{
+		Producers:   resultPs,
+		Total_votes: totalVotes.String(),
 	}
 
 	return ResponsePack(Success, result)
@@ -1024,41 +1024,53 @@ func VoteStatus(param Params) map[string]interface{} {
 		return ResponsePack(InvalidParams, "address not found.")
 	}
 
-	producers := getProducers()
-	for _, p := range producers {
-		addr, err := getAddress(p.PublicKey)
-		if err != nil {
-			return ResponsePack(Error, "invalid public key")
-		}
-		if addr == address {
-			programHash, err := Uint168FromAddress(address)
-			if err != nil {
-				return ResponsePack(InvalidParams, "Invalid address: "+address)
-			}
-			unspents, err := chain.DefaultLedger.Store.GetUnspentsFromProgramHash(*programHash)
-			if err != nil {
-				return ResponsePack(InvalidParams, "cannot get asset with program")
-			}
-
-			var total Fixed64
-			var voting Fixed64
-			for _, unspent := range unspents[chain.DefaultLedger.Blockchain.AssetID] {
-				if unspent.Index == 0 {
-					tx, _, err := chain.DefaultLedger.Store.GetTransaction(unspent.TxId)
-					if err != nil {
-						return ResponsePack(InternalError, "unknown transaction "+unspent.TxId.String()+" from persisted utxo")
-					}
-					if tx.TxType == VoteProducer {
-						voting += unspent.Value
-					}
-				}
-				total += unspent.Value
-			}
-			return ResponsePack(Success, chain.DefaultLedger.Store.GetProducerStatus(p.PublicKey))
-		}
+	programHash, err := Uint168FromAddress(address)
+	if err != nil {
+		return ResponsePack(InvalidParams, "Invalid address: "+address)
+	}
+	unspents, err := chain.DefaultLedger.Store.GetUnspentsFromProgramHash(*programHash)
+	if err != nil {
+		return ResponsePack(InvalidParams, "cannot get asset with program")
 	}
 
-	return ResponsePack(Error, "not found producer.")
+	var total Fixed64
+	var voting Fixed64
+	status := true
+	for _, unspent := range unspents[chain.DefaultLedger.Blockchain.AssetID] {
+		if unspent.Index == 0 {
+			tx, height, err := chain.DefaultLedger.Store.GetTransaction(unspent.TxId)
+			if err != nil {
+				return ResponsePack(InternalError, "unknown transaction "+unspent.TxId.String()+" from persisted utxo")
+			}
+			if tx.TxType == VoteProducer {
+				voting += unspent.Value
+			}
+			bHash, err := chain.DefaultLedger.Store.GetBlockHash(height)
+			if err != nil {
+				return ResponsePack(UnknownTransaction, "")
+			}
+			header, err := chain.DefaultLedger.Store.GetHeader(bHash)
+			if err != nil {
+				return ResponsePack(UnknownTransaction, "")
+			}
+
+			if chain.DefaultLedger.Blockchain.GetBestHeight()-header.Height < 6 {
+				status = false
+			}
+		}
+		total += unspent.Value
+	}
+
+	type voteInfo struct {
+		Total   string `json:"total"`
+		Voting  string `json:"voting"`
+		Pending bool   `json:"pending"`
+	}
+	return ResponsePack(Success, &voteInfo{
+		Total:   total.String(),
+		Voting:  voting.String(),
+		Pending: status,
+	})
 }
 
 func getAddress(publicKey string) (string, error) {

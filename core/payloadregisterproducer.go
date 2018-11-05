@@ -26,17 +26,54 @@ func (a *PayloadRegisterProducer) Data(version byte) []byte {
 }
 
 func (a *PayloadRegisterProducer) Serialize(w io.Writer, version byte) error {
-	err := WriteElements(w, a.PublicKey, a.NickName, a.Url, a.Location)
+	err := WriteVarString(w, a.PublicKey)
 	if err != nil {
-		return errors.New("[PayloadRegisterProducer], serialize failed.")
+		return errors.New("[PayloadRegisterProducer], PublicKey serialize failed.")
 	}
+
+	err = WriteVarString(w, a.NickName)
+	if err != nil {
+		return errors.New("[PayloadRegisterProducer], NickName serialize failed.")
+	}
+
+	err = WriteVarString(w, a.Url)
+	if err != nil {
+		return errors.New("[PayloadRegisterProducer], Url serialize failed.")
+	}
+
+	err = WriteUint64(w, a.Location)
+	if err != nil {
+		return errors.New("[PayloadRegisterProducer], Location serialize failed.")
+	}
+
 	return nil
 }
 
 func (a *PayloadRegisterProducer) Deserialize(r io.Reader, version byte) error {
-	err := ReadElements(r, a.PublicKey, a.NickName, a.Url, a.Location)
+	publicKey, err := ReadVarString(r)
 	if err != nil {
-		return errors.New("[PayloadRegisterProducer], Deserialize failed.")
+		return errors.New("[PayloadRegisterProducer], PublicKey deserialize failed.")
 	}
+
+	nickName, err := ReadVarString(r)
+	if err != nil {
+		return errors.New("[PayloadRegisterProducer], NickName deserialize failed.")
+	}
+
+	url, err := ReadVarString(r)
+	if err != nil {
+		return errors.New("[PayloadRegisterProducer], Url deserialize failed.")
+	}
+
+	location, err := ReadUint64(r)
+	if err != nil {
+		return errors.New("[PayloadRegisterProducer], Location deserialize failed.")
+	}
+
+	a.PublicKey = publicKey
+	a.NickName = nickName
+	a.Url = url
+	a.Location = location
+
 	return nil
 }

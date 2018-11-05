@@ -152,10 +152,7 @@ func (c *ChainStore) InitProducerVotes() error {
 			return err
 		}
 
-		vote, err := c.getProducerVote(p.PublicKey)
-		if err != nil {
-			return err
-		}
+		vote, _ := c.getProducerVote(p.PublicKey)
 		c.producerVotes[p.PublicKey] = &ProducerInfo{
 			RegHeight: h,
 			Vote:      vote,

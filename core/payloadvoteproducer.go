@@ -2,9 +2,9 @@ package core
 
 import (
 	"bytes"
+	"errors"
 	"io"
 
-	"errors"
 	. "github.com/elastos/Elastos.ELA.Utility/common"
 )
 

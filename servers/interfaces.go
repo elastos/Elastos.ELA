@@ -1169,6 +1169,23 @@ func getPayloadInfo(p Payload) PayloadInfo {
 		return obj
 	case *PayloadTransferAsset:
 	case *PayloadRecord:
+	case *PayloadRegisterProducer:
+		obj := new(RegisterProducerInfo)
+		obj.PublicKey = object.PublicKey
+		obj.NickName = object.NickName
+		obj.Url = object.Url
+		obj.Location = object.Location
+		return obj
+	case *PayloadCancelProducer:
+		obj := new(CancelProducerInfo)
+		obj.PublicKey = object.PublicKey
+		return obj
+	case *PayloadVoteProducer:
+		obj := new(VoteProducerInfo)
+		obj.Voter = object.Voter
+		obj.Stake = object.Stake.String()
+		obj.PublicKeys = object.PublicKeys
+		return obj
 	}
 	return nil
 }

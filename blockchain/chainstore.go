@@ -437,10 +437,15 @@ func (c *ChainStore) PersistRegisterProducer(payload *PayloadRegisterProducer) e
 	WriteUint32(hBuf, height)
 	producerBytes, err := c.GetRegisteredProducers()
 	if err != nil {
-		log.Info("")
 		count := new(bytes.Buffer)
 		WriteUint64(count, uint64(1))
 		c.BatchPut(key, append(count.Bytes(), append(hBuf.Bytes(), payload.Data(PayloadRegisterProducerVersion)...)...))
+		c.mu.Lock()
+		defer c.mu.Unlock()
+		c.producerVotes[payload.PublicKey] = &ProducerInfo{
+			RegHeight: height,
+			Vote:      Fixed64(0),
+		}
 		return nil
 	}
 	r := bytes.NewReader(producerBytes)

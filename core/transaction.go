@@ -267,6 +267,18 @@ func (tx *Transaction) Hash() Uint256 {
 	return *tx.hash
 }
 
+func (tx *Transaction) IsVoteProducerTx() bool {
+	return tx.TxType == VoteProducer
+}
+
+func (tx *Transaction) IsCancelProducerTx() bool {
+	return tx.TxType == CancelProducer
+}
+
+func (tx *Transaction) IsRegisterProducerTx() bool {
+	return tx.TxType == RegisterProducer
+}
+
 func (tx *Transaction) IsSideChainPowTx() bool {
 	return tx.TxType == SideChainPow
 }

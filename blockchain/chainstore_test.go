@@ -1,7 +1,6 @@
 package blockchain
 
 import (
-	"bytes"
 	"container/list"
 	"testing"
 
@@ -29,7 +28,7 @@ func newTestChainStore() (*ChainStore, error) {
 		storedHeaderCount:  0,
 		taskCh:             make(chan persistTask, TaskChanCap),
 		quit:               make(chan chan bool, 1),
-		producerVotes:      make(map[string]*ProducerInfo, 0),
+		producerVotes:      make(map[common.Uint168]*ProducerInfo, 0),
 	}
 
 	go store.loop()
@@ -160,7 +159,7 @@ func TestChainStore_PersistRegisterProducer(t *testing.T) {
 	}
 
 	// addr: EUa2s2Wmc1quGDACEGKmm5qrFEAgoQK9AD
-	publicKey2 := "a3d0eaa466df74983b5d7c543de6904f4c9418ead5ffd6d25814234a96db37b0"
+	publicKey2 := "027c4f35081821da858f5c7197bac5e33e77e5af4a3551285f8a8da0a59bd37c45"
 	nickName2 := "nickname 2"
 	payload2 := &ela.PayloadRegisterProducer{
 		PublicKey: publicKey2,
@@ -170,13 +169,13 @@ func TestChainStore_PersistRegisterProducer(t *testing.T) {
 	}
 
 	// 2. Should have no producer in db
-	_, err := testChainStore.GetRegisteredProducers()
-	if err == nil {
+	producers := testChainStore.GetRegisteredProducers()
+	if len(producers) != 0 {
 		t.Error("Found registered producers in DB")
 	}
 
 	// 3. Run RegisterProducer
-	err = testChainStore.PersistRegisterProducer(payload1)
+	err := testChainStore.PersistRegisterProducer(payload1)
 	if err != nil {
 		t.Error("PersistRegisterProducer failed")
 	}
@@ -189,44 +188,22 @@ func TestChainStore_PersistRegisterProducer(t *testing.T) {
 	}
 	testChainStore.BatchCommit()
 
-	producerBytes, err := testChainStore.GetRegisteredProducers()
-	if err != nil {
-		t.Error("GetRegisteredProducers failed")
-	}
-	r := bytes.NewReader(producerBytes)
-	length, err := common.ReadUint64(r)
-	if err != nil || length != 2 {
+	producers = testChainStore.GetRegisteredProducers()
+	if len(producers) != 2 {
 		t.Error("GetRegisteredProducers failed")
 	}
 
 	// 5. check
-	_, err = common.ReadUint32(r)
-	if err != nil {
+	if producers[0].NickName != nickName1 {
 		t.Error("GetRegisteredProducers failed")
 	}
-	var p ela.PayloadRegisterProducer
-	err = p.Deserialize(r, ela.PayloadRegisterProducerVersion)
-	if err != nil {
+	if producers[0].PublicKey != publicKey1 {
 		t.Error("GetRegisteredProducers failed")
 	}
-	if p.NickName != nickName1 {
+	if producers[1].NickName != nickName2 {
 		t.Error("GetRegisteredProducers failed")
 	}
-	if p.PublicKey != publicKey1 {
-		t.Error("GetRegisteredProducers failed")
-	}
-	_, err = common.ReadUint32(r)
-	if err != nil {
-		t.Error("GetRegisteredProducers failed")
-	}
-	err = p.Deserialize(r, ela.PayloadRegisterProducerVersion)
-	if err != nil {
-		t.Error("GetRegisteredProducers failed")
-	}
-	if p.NickName != nickName2 {
-		t.Error("GetRegisteredProducers failed")
-	}
-	if p.PublicKey != publicKey2 {
+	if producers[1].PublicKey != publicKey2 {
 		t.Error("GetRegisteredProducers failed")
 	}
 }
@@ -244,7 +221,7 @@ func TestChainStore_PersistCancelProducer(t *testing.T) {
 	}
 
 	// addr: EUa2s2Wmc1quGDACEGKmm5qrFEAgoQK9AD
-	publicKey2 := "a3d0eaa466df74983b5d7c543de6904f4c9418ead5ffd6d25814234a96db37b0"
+	publicKey2 := "027c4f35081821da858f5c7197bac5e33e77e5af4a3551285f8a8da0a59bd37c45"
 	nickName2 := "nickname 2"
 
 	// 2. Run RegisterProducer
@@ -255,30 +232,16 @@ func TestChainStore_PersistCancelProducer(t *testing.T) {
 	testChainStore.BatchCommit()
 
 	// 3. Run GetRegisteredProducers
-	producerBytes, err := testChainStore.GetRegisteredProducers()
-	if err != nil {
-		t.Error("GetRegisteredProducers failed")
-	}
-	r := bytes.NewReader(producerBytes)
-	length, err := common.ReadUint64(r)
-	if err != nil || length != 1 {
+	producers := testChainStore.GetRegisteredProducers()
+	if len(producers) != 1 {
 		t.Error("GetRegisteredProducers failed")
 	}
 
 	// 4. Check payload
-	_, err = common.ReadUint32(r)
-	if err != nil {
+	if producers[0].NickName != nickName2 {
 		t.Error("GetRegisteredProducers failed")
 	}
-	var p ela.PayloadRegisterProducer
-	err = p.Deserialize(r, ela.PayloadRegisterProducerVersion)
-	if err != nil {
-		t.Error("GetRegisteredProducers failed")
-	}
-	if p.NickName != nickName2 {
-		t.Error("GetRegisteredProducers failed")
-	}
-	if p.PublicKey != publicKey2 {
+	if producers[0].PublicKey != publicKey2 {
 		t.Error("GetRegisteredProducers failed")
 	}
 }
@@ -290,8 +253,8 @@ func TestChainStore_PersistVoteProducer(t *testing.T) {
 
 	// 1.Prepare data
 
-	// addr: EUa2s2Wmc1quGDACEGKmm5qrFEAgoQK9AD
-	publicKey2 := "a3d0eaa466df74983b5d7c543de6904f4c9418ead5ffd6d25814234a96db37b0"
+	addr2 := "EUa2s2Wmc1quGDACEGKmm5qrFEAgoQK9AD"
+	publicKey2 := "027c4f35081821da858f5c7197bac5e33e77e5af4a3551285f8a8da0a59bd37c45"
 	nickName2 := "nickname 2"
 	stake1 := common.Fixed64(110000000)
 	payload1 := &ela.PayloadVoteProducer{
@@ -308,35 +271,22 @@ func TestChainStore_PersistVoteProducer(t *testing.T) {
 	testChainStore.BatchCommit()
 
 	// 3. Run GetRegisteredProducers
-	producerBytes, err := testChainStore.GetRegisteredProducers()
-	if err != nil {
-		t.Error("GetRegisteredProducers failed")
-	}
-	r := bytes.NewReader(producerBytes)
-	length, err := common.ReadUint64(r)
-	if err != nil || length != 1 {
+	producers := testChainStore.GetRegisteredProducers()
+	if len(producers) != 1 {
 		t.Error("GetRegisteredProducers failed")
 	}
 
 	// 4. Check payload
-	_, err = common.ReadUint32(r)
-	if err != nil {
+	if producers[0].NickName != nickName2 {
 		t.Error("GetRegisteredProducers failed")
 	}
-	var p ela.PayloadRegisterProducer
-	err = p.Deserialize(r, ela.PayloadRegisterProducerVersion)
-	if err != nil {
-		t.Error("GetRegisteredProducers failed")
-	}
-	if p.NickName != nickName2 {
-		t.Error("GetRegisteredProducers failed")
-	}
-	if p.PublicKey != publicKey2 {
+	if producers[0].PublicKey != publicKey2 {
 		t.Error("GetRegisteredProducers failed")
 	}
 
 	// 5. Run GetProducerVote
-	vote1 := testChainStore.GetProducerVote(publicKey2)
+	programHash, _ := common.Uint168FromAddress(addr2)
+	vote1 := testChainStore.GetProducerVote(*programHash)
 	if vote1 != stake1 {
 		t.Error("GetProducerVote failed")
 	}
@@ -349,7 +299,7 @@ func TestChainStore_PersistVoteProducer(t *testing.T) {
 	testChainStore.BatchCommit()
 
 	// 7.
-	vote2 := testChainStore.GetProducerVote(publicKey2)
+	vote2 := testChainStore.GetProducerVote(*programHash)
 	if vote2 != stake1*2 {
 		t.Error("GetProducerVote failed")
 	}

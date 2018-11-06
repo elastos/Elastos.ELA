@@ -1002,7 +1002,7 @@ func ListProducers(param Params) map[string]interface{} {
 	return ResponsePack(Success, result)
 }
 
-func Producerstatus(param Params) map[string]interface{} {
+func ProducerStatus(param Params) map[string]interface{} {
 	address, ok := param.String("address")
 	if !ok {
 		return ResponsePack(InvalidParams, "address not found.")

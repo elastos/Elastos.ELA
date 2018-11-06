@@ -57,7 +57,7 @@ func StartRPCServer() {
 	mainMux["discretemining"] = DiscreteMining
 	// vote interfaces
 	mainMux["listproducers"] = ListProducers
-	mainMux["producerstatus"] = Producerstatus
+	mainMux["producerstatus"] = ProducerStatus
 	mainMux["votestatus"] = VoteStatus
 
 	err := http.ListenAndServe(":"+strconv.Itoa(Parameters.HttpJsonPort), nil)

@@ -19,7 +19,6 @@ import (
 	. "github.com/elastos/Elastos.ELA/protocol"
 
 	. "github.com/elastos/Elastos.ELA.Utility/common"
-	"github.com/elastos/Elastos.ELA.Utility/crypto"
 )
 
 const (
@@ -955,22 +954,26 @@ func ListProducers(param Params) map[string]interface{} {
 		limit = math.MaxInt64
 	}
 
-	producers := getProducers()
+	producers := chain.DefaultLedger.Store.GetRegisteredProducers()
 	var ps []Producer
 	for _, p := range producers {
 
-		address, err := getAddress(p.PublicKey)
+		programHash, err := chain.PublicKeyToProgramHash(p.PublicKey)
 		if err != nil {
 			return ResponsePack(Error, "invalid public key")
 		}
+		addr, err := programHash.ToAddress()
+		if err != nil {
+			return ResponsePack(Error, "invalid program hash")
+		}
 		var active bool
-		state := chain.DefaultLedger.Store.GetProducerStatus(p.PublicKey)
+		state := chain.DefaultLedger.Store.GetProducerStatus(*programHash)
 		if state == chain.ProducerRegistered {
 			active = true
 		}
-		vote := chain.DefaultLedger.Store.GetProducerVote(p.PublicKey)
+		vote := chain.DefaultLedger.Store.GetProducerVote(*programHash)
 		producer := Producer{
-			Address:  address,
+			Address:  addr,
 			Nickname: p.NickName,
 			Url:      p.Url,
 			Location: p.Location,
@@ -1003,19 +1006,12 @@ func Producerstatus(param Params) map[string]interface{} {
 	if !ok {
 		return ResponsePack(InvalidParams, "address not found.")
 	}
-
-	producers := getProducers()
-	for _, p := range producers {
-		addr, err := getAddress(p.PublicKey)
-		if err != nil {
-			return ResponsePack(Error, "invalid public key")
-		}
-		if addr == address {
-			return ResponsePack(Success, chain.DefaultLedger.Store.GetProducerStatus(p.PublicKey))
-		}
+	programHash, err := Uint168FromAddress(address)
+	if err != nil {
+		return ResponsePack(InvalidParams, "invalid address.")
 	}
 
-	return ResponsePack(Error, "not found producer.")
+	return ResponsePack(Success, chain.DefaultLedger.Store.GetProducerStatus(*programHash))
 }
 
 func VoteStatus(param Params) map[string]interface{} {
@@ -1042,7 +1038,7 @@ func VoteStatus(param Params) map[string]interface{} {
 			if err != nil {
 				return ResponsePack(InternalError, "unknown transaction "+unspent.TxId.String()+" from persisted utxo")
 			}
-			if tx.TxType == VoteProducer {
+			if tx.IsVoteProducerTx() {
 				voting += unspent.Value
 			}
 			bHash, err := chain.DefaultLedger.Store.GetBlockHash(height)
@@ -1071,66 +1067,6 @@ func VoteStatus(param Params) map[string]interface{} {
 		Voting:  voting.String(),
 		Pending: status,
 	})
-}
-
-func getAddress(publicKey string) (string, error) {
-	pkBytes, err := HexStringToBytes(publicKey)
-	if err != nil {
-		return "", err
-	}
-	pk, err := crypto.DecodePoint(pkBytes)
-	if err != nil {
-		return "", err
-	}
-	// Set redeem script
-	redeemScript, err := crypto.CreateStandardRedeemScript(pk)
-	if err != nil {
-		return "", err
-	}
-
-	// Set program hash
-	programHash, err := crypto.ToProgramHash(redeemScript)
-	if err != nil {
-		return "", err
-	}
-
-	// Set address
-	address, err := programHash.ToAddress()
-	if err != nil {
-		return "", err
-	}
-	return address, nil
-}
-
-func getProducers() []*PayloadRegisterProducer {
-	producerBytes, err := chain.DefaultLedger.Store.GetRegisteredProducers()
-	if err != nil {
-		return nil
-	}
-	r := bytes.NewReader(producerBytes)
-	length, err := ReadUint64(r)
-	if err != nil {
-		log.Error("[ListProducers] read length faild:", err.Error())
-		return nil
-	}
-
-	producers := make([]*PayloadRegisterProducer, 0)
-	for i := uint64(0); i < length; i++ {
-		_, err := ReadUint32(r)
-		if err != nil {
-			log.Error("[ListProducers] read height faild:", err.Error())
-			return nil
-		}
-		var p PayloadRegisterProducer
-		err = p.Deserialize(r, PayloadRegisterProducerVersion)
-		if err != nil {
-			log.Error("[ListProducers] deserialize payload faild:", err.Error())
-			return nil
-		}
-		producers = append(producers, &p)
-	}
-
-	return producers
 }
 
 func getPayloadInfo(p Payload) PayloadInfo {

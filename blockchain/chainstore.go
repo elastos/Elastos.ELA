@@ -443,7 +443,6 @@ func (c *ChainStore) PersistTransaction(tx *Transaction, height uint32) error {
 	if err := hash.Serialize(key); err != nil {
 		return err
 	}
-	log.Debugf("transaction header + hash: %x", key)
 
 	// generate value
 	value := new(bytes.Buffer)
@@ -453,7 +452,6 @@ func (c *ChainStore) PersistTransaction(tx *Transaction, height uint32) error {
 	if err := tx.Serialize(value); err != nil {
 		return err
 	}
-	log.Debugf("transaction tx data: %x", value)
 
 	// put value
 	c.BatchPut(key.Bytes(), value.Bytes())

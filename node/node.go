@@ -1,6 +1,7 @@
 package node
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"math/rand"
@@ -203,6 +204,7 @@ func Start() (protocol.Noder, error) {
 	LocalNode = &node{
 		id:                 rand.New(rand.NewSource(time.Now().Unix())).Uint64(),
 		version:            protocol.ProtocolVersion,
+		services:           services,
 		relay:              true,
 		SyncBlkReqSem:      MakeSemaphore(protocol.MaxSyncHdrReq),
 		RequestedBlockList: make(map[Uint256]time.Time),
@@ -313,6 +315,10 @@ func Start() (protocol.Noder, error) {
 	go monitorNodeState()
 
 	return LocalNode, nil
+}
+
+func Stop() {
+	close(quit)
 }
 
 // addrStringToNetAddr takes an address in the form of 'host:port' and returns
@@ -472,21 +478,7 @@ func (node *node) SetHeight(height uint64) {
 }
 
 func WaitForSyncFinish() {
-	if len(cfg.SeedList) <= 0 {
-		return
-	}
-	for {
-		log.Debug("BlockHeight", chain.DefaultLedger.Blockchain.BlockHeight)
-		bc := chain.DefaultLedger.Blockchain
-		log.Info("[", len(bc.Index), len(bc.BlockCache), len(bc.Orphans), "]")
-
-		heights := GetNeighborHeights()
-		log.Info("others height", heights)
-
-		if CompareHeight(uint64(chain.DefaultLedger.Blockchain.BlockHeight), heights) > 0 {
-			LocalNode.SetSyncHeaders(false)
-			break
-		}
+	for len(cfg.SeedList) > 0 && !IsCurrent() {
 		time.Sleep(5 * time.Second)
 	}
 }
@@ -599,18 +591,47 @@ func (node *node) PushAddrMsg(addresses []*p2p.NetAddress) ([]*p2p.NetAddress, e
 }
 
 func IsCurrent() bool {
-	heights := GetNeighborHeights()
-	log.Info("nbr height-->", heights, chain.DefaultLedger.Blockchain.BlockHeight)
-	return CompareHeight(uint64(chain.DefaultLedger.Blockchain.BlockHeight), heights) >= 0
-}
-
-func CompareHeight(localHeight uint64, heights []uint64) int {
-	for _, height := range heights {
-		if localHeight < height {
-			return -1
+	current := true
+	blockHeight := chain.DefaultLedger.Blockchain.BlockHeight
+	nodes := GetNeighborNodes()
+	internal := make([]protocol.Noder, 0, len(nodes))
+	external := make([]protocol.Noder, 0, len(nodes))
+	for _, node := range nodes {
+		if node.IsExternal() {
+			external = append(external, node)
+		} else {
+			internal = append(internal, node)
+			if node.Height() > uint64(blockHeight) {
+				current = false
+			}
 		}
 	}
-	return 1
+
+	printNodes(fmt.Sprintf("internal nbr(%d) --> %d", len(internal),
+		blockHeight), internal)
+	printNodes(fmt.Sprintf("external nbr(%d) -->", len(external)), external)
+	return current
+}
+
+func printNodes(prefix string, nodes []protocol.Noder) {
+	if len(nodes) == 0 {
+		return
+	}
+	buf := bytes.NewBufferString(prefix)
+	// Left start
+	buf.WriteString(" [")
+	// Append node height and address.
+	for _, node := range nodes {
+		buf.WriteString(log.Color(log.Green, strconv.FormatUint(node.Height(), 10)))
+		buf.WriteString(" ")
+		buf.WriteString(node.String())
+		buf.WriteString(", ")
+	}
+	// Remove last ","
+	buf.Truncate(buf.Len() - 2)
+	// Right end
+	buf.WriteString("]")
+	log.Info(buf.String())
 }
 
 func (node *node) GetRequestBlockList() map[Uint256]time.Time {

@@ -133,7 +133,6 @@ func newNodePortListener() (listener net.Listener, err error) {
 			ClientCAs:    pool,
 		}
 
-		log.Info("TLS listen port is", nodePort)
 		listener, err = tls.Listen("tcp", fmt.Sprint(":", nodePort),
 			tlsConfig)
 		if err != nil {
@@ -177,7 +176,6 @@ func dialTimeout(addr net.Addr) (net.Conn, error) {
 
 		conn, err = net.DialTimeout(addr.Network(), addr.String(), defaultDialTimeout)
 		if err != nil {
-			log.Error("non TLS connect failed:", err)
 			return nil, err
 		}
 

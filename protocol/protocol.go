@@ -2,7 +2,6 @@ package protocol
 
 import (
 	"fmt"
-	"net"
 	"time"
 
 	"github.com/elastos/Elastos.ELA/bloom"
@@ -67,9 +66,9 @@ type Noder interface {
 	State() State
 	IsRelay() bool
 	Height() uint64
-	GetConn() net.Conn
 	Connected() bool
 	Disconnect()
+	String() string
 	GetTransactionPool(bool) map[common.Uint256]*core.Transaction
 	AppendToTxnPool(*core.Transaction) errors.ErrCode
 	IsDuplicateSidechainTx(sidechainTxHash common.Uint256) bool

@@ -162,10 +162,6 @@ type getNodeCountMsg struct {
 	reply chan int
 }
 
-type getNodeHeightsMsg struct {
-	reply chan []uint64
-}
-
 type getOutboundGroup struct {
 	key   string
 	reply chan int
@@ -217,25 +213,6 @@ func handleGetNodeCountMsg(state *nodeState, msg getNodeCountMsg) {
 		}
 	})
 	msg.reply <- connected
-}
-
-func handleGetNodeHeightsMsg(state *nodeState, msg getNodeHeightsMsg) {
-	nodes := make([]protocol.Noder, 0, state.Count())
-	state.forAllNodes(func(n *node) {
-		nodes = append(nodes, n)
-	})
-
-	// Sort by node id before return
-	sort.Slice(nodes, func(i, j int) bool {
-		return nodes[i].ID() < nodes[j].ID()
-	})
-
-	heights := make([]uint64, 0, len(nodes))
-	for _, n := range nodes {
-		heights = append(heights, n.Height())
-	}
-
-	msg.reply <- heights
 }
 
 func handleGetOutboundGroup(state *nodeState, msg getOutboundGroup) {
@@ -321,9 +298,6 @@ out:
 			case getNodeCountMsg:
 				handleGetNodeCountMsg(state, qmsg)
 
-			case getNodeHeightsMsg:
-				handleGetNodeHeightsMsg(state, qmsg)
-
 			case getOutboundGroup:
 				handleGetOutboundGroup(state, qmsg)
 
@@ -388,12 +362,6 @@ func GetNeighborNodes() []protocol.Noder {
 func GetNeighbourCount() int {
 	reply := make(chan int)
 	query <- getNodeCountMsg{reply: reply}
-	return <-reply
-}
-
-func GetNeighborHeights() []uint64 {
-	reply := make(chan []uint64)
-	query <- getNodeHeightsMsg{reply: reply}
 	return <-reply
 }
 

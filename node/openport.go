@@ -18,45 +18,27 @@ There are several rules between inner node and external node.
 package node
 
 import (
+	"errors"
 	"fmt"
 	"net"
-
-	"github.com/elastos/Elastos.ELA/config"
-	"github.com/elastos/Elastos.ELA/log"
 
 	"github.com/elastos/Elastos.ELA.Utility/p2p"
 )
 
+var ErrInvalidExternalMessage = errors.New("invalid external message")
+
 // listen the NodeOpenPort to accept connections from external net.
-func listenNodeOpenPort() {
-	listener, err := net.Listen("tcp", fmt.Sprint(":", config.Parameters.NodeOpenPort))
-	if err != nil {
-		log.Errorf("Error listening [NodeOpenPort] error:%s", err.Error())
-		return
-	}
-
-	defer listener.Close()
-
-	for {
-		conn, err := listener.Accept()
-		if err != nil {
-			log.Errorf("Can't accept connection: %v", err)
-			continue
-		}
-
-		node := NewNode(conn, true)
-		node.external = true
-		LocalNode.AddToHandshakeQueue(conn.RemoteAddr().String(), node)
-	}
+func newOpenPortListener() (net.Listener, error) {
+	return  net.Listen("tcp", fmt.Sprint(":", openPort))
 }
 
 // External nodes will connect through the specific NodeOpenPort
 // only limited messages can go through, such as filterload/getblocks/getdata etc.
 // Otherwise error will be returned
-func (h *HandlerBase) FilterMessage(msgType string) error {
-	if h.node.IsExternal() {
+func (node *node) FilterMessage(cmd string) error {
+	if node.IsExternal() {
 		// Only cased message types can go through
-		switch msgType {
+		switch cmd {
 		case p2p.CmdVersion:
 		case p2p.CmdVerAck:
 		case p2p.CmdGetAddr:
@@ -69,7 +51,7 @@ func (h *HandlerBase) FilterMessage(msgType string) error {
 		case p2p.CmdTx:
 		case p2p.CmdMemPool:
 		default:
-			return fmt.Errorf("unsupported messsage type [%s] from external node", msgType)
+			return ErrInvalidExternalMessage
 		}
 	}
 	return nil

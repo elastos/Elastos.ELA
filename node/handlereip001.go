@@ -13,26 +13,21 @@ import (
 	"github.com/elastos/Elastos.ELA.Utility/p2p/msg"
 )
 
-var _ protocol.Handler = (*HandlerEIP001)(nil)
+var _ Handler = (*HandlerEIP001)(nil)
 
 type HandlerEIP001 struct {
-	base         HandlerBase
+	node         protocol.Noder
 	continueHash *common.Uint256
 }
 
 func NewHandlerEIP001(node protocol.Noder) *HandlerEIP001 {
-	return &HandlerEIP001{base: HandlerBase{node: node}}
+	return &HandlerEIP001{node: node}
 }
 
 // After message header decoded, this method will be
 // called to create the message instance with the CMD
 // which is the message type of the received message
 func (h *HandlerEIP001) MakeEmptyMessage(cmd string) (message p2p.Message, err error) {
-	// Filter messages through open port message filter
-	if err = h.base.FilterMessage(cmd); err != nil {
-		return message, err
-	}
-
 	switch cmd {
 	case p2p.CmdFilterLoad:
 		message = &msg.FilterLoad{}
@@ -60,9 +55,6 @@ func (h *HandlerEIP001) MakeEmptyMessage(cmd string) (message p2p.Message, err e
 
 	case p2p.CmdReject:
 		message = &msg.Reject{}
-
-	default:
-		message, err = h.base.MakeEmptyMessage(cmd)
 	}
 
 	return message, err
@@ -96,18 +88,15 @@ func (h *HandlerEIP001) HandleMessage(message p2p.Message) {
 
 	case *msg.Reject:
 		h.onReject(message)
-
-	default:
-		h.base.HandleMessage(message)
 	}
 }
 
 func (h *HandlerEIP001) onFilterLoad(msg *msg.FilterLoad) {
-	h.base.node.LoadFilter(msg)
+	h.node.LoadFilter(msg)
 }
 
 func (h *HandlerEIP001) onGetBlocks(req *msg.GetBlocks) {
-	node := h.base.node
+	node := h.node
 	LocalNode.AcqSyncBlkReqSem()
 	defer LocalNode.RelSyncBlkReqSem()
 
@@ -134,7 +123,7 @@ func (h *HandlerEIP001) onGetBlocks(req *msg.GetBlocks) {
 }
 
 func (h *HandlerEIP001) onInventory(inv *msg.Inventory) {
-	node := h.base.node
+	node := h.node
 	if LocalNode.IsSyncHeaders() && !node.IsSyncHeaders() {
 		return
 	}
@@ -200,7 +189,7 @@ func (h *HandlerEIP001) onInventory(inv *msg.Inventory) {
 }
 
 func (h *HandlerEIP001) onGetData(getData *msg.GetData) {
-	node := h.base.node
+	node := h.node
 	notFound := msg.NewNotFound()
 
 	for _, iv := range getData.InvList {
@@ -267,11 +256,11 @@ func (h *HandlerEIP001) onGetData(getData *msg.GetData) {
 }
 
 func (h *HandlerEIP001) onBlock(msgBlock *msg.Block) {
-	node := h.base.node
+	node := h.node
 	block := msgBlock.Serializable.(*core.Block)
 
 	hash := block.Hash()
-	if !LocalNode.IsNeighborNode(node.ID()) {
+	if !IsNeighborNode(node.ID()) {
 		log.Warn("receive block message from unknown peer")
 		node.Disconnect()
 		return
@@ -283,7 +272,7 @@ func (h *HandlerEIP001) onBlock(msgBlock *msg.Block) {
 	}
 
 	// Update sync timer
-	LocalNode.syncTimer.update()
+	LocalNode.stallTimer.update()
 	chain.DefaultLedger.Store.RemoveHeaderListElement(hash)
 	LocalNode.DeleteRequestedBlock(hash)
 
@@ -310,10 +299,10 @@ func (h *HandlerEIP001) onBlock(msgBlock *msg.Block) {
 }
 
 func (h *HandlerEIP001) onTx(msgTx *msg.Tx) {
-	node := h.base.node
+	node := h.node
 	tx := msgTx.Serializable.(*core.Transaction)
 
-	if !LocalNode.IsNeighborNode(node.ID()) {
+	if !IsNeighborNode(node.ID()) {
 		log.Warn("received transaction message from unknown peer")
 		node.Disconnect()
 		return
@@ -351,7 +340,7 @@ func (h *HandlerEIP001) onNotFound(inv *msg.NotFound) {
 }
 
 func (h *HandlerEIP001) onMemPool(*msg.MemPool) {
-	node := h.base.node
+	node := h.node
 	// Only allow mempool requests if server enabled SPV service
 	if LocalNode.Services()&protocol.OpenService != protocol.OpenService {
 		log.Debugf("peer %s sent mempool request with SPV service disabled", node)
@@ -376,5 +365,5 @@ func (h *HandlerEIP001) onMemPool(*msg.MemPool) {
 
 func (h *HandlerEIP001) onReject(msg *msg.Reject) {
 	log.Debugf("Received reject message from peer %s: Code: %s, Hash %s, Reason: %s",
-		h.base.node, msg.Code.String(), msg.Hash.String(), msg.Reason)
+		h.node, msg.Code.String(), msg.Hash.String(), msg.Reason)
 }

@@ -77,14 +77,17 @@ func main() {
 	}
 
 	log.Info("2. Start the P2P networks")
-	noder = node.InitLocalNode()
+	noder, err = node.Start()
+	if err != nil {
+		goto ERROR
+	}
 
 	servers.ServerNode = noder
 
 	log.Info("3. --Start the RPC service")
 	go httpjsonrpc.StartRPCServer()
 
-	noder.WaitForSyncFinish()
+	node.WaitForSyncFinish()
 	go httprestful.StartServer()
 	go httpwebsocket.StartServer()
 	if config.Parameters.HttpInfoStart {

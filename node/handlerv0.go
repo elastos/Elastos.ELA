@@ -15,26 +15,21 @@ import (
 	"github.com/elastos/Elastos.ELA.Utility/p2p/msg/v0"
 )
 
-var _ protocol.Handler = (*HandlerV0)(nil)
+var _ Handler = (*HandlerV0)(nil)
 
 type HandlerV0 struct {
-	base            HandlerBase
+	node            protocol.Noder
 	duplicateBlocks int
 }
 
 func NewHandlerV0(node protocol.Noder) *HandlerV0 {
-	return &HandlerV0{base: HandlerBase{node: node}}
+	return &HandlerV0{node: node}
 }
 
 // After message header decoded, this method will be
 // called to create the message instance with the CMD
 // which is the message type of the received message
 func (h *HandlerV0) MakeEmptyMessage(cmd string) (message p2p.Message, err error) {
-	// Filter messages through open port message filter
-	if err = h.base.FilterMessage(cmd); err != nil {
-		return message, err
-	}
-
 	switch cmd {
 	case p2p.CmdGetBlocks:
 		message = &msg.GetBlocks{}
@@ -53,9 +48,6 @@ func (h *HandlerV0) MakeEmptyMessage(cmd string) (message p2p.Message, err error
 
 	case p2p.CmdNotFound:
 		message = &v0.NotFound{}
-
-	default:
-		message, err = h.base.MakeEmptyMessage(cmd)
 	}
 
 	return message, err
@@ -82,14 +74,11 @@ func (h *HandlerV0) HandleMessage(message p2p.Message) {
 
 	case *v0.NotFound:
 		h.onNotFound(message)
-
-	default:
-		h.base.HandleMessage(message)
 	}
 }
 
 func (h *HandlerV0) onGetBlocks(req *msg.GetBlocks) error {
-	node := h.base.node
+	node := h.node
 	LocalNode.AcqSyncBlkReqSem()
 	defer LocalNode.RelSyncBlkReqSem()
 
@@ -106,7 +95,7 @@ func (h *HandlerV0) onGetBlocks(req *msg.GetBlocks) error {
 }
 
 func (h *HandlerV0) onInv(inv *v0.Inv) error {
-	node := h.base.node
+	node := h.node
 	log.Debugf("[OnInv] count %d hashes: %v", len(inv.Hashes), inv.Hashes)
 
 	if node.IsExternal() {
@@ -148,7 +137,7 @@ func (h *HandlerV0) onInv(inv *v0.Inv) error {
 }
 
 func (h *HandlerV0) onGetData(req *v0.GetData) error {
-	node := h.base.node
+	node := h.node
 	hash := req.Hash
 
 	block, err := chain.DefaultLedger.Store.GetBlock(hash)
@@ -164,11 +153,11 @@ func (h *HandlerV0) onGetData(req *v0.GetData) error {
 }
 
 func (h *HandlerV0) onBlock(msgBlock *msg.Block) error {
-	node := h.base.node
+	node := h.node
 	block := msgBlock.Serializable.(*core.Block)
 
 	hash := block.Hash()
-	if !LocalNode.IsNeighborNode(node.ID()) {
+	if !IsNeighborNode(node.ID()) {
 		log.Debug("received block message from unknown peer")
 		return fmt.Errorf("received block message from unknown peer")
 	}
@@ -180,7 +169,7 @@ func (h *HandlerV0) onBlock(msgBlock *msg.Block) error {
 	}
 
 	// Update sync timer
-	LocalNode.syncTimer.update()
+	LocalNode.stallTimer.update()
 	chain.DefaultLedger.Store.RemoveHeaderListElement(hash)
 	LocalNode.DeleteRequestedBlock(hash)
 	_, isOrphan, err := chain.DefaultLedger.Blockchain.AddBlock(block)
@@ -206,7 +195,7 @@ func (h *HandlerV0) onBlock(msgBlock *msg.Block) error {
 }
 
 func (h *HandlerV0) onTx(msgTx *msg.Tx) error {
-	node := h.base.node
+	node := h.node
 	tx := msgTx.Serializable.(*core.Transaction)
 
 	if !LocalNode.ExistedID(tx.Hash()) && !LocalNode.IsSyncHeaders() {

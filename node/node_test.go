@@ -40,7 +40,7 @@ func initLocalNode(t *testing.T) {
 		t.Error(err.Error())
 	}
 
-	InitLocalNode()
+	Start()
 }
 
 func newTestNode(t *testing.T, port uint16) ( protocol.Noder, protocol.Noder) {
@@ -49,7 +49,7 @@ func newTestNode(t *testing.T, port uint16) ( protocol.Noder, protocol.Noder) {
 	if err != nil {
 		t.FailNow()
 	}
-	this := NewNode(conn, false)
+	this := newNodeBase(conn, false)
 	rand.Read(buf)
 	this.id = binary.BigEndian.Uint64(buf)
 

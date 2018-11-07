@@ -29,7 +29,7 @@ func monitorNodeState() {
 
 func dumpNodeState() {
 	state := " ***** DUMP NODE STATE INFORMATION ***** \n"
-	neighbors := LocalNode.GetNeighborNodes()
+	neighbors := GetNeighborNodes()
 
 	// Dump node information
 	state += separateLine()
@@ -49,7 +49,7 @@ func dumpNodeState() {
 
 	var openService string
 	if config.Parameters.OpenService {
-		openService = fmt.Sprintf("%5t / %5d", true, config.Parameters.NodeOpenPort)
+		openService = fmt.Sprintf("%5t / %5d", true, openPort)
 	} else {
 		openService = fmt.Sprintf("%5t / %5s", false, "NONE")
 	}

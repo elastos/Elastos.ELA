@@ -2,28 +2,31 @@ package node
 
 import (
 	"errors"
+	"fmt"
 	"math/rand"
 	"net"
-	"strings"
+	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
 
 	chain "github.com/elastos/Elastos.ELA/blockchain"
 	"github.com/elastos/Elastos.ELA/bloom"
-	. "github.com/elastos/Elastos.ELA/config"
+	"github.com/elastos/Elastos.ELA/config"
 	. "github.com/elastos/Elastos.ELA/core"
 	"github.com/elastos/Elastos.ELA/log"
 	"github.com/elastos/Elastos.ELA/protocol"
 
 	. "github.com/elastos/Elastos.ELA.Utility/common"
 	"github.com/elastos/Elastos.ELA.Utility/p2p"
+	"github.com/elastos/Elastos.ELA.Utility/p2p/addrmgr"
+	"github.com/elastos/Elastos.ELA.Utility/p2p/connmgr"
 	"github.com/elastos/Elastos.ELA.Utility/p2p/msg"
 )
 
 const (
-	// dialTimeout is the time limit to finish dialing to an address.
-	dialTimeout = 10 * time.Second
+	// defaultDialTimeout is the time limit to finish dialing to an address.
+	defaultDialTimeout = 10 * time.Second
 
 	// stateMonitorInterval is the interval to monitor connection and syncing state.
 	stateMonitorInterval = 10 * time.Second
@@ -36,7 +39,22 @@ const (
 	syncBlockTimeout = 30 * time.Second
 )
 
-var LocalNode *node
+var (
+	LocalNode *node
+
+	cfg = config.Parameters.Configuration
+
+	services = protocol.OpenService
+	nodePort = cfg.NodePort
+	openPort = cfg.NodeOpenPort
+	isTls    = cfg.IsTLS
+	certPath = cfg.CertPath
+	keyPath  = cfg.KeyPath
+	caPath   = cfg.CAPath
+
+	addrManager = addrmgr.New("data")
+	connManager *connmgr.ConnManager
+)
 
 type Semaphore chan struct{}
 
@@ -46,6 +64,33 @@ func MakeSemaphore(n int) Semaphore {
 
 func (s Semaphore) acquire() { s <- struct{}{} }
 func (s Semaphore) release() { <-s }
+
+// newNetAddress attempts to extract the IP address and port from the passed
+// net.Addr interface and create a NetAddress structure using that information.
+func newNetAddress(addr net.Addr, services uint64) (*p2p.NetAddress, error) {
+	// addr will be a net.TCPAddr when not using a proxy.
+	if tcpAddr, ok := addr.(*net.TCPAddr); ok {
+		ip := tcpAddr.IP
+		port := uint16(tcpAddr.Port)
+		na := p2p.NewNetAddressIPPort(ip, port, services)
+		return na, nil
+	}
+
+	// For the most part, addr should be one of the two above cases, but
+	// to be safe, fall back to trying to parse the information from the
+	// address string as a last resort.
+	host, portStr, err := net.SplitHostPort(addr.String())
+	if err != nil {
+		return nil, err
+	}
+	ip := net.ParseIP(host)
+	port, err := strconv.ParseUint(portStr, 10, 16)
+	if err != nil {
+		return nil, err
+	}
+	na := p2p.NewNetAddressIPPort(ip, uint16(port), services)
+	return na, nil
+}
 
 type node struct {
 	//sync.RWMutex	//The Lock not be used as expected to use function channel instead of lock
@@ -60,7 +105,6 @@ type node struct {
 	txnCnt       uint64        // The transactions be transmit by this node
 	rxTxnCnt     uint64        // The transaction received by this node
 	link                       // The link status and infomation
-	neighbours                 // The neighbor node connect with currently node except itself
 	chain.TxPool               // Unconfirmed transaction pool
 	idCache                    // The buffer to store the id of the items which already be processed
 	filter       *bloom.Filter // The bloom filter of a spv node
@@ -71,137 +115,304 @@ type node struct {
 	flagLock           sync.RWMutex
 	cachelock          sync.RWMutex
 	requestedBlockLock sync.RWMutex
-	ConnectingNodes
-	KnownAddressList
 	DefaultMaxPeers    uint
 	headerFirstMode    bool
 	RequestedBlockList map[Uint256]time.Time
-	syncTimer          *syncTimer
+	stallTimer         *stallTimer
 	SyncBlkReqSem      Semaphore
 	StartHash          Uint256
 	StopHash           Uint256
 }
 
-type ConnectingNodes struct {
-	sync.RWMutex
-	List map[string]struct{}
-}
-
-func (cn *ConnectingNodes) init() {
-	cn.List = make(map[string]struct{})
-}
-
-func (cn *ConnectingNodes) add(addr string) bool {
-	cn.Lock()
-	defer cn.Unlock()
-	_, ok := cn.List[addr]
-	if !ok {
-		cn.List[addr] = struct{}{}
-	}
-	return !ok
-}
-
-func (cn *ConnectingNodes) del(addr string) {
-	cn.Lock()
-	defer cn.Unlock()
-	delete(cn.List, addr)
-}
-
-func NewNode(conn net.Conn, inbound bool) *node {
-	log.Debugf("new connection %s <-> %s with %s",
-		conn.LocalAddr(), conn.RemoteAddr(), conn.RemoteAddr().Network())
-
-	addr := conn.RemoteAddr().String()
-	ip := addr
-	if i := strings.LastIndex(addr, ":"); i > 0 {
-		ip = addr[:i-1]
-	}
+// newNodeBase returns a new base peer based on the inbound flag.  This
+// is used by the NewInboundPeer and NewOutboundPeer functions to perform base
+// setup needed by both types of peers.
+func newNodeBase(conn net.Conn, inbound, persistent bool) *node {
 	n := node{
 		link: link{
-			magic:     Parameters.Magic,
-			addr:      addr,
-			ip:        net.ParseIP(ip),
-			conn:      conn,
-			inbound:   inbound,
-			sendQueue: make(chan p2p.Message, 1),
-			quit:      make(chan struct{}),
+			magic:          cfg.Magic,
+			conn:           conn,
+			inbound:        inbound,
+			persistent:     persistent,
+			negotiate:      make(chan struct{}),
+			knownAddresses: make(map[string]struct{}),
+			sendQueue:      make(chan p2p.Message, 1),
+			quit:           make(chan struct{}),
 		},
 		filter: bloom.LoadFilter(nil),
 	}
-
-	n.handler = NewHandlerBase(&n)
 	n.start()
 
 	return &n
 }
 
-func InitLocalNode() protocol.Noder {
+// NewInboundNode returns a new inbound peer. Use Start to begin
+// processing incoming and outgoing messages.
+func NewInboundNode(conn net.Conn) *node {
+	n := newNodeBase(conn, true, false)
+	n.addr = conn.RemoteAddr().String()
+	// Set up a NetAddress for the peer to be used with AddrManager.  We
+	// only do this inbound because outbound set this up at connection time
+	// and no point recomputing.
+	na, err := newNetAddress(conn.RemoteAddr(), services)
+	if err != nil {
+		log.Errorf("Cannot create remote net address: %v", err)
+		n.Disconnect()
+		return nil
+	}
+	// Mark node from open port as external.
+	la, err := newNetAddress(conn.LocalAddr(), services)
+	if err != nil {
+		log.Errorf("Cannot parse local net address: %v", err)
+		n.Disconnect()
+		return nil
+	}
+	if la.Port == openPort {
+		n.external = true
+	}
+	n.na = na
+
+	return n
+}
+
+// NewOutboundPeer returns a new outbound peer.
+func NewOutboundPeer(conn net.Conn, addr string, persistent bool) (*node, error) {
+	p := newNodeBase(conn, false, persistent)
+	p.addr = addr
+
+	host, portStr, err := net.SplitHostPort(addr)
+	if err != nil {
+		return nil, err
+	}
+
+	port, err := strconv.ParseUint(portStr, 10, 16)
+	if err != nil {
+		return nil, err
+	}
+
+	na, err := addrManager.HostToNetAddress(host, uint16(port), services)
+	if err != nil {
+		return nil, err
+	}
+	p.na = na
+
+	return p, nil
+}
+
+func Start() (protocol.Noder, error) {
 	LocalNode = &node{
 		id:                 rand.New(rand.NewSource(time.Now().Unix())).Uint64(),
 		version:            protocol.ProtocolVersion,
 		relay:              true,
 		SyncBlkReqSem:      MakeSemaphore(protocol.MaxSyncHdrReq),
 		RequestedBlockList: make(map[Uint256]time.Time),
-		syncTimer:          newSyncTimer(stopSyncing),
+		stallTimer:         newSyncTimer(stopSyncing),
 		height:             uint64(chain.DefaultLedger.Blockchain.GetBestHeight()),
 		link: link{
-			magic: Parameters.Magic,
-			port:  Parameters.NodePort,
+			magic: cfg.Magic,
+			port:  cfg.NodePort,
 		},
 	}
 
-	if Parameters.OpenService {
-		LocalNode.services |= protocol.OpenService
+	if !cfg.OpenService {
+		LocalNode.services &^= protocol.OpenService
 	}
 
-	LocalNode.neighbours.init()
-	LocalNode.ConnectingNodes.init()
-	LocalNode.KnownAddressList.init()
 	LocalNode.TxPool.Init()
 	LocalNode.idCache.init()
-	LocalNode.handshakeQueue.init()
-	LocalNode.initConnection()
+
+	listeners := make([]net.Listener, 0, 2)
+	listener, err := newNodePortListener()
+	if err != nil {
+		return nil, err
+	}
+	listeners = append(listeners, listener)
+
+	// Listen open port if OpenService enabled
+	if cfg.OpenService {
+		listener, err := newOpenPortListener()
+		if err != nil {
+			return nil, err
+		}
+		listeners = append(listeners, listener)
+	}
+
+	// Setup a function to return new addresses to connect to.
+	var newAddressFunc = func() (net.Addr, error) {
+		for tries := 0; tries < 100; tries++ {
+			addr := addrManager.GetAddress()
+			if addr == nil {
+				break
+			}
+
+			// Address will not be invalid, local or unroutable
+			// because addrmanager rejects those on addition.
+			// Just check that we don't already have an address
+			// in the same group so that we are not connecting
+			// to the same network segment at the expense of
+			// others.
+			key := addrmgr.GroupKey(addr.NetAddress())
+			if OutboundGroupCount(key) != 0 {
+				continue
+			}
+
+			// only allow recent nodes (10mins) after we failed 30 times
+			if tries < 30 && time.Since(addr.LastAttempt()) < 10*time.Minute {
+				continue
+			}
+
+			// allow nondefault ports after 50 failed tries.
+			if tries < 50 && addr.NetAddress().Port != nodePort {
+				continue
+			}
+
+			addrString := addrmgr.NetAddressKey(addr.NetAddress())
+			return addrStringToNetAddr(addrString)
+		}
+
+		return nil, errors.New("no valid connect address")
+	}
+
+	cmgr, err := connmgr.New(&connmgr.Config{
+		Listeners:      listeners,
+		OnAccept:       inboundNodeConnected,
+		RetryDuration:  defaultRetryDuration,
+		TargetOutbound: defaultTargetOutbound,
+		Dial:           dialTimeout,
+		OnConnection:   outboundNodeConnected,
+		GetNewAddress:  newAddressFunc,
+	})
+	if err != nil {
+		return nil, err
+	}
+	connManager = cmgr
+
+	go nodeHandler()
+
+	// Startup persistent peers.
+	for _, addr := range cfg.SeedList {
+		netAddr, err := addrStringToNetAddr(addr)
+		if err != nil {
+			return nil, err
+		}
+
+		go connManager.Connect(&connmgr.ConnReq{
+			Addr:      netAddr,
+			Permanent: true,
+		})
+	}
 
 	go func() {
-		LocalNode.ConnectNodes()
-		LocalNode.waitForNeighbourConnections()
-
 		ticker := time.NewTicker(stateMonitorInterval)
 		for {
-			go LocalNode.ConnectNodes()
 			go LocalNode.SyncBlocks()
 			<-ticker.C
 		}
 	}()
 
 	go monitorNodeState()
-	return LocalNode
+
+	return LocalNode, nil
 }
 
-func DisconnectNode(id uint64) {
-	if n, ok := LocalNode.DelNeighborNode(id); ok {
-		n.Disconnect()
+// addrStringToNetAddr takes an address in the form of 'host:port' and returns
+// a net.Addr which maps to the original address with any host names resolved
+// to IP addresses.  It also handles tor addresses properly by returning a
+// net.Addr that encapsulates the address.
+func addrStringToNetAddr(addr string) (net.Addr, error) {
+	host, strPort, err := net.SplitHostPort(addr)
+	if err != nil {
+		return nil, err
 	}
+
+	port, err := strconv.Atoi(strPort)
+	if err != nil {
+		return nil, err
+	}
+
+	// Skip if host is already an IP address.
+	if ip := net.ParseIP(host); ip != nil {
+		return &net.TCPAddr{
+			IP:   ip,
+			Port: port,
+		}, nil
+	}
+
+	// Attempt to look up an IP address associated with the parsed host.
+	ips, err := net.LookupIP(host)
+	if err != nil {
+		return nil, err
+	}
+	if len(ips) == 0 {
+		return nil, fmt.Errorf("no addresses found for %s", host)
+	}
+
+	return &net.TCPAddr{
+		IP:   ips[0],
+		Port: port,
+	}, nil
 }
 
-func (node *node) AddToConnectingList(addr string) bool {
-	return node.ConnectingNodes.add(addr)
+// ID returns the peer id.
+//
+// This function is safe for concurrent access.
+func (node *node) ID() uint64 {
+	node.flagsMtx.Lock()
+	id := node.id
+	node.flagsMtx.Unlock()
+
+	return id
 }
 
-func (node *node) RemoveFromConnectingList(addr string) {
-	node.ConnectingNodes.del(addr)
+// NA returns the peer network address.
+//
+// This function is safe for concurrent access.
+func (node *node) NA() *p2p.NetAddress {
+	node.flagsMtx.Lock()
+	na := node.na
+	node.flagsMtx.Unlock()
+
+	return na
 }
 
-func (node *node) UpdateInfo(t time.Time, version uint32, services uint64,
-	port uint16, nonce uint64, relay bool, height uint64) {
+// Addr returns the peer address.
+//
+// This function is safe for concurrent access.
+func (node *node) Addr() string {
+	// The address doesn't change after initialization, therefore it is not
+	// protected by a mutex.
+	return node.addr
+}
 
-	node.timestamp = t
-	node.id = nonce
-	node.version = version
-	node.services = services
-	node.port = port
-	node.relay = relay
-	node.height = uint64(height)
+// Inbound returns whether the peer is inbound.
+//
+// This function is safe for concurrent access.
+func (node *node) Inbound() bool {
+	return node.inbound
+}
+
+// VersionKnown returns the whether or not the version of a peer is known
+// locally.
+//
+// This function is safe for concurrent access.
+func (node *node) VersionKnown() bool {
+	node.flagsMtx.Lock()
+	versionKnown := node.versionKnown
+	node.flagsMtx.Unlock()
+
+	return versionKnown
+}
+
+// VerAckReceived returns whether or not a verack message was received by the
+// peer.
+//
+// This function is safe for concurrent access.
+func (node *node) VerAckReceived() bool {
+	node.flagsMtx.Lock()
+	verAckReceived := node.verAckReceived
+	node.flagsMtx.Unlock()
+
+	return verAckReceived
 }
 
 func (node *node) State() protocol.State {
@@ -216,10 +427,6 @@ func (node *node) TimeStamp() time.Time {
 	return node.timestamp
 }
 
-func (node *node) ID() uint64 {
-	return node.id
-}
-
 func (node *node) GetConn() net.Conn {
 	return node.conn
 }
@@ -230,14 +437,6 @@ func (node *node) Port() uint16 {
 
 func (node *node) IsExternal() bool {
 	return node.external
-}
-
-func (node *node) HttpInfoPort() int {
-	return int(node.httpInfoPort)
-}
-
-func (node *node) SetHttpInfoPort(nodeInfoPort uint16) {
-	node.httpInfoPort = nodeInfoPort
 }
 
 func (node *node) IsRelay() bool {
@@ -272,51 +471,23 @@ func (node *node) SetHeight(height uint64) {
 	node.height = height
 }
 
-func (node *node) Addr() string {
-	return node.addr
-}
-
-func (node *node) IP() net.IP {
-	return node.ip
-}
-
-func (node *node) WaitForSyncFinish() {
-	if len(Parameters.SeedList) <= 0 {
+func WaitForSyncFinish() {
+	if len(cfg.SeedList) <= 0 {
 		return
 	}
 	for {
-		log.Debug("BlockHeight is ", chain.DefaultLedger.Blockchain.BlockHeight)
+		log.Debug("BlockHeight", chain.DefaultLedger.Blockchain.BlockHeight)
 		bc := chain.DefaultLedger.Blockchain
 		log.Info("[", len(bc.Index), len(bc.BlockCache), len(bc.Orphans), "]")
 
-		heights := node.GetNeighborHeights()
-		log.Debug("others height is ", heights)
+		heights := GetNeighborHeights()
+		log.Info("others height", heights)
 
 		if CompareHeight(uint64(chain.DefaultLedger.Blockchain.BlockHeight), heights) > 0 {
 			LocalNode.SetSyncHeaders(false)
 			break
 		}
 		time.Sleep(5 * time.Second)
-	}
-}
-
-func (node *node) waitForNeighbourConnections() {
-	if len(Parameters.SeedList) <= 0 {
-		return
-	}
-	ticker := time.NewTicker(time.Millisecond * 100)
-	timer := time.NewTimer(time.Second * 10)
-	for {
-		select {
-		case <-ticker.C:
-			if node.GetNeighbourCount() > 0 {
-				log.Info("successfully connect to neighbours, neighbour count:", node.GetNeighbourCount())
-				return
-			}
-		case <-timer.C:
-			log.Warn("cannot connect to any neighbours, waiting for neighbour connections time out")
-			return
-		}
 	}
 }
 
@@ -334,12 +505,11 @@ func (node *node) Relay(from protocol.Noder, message interface{}) error {
 		return nil
 	}
 
-	for _, nbr := range node.GetNeighborNodes() {
+	for _, nbr := range GetNeighborNodes() {
 		if from == nil || nbr.ID() != from.ID() {
 
 			switch message := message.(type) {
 			case *Transaction:
-				log.Debug("Relay transaction message")
 				if nbr.BloomFilter().IsLoaded() && nbr.BloomFilter().MatchTxAndUpdate(message) {
 					inv := msg.NewInventory()
 					txID := message.Hash()
@@ -353,7 +523,6 @@ func (node *node) Relay(from protocol.Noder, message interface{}) error {
 					node.txnCnt++
 				}
 			case *Block:
-				log.Debug("Relay block message")
 				if nbr.BloomFilter().IsLoaded() {
 					inv := msg.NewInventory()
 					blockHash := message.Hash()
@@ -395,10 +564,44 @@ func (node *node) SetSyncHeaders(b bool) {
 	}
 }
 
-func (node *node) needSync() bool {
-	heights := node.GetNeighborHeights()
+// PushAddrMsg sends an addr message to the connected peer using the provided
+// addresses.  This function is useful over manually sending the message via
+// QueueMessage since it automatically limits the addresses to the maximum
+// number allowed by the message and randomizes the chosen addresses when there
+// are too many.  It returns the addresses that were actually sent and no
+// message will be sent if there are no entries in the provided addresses slice.
+//
+// This function is safe for concurrent access.
+func (node *node) PushAddrMsg(addresses []*p2p.NetAddress) ([]*p2p.NetAddress, error) {
+	addressCount := len(addresses)
+
+	// Nothing to send.
+	if addressCount == 0 {
+		return nil, nil
+	}
+
+	addr := msg.NewAddr(addresses)
+
+	// Randomize the addresses sent if there are more than the maximum allowed.
+	if addressCount > msg.MaxAddrPerMsg {
+		// Shuffle the address list.
+		for i := 0; i < msg.MaxAddrPerMsg; i++ {
+			j := i + rand.Intn(addressCount-i)
+			addr.AddrList[i], addr.AddrList[j] = addr.AddrList[j], addr.AddrList[i]
+		}
+
+		// Truncate it to the maximum size.
+		addr.AddrList = addr.AddrList[:msg.MaxAddrPerMsg]
+	}
+
+	node.SendMessage(addr)
+	return addr.AddrList, nil
+}
+
+func IsCurrent() bool {
+	heights := GetNeighborHeights()
 	log.Info("nbr height-->", heights, chain.DefaultLedger.Blockchain.BlockHeight)
-	return CompareHeight(uint64(chain.DefaultLedger.Blockchain.BlockHeight), heights) < 0
+	return CompareHeight(uint64(chain.DefaultLedger.Blockchain.BlockHeight), heights) >= 0
 }
 
 func CompareHeight(localHeight uint64, heights []uint64) int {

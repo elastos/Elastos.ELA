@@ -4,9 +4,7 @@ import (
 	"time"
 
 	chain "github.com/elastos/Elastos.ELA/blockchain"
-	"github.com/elastos/Elastos.ELA/config"
 	"github.com/elastos/Elastos.ELA/log"
-	. "github.com/elastos/Elastos.ELA/protocol"
 
 	. "github.com/elastos/Elastos.ELA.Utility/common"
 	"github.com/elastos/Elastos.ELA.Utility/p2p"
@@ -14,21 +12,21 @@ import (
 	"github.com/elastos/Elastos.ELA.Utility/p2p/msg/v0"
 )
 
-type syncTimer struct {
+type stallTimer struct {
 	timeout    time.Duration
 	lastUpdate time.Time
 	quit       chan struct{}
 	onTimeout  func()
 }
 
-func newSyncTimer(onTimeout func()) *syncTimer {
-	return &syncTimer{
+func newSyncTimer(onTimeout func()) *stallTimer {
+	return &stallTimer{
 		timeout:   syncBlockTimeout,
 		onTimeout: onTimeout,
 	}
 }
 
-func (t *syncTimer) start() {
+func (t *stallTimer) start() {
 	go func() {
 		t.quit = make(chan struct{}, 1)
 		ticker := time.NewTicker(time.Second)
@@ -49,28 +47,28 @@ func (t *syncTimer) start() {
 	}()
 }
 
-func (t *syncTimer) update() {
+func (t *stallTimer) update() {
 	t.lastUpdate = time.Now()
 }
 
-func (t *syncTimer) stop() {
+func (t *stallTimer) stop() {
 	if t.quit != nil {
 		t.quit <- struct{}{}
 	}
 }
 
 func (node *node) SyncBlocks() {
-	needSync := node.needSync()
+	needSync := !IsCurrent()
 	log.Info("needSync: ", needSync)
 	log.Info("BlockHeight = ", chain.DefaultLedger.Blockchain.BlockHeight)
 	chain.DefaultLedger.Blockchain.DumpState()
 	bc := chain.DefaultLedger.Blockchain
 	log.Info("[", len(bc.Index), len(bc.BlockCache), len(bc.Orphans), "]")
 	if needSync {
-		syncNode := LocalNode.GetSyncNode()
+		syncNode := GetSyncNode()
 		if syncNode == nil {
 			LocalNode.ResetRequestedBlock()
-			syncNode = node.GetBestNode()
+			syncNode = GetBestNode()
 			if syncNode == nil {
 				return
 			}
@@ -81,7 +79,7 @@ func (node *node) SyncBlocks() {
 			LocalNode.SetSyncHeaders(true)
 			syncNode.SetSyncHeaders(true)
 			// Start sync timer
-			LocalNode.syncTimer.start()
+			LocalNode.stallTimer.start()
 		} else if syncNode.Version() < p2p.EIP001Version {
 			list := LocalNode.GetRequestBlockList()
 			var requests = make(map[Uint256]time.Time)
@@ -97,7 +95,7 @@ func (node *node) SyncBlocks() {
 				syncNode.SetSyncHeaders(false)
 				LocalNode.SetStartHash(EmptyHash)
 				LocalNode.SetStopHash(EmptyHash)
-				syncNode := node.GetBestNode()
+				syncNode := GetBestNode()
 				if syncNode == nil {
 					return
 				}
@@ -122,11 +120,11 @@ func (node *node) SyncBlocks() {
 
 func stopSyncing() {
 	// Stop sync timer
-	LocalNode.syncTimer.stop()
+	LocalNode.stallTimer.stop()
 	LocalNode.SetSyncHeaders(false)
 	LocalNode.SetStartHash(EmptyHash)
 	LocalNode.SetStopHash(EmptyHash)
-	syncNode := LocalNode.GetSyncNode()
+	syncNode := GetSyncNode()
 	if syncNode != nil {
 		syncNode.SetSyncHeaders(false)
 	}
@@ -147,49 +145,5 @@ out:
 		case <-node.quit:
 			break out
 		}
-	}
-}
-
-func (node *node) RequireNeighbourList() {
-	// Do not request addresses from external node
-	if node.IsExternal() {
-		return
-	}
-
-	node.SendMessage(&msg.GetAddr{})
-}
-
-func (node *node) ConnectNodes() {
-	log.Debug()
-	internal, total := node.GetConnectionCount()
-	if internal < MinConnectionCount {
-		for _, seed := range config.Parameters.SeedList {
-			node.Connect(seed)
-		}
-	}
-
-	if total < MaxOutBoundCount {
-		for _, addr := range node.RandGetAddresses() {
-			node.Connect(addr.String())
-		}
-	}
-
-	if node.NeedMoreAddresses() {
-		for _, nbr := range node.GetNeighborNodes() {
-			nbr.RequireNeighbourList()
-		}
-	}
-
-	if total > DefaultMaxPeers {
-		DisconnectNode(node.GetANeighbourRandomly().ID())
-	}
-}
-
-func (node *node) NetAddress() *p2p.NetAddress {
-	return &p2p.NetAddress{
-		IP:        node.IP(),
-		Timestamp: time.Now(),
-		Services:  node.Services(),
-		Port:      node.Port(),
 	}
 }

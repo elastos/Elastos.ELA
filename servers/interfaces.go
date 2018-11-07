@@ -13,6 +13,7 @@ import (
 	. "github.com/elastos/Elastos.ELA/core"
 	. "github.com/elastos/Elastos.ELA/errors"
 	"github.com/elastos/Elastos.ELA/log"
+	"github.com/elastos/Elastos.ELA/node"
 	"github.com/elastos/Elastos.ELA/pow"
 	. "github.com/elastos/Elastos.ELA/protocol"
 
@@ -154,11 +155,11 @@ func GetRawTransaction(param Params) map[string]interface{} {
 }
 
 func GetNeighbors(param Params) map[string]interface{} {
-	return ResponsePack(Success, ServerNode.GetNeighbourAddresses())
+	return ResponsePack(Success, node.GetNeighborNodes())
 }
 
 func GetNodeState(param Params) map[string]interface{} {
-	nodes := ServerNode.GetNeighborNodes()
+	nodes := node.GetNeighborNodes()
 	neighbors := make([]Neighbor, 0, len(nodes))
 	for _, node := range nodes {
 		neighbors = append(neighbors, Neighbor{
@@ -169,7 +170,7 @@ func GetNodeState(param Params) map[string]interface{} {
 			Relay:      node.IsRelay(),
 			External:   node.IsExternal(),
 			State:      node.State().String(),
-			NetAddress: node.NetAddress().String(),
+			NetAddress: node.NA().String(),
 		})
 	}
 	nodeState := NodeState{
@@ -304,13 +305,12 @@ func CreateAuxBlock(param Params) map[string]interface{} {
 }
 
 func GetInfo(param Params) map[string]interface{} {
-	_, count := ServerNode.GetConnectionCount()
 	RetVal := struct {
 		Version        int    `json:"version"`
 		Balance        int    `json:"balance"`
 		Blocks         uint64 `json:"blocks"`
 		Timeoffset     int    `json:"timeoffset"`
-		Connections    uint   `json:"connections"`
+		Connections    int    `json:"connections"`
 		Testnet        bool   `json:"testnet"`
 		Keypoololdest  int    `json:"keypoololdest"`
 		Keypoolsize    int    `json:"keypoolsize"`
@@ -323,7 +323,7 @@ func GetInfo(param Params) map[string]interface{} {
 		Balance:        0,
 		Blocks:         ServerNode.Height(),
 		Timeoffset:     0,
-		Connections:    count,
+		Connections:    node.GetNeighbourCount(),
 		Keypoololdest:  0,
 		Keypoolsize:    0,
 		Unlocked_until: 0,
@@ -334,7 +334,6 @@ func GetInfo(param Params) map[string]interface{} {
 }
 
 func AuxHelp(param Params) map[string]interface{} {
-
 	//TODO  and description for this rpc-interface
 	return ResponsePack(Success, "createauxblock==submitauxblock")
 }
@@ -383,8 +382,7 @@ func DiscreteMining(param Params) map[string]interface{} {
 }
 
 func GetConnectionCount(param Params) map[string]interface{} {
-	_, count := ServerNode.GetConnectionCount()
-	return ResponsePack(Success, count)
+	return ResponsePack(Success, node.GetNeighbourCount())
 }
 
 func GetTransactionPool(param Params) map[string]interface{} {

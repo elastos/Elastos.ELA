@@ -1,7 +1,8 @@
 package node
 
 import (
-	chain "github.com/elastos/Elastos.ELA/blockchain"
+	"fmt"
+
 	"github.com/elastos/Elastos.ELA/bloom"
 	"github.com/elastos/Elastos.ELA/core"
 	"github.com/elastos/Elastos.ELA/errors"
@@ -16,11 +17,11 @@ import (
 var _ Handler = (*HandlerEIP001)(nil)
 
 type HandlerEIP001 struct {
-	node         protocol.Noder
+	node         *node
 	continueHash *common.Uint256
 }
 
-func NewHandlerEIP001(node protocol.Noder) *HandlerEIP001 {
+func NewHandlerEIP001(node *node) *HandlerEIP001 {
 	return &HandlerEIP001{node: node}
 }
 
@@ -55,6 +56,9 @@ func (h *HandlerEIP001) MakeEmptyMessage(cmd string) (message p2p.Message, err e
 
 	case p2p.CmdReject:
 		message = &msg.Reject{}
+
+	default:
+		err = fmt.Errorf("unhanlded message %s", cmd)
 	}
 
 	return message, err
@@ -69,7 +73,7 @@ func (h *HandlerEIP001) HandleMessage(message p2p.Message) {
 		h.onGetBlocks(message)
 
 	case *msg.Inventory:
-		h.onInventory(message)
+		h.onInv(message)
 
 	case *msg.GetData:
 		h.onGetData(message)
@@ -100,7 +104,7 @@ func (h *HandlerEIP001) onGetBlocks(req *msg.GetBlocks) {
 	LocalNode.AcqSyncBlkReqSem()
 	defer LocalNode.RelSyncBlkReqSem()
 
-	start := chain.DefaultLedger.Blockchain.LatestLocatorHash(req.Locator)
+	start := chain.LatestLocatorHash(req.Locator)
 	hashes, err := GetBlockHashes(*start, req.HashStop, p2p.MaxBlocksPerMsg)
 	if err != nil {
 		log.Error(err)
@@ -122,9 +126,11 @@ func (h *HandlerEIP001) onGetBlocks(req *msg.GetBlocks) {
 	}
 }
 
-func (h *HandlerEIP001) onInventory(inv *msg.Inventory) {
+func (h *HandlerEIP001) onInv(inv *msg.Inventory) {
+	log.Debugf("[OnInv] count %d hashes", len(inv.InvList))
+
 	node := h.node
-	if LocalNode.IsSyncHeaders() && !node.IsSyncHeaders() {
+	if syncNode != nil && node != syncNode {
 		return
 	}
 
@@ -149,8 +155,8 @@ func (h *HandlerEIP001) onInventory(inv *msg.Inventory) {
 				return
 			}
 
-			haveInv := chain.DefaultLedger.BlockInLedger(hash) ||
-				chain.DefaultLedger.Blockchain.IsKnownOrphan(&hash) || LocalNode.IsRequestedBlock(hash)
+			haveInv := chain.BlockExists(&hash) ||
+				chain.IsKnownOrphan(&hash) || LocalNode.IsRequestedBlock(hash)
 
 			// Block need to be request
 			if !haveInv {
@@ -160,26 +166,28 @@ func (h *HandlerEIP001) onInventory(inv *msg.Inventory) {
 			}
 
 			// Request fork chain
-			if chain.DefaultLedger.Blockchain.IsKnownOrphan(&hash) {
-				orphanRoot := chain.DefaultLedger.Blockchain.GetOrphanRoot(&hash)
-				locator, err := chain.DefaultLedger.Blockchain.LatestBlockLocator()
+			if chain.IsKnownOrphan(&hash) {
+				orphanRoot := chain.GetOrphanRoot(&hash)
+				locator, err := chain.LatestBlockLocator()
 				if err != nil {
 					log.Errorf(" Failed to get block locator for the latest block: %v", err)
 					continue
 				}
-				SendGetBlocks(node, locator, *orphanRoot)
+				node.PushGetBlocksMsg(locator, orphanRoot)
 				continue
 			}
 
 			// Request next hashes
 			if i == lastBlock {
-				locator := chain.DefaultLedger.Blockchain.BlockLocatorFromHash(&hash)
-				SendGetBlocks(node, locator, common.EmptyHash)
+				locator := chain.BlockLocatorFromHash(&hash)
+				node.PushGetBlocksMsg(locator, &zeroHash)
 			}
+
 		case msg.InvTypeTx:
 			if _, ok := LocalNode.GetTransactionPool(false)[hash]; !ok {
 				getData.AddInvVect(iv)
 			}
+
 		default:
 			continue
 		}
@@ -195,7 +203,7 @@ func (h *HandlerEIP001) onGetData(getData *msg.GetData) {
 	for _, iv := range getData.InvList {
 		switch iv.Type {
 		case msg.InvTypeBlock:
-			block, err := chain.DefaultLedger.Store.GetBlock(iv.Hash)
+			block, err := store.GetBlock(iv.Hash)
 			if err != nil {
 				log.Debug("Can't get block from hash: ", iv.Hash, " ,send not found message")
 				notFound.AddInvVect(iv)
@@ -206,7 +214,7 @@ func (h *HandlerEIP001) onGetData(getData *msg.GetData) {
 			node.SendMessage(msg.NewBlock(block))
 
 			if h.continueHash != nil && h.continueHash.IsEqual(iv.Hash) {
-				best := chain.DefaultLedger.Blockchain.BestChain
+				best := chain.BestChain
 				inv := msg.NewInventory()
 				inv.AddInvVect(msg.NewInvVect(msg.InvTypeBlock, best.Hash))
 				node.SendMessage(inv)
@@ -227,7 +235,7 @@ func (h *HandlerEIP001) onGetData(getData *msg.GetData) {
 				return
 			}
 
-			block, err := chain.DefaultLedger.Store.GetBlock(iv.Hash)
+			block, err := store.GetBlock(iv.Hash)
 			if err != nil {
 				log.Debug("Can't get block from hash: ", iv.Hash, " ,send not found message")
 				notFound.AddInvVect(iv)
@@ -266,17 +274,17 @@ func (h *HandlerEIP001) onBlock(msgBlock *msg.Block) {
 		return
 	}
 
-	if chain.DefaultLedger.BlockInLedger(hash) {
+	if chain.BlockExists(&hash) {
 		log.Debugf("receive duplicated block %s", hash.String())
 		return
 	}
 
 	// Update sync timer
-	LocalNode.stallTimer.update()
-	chain.DefaultLedger.Store.RemoveHeaderListElement(hash)
+	node.stallTimer.update()
+	store.RemoveHeaderListElement(hash)
 	LocalNode.DeleteRequestedBlock(hash)
 
-	_, isOrphan, err := chain.DefaultLedger.Blockchain.AddBlock(block)
+	_, isOrphan, err := chain.AddBlock(block)
 	if err != nil {
 		reject := msg.NewReject(msgBlock.CMD(), msg.RejectInvalid, err.Error())
 		reject.Hash = block.Hash()
@@ -287,12 +295,12 @@ func (h *HandlerEIP001) onBlock(msgBlock *msg.Block) {
 	}
 
 	if isOrphan {
-		orphanRoot := chain.DefaultLedger.Blockchain.GetOrphanRoot(&hash)
-		locator, _ := chain.DefaultLedger.Blockchain.LatestBlockLocator()
-		SendGetBlocks(node, locator, *orphanRoot)
+		orphanRoot := chain.GetOrphanRoot(&hash)
+		locator, _ := chain.LatestBlockLocator()
+		node.PushGetBlocksMsg(locator, orphanRoot)
 	}
 
-	if !LocalNode.IsSyncHeaders() && !LocalNode.ExistedID(hash) {
+	if syncNode == nil && !LocalNode.ExistedID(hash) {
 		LocalNode.Relay(node, block)
 		log.Debug("Relay block")
 	}
@@ -308,7 +316,7 @@ func (h *HandlerEIP001) onTx(msgTx *msg.Tx) {
 		return
 	}
 
-	if LocalNode.IsSyncHeaders() {
+	if syncNode != nil {
 		return
 	}
 

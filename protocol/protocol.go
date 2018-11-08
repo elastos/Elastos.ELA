@@ -14,12 +14,10 @@ import (
 )
 
 const (
-	ProtocolVersion    = 0
-	MinConnectionCount = 3
-	MaxSyncHdrReq      = 2 //Max Concurrent Sync Header Request
-	MaxOutboundCount   = 8
-	DefaultMaxPeers    = 125
-	MaxIDCached        = 5000
+	Version         = p2p.EIP001Version
+	MaxSyncHdrReq   = 2 //Max Concurrent Sync Header Request
+	DefaultMaxPeers = 125
+	MaxIDCached     = 5000
 )
 
 const (
@@ -87,17 +85,11 @@ type Noder interface {
 
 	SetHeight(height uint64)
 	Relay(Noder, interface{}) error
-	IsSyncHeaders() bool
-	SetSyncHeaders(b bool)
 	IsRequestedBlock(hash common.Uint256) bool
 	AddRequestedBlock(hash common.Uint256)
 	DeleteRequestedBlock(hash common.Uint256)
 	GetRequestBlockList() map[common.Uint256]time.Time
 	AcqSyncBlkReqSem()
 	RelSyncBlkReqSem()
-	SetStartHash(hash common.Uint256)
-	GetStartHash() common.Uint256
-	SetStopHash(hash common.Uint256)
-	GetStopHash() common.Uint256
 	ResetRequestedBlock()
 }

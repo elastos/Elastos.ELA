@@ -3,13 +3,10 @@ package node
 import (
 	"fmt"
 
-	chain "github.com/elastos/Elastos.ELA/blockchain"
 	"github.com/elastos/Elastos.ELA/core"
 	"github.com/elastos/Elastos.ELA/errors"
 	"github.com/elastos/Elastos.ELA/log"
-	"github.com/elastos/Elastos.ELA/protocol"
 
-	"github.com/elastos/Elastos.ELA.Utility/common"
 	"github.com/elastos/Elastos.ELA.Utility/p2p"
 	"github.com/elastos/Elastos.ELA.Utility/p2p/msg"
 	"github.com/elastos/Elastos.ELA.Utility/p2p/msg/v0"
@@ -18,11 +15,11 @@ import (
 var _ Handler = (*HandlerV0)(nil)
 
 type HandlerV0 struct {
-	node            protocol.Noder
+	node            *node
 	duplicateBlocks int
 }
 
-func NewHandlerV0(node protocol.Noder) *HandlerV0 {
+func NewHandlerV0(node *node) *HandlerV0 {
 	return &HandlerV0{node: node}
 }
 
@@ -48,6 +45,9 @@ func (h *HandlerV0) MakeEmptyMessage(cmd string) (message p2p.Message, err error
 
 	case p2p.CmdNotFound:
 		message = &v0.NotFound{}
+
+	default:
+		err = fmt.Errorf("unhanlded message %s", cmd)
 	}
 
 	return message, err
@@ -82,7 +82,7 @@ func (h *HandlerV0) onGetBlocks(req *msg.GetBlocks) error {
 	LocalNode.AcqSyncBlkReqSem()
 	defer LocalNode.RelSyncBlkReqSem()
 
-	start := chain.DefaultLedger.Blockchain.LatestLocatorHash(req.Locator)
+	start := chain.LatestLocatorHash(req.Locator)
 	hashes, err := GetBlockHashes(*start, req.HashStop, p2p.MaxHeaderHashes)
 	if err != nil {
 		return err
@@ -95,42 +95,42 @@ func (h *HandlerV0) onGetBlocks(req *msg.GetBlocks) error {
 }
 
 func (h *HandlerV0) onInv(inv *v0.Inv) error {
-	node := h.node
-	log.Debugf("[OnInv] count %d hashes: %v", len(inv.Hashes), inv.Hashes)
+	log.Debugf("[OnInv] count %d hashes", len(inv.Hashes))
 
+	node := h.node
 	if node.IsExternal() {
 		return fmt.Errorf("receive inv message from external node")
 	}
 
-	if LocalNode.IsSyncHeaders() && !node.IsSyncHeaders() {
+	if syncNode != nil && node != syncNode {
 		return nil
 	}
 
 	for i, hash := range inv.Hashes {
 		// Request block
-		if !chain.DefaultLedger.BlockInLedger(*hash) &&
-			(!chain.DefaultLedger.Blockchain.IsKnownOrphan(hash) || !LocalNode.IsRequestedBlock(*hash)) {
+		if !chain.BlockExists(hash) &&
+			(!chain.IsKnownOrphan(hash) || !LocalNode.IsRequestedBlock(*hash)) {
 
 			LocalNode.AddRequestedBlock(*hash)
 			node.SendMessage(v0.NewGetData(*hash))
 		}
 
 		// Request fork chain
-		if chain.DefaultLedger.Blockchain.IsKnownOrphan(hash) {
-			orphanRoot := chain.DefaultLedger.Blockchain.GetOrphanRoot(hash)
-			locator, err := chain.DefaultLedger.Blockchain.LatestBlockLocator()
+		if chain.IsKnownOrphan(hash) {
+			orphanRoot := chain.GetOrphanRoot(hash)
+			locator, err := chain.LatestBlockLocator()
 			if err != nil {
 				log.Errorf("Failed to get block locator for the latest block: %v", err)
 				continue
 			}
-			SendGetBlocks(node, locator, *orphanRoot)
+			node.PushGetBlocksMsg(locator, orphanRoot)
 			continue
 		}
 
 		// Request next hashes
 		if i == len(inv.Hashes)-1 {
-			locator := chain.DefaultLedger.Blockchain.BlockLocatorFromHash(hash)
-			SendGetBlocks(node, locator, common.EmptyHash)
+			locator := chain.BlockLocatorFromHash(hash)
+			node.PushGetBlocksMsg(locator, &zeroHash)
 		}
 	}
 	return nil
@@ -140,7 +140,7 @@ func (h *HandlerV0) onGetData(req *v0.GetData) error {
 	node := h.node
 	hash := req.Hash
 
-	block, err := chain.DefaultLedger.Store.GetBlock(hash)
+	block, err := store.GetBlock(hash)
 	if err != nil {
 		log.Debugf("Can't get block from hash %s, send not found message", hash)
 		node.SendMessage(v0.NewNotFound(hash))
@@ -162,22 +162,22 @@ func (h *HandlerV0) onBlock(msgBlock *msg.Block) error {
 		return fmt.Errorf("received block message from unknown peer")
 	}
 
-	if chain.DefaultLedger.BlockInLedger(hash) {
+	if chain.BlockExists(&hash) {
 		h.duplicateBlocks++
 		log.Debug("Receive ", h.duplicateBlocks, " duplicated block.")
 		return fmt.Errorf("received duplicated block")
 	}
 
 	// Update sync timer
-	LocalNode.stallTimer.update()
-	chain.DefaultLedger.Store.RemoveHeaderListElement(hash)
+	node.stallTimer.update()
+	store.RemoveHeaderListElement(hash)
 	LocalNode.DeleteRequestedBlock(hash)
-	_, isOrphan, err := chain.DefaultLedger.Blockchain.AddBlock(block)
+	_, isOrphan, err := chain.AddBlock(block)
 	if err != nil {
 		return fmt.Errorf("Block add failed: %s ,block hash %s ", err.Error(), hash.String())
 	}
 
-	if !LocalNode.IsSyncHeaders() {
+	if syncNode == nil {
 		// relay
 		if !LocalNode.ExistedID(hash) {
 			LocalNode.Relay(node, block)
@@ -185,9 +185,9 @@ func (h *HandlerV0) onBlock(msgBlock *msg.Block) error {
 		}
 
 		if isOrphan && !LocalNode.IsRequestedBlock(hash) {
-			orphanRoot := chain.DefaultLedger.Blockchain.GetOrphanRoot(&hash)
-			locator, _ := chain.DefaultLedger.Blockchain.LatestBlockLocator()
-			SendGetBlocks(node, locator, *orphanRoot)
+			orphanRoot := chain.GetOrphanRoot(&hash)
+			locator, _ := chain.LatestBlockLocator()
+			node.PushGetBlocksMsg(locator, orphanRoot)
 		}
 	}
 
@@ -198,7 +198,7 @@ func (h *HandlerV0) onTx(msgTx *msg.Tx) error {
 	node := h.node
 	tx := msgTx.Serializable.(*core.Transaction)
 
-	if !LocalNode.ExistedID(tx.Hash()) && !LocalNode.IsSyncHeaders() {
+	if !LocalNode.ExistedID(tx.Hash()) && syncNode == nil {
 		if errCode := LocalNode.AppendToTxnPool(tx); errCode != errors.Success {
 			return fmt.Errorf("[HandlerBase] VerifyTransaction failed when AppendToTxnPool")
 		}

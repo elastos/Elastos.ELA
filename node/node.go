@@ -11,7 +11,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	chain "github.com/elastos/Elastos.ELA/blockchain"
+	"github.com/elastos/Elastos.ELA/blockchain"
 	"github.com/elastos/Elastos.ELA/bloom"
 	"github.com/elastos/Elastos.ELA/config"
 	. "github.com/elastos/Elastos.ELA/core"
@@ -53,7 +53,9 @@ var (
 	keyPath  = cfg.KeyPath
 	caPath   = cfg.CAPath
 
-	addrManager = addrmgr.New("data")
+	store       blockchain.IChainStore
+	chain       *blockchain.Blockchain
+	addrManager *addrmgr.AddrManager
 	connManager *connmgr.ConnManager
 )
 
@@ -95,29 +97,24 @@ func newNetAddress(addr net.Addr, services uint64) (*p2p.NetAddress, error) {
 
 type node struct {
 	//sync.RWMutex	//The Lock not be used as expected to use function channel instead of lock
-	state        int32         // node state
-	timestamp    time.Time     // The timestamp of node
-	id           uint64        // The nodes's id
-	version      uint32        // The network protocol the node used
-	services     uint64        // The services the node supplied
-	relay        bool          // The relay capability of the node (merge into capbility flag)
-	height       uint64        // The node latest block height
-	external     bool          // Indicate if this is an external node
-	txnCnt       uint64        // The transactions be transmit by this node
-	rxTxnCnt     uint64        // The transaction received by this node
-	link                       // The link status and infomation
-	chain.TxPool               // Unconfirmed transaction pool
-	idCache                    // The buffer to store the id of the items which already be processed
-	filter       *bloom.Filter // The bloom filter of a spv node
-	/*
-	 * |--|--|--|--|--|--|isSyncFailed|isSyncHeaders|
-	 */
-	syncFlag           uint8
+	state             int32         // node state
+	timestamp         time.Time     // The timestamp of node
+	id                uint64        // The nodes's id
+	version           uint32        // The network protocol the node used
+	services          uint64        // The services the node supplied
+	relay             bool          // The relay capability of the node (merge into capbility flag)
+	height            uint64        // The node latest block height
+	external          bool          // Indicate if this is an external node
+	txnCnt            uint64        // The transactions be transmit by this node
+	rxTxnCnt          uint64        // The transaction received by this node
+	link                            // The link status and infomation
+	blockchain.TxPool               // Unconfirmed transaction pool
+	idCache                         // The buffer to store the id of the items which already be processed
+	filter            *bloom.Filter // The bloom filter of a spv node
+
 	flagLock           sync.RWMutex
 	cachelock          sync.RWMutex
 	requestedBlockLock sync.RWMutex
-	DefaultMaxPeers    uint
-	headerFirstMode    bool
 	RequestedBlockList map[Uint256]time.Time
 	stallTimer         *stallTimer
 	SyncBlkReqSem      Semaphore
@@ -130,6 +127,7 @@ type node struct {
 // setup needed by both types of peers.
 func newNodeBase(conn net.Conn, inbound, persistent bool) *node {
 	n := node{
+		stallTimer: newSyncTimer(stopSyncing),
 		link: link{
 			magic:          cfg.Magic,
 			conn:           conn,
@@ -201,15 +199,19 @@ func NewOutboundPeer(conn net.Conn, addr string, persistent bool) (*node, error)
 }
 
 func Start() (protocol.Noder, error) {
+	// Initial variables
+	store = blockchain.DefaultLedger.Store
+	chain = blockchain.DefaultLedger.Blockchain
+	addrManager = addrmgr.New("data")
+
 	LocalNode = &node{
 		id:                 rand.New(rand.NewSource(time.Now().Unix())).Uint64(),
-		version:            protocol.ProtocolVersion,
+		version:            protocol.Version,
 		services:           services,
 		relay:              true,
 		SyncBlkReqSem:      MakeSemaphore(protocol.MaxSyncHdrReq),
 		RequestedBlockList: make(map[Uint256]time.Time),
-		stallTimer:         newSyncTimer(stopSyncing),
-		height:             uint64(chain.DefaultLedger.Blockchain.GetBestHeight()),
+		height:             uint64(chain.GetBestHeight()),
 		link: link{
 			magic: cfg.Magic,
 			port:  cfg.NodePort,
@@ -307,7 +309,7 @@ func Start() (protocol.Noder, error) {
 	go func() {
 		ticker := time.NewTicker(stateMonitorInterval)
 		for {
-			go LocalNode.SyncBlocks()
+			printSyncState()
 			<-ticker.C
 		}
 	}()
@@ -492,8 +494,7 @@ func (node *node) BloomFilter() *bloom.Filter {
 }
 
 func (node *node) Relay(from protocol.Noder, message interface{}) error {
-	log.Debug()
-	if from != nil && LocalNode.IsSyncHeaders() {
+	if from != nil && syncNode != nil {
 		return nil
 	}
 
@@ -536,26 +537,6 @@ func (node *node) Relay(from protocol.Noder, message interface{}) error {
 	return nil
 }
 
-func (node *node) IsSyncHeaders() bool {
-	node.flagLock.RLock()
-	defer node.flagLock.RUnlock()
-	if (node.syncFlag & 0x01) == 0x01 {
-		return true
-	} else {
-		return false
-	}
-}
-
-func (node *node) SetSyncHeaders(b bool) {
-	node.flagLock.Lock()
-	defer node.flagLock.Unlock()
-	if b == true {
-		node.syncFlag = node.syncFlag | 0x01
-	} else {
-		node.syncFlag = node.syncFlag & 0xFE
-	}
-}
-
 // PushAddrMsg sends an addr message to the connected peer using the provided
 // addresses.  This function is useful over manually sending the message via
 // QueueMessage since it automatically limits the addresses to the maximum
@@ -592,7 +573,6 @@ func (node *node) PushAddrMsg(addresses []*p2p.NetAddress) ([]*p2p.NetAddress, e
 
 func IsCurrent() bool {
 	current := true
-	blockHeight := chain.DefaultLedger.Blockchain.BlockHeight
 	nodes := GetNeighborNodes()
 	internal := make([]protocol.Noder, 0, len(nodes))
 	external := make([]protocol.Noder, 0, len(nodes))
@@ -601,14 +581,14 @@ func IsCurrent() bool {
 			external = append(external, node)
 		} else {
 			internal = append(internal, node)
-			if node.Height() > uint64(blockHeight) {
+			if node.Height() > uint64(chain.BlockHeight) {
 				current = false
 			}
 		}
 	}
 
 	printNodes(fmt.Sprintf("internal nbr(%d) --> %d", len(internal),
-		blockHeight), internal)
+		chain.BlockHeight), internal)
 	printNodes(fmt.Sprintf("external nbr(%d) -->", len(external)), external)
 	return current
 }
@@ -674,20 +654,4 @@ func (node *node) AcqSyncBlkReqSem() {
 
 func (node *node) RelSyncBlkReqSem() {
 	node.SyncBlkReqSem.release()
-}
-
-func (node *node) SetStartHash(hash Uint256) {
-	node.StartHash = hash
-}
-
-func (node *node) GetStartHash() Uint256 {
-	return node.StartHash
-}
-
-func (node *node) SetStopHash(hash Uint256) {
-	node.StopHash = hash
-}
-
-func (node *node) GetStopHash() Uint256 {
-	return node.StopHash
 }

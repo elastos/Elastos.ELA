@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"strings"
 
-	chain "github.com/elastos/Elastos.ELA/blockchain"
 	"github.com/elastos/Elastos.ELA/log"
 	"github.com/elastos/Elastos.ELA/config"
 )
@@ -56,7 +55,7 @@ func dumpNodeState() {
 	state += fmt.Sprintf(NodeLineFormat,
 		len(neighbors),
 		LocalNode.ID(),
-		chain.DefaultLedger.Blockchain.BlockHeight,
+		chain.BlockHeight,
 		LocalNode.services,
 		LocalNode.IsRelay(),
 		LocalNode.Port(),

@@ -7,11 +7,14 @@ import (
 	"github.com/elastos/Elastos.ELA/log"
 	"github.com/elastos/Elastos.ELA/protocol"
 
+	"github.com/elastos/Elastos.ELA.Utility/common"
 	"github.com/elastos/Elastos.ELA.Utility/p2p/addrmgr"
 	"github.com/elastos/Elastos.ELA.Utility/p2p/connmgr"
 )
 
 var (
+	syncNode  *node
+	zeroHash  = common.Uint256{}
 	newNodes  = make(chan *node, protocol.DefaultMaxPeers)
 	doneNodes = make(chan *node, protocol.DefaultMaxPeers)
 	query     = make(chan interface{})
@@ -78,6 +81,45 @@ func nodeDoneHandler(n *node) {
 	}
 }
 
+// startSync will choose the best peer among the available candidate peers to
+// download/sync the blockchain from.  When syncing is already running, it
+// simply returns.  It also examines the candidates for any which are no longer
+// candidates and removes them as needed.
+func startSync(state *nodeState) {
+	// Return now if we're already syncing.
+	if syncNode != nil {
+		return
+	}
+
+	bestHeight := uint64(chain.GetBestHeight())
+	var bestNode *node
+	state.forAllNodes(func(n *node) {
+		// Just pick the first available candidate.
+		if bestNode == nil && n.Height() > bestHeight {
+			bestNode = n
+		}
+	})
+
+	// Start syncing from the best peer if one was selected.
+	if bestNode != nil {
+		locator, err := chain.LatestBlockLocator()
+		if err != nil {
+			log.Errorf("Failed to get block locator for the "+
+				"latest block: %v", err)
+			return
+		}
+
+		log.Infof("Syncing to block height %d from peer %v",
+			bestNode.Height(), bestNode.Addr())
+
+		bestNode.PushGetBlocksMsg(locator, &zeroHash)
+		bestNode.stallTimer.start()
+		syncNode = bestNode
+	} else {
+		log.Warnf("No sync peer candidates available")
+	}
+}
+
 // handleAddNodeMsg deals with adding new peers.  It is invoked from the
 // peerHandler goroutine.
 func handleAddNodeMsg(state *nodeState, n *node) bool {
@@ -141,9 +183,6 @@ func handleDoneNodeMsg(state *nodeState, n *node) {
 	if n.VerAckReceived() && n.VersionKnown() && n.NA() != nil {
 		addrManager.Connected(n.NA())
 	}
-
-	// If we get here it means that either we didn't know about the peer
-	// or we purposefully deleted it.
 }
 
 type getNodeMsg struct {
@@ -165,14 +204,6 @@ type getNodeCountMsg struct {
 type getOutboundGroup struct {
 	key   string
 	reply chan int
-}
-
-type getSyncNodeMsg struct {
-	reply chan protocol.Noder
-}
-
-type getBestNodeMsg struct {
-	reply chan protocol.Noder
 }
 
 func handleGetNodeMsg(state *nodeState, msg getNodeMsg) {
@@ -224,39 +255,6 @@ func handleGetOutboundGroup(state *nodeState, msg getOutboundGroup) {
 	}
 }
 
-func handleGetSyncNodeMsg(state *nodeState, msg getSyncNodeMsg) {
-	sn := (protocol.Noder)(nil)
-	state.forAllNodes(func(n *node) {
-		if n.IsSyncHeaders() {
-			sn = n
-		}
-	})
-
-	msg.reply <- sn
-}
-
-func handleGetBestNodeMsg(state *nodeState, msg getBestNodeMsg) {
-	var nodes = make([]*node, 0, state.Count())
-	state.forAllNodes(func(n *node) {
-		// Do not let external node become sync node
-		if !n.IsExternal() && n.Connected() {
-			nodes = append(nodes, n)
-		}
-	})
-
-	// no node available
-	if len(nodes) < 1 {
-		msg.reply <- nil
-		return
-	}
-
-	sort.Slice(nodes, func(i, j int) bool {
-		return nodes[i].height > nodes[i].height
-	})
-
-	msg.reply <- nodes[0]
-}
-
 // nodeHandler is used to handle node operations such as adding and removing
 // nodes to and from the server, banning nodes, and broadcasting messages to
 // nodes.  It must be run in a goroutine.
@@ -280,12 +278,22 @@ out:
 	for {
 		select {
 		// New nodes connected to the server.
-		case p := <-newNodes:
-			handleAddNodeMsg(state, p)
+		case n := <-newNodes:
+			handleAddNodeMsg(state, n)
+
+			// Try to start syncing progress when get new node.
+			startSync(state)
 
 			// Disconnected nodes.
-		case p := <-doneNodes:
-			handleDoneNodeMsg(state, p)
+		case n := <-doneNodes:
+			handleDoneNodeMsg(state, n)
+
+			// Attempt to find a new peer to sync from if the quitting peer is
+			// the sync peer.
+			if syncNode == n {
+				syncNode = nil
+				startSync(state)
+			}
 
 		case qmsg := <-query:
 			switch qmsg := qmsg.(type) {
@@ -300,12 +308,6 @@ out:
 
 			case getOutboundGroup:
 				handleGetOutboundGroup(state, qmsg)
-
-			case getSyncNodeMsg:
-				handleGetSyncNodeMsg(state, qmsg)
-
-			case getBestNodeMsg:
-				handleGetBestNodeMsg(state, qmsg)
 
 			}
 
@@ -376,16 +378,4 @@ func OutboundGroupCount(key string) int {
 func IsNeighborNode(id uint64) bool {
 	_, ok := GetNeighborNode(id)
 	return ok
-}
-
-func GetSyncNode() protocol.Noder {
-	reply := make(chan protocol.Noder)
-	query <- getSyncNodeMsg{reply: reply}
-	return <-reply
-}
-
-func GetBestNode() protocol.Noder {
-	reply := make(chan protocol.Noder)
-	query <- getBestNodeMsg{reply: reply}
-	return <-reply
 }

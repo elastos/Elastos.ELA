@@ -341,7 +341,6 @@ func (pow *PowService) RollbackTransaction(v interface{}) {
 func (pow *PowService) BlockPersistCompleted(v interface{}) {
 	log.Debug()
 	if block, ok := v.(*Block); ok {
-		log.Infof("persist block: %s", block.Hash())
 		err := node.LocalNode.CleanSubmittedTransactions(block)
 		if err != nil {
 			log.Warn(err)

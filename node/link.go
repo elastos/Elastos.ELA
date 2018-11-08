@@ -12,7 +12,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	chain "github.com/elastos/Elastos.ELA/blockchain"
 	"github.com/elastos/Elastos.ELA/log"
 	"github.com/elastos/Elastos.ELA/protocol"
 
@@ -184,6 +183,14 @@ func dialTimeout(addr net.Addr) (net.Conn, error) {
 	return conn, err
 }
 
+// minVersion returns the lower version of two versions.
+func minVersion(v1, v2 uint32) uint32 {
+	if v1 < v2 {
+		return v1
+	}
+	return v2
+}
+
 func (node *node) readMessage() (p2p.Message, error) {
 	return p2p.ReadMessage(node.conn, node.magic, node.makeEmptyMessage)
 }
@@ -338,6 +345,7 @@ func (node *node) Disconnect() {
 
 	log.Debugf("Disconnecting %s", node)
 	node.conn.Close()
+	node.stallTimer.stop()
 	close(node.quit)
 }
 
@@ -429,7 +437,7 @@ func (node *node) onVersion(v *msg.Version) {
 	node.flagsMtx.Lock()
 	node.timestamp = time.Unix(int64(v.TimeStamp), 0)
 	node.id = v.Nonce
-	node.version = v.Version
+	node.version = minVersion(protocol.Version, v.Version)
 	node.services = v.Services
 	node.port = v.Port
 	node.relay = v.Relay
@@ -438,7 +446,7 @@ func (node *node) onVersion(v *msg.Version) {
 	node.flagsMtx.Unlock()
 
 	// Update message handler according to the protocol version
-	if v.Version < p2p.EIP001Version {
+	if node.version < p2p.EIP001Version {
 		node.handler = NewHandlerV0(node)
 	} else {
 		node.handler = NewHandlerEIP001(node)
@@ -508,7 +516,7 @@ func (node *node) onVerAck(verAck *msg.VerAck) {
 
 func (node *node) onPing(ping *msg.Ping) {
 	node.SetHeight(ping.Nonce)
-	node.SendMessage(msg.NewPong(uint64(chain.DefaultLedger.Store.GetHeight())))
+	node.SendMessage(msg.NewPong(uint64(store.GetHeight())))
 }
 
 func (node *node) onPong(pong *msg.Pong) {
@@ -587,26 +595,27 @@ func NewVersion(node protocol.Noder) *msg.Version {
 		TimeStamp: uint32(time.Now().Unix()),
 		Port:      node.Port(),
 		Nonce:     node.ID(),
-		Height:    uint64(chain.DefaultLedger.GetLocalBlockChainHeight()),
+		Height:    uint64(chain.BlockHeight),
 		Relay:     node.IsRelay(),
 	}
 }
 
-func SendGetBlocks(node protocol.Noder, locator []*common.Uint256, hashStop common.Uint256) {
-	if LocalNode.GetStartHash() == *locator[0] && LocalNode.GetStopHash() == hashStop {
+func (node *node) PushGetBlocksMsg(locator []*common.Uint256, hashStop *common.Uint256) {
+	if node.StartHash.IsEqual(*locator[0]) && node.StopHash.IsEqual(*hashStop) {
 		return
 	}
 
-	LocalNode.SetStartHash(*locator[0])
-	LocalNode.SetStopHash(hashStop)
-	node.SendMessage(msg.NewGetBlocks(locator, hashStop))
+	node.SendMessage(msg.NewGetBlocks(locator, *hashStop))
+	node.StartHash = *locator[0]
+	node.StopHash = *hashStop
 }
 
+// TODO this method should in blockchain, not here
 func GetBlockHashes(startHash common.Uint256, stopHash common.Uint256, maxBlockHashes uint32) ([]*common.Uint256, error) {
 	var count = uint32(0)
 	var startHeight uint32
 	var stopHeight uint32
-	curHeight := chain.DefaultLedger.Store.GetHeight()
+	curHeight := chain.BlockHeight
 	if stopHash == common.EmptyHash {
 		if startHash == common.EmptyHash {
 			if curHeight > maxBlockHashes {
@@ -615,7 +624,7 @@ func GetBlockHashes(startHash common.Uint256, stopHash common.Uint256, maxBlockH
 				count = curHeight
 			}
 		} else {
-			startHeader, err := chain.DefaultLedger.Store.GetHeader(startHash)
+			startHeader, err := chain.GetHeader(startHash)
 			if err != nil {
 				return nil, err
 			}
@@ -626,13 +635,13 @@ func GetBlockHashes(startHash common.Uint256, stopHash common.Uint256, maxBlockH
 			}
 		}
 	} else {
-		stopHeader, err := chain.DefaultLedger.Store.GetHeader(stopHash)
+		stopHeader, err := chain.GetHeader(stopHash)
 		if err != nil {
 			return nil, err
 		}
 		stopHeight = stopHeader.Height
 		if startHash != common.EmptyHash {
-			startHeader, err := chain.DefaultLedger.Store.GetHeader(startHash)
+			startHeader, err := chain.GetHeader(startHash)
 			if err != nil {
 				return nil, err
 			}
@@ -658,7 +667,7 @@ func GetBlockHashes(startHash common.Uint256, stopHash common.Uint256, maxBlockH
 
 	hashes := make([]*common.Uint256, 0)
 	for i := uint32(1); i <= count; i++ {
-		hash, err := chain.DefaultLedger.Store.GetBlockHash(startHeight + i)
+		hash, err := store.GetBlockHash(startHeight + i)
 		if err != nil {
 			return nil, err
 		}

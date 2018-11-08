@@ -406,6 +406,14 @@ func (node *node) pushAddrMsg(addresses []*p2p.NetAddress) {
 	addrs := make([]*p2p.NetAddress, 0, len(addresses))
 	for _, addr := range addresses {
 		if !node.addressKnown(addr) {
+			// If node is external, only push addresses that provide open
+			// service.
+			if node.IsExternal() {
+				if addr.Services&protocol.OpenService != protocol.OpenService {
+					continue
+				}
+				addr.Port = openPort
+			}
 			addrs = append(addrs, addr)
 		}
 	}
@@ -556,7 +564,7 @@ func (node *node) onAddr(msg *msg.Addr) {
 		return
 	}
 
-	// A addr message from external node is will be ignored.
+	// A addr message from external node will be ignored.
 	if node.IsExternal() {
 		log.Debugf("ignore [%s] from %s (external) node", msg.CMD(), node)
 		return

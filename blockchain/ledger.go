@@ -79,5 +79,4 @@ func (l *Ledger) GetTransactionWithHash(hash Uint256) (*Transaction, error) {
 //Get local block chain height.
 func (l *Ledger) GetLocalBlockChainHeight() uint32 {
 	return l.Blockchain.GetBestHeight()
-
 }

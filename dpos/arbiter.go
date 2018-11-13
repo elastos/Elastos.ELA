@@ -34,7 +34,11 @@ const (
 
 func init() {
 	config.Init()
-	log.Init(log.Path, log.Stdout)
+	log.Init(
+		config.Parameters.PrintLevel,
+		config.Parameters.MaxPerLogSize,
+		config.Parameters.MaxLogSize,
+	)
 
 	spvMaxPerLogFileSize := defaultSpvMaxPerLogFileSize
 	spvMaxLogsFolderSize := defaultSpvMaxLogsFolderSize

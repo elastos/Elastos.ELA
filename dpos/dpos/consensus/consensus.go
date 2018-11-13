@@ -10,7 +10,7 @@ import (
 	"github.com/elastos/Elastos.ELA/dpos/dpos/view"
 
 	"github.com/elastos/Elastos.ELA.Utility/p2p/peer"
-	"github.com/elastos/Elastos.ELA/dpos/log"
+	"github.com/elastos/Elastos.ELA/log"
 )
 
 const (

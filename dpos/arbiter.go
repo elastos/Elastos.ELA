@@ -15,7 +15,7 @@ import (
 	"github.com/elastos/Elastos.ELA/dpos/dpos/handler"
 	"github.com/elastos/Elastos.ELA/dpos/dpos/manager"
 	"github.com/elastos/Elastos.ELA/dpos/dpos/proposal"
-	"github.com/elastos/Elastos.ELA/dpos/log"
+	"github.com/elastos/Elastos.ELA/log"
 
 	"github.com/elastos/Elastos.ELA.Utility/common"
 	"github.com/elastos/Elastos.ELA.Utility/elalog"
@@ -34,8 +34,6 @@ const (
 
 func init() {
 	config.Init()
-	log.Init(log.Path, log.Stdout)
-
 	spvMaxPerLogFileSize := defaultSpvMaxPerLogFileSize
 	spvMaxLogsFolderSize := defaultSpvMaxLogsFolderSize
 	if config.Parameters.MaxPerLogSize > 0 {

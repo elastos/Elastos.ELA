@@ -3,7 +3,7 @@ package handler
 import (
 	"github.com/elastos/Elastos.ELA/core"
 	. "github.com/elastos/Elastos.ELA/dpos/dpos/arbitrator"
-	"github.com/elastos/Elastos.ELA/dpos/log"
+	"github.com/elastos/Elastos.ELA/log"
 
 	"github.com/elastos/Elastos.ELA.Utility/common"
 	"github.com/elastos/Elastos.ELA.Utility/p2p/msg"

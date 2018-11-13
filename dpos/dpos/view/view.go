@@ -5,7 +5,7 @@ import (
 	"time"
 
 	. "github.com/elastos/Elastos.ELA/dpos/dpos/arbitrator"
-	"github.com/elastos/Elastos.ELA/dpos/log"
+	"github.com/elastos/Elastos.ELA/log"
 )
 
 type ViewListener interface {

@@ -1,7 +1,8 @@
 package store
 
 import (
-	"github.com/elastos/Elastos.ELA/dpos/log"
+	. "github.com/elastos/Elastos.ELA/dpos/log"
+	"github.com/elastos/Elastos.ELA/log"
 )
 
 type EventRecord struct {
@@ -20,7 +21,7 @@ func (e *EventRecord) Initialize() {
 	}
 }
 
-func (e *EventRecord) OnProposalArrived(prop log.ProposalEvent) {
+func (e *EventRecord) OnProposalArrived(prop ProposalEvent) {
 	_, err := e.eventStore.AddProposalEvent(prop)
 	if err != nil {
 		log.Error("[OnProposalArrived], Add message failed:", err.Error())
@@ -28,7 +29,7 @@ func (e *EventRecord) OnProposalArrived(prop log.ProposalEvent) {
 	}
 }
 
-func (e *EventRecord) OnProposalFinished(prop log.ProposalEvent) {
+func (e *EventRecord) OnProposalFinished(prop ProposalEvent) {
 	_, err := e.eventStore.UpdateProposalEvent(prop)
 	if err != nil {
 		log.Error("[OnProposalFinished], Add message failed:", err.Error())
@@ -36,7 +37,7 @@ func (e *EventRecord) OnProposalFinished(prop log.ProposalEvent) {
 	}
 }
 
-func (e *EventRecord) OnVoteArrived(vote log.VoteEvent) {
+func (e *EventRecord) OnVoteArrived(vote VoteEvent) {
 	_, err := e.eventStore.AddVoteEvent(vote)
 	if err != nil {
 		log.Error("[OnVoteArrived], Add message failed:", err.Error())
@@ -44,7 +45,7 @@ func (e *EventRecord) OnVoteArrived(vote log.VoteEvent) {
 	}
 }
 
-func (e *EventRecord) OnViewStarted(view log.ViewEvent) {
+func (e *EventRecord) OnViewStarted(view ViewEvent) {
 	_, err := e.eventStore.AddViewEvent(view)
 	if err != nil {
 		log.Error("[OnViewStarted], Add message failed:", err.Error())
@@ -52,7 +53,7 @@ func (e *EventRecord) OnViewStarted(view log.ViewEvent) {
 	}
 }
 
-func (e *EventRecord) OnConsensusStarted(cons log.ConsensusEvent) {
+func (e *EventRecord) OnConsensusStarted(cons ConsensusEvent) {
 	id, err := e.eventStore.AddConsensusEvent(cons)
 	if err != nil {
 		log.Error("[OnConsensusStarted], Add message failed:", err.Error())
@@ -61,7 +62,7 @@ func (e *EventRecord) OnConsensusStarted(cons log.ConsensusEvent) {
 	e.currentConsensus = id
 }
 
-func (e *EventRecord) OnConsensusFinished(cons log.ConsensusEvent) {
+func (e *EventRecord) OnConsensusFinished(cons ConsensusEvent) {
 	_, err := e.eventStore.UpdateConsensusEvent(cons)
 	if err != nil {
 		log.Error("[OnConsensusFinished], Add message failed:", err.Error())

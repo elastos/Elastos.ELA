@@ -9,8 +9,9 @@ import (
 	"github.com/elastos/Elastos.ELA/dpos/arbitration/cs"
 	. "github.com/elastos/Elastos.ELA/dpos/dpos/arbitrator"
 	. "github.com/elastos/Elastos.ELA/dpos/dpos/manager"
-	"github.com/elastos/Elastos.ELA/dpos/log"
+	lg "github.com/elastos/Elastos.ELA/dpos/log"
 	"github.com/elastos/Elastos.ELA/dpos/store"
+	"github.com/elastos/Elastos.ELA/log"
 
 	"github.com/elastos/Elastos.ELA.Utility/common"
 	"github.com/elastos/Elastos.ELA.Utility/p2p/msg"
@@ -25,7 +26,7 @@ type AbnormalRecovering interface {
 type IProposalDispatcher interface {
 	AbnormalRecovering
 
-	Initialize(consensus IConsensus, eventMonitor *log.EventMonitor)
+	Initialize(consensus IConsensus, eventMonitor *lg.EventMonitor)
 
 	//status
 	GetProcessingBlock() *core.Block
@@ -85,7 +86,7 @@ type DposHandlerSwitch struct {
 	currentHandler DposEventConditionHandler
 
 	locker       sync.Locker
-	eventMonitor *log.EventMonitor
+	eventMonitor *lg.EventMonitor
 
 	isAbnormal bool
 }
@@ -99,12 +100,12 @@ func (h *DposHandlerSwitch) Initialize(dispatcher IProposalDispatcher, consensus
 	h.normalHandler = &DposNormalHandler{h}
 	h.onDutyHandler = &DposOnDutyHandler{h}
 
-	h.eventMonitor = &log.EventMonitor{}
+	h.eventMonitor = &lg.EventMonitor{}
 	h.eventMonitor.Initialize()
 
 	eventRecorder := &store.EventRecord{}
 	eventRecorder.Initialize()
-	eventLogs := &log.EventLogs{}
+	eventLogs := &lg.EventLogs{}
 
 	h.eventMonitor.RegisterListener(eventRecorder)
 	h.eventMonitor.RegisterListener(eventLogs)
@@ -112,7 +113,7 @@ func (h *DposHandlerSwitch) Initialize(dispatcher IProposalDispatcher, consensus
 	h.SwitchTo(false)
 }
 
-func (h *DposHandlerSwitch) AddListeners(listeners ...log.EventListener) {
+func (h *DposHandlerSwitch) AddListeners(listeners ...lg.EventListener) {
 	for _, l := range listeners {
 		h.eventMonitor.RegisterListener(l)
 	}
@@ -139,7 +140,7 @@ func (h *DposHandlerSwitch) StartNewProposal(p msg.DPosProposal) {
 
 	rawData := new(bytes.Buffer)
 	p.Serialize(rawData)
-	proposalEvent := log.ProposalEvent{
+	proposalEvent := lg.ProposalEvent{
 		Proposal:     p.Sponsor,
 		BlockHash:    p.BlockHash,
 		ReceivedTime: time.Now(),
@@ -152,7 +153,7 @@ func (h *DposHandlerSwitch) StartNewProposal(p msg.DPosProposal) {
 func (h *DposHandlerSwitch) ChangeView(firstBlockHash *common.Uint256) {
 	h.currentHandler.ChangeView(firstBlockHash)
 
-	viewEvent := log.ViewEvent{
+	viewEvent := lg.ViewEvent{
 		OnDutyArbitrator: h.consensus.GetOnDutyArbitrator(),
 		StartTime:        time.Now(),
 		Offset:           h.consensus.GetViewOffset(),
@@ -171,7 +172,7 @@ func (h *DposHandlerSwitch) TryStartNewConsensus(b *core.Block) bool {
 		if h.currentHandler.TryStartNewConsensus(b) {
 			rawData := new(bytes.Buffer)
 			b.Serialize(rawData)
-			c := log.ConsensusEvent{StartTime: time.Now(), Height: b.Height, RawData: rawData.Bytes()}
+			c := lg.ConsensusEvent{StartTime: time.Now(), Height: b.Height, RawData: rawData.Bytes()}
 			h.eventMonitor.OnConsensusStarted(c)
 			return true
 		}
@@ -186,7 +187,7 @@ func (h *DposHandlerSwitch) ProcessAcceptVote(p msg.DPosProposalVote) {
 
 	rawData := new(bytes.Buffer)
 	p.Serialize(rawData)
-	voteEvent := log.VoteEvent{Signer: p.Signer, ReceivedTime: time.Now(), Result: true, RawData: rawData.Bytes()}
+	voteEvent := lg.VoteEvent{Signer: p.Signer, ReceivedTime: time.Now(), Result: true, RawData: rawData.Bytes()}
 	h.eventMonitor.OnVoteArrived(voteEvent)
 }
 
@@ -195,7 +196,7 @@ func (h *DposHandlerSwitch) ProcessRejectVote(p msg.DPosProposalVote) {
 
 	rawData := new(bytes.Buffer)
 	p.Serialize(rawData)
-	voteEvent := log.VoteEvent{Signer: p.Signer, ReceivedTime: time.Now(), Result: false, RawData: rawData.Bytes()}
+	voteEvent := lg.VoteEvent{Signer: p.Signer, ReceivedTime: time.Now(), Result: false, RawData: rawData.Bytes()}
 	h.eventMonitor.OnVoteArrived(voteEvent)
 }
 

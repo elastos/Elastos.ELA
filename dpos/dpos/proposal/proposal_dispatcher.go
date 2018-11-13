@@ -9,10 +9,11 @@ import (
 	"github.com/elastos/Elastos.ELA/dpos/arbitration/cs"
 	. "github.com/elastos/Elastos.ELA/dpos/dpos/arbitrator"
 	. "github.com/elastos/Elastos.ELA/dpos/dpos/handler"
-	"github.com/elastos/Elastos.ELA/dpos/log"
+	lg "github.com/elastos/Elastos.ELA/dpos/log"
+	"github.com/elastos/Elastos.ELA/log"
 
-	msg "github.com/elastos/Elastos.ELA.Utility/p2p/msg"
-	peer "github.com/elastos/Elastos.ELA.Utility/p2p/peer"
+	"github.com/elastos/Elastos.ELA.Utility/p2p/msg"
+	"github.com/elastos/Elastos.ELA.Utility/p2p/peer"
 )
 
 type ProposalDispatcher struct {
@@ -22,11 +23,11 @@ type ProposalDispatcher struct {
 	rejectedVotes    []msg.DPosProposalVote
 	pendingProposals []msg.DPosProposal
 
-	eventMonitor *log.EventMonitor
+	eventMonitor *lg.EventMonitor
 	consensus    IConsensus
 }
 
-func (p *ProposalDispatcher) Initialize(consensus IConsensus, eventMonitor *log.EventMonitor) {
+func (p *ProposalDispatcher) Initialize(consensus IConsensus, eventMonitor *lg.EventMonitor) {
 	p.consensus = consensus
 	p.eventMonitor = eventMonitor
 }
@@ -88,7 +89,7 @@ func (p *ProposalDispatcher) StartProposal(b *core.Block) {
 
 	rawData := new(bytes.Buffer)
 	proposal.Serialize(rawData)
-	proposalEvent := log.ProposalEvent{
+	proposalEvent := lg.ProposalEvent{
 		Proposal:     proposal.Sponsor,
 		BlockHash:    proposal.BlockHash,
 		ReceivedTime: time.Now(),
@@ -123,7 +124,7 @@ func (p *ProposalDispatcher) FinishProposal() {
 	p.FinishConsensus()
 	ArbitratorSingleton.ChangeHeight()
 
-	proposalEvent := log.ProposalEvent{
+	proposalEvent := lg.ProposalEvent{
 		Proposal:  proposal,
 		BlockHash: blockHash,
 		EndTime:   time.Now(),
@@ -215,7 +216,7 @@ func (p *ProposalDispatcher) OnBlockAdded(b *core.Block) {
 
 func (p *ProposalDispatcher) FinishConsensus() {
 	log.Info("[FinishConsensus], change states to ConsensusReady")
-	c := log.ConsensusEvent{EndTime: time.Now(), Height: p.CurrentHeight()}
+	c := lg.ConsensusEvent{EndTime: time.Now(), Height: p.CurrentHeight()}
 	p.eventMonitor.OnConsensusFinished(c)
 	p.consensus.SetReady()
 	p.CleanProposals()
@@ -318,7 +319,7 @@ func (p *ProposalDispatcher) acceptProposal(d msg.DPosProposal) {
 
 	rawData := new(bytes.Buffer)
 	vote.Serialize(rawData)
-	voteEvent := log.VoteEvent{Signer: vote.Signer, ReceivedTime: time.Now(), Result: true, RawData: rawData.Bytes()}
+	voteEvent := lg.VoteEvent{Signer: vote.Signer, ReceivedTime: time.Now(), Result: true, RawData: rawData.Bytes()}
 	p.eventMonitor.OnVoteArrived(voteEvent)
 }
 
@@ -338,6 +339,6 @@ func (p *ProposalDispatcher) rejectProposal(d msg.DPosProposal) {
 
 	rawData := new(bytes.Buffer)
 	vote.Serialize(rawData)
-	voteEvent := log.VoteEvent{Signer: vote.Signer, ReceivedTime: time.Now(), Result: false, RawData: rawData.Bytes()}
+	voteEvent := lg.VoteEvent{Signer: vote.Signer, ReceivedTime: time.Now(), Result: false, RawData: rawData.Bytes()}
 	p.eventMonitor.OnVoteArrived(voteEvent)
 }

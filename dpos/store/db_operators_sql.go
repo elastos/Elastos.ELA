@@ -5,7 +5,7 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 
 	"errors"
-	"github.com/elastos/Elastos.ELA/dpos/log"
+	"github.com/elastos/Elastos.ELA/log"
 )
 
 type SqlDBOperator struct {

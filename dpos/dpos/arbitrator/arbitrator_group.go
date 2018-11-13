@@ -1,6 +1,6 @@
 package arbitrator
 
-import "github.com/elastos/Elastos.ELA/dpos/log"
+import "github.com/elastos/Elastos.ELA/log"
 
 var ArbitratorGroupSingleton ArbitratorGroup
 

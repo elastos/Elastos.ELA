@@ -568,8 +568,8 @@ func notifyHooks(b *Block){
 	jsonVal , _ := json.Marshal(param)
 	for _ , v := range webhooks {
 		resp , _ := http.Post(v,"application/json",bytes.NewBuffer(jsonVal))
-		if resp.StatusCode != 200 {
-			log.Errorf("Error notify hook %s , status=%s \n", v , resp.Status)
+		if !(resp != nil && resp.StatusCode == 200) {
+			log.Errorf("Error notify hook %s \n", v)
 		}
 	}
 }

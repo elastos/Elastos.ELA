@@ -96,6 +96,7 @@ type Configuration struct {
 	MaxBlockSize        int              `json:"MaxBlockSize"`
 	PowConfiguration    PowConfiguration `json:"PowConfiguration"`
 	Arbiters            []string         `json:"Arbiters"`
+	Webhooks			[]string	     `json:"Webhooks"`
 }
 
 type ConfigFile struct {

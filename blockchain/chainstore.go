@@ -3,7 +3,10 @@ package blockchain
 import (
 	"bytes"
 	"container/list"
+	"encoding/json"
 	"errors"
+	"github.com/elastos/Elastos.ELA/config"
+	"net/http"
 	"sync"
 	"time"
 
@@ -20,6 +23,8 @@ const ValueExist = 1
 const TaskChanCap = 4
 
 type persistTask interface{}
+
+var hooklock sync.Mutex
 
 type rollbackBlockTask struct {
 	blockHash Uint256
@@ -550,8 +555,23 @@ func (c *ChainStore) SaveBlock(b *Block) error {
 	reply := make(chan bool)
 	c.taskCh <- &persistBlockTask{block: b, reply: reply}
 	<-reply
-
+	go notifyHooks(b)
 	return nil
+}
+
+func notifyHooks(b *Block){
+	hooklock.Lock()
+	defer hooklock.Unlock()
+	bestHeight := b.Height
+	webhooks := config.Parameters.Webhooks
+	param := map[string]interface{}{"height":bestHeight}
+	jsonVal , _ := json.Marshal(param)
+	for _ , v := range webhooks {
+		resp , _ := http.Post(v,"application/json",bytes.NewBuffer(jsonVal))
+		if resp.StatusCode != 200 {
+			log.Errorf("Error notify hook %s , status=%s \n", v , resp.Status)
+		}
+	}
 }
 
 func (c *ChainStore) handleRollbackBlockTask(blockHash Uint256) {

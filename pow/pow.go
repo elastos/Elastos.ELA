@@ -235,11 +235,12 @@ func (pow *PowService) DiscreteMining(n uint32) ([]*common.Uint256, error) {
 		}
 
 		if pow.SolveBlock(msgBlock) {
+			log.Info("<================Solved Block==============>")
 			if msgBlock.Header.Height == DefaultLedger.Blockchain.GetBestHeight()+1 {
 				inMainChain, isOrphan, err := DefaultLedger.Blockchain.AddBlock(msgBlock)
 				if err != nil {
-					log.Debug(err)
-					continue
+					log.Debug("pow add block error:", err)
+					return nil, err
 				}
 				//TODO if co-mining condition
 				if isOrphan || !inMainChain {
@@ -391,8 +392,8 @@ out:
 			if msgBlock.Header.Height == DefaultLedger.Blockchain.GetBestHeight()+1 {
 				inMainChain, isOrphan, err := DefaultLedger.Blockchain.AddBlock(msgBlock)
 				if err != nil {
-					log.Debug(err)
-					continue
+					log.Debug("pow add block error:", err)
+					break out
 				}
 				//TODO if co-mining condition
 				if isOrphan || !inMainChain {

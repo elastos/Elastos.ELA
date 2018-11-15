@@ -49,7 +49,7 @@ func (p *DPosProposal) IsValid() bool {
 
 func (p *DPosProposal) Data() []byte {
 	buf := new(bytes.Buffer)
-	if err := p.Serialize(buf); err != nil {
+	if err := p.SerializeUnsigned(buf); err != nil {
 		return []byte{0}
 	}
 

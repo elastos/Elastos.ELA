@@ -20,7 +20,7 @@ type DPosProposalVote struct {
 
 func (v *DPosProposalVote) Data() []byte {
 	buf := new(bytes.Buffer)
-	if err := v.Serialize(buf); err != nil {
+	if err := v.SerializeUnsigned(buf); err != nil {
 		return []byte{0}
 	}
 

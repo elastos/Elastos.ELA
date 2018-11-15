@@ -77,7 +77,7 @@ func (p *ProposalDispatcher) StartProposal(b *core.Block) {
 	var err error
 	proposal.Sign, err = proposal.SignProposal()
 	if err != nil {
-		log.Info("[StartProposal] start proposal failed:", err.Error())
+		log.Error("[StartProposal] start proposal failed:", err.Error())
 		return
 	}
 
@@ -325,6 +325,7 @@ func (p *ProposalDispatcher) acceptProposal(d core.DPosProposal) {
 	vote.Sign, err = vote.SignVote()
 	if err != nil {
 		log.Error("[acceptProposal] sign failed")
+		return
 	}
 	voteMsg := &cs.VoteMessage{Command: cs.AcceptVote, Vote: vote}
 	p.ProcessVote(vote, true)
@@ -343,6 +344,7 @@ func (p *ProposalDispatcher) rejectProposal(d core.DPosProposal) {
 	vote.Sign, err = vote.SignVote()
 	if err != nil {
 		log.Error("[rejectProposal] sign failed")
+		return
 	}
 	msg := &cs.VoteMessage{Command: cs.RejectVote, Vote: vote}
 	log.Info("[rejectProposal] send rej_vote msg:", cs.P2PClientSingleton.GetMessageHash(msg))

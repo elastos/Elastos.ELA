@@ -450,8 +450,8 @@ func TestCheckTransactionBalance(t *testing.T) {
 		{Previous: *core.NewOutPoint(deposit.Hash(), 0)},
 	}
 	//tx.Outputs = []*core.Output{
-	//	{AssetID: DefaultLedger.Blockchain.AssetID, ProgramHash: FoundationAddress, Value: common.Fixed64(-20 * ELA)},
-	//	{AssetID: DefaultLedger.Blockchain.AssetID, ProgramHash: common.Uint168{}, Value: common.Fixed64(-60 * ELA)},
+	//	{AssetID: DefaultLedger.BlockChain.AssetID, ProgramHash: FoundationAddress, Value: common.Fixed64(-20 * ELA)},
+	//	{AssetID: DefaultLedger.BlockChain.AssetID, ProgramHash: common.Uint168{}, Value: common.Fixed64(-60 * ELA)},
 	//}
 	//references, _ = DefaultLedger.Store.GetTxReference(tx)
 	//err = CheckTransactionFee(tx, references)

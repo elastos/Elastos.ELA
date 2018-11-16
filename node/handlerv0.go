@@ -201,7 +201,7 @@ func (h *HandlerV0) onBlock(msgBlock *msg.Block) error {
 		return fmt.Errorf("receive invalid block %s, err: %s", hash.String(), err.Error())
 	}
 
-	//_, isOrphan, err := chain.DefaultLedger.Blockchain.AddBlock(block)
+	//_, isOrphan, err := chain.DefaultLedger.BlockChain.AddBlock(block)
 	//if err != nil {
 	//	return fmt.Errorf("Block add failed: %s ,block hash %s ", err.Error(), hash.String())
 	//}
@@ -214,8 +214,8 @@ func (h *HandlerV0) onBlock(msgBlock *msg.Block) error {
 		}
 
 		//if isOrphan && !LocalNode.IsRequestedBlock(hash) {
-		//	orphanRoot := chain.DefaultLedger.Blockchain.GetOrphanRoot(&hash)
-		//	locator, _ := chain.DefaultLedger.Blockchain.LatestBlockLocator()
+		//	orphanRoot := chain.DefaultLedger.BlockChain.GetOrphanRoot(&hash)
+		//	locator, _ := chain.DefaultLedger.BlockChain.LatestBlockLocator()
 		//	SendGetBlocks(node, locator, *orphanRoot)
 		//}
 	}

@@ -193,7 +193,7 @@ func (c *ChainStore) InitWithGenesisBlock(genesisBlock *Block) (uint32, error) {
 		DefaultLedger.Blockchain.BestChain = node
 
 	}
-	//c.ledger.Blockchain.DumpState()
+	//c.ledger.BlockChain.DumpState()
 
 	return c.currentBlockHeight, nil
 

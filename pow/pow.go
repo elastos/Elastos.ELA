@@ -269,7 +269,7 @@ func (pow *PowService) SolveBlock(MsgBlock *Block) bool {
 	for i := uint32(0); i <= maxNonce; i++ {
 		select {
 		case <-ticker.C:
-			// if !MsgBlock.Header.Previous.IsEqual(*DefaultLedger.Blockchain.BestChain.Hash) {
+			// if !MsgBlock.Header.Previous.IsEqual(*DefaultLedger.BlockChain.BestChain.Hash) {
 			// 	return false
 			// }
 			return false

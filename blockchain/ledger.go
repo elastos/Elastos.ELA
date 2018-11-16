@@ -18,7 +18,7 @@ type NewBlocksListener interface {
 
 // Ledger - the struct for ledger
 type Ledger struct {
-	Blockchain *Blockchain
+	Blockchain *BlockChain
 	Store      IChainStore
 }
 

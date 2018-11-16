@@ -32,7 +32,7 @@ var (
 	oneLsh256 = new(big.Int).Lsh(big.NewInt(1), 256)
 )
 
-type Blockchain struct {
+type BlockChain struct {
 	BlockHeight       uint32
 	GenesisHash       Uint256
 	BestChain         *BlockNode
@@ -53,8 +53,8 @@ type Blockchain struct {
 	NewBlocksListener NewBlocksListener
 }
 
-func NewBlockchain(height uint32) *Blockchain {
-	return &Blockchain{
+func NewBlockchain(height uint32) *BlockChain {
+	return &BlockChain{
 		BlockHeight:  height,
 		Root:         nil,
 		BestChain:    nil,
@@ -74,7 +74,7 @@ func NewBlockchain(height uint32) *Blockchain {
 func Init(store IChainStore) error {
 	genesisBlock, err := GetGenesisBlock()
 	if err != nil {
-		return errors.New("[Blockchain], NewBlockchainWithGenesisBlock failed.")
+		return errors.New("[BlockChain], NewBlockchainWithGenesisBlock failed.")
 	}
 
 	DefaultLedger = new(Ledger)
@@ -83,7 +83,7 @@ func Init(store IChainStore) error {
 	DefaultLedger.Blockchain.AssetID = genesisBlock.Transactions[0].Outputs[0].AssetID
 	height, err := DefaultLedger.Store.InitWithGenesisBlock(genesisBlock)
 	if err != nil {
-		return errors.New("[Blockchain], InitLevelDBStoreWithGenesisBlock failed.")
+		return errors.New("[BlockChain], InitLevelDBStoreWithGenesisBlock failed.")
 	}
 
 	DefaultLedger.Blockchain.UpdateBestHeight(height)
@@ -170,17 +170,17 @@ func NewCoinBaseTransaction(coinBasePayload *PayloadCoinBase, currentHeight uint
 	}
 }
 
-func (b *Blockchain) GetBestHeight() uint32 {
+func (b *BlockChain) GetBestHeight() uint32 {
 	b.mutex.RLock()
 	defer b.mutex.RUnlock()
 	return b.BlockHeight
 }
 
-func (b *Blockchain) UpdateBestHeight(val uint32) {
+func (b *BlockChain) UpdateBestHeight(val uint32) {
 	b.BlockHeight = val
 }
 
-func (b *Blockchain) AddBlock(block *Block) (bool, bool, error) {
+func (b *BlockChain) AddBlock(block *Block) (bool, bool, error) {
 	log.Debug()
 	b.mutex.Lock()
 	defer b.mutex.Unlock()
@@ -193,15 +193,15 @@ func (b *Blockchain) AddBlock(block *Block) (bool, bool, error) {
 	return inMainChain, isOrphan, nil
 }
 
-func (b *Blockchain) GetHeader(hash Uint256) (*Header, error) {
+func (b *BlockChain) GetHeader(hash Uint256) (*Header, error) {
 	header, err := DefaultLedger.Store.GetHeader(hash)
 	if err != nil {
-		return nil, errors.New("[Blockchain], GetHeader failed.")
+		return nil, errors.New("[BlockChain], GetHeader failed.")
 	}
 	return header, nil
 }
 
-func (b *Blockchain) ContainsTransaction(hash Uint256) bool {
+func (b *BlockChain) ContainsTransaction(hash Uint256) bool {
 	//TODO: implement error catch
 	_, _, err := DefaultLedger.Store.GetTransaction(hash)
 	if err != nil {
@@ -210,7 +210,7 @@ func (b *Blockchain) ContainsTransaction(hash Uint256) bool {
 	return true
 }
 
-func (b *Blockchain) CurrentBlockHash() Uint256 {
+func (b *BlockChain) CurrentBlockHash() Uint256 {
 	return DefaultLedger.Store.GetCurrentBlockHash()
 }
 
@@ -219,7 +219,7 @@ type OrphanBlock struct {
 	Expiration time.Time
 }
 
-func (b *Blockchain) ProcessOrphans(hash *Uint256) error {
+func (b *BlockChain) ProcessOrphans(hash *Uint256) error {
 	processHashes := make([]*Uint256, 0, 10)
 	processHashes = append(processHashes, hash)
 	for len(processHashes) > 0 {
@@ -249,7 +249,7 @@ func (b *Blockchain) ProcessOrphans(hash *Uint256) error {
 	return nil
 }
 
-func (b *Blockchain) RemoveOrphanBlock(orphan *OrphanBlock) {
+func (b *BlockChain) RemoveOrphanBlock(orphan *OrphanBlock) {
 	b.OrphanLock.Lock()
 	defer b.OrphanLock.Unlock()
 
@@ -278,7 +278,7 @@ func (b *Blockchain) RemoveOrphanBlock(orphan *OrphanBlock) {
 	}
 }
 
-func (b *Blockchain) AddOrphanBlock(block *Block) {
+func (b *BlockChain) AddOrphanBlock(block *Block) {
 	for _, oBlock := range b.Orphans {
 		if time.Now().After(oBlock.Expiration) {
 			b.RemoveOrphanBlock(oBlock)
@@ -314,7 +314,7 @@ func (b *Blockchain) AddOrphanBlock(block *Block) {
 	return
 }
 
-func (b *Blockchain) IsKnownOrphan(hash *Uint256) bool {
+func (b *BlockChain) IsKnownOrphan(hash *Uint256) bool {
 	b.OrphanLock.RLock()
 	defer b.OrphanLock.RUnlock()
 
@@ -325,7 +325,7 @@ func (b *Blockchain) IsKnownOrphan(hash *Uint256) bool {
 	return false
 }
 
-func (b *Blockchain) GetOrphanRoot(hash *Uint256) *Uint256 {
+func (b *BlockChain) GetOrphanRoot(hash *Uint256) *Uint256 {
 	b.OrphanLock.RLock()
 	defer b.OrphanLock.RUnlock()
 
@@ -436,7 +436,7 @@ func RemoveChildNode(children []*BlockNode, node *BlockNode) []*BlockNode {
 
 }
 
-func (b *Blockchain) LoadBlockNode(blockHeader *Header, hash *Uint256) (*BlockNode, error) {
+func (b *BlockChain) LoadBlockNode(blockHeader *Header, hash *Uint256) (*BlockNode, error) {
 
 	// Create the new block node for the block and set the work.
 	node := NewBlockNode(blockHeader, hash)
@@ -498,7 +498,7 @@ func (b *Blockchain) LoadBlockNode(blockHeader *Header, hash *Uint256) (*BlockNo
 	return node, nil
 }
 
-func (b *Blockchain) PruneBlockNodes() error {
+func (b *BlockChain) PruneBlockNodes() error {
 	if b.BestChain == nil {
 		return nil
 	}
@@ -534,7 +534,7 @@ func (b *Blockchain) PruneBlockNodes() error {
 	return nil
 }
 
-func (b *Blockchain) RemoveBlockNode(node *BlockNode) error {
+func (b *BlockChain) RemoveBlockNode(node *BlockNode) error {
 	if node.Parent != nil {
 		return fmt.Errorf("RemoveBlockNode must be called with a "+
 			" node at the front of the chain - node %v", node.Hash)
@@ -572,7 +572,7 @@ func (b *Blockchain) RemoveBlockNode(node *BlockNode) error {
 // block chain, it simply returns it.  Otherwise, it loads the previous block
 // from the block database, creates a new block node from it, and returns it.
 // The returned node will be nil if the genesis block is passed.
-func (b *Blockchain) GetPrevNodeFromBlock(block *Block) (*BlockNode, error) {
+func (b *BlockChain) GetPrevNodeFromBlock(block *Block) (*BlockNode, error) {
 	// Genesis block.
 	prevHash := block.Header.Previous
 	if prevHash.IsEqual(EmptyHash) {
@@ -603,7 +603,7 @@ func (b *Blockchain) GetPrevNodeFromBlock(block *Block) (*BlockNode, error) {
 // to dynamically create a new block node and return it.  The memory block
 // chain is updated accordingly.  The returned node will be nil if the genesis
 // block is passed.
-func (b *Blockchain) GetPrevNodeFromNode(node *BlockNode) (*BlockNode, error) {
+func (b *BlockChain) GetPrevNodeFromNode(node *BlockNode) (*BlockNode, error) {
 	// Return the existing previous block node if it's already there.
 	if node.Parent != nil {
 		return node.Parent, nil
@@ -633,7 +633,7 @@ func (b *Blockchain) GetPrevNodeFromNode(node *BlockNode) (*BlockNode, error) {
 // returned list of block nodes) in order to reorganize the chain such that the
 // passed node is the new end of the main chain.  The lists will be empty if the
 // passed node is not on a side chain.
-func (b *Blockchain) GetReorganizeNodes(node *BlockNode) (*list.List, *list.List) {
+func (b *BlockChain) GetReorganizeNodes(node *BlockNode) (*list.List, *list.List) {
 	// Nothing to detach or attach if there is no node.
 	attachNodes := list.New()
 	detachNodes := list.New()
@@ -679,7 +679,7 @@ func (b *Blockchain) GetReorganizeNodes(node *BlockNode) (*list.List, *list.List
 // disconnected must be in reverse order (think of popping them off
 // the end of the chain) and nodes the are being attached must be in forwards
 // order (think pushing them onto the end of the chain).
-func (b *Blockchain) ReorganizeChain(detachNodes, attachNodes *list.List) error {
+func (b *BlockChain) ReorganizeChain(detachNodes, attachNodes *list.List) error {
 	// Ensure all of the needed side chain blocks are in the cache.
 	for e := attachNodes.Front(); e != nil; e = e.Next() {
 		n := e.Value.(*BlockNode)
@@ -753,7 +753,7 @@ func (b *Blockchain) ReorganizeChain(detachNodes, attachNodes *list.List) error 
 
 //// disconnectBlock handles disconnecting the passed node/block from the end of
 //// the main (best) chain.
-func (b *Blockchain) DisconnectBlock(node *BlockNode, block *Block) error {
+func (b *BlockChain) DisconnectBlock(node *BlockNode, block *Block) error {
 	// Make sure the node being disconnected is the end of the best chain.
 	if b.BestChain == nil || !node.Hash.IsEqual(*b.BestChain.Hash) {
 		return fmt.Errorf("disconnectBlock must be called with the " +
@@ -788,7 +788,7 @@ func (b *Blockchain) DisconnectBlock(node *BlockNode, block *Block) error {
 
 // connectBlock handles connecting the passed node/block to the end of the main
 // (best) chain.
-func (b *Blockchain) ConnectBlock(node *BlockNode, block *Block) error {
+func (b *BlockChain) ConnectBlock(node *BlockNode, block *Block) error {
 
 	err := CheckBlockContext(block)
 	if err != nil {
@@ -829,7 +829,7 @@ func (b *Blockchain) ConnectBlock(node *BlockNode, block *Block) error {
 	return nil
 }
 
-func (b *Blockchain) BlockExists(hash *Uint256) bool {
+func (b *BlockChain) BlockExists(hash *Uint256) bool {
 	// Check memory chain first (could be main chain or side chain blocks).
 	//if _, ok := b.Index[*hash]; ok {
 	if _, ok := b.LookupNodeInIndex(hash); ok {
@@ -840,7 +840,7 @@ func (b *Blockchain) BlockExists(hash *Uint256) bool {
 	return DefaultLedger.BlockInLedger(*hash)
 }
 
-func (b *Blockchain) maybeAcceptBlock(block *Block) (bool, error) {
+func (b *BlockChain) maybeAcceptBlock(block *Block) (bool, error) {
 
 	// Get a block node for the block previous to this one.  Will be nil
 	// if this is the genesis block.
@@ -902,7 +902,7 @@ func (b *Blockchain) maybeAcceptBlock(block *Block) (bool, error) {
 	return inMainChain, nil
 }
 
-func (b *Blockchain) ConnectBestChain(node *BlockNode, block *Block) (bool, error) {
+func (b *BlockChain) ConnectBestChain(node *BlockNode, block *Block) (bool, error) {
 	// We haven't selected a best chain yet or we are extending the main
 	// (best) chain with a new block.  This is the most common case.
 
@@ -1002,7 +1002,7 @@ func (b *Blockchain) ConnectBestChain(node *BlockNode, block *Block) (bool, erro
 //1. inMainChain
 //2. isOphan
 //3. error
-func (b *Blockchain) ProcessBlock(block *Block) (bool, bool, error) {
+func (b *BlockChain) ProcessBlock(block *Block) (bool, bool, error) {
 	blockHash := block.Hash()
 	log.Debugf("[ProcessBLock] height = %d, hash = %x", block.Header.Height, blockHash.Bytes())
 
@@ -1063,7 +1063,7 @@ func (b *Blockchain) ProcessBlock(block *Block) (bool, bool, error) {
 	return inMainChain, false, nil
 }
 
-func (b *Blockchain) DumpState() {
+func (b *BlockChain) DumpState() {
 	log.Info("BestChain=", b.BestChain.Hash)
 	log.Info("ChainRoot=", b.Root.Hash)
 	//log.Debug("b.Index=", b.Index)
@@ -1095,7 +1095,7 @@ func DumpBlockNode(node *BlockNode) {
 	log.Debug("---------------------")
 }
 
-func (b *Blockchain) LatestBlockLocator() ([]*Uint256, error) {
+func (b *BlockChain) LatestBlockLocator() ([]*Uint256, error) {
 	b.mutex.RLock()
 	defer b.mutex.RUnlock()
 	if b.BestChain == nil {
@@ -1111,20 +1111,20 @@ func (b *Blockchain) LatestBlockLocator() ([]*Uint256, error) {
 	return b.blockLocatorFromHash(b.BestChain.Hash), nil
 }
 
-func (b *Blockchain) AddNodeToIndex(node *BlockNode) {
+func (b *BlockChain) AddNodeToIndex(node *BlockNode) {
 	b.IndexLock.Lock()
 	defer b.IndexLock.Unlock()
 
 	b.Index[*node.Hash] = node
 }
 
-func (b *Blockchain) RemoveNodeFromIndex(node *BlockNode) {
+func (b *BlockChain) RemoveNodeFromIndex(node *BlockNode) {
 	b.IndexLock.Lock()
 	defer b.IndexLock.Unlock()
 	delete(b.Index, *node.Hash)
 }
 
-func (b *Blockchain) LookupNodeInIndex(hash *Uint256) (*BlockNode, bool) {
+func (b *BlockChain) LookupNodeInIndex(hash *Uint256) (*BlockNode, bool) {
 	b.IndexLock.Lock()
 	defer b.IndexLock.Unlock()
 	node, exist := b.Index[*hash]
@@ -1132,12 +1132,12 @@ func (b *Blockchain) LookupNodeInIndex(hash *Uint256) (*BlockNode, bool) {
 	return node, exist
 }
 
-func (b *Blockchain) BlockLocatorFromHash(inhash *Uint256) []*Uint256 {
+func (b *BlockChain) BlockLocatorFromHash(inhash *Uint256) []*Uint256 {
 	b.mutex.RLock()
 	defer b.mutex.RUnlock()
 	return b.blockLocatorFromHash(inhash)
 }
-func (b *Blockchain) blockLocatorFromHash(inhash *Uint256) []*Uint256 {
+func (b *BlockChain) blockLocatorFromHash(inhash *Uint256) []*Uint256 {
 	// The locator contains the requested hash at the very least.
 	var hash Uint256
 	copy(hash[:], inhash[:])
@@ -1203,7 +1203,7 @@ func (b *Blockchain) blockLocatorFromHash(inhash *Uint256) []*Uint256 {
 	return locator
 }
 
-func (b *Blockchain) LatestLocatorHash(locator []*Uint256) *Uint256 {
+func (b *BlockChain) LatestLocatorHash(locator []*Uint256) *Uint256 {
 	var startHash Uint256
 	for _, hash := range locator {
 		_, err := DefaultLedger.Store.GetBlock(*hash)
@@ -1215,7 +1215,7 @@ func (b *Blockchain) LatestLocatorHash(locator []*Uint256) *Uint256 {
 	return &startHash
 }
 
-func (b *Blockchain) MedianAdjustedTime() time.Time {
+func (b *BlockChain) MedianAdjustedTime() time.Time {
 	newTimestamp := b.TimeSource.AdjustedTime()
 	minTimestamp := b.MedianTimePast.Add(time.Second)
 

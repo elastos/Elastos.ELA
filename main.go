@@ -62,7 +62,7 @@ func startConsensus() {
 }
 
 func main() {
-	//var blockChain *ledger.Blockchain
+	//var blockChain *ledger.BlockChain
 	var err error
 	var noder protocol.Noder
 	log.Info("Node version: ", config.Version)

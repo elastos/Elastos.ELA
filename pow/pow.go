@@ -153,7 +153,7 @@ func (pow *PowService) GenerateBlock(minerAddr string) (*Block, error) {
 	txCount := 1
 	totalTxFee := common.Fixed64(0)
 	var txsByFeeDesc byFeeDesc
-	txsInPool := node.LocalNode.GetTransactionPool(false)
+	txsInPool := node.LocalNode.GetTxsInPool()
 	txsByFeeDesc = make([]*Transaction, 0, len(txsInPool))
 	for _, v := range txsInPool {
 		txsByFeeDesc = append(txsByFeeDesc, v)
@@ -346,21 +346,6 @@ func (pow *PowService) BlockPersistCompleted(v interface{}) {
 	}
 }
 
-func NewPowService() *PowService {
-	pow := &PowService{
-		PayToAddr:      config.Parameters.PowConfiguration.PayToAddr,
-		Started:        false,
-		discreteMining: false,
-		AuxBlockPool:   auxBlockPool{mapNewBlock: make(map[common.Uint256]*Block)},
-	}
-
-	pow.blockPersistCompletedSubscriber = DefaultLedger.Blockchain.BCEvents.Subscribe(events.EventBlockPersistCompleted, pow.BlockPersistCompleted)
-	pow.RollbackTransactionSubscriber = DefaultLedger.Blockchain.BCEvents.Subscribe(events.EventRollbackTransaction, pow.RollbackTransaction)
-
-	log.Debug("pow Service Init succeed")
-	return pow
-}
-
 func (pow *PowService) cpuMining() {
 
 out:
@@ -401,4 +386,40 @@ out:
 	}
 
 	pow.wg.Done()
+}
+
+func NewPowService() *PowService {
+	pow := &PowService{
+		PayToAddr:      config.Parameters.PowConfiguration.PayToAddr,
+		Started:        false,
+		discreteMining: false,
+		AuxBlockPool:   auxBlockPool{mapNewBlock: make(map[common.Uint256]*Block)},
+	}
+
+	// TODO move into handle notification method.
+	//pow.blockPersistCompletedSubscriber = DefaultLedger.Blockchain.BCEvents.Subscribe(events.EventBlockPersistCompleted, pow.BlockPersistCompleted)
+	//pow.RollbackTransactionSubscriber = DefaultLedger.Blockchain.BCEvents.Subscribe(events.EventRollbackTransaction, pow.RollbackTransaction)
+
+	log.Debug("pow Service Init succeed")
+	return pow
+}
+
+func NewCoinBaseTransaction(coinBasePayload *PayloadCoinBase, currentHeight uint32) *Transaction {
+	return &Transaction{
+		TxType:         CoinBase,
+		PayloadVersion: PayloadCoinBaseVersion,
+		Payload:        coinBasePayload,
+		Inputs: []*Input{
+			{
+				Previous: OutPoint{
+					TxID:  common.EmptyHash,
+					Index: 0x0000,
+				},
+				Sequence: 0x00000000,
+			},
+		},
+		Attributes: []*Attribute{},
+		LockTime:   currentHeight,
+		Programs:   []*Program{},
+	}
 }

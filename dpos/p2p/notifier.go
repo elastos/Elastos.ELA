@@ -20,10 +20,12 @@ const (
 )
 
 var nfStrings = map[NotifyFlag]string{
+	NFNetStabled: "NFNetStabled",
 	NFBadNetwork: "NFBadNetwork",
 }
 
 var orderedNfStrings = []NotifyFlag{
+	NFNetStabled,
 	NFBadNetwork,
 }
 

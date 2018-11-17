@@ -199,7 +199,7 @@ func (c *ChainStore) InitWithGenesisBlock(genesisBlock *Block) (uint32, error) {
 
 }
 
-func (c *ChainStore) IsTxHashDuplicate(txhash Uint256) bool {
+func (c *ChainStore) IsDuplicateTx(txhash Uint256) bool {
 	prefix := []byte{byte(DATA_Transaction)}
 	_, err := c.Get(append(prefix, txhash.Bytes()...))
 	if err != nil {

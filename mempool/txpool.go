@@ -6,14 +6,18 @@ import (
 	"fmt"
 	"sync"
 
-	. "github.com/elastos/Elastos.ELA.Utility/common"
 	"github.com/elastos/Elastos.ELA/blockchain"
 	"github.com/elastos/Elastos.ELA/config"
 	. "github.com/elastos/Elastos.ELA/core"
 	. "github.com/elastos/Elastos.ELA/errors"
-	"github.com/elastos/Elastos.ELA/events"
-	"github.com/elastos/Elastos.ELA/log"
+
+	. "github.com/elastos/Elastos.ELA.Utility/common"
 )
+
+// ruleError creates an RuleError given a set of arguments.
+func ruleError(c ErrCode, desc string) RuleError {
+	return RuleError{ErrorCode: c, Description: desc}
+}
 
 type TxPool struct {
 	sync.RWMutex
@@ -24,87 +28,82 @@ type TxPool struct {
 	sidechainTxList map[Uint256]*Transaction // sidechain tx pool
 }
 
-func (pool *TxPool) Init() {
-	pool.Lock()
-	defer pool.Unlock()
-	pool.txnCnt = 0
-	pool.inputUTXOList = make(map[string]*Transaction)
+func (p *TxPool) Init() {
+	p.Lock()
+	defer p.Unlock()
+	p.txnCnt = 0
+	p.inputUTXOList = make(map[string]*Transaction)
 	//pool.issueSummary = make(map[Uint256]Fixed64)
-	pool.txnList = make(map[Uint256]*Transaction)
-	pool.sidechainTxList = make(map[Uint256]*Transaction)
+	p.txnList = make(map[Uint256]*Transaction)
+	p.sidechainTxList = make(map[Uint256]*Transaction)
 }
 
 //append transaction to txnpool when check ok.
 //1.check  2.check with ledger(db) 3.check with pool
-func (pool *TxPool) AppendToTxnPool(txn *Transaction) ErrCode {
-
+func (p *TxPool) AppendToTxPool(txn *Transaction) error {
 	if txn.IsCoinBaseTx() {
-		log.Warn("coinbase cannot be added into transaction pool", txn.Hash().String())
-		return ErrIneffectiveCoinbase
+		errMsg := fmt.Sprintf("coinbase cannot be added into transaction"+
+			" pool", txn.Hash().String())
+		return ruleError(ErrIneffectiveCoinbase, errMsg)
 	}
 
 	//verify transaction with Concurrency
-	if errCode := blockchain.CheckTransactionSanity(CheckTxOut, txn); errCode != Success {
-		log.Warn("[TxPool CheckTransactionSanity] failed", txn.Hash().String())
-		return errCode
+	if err := blockchain.CheckTransactionSanity(CheckTxOut, txn); err != nil {
+		return err
 	}
-	if errCode := blockchain.CheckTransactionContext(txn); errCode != Success {
-		log.Warn("[TxPool CheckTransactionContext] failed", txn.Hash().String())
-		return errCode
+	if err := blockchain.CheckTransactionContext(txn); err != nil {
+		return err
 	}
 	//verify transaction by pool with lock
-	if errCode := pool.verifyTransactionWithTxnPool(txn); errCode != Success {
-		log.Warn("[TxPool verifyTransactionWithTxnPool] failed", txn.Hash())
-		return errCode
+	if err := p.verifyTransactionWithTxnPool(txn); err != nil {
+		return err
 	}
 
-	txn.Fee = blockchain.GetTxFee(txn, blockchain.DefaultLedger.Blockchain.AssetID)
+	txn.Fee = blockchain.GetTxFee(txn, config.ELAAssetID)
 	buf := new(bytes.Buffer)
 	txn.Serialize(buf)
 	txn.FeePerKB = txn.Fee * 1000 / Fixed64(len(buf.Bytes()))
 	//add the transaction to process scope
-	if ok := pool.addToTxList(txn); !ok {
+	if ok := p.addToTxList(txn); !ok {
 		// reject duplicated transaction
-		log.Debugf("Transaction duplicate %s", txn.Hash().String())
-		return ErrTransactionDuplicate
+		errMsg := fmt.Sprintf("Transaction duplicate %s", txn.Hash().String())
+		return ruleError(ErrTransactionDuplicate, errMsg)
 	}
-	return Success
+	return nil
 }
 
-//get the transaction in txnpool
-func (pool *TxPool) GetTransactionPool(hasMaxCount bool) map[Uint256]*Transaction {
-	pool.RLock()
-	count := config.Parameters.MaxTxsInBlock
-	if count <= 0 {
-		hasMaxCount = false
+// HaveTransaction returns if a transaction is in transaction pool by the given
+// transaction id. If no transaction match the transaction id, return false
+func (p *TxPool) HaveTransaction(txId Uint256) bool {
+	p.RLock()
+	defer p.RUnlock()
+	_, ok := p.txnList[txId]
+	return ok
+}
+
+// GetTxsInPool returns a copy of the transactions in transaction pool,
+// It is safe to modify the returned map.
+func (p *TxPool) GetTxsInPool() map[Uint256]*Transaction {
+	p.RLock()
+	defer p.RUnlock()
+	copy := make(map[Uint256]*Transaction)
+	for txnId, tx := range p.txnList {
+		copy[txnId] = tx
 	}
-	if len(pool.txnList) < count || !hasMaxCount {
-		count = len(pool.txnList)
-	}
-	var num int
-	txnMap := make(map[Uint256]*Transaction)
-	for txnId, tx := range pool.txnList {
-		txnMap[txnId] = tx
-		num++
-		if num >= count {
-			break
-		}
-	}
-	pool.RUnlock()
-	return txnMap
+	return copy
 }
 
 //clean the trasaction Pool with committed block.
-func (pool *TxPool) CleanSubmittedTransactions(block *Block) error {
-	pool.cleanTransactions(block.Transactions)
-	pool.cleanSidechainTx(block.Transactions)
-	pool.cleanSideChainPowTx()
+func (p *TxPool) CleanSubmittedTransactions(block *Block) error {
+	p.cleanTransactions(block.Transactions)
+	p.cleanSidechainTx(block.Transactions)
+	p.cleanSideChainPowTx()
 
 	return nil
 }
 
-func (pool *TxPool) cleanTransactions(blockTxs []*Transaction) error {
-	txCountInPool := pool.GetTransactionCount()
+func (p *TxPool) cleanTransactions(blockTxs []*Transaction) error {
+	txCountInPool := p.GetTransactionCount()
 	deleteCount := 0
 	for _, blockTx := range blockTxs {
 		if blockTx.TxType == CoinBase {
@@ -120,7 +119,7 @@ func (pool *TxPool) cleanTransactions(blockTxs []*Transaction) error {
 			// in block. That is, if a transaction in the new-coming block uses the same utxo which a transaction
 			// in transaction pool uses, then the latter one should be deleted, because one of its utxos has been used
 			// by a confirmed transaction packed in the new-coming block.
-			if tx := pool.getInputUTXOList(input); tx != nil {
+			if tx := p.getInputUTXOList(input); tx != nil {
 				if tx.Hash() == blockTx.Hash() {
 					// it is evidently that two transactions with the same transaction id has exactly the same utxos with each
 					// other. This is a special case of what we've said above.
@@ -133,10 +132,10 @@ func (pool *TxPool) cleanTransactions(blockTxs []*Transaction) error {
 						blockTx.Hash(), tx.Hash(), input.Previous.TxID, input.Previous.Index)
 				}
 				//1.remove from txnList
-				pool.delFromTxList(tx.Hash())
+				p.delFromTxList(tx.Hash())
 				//2.remove from UTXO list map
 				for _, input := range tx.Inputs {
-					pool.delInputUTXOList(input)
+					p.delInputUTXOList(input)
 				}
 
 				//delete sidechain tx list
@@ -146,7 +145,7 @@ func (pool *TxPool) cleanTransactions(blockTxs []*Transaction) error {
 						log.Error("type cast failed when clean sidechain tx:", tx.Hash())
 					}
 					for _, hash := range payload.SideChainTransactionHashes {
-						pool.delSidechainTx(hash)
+						p.delSidechainTx(hash)
 					}
 				}
 				deleteCount++
@@ -155,43 +154,41 @@ func (pool *TxPool) cleanTransactions(blockTxs []*Transaction) error {
 	}
 	log.Debug(fmt.Sprintf("[cleanTransactionList],transaction %d in block, %d in transaction pool before, %d deleted,"+
 		" Remains %d in TxPool",
-		len(blockTxs), txCountInPool, deleteCount, pool.GetTransactionCount()))
+		len(blockTxs), txCountInPool, deleteCount, p.GetTransactionCount()))
 	return nil
 }
 
 //get the transaction by hash
-func (pool *TxPool) GetTransaction(hash Uint256) *Transaction {
-	pool.RLock()
-	defer pool.RUnlock()
-	return pool.txnList[hash]
+func (p *TxPool) GetTransaction(hash Uint256) *Transaction {
+	p.RLock()
+	defer p.RUnlock()
+	return p.txnList[hash]
 }
 
 //verify transaction with txnpool
-func (pool *TxPool) verifyTransactionWithTxnPool(txn *Transaction) ErrCode {
+func (p *TxPool) verifyTransactionWithTxnPool(txn *Transaction) error {
 	if txn.IsSideChainPowTx() {
 		// check and replace the duplicate sidechainpow tx
-		pool.replaceDuplicateSideChainPowTx(txn)
+		p.replaceDuplicateSideChainPowTx(txn)
 	} else if txn.IsWithdrawFromSideChainTx() {
 		// check if the withdraw transaction includes duplicate sidechain tx in pool
-		if err := pool.verifyDuplicateSidechainTx(txn); err != nil {
-			log.Warn(err)
-			return ErrSidechainTxDuplicate
+		if err := p.verifyDuplicateSidechainTx(txn); err != nil {
+			return ruleError(ErrSidechainTxDuplicate, err.Error())
 		}
 	}
 
 	// check if the transaction includes double spent UTXO inputs
-	if err := pool.verifyDoubleSpend(txn); err != nil {
-		log.Warn(err)
-		return ErrDoubleSpend
+	if err := p.verifyDoubleSpend(txn); err != nil {
+		return ruleError(ErrDoubleSpend, err.Error())
 	}
 
-	return Success
+	return nil
 }
 
 //remove from associated map
-func (pool *TxPool) removeTransaction(txn *Transaction) {
+func (p *TxPool) removeTransaction(txn *Transaction) {
 	//1.remove from txnList
-	pool.delFromTxList(txn.Hash())
+	p.delFromTxList(txn.Hash())
 	//2.remove from UTXO list map
 	result, err := blockchain.DefaultLedger.Store.GetTxReference(txn)
 	if err != nil {
@@ -199,19 +196,19 @@ func (pool *TxPool) removeTransaction(txn *Transaction) {
 		return
 	}
 	for UTXOTxInput := range result {
-		pool.delInputUTXOList(UTXOTxInput)
+		p.delInputUTXOList(UTXOTxInput)
 	}
 }
 
 //check and add to utxo list pool
-func (pool *TxPool) verifyDoubleSpend(txn *Transaction) error {
+func (p *TxPool) verifyDoubleSpend(txn *Transaction) error {
 	reference, err := blockchain.DefaultLedger.Store.GetTxReference(txn)
 	if err != nil {
 		return err
 	}
 	inputs := []*Input{}
 	for k := range reference {
-		if txn := pool.getInputUTXOList(k); txn != nil {
+		if txn := p.getInputUTXOList(k); txn != nil {
 			return errors.New(fmt.Sprintf("double spent UTXO inputs detected, "+
 				"transaction hash: %x, input: %s, index: %d",
 				txn.Hash(), k.Previous.TxID, k.Previous.Index))
@@ -219,14 +216,14 @@ func (pool *TxPool) verifyDoubleSpend(txn *Transaction) error {
 		inputs = append(inputs, k)
 	}
 	for _, v := range inputs {
-		pool.addInputUTXOList(txn, v)
+		p.addInputUTXOList(txn, v)
 	}
 
 	return nil
 }
 
-func (pool *TxPool) IsDuplicateSidechainTx(sidechainTxHash Uint256) bool {
-	_, ok := pool.sidechainTxList[sidechainTxHash]
+func (p *TxPool) IsDuplicateSidechainTx(sidechainTxHash Uint256) bool {
+	_, ok := p.sidechainTxList[sidechainTxHash]
 	if ok {
 		return true
 	}
@@ -235,26 +232,26 @@ func (pool *TxPool) IsDuplicateSidechainTx(sidechainTxHash Uint256) bool {
 }
 
 //check and add to sidechain tx pool
-func (pool *TxPool) verifyDuplicateSidechainTx(txn *Transaction) error {
+func (p *TxPool) verifyDuplicateSidechainTx(txn *Transaction) error {
 	withPayload, ok := txn.Payload.(*PayloadWithdrawFromSideChain)
 	if !ok {
 		return errors.New("convert the payload of withdraw tx failed")
 	}
 
 	for _, hash := range withPayload.SideChainTransactionHashes {
-		_, ok := pool.sidechainTxList[hash]
+		_, ok := p.sidechainTxList[hash]
 		if ok {
 			return errors.New("duplicate sidechain tx detected")
 		}
 	}
-	pool.addSidechainTx(txn)
+	p.addSidechainTx(txn)
 
 	return nil
 }
 
 // check and replace the duplicate sidechainpow tx
-func (pool *TxPool) replaceDuplicateSideChainPowTx(txn *Transaction) {
-	for _, v := range pool.txnList {
+func (p *TxPool) replaceDuplicateSideChainPowTx(txn *Transaction) {
+	for _, v := range p.txnList {
 		if v.TxType == SideChainPow {
 			oldPayload := v.Payload.Data(SideChainPowPayloadVersion)
 			oldGenesisHashData := oldPayload[32:64]
@@ -265,25 +262,25 @@ func (pool *TxPool) replaceDuplicateSideChainPowTx(txn *Transaction) {
 			if bytes.Equal(oldGenesisHashData, newGenesisHashData) {
 				txid := txn.Hash()
 				log.Warn("replace sidechainpow transaction, txid=", txid.String())
-				pool.removeTransaction(v)
+				p.removeTransaction(v)
 			}
 		}
 	}
 }
 
 // clean the sidechain tx pool
-func (pool *TxPool) cleanSidechainTx(txs []*Transaction) {
+func (p *TxPool) cleanSidechainTx(txs []*Transaction) {
 	for _, txn := range txs {
 		if txn.IsWithdrawFromSideChainTx() {
 			withPayload := txn.Payload.(*PayloadWithdrawFromSideChain)
 			for _, hash := range withPayload.SideChainTransactionHashes {
-				poolTx := pool.sidechainTxList[hash]
+				poolTx := p.sidechainTxList[hash]
 				if poolTx != nil {
 					// delete tx
-					pool.delFromTxList(poolTx.Hash())
+					p.delFromTxList(poolTx.Hash())
 					//delete utxo map
 					for _, input := range poolTx.Inputs {
-						pool.delInputUTXOList(input)
+						p.delInputUTXOList(input)
 					}
 					//delete sidechain tx map
 					payload, ok := poolTx.Payload.(*PayloadWithdrawFromSideChain)
@@ -291,7 +288,7 @@ func (pool *TxPool) cleanSidechainTx(txs []*Transaction) {
 						log.Error("type cast failed when clean sidechain tx:", poolTx.Hash())
 					}
 					for _, hash := range payload.SideChainTransactionHashes {
-						pool.delSidechainTx(hash)
+						p.delSidechainTx(hash)
 					}
 				}
 			}
@@ -300,124 +297,125 @@ func (pool *TxPool) cleanSidechainTx(txs []*Transaction) {
 }
 
 // clean the sidechainpow tx pool
-func (pool *TxPool) cleanSideChainPowTx() {
+func (p *TxPool) cleanSideChainPowTx() {
 	arbitrtor, err := blockchain.GetOnDutyArbiter()
 	if err != nil {
 		log.Error("get current arbiter failed")
 		return
 	}
-	pool.Lock()
-	defer pool.Unlock()
-	for hash, txn := range pool.txnList {
+	p.Lock()
+	defer p.Unlock()
+	for hash, txn := range p.txnList {
 		if txn.IsSideChainPowTx() {
 			if err = blockchain.CheckSideChainPowConsensus(txn, arbitrtor); err != nil {
 				// delete tx
-				delete(pool.txnList, hash)
+				delete(p.txnList, hash)
 				//delete utxo map
 				for _, input := range txn.Inputs {
-					delete(pool.inputUTXOList, input.ReferKey())
+					delete(p.inputUTXOList, input.ReferKey())
 				}
 			}
 		}
 	}
 }
 
-func (pool *TxPool) addToTxList(txn *Transaction) bool {
-	pool.Lock()
-	defer pool.Unlock()
+func (p *TxPool) addToTxList(txn *Transaction) bool {
+	p.Lock()
+	defer p.Unlock()
 	txnHash := txn.Hash()
-	if _, ok := pool.txnList[txnHash]; ok {
+	if _, ok := p.txnList[txnHash]; ok {
 		return false
 	}
-	pool.txnList[txnHash] = txn
-	blockchain.DefaultLedger.Blockchain.BCEvents.Notify(events.EventNewTransactionPutInPool, txn)
+	p.txnList[txnHash] = txn
+	// TODO move notification out of this method.
+	// blockchain.DefaultLedger.Blockchain.BCEvents.Notify(events.EventNewTransactionPutInPool, txn)
 	return true
 }
 
-func (pool *TxPool) delFromTxList(txId Uint256) bool {
-	pool.Lock()
-	defer pool.Unlock()
-	if _, ok := pool.txnList[txId]; !ok {
+func (p *TxPool) delFromTxList(txId Uint256) bool {
+	p.Lock()
+	defer p.Unlock()
+	if _, ok := p.txnList[txId]; !ok {
 		return false
 	}
-	delete(pool.txnList, txId)
+	delete(p.txnList, txId)
 	return true
 }
 
-func (pool *TxPool) copyTxList() map[Uint256]*Transaction {
-	pool.RLock()
-	defer pool.RUnlock()
-	txnMap := make(map[Uint256]*Transaction, len(pool.txnList))
-	for txnId, txn := range pool.txnList {
+func (p *TxPool) copyTxList() map[Uint256]*Transaction {
+	p.RLock()
+	defer p.RUnlock()
+	txnMap := make(map[Uint256]*Transaction, len(p.txnList))
+	for txnId, txn := range p.txnList {
 		txnMap[txnId] = txn
 	}
 	return txnMap
 }
 
-func (pool *TxPool) GetTransactionCount() int {
-	pool.RLock()
-	defer pool.RUnlock()
-	return len(pool.txnList)
+func (p *TxPool) GetTransactionCount() int {
+	p.RLock()
+	defer p.RUnlock()
+	return len(p.txnList)
 }
 
-func (pool *TxPool) getInputUTXOList(input *Input) *Transaction {
-	pool.RLock()
-	defer pool.RUnlock()
-	return pool.inputUTXOList[input.ReferKey()]
+func (p *TxPool) getInputUTXOList(input *Input) *Transaction {
+	p.RLock()
+	defer p.RUnlock()
+	return p.inputUTXOList[input.ReferKey()]
 }
 
-func (pool *TxPool) addInputUTXOList(tx *Transaction, input *Input) bool {
-	pool.Lock()
-	defer pool.Unlock()
+func (p *TxPool) addInputUTXOList(tx *Transaction, input *Input) bool {
+	p.Lock()
+	defer p.Unlock()
 	id := input.ReferKey()
-	_, ok := pool.inputUTXOList[id]
+	_, ok := p.inputUTXOList[id]
 	if ok {
 		return false
 	}
-	pool.inputUTXOList[id] = tx
+	p.inputUTXOList[id] = tx
 
 	return true
 }
 
-func (pool *TxPool) delInputUTXOList(input *Input) bool {
-	pool.Lock()
-	defer pool.Unlock()
+func (p *TxPool) delInputUTXOList(input *Input) bool {
+	p.Lock()
+	defer p.Unlock()
 	id := input.ReferKey()
-	_, ok := pool.inputUTXOList[id]
+	_, ok := p.inputUTXOList[id]
 	if !ok {
 		return false
 	}
-	delete(pool.inputUTXOList, id)
+	delete(p.inputUTXOList, id)
 	return true
 }
 
-func (pool *TxPool) addSidechainTx(txn *Transaction) {
-	pool.Lock()
-	defer pool.Unlock()
+func (p *TxPool) addSidechainTx(txn *Transaction) {
+	p.Lock()
+	defer p.Unlock()
 	witPayload := txn.Payload.(*PayloadWithdrawFromSideChain)
 	for _, hash := range witPayload.SideChainTransactionHashes {
-		pool.sidechainTxList[hash] = txn
+		p.sidechainTxList[hash] = txn
 	}
 }
 
-func (pool *TxPool) delSidechainTx(hash Uint256) bool {
-	pool.Lock()
-	defer pool.Unlock()
-	_, ok := pool.sidechainTxList[hash]
+func (p *TxPool) delSidechainTx(hash Uint256) bool {
+	p.Lock()
+	defer p.Unlock()
+	_, ok := p.sidechainTxList[hash]
 	if !ok {
 		return false
 	}
-	delete(pool.sidechainTxList, hash)
+	delete(p.sidechainTxList, hash)
 	return true
 }
 
-func (pool *TxPool) MaybeAcceptTransaction(txn *Transaction) error {
+func (p *TxPool) MaybeAcceptTransaction(txn *Transaction) error {
 	txHash := txn.Hash()
 
 	// Don't accept the transaction if it already exists in the pool.  This
 	// applies to orphan transactions as well.  This check is intended to
 	// be a quick check to weed out duplicates.
-	if txn := pool.GetTransaction(txHash); txn != nil {
+	if txn := p.GetTransaction(txHash); txn != nil {
 		return fmt.Errorf("already have transaction")
 	}
 
@@ -426,14 +424,14 @@ func (pool *TxPool) MaybeAcceptTransaction(txn *Transaction) error {
 		return fmt.Errorf("transaction is an individual coinbase")
 	}
 
-	if errCode := pool.AppendToTxnPool(txn); errCode != Success {
-		return fmt.Errorf("VerifyTxs failed when AppendToTxnPool")
+	if err := p.AppendToTxPool(txn); err != nil {
+		return err
 	}
 
 	return nil
 }
 
-func (pool *TxPool) RemoveTransaction(txn *Transaction) {
+func (p *TxPool) RemoveTransaction(txn *Transaction) {
 	txHash := txn.Hash()
 	for i := range txn.Outputs {
 		input := Input{
@@ -443,26 +441,26 @@ func (pool *TxPool) RemoveTransaction(txn *Transaction) {
 			},
 		}
 
-		txn := pool.getInputUTXOList(&input)
+		txn := p.getInputUTXOList(&input)
 		if txn != nil {
-			pool.removeTransaction(txn)
+			p.removeTransaction(txn)
 		}
 	}
 }
 
-func (pool *TxPool) isTransactionCleaned(tx *Transaction) error {
-	if tx := pool.txnList[tx.Hash()]; tx != nil {
+func (p *TxPool) isTransactionCleaned(tx *Transaction) error {
+	if tx := p.txnList[tx.Hash()]; tx != nil {
 		return errors.New("has transaction in transaction pool" + tx.Hash().String())
 	}
 	for _, input := range tx.Inputs {
-		if poolInput := pool.inputUTXOList[input.ReferKey()]; poolInput != nil {
+		if poolInput := p.inputUTXOList[input.ReferKey()]; poolInput != nil {
 			return errors.New("has utxo inputs in input list pool" + input.String())
 		}
 	}
 	if tx.TxType == WithdrawFromSideChain {
 		payload := tx.Payload.(*PayloadWithdrawFromSideChain)
 		for _, hash := range payload.SideChainTransactionHashes {
-			if sidechainPoolTx := pool.sidechainTxList[hash]; sidechainPoolTx != nil {
+			if sidechainPoolTx := p.sidechainTxList[hash]; sidechainPoolTx != nil {
 				return errors.New("has sidechain hash in sidechain list pool" + hash.String())
 			}
 		}
@@ -470,19 +468,19 @@ func (pool *TxPool) isTransactionCleaned(tx *Transaction) error {
 	return nil
 }
 
-func (pool *TxPool) isTransactionExisted(tx *Transaction) error {
-	if tx := pool.txnList[tx.Hash()]; tx == nil {
+func (p *TxPool) isTransactionExisted(tx *Transaction) error {
+	if tx := p.txnList[tx.Hash()]; tx == nil {
 		return errors.New("does not have transaction in transaction pool" + tx.Hash().String())
 	}
 	for _, input := range tx.Inputs {
-		if poolInput := pool.inputUTXOList[input.ReferKey()]; poolInput == nil {
+		if poolInput := p.inputUTXOList[input.ReferKey()]; poolInput == nil {
 			return errors.New("does not have utxo inputs in input list pool" + input.String())
 		}
 	}
 	if tx.TxType == WithdrawFromSideChain {
 		payload := tx.Payload.(*PayloadWithdrawFromSideChain)
 		for _, hash := range payload.SideChainTransactionHashes {
-			if sidechainPoolTx := pool.sidechainTxList[hash]; sidechainPoolTx == nil {
+			if sidechainPoolTx := p.sidechainTxList[hash]; sidechainPoolTx == nil {
 				return errors.New("does not have sidechain hash in sidechain list pool" + hash.String())
 			}
 		}

@@ -260,7 +260,7 @@ func (rt *restServer) write(w http.ResponseWriter, data []byte) {
 }
 
 func (rt *restServer) response(w http.ResponseWriter, resp map[string]interface{}) {
-	resp["Desc"] = ErrMap[resp["Error"].(ErrCode)]
+	resp["Desc"] = resp["Error"].(ErrCode).String()
 	data, err := json.Marshal(resp)
 	if err != nil {
 		log.Fatal("HTTP Handle - json.Marshal: %v", err)

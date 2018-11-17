@@ -6,13 +6,11 @@ import (
 	"math/big"
 	"time"
 
+	. "github.com/elastos/Elastos.ELA.Utility/common"
+	"github.com/elastos/Elastos.ELA.Utility/crypto"
 	. "github.com/elastos/Elastos.ELA/auxpow"
 	"github.com/elastos/Elastos.ELA/config"
 	. "github.com/elastos/Elastos.ELA/core"
-	. "github.com/elastos/Elastos.ELA/errors"
-
-	. "github.com/elastos/Elastos.ELA.Utility/common"
-	"github.com/elastos/Elastos.ELA.Utility/crypto"
 )
 
 const (
@@ -93,8 +91,8 @@ func PowCheckBlockSanity(block *Block, powLimit *big.Int, timeSource MedianTimeS
 		existingTxIds[txId] = struct{}{}
 
 		// Check for transaction sanity
-		if errCode := CheckTransactionSanity(version, txn); errCode != Success {
-			return errors.New("CheckTransactionSanity failed when verifiy block")
+		if err := CheckTransactionSanity(version, txn); err != nil {
+			return err
 		}
 
 		// Check for duplicate UTXO inputs in a block
@@ -137,8 +135,8 @@ func CheckBlockContext(block *Block) error {
 	var totalTxFee = Fixed64(0)
 
 	for index, tx := range block.Transactions {
-		if errCode := CheckTransactionContext(tx); errCode != Success {
-			return errors.New("CheckTransactionContext failed when verify block")
+		if err := CheckTransactionContext(tx); err != nil {
+			return err
 		}
 
 		if index == 0 {
@@ -149,7 +147,7 @@ func CheckBlockContext(block *Block) error {
 			continue
 		}
 		// Calculate transaction fee
-		totalTxFee += GetTxFee(tx, DefaultLedger.Blockchain.AssetID)
+		totalTxFee += GetTxFee(tx, config.ELAAssetID)
 	}
 
 	// Reward in coinbase must match inflation 4% per year

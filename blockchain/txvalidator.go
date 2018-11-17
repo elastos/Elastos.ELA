@@ -9,129 +9,134 @@ import (
 	"github.com/elastos/Elastos.ELA/config"
 	. "github.com/elastos/Elastos.ELA/core"
 	. "github.com/elastos/Elastos.ELA/errors"
-	"github.com/elastos/Elastos.ELA/log"
 
 	. "github.com/elastos/Elastos.ELA.Utility/common"
 	. "github.com/elastos/Elastos.ELA.Utility/crypto"
 )
 
+// ruleError creates an RuleError given a set of arguments.
+func ruleError(c ErrCode, desc string) RuleError {
+	return RuleError{ErrorCode: c, Description: desc}
+}
+
 // CheckTransactionSanity verifys received single transaction
-func CheckTransactionSanity(version uint32, txn *Transaction) ErrCode {
+func CheckTransactionSanity(version uint32, txn *Transaction) error {
 	if err := CheckTransactionSize(txn); err != nil {
-		log.Warn("[CheckTransactionSize],", err)
-		return ErrTransactionSize
+		errMsg := fmt.Sprintf("[CheckTransactionSize],", err)
+		return ruleError(ErrTransactionSize, errMsg)
 	}
 
 	if err := CheckTransactionInput(txn); err != nil {
-		log.Warn("[CheckTransactionInput],", err)
-		return ErrInvalidInput
+		errMsg := fmt.Sprintf("[CheckTransactionInput],", err)
+		return ruleError(ErrInvalidInput, errMsg)
 	}
 
 	if err := CheckTransactionOutput(version, txn); err != nil {
-		log.Warn("[CheckTransactionOutput],", err)
-		return ErrInvalidOutput
+		errMsg := fmt.Sprintf("[CheckTransactionOutput],", err)
+		return ruleError(ErrInvalidOutput, errMsg)
 	}
 
 	if err := CheckAssetPrecision(txn); err != nil {
-		log.Warn("[CheckAssetPrecesion],", err)
-		return ErrAssetPrecision
+		errMsg := fmt.Sprintf("[CheckAssetPrecesion],", err)
+		return ruleError(ErrAssetPrecision, errMsg)
 	}
 
 	if err := CheckAttributeProgram(txn); err != nil {
-		log.Warn("[CheckAttributeProgram],", err)
-		return ErrAttributeProgram
+		errMsg := fmt.Sprintf("[CheckAttributeProgram],", err)
+		return ruleError(ErrAttributeProgram, errMsg)
 	}
 
 	if err := CheckTransactionPayload(txn); err != nil {
-		log.Warn("[CheckTransactionPayload],", err)
-		return ErrTransactionPayload
+		errMsg := fmt.Sprintf("[CheckTransactionPayload],", err)
+		return ruleError(ErrTransactionPayload, errMsg)
 	}
 
 	if err := CheckDuplicateSidechainTx(txn); err != nil {
-		log.Warn("[CheckDuplicateSidechainTx],", err)
-		return ErrSidechainTxDuplicate
+		errMsg := fmt.Sprintf("[CheckDuplicateSidechainTx],", err)
+		return ruleError(ErrSidechainTxDuplicate, errMsg)
 	}
 
 	// check iterms above for Coinbase transaction
 	if txn.IsCoinBaseTx() {
-		return Success
+		return nil
 	}
 
-	return Success
+	return nil
 }
 
 // CheckTransactionContext verifys a transaction with history transaction in ledger
-func CheckTransactionContext(txn *Transaction) ErrCode {
+func CheckTransactionContext(txn *Transaction) error {
 	// check if duplicated with transaction in ledger
 	if exist := DefaultLedger.Store.IsTxHashDuplicate(txn.Hash()); exist {
-		log.Warn("[CheckTransactionContext] duplicate transaction check failed.")
-		return ErrTransactionDuplicate
+		errMsg := fmt.Sprintf("[CheckTransactionContext] duplicate transaction check failed.")
+		return ruleError(ErrTransactionDuplicate, errMsg)
 	}
 
 	if txn.IsCoinBaseTx() {
-		return Success
+		return nil
 	}
 
 	if txn.IsSideChainPowTx() {
 		arbitrtor, err := GetOnDutyArbiter()
 		if err != nil {
-			return ErrSideChainPowConsensus
+			errMsg := fmt.Sprintf("[CheckSideChainConsensus],", err)
+			return ruleError(ErrSideChainPowConsensus, errMsg)
 		}
 		if err = CheckSideChainPowConsensus(txn, arbitrtor); err != nil {
-			log.Warn("[CheckSideChainPowConsensus],", err)
-			return ErrSideChainPowConsensus
+			errMsg := fmt.Sprintf("[CheckSideChainPowConsensus],", err)
+			return ruleError(ErrSideChainPowConsensus, errMsg)
 		}
 	}
 
 	// check double spent transaction
 	if DefaultLedger.IsDoubleSpend(txn) {
-		log.Warn("[CheckTransactionContext] IsDoubleSpend check faild.")
-		return ErrDoubleSpend
+		errMsg := fmt.Sprintf("[CheckTransactionContext] IsDoubleSpend check faild.")
+		return ruleError(ErrDoubleSpend, errMsg)
 	}
 
 	references, err := DefaultLedger.Store.GetTxReference(txn)
 	if err != nil {
-		log.Warn("[CheckTransactionContext] get transaction reference failed")
-		return ErrUnknownReferredTx
+		errMsg := fmt.Sprintf("[CheckTransactionContext] get transaction reference failed")
+		return ruleError(ErrUnknownReferredTx, errMsg)
 	}
 
 	if txn.IsWithdrawFromSideChainTx() {
 		if err := CheckWithdrawFromSideChainTransaction(txn, references); err != nil {
-			log.Warn("[CheckWithdrawFromSideChainTransaction],", err)
-			return ErrSidechainTxDuplicate
+			errMsg := fmt.Sprintf("[CheckWithdrawFromSideChainTransaction],", err)
+			return ruleError(ErrSidechainTxDuplicate, errMsg)
 		}
 	}
 
 	if txn.IsTransferCrossChainAssetTx() {
 		if err := CheckTransferCrossChainAssetTransaction(txn, references); err != nil {
-			log.Warn("[CheckTransferCrossChainAssetTransaction],", err)
-			return ErrInvalidOutput
+			errMsg := fmt.Sprintf("[CheckTransferCrossChainAssetTransaction],", err)
+			return ruleError(ErrInvalidOutput, errMsg)
 		}
 	}
 
 	if err := CheckTransactionUTXOLock(txn, references); err != nil {
-		log.Warn("[CheckTransactionUTXOLock],", err)
-		return ErrUTXOLocked
+		errMsg := fmt.Sprintf("[CheckTransactionUTXOLock],", err)
+		return ruleError(ErrUTXOLocked, errMsg)
 	}
 
 	if err := CheckTransactionFee(txn, references); err != nil {
-		log.Warn("[CheckTransactionFee],", err)
-		return ErrTransactionBalance
+		errMsg := fmt.Sprintf("[CheckTransactionFee],", err)
+		return ruleError(ErrTransactionBalance, errMsg)
 	}
 	if err := CheckDestructionAddress(references); err != nil {
-		log.Warn("[CheckDestructionAddress], ", err)
-		return ErrInvalidInput
+		errMsg := fmt.Sprintf("[CheckDestructionAddress], ", err)
+		return ruleError(ErrInvalidInput, errMsg)
 	}
 	if err := CheckTransactionSignature(txn, references); err != nil {
-		log.Warn("[CheckTransactionSignature],", err)
-		return ErrTransactionSignature
+		errMsg := fmt.Sprintf("[CheckTransactionSignature],", err)
+		return ruleError(ErrTransactionSignature, errMsg)
 	}
 
 	if err := CheckTransactionCoinbaseOutputLock(txn); err != nil {
-		log.Warn("[CheckTransactionCoinbaseLock]", err)
-		return ErrIneffectiveCoinbase
+		errMsg := fmt.Sprintf("[CheckTransactionCoinbaseLock]", err)
+		return ruleError(ErrIneffectiveCoinbase, errMsg)
 	}
-	return Success
+	return nil
 }
 
 func CheckDestructionAddress(references map[*Input]*Output) error {
@@ -223,7 +228,7 @@ func CheckTransactionOutput(version uint32, txn *Transaction) error {
 		var totalReward = Fixed64(0)
 		var foundationReward = Fixed64(0)
 		for _, output := range txn.Outputs {
-			if output.AssetID != DefaultLedger.Blockchain.AssetID {
+			if output.AssetID != config.ELAAssetID {
 				return errors.New("asset ID in coinbase is invalid")
 			}
 			totalReward += output.Value
@@ -243,7 +248,7 @@ func CheckTransactionOutput(version uint32, txn *Transaction) error {
 	}
 	// check if output address is valid
 	for _, output := range txn.Outputs {
-		if output.AssetID != DefaultLedger.Blockchain.AssetID {
+		if output.AssetID != config.ELAAssetID {
 			return errors.New("asset ID in output is invalid")
 		}
 
@@ -458,7 +463,7 @@ func HasArbitersMajorityCount(num uint32) bool {
 }
 
 func HasArbitersMinorityCount(num uint32) bool {
-	return num > uint32(len(config.Parameters.Arbiters)) - config.Parameters.ArbiterConfiguration.MajorityCount
+	return num > uint32(len(config.Parameters.Arbiters))-config.Parameters.ArbiterConfiguration.MajorityCount
 }
 
 func CheckSideChainPowConsensus(txn *Transaction, arbitrator []byte) error {

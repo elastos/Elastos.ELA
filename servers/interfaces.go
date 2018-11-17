@@ -500,7 +500,7 @@ func SendRawTransaction(param Params) map[string]interface{} {
 	}
 
 	if errCode := VerifyAndSendTx(&txn); errCode != Success {
-		return ResponsePack(errCode, errCode.Message())
+		return ResponsePack(errCode, errCode.String())
 	}
 
 	return ResponsePack(Success, ToReversedString(txn.Hash()))
@@ -990,8 +990,8 @@ func VerifyAndSendTx(txn *Transaction) ErrCode {
 }
 
 func ResponsePack(errCode ErrCode, result interface{}) map[string]interface{} {
-	if errCode != 0 && (result == "" || result == nil) {
-		result = ErrMap[errCode]
+	if errCode != Success && (result == "" || result == nil) {
+		result = errCode.String()
 	}
 	return map[string]interface{}{"Result": result, "Error": errCode}
 }

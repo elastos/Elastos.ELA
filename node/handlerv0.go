@@ -242,7 +242,7 @@ func (h *HandlerV0) onTx(msgTx *msg.Tx) error {
 	tx := msgTx.Serializable.(*core.Transaction)
 
 	if !LocalNode.ExistedID(tx.Hash()) && !LocalNode.IsSyncHeaders() {
-		if errCode := LocalNode.AppendToTxnPool(tx); errCode != errors.Success {
+		if errCode := LocalNode.AppendToTxPool(tx); errCode != errors.Success {
 			return fmt.Errorf("[HandlerBase] VerifyTransaction failed when AppendToTxnPool")
 		}
 		LocalNode.Relay(node, tx)

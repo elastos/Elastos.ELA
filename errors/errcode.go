@@ -1,5 +1,7 @@
 package errors
 
+import "fmt"
+
 type ErrCode int
 
 const (
@@ -36,7 +38,7 @@ const (
 	InternalError        ErrCode = 45002
 )
 
-var ErrMap = map[ErrCode]string{
+var errCodeStrings = map[ErrCode]string{
 	Error:                    "Unclassified error",
 	Success:                  "Success",
 	SessionExpired:           "Session expired",
@@ -69,6 +71,24 @@ var ErrMap = map[ErrCode]string{
 	ErrIneffectiveCoinbase:   "INTERNAL ERROR, ErrIneffectiveCoinbase",
 }
 
-func (code ErrCode) Message() string {
-	return ErrMap[code]
+func (code ErrCode) String() string {
+	if s := errCodeStrings[code]; s != "" {
+		return s
+	}
+	return fmt.Sprintf("Unknown ErrorCode (%d)", int(code))
+}
+
+// RuleError identifies a rule violation.  It is used to indicate that
+// processing of a block or transaction failed due to one of the many validation
+// rules.  The caller can use type assertions to determine if a failure was
+// specifically due to a rule violation and access the ErrorCode field to
+// ascertain the specific reason for the rule violation.
+type RuleError struct {
+	ErrorCode   ErrCode // Describes the kind of error
+	Description string    // Human readable description of the issue
+}
+
+// Error satisfies the error interface and prints human-readable errors.
+func (e RuleError) Error() string {
+	return e.Description
 }

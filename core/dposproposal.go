@@ -15,7 +15,7 @@ const (
 )
 
 type DPosProposal struct {
-	Sponsor   string //todo [merge] replace with public key
+	Sponsor   string // TODO [merge] replace with public key
 	BlockHash common.Uint256
 	Sign      []byte
 }

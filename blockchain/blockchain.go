@@ -10,177 +10,186 @@ import (
 	"time"
 
 	"github.com/elastos/Elastos.ELA/config"
-	. "github.com/elastos/Elastos.ELA/core"
-	"github.com/elastos/Elastos.ELA/events"
+	"github.com/elastos/Elastos.ELA/core"
 	"github.com/elastos/Elastos.ELA/log"
 
-	. "github.com/elastos/Elastos.ELA.Utility/common"
-	"github.com/elastos/Elastos.ELA.Utility/crypto"
+	"github.com/elastos/Elastos.ELA.Utility/common"
 )
 
 const (
-	MaxBlockLocatorsPerMsg = 500
-	medianTimeBlocks       = 11
+	maxOrphanBlocks  = 10000
+	minMemoryNodes   = 20160
+	maxBlockLocators = 500
+	medianTimeBlocks = 11
 )
 
 var (
-	maxOrphanBlocks = config.Parameters.ChainParam.MaxOrphanBlocks
-	MinMemoryNodes  = config.Parameters.ChainParam.MinMemoryNodes
-)
+	zeroHash = common.Uint256{}
 
-var (
 	oneLsh256 = new(big.Int).Lsh(big.NewInt(1), 256)
 )
 
 type BlockChain struct {
-	BlockHeight       uint32
-	GenesisHash       Uint256
-	BestChain         *BlockNode
-	Root              *BlockNode
-	Index             map[Uint256]*BlockNode
-	IndexLock         sync.RWMutex
-	DepNodes          map[Uint256][]*BlockNode
-	Orphans           map[Uint256]*OrphanBlock
-	PrevOrphans       map[Uint256][]*OrphanBlock
-	OldestOrphan      *OrphanBlock
-	BlockCache        map[Uint256]*Block
-	TimeSource        MedianTimeSource
-	MedianTimePast    time.Time
-	OrphanLock        sync.RWMutex
-	BCEvents          *events.Event
-	mutex             sync.RWMutex
-	AssetID           Uint256
+	db          *ChainStore
+	chainParams *config.Params
+	GenesisHash common.Uint256
+
+	// The following fields are calculated based upon the provided chain
+	// parameters.  They are also set when the instance is created and
+	// can't be changed afterwards, so there is no need to protect them with
+	// a separate mutex.
+	minRetargetTimespan int64  // target timespan / adjustment factor
+	maxRetargetTimespan int64  // target timespan * adjustment factor
+	blocksPerRetarget   uint32 // target timespan / target time per block
+
+	mutex          sync.RWMutex
+	BestChain      *BlockNode
+	Root           *BlockNode
+	Index          map[common.Uint256]*BlockNode
+	IndexLock      sync.RWMutex
+	DepNodes       map[common.Uint256][]*BlockNode
+	Orphans        map[common.Uint256]*OrphanBlock
+	PrevOrphans    map[common.Uint256][]*OrphanBlock
+	OldestOrphan   *OrphanBlock
+	BlockCache     map[common.Uint256]*core.Block
+	TimeSource     MedianTimeSource
+	MedianTimePast time.Time
+	OrphanLock     sync.RWMutex
 	NewBlocksListener NewBlocksListener
+
+	// The notifications field stores a slice of callbacks to be executed on
+	// certain blockchain events.
+	notificationsLock sync.RWMutex
+	notifications     []NotificationCallback
 }
 
-func NewBlockchain(height uint32) *BlockChain {
-	return &BlockChain{
-		BlockHeight:  height,
-		Root:         nil,
-		BestChain:    nil,
-		Index:        make(map[Uint256]*BlockNode),
-		DepNodes:     make(map[Uint256][]*BlockNode),
-		OldestOrphan: nil,
-		Orphans:      make(map[Uint256]*OrphanBlock),
-		PrevOrphans:  make(map[Uint256][]*OrphanBlock),
-		BlockCache:   make(map[Uint256]*Block),
-		TimeSource:   NewMedianTime(),
-
-		BCEvents: events.NewEvent(),
-		AssetID:  EmptyHash,
-	}
-}
-
-func Init(store IChainStore) error {
-	genesisBlock, err := GetGenesisBlock()
+func New(db *ChainStore, chainParams *config.Params) (*BlockChain, error) {
+	genesisHash, err := db.GetBlockHash(0)
 	if err != nil {
-		return errors.New("[BlockChain], NewBlockchainWithGenesisBlock failed.")
+		return nil, fmt.Errorf("query genesis block hash failed, error %s", err)
 	}
 
-	DefaultLedger = new(Ledger)
-	DefaultLedger.Blockchain = NewBlockchain(0)
-	DefaultLedger.Store = store
-	DefaultLedger.Blockchain.AssetID = genesisBlock.Transactions[0].Outputs[0].AssetID
-	height, err := DefaultLedger.Store.InitWithGenesisBlock(genesisBlock)
-	if err != nil {
-		return errors.New("[BlockChain], InitLevelDBStoreWithGenesisBlock failed.")
+	targetTimespan := int64(chainParams.TargetTimespan / time.Second)
+	targetTimePerBlock := int64(chainParams.TargetTimePerBlock / time.Second)
+	adjustmentFactor := chainParams.AdjustmentFactor
+	chain := BlockChain{
+		db:                  db,
+		chainParams:         chainParams,
+		GenesisHash:         genesisHash,
+		minRetargetTimespan: targetTimespan / adjustmentFactor,
+		maxRetargetTimespan: targetTimespan * adjustmentFactor,
+		blocksPerRetarget:   uint32(targetTimespan / targetTimePerBlock),
+		Root:                nil,
+		BestChain:           nil,
+		Index:               make(map[common.Uint256]*BlockNode),
+		DepNodes:            make(map[common.Uint256][]*BlockNode),
+		OldestOrphan:        nil,
+		Orphans:             make(map[common.Uint256]*OrphanBlock),
+		PrevOrphans:         make(map[common.Uint256][]*OrphanBlock),
+		BlockCache:          make(map[common.Uint256]*core.Block),
+		TimeSource:          NewMedianTime(),
 	}
 
-	DefaultLedger.Blockchain.UpdateBestHeight(height)
-	return nil
-}
-
-func GetGenesisBlock() (*Block, error) {
-	// header
-	header := Header{
-		Version:    BlockVersion,
-		Previous:   EmptyHash,
-		MerkleRoot: EmptyHash,
-		Timestamp:  uint32(time.Unix(time.Date(2017, time.December, 22, 10, 0, 0, 0, time.UTC).Unix(), 0).Unix()),
-		Bits:       0x1d03ffff,
-		Nonce:      GenesisNonce,
-		Height:     uint32(0),
+	endHeight := db.GetHeight()
+	startHeight := uint32(0)
+	if endHeight > minMemoryNodes {
+		startHeight = endHeight - minMemoryNodes
 	}
 
-	// ELA coin
-	elaCoin := &Transaction{
-		TxType:         RegisterAsset,
-		PayloadVersion: 0,
-		Payload: &PayloadRegisterAsset{
-			Asset: Asset{
-				Name:      "ELA",
-				Precision: 0x08,
-				AssetType: 0x00,
-			},
-			Amount:     0 * 100000000,
-			Controller: Uint168{},
-		},
-		Attributes: []*Attribute{},
-		Inputs:     []*Input{},
-		Outputs:    []*Output{},
-		Programs:   []*Program{},
+	for start := startHeight; start <= endHeight; start++ {
+		hash, err := chain.db.GetBlockHash(start)
+		if err != nil {
+			return nil, err
+		}
+		header, err := chain.db.GetHeader(hash)
+		if err != nil {
+			return nil, err
+		}
+		node, err := chain.LoadBlockNode(header, &hash)
+		if err != nil {
+			return nil, err
+		}
+
+		// This node is now the end of the best chain.
+		chain.BestChain = node
 	}
 
-	coinBase := NewCoinBaseTransaction(&PayloadCoinBase{}, 0)
-	coinBase.Outputs = []*Output{
-		{
-			AssetID:     elaCoin.Hash(),
-			Value:       3300 * 10000 * 100000000,
-			ProgramHash: FoundationAddress,
-		},
-	}
-
-	txAttr := NewAttribute(Nonce, []byte{77, 101, 130, 33, 7, 252, 253, 82})
-	coinBase.Attributes = append(coinBase.Attributes, &txAttr)
-	//block
-	block := &Block{
-		Header:       header,
-		Transactions: []*Transaction{coinBase, elaCoin},
-	}
-	hashes := make([]Uint256, 0, len(block.Transactions))
-	for _, tx := range block.Transactions {
-		hashes = append(hashes, tx.Hash())
-	}
-	var err error
-	block.Header.MerkleRoot, err = crypto.ComputeRoot(hashes)
-	if err != nil {
-		return nil, errors.New("[GenesisBlock] ,BuildMerkleRoot failed.")
-	}
-
-	return block, nil
-}
-
-func NewCoinBaseTransaction(coinBasePayload *PayloadCoinBase, currentHeight uint32) *Transaction {
-	return &Transaction{
-		TxType:         CoinBase,
-		PayloadVersion: PayloadCoinBaseVersion,
-		Payload:        coinBasePayload,
-		Inputs: []*Input{
-			{
-				Previous: OutPoint{
-					TxID:  EmptyHash,
-					Index: 0x0000,
-				},
-				Sequence: 0x00000000,
-			},
-		},
-		Attributes: []*Attribute{},
-		LockTime:   currentHeight,
-		Programs:   []*Program{},
-	}
+	return &chain, nil
 }
 
 func (b *BlockChain) GetBestHeight() uint32 {
 	b.mutex.RLock()
 	defer b.mutex.RUnlock()
-	return b.BlockHeight
+	return b.db.GetHeight()
 }
 
-func (b *BlockChain) UpdateBestHeight(val uint32) {
-	b.BlockHeight = val
+//check weather the transaction contains the doubleSpend.
+func (b *BlockChain) IsDoubleSpend(tx *core.Transaction) bool {
+	return b.db.IsDoubleSpend(tx)
 }
 
-func (b *BlockChain) AddBlock(block *Block) (bool, bool, error) {
+//Get the Asset from store.
+func (b *BlockChain) GetAsset(assetId common.Uint256) (*core.Asset, error) {
+	asset, err := b.db.GetAsset(assetId)
+	if err != nil {
+		return nil, errors.New("[Ledger],GetAsset failed with assetId =" + assetId.String())
+	}
+	return asset, nil
+}
+
+// Get Block hash with height
+func (b *BlockChain) GetBlockHash(height uint32) (common.Uint256, error) {
+	return b.db.GetBlockHash(height)
+}
+
+//Get Block With Height.
+func (b *BlockChain) GetBlockWithHeight(height uint32) (*core.Block, error) {
+	temp, err := b.db.GetBlockHash(height)
+	if err != nil {
+		return nil, errors.New("[Ledger],GetBlockWithHeight failed with height=" + string(height))
+	}
+	bk, err := b.db.GetBlock(temp)
+	if err != nil {
+		return nil, errors.New("[Ledger],GetBlockWithHeight failed with hash=" + temp.String())
+	}
+	return bk, nil
+}
+
+//Get block with block hash.
+func (b *BlockChain) GetBlockByHash(hash common.Uint256) (*core.Block, error) {
+	bk, err := b.db.GetBlock(hash)
+	if err != nil {
+		return nil, errors.New("[Ledger],GetBlockWithHeight failed with hash=" + hash.String())
+	}
+	return bk, nil
+}
+
+func (b *BlockChain) IsDuplicateTx(txId common.Uint256) bool {
+	return b.db.IsDuplicateTx(txId)
+}
+
+//Get transaction with hash.
+func (b *BlockChain) GetTransaction(hash common.Uint256) (*core.Transaction, uint32, error) {
+	return b.db.GetTransaction(hash)
+}
+
+func (b *BlockChain) GetTxReference(tx *core.Transaction) (map[*core.Input]*core.Output, error) {
+	return b.db.GetTxReference(tx)
+}
+
+func (b *BlockChain) GetAssetUnspents(programHash common.Uint168, assetid common.Uint256) ([]*UTXO, error) {
+	return b.db.GetUnspentFromProgramHash(programHash, assetid)
+}
+
+func (b *BlockChain) GetAssets() map[common.Uint256]*core.Asset {
+	return b.db.GetAssets()
+}
+
+func (b *BlockChain) GetUnspents(programHash common.Uint168) (map[common.Uint256][]*UTXO, error) {
+	return b.db.GetUnspentsFromProgramHash(programHash)
+}
+
+func (b *BlockChain) AddBlock(block *core.Block) (bool, bool, error) {
 	log.Debug()
 	b.mutex.Lock()
 	defer b.mutex.Unlock()
@@ -193,7 +202,7 @@ func (b *BlockChain) AddBlock(block *Block) (bool, bool, error) {
 	return inMainChain, isOrphan, nil
 }
 
-func (b *BlockChain) GetHeader(hash Uint256) (*Header, error) {
+func (b *BlockChain) GetHeader(hash common.Uint256) (*core.Header, error) {
 	header, err := DefaultLedger.Store.GetHeader(hash)
 	if err != nil {
 		return nil, errors.New("[BlockChain], GetHeader failed.")
@@ -201,7 +210,7 @@ func (b *BlockChain) GetHeader(hash Uint256) (*Header, error) {
 	return header, nil
 }
 
-func (b *BlockChain) ContainsTransaction(hash Uint256) bool {
+func (b *BlockChain) ContainsTransaction(hash common.Uint256) bool {
 	//TODO: implement error catch
 	_, _, err := DefaultLedger.Store.GetTransaction(hash)
 	if err != nil {
@@ -210,17 +219,17 @@ func (b *BlockChain) ContainsTransaction(hash Uint256) bool {
 	return true
 }
 
-func (b *BlockChain) CurrentBlockHash() Uint256 {
+func (b *BlockChain) CurrentBlockHash() common.Uint256 {
 	return DefaultLedger.Store.GetCurrentBlockHash()
 }
 
 type OrphanBlock struct {
-	Block      *Block
+	Block      *core.Block
 	Expiration time.Time
 }
 
-func (b *BlockChain) ProcessOrphans(hash *Uint256) error {
-	processHashes := make([]*Uint256, 0, 10)
+func (b *BlockChain) ProcessOrphans(hash *common.Uint256) error {
+	processHashes := make([]*common.Uint256, 0, 10)
 	processHashes = append(processHashes, hash)
 	for len(processHashes) > 0 {
 		processHash := processHashes[0]
@@ -278,7 +287,7 @@ func (b *BlockChain) RemoveOrphanBlock(orphan *OrphanBlock) {
 	}
 }
 
-func (b *BlockChain) AddOrphanBlock(block *Block) {
+func (b *BlockChain) AddOrphanBlock(block *core.Block) {
 	for _, oBlock := range b.Orphans {
 		if time.Now().After(oBlock.Expiration) {
 			b.RemoveOrphanBlock(oBlock)
@@ -314,7 +323,7 @@ func (b *BlockChain) AddOrphanBlock(block *Block) {
 	return
 }
 
-func (b *BlockChain) IsKnownOrphan(hash *Uint256) bool {
+func (b *BlockChain) IsKnownOrphan(hash *common.Uint256) bool {
 	b.OrphanLock.RLock()
 	defer b.OrphanLock.RUnlock()
 
@@ -325,7 +334,7 @@ func (b *BlockChain) IsKnownOrphan(hash *Uint256) bool {
 	return false
 }
 
-func (b *BlockChain) GetOrphanRoot(hash *Uint256) *Uint256 {
+func (b *BlockChain) GetOrphanRoot(hash *common.Uint256) *common.Uint256 {
 	b.OrphanLock.RLock()
 	defer b.OrphanLock.RUnlock()
 
@@ -344,8 +353,8 @@ func (b *BlockChain) GetOrphanRoot(hash *Uint256) *Uint256 {
 }
 
 type BlockNode struct {
-	Hash        *Uint256
-	ParentHash  *Uint256
+	Hash        *common.Uint256
+	ParentHash  *common.Uint256
 	Height      uint32
 	Version     uint32
 	Bits        uint32
@@ -356,8 +365,8 @@ type BlockNode struct {
 	Children    []*BlockNode
 }
 
-func NewBlockNode(header *Header, hash *Uint256) *BlockNode {
-	var previous, current Uint256
+func NewBlockNode(header *core.Header, hash *common.Uint256) *BlockNode {
+	var previous, current common.Uint256
 	copy(previous[:], header.Previous[:])
 	copy(current[:], hash[:])
 	node := BlockNode{
@@ -426,7 +435,7 @@ func RemoveChildNode(children []*BlockNode, node *BlockNode) []*BlockNode {
 	}
 
 	for i := 0; i < len(children); i++ {
-		if (*children[i].Hash).IsEqual(*node.Hash) {
+		if children[i].Hash.IsEqual(*node.Hash) {
 			copy(children[i:], children[i+1:])
 			children[len(children)-1] = nil
 			return children[:len(children)-1]
@@ -436,7 +445,7 @@ func RemoveChildNode(children []*BlockNode, node *BlockNode) []*BlockNode {
 
 }
 
-func (b *BlockChain) LoadBlockNode(blockHeader *Header, hash *Uint256) (*BlockNode, error) {
+func (b *BlockChain) LoadBlockNode(blockHeader *core.Header, hash *common.Uint256) (*BlockNode, error) {
 
 	// Create the new block node for the block and set the work.
 	node := NewBlockNode(blockHeader, hash)
@@ -504,7 +513,7 @@ func (b *BlockChain) PruneBlockNodes() error {
 	}
 
 	newRootNode := b.BestChain
-	for i := uint32(0); i < MinMemoryNodes-1 && newRootNode != nil; i++ {
+	for i := uint32(0); i < minMemoryNodes-1 && newRootNode != nil; i++ {
 		newRootNode = newRootNode.Parent
 	}
 
@@ -572,10 +581,10 @@ func (b *BlockChain) RemoveBlockNode(node *BlockNode) error {
 // block chain, it simply returns it.  Otherwise, it loads the previous block
 // from the block database, creates a new block node from it, and returns it.
 // The returned node will be nil if the genesis block is passed.
-func (b *BlockChain) GetPrevNodeFromBlock(block *Block) (*BlockNode, error) {
+func (b *BlockChain) GetPrevNodeFromBlock(block *core.Block) (*BlockNode, error) {
 	// Genesis block.
 	prevHash := block.Header.Previous
-	if prevHash.IsEqual(EmptyHash) {
+	if prevHash.IsEqual(zeroHash) {
 		return nil, nil
 	}
 
@@ -718,7 +727,7 @@ func (b *BlockChain) ReorganizeChain(detachNodes, attachNodes *list.List) error 
 		if err != nil {
 			return err
 		}
-		err = b.DisconnectBlock(n, block)
+		err = b.disconnectBlock(n, block)
 		if err != nil {
 			return err
 		}
@@ -728,7 +737,7 @@ func (b *BlockChain) ReorganizeChain(detachNodes, attachNodes *list.List) error 
 	for e := attachNodes.Front(); e != nil; e = e.Next() {
 		n := e.Value.(*BlockNode)
 		block := b.BlockCache[*n.Hash]
-		err := b.ConnectBlock(n, block)
+		err := b.connectBlock(n, block)
 		if err != nil {
 			return err
 		}
@@ -753,7 +762,7 @@ func (b *BlockChain) ReorganizeChain(detachNodes, attachNodes *list.List) error 
 
 //// disconnectBlock handles disconnecting the passed node/block from the end of
 //// the main (best) chain.
-func (b *BlockChain) DisconnectBlock(node *BlockNode, block *Block) error {
+func (b *BlockChain) disconnectBlock(node *BlockNode, block *core.Block) error {
 	// Make sure the node being disconnected is the end of the best chain.
 	if b.BestChain == nil || !node.Hash.IsEqual(*b.BestChain.Hash) {
 		return fmt.Errorf("disconnectBlock must be called with the " +
@@ -788,7 +797,7 @@ func (b *BlockChain) DisconnectBlock(node *BlockNode, block *Block) error {
 
 // connectBlock handles connecting the passed node/block to the end of the main
 // (best) chain.
-func (b *BlockChain) ConnectBlock(node *BlockNode, block *Block) error {
+func (b *BlockChain) connectBlock(node *BlockNode, block *core.Block) error {
 
 	err := CheckBlockContext(block)
 	if err != nil {
@@ -823,13 +832,16 @@ func (b *BlockChain) ConnectBlock(node *BlockNode, block *Block) error {
 	// Notify the caller that the block was connected to the main chain.
 	// The caller would typically want to react with actions such as
 	// updating wallets.
-	//TODO
-	//b.sendNotification(NTBlockConnected, block)
+	b.sendNotification(NTBlockConnected, block)
 
 	return nil
 }
 
-func (b *BlockChain) BlockExists(hash *Uint256) bool {
+func (b *BlockChain) HaveBlock(hash *common.Uint256) bool {
+	return b.BlockExists(hash) || b.IsKnownOrphan(hash)
+}
+
+func (b *BlockChain) BlockExists(hash *common.Uint256) bool {
 	// Check memory chain first (could be main chain or side chain blocks).
 	//if _, ok := b.Index[*hash]; ok {
 	if _, ok := b.LookupNodeInIndex(hash); ok {
@@ -840,7 +852,7 @@ func (b *BlockChain) BlockExists(hash *Uint256) bool {
 	return DefaultLedger.BlockInLedger(*hash)
 }
 
-func (b *BlockChain) maybeAcceptBlock(block *Block) (bool, error) {
+func (b *BlockChain) maybeAcceptBlock(block *core.Block) (bool, error) {
 
 	// Get a block node for the block previous to this one.  Will be nil
 	// if this is the genesis block.
@@ -894,15 +906,15 @@ func (b *BlockChain) maybeAcceptBlock(block *Block) (bool, error) {
 		return false, err
 	}
 
-	//// Notify the caller that the new block was accepted into the block
-	//// chain.  The caller would typically want to react by relaying the
-	//// inventory to other peers.
-	////b.sendNotification(NTBlockAccepted, block)
+	// Notify the caller that the new block was accepted into the block
+	// chain.  The caller would typically want to react by relaying the
+	// inventory to other peers.
+	b.sendNotification(NTBlockAccepted, block)
 
 	return inMainChain, nil
 }
 
-func (b *BlockChain) ConnectBestChain(node *BlockNode, block *Block) (bool, error) {
+func (b *BlockChain) ConnectBestChain(node *BlockNode, block *core.Block) (bool, error) {
 	// We haven't selected a best chain yet or we are extending the main
 	// (best) chain with a new block.  This is the most common case.
 
@@ -918,7 +930,7 @@ func (b *BlockChain) ConnectBestChain(node *BlockNode, block *Block) (bool, erro
 		//}
 
 		// Connect the block to the main chain.
-		err := b.ConnectBlock(node, block)
+		err := b.connectBlock(node, block)
 		if err != nil {
 			return false, err
 		}
@@ -1002,7 +1014,7 @@ func (b *BlockChain) ConnectBestChain(node *BlockNode, block *Block) (bool, erro
 //1. inMainChain
 //2. isOphan
 //3. error
-func (b *BlockChain) ProcessBlock(block *Block) (bool, bool, error) {
+func (b *BlockChain) ProcessBlock(block *core.Block) (bool, bool, error) {
 	blockHash := block.Hash()
 	log.Debugf("[ProcessBLock] height = %d, hash = %x", block.Header.Height, blockHash.Bytes())
 
@@ -1033,7 +1045,7 @@ func (b *BlockChain) ProcessBlock(block *Block) (bool, bool, error) {
 
 	// Handle orphan blocks.
 	prevHash := blockHeader.Previous
-	if !prevHash.IsEqual(EmptyHash) {
+	if !prevHash.IsEqual(zeroHash) {
 		if !b.BlockExists(&prevHash) {
 			log.Debugf("Adding orphan block %x with parent %x", blockHash.Bytes(), prevHash.Bytes())
 			b.AddOrphanBlock(block)
@@ -1066,36 +1078,9 @@ func (b *BlockChain) ProcessBlock(block *Block) (bool, bool, error) {
 func (b *BlockChain) DumpState() {
 	log.Info("BestChain=", b.BestChain.Hash)
 	log.Info("ChainRoot=", b.Root.Hash)
-	//log.Debug("b.Index=", b.Index)
-	//log.Debug("b.DepNodes=", b.DepNodes)
-	//for _, nd := range b.Orphans {
-	//	log.Debug(nd)
-	//}
-	//	for _, nd := range b.Index {
-	//		DumpBlockNode(nd)
-	//	}
 }
 
-func DumpBlockNode(node *BlockNode) {
-	log.Debugf("---------------------node:%p\n", node)
-	log.Debug("Hash:", node.Hash)
-	log.Debug("ParentHash:", node.ParentHash)
-	log.Debug("Height:", node.Height)
-	log.Debug("Version:", node.Version)
-	log.Debug("Bits:", node.Bits)
-	log.Debug("Timestamp:", node.Timestamp)
-	log.Debug("WorkSum:", node.WorkSum)
-	log.Debug("InMainChain:", node.InMainChain)
-	if node.Parent != nil {
-		log.Debug("Parent:", node.Parent.Hash)
-	} else {
-		log.Debug("Parent:", node.Parent)
-	}
-	log.Debug("Children:", node.Children)
-	log.Debug("---------------------")
-}
-
-func (b *BlockChain) LatestBlockLocator() ([]*Uint256, error) {
+func (b *BlockChain) LatestBlockLocator() ([]*common.Uint256, error) {
 	b.mutex.RLock()
 	defer b.mutex.RUnlock()
 	if b.BestChain == nil {
@@ -1103,7 +1088,7 @@ func (b *BlockChain) LatestBlockLocator() ([]*Uint256, error) {
 		// database.
 
 		// Get Current Block
-		blockHash := DefaultLedger.Store.GetCurrentBlockHash()
+		blockHash := b.db.GetCurrentBlockHash()
 		return b.blockLocatorFromHash(&blockHash), nil
 	}
 
@@ -1124,25 +1109,25 @@ func (b *BlockChain) RemoveNodeFromIndex(node *BlockNode) {
 	delete(b.Index, *node.Hash)
 }
 
-func (b *BlockChain) LookupNodeInIndex(hash *Uint256) (*BlockNode, bool) {
+func (b *BlockChain) LookupNodeInIndex(hash *common.Uint256) (*BlockNode, bool) {
 	b.IndexLock.Lock()
 	defer b.IndexLock.Unlock()
 	node, exist := b.Index[*hash]
-
 	return node, exist
 }
 
-func (b *BlockChain) BlockLocatorFromHash(inhash *Uint256) []*Uint256 {
+func (b *BlockChain) BlockLocatorFromHash(inhash *common.Uint256) []*common.Uint256 {
 	b.mutex.RLock()
 	defer b.mutex.RUnlock()
 	return b.blockLocatorFromHash(inhash)
 }
-func (b *BlockChain) blockLocatorFromHash(inhash *Uint256) []*Uint256 {
+
+func (b *BlockChain) blockLocatorFromHash(inhash *common.Uint256) []*common.Uint256 {
 	// The locator contains the requested hash at the very least.
-	var hash Uint256
+	var hash common.Uint256
 	copy(hash[:], inhash[:])
-	//locator := make(Locator, 0, MaxBlockLocatorsPerMsg)
-	locator := make([]*Uint256, 0)
+	//locator := make(Locator, 0, maxBlockLocators)
+	locator := make([]*common.Uint256, 0)
 	locator = append(locator, &hash)
 
 	// Nothing more to do if a locator for the genesis hash was requested.
@@ -1161,7 +1146,7 @@ func (b *BlockChain) blockLocatorFromHash(inhash *Uint256) []*Uint256 {
 		// error means it doesn't exist and just return the locator for
 		// the block itself.
 
-		block, err := DefaultLedger.Store.GetBlock(hash)
+		block, err := b.db.GetBlock(hash)
 		if err != nil {
 			return locator
 		}
@@ -1174,7 +1159,7 @@ func (b *BlockChain) blockLocatorFromHash(inhash *Uint256) []*Uint256 {
 	// in the Locator comment and make sure to leave room for the
 	// final genesis hash.
 	increment := int32(1)
-	for len(locator) < MaxBlockLocatorsPerMsg-1 {
+	for len(locator) < maxBlockLocators-1 {
 		// Once there are 10 locators, exponentially increase the
 		// distance between each block locator.
 		if len(locator) > 10 {
@@ -1188,9 +1173,9 @@ func (b *BlockChain) blockLocatorFromHash(inhash *Uint256) []*Uint256 {
 		// The desired block height is in the main chain, so look it up
 		// from the main chain database.
 
-		h, err := DefaultLedger.Store.GetBlockHash(uint32(blockHeight))
+		h, err := b.db.GetBlockHash(uint32(blockHeight))
 		if err != nil {
-			log.Debugf("Lookup of known valid height failed %v", blockHeight)
+			log.Warnf("Lookup of known valid height failed %v", blockHeight)
 			continue
 		}
 
@@ -1203,16 +1188,106 @@ func (b *BlockChain) blockLocatorFromHash(inhash *Uint256) []*Uint256 {
 	return locator
 }
 
-func (b *BlockChain) LatestLocatorHash(locator []*Uint256) *Uint256 {
-	var startHash Uint256
+func (b *BlockChain) locateStartBlock(locator []*common.Uint256) *common.Uint256 {
+	var startHash common.Uint256
 	for _, hash := range locator {
-		_, err := DefaultLedger.Store.GetBlock(*hash)
+		_, err := b.db.GetBlock(*hash)
 		if err == nil {
 			startHash = *hash
 			break
 		}
 	}
 	return &startHash
+}
+
+func (b *BlockChain) locateBlocks(startHash *common.Uint256, stopHash *common.Uint256, maxBlockHashes uint32) ([]*common.Uint256, error) {
+	var count = uint32(0)
+	var startHeight uint32
+	var stopHeight uint32
+	curHeight := b.db.GetHeight()
+	if stopHash.IsEqual(zeroHash) {
+		if startHash.IsEqual(zeroHash) {
+			if curHeight > maxBlockHashes {
+				count = maxBlockHashes
+			} else {
+				count = curHeight
+			}
+		} else {
+			startHeader, err := b.db.GetHeader(*startHash)
+			if err != nil {
+				return nil, err
+			}
+			startHeight = startHeader.Height
+			count = curHeight - startHeight
+			if count > maxBlockHashes {
+				count = maxBlockHashes
+			}
+		}
+	} else {
+		stopHeader, err := b.db.GetHeader(*stopHash)
+		if err != nil {
+			return nil, err
+		}
+		stopHeight = stopHeader.Height
+		if !startHash.IsEqual(zeroHash) {
+			startHeader, err := b.db.GetHeader(*startHash)
+			if err != nil {
+				return nil, err
+			}
+			startHeight = startHeader.Height
+
+			// avoid unsigned integer underflow
+			if stopHeight < startHeight {
+				return nil, fmt.Errorf("do not have header to send")
+			}
+			count = stopHeight - startHeight
+
+			if count >= maxBlockHashes {
+				count = maxBlockHashes
+			}
+		} else {
+			if stopHeight > maxBlockHashes {
+				count = maxBlockHashes
+			} else {
+				count = stopHeight
+			}
+		}
+	}
+
+	hashes := make([]*common.Uint256, 0)
+	for i := uint32(1); i <= count; i++ {
+		hash, err := b.db.GetBlockHash(startHeight + i)
+		if err != nil {
+			return nil, err
+		}
+		hashes = append(hashes, &hash)
+	}
+
+	return hashes, nil
+}
+
+// LocateBlocks returns the hashes of the blocks after the first known block in
+// the locator until the provided stop hash is reached, or up to the provided
+// max number of block hashes.
+//
+// In addition, there are two special cases:
+//
+// - When no locators are provided, the stop hash is treated as a request for
+//   that block, so it will either return the stop hash itself if it is known,
+//   or nil if it is unknown
+// - When locators are provided, but none of them are known, hashes starting
+//   after the genesis block will be returned
+//
+// This function is safe for concurrent access.
+func (b *BlockChain) LocateBlocks(locator []*common.Uint256, hashStop *common.Uint256, maxHashes uint32) []*common.Uint256 {
+	b.mutex.RLock()
+	defer b.mutex.RUnlock()
+	startHash := b.locateStartBlock(locator)
+	blocks, err := b.locateBlocks(startHash, hashStop, maxHashes)
+	if err != nil {
+		log.Errorf("LocateBlocks error %s", err)
+	}
+	return blocks
 }
 
 func (b *BlockChain) MedianAdjustedTime() time.Time {

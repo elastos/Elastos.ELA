@@ -188,7 +188,7 @@ func (h *HandlerEIP001) onInventory(inv *msg.Inventory) {
 				SendGetBlocks(node, locator, common.EmptyHash)
 			}
 		case msg.InvTypeTx:
-			if _, ok := LocalNode.GetTransactionPool(false)[hash]; !ok {
+			if _, ok := LocalNode.GetTxsInPool()[hash]; !ok {
 				getData.AddInvVect(iv)
 			}
 		default:
@@ -225,7 +225,7 @@ func (h *HandlerEIP001) onGetData(getData *msg.GetData) {
 			}
 
 		case msg.InvTypeTx:
-			tx, ok := LocalNode.GetTransactionPool(false)[iv.Hash]
+			tx, ok := LocalNode.GetTxsInPool()[iv.Hash]
 			if !ok {
 				notFound.AddInvVect(iv)
 				continue
@@ -331,8 +331,8 @@ func (h *HandlerEIP001) onTx(msgTx *msg.Tx) {
 		return
 	}
 
-	if errCode := LocalNode.AppendToTxnPool(tx); errCode != errors.Success {
-		reject := msg.NewReject(msgTx.CMD(), msg.RejectInvalid, errCode.Message())
+	if errCode := LocalNode.AppendToTxPool(tx); errCode != errors.Success {
+		reject := msg.NewReject(msgTx.CMD(), msg.RejectInvalid, errCode.String())
 		reject.Hash = tx.Hash()
 		node.SendMessage(reject)
 		log.Debug("[HandlerEIP001] VerifyTransaction failed when AppendToTxnPool")
@@ -359,7 +359,7 @@ func (h *HandlerEIP001) onMemPool(*msg.MemPool) {
 		return
 	}
 
-	txMemPool := LocalNode.GetTransactionPool(false)
+	txMemPool := LocalNode.GetTxsInPool()
 	inv := msg.NewInventory()
 
 	for _, tx := range txMemPool {

@@ -6,9 +6,11 @@ import (
 	"github.com/elastos/Elastos.ELA/dpos/log"
 	"github.com/elastos/Elastos.ELA/dpos/p2p/msg"
 	"github.com/elastos/Elastos.ELA/dpos/p2p/peer"
+	"github.com/elastos/Elastos.ELA/node"
 
 	"github.com/elastos/Elastos.ELA.Utility/common"
 	utip2p "github.com/elastos/Elastos.ELA.Utility/p2p"
+	utimsg "github.com/elastos/Elastos.ELA.Utility/p2p/msg"
 )
 
 type DposNetwork interface {
@@ -152,15 +154,25 @@ func (d *dposManager) OnPong(id peer.PID, height uint32) {
 }
 
 func (d *dposManager) OnBlock(id peer.PID, block *core.Block) {
-	d.handler.ProcessBlock(id, block)
+	log.Info("[ProcessBlock] received block:", block.Hash().String())
+	if block.Header.Height == blockchain.DefaultLedger.Blockchain.GetBestHeight()+1 {
+		if _, err := node.LocalNode.AppendBlock(block); err != nil {
+			log.Error("[AppendBlock] err:", err.Error())
+		}
+	}
 }
 
 func (d *dposManager) OnInv(id peer.PID, blockHash common.Uint256) {
-	d.handler.ProcessInv(id, blockHash)
+	if _, err := getBlock(blockHash); err != nil {
+		log.Info("[ProcessInv] send getblock:", blockHash.String())
+		d.network.SendMessageToPeer(id, msg.NewGetBlock(blockHash))
+	}
 }
 
 func (d *dposManager) OnGetBlock(id peer.PID, blockHash common.Uint256) {
-	d.handler.ProcessGetBlock(id, blockHash)
+	if block, err := getBlock(blockHash); err == nil {
+		d.network.SendMessageToPeer(id, utimsg.NewBlock(block))
+	}
 }
 
 func (d *dposManager) OnGetBlocks(id peer.PID, startBlockHeight, endBlockHeight uint32) {
@@ -240,4 +252,13 @@ func (d *dposManager) changeHeight() {
 		log.Info("[onDutyArbitratorChanged] onduty -> not onduty")
 	}
 	d.ChangeConsensus(onDuty)
+}
+
+func getBlock(blockHash common.Uint256) (*core.Block, error) {
+	block, have := node.LocalNode.GetBlock(blockHash)
+	if have {
+		return block, nil
+	}
+
+	return blockchain.DefaultLedger.GetBlockWithHash(blockHash)
 }

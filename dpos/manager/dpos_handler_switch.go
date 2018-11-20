@@ -10,10 +10,8 @@ import (
 	"github.com/elastos/Elastos.ELA/dpos/log"
 	msg2 "github.com/elastos/Elastos.ELA/dpos/p2p/msg"
 	"github.com/elastos/Elastos.ELA/dpos/p2p/peer"
-	"github.com/elastos/Elastos.ELA/node"
 
 	"github.com/elastos/Elastos.ELA.Utility/common"
-	"github.com/elastos/Elastos.ELA.Utility/p2p/msg"
 )
 
 type DposEventConditionHandler interface {
@@ -38,10 +36,6 @@ type DposHandlerSwitch interface {
 
 	ProcessPing(id peer.PID, height uint32)
 	ProcessPong(id peer.PID, height uint32)
-
-	ProcessBlock(id peer.PID, block *core.Block)
-	ProcessInv(id peer.PID, blockHash common.Uint256)
-	ProcessGetBlock(id peer.PID, blockHash common.Uint256)
 
 	RequestAbnormalRecovering()
 	HelpToRecoverAbnormal(id peer.PID, height uint32)
@@ -204,28 +198,6 @@ func (h *dposHandlerSwitch) ProcessPong(id peer.PID, height uint32) {
 	h.processHeartBeat(id, height)
 }
 
-func (h *dposHandlerSwitch) ProcessBlock(id peer.PID, block *core.Block) {
-	log.Info("[ProcessBlock] received block:", block.Hash().String())
-	if block.Header.Height == blockchain.DefaultLedger.Blockchain.GetBestHeight()+1 {
-		if _, err := node.LocalNode.AppendBlock(block); err != nil {
-			log.Error("[AppendBlock] err:", err.Error())
-		}
-	}
-}
-
-func (h *dposHandlerSwitch) ProcessInv(id peer.PID, blockHash common.Uint256) {
-	if _, err := h.getBlock(blockHash); err != nil {
-		log.Info("[ProcessInv] send getblock:", blockHash.String())
-		h.network.SendMessageToPeer(id, msg2.NewGetBlock(blockHash))
-	}
-}
-
-func (h *dposHandlerSwitch) ProcessGetBlock(id peer.PID, blockHash common.Uint256) {
-	if block, err := h.getBlock(blockHash); err == nil {
-		h.network.SendMessageToPeer(id, msg.NewBlock(block))
-	}
-}
-
 func (h *dposHandlerSwitch) RequestAbnormalRecovering() {
 	h.proposalDispatcher.RequestAbnormalRecovering()
 	h.isAbnormal = true
@@ -303,13 +275,4 @@ func (h *dposHandlerSwitch) tryRequestBlocks(id peer.PID, sourceHeight uint32) b
 		return true
 	}
 	return false
-}
-
-func (h *dposHandlerSwitch) getBlock(blockHash common.Uint256) (*core.Block, error) {
-	block, have := node.LocalNode.GetBlock(blockHash)
-	if have {
-		return block, nil
-	}
-
-	return blockchain.DefaultLedger.GetBlockWithHash(blockHash)
 }

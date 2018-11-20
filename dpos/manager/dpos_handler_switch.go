@@ -34,9 +34,6 @@ type DposHandlerSwitch interface {
 
 	FinishConsensus()
 
-	ProcessPing(id peer.PID, height uint32)
-	ProcessPong(id peer.PID, height uint32)
-
 	RequestAbnormalRecovering()
 	HelpToRecoverAbnormal(id peer.PID, height uint32)
 	RecoverAbnormal(status *msg2.ConsensusStatus)
@@ -190,14 +187,6 @@ func (h *dposHandlerSwitch) ResponseGetBlocks(id peer.PID, startBlockHeight, end
 	h.network.SendMessageToPeer(id, msg)
 }
 
-func (h *dposHandlerSwitch) ProcessPing(id peer.PID, height uint32) {
-	h.processHeartBeat(id, height)
-}
-
-func (h *dposHandlerSwitch) ProcessPong(id peer.PID, height uint32) {
-	h.processHeartBeat(id, height)
-}
-
 func (h *dposHandlerSwitch) RequestAbnormalRecovering() {
 	h.proposalDispatcher.RequestAbnormalRecovering()
 	h.isAbnormal = true
@@ -256,23 +245,4 @@ func (h *dposHandlerSwitch) OnViewChanged(isOnDuty bool) {
 	}
 	log.Info("OnViewChanged, onduty, getBlock from first block hash:", firstBlockHash)
 	h.ChangeView(&firstBlockHash)
-}
-
-func (h *dposHandlerSwitch) processHeartBeat(id peer.PID, height uint32) {
-	if h.tryRequestBlocks(id, height) {
-		log.Info("Found higher block, requesting it.")
-	}
-}
-
-func (h *dposHandlerSwitch) tryRequestBlocks(id peer.PID, sourceHeight uint32) bool {
-	height := h.proposalDispatcher.CurrentHeight()
-	if sourceHeight > height {
-		msg := &msg2.GetBlocksMessage{
-			StartBlockHeight: height,
-			EndBlockHeight:   sourceHeight}
-		h.network.SendMessageToPeer(id, msg)
-
-		return true
-	}
-	return false
 }

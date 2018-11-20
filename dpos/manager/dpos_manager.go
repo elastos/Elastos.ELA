@@ -146,11 +146,11 @@ func (d *dposManager) OnVoteRejected(id peer.PID, p core.DPosProposalVote) {
 }
 
 func (d *dposManager) OnPing(id peer.PID, height uint32) {
-	d.handler.ProcessPing(id, height)
+	d.processHeartBeat(id, height)
 }
 
 func (d *dposManager) OnPong(id peer.PID, height uint32) {
-	d.handler.ProcessPong(id, height)
+	d.processHeartBeat(id, height)
 }
 
 func (d *dposManager) OnBlock(id peer.PID, block *core.Block) {
@@ -252,6 +252,25 @@ func (d *dposManager) changeHeight() {
 		log.Info("[onDutyArbitratorChanged] onduty -> not onduty")
 	}
 	d.ChangeConsensus(onDuty)
+}
+
+func (d *dposManager) processHeartBeat(id peer.PID, height uint32) {
+	if d.tryRequestBlocks(id, height) {
+		log.Info("Found higher block, requesting it.")
+	}
+}
+
+func (d *dposManager) tryRequestBlocks(id peer.PID, sourceHeight uint32) bool {
+	height := d.dispatcher.CurrentHeight()
+	if sourceHeight > height {
+		msg := &msg.GetBlocksMessage{
+			StartBlockHeight: height,
+			EndBlockHeight:   sourceHeight}
+		d.network.SendMessageToPeer(id, msg)
+
+		return true
+	}
+	return false
 }
 
 func getBlock(blockHash common.Uint256) (*core.Block, error) {

@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
-	"sort"
 	"time"
 
 	aux "github.com/elastos/Elastos.ELA/auxpow"
@@ -927,25 +926,6 @@ type Producers struct {
 	Total_votes string     `json:"total_votes"`
 }
 
-type producerSorter []Producer
-
-func (s producerSorter) Len() int {
-	return len(s)
-}
-
-func (s producerSorter) Swap(i, j int) {
-	s[i], s[j] = s[j], s[i]
-}
-
-func (s producerSorter) Less(i, j int) bool {
-	ivalue, _ := StringToFixed64(s[i].Votes)
-	jvalue, _ := StringToFixed64(s[j].Votes)
-	if ivalue == nil || jvalue == nil {
-		log.Error("[producerSorter], Sort failed.")
-		return false
-	}
-	return *ivalue > *jvalue
-}
 func ListProducers(param Params) map[string]interface{} {
 	start, _ := param.Int("start")
 	limit, ok := param.Int("limit")
@@ -953,10 +933,12 @@ func ListProducers(param Params) map[string]interface{} {
 		limit = math.MaxInt64
 	}
 
-	producers := chain.DefaultLedger.Store.GetRegisteredProducers()
+	producers, err := chain.DefaultLedger.Store.GetRegisteredProducersByVoteType(outputpayload.Delegate)
+	if err != nil {
+		return ResponsePack(Error, "not found producer")
+	}
 	var ps []Producer
 	for _, p := range producers {
-
 		programHash, err := chain.PublicKeyToProgramHash(p.PublicKey)
 		if err != nil {
 			return ResponsePack(Error, "invalid public key")
@@ -984,7 +966,6 @@ func ListProducers(param Params) map[string]interface{} {
 		ps = append(ps, producer)
 	}
 
-	sort.Sort(producerSorter(ps))
 	var resultPs []Producer
 	var totalVotes Fixed64
 	for i := start; i < limit && i < int64(len(ps)); i++ {

@@ -200,6 +200,14 @@ func (b *Blockchain) AddBlock(block *Block) (bool, bool, error) {
 	return inMainChain, isOrphan, nil
 }
 
+func (b *Blockchain) AddConfirm(confirm *DPosProposalVoteSlot) error {
+	log.Debug()
+	b.mutex.Lock()
+	defer b.mutex.Unlock()
+
+	return b.ProcessConfirm(confirm)
+}
+
 func (b *Blockchain) GetHeader(hash Uint256) (*Header, error) {
 	header, err := DefaultLedger.Store.GetHeader(hash)
 	if err != nil {
@@ -1068,6 +1076,10 @@ func (b *Blockchain) ProcessBlock(block *Block) (bool, bool, error) {
 	//log.Debugf("Accepted block %v", blockHash)
 
 	return inMainChain, false, nil
+}
+
+func (b *Blockchain) ProcessConfirm(confirm *DPosProposalVoteSlot) error {
+	return DefaultLedger.Store.SaveConfirm(confirm)
 }
 
 func (b *Blockchain) DumpState() {

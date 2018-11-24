@@ -1,10 +1,11 @@
 package node
 
 import (
+	"bytes"
 	chain "github.com/elastos/Elastos.ELA/blockchain"
-	"github.com/elastos/Elastos.ELA/bloom"
 	"github.com/elastos/Elastos.ELA/core"
 	"github.com/elastos/Elastos.ELA/errors"
+	"github.com/elastos/Elastos.ELA/filter"
 	"github.com/elastos/Elastos.ELA/log"
 	"github.com/elastos/Elastos.ELA/protocol"
 
@@ -36,6 +37,15 @@ func (h *HandlerEIP001) MakeEmptyMessage(cmd string) (message p2p.Message, err e
 	switch cmd {
 	case p2p.CmdFilterLoad:
 		message = &msg.FilterLoad{}
+
+	case p2p.CmdFilterAdd:
+		message = &msg.FilterAdd{}
+
+	case p2p.CmdFilterClear:
+		message = &msg.FilterClear{}
+
+	case p2p.CmdTxFilter:
+		message = &msg.TxFilterLoad{}
 
 	case p2p.CmdGetBlocks:
 		message = &msg.GetBlocks{}
@@ -73,6 +83,15 @@ func (h *HandlerEIP001) HandleMessage(message p2p.Message) {
 	case *msg.FilterLoad:
 		h.onFilterLoad(message)
 
+	case *msg.FilterAdd:
+		h.onFilterAdd(message)
+
+	case *msg.FilterClear:
+		h.onFilterClear(message)
+
+	case *msg.TxFilterLoad:
+		h.onTxFilterLoad(message)
+
 	case *msg.GetBlocks:
 		h.onGetBlocks(message)
 
@@ -102,8 +121,65 @@ func (h *HandlerEIP001) HandleMessage(message p2p.Message) {
 	}
 }
 
-func (h *HandlerEIP001) onFilterLoad(msg *msg.FilterLoad) {
-	h.base.node.LoadFilter(msg)
+func (h *HandlerEIP001) onFilterLoad(filterLoad *msg.FilterLoad) {
+	node := h.base.node
+	buf := new(bytes.Buffer)
+	err := filterLoad.Serialize(buf)
+	if err != nil {
+		log.Debugf("%s sent invalid filterload request with error %s"+
+			" -- disconnecting", node, err)
+		node.Disconnect()
+		return
+	}
+
+	err = node.Filter().Load(&msg.TxFilterLoad{
+		Type: filter.FTBloom,
+		Data: buf.Bytes(),
+	})
+	if err != nil {
+		log.Debugf("%s sent invalid filterload request with error %s"+
+			" -- disconnecting", node, err)
+		node.Disconnect()
+	}
+}
+
+func (h *HandlerEIP001) onFilterAdd(msg *msg.FilterAdd) {
+	node := h.base.node
+	if !node.Filter().IsLoaded() {
+		log.Debugf("%s sent a filteradd request with no filter "+
+			"loaded -- disconnecting", node)
+		node.Disconnect()
+		return
+	}
+
+	err := node.Filter().Add(msg.Data)
+	if err != nil {
+		log.Debugf("%s sent invalid filteradd request with error %s"+
+			" -- disconnecting", node, err)
+		node.Disconnect()
+	}
+}
+
+func (h *HandlerEIP001) onFilterClear(msg *msg.FilterClear) {
+	node := h.base.node
+	if !node.Filter().IsLoaded() {
+		log.Debugf("%s sent a filteradd request with no filter "+
+			"loaded -- disconnecting", node)
+		node.Disconnect()
+		return
+	}
+
+	node.Filter().Clear()
+}
+
+func (h *HandlerEIP001) onTxFilterLoad(msg *msg.TxFilterLoad) {
+	node := h.base.node
+	err := node.Filter().Load(msg)
+	if err != nil {
+		log.Debugf("%s sent invalid txfilterload request with error %s"+
+			" -- disconnecting", node, err)
+		node.Disconnect()
+	}
 }
 
 func (h *HandlerEIP001) onGetBlocks(req *msg.GetBlocks) {
@@ -234,7 +310,7 @@ func (h *HandlerEIP001) onGetData(getData *msg.GetData) {
 			node.SendMessage(msg.NewTx(tx))
 
 		case msg.InvTypeFilteredBlock:
-			if !node.BloomFilter().IsLoaded() {
+			if !node.Filter().IsLoaded() {
 				return
 			}
 
@@ -245,7 +321,7 @@ func (h *HandlerEIP001) onGetData(getData *msg.GetData) {
 				continue
 			}
 
-			merkle, matchedIndexes := bloom.NewMerkleBlock(block, node.BloomFilter())
+			merkle, matchedIndexes := filter.NewMerkleBlock(block, node.Filter())
 
 			// Send merkleblock
 			node.SendMessage(merkle)
@@ -363,7 +439,7 @@ func (h *HandlerEIP001) onMemPool(*msg.MemPool) {
 	inv := msg.NewInventory()
 
 	for _, tx := range txMemPool {
-		if !node.BloomFilter().IsLoaded() || node.BloomFilter().MatchTxAndUpdate(tx) {
+		if !node.Filter().IsLoaded() || node.Filter().Match(tx) {
 			txID := tx.Hash()
 			inv.AddInvVect(msg.NewInvVect(msg.InvTypeTx, &txID))
 		}

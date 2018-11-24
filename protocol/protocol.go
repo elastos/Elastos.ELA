@@ -5,13 +5,12 @@ import (
 	"net"
 	"time"
 
-	"github.com/elastos/Elastos.ELA/bloom"
 	"github.com/elastos/Elastos.ELA/core"
 	"github.com/elastos/Elastos.ELA/errors"
+	"github.com/elastos/Elastos.ELA/filter"
 
 	"github.com/elastos/Elastos.ELA.Utility/common"
 	"github.com/elastos/Elastos.ELA.Utility/p2p"
-	"github.com/elastos/Elastos.ELA.Utility/p2p/msg"
 )
 
 const (
@@ -95,8 +94,7 @@ type Noder interface {
 	UpdateHandler(handler Handler)
 	ConnectNodes()
 	Connect(nodeAddr string) error
-	LoadFilter(filter *msg.FilterLoad)
-	BloomFilter() *bloom.Filter
+	Filter() *filter.Filter
 	SendMessage(msg p2p.Message)
 	NodeEstablished(uid uint64) bool
 	GetTransaction(hash common.Uint256) *core.Transaction

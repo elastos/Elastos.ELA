@@ -12,6 +12,7 @@ import (
 	"github.com/elastos/Elastos.ELA/bloom"
 	. "github.com/elastos/Elastos.ELA/config"
 	. "github.com/elastos/Elastos.ELA/core"
+	"github.com/elastos/Elastos.ELA/filter"
 	"github.com/elastos/Elastos.ELA/log"
 	"github.com/elastos/Elastos.ELA/protocol"
 
@@ -48,21 +49,21 @@ func (s Semaphore) release() { <-s }
 
 type node struct {
 	//sync.RWMutex	//The Lock not be used as expected to use function channel instead of lock
-	state     int32         // node state
-	timestamp time.Time     // The timestamp of node
-	id        uint64        // The nodes's id
-	version   uint32        // The network protocol the node used
-	services  uint64        // The services the node supplied
-	relay     bool          // The relay capability of the node (merge into capbility flag)
-	height    uint64        // The node latest block height
-	external  bool          // Indicate if this is an external node
-	txnCnt    uint64        // The transactions be transmit by this node
-	rxTxnCnt  uint64        // The transaction received by this node
-	link                    // The link status and infomation
-	neighbours              // The neighbor node connect with currently node except itself
-	chain.TxPool            // Unconfirmed transaction pool
-	idCache                 // The buffer to store the id of the items which already be processed
-	filter    *bloom.Filter // The bloom filter of a spv node
+	state        int32          // node state
+	timestamp    time.Time      // The timestamp of node
+	id           uint64         // The nodes's id
+	version      uint32         // The network protocol the node used
+	services     uint64         // The services the node supplied
+	relay        bool           // The relay capability of the node (merge into capbility flag)
+	height       uint64         // The node latest block height
+	external     bool           // Indicate if this is an external node
+	txnCnt       uint64         // The transactions be transmit by this node
+	rxTxnCnt     uint64         // The transaction received by this node
+	link                        // The link status and infomation
+	neighbours                  // The neighbor node connect with currently node except itself
+	chain.TxPool                // Unconfirmed transaction pool
+	idCache                     // The buffer to store the id of the items which already be processed
+	filter       *filter.Filter // The filter to filter transactions for a spv node
 	/*
 	 * |--|--|--|--|--|--|isSyncFailed|isSyncHeaders|
 	 */
@@ -123,7 +124,15 @@ func NewNode(conn net.Conn, inbound bool) *node {
 			sendQueue: make(chan p2p.Message, 1),
 			quit:      make(chan struct{}),
 		},
-		filter: bloom.LoadFilter(nil),
+		filter: filter.New(func(filterType filter.TxFilterType) filter.TxFilter {
+			switch filterType {
+			case filter.FTBloom:
+				return bloom.NewTxFilter()
+			case filter.FTTypeAddr:
+				return &filter.TypeAddrFilter{}
+			}
+			return nil
+		}),
 	}
 
 	n.handler = NewHandlerBase(&n)
@@ -318,11 +327,7 @@ func (node *node) waitForNeighbourConnections() {
 	}
 }
 
-func (node *node) LoadFilter(filter *msg.FilterLoad) {
-	node.filter.Reload(filter)
-}
-
-func (node *node) BloomFilter() *bloom.Filter {
+func (node *node) Filter() *filter.Filter {
 	return node.filter
 }
 
@@ -338,7 +343,7 @@ func (node *node) Relay(from protocol.Noder, message interface{}) error {
 			switch message := message.(type) {
 			case *Transaction:
 				log.Debug("Relay transaction message")
-				if nbr.BloomFilter().IsLoaded() && nbr.BloomFilter().MatchTxAndUpdate(message) {
+				if nbr.Filter().IsLoaded() && nbr.Filter().Match(message) {
 					inv := msg.NewInventory()
 					txID := message.Hash()
 					inv.AddInvVect(msg.NewInvVect(msg.InvTypeTx, &txID))
@@ -352,7 +357,7 @@ func (node *node) Relay(from protocol.Noder, message interface{}) error {
 				}
 			case *Block:
 				log.Debug("Relay block message")
-				if nbr.BloomFilter().IsLoaded() {
+				if nbr.Filter().IsLoaded() {
 					inv := msg.NewInventory()
 					blockHash := message.Hash()
 					inv.AddInvVect(msg.NewInvVect(msg.InvTypeBlock, &blockHash))

@@ -63,6 +63,9 @@ func (h *HandlerBase) FilterMessage(msgType string) error {
 		case p2p.CmdPing:
 		case p2p.CmdPong:
 		case p2p.CmdFilterLoad:
+		case p2p.CmdFilterAdd:
+		case p2p.CmdFilterClear:
+		case p2p.CmdTxFilter:
 		case p2p.CmdGetBlocks:
 		case p2p.CmdInv:
 		case p2p.CmdGetData:

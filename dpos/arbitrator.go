@@ -30,7 +30,7 @@ type arbitrator struct {
 
 func (a *arbitrator) Start() {
 	a.network.Start()
-	a.dposManager.Recover()
+	go a.dposManager.Recover()
 
 	go a.changeViewLoop()
 }

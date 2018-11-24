@@ -307,7 +307,7 @@ func NewDposNetwork(pid peer.PID, listener manager.NetworkEventListener, dposAcc
 func makeEmptyMessage(cmd string) (message utip2p.Message, err error) {
 	switch cmd {
 	case utip2p.CmdBlock:
-		message = utimsg.NewBlock(&core.BlockConfirm{})
+		message = utimsg.NewBlock(&core.Block{})
 	case msg.AcceptVote:
 		message = &msg.VoteMessage{Command: msg.AcceptVote}
 	case msg.ReceivedProposal:

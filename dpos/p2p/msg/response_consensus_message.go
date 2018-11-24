@@ -4,7 +4,7 @@ import (
 	"io"
 )
 
-const DefaultResponseConsensusMessageDataSize = 8000000 * 10
+const DefaultResponseConsensusMessageDataSize = 8000000
 
 type ResponseConsensusMessage struct {
 	Consensus ConsensusStatus

@@ -95,6 +95,13 @@ func (h *heightVersions) findTxVersion(blockHeight uint32, info *VersionInfo, tx
 	if !ok {
 		return nil
 	} else {
+		if _, ok := info.CompatibleTxVersions[1]; ok {
+			return info.CompatibleTxVersions[1]
+		}
+		if _, ok := info.CompatibleTxVersions[0]; ok {
+			return info.CompatibleTxVersions[0]
+		}
+
 		return v
 	}
 }

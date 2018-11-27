@@ -13,6 +13,7 @@ type DposNormalHandler struct {
 
 func (h *DposNormalHandler) ProcessAcceptVote(p core.DPosProposalVote) {
 	log.Info("[Normal-ProcessAcceptVote] start")
+	defer log.Info("[Normal-ProcessAcceptVote] end")
 	if h.consensus.IsArbitratorOnDuty(p.Proposal.Sponsor) && h.consensus.IsRunning() {
 
 		if block, ok := h.manager.GetBlockCache().TryGetValue(p.Proposal.BlockHash); ok {
@@ -35,7 +36,8 @@ func (h *DposNormalHandler) ProcessRejectVote(p core.DPosProposalVote) {
 }
 
 func (h *DposNormalHandler) StartNewProposal(p core.DPosProposal) {
-	log.Info("[Normal][OnProposalReceived] received request sign")
+	log.Info("[Normal][StartNewProposal] start")
+	defer log.Info("[Normal][StartNewProposal] end")
 	if h.consensus.IsRunning() {
 		h.consensus.TryChangeView()
 	}

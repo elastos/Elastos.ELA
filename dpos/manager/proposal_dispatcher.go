@@ -73,6 +73,9 @@ func (p *proposalDispatcher) GetProcessingBlock() *core.Block {
 }
 
 func (p *proposalDispatcher) ProcessVote(v core.DPosProposalVote, accept bool) {
+	log.Info("[ProcessVote] start")
+	defer log.Info("[ProcessVote] end")
+
 	if accept {
 		p.countAcceptedVote(v)
 	} else {
@@ -85,6 +88,9 @@ func (p *proposalDispatcher) IsVoteSlotEmpty() bool {
 }
 
 func (p *proposalDispatcher) StartProposal(b *core.Block) {
+	log.Info("[StartProposal] start")
+	defer log.Info("[StartProposal] end")
+
 	if p.processingBlock != nil {
 		log.Info("[StartProposal] start proposal failed")
 		return
@@ -102,7 +108,7 @@ func (p *proposalDispatcher) StartProposal(b *core.Block) {
 		return
 	}
 
-	log.Debug("[StartProposal] sponsor:", p.manager.GetPublicKey())
+	log.Info("[StartProposal] sponsor:", p.manager.GetPublicKey())
 
 	m := &msg2.ProposalMessage{
 		Proposal: proposal,
@@ -126,8 +132,11 @@ func (p *proposalDispatcher) StartProposal(b *core.Block) {
 }
 
 func (p *proposalDispatcher) TryStartSpeculatingProposal(b *core.Block) {
+	log.Info("[TryStartSpeculatingProposal] start")
+	defer log.Info("[TryStartSpeculatingProposal] end")
 
 	if p.processingBlock != nil {
+		log.Warn("[TryStartSpeculatingProposal] processingBlock is not nil")
 		return
 	}
 	p.processingBlock = b
@@ -135,10 +144,10 @@ func (p *proposalDispatcher) TryStartSpeculatingProposal(b *core.Block) {
 }
 
 func (p *proposalDispatcher) FinishProposal() {
-	proposal, blockHash := p.acceptVotes[0].Proposal.Sponsor, p.processingBlock.Hash()
+	log.Info("[FinishProposal] start")
+	defer log.Info("[FinishProposal] end")
 
-	log.Info("[p.consensus.IsOnDuty()]", p.consensus.IsOnDuty())
-	log.Info("[FinishProposal] try append and broad cast confirm block msg")
+	proposal, blockHash := p.acceptVotes[0].Proposal.Sponsor, p.processingBlock.Hash()
 
 	if !p.TryAppendAndBroadcastConfirmBlockMsg() {
 		log.Warn("Add block failed, no need to broadcast confirm message")
@@ -167,7 +176,6 @@ func (p *proposalDispatcher) CleanProposals() {
 }
 
 func (p *proposalDispatcher) ProcessProposal(d core.DPosProposal) {
-
 	log.Info("[ProcessProposal] start")
 	defer log.Info("[ProcessProposal] end")
 
@@ -217,7 +225,11 @@ func (p *proposalDispatcher) TryAppendAndBroadcastConfirmBlockMsg() bool {
 		p.currentVoteSlot.Votes = append(p.currentVoteSlot.Votes, v)
 	}
 
-	log.Info("[TryAppendAndBroadcastConfirmBlockMsg][OnDuty],append confirm.")
+	log.Info("[TryAppendAndBroadcastConfirmBlockMsg] append confirm.")
+	node.LocalNode.Relay(nil, &core.BlockConfirm{
+		ConfirmFlag: true,
+		Confirm:     p.currentVoteSlot,
+	})
 	if err := node.LocalNode.AppendConfirm(p.currentVoteSlot); err != nil {
 		log.Error("[AppendConfirm] err:", err.Error())
 		return false
@@ -240,7 +252,9 @@ func (p *proposalDispatcher) OnBlockAdded(b *core.Block) {
 }
 
 func (p *proposalDispatcher) FinishConsensus() {
-	log.Info("[FinishConsensus], change states to ConsensusReady")
+	log.Info("[FinishConsensus] start")
+	defer log.Info("[FinishConsensus] end")
+
 	c := log.ConsensusEvent{EndTime: time.Now(), Height: p.CurrentHeight()}
 	p.eventMonitor.OnConsensusFinished(c)
 	p.consensus.SetReady()
@@ -325,6 +339,9 @@ func (p *proposalDispatcher) countRejectedVote(v core.DPosProposalVote) {
 }
 
 func (p *proposalDispatcher) acceptProposal(d core.DPosProposal) {
+	log.Info("[acceptProposal] start")
+	defer log.Info("[acceptProposal] end")
+
 	vote := core.DPosProposalVote{Proposal: d, Signer: p.manager.GetPublicKey(), Accept: true}
 	var err error
 	vote.Sign, err = p.account.SignVote(&vote)

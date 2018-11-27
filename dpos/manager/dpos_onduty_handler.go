@@ -13,6 +13,7 @@ type DposOnDutyHandler struct {
 
 func (h *DposOnDutyHandler) ProcessAcceptVote(p core.DPosProposalVote) {
 	log.Info("[Onduty-ProcessAcceptVote] start")
+	defer log.Info("[Onduty-ProcessAcceptVote] end")
 
 	if h.consensus.IsArbitratorOnDuty(p.Proposal.Sponsor) && h.consensus.IsRunning() {
 		log.Info("[OnVoteReceived] Received needed sign, collect it")

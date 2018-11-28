@@ -1,6 +1,7 @@
 package manager
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/elastos/Elastos.ELA/blockchain"
@@ -143,19 +144,22 @@ func (d *dposManager) ChangeConsensus(onDuty bool) {
 }
 
 func (d *dposManager) OnProposalReceived(id peer.PID, p core.DPosProposal) {
-	log.Info("[OnProposalReceived] started")
-	defer log.Info("[OnProposalReceived] end")
+	fmt.Printf("\n\n")
+	log.Info("[OnProposalReceived] start")
+	defer log.Info("[OnProposalReceived] end\n\n")
+
 	d.handler.StartNewProposal(p)
 }
 
 func (d *dposManager) OnVoteReceived(id peer.PID, p core.DPosProposalVote) {
-	log.Info("[OnVoteReceived] started")
-	defer log.Info("[OnVoteReceived] end")
+	fmt.Printf("\n\n")
+	log.Info("[OnVoteReceived] start")
+	defer log.Info("[OnVoteReceived] end\n\n")
 	d.handler.ProcessAcceptVote(id, p)
 }
 
 func (d *dposManager) OnVoteRejected(id peer.PID, p core.DPosProposalVote) {
-	log.Info("[OnVoteRejected] started")
+	log.Info("[OnVoteRejected] start")
 	defer log.Info("[OnVoteRejected] end")
 	d.handler.ProcessRejectVote(id, p)
 }
@@ -224,8 +228,9 @@ func (d *dposManager) OnChangeView() {
 }
 
 func (d *dposManager) OnBlockReceived(b *core.Block, confirmed bool) {
+	fmt.Printf("\n\n")
 	log.Info("[OnBlockReceived] start")
-	defer log.Info("[OnBlockReceived] end")
+	defer log.Info("[OnBlockReceived] end\n\n")
 
 	if confirmed {
 		d.ConfirmBlock()

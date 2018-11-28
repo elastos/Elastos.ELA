@@ -117,6 +117,7 @@ func (d *dposManager) GetBlockCache() *ConsensusBlockCache {
 }
 
 func (d *dposManager) Recover() {
+	d.changeHeight()
 	for {
 		if peerID := d.network.GetActivePeer(); peerID != nil {
 			d.handler.RequestAbnormalRecovering()
@@ -266,7 +267,7 @@ func (d *dposManager) OnRequestProposal(id peer.PID, hash common.Uint256) {
 }
 
 func (d *dposManager) changeHeight() {
-	if err := d.network.ChangeHeight(d.dispatcher.CurrentHeight()); err != nil{
+	if err := d.network.ChangeHeight(d.dispatcher.CurrentHeight()); err != nil {
 		log.Error("Error occurred with change height: ", err)
 		return
 	}

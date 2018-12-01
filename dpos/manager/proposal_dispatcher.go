@@ -164,8 +164,6 @@ func (p *proposalDispatcher) FinishProposal() {
 
 	p.FinishConsensus()
 
-	log.Info("[FinishProposal] middle")
-
 	proposalEvent := log.ProposalEvent{
 		Proposal:  proposal,
 		BlockHash: blockHash,

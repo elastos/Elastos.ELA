@@ -332,8 +332,7 @@ func (node *node) BloomFilter() *bloom.Filter {
 }
 
 func (node *node) Relay(from protocol.Noder, message interface{}) error {
-	log.Info("relay start")
-	defer log.Info("relay end")
+	log.Debug()
 	if from != nil && LocalNode.IsSyncHeaders() {
 		return nil
 	}

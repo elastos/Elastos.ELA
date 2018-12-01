@@ -191,8 +191,6 @@ func (a *arbitrators) onChainHeightIncreased(block *core.Block) {
 }
 
 func (a *arbitrators) isNewElection() bool {
-	log.Info("dutyChangedCount:", a.dutyChangedCount)
-	log.Info("a.config.ArbitratorsCount-1", a.config.ArbitratorsCount-1)
 	return a.dutyChangedCount == a.config.ArbitratorsCount-1
 }
 

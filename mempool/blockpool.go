@@ -98,8 +98,6 @@ func (pool *BlockPool) AppendConfirm(confirm *core.DPosProposalVoteSlot) error {
 }
 
 func (pool *BlockPool) ConfirmBlock(hash common.Uint256) error {
-	//log.Info("[ConfirmBlock] start")
-	//defer log.Info("[ConfirmBlock] end")
 	log.Info("[ConfirmBlock] block hash:", hash)
 
 	block, exist := pool.GetBlock(hash)

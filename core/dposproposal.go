@@ -13,6 +13,7 @@ type DPosProposal struct {
 	BlockHash  common.Uint256
 	ViewOffset uint32
 	Sign       []byte
+
 	hash *common.Uint256
 }
 

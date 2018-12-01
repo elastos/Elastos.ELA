@@ -164,6 +164,8 @@ func (p *proposalDispatcher) FinishProposal() {
 
 	p.FinishConsensus()
 
+	log.Info("[FinishProposal] middle")
+
 	proposalEvent := log.ProposalEvent{
 		Proposal:  proposal,
 		BlockHash: blockHash,
@@ -261,13 +263,15 @@ func (p *proposalDispatcher) OnBlockAdded(b *core.Block) {
 }
 
 func (p *proposalDispatcher) FinishConsensus() {
-	log.Info("[FinishConsensus] start")
-	defer log.Info("[FinishConsensus] end")
+	if p.consensus.IsRunning() {
+		log.Info("[FinishConsensus] start")
+		defer log.Info("[FinishConsensus] end")
 
-	c := log.ConsensusEvent{EndTime: time.Now(), Height: p.CurrentHeight()}
-	p.eventMonitor.OnConsensusFinished(c)
-	p.consensus.SetReady()
-	p.CleanProposals()
+		c := log.ConsensusEvent{EndTime: time.Now(), Height: p.CurrentHeight()}
+		p.eventMonitor.OnConsensusFinished(c)
+		p.consensus.SetReady()
+		p.CleanProposals()
+	}
 }
 
 func (p *proposalDispatcher) CollectConsensusStatus(height uint32, status *msg2.ConsensusStatus) error {
@@ -392,8 +396,8 @@ func (p *proposalDispatcher) acceptProposal(d core.DPosProposal) {
 		return
 	}
 	voteMsg := &msg2.Vote{Command: msg2.CmdAcceptVote, Vote: vote}
-
 	p.ProcessVote(vote, true)
+
 	p.network.BroadcastMessage(voteMsg)
 	log.Info("[acceptProposal] send acc_vote msg:", msg2.GetMessageHash(voteMsg).String())
 

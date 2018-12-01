@@ -51,7 +51,8 @@ func (b *BlockVersionMain) AddBlock(block *core.Block) error {
 		BlockFlag: true,
 		Block:     block,
 	}); err != nil {
-		log.Error("[AppendBlock] err:", err.Error())
+		//log.Error("[AppendBlock] err:", err.Error())
+		log.Error("[AddBlock] err:",err.Error())
 		return err
 	}
 
@@ -61,7 +62,8 @@ func (b *BlockVersionMain) AddBlock(block *core.Block) error {
 func (b *BlockVersionMain) AddBlockConfirm(blockConfirm *core.BlockConfirm) (bool, error) {
 	isConfirmed, err := node.LocalNode.AppendBlock(blockConfirm)
 	if err != nil {
-		log.Error("[AppendBlock] err:", err.Error())
+		//log.Error("[AppendBlock] err:", err.Error())
+		//log.Error("[AddBlockConfirm] err:",err.Error())
 		return false, err
 	}
 

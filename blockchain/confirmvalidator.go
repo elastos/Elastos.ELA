@@ -3,7 +3,6 @@ package blockchain
 import (
 	"errors"
 	"fmt"
-
 	"github.com/elastos/Elastos.ELA/config"
 	"github.com/elastos/Elastos.ELA/core"
 
@@ -73,6 +72,7 @@ func IsProposalValid(proposal *core.DPosProposal) bool {
 }
 
 func IsVoteValid(vote *core.DPosProposalVote) bool {
+
 	var isArbiter bool
 	for _, a := range DefaultLedger.Arbitrators.GetArbitrators() {
 		pubStr := common.BytesToHexString(a)

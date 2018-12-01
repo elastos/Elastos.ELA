@@ -102,7 +102,7 @@ func (n *dposNetwork) UpdateProducersInfo() {
 
 	for k, v := range connectionInfoMap {
 
-		log.Info("[UpdateProducersInfo] peer id:", v.PID, " addr:", v.Addr)
+		//log.Info("[UpdateProducersInfo] peer id:", v.PID, " addr:", v.Addr)
 		if _, ok := n.directPeers[k]; !ok {
 			n.directPeers[k] = &PeerItem{
 				Address:     v,
@@ -163,6 +163,7 @@ func (n *dposNetwork) SendMessageToPeer(id peer.PID, msg utip2p.Message) error {
 }
 
 func (n *dposNetwork) BroadcastMessage(msg utip2p.Message) {
+	log.Warn("[BroadcastMessage] current connected peers:", len(n.getValidPeers()))
 	n.p2pServer.BroadcastMessage(msg)
 }
 
@@ -178,7 +179,7 @@ func (n *dposNetwork) ChangeHeight(height uint32) error {
 
 	n.peersLock.Lock()
 	for _, v := range n.directPeers {
-		if v.Sequence <= offset {
+		if v.Sequence < offset {
 			v.NeedConnect = false
 			v.Sequence = 0
 			continue
@@ -187,7 +188,12 @@ func (n *dposNetwork) ChangeHeight(height uint32) error {
 		v.Sequence -= offset
 	}
 
-	n.p2pServer.ConnectPeers(n.getValidPeers())
+	peers := n.getValidPeers()
+	for i, peer := range peers {
+		log.Info(" peer[", i, "] addr:", peer.Addr, " pid:", common.BytesToHexString(peer.PID[:]))
+	}
+
+	n.p2pServer.ConnectPeers(peers)
 	n.peersLock.Unlock()
 
 	go n.UpdateProducersInfo()

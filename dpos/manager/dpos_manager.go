@@ -173,13 +173,12 @@ func (d *dposManager) OnPong(id peer.PID, height uint32) {
 }
 
 func (d *dposManager) OnBlock(id peer.PID, block *core.Block) {
-	log.Info("[ProcessBlock] received block:", block.Hash().String())
 	if block.Header.Height == blockchain.DefaultLedger.Blockchain.GetBestHeight()+1 {
 		if _, err := node.LocalNode.AppendBlock(&core.BlockConfirm{
 			BlockFlag: true,
 			Block:     block,
 		}); err != nil {
-			log.Error("[AppendBlock] err:", err.Error())
+			log.Error("[OnBlock] err: ", err.Error())
 		}
 	}
 }
@@ -247,9 +246,9 @@ func (d *dposManager) OnBlockReceived(b *core.Block, confirmed bool) {
 }
 
 func (d *dposManager) OnConfirmReceived(p *core.DPosProposalVoteSlot) {
-
+	fmt.Printf("\n")
 	log.Info("[OnConfirmReceived] started, hash:", p.Hash)
-	defer log.Info("[OnConfirmReceived] end")
+	defer log.Info("[OnConfirmReceived] end\n\n")
 
 	d.ConfirmBlock()
 	d.changeHeight()

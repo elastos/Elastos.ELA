@@ -3,7 +3,6 @@ package blockchain
 import (
 	"errors"
 	"fmt"
-
 	"github.com/elastos/Elastos.ELA/config"
 	"github.com/elastos/Elastos.ELA/core"
 

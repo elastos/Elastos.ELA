@@ -19,7 +19,7 @@ type ArbitratorsConfig struct {
 }
 
 type ArbitratorsListener interface {
-	OnNewElection()
+	OnNewElection(arbiters [][]byte)
 }
 
 type Arbitrators interface {
@@ -183,7 +183,7 @@ func (a *arbitrators) onChainHeightIncreased(block *core.Block) {
 		}
 
 		if a.listener != nil {
-			a.listener.OnNewElection()
+			a.listener.OnNewElection(a.nextArbitrators)
 		}
 	} else {
 		a.dutyChangedCount++

@@ -3,8 +3,8 @@ package main
 import (
 	"os"
 	"runtime"
+	"time"
 
-	"github.com/elastos/Elastos.ELA.Utility/common"
 	"github.com/elastos/Elastos.ELA/blockchain"
 	"github.com/elastos/Elastos.ELA/config"
 	"github.com/elastos/Elastos.ELA/log"
@@ -16,6 +16,9 @@ import (
 	"github.com/elastos/Elastos.ELA/servers/httpnodeinfo"
 	"github.com/elastos/Elastos.ELA/servers/httprestful"
 	"github.com/elastos/Elastos.ELA/servers/httpwebsocket"
+
+	"github.com/elastos/Elastos.ELA.Utility/common"
+	"github.com/elastos/Elastos.ELA.Utility/signal"
 )
 
 const (
@@ -63,6 +66,7 @@ func main() {
 	//var blockChain *ledger.Blockchain
 	var err error
 	var noder protocol.Noder
+	var interrupt = signal.NewInterrupt()
 	log.Info("Node version: ", config.Version)
 	log.Info("1. BlockChain init")
 	chainStore, err := blockchain.NewChainStore()
@@ -82,17 +86,50 @@ func main() {
 	servers.ServerNode = noder
 
 	log.Info("3. --Start the RPC service")
-	go httpjsonrpc.StartRPCServer()
+	if err = startJSONRPC(); err != nil {
+		goto ERROR
+	}
 
 	noder.WaitForSyncFinish()
-	go httprestful.StartServer()
+	if err = startRESTful(); err != nil {
+		goto ERROR
+	}
+
 	go httpwebsocket.StartServer()
 	if config.Parameters.HttpInfoStart {
 		go httpnodeinfo.StartServer()
 	}
 	startConsensus()
-	select {}
+	<-interrupt.C
 ERROR:
 	log.Error(err)
 	os.Exit(-1)
+}
+
+func startJSONRPC() error {
+	errChan := make(chan error)
+	go func() {
+		errChan <- httpjsonrpc.Start()
+	}()
+
+	select {
+	case err := <-errChan:
+		return err
+	case <-time.After(time.Millisecond * 100):
+	}
+	return nil
+}
+
+func startRESTful() error {
+	errChan := make(chan error)
+	go func() {
+		errChan <- httprestful.Start()
+	}()
+
+	select {
+	case err := <-errChan:
+		return err
+	case <-time.After(time.Millisecond * 100):
+	}
+	return nil
 }

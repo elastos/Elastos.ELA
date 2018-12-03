@@ -15,6 +15,7 @@ import (
 )
 
 type TxPool struct {
+	curdM sync.RWMutex
 	sync.RWMutex
 	txnCnt  uint64                   // count
 	txnList map[Uint256]*Transaction // transaction which have been verifyed will put into this map
@@ -36,6 +37,8 @@ func (pool *TxPool) Init() {
 //append transaction to txnpool when check ok.
 //1.check  2.check with ledger(db) 3.check with pool
 func (pool *TxPool) AppendToTxnPool(txn *Transaction) ErrCode {
+	pool.curdM.Lock()
+	defer pool.curdM.Unlock()
 
 	if txn.IsCoinBaseTx() {
 		log.Warn("coinbase cannot be added into transaction pool", txn.Hash().String())
@@ -72,6 +75,9 @@ func (pool *TxPool) AppendToTxnPool(txn *Transaction) ErrCode {
 
 //get the transaction in txnpool
 func (pool *TxPool) GetTransactionPool(hasMaxCount bool) map[Uint256]*Transaction {
+	pool.curdM.RLock()
+	defer pool.curdM.RUnlock()
+
 	pool.RLock()
 	count := config.Parameters.MaxTxsInBlock
 	if count <= 0 {
@@ -95,6 +101,9 @@ func (pool *TxPool) GetTransactionPool(hasMaxCount bool) map[Uint256]*Transactio
 
 //clean the trasaction Pool with committed block.
 func (pool *TxPool) CleanSubmittedTransactions(block *Block) error {
+	pool.curdM.Lock()
+	defer pool.curdM.Unlock()
+
 	pool.cleanTransactions(block.Transactions)
 	pool.cleanSidechainTx(block.Transactions)
 	pool.cleanSideChainPowTx()
@@ -441,6 +450,9 @@ func (pool *TxPool) MaybeAcceptTransaction(txn *Transaction) error {
 }
 
 func (pool *TxPool) RemoveTransaction(txn *Transaction) {
+	pool.curdM.Lock()
+	defer pool.curdM.Unlock()
+
 	txHash := txn.Hash()
 	for i := range txn.Outputs {
 		input := Input{

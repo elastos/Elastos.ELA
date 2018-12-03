@@ -20,7 +20,7 @@ import (
 )
 
 const (
-	AUXBLOCK_GENERATED_INTERVAL_SECONDS = 5
+	AUXBLOCK_GENERATED_INTERVAL_SECONDS = 30
 )
 
 var ServerNode Noder

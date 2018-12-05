@@ -319,11 +319,16 @@ out:
 }
 
 func (node *node) outHandler() {
+	idleTimer := time.AfterFunc(idleTimeout, func() {
+		log.Warnf("out handler Peer %s no answer for %s -- disconnecting", node, idleTimeout)
+		node.Disconnect()
+	})
 out:
 	for {
 		select {
 		case smsg := <-node.sendQueue:
 			err := p2p.WriteMessage(node.conn, node.magic, smsg)
+			idleTimer.Stop()
 			if err != nil {
 				node.Disconnect()
 				continue
@@ -332,6 +337,7 @@ out:
 		case <-node.quit:
 			break out
 		}
+		idleTimer.Reset(idleTimeout)
 	}
 
 	// Drain any wait channels before going away so there is nothing left

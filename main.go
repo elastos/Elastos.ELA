@@ -85,18 +85,26 @@ func main() {
 
 	servers.ServerNode = noder
 
-	log.Info("3. --Start the RPC service")
-	if err = startJSONRPC(); err != nil {
-		goto ERROR
+	if config.Parameters.HttpJsonPort > 0 {
+		log.Info("Start the RPC service")
+		if err = startJSONRPC(); err != nil {
+			goto ERROR
+		}
 	}
 
 	noder.WaitForSyncFinish()
-	if err = startRESTful(); err != nil {
-		goto ERROR
+	if config.Parameters.HttpRestPort > 0 {
+		log.Info("Start the REST service")
+		if err = startRESTful(); err != nil {
+			goto ERROR
+		}
 	}
-
-	go httpwebsocket.StartServer()
-	if config.Parameters.HttpInfoStart {
+	if config.Parameters.HttpWsPort > 0 {
+		log.Info("Start the WebSocket")
+		go httpwebsocket.StartServer()
+	}
+	if config.Parameters.HttpInfoPort > 0 {
+		log.Info("Start the info service")
 		go httpnodeinfo.StartServer()
 	}
 	startConsensus()

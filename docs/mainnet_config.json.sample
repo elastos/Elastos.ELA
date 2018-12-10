@@ -17,7 +17,6 @@
       "node-mainnet-023.elastos.org:20866"
     ],
     "HttpInfoPort": 20333,
-    "HttpInfoStart": true,
     "HttpRestPort": 20334,
     "HttpWsPort": 20335,
     "WsHeartbeatInterval": 60,

@@ -25,12 +25,11 @@
       "127.0.0.1:30338",
       "127.0.0.1:40338"
     ],
-    "HttpInfoPort": 10333,  //Local web portal port number. User can go to http://127.0.0.1:10333/info to access the web UI
-    "HttpInfoStart": true,  //true to start the webUI, false to disable
-    "HttpRestPort": 10334,  //Restful port number
-    "HttpWsPort": 10335,    //Websocket port number
+    "HttpInfoPort": 10333,  //Local web portal port number. User can go to http://127.0.0.1:10333/info to access the web UI, ignore or set to 0 to disable.
+    "HttpRestPort": 10334,  //RESTful port number, ignore or set to 0 to disable.
+    "HttpWsPort": 10335,    //WebSocket port number, ignore or set to 0 to disable.
     "WsHeartbeatInterval": 60,
-    "HttpJsonPort": 10336,  //RPC port number
+    "HttpJsonPort": 10336,  //RPC port number, ignore or set to 0 to disable.
     "NodePort": 10338,      //P2P port number
     "NodeOpenPort": 10866,  //P2P port number for open service
     "OpenService": true,    //true to enable open service, false to disable

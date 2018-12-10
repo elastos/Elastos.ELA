@@ -75,7 +75,6 @@ type Configuration struct {
 	RestCertPath        string           `json:"RestCertPath"`
 	RestKeyPath         string           `json:"RestKeyPath"`
 	HttpInfoPort        uint16           `json:"HttpInfoPort"`
-	HttpInfoStart       bool             `json:"HttpInfoStart"`
 	OpenService         bool             `json:"OpenService"`
 	HttpWsPort          int              `json:"HttpWsPort"`
 	WsHeartbeatInterval time.Duration    `json:"WsHeartbeatInterval"`

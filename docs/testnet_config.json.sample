@@ -8,7 +8,6 @@
       "node-testnet-003.elastos.org:21866"
     ],
     "HttpInfoPort": 21333,
-    "HttpInfoStart": true,
     "HttpRestPort": 21334,
     "HttpWsPort": 21335,
     "WsHeartbeatInterval": 60,

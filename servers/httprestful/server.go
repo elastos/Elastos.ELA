@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/json"
+	"errors"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -51,13 +52,13 @@ type restServer struct {
 }
 
 type ApiServer interface {
-	Start()
-	Stop()
+	Start() error
+	Stop() error
 }
 
-func StartServer() {
+func Start() error {
 	rest := InitRestServer()
-	rest.Start()
+	return rest.Start()
 }
 
 func InitRestServer() ApiServer {
@@ -69,30 +70,25 @@ func InitRestServer() ApiServer {
 	return rt
 }
 
-func (rt *restServer) Start() {
+func (rt *restServer) Start() error {
 	if Parameters.HttpRestPort == 0 {
 		log.Fatal("Not configure HttpRestPort port ")
 	}
 
+	var err error
 	if Parameters.HttpRestPort%1000 == servers.TlsPort {
-		var err error
 		rt.listener, err = rt.initTlsListen()
 		if err != nil {
-			log.Error("Https Cert: ", err.Error())
+			return err
 		}
 	} else {
-		var err error
 		rt.listener, err = net.Listen("tcp", ":"+strconv.Itoa(Parameters.HttpRestPort))
 		if err != nil {
-			log.Fatal("net.Listen: ", err.Error())
+			return err
 		}
 	}
 	rt.server = &http.Server{Handler: rt.router}
-	err := rt.server.Serve(rt.listener)
-
-	if err != nil {
-		log.Fatal("ListenAndServe: ", err.Error())
-	}
+	return rt.server.Serve(rt.listener)
 }
 
 func (rt *restServer) initializeMethod() {
@@ -269,11 +265,11 @@ func (rt *restServer) response(w http.ResponseWriter, resp map[string]interface{
 	rt.write(w, data)
 }
 
-func (rt *restServer) Stop() {
+func (rt *restServer) Stop() error {
 	if rt.server != nil {
-		rt.server.Shutdown(context.Background())
-		log.Error("Close restful ")
+		return rt.server.Shutdown(context.Background())
 	}
+	return errors.New("server not started")
 }
 
 func (rt *restServer) Restart(cmd servers.Params) map[string]interface{} {

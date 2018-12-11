@@ -3,6 +3,7 @@ package main
 import (
 	"os"
 	"runtime"
+	"time"
 
 	"github.com/elastos/Elastos.ELA/blockchain"
 	"github.com/elastos/Elastos.ELA/cli/password"
@@ -113,8 +114,14 @@ func main() {
 	servers.ServerNode.RegisterTxPoolListener(chainStore)
 
 	log.Info("Start services")
-	go httpjsonrpc.StartRPCServer()
-	go httprestful.StartServer()
+	if err = startJSONRPC(); err != nil {
+		goto ERROR
+	}
+
+	if err = startRESTful(); err != nil {
+		goto ERROR
+	}
+
 	go httpwebsocket.StartServer()
 	if config.Parameters.HttpInfoStart {
 		go httpnodeinfo.StartServer()
@@ -128,7 +135,37 @@ func main() {
 	startConsensus()
 
 	<-interrupt.C
+	return
+
 ERROR:
 	log.Error(err)
 	os.Exit(-1)
+}
+
+func startJSONRPC() error {
+	errChan := make(chan error)
+	go func() {
+		errChan <- httpjsonrpc.Start()
+	}()
+
+	select {
+	case err := <-errChan:
+		return err
+	case <-time.After(time.Millisecond * 100):
+	}
+	return nil
+}
+
+func startRESTful() error {
+	errChan := make(chan error)
+	go func() {
+		errChan <- httprestful.Start()
+	}()
+
+	select {
+	case err := <-errChan:
+		return err
+	case <-time.After(time.Millisecond * 100):
+	}
+	return nil
 }

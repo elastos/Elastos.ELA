@@ -25,7 +25,7 @@ const (
 	//-32000 to -32099	Server error, waiting for defining
 )
 
-func StartRPCServer() {
+func Start() error {
 	mainMux = make(map[string]func(Params) map[string]interface{})
 
 	http.HandleFunc("/", Handle)
@@ -61,10 +61,7 @@ func StartRPCServer() {
 	mainMux["producerstatus"] = ProducerStatus
 	mainMux["votestatus"] = VoteStatus
 
-	err := http.ListenAndServe(":"+strconv.Itoa(Parameters.HttpJsonPort), nil)
-	if err != nil {
-		log.Fatal("ListenAndServe: ", err.Error())
-	}
+	return http.ListenAndServe(":"+strconv.Itoa(Parameters.HttpJsonPort), nil)
 }
 
 //this is the function that should be called in order to answer an rpc call

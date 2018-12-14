@@ -15,3 +15,6 @@ format:
 
 clean:
 	./clean.sh
+
+whitebox:
+	./ela-cli script -f test/white_box/main/test_all.lua

@@ -39,6 +39,9 @@ This project is the source code that can build a full node of ELA blockchain(mai
     - [1. Access the web UI of the node](#1-access-the-web-ui-of-the-node)
     - [2. REST API of the node](#2-rest-api-of-the-node)
     - [3. JSON RPC API of the node](#3-json-rpc-api-of-the-node)
+- [Contribution](#contribution)
+- [Acknowledgments](#acknowledgments)
+- [License](#license)
 
 ## Pre-requisites on Mac
 
@@ -269,3 +272,15 @@ curl -H 'Content-Type: application/json' -H 'Accept:application/json' --data '{"
 ```
 
 If you would like to learn more about what other JSON RPC APIs are available for the node, please check out the [JSON RPC API](docs/jsonrpc_apis.md)
+
+## Contribution
+
+We welcome contributions to the Elastos ELA Project.
+
+## Acknowledgments
+
+A sincere thank you to all teams and projects that we rely on directly or indirectly.
+
+## License 
+
+This project is licensed under the terms of the [MIT license](https://github.com/elastos/Elastos.ELA/blob/master/LICENSE).

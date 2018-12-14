@@ -244,4 +244,28 @@ If you would like to learn more about what other REST APIs are available for the
 
 #### 3. JSON RPC API of the node
 
+Once the node is running successfully, you can access ELA Node's JSON RPC APIs:
+
+Example 1: Get the hash of the most recent block
+```bash
+curl -H 'Content-Type: application/json' -H 'Accept:application/json' --data '{"method":"getbestblockhash"}' http://localhost:21336
+{
+    "error": null,
+    "id": null,
+    "jsonrpc": "2.0",
+    "result": "c4e72359cbb128bca244a800fb36d71f64b834e20d437c25de6c62edc46196c7"
+}
+```
+
+Example 2: Get the hash of the specific blockchain height
+```bash
+curl -H 'Content-Type: application/json' -H 'Accept:application/json' --data '{"method":"getblockhash","params":{"height":1}}' http://localhost:21336
+{
+    "error": null,
+    "id": null,
+    "jsonrpc": "2.0",
+    "result": "71b422e09dcd2f749d2adc0086735c210084cdb6b59bd4cd42e50455d024a662"
+}
+```
+
 If you would like to learn more about what other JSON RPC APIs are available for the node, please check out the [JSON RPC API](docs/jsonrpc_apis.md)

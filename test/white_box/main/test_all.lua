@@ -1,6 +1,8 @@
 local api = require("api")
 local colors = require 'test/common/ansicolors'
 
+local result = 0
+
 local function do_files(inputstr, sep, base_path)
     if sep == nil then
         sep = "%s"
@@ -33,6 +35,6 @@ end
 
 local dpos_dir = "test/white_box/dpos/"
 local dpos_files = api.get_dir_all_files(dpos_dir)
-local result = do_files(dpos_files, ",", dpos_dir)
+result = result + do_files(dpos_files, ",", dpos_dir)
 
-return result
+assert(result == 0)

@@ -10,6 +10,7 @@ function test.assert_true(b, msg)
         if msg ~= nil then
             print(colors("%{red}" .. msg))
         end
+        test.result = test.result + 1
         return 1
     end
 end

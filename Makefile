@@ -14,7 +14,5 @@ format:
 	go fmt ./*
 
 clean:
-	./clean.sh
+	rm -rf *.8 *.o *.out *.6
 
-whitebox:
-	./ela-cli script -f test/white_box/main/test_all.lua

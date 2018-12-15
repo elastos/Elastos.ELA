@@ -21,3 +21,4 @@ deploy:
         - /(release).{7}/
 script:
   - go test -v ./...
+  - ./util.sh test

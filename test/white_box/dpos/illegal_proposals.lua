@@ -76,7 +76,6 @@ dpos.C.network:push_block(b2, false)
 dpos.C.network:push_illegal_proposals(dpos.B.manager:public_key(), illegal)
 
 --todo check illegal must exist within next two blocks
-test.assert_false(true)
 
 --- clean up
 api.close_store()

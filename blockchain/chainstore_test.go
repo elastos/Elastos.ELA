@@ -244,7 +244,7 @@ func TestChainStore_PersistUpdateProducer(t *testing.T) {
 	// 2. Run RegisterProducer
 	err := testChainStore.PersistUpdateProducer(payload1)
 	if err != nil {
-		t.Error("PersistRegisterProducer failed")
+		t.Error("PersistUpdateProducer failed")
 	}
 	testChainStore.BatchCommit()
 
@@ -274,7 +274,7 @@ func TestChainStore_PersistVoteProducer(t *testing.T) {
 	}
 
 	// 1.Prepare data
-	addr1 := "EUa2s2Wmc1quGDACEGKmm5qrFEAgoQK9AD"
+	addr1 := "DftptovCBev9dLt2BRf8nqJGzDeoLFsCfF"
 	programHash1, _ := common.Uint168FromAddress(addr1)
 	stake1 := common.Fixed64(110000000)
 	output := &types.Output{
@@ -295,7 +295,7 @@ func TestChainStore_PersistVoteProducer(t *testing.T) {
 			},
 		},
 	}
-	addr2 := "EZwPHEMQLNBpP2VStF3gRk8EVoMM2i3hda"
+	addr2 := "DmGBK1kpv1G4kADGqQP3TVafEnqTYuCfun"
 	programHash2, _ := common.Uint168FromAddress(addr2)
 	output2 := &types.Output{
 		AssetID:     common.Uint256{},
@@ -341,7 +341,6 @@ func TestChainStore_PersistVoteProducer(t *testing.T) {
 	if err != nil {
 		t.Error("PersistRegisterProducer failed")
 	}
-	testChainStore.BatchCommit()
 
 	// 4. Check vote
 	vote1 := testChainStore.GetProducerVote(outputpayload.Delegate, *programHash1)
@@ -354,7 +353,6 @@ func TestChainStore_PersistVoteProducer(t *testing.T) {
 	if err != nil {
 		t.Error("PersistRegisterProducer failed")
 	}
-	testChainStore.BatchCommit()
 
 	// 6. Check vote
 	vote2 := testChainStore.GetProducerVote(outputpayload.Delegate, *programHash1)
@@ -367,7 +365,6 @@ func TestChainStore_PersistVoteProducer(t *testing.T) {
 	if err != nil {
 		t.Error("PersistRegisterProducer failed")
 	}
-	testChainStore.BatchCommit()
 
 	// 8. Check vote
 	vote3 := testChainStore.GetProducerVote(outputpayload.Delegate, *programHash1)
@@ -386,7 +383,7 @@ func TestChainStore_PersistCancelVoteOutput(t *testing.T) {
 	}
 
 	// 1.Prepare data
-	addr1 := "EUa2s2Wmc1quGDACEGKmm5qrFEAgoQK9AD"
+	addr1 := "DftptovCBev9dLt2BRf8nqJGzDeoLFsCfF"
 	programHash1, _ := common.Uint168FromAddress(addr1)
 	stake1 := common.Fixed64(110000000)
 	output := &types.Output{
@@ -407,7 +404,7 @@ func TestChainStore_PersistCancelVoteOutput(t *testing.T) {
 			},
 		},
 	}
-	addr2 := "EZwPHEMQLNBpP2VStF3gRk8EVoMM2i3hda"
+	addr2 := "DmGBK1kpv1G4kADGqQP3TVafEnqTYuCfun"
 	programHash2, _ := common.Uint168FromAddress(addr2)
 	output2 := &types.Output{
 		AssetID:     common.Uint256{},
@@ -434,7 +431,6 @@ func TestChainStore_PersistCancelVoteOutput(t *testing.T) {
 	if err != nil {
 		t.Error("PersistCancelVoteOutput failed")
 	}
-	testChainStore.BatchCommit()
 
 	// 3. Check vote
 	vote1 := testChainStore.GetProducerVote(outputpayload.Delegate, *programHash1)
@@ -447,7 +443,6 @@ func TestChainStore_PersistCancelVoteOutput(t *testing.T) {
 	if err != nil {
 		t.Error("PersistCancelVoteOutput failed")
 	}
-	testChainStore.BatchCommit()
 
 	// 5. Check Vote
 	vote2 := testChainStore.GetProducerVote(outputpayload.Delegate, *programHash2)

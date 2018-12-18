@@ -123,36 +123,6 @@ func (c *ChainStore) loop() {
 	}
 }
 
-func (c *ChainStore) loop2() {
-	for {
-		select {
-		case t := <-c.taskCh:
-			now := time.Now()
-			switch task := t.(type) {
-			case *persistBlockTask:
-				c.handlePersistBlockTask(task.block)
-				task.reply <- true
-				tcall := float64(time.Now().Sub(now)) / float64(time.Second)
-				log.Debugf("handle block exetime: %g num transactions:%d", tcall, len(task.block.Transactions))
-			case *persistConfirmTask:
-				c.handlePersistConfirmTask(task.confirm)
-				task.reply <- true
-				tcall := float64(time.Now().Sub(now)) / float64(time.Second)
-				log.Debugf("handle confirm exetime: %g block hash:%s", tcall, task.confirm.Hash.String())
-			case *rollbackBlockTask:
-				c.handleRollbackBlockTask(task.blockHash)
-				task.reply <- true
-				tcall := float64(time.Now().Sub(now)) / float64(time.Second)
-				log.Debugf("handle block rollback exetime: %g", tcall)
-			}
-
-		case closed := <-c.quit:
-			closed <- true
-			return
-		}
-	}
-}
-
 func (c *ChainStore) InitProducerVotes() error {
 	producerBytes, err := c.getRegisteredProducers()
 	if err != nil {

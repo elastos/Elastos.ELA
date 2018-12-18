@@ -469,7 +469,7 @@ func (s *txValidatorTestSuite) TestCheckVoteProducerOutput() {
 	publicKeyStr1 := "02b611f07341d5ddce51b5c4366aca7b889cfe0993bd63fd47e944507292ea08dd"
 	publicKey1, _ := common.HexStringToBytes(publicKeyStr1)
 
-	programHash1, _ := contract.PublicKeyToStandardProgramHash(publicKey1)
+	programHash1, _ := contract.PublicKeyToDepositProgramHash(publicKey1)
 	outputs := []*types.Output{
 		&types.Output{
 			AssetID:     common.Uint256{},

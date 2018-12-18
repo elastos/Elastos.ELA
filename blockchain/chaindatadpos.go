@@ -70,7 +70,7 @@ func (c *ChainStore) RollbackRegisterProducer(payload *PayloadRegisterProducer) 
 }
 
 func (c *ChainStore) recordProducer(payload *PayloadRegisterProducer, regHeight uint32) error {
-	programHash, err := contract.PublicKeyToStandardProgramHash(payload.PublicKey)
+	programHash, err := contract.PublicKeyToDepositProgramHash(payload.PublicKey)
 	if err != nil {
 		return errors.New("[recordProducer]" + err.Error())
 	}
@@ -133,7 +133,7 @@ func (c *ChainStore) PersistCancelProducer(payload *PayloadCancelProducer) error
 
 	c.BatchPut(key, newProducerBytes)
 
-	programHash, err := contract.PublicKeyToStandardProgramHash(payload.PublicKey)
+	programHash, err := contract.PublicKeyToDepositProgramHash(payload.PublicKey)
 	if err != nil {
 		return errors.New("[PersistCancelProducer]" + err.Error())
 	}
@@ -163,6 +163,7 @@ func (c *ChainStore) PersistCancelProducer(payload *PayloadCancelProducer) error
 }
 
 func (c *ChainStore) RollbackCancelOrUpdateProducer() error {
+	// todo clear db and mempool before cancel
 	height := DefaultLedger.Blockchain.GetBestHeight()
 	for i := uint32(0); i <= height; i++ {
 		hash, err := c.GetBlockHash(height)
@@ -259,7 +260,7 @@ func (c *ChainStore) PersistUpdateProducer(payload *PayloadUpdateProducer) error
 
 	c.BatchPut(key, newProducerBytes)
 
-	programHash, err := contract.PublicKeyToStandardProgramHash(payload.PublicKey)
+	programHash, err := contract.PublicKeyToDepositProgramHash(payload.PublicKey)
 	if err != nil {
 		return errors.New("[PersistCancelProducer]" + err.Error())
 	}
@@ -296,14 +297,14 @@ func (c *ChainStore) PersistVoteOutput(output *Output) error {
 			k := append(key, hash.Bytes()...)
 			oldStake, err := c.getProducerVote(vote.VoteType, hash)
 			if err != nil {
-				c.BatchPut(k, stake)
+				c.Put(k, stake)
 			} else {
 				votes := output.Value + oldStake
 				votesBytes, err := votes.Bytes()
 				if err != nil {
 					return err
 				}
-				c.BatchPut(k, votesBytes)
+				c.Put(k, votesBytes)
 			}
 
 			// add vote to mempool
@@ -343,7 +344,7 @@ func (c *ChainStore) PersistCancelVoteOutput(output *Output) error {
 				if err != nil {
 					return err
 				}
-				c.BatchPut(k, votesBytes)
+				c.Put(k, votesBytes)
 			}
 
 			// subtract vote to mempool

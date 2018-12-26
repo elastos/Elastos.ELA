@@ -5,24 +5,24 @@ import (
 
 	"github.com/elastos/Elastos.ELA/protocol"
 
-	. "github.com/elastos/Elastos.ELA/common"
+	"github.com/elastos/Elastos.ELA/common"
 )
 
 type idCache struct {
 	sync.RWMutex
-	lastid    Uint256
+	lastid    common.Uint256
 	index     int
-	idarray   []Uint256
-	idmaplsit map[Uint256]int
+	idarray   []common.Uint256
+	idmaplsit map[common.Uint256]int
 }
 
 func (c *idCache) init() {
 	c.index = 0
-	c.idmaplsit = make(map[Uint256]int, protocol.MaxIDCached)
-	c.idarray = make([]Uint256, protocol.MaxIDCached)
+	c.idmaplsit = make(map[common.Uint256]int, protocol.MaxIDCached)
+	c.idarray = make([]common.Uint256, protocol.MaxIDCached)
 }
 
-func (c *idCache) add(id Uint256) {
+func (c *idCache) add(id common.Uint256) {
 	oldid := c.idarray[c.index]
 	delete(c.idmaplsit, oldid)
 	c.idarray[c.index] = id
@@ -32,7 +32,7 @@ func (c *idCache) add(id Uint256) {
 	c.index = c.index % protocol.MaxIDCached
 }
 
-func (c *idCache) ExistedID(id Uint256) bool {
+func (c *idCache) ExistedID(id common.Uint256) bool {
 	// TODO
 	c.Lock()
 	defer c.Unlock()

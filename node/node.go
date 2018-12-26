@@ -16,7 +16,7 @@ import (
 	. "github.com/elastos/Elastos.ELA/core/types"
 	"github.com/elastos/Elastos.ELA/protocol"
 
-	. "github.com/elastos/Elastos.ELA/common"
+	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/p2p"
 	"github.com/elastos/Elastos.ELA/p2p/msg"
 )
@@ -74,11 +74,11 @@ type node struct {
 	ConnectingNodes
 	KnownAddressList
 	DefaultMaxPeers    uint
-	RequestedBlockList map[Uint256]time.Time
+	RequestedBlockList map[common.Uint256]time.Time
 	syncTimer          *syncTimer
 	SyncBlkReqSem      Semaphore
-	StartHash          Uint256
-	StopHash           Uint256
+	StartHash          common.Uint256
+	StopHash           common.Uint256
 }
 
 type ConnectingNodes struct {
@@ -140,7 +140,7 @@ func InitLocalNode() protocol.Noder {
 		version:            protocol.ProtocolVersion,
 		relay:              true,
 		SyncBlkReqSem:      MakeSemaphore(protocol.MaxSyncHdrReq),
-		RequestedBlockList: make(map[Uint256]time.Time),
+		RequestedBlockList: make(map[common.Uint256]time.Time),
 		syncTimer:          newSyncTimer(stopSyncing),
 		height:             uint64(chain.DefaultLedger.Blockchain.GetBestHeight()),
 		link: link{
@@ -439,18 +439,18 @@ func CompareHeight(localHeight uint64, heights []uint64) int {
 	return 1
 }
 
-func (node *node) GetRequestBlockList() map[Uint256]time.Time {
+func (node *node) GetRequestBlockList() map[common.Uint256]time.Time {
 	return node.RequestedBlockList
 }
 
-func (node *node) IsRequestedBlock(hash Uint256) bool {
+func (node *node) IsRequestedBlock(hash common.Uint256) bool {
 	node.requestedBlockLock.Lock()
 	defer node.requestedBlockLock.Unlock()
 	_, ok := node.RequestedBlockList[hash]
 	return ok
 }
 
-func (node *node) AddRequestedBlock(hash Uint256) {
+func (node *node) AddRequestedBlock(hash common.Uint256) {
 	node.requestedBlockLock.Lock()
 	defer node.requestedBlockLock.Unlock()
 	node.RequestedBlockList[hash] = time.Now()
@@ -460,10 +460,10 @@ func (node *node) ResetRequestedBlock() {
 	node.requestedBlockLock.Lock()
 	defer node.requestedBlockLock.Unlock()
 
-	node.RequestedBlockList = make(map[Uint256]time.Time)
+	node.RequestedBlockList = make(map[common.Uint256]time.Time)
 }
 
-func (node *node) DeleteRequestedBlock(hash Uint256) {
+func (node *node) DeleteRequestedBlock(hash common.Uint256) {
 	node.requestedBlockLock.Lock()
 	defer node.requestedBlockLock.Unlock()
 	_, ok := node.RequestedBlockList[hash]
@@ -481,19 +481,19 @@ func (node *node) RelSyncBlkReqSem() {
 	node.SyncBlkReqSem.release()
 }
 
-func (node *node) SetStartHash(hash Uint256) {
+func (node *node) SetStartHash(hash common.Uint256) {
 	node.StartHash = hash
 }
 
-func (node *node) GetStartHash() Uint256 {
+func (node *node) GetStartHash() common.Uint256 {
 	return node.StartHash
 }
 
-func (node *node) SetStopHash(hash Uint256) {
+func (node *node) SetStopHash(hash common.Uint256) {
 	node.StopHash = hash
 }
 
-func (node *node) GetStopHash() Uint256 {
+func (node *node) GetStopHash() common.Uint256 {
 	return node.StopHash
 }
 

@@ -7,7 +7,7 @@ import (
 	"time"
 
 	. "github.com/elastos/Elastos.ELA/auxpow"
-	. "github.com/elastos/Elastos.ELA/common"
+	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
 	. "github.com/elastos/Elastos.ELA/core/types"
 	. "github.com/elastos/Elastos.ELA/core/types/payload"
@@ -74,10 +74,10 @@ func PowCheckBlockSanity(block *Block, powLimit *big.Int, timeSource MedianTimeS
 		}
 	}
 
-	txIDs := make([]Uint256, 0, len(transactions))
-	existingTxIDs := make(map[Uint256]struct{})
+	txIDs := make([]common.Uint256, 0, len(transactions))
+	existingTxIDs := make(map[common.Uint256]struct{})
 	existingTxInputs := make(map[string]struct{})
-	existingSideTxs := make(map[Uint256]struct{})
+	existingSideTxs := make(map[common.Uint256]struct{})
 	for _, txn := range transactions {
 		txID := txn.Hash()
 		// Check for duplicate transactions.
@@ -127,7 +127,7 @@ func PowCheckBlockSanity(block *Block, powLimit *big.Int, timeSource MedianTimeS
 }
 
 func CheckBlockContext(block *Block) error {
-	var totalTxFee = Fixed64(0)
+	var totalTxFee = common.Fixed64(0)
 
 	for i := 1; i < len(block.Transactions); i++ {
 		if errCode := CheckTransactionContext(block.Height, block.Transactions[i]); errCode != Success {
@@ -222,7 +222,7 @@ func IsFinalizedTransaction(msgTx *Transaction, blockHeight uint32) bool {
 	return true
 }
 
-func GetTxFee(tx *Transaction, assetId Uint256) Fixed64 {
+func GetTxFee(tx *Transaction, assetId common.Uint256) common.Fixed64 {
 	feeMap, err := GetTxFeeMap(tx)
 	if err != nil {
 		return 0
@@ -231,15 +231,15 @@ func GetTxFee(tx *Transaction, assetId Uint256) Fixed64 {
 	return feeMap[assetId]
 }
 
-func GetTxFeeMap(tx *Transaction) (map[Uint256]Fixed64, error) {
-	feeMap := make(map[Uint256]Fixed64)
+func GetTxFeeMap(tx *Transaction) (map[common.Uint256]common.Fixed64, error) {
+	feeMap := make(map[common.Uint256]common.Fixed64)
 	reference, err := DefaultLedger.Store.GetTxReference(tx)
 	if err != nil {
 		return nil, err
 	}
 
-	var inputs = make(map[Uint256]Fixed64)
-	var outputs = make(map[Uint256]Fixed64)
+	var inputs = make(map[common.Uint256]common.Fixed64)
+	var outputs = make(map[common.Uint256]common.Fixed64)
 	for _, v := range reference {
 		amout, ok := inputs[v.AssetID]
 		if ok {
@@ -274,9 +274,9 @@ func GetTxFeeMap(tx *Transaction) (map[Uint256]Fixed64, error) {
 	return feeMap, nil
 }
 
-func checkCoinbaseTransactionContext(blockHeight uint32, coinbase *Transaction, totalTxFee Fixed64) error {
-	var rewardInCoinbase = Fixed64(0)
-	outputAddressMap := make(map[Uint168]Fixed64)
+func checkCoinbaseTransactionContext(blockHeight uint32, coinbase *Transaction, totalTxFee common.Fixed64) error {
+	var rewardInCoinbase = common.Fixed64(0)
+	outputAddressMap := make(map[common.Uint168]common.Fixed64)
 
 	for index, output := range coinbase.Outputs {
 		rewardInCoinbase += output.Value

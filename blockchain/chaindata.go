@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 
-	. "github.com/elastos/Elastos.ELA/common"
+	"github.com/elastos/Elastos.ELA/common"
 	. "github.com/elastos/Elastos.ELA/core/types"
 	. "github.com/elastos/Elastos.ELA/core/types/payload"
 )
@@ -22,7 +22,7 @@ func (c *ChainStore) PersistTrimmedBlock(b *Block) error {
 
 	value := new(bytes.Buffer)
 	var sysFee uint64 = 0x0000000000000000
-	if err := WriteUint64(value, sysFee); err != nil {
+	if err := common.WriteUint64(value, sysFee); err != nil {
 		return err
 	}
 	if err := b.Trim(value); err != nil {
@@ -50,7 +50,7 @@ func (c *ChainStore) RollbackTrimmedBlock(b *Block) error {
 func (c *ChainStore) PersistBlockHash(b *Block) error {
 	key := new(bytes.Buffer)
 	key.WriteByte(byte(DATABlockHash))
-	if err := WriteUint32(key, b.Header.Height); err != nil {
+	if err := common.WriteUint32(key, b.Header.Height); err != nil {
 		return err
 	}
 
@@ -67,7 +67,7 @@ func (c *ChainStore) PersistBlockHash(b *Block) error {
 func (c *ChainStore) RollbackBlockHash(b *Block) error {
 	key := new(bytes.Buffer)
 	key.WriteByte(byte(DATABlockHash))
-	if err := WriteUint32(key, b.Header.Height); err != nil {
+	if err := common.WriteUint32(key, b.Header.Height); err != nil {
 		return err
 	}
 
@@ -86,7 +86,7 @@ func (c *ChainStore) PersistCurrentBlock(b *Block) error {
 	if err := hash.Serialize(value); err != nil {
 		return err
 	}
-	if err := WriteUint32(value, b.Header.Height); err != nil {
+	if err := common.WriteUint32(value, b.Header.Height); err != nil {
 		return err
 	}
 
@@ -103,7 +103,7 @@ func (c *ChainStore) RollbackCurrentBlock(b *Block) error {
 	if err := hash.Serialize(value); err != nil {
 		return err
 	}
-	if err := WriteUint32(value, b.Header.Height-1); err != nil {
+	if err := common.WriteUint32(value, b.Header.Height-1); err != nil {
 		return err
 	}
 
@@ -112,7 +112,7 @@ func (c *ChainStore) RollbackCurrentBlock(b *Block) error {
 }
 
 func (c *ChainStore) PersistUnspendUTXOs(b *Block) error {
-	unspendUTXOs := make(map[Uint168]map[Uint256]map[uint32][]*UTXO)
+	unspendUTXOs := make(map[common.Uint168]map[common.Uint256]map[uint32][]*UTXO)
 	curHeight := b.Header.Height
 
 	for _, txn := range b.Transactions {
@@ -126,7 +126,7 @@ func (c *ChainStore) PersistUnspendUTXOs(b *Block) error {
 			value := output.Value
 
 			if _, ok := unspendUTXOs[programHash]; !ok {
-				unspendUTXOs[programHash] = make(map[Uint256]map[uint32][]*UTXO)
+				unspendUTXOs[programHash] = make(map[common.Uint256]map[uint32][]*UTXO)
 			}
 
 			if _, ok := unspendUTXOs[programHash][assetID]; !ok {
@@ -162,7 +162,7 @@ func (c *ChainStore) PersistUnspendUTXOs(b *Block) error {
 				assetID := referTxnOutput.AssetID
 
 				if _, ok := unspendUTXOs[programHash]; !ok {
-					unspendUTXOs[programHash] = make(map[Uint256]map[uint32][]*UTXO)
+					unspendUTXOs[programHash] = make(map[common.Uint256]map[uint32][]*UTXO)
 				}
 				if _, ok := unspendUTXOs[programHash][assetID]; !ok {
 					unspendUTXOs[programHash][assetID] = make(map[uint32][]*UTXO)
@@ -210,7 +210,7 @@ func (c *ChainStore) PersistUnspendUTXOs(b *Block) error {
 }
 
 func (c *ChainStore) RollbackUnspendUTXOs(b *Block) error {
-	unspendUTXOs := make(map[Uint168]map[Uint256]map[uint32][]*UTXO)
+	unspendUTXOs := make(map[common.Uint168]map[common.Uint256]map[uint32][]*UTXO)
 	height := b.Header.Height
 	for _, txn := range b.Transactions {
 		if txn.TxType == RegisterAsset {
@@ -221,7 +221,7 @@ func (c *ChainStore) RollbackUnspendUTXOs(b *Block) error {
 			assetID := output.AssetID
 			value := output.Value
 			if _, ok := unspendUTXOs[programHash]; !ok {
-				unspendUTXOs[programHash] = make(map[Uint256]map[uint32][]*UTXO)
+				unspendUTXOs[programHash] = make(map[common.Uint256]map[uint32][]*UTXO)
 			}
 			if _, ok := unspendUTXOs[programHash][assetID]; !ok {
 				unspendUTXOs[programHash][assetID] = make(map[uint32][]*UTXO)
@@ -259,7 +259,7 @@ func (c *ChainStore) RollbackUnspendUTXOs(b *Block) error {
 				programHash := referTxnOutput.ProgramHash
 				assetID := referTxnOutput.AssetID
 				if _, ok := unspendUTXOs[programHash]; !ok {
-					unspendUTXOs[programHash] = make(map[Uint256]map[uint32][]*UTXO)
+					unspendUTXOs[programHash] = make(map[common.Uint256]map[uint32][]*UTXO)
 				}
 				if _, ok := unspendUTXOs[programHash][assetID]; !ok {
 					unspendUTXOs[programHash][assetID] = make(map[uint32][]*UTXO)
@@ -437,7 +437,7 @@ func (c *ChainStore) RollbackTransaction(txn *Transaction) error {
 	return nil
 }
 
-func (c *ChainStore) RollbackAsset(assetID Uint256) error {
+func (c *ChainStore) RollbackAsset(assetID common.Uint256) error {
 	key := new(bytes.Buffer)
 	key.WriteByte(byte(STInfo))
 	if err := assetID.Serialize(key); err != nil {
@@ -448,7 +448,7 @@ func (c *ChainStore) RollbackAsset(assetID Uint256) error {
 	return nil
 }
 
-func (c *ChainStore) RollbackSidechainTx(sidechainTxHash Uint256) error {
+func (c *ChainStore) RollbackSidechainTx(sidechainTxHash common.Uint256) error {
 	key := []byte{byte(IXSideChainTx)}
 	key = append(key, sidechainTxHash.Bytes()...)
 
@@ -458,7 +458,7 @@ func (c *ChainStore) RollbackSidechainTx(sidechainTxHash Uint256) error {
 
 func (c *ChainStore) PersistUnspend(b *Block) error {
 	unspentPrefix := []byte{byte(IXUnspent)}
-	unspents := make(map[Uint256][]uint16)
+	unspents := make(map[common.Uint256][]uint16)
 	for _, txn := range b.Transactions {
 		if txn.TxType == RegisterAsset {
 			continue
@@ -511,7 +511,7 @@ func (c *ChainStore) PersistUnspend(b *Block) error {
 
 func (c *ChainStore) RollbackUnspend(b *Block) error {
 	unspentPrefix := []byte{byte(IXUnspent)}
-	unspents := make(map[Uint256][]uint16)
+	unspents := make(map[common.Uint256][]uint16)
 	for _, txn := range b.Transactions {
 		if txn.TxType == RegisterAsset {
 			continue

@@ -5,14 +5,14 @@ import (
 	"encoding/binary"
 	"time"
 
-	. "github.com/elastos/Elastos.ELA/common"
+	"github.com/elastos/Elastos.ELA/common"
 )
 
-func getBtcCoinbase(msgBlockHash Uint256) *BtcTx {
-	var magic [4]byte        // 4 byte
-	var auxBlockHash Uint256 // 32 byte
-	var merkleSize int32     // 4 byte
-	var merkleNonce int32    // 4 byte
+func getBtcCoinbase(msgBlockHash common.Uint256) *BtcTx {
+	var magic [4]byte               // 4 byte
+	var auxBlockHash common.Uint256 // 32 byte
+	var merkleSize int32            // 4 byte
+	var merkleNonce int32           // 4 byte
 
 	magic = [4]byte{0xfa, 0xbe, 'm', 'm'}
 	auxBlockHash = msgBlockHash
@@ -28,7 +28,7 @@ func getBtcCoinbase(msgBlockHash Uint256) *BtcTx {
 
 	coinBaseTxin := BtcTxIn{
 		PreviousOutPoint: BtcOutPoint{
-			Hash:  EmptyHash,
+			Hash:  common.EmptyHash,
 			Index: uint32(0),
 		},
 		SignatureScript: scriptSigBuf.Bytes(),
@@ -44,15 +44,15 @@ func getBtcCoinbase(msgBlockHash Uint256) *BtcTx {
 	return coinbase
 }
 
-func GenerateAuxPow(msgBlockHash Uint256) *AuxPow {
-	auxMerkleBranch := make([]Uint256, 0)
+func GenerateAuxPow(msgBlockHash common.Uint256) *AuxPow {
+	auxMerkleBranch := make([]common.Uint256, 0)
 	auxMerkleIndex := 0
 	parCoinbaseTx := getBtcCoinbase(msgBlockHash)
-	parCoinBaseMerkle := make([]Uint256, 0)
+	parCoinBaseMerkle := make([]common.Uint256, 0)
 	parMerkleIndex := 0
 	parBlockHeader := BtcHeader{
 		Version:    0x7fffffff,
-		Previous:   EmptyHash,
+		Previous:   common.EmptyHash,
 		MerkleRoot: parCoinbaseTx.Hash(),
 		Timestamp:  uint32(time.Now().Unix()),
 		Bits:       0, // do not care about parent block diff

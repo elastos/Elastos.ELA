@@ -4,12 +4,12 @@ import (
 	"errors"
 
 	"github.com/elastos/Elastos.ELA/blockchain/interfaces"
-	. "github.com/elastos/Elastos.ELA/common"
+	"github.com/elastos/Elastos.ELA/common"
 	. "github.com/elastos/Elastos.ELA/core/types"
 	. "github.com/elastos/Elastos.ELA/core/types/payload"
 )
 
-var FoundationAddress Uint168
+var FoundationAddress common.Uint168
 
 var DefaultLedger *Ledger
 
@@ -30,7 +30,7 @@ func (l *Ledger) IsDoubleSpend(Tx *Transaction) bool {
 //Note: the later version will support the mutiLedger.So this func mybe expired later.
 
 //Get the Asset from store.
-func (l *Ledger) GetAsset(assetID Uint256) (*Asset, error) {
+func (l *Ledger) GetAsset(assetID common.Uint256) (*Asset, error) {
 	asset, err := l.Store.GetAsset(assetID)
 	if err != nil {
 		return nil, errors.New("[Ledger],GetAsset failed with assetID =" + assetID.String())
@@ -52,7 +52,7 @@ func (l *Ledger) GetBlockWithHeight(height uint32) (*Block, error) {
 }
 
 //Get block with block hash.
-func (l *Ledger) GetBlockWithHash(hash Uint256) (*Block, error) {
+func (l *Ledger) GetBlockWithHash(hash common.Uint256) (*Block, error) {
 	bk, err := l.Store.GetBlock(hash)
 	if err != nil {
 		return nil, errors.New("[Ledger],GetBlockWithHeight failed with hash=" + hash.String())
@@ -61,12 +61,12 @@ func (l *Ledger) GetBlockWithHash(hash Uint256) (*Block, error) {
 }
 
 //BlockInLedger checks if the block existed in ledger
-func (l *Ledger) BlockInLedger(hash Uint256) bool {
+func (l *Ledger) BlockInLedger(hash common.Uint256) bool {
 	return l.Store.IsBlockInStore(hash)
 }
 
 //Get transaction with hash.
-func (l *Ledger) GetTransactionWithHash(hash Uint256) (*Transaction, error) {
+func (l *Ledger) GetTransactionWithHash(hash common.Uint256) (*Transaction, error) {
 	tx, _, err := l.Store.GetTransaction(hash)
 	if err != nil {
 		return nil, errors.New("[Ledger],GetTransactionWithHash failed with hash=" + hash.String())

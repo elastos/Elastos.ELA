@@ -5,7 +5,7 @@ import (
 	"errors"
 	"sort"
 
-	. "github.com/elastos/Elastos.ELA/common"
+	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/core/types/outputpayload"
 	. "github.com/elastos/Elastos.ELA/core/types/payload"
 )
@@ -19,7 +19,7 @@ func (c *ChainStore) GetRegisteredProducers() []*PayloadRegisterProducer {
 	result := make([]*PayloadRegisterProducer, 0)
 
 	for _, p := range c.producerVotes {
-		if _, ok := illProducers[BytesToHexString(p.Payload.PublicKey)]; ok {
+		if _, ok := illProducers[common.BytesToHexString(p.Payload.PublicKey)]; ok {
 			continue
 		}
 		result = append(result, p.Payload)
@@ -37,7 +37,7 @@ func (c *ChainStore) GetActiveRegisteredProducers() []*PayloadRegisterProducer {
 	result := make([]*PayloadRegisterProducer, 0)
 
 	for _, p := range c.producerVotes {
-		if _, ok := illProducers[BytesToHexString(p.Payload.PublicKey)]; ok {
+		if _, ok := illProducers[common.BytesToHexString(p.Payload.PublicKey)]; ok {
 			continue
 		}
 		if c.currentBlockHeight-p.RegHeight < 6 {
@@ -74,7 +74,7 @@ func (c *ChainStore) GetRegisteredProducersSorted() ([]*PayloadRegisterProducer,
 		producers := make([]*PayloadRegisterProducer, 0)
 		illProducers := c.getIllegalProducers()
 		for _, p := range producersInfo {
-			if _, ok := illProducers[BytesToHexString(p.Payload.PublicKey)]; ok {
+			if _, ok := illProducers[common.BytesToHexString(p.Payload.PublicKey)]; ok {
 				continue
 			}
 			producers = append(producers, p.Payload)
@@ -87,13 +87,13 @@ func (c *ChainStore) GetRegisteredProducersSorted() ([]*PayloadRegisterProducer,
 	return c.orderedProducers, nil
 }
 
-func (c *ChainStore) GetProducerVote(publicKey []byte) Fixed64 {
+func (c *ChainStore) GetProducerVote(publicKey []byte) common.Fixed64 {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	info, ok := c.producerVotes[BytesToHexString(publicKey)]
+	info, ok := c.producerVotes[common.BytesToHexString(publicKey)]
 	if !ok {
-		return Fixed64(0)
+		return common.Fixed64(0)
 	}
 
 	return info.Vote

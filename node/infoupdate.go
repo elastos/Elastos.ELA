@@ -4,7 +4,7 @@ import (
 	"time"
 
 	chain "github.com/elastos/Elastos.ELA/blockchain"
-	. "github.com/elastos/Elastos.ELA/common"
+	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/common/log"
 	"github.com/elastos/Elastos.ELA/p2p"
@@ -76,14 +76,14 @@ func (node *node) SyncBlocks() {
 			hash := chain.DefaultLedger.Store.GetCurrentBlockHash()
 			locator := chain.DefaultLedger.Blockchain.BlockLocatorFromHash(&hash)
 
-			SendGetBlocks(syncNode, locator, EmptyHash)
+			SendGetBlocks(syncNode, locator, common.EmptyHash)
 			LocalNode.SetSyncHeaders(true)
 			syncNode.SetSyncHeaders(true)
 			// Start sync timer
 			LocalNode.syncTimer.start()
 		} else if syncNode.Version() < p2p.EIP001Version {
 			list := LocalNode.GetRequestBlockList()
-			var requests = make(map[Uint256]time.Time)
+			var requests = make(map[common.Uint256]time.Time)
 			node.requestedBlockLock.Lock()
 			for i, v := range list {
 				requests[i] = v
@@ -94,8 +94,8 @@ func (node *node) SyncBlocks() {
 			node.requestedBlockLock.Unlock()
 			if len(requests) == 0 {
 				syncNode.SetSyncHeaders(false)
-				LocalNode.SetStartHash(EmptyHash)
-				LocalNode.SetStopHash(EmptyHash)
+				LocalNode.SetStartHash(common.EmptyHash)
+				LocalNode.SetStopHash(common.EmptyHash)
 				syncNode := node.GetBestNode()
 				if syncNode == nil {
 					return
@@ -103,7 +103,7 @@ func (node *node) SyncBlocks() {
 				hash := chain.DefaultLedger.Store.GetCurrentBlockHash()
 				locator := chain.DefaultLedger.Blockchain.BlockLocatorFromHash(&hash)
 
-				SendGetBlocks(syncNode, locator, EmptyHash)
+				SendGetBlocks(syncNode, locator, common.EmptyHash)
 			} else {
 				for hash, t := range requests {
 					if time.Now().After(t.Add(syncBlockTimeout)) {
@@ -123,8 +123,8 @@ func stopSyncing() {
 	// Stop sync timer
 	LocalNode.syncTimer.stop()
 	LocalNode.SetSyncHeaders(false)
-	LocalNode.SetStartHash(EmptyHash)
-	LocalNode.SetStopHash(EmptyHash)
+	LocalNode.SetStartHash(common.EmptyHash)
+	LocalNode.SetStopHash(common.EmptyHash)
 	syncNode := LocalNode.GetSyncNode()
 	if syncNode != nil {
 		syncNode.SetSyncHeaders(false)

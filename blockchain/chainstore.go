@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	. "github.com/elastos/Elastos.ELA/common"
+	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/log"
 	"github.com/elastos/Elastos.ELA/core/contract"
 	. "github.com/elastos/Elastos.ELA/core/types"
@@ -28,13 +28,13 @@ type ProducerState byte
 type ProducerInfo struct {
 	Payload   *PayloadRegisterProducer
 	RegHeight uint32
-	Vote      Fixed64
+	Vote      common.Fixed64
 }
 
 type persistTask interface{}
 
 type rollbackBlockTask struct {
-	blockHash Uint256
+	blockHash common.Uint256
 	reply     chan bool
 }
 
@@ -139,7 +139,7 @@ func (c *ChainStore) InitProducerVotes() error {
 		}
 
 		vote, _ := c.getVoteByPublicKey(outputpayload.Delegate, pk)
-		c.producerVotes[BytesToHexString(pk)] = &ProducerInfo{
+		c.producerVotes[common.BytesToHexString(pk)] = &ProducerInfo{
 			Payload:   p,
 			RegHeight: height,
 			Vote:      vote,
@@ -152,7 +152,7 @@ func (c *ChainStore) InitProducerVotes() error {
 		if err != nil {
 			return err
 		}
-		c.producerAddress[addr] = BytesToHexString(pk)
+		c.producerAddress[addr] = common.BytesToHexString(pk)
 		for _, t := range outputpayload.VoteTypes {
 			c.dirty[t] = true
 		}
@@ -211,9 +211,9 @@ func (c *ChainStore) InitWithGenesisBlock(genesisBlock *Block) (uint32, error) {
 	}
 
 	r := bytes.NewReader(data)
-	var blockHash Uint256
+	var blockHash common.Uint256
 	blockHash.Deserialize(r)
-	c.currentBlockHeight, err = ReadUint32(r)
+	c.currentBlockHeight, err = common.ReadUint32(r)
 	endHeight := c.currentBlockHeight
 
 	startHeight := uint32(0)
@@ -245,7 +245,7 @@ func (c *ChainStore) InitWithGenesisBlock(genesisBlock *Block) (uint32, error) {
 
 }
 
-func (c *ChainStore) IsTxHashDuplicate(txhash Uint256) bool {
+func (c *ChainStore) IsTxHashDuplicate(txhash common.Uint256) bool {
 	prefix := []byte{byte(DATATransaction)}
 	_, err := c.Get(append(prefix, txhash.Bytes()...))
 	if err != nil {
@@ -255,7 +255,7 @@ func (c *ChainStore) IsTxHashDuplicate(txhash Uint256) bool {
 	}
 }
 
-func (c *ChainStore) IsSidechainTxHashDuplicate(sidechainTxHash Uint256) bool {
+func (c *ChainStore) IsSidechainTxHashDuplicate(sidechainTxHash common.Uint256) bool {
 	prefix := []byte{byte(IXSideChainTx)}
 	_, err := c.Get(append(prefix, sidechainTxHash.Bytes()...))
 	if err != nil {
@@ -295,37 +295,37 @@ func (c *ChainStore) IsDoubleSpend(txn *Transaction) bool {
 	return false
 }
 
-func (c *ChainStore) GetBlockHash(height uint32) (Uint256, error) {
+func (c *ChainStore) GetBlockHash(height uint32) (common.Uint256, error) {
 	queryKey := new(bytes.Buffer)
 	queryKey.WriteByte(byte(DATABlockHash))
-	err := WriteUint32(queryKey, height)
+	err := common.WriteUint32(queryKey, height)
 
 	if err != nil {
-		return Uint256{}, err
+		return common.Uint256{}, err
 	}
 	blockHash, err := c.Get(queryKey.Bytes())
 	if err != nil {
 		//TODO: implement error process
-		return Uint256{}, err
+		return common.Uint256{}, err
 	}
-	blockHash256, err := Uint256FromBytes(blockHash)
+	blockHash256, err := common.Uint256FromBytes(blockHash)
 	if err != nil {
-		return Uint256{}, err
+		return common.Uint256{}, err
 	}
 
 	return *blockHash256, nil
 }
 
-func (c *ChainStore) GetCurrentBlockHash() Uint256 {
+func (c *ChainStore) GetCurrentBlockHash() common.Uint256 {
 	hash, err := c.GetBlockHash(c.currentBlockHeight)
 	if err != nil {
-		return Uint256{}
+		return common.Uint256{}
 	}
 
 	return hash
 }
 
-func (c *ChainStore) RollbackBlock(blockHash Uint256) error {
+func (c *ChainStore) RollbackBlock(blockHash common.Uint256) error {
 
 	reply := make(chan bool)
 	c.taskCh <- &rollbackBlockTask{blockHash: blockHash, reply: reply}
@@ -334,7 +334,7 @@ func (c *ChainStore) RollbackBlock(blockHash Uint256) error {
 	return nil
 }
 
-func (c *ChainStore) GetHeader(hash Uint256) (*Header, error) {
+func (c *ChainStore) GetHeader(hash common.Uint256) (*Header, error) {
 	var h = new(Header)
 
 	prefix := []byte{byte(DATAHeader)}
@@ -347,7 +347,7 @@ func (c *ChainStore) GetHeader(hash Uint256) (*Header, error) {
 
 	r := bytes.NewReader(data)
 	// first 8 bytes is sys_fee
-	_, err = ReadUint64(r)
+	_, err = common.ReadUint64(r)
 	if err != nil {
 		return nil, err
 	}
@@ -361,7 +361,7 @@ func (c *ChainStore) GetHeader(hash Uint256) (*Header, error) {
 	return h, err
 }
 
-func (c *ChainStore) PersistAsset(assetID Uint256, asset Asset) error {
+func (c *ChainStore) PersistAsset(assetID common.Uint256, asset Asset) error {
 	w := new(bytes.Buffer)
 
 	asset.Serialize(w)
@@ -382,7 +382,7 @@ func (c *ChainStore) PersistAsset(assetID Uint256, asset Asset) error {
 	return nil
 }
 
-func (c *ChainStore) GetAsset(hash Uint256) (*Asset, error) {
+func (c *ChainStore) GetAsset(hash common.Uint256) (*Asset, error) {
 	asset := new(Asset)
 	prefix := []byte{byte(STInfo)}
 	data, err := c.Get(append(prefix, hash.Bytes()...))
@@ -397,7 +397,7 @@ func (c *ChainStore) GetAsset(hash Uint256) (*Asset, error) {
 	return asset, nil
 }
 
-func (c *ChainStore) PersistSidechainTx(sidechainTxHash Uint256) {
+func (c *ChainStore) PersistSidechainTx(sidechainTxHash common.Uint256) {
 	key := []byte{byte(IXSideChainTx)}
 	key = append(key, sidechainTxHash.Bytes()...)
 
@@ -405,7 +405,8 @@ func (c *ChainStore) PersistSidechainTx(sidechainTxHash Uint256) {
 	c.BatchPut(key, []byte{0})
 }
 
-func (c *ChainStore) GetSidechainTx(sidechainTxHash Uint256) (byte, error) {
+func (c *ChainStore) GetSidechainTx(sidechainTxHash common.Uint256) (byte,
+	error) {
 	key := []byte{byte(IXSideChainTx)}
 	data, err := c.Get(append(key, sidechainTxHash.Bytes()...))
 	if err != nil {
@@ -415,7 +416,7 @@ func (c *ChainStore) GetSidechainTx(sidechainTxHash Uint256) (byte, error) {
 	return data[0], nil
 }
 
-func (c *ChainStore) GetTransaction(txID Uint256) (*Transaction, uint32, error) {
+func (c *ChainStore) GetTransaction(txID common.Uint256) (*Transaction, uint32, error) {
 	key := append([]byte{byte(DATATransaction)}, txID.Bytes()...)
 	value, err := c.Get(key)
 	if err != nil {
@@ -423,7 +424,7 @@ func (c *ChainStore) GetTransaction(txID Uint256) (*Transaction, uint32, error) 
 	}
 
 	r := bytes.NewReader(value)
-	height, err := ReadUint32(r)
+	height, err := common.ReadUint32(r)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -440,7 +441,7 @@ func (c *ChainStore) GetTxReference(tx *Transaction) (map[*Input]*Output, error)
 	if tx.TxType == RegisterAsset {
 		return nil, nil
 	}
-	txOutputsCache := make(map[Uint256][]*Output)
+	txOutputsCache := make(map[common.Uint256][]*Output)
 	//UTXO input /  Outputs
 	reference := make(map[*Input]*Output)
 	// Key index，v UTXOInput
@@ -479,7 +480,7 @@ func (c *ChainStore) PersistTransaction(tx *Transaction, height uint32) error {
 
 	// generate value
 	value := new(bytes.Buffer)
-	if err := WriteUint32(value, height); err != nil {
+	if err := common.WriteUint32(value, height); err != nil {
 		return err
 	}
 	if err := tx.Serialize(value); err != nil {
@@ -492,7 +493,7 @@ func (c *ChainStore) PersistTransaction(tx *Transaction, height uint32) error {
 	return nil
 }
 
-func (c *ChainStore) GetBlock(hash Uint256) (*Block, error) {
+func (c *ChainStore) GetBlock(hash common.Uint256) (*Block, error) {
 	var b = new(Block)
 	prefix := []byte{byte(DATAHeader)}
 	bHash, err := c.Get(append(prefix, hash.Bytes()...))
@@ -503,7 +504,7 @@ func (c *ChainStore) GetBlock(hash Uint256) (*Block, error) {
 	reader := bytes.NewReader(bHash)
 
 	// first 8 bytes is sys_fee
-	_, err = ReadUint64(reader)
+	_, err = common.ReadUint64(reader)
 	if err != nil {
 		return nil, err
 	}
@@ -589,10 +590,10 @@ func (c *ChainStore) SaveConfirm(confirm *DPosProposalVoteSlot) error {
 	return nil
 }
 
-func (c *ChainStore) handleRollbackBlockTask(blockHash Uint256) {
+func (c *ChainStore) handleRollbackBlockTask(blockHash common.Uint256) {
 	block, err := c.GetBlock(blockHash)
 	if err != nil {
-		log.Errorf("block %x can't be found", BytesToHexString(blockHash.Bytes()))
+		log.Errorf("block %x can't be found", common.BytesToHexString(blockHash.Bytes()))
 		return
 	}
 	c.rollback(block)
@@ -636,7 +637,7 @@ func (c *ChainStore) persistConfirm(confirm *DPosProposalVoteSlot) {
 	}
 }
 
-func (c *ChainStore) GetConfirm(hash Uint256) (*DPosProposalVoteSlot, error) {
+func (c *ChainStore) GetConfirm(hash common.Uint256) (*DPosProposalVoteSlot, error) {
 	var confirm = new(DPosProposalVoteSlot)
 	prefix := []byte{byte(DATAConfirm)}
 	confirmBytes, err := c.Get(append(prefix, hash.Bytes()...))
@@ -651,7 +652,7 @@ func (c *ChainStore) GetConfirm(hash Uint256) (*DPosProposalVoteSlot, error) {
 	return confirm, nil
 }
 
-func (c *ChainStore) GetUnspent(txID Uint256, index uint16) (*Output, error) {
+func (c *ChainStore) GetUnspent(txID common.Uint256, index uint16) (*Output, error) {
 	if ok, _ := c.ContainsUnspent(txID, index); ok {
 		tx, _, err := c.GetTransaction(txID)
 		if err != nil {
@@ -664,7 +665,7 @@ func (c *ChainStore) GetUnspent(txID Uint256, index uint16) (*Output, error) {
 	return nil, errors.New("[GetUnspent] NOT ContainsUnspent.")
 }
 
-func (c *ChainStore) ContainsUnspent(txID Uint256, index uint16) (bool, error) {
+func (c *ChainStore) ContainsUnspent(txID common.Uint256, index uint16) (bool, error) {
 	unspentPrefix := []byte{byte(IXUnspent)}
 	unspentValue, err := c.Get(append(unspentPrefix, txID.Bytes()...))
 
@@ -693,7 +694,7 @@ func (c *ChainStore) GetHeight() uint32 {
 	return c.currentBlockHeight
 }
 
-func (c *ChainStore) IsBlockInStore(hash Uint256) bool {
+func (c *ChainStore) IsBlockInStore(hash common.Uint256) bool {
 	var b = new(Block)
 	prefix := []byte{byte(DATAHeader)}
 	blockData, err := c.Get(append(prefix, hash.Bytes()...))
@@ -704,7 +705,7 @@ func (c *ChainStore) IsBlockInStore(hash Uint256) bool {
 	r := bytes.NewReader(blockData)
 
 	// first 8 bytes is sys_fee
-	_, err = ReadUint64(r)
+	_, err = common.ReadUint64(r)
 	if err != nil {
 		return false
 	}
@@ -722,13 +723,13 @@ func (c *ChainStore) IsBlockInStore(hash Uint256) bool {
 	return true
 }
 
-func (c *ChainStore) GetUnspentElementFromProgramHash(programHash Uint168, assetid Uint256, height uint32) ([]*UTXO, error) {
+func (c *ChainStore) GetUnspentElementFromProgramHash(programHash common.Uint168, assetid common.Uint256, height uint32) ([]*UTXO, error) {
 	prefix := []byte{byte(IXUnspentUTXO)}
 	prefix = append(prefix, programHash.Bytes()...)
 	prefix = append(prefix, assetid.Bytes()...)
 
 	key := bytes.NewBuffer(prefix)
-	if err := WriteUint32(key, height); err != nil {
+	if err := common.WriteUint32(key, height); err != nil {
 		return nil, err
 	}
 	unspentsData, err := c.Get(key.Bytes())
@@ -736,7 +737,7 @@ func (c *ChainStore) GetUnspentElementFromProgramHash(programHash Uint168, asset
 		return nil, err
 	}
 	r := bytes.NewReader(unspentsData)
-	listNum, err := ReadVarUint(r, 0)
+	listNum, err := common.ReadVarUint(r, 0)
 	if err != nil {
 		return nil, err
 	}
@@ -756,7 +757,7 @@ func (c *ChainStore) GetUnspentElementFromProgramHash(programHash Uint168, asset
 	return unspents, nil
 }
 
-func (c *ChainStore) GetUnspentFromProgramHash(programHash Uint168, assetid Uint256) ([]*UTXO, error) {
+func (c *ChainStore) GetUnspentFromProgramHash(programHash common.Uint168, assetid common.Uint256) ([]*UTXO, error) {
 	unspents := make([]*UTXO, 0)
 
 	key := []byte{byte(IXUnspentUTXO)}
@@ -765,7 +766,7 @@ func (c *ChainStore) GetUnspentFromProgramHash(programHash Uint168, assetid Uint
 	iter := c.NewIterator(key)
 	for iter.Next() {
 		r := bytes.NewReader(iter.Value())
-		listNum, err := ReadVarUint(r, 0)
+		listNum, err := common.ReadVarUint(r, 0)
 		if err != nil {
 			return nil, err
 		}
@@ -785,8 +786,8 @@ func (c *ChainStore) GetUnspentFromProgramHash(programHash Uint168, assetid Uint
 	return unspents, nil
 
 }
-func (c *ChainStore) GetUnspentsFromProgramHash(programHash Uint168) (map[Uint256][]*UTXO, error) {
-	uxtoUnspents := make(map[Uint256][]*UTXO)
+func (c *ChainStore) GetUnspentsFromProgramHash(programHash common.Uint168) (map[common.Uint256][]*UTXO, error) {
+	uxtoUnspents := make(map[common.Uint256][]*UTXO)
 
 	prefix := []byte{byte(IXUnspentUTXO)}
 	key := append(prefix, programHash.Bytes()...)
@@ -795,14 +796,14 @@ func (c *ChainStore) GetUnspentsFromProgramHash(programHash Uint168) (map[Uint25
 		rk := bytes.NewReader(iter.Key())
 
 		// read prefix
-		_, _ = ReadBytes(rk, 1)
-		var ph Uint168
+		_, _ = common.ReadBytes(rk, 1)
+		var ph common.Uint168
 		ph.Deserialize(rk)
-		var assetid Uint256
+		var assetid common.Uint256
 		assetid.Deserialize(rk)
 
 		r := bytes.NewReader(iter.Value())
-		listNum, err := ReadVarUint(r, 0)
+		listNum, err := common.ReadVarUint(r, 0)
 		if err != nil {
 			return nil, err
 		}
@@ -824,12 +825,12 @@ func (c *ChainStore) GetUnspentsFromProgramHash(programHash Uint168) (map[Uint25
 	return uxtoUnspents, nil
 }
 
-func (c *ChainStore) PersistUnspentWithProgramHash(programHash Uint168, assetid Uint256, height uint32, unspents []*UTXO) error {
+func (c *ChainStore) PersistUnspentWithProgramHash(programHash common.Uint168, assetid common.Uint256, height uint32, unspents []*UTXO) error {
 	prefix := []byte{byte(IXUnspentUTXO)}
 	prefix = append(prefix, programHash.Bytes()...)
 	prefix = append(prefix, assetid.Bytes()...)
 	key := bytes.NewBuffer(prefix)
-	if err := WriteUint32(key, height); err != nil {
+	if err := common.WriteUint32(key, height); err != nil {
 		return err
 	}
 
@@ -840,7 +841,7 @@ func (c *ChainStore) PersistUnspentWithProgramHash(programHash Uint168, assetid 
 
 	listnum := len(unspents)
 	w := new(bytes.Buffer)
-	WriteVarUint(w, uint64(listnum))
+	common.WriteVarUint(w, uint64(listnum))
 	for i := 0; i < listnum; i++ {
 		unspents[i].Serialize(w)
 	}
@@ -850,16 +851,16 @@ func (c *ChainStore) PersistUnspentWithProgramHash(programHash Uint168, assetid 
 	return nil
 }
 
-func (c *ChainStore) GetAssets() map[Uint256]*Asset {
-	assets := make(map[Uint256]*Asset)
+func (c *ChainStore) GetAssets() map[common.Uint256]*Asset {
+	assets := make(map[common.Uint256]*Asset)
 
 	iter := c.NewIterator([]byte{byte(STInfo)})
 	for iter.Next() {
 		rk := bytes.NewReader(iter.Key())
 
 		// read prefix
-		_, _ = ReadBytes(rk, 1)
-		var assetid Uint256
+		_, _ = common.ReadBytes(rk, 1)
+		var assetid common.Uint256
 		assetid.Deserialize(rk)
 		log.Debugf("[GetAssets] assetid: %x", assetid.Bytes())
 

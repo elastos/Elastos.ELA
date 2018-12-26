@@ -7,7 +7,7 @@ import (
 	"sync"
 
 	"github.com/elastos/Elastos.ELA/blockchain"
-	. "github.com/elastos/Elastos.ELA/common"
+	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/common/log"
 	. "github.com/elastos/Elastos.ELA/core/types"
@@ -20,10 +20,10 @@ import (
 type TxPool struct {
 	sync.RWMutex
 	txnCnt  uint64                   // count
-	txnList map[Uint256]*Transaction // transaction which have been verifyed will put into this map
+	txnList map[common.Uint256]*Transaction // transaction which have been verifyed will put into this map
 	//issueSummary  map[Uint256]Fixed64           // transaction which pass the verify will summary the amout to this map
 	inputUTXOList   map[string]*Transaction  // transaction which pass the verify will add the UTXO to this map
-	sidechainTxList map[Uint256]*Transaction // sidechain tx pool
+	sidechainTxList map[common.Uint256]*Transaction // sidechain tx pool
 	Listeners       map[protocol.TxnPoolListener]interface{}
 }
 
@@ -33,8 +33,8 @@ func (pool *TxPool) Init() {
 	pool.txnCnt = 0
 	pool.inputUTXOList = make(map[string]*Transaction)
 	//pool.issueSummary = make(map[Uint256]Fixed64)
-	pool.txnList = make(map[Uint256]*Transaction)
-	pool.sidechainTxList = make(map[Uint256]*Transaction)
+	pool.txnList = make(map[common.Uint256]*Transaction)
+	pool.sidechainTxList = make(map[common.Uint256]*Transaction)
 	pool.Listeners = make(map[protocol.TxnPoolListener]interface{})
 }
 
@@ -65,7 +65,7 @@ func (pool *TxPool) AppendToTxnPool(txn *Transaction) ErrCode {
 	txn.Fee = blockchain.GetTxFee(txn, blockchain.DefaultLedger.Blockchain.AssetID)
 	buf := new(bytes.Buffer)
 	txn.Serialize(buf)
-	txn.FeePerKB = txn.Fee * 1000 / Fixed64(len(buf.Bytes()))
+	txn.FeePerKB = txn.Fee * 1000 / common.Fixed64(len(buf.Bytes()))
 	//add the transaction to process scope
 	if ok := pool.addToTxList(txn); !ok {
 		// reject duplicated transaction
@@ -83,7 +83,7 @@ func (pool *TxPool) AppendToTxnPool(txn *Transaction) ErrCode {
 }
 
 //get the transaction in txnpool
-func (pool *TxPool) GetTransactionPool(hasMaxCount bool) map[Uint256]*Transaction {
+func (pool *TxPool) GetTransactionPool(hasMaxCount bool) map[common.Uint256]*Transaction {
 	pool.RLock()
 	count := config.Parameters.MaxTxsInBlock
 	if count <= 0 {
@@ -93,7 +93,7 @@ func (pool *TxPool) GetTransactionPool(hasMaxCount bool) map[Uint256]*Transactio
 		count = len(pool.txnList)
 	}
 	var num int
-	txnMap := make(map[Uint256]*Transaction)
+	txnMap := make(map[common.Uint256]*Transaction)
 	for txnID, tx := range pool.txnList {
 		txnMap[txnID] = tx
 		num++
@@ -171,7 +171,7 @@ func (pool *TxPool) cleanTransactions(blockTxs []*Transaction) error {
 }
 
 //get the transaction by hash
-func (pool *TxPool) GetTransaction(hash Uint256) *Transaction {
+func (pool *TxPool) GetTransaction(hash common.Uint256) *Transaction {
 	pool.RLock()
 	defer pool.RUnlock()
 	return pool.txnList[hash]
@@ -236,7 +236,7 @@ func (pool *TxPool) verifyDoubleSpend(txn *Transaction) error {
 	return nil
 }
 
-func (pool *TxPool) IsDuplicateSidechainTx(sidechainTxHash Uint256) bool {
+func (pool *TxPool) IsDuplicateSidechainTx(sidechainTxHash common.Uint256) bool {
 	_, ok := pool.sidechainTxList[sidechainTxHash]
 	if ok {
 		return true
@@ -350,7 +350,7 @@ func (pool *TxPool) addToTxList(txn *Transaction) bool {
 	return true
 }
 
-func (pool *TxPool) delFromTxList(txID Uint256) bool {
+func (pool *TxPool) delFromTxList(txID common.Uint256) bool {
 	pool.Lock()
 	defer pool.Unlock()
 	if _, ok := pool.txnList[txID]; !ok {
@@ -360,10 +360,10 @@ func (pool *TxPool) delFromTxList(txID Uint256) bool {
 	return true
 }
 
-func (pool *TxPool) copyTxList() map[Uint256]*Transaction {
+func (pool *TxPool) copyTxList() map[common.Uint256]*Transaction {
 	pool.RLock()
 	defer pool.RUnlock()
-	txnMap := make(map[Uint256]*Transaction, len(pool.txnList))
+	txnMap := make(map[common.Uint256]*Transaction, len(pool.txnList))
 	for txnID, txn := range pool.txnList {
 		txnMap[txnID] = txn
 	}
@@ -416,7 +416,7 @@ func (pool *TxPool) addSidechainTx(txn *Transaction) {
 	}
 }
 
-func (pool *TxPool) delSidechainTx(hash Uint256) bool {
+func (pool *TxPool) delSidechainTx(hash common.Uint256) bool {
 	pool.Lock()
 	defer pool.Unlock()
 	_, ok := pool.sidechainTxList[hash]

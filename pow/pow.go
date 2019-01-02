@@ -347,7 +347,9 @@ func (pow *PowService) BlockPersistCompleted(v interface{}) {
 			log.Warn(err)
 		}
 		node.LocalNode.SetHeight(uint64(DefaultLedger.Blockchain.GetBestHeight()))
-		BlockPersistCompletedSignal <- block.Hash()
+		if pow.Started {
+			BlockPersistCompletedSignal <- block.Hash()
+		}
 		log.Info("pow service: block persist completed. Block Hash:", block.Hash())
 	}
 }

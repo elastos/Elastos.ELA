@@ -89,15 +89,11 @@ func main() {
 	ledger.Blockchain = chain          // fixme
 	blockchain.DefaultLedger = &ledger // fixme
 
-	crcArbitrators, err := config.ConvertArbitrators(config.Parameters.ArbiterConfiguration.CRCArbiters)
-	if err != nil {
-		printErrorAndExit(err)
-	}
 	arbiters, err := store.NewArbitrators(&store.ArbitratorsConfig{
 		ArbitratorsCount: config.Parameters.ArbiterConfiguration.ArbitratorsCount,
 		CandidatesCount:  config.Parameters.ArbiterConfiguration.CandidatesCount,
 		MajorityCount:    config.Parameters.ArbiterConfiguration.MajorityCount,
-		CRCArbitrators:   crcArbitrators,
+		CRCArbitrators:   activeNetParams.CRCArbiters,
 		Versions:         versions,
 		Store:            dposStore,
 		ChainStore:       chainStore,

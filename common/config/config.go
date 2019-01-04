@@ -148,15 +148,3 @@ func (config *Configuration) GetArbiterID() []byte {
 
 	return publicKey
 }
-
-func ConvertArbitrators(arbiters []string) (result [][]byte, err error) {
-	for _, v := range arbiters {
-		arbiterByte, err := common.HexStringToBytes(v)
-		if err != nil {
-			return nil, err
-		}
-		result = append(result, arbiterByte)
-	}
-
-	return result, nil
-}

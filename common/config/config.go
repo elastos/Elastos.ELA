@@ -107,6 +107,7 @@ type ArbiterConfiguration struct {
 	MaxConnections   int      `json:"MaxConnections"`
 	MajorityCount    uint32   `json:"MajorityCount"`
 	OriginArbiters   []string `json:"OriginArbiters"`
+	CRCArbiters      []string `json:"CRCArbiters"`
 	ArbitratorsCount uint32   `json:"ArbitratorsCount"`
 	CandidatesCount  uint32   `json:"CandidatesCount"`
 }
@@ -146,4 +147,16 @@ func (config *Configuration) GetArbiterID() []byte {
 	}
 
 	return publicKey
+}
+
+func ConvertArbitrators(arbiters []string) (result [][]byte, err error) {
+	for _, v := range arbiters {
+		arbiterByte, err := common.HexStringToBytes(v)
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, arbiterByte)
+	}
+
+	return result, nil
 }

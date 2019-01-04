@@ -72,6 +72,9 @@ func loadConfigParams() *config.ConfigParams {
 	if len(cfg.ArbiterConfiguration.OriginArbiters) > 0 {
 		activeNetParams.OriginArbiters = cfg.ArbiterConfiguration.OriginArbiters
 	}
+	if len(cfg.ArbiterConfiguration.CRCArbiters) > 0 {
+		activeNetParams.CRCArbiters = cfg.ArbiterConfiguration.CRCArbiters
+	}
 
 	return &config.Parameters
 }

@@ -1,4 +1,4 @@
-# Elastos Wallet Development Environment Document
+# Elastos Wallet Development Environment Document
 
 ## 开发服务器获取
 
@@ -60,7 +60,7 @@
 
 ### Node API
 
-可参考API示例：
+可参考API示例：
 
 * [Restful_API](Restful_API_CN.md)
 

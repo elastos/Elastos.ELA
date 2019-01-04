@@ -1,4 +1,4 @@
-# Elastos Wallet Development Environment Document
+# Elastos Wallet Development Environment Document
 
 ## 开发服务器获取
 

@@ -684,7 +684,7 @@ func parseListeners(addr string) ([]net.Addr, error) {
 	// Empty host or host of * on plan9 is both IPv4 and IPv6.
 	if host == "" || (host == "*" && runtime.GOOS == "plan9") {
 		netAddrs = append(netAddrs, simpleAddr{net: "tcp4", addr: addr})
-		netAddrs = append(netAddrs, simpleAddr{net: "tcp6", addr: addr})
+		//netAddrs = append(netAddrs, simpleAddr{net: "tcp6", addr: addr})
 	}
 
 	return netAddrs, nil

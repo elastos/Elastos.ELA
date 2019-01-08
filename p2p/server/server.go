@@ -918,7 +918,7 @@ func parseListeners(addrs []string) ([]net.Addr, error) {
 		// Empty host or host of * on plan9 is both IPv4 and IPv6.
 		if host == "" || (host == "*" && runtime.GOOS == "plan9") {
 			netAddrs = append(netAddrs, simpleAddr{net: "tcp4", addr: addr})
-			netAddrs = append(netAddrs, simpleAddr{net: "tcp6", addr: addr})
+			//netAddrs = append(netAddrs, simpleAddr{net: "tcp6", addr: addr})
 			continue
 		}
 
@@ -938,7 +938,8 @@ func parseListeners(addrs []string) ([]net.Addr, error) {
 		// To4 returns nil when the IP is not an IPv4 address, so use
 		// this determine the address type.
 		if ip.To4() == nil {
-			netAddrs = append(netAddrs, simpleAddr{net: "tcp6", addr: addr})
+			//netAddrs = append(netAddrs, simpleAddr{net: "tcp6", addr: addr})
+			log.Warnf("cannot parse ipv6 address %s to ipv4 address", ip)
 		} else {
 			netAddrs = append(netAddrs, simpleAddr{net: "tcp4", addr: addr})
 		}

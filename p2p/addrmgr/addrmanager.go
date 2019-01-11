@@ -161,6 +161,11 @@ func (a *AddrManager) updateAddress(netAddr, srcAddr *p2p.NetAddress) {
 		return
 	}
 
+	// don't support ipv6 address temporarily
+	if !IsIPv4(netAddr) {
+		return
+	}
+
 	addr := NetAddressKey(netAddr)
 	ka := a.find(netAddr)
 	if ka != nil {

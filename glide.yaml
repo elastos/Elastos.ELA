@@ -25,3 +25,4 @@ import:
   - leveldb/opt
   - leveldb/util
 - package: github.com/yuin/gopher-lua
+- package: github.com/go-ini/ini

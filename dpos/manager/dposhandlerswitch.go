@@ -2,6 +2,7 @@ package manager
 
 import (
 	"bytes"
+	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"time"
 
 	"github.com/elastos/Elastos.ELA/blockchain"
@@ -20,10 +21,10 @@ type DPOSEventConditionHandler interface {
 
 	ChangeView(firstBlockHash *common.Uint256)
 
-	StartNewProposal(p types.DPosProposal)
+	StartNewProposal(p payload.DPosProposal)
 
-	ProcessAcceptVote(id peer.PID, p types.DPosProposalVote)
-	ProcessRejectVote(id peer.PID, p types.DPosProposalVote)
+	ProcessAcceptVote(id peer.PID, p payload.DPosProposalVote)
+	ProcessRejectVote(id peer.PID, p payload.DPosProposalVote)
 }
 
 type DPOSHandlerConfig struct {
@@ -88,7 +89,7 @@ func (h *DPOSHandlerSwitch) FinishConsensus() {
 	h.proposalDispatcher.FinishConsensus()
 }
 
-func (h *DPOSHandlerSwitch) StartNewProposal(p types.DPosProposal) {
+func (h *DPOSHandlerSwitch) StartNewProposal(p payload.DPosProposal) {
 	h.currentHandler.StartNewProposal(p)
 
 	rawData := new(bytes.Buffer)
@@ -125,7 +126,7 @@ func (h *DPOSHandlerSwitch) TryStartNewConsensus(b *types.Block) bool {
 	if h.proposalDispatcher.IsProcessingBlockEmpty() {
 		if h.currentHandler.TryStartNewConsensus(b) {
 			rawData := new(bytes.Buffer)
-			b.Serialize(rawData)
+			b.Header.Serialize(rawData)
 			c := log.ConsensusEvent{StartTime: time.Now(), Height: b.Height, RawData: rawData.Bytes()}
 			h.cfg.Monitor.OnConsensusStarted(&c)
 			return true
@@ -136,7 +137,7 @@ func (h *DPOSHandlerSwitch) TryStartNewConsensus(b *types.Block) bool {
 	return false
 }
 
-func (h *DPOSHandlerSwitch) ProcessAcceptVote(id peer.PID, p types.DPosProposalVote) {
+func (h *DPOSHandlerSwitch) ProcessAcceptVote(id peer.PID, p payload.DPosProposalVote) {
 	h.currentHandler.ProcessAcceptVote(id, p)
 
 	rawData := new(bytes.Buffer)
@@ -145,7 +146,7 @@ func (h *DPOSHandlerSwitch) ProcessAcceptVote(id peer.PID, p types.DPosProposalV
 	h.cfg.Monitor.OnVoteArrived(&voteEvent)
 }
 
-func (h *DPOSHandlerSwitch) ProcessRejectVote(id peer.PID, p types.DPosProposalVote) {
+func (h *DPOSHandlerSwitch) ProcessRejectVote(id peer.PID, p payload.DPosProposalVote) {
 	h.currentHandler.ProcessRejectVote(id, p)
 
 	rawData := new(bytes.Buffer)

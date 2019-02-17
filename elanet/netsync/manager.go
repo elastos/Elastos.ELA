@@ -2,6 +2,7 @@ package netsync
 
 import (
 	"fmt"
+	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"sync"
 	"sync/atomic"
 
@@ -692,7 +693,7 @@ func (sm *SyncManager) handleBlockchainEvents(event *events.Event) {
 	case events.ETTransactionAccepted:
 		tx := event.Data.(*types.Transaction)
 		if tx.IsIllegalBlockTx() {
-			sm.chain.ProcessIllegalBlock(tx.Payload.(*types.PayloadIllegalBlock))
+			sm.chain.ProcessIllegalBlock(tx.Payload.(*payload.DposIllegalBlocks))
 		}
 
 	// A block has been accepted into the block chain.  Relay it to other

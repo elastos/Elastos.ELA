@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"strconv"
 	"time"
 
@@ -195,7 +196,9 @@ func dposManagerCheckLastRelay(L *lua.LState) int {
 	return 1
 }
 
-func confirmsEqual(con1 *types.DPosProposalVoteSlot, con2 *types.DPosProposalVoteSlot) bool {
+func confirmsEqual(con1 *payload.DPosProposalVoteSlot,
+	con2 *payload.DPosProposalVoteSlot) bool {
+
 	if !con1.Hash.IsEqual(con2.Hash) {
 		return false
 	}

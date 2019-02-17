@@ -1,4 +1,4 @@
-package types
+package payload
 
 import (
 	"bytes"
@@ -7,10 +7,13 @@ import (
 	"github.com/elastos/Elastos.ELA/common"
 )
 
+const (
+	PayloadIllegalVoteVersion byte = 0x00
+)
+
 type VoteEvidence struct {
-	Vote        DPosProposalVote
-	Proposal    DPosProposal
-	BlockHeader Header
+	ProposalEvidence
+	Vote DPosProposalVote
 }
 
 type DposIllegalVotes struct {
@@ -20,44 +23,39 @@ type DposIllegalVotes struct {
 	hash *common.Uint256
 }
 
-func (d *VoteEvidence) IsMatch() bool {
-	return d.Proposal.BlockHash.IsEqual(d.BlockHeader.Hash()) &&
-		d.Vote.ProposalHash.IsEqual(d.Proposal.Hash())
-}
-
 func (d *VoteEvidence) Serialize(w io.Writer) error {
 	if err := d.Vote.Serialize(w); err != nil {
 		return err
 	}
 
-	if err := d.Proposal.Serialize(w); err != nil {
-		return err
-	}
-
-	if err := d.BlockHeader.Serialize(w); err != nil {
+	if err := d.ProposalEvidence.Serialize(w); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (d *VoteEvidence) Deserialize(r io.Reader) error {
+func (d *VoteEvidence) Deserialize(r io.Reader) (err error) {
 	if err := d.Vote.Deserialize(r); err != nil {
 		return err
 	}
 
-	if err := d.Proposal.Deserialize(r); err != nil {
-		return err
-	}
-
-	if err := d.BlockHeader.Deserialize(r); err != nil {
+	if err := d.ProposalEvidence.Deserialize(r); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (d *DposIllegalVotes) Serialize(w io.Writer) error {
+func (d *DposIllegalVotes) Data(version byte) []byte {
+	buf := new(bytes.Buffer)
+	if err := d.Serialize(buf, version); err != nil {
+		return []byte{0}
+	}
+	return buf.Bytes()
+}
+
+func (d *DposIllegalVotes) Serialize(w io.Writer, version byte) error {
 	if err := d.Evidence.Serialize(w); err != nil {
 		return err
 	}
@@ -69,7 +67,7 @@ func (d *DposIllegalVotes) Serialize(w io.Writer) error {
 	return nil
 }
 
-func (d *DposIllegalVotes) Deserialize(r io.Reader) error {
+func (d *DposIllegalVotes) Deserialize(r io.Reader, version byte) error {
 	if err := d.Evidence.Deserialize(r); err != nil {
 		return err
 	}
@@ -84,7 +82,7 @@ func (d *DposIllegalVotes) Deserialize(r io.Reader) error {
 func (d *DposIllegalVotes) Hash() common.Uint256 {
 	if d.hash == nil {
 		buf := new(bytes.Buffer)
-		d.Serialize(buf)
+		d.Serialize(buf, PayloadIllegalVoteVersion)
 		hash := common.Uint256(common.Sha256D(buf.Bytes()))
 		d.hash = &hash
 	}
@@ -92,7 +90,7 @@ func (d *DposIllegalVotes) Hash() common.Uint256 {
 }
 
 func (d *DposIllegalVotes) GetBlockHeight() uint32 {
-	return d.Evidence.BlockHeader.Height
+	return d.Evidence.BlockHeight
 }
 
 func (d *DposIllegalVotes) Type() IllegalDataType {

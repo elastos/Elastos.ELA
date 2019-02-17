@@ -1,15 +1,14 @@
 package msg
 
 import (
+	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"io"
-
-	"github.com/elastos/Elastos.ELA/core/types"
 )
 
 const MaxIllegalProposalSize = 1000000
 
 type IllegalProposals struct {
-	Proposals types.DposIllegalProposals
+	Proposals payload.DposIllegalProposals
 }
 
 func (msg *IllegalProposals) CMD() string {
@@ -21,7 +20,8 @@ func (msg *IllegalProposals) MaxLength() uint32 {
 }
 
 func (msg *IllegalProposals) Serialize(w io.Writer) error {
-	if err := msg.Proposals.Serialize(w); err != nil {
+	if err := msg.Proposals.Serialize(w,
+		payload.PayloadIllegalProposalVersion); err != nil {
 		return err
 	}
 
@@ -29,7 +29,8 @@ func (msg *IllegalProposals) Serialize(w io.Writer) error {
 }
 
 func (msg *IllegalProposals) Deserialize(r io.Reader) error {
-	if err := msg.Proposals.Deserialize(r); err != nil {
+	if err := msg.Proposals.Deserialize(r,
+		payload.PayloadIllegalProposalVersion); err != nil {
 		return err
 	}
 

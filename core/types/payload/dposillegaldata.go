@@ -1,4 +1,4 @@
-package types
+package payload
 
 import (
 	"io"
@@ -19,7 +19,7 @@ const (
 type DposIllegalData interface {
 	Type() IllegalDataType
 	GetBlockHeight() uint32
-	Serialize(w io.Writer) error
-	Deserialize(r io.Reader) error
+	Serialize(w io.Writer, version byte) error
+	Deserialize(r io.Reader, version byte) error
 	Hash() common.Uint256
 }

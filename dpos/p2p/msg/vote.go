@@ -1,16 +1,15 @@
 package msg
 
 import (
+	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"io"
-
-	"github.com/elastos/Elastos.ELA/core/types"
 )
 
 const DefaultVoteMessageDataSize = 297 //164+67+1+65
 
 type Vote struct {
 	Command string
-	Vote    types.DPosProposalVote
+	Vote    payload.DPosProposalVote
 }
 
 func (msg *Vote) CMD() string {

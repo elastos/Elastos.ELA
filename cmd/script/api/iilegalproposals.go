@@ -1,7 +1,8 @@
 package api
 
 import (
-	"github.com/elastos/Elastos.ELA/core/types"
+	"bytes"
+	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/yuin/gopher-lua"
 )
 
@@ -20,7 +21,7 @@ func RegisterIllegalProposalsType(L *lua.LState) {
 
 // Constructor
 func newIllegalProposals(L *lua.LState) int {
-	illegalProposals := &types.DposIllegalProposals{}
+	illegalProposals := &payload.DposIllegalProposals{}
 
 	ud := L.NewUserData()
 	ud.Value = illegalProposals
@@ -31,9 +32,9 @@ func newIllegalProposals(L *lua.LState) int {
 }
 
 // Checks whether the first lua argument is a *LUserData with *Attribute and returns this *Attribute.
-func checkIllegalProposals(L *lua.LState, idx int) *types.DposIllegalProposals {
+func checkIllegalProposals(L *lua.LState, idx int) *payload.DposIllegalProposals {
 	ud := L.CheckUserData(idx)
-	if v, ok := ud.Value.(*types.DposIllegalProposals); ok {
+	if v, ok := ud.Value.(*payload.DposIllegalProposals); ok {
 		return v
 	}
 	L.ArgError(1, "DPosProposal expected")
@@ -74,10 +75,15 @@ func illegalProposalsSetHeader(L *lua.LState) int {
 	h := checkHeader(L, 2)
 	first := L.ToBool(3)
 
+	buf := new(bytes.Buffer)
+	h.Serialize(buf)
+
 	if first {
-		i.Evidence.BlockHeader = *h
+		i.Evidence.BlockHeader = buf.Bytes()
+		i.Evidence.BlockHeight = h.Height
 	} else {
-		i.CompareEvidence.BlockHeader = *h
+		i.CompareEvidence.BlockHeader = buf.Bytes()
+		i.CompareEvidence.BlockHeight = h.Height
 	}
 
 	return 0

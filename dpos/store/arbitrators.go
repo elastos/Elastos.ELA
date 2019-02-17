@@ -2,6 +2,7 @@ package store
 
 import (
 	"bytes"
+	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"sort"
 	"sync"
 
@@ -106,7 +107,7 @@ func (a *Arbitrators) OnBlockReceived(b *types.Block, confirmed bool) {
 	}
 }
 
-func (a *Arbitrators) OnConfirmReceived(p *types.DPosProposalVoteSlot) {
+func (a *Arbitrators) OnConfirmReceived(p *payload.DPosProposalVoteSlot) {
 	a.lock.Lock()
 	defer a.lock.Unlock()
 	block, err := a.cfg.ChainStore.GetBlock(p.Hash)

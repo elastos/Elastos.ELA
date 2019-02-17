@@ -4,11 +4,11 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"math"
 	"time"
 
 	"github.com/elastos/Elastos.ELA/blockchain/interfaces"
-	"github.com/elastos/Elastos.ELA/core/types"
 	"github.com/elastos/Elastos.ELA/dpos/log"
 )
 
@@ -328,7 +328,7 @@ func (s *DposStore) AddVoteEvent(event interface{}) error {
 }
 
 func (s *DposStore) addVoteEvent(event *log.VoteEvent) (uint64, error) {
-	vote := &types.DPosProposalVote{}
+	vote := &payload.DPosProposalVote{}
 	err := vote.Deserialize(bytes.NewReader(event.RawData))
 	if err != nil {
 		return 0, err

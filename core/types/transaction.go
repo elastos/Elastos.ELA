@@ -417,13 +417,13 @@ func GetPayload(txType TxType) (Payload, error) {
 	case ReturnDepositCoin:
 		p = new(payload.ReturnDepositCoin)
 	case IllegalProposalEvidence:
-		p = new(PayloadIllegalProposal)
+		p = new(payload.DposIllegalProposals)
 	case IllegalVoteEvidence:
-		p = new(PayloadIllegalVote)
+		p = new(payload.DposIllegalVotes)
 	case IllegalBlockEvidence:
-		p = new(PayloadIllegalBlock)
+		p = new(payload.DposIllegalBlocks)
 	case IllegalSidechainEvidence:
-		p = new(PayloadSidechainIllegalData)
+		p = new(payload.SidechainIllegalData)
 	case InactiveArbitrators:
 		p = new(payload.InactiveArbitrators)
 	default:

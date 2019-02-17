@@ -1,4 +1,4 @@
-package types
+package payload
 
 import (
 	"bytes"
@@ -11,7 +11,11 @@ import (
 
 type CoinType uint32
 
-const ELACoin = CoinType(0)
+const (
+	ELACoin = CoinType(0)
+
+	PayloadIllegalBlockVersion byte = 0x00
+)
 
 type BlockEvidence struct {
 	Block        []byte
@@ -59,7 +63,15 @@ func (b *BlockEvidence) BlockHash() common.Uint256 {
 	return *b.hash
 }
 
-func (d *DposIllegalBlocks) Serialize(w io.Writer) error {
+func (d *DposIllegalBlocks) Data(version byte) []byte {
+	buf := new(bytes.Buffer)
+	if err := d.Serialize(buf, version); err != nil {
+		return []byte{0}
+	}
+	return buf.Bytes()
+}
+
+func (d *DposIllegalBlocks) Serialize(w io.Writer, version byte) error {
 	if err := common.WriteUint32(w, uint32(d.CoinType)); err != nil {
 		return err
 	}
@@ -79,7 +91,7 @@ func (d *DposIllegalBlocks) Serialize(w io.Writer) error {
 	return nil
 }
 
-func (d *DposIllegalBlocks) Deserialize(r io.Reader) error {
+func (d *DposIllegalBlocks) Deserialize(r io.Reader, version byte) error {
 	var err error
 	var coinType uint32
 	if coinType, err = common.ReadUint32(r); err != nil {
@@ -105,7 +117,7 @@ func (d *DposIllegalBlocks) Deserialize(r io.Reader) error {
 func (d *DposIllegalBlocks) Hash() common.Uint256 {
 	if d.hash == nil {
 		buf := new(bytes.Buffer)
-		d.Serialize(buf)
+		d.Serialize(buf, PayloadIllegalBlockVersion)
 		hash := common.Uint256(common.Sha256D(buf.Bytes()))
 		d.hash = &hash
 	}

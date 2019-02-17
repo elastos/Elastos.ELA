@@ -2,6 +2,7 @@ package types
 
 import (
 	"errors"
+	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"io"
 
 	"github.com/elastos/Elastos.ELA/common"
@@ -11,7 +12,7 @@ type DposBlock struct {
 	BlockFlag   bool
 	Block       *Block
 	ConfirmFlag bool
-	Confirm     *DPosProposalVoteSlot
+	Confirm     *payload.DPosProposalVoteSlot
 }
 
 func (b *DposBlock) Serialize(w io.Writer) error {
@@ -63,7 +64,7 @@ func (b *DposBlock) Deserialize(r io.Reader) error {
 	}
 	b.ConfirmFlag = confirmFlag == 1
 	if b.ConfirmFlag {
-		b.Confirm = new(DPosProposalVoteSlot)
+		b.Confirm = new(payload.DPosProposalVoteSlot)
 		if err := b.Confirm.Deserialize(r); err != nil {
 			return errors.New("Confirm serialize failed," + err.Error())
 		}

@@ -1,15 +1,14 @@
 package msg
 
 import (
+	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"io"
-
-	"github.com/elastos/Elastos.ELA/core/types"
 )
 
 const DefaultProposalMessageDataSize = 168 //67+32+4+65
 
 type Proposal struct {
-	Proposal types.DPosProposal
+	Proposal payload.DPosProposal
 }
 
 func (m *Proposal) CMD() string {

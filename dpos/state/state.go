@@ -364,7 +364,7 @@ func (s *State) IsDPOSTransaction(tx *types.Transaction) bool {
 // ProcessBlock takes a block and it's confirm to update producers state and
 // votes accordingly.
 func (s *State) ProcessBlock(block *types.Block,
-	confirm *payload.DPOSProposalVoteSlot) {
+	confirm *payload.Confirm) {
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
 
@@ -388,7 +388,7 @@ func (s *State) ProcessBlock(block *types.Block,
 }
 
 // getInactiveArbitrators returns inactive arbiters from a confirm data.
-func (s *State) getInactiveArbitrators(confirm *payload.DPOSProposalVoteSlot) (
+func (s *State) getInactiveArbitrators(confirm *payload.Confirm) (
 	result []string) {
 	if bytes.Equal(s.arbiters.GetOnDutyArbitrator(), confirm.Proposal.Sponsor) {
 

@@ -196,8 +196,8 @@ func dposManagerCheckLastRelay(L *lua.LState) int {
 	return 1
 }
 
-func confirmsEqual(con1 *payload.DPOSProposalVoteSlot,
-	con2 *payload.DPOSProposalVoteSlot) bool {
+func confirmsEqual(con1 *payload.Confirm,
+	con2 *payload.Confirm) bool {
 
 	if !con1.Hash.IsEqual(con2.Hash) {
 		return false

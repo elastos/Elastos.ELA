@@ -482,7 +482,7 @@ func (c *ChainStore) RollbackUnspend(b *Block) error {
 }
 
 func (c *ChainStore) PersistConfirm(
-	confirm *payload.DPOSProposalVoteSlot) error {
+	confirm *payload.Confirm) error {
 	key := new(bytes.Buffer)
 	key.WriteByte(byte(DATAConfirm))
 	if err := confirm.Hash.Serialize(key); err != nil {

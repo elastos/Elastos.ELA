@@ -34,7 +34,7 @@ type NetworkMock interface {
 	FireChangeView()
 	FireBadNetwork()
 	FireBlockReceived(b *types.Block, confirmed bool)
-	FireConfirmReceived(p *payload.DPOSProposalVoteSlot)
+	FireConfirmReceived(p *payload.Confirm)
 	FireIllegalBlocksReceived(i *payload.DPOSIllegalBlocks)
 
 	GetLastMessage() p2p.Message
@@ -193,7 +193,7 @@ func (n *network) FireBlockReceived(b *types.Block, confirmed bool) {
 	n.listener.OnBlockReceived(b, confirmed)
 }
 
-func (n *network) FireConfirmReceived(p *payload.DPOSProposalVoteSlot) {
+func (n *network) FireConfirmReceived(p *payload.Confirm) {
 	n.listener.OnConfirmReceived(p)
 }
 

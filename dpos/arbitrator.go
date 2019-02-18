@@ -103,7 +103,7 @@ func (a *Arbitrator) OnBlockReceived(b *types.Block, confirmed bool) {
 	a.network.PostBlockReceivedTask(b, confirmed)
 }
 
-func (a *Arbitrator) OnConfirmReceived(p *payload.DPOSProposalVoteSlot) {
+func (a *Arbitrator) OnConfirmReceived(p *payload.Confirm) {
 	log.Info("[OnConfirmReceived] listener received confirm")
 	a.network.PostConfirmReceivedTask(p)
 }
@@ -212,7 +212,7 @@ func NewArbitrator(password []byte, cfg ArbitratorConfig) (*Arbitrator, error) {
 			a.OnBlockReceived(block.Block, block.ConfirmFlag)
 
 		case events.ETConfirmAccepted:
-			a.OnConfirmReceived(e.Data.(*payload.DPOSProposalVoteSlot))
+			a.OnConfirmReceived(e.Data.(*payload.Confirm))
 
 		case events.ETNewArbiterElection:
 			a.OnNewElection(e.Data.([][]byte))

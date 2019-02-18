@@ -264,7 +264,7 @@ func (p *ProposalDispatcher) ProcessProposal(d payload.DPOSProposal) {
 }
 
 func (p *ProposalDispatcher) TryAppendAndBroadcastConfirmBlockMsg() bool {
-	currentVoteSlot := &payload.DPOSProposalVoteSlot{
+	currentVoteSlot := &payload.Confirm{
 		Hash:     p.processingBlock.Hash(),
 		Proposal: *p.processingProposal,
 		Votes:    make([]payload.DPOSProposalVote, 0),

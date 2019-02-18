@@ -54,7 +54,7 @@ type network struct {
 
 	changeViewChan           chan bool
 	blockReceivedChan        chan blockItem
-	confirmReceivedChan      chan *payload.DPOSProposalVoteSlot
+	confirmReceivedChan      chan *payload.Confirm
 	illegalBlocksEvidence    chan *payload.DPOSIllegalBlocks
 	sidechainIllegalEvidence chan *payload.SidechainIllegalData
 }
@@ -284,7 +284,7 @@ func (n *network) PostSidechainIllegalDataTask(s *payload.SidechainIllegalData) 
 	n.sidechainIllegalEvidence <- s
 }
 
-func (n *network) PostConfirmReceivedTask(p *payload.DPOSProposalVoteSlot) {
+func (n *network) PostConfirmReceivedTask(p *payload.Confirm) {
 	n.confirmReceivedChan <- p
 }
 
@@ -436,7 +436,7 @@ func (n *network) blockReceived(b *types.Block, confirmed bool) {
 	n.listener.OnBlockReceived(b, confirmed)
 }
 
-func (n *network) confirmReceived(p *payload.DPOSProposalVoteSlot) {
+func (n *network) confirmReceived(p *payload.Confirm) {
 	n.listener.OnConfirmReceived(p)
 }
 
@@ -461,8 +461,8 @@ func NewDposNetwork(pid peer.PID, listener manager.NetworkEventListener, dposAcc
 		messageQueue:             make(chan *messageItem, 10000), //todo config handle capacity though config file
 		quit:                     make(chan bool),
 		changeViewChan:           make(chan bool),
-		blockReceivedChan:        make(chan blockItem, 10),                     //todo config handle capacity though config file
-		confirmReceivedChan:      make(chan *payload.DPOSProposalVoteSlot, 10), //todo config handle capacity though config file
+		blockReceivedChan:        make(chan blockItem, 10),        //todo config handle capacity though config file
+		confirmReceivedChan:      make(chan *payload.Confirm, 10), //todo config handle capacity though config file
 		illegalBlocksEvidence:    make(chan *payload.DPOSIllegalBlocks),
 		sidechainIllegalEvidence: make(chan *payload.SidechainIllegalData),
 		currentHeight:            blockchain.DefaultLedger.Blockchain.GetHeight() - 1,

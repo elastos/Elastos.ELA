@@ -64,7 +64,7 @@ type NetworkEventListener interface {
 	OnBadNetwork()
 
 	OnBlockReceived(b *types.Block, confirmed bool)
-	OnConfirmReceived(p *payload.DPOSProposalVoteSlot)
+	OnConfirmReceived(p *payload.Confirm)
 	OnIllegalBlocksTxReceived(i *payload.DPOSIllegalBlocks)
 	OnSidechainIllegalEvidenceReceived(s *payload.SidechainIllegalData)
 	OnInactiveArbitratorsReceived(tx *types.Transaction)
@@ -98,7 +98,7 @@ type DPOSManager struct {
 	broadcast   func(p2p.Message)
 }
 
-func (d *DPOSManager) AppendConfirm(confirm *payload.DPOSProposalVoteSlot) (bool, bool, error) {
+func (d *DPOSManager) AppendConfirm(confirm *payload.Confirm) (bool, bool, error) {
 	return d.blockPool.AppendConfirm(confirm)
 }
 
@@ -279,7 +279,7 @@ func (d *DPOSManager) OnBlockReceived(b *types.Block, confirmed bool) {
 	}
 }
 
-func (d *DPOSManager) OnConfirmReceived(p *payload.DPOSProposalVoteSlot) {
+func (d *DPOSManager) OnConfirmReceived(p *payload.Confirm) {
 
 	log.Info("[OnConfirmReceived] started, hash:", p.Hash)
 	defer log.Info("[OnConfirmReceived] end")

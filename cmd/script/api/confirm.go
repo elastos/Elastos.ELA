@@ -23,7 +23,7 @@ func newConfirm(L *lua.LState) int {
 	blockHash := L.ToString(1)
 	hash, _ := common.Uint256FromHexString(blockHash)
 
-	proposal := &payload.DPOSProposalVoteSlot{
+	proposal := &payload.Confirm{
 		Hash:  *hash,
 		Votes: make([]payload.DPOSProposalVote, 0),
 	}
@@ -36,12 +36,12 @@ func newConfirm(L *lua.LState) int {
 }
 
 // Checks whether the first lua argument is a *LUserData with *Attribute and returns this *Attribute.
-func checkConfirm(L *lua.LState, idx int) *payload.DPOSProposalVoteSlot {
+func checkConfirm(L *lua.LState, idx int) *payload.Confirm {
 	ud := L.CheckUserData(idx)
-	if v, ok := ud.Value.(*payload.DPOSProposalVoteSlot); ok {
+	if v, ok := ud.Value.(*payload.Confirm); ok {
 		return v
 	}
-	L.ArgError(1, "DPOSProposalVoteSlot expected")
+	L.ArgError(1, "Confirm expected")
 	return nil
 }
 

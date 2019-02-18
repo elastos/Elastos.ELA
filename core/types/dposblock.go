@@ -12,7 +12,7 @@ type DposBlock struct {
 	BlockFlag   bool
 	Block       *Block
 	ConfirmFlag bool
-	Confirm     *payload.DPOSProposalVoteSlot
+	Confirm     *payload.Confirm
 }
 
 func (b *DposBlock) Serialize(w io.Writer) error {
@@ -64,7 +64,7 @@ func (b *DposBlock) Deserialize(r io.Reader) error {
 	}
 	b.ConfirmFlag = confirmFlag == 1
 	if b.ConfirmFlag {
-		b.Confirm = new(payload.DPOSProposalVoteSlot)
+		b.Confirm = new(payload.Confirm)
 		if err := b.Confirm.Deserialize(r); err != nil {
 			return errors.New("Confirm serialize failed," + err.Error())
 		}

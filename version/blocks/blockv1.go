@@ -213,7 +213,7 @@ func (b *blockV1) generateBlockEvidence(block *types.Block) (
 	}, nil
 }
 
-func (b *blockV1) getConfirmSigners(confirm *payload.DPOSProposalVoteSlot) (
+func (b *blockV1) getConfirmSigners(confirm *payload.Confirm) (
 	[][]byte, error) {
 	result := make([][]byte, 0)
 	for _, v := range confirm.Votes {

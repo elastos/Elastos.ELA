@@ -1069,7 +1069,7 @@ func (b *BlockChain) CheckDposIllegalBlocks(d *payload.DPOSIllegalBlocks) error 
 	if d.CoinType == payload.ELACoin {
 		var err error
 		var header, compareHeader *Header
-		var confirm, compareConfirm *payload.DPOSProposalVoteSlot
+		var confirm, compareConfirm *payload.Confirm
 
 		if header, compareHeader, err = checkDposElaIllegalBlockHeaders(d); err != nil {
 			return err
@@ -1088,8 +1088,8 @@ func (b *BlockChain) CheckDposIllegalBlocks(d *payload.DPOSIllegalBlocks) error 
 }
 
 func (b *BlockChain) checkDposElaIllegalBlockSigners(
-	d *payload.DPOSIllegalBlocks, confirm *payload.DPOSProposalVoteSlot,
-	compareConfirm *payload.DPOSProposalVoteSlot) error {
+	d *payload.DPOSIllegalBlocks, confirm *payload.Confirm,
+	compareConfirm *payload.Confirm) error {
 
 	signers := d.Evidence.Signers
 	compareSigners := d.CompareEvidence.Signers
@@ -1134,11 +1134,11 @@ func (b *BlockChain) checkDposElaIllegalBlockSigners(
 }
 
 func checkDposElaIllegalBlockConfirms(d *payload.DPOSIllegalBlocks,
-	header *Header, compareHeader *Header) (*payload.DPOSProposalVoteSlot,
-	*payload.DPOSProposalVoteSlot, error) {
+	header *Header, compareHeader *Header) (*payload.Confirm,
+	*payload.Confirm, error) {
 
-	confirm := &payload.DPOSProposalVoteSlot{}
-	compareConfirm := &payload.DPOSProposalVoteSlot{}
+	confirm := &payload.Confirm{}
+	compareConfirm := &payload.Confirm{}
 
 	data := new(bytes.Buffer)
 	data.Write(d.Evidence.BlockConfirm)
@@ -1205,7 +1205,7 @@ func checkDposElaIllegalBlockHeaders(d *payload.DPOSIllegalBlocks) (*Header,
 }
 
 func getConfirmSigners(
-	confirm *payload.DPOSProposalVoteSlot) map[string]interface{} {
+	confirm *payload.Confirm) map[string]interface{} {
 	result := make(map[string]interface{})
 	for _, v := range confirm.Votes {
 		result[common.BytesToHexString(v.Signer)] = nil

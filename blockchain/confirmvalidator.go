@@ -11,7 +11,7 @@ import (
 	"github.com/elastos/Elastos.ELA/dpos/log"
 )
 
-func ConfirmSanityCheck(confirm *payload.DPOSProposalVoteSlot) error {
+func ConfirmSanityCheck(confirm *payload.Confirm) error {
 	if err := ProposalSanityCheck(&confirm.Proposal); err != nil {
 		return errors.New("[ConfirmSanityCheck] confirm contain invalid " +
 			"proposal: " + err.Error())
@@ -42,7 +42,7 @@ func ConfirmSanityCheck(confirm *payload.DPOSProposalVoteSlot) error {
 	return nil
 }
 
-func ConfirmContextCheck(confirm *payload.DPOSProposalVoteSlot) error {
+func ConfirmContextCheck(confirm *payload.Confirm) error {
 	if err := ProposalContextCheck(&confirm.Proposal); err != nil {
 		return errors.New("[ConfirmContextCheck] confirm contain invalid " +
 			"proposal: " + err.Error())
@@ -59,7 +59,7 @@ func ConfirmContextCheck(confirm *payload.DPOSProposalVoteSlot) error {
 }
 
 func CheckBlockWithConfirmation(block *Block,
-	confirm *payload.DPOSProposalVoteSlot) error {
+	confirm *payload.Confirm) error {
 	if block.Hash() != confirm.Hash {
 		return errors.New("[CheckBlockWithConfirmation] block " +
 			"confirmation validate failed")

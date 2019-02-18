@@ -174,7 +174,7 @@ func (b *BlockChain) ProcessBlock(block *Block) (bool, bool, error) {
 	return inMainChain, isOrphan, nil
 }
 
-func (b *BlockChain) AddConfirm(confirm *payload.DPOSProposalVoteSlot) error {
+func (b *BlockChain) AddConfirm(confirm *payload.Confirm) error {
 	b.mutex.Lock()
 	defer b.mutex.Unlock()
 
@@ -1046,7 +1046,7 @@ func (b *BlockChain) processBlock(block *Block) (bool, bool, error) {
 	return inMainChain, false, nil
 }
 
-func (b *BlockChain) processConfirm(confirm *payload.DPOSProposalVoteSlot) error {
+func (b *BlockChain) processConfirm(confirm *payload.Confirm) error {
 	if err := b.db.SaveConfirm(confirm); err != nil {
 		return err
 	}

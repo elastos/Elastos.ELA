@@ -6,13 +6,13 @@ import (
 	"github.com/elastos/Elastos.ELA/common"
 )
 
-type DPOSProposalVoteSlot struct {
+type Confirm struct {
 	Hash     common.Uint256
 	Proposal DPOSProposal
 	Votes    []DPOSProposalVote
 }
 
-func (p *DPOSProposalVoteSlot) TryAppend(v DPOSProposalVote) bool {
+func (p *Confirm) TryAppend(v DPOSProposalVote) bool {
 	if p.Proposal.Hash().IsEqual(v.ProposalHash) {
 		p.Votes = append(p.Votes, v)
 		return true
@@ -20,7 +20,7 @@ func (p *DPOSProposalVoteSlot) TryAppend(v DPOSProposalVote) bool {
 	return false
 }
 
-func (p *DPOSProposalVoteSlot) Serialize(w io.Writer) error {
+func (p *Confirm) Serialize(w io.Writer) error {
 	if err := p.Hash.Serialize(w); err != nil {
 		return err
 	}
@@ -42,7 +42,7 @@ func (p *DPOSProposalVoteSlot) Serialize(w io.Writer) error {
 	return nil
 }
 
-func (p *DPOSProposalVoteSlot) Deserialize(r io.Reader) error {
+func (p *Confirm) Deserialize(r io.Reader) error {
 	if err := p.Hash.Deserialize(r); err != nil {
 		return err
 	}

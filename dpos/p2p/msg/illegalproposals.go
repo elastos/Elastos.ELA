@@ -1,8 +1,9 @@
 package msg
 
 import (
-	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"io"
+
+	"github.com/elastos/Elastos.ELA/core/types/payload"
 )
 
 const MaxIllegalProposalSize = 1000000

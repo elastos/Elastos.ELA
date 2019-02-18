@@ -2,10 +2,10 @@ package account
 
 import (
 	"bytes"
-	"github.com/elastos/Elastos.ELA/core/types/payload"
 
 	"github.com/elastos/Elastos.ELA/account"
 	"github.com/elastos/Elastos.ELA/core/types"
+	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/crypto"
 )
 

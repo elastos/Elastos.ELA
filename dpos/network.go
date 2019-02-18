@@ -3,7 +3,6 @@ package dpos
 import (
 	"encoding/hex"
 	"errors"
-	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"math/rand"
 	"sync"
 
@@ -12,6 +11,7 @@ import (
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/core/types"
+	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/dpos/account"
 	"github.com/elastos/Elastos.ELA/dpos/log"
 	"github.com/elastos/Elastos.ELA/dpos/manager"

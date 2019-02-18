@@ -3,11 +3,11 @@ package store
 import (
 	"bytes"
 	"crypto/rand"
-	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"testing"
 	"time"
 
 	"github.com/elastos/Elastos.ELA/common"
+	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/dpos/log"
 )
 

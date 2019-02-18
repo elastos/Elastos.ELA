@@ -2,10 +2,10 @@ package types
 
 import (
 	"errors"
-	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"io"
 
 	"github.com/elastos/Elastos.ELA/common"
+	"github.com/elastos/Elastos.ELA/core/types/payload"
 )
 
 type DposBlock struct {

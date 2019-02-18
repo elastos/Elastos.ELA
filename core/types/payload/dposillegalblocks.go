@@ -36,7 +36,7 @@ type DPOSIllegalBlocks struct {
 
 func (b *BlockEvidence) Serialize(w io.Writer) error {
 	if b.Block == nil {
-		return errors.New("Block data can not be null.")
+		return errors.New("block data can not be null")
 	}
 	if err := common.WriteVarBytes(w, b.Block); err != nil {
 		return err

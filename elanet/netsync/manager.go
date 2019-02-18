@@ -2,7 +2,6 @@ package netsync
 
 import (
 	"fmt"
-	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"sync"
 	"sync/atomic"
 
@@ -10,6 +9,7 @@ import (
 	"github.com/elastos/Elastos.ELA/blockchain/interfaces"
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/core/types"
+	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/elanet/pact"
 	"github.com/elastos/Elastos.ELA/elanet/peer"
 	"github.com/elastos/Elastos.ELA/events"

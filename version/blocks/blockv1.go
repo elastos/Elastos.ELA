@@ -3,7 +3,6 @@ package blocks
 import (
 	"bytes"
 	"errors"
-	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"math"
 
 	"github.com/elastos/Elastos.ELA/blockchain"
@@ -12,6 +11,7 @@ import (
 	"github.com/elastos/Elastos.ELA/core/contract/program"
 	"github.com/elastos/Elastos.ELA/core/types"
 	"github.com/elastos/Elastos.ELA/core/types/outputpayload"
+	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/version/verconf"
 )
 

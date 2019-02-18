@@ -2,7 +2,9 @@ package api
 
 import (
 	"bytes"
+
 	"github.com/elastos/Elastos.ELA/core/types/payload"
+
 	"github.com/yuin/gopher-lua"
 )
 

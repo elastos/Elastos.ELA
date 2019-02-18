@@ -1,9 +1,9 @@
 package msg
 
 import (
-	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"io"
 
+	"github.com/elastos/Elastos.ELA/core/types/payload"
 	msg2 "github.com/elastos/Elastos.ELA/p2p/msg"
 )
 

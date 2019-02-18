@@ -693,7 +693,7 @@ func (sm *SyncManager) handleBlockchainEvents(event *events.Event) {
 	case events.ETTransactionAccepted:
 		tx := event.Data.(*types.Transaction)
 		if tx.IsIllegalBlockTx() {
-			sm.chain.ProcessIllegalBlock(tx.Payload.(*payload.DposIllegalBlocks))
+			sm.chain.ProcessIllegalBlock(tx.Payload.(*payload.DPOSIllegalBlocks))
 		}
 
 	// A block has been accepted into the block chain.  Relay it to other

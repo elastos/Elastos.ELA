@@ -34,11 +34,11 @@ type ProposalDispatcher struct {
 	cfg ProposalDispatcherConfig
 
 	processingBlock    *types.Block
-	processingProposal *payload.DPosProposal
-	acceptVotes        map[common.Uint256]payload.DPosProposalVote
-	rejectedVotes      map[common.Uint256]payload.DPosProposalVote
-	pendingProposals   map[common.Uint256]payload.DPosProposal
-	pendingVotes       map[common.Uint256]payload.DPosProposalVote
+	processingProposal *payload.DPOSProposal
+	acceptVotes        map[common.Uint256]payload.DPOSProposalVote
+	rejectedVotes      map[common.Uint256]payload.DPOSProposalVote
+	pendingProposals   map[common.Uint256]payload.DPOSProposal
+	pendingVotes       map[common.Uint256]payload.DPOSProposalVote
 
 	inactiveCountDown           ViewChangesCountDown
 	currentInactiveArbitratorTx *types.Transaction
@@ -66,11 +66,11 @@ func (p *ProposalDispatcher) GetProcessingBlock() *types.Block {
 	return p.processingBlock
 }
 
-func (p *ProposalDispatcher) GetProcessingProposal() *payload.DPosProposal {
+func (p *ProposalDispatcher) GetProcessingProposal() *payload.DPOSProposal {
 	return p.processingProposal
 }
 
-func (p *ProposalDispatcher) ProcessVote(v payload.DPosProposalVote, accept bool) {
+func (p *ProposalDispatcher) ProcessVote(v payload.DPOSProposalVote, accept bool) {
 	log.Info("[ProcessVote] start")
 	defer log.Info("[ProcessVote] end")
 
@@ -96,7 +96,7 @@ func (p *ProposalDispatcher) ProcessVote(v payload.DPosProposalVote, accept bool
 	}
 }
 
-func (p *ProposalDispatcher) AddPendingVote(v payload.DPosProposalVote) {
+func (p *ProposalDispatcher) AddPendingVote(v payload.DPOSProposalVote) {
 	p.pendingVotes[v.Hash()] = v
 }
 
@@ -115,7 +115,7 @@ func (p *ProposalDispatcher) StartProposal(b *types.Block) {
 	p.processingBlock = b
 
 	p.cfg.Network.BroadcastMessage(dmsg.NewInventory(b.Hash()))
-	proposal := payload.DPosProposal{Sponsor: p.cfg.Manager.GetPublicKey(),
+	proposal := payload.DPOSProposal{Sponsor: p.cfg.Manager.GetPublicKey(),
 		BlockHash: b.Hash(), ViewOffset: p.cfg.Consensus.GetViewOffset()}
 	var err error
 	proposal.Sign, err = p.cfg.Account.SignProposal(&proposal)
@@ -192,9 +192,9 @@ func (p *ProposalDispatcher) CleanProposals(changeView bool) {
 
 	p.processingBlock = nil
 	p.processingProposal = nil
-	p.acceptVotes = make(map[common.Uint256]payload.DPosProposalVote)
-	p.rejectedVotes = make(map[common.Uint256]payload.DPosProposalVote)
-	p.pendingVotes = make(map[common.Uint256]payload.DPosProposalVote)
+	p.acceptVotes = make(map[common.Uint256]payload.DPOSProposalVote)
+	p.rejectedVotes = make(map[common.Uint256]payload.DPOSProposalVote)
+	p.pendingVotes = make(map[common.Uint256]payload.DPOSProposalVote)
 
 	if !changeView {
 		p.inactiveCountDown.Reset()
@@ -202,7 +202,7 @@ func (p *ProposalDispatcher) CleanProposals(changeView bool) {
 	}
 }
 
-func (p *ProposalDispatcher) ProcessProposal(d payload.DPosProposal) {
+func (p *ProposalDispatcher) ProcessProposal(d payload.DPOSProposal) {
 	log.Info("[ProcessProposal] start")
 	defer log.Info("[ProcessProposal] end")
 
@@ -264,10 +264,10 @@ func (p *ProposalDispatcher) ProcessProposal(d payload.DPosProposal) {
 }
 
 func (p *ProposalDispatcher) TryAppendAndBroadcastConfirmBlockMsg() bool {
-	currentVoteSlot := &payload.DPosProposalVoteSlot{
+	currentVoteSlot := &payload.DPOSProposalVoteSlot{
 		Hash:     p.processingBlock.Hash(),
 		Proposal: *p.processingProposal,
-		Votes:    make([]payload.DPosProposalVote, 0),
+		Votes:    make([]payload.DPOSProposalVote, 0),
 	}
 	for _, v := range p.acceptVotes {
 		currentVoteSlot.Votes = append(currentVoteSlot.Votes, v)
@@ -317,22 +317,22 @@ func (p *ProposalDispatcher) CollectConsensusStatus(height uint32, status *dmsg.
 		return errors.New("Requesting height greater than current processing height")
 	}
 
-	status.AcceptVotes = make([]payload.DPosProposalVote, 0, len(p.acceptVotes))
+	status.AcceptVotes = make([]payload.DPOSProposalVote, 0, len(p.acceptVotes))
 	for _, v := range p.acceptVotes {
 		status.AcceptVotes = append(status.AcceptVotes, v)
 	}
 
-	status.RejectedVotes = make([]payload.DPosProposalVote, 0, len(p.rejectedVotes))
+	status.RejectedVotes = make([]payload.DPOSProposalVote, 0, len(p.rejectedVotes))
 	for _, v := range p.rejectedVotes {
 		status.RejectedVotes = append(status.RejectedVotes, v)
 	}
 
-	status.PendingProposals = make([]payload.DPosProposal, 0, len(p.pendingProposals))
+	status.PendingProposals = make([]payload.DPOSProposal, 0, len(p.pendingProposals))
 	for _, v := range p.pendingProposals {
 		status.PendingProposals = append(status.PendingProposals, v)
 	}
 
-	status.PendingVotes = make([]payload.DPosProposalVote, 0, len(p.pendingVotes))
+	status.PendingVotes = make([]payload.DPOSProposalVote, 0, len(p.pendingVotes))
 	for _, v := range p.pendingVotes {
 		status.PendingVotes = append(status.PendingVotes, v)
 	}
@@ -341,22 +341,22 @@ func (p *ProposalDispatcher) CollectConsensusStatus(height uint32, status *dmsg.
 }
 
 func (p *ProposalDispatcher) RecoverFromConsensusStatus(status *dmsg.ConsensusStatus) error {
-	p.acceptVotes = make(map[common.Uint256]payload.DPosProposalVote)
+	p.acceptVotes = make(map[common.Uint256]payload.DPOSProposalVote)
 	for _, v := range status.AcceptVotes {
 		p.acceptVotes[v.Hash()] = v
 	}
 
-	p.rejectedVotes = make(map[common.Uint256]payload.DPosProposalVote)
+	p.rejectedVotes = make(map[common.Uint256]payload.DPOSProposalVote)
 	for _, v := range status.RejectedVotes {
 		p.rejectedVotes[v.Hash()] = v
 	}
 
-	p.pendingProposals = make(map[common.Uint256]payload.DPosProposal)
+	p.pendingProposals = make(map[common.Uint256]payload.DPOSProposal)
 	for _, v := range status.PendingProposals {
 		p.pendingProposals[v.Hash()] = v
 	}
 
-	p.pendingVotes = make(map[common.Uint256]payload.DPosProposalVote)
+	p.pendingVotes = make(map[common.Uint256]payload.DPOSProposalVote)
 	for _, v := range status.PendingVotes {
 		p.pendingVotes[v.Hash()] = v
 	}
@@ -495,7 +495,7 @@ func (p *ProposalDispatcher) tryEnterEmergencyState(signCount int) bool {
 	return false
 }
 
-func (p *ProposalDispatcher) alreadyExistVote(v payload.DPosProposalVote) bool {
+func (p *ProposalDispatcher) alreadyExistVote(v payload.DPOSProposalVote) bool {
 	_, ok := p.acceptVotes[v.Hash()]
 	if ok {
 		log.Info("[alreadyExistVote]: ", v.Signer, "already in the AcceptVotes!")
@@ -511,7 +511,7 @@ func (p *ProposalDispatcher) alreadyExistVote(v payload.DPosProposalVote) bool {
 	return false
 }
 
-func (p *ProposalDispatcher) countAcceptedVote(v payload.DPosProposalVote) {
+func (p *ProposalDispatcher) countAcceptedVote(v payload.DPOSProposalVote) {
 	log.Info("[countAcceptedVote] start")
 	defer log.Info("[countAcceptedVote] end")
 
@@ -526,7 +526,7 @@ func (p *ProposalDispatcher) countAcceptedVote(v payload.DPosProposalVote) {
 	}
 }
 
-func (p *ProposalDispatcher) countRejectedVote(v payload.DPosProposalVote) {
+func (p *ProposalDispatcher) countRejectedVote(v payload.DPOSProposalVote) {
 	log.Info("[countRejectedVote] start")
 	defer log.Info("[countRejectedVote] end")
 
@@ -541,12 +541,12 @@ func (p *ProposalDispatcher) countRejectedVote(v payload.DPosProposalVote) {
 	}
 }
 
-func (p *ProposalDispatcher) acceptProposal(d payload.DPosProposal) {
+func (p *ProposalDispatcher) acceptProposal(d payload.DPOSProposal) {
 	log.Info("[acceptProposal] start")
 	defer log.Info("[acceptProposal] end")
 
 	p.setProcessingProposal(d)
-	vote := payload.DPosProposalVote{ProposalHash: d.Hash(), Signer: p.cfg.Manager.GetPublicKey(), Accept: true}
+	vote := payload.DPOSProposalVote{ProposalHash: d.Hash(), Signer: p.cfg.Manager.GetPublicKey(), Accept: true}
 	var err error
 	vote.Sign, err = p.cfg.Account.SignVote(&vote)
 	if err != nil {
@@ -565,10 +565,10 @@ func (p *ProposalDispatcher) acceptProposal(d payload.DPosProposal) {
 	p.cfg.EventMonitor.OnVoteArrived(&voteEvent)
 }
 
-func (p *ProposalDispatcher) rejectProposal(d payload.DPosProposal) {
+func (p *ProposalDispatcher) rejectProposal(d payload.DPOSProposal) {
 	p.setProcessingProposal(d)
 
-	vote := payload.DPosProposalVote{ProposalHash: d.Hash(), Signer: p.cfg.Manager.GetPublicKey(), Accept: false}
+	vote := payload.DPOSProposalVote{ProposalHash: d.Hash(), Signer: p.cfg.Manager.GetPublicKey(), Accept: false}
 	var err error
 	vote.Sign, err = p.cfg.Account.SignVote(&vote)
 	if err != nil {
@@ -592,7 +592,7 @@ func (p *ProposalDispatcher) rejectProposal(d payload.DPosProposal) {
 	p.cfg.EventMonitor.OnVoteArrived(&voteEvent)
 }
 
-func (p *ProposalDispatcher) setProcessingProposal(d payload.DPosProposal) {
+func (p *ProposalDispatcher) setProcessingProposal(d payload.DPOSProposal) {
 	p.processingProposal = &d
 
 	for _, v := range p.pendingVotes {
@@ -600,7 +600,7 @@ func (p *ProposalDispatcher) setProcessingProposal(d payload.DPosProposal) {
 			p.ProcessVote(v, v.Accept)
 		}
 	}
-	p.pendingVotes = make(map[common.Uint256]payload.DPosProposalVote)
+	p.pendingVotes = make(map[common.Uint256]payload.DPOSProposalVote)
 }
 
 func (p *ProposalDispatcher) CreateInactiveArbitrators() (
@@ -681,10 +681,10 @@ func NewDispatcherAndIllegalMonitor(cfg ProposalDispatcherConfig) (
 		cfg:                cfg,
 		processingBlock:    nil,
 		processingProposal: nil,
-		acceptVotes:        make(map[common.Uint256]payload.DPosProposalVote),
-		rejectedVotes:      make(map[common.Uint256]payload.DPosProposalVote),
-		pendingProposals:   make(map[common.Uint256]payload.DPosProposal),
-		pendingVotes:       make(map[common.Uint256]payload.DPosProposalVote),
+		acceptVotes:        make(map[common.Uint256]payload.DPOSProposalVote),
+		rejectedVotes:      make(map[common.Uint256]payload.DPOSProposalVote),
+		pendingProposals:   make(map[common.Uint256]payload.DPOSProposal),
+		pendingVotes:       make(map[common.Uint256]payload.DPOSProposalVote),
 		eventAnalyzer: store.NewEventStoreAnalyzer(store.EventStoreAnalyzerConfig{
 			InactiveEliminateCount: cfg.InactiveEliminateCount,
 			Store:                  cfg.Store,
@@ -701,9 +701,9 @@ func NewDispatcherAndIllegalMonitor(cfg ProposalDispatcherConfig) (
 
 	i := &IllegalBehaviorMonitor{
 		dispatcher:      p,
-		cachedProposals: make(map[common.Uint256]*payload.DPosProposal),
+		cachedProposals: make(map[common.Uint256]*payload.DPOSProposal),
 		evidenceCache: evidenceCache{make(map[common.Uint256]payload.
-		DposIllegalData)},
+		DPOSIllegalData)},
 		manager: cfg.Manager,
 	}
 	p.illegalMonitor = i

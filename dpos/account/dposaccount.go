@@ -10,8 +10,8 @@ import (
 )
 
 type DposAccount interface {
-	SignProposal(proposal *payload.DPosProposal) ([]byte, error)
-	SignVote(vote *payload.DPosProposalVote) ([]byte, error)
+	SignProposal(proposal *payload.DPOSProposal) ([]byte, error)
+	SignVote(vote *payload.DPOSProposalVote) ([]byte, error)
 	SignPeerNonce(nonce []byte) (signature [64]byte)
 	SignTx(tx *types.Transaction) ([]byte, error)
 }
@@ -20,7 +20,7 @@ type dposAccount struct {
 	*account.Account
 }
 
-func (a *dposAccount) SignProposal(proposal *payload.DPosProposal) ([]byte,
+func (a *dposAccount) SignProposal(proposal *payload.DPOSProposal) ([]byte,
 	error) {
 	privateKey := a.PrivKey()
 
@@ -32,7 +32,7 @@ func (a *dposAccount) SignProposal(proposal *payload.DPosProposal) ([]byte,
 	return signature, nil
 }
 
-func (a *dposAccount) SignVote(vote *payload.DPosProposalVote) ([]byte, error) {
+func (a *dposAccount) SignVote(vote *payload.DPOSProposalVote) ([]byte, error) {
 	privateKey := a.PrivKey()
 
 	signature, err := crypto.Sign(privateKey, vote.Data())

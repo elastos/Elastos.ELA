@@ -14,12 +14,12 @@ const (
 )
 
 type ProposalEvidence struct {
-	Proposal    DPosProposal
+	Proposal    DPOSProposal
 	BlockHeader []byte
 	BlockHeight uint32
 }
 
-type DposIllegalProposals struct {
+type DPOSIllegalProposals struct {
 	Evidence        ProposalEvidence
 	CompareEvidence ProposalEvidence
 
@@ -59,7 +59,7 @@ func (d *ProposalEvidence) Deserialize(r io.Reader) (err error) {
 	return nil
 }
 
-func (d *DposIllegalProposals) Data(version byte) []byte {
+func (d *DPOSIllegalProposals) Data(version byte) []byte {
 	buf := new(bytes.Buffer)
 	if err := d.Serialize(buf, version); err != nil {
 		return []byte{0}
@@ -67,7 +67,7 @@ func (d *DposIllegalProposals) Data(version byte) []byte {
 	return buf.Bytes()
 }
 
-func (d *DposIllegalProposals) Serialize(w io.Writer, version byte) error {
+func (d *DPOSIllegalProposals) Serialize(w io.Writer, version byte) error {
 	if err := d.Evidence.Serialize(w); err != nil {
 		return err
 	}
@@ -79,7 +79,7 @@ func (d *DposIllegalProposals) Serialize(w io.Writer, version byte) error {
 	return nil
 }
 
-func (d *DposIllegalProposals) Deserialize(r io.Reader, version byte) error {
+func (d *DPOSIllegalProposals) Deserialize(r io.Reader, version byte) error {
 	if err := d.Evidence.Deserialize(r); err != nil {
 		return err
 	}
@@ -91,7 +91,7 @@ func (d *DposIllegalProposals) Deserialize(r io.Reader, version byte) error {
 	return nil
 }
 
-func (d *DposIllegalProposals) Hash() common.Uint256 {
+func (d *DPOSIllegalProposals) Hash() common.Uint256 {
 	if d.hash == nil {
 		buf := new(bytes.Buffer)
 		d.Serialize(buf, PayloadIllegalProposalVersion)
@@ -101,10 +101,10 @@ func (d *DposIllegalProposals) Hash() common.Uint256 {
 	return *d.hash
 }
 
-func (d *DposIllegalProposals) GetBlockHeight() uint32 {
+func (d *DPOSIllegalProposals) GetBlockHeight() uint32 {
 	return d.Evidence.BlockHeight
 }
 
-func (d *DposIllegalProposals) Type() IllegalDataType {
+func (d *DPOSIllegalProposals) Type() IllegalDataType {
 	return IllegalProposal
 }

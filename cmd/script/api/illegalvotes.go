@@ -22,7 +22,7 @@ func RegisterIllegalVotesType(L *lua.LState) {
 // Constructor
 func newIllegalVotes(L *lua.LState) int {
 
-	i := &payload.DposIllegalVotes{}
+	i := &payload.DPOSIllegalVotes{}
 
 	ud := L.NewUserData()
 	ud.Value = i
@@ -33,12 +33,12 @@ func newIllegalVotes(L *lua.LState) int {
 }
 
 // Checks whether the first lua argument is a *LUserData with *Attribute and returns this *Attribute.
-func checkIllegalVotes(L *lua.LState, idx int) *payload.DposIllegalVotes {
+func checkIllegalVotes(L *lua.LState, idx int) *payload.DPOSIllegalVotes {
 	ud := L.CheckUserData(idx)
-	if v, ok := ud.Value.(*payload.DposIllegalVotes); ok {
+	if v, ok := ud.Value.(*payload.DPOSIllegalVotes); ok {
 		return v
 	}
-	L.ArgError(1, "DPosProposal expected")
+	L.ArgError(1, "DPOSProposal expected")
 	return nil
 }
 

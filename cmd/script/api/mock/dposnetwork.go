@@ -26,16 +26,16 @@ type NetworkMock interface {
 	FireRequestConsensus(id peer.PID, height uint32)
 	FireResponseConsensus(id peer.PID, status *msg.ConsensusStatus)
 	FireRequestProposal(id peer.PID, hash common.Uint256)
-	FireIllegalProposalReceived(id peer.PID, proposals *payload.DposIllegalProposals)
-	FireIllegalVotesReceived(id peer.PID, votes *payload.DposIllegalVotes)
-	FireProposalReceived(id peer.PID, p payload.DPosProposal)
-	FireVoteReceived(id peer.PID, p payload.DPosProposalVote)
-	FireVoteRejected(id peer.PID, p payload.DPosProposalVote)
+	FireIllegalProposalReceived(id peer.PID, proposals *payload.DPOSIllegalProposals)
+	FireIllegalVotesReceived(id peer.PID, votes *payload.DPOSIllegalVotes)
+	FireProposalReceived(id peer.PID, p payload.DPOSProposal)
+	FireVoteReceived(id peer.PID, p payload.DPOSProposalVote)
+	FireVoteRejected(id peer.PID, p payload.DPOSProposalVote)
 	FireChangeView()
 	FireBadNetwork()
 	FireBlockReceived(b *types.Block, confirmed bool)
-	FireConfirmReceived(p *payload.DPosProposalVoteSlot)
-	FireIllegalBlocksReceived(i *payload.DposIllegalBlocks)
+	FireConfirmReceived(p *payload.DPOSProposalVoteSlot)
+	FireIllegalBlocksReceived(i *payload.DPOSIllegalBlocks)
 
 	GetLastMessage() p2p.Message
 	GetLastPID() *peer.PID
@@ -161,23 +161,23 @@ func (n *network) FireRequestProposal(id peer.PID, hash common.Uint256) {
 	n.listener.OnRequestProposal(id, hash)
 }
 
-func (n *network) FireIllegalProposalReceived(id peer.PID, proposals *payload.DposIllegalProposals) {
+func (n *network) FireIllegalProposalReceived(id peer.PID, proposals *payload.DPOSIllegalProposals) {
 	n.listener.OnIllegalProposalReceived(id, proposals)
 }
 
-func (n *network) FireIllegalVotesReceived(id peer.PID, votes *payload.DposIllegalVotes) {
+func (n *network) FireIllegalVotesReceived(id peer.PID, votes *payload.DPOSIllegalVotes) {
 	n.listener.OnIllegalVotesReceived(id, votes)
 }
 
-func (n *network) FireProposalReceived(id peer.PID, p payload.DPosProposal) {
+func (n *network) FireProposalReceived(id peer.PID, p payload.DPOSProposal) {
 	n.listener.OnProposalReceived(id, p)
 }
 
-func (n *network) FireVoteReceived(id peer.PID, p payload.DPosProposalVote) {
+func (n *network) FireVoteReceived(id peer.PID, p payload.DPOSProposalVote) {
 	n.listener.OnVoteReceived(id, p)
 }
 
-func (n *network) FireVoteRejected(id peer.PID, p payload.DPosProposalVote) {
+func (n *network) FireVoteRejected(id peer.PID, p payload.DPOSProposalVote) {
 	n.listener.OnVoteRejected(id, p)
 }
 
@@ -193,10 +193,10 @@ func (n *network) FireBlockReceived(b *types.Block, confirmed bool) {
 	n.listener.OnBlockReceived(b, confirmed)
 }
 
-func (n *network) FireConfirmReceived(p *payload.DPosProposalVoteSlot) {
+func (n *network) FireConfirmReceived(p *payload.DPOSProposalVoteSlot) {
 	n.listener.OnConfirmReceived(p)
 }
 
-func (n *network) FireIllegalBlocksReceived(i *payload.DposIllegalBlocks) {
+func (n *network) FireIllegalBlocksReceived(i *payload.DPOSIllegalBlocks) {
 	n.listener.OnIllegalBlocksTxReceived(i)
 }

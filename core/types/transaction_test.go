@@ -314,9 +314,9 @@ func (s *transactionSuite) randomPkBytes() []byte {
 
 func (s *transactionSuite) TestIllegalProposalEvidence_SerializeDeserialize() {
 	txn := randomOldVersionTransaction(false, byte(IllegalProposalEvidence), s.InputNum, s.OutputNum, s.AttrNum, s.ProgramNum)
-	txn.Payload = &payload.DposIllegalProposals{
+	txn.Payload = &payload.DPOSIllegalProposals{
 		Evidence: payload.ProposalEvidence{
-			Proposal: payload.DPosProposal{
+			Proposal: payload.DPOSProposal{
 				Sponsor:    s.randomPkBytes(),
 				BlockHash:  *randomUint256(),
 				ViewOffset: rand.Uint32(),
@@ -326,7 +326,7 @@ func (s *transactionSuite) TestIllegalProposalEvidence_SerializeDeserialize() {
 			BlockHeight: rand.Uint32(),
 		},
 		CompareEvidence: payload.ProposalEvidence{
-			Proposal: payload.DPosProposal{
+			Proposal: payload.DPOSProposal{
 				Sponsor:    s.randomPkBytes(),
 				BlockHash:  *randomUint256(),
 				ViewOffset: rand.Uint32(),
@@ -345,16 +345,16 @@ func (s *transactionSuite) TestIllegalProposalEvidence_SerializeDeserialize() {
 
 	assertOldVersionTxEqual(false, &s.Suite, txn, txn2, s.InputNum, s.OutputNum, s.AttrNum, s.ProgramNum)
 
-	s.True(txn.Payload.(*payload.DposIllegalProposals).Hash().IsEqual(
-		txn2.Payload.(*payload.DposIllegalProposals).Hash()))
+	s.True(txn.Payload.(*payload.DPOSIllegalProposals).Hash().IsEqual(
+		txn2.Payload.(*payload.DPOSIllegalProposals).Hash()))
 }
 
 func (s *transactionSuite) TestIllegalVoteEvidence_SerializeDeserialize() {
 	txn := randomOldVersionTransaction(false, byte(IllegalVoteEvidence), s.InputNum, s.OutputNum, s.AttrNum, s.ProgramNum)
-	txn.Payload = &payload.DposIllegalVotes{
+	txn.Payload = &payload.DPOSIllegalVotes{
 		Evidence: payload.VoteEvidence{
 			ProposalEvidence: payload.ProposalEvidence{
-				Proposal: payload.DPosProposal{
+				Proposal: payload.DPOSProposal{
 					Sponsor:    s.randomPkBytes(),
 					BlockHash:  *randomUint256(),
 					ViewOffset: rand.Uint32(),
@@ -363,7 +363,7 @@ func (s *transactionSuite) TestIllegalVoteEvidence_SerializeDeserialize() {
 				BlockHeader: randomBlockHeaderBytes(),
 				BlockHeight: rand.Uint32(),
 			},
-			Vote: payload.DPosProposalVote{
+			Vote: payload.DPOSProposalVote{
 				ProposalHash: *randomUint256(),
 				Signer:       s.randomPkBytes(),
 				Accept:       true,
@@ -372,7 +372,7 @@ func (s *transactionSuite) TestIllegalVoteEvidence_SerializeDeserialize() {
 		},
 		CompareEvidence: payload.VoteEvidence{
 			ProposalEvidence: payload.ProposalEvidence{
-				Proposal: payload.DPosProposal{
+				Proposal: payload.DPOSProposal{
 					Sponsor:    s.randomPkBytes(),
 					BlockHash:  *randomUint256(),
 					ViewOffset: rand.Uint32(),
@@ -381,7 +381,7 @@ func (s *transactionSuite) TestIllegalVoteEvidence_SerializeDeserialize() {
 				BlockHeader: randomBlockHeaderBytes(),
 				BlockHeight: rand.Uint32(),
 			},
-			Vote: payload.DPosProposalVote{
+			Vote: payload.DPOSProposalVote{
 				ProposalHash: *randomUint256(),
 				Signer:       s.randomPkBytes(),
 				Accept:       true,
@@ -398,13 +398,13 @@ func (s *transactionSuite) TestIllegalVoteEvidence_SerializeDeserialize() {
 
 	assertOldVersionTxEqual(false, &s.Suite, txn, txn2, s.InputNum, s.OutputNum, s.AttrNum, s.ProgramNum)
 
-	s.True(txn.Payload.(*payload.DposIllegalVotes).Hash().IsEqual(
-		txn2.Payload.(*payload.DposIllegalVotes).Hash()))
+	s.True(txn.Payload.(*payload.DPOSIllegalVotes).Hash().IsEqual(
+		txn2.Payload.(*payload.DPOSIllegalVotes).Hash()))
 }
 
 func (s *transactionSuite) TestIllegalBlockEvidence_SerializeDeserialize() {
 	txn := randomOldVersionTransaction(false, byte(IllegalBlockEvidence), s.InputNum, s.OutputNum, s.AttrNum, s.ProgramNum)
-	txn.Payload = &payload.DposIllegalBlocks{
+	txn.Payload = &payload.DPOSIllegalBlocks{
 		CoinType:    payload.CoinType(rand.Uint32()),
 		BlockHeight: rand.Uint32(),
 		Evidence: payload.BlockEvidence{
@@ -433,8 +433,8 @@ func (s *transactionSuite) TestIllegalBlockEvidence_SerializeDeserialize() {
 
 	assertOldVersionTxEqual(false, &s.Suite, txn, txn2, s.InputNum, s.OutputNum, s.AttrNum, s.ProgramNum)
 
-	s.True(txn.Payload.(*payload.DposIllegalBlocks).Hash().IsEqual(
-		txn2.Payload.(*payload.DposIllegalBlocks).Hash()))
+	s.True(txn.Payload.(*payload.DPOSIllegalBlocks).Hash().IsEqual(
+		txn2.Payload.(*payload.DPOSIllegalBlocks).Hash()))
 }
 
 func (s *transactionSuite) TestTransaction_SpecificSample() {

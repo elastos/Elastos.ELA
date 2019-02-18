@@ -80,7 +80,7 @@ func (a *ArbitratorsMock) OnBlockReceived(b *types.Block, confirmed bool) {
 	panic("implement me")
 }
 
-func (a *ArbitratorsMock) OnConfirmReceived(p *payload.DPosProposalVoteSlot) {
+func (a *ArbitratorsMock) OnConfirmReceived(p *payload.DPOSProposalVoteSlot) {
 	panic("implement me")
 }
 

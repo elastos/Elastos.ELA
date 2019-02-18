@@ -8,7 +8,7 @@ import (
 const MaxIllegalProposalSize = 1000000
 
 type IllegalProposals struct {
-	Proposals payload.DposIllegalProposals
+	Proposals payload.DPOSIllegalProposals
 }
 
 func (msg *IllegalProposals) CMD() string {

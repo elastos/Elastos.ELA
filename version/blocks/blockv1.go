@@ -67,7 +67,7 @@ func (b *blockV1) CheckConfirmedBlockOnFork(block *types.Block) error {
 		return err
 	}
 
-	illegalBlocks := &payload.DposIllegalBlocks{
+	illegalBlocks := &payload.DPOSIllegalBlocks{
 		CoinType:        payload.ELACoin,
 		BlockHeight:     block.Height,
 		Evidence:        *evidence,
@@ -213,7 +213,7 @@ func (b *blockV1) generateBlockEvidence(block *types.Block) (
 	}, nil
 }
 
-func (b *blockV1) getConfirmSigners(confirm *payload.DPosProposalVoteSlot) (
+func (b *blockV1) getConfirmSigners(confirm *payload.DPOSProposalVoteSlot) (
 	[][]byte, error) {
 	result := make([][]byte, 0)
 	for _, v := range confirm.Votes {

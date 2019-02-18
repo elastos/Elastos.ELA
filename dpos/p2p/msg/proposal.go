@@ -8,7 +8,7 @@ import (
 const DefaultProposalMessageDataSize = 168 //67+32+4+65
 
 type Proposal struct {
-	Proposal payload.DPosProposal
+	Proposal payload.DPOSProposal
 }
 
 func (m *Proposal) CMD() string {

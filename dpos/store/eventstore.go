@@ -328,7 +328,7 @@ func (s *DposStore) AddVoteEvent(event interface{}) error {
 }
 
 func (s *DposStore) addVoteEvent(event *log.VoteEvent) (uint64, error) {
-	vote := &payload.DPosProposalVote{}
+	vote := &payload.DPOSProposalVote{}
 	err := vote.Deserialize(bytes.NewReader(event.RawData))
 	if err != nil {
 		return 0, err

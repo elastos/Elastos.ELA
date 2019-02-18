@@ -28,7 +28,7 @@ func TestEventStore_Open(t *testing.T) {
 }
 
 func TestEventStore_AddProposalEvent(t *testing.T) {
-	proposal := &payload.DPosProposal{
+	proposal := &payload.DPOSProposal{
 		Sponsor:    randomPkBytes(),
 		BlockHash:  common.Uint256{2},
 		Sign:       []byte{1, 2, 3},
@@ -121,7 +121,7 @@ func TestEventStore_AddViewEvent(t *testing.T) {
 }
 
 func TestEventStore_AddVoteEvent(t *testing.T) {
-	vote := &payload.DPosProposalVote{
+	vote := &payload.DPOSProposalVote{
 		ProposalHash: common.Uint256{1, 2, 3},
 		Signer:       randomPkBytes(),
 		Accept:       false,

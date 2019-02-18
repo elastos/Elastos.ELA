@@ -8,7 +8,7 @@ import (
 const MaxIllegalVoteSize = 1000000
 
 type IllegalVotes struct {
-	Votes payload.DposIllegalVotes
+	Votes payload.DPOSIllegalVotes
 }
 
 func (msg *IllegalVotes) CMD() string {

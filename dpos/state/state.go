@@ -364,7 +364,7 @@ func (s *State) IsDPOSTransaction(tx *types.Transaction) bool {
 // ProcessBlock takes a block and it's confirm to update producers state and
 // votes accordingly.
 func (s *State) ProcessBlock(block *types.Block,
-	confirm *payload.DPosProposalVoteSlot) {
+	confirm *payload.DPOSProposalVoteSlot) {
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
 
@@ -388,7 +388,7 @@ func (s *State) ProcessBlock(block *types.Block,
 }
 
 // getInactiveArbitrators returns inactive arbiters from a confirm data.
-func (s *State) getInactiveArbitrators(confirm *payload.DPosProposalVoteSlot) (
+func (s *State) getInactiveArbitrators(confirm *payload.DPOSProposalVoteSlot) (
 	result []string) {
 	if bytes.Equal(s.arbiters.GetOnDutyArbitrator(), confirm.Proposal.Sponsor) {
 
@@ -663,13 +663,13 @@ func (s *State) processIllegalEvidence(payloadData types.Payload,
 	// Get illegal producers from evidence.
 	var illegalProducers [][]byte
 	switch p := payloadData.(type) {
-	case *payload.DposIllegalProposals:
+	case *payload.DPOSIllegalProposals:
 		illegalProducers = [][]byte{p.Evidence.Proposal.Sponsor}
 
-	case *payload.DposIllegalVotes:
+	case *payload.DPOSIllegalVotes:
 		illegalProducers = [][]byte{p.Evidence.Vote.Signer}
 
-	case *payload.DposIllegalBlocks:
+	case *payload.DPOSIllegalBlocks:
 		signers := make(map[string]interface{})
 		for _, pk := range p.Evidence.Signers {
 			signers[hex.EncodeToString(pk)] = nil

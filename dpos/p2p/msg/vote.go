@@ -9,7 +9,7 @@ const DefaultVoteMessageDataSize = 297 //164+67+1+65
 
 type Vote struct {
 	Command string
-	Vote    payload.DPosProposalVote
+	Vote    payload.DPOSProposalVote
 }
 
 func (msg *Vote) CMD() string {

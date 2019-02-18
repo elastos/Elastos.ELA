@@ -107,7 +107,7 @@ func (a *Arbitrators) OnBlockReceived(b *types.Block, confirmed bool) {
 	}
 }
 
-func (a *Arbitrators) OnConfirmReceived(p *payload.DPosProposalVoteSlot) {
+func (a *Arbitrators) OnConfirmReceived(p *payload.DPOSProposalVoteSlot) {
 	a.lock.Lock()
 	defer a.lock.Unlock()
 	block, err := a.cfg.ChainStore.GetBlock(p.Hash)

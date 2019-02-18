@@ -7,10 +7,10 @@ import (
 )
 
 type evidenceCache struct {
-	evidences map[common.Uint256]payload.DposIllegalData
+	evidences map[common.Uint256]payload.DPOSIllegalData
 }
 
-func (e *evidenceCache) AddEvidence(evidence payload.DposIllegalData) {
+func (e *evidenceCache) AddEvidence(evidence payload.DPOSIllegalData) {
 	if evidence != nil {
 		e.evidences[evidence.Hash()] = evidence
 	}
@@ -55,13 +55,13 @@ func (e *evidenceCache) tryGetEvidenceHash(tx *types.Transaction) (common.Uint25
 
 	switch tx.TxType {
 	case types.IllegalProposalEvidence:
-		proposalPayload := tx.Payload.(*payload.DposIllegalProposals)
+		proposalPayload := tx.Payload.(*payload.DPOSIllegalProposals)
 		hash = proposalPayload.Hash()
 	case types.IllegalVoteEvidence:
-		votePayload := tx.Payload.(*payload.DposIllegalVotes)
+		votePayload := tx.Payload.(*payload.DPOSIllegalVotes)
 		hash = votePayload.Hash()
 	case types.IllegalBlockEvidence:
-		blockPayload := tx.Payload.(*payload.DposIllegalBlocks)
+		blockPayload := tx.Payload.(*payload.DPOSIllegalBlocks)
 		hash = blockPayload.Hash()
 	case types.IllegalSidechainEvidence:
 		sidechainPayload := tx.Payload.(*payload.SidechainIllegalData)

@@ -17,7 +17,7 @@ type BlockPool struct {
 
 	sync.RWMutex
 	blocks   map[common.Uint256]*types.Block
-	confirms map[common.Uint256]*payload.DPosProposalVoteSlot
+	confirms map[common.Uint256]*payload.DPOSProposalVoteSlot
 }
 
 func (bm *BlockPool) AppendDposBlock(dposBlock *types.DposBlock) (bool, bool, error) {
@@ -64,7 +64,7 @@ func (bm *BlockPool) appendDposBlock(dposBlock *types.DposBlock) (bool, bool, er
 	return inMainChain, isOrphan, nil
 }
 
-func (bm *BlockPool) AppendConfirm(confirm *payload.DPosProposalVoteSlot) (bool,
+func (bm *BlockPool) AppendConfirm(confirm *payload.DPOSProposalVoteSlot) (bool,
 	bool, error) {
 	bm.Lock()
 	inMainChain, isOrphan, err := bm.appendConfirm(confirm)
@@ -72,7 +72,7 @@ func (bm *BlockPool) AppendConfirm(confirm *payload.DPosProposalVoteSlot) (bool,
 	return inMainChain, isOrphan, err
 }
 
-func (bm *BlockPool) appendConfirm(confirm *payload.DPosProposalVoteSlot) (
+func (bm *BlockPool) appendConfirm(confirm *payload.DPOSProposalVoteSlot) (
 	bool, bool, error) {
 	if _, ok := bm.confirms[confirm.Hash]; ok {
 		return false, false, errors.New("duplicate confirm in pool")
@@ -156,7 +156,7 @@ func (bm *BlockPool) GetBlock(hash common.Uint256) (*types.Block, bool) {
 	return block, ok
 }
 
-func (bm *BlockPool) AddToConfirmMap(confirm *payload.DPosProposalVoteSlot) {
+func (bm *BlockPool) AddToConfirmMap(confirm *payload.DPOSProposalVoteSlot) {
 	bm.Lock()
 	defer bm.Unlock()
 
@@ -164,7 +164,7 @@ func (bm *BlockPool) AddToConfirmMap(confirm *payload.DPosProposalVoteSlot) {
 }
 
 func (bm *BlockPool) GetConfirm(hash common.Uint256) (
-	*payload.DPosProposalVoteSlot, bool) {
+	*payload.DPOSProposalVoteSlot, bool) {
 	bm.Lock()
 	defer bm.Unlock()
 
@@ -175,6 +175,6 @@ func (bm *BlockPool) GetConfirm(hash common.Uint256) (
 func NewBlockPool() *BlockPool {
 	return &BlockPool{
 		blocks:   make(map[common.Uint256]*types.Block),
-		confirms: make(map[common.Uint256]*payload.DPosProposalVoteSlot),
+		confirms: make(map[common.Uint256]*payload.DPOSProposalVoteSlot),
 	}
 }

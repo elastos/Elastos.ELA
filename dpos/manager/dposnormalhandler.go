@@ -14,7 +14,7 @@ type DPOSNormalHandler struct {
 	*DPOSHandlerSwitch
 }
 
-func (h *DPOSNormalHandler) ProcessAcceptVote(id peer.PID, p payload.DPosProposalVote) {
+func (h *DPOSNormalHandler) ProcessAcceptVote(id peer.PID, p payload.DPOSProposalVote) {
 	log.Info("[Normal-ProcessAcceptVote] start")
 	defer log.Info("[Normal-ProcessAcceptVote] end")
 
@@ -30,7 +30,7 @@ func (h *DPOSNormalHandler) ProcessAcceptVote(id peer.PID, p payload.DPosProposa
 	}
 }
 
-func (h *DPOSNormalHandler) ProcessRejectVote(id peer.PID, p payload.DPosProposalVote) {
+func (h *DPOSNormalHandler) ProcessRejectVote(id peer.PID, p payload.DPOSProposalVote) {
 	log.Info("[Normal-ProcessRejectVote] start")
 	defer log.Info("[Normal-ProcessRejectVote] end")
 
@@ -47,7 +47,7 @@ func (h *DPOSNormalHandler) ProcessRejectVote(id peer.PID, p payload.DPosProposa
 	}
 }
 
-func (h *DPOSNormalHandler) tryGetCurrentProposal(id peer.PID, p payload.DPosProposalVote) (common.Uint256, bool) {
+func (h *DPOSNormalHandler) tryGetCurrentProposal(id peer.PID, p payload.DPOSProposalVote) (common.Uint256, bool) {
 	currentProposal := h.proposalDispatcher.GetProcessingProposal()
 	if currentProposal == nil {
 		requestProposal := &msg.RequestProposal{ProposalHash: p.ProposalHash}
@@ -57,7 +57,7 @@ func (h *DPOSNormalHandler) tryGetCurrentProposal(id peer.PID, p payload.DPosPro
 	return currentProposal.Hash(), true
 }
 
-func (h *DPOSNormalHandler) StartNewProposal(p payload.DPosProposal) {
+func (h *DPOSNormalHandler) StartNewProposal(p payload.DPOSProposal) {
 	log.Info("[Normal][StartNewProposal] start")
 	defer log.Info("[Normal][StartNewProposal] end")
 

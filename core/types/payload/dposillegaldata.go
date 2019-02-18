@@ -16,7 +16,7 @@ const (
 	SidechainIllegalVote     IllegalDataType = 0x04
 )
 
-type DposIllegalData interface {
+type DPOSIllegalData interface {
 	Type() IllegalDataType
 	GetBlockHeight() uint32
 	Serialize(w io.Writer, version byte) error

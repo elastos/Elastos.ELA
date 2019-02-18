@@ -13,10 +13,10 @@ const (
 
 type VoteEvidence struct {
 	ProposalEvidence
-	Vote DPosProposalVote
+	Vote DPOSProposalVote
 }
 
-type DposIllegalVotes struct {
+type DPOSIllegalVotes struct {
 	Evidence        VoteEvidence
 	CompareEvidence VoteEvidence
 
@@ -47,7 +47,7 @@ func (d *VoteEvidence) Deserialize(r io.Reader) (err error) {
 	return nil
 }
 
-func (d *DposIllegalVotes) Data(version byte) []byte {
+func (d *DPOSIllegalVotes) Data(version byte) []byte {
 	buf := new(bytes.Buffer)
 	if err := d.Serialize(buf, version); err != nil {
 		return []byte{0}
@@ -55,7 +55,7 @@ func (d *DposIllegalVotes) Data(version byte) []byte {
 	return buf.Bytes()
 }
 
-func (d *DposIllegalVotes) Serialize(w io.Writer, version byte) error {
+func (d *DPOSIllegalVotes) Serialize(w io.Writer, version byte) error {
 	if err := d.Evidence.Serialize(w); err != nil {
 		return err
 	}
@@ -67,7 +67,7 @@ func (d *DposIllegalVotes) Serialize(w io.Writer, version byte) error {
 	return nil
 }
 
-func (d *DposIllegalVotes) Deserialize(r io.Reader, version byte) error {
+func (d *DPOSIllegalVotes) Deserialize(r io.Reader, version byte) error {
 	if err := d.Evidence.Deserialize(r); err != nil {
 		return err
 	}
@@ -79,7 +79,7 @@ func (d *DposIllegalVotes) Deserialize(r io.Reader, version byte) error {
 	return nil
 }
 
-func (d *DposIllegalVotes) Hash() common.Uint256 {
+func (d *DPOSIllegalVotes) Hash() common.Uint256 {
 	if d.hash == nil {
 		buf := new(bytes.Buffer)
 		d.Serialize(buf, PayloadIllegalVoteVersion)
@@ -89,10 +89,10 @@ func (d *DposIllegalVotes) Hash() common.Uint256 {
 	return *d.hash
 }
 
-func (d *DposIllegalVotes) GetBlockHeight() uint32 {
+func (d *DPOSIllegalVotes) GetBlockHeight() uint32 {
 	return d.Evidence.BlockHeight
 }
 
-func (d *DposIllegalVotes) Type() IllegalDataType {
+func (d *DPOSIllegalVotes) Type() IllegalDataType {
 	return IllegalVote
 }

@@ -552,6 +552,7 @@ out:
 		// is done.  The timer is reset below for the next iteration if
 		// needed.
 		rmsg, err := p.readMessage()
+		log.Debug("node ip:", p.addr, "message cmd:", rmsg.CMD())
 		idleTimer.Stop()
 		if err != nil {
 			// Only log the error and send reject message if the
@@ -644,6 +645,7 @@ out:
 			}
 
 			err := p.writeMessage(smsg.msg)
+			log.Debug("node ip:", p.addr, "message cmd:", smsg.msg.CMD())
 			if err != nil {
 				p.Disconnect()
 				if p.shouldHandleIOError(err) {

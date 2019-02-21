@@ -24,11 +24,12 @@ type ArbitratorsConfig struct {
 	Versions         interfaces.HeightVersions
 	Store            interfaces.IDposStore
 	ChainStore       blockchain.IChainStore
-	State            *state.State
 }
 
 type Arbitrators struct {
-	cfg              ArbitratorsConfig
+	cfg   ArbitratorsConfig
+	State *state.State
+
 	DutyChangedCount uint32
 
 	currentArbitrators [][]byte
@@ -187,6 +188,23 @@ func (a *Arbitrators) GetArbitratorsProgramHashes() []*common.Uint168 {
 	return a.currentArbitratorsProgramHashes
 }
 
+func (a *Arbitrators) GetNormalArbitratorsProgramHashes() []*common.Uint168 {
+	a.lock.Lock()
+	defer a.lock.Unlock()
+
+	arbitratorsHashes := make([]*common.Uint168, 0)
+	arbiters, _ := a.cfg.Versions.GetNormalArbitratorsDesc(a.cfg.ChainStore.GetHeight(), 0)
+	for _, a := range arbiters {
+		hash, err := contract.PublicKeyToStandardProgramHash(a)
+		if err != nil {
+			return nil
+		}
+		arbitratorsHashes = append(arbitratorsHashes, hash)
+	}
+
+	return arbitratorsHashes
+}
+
 func (a *Arbitrators) GetCandidatesProgramHashes() []*common.Uint168 {
 	a.lock.Lock()
 	defer a.lock.Unlock()
@@ -243,7 +261,6 @@ func (a *Arbitrators) GetActiveDposPeers() (result map[string]string) {
 }
 
 func (a *Arbitrators) onChainHeightIncreased(block *types.Block) {
-
 	if a.isNewElection() {
 		if err := a.changeCurrentArbitrators(); err != nil {
 			log.Error("Change current arbitrators error: ", err)
@@ -268,7 +285,26 @@ func (a *Arbitrators) saveDposRelated() {
 }
 
 func (a *Arbitrators) isNewElection() bool {
-	return a.DutyChangedCount == a.cfg.ArbitratorsCount-1
+	arbiters := a.currentArbitrators
+	normalArbiters, _ := a.GetNormalArbitrators()
+	if len(normalArbiters) == 0 {
+		log.Error("get normal arbitrators failed")
+		return false
+	}
+	if len(arbiters) != len(normalArbiters) {
+		return true
+	}
+	arbitersMap := make(map[string]struct{})
+	for _, arbiter := range arbiters {
+		arbitersMap[common.BytesToHexString(arbiter)] = struct{}{}
+	}
+	for _, arbiter := range normalArbiters {
+		if _, ok := arbitersMap[common.BytesToHexString(arbiter)]; !ok {
+			return false
+		}
+	}
+
+	return true
 }
 
 func (a *Arbitrators) changeCurrentArbitrators() error {
@@ -295,13 +331,6 @@ func (a *Arbitrators) updateNextArbitrators(block *types.Block) error {
 
 	crcCount := uint32(0)
 	a.nextArbitrators = make([][]byte, 0)
-	for _, v := range a.cfg.CRCArbitrators {
-		if !a.cfg.State.IsInactiveProducer(v.PublicKey) {
-			a.nextArbitrators = append(a.nextArbitrators, v.PublicKey)
-			crcCount++
-		}
-	}
-
 	count := config.Parameters.ArbiterConfiguration.
 		NormalArbitratorsCount + crcCount
 	producers, err := a.cfg.Versions.GetNormalArbitratorsDesc(block.Height, count)

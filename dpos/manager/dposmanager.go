@@ -267,6 +267,8 @@ func (d *DPOSManager) OnBlockReceived(b *types.Block, confirmed bool) {
 	log.Info("[OnBlockReceived] start")
 	defer log.Info("[OnBlockReceived] end")
 
+	d.arbitrators.OnBlockReceived(b, confirmed)
+
 	if confirmed {
 		d.ConfirmBlock()
 		d.changeHeight()
@@ -286,6 +288,7 @@ func (d *DPOSManager) OnConfirmReceived(p *payload.Confirm) {
 	log.Info("[OnConfirmReceived] started, hash:", p.Hash)
 	defer log.Info("[OnConfirmReceived] end")
 
+	d.arbitrators.OnConfirmReceived(p)
 	d.ConfirmBlock()
 	d.changeHeight()
 }

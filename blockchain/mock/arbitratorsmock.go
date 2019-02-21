@@ -140,6 +140,10 @@ func (a *ArbitratorsMock) GetArbitratorsProgramHashes() []*common.Uint168 {
 	return a.CurrentArbitratorsPrograms
 }
 
+func (a *ArbitratorsMock) GetNormalArbitratorsProgramHashes() []*common.Uint168 {
+	return a.CurrentArbitratorsPrograms
+}
+
 func (a *ArbitratorsMock) GetCandidatesProgramHashes() []*common.Uint168 {
 	return a.CurrentCandidatesPrograms
 }

@@ -15,6 +15,7 @@ import (
 	"github.com/elastos/Elastos.ELA/common/log"
 	"github.com/elastos/Elastos.ELA/core/types"
 	"github.com/elastos/Elastos.ELA/dpos"
+	"github.com/elastos/Elastos.ELA/dpos/state"
 	"github.com/elastos/Elastos.ELA/dpos/store"
 	"github.com/elastos/Elastos.ELA/elanet"
 	"github.com/elastos/Elastos.ELA/mempool"
@@ -104,13 +105,14 @@ func main() {
 	if err != nil {
 		printErrorAndExit(err)
 	}
+	arbiters.State = state.NewState(arbiters, activeNetParams)
 	if err = arbiters.Start(); err != nil {
 		printErrorAndExit(err)
 	}
 	verconf.Arbitrators = arbiters
 	ledger.Arbitrators = arbiters // fixme
 
-	chain, err := blockchain.New(chainStore, activeNetParams, arbiters, versions)
+	chain, err := blockchain.New(chainStore, activeNetParams, versions, arbiters.State)
 	if err != nil {
 		printErrorAndExit(err)
 	}
@@ -145,15 +147,15 @@ func main() {
 			printErrorAndExit(err)
 		}
 		arbitrator, err := dpos.NewArbitrator(pwd, dpos.ArbitratorConfig{
-			EnableEventLog:    true,
+			EnableEventLog: true,
 			EnableEventRecord: config.Parameters.ArbiterConfiguration.
 				EnableEventRecord,
-			Params:            cfg.ArbiterConfiguration,
-			ChainParams:       activeNetParams,
-			Arbitrators:       arbiters,
-			Store:             dposStore,
-			TxMemPool:         txMemPool,
-			BlockMemPool:      blockMemPool,
+			Params:       cfg.ArbiterConfiguration,
+			ChainParams:  activeNetParams,
+			Arbitrators:  arbiters,
+			Store:        dposStore,
+			TxMemPool:    txMemPool,
+			BlockMemPool: blockMemPool,
 			Broadcast: func(msg p2p.Message) {
 				server.BroadcastMessage(msg)
 			},

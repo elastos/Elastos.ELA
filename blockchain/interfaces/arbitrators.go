@@ -3,11 +3,16 @@ package interfaces
 import (
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
+	"github.com/elastos/Elastos.ELA/core/types"
+	"github.com/elastos/Elastos.ELA/core/types/payload"
 )
 
 type Arbitrators interface {
 	Start() error
 	ForceChange() error
+
+	OnBlockReceived(b *types.Block, confirmed bool)
+	OnConfirmReceived(p *payload.Confirm)
 
 	IsArbitrator(pk []byte) bool
 	GetArbitrators() [][]byte
@@ -21,6 +26,7 @@ type Arbitrators interface {
 	IsCRCArbitratorProgramHash(hash *common.Uint168) bool
 
 	GetArbitratorsProgramHashes() []*common.Uint168
+	GetNormalArbitratorsProgramHashes() []*common.Uint168
 	GetCandidatesProgramHashes() []*common.Uint168
 
 	GetOnDutyArbitrator() []byte

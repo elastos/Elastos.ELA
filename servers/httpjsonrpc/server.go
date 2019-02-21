@@ -80,7 +80,7 @@ func Handle(w http.ResponseWriter, r *http.Request) {
 	isClientAllowed := clientAllowed(r)
 	if !isClientAllowed {
 		log.Warn("HTTP Client ip is not allowd")
-		http.Error(w, "Client ip is not allowd", http.StatusNetworkAuthenticationRequired)
+		http.Error(w, "Client ip is not allowd", http.StatusForbidden)
 		return
 	}
 
@@ -98,7 +98,7 @@ func Handle(w http.ResponseWriter, r *http.Request) {
 	isCheckAuthOk, err := checkAuth(r)
 	if !isCheckAuthOk {
 		log.Warn(err.Error())
-		http.Error(w, err.Error(), http.StatusNetworkAuthenticationRequired)
+		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
 	}
 

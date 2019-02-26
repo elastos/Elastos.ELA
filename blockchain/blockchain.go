@@ -115,10 +115,15 @@ func New(db IChainStore, chainParams *config.Params, versions interfaces.HeightV
 
 // InitializeProducersState go through all blocks since the start of DPOS
 // consensus to initialize producers and votes state.
-func (b *BlockChain) InitializeProducersState(interrupt <-chan struct{}) (err error) {
+func (b *BlockChain) InitializeProducersState(interrupt <-chan struct{},
+	start func(total uint32), increase func()) (err error) {
 	bestHeight := b.db.GetHeight()
 	done := make(chan struct{})
 	go func() {
+		// Notify initialize process start.
+		if start != nil && bestHeight >= b.chainParams.VoteStartHeight-1 {
+			start(bestHeight - b.chainParams.VoteStartHeight + 1)
+		}
 		for i := b.chainParams.VoteStartHeight - 1; i <= bestHeight; i++ {
 			hash, e := b.db.GetBlockHash(i)
 			if e != nil {
@@ -132,6 +137,11 @@ func (b *BlockChain) InitializeProducersState(interrupt <-chan struct{}) (err er
 			}
 			confirm, _ := b.db.GetConfirm(block.Hash())
 			b.state.ProcessBlock(block, confirm)
+
+			// Notify process increase.
+			if increase != nil {
+				increase()
+			}
 		}
 		done <- struct{}{}
 	}()

@@ -1,13 +1,19 @@
 package main
 
 import (
-	"github.com/elastos/Elastos.ELA.Utility/elalog"
+	"fmt"
+	"io"
+	"time"
+
 	"github.com/elastos/Elastos.ELA/common/log"
 	"github.com/elastos/Elastos.ELA/elanet"
 	"github.com/elastos/Elastos.ELA/elanet/netsync"
 	"github.com/elastos/Elastos.ELA/elanet/peer"
 	"github.com/elastos/Elastos.ELA/p2p/addrmgr"
 	"github.com/elastos/Elastos.ELA/p2p/connmgr"
+
+	"github.com/elastos/Elastos.ELA.Utility/elalog"
+	"gopkg.in/cheggaaa/pb.v1"
 )
 
 type logWrapper struct {
@@ -99,13 +105,50 @@ func wrap(logger *log.Logger, level elalog.Level) *logWrapper {
 	return &logWrapper{logger: logger, level: level}
 }
 
+// progressRefreshRate indicates the duration between refresh progress.
+const progressRefreshRate = time.Millisecond * 500
+
+// progress shows a progress bar in the terminal and print blockchain initialize
+// progress into log file.
+type progress struct {
+	w  io.Writer
+	pb *pb.ProgressBar
+}
+
+func (p *progress) Start(total uint32) {
+	fmt.Fprintln(p.w, "[BlockChain initialize started]")
+	p.pb = pb.New64(int64(total))
+	p.pb.Output = p.w
+	p.pb.ShowTimeLeft = false
+	p.pb.ShowFinalTime = true
+	p.pb.SetRefreshRate(progressRefreshRate)
+	p.pb.Start()
+}
+
+func (p *progress) Increase() {
+	if p.pb != nil {
+		p.pb.Increment()
+	}
+}
+
+func (p *progress) Stop() {
+	if p.pb != nil {
+		p.pb.FinishPrint("[BlockChain initialize finished]")
+	}
+}
+
+// newProgress creates a progress instance.
+func newProgress(w io.Writer) *progress {
+	return &progress{w: w}
+}
+
 // log is a logger that is initialized with no output filters.  This
 // means the package will not perform any logging by default until the caller
 // requests it.
 var (
-	logger = log.NewDefault(cfg.PrintLevel, cfg.MaxPerLogSize, cfg.MaxLogsSize)
-	level  = elalog.Level(cfg.PrintLevel)
-
+	logger  = log.NewDefault(cfg.PrintLevel, cfg.MaxPerLogSize, cfg.MaxLogsSize)
+	pg      = newProgress(logger.Writer())
+	level   = elalog.Level(cfg.PrintLevel)
 	admrlog = wrap(logger, elalog.LevelOff)
 	cmgrlog = wrap(logger, elalog.LevelOff)
 	synclog = wrap(logger, level)

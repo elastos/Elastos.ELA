@@ -128,7 +128,9 @@ func main() {
 	blockMemPool.Chain = chain
 
 	// initialize producer state after arbiters has initialized
-	if err = chain.InitializeProducersState(interrupt.C); err != nil {
+	err = chain.InitializeProducersState(interrupt.C, pg.Start, pg.Increase)
+	pg.Stop()
+	if err != nil {
 		printErrorAndExit(err)
 	}
 

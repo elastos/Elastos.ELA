@@ -51,6 +51,7 @@ type BlockChain struct {
 	IndexLock      sync.RWMutex
 	DepNodes       map[Uint256][]*BlockNode
 	Orphans        map[Uint256]*OrphanBlock
+	OrphanConfirms map[Uint256]*payload.Confirm
 	PrevOrphans    map[Uint256][]*OrphanBlock
 	OldestOrphan   *OrphanBlock
 	BlockCache     map[Uint256]*Block
@@ -81,6 +82,7 @@ func New(db IChainStore, chainParams *config.Params, versions interfaces.HeightV
 		DepNodes:            make(map[Uint256][]*BlockNode),
 		OldestOrphan:        nil,
 		Orphans:             make(map[Uint256]*OrphanBlock),
+		OrphanConfirms:      make(map[Uint256]*payload.Confirm),
 		PrevOrphans:         make(map[Uint256][]*OrphanBlock),
 		BlockCache:          make(map[Uint256]*Block),
 		TimeSource:          NewMedianTime(),
@@ -255,6 +257,11 @@ func (b *BlockChain) ProcessOrphans(hash *Uint256) error {
 			}
 
 			processHashes = append(processHashes, &orphanHash)
+
+			// if found confirm in orphanConfirms need to process block for state
+			if confirm, ok := b.GetOrphanConfirm(&orphanHash); ok {
+				b.state.ProcessBlock(orphan.Block, confirm)
+			}
 		}
 	}
 	return nil
@@ -323,6 +330,19 @@ func (b *BlockChain) AddOrphanBlock(block *Block) {
 	b.PrevOrphans[*prevHash] = append(b.PrevOrphans[*prevHash], oBlock)
 
 	return
+}
+
+func (b *BlockChain) AddOrphanConfirm(confirm *payload.Confirm) {
+	b.OrphanLock.Lock()
+	b.OrphanConfirms[confirm.Proposal.BlockHash] = confirm
+	b.OrphanLock.Unlock()
+}
+
+func (b *BlockChain) GetOrphanConfirm(hash *Uint256) (*payload.Confirm, bool) {
+	b.OrphanLock.RLock()
+	confirm, ok := b.OrphanConfirms[*hash]
+	b.OrphanLock.RUnlock()
+	return confirm, ok
 }
 
 func (b *BlockChain) IsKnownOrphan(hash *Uint256) bool {

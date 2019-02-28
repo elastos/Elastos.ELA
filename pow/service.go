@@ -183,7 +183,7 @@ func (pow *Service) GenerateBlock(minerAddr string) (*types.Block, error) {
 
 	for _, tx := range txs {
 		totalTxsSize = totalTxsSize + tx.GetSize()
-		if totalTxsSize > config.Parameters.MaxBlockSize {
+		if totalTxsSize > payload.MaxBlockSize {
 			break
 		}
 		if txCount >= config.Parameters.MaxTxsInBlock {

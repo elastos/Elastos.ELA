@@ -283,9 +283,11 @@ func (pow *Service) SubmitAuxBlock(hash *common.Uint256, auxPow *auxpow.AuxPow) 
 
 func (pow *Service) DiscreteMining(n uint32) ([]*common.Uint256, error) {
 	pow.mutex.Lock()
+	log.Info("@@@ DiscreteMining start ")
 
 	if pow.started || pow.discreteMining {
 		pow.mutex.Unlock()
+		log.Info("@@@ DiscreteMining return ")
 		return nil, fmt.Errorf("Server is already CPU mining.")
 	}
 
@@ -318,6 +320,7 @@ func (pow *Service) DiscreteMining(n uint32) ([]*common.Uint256, error) {
 				}
 
 				h := msgBlock.Hash()
+				log.Info("@@@ DiscreteMining msgBlock.Hash(): ", h.String())
 				blockHashes = append(blockHashes, &h)
 				i++
 				if i == n {
@@ -325,6 +328,7 @@ func (pow *Service) DiscreteMining(n uint32) ([]*common.Uint256, error) {
 					pow.started = false
 					pow.discreteMining = false
 					pow.mutex.Unlock()
+					log.Info("@@@ DiscreteMining len(blockHashes): ", len(blockHashes))
 					return blockHashes, nil
 				}
 			}

@@ -659,23 +659,28 @@ func (sm *SyncManager) handleBlockchainEvents(event *events.Event) {
 	// A transaction has been accepted into the transaction mem pool.  See if it
 	// is a illegal block transaction.
 	case events.ETTransactionAccepted:
+		log.Info("@@@ ETTransactionAccepted start")
 		tx := event.Data.(*types.Transaction)
 		if tx.IsIllegalBlockTx() {
 			sm.chain.ProcessIllegalBlock(tx.Payload.(*payload.DPOSIllegalBlocks))
 		}
+		log.Info("@@@ ETTransactionAccepted end")
 
 	// A block has been accepted into the block chain.  Relay it to other
 	// peers.
 	case events.ETBlockAccepted, events.ETConfirmAccepted:
+		log.Info("@@@ ETBlockAccepted start")
 		// Don't relay if we are not current. Other peers that are
 		// current should already know about it.
 		if !sm.current() {
+			log.Info("@@@ ETBlockAccepted end1")
 			return
 		}
 
 		block, ok := event.Data.(*types.Block)
 		if !ok {
 			log.Warnf("Chain accepted event is not a block.")
+			log.Info("@@@ ETBlockAccepted end2")
 			break
 		}
 
@@ -685,22 +690,30 @@ func (sm *SyncManager) handleBlockchainEvents(event *events.Event) {
 		sm.peerNotifier.RelayInventory(iv, block.Header)
 
 		// A block has been connected to the main block chain.
+		log.Info("@@@ ETBlockAccepted end")
+
 	case events.ETBlockConnected:
+		log.Info("@@@ ETBlockConnected start")
+
 		block, ok := event.Data.(*types.Block)
 		if !ok {
 			log.Warnf("Chain connected event is not a block.")
+			log.Info("@@@ ETBlockConnected end1")
 			break
 		}
 
 		// Remove all of the transactions (except the coinbase) in the
 		// connected block from the transaction pool.
 		sm.txMemPool.CleanSubmittedTransactions(block)
+		log.Info("@@@ ETBlockConnected end")
 
 		// A block has been disconnected from the main block chain.
 	case events.ETBlockDisconnected:
+		log.Info("@@@ ETBlockDisconnected start")
 		block, ok := event.Data.(*types.Block)
 		if !ok {
 			log.Warnf("Chain disconnected event is not a block.")
+			log.Info("@@@ ETBlockDisconnected end1")
 			break
 		}
 
@@ -715,6 +728,8 @@ func (sm *SyncManager) handleBlockchainEvents(event *events.Event) {
 				sm.txMemPool.RemoveTransaction(tx)
 			}
 		}
+		log.Info("@@@ ETBlockDisconnected end")
+
 	}
 }
 

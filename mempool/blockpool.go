@@ -22,14 +22,20 @@ type BlockPool struct {
 
 func (bm *BlockPool) AppendConfirm(confirm *payload.Confirm) (bool,
 	bool, error) {
+	log.Info("@@@ AppendConfirm start")
 	bm.Lock()
 	inMainChain, isOrphan, err := bm.appendConfirm(confirm)
 	bm.Unlock()
+	log.Info("@@@ AppendConfirm end")
 	return inMainChain, isOrphan, err
 }
 
 func (bm *BlockPool) AppendDposBlock(dposBlock *types.DposBlock) (bool, bool, error) {
+	log.Info("@@@ AppendDposBlock start")
 	bm.Lock()
+	log.Info("@@@ AppendDposBlock lock")
+	defer log.Info("@@@ AppendDposBlock end")
+
 	defer bm.Unlock()
 	if !dposBlock.ConfirmFlag {
 		return bm.appendBlock(dposBlock)
@@ -38,18 +44,23 @@ func (bm *BlockPool) AppendDposBlock(dposBlock *types.DposBlock) (bool, bool, er
 }
 
 func (bm *BlockPool) appendBlock(dposBlock *types.DposBlock) (bool, bool, error) {
+	log.Info("@@@ appendBlock start")
 	// add block
 	block := dposBlock.Block
 	hash := block.Hash()
 	if _, ok := bm.blocks[hash]; ok {
+		log.Info("@@@ appendBlock end1")
 		return false, false, errors.New("duplicate block in pool")
 	}
+	log.Info("@@@ appendBlock CheckBlockSanity")
 	// verify block
 	if err := bm.Chain.CheckBlockSanity(block); err != nil {
+		log.Info("@@@ appendBlock end2")
 		return false, false, err
 	}
 	bm.blocks[block.Hash()] = block
 
+	log.Info("@@@ appendBlock confirmBlock")
 	// confirm block
 	copyBlock := *dposBlock
 	copyBlock.ConfirmFlag = true
@@ -61,31 +72,34 @@ func (bm *BlockPool) appendBlock(dposBlock *types.DposBlock) (bool, bool, error)
 		// Notify the caller that the new block without confirm was accepted.
 		// The caller would typically want to react by relaying the inventory
 		// to other peers.
+		log.Info("@@@ appendBlock ETBlockAccepted")
 		events.Notify(events.ETBlockAccepted, block)
 	}
 
+	log.Info("@@@ appendBlock ETNewBlockReceived")
 	// notify new block received
 	events.Notify(events.ETNewBlockReceived, &copyBlock)
+	log.Info("@@@ appendBlock end")
 
 	return inMainChain, isOrphan, nil
 }
 
 func (bm *BlockPool) appendBlockAndConfirm(dposBlock *types.DposBlock) (bool, bool, error) {
+	log.Info("@@@ appendBlock start")
 	block := dposBlock.Block
 	hash := block.Hash()
 	// verify block
 	if err := bm.Chain.CheckBlockSanity(block); err != nil {
+		log.Info("@@@ appendBlock end1")
 		return false, false, err
 	}
 	// add block
 	bm.blocks[block.Hash()] = block
-	// add confirm
-	bm.appendConfirm(dposBlock.Confirm)
-
 	// confirm block
 	copyBlock := *dposBlock
 	copyBlock.ConfirmFlag = true
-	inMainChain, isOrphan, err := bm.confirmBlock(hash)
+	log.Info("@@@ appendBlock confirmBlock")
+	inMainChain, isOrphan, err := bm.appendConfirm(dposBlock.Confirm)
 	if err != nil {
 		log.Debug("[AppendDposBlock] ConfirmBlock failed, hash:", hash.String(), "err: ", err)
 		copyBlock.ConfirmFlag = false
@@ -93,11 +107,15 @@ func (bm *BlockPool) appendBlockAndConfirm(dposBlock *types.DposBlock) (bool, bo
 		// Notify the caller that the new block without confirm was accepted.
 		// The caller would typically want to react by relaying the inventory
 		// to other peers.
+		log.Info("@@@ appendBlock ETBlockAccepted")
+
 		events.Notify(events.ETBlockAccepted, block)
 	}
 
 	// notify new block received
+	log.Info("@@@ appendBlock ETNewBlockReceived")
 	events.Notify(events.ETNewBlockReceived, &copyBlock)
+	log.Info("@@@ appendBlock end2")
 
 	return inMainChain, isOrphan, nil
 }
@@ -145,12 +163,12 @@ func (bm *BlockPool) confirmBlock(hash common.Uint256) (bool, bool, error) {
 		return false, false, errors.New("there is no block confirmation in pool when confirming block")
 	}
 	if err := blockchain.CheckBlockWithConfirmation(block, confirm); err != nil {
-		return false, false, errors.New("block confirmation validate failed")
+		return false, true, errors.New("block confirmation validate failed")
 	}
 
 	log.Info("[ConfirmBlock] block height:", block.Height)
 	if !bm.Chain.BlockExists(&hash) {
-		inMainChain, isOrphan, err := bm.Chain.ProcessBlock(block)
+		inMainChain, isOrphan, err := bm.Chain.ProcessBlock(block, confirm)
 		if err != nil {
 			return inMainChain, isOrphan, errors.New("add block failed," + err.Error())
 		}

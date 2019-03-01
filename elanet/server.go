@@ -596,7 +596,7 @@ func (s *server) handleRelayInvMsg(peers map[svr.IPeer]*serverPeer, rmsg relayMs
 		// Queue the inventory to be relayed with the next batch.
 		// It will be ignored if the peer is already known to
 		// have the inventory.
-		sp.QueueInventory(rmsg.invVect)
+		go sp.QueueInventory(rmsg.invVect)
 	}
 }
 
@@ -686,7 +686,9 @@ func (s *server) DonePeer(p svr.IPeer) {
 // RelayInventory relays the passed inventory vector to all connected peers
 // that are not already known to have it.
 func (s *server) RelayInventory(invVect *msg.InvVect, data interface{}) {
+	log.Info("@@@ RelayInventory start")
 	s.relayInv <- relayMsg{invVect: invVect, data: data}
+	log.Info("@@@ RelayInventory end")
 }
 
 // IsCurrent returns whether or not the sync manager believes it is synced with

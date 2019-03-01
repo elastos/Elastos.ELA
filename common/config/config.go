@@ -22,42 +22,42 @@ var (
 		MaxOrphanBlocks:    10000,
 		MinMemoryNodes:     20160,
 		CoinbaseLockTime:   100,
-		RewardPerBlock:     rewardPerBlock(time.Minute * 2),
+		RewardPerBlock:     RewardPerBlock(time.Minute * 2),
 	}
 
 	TestNet = ChainParams{
 		Name:               "TestNet",
 		PowLimit:           powLimit,
-		PowLimitBits:       0x1e1da5ff,
-		TargetTimePerBlock: time.Second * 10,
-		TargetTimespan:     time.Second * 10 * 10,
+		PowLimitBits:       0x1f0008ff,
+		TargetTimePerBlock: time.Second * 2,
+		TargetTimespan:     time.Second * 2 * 720 ,
 		AdjustmentFactor:   int64(4),
 		MaxOrphanBlocks:    10000,
 		MinMemoryNodes:     20160,
 		CoinbaseLockTime:   100,
-		RewardPerBlock:     rewardPerBlock(time.Second * 10),
+		RewardPerBlock:     RewardPerBlock(time.Minute * 2),
 	}
 
 	RegNet = ChainParams{
 		Name:               "RegNet",
 		PowLimit:           powLimit,
 		PowLimitBits:       0x207fffff,
-		TargetTimePerBlock: time.Second * 1,
-		TargetTimespan:     time.Second * 1 * 10,
+		TargetTimePerBlock: time.Second * 2,
+		TargetTimespan:     time.Second * 2 * 720,
 		AdjustmentFactor:   int64(4),
 		MaxOrphanBlocks:    10000,
 		MinMemoryNodes:     20160,
 		CoinbaseLockTime:   100,
-		RewardPerBlock:     rewardPerBlock(time.Second * 1),
+		RewardPerBlock:     RewardPerBlock(time.Minute * 2),
 	}
 )
 
 type PowConfiguration struct {
-	PayToAddr  string `json:"PayToAddr"`
-	AutoMining bool   `json:"AutoMining"`
-	MinerInfo  string `json:"MinerInfo"`
-	MinTxFee   int    `json:"MinTxFee"`
-	ActiveNet  string `json:"ActiveNet"`
+	PayToAddr    string `json:"PayToAddr"`
+	AutoMining   bool   `json:"AutoMining"`
+	MinerInfo    string `json:"MinerInfo"`
+	MinTxFee     int    `json:"MinTxFee"`
+	InstantBlock bool   `json:"InstantBlock"`
 }
 
 type RpcConfiguration struct {
@@ -72,6 +72,7 @@ type CRCArbitratorConfigItem struct {
 }
 
 type Configuration struct {
+	ActiveNet            string               `json:"ActiveNet"`
 	Magic                uint32               `json:"Magic"`
 	FoundationAddress    string               `json:"FoundationAddress"`
 	Version              int                  `json:"Version"`
@@ -84,16 +85,13 @@ type Configuration struct {
 	HttpInfoStart        bool                 `json:"HttpInfoStart"`
 	OpenService          bool                 `json:"OpenService"`
 	HttpWsPort           int                  `json:"HttpWsPort"`
-	WsHeartbeatInterval  time.Duration        `json:"WsHeartbeatInterval"`
 	HttpJsonPort         int                  `json:"HttpJsonPort"`
 	NodePort             uint16               `json:"NodePort"`
 	NodeOpenPort         uint16               `json:"NodeOpenPort"`
 	PrintLevel           uint8                `json:"PrintLevel"`
-	IsTLS                bool                 `json:"IsTLS"`
 	CertPath             string               `json:"CertPath"`
 	KeyPath              string               `json:"KeyPath"`
 	CAPath               string               `json:"CAPath"`
-	MultiCoreNum         uint                 `json:"MultiCoreNum"`
 	MaxLogsSize          int64                `json:"MaxLogsSize"`
 	MaxPerLogSize        int64                `json:"MaxPerLogSize"`
 	MaxTxsInBlock        int                  `json:"MaxTransactionInBlock"`

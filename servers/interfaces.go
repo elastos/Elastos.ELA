@@ -320,7 +320,6 @@ func GetInfo(param Params) map[string]interface{} {
 		Relayfee      int    `json:"relayfee"`
 		Errors        string `json:"errors"`
 	}{
-		Version:       config.Parameters.Version,
 		Balance:       0,
 		Blocks:        Store.GetHeight(),
 		Timeoffset:    0,

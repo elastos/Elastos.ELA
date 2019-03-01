@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"strings"
+	"time"
 
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
@@ -42,16 +43,16 @@ func loadConfigParams() *config.ConfigParams {
 	cfg := loadConfigFile()
 
 	var chainParams config.ChainParams
-	switch strings.ToLower(cfg.PowConfiguration.ActiveNet) {
-	case "mainnet", "main":
+	switch strings.ToLower(cfg.ActiveNet) {
+	case "mainnet", "":
 		chainParams = config.MainNet
 		activeNetParams = &config.MainNetParams
 
-	case "testnet", "test":
+	case "testnet":
 		chainParams = config.TestNet
 		activeNetParams = &config.TestNetParams
 
-	case "regnet", "reg":
+	case "regnet":
 		chainParams = config.RegNet
 		activeNetParams = &config.RegNetParams
 	}
@@ -61,6 +62,12 @@ func loadConfigParams() *config.ConfigParams {
 		ChainParam:    &chainParams,
 	}
 
+	if cfg.PowConfiguration.InstantBlock {
+		activeNetParams.TargetTimespan = 10 * time.Second
+		activeNetParams.TargetTimePerBlock = 1 * time.Second
+		activeNetParams.PowLimitBits = 0x207fffff
+		activeNetParams.RewardPerBlock = config.RewardPerBlock(1 * time.Second)
+	}
 	activeNetParams.Magic = cfg.Magic
 	activeNetParams.DefaultPort = cfg.NodePort
 	activeNetParams.SeedList = cfg.SeedList

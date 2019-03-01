@@ -78,7 +78,7 @@ var MainNetParams = Params{
 	TargetTimespan:     24 * time.Hour,  // 24 hours
 	TargetTimePerBlock: 2 * time.Minute, // 2 minute
 	AdjustmentFactor:   4,               // 25% less, 400% more
-	RewardPerBlock:     rewardPerBlock(2 * time.Minute),
+	RewardPerBlock:     RewardPerBlock(2 * time.Minute),
 	CoinbaseMaturity:   100,
 	MinTransactionFee:  100,
 	HeightVersions: []uint32{
@@ -125,7 +125,7 @@ var TestNetParams = Params{
 	TargetTimespan:     24 * time.Hour,  // 24 hours
 	TargetTimePerBlock: 2 * time.Minute, // 2 minute
 	AdjustmentFactor:   4,               // 25% less, 400% more
-	RewardPerBlock:     rewardPerBlock(2 * time.Minute),
+	RewardPerBlock:     RewardPerBlock(2 * time.Minute),
 	CoinbaseMaturity:   100,
 	MinTransactionFee:  100,
 	HeightVersions: []uint32{
@@ -162,7 +162,7 @@ var RegNetParams = Params{
 	TargetTimePerBlock: 1 * time.Second,  // 1 second
 	TargetTimespan:     10 * time.Second, // 10 seconds
 	AdjustmentFactor:   4,                // 25% less, 400% more
-	RewardPerBlock:     rewardPerBlock(1 * time.Second),
+	RewardPerBlock:     RewardPerBlock(1 * time.Second),
 	CoinbaseMaturity:   100,
 	MinTransactionFee:  100,
 	HeightVersions: []uint32{
@@ -271,7 +271,7 @@ type Params struct {
 	EmergencyInactivePenalty common.Fixed64
 }
 
-func rewardPerBlock(targetTimePerBlock time.Duration) common.Fixed64 {
+func RewardPerBlock(targetTimePerBlock time.Duration) common.Fixed64 {
 	blockGenerateInterval := int64(targetTimePerBlock / time.Second)
 	generatedBlocksPerYear := 365 * 24 * 60 * 60 / blockGenerateInterval
 	return common.Fixed64(float64(inflationPerYear) / float64(generatedBlocksPerYear))

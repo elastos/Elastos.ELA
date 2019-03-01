@@ -23,6 +23,7 @@ import (
 
 var instance *WebSocketServer
 
+const WsHeartbeatInterval = 60
 var (
 	PushBlockFlag    = true
 	PushRawBlockFlag = true
@@ -120,7 +121,7 @@ func (server *WebSocketServer) Stop() {
 }
 
 func (server *WebSocketServer) checkSessionsTimeout(done chan bool) {
-	ticker := time.NewTicker(time.Second * config.Parameters.Configuration.WsHeartbeatInterval)
+	ticker := time.NewTicker(time.Second * WsHeartbeatInterval)
 	defer ticker.Stop()
 	for {
 		select {

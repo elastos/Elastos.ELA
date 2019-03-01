@@ -164,13 +164,13 @@ type ProducerInfo struct {
 	NickName       string `json:"nickname"`
 	Url            string `json:"url"`
 	Location       uint64 `json:"location"`
-	Address        string `json:"address"`
+	NetAddress     string `json:"netaddress"`
 	Signature      string `json:"signature"`
 }
 
 type CancelProducerInfo struct {
-	PublicKey string `json:"publickey"`
-	Signature string `json:"signature"`
+	OwnerPublicKey string `json:"ownerpublickey"`
+	Signature      string `json:"signature"`
 }
 
 type UTXOInfo struct {

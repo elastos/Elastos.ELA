@@ -45,18 +45,21 @@ type BlockChain struct {
 	maxRetargetTimespan int64  // target timespan * adjustment factor
 	blocksPerRetarget   uint32 // target timespan / target time per block
 
-	BestChain      *BlockNode
-	Root           *BlockNode
-	Index          map[Uint256]*BlockNode
-	IndexLock      sync.RWMutex
-	DepNodes       map[Uint256][]*BlockNode
-	Orphans        map[Uint256]*OrphanBlock
-	PrevOrphans    map[Uint256][]*OrphanBlock
-	OldestOrphan   *OrphanBlock
-	BlockCache     map[Uint256]*Block
+	BestChain *BlockNode
+	Root      *BlockNode
+	Index     map[Uint256]*BlockNode
+	IndexLock sync.RWMutex
+	DepNodes  map[Uint256][]*BlockNode
+
+	orphanLock     sync.RWMutex
+	orphans        map[Uint256]*OrphanBlock
+	prevOrphans    map[Uint256][]*OrphanBlock
+	oldestOrphan   *OrphanBlock
+	orphanConfirms map[Uint256]*payload.Confirm
+
+	blockCache     map[Uint256]*Block
 	TimeSource     MedianTimeSource
 	MedianTimePast time.Time
-	OrphanLock     sync.RWMutex
 	mutex          sync.RWMutex
 }
 
@@ -79,10 +82,11 @@ func New(db IChainStore, chainParams *config.Params, versions interfaces.HeightV
 		BestChain:           nil,
 		Index:               make(map[Uint256]*BlockNode),
 		DepNodes:            make(map[Uint256][]*BlockNode),
-		OldestOrphan:        nil,
-		Orphans:             make(map[Uint256]*OrphanBlock),
-		PrevOrphans:         make(map[Uint256][]*OrphanBlock),
-		BlockCache:          make(map[Uint256]*Block),
+		oldestOrphan:        nil,
+		orphans:             make(map[Uint256]*OrphanBlock),
+		prevOrphans:         make(map[Uint256][]*OrphanBlock),
+		blockCache:          make(map[Uint256]*Block),
+		orphanConfirms:      make(map[Uint256]*payload.Confirm),
 		TimeSource:          NewMedianTime(),
 	}
 
@@ -153,11 +157,11 @@ func (b *BlockChain) GetHeight() uint32 {
 	return b.db.GetHeight()
 }
 
-func (b *BlockChain) ProcessBlock(block *Block) (bool, bool, error) {
+func (b *BlockChain) ProcessBlock(block *Block, confirm *payload.Confirm) (bool, bool, error) {
 	b.mutex.Lock()
 	defer b.mutex.Unlock()
 
-	inMainChain, isOrphan, err := b.processBlock(block)
+	inMainChain, isOrphan, err := b.processBlock(block, confirm)
 	if err != nil {
 		return false, false, err
 	}
@@ -238,8 +242,8 @@ func (b *BlockChain) ProcessOrphans(hash *Uint256) error {
 		processHashes[0] = nil // Prevent GC leak.
 		processHashes = processHashes[1:]
 
-		for i := 0; i < len(b.PrevOrphans[*processHash]); i++ {
-			orphan := b.PrevOrphans[*processHash][i]
+		for i := 0; i < len(b.prevOrphans[*processHash]); i++ {
+			orphan := b.prevOrphans[*processHash][i]
 			if orphan == nil {
 				continue
 			}
@@ -248,27 +252,30 @@ func (b *BlockChain) ProcessOrphans(hash *Uint256) error {
 			b.RemoveOrphanBlock(orphan)
 			i--
 
+			confirm, _ := b.GetOrphanConfirm(&orphanHash)
+
 			//log.Debug("deal with orphan block %x", orphanHash.ToArrayReverse())
-			_, err := b.maybeAcceptBlock(orphan.Block)
+			_, err := b.maybeAcceptBlock(orphan.Block, confirm)
 			if err != nil {
 				return err
 			}
 
 			processHashes = append(processHashes, &orphanHash)
+
 		}
 	}
 	return nil
 }
 
 func (b *BlockChain) RemoveOrphanBlock(orphan *OrphanBlock) {
-	b.OrphanLock.Lock()
-	defer b.OrphanLock.Unlock()
+	b.orphanLock.Lock()
+	defer b.orphanLock.Unlock()
 
 	orphanHash := orphan.Block.Hash()
-	delete(b.Orphans, orphanHash)
+	delete(b.orphans, orphanHash)
 
 	prevHash := &orphan.Block.Header.Previous
-	orphans := b.PrevOrphans[*prevHash]
+	orphans := b.prevOrphans[*prevHash]
 	for i := 0; i < len(orphans); i++ {
 		hash := orphans[i].Block.Hash()
 		if hash.IsEqual(orphanHash) {
@@ -278,36 +285,36 @@ func (b *BlockChain) RemoveOrphanBlock(orphan *OrphanBlock) {
 			i--
 		}
 	}
-	b.PrevOrphans[*prevHash] = orphans
+	b.prevOrphans[*prevHash] = orphans
 
-	if len(b.PrevOrphans[*prevHash]) == 0 {
-		delete(b.PrevOrphans, *prevHash)
+	if len(b.prevOrphans[*prevHash]) == 0 {
+		delete(b.prevOrphans, *prevHash)
 	}
 
-	if b.OldestOrphan == orphan {
-		b.OldestOrphan = nil
+	if b.oldestOrphan == orphan {
+		b.oldestOrphan = nil
 	}
 }
 
 func (b *BlockChain) AddOrphanBlock(block *Block) {
-	for _, oBlock := range b.Orphans {
+	for _, oBlock := range b.orphans {
 		if time.Now().After(oBlock.Expiration) {
 			b.RemoveOrphanBlock(oBlock)
 			continue
 		}
 
-		if b.OldestOrphan == nil || oBlock.Expiration.Before(b.OldestOrphan.Expiration) {
-			b.OldestOrphan = oBlock
+		if b.oldestOrphan == nil || oBlock.Expiration.Before(b.oldestOrphan.Expiration) {
+			b.oldestOrphan = oBlock
 		}
 	}
 
-	if len(b.Orphans)+1 > maxOrphanBlocks {
-		b.RemoveOrphanBlock(b.OldestOrphan)
-		b.OldestOrphan = nil
+	if len(b.orphans)+1 > maxOrphanBlocks {
+		b.RemoveOrphanBlock(b.oldestOrphan)
+		b.oldestOrphan = nil
 	}
 
-	b.OrphanLock.Lock()
-	defer b.OrphanLock.Unlock()
+	b.orphanLock.Lock()
+	defer b.orphanLock.Unlock()
 
 	// Insert the block into the orphan map with an expiration time
 	// 1 hour from now.
@@ -316,20 +323,33 @@ func (b *BlockChain) AddOrphanBlock(block *Block) {
 		Block:      block,
 		Expiration: expiration,
 	}
-	b.Orphans[block.Hash()] = oBlock
+	b.orphans[block.Hash()] = oBlock
 
 	// Add to previous hash lookup index for faster dependency lookups.
 	prevHash := &block.Header.Previous
-	b.PrevOrphans[*prevHash] = append(b.PrevOrphans[*prevHash], oBlock)
+	b.prevOrphans[*prevHash] = append(b.prevOrphans[*prevHash], oBlock)
 
 	return
 }
 
-func (b *BlockChain) IsKnownOrphan(hash *Uint256) bool {
-	b.OrphanLock.RLock()
-	defer b.OrphanLock.RUnlock()
+func (b *BlockChain) AddOrphanConfirm(confirm *payload.Confirm) {
+	b.orphanLock.Lock()
+	b.orphanConfirms[confirm.Proposal.BlockHash] = confirm
+	b.orphanLock.Unlock()
+}
 
-	if _, exists := b.Orphans[*hash]; exists {
+func (b *BlockChain) GetOrphanConfirm(hash *Uint256) (*payload.Confirm, bool) {
+	b.orphanLock.RLock()
+	confirm, ok := b.orphanConfirms[*hash]
+	b.orphanLock.RUnlock()
+	return confirm, ok
+}
+
+func (b *BlockChain) IsKnownOrphan(hash *Uint256) bool {
+	b.orphanLock.RLock()
+	defer b.orphanLock.RUnlock()
+
+	if _, exists := b.orphans[*hash]; exists {
 		return true
 	}
 
@@ -337,13 +357,13 @@ func (b *BlockChain) IsKnownOrphan(hash *Uint256) bool {
 }
 
 func (b *BlockChain) GetOrphanRoot(hash *Uint256) *Uint256 {
-	b.OrphanLock.RLock()
-	defer b.OrphanLock.RUnlock()
+	b.orphanLock.RLock()
+	defer b.orphanLock.RUnlock()
 
 	orphanRoot := hash
 	prevHash := hash
 	for {
-		orphan, exists := b.Orphans[*prevHash]
+		orphan, exists := b.orphans[*prevHash]
 		if !exists {
 			break
 		}
@@ -694,7 +714,7 @@ func (b *BlockChain) reorganizeChain(detachNodes, attachNodes *list.List) error 
 	// Ensure all of the needed side chain blocks are in the cache.
 	for e := attachNodes.Front(); e != nil; e = e.Next() {
 		n := e.Value.(*BlockNode)
-		if _, exists := b.BlockCache[*n.Hash]; !exists {
+		if _, exists := b.blockCache[*n.Hash]; !exists {
 			return fmt.Errorf("block %x is missing from the side "+
 				"chain block cache", n.Hash.Bytes())
 		}
@@ -716,12 +736,12 @@ func (b *BlockChain) reorganizeChain(detachNodes, attachNodes *list.List) error 
 	// Connect the new best chain blocks.
 	for e := attachNodes.Front(); e != nil; e = e.Next() {
 		n := e.Value.(*BlockNode)
-		block := b.BlockCache[*n.Hash]
+		block := b.blockCache[*n.Hash]
 		err := b.connectBlock(n, block)
 		if err != nil {
 			return err
 		}
-		delete(b.BlockCache, *n.Hash)
+		delete(b.blockCache, *n.Hash)
 	}
 
 	return nil
@@ -752,7 +772,7 @@ func (b *BlockChain) disconnectBlock(node *BlockNode, block *Block) error {
 
 	// Put block in the side chain cache.
 	node.InMainChain = false
-	b.BlockCache[*node.Hash] = block
+	b.blockCache[*node.Hash] = block
 
 	//// This node's parent is now the end of the best chain.
 	b.BestChain = node.Parent
@@ -823,7 +843,7 @@ func (b *BlockChain) BlockExists(hash *Uint256) bool {
 	return b.db.IsBlockInStore(hash)
 }
 
-func (b *BlockChain) maybeAcceptBlock(block *Block) (bool, error) {
+func (b *BlockChain) maybeAcceptBlock(block *Block, confirm *payload.Confirm) (bool, error) {
 	// Get a block node for the block previous to this one.  Will be nil
 	// if this is the genesis block.
 	prevNode, err := b.getPrevNodeFromBlock(block)
@@ -876,9 +896,8 @@ func (b *BlockChain) maybeAcceptBlock(block *Block) (bool, error) {
 		return false, err
 	}
 
-	if inMainChain && block.Height < config.Parameters.HeightVersions[2] &&
-		block.Height >= config.Parameters.HeightVersions[1] {
-		b.state.ProcessBlock(block, nil)
+	if inMainChain && block.Height >= config.Parameters.HeightVersions[1] {
+		b.state.ProcessBlock(block, confirm)
 	}
 
 	// Notify the caller that the new block was accepted into the block
@@ -923,7 +942,7 @@ func (b *BlockChain) connectBestChain(node *BlockNode, block *Block) (bool, erro
 	// for future processing, so add the block to the side chain holding
 	// cache.
 	log.Debugf("Adding block %x to side chain cache", node.Hash.Bytes())
-	b.BlockCache[*node.Hash] = block
+	b.blockCache[*node.Hash] = block
 	//b.Index[*node.Hash] = node
 	b.AddNodeToIndex(node)
 
@@ -989,7 +1008,7 @@ func (b *BlockChain) connectBestChain(node *BlockNode, block *Block) (bool, erro
 //1. inMainChain
 //2. isOphan
 //3. error
-func (b *BlockChain) processBlock(block *Block) (bool, bool, error) {
+func (b *BlockChain) processBlock(block *Block, confirm *payload.Confirm) (bool, bool, error) {
 	blockHash := block.Hash()
 	log.Debugf("[ProcessBLock] height = %d, hash = %x", block.Header.Height, blockHash.Bytes())
 
@@ -1001,7 +1020,7 @@ func (b *BlockChain) processBlock(block *Block) (bool, bool, error) {
 	}
 
 	// The block must not already exist as an orphan.
-	if _, exists := b.Orphans[blockHash]; exists {
+	if _, exists := b.orphans[blockHash]; exists {
 		str := fmt.Sprintf("already have block (orphan) %v", blockHash)
 		return false, false, fmt.Errorf(str)
 	}
@@ -1029,7 +1048,7 @@ func (b *BlockChain) processBlock(block *Block) (bool, bool, error) {
 
 	// The block has passed all context independent checks and appears sane
 	// enough to potentially accept it into the block chain.
-	inMainChain, err := b.maybeAcceptBlock(block)
+	inMainChain, err := b.maybeAcceptBlock(block, confirm)
 	if err != nil {
 		return false, true, err
 	}
@@ -1052,45 +1071,7 @@ func (b *BlockChain) processConfirm(confirm *payload.Confirm) error {
 	if err := b.db.SaveConfirm(confirm); err != nil {
 		return err
 	}
-	block, err := b.db.GetBlock(confirm.Proposal.BlockHash)
-	if err != nil {
-		return err
-	}
-	// Synchronize state memory DB.
-	b.state.ProcessBlock(block, confirm)
 	return nil
-}
-
-func (b *BlockChain) DumpState() {
-	log.Info("BestChain=", b.BestChain.Hash)
-	log.Info("ChainRoot=", b.Root.Hash)
-	//log.Debug("b.Index=", b.Index)
-	//log.Debug("b.DepNodes=", b.DepNodes)
-	//for _, nd := range b.Orphans {
-	//	log.Debug(nd)
-	//}
-	//	for _, nd := range b.Index {
-	//		DumpBlockNode(nd)
-	//	}
-}
-
-func DumpBlockNode(node *BlockNode) {
-	log.Debugf("---------------------node:%p\n", node)
-	log.Debug("Hash:", node.Hash)
-	log.Debug("ParentHash:", node.ParentHash)
-	log.Debug("Height:", node.Height)
-	log.Debug("Version:", node.Version)
-	log.Debug("Bits:", node.Bits)
-	log.Debug("Timestamp:", node.Timestamp)
-	log.Debug("WorkSum:", node.WorkSum)
-	log.Debug("InMainChain:", node.InMainChain)
-	if node.Parent != nil {
-		log.Debug("Parent:", node.Parent.Hash)
-	} else {
-		log.Debug("Parent:", node.Parent)
-	}
-	log.Debug("Children:", node.Children)
-	log.Debug("---------------------")
 }
 
 func (b *BlockChain) LatestBlockLocator() ([]*Uint256, error) {

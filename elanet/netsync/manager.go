@@ -185,8 +185,7 @@ func (sm *SyncManager) startSync() {
 func (sm *SyncManager) isSyncCandidate(peer *peer.Peer) bool {
 	// The peer is not a candidate for sync if it's not a full node.
 	if peer.Services()&pact.SFNodeNetwork != pact.SFNodeNetwork {
-		// fixme return false when DPOS up online.
-		return true
+		return false
 	}
 
 	// Candidate if all checks passed.
@@ -349,7 +348,7 @@ func (sm *SyncManager) handleBlockMsg(bmsg *blockMsg) {
 		log.Debugf("Receive confirm for block %s", blockHash)
 		_, _, err := sm.blockMemPool.AppendConfirm(bmsg.block.Confirm)
 		if err != nil {
-			log.Warnf("Receive invalid confirm %s, %s from %s", bmsg.block.Confirm.Hash, err, peer.Addr())
+			log.Warnf("Receive invalid confirm %s, %s from %s", bmsg.block.Confirm.Proposal.BlockHash, err, peer.Addr())
 		}
 		return
 	}

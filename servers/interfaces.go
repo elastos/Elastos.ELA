@@ -916,7 +916,7 @@ type Producer struct {
 	Location       uint64 `json:"location"`
 	Active         bool   `json:"active"`
 	Votes          string `json:"votes"`
-	IP             string `json:"ip"`
+	NetAddress     string `json:"netaddress"`
 	Index          uint64 `json:"index"`
 }
 
@@ -947,7 +947,7 @@ func ListProducers(param Params) map[string]interface{} {
 			Location:       p.Info().Location,
 			Active:         p.State() == state.Activate,
 			Votes:          p.Votes().String(),
-			IP:             p.Info().NetAddress,
+			NetAddress:     p.Info().NetAddress,
 			Index:          uint64(i),
 		}
 		ps = append(ps, producer)
@@ -1052,6 +1052,39 @@ func VoteStatus(param Params) map[string]interface{} {
 	})
 }
 
+func GetDepositCoin(param Params) map[string]interface{} {
+	pk, ok := param.String("ownerpublickey")
+	if !ok {
+		return ResponsePack(InvalidParams, "need a param called ownerpublickey")
+	}
+	pkBytes, err := hex.DecodeString(pk)
+	if err != nil {
+		return ResponsePack(InvalidParams, "invalid publickey")
+	}
+	programHash, err := contract.PublicKeyToDepositProgramHash(pkBytes)
+	if err != nil {
+		return ResponsePack(InvalidParams, "invalid publickey to programHash")
+	}
+	unspends, err := Store.GetUnspentsFromProgramHash(*programHash)
+	var balance common.Fixed64 = 0
+	for _, u := range unspends {
+		for _, v := range u {
+			balance = balance + v.Value
+		}
+	}
+	var deducted common.Fixed64 = 0
+	//todo get deducted coin
+
+	type depositCoin struct {
+		Available string `json:"available"`
+		Deducted  string `json:"deducted"`
+	}
+	return ResponsePack(Success, &depositCoin{
+		Available: balance.String(),
+		Deducted:  deducted.String(),
+	})
+}
+
 func EstimateSmartFee(param Params) map[string]interface{} {
 	confirm, ok := param.Int("confirmations")
 	if !ok {
@@ -1119,12 +1152,12 @@ func getPayloadInfo(p Payload) PayloadInfo {
 		obj.NickName = object.NickName
 		obj.Url = object.Url
 		obj.Location = object.Location
-		obj.Address = object.NetAddress
+		obj.NetAddress = object.NetAddress
 		obj.Signature = common.BytesToHexString(object.Signature)
 		return obj
 	case *payload.CancelProducer:
 		obj := new(CancelProducerInfo)
-		obj.PublicKey = common.BytesToHexString(object.OwnerPublicKey)
+		obj.OwnerPublicKey = common.BytesToHexString(object.OwnerPublicKey)
 		obj.Signature = common.BytesToHexString(object.Signature)
 		return obj
 	}

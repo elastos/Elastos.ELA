@@ -27,11 +27,10 @@ import (
 	"github.com/elastos/Elastos.ELA/servers/httpnodeinfo"
 	"github.com/elastos/Elastos.ELA/servers/httprestful"
 	"github.com/elastos/Elastos.ELA/servers/httpwebsocket"
+	"github.com/elastos/Elastos.ELA/utils/elalog"
+	"github.com/elastos/Elastos.ELA/utils/signal"
 	"github.com/elastos/Elastos.ELA/version"
 	"github.com/elastos/Elastos.ELA/version/verconf"
-
-	"github.com/elastos/Elastos.ELA.Utility/elalog"
-	"github.com/elastos/Elastos.ELA.Utility/signal"
 )
 
 var (
@@ -101,15 +100,16 @@ func main() {
 		CandidatesCount: config.Parameters.ArbiterConfiguration.CandidatesCount,
 		CRCArbitrators:  activeNetParams.CRCArbiters,
 		Versions:        versions,
-		GetBestHeight: func() uint32 {
-			return chainStore.GetHeight()
-		},
+		OriginArbiters:  activeNetParams.OriginArbiters,
 		GetCurrentHeader: func() (*types.Header, error) {
 			b, err := chainStore.GetBlock(chainStore.GetCurrentBlockHash())
 			if err != nil {
 				return nil, err
 			}
 			return &b.Header, nil
+		},
+		GetBestHeight: func() uint32 {
+			return chainStore.GetHeight()
 		},
 	})
 	if err != nil {

@@ -31,7 +31,6 @@
       "MinTxFee": 100,
       "ActiveNet": "TestNet"
     },
-    "VoteHeight": 100,
     "EnableArbiter": false,
     "ArbiterConfiguration": {
       "Name": "",
@@ -44,7 +43,7 @@
       "MaxLogsSize": 0,
       "MaxPerLogSize": 0,
       "MaxConnections": 100,
-      "NormalArbitratorsCount": 5,
+      "NormalArbitersCount": 5,
       "CandidatesCount": 0,
       "CRCArbiters": [
         {
@@ -68,11 +67,8 @@
         "127.0.0.1"
       ]
     },
-    "HeightVersions": [
-      0,
-      88812,
-      1008812,
-      1108812
-    ]
+    "CheckAddressHeight": 0,
+    "DPOSStartHeight": 1008812,
+    "OpenArbitersHeight": 1108812
   }
 }

@@ -73,16 +73,24 @@ func loadConfigParams() *config.ConfigParams {
 		activeNetParams.OriginArbiters = cfg.ArbiterConfiguration.OriginArbiters
 	}
 	if len(cfg.ArbiterConfiguration.CRCArbiters) > 0 {
-		arbiters, err := convertArbitrators(cfg.ArbiterConfiguration.CRCArbiters)
-		if err == nil {
-			activeNetParams.CRCArbiters = arbiters
-		}
+		activeNetParams.CRCArbiters = cfg.ArbiterConfiguration.CRCArbiters
 	}
-	if len(cfg.HeightVersions) > 0 {
-		activeNetParams.HeightVersions = cfg.HeightVersions
-		if len(cfg.HeightVersions) > 3 {
-			activeNetParams.VoteStartHeight = cfg.HeightVersions[1]
-		}
+	if cfg.CheckAddressHeight > 0 {
+		activeNetParams.CheckAddressHeight = cfg.CheckAddressHeight
+	}
+	if cfg.DPOSStartHeight > 0 {
+		activeNetParams.DPOSStartHeight = cfg.DPOSStartHeight
+	}
+	if cfg.OpenArbitersHeight > 0 {
+		activeNetParams.OpenArbitersHeight = cfg.OpenArbitersHeight
+	}
+	if cfg.ArbiterConfiguration.NormalArbitersCount > 0 {
+		activeNetParams.ArbitersCount =
+			cfg.ArbiterConfiguration.NormalArbitersCount
+	}
+	if cfg.ArbiterConfiguration.CandidatesCount > 0 {
+		activeNetParams.CandidatesCount =
+			cfg.ArbiterConfiguration.CandidatesCount
 	}
 	if cfg.ArbiterConfiguration.MaxInactiveRounds > 0 {
 		activeNetParams.MaxInactiveRounds =
@@ -102,16 +110,4 @@ func loadConfigParams() *config.ConfigParams {
 	}
 
 	return &config.Parameters
-}
-
-func convertArbitrators(arbiters []config.CRCArbitratorConfigItem) (result []config.CRCArbitratorParams, err error) {
-	for _, v := range arbiters {
-		arbiterByte, err := common.HexStringToBytes(v.PublicKey)
-		if err != nil {
-			return nil, err
-		}
-		result = append(result, config.CRCArbitratorParams{PublicKey: arbiterByte, NetAddress: v.NetAddress})
-	}
-
-	return result, nil
 }

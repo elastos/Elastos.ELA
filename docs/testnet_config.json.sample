@@ -32,7 +32,6 @@
       "MinTxFee": 100,
       "ActiveNet": "MainNet"
     },
-    "VoteHeight": 200000,
     "RpcConfiguration": {
       "User": "ElaUser",
       "Pass": "Ela123",

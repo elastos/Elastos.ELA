@@ -52,7 +52,6 @@
       "MinTxFee": 100,              //Minimal mining fee
       "ActiveNet": "MainNet"        //Network type. Choices: MainNet、TestNet、RegNet，RegNet. Mining interval are 120s、10s、1s accordingly. Difficulty factor high to low.
     },
-    "VoteHeight": 100000,           //Starting height of statistical voting
     "RpcConfiguration": {           
       "User": "ELAUser",            //User name: if set, you need to provide user name and password when calling the rpc interface
       "Pass": "ELAPass" ,           //User password: if set, you need to provide user name and password when calling the rpc interface

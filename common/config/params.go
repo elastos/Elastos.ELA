@@ -70,24 +70,20 @@ var MainNetParams = Params{
 		"02fa3e0d14e0e93ca41c3c0f008679e417cf2adb6375dd4bbbee9ed8e8db606a56",
 		"03ab3ecd1148b018d480224520917c6c3663a3631f198e3b25cf4c9c76786b7850",
 	},
-	CRCArbiters: []CRCArbitratorParams{
-	//todo add CRC arbiters
+	CRCArbiters: []CRCArbiter{
+		//todo add CRC arbiters
 	},
-	PowLimit:           powLimit,
-	PowLimitBits:       0x1f0008ff,
-	TargetTimespan:     24 * time.Hour,  // 24 hours
-	TargetTimePerBlock: 2 * time.Minute, // 2 minute
-	AdjustmentFactor:   4,               // 25% less, 400% more
-	RewardPerBlock:     rewardPerBlock(2 * time.Minute),
-	CoinbaseMaturity:   100,
-	MinTransactionFee:  100,
-	HeightVersions: []uint32{
-		0,
-		88812,
-		1008812, //fixme edit height later
-		1108812, //fixme edit height later
-	},
-	VoteStartHeight:          1008812, //fixme edit height later
+	PowLimit:                 powLimit,
+	PowLimitBits:             0x1f0008ff,
+	TargetTimespan:           24 * time.Hour,  // 24 hours
+	TargetTimePerBlock:       2 * time.Minute, // 2 minute
+	AdjustmentFactor:         4,               // 25% less, 400% more
+	RewardPerBlock:           rewardPerBlock(2 * time.Minute),
+	CoinbaseMaturity:         100,
+	MinTransactionFee:        100,
+	CheckAddressHeight:       88812,
+	DPOSStartHeight:          1008812, //fixme edit height later
+	OpenArbitersHeight:       1108812, //fixme edit height later
 	MaxInactiveRounds:        3,
 	InactivePenalty:          100 * 100000000,
 	EmergencyInactivePenalty: 500 * 100000000,
@@ -117,24 +113,20 @@ var TestNetParams = Params{
 		"03dd66833d28bac530ca80af0efbfc2ec43b4b87504a41ab4946702254e7f48961",
 		"02c8a87c076112a1b344633184673cfb0bb6bce1aca28c78986a7b1047d257a448",
 	},
-	CRCArbiters: []CRCArbitratorParams{
-	//todo add CRC arbiters
+	CRCArbiters: []CRCArbiter{
+		//todo add CRC arbiters
 	},
-	PowLimit:           powLimit,
-	PowLimitBits:       0x1f0008ff,
-	TargetTimespan:     24 * time.Hour,  // 24 hours
-	TargetTimePerBlock: 2 * time.Minute, // 2 minute
-	AdjustmentFactor:   4,               // 25% less, 400% more
-	RewardPerBlock:     rewardPerBlock(2 * time.Minute),
-	CoinbaseMaturity:   100,
-	MinTransactionFee:  100,
-	HeightVersions: []uint32{
-		0,
-		0,
-		1008812, //fixme edit height later
-		1108812, //fixme edit height later
-	},
-	VoteStartHeight:          1008812, //fixme edit height later
+	PowLimit:                 powLimit,
+	PowLimitBits:             0x1f0008ff,
+	TargetTimespan:           24 * time.Hour,  // 24 hours
+	TargetTimePerBlock:       2 * time.Minute, // 2 minute
+	AdjustmentFactor:         4,               // 25% less, 400% more
+	RewardPerBlock:           rewardPerBlock(2 * time.Minute),
+	CoinbaseMaturity:         100,
+	MinTransactionFee:        100,
+	CheckAddressHeight:       0,
+	DPOSStartHeight:          1008812, //fixme edit height later
+	OpenArbitersHeight:       1108812, //fixme edit height later
 	MaxInactiveRounds:        3,
 	InactivePenalty:          100 * 100000000,
 	EmergencyInactivePenalty: 500 * 100000000,
@@ -153,35 +145,24 @@ var RegNetParams = Params{
 		"03dd66833d28bac530ca80af0efbfc2ec43b4b87504a41ab4946702254e7f48961",
 		"02c8a87c076112a1b344633184673cfb0bb6bce1aca28c78986a7b1047d257a448",
 	},
-	CRCArbiters: []CRCArbitratorParams{
-	//todo add CRC arbiters
+	CRCArbiters: []CRCArbiter{
+		//todo add CRC arbiters
 	},
-
-	PowLimit:           powLimit,
-	PowLimitBits:       0x207fffff,
-	TargetTimePerBlock: 1 * time.Second,  // 1 second
-	TargetTimespan:     10 * time.Second, // 10 seconds
-	AdjustmentFactor:   4,                // 25% less, 400% more
-	RewardPerBlock:     rewardPerBlock(1 * time.Second),
-	CoinbaseMaturity:   100,
-	MinTransactionFee:  100,
-	HeightVersions: []uint32{
-		0,
-		0,
-		1008812, //fixme edit height later
-		1108812, //fixme edit height later
-	},
-	VoteStartHeight:          1008812, //fixme edit height later
+	PowLimit:                 powLimit,
+	PowLimitBits:             0x207fffff,
+	TargetTimePerBlock:       1 * time.Second,  // 1 second
+	TargetTimespan:           10 * time.Second, // 10 seconds
+	AdjustmentFactor:         4,                // 25% less, 400% more
+	RewardPerBlock:           rewardPerBlock(1 * time.Second),
+	CoinbaseMaturity:         100,
+	MinTransactionFee:        100,
+	CheckAddressHeight:       0,
+	DPOSStartHeight:          1008812, //fixme edit height later
+	OpenArbitersHeight:       1108812, //fixme edit height later
 	MaxInactiveRounds:        3,
 	InactivePenalty:          100 * 100000000,
 	EmergencyInactivePenalty: 500 * 100000000,
 	InactiveEliminateCount:   12,
-}
-
-// CRCArbitratorParam defines parameters about arbitrators consensus and direct connection
-type CRCArbitratorParams struct {
-	PublicKey  []byte
-	NetAddress string
 }
 
 type Params struct {
@@ -206,12 +187,6 @@ type Params struct {
 
 	// GenesisBlock defines the first block of the chain.
 	GenesisBlock *types.Block
-
-	// OriginArbiters defines the original arbiters producing the block.
-	OriginArbiters []string
-
-	// CRCArbiters defines the fixed CRC arbiters producing the block.
-	CRCArbiters []CRCArbitratorParams
 
 	// PowLimit defines the highest allowed proof of work value for a block
 	// as a uint256.
@@ -250,13 +225,29 @@ type Params struct {
 	// MinTransactionFee defines the minimum fee of a transaction.
 	MinTransactionFee int64
 
-	// Define height versions about block chain.
-	HeightVersions []uint32
+	// OriginArbiters defines the original arbiters producing the block.
+	OriginArbiters []string
 
-	// VoteStartHeight indicates the height of DPOS consensus begins.
-	VoteStartHeight uint32
+	// CRCArbiters defines the fixed CRC arbiters producing the block.
+	CRCArbiters []CRCArbiter
 
-	// MaxInactiveRounds defines the maximum inactive rounds before producer
+	// CheckAddressHeight defines the height where check output address begins.
+	CheckAddressHeight uint32
+
+	// DPOSStartHeight indicates the height where DPOS consensus begins.
+	DPOSStartHeight uint32
+
+	// OpenArbitersHeight indicates the height where the elected arbiters come
+	// into the DPOS consensus.
+	OpenArbitersHeight uint32
+
+	// ArbitersCount defines the general DPOS arbiters count(not including CRCs).
+	ArbitersCount uint32
+
+	// CandidatesCount defines the candidate arbiters count.
+	CandidatesCount uint32
+
+	// MaxInactiveRounds defines the maximum inactive rounds before producer.
 	// takes penalty.
 	MaxInactiveRounds uint32
 

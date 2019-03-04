@@ -44,7 +44,7 @@ var Template = Configuration{
 		MaxLogsSize:              0,
 		MaxPerLogSize:            0,
 		MaxConnections:           100,
-		NormalArbitratorsCount:   5,
+		NormalArbitersCount:      5,
 		CandidatesCount:          0,
 		EmergencyDuration:        uint32((time.Hour * 24 * 7) / time.Second),
 		EmergencyInactivePenalty: 500 * 100000000,
@@ -58,10 +58,7 @@ var Template = Configuration{
 		Pass:        "",
 		WhiteIPList: []string{"127.0.0.1"},
 	},
-	HeightVersions: []uint32{
-		0,
-		88812,
-		1008812, //fixme edit height later
-		1108812, //fixme edit height later
-	},
+	CheckAddressHeight: 88812,
+	DPOSStartHeight:    1008812,
+	OpenArbitersHeight: 1108812,
 }

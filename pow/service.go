@@ -11,7 +11,6 @@ import (
 
 	"github.com/elastos/Elastos.ELA/auxpow"
 	"github.com/elastos/Elastos.ELA/blockchain"
-	"github.com/elastos/Elastos.ELA/blockchain/interfaces"
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/common/log"
@@ -19,9 +18,11 @@ import (
 	"github.com/elastos/Elastos.ELA/core/types/outputpayload"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/crypto"
+	"github.com/elastos/Elastos.ELA/dpos/state"
 	"github.com/elastos/Elastos.ELA/elanet/pact"
 	"github.com/elastos/Elastos.ELA/errors"
 	"github.com/elastos/Elastos.ELA/mempool"
+	"github.com/elastos/Elastos.ELA/version"
 )
 
 const (
@@ -35,7 +36,7 @@ type Config struct {
 	Chain          *blockchain.BlockChain
 	ChainParams    *config.Params
 	TxMemPool      *mempool.TxPool
-	Versions       interfaces.HeightVersions
+	Versions       version.HeightVersions
 	BroadcastBlock func(block *types.Block)
 }
 
@@ -73,7 +74,8 @@ type Service struct {
 	MinerInfo   string
 	chain       *blockchain.BlockChain
 	chainParams *config.Params
-	versions    interfaces.HeightVersions
+	dutyState   *state.DutyState
+	versions    version.HeightVersions
 	txMemPool   *mempool.TxPool
 	broadcast   func(block *types.Block)
 
@@ -92,20 +94,20 @@ type Service struct {
 	lastBlock *types.Block
 }
 
-func (pow *Service) CreateCoinbaseTx(minerAddr string) (*types.Transaction, error) {
+func (s *Service) CreateCoinbaseTx(minerAddr string) (*types.Transaction, error) {
 	minerProgramHash, err := common.Uint168FromAddress(minerAddr)
 	if err != nil {
 		return nil, err
 	}
 
-	currentHeight := pow.chain.GetHeight() + 1
-	version := types.TransactionVersion(pow.versions.GetDefaultTxVersion(currentHeight))
+	currentHeight := s.chain.GetHeight() + 1
+	version := types.TransactionVersion(s.versions.GetDefaultTxVersion(currentHeight))
 	tx := &types.Transaction{
 		Version:        version,
 		TxType:         types.CoinBase,
 		PayloadVersion: payload.CoinBaseVersion,
 		Payload: &payload.CoinBase{
-			Content: []byte(pow.MinerInfo),
+			Content: []byte(s.MinerInfo),
 		},
 		Inputs: []*types.Input{
 			{
@@ -120,7 +122,7 @@ func (pow *Service) CreateCoinbaseTx(minerAddr string) (*types.Transaction, erro
 			{
 				AssetID:     config.ELAAssetID,
 				Value:       0,
-				ProgramHash: pow.chainParams.Foundation,
+				ProgramHash: s.chainParams.Foundation,
 				Type:        types.OTNone,
 				Payload:     &outputpayload.DefaultOutput{},
 			},
@@ -144,19 +146,93 @@ func (pow *Service) CreateCoinbaseTx(minerAddr string) (*types.Transaction, erro
 	return tx, nil
 }
 
-func (pow *Service) GenerateBlock(minerAddr string) (*types.Block, error) {
-	bestChain := pow.chain.BestChain
+func (s *Service) assignCoinbaseRewards(block *types.Block, totalReward common.Fixed64) error {
+	// The point open arbiters join into DPOS consensus.
+	if block.Height >= s.chainParams.OpenArbitersHeight {
+		rewardCyberRepublic := common.Fixed64(math.Ceil(float64(totalReward) * 0.3))
+		rewardDposArbiter := common.Fixed64(float64(totalReward) * 0.35)
+
+		var dposChange common.Fixed64
+		var err error
+		if dposChange, err = s.distributeDposReward(block.Transactions[0], rewardDposArbiter); err != nil {
+			return err
+		}
+		rewardMergeMiner := common.Fixed64(totalReward) - rewardCyberRepublic - rewardDposArbiter + dposChange
+		block.Transactions[0].Outputs[0].Value = rewardCyberRepublic
+		block.Transactions[0].Outputs[1].Value = rewardMergeMiner
+		return nil
+	}
+
+	if block.Height >= s.chainParams.DPOSStartHeight {
+		return s.assignCoinbaseRewardsV1(block, totalReward)
+	}
+
+	return s.assignCoinbaseRewardsV0(block, totalReward)
+}
+
+func (s *Service) distributeDposReward(coinBaseTx *types.Transaction, reward common.Fixed64) (common.Fixed64, error) {
+	arbitratorsHashes := s.dutyState.GetArbiterProgramHashes()
+	if len(arbitratorsHashes) == 0 {
+		return 0, fmt.Errorf("not found arbiters when distributeDposReward")
+	}
+	candidatesHashes := s.dutyState.GetCandidateProgramHashes()
+
+	totalBlockConfirmReward := float64(reward) * 0.25
+	totalTopProducersReward := float64(reward) * 0.75
+	individualBlockConfirmReward := common.Fixed64(math.Floor(totalBlockConfirmReward / float64(len(arbitratorsHashes))))
+	individualProducerReward := common.Fixed64(math.Floor(totalTopProducersReward / float64(int(s.chainParams.ArbitersCount)+len(candidatesHashes))))
+
+	realDposReward := common.Fixed64(0)
+	for _, v := range arbitratorsHashes {
+		reward := individualBlockConfirmReward + individualProducerReward
+		if s.dutyState.IsCRCArbiterProgramHash(v) {
+			reward = individualBlockConfirmReward
+		}
+
+		coinBaseTx.Outputs = append(coinBaseTx.Outputs, &types.Output{
+			AssetID:     config.ELAAssetID,
+			Value:       reward,
+			ProgramHash: *v,
+			Type:        types.OTNone,
+			Payload:     &outputpayload.DefaultOutput{},
+		})
+
+		realDposReward += reward
+	}
+
+	for _, v := range candidatesHashes {
+
+		coinBaseTx.Outputs = append(coinBaseTx.Outputs, &types.Output{
+			AssetID:     config.ELAAssetID,
+			Value:       individualProducerReward,
+			ProgramHash: *v,
+			Type:        types.OTNone,
+			Payload:     &outputpayload.DefaultOutput{},
+		})
+
+		realDposReward += individualProducerReward
+	}
+
+	change := reward - realDposReward
+	if change < 0 {
+		return 0, fmt.Errorf("real dpos reward more than reward limit")
+	}
+	return change, nil
+}
+
+func (s *Service) GenerateBlock(minerAddr string) (*types.Block, error) {
+	bestChain := s.chain.BestChain
 	nextBlockHeight := bestChain.Height + 1
-	coinBaseTx, err := pow.CreateCoinbaseTx(minerAddr)
+	coinBaseTx, err := s.CreateCoinbaseTx(minerAddr)
 	if err != nil {
 		return nil, err
 	}
 
 	header := types.Header{
-		Version:    pow.versions.GetDefaultBlockVersion(nextBlockHeight),
-		Previous:   *pow.chain.BestChain.Hash,
+		Version:    s.versions.GetDefaultBlockVersion(nextBlockHeight),
+		Previous:   *s.chain.BestChain.Hash,
 		MerkleRoot: common.EmptyHash,
-		Timestamp:  uint32(pow.chain.MedianAdjustedTime().Unix()),
+		Timestamp:  uint32(s.chain.MedianAdjustedTime().Unix()),
 		Bits:       config.Parameters.ChainParam.PowLimitBits,
 		Height:     nextBlockHeight,
 		Nonce:      0,
@@ -171,12 +247,12 @@ func (pow *Service) GenerateBlock(minerAddr string) (*types.Block, error) {
 	totalTxsSize := coinBaseTx.GetSize()
 	txCount := 1
 	totalTxFee := common.Fixed64(0)
-	txs := pow.txMemPool.GetTxsInPool()
+	txs := s.txMemPool.GetTxsInPool()
 	sort.Slice(txs, func(i, j int) bool {
-		if txs[i].IsIllegalTypeTx() || txs[i].IsInactiveArbitrators() {
+		if txs[i].IsIllegalTypeTx() || txs[i].IsInactiveArbiters() {
 			return true
 		}
-		if txs[j].IsIllegalTypeTx() || txs[j].IsInactiveArbitrators() {
+		if txs[j].IsIllegalTypeTx() || txs[j].IsInactiveArbiters() {
 			return false
 		}
 		return txs[i].FeePerKB > txs[j].FeePerKB
@@ -194,7 +270,7 @@ func (pow *Service) GenerateBlock(minerAddr string) (*types.Block, error) {
 		if !blockchain.IsFinalizedTransaction(tx, nextBlockHeight) {
 			continue
 		}
-		if errCode := pow.chain.CheckTransactionContext(nextBlockHeight, tx); errCode != errors.Success {
+		if errCode := s.chain.CheckTransactionContext(nextBlockHeight, tx); errCode != errors.Success {
 			log.Warn("check transaction context failed, wrong transaction:", tx.Hash().String())
 			continue
 		}
@@ -207,8 +283,8 @@ func (pow *Service) GenerateBlock(minerAddr string) (*types.Block, error) {
 		txCount++
 	}
 
-	totalReward := totalTxFee + pow.chainParams.RewardPerBlock
-	if err := pow.versions.AssignCoinbaseTxRewards(msgBlock, totalReward); err != nil {
+	totalReward := totalTxFee + s.chainParams.RewardPerBlock
+	if err := s.assignCoinbaseRewards(msgBlock, totalReward); err != nil {
 		return nil, err
 	}
 
@@ -219,80 +295,80 @@ func (pow *Service) GenerateBlock(minerAddr string) (*types.Block, error) {
 	txRoot, _ := crypto.ComputeRoot(txHash)
 	msgBlock.Header.MerkleRoot = txRoot
 
-	msgBlock.Header.Bits, err = pow.chain.CalcNextRequiredDifficulty(bestChain, time.Now())
+	msgBlock.Header.Bits, err = s.chain.CalcNextRequiredDifficulty(bestChain, time.Now())
 	log.Info("difficulty: ", msgBlock.Header.Bits)
 
 	return msgBlock, err
 }
 
-func (pow *Service) CreateAuxBlock(payToAddr string) (*types.Block, error) {
-	pow.mutex.Lock()
-	defer pow.mutex.Unlock()
+func (s *Service) CreateAuxBlock(payToAddr string) (*types.Block, error) {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
 
-	if pow.chain.GetHeight() == 0 || pow.preChainHeight != pow.chain.GetHeight() ||
-		time.Now().After(pow.preTime.Add(updateInterval)) {
+	if s.chain.GetHeight() == 0 || s.preChainHeight != s.chain.GetHeight() ||
+		time.Now().After(s.preTime.Add(updateInterval)) {
 
-		if pow.preChainHeight != pow.chain.GetHeight() {
+		if s.preChainHeight != s.chain.GetHeight() {
 			// Clear old blocks since they're obsolete now.
-			pow.currentAuxBlock = nil
-			pow.blockPool.ClearBlock()
+			s.currentAuxBlock = nil
+			s.blockPool.ClearBlock()
 		}
 
 		// Create new block with nonce = 0
-		auxBlock, err := pow.GenerateBlock(payToAddr)
+		auxBlock, err := s.GenerateBlock(payToAddr)
 		if err != nil {
 			return nil, err
 		}
 
 		// Update state only when CreateNewBlock succeeded
-		pow.preChainHeight = pow.chain.GetHeight()
-		pow.preTime = time.Now()
+		s.preChainHeight = s.chain.GetHeight()
+		s.preTime = time.Now()
 
 		// Save
-		pow.currentAuxBlock = auxBlock
-		pow.blockPool.AppendBlock(auxBlock)
+		s.currentAuxBlock = auxBlock
+		s.blockPool.AppendBlock(auxBlock)
 	}
 
 	// At this point, currentAuxBlock is always initialised: If we make it here without creating
 	// a new block above, it means that, in particular, preChainHeight == ServerNode.Height().
 	// But for that to happen, we must already have created a currentAuxBlock in a previous call,
 	// as preChainHeight is initialised only when currentAuxBlock is.
-	if pow.currentAuxBlock == nil {
+	if s.currentAuxBlock == nil {
 		return nil, fmt.Errorf("no block cached")
 	}
 
-	return pow.currentAuxBlock, nil
+	return s.currentAuxBlock, nil
 }
 
-func (pow *Service) SubmitAuxBlock(hash *common.Uint256, auxPow *auxpow.AuxPow) error {
-	pow.mutex.Lock()
-	defer pow.mutex.Unlock()
+func (s *Service) SubmitAuxBlock(hash *common.Uint256, auxPow *auxpow.AuxPow) error {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
 
-	msgAuxBlock, ok := pow.blockPool.GetBlock(*hash)
+	msgAuxBlock, ok := s.blockPool.GetBlock(*hash)
 	if !ok {
 		log.Debug("[json-rpc:SubmitAuxBlock] block hash unknown", hash)
 		return fmt.Errorf("block hash unknown")
 	}
 
 	msgAuxBlock.Header.AuxPow = *auxPow
-	_, _, err := pow.versions.AddDposBlock(&types.DposBlock{
+	_, _, err := s.versions.AddDposBlock(&types.DposBlock{
 		BlockFlag: true,
 		Block:     msgAuxBlock,
 	})
 	return err
 }
 
-func (pow *Service) DiscreteMining(n uint32) ([]*common.Uint256, error) {
-	pow.mutex.Lock()
+func (s *Service) DiscreteMining(n uint32) ([]*common.Uint256, error) {
+	s.mutex.Lock()
 
-	if pow.started || pow.discreteMining {
-		pow.mutex.Unlock()
+	if s.started || s.discreteMining {
+		s.mutex.Unlock()
 		return nil, fmt.Errorf("Server is already CPU mining.")
 	}
 
-	pow.started = true
-	pow.discreteMining = true
-	pow.mutex.Unlock()
+	s.started = true
+	s.discreteMining = true
+	s.mutex.Unlock()
 
 	log.Debugf("Pow generating %d blocks", n)
 	i := uint32(0)
@@ -301,16 +377,16 @@ func (pow *Service) DiscreteMining(n uint32) ([]*common.Uint256, error) {
 	for {
 		log.Debug("<================Discrete Mining==============>\n")
 
-		msgBlock, err := pow.GenerateBlock(pow.PayToAddr)
+		msgBlock, err := s.GenerateBlock(s.PayToAddr)
 		if err != nil {
 			log.Debug("generage block err", err)
 			continue
 		}
 
-		if pow.SolveBlock(msgBlock, nil) {
-			if msgBlock.Header.Height == pow.chain.GetHeight()+1 {
+		if s.SolveBlock(msgBlock, nil) {
+			if msgBlock.Header.Height == s.chain.GetHeight()+1 {
 
-				_, _, err := pow.versions.AddDposBlock(&types.DposBlock{
+				_, _, err := s.versions.AddDposBlock(&types.DposBlock{
 					BlockFlag: true,
 					Block:     msgBlock,
 				})
@@ -322,10 +398,10 @@ func (pow *Service) DiscreteMining(n uint32) ([]*common.Uint256, error) {
 				blockHashes = append(blockHashes, &h)
 				i++
 				if i == n {
-					pow.mutex.Lock()
-					pow.started = false
-					pow.discreteMining = false
-					pow.mutex.Unlock()
+					s.mutex.Lock()
+					s.started = false
+					s.discreteMining = false
+					s.mutex.Unlock()
 					return blockHashes, nil
 				}
 			}
@@ -333,7 +409,7 @@ func (pow *Service) DiscreteMining(n uint32) ([]*common.Uint256, error) {
 	}
 }
 
-func (pow *Service) SolveBlock(msgBlock *types.Block, lastBlockHash *common.Uint256) bool {
+func (s *Service) SolveBlock(msgBlock *types.Block, lastBlockHash *common.Uint256) bool {
 	ticker := time.NewTicker(updateInterval)
 	defer ticker.Stop()
 	// fake a btc blockheader and coinbase
@@ -360,71 +436,71 @@ func (pow *Service) SolveBlock(msgBlock *types.Block, lastBlockHash *common.Uint
 	return false
 }
 
-func (pow *Service) Start() {
-	pow.mutex.Lock()
-	defer pow.mutex.Unlock()
-	if pow.started || pow.discreteMining {
+func (s *Service) Start() {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+	if s.started || s.discreteMining {
 		log.Debug("cpuMining is already started")
 	}
 
-	pow.quit = make(chan struct{})
-	pow.wg.Add(1)
-	pow.started = true
+	s.quit = make(chan struct{})
+	s.wg.Add(1)
+	s.started = true
 
-	go pow.cpuMining()
+	go s.cpuMining()
 }
 
-func (pow *Service) Halt() {
+func (s *Service) Halt() {
 	log.Info("POW Stop")
-	pow.mutex.Lock()
-	defer pow.mutex.Unlock()
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
 
-	if !pow.started || pow.discreteMining {
+	if !s.started || s.discreteMining {
 		return
 	}
 
-	close(pow.quit)
-	pow.wg.Wait()
-	pow.started = false
+	close(s.quit)
+	s.wg.Wait()
+	s.started = false
 }
 
-func (pow *Service) cpuMining() {
-	blockVersion := pow.versions.GetDefaultBlockVersion(pow.chain.BestChain.Height + 1)
+func (s *Service) cpuMining() {
+	blockVersion := s.versions.GetDefaultBlockVersion(s.chain.BestChain.Height + 1)
 	switch blockVersion {
 	case 0:
-		pow.cpuMiningV0()
+		s.cpuMiningV0()
 	default:
-		pow.cpuMiningMain()
+		s.cpuMiningMain()
 	}
 }
 
-func (pow *Service) cpuMiningMain() {
+func (s *Service) cpuMiningMain() {
 out:
 	for {
 		select {
-		case <-pow.quit:
+		case <-s.quit:
 			break out
 		default:
 			// Non-blocking select to fall through
 		}
 		log.Info("<================Packing Block==============>")
 
-		pow.lock.Lock()
-		msgBlock, err := pow.GenerateBlock(pow.PayToAddr)
+		s.lock.Lock()
+		msgBlock, err := s.GenerateBlock(s.PayToAddr)
 		if err != nil {
 			log.Error("generage block err", err)
-			pow.lock.Unlock()
+			s.lock.Unlock()
 			continue
 		}
-		pow.lock.Unlock()
+		s.lock.Unlock()
 
 		//begin to mine the block with POW
-		hash := pow.lastBlock.Hash()
-		if pow.SolveBlock(msgBlock, &hash) {
+		hash := s.lastBlock.Hash()
+		if s.SolveBlock(msgBlock, &hash) {
 			log.Info("<================Solved Block==============>")
 			//send the valid block to p2p networkd
 
-			_, _, err := pow.versions.AddDposBlock(&types.DposBlock{
+			_, _, err := s.versions.AddDposBlock(&types.DposBlock{
 				BlockFlag: true,
 				Block:     msgBlock,
 			})
@@ -433,29 +509,29 @@ out:
 				continue
 			}
 
-			pow.broadcast(msgBlock)
+			s.broadcast(msgBlock)
 			hash := msgBlock.Hash()
 			node := blockchain.NewBlockNode(&msgBlock.Header, &hash)
 			node.InMainChain = true
 			prevHash := &msgBlock.Previous
-			if parentNode, ok := pow.chain.LookupNodeInIndex(prevHash); ok {
+			if parentNode, ok := s.chain.LookupNodeInIndex(prevHash); ok {
 				node.WorkSum = node.WorkSum.Add(parentNode.WorkSum, node.WorkSum)
 				node.Parent = parentNode
 			}
-			pow.lock.Lock()
-			pow.lastBlock = msgBlock
-			pow.lock.Unlock()
+			s.lock.Lock()
+			s.lastBlock = msgBlock
+			s.lock.Unlock()
 		}
 	}
 
-	pow.wg.Done()
+	s.wg.Done()
 }
 
-func (pow *Service) cpuMiningV0() {
+func (s *Service) cpuMiningV0() {
 out:
 	for {
 		select {
-		case <-pow.quit:
+		case <-s.quit:
 			break out
 		default:
 			// Non-blocking select to fall through
@@ -463,19 +539,19 @@ out:
 		log.Debug("<================Packing Block==============>")
 		//time.Sleep(15 * time.Second)
 
-		msgBlock, err := pow.GenerateBlock(pow.PayToAddr)
+		msgBlock, err := s.GenerateBlock(s.PayToAddr)
 		if err != nil {
 			log.Debug("generage block err", err)
 			continue
 		}
 
 		//begin to mine the block with POW
-		if pow.SolveBlock(msgBlock, nil) {
+		if s.SolveBlock(msgBlock, nil) {
 			log.Info("<================Solved Block==============>")
 			//send the valid block to p2p networkd
-			if msgBlock.Header.Height == pow.chain.GetHeight()+1 {
+			if msgBlock.Header.Height == s.chain.GetHeight()+1 {
 
-				inMainChain, isOrphan, err := pow.versions.AddDposBlock(&types.DposBlock{
+				inMainChain, isOrphan, err := s.versions.AddDposBlock(&types.DposBlock{
 					BlockFlag: true,
 					Block:     msgBlock,
 				})
@@ -492,7 +568,7 @@ out:
 
 	}
 
-	pow.wg.Done()
+	s.wg.Done()
 }
 
 func NewService(cfg *Config) *Service {

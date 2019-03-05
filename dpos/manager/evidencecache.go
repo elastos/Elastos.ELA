@@ -26,7 +26,7 @@ func (e *evidenceCache) IsBlockValid(block *types.Block) bool {
 	for k, v := range e.evidences {
 		tolerance := WaitHeightTolerance
 		if v.Type() == payload.IllegalBlock ||
-			v.Type() == payload.InactiveArbitrator {
+			v.Type() == payload.InactiveArbiter {
 			tolerance = 0
 		}
 		if v.GetBlockHeight()+tolerance < block.Height {
@@ -75,9 +75,9 @@ func (e *evidenceCache) tryGetEvidenceHash(tx *types.Transaction) (common.Uint25
 	case types.IllegalSidechainEvidence:
 		sidechainPayload := tx.Payload.(*payload.SidechainIllegalData)
 		hash = sidechainPayload.Hash()
-	case types.InactiveArbitrators:
-		inactiveArbitrators := tx.Payload.(*payload.InactiveArbitrators)
-		hash = inactiveArbitrators.Hash()
+	case types.InactiveArbiters:
+		inactiveArbiters := tx.Payload.(*payload.InactiveArbiters)
+		hash = inactiveArbiters.Hash()
 	default:
 		result = false
 	}

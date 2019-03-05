@@ -3,22 +3,22 @@ package store
 import (
 	"sort"
 
-	"github.com/elastos/Elastos.ELA/blockchain/interfaces"
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/dpos/log"
+	"github.com/elastos/Elastos.ELA/dpos/state"
 )
 
 type EventStoreAnalyzerConfig struct {
 	InactiveEliminateCount uint32
-	Store                  interfaces.IDposStore
-	Arbitrators            interfaces.Arbitrators
+	Store                  IDposStore
+	DutyState              *state.DutyState
 }
 
 type EventStoreAnalyzer struct {
 	cfg EventStoreAnalyzerConfig
 }
 
-func (e *EventStoreAnalyzer) ParseInactiveArbitrators() (
+func (e *EventStoreAnalyzer) ParseInactiveArbiters() (
 	result []string) {
 
 	viewCount := e.getLastConsensusViewCount()
@@ -38,8 +38,8 @@ func (e *EventStoreAnalyzer) ParseInactiveArbitrators() (
 		PK    string
 	}
 	var sortItems []sortItem
-	currentArbitrators := e.cfg.Arbitrators.GetArbitrators()
-	for _, v := range currentArbitrators {
+	currentArbiters := e.cfg.DutyState.GetArbiters()
+	for _, v := range currentArbiters {
 		hexPk := common.BytesToHexString(v)
 
 		ratio := float64(0)

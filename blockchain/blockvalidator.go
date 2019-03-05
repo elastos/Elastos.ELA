@@ -336,7 +336,7 @@ func (b *BlockChain) checkCoinbaseTransactionContext(blockHeight uint32, coinbas
 		return errors.New("Reward amount in coinbase not correct")
 	}
 
-	if err := DefaultLedger.HeightVersions.CheckCoinbaseArbitratorsReward(blockHeight, coinbase, rewardInCoinbase); err != nil {
+	if err := DefaultLedger.HeightVersions.CheckCoinbaseArbitersReward(blockHeight, coinbase, rewardInCoinbase); err != nil {
 		return err
 	}
 

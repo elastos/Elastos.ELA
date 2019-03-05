@@ -11,7 +11,6 @@ import (
 
 	aux "github.com/elastos/Elastos.ELA/auxpow"
 	"github.com/elastos/Elastos.ELA/blockchain"
-	"github.com/elastos/Elastos.ELA/blockchain/interfaces"
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/common/log"
@@ -27,6 +26,7 @@ import (
 	"github.com/elastos/Elastos.ELA/p2p/msg"
 	"github.com/elastos/Elastos.ELA/p2p/peer"
 	"github.com/elastos/Elastos.ELA/pow"
+	"github.com/elastos/Elastos.ELA/version"
 )
 
 var (
@@ -35,9 +35,9 @@ var (
 	TxMemPool *mempool.TxPool
 	Pow       *pow.Service
 	Server    elanet.Server
-	Arbiter   *dpos.Arbitrator
-	Arbiters  interfaces.Arbitrators
-	Versions  interfaces.HeightVersions
+	Arbiter   *dpos.Arbiter
+	DutyState *state.DutyState
+	Versions  version.HeightVersions
 )
 
 func ToReversedString(hash common.Uint256) string {
@@ -584,7 +584,7 @@ func GetBlockByHeight(param Params) map[string]interface{} {
 	return ResponsePack(errCode, result)
 }
 
-func GetArbitratorGroupByHeight(param Params) map[string]interface{} {
+func GetArbiterGroupByHeight(param Params) map[string]interface{} {
 	height, ok := param.Uint("height")
 	if !ok {
 		return ResponsePack(InvalidParams, "height parameter should be a positive integer")
@@ -600,7 +600,7 @@ func GetArbitratorGroupByHeight(param Params) map[string]interface{} {
 		return ResponsePack(InternalError, "")
 	}
 
-	arbitratorsBytes := Arbiters.GetArbitrators()
+	arbitratorsBytes := DutyState.GetArbiters()
 	index := int(block.Header.Height) % len(arbitratorsBytes)
 
 	var arbitrators []string
@@ -608,9 +608,9 @@ func GetArbitratorGroupByHeight(param Params) map[string]interface{} {
 		arbitrators = append(arbitrators, common.BytesToHexString(data))
 	}
 
-	result := ArbitratorGroupInfo{
-		OnDutyArbitratorIndex: index,
-		Arbitrators:           arbitrators,
+	result := ArbiterGroupInfo{
+		OnDutyArbiterIndex: index,
+		Arbiters:           arbitrators,
 	}
 
 	return ResponsePack(Success, result)

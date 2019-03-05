@@ -41,7 +41,7 @@ const (
 	IllegalVoteEvidence      TxType = 0x0f
 	IllegalBlockEvidence     TxType = 0x10
 	IllegalSidechainEvidence TxType = 0x11
-	InactiveArbitrators      TxType = 0x12
+	InactiveArbiters         TxType = 0x12
 )
 
 func (self TxType) Name() string {
@@ -82,8 +82,8 @@ func (self TxType) Name() string {
 		return "IllegalBlockEvidence"
 	case IllegalSidechainEvidence:
 		return "IllegalSidechainEvidence"
-	case InactiveArbitrators:
-		return "InactiveArbitrators"
+	case InactiveArbiters:
+		return "InactiveArbiters"
 	default:
 		return "Unknown"
 	}
@@ -343,8 +343,8 @@ func (tx *Transaction) IsSidechainIllegalDataTx() bool {
 	return tx.TxType == IllegalSidechainEvidence
 }
 
-func (tx *Transaction) IsInactiveArbitrators() bool {
-	return tx.TxType == InactiveArbitrators
+func (tx *Transaction) IsInactiveArbiters() bool {
+	return tx.TxType == InactiveArbiters
 }
 
 func (tx *Transaction) IsUpdateProducerTx() bool {
@@ -433,8 +433,8 @@ func GetPayload(txType TxType) (Payload, error) {
 		p = new(payload.DPOSIllegalBlocks)
 	case IllegalSidechainEvidence:
 		p = new(payload.SidechainIllegalData)
-	case InactiveArbitrators:
-		p = new(payload.InactiveArbitrators)
+	case InactiveArbiters:
+		p = new(payload.InactiveArbiters)
 	default:
 		return nil, errors.New("[Transaction], invalid transaction type.")
 	}

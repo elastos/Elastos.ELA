@@ -123,8 +123,8 @@ func checkCrossChainSignatures(program Program, data []byte) error {
 	n := int(code[len(code)-2]) - crypto.PUSH1 + 1
 	// Get M parameter
 	m := int(code[0]) - crypto.PUSH1 + 1
-	if m < 1 || m > n || n != int(DefaultLedger.Arbitrators.GetArbitersCount()) ||
-		m <= int(DefaultLedger.Arbitrators.GetArbitersMajorityCount()) {
+	if m < 1 || m > n || n != int(DefaultLedger.Arbiters.GetArbitersCount()) ||
+		m <= int(DefaultLedger.Arbiters.GetArbitersMajorityCount()) {
 		return errors.New("invalid multi sign script code")
 	}
 	publicKeys, err := crypto.ParseCrossChainScript(code)
@@ -132,7 +132,7 @@ func checkCrossChainSignatures(program Program, data []byte) error {
 		return err
 	}
 
-	if err := checkCrossChainArbitrators(publicKeys); err != nil {
+	if err := checkCrossChainArbiters(publicKeys); err != nil {
 		return err
 	}
 
@@ -182,8 +182,8 @@ func verifyMultisigSignatures(m, n int, publicKeys [][]byte, signatures, data []
 	return nil
 }
 
-func checkCrossChainArbitrators(publicKeys [][]byte) error {
-	arbitrators := DefaultLedger.Arbitrators.GetArbitrators()
+func checkCrossChainArbiters(publicKeys [][]byte) error {
+	arbitrators := DefaultLedger.Arbiters.GetArbiters()
 	if len(arbitrators) != len(publicKeys) {
 		return errors.New("invalid arbitrator count")
 	}
@@ -208,7 +208,7 @@ func checkCrossChainArbitrators(publicKeys [][]byte) error {
 	// todo improve me when height version refactoring
 	if DefaultLedger.Blockchain.GetHeight() >
 		config.Parameters.HeightVersions[1] {
-		for _, crc := range DefaultLedger.Arbitrators.GetCRCArbitrators() {
+		for _, crc := range DefaultLedger.Arbiters.GetCRCArbiters() {
 			if _, exist :=
 				arbitratorsMap[common.BytesToHexString(crc.PublicKey)]; !exist {
 				return errors.New("not all crc arbitrators participated in" +

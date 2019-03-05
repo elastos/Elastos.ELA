@@ -1,8 +1,8 @@
 package manager
 
 import (
-	"github.com/elastos/Elastos.ELA/blockchain/interfaces"
 	"github.com/elastos/Elastos.ELA/common/config"
+	"github.com/elastos/Elastos.ELA/dpos/state"
 )
 
 const (
@@ -20,19 +20,20 @@ const (
 type ViewChangesCountDown struct {
 	dispatcher  *ProposalDispatcher
 	consensus   *Consensus
-	arbitrators interfaces.Arbitrators
+	chainParams *config.Params
+	dutyState   *state.DutyState
 
-	timeoutRefactor               uint32
-	inactiveArbitratorsEliminated bool
+	timeoutRefactor            uint32
+	inactiveArbitersEliminated bool
 }
 
 func (c *ViewChangesCountDown) Reset() {
-	c.inactiveArbitratorsEliminated = false
+	c.inactiveArbitersEliminated = false
 	c.timeoutRefactor = 0
 }
 
 func (c *ViewChangesCountDown) SetEliminated() {
-	c.inactiveArbitratorsEliminated = true
+	c.inactiveArbitersEliminated = true
 
 	if c.timeoutRefactor == 0 {
 		c.timeoutRefactor += firstTimeoutFactor
@@ -43,10 +44,11 @@ func (c *ViewChangesCountDown) SetEliminated() {
 
 func (c *ViewChangesCountDown) IsTimeOut() bool {
 	//todo improve me when height versions refactor is done
-	if c.dispatcher.CurrentHeight() <= config.Parameters.HeightVersions[3] || c.timeoutRefactor == 0 {
+	if c.dispatcher.CurrentHeight() <= c.chainParams.OpenArbitersHeight ||
+		c.timeoutRefactor == 0 {
 		return false
 	}
 
 	return c.consensus.GetViewOffset() >=
-		c.arbitrators.GetArbitersCount()*c.timeoutRefactor
+		c.dutyState.GetArbitersCount()*c.timeoutRefactor
 }

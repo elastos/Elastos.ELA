@@ -25,7 +25,7 @@ func (v *txV0) CheckCoinbaseMinerReward(tx *types.Transaction, totalReward commo
 	return nil
 }
 
-func (v *txV0) CheckCoinbaseArbitratorsReward(coinbase *types.Transaction, rewardInCoinbase common.Fixed64) error {
+func (v *txV0) CheckCoinbaseArbitersReward(coinbase *types.Transaction, rewardInCoinbase common.Fixed64) error {
 	return nil
 }
 

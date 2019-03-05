@@ -138,7 +138,7 @@ func getUTXO(L *lua.LState) int {
 
 func initLedger(L *lua.LState) int {
 	logLevel := uint8(L.ToInt(1))
-	arbitrators := checkArbitrators(L, 2)
+	arbitrators := checkDutyState(L, 2)
 
 	log.NewDefault(logLevel, 0, 0)
 	dlog.Init(logLevel, 0, 0)
@@ -154,7 +154,8 @@ func initLedger(L *lua.LState) int {
 	}
 
 	var interrupt = signal.NewInterrupt()
-	chain, err := blockchain.New(chainStore, &config.MainNetParams, versions, state.NewState(nil, &config.MainNetParams))
+	dutyState, err := state.NewDutyState(&config.MainNetParams, chainStore.GetHeight)
+	chain, err := blockchain.New(chainStore, &config.MainNetParams, versions, dutyState)
 	if err != nil {
 		fmt.Printf("Init block chain error: %s \n", err.Error())
 	}
@@ -162,7 +163,7 @@ func initLedger(L *lua.LState) int {
 	ledger := blockchain.Ledger{}
 	blockchain.DefaultLedger = &ledger // fixme
 	blockchain.DefaultLedger.Blockchain = chain
-	blockchain.DefaultLedger.Arbitrators = arbitrators
+	blockchain.DefaultLedger.DutyState = arbitrators
 	blockchain.DefaultLedger.Store = chainStore
 	blockchain.DefaultLedger.HeightVersions = versions
 
@@ -219,7 +220,7 @@ func RegisterDataType(L *lua.LState) int {
 	RegisterHeaderType(L)
 	RegisterDposNetworkType(L)
 	RegisterDposManagerType(L)
-	RegisterArbitratorsType(L)
+	RegisterArbitersType(L)
 	RegisterRegisterProducerType(L)
 	RegisterUpdateProducerType(L)
 	RegisterCancelProducerType(L)

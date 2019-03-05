@@ -51,20 +51,20 @@ func newDposManager(L *lua.LState) int {
 		fmt.Println("Network nil, create manager error.")
 		return 0
 	}
-	a := checkArbitrators(L, 2)
+	a := checkDutyState(L, 2)
 	index := uint32(L.ToInt(3))
 	if index >= 5 {
 		L.ArgError(1, "Index invalid.")
 		return 0
 	}
 
-	pub, _ := common.HexStringToBytes(arbitratorsPublicKeys[index])
-	dposManager := NewManager(DPOSManagerConfig{PublicKey: pub, Arbitrators: a})
+	pub, _ := common.HexStringToBytes(arbiterPublicKeys[index])
+	dposManager := NewManager(DPOSManagerConfig{PublicKey: pub, DutyState: a})
 	mockManager := &manager{
 		DPOSManager: dposManager,
 	}
 
-	priKey, _ := common.HexStringToBytes(arbitratorsPrivateKeys[index])
+	priKey, _ := common.HexStringToBytes(arbiterPrivateKeys[index])
 	pubKey, _ := crypto.DecodePoint(pub)
 	mockManager.Account = account.NewDposAccountFromExisting(&account2.Account{
 		PrivateKey: priKey,
@@ -89,8 +89,8 @@ func newDposManager(L *lua.LState) int {
 		Account:      mockManager.Account,
 		EventStoreAnalyzerConfig: store.EventStoreAnalyzerConfig{
 			InactiveEliminateCount: config.Parameters.ArbiterConfiguration.InactiveEliminateCount,
-			Store:       nil,
-			Arbitrators: a,
+			Store:                  nil,
+			DutyState:              a,
 		},
 	})
 	mockManager.Handler.Initialize(mockManager.Dispatcher, mockManager.Consensus)

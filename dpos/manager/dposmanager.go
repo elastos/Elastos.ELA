@@ -5,13 +5,14 @@ import (
 	"time"
 
 	"github.com/elastos/Elastos.ELA/blockchain"
-	"github.com/elastos/Elastos.ELA/blockchain/interfaces"
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/core/types"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/dpos/log"
 	dmsg "github.com/elastos/Elastos.ELA/dpos/p2p/msg"
 	dpeer "github.com/elastos/Elastos.ELA/dpos/p2p/peer"
+	"github.com/elastos/Elastos.ELA/dpos/state"
+	"github.com/elastos/Elastos.ELA/dpos/store"
 	"github.com/elastos/Elastos.ELA/errors"
 	"github.com/elastos/Elastos.ELA/mempool"
 	"github.com/elastos/Elastos.ELA/p2p"
@@ -20,7 +21,8 @@ import (
 
 type DPOSNetworkConfig struct {
 	ProposalDispatcher *ProposalDispatcher
-	Store              interfaces.IDposStore
+	DutyState          *state.DutyState
+	Store              store.IDposStore
 	PublicKey          []byte
 }
 
@@ -69,8 +71,8 @@ type NetworkEventListener interface {
 	OnConfirmReceived(p *payload.Confirm)
 	OnIllegalBlocksTxReceived(i *payload.DPOSIllegalBlocks)
 	OnSidechainIllegalEvidenceReceived(s *payload.SidechainIllegalData)
-	OnInactiveArbitratorsReceived(tx *types.Transaction)
-	OnResponseInactiveArbitratorsReceived(txHash *common.Uint256,
+	OnInactiveArbitersReceived(tx *types.Transaction)
+	OnResponseInactiveArbitersReceived(txHash *common.Uint256,
 		Signer []byte, Sign []byte)
 }
 
@@ -80,8 +82,8 @@ type AbnormalRecovering interface {
 }
 
 type DPOSManagerConfig struct {
-	PublicKey   []byte
-	Arbitrators interfaces.Arbitrators
+	PublicKey []byte
+	DutyState *state.DutyState
 }
 
 type DPOSManager struct {
@@ -94,10 +96,10 @@ type DPOSManager struct {
 	consensus      *Consensus
 	illegalMonitor *IllegalBehaviorMonitor
 
-	arbitrators interfaces.Arbitrators
-	blockPool   *mempool.BlockPool
-	txPool      *mempool.TxPool
-	broadcast   func(p2p.Message)
+	dutyState *state.DutyState
+	blockPool *mempool.BlockPool
+	txPool    *mempool.TxPool
+	broadcast func(p2p.Message)
 }
 
 func (d *DPOSManager) AppendConfirm(confirm *payload.Confirm) (bool, bool, error) {
@@ -106,9 +108,9 @@ func (d *DPOSManager) AppendConfirm(confirm *payload.Confirm) (bool, bool, error
 
 func NewManager(cfg DPOSManagerConfig) *DPOSManager {
 	m := &DPOSManager{
-		publicKey:   cfg.PublicKey,
-		blockCache:  &ConsensusBlockCache{},
-		arbitrators: cfg.Arbitrators,
+		publicKey:  cfg.PublicKey,
+		blockCache: &ConsensusBlockCache{},
+		dutyState:  cfg.DutyState,
 	}
 	m.blockCache.Reset()
 
@@ -146,8 +148,8 @@ func (d *DPOSManager) GetBlockCache() *ConsensusBlockCache {
 	return d.blockCache
 }
 
-func (d *DPOSManager) GetArbitrators() interfaces.Arbitrators {
-	return d.arbitrators
+func (d *DPOSManager) DutyState() *state.DutyState {
+	return d.dutyState
 }
 
 func (d *DPOSManager) Recover() {
@@ -315,13 +317,13 @@ func (d *DPOSManager) OnSidechainIllegalEvidenceReceived(s *payload.SidechainIll
 	d.illegalMonitor.SendSidechainIllegalEvidenceTransaction(s)
 }
 
-func (d *DPOSManager) OnInactiveArbitratorsReceived(tx *types.Transaction) {
-	d.dispatcher.OnInactiveArbitratorsReceived(tx)
+func (d *DPOSManager) OnInactiveArbitersReceived(tx *types.Transaction) {
+	d.dispatcher.OnInactiveArbitersReceived(tx)
 }
 
-func (d *DPOSManager) OnResponseInactiveArbitratorsReceived(
+func (d *DPOSManager) OnResponseInactiveArbitersReceived(
 	txHash *common.Uint256, signers []byte, signs []byte) {
-	d.dispatcher.OnResponseInactiveArbitratorsReceived(txHash, signers, signs)
+	d.dispatcher.OnResponseInactiveArbitersReceived(txHash, signers, signs)
 }
 
 func (d *DPOSManager) OnRequestProposal(id dpeer.PID, hash common.Uint256) {
@@ -341,13 +343,13 @@ func (d *DPOSManager) changeHeight() {
 }
 
 func (d *DPOSManager) changeOnDuty() {
-	currentArbiter := d.arbitrators.GetNextOnDutyArbitrator(0)
+	currentArbiter := d.dutyState.GetNextOnDutyArbiter(0)
 	onDuty := bytes.Equal(d.publicKey, currentArbiter)
 
 	if onDuty {
-		log.Info("[onDutyArbitratorChanged] onduty")
+		log.Info("[onDutyArbiterChanged] onduty")
 	} else {
-		log.Info("[onDutyArbitratorChanged] not onduty")
+		log.Info("[onDutyArbiterChanged] not onduty")
 	}
 	d.ChangeConsensus(onDuty)
 }

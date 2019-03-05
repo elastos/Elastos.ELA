@@ -83,7 +83,7 @@ func (s *txVersionV3TestSuite) TestCheckCoinbaseMinerReward() {
 	s.EqualError(err, "reward to miner in coinbase < 35%")
 }
 
-func (s *txVersionV3TestSuite) TestCheckCoinbaseArbitratorsReward() {
+func (s *txVersionV3TestSuite) TestCheckCoinbaseArbitersReward() {
 	arbitratorsStr := []string{
 		"023a133480176214f88848c6eaa684a54b316849df2b8570b57f3a917f19bbc77a",
 		"030a26f8b4ab0ea219eb461d1e454ce5f0bd0d289a6a64ffc0743dab7bd5be0be9",
@@ -119,16 +119,16 @@ func (s *txVersionV3TestSuite) TestCheckCoinbaseArbitratorsReward() {
 	}
 
 	originLedger := blockchain.DefaultLedger
-	arbitratorsMock := &mock.ArbitratorsMock{
-		CurrentArbitrators:         arbitrators,
+	arbitratorsMock := &mock.ArbitersMock{
+		CurrentArbiters:         arbitrators,
 		CurrentCandidates:          candidates,
-		CurrentArbitratorsPrograms: arbitratorHashes,
+		CurrentArbitersPrograms: arbitratorHashes,
 		CurrentCandidatesPrograms:  candidateHashes,
 	}
 	blockchain.DefaultLedger = &blockchain.Ledger{
-		Arbitrators: arbitratorsMock,
+		Arbiters: arbitratorsMock,
 	}
-	s.Cfg.Arbitrators = arbitratorsMock
+	s.Cfg.Arbiters = arbitratorsMock
 
 	rewardInCoinbase := common.Fixed64(1000)
 	dposTotalReward := common.Fixed64(float64(rewardInCoinbase) * 0.35)
@@ -145,17 +145,17 @@ func (s *txVersionV3TestSuite) TestCheckCoinbaseArbitratorsReward() {
 		{ProgramHash: common.Uint168{}, Value: common.Fixed64(float64(rewardInCoinbase) * 0.35)},
 	}
 
-	s.Error(s.Version.CheckCoinbaseArbitratorsReward(tx, rewardInCoinbase))
+	s.Error(s.Version.CheckCoinbaseArbitersReward(tx, rewardInCoinbase))
 
 	for _, v := range arbitratorHashes {
 		tx.Outputs = append(tx.Outputs, &types.Output{ProgramHash: *v, Value: individualBlockConfirmReward + individualProducerReward})
 	}
-	s.Error(s.Version.CheckCoinbaseArbitratorsReward(tx, rewardInCoinbase))
+	s.Error(s.Version.CheckCoinbaseArbitersReward(tx, rewardInCoinbase))
 
 	for _, v := range candidateHashes {
 		tx.Outputs = append(tx.Outputs, &types.Output{ProgramHash: *v, Value: individualProducerReward})
 	}
-	s.NoError(s.Version.CheckCoinbaseArbitratorsReward(tx, rewardInCoinbase))
+	s.NoError(s.Version.CheckCoinbaseArbitersReward(tx, rewardInCoinbase))
 
 	blockchain.DefaultLedger = originLedger
 }

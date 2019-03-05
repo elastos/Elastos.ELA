@@ -9,7 +9,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/elastos/Elastos.ELA/blockchain/interfaces"
 	. "github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/common/log"
@@ -17,6 +16,7 @@ import (
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/dpos/state"
 	"github.com/elastos/Elastos.ELA/events"
+	"github.com/elastos/Elastos.ELA/version"
 )
 
 const (
@@ -33,8 +33,8 @@ var (
 type BlockChain struct {
 	chainParams *config.Params
 	db          IChainStore
-	state       *state.State
-	versions    interfaces.HeightVersions
+	state       *state.DutyState
+	versions    version.HeightVersions
 	GenesisHash Uint256
 
 	// The following fields are calculated based upon the provided chain
@@ -64,8 +64,8 @@ type BlockChain struct {
 	mutex          sync.RWMutex
 }
 
-func New(db IChainStore, chainParams *config.Params, versions interfaces.HeightVersions,
-	state *state.State) (*BlockChain, error) {
+func New(db IChainStore, chainParams *config.Params, versions version.HeightVersions,
+	state *state.DutyState) (*BlockChain, error) {
 
 	targetTimespan := int64(chainParams.TargetTimespan / time.Second)
 	targetTimePerBlock := int64(chainParams.TargetTimePerBlock / time.Second)
@@ -125,7 +125,7 @@ func (b *BlockChain) InitializeProducersState(interrupt <-chan struct{}) (err er
 	bestHeight := b.db.GetHeight()
 	done := make(chan struct{})
 	go func() {
-		for i := b.chainParams.VoteStartHeight - 1; i <= bestHeight; i++ {
+		for i := b.chainParams.DPOSStartHeight - 1; i <= bestHeight; i++ {
 			hash, e := b.db.GetBlockHash(i)
 			if e != nil {
 				err = e
@@ -151,7 +151,7 @@ func (b *BlockChain) InitializeProducersState(interrupt <-chan struct{}) (err er
 
 // GetState returns the DPOS state instance that stores producers and votes
 // information.
-func (b *BlockChain) GetState() *state.State {
+func (b *BlockChain) GetState() *state.DutyState {
 	return b.state
 }
 
@@ -807,7 +807,7 @@ func (b *BlockChain) connectBlock(node *BlockNode, block *Block, confirm *payloa
 		return err
 	}
 
-	if block.Height >= config.Parameters.HeightVersions[2] {
+	if block.Height >= b.chainParams.DPOSStartHeight {
 		if err := checkBlockWithConfirmation(block, confirm); err != nil {
 			return errors.New("block confirmation validate failed")
 		}
@@ -904,7 +904,7 @@ func (b *BlockChain) maybeAcceptBlock(block *Block, confirm *payload.Confirm) (b
 		return false, err
 	}
 
-	if inMainChain && block.Height >= config.Parameters.HeightVersions[1] {
+	if inMainChain && block.Height >= b.chainParams.DPOSStartHeight {
 		b.state.ProcessBlock(block, confirm)
 	}
 

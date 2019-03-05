@@ -32,7 +32,7 @@ func (v *txV3) CheckCoinbaseMinerReward(tx *types.Transaction,
 	return nil
 }
 
-func (v *txV3) CheckCoinbaseArbitratorsReward(coinbase *types.Transaction,
+func (v *txV3) CheckCoinbaseArbitersReward(coinbase *types.Transaction,
 	rewardInCoinbase common.Fixed64) error {
 	outputAddressMap := make(map[common.Uint168]common.Fixed64)
 
@@ -41,8 +41,8 @@ func (v *txV3) CheckCoinbaseArbitratorsReward(coinbase *types.Transaction,
 	}
 
 	arbitratorsHashes :=
-		v.cfg.Arbitrators.GetArbitratorsProgramHashes()
-	candidatesHashes := v.cfg.Arbitrators.GetCandidatesProgramHashes()
+		v.cfg.DutyState.GetArbiterProgramHashes()
+	candidatesHashes := v.cfg.DutyState.GetCandidateProgramHashes()
 	if len(arbitratorsHashes)+len(candidatesHashes) != len(coinbase.Outputs)-2 {
 		return errors.New("coinbase output count not match")
 	}
@@ -54,7 +54,7 @@ func (v *txV3) CheckCoinbaseArbitratorsReward(coinbase *types.Transaction,
 		math.Floor(totalBlockConfirmReward / float64(len(arbitratorsHashes))))
 	individualProducerReward := common.Fixed64(math.Floor(
 		totalTopProducersReward / float64(int(config.Parameters.
-			ArbiterConfiguration.NormalArbitratorsCount) + len(candidatesHashes))))
+			ArbiterConfiguration.NormalArbitersCount)+len(candidatesHashes))))
 
 	for _, hash := range arbitratorsHashes {
 
@@ -63,7 +63,7 @@ func (v *txV3) CheckCoinbaseArbitratorsReward(coinbase *types.Transaction,
 			return errors.New("unknown dpos reward address")
 		}
 
-		if v.cfg.Arbitrators.IsCRCArbitratorProgramHash(hash) {
+		if v.cfg.DutyState.IsCRCArbiterProgramHash(hash) {
 			if amount != individualBlockConfirmReward {
 				return errors.New("incorrect dpos reward amount")
 			}

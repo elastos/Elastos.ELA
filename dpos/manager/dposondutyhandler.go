@@ -42,7 +42,7 @@ func (h *DPOSOnDutyHandler) StartNewProposal(p payload.DPOSProposal) {
 
 func (h *DPOSOnDutyHandler) ChangeView(firstBlockHash *common.Uint256) {
 
-	if !h.tryCreateInactiveArbitratorsTx() {
+	if !h.tryCreateInactiveArbitersTx() {
 		b, ok := h.cfg.Manager.GetBlockCache().TryGetValue(*firstBlockHash)
 		if !ok {
 			log.Info("[OnViewChanged] get block failed for proposal")
@@ -71,11 +71,11 @@ func (h *DPOSOnDutyHandler) TryStartNewConsensus(b *types.Block) bool {
 	return result
 }
 
-func (h *DPOSOnDutyHandler) tryCreateInactiveArbitratorsTx() bool {
+func (h *DPOSOnDutyHandler) tryCreateInactiveArbitersTx() bool {
 	if h.proposalDispatcher.IsViewChangedTimeOut() {
-		tx, err := h.proposalDispatcher.CreateInactiveArbitrators()
+		tx, err := h.proposalDispatcher.CreateInactiveArbiters()
 		if err != nil {
-			log.Warn("[tryCreateInactiveArbitratorsTx] create tx error: ", err)
+			log.Warn("[tryCreateInactiveArbitersTx] create tx error: ", err)
 			return false
 		}
 

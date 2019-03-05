@@ -23,7 +23,7 @@ func TestEventStore_Open(t *testing.T) {
 	}
 
 	store.StartEventRecord()
-	store.StartArbitratorsRecord()
+	store.StartArbitersRecord()
 	eventStore = store
 }
 
@@ -104,10 +104,10 @@ func TestEventStore_UpdateConsensusEvent(t *testing.T) {
 
 func TestEventStore_AddViewEvent(t *testing.T) {
 	viewEvent := &log.ViewEvent{
-		OnDutyArbitrator: "A",
-		StartTime:        time.Time{},
-		Offset:           0,
-		Height:           0,
+		OnDutyArbiter: "A",
+		StartTime:     time.Time{},
+		Offset:        0,
+		Height:        0,
 	}
 
 	id, err := eventStore.addViewEvent(viewEvent)

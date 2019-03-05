@@ -28,7 +28,7 @@ func NewConsensus(manager *DPOSManager, tolerance time.Duration,
 		consensusStatus: consensusReady,
 		viewOffset:      0,
 		manager:         manager,
-		currentView:     view{signTolerance: tolerance, listener: viewListener, arbitrators: manager.GetArbitrators()},
+		currentView:     view{signTolerance: tolerance, listener: viewListener, dutyState: manager.DutyState()},
 	}
 
 	return c
@@ -60,12 +60,12 @@ func (c *Consensus) IsReady() bool {
 	return c.consensusStatus == consensusReady
 }
 
-func (c *Consensus) IsArbitratorOnDuty(arbitrator []byte) bool {
-	return bytes.Equal(c.GetOnDutyArbitrator(), arbitrator)
+func (c *Consensus) IsArbiterOnDuty(arbitrator []byte) bool {
+	return bytes.Equal(c.GetOnDutyArbiter(), arbitrator)
 }
 
-func (c *Consensus) GetOnDutyArbitrator() []byte {
-	return c.manager.GetArbitrators().GetNextOnDutyArbitrator(c.viewOffset)
+func (c *Consensus) GetOnDutyArbiter() []byte {
+	return c.manager.DutyState().GetNextOnDutyArbiter(c.viewOffset)
 }
 
 func (c *Consensus) StartConsensus(b *types.Block) {

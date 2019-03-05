@@ -5,14 +5,14 @@ import (
 	"time"
 
 	"github.com/elastos/Elastos.ELA/blockchain"
-	"github.com/elastos/Elastos.ELA/blockchain/interfaces"
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/core/types"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/dpos/log"
-	msg2 "github.com/elastos/Elastos.ELA/dpos/p2p/msg"
+	"github.com/elastos/Elastos.ELA/dpos/p2p/msg"
 	"github.com/elastos/Elastos.ELA/dpos/p2p/peer"
+	"github.com/elastos/Elastos.ELA/dpos/state"
 )
 
 type DPOSEventConditionHandler interface {
@@ -27,10 +27,10 @@ type DPOSEventConditionHandler interface {
 }
 
 type DPOSHandlerConfig struct {
-	Network     DPOSNetwork
-	Manager     *DPOSManager
-	Monitor     *log.EventMonitor
-	Arbitrators interfaces.Arbitrators
+	Network   DPOSNetwork
+	Manager   *DPOSManager
+	Monitor   *log.EventMonitor
+	DutyState *state.DutyState
 }
 
 type DPOSHandlerSwitch struct {
@@ -62,7 +62,7 @@ func (h *DPOSHandlerSwitch) Initialize(dispatcher *ProposalDispatcher,
 	consensus *Consensus) {
 	h.proposalDispatcher = dispatcher
 	h.consensus = consensus
-	currentArbiter := h.cfg.Manager.GetArbitrators().GetNextOnDutyArbitrator(h.
+	currentArbiter := h.cfg.Manager.DutyState().GetNextOnDutyArbiter(h.
 		consensus.GetViewOffset())
 	isDposOnDuty := common.BytesToHexString(currentArbiter) == config.
 		Parameters.ArbiterConfiguration.PublicKey
@@ -108,10 +108,10 @@ func (h *DPOSHandlerSwitch) ChangeView(firstBlockHash *common.Uint256) {
 	h.currentHandler.ChangeView(firstBlockHash)
 
 	viewEvent := log.ViewEvent{
-		OnDutyArbitrator: common.BytesToHexString(h.consensus.GetOnDutyArbitrator()),
-		StartTime:        time.Now(),
-		Offset:           h.consensus.GetViewOffset(),
-		Height:           h.proposalDispatcher.CurrentHeight(),
+		OnDutyArbiter: common.BytesToHexString(h.consensus.GetOnDutyArbiter()),
+		StartTime:     time.Now(),
+		Offset:        h.consensus.GetViewOffset(),
+		Height:        h.proposalDispatcher.CurrentHeight(),
 	}
 	h.cfg.Monitor.OnViewStarted(&viewEvent)
 }
@@ -179,7 +179,7 @@ func (h *DPOSHandlerSwitch) ResponseGetBlocks(id peer.PID, startBlockHeight, end
 		})
 	}
 
-	msg := &msg2.ResponseBlocks{Command: msg2.CmdResponseBlocks, BlockConfirms: blockConfirms}
+	msg := &msg.ResponseBlocks{Command: msg.CmdResponseBlocks, BlockConfirms: blockConfirms}
 	h.cfg.Network.SendMessageToPeer(id, msg)
 }
 
@@ -189,7 +189,7 @@ func (h *DPOSHandlerSwitch) RequestAbnormalRecovering() {
 }
 
 func (h *DPOSHandlerSwitch) HelpToRecoverAbnormal(id peer.PID, height uint32) {
-	status := &msg2.ConsensusStatus{}
+	status := &msg.ConsensusStatus{}
 	log.Info("[HelpToRecoverAbnormal] peer id:", common.BytesToHexString(id[:]))
 
 	if err := h.consensus.CollectConsensusStatus(height, status); err != nil {
@@ -202,11 +202,11 @@ func (h *DPOSHandlerSwitch) HelpToRecoverAbnormal(id peer.PID, height uint32) {
 		return
 	}
 
-	msg := &msg2.ResponseConsensus{Consensus: *status}
+	msg := &msg.ResponseConsensus{Consensus: *status}
 	h.cfg.Network.SendMessageToPeer(id, msg)
 }
 
-func (h *DPOSHandlerSwitch) RecoverAbnormal(status *msg2.ConsensusStatus) {
+func (h *DPOSHandlerSwitch) RecoverAbnormal(status *msg.ConsensusStatus) {
 	if !h.isAbnormal {
 		return
 	}

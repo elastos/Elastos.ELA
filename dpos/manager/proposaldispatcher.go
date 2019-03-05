@@ -42,8 +42,8 @@ type ProposalDispatcher struct {
 
 	proposalProcessFinished bool
 
-	inactiveCountDown           ViewChangesCountDown
-	currentInactiveArbitratorTx *types.Transaction
+	inactiveCountDown        ViewChangesCountDown
+	currentInactiveArbiterTx *types.Transaction
 
 	eventAnalyzer  *store.EventStoreAnalyzer
 	illegalMonitor *IllegalBehaviorMonitor
@@ -206,7 +206,7 @@ func (p *ProposalDispatcher) CleanProposals(changeView bool) {
 
 	if !changeView {
 		p.inactiveCountDown.Reset()
-		p.currentInactiveArbitratorTx = nil
+		p.currentInactiveArbiterTx = nil
 	}
 }
 
@@ -251,8 +251,8 @@ func (p *ProposalDispatcher) ProcessProposal(d payload.DPOSProposal) {
 		return
 	}
 
-	if !p.cfg.Consensus.IsArbitratorOnDuty(d.Sponsor) {
-		currentArbiter := p.cfg.Manager.GetArbitrators().GetNextOnDutyArbitrator(p.cfg.Consensus.GetViewOffset())
+	if !p.cfg.Consensus.IsArbiterOnDuty(d.Sponsor) {
+		currentArbiter := p.cfg.Manager.DutyState().GetNextOnDutyArbiter(p.cfg.Consensus.GetViewOffset())
 		log.Info("viewOffset:", p.cfg.Consensus.GetViewOffset(), "current arbiter:",
 			common.BytesToHexString(currentArbiter), "sponsor:", d.Sponsor)
 		p.rejectProposal(d)
@@ -399,90 +399,90 @@ func (p *ProposalDispatcher) IsViewChangedTimeOut() bool {
 	return p.inactiveCountDown.IsTimeOut()
 }
 
-func (p *ProposalDispatcher) OnInactiveArbitratorsReceived(
+func (p *ProposalDispatcher) OnInactiveArbitersReceived(
 	tx *types.Transaction) {
 	var err error
 
 	if !p.IsViewChangedTimeOut() {
-		log.Warn("[OnInactiveArbitratorsReceived] received inactive" +
+		log.Warn("[OnInactiveArbitersReceived] received inactive" +
 			" arbitrators transaction when normal view changing")
 		return
 	}
 
-	if err = blockchain.CheckInactiveArbitrators(tx,
+	if err = blockchain.CheckInactiveArbiters(tx,
 		p.cfg.ChainParams.InactiveEliminateCount); err != nil {
-		log.Warn("[OnInactiveArbitratorsReceived] check tx error, details: ",
+		log.Warn("[OnInactiveArbitersReceived] check tx error, details: ",
 			err.Error())
 		return
 	}
 
-	inactivePayload := tx.Payload.(*payload.InactiveArbitrators)
-	if !p.cfg.Consensus.IsArbitratorOnDuty(inactivePayload.Sponsor) {
-		log.Warn("[OnInactiveArbitratorsReceived] sender is not on duty")
+	inactivePayload := tx.Payload.(*payload.InactiveArbiters)
+	if !p.cfg.Consensus.IsArbiterOnDuty(inactivePayload.Sponsor) {
+		log.Warn("[OnInactiveArbitersReceived] sender is not on duty")
 		return
 	}
 
 	p.illegalMonitor.AddEvidence(inactivePayload)
 
-	inactiveArbitratorsMap := make(map[string]interface{})
-	for _, v := range p.eventAnalyzer.ParseInactiveArbitrators() {
-		inactiveArbitratorsMap[v] = nil
+	inactiveArbitersMap := make(map[string]interface{})
+	for _, v := range p.eventAnalyzer.ParseInactiveArbiters() {
+		inactiveArbitersMap[v] = nil
 	}
-	for _, v := range inactivePayload.Arbitrators {
-		if _, exist := inactiveArbitratorsMap[common.BytesToHexString(
+	for _, v := range inactivePayload.Arbiters {
+		if _, exist := inactiveArbitersMap[common.BytesToHexString(
 			v)]; !exist {
-			log.Warn("[OnInactiveArbitratorsReceived] disagree with " +
+			log.Warn("[OnInactiveArbitersReceived] disagree with " +
 				"inactive arbitrators")
 			return
 		}
 	}
 
-	if !p.currentInactiveArbitratorTx.Hash().IsEqual(tx.Hash()) {
-		p.currentInactiveArbitratorTx = tx
+	if !p.currentInactiveArbiterTx.Hash().IsEqual(tx.Hash()) {
+		p.currentInactiveArbiterTx = tx
 	}
 
-	response := &dmsg.ResponseInactiveArbitrators{
+	response := &dmsg.ResponseInactiveArbiters{
 		TxHash: tx.Hash(),
 		Signer: p.cfg.Manager.GetPublicKey(),
 	}
 	if response.Sign, err = p.cfg.Account.SignTx(tx); err != nil {
-		log.Warn("[OnInactiveArbitratorsReceived] sign response message"+
+		log.Warn("[OnInactiveArbitersReceived] sign response message"+
 			" error, details: ", err.Error())
 	}
 	p.cfg.Network.BroadcastMessage(response)
 }
 
-func (p *ProposalDispatcher) OnResponseInactiveArbitratorsReceived(
+func (p *ProposalDispatcher) OnResponseInactiveArbitersReceived(
 	txHash *common.Uint256, signer []byte, sign []byte) {
 
-	if !p.currentInactiveArbitratorTx.Hash().IsEqual(*txHash) {
-		log.Warn("[OnResponseInactiveArbitratorsReceived] unknown " +
+	if !p.currentInactiveArbiterTx.Hash().IsEqual(*txHash) {
+		log.Warn("[OnResponseInactiveArbitersReceived] unknown " +
 			"inactive arbitrators transaction")
 		return
 	}
 
 	data := new(bytes.Buffer)
-	if err := p.currentInactiveArbitratorTx.SerializeUnsigned(
+	if err := p.currentInactiveArbiterTx.SerializeUnsigned(
 		data); err != nil {
-		log.Warn("[OnResponseInactiveArbitratorsReceived] transaction "+
+		log.Warn("[OnResponseInactiveArbitersReceived] transaction "+
 			"serialize error, details: ", err)
 		return
 	}
 
 	pk, err := crypto.DecodePoint(signer)
 	if err != nil {
-		log.Warn("[OnResponseInactiveArbitratorsReceived] decode signer "+
+		log.Warn("[OnResponseInactiveArbitersReceived] decode signer "+
 			"error, details: ", err)
 		return
 	}
 
 	if err := crypto.Verify(*pk, data.Bytes(), sign); err != nil {
-		log.Warn("[OnResponseInactiveArbitratorsReceived] sign verify "+
+		log.Warn("[OnResponseInactiveArbitersReceived] sign verify "+
 			"error, details: ", err)
 		return
 	}
 
-	pro := p.currentInactiveArbitratorTx.Programs[0]
+	pro := p.currentInactiveArbiterTx.Programs[0]
 	buf := new(bytes.Buffer)
 	buf.Write(pro.Parameter)
 	buf.Write(sign)
@@ -492,20 +492,20 @@ func (p *ProposalDispatcher) OnResponseInactiveArbitratorsReceived(
 }
 
 func (p *ProposalDispatcher) tryEnterEmergencyState(signCount int) bool {
-	minSignCount := int(float64(p.cfg.Arbitrators.GetArbitersCount()) * 0.5)
+	minSignCount := int(float64(p.cfg.DutyState.GetArbitersCount()) * 0.5)
 	if signCount > minSignCount {
-		p.cfg.Manager.AppendToTxnPool(p.currentInactiveArbitratorTx)
+		p.cfg.Manager.AppendToTxnPool(p.currentInactiveArbiterTx)
 
 		blockchain.DefaultLedger.Blockchain.GetState().
-			ProcessSpecialTxPayload(p.currentInactiveArbitratorTx.Payload)
-		if err := p.cfg.Arbitrators.ForceChange(blockchain.DefaultLedger.Blockchain.GetHeight()); err != nil {
+			ProcessSpecialTxPayload(p.currentInactiveArbiterTx.Payload)
+		if err := p.cfg.DutyState.ForceChange(blockchain.DefaultLedger.Blockchain.GetHeight()); err != nil {
 			log.Error("[tryEnterEmergencyState] force change arbitrators"+
 				" error: ", err.Error())
 			return false
 		}
 
-		p.illegalMonitor.SetInactiveArbitratorsTxHash(p.
-			currentInactiveArbitratorTx.Hash())
+		p.illegalMonitor.SetInactiveArbitersTxHash(p.
+			currentInactiveArbiterTx.Hash())
 		// we should clear existing blocks because they do not have inactive
 		// arbitrators tx
 		p.cfg.Manager.GetBlockCache().Reset()
@@ -541,7 +541,7 @@ func (p *ProposalDispatcher) countAcceptedVote(v payload.DPOSProposalVote) (succ
 		log.Info("[countAcceptedVote] Received needed sign, collect it into AcceptVotes!")
 		p.acceptVotes[v.Hash()] = v
 
-		if p.cfg.Manager.GetArbitrators().HasArbitersMajorityCount(uint32(len(p.acceptVotes))) {
+		if p.cfg.Manager.DutyState().HasArbitersMajorityCount(uint32(len(p.acceptVotes))) {
 			log.Info("Collect majority signs, finish proposal.")
 			return true, p.FinishProposal()
 		}
@@ -559,7 +559,7 @@ func (p *ProposalDispatcher) countRejectedVote(v payload.DPOSProposalVote) (succ
 		log.Info("[countRejectedVote] Received invalid sign, collect it into RejectedVotes!")
 		p.rejectedVotes[v.Hash()] = v
 
-		if p.cfg.Manager.GetArbitrators().HasArbitersMinorityCount(uint32(len(p.rejectedVotes))) {
+		if p.cfg.Manager.DutyState().HasArbitersMinorityCount(uint32(len(p.rejectedVotes))) {
 			p.CleanProposals(true)
 			p.cfg.Consensus.ChangeView()
 			return true, true
@@ -633,27 +633,27 @@ func (p *ProposalDispatcher) setProcessingProposal(d payload.DPOSProposal) {
 	p.pendingVotes = make(map[common.Uint256]payload.DPOSProposalVote)
 }
 
-func (p *ProposalDispatcher) CreateInactiveArbitrators() (
+func (p *ProposalDispatcher) CreateInactiveArbiters() (
 	*types.Transaction, error) {
 	var err error
 
-	inactivePayload := &payload.InactiveArbitrators{
+	inactivePayload := &payload.InactiveArbiters{
 		Sponsor:     p.cfg.Manager.GetPublicKey(),
-		Arbitrators: [][]byte{},
+		Arbiters:    [][]byte{},
 		BlockHeight: p.CurrentHeight(),
 	}
-	inactiveArbitrators := p.eventAnalyzer.ParseInactiveArbitrators()
-	for _, v := range inactiveArbitrators {
+	inactiveArbiters := p.eventAnalyzer.ParseInactiveArbiters()
+	for _, v := range inactiveArbiters {
 		var pk []byte
 		pk, err = common.HexStringToBytes(v)
 		if err != nil {
 			return nil, err
 		}
-		inactivePayload.Arbitrators = append(inactivePayload.Arbitrators, pk)
+		inactivePayload.Arbiters = append(inactivePayload.Arbiters, pk)
 	}
 
 	con := contract.Contract{Prefix: contract.PrefixMultiSig}
-	if con.Code, err = p.createArbitratorsRedeemScript(); err != nil {
+	if con.Code, err = p.createArbitersRedeemScript(); err != nil {
 		return nil, err
 	}
 
@@ -661,8 +661,8 @@ func (p *ProposalDispatcher) CreateInactiveArbitrators() (
 	tx := &types.Transaction{
 		Version: types.TransactionVersion(blockchain.DefaultLedger.
 			HeightVersions.GetDefaultTxVersion(p.CurrentHeight())),
-		TxType:         types.InactiveArbitrators,
-		PayloadVersion: payload.PayloadInactiveArbitratorsVersion,
+		TxType:         types.InactiveArbiters,
+		PayloadVersion: payload.InactiveArbitersVersion,
 		Payload:        inactivePayload,
 		Attributes: []*types.Attribute{{
 			Usage: types.Script,
@@ -687,14 +687,14 @@ func (p *ProposalDispatcher) CreateInactiveArbitrators() (
 		},
 	}
 
-	p.currentInactiveArbitratorTx = tx
+	p.currentInactiveArbiterTx = tx
 	return tx, nil
 }
 
-func (p *ProposalDispatcher) createArbitratorsRedeemScript() ([]byte, error) {
+func (p *ProposalDispatcher) createArbitersRedeemScript() ([]byte, error) {
 
 	var pks []*crypto.PublicKey
-	for _, v := range p.cfg.Arbitrators.GetArbitrators() {
+	for _, v := range p.cfg.DutyState.GetArbiters() {
 		pk, err := crypto.DecodePoint(v)
 		if err != nil {
 			return nil, err
@@ -702,7 +702,7 @@ func (p *ProposalDispatcher) createArbitratorsRedeemScript() ([]byte, error) {
 		pks = append(pks, pk)
 	}
 
-	arbitratorsCount := len(p.cfg.Arbitrators.GetArbitrators())
+	arbitratorsCount := len(p.cfg.DutyState.GetArbiters())
 	minSignCount := int(float64(arbitratorsCount) * 0.5)
 	return contract.CreateMultiSigRedeemScript(minSignCount+1, pks)
 }
@@ -719,16 +719,17 @@ func NewDispatcherAndIllegalMonitor(cfg ProposalDispatcherConfig) (
 		pendingVotes:       make(map[common.Uint256]payload.DPOSProposalVote),
 		eventAnalyzer: store.NewEventStoreAnalyzer(store.EventStoreAnalyzerConfig{
 			InactiveEliminateCount: cfg.InactiveEliminateCount,
-			Store:       cfg.Store,
-			Arbitrators: cfg.Arbitrators,
+			Store:                  cfg.Store,
+			DutyState:              cfg.DutyState,
 		}),
 	}
 	p.inactiveCountDown = ViewChangesCountDown{
-		dispatcher:                    p,
-		consensus:                     cfg.Consensus,
-		arbitrators:                   cfg.Arbitrators,
-		timeoutRefactor:               0,
-		inactiveArbitratorsEliminated: false,
+		dispatcher:                 p,
+		consensus:                  cfg.Consensus,
+		chainParams:                cfg.ChainParams,
+		dutyState:                  cfg.DutyState,
+		timeoutRefactor:            0,
+		inactiveArbitersEliminated: false,
 	}
 	p.inactiveCountDown.Reset()
 

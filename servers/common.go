@@ -122,9 +122,9 @@ type Neighbor struct {
 	NetAddress string // The tcp address of this neighbor node
 }
 
-type ArbitratorGroupInfo struct {
-	OnDutyArbitratorIndex int
-	Arbitrators           []string
+type ArbiterGroupInfo struct {
+	OnDutyArbiterIndex int
+	Arbiters           []string
 }
 
 type PayloadInfo interface{}

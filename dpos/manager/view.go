@@ -3,10 +3,10 @@ package manager
 import (
 	"time"
 
-	"github.com/elastos/Elastos.ELA/blockchain/interfaces"
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/dpos/log"
+	"github.com/elastos/Elastos.ELA/dpos/state"
 )
 
 type ViewListener interface {
@@ -17,7 +17,7 @@ type view struct {
 	signTolerance time.Duration
 	viewStartTime time.Time
 	isDposOnDuty  bool
-	arbitrators   interfaces.Arbitrators
+	dutyState     *state.DutyState
 
 	listener ViewListener
 }
@@ -45,7 +45,7 @@ func (v *view) ChangeView(viewOffset *uint32) {
 	log.Info("[ChangeView] current view offset:", *viewOffset)
 
 	if offset > 0 {
-		currentArbiter := v.arbitrators.GetNextOnDutyArbitrator(*viewOffset)
+		currentArbiter := v.dutyState.GetNextOnDutyArbiter(*viewOffset)
 
 		v.isDposOnDuty = common.BytesToHexString(currentArbiter) == config.Parameters.ArbiterConfiguration.PublicKey
 		log.Info("current onduty arbiter:", currentArbiter)

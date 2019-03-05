@@ -2,9 +2,9 @@ package netsync
 
 import (
 	"github.com/elastos/Elastos.ELA/blockchain"
-	"github.com/elastos/Elastos.ELA/blockchain/interfaces"
 	"github.com/elastos/Elastos.ELA/mempool"
 	"github.com/elastos/Elastos.ELA/p2p/msg"
+	"github.com/elastos/Elastos.ELA/version"
 )
 
 // PeerNotifier exposes methods to notify peers of status changes to
@@ -18,7 +18,7 @@ type PeerNotifier interface {
 type Config struct {
 	PeerNotifier PeerNotifier
 	Chain        *blockchain.BlockChain
-	Versions     interfaces.HeightVersions
+	Versions     version.HeightVersions
 	TxMemPool    *mempool.TxPool
 	BlockMemPool *mempool.BlockPool
 

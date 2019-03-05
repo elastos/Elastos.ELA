@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/elastos/Elastos.ELA/blockchain"
-	"github.com/elastos/Elastos.ELA/blockchain/interfaces"
 	cmdcom "github.com/elastos/Elastos.ELA/cmd/common"
 	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/common/log"
@@ -66,7 +65,7 @@ func main() {
 	// Initializes the foundation address
 	blockchain.FoundationAddress = activeNetParams.Foundation
 
-	var dposStore interfaces.IDposStore
+	var dposStore store.IDposStore
 	chainStore, err := blockchain.NewChainStore(dataDir,
 		activeNetParams.GenesisBlock)
 	if err != nil {
@@ -94,32 +93,14 @@ func main() {
 	ledger.HeightVersions = versions   // fixme
 	blockchain.DefaultLedger = &ledger // fixme
 
-	arbiters, err := state.NewArbitrators(&state.ArbitratorsConfig{
-		ArbitratorsCount: config.Parameters.ArbiterConfiguration.
-			NormalArbitratorsCount + uint32(len(activeNetParams.CRCArbiters)),
-		CandidatesCount: config.Parameters.ArbiterConfiguration.CandidatesCount,
-		CRCArbitrators:  activeNetParams.CRCArbiters,
-		Versions:        versions,
-		OriginArbiters:  activeNetParams.OriginArbiters,
-		GetCurrentHeader: func() (*types.Header, error) {
-			b, err := chainStore.GetBlock(chainStore.GetCurrentBlockHash())
-			if err != nil {
-				return nil, err
-			}
-			return &b.Header, nil
-		},
-		GetBestHeight: func() uint32 {
-			return chainStore.GetHeight()
-		},
-	})
+	dutyState, err := state.NewDutyState(activeNetParams, chainStore.GetHeight)
 	if err != nil {
 		printErrorAndExit(err)
 	}
-	arbiters.State = state.NewState(arbiters, activeNetParams)
-	verconf.Arbitrators = arbiters
-	ledger.Arbitrators = arbiters // fixme
+	verconf.DutyState = dutyState
+	ledger.DutyState = dutyState // fixme
 
-	chain, err := blockchain.New(chainStore, activeNetParams, versions, arbiters.State)
+	chain, err := blockchain.New(chainStore, activeNetParams, versions, dutyState)
 	if err != nil {
 		printErrorAndExit(err)
 	}
@@ -127,7 +108,7 @@ func main() {
 	ledger.Blockchain = chain // fixme
 	blockMemPool.Chain = chain
 
-	// initialize producer state after arbiters has initialized
+	// initialize producer state after dutyState has initialized
 	if err = chain.InitializeProducersState(interrupt.C); err != nil {
 		printErrorAndExit(err)
 	}
@@ -153,13 +134,13 @@ func main() {
 		if err != nil {
 			printErrorAndExit(err)
 		}
-		arbitrator, err := dpos.NewArbitrator(pwd, dpos.ArbitratorConfig{
+		arbitrator, err := dpos.NewArbiter(pwd, dpos.ArbiterConfig{
 			EnableEventLog: true,
 			EnableEventRecord: config.Parameters.ArbiterConfiguration.
 				EnableEventRecord,
 			Params:       cfg.ArbiterConfiguration,
 			ChainParams:  activeNetParams,
-			Arbitrators:  arbiters,
+			DutyState:    dutyState,
 			Store:        dposStore,
 			TxMemPool:    txMemPool,
 			BlockMemPool: blockMemPool,
@@ -180,7 +161,7 @@ func main() {
 	servers.TxMemPool = txMemPool
 	servers.Server = server
 	servers.Versions = versions
-	servers.Arbiters = arbiters
+	servers.DutyState = dutyState
 	servers.Pow = pow.NewService(&pow.Config{
 		PayToAddr:   cfg.PowConfiguration.PayToAddr,
 		MinerInfo:   cfg.PowConfiguration.MinerInfo,

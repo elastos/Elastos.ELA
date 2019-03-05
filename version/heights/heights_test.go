@@ -4,9 +4,9 @@ import (
 	"math"
 	"testing"
 
-	"github.com/elastos/Elastos.ELA/blockchain/interfaces"
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/core/types"
+	"github.com/elastos/Elastos.ELA/version"
 	"github.com/elastos/Elastos.ELA/version/blocks"
 	"github.com/elastos/Elastos.ELA/version/txs"
 	"github.com/stretchr/testify/suite"
@@ -17,7 +17,7 @@ var versionsMsg string
 type heightVersionTestSuit struct {
 	suite.Suite
 
-	Version interfaces.HeightVersions
+	Version version.HeightVersions
 	Height1 uint32
 	Height2 uint32
 	Height3 uint32
@@ -202,59 +202,59 @@ func (s *heightVersionTestSuit) TestHeightVersions_CheckCoinbaseMinerReward() {
 	s.Equal("txVersionTest2_CheckCoinbaseMinerReward", versionsMsg)
 }
 
-func (s *heightVersionTestSuit) TestHeightVersions_CheckCoinbaseArbitratorsReward() {
+func (s *heightVersionTestSuit) TestHeightVersions_CheckCoinbaseArbitersReward() {
 	txV1 := &types.Transaction{Version: 1}
 	txV2 := &types.Transaction{Version: 2}
 	txVMax := &types.Transaction{Version: 255}
 
 	//note less or equal than heights.HeightVersion2(s.Height2) find version only by DefaultTxVersion
 
-	s.NoError(s.Version.CheckCoinbaseArbitratorsReward(s.Height1, txV1, 0))
-	s.Equal("txVersionTest1_CheckCoinbaseArbitratorsReward", versionsMsg)
+	s.NoError(s.Version.CheckCoinbaseArbitersReward(s.Height1, txV1, 0))
+	s.Equal("txVersionTest1_CheckCoinbaseArbitersReward", versionsMsg)
 
-	s.NoError(s.Version.CheckCoinbaseArbitratorsReward(s.Height1, txV2, 0))
-	s.Equal("txVersionTest1_CheckCoinbaseArbitratorsReward", versionsMsg)
+	s.NoError(s.Version.CheckCoinbaseArbitersReward(s.Height1, txV2, 0))
+	s.Equal("txVersionTest1_CheckCoinbaseArbitersReward", versionsMsg)
 
-	s.NoError(s.Version.CheckCoinbaseArbitratorsReward(s.Height1, txVMax, 0))
-	s.Equal("txVersionTest1_CheckCoinbaseArbitratorsReward", versionsMsg)
+	s.NoError(s.Version.CheckCoinbaseArbitersReward(s.Height1, txVMax, 0))
+	s.Equal("txVersionTest1_CheckCoinbaseArbitersReward", versionsMsg)
 
-	s.Error(s.Version.CheckCoinbaseArbitratorsReward(s.Height1, nil, 0), "do not support nil tx")
+	s.Error(s.Version.CheckCoinbaseArbitersReward(s.Height1, nil, 0), "do not support nil tx")
 
-	s.NoError(s.Version.CheckCoinbaseArbitratorsReward((s.Height1+s.Height2)/2, txV1, 0))
-	s.Equal("txVersionTest1_CheckCoinbaseArbitratorsReward", versionsMsg)
+	s.NoError(s.Version.CheckCoinbaseArbitersReward((s.Height1+s.Height2)/2, txV1, 0))
+	s.Equal("txVersionTest1_CheckCoinbaseArbitersReward", versionsMsg)
 
-	s.NoError(s.Version.CheckCoinbaseArbitratorsReward(s.Height2, txV1, 0))
-	s.Equal("txVersionTest1_CheckCoinbaseArbitratorsReward", versionsMsg)
+	s.NoError(s.Version.CheckCoinbaseArbitersReward(s.Height2, txV1, 0))
+	s.Equal("txVersionTest1_CheckCoinbaseArbitersReward", versionsMsg)
 
-	s.NoError(s.Version.CheckCoinbaseArbitratorsReward((s.Height2+s.Height3)/2, txV1, 0))
-	s.Equal("txVersionTest1_CheckCoinbaseArbitratorsReward", versionsMsg)
+	s.NoError(s.Version.CheckCoinbaseArbitersReward((s.Height2+s.Height3)/2, txV1, 0))
+	s.Equal("txVersionTest1_CheckCoinbaseArbitersReward", versionsMsg)
 
-	s.NoError(s.Version.CheckCoinbaseArbitratorsReward(s.Height2, txV2, 0))
-	s.Equal("txVersionTest2_CheckCoinbaseArbitratorsReward", versionsMsg)
+	s.NoError(s.Version.CheckCoinbaseArbitersReward(s.Height2, txV2, 0))
+	s.Equal("txVersionTest2_CheckCoinbaseArbitersReward", versionsMsg)
 
-	s.NoError(s.Version.CheckCoinbaseArbitratorsReward((s.Height2+s.Height3)/2, txV2, 0))
-	s.Equal("txVersionTest2_CheckCoinbaseArbitratorsReward", versionsMsg)
+	s.NoError(s.Version.CheckCoinbaseArbitersReward((s.Height2+s.Height3)/2, txV2, 0))
+	s.Equal("txVersionTest2_CheckCoinbaseArbitersReward", versionsMsg)
 
-	s.NoError(s.Version.CheckCoinbaseArbitratorsReward(s.Height2, txVMax, 0))
-	s.Equal("txVersionTest2_CheckCoinbaseArbitratorsReward", versionsMsg)
+	s.NoError(s.Version.CheckCoinbaseArbitersReward(s.Height2, txVMax, 0))
+	s.Equal("txVersionTest2_CheckCoinbaseArbitersReward", versionsMsg)
 
-	s.NoError(s.Version.CheckCoinbaseArbitratorsReward((s.Height2+s.Height3)/2, txVMax, 0))
-	s.Equal("txVersionTest2_CheckCoinbaseArbitratorsReward", versionsMsg)
+	s.NoError(s.Version.CheckCoinbaseArbitersReward((s.Height2+s.Height3)/2, txVMax, 0))
+	s.Equal("txVersionTest2_CheckCoinbaseArbitersReward", versionsMsg)
 
 	//greater than heights.HeightVersion2(s.Height2) find version by Transaction.Version
 
-	s.Error(s.Version.CheckCoinbaseArbitratorsReward(s.Height3, txV1, 0), "do not support v1")
-	s.Error(s.Version.CheckCoinbaseArbitratorsReward(s.Height3, txVMax, 0), "do not support vMax")
-	s.Error(s.Version.CheckCoinbaseArbitratorsReward(s.Height3, nil, 0), "do not support nil tx")
+	s.Error(s.Version.CheckCoinbaseArbitersReward(s.Height3, txV1, 0), "do not support v1")
+	s.Error(s.Version.CheckCoinbaseArbitersReward(s.Height3, txVMax, 0), "do not support vMax")
+	s.Error(s.Version.CheckCoinbaseArbitersReward(s.Height3, nil, 0), "do not support nil tx")
 
-	s.NoError(s.Version.CheckCoinbaseArbitratorsReward(s.Height3, txV2, 0))
-	s.Equal("txVersionTest2_CheckCoinbaseArbitratorsReward", versionsMsg)
+	s.NoError(s.Version.CheckCoinbaseArbitersReward(s.Height3, txV2, 0))
+	s.Equal("txVersionTest2_CheckCoinbaseArbitersReward", versionsMsg)
 
-	s.NoError(s.Version.CheckCoinbaseArbitratorsReward(s.Height3+5, txV2, 0))
-	s.Equal("txVersionTest2_CheckCoinbaseArbitratorsReward", versionsMsg)
+	s.NoError(s.Version.CheckCoinbaseArbitersReward(s.Height3+5, txV2, 0))
+	s.Equal("txVersionTest2_CheckCoinbaseArbitersReward", versionsMsg)
 }
 
-func (s *heightVersionTestSuit) TestHeightVersions_GetNormalArbitratorsDesc() {
+func (s *heightVersionTestSuit) TestHeightVersions_GetNormalArbitersDesc() {
 	var err error
 
 	blockV1_h1 := &types.Block{Header: types.Header{Version: 1, Height: s.Height1}}
@@ -263,43 +263,43 @@ func (s *heightVersionTestSuit) TestHeightVersions_GetNormalArbitratorsDesc() {
 
 	defaultCount := uint32(12)
 
-	_, err = s.Version.GetNormalArbitratorsDesc(blockV1_h1.Height, defaultCount, nil)
+	_, err = s.Version.GetNormalArbitersDesc(blockV1_h1.Height, defaultCount, nil)
 	s.NoError(err)
-	s.Equal("blockVersionTest1_GetNormalArbitratorsDesc", versionsMsg, nil)
+	s.Equal("blockVersionTest1_GetNormalArbitersDesc", versionsMsg, nil)
 
-	_, err = s.Version.GetNormalArbitratorsDesc(blockV1_h2.Height, defaultCount, nil)
+	_, err = s.Version.GetNormalArbitersDesc(blockV1_h2.Height, defaultCount, nil)
 	s.NoError(err)
-	s.Equal("blockVersionTest2_GetNormalArbitratorsDesc", versionsMsg)
+	s.Equal("blockVersionTest2_GetNormalArbitersDesc", versionsMsg)
 
-	_, err = s.Version.GetNormalArbitratorsDesc(blockV1_h3.Height, defaultCount, nil)
+	_, err = s.Version.GetNormalArbitersDesc(blockV1_h3.Height, defaultCount, nil)
 	s.NoError(err, "found default version")
 
 	blockV2_h1 := &types.Block{Header: types.Header{Version: 2, Height: s.Height1}}
 	blockV2_h2 := &types.Block{Header: types.Header{Version: 2, Height: s.Height2}}
 	blockV2_h3 := &types.Block{Header: types.Header{Version: 2, Height: s.Height3}}
 
-	_, err = s.Version.GetNormalArbitratorsDesc(blockV2_h1.Height, defaultCount, nil)
+	_, err = s.Version.GetNormalArbitersDesc(blockV2_h1.Height, defaultCount, nil)
 	s.NoError(err, "found default version")
 
-	_, err = s.Version.GetNormalArbitratorsDesc(blockV2_h2.Height, defaultCount, nil)
+	_, err = s.Version.GetNormalArbitersDesc(blockV2_h2.Height, defaultCount, nil)
 	s.NoError(err)
-	s.Equal("blockVersionTest2_GetNormalArbitratorsDesc", versionsMsg)
+	s.Equal("blockVersionTest2_GetNormalArbitersDesc", versionsMsg)
 
-	_, err = s.Version.GetNormalArbitratorsDesc(blockV2_h3.Height, defaultCount, nil)
+	_, err = s.Version.GetNormalArbitersDesc(blockV2_h3.Height, defaultCount, nil)
 	s.NoError(err)
-	s.Equal("blockVersionTest2_GetNormalArbitratorsDesc", versionsMsg)
+	s.Equal("blockVersionTest2_GetNormalArbitersDesc", versionsMsg)
 
 	blockVMax_h1 := &types.Block{Header: types.Header{Version: math.MaxUint32, Height: s.Height1}}
 	blockVMax_h2 := &types.Block{Header: types.Header{Version: math.MaxUint32, Height: s.Height2}}
 	blockVMax_h3 := &types.Block{Header: types.Header{Version: math.MaxUint32, Height: s.Height3}}
 
-	_, err = s.Version.GetNormalArbitratorsDesc(blockVMax_h1.Height, defaultCount, nil)
+	_, err = s.Version.GetNormalArbitersDesc(blockVMax_h1.Height, defaultCount, nil)
 	s.NoError(err, "found default version")
 
-	_, err = s.Version.GetNormalArbitratorsDesc(blockVMax_h2.Height, defaultCount, nil)
+	_, err = s.Version.GetNormalArbitersDesc(blockVMax_h2.Height, defaultCount, nil)
 	s.NoError(err, "found default version")
 
-	_, err = s.Version.GetNormalArbitratorsDesc(blockVMax_h3.Height, defaultCount, nil)
+	_, err = s.Version.GetNormalArbitersDesc(blockVMax_h3.Height, defaultCount, nil)
 	s.NoError(err, "found default version")
 }
 
@@ -494,15 +494,15 @@ func (s *heightVersionTestSuit) TestHeightVersions_AssignCoinbaseTxRewards() {
 	s.Error(err, "height 1 do not support block vmax")
 }
 
-func (s *heightVersionTestSuit) TestHeightVersions_GetNextOnDutyArbitrator() {
-	s.Version.GetNextOnDutyArbitrator(s.Height1, 0, 0)
-	s.Equal("blockVersionTest1_GetNextOnDutyArbitrator", versionsMsg)
+func (s *heightVersionTestSuit) TestHeightVersions_GetNextOnDutyArbiter() {
+	s.Version.GetNextOnDutyArbiter(s.Height1, 0, 0)
+	s.Equal("blockVersionTest1_GetNextOnDutyArbiter", versionsMsg)
 
-	s.Version.GetNextOnDutyArbitrator(s.Height2, 0, 0)
-	s.Equal("blockVersionTest2_GetNextOnDutyArbitrator", versionsMsg)
+	s.Version.GetNextOnDutyArbiter(s.Height2, 0, 0)
+	s.Equal("blockVersionTest2_GetNextOnDutyArbiter", versionsMsg)
 
-	s.Version.GetNextOnDutyArbitrator(s.Height3, 0, 0)
-	s.Equal("blockVersionTest2_GetNextOnDutyArbitrator", versionsMsg)
+	s.Version.GetNextOnDutyArbiter(s.Height3, 0, 0)
+	s.Equal("blockVersionTest2_GetNextOnDutyArbiter", versionsMsg)
 }
 
 func TestHeightVersionMainSuit(t *testing.T) {
@@ -526,8 +526,8 @@ func (v *txVersionTest1) CheckCoinbaseMinerReward(tx *types.Transaction, totalRe
 	return nil
 }
 
-func (v *txVersionTest1) CheckCoinbaseArbitratorsReward(coinbase *types.Transaction, rewardInCoinbase common.Fixed64) error {
-	versionsMsg = "txVersionTest1_CheckCoinbaseArbitratorsReward"
+func (v *txVersionTest1) CheckCoinbaseArbitersReward(coinbase *types.Transaction, rewardInCoinbase common.Fixed64) error {
+	versionsMsg = "txVersionTest1_CheckCoinbaseArbitersReward"
 	return nil
 }
 
@@ -558,8 +558,8 @@ func (v *txVersionTest2) CheckCoinbaseMinerReward(tx *types.Transaction, totalRe
 	return nil
 }
 
-func (v *txVersionTest2) CheckCoinbaseArbitratorsReward(coinbase *types.Transaction, rewardInCoinbase common.Fixed64) error {
-	versionsMsg = "txVersionTest2_CheckCoinbaseArbitratorsReward"
+func (v *txVersionTest2) CheckCoinbaseArbitersReward(coinbase *types.Transaction, rewardInCoinbase common.Fixed64) error {
+	versionsMsg = "txVersionTest2_CheckCoinbaseArbitersReward"
 	return nil
 }
 
@@ -580,14 +580,14 @@ func (v *txBlockTest1) GetVersion() uint32 {
 	return 1
 }
 
-func (v *txBlockTest1) GetCandidatesDesc(startIndex uint32, producers []interfaces.Producer) ([][]byte, error) {
+func (v *txBlockTest1) GetCandidatesDesc(startIndex uint32, producers []version.Producer) ([][]byte, error) {
 	versionsMsg = "blockVersionTest1_GetCandidatesDesc"
 	return nil, nil
 }
 
-func (v *txBlockTest1) GetNormalArbitratorsDesc(arbitratorsCount uint32, arbiters []interfaces.Producer) (
+func (v *txBlockTest1) GetNormalArbitersDesc(arbitratorsCount uint32, arbiters []version.Producer) (
 	[][]byte, error) {
-	versionsMsg = "blockVersionTest1_GetNormalArbitratorsDesc"
+	versionsMsg = "blockVersionTest1_GetNormalArbitersDesc"
 	return nil, nil
 }
 
@@ -606,8 +606,8 @@ func (v *txBlockTest1) CheckConfirmedBlockOnFork(block *types.Block) error {
 	return nil
 }
 
-func (v *txBlockTest1) GetNextOnDutyArbitrator(dutyChangedCount, offset uint32) []byte {
-	versionsMsg = "blockVersionTest1_GetNextOnDutyArbitrator"
+func (v *txBlockTest1) GetNextOnDutyArbiter(dutyChangedCount, offset uint32) []byte {
+	versionsMsg = "blockVersionTest1_GetNextOnDutyArbiter"
 	return nil
 }
 
@@ -618,14 +618,14 @@ func (v *txBlockTest2) GetVersion() uint32 {
 	return 2
 }
 
-func (v *txBlockTest2) GetCandidatesDesc(startIndex uint32, producers []interfaces.Producer) ([][]byte, error) {
+func (v *txBlockTest2) GetCandidatesDesc(startIndex uint32, producers []version.Producer) ([][]byte, error) {
 	versionsMsg = "blockVersionTest2_GetCandidatesDesc"
 	return nil, nil
 }
 
-func (v *txBlockTest2) GetNormalArbitratorsDesc(arbitratorsCount uint32, arbiters []interfaces.Producer) (
+func (v *txBlockTest2) GetNormalArbitersDesc(arbitratorsCount uint32, arbiters []version.Producer) (
 	[][]byte, error) {
-	versionsMsg = "blockVersionTest2_GetNormalArbitratorsDesc"
+	versionsMsg = "blockVersionTest2_GetNormalArbitersDesc"
 	return nil, nil
 }
 
@@ -644,7 +644,7 @@ func (v *txBlockTest2) CheckConfirmedBlockOnFork(block *types.Block) error {
 	return nil
 }
 
-func (v *txBlockTest2) GetNextOnDutyArbitrator(dutyChangedCount, offset uint32) []byte {
-	versionsMsg = "blockVersionTest2_GetNextOnDutyArbitrator"
+func (v *txBlockTest2) GetNextOnDutyArbiter(dutyChangedCount, offset uint32) []byte {
+	versionsMsg = "blockVersionTest2_GetNextOnDutyArbiter"
 	return nil
 }

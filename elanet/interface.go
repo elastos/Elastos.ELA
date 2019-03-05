@@ -2,17 +2,17 @@ package elanet
 
 import (
 	"github.com/elastos/Elastos.ELA/blockchain"
-	"github.com/elastos/Elastos.ELA/blockchain/interfaces"
 	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/mempool"
 	"github.com/elastos/Elastos.ELA/p2p/msg"
 	svr "github.com/elastos/Elastos.ELA/p2p/server"
+	"github.com/elastos/Elastos.ELA/version"
 )
 
 type Config struct {
 	Chain        *blockchain.BlockChain
 	ChainParams  *config.Params
-	Versions     interfaces.HeightVersions
+	Versions     version.HeightVersions
 	TxMemPool    *mempool.TxPool
 	BlockMemPool *mempool.BlockPool
 }

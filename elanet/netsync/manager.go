@@ -6,7 +6,6 @@ import (
 	"sync/atomic"
 
 	"github.com/elastos/Elastos.ELA/blockchain"
-	"github.com/elastos/Elastos.ELA/blockchain/interfaces"
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/core/types"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
@@ -16,6 +15,7 @@ import (
 	"github.com/elastos/Elastos.ELA/mempool"
 	"github.com/elastos/Elastos.ELA/p2p"
 	"github.com/elastos/Elastos.ELA/p2p/msg"
+	"github.com/elastos/Elastos.ELA/version"
 )
 
 const (
@@ -108,7 +108,7 @@ type SyncManager struct {
 	started      int32
 	shutdown     int32
 	chain        *blockchain.BlockChain
-	versions     interfaces.HeightVersions
+	versions     version.HeightVersions
 	txMemPool    *mempool.TxPool
 	blockMemPool *mempool.BlockPool
 	msgChan      chan interface{}

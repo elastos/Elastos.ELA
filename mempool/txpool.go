@@ -471,7 +471,7 @@ func (mp *TxPool) cleanSidechainTx(txs []*Transaction) {
 
 // clean the sidechainpow tx pool
 func (mp *TxPool) cleanSideChainPowTx() {
-	arbitrator := blockchain.DefaultLedger.Arbitrators.GetOnDutyArbitrator()
+	arbitrator := blockchain.DefaultLedger.DutyState.GetOnDutyArbiter()
 
 	for hash, txn := range mp.txnList {
 		if txn.IsSideChainPowTx() {

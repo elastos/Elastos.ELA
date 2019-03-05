@@ -24,7 +24,7 @@ type VoteEvent struct {
 }
 
 type ViewEvent struct {
-	OnDutyArbitrator string
+	OnDutyArbiter string
 	StartTime        time.Time
 	Offset           uint32
 	Height           uint32

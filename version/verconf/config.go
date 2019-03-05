@@ -2,10 +2,11 @@ package verconf
 
 import (
 	"github.com/elastos/Elastos.ELA/blockchain"
-	"github.com/elastos/Elastos.ELA/blockchain/interfaces"
 	"github.com/elastos/Elastos.ELA/common/config"
+	"github.com/elastos/Elastos.ELA/dpos/state"
 	"github.com/elastos/Elastos.ELA/elanet"
 	"github.com/elastos/Elastos.ELA/mempool"
+	"github.com/elastos/Elastos.ELA/version"
 )
 
 type Config struct {
@@ -15,6 +16,6 @@ type Config struct {
 	ChainParams  *config.Params
 	TxMemPool    *mempool.TxPool
 	BlockMemPool *mempool.BlockPool
-	Arbitrators  interfaces.Arbitrators
-	Versions     interfaces.HeightVersions
+	DutyState    *state.DutyState
+	Versions     version.HeightVersions
 }

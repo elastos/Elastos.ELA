@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/elastos/Elastos.ELA/blockchain/mock"
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/core/types"
@@ -119,13 +118,12 @@ func mockIllegalBlockTx(publicKey []byte) *types.Transaction {
 }
 
 func TestState_ProcessTransaction(t *testing.T) {
-	state := NewState(&mock.ArbitratorsMock{}, &config.RegNetParams)
-	config.Parameters = config.ConfigParams{
-		Configuration: &config.Configuration{
-			HeightVersions: []uint32{0, 100, 200, 300},
-		},
-		ChainParam: nil,
-	}
+	chainParams := &config.MainNetParams
+	chainParams.CheckAddressHeight = 100
+	chainParams.DPOSStartHeight = 200
+	chainParams.OpenArbitersHeight = 300
+	state := NewState(chainParams)
+
 	// Create 10 producers info.
 	producers := make([]*payload.ProducerInfo, 10)
 	for i, p := range producers {
@@ -227,7 +225,7 @@ func TestState_ProcessTransaction(t *testing.T) {
 }
 
 func TestState_ProcessBlock(t *testing.T) {
-	state := NewState(&mock.ArbitratorsMock{}, &config.RegNetParams)
+	state := NewState(&config.RegNetParams)
 
 	// Create 100 producers info.
 	producers := make([]*payload.ProducerInfo, 100)
@@ -400,7 +398,7 @@ func TestState_ProcessBlock(t *testing.T) {
 }
 
 func TestState_ProcessIllegalBlockEvidence(t *testing.T) {
-	state := NewState(&mock.ArbitratorsMock{}, &config.RegNetParams)
+	state := NewState(&config.RegNetParams)
 
 	// Create 10 producers info.
 	producers := make([]*payload.ProducerInfo, 10)
@@ -456,7 +454,7 @@ func TestState_ProcessIllegalBlockEvidence(t *testing.T) {
 }
 
 func TestState_Rollback(t *testing.T) {
-	state := NewState(&mock.ArbitratorsMock{}, &config.RegNetParams)
+	state := NewState(&config.RegNetParams)
 
 	// Create 10 producers info.
 	producers := make([]*payload.ProducerInfo, 10)
@@ -507,7 +505,7 @@ func TestState_Rollback(t *testing.T) {
 }
 
 func TestState_GetHistory(t *testing.T) {
-	state := NewState(&mock.ArbitratorsMock{}, &config.RegNetParams)
+	state := NewState(&config.RegNetParams)
 
 	// Create 10 producers info.
 	producers := make([]*payload.ProducerInfo, 10)
@@ -653,7 +651,7 @@ func TestState_GetHistory(t *testing.T) {
 }
 
 func TestState_NicknameExists(t *testing.T) {
-	state := NewState(&mock.ArbitratorsMock{}, &config.RegNetParams)
+	state := NewState(&config.RegNetParams)
 
 	// Create 10 producers info.
 	producers := make([]*payload.ProducerInfo, 10)
@@ -718,7 +716,7 @@ func TestState_NicknameExists(t *testing.T) {
 }
 
 func TestState_ProducerExists(t *testing.T) {
-	state := NewState(&mock.ArbitratorsMock{}, &config.RegNetParams)
+	state := NewState(&config.RegNetParams)
 
 	// Create 10 producers info.
 	producers := make([]*payload.ProducerInfo, 10)
@@ -772,7 +770,7 @@ func TestState_ProducerExists(t *testing.T) {
 }
 
 func TestState_IsDPOSTransaction(t *testing.T) {
-	state := NewState(&mock.ArbitratorsMock{}, &config.RegNetParams)
+	state := NewState(&config.RegNetParams)
 
 	producer := &payload.ProducerInfo{
 		OwnerPublicKey: make([]byte, 33),
@@ -827,9 +825,9 @@ func TestState_IsDPOSTransaction(t *testing.T) {
 	}
 }
 
+// TODO move to dutystate_test.go
 func TestState_InactiveProducer_Normal(t *testing.T) {
-	arbitrators := &mock.ArbitratorsMock{}
-	state := NewState(arbitrators, &config.RegNetParams)
+	state := NewState(&config.RegNetParams)
 
 	// Create 10 producers info.
 	producers := make([]*payload.ProducerInfo, 10)
@@ -864,19 +862,19 @@ func TestState_InactiveProducer_Normal(t *testing.T) {
 	}
 
 	// arbitrators should set inactive after continuous three blocks
-	arbitrators.CurrentArbitrators = [][]byte{
-		producers[0].NodePublicKey,
-		producers[1].NodePublicKey,
-		producers[2].NodePublicKey,
-		producers[3].NodePublicKey,
-		producers[4].NodePublicKey,
-	}
+	//arbitrators.CurrentArbiters = [][]byte{
+	//	producers[0].NodePublicKey,
+	//	producers[1].NodePublicKey,
+	//	producers[2].NodePublicKey,
+	//	producers[3].NodePublicKey,
+	//	producers[4].NodePublicKey,
+	//}
 
 	currentHeight := 11
 
 	// simulate producers[0] confirming block failed for continuous three rounds
-	for round := 0; round < 3; round ++ {
-		for arIndex := 1; arIndex <= 5; arIndex ++ {
+	for round := 0; round < 3; round++ {
+		for arIndex := 1; arIndex <= 5; arIndex++ {
 			state.ProcessBlock(mockBlock(uint32(currentHeight)),
 				&payload.Confirm{
 					Proposal: payload.DPOSProposal{
@@ -901,9 +899,9 @@ func TestState_InactiveProducer_Normal(t *testing.T) {
 	}
 }
 
+// TODO move to dutystate_test.go
 func TestState_InactiveProducer_FailNoContinuous(t *testing.T) {
-	arbitrators := &mock.ArbitratorsMock{}
-	state := NewState(arbitrators, &config.RegNetParams)
+	state := NewState(&config.RegNetParams)
 
 	// Create 10 producers info.
 	producers := make([]*payload.ProducerInfo, 10)
@@ -938,20 +936,20 @@ func TestState_InactiveProducer_FailNoContinuous(t *testing.T) {
 	}
 
 	// arbitrators should set inactive after continuous three blocks
-	arbitrators.CurrentArbitrators = [][]byte{
-		producers[0].NodePublicKey,
-		producers[1].NodePublicKey,
-		producers[2].NodePublicKey,
-		producers[3].NodePublicKey,
-		producers[4].NodePublicKey,
-	}
+	//arbitrators.CurrentArbiters = [][]byte{
+	//	producers[0].NodePublicKey,
+	//	producers[1].NodePublicKey,
+	//	producers[2].NodePublicKey,
+	//	producers[3].NodePublicKey,
+	//	producers[4].NodePublicKey,
+	//}
 
 	currentHeight := 11
 
 	// simulate producers[0] confirming block failed for total three rounds,
 	// but is not continuous
-	for round := 0; round < 4; round ++ {
-		for arIndex := 1; arIndex <= 5; arIndex ++ {
+	for round := 0; round < 4; round++ {
+		for arIndex := 1; arIndex <= 5; arIndex++ {
 
 			if round == 2 && arIndex == 5 {
 				state.ProcessBlock(mockBlock(uint32(currentHeight)),
@@ -978,9 +976,9 @@ func TestState_InactiveProducer_FailNoContinuous(t *testing.T) {
 	}
 }
 
+// TODO move to dutystate_test.go
 func TestState_InactiveProducer_RecoverFromInactiveState(t *testing.T) {
-	arbitrators := &mock.ArbitratorsMock{}
-	state := NewState(arbitrators, &config.RegNetParams)
+	state := NewState(&config.RegNetParams)
 
 	// Create 10 producers info.
 	producers := make([]*payload.ProducerInfo, 10)
@@ -1015,19 +1013,19 @@ func TestState_InactiveProducer_RecoverFromInactiveState(t *testing.T) {
 	}
 
 	// arbitrators should set inactive after continuous three blocks
-	arbitrators.CurrentArbitrators = [][]byte{
-		producers[0].NodePublicKey,
-		producers[1].NodePublicKey,
-		producers[2].NodePublicKey,
-		producers[3].NodePublicKey,
-		producers[4].NodePublicKey,
-	}
+	//arbitrators.CurrentArbiters = [][]byte{
+	//	producers[0].NodePublicKey,
+	//	producers[1].NodePublicKey,
+	//	producers[2].NodePublicKey,
+	//	producers[3].NodePublicKey,
+	//	producers[4].NodePublicKey,
+	//}
 
 	currentHeight := 11
 
 	// simulate producers[0] confirming block failed for continuous three rounds
-	for round := 0; round < 3; round ++ {
-		for arIndex := 1; arIndex <= 5; arIndex ++ {
+	for round := 0; round < 3; round++ {
+		for arIndex := 1; arIndex <= 5; arIndex++ {
 			state.ProcessBlock(mockBlock(uint32(currentHeight)),
 				&payload.Confirm{
 					Proposal: payload.DPOSProposal{

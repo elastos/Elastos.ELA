@@ -47,11 +47,11 @@ func (e *EventLogs) OnVoteArrived(vote *VoteEvent) {
 
 func (e *EventLogs) OnViewStarted(view *ViewEvent) {
 	Info(fmt.Sprintf("[OnViewStarted] "+
-		"OnDutyArbitrator: %s, "+
+		"OnDutyArbiter: %s, "+
 		"StartTime: %s, "+
 		"Offset: %d, "+
 		"Height: %d",
-		view.OnDutyArbitrator,
+		view.OnDutyArbiter,
 		view.StartTime,
 		view.Offset,
 		view.Height))

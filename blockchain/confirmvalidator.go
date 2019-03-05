@@ -39,7 +39,7 @@ func ConfirmContextCheck(confirm *payload.Confirm) error {
 		signers[common.BytesToHexString(vote.Signer)] = struct{}{}
 	}
 
-	if len(signers) <= int(DefaultLedger.Arbitrators.
+	if len(signers) <= int(DefaultLedger.DutyState.
 		GetArbitersMajorityCount()) {
 		return errors.New("[ConfirmContextCheck] signers less than " +
 			"majority count")
@@ -67,10 +67,10 @@ func checkBlockWithConfirmation(block *Block,
 			"confirmation validate failed")
 	}
 
-	var inactivePayload *payload.InactiveArbitrators
+	var inactivePayload *payload.InactiveArbiters
 	for _, tx := range block.Transactions {
-		if tx.IsInactiveArbitrators() {
-			inactivePayload = tx.Payload.(*payload.InactiveArbitrators)
+		if tx.IsInactiveArbiters() {
+			inactivePayload = tx.Payload.(*payload.InactiveArbiters)
 			break
 		}
 	}
@@ -86,7 +86,7 @@ func checkBlockWithConfirmation(block *Block,
 		}
 		return err
 	} else if inactivePayload != nil {
-		if err := DefaultLedger.Arbitrators.ForceChange(block.Height); err != nil {
+		if err := DefaultLedger.DutyState.ForceChange(block.Height); err != nil {
 			panic("force change fail when finding an inactive arbitrators" +
 				" transaction")
 		}
@@ -124,7 +124,7 @@ func ProposalSanityCheck(proposal *payload.DPOSProposal) error {
 
 func ProposalContextCheck(proposal *payload.DPOSProposal) error {
 	var isArbiter bool
-	arbiters := DefaultLedger.Arbitrators.GetArbitrators()
+	arbiters := DefaultLedger.DutyState.GetArbiters()
 	for _, a := range arbiters {
 		if bytes.Equal(a, proposal.Sponsor) {
 			isArbiter = true
@@ -165,7 +165,7 @@ func VoteSanityCheck(vote *payload.DPOSProposalVote) error {
 }
 func VoteContextCheck(vote *payload.DPOSProposalVote) error {
 	var isArbiter bool
-	arbiters := DefaultLedger.Arbitrators.GetArbitrators()
+	arbiters := DefaultLedger.DutyState.GetArbiters()
 	for _, a := range arbiters {
 		if bytes.Equal(a, vote.Signer) {
 			isArbiter = true

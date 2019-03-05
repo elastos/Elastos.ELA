@@ -3,7 +3,6 @@ package store
 import (
 	"bytes"
 
-	"github.com/elastos/Elastos.ELA/blockchain/interfaces"
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/crypto"
 )
@@ -22,9 +21,9 @@ func (s *DposStore) getDposDutyChangedCount() (uint32, error) {
 	return 0, nil
 }
 
-func (s *DposStore) getCurrentArbitrators() ([][]byte, error) {
-	var currentArbitrators [][]byte
-	key := []byte{byte(DPOSCurrentArbitrators)}
+func (s *DposStore) getCurrentArbiters() ([][]byte, error) {
+	var currentArbiters [][]byte
+	key := []byte{byte(DPOSCurrentArbiters)}
 	data, err := s.db.Get(key)
 	if err == nil {
 
@@ -39,11 +38,11 @@ func (s *DposStore) getCurrentArbitrators() ([][]byte, error) {
 			if err != nil {
 				return nil, err
 			}
-			currentArbitrators = append(currentArbitrators, arbiter)
+			currentArbiters = append(currentArbiters, arbiter)
 		}
 	}
 
-	return currentArbitrators, nil
+	return currentArbiters, nil
 }
 
 func (s *DposStore) getCurrentCandidates() ([][]byte, error) {
@@ -70,9 +69,9 @@ func (s *DposStore) getCurrentCandidates() ([][]byte, error) {
 	return currentCandidates, nil
 }
 
-func (s *DposStore) getNextArbitrators() ([][]byte, error) {
-	var nextArbitrators [][]byte
-	key := []byte{byte(DPOSNextArbitrators)}
+func (s *DposStore) getNextArbiters() ([][]byte, error) {
+	var nextArbiters [][]byte
+	key := []byte{byte(DPOSNextArbiters)}
 	data, err := s.db.Get(key)
 	if err == nil {
 
@@ -87,10 +86,10 @@ func (s *DposStore) getNextArbitrators() ([][]byte, error) {
 			if err != nil {
 				return nil, err
 			}
-			nextArbitrators = append(nextArbitrators, arbiter)
+			nextArbiters = append(nextArbiters, arbiter)
 		}
 	}
-	return nextArbitrators, nil
+	return nextArbiters, nil
 }
 
 func (s *DposStore) getNextCandidates() ([][]byte, error) {
@@ -127,16 +126,16 @@ func (s *DposStore) persistDposDutyChangedCount(batch Batch, count uint32) error
 	return nil
 }
 
-func (s *DposStore) persistCurrentArbitrators(batch Batch, arbiters [][]byte) error {
-	return s.persistBytesArray(batch, arbiters, DPOSCurrentArbitrators)
+func (s *DposStore) persistCurrentArbiters(batch Batch, arbiters [][]byte) error {
+	return s.persistBytesArray(batch, arbiters, DPOSCurrentArbiters)
 }
 
 func (s *DposStore) persistCurrentCandidates(batch Batch, candidates [][]byte) error {
 	return s.persistBytesArray(batch, candidates, DPOSCurrentCandidates)
 }
 
-func (s *DposStore) persistNextArbitrators(batch Batch, arbiters [][]byte) error {
-	return s.persistBytesArray(batch, arbiters, DPOSNextArbitrators)
+func (s *DposStore) persistNextArbiters(batch Batch, arbiters [][]byte) error {
+	return s.persistBytesArray(batch, arbiters, DPOSNextArbiters)
 }
 
 func (s *DposStore) persistNextCandidates(batch Batch, candidates [][]byte) error {
@@ -162,7 +161,7 @@ func (s *DposStore) persistBytesArray(batch Batch, bytesArray [][]byte, prefix D
 	return nil
 }
 
-func (s *DposStore) persistDirectPeers(batch Batch, peers []*interfaces.DirectPeers) error {
+func (s *DposStore) persistDirectPeers(batch Batch, peers []*DirectPeers) error {
 	key := new(bytes.Buffer)
 	key.WriteByte(byte(DPOSDirectPeers))
 

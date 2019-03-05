@@ -8,7 +8,6 @@ import (
 	"math"
 	"testing"
 
-	"github.com/elastos/Elastos.ELA/blockchain/mock"
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/common/log"
@@ -18,6 +17,7 @@ import (
 	"github.com/elastos/Elastos.ELA/core/types/outputpayload"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/crypto"
+	"github.com/elastos/Elastos.ELA/version"
 
 	"github.com/elastos/Elastos.ELA/dpos/state"
 	"github.com/stretchr/testify/suite"
@@ -48,14 +48,21 @@ func (s *txValidatorTestSuite) SetupSuite() {
 	FoundationAddress = *foundation
 	s.foundationAddress = FoundationAddress
 
-	heightVersions := &mock.HeightVersionsMock{}
+	heightVersions := &version.HeightVersionsMock{}
 	chainStore, err := NewChainStore("txValidatorTestSuite",
 		config.MainNetParams.GenesisBlock)
 	if err != nil {
 		s.Error(err)
 	}
-	s.Chain, err = New(chainStore, &config.MainNetParams,
-		heightVersions, state.NewState(&mock.ArbitratorsMock{}, &config.MainNetParams))
+	dutyState, err := state.NewDutyState(&state.Config{
+		ChainParams:   &config.MainNetParams,
+		GetBestHeight: chainStore.GetHeight,
+	})
+	if err != nil {
+		s.Error(err)
+	}
+	s.Chain, err = New(chainStore, &config.MainNetParams, heightVersions,
+		dutyState)
 	if err != nil {
 		s.Error(err)
 	}

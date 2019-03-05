@@ -1,27 +1,29 @@
-package mock
+package version
 
 import (
-	"github.com/elastos/Elastos.ELA/blockchain/interfaces"
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/core/types"
 )
 
+// Ensure HeightVersionsMock implements the HeightVersions interface.
+var _ HeightVersions = (*HeightVersionsMock)(nil)
+
 type HeightVersionsMock struct {
 	Producers           [][]byte
 	ShouldConfirm       bool
-	CurrentArbitrator   []byte
+	CurrentArbiter   []byte
 	DefaultTxVersion    byte
 	DefaultBlockVersion uint32
 }
 
-func NewBlockHeightMock() *HeightVersionsMock {
+func NewMock() *HeightVersionsMock {
 	const arbitratorStr = "8a6cb4b5ff1a4f8368c6513a536c663381e3fdeff738e9b437bd8fce3fb30b62"
 	arbitrator, _ := common.HexStringToBytes(arbitratorStr)
 
 	mockObj := &HeightVersionsMock{
 		Producers:           make([][]byte, 0),
 		ShouldConfirm:       true,
-		CurrentArbitrator:   arbitrator,
+		CurrentArbiter:   arbitrator,
 		DefaultTxVersion:    1,
 		DefaultBlockVersion: 1,
 	}
@@ -29,11 +31,11 @@ func NewBlockHeightMock() *HeightVersionsMock {
 	return mockObj
 }
 
-func (b *HeightVersionsMock) GetCandidatesDesc(blockHeight uint32, startIndex uint32, producers []interfaces.Producer) ([][]byte, error) {
+func (b *HeightVersionsMock) GetCandidatesDesc(blockHeight uint32, startIndex uint32, producers []Producer) ([][]byte, error) {
 	return nil, nil
 }
 
-func (b *HeightVersionsMock) GetNormalArbitratorsDesc(blockHeight uint32, arbitratorsCount uint32, arbiters []interfaces.Producer) ([][]byte, error) {
+func (b *HeightVersionsMock) GetNormalArbitersDesc(blockHeight uint32, arbitratorsCount uint32, arbiters []Producer) ([][]byte, error) {
 	return nil, nil
 }
 
@@ -53,7 +55,7 @@ func (b *HeightVersionsMock) CheckCoinbaseMinerReward(blockHeight uint32, tx *ty
 	return nil
 }
 
-func (b *HeightVersionsMock) CheckCoinbaseArbitratorsReward(blockHeight uint32, coinbase *types.Transaction, rewardInCoinbase common.Fixed64) error {
+func (b *HeightVersionsMock) CheckCoinbaseArbitersReward(blockHeight uint32, coinbase *types.Transaction, rewardInCoinbase common.Fixed64) error {
 	return nil
 }
 
@@ -73,6 +75,6 @@ func (b *HeightVersionsMock) CheckConfirmedBlockOnFork(block *types.Block) error
 	return nil
 }
 
-func (b *HeightVersionsMock) GetNextOnDutyArbitrator(blockHeight, dutyChangedCount, offset uint32) []byte {
-	return b.CurrentArbitrator
+func (b *HeightVersionsMock) GetNextOnDutyArbiter(blockHeight, dutyChangedCount, offset uint32) []byte {
+	return b.CurrentArbiter
 }

@@ -7,7 +7,6 @@ import (
 	"sync"
 
 	"github.com/elastos/Elastos.ELA/blockchain"
-	"github.com/elastos/Elastos.ELA/blockchain/interfaces"
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/core/types"
@@ -18,6 +17,8 @@ import (
 	"github.com/elastos/Elastos.ELA/dpos/p2p"
 	"github.com/elastos/Elastos.ELA/dpos/p2p/msg"
 	"github.com/elastos/Elastos.ELA/dpos/p2p/peer"
+	"github.com/elastos/Elastos.ELA/dpos/state"
+	"github.com/elastos/Elastos.ELA/dpos/store"
 	elap2p "github.com/elastos/Elastos.ELA/p2p"
 	elamsg "github.com/elastos/Elastos.ELA/p2p/msg"
 )
@@ -46,7 +47,8 @@ type network struct {
 	proposalDispatcher *manager.ProposalDispatcher
 	directPeers        map[string]*PeerItem
 	peersLock          sync.Mutex
-	store              interfaces.IDposStore
+	dutyState          *state.DutyState
+	store              store.IDposStore
 	publicKey          []byte
 
 	p2pServer    p2p.Server
@@ -60,11 +62,12 @@ type network struct {
 	sidechainIllegalEvidence chan *payload.SidechainIllegalData
 }
 
-func (n *network) Initialize(dnConfig manager.DPOSNetworkConfig) {
-	n.proposalDispatcher = dnConfig.ProposalDispatcher
-	n.store = dnConfig.Store
-	n.publicKey = dnConfig.PublicKey
-	if peers, err := dnConfig.Store.GetDirectPeers(); err == nil {
+func (n *network) Initialize(cfg manager.DPOSNetworkConfig) {
+	n.proposalDispatcher = cfg.ProposalDispatcher
+	n.dutyState = cfg.DutyState
+	n.store = cfg.Store
+	n.publicKey = cfg.PublicKey
+	if peers, err := cfg.Store.GetDirectPeers(); err == nil {
 		for _, p := range peers {
 			pid := peer.PID{}
 			copy(pid[:], p.PublicKey)
@@ -85,7 +88,7 @@ func (n *network) Start() {
 	n.p2pServer.Start()
 
 	n.UpdateProducersInfo()
-	arbiters := blockchain.DefaultLedger.Arbitrators.GetArbitrators()
+	arbiters := n.dutyState.GetArbiters()
 	if err := n.UpdatePeers(arbiters); err != nil {
 		log.Error(err)
 	}
@@ -148,7 +151,7 @@ func (n *network) UpdateProducersInfo() {
 
 func (n *network) getProducersConnectionInfo() (result map[string]p2p.PeerAddr) {
 	result = make(map[string]p2p.PeerAddr)
-	crcs := blockchain.DefaultLedger.Arbitrators.GetCRCArbitrators()
+	crcs := n.dutyState.GetCRCArbiters()
 	for _, c := range crcs {
 		if len(c.PublicKey) != 33 {
 			log.Warn("[getProducersConnectionInfo] invalid public key")
@@ -159,7 +162,7 @@ func (n *network) getProducersConnectionInfo() (result map[string]p2p.PeerAddr) 
 		result[hex.EncodeToString(c.PublicKey)] =
 			p2p.PeerAddr{PID: pid, Addr: c.NetAddress}
 	}
-	producers := blockchain.DefaultLedger.Blockchain.GetState().GetActiveProducers()
+	producers := n.dutyState.GetActiveProducers()
 	for _, p := range producers {
 		if len(p.Info().NodePublicKey) != 33 {
 			log.Warn("[getProducersConnectionInfo] invalid public key")
@@ -195,7 +198,7 @@ func (n *network) UpdatePeers(arbitrators [][]byte) error {
 		ad.Sequence += uint32(len(arbitrators))
 		n.peersLock.Unlock()
 	}
-	for _, c := range blockchain.DefaultLedger.Arbitrators.GetCRCArbitrators() {
+	for _, c := range n.dutyState.GetCRCArbiters() {
 		pubKey := common.BytesToHexString(c.PublicKey)
 
 		n.peersLock.Lock()
@@ -234,7 +237,7 @@ func (n *network) ChangeHeight(height uint32) error {
 	}
 
 	n.peersLock.Lock()
-	crcArbiters := blockchain.DefaultLedger.Arbitrators.GetCRCArbitrators()
+	crcArbiters := n.dutyState.GetCRCArbiters()
 	crcArbitersMap := make(map[string]struct{}, 0)
 	for _, a := range crcArbiters {
 		crcArbitersMap[common.BytesToHexString(a.PublicKey)] = struct{}{}
@@ -417,21 +420,21 @@ func (n *network) processMessage(msgItem *messageItem) {
 	case elap2p.CmdTx:
 		msgTx, processed := m.(*elamsg.Tx)
 		if processed {
-			if tx, ok := msgTx.Serializable.(*types.Transaction); ok && tx.IsInactiveArbitrators() {
-				n.listener.OnInactiveArbitratorsReceived(tx)
+			if tx, ok := msgTx.Serializable.(*types.Transaction); ok && tx.IsInactiveArbiters() {
+				n.listener.OnInactiveArbitersReceived(tx)
 			}
 		}
-	case msg.CmdResponseInactiveArbitrators:
-		msgResponse, processed := m.(*msg.ResponseInactiveArbitrators)
+	case msg.CmdResponseInactiveArbiters:
+		msgResponse, processed := m.(*msg.ResponseInactiveArbiters)
 		if processed {
-			n.listener.OnResponseInactiveArbitratorsReceived(
+			n.listener.OnResponseInactiveArbitersReceived(
 				&msgResponse.TxHash, msgResponse.Signer, msgResponse.Sign)
 		}
 	}
 }
 
 func (n *network) saveDirectPeers() {
-	var peers []*interfaces.DirectPeers
+	var peers []*store.DirectPeers
 	for k, v := range n.directPeers {
 		if !v.NeedConnect {
 			continue
@@ -440,7 +443,7 @@ func (n *network) saveDirectPeers() {
 		if err != nil {
 			continue
 		}
-		peers = append(peers, &interfaces.DirectPeers{
+		peers = append(peers, &store.DirectPeers{
 			PublicKey: pk,
 			Address:   v.Address.Addr,
 			Sequence:  v.Sequence,

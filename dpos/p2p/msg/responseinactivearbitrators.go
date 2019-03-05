@@ -7,23 +7,23 @@ import (
 	"github.com/elastos/Elastos.ELA/crypto"
 )
 
-const ResponseInactiveArbitratorsLength = 32 + 33 + 64
+const ResponseInactiveArbitersLength = 32 + 33 + 64
 
-type ResponseInactiveArbitrators struct {
+type ResponseInactiveArbiters struct {
 	TxHash common.Uint256
 	Signer []byte
 	Sign   []byte
 }
 
-func (i *ResponseInactiveArbitrators) CMD() string {
-	return CmdResponseInactiveArbitrators
+func (i *ResponseInactiveArbiters) CMD() string {
+	return CmdResponseInactiveArbiters
 }
 
-func (i *ResponseInactiveArbitrators) MaxLength() uint32 {
-	return ResponseInactiveArbitratorsLength
+func (i *ResponseInactiveArbiters) MaxLength() uint32 {
+	return ResponseInactiveArbitersLength
 }
 
-func (i *ResponseInactiveArbitrators) Serialize(w io.Writer) error {
+func (i *ResponseInactiveArbiters) Serialize(w io.Writer) error {
 	if err := i.SerializeUnsigned(w); err != nil {
 		return err
 	}
@@ -34,7 +34,7 @@ func (i *ResponseInactiveArbitrators) Serialize(w io.Writer) error {
 	return nil
 }
 
-func (i *ResponseInactiveArbitrators) SerializeUnsigned(w io.Writer) error {
+func (i *ResponseInactiveArbiters) SerializeUnsigned(w io.Writer) error {
 	if err := i.TxHash.Serialize(w); err != nil {
 		return err
 	}
@@ -45,7 +45,7 @@ func (i *ResponseInactiveArbitrators) SerializeUnsigned(w io.Writer) error {
 	return nil
 }
 
-func (i *ResponseInactiveArbitrators) Deserialize(r io.Reader) (err error) {
+func (i *ResponseInactiveArbiters) Deserialize(r io.Reader) (err error) {
 	if err = i.DeserializeUnsigned(r); err != nil {
 		return err
 	}
@@ -56,7 +56,7 @@ func (i *ResponseInactiveArbitrators) Deserialize(r io.Reader) (err error) {
 	return err
 }
 
-func (i *ResponseInactiveArbitrators) DeserializeUnsigned(r io.Reader) (err error) {
+func (i *ResponseInactiveArbiters) DeserializeUnsigned(r io.Reader) (err error) {
 	if err = i.TxHash.Deserialize(r); err != nil {
 		return err
 	}

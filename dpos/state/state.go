@@ -7,7 +7,6 @@ import (
 	"math"
 	"sync"
 
-	"github.com/elastos/Elastos.ELA/blockchain/interfaces"
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/common/log"
@@ -72,7 +71,7 @@ func (p *Producer) Info() payload.ProducerInfo {
 	return p.info
 }
 
-// State returns the producer's state, can be pending, active or canceled.
+// state returns the producer's state, can be pending, active or canceled.
 func (p *Producer) State() ProducerState {
 	return p.state
 }
@@ -119,11 +118,12 @@ const (
 	maxSnapshots = 9
 )
 
-// State is a memory database storing DPOS producers state, like pending
+// state is a memory database storing DPOS producers state, like pending
 // producers active producers and their votes.
 type State struct {
-	arbiters    interfaces.Arbitrators
-	chainParams *config.Params
+	crcArbiters      []crcArbiter
+	crcProgramHashes map[common.Uint168]struct{}
+	chainParams      *config.Params
 
 	mtx                 sync.RWMutex
 	nodeOwnerKeys       map[string]string // NodePublicKey as key, OwnerPublicKey as value
@@ -142,6 +142,25 @@ type State struct {
 	// state every 12 blocks, and keeps at most 9 newest snapshots in memory.
 	snapshots [maxSnapshots]*State
 	cursor    int
+}
+
+
+func (s *State) IsCRCArbiterProgramHash(hash *common.Uint168) bool {
+	_, ok := s.crcProgramHashes[*hash]
+	return ok
+}
+
+func (s *State) IsCRCArbiter(pk []byte) bool {
+	for _, v := range s.crcArbiters {
+		if bytes.Equal(v.PublicKey, pk) {
+			return true
+		}
+	}
+	return false
+}
+
+func (s *State) GetCRCArbiters() []crcArbiter {
+	return s.crcArbiters
 }
 
 // getProducerKey returns the producer's owner public key string, whether the
@@ -203,10 +222,6 @@ func (s *State) updateProducerInfo(origin *payload.ProducerInfo, update *payload
 	producer.info = *update
 }
 
-func (s *State) GetArbiters() interfaces.Arbitrators {
-	return s.arbiters
-}
-
 // GetProducer returns a producer with the producer's node public key or it's
 // owner public key including canceled and illegal producers.  If no matches
 // return nil.
@@ -230,21 +245,6 @@ func (s *State) GetProducers() []*Producer {
 		producers = append(producers, producer)
 	}
 	s.mtx.RUnlock()
-	return producers
-}
-
-func (s *State) GetInterfaceProducers() []interfaces.Producer {
-	s.mtx.RLock()
-	producers := s.getInterfaceProducers()
-	s.mtx.RUnlock()
-	return producers
-}
-
-func (s *State) getInterfaceProducers() []interfaces.Producer {
-	producers := make([]interfaces.Producer, 0, len(s.activityProducers))
-	for _, producer := range s.activityProducers {
-		producers = append(producers, producer)
-	}
 	return producers
 }
 
@@ -418,39 +418,16 @@ func (s *State) IsDPOSTransaction(tx *types.Transaction) bool {
 // ProcessBlock takes a block and it's confirm to update producers state and
 // votes accordingly.
 func (s *State) ProcessBlock(block *types.Block, confirm *payload.Confirm) {
-	// get on duty arbiter before lock in case of recurrent lock
-	onDutyArbitrator := s.arbiters.GetOnDutyArbitratorByHeight(block.Height)
-	arbitersCount := s.arbiters.GetArbitersCount()
-
 	s.mtx.Lock()
-	defer s.mtx.Unlock()
-
 	s.processTransactions(block.Transactions, block.Height)
 
-	if confirm != nil {
-		s.countArbitratorsInactivity(block.Height, arbitersCount,
-			onDutyArbitrator, confirm)
-	}
-
-	s.processArbitrators(block, block.Height)
-
 	// Take snapshot when snapshot point arrives.
-	if (block.Height-s.chainParams.VoteStartHeight)%snapshotInterval == 0 {
+	if (block.Height-s.chainParams.DPOSStartHeight)%snapshotInterval == 0 {
 		s.cursor = s.cursor % maxSnapshots
 		s.snapshots[s.cursor] = s.snapshot()
 		s.cursor++
 	}
-
-	// Commit changes here if no errors found.
-	s.history.commit(block.Height)
-}
-
-func (s *State) processArbitrators(block *types.Block, height uint32) {
-	s.history.append(height, func() {
-		s.arbiters.IncreaseChainHeight(block.Height)
-	}, func() {
-		s.arbiters.DecreaseChainHeight(block.Height)
-	})
+	s.mtx.Unlock()
 }
 
 // processTransactions takes the transactions and the height when they have been
@@ -533,9 +510,9 @@ func (s *State) processTransaction(tx *types.Transaction, height uint32) {
 		s.processIllegalEvidence(tx.Payload, height)
 		s.recordSpecialTx(tx, height)
 
-	case types.InactiveArbitrators:
-		s.processEmergencyInactiveArbitrators(
-			tx.Payload.(*payload.InactiveArbitrators), height)
+	case types.InactiveArbiters:
+		s.processInactiveArbiters(tx.Payload.(*payload.InactiveArbiters),
+			height)
 		s.recordSpecialTx(tx, height)
 
 	case types.ReturnDepositCoin:
@@ -696,12 +673,12 @@ func (s *State) returnDeposit(tx *types.Transaction, height uint32) {
 	}
 }
 
-// processEmergencyInactiveArbitrators change producer state according to
-// emergency inactive arbitrators
-func (s *State) processEmergencyInactiveArbitrators(
-	inactivePayload *payload.InactiveArbitrators, height uint32) {
+// processInactiveArbiters change producer state according to emergency inactive
+// arbitrators
+func (s *State) processInactiveArbiters(pld *payload.InactiveArbiters,
+	height uint32) {
 
-	addEmergencyInactiveArbitrator := func(key string, producer *Producer) {
+	addInactiveArbiter := func(key string, producer *Producer) {
 		s.history.append(height, func() {
 			s.setInactiveProducer(producer, key, height)
 		}, func() {
@@ -709,13 +686,13 @@ func (s *State) processEmergencyInactiveArbitrators(
 		})
 	}
 
-	for _, v := range inactivePayload.Arbitrators {
+	for _, v := range pld.Arbiters {
 		pkStr := common.BytesToHexString(v)
 
 		if _, ok := s.activityProducers[pkStr]; ok {
-			addEmergencyInactiveArbitrator(pkStr, s.activityProducers[pkStr])
+			addInactiveArbiter(pkStr, s.activityProducers[pkStr])
 		} else {
-			if s.arbiters.IsCRCArbitrator(v) {
+			if s.IsCRCArbiter(v) {
 				// add temporary producer obj for crc inactive arbitrator
 				producer := &Producer{
 					info: payload.ProducerInfo{
@@ -727,7 +704,7 @@ func (s *State) processEmergencyInactiveArbitrators(
 					penalty:               common.Fixed64(0),
 					activateRequestHeight: math.MaxUint32,
 				}
-				addEmergencyInactiveArbitrator(pkStr, producer)
+				addInactiveArbiter(pkStr, producer)
 
 			} else {
 				log.Warn("unknown active producer: ", v)
@@ -819,16 +796,16 @@ func (s *State) processIllegalEvidence(payloadData types.Payload,
 // before it packed into a block.
 func (s *State) ProcessSpecialTxPayload(p types.Payload) {
 	s.mtx.Lock()
-	defer s.mtx.Unlock()
 
-	if inactivePayload, ok := p.(*payload.InactiveArbitrators); ok {
-		s.processEmergencyInactiveArbitrators(inactivePayload, 0)
+	if inactivePayload, ok := p.(*payload.InactiveArbiters); ok {
+		s.processInactiveArbiters(inactivePayload, 0)
 	} else {
 		s.processIllegalEvidence(p, 0)
 	}
 
 	// Commit changes here if no errors found.
 	s.history.commit(0)
+	s.mtx.Unlock()
 }
 
 // setInactiveProducer set active producer to inactive state
@@ -854,75 +831,6 @@ func (s *State) revertSettingInactiveProducer(producer *Producer, key string,
 		producer.penalty = common.Fixed64(0)
 	} else {
 		producer.penalty -= s.chainParams.InactivePenalty
-	}
-}
-
-// countArbitratorsInactivity count arbitrators inactive rounds, and change to
-// inactive if more than "MaxInactiveRounds"
-func (s *State) countArbitratorsInactivity(height, totalArbitersCount uint32,
-	onDutyArbiter []byte, confirm *payload.Confirm) {
-	// check inactive arbitrators after producers has participated in
-	if int(totalArbitersCount) == len(s.chainParams.CRCArbiters) {
-		return
-	}
-
-	key := s.getProducerKey(onDutyArbiter)
-
-	isMissOnDuty := !bytes.Equal(onDutyArbiter, confirm.Proposal.Sponsor)
-	if producer, ok := s.activityProducers[key]; ok {
-		count, existMissingRecord := s.onDutyMissingCounts[key]
-
-		s.history.append(height, func() {
-			s.tryUpdateOnDutyInactivity(isMissOnDuty, existMissingRecord,
-				key, producer, height)
-		}, func() {
-			s.tryRevertOnDutyInactivity(isMissOnDuty, existMissingRecord, key,
-				producer, height, count)
-		})
-	}
-}
-
-func (s *State) tryRevertOnDutyInactivity(isMissOnDuty bool,
-	existMissingRecord bool, key string, producer *Producer,
-	height uint32, count uint32) {
-	if isMissOnDuty {
-		if existMissingRecord {
-			if producer.state == Inactivate {
-				s.revertSettingInactiveProducer(producer, key, height)
-				s.onDutyMissingCounts[key] = s.chainParams.MaxInactiveRounds
-			} else {
-				if count > 1 {
-					s.onDutyMissingCounts[key]--
-				} else {
-					delete(s.onDutyMissingCounts, key)
-				}
-			}
-		}
-	} else {
-		if existMissingRecord {
-			s.onDutyMissingCounts[key] = count
-		}
-	}
-}
-
-func (s *State) tryUpdateOnDutyInactivity(isMissOnDuty bool,
-	existMissingRecord bool, key string, producer *Producer, height uint32) {
-	if isMissOnDuty {
-		if existMissingRecord {
-			s.onDutyMissingCounts[key]++
-
-			if s.onDutyMissingCounts[key] >=
-				s.chainParams.MaxInactiveRounds {
-				s.setInactiveProducer(producer, key, height)
-				delete(s.onDutyMissingCounts, key)
-			}
-		} else {
-			s.onDutyMissingCounts[key] = 1
-		}
-	} else {
-		if existMissingRecord {
-			delete(s.onDutyMissingCounts, key)
-		}
 	}
 }
 
@@ -992,10 +900,9 @@ func copyCountMap(dst map[string]uint32, src map[string]uint32) {
 	}
 }
 
-// NewState returns a new State instance.
-func NewState(arbiters interfaces.Arbitrators, chainParams *config.Params) *State {
+// NewState returns a new state instance.
+func NewState(chainParams *config.Params) *State {
 	return &State{
-		arbiters:            arbiters,
 		chainParams:         chainParams,
 		nodeOwnerKeys:       make(map[string]string),
 		pendingProducers:    make(map[string]*Producer),

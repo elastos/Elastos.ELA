@@ -125,14 +125,14 @@ func (b *BlockChain) CheckTransactionContext(blockHeight uint32, txn *Transactio
 			return ErrTransactionPayload
 		}
 
-	case InactiveArbitrators:
-		if err := b.checkInactiveArbitratorsTransaction(txn); err != nil {
-			log.Warn("[CheckInactiveArbitrators],", err)
+	case InactiveArbiters:
+		if err := b.checkInactiveArbitersTransaction(txn); err != nil {
+			log.Warn("[CheckInactiveArbiters],", err)
 			return ErrTransactionPayload
 		}
 
 	case SideChainPow:
-		arbitrator := DefaultLedger.Arbitrators.GetOnDutyArbitrator()
+		arbitrator := DefaultLedger.DutyState.GetOnDutyArbiter()
 		if err := CheckSideChainPowConsensus(txn, arbitrator); err != nil {
 			log.Warn("[CheckSideChainPowConsensus],", err)
 			return ErrSideChainPowConsensus
@@ -157,8 +157,7 @@ func (b *BlockChain) CheckTransactionContext(blockHeight uint32, txn *Transactio
 		}
 
 	case ActivateProducer:
-		if err := b.checkActivateProducerTransaction(txn, blockHeight);
-			err != nil {
+		if err := b.checkActivateProducerTransaction(txn, blockHeight); err != nil {
 			log.Warn("[CheckActivateProducerTransaction],", err)
 			return ErrTransactionPayload
 		}
@@ -345,7 +344,7 @@ func checkTransactionInput(txn *Transaction) error {
 
 		return nil
 	}
-	if txn.IsIllegalTypeTx() || txn.IsInactiveArbitrators() {
+	if txn.IsIllegalTypeTx() || txn.IsInactiveArbiters() {
 		if len(txn.Inputs) != 0 {
 			return errors.New("illegal transactions must has no input")
 		}
@@ -404,7 +403,7 @@ func checkTransactionOutput(blockHeight uint32, txn *Transaction) error {
 
 		return nil
 	}
-	if txn.IsIllegalTypeTx() || txn.IsInactiveArbitrators() {
+	if txn.IsIllegalTypeTx() || txn.IsInactiveArbiters() {
 		if len(txn.Outputs) != 0 {
 			return errors.New("Illegal transactions should have no output")
 		}
@@ -568,7 +567,7 @@ func checkAttributeProgram(blockHeight uint32, tx *Transaction) error {
 		if len(tx.Attributes) != 0 {
 			return errors.New("illegal block transactions should have no programs")
 		}
-	case InactiveArbitrators:
+	case InactiveArbiters:
 		if len(tx.Programs) != 1 {
 			return errors.New("inactive arbitrators transactions should have one and only one program")
 		}
@@ -641,7 +640,7 @@ func checkTransactionPayload(txn *Transaction) error {
 	case *payload.DPOSIllegalVotes:
 	case *payload.DPOSIllegalBlocks:
 	case *payload.SidechainIllegalData:
-	case *payload.InactiveArbitrators:
+	case *payload.InactiveArbiters:
 	default:
 		return errors.New("[txValidator],invalidate transaction payload type.")
 	}
@@ -682,7 +681,7 @@ func CheckSideChainPowConsensus(txn *Transaction, arbitrator []byte) error {
 
 	err = Verify(*publicKey, buf.Bytes()[0:68], payloadSideChainPow.SignedData)
 	if err != nil {
-		return errors.New("Arbitrator is not matched")
+		return errors.New("Arbiter is not matched")
 	}
 
 	return nil
@@ -916,7 +915,7 @@ func (b *BlockChain) checkActivateProducerTransaction(txn *Transaction,
 		depositAmount += u.Value
 	}
 
-	if depositAmount - producer.Penalty() < MinDepositAmount {
+	if depositAmount-producer.Penalty() < MinDepositAmount {
 		return errors.New("insufficient deposit amount")
 	}
 
@@ -1051,14 +1050,14 @@ func (b *BlockChain) checkIllegalBlocksTransaction(txn *Transaction) error {
 	return b.CheckDPOSIllegalBlocks(p)
 }
 
-func (b *BlockChain) checkInactiveArbitratorsTransaction(
+func (b *BlockChain) checkInactiveArbitersTransaction(
 	txn *Transaction) error {
 
 	if hash := txn.Hash(); b.state.SpecialTxExists(&hash) {
 		return errors.New("tx already exists")
 	}
 
-	return CheckInactiveArbitrators(txn, b.chainParams.InactiveEliminateCount)
+	return CheckInactiveArbiters(txn, b.chainParams.InactiveEliminateCount)
 }
 
 func (b *BlockChain) checkSidechainIllegalEvidenceTransaction(txn *Transaction) error {
@@ -1086,7 +1085,7 @@ func (b *BlockChain) checkSidechainIllegalEvidenceTransaction(txn *Transaction) 
 		return err
 	}
 
-	if len(p.Signs) <= int(DefaultLedger.Arbitrators.GetArbitersMajorityCount()) {
+	if len(p.Signs) <= int(DefaultLedger.DutyState.GetArbitersMajorityCount()) {
 		return errors.New("insufficient signs count")
 	}
 
@@ -1103,15 +1102,15 @@ func (b *BlockChain) checkSidechainIllegalEvidenceTransaction(txn *Transaction) 
 	return nil
 }
 
-func CheckInactiveArbitrators(txn *Transaction,
-	inactiveArbitratorsCount uint32) error {
-	p, ok := txn.Payload.(*payload.InactiveArbitrators)
+func CheckInactiveArbiters(txn *Transaction,
+	inactiveArbitersCount uint32) error {
+	p, ok := txn.Payload.(*payload.InactiveArbiters)
 	if !ok {
 		return errors.New("invalid payload")
 	}
 
 	arbitrators := map[string]interface{}{}
-	for _, v := range DefaultLedger.Arbitrators.GetArbitrators() {
+	for _, v := range DefaultLedger.DutyState.GetArbiters() {
 		arbitrators[common.BytesToHexString(v)] = nil
 	}
 
@@ -1119,22 +1118,22 @@ func CheckInactiveArbitrators(txn *Transaction,
 		return errors.New("sponsor is not belong to arbitrators")
 	}
 
-	if err := checkSignersInOrder(p.Arbitrators); err != nil {
+	if err := checkSignersInOrder(p.Arbiters); err != nil {
 		return err
 	}
 
-	if len(p.Arbitrators) != int(inactiveArbitratorsCount) {
+	if len(p.Arbiters) != int(inactiveArbitersCount) {
 		return errors.New("number of arbitrators must be " +
-			strconv.FormatUint(uint64(inactiveArbitratorsCount), 10))
+			strconv.FormatUint(uint64(inactiveArbitersCount), 10))
 	}
-	for _, v := range p.Arbitrators {
+	for _, v := range p.Arbiters {
 		if _, exists := arbitrators[common.BytesToHexString(v)]; !exists {
 			return errors.New("inactive arbitrator is not belong to CRC " +
 				"arbitrators")
 		}
 	}
 
-	if err := checkInactiveArbitratorsSignatures(txn.Programs[0],
+	if err := checkInactiveArbitersSignatures(txn.Programs[0],
 		arbitrators); err != nil {
 		return err
 	}
@@ -1142,7 +1141,7 @@ func CheckInactiveArbitrators(txn *Transaction,
 	return nil
 }
 
-func checkInactiveArbitratorsSignatures(program *program.Program,
+func checkInactiveArbitersSignatures(program *program.Program,
 	arbitrators map[string]interface{}) error {
 
 	code := program.Code
@@ -1151,9 +1150,9 @@ func checkInactiveArbitratorsSignatures(program *program.Program,
 	// Get M parameter
 	m := int(code[0]) - crypto.PUSH1 + 1
 
-	crcArbitratorsCount := len(arbitrators)
-	minSignCount := int(float64(crcArbitratorsCount) * 0.5)
-	if m < 1 || m > n || n != crcArbitratorsCount || m <= minSignCount {
+	crcArbitersCount := len(arbitrators)
+	minSignCount := int(float64(crcArbitersCount) * 0.5)
+	if m < 1 || m > n || n != crcArbitersCount || m <= minSignCount {
 		return errors.New("invalid multi sign script code")
 	}
 	publicKeys, err := crypto.ParseMultisigScript(code)
@@ -1300,14 +1299,14 @@ func (b *BlockChain) checkDPOSElaIllegalBlockSigners(
 		return err
 	}
 
-	if len(signers) <= int(DefaultLedger.Arbitrators.GetArbitersMajorityCount()) ||
-		len(compareSigners) <= int(DefaultLedger.Arbitrators.GetArbitersMajorityCount()) {
+	arbiters := int(DefaultLedger.DutyState.GetArbitersMajorityCount())
+	if len(signers) <= arbiters || len(compareSigners) <= arbiters {
 		return errors.New("signers count less than DPOS required majority" +
 			" count")
 	}
 
 	arbitratorsSet := make(map[string]interface{})
-	for _, v := range DefaultLedger.Arbitrators.GetArbitrators() {
+	for _, v := range DefaultLedger.DutyState.GetArbiters() {
 		arbitratorsSet[common.BytesToHexString(v)] = nil
 	}
 

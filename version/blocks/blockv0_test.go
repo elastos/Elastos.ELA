@@ -28,7 +28,7 @@ func (s *blockVersionV0TestSuite) SetupTest() {
 	s.Version = NewBlockV0(s.Cfg)
 }
 
-func (s *blockVersionV0TestSuite) TestBlockVersionMain_GetNormalArbitratorsDesc() {
+func (s *blockVersionV0TestSuite) TestBlockVersionMain_GetNormalArbitersDesc() {
 	originLedger := blockchain.DefaultLedger
 
 	arbitrators := make([][]byte, 0)
@@ -37,7 +37,7 @@ func (s *blockVersionV0TestSuite) TestBlockVersionMain_GetNormalArbitratorsDesc(
 		arbitrators = append(arbitrators, a)
 	}
 
-	producers, err := s.Version.GetNormalArbitratorsDesc(5, cfg.Chain.GetState().GetInterfaceProducers())
+	producers, err := s.Version.GetNormalArbitersDesc(5, cfg.Chain.GetState().GetInterfaceProducers())
 	s.NoError(err)
 	for i := range producers {
 		s.Equal(arbitrators[i], producers[i])
@@ -111,7 +111,7 @@ func (s *blockVersionV0TestSuite) TestBlockVersionMain_AssignCoinbaseTxRewards()
 	blockchain.DefaultLedger = originLedger
 }
 
-func (s *blockVersionV0TestSuite) TestBlockVersionMain_GetNextOnDutyArbitrator() {
+func (s *blockVersionV0TestSuite) TestBlockVersionMain_GetNextOnDutyArbiter() {
 
 	// fixme chain store removed, fix me later
 	//arbitrators := make([][]byte, 0)
@@ -128,59 +128,59 @@ func (s *blockVersionV0TestSuite) TestBlockVersionMain_GetNextOnDutyArbitrator()
 	//	Store: chainMock,
 	//}
 	//
-	//var currentArbitrator []byte
+	//var currentArbiter []byte
 	//
 	//chainMock.BlockHeight = 0
-	//currentArbitrator = s.Version.GetNextOnDutyArbitrator(0, 0)
-	//s.Equal(arbitrators[0], currentArbitrator)
-	//currentArbitrator = s.Version.GetNextOnDutyArbitrator(1, 0)
-	//s.Equal(arbitrators[0], currentArbitrator)
-	//currentArbitrator = s.Version.GetNextOnDutyArbitrator(2, 0)
-	//s.Equal(arbitrators[0], currentArbitrator)
-	//currentArbitrator = s.Version.GetNextOnDutyArbitrator(3, 0)
-	//s.Equal(arbitrators[0], currentArbitrator)
-	//currentArbitrator = s.Version.GetNextOnDutyArbitrator(4, 0)
-	//s.Equal(arbitrators[0], currentArbitrator)
-	//currentArbitrator = s.Version.GetNextOnDutyArbitrator(5, 0)
-	//s.Equal(arbitrators[0], currentArbitrator)
+	//currentArbiter = s.Version.GetNextOnDutyArbiter(0, 0)
+	//s.Equal(arbitrators[0], currentArbiter)
+	//currentArbiter = s.Version.GetNextOnDutyArbiter(1, 0)
+	//s.Equal(arbitrators[0], currentArbiter)
+	//currentArbiter = s.Version.GetNextOnDutyArbiter(2, 0)
+	//s.Equal(arbitrators[0], currentArbiter)
+	//currentArbiter = s.Version.GetNextOnDutyArbiter(3, 0)
+	//s.Equal(arbitrators[0], currentArbiter)
+	//currentArbiter = s.Version.GetNextOnDutyArbiter(4, 0)
+	//s.Equal(arbitrators[0], currentArbiter)
+	//currentArbiter = s.Version.GetNextOnDutyArbiter(5, 0)
+	//s.Equal(arbitrators[0], currentArbiter)
 	//
 	//chainMock.BlockHeight = 0
-	//currentArbitrator = s.Version.GetNextOnDutyArbitrator(0, 0)
-	//s.Equal(arbitrators[0], currentArbitrator)
+	//currentArbiter = s.Version.GetNextOnDutyArbiter(0, 0)
+	//s.Equal(arbitrators[0], currentArbiter)
 	//
 	//chainMock.BlockHeight = 1
-	//currentArbitrator = s.Version.GetNextOnDutyArbitrator(0, 0)
-	//s.Equal(arbitrators[1], currentArbitrator)
+	//currentArbiter = s.Version.GetNextOnDutyArbiter(0, 0)
+	//s.Equal(arbitrators[1], currentArbiter)
 	//
 	//chainMock.BlockHeight = 2
-	//currentArbitrator = s.Version.GetNextOnDutyArbitrator(0, 0)
-	//s.Equal(arbitrators[2], currentArbitrator)
+	//currentArbiter = s.Version.GetNextOnDutyArbiter(0, 0)
+	//s.Equal(arbitrators[2], currentArbiter)
 	//
 	//chainMock.BlockHeight = 3
-	//currentArbitrator = s.Version.GetNextOnDutyArbitrator(0, 0)
-	//s.Equal(arbitrators[3], currentArbitrator)
+	//currentArbiter = s.Version.GetNextOnDutyArbiter(0, 0)
+	//s.Equal(arbitrators[3], currentArbiter)
 	//
 	//chainMock.BlockHeight = 4
-	//currentArbitrator = s.Version.GetNextOnDutyArbitrator(0, 0)
-	//s.Equal(arbitrators[4], currentArbitrator)
+	//currentArbiter = s.Version.GetNextOnDutyArbiter(0, 0)
+	//s.Equal(arbitrators[4], currentArbiter)
 	//
 	//chainMock.BlockHeight = 5
-	//currentArbitrator = s.Version.GetNextOnDutyArbitrator(0, 0)
-	//s.Equal(arbitrators[0], currentArbitrator)
+	//currentArbiter = s.Version.GetNextOnDutyArbiter(0, 0)
+	//s.Equal(arbitrators[0], currentArbiter)
 	//
 	//chainMock.BlockHeight = 0
-	//currentArbitrator = s.Version.GetNextOnDutyArbitrator(0, 1)
-	//s.Equal(arbitrators[1], currentArbitrator)
-	//currentArbitrator = s.Version.GetNextOnDutyArbitrator(0, 2)
-	//s.Equal(arbitrators[2], currentArbitrator)
-	//currentArbitrator = s.Version.GetNextOnDutyArbitrator(0, 3)
-	//s.Equal(arbitrators[3], currentArbitrator)
-	//currentArbitrator = s.Version.GetNextOnDutyArbitrator(0, 4)
-	//s.Equal(arbitrators[4], currentArbitrator)
-	//currentArbitrator = s.Version.GetNextOnDutyArbitrator(0, 5)
-	//s.Equal(arbitrators[0], currentArbitrator)
-	//currentArbitrator = s.Version.GetNextOnDutyArbitrator(0, 6)
-	//s.Equal(arbitrators[1], currentArbitrator)
+	//currentArbiter = s.Version.GetNextOnDutyArbiter(0, 1)
+	//s.Equal(arbitrators[1], currentArbiter)
+	//currentArbiter = s.Version.GetNextOnDutyArbiter(0, 2)
+	//s.Equal(arbitrators[2], currentArbiter)
+	//currentArbiter = s.Version.GetNextOnDutyArbiter(0, 3)
+	//s.Equal(arbitrators[3], currentArbiter)
+	//currentArbiter = s.Version.GetNextOnDutyArbiter(0, 4)
+	//s.Equal(arbitrators[4], currentArbiter)
+	//currentArbiter = s.Version.GetNextOnDutyArbiter(0, 5)
+	//s.Equal(arbitrators[0], currentArbiter)
+	//currentArbiter = s.Version.GetNextOnDutyArbiter(0, 6)
+	//s.Equal(arbitrators[1], currentArbiter)
 	//
 	//blockchain.DefaultLedger = originLedger
 }

@@ -662,7 +662,7 @@ func (p *ProposalDispatcher) CreateInactiveArbitrators() (
 		Version: types.TransactionVersion(blockchain.DefaultLedger.
 			HeightVersions.GetDefaultTxVersion(p.CurrentHeight())),
 		TxType:         types.InactiveArbitrators,
-		PayloadVersion: payload.PayloadInactiveArbitratorsVersion,
+		PayloadVersion: payload.InactiveArbitratorsVersion,
 		Payload:        inactivePayload,
 		Attributes: []*types.Attribute{{
 			Usage: types.Script,

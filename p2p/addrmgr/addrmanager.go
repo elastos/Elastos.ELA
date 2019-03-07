@@ -160,6 +160,10 @@ const (
 // updateAddress is a helper function to either update an address already known
 // to the address manager, or to add the address if not already known.
 func (a *AddrManager) updateAddress(netAddr, srcAddr *p2p.NetAddress) {
+	// Port is zero?
+	if netAddr.Port == 0 {
+		return
+	}
 	// Filter out non-routable addresses. Note that non-routable
 	// also includes invalid and local addresses.
 	if !IsRoutable(netAddr) {

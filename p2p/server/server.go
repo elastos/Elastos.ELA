@@ -145,6 +145,9 @@ func newServerPeer(s *server, isPersistent bool) *serverPeer {
 // the peer to prevent sending duplicate addresses.
 func (sp *serverPeer) addKnownAddresses(addresses []*p2p.NetAddress) {
 	for _, na := range addresses {
+		if na.Port == 0 {
+			continue
+		}
 		sp.knownAddresses[addrmgr.NetAddressKey(na)] = struct{}{}
 	}
 }

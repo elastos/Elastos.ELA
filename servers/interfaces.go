@@ -489,7 +489,7 @@ func GetConfirmInfo(confirm *payload.Confirm) ConfirmInfo {
 	}
 
 	return ConfirmInfo{
-		BlockHash:  confirm.Proposal.BlockHash.String(),
+		BlockHash:  ToReversedString(confirm.Proposal.BlockHash),
 		Sponsor:    common.BytesToHexString(confirm.Proposal.Sponsor),
 		ViewOffset: confirm.Proposal.ViewOffset,
 		Votes:      votes,

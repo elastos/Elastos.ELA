@@ -1081,6 +1081,7 @@ type Producer struct {
 	RegisterHeight uint32 `json:"registerheight"`
 	CancelHeight   uint32 `json:"cancelheight"`
 	InactiveHeight uint32 `json:"inactiveheight"`
+	IllegalHeight  uint32 `json:"illegalheight"`
 	Index          uint64 `json:"index"`
 }
 
@@ -1116,6 +1117,7 @@ func ListProducers(param Params) map[string]interface{} {
 			RegisterHeight: p.RegisterHeight(),
 			CancelHeight:   p.CancelHeight(),
 			InactiveHeight: p.InactiveSince(),
+			IllegalHeight:  p.IllegalHeight(),
 			Index:          uint64(i),
 		}
 		ps = append(ps, producer)

@@ -28,7 +28,7 @@ var (
 	TestNet = ChainParams{
 		Name:               "TestNet",
 		PowLimit:           powLimit,
-		PowLimitBits:       0x1e1da5ff,
+		PowLimitBits:       0x1f0008ff,
 		TargetTimePerBlock: time.Minute * 2,
 		TargetTimespan:     time.Minute * 2 * 720,
 		AdjustmentFactor:   int64(4),
@@ -41,7 +41,7 @@ var (
 	RegNet = ChainParams{
 		Name:               "RegNet",
 		PowLimit:           powLimit,
-		PowLimitBits:       0x207fffff,
+		PowLimitBits:       0x1f0008ff,
 		TargetTimePerBlock: time.Minute * 2,
 		TargetTimespan:     time.Second * 2 * 720,
 		AdjustmentFactor:   int64(4),

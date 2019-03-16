@@ -12,6 +12,7 @@ import (
 	"crypto/sha256"
 	"crypto/subtle"
 	"encoding/base64"
+
 	"github.com/elastos/Elastos.ELA/common/log"
 	htp "github.com/elastos/Elastos.ELA/utils/http"
 )
@@ -29,7 +30,7 @@ const (
 )
 
 //if  we want to run server_test.go, set this to be true (add one test action)
-//var bRegistTestAction bool = false
+//var bRegistTestAction bool = true
 
 // Handler is the registered method to handle a http request.
 type Handler func(htp.Params) (interface{}, error)
@@ -68,19 +69,23 @@ func (r *Response) write(w http.ResponseWriter, httpStatus int) {
 	w.Write(data)
 }
 
-type RpcConfiguration struct {
-	User        string   `json:"User"`
-	Pass        string   `json:"Pass"`
-	WhiteIPList []string `json:"WhiteIPList"`
-}
+//type RpcConfiguration struct {
+//	User        string   `json:"User"`
+//	Pass        string   `json:"Pass"`
+//	WhiteIPList []string `json:"WhiteIPList"`
+//}
 
 // Config is the configuration of the JSON-RPC server.
 type Config struct {
-	Path             string
-	ServePort        uint16
-	RpcConfiguration RpcConfiguration
-	NetListen        func(port uint16) (net.Listener, error)
+	Path        string
+	ServePort   uint16
+	RPCUser     string
+	RPCPass     string
+	WhiteIPList []string
+	NetListen   func(port uint16) (net.Listener, error)
 }
+
+//RpcConfiguration RpcConfiguration
 
 // Server is the JSON-RPC server instance class.
 type Server struct {
@@ -172,7 +177,7 @@ func (s *Server) clientAllowed(r *http.Request) bool {
 		return true
 	}
 
-	for _, cfgIp := range s.cfg.RpcConfiguration.WhiteIPList {
+	for _, cfgIp := range s.cfg.WhiteIPList {
 		//WhiteIPList have 0.0.0.0  allow all ip in
 		if cfgIp == "0.0.0.0" {
 			return true
@@ -187,8 +192,8 @@ func (s *Server) clientAllowed(r *http.Request) bool {
 }
 
 func (s *Server) checkAuth(r *http.Request) bool {
-	User := s.cfg.RpcConfiguration.User
-	Pass := s.cfg.RpcConfiguration.Pass
+	User := s.cfg.RPCUser
+	Pass := s.cfg.RPCPass
 
 	//log.Infof("ServeHTTP checkAuth RpcConfiguration %+v" , s.cfg.RpcConfiguration)
 	if (User == Pass) && (len(User) == 0) {
@@ -306,7 +311,9 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	resp.Result = result
 	resp.write(w, http.StatusOK)
 }
+
 //func (s *Server) RegisterTestAction() {
+//	fmt.Println("RegisterTestAction-------------")
 //	s.RegisterAction("/api/test", func(data htp.Params) (interface{}, error) {
 //		return nil, nil
 //	}, "level")

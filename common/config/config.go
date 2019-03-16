@@ -76,8 +76,8 @@ type Configuration struct {
 	Magic                uint32               `json:"Magic"`
 	Version              int                  `json:"Version"`
 	SeedList             []string             `json:"SeedList"`
-    HttpInfoPort         uint16               `json:"HttpInfoPort"`
-    HttpInfoStart        bool                 `json:"HttpInfoStart"`
+	HttpInfoPort         uint16               `json:"HttpInfoPort"`
+	HttpInfoStart        bool                 `json:"HttpInfoStart"`
 	HttpRestPort         int                  `json:"HttpRestPort"`
 	HttpWsPort           int                  `json:"HttpWsPort"`
 	HttpJsonPort         int                  `json:"HttpJsonPort"`

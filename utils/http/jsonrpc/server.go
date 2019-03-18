@@ -69,12 +69,6 @@ func (r *Response) write(w http.ResponseWriter, httpStatus int) {
 	w.Write(data)
 }
 
-//type RpcConfiguration struct {
-//	User        string   `json:"User"`
-//	Pass        string   `json:"Pass"`
-//	WhiteIPList []string `json:"WhiteIPList"`
-//}
-
 // Config is the configuration of the JSON-RPC server.
 type Config struct {
 	Path        string

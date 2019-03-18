@@ -27,9 +27,9 @@ var (
 )
 
 type RpcConfiguration struct {
-	User        string   `json:"User"`
-	Pass        string   `json:"Pass"`
-	WhiteIPList []string `json:"WhiteIPList"`
+	User        string
+	Pass        string
+	WhiteIPList []string
 }
 
 func initUrl() {
@@ -171,10 +171,10 @@ func TestServer_NotInitRpcConf(t *testing.T) {
 	}
 
 	s := NewServer(&Config{
-		ServePort:   20336,
-		RPCUser:     svrConf.User,
-		RPCPass:     svrConf.Pass,
-		WhiteIPList: svrConf.WhiteIPList,
+		ServePort: 20336,
+		User:      svrConf.User,
+		Pass:      svrConf.Pass,
+		WhiteList: svrConf.WhiteIPList,
 	})
 
 	registerTestAction(s, t)
@@ -237,10 +237,10 @@ func TestServer_WithUserPassNoIp(t *testing.T) {
 	}
 
 	s := NewServer(&Config{
-		ServePort:   20336,
-		RPCUser:     svrConf.User,
-		RPCPass:     svrConf.Pass,
-		WhiteIPList: svrConf.WhiteIPList,
+		ServePort: 20336,
+		User:      svrConf.User,
+		Pass:      svrConf.Pass,
+		WhiteList: svrConf.WhiteIPList,
 	})
 
 	registerTestAction(s, t)
@@ -331,10 +331,10 @@ func TestServer_NoUserPassWithIp(t *testing.T) {
 		WhiteIPList: []string{"127.0.0.1"},
 	}
 	s := NewServer(&Config{
-		ServePort:   20336,
-		RPCUser:     svrConf.User,
-		RPCPass:     svrConf.Pass,
-		WhiteIPList: svrConf.WhiteIPList,
+		ServePort: 20336,
+		User:      svrConf.User,
+		Pass:      svrConf.Pass,
+		WhiteList: svrConf.WhiteIPList,
 	})
 
 	registerTestAction(s, t)
@@ -393,10 +393,10 @@ func TestServer_WithUserPassWithIp(t *testing.T) {
 		WhiteIPList: []string{"127.0.0.1"},
 	}
 	s := NewServer(&Config{
-		ServePort:   20336,
-		RPCUser:     svrConf.User,
-		RPCPass:     svrConf.Pass,
-		WhiteIPList: svrConf.WhiteIPList,
+		ServePort: 20336,
+		User:      svrConf.User,
+		Pass:      svrConf.Pass,
+		WhiteList: svrConf.WhiteIPList,
 	})
 
 	registerTestAction(s, t)
@@ -458,10 +458,10 @@ func TestServer_WithIp0000(t *testing.T) {
 	}
 
 	s := NewServer(&Config{
-		ServePort:   20336,
-		RPCUser:     svrConf.User,
-		RPCPass:     svrConf.Pass,
-		WhiteIPList: svrConf.WhiteIPList,
+		ServePort: 20336,
+		User:      svrConf.User,
+		Pass:      svrConf.Pass,
+		WhiteList: svrConf.WhiteIPList,
 	})
 
 	registerTestAction(s, t)
@@ -525,10 +525,10 @@ func TestServer_WithIpNotLoopBackIp(t *testing.T) {
 	t.Logf("TestServer_WithIpNotLoopBackIp %v", svrConf)
 
 	s := NewServer(&Config{
-		ServePort:   20336,
-		RPCUser:     svrConf.User,
-		RPCPass:     svrConf.Pass,
-		WhiteIPList: svrConf.WhiteIPList,
+		ServePort: 20336,
+		User:      svrConf.User,
+		Pass:      svrConf.Pass,
+		WhiteList: svrConf.WhiteIPList,
 	})
 
 	registerTestAction(s, t)

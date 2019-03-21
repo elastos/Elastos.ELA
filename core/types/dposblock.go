@@ -1,51 +1,89 @@
 package types
 
 import (
-	"errors"
+	"fmt"
 	"io"
 
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
+	"github.com/elastos/Elastos.ELA/elanet/pact"
 )
 
-type DposBlock struct {
-	*Block
-	HaveConfirm bool
-	Confirm     *payload.Confirm
+// DPOSBlock defines a block in DPOS consensus format.
+type DPOSBlock struct {
+	DPOSHeader
+	Transactions []*Transaction
 }
 
-func (b *DposBlock) Serialize(w io.Writer) error {
-	if err := b.Block.Serialize(w); err != nil {
-		return errors.New("Block serialize failed," + err.Error())
+func (b *DPOSBlock) Serialize(w io.Writer) error {
+	if err := b.DPOSHeader.Serialize(w); err != nil {
+		return fmt.Errorf("DPOS block serialize failed, %s", err)
 	}
 
-	if err := common.WriteElement(w, b.HaveConfirm); err != nil {
-		return errors.New("Confirm flag serialize failed," + err.Error())
+	count := len(b.Transactions)
+	// Limit to max transactions per block.
+	if count > pact.MaxTxPerBlock {
+		str := fmt.Sprintf("too many transactions in block [%v]", count)
+		return common.FuncError("DPOSBlock.Serialize", str)
 	}
 
-	if b.HaveConfirm {
-		if err := b.Confirm.Serialize(w); err != nil {
-			return errors.New("Confirm serialize failed," + err.Error())
+	if err := common.WriteVarUint(w, uint64(count)); err != nil {
+		return fmt.Errorf("DPOS block serialize failed, %s", err)
+	}
+
+	for _, transaction := range b.Transactions {
+		if err := transaction.Serialize(w); err != nil {
+			return fmt.Errorf("DPOS block serialize failed, %s", err)
 		}
 	}
+
 	return nil
 }
 
-func (b *DposBlock) Deserialize(r io.Reader) error {
-	b.Block = new(Block)
-	if err := b.Block.Deserialize(r); err != nil {
-		return errors.New("Block dserialize failed," + err.Error())
+func (b *DPOSBlock) Deserialize(r io.Reader) error {
+	if err := b.DPOSHeader.Deserialize(r); err != nil {
+		return fmt.Errorf("DPOS block deserialize failed, %s", err)
 	}
 
-	if err := common.ReadElement(r, &b.HaveConfirm); err != nil {
-		return errors.New("Confirm flag dserialize failed," + err.Error())
+	count, err := common.ReadVarUint(r, 0)
+	if err != nil {
+		return fmt.Errorf("DPOS block deserialize failed, %s", err)
 	}
 
-	if b.HaveConfirm {
-		b.Confirm = new(payload.Confirm)
-		if err := b.Confirm.Deserialize(r); err != nil {
-			return errors.New("Confirm serialize failed," + err.Error())
+	// Limit to max transactions per block.
+	if count > pact.MaxTxPerBlock {
+		str := fmt.Sprintf("too many transactions in block [%v]", count)
+		return common.FuncError("DPOSBlock.Deserialize", str)
+	}
+
+	for i := uint64(0); i < count; i++ {
+		var tx Transaction
+		if err := tx.Deserialize(r); err != nil {
+			return fmt.Errorf("DPOS block deserialize failed, %s", err)
 		}
+		b.Transactions = append(b.Transactions, &tx)
 	}
+
 	return nil
+}
+
+// ToBlock returns the origin POW block of the DPOS block.
+func (b *DPOSBlock) ToBlock() *Block {
+	return &Block{Header: b.Header, Transactions: b.Transactions}
+}
+
+// NewDPOSBlock creates a DPOS format block with the origin POW block and DPOS
+// confirm.
+func NewDPOSBlock(block *Block, confirm *payload.Confirm) *DPOSBlock {
+	b := DPOSBlock{
+		DPOSHeader: DPOSHeader{
+			Header:      block.Header,
+			HaveConfirm: confirm != nil,
+		},
+		Transactions: block.Transactions,
+	}
+	if confirm != nil {
+		b.Confirm = *confirm
+	}
+	return &b
 }

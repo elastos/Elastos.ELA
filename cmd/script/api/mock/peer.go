@@ -50,7 +50,7 @@ func (n *peerMock) DumpRelays(level uint32) string {
 				result += fmt.Sprintf("[transaction]: type=%s",
 					tx.TxType.Name())
 			} else if m, ok := v.(*msg.Block); ok {
-				block := m.Serializable.(*types.DposBlock)
+				block := m.Serializable.(*types.DPOSBlock)
 				result += fmt.Sprintf("[block confirm]: HasBlock=%t"+
 					" HasConfirm=%t", true, block.HaveConfirm)
 			}

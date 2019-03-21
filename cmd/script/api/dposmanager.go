@@ -194,18 +194,18 @@ func dposManagerCheckLastRelay(L *lua.LState) int {
 		}
 	case relayBlockConfirm:
 		if relayedConfirm, ok := m.Peer.GetLastRelay().(*msg.Block); ok {
-			if dposBlock, ok := relayedConfirm.Serializable.(*types.DposBlock); ok {
+			if dposBlock, ok := relayedConfirm.Serializable.(*types.DPOSBlock); ok {
 
 				if dposBlock.HaveConfirm {
 					b := checkBlock(L, 3)
 					c := checkConfirm(L, 4)
 					if b != nil && c != nil {
-						result = b.Hash().IsEqual(dposBlock.Block.Hash()) && confirmsEqual(c, dposBlock.Confirm)
+						result = b.Hash().IsEqual(dposBlock.Hash()) && confirmsEqual(c, &dposBlock.Confirm)
 					}
 				} else {
 					b := checkBlock(L, 3)
 					if b != nil {
-						result = b.Hash().IsEqual(dposBlock.Block.Hash())
+						result = b.Hash().IsEqual(dposBlock.Hash())
 					}
 				}
 			}

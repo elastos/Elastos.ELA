@@ -47,7 +47,7 @@ type StatusSyncEventListener interface {
 	OnInv(id dpeer.PID, blockHash common.Uint256)
 	OnGetBlock(id dpeer.PID, blockHash common.Uint256)
 	OnGetBlocks(id dpeer.PID, startBlockHeight, endBlockHeight uint32)
-	OnResponseBlocks(id dpeer.PID, blockConfirms []*types.DposBlock)
+	OnResponseBlocks(id dpeer.PID, blockConfirms []*types.DPOSBlock)
 	OnRequestConsensus(id dpeer.PID, height uint32)
 	OnResponseConsensus(id dpeer.PID, status *dmsg.ConsensusStatus)
 	OnRequestProposal(id dpeer.PID, hash common.Uint256)
@@ -222,9 +222,8 @@ func (d *DPOSManager) OnPong(id dpeer.PID, height uint32) {
 func (d *DPOSManager) OnBlock(id dpeer.PID, block *types.Block) {
 	log.Info("[ProcessBlock] received block:", block.Hash().String())
 	if block.Header.Height == blockchain.DefaultLedger.Blockchain.GetHeight()+1 {
-		if _, _, err := d.blockPool.AppendDposBlock(&types.DposBlock{
-			Block: block,
-		}); err != nil {
+		if _, _, err := d.blockPool.AppendDposBlock(types.NewDPOSBlock(block,
+			nil)); err != nil {
 			log.Error("[OnBlock] err: ", err.Error())
 		}
 	}
@@ -247,7 +246,7 @@ func (d *DPOSManager) OnGetBlocks(id dpeer.PID, startBlockHeight, endBlockHeight
 	d.handler.ResponseGetBlocks(id, startBlockHeight, endBlockHeight)
 }
 
-func (d *DPOSManager) OnResponseBlocks(id dpeer.PID, blockConfirms []*types.DposBlock) {
+func (d *DPOSManager) OnResponseBlocks(id dpeer.PID, blockConfirms []*types.DPOSBlock) {
 	log.Info("[OnResponseBlocks] start")
 	defer log.Info("[OnResponseBlocks] end")
 

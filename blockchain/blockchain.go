@@ -189,14 +189,10 @@ func (b *BlockChain) GetBlockByHash(hash Uint256) (*Block, error) {
 }
 
 // Get DPOS block with block hash.
-func (b *BlockChain) GetDposBlockByHash(hash Uint256) (*DposBlock, error) {
+func (b *BlockChain) GetDposBlockByHash(hash Uint256) (*DPOSBlock, error) {
 	if block, _ := b.db.GetBlock(hash); block != nil {
 		confirm, _ := b.db.GetConfirm(hash)
-		return &DposBlock{
-			Block:       block,
-			HaveConfirm: confirm != nil,
-			Confirm:     confirm,
-		}, nil
+		return NewDPOSBlock(block, confirm), nil
 	}
 
 	b.orphanLock.RLock()
@@ -204,11 +200,7 @@ func (b *BlockChain) GetDposBlockByHash(hash Uint256) (*DposBlock, error) {
 
 	if orphan := b.orphans[hash]; orphan != nil {
 		confirm := b.orphanConfirms[hash]
-		return &DposBlock{
-			Block:       orphan.Block,
-			HaveConfirm: confirm != nil,
-			Confirm:     confirm,
-		}, nil
+		return NewDPOSBlock(orphan.Block, confirm), nil
 	}
 
 	return nil, errors.New("not found dpos block in block chain")
@@ -931,10 +923,9 @@ func (b *BlockChain) maybeAcceptBlock(block *Block, confirm *payload.Confirm) (b
 	if block.Height >= b.chainParams.CRCOnlyDPOSHeight {
 		events.Notify(events.ETBlockConfirmAccepted, block)
 	} else if block.Height == b.chainParams.CRCOnlyDPOSHeight-1 {
-		events.Notify(events.ETNewBlockReceived, &DposBlock{
-			Block:       block,
-			HaveConfirm: true,
-		})
+		dposBlock := NewDPOSBlock(block, nil)
+		dposBlock.HaveConfirm = true
+		events.Notify(events.ETNewBlockReceived, dposBlock)
 		events.Notify(events.ETBlockAccepted, block)
 	} else {
 		events.Notify(events.ETBlockAccepted, block)

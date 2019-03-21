@@ -13,7 +13,7 @@ const DefaultResponseBlocksMessageDataSize = 8000000 * 10
 
 type ResponseBlocks struct {
 	Command       string
-	BlockConfirms []*types.DposBlock
+	BlockConfirms []*types.DPOSBlock
 }
 
 func (m *ResponseBlocks) CMD() string {
@@ -44,9 +44,9 @@ func (m *ResponseBlocks) Deserialize(r io.Reader) error {
 		return err
 	}
 
-	m.BlockConfirms = make([]*types.DposBlock, 0)
+	m.BlockConfirms = make([]*types.DPOSBlock, 0)
 	for i := uint64(0); i < blockConfirmCount; i++ {
-		dposBlock := &types.DposBlock{}
+		dposBlock := &types.DPOSBlock{}
 		if err = dposBlock.Deserialize(r); err != nil {
 			return err
 		}

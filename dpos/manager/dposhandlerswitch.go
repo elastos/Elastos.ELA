@@ -167,9 +167,7 @@ func (h *DPOSHandlerSwitch) ResponseGetBlocks(id peer.PID, startBlockHeight, end
 	}
 
 	if currentBlock := h.proposalDispatcher.GetProcessingBlock(); currentBlock != nil {
-		blockConfirms = append(blockConfirms, &types.DposBlock{
-			Block: currentBlock,
-		})
+		blockConfirms = append(blockConfirms, types.NewDPOSBlock(currentBlock, nil))
 	}
 
 	msg := &msg.ResponseBlocks{Command: msg.CmdResponseBlocks, BlockConfirms: blockConfirms}

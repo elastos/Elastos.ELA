@@ -74,13 +74,13 @@ func (l *Ledger) GetLocalBlockChainHeight() uint32 {
 }
 
 //Get blocks and confirms by given height range, if end equals zero will be treat as current highest block height
-func (l *Ledger) GetDposBlocks(start, end uint32) ([]*DposBlock, error) {
+func (l *Ledger) GetDposBlocks(start, end uint32) ([]*DPOSBlock, error) {
 	//todo complete me
 	return nil, nil
 }
 
 //Append blocks and confirms directly
-func (l *Ledger) AppendDposBlocks(confirms []*DposBlock) error {
+func (l *Ledger) AppendDposBlocks(confirms []*DPOSBlock) error {
 	//todo complete me
 	return nil
 }

@@ -43,7 +43,7 @@ type newPeerMsg struct {
 // blockMsg packages a bitcoin block message and the peer it came from together
 // so the block handler has access to that information.
 type blockMsg struct {
-	block *types.DposBlock
+	block *types.DPOSBlock
 	peer  *peer.Peer
 	reply chan struct{}
 }
@@ -342,12 +342,12 @@ func (sm *SyncManager) handleBlockMsg(bmsg *blockMsg) {
 	}
 
 	// If we didn't ask for this block then the peer is misbehaving.
-	blockHash := bmsg.block.Block.Hash()
+	blockHash := bmsg.block.Hash()
 
 	// Remove block from request maps. Either chain will know about it and
 	// so we shouldn't have any more instances of trying to fetch it, or we
 	// will fail the insert and thus we'll retry next time we get an inv.
-	if bmsg.block.Block.Height < sm.chainParams.CRCOnlyDPOSHeight {
+	if bmsg.block.Height < sm.chainParams.CRCOnlyDPOSHeight {
 		_, confirmedBlockExist := state.requestedConfirmedBlocks[blockHash]
 		if confirmedBlockExist {
 			delete(state.requestedConfirmedBlocks, blockHash)
@@ -389,7 +389,7 @@ func (sm *SyncManager) handleBlockMsg(bmsg *blockMsg) {
 	// Process the block to include validation, best chain selection, orphan
 	// handling, etc.
 	log.Debugf("Receive block %s at height %d", blockHash,
-		bmsg.block.Block.Height)
+		bmsg.block.Height)
 	_, isOrphan, err := sm.blockMemPool.AddDposBlock(bmsg.block)
 	if err != nil {
 		reason := fmt.Sprintf("Rejected block %v from %s: %v", blockHash,
@@ -811,7 +811,7 @@ func (sm *SyncManager) QueueTx(tx *types.Transaction, peer *peer.Peer, done chan
 // QueueBlock adds the passed block message and peer to the block handling
 // queue. Responds to the done channel argument after the block message is
 // processed.
-func (sm *SyncManager) QueueBlock(block *types.DposBlock, peer *peer.Peer, done chan struct{}) {
+func (sm *SyncManager) QueueBlock(block *types.DPOSBlock, peer *peer.Peer, done chan struct{}) {
 	// Don't accept more blocks if we're shutting down.
 	if atomic.LoadInt32(&sm.shutdown) != 0 {
 		done <- struct{}{}

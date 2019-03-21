@@ -32,17 +32,17 @@ func (bm *BlockPool) AppendConfirm(confirm *payload.Confirm) (bool,
 	return bm.appendConfirm(confirm)
 }
 
-func (bm *BlockPool) AddDposBlock(dposBlock *types.DposBlock) (bool, bool, error) {
+func (bm *BlockPool) AddDposBlock(block *types.DPOSBlock) (bool, bool, error) {
 	// main version >=H1
-	if dposBlock.Block.Height >= bm.chainParams.CRCOnlyDPOSHeight {
-		return bm.AppendDposBlock(dposBlock)
+	if block.Height >= bm.chainParams.CRCOnlyDPOSHeight {
+		return bm.AppendDposBlock(block)
 	}
 
 	// old version [0, H1)
-	return bm.Chain.ProcessBlock(dposBlock.Block, dposBlock.Confirm)
+	return bm.Chain.ProcessBlock(block.ToBlock(), &block.Confirm)
 }
 
-func (bm *BlockPool) AppendDposBlock(dposBlock *types.DposBlock) (bool, bool, error) {
+func (bm *BlockPool) AppendDposBlock(dposBlock *types.DPOSBlock) (bool, bool, error) {
 	bm.Lock()
 	defer bm.Unlock()
 	if !dposBlock.HaveConfirm {
@@ -51,9 +51,9 @@ func (bm *BlockPool) AppendDposBlock(dposBlock *types.DposBlock) (bool, bool, er
 	return bm.appendBlockAndConfirm(dposBlock)
 }
 
-func (bm *BlockPool) appendBlock(dposBlock *types.DposBlock) (bool, bool, error) {
+func (bm *BlockPool) appendBlock(dposBlock *types.DPOSBlock) (bool, bool, error) {
 	// add block
-	block := dposBlock.Block
+	block := dposBlock.ToBlock()
 	hash := block.Hash()
 	if _, ok := bm.blocks[hash]; ok {
 		return false, false, errors.New("duplicate block in pool")
@@ -62,12 +62,12 @@ func (bm *BlockPool) appendBlock(dposBlock *types.DposBlock) (bool, bool, error)
 	if err := bm.Chain.CheckBlockSanity(block); err != nil {
 		return false, false, err
 	}
-	bm.blocks[block.Hash()] = block
+	bm.blocks[hash] = block
 
 	// confirm block
 	inMainChain, isOrphan, err := bm.confirmBlock(hash)
 	if err != nil {
-		log.Debug("[AppendDposBlock] ConfirmBlock failed, hash:", hash.String(), "err: ", err)
+		log.Debugf("[AppendDposBlock] ConfirmBlock %s failed, %s", hash, err)
 
 		// Notify the caller that the new block without confirm was accepted.
 		// The caller would typically want to react by relaying the inventory
@@ -79,10 +79,7 @@ func (bm *BlockPool) appendBlock(dposBlock *types.DposBlock) (bool, bool, error)
 		return inMainChain, isOrphan, nil
 	}
 
-	copyBlock := *dposBlock
-	confirm := bm.confirms[hash]
-	copyBlock.HaveConfirm = confirm != nil
-	copyBlock.Confirm = confirm
+	copyBlock := types.NewDPOSBlock(block, bm.confirms[hash])
 
 	// notify new block received
 	events.Notify(events.ETNewBlockReceived, &copyBlock)
@@ -90,8 +87,8 @@ func (bm *BlockPool) appendBlock(dposBlock *types.DposBlock) (bool, bool, error)
 	return inMainChain, isOrphan, nil
 }
 
-func (bm *BlockPool) appendBlockAndConfirm(dposBlock *types.DposBlock) (bool, bool, error) {
-	block := dposBlock.Block
+func (bm *BlockPool) appendBlockAndConfirm(dposBlock *types.DPOSBlock) (bool, bool, error) {
+	block := dposBlock.ToBlock()
 	hash := block.Hash()
 	// verify block
 	if err := bm.Chain.CheckBlockSanity(block); err != nil {
@@ -100,7 +97,7 @@ func (bm *BlockPool) appendBlockAndConfirm(dposBlock *types.DposBlock) (bool, bo
 	// add block
 	bm.blocks[block.Hash()] = block
 	// confirm block
-	inMainChain, isOrphan, err := bm.appendConfirm(dposBlock.Confirm)
+	inMainChain, isOrphan, err := bm.appendConfirm(&dposBlock.Confirm)
 	if err != nil {
 		log.Debug("[appendBlockAndConfirm] ConfirmBlock failed, hash:", hash.String(), "err: ", err)
 		return inMainChain, isOrphan, nil
@@ -194,17 +191,13 @@ func (bm *BlockPool) GetBlock(hash common.Uint256) (*types.Block, bool) {
 	return block, ok
 }
 
-func (bm *BlockPool) GetDposBlockByHash(hash common.Uint256) (*types.DposBlock, error) {
+func (bm *BlockPool) GetDposBlockByHash(hash common.Uint256) (*types.DPOSBlock, error) {
 	bm.RLock()
 	defer bm.RUnlock()
 
 	if block := bm.blocks[hash]; block != nil {
 		confirm := bm.confirms[hash]
-		return &types.DposBlock{
-			Block:       block,
-			HaveConfirm: confirm != nil,
-			Confirm:     confirm,
-		}, nil
+		return types.NewDPOSBlock(block, confirm), nil
 	}
 	return nil, errors.New("not found dpos block")
 }

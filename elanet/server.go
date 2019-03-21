@@ -2,14 +2,12 @@ package elanet
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 
 	"github.com/elastos/Elastos.ELA/blockchain"
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/core/types"
-	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/elanet/bloom"
 	"github.com/elastos/Elastos.ELA/elanet/filter"
 	"github.com/elastos/Elastos.ELA/elanet/filter/sidefilter"
@@ -170,19 +168,13 @@ func (sp *serverPeer) OnTx(_ *peer.Peer, msgTx *msg.Tx) {
 // OnBlock is invoked when a peer receives a block message.  It
 // blocks until the block has been fully processed.
 func (sp *serverPeer) OnBlock(_ *peer.Peer, msgBlock *msg.Block) {
-	block := msgBlock.Serializable.(*types.DposBlock)
-
+	block := msgBlock.Serializable.(*types.DPOSBlock)
+	blockHash := block.Hash()
+	iv := msg.NewInvVect(msg.InvTypeBlock, &blockHash)
 	if block.HaveConfirm {
-		// Add the block to the known inventory for the peer.
-		blockHash := block.Block.Hash()
-		iv := msg.NewInvVect(msg.InvTypeConfirmedBlock, &blockHash)
-		sp.AddKnownInventory(iv)
-	} else {
-		// Add the block to the known inventory for the peer.
-		blockHash := block.Block.Hash()
-		iv := msg.NewInvVect(msg.InvTypeBlock, &blockHash)
-		sp.AddKnownInventory(iv)
+		iv.Type = msg.InvTypeConfirmedBlock
 	}
+	sp.AddKnownInventory(iv)
 
 	// Queue the block up to be handled by the block
 	// manager and intentionally block further receives
@@ -495,11 +487,10 @@ func (s *server) pushBlockMsg(sp *serverPeer, hash *common.Uint256, doneChan cha
 			if doneChan != nil {
 				doneChan <- struct{}{}
 			}
-			return errors.New("not found block")
+			return fmt.Errorf("block %s not found", hash)
 		}
 	}
 	block.HaveConfirm = false
-	block.Confirm = nil
 
 	// Once we have fetched data wait for any previous operation to finish.
 	if waitChan != nil {
@@ -614,15 +605,7 @@ func (s *server) pushMerkleBlockMsg(sp *serverPeer, hash *common.Uint256,
 
 	// Side chain needs DPOS header format to receive confirm.
 	case *sidefilter.Filter:
-		var confirm payload.Confirm
-		if blk.HaveConfirm {
-			confirm = *blk.Confirm
-		}
-		merkle.Header = &types.DPOSHeader{
-			Header:      blk.Header,
-			HaveConfirm: blk.HaveConfirm,
-			Confirm:     confirm,
-		}
+		merkle.Header = &blk.DPOSHeader
 	}
 
 	// Once we have fetched data wait for any previous operation to finish.
@@ -904,7 +887,7 @@ func makeEmptyMessage(cmd string) (p2p.Message, error) {
 		message = msg.NewTx(&types.Transaction{})
 
 	case p2p.CmdBlock:
-		message = msg.NewBlock(&types.DposBlock{})
+		message = msg.NewBlock(&types.DPOSBlock{})
 
 	case p2p.CmdInv:
 		message = &msg.Inv{}

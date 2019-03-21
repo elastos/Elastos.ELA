@@ -365,16 +365,14 @@ func (pow *Service) SubmitAuxBlock(hash *common.Uint256, auxPow *auxpow.AuxPow) 
 	pow.mutex.Lock()
 	defer pow.mutex.Unlock()
 
-	msgAuxBlock, ok := pow.auxBlockPool.GetBlock(*hash)
+	auxBlock, ok := pow.auxBlockPool.GetBlock(*hash)
 	if !ok {
 		log.Debug("[json-rpc:SubmitAuxBlock] block hash unknown", hash)
 		return fmt.Errorf("block hash unknown")
 	}
 
-	msgAuxBlock.Header.AuxPow = *auxPow
-	_, _, err := pow.blkMemPool.AddDposBlock(&types.DposBlock{
-		Block: msgAuxBlock,
-	})
+	auxBlock.Header.AuxPow = *auxPow
+	_, _, err := pow.blkMemPool.AddDposBlock(types.NewDPOSBlock(auxBlock, nil))
 	return err
 }
 
@@ -406,9 +404,8 @@ func (pow *Service) DiscreteMining(n uint32) ([]*common.Uint256, error) {
 		if pow.SolveBlock(msgBlock, nil) {
 			if msgBlock.Header.Height == pow.chain.GetHeight()+1 {
 
-				_, _, err := pow.blkMemPool.AddDposBlock(&types.DposBlock{
-					Block: msgBlock,
-				})
+				_, _, err := pow.blkMemPool.AddDposBlock(types.
+					NewDPOSBlock(msgBlock, nil))
 				if err != nil {
 					continue
 				}
@@ -507,9 +504,8 @@ out:
 			//send the valid block to p2p networkd
 			if msgBlock.Header.Height == pow.chain.GetHeight()+1 {
 
-				inMainChain, isOrphan, err := pow.blkMemPool.AddDposBlock(&types.DposBlock{
-					Block: msgBlock,
-				})
+				inMainChain, isOrphan, err := pow.blkMemPool.AddDposBlock(
+					types.NewDPOSBlock(msgBlock, nil))
 				if err != nil {
 					log.Debug(err)
 					continue

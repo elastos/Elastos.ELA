@@ -40,6 +40,7 @@ const (
 	CmdReject      = "reject"
 	CmdTxFilter    = "txfilter"
 	CmdDAddr       = "daddr"
+	CmdGetDAddr    = "getdaddr"
 )
 
 var (

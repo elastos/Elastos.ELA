@@ -90,6 +90,7 @@ type Configuration struct {
 	MaxTxsInBlock        int                  `json:"MaxTransactionInBlock"`
 	MinCrossChainTxFee   int                  `json:"MinCrossChainTxFee"`
 	FoundationAddress    string               `json:"FoundationAddress"`
+	CRCAddress           string               `json:"CRCAddress"`
 	PowConfiguration     PowConfiguration     `json:"PowConfiguration"`
 	RpcConfiguration     RpcConfiguration     `json:"RpcConfiguration"`
 	EnableArbiter        bool                 `json:"EnableArbiter"`

@@ -123,6 +123,7 @@ func New(db IChainStore, chainParams *config.Params, state *state.State) (*Block
 func (b *BlockChain) InitializeProducersState(interrupt <-chan struct{},
 	start func(total uint32), increase func()) (err error) {
 	bestHeight := b.db.GetHeight()
+	arbiters := DefaultLedger.Arbitrators
 	done := make(chan struct{})
 	go func() {
 		// Notify initialize process start.
@@ -141,7 +142,7 @@ func (b *BlockChain) InitializeProducersState(interrupt <-chan struct{},
 				break
 			}
 			confirm, _ := b.db.GetConfirm(block.Hash())
-			DefaultLedger.Arbitrators.ProcessBlock(block, confirm)
+			arbiters.ProcessBlock(block, confirm)
 
 			// Notify process increase.
 			if increase != nil {
@@ -153,6 +154,13 @@ func (b *BlockChain) InitializeProducersState(interrupt <-chan struct{},
 
 	select {
 	case <-done:
+		// Update direct peers with last state.
+		events.Notify(events.ETDirectPeersChanged,
+			arbiters.GetNeedConnectArbiters())
+
+		// Set arbiters as initiated.
+		arbiters.SetInitiated()
+
 	case <-interrupt:
 	}
 	return err

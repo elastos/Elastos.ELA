@@ -65,12 +65,6 @@ func (n *network) Initialize(dnConfig manager.DPOSNetworkConfig) {
 func (n *network) Start() {
 	n.p2pServer.Start()
 
-	if err := n.UpdatePeers(blockchain.DefaultLedger.Arbitrators.
-		GetNeedConnectArbiters(blockchain.DefaultLedger.Blockchain.
-			GetHeight())); err != nil {
-		log.Error(err)
-	}
-
 	go func() {
 	out:
 		for {

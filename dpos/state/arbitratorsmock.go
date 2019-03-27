@@ -44,6 +44,10 @@ func (a *ArbitratorsMock) GetDutyIndex() int {
 	panic("implement me")
 }
 
+func (a *ArbitratorsMock) SetInitiated() {
+	panic("implement me")
+}
+
 func (a *ArbitratorsMock) ProcessSpecialTxPayload(p types.Payload, height uint32) error {
 	panic("implement me")
 }
@@ -56,7 +60,7 @@ func (a *ArbitratorsMock) RollbackTo(height uint32) error {
 	panic("implement me")
 }
 
-func (a *ArbitratorsMock) GetNeedConnectArbiters(height uint32) map[string]*p2p.PeerAddr {
+func (a *ArbitratorsMock) GetNeedConnectArbiters() map[string]*p2p.PeerAddr {
 	panic("implement me")
 }
 

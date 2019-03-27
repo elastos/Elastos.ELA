@@ -11,13 +11,14 @@ type Arbitrators interface {
 	ProcessBlock(block *types.Block, confirm *payload.Confirm)
 	ProcessSpecialTxPayload(p types.Payload, height uint32) error
 	RollbackTo(height uint32) error
+	SetInitiated()
 
 	IsArbitrator(pk []byte) bool
 	GetArbitrators() [][]byte
 	GetCandidates() [][]byte
 	GetNextArbitrators() [][]byte
 	GetNextCandidates() [][]byte
-	GetNeedConnectArbiters(height uint32) map[string]*p2p.PeerAddr
+	GetNeedConnectArbiters() map[string]*p2p.PeerAddr
 	GetDutyIndexByHeight(height uint32) int
 	GetDutyIndex() int
 

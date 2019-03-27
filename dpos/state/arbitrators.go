@@ -43,6 +43,7 @@ type arbitrators struct {
 	arbitersCount int
 
 	mtx                sync.Mutex
+	initiated          bool
 	dutyIndex          int
 	currentArbitrators [][]byte
 	currentCandidates  [][]byte
@@ -56,6 +57,14 @@ type arbitrators struct {
 	nextCandidates              [][]byte
 	crcArbitratorsProgramHashes map[common.Uint168]interface{}
 	crcArbitratorsNodePublicKey map[string]*Producer
+}
+
+// SetInitiated set the arbitrators as initiated, we do not notify state change
+// before initiated.
+func (a *arbitrators) SetInitiated() {
+	a.mtx.Lock()
+	a.initiated = true
+	a.mtx.Unlock()
 }
 
 func (a *arbitrators) ProcessBlock(block *types.Block, confirm *payload.Confirm) {
@@ -113,7 +122,9 @@ func (a *arbitrators) ForceChange(height uint32) error {
 
 	a.mtx.Unlock()
 
-	events.Notify(events.ETDirectPeersChanged, a.GetNeedConnectArbiters(height))
+	if a.initiated {
+		events.Notify(events.ETDirectPeersChanged, a.GetNeedConnectArbiters())
+	}
 
 	return nil
 }
@@ -155,9 +166,8 @@ func (a *arbitrators) IncreaseChainHeight(height uint32) {
 
 	a.mtx.Unlock()
 
-	if notify {
-		events.Notify(events.ETDirectPeersChanged,
-			a.GetNeedConnectArbiters(versionHeight))
+	if a.initiated && notify {
+		events.Notify(events.ETDirectPeersChanged, a.GetNeedConnectArbiters())
 	}
 }
 
@@ -172,32 +182,35 @@ func (a *arbitrators) DecreaseChainHeight(height uint32) {
 	}
 }
 
-func (a *arbitrators) GetNeedConnectArbiters(height uint32) map[string]*p2p.PeerAddr {
+func (a *arbitrators) GetNeedConnectArbiters() map[string]*p2p.PeerAddr {
+	a.mtx.Lock()
+	defer a.mtx.Unlock()
+
+	height := a.history.height + 1
+	if height < a.chainParams.CRCOnlyDPOSHeight-a.chainParams.PreConnectOffset {
+		return nil
+	}
+
 	arbiters := make(map[string]*p2p.PeerAddr)
+	for k, v := range a.crcArbitratorsNodePublicKey {
+		arbiters[k] = a.generatePeerAddr(v.info.NodePublicKey,
+			v.info.NetAddress)
+	}
 
-	if height >= a.chainParams.CRCOnlyDPOSHeight-a.chainParams.PreConnectOffset {
-		a.mtx.Lock()
-		for k, v := range a.crcArbitratorsNodePublicKey {
-			arbiters[k] = a.generatePeerAddr(v.info.NodePublicKey,
-				v.info.NetAddress)
+	for _, v := range a.currentArbitrators {
+		str := common.BytesToHexString(v)
+		if _, exist := arbiters[str]; exist {
+			continue
 		}
+		arbiters[str] = a.getArbiterPeerAddr(v)
+	}
 
-		for _, v := range a.currentArbitrators {
-			str := common.BytesToHexString(v)
-			if _, exist := arbiters[str]; exist {
-				continue
-			}
-			arbiters[str] = a.getArbiterPeerAddr(v)
+	for _, v := range a.nextArbitrators {
+		str := common.BytesToHexString(v)
+		if _, exist := arbiters[str]; exist {
+			continue
 		}
-
-		for _, v := range a.nextArbitrators {
-			str := common.BytesToHexString(v)
-			if _, exist := arbiters[str]; exist {
-				continue
-			}
-			arbiters[str] = a.getArbiterPeerAddr(v)
-		}
-		a.mtx.Unlock()
+		arbiters[str] = a.getArbiterPeerAddr(v)
 	}
 
 	return arbiters

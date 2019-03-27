@@ -155,17 +155,19 @@ func main() {
 		Arbitrators: arbiters,
 	})
 
+	// initialize producers state.
+	err = chain.InitializeProducersState(
+		interrupt.C, pgBar.Start, pgBar.Increase)
+	if err != nil {
+		printErrorAndExit(err)
+	}
+	pgBar.Stop()
+
+	// Start arbiter after producers initiated.
 	if arbitrator != nil {
 		arbitrator.Start()
 		defer arbitrator.Stop()
 	}
-
-	// initialize producer state after arbiters has initialized
-	if err = chain.InitializeProducersState(interrupt.C, pgBar.Start,
-		pgBar.Increase); err != nil {
-		printErrorAndExit(err)
-	}
-	pgBar.Stop()
 
 	log.Info("Start the P2P networks")
 	server.Start()

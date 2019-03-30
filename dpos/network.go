@@ -6,7 +6,6 @@ import (
 	"sync"
 
 	"github.com/elastos/Elastos.ELA/blockchain"
-	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/core/types"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
@@ -21,12 +20,6 @@ import (
 	elamsg "github.com/elastos/Elastos.ELA/p2p/msg"
 )
 
-type PeerItem struct {
-	Address     p2p.PeerAddr
-	NeedConnect bool
-	Peer        *peer.Peer
-}
-
 type blockItem struct {
 	Block     *types.Block
 	Confirmed bool
@@ -39,7 +32,6 @@ type messageItem struct {
 
 type network struct {
 	listener           manager.NetworkEventListener
-	account            account.DposAccount
 	proposalDispatcher *manager.ProposalDispatcher
 	peersLock          sync.Mutex
 	store              store.IDposStore
@@ -64,12 +56,6 @@ func (n *network) Initialize(dnConfig manager.DPOSNetworkConfig) {
 
 func (n *network) Start() {
 	n.p2pServer.Start()
-
-	if err := n.UpdatePeers(blockchain.DefaultLedger.Arbitrators.
-		GetNeedConnectArbiters(blockchain.DefaultLedger.Blockchain.
-			GetHeight())); err != nil {
-		log.Error(err)
-	}
 
 	go func() {
 	out:
@@ -123,27 +109,11 @@ func (n *network) Stop() error {
 	return n.p2pServer.Stop()
 }
 
-func (n *network) UpdatePeers(peers map[string]*p2p.PeerAddr) error {
+func (n *network) UpdatePeers(peers []peer.PID) {
 	log.Info("[UpdatePeers] peers:", len(peers), " height: ",
 		blockchain.DefaultLedger.Blockchain.GetHeight())
 
-	if p, _ := peers[common.BytesToHexString(n.publicKey)]; p == nil {
-		return errors.New("self not in direct peers list")
-	}
-
-	var peerList []p2p.PeerAddr
-	for k, v := range peers {
-		if v == nil {
-			log.Info("peer[", k, "] address empty")
-			continue
-		}
-		log.Info("peer[", k, "] addr:", v.Addr, " pid:",
-			common.BytesToHexString(v.PID[:]))
-		peerList = append(peerList, *v)
-	}
-	n.p2pServer.ConnectPeers(peerList)
-
-	return nil
+	n.p2pServer.ConnectPeers(peers)
 }
 
 func (n *network) SendMessageToPeer(id peer.PID, msg elap2p.Message) error {
@@ -317,7 +287,7 @@ func (n *network) getCurrentHeight(pid peer.PID) uint64 {
 }
 
 func NewDposNetwork(pid peer.PID, listener manager.NetworkEventListener,
-	dposAccount account.DposAccount) (*network, error) {
+	account account.Account, getCipherAddr func(pid [33]byte) []byte) (*network, error) {
 	network := &network{
 		listener:                 listener,
 		messageQueue:             make(chan *messageItem, 10000), //todo config handle capacity though config file
@@ -327,7 +297,6 @@ func NewDposNetwork(pid peer.PID, listener manager.NetworkEventListener,
 		confirmReceivedChan:      make(chan *payload.Confirm, 10), //todo config handle capacity though config file
 		illegalBlocksEvidence:    make(chan *payload.DPOSIllegalBlocks),
 		sidechainIllegalEvidence: make(chan *payload.SidechainIllegalData),
-		account:                  dposAccount,
 	}
 
 	notifier := p2p.NewNotifier(p2p.NFNetStabled|p2p.NFBadNetwork, network.notifyFlag)
@@ -342,8 +311,16 @@ func NewDposNetwork(pid peer.PID, listener manager.NetworkEventListener,
 		HandleMessage:    network.handleMessage,
 		PingNonce:        network.getCurrentHeight,
 		PongNonce:        network.getCurrentHeight,
-		SignNonce:        dposAccount.SignPeerNonce,
+		Sign:             account.Sign,
 		StateNotifier:    notifier,
+		GetAddr: func(pid peer.PID) (addr string, ok bool) {
+			cipher := getCipherAddr(pid)
+			if cipher == nil {
+				return "", false
+			}
+			addr, err := account.DecryptAddr(cipher)
+			return addr, err == nil
+		},
 	})
 	if err != nil {
 		return nil, err

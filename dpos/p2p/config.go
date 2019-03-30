@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/elastos/Elastos.ELA/dpos/p2p/peer"
-
 	"github.com/elastos/Elastos.ELA/p2p"
 )
 
@@ -42,11 +41,8 @@ type Config struct {
 	// messages.
 	PingInterval time.Duration
 
-	// SignNonce will be invoked when creating a version message to do the
-	// protocol negotiate.  The passed nonce is a 32 bytes length random value,
-	// and returns the signature of the nonce value to proof you have the right
-	// of the PID(public key) you've provided.
-	SignNonce func(nonce []byte) (signature [64]byte)
+	// Sign will be invoked when creating a signature of the data content.
+	Sign func(data []byte) (signature []byte)
 
 	// PingNonce will be invoked before send a ping message to the connect peer
 	// with the given PID, to get the nonce value within the ping message.
@@ -67,6 +63,9 @@ type Config struct {
 
 	// StateNotifier notifies the server peer state changes.
 	StateNotifier StateNotifier
+
+	// GetAddr get the network address of the given PID.
+	GetAddr func(pid peer.PID) (addr string, ok bool)
 }
 
 // normalizeAddress returns addr with the passed default port appended if

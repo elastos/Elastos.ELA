@@ -74,7 +74,7 @@ type broadcastMsg struct {
 // peerState maintains state of inbound, persistent, outbound peers as well
 // as banned peers and outbound groups.
 type peerState struct {
-	connectPeers  map[peer.PID]PeerAddr
+	connectPeers  map[peer.PID]struct{}
 	inboundPeers  map[uint64]*serverPeer
 	outboundPeers map[uint64]*serverPeer
 }
@@ -281,8 +281,8 @@ func (s *server) handleBroadcastMsg(state *peerState, bmsg *broadcastMsg) {
 }
 
 type connectPeersMsg struct {
-	addrList []PeerAddr
-	reply    chan struct{}
+	peers []peer.PID
+	reply chan struct{}
 }
 
 type sendToPeerMsg struct {
@@ -312,43 +312,34 @@ func (s *server) handleQuery(state *peerState, querymsg interface{}) {
 		// in connect list, and disconnect peers not in connect list.
 
 		// connectPeers saves the new received connect peer addresses.
-		connectPeers := make(map[peer.PID]PeerAddr)
+		connectPeers := make(map[peer.PID]struct{})
 
 		// Loop through the new received connect peer addresses.
-		for _, addr := range msg.addrList {
+		for _, pid := range msg.peers {
 			// Do not create connection to self.
-			if addr.PID.Equal(s.cfg.PID) {
+			if pid.Equal(s.cfg.PID) {
 				continue
 			}
 
-			// Normalize peer address.
-			port := strconv.FormatUint(uint64(s.cfg.DefaultPort), 10)
-			addr.Addr = normalizeAddress(addr.Addr, port)
-
 			// Add address to connectPeers
-			connectPeers[addr.PID] = addr
+			connectPeers[pid] = struct{}{}
 
-			// Peers not in previous connect list are peers
-			// need to be connected.
-			if _, ok := state.connectPeers[addr.PID]; !ok {
-				na, err := addrStringToNetAddr(addr.Addr)
-				if err != nil {
-					log.Errorf("parse peer address %s failed, %s",
-						addr.Addr, err)
-					continue
-				}
-				go s.connManager.Connect(
-					&connmgr.ConnReq{PID: addr.PID, Addr: na})
+			// Peers in previous connect list already.
+			if _, ok := state.connectPeers[pid]; ok {
+				continue
 			}
+
+			// Connect the peer.
+			go s.connManager.Connect(&connmgr.ConnReq{PID: pid})
 		}
 
 		// disconnectPeers saves the peers need to be disconnected.
 		disconnectPeers := make(map[peer.PID]struct{})
 
 		// Peers not in new received connect list need to be disconnected.
-		for pid, addr := range state.connectPeers {
+		for pid := range state.connectPeers {
 			if _, ok := connectPeers[pid]; !ok {
-				disconnectPeers[addr.PID] = struct{}{}
+				disconnectPeers[pid] = struct{}{}
 			}
 		}
 
@@ -364,7 +355,7 @@ func (s *server) handleQuery(state *peerState, querymsg interface{}) {
 
 		// Notify peer state change for connect list changed.
 		if s.cfg.StateNotifier != nil {
-			s.cfg.StateNotifier.OnConnectPeers(connectPeers)
+			s.cfg.StateNotifier.OnConnectPeers(msg.peers)
 		}
 
 		msg.reply <- struct{}{}
@@ -442,13 +433,17 @@ func (s *server) handleQuery(state *peerState, querymsg interface{}) {
 				State: CSInboundOnly,
 			}
 		}
-		for _, pa := range state.connectPeers {
-			if _, ok := peers[pa.PID]; ok {
+		for pid := range state.connectPeers {
+			if _, ok := peers[pid]; ok {
 				continue
 			}
-			peers[pa.PID] = &PeerInfo{
-				PID:   pa.PID,
-				Addr:  pa.Addr,
+			addr, ok := s.cfg.GetAddr(pid)
+			if !ok {
+				addr = "unknown"
+			}
+			peers[pid] = &PeerInfo{
+				PID:   pid,
+				Addr:  addr,
 				State: CSNoneConnection,
 			}
 		}
@@ -484,26 +479,23 @@ func (s *server) pongNonce(pid peer.PID) uint64 {
 
 // newPeerConfig returns the configuration for the given serverPeer.
 func newPeerConfig(sp *serverPeer) *peer.Config {
-	cfg := &peer.Config{
+	return &peer.Config{
 		PID:              sp.server.cfg.PID,
 		Magic:            sp.server.cfg.MagicNumber,
 		ProtocolVersion:  sp.server.cfg.ProtocolVersion,
 		Services:         sp.server.cfg.Services,
 		PingInterval:     sp.server.cfg.PingInterval,
-		SignNonce:        sp.server.cfg.SignNonce,
+		Sign:             sp.server.cfg.Sign,
 		PingNonce:        sp.server.pingNonce,
 		PongNonce:        sp.server.pongNonce,
 		MakeEmptyMessage: sp.server.cfg.MakeEmptyMessage,
+		MessageFunc: func(peer *peer.Peer, m p2p.Message) {
+			switch m := m.(type) {
+			case *msg.Version:
+				sp.OnVersion(peer, m)
+			}
+		},
 	}
-
-	// Add default message function for peer configuration.
-	cfg.AddMessageFunc(func(peer *peer.Peer, m p2p.Message) {
-		switch m := m.(type) {
-		case *msg.Version:
-			sp.OnVersion(peer, m)
-		}
-	})
-	return cfg
 }
 
 // inboundPeerConnected is invoked by the connection manager when a new inbound
@@ -628,11 +620,11 @@ func (s *server) ConnectedCount() int32 {
 	return <-replyChan
 }
 
-// ConnectPeers let server connect the peers in the given addrList, and
-// disconnect peers that not in the addrList.
-func (s *server) ConnectPeers(addrList []PeerAddr) {
+// ConnectPeers let server connect the peers in the given peers, and
+// disconnect peers that not in the peers.
+func (s *server) ConnectPeers(peers []peer.PID) {
 	reply := make(chan struct{})
-	s.query <- connectPeersMsg{addrList: addrList, reply: reply}
+	s.query <- connectPeersMsg{peers: peers, reply: reply}
 	<-reply
 }
 
@@ -791,7 +783,7 @@ func NewServer(origCfg *Config) (*server, error) {
 	s := server{
 		cfg:       cfg,
 		peerQueue: make(chan interface{}, maxPeers),
-		query:     make(chan interface{}),
+		query:     make(chan interface{}, maxPeers),
 		broadcast: make(chan broadcastMsg, maxPeers),
 		quit:      make(chan struct{}),
 	}
@@ -802,6 +794,14 @@ func NewServer(origCfg *Config) (*server, error) {
 		RetryDuration: connectionRetryInterval,
 		Dial:          s.dialTimeout,
 		OnConnection:  s.outboundPeerConnected,
+		GetAddr: func(pid [33]byte) (na net.Addr, err error) {
+			addr, ok := cfg.GetAddr(pid)
+			if !ok {
+				return nil, fmt.Errorf("can not find network"+
+					" address for %s", peer.PID(pid))
+			}
+			return addrStringToNetAddr(addr)
+		},
 	})
 	if err != nil {
 		return nil, err

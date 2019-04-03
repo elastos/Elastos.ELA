@@ -12,6 +12,7 @@ import (
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/elanet/pact"
 	"github.com/elastos/Elastos.ELA/elanet/peer"
+	"github.com/elastos/Elastos.ELA/errors"
 	"github.com/elastos/Elastos.ELA/events"
 	"github.com/elastos/Elastos.ELA/mempool"
 	"github.com/elastos/Elastos.ELA/p2p"
@@ -299,20 +300,27 @@ func (sm *SyncManager) handleTxMsg(tmsg *txMsg) {
 
 	// Process the transaction to include validation, insertion in the
 	// memory pool, orphan handling, etc.
-	err := sm.txMemPool.AppendToTxPool(tmsg.tx)
-	if err != nil {
-		// Do not request this transaction again until a new block
-		// has been processed.
-		sm.rejectedTxns[txHash] = struct{}{}
-		sm.limitMap(sm.rejectedTxns, maxRejectedTxns)
-
-		peer.PushRejectMsg(p2p.CmdTx, msg.RejectInvalid, err.Error(),
-			&txHash, false)
+	errCode := sm.txMemPool.AppendToTxnPool(tmsg.tx)
+	var rejectCode msg.RejectCode
+	switch errCode {
+	case errors.Success:
+		iv := msg.NewInvVect(msg.InvTypeTx, &txHash)
+		sm.peerNotifier.RelayInventory(iv, tmsg.tx)
 		return
+	case errors.ErrTransactionDuplicate:
+		rejectCode = msg.RejectDuplicate
+	case errors.ErrTransactionBalance:
+		rejectCode = msg.RejectInsufficientFee
+	default:
+		rejectCode = msg.RejectInvalid
 	}
 
-	iv := msg.NewInvVect(msg.InvTypeTx, &txHash)
-	sm.peerNotifier.RelayInventory(iv, tmsg.tx)
+	// Do not request this transaction again until a new block
+	// has been processed.
+	sm.rejectedTxns[txHash] = struct{}{}
+	sm.limitMap(sm.rejectedTxns, maxRejectedTxns)
+	peer.PushRejectMsg(p2p.CmdTx, rejectCode, errCode.Message(),
+		&txHash, false)
 }
 
 // current returns true if we believe we are synced with our peers, false if we

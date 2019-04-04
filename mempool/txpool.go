@@ -50,24 +50,31 @@ func (mp *TxPool) appendToTxPool(tx *Transaction) ErrCode {
 		return ErrTransactionDuplicate
 	}
 
+	store := blockchain.DefaultLedger.Store
+	// check if duplicated with transaction in ledger
+	if exist := store.IsTxHashDuplicate(txHash); exist {
+		log.Warn("[CheckTransactionContext] duplicate transaction check failed.")
+		return ErrTransactionDuplicate
+	}
+
 	if tx.IsCoinBaseTx() {
-		log.Warnf("coinbase tx %s cannot be added into transaction pool", tx.Hash())
+		log.Warnf("coinbase tx %s cannot be added into transaction pool", txHash)
 		return ErrIneffectiveCoinbase
 	}
 
 	chain := blockchain.DefaultLedger.Blockchain
 	bestHeight := blockchain.DefaultLedger.Blockchain.GetHeight()
 	if errCode := chain.CheckTransactionSanity(bestHeight+1, tx); errCode != Success {
-		log.Warn("[TxPool CheckTransactionSanity] failed", tx.Hash().String())
+		log.Warn("[TxPool CheckTransactionSanity] failed", txHash)
 		return errCode
 	}
 	if errCode := chain.CheckTransactionContext(bestHeight+1, tx); errCode != Success {
-		log.Warn("[TxPool CheckTransactionContext] failed", tx.Hash().String())
+		log.Warn("[TxPool CheckTransactionContext] failed", txHash)
 		return errCode
 	}
 	//verify transaction by pool with lock
 	if errCode := mp.verifyTransactionWithTxnPool(tx); errCode != Success {
-		log.Warn("[TxPool verifyTransactionWithTxnPool] failed", tx.Hash())
+		log.Warn("[TxPool verifyTransactionWithTxnPool] failed", txHash)
 		return errCode
 	}
 

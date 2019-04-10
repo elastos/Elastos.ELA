@@ -1125,7 +1125,7 @@ func (b *BlockChain) checkIllegalProposalsTransaction(txn *Transaction) error {
 		return errors.New("invalid payload")
 	}
 
-	if hash := txn.Hash(); b.state.SpecialTxExists(&hash) {
+	if b.state.SpecialTxExists(txn) {
 		return errors.New("tx already exists")
 	}
 
@@ -1138,7 +1138,7 @@ func (b *BlockChain) checkIllegalVotesTransaction(txn *Transaction) error {
 		return errors.New("invalid payload")
 	}
 
-	if hash := txn.Hash(); b.state.SpecialTxExists(&hash) {
+	if b.state.SpecialTxExists(txn) {
 		return errors.New("tx already exists")
 	}
 
@@ -1151,7 +1151,7 @@ func (b *BlockChain) checkIllegalBlocksTransaction(txn *Transaction) error {
 		return errors.New("invalid payload")
 	}
 
-	if hash := txn.Hash(); b.state.SpecialTxExists(&hash) {
+	if b.state.SpecialTxExists(txn) {
 		return errors.New("tx already exists")
 	}
 
@@ -1161,7 +1161,7 @@ func (b *BlockChain) checkIllegalBlocksTransaction(txn *Transaction) error {
 func (b *BlockChain) checkInactiveArbitratorsTransaction(
 	txn *Transaction) error {
 
-	if hash := txn.Hash(); b.state.SpecialTxExists(&hash) {
+	if b.state.SpecialTxExists(txn) {
 		return errors.New("tx already exists")
 	}
 
@@ -1174,7 +1174,7 @@ func (b *BlockChain) checkSidechainIllegalEvidenceTransaction(txn *Transaction) 
 		return errors.New("invalid payload")
 	}
 
-	if hash := txn.Hash(); b.state.SpecialTxExists(&hash) {
+	if b.state.SpecialTxExists(txn) {
 		return errors.New("tx already exists")
 	}
 

@@ -5,13 +5,13 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/elastos/Elastos.ELA/common/config"
-
 	"github.com/urfave/cli"
 )
 
+var JsonRPCPort int
+
 func LocalServer() string {
-	return "http://localhost" + ":" + strconv.Itoa(config.Template.HttpJsonPort)
+	return "http://localhost" + ":" + strconv.Itoa(JsonRPCPort)
 }
 
 func PrintError(c *cli.Context, err error, cmd string) {

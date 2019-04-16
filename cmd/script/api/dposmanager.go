@@ -89,7 +89,6 @@ func newDposManager(L *lua.LState) int {
 		Account:      mockManager.Account,
 		ChainParams:  &config.DefaultParams,
 		EventStoreAnalyzerConfig: store.EventStoreAnalyzerConfig{
-			InactiveEliminateCount: config.Parameters.ArbiterConfiguration.InactiveEliminateCount,
 			Store:       nil,
 			Arbitrators: a,
 		},

@@ -116,18 +116,24 @@ func (b *BlockChain) CheckTransactionContext(blockHeight uint32, txn *Transactio
 		if err := b.checkIllegalBlocksTransaction(txn); err != nil {
 			log.Warn("[CheckIllegalBlocksTransaction],", err)
 			return ErrTransactionPayload
+		} else {
+			return Success
 		}
 
 	case IllegalSidechainEvidence:
 		if err := b.checkSidechainIllegalEvidenceTransaction(txn); err != nil {
 			log.Warn("[CheckSidechainIllegalEvidenceTransaction],", err)
 			return ErrTransactionPayload
+		} else {
+			return Success
 		}
 
 	case InactiveArbitrators:
 		if err := b.checkInactiveArbitratorsTransaction(txn); err != nil {
 			log.Warn("[CheckInactiveArbitrators],", err)
 			return ErrTransactionPayload
+		} else {
+			return Success
 		}
 
 	case SideChainPow:
@@ -796,7 +802,7 @@ func (b *BlockChain) checkWithdrawFromSideChainTransaction(txn *Transaction, ref
 
 func (b *BlockChain) checkCrossChainArbitrators(publicKeys [][]byte) error {
 	arbiters := make([][]byte, 0)
-	if DefaultLedger.Blockchain.GetHeight() < b.chainParams.CRCOnlyDPOSHeight - 1 {
+	if DefaultLedger.Blockchain.GetHeight() < b.chainParams.CRCOnlyDPOSHeight-1 {
 		arbiters = DefaultLedger.Arbitrators.GetArbitrators()
 	} else {
 		arbiters = DefaultLedger.Arbitrators.GetCRCArbiters()
@@ -1177,7 +1183,7 @@ func (b *BlockChain) checkInactiveArbitratorsTransaction(
 		return errors.New("tx already exists")
 	}
 
-	return CheckInactiveArbitrators(txn, b.chainParams.InactiveEliminateCount)
+	return CheckInactiveArbitrators(txn)
 }
 
 func (b *BlockChain) checkSidechainIllegalEvidenceTransaction(txn *Transaction) error {
@@ -1228,8 +1234,7 @@ func CheckSidechainIllegalEvidence(p *payload.SidechainIllegalData) error {
 	return nil
 }
 
-func CheckInactiveArbitrators(txn *Transaction,
-	inactiveArbitratorsCount uint32) error {
+func CheckInactiveArbitrators(txn *Transaction) error {
 	p, ok := txn.Payload.(*payload.InactiveArbitrators)
 	if !ok {
 		return errors.New("invalid payload")
@@ -1244,7 +1249,8 @@ func CheckInactiveArbitrators(txn *Transaction,
 		return errors.New("sponsor is not belong to arbitrators")
 	}
 
-	if len(p.Arbitrators) > int(inactiveArbitratorsCount) {
+	inactiveArbitratorsCount := len(arbitrators) / 3
+	if len(p.Arbitrators) > inactiveArbitratorsCount {
 		return errors.New("number of arbitrators must less equal than " +
 			strconv.FormatUint(uint64(inactiveArbitratorsCount), 10))
 	}

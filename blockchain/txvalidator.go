@@ -796,7 +796,7 @@ func (b *BlockChain) checkWithdrawFromSideChainTransaction(txn *Transaction, ref
 
 func (b *BlockChain) checkCrossChainArbitrators(publicKeys [][]byte) error {
 	arbiters := make([][]byte, 0)
-	if DefaultLedger.Blockchain.GetHeight() < b.chainParams.CRCOnlyDPOSHeight - 1 {
+	if DefaultLedger.Blockchain.GetHeight() < b.chainParams.CRCOnlyDPOSHeight-1 {
 		arbiters = DefaultLedger.Arbitrators.GetArbitrators()
 	} else {
 		arbiters = DefaultLedger.Arbitrators.GetCRCArbiters()
@@ -1114,6 +1114,9 @@ func (b *BlockChain) checkReturnDepositCoinTransaction(txn *Transaction,
 	var penalty common.Fixed64
 	for _, program := range txn.Programs {
 		p := b.state.GetProducer(program.Code[1 : len(program.Code)-1])
+		if p == nil {
+			return errors.New("signer must be producer")
+		}
 		if p.State() != state.Canceled {
 			return errors.New("producer must be canceled before return deposit coin")
 		}

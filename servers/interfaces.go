@@ -456,6 +456,37 @@ func GetConnectionCount(param Params) map[string]interface{} {
 	return ResponsePack(Success, Server.ConnectedCount())
 }
 
+func GetMemPoolSnapshot(param Params) map[string]interface{} {
+	type TxsInfo []*TransactionInfo
+	type InputTxsInfo []*TransactionInfo
+	type SideChainTxsInfo []*TransactionInfo
+	type OwnerPKs []string
+	type NodePKs []string
+	type SpecialTxs []common.Uint256
+	var memPoolSnapshot MemPoolSnapshot
+	txs, inputTxs, sidechainTxs, ownerPKs, nodePKs, specialTxs := TxMemPool.SnapShot()
+
+	for _, i := range txs {
+		memPoolSnapshot.TxsInfo = append(memPoolSnapshot.TxsInfo, GetTransactionInfo(nil, i))
+	}
+	for _, i := range inputTxs {
+		memPoolSnapshot.InputTxsInfo = append(memPoolSnapshot.InputTxsInfo, GetTransactionInfo(nil, i))
+	}
+	for _, i := range sidechainTxs {
+		memPoolSnapshot.SideChainTxsInfo = append(memPoolSnapshot.SideChainTxsInfo, GetTransactionInfo(nil, i))
+	}
+	for _, i := range ownerPKs {
+		memPoolSnapshot.OwnerPKs = append(memPoolSnapshot.OwnerPKs, i)
+	}
+	for _, i := range nodePKs {
+		memPoolSnapshot.NodePKs = append(memPoolSnapshot.NodePKs, i)
+	}
+	for _, i := range specialTxs {
+		memPoolSnapshot.SpecialTxs = append(memPoolSnapshot.SpecialTxs, i)
+	}
+	return ResponsePack(Success, memPoolSnapshot)
+}
+
 func GetTransactionPool(param Params) map[string]interface{} {
 	txs := make([]*TransactionInfo, 0)
 	for _, tx := range TxMemPool.GetTxsInPool() {

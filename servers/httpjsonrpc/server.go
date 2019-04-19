@@ -42,6 +42,7 @@ func StartRPCServer() {
 	mainMux["getcurrentheight"] = GetBlockHeight
 	mainMux["getblockhash"] = GetBlockHash
 	mainMux["getconnectioncount"] = GetConnectionCount
+	mainMux["getmempoolsnapshot"] = GetMemPoolSnapshot
 	mainMux["getrawmempool"] = GetTransactionPool
 	mainMux["getrawtransaction"] = GetRawTransaction
 	mainMux["getneighbors"] = GetNeighbors

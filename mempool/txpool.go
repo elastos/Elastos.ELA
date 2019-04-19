@@ -107,6 +107,36 @@ func (mp *TxPool) GetTxsInPool() []*Transaction {
 	return txs
 }
 
+func (mp *TxPool) SnapShot() ([]*Transaction, []*Transaction, []*Transaction, []string, []string, []Uint256) {
+	mp.RLock()
+	txs := make([]*Transaction, 0, len(mp.txnList))
+	for _, tx := range mp.txnList {
+		txs = append(txs, tx)
+	}
+	inputUTXOs := make([]*Transaction, 0, len(mp.inputUTXOList))
+	for _, tx := range mp.inputUTXOList {
+		inputUTXOs = append(inputUTXOs, tx)
+	}
+	sideChainTxs := make([]*Transaction, 0, len(mp.sidechainTxList))
+	for _, tx := range mp.sidechainTxList {
+		sideChainTxs = append(sideChainTxs, tx)
+	}
+	ownerPKs := make([]string, 0, len(mp.ownerPublicKeys))
+	for pk := range mp.ownerPublicKeys {
+		ownerPKs = append(ownerPKs, pk)
+	}
+	nodePKs := make([]string, 0, len(mp.nodePublicKeys))
+	for pk := range mp.nodePublicKeys {
+		nodePKs = append(nodePKs, pk)
+	}
+	specialTxs := make([]Uint256, 0, len(mp.specialTxList))
+	for tx := range mp.specialTxList {
+		specialTxs = append(specialTxs, tx)
+	}
+	mp.RUnlock()
+	return txs, inputUTXOs, sideChainTxs, ownerPKs, nodePKs, specialTxs
+}
+
 //clean the trasaction Pool with committed block.
 func (mp *TxPool) CleanSubmittedTransactions(block *Block) {
 	mp.Lock()

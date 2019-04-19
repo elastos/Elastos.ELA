@@ -208,3 +208,19 @@ type SidechainIllegalDataInfo struct {
 	GenesisBlockAddress string   `json:"genesisblockaddress"`
 	Signs               []string `json:"signs"`
 }
+
+type TxsInfo []*TransactionInfo
+type InputTxsInfo []*TransactionInfo
+type SideChainTxsInfo []*TransactionInfo
+type OwnerPKs []string
+type NodePKs []string
+type SpecialTxs []common.Uint256
+
+type MemPoolSnapshot struct {
+	TxsInfo          `json:"txsinfo"`
+	InputTxsInfo     `json:"inputtxsinfo"`
+	SideChainTxsInfo `json:"sidechaintxsinfo"`
+	OwnerPKs         `json:"ownerpublickeys"`
+	NodePKs          `json:"nodepublickeys"`
+	SpecialTxs       `json:"specialtxs"`
+}

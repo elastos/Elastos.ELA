@@ -59,7 +59,7 @@ func TestArbitrators_GetNormalArbitratorsDescV0(t *testing.T) {
 	}
 
 	// V0
-	producers, err := arbiters.GetNormalArbitratorsDesc(0, 5, arbiters.State.getProducers())
+	producers, err := arbiters.GetNormalArbitratorsDesc(0, 5, arbiters.State.GetActiveProducers())
 	assert.NoError(t, err)
 	for i := range producers {
 		assert.Equal(t, arbitrators[i], producers[i])
@@ -116,7 +116,7 @@ func TestArbitrators_GetNormalArbitratorsDesc(t *testing.T) {
 	}
 
 	// main version
-	producers, err := arbiters.GetNormalArbitratorsDesc(arbiters.State.chainParams.PublicDPOSHeight, 10, arbiters.State.getProducers())
+	producers, err := arbiters.GetNormalArbitratorsDesc(arbiters.State.chainParams.PublicDPOSHeight, 10, arbiters.State.GetActiveProducers())
 	assert.Error(t, err, "arbitrators count does not match config value")
 
 	currentHeight += 1
@@ -146,7 +146,7 @@ func TestArbitrators_GetNormalArbitratorsDesc(t *testing.T) {
 	}
 
 	// main version
-	producers, err = arbiters.GetNormalArbitratorsDesc(arbiters.State.chainParams.PublicDPOSHeight, 5, arbiters.State.getProducers())
+	producers, err = arbiters.GetNormalArbitratorsDesc(arbiters.State.chainParams.PublicDPOSHeight, 5, arbiters.State.GetActiveProducers())
 	assert.NoError(t, err)
 	for i := range producers {
 		found := false

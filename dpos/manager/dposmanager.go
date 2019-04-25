@@ -134,12 +134,15 @@ func (d *DPOSManager) AppendBlock(block *types.Block) {
 
 func NewManager(cfg DPOSManagerConfig) *DPOSManager {
 	m := &DPOSManager{
-		publicKey:   cfg.PublicKey,
-		blockCache:  &ConsensusBlockCache{},
-		arbitrators: cfg.Arbitrators,
-		chainParams: cfg.ChainParams,
-		timeSource:  cfg.TimeSource,
-		server:      cfg.Server,
+		publicKey:          cfg.PublicKey,
+		blockCache:         &ConsensusBlockCache{},
+		arbitrators:        cfg.Arbitrators,
+		chainParams:        cfg.ChainParams,
+		timeSource:         cfg.TimeSource,
+		server:             cfg.Server,
+		notHandledProposal: make(map[string]struct{}),
+		statusMap:          make(map[uint32]map[string]*dmsg.ConsensusStatus),
+		requestedBlocks:    make(map[common.Uint256]struct{}),
 	}
 	m.blockCache.Reset()
 
@@ -159,9 +162,6 @@ func (d *DPOSManager) Initialize(handler *DPOSHandlerSwitch,
 	d.blockPool = blockPool
 	d.txPool = txPool
 	d.broadcast = broadcast
-	d.notHandledProposal = make(map[string]struct{})
-	d.statusMap = make(map[uint32]map[string]*dmsg.ConsensusStatus)
-	d.requestedBlocks = make(map[common.Uint256]struct{})
 }
 
 func (d *DPOSManager) AppendToTxnPool(txn *types.Transaction) error {
@@ -277,8 +277,13 @@ func (d *DPOSManager) OnPong(id dpeer.PID, height uint32) {
 }
 
 func (d *DPOSManager) OnBlock(id dpeer.PID, block *types.Block) {
-	log.Info("[ProcessBlock] received block:", block.Hash().String())
-	delete(d.requestedBlocks, block.Hash())
+	log.Debug("[OnBlock] received block:", block.Hash().String())
+	hash := block.Hash()
+	if _, ok := d.requestedBlocks[hash]; !ok {
+		log.Warn("[OnBlock] received unrequested block")
+		return
+	}
+	delete(d.requestedBlocks, hash)
 	if block.Header.Height == blockchain.DefaultLedger.Blockchain.GetHeight()+1 {
 		if _, _, err := d.blockPool.AppendDposBlock(&types.DposBlock{
 			Block: block,

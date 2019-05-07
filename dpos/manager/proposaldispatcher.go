@@ -593,7 +593,7 @@ func (p *ProposalDispatcher) acceptProposal(d *payload.DPOSProposal) {
 		log.Error("[acceptProposal] sign failed")
 		return
 	}
-	voteMsg := &dmsg.Vote{Command: dmsg.CmdAcceptVote, Vote: *vote}
+	voteMsg := dmsg.NewVoteAccept(vote)
 	p.ProcessVote(vote, true)
 
 	p.proposalProcessFinished = true
@@ -617,7 +617,7 @@ func (p *ProposalDispatcher) rejectProposal(d *payload.DPOSProposal) {
 		log.Error("[rejectProposal] sign failed")
 		return
 	}
-	msg := &dmsg.Vote{Command: dmsg.CmdRejectVote, Vote: *vote}
+	msg := dmsg.NewVoteReject(vote)
 	log.Info("[rejectProposal] send rej_vote msg:", dmsg.GetMessageHash(msg))
 
 	_, ok := p.cfg.Manager.GetBlockCache().TryGetValue(d.BlockHash)

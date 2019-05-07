@@ -152,10 +152,15 @@ func networkCheckLastMsg(L *lua.LState) int {
 				proposal := checkProposal(L, 3)
 				result = proposalMsg.Proposal.Hash().IsEqual(proposal.Hash())
 			}
-		case msg.CmdAcceptVote, msg.CmdRejectVote:
-			if voteMsg, ok := n.GetLastMessage().(*msg.Vote); ok {
+		case msg.CmdVoteAccept:
+			if voteMsg, ok := n.GetLastMessage().(*msg.VoteAccept); ok {
 				vote := checkVote(L, 3)
-				result = voteMsg.Vote.Hash().IsEqual(vote.Hash())
+				result = voteMsg.Payload.Hash().IsEqual(vote.Hash())
+			}
+		case msg.CmdVoteReject:
+			if voteMsg, ok := n.GetLastMessage().(*msg.VoteReject); ok {
+				vote := checkVote(L, 3)
+				result = voteMsg.Payload.Hash().IsEqual(vote.Hash())
 			}
 		case msg.CmdIllegalProposals:
 			if i, ok := n.GetLastMessage().(*msg.IllegalProposals); ok {

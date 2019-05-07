@@ -17,8 +17,8 @@ const (
 	CmdGetBlock = "getblock"
 
 	CmdReceivedProposal            = "proposal"
-	CmdAcceptVote                  = "acc_vote"
-	CmdRejectVote                  = "rej_vote"
+	CmdVoteAccept                  = "voteacc"
+	CmdVoteReject                  = "voterej"
 	CmdGetBlocks                   = "get_blc"
 	CmdResponseBlocks              = "res_blc"
 	CmdRequestConsensus            = "req_con"

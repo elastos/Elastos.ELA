@@ -16,8 +16,8 @@ import (
 	"github.com/elastos/Elastos.ELA/dpos/p2p/msg"
 	"github.com/elastos/Elastos.ELA/dpos/p2p/peer"
 	"github.com/elastos/Elastos.ELA/dpos/store"
-	elap2p "github.com/elastos/Elastos.ELA/p2p"
-	elamsg "github.com/elastos/Elastos.ELA/p2p/msg"
+	ep2p "github.com/elastos/Elastos.ELA/p2p"
+	emsg "github.com/elastos/Elastos.ELA/p2p/msg"
 )
 
 const dataPathDPoS = "elastos/data/dpos"
@@ -29,7 +29,7 @@ type blockItem struct {
 
 type messageItem struct {
 	ID      peer.PID
-	Message elap2p.Message
+	Message ep2p.Message
 }
 
 type network struct {
@@ -106,11 +106,11 @@ func (n *network) UpdatePeers(peers []peer.PID) {
 	n.p2pServer.ConnectPeers(peers)
 }
 
-func (n *network) SendMessageToPeer(id peer.PID, msg elap2p.Message) error {
+func (n *network) SendMessageToPeer(id peer.PID, msg ep2p.Message) error {
 	return n.p2pServer.SendMessageToPeer(id, msg)
 }
 
-func (n *network) BroadcastMessage(msg elap2p.Message) {
+func (n *network) BroadcastMessage(msg ep2p.Message) {
 	log.Info("[BroadcastMessage] msg:", msg.CMD())
 	n.p2pServer.BroadcastMessage(msg)
 }
@@ -153,108 +153,70 @@ func (n *network) notifyFlag(flag p2p.NotifyFlag) {
 	}
 }
 
-func (n *network) handleMessage(pid peer.PID, msg elap2p.Message) {
+func (n *network) handleMessage(pid peer.PID, msg ep2p.Message) {
 	n.messageQueue <- &messageItem{pid, msg}
 }
 
 func (n *network) processMessage(msgItem *messageItem) {
-	m := msgItem.Message
-	switch m.CMD() {
-	case msg.CmdReceivedProposal:
-		msgProposal, processed := m.(*msg.Proposal)
-		if processed {
-			n.listener.OnProposalReceived(msgItem.ID, &msgProposal.Proposal)
+	switch m := msgItem.Message.(type) {
+	case *msg.Proposal:
+		n.listener.OnProposalReceived(msgItem.ID, &m.Proposal)
+
+	case *msg.VoteAccept:
+		n.listener.OnVoteAccepted(msgItem.ID, &m.Payload)
+
+	case *msg.VoteReject:
+		n.listener.OnVoteRejected(msgItem.ID, &m.Payload)
+
+	case *msg.Ping:
+		n.listener.OnPing(msgItem.ID, uint32(m.Nonce))
+
+	case *msg.Pong:
+		n.listener.OnPong(msgItem.ID, uint32(m.Nonce))
+
+	case *emsg.Block:
+		n.listener.OnBlock(msgItem.ID, m.Serializable.(*types.Block))
+
+	case *msg.Inventory:
+		n.listener.OnInv(msgItem.ID, m.BlockHash)
+
+	case *msg.GetBlock:
+		n.listener.OnGetBlock(msgItem.ID, m.BlockHash)
+
+	case *msg.GetBlocks:
+		n.listener.OnGetBlocks(msgItem.ID, m.StartBlockHeight, m.EndBlockHeight)
+
+	case *msg.ResponseBlocks:
+		n.listener.OnResponseBlocks(msgItem.ID, m.BlockConfirms)
+
+	case *msg.RequestConsensus:
+		n.listener.OnRequestConsensus(msgItem.ID, m.Height)
+
+	case *msg.ResponseConsensus:
+		n.listener.OnResponseConsensus(msgItem.ID, &m.Consensus)
+
+	case *msg.RequestProposal:
+		n.listener.OnRequestProposal(msgItem.ID, m.ProposalHash)
+
+	case *msg.IllegalProposals:
+		n.listener.OnIllegalProposalReceived(msgItem.ID, &m.Proposals)
+
+	case *msg.IllegalVotes:
+		n.listener.OnIllegalVotesReceived(msgItem.ID, &m.Votes)
+
+	case *msg.SidechainIllegalData:
+		n.listener.OnSidechainIllegalEvidenceReceived(&m.Data)
+
+	case *emsg.Tx:
+		tx := m.Serializable.(*types.Transaction)
+		if tx.IsInactiveArbitrators() {
+			n.listener.OnInactiveArbitratorsReceived(msgItem.ID, tx)
 		}
-	case msg.CmdAcceptVote:
-		msgVote, processed := m.(*msg.Vote)
-		if processed {
-			n.listener.OnVoteAccepted(msgItem.ID, &msgVote.Vote)
-		}
-	case msg.CmdRejectVote:
-		msgVote, processed := m.(*msg.Vote)
-		if processed {
-			n.listener.OnVoteRejected(msgItem.ID, &msgVote.Vote)
-		}
-	case msg.CmdPing:
-		msgPing, processed := m.(*msg.Ping)
-		if processed {
-			n.listener.OnPing(msgItem.ID, uint32(msgPing.Nonce))
-		}
-	case msg.CmdPong:
-		msgPong, processed := m.(*msg.Pong)
-		if processed {
-			n.listener.OnPong(msgItem.ID, uint32(msgPong.Nonce))
-		}
-	case elap2p.CmdBlock:
-		msgBlock, processed := m.(*elamsg.Block)
-		if processed {
-			if block, ok := msgBlock.Serializable.(*types.Block); ok {
-				n.listener.OnBlock(msgItem.ID, block)
-			}
-		}
-	case msg.CmdInv:
-		msgInv, processed := m.(*msg.Inventory)
-		if processed {
-			n.listener.OnInv(msgItem.ID, msgInv.BlockHash)
-		}
-	case msg.CmdGetBlock:
-		msgGetBlock, processed := m.(*msg.GetBlock)
-		if processed {
-			n.listener.OnGetBlock(msgItem.ID, msgGetBlock.BlockHash)
-		}
-	case msg.CmdGetBlocks:
-		msgGetBlocks, processed := m.(*msg.GetBlocks)
-		if processed {
-			n.listener.OnGetBlocks(msgItem.ID, msgGetBlocks.StartBlockHeight, msgGetBlocks.EndBlockHeight)
-		}
-	case msg.CmdResponseBlocks:
-		msgResponseBlocks, processed := m.(*msg.ResponseBlocks)
-		if processed {
-			n.listener.OnResponseBlocks(msgItem.ID, msgResponseBlocks.BlockConfirms)
-		}
-	case msg.CmdRequestConsensus:
-		msgRequestConsensus, processed := m.(*msg.RequestConsensus)
-		if processed {
-			n.listener.OnRequestConsensus(msgItem.ID, msgRequestConsensus.Height)
-		}
-	case msg.CmdResponseConsensus:
-		msgResponseConsensus, processed := m.(*msg.ResponseConsensus)
-		if processed {
-			n.listener.OnResponseConsensus(msgItem.ID, &msgResponseConsensus.Consensus)
-		}
-	case msg.CmdRequestProposal:
-		msgRequestProposal, processed := m.(*msg.RequestProposal)
-		if processed {
-			n.listener.OnRequestProposal(msgItem.ID, msgRequestProposal.ProposalHash)
-		}
-	case msg.CmdIllegalProposals:
-		msgIllegalProposals, processed := m.(*msg.IllegalProposals)
-		if processed {
-			n.listener.OnIllegalProposalReceived(msgItem.ID, &msgIllegalProposals.Proposals)
-		}
-	case msg.CmdIllegalVotes:
-		msgIllegalVotes, processed := m.(*msg.IllegalVotes)
-		if processed {
-			n.listener.OnIllegalVotesReceived(msgItem.ID, &msgIllegalVotes.Votes)
-		}
-	case msg.CmdSidechainIllegalData:
-		msgSidechainIllegal, processed := m.(*msg.SidechainIllegalData)
-		if processed {
-			n.listener.OnSidechainIllegalEvidenceReceived(&msgSidechainIllegal.Data)
-		}
-	case elap2p.CmdTx:
-		msgTx, processed := m.(*elamsg.Tx)
-		if processed {
-			if tx, ok := msgTx.Serializable.(*types.Transaction); ok && tx.IsInactiveArbitrators() {
-				n.listener.OnInactiveArbitratorsReceived(msgItem.ID, tx)
-			}
-		}
-	case msg.CmdResponseInactiveArbitrators:
-		msgResponse, processed := m.(*msg.ResponseInactiveArbitrators)
-		if processed {
-			n.listener.OnResponseInactiveArbitratorsReceived(
-				&msgResponse.TxHash, msgResponse.Signer, msgResponse.Sign)
-		}
+
+	case *msg.ResponseInactiveArbitrators:
+		n.listener.OnResponseInactiveArbitratorsReceived(
+			&m.TxHash, m.Signer, m.Sign)
+
 	}
 }
 
@@ -344,18 +306,18 @@ func NewDposNetwork(account account.Account, medianTime dtime.MedianTimeSource,
 	return network, nil
 }
 
-func makeEmptyMessage(cmd string) (message elap2p.Message, err error) {
+func makeEmptyMessage(cmd string) (message ep2p.Message, err error) {
 	switch cmd {
-	case elap2p.CmdBlock:
-		message = elamsg.NewBlock(&types.Block{})
-	case elap2p.CmdTx:
-		message = elamsg.NewTx(&types.Transaction{})
-	case msg.CmdAcceptVote:
-		message = &msg.Vote{Command: msg.CmdAcceptVote}
+	case ep2p.CmdBlock:
+		message = emsg.NewBlock(&types.Block{})
+	case ep2p.CmdTx:
+		message = emsg.NewTx(&types.Transaction{})
+	case msg.CmdVoteAccept:
+		message = &msg.VoteAccept{}
+	case msg.CmdVoteReject:
+		message = &msg.VoteReject{}
 	case msg.CmdReceivedProposal:
 		message = &msg.Proposal{}
-	case msg.CmdRejectVote:
-		message = &msg.Vote{Command: msg.CmdRejectVote}
 	case msg.CmdInv:
 		message = &msg.Inventory{}
 	case msg.CmdGetBlock:

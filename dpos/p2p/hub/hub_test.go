@@ -94,10 +94,8 @@ func TestHub_Intercept(t *testing.T) {
 	var mainPort, subPort, remotePort, somePort = 8200, 8300, 8301, 2222
 	var hub = New(uint32(mainMagic), mainID, addrmgr.New("./"))
 	hub.queue <- peerList{mainID, subID, someID}
-	hub.admgr.AddAddress(subID, &net.TCPAddr{
-		IP:   net.ParseIP("localhost"),
-		Port: remotePort,
-	})
+	na := addrmgr.NewPeerAddr(subID, "localhost", uint16(remotePort))
+	hub.admgr.AddAddress(na)
 
 	// Mock main local sub and remote sub services.
 	mainSvr, err := mockService(mainPort)

@@ -10,6 +10,7 @@ import (
 const (
 	CmdVersion  = "version"
 	CmdVerAck   = "verack"
+	CmdGetAddr  = "getaddr"
 	CmdAddr     = "addr"
 	CmdPing     = "ping"
 	CmdPong     = "pong"

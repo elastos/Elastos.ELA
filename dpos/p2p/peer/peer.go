@@ -352,6 +352,9 @@ func (p *Peer) makeEmptyMessage(cmd string) (p2p.Message, error) {
 	case msg.CmdVerAck:
 		message = &msg.VerAck{}
 
+	case msg.CmdGetAddr:
+		message = &msg.GetAddr{}
+
 	case msg.CmdAddr:
 		message = &msg.Addr{}
 

@@ -44,14 +44,15 @@ func (s *seed) GetAddress() (net.Addr, error) {
 			break
 		}
 
-		log.Debugf("seeds pick addr %v", addr.NetAddress())
+		log.Debugf("seed pick addr %v", addr.NetAddress())
 		// Address will not be invalid, local or unroutable
 		// because addrmanager rejects those on addition.
 		// Just check that we don't already have an address
 		// in the same group so that we are not connecting
 		// to the same network segment at the expense of
 		// others.
-		key := addrmgr.GroupKey(addr.NetAddress())
+		na := addr.NetAddress()
+		key := addrmgr.GroupKey(na)
 		if s.outboundGroupCount(key) != 0 {
 			continue
 		}
@@ -66,8 +67,8 @@ func (s *seed) GetAddress() (net.Addr, error) {
 			continue
 		}
 
-		addrString := addrmgr.NetAddressKey(addr.NetAddress())
-		return addrStringToNetAddr(addrString)
+		s.addrManager.Attempt(na)
+		return &net.TCPAddr{IP: na.IP, Port: int(na.Port)}, nil
 	}
 
 	// Trigger DNS seeding if their are no valid address.

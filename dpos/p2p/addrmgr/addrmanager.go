@@ -1,14 +1,10 @@
 package addrmgr
 
 import (
-	"encoding/base32"
 	"encoding/json"
 	"fmt"
-	"net"
 	"os"
 	"path/filepath"
-	"strconv"
-	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -19,20 +15,20 @@ import (
 type AddrManager struct {
 	mtx       sync.Mutex
 	peersFile string
-	addrIndex map[[33]byte]net.Addr // address key to ka for all addrs.
+	addrIndex map[[33]byte]*PeerAddr // address key to ka for all addrs.
 	started   int32
 	shutdown  int32
 	wg        sync.WaitGroup
 	quit      chan struct{}
 }
 
-type serializedNetAddress struct {
+type serializedAddress struct {
 	PID  [33]byte
 	Addr string
 }
 
 type serializedAddrManager struct {
-	Addresses []*serializedNetAddress
+	Addresses []*serializedAddress
 }
 
 const (
@@ -76,9 +72,9 @@ func (a *AddrManager) savePeers() {
 	// First we make a serialisable datastructure so we can encode it to
 	// json.
 	sam := new(serializedAddrManager)
-	sam.Addresses = make([]*serializedNetAddress, 0, len(a.addrIndex))
+	sam.Addresses = make([]*serializedAddress, 0, len(a.addrIndex))
 	for k, v := range a.addrIndex {
-		ska := new(serializedNetAddress)
+		ska := new(serializedAddress)
 		copy(ska.PID[:], k[:])
 		ska.Addr = v.String()
 		// Tried and refs are implicit in the rest of the structure
@@ -132,7 +128,7 @@ func (a *AddrManager) deserializePeers(filePath string) error {
 	}
 
 	for _, v := range sam.Addresses {
-		na, err := a.DeserializeNetAddress(v.Addr)
+		na, err := AddrStringToPeerAddr(v.PID, v.Addr)
 		if err != nil {
 			return fmt.Errorf("failed to deserialize netaddress "+
 				"%s: %v", v.Addr, err)
@@ -141,20 +137,6 @@ func (a *AddrManager) deserializePeers(filePath string) error {
 	}
 
 	return nil
-}
-
-// DeserializeNetAddress converts a given address string to a *p2p.NetAddress
-func (a *AddrManager) DeserializeNetAddress(addr string) (net.Addr, error) {
-	host, portStr, err := net.SplitHostPort(addr)
-	if err != nil {
-		return nil, err
-	}
-	port, err := strconv.ParseUint(portStr, 10, 16)
-	if err != nil {
-		return nil, err
-	}
-
-	return a.HostToNetAddress(host, uint16(port), 0)
 }
 
 // Start begins the core address handler which manages a pool of known
@@ -189,46 +171,15 @@ func (a *AddrManager) Stop() {
 // AddAddress adds a new address to the address manager.  It enforces a max
 // number of addresses and silently ignores duplicate addresses.  It is
 // safe for concurrent access.
-func (a *AddrManager) AddAddress(pid [33]byte, addr net.Addr) {
+func (a *AddrManager) AddAddress(addr *PeerAddr) {
 	a.mtx.Lock()
 	defer a.mtx.Unlock()
 
-	a.addrIndex[pid] = addr
-}
-
-// HostToNetAddress returns a netaddress given a host address.  If the address
-// is a Tor .onion address this will be taken care of.  Else if the host is
-// not an IP address it will be resolved (via Tor if required).
-func (a *AddrManager) HostToNetAddress(host string, port uint16, services uint64) (net.Addr, error) {
-	// Tor address is 16 char base32 + ".onion"
-	var ip net.IP
-	if len(host) == 22 && host[16:] == ".onion" {
-		// go base32 encoding uses capitals (as does the rfc
-		// but Tor and tend to user lowercase, so we switch
-		// case here.
-		data, err := base32.StdEncoding.DecodeString(
-			strings.ToUpper(host[:16]))
-		if err != nil {
-			return nil, err
-		}
-		prefix := []byte{0xfd, 0x87, 0xd8, 0x7e, 0xeb, 0x43}
-		ip = net.IP(append(prefix, data...))
-	} else if ip = net.ParseIP(host); ip == nil {
-		ips, err := net.LookupIP(host)
-		if err != nil {
-			return nil, err
-		}
-		if len(ips) == 0 {
-			return nil, fmt.Errorf("no addresses found for %s", host)
-		}
-		ip = ips[0]
-	}
-
-	return &net.TCPAddr{IP: ip, Port: int(port)}, nil
+	a.addrIndex[addr.PID] = addr
 }
 
 // GetAddress returns the network address according to the given PID and Encode.
-func (a *AddrManager) GetAddress(pid [33]byte) net.Addr {
+func (a *AddrManager) GetAddress(pid [33]byte) *PeerAddr {
 	// Protect concurrent access.
 	a.mtx.Lock()
 	defer a.mtx.Unlock()
@@ -241,7 +192,7 @@ func (a *AddrManager) GetAddress(pid [33]byte) net.Addr {
 func New(dataDir string) *AddrManager {
 	am := AddrManager{
 		peersFile: filepath.Join(dataDir, "peers.json"),
-		addrIndex: make(map[[33]byte]net.Addr),
+		addrIndex: make(map[[33]byte]*PeerAddr),
 		quit:      make(chan struct{}),
 	}
 	return &am

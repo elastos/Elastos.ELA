@@ -1,52 +1,89 @@
 package msg
 
 import (
+	"fmt"
 	"io"
 
 	"github.com/elastos/Elastos.ELA/common"
+	"github.com/elastos/Elastos.ELA/dpos/p2p/addrmgr"
 	"github.com/elastos/Elastos.ELA/p2p"
 )
 
 const (
-	// maxHostLength defines the maximum host name length.
-	maxHostLength = 253
+	// maxPeerAddrs indicates the maximum PeerAddr number of an addr message.
+	maxPeerAddrs = 72
 )
 
 // Ensure Ping implement p2p.Message interface.
 var _ p2p.Message = (*Addr)(nil)
 
-// Addr represents a DPoS network address for connect to a peer.
+// Addr implements the Message interface and represents a DPoS addr message.
 type Addr struct {
-	Host string
-	Port uint16
+	AddrList []*addrmgr.PeerAddr
 }
 
-func NewAddr(host string, port uint16) *Addr {
-	return &Addr{Host: host, Port: port}
+// AddPeerAddr adds a known DPoS peer addr to the message.
+func (msg *Addr) AddPeerAddr(pas ...*addrmgr.PeerAddr) {
+	for _, pa := range pas {
+		msg.AddrList = append(msg.AddrList, pa)
+	}
 }
 
 func (msg *Addr) CMD() string {
-	return p2p.CmdAddr
+	return CmdAddr
 }
 
 func (msg *Addr) MaxLength() uint32 {
-	return maxHostLength + 2
+	return 1 + addrmgr.MaxPeerAddrSize*maxPeerAddrs
 }
 
 func (msg *Addr) Serialize(w io.Writer) error {
-	if err := common.WriteVarString(w, msg.Host); err != nil {
+	count := len(msg.AddrList)
+	if count > maxPeerAddrs {
+		return fmt.Errorf("too many addresses for message "+
+			"[count %v, max %v]", count, maxPeerAddrs)
+	}
+
+	if err := common.WriteVarUint(w, uint64(count)); err != nil {
 		return err
 	}
 
-	return common.WriteElement(w, msg.Port)
+	for _, pa := range msg.AddrList {
+		if err := pa.Serialize(w); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (msg *Addr) Deserialize(r io.Reader) error {
-	var err error
-	if msg.Host, err = common.ReadVarString(r); err != nil {
+	count, err := common.ReadVarUint(r, 0)
+	if err != nil {
 		return err
 	}
 
-	msg.Port, err = common.ReadUint16(r)
-	return err
+	// Limit to max addresses per message.
+	if count > maxPeerAddrs {
+		return fmt.Errorf("too many addresses for message "+
+			"[count %v, max %v]", count, maxPeerAddrs)
+	}
+
+	addrList := make([]addrmgr.PeerAddr, count)
+	msg.AddrList = make([]*addrmgr.PeerAddr, 0, count)
+	for i := uint64(0); i < count; i++ {
+		pa := &addrList[i]
+		if err := pa.Deserialize(r); err != nil {
+			return err
+		}
+		msg.AddPeerAddr(pa)
+	}
+	return nil
+}
+
+// NewAddr returns a new addr message that conforms to the Message interface.
+func NewAddr() *Addr {
+	return &Addr{
+		AddrList: make([]*addrmgr.PeerAddr, 0, maxPeerAddrs),
+	}
 }

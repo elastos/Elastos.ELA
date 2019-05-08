@@ -8,7 +8,6 @@ import (
 	"net"
 	"runtime"
 	"sort"
-	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -167,11 +166,30 @@ func (sp *serverPeer) OnVersion(_ *peer.Peer, v *msg.Version) {
 		return
 	}
 
-	// Advertise the local address when the server accepts outbound incoming
-	// connections.
+	// Update the address manager and request known addresses from the
+	// remote peer for outbound connections.
 	if !sp.Inbound() {
-		addr := msg.NewAddr(sp.server.cfg.Localhost, sp.server.cfg.DefaultPort)
+		// Advertise the local address when the server accepts outbound incoming
+		// connections.
+		addr := msg.NewAddr()
+		pa := addrmgr.NewPeerAddr(sp.server.cfg.PID, sp.server.cfg.Localhost,
+			sp.server.cfg.DefaultPort)
+		addr.AddPeerAddr(pa)
 		sp.QueueMessage(addr, nil)
+
+		// Request addresses if the server needs more.
+		needAddrs := make([][33]byte, 0)
+		for _, pid := range sp.server.GetConnectPeers() {
+			na := sp.server.addrManager.GetAddress(pid)
+			if na == nil {
+				needAddrs = append(needAddrs, pid)
+			}
+		}
+		if len(needAddrs) > 0 {
+			getAddr := msg.NewGetAddr()
+			getAddr.AddPID(needAddrs...)
+			sp.QueueMessage(getAddr, nil)
+		}
 	}
 
 	// Add the remote peer time as a sample for creating an offset against
@@ -182,12 +200,39 @@ func (sp *serverPeer) OnVersion(_ *peer.Peer, v *msg.Version) {
 	sp.server.AddPeer(sp)
 }
 
+// OnGetAddr is invoked when a peer receives a getaddr message and is used to
+// provide the peer with known addresses from the address manager.
+func (sp *serverPeer) OnGetAddr(_ *peer.Peer, getAddr *msg.GetAddr) {
+	// Do not accept getaddr requests from outbound peers.  This reduces
+	// fingerprinting attacks.
+	if !sp.Inbound() {
+		log.Debugf("Ignoring getaddr request from outbound peer %v", sp)
+		return
+	}
+
+	// Pick up known addresses form address manager.
+	knownAddrs := make([]*addrmgr.PeerAddr, 0)
+	for _, pid := range getAddr.PIDs {
+		na := sp.server.addrManager.GetAddress(pid)
+		if na != nil {
+			knownAddrs = append(knownAddrs, na)
+		}
+	}
+
+	// Push the addresses if the are known addresses.
+	if len(knownAddrs) > 0 {
+		addr := msg.NewAddr()
+		addr.AddPeerAddr(knownAddrs...)
+		sp.QueueMessage(addr, nil)
+	}
+}
+
 // OnAddr is invoked when a peer receives an addr message and is used to notify
 // the server about advertised address.
-func (sp *serverPeer) OnAddr(_ *peer.Peer, msg *msg.Addr) {
-	addr := normalizeAddress(msg.Host, fmt.Sprint(msg.Port))
-	sp.server.addrManager.AddAddress(sp.PID(), simpleAddr{net: "tcp",
-		addr: addr})
+func (sp *serverPeer) OnAddr(_ *peer.Peer, addr *msg.Addr) {
+	for _, pa := range addr.AddrList {
+		sp.server.addrManager.AddAddress(pa)
+	}
 }
 
 // PID returns the peer's public key id.
@@ -309,6 +354,10 @@ type connectPeersMsg struct {
 	reply chan struct{}
 }
 
+type getConnectPeersMsg struct {
+	reply chan []peer.PID
+}
+
 type sendToPeerMsg struct {
 	pid   peer.PID
 	msg   p2p.Message
@@ -406,6 +455,13 @@ func (s *server) handleQuery(state *peerState, querymsg interface{}) {
 		} else {
 			msg.reply <- nil
 		}
+
+	case getConnectPeersMsg:
+		pids := make([]peer.PID, 0, len(state.connectPeers))
+		for pid := range state.connectPeers {
+			pids = append(pids, pid)
+		}
+		msg.reply <- pids
 
 	case getConnCountMsg:
 		connected := int32(0)
@@ -517,6 +573,9 @@ func newPeerConfig(sp *serverPeer) *peer.Config {
 			switch m := m.(type) {
 			case *msg.Version:
 				sp.OnVersion(peer, m)
+
+			case *msg.GetAddr:
+				sp.OnGetAddr(peer, m)
 
 			case *msg.Addr:
 				sp.OnAddr(peer, m)
@@ -644,8 +703,12 @@ func (s *server) handlePeerMsg(state *peerState, sp interface{}) {
 
 // AddAddr adds an arbiter address into AddrManager.
 func (s *server) AddAddr(pid peer.PID, addr string) {
-	addr = normalizeAddress(addr, fmt.Sprint(s.cfg.DefaultPort))
-	s.addrManager.AddAddress(pid, &simpleAddr{net: "tcp", addr: addr})
+	pa, err := addrmgr.AddrStringToPeerAddr(pid, addr)
+	if err != nil {
+		log.Debugf("server AddAddr %s error %s", addr, err)
+		return
+	}
+	s.addrManager.AddAddress(pa)
 }
 
 // AddPeer adds a new peer that has already been connected to the server.
@@ -675,6 +738,13 @@ func (s *server) ConnectPeers(peers []peer.PID) {
 	reply := make(chan struct{})
 	s.query <- connectPeersMsg{peers: peers, reply: reply}
 	<-reply
+}
+
+// GetConnectPeers returns the current connect peers PIDs list.
+func (s *server) GetConnectPeers() []peer.PID {
+	reply := make(chan []peer.PID)
+	s.query <- getConnectPeersMsg{reply: reply}
+	return <-reply
 }
 
 // SendMessageToPeer send a message to the peer with the given id, error
@@ -790,10 +860,6 @@ func (s *server) ScheduleShutdown(duration time.Duration) {
 
 func (s *server) dialTimeout(addr net.Addr) (net.Conn, error) {
 	log.Debugf("Server dial addr %s", addr)
-	addr, err := addrStringToNetAddr(addr.String())
-	if err != nil {
-		return nil, err
-	}
 	return net.DialTimeout(addr.Network(), addr.String(), s.cfg.ConnectTimeout)
 }
 
@@ -894,44 +960,6 @@ func initListeners(cfg Config) ([]net.Listener, error) {
 	}
 
 	return listeners, nil
-}
-
-// addrStringToNetAddr takes an address in the form of 'host:port' and returns
-// a net.Addr which maps to the original address with any host names resolved
-// to IP addresses.  It also handles tor addresses properly by returning a
-// net.Addr that encapsulates the address.
-func addrStringToNetAddr(addr string) (net.Addr, error) {
-	host, strPort, err := net.SplitHostPort(addr)
-	if err != nil {
-		return nil, err
-	}
-
-	port, err := strconv.Atoi(strPort)
-	if err != nil {
-		return nil, err
-	}
-
-	// Skip if host is already an IP address.
-	if ip := net.ParseIP(host); ip != nil {
-		return &net.TCPAddr{
-			IP:   ip,
-			Port: port,
-		}, nil
-	}
-
-	// Attempt to look up an IP address associated with the parsed host.
-	ips, err := net.LookupIP(host)
-	if err != nil {
-		return nil, err
-	}
-	if len(ips) == 0 {
-		return nil, fmt.Errorf("no addresses found for %s", host)
-	}
-
-	return &net.TCPAddr{
-		IP:   ips[0],
-		Port: port,
-	}, nil
 }
 
 // dynamicTickDuration is a convenience function used to dynamically choose a

@@ -3,7 +3,6 @@ package addrmgr_test
 import (
 	"crypto/rand"
 	"fmt"
-	"net"
 	"testing"
 
 	"github.com/elastos/Elastos.ELA/dpos/p2p/addrmgr"
@@ -30,8 +29,8 @@ func TestGetAddress(t *testing.T) {
 	}
 
 	// Add a new address and get it
-	na := &net.TCPAddr{IP: net.ParseIP(someIP), Port: 8333}
-	n.AddAddress(pid, na)
+	na := addrmgr.NewPeerAddr(pid, someIP, 8333)
+	n.AddAddress(na)
 	ka := n.GetAddress(pid)
 	if ka == nil {
 		t.Fatalf("Did not get an address where there is one in the pool")
@@ -45,12 +44,12 @@ func TestGetAddress(t *testing.T) {
 func TestSavePeers(t *testing.T) {
 	am := addrmgr.New("./")
 	am.Start()
-	for i := 0; i < 100; i++ {
+	for i := uint16(0); i < 100; i++ {
 		var pid [33]byte
 		rand.Read(pid[:])
 
-		na := &net.TCPAddr{IP: net.ParseIP(someIP), Port: 8333 + i}
-		am.AddAddress(pid, na)
+		na := addrmgr.NewPeerAddr(pid, someIP, 8333+i)
+		am.AddAddress(na)
 	}
 
 	am.Stop()
@@ -59,12 +58,12 @@ func TestSavePeers(t *testing.T) {
 func TestLoadPeers(t *testing.T) {
 	am := addrmgr.New("./")
 	am.Start()
-	for i := 0; i < 100; i++ {
+	for i := uint16(0); i < 100; i++ {
 		var pid [33]byte
 		rand.Read(pid[:])
 
-		na := &net.TCPAddr{IP: net.ParseIP(someIP), Port: 8333 + i}
-		am.AddAddress(pid, na)
+		na := addrmgr.NewPeerAddr(pid, someIP, 8333+i)
+		am.AddAddress(na)
 	}
 
 	am.Stop()

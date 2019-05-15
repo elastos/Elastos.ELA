@@ -341,6 +341,20 @@ func (s *server) handleQuery(state *peerState, querymsg interface{}) {
 		// A connectPeers message will make server connect to the peers
 		// in connect list, and disconnect peers not in connect list.
 
+		// Check if self is in connect list.
+		selfInList := false
+		for _, pid := range msg.peers {
+			if s.cfg.PID.Equal(pid) {
+				selfInList = true
+				break
+			}
+		}
+
+		// Empty connect list to make server disconnect all peers.
+		if !selfInList {
+			msg.peers = msg.peers[0:0]
+		}
+
 		// connectPeers saves the new received connect peer addresses.
 		connectPeers := make(map[peer.PID]struct{})
 

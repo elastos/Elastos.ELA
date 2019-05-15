@@ -141,33 +141,47 @@ out:
 		case m := <-r.queue:
 			switch m := m.(type) {
 			case newPeerMsg:
+				log.Info("@@@@@@@ handleNewPeer start")
 				r.handleNewPeer(state, m)
+				log.Info("@@@@@@@ handleNewPeer end")
 
 			case donePeerMsg:
+				log.Info("@@@@@@@ handleDonePeer start")
 				r.handleDonePeer(state, m)
+				log.Info("@@@@@@@ handleDonePeer end")
 
 			case invMsg:
+				log.Info("@@@@@@@ handleInv start")
 				r.handleInv(state, m.peer, m.msg)
+				log.Info("@@@@@@@ handleInv end")
 
 			case getDataMsg:
+				log.Info("@@@@@@@ handleGetData start")
 				r.handleGetData(state, m.peer, m.msg)
+				log.Info("@@@@@@@ handleGetData end")
 
 			case dAddrMsg:
+				log.Info("@@@@@@@ handleDAddr start")
 				r.handleDAddr(state, m.peer, m.msg)
+				log.Info("@@@@@@@ handleDAddr end")
 
 			case peersMsg:
+				log.Info("@@@@@@@ handlePeersMsg start")
 				r.handlePeersMsg(state, m.peers)
+				log.Info("@@@@@@@ handlePeersMsg end")
 			}
 
 		// Handle the announce request.
 		case <-r.announce:
 			// This may be a retry or delayed announce, and the DPoS producers
 			// have been changed.
+			log.Info("@@@@@@@ announce start")
 			_, ok := state.peers[r.pid]
 			if !ok {
 				// Waiting status must reset here or the announce will never
 				// work again.
 				atomic.StoreInt32(&r.waiting, 0)
+				log.Info("@@@@@@@ announce end1")
 				continue
 			}
 
@@ -175,8 +189,10 @@ out:
 			if len(state.peerCache) < minPeersToAnnounce {
 				// Retry announce after the retry duration.
 				scheduleAnnounce(retryAnnounceDuration)
+				log.Info("@@@@@@@ announce end2")
 				continue
 			}
+			log.Info("@@@@@@@ announce 1")
 
 			// Do not announce address too frequent.
 			now := time.Now()
@@ -184,6 +200,7 @@ out:
 				// Calculate next announce time and schedule an announce.
 				nextAnnounce := minAnnounceDuration - now.Sub(lastAnnounce)
 				scheduleAnnounce(nextAnnounce)
+				log.Info("@@@@@@@ announce end3")
 				continue
 			}
 
@@ -192,6 +209,7 @@ out:
 
 			// Reset waiting state to 0(false).
 			atomic.StoreInt32(&r.waiting, 0)
+			log.Info("@@@@@@@ announce 2")
 
 			for pid := range state.peers {
 				// Do not create address for self.
@@ -219,10 +237,15 @@ out:
 				addr.Signature = r.sign(addr.Data())
 
 				// Append and relay the local address.
+				log.Info("@@@@@@@ appendAddr start")
 				r.appendAddr(state, &addr)
+				log.Info("@@@@@@@ appendAddr end")
+
 			}
+			log.Info("@@@@@@@ announce 3")
 
 		case <-r.quit:
+			log.Info("@@@@@@@ quit")
 			break out
 		}
 	}

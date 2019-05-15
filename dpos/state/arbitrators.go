@@ -389,7 +389,7 @@ func (a *arbitrators) distributeWithNormalArbitrators(
 	individualBlockConfirmReward := common.Fixed64(
 		math.Floor(totalBlockConfirmReward / float64(len(ownerHashes))))
 	totalVotesInRound := a.totalVotesInRound
-	if len(a.chainParams.CRCArbiters) == len(a.currentArbitrators) {
+	if len(a.chainParams.CRCArbiters) == len(a.CurrentArbitrators) {
 		a.arbitersRoundReward[a.chainParams.CRCAddress] = reward
 		return reward, nil
 	}
@@ -915,7 +915,7 @@ func (a *arbitrators) getBlockDPOSReward(block *types.Block) common.Fixed64 {
 		totalTxFx += tx.Fee
 	}
 
-	return common.Fixed64(math.Ceil(float64(totalTxFx +
+	return common.Fixed64(math.Ceil(float64(totalTxFx+
 		a.chainParams.RewardPerBlock) * 0.35))
 }
 

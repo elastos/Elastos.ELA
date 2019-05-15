@@ -114,7 +114,9 @@ func newServerPeer(s *server) *serverPeer {
 // SyncManager and Routes.
 func (sp *serverPeer) handleDisconnect() {
 	sp.WaitForDisconnect()
+	log.Info("^^^ routes.DonePeer")
 	sp.server.routes.DonePeer(sp.Peer)
+	log.Info("^^^ syncManager.DonePeer")
 	sp.server.syncManager.DonePeer(sp.Peer)
 }
 

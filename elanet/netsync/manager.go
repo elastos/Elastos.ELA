@@ -223,6 +223,7 @@ func (sm *SyncManager) handleNewPeerMsg(peer *peer.Peer) {
 	}
 
 	// Start syncing by choosing the best candidate if needed.
+	log.Info("^^^ handleNewPeerMsg sm.syncPeer:", sm.syncPeer, "isSyncCandidate:", isSyncCandidate, " peer:", peer.Addr())
 	if isSyncCandidate && sm.syncPeer == nil {
 		sm.startSync()
 	}
@@ -233,6 +234,8 @@ func (sm *SyncManager) handleNewPeerMsg(peer *peer.Peer) {
 // the current sync peer, attempts to select a new best peer to sync from.  It
 // is invoked from the syncHandler goroutine.
 func (sm *SyncManager) handleDonePeerMsg(peer *peer.Peer) {
+	log.Info("^^^ handleDonePeerMsg ", peer.Addr())
+
 	state, exists := sm.peerStates[peer]
 	if !exists {
 		log.Warnf("Received done peer message for unknown peer %s", peer)
@@ -264,6 +267,7 @@ func (sm *SyncManager) handleDonePeerMsg(peer *peer.Peer) {
 	// sync peer.  Also, reset the headers-first state if in headers-first
 	// mode so
 	if sm.syncPeer == peer {
+		log.Info("^^^ handleDonePeerMsg sm.syncPeer set nil", peer.Addr())
 		sm.syncPeer = nil
 		sm.startSync()
 	}
@@ -655,35 +659,51 @@ out:
 		case m := <-sm.msgChan:
 			switch msg := m.(type) {
 			case *newPeerMsg:
+				log.Info("@@@@@ newPeerMsg")
 				sm.handleNewPeerMsg(msg.peer)
+				log.Info("@@@@@ newPeerMsg end")
 
 			case *txMsg:
+				log.Info("@@@@@ txMsg")
 				sm.handleTxMsg(msg)
 				msg.reply <- struct{}{}
+				log.Info("@@@@@ txMsg end")
 
 			case *blockMsg:
+				log.Info("@@@@@ blockMsg")
 				sm.handleBlockMsg(msg)
 				msg.reply <- struct{}{}
+				log.Info("@@@@@ blockMsg end")
 
 			case *invMsg:
+				log.Info("@@@@@ invMsg")
 				sm.handleInvMsg(msg)
+				log.Info("@@@@@ invMsg end")
 
 			case *donePeerMsg:
+				log.Info("@@@@@ donePeerMsg")
 				sm.handleDonePeerMsg(msg.peer)
+				log.Info("@@@@@ donePeerMsg end")
 
 			case getSyncPeerMsg:
+				log.Info("@@@@@ getSyncPeerMsg")
 				var peerID uint64
 				if sm.syncPeer != nil {
 					peerID = sm.syncPeer.ID()
 				}
 				msg.reply <- peerID
+				log.Info("@@@@@ getSyncPeerMsg end")
 
 			case isCurrentMsg:
+				log.Info("@@@@@ isCurrentMsg")
 				msg.reply <- sm.current()
+				log.Info("@@@@@ isCurrentMsg end")
 
 			case pauseMsg:
 				// Wait until the sender unpauses the manager.
+				log.Info("@@@@@ pauseMsg")
 				<-msg.unpause
+				log.Info("@@@@@ pauseMsg end")
 
 			default:
 				log.Warnf("Invalid message type in block "+
@@ -691,6 +711,7 @@ out:
 			}
 
 		case <-sm.quit:
+			log.Info("@@@@@ quit")
 			break out
 		}
 	}
@@ -813,6 +834,8 @@ func (sm *SyncManager) handleBlockchainEvents(event *events.Event) {
 
 // NewPeer informs the sync manager of a newly active peer.
 func (sm *SyncManager) NewPeer(peer *peer.Peer) {
+	log.Info("@@@@@@ NewPeer start")
+	defer log.Info("@@@@@@ NewPeer end")
 	// Ignore if we are shutting down.
 	if atomic.LoadInt32(&sm.shutdown) != 0 {
 		return
@@ -825,6 +848,8 @@ func (sm *SyncManager) NewPeer(peer *peer.Peer) {
 // queue. Responds to the done channel argument after the tx message is
 // processed.
 func (sm *SyncManager) QueueTx(tx *types.Transaction, peer *peer.Peer, done chan struct{}) {
+	log.Info("@@@@@@ QueueTx start")
+	defer log.Info("@@@@@@ QueueTx end")
 	// Don't accept more transactions if we're shutting down.
 	if atomic.LoadInt32(&sm.shutdown) != 0 {
 		done <- struct{}{}
@@ -838,6 +863,8 @@ func (sm *SyncManager) QueueTx(tx *types.Transaction, peer *peer.Peer, done chan
 // queue. Responds to the done channel argument after the block message is
 // processed.
 func (sm *SyncManager) QueueBlock(block *types.DposBlock, peer *peer.Peer, done chan struct{}) {
+	log.Info("@@@@@@ QueueBlock start")
+	defer log.Info("@@@@@@ QueueBlock end")
 	// Don't accept more blocks if we're shutting down.
 	if atomic.LoadInt32(&sm.shutdown) != 0 {
 		done <- struct{}{}
@@ -849,6 +876,8 @@ func (sm *SyncManager) QueueBlock(block *types.DposBlock, peer *peer.Peer, done 
 
 // QueueInv adds the passed inv message and peer to the block handling queue.
 func (sm *SyncManager) QueueInv(inv *msg.Inv, peer *peer.Peer) {
+	log.Info("@@@@@@ QueueInv start")
+	defer log.Info("@@@@@@ QueueInv end")
 	// No channel handling here because peers do not need to block on inv
 	// messages.
 	if atomic.LoadInt32(&sm.shutdown) != 0 {
@@ -860,11 +889,17 @@ func (sm *SyncManager) QueueInv(inv *msg.Inv, peer *peer.Peer) {
 
 // DonePeer informs the blockmanager that a peer has disconnected.
 func (sm *SyncManager) DonePeer(peer *peer.Peer) {
+	log.Info("@@@@@@ DonePeer start")
+	defer log.Info("@@@@@@ DonePeer end")
+
 	// Ignore if we are shutting down.
+	log.Info("^^^ DonePeer start")
 	if atomic.LoadInt32(&sm.shutdown) != 0 {
+		log.Info("^^^ DonePeer shutdown != 0")
 		return
 	}
 
+	log.Info("^^^ sm.msgChan <- &donePeerMsg{peer: peer}")
 	sm.msgChan <- &donePeerMsg{peer: peer}
 }
 
@@ -896,6 +931,8 @@ func (sm *SyncManager) Stop() error {
 
 // SyncPeerID returns the ID of the current sync peer, or 0 if there is none.
 func (sm *SyncManager) SyncPeerID() uint64 {
+	log.Info("@@@@@@ SyncPeerID start")
+	defer log.Info("@@@@@@ SyncPeerID end")
 	reply := make(chan uint64)
 	sm.msgChan <- getSyncPeerMsg{reply: reply}
 	return <-reply
@@ -904,6 +941,8 @@ func (sm *SyncManager) SyncPeerID() uint64 {
 // IsCurrent returns whether or not the sync manager believes it is synced with
 // the connected peers.
 func (sm *SyncManager) IsCurrent() bool {
+	log.Info("@@@@@@ IsCurrent start")
+	defer log.Info("@@@@@@ IsCurrent end")
 	reply := make(chan bool)
 	sm.msgChan <- isCurrentMsg{reply: reply}
 	return <-reply
@@ -914,6 +953,8 @@ func (sm *SyncManager) IsCurrent() bool {
 // Note that while paused, all peer and block processing is halted.  The
 // message sender should avoid pausing the sync manager for long durations.
 func (sm *SyncManager) Pause() chan<- struct{} {
+	log.Info("@@@@@@ Pause start")
+	defer log.Info("@@@@@@ Pause end")
 	c := make(chan struct{})
 	sm.msgChan <- pauseMsg{c}
 	return c

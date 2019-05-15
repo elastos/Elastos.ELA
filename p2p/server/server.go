@@ -503,7 +503,7 @@ func (s *server) handleDonePeerMsg(state *peerState, sp *serverPeer) {
 			s.connManager.Disconnect(sp.connReq.ID())
 		}
 		delete(list, sp.ID())
-		log.Debugf("Removed peer %s", sp)
+		log.Debugf("server/server Removed peer %s", sp)
 		return
 	}
 

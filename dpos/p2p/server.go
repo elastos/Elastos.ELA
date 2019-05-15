@@ -267,7 +267,7 @@ func (s *server) handleDonePeerMsg(state *peerState, sp *serverPeer) {
 	}
 	if _, ok := list[sp.ID()]; ok {
 		delete(list, sp.ID())
-		log.Debugf("Removed peer %s", sp)
+		log.Debugf("p2p/server Removed peer %s", sp)
 	}
 
 	// Remove connection request if peer not in connect list.

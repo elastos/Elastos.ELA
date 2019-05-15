@@ -195,6 +195,8 @@ func (a *arbitrators) GetFinalRoundChange() common.Fixed64 {
 func (a *arbitrators) ForceChange(height uint32) error {
 	a.mtx.Lock()
 
+	log.Info("=== ForceChange")
+
 	block, err := a.getBlockByHeight(height)
 	if err != nil {
 		block, err = a.bestBlock()
@@ -256,6 +258,20 @@ func (a *arbitrators) NormalChange(height uint32) error {
 func (a *arbitrators) IncreaseChainHeight(block *types.Block) {
 	var notify = true
 
+	crReward := block.Transactions[0].Outputs[0].Value
+	minerReward := block.Transactions[0].Outputs[1].Value
+	dposReward := common.Fixed64(0)
+	for i := 2; i < len(block.Transactions[0].Outputs); i++ {
+		dposReward += block.Transactions[0].Outputs[i].Value
+	}
+
+	log.Info("==========================")
+	log.Info("=== block:", block.Height)
+	log.Info("=== crReward:", crReward)
+	log.Info("=== minerReward:", minerReward)
+	log.Info("=== dposReward:", dposReward)
+	log.Info("==========================")
+
 	a.mtx.Lock()
 
 	changeType, versionHeight := a.getChangeType(block.Height + 1)
@@ -296,6 +312,17 @@ func (a *arbitrators) accumulateReward(block *types.Block) {
 	a.accumulativeReward += dposReward
 
 	a.arbitersRoundReward = nil
+
+	log.Info("=== accumulateReward", a.accumulativeReward, "dposReward:", dposReward, "block.Height:", block.Height, "len(txs):", len(block.Transactions))
+	if len(block.Transactions) > 1 {
+		for _, tx := range block.Transactions {
+			if tx.IsCoinBaseTx() || tx.IsIllegalTypeTx() || tx.IsInactiveArbitrators() || tx.IsActivateProducerTx() {
+				continue
+			}
+
+			log.Info("=== tx type:", tx.TxType.Name(), "tx Fee:", tx.Fee)
+		}
+	}
 	a.finalRoundChange = 0
 }
 
@@ -307,18 +334,23 @@ func (a *arbitrators) clearingDPOSReward(block *types.Block,
 
 	dposReward := a.getBlockDPOSReward(block)
 	if block.Height+1 <= a.State.chainParams.PublicDPOSHeight {
+		log.Info("=== accumulateReward", a.accumulativeReward, "dposReward:", dposReward, "block.Height:", block.Height, "len(txs):", len(block.Transactions))
 		a.accumulativeReward = dposReward
 		return nil
 	}
 
 	if smoothClearing {
 		a.accumulativeReward += dposReward
+		log.Info("=== smoothClearing:  a.accumulativeReward", a.accumulativeReward)
 		dposReward = 0
+	} else {
+		log.Info("=== not smoothClearing:  a.accumulativeReward", a.accumulativeReward)
 	}
 
 	if err := a.distributeDPOSReward(a.accumulativeReward); err != nil {
 		return err
 	}
+	log.Info("=== accumulateReward", a.accumulativeReward, "dposReward:", dposReward, "block.Height:", block.Height, "len(txs):", len(block.Transactions))
 	a.accumulativeReward = dposReward
 	a.clearingHeight = block.Height
 
@@ -340,6 +372,7 @@ func (a *arbitrators) distributeDPOSReward(reward common.Fixed64) (err error) {
 		return errors.New("real dpos reward more than reward limit")
 	}
 
+	log.Info("=== realDposReward:", realDPOSReward, "finalRoundChange:", change)
 	a.finalRoundChange = change
 	return nil
 }
@@ -376,6 +409,7 @@ func (a *arbitrators) distributeWithNormalArbitrators(
 		}
 
 		realDPOSReward += r
+		log.Info("### realDposReward:", realDPOSReward, "### owner reward:", r)
 	}
 	candidateOwnerHashes := a.candidateOwnerProgramHashes
 	for _, ownerHash := range candidateOwnerHashes {
@@ -385,6 +419,7 @@ func (a *arbitrators) distributeWithNormalArbitrators(
 		a.arbitersRoundReward[*ownerHash] = individualProducerReward
 
 		realDPOSReward += individualProducerReward
+		log.Info("### realDPOSReward:", realDPOSReward, "### individualProducerReward:", individualProducerReward)
 	}
 	return realDPOSReward, nil
 }

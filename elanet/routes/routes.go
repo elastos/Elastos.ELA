@@ -401,7 +401,6 @@ func (r *Routes) handleGetData(s *state, p *peer.Peer, m *msg.GetData) {
 			// Attempt to fetch the requested addr.
 			addr, ok := s.knownAddr[iv.Hash]
 			if !ok {
-				done <- struct{}{}
 				continue
 			}
 

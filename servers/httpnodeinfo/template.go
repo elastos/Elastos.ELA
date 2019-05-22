@@ -40,7 +40,8 @@ const page = `
 <td width="80%">
 	<table class="font" width="100%">
 	<tr><td width="25%">NodePort:</td><td width="25%">{{.NodePort}}</td></tr>
-	<tr><td width="25%">HttpRestPort:</td><td width="25%">{{.HttpRestPort}}</td><td width="25%">HttpWsPort:</td><td width="25%">{{.HttpWsPort}}</td></tr>
+	<tr><td width="25%">HttpRestPort:</td><td width="25%">{{.HttpRestPort}}</td></tr>
+	<tr><td width="25%">HttpWsPort:</td><td width="25%">{{.HttpWsPort}}</td></tr>
 	<tr><td width="25%">HttpJsonPort:</td><td width="25%">{{.HttpJsonPort}}</td></tr>
 	</table>
 </td>
@@ -71,7 +72,43 @@ const page = `
 </td>
 </tr>
 </table>
-<br><br><br><br><br><br>
+<br><br><br><br><br>
+{{ if .IsProducer }}
+<table class="bd" width="80%">
+<tr>
+<td width="20%" >
+	<table class="font" width="100%">
+	<tr><th>Producer Info</th></tr>
+	<tr><td align="center"><b><font size="40px">{{.BlockHeight}}</font></b></td></tr>
+	</table>
+</td>
+<td width="80%">
+	<table class="font" width="100%">
+	<tr><td width="25%">NodePublicKey:</td><td width="25%">{{.NodePublicKey}}</td></tr>
+	<tr><td width="25%">OwnerPublicKey:</td><td width="25%">{{.OwnerPublicKey}}</td></tr>
+	<tr><td width="25%">State:</td><td width="25%">{{.State}}</td></tr>
+	<tr><td width="25%">Votes:</td><td width="25%">{{.Votes}}</td></tr>
+	</table>
+</td>
+</tr>
+</table>
+
+<table class="bd" width="80%">
+<tr>
+<td width="80%">
+	<table class="font" width="100%">
+	{{range $i, $v := .DPosNeighbors}}
+	<tr><td width="25%">PID:</td><td width="25%">{{$v.PID}}</td></tr>
+	<tr><td width="25%">Addr:</td><td width="25%">{{$v.Addr}}</td></tr>
+	<tr><td width="25%">Addr:</td><td width="25%">{{$v.State}}</td></tr>
+	{{end}}
+	</table>
+</td>
+</tr>
+</table>
+{{ end }}
+
+<br>
 
 <table class="font" border="0" width="80%">
 	<tr>

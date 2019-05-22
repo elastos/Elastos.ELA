@@ -279,7 +279,7 @@ func startNode(c *cli.Context) {
 		go httpwebsocket.Start()
 	}
 	if cfg.HttpInfoStart {
-		go httpnodeinfo.StartServer()
+		go httpnodeinfo.StartServer(act)
 	}
 
 	go printSyncState(chainStore, server)

@@ -53,10 +53,13 @@ func (s *txValidatorTestSuite) SetupSuite() {
 	s.OriginalLedger = DefaultLedger
 
 	arbiters, err := state.NewArbitrators(params, nil,
-		chainStore.GetHeight, func() (*types.Block, error) {
-			hash := chainStore.GetCurrentBlockHash()
+		chainStore.GetHeight, func(height uint32) (*types.Block, error) {
+			hash, err := chainStore.GetBlockHash(height)
+			if err != nil {
+				return nil, err
+			}
 			return chainStore.GetBlock(hash)
-		}, nil)
+		})
 	if err != nil {
 		s.Fail("initialize arbitrator failed")
 	}

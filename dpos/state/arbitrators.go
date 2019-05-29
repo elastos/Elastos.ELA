@@ -57,7 +57,6 @@ type arbitrators struct {
 	store            IArbitratorsRecord
 	chainParams      *config.Params
 	bestHeight       func() uint32
-	bestBlock        func() (*types.Block, error)
 	getBlockByHeight func(uint32) (*types.Block, error)
 
 	mtx               sync.Mutex
@@ -218,7 +217,7 @@ func (a *arbitrators) ForceChange(height uint32) error {
 
 	block, err := a.getBlockByHeight(height)
 	if err != nil {
-		block, err = a.bestBlock()
+		block, err = a.getBlockByHeight(a.bestHeight())
 		if err != nil {
 			return err
 		}
@@ -913,7 +912,7 @@ func (a *arbitrators) getBlockDPOSReward(block *types.Block) common.Fixed64 {
 		totalTxFx += tx.Fee
 	}
 
-	return common.Fixed64(math.Ceil(float64(totalTxFx +
+	return common.Fixed64(math.Ceil(float64(totalTxFx+
 		a.chainParams.RewardPerBlock) * 0.35))
 }
 
@@ -1034,7 +1033,6 @@ func getArbitersInfoWithoutOnduty(title string, arbiters [][]byte) (string, []in
 func NewArbitrators(chainParams *config.Params,
 	store IArbitratorsRecord,
 	bestHeight func() uint32,
-	bestBlock func() (*types.Block, error),
 	getBlockByHeight func(uint32) (*types.Block, error)) (*arbitrators, error) {
 
 	originArbiters := make([][]byte, len(chainParams.OriginArbiters))
@@ -1080,7 +1078,6 @@ func NewArbitrators(chainParams *config.Params,
 		chainParams:                 chainParams,
 		store:                       store,
 		bestHeight:                  bestHeight,
-		bestBlock:                   bestBlock,
 		getBlockByHeight:            getBlockByHeight,
 		nextArbitrators:             originArbiters,
 		nextCandidates:              make([][]byte, 0),

@@ -70,14 +70,39 @@ func viewHandler(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 	BestBlock, _ := chain.DefaultLedger.Blockchain.GetBlockByHash(chain.DefaultLedger.Blockchain.CurrentBlockHash())
+	var httpRestPort = config.Parameters.HttpRestPort
+	var httpWsPort = config.Parameters.HttpWsPort
+	var httpJsonPort = config.Parameters.HttpJsonPort
+	var nodePort = config.Parameters.NodePort
+	var netType = config.Parameters.ActiveNet
+	var index int
+	switch netType {
+	case "mainnet", "":
+		index = 0
+	case "regnet":
+		index = 2
+	}
+
+	if config.Parameters.HttpRestPort == 0 {
+		httpRestPort = 20330 + index * 1000 + 4
+	}
+	if config.Parameters.HttpJsonPort == 0 {
+		httpJsonPort = 20330 + index * 1000 + 6
+	}
+	if config.Parameters.HttpWsPort == 0 {
+		httpWsPort = 20330 + index * 1000 + 5
+	}
+	if config.Parameters.NodePort == 0 {
+		nodePort = uint16(20330 + index * 1000 + 8)
+	}
 	pageInfo := &Info{
 		BlockHeight:  chain.DefaultLedger.Blockchain.GetHeight(),
 		NeighborCnt:  len(peers),
 		Neighbors:    ngbrNodersInfo,
-		HttpRestPort: config.Parameters.HttpRestPort,
-		HttpWsPort:   config.Parameters.HttpWsPort,
-		HttpJsonPort: config.Parameters.HttpJsonPort,
-		NodePort:     config.Parameters.NodePort,
+		HttpRestPort: httpRestPort,
+		HttpWsPort:   httpWsPort,
+		HttpJsonPort: httpJsonPort,
+		NodePort:     nodePort,
 		BstBlockTime: time.Unix(int64(BestBlock.Timestamp), 0).String(),
 		IsProducer:   arbiter != nil,
 	}

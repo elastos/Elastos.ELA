@@ -98,7 +98,7 @@ const page = `
 <td width="80%">
 	<table class="font" width="100%">
 	{{range $i, $v := .DPosNeighbors}}
-	<tr><td width="25%">PID:</td><td width="25%">{{$v.PID}}</td></tr>
+	<tr><td width="25%">Node PublicKey:</td><td width="25%">{{$v.PID}}</td></tr>
 	<tr><td width="25%">Addr:</td><td width="25%">{{$v.Addr}}</td></tr>
 	<tr><td width="25%">Addr:</td><td width="25%">{{$v.State}}</td></tr>
 	{{end}}

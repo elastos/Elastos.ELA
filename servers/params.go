@@ -6,6 +6,9 @@ import (
 	"github.com/elastos/Elastos.ELA/common/log"
 )
 
+// MaxParamSize is the maximum parameter size.
+const MaxParamSize = 1024 * 100
+
 type Params map[string]interface{}
 
 func FromArray(array []interface{}, fields ...string) Params {
@@ -90,32 +93,39 @@ func (p Params) Bool(key string) (bool, bool) {
 	}
 }
 
-func (p Params) String(key string) (string, bool) {
+func (p Params) String(key string, maxStringLen int) (string, bool) {
 	value, ok := p[key]
 	if !ok {
 		return "", false
 	}
-	switch v := value.(type) {
-	case string:
-		return v, true
-	default:
+	v, ok := value.(string)
+	if !ok {
+		log.Warn("param", v, " is not a string")
 		return "", false
 	}
+	if len(v) > maxStringLen || len(v) > MaxParamSize {
+		log.Warn("param", v, " is larger than the max allowed size")
+		return "", false
+	}
+	return v, true
 }
 
-func (p Params) ArrayString(key string) ([]string, bool) {
+func (p Params) ArrayString(key string, maxStringLen int) ([]string, bool) {
 	value, ok := p[key]
 	if !ok {
 		return nil, false
 	}
 	switch v := value.(type) {
 	case []interface{}:
-
 		var arrayString []string
 		for _, param := range v {
 			paramString, ok := param.(string)
 			if !ok {
-				log.Info("param", param, " is not a string")
+				log.Warn("param", param, " is not a string")
+				return nil, false
+			}
+			if len(paramString) > maxStringLen || len(paramString) > MaxParamSize {
+				log.Warn("param", v, " is larger than the max allowed size")
 				return nil, false
 			}
 			arrayString = append(arrayString, paramString)

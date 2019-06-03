@@ -117,7 +117,7 @@ func GetTransactionInfo(header *Header, tx *Transaction) *TransactionInfo {
 
 // Input JSON string examples for getblock method as following:
 func GetRawTransaction(param Params) map[string]interface{} {
-	str, ok := param.String("txid")
+	str, ok := param.String("txid", MaxParamSize)
 	if !ok {
 		return ResponsePack(InvalidParams, "")
 	}
@@ -216,7 +216,7 @@ func SetLogLevel(param Params) map[string]interface{} {
 }
 
 func CreateAuxBlock(param Params) map[string]interface{} {
-	payToAddr, ok := param.String("paytoaddress")
+	payToAddr, ok := param.String("paytoaddress", MaxParamSize)
 	if !ok {
 		return ResponsePack(InvalidParams, "parameter paytoaddress not found")
 	}
@@ -247,7 +247,7 @@ func CreateAuxBlock(param Params) map[string]interface{} {
 }
 
 func SubmitAuxBlock(param Params) map[string]interface{} {
-	blockHashHex, ok := param.String("blockhash")
+	blockHashHex, ok := param.String("blockhash", MaxParamSize)
 	if !ok {
 		return ResponsePack(InvalidParams, "parameter blockhash not found")
 	}
@@ -256,7 +256,7 @@ func SubmitAuxBlock(param Params) map[string]interface{} {
 		return ResponsePack(InvalidParams, "bad blockhash")
 	}
 
-	auxPow, ok := param.String("auxpow")
+	auxPow, ok := param.String("auxpow", MaxParamSize)
 	if !ok {
 		return ResponsePack(InvalidParams, "parameter auxpow not found")
 	}
@@ -283,7 +283,7 @@ func SubmitSidechainIllegalData(param Params) map[string]interface{} {
 		return ResponsePack(InternalError, "arbiter disabled")
 	}
 
-	rawHex, ok := param.String("illegaldata")
+	rawHex, ok := param.String("illegaldata", MaxParamSize)
 	if !ok {
 		return ResponsePack(InvalidParams, "parameter illegaldata not found")
 	}
@@ -555,7 +555,7 @@ func getConfirm(hash common.Uint256, verbose uint32) (interface{}, ErrCode) {
 }
 
 func GetBlockByHash(param Params) map[string]interface{} {
-	str, ok := param.String("blockhash")
+	str, ok := param.String("blockhash", MaxParamSize)
 	if !ok {
 		return ResponsePack(InvalidParams, "block hash not found")
 	}
@@ -600,7 +600,7 @@ func GetConfirmByHeight(param Params) map[string]interface{} {
 }
 
 func GetConfirmByHash(param Params) map[string]interface{} {
-	str, ok := param.String("blockhash")
+	str, ok := param.String("blockhash", MaxParamSize)
 	if !ok {
 		return ResponsePack(InvalidParams, "block hash not found")
 	}
@@ -624,7 +624,7 @@ func GetConfirmByHash(param Params) map[string]interface{} {
 }
 
 func SendRawTransaction(param Params) map[string]interface{} {
-	str, ok := param.String("data")
+	str, ok := param.String("data", MaxParamSize)
 	if !ok {
 		return ResponsePack(InvalidParams, "need a string parameter named data")
 	}
@@ -757,7 +757,7 @@ func GetArbitratorGroupByHeight(param Params) map[string]interface{} {
 
 //Asset
 func GetAssetByHash(param Params) map[string]interface{} {
-	str, ok := param.String("hash")
+	str, ok := param.String("hash", MaxParamSize)
 	if !ok {
 		return ResponsePack(InvalidParams, "")
 	}
@@ -783,7 +783,7 @@ func GetAssetByHash(param Params) map[string]interface{} {
 }
 
 func GetBalanceByAddr(param Params) map[string]interface{} {
-	str, ok := param.String("addr")
+	str, ok := param.String("addr", MaxParamSize)
 	if !ok {
 		return ResponsePack(InvalidParams, "")
 	}
@@ -803,7 +803,7 @@ func GetBalanceByAddr(param Params) map[string]interface{} {
 }
 
 func GetBalanceByAsset(param Params) map[string]interface{} {
-	addr, ok := param.String("addr")
+	addr, ok := param.String("addr", MaxParamSize)
 	if !ok {
 		return ResponsePack(InvalidParams, "")
 	}
@@ -813,7 +813,7 @@ func GetBalanceByAsset(param Params) map[string]interface{} {
 		return ResponsePack(InvalidParams, "")
 	}
 
-	assetIDStr, ok := param.String("assetid")
+	assetIDStr, ok := param.String("assetid", MaxParamSize)
 	if !ok {
 		return ResponsePack(InvalidParams, "")
 	}
@@ -839,7 +839,7 @@ func GetBalanceByAsset(param Params) map[string]interface{} {
 }
 
 func GetReceivedByAddress(param Params) map[string]interface{} {
-	address, ok := param.String("address")
+	address, ok := param.String("address", MaxParamSize)
 	if !ok {
 		return ResponsePack(InvalidParams, "need a parameter named address")
 	}
@@ -864,11 +864,11 @@ func GetUTXOsByAmount(param Params) map[string]interface{} {
 	bestHeight := Store.GetHeight()
 
 	result := make([]UTXOInfo, 0)
-	address, ok := param.String("address")
+	address, ok := param.String("address", MaxParamSize)
 	if !ok {
 		return ResponsePack(InvalidParams, "need a parameter named address!")
 	}
-	amountStr, ok := param.String("amount")
+	amountStr, ok := param.String("amount", MaxParamSize)
 	if !ok {
 		return ResponsePack(InvalidParams, "need a parameter named amount!")
 	}
@@ -885,7 +885,7 @@ func GetUTXOsByAmount(param Params) map[string]interface{} {
 		return ResponsePack(InvalidParams, "cannot get asset with program")
 	}
 	utxoType := "mixed"
-	if t, ok := param.String("utxotype"); ok {
+	if t, ok := param.String("utxotype", MaxParamSize); ok {
 		switch t {
 		case "mixed", "vote", "normal":
 			utxoType = t
@@ -935,7 +935,7 @@ func GetUTXOsByAmount(param Params) map[string]interface{} {
 }
 
 func GetAmountByInputs(param Params) map[string]interface{} {
-	inputStr, ok := param.String("inputs")
+	inputStr, ok := param.String("inputs", MaxParamSize)
 	if !ok {
 		return ResponsePack(InvalidParams, "need a parameter named inputs!")
 	}
@@ -968,12 +968,12 @@ func ListUnspent(param Params) map[string]interface{} {
 	bestHeight := Store.GetHeight()
 
 	var result []UTXOInfo
-	addresses, ok := param.ArrayString("addresses")
+	addresses, ok := param.ArrayString("addresses", MaxParamSize)
 	if !ok {
 		return ResponsePack(InvalidParams, "need addresses in an array!")
 	}
 	utxoType := "mixed"
-	if t, ok := param.String("utxotype"); ok {
+	if t, ok := param.String("utxotype", MaxParamSize); ok {
 		switch t {
 		case "mixed", "vote", "normal":
 			utxoType = t
@@ -1023,7 +1023,7 @@ func ListUnspent(param Params) map[string]interface{} {
 }
 
 func GetUnspends(param Params) map[string]interface{} {
-	addr, ok := param.String("addr")
+	addr, ok := param.String("addr", MaxParamSize)
 	if !ok {
 		return ResponsePack(InvalidParams, "")
 	}
@@ -1060,7 +1060,7 @@ func GetUnspends(param Params) map[string]interface{} {
 }
 
 func GetUnspendOutput(param Params) map[string]interface{} {
-	addr, ok := param.String("addr")
+	addr, ok := param.String("addr", MaxParamSize)
 	if !ok {
 		return ResponsePack(InvalidParams, "")
 	}
@@ -1068,7 +1068,7 @@ func GetUnspendOutput(param Params) map[string]interface{} {
 	if err != nil {
 		return ResponsePack(InvalidParams, "")
 	}
-	assetID, ok := param.String("assetid")
+	assetID, ok := param.String("assetid", MaxParamSize)
 	if !ok {
 		return ResponsePack(InvalidParams, "")
 	}
@@ -1100,7 +1100,7 @@ func GetUnspendOutput(param Params) map[string]interface{} {
 
 //Transaction
 func GetTransactionByHash(param Params) map[string]interface{} {
-	str, ok := param.String("hash")
+	str, ok := param.String("hash", MaxParamSize)
 	if !ok {
 		return ResponsePack(InvalidParams, "")
 	}
@@ -1137,7 +1137,7 @@ func GetTransactionByHash(param Params) map[string]interface{} {
 }
 
 func GetExistWithdrawTransactions(param Params) map[string]interface{} {
-	txList, ok := param.ArrayString("txs")
+	txList, ok := param.ArrayString("txs", MaxParamSize)
 	if !ok {
 		return ResponsePack(InvalidParams, "txs not found")
 	}
@@ -1190,7 +1190,7 @@ func ListProducers(param Params) map[string]interface{} {
 	if !ok {
 		limit = -1
 	}
-	s, ok := param.String("state")
+	s, ok := param.String("state", MaxParamSize)
 	if ok {
 		s = strings.ToLower(s)
 	}
@@ -1269,7 +1269,7 @@ func ListProducers(param Params) map[string]interface{} {
 }
 
 func ProducerStatus(param Params) map[string]interface{} {
-	publicKey, ok := param.String("publickey")
+	publicKey, ok := param.String("publickey", MaxParamSize)
 	if !ok {
 		return ResponsePack(InvalidParams, "public key not found")
 	}
@@ -1288,7 +1288,7 @@ func ProducerStatus(param Params) map[string]interface{} {
 }
 
 func VoteStatus(param Params) map[string]interface{} {
-	address, ok := param.String("address")
+	address, ok := param.String("address", MaxParamSize)
 	if !ok {
 		return ResponsePack(InvalidParams, "address not found")
 	}
@@ -1349,7 +1349,7 @@ func VoteStatus(param Params) map[string]interface{} {
 }
 
 func GetDepositCoin(param Params) map[string]interface{} {
-	pk, ok := param.String("ownerpublickey")
+	pk, ok := param.String("ownerpublickey", MaxParamSize)
 	if !ok {
 		return ResponsePack(InvalidParams, "need a param called ownerpublickey")
 	}

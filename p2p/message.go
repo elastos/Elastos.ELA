@@ -1,7 +1,6 @@
 package p2p
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 
@@ -106,9 +105,13 @@ func ReadMessage(r io.Reader, magic uint32, makeEmptyMessage MakeEmptyMessage) (
 	}
 
 	// Deserialize message
-	if err := msg.Deserialize(bytes.NewBuffer(payload)); err != nil {
-		return nil, fmt.Errorf("deserialize message %s failed %s", msg.CMD(), err.Error())
+	buf := bufPool.Get()
+	buf.Write(payload)
+	if err := msg.Deserialize(buf); err != nil {
+		return nil, fmt.Errorf("deserialize message %s failed %s",
+			msg.CMD(), err)
 	}
+	bufPool.Put(buf)
 
 	return msg, nil
 }
@@ -116,12 +119,11 @@ func ReadMessage(r io.Reader, magic uint32, makeEmptyMessage MakeEmptyMessage) (
 // WriteMessage writes a Message to w including the necessary header
 // information.
 func WriteMessage(w io.Writer, magic uint32, msg Message) error {
-	// Serialize message
-	buf := new(bytes.Buffer)
-	if err := msg.Serialize(buf); err != nil {
-		return fmt.Errorf("serialize message failed %s", err.Error())
+	// Get message payload.
+	payload, err := bufPool.GetPayload(msg)
+	if err != nil {
+		return fmt.Errorf("serialize message failed %s", err)
 	}
-	payload := buf.Bytes()
 
 	// Enforce maximum overall message payload.
 	if len(payload) > MaxMessagePayload {
@@ -131,7 +133,7 @@ func WriteMessage(w io.Writer, magic uint32, msg Message) error {
 	// Create message header
 	hdr, err := BuildHeader(magic, msg.CMD(), payload).Serialize()
 	if err != nil {
-		return fmt.Errorf("serialize message header failed %s", err.Error())
+		return fmt.Errorf("serialize message header failed %s", err)
 	}
 
 	// Write header

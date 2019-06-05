@@ -737,16 +737,20 @@ func (c *ChainStore) PersistUnspentWithProgramHash(programHash Uint168, assetid 
 	storeCount := 0
 	listnum := len(unspents)
 	w := new(bytes.Buffer)
-	WriteVarUint(w, uint64(listnum))
 	for i := 0; i < listnum; i++ {
 		if unspents[i].Value > 0 {
 			storeCount++
-			unspents[i].Serialize(w)
 		}
 	}
 	if storeCount == 0 {
 		c.BatchDelete(key.Bytes())
 		return nil
+	}
+	WriteVarUint(w, uint64(storeCount))
+	for i := 0; i < listnum; i++ {
+		if unspents[i].Value > 0 {
+			unspents[i].Serialize(w)
+		}
 	}
 
 	// BATCH PUT VALUE

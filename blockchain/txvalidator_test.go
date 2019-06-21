@@ -853,7 +853,6 @@ func (s *txValidatorTestSuite) TestCheckRegisterCRTransaction() {
 	pk1, _ := crypto.DecodePoint(publicKey1)
 	ct1, _ := contract.CreateStandardContract(pk1)
 	hash1, _ := contract.PublicKeyToDepositProgramHash(publicKey1)
-
 	hash2, _ := contract.PublicKeyToDepositProgramHash(publicKey2)
 
 	txn := new(types.Transaction)

@@ -1,0 +1,55 @@
+stages:
+  - test
+  - build
+  - release
+  - deploy
+
+job_test1:
+  stage: test
+  image:
+    name: golang:1.12.6-stretch
+    entrypoint: ["/bin/sh", "-c"]
+  before_script:
+    - cd "/go/src"
+    - wget http://172.16.0.120/golang.org.tgz
+    - wget http://172.16.0.120/gopkg.in.tgz
+    - wget http://172.16.0.120/github.com.tgz
+    - tar xf golang.org.tgz
+    - tar xf gopkg.in.tgz
+    - tar xf github.com.tgz
+    - rm -f *.tgz
+    - mkdir -p "/go/src/github.com/${CI_PROJECT_NAMESPACE}"
+    - ln -sf "${CI_PROJECT_DIR}" "/go/src/github.com/${CI_PROJECT_PATH}"
+    - cd "/go/src/github.com/${CI_PROJECT_PATH}"
+    - mkdir -p "/go/src/github.com/elastos/Elastos.ELA"
+    - cd ../..
+    - mv ${CI_PROJECT_PATH}/* elastos/Elastos.ELA
+    - cd "/go/src/github.com/elastos/Elastos.ELA"
+  script:
+    - go test -v -short ./...
+    - make all
+    - make dns
+    - ./util.sh test
+
+job_test2:
+  stage: test
+  image: python:3
+  script:
+    - python -V
+    - echo Something in the test step in a python:3 image
+    - echo case1
+
+job_build:
+  stage: build
+  image: docker:latest
+  variables:
+    DOCKER_DRIVER: overlay
+    DOCKER_HOST: tcp://localhost:2375
+  services:
+    - name: docker:18.09-dind
+    # command: ["--insecure-registry=172.16.0.121"]
+  before_script:
+    - export COMMIT=$CI_COMMIT_REF_SLUG-$CI_PIPELINE_ID-${CI_BUILD_REF:0:8}
+  script:
+    - echo $COMMIT
+    - docker info

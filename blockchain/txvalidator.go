@@ -1211,13 +1211,13 @@ func (b *BlockChain) checkRegisterCRTransaction(txn *Transaction) error {
 	//todo check duplication of DID.(need to check by cr state)
 
 	// get did address
-	didAddress, err := b.getDIDAddress(info)
+	programHash, err := b.getProgramHash(info)
 	if err != nil {
 		return err
 	}
 
 	// check DID
-	if didAddress != info.DID {
+	if !info.DID.IsEqual(*programHash) {
 		return errors.New("invalid did address")
 	}
 
@@ -1263,13 +1263,13 @@ func (b *BlockChain) checkUpdateCRTransaction(txn *Transaction) error {
 	}
 
 	// get did address
-	didAddress, err := b.getDIDAddress(info)
+	programHash, err := b.getProgramHash(info)
 	if err != nil {
 		return err
 	}
 
 	// check DID
-	if didAddress != info.DID {
+	if !info.DID.IsEqual(*programHash) {
 		return errors.New("invalid did address")
 	}
 
@@ -1325,37 +1325,30 @@ func (b *BlockChain) checkUnRegisterCRTransaction(txn *Transaction) error {
 	return nil
 }
 
-func (b *BlockChain) getDIDAddress(info *payload.CRInfo) (string, error) {
-	var addr string
+func (b *BlockChain) getProgramHash(info *payload.CRInfo) (*common.Uint168, error) {
+	var hash *common.Uint168
 	signType, err := crypto.GetScriptType(info.Code)
 	if err != nil {
-		return "", errors.New("invalid code")
+		return hash, errors.New("invalid code")
 	}
 	if signType == vm.CHECKSIG {
 		// check DID
 		publicKey := info.Code[1 : len(info.Code)-1]
-		hash, err := contract.PublicKeyToDepositProgramHash(publicKey)
+		hash, err = contract.PublicKeyToDepositProgramHash(publicKey)
 		if err != nil {
-			return "", err
-		}
-		addr, err = hash.ToAddress()
-		if err != nil {
-			return "", err
+			return hash, err
 		}
 	} else if signType == vm.CHECKMULTISIG {
 		// check DID
 		ct, err := contract.CreateMultiSigContractByCode(info.Code)
 		if err != nil {
-			return "", err
+			return hash, err
 		}
-		addr, err = ct.ToProgramHash().ToAddress()
-		if err != nil {
-			return "", err
-		}
+		hash = ct.ToProgramHash()
 	} else {
-		return "", errors.New("invalid code type")
+		return hash, errors.New("invalid code type")
 	}
-	return addr, nil
+	return hash, nil
 }
 
 func (b *BlockChain) crInfoSanityCheck(info *payload.CRInfo) error {

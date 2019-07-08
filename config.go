@@ -134,6 +134,9 @@ func loadConfigParams(cfg *config.Configuration) (*config.Configuration, error) 
 	if cfg.CRCommitteeStartHeight > 0 {
 		activeNetParams.CRCommitteeStartHeight = cfg.CRCommitteeStartHeight
 	}
+	if cfg.CRVotingStartHeight > 0 {
+		activeNetParams.CRVotingStartHeight = cfg.CRVotingStartHeight
+	}
 
 	// When arbiter service enabled, IP address must be set.
 	if cfg.DPoSConfiguration.EnableArbiter {

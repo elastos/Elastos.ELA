@@ -51,7 +51,7 @@ job_test2:
     PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
   cache:
     paths:
-    - $CI_PROJECT_DIR/.cache/pip
+    - $PIP_CACHE_DIR
   dependencies:
     - job_test1
   before_script:

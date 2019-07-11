@@ -12,10 +12,7 @@ import (
 
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
-<<<<<<< HEAD
 	"github.com/elastos/Elastos.ELA/core/checkpoint"
-=======
->>>>>>> add EnableUtxoDB configuration
 	"github.com/elastos/Elastos.ELA/elanet/pact"
 	"github.com/elastos/Elastos.ELA/utils/elalog"
 )

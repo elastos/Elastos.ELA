@@ -62,6 +62,7 @@ type Configuration struct {
 	MaxBlockSize       uint32            `json"MaxBlockSize"`
 	EnableHistory      bool              `json:"EnableHistory"`
 	HistoryStartHeight uint32            `json:"HistoryStartHeight"`
+	EnableUtxoDB       bool              `json:"EnableUtxoDB"`
 }
 
 // DPoSConfiguration defines the DPoS consensus parameters.

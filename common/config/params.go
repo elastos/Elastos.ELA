@@ -159,6 +159,7 @@ var DefaultParams = Params{
 	GeneralArbiters:          24,
 	CandidateArbiters:        72,
 	PreConnectOffset:         360,
+	EnableUtxoDB:             false,
 }
 
 // TestNet returns the network parameters for the test network.
@@ -377,6 +378,9 @@ type Params struct {
 
 	// CkpManager holds checkpoints save automatically.
 	CkpManager *checkpoint.Manager
+
+	// EnableUtxoDB indicate whether to enable utxo database.
+	EnableUtxoDB bool
 }
 
 // rewardPerBlock calculates the reward for each block by a specified time

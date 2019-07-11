@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/elastos/Elastos.ELA/elanet/pact"
 	"io/ioutil"
 	"net"
 	"strings"
@@ -13,6 +12,8 @@ import (
 
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
+	"github.com/elastos/Elastos.ELA/core/checkpoint"
+	"github.com/elastos/Elastos.ELA/elanet/pact"
 	"github.com/elastos/Elastos.ELA/utils/elalog"
 )
 
@@ -128,6 +129,10 @@ func loadConfigParams(cfg *config.Configuration) (*config.Configuration, error) 
 	if cfg.PublicDPOSHeight > 0 {
 		activeNetParams.PublicDPOSHeight = cfg.PublicDPOSHeight
 	}
+	activeNetParams.CkpManager = checkpoint.NewManager(&checkpoint.Config{
+		EnableHistory:      cfg.EnableHistory,
+		HistoryStartHeight: cfg.HistoryStartHeight,
+	})
 
 	// When arbiter service enabled, IP address must be set.
 	if cfg.DPoSConfiguration.EnableArbiter {

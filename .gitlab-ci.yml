@@ -38,7 +38,6 @@ job_test1:
     - bin/ela -v
     - ./util.sh test
     - cd $CI_PROJECT_DIR
-    - sleep 1800
   coverage: '/^total:\t+\(statements\)\t+(\d+\.\d+)%/'
   artifacts:
     name: "$CI_COMMIT_REF_SLUG-$CI_PIPELINE_ID-${CI_BUILD_REF:0:8}"

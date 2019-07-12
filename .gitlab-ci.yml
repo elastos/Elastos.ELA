@@ -29,7 +29,8 @@ job_test1:
     - curl -o /bin/addlicense http://172.16.0.120/addlicense
     - curl -o /bin/revive http://172.16.120/revive
     - curl -o /bin/checkcoverage http://172.16.120/checkcoverage
-    - chmod +x /bin/addlicense /bin/revive /bin/checkcoverage && addlicense -check
+    - chmod +x /bin/addlicense /bin/revive /bin/checkcoverage
+    - addlicense -check
     - revive -config .revive.toml -formatter friendly $(go list ./... | grep -v /vendor/)
     - go test $(go list ./... | grep -v /vendor/) -v -short -coverprofile .coverage
     - go tool cover -func .coverage

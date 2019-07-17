@@ -250,11 +250,9 @@ func startNode(c *cli.Context) {
 	coinCheckPoint := wallet.NewCoinCheckPoint()
 	activeNetParams.CkpManager.Register(coinCheckPoint)
 
-	wal := wallet.New(flagDataDir)
+	wal := wallet.New(flagDataDir, coinCheckPoint)
 	wallet.Wal = wal
 	wallet.Store = chainStore
-	wallet.CoinCP = coinCheckPoint
-	wallet.Config = cfg
 
 	servers.Compile = Version
 	servers.Config = cfg
@@ -279,6 +277,14 @@ func startNode(c *cli.Context) {
 		Arbitrators: arbiters,
 	})
 
+	// initialize all checkpoint
+	if err = chain.InitCheckPoint(interrupt.C, pgBar.Start,
+		pgBar.Increase); err != nil {
+		printErrorAndExit(err)
+	}
+	pgBar.Stop()
+
+	// TODO: refactor via checkpoint
 	// initialize producer state after arbiters has initialized.
 	if err = chain.InitProducerState(interrupt.C, pgBar.Start,
 		pgBar.Increase); err != nil {

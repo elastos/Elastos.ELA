@@ -13,7 +13,7 @@ import (
 	"github.com/elastos/Elastos.ELA/cmd/script/api"
 
 	"github.com/urfave/cli"
-	"github.com/yuin/gopher-lua"
+	lua "github.com/yuin/gopher-lua"
 )
 
 func registerParams(c *cli.Context, L *lua.LState) {

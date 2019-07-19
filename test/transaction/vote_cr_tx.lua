@@ -26,12 +26,10 @@ local asset_id = m.get_asset_id()
 --local vote_candidate_votes = {'0.1'}
 
 local vote_type = 1
-local vote_candidates = {}
-local vote_candidate_votes = {}
 local amount = getAmount()
 local fee = getFee()
-local vote_candidate_code = getCode()
-local vote_candidate_vote = getVotes()
+local vote_candidates = getCandidates()
+local vote_candidate_votes = getCandidateVotes()
 
 if amount == 0
 then
@@ -43,24 +41,22 @@ then
     fee = 0.1
 end
 
-if vote_candidate_vote == 0
+if vote_candidates == ""
 then
-    vote_candidate_vote = 0.1
-end
-
-if vote_candidate_code == ""
-then
-    print("candidate code is nil, should use --code or -c to set it.")
+    print("candidates is nil, should use --candidates or -cds to set it.")
     return
 end
 
-vote_candidates[0] = vote_candidate_code
-vote_candidate_votes[0] = vote_candidate_vote
+if vote_candidate_votes == ""
+then
+    print("candidate votes is nil, should use --candidateVotes or -cvs to set it.")
+    return
+end
 
 print("amount:", amount)
 print("fee:", fee)
-print("code:", vote_candidate_code)
-print("votes:", vote_candidate_vote)
+print("vote_candidates:", vote_candidates)
+print("vote_candidate_votes:", vote_candidate_votes)
 
 -- payload
 local ta = transferasset.new()

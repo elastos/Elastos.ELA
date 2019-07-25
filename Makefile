@@ -11,6 +11,9 @@ cli:
 dns:
 	$(BUILD) -o ela-dns elanet/dns/main/main.go
 
+reward:
+	$(BUILD) -o ela-reward tools/calculatereward/main/main.go
+
 format:
 	go fmt ./*
 

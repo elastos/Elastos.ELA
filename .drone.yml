@@ -17,6 +17,7 @@ steps:
   environment:
     GOPATH: /drone
   commands:
+  - go install -v github.com/Masterminds/glide
   - glide install
   - curl -o /bin/addlicense http://172.16.0.120/addlicense
   - curl -o /bin/revive http://172.16.120/revive

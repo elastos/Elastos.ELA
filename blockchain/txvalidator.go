@@ -390,6 +390,7 @@ func checkDestructionAddress(references map[*Input]*Output) error {
 
 func (b *BlockChain) checkInvalidUTXO(txn *Transaction) error {
 	type lockTxInfo struct {
+
 		isCoinbaseTx bool
 		locktime     uint32
 	}

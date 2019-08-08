@@ -23,5 +23,6 @@ import:
   - leveldb/opt
   - leveldb/util
 - package: github.com/yuin/gopher-lua
+- package: github.com/russross/blackfriday/v2
 - package: gopkg.in/cheggaaa/pb.v1
 - package: gopkg.in/yaml.v2

@@ -280,6 +280,14 @@ func (d *DPOSManager) OnBlock(id dpeer.PID, block *types.Block) {
 		log.Warn("[OnBlock] received unrequested block")
 		return
 	}
+
+	for _, t := range block.Transactions {
+		if t.TxType == types.InactiveArbitrators {
+			log.Warn("[OnBlock] not support inactive arbitrators transaction")
+			return
+		}
+	}
+
 	delete(d.requestedBlocks, hash)
 	if block.Header.Height == blockchain.DefaultLedger.Blockchain.GetHeight()+1 {
 		if _, _, err := d.blockPool.AppendDposBlock(&types.DposBlock{

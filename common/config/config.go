@@ -1,3 +1,8 @@
+// Copyright (c) 2017-2019 Elastos Foundation
+// Use of this source code is governed by an MIT
+// license that can be found in the LICENSE file.
+//
+
 package config
 
 import (
@@ -54,14 +59,21 @@ type Configuration struct {
 	PowConfiguration            PowConfiguration  `json:"PowConfiguration"`
 	RpcConfiguration            RpcConfiguration  `json:"RpcConfiguration"`
 	DPoSConfiguration           DPoSConfiguration `json:"DPoSConfiguration"`
+	CRConfiguration             CRConfiguration   `json:"CRConfiguration"`
 	CheckAddressHeight          uint32            `json:"CheckAddressHeight"`
 	VoteStartHeight             uint32            `json:"VoteStartHeight"`
 	CRCOnlyDPOSHeight           uint32            `json:"CRCOnlyDPOSHeight"`
 	PublicDPOSHeight            uint32            `json:"PublicDPOSHeight"`
 	EnableActivateIllegalHeight uint32            `json:"EnableActivateIllegalHeight"`
 	CheckRewardHeight           uint32            `json:"CheckRewardHeight"`
+	CRVotingStartHeight         uint32            `json:"CRVotingStartHeight"`
+	CRCommitteeStartHeight      uint32            `json:"CRCommitteeStartHeight"`
 	ProfilePort                 uint32            `json:"ProfilePort"`
 	MaxBlockSize                uint32            `json"MaxBlockSize"`
+	CheckPointNoFlatFile        bool              `json:"CheckPointNoFlatFile"`
+	EnableHistory               bool              `json:"EnableHistory"`
+	HistoryStartHeight          uint32            `json:"HistoryStartHeight"`
+	EnableUtxoDB                bool              `json:"EnableUtxoDB"`
 }
 
 // DPoSConfiguration defines the DPoS consensus parameters.
@@ -70,10 +82,7 @@ type DPoSConfiguration struct {
 	Magic                    uint32         `json:"Magic"`
 	IPAddress                string         `json:"IPAddress"`
 	DPoSPort                 uint16         `json:"DPoSPort"`
-	PrintLevel               uint8          `json:"PrintLevel"`
 	SignTolerance            time.Duration  `json:"SignTolerance"`
-	MaxLogsSize              int64          `json:"MaxLogsSize"`
-	MaxPerLogSize            int64          `json:"MaxPerLogSize"`
 	OriginArbiters           []string       `json:"OriginArbiters"`
 	CRCArbiters              []string       `json:"CRCArbiters"`
 	NormalArbitratorsCount   int            `json:"NormalArbitratorsCount"`
@@ -82,4 +91,10 @@ type DPoSConfiguration struct {
 	MaxInactiveRounds        uint32         `json:"MaxInactiveRounds"`
 	InactivePenalty          common.Fixed64 `json:"InactivePenalty"`
 	PreConnectOffset         uint32         `json:"PreConnectOffset"`
+}
+
+type CRConfiguration struct {
+	MemberCount  uint32 `json:"MemberCount"`
+	VotingPeriod uint32 `json:"VotingPeriod"`
+	DutyPeriod   uint32 `json:"DutyPeriod"`
 }

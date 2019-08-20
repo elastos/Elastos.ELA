@@ -1,3 +1,8 @@
+// Copyright (c) 2017-2019 Elastos Foundation
+// Use of this source code is governed by an MIT
+// license that can be found in the LICENSE file.
+//
+
 package blockchain
 
 import (
@@ -43,9 +48,6 @@ type persistBlockTask struct {
 type ChainStore struct {
 	IStore
 
-	taskCh chan persistTask
-	quit   chan chan bool
-
 	currentBlockHeight uint32
 
 	mtx              sync.RWMutex
@@ -61,13 +63,9 @@ func NewChainStore(dataDir string, genesisBlock *Block) (IChainStore, error) {
 
 	s := &ChainStore{
 		IStore:           db,
-		taskCh:           make(chan persistTask, TaskChanCap),
-		quit:             make(chan chan bool, 1),
 		blockHashesCache: make([]Uint256, 0, BlocksCacheSize),
 		blocksCache:      make(map[Uint256]*Block),
 	}
-
-	go s.taskHandler()
 
 	s.init(genesisBlock)
 
@@ -75,33 +73,7 @@ func NewChainStore(dataDir string, genesisBlock *Block) (IChainStore, error) {
 }
 
 func (c *ChainStore) Close() {
-	closed := make(chan bool)
-	c.quit <- closed
-	<-closed
 	c.IStore.Close()
-}
-
-func (c *ChainStore) taskHandler() {
-	for {
-		select {
-		case t := <-c.taskCh:
-			now := time.Now()
-			switch task := t.(type) {
-			case *persistBlockTask:
-				task.reply <- c.handlePersistBlockTask(task.block, task.confirm)
-				tcall := float64(time.Now().Sub(now)) / float64(time.Second)
-				log.Debugf("handle block exetime: %g num transactions:%d", tcall, len(task.block.Transactions))
-			case *rollbackBlockTask:
-				task.reply <- c.handleRollbackBlockTask(task.blockHash)
-				tcall := float64(time.Now().Sub(now)) / float64(time.Second)
-				log.Debugf("handle block rollback exetime: %g", tcall)
-			}
-
-		case closed := <-c.quit:
-			closed <- true
-			return
-		}
-	}
 }
 
 func (c *ChainStore) init(genesisBlock *Block) error {
@@ -240,9 +212,11 @@ func (c *ChainStore) GetCurrentBlockHash() Uint256 {
 }
 
 func (c *ChainStore) RollbackBlock(blockHash Uint256) error {
-	reply := make(chan error)
-	c.taskCh <- &rollbackBlockTask{blockHash: blockHash, reply: reply}
-	return <-reply
+	now := time.Now()
+	err := c.handleRollbackBlockTask(blockHash)
+	tcall := float64(time.Now().Sub(now)) / float64(time.Second)
+	log.Debugf("handle block rollback exetime: %g", tcall)
+	return err
 }
 
 func (c *ChainStore) GetHeader(hash Uint256) (*Header, error) {
@@ -495,8 +469,10 @@ func (c *ChainStore) rollback(b *Block) error {
 	if err := c.RollbackTransactions(b); err != nil {
 		return err
 	}
-	if err := c.RollbackUnspendUTXOs(b); err != nil {
-		return err
+	if EnableUtxoDB {
+		if err := c.RollbackUnspendUTXOs(b); err != nil {
+			return err
+		}
 	}
 	if err := c.RollbackUnspend(b); err != nil {
 		return err
@@ -527,8 +503,10 @@ func (c *ChainStore) persist(b *Block, confirm *payload.Confirm) error {
 	if err := c.PersistTransactions(b); err != nil {
 		return err
 	}
-	if err := c.persistUTXOs(b); err != nil {
-		return err
+	if EnableUtxoDB {
+		if err := c.persistUTXOs(b); err != nil {
+			return err
+		}
 	}
 	if err := c.persistUnspend(b); err != nil {
 		return err
@@ -545,9 +523,13 @@ func (c *ChainStore) persist(b *Block, confirm *payload.Confirm) error {
 func (c *ChainStore) SaveBlock(b *Block, confirm *payload.Confirm) error {
 	log.Debug("SaveBlock()")
 
-	reply := make(chan error)
-	c.taskCh <- &persistBlockTask{block: b, confirm: confirm, reply: reply}
-	return <-reply
+	now := time.Now()
+	err := c.handlePersistBlockTask(b, confirm)
+
+	tcall := float64(time.Now().Sub(now)) / float64(time.Second)
+	log.Debugf("handle block exetime: %g num transactions:%d",
+		tcall, len(b.Transactions))
+	return err
 }
 
 func (c *ChainStore) handleRollbackBlockTask(blockHash Uint256) error {

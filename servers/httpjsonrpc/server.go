@@ -1,3 +1,8 @@
+// Copyright (c) 2017-2019 Elastos Foundation
+// Use of this source code is governed by an MIT
+// license that can be found in the LICENSE file.
+//
+
 package httpjsonrpc
 
 import (
@@ -59,10 +64,15 @@ func StartRPCServer() {
 	mainMux["getblockcount"] = GetBlockCount
 	mainMux["getblockbyheight"] = GetBlockByHeight
 	mainMux["getexistwithdrawtransactions"] = GetExistWithdrawTransactions
-	mainMux["listunspent"] = ListUnspent
-	mainMux["getutxosbyamount"] = GetUTXOsByAmount
-	mainMux["getamountbyinputs"] = GetAmountByInputs
 	mainMux["getreceivedbyaddress"] = GetReceivedByAddress
+	// wallet interfaces
+	mainMux["getamountbyinputs"] = GetAmountByInputs
+	mainMux["getutxosbyamount"] = GetUTXOsByAmount
+	mainMux["listunspent"] = ListUnspent
+	mainMux["createrawtransaction"] = CreateRawTransaction
+	mainMux["signrawtransactionwithkey"] = SignRawTransactionWithKey
+	mainMux["importaddress"] = ImportAddress
+	mainMux["importpubkey"] = ImportPubkey
 	// aux interfaces
 	mainMux["help"] = AuxHelp
 	mainMux["submitauxblock"] = SubmitAuxBlock
@@ -71,6 +81,9 @@ func StartRPCServer() {
 	mainMux["getmininginfo"] = GetMiningInfo
 	mainMux["togglemining"] = ToggleMining
 	mainMux["discretemining"] = DiscreteMining
+	//cr interfaces
+	mainMux["listcrcandidates"] = ListCRCandidates
+	mainMux["listcurrentcrs"] = ListCurrentCRs
 	// vote interfaces
 	mainMux["listproducers"] = ListProducers
 	mainMux["producerstatus"] = ProducerStatus

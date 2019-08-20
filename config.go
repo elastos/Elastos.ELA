@@ -1,3 +1,8 @@
+// Copyright (c) 2017-2019 Elastos Foundation
+// Use of this source code is governed by an MIT
+// license that can be found in the LICENSE file.
+//
+
 package main
 
 import (
@@ -5,7 +10,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/elastos/Elastos.ELA/elanet/pact"
 	"io/ioutil"
 	"net"
 	"strings"
@@ -13,6 +17,8 @@ import (
 
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
+	"github.com/elastos/Elastos.ELA/core/checkpoint"
+	"github.com/elastos/Elastos.ELA/elanet/pact"
 	"github.com/elastos/Elastos.ELA/utils/elalog"
 )
 
@@ -22,6 +28,9 @@ const (
 
 	// logPath indicates the path storing the node log.
 	nodeLogPath = "logs/node"
+
+	// checkpointPath indicates the path storing the checkpoint data
+	checkpointPath = "checkpoints"
 )
 
 var (
@@ -101,6 +110,9 @@ func loadConfigParams(cfg *config.Configuration) (*config.Configuration, error) 
 	if cfg.MinCrossChainTxFee > 0 {
 		activeNetParams.MinCrossChainTxFee = cfg.MinCrossChainTxFee
 	}
+	if cfg.CheckPointNoFlatFile {
+		activeNetParams.CheckPointNoFlatFile = cfg.CheckPointNoFlatFile
+	}
 	if cfg.FoundationAddress != "" {
 		foundation, err := common.Uint168FromAddress(cfg.FoundationAddress)
 		if err != nil {
@@ -127,6 +139,18 @@ func loadConfigParams(cfg *config.Configuration) (*config.Configuration, error) 
 	}
 	if cfg.PublicDPOSHeight > 0 {
 		activeNetParams.PublicDPOSHeight = cfg.PublicDPOSHeight
+	}
+	if cfg.CRCommitteeStartHeight > 0 {
+		activeNetParams.CRCommitteeStartHeight = cfg.CRCommitteeStartHeight
+	}
+	if cfg.CRVotingStartHeight > 0 {
+		activeNetParams.CRVotingStartHeight = cfg.CRVotingStartHeight
+	}
+	if cfg.EnableHistory || cfg.HistoryStartHeight > 0 {
+		activeNetParams.CkpManager = checkpoint.NewManager(&checkpoint.Config{
+			EnableHistory:      cfg.EnableHistory,
+			HistoryStartHeight: cfg.HistoryStartHeight,
+		})
 	}
 	if cfg.EnableActivateIllegalHeight > 0 {
 		activeNetParams.EnableActivateIllegalHeight =
@@ -187,6 +211,18 @@ func loadConfigParams(cfg *config.Configuration) (*config.Configuration, error) 
 	if cfg.DPoSConfiguration.EmergencyInactivePenalty > 0 {
 		activeNetParams.EmergencyInactivePenalty =
 			cfg.DPoSConfiguration.EmergencyInactivePenalty
+	}
+	if cfg.CRConfiguration.MemberCount > 0 {
+		activeNetParams.CRMemberCount = cfg.CRConfiguration.MemberCount
+	}
+	if cfg.CRConfiguration.DutyPeriod > 0 {
+		activeNetParams.CRDutyPeriod = cfg.CRConfiguration.DutyPeriod
+	}
+	if cfg.CRConfiguration.VotingPeriod > 0 {
+		activeNetParams.CRVotingPeriod = cfg.CRConfiguration.VotingPeriod
+	}
+	if cfg.EnableUtxoDB {
+		activeNetParams.EnableUtxoDB = cfg.EnableUtxoDB
 	}
 
 	return cfg, nil

@@ -1,3 +1,8 @@
+// Copyright (c) 2017-2019 Elastos Foundation
+// Use of this source code is governed by an MIT
+// license that can be found in the LICENSE file.
+//
+
 package blockchain
 
 import (
@@ -15,6 +20,7 @@ import (
 	"github.com/elastos/Elastos.ELA/common/log"
 	. "github.com/elastos/Elastos.ELA/core/types"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
+	crstate "github.com/elastos/Elastos.ELA/cr/state"
 	"github.com/elastos/Elastos.ELA/dpos/state"
 	"github.com/elastos/Elastos.ELA/events"
 )
@@ -37,6 +43,8 @@ type BlockChain struct {
 	chainParams *config.Params
 	db          IChainStore
 	state       *state.State
+	crCommittee *crstate.Committee
+	UTXOCache   *UTXOCache
 	GenesisHash Uint256
 
 	// The following fields are calculated based upon the provided chain
@@ -66,7 +74,8 @@ type BlockChain struct {
 	mutex          sync.RWMutex
 }
 
-func New(db IChainStore, chainParams *config.Params, state *state.State) (*BlockChain, error) {
+func New(db IChainStore, chainParams *config.Params, state *state.State,
+	committee *crstate.Committee) (*BlockChain, error) {
 
 	targetTimespan := int64(chainParams.TargetTimespan / time.Second)
 	targetTimePerBlock := int64(chainParams.TargetTimePerBlock / time.Second)
@@ -75,6 +84,8 @@ func New(db IChainStore, chainParams *config.Params, state *state.State) (*Block
 		chainParams:         chainParams,
 		db:                  db,
 		state:               state,
+		crCommittee:         committee,
+		UTXOCache:           NewUTXOCache(db),
 		GenesisHash:         chainParams.GenesisBlock.Hash(),
 		minRetargetTimespan: targetTimespan / adjustmentFactor,
 		maxRetargetTimespan: targetTimespan * adjustmentFactor,
@@ -119,22 +130,26 @@ func New(db IChainStore, chainParams *config.Params, state *state.State) (*Block
 	return &chain, nil
 }
 
-// InitProducerState go through all blocks since the start of DPOS
-// consensus to initialize producers and votes state.
-func (b *BlockChain) InitProducerState(interrupt <-chan struct{},
+// InitCheckpoint go through all blocks since the genesis block
+// to initialize all checkpoint.
+func (b *BlockChain) InitCheckpoint(interrupt <-chan struct{},
 	start func(total uint32), increase func()) (err error) {
 	bestHeight := b.db.GetHeight()
 	log.Info("current block height ->", bestHeight)
 	arbiters := DefaultLedger.Arbitrators
+	ckpManager := b.chainParams.CkpManager
 	done := make(chan struct{})
 	go func() {
 		// Notify initialize process start.
-		startHeight := b.chainParams.VoteStartHeight
-		if height, err := arbiters.RecoverFromCheckPoints(
-			bestHeight); err != nil {
-			log.Warn("recover form check points fail: ", err)
-		} else {
-			startHeight = height + 1
+		startHeight := uint32(0)
+
+		if err = ckpManager.Restore(); err != nil {
+			log.Warn(err)
+			err = nil
+		}
+		safeHeight := ckpManager.SafeHeight()
+		if startHeight < safeHeight {
+			startHeight = safeHeight + 1
 		}
 
 		log.Info("[RecoverFromCheckPoints] recover start height: ", startHeight)
@@ -163,7 +178,12 @@ func (b *BlockChain) InitProducerState(interrupt <-chan struct{},
 				break
 			}
 			confirm, _ := b.db.GetConfirm(block.Hash())
-			arbiters.ProcessBlock(block, confirm)
+
+			b.chainParams.CkpManager.OnBlockSaved(&DposBlock{
+				Block:       block,
+				HaveConfirm: confirm != nil,
+				Confirm:     confirm,
+			}, nil)
 
 			// Notify process increase.
 			if increase != nil {
@@ -189,7 +209,7 @@ func CalculateTxsFee(block *Block) {
 		if tx.IsCoinBaseTx() {
 			continue
 		}
-		references, err := DefaultLedger.Store.GetTxReference(tx)
+		references, err := DefaultLedger.Blockchain.UTXOCache.GetTxReferenceInfo(tx)
 		if err != nil {
 			log.Error("get transaction reference failed")
 			return
@@ -199,8 +219,8 @@ func CalculateTxsFee(block *Block) {
 		for _, output := range tx.Outputs {
 			outputValue += output.Value
 		}
-		for _, reference := range references {
-			inputValue += reference.Value
+		for _, outputInfo := range references {
+			inputValue += outputInfo.output.Value
 		}
 		// set Fee and FeePerKB if check has passed
 		tx.Fee = inputValue - outputValue
@@ -214,6 +234,9 @@ func CalculateTxsFee(block *Block) {
 // information.
 func (b *BlockChain) GetState() *state.State {
 	return b.state
+}
+func (b *BlockChain) GetCRCommittee() *crstate.Committee {
+	return b.crCommittee
 }
 
 func (b *BlockChain) GetHeight() uint32 {
@@ -813,7 +836,8 @@ func (b *BlockChain) reorganizeChain(detachNodes, attachNodes *list.List) error 
 
 		// roll back state about the last block before disconnect
 		if block.Height-1 >= b.chainParams.VoteStartHeight {
-			err = DefaultLedger.Arbitrators.RollbackTo(block.Height - 1)
+
+			err = b.chainParams.CkpManager.OnRollbackTo(block.Height - 1)
 			if err != nil {
 				return err
 			}
@@ -841,10 +865,12 @@ func (b *BlockChain) reorganizeChain(detachNodes, attachNodes *list.List) error 
 		}
 
 		// update state after connected block
-		if block.Height >= b.chainParams.VoteStartHeight {
-			DefaultLedger.Arbitrators.ProcessBlock(block, confirm)
-			DefaultLedger.Arbitrators.DumpInfo(block.Height)
-		}
+		b.chainParams.CkpManager.OnBlockSaved(&DposBlock{
+			Block:       block,
+			HaveConfirm: confirm != nil,
+			Confirm:     confirm,
+		}, nil)
+		DefaultLedger.Arbitrators.DumpInfo(block.Height)
 
 		delete(b.blockCache, *n.Hash)
 		delete(b.confirmCache, *n.Hash)
@@ -875,7 +901,8 @@ func (b *BlockChain) disconnectBlock(node *BlockNode, block *Block, confirm *pay
 
 	// Rollback state memory DB
 	if block.Height-1 >= b.chainParams.VoteStartHeight {
-		err := DefaultLedger.Arbitrators.RollbackTo(block.Height - 1)
+
+		err := b.chainParams.CkpManager.OnRollbackTo(block.Height - 1)
 		if err != nil {
 			return err
 		}
@@ -913,7 +940,8 @@ func (b *BlockChain) connectBlock(node *BlockNode, block *Block, confirm *payloa
 	}
 
 	if block.Height >= b.chainParams.CRCOnlyDPOSHeight {
-		if err := checkBlockWithConfirmation(block, confirm); err != nil {
+		if err := checkBlockWithConfirmation(block, confirm,
+			b.chainParams.CkpManager); err != nil {
 			return fmt.Errorf("block confirmation validate failed: %s", err)
 		}
 	}
@@ -1009,11 +1037,12 @@ func (b *BlockChain) maybeAcceptBlock(block *Block, confirm *payload.Confirm) (b
 		return false, err
 	}
 
-	if inMainChain && !reorganized && (block.Height >= b.chainParams.VoteStartHeight ||
-		// In case of VoteStartHeight larger than (CRCOnlyDPOSHeight-PreConnectOffset)
-		block.Height == b.chainParams.CRCOnlyDPOSHeight-b.chainParams.
-			PreConnectOffset) {
-		DefaultLedger.Arbitrators.ProcessBlock(block, confirm)
+	if inMainChain && !reorganized {
+		b.chainParams.CkpManager.OnBlockSaved(&DposBlock{
+			Block:       block,
+			HaveConfirm: confirm != nil,
+			Confirm:     confirm,
+		}, nil)
 		DefaultLedger.Arbitrators.DumpInfo(block.Height)
 	}
 

@@ -1,3 +1,8 @@
+// Copyright (c) 2017-2019 Elastos Foundation
+// Use of this source code is governed by an MIT
+// license that can be found in the LICENSE file.
+//
+
 package mempool
 
 import (
@@ -10,6 +15,7 @@ import (
 	. "github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/common/log"
+	"github.com/elastos/Elastos.ELA/core/contract"
 	. "github.com/elastos/Elastos.ELA/core/types"
 	"github.com/elastos/Elastos.ELA/core/types/outputpayload"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
@@ -27,6 +33,7 @@ type TxPool struct {
 	sidechainTxList map[Uint256]*Transaction // sidechain tx pool
 	ownerPublicKeys map[string]struct{}
 	nodePublicKeys  map[string]struct{}
+	crDIDs          map[Uint168]struct{}
 	specialTxList   map[Uint256]struct{} // specialTxList holds the payload hashes of all illegal transactions and inactive arbitrators transactions
 	txnListSize     int
 }
@@ -66,7 +73,12 @@ func (mp *TxPool) appendToTxPool(tx *Transaction) ErrCode {
 		log.Warn("[TxPool CheckTransactionSanity] failed", tx.Hash())
 		return errCode
 	}
-	if errCode := chain.CheckTransactionContext(bestHeight+1, tx); errCode != Success {
+	references, err := chain.UTXOCache.GetTxReferenceInfo(tx)
+	if err != nil {
+		log.Warn("[CheckTransactionContext] get transaction reference failed")
+		return ErrUnknownReferredTx
+	}
+	if errCode := chain.CheckTransactionContext(bestHeight+1, tx, references); errCode != Success {
 		log.Warn("[TxPool CheckTransactionContext] failed", tx.Hash())
 		return errCode
 	}
@@ -162,7 +174,7 @@ func (mp *TxPool) cleanTransactions(blockTxs []*Transaction) {
 			continue
 		}
 
-		inputUtxos, err := blockchain.DefaultLedger.Store.GetTxReference(blockTx)
+		inputUtxos, err := blockchain.DefaultLedger.Blockchain.UTXOCache.GetTxReferenceInfo(blockTx)
 		if err != nil {
 			log.Infof("Transaction=%s not exist when deleting, %s.",
 				blockTx.Hash(), err)
@@ -227,6 +239,33 @@ func (mp *TxPool) cleanTransactions(blockTxs []*Transaction) {
 						continue
 					}
 					mp.delOwnerPublicKey(BytesToHexString(cpPayload.OwnerPublicKey))
+				case RegisterCR:
+					rcPayload, ok := tx.Payload.(*payload.CRInfo)
+					if !ok {
+						log.Error("register CR payload cast failed, tx:", tx.Hash())
+						continue
+					}
+					mp.delCRDID(rcPayload.DID)
+				case UpdateCR:
+					rcPayload, ok := tx.Payload.(*payload.CRInfo)
+					if !ok {
+						log.Error("update CR payload cast failed, tx:", tx.Hash())
+						continue
+					}
+					mp.delCRDID(rcPayload.DID)
+				case UnregisterCR:
+					unrcPayload, ok := tx.Payload.(*payload.UnregisterCR)
+					if !ok {
+						log.Error("unregisterCR CR payload cast failed, tx:", tx.Hash())
+						continue
+					}
+					ct, err := contract.CreateCRDIDContractByCode(unrcPayload.Code)
+					if err != nil {
+						log.Error("invalid unregister CR code, tx:", tx.Hash())
+						continue
+					}
+					did := ct.ToProgramHash()
+					mp.delCRDID(*did)
 				}
 
 				deleteCount++
@@ -265,8 +304,8 @@ func (mp *TxPool) cleanVoteAndUpdateProducer(ownerPublicKey []byte) error {
 					}
 					for _, content := range opPayload.Contents {
 						if content.VoteType == outputpayload.Delegate {
-							for _, pubKey := range content.Candidates {
-								if bytes.Equal(ownerPublicKey, pubKey) {
+							for _, cv := range content.CandidateVotes {
+								if bytes.Equal(ownerPublicKey, cv.Candidate) {
 									mp.removeTransaction(txn)
 								}
 							}
@@ -316,7 +355,11 @@ func (mp *TxPool) verifyTransactionWithTxnPool(txn *Transaction) ErrCode {
 		return ErrDoubleSpend
 	}
 
-	return mp.verifyProducerRelatedTx(txn)
+	if errCode := mp.verifyProducerRelatedTx(txn); errCode != Success {
+		return errCode
+	}
+
+	return mp.verifyCRRelatedTx(txn)
 }
 
 //verify producer related transaction with txnpool
@@ -326,6 +369,7 @@ func (mp *TxPool) verifyProducerRelatedTx(txn *Transaction) ErrCode {
 		payload, ok := txn.Payload.(*payload.ProducerInfo)
 		if !ok {
 			log.Error("register producer payload cast failed, tx:", txn.Hash())
+			return ErrProducerProcessing
 		}
 		if err := mp.verifyDuplicateOwner(BytesToHexString(payload.OwnerPublicKey)); err != nil {
 			log.Warn(err)
@@ -339,6 +383,7 @@ func (mp *TxPool) verifyProducerRelatedTx(txn *Transaction) ErrCode {
 		payload, ok := txn.Payload.(*payload.ProducerInfo)
 		if !ok {
 			log.Error("update producer payload cast failed, tx:", txn.Hash())
+			return ErrProducerProcessing
 		}
 		if err := mp.verifyDuplicateOwner(BytesToHexString(payload.OwnerPublicKey)); err != nil {
 			log.Warn(err)
@@ -352,6 +397,7 @@ func (mp *TxPool) verifyProducerRelatedTx(txn *Transaction) ErrCode {
 		payload, ok := txn.Payload.(*payload.ProcessProducer)
 		if !ok {
 			log.Error("cancel producer payload cast failed, tx:", txn.Hash())
+			return ErrProducerProcessing
 		}
 		if err := mp.verifyDuplicateOwner(BytesToHexString(payload.OwnerPublicKey)); err != nil {
 			log.Warn(err)
@@ -361,6 +407,7 @@ func (mp *TxPool) verifyProducerRelatedTx(txn *Transaction) ErrCode {
 		payload, ok := txn.Payload.(*payload.ActivateProducer)
 		if !ok {
 			log.Error("activate producer payload cast failed, tx:", txn.Hash())
+			return ErrProducerProcessing
 		}
 		if err := mp.verifyDuplicateNode(BytesToHexString(payload.NodePublicKey)); err != nil {
 			log.Warn(err)
@@ -371,11 +418,56 @@ func (mp *TxPool) verifyProducerRelatedTx(txn *Transaction) ErrCode {
 		illegalData, ok := txn.Payload.(payload.DPOSIllegalData)
 		if !ok {
 			log.Error("special tx payload cast failed, tx:", txn.Hash())
+			return ErrProducerProcessing
 		}
 		hash := illegalData.Hash()
 		if err := mp.verifyDuplicateSpecialTx(&hash); err != nil {
 			log.Warn(err)
 			return ErrProducerProcessing
+		}
+	}
+
+	return Success
+}
+
+//verify CR related transaction with txnpool
+func (mp *TxPool) verifyCRRelatedTx(txn *Transaction) ErrCode {
+	switch txn.TxType {
+	case RegisterCR:
+		payload, ok := txn.Payload.(*payload.CRInfo)
+		if !ok {
+			log.Error("register CR payload cast failed, tx:", txn.Hash())
+			return ErrCRProcessing
+		}
+		if err := mp.verifyDuplicateCR(payload.DID); err != nil {
+			log.Warn(err)
+			return ErrCRProcessing
+		}
+	case UpdateCR:
+		payload, ok := txn.Payload.(*payload.CRInfo)
+		if !ok {
+			log.Error("update producer payload cast failed, tx:", txn.Hash())
+			return ErrCRProcessing
+		}
+		if err := mp.verifyDuplicateCR(payload.DID); err != nil {
+			log.Warn(err)
+			return ErrCRProcessing
+		}
+	case UnregisterCR:
+		payload, ok := txn.Payload.(*payload.UnregisterCR)
+		if !ok {
+			log.Error("update producer payload cast failed, tx:", txn.Hash())
+			return ErrCRProcessing
+		}
+		ct, err := contract.CreateCRDIDContractByCode(payload.Code)
+		if err != nil {
+			log.Error("invalid unregister CR code, tx:", txn.Hash())
+			return ErrCRProcessing
+		}
+		did := ct.ToProgramHash()
+		if err := mp.verifyDuplicateCR(*did); err != nil {
+			log.Warn(err)
+			return ErrCRProcessing
 		}
 	}
 
@@ -390,24 +482,24 @@ func (mp *TxPool) removeTransaction(tx *Transaction) {
 	}
 
 	//2.remove from UTXO list map
-	result, err := blockchain.DefaultLedger.Store.GetTxReference(tx)
+	reference, err := blockchain.DefaultLedger.Blockchain.UTXOCache.GetTxReferenceInfo(tx)
 	if err != nil {
 		log.Infof("Transaction=%s not exist when deleting, %s",
 			tx.Hash(), err)
 		return
 	}
-	for UTXOTxInput := range result {
+	for UTXOTxInput := range reference {
 		mp.delInputUTXOList(UTXOTxInput)
 	}
 }
 
 //check and add to utxo list pool
 func (mp *TxPool) verifyDoubleSpend(txn *Transaction) error {
-	reference, err := blockchain.DefaultLedger.Store.GetTxReference(txn)
+	reference, err := blockchain.DefaultLedger.Blockchain.UTXOCache.GetTxReferenceInfo(txn)
 	if err != nil {
 		return err
 	}
-	inputs := []*Input{}
+	inputs := make([]*Input, 0)
 	for k := range reference {
 		if txn := mp.getInputUTXOList(k); txn != nil {
 			return fmt.Errorf("double spent UTXO inputs detected, "+
@@ -482,6 +574,24 @@ func (mp *TxPool) addNodePublicKey(nodePublicKey string) {
 
 func (mp *TxPool) delNodePublicKey(nodePublicKey string) {
 	delete(mp.nodePublicKeys, nodePublicKey)
+}
+
+func (mp *TxPool) verifyDuplicateCR(did Uint168) error {
+	_, ok := mp.crDIDs[did]
+	if ok {
+		return errors.New("this CR in being processed")
+	}
+	mp.addCRDID(did)
+
+	return nil
+}
+
+func (mp *TxPool) addCRDID(did Uint168) {
+	mp.crDIDs[did] = struct{}{}
+}
+
+func (mp *TxPool) delCRDID(did Uint168) {
+	delete(mp.crDIDs, did)
 }
 
 func (mp *TxPool) addSpecialTx(hash *Uint256) {
@@ -657,5 +767,6 @@ func NewTxPool(params *config.Params) *TxPool {
 		ownerPublicKeys: make(map[string]struct{}),
 		nodePublicKeys:  make(map[string]struct{}),
 		specialTxList:   make(map[Uint256]struct{}),
+		crDIDs:          make(map[Uint168]struct{}),
 	}
 }

@@ -1,3 +1,8 @@
+// Copyright (c) 2017-2019 Elastos Foundation
+// Use of this source code is governed by an MIT
+// license that can be found in the LICENSE file.
+//
+
 package api
 
 import (
@@ -19,7 +24,6 @@ import (
 	"github.com/elastos/Elastos.ELA/crypto"
 	dlog "github.com/elastos/Elastos.ELA/dpos/log"
 	"github.com/elastos/Elastos.ELA/dpos/state"
-	"github.com/elastos/Elastos.ELA/dpos/store"
 	"github.com/elastos/Elastos.ELA/utils/http"
 	"github.com/elastos/Elastos.ELA/utils/signal"
 	"github.com/elastos/Elastos.ELA/utils/test"
@@ -172,27 +176,20 @@ func initLedger(L *lua.LState) int {
 	if err != nil {
 		fmt.Printf("Init chain store error: %s \n", err.Error())
 	}
-	dposStore, err := store.NewDposStore(test.DataPath)
-	if err != nil {
-		fmt.Printf("Init dpos store error: %s \n", err.Error())
-	}
 
-	arbiters, err := state.NewArbitrators(chainParams, dposStore,
+	arbiters, err := state.NewArbitrators(chainParams,
 		chainStore.GetHeight,
-		func() (block *types.Block, e error) {
-			hash := chainStore.GetCurrentBlockHash()
-			return chainStore.GetBlock(hash)
-		}, func(height uint32) (*types.Block, error) {
+		func(height uint32) (*types.Block, error) {
 			hash, err := chainStore.GetBlockHash(height)
 			if err != nil {
 				return nil, err
 			}
 			return chainStore.GetBlock(hash)
-		})
+		}, nil)
 
 	var interrupt = signal.NewInterrupt()
 	chain, err := blockchain.New(chainStore, chainParams,
-		state.NewState(chainParams, arbiters.GetArbitrators))
+		state.NewState(chainParams, arbiters.GetArbitrators, nil), nil)
 	if err != nil {
 		fmt.Printf("Init block chain error: %s \n", err.Error())
 	}
@@ -204,7 +201,7 @@ func initLedger(L *lua.LState) int {
 	blockchain.DefaultLedger.Store = chainStore
 	blockchain.DefaultLedger.Arbitrators = arbiters
 
-	err = chain.InitProducerState(interrupt.C, nil, nil)
+	err = chain.InitCheckpoint(interrupt.C, nil, nil)
 	if err != nil {
 		fmt.Printf("Init producers state error: %s \n", err.Error())
 	}
@@ -269,6 +266,8 @@ func RegisterDataType(L *lua.LState) int {
 	RegisterStringsType(L)
 	RegisterSidechainPowType(L)
 	RegisterProgramType(L)
-
+	RegisterRegisterCRType(L)
+	RegisterUpdateCRType(L)
+	RegisterUnregisterCRType(L)
 	return 0
 }

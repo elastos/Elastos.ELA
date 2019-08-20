@@ -1,3 +1,8 @@
+// Copyright (c) 2017-2019 Elastos Foundation
+// Use of this source code is governed by an MIT
+// license that can be found in the LICENSE file.
+//
+
 package main
 
 import (
@@ -12,8 +17,11 @@ import (
 
 	"github.com/elastos/Elastos.ELA/blockchain"
 	cmdcom "github.com/elastos/Elastos.ELA/cmd/common"
+	"github.com/elastos/Elastos.ELA/common"
+	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/common/log"
 	"github.com/elastos/Elastos.ELA/core/types"
+	crstate "github.com/elastos/Elastos.ELA/cr/state"
 	"github.com/elastos/Elastos.ELA/dpos"
 	"github.com/elastos/Elastos.ELA/dpos/account"
 	dlog "github.com/elastos/Elastos.ELA/dpos/log"
@@ -33,6 +41,7 @@ import (
 	"github.com/elastos/Elastos.ELA/utils"
 	"github.com/elastos/Elastos.ELA/utils/elalog"
 	"github.com/elastos/Elastos.ELA/utils/signal"
+	"github.com/elastos/Elastos.ELA/wallet"
 
 	"github.com/urfave/cli"
 )
@@ -116,6 +125,8 @@ func startNode(c *cli.Context) {
 
 	flagDataDir := c.String("datadir")
 	dataDir := filepath.Join(flagDataDir, dataPath)
+	activeNetParams.CkpManager.SetDataPath(
+		filepath.Join(dataDir, checkpointPath))
 
 	var act account.Account
 	if cfg.DPoSConfiguration.EnableArbiter {
@@ -139,8 +150,7 @@ func startNode(c *cli.Context) {
 
 	// Initializes the foundation address
 	blockchain.FoundationAddress = activeNetParams.Foundation
-
-	var dposStore store.IDposStore
+	blockchain.EnableUtxoDB = activeNetParams.EnableUtxoDB
 	chainStore, err := blockchain.NewChainStore(dataDir, activeNetParams.GenesisBlock)
 	if err != nil {
 		printErrorAndExit(err)
@@ -148,7 +158,8 @@ func startNode(c *cli.Context) {
 	defer chainStore.Close()
 	ledger.Store = chainStore // fixme
 
-	dposStore, err = store.NewDposStore(dataDir)
+	var dposStore store.IDposStore
+	dposStore, err = store.NewDposStore(dataDir, activeNetParams)
 	if err != nil {
 		printErrorAndExit(err)
 	}
@@ -160,16 +171,8 @@ func startNode(c *cli.Context) {
 
 	blockchain.DefaultLedger = &ledger // fixme
 
-	arbiters, err := state.NewArbitrators(activeNetParams, nil,
-		chainStore.GetHeight, func() (*types.Block, error) {
-			hash := chainStore.GetCurrentBlockHash()
-			block, err := chainStore.GetBlock(hash)
-			if err != nil {
-				return nil, err
-			}
-			blockchain.CalculateTxsFee(block)
-			return block, nil
-		}, func(height uint32) (*types.Block, error) {
+	arbiters, err := state.NewArbitrators(activeNetParams,
+		chainStore.GetHeight, func(height uint32) (*types.Block, error) {
 			hash, err := chainStore.GetBlockHash(height)
 			if err != nil {
 				return nil, err
@@ -180,13 +183,29 @@ func startNode(c *cli.Context) {
 			}
 			blockchain.CalculateTxsFee(block)
 			return block, nil
+		}, func(programHash common.Uint168) (common.Fixed64,
+			error) {
+			amount := common.Fixed64(0)
+			utxos, err := blockchain.DefaultLedger.Store.
+				GetUnspentFromProgramHash(programHash, config.ELAAssetID)
+			if err != nil {
+				return amount, err
+			}
+			for _, utxo := range utxos {
+				amount += utxo.Value
+			}
+			return amount, nil
 		})
 	if err != nil {
 		printErrorAndExit(err)
 	}
 	ledger.Arbitrators = arbiters // fixme
 
-	chain, err := blockchain.New(chainStore, activeNetParams, arbiters.State)
+	committee := crstate.NewCommittee(activeNetParams)
+	ledger.Committee = committee
+
+	chain, err := blockchain.New(chainStore, activeNetParams, arbiters.State,
+		committee)
 	if err != nil {
 		printErrorAndExit(err)
 	}
@@ -220,8 +239,7 @@ func startNode(c *cli.Context) {
 
 	var arbitrator *dpos.Arbitrator
 	if act != nil {
-		dcfg := cfg.DPoSConfiguration
-		dlog.Init(dcfg.PrintLevel, dcfg.MaxPerLogSize, dcfg.MaxLogsSize)
+		dlog.Init(uint8(cfg.PrintLevel), cfg.MaxPerLogSize, cfg.MaxLogsSize)
 		arbitrator, err = dpos.NewArbitrator(act, dpos.Config{
 			EnableEventLog:    true,
 			EnableEventRecord: false,
@@ -246,6 +264,11 @@ func startNode(c *cli.Context) {
 		defer arbitrator.Stop()
 	}
 
+	wal := wallet.New(flagDataDir)
+	wallet.Store = chainStore
+
+	activeNetParams.CkpManager.Register(wal)
+
 	servers.Compile = Version
 	servers.Config = cfg
 	servers.Chain = chain
@@ -253,6 +276,7 @@ func startNode(c *cli.Context) {
 	servers.TxMemPool = txMemPool
 	servers.Server = server
 	servers.Arbiters = arbiters
+	servers.Wallet = wal
 	servers.Pow = pow.NewService(&pow.Config{
 		PayToAddr:   cfg.PowConfiguration.PayToAddr,
 		MinerInfo:   cfg.PowConfiguration.MinerInfo,
@@ -268,7 +292,7 @@ func startNode(c *cli.Context) {
 	})
 
 	// initialize producer state after arbiters has initialized.
-	if err = chain.InitProducerState(interrupt.C, pgBar.Start,
+	if err = chain.InitCheckpoint(interrupt.C, pgBar.Start,
 		pgBar.Increase); err != nil {
 		printErrorAndExit(err)
 	}

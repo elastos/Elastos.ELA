@@ -1,3 +1,8 @@
+// Copyright (c) 2017-2019 Elastos Foundation
+// Use of this source code is governed by an MIT
+// license that can be found in the LICENSE file.
+// 
+
 package account
 
 import (
@@ -43,7 +48,7 @@ func (cs *FileStore) readDB() ([]byte, error) {
 	defer cs.closeDB()
 
 	var err error
-	cs.file, err = os.OpenFile(cs.path, os.O_RDONLY, 0666)
+	cs.file, err = os.OpenFile(cs.path, os.O_RDONLY, 0400)
 	if err != nil {
 		return nil, err
 	}
@@ -66,7 +71,7 @@ func (cs *FileStore) writeDB(data []byte) error {
 	defer cs.closeDB()
 
 	var err error
-	cs.file, err = os.OpenFile(cs.path, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0666)
+	cs.file, err = os.OpenFile(cs.path, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0600)
 	if err != nil {
 		return err
 	}

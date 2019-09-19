@@ -77,6 +77,7 @@ func setupNode() *cli.App {
 	app.Flags = []cli.Flag{
 		cmdcom.ConfigFileFlag,
 		cmdcom.DataDirFlag,
+		cmdcom.AccountWalletFlag,
 		cmdcom.AccountPasswordFlag,
 		cmdcom.TestNetFlag,
 		cmdcom.RegTestFlag,
@@ -127,7 +128,8 @@ func startNode(c *cli.Context, st *settings) {
 		if err != nil {
 			printErrorAndExit(err)
 		}
-		act, err = account.Open(password)
+		walletDataPath, err := cmdcom.GetFlagWalletPath(c)
+		act, err = account.Open(walletDataPath, password)
 		if err != nil {
 			printErrorAndExit(err)
 		}

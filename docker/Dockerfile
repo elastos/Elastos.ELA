@@ -22,9 +22,11 @@ RUN curl https://glide.sh/get | sh && cd $GOPATH/src/github.com/elastos/Elastos.
   glide update && glide install && make $MAKE_VERSION && mv ela ela-cli /
 # Building ela image
 FROM alpine:3.10.2
+ENV DATADIR=/data CONFFILE=/data/config.json PASSWORD=""
 # Copy ela binary
 COPY --from=builder /ela /ela-cli /
 # Expose p2p rpc http port
-EXPOSE 20334 20335 20336 20338
+EXPOSE 20334 20335 20336 20338 20339
+VOLUME [${DATADIR}]
 # Entrypoint for ela node
-ENTRYPOINT ["/ela"]
+CMD [ "/bin/sh", "-c", "/ela --conf=${CONFFILE} --datadir=${DATADIR} -p=${PASSWORD}" ]

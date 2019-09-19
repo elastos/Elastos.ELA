@@ -7,8 +7,8 @@ package common
 
 import (
 	"errors"
-
 	"github.com/elastos/Elastos.ELA/account"
+
 	"github.com/elastos/Elastos.ELA/utils"
 
 	"github.com/urfave/cli"
@@ -314,4 +314,13 @@ func GetFlagPassword(c *cli.Context) ([]byte, error) {
 	}
 
 	return password, nil
+}
+
+func GetFlagWalletPath(c *cli.Context) (string, error) {
+	flagWallet := c.String("wallet")
+	if flagWallet == "" {
+		return account.KeystoreFileName, nil
+	}
+
+	return flagWallet, nil
 }

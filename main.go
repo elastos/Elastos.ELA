@@ -128,8 +128,8 @@ func startNode(c *cli.Context, st *settings) {
 		if err != nil {
 			printErrorAndExit(err)
 		}
-		walletDataPath, err := cmdcom.GetFlagWalletPath(c)
-		act, err = account.Open(walletDataPath, password)
+		walletDataFile, err := cmdcom.GetFlagWalletFile(c)
+		act, err = account.Open(walletDataFile, password)
 		if err != nil {
 			printErrorAndExit(err)
 		}

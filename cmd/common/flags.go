@@ -316,7 +316,7 @@ func GetFlagPassword(c *cli.Context) ([]byte, error) {
 	return password, nil
 }
 
-func GetFlagWalletPath(c *cli.Context) (string, error) {
+func GetFlagWalletFile(c *cli.Context) (string, error) {
 	flagWallet := c.String("wallet")
 	if flagWallet == "" {
 		return account.KeystoreFileName, nil

@@ -2,11 +2,10 @@ version: "3"
 
 services:
   elanode:
-    hostname: elastos
     image: ela:0.4.0
     restart: always
     environment:
-      - PASSWORD="123"
+      - PASSWORD=
     network_mode: host
     cap_add:
       - ALL

@@ -84,8 +84,8 @@ func (a *dAccount) DecryptAddr(cipher []byte) (addr string, err error) {
 	return string(data), err
 }
 
-func Open(walletDataPath string, password []byte) (Account, error) {
-	client, err := account.Open(walletDataPath, password)
+func Open(walletDataFile string, password []byte) (Account, error) {
+	client, err := account.Open(walletDataFile, password)
 	if err != nil {
 		return nil, err
 	}

@@ -19,13 +19,15 @@ WORKDIR $GOPATH/src/github.com/elastos
 RUN git clone -b ${CODE_VERSION} --depth 10 ${GIT_URL}
 # Build Elastos.ELA Node
 RUN cd $GOPATH/src/github.com/elastos/Elastos.ELA && \
- make $MAKE_VERSION && mv bin/ela bin/ela-cli /
+ cp -r test/transaction / && make $MAKE_VERSION && \
+ mv ela ela-cli /
 # Building ela image
 FROM alpine:3.10.2
 ENV DATADIR=/data CONFFILE=/data/config.json \
   PASSWORD="" WALLETFILE=/data/keystore.dat
 # Copy ela binary
 COPY --from=builder /ela /ela-cli /
+COPY --from=builder /transaction ./
 # Expose p2p rpc http port
 EXPOSE 20334 20335 20336 20338 20339
 VOLUME [${DATADIR}]

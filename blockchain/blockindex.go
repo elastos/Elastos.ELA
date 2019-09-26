@@ -1,3 +1,8 @@
+// Copyright (c) 2017-2019 The Elastos Foundation
+// Use of this source code is governed by an MIT
+// license that can be found in the LICENSE file.
+//
+
 // Copyright (c) 2013-2016 The btcsuite developers
 // Copyright (c) 2017-2019 The Elastos Foundation
 // Use of this source code is governed by an MIT
@@ -75,11 +80,11 @@ type BlockNode struct {
 	Parent      *BlockNode
 	Children    []*BlockNode
 
-	// status is a bitfield representing the validation state of the block. The
-	// status field, unlike the other fields, may be written to and so should
+	// Status is a bitfield representing the validation state of the block. The
+	// Status field, unlike the other fields, may be written to and so should
 	// only be accessed using the concurrent-safe NodeStatus method on
 	// blockIndex once the node has been added to the global index.
-	status blockStatus
+	Status blockStatus
 }
 
 // NewBlockNode returns a new block node for the given block header and block
@@ -157,7 +162,7 @@ func (bi *blockIndex) LookupNode(hash *common.Uint256) (*BlockNode, bool) {
 func (bi *blockIndex) AddNode(node *BlockNode, header *types.Header) {
 	bi.Lock()
 	bi.addNode(node)
-	bi.dirty[header] = node.status
+	bi.dirty[header] = node.Status
 	bi.Unlock()
 }
 
@@ -169,17 +174,17 @@ func (bi *blockIndex) addNode(node *BlockNode) {
 	bi.index[*node.Hash] = node
 }
 
-// NodeStatus provides concurrent-safe access to the status field of a node.
+// NodeStatus provides concurrent-safe access to the Status field of a node.
 //
 // This function is safe for concurrent access.
 func (bi *blockIndex) NodeStatus(node *BlockNode) blockStatus {
 	bi.RLock()
-	status := node.status
+	status := node.Status
 	bi.RUnlock()
 	return status
 }
 
-// SetFlags set the status flags.
+// SetFlags set the Status flags.
 func (bi *blockIndex) SetFlags(header *types.Header, flags blockStatus) {
 	bi.Lock()
 	bi.dirty[header] = flags
@@ -197,7 +202,7 @@ func (bi *blockIndex) flushToDB() error {
 
 	err := bi.db.GetFFLDB().Update(func(dbTx database.Tx) error {
 		for header, v := range bi.dirty {
-			err := dbStoreBlockNode(dbTx, header, v)
+			err := DBStoreBlockNode(dbTx, header, v)
 			if err != nil {
 				return err
 			}

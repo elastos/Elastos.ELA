@@ -701,7 +701,7 @@ func (b *BlockChain) LoadBlockNode(blockHeader *Header, hash *Uint256) (*BlockNo
 
 	// Add the new node to the indices for faster lookups.
 	//b.Index[*hash] = node
-	b.index.AddNode(node, blockHeader)
+	b.index.addNode(node)
 	b.DepNodes[*prevHash] = append(b.DepNodes[*prevHash], node)
 
 	return node, nil
@@ -1063,10 +1063,13 @@ func (b *BlockChain) connectBlock(node *BlockNode, block *Block, confirm *payloa
 	// Add the new node to the memory main chain indices for faster
 	// lookups.
 	node.InMainChain = true
-	node.status = statusDataStored | statusValid
+	node.Status = statusDataStored | statusValid
 	//b.Index[*node.Hash] = node
 	b.SetTip(node)
 	b.index.AddNode(node, &block.Header)
+	if err := b.index.flushToDB(); err != nil {
+		return err
+	}
 	b.DepNodes[*prevHash] = append(b.DepNodes[*prevHash], node)
 
 	// This node is now the end of the best chain.
@@ -1129,7 +1132,7 @@ func (b *BlockChain) maybeAcceptBlock(block *Block, confirm *payload.Confirm) (b
 	// block chain (could be either a side chain or the main chain).
 	blockhash := block.Hash()
 	newNode := NewBlockNode(&block.Header, &blockhash)
-	newNode.status = statusDataStored
+	newNode.Status = statusDataStored
 	if prevNode != nil {
 		newNode.Parent = prevNode
 		newNode.Height = blockHeight
@@ -1210,7 +1213,7 @@ func (b *BlockChain) connectBestChain(node *BlockNode, block *Block, confirm *pa
 	b.blockCache[*node.Hash] = block
 	b.confirmCache[*node.Hash] = confirm
 	//b.Index[*node.Hash] = node
-	node.status = statusInvalidAncestor
+	node.Status = statusInvalidAncestor
 	b.index.AddNode(node, &block.Header)
 
 	// Connect the parent node to this node.

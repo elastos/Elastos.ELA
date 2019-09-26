@@ -282,6 +282,7 @@ func (b *BlockChain) createChainState() error {
 	// Create the new block node for the block and set the work.
 	node := NewBlockNode(header, &hash)
 	node.InMainChain = true
+	node.Status = statusDataStored | statusValid
 
 	b.BestChain = node
 
@@ -337,7 +338,7 @@ func (b *BlockChain) createChainState() error {
 		}
 
 		// Save the genesis block to the block index database.
-		err = dbStoreBlockNode(dbTx, header, statusDataStored|statusValid)
+		err = DBStoreBlockNode(dbTx, header, node.Status)
 		if err != nil {
 			return err
 		}
@@ -422,55 +423,34 @@ func (b *BlockChain) initChainState() error {
 			blockCount++
 		}
 		log.Info("block count:", blockCount)
-		blockNodes := make([]BlockNode, blockCount)
 
 		var i int32
 		var lastNode *BlockNode
 		cursor = blockIndexBucket.Cursor()
 		for ok := cursor.First(); ok; ok = cursor.Next() {
-			header, status, err := deserializeBlockRow(cursor.Value())
+			header, status, err := DeserializeBlockRow(cursor.Value())
 			if err != nil {
 				return err
 			}
 
-			// Determine the parent block node. Since we iterate block headers
-			// in order of height, if the blocks are mostly linear there is a
-			// very good chance the previous header processed is the parent.
-			var parent *BlockNode
-			if lastNode == nil {
-				blockHash := header.Hash()
-				if !blockHash.IsEqual(b.chainParams.GenesisBlock.Hash()) {
-					return fmt.Errorf("initChainState: Expected "+
-						"first entry in block index to be genesis block, "+
-						"found %s", blockHash)
-				}
-			} else if lastNode.Hash.IsEqual(header.Previous) {
-				// Since we iterate block headers in order of height, if the
-				// blocks are mostly linear there is a very good chance the
-				// previous header processed is the parent.
-				parent = lastNode
-			} else {
-				parent, ok = b.index.LookupNode(&header.Previous)
-				if !ok || parent == nil {
-					return fmt.Errorf("initChainState: Could "+
-						"not find parent for block %s", header.Hash())
-				}
+			curHash := header.Hash()
+			if lastNode == nil && !curHash.IsEqual(b.chainParams.GenesisBlock.Hash()) {
+				return fmt.Errorf("initChainState: Expected "+
+					"first entry in block index to be genesis block, "+
+					"found %s", curHash)
 			}
 
 			// Initialize the block node for the block, connect it,
 			// and add it to the block index.
-			curHash := header.Hash()
 			node, err := b.LoadBlockNode(header, &curHash)
 			if err != nil {
 				return fmt.Errorf("initChainState: Could "+
 					"not load block node for block %s", header.Hash())
 			}
-			b.index.SetFlags(header, status)
-			node.status = status
-			blockNodes[i] = *node
-			b.Nodes = append(b.Nodes, &blockNodes[i])
+			node.Status = status
+			b.Nodes = append(b.Nodes, node)
 
-			lastNode = &blockNodes[i]
+			lastNode = node
 			i++
 		}
 
@@ -488,7 +468,7 @@ func (b *BlockChain) initChainState() error {
 		// As a final consistency check, we'll run through all the nodes which
 		// are ancestors of the current chain tip, and find the real tip.
 		for iterNode := lastNode; iterNode != nil; iterNode = iterNode.Parent {
-			if iterNode.status.KnownValid() {
+			if iterNode.Status.KnownValid() {
 				b.setTip(iterNode)
 				break
 			}
@@ -508,9 +488,9 @@ func (b *BlockChain) initChainState() error {
 	return nil
 }
 
-// deserializeBlockRow parses a value in the block index bucket into a block
-// header and block status bitfield.
-func deserializeBlockRow(blockRow []byte) (*types.Header, blockStatus, error) {
+// DeserializeBlockRow parses a value in the block index bucket into a block
+// header and block Status bitfield.
+func DeserializeBlockRow(blockRow []byte) (*types.Header, blockStatus, error) {
 	buffer := bytes.NewReader(blockRow)
 
 	var header types.Header
@@ -527,9 +507,9 @@ func deserializeBlockRow(blockRow []byte) (*types.Header, blockStatus, error) {
 	return &header, blockStatus(statusByte), nil
 }
 
-// dbStoreBlockNode stores the block header to the block index bucket.
+// DBStoreBlockNode stores the block header to the block index bucket.
 // This overwrites the current entry if there exists one.
-func dbStoreBlockNode(dbTx database.Tx, header *types.Header,
+func DBStoreBlockNode(dbTx database.Tx, header *types.Header,
 	status blockStatus) error {
 	// Serialize block data to be stored.
 	w := bytes.NewBuffer(make([]byte, 0, blockHdrNoAuxSize))

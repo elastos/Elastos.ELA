@@ -1,7 +1,7 @@
 // Copyright (c) 2017-2019 The Elastos Foundation
 // Use of this source code is governed by an MIT
 // license that can be found in the LICENSE file.
-// 
+//
 
 package blockchain
 
@@ -23,10 +23,10 @@ import (
 )
 
 const (
-	// blockDbNamePrefix is the prefix for the block database name.  The
+	// blockDbNameSuffix is the suffix for the block database name.  The
 	// database type is appended to this value to form the full block
 	// database name.
-	blockDbNamePrefix = "blocks"
+	blockDbNameSuffix = "blocks"
 )
 
 type ChainStoreFFLDB struct {
@@ -52,17 +52,6 @@ func NewChainStoreFFLDB(dataDir string) (IFFLDBChainStore, error) {
 	return s, nil
 }
 
-// dbPath returns the path to the block database given a database type.
-func blockDbPath(dataPath, dbType string) string {
-	// The database name is based on the database type.
-	dbName := blockDbNamePrefix + "_" + dbType
-	if dbType == "sqlite" {
-		dbName = dbName + ".db"
-	}
-	dbPath := filepath.Join(dataPath, dbName)
-	return dbPath
-}
-
 // loadBlockDB loads (or creates when needed) the block database taking into
 // account the selected database backend and returns a handle to it.  It also
 // contains additional logic such warning the user if there are multiple
@@ -73,11 +62,10 @@ func LoadBlockDB(dataPath string) (database.DB, error) {
 	// handle it uniquely.  We also don't want to worry about the multiple
 	// database type warnings when running with the memory database.
 
-	// The database name is based on the database type.
-	dbType := "ffldb"
-	dbPath := blockDbPath(dataPath, dbType)
-
+	dbPath := filepath.Join(dataPath, blockDbNameSuffix)
 	log.Infof("Loading block database from '%s'", dbPath)
+
+	dbType := "ffldb"
 	db, err := database.Open(dbType, dbPath, wire.MainNet)
 	if err != nil {
 		// Return the error if it's not because the database doesn't

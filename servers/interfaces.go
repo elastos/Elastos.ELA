@@ -1841,7 +1841,7 @@ func GetCRDepositCoin(param Params) map[string]interface{} {
 	crState := Chain.GetCRCommittee().GetState()
 	candidate := crState.GetCandidateByDID(*programHash)
 	if candidate == nil {
-		return ResponsePack(InvalidParams, "not find CR candidate")
+		return ResponsePack(InvalidParams, "can not find CR candidate")
 	}
 
 	type depositCoin struct {

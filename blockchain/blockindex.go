@@ -12,13 +12,13 @@
 package blockchain
 
 import (
-	"github.com/elastos/Elastos.ELA/common/config"
-	"github.com/elastos/Elastos.ELA/database"
 	"math/big"
 	"sync"
 
 	"github.com/elastos/Elastos.ELA/common"
+	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/core/types"
+	"github.com/elastos/Elastos.ELA/database"
 )
 
 // blockStatus is a bit field representing the validation state of the block.

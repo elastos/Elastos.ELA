@@ -398,3 +398,7 @@ func (c *ChainStoreFFLDB) InitIndex(chain indexers.IChain, interrupt <-chan stru
 func (c *ChainStoreFFLDB) GetUnspent(txID Uint256) ([]uint16, error) {
 	return c.indexManager.FetchUnspent(txID)
 }
+
+func (c *ChainStoreFFLDB) GetUTXO(programHash *Uint168) ([]*UTXO, error) {
+	return c.indexManager.FetchUTXO(programHash)
+}

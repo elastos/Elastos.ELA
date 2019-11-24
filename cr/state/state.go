@@ -37,9 +37,6 @@ type State struct {
 	mtx     sync.RWMutex
 	params  *config.Params
 	history *utils.History
-
-	votesCacheKeys map[uint32][]string
-	votesCache     map[string]*types.Output
 }
 
 // GetCandidate returns candidate with specified program code, it will return
@@ -217,17 +214,6 @@ func (s *State) FinishVoting(dids []common.Uint168) *StateKeyFrame {
 // packed into a block.  Then loop through the transactions to update CR
 // state and votes according to transactions content.
 func (s *State) processTransactions(txs []*types.Transaction, height uint32) {
-	// Remove cached votes
-	if len(s.votesCacheKeys) >= CacheCRVotesSize {
-		for k, v := range s.votesCacheKeys {
-			if k <= height-CacheCRVotesSize {
-				for _, referKey := range v {
-					delete(s.votesCache, referKey)
-				}
-				delete(s.votesCacheKeys, k)
-			}
-		}
-	}
 
 	for _, tx := range txs {
 		s.processTransaction(tx, height)
@@ -302,7 +288,7 @@ func (s *State) registerCR(tx *types.Transaction, height uint32) {
 		if output.ProgramHash.IsEqual(candidate.depositHash) {
 			amount += output.Value
 			op := types.NewOutPoint(tx.Hash(), uint16(i))
-			s.DepositOutputs[op.ReferKey()] = output
+			s.processDepositOutput(op.ReferKey(), output, height)
 		}
 	}
 	candidate.depositAmount = amount
@@ -426,10 +412,20 @@ func (s *State) processDeposit(tx *types.Transaction, height uint32) {
 		if contract.GetPrefixType(output.ProgramHash) == contract.PrefixDeposit {
 			if s.addCandidateAssert(output, height) {
 				op := types.NewOutPoint(tx.Hash(), uint16(i))
-				s.DepositOutputs[op.ReferKey()] = output
+				s.processDepositOutput(op.ReferKey(), output, height)
 			}
 		}
 	}
+}
+
+// processDepositOutput record deposit related output.
+func (s *State) processDepositOutput(referKey string, output *types.Output,
+	height uint32) {
+	s.history.Append(height, func() {
+		s.DepositOutputs[referKey] = output
+	}, func() {
+		delete(s.DepositOutputs, referKey)
+	})
 }
 
 // returnDeposit change producer state to ReturnedDeposit
@@ -527,27 +523,14 @@ func (s *State) processCancelVotes(tx *types.Transaction, height uint32) {
 		referKey := input.ReferKey()
 		output, ok := s.Votes[referKey]
 		if ok {
-			if output == nil {
-				output, ok = s.votesCache[referKey]
-				if !ok {
-					log.Errorf("invalid votes output")
-					return
-				}
-			}
-			s.processVoteCancel(output, height)
-			if _, exist := s.votesCacheKeys[height]; !exist {
-				s.votesCacheKeys[height] = make([]string, 0)
-			}
-			s.votesCacheKeys[height] = append(s.votesCacheKeys[height], referKey)
-			s.votesCache[referKey] = output
-
-			s.Votes[referKey] = nil
+			s.processVoteCancel(referKey, output, height)
 		}
 	}
 }
 
 // processVoteCancel takes a previous vote output and decrease CR votes.
-func (s *State) processVoteCancel(output *types.Output, height uint32) {
+func (s *State) processVoteCancel(referKey string, output *types.Output,
+	height uint32) {
 	p := output.Payload.(*outputpayload.VoteOutput)
 	for _, vote := range p.Contents {
 		for _, cv := range vote.CandidateVotes {
@@ -570,6 +553,11 @@ func (s *State) processVoteCancel(output *types.Output, height uint32) {
 			}
 		}
 	}
+	s.history.Append(height, func() {
+		delete(s.Votes, referKey)
+	}, func() {
+		s.Votes[referKey] = output
+	})
 }
 
 func (s *State) getCandidateByDID(did common.Uint168) *Candidate {
@@ -637,10 +625,8 @@ func (s *State) getCandidateFromMap(cmap map[common.Uint168]*Candidate,
 
 func NewState(chainParams *config.Params) *State {
 	return &State{
-		StateKeyFrame:  *NewStateKeyFrame(),
-		params:         chainParams,
-		history:        utils.NewHistory(maxHistoryCapacity),
-		votesCacheKeys: make(map[uint32][]string),
-		votesCache:     make(map[string]*types.Output),
+		StateKeyFrame: *NewStateKeyFrame(),
+		params:        chainParams,
+		history:       utils.NewHistory(maxHistoryCapacity),
 	}
 }

@@ -535,7 +535,6 @@ func (c *dbCache) flush() error {
 //
 // This function MUST be called with the database write lock held.
 func (c *dbCache) needsFlush(tx *transaction) bool {
-	return true
 	// A flush is needed when more time has elapsed than the configured
 	// flush interval.
 	if time.Since(c.lastFlush) > c.flushInterval {
@@ -593,7 +592,7 @@ func (c *dbCache) commitTx(tx *transaction) error {
 	// the transaction to the cache.
 
 	// Since the cached keys to be added and removed use an immutable treap,
-	// a snapshot is simp ly obtaining the root of the tree under the lock
+	// a snapshot is simply obtaining the root of the tree under the lock
 	// which is used to atomically swap the root.
 	c.cacheLock.RLock()
 	newCachedKeys := c.cachedKeys

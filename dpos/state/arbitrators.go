@@ -1288,6 +1288,6 @@ func NewArbitrators(chainParams *config.Params, committee *state.Committee,
 	a.State = NewState(chainParams, a.GetArbitrators,
 		getProducerDepositAmount)
 
-	chainParams.CkpManager.Register(NewCheckpoint(a))
+	//chainParams.CkpManager.Register(NewCheckpoint(a))
 	return a, nil
 }

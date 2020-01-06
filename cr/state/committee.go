@@ -882,6 +882,6 @@ func NewCommittee(params *config.Params) *Committee {
 		lastHistory:  utils.NewHistory(maxHistoryCapacity),
 	}
 	committee.state.SetManager(committee.manager)
-	params.CkpManager.Register(NewCheckpoint(committee))
+	//params.CkpManager.Register(NewCheckpoint(committee))
 	return committee
 }

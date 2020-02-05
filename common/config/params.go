@@ -198,6 +198,7 @@ var DefaultParams = Params{
 	WalletPath:                  "keystore.dat",
 	RPCServiceLevel:             ConfigurationPermitted.String(),
 	NodeProfileStrategy:         Balanced.String(),
+	MaxNodePerHost:              10,
 	CkpManager: checkpoint.NewManager(&checkpoint.Config{
 		EnableHistory:      false,
 		HistoryStartHeight: uint32(0),
@@ -261,6 +262,7 @@ func (p *Params) TestNet() *Params {
 	copy.VoterRejectPercentage = 10
 	copy.CRCAppropriatePercentage = 10
 	copy.MaxCommitteeProposalCount = 128
+	copy.MaxNodePerHost = 10
 
 	return &copy
 }
@@ -321,6 +323,8 @@ func (p *Params) RegNet() *Params {
 	copy.VoterRejectPercentage = 10
 	copy.CRCAppropriatePercentage = 10
 	copy.MaxCommitteeProposalCount = 128
+	copy.MaxNodePerHost = 10
+
 	return &copy
 }
 
@@ -541,6 +545,8 @@ type Params struct {
 
 	// TxCacheVolume defines the default volume of the transaction cache.
 	TxCacheVolume uint32
+	//MaxNodePerHost defines max nodes that one host can establish
+	MaxNodePerHost uint32
 }
 
 // rewardPerBlock calculates the reward for each block by a specified time

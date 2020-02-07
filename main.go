@@ -13,6 +13,7 @@ import (
 	"runtime"
 	"runtime/debug"
 	"strconv"
+	"syscall"
 	"time"
 
 	"github.com/elastos/Elastos.ELA/blockchain"
@@ -75,6 +76,32 @@ func main() {
 	}
 }
 
+func setLimits(st *settings.Settings) error {
+	var rLimit syscall.Rlimit
+	fileLimitWant := st.Params().FileLimitWant
+	fileLimitMin := st.Params().FileLimitMin
+	err := syscall.Getrlimit(syscall.RLIMIT_NOFILE, &rLimit)
+	if err != nil {
+		return err
+	}
+	if rLimit.Cur > fileLimitWant {
+		return nil
+	}
+	if rLimit.Max < fileLimitMin {
+		rLimit.Cur = fileLimitMin
+		rLimit.Max = fileLimitMin
+	} else {
+		rLimit.Cur = fileLimitWant
+		rLimit.Max = fileLimitWant
+	}
+	if err = syscall.Setrlimit(syscall.RLIMIT_NOFILE, &rLimit); err != nil {
+		err = fmt.Errorf("use sudo to run it")
+		return err
+	}
+
+	return nil
+}
+
 func setupNode() *cli.App {
 	appSettings := settings.NewSettings()
 
@@ -108,6 +135,12 @@ func setupNode() *cli.App {
 
 		// Use all processor cores.
 		runtime.GOMAXPROCS(runtime.NumCPU())
+
+		// Set open file descriptors limits.
+		if err := setLimits(appSettings); err != nil {
+			fmt.Fprintf(os.Stderr, "failed to set limits: %v\n", err)
+			os.Exit(1)
+		}
 
 		// Block and transaction processing can cause bursty allocations.  This
 		// limits the garbage collector from excessively overallocating during

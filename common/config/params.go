@@ -198,6 +198,8 @@ var DefaultParams = Params{
 	WalletPath:                  "keystore.dat",
 	RPCServiceLevel:             ConfigurationPermitted.String(),
 	NodeProfileStrategy:         Balanced.String(),
+	FileLimitWant:               2048,
+	FileLimitMin:                1024,
 	CkpManager: checkpoint.NewManager(&checkpoint.Config{
 		EnableHistory:      false,
 		HistoryStartHeight: uint32(0),
@@ -537,6 +539,12 @@ type Params struct {
 
 	// NodeProfileStrategy defines strategy about node profiling.
 	NodeProfileStrategy string
+
+	// expected number of file descriptors
+	FileLimitWant uint64
+
+	// minimum number of file descriptors
+	FileLimitMin uint64
 }
 
 // rewardPerBlock calculates the reward for each block by a specified time

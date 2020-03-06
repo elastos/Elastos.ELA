@@ -280,7 +280,6 @@ func getCRCProposalWithdrawTx(proposalHash common.Uint256,
 	crcProposalWithdraw := &payload.CRCProposalWithdraw{
 		ProposalHash:     proposalHash,
 		SponsorPublicKey: sponsorPublicKey,
-		Fee:              fee,
 	}
 
 	signBuf := new(bytes.Buffer)

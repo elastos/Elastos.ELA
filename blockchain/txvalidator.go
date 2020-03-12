@@ -2330,6 +2330,15 @@ func (b *BlockChain) checkReturnCRDepositCoinTransaction(txn *Transaction,
 		}
 
 		availableValue += b.crCommittee.GetAvailableDepositAmount(*cid)
+
+		c := b.crCommittee.GetCandidate(*cid)
+		if c != nil {
+			if currentHeight-c.CancelHeight() < b.chainParams.CRDepositLockupBlocks {
+				return errors.New("return deposit does not meet the lockup limit")
+			}
+		} else {
+			return errors.New("the candidate was not found")
+		}
 	}
 
 	// Check output amount.

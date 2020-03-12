@@ -2855,16 +2855,16 @@ func (s *txValidatorTestSuite) TestCheckReturnCRDepositCoinTransaction() {
 	// check a return cr deposit coin transaction when not reached the
 	// count of DepositLockupBlocks in voting period.
 	rdTx.Programs[0].Code = code
-	s.CurrentHeight = 2159 + canceledHeight
+	s.CurrentHeight = 2150 + canceledHeight
 	err = s.Chain.checkReturnCRDepositCoinTransaction(
-		rdTx, references, 2159+canceledHeight)
-	s.EqualError(err, "candidate overspend deposit")
+		rdTx, references, s.CurrentHeight)
+	s.EqualError(err, "return deposit does not meet the lockup limit")
 
 	// check a return cr deposit coin transaction with wrong output amount.
 	rdTx.Outputs[0].Value = 5000 * 100000000
 	s.CurrentHeight = 2160 + canceledHeight
 	err = s.Chain.checkReturnCRDepositCoinTransaction(
-		rdTx, references, 2160+canceledHeight)
+		rdTx, references, s.CurrentHeight)
 	s.EqualError(err, "candidate overspend deposit")
 
 	// check a correct return cr deposit coin transaction.

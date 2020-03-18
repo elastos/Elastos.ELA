@@ -2329,6 +2329,11 @@ func (b *BlockChain) checkReturnCRDepositCoinTransaction(txn *Transaction,
 			return errors.New("signer must be refundable")
 		}
 
+		c := b.crCommittee.GetCandidate(*cid)
+		if c != nil && currentHeight-c.CancelHeight() < b.chainParams.CRDepositLockupBlocks {
+				return errors.New("return cr deposit does not meet the lockup limit")
+		}
+
 		availableValue += b.crCommittee.GetAvailableDepositAmount(*cid)
 	}
 

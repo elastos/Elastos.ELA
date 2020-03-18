@@ -2858,7 +2858,7 @@ func (s *txValidatorTestSuite) TestCheckReturnCRDepositCoinTransaction() {
 	s.CurrentHeight = 2159 + canceledHeight
 	err = s.Chain.checkReturnCRDepositCoinTransaction(
 		rdTx, references, 2159+canceledHeight)
-	s.EqualError(err, "candidate overspend deposit")
+	s.EqualError(err, "return cr deposit does not meet the lockup limit")
 
 	// check a return cr deposit coin transaction with wrong output amount.
 	rdTx.Outputs[0].Value = 5000 * 100000000

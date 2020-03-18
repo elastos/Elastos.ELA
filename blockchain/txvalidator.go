@@ -2106,6 +2106,9 @@ func (b *BlockChain) checkCRCProposalTransaction(txn *Transaction,
 		if b.Stage != stage {
 			return errors.New("the first phase starts incrementing")
 		}
+		if b.Amount < 0 {
+			return errors.New("amout is not allowed to be negative")
+		}
 		stage++
 		amount += b.Amount
 	}

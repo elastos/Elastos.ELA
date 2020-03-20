@@ -1,7 +1,7 @@
 // Copyright (c) 2017-2020 The Elastos Foundation
 // Use of this source code is governed by an MIT
 // license that can be found in the LICENSE file.
-// 
+//
 
 package httpjsonrpc
 
@@ -16,6 +16,8 @@ import (
 	"net/http"
 	"strconv"
 	"time"
+
+	"github.com/rs/cors"
 
 	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/common/log"
@@ -100,8 +102,9 @@ func StartRPCServer() {
 	mainMux["getarbitersinfo"] = GetArbitersInfo
 
 	rpcServeMux := http.NewServeMux()
+	c := cors.New(cors.Options{})
 	server := http.Server{
-		Handler:      rpcServeMux,
+		Handler:      c.Handler(rpcServeMux),
 		ReadTimeout:  IOTimeout,
 		WriteTimeout: IOTimeout,
 	}

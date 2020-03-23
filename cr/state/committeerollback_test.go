@@ -2295,7 +2295,7 @@ func TestCommitee_RollbackCRCBlendTx(t *testing.T) {
 		WithdrawableBudgets))
 	assert.Equal(t, 1, len(committee.GetProposal(proposalCHash).
 		WithdrawnBudgets))
-	assert.Equal(t, true, committee.InElectionPeriod)
+	assert.Equal(t, false, committee.InElectionPeriod)
 
 	keyFrameB := committee.Snapshot()
 
@@ -2520,7 +2520,7 @@ func TestCommitee_RollbackCRCBlendAppropriationTx(t *testing.T) {
 		WithdrawableBudgets))
 	assert.Equal(t, 1, len(committee.GetProposal(proposalCHash).
 		WithdrawnBudgets))
-	assert.Equal(t, true, committee.InElectionPeriod)
+	assert.Equal(t, false, committee.InElectionPeriod)
 
 	// rollback
 	currentHeight--

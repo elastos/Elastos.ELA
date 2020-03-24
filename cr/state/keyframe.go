@@ -1,7 +1,7 @@
 // Copyright (c) 2017-2020 The Elastos Foundation
 // Use of this source code is governed by an MIT
 // license that can be found in the LICENSE file.
-// 
+//
 
 package state
 
@@ -106,9 +106,9 @@ type ProposalState struct {
 	WithdrawableBudgets map[uint8]common.Fixed64 // proposalTracking
 	FinalPaymentStatus  bool
 
-	TrackingCount     uint8
-	TerminatedHeight  uint32
-	ProposalLeader    []byte
+	TrackingCount    uint8
+	TerminatedHeight uint32
+	ProposalLeader   []byte
 }
 
 type ProposalHashSet map[common.Uint256]struct{}
@@ -118,9 +118,8 @@ func NewProposalHashSet() ProposalHashSet {
 }
 
 func (set *ProposalHashSet) Add(proposalHash common.Uint256) bool {
-	_, found := (*set)[proposalHash]
-	if found {
-		return false //False if it existed already
+	if _, found := (*set)[proposalHash]; found {
+		return false
 	}
 	(*set)[proposalHash] = struct{}{}
 	return true
@@ -134,23 +133,13 @@ func (set *ProposalHashSet) Remove(proposalHash common.Uint256) {
 	delete(*set, proposalHash)
 }
 
-func (set *ProposalHashSet) Contains(proposalHash common.Uint256) bool {
-	if _, ok := (*set)[proposalHash]; !ok {
-		return false
-	}
-	return true
-}
-
-func (set *ProposalHashSet) Len() int {
-	return len(*set)
-}
-
 func (set *ProposalHashSet) Equal(other ProposalHashSet) bool {
-	if set.Len() != other.Len() {
+	if len(*set) != len(other) {
 		return false
 	}
 	for elem := range *set {
-		if !other.Contains(elem) {
+		key := elem
+		if _, ok := other[key]; !ok {
 			return false
 		}
 	}

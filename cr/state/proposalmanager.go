@@ -253,26 +253,22 @@ func (p *ProposalManager) shouldEndCRCVote(RegisterHeight uint32,
 // about the specified proposal.
 func (p *ProposalManager) shouldEndPublicVote(VoteStartHeight uint32,
 	height uint32) bool {
-	return VoteStartHeight+p.params.ProposalPublicVotingPeriod <=
-		height
-}
+	return height >= VoteStartHeight+p.params.ProposalPublicVotingPeriod
 
-func (p *ProposalManager) isProposalFull(did common.Uint168) bool {
-	return p.getProposalCount(did) >= int(p.params.MaxCommitteeProposalCount)
 }
 
 func (p *ProposalManager) getProposalCount(did common.Uint168) int {
-	proposalHashsSet, ok := p.ProposalHashes[did]
-	if !ok {
-		return 0
-	}
-	return proposalHashsSet.Len()
+	proposalHashSets, _ := p.ProposalHashes[did]
+	return len(proposalHashSets)
 }
 
-func (p *ProposalManager) addProposal(did common.Uint168,
-	proposalHash common.Uint256) {
-	proposalHashesSet, ok := p.ProposalHashes[did]
-	if !ok {
+func (p *ProposalManager) isProposalFull(did common.Uint168) bool {
+	return p.getProposalCount(did) >= p.params.MaxCommitteeProposalCount
+}
+
+func (p *ProposalManager) addProposal(did common.Uint168, proposalHash common.Uint256) {
+	proposalHashesSet, found := p.ProposalHashes[did]
+	if !found {
 		proposalHashesSet = NewProposalHashSet()
 		proposalHashesSet.Add(proposalHash)
 		p.ProposalHashes[did] = proposalHashesSet

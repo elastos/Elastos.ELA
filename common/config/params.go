@@ -546,7 +546,7 @@ type Params struct {
 	CRCAppropriatePercentage float64
 
 	//MaxCommitteeProposalCount defines per committee max proposal count
-	MaxCommitteeProposalCount uint32
+	MaxCommitteeProposalCount int
 
 	// SecretaryGeneral defines the secretary general of CR.
 	SecretaryGeneral string

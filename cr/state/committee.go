@@ -144,7 +144,9 @@ func (c *Committee) GetAllMembers() []*CRMember {
 func (c *Committee) GetElectedMembers() []*CRMember {
 	c.mtx.RLock()
 	defer c.mtx.RUnlock()
-
+	if !c.InElectionPeriod {
+		return []*CRMember{}
+	}
 	return getElectedCRMembers(c.Members)
 }
 
@@ -152,7 +154,9 @@ func (c *Committee) GetElectedMembers() []*CRMember {
 func (c *Committee) GetImpeachableMembers() []*CRMember {
 	c.mtx.RLock()
 	defer c.mtx.RUnlock()
-
+	if !c.InElectionPeriod {
+		return []*CRMember{}
+	}
 	return getImpeachableCRMembers(c.Members)
 }
 

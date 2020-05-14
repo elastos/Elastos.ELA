@@ -520,7 +520,7 @@ func checkDestructionAddress(references map[*Input]Output) error {
 func (b *BlockChain) checkInvalidUTXO(txn *Transaction) error {
 	currentHeight := DefaultLedger.Blockchain.GetHeight()
 	for _, input := range txn.Inputs {
-		referTxn, err := b.UTXOCache.GetTransaction(input.Previous.TxID)
+		referTxn, _, err := b.UTXOCache.GetTransaction(input.Previous.TxID)
 		if err != nil {
 			return err
 		}

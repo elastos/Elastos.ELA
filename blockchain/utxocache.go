@@ -1,7 +1,7 @@
 // Copyright (c) 2017-2020 The Elastos Foundation
 // Use of this source code is governed by an MIT
 // license that can be found in the LICENSE file.
-// 
+//
 
 package blockchain
 
@@ -60,7 +60,7 @@ func (up *UTXOCache) GetTxReference(tx *types.Transaction) (map[*types.Input]typ
 		if output, exist := up.reference[*input]; exist {
 			result[input] = output
 		} else {
-			prevTx, err := up.getTransaction(input.Previous.TxID)
+			prevTx, _, err := up.getTransaction(input.Previous.TxID)
 			if err != nil {
 				return nil, errors.New("GetTxReference failed, " + err.Error())
 			}
@@ -76,7 +76,8 @@ func (up *UTXOCache) GetTxReference(tx *types.Transaction) (map[*types.Input]typ
 	return result, nil
 }
 
-func (up *UTXOCache) GetTransaction(txID common.Uint256) (*types.Transaction, error) {
+
+func (up *UTXOCache) GetTransaction(txID common.Uint256) (*types.Transaction, uint32, error) {
 	up.Lock()
 	defer up.Unlock()
 
@@ -97,18 +98,19 @@ func (up *UTXOCache) insertTransaction(txID common.Uint256, tx *types.Transactio
 	up.txCache[txID] = tx
 }
 
-func (up *UTXOCache) getTransaction(txID common.Uint256) (*types.Transaction, error) {
+func (up *UTXOCache) getTransaction(txID common.Uint256) (*types.Transaction, uint32, error) {
 	prevTx, exist := up.txCache[txID]
+	var height uint32
 	if !exist {
 		var err error
-		prevTx, _, err = up.db.GetTransaction(txID)
+		prevTx, height, err = up.db.GetTransaction(txID)
 		if err != nil {
-			return nil, errors.New("transaction not found, " + err.Error())
+			return nil, 0, errors.New("transaction not found, " + err.Error())
 		}
 		up.insertTransaction(txID, prevTx)
 	}
 
-	return prevTx, nil
+	return prevTx, height, nil
 }
 
 func (up *UTXOCache) CleanTxCache() {

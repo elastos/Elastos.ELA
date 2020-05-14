@@ -965,7 +965,7 @@ func GetUTXOsByAmount(param Params) map[string]interface{} {
 		if totalAmount >= *amount {
 			break
 		}
-		tx, height, err := Store.GetTransaction(utxo.TxID)
+		tx, height, err := Chain.UTXOCache.GetTransaction(utxo.TxID)
 		if err != nil {
 			return ResponsePack(InternalError, "unknown transaction "+
 				utxo.TxID.String()+" from persisted utxo")
@@ -1066,7 +1066,7 @@ func ListUnspent(param Params) map[string]interface{} {
 			return ResponsePack(InvalidParams, "list unspent failed, "+err.Error())
 		}
 		for _, utxo := range utxos {
-			tx, height, err := Store.GetTransaction(utxo.TxID)
+			tx, height, err := Chain.UTXOCache.GetTransaction(utxo.TxID)
 			if err != nil {
 				return ResponsePack(InternalError,
 					"unknown transaction "+utxo.TxID.String()+" from persisted utxo")

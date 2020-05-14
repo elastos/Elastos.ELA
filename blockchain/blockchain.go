@@ -392,7 +392,7 @@ func (b *BlockChain) getUTXOsFromAddress(address Uint168) ([]*UTXO, error) {
 	}
 	curHeight := b.getHeight()
 	for _, utxo := range utxos {
-		referTxn, err := b.UTXOCache.GetTransaction(utxo.TxID)
+		referTxn, _, err := b.UTXOCache.GetTransaction(utxo.TxID)
 		if err != nil {
 			return nil, err
 		}

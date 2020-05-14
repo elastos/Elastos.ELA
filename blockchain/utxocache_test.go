@@ -134,7 +134,7 @@ func TestUTXOCache_GetTxReferenceInfo(t *testing.T) {
 
 func TestUTXOCache_CleanSpent(t *testing.T) {
 	utxoCache.CleanTxCache()
-	_, err := utxoCache.GetTransaction(spendTx.Hash())
+	_, _, err := utxoCache.GetTransaction(spendTx.Hash())
 	assert.Equal(t, "transaction not found, leveldb: not found", err.Error())
 }
 

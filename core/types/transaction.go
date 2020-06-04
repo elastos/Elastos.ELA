@@ -279,9 +279,11 @@ func (tx *Transaction) DeserializeUnsigned(r io.Reader) error {
 			return err
 		}
 		tx.TxType = TxType(txType[0])
+		fmt.Printf("if tx.TxType===>%d\n", tx.TxType)
 	} else {
 		tx.Version = TxVersionDefault
 		tx.TxType = TxType(flagByte[0])
+		fmt.Printf("else tx.TxType===>%d\n", tx.TxType)
 	}
 
 	payloadVersion, err := common.ReadBytes(r, 1)
@@ -340,6 +342,15 @@ func (tx *Transaction) DeserializeUnsigned(r io.Reader) error {
 	if err != nil {
 		return err
 	}
+
+	fmt.Printf("tx.Version===>%d\n", tx.Version)
+	fmt.Printf("tx.TxType===>%d\n", tx.TxType)
+	fmt.Printf("tx.Payload===>%d\n", tx.Payload)
+	fmt.Printf("tx.PayloadVersion===>%d\n", tx.PayloadVersion)
+	fmt.Printf("tx.Attributes===>%v\n", tx.Attributes)
+	fmt.Printf("tx.Inputs===>%v\n", tx.Inputs)
+	fmt.Printf("tx.Outputs===>%v\n", tx.Outputs)
+	fmt.Printf("tx.LockTime%v\n", tx.LockTime)
 
 	return nil
 }

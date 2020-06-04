@@ -617,6 +617,8 @@ func (s *transactionSuite) TestCRCProposal_Deserialize() {
 			s.True(crpPayloadEqual(crpPayload1, crpPayload2))
 		} else if proposalType == payload.CloseProposal {
 			s.True(crpPayloadCloseProposalEqual(crpPayload1, crpPayload2))
+		} else if proposalType == payload.ChangeProposalOwner {
+			s.True(crpPayloadChangeProposalOwnerEqual(crpPayload1, crpPayload2))
 		}
 
 	}
@@ -628,6 +630,18 @@ func crpPayloadEqual(payload1 *payload.CRCProposal, payload2 *payload.CRCProposa
 		bytes.Equal(payload1.OwnerPublicKey, payload2.OwnerPublicKey) &&
 		payload1.CRCouncilMemberDID.IsEqual(payload2.CRCouncilMemberDID) &&
 		payload1.DraftHash.IsEqual(payload2.DraftHash) &&
+		bytes.Equal(payload1.Signature, payload2.Signature) &&
+		bytes.Equal(payload1.CRCouncilMemberSignature, payload2.CRCouncilMemberSignature)
+}
+
+func crpPayloadChangeProposalOwnerEqual(payload1 *payload.CRCProposal, payload2 *payload.CRCProposal) bool {
+	return payload1.ProposalType == payload2.ProposalType &&
+		bytes.Equal(payload1.OwnerPublicKey, payload2.OwnerPublicKey) &&
+		bytes.Equal(payload1.NewOwnerPublicKey, payload2.NewOwnerPublicKey) &&
+		payload1.DraftHash.IsEqual(payload2.DraftHash) &&
+		payload1.Recipient.IsEqual(payload2.Recipient) &&
+		payload1.TargetProposalHash.IsEqual(payload2.TargetProposalHash) &&
+		payload1.CRCouncilMemberDID.IsEqual(payload2.CRCouncilMemberDID) &&
 		bytes.Equal(payload1.Signature, payload2.Signature) &&
 		bytes.Equal(payload1.CRCouncilMemberSignature, payload2.CRCouncilMemberSignature)
 }

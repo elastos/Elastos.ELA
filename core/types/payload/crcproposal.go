@@ -8,6 +8,7 @@ package payload
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"io"
 
 	"github.com/elastos/Elastos.ELA/common"
@@ -435,16 +436,14 @@ func (p *CRCProposal) DeserializeUnSignedNormalOrELIP(r io.Reader, version byte)
 
 func (p *CRCProposal) DeserializeUnSignedChangeProposalOwner(r io.Reader, version byte) error {
 	var err error
-	p.CategoryData, err = common.ReadVarString(r)
-	if err != nil {
+	if p.CategoryData, err = common.ReadVarString(r); err != nil {
 		return errors.New("[CRCProposal], Category data deserialize failed")
+	}
+	if p.OwnerPublicKey, err = common.ReadVarBytes(r, crypto.NegativeBigLength, "owner"); err != nil {
+		return errors.New("failed to deserialize OwnerPublicKey")
 	}
 	if err = p.DraftHash.Deserialize(r); err != nil {
 		return errors.New("failed to deserialize DraftHash")
-	}
-	p.OwnerPublicKey, err = common.ReadVarBytes(r, crypto.NegativeBigLength, "owner")
-	if err != nil {
-		return errors.New("failed to deserialize OwnerPublicKey")
 	}
 	if err = p.Recipient.Deserialize(r); err != nil {
 		return errors.New("failed to deserialize Recipient")
@@ -452,10 +451,16 @@ func (p *CRCProposal) DeserializeUnSignedChangeProposalOwner(r io.Reader, versio
 	if err = p.TargetProposalHash.Deserialize(r); err != nil {
 		return errors.New("failed to deserialize TargetProposalHash")
 	}
-	p.NewOwnerPublicKey, err = common.ReadVarBytes(r, crypto.NegativeBigLength, "owner")
-	if err != nil {
+	if p.NewOwnerPublicKey, err = common.ReadVarBytes(r, crypto.NegativeBigLength, "owner"); err != nil {
 		return errors.New("failed to deserialize NewOwnerPublicKey")
 	}
+
+	fmt.Printf("CategoryData--->%v\n", p.CategoryData)
+	fmt.Printf("OwnerPublicKey--->%v\n", p.OwnerPublicKey)
+	fmt.Printf("DraftHash--->%v\n", p.DraftHash)
+	fmt.Printf("Recipient--->%v\n", p.Recipient)
+	fmt.Printf("TargetProposalHash--->%v\n", p.TargetProposalHash)
+	fmt.Printf("NewOwnerPublicKey--->%v\n", p.NewOwnerPublicKey)
 
 	return nil
 }

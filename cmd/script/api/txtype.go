@@ -1,7 +1,7 @@
 // Copyright (c) 2017-2020 The Elastos Foundation
 // Use of this source code is governed by an MIT
 // license that can be found in the LICENSE file.
-// 
+//
 
 package api
 
@@ -112,6 +112,9 @@ func newTransaction(L *lua.LState) int {
 	}
 	udn := L.NewUserData()
 	udn.Value = txn
+
+	fmt.Println("####txn***", txn.TxType)
+
 	L.SetMetatable(udn, L.GetTypeMetatable(luaTransactionTypeName))
 	L.Push(udn)
 

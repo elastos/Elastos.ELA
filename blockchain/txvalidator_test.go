@@ -2891,6 +2891,7 @@ func (s *txValidatorTestSuite) TestGenrateTxFromRawTxStr() {
 	rawTxStr2 := common.BytesToHexString(buf2.Bytes())
 	s.Equal(rawTxStr2, rawTxStr)
 	s.Equal("dc327a5ef958385a23082e8c73b2fa7c330793ad601587db84ecec3977989b33", tx.Hash().String())
+	fmt.Println(tx.String())
 }
 
 func (s *txValidatorTestSuite) TestGenerateRawTransactionStr() {
@@ -2920,6 +2921,7 @@ func (s *txValidatorTestSuite) TestGenerateRawTransactionStr() {
 		fmt.Println("txn2.Deserialize err2", err2)
 	}
 	s.Equal(txn2.Hash().String(), txn.Hash().String())
+	fmt.Println(txn.String())
 
 }
 

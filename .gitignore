@@ -3,6 +3,7 @@
 .idea/**/*.xml
 .idea/codeStyles
 .DS_Store
+*.bak
 *.orig
 *.rej
 *.json

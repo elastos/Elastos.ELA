@@ -257,6 +257,8 @@ func (m *Manager) SetDataPath(path string) {
 
 // RegisterNeedSave register the need save function.
 func (m *Manager) SetNeedSave(needSave bool) {
+	m.mtx.Lock()
+	defer m.mtx.Unlock()
 	m.cfg.NeedSave = needSave
 }
 
@@ -284,7 +286,6 @@ func (m *Manager) onBlockSaved(block *types.DposBlock,
 			continue
 		}
 		v.OnBlockSaved(block)
-
 		if !m.cfg.NeedSave {
 			continue
 		}

@@ -175,6 +175,8 @@ func (a *AddrManager) SetCheckAddr(checkAddr func(addr string) error) {
 // updateAddress is a helper function to either update an address already known
 // to the address manager, or to add the address if not already known.
 func (a *AddrManager) updateAddress(netAddr, srcAddr *p2p.NetAddress) {
+	a.mtx.Lock()
+	defer a.mtx.Unlock()
 	// Filter out non-routable addresses. Note that non-routable
 	// also includes invalid and local addresses.
 	if !IsRoutable(netAddr) {
@@ -631,9 +633,6 @@ func (a *AddrManager) Stop() {
 // number of addresses and silently ignores duplicate addresses.  It is
 // safe for concurrent access.
 func (a *AddrManager) AddAddresses(addrs []*p2p.NetAddress, srcAddr *p2p.NetAddress) {
-	a.mtx.Lock()
-	defer a.mtx.Unlock()
-
 	for _, na := range addrs {
 		a.updateAddress(na, srcAddr)
 	}
@@ -643,9 +642,6 @@ func (a *AddrManager) AddAddresses(addrs []*p2p.NetAddress, srcAddr *p2p.NetAddr
 // number of addresses and silently ignores duplicate addresses.  It is
 // safe for concurrent access.
 func (a *AddrManager) AddAddress(addr, srcAddr *p2p.NetAddress) {
-	a.mtx.Lock()
-	defer a.mtx.Unlock()
-
 	a.updateAddress(addr, srcAddr)
 }
 

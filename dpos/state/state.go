@@ -1531,16 +1531,23 @@ func (s *State) countArbitratorsInactivity(height uint32,
 	for k := range s.PreBlockArbiters {
 		changingArbiters[k] = true
 	}
+	for k, v := range changingArbiters {
+		log.Info("### before changingArbiters ", k , v)
+	}
 	s.PreBlockArbiters = make(map[string]struct{})
 	arbiters, _ := s.getArbiters()
 	for _, a := range arbiters {
 		key := s.getProducerKey(a.NodePublicKey)
+		log.Info("Key ", key)
 		s.PreBlockArbiters[key] = struct{}{}
 		if _, exist := changingArbiters[key]; exist {
 			changingArbiters[key] = false
 		}
 	}
 	changingArbiters[s.getProducerKey(confirm.Proposal.Sponsor)] = true
+	for k, v := range changingArbiters {
+		log.Info("### after changingArbiters ", k , v)
+	}
 	log.Info("### current sponsor ", s.getProducerKey(confirm.Proposal.Sponsor))
 	crMembersMap := s.getClaimedCRMembersMap()
 	for k, _ := range crMembersMap {
@@ -1550,14 +1557,13 @@ func (s *State) countArbitratorsInactivity(height uint32,
 	// so they will not be inactive
 	for k, v := range changingArbiters {
 		needReset := v // avoiding pass iterator to closure
-
+		log.Info("### changingArbiters nodepublickey ", k , needReset)
 		if s.isInElectionPeriod != nil && s.isInElectionPeriod() {
-			log.Info("### changingArbiters nodepublickey ", k)
 			if cr, ok := crMembersMap[k]; ok {
 				oriState := cr.MemberState
 				oriCountingHeight := cr.InactiveCountingHeight
 				log.Info("### crMembersMap ", cr.Info.NickName, ",InactiveCountingHeight ", cr.InactiveCountingHeight,
-					",current height ", height, ",MaxInactiveParam ", s.chainParams.MaxInactiveRounds)
+					",current height ", height, ",MaxInactiveParam ", s.chainParams.MaxInactiveRounds, needReset)
 				s.history.Append(height, func() {
 					s.tryUpdateCRMemberInactivity(cr, needReset, height)
 				}, func() {
@@ -1584,11 +1590,11 @@ func (s *State) countArbitratorsInactivity(height uint32,
 
 func (s *State) tryUpdateCRMemberInactivity(crMember *state.CRMember,
 	needReset bool, height uint32) {
+	log.Info("Comming in ", needReset , crMember.Info.NickName)
 	if needReset {
 		crMember.InactiveCountingHeight = 0
 		return
 	}
-
 	if crMember.InactiveCountingHeight == 0 {
 		crMember.InactiveCountingHeight = height
 	}

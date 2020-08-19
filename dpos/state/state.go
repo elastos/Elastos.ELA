@@ -1541,7 +1541,7 @@ func (s *State) countArbitratorsInactivity(height uint32,
 		}
 	}
 	changingArbiters[s.getProducerKey(confirm.Proposal.Sponsor)] = true
-
+	log.Info("### current sponsor ",s.getProducerKey(confirm.Proposal.Sponsor))
 	crMembersMap := s.getClaimedCRMembersMap()
 	// CRC producers are not in the ActivityProducers,
 	// so they will not be inactive
@@ -1549,9 +1549,12 @@ func (s *State) countArbitratorsInactivity(height uint32,
 		needReset := v // avoiding pass iterator to closure
 
 		if s.isInElectionPeriod != nil && s.isInElectionPeriod() {
+			log.Info("### changingArbiters nodepublickey ",k)
 			if cr, ok := crMembersMap[k]; ok {
 				oriState := cr.MemberState
 				oriCountingHeight := cr.InactiveCountingHeight
+				log.Info("### crMembersMap ",cr.Info.NickName, ",InactiveCountingHeight ",cr.InactiveCountingHeight,
+					",current height ",height,",MaxInactiveParam ",s.chainParams.MaxInactiveRounds)
 				s.history.Append(height, func() {
 					s.tryUpdateCRMemberInactivity(cr, needReset, height)
 				}, func() {

@@ -577,7 +577,7 @@ func (a *arbitrators) distributeWithNormalArbitratorsV2(height uint32, reward co
 		if _, ok := a.currentCRCArbitersMap[ownerHash]; ok {
 			r = individualBlockConfirmReward
 			m, ok := arbiter.(*crcArbiter)
-			if !ok || m.crMember.MemberState != state.MemberElected {
+			if !ok || m.crMember.MemberState != state.MemberElected || m.crMember.DPOSPublicKey == nil {
 				rewardHash = a.chainParams.DestroyELAAddress
 			} else {
 				pk := arbiter.GetOwnerPublicKey()
@@ -732,7 +732,7 @@ func (a *arbitrators) getNeedConnectArbiters() []peer.PID {
 }
 
 func (a *arbitrators) IsArbitrator(pk []byte) bool {
-	arbitrators := a.GetArbitrators()
+	arbitrators, _ := a.GetArbitrators()
 
 	for _, v := range arbitrators {
 		if !v.IsNormal {
@@ -745,8 +745,9 @@ func (a *arbitrators) IsArbitrator(pk []byte) bool {
 	return false
 }
 
-func (a *arbitrators) GetArbitrators() []*ArbiterInfo {
+func (a *arbitrators) GetArbitrators() ([]*ArbiterInfo, []ArbiterMember) {
 	a.mtx.Lock()
+	defer a.mtx.Unlock()
 	result := make([]*ArbiterInfo, 0, len(a.currentArbitrators))
 	for _, v := range a.currentArbitrators {
 		isNormal := true
@@ -759,9 +760,8 @@ func (a *arbitrators) GetArbitrators() []*ArbiterInfo {
 			IsNormal:      isNormal,
 		})
 	}
-	a.mtx.Unlock()
 
-	return result
+	return result, a.currentArbitrators
 }
 
 func (a *arbitrators) GetCandidates() [][]byte {
@@ -993,7 +993,8 @@ func (a *arbitrators) GetOnDutyCrossChainArbitrator() []byte {
 
 func (a *arbitrators) GetCrossChainArbiters() []*ArbiterInfo {
 	if a.bestHeight() < a.chainParams.CRCOnlyDPOSHeight-1 {
-		return a.GetArbitrators()
+		info, _ := a.GetArbitrators()
+		return info
 	}
 	return a.GetCRCArbiters()
 }

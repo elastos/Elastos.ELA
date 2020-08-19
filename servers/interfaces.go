@@ -437,7 +437,8 @@ func GetArbitersInfo(params Params) map[string]interface{} {
 		NextTurnStartHeight: int(Chain.GetHeight()) +
 			Arbiters.GetArbitersCount() - dutyIndex,
 	}
-	for _, v := range Arbiters.GetArbitrators() {
+	arbiters, _ := Arbiters.GetArbitrators()
+	for _, v := range arbiters {
 		result.Arbiters = append(result.Arbiters, common.BytesToHexString(v.NodePublicKey))
 	}
 	for _, v := range Arbiters.GetCandidates() {

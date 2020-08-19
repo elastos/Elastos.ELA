@@ -3378,7 +3378,8 @@ func checkDPOSElaIllegalBlockSigners(
 	}
 
 	arbitratorsSet := make(map[string]interface{})
-	for _, v := range DefaultLedger.Arbitrators.GetArbitrators() {
+	arbiters, _ := DefaultLedger.Arbitrators.GetArbitrators()
+	for _, v := range arbiters {
 		arbitratorsSet[common.BytesToHexString(v.NodePublicKey)] = nil
 	}
 

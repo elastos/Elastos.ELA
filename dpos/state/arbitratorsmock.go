@@ -198,7 +198,8 @@ func (a *ArbitratorsMock) GetCrossChainArbitersCount() int {
 }
 
 func (a *ArbitratorsMock) GetCrossChainArbiters() []*ArbiterInfo {
-	return a.GetArbitrators()
+	info, _ := a.GetArbitrators()
+	return info
 }
 
 func (a *ArbitratorsMock) GetDutyChangeCount() int {
@@ -217,7 +218,7 @@ func (a *ArbitratorsMock) SetDutyChangeCount(count int) {
 	a.DutyChangedCount = count
 }
 
-func (a *ArbitratorsMock) GetArbitrators() []*ArbiterInfo {
+func (a *ArbitratorsMock) GetArbitrators() ([]*ArbiterInfo, []ArbiterMember) {
 	result := make([]*ArbiterInfo, 0, len(a.CurrentArbitrators))
 	for _, v := range a.CurrentArbitrators {
 		isNormal := true
@@ -231,7 +232,7 @@ func (a *ArbitratorsMock) GetArbitrators() []*ArbiterInfo {
 			IsNormal:      isNormal,
 		})
 	}
-	return result
+	return result, a.CurrentArbitrators
 }
 
 func (a *ArbitratorsMock) GetNormalArbitrators() ([][]byte, error) {

@@ -43,7 +43,7 @@ func (e *eventAnalyzer) ParseInactiveArbitrators() (result []string) {
 		PK    string
 	}
 	var sortItems []sortItem
-	currentArbitrators := e.cfg.Arbitrators.GetArbitrators()
+	currentArbitrators, _ := e.cfg.Arbitrators.GetArbitrators()
 	for _, v := range currentArbitrators {
 		if e.cfg.Arbitrators.IsCRCArbitrator(v.NodePublicKey) {
 			continue

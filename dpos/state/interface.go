@@ -21,7 +21,7 @@ type Arbitrators interface {
 	IsArbitrator(pk []byte) bool
 	IsNextCRCArbitrator(pk []byte) bool
 	IsMemberElectedNextCRCArbitrator(pk []byte) bool
-	GetArbitrators() []*ArbiterInfo
+	GetArbitrators() ([]*ArbiterInfo, []ArbiterMember)
 	GetCandidates() [][]byte
 	GetNextArbitrators() [][]byte
 	GetNextCandidates() [][]byte

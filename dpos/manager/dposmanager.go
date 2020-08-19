@@ -1,7 +1,7 @@
 // Copyright (c) 2017-2020 The Elastos Foundation
 // Use of this source code is governed by an MIT
 // license that can be found in the LICENSE file.
-// 
+//
 
 package manager
 
@@ -389,7 +389,7 @@ func (d *DPOSManager) recoverAbnormalState() bool {
 		return false
 	}
 
-	if arbiters := d.arbitrators.GetArbitrators(); len(arbiters) != 0 {
+	if arbiters, _ := d.arbitrators.GetArbitrators(); len(arbiters) != 0 {
 		if peers := d.network.GetActivePeers(); len(peers) == 0 {
 			log.Error("[recoverAbnormalState] can not find active peer")
 			return false

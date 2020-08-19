@@ -244,7 +244,7 @@ type State struct {
 	*StateKeyFrame
 
 	// getArbiters defines methods about get current arbiters
-	getArbiters              func() []*ArbiterInfo
+	getArbiters              func() ([]*ArbiterInfo, []ArbiterMember)
 	getCRMembers             func() []*state.CRMember
 	isInElectionPeriod       func() bool
 	getProducerDepositAmount func(programHash common.Uint168) (
@@ -1303,14 +1303,16 @@ func (s *State) updateVersion(tx *types.Transaction, height uint32) {
 	})
 }
 
-func (s *State) getCRMembersMap() map[string]*state.CRMember {
+func (s *State) getClaimedCRMembersMap() map[string]*state.CRMember {
 	crMembersMap := make(map[string]*state.CRMember)
 	if s.getCRMembers == nil {
 		return crMembersMap
 	}
 	crMembers := s.getCRMembers()
 	for _, m := range crMembers {
-		crMembersMap[hex.EncodeToString(m.DPOSPublicKey)] = m
+		if m.DPOSPublicKey != nil {
+			crMembersMap[hex.EncodeToString(m.DPOSPublicKey)] = m
+		}
 	}
 	return crMembersMap
 }
@@ -1397,7 +1399,7 @@ func (s *State) processIllegalEvidence(payloadData types.Payload,
 		return
 	}
 
-	crMembersMap := s.getCRMembersMap()
+	crMembersMap := s.getClaimedCRMembersMap()
 	// Set illegal producers to FoundBad state
 	for _, pk := range illegalProducers {
 		key, ok := s.NodeOwnerKeys[hex.EncodeToString(pk)]
@@ -1530,7 +1532,8 @@ func (s *State) countArbitratorsInactivity(height uint32,
 		changingArbiters[k] = true
 	}
 	s.PreBlockArbiters = make(map[string]struct{})
-	for _, a := range s.getArbiters() {
+	arbiters, _ := s.getArbiters()
+	for _, a := range arbiters {
 		key := s.getProducerKey(a.NodePublicKey)
 		s.PreBlockArbiters[key] = struct{}{}
 		if _, exist := changingArbiters[key]; exist {
@@ -1539,7 +1542,7 @@ func (s *State) countArbitratorsInactivity(height uint32,
 	}
 	changingArbiters[s.getProducerKey(confirm.Proposal.Sponsor)] = true
 
-	crMembersMap := s.getCRMembersMap()
+	crMembersMap := s.getClaimedCRMembersMap()
 	// CRC producers are not in the ActivityProducers,
 	// so they will not be inactive
 	for k, v := range changingArbiters {
@@ -1669,7 +1672,7 @@ func (s *State) handleEvents(event *events.Event) {
 }
 
 // NewState returns a new State instance.
-func NewState(chainParams *config.Params, getArbiters func() []*ArbiterInfo,
+func NewState(chainParams *config.Params, getArbiters func() ([]*ArbiterInfo, []ArbiterMember),
 	getCRMembers func() []*state.CRMember,
 	isInElectionPeriod func() bool,
 	getProducerDepositAmount func(common.Uint168) (common.Fixed64, error)) *State {

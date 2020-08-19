@@ -180,7 +180,7 @@ func ProposalSanityCheck(proposal *payload.DPOSProposal) error {
 }
 
 func ProposalContextCheck(proposal *payload.DPOSProposal) error {
-	arbiters := DefaultLedger.Arbitrators.GetArbitrators()
+	arbiters, _ := DefaultLedger.Arbitrators.GetArbitrators()
 	var isArbiter bool
 	for _, a := range arbiters {
 		if !a.IsNormal {
@@ -257,7 +257,7 @@ func VoteSanityCheck(vote *payload.DPOSProposalVote) error {
 }
 
 func VoteContextCheck(vote *payload.DPOSProposalVote) error {
-	arbiters := DefaultLedger.Arbitrators.GetArbitrators()
+	arbiters, _ := DefaultLedger.Arbitrators.GetArbitrators()
 	var isArbiter bool
 	for _, a := range arbiters {
 		if !a.IsNormal {

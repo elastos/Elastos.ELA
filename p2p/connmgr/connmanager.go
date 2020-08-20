@@ -368,10 +368,7 @@ out:
 // NewConnReq creates a new connection request and connects to the
 // corresponding address.
 func (cm *ConnManager) NewConnReq(newAddress func() (net.Addr, error)) {
-	if atomic.LoadInt32(&cm.stop) != 0 {
-		return
-	}
-	if newAddress == nil {
+	if atomic.LoadInt32(&cm.stop) != 0 || newAddress == nil {
 		return
 	}
 

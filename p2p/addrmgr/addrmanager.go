@@ -25,6 +25,7 @@ import (
 
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/p2p"
+	"github.com/elastos/Elastos.ELA/utils"
 )
 
 // AddrManager provides a concurrency safe address manager for caching potential
@@ -175,8 +176,6 @@ func (a *AddrManager) SetCheckAddr(checkAddr func(addr string) error) {
 // updateAddress is a helper function to either update an address already known
 // to the address manager, or to add the address if not already known.
 func (a *AddrManager) updateAddress(netAddr, srcAddr *p2p.NetAddress) {
-	a.mtx.Lock()
-	defer a.mtx.Unlock()
 	// Filter out non-routable addresses. Note that non-routable
 	// also includes invalid and local addresses.
 	if !IsRoutable(netAddr) {
@@ -187,20 +186,12 @@ func (a *AddrManager) updateAddress(netAddr, srcAddr *p2p.NetAddress) {
 	addr := NetAddressKey(netAddr)
 	ka := a.find(netAddr)
 	if ka != nil {
-		// TODO: only update addresses periodically.
-		// Update the last seen time and services.
-		// note that to prevent causing excess garbage on getaddr
-		// messages the netaddresses in addrmaanger are *immutable*,
-		// if we need to change them then we replace the pointer with a
-		// new copy so that we don't have to copy every na for getaddr.
 		if netAddr.Timestamp.After(ka.na.Timestamp) ||
-			(ka.na.Services&netAddr.Services) !=
-				netAddr.Services {
-
-			naCopy := *ka.na
-			naCopy.Timestamp = netAddr.Timestamp
-			naCopy.AddService(netAddr.Services)
-			ka.na = &naCopy
+			(ka.na.Services & netAddr.Services) != netAddr.Services {
+			dst := utils.Copy(*ka.na).(p2p.NetAddress)
+			dst.Timestamp = netAddr.Timestamp
+			dst.AddService(netAddr.Services)
+			ka.na = &dst
 		}
 
 		// If already in tried, we have nothing to do here.
@@ -223,11 +214,10 @@ func (a *AddrManager) updateAddress(netAddr, srcAddr *p2p.NetAddress) {
 		// Make a copy of the net address to avoid races since it is
 		// updated elsewhere in the addrmanager code and would otherwise
 		// change the actual netaddress on the peer.
-		netAddrCopy := *netAddr
-		ka = &KnownAddress{na: &netAddrCopy, srcAddr: srcAddr}
+		dst := utils.Copy(*netAddr).(p2p.NetAddress)
+		ka = &KnownAddress{na: &dst, srcAddr: srcAddr}
 		a.addrIndex[addr] = ka
 		a.nNew++
-		// XXX time penalty?
 	}
 
 	bucket := a.getNewBucket(netAddr, srcAddr)
@@ -633,6 +623,8 @@ func (a *AddrManager) Stop() {
 // number of addresses and silently ignores duplicate addresses.  It is
 // safe for concurrent access.
 func (a *AddrManager) AddAddresses(addrs []*p2p.NetAddress, srcAddr *p2p.NetAddress) {
+	a.mtx.Lock()
+	defer a.mtx.Unlock()
 	for _, na := range addrs {
 		a.updateAddress(na, srcAddr)
 	}
@@ -642,6 +634,8 @@ func (a *AddrManager) AddAddresses(addrs []*p2p.NetAddress, srcAddr *p2p.NetAddr
 // number of addresses and silently ignores duplicate addresses.  It is
 // safe for concurrent access.
 func (a *AddrManager) AddAddress(addr, srcAddr *p2p.NetAddress) {
+	a.mtx.Lock()
+	defer a.mtx.Unlock()
 	a.updateAddress(addr, srcAddr)
 }
 

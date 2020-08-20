@@ -107,7 +107,7 @@ type Config struct {
 	NAFilter p2p.NAFilter
 
 	// NewP2PProtocolVersionHeight is the new version message height
-	NewVersionHeight uint64
+	NewP2PProtocolVersionHeight uint64
 
 	// NodeVersion is the version of node
 	NodeVersion string
@@ -201,29 +201,29 @@ func NewDefaultConfig(
 	makeEmptyMessage func(string) (p2p.Message, error),
 	bestHeight func() uint64, newVersionHeight uint64, nodeVersion string) *Config {
 	return &Config{
-		MagicNumber:      magic,
-		ProtocolVersion:  pver,
-		Services:         services,
-		DNSSeeds:         seeds,
-		ListenAddrs:      listenAddrs,
-		ExternalIPs:      nil,
-		Upnp:             false,
-		DefaultPort:      defaultPort,
-		DisableListen:    false,
-		DisableRelayTx:   false,
-		MaxPeers:         defaultMaxPeers,
-		DisableBanning:   false,
-		BanThreshold:     defaultBanThreshold,
-		BanDuration:      defaultBanDuration,
-		Whitelists:       nil,
-		TargetOutbound:   defaultTargetOutbound,
-		OnNewPeer:        onNewPeer,
-		OnDonePeer:       onDonePeer,
-		MakeEmptyMessage: makeEmptyMessage,
-		BestHeight:       bestHeight,
-		PingNonce:        bestHeight,
-		PongNonce:        bestHeight,
-		NewVersionHeight: newVersionHeight,
-		NodeVersion:      nodeVersion,
+		MagicNumber:                 magic,
+		ProtocolVersion:             pver,
+		Services:                    services,
+		DNSSeeds:                    seeds,
+		ListenAddrs:                 listenAddrs,
+		ExternalIPs:                 nil,
+		Upnp:                        false,
+		DefaultPort:                 defaultPort,
+		DisableListen:               false,
+		DisableRelayTx:              false,
+		MaxPeers:                    defaultMaxPeers,
+		DisableBanning:              false,
+		BanThreshold:                defaultBanThreshold,
+		BanDuration:                 defaultBanDuration,
+		Whitelists:                  nil,
+		TargetOutbound:              defaultTargetOutbound,
+		OnNewPeer:                   onNewPeer,
+		OnDonePeer:                  onDonePeer,
+		MakeEmptyMessage:            makeEmptyMessage,
+		BestHeight:                  bestHeight,
+		PingNonce:                   bestHeight,
+		PongNonce:                   bestHeight,
+		NewP2PProtocolVersionHeight: newVersionHeight,
+		NodeVersion:                 nodeVersion,
 	}
 }

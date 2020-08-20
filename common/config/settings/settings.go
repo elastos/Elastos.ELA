@@ -887,12 +887,6 @@ func NewSettings() *Settings {
 		ParamName:    "CRAssetsRectifyTransactionHeight"})
 
 	result.Add(&settingItem{
-		Flag:         cmdcom.CRCProposalWithdrawPayloadV1Height,
-		DefaultValue: uint32(0),
-		ConfigPath:   "CRConfiguration.CRCProposalWithdrawPayloadV1Height",
-		ParamName:    "CRCProposalWithdrawPayloadV1Height"})
-
-	result.Add(&settingItem{
 		Flag:         cmdcom.RectifyTxFee,
 		DefaultValue: common.Fixed64(0),
 		ConfigPath:   "CRConfiguration.RectifyTxFee",
@@ -903,12 +897,6 @@ func NewSettings() *Settings {
 		DefaultValue: common.Fixed64(0),
 		ConfigPath:   "CRConfiguration.RealWithdrawSingleFee",
 		ParamName:    "RealWithdrawSingleFee"})
-
-	result.Add(&settingItem{
-		Flag:         cmdcom.NewVersionHeight,
-		DefaultValue: uint64(0),
-		ConfigPath:   "CRConfiguration.NewP2PProtocolVersionHeight",
-		ParamName:    "NewP2PProtocolVersionHeight"})
 
 	return result
 }

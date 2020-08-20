@@ -976,7 +976,7 @@ func (b *BlockChain) checkAttributeProgram(tx *Transaction,
 			return errors.New("return CR deposit coin transactions should have one and only one program")
 		}
 	case CRCProposalWithdraw:
-		if len(tx.Programs) != 0 && blockHeight < b.chainParams.CRCProposalWithdrawPayloadV1Height {
+		if len(tx.Programs) != 0 && blockHeight < b.chainParams.CRClaimDPOSNodeStartHeight {
 			return errors.New("crcproposalwithdraw tx should have no programs")
 		}
 
@@ -1107,12 +1107,12 @@ func (b *BlockChain) checkTxHeightVersion(txn *Transaction, blockHeight uint32) 
 		}
 		if txn.TxType == CRCProposalWithdraw {
 			if txn.PayloadVersion == payload.CRCProposalWithdrawDefault &&
-				blockHeight >= b.chainParams.CRCProposalWithdrawPayloadV1Height {
+				blockHeight >= b.chainParams.CRClaimDPOSNodeStartHeight {
 				return errors.New("not support after CRCProposalWithdrawPayloadV1Height")
 			}
 
 			if txn.PayloadVersion == payload.CRCProposalWithdrawVersion01 &&
-				blockHeight < b.chainParams.CRCProposalWithdrawPayloadV1Height {
+				blockHeight < b.chainParams.CRClaimDPOSNodeStartHeight {
 				return errors.New("not support before CRCProposalWithdrawPayloadV1Height")
 			}
 		}
@@ -2286,7 +2286,7 @@ func (b *BlockChain) checkCRCProposalProgressTracking(
 
 func (b *BlockChain) checkCRCProposalRejectedTracking(cptPayload *payload.CRCProposalTracking,
 	pState *crstate.ProposalState, blockHeight uint32) error {
-	if blockHeight < b.chainParams.CRCProposalWithdrawPayloadV1Height {
+	if blockHeight < b.chainParams.CRClaimDPOSNodeStartHeight {
 		return b.checkCRCProposalProgressTracking(cptPayload, pState)
 	}
 	// Check stage of proposal

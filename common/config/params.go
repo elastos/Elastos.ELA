@@ -215,15 +215,13 @@ var DefaultParams = Params{
 		HistoryStartHeight: uint32(0),
 		NeedSave:           false,
 	}),
-	TxCacheVolume:                      100000,
-	CheckVoteCRCountHeight:             658930,
-	MaxCRAssetsAddressUTXOCount:        1440,    // todo correct me later
-	MinCRAssetsAddressUTXOCount:        720,     // todo correct me later
-	CRAssetsRectifyTransactionHeight:   1000000, // todo correct me later
-	CRCProposalWithdrawPayloadV1Height: 1000000, // todo correct me later
-	RectifyTxFee:                       10000,
-	RealWithdrawSingleFee:              10000,
-	NewP2PProtocolVersionHeight:        1000000,
+	TxCacheVolume:                    100000,
+	CheckVoteCRCountHeight:           658930,
+	MaxCRAssetsAddressUTXOCount:      1440,    // todo correct me later
+	MinCRAssetsAddressUTXOCount:      720,     // todo correct me later
+	CRAssetsRectifyTransactionHeight: 1000000, // todo correct me later
+	RectifyTxFee:                     10000,
+	RealWithdrawSingleFee:            10000,
 }
 
 // TestNet returns the network parameters for the test network.
@@ -604,17 +602,11 @@ type Params struct {
 	// CRAssetsRectifyTransactionHeight defines the CR rectify transaction start height
 	CRAssetsRectifyTransactionHeight uint32
 
-	// CRCProposalWithdrawPayloadV1Height defines the CRC proposal withdraw payload height
-	CRCProposalWithdrawPayloadV1Height uint32
-
 	// RectifyTxFee defines the fee of cr rectify transaction
 	RectifyTxFee common.Fixed64
 
 	// RealWithdrawSingleFee defines the single fee of cr real proposal withdraw transaction
 	RealWithdrawSingleFee common.Fixed64
-
-	// NewP2PProtocolVersionHeight defines the new p2p protocol version message height
-	NewP2PProtocolVersionHeight uint64
 }
 
 // rewardPerBlock calculates the reward for each block by a specified time

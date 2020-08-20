@@ -113,7 +113,6 @@ type CRConfiguration struct {
 	MaxCRAssetsAddressUTXOCount        uint32         `json:"MaxCRAssetsAddressUTXOCount"`
 	MinCRAssetsAddressUTXOCount        uint32         `json:"MinCRAssetsAddressUTXOCount"`
 	CRAssetsRectifyTransactionHeight   uint32         `json:"CRAssetsRectifyTransactionHeight"`
-	CRCProposalWithdrawPayloadV1Height uint32         `json:"CRCProposalWithdrawPayloadV1Height"`
 	CRCAddress                         string         `json:"CRCAddress"`
 	CRAssetsAddress                    string         `json:"CRAssetsAddress"`
 	CRExpensesAddress                  string         `json:"CRExpensesAddress"`
@@ -123,7 +122,6 @@ type CRConfiguration struct {
 	CRClaimDPOSNodePeriod              uint32         `json:"CRClaimDPOSNodePeriod"`
 	RectifyTxFee                       common.Fixed64 `json:"RectifyTxFee"`
 	RealWithdrawSingleFee              common.Fixed64 `json:"RealWithdrawSingleFee"`
-	NewP2PProtocolVersionHeight        uint64         `json:"NewP2PProtocolVersionHeight"`
 }
 
 type RPCServiceLevel byte

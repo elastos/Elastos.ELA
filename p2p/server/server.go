@@ -388,7 +388,7 @@ func (s *server) checkAddr(addr string) error {
 	var bestHeight = s.cfg.BestHeight()
 	var nodeVersion string
 	var ver = s.cfg.ProtocolVersion
-	if bestHeight >= s.cfg.NewVersionHeight {
+	if bestHeight >= s.cfg.NewP2PProtocolVersionHeight {
 		nodeVersion = s.cfg.NodeVersion
 		ver = pact.CRProposalVersion
 		s.cfg.ProtocolVersion = ver
@@ -824,7 +824,7 @@ func newPeerConfig(sp *serverPeer) *peer.Config {
 
 			}
 		},
-		NewVersionHeight: sp.server.cfg.NewVersionHeight,
+		NewVersionHeight: sp.server.cfg.NewP2PProtocolVersionHeight,
 		NodeVersion:      sp.server.cfg.NodeVersion,
 	}
 }

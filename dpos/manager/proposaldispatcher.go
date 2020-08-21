@@ -600,8 +600,8 @@ func (p *ProposalDispatcher) OnResponseInactiveArbitratorsReceived(
 func (p *ProposalDispatcher) tryEnterEmergencyState(signCount int) bool {
 	log.Info("[tryEnterEmergencyState] current sign count: ", signCount)
 
-	minSignCount := int(float64(len(p.cfg.Arbitrators.GetCRCArbiters()))*
-		state.MajoritySignRatioNumerator/state.MajoritySignRatioDenominator) + 1
+	minSignCount := int(float64(len(p.cfg.Arbitrators.GetCRCArbiters())) *
+		state.MajoritySignRatioNumerator / state.MajoritySignRatioDenominator)
 	if signCount >= minSignCount {
 		payload := p.currentInactiveArbitratorTx.Payload.(*payload.InactiveArbitrators)
 		p.illegalMonitor.AddEvidence(payload)

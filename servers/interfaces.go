@@ -558,11 +558,24 @@ func GetConnectionCount(param Params) map[string]interface{} {
 }
 
 func GetTransactionPool(param Params) map[string]interface{} {
-	txs := make([]*TransactionContextInfo, 0)
+	str, ok := param.String("state")
+	if ok {
+		switch str {
+		case "all":
+			txs := make([]*TransactionContextInfo, 0)
+			for _, tx := range TxMemPool.GetTxsInPool() {
+				txs = append(txs, GetTransactionContextInfo(nil, tx))
+			}
+			return ResponsePack(Success, txs)
+		}
+	}
+
+	txs := make([]string, 0)
 	for _, tx := range TxMemPool.GetTxsInPool() {
-		txs = append(txs, GetTransactionContextInfo(nil, tx))
+		txs = append(txs, ToReversedString(tx.Hash()))
 	}
 	return ResponsePack(Success, txs)
+
 }
 
 func GetBlockInfo(block *Block, verbose bool) BlockInfo {

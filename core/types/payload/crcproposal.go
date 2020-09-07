@@ -70,8 +70,8 @@ func (pt CRCProposalType) Name() string {
 		return "DIDUpgradeCode"
 	case ETHUpgradeCode:
 		return "ETHUpgradeCode"
-	//case RegisterSideChain:
-	//	return "RegisterSideChain"
+	case RegisterSideChain:
+		return "RegisterSideChain"
 	case ChangeProposalOwner:
 		return "ChangeProposalOwner"
 	case CloseProposal:
@@ -199,6 +199,9 @@ type CRCProposal struct {
 	//upgrade code info
 	UpgradeCodeInfo *UpgradeCodeInfo
 
+	// The registered side chain information
+	SideChainInfo
+
 	hash *common.Uint256
 }
 
@@ -267,6 +270,114 @@ func (upgradeInfo *UpgradeCodeInfo) Deserialize(r io.Reader, version byte) error
 	return nil
 }
 
+type SideChainInfo struct {
+	// Name of side chain
+	SideChainName string
+
+	// Magic number of side chain
+	MagicNumber uint32
+
+	// DNSSeeds defines a list of DNS seeds for the network to discover peers.
+	DNSSeeds []string
+
+	// Node port of side chain
+	NodePort uint16
+
+	// Genesis hash of side chain
+	GenesisHash common.Uint256
+
+	// Genesis block timestamp of side chain
+	GenesisTimestamp uint32
+
+	// Genesis block difficulty of side chain
+	GenesisBlockDifficulty string
+}
+
+func (sc *SideChainInfo) Serialize(w io.Writer) error {
+	if err := common.WriteVarString(w, sc.SideChainName); err != nil {
+		return errors.New("fail to serialize SideChainName")
+	}
+	if err := common.WriteUint32(w, sc.MagicNumber); err != nil {
+		return errors.New("fail to serialize MagicNumber")
+	}
+
+	if err := common.WriteVarUint(w, uint64(len(sc.DNSSeeds))); err != nil {
+		return errors.New("failed to serialize DNSSeeds")
+	}
+
+	for _, v := range sc.DNSSeeds {
+		if err := common.WriteVarString(w, v); err != nil {
+			return errors.New("failed to serialize DNSSeeds")
+		}
+	}
+
+	if err := common.WriteUint16(w, sc.NodePort); err != nil {
+		return errors.New("failed to serialize NodePort")
+	}
+
+	if err := sc.GenesisHash.Serialize(w); err != nil {
+		return errors.New("failed to serialize GenesisHash")
+	}
+
+	if err := common.WriteUint32(w, sc.GenesisTimestamp); err != nil {
+		return errors.New("failed to serialize GenesisTimestamp")
+	}
+
+	if err := common.WriteVarString(w, sc.GenesisBlockDifficulty); err != nil {
+		return errors.New("failed to serialize GenesisTimestamp")
+	}
+
+	return nil
+}
+
+func (sc *SideChainInfo) Deserialize(r io.Reader) error {
+	var err error
+	sc.SideChainName, err = common.ReadVarString(r)
+	if err != nil {
+		return errors.New("[CRCProposal], SideChainName deserialize failed")
+	}
+
+	sc.MagicNumber, err = common.ReadUint32(r)
+	if err != nil {
+		return errors.New("[CRCProposal], MagicNumber deserialize failed")
+	}
+
+	length, err := common.ReadVarUint(r, 0)
+	if err != nil {
+		return errors.New("[CRCProposal], DNSSeeds length deserialize failed")
+	}
+	var seeds []string
+	for i := 0; i < int(length); i++ {
+		seed, err := common.ReadVarString(r)
+		if err != nil {
+			return errors.New("failed to deserialize DNSSeeds")
+		}
+		seeds = append(seeds, seed)
+	}
+	sc.DNSSeeds = seeds
+
+	sc.NodePort, err = common.ReadUint16(r)
+	if err != nil {
+		return errors.New("[CRCProposal], NodePort deserialize failed")
+	}
+
+	if err := sc.GenesisHash.Deserialize(r); err != nil {
+		return errors.New("failed to deserialize GenesisHash")
+	}
+
+	sc.GenesisTimestamp, err = common.ReadUint32(r)
+	if err != nil {
+		return errors.New("[CRCProposal], NodePort deserialize failed")
+	}
+
+	sc.GenesisBlockDifficulty, err = common.ReadVarString(r)
+	if err != nil {
+		return errors.New("[CRCProposal], GenesisBlockDifficulty deserialize failed")
+	}
+
+	return nil
+}
+
 func (p *CRCProposal) Data(version byte) []byte {
 	buf := new(bytes.Buffer)
 	if err := p.SerializeUnsigned(buf, version); err != nil {
@@ -292,6 +403,8 @@ func (p *CRCProposal) SerializeUnsigned(w io.Writer, version byte) error {
 		return p.SerializeUnsignedReceivedCustomID(w, version)
 	case ChangeCustomIDFee:
 		return p.SerializeUnsignedChangeCustomIDFee(w, version)
+	case RegisterSideChain:
+		return p.SerializeUnsignedRegisterSideChain(w, version)
 	default:
 		return p.SerializeUnsignedNormalOrELIP(w, version)
 	}
@@ -423,6 +536,30 @@ func (p *CRCProposal) SerializeUnsignedUpgradeCode(w io.Writer, version byte) er
 			return errors.New("failed to serialize UpgradeCodeInfo")
 		}
 	}
+	return nil
+}
+
+func (p *CRCProposal) SerializeUnsignedRegisterSideChain(w io.Writer, version byte) error {
+	if err := common.WriteElement(w, p.ProposalType); err != nil {
+		return errors.New("failed to serialize ProposalType")
+	}
+
+	if err := common.WriteVarString(w, p.CategoryData); err != nil {
+		return errors.New("[CRCProposal], Category Data serialize failed")
+	}
+
+	if err := common.WriteVarBytes(w, p.OwnerPublicKey); err != nil {
+		return errors.New("failed to serialize OwnerPublicKey")
+	}
+
+	if err := p.DraftHash.Serialize(w); err != nil {
+		return errors.New("failed to serialize DraftHash")
+	}
+
+	if err := p.SideChainInfo.Serialize(w); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -571,6 +708,8 @@ func (p *CRCProposal) Serialize(w io.Writer, version byte) error {
 		return p.SerializeChangeSecretaryGeneral(w, version)
 	case MainChainUpgradeCode, DIDUpgradeCode, ETHUpgradeCode:
 		return p.SerializeUpgradeCode(w, version)
+	case RegisterSideChain:
+		return p.SerializeRegisterSideChain(w, version)
 	default:
 		return p.SerializeNormalOrELIP(w, version)
 	}
@@ -643,6 +782,22 @@ func (p *CRCProposal) SerializeChangeSecretaryGeneral(w io.Writer, version byte)
 	return common.WriteVarBytes(w, p.CRCouncilMemberSignature)
 }
 
+func (p *CRCProposal) SerializeRegisterSideChain(w io.Writer, version byte) error {
+	if err := p.SerializeUnsigned(w, version); err != nil {
+		return err
+	}
+
+	if err := common.WriteVarBytes(w, p.Signature); err != nil {
+		return err
+	}
+
+	if err := p.CRCouncilMemberDID.Serialize(w); err != nil {
+		return errors.New("failed to serialize CRCouncilMemberDID")
+	}
+
+	return common.WriteVarBytes(w, p.CRCouncilMemberSignature)
+}
+
 func (p *CRCProposal) SerializeCloseProposal(w io.Writer, version byte) error {
 	if err := p.SerializeUnsigned(w, version); err != nil {
 		return err
@@ -696,6 +851,8 @@ func (p *CRCProposal) DeserializeUnSigned(r io.Reader, version byte) error {
 		return p.DeserializeUnSignedReceivedCustomID(r, version)
 	case ChangeCustomIDFee:
 		return p.DeserializeUnSignedChangeCustomIDFee(r, version)
+	case RegisterSideChain:
+		return p.DeserializeUnsignedRegisterSideChain(r, version)
 	default:
 		return p.DeserializeUnSignedNormalOrELIP(r, version)
 	}
@@ -788,6 +945,30 @@ func (p *CRCProposal) DeserializeUnSignedChangeProposalOwner(r io.Reader, versio
 	if p.NewOwnerPublicKey, err = common.ReadVarBytes(r, crypto.NegativeBigLength, "owner"); err != nil {
 		return errors.New("failed to deserialize NewOwnerPublicKey")
 	}
+	return nil
+}
+
+func (p *CRCProposal) DeserializeUnsignedRegisterSideChain(r io.Reader, version byte) error {
+	var err error
+
+	p.CategoryData, err = common.ReadVarString(r)
+	if err != nil {
+		return errors.New("[CRCProposal], Category data deserialize failed")
+	}
+
+	p.OwnerPublicKey, err = common.ReadVarBytes(r, crypto.NegativeBigLength, "owner")
+	if err != nil {
+		return errors.New("failed to deserialize OwnerPublicKey")
+	}
+
+	if err = p.DraftHash.Deserialize(r); err != nil {
+		return errors.New("failed to deserialize DraftHash")
+	}
+
+	if err = p.SideChainInfo.Deserialize(r); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -979,6 +1160,8 @@ func (p *CRCProposal) Deserialize(r io.Reader, version byte) error {
 		return p.DeserializeChangeSecretaryGeneral(r, version)
 	case MainChainUpgradeCode, DIDUpgradeCode, ETHUpgradeCode:
 		return p.DeserializeUpgradeCode(r, version)
+	case RegisterSideChain:
+		return p.DeserializeRegisterSideChain(r, version)
 	default:
 		return p.DeserializeNormalOrELIP(r, version)
 	}
@@ -1060,6 +1243,31 @@ func (p *CRCProposal) DeserializeChangeProposalOwner(r io.Reader, version byte) 
 		return err
 	}
 	p.CRCouncilMemberSignature = CRCouncilMemberSignature
+	return nil
+}
+
+func (p *CRCProposal) DeserializeRegisterSideChain(r io.Reader, version byte) error {
+
+	if err := p.DeserializeUnSigned(r, version); err != nil {
+		return err
+	}
+
+	sign, err := common.ReadVarBytes(r, crypto.SignatureLength, "sign data")
+	if err != nil {
+		return err
+	}
+	p.Signature = sign
+
+	if err := p.CRCouncilMemberDID.Deserialize(r); err != nil {
+		return errors.New("failed to deserialize CRCouncilMemberDID")
+	}
+
+	CRCouncilMemberSignature, err := common.ReadVarBytes(r, crypto.SignatureLength, "CR sign data")
+	if err != nil {
+		return err
+	}
+	p.CRCouncilMemberSignature = CRCouncilMemberSignature
+
 	return nil
 }
 

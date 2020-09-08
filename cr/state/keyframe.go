@@ -245,6 +245,8 @@ type ProposalKeyFrame struct {
 	// received custom id list
 	PendingReceivedCustomIDMap map[string]struct{} // todo: serialize and deserialize
 	ReceivedCustomIDLists      [][]string
+	// registered side chain name
+	RegisteredSideChainNames []string
 }
 
 func NewProposalMap() ProposalsMap {

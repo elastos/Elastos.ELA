@@ -8,10 +8,10 @@ package payload
 import (
 	"bytes"
 	"errors"
-	"io"
-
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/crypto"
+	"io"
+	"regexp"
 )
 
 const (
@@ -113,6 +113,8 @@ const (
 	NormalPayment InstallmentType = 0x01
 	FinalPayment  InstallmentType = 0x02
 )
+
+var SeedRegexp = regexp.MustCompile(`^(([a-zA-Z]{1})|([a-zA-Z]{1}[a-zA-Z]{1})|([a-zA-Z]{1}[0-9]{1})|([0-9]{1}[a-zA-Z]{1})|([a-zA-Z0-9][a-zA-Z0-9-_]{1,61}[a-zA-Z0-9]))\.([a-zA-Z]{2,6}|[a-zA-Z0-9-]{2,30}\.[a-zA-Z]{2,3})$`)
 
 type InstallmentType byte
 

@@ -13,6 +13,7 @@ import (
 	"math"
 	"net"
 	"sort"
+	"strconv"
 
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
@@ -3185,17 +3186,20 @@ func (b *BlockChain) checkRegisterSideChainProposal(proposal *payload.CRCProposa
 	for _, seed := range proposal.DNSSeeds {
 		host, _, err := net.SplitHostPort(seed)
 		if err != nil {
-			if net.ParseIP(seed) == nil {
-				return errors.New("DNSSeed not valid " + seed)
-			}
+			host = seed
 		}
-		if net.ParseIP(host) == nil {
+
+		if !payload.SeedRegexp.MatchString(host) {
 			return errors.New("DNSSeed not valid " + seed)
 		}
 	}
 
 	if proposal.GenesisBlockDifficulty == "" {
 		return errors.New("GenesisBlockDifficulty can not be blank")
+	}
+
+	if _, err := strconv.Atoi(proposal.GenesisBlockDifficulty); err != nil {
+		return errors.New("GenesisBlockDifficulty value is not valid")
 	}
 
 	if proposal.GenesisHash == common.EmptyHash {

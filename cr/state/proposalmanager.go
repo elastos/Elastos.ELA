@@ -373,6 +373,12 @@ func (p *ProposalManager) dealProposal(proposalState *ProposalState, unusedAmoun
 			p.ReceivedCustomIDLists = append(p.ReceivedCustomIDLists, proposalState.Proposal.ReceivedCustomIDList)
 		}, func() {
 			p.ReceivedCustomIDLists = oriReceivedCustomIDLists
+	case payload.RegisterSideChain:
+		originRegisteredSideChainNames := p.RegisteredSideChainNames
+		p.history.Append(height, func() {
+			p.RegisteredSideChainNames = append(p.RegisteredSideChainNames, proposalState.Proposal.SideChainName)
+		}, func() {
+			p.RegisteredSideChainNames = originRegisteredSideChainNames
 		})
 	}
 }
@@ -436,7 +442,7 @@ func (p *ProposalManager) transferCRAgreedState(proposalState *ProposalState,
 func isSpecialProposal(proposalType payload.CRCProposalType) bool {
 	switch proposalType {
 	case payload.SecretaryGeneral, payload.ChangeProposalOwner, payload.CloseProposal, payload.ReserveCustomID,
-		payload.ReceiveCustomID, payload.ChangeCustomIDFee:
+		payload.ReceiveCustomID, payload.ChangeCustomIDFee, payload.RegisterSideChain:
 		return true
 	default:
 		return false

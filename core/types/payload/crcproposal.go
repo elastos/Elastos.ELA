@@ -9,7 +9,6 @@ import (
 	"bytes"
 	"errors"
 	"github.com/elastos/Elastos.ELA/common"
-	"github.com/elastos/Elastos.ELA/common/log"
 	"github.com/elastos/Elastos.ELA/crypto"
 	"io"
 	"regexp"
@@ -1254,13 +1253,11 @@ func (p *CRCProposal) DeserializeRegisterSideChain(r io.Reader, version byte) er
 	if err := p.DeserializeUnSigned(r, version); err != nil {
 		return err
 	}
-	log.Warnf("register sidechain %v", p)
 	sign, err := common.ReadVarBytes(r, crypto.SignatureLength, "sign data")
 	if err != nil {
 		return err
 	}
 	p.Signature = sign
-	log.Warnf("register sidechain %v", p)
 	if err := p.CRCouncilMemberDID.Deserialize(r); err != nil {
 		return errors.New("failed to deserialize CRCouncilMemberDID")
 	}
@@ -1269,7 +1266,6 @@ func (p *CRCProposal) DeserializeRegisterSideChain(r io.Reader, version byte) er
 	if err != nil {
 		return err
 	}
-	log.Warnf("register sidechain %v", p)
 	p.CRCouncilMemberSignature = CRCouncilMemberSignature
 
 	return nil

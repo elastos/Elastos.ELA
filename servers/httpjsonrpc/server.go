@@ -69,7 +69,6 @@ func StartRPCServer() {
 	mainMux["getexistreturndeposittransactions"] = GetExistSideChainReturnDepositTransactions
 	//TODO add rpc for arbiter
 	//mainMux["getregistersidechaintxsbyheight"] = getregistersidechaintxsbyheight
-	//mainMux["getexistedregistersidechaintransactions"] = getexistedregistersidechaintransactions
 
 	// wallet interfaces
 	mainMux["getamountbyinputs"] = GetAmountByInputs

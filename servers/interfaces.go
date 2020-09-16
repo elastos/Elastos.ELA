@@ -2777,6 +2777,25 @@ func getPayloadInfo(p Payload, payloadVersion byte) PayloadInfo {
 			obj.CRCouncilMemberSignature = common.BytesToHexString(object.CRCouncilMemberSignature)
 			obj.Hash = common.ToReversedString(object.Hash(payloadVersion))
 			return obj
+		case payload.RegisterSideChain:
+			obj := new(CRCRegisterSideChainProposalInfo)
+			obj.ProposalType = object.ProposalType.Name()
+			obj.CategoryData = object.CategoryData
+			obj.OwnerPublicKey = common.BytesToHexString(object.OwnerPublicKey)
+			obj.DraftHash = common.ToReversedString(object.DraftHash)
+			obj.SideChainName = object.SideChainName
+			obj.MagicNumber = object.MagicNumber
+			obj.DNSSeeds = object.DNSSeeds
+			obj.NodePort = object.NodePort
+			obj.GenesisHash = common.ToReversedString(object.GenesisHash)
+			obj.GenesisTimestamp = object.GenesisTimestamp
+			obj.GenesisBlockDifficulty = object.GenesisBlockDifficulty
+			obj.Signature = common.BytesToHexString(object.Signature)
+			crmdid, _ := object.CRCouncilMemberDID.ToAddress()
+			obj.CRCouncilMemberDID = crmdid
+			obj.CRCouncilMemberSignature = common.BytesToHexString(object.CRCouncilMemberSignature)
+			obj.Hash = common.ToReversedString(object.Hash())
+			return obj
 		}
 
 	case *payload.RecordProposalResult:

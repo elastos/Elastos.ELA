@@ -67,6 +67,10 @@ func StartRPCServer() {
 	mainMux["getexistwithdrawtransactions"] = GetExistWithdrawTransactions
 	mainMux["getreceivedbyaddress"] = GetReceivedByAddress
 	mainMux["getexistreturndeposittransactions"] = GetExistSideChainReturnDepositTransactions
+	//TODO add rpc for arbiter
+	//mainMux["getregistersidechaintxsbyheight"] = getregistersidechaintxsbyheight
+	//mainMux["getexistedregistersidechaintransactions"] = getexistedregistersidechaintransactions
+
 	// wallet interfaces
 	mainMux["getamountbyinputs"] = GetAmountByInputs
 	mainMux["getutxosbyamount"] = GetUTXOsByAmount

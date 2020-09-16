@@ -73,6 +73,15 @@ func registerParams(c *cli.Context, L *lua.LState) {
 
 	targetData := c.String("targetdata")
 
+	// Register SideChain
+	sideChainName := c.String("sidechainname")
+	magicNumber := c.Int64("magicnumber")
+	dNSSeeds := c.String("dnsseeds")
+	nodePort := c.Int64("nodeport")
+	genesisHash := c.String("genesishash")
+	genesisTimestamp := c.Int64("genesistimestamp")
+	genesisBlockDifficulty := c.String("genesisblockdifficulty")
+
 	getWallet := func(L *lua.LState) int {
 		L.Push(lua.LString(wallet))
 		return 1
@@ -298,6 +307,42 @@ func registerParams(c *cli.Context, L *lua.LState) {
 		return 1
 	}
 
+	// Register SideChain
+	getSideChainName := func(L *lua.LState) int {
+		L.Push(lua.LString(sideChainName))
+		return 1
+	}
+
+	getMagicNumber := func(L *lua.LState) int {
+		L.Push(lua.LNumber(magicNumber))
+		return 1
+	}
+
+	getDNSSeeds := func(L *lua.LState) int {
+		L.Push(lua.LString(dNSSeeds))
+		return 1
+	}
+
+	getNodePort := func(L *lua.LState) int {
+		L.Push(lua.LNumber(nodePort))
+		return 1
+	}
+
+	getGenesisHash := func(L *lua.LState) int {
+		L.Push(lua.LString(genesisHash))
+		return 1
+	}
+
+	getGenesisTimestamp := func(L *lua.LState) int {
+		L.Push(lua.LNumber(genesisTimestamp))
+		return 1
+	}
+
+	getGenesisBlockDifficulty := func(L *lua.LState) int {
+		L.Push(lua.LString(genesisBlockDifficulty))
+		return 1
+	}
+
 	L.Register("getWallet", getWallet)
 	L.Register("getPassword", getPassword)
 	L.Register("getDepositAddr", getDepositAddr)
@@ -352,6 +397,15 @@ func registerParams(c *cli.Context, L *lua.LState) {
 	L.Register("getCRDPOSPrivateKey", getCRDPOSPrivateKey)
 	L.Register("getCRCommitteeDID", getCRCommitteeDID)
 	L.Register("getTargetData", getTargetData)
+
+	//Register SideChain
+	L.Register("getSideChainName", getSideChainName)
+	L.Register("getMagicNumber", getMagicNumber)
+	L.Register("getDNSSeeds", getDNSSeeds)
+	L.Register("getNodePort", getNodePort)
+	L.Register("getGenesisHash", getGenesisHash)
+	L.Register("getGenesisTimestamp", getGenesisTimestamp)
+	L.Register("getGenesisBlockDifficulty", getGenesisBlockDifficulty)
 }
 
 func scriptAction(c *cli.Context) error {
@@ -607,6 +661,35 @@ func NewCommand() *cli.Command {
 			cli.StringFlag{
 				Name:  "targetdata",
 				Usage: "set the target data of proposal",
+			},
+			// Register SideChain
+			cli.StringFlag{
+				Name:  "sidechainname",
+				Usage: "set the sidechain name ",
+			},
+			cli.Int64Flag{
+				Name:  "magicnumber",
+				Usage: "set magic number ",
+			},
+			cli.StringFlag{
+				Name:  "dnsseeds",
+				Usage: "set dns seeds ",
+			},
+			cli.Int64Flag{
+				Name:  "nodeport",
+				Usage: "set node port ",
+			},
+			cli.StringFlag{
+				Name:  "genesishash",
+				Usage: "set genesis hash ",
+			},
+			cli.Int64Flag{
+				Name:  "genesistimestamp",
+				Usage: "set genesis timestamp ",
+			},
+			cli.StringFlag{
+				Name:  "genesisblockdifficulty",
+				Usage: "set genesis block difficulty ",
 			},
 		},
 		Action: scriptAction,

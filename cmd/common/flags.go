@@ -226,6 +226,10 @@ var (
 		Usage: "(H2) indicates the height when public registered and elected " +
 			"producers participate in DPOS consensus",
 	}
+	IllegalBehaviorPenaltyHeightFlag = cli.StringFlag{
+		Name:  "illegalbehaviorpenaltyheight",
+		Usage: "defines the height which illegal behavior will be penalty punished ",
+	}
 	CRCommitteeStartHeightFlag = cli.StringFlag{
 		Name:  "crcommitteestartheight",
 		Usage: "defines the height of CR Committee started",

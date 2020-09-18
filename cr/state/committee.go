@@ -1413,6 +1413,9 @@ func (c *Committee) TryUpdateCRMemberInactivity(did common.Uint168,
 			"changed to inactive", "InactiveCountingHeight:", crMember.InactiveCountingHeight,
 			"MaxInactiveRounds:", c.params.MaxInactiveRounds)
 		crMember.InactiveCountingHeight = 0
+		if height >= c.params.IllegalBehaviorPenaltyHeight {
+			c.state.UpdateCRInactivePenalty(crMember.Info.CID)
+		}
 	}
 }
 

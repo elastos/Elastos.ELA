@@ -53,6 +53,14 @@ type FunctionsConfig struct {
 		map[*types.Input]types.Output, error)
 }
 
+func (s *State) UpdateCRInactivePenalty(cid common.Uint168) {
+	depositInfo, ok := s.depositInfo[cid]
+	if !ok {
+		return
+	}
+	depositInfo.Penalty += s.params.InactivePenalty
+}
+
 func (s *State) RevertUpdateCRInactivePenalty(cid common.Uint168) {
 	depositInfo, ok := s.depositInfo[cid]
 	if !ok {
@@ -80,6 +88,7 @@ func (s *State) RevertUpdateCRIllegalPenalty(cid common.Uint168) {
 		return
 	}
 	var penalty = s.params.IllegalPenalty
+
 	if depositInfo.Penalty < penalty {
 		depositInfo.Penalty = common.Fixed64(0)
 	} else {

@@ -123,7 +123,8 @@ func startDstNode() {
 				amount += utxo.Value
 			}
 			return amount, nil
-		}, nil, nil)
+		}, nil, nil,
+		nil, nil)
 	if err != nil {
 		logger.Error(err)
 		return

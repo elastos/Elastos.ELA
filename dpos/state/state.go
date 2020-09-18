@@ -261,11 +261,14 @@ type State struct {
 	getTxReference func(tx *types.Transaction) (
 		map[*types.Input]types.Output, error)
 	tryUpdateCRMemberInactivity func(did common.Uint168, needReset bool, height uint32)
-	tryRevertCRMemberInactivity func(did common.Uint168, oriState state.MemberState, oriInactiveCountingHeight uint32)
-	chainParams                 *config.Params
+	tryRevertCRMemberInactivity func(did common.Uint168, oriState state.MemberState,
+		oriInactiveCountingHeight uint32, height uint32)
+	tryUpdateCRMemberIllegal func(did common.Uint168, height uint32)
+	tryRevertCRMemberIllegal func(did common.Uint168, oriState state.MemberState, height uint32)
 
-	mtx     sync.RWMutex
-	history *utils.History
+	chainParams *config.Params
+	mtx         sync.RWMutex
+	history     *utils.History
 }
 
 // getProducerKey returns the producer's owner public key string, whether the
@@ -1481,22 +1484,25 @@ func (s *State) processIllegalEvidence(payloadData types.Payload,
 			}
 			oriState := cr.MemberState
 			s.history.Append(height, func() {
-				cr.MemberState = state.MemberIllegal
+				s.tryUpdateCRMemberIllegal(cr.Info.DID, height)
 			}, func() {
-				cr.MemberState = oriState
+				s.tryRevertCRMemberIllegal(cr.Info.DID, oriState, height)
 			})
 		}
 
 		if producer, ok := s.ActivityProducers[key]; ok {
+			oriPenalty := producer.penalty
 			s.history.Append(height, func() {
 				producer.state = Illegal
 				producer.illegalHeight = height
 				s.IllegalProducers[key] = producer
 				producer.activateRequestHeight = math.MaxUint32
+				producer.penalty += 1000
 				delete(s.ActivityProducers, key)
 				delete(s.Nicknames, producer.info.NickName)
 			}, func() {
 				producer.state = Active
+				producer.penalty = oriPenalty
 				producer.illegalHeight = 0
 				s.ActivityProducers[key] = producer
 				producer.activateRequestHeight = math.MaxUint32
@@ -1507,15 +1513,18 @@ func (s *State) processIllegalEvidence(payloadData types.Payload,
 		}
 
 		if producer, ok := s.CanceledProducers[key]; ok {
+			oriPenalty := producer.penalty
 			s.history.Append(height, func() {
 				producer.state = Illegal
 				producer.illegalHeight = height
 				s.IllegalProducers[key] = producer
+				producer.penalty += 1000
 				delete(s.CanceledProducers, key)
 				delete(s.Nicknames, producer.info.NickName)
 			}, func() {
 				producer.state = Canceled
 				producer.illegalHeight = 0
+				producer.penalty = oriPenalty
 				s.CanceledProducers[key] = producer
 				delete(s.IllegalProducers, key)
 				s.Nicknames[producer.info.NickName] = struct{}{}
@@ -1622,7 +1631,7 @@ func (s *State) countArbitratorsInactivityV1(height uint32,
 				s.history.Append(height, func() {
 					s.tryUpdateCRMemberInactivity(cr.Info.DID, needReset, height)
 				}, func() {
-					s.tryRevertCRMemberInactivity(cr.Info.DID, oriState, oriCountingHeight)
+					s.tryRevertCRMemberInactivity(cr.Info.DID, oriState, oriCountingHeight, height)
 				})
 				continue
 			}
@@ -1768,8 +1777,9 @@ func NewState(chainParams *config.Params, getArbiters func() []*ArbiterInfo,
 	isInElectionPeriod func() bool,
 	getProducerDepositAmount func(common.Uint168) (common.Fixed64, error),
 	tryUpdateCRMemberInactivity func(did common.Uint168, needReset bool, height uint32),
-	tryRevertCRMemberInactivityfunc func(did common.Uint168, oriState state.MemberState, oriInactiveCountingHeight uint32)) *State {
-
+	tryRevertCRMemberInactivityfunc func(did common.Uint168, oriState state.MemberState, oriInactiveCountingHeight uint32, height uint32),
+	tryUpdateCRMemberIllegal func(did common.Uint168, height uint32),
+	tryRevertCRMemberIllegal func(did common.Uint168, oriState state.MemberState, height uint32)) *State {
 	state := State{
 		chainParams:                 chainParams,
 		getArbiters:                 getArbiters,
@@ -1780,6 +1790,8 @@ func NewState(chainParams *config.Params, getArbiters func() []*ArbiterInfo,
 		StateKeyFrame:               NewStateKeyFrame(),
 		tryUpdateCRMemberInactivity: tryUpdateCRMemberInactivity,
 		tryRevertCRMemberInactivity: tryRevertCRMemberInactivityfunc,
+		tryUpdateCRMemberIllegal:    tryUpdateCRMemberIllegal,
+		tryRevertCRMemberIllegal:    tryRevertCRMemberIllegal,
 	}
 	events.Subscribe(state.handleEvents)
 	return &state

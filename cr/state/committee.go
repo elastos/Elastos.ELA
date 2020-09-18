@@ -1370,11 +1370,14 @@ func (c *Committee) TryUpdateCRMemberInactivity(did common.Uint168,
 			"changed to inactive", "InactiveCountingHeight:", crMember.InactiveCountingHeight,
 			"MaxInactiveRounds:", c.params.MaxInactiveRounds)
 		crMember.InactiveCountingHeight = 0
+		if height >= c.params.IllegalBehaviorPenaltyHeight {
+			c.state.UpdateCRInactivePenalty(crMember.Info.CID)
+		}
 	}
 }
 
 func (c *Committee) TryRevertCRMemberInactivity(did common.Uint168,
-	oriState MemberState, oriInactiveCountingHeight uint32) {
+	oriState MemberState, oriInactiveCountingHeight uint32, height uint32) {
 	c.mtx.RLock()
 	defer c.mtx.RUnlock()
 	crMember := c.getMember(did)
@@ -1384,6 +1387,37 @@ func (c *Committee) TryRevertCRMemberInactivity(did common.Uint168,
 	}
 	crMember.MemberState = oriState
 	crMember.InactiveCountingHeight = oriInactiveCountingHeight
+	if height-crMember.InactiveCountingHeight >= c.params.MaxInactiveRounds && height >= c.params.IllegalBehaviorPenaltyHeight {
+		c.state.RevertUpdateCRInactivePenalty(crMember.Info.CID)
+	}
+}
+
+func (c *Committee) TryUpdateCRMemberIllegal(did common.Uint168, height uint32) {
+	c.mtx.RLock()
+	defer c.mtx.RUnlock()
+	crMember := c.getMember(did)
+	if crMember == nil {
+		log.Error("TryUpdateCRMemberIllegal did %+v not exist", did.String())
+		return
+	}
+	crMember.MemberState = MemberIllegal
+	if height >= c.params.IllegalBehaviorPenaltyHeight {
+		c.state.UpdateCRIllegalPenalty(crMember.Info.CID)
+	}
+}
+
+func (c *Committee) TryRevertCRMemberIllegal(did common.Uint168, oriState MemberState, height uint32) {
+	c.mtx.RLock()
+	defer c.mtx.RUnlock()
+	crMember := c.getMember(did)
+	if crMember == nil {
+		log.Error("TryRevertCRMemberIllegal did %+v not exist", did.String())
+		return
+	}
+	crMember.MemberState = oriState
+	if height >= c.params.IllegalBehaviorPenaltyHeight {
+		c.state.RevertUpdateCRIllegalPenalty(crMember.Info.CID)
+	}
 }
 
 func (c *Committee) Snapshot() *CommitteeKeyFrame {

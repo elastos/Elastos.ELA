@@ -165,52 +165,53 @@ var DefaultParams = Params{
 		"02b95b000f087a97e988c24331bf6769b4a75e4b7d5d2a38105092a3aa841be33b",
 		"02a0aa9eac0e168f3474c2a0d04e50130833905740a5270e8a44d6c6e85cf6d98c",
 	},
-	SecretaryGeneral:            "02712da531804d1c38d159a901313239d2100dfb5b693d71a2f76b15dec3f8fc32",
-	MaxProposalTrackingCount:    128,
-	PowLimit:                    powLimit,
-	PowLimitBits:                0x1f0008ff,
-	TargetTimespan:              24 * time.Hour,  // 24 hours
-	TargetTimePerBlock:          2 * time.Minute, // 2 minute
-	AdjustmentFactor:            4,               // 25% less, 400% more
-	RewardPerBlock:              rewardPerBlock(2 * time.Minute),
-	CoinbaseMaturity:            100,
-	MinTransactionFee:           100,
-	MinCrossChainTxFee:          10000,
-	CheckAddressHeight:          88812,
-	VoteStartHeight:             290000,
-	CRCOnlyDPOSHeight:           343400,
-	PublicDPOSHeight:            402680,
-	EnableActivateIllegalHeight: 439000,
-	CRVotingStartHeight:         537670,
-	CRCommitteeStartHeight:      658930,
-	CRClaimDPOSNodeStartHeight:  751400,
-	CRClaimDPOSNodePeriod:       720 * 14,
-	CheckRewardHeight:           436812,
-	VoteStatisticsHeight:        512881,
-	RegisterCRByDIDHeight:       598000,
-	ToleranceDuration:           5 * time.Second,
-	MaxInactiveRounds:           720 * 2,
-	InactivePenalty:             0, //there will be no penalty in this version
-	EmergencyInactivePenalty:    0, //there will be no penalty in this version
-	GeneralArbiters:             24,
-	CandidateArbiters:           72,
-	PreConnectOffset:            360,
-	CRMemberCount:               12,
-	CRVotingPeriod:              30 * 720,
-	CRDutyPeriod:                365 * 720,
-	CRDepositLockupBlocks:       2160,
-	ProposalCRVotingPeriod:      7 * 720,
-	ProposalPublicVotingPeriod:  7 * 720,
-	CRAgreementCount:            8,
-	VoterRejectPercentage:       10,
-	CRCAppropriatePercentage:    10,
-	MaxCommitteeProposalCount:   128,
-	EnableUtxoDB:                true,
-	EnableCORS:                  false,
-	WalletPath:                  "keystore.dat",
-	RPCServiceLevel:             ConfigurationPermitted.String(),
-	NodeProfileStrategy:         Balanced.String(),
-	MaxNodePerHost:              10,
+	SecretaryGeneral:             "02712da531804d1c38d159a901313239d2100dfb5b693d71a2f76b15dec3f8fc32",
+	MaxProposalTrackingCount:     128,
+	PowLimit:                     powLimit,
+	PowLimitBits:                 0x1f0008ff,
+	TargetTimespan:               24 * time.Hour,  // 24 hours
+	TargetTimePerBlock:           2 * time.Minute, // 2 minute
+	AdjustmentFactor:             4,               // 25% less, 400% more
+	RewardPerBlock:               rewardPerBlock(2 * time.Minute),
+	CoinbaseMaturity:             100,
+	MinTransactionFee:            100,
+	MinCrossChainTxFee:           10000,
+	CheckAddressHeight:           88812,
+	VoteStartHeight:              290000,
+	CRCOnlyDPOSHeight:            343400,
+	PublicDPOSHeight:             402680,
+	EnableActivateIllegalHeight:  439000,
+	CRVotingStartHeight:          537670,
+	CRCommitteeStartHeight:       658930,
+	CRClaimDPOSNodeStartHeight:   751400,
+	CRClaimDPOSNodePeriod:        720 * 14,
+	IllegalBehaviorPenaltyHeight: 1000000,
+	CheckRewardHeight:            436812,
+	VoteStatisticsHeight:         512881,
+	RegisterCRByDIDHeight:        598000,
+	ToleranceDuration:            5 * time.Second,
+	MaxInactiveRounds:            720 * 2,
+	InactivePenalty:              0, //there will be no penalty in this version
+	EmergencyInactivePenalty:     0, //there will be no penalty in this version
+	GeneralArbiters:              24,
+	CandidateArbiters:            72,
+	PreConnectOffset:             360,
+	CRMemberCount:                12,
+	CRVotingPeriod:               30 * 720,
+	CRDutyPeriod:                 365 * 720,
+	CRDepositLockupBlocks:        2160,
+	ProposalCRVotingPeriod:       7 * 720,
+	ProposalPublicVotingPeriod:   7 * 720,
+	CRAgreementCount:             8,
+	VoterRejectPercentage:        10,
+	CRCAppropriatePercentage:     10,
+	MaxCommitteeProposalCount:    128,
+	EnableUtxoDB:                 true,
+	EnableCORS:                   false,
+	WalletPath:                   "keystore.dat",
+	RPCServiceLevel:              ConfigurationPermitted.String(),
+	NodeProfileStrategy:          Balanced.String(),
+	MaxNodePerHost:               10,
 	CkpManager: checkpoint.NewManager(&checkpoint.Config{
 		EnableHistory:      false,
 		HistoryStartHeight: uint32(0),
@@ -295,7 +296,7 @@ func (p *Params) TestNet() *Params {
 	copy.MaxNodePerHost = 10
 	copy.CheckVoteCRCountHeight = 546500
 	copy.MaxCRAssetsAddressUTXOCount = 800
-
+	copy.IllegalBehaviorPenaltyHeight = 1000000
 	return &copy
 }
 
@@ -366,6 +367,7 @@ func (p *Params) RegNet() *Params {
 	copy.MaxNodePerHost = 10
 	copy.CheckVoteCRCountHeight = 435000
 	copy.MaxCRAssetsAddressUTXOCount = 1440
+	copy.IllegalBehaviorPenaltyHeight = 1000000
 
 	return &copy
 }
@@ -636,6 +638,9 @@ type Params struct {
 
 	// NewP2PProtocolVersionHeight defines the new p2p protocol version message height
 	NewP2PProtocolVersionHeight uint64
+
+	// IllegalBehaviorPenaltyHeight defines the new height that illegal behavior should be punished
+	IllegalBehaviorPenaltyHeight uint32
 }
 
 // rewardPerBlock calculates the reward for each block by a specified time

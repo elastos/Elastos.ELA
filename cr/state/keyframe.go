@@ -247,6 +247,8 @@ type ProposalKeyFrame struct {
 	ReceivedCustomIDLists      [][]string
 	// registered side chain name
 	RegisteredSideChainNames []string
+	// store register info with the approved height
+	RegisteredSideChainPayloadInfo map[uint32]map[common.Uint256]payload.SideChainInfo
 }
 
 func NewProposalMap() ProposalsMap {
@@ -1371,6 +1373,7 @@ func NewProposalKeyFrame() *ProposalKeyFrame {
 		ProposalSession:            make(map[uint64][]common.Uint256),
 		WithdrawableTxInfo:         make(map[common.Uint256]types.OutputInfo),
 		PendingReceivedCustomIDMap: make(map[string]struct{}),
+		RegisteredSideChainPayloadInfo: make(map[uint32]map[common.Uint256]payload.SideChainInfo),
 	}
 }
 

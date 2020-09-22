@@ -1382,6 +1382,12 @@ func (c *Committee) GetProposals(status ProposalStatus) ProposalsMap {
 	return c.manager.getProposals(status)
 }
 
+func (c *Committee) GetRegisteredSideChainByHeight(height uint32) map[common.Uint256]payload.SideChainInfo {
+	c.mtx.RLock()
+	defer c.mtx.RUnlock()
+	return c.manager.getRegisteredSideChainByHeight(height)
+}
+
 func (c *Committee) GetProposalByDraftHash(draftHash common.Uint256) *ProposalState {
 	c.mtx.RLock()
 	defer c.mtx.RUnlock()

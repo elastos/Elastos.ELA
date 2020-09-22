@@ -30,9 +30,10 @@ import (
 )
 
 const (
-	maxNonce       = ^uint32(0) // 2^32 - 1
-	updateInterval = 30 * time.Second
-	maxTxPerBlock  = 100
+	maxNonce               = ^uint32(0) // 2^32 - 1
+	updateInterval         = 30 * time.Second
+	createAuxBlockInterval = 5 * time.Second
+	maxTxPerBlock          = 100
 )
 
 type Config struct {
@@ -318,7 +319,7 @@ func (pow *Service) CreateAuxBlock(payToAddr string) (*types.Block, error) {
 	defer pow.mutex.Unlock()
 
 	if pow.chain.GetHeight() == 0 || pow.preChainHeight != pow.chain.GetHeight() ||
-		time.Now().After(pow.preTime.Add(updateInterval)) {
+		time.Now().After(pow.preTime.Add(createAuxBlockInterval)) {
 
 		if pow.preChainHeight != pow.chain.GetHeight() {
 			// Clear old blocks since they're obsolete now.

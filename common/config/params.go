@@ -218,7 +218,7 @@ var DefaultParams = Params{
 	}),
 	TxCacheVolume:                      100000,
 	CheckVoteCRCountHeight:             658930,
-	MaxCRAssetsAddressUTXOCount:        1440,
+	MaxCRAssetsAddressUTXOCount:        800,
 	MinCRAssetsAddressUTXOCount:        720,
 	CRAssetsRectifyTransactionHeight:   751400,
 	CRCProposalWithdrawPayloadV1Height: 751400,

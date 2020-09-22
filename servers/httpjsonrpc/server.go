@@ -66,9 +66,13 @@ func StartRPCServer() {
 	mainMux["getblockbyheight"] = GetBlockByHeight
 	mainMux["getexistwithdrawtransactions"] = GetExistWithdrawTransactions
 	mainMux["getreceivedbyaddress"] = GetReceivedByAddress
+<<<<<<< HEAD
 	mainMux["getexistreturndeposittransactions"] = GetExistSideChainReturnDepositTransactions
 	//TODO add rpc for arbiter
 	//mainMux["getregistersidechaintxsbyheight"] = getregistersidechaintxsbyheight
+=======
+	mainMux["getregistertransactionsbyheight"] = Getregistertransactionsbyheight
+>>>>>>> 0ce56443 (Add simulate rpc)
 
 	// wallet interfaces
 	mainMux["getamountbyinputs"] = GetAmountByInputs

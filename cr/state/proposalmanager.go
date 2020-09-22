@@ -128,6 +128,10 @@ func (p *ProposalManager) getProposals(status ProposalStatus) (dst ProposalsMap)
 	return
 }
 
+func (p *ProposalManager) getRegisteredSideChainByHeight(height uint32) map[common.Uint256]payload.SideChainInfo {
+	return p.RegisteredSideChainPayloadInfo[height]
+}
+
 // getProposal will return a proposal with specified hash,
 // and return nil if not found.
 func (p *ProposalManager) getProposal(hash common.Uint256) *ProposalState {
@@ -375,10 +379,19 @@ func (p *ProposalManager) dealProposal(proposalState *ProposalState, unusedAmoun
 			p.ReceivedCustomIDLists = oriReceivedCustomIDLists
 	case payload.RegisterSideChain:
 		originRegisteredSideChainNames := p.RegisteredSideChainNames
+		originRegisteredSideChainPayloadInfo := p.RegisteredSideChainPayloadInfo
 		p.history.Append(height, func() {
 			p.RegisteredSideChainNames = append(p.RegisteredSideChainNames, proposalState.Proposal.SideChainName)
+			if info, ok := p.RegisteredSideChainPayloadInfo[height]; ok {
+				info[proposalState.TxHash] = proposalState.Proposal.SideChainInfo
+			} else {
+				rs := make(map[common.Uint256]payload.SideChainInfo)
+				rs[proposalState.TxHash] = proposalState.Proposal.SideChainInfo
+				p.RegisteredSideChainPayloadInfo[height] = rs
+			}
 		}, func() {
 			p.RegisteredSideChainNames = originRegisteredSideChainNames
+			p.RegisteredSideChainPayloadInfo = originRegisteredSideChainPayloadInfo
 		})
 	}
 }

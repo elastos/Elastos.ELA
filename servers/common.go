@@ -504,3 +504,14 @@ type SidechainIllegalDataInfo struct {
 	GenesisBlockAddress string   `json:"genesisblockaddress"`
 	Signs               []string `json:"signs"`
 }
+
+type RsInfo struct {
+	SideChainName          string         `json:"sidechainname"`
+	MagicNumber            uint32         `json:"magicnumber"`
+	DNSSeeds               []string       `json:"dnsseeds"`
+	NodePort               uint16         `json:"nodeport"`
+	GenesisHash            common.Uint256 `json:"genesishash"`
+	GenesisTimestamp       uint32         `json:"genesistimestamp"`
+	GenesisBlockDifficulty string         `json:"genesisblockdifficulty"`
+	TxHash                 common.Uint256 `json:"txhash"`
+}

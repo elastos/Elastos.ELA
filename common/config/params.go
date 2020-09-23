@@ -294,6 +294,7 @@ func (p *Params) TestNet() *Params {
 	copy.MaxCommitteeProposalCount = 128
 	copy.MaxNodePerHost = 10
 	copy.CheckVoteCRCountHeight = 546500
+	copy.MaxCRAssetsAddressUTXOCount = 800
 
 	return &copy
 }
@@ -364,6 +365,7 @@ func (p *Params) RegNet() *Params {
 	copy.MaxCommitteeProposalCount = 128
 	copy.MaxNodePerHost = 10
 	copy.CheckVoteCRCountHeight = 435000
+	copy.MaxCRAssetsAddressUTXOCount = 1440
 
 	return &copy
 }

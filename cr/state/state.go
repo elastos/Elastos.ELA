@@ -58,7 +58,7 @@ func (s *State) UpdateCRInactivePenalty(cid common.Uint168) {
 	if !ok {
 		return
 	}
-	depositInfo.Penalty += 10000
+	depositInfo.Penalty += s.params.InactivePenalty
 }
 
 func (s *State) RevertUpdateCRInactivePenalty(cid common.Uint168) {
@@ -66,7 +66,7 @@ func (s *State) RevertUpdateCRInactivePenalty(cid common.Uint168) {
 	if !ok {
 		return
 	}
-	var penalty common.Fixed64 = 10000
+	var penalty = s.params.InactivePenalty
 	if depositInfo.Penalty < penalty {
 		depositInfo.Penalty = common.Fixed64(0)
 	} else {
@@ -79,7 +79,7 @@ func (s *State) UpdateCRIllegalPenalty(cid common.Uint168) {
 	if !ok {
 		return
 	}
-	depositInfo.Penalty += 10000
+	depositInfo.Penalty += s.params.IllegalPenalty
 }
 
 func (s *State) RevertUpdateCRIllegalPenalty(cid common.Uint168) {
@@ -87,7 +87,7 @@ func (s *State) RevertUpdateCRIllegalPenalty(cid common.Uint168) {
 	if !ok {
 		return
 	}
-	var penalty common.Fixed64 = 10000
+	var penalty = s.params.IllegalPenalty
 	if depositInfo.Penalty < penalty {
 		depositInfo.Penalty = common.Fixed64(0)
 	} else {

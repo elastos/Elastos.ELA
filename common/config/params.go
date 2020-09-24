@@ -192,6 +192,7 @@ var DefaultParams = Params{
 	ToleranceDuration:            5 * time.Second,
 	MaxInactiveRounds:            720 * 2,
 	InactivePenalty:              0, //there will be no penalty in this version
+	IllegalPenalty:               0, //there will be no penalty in this version
 	EmergencyInactivePenalty:     0, //there will be no penalty in this version
 	GeneralArbiters:              24,
 	CandidateArbiters:            72,
@@ -538,6 +539,9 @@ type Params struct {
 
 	// InactivePenalty defines the penalty amount the producer takes.
 	InactivePenalty common.Fixed64
+
+	// InactivePenalty defines the penalty amount the producer takes.
+	IllegalPenalty common.Fixed64
 
 	// EmergencyInactivePenalty defines the penalty amount the emergency
 	// producer takes.

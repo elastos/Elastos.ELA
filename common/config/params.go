@@ -165,6 +165,7 @@ var DefaultParams = Params{
 		"02b95b000f087a97e988c24331bf6769b4a75e4b7d5d2a38105092a3aa841be33b",
 		"02a0aa9eac0e168f3474c2a0d04e50130833905740a5270e8a44d6c6e85cf6d98c",
 	},
+
 	SecretaryGeneral:            "02712da531804d1c38d159a901313239d2100dfb5b693d71a2f76b15dec3f8fc32",
 	MaxProposalTrackingCount:    128,
 	PowLimit:                    powLimit,
@@ -191,6 +192,7 @@ var DefaultParams = Params{
 	ToleranceDuration:           5 * time.Second,
 	MaxInactiveRounds:           720 * 2,
 	InactivePenalty:             0, //there will be no penalty in this version
+	IllegalPenalty:              0, //there will be no penalty in this version
 	EmergencyInactivePenalty:    0, //there will be no penalty in this version
 	GeneralArbiters:             24,
 	CandidateArbiters:           72,
@@ -540,6 +542,9 @@ type Params struct {
 
 	// InactivePenalty defines the penalty amount the producer takes.
 	InactivePenalty common.Fixed64
+
+	// InactivePenalty defines the penalty amount the producer takes.
+	IllegalPenalty common.Fixed64
 
 	// EmergencyInactivePenalty defines the penalty amount the emergency
 	// producer takes.

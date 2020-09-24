@@ -1513,7 +1513,7 @@ func (s *State) processIllegalEvidence(payloadData types.Payload,
 				producer.illegalHeight = height
 				s.IllegalProducers[key] = producer
 				producer.activateRequestHeight = math.MaxUint32
-				producer.penalty += 1000
+				producer.penalty += s.chainParams.IllegalPenalty
 				delete(s.ActivityProducers, key)
 				delete(s.Nicknames, producer.info.NickName)
 			}, func() {
@@ -1534,7 +1534,7 @@ func (s *State) processIllegalEvidence(payloadData types.Payload,
 				producer.state = Illegal
 				producer.illegalHeight = height
 				s.IllegalProducers[key] = producer
-				producer.penalty += 1000
+				producer.penalty += s.chainParams.IllegalPenalty
 				delete(s.CanceledProducers, key)
 				delete(s.Nicknames, producer.info.NickName)
 			}, func() {

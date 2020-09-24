@@ -237,15 +237,15 @@ func getCRCProposalReviewTx(proposalHash common.Uint256, vote payload.VoteResult
 func getCRCProposalTrackingTx(
 	trackingType payload.CRCProposalTrackingType,
 	proposalHash common.Uint256, stage uint8,
-	leaderPublicKeyStr, leaderPrivateKeyStr,
-	newLeaderPublicKeyStr, newLeaderPrivateKeyStr,
+	ownerpublickeyStr, ownerprivatekeyStr,
+	newownerpublickeyStr, newownerprivatekeyStr,
 	sgPrivateKeyStr string) *types.Transaction {
 
-	leaderPublicKey, _ := common.HexStringToBytes(leaderPublicKeyStr)
-	leaderPrivateKey, _ := common.HexStringToBytes(leaderPrivateKeyStr)
+	ownerpublickey, _ := common.HexStringToBytes(ownerpublickeyStr)
+	ownerprivatekey, _ := common.HexStringToBytes(ownerprivatekeyStr)
 
-	newLeaderPublicKey, _ := common.HexStringToBytes(newLeaderPublicKeyStr)
-	newLeaderPrivateKey, _ := common.HexStringToBytes(newLeaderPrivateKeyStr)
+	newownerpublickey, _ := common.HexStringToBytes(newownerpublickeyStr)
+	newownerprivatekey, _ := common.HexStringToBytes(newownerprivatekeyStr)
 
 	sgPrivateKey, _ := common.HexStringToBytes(sgPrivateKeyStr)
 
@@ -259,19 +259,19 @@ func getCRCProposalTrackingTx(
 		ProposalHash:                proposalHash,
 		Stage:                       stage,
 		MessageHash:                 common.Hash(documentData),
-		OwnerPublicKey:              leaderPublicKey,
-		NewOwnerPublicKey:           newLeaderPublicKey,
+		OwnerPublicKey:              ownerpublickey,
+		NewOwnerPublicKey:           newownerpublickey,
 		SecretaryGeneralOpinionHash: common.Hash(opinionHash),
 	}
 
 	signBuf := new(bytes.Buffer)
 	cPayload.SerializeUnsigned(signBuf, payload.CRCProposalTrackingVersion)
-	sig, _ := crypto.Sign(leaderPrivateKey, signBuf.Bytes())
+	sig, _ := crypto.Sign(ownerprivatekey, signBuf.Bytes())
 	cPayload.OwnerSignature = sig
 
-	if newLeaderPublicKeyStr != "" && newLeaderPrivateKeyStr != "" {
+	if newownerpublickeyStr != "" && newownerprivatekeyStr != "" {
 		common.WriteVarBytes(signBuf, sig)
-		crSig, _ := crypto.Sign(newLeaderPrivateKey, signBuf.Bytes())
+		crSig, _ := crypto.Sign(newownerprivatekey, signBuf.Bytes())
 		cPayload.NewOwnerSignature = crSig
 		sig = crSig
 	}
@@ -285,19 +285,19 @@ func getCRCProposalTrackingTx(
 }
 
 func getCRCProposalWithdrawTx(proposalHash common.Uint256,
-	sponsorPublicKeyStr, sponsorPrivateKeyStr string, fee common.Fixed64,
+	OwnerPublicKeyStr, sponsorPrivateKeyStr string, fee common.Fixed64,
 	inputs []*types.Input, outputs []*types.Output) *types.Transaction {
 
-	sponsorPublicKey, _ := common.HexStringToBytes(sponsorPublicKeyStr)
+	OwnerPublicKey, _ := common.HexStringToBytes(OwnerPublicKeyStr)
 	sponsorPrivateKey, _ := common.HexStringToBytes(sponsorPrivateKeyStr)
 
 	crcProposalWithdraw := &payload.CRCProposalWithdraw{
 		ProposalHash:   proposalHash,
-		OwnerPublicKey: sponsorPublicKey,
+		OwnerPublicKey: OwnerPublicKey,
 	}
 
 	signBuf := new(bytes.Buffer)
-	crcProposalWithdraw.SerializeUnsigned(signBuf, payload.CRCProposalWithdrawVersion)
+	crcProposalWithdraw.SerializeUnsigned(signBuf, payload.CRCProposalWithdrawDefault)
 	signature, _ := crypto.Sign(sponsorPrivateKey, signBuf.Bytes())
 	crcProposalWithdraw.Signature = signature
 
@@ -857,6 +857,7 @@ func TestCommittee_RollbackCRCProposal(t *testing.T) {
 	cfg.CRCArbiters = cfg.CRCArbiters[0:2]
 	cfg.CRMemberCount = 2
 	cfg.CRAgreementCount = 2
+	cfg.CRClaimDPOSNodePeriod = 1000000
 
 	// avoid getting UTXOs from database
 	currentHeight := cfg.CRVotingStartHeight
@@ -1884,7 +1885,6 @@ func TestCommittee_RollbackCRCImpeachmentTx(t *testing.T) {
 	assert.Equal(t, 0, len(committee.GetAllCandidates()))
 	committee.state.depositInfo = make(map[common.Uint168]*DepositInfo)
 	committee.state.depositInfo[*did1] = &DepositInfo{
-		Refundable:    false,
 		DepositAmount: 5000 * 1e8,
 		TotalAmount:   5000 * 1e8,
 		Penalty:       12,
@@ -2011,7 +2011,7 @@ func TestCommittee_RollbackCRCImpeachmentAndReelectionTx(t *testing.T) {
 	// process
 
 	//here change committee
-	committee.params.CRAgreementCount = 3
+	committee.params.CRAgreementCount = 2
 	currentHeight++
 	committee.ProcessBlock(&types.Block{
 		Header: types.Header{Height: currentHeight}}, nil)
@@ -2019,13 +2019,11 @@ func TestCommittee_RollbackCRCImpeachmentAndReelectionTx(t *testing.T) {
 	assert.Equal(t, 0, len(committee.GetAllCandidates()))
 	committee.state.depositInfo = make(map[common.Uint168]*DepositInfo)
 	committee.state.depositInfo[*did1] = &DepositInfo{
-		Refundable:    false,
 		DepositAmount: 5000 * 1e8,
 		TotalAmount:   5000 * 1e8,
 		Penalty:       12,
 	}
 	committee.state.depositInfo[*did2] = &DepositInfo{
-		Refundable:    false,
 		DepositAmount: 5000 * 1e8,
 		TotalAmount:   5000 * 1e8,
 		Penalty:       12,

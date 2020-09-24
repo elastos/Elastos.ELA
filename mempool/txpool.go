@@ -45,8 +45,22 @@ func (mp *TxPool) AppendToTxPool(tx *Transaction) elaerr.ELAError {
 	return nil
 }
 
+func (mp *TxPool) removeCRAppropriationConflictTransactions() {
+	for _, tx := range mp.txnList {
+		if tx.IsCRAssetsRectifyTx() {
+			mp.doRemoveTransaction(tx)
+		}
+	}
+}
+
 func (mp *TxPool) appendToTxPool(tx *Transaction) elaerr.ELAError {
 	txHash := tx.Hash()
+
+	// If the transaction is CR appropriation transaction, need to remove
+	// transactions that conflict with it.
+	if tx.IsCRCAppropriationTx() {
+		mp.removeCRAppropriationConflictTransactions()
+	}
 
 	// Don't accept the transaction if it already exists in the pool.  This
 	// applies to orphan transactions as well.  This check is intended to
@@ -66,12 +80,7 @@ func (mp *TxPool) appendToTxPool(tx *Transaction) elaerr.ELAError {
 		log.Warn("[TxPool CheckTransactionSanity] failed", tx.Hash())
 		return errCode
 	}
-	references, err := chain.UTXOCache.GetTxReference(tx)
-	if err != nil {
-		log.Warn("[CheckTransactionContext] get transaction reference failed")
-		return elaerr.Simple(elaerr.ErrTxUnknownReferredTx, nil)
-	}
-	if errCode := chain.CheckTransactionContext(bestHeight+1, tx, references, mp.proposalsUsedAmount); errCode != nil {
+	if _, errCode := chain.CheckTransactionContext(bestHeight+1, tx, mp.proposalsUsedAmount); errCode != nil {
 		log.Warn("[TxPool CheckTransactionContext] failed", tx.Hash())
 		return errCode
 	}
@@ -147,6 +156,12 @@ func (mp *TxPool) CleanSubmittedTransactions(block *Block) {
 	mp.Unlock()
 }
 
+func (mp *TxPool) CheckAndCleanAllTransactions() {
+	mp.Lock()
+	mp.checkAndCleanAllTransactions()
+	mp.Unlock()
+}
+
 func (mp *TxPool) cleanTransactions(blockTxs []*Transaction) {
 	txsInPool := len(mp.txnList)
 	deleteCount := 0
@@ -155,10 +170,17 @@ func (mp *TxPool) cleanTransactions(blockTxs []*Transaction) {
 			continue
 		}
 
-		if blockTx.IsNewSideChainPowTx() || blockTx.IsUpdateVersion() {
+		if blockTx.IsNewSideChainPowTx() || blockTx.IsUpdateVersion() || blockTx.IsNextTurnDPOSInfoTx() {
 			if _, ok := mp.txnList[blockTx.Hash()]; ok {
 				mp.doRemoveTransaction(blockTx)
 				deleteCount++
+			}
+			if blockTx.IsNextTurnDPOSInfoTx() {
+				payloadHash, err := blockTx.GetSpecialTxHash()
+				if err != nil {
+					continue
+				}
+				blockchain.DefaultLedger.Blockchain.GetState().RemoveSpecialTx(payloadHash)
 			}
 			continue
 		}
@@ -226,6 +248,31 @@ func (mp *TxPool) cleanCanceledProducerAndCR(txs []*Transaction) error {
 	}
 
 	return nil
+}
+
+func (mp *TxPool) checkAndCleanAllTransactions() {
+	chain := blockchain.DefaultLedger.Blockchain
+	bestHeight := blockchain.DefaultLedger.Blockchain.GetHeight()
+
+	txCount := len(mp.txnList)
+	var deleteCount int
+	var proposalsUsedAmount Fixed64
+	for _, tx := range mp.txnList {
+		_, err := chain.CheckTransactionContext(bestHeight+1, tx, proposalsUsedAmount)
+		if err != nil {
+			log.Warn("[checkAndCleanAllTransactions] check transaction context failed,", err)
+			deleteCount++
+			mp.doRemoveTransaction(tx)
+			continue
+		}
+		if tx.IsCRCProposalTx() {
+			blockchain.RecordCRCProposalAmount(&proposalsUsedAmount, tx)
+		}
+	}
+
+	log.Debug(fmt.Sprintf("[checkAndCleanAllTransactions],transaction %d "+
+		"in transaction pool before, %d deleted. Remains %d in TxPool", txCount,
+		deleteCount, txCount-deleteCount))
 }
 
 func (mp *TxPool) cleanVoteAndUpdateProducer(ownerPublicKey []byte) error {
@@ -441,7 +488,9 @@ func (mp *TxPool) doAddTransaction(tx *Transaction) elaerr.ELAError {
 		return err
 	}
 	mp.txnList[tx.Hash()] = tx
-	mp.dealAddProposalTx(tx)
+	if tx.IsCRCProposalTx() {
+		mp.dealAddProposalTx(tx)
+	}
 	return nil
 }
 
@@ -452,7 +501,9 @@ func (mp *TxPool) doRemoveTransaction(tx *Transaction) {
 
 	if _, exist := mp.txnList[hash]; exist {
 		delete(mp.txnList, hash)
-		mp.dealDelProposalTx(tx)
+		if tx.IsCRCProposalTx() {
+			mp.dealDelProposalTx(tx)
+		}
 		mp.txFees.RemoveTx(hash, uint64(txSize), feeRate)
 		mp.removeTx(tx)
 	}

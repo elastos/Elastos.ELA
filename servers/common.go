@@ -25,7 +25,7 @@ type InputInfo struct {
 	Sequence uint32 `json:"sequence"`
 }
 
-type OutputInfo struct {
+type RpcOutputInfo struct {
 	Value         string            `json:"value"`
 	Index         uint32            `json:"n"`
 	Address       string            `json:"address"`
@@ -70,7 +70,7 @@ type TransactionInfo struct {
 	Payload        PayloadInfo        `json:"payload"`
 	Attributes     []AttributeInfo    `json:"attributes"`
 	Inputs         []InputInfo        `json:"vin"`
-	Outputs        []OutputInfo       `json:"vout"`
+	Outputs        []RpcOutputInfo    `json:"vout"`
 	LockTime       uint32             `json:"locktime"`
 	Programs       []ProgramInfo      `json:"programs"`
 }
@@ -144,6 +144,7 @@ type PeerInfo struct {
 	LastBlock      uint32 `json:"lastblock"`
 	LastPingTime   string `json:"lastpingtime"`
 	LastPingMicros int64  `json:"lastpingmicros"`
+	NodeVersion    string `json:"nodeversion"`
 }
 
 type ArbitratorGroupInfo struct {
@@ -254,6 +255,47 @@ type CRCProposalInfo struct {
 	Hash                     string           `json:"hash"`
 }
 
+type CRCChangeProposalOwnerInfo struct {
+	ProposalType             string `json:"proposaltype"`
+	CategoryData             string `json:"categorydata"`
+	OwnerPublicKey           string `json:"ownerpublickey"`
+	DraftHash                string `json:"drafthash"`
+	TargetProposalHash       string `json:"targetproposalhash"`
+	NewRecipient             string `json:"newrecipient"`
+	NewOwnerPublicKey        string `json:"newownerpublickey"`
+	Signature                string `json:"signature"`
+	NewOwnerSignature        string `json:"newownersignature"`
+	CRCouncilMemberDID       string `json:"crcouncilmemberdid"`
+	CRCouncilMemberSignature string `json:"crcouncilmembersignature"`
+	Hash                     string `json:"hash"`
+}
+
+type CRCCloseProposalInfo struct {
+	ProposalType             string `json:"proposaltype"`
+	CategoryData             string `json:"categorydata"`
+	OwnerPublicKey           string `json:"ownerpublickey"`
+	DraftHash                string `json:"drafthash"`
+	TargetProposalHash       string `json:"targetproposalhash"`
+	Signature                string `json:"signature"`
+	CRCouncilMemberDID       string `json:"crcouncilmemberdid"`
+	CRCouncilMemberSignature string `json:"crcouncilmembersignature"`
+	Hash                     string `json:"hash"`
+}
+
+type CRCSecretaryGeneralProposalInfo struct {
+	ProposalType              string `json:"proposaltype"`
+	CategoryData              string `json:"categorydata"`
+	OwnerPublicKey            string `json:"ownerpublickey"`
+	DraftHash                 string `json:"drafthash"`
+	SecretaryGeneralPublicKey string `json:"secretarygeneralpublickey"`
+	SecretaryGeneralDID       string `json:"secretarygeneraldid"`
+	Signature                 string `json:"signature"`
+	SecretaryGeneraSignature  string `json:"secretarygenerasignature"`
+	CRCouncilMemberDID        string `json:"crcouncilmemberdid"`
+	CRCouncilMemberSignature  string `json:"crcouncilmembersignature"`
+	Hash                      string `json:"hash"`
+}
+
 type CRCProposalReviewInfo struct {
 	ProposalHash string `json:"proposalhash"`
 	VoteResult   string `json:"voteresult"`
@@ -278,7 +320,25 @@ type CRCProposalTrackingInfo struct {
 type CRCProposalWithdrawInfo struct {
 	ProposalHash   string `json:"proposalhash"`
 	OwnerPublicKey string `json:"ownerpublickey"`
+	Recipient      string `json:"recipient,omitempty"`
+	Amount         string `json:"amount,omitempty"`
 	Signature      string `json:"signature"`
+}
+
+type CRCouncilMemberClaimNodeInfo struct {
+	NodePublicKey            string `json:"nodepublickey"`
+	CRCouncilMemberDID       string `json:"crcouncilmemberdid"`
+	CRCouncilMemberSignature string `json:"crcouncilmembersignature"`
+}
+
+type NextTurnDPOSPayloadInfo struct {
+	WorkingHeight  uint32   `json:"workingheight"`
+	CRPublickeys   []string `json:"crpublickeys"`
+	DPOSPublicKeys []string `json:"dpospublickeys"`
+}
+
+type CRCProposalRealWithdrawInfo struct {
+	WithdrawTransactionHashes []string `json:"withdrawtransactionhashes"`
 }
 
 type UTXOInfo struct {

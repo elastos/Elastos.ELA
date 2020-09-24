@@ -27,33 +27,40 @@ print("wallet public key:", pubkey)
 local asset_id = m.get_asset_id()
 
 local fee = getFee()
-local cr_pubkey = getPublicKey()
+--local cr_pubkey = getPublicKey()
+local owner_pubkey = getOwnerPublicKey()
+local owner_privatekey = getOwnerPrivateKey()
+
 local proposal_type = getProposalType()
 
 local draft_hash = getDraftHash()
 
 local budgets = getBudgets()
 local recipient = getToAddr()
-
 if fee == 0
     then
     fee = 0.1
 end
 
-if cr_pubkey == "" then
-    cr_pubkey = pubkey
+if owner_pubkey == "" then
+    owner_pubkey = pubkey
+end
+--print("proposal type:", proposal_type)
+print( proposal_type)
+
+ if proposal_type ~= 0x0400 then
+    if draft_hash == "" then
+        print("draft_hash is nil, should use --draftHash to set it.")
+        return
+    end
+
+    if recipient == "" then
+        print("recipient is nil, should use --to to set it.")
+        return
+    end
 end
 
-if draft_hash == "" then
-    print("draft_hash is nil, should use --draftHash to set it.")
-    return
-end
 
-
-if recipient == "" then
-    print("recipient is nil, should use --to to set it.")
-    return
-end
 
 if next(budgets) == nil then
     print("budgets is nil, should use --budgets to set it.")
@@ -62,22 +69,27 @@ end
 
 print("fee:", fee)
 print("recipient", recipient)
-print("public key:", cr_pubkey)
+print("owner_pubkey:", owner_pubkey)
+print("owner_privatekey:", owner_privatekey)
+
 print("proposal type:", proposal_type)
 print("draft proposal hash:", draft_hash)
 print("budgets:")
+
 print("-----------------------")
 for i, v in pairs(budgets) do
     print(i, v)
 end
 print("-----------------------")
 
+local cp_payload
 -- crc proposal payload: crPublickey, proposalType, draftData, budgets, recipient, wallet
-local cp_payload =crcproposal.new(cr_pubkey, proposal_type, draft_hash, budgets,
-        recipient, wallet, cr_opinion_hash)
-print(cp_payload:get())
+ cp_payload =crcproposal.new(owner_pubkey, proposal_type, draft_hash, budgets,
+ recipient, wallet, cr_opinion_hash)
 
--- transaction: version, txType, payloadVersion, payload, locktime
+ print(cp_payload:get())
+
+
 local tx = transaction.new(9, 0x25, 0, cp_payload, 0)
 print(tx:get())
 

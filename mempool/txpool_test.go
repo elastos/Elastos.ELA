@@ -92,8 +92,9 @@ func TestTxPoolInit(t *testing.T) {
 	}
 	arbitrators := state.NewArbitratorsMock(arbiters, 0, 3)
 
-	chain, err := blockchain.New(chainStore, params, state.NewState(params,
-		nil, nil), nil)
+	chain, err := blockchain.New(chainStore, params, state.NewState(params, nil,
+		nil, nil, nil, nil,
+		nil), nil)
 	if err != nil {
 		t.Fatal(err, "BlockChain generate failed")
 	}
@@ -797,8 +798,9 @@ func TestTxPool_CleanSubmittedTransactions(t *testing.T) {
 	assert.NoError(t, appendTx(tx2))
 	newBLock.Transactions = []*types.Transaction{tx3}
 	txPool.CleanSubmittedTransactions(&newBLock)
-	if err := isTransactionExisted(txPool, tx2); err != nil {
-		t.Error("should have transaction: tx6", err)
+	txPool.CheckAndCleanAllTransactions()
+	if err := isTransactionCleaned(txPool, tx2); err != nil {
+		t.Error("should clean transaction: tx2", err)
 	}
 }
 

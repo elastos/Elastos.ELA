@@ -1,7 +1,7 @@
 // Copyright (c) 2017-2020 The Elastos Foundation
 // Use of this source code is governed by an MIT
 // license that can be found in the LICENSE file.
-// 
+//
 
 package state
 
@@ -172,7 +172,8 @@ func randomPublicKey() []byte {
 }
 
 func TestState_ProcessTransaction(t *testing.T) {
-	state := NewState(&config.DefaultParams, nil, nil)
+	state := NewState(&config.DefaultParams, nil, nil, nil,
+		nil, nil, nil)
 	// Create 10 producers info.
 	producers := make([]*payload.ProducerInfo, 10)
 	for i, p := range producers {
@@ -286,7 +287,8 @@ func TestState_ProcessTransaction(t *testing.T) {
 }
 
 func TestState_ProcessBlock(t *testing.T) {
-	state := NewState(&config.DefaultParams, nil, nil)
+	state := NewState(&config.DefaultParams, nil, nil, nil,
+		nil, nil, nil)
 
 	// Create 100 producers info.
 	producers := make([]*payload.ProducerInfo, 100)
@@ -453,7 +455,8 @@ func TestState_ProcessBlock(t *testing.T) {
 }
 
 func TestState_ProcessIllegalBlockEvidence(t *testing.T) {
-	state := NewState(&config.DefaultParams, nil, nil)
+	state := NewState(&config.DefaultParams, nil, nil, nil,
+		nil, nil, nil)
 
 	// Create 10 producers info.
 	producers := make([]*payload.ProducerInfo, 10)
@@ -506,7 +509,8 @@ func TestState_ProcessIllegalBlockEvidence(t *testing.T) {
 }
 
 func TestState_ProcessEmergencyInactiveArbitrators(t *testing.T) {
-	state := NewState(&config.DefaultParams, nil, nil)
+	state := NewState(&config.DefaultParams, nil, nil, nil,
+		nil, nil, nil)
 
 	// Create 10 producers info.
 	producers := make([]*payload.ProducerInfo, 10)
@@ -562,7 +566,8 @@ func TestState_ProcessEmergencyInactiveArbitrators(t *testing.T) {
 }
 
 func TestState_Rollback(t *testing.T) {
-	state := NewState(&config.DefaultParams, nil, nil)
+	state := NewState(&config.DefaultParams, nil, nil, nil,
+		nil, nil, nil)
 
 	// Create 10 producers info.
 	producers := make([]*payload.ProducerInfo, 10)
@@ -610,7 +615,8 @@ func TestState_Rollback(t *testing.T) {
 }
 
 func TestState_GetHistory(t *testing.T) {
-	state := NewState(&config.DefaultParams, nil, nil)
+	state := NewState(&config.DefaultParams, nil, nil, nil,
+		nil, nil, nil)
 
 	// Create 10 producers info.
 	producers := make([]*payload.ProducerInfo, 10)
@@ -756,7 +762,8 @@ func TestState_GetHistory(t *testing.T) {
 }
 
 func TestState_NicknameExists(t *testing.T) {
-	state := NewState(&config.DefaultParams, nil, nil)
+	state := NewState(&config.DefaultParams, nil, nil, nil,
+		nil, nil, nil)
 
 	// Create 10 producers info.
 	producers := make([]*payload.ProducerInfo, 10)
@@ -818,7 +825,8 @@ func TestState_NicknameExists(t *testing.T) {
 }
 
 func TestState_ProducerExists(t *testing.T) {
-	state := NewState(&config.DefaultParams, nil, nil)
+	state := NewState(&config.DefaultParams, nil, nil, nil,
+		nil, nil, nil)
 
 	// Create 10 producers info.
 	producers := make([]*payload.ProducerInfo, 10)
@@ -870,7 +878,8 @@ func TestState_ProducerExists(t *testing.T) {
 
 func TestState_IsDPOSTransaction(t *testing.T) {
 	references := make(map[*types.Input]types.Output)
-	state := NewState(&config.DefaultParams, nil, nil)
+	state := NewState(&config.DefaultParams, nil, nil, nil,
+		nil, nil, nil)
 	state.getTxReference = func(tx *types.Transaction) (
 		map[*types.Input]types.Output, error) {
 		return references, nil
@@ -932,7 +941,8 @@ func TestState_IsDPOSTransaction(t *testing.T) {
 
 func TestState_InactiveProducer_Normal(t *testing.T) {
 	arbitrators := &ArbitratorsMock{}
-	state := NewState(&config.DefaultParams, arbitrators.GetArbitrators, nil)
+	state := NewState(&config.DefaultParams, arbitrators.GetArbitrators, nil, nil,
+		nil, nil, nil)
 	state.chainParams.InactivePenalty = 50
 
 	// Create 10 producers info.
@@ -1006,7 +1016,8 @@ func TestState_InactiveProducer_Normal(t *testing.T) {
 
 func TestState_InactiveProducer_FailNoContinuous(t *testing.T) {
 	arbitrators := &ArbitratorsMock{}
-	state := NewState(&config.DefaultParams, arbitrators.GetArbitrators, nil)
+	state := NewState(&config.DefaultParams, arbitrators.GetArbitrators, nil, nil,
+		nil, nil, nil)
 
 	// Create 10 producers info.
 	producers := make([]*payload.ProducerInfo, 10)
@@ -1082,7 +1093,8 @@ func TestState_InactiveProducer_FailNoContinuous(t *testing.T) {
 
 func TestState_InactiveProducer_RecoverFromInactiveState(t *testing.T) {
 	arbitrators := &ArbitratorsMock{}
-	state := NewState(&config.DefaultParams, arbitrators.GetArbitrators, nil)
+	state := NewState(&config.DefaultParams, arbitrators.GetArbitrators, nil, nil,
+		nil, nil, nil)
 
 	// Create 10 producers info.
 	producers := make([]*payload.ProducerInfo, 10)
@@ -1173,7 +1185,8 @@ func TestState_InactiveProducer_RecoverFromInactiveState(t *testing.T) {
 
 func TestState_InactiveProducer_DuringUpdateVersion(t *testing.T) {
 	arbitrators := &ArbitratorsMock{}
-	state := NewState(&config.DefaultParams, arbitrators.GetArbitrators, nil)
+	state := NewState(&config.DefaultParams, arbitrators.GetArbitrators, nil, nil,
+		nil, nil, nil)
 	state.chainParams.InactivePenalty = 50
 
 	// Create 10 producers info.
@@ -1255,7 +1268,8 @@ func TestState_InactiveProducer_DuringUpdateVersion(t *testing.T) {
 
 func TestState_ProcessBlock_DepositAndReturnDeposit(t *testing.T) {
 	arbitrators := &ArbitratorsMock{}
-	state := NewState(&config.DefaultParams, arbitrators.GetArbitrators, nil)
+	state := NewState(&config.DefaultParams, arbitrators.GetArbitrators, nil, nil,
+		nil, nil, nil)
 	height := config.DefaultParams.CRVotingStartHeight - 1
 
 	_, pk, _ := crypto.GenerateKeyPair()
@@ -1286,7 +1300,7 @@ func TestState_ProcessBlock_DepositAndReturnDeposit(t *testing.T) {
 	}, nil)
 	height++
 	candidate := state.getProducer(pkBuf)
-	assert.Equal(t, common.Fixed64(100), candidate.depositAmount)
+	assert.Equal(t, common.Fixed64(100), candidate.totalAmount)
 
 	state.getProducerDepositAmount = func(p common.Uint168) (
 		fixed64 common.Fixed64, e error) {
@@ -1299,7 +1313,7 @@ func TestState_ProcessBlock_DepositAndReturnDeposit(t *testing.T) {
 		Transactions: []*types.Transaction{},
 	}, nil)
 	height++
-	assert.Equal(t, common.Fixed64(100), candidate.depositAmount)
+	assert.Equal(t, common.Fixed64(100), candidate.totalAmount)
 	assert.Equal(t, Pending, candidate.state)
 
 	// deposit though normal tx
@@ -1320,7 +1334,7 @@ func TestState_ProcessBlock_DepositAndReturnDeposit(t *testing.T) {
 		Transactions: []*types.Transaction{tranferTx},
 	}, nil)
 	height++
-	assert.Equal(t, common.Fixed64(300), candidate.depositAmount)
+	assert.Equal(t, common.Fixed64(300), candidate.totalAmount)
 
 	// cancel candidate
 	for i := 0; i < 4; i++ {
@@ -1375,5 +1389,5 @@ func TestState_ProcessBlock_DepositAndReturnDeposit(t *testing.T) {
 		},
 	}, height)
 	state.history.Commit(height)
-	assert.Equal(t, common.Fixed64(100), candidate.depositAmount)
+	assert.Equal(t, common.Fixed64(100), candidate.totalAmount)
 }

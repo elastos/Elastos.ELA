@@ -1,7 +1,7 @@
 // Copyright (c) 2017-2020 The Elastos Foundation
 // Use of this source code is governed by an MIT
 // license that can be found in the LICENSE file.
-// 
+//
 
 package common
 
@@ -230,6 +230,14 @@ var (
 		Name:  "crcommitteestartheight",
 		Usage: "defines the height of CR Committee started",
 	}
+	CRClaimDPOSNodeStartHeightFlag = cli.StringFlag{
+		Name:  "crclaimdposnodestartheight",
+		Usage: "defines the height of CR claim DPOS node started",
+	}
+	CRClaimDPOSNodePeriodFlag = cli.StringFlag{
+		Name:  "crclaimdposnodeperiod",
+		Usage: "defines the period of CR claim DPOS node",
+	}
 	CRVotingStartHeightFlag = cli.StringFlag{
 		Name:  "crvotingstartheight",
 		Usage: "defines the height of CR voting started",
@@ -355,17 +363,50 @@ var (
 		Name:  "crcappropriatepercentage",
 		Usage: "defines percentage about CRC appropriation",
 	}
-	CRCFoundationFlag = cli.StringFlag{
-		Name:  "crcfoundation",
+	CRAssetsAddressFlag = cli.StringFlag{
+		Name:  "crassetsaddress",
 		Usage: "defines foundation address of CRC",
 	}
-	CRCCommitteeAddressFlag = cli.StringFlag{
-		Name:  "crccommitteeaddress",
+	CRExpensesAddressFlag = cli.StringFlag{
+		Name:  "crexpensesaddress",
 		Usage: "defines appropriation address of CRC committee",
 	}
 	RegisterCRByDIDHeightFlag = cli.StringFlag{
 		Name:  "registercrbydidheight",
 		Usage: "defines the height to support register CR by CID",
+	}
+	MaxCRAssetsAddressUTXOCount = cli.StringFlag{
+		Name:  "maxcrassetsaddressutxocount",
+		Usage: "defines the maximum number of utxo cr assets address can have ",
+	}
+	MinCRAssetsAddressUTXOCount = cli.StringFlag{
+		Name:  "mincrassetsaddressutxocount",
+		Usage: "defines the minimum number of utxo cr assets address can rectify",
+	}
+	CRAssetsRectifyTransactionHeight = cli.StringFlag{
+		Name:  "crassetsrectifytransactionheight",
+		Usage: "defines the cr rectify transaction start height",
+	}
+	CRCProposalWithdrawPayloadV1Height = cli.StringFlag{
+		Name:  "crcproposalwithdrawpayloadv1height",
+		Usage: "defines the crc withdraw proposal payload type v1 accept height",
+	}
+	CRCProposalV1Height = cli.StringFlag{
+		Name: "crcproposalv1height",
+		Usage: "defines the ChangeProposalOwner，CloseProposal and " +
+			"SecretaryGeneral crc proposal type accept height",
+	}
+	RectifyTxFee = cli.StringFlag{
+		Name:  "rectifytxfee",
+		Usage: "defines the fee of cr rectify transaction",
+	}
+	RealWithdrawSingleFee = cli.StringFlag{
+		Name:  "realwithdrawsinglefee",
+		Usage: "defines the single fee of cr real proposal withdraw transaction",
+	}
+	NewVersionHeight = cli.StringFlag{
+		Name:  "newversionheight",
+		Usage: "defines the new version message height",
 	}
 )
 

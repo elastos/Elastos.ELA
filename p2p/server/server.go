@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"github.com/elastos/Elastos.ELA/core/types"
+	"github.com/elastos/Elastos.ELA/elanet/pact"
 	"github.com/elastos/Elastos.ELA/p2p"
 	"github.com/elastos/Elastos.ELA/p2p/addrmgr"
 	"github.com/elastos/Elastos.ELA/p2p/connmgr"
@@ -383,8 +384,18 @@ func (s *server) checkAddr(addr string) error {
 	if err != nil {
 		return err
 	}
-	versionMsg := msg.NewVersion(s.cfg.ProtocolVersion, s.cfg.DefaultPort,
-		s.cfg.Services, uint64(rand.Int63()), s.cfg.BestHeight(), s.cfg.DisableRelayTx)
+	var versionMsg *msg.Version
+	var bestHeight = s.cfg.BestHeight()
+	var nodeVersion string
+	var ver = s.cfg.ProtocolVersion
+	if bestHeight >= s.cfg.NewVersionHeight {
+		nodeVersion = s.cfg.NodeVersion
+		ver = pact.CRProposalVersion
+		s.cfg.ProtocolVersion = ver
+	}
+	// Version message.
+	versionMsg = msg.NewVersion(ver, s.cfg.DefaultPort,
+		s.cfg.Services, uint64(rand.Int63()), bestHeight, s.cfg.DisableRelayTx, nodeVersion)
 
 	err = p2p.WriteMessage(
 		conn, s.cfg.MagicNumber, versionMsg, time.Second*2,
@@ -813,6 +824,8 @@ func newPeerConfig(sp *serverPeer) *peer.Config {
 
 			}
 		},
+		NewVersionHeight: sp.server.cfg.NewVersionHeight,
+		NodeVersion:      sp.server.cfg.NodeVersion,
 	}
 }
 

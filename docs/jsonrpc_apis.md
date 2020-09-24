@@ -1201,7 +1201,8 @@ Get deposit coin by owner public key.
 | --------- | ------ | -------------------------------------- |
 | available | string | the available deposit coin of producer |
 | deducted  | string | the deducted deposit coin of producer  |
-
+| deposit   | string | the deposit amount coin of producer    |
+| assets    | string | the total assets coin of producer      |
 #### Example
 
 Request:
@@ -1223,8 +1224,10 @@ Response:
   "id": null,
   "jsonrpc": "2.0",
   "result": {
-    "available": "3",
-    "deducted": "0"
+    "available": "1",
+    "deducted": "0",
+    "deposit": "3",
+    "assets": "4"
   }
 }
 ```
@@ -1246,6 +1249,8 @@ Get deposit coin by owner public key or cid or did.
 | --------- | ------ | ------------------------------------------ |
 | available | string | the available deposit coin of CR candidate |
 | deducted  | string | the deducted deposit coin of CR candidate  |
+| deposit   | string | the deposit amount coin of CR candidate    |
+| assets    | string | the total assets coin of CR candidate      |
 
 #### Example
 
@@ -1268,8 +1273,10 @@ Response:
   "id": null,
   "jsonrpc": "2.0",
   "result": {
-    "available": "3",
-    "deducted": "0"
+    "available": "1",
+    "deducted": "0",
+    "deposit": "3",
+    "assets": "4"
   }
 }
 ```
@@ -2455,6 +2462,36 @@ Response:
                 "parameter": "40a1d30614cc236006f31d67b9dc74af8298692c0fd09d1236d3c50fd50a64df82864359e441efde018d47f69bbcf92e46720baa160621c2160d7830a2bebfc144"
             }
         ]
+    }
+}
+```
+
+### getcrrelatedstage
+
+Get CR related stage information.
+
+#### Example
+
+Request:
+```
+{
+  "method": "getcrrelatedstage"
+}
+```
+
+Response:
+```
+{
+    "error": null,
+    "id": null,
+    "jsonrpc": "2.0",
+    "result": {
+        "onduty":true,
+        "ondutystartheight":1000,
+        "ondutyendheight":2000,
+        "invoting":false,
+        "votingstartheight":0,
+        "votingendheight":0
     }
 }
 ```

@@ -73,6 +73,14 @@ func (a *Arbitrator) Stop() error {
 	return nil
 }
 
+func (a *Arbitrator) GetCurrentCRCs() []*state.ArbiterInfo {
+	return a.dposManager.GetArbitrators().GetCRCArbiters()
+}
+
+func (a *Arbitrator) GetNextCRCs() [][]byte {
+	return a.dposManager.GetArbitrators().GetNextCRCArbiters()
+}
+
 func (a *Arbitrator) GetArbiterPeersInfo() []*dp2p.PeerInfo {
 	return a.network.p2pServer.DumpPeersInfo()
 }

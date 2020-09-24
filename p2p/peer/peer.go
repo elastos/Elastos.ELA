@@ -1,7 +1,7 @@
 // Copyright (c) 2017-2020 The Elastos Foundation
 // Use of this source code is governed by an MIT
 // license that can be found in the LICENSE file.
-// 
+//
 
 package peer
 
@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/elastos/Elastos.ELA/core/types"
+	"github.com/elastos/Elastos.ELA/elanet/pact"
 	elaerr "github.com/elastos/Elastos.ELA/errors"
 	"github.com/elastos/Elastos.ELA/p2p"
 	"github.com/elastos/Elastos.ELA/p2p/msg"
@@ -92,6 +93,7 @@ type StatsSnap struct {
 	LastBlock      uint32
 	LastPingTime   time.Time
 	LastPingMicros int64
+	NodeVersion    string
 }
 
 // MessageFunc is a message handler in peer's configuration
@@ -110,6 +112,8 @@ type Config struct {
 	IsSelfConnection func(ip net.IP, port int, nonce uint64) bool
 	GetVersionNonce  func() uint64
 	MessageFunc      MessageFunc
+	NewVersionHeight uint64
+	NodeVersion      string
 }
 
 // minUint32 is a helper function to return the minimum of two uint32s.
@@ -168,14 +172,15 @@ type Peer struct {
 	messageFuncs []MessageFunc
 	stallHandle  StallHandler
 
-	flagsMtx           sync.Mutex // protects the peer flags below
-	na                 *p2p.NetAddress
-	id                 uint64
-	services           uint64
-	versionKnown       bool
-	advertisedProtoVer uint32 // protocol version advertised by remote
-	protocolVersion    uint32 // negotiated protocol version
-	verAckReceived     bool
+	flagsMtx               sync.Mutex // protects the peer flags below
+	na                     *p2p.NetAddress
+	id                     uint64
+	services               uint64
+	versionKnown           bool
+	advertisedProtoVer     uint32 // protocol version advertised by remote
+	protocolVersion        uint32 // negotiated protocol version
+	advertisedProtoNodeVer string // protocol node version advertised by remote
+	verAckReceived         bool
 
 	// These fields keep track of statistics for the peer and are protected
 	// by the statsMtx mutex.
@@ -221,7 +226,7 @@ func (p *Peer) SetStallHandler(handler StallHandler) {
 //
 // This function is safe for concurrent access.
 func (p *Peer) String() string {
-	return fmt.Sprintf("%s (%s)", p.addr, directionString(p.inbound))
+	return fmt.Sprintf("%s (%s) (%d %s)", p.addr, directionString(p.inbound), p.advertisedProtoVer, p.advertisedProtoNodeVer)
 }
 
 // UpdateHeight updates the last known block for the peer.
@@ -244,6 +249,7 @@ func (p *Peer) StatsSnapshot() *StatsSnap {
 	addr := p.addr
 	services := p.services
 	protocolVersion := p.advertisedProtoVer
+	nodeVersion := p.advertisedProtoNodeVer
 	p.flagsMtx.Unlock()
 
 	// Get a copy of all relevant flags and stats.
@@ -261,6 +267,7 @@ func (p *Peer) StatsSnapshot() *StatsSnap {
 		LastBlock:      p.height,
 		LastPingMicros: p.lastPingMicros,
 		LastPingTime:   p.lastPingTime,
+		NodeVersion:    nodeVersion,
 	}
 
 	p.statsMtx.RUnlock()
@@ -984,6 +991,7 @@ func (p *Peer) handleRemoteVersionMsg(msg *msg.Version) error {
 	// Negotiate the protocol version.
 	p.flagsMtx.Lock()
 	p.advertisedProtoVer = uint32(msg.Version)
+	p.advertisedProtoNodeVer = msg.NodeVersion
 	p.protocolVersion = minUint32(p.protocolVersion, p.advertisedProtoVer)
 	p.versionKnown = true
 	log.Debugf("Negotiated protocol version %d for peer %s", p.protocolVersion, p)
@@ -1034,11 +1042,20 @@ func (p *Peer) localVersionMsg() (*msg.Version, error) {
 	// recently seen nonces.
 	nonce := p.cfg.GetVersionNonce()
 
+	var m *msg.Version
+	bestHeight := p.cfg.BestHeight()
+	var nodeVersion string
+	var ver = p.cfg.ProtocolVersion
+	if bestHeight >= p.cfg.NewVersionHeight {
+		nodeVersion = p.cfg.NodeVersion
+		ver = pact.CRProposalVersion
+		p.cfg.ProtocolVersion = ver
+	}
 	// Version message.
-	msg := msg.NewVersion(p.cfg.ProtocolVersion, p.cfg.DefaultPort,
-		p.cfg.Services, nonce, p.cfg.BestHeight(), p.cfg.DisableRelayTx)
+	m = msg.NewVersion(ver, p.cfg.DefaultPort,
+		p.cfg.Services, nonce, bestHeight, p.cfg.DisableRelayTx, nodeVersion)
 
-	return msg, nil
+	return m, nil
 }
 
 // writeLocalVersionMsg writes our version message to the remote peer.

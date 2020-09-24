@@ -1,7 +1,7 @@
 // Copyright (c) 2017-2020 The Elastos Foundation
 // Use of this source code is governed by an MIT
 // license that can be found in the LICENSE file.
-// 
+//
 
 package netsync
 
@@ -786,6 +786,10 @@ func (sm *SyncManager) handleBlockchainEvents(event *events.Event) {
 		iv := msg.NewInvVect(msg.InvTypeConfirmedBlock, &blockHash)
 		sm.peerNotifier.RelayInventory(iv, block.Header)
 
+	case events.ETBlockProcessed:
+		// check all transactions in pool.
+		sm.txMemPool.CheckAndCleanAllTransactions()
+
 		// A block has been connected to the main block chain.
 	case events.ETBlockConnected:
 		block, ok := event.Data.(*types.Block)
@@ -835,6 +839,17 @@ func (sm *SyncManager) handleBlockchainEvents(event *events.Event) {
 
 		if err := sm.txMemPool.AppendToTxPool(tx); err != nil {
 			log.Warnf("Illegal evidence tx append to txpool failed", err)
+			break
+		}
+	case events.ETAppendTxToTxPool:
+		tx, ok := event.Data.(*types.Transaction)
+		if !ok {
+			log.Warnf("ETAppendTxToTxPool event is not a tx")
+			break
+		}
+
+		if err := sm.txMemPool.AppendToTxPool(tx); err != nil {
+			log.Warnf("ETAppendTxToTxPool tx append to txpool failed TxType %v, err %v", tx.TxType, err)
 			break
 		}
 	}

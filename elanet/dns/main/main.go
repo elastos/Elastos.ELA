@@ -1,7 +1,7 @@
 // Copyright (c) 2017-2020 The Elastos Foundation
 // Use of this source code is governed by an MIT
 // license that can be found in the LICENSE file.
-// 
+//
 
 package main
 
@@ -29,7 +29,11 @@ const (
 		"	-net    specify a active net for the DNS service.\n" +
 		"	-magic  specify a magic number of the DNS service.\n" +
 		"	-port   specify a port number for the DNS service.\n" +
+		"	-newversionheight   specify a new version message height for the DNS service.\n" +
 		"	-debug  enable debug mode."
+
+	// nodePrefix indicates the prefix of node version.
+	nodePrefix = "dns-"
 )
 
 var (
@@ -63,10 +67,12 @@ func main() {
 	var magic uint
 	var port uint
 	var debug bool
+	var newversionheight uint
 	flag.StringVar(&net, "net", "main", "specify a active net for the DNS service")
 	flag.UintVar(&magic, "magic", 0, "specify a magic number for the DNS service")
 	flag.UintVar(&port, "port", 0, "specify a port number for the DNS service")
 	flag.BoolVar(&debug, "debug", false, "turn on debug log")
+	flag.UintVar(&newversionheight, "newversionheight", 0, "specify a new version message height for the DNS service")
 	flag.Parse()
 
 	// Use the specified active net parameters.
@@ -87,8 +93,13 @@ func main() {
 		params.DefaultPort = uint16(port)
 	}
 
+	// If port parameter specified use the given port number.
+	if newversionheight != 0 {
+		params.NewP2PProtocolVersionHeight = uint64(newversionheight)
+	}
+
 	// Create the DNS instance.
-	dnsService, err := dns.New(dataDir, params.Magic, params.DefaultPort)
+	dnsService, err := dns.New(dataDir, params.Magic, params.DefaultPort, params.NewP2PProtocolVersionHeight, nodePrefix+Version)
 	if err != nil {
 		fmt.Fprint(os.Stderr, err.Error())
 		os.Exit(1)

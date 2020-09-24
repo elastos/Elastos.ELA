@@ -1,7 +1,7 @@
 // Copyright (c) 2017-2020 The Elastos Foundation
 // Use of this source code is governed by an MIT
 // license that can be found in the LICENSE file.
-// 
+//
 
 package main
 
@@ -52,8 +52,11 @@ const (
 	// logPath indicates the path storing the node log.
 	nodeLogPath = "logs/node"
 
-	// checkpointPath indicates the path storing the checkpoint data
+	// checkpointPath indicates the path storing the checkpoint data.
 	checkpointPath = "checkpoints"
+
+	// nodePrefix indicates the prefix of node version.
+	nodePrefix = "ela-"
 )
 
 var (
@@ -186,7 +189,9 @@ func startNode(c *cli.Context, st *settings.Settings) {
 				amount += utxo.Value
 			}
 			return amount, nil
-		})
+		},
+		committee.TryUpdateCRMemberInactivity,
+		committee.TryRevertCRMemberInactivity)
 	if err != nil {
 		printErrorAndExit(err)
 	}
@@ -237,7 +242,7 @@ func startNode(c *cli.Context, st *settings.Settings) {
 		TxMemPool:      txMemPool,
 		BlockMemPool:   blockMemPool,
 		Routes:         route,
-	})
+	}, nodePrefix+Version)
 	if err != nil {
 		printErrorAndExit(err)
 	}
@@ -250,6 +255,8 @@ func startNode(c *cli.Context, st *settings.Settings) {
 		GetUTXO:                          chainStore.GetFFLDB().GetUTXO,
 		GetHeight:                        chainStore.GetHeight,
 		CreateCRAppropriationTransaction: chain.CreateCRCAppropriationTransaction,
+		CreateCRAssetsRectifyTransaction: chain.CreateCRAssetsRectifyTransaction,
+		CreateCRRealWithdrawTransaction:  chain.CreateCRRealWithdrawTransaction,
 		IsCurrent:                        server.IsCurrent,
 		Broadcast: func(msg p2p.Message) {
 			server.BroadcastMessage(msg)

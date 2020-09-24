@@ -13,21 +13,27 @@ import (
 )
 
 const (
-	slotDPoSOwnerPublicKey      = "DPoSOwnerPublicKey"
-	slotDPoSNodePublicKey       = "DPoSNodePublicKey"
-	slotDPoSNickname            = "DPoSNickname"
-	slotCRDID                   = "CrDID"
-	slotCRNickname              = "CrNickname"
-	slotProgramCode             = "ProgramCode"
-	slotCRCProposalDraftHash    = "CRCProposalDraftHash"
-	slotCRCProposalDID          = "CRCProposalDID"
-	slotCRCProposalHash         = "CRCProposalHash"
-	slotCRCProposalTrackingHash = "CRCProposalTrackingHash"
-	slotCRCProposalReviewKey    = "CRCProposalReviewKey"
-	slotCRCAppropriationKey     = "CRCAppropriationKey"
-	slotSpecialTxHash           = "SpecialTxHash"
-	slotSidechainTxHashes       = "SidechainTxHashes"
-	slotTxInputsReferKeys       = "TxInputsReferKeys"
+	slotDPoSOwnerPublicKey                    = "DPoSOwnerPublicKey"
+	slotDPoSNodePublicKey                     = "DPoSNodePublicKey"
+	slotDPoSNickname                          = "DPoSNickname"
+	slotCRDID                                 = "CrDID"
+	slotCRNickname                            = "CrNickname"
+	slotProgramCode                           = "ProgramCode"
+	slotCRCProposalDraftHash                  = "CRCProposalDraftHash"
+	slotCRCProposalDID                        = "CRCProposalDID"
+	slotCRCProposalHash                       = "CRCProposalHash"
+	slotCRCProposalTrackingHash               = "CRCProposalTrackingHash"
+	slotCRCProposalReviewKey                  = "CRCProposalReviewKey"
+	slotCRCAppropriationKey                   = "CRCAppropriationKey"
+	slotCRCProposalRealWithdrawKey            = "CRCProposalRealWithdrawKey"
+	slotCloseProposalTargetProposalHash       = "CloseProposalTargetProposalHash"
+	slotChangeProposalOwnerTargetProposalHash = "ChangeProposalOwnerTargetProposalHash"
+	slotSpecialTxHash                         = "SpecialTxHash"
+	slotSidechainTxHashes                     = "SidechainTxHashes"
+	slotTxInputsReferKeys                     = "TxInputsReferKeys"
+	slotCRCouncilMemberNodePublicKey          = "CRCouncilMemberNodePublicKey"
+	slotCRCouncilMemberDID                    = "CRCouncilMemberDID"
+	slotCRCSecretaryGeneral                   = "CRCSecretaryGeneral"
 )
 
 type conflict struct {
@@ -154,6 +160,30 @@ func newConflictManager() conflictManager {
 						Type: types.RegisterCR,
 						Func: strRegisterCRPublicKey,
 					},
+					keyTypeFuncPair{
+						Type: types.CRCouncilMemberClaimNode,
+						Func: strCRManagementPublicKey,
+					},
+				),
+			},
+			// CR claim DPOS node public key
+			{
+				name: slotCRCouncilMemberNodePublicKey,
+				slot: newConflictSlot(str,
+					keyTypeFuncPair{
+						Type: types.CRCouncilMemberClaimNode,
+						Func: strCRManagementPublicKey,
+					},
+				),
+			},
+			// CR claim DPOS node did
+			{
+				name: slotCRCouncilMemberDID,
+				slot: newConflictSlot(programHash,
+					keyTypeFuncPair{
+						Type: types.CRCouncilMemberClaimNode,
+						Func: strCRManagementDID,
+					},
 				),
 			},
 			// DPoS nickname
@@ -213,6 +243,25 @@ func newConflictManager() conflictManager {
 					keyTypeFuncPair{
 						Type: types.ReturnCRDepositCoin,
 						Func: strTxProgramCode,
+					},
+				),
+			},
+			// CRC Proposal target proposal hash
+			{
+				name: slotCloseProposalTargetProposalHash,
+				slot: newConflictSlot(hash,
+					keyTypeFuncPair{
+						Type: types.CRCProposal,
+						Func: hashCloseProposalTargetProposalHash,
+					},
+				),
+			},
+			{
+				name: slotChangeProposalOwnerTargetProposalHash,
+				slot: newConflictSlot(hash,
+					keyTypeFuncPair{
+						Type: types.CRCProposal,
+						Func: hashChangeProposalOwnerTargetProposalHash,
 					},
 				),
 			},
@@ -276,6 +325,26 @@ func newConflictManager() conflictManager {
 					},
 				),
 			},
+			// secretary general key
+			{
+				name: slotCRCSecretaryGeneral,
+				slot: newConflictSlot(str,
+					keyTypeFuncPair{
+						Type: types.CRCProposal,
+						Func: strSecretaryGeneral,
+					},
+				),
+			},
+			// CRC proposal real withdraw transaction key
+			{
+				name: slotCRCProposalRealWithdrawKey,
+				slot: newConflictSlot(hashArray,
+					keyTypeFuncPair{
+						Type: types.CRCProposalRealWithdraw,
+						Func: hashArrayCRCProposalRealWithdrawTransactionHashes,
+					},
+				),
+			},
 			// special tx hash
 			{
 				name: slotSpecialTxHash,
@@ -299,6 +368,10 @@ func newConflictManager() conflictManager {
 					keyTypeFuncPair{
 						Type: types.InactiveArbitrators,
 						Func: hashSpecialTxHash,
+					},
+					keyTypeFuncPair{
+						Type: types.NextTurnDPOSInfo,
+						Func: hashNextTurnDPOSInfoTxPayloadHash,
 					},
 				),
 			},

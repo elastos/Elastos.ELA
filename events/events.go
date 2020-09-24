@@ -1,7 +1,7 @@
 // Copyright (c) 2017-2020 The Elastos Foundation
 // Use of this source code is governed by an MIT
 // license that can be found in the LICENSE file.
-// 
+//
 
 package events
 
@@ -50,20 +50,32 @@ const (
 	// was added to the main chain.  For that, use ETBlockConnected.
 	ETBlockConfirmAccepted
 
+	// ETBlockProcessed indicates the status of DPOS and CR has changed.
+	ETBlockProcessed
+
 	// ETIllegalEvidence indicates a illegal block received.
 	ETIllegalBlockEvidence
+
+	//ETNextTurnDPOSInfo indicates need add an NextTurnDPOSInfo to tx pool
+	ETAppendTxToTxPool
+
+	//ETCRCChangeCommittee indicates need add crc chaged committee
+	ETCRCChangeCommittee
 )
 
 // notificationTypeStrings is a map of notification types back to their constant
 // names for pretty printing.
 var notificationTypeStrings = map[EventType]string{
-	ETBlockAccepted:       "ETBlockAccepted",
-	ETBlockConnected:      "ETBlockConnected",
-	ETBlockDisconnected:   "ETBlockDisconnected",
-	ETTransactionAccepted: "ETTransactionAccepted",
-	ETNewBlockReceived:    "ETNewBlockReceived",
-	ETConfirmAccepted:     "ETConfirmAccepted",
-	ETDirectPeersChanged:  "ETDirectPeersChanged",
+	ETBlockAccepted:        "ETBlockAccepted",
+	ETBlockConnected:       "ETBlockConnected",
+	ETBlockDisconnected:    "ETBlockDisconnected",
+	ETTransactionAccepted:  "ETTransactionAccepted",
+	ETNewBlockReceived:     "ETNewBlockReceived",
+	ETConfirmAccepted:      "ETConfirmAccepted",
+	ETDirectPeersChanged:   "ETDirectPeersChanged",
+	ETBlockConfirmAccepted: "ETBlockConfirmAccepted",
+	ETIllegalBlockEvidence: "ETIllegalBlockEvidence",
+	ETAppendTxToTxPool:     "ETAppendTxToTxPool",
 }
 
 // String returns the EventType in human-readable form.

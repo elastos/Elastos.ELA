@@ -1,7 +1,7 @@
 // Copyright (c) 2017-2020 The Elastos Foundation
 // Use of this source code is governed by an MIT
 // license that can be found in the LICENSE file.
-// 
+//
 
 package blockchain
 
@@ -126,10 +126,6 @@ func checkCrossChainSignatures(program Program, data []byte) error {
 	n := int(code[len(code)-2]) - crypto.PUSH1 + 1
 	// Get M parameter
 	m := int(code[0]) - crypto.PUSH1 + 1
-	if m < 1 || m > n || n != int(DefaultLedger.Arbitrators.GetCrossChainArbitersCount()) ||
-		m <= int(DefaultLedger.Arbitrators.GetCrossChainArbitersMajorityCount()) {
-		return errors.New("invalid multi sign script code")
-	}
 	publicKeys, err := crypto.ParseCrossChainScript(code)
 	if err != nil {
 		return err

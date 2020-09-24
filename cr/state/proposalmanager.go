@@ -78,6 +78,11 @@ type ProposalManager struct {
 	history *utils.History
 }
 
+//only init use
+func (p *ProposalManager) InitSecretaryGeneralPublicKey(publicKey string) {
+	p.SecretaryGeneralPublicKey = publicKey
+}
+
 // existDraft judge if specified draft (that related to a proposal) exist.
 func (p *ProposalManager) existDraft(hash common.Uint256) bool {
 	for _, v := range p.Proposals {
@@ -103,8 +108,7 @@ func (p *ProposalManager) getAllProposals() (dst ProposalsMap) {
 	return
 }
 
-func (p *ProposalManager) getProposalByDraftHash(draftHash common.
-	Uint256) *ProposalState {
+func (p *ProposalManager) getProposalByDraftHash(draftHash common.Uint256) *ProposalState {
 	for _, v := range p.Proposals {
 		if v.Proposal.DraftHash.IsEqual(draftHash) {
 			return v
@@ -156,6 +160,16 @@ func getProposalTotalBudgetAmount(proposal payload.CRCProposal) common.Fixed64 {
 	return budget
 }
 
+func getProposalUnusedBudgetAmount(proposalState *ProposalState) common.Fixed64 {
+	var budget common.Fixed64
+	for _, b := range proposalState.Proposal.Budgets {
+		if _, ok := proposalState.WithdrawableBudgets[b.Stage]; !ok {
+			budget += b.Amount
+		}
+	}
+	return budget
+}
+
 // updateProposals will update proposals' status.
 func (p *ProposalManager) updateProposals(height uint32,
 	circulation common.Fixed64, inElectionPeriod bool) common.Fixed64 {
@@ -182,7 +196,9 @@ func (p *ProposalManager) updateProposals(height uint32,
 			if p.shouldEndPublicVote(v.VoteStartHeight, height) {
 				if p.transferCRAgreedState(v, height, circulation) == VoterCanceled {
 					unusedAmount += getProposalTotalBudgetAmount(v.Proposal)
+					continue
 				}
+				p.dealProposal(v, &unusedAmount, height)
 			}
 		}
 	}
@@ -204,6 +220,29 @@ func (p *ProposalManager) abortProposal(proposalState *ProposalState,
 			proposalState.BudgetsStatus[k] = Closed
 		}
 	}, func() {
+		proposalState.Status = oriStatus
+		proposalState.BudgetsStatus = oriBudgetsStatus
+	})
+}
+
+// abortProposal will transfer the status to aborted.
+func (p *ProposalManager) terminatedProposal(proposalState *ProposalState,
+	height uint32) {
+	oriStatus := proposalState.Status
+	oriBudgetsStatus := make(map[uint8]BudgetStatus)
+	for k, v := range proposalState.BudgetsStatus {
+		oriBudgetsStatus[k] = v
+	}
+	p.history.Append(height, func() {
+		proposalState.TerminatedHeight = height
+		proposalState.Status = Terminated
+		for k, v := range proposalState.BudgetsStatus {
+			if v == Unfinished || v == Rejected {
+				proposalState.BudgetsStatus[k] = Closed
+			}
+		}
+	}, func() {
+		proposalState.TerminatedHeight = 0
 		proposalState.Status = oriStatus
 		proposalState.BudgetsStatus = oriBudgetsStatus
 	})
@@ -249,6 +288,39 @@ func (p *ProposalManager) transferRegisteredState(proposalState *ProposalState,
 	return
 }
 
+func (p *ProposalManager) dealProposal(proposalState *ProposalState, unusedAmount *common.Fixed64, height uint32) {
+	switch proposalState.Proposal.ProposalType {
+	case payload.ChangeProposalOwner:
+		proposal := p.getProposal(proposalState.Proposal.TargetProposalHash)
+		originRecipient := proposal.Recipient
+		oriProposalOwner := proposalState.ProposalOwner
+		emptyUint168 := common.Uint168{}
+		p.history.Append(height, func() {
+			proposal.ProposalOwner = proposalState.Proposal.NewOwnerPublicKey
+			if proposalState.Proposal.NewRecipient != emptyUint168 {
+				proposal.Recipient = proposalState.Proposal.NewRecipient
+			}
+		}, func() {
+			proposal.ProposalOwner = oriProposalOwner
+			proposal.Recipient = originRecipient
+		})
+	case payload.CloseProposal:
+		closeProposal := p.Proposals[proposalState.Proposal.TargetProposalHash]
+		if closeProposal.Status == Terminated || closeProposal.Status == Finished {
+			return
+		}
+		*unusedAmount += getProposalUnusedBudgetAmount(closeProposal)
+		p.terminatedProposal(closeProposal, height)
+	case payload.SecretaryGeneral:
+		oriSecretaryGeneralPublicKey := p.SecretaryGeneralPublicKey
+		p.history.Append(height, func() {
+			p.SecretaryGeneralPublicKey = common.BytesToHexString(proposalState.Proposal.SecretaryGeneralPublicKey)
+		}, func() {
+			p.SecretaryGeneralPublicKey = oriSecretaryGeneralPublicKey
+		})
+	}
+}
+
 // transferCRAgreedState will transfer CRAgreed state by votes' reject amount.
 func (p *ProposalManager) transferCRAgreedState(proposalState *ProposalState,
 	height uint32, circulation common.Fixed64) (status ProposalStatus) {
@@ -269,9 +341,13 @@ func (p *ProposalManager) transferCRAgreedState(proposalState *ProposalState,
 			proposalState.BudgetsStatus = oriBudgetsStatus
 		})
 	} else {
-		status = VoterAgreed
+		if isSpecialProposal(proposalState.Proposal.ProposalType) {
+			status = Finished
+		} else {
+			status = VoterAgreed
+		}
 		p.history.Append(height, func() {
-			proposalState.Status = VoterAgreed
+			proposalState.Status = status
 			for _, b := range proposalState.Proposal.Budgets {
 				if b.Type == payload.Imprest {
 					proposalState.WithdrawableBudgets[b.Stage] = b.Amount
@@ -286,10 +362,18 @@ func (p *ProposalManager) transferCRAgreedState(proposalState *ProposalState,
 					break
 				}
 			}
-
 		})
 	}
 	return
+}
+
+func isSpecialProposal(proposalType payload.CRCProposalType) bool {
+	switch proposalType {
+	case payload.SecretaryGeneral, payload.ChangeProposalOwner, payload.CloseProposal:
+		return true
+	default:
+		return false
+	}
 }
 
 // shouldEndCRCVote returns if current height should end CRC vote about
@@ -375,6 +459,7 @@ func (p *ProposalManager) registerProposal(tx *types.Transaction,
 		TrackingCount:       0,
 		TerminatedHeight:    0,
 		ProposalOwner:       proposal.OwnerPublicKey,
+		Recipient:           proposal.Recipient,
 	}
 	crCouncilMemberDID := proposal.CRCouncilMemberDID
 	hash := proposal.Hash()
@@ -479,7 +564,12 @@ func (p *ProposalManager) proposalWithdraw(tx *types.Transaction,
 		for k, v := range proposalState.BudgetsStatus {
 			if v == Withdrawable {
 				proposalState.BudgetsStatus[k] = Withdrawn
-
+			}
+		}
+		if tx.PayloadVersion == payload.CRCProposalWithdrawVersion01 {
+			p.WithdrawableTxInfo[tx.Hash()] = types.OutputInfo{
+				Recipient: withdrawPayload.Recipient,
+				Amount:    withdrawPayload.Amount,
 			}
 		}
 	}, func() {
@@ -487,6 +577,9 @@ func (p *ProposalManager) proposalWithdraw(tx *types.Transaction,
 			delete(proposalState.WithdrawnBudgets, k)
 		}
 		proposalState.BudgetsStatus = oriBudgetsStatus
+		if tx.PayloadVersion == payload.CRCProposalWithdrawVersion01 {
+			delete(p.WithdrawableTxInfo, tx.Hash())
+		}
 	})
 }
 
@@ -508,6 +601,9 @@ func (p *ProposalManager) proposalTracking(tx *types.Transaction,
 	}
 
 	if trackingType == payload.Terminated {
+		if proposalState.Status == Terminated || proposalState.Status == Finished {
+			return
+		}
 		for _, budget := range proposalState.Proposal.Budgets {
 			if _, ok := proposalState.WithdrawableBudgets[budget.Stage]; !ok {
 				unusedBudget += budget.Amount
@@ -541,6 +637,12 @@ func (p *ProposalManager) proposalTracking(tx *types.Transaction,
 				proposalState.FinalPaymentStatus = true
 			}
 		case payload.Rejected:
+			if proposalTracking.Stage == 0 {
+				break
+			}
+			if _, ok := proposalState.BudgetsStatus[proposalTracking.Stage]; !ok {
+				break
+			}
 			proposalState.BudgetsStatus[proposalTracking.Stage] = Rejected
 		case payload.ChangeOwner:
 			proposalState.ProposalOwner = proposalTracking.NewOwnerPublicKey

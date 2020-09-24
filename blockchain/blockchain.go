@@ -328,13 +328,9 @@ func (b *BlockChain) InitCheckpoint(interrupt <-chan struct{},
 	return err
 }
 
-type OutputInfo struct {
-	Recipient Uint168
-	Amount    *Fixed64
-}
-
-func (b *BlockChain) createTransaction(fromAddress Uint168, fee Fixed64,
-	lockedUntil uint32, utxos []*UTXO, outputs ...*OutputInfo) (*Transaction, error) {
+func (b *BlockChain) createTransaction(pd Payload, txType TxType,
+	fromAddress Uint168, fee Fixed64, lockedUntil uint32,
+	utxos []*UTXO, outputs ...*OutputInfo) (*Transaction, error) {
 	// check output
 	if len(outputs) == 0 {
 		return nil, errors.New("invalid transaction target")
@@ -351,11 +347,10 @@ func (b *BlockChain) createTransaction(fromAddress Uint168, fee Fixed64,
 		return nil, err
 	}
 	txOutputs = append(txOutputs, changeOutputs...)
-	crcAppropriationPayload := &payload.CRCAppropriation{}
 	return &Transaction{
 		Version:    TxVersion09,
-		TxType:     CRCAppropriation,
-		Payload:    crcAppropriationPayload,
+		TxType:     txType,
+		Payload:    pd,
 		Attributes: []*Attribute{},
 		Inputs:     txInputs,
 		Outputs:    txOutputs,
@@ -373,12 +368,12 @@ func (b *BlockChain) createNormalOutputs(outputs []*OutputInfo, fee Fixed64,
 		txOutput := &Output{
 			AssetID:     *elaact.SystemAssetID,
 			ProgramHash: output.Recipient,
-			Value:       *output.Amount,
+			Value:       output.Amount,
 			OutputLock:  lockedUntil,
 			Type:        OTNone,
 			Payload:     &outputpayload.DefaultOutput{},
 		}
-		totalAmount += *output.Amount
+		totalAmount += output.Amount
 		txOutputs = append(txOutputs, txOutput)
 	}
 	return txOutputs, totalAmount, nil
@@ -453,7 +448,7 @@ func (b *BlockChain) createInputs(fromAddress Uint168,
 }
 
 func (b *BlockChain) CreateCRCAppropriationTransaction() (*Transaction, error) {
-	utxos, err := b.getUTXOsFromAddress(b.chainParams.CRCFoundation)
+	utxos, err := b.getUTXOsFromAddress(b.chainParams.CRAssetsAddress)
 	if err != nil {
 		return nil, err
 	}
@@ -468,12 +463,73 @@ func (b *BlockChain) CreateCRCAppropriationTransaction() (*Transaction, error) {
 	if appropriationAmount <= 0 {
 		return nil, nil
 	}
-	outputs := []*OutputInfo{{b.chainParams.CRCCommitteeAddress,
-		&appropriationAmount}}
+	outputs := []*OutputInfo{{b.chainParams.CRExpensesAddress,
+		appropriationAmount}}
 
 	var tx *Transaction
-	tx, err = b.createTransaction(b.chainParams.CRCFoundation, Fixed64(0),
-		uint32(0), utxos, outputs...)
+	tx, err = b.createTransaction(&payload.CRCAppropriation{}, CRCAppropriation,
+		b.chainParams.CRAssetsAddress, Fixed64(0), uint32(0), utxos, outputs...)
+	if err != nil {
+		return nil, err
+	}
+	return tx, nil
+}
+
+func (b *BlockChain) CreateCRRealWithdrawTransaction(
+	withdrawTransactionHashes []Uint256, outputs []*OutputInfo) (*Transaction, error) {
+	utxos, err := b.getUTXOsFromAddress(b.chainParams.CRExpensesAddress)
+	if err != nil {
+		return nil, err
+	}
+
+	wPayload := &payload.CRCProposalRealWithdraw{
+		WithdrawTransactionHashes: withdrawTransactionHashes,
+	}
+
+	for _, v := range outputs {
+		v.Amount -= b.chainParams.RealWithdrawSingleFee
+	}
+
+	txFee := b.chainParams.RealWithdrawSingleFee * Fixed64(len(withdrawTransactionHashes))
+	var tx *Transaction
+	tx, err = b.createTransaction(wPayload, CRCProposalRealWithdraw,
+		b.chainParams.CRExpensesAddress, txFee, uint32(0), utxos, outputs...)
+	if err != nil {
+		return nil, err
+	}
+	return tx, nil
+}
+
+func (b *BlockChain) CreateCRAssetsRectifyTransaction() (*Transaction, error) {
+	utxos, err := b.getUTXOsFromAddress(b.chainParams.CRAssetsAddress)
+	if err != nil {
+		return nil, err
+	}
+	if len(utxos) < int(b.chainParams.MinCRAssetsAddressUTXOCount) {
+		return nil, errors.New("Avaliable utxo is less than MinCRAssetsAddressUTXOCount")
+	}
+	if len(utxos) > int(b.chainParams.MaxCRAssetsAddressUTXOCount) {
+		utxos = utxos[:b.chainParams.MaxCRAssetsAddressUTXOCount]
+	}
+	var crcFoundationBalance Fixed64
+	for i, u := range utxos {
+		if i >= int(b.chainParams.MaxCRAssetsAddressUTXOCount) {
+			break
+		}
+		crcFoundationBalance += u.Value
+	}
+	rectifyAmount := crcFoundationBalance - b.chainParams.RectifyTxFee
+
+	log.Info("create CR assets rectify amount:", rectifyAmount)
+	if rectifyAmount <= 0 {
+		return nil, nil
+	}
+	outputs := []*OutputInfo{{b.chainParams.CRAssetsAddress,
+		rectifyAmount}}
+
+	var tx *Transaction
+	tx, err = b.createTransaction(&payload.CRAssetsRectify{}, CRAssetsRectify,
+		b.chainParams.CRAssetsAddress, b.chainParams.RectifyTxFee, uint32(0), utxos, outputs...)
 	if err != nil {
 		return nil, err
 	}
@@ -1313,6 +1369,13 @@ func (b *BlockChain) connectBlock(node *BlockNode, block *Block, confirm *payloa
 	return nil
 }
 
+func (b *BlockChain) GetBestChain() *BlockNode {
+	b.mutex.RLock()
+	defer b.mutex.RUnlock()
+	chain := b.BestChain
+	return chain
+}
+
 func (b *BlockChain) HaveBlock(hash *Uint256) (bool, error) {
 	return b.BlockExists(hash) || b.IsKnownOrphan(hash), nil
 }
@@ -1393,6 +1456,8 @@ func (b *BlockChain) maybeAcceptBlock(block *Block, confirm *payload.Confirm) (b
 		}, nil)
 		DefaultLedger.Arbitrators.DumpInfo(block.Height)
 	}
+
+	events.Notify(events.ETBlockProcessed, block)
 
 	// Notify the caller that the new block was accepted into the block
 	// chain.  The caller would typically want to react by relaying the

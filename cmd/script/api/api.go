@@ -1,7 +1,7 @@
 // Copyright (c) 2017-2020 The Elastos Foundation
 // Use of this source code is governed by an MIT
 // license that can be found in the LICENSE file.
-// 
+//
 
 package api
 
@@ -179,7 +179,7 @@ func initLedger(L *lua.LState) int {
 	}
 
 	arbiters, err := state.NewArbitrators(chainParams,
-		nil, nil)
+		nil, nil, nil, nil)
 	if err != nil {
 		fmt.Printf("New arbitrators error: %s \n", err.Error())
 	}
@@ -190,8 +190,8 @@ func initLedger(L *lua.LState) int {
 
 	var interrupt = signal.NewInterrupt()
 	chain, err := blockchain.New(chainStore, chainParams,
-		state.NewState(chainParams, arbiters.GetArbitrators,
-			nil), nil)
+		state.NewState(chainParams, arbiters.GetArbitrators, nil,
+			nil, nil, nil, nil), nil)
 	if err != nil {
 		fmt.Printf("Init block chain error: %s \n", err.Error())
 	}
@@ -279,9 +279,11 @@ func RegisterDataType(L *lua.LState) int {
 	RegisterUpdateCRType(L)
 	RegisterUnregisterCRType(L)
 	RegisterCRCProposalType(L)
+	RegisterCRChangeProposalOwnerType(L)
+	RegisterCRCCloseProposalHashType(L)
 	RegisterCRCProposalReviewType(L)
 	RegisterCRCProposalWithdrawType(L)
-
 	RegisterCRCProposalTrackingType(L)
+	RegisterCRCouncilMemberClaimNodeType(L)
 	return 0
 }

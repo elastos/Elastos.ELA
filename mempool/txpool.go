@@ -45,8 +45,22 @@ func (mp *TxPool) AppendToTxPool(tx *Transaction) elaerr.ELAError {
 	return nil
 }
 
+func (mp *TxPool) removeCRAppropriationConflictTransactions() {
+	for _, tx := range mp.txnList {
+		if tx.IsCRAssetsRectifyTx() {
+			mp.doRemoveTransaction(tx)
+		}
+	}
+}
+
 func (mp *TxPool) appendToTxPool(tx *Transaction) elaerr.ELAError {
 	txHash := tx.Hash()
+
+	// If the transaction is CR appropriation transaction, need to remove
+	// transactions that conflict with it.
+	if tx.IsCRCAppropriationTx() {
+		mp.removeCRAppropriationConflictTransactions()
+	}
 
 	// Don't accept the transaction if it already exists in the pool.  This
 	// applies to orphan transactions as well.  This check is intended to
@@ -66,12 +80,7 @@ func (mp *TxPool) appendToTxPool(tx *Transaction) elaerr.ELAError {
 		log.Warn("[TxPool CheckTransactionSanity] failed", tx.Hash())
 		return errCode
 	}
-	references, err := chain.UTXOCache.GetTxReference(tx)
-	if err != nil {
-		log.Warn("[CheckTransactionContext] get transaction reference failed")
-		return elaerr.Simple(elaerr.ErrTxUnknownReferredTx, nil)
-	}
-	if errCode := chain.CheckTransactionContext(bestHeight+1, tx, references, mp.proposalsUsedAmount); errCode != nil {
+	if _, errCode := chain.CheckTransactionContext(bestHeight+1, tx, mp.proposalsUsedAmount); errCode != nil {
 		log.Warn("[TxPool CheckTransactionContext] failed", tx.Hash())
 		return errCode
 	}
@@ -161,10 +170,17 @@ func (mp *TxPool) cleanTransactions(blockTxs []*Transaction) {
 			continue
 		}
 
-		if blockTx.IsNewSideChainPowTx() || blockTx.IsUpdateVersion() {
+		if blockTx.IsNewSideChainPowTx() || blockTx.IsUpdateVersion() || blockTx.IsNextTurnDPOSInfoTx() {
 			if _, ok := mp.txnList[blockTx.Hash()]; ok {
 				mp.doRemoveTransaction(blockTx)
 				deleteCount++
+			}
+			if blockTx.IsNextTurnDPOSInfoTx() {
+				payloadHash, err := blockTx.GetSpecialTxHash()
+				if err != nil {
+					continue
+				}
+				blockchain.DefaultLedger.Blockchain.GetState().RemoveSpecialTx(payloadHash)
 			}
 			continue
 		}
@@ -242,14 +258,7 @@ func (mp *TxPool) checkAndCleanAllTransactions() {
 	var deleteCount int
 	var proposalsUsedAmount Fixed64
 	for _, tx := range mp.txnList {
-		references, err := chain.UTXOCache.GetTxReference(tx)
-		if err != nil {
-			log.Warn("[checkAndCleanAllTransactions] get transaction reference failed")
-			mp.doRemoveTransaction(tx)
-			deleteCount++
-			continue
-		}
-		err = chain.CheckTransactionContext(bestHeight+1, tx, references, proposalsUsedAmount)
+		_, err := chain.CheckTransactionContext(bestHeight+1, tx, proposalsUsedAmount)
 		if err != nil {
 			log.Warn("[checkAndCleanAllTransactions] check transaction context failed,", err)
 			deleteCount++

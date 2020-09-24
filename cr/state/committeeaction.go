@@ -7,6 +7,7 @@ package state
 
 import (
 	"bytes"
+	"math"
 	"sort"
 
 	"github.com/elastos/Elastos.ELA/common"
@@ -30,6 +31,31 @@ func (c *Committee) processTransactions(txs []*types.Transaction, height uint32)
 	sortTransactions(sortedTxs[1:])
 	for _, tx := range sortedTxs {
 		c.processTransaction(tx, height)
+	}
+
+	// Check if any pending inactive CR member has got 6 confirms, then set them
+	// to elected.
+	activateCRMemberFromInactive := func(cr *CRMember) {
+		oriState := cr.MemberState
+		oriActivateRequestHeight := cr.ActivateRequestHeight
+		c.state.history.Append(height, func() {
+			cr.MemberState = MemberElected
+			cr.ActivateRequestHeight = math.MaxUint32
+		}, func() {
+			cr.MemberState = oriState
+			cr.ActivateRequestHeight = oriActivateRequestHeight
+		})
+	}
+
+	if c.InElectionPeriod {
+		for _, v := range c.Members {
+			m := v
+			if m.MemberState == MemberInactive &&
+				height > m.ActivateRequestHeight &&
+				height-m.ActivateRequestHeight+1 >= ActivateDuration {
+				activateCRMemberFromInactive(m)
+			}
+		}
 	}
 }
 
@@ -63,11 +89,9 @@ func (c *Committee) processTransaction(tx *types.Transaction, height uint32) {
 
 	case types.TransferAsset:
 		c.processVotes(tx, height)
-		c.state.processDeposit(tx, height)
 
 	case types.ReturnCRDepositCoin:
 		c.state.returnDeposit(tx, height)
-		c.state.processDeposit(tx, height)
 
 	case types.CRCProposal:
 		c.manager.registerProposal(tx, height, c.state.CurrentSession, c.state.history)
@@ -83,8 +107,20 @@ func (c *Committee) processTransaction(tx *types.Transaction, height uint32) {
 
 	case types.CRCAppropriation:
 		c.processCRCAppropriation(height, c.state.history)
+
+	case types.CRCProposalRealWithdraw:
+		c.processCRCRealWithdraw(tx, height, c.state.history)
+
+	case types.CRCouncilMemberClaimNode:
+		c.processCRCouncilMemberClaimNode(tx, height, c.state.history)
+
+	case types.ActivateProducer:
+		c.activateProducer(tx, height, c.state.history)
 	}
 
+	if tx.TxType != types.RegisterCR {
+		c.state.processDeposit(tx, height)
+	}
 	c.processCRCAddressRelatedTx(tx, height)
 }
 
@@ -168,7 +204,7 @@ func (c *Committee) processCancelVotes(tx *types.Transaction, height uint32) {
 
 	references, err := c.state.getTxReference(tx)
 	if err != nil {
-		log.Errorf("get tx reference failed, tx hash:%s", tx.Hash())
+		log.Errorf("get tx reference failed, tx hash:%s", common.ToReversedString(tx.Hash()))
 		return
 	}
 	for _, input := range tx.Inputs {
@@ -231,7 +267,7 @@ func (c *Committee) processCancelImpeachment(height uint32, member []byte,
 	var crMember *CRMember
 	for _, v := range c.Members {
 		if bytes.Equal(v.Info.CID.Bytes(), member) &&
-			v.MemberState == MemberElected {
+			(v.MemberState == MemberElected || v.MemberState == MemberInactive) {
 			crMember = v
 			break
 		}
@@ -266,8 +302,10 @@ func (c *Committee) processCRCAddressRelatedTx(tx *types.Transaction, height uin
 	for _, input := range tx.Inputs {
 		if amount, ok := c.state.CRCFoundationOutputs[input.Previous.ReferKey()]; ok {
 			c.state.history.Append(height, func() {
+				c.CRAssetsAddressUTXOCount--
 				c.CRCFoundationBalance -= amount
 			}, func() {
+				c.CRAssetsAddressUTXOCount++
 				c.CRCFoundationBalance += amount
 			})
 		} else if amount, ok := c.state.CRCCommitteeOutputs[input.Previous.ReferKey()]; ok {
@@ -283,8 +321,9 @@ func (c *Committee) processCRCAddressRelatedTx(tx *types.Transaction, height uin
 	oriCRCFoundationLockedAmounts := c.CRCFoundationLockedAmounts
 	for _, output := range tx.Outputs {
 		amount := output.Value
-		if output.ProgramHash.IsEqual(c.params.CRCFoundation) {
+		if output.ProgramHash.IsEqual(c.params.CRAssetsAddress) {
 			c.state.history.Append(height, func() {
+				c.CRAssetsAddressUTXOCount++
 				c.CRCFoundationBalance += amount
 				if isCoinBaseTx {
 					c.CRCFoundationLockedAmounts = append(c.CRCFoundationLockedAmounts, amount)
@@ -293,10 +332,11 @@ func (c *Committee) processCRCAddressRelatedTx(tx *types.Transaction, height uin
 					}
 				}
 			}, func() {
+				c.CRAssetsAddressUTXOCount--
 				c.CRCFoundationBalance -= amount
 				c.CRCFoundationLockedAmounts = oriCRCFoundationLockedAmounts
 			})
-		} else if output.ProgramHash.IsEqual(c.params.CRCCommitteeAddress) {
+		} else if output.ProgramHash.IsEqual(c.params.CRExpensesAddress) {
 			c.state.history.Append(height, func() {
 				c.CRCCommitteeBalance += amount
 			}, func() {

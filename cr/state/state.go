@@ -70,10 +70,6 @@ func (s *State) exist(cid common.Uint168) bool {
 	return ok
 }
 
-func (s *State) isRefundable(cid common.Uint168) bool {
-	return s.depositInfo[cid].Refundable
-}
-
 // getTotalAmount returns total amount with specified candidate or member cid.
 func (s *State) getTotalAmount(cid common.Uint168) common.Fixed64 {
 	return s.depositInfo[cid].TotalAmount
@@ -100,35 +96,32 @@ func (s *State) getAvailableDepositAmount(cid common.Uint168) common.Fixed64 {
 		depositInfo.Penalty
 }
 
-// getDepositAmountByCID returns available deposit amount and penalty with
+// getDepositInfoByCID returns available Penalty DepositAmount and TotalAmount with
 // specified cid.
-func (s *State) getDepositAmountByCID(
-	cid common.Uint168, refundable bool) (common.Fixed64, common.Fixed64, error) {
+func (s *State) getDepositInfoByCID(
+	cid common.Uint168) (common.Fixed64, common.Fixed64, common.Fixed64, common.Fixed64, error) {
 	depositInfo, ok := s.depositInfo[cid]
 	if !ok {
-		return 0, 0, errors.New("deposit information does not exist")
+		return 0, 0, 0, 0, errors.New("deposit information does not exist")
 	}
-	if !refundable {
-		return 0, depositInfo.Penalty, nil
-	}
-	return depositInfo.TotalAmount - depositInfo.DepositAmount -
-		depositInfo.Penalty, depositInfo.Penalty, nil
+	return depositInfo.TotalAmount - depositInfo.DepositAmount - depositInfo.Penalty,
+		depositInfo.Penalty, depositInfo.DepositAmount, depositInfo.TotalAmount, nil
 }
 
-// getDepositAmountByPublicKey return available deposit amount and
-// penalty by the given public key.
-func (s *State) getDepositAmountByPublicKey(
-	publicKey []byte) (common.Fixed64, common.Fixed64, error) {
+// getDepositInfoByPublicKey return available Penalty DepositAmount and TotalAmount
+// by the given public key.
+func (s *State) getDepositInfoByPublicKey(
+	publicKey []byte) (common.Fixed64, common.Fixed64, common.Fixed64, common.Fixed64, error) {
 	cid, err := getCIDByPublicKey(publicKey)
 	if err != nil {
-		return 0, 0, err
+		return 0, 0, 0, 0, err
 	}
 	depositInfo, ok := s.depositInfo[*cid]
 	if !ok {
-		return 0, 0, errors.New("CID does not exist")
+		return 0, 0, 0, 0, errors.New("CID does not exist")
 	}
 	return depositInfo.TotalAmount - depositInfo.DepositAmount -
-		depositInfo.Penalty, depositInfo.Penalty, nil
+		depositInfo.Penalty, depositInfo.Penalty, depositInfo.DepositAmount, depositInfo.TotalAmount, nil
 }
 
 // existCandidate judges if there is a candidate with specified program code.
@@ -335,20 +328,29 @@ func (s *State) returnDeposit(tx *types.Transaction, height uint32) {
 	updateAmountAction := func(cid common.Uint168) {
 		s.history.Append(height, func() {
 			s.depositInfo[cid].TotalAmount -= inputValue
-			s.depositInfo[cid].Refundable = false
 		}, func() {
 			s.depositInfo[cid].TotalAmount += inputValue
-			s.depositInfo[cid].Refundable = true
 		})
 	}
 
 	for _, program := range tx.Programs {
 		cid, _ := getCIDByCode(program.Code)
+
 		if candidate := s.getCandidate(*cid); candidate != nil {
-			if candidate.state == Canceled {
-				if height-candidate.cancelHeight > s.params.CRDepositLockupBlocks {
-					returnCandidateAction(candidate, candidate.state)
+			var changeValue common.Fixed64
+			for _, o := range tx.Outputs {
+				if candidate.depositHash.IsEqual(o.ProgramHash) {
+					changeValue += o.Value
 				}
+			}
+			balance := s.depositInfo[*cid].TotalAmount - inputValue + changeValue -
+				s.depositInfo[*cid].Penalty -
+				s.depositInfo[*cid].DepositAmount
+
+			if candidate.state == Canceled &&
+				height-candidate.cancelHeight > s.params.CRDepositLockupBlocks &&
+				balance <= s.params.MinTransactionFee {
+				returnCandidateAction(candidate, candidate.state)
 			}
 		}
 		if candidates := s.getHistoryCandidate(*cid); len(candidates) != 0 {

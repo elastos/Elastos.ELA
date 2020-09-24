@@ -119,6 +119,12 @@ func (s *settingItem) getCliValue(c *cli.Context) (interface{}, error) {
 			return nil, err
 		}
 		return v, nil
+	case uint64:
+		v, err := strconv.ParseUint(value, 10, 64)
+		if err != nil {
+			return nil, err
+		}
+		return v, nil
 	case bool:
 		v, err := strconv.ParseBool(value)
 		if err != nil {
@@ -390,26 +396,26 @@ func NewSettings() *Settings {
 		DefaultValue: "",
 		ConfigSetter: func(path string, params *config.Params,
 			conf *config.Configuration) error {
-			crcAddress, err := common.Uint168FromAddress(conf.CRCAddress)
+			crcAddress, err := common.Uint168FromAddress(conf.CRConfiguration.CRCAddress)
 			if err != nil {
 				return errors.New("invalid CRC address")
 			}
 			params.CRCAddress = *crcAddress
 			return nil
 		},
-		ConfigPath: "CRCAddress",
+		ConfigPath: "CRConfiguration.CRCAddress",
 		ParamName:  "CRCAddress"})
 
 	result.Add(&settingItem{
-		Flag:         cmdcom.CRCFoundationFlag,
+		Flag:         cmdcom.CRAssetsAddressFlag,
 		DefaultValue: "",
 		ConfigSetter: func(path string, params *config.Params,
 			conf *config.Configuration) error {
-			crcFoundation, err := common.Uint168FromAddress(conf.CRCFoundation)
+			crAssetsAddress, err := common.Uint168FromAddress(conf.CRConfiguration.CRAssetsAddress)
 			if err != nil {
-				return errors.New("invalid CRC foundation")
+				return errors.New("invalid CR assets address")
 			}
-			params.CRCFoundation = *crcFoundation
+			params.CRAssetsAddress = *crAssetsAddress
 			return nil
 		},
 		CliSetter: func(i interface{}, params *config.Params,
@@ -418,26 +424,26 @@ func NewSettings() *Settings {
 			if !ok {
 				return errors.New("unknown foundation address type")
 			}
-			crcFoundation, err := common.Uint168FromAddress(value)
+			crAssetsAddress, err := common.Uint168FromAddress(value)
 			if err != nil {
-				return errors.New("invalid CRC foundation")
+				return errors.New("invalid CR assets address")
 			}
-			params.CRCFoundation = *crcFoundation
+			params.CRAssetsAddress = *crAssetsAddress
 			return nil
 		},
-		ConfigPath: "CRCFoundation",
-		ParamName:  "CRCFoundation"})
+		ConfigPath: "CRConfiguration.CRAssetsAddress",
+		ParamName:  "CRAssetsAddress"})
 
 	result.Add(&settingItem{
-		Flag:         cmdcom.CRCCommitteeAddressFlag,
+		Flag:         cmdcom.CRExpensesAddressFlag,
 		DefaultValue: "",
 		ConfigSetter: func(path string, params *config.Params,
 			conf *config.Configuration) error {
-			crcCommitteeAddress, err := common.Uint168FromAddress(conf.CRCCommitteeAddress)
+			CRExpensesAddress, err := common.Uint168FromAddress(conf.CRConfiguration.CRExpensesAddress)
 			if err != nil {
-				return errors.New("invalid CRC committee address")
+				return errors.New("invalid CR expenses address")
 			}
-			params.CRCCommitteeAddress = *crcCommitteeAddress
+			params.CRExpensesAddress = *CRExpensesAddress
 			return nil
 		},
 		CliSetter: func(i interface{}, params *config.Params,
@@ -446,15 +452,15 @@ func NewSettings() *Settings {
 			if !ok {
 				return errors.New("unknown foundation address type")
 			}
-			crcCommitteeAddress, err := common.Uint168FromAddress(value)
+			CRExpensesAddress, err := common.Uint168FromAddress(value)
 			if err != nil {
-				return errors.New("invalid CRC committee address")
+				return errors.New("invalid CR expenses address")
 			}
-			params.CRCCommitteeAddress = *crcCommitteeAddress
+			params.CRExpensesAddress = *CRExpensesAddress
 			return nil
 		},
-		ConfigPath: "CRCCommitteeAddress",
-		ParamName:  "CRCCommitteeAddress"})
+		ConfigPath: "CRConfiguration.CRExpensesAddress",
+		ParamName:  "CRExpensesAddress"})
 
 	result.Add(&settingItem{
 		Flag:         cmdcom.VoteStartHeightFlag,
@@ -489,13 +495,25 @@ func NewSettings() *Settings {
 	result.Add(&settingItem{
 		Flag:         cmdcom.CRCommitteeStartHeightFlag,
 		DefaultValue: uint32(0),
-		ConfigPath:   "CRCommitteeStartHeight",
+		ConfigPath:   "CRConfiguration.CRCommitteeStartHeight",
 		ParamName:    "CRCommitteeStartHeight"})
+
+	result.Add(&settingItem{
+		Flag:         cmdcom.CRClaimDPOSNodeStartHeightFlag,
+		DefaultValue: uint32(0),
+		ConfigPath:   "CRConfiguration.CRClaimDPOSNodeStartHeight",
+		ParamName:    "CRClaimDPOSNodeStartHeight"})
+
+	result.Add(&settingItem{
+		Flag:         cmdcom.CRClaimDPOSNodePeriodFlag,
+		DefaultValue: uint32(0),
+		ConfigPath:   "CRConfiguration.CRClaimDPOSNodePeriod",
+		ParamName:    "CRClaimDPOSNodePeriod"})
 
 	result.Add(&settingItem{
 		Flag:         cmdcom.CRVotingStartHeightFlag,
 		DefaultValue: uint32(0),
-		ConfigPath:   "CRVotingStartHeight",
+		ConfigPath:   "CRConfiguration.CRVotingStartHeight",
 		ParamName:    "CRVotingStartHeight"})
 
 	result.Add(&settingItem{
@@ -551,6 +569,12 @@ func NewSettings() *Settings {
 		DefaultValue: false,
 		ConfigPath:   "EnableUtxoDB",
 		ParamName:    "EnableUtxoDB"})
+
+	result.Add(&settingItem{
+		Flag:         nil,
+		DefaultValue: false,
+		ConfigPath:   "EnableCORS",
+		ParamName:    "EnableCORS"})
 
 	result.Add(&settingItem{
 		Flag:         cmdcom.AutoMiningFlag,
@@ -849,6 +873,54 @@ func NewSettings() *Settings {
 		ConfigPath:   "CRConfiguration.RegisterCRByDIDHeight",
 		ParamName:    "RegisterCRByDIDHeight",
 	})
+
+	result.Add(&settingItem{
+		Flag:         cmdcom.MaxCRAssetsAddressUTXOCount,
+		DefaultValue: uint32(0),
+		ConfigPath:   "CRConfiguration.MaxCRAssetsAddressUTXOCount",
+		ParamName:    "MaxCRAssetsAddressUTXOCount"})
+
+	result.Add(&settingItem{
+		Flag:         cmdcom.MinCRAssetsAddressUTXOCount,
+		DefaultValue: uint32(0),
+		ConfigPath:   "CRConfiguration.MinCRAssetsAddressUTXOCount",
+		ParamName:    "MinCRAssetsAddressUTXOCount"})
+
+	result.Add(&settingItem{
+		Flag:         cmdcom.CRAssetsRectifyTransactionHeight,
+		DefaultValue: uint32(0),
+		ConfigPath:   "CRConfiguration.CRAssetsRectifyTransactionHeight",
+		ParamName:    "CRAssetsRectifyTransactionHeight"})
+
+	result.Add(&settingItem{
+		Flag:         cmdcom.CRCProposalWithdrawPayloadV1Height,
+		DefaultValue: uint32(0),
+		ConfigPath:   "CRConfiguration.CRCProposalWithdrawPayloadV1Height",
+		ParamName:    "CRCProposalWithdrawPayloadV1Height"})
+
+	result.Add(&settingItem{
+		Flag:         cmdcom.CRCProposalV1Height,
+		DefaultValue: uint32(0),
+		ConfigPath:   "CRConfiguration.CRCProposalV1Height",
+		ParamName:    "CRCProposalV1Height"})
+
+	result.Add(&settingItem{
+		Flag:         cmdcom.RectifyTxFee,
+		DefaultValue: common.Fixed64(0),
+		ConfigPath:   "CRConfiguration.RectifyTxFee",
+		ParamName:    "RectifyTxFee"})
+
+	result.Add(&settingItem{
+		Flag:         cmdcom.RealWithdrawSingleFee,
+		DefaultValue: common.Fixed64(0),
+		ConfigPath:   "CRConfiguration.RealWithdrawSingleFee",
+		ParamName:    "RealWithdrawSingleFee"})
+
+	result.Add(&settingItem{
+		Flag:         cmdcom.NewVersionHeight,
+		DefaultValue: uint64(0),
+		ConfigPath:   "CRConfiguration.NewP2PProtocolVersionHeight",
+		ParamName:    "NewP2PProtocolVersionHeight"})
 
 	return result
 }

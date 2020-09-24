@@ -32,12 +32,39 @@ func registerParams(c *cli.Context, L *lua.LState) {
 	votes := c.Float64("votes")
 	toAddr := c.String("to")
 	amounts := c.String("amounts")
-	ownPubkey := c.String("ownerpublickey")
+	ownPublicKey := c.String("ownerpublickey")
+	ownPrivateKey := c.String("ownerprivatekey")
 	nodePubkey := c.String("nodepublickey")
 	host := c.String("host")
 	candidates := c.String("candidates")
 	candidateVotes := c.String("candidateVotes")
 	draftHash := c.String("drafthash")
+
+	// CRCProposal Related Params
+	proposalType := c.Int64("proposaltype")
+	proposalHash := c.String("proposalhash")
+	draftData := c.String("draftdata")
+	budgets := c.String("budgets")
+	voteResult := c.Int("voteresult")
+	proposalTrackingType := c.Int64("proposaltrackingtype")
+	MessageHash := c.String("messagehash")
+	crOpinionHash := c.String("cropinionhash")
+	SecretaryGeneralOpinionHash := c.String("secretarygeneralopinionhash")
+	stage := c.Int64("stage")
+
+	newOwnerPublicKey := c.String("newownerpublickey")
+	newOwnerPrivateKey := c.String("newownerprivatekey")
+	secretaryGeneralPrivkey := c.String("secretarygeneralprivatekey")
+	secretaryGeneralPublickey := c.String("secretarygeneralpublickey")
+	recipient := c.String("recipient")
+	targetHash := c.String("targethash")
+	closeProposalHash := c.String("closeproposalhash")
+	CRExpensesAddress := c.String("crccommiteeaddr")
+	payloadVersion := c.Int64("payloadversion")
+
+	crManagementPublicKey := c.String("crmanagementpublickey")
+	crDPOSPrivateKey := c.String("crdposprivatekey")
+	crCommitteeDID := c.String("crcommitteedid")
 
 	getWallet := func(L *lua.LState) int {
 		L.Push(lua.LString(wallet))
@@ -96,7 +123,11 @@ func registerParams(c *cli.Context, L *lua.LState) {
 		return 1
 	}
 	getOwnerPublicKey := func(L *lua.LState) int {
-		L.Push(lua.LString(ownPubkey))
+		L.Push(lua.LString(ownPublicKey))
+		return 1
+	}
+	getOwnerPrivateKey := func(L *lua.LState) int {
+		L.Push(lua.LString(ownPrivateKey))
 		return 1
 	}
 	getNodePublicKey := func(L *lua.LState) int {
@@ -131,49 +162,6 @@ func registerParams(c *cli.Context, L *lua.LState) {
 		L.Push(lua.LString(draftHash))
 		return 1
 	}
-	L.Register("getWallet", getWallet)
-	L.Register("getPassword", getPassword)
-	L.Register("getDepositAddr", getDepositAddr)
-	L.Register("getPublicKey", getPublicKey)
-	L.Register("getCode", getCode)
-	L.Register("getNickName", getNickName)
-	L.Register("getUrl", getUrl)
-	L.Register("getLocation", getLocation)
-	L.Register("getDepositAmount", getDepositAmount)
-	L.Register("getAmount", getAmount)
-	L.Register("getFee", getFee)
-	L.Register("getVotes", getVotes)
-	L.Register("getToAddr", getToAddr)
-	L.Register("getAmounts", getAmounts)
-	L.Register("getOwnerPublicKey", getOwnerPublicKey)
-	L.Register("getNodePublicKey", getNodePublicKey)
-	L.Register("getHostAddr", getHostAddr)
-	L.Register("getCandidates", getCandidates)
-	L.Register("getCandidateVotes", getCandidateVotes)
-	L.Register("getDraftHash", getDraftHash)
-
-	registerCRCProposalRelatedParams(c, L)
-}
-
-func registerCRCProposalRelatedParams(c *cli.Context, L *lua.LState) {
-	proposalType := c.Int64("proposaltype")
-	proposalHash := c.String("proposalhash")
-	draftData := c.String("draftdata")
-	budgets := c.String("budgets")
-	voteResult := c.Int("voteresult")
-	proposalTrackingType := c.Int64("proposaltrackingtype")
-	documentHash := c.String("documenthash")
-	crOpinionHash := c.String("cropinionhash")
-	secretaryOpinionHash := c.String("secretaryopinionhash")
-	stage := c.Int64("stage")
-	leaderPubkey := c.String("leaderpublickey")
-	newLeaderPubkey := c.String("newleaderpublickey")
-	leaderPrivkey := c.String("leaderprivatekey")
-	newLeaderPrivkey := c.String("newleaderprivatekey")
-	secretaryGeneralPrivkey := c.String("secretarygeneralprivatekey")
-	recipient := c.String("recipient")
-	crcCommitteeAddress := c.String("crccommiteeaddr")
-	payloadVersion := c.Int64("payloadversion")
 
 	getProposalType := func(L *lua.LState) int {
 		L.Push(lua.LNumber(proposalType))
@@ -205,72 +193,126 @@ func registerCRCProposalRelatedParams(c *cli.Context, L *lua.LState) {
 		L.Push(lua.LNumber(proposalTrackingType))
 		return 1
 	}
-	getDocumentHash := func(L *lua.LState) int {
-		L.Push(lua.LString(documentHash))
+	getMessageHash := func(L *lua.LState) int {
+		L.Push(lua.LString(MessageHash))
 		return 1
 	}
 	getCROpinionHash := func(L *lua.LState) int {
 		L.Push(lua.LString(crOpinionHash))
 		return 1
 	}
-	getSecretaryOpinionHash := func(L *lua.LState) int {
-		L.Push(lua.LString(secretaryOpinionHash))
+	getSecretaryGeneralOpinionHash := func(L *lua.LState) int {
+		L.Push(lua.LString(SecretaryGeneralOpinionHash))
 		return 1
 	}
 	getStage := func(L *lua.LState) int {
 		L.Push(lua.LNumber(stage))
 		return 1
 	}
-	getLeaderPubkey := func(L *lua.LState) int {
-		L.Push(lua.LString(leaderPubkey))
-		return 1
-	}
-	getNewLeaderPubkey := func(L *lua.LState) int {
-		L.Push(lua.LString(newLeaderPubkey))
-		return 1
-	}
 	getLeaderPrivkey := func(L *lua.LState) int {
-		L.Push(lua.LString(leaderPrivkey))
+		L.Push(lua.LString(ownPrivateKey))
 		return 1
 	}
 	getNewLeaderPrivkey := func(L *lua.LState) int {
-		L.Push(lua.LString(newLeaderPrivkey))
+		L.Push(lua.LString(newOwnerPrivateKey))
 		return 1
 	}
 	getSecretaryGeneralPrivkey := func(L *lua.LState) int {
 		L.Push(lua.LString(secretaryGeneralPrivkey))
 		return 1
 	}
+	getSecretaryGeneralPublickey := func(L *lua.LState) int {
+		L.Push(lua.LString(secretaryGeneralPublickey))
+		return 1
+	}
 	getRecipient := func(L *lua.LState) int {
 		L.Push(lua.LString(recipient))
 		return 1
 	}
-	getCRCCommitteeAddress := func(L *lua.LState) int {
-		L.Push(lua.LString(crcCommitteeAddress))
+	getNewOwnerPublicKey := func(L *lua.LState) int {
+		L.Push(lua.LString(newOwnerPublicKey))
+		return 1
+	}
+	getNewOwnerPrivateKey := func(L *lua.LState) int {
+		L.Push(lua.LString(newOwnerPrivateKey))
+		return 1
+	}
+	getTargetHash := func(L *lua.LState) int {
+		L.Push(lua.LString(targetHash))
+		return 1
+	}
+	getCloseProposalHash := func(L *lua.LState) int {
+		L.Push(lua.LString(closeProposalHash))
+		return 1
+	}
+	getCRExpensesAddress := func(L *lua.LState) int {
+		L.Push(lua.LString(CRExpensesAddress))
 		return 1
 	}
 	getPayloadVersion := func(L *lua.LState) int {
 		L.Push(lua.LNumber(payloadVersion))
 		return 1
 	}
+	getCRManagementPublicKey := func(L *lua.LState) int {
+		L.Push(lua.LString(crManagementPublicKey))
+		return 1
+	}
+	getCRDPOSPrivateKey := func(L *lua.LState) int {
+		L.Push(lua.LString(crDPOSPrivateKey))
+		return 1
+	}
+	getCRCommitteeDID := func(L *lua.LState) int {
+		L.Push(lua.LString(crCommitteeDID))
+		return 1
+	}
+
+	L.Register("getWallet", getWallet)
+	L.Register("getPassword", getPassword)
+	L.Register("getDepositAddr", getDepositAddr)
+	L.Register("getPublicKey", getPublicKey)
+	L.Register("getCode", getCode)
+	L.Register("getNickName", getNickName)
+	L.Register("getUrl", getUrl)
+	L.Register("getLocation", getLocation)
+	L.Register("getDepositAmount", getDepositAmount)
+	L.Register("getAmount", getAmount)
+	L.Register("getFee", getFee)
+	L.Register("getVotes", getVotes)
+	L.Register("getToAddr", getToAddr)
+	L.Register("getAmounts", getAmounts)
+	L.Register("getNodePublicKey", getNodePublicKey)
+	L.Register("getHostAddr", getHostAddr)
+	L.Register("getCandidates", getCandidates)
+	L.Register("getCandidateVotes", getCandidateVotes)
+	L.Register("getDraftHash", getDraftHash)
+	L.Register("getOwnerPublicKey", getOwnerPublicKey)
+	L.Register("getOwnerPrivateKey", getOwnerPrivateKey)
+
 	L.Register("getProposalType", getProposalType)
 	L.Register("getDraftData", getDraftData)
 	L.Register("getBudgets", getBudgets)
 	L.Register("getProposalHash", getProposalHash)
 	L.Register("getVoteResult", getVoteResult)
 	L.Register("getProposalTrackingType", getProposalTrackingType)
-	L.Register("getDocumentHash", getDocumentHash)
+	L.Register("getMessageHash", getMessageHash)
 	L.Register("getCROpinionHash", getCROpinionHash)
-	L.Register("getSecretaryOpinionHash", getSecretaryOpinionHash)
+	L.Register("getSecretaryGeneralOpinionHash", getSecretaryGeneralOpinionHash)
 	L.Register("getStage", getStage)
-	L.Register("getLeaderPubkey", getLeaderPubkey)
-	L.Register("getNewLeaderPubkey", getNewLeaderPubkey)
+
 	L.Register("getLeaderPrivkey", getLeaderPrivkey)
 	L.Register("getNewLeaderPrivkey", getNewLeaderPrivkey)
 	L.Register("getSecretaryGeneralPrivkey", getSecretaryGeneralPrivkey)
+	L.Register("getSecretaryGeneralPublickey", getSecretaryGeneralPublickey)
 	L.Register("getRecipient", getRecipient)
-	L.Register("getCRCCommitteeAddress", getCRCCommitteeAddress)
+	L.Register("getNewOwnerPublicKey", getNewOwnerPublicKey)
+	L.Register("getNewOwnerPrivateKey", getNewOwnerPrivateKey)
+	L.Register("getTargetHash", getTargetHash)
+	L.Register("getCloseProposalHash", getCloseProposalHash)
+	L.Register("getCRExpensesAddress", getCRExpensesAddress)
 	L.Register("getPayloadVersion", getPayloadVersion)
+	L.Register("getCRManagementPublicKey", getCRManagementPublicKey)
+	L.Register("getCRDPOSPrivateKey", getCRDPOSPrivateKey)
+	L.Register("getCRCommitteeDID", getCRCommitteeDID)
 }
 
 func scriptAction(c *cli.Context) error {
@@ -388,6 +430,10 @@ func NewCommand() *cli.Command {
 				Usage: "set the node public key",
 			},
 			cli.StringFlag{
+				Name:  "ownerprivatekey, oprk",
+				Usage: "set the node owner private key",
+			},
+			cli.StringFlag{
 				Name:  "nodepublickey, npk",
 				Usage: "set the owner public key",
 			},
@@ -412,6 +458,18 @@ func NewCommand() *cli.Command {
 				Usage: "set the draft proposal hash",
 			},
 			cli.StringFlag{
+				Name:  "targethash",
+				Usage: "set the target proposal hash",
+			},
+			cli.StringFlag{
+				Name:  "recipient",
+				Usage: "set the recipient address",
+			},
+			cli.StringFlag{
+				Name:  "closeproposalhash",
+				Usage: "set the close proposal hash",
+			},
+			cli.StringFlag{
 				Name:  "voteresult, votres",
 				Usage: "set the owner public key",
 			},
@@ -432,7 +490,7 @@ func NewCommand() *cli.Command {
 				Usage: "set the type of proposal tracking transaction",
 			},
 			cli.StringFlag{
-				Name:  "documenthash",
+				Name:  "messagehash",
 				Usage: "set the hash of proposal tracking document",
 			},
 			cli.StringFlag{
@@ -440,7 +498,7 @@ func NewCommand() *cli.Command {
 				Usage: "set the hash of proposal opinion",
 			},
 			cli.StringFlag{
-				Name:  "secretaryopinionhash",
+				Name:  "secretarygeneralopinionhash",
 				Usage: "set the hash of proposal tracking opinion",
 			},
 			cli.Int64Flag{
@@ -448,24 +506,20 @@ func NewCommand() *cli.Command {
 				Usage: "set the stage of proposal",
 			},
 			cli.StringFlag{
-				Name:  "leaderpublickey",
-				Usage: "set the public key of proposal leader",
-			},
-			cli.StringFlag{
-				Name:  "newleaderpublickey",
+				Name:  "newownerpublickey",
 				Usage: "set the public key of new proposal leader",
 			},
 			cli.StringFlag{
-				Name:  "leaderprivatekey",
-				Usage: "set the private key of proposal leader",
-			},
-			cli.StringFlag{
-				Name:  "newleaderprivatekey",
+				Name:  "newownerprivatekey",
 				Usage: "set the private key of new proposal leader",
 			},
 			cli.StringFlag{
 				Name:  "secretarygeneralprivatekey",
 				Usage: "set the private key of secretary general",
+			},
+			cli.StringFlag{
+				Name:  "secretarygeneralpublickey",
+				Usage: "set the public key of secretary general",
 			},
 			cli.StringFlag{
 				Name:  "crccommiteeaddr",
@@ -474,6 +528,17 @@ func NewCommand() *cli.Command {
 			cli.Int64Flag{
 				Name:  "payloadversion",
 				Usage: "set the version of payload",
+			}, cli.StringFlag{
+				Name:  "crmanagementpublickey",
+				Usage: "set the public key of crmanagement",
+			},
+			cli.StringFlag{
+				Name:  "crdposprivatekey",
+				Usage: "set the private key of crmanagement",
+			},
+			cli.StringFlag{
+				Name:  "crcommitteedid",
+				Usage: "set the crcommittee did",
 			},
 		},
 		Action: scriptAction,

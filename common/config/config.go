@@ -54,9 +54,6 @@ type Configuration struct {
 	RestKeyPath                 string            `json:"RestKeyPath"`
 	MinCrossChainTxFee          common.Fixed64    `json:"MinCrossChainTxFee"`
 	FoundationAddress           string            `json:"FoundationAddress"`
-	CRCAddress                  string            `json:"CRCAddress"`
-	CRCFoundation               string            `json:"CRCFoundation"`
-	CRCCommitteeAddress         string            `json:"CRCCommitteeAddress"`
 	PowConfiguration            PowConfiguration  `json:"PowConfiguration"`
 	RpcConfiguration            RpcConfiguration  `json:"RpcConfiguration"`
 	DPoSConfiguration           DPoSConfiguration `json:"DPoSConfiguration"`
@@ -67,8 +64,6 @@ type Configuration struct {
 	PublicDPOSHeight            uint32            `json:"PublicDPOSHeight"`
 	EnableActivateIllegalHeight uint32            `json:"EnableActivateIllegalHeight"`
 	CheckRewardHeight           uint32            `json:"CheckRewardHeight"`
-	CRVotingStartHeight         uint32            `json:"CRVotingStartHeight"`
-	CRCommitteeStartHeight      uint32            `json:"CRCommitteeStartHeight"`
 	VoteStatisticsHeight        uint32            `json:"VoteStatisticsHeight"`
 	ProfilePort                 uint32            `json:"ProfilePort"`
 	MaxBlockSize                uint32            `json:"MaxBlockSize"`
@@ -77,6 +72,7 @@ type Configuration struct {
 	EnableHistory               bool              `json:"EnableHistory"`
 	HistoryStartHeight          uint32            `json:"HistoryStartHeight"`
 	EnableUtxoDB                bool              `json:"EnableUtxoDB"`
+	EnableCORS                  bool              `json:"EnableCORS"`
 	WalletPath                  string            `json:"WalletPath"`
 	RPCServiceLevel             string            `json:"RPCServiceLevel"`
 	NodeProfileStrategy         string            `json:"NodeProfileStrategy"`
@@ -102,19 +98,34 @@ type DPoSConfiguration struct {
 }
 
 type CRConfiguration struct {
-	MemberCount                uint32  `json:"MemberCount"`
-	VotingPeriod               uint32  `json:"VotingPeriod"`
-	DutyPeriod                 uint32  `json:"DutyPeriod"`
-	DepositLockupBlocks        uint32  `json:"DepositLockupBlocks"`
-	ProposalCRVotingPeriod     uint32  `json:"ProposalCRVotingPeriod"`
-	ProposalPublicVotingPeriod uint32  `json:"ProposalPublicVotingPeriod"`
-	CRAgreementCount           uint32  `json:"CRAgreementCount"`
-	VoterRejectPercentage      float64 `json:"VoterRejectPercentage"`
-	CRCAppropriatePercentage   float64 `json:"CRCAppropriatePercentage"`
-	MaxCommitteeProposalCount  uint32  `json:"MaxCommitteeProposalCount"`
-	SecretaryGeneral           string  `json:"SecretaryGeneral"`
-	MaxProposalTrackingCount   uint8   `json:"MaxProposalTrackingCount"`
-	RegisterCRByDIDHeight      uint32  `json:"RegisterCRByDIDHeight"`
+	MemberCount                        uint32         `json:"MemberCount"`
+	VotingPeriod                       uint32         `json:"VotingPeriod"`
+	DutyPeriod                         uint32         `json:"DutyPeriod"`
+	DepositLockupBlocks                uint32         `json:"DepositLockupBlocks"`
+	ProposalCRVotingPeriod             uint32         `json:"ProposalCRVotingPeriod"`
+	ProposalPublicVotingPeriod         uint32         `json:"ProposalPublicVotingPeriod"`
+	CRAgreementCount                   uint32         `json:"CRAgreementCount"`
+	VoterRejectPercentage              float64        `json:"VoterRejectPercentage"`
+	CRCAppropriatePercentage           float64        `json:"CRCAppropriatePercentage"`
+	MaxCommitteeProposalCount          uint32         `json:"MaxCommitteeProposalCount"`
+	SecretaryGeneral                   string         `json:"SecretaryGeneral"`
+	MaxProposalTrackingCount           uint8          `json:"MaxProposalTrackingCount"`
+	RegisterCRByDIDHeight              uint32         `json:"RegisterCRByDIDHeight"`
+	MaxCRAssetsAddressUTXOCount        uint32         `json:"MaxCRAssetsAddressUTXOCount"`
+	MinCRAssetsAddressUTXOCount        uint32         `json:"MinCRAssetsAddressUTXOCount"`
+	CRAssetsRectifyTransactionHeight   uint32         `json:"CRAssetsRectifyTransactionHeight"`
+	CRCProposalWithdrawPayloadV1Height uint32         `json:"CRCProposalWithdrawPayloadV1Height"`
+	CRCProposalV1Height                uint32         `json:"CRCProposalV1Height"`
+	CRCAddress                         string         `json:"CRCAddress"`
+	CRAssetsAddress                    string         `json:"CRAssetsAddress"`
+	CRExpensesAddress                  string         `json:"CRExpensesAddress"`
+	CRVotingStartHeight                uint32         `json:"CRVotingStartHeight"`
+	CRCommitteeStartHeight             uint32         `json:"CRCommitteeStartHeight"`
+	CRClaimDPOSNodeStartHeight         uint32         `json:"CRClaimDPOSNodeStartHeight"`
+	CRClaimDPOSNodePeriod              uint32         `json:"CRClaimDPOSNodePeriod"`
+	RectifyTxFee                       common.Fixed64 `json:"RectifyTxFee"`
+	RealWithdrawSingleFee              common.Fixed64 `json:"RealWithdrawSingleFee"`
+	NewP2PProtocolVersionHeight        uint64         `json:"NewP2PProtocolVersionHeight"`
 }
 
 type RPCServiceLevel byte

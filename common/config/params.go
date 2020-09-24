@@ -105,9 +105,9 @@ var (
 	// ELAPrecision represents the precision of ELA coin.
 	ELAPrecision = byte(0x08)
 
-	// CRCAssetsAddress indicates the "CRASSETSXXXXXXXXXXXXXXXXXXXX2qDX5J"
-	// CRC assets address.
-	CRCAssetsAddress = common.Uint168{
+	// CRAssetsAddress indicates the "CRASSETSXXXXXXXXXXXXXXXXXXXX2qDX5J"
+	// CR assets address.
+	CRAssetsAddress = common.Uint168{
 		0x1c, 0x5f, 0x6c, 0x3e, 0x9f, 0x0c, 0x9a,
 		0x71, 0x10, 0xb8, 0xeb, 0x6e, 0x37, 0x02,
 		0x63, 0x0f, 0x71, 0x27, 0x4d, 0xf1, 0xc0,
@@ -135,12 +135,12 @@ var DefaultParams = Params{
 		"node-mainnet-025.elastos.org:20338",
 	},
 
-	Foundation:          mainNetFoundation,
-	CRCAddress:          mainNetCRCAddress,
-	CRCFoundation:       CRCAssetsAddress,
-	CRCCommitteeAddress: CRCExpensesAddress,
-	DestroyELAAddress:   DestroyELAAddress,
-	GenesisBlock:        GenesisBlock(&mainNetFoundation),
+	Foundation:        mainNetFoundation,
+	CRCAddress:        mainNetCRCAddress,
+	CRAssetsAddress:   CRAssetsAddress,
+	CRExpensesAddress: CRCExpensesAddress,
+	DestroyELAAddress: DestroyELAAddress,
+	GenesisBlock:      GenesisBlock(&mainNetFoundation),
 
 	DPoSMagic:       2019000,
 	DPoSDefaultPort: 20339,
@@ -183,6 +183,8 @@ var DefaultParams = Params{
 	EnableActivateIllegalHeight: 439000,
 	CRVotingStartHeight:         537670,
 	CRCommitteeStartHeight:      658930,
+	CRClaimDPOSNodeStartHeight:  751400,
+	CRClaimDPOSNodePeriod:       720 * 14,
 	CheckRewardHeight:           436812,
 	VoteStatisticsHeight:        512881,
 	RegisterCRByDIDHeight:       598000,
@@ -204,6 +206,7 @@ var DefaultParams = Params{
 	CRCAppropriatePercentage:    10,
 	MaxCommitteeProposalCount:   128,
 	EnableUtxoDB:                true,
+	EnableCORS:                  false,
 	WalletPath:                  "keystore.dat",
 	RPCServiceLevel:             ConfigurationPermitted.String(),
 	NodeProfileStrategy:         Balanced.String(),
@@ -213,8 +216,16 @@ var DefaultParams = Params{
 		HistoryStartHeight: uint32(0),
 		NeedSave:           false,
 	}),
-	TxCacheVolume:          100000,
-	CheckVoteCRCountHeight: 658930,
+	TxCacheVolume:                      100000,
+	CheckVoteCRCountHeight:             658930,
+	MaxCRAssetsAddressUTXOCount:        800,
+	MinCRAssetsAddressUTXOCount:        720,
+	CRAssetsRectifyTransactionHeight:   751400,
+	CRCProposalWithdrawPayloadV1Height: 751400,
+	CRCProposalV1Height:                751400,
+	RectifyTxFee:                       10000,
+	RealWithdrawSingleFee:              10000,
+	NewP2PProtocolVersionHeight:        751400,
 }
 
 // TestNet returns the network parameters for the test network.
@@ -231,8 +242,8 @@ func (p *Params) TestNet() *Params {
 
 	copy.Foundation = testNetFoundation
 	copy.CRCAddress = testNetCRCAddress
-	copy.CRCFoundation = CRCAssetsAddress
-	copy.CRCCommitteeAddress = CRCExpensesAddress
+	copy.CRAssetsAddress = CRAssetsAddress
+	copy.CRExpensesAddress = CRCExpensesAddress
 	copy.DestroyELAAddress = DestroyELAAddress
 	copy.GenesisBlock = GenesisBlock(&testNetFoundation)
 	copy.DPoSMagic = 2019100
@@ -266,11 +277,18 @@ func (p *Params) TestNet() *Params {
 	copy.PublicDPOSHeight = 300000
 	copy.CRVotingStartHeight = 436900
 	copy.CRCommitteeStartHeight = 546500
+	copy.CRClaimDPOSNodeStartHeight = 646700
+	copy.CRClaimDPOSNodePeriod = 720 * 7
+	copy.CRCProposalV1Height = 646700
+	copy.NewP2PProtocolVersionHeight = 646700
+	copy.CRAssetsRectifyTransactionHeight = 646700
+	copy.CRCProposalWithdrawPayloadV1Height = 646700
 	copy.EnableActivateIllegalHeight = 546500
 	copy.CheckRewardHeight = 100
 	copy.VoteStatisticsHeight = 0
 	copy.RegisterCRByDIDHeight = 483500
 	copy.EnableUtxoDB = true
+	copy.EnableCORS = false
 	copy.VoterRejectPercentage = 10
 	copy.CRCAppropriatePercentage = 10
 	copy.MaxCommitteeProposalCount = 128
@@ -294,8 +312,8 @@ func (p *Params) RegNet() *Params {
 
 	copy.Foundation = testNetFoundation
 	copy.CRCAddress = testNetCRCAddress
-	copy.CRCFoundation = CRCAssetsAddress
-	copy.CRCCommitteeAddress = CRCExpensesAddress
+	copy.CRAssetsAddress = CRAssetsAddress
+	copy.CRExpensesAddress = CRCExpensesAddress
 	copy.DestroyELAAddress = DestroyELAAddress
 	copy.GenesisBlock = GenesisBlock(&testNetFoundation)
 	copy.DPoSMagic = 2019200
@@ -329,11 +347,18 @@ func (p *Params) RegNet() *Params {
 	copy.PublicDPOSHeight = 231500
 	copy.CRVotingStartHeight = 292000
 	copy.CRCommitteeStartHeight = 442000
+	copy.CRClaimDPOSNodeStartHeight = 532650
+	copy.CRClaimDPOSNodePeriod = 720
+	copy.CRCProposalV1Height = 530000
+	copy.NewP2PProtocolVersionHeight = 531030
+	copy.CRAssetsRectifyTransactionHeight = 532650
+	copy.CRCProposalWithdrawPayloadV1Height = 532650
 	copy.EnableActivateIllegalHeight = 256000
 	copy.CheckRewardHeight = 280000
 	copy.VoteStatisticsHeight = 0
 	copy.RegisterCRByDIDHeight = 393000
 	copy.EnableUtxoDB = true
+	copy.EnableCORS = false
 	copy.VoterRejectPercentage = 10
 	copy.CRCAppropriatePercentage = 10
 	copy.MaxCommitteeProposalCount = 128
@@ -378,12 +403,12 @@ type Params struct {
 	// CRCAddress defines the CRC address which receiving mining rewards.
 	CRCAddress common.Uint168
 
-	// CRCFoundation defines the CRC foundation address.
-	CRCFoundation common.Uint168
+	// CRAssetsAddress defines the CR assets address address.
+	CRAssetsAddress common.Uint168
 
-	// CRCCommitteeAddress defines the CR committee address which receiving
-	// appropriation from CRC foundation address.
-	CRCCommitteeAddress common.Uint168
+	// CRExpensesAddress defines the CR committee address which receiving
+	// appropriation from CR assets address.
+	CRExpensesAddress common.Uint168
 
 	// DestroyELAAddress defines address which receiving destroyed ELA.
 	DestroyELAAddress common.Uint168
@@ -454,6 +479,12 @@ type Params struct {
 
 	// CRCommitteeStartHeight defines the height of CR Committee started.
 	CRCommitteeStartHeight uint32
+
+	// CRClaimDPOSNodeStartHeight defines the height of CR claim DPOS node started.
+	CRClaimDPOSNodeStartHeight uint32
+
+	// CRClaimDPOSNodePeriod defines the period of CR claim DPOS node.
+	CRClaimDPOSNodePeriod uint32
 
 	// PublicDPOSHeight defines the start height to enable activate illegal
 	// producer though activate tx.
@@ -556,6 +587,9 @@ type Params struct {
 	// EnableUtxoDB indicate whether to enable utxo database.
 	EnableUtxoDB bool
 
+	// Enable cors for http server.
+	EnableCORS bool
+
 	// WalletPath defines the wallet path used by DPoS arbiters and CR members.
 	WalletPath string
 
@@ -567,11 +601,39 @@ type Params struct {
 
 	// TxCacheVolume defines the default volume of the transaction cache.
 	TxCacheVolume uint32
-	//MaxNodePerHost defines max nodes that one host can establish
+
+	//MaxNodePerHost defines max nodes that one host can establish.
 	MaxNodePerHost uint32
 
-	// CheckVoteCRCountHeight defines the height to check count of vote CR
+	// CheckVoteCRCountHeight defines the height to check count of vote CR.
 	CheckVoteCRCountHeight uint32
+
+	// MaxCRAssetsAddressUTXOCount defines the max UTXOs count of CRFoundation
+	// address.
+	MaxCRAssetsAddressUTXOCount uint32
+
+	// MinCRAssetsAddressUTXOCount defines the min UTXOs count of CRFoundation
+	// address.
+	MinCRAssetsAddressUTXOCount uint32
+
+	// CRAssetsRectifyTransactionHeight defines the CR rectify transaction start height
+	CRAssetsRectifyTransactionHeight uint32
+
+	// CRCProposalWithdrawPayloadV1Height defines the CRC proposal withdraw payload height
+	CRCProposalWithdrawPayloadV1Height uint32
+
+	// CRCProposalV1Height defines the height to support ChangeProposalOwner,
+	// CloseProposal and SecretaryGeneral proposal.
+	CRCProposalV1Height uint32
+
+	// RectifyTxFee defines the fee of cr rectify transaction
+	RectifyTxFee common.Fixed64
+
+	// RealWithdrawSingleFee defines the single fee of cr real proposal withdraw transaction
+	RealWithdrawSingleFee common.Fixed64
+
+	// NewP2PProtocolVersionHeight defines the new p2p protocol version message height
+	NewP2PProtocolVersionHeight uint64
 }
 
 // rewardPerBlock calculates the reward for each block by a specified time

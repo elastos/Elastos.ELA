@@ -1,7 +1,7 @@
 // Copyright (c) 2017-2020 The Elastos Foundation
 // Use of this source code is governed by an MIT
 // license that can be found in the LICENSE file.
-// 
+//
 
 package state
 
@@ -46,6 +46,7 @@ func NewArbitratorsMock(arbitersByte []ArbiterMember, changeCount,
 type ArbitratorsMock struct {
 	CurrentArbitrators          []ArbiterMember
 	CRCArbitrators              []ArbiterMember
+	NextCRCArbitrators          []ArbiterMember
 	CurrentCandidates           []ArbiterMember
 	NextArbitrators             []ArbiterMember
 	NextCandidates              []ArbiterMember
@@ -142,8 +143,16 @@ func (a *ArbitratorsMock) CheckCRCAppropriationTx(block *types.Block) error {
 	return nil
 }
 
+func (a *ArbitratorsMock) CheckNextTurnDPOSInfoTx(block *types.Block) error {
+	return nil
+}
+
 func (a *ArbitratorsMock) GetNeedConnectArbiters() []peer.PID {
 	panic("implement me")
+}
+
+func (a *ArbitratorsMock) IsNeedNextTurnDPOSInfo() bool {
+	return false
 }
 
 func (a *ArbitratorsMock) IsArbitrator(pk []byte) bool {
@@ -188,26 +197,39 @@ func (a *ArbitratorsMock) GetCrossChainArbitersCount() int {
 	return len(a.CurrentArbitrators)
 }
 
-func (a *ArbitratorsMock) GetCrossChainArbiters() [][]byte {
-	result := make([][]byte, 0, len(a.CurrentArbitrators))
-	for _, v := range a.CurrentArbitrators {
-		result = append(result, v.GetNodePublicKey())
-	}
-	return result
+func (a *ArbitratorsMock) GetCrossChainArbiters() []*ArbiterInfo {
+	return a.GetArbitrators()
 }
 
 func (a *ArbitratorsMock) GetDutyChangeCount() int {
 	return a.DutyChangedCount
 }
 
+func (a *ArbitratorsMock) IsNextCRCArbitrator(pk []byte) bool {
+	return false
+}
+
+func (a *ArbitratorsMock) IsMemberElectedNextCRCArbitrator(pk []byte) bool {
+	return false
+}
+
 func (a *ArbitratorsMock) SetDutyChangeCount(count int) {
 	a.DutyChangedCount = count
 }
 
-func (a *ArbitratorsMock) GetArbitrators() [][]byte {
-	result := make([][]byte, 0, len(a.CurrentArbitrators))
+func (a *ArbitratorsMock) GetArbitrators() []*ArbiterInfo {
+	result := make([]*ArbiterInfo, 0, len(a.CurrentArbitrators))
 	for _, v := range a.CurrentArbitrators {
-		result = append(result, v.GetNodePublicKey())
+		isNormal := true
+		abt, ok := v.(*crcArbiter)
+		if ok && !abt.isNormal {
+			isNormal = false
+			continue
+		}
+		result = append(result, &ArbiterInfo{
+			NodePublicKey: v.GetNodePublicKey(),
+			IsNormal:      isNormal,
+		})
 	}
 	return result
 }
@@ -244,9 +266,26 @@ func (a *ArbitratorsMock) GetNextCandidates() [][]byte {
 	return result
 }
 
-func (a *ArbitratorsMock) GetCRCArbiters() [][]byte {
-	result := make([][]byte, 0, len(a.CRCArbitrators))
+func (a *ArbitratorsMock) GetCRCArbiters() []*ArbiterInfo {
+	result := make([]*ArbiterInfo, 0, len(a.CRCArbitrators))
 	for _, v := range a.CRCArbitrators {
+		isNormal := true
+		abt, ok := v.(*crcArbiter)
+		if ok && !abt.isNormal {
+			isNormal = false
+		}
+		result = append(result, &ArbiterInfo{
+			NodePublicKey: v.GetNodePublicKey(),
+			IsNormal:      isNormal,
+		})
+	}
+
+	return result
+}
+
+func (a *ArbitratorsMock) GetNextCRCArbiters() [][]byte {
+	result := make([][]byte, 0, len(a.NextCRCArbitrators))
+	for _, v := range a.NextCRCArbitrators {
 		result = append(result, v.GetNodePublicKey())
 	}
 	return result

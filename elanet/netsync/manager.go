@@ -841,6 +841,17 @@ func (sm *SyncManager) handleBlockchainEvents(event *events.Event) {
 			log.Warnf("Illegal evidence tx append to txpool failed", err)
 			break
 		}
+	case events.ETAppendTxToTxPool:
+		tx, ok := event.Data.(*types.Transaction)
+		if !ok {
+			log.Warnf("ETAppendTxToTxPool event is not a tx")
+			break
+		}
+
+		if err := sm.txMemPool.AppendToTxPool(tx); err != nil {
+			log.Warnf("ETAppendTxToTxPool tx append to txpool failed TxType %v, err %v", tx.TxType, err)
+			break
+		}
 	}
 }
 

@@ -37,6 +37,42 @@ func hashCRCProposalDID(tx *types.Transaction) (interface{}, error) {
 	return p.CRCouncilMemberDID, nil
 }
 
+func hashChangeProposalOwnerTargetProposalHash(tx *types.Transaction) (interface{}, error) {
+	p, ok := tx.Payload.(*payload.CRCProposal)
+	if !ok {
+		return nil, fmt.Errorf(
+			"CRC proposal payload cast failed, tx:%s", tx.Hash())
+	}
+	if p.ProposalType == payload.ChangeProposalOwner {
+		return p.TargetProposalHash, nil
+	}
+	return nil, nil
+}
+
+func hashCloseProposalTargetProposalHash(tx *types.Transaction) (interface{}, error) {
+	p, ok := tx.Payload.(*payload.CRCProposal)
+	if !ok {
+		return nil, fmt.Errorf(
+			"CRC proposal payload cast failed, tx:%s", tx.Hash())
+	}
+	if p.ProposalType == payload.CloseProposal {
+		return p.TargetProposalHash, nil
+	}
+	return nil, nil
+}
+
+func hashCRCProposalSecretaryGeneralDID(tx *types.Transaction) (interface{}, error) {
+	p, ok := tx.Payload.(*payload.CRCProposal)
+	if !ok {
+		return nil, fmt.Errorf(
+			"CRC proposal payload cast failed, tx:%s", tx.Hash())
+	}
+	if p.ProposalType == payload.SecretaryGeneral {
+		return p.SecretaryGeneralDID, nil
+	}
+	return nil, nil
+}
+
 func hashCRCProposalWithdrawProposalHash(
 	tx *types.Transaction) (interface{}, error) {
 	p, ok := tx.Payload.(*payload.CRCProposalWithdraw)
@@ -64,6 +100,15 @@ func hashSpecialTxHash(tx *types.Transaction) (interface{}, error) {
 			"special tx payload cast failed, tx:%s", tx.Hash())
 	}
 	return illegalData.Hash(), nil
+}
+
+func hashNextTurnDPOSInfoTxPayloadHash(tx *types.Transaction) (interface{}, error) {
+	payload, ok := tx.Payload.(*payload.NextTurnDPOSInfo)
+	if !ok {
+		return nil, fmt.Errorf(
+			"NextTurnDPOSInfo tx payload cast failed, tx:%s", tx.Hash())
+	}
+	return payload.Hash(), nil
 }
 
 // strings related functions
@@ -94,22 +139,30 @@ func strProducerInfoNodePublicKey(tx *types.Transaction) (interface{}, error) {
 	return common.BytesToHexString(p.NodePublicKey), nil
 }
 
+func strCRManagementPublicKey(tx *types.Transaction) (interface{}, error) {
+	p, ok := tx.Payload.(*payload.CRCouncilMemberClaimNode)
+	if !ok {
+		return nil, fmt.Errorf(
+			"cr dpos management payload cast failed, tx:%s", tx.Hash())
+	}
+	return common.BytesToHexString(p.NodePublicKey), nil
+}
+
+func strCRManagementDID(tx *types.Transaction) (interface{}, error) {
+	p, ok := tx.Payload.(*payload.CRCouncilMemberClaimNode)
+	if !ok {
+		return nil, fmt.Errorf(
+			"cr dpos management payload cast failed, tx:%s", tx.Hash())
+	}
+	return p.CRCouncilCommitteeDID, nil
+}
+
 func strProducerInfoNickname(tx *types.Transaction) (interface{}, error) {
 	p, err := comGetProducerInfo(tx)
 	if err != nil {
 		return nil, err
 	}
 	return p.NickName, nil
-}
-
-func strActivateProducerNodePublicKey(
-	tx *types.Transaction) (interface{}, error) {
-	p, ok := tx.Payload.(*payload.ActivateProducer)
-	if !ok {
-		return nil, fmt.Errorf(
-			"activate producer payload cast failed, tx:%s", tx.Hash())
-	}
-	return common.BytesToHexString(p.NodePublicKey), nil
 }
 
 func strRegisterCRPublicKey(tx *types.Transaction) (interface{}, error) {
@@ -128,6 +181,16 @@ func strRegisterCRPublicKey(tx *types.Transaction) (interface{}, error) {
 	} else {
 		return nil, fmt.Errorf("unsupported sign script type: %d", signType)
 	}
+}
+
+func strActivateProducerNodePublicKey(
+	tx *types.Transaction) (interface{}, error) {
+	p, ok := tx.Payload.(*payload.ActivateProducer)
+	if !ok {
+		return nil, fmt.Errorf(
+			"activate producer payload cast failed, tx:%s", tx.Hash())
+	}
+	return common.BytesToHexString(p.NodePublicKey), nil
 }
 
 func strCRInfoNickname(tx *types.Transaction) (interface{}, error) {
@@ -155,6 +218,31 @@ func strProposalReviewKey(tx *types.Transaction) (interface{}, error) {
 func strCRCAppropriation(*types.Transaction) (interface{}, error) {
 	// const string to ensure only one tx added to the tx pool
 	return "CRC Appropriation", nil
+}
+
+func strSecretaryGeneral(tx *types.Transaction) (interface{}, error) {
+	// const string to ensure only one tx added to the tx pool
+	p, ok := tx.Payload.(*payload.CRCProposal)
+	if !ok {
+		return nil, fmt.Errorf(
+			"CRC proposal payload cast failed, tx:%s", tx.Hash())
+	}
+	if p.ProposalType == payload.SecretaryGeneral {
+		return "Secretary General", nil
+	}
+	return nil, nil
+}
+
+func hashArrayCRCProposalRealWithdrawTransactionHashes(
+	tx *types.Transaction) (interface{}, error) {
+	p, ok := tx.Payload.(*payload.CRCProposalRealWithdraw)
+	if !ok {
+		return nil, fmt.Errorf(
+			"real proposal withdraw transaction cast failed, tx: %s",
+			tx.Hash())
+	}
+
+	return p.WithdrawTransactionHashes, nil
 }
 
 // program hashes related functions

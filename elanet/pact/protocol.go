@@ -15,6 +15,9 @@ const (
 	// ProtocolVersion is the latest protocol version this package supports.
 	ProtocolVersion = DPOSStartVersion
 
+	// CRProposalVersion is the protocol version which switch to CR proposal protocol.
+	CRProposalVersion uint32 = 80000
+
 	// DPOSStartVersion is the protocol version which switch to DPOS protocol.
 	DPOSStartVersion uint32 = 20000
 

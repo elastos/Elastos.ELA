@@ -22,7 +22,6 @@ import (
 	"github.com/elastos/Elastos.ELA/crypto"
 	"github.com/elastos/Elastos.ELA/elanet/pact"
 	elaerr "github.com/elastos/Elastos.ELA/errors"
-	. "github.com/elastos/Elastos.ELA/servers/errors"
 )
 
 const (
@@ -252,14 +251,9 @@ func (b *BlockChain) checkTxsContext(block *Block) error {
 
 	var proposalsUsedAmount Fixed64
 	for i := 1; i < len(block.Transactions); i++ {
-		references, err := b.UTXOCache.GetTxReference(block.Transactions[i])
-		if err != nil {
-			log.Warn("CheckTransactionContext get transaction reference failed")
-			return ErrUnknownReferredTx
-		}
-
-		if errCode := b.CheckTransactionContext(block.Height,
-			block.Transactions[i], references, proposalsUsedAmount); errCode != nil {
+		references, errCode := b.CheckTransactionContext(block.Height,
+			block.Transactions[i], proposalsUsedAmount)
+		if errCode != nil {
 			return elaerr.SimpleWithMessage(elaerr.ErrBlockValidation, errCode,
 				"CheckTransactionContext failed when verify block")
 		}
@@ -331,6 +325,9 @@ func (b *BlockChain) CheckBlockContext(block *Block, prevNode *BlockNode) error 
 	}
 
 	if err := DefaultLedger.Arbitrators.CheckCRCAppropriationTx(block); err != nil {
+		return err
+	}
+	if err := DefaultLedger.Arbitrators.CheckNextTurnDPOSInfoTx(block); err != nil {
 		return err
 	}
 

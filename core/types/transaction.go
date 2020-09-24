@@ -1,7 +1,7 @@
 // Copyright (c) 2017-2020 The Elastos Foundation
 // Use of this source code is governed by an MIT
 // license that can be found in the LICENSE file.
-// 
+//
 
 package types
 
@@ -48,17 +48,21 @@ const (
 	IllegalSidechainEvidence TxType = 0x11
 	InactiveArbitrators      TxType = 0x12
 	UpdateVersion            TxType = 0x13
+	NextTurnDPOSInfo         TxType = 0x14
 
 	RegisterCR          TxType = 0x21
 	UnregisterCR        TxType = 0x22
 	UpdateCR            TxType = 0x23
 	ReturnCRDepositCoin TxType = 0x24
 
-	CRCProposal         TxType = 0x25
-	CRCProposalReview   TxType = 0x26
-	CRCProposalTracking TxType = 0x27
-	CRCAppropriation    TxType = 0x28
-	CRCProposalWithdraw TxType = 0x29
+	CRCProposal              TxType = 0x25
+	CRCProposalReview        TxType = 0x26
+	CRCProposalTracking      TxType = 0x27
+	CRCAppropriation         TxType = 0x28
+	CRCProposalWithdraw      TxType = 0x29
+	CRCProposalRealWithdraw  TxType = 0x2a
+	CRAssetsRectify          TxType = 0x2b
+	CRCouncilMemberClaimNode TxType = 0x31
 )
 
 func (self TxType) Name() string {
@@ -121,6 +125,14 @@ func (self TxType) Name() string {
 		return "CRCProposalTracking"
 	case CRCAppropriation:
 		return "CRCAppropriation"
+	case CRCProposalRealWithdraw:
+		return "CRCProposalRealWithdraw"
+	case CRAssetsRectify:
+		return "CRAssetsRectify"
+	case CRCouncilMemberClaimNode:
+		return "CRCouncilMemberClaimNode"
+	case NextTurnDPOSInfo:
+		return "NextTurnDPOSInfo"
 	default:
 		return "Unknown"
 	}
@@ -360,8 +372,24 @@ func (tx *Transaction) Hash() common.Uint256 {
 	return *tx.txHash
 }
 
+func (tx *Transaction) ISCRCouncilMemberClaimNode() bool {
+	return tx.TxType == CRCouncilMemberClaimNode
+}
+
+func (tx *Transaction) IsCRAssetsRectifyTx() bool {
+	return tx.TxType == CRAssetsRectify
+}
+
 func (tx *Transaction) IsCRCAppropriationTx() bool {
 	return tx.TxType == CRCAppropriation
+}
+
+func (tx *Transaction) IsNextTurnDPOSInfoTx() bool {
+	return tx.TxType == NextTurnDPOSInfo
+}
+
+func (tx *Transaction) IsCRCProposalRealWithdrawTx() bool {
+	return tx.TxType == CRCProposalRealWithdraw
 }
 
 func (tx *Transaction) IsUpdateCRTx() bool {
@@ -390,6 +418,33 @@ func (tx *Transaction) IsRegisterCRTx() bool {
 
 func (tx *Transaction) IsIllegalTypeTx() bool {
 	return tx.IsIllegalProposalTx() || tx.IsIllegalVoteTx() || tx.IsIllegalBlockTx() || tx.IsSidechainIllegalDataTx()
+}
+
+//special tx is this kind of tx who have no input and output
+func (tx *Transaction) IsSpecialTx() bool {
+	if tx.IsIllegalTypeTx() || tx.IsInactiveArbitrators() || tx.IsNextTurnDPOSInfoTx() {
+		return true
+	}
+	return false
+}
+
+func (tx *Transaction) GetSpecialTxHash() (common.Uint256, error) {
+	switch tx.TxType {
+	case IllegalProposalEvidence, IllegalVoteEvidence,
+		IllegalBlockEvidence, IllegalSidechainEvidence, InactiveArbitrators:
+		illegalData, ok := tx.Payload.(payload.DPOSIllegalData)
+		if !ok {
+			return common.Uint256{}, errors.New("special tx payload cast failed")
+		}
+		return illegalData.Hash(), nil
+	case NextTurnDPOSInfo:
+		payloadData, ok := tx.Payload.(*payload.NextTurnDPOSInfo)
+		if !ok {
+			return common.Uint256{}, errors.New("NextTurnDPOSInfo tx payload cast failed")
+		}
+		return payloadData.Hash(), nil
+	}
+	return common.Uint256{}, errors.New("wrong TxType not special tx")
 }
 
 func (tx *Transaction) IsIllegalProposalTx() bool {
@@ -544,6 +599,14 @@ func GetPayload(txType TxType) (Payload, error) {
 		p = new(payload.CRCProposalTracking)
 	case CRCAppropriation:
 		p = new(payload.CRCAppropriation)
+	case CRAssetsRectify:
+		p = new(payload.CRAssetsRectify)
+	case CRCProposalRealWithdraw:
+		p = new(payload.CRCProposalRealWithdraw)
+	case CRCouncilMemberClaimNode:
+		p = new(payload.CRCouncilMemberClaimNode)
+	case NextTurnDPOSInfo:
+		p = new(payload.NextTurnDPOSInfo)
 	default:
 		return nil, errors.New("[Transaction], invalid transaction type.")
 	}

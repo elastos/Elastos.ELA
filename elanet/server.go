@@ -19,6 +19,7 @@ import (
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/elanet/bloom"
 	"github.com/elastos/Elastos.ELA/elanet/filter"
+	"github.com/elastos/Elastos.ELA/elanet/filter/nextturndposfilter"
 	"github.com/elastos/Elastos.ELA/elanet/filter/sidefilter"
 	"github.com/elastos/Elastos.ELA/elanet/netsync"
 	"github.com/elastos/Elastos.ELA/elanet/pact"
@@ -108,6 +109,8 @@ func newServerPeer(s *server) *serverPeer {
 			return bloom.NewTxFilter()
 		case filter.FTDPOS:
 			return sidefilter.New(s.chain.GetState())
+		case filter.FTNexTTurnDPOSInfo:
+			return nextturndposfilter.New()
 		}
 		return nil
 	})
@@ -138,6 +141,7 @@ func (sp *serverPeer) handleDisconnect() {
 // used to negotiate the protocol version details as well as kick start
 // the communications.
 func (sp *serverPeer) OnVersion(_ *peer.Peer, m *msg.Version) {
+
 	// Disconnect full node peers that do not support DPOS protocol.
 	if nodeFlag(m.Services) && sp.ProtocolVersion() < pact.DPOSStartVersion {
 		sp.Disconnect()
@@ -607,7 +611,7 @@ func (s *server) pushBlockMsg(sp *serverPeer, hash *common.Uint256, doneChan cha
 	// to trigger it to issue another getblocks message for the next
 	// batch of inventory.
 	if sendInv {
-		best := sp.server.chain.BestChain
+		best := sp.server.chain.GetBestChain()
 		invMsg := msg.NewInvSize(1)
 		iv := msg.NewInvVect(msg.InvTypeBlock, best.Hash)
 		invMsg.AddInvVect(iv)
@@ -656,7 +660,7 @@ func (s *server) pushConfirmedBlockMsg(sp *serverPeer, hash *common.Uint256, don
 	// to trigger it to issue another getblocks message for the next
 	// batch of inventory.
 	if sendInv {
-		best := sp.server.chain.BestChain
+		best := sp.server.chain.GetBestChain()
 		invMsg := msg.NewInvSize(1)
 		iv := msg.NewInvVect(msg.InvTypeConfirmedBlock, best.Hash)
 		invMsg.AddInvVect(iv)
@@ -712,8 +716,9 @@ func (s *server) pushMerkleBlockMsg(sp *serverPeer, hash *common.Uint256,
 			HaveConfirm: blk.HaveConfirm,
 			Confirm:     confirm,
 		}
+	case *nextturndposfilter.NextTurnDPOSInfoFilter:
+		merkle.Header = &blk.Header
 	}
-
 	// Once we have fetched data wait for any previous operation to finish.
 	if waitChan != nil {
 		<-waitChan
@@ -725,6 +730,7 @@ func (s *server) pushMerkleBlockMsg(sp *serverPeer, hash *common.Uint256,
 	if len(matchedTxIndices) == 0 {
 		dc = doneChan
 	}
+
 	sp.QueueMessage(merkle, dc)
 
 	// Finally, send any matched transactions.
@@ -972,7 +978,7 @@ func (s *server) Stop() error {
 // NewServer returns a new elanet server configured to listen on addr for the
 // network type specified by chainParams.  Use start to begin accepting
 // connections from peers.
-func NewServer(dataDir string, cfg *Config) (*server, error) {
+func NewServer(dataDir string, cfg *Config, nodeVersion string) (*server, error) {
 	services := defaultServices
 	params := cfg.ChainParams
 	if params.DisableTxFilters {
@@ -985,11 +991,17 @@ func NewServer(dataDir string, cfg *Config) (*server, error) {
 		params.ListenAddrs = []string{fmt.Sprint(":", params.DefaultPort)}
 	}
 
+	var pver = pact.DPOSStartVersion
+	if cfg.Chain.GetHeight() >= uint32(params.NewP2PProtocolVersionHeight) {
+		pver = pact.CRProposalVersion
+	}
+
 	svrCfg := svr.NewDefaultConfig(
-		params.Magic, pact.DPOSStartVersion, uint64(services),
+		params.Magic, pver, uint64(services),
 		params.DefaultPort, params.DNSSeeds, params.ListenAddrs,
 		nil, nil, makeEmptyMessage,
 		func() uint64 { return uint64(cfg.Chain.GetHeight()) },
+		params.NewP2PProtocolVersionHeight, nodeVersion,
 	)
 	svrCfg.DataDir = dataDir
 	svrCfg.NAFilter = &naFilter{}

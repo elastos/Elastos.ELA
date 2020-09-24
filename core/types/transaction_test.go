@@ -601,15 +601,42 @@ func unregisterCRPayloadEqual(payload1 *payload.UnregisterCR, payload2 *payload.
 
 func (s *transactionSuite) TestCRCProposal_Deserialize() {
 
-	crpPayload1 := randomCRCProposalPayload()
+	proposalTypes := []payload.CRCProposalType{payload.Normal, payload.ELIP,
+		payload.CloseProposal, payload.ChangeProposalOwner}
 
+	for _, proposalType := range proposalTypes {
+
+		crpPayload1 := createCRCProposalPayload(proposalType)
+
+		buf := new(bytes.Buffer)
+		crpPayload1.Serialize(buf, payload.CRCProposalVersion)
+
+		crpPayload2 := &payload.CRCProposal{}
+		crpPayload2.Deserialize(buf, payload.CRCProposalVersion)
+
+		if proposalType == payload.Normal || proposalType == payload.ELIP {
+			s.True(crpPayloadEqual(crpPayload1, crpPayload2))
+		} else if proposalType == payload.CloseProposal {
+			s.True(crpPayloadCloseProposalEqual(crpPayload1, crpPayload2))
+		} else if proposalType == payload.ChangeProposalOwner {
+			s.True(crpPayloadChangeProposalOwnerEqual(crpPayload1, crpPayload2))
+		}
+
+	}
+
+}
+
+func (s *transactionSuite) TestCRCouncilMemberClaimNode_SerializeDeserialize() {
+	crClaimNodePayload1 := createClaimNodePayload()
 	buf := new(bytes.Buffer)
-	crpPayload1.Serialize(buf, payload.CRCProposalVersion)
+	crClaimNodePayload1.Serialize(buf, payload.CRManagementVersion)
+	fmt.Printf("crClaimNodePayload1: %v\n", crClaimNodePayload1)
 
-	crpPayload2 := &payload.CRCProposal{}
-	crpPayload2.Deserialize(buf, payload.CRCProposalVersion)
+	crClaimNodePayload2 := &payload.CRCouncilMemberClaimNode{}
+	crClaimNodePayload2.Deserialize(buf, payload.CRManagementVersion)
+	fmt.Printf("crClaimNodePayload2: %v\n", crClaimNodePayload2)
 
-	s.True(crpPayloadEqual(crpPayload1, crpPayload2))
+	s.True(crClaimNodeEqual(crClaimNodePayload1, crClaimNodePayload2))
 }
 
 func crpPayloadEqual(payload1 *payload.CRCProposal, payload2 *payload.CRCProposal) bool {
@@ -619,6 +646,34 @@ func crpPayloadEqual(payload1 *payload.CRCProposal, payload2 *payload.CRCProposa
 		payload1.DraftHash.IsEqual(payload2.DraftHash) &&
 		bytes.Equal(payload1.Signature, payload2.Signature) &&
 		bytes.Equal(payload1.CRCouncilMemberSignature, payload2.CRCouncilMemberSignature)
+}
+
+func crpPayloadChangeProposalOwnerEqual(payload1 *payload.CRCProposal, payload2 *payload.CRCProposal) bool {
+	return payload1.ProposalType == payload2.ProposalType &&
+		bytes.Equal(payload1.OwnerPublicKey, payload2.OwnerPublicKey) &&
+		bytes.Equal(payload1.NewOwnerPublicKey, payload2.NewOwnerPublicKey) &&
+		payload1.DraftHash.IsEqual(payload2.DraftHash) &&
+		payload1.Recipient.IsEqual(payload2.Recipient) &&
+		payload1.TargetProposalHash.IsEqual(payload2.TargetProposalHash) &&
+		payload1.CRCouncilMemberDID.IsEqual(payload2.CRCouncilMemberDID) &&
+		bytes.Equal(payload1.Signature, payload2.Signature) &&
+		bytes.Equal(payload1.CRCouncilMemberSignature, payload2.CRCouncilMemberSignature)
+}
+
+func crpPayloadCloseProposalEqual(payload1 *payload.CRCProposal, payload2 *payload.CRCProposal) bool {
+	return payload1.ProposalType == payload2.ProposalType &&
+		bytes.Equal(payload1.OwnerPublicKey, payload2.OwnerPublicKey) &&
+		payload1.CRCouncilMemberDID.IsEqual(payload2.CRCouncilMemberDID) &&
+		payload1.DraftHash.IsEqual(payload2.DraftHash) &&
+		payload1.TargetProposalHash.IsEqual(payload2.TargetProposalHash) &&
+		bytes.Equal(payload1.Signature, payload2.Signature) &&
+		bytes.Equal(payload1.CRCouncilMemberSignature, payload2.CRCouncilMemberSignature)
+}
+
+func crClaimNodeEqual(payload1 *payload.CRCouncilMemberClaimNode, payload2 *payload.CRCouncilMemberClaimNode) bool {
+	return bytes.Equal(payload1.NodePublicKey, payload2.NodePublicKey) &&
+		payload1.CRCouncilCommitteeDID.IsEqual(payload2.CRCouncilCommitteeDID) &&
+		bytes.Equal(payload1.CRCouncilCommitteeSignature, payload2.CRCouncilCommitteeSignature)
 }
 
 func budgetsEqual(budgets1 []common.Fixed64, budgets2 []common.Fixed64) bool {
@@ -834,15 +889,24 @@ func randomUnregisterCRPayload() *payload.UnregisterCR {
 	}
 }
 
-func randomCRCProposalPayload() *payload.CRCProposal {
+func createCRCProposalPayload(proposalType payload.CRCProposalType) *payload.CRCProposal {
 	return &payload.CRCProposal{
-		ProposalType:             payload.CRCProposalType(randomBytes(1)[0]),
+		ProposalType:             proposalType,
 		OwnerPublicKey:           randomBytes(33),
 		CRCouncilMemberDID:       *randomUint168(),
 		DraftHash:                *randomUint256(),
+		TargetProposalHash:       *randomUint256(),
 		Budgets:                  randomBudgets(3),
 		Signature:                randomBytes(64),
 		CRCouncilMemberSignature: randomBytes(64),
+	}
+}
+
+func createClaimNodePayload() *payload.CRCouncilMemberClaimNode {
+	return &payload.CRCouncilMemberClaimNode{
+		NodePublicKey:               randomBytes(33),
+		CRCouncilCommitteeDID:       *randomUint168(),
+		CRCouncilCommitteeSignature: randomBytes(64),
 	}
 }
 

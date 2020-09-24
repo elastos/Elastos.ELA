@@ -30,9 +30,10 @@ import (
 )
 
 const (
-	maxNonce       = ^uint32(0) // 2^32 - 1
-	updateInterval = 30 * time.Second
-	maxTxPerBlock  = 100
+	maxNonce               = ^uint32(0) // 2^32 - 1
+	updateInterval         = 30 * time.Second
+	createAuxBlockInterval = 5 * time.Second
+	maxTxPerBlock          = 100
 )
 
 type Config struct {
@@ -112,7 +113,7 @@ func (pow *Service) GetDefaultTxVersion(height uint32) types.TransactionVersion 
 func (pow *Service) CreateCoinbaseTx(minerAddr string, height uint32) (*types.Transaction, error) {
 	crRewardAddr := pow.chainParams.Foundation
 	if height >= pow.chainParams.CRCommitteeStartHeight {
-		crRewardAddr = pow.chainParams.CRCFoundation
+		crRewardAddr = pow.chainParams.CRAssetsAddress
 	}
 
 	minerProgramHash, err := common.Uint168FromAddress(minerAddr)
@@ -250,7 +251,8 @@ func (pow *Service) GenerateBlock(minerAddr string,
 	isHighPriority := func(tx *types.Transaction) bool {
 		if tx.IsIllegalTypeTx() || tx.IsInactiveArbitrators() ||
 			tx.IsSideChainPowTx() || tx.IsUpdateVersion() ||
-			tx.IsActivateProducerTx() || tx.IsCRCAppropriationTx() {
+			tx.IsActivateProducerTx() || tx.IsCRCAppropriationTx() ||
+			tx.IsCRAssetsRectifyTx() || tx.IsNextTurnDPOSInfoTx() {
 			return true
 		}
 		return false
@@ -268,6 +270,7 @@ func (pow *Service) GenerateBlock(minerAddr string,
 
 	var proposalsUsedAmount common.Fixed64
 	for _, tx := range txs {
+
 		size := totalTxsSize + tx.GetSize()
 		if size > int(pact.MaxBlockContextSize) {
 			continue
@@ -281,12 +284,7 @@ func (pow *Service) GenerateBlock(minerAddr string,
 		if !blockchain.IsFinalizedTransaction(tx, nextBlockHeight) {
 			continue
 		}
-		references, err := pow.chain.UTXOCache.GetTxReference(tx)
-		if err != nil {
-			log.Warn("check transaction context failed, get transaction reference failed")
-			break
-		}
-		errCode := pow.chain.CheckTransactionContext(nextBlockHeight, tx, references, proposalsUsedAmount)
+		_, errCode := pow.chain.CheckTransactionContext(nextBlockHeight, tx, proposalsUsedAmount)
 		if errCode != nil {
 			log.Warn("check transaction context failed, wrong transaction:", tx.Hash().String())
 			continue
@@ -321,7 +319,7 @@ func (pow *Service) CreateAuxBlock(payToAddr string) (*types.Block, error) {
 	defer pow.mutex.Unlock()
 
 	if pow.chain.GetHeight() == 0 || pow.preChainHeight != pow.chain.GetHeight() ||
-		time.Now().After(pow.preTime.Add(updateInterval)) {
+		time.Now().After(pow.preTime.Add(createAuxBlockInterval)) {
 
 		if pow.preChainHeight != pow.chain.GetHeight() {
 			// Clear old blocks since they're obsolete now.

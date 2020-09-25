@@ -572,7 +572,7 @@ func GetTransactionPool(param Params) map[string]interface{} {
 
 	txs := make([]string, 0)
 	for _, tx := range TxMemPool.GetTxsInPool() {
-		txs = append(txs, ToReversedString(tx.Hash()))
+		txs = append(txs, common.ToReversedString(tx.Hash()))
 	}
 	return ResponsePack(Success, txs)
 

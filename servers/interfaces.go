@@ -2595,6 +2595,98 @@ func getPayloadInfo(p Payload, payloadVersion byte) PayloadInfo {
 				append(obj.WithdrawTransactionHashes, common.ToReversedString(hash))
 		}
 		return obj
+	case *payload.DPOSIllegalProposals:
+		obj := new(DPOSIllegalProposalsInfo)
+		obj.Hash = common.ToReversedString(object.Hash())
+		obj.Evidence = ProposalEvidenceInfo{
+			Proposal: DPOSProposalInfo{
+				Sponsor:    common.BytesToHexString(object.Evidence.Proposal.Sponsor),
+				BlockHash:  common.ToReversedString(object.Evidence.Proposal.BlockHash),
+				ViewOffset: object.Evidence.Proposal.ViewOffset,
+				Sign:       common.BytesToHexString(object.Evidence.Proposal.Sign),
+				Hash:       common.ToReversedString(object.Evidence.Proposal.Hash()),
+			},
+			BlockHeight: object.Evidence.BlockHeight,
+		}
+		obj.CompareEvidence = ProposalEvidenceInfo{
+			Proposal: DPOSProposalInfo{
+				Sponsor:    common.BytesToHexString(object.CompareEvidence.Proposal.Sponsor),
+				BlockHash:  common.ToReversedString(object.CompareEvidence.Proposal.BlockHash),
+				ViewOffset: object.CompareEvidence.Proposal.ViewOffset,
+				Sign:       common.BytesToHexString(object.CompareEvidence.Proposal.Sign),
+				Hash:       common.ToReversedString(object.CompareEvidence.Proposal.Hash()),
+			},
+			BlockHeight: object.CompareEvidence.BlockHeight,
+		}
+		return obj
+	case *payload.DPOSIllegalVotes:
+		obj := new(DPOSIllegalVotesInfo)
+		obj.Hash = common.ToReversedString(object.Hash())
+		obj.Evidence = VoteEvidenceInfo{
+			ProposalEvidenceInfo: ProposalEvidenceInfo{
+				Proposal: DPOSProposalInfo{
+					Sponsor:    common.BytesToHexString(object.Evidence.Proposal.Sponsor),
+					BlockHash:  common.ToReversedString(object.Evidence.Proposal.BlockHash),
+					ViewOffset: object.Evidence.Proposal.ViewOffset,
+					Sign:       common.BytesToHexString(object.Evidence.Proposal.Sign),
+					Hash:       common.ToReversedString(object.Evidence.Proposal.Hash()),
+				},
+				BlockHeight: object.Evidence.BlockHeight,
+			},
+			Vote: DPOSProposalVoteInfo{
+				ProposalHash: common.ToReversedString(object.Evidence.Vote.ProposalHash),
+				Signer:       common.BytesToHexString(object.Evidence.Vote.Signer),
+				Accept:       object.Evidence.Vote.Accept,
+				Sign:         common.BytesToHexString(object.Evidence.Vote.Sign),
+				Hash:         common.ToReversedString(object.Evidence.Vote.Hash()),
+			},
+		}
+		obj.CompareEvidence = VoteEvidenceInfo{
+			ProposalEvidenceInfo: ProposalEvidenceInfo{
+				Proposal: DPOSProposalInfo{
+					Sponsor:    common.BytesToHexString(object.CompareEvidence.Proposal.Sponsor),
+					BlockHash:  common.ToReversedString(object.CompareEvidence.Proposal.BlockHash),
+					ViewOffset: object.CompareEvidence.Proposal.ViewOffset,
+					Sign:       common.BytesToHexString(object.CompareEvidence.Proposal.Sign),
+					Hash:       common.ToReversedString(object.CompareEvidence.Proposal.Hash()),
+				},
+				BlockHeight: object.CompareEvidence.BlockHeight,
+			},
+			Vote: DPOSProposalVoteInfo{
+				ProposalHash: common.ToReversedString(object.CompareEvidence.Vote.ProposalHash),
+				Signer:       common.BytesToHexString(object.CompareEvidence.Vote.Signer),
+				Accept:       object.CompareEvidence.Vote.Accept,
+				Sign:         common.BytesToHexString(object.CompareEvidence.Vote.Sign),
+				Hash:         common.ToReversedString(object.CompareEvidence.Vote.Hash()),
+			},
+		}
+		return obj
+	case *payload.DPOSIllegalBlocks:
+		obj := new(DPOSIllegalBlocksInfo)
+		obj.Hash = common.ToReversedString(object.Hash())
+		obj.CoinType = uint32(object.CoinType)
+		obj.BlockHeight = object.BlockHeight
+		eviSigners := make([]string, 0)
+		for _, s := range object.Evidence.Signers {
+			eviSigners = append(eviSigners, common.BytesToHexString(s))
+		}
+		obj.Evidence = BlockEvidenceInfo{
+			Header:       common.BytesToHexString(object.Evidence.Header),
+			BlockConfirm: common.BytesToHexString(object.Evidence.BlockConfirm),
+			Signers:      eviSigners,
+			Hash:         common.ToReversedString(object.Evidence.BlockHash()),
+		}
+		compEviSigners := make([]string, 0)
+		for _, s := range object.CompareEvidence.Signers {
+			compEviSigners = append(compEviSigners, common.BytesToHexString(s))
+		}
+		obj.CompareEvidence = BlockEvidenceInfo{
+			Header:       common.BytesToHexString(object.CompareEvidence.Header),
+			BlockConfirm: common.BytesToHexString(object.CompareEvidence.BlockConfirm),
+			Signers:      compEviSigners,
+			Hash:         common.ToReversedString(object.CompareEvidence.BlockHash()),
+		}
+		return obj
 	}
 	return nil
 }

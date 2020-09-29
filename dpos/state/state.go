@@ -1467,7 +1467,6 @@ func (s *State) RemoveSpecialTx(hash common.Uint256) {
 // state according to the evidence.
 func (s *State) processIllegalEvidence(payloadData types.Payload,
 	height uint32) {
-
 	// Get illegal producers from evidence.
 	var illegalProducers [][]byte
 	switch p := payloadData.(type) {
@@ -1505,7 +1504,6 @@ func (s *State) processIllegalEvidence(payloadData types.Payload,
 			continue
 		}
 		if cr, ok := crMembersMap[hex.EncodeToString(pk)]; ok {
-
 			if cr.DPOSPublicKey == nil {
 				continue
 			}

@@ -224,7 +224,6 @@ func (i *IllegalBehaviorMonitor) sendIllegalVoteTransaction(
 
 func (i *IllegalBehaviorMonitor) ProcessIllegalVote(
 	first, second *payload.DPOSProposalVote) {
-
 	firstProposal, ok := i.cachedProposals[first.ProposalHash]
 	if !ok {
 		log.Warn("[ProcessIllegalVote] found proposal error")

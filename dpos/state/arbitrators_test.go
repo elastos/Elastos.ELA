@@ -153,9 +153,11 @@ func TestArbitrators_UsingProducerAsArbiter(t *testing.T) {
 	var bestHeight uint32 = 0
 	var param = config.DefaultParams
 	a, _ := NewArbitrators(&param,
-		nil, nil, nil, nil)
+		nil, nil, nil, nil,
+		nil, nil)
 	a.State = NewState(&param, nil, nil, nil,
-		nil, nil, nil)
+		nil, nil, nil,
+		nil, nil)
 	a.crCommittee = state.NewCommittee(&param)
 	a.crCommittee.InElectionPeriod = true
 	a.RegisterFunction(func() uint32 { return bestHeight },

@@ -8,7 +8,6 @@ package manager
 import (
 	"bytes"
 	"errors"
-
 	"github.com/elastos/Elastos.ELA/blockchain"
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"

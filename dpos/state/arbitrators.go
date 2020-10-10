@@ -341,6 +341,8 @@ func (a *arbitrators) ForceChange(height uint32) error {
 		a.forceChanged = oriForceChanged
 	})
 	a.history.Commit(height + 1)
+	a.notifyNextTurnDPOSInfoTx(block.Height, block.Height+1)
+
 	a.dumpInfo(height)
 	return nil
 }

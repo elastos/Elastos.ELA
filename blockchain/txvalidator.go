@@ -937,12 +937,13 @@ func (b *BlockChain) checkAttributeProgram(tx *Transaction,
 		}
 		return nil
 	case IllegalBlockEvidence:
-		if len(tx.Programs) != 1 {
+		if len(tx.Programs) != 0 {
 			return errors.New("illegal block transactions should have one and only one program")
 		}
 		if len(tx.Attributes) != 0 {
 			return errors.New("illegal block transactions should have no programs")
 		}
+		return nil
 	case InactiveArbitrators, UpdateVersion:
 		if len(tx.Programs) != 1 {
 			return errors.New("inactive arbitrators transactions should have one and only one program")
@@ -1117,7 +1118,7 @@ func (b *BlockChain) checkTxHeightVersion(txn *Transaction, blockHeight uint32) 
 		}
 
 	case CRCProposalReview, CRCProposalTracking, CRCAppropriation,
-	CRCProposalWithdraw:
+		CRCProposalWithdraw:
 		if blockHeight < b.chainParams.CRCommitteeStartHeight {
 			return errors.New("not support before CRCommitteeStartHeight")
 		}
@@ -3392,8 +3393,9 @@ func checkDPOSElaIllegalBlockSigners(
 	}
 
 	arbitratorsSet := make(map[string]interface{})
-	for _, v := range DefaultLedger.Arbitrators.GetArbitrators() {
-		arbitratorsSet[common.BytesToHexString(v.NodePublicKey)] = nil
+	nodePublicKeys := DefaultLedger.Arbitrators.GetAllProducersPublicKey()
+	for _, pk := range nodePublicKeys {
+		arbitratorsSet[pk] = nil
 	}
 
 	for _, v := range signers {
@@ -3402,7 +3404,6 @@ func checkDPOSElaIllegalBlockSigners(
 			return errors.New("invalid signers within evidence")
 		}
 	}
-
 	for _, v := range compareSigners {
 		if _, ok := arbitratorsSet[common.BytesToHexString(v)]; !ok &&
 			!DefaultLedger.Arbitrators.IsDisabledProducer(v) {
@@ -3449,14 +3450,14 @@ func checkDPOSElaIllegalBlockConfirms(d *payload.DPOSIllegalBlocks,
 	if err := ConfirmSanityCheck(confirm); err != nil {
 		return nil, nil, err
 	}
-	if err := ConfirmContextCheck(confirm); err != nil {
+	if err := IllegalConfirmContextCheck(confirm); err != nil {
 		return nil, nil, err
 	}
 
 	if err := ConfirmSanityCheck(compareConfirm); err != nil {
 		return nil, nil, err
 	}
-	if err := ConfirmContextCheck(compareConfirm); err != nil {
+	if err := IllegalConfirmContextCheck(compareConfirm); err != nil {
 		return nil, nil, err
 	}
 

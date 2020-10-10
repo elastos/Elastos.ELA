@@ -1,7 +1,7 @@
 // Copyright (c) 2017-2020 The Elastos Foundation
 // Use of this source code is governed by an MIT
 // license that can be found in the LICENSE file.
-// 
+//
 
 package mempool
 
@@ -191,6 +191,7 @@ func (bm *BlockPool) confirmBlock(hash common.Uint256) (bool, bool, error) {
 
 		if !inMainChain && !isOrphan {
 			if err := bm.CheckConfirmedBlockOnFork(bm.Chain.GetHeight(), block); err != nil {
+				log.Error("[CheckConfirmedBlockOnFork] error:", err)
 				return inMainChain, isOrphan, err
 			}
 		}

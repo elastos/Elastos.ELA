@@ -366,6 +366,19 @@ func (s *State) GetProducers() []*Producer {
 	return producers
 }
 
+func (s *State) GetAllProducersPublicKey() []string {
+	s.mtx.RLock()
+	defer s.mtx.RUnlock()
+	var nodePublicKeys []string
+	for nodePK, _ := range s.NodeOwnerKeys {
+		nodePublicKeys = append(nodePublicKeys, nodePK)
+	}
+	for _, nodePK := range s.chainParams.CRCArbiters {
+		nodePublicKeys = append(nodePublicKeys, nodePK)
+	}
+	return nodePublicKeys
+}
+
 // GetAllProducers returns all producers including pending, active, canceled, illegal and inactive producers.
 func (s *State) GetAllProducers() []*Producer {
 	s.mtx.RLock()

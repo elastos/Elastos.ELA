@@ -234,6 +234,10 @@ func (a *ArbitratorsMock) GetArbitrators() []*ArbiterInfo {
 	return result
 }
 
+func (a *ArbitratorsMock) GetAllProducersPublicKey() []string {
+	return nil
+}
+
 func (a *ArbitratorsMock) GetNormalArbitrators() ([][]byte, error) {
 	result := make([][]byte, 0, len(a.CurrentArbitrators))
 	for _, v := range a.CurrentArbitrators {

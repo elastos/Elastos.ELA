@@ -23,6 +23,7 @@ type Arbitrators interface {
 	IsMemberElectedNextCRCArbitrator(pk []byte) bool
 	GetArbitrators() []*ArbiterInfo
 	GetCandidates() [][]byte
+	GetAllProducersPublicKey() []string
 	GetNextArbitrators() [][]byte
 	GetNextCandidates() [][]byte
 	GetNeedConnectArbiters() []peer.PID

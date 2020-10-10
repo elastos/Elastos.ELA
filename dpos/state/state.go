@@ -1605,17 +1605,27 @@ func (s *State) countArbitratorsInactivityV1(height uint32,
 		return
 	}
 
+	isDPOSAsCR := height > s.chainParams.ChangeCommitteeNewCRHeight
+
 	// changingArbiters indicates the arbiters that should reset inactive
 	// counting state. With the value of true means the producer is on duty or
 	// is not current arbiter any more, or just becoming current arbiter; and
 	// false means producer is arbiter in both heights and not on duty.
 	changingArbiters := make(map[string]bool)
 	for _, a := range s.getArbiters() {
-		if !a.IsNormal || (a.IsCRMember && !a.ClaimedDPOSNode) {
-			continue
+		if isDPOSAsCR {
+			if !a.IsNormal {
+				continue
+			}
+			key := s.getProducerKey(a.NodePublicKey)
+			changingArbiters[key] = false
+		} else {
+			if !a.IsNormal || (a.IsCRMember && !a.ClaimedDPOSNode) {
+				continue
+			}
+			key := s.getProducerKey(a.NodePublicKey)
+			changingArbiters[key] = false
 		}
-		key := s.getProducerKey(a.NodePublicKey)
-		changingArbiters[key] = false
 	}
 	changingArbiters[s.getProducerKey(confirm.Proposal.Sponsor)] = true
 
@@ -1630,13 +1640,27 @@ func (s *State) countArbitratorsInactivityV1(height uint32,
 				if cr.MemberState != state.MemberElected {
 					continue
 				}
-				oriState := cr.MemberState
-				oriCountingHeight := cr.InactiveCountingHeight
-				s.history.Append(height, func() {
-					s.tryUpdateCRMemberInactivity(cr.Info.DID, needReset, height)
-				}, func() {
-					s.tryRevertCRMemberInactivity(cr.Info.DID, oriState, oriCountingHeight)
-				})
+				if isDPOSAsCR && cr.DPOSPublicKey == nil {
+					key := k // avoiding pass iterator to closure
+					producer, ok := s.ActivityProducers[key]
+					if !ok {
+						continue
+					}
+					countingHeight := producer.inactiveCountingHeight
+					s.history.Append(height, func() {
+						s.tryUpdateInactivity(key, producer, needReset, height)
+					}, func() {
+						s.tryRevertInactivity(key, producer, needReset, height, countingHeight)
+					})
+				} else {
+					oriState := cr.MemberState
+					oriCountingHeight := cr.InactiveCountingHeight
+					s.history.Append(height, func() {
+						s.tryUpdateCRMemberInactivity(cr.Info.DID, needReset, height)
+					}, func() {
+						s.tryRevertCRMemberInactivity(cr.Info.DID, oriState, oriCountingHeight)
+					})
+				}
 				continue
 			}
 		}

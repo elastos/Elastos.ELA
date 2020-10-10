@@ -1298,7 +1298,7 @@ func (a *arbitrators) resetNextArbiterByCRC(versionHeight uint32, height uint32)
 		var crcArbiters map[common.Uint168]ArbiterMember
 		if versionHeight >= a.chainParams.CRClaimDPOSNodeStartHeight {
 			var err error
-			if versionHeight < a.chainParams.ChangeCommitteeNewCrHeight {
+			if versionHeight < a.chainParams.ChangeCommitteeNewCRHeight {
 				if crcArbiters, err = a.getCRCArbitersV1(height); err != nil {
 					return unclaimed, err
 				}
@@ -1381,6 +1381,21 @@ func (a *arbitrators) getCRCArbitersV2(height uint32) (map[common.Uint168]Arbite
 			crPublicKeysMap[common.BytesToHexString(cr.DPOSPublicKey)] = struct{}{}
 		}
 	}
+	arbitersPublicKeysMap := make(map[string]struct{})
+	for _, ar := range a.chainParams.CRCArbiters {
+		arbitersPublicKeysMap[ar] = struct{}{}
+	}
+
+	// get unclaimed arbiter keys list
+	unclaimedArbiterKeys := make([]string, 0)
+	for k, _ := range arbitersPublicKeysMap {
+		if _, ok := crPublicKeysMap[k]; !ok {
+			unclaimedArbiterKeys = append(unclaimedArbiterKeys, k)
+		}
+	}
+	sort.Slice(unclaimedArbiterKeys, func(i, j int) bool {
+		return strings.Compare(unclaimedArbiterKeys[i], unclaimedArbiterKeys[j]) < 0
+	})
 	producersPublicKeysMap := make(map[string]struct{})
 	producers, err := a.getProducers(int(a.chainParams.CRMemberCount), height)
 	if err != nil {
@@ -1406,13 +1421,22 @@ func (a *arbitrators) getCRCArbitersV2(height uint32) (map[common.Uint168]Arbite
 	for _, cr := range crMembers {
 		var pk []byte
 		if cr.DPOSPublicKey == nil {
-			var err error
-			pk, err = common.HexStringToBytes(unclaimedProducerKeys[0])
-			if err != nil {
-				return nil, 0, err
+			if cr.MemberState != state.MemberElected {
+				var err error
+				pk, err = common.HexStringToBytes(unclaimedArbiterKeys[0])
+				if err != nil {
+					return nil, 0, err
+				}
+				unclaimedArbiterKeys = unclaimedArbiterKeys[1:]
+			} else {
+				var err error
+				pk, err = common.HexStringToBytes(unclaimedProducerKeys[0])
+				if err != nil {
+					return nil, 0, err
+				}
+				unclaimedProducerKeys = unclaimedProducerKeys[1:]
+				unclaimedCount++
 			}
-			unclaimedProducerKeys = unclaimedProducerKeys[1:]
-			unclaimedCount++
 		} else {
 			pk = cr.DPOSPublicKey
 		}

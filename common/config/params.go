@@ -226,7 +226,7 @@ var DefaultParams = Params{
 	RectifyTxFee:                       10000,
 	RealWithdrawSingleFee:              10000,
 	NewP2PProtocolVersionHeight:        751400,
-	ChangeCommitteeNewCrHeight:         1000000, //TODO reset latter
+	ChangeCommitteeNewCRHeight:         1000000, //TODO reset latter
 
 }
 
@@ -297,7 +297,7 @@ func (p *Params) TestNet() *Params {
 	copy.MaxNodePerHost = 10
 	copy.CheckVoteCRCountHeight = 546500
 	copy.MaxCRAssetsAddressUTXOCount = 800
-	copy.ChangeCommitteeNewCrHeight = 1000000 //TODO reset latter
+	copy.ChangeCommitteeNewCRHeight = 1000000 //TODO reset latter
 
 	return &copy
 }
@@ -369,7 +369,7 @@ func (p *Params) RegNet() *Params {
 	copy.MaxNodePerHost = 10
 	copy.CheckVoteCRCountHeight = 435000
 	copy.MaxCRAssetsAddressUTXOCount = 1440
-	copy.ChangeCommitteeNewCrHeight = 1000000 //TODO reset latter
+	copy.ChangeCommitteeNewCRHeight = 1000000 //TODO reset latter
 
 	return &copy
 }
@@ -641,8 +641,8 @@ type Params struct {
 	// NewP2PProtocolVersionHeight defines the new p2p protocol version message height
 	NewP2PProtocolVersionHeight uint64
 
-	// ChangeCommitteeNewCrHeight defines the new arbiter logic after change committee
-	ChangeCommitteeNewCrHeight uint32
+	// ChangeCommitteeNewCRHeight defines the new arbiter logic after change committee
+	ChangeCommitteeNewCRHeight uint32
 }
 
 // rewardPerBlock calculates the reward for each block by a specified time

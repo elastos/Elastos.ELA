@@ -219,6 +219,7 @@ func IllegalProposalContextCheck(proposal *payload.DPOSProposal) error {
 		}
 		if bytes.Equal(pk, proposal.Sponsor) {
 			isArbiter = true
+			break
 		}
 	}
 	if !isArbiter {
@@ -238,6 +239,7 @@ func ProposalContextCheck(proposal *payload.DPOSProposal) error {
 		}
 		if bytes.Equal(a.NodePublicKey, proposal.Sponsor) {
 			isArbiter = true
+			break
 		}
 	}
 	if !isArbiter {
@@ -316,11 +318,11 @@ func IllegalVoteContextCheck(vote *payload.DPOSProposalVote) error {
 		}
 		if bytes.Equal(pk, vote.Signer) {
 			isArbiter = true
+			break
 		}
 	}
 	if !isArbiter {
-		return errors.New("current arbitrators verify error, signer:" +
-			common.BytesToHexString(vote.Signer))
+		return errors.New("current arbitrators verify error")
 	}
 
 	return nil
@@ -335,11 +337,11 @@ func VoteContextCheck(vote *payload.DPOSProposalVote) error {
 		}
 		if bytes.Equal(a.NodePublicKey, vote.Signer) {
 			isArbiter = true
+			break
 		}
 	}
 	if !isArbiter {
-		return errors.New("current arbitrators verify error, signer:" +
-			common.BytesToHexString(vote.Signer))
+		return errors.New("current arbitrators verify error")
 	}
 
 	return nil

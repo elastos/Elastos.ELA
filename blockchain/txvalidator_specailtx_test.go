@@ -498,6 +498,7 @@ func (s *txValidatorSpecialTxTestSuite) TestCheckDPOSIllegalBlocks() {
 		},
 		Votes: []payload.DPOSProposalVote{},
 	}
+	log.Info("### view offset:", confirm.Proposal.ViewOffset)
 	cmpConfirm := &payload.Confirm{
 		Proposal: payload.DPOSProposal{
 			Sponsor:    s.arbitrators.CurrentArbitrators[0].GetNodePublicKey(),
@@ -506,6 +507,8 @@ func (s *txValidatorSpecialTxTestSuite) TestCheckDPOSIllegalBlocks() {
 		},
 		Votes: []payload.DPOSProposalVote{},
 	}
+	log.Info("### view offset2:", cmpConfirm.Proposal.ViewOffset)
+
 	confirm.Proposal.Sign, _ = crypto.Sign(s.arbitratorsPriKeys[0],
 		confirm.Proposal.Data())
 	cmpConfirm.Proposal.Sign, _ = crypto.Sign(s.arbitratorsPriKeys[0],
@@ -513,7 +516,7 @@ func (s *txValidatorSpecialTxTestSuite) TestCheckDPOSIllegalBlocks() {
 	s.updateIllegaBlocks(confirm, evidence, cmpConfirm, cmpEvidence, asc,
 		illegalBlocks)
 	s.EqualError(CheckDPOSIllegalBlocks(illegalBlocks),
-		"[ConfirmContextCheck] signers less than majority count")
+		"[IllegalConfirmContextCheck] signers less than majority count")
 
 	// fill votes of confirms
 	for i := 0; i < 4; i++ {
@@ -537,7 +540,7 @@ func (s *txValidatorSpecialTxTestSuite) TestCheckDPOSIllegalBlocks() {
 	s.updateIllegaBlocks(confirm, evidence, cmpConfirm, cmpEvidence, asc,
 		illegalBlocks)
 	s.EqualError(CheckDPOSIllegalBlocks(illegalBlocks),
-		"confirm view offset should not be same")
+		"confirm view offset should be same")
 
 	// correct view offset
 	proposal := payload.DPOSProposal{

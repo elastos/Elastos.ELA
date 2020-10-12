@@ -532,7 +532,9 @@ func (a *arbitrators) distributeDPOSReward(height uint32,
 	reward common.Fixed64) (roundReward map[common.Uint168]common.Fixed64,
 	change common.Fixed64, err error) {
 	var realDPOSReward common.Fixed64
-	if height >= a.chainParams.CRClaimDPOSNodeStartHeight+2*uint32(len(a.currentArbitrators)) {
+	if height >= a.chainParams.ChangeCommitteeNewCRHeight+2*uint32(len(a.currentArbitrators)) {
+		roundReward, realDPOSReward, err = a.distributeWithNormalArbitratorsV3(height, reward)
+	} else if height >= a.chainParams.CRClaimDPOSNodeStartHeight+2*uint32(len(a.currentArbitrators)) {
 		roundReward, realDPOSReward, err = a.distributeWithNormalArbitratorsV2(height, reward)
 	} else if height >= a.chainParams.CRCommitteeStartHeight+2*uint32(len(a.currentArbitrators)) {
 		roundReward, realDPOSReward, err = a.distributeWithNormalArbitratorsV1(height, reward)
@@ -552,11 +554,89 @@ func (a *arbitrators) distributeDPOSReward(height uint32,
 	return
 }
 
+func (a *arbitrators) distributeWithNormalArbitratorsV3(height uint32, reward common.Fixed64) (
+	map[common.Uint168]common.Fixed64, common.Fixed64, error) {
+	if len(a.currentArbitrators) == 0 {
+		return nil, 0, errors.New("not found arbiters when " +
+			"distributeWithNormalArbitratorsV3")
+	}
+
+	roundReward := map[common.Uint168]common.Fixed64{}
+	totalBlockConfirmReward := float64(reward) * 0.25
+	totalTopProducersReward := float64(reward) - totalBlockConfirmReward
+	// Consider that there is no only CR consensus.
+	arbitersCount := len(a.chainParams.CRCArbiters) + a.chainParams.GeneralArbiters
+	individualBlockConfirmReward := common.Fixed64(
+		math.Floor(totalBlockConfirmReward / float64(arbitersCount)))
+	totalVotesInRound := a.CurrentReward.TotalVotesInRound
+	if len(a.chainParams.CRCArbiters) == len(a.currentArbitrators) {
+		// if no normal DPOS node, need to destroy reward.
+		roundReward[a.chainParams.DestroyELAAddress] = reward
+		return roundReward, reward, nil
+	}
+	rewardPerVote := totalTopProducersReward / float64(totalVotesInRound)
+
+	realDPOSReward := common.Fixed64(0)
+	for _, arbiter := range a.currentArbitrators {
+		ownerHash := arbiter.GetOwnerProgramHash()
+		rewardHash := ownerHash
+		var r common.Fixed64
+		if _, ok := a.currentCRCArbitersMap[ownerHash]; ok {
+			r = individualBlockConfirmReward
+			m, ok := arbiter.(*crcArbiter)
+			if !ok || m.crMember.MemberState != state.MemberElected {
+				rewardHash = a.chainParams.DestroyELAAddress
+			} else if m.crMember.DPOSPublicKey == nil {
+				nodePK := arbiter.GetNodePublicKey()
+				ownerPK := a.getProducerKey(nodePK)
+				opk, err := common.HexStringToBytes(ownerPK)
+				if err != nil {
+					panic("get owner public key err:" + err.Error())
+				}
+				programHash, err := contract.PublicKeyToStandardProgramHash(opk)
+				if err != nil {
+					panic("public key to standard program hash err:" + err.Error())
+				}
+				rewardHash = *programHash
+			} else {
+				pk := arbiter.GetOwnerPublicKey()
+				programHash, err := contract.PublicKeyToStandardProgramHash(pk)
+				if err != nil {
+					rewardHash = a.chainParams.DestroyELAAddress
+				} else {
+					rewardHash = *programHash
+				}
+			}
+		} else {
+			votes := a.CurrentReward.OwnerVotesInRound[ownerHash]
+			individualProducerReward := common.Fixed64(math.Floor(float64(
+				votes) * rewardPerVote))
+			r = individualBlockConfirmReward + individualProducerReward
+		}
+		roundReward[rewardHash] += r
+		realDPOSReward += r
+	}
+	for _, candidate := range a.currentCandidates {
+		ownerHash := candidate.GetOwnerProgramHash()
+		votes := a.CurrentReward.OwnerVotesInRound[ownerHash]
+		individualProducerReward := common.Fixed64(math.Floor(float64(
+			votes) * rewardPerVote))
+		roundReward[ownerHash] = individualProducerReward
+
+		realDPOSReward += individualProducerReward
+	}
+	// Abnormal CR`s reward need to be destroyed.
+	for i := len(a.currentArbitrators); i < arbitersCount; i++ {
+		roundReward[a.chainParams.DestroyELAAddress] += individualBlockConfirmReward
+	}
+	return roundReward, realDPOSReward, nil
+}
+
 func (a *arbitrators) distributeWithNormalArbitratorsV2(height uint32, reward common.Fixed64) (
 	map[common.Uint168]common.Fixed64, common.Fixed64, error) {
 	if len(a.currentArbitrators) == 0 {
 		return nil, 0, errors.New("not found arbiters when " +
-			"distributeWithNormalArbitratorsV1")
+			"distributeWithNormalArbitratorsV2")
 	}
 
 	roundReward := map[common.Uint168]common.Fixed64{}
@@ -1267,7 +1347,7 @@ func (a *arbitrators) updateNextArbitrators(versionHeight, height uint32) error 
 
 			})
 
-			candidates, err := a.GetCandidatesDesc(versionHeight, count,
+			candidates, err := a.GetCandidatesDesc(versionHeight, count+unclaimed,
 				votedProducers)
 			if err != nil {
 				return err

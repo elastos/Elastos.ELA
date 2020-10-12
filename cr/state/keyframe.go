@@ -158,10 +158,10 @@ type StateKeyFrame struct {
 
 // ProposalState defines necessary state about an CR proposals.
 type ProposalState struct {
-	Status   ProposalStatus
-	Proposal payload.CRCProposal
-	TxHash   common.Uint256
-
+	Status             ProposalStatus
+	Proposal           payload.CRCProposal
+	TxHash             common.Uint256
+	TxPayloadVer       byte
 	CRVotes            map[common.Uint168]payload.VoteResult
 	VotersRejectAmount common.Fixed64
 	RegisterHeight     uint32

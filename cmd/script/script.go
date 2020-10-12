@@ -458,6 +458,10 @@ func NewCommand() *cli.Command {
 				Usage: "set the draft proposal hash",
 			},
 			cli.StringFlag{
+				Name:  "draftdata",
+				Usage: "set the draft data",
+			},
+			cli.StringFlag{
 				Name:  "targethash",
 				Usage: "set the target proposal hash",
 			},

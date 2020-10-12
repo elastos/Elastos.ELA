@@ -448,6 +448,7 @@ func (p *ProposalManager) registerProposal(tx *types.Transaction,
 		Status:              Registered,
 		Proposal:            *proposal,
 		TxHash:              tx.Hash(),
+		TxPayloadVer:        tx.PayloadVersion,
 		CRVotes:             map[common.Uint168]payload.VoteResult{},
 		VotersRejectAmount:  common.Fixed64(0),
 		RegisterHeight:      height,
@@ -462,18 +463,20 @@ func (p *ProposalManager) registerProposal(tx *types.Transaction,
 		Recipient:           proposal.Recipient,
 	}
 	crCouncilMemberDID := proposal.CRCouncilMemberDID
-	hash := proposal.Hash()
+	hash := proposal.Hash(tx.PayloadVersion)
 
 	history.Append(height, func() {
-		p.Proposals[proposal.Hash()] = proposalState
+		hash := proposal.Hash(tx.PayloadVersion)
+		log.Debugf("registerProposal hash", hash.String())
+		p.Proposals[hash] = proposalState
 		p.addProposal(crCouncilMemberDID, hash)
 		if _, ok := p.ProposalSession[currentsSession]; !ok {
 			p.ProposalSession[currentsSession] = make([]common.Uint256, 0)
 		}
 		p.ProposalSession[currentsSession] =
-			append(p.ProposalSession[currentsSession], proposal.Hash())
+			append(p.ProposalSession[currentsSession], proposal.Hash(tx.PayloadVersion))
 	}, func() {
-		delete(p.Proposals, proposal.Hash())
+		delete(p.Proposals, proposal.Hash(tx.PayloadVersion))
 		p.delProposal(crCouncilMemberDID, hash)
 		if len(p.ProposalSession[currentsSession]) == 1 {
 			delete(p.ProposalSession, currentsSession)

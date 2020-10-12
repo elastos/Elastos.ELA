@@ -975,7 +975,7 @@ func newSecretaryGeneralProposal(L *lua.LState) int {
 	ownerPrivateKeyStr := L.ToString(2)
 
 	proposalType := L.ToInt64(3)
-	draftHashStr := L.ToString(4)
+	draftDataStr := L.ToString(4)
 
 	secretaryGeneralPublicKeyStr := L.ToString(5)
 	secretaryGeneralPrivateKeyStr := L.ToString(6)
@@ -984,7 +984,7 @@ func newSecretaryGeneralProposal(L *lua.LState) int {
 	fmt.Println("ownerPublicKeyStr", ownerPublicKeyStr)
 	fmt.Println("ownerPrivateKeyStr", ownerPrivateKeyStr)
 	fmt.Println("proposalType", proposalType)
-	fmt.Println("draftHashStr", draftHashStr)
+	fmt.Println("draftDataStr", draftDataStr)
 	fmt.Println("secretaryGeneralPublicKeyStr", secretaryGeneralPublicKeyStr)
 	fmt.Println("secretaryGeneralPrivateKeyStr", secretaryGeneralPrivateKeyStr)
 
@@ -998,11 +998,8 @@ func newSecretaryGeneralProposal(L *lua.LState) int {
 	if err != nil {
 		needSign = false
 	}
-	draftHash, err := common.Uint256FromHexString(draftHashStr)
-	if err != nil {
-		fmt.Println("wrong draft proposal hash")
-		os.Exit(1)
-	}
+
+	draftHash := common.Hash([]byte(draftDataStr))
 
 	account := client.GetMainAccount()
 	CRCouncilMembercode := account.RedeemScript
@@ -1013,7 +1010,8 @@ func newSecretaryGeneralProposal(L *lua.LState) int {
 	crcProposal := &payload.CRCProposal{
 		ProposalType:              payload.CRCProposalType(proposalType),
 		OwnerPublicKey:            ownPublicKey,
-		DraftHash:                 *draftHash,
+		DraftData:                 draftDataStr,
+		DraftHash:                 draftHash,
 		SecretaryGeneralPublicKey: secretaryGeneralPublicKey,
 		SecretaryGeneralDID:       *SecretaryGeneralDID,
 		CRCouncilMemberDID:        *CRCouncilMemberDID,
@@ -1021,7 +1019,7 @@ func newSecretaryGeneralProposal(L *lua.LState) int {
 
 	if needSign {
 		signBuf := new(bytes.Buffer)
-		err = crcProposal.SerializeUnsigned(signBuf, payload.CRCProposalVersion)
+		err = crcProposal.SerializeUnsigned(signBuf, payload.CRCProposalVersion01)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
@@ -1073,7 +1071,7 @@ func newSecretaryGeneralProposal(L *lua.LState) int {
 func newCRCProposal(L *lua.LState) int {
 	publicKeyStr := L.ToString(1)
 	proposalType := L.ToInt64(2)
-	draftHashStr := L.ToString(3)
+	draftDataStr := L.ToString(3)
 
 	budgetsTable := L.ToTable(4)
 	recipientStr := L.ToString(5)
@@ -1082,11 +1080,7 @@ func newCRCProposal(L *lua.LState) int {
 	if err != nil {
 		needSign = false
 	}
-	draftHash, err := common.Uint256FromHexString(draftHashStr)
-	if err != nil {
-		fmt.Println("wrong draft proposal hash")
-		os.Exit(1)
-	}
+	draftHash := common.Hash([]byte(draftDataStr))
 
 	budgets := make([]payload.Budget, 0)
 	budgetsTable.ForEach(func(i, value lua.LValue) {
@@ -1136,7 +1130,8 @@ func newCRCProposal(L *lua.LState) int {
 	crcProposal := &payload.CRCProposal{
 		ProposalType:       payload.CRCProposalType(proposalType),
 		OwnerPublicKey:     publicKey,
-		DraftHash:          *draftHash,
+		DraftHash:          draftHash,
+		DraftData:          draftDataStr,
 		Budgets:            budgets,
 		Recipient:          *recipient,
 		CRCouncilMemberDID: *did,
@@ -1144,7 +1139,7 @@ func newCRCProposal(L *lua.LState) int {
 
 	if needSign {
 		signBuf := new(bytes.Buffer)
-		err = crcProposal.SerializeUnsigned(signBuf, payload.CRCProposalVersion)
+		err = crcProposal.SerializeUnsigned(signBuf, payload.CRCProposalVersion01)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
@@ -1200,6 +1195,8 @@ func newCRChangeProposalOwner(L *lua.LState) int {
 	ownerPrivateKeyStr := L.ToString(5)
 	newOwnerPublicKeyStr := L.ToString(6)
 	newOwnerPrivateKeyStr := L.ToString(7)
+	draftDataStr := L.ToString(8)
+	draftHash := common.Hash([]byte(draftDataStr))
 
 	needSign := true
 	client, err := checkClient(L, 8)
@@ -1264,6 +1261,8 @@ func newCRChangeProposalOwner(L *lua.LState) int {
 		ProposalType:       payload.CRCProposalType(proposalType),
 		OwnerPublicKey:     ownerPublicKey,
 		Recipient:          *recipient,
+		DraftHash:          draftHash,
+		DraftData:          draftDataStr,
 		TargetProposalHash: *targetHash,
 		NewOwnerPublicKey:  newOwnerPublicKey,
 		CRCouncilMemberDID: *CRCouncilMemberDID,
@@ -1272,7 +1271,7 @@ func newCRChangeProposalOwner(L *lua.LState) int {
 
 	if needSign {
 		signBuf := new(bytes.Buffer)
-		err = crcProposal.SerializeUnsigned(signBuf, payload.CRCProposalVersion)
+		err = crcProposal.SerializeUnsigned(signBuf, payload.CRCProposalVersion01)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
@@ -1325,7 +1324,7 @@ func newCRChangeProposalOwner(L *lua.LState) int {
 func newCRCCloseProposalHash(L *lua.LState) int {
 	publicKeyStr := L.ToString(1)
 	proposalType := L.ToInt64(2)
-	draftHashStr := L.ToString(3)
+	draftDataStr := L.ToString(3)
 	closeProposalHashStr := L.ToString(4)
 
 	needSign := true
@@ -1333,11 +1332,7 @@ func newCRCCloseProposalHash(L *lua.LState) int {
 	if err != nil {
 		needSign = false
 	}
-	draftHash, err := common.Uint256FromHexString(draftHashStr)
-	if err != nil {
-		fmt.Println("wrong draft proposal hash")
-		os.Exit(1)
-	}
+	draftHash := common.Hash([]byte(draftDataStr))
 	closeProposalHash, err := common.Uint256FromHexString(closeProposalHashStr)
 	if err != nil {
 		fmt.Println("wrong closeProposalHash")
@@ -1365,14 +1360,15 @@ func newCRCCloseProposalHash(L *lua.LState) int {
 	crcProposal := &payload.CRCProposal{
 		ProposalType:       payload.CRCProposalType(proposalType),
 		OwnerPublicKey:     publicKey,
-		DraftHash:          *draftHash,
+		DraftHash:          draftHash,
+		DraftData:          draftDataStr,
 		TargetProposalHash: *closeProposalHash,
 		CRCouncilMemberDID: *did,
 	}
 
 	if needSign {
 		signBuf := new(bytes.Buffer)
-		err = crcProposal.SerializeUnsigned(signBuf, payload.CRCProposalVersion)
+		err = crcProposal.SerializeUnsigned(signBuf, payload.CRCProposalVersion01)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)

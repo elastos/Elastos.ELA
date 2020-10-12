@@ -1980,7 +1980,7 @@ func ListCRProposalBaseState(param Params) map[string]interface{} {
 		}
 		rpcProposalBaseState := RPCProposalBaseState{
 			Status:             proposal.Status.String(),
-			ProposalHash:       common.ToReversedString(proposal.Proposal.Hash()),
+			ProposalHash:       common.ToReversedString(proposal.Proposal.Hash(proposal.TxPayloadVer)),
 			TxHash:             common.ToReversedString(proposal.TxHash),
 			CRVotes:            crVotes,
 			VotersRejectAmount: proposal.VotersRejectAmount.String(),
@@ -2065,7 +2065,7 @@ func GetCRProposalState(param Params) map[string]interface{} {
 		}
 	}
 
-	proposalHash := proposalState.Proposal.Hash()
+	proposalHash := proposalState.Proposal.Hash(proposalState.TxPayloadVer)
 
 	crVotes := make(map[string]string)
 	for k, v := range proposalState.CRVotes {
@@ -2478,7 +2478,7 @@ func getPayloadInfo(p Payload, payloadVersion byte) PayloadInfo {
 			crmdid, _ := object.CRCouncilMemberDID.ToAddress()
 			obj.CRCouncilMemberDID = crmdid
 			obj.CRCouncilMemberSignature = common.BytesToHexString(object.CRCouncilMemberSignature)
-			obj.Hash = common.ToReversedString(object.Hash())
+			obj.Hash = common.ToReversedString(object.Hash(payloadVersion))
 			return obj
 
 		case payload.ChangeProposalOwner:
@@ -2496,7 +2496,7 @@ func getPayloadInfo(p Payload, payloadVersion byte) PayloadInfo {
 			crmdid, _ := object.CRCouncilMemberDID.ToAddress()
 			obj.CRCouncilMemberDID = crmdid
 			obj.CRCouncilMemberSignature = common.BytesToHexString(object.CRCouncilMemberSignature)
-			obj.Hash = common.ToReversedString(object.Hash())
+			obj.Hash = common.ToReversedString(object.Hash(payloadVersion))
 			return obj
 
 		case payload.CloseProposal:
@@ -2510,7 +2510,7 @@ func getPayloadInfo(p Payload, payloadVersion byte) PayloadInfo {
 			crmdid, _ := object.CRCouncilMemberDID.ToAddress()
 			obj.CRCouncilMemberDID = crmdid
 			obj.CRCouncilMemberSignature = common.BytesToHexString(object.CRCouncilMemberSignature)
-			obj.Hash = common.ToReversedString(object.Hash())
+			obj.Hash = common.ToReversedString(object.Hash(payloadVersion))
 			return obj
 
 		case payload.SecretaryGeneral:
@@ -2527,7 +2527,7 @@ func getPayloadInfo(p Payload, payloadVersion byte) PayloadInfo {
 			crmdid, _ := object.CRCouncilMemberDID.ToAddress()
 			obj.CRCouncilMemberDID = crmdid
 			obj.CRCouncilMemberSignature = common.BytesToHexString(object.CRCouncilMemberSignature)
-			obj.Hash = common.ToReversedString(object.Hash())
+			obj.Hash = common.ToReversedString(object.Hash(payloadVersion))
 			return obj
 		}
 

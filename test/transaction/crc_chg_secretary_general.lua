@@ -34,6 +34,7 @@ local owner_privatekey = getOwnerPrivateKey()
 local proposal_type = getProposalType()
 
 local draft_hash = getDraftHash()
+local draft_data = getDraftData()
 
 local budgets = getBudgets()
 local recipient = getToAddr()
@@ -65,6 +66,8 @@ print("owner_privatekey:", owner_privatekey)
 
 print("proposal type:", proposal_type)
 print("draft proposal hash:", draft_hash)
+print("draft_data :", draft_data)
+
 print("budgets:")
 print("secretary_general_pubkey:", secretary_general_pubkey)
 print("secretary_general_privatekey:", secretary_general_privatekey)
@@ -76,11 +79,11 @@ end
 print("-----------------------")
 
 local cp_payload
- cp_payload =crcproposal.newsg(owner_pubkey,owner_privatekey, proposal_type, draft_hash,
+ cp_payload =crcproposal.newsg(owner_pubkey,owner_privatekey, proposal_type, draft_data,
          secretary_general_pubkey,secretary_general_privatekey, wallet)
  print(cp_payload:get())
 
-local tx = transaction.new(9, 0x25, 0, cp_payload, 0)
+local tx = transaction.new(9, 0x25, 1, cp_payload, 0)
 print(tx:get())
 
 -- input: from, fee

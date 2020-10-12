@@ -3101,15 +3101,15 @@ func (s *txValidatorTestSuite) TestCheckCRCProposalTransaction() {
 	proposalState, proposal := s.createSpecificStatusProposal(publicKey1, publicKey2, tenureHeight,
 		crstate.Registered, payload.Normal)
 
-	s.Chain.crCommittee.GetProposalManager().Proposals[proposal.Hash()] = proposalState
+	s.Chain.crCommittee.GetProposalManager().Proposals[proposal.Hash(payload.CRCProposalVersion01)] = proposalState
 
 	txn = s.getCRChangeProposalOwnerProposalTx(publicKeyStr2, privateKeyStr2, publicKeyStr1, privateKeyStr1,
-		newOwnerPublicKeyStr, proposal.Hash())
+		newOwnerPublicKeyStr, proposal.Hash(payload.CRCProposalVersion01))
 	err = s.Chain.checkCRCProposalTransaction(txn, tenureHeight, 0)
 	s.EqualError(err, "proposal status is not VoterAgreed")
 
 	//proposal sponsors must be members
-	targetHash := proposal.Hash()
+	targetHash := proposal.Hash(payload.CRCProposalVersion01)
 	newOwnerPublicKey, _ := hex.DecodeString(newOwnerPublicKeyStr)
 	proposalState2, proposal2 := s.createSpecificStatusProposal(publicKey1, publicKey2, tenureHeight+1,
 		crstate.VoterAgreed, payload.ChangeProposalOwner)
@@ -3127,9 +3127,10 @@ func (s *txValidatorTestSuite) TestCheckCRCProposalTransaction() {
 	s.Chain.crCommittee.InElectionPeriod = true
 	proposalState3, proposal3 := s.createSpecificStatusProposal(publicKey1, publicKey2, tenureHeight,
 		crstate.Registered, payload.Normal)
-	s.Chain.crCommittee.GetProposalManager().Proposals[proposal3.Hash()] = proposalState3
+	s.Chain.crCommittee.GetProposalManager().Proposals[proposal3.Hash(payload.CRCProposalVersion01)] = proposalState3
 
-	txn = s.getCRCCloseProposalTxWithHash(publicKeyStr2, privateKeyStr2, publicKeyStr1, privateKeyStr1, proposal.Hash())
+	txn = s.getCRCCloseProposalTxWithHash(publicKeyStr2, privateKeyStr2, publicKeyStr1, privateKeyStr1,
+		proposal.Hash(payload.CRCProposalVersion01))
 
 	// invalid closeProposalHash
 	txn = s.getCRCCloseProposalTx(publicKeyStr2, privateKeyStr2, publicKeyStr1, privateKeyStr1)
@@ -3137,10 +3138,11 @@ func (s *txValidatorTestSuite) TestCheckCRCProposalTransaction() {
 	s.EqualError(err, "CloseProposalHash does not exist")
 
 	// invalid proposal status
-	hash := proposal.Hash()
+	hash := proposal.Hash(payload.CRCProposalVersion01)
 	member2 := s.getCRMember(publicKeyStr2, privateKeyStr2, nickName2)
 	memebers[member2.Info.DID] = member2
-	txn = s.getCRCCloseProposalTxWithHash(publicKeyStr2, privateKeyStr2, publicKeyStr1, privateKeyStr1, proposal.Hash())
+	txn = s.getCRCCloseProposalTxWithHash(publicKeyStr2, privateKeyStr2, publicKeyStr1, privateKeyStr1,
+		proposal.Hash(payload.CRCProposalVersion01))
 
 	proposalState.Status = crstate.Registered
 	s.Chain.crCommittee.GetProposalManager().Proposals[hash] = proposalState
@@ -3150,7 +3152,7 @@ func (s *txValidatorTestSuite) TestCheckCRCProposalTransaction() {
 	// invalid receipt
 	proposalState, proposal = s.createSpecificStatusProposal(publicKey1, publicKey2, tenureHeight,
 		crstate.VoterAgreed, payload.Normal)
-	hash = proposal.Hash()
+	hash = proposal.Hash(payload.CRCProposalVersion01)
 	s.Chain.crCommittee.GetProposalManager().Proposals[hash] = proposalState
 	txn = s.getCRCCloseProposalTx(publicKeyStr2, privateKeyStr2, publicKeyStr1, privateKeyStr1)
 	txn.Payload.(*payload.CRCProposal).TargetProposalHash = hash

@@ -37,6 +37,9 @@ const (
 	// Category Data length limit not exceeding 4096 characters
 	MaxCategoryDataStringLength = 4096
 
+	// Category Data length limit not exceeding 4096 characters
+	MaxDraftDataStringLength = 1000000
+
 	// MaxBudgetsCount indicates max budgets count of one proposal.
 	MaxBudgetsCount = 128
 
@@ -2534,7 +2537,8 @@ func (b *BlockChain) isPublicKeyDIDMatch(pubKey []byte, did *common.Uint168) boo
 	return true
 }
 
-func (b *BlockChain) checkProposalOwnerSign(crcProposal *payload.CRCProposal, signedBuf *bytes.Buffer) error {
+func (b *BlockChain) checkProposalOwnerSign(crcProposal *payload.CRCProposal, signedBuf *bytes.Buffer,
+	PayloadVersion byte) error {
 	//get ownerCode
 	var code []byte
 	var err error
@@ -2542,7 +2546,7 @@ func (b *BlockChain) checkProposalOwnerSign(crcProposal *payload.CRCProposal, si
 		return err
 	}
 	// get verify data
-	err = crcProposal.SerializeUnsigned(signedBuf, payload.CRCProposalVersion)
+	err = crcProposal.SerializeUnsigned(signedBuf, PayloadVersion)
 	if err != nil {
 		return err
 	}
@@ -2587,7 +2591,7 @@ func (b *BlockChain) checkProposalCRCouncilMemberSign(crcProposal *payload.CRCPr
 
 	return nil
 }
-func (b *BlockChain) checkChangeSecretaryGeneralProposalTx(crcProposal *payload.CRCProposal) error {
+func (b *BlockChain) checkChangeSecretaryGeneralProposalTx(crcProposal *payload.CRCProposal, PayloadVersion byte) error {
 	// The number of the proposals of the committee can not more than 128
 	if !b.isPublicKeyDIDMatch(crcProposal.SecretaryGeneralPublicKey, &crcProposal.SecretaryGeneralDID) {
 		return errors.New("SecretaryGeneral NodePublicKey and DID is not matching")
@@ -2605,7 +2609,7 @@ func (b *BlockChain) checkChangeSecretaryGeneralProposalTx(crcProposal *payload.
 
 	//Check signature of owner
 	signedBuf := new(bytes.Buffer)
-	if err := b.checkProposalOwnerSign(crcProposal, signedBuf); err != nil {
+	if err := b.checkProposalOwnerSign(crcProposal, signedBuf, PayloadVersion); err != nil {
 		return errors.New("owner signature check failed")
 	}
 	// Check signature of SecretaryGeneral
@@ -2623,7 +2627,7 @@ func (b *BlockChain) checkChangeSecretaryGeneralProposalTx(crcProposal *payload.
 	return nil
 }
 
-func (b *BlockChain) checkCloseProposal(proposal *payload.CRCProposal) error {
+func (b *BlockChain) checkCloseProposal(proposal *payload.CRCProposal, PayloadVersion byte) error {
 	_, err := crypto.DecodePoint(proposal.OwnerPublicKey)
 	if err != nil {
 		return errors.New("DecodePoint from OwnerPublicKey error")
@@ -2644,10 +2648,10 @@ func (b *BlockChain) checkCloseProposal(proposal *payload.CRCProposal) error {
 	if crMember == nil {
 		return errors.New("CR Council Member should be one of the CR members")
 	}
-	return b.checkOwnerAndCRCouncilMemberSign(proposal, crMember.Info.Code)
+	return b.checkOwnerAndCRCouncilMemberSign(proposal, crMember.Info.Code, PayloadVersion)
 }
 
-func (b *BlockChain) checkChangeProposalOwner(proposal *payload.CRCProposal) error {
+func (b *BlockChain) checkChangeProposalOwner(proposal *payload.CRCProposal, PayloadVersion byte) error {
 	proposalState := b.crCommittee.GetProposal(proposal.TargetProposalHash)
 	if proposalState == nil {
 		return errors.New("proposal doesn't exist")
@@ -2673,12 +2677,13 @@ func (b *BlockChain) checkChangeProposalOwner(proposal *payload.CRCProposal) err
 	if crCouncilMember == nil {
 		return errors.New("CR Council Member should be one of the CR members")
 	}
-	return b.checkChangeOwnerSign(proposal, crCouncilMember.Info.Code)
+	return b.checkChangeOwnerSign(proposal, crCouncilMember.Info.Code, PayloadVersion)
 }
 
-func (b *BlockChain) checkChangeOwnerSign(proposal *payload.CRCProposal, crMemberCode []byte) error {
+func (b *BlockChain) checkChangeOwnerSign(proposal *payload.CRCProposal, crMemberCode []byte,
+	PayloadVersion byte) error {
 	signedBuf := new(bytes.Buffer)
-	err := proposal.SerializeUnsigned(signedBuf, payload.CRCProposalVersion)
+	err := proposal.SerializeUnsigned(signedBuf, PayloadVersion)
 	if err != nil {
 		return err
 	}
@@ -2730,7 +2735,8 @@ func (b *BlockChain) checkChangeOwnerSign(proposal *payload.CRCProposal, crMembe
 	return nil
 }
 
-func (b *BlockChain) checkOwnerAndCRCouncilMemberSign(proposal *payload.CRCProposal, crMemberCode []byte) error {
+func (b *BlockChain) checkOwnerAndCRCouncilMemberSign(proposal *payload.CRCProposal, crMemberCode []byte,
+	PayloadVersion byte) error {
 	// Check signature of owner.
 	publicKey, err := crypto.DecodePoint(proposal.OwnerPublicKey)
 	if err != nil {
@@ -2741,7 +2747,7 @@ func (b *BlockChain) checkOwnerAndCRCouncilMemberSign(proposal *payload.CRCPropo
 		return errors.New("invalid owner")
 	}
 	signedBuf := new(bytes.Buffer)
-	err = proposal.SerializeUnsigned(signedBuf, payload.CRCProposalVersion)
+	err = proposal.SerializeUnsigned(signedBuf, PayloadVersion)
 	if err != nil {
 		return err
 	}
@@ -2764,7 +2770,8 @@ func (b *BlockChain) checkOwnerAndCRCouncilMemberSign(proposal *payload.CRCPropo
 	return nil
 }
 
-func (b *BlockChain) checkNormalOrELIPProposal(proposal *payload.CRCProposal, proposalsUsedAmount common.Fixed64) error {
+func (b *BlockChain) checkNormalOrELIPProposal(proposal *payload.CRCProposal, proposalsUsedAmount common.Fixed64,
+	PayloadVersion byte) error {
 	if proposal.ProposalType == payload.ELIP {
 		if len(proposal.Budgets) != ELIPBudgetsCount {
 			return errors.New("ELIP needs to have and only have two budget")
@@ -2831,7 +2838,7 @@ func (b *BlockChain) checkNormalOrELIPProposal(proposal *payload.CRCProposal, pr
 		b.crCommittee.CRCCommitteeUsedAmount-proposalsUsedAmount {
 		return errors.New(fmt.Sprintf("budgets exceeds the balance of CRC"+
 			" committee, proposal hash:%s, budgets:%s, need <= %s",
-			common.ToReversedString(proposal.Hash()), amount, b.crCommittee.CRCCurrentStageAmount-
+			common.ToReversedString(proposal.Hash(PayloadVersion)), amount, b.crCommittee.CRCCurrentStageAmount-
 				b.crCommittee.CRCCommitteeUsedAmount-proposalsUsedAmount))
 	} else if amount < 0 {
 		return errors.New("budgets is invalid")
@@ -2849,7 +2856,7 @@ func (b *BlockChain) checkNormalOrELIPProposal(proposal *payload.CRCProposal, pr
 		return errors.New("invalid recipient")
 	}
 	crCouncilMember := b.crCommittee.GetMember(proposal.CRCouncilMemberDID)
-	return b.checkOwnerAndCRCouncilMemberSign(proposal, crCouncilMember.Info.Code)
+	return b.checkOwnerAndCRCouncilMemberSign(proposal, crCouncilMember.Info.Code, PayloadVersion)
 }
 
 func (b *BlockChain) checkCRCProposalTransaction(txn *Transaction,
@@ -2873,6 +2880,17 @@ func (b *BlockChain) checkCRCProposalTransaction(txn *Transaction,
 	if len(proposal.CategoryData) > MaxCategoryDataStringLength {
 		return errors.New("the Proposal category data cannot be more than 4096 characters")
 	}
+
+	if txn.PayloadVersion >= payload.CRCProposalVersion01 {
+		if len(proposal.DraftData) >= MaxDraftDataStringLength {
+			return errors.New("the Proposal draft data cannot be more than 1000000 byte")
+		}
+		tempDraftHash := common.Hash([]byte(proposal.DraftData))
+		if !proposal.DraftHash.IsEqual(tempDraftHash) {
+			return errors.New("the  draft data and draft hash of proposal are  inconsistent\n \n  ")
+		}
+	}
+
 	if len(proposal.Budgets) > MaxBudgetsCount {
 		return errors.New("budgets exceeded the maximum limit")
 	}
@@ -2891,13 +2909,13 @@ func (b *BlockChain) checkCRCProposalTransaction(txn *Transaction,
 	}
 	switch proposal.ProposalType {
 	case payload.ChangeProposalOwner:
-		return b.checkChangeProposalOwner(proposal)
+		return b.checkChangeProposalOwner(proposal, txn.PayloadVersion)
 	case payload.CloseProposal:
-		return b.checkCloseProposal(proposal)
+		return b.checkCloseProposal(proposal, txn.PayloadVersion)
 	case payload.SecretaryGeneral:
-		return b.checkChangeSecretaryGeneralProposalTx(proposal)
+		return b.checkChangeSecretaryGeneralProposalTx(proposal, txn.PayloadVersion)
 	default:
-		return b.checkNormalOrELIPProposal(proposal, proposalsUsedAmount)
+		return b.checkNormalOrELIPProposal(proposal, proposalsUsedAmount, txn.PayloadVersion)
 	}
 }
 

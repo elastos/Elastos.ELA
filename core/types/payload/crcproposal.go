@@ -70,6 +70,8 @@ func (pt CRCProposalType) Name() string {
 const (
 	// CRCProposalVersion indicates the version of CRC proposal payload
 	CRCProposalVersion byte = 0x00
+	//add draft data
+	CRCProposalVersion01 byte = 0x01
 
 	// MaxProposalDataSize the max size of proposal draft data or proposal
 	// tracking document data.
@@ -116,6 +118,9 @@ type CRCProposal struct {
 
 	// The hash of draft proposal.
 	DraftHash common.Uint256
+	// Used to store draft data
+	// with a length limit not exceeding 1M byte
+	DraftData string
 
 	// The detailed budget and expenditure plan.
 	Budgets []Budget
@@ -197,6 +202,12 @@ func (p *CRCProposal) SerializeUnsignedNormalOrELIP(w io.Writer, version byte) e
 		return errors.New("failed to serialize DraftHash")
 	}
 
+	if version >= CRCProposalVersion01 {
+		if err := common.WriteVarString(w, p.DraftData); err != nil {
+			return errors.New("[CRCProposal], DraftData Data serialize failed")
+		}
+	}
+
 	if err := common.WriteVarUint(w, uint64(len(p.Budgets))); err != nil {
 		return errors.New("failed to serialize Budgets")
 	}
@@ -227,6 +238,11 @@ func (p *CRCProposal) SerializeUnsignedChangeProposalOwner(w io.Writer, version 
 	if err := p.DraftHash.Serialize(w); err != nil {
 		return errors.New("failed to serialize DraftHash")
 	}
+	if version >= CRCProposalVersion01 {
+		if err := common.WriteVarString(w, p.DraftData); err != nil {
+			return errors.New("[CRCProposal], DraftData Data serialize failed")
+		}
+	}
 	if err := p.TargetProposalHash.Serialize(w); err != nil {
 		return errors.New("failed to serialize TargetProposalHash")
 	}
@@ -255,6 +271,11 @@ func (p *CRCProposal) SerializeUnsignedChangeSecretaryGeneral(w io.Writer, versi
 	if err := p.DraftHash.Serialize(w); err != nil {
 		return errors.New("failed to serialize DraftHash")
 	}
+	if version >= CRCProposalVersion01 {
+		if err := common.WriteVarString(w, p.DraftData); err != nil {
+			return errors.New("[CRCProposal], DraftData Data serialize failed")
+		}
+	}
 	if err := common.WriteVarBytes(w, p.SecretaryGeneralPublicKey); err != nil {
 		return errors.New("failed to serialize SecretaryGeneralPublicKey")
 	}
@@ -282,7 +303,11 @@ func (p *CRCProposal) SerializeUnsignedCloseProposal(w io.Writer, version byte) 
 	if err := p.DraftHash.Serialize(w); err != nil {
 		return errors.New("failed to serialize DraftHash")
 	}
-
+	if version >= CRCProposalVersion01 {
+		if err := common.WriteVarString(w, p.DraftData); err != nil {
+			return errors.New("[CRCProposal], DraftData Data serialize failed")
+		}
+	}
 	if err := p.TargetProposalHash.Serialize(w); err != nil {
 		return errors.New("failed to serialize CloseProposalHash")
 	}
@@ -419,7 +444,12 @@ func (p *CRCProposal) DeserializeUnSignedNormalOrELIP(r io.Reader, version byte)
 	if err = p.DraftHash.Deserialize(r); err != nil {
 		return errors.New("failed to deserialize DraftHash")
 	}
-
+	if version >= CRCProposalVersion01 {
+		p.DraftData, err = common.ReadVarString(r)
+		if err != nil {
+			return errors.New("[CRCProposal], draft data deserialize failed")
+		}
+	}
 	var count uint64
 	if count, err = common.ReadVarUint(r, 0); err != nil {
 		return errors.New("failed to deserialize Budgets")
@@ -451,6 +481,12 @@ func (p *CRCProposal) DeserializeUnSignedChangeProposalOwner(r io.Reader, versio
 	if err = p.DraftHash.Deserialize(r); err != nil {
 		return errors.New("failed to deserialize DraftHash")
 	}
+	if version >= CRCProposalVersion01 {
+		p.DraftData, err = common.ReadVarString(r)
+		if err != nil {
+			return errors.New("[CRCProposal], draft data deserialize failed")
+		}
+	}
 	if err = p.TargetProposalHash.Deserialize(r); err != nil {
 		return errors.New("failed to deserialize TargetProposalHash")
 	}
@@ -479,7 +515,12 @@ func (p *CRCProposal) DeserializeUnSignedCloseProposal(r io.Reader, version byte
 	if err = p.DraftHash.Deserialize(r); err != nil {
 		return errors.New("failed to deserialize DraftHash")
 	}
-
+	if version >= CRCProposalVersion01 {
+		p.DraftData, err = common.ReadVarString(r)
+		if err != nil {
+			return errors.New("[CRCProposal], draft data deserialize failed")
+		}
+	}
 	if err = p.TargetProposalHash.Deserialize(r); err != nil {
 		return errors.New("failed to deserialize CloseProposalHash")
 	}
@@ -502,7 +543,12 @@ func (p *CRCProposal) DeserializeUnSignedChangeSecretaryGeneral(r io.Reader, ver
 	if err = p.DraftHash.Deserialize(r); err != nil {
 		return errors.New("failed to deserialize DraftHash")
 	}
-
+	if version >= CRCProposalVersion01 {
+		p.DraftData, err = common.ReadVarString(r)
+		if err != nil {
+			return errors.New("[CRCProposal], draft data deserialize failed")
+		}
+	}
 	p.SecretaryGeneralPublicKey, err = common.ReadVarBytes(r, crypto.NegativeBigLength, "secretarygeneralpublickey")
 	if err != nil {
 		return errors.New("failed to deserialize SecretaryGeneralPublicKey")
@@ -640,10 +686,10 @@ func (p *CRCProposal) DeserializeChangeSecretaryGeneral(r io.Reader, version byt
 	return nil
 }
 
-func (p *CRCProposal) Hash() common.Uint256 {
+func (p *CRCProposal) Hash(PayloadVersion byte) common.Uint256 {
 	if p.hash == nil {
 		buf := new(bytes.Buffer)
-		p.Serialize(buf, CRCProposalVersion)
+		p.Serialize(buf, PayloadVersion)
 		hash := common.Hash(buf.Bytes())
 		p.hash = &hash
 	}

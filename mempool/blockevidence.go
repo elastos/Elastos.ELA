@@ -9,7 +9,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/elastos/Elastos.ELA/dpos/log"
 	"sort"
 
 	"github.com/elastos/Elastos.ELA/blockchain"

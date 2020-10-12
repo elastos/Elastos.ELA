@@ -3462,7 +3462,7 @@ func checkDPOSElaIllegalBlockConfirms(d *payload.DPOSIllegalBlocks,
 	}
 
 	if confirm.Proposal.ViewOffset != compareConfirm.Proposal.ViewOffset {
-		return nil, nil, errors.New("confirm view offset should not be same")
+		return nil, nil, errors.New("confirm view offset should be same")
 	}
 
 	if !confirm.Proposal.BlockHash.IsEqual(header.Hash()) {

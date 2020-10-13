@@ -922,6 +922,12 @@ func NewSettings() *Settings {
 		ConfigPath:   "CRConfiguration.NewP2PProtocolVersionHeight",
 		ParamName:    "NewP2PProtocolVersionHeight"})
 
+	result.Add(&settingItem{
+		Flag:         cmdcom.ChangeCommitteeNewCRHeight,
+		DefaultValue: uint64(0),
+		ConfigPath:   "CRConfiguration.ChangeCommitteeNewCRHeight",
+		ParamName:    "ChangeCommitteeNewCRHeight"})
+
 	return result
 }
 

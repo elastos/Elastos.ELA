@@ -408,6 +408,10 @@ var (
 		Name:  "newversionheight",
 		Usage: "defines the new version message height",
 	}
+	ChangeCommitteeNewCRHeight = cli.StringFlag{
+		Name:  "changecommitteenewcrheight",
+		Usage: "defines the change committee new cr height",
+	}
 )
 
 // MoveRPCFlags finds the rpc argument and moves it to the front

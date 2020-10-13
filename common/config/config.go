@@ -126,6 +126,7 @@ type CRConfiguration struct {
 	RectifyTxFee                       common.Fixed64 `json:"RectifyTxFee"`
 	RealWithdrawSingleFee              common.Fixed64 `json:"RealWithdrawSingleFee"`
 	NewP2PProtocolVersionHeight        uint64         `json:"NewP2PProtocolVersionHeight"`
+	ChangeCommitteeNewCRHeight         uint32         `json:"ChangeCommitteeNewCRHeight"`
 }
 
 type RPCServiceLevel byte

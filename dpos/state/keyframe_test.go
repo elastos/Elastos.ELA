@@ -1,7 +1,7 @@
 // Copyright (c) 2017-2020 The Elastos Foundation
 // Use of this source code is governed by an MIT
 // license that can be found in the LICENSE file.
-// 
+//
 
 package state
 
@@ -410,7 +410,7 @@ func randomProducer() *Producer {
 		activateRequestHeight:  rand.Uint32(),
 		illegalHeight:          rand.Uint32(),
 		penalty:                common.Fixed64(rand.Uint64()),
-		votes:                  common.Fixed64(rand.Uint64()),
+		votes:                  common.Fixed64(rand.Intn(10000) + 1),
 	}
 }
 

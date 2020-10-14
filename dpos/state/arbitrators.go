@@ -1672,7 +1672,9 @@ func (a *arbitrators) snapshotVotesStates(height uint32) error {
 	nextReward.OwnerVotesInRound = make(map[common.Uint168]common.Fixed64, 0)
 	nextReward.TotalVotesInRound = 0
 	for _, ar := range a.nextArbitrators {
-		if !a.isNextCRCArbitrator(ar.GetNodePublicKey()) {
+		if !a.isNextCRCArbitrator(ar.GetNodePublicKey()) ||
+			(height >= a.chainParams.ChangeCommitteeNewCRHeight &&
+				ar.(*crcArbiter).crMember.DPOSPublicKey == nil && ar.IsNormal()) {
 			producer := a.GetProducer(ar.GetNodePublicKey())
 			if producer == nil {
 				return errors.New("get producer by node public key failed")
@@ -1688,9 +1690,6 @@ func (a *arbitrators) snapshotVotesStates(height uint32) error {
 	}
 
 	for _, ar := range a.nextCandidates {
-		if a.isNextCRCArbitrator(ar.GetNodePublicKey()) {
-			continue
-		}
 		producer := a.GetProducer(ar.GetNodePublicKey())
 		if producer == nil {
 			return errors.New("get producer by node public key failed")

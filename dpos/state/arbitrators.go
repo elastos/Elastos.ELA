@@ -597,6 +597,10 @@ func (a *arbitrators) distributeWithNormalArbitratorsV3(height uint32, reward co
 				if err != nil {
 					panic("public key to standard program hash err:" + err.Error())
 				}
+				votes := a.CurrentReward.OwnerVotesInRound[*programHash]
+				individualCRCProducerReward := common.Fixed64(math.Floor(float64(
+					votes) * rewardPerVote))
+				r = individualBlockConfirmReward + individualCRCProducerReward
 				rewardHash = *programHash
 			} else {
 				pk := arbiter.GetOwnerPublicKey()

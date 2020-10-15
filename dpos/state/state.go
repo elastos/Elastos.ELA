@@ -1314,10 +1314,13 @@ func (s *State) processNextTurnDPOSInfo(tx *types.Transaction, height uint32) {
 	}
 	log.Warnf("processNextTurnDPOSInfo tx: %s, %d", common.ToReversedString(tx.Hash()), height)
 	oriNeedNextTurnDposInfo := s.NeedNextTurnDposInfo
+	oriUnclaimed := s.Unclaimed
 	s.history.Append(height, func() {
 		s.NeedNextTurnDposInfo = false
+		s.Unclaimed = 0
 	}, func() {
 		s.NeedNextTurnDposInfo = oriNeedNextTurnDposInfo
+		s.Unclaimed = oriUnclaimed
 	})
 }
 

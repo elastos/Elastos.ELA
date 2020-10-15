@@ -31,6 +31,7 @@ type StateKeyFrame struct {
 	VersionStartHeight        uint32
 	VersionEndHeight          uint32
 	NeedNextTurnDposInfo      bool
+	Unclaimed                 int
 }
 
 // RewardData defines variables to calculate reward of a round

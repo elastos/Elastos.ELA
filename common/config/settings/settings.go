@@ -924,7 +924,7 @@ func NewSettings() *Settings {
 
 	result.Add(&settingItem{
 		Flag:         cmdcom.ChangeCommitteeNewCRHeight,
-		DefaultValue: uint64(0),
+		DefaultValue: uint32(0),
 		ConfigPath:   "CRConfiguration.ChangeCommitteeNewCRHeight",
 		ParamName:    "ChangeCommitteeNewCRHeight"})
 

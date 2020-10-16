@@ -12,6 +12,7 @@ import (
 	"sort"
 	"strconv"
 	"sync"
+	"time"
 
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
@@ -23,6 +24,8 @@ import (
 	"github.com/elastos/Elastos.ELA/p2p/msg"
 	"github.com/elastos/Elastos.ELA/utils"
 )
+
+const CRAssetsRectifyInterval = time.Minute
 
 type Committee struct {
 	KeyFrame
@@ -501,16 +504,16 @@ func (c *Committee) createAppropriationTransaction(height uint32) {
 
 func (c *Committee) createRectifyCRAssetsTransaction(height uint32) {
 	if c.createCRAssetsRectifyTransaction != nil && height == c.getHeight() {
-		tx, err := c.createCRAssetsRectifyTransaction()
-		if err != nil {
-			log.Error("create rectify UTXOs tx failed:", err.Error())
-			return
-		}
-
-		log.Info("create rectify UTXOs transaction:", tx.Hash())
 		if c.isCurrent != nil && c.broadcast != nil && c.
 			appendToTxpool != nil {
 			go func() {
+				time.Sleep(CRAssetsRectifyInterval)
+				tx, err := c.createCRAssetsRectifyTransaction()
+				if err != nil {
+					log.Error("create rectify UTXOs tx failed:", err.Error())
+					return
+				}
+				log.Info("create rectify UTXOs transaction:", tx.Hash())
 				if c.isCurrent() {
 					if err := c.appendToTxpool(tx); err == nil {
 						c.broadcast(msg.NewTx(tx))

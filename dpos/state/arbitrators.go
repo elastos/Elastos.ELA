@@ -1647,21 +1647,15 @@ func (a *arbitrators) GetCandidatesDesc(height uint32, startIndex int,
 
 func (a *arbitrators) GetNormalArbitratorsDesc(height uint32,
 	arbitratorsCount int, producers []*Producer, start int) ([]ArbiterMember, error) {
+
+	// main verson >= H3
+	if height >= a.chainParams.NoCRCDPOSNodeHeight {
+		return a.getNormalArbitratorsDescV3(arbitratorsCount, producers, start)
+	}
+
 	// main version >= H2
 	if height >= a.chainParams.PublicDPOSHeight {
-		if len(producers) < arbitratorsCount {
-			return nil, ErrInsufficientProducer
-		}
-
-		result := make([]ArbiterMember, 0)
-		for i := start; i < start+arbitratorsCount && i < len(producers); i++ {
-			ar, err := NewDPoSArbiter(DPoS, producers[i])
-			if err != nil {
-				return nil, err
-			}
-			result = append(result, ar)
-		}
-		return result, nil
+		return a.getNormalArbitratorsDescV2(arbitratorsCount, producers, start)
 	}
 
 	// version [H1, H2)

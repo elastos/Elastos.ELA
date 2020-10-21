@@ -483,6 +483,9 @@ type Params struct {
 	// elected producers participate in DPOS consensus.
 	PublicDPOSHeight uint32
 
+	// NoCRCDPOSNodeHeight (H3) indiicates the height when there is no DPOS node of CRC.
+	NoCRCDPOSNodeHeight uint32
+
 	// CRVotingStartHeight defines the height of CR voting started.
 	CRVotingStartHeight uint32
 

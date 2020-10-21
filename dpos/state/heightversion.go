@@ -30,6 +30,31 @@ func (a *arbitrators) getNormalArbitratorsDescV0() ([]ArbiterMember, error) {
 	return arbitersByte, nil
 }
 
+// >= H3
+func (a *arbitrators) getNormalArbitratorsDescV3(arbitratorsCount int,
+	producers []*Producer, start int) ([]ArbiterMember, error) {
+	//todo get 23 DPOS node by vote, 1 DPOS node by random.
+	return nil, nil
+}
+
+// H2 - H3
+func (a *arbitrators) getNormalArbitratorsDescV2(arbitratorsCount int,
+	producers []*Producer, start int) ([]ArbiterMember, error) {
+	if len(producers) < arbitratorsCount {
+		return nil, ErrInsufficientProducer
+	}
+
+	result := make([]ArbiterMember, 0)
+	for i := start; i < start+arbitratorsCount && i < len(producers); i++ {
+		ar, err := NewDPoSArbiter(DPoS, producers[i])
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, ar)
+	}
+	return result, nil
+}
+
 // H1 - H2
 func (a *arbitrators) getNormalArbitratorsDescV1() ([]ArbiterMember, error) {
 	return nil, nil

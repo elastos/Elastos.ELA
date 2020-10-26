@@ -483,7 +483,7 @@ type Params struct {
 	// elected producers participate in DPOS consensus.
 	PublicDPOSHeight uint32
 
-	// NoCRCDPOSNodeHeight (H3) indiicates the height when there is no DPOS node of CRC.
+	// NoCRCDPOSNodeHeight indiicates the height when there is no DPOS node of CRC.
 	NoCRCDPOSNodeHeight uint32
 
 	// CRVotingStartHeight defines the height of CR voting started.
@@ -503,7 +503,6 @@ type Params struct {
 	EnableActivateIllegalHeight uint32
 
 	// CheckRewardHeight defines the height to check reward in coin base
-
 	// with new check function.
 	CheckRewardHeight uint32
 
@@ -641,17 +640,20 @@ type Params struct {
 	// CloseProposal and SecretaryGeneral proposal.
 	CRCProposalV1Height uint32
 
-	// RectifyTxFee defines the fee of cr rectify transaction
+	// RectifyTxFee defines the fee of cr rectify transaction.
 	RectifyTxFee common.Fixed64
 
-	// RealWithdrawSingleFee defines the single fee of cr real proposal withdraw transaction
+	// RealWithdrawSingleFee defines the single fee of cr real proposal withdraw transaction.
 	RealWithdrawSingleFee common.Fixed64
 
-	// NewP2PProtocolVersionHeight defines the new p2p protocol version message height
+	// NewP2PProtocolVersionHeight defines the new p2p protocol version message height.
 	NewP2PProtocolVersionHeight uint64
 
-	// ChangeCommitteeNewCRHeight defines the new arbiter logic after change committee
+	// ChangeCommitteeNewCRHeight defines the new arbiter logic after change committee.
 	ChangeCommitteeNewCRHeight uint32
+
+	// RandomCandidatePeriod defines the period to get a candidate as DPOS node at random.
+	RandomCandidatePeriod uint32
 }
 
 // rewardPerBlock calculates the reward for each block by a specified time

@@ -376,7 +376,11 @@ func (a *arbitrators) normalChange(height uint32) error {
 
 func (a *arbitrators) notifyNextTurnDPOSInfoTx(blockHeight, versionHeight uint32) {
 	count := a.chainParams.GeneralArbiters
-	votedProducers := a.getSortedProducers(blockHeight, a.Unclaimed)
+	votedProducers, err := a.getSortedProducers(blockHeight, a.Unclaimed)
+	if err != nil {
+		log.Error("notifyNextTurnDPOSInfoTx err", err)
+		return
+	}
 	producers, err := a.GetNormalArbitratorsDesc(versionHeight, count,
 		votedProducers, a.Unclaimed)
 	if err == nil {
@@ -1289,12 +1293,15 @@ func (a *arbitrators) updateNextTurnInfo(height uint32, producers []ArbiterMembe
 }
 
 func (a *arbitrators) getProducers(count int, height uint32) ([]ArbiterMember, error) {
-	votedProducers := a.getSortedProducers(height, 0)
+	votedProducers, err := a.getSortedProducers(height, 0)
+	if err != nil {
+		return nil, err
+	}
 	return a.GetNormalArbitratorsDesc(height, count,
 		votedProducers, 0)
 }
 
-func (a *arbitrators) getSortedProducers(height uint32, unclaimedCount int) []*Producer {
+func (a *arbitrators) getSortedProducers(height uint32, unclaimedCount int) ([]*Producer, error) {
 	votedProducers := a.State.GetVotedProducers()
 	sort.Slice(votedProducers, func(i, j int) bool {
 		if votedProducers[i].votes == votedProducers[j].votes {
@@ -1305,34 +1312,76 @@ func (a *arbitrators) getSortedProducers(height uint32, unclaimedCount int) []*P
 	})
 
 	if height < a.chainParams.NoCRCDPOSNodeHeight {
-		return votedProducers
+		return votedProducers, nil
 	}
 
-	bestBlockHash := a.bestBlockHash()
-	if bestBlockHash == nil {
-		return nil
+	// if the last random producer is not found or the poll ranked in the top
+	// 23(may be 35) or the state is not active, need to get a candidate as
+	// DPOS node at random.
+	if a.LastRandomCandidateHeight != 0 &&
+		height-a.LastRandomCandidateHeight < a.chainParams.RandomCandidatePeriod {
+		for i, p := range votedProducers {
+			if common.BytesToHexString(p.info.NodePublicKey) == a.LastRandomCandidateNode {
+				if i < unclaimedCount+a.chainParams.GeneralArbiters-1 || p.state != Active {
+					// need get again at random.
+					break
+				}
+				candidateIndex := i
+				normalCount := a.chainParams.GeneralArbiters - 1
+				selectedCandidateIndex := unclaimedCount + normalCount + candidateIndex
+				candidateProducer := votedProducers[selectedCandidateIndex]
+
+				a.LastRandomCandidateHeight = height
+				a.LastRandomCandidateNode = common.BytesToHexString(candidateProducer.info.NodePublicKey)
+
+				newProducers := make([]*Producer, 0)
+				newProducers = append(newProducers, votedProducers[:unclaimedCount+normalCount]...)
+				newProducers = append(newProducers, candidateProducer)
+				newProducers = append(newProducers, votedProducers[unclaimedCount+normalCount:selectedCandidateIndex]...)
+				newProducers = append(newProducers, votedProducers[selectedCandidateIndex+1:]...)
+				return newProducers, nil
+			}
+		}
 	}
-	blockHash := *bestBlockHash
-	var x = make([]byte, 8)
-	copy(x, blockHash[24:])
-	seed, _, ok := readi64(x)
-	if !ok {
-		return nil
+
+	candidateIndex, err := a.getCandidateIndexAtRandom(unclaimedCount, len(votedProducers))
+	if err != nil {
+		return nil, err
 	}
-	rand.Seed(seed)
+
 	normalCount := a.chainParams.GeneralArbiters - 1
-	count := len(votedProducers) - unclaimedCount - normalCount
-	candidatesCount := minInt(count, a.chainParams.CandidateArbiters+1)
-	candidateIndex := rand.Intn(candidatesCount)
 	selectedCandidateIndex := unclaimedCount + normalCount + candidateIndex
 	candidateProducer := votedProducers[selectedCandidateIndex]
+
+	// todo need to use history?
+	a.LastRandomCandidateHeight = height
+	a.LastRandomCandidateNode = common.BytesToHexString(candidateProducer.info.NodePublicKey)
 
 	newProducers := make([]*Producer, 0)
 	newProducers = append(newProducers, votedProducers[:unclaimedCount+normalCount]...)
 	newProducers = append(newProducers, candidateProducer)
 	newProducers = append(newProducers, votedProducers[unclaimedCount+normalCount:selectedCandidateIndex]...)
 	newProducers = append(newProducers, votedProducers[selectedCandidateIndex+1:]...)
-	return newProducers
+	return newProducers, nil
+}
+
+func (a *arbitrators) getCandidateIndexAtRandom(unclaimedCount, votedProducersCount int) (int, error) {
+	bestBlockHash := a.bestBlockHash()
+	if bestBlockHash == nil {
+		return 0, errors.New("best block is not found")
+	}
+	blockHash := *bestBlockHash
+	var x = make([]byte, 8)
+	copy(x, blockHash[24:])
+	seed, _, ok := readi64(x)
+	if !ok {
+		return 0, errors.New("invalid block hash")
+	}
+	rand.Seed(seed)
+	normalCount := a.chainParams.GeneralArbiters - 1
+	count := votedProducersCount - unclaimedCount - normalCount
+	candidatesCount := minInt(count, a.chainParams.CandidateArbiters+1)
+	return rand.Intn(candidatesCount), nil
 }
 
 func (a *arbitrators) updateNextArbitrators(versionHeight, height uint32) error {
@@ -1350,7 +1399,10 @@ func (a *arbitrators) updateNextArbitrators(versionHeight, height uint32) error 
 
 	if !a.IsInactiveMode() && !a.IsUnderstaffedMode() {
 		count := a.chainParams.GeneralArbiters
-		votedProducers := a.getSortedProducers(height, unclaimed)
+		votedProducers, err := a.getSortedProducers(height, unclaimed)
+		if err != nil {
+			return err
+		}
 		producers, err := a.GetNormalArbitratorsDesc(versionHeight, count,
 			votedProducers, unclaimed)
 		if err != nil {

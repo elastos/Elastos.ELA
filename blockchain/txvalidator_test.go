@@ -88,6 +88,7 @@ func (s *txValidatorTestSuite) SetupSuite() {
 		s.Fail("initialize arbitrator failed")
 	}
 	arbiters.RegisterFunction(chainStore.GetHeight,
+		func() *common.Uint256 { return &common.Uint256{} },
 		func(height uint32) (*types.Block, error) {
 			return nil, nil
 		}, nil)

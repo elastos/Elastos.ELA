@@ -102,6 +102,7 @@ func TestCommittee_ChangeCommitteeReward(t *testing.T) {
 	arbitrators, _ := NewArbitrators(&config.DefaultParams,
 		committee, nil, nil, nil, nil, nil)
 	arbitrators.RegisterFunction(func() uint32 { return bestHeight },
+		func() *common.Uint256 { return &common.Uint256{} },
 		nil, nil)
 
 	// Create 200 producers info.

@@ -571,6 +571,15 @@ func (b *BlockChain) GetCRCommittee() *crstate.Committee {
 	return b.crCommittee
 }
 
+func (b *BlockChain) GetBestBlockHash() *Uint256 {
+	b.IndexLock.RLock()
+	defer b.IndexLock.RUnlock()
+	if len(b.Nodes) == 0 {
+		return nil
+	}
+	return b.Nodes[len(b.Nodes) - 1].Hash
+}
+
 func (b *BlockChain) GetHeight() uint32 {
 	b.IndexLock.RLock()
 	defer b.IndexLock.RUnlock()

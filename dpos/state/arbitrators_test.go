@@ -8,17 +8,51 @@ package state
 import (
 	"bytes"
 	"encoding/hex"
+	"strconv"
+	"testing"
+
+	"github.com/elastos/Elastos.ELA/common"
+	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/core/contract"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/cr/state"
 	"github.com/elastos/Elastos.ELA/crypto"
-	"strconv"
-	"testing"
-
-	"github.com/elastos/Elastos.ELA/common/config"
 
 	"github.com/stretchr/testify/assert"
 )
+
+func TestArbitrators_GetSortedProducers(t *testing.T) {
+	producers := []int{
+		1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
+		11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
+		21, 22, 23, 24, 25, 26, 27, 28, 29, 30,
+		31, 32, 33, 34, 35, 36, 37, 38, 39, 40,
+		41, 42, 43, 44, 45, 46, 47, 48, 49, 50,
+		51, 52, 53, 54, 55, 56, 57, 58, 59, 60,
+	}
+	targetProducers := []int{
+		1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
+		11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
+		21, 22, 23, 30, 24, 25, 26, 27, 28, 29,
+		31, 32, 33, 34, 35, 36, 37, 38, 39, 40,
+		41, 42, 43, 44, 45, 46, 47, 48, 49, 50,
+		51, 52, 53, 54, 55, 56, 57, 58, 59, 60,
+	}
+	normalCount := 23
+	candidateProducer := 30
+	selectedCandidateIndex := 29
+	candidateCounts := 24
+	arbitratorsCount := 24
+	newProducers := make([]int, 0, candidateCounts+arbitratorsCount)
+	newProducers = append(newProducers, producers[:normalCount]...)
+	newProducers = append(newProducers, candidateProducer)
+	newProducers = append(newProducers, producers[normalCount:selectedCandidateIndex]...)
+	newProducers = append(newProducers, producers[selectedCandidateIndex+1:]...)
+
+	for i, p := range newProducers {
+		assert.Equal(t, p, targetProducers[i])
+	}
+}
 
 func TestArbitrators_GetSnapshot(t *testing.T) {
 	var bestHeight uint32
@@ -27,6 +61,7 @@ func TestArbitrators_GetSnapshot(t *testing.T) {
 		nil, nil, nil,
 		nil, nil, nil)
 	arbitrators.RegisterFunction(func() uint32 { return bestHeight },
+		func() *common.Uint256 { return &common.Uint256{} },
 		nil, nil)
 
 	// define three height versions:
@@ -161,6 +196,7 @@ func TestArbitrators_UsingProducerAsArbiter(t *testing.T) {
 	a.crCommittee = state.NewCommittee(&param)
 	a.crCommittee.InElectionPeriod = true
 	a.RegisterFunction(func() uint32 { return bestHeight },
+		func() *common.Uint256 { return &common.Uint256{} },
 		nil, nil)
 	fakeActiveProducer(a)
 	claimedCR, mem3 := fakeCRMembers(a)

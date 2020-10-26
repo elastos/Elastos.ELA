@@ -185,6 +185,7 @@ func initLedger(L *lua.LState) int {
 		fmt.Printf("New arbitrators error: %s \n", err.Error())
 	}
 	arbiters.RegisterFunction(chainStore.GetHeight,
+		func() *common.Uint256 { return &common.Uint256{} },
 		func(height uint32) (*types.Block, error) {
 			return nil, nil
 		}, nil)

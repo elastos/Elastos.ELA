@@ -213,7 +213,7 @@ func startNode(c *cli.Context, st *settings.Settings) {
 	pgBar.Stop()
 	ledger.Blockchain = chain // fixme
 	blockMemPool.Chain = chain
-	arbiters.RegisterFunction(chain.GetHeight,
+	arbiters.RegisterFunction(chain.GetHeight, chain.GetBestBlockHash,
 		func(height uint32) (*types.Block, error) {
 			hash, err := chain.GetBlockHash(height)
 			if err != nil {

@@ -7,9 +7,8 @@ package state
 
 import (
 	"errors"
-	"math"
-
 	"github.com/elastos/Elastos.ELA/common"
+	"math"
 )
 
 // 0 - H1
@@ -30,11 +29,21 @@ func (a *arbitrators) getNormalArbitratorsDescV0() ([]ArbiterMember, error) {
 	return arbitersByte, nil
 }
 
-// >= H3
-func (a *arbitrators) getNormalArbitratorsDescV3(arbitratorsCount int,
-	producers []*Producer, start int) ([]ArbiterMember, error) {
-	//todo get 23 DPOS node by vote, 1 DPOS node by random.
-	return nil, nil
+func minInt(a, b int) int {
+	if a <= b {
+		return a
+	}
+	return a
+}
+
+func readi64(src []byte) (int64, []byte, bool) {
+	if len(src) < 8 {
+		return 0, src, false
+	}
+	i64 := int64(src[0]) | int64(src[1])<<8 | int64(src[2])<<16 |
+		int64(src[3])<<24 | int64(src[4])<<32 | int64(src[5])<<40 |
+		int64(src[6])<<48 | int64(src[7])<<56
+	return i64, src[8:], true
 }
 
 // H2 - H3

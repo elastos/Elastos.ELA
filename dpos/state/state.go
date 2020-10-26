@@ -81,6 +81,7 @@ type Producer struct {
 	depositAmount          common.Fixed64
 	totalAmount            common.Fixed64
 	depositHash            common.Uint168
+	selected               bool
 }
 
 // Info returns a copy of the origin registered producer info.
@@ -1692,6 +1693,8 @@ func (s *State) countArbitratorsInactivityV1(height uint32,
 			continue
 		}
 		countingHeight := producer.inactiveCountingHeight
+
+		// todo add state randomSelected to producer
 
 		s.history.Append(height, func() {
 			s.tryUpdateInactivity(key, producer, needReset, height)

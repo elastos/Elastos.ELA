@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"math/rand"
 	"sort"
 	"strings"
 	"sync"
@@ -67,6 +68,7 @@ type arbitrators struct {
 	chainParams      *config.Params
 	crCommittee      *state.Committee
 	bestHeight       func() uint32
+	bestBlockHash    func() *common.Uint256
 	getBlockByHeight func(uint32) (*types.Block, error)
 
 	mtx       sync.Mutex
@@ -111,10 +113,12 @@ func (a *arbitrators) Start() {
 }
 
 func (a *arbitrators) RegisterFunction(bestHeight func() uint32,
+	bestBlockHash func() *common.Uint256,
 	getBlockByHeight func(uint32) (*types.Block, error),
 	getTxReference func(tx *types.Transaction) (
 		map[*types.Input]types.Output, error)) {
 	a.bestHeight = bestHeight
+	a.bestBlockHash = bestBlockHash
 	a.getBlockByHeight = getBlockByHeight
 	a.getTxReference = getTxReference
 }
@@ -372,15 +376,7 @@ func (a *arbitrators) normalChange(height uint32) error {
 
 func (a *arbitrators) notifyNextTurnDPOSInfoTx(blockHeight, versionHeight uint32) {
 	count := a.chainParams.GeneralArbiters
-	votedProducers := a.State.GetVotedProducers()
-	sort.Slice(votedProducers, func(i, j int) bool {
-		if votedProducers[i].votes == votedProducers[j].votes {
-			return bytes.Compare(votedProducers[i].info.NodePublicKey,
-				votedProducers[j].NodePublicKey()) < 0
-		}
-		return votedProducers[i].Votes() > votedProducers[j].Votes()
-	})
-
+	votedProducers := a.getSortedProducers(blockHeight, a.Unclaimed)
 	producers, err := a.GetNormalArbitratorsDesc(versionHeight, count,
 		votedProducers, a.Unclaimed)
 	if err == nil {
@@ -1286,10 +1282,19 @@ func (a *arbitrators) updateNextTurnInfo(height uint32, producers []ArbiterMembe
 		})
 		a.nextCRCArbiters = copyByteList(nextCRCArbiters)
 	}
+	if height >= a.chainParams.NoCRCDPOSNodeHeight {
+		producers[len(producers)-1].IsNormal()
+	}
 
 }
 
 func (a *arbitrators) getProducers(count int, height uint32) ([]ArbiterMember, error) {
+	votedProducers := a.getSortedProducers(height, 0)
+	return a.GetNormalArbitratorsDesc(height, count,
+		votedProducers, 0)
+}
+
+func (a *arbitrators) getSortedProducers(height uint32, unclaimedCount int) []*Producer {
 	votedProducers := a.State.GetVotedProducers()
 	sort.Slice(votedProducers, func(i, j int) bool {
 		if votedProducers[i].votes == votedProducers[j].votes {
@@ -1299,8 +1304,35 @@ func (a *arbitrators) getProducers(count int, height uint32) ([]ArbiterMember, e
 		return votedProducers[i].Votes() > votedProducers[j].Votes()
 	})
 
-	return a.GetNormalArbitratorsDesc(height, count,
-		votedProducers, 0)
+	if height < a.chainParams.NoCRCDPOSNodeHeight {
+		return votedProducers
+	}
+
+	bestBlockHash := a.bestBlockHash()
+	if bestBlockHash == nil {
+		return nil
+	}
+	blockHash := *bestBlockHash
+	var x = make([]byte, 8)
+	copy(x, blockHash[24:])
+	seed, _, ok := readi64(x)
+	if !ok {
+		return nil
+	}
+	rand.Seed(seed)
+	normalCount := a.chainParams.GeneralArbiters - 1
+	count := len(votedProducers) - unclaimedCount - normalCount
+	candidatesCount := minInt(count, a.chainParams.CandidateArbiters+1)
+	candidateIndex := rand.Intn(candidatesCount)
+	selectedCandidateIndex := unclaimedCount + normalCount + candidateIndex
+	candidateProducer := votedProducers[selectedCandidateIndex]
+
+	newProducers := make([]*Producer, 0)
+	newProducers = append(newProducers, votedProducers[:unclaimedCount+normalCount]...)
+	newProducers = append(newProducers, candidateProducer)
+	newProducers = append(newProducers, votedProducers[unclaimedCount+normalCount:selectedCandidateIndex]...)
+	newProducers = append(newProducers, votedProducers[selectedCandidateIndex+1:]...)
+	return newProducers
 }
 
 func (a *arbitrators) updateNextArbitrators(versionHeight, height uint32) error {
@@ -1318,15 +1350,7 @@ func (a *arbitrators) updateNextArbitrators(versionHeight, height uint32) error 
 
 	if !a.IsInactiveMode() && !a.IsUnderstaffedMode() {
 		count := a.chainParams.GeneralArbiters
-		votedProducers := a.State.GetVotedProducers()
-		sort.Slice(votedProducers, func(i, j int) bool {
-			if votedProducers[i].votes == votedProducers[j].votes {
-				return bytes.Compare(votedProducers[i].info.NodePublicKey,
-					votedProducers[j].NodePublicKey()) < 0
-			}
-			return votedProducers[i].Votes() > votedProducers[j].Votes()
-		})
-
+		votedProducers := a.getSortedProducers(height, unclaimed)
 		producers, err := a.GetNormalArbitratorsDesc(versionHeight, count,
 			votedProducers, unclaimed)
 		if err != nil {
@@ -1341,6 +1365,25 @@ func (a *arbitrators) updateNextArbitrators(versionHeight, height uint32) error 
 				a.nextCandidates = oriNextCandidates
 			})
 		} else {
+			if height >= a.chainParams.NoCRCDPOSNodeHeight {
+				for _, p := range votedProducers {
+					if p.selected {
+						a.history.Append(height, func() {
+							p.selected = false
+						}, func() {
+							p.selected = true
+						})
+					}
+					if bytes.Equal(p.info.OwnerPublicKey,
+						producers[len(producers)-1].GetOwnerPublicKey()) {
+						a.history.Append(height, func() {
+							p.selected = true
+						}, func() {
+							p.selected = false
+						})
+					}
+				}
+			}
 			oriNeedNextTurnDposInfo := a.NeedNextTurnDposInfo
 			oriUnClaimed := a.Unclaimed
 			oriNextCRCArbiters := a.nextCRCArbiters
@@ -1351,7 +1394,6 @@ func (a *arbitrators) updateNextArbitrators(versionHeight, height uint32) error 
 				a.NeedNextTurnDposInfo = oriNeedNextTurnDposInfo
 				a.nextCRCArbiters = oriNextCRCArbiters
 				a.Unclaimed = oriUnClaimed
-
 			})
 
 			candidates, err := a.GetCandidatesDesc(versionHeight, count+unclaimed,
@@ -1647,11 +1689,6 @@ func (a *arbitrators) GetCandidatesDesc(height uint32, startIndex int,
 
 func (a *arbitrators) GetNormalArbitratorsDesc(height uint32,
 	arbitratorsCount int, producers []*Producer, start int) ([]ArbiterMember, error) {
-
-	// main verson >= H3
-	if height >= a.chainParams.NoCRCDPOSNodeHeight {
-		return a.getNormalArbitratorsDescV3(arbitratorsCount, producers, start)
-	}
 
 	// main version >= H2
 	if height >= a.chainParams.PublicDPOSHeight {

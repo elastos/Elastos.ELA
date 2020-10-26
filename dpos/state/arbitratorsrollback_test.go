@@ -48,10 +48,11 @@ func initArbiters() {
 	}
 	bestHeight := uint32(0)
 
-	abt, _ = NewArbitrators(activeNetParams,
-		nil, nil, nil,
-		nil, nil, nil)
-	abt.RegisterFunction(func() uint32 { return bestHeight }, nil, nil)
+	abt, _ = NewArbitrators(activeNetParams, nil, nil,
+		nil, nil, nil, nil)
+	abt.RegisterFunction(func() uint32 { return bestHeight },
+		func() *common.Uint256 { return &common.Uint256{} },
+		nil, nil)
 	abt.State = NewState(activeNetParams, nil, nil, nil,
 		nil, nil, nil,
 		nil, nil)

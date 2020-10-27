@@ -932,6 +932,18 @@ func NewSettings() *Settings {
 		ConfigPath:   "CRConfiguration.ChangeCommitteeNewCRHeight",
 		ParamName:    "ChangeCommitteeNewCRHeight"})
 
+	result.Add(&settingItem{
+		Flag:         cmdcom.NoCRCDPOSNodeHeight,
+		DefaultValue: uint32(0),
+		ConfigPath:   "DPoSConfiguration.NoCRCDPOSNodeHeight",
+		ParamName:    "NoCRCDPOSNodeHeight"})
+
+	result.Add(&settingItem{
+		Flag:         cmdcom.RandomCandidatePeriod,
+		DefaultValue: uint32(0),
+		ConfigPath:   "DPoSConfiguration.RandomCandidatePeriod",
+		ParamName:    "RandomCandidatePeriod"})
+
 	return result
 }
 

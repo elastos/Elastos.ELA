@@ -1286,10 +1286,6 @@ func (a *arbitrators) updateNextTurnInfo(height uint32, producers []ArbiterMembe
 		})
 		a.nextCRCArbiters = copyByteList(nextCRCArbiters)
 	}
-	if height >= a.chainParams.NoCRCDPOSNodeHeight {
-		producers[len(producers)-1].IsNormal()
-	}
-
 }
 
 func (a *arbitrators) getProducers(count int, height uint32) ([]ArbiterMember, error) {
@@ -1321,7 +1317,7 @@ func (a *arbitrators) getSortedProducers(height uint32, unclaimedCount int) ([]*
 	if a.LastRandomCandidateHeight != 0 &&
 		height-a.LastRandomCandidateHeight < a.chainParams.RandomCandidatePeriod {
 		for i, p := range votedProducers {
-			if common.BytesToHexString(p.info.NodePublicKey) == a.LastRandomCandidateNode {
+			if common.BytesToHexString(p.info.OwnerPublicKey) == a.LastRandomCandidateOwner {
 				if i < unclaimedCount+a.chainParams.GeneralArbiters-1 || p.state != Active {
 					// need get again at random.
 					break
@@ -1332,9 +1328,9 @@ func (a *arbitrators) getSortedProducers(height uint32, unclaimedCount int) ([]*
 				candidateProducer := votedProducers[selectedCandidateIndex]
 
 				a.LastRandomCandidateHeight = height
-				a.LastRandomCandidateNode = common.BytesToHexString(candidateProducer.info.NodePublicKey)
+				a.LastRandomCandidateOwner = common.BytesToHexString(candidateProducer.info.OwnerPublicKey)
 
-				newProducers := make([]*Producer, 0)
+				newProducers := make([]*Producer, 0, len(votedProducers))
 				newProducers = append(newProducers, votedProducers[:unclaimedCount+normalCount]...)
 				newProducers = append(newProducers, candidateProducer)
 				newProducers = append(newProducers, votedProducers[unclaimedCount+normalCount:selectedCandidateIndex]...)
@@ -1355,9 +1351,9 @@ func (a *arbitrators) getSortedProducers(height uint32, unclaimedCount int) ([]*
 
 	// todo need to use history?
 	a.LastRandomCandidateHeight = height
-	a.LastRandomCandidateNode = common.BytesToHexString(candidateProducer.info.NodePublicKey)
+	a.LastRandomCandidateOwner = common.BytesToHexString(candidateProducer.info.OwnerPublicKey)
 
-	newProducers := make([]*Producer, 0)
+	newProducers := make([]*Producer, 0, len(votedProducers))
 	newProducers = append(newProducers, votedProducers[:unclaimedCount+normalCount]...)
 	newProducers = append(newProducers, candidateProducer)
 	newProducers = append(newProducers, votedProducers[unclaimedCount+normalCount:selectedCandidateIndex]...)
@@ -1419,19 +1415,20 @@ func (a *arbitrators) updateNextArbitrators(versionHeight, height uint32) error 
 		} else {
 			if height >= a.chainParams.NoCRCDPOSNodeHeight {
 				for _, p := range votedProducers {
-					if p.selected {
+					producer := p
+					if producer.selected {
 						a.history.Append(height, func() {
-							p.selected = false
+							producer.selected = false
 						}, func() {
-							p.selected = true
+							producer.selected = true
 						})
 					}
-					if bytes.Equal(p.info.OwnerPublicKey,
-						producers[len(producers)-1].GetOwnerPublicKey()) {
+					if common.BytesToHexString(producers[len(producers)-1].
+						GetOwnerPublicKey()) == a.LastRandomCandidateOwner {
 						a.history.Append(height, func() {
-							p.selected = true
+							producer.selected = true
 						}, func() {
-							p.selected = false
+							producer.selected = false
 						})
 					}
 				}

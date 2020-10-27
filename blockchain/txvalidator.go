@@ -1915,8 +1915,22 @@ func (b *BlockChain) checkCRCProposalReviewTransaction(txn *Transaction,
 	if !exist {
 		return errors.New("ProposalHash must exist")
 	}
+
+	// check opinion data.
+	if txn.PayloadVersion >= payload.CRCProposalReviewVersion01 {
+		if len(crcProposalReview.OpinionData) >= payload.MaxOpinionDataSize {
+			return errors.New("the opinion data cannot be more than 1M byte")
+		}
+		tempDraftHash := common.Hash(crcProposalReview.OpinionData)
+		if !crcProposalReview.OpinionHash.IsEqual(tempDraftHash) {
+			return errors.New("the opinion data and opinion hash of" +
+				" proposal review are inconsistent")
+		}
+	}
+
+	// check signature.
 	signedBuf := new(bytes.Buffer)
-	err := crcProposalReview.SerializeUnsigned(signedBuf, payload.CRCProposalReviewVersion)
+	err := crcProposalReview.SerializeUnsigned(signedBuf, txn.PayloadVersion)
 	if err != nil {
 		return err
 	}
@@ -2050,20 +2064,38 @@ func (b *BlockChain) checkCRCProposalTrackingTransaction(txn *Transaction,
 		return errors.New("reached max tracking count")
 	}
 
+	// check message data.
+	if txn.PayloadVersion >= payload.CRCProposalTrackingVersion01 {
+		if len(cptPayload.MessageData) >= payload.MaxMessageDataSize {
+			return errors.New("the message data cannot be more than 1M byte")
+		}
+		tempDraftHash := common.Hash(cptPayload.MessageData)
+		if !cptPayload.MessageHash.IsEqual(tempDraftHash) {
+			return errors.New("the message data and message hash of" +
+				" proposal tracking are inconsistent")
+		}
+	}
+
 	var result error
 	switch cptPayload.ProposalTrackingType {
 	case payload.Common:
-		result = b.checkCRCProposalCommonTracking(cptPayload, proposalState)
+		result = b.checkCRCProposalCommonTracking(
+			cptPayload, proposalState, txn.PayloadVersion)
 	case payload.Progress:
-		result = b.checkCRCProposalProgressTracking(cptPayload, proposalState)
+		result = b.checkCRCProposalProgressTracking(
+			cptPayload, proposalState, txn.PayloadVersion)
 	case payload.Rejected:
-		result = b.checkCRCProposalRejectedTracking(cptPayload, proposalState, blockHeight)
+		result = b.checkCRCProposalRejectedTracking(
+			cptPayload, proposalState, blockHeight, txn.PayloadVersion)
 	case payload.Terminated:
-		result = b.checkCRCProposalTerminatedTracking(cptPayload, proposalState)
+		result = b.checkCRCProposalTerminatedTracking(
+			cptPayload, proposalState, txn.PayloadVersion)
 	case payload.ChangeOwner:
-		result = b.checkCRCProposalOwnerTracking(cptPayload, proposalState)
+		result = b.checkCRCProposalOwnerTracking(
+			cptPayload, proposalState, txn.PayloadVersion)
 	case payload.Finalized:
-		result = b.checkCRCProposalFinalizedTracking(cptPayload, proposalState)
+		result = b.checkCRCProposalFinalizedTracking(
+			cptPayload, proposalState, txn.PayloadVersion)
 	default:
 		result = errors.New("invalid proposal tracking type")
 	}
@@ -2271,18 +2303,20 @@ func (b *BlockChain) checkCRCouncilMemberClaimNodeSignature(
 }
 
 func (b *BlockChain) checkCRCProposalCommonTracking(
-	cptPayload *payload.CRCProposalTracking, pState *crstate.ProposalState) error {
+	cptPayload *payload.CRCProposalTracking, pState *crstate.ProposalState,
+	payloadVersion byte) error {
 	// Check stage of proposal
 	if cptPayload.Stage != 0 {
 		return errors.New("stage should assignment zero value")
 	}
 
 	// Check signature.
-	return b.normalCheckCRCProposalTrackingSignature(cptPayload, pState)
+	return b.normalCheckCRCProposalTrackingSignature(cptPayload, pState, payloadVersion)
 }
 
 func (b *BlockChain) checkCRCProposalProgressTracking(
-	cptPayload *payload.CRCProposalTracking, pState *crstate.ProposalState) error {
+	cptPayload *payload.CRCProposalTracking, pState *crstate.ProposalState,
+	payloadVersion byte) error {
 	// Check stage of proposal
 	if int(cptPayload.Stage) >= len(pState.Proposal.Budgets) {
 		return errors.New("invalid tracking Stage")
@@ -2301,13 +2335,14 @@ func (b *BlockChain) checkCRCProposalProgressTracking(
 	}
 
 	// Check signature.
-	return b.normalCheckCRCProposalTrackingSignature(cptPayload, pState)
+	return b.normalCheckCRCProposalTrackingSignature(cptPayload, pState, payloadVersion)
 }
 
-func (b *BlockChain) checkCRCProposalRejectedTracking(cptPayload *payload.CRCProposalTracking,
-	pState *crstate.ProposalState, blockHeight uint32) error {
+func (b *BlockChain) checkCRCProposalRejectedTracking(
+	cptPayload *payload.CRCProposalTracking, pState *crstate.ProposalState,
+	blockHeight uint32, payloadVersion byte) error {
 	if blockHeight < b.chainParams.CRCProposalWithdrawPayloadV1Height {
-		return b.checkCRCProposalProgressTracking(cptPayload, pState)
+		return b.checkCRCProposalProgressTracking(cptPayload, pState, payloadVersion)
 	}
 	// Check stage of proposal
 	if int(cptPayload.Stage) >= len(pState.Proposal.Budgets) {
@@ -2318,22 +2353,24 @@ func (b *BlockChain) checkCRCProposalRejectedTracking(cptPayload *payload.CRCPro
 	}
 
 	// Check signature.
-	return b.normalCheckCRCProposalTrackingSignature(cptPayload, pState)
+	return b.normalCheckCRCProposalTrackingSignature(cptPayload, pState, payloadVersion)
 }
 
 func (b *BlockChain) checkCRCProposalTerminatedTracking(
-	cptPayload *payload.CRCProposalTracking, pState *crstate.ProposalState) error {
+	cptPayload *payload.CRCProposalTracking, pState *crstate.ProposalState,
+	payloadVersion byte) error {
 	// Check stage of proposal
 	if cptPayload.Stage != 0 {
 		return errors.New("stage should assignment zero value")
 	}
 
 	// Check signature.
-	return b.normalCheckCRCProposalTrackingSignature(cptPayload, pState)
+	return b.normalCheckCRCProposalTrackingSignature(cptPayload, pState, payloadVersion)
 }
 
 func (b *BlockChain) checkCRCProposalFinalizedTracking(
-	cptPayload *payload.CRCProposalTracking, pState *crstate.ProposalState) error {
+	cptPayload *payload.CRCProposalTracking, pState *crstate.ProposalState,
+	payloadVersion byte) error {
 	// Check stage of proposal
 	var finalStage byte
 	for _, budget := range pState.Proposal.Budgets {
@@ -2347,11 +2384,12 @@ func (b *BlockChain) checkCRCProposalFinalizedTracking(
 	}
 
 	// Check signature.
-	return b.normalCheckCRCProposalTrackingSignature(cptPayload, pState)
+	return b.normalCheckCRCProposalTrackingSignature(cptPayload, pState, payloadVersion)
 }
 
 func (b *BlockChain) checkCRCProposalOwnerTracking(
-	cptPayload *payload.CRCProposalTracking, pState *crstate.ProposalState) error {
+	cptPayload *payload.CRCProposalTracking, pState *crstate.ProposalState,
+	payloadVersion byte) error {
 	// Check stage of proposal
 	if cptPayload.Stage != 0 {
 		return errors.New("stage should assignment zero value")
@@ -2363,18 +2401,19 @@ func (b *BlockChain) checkCRCProposalOwnerTracking(
 	}
 
 	// Check signature.
-	return b.checkCRCProposalTrackingSignature(cptPayload, pState)
+	return b.checkCRCProposalTrackingSignature(cptPayload, pState, payloadVersion)
 }
 
 func (b *BlockChain) checkCRCProposalTrackingSignature(
-	cptPayload *payload.CRCProposalTracking, pState *crstate.ProposalState) error {
+	cptPayload *payload.CRCProposalTracking, pState *crstate.ProposalState,
+	payloadVersion byte) error {
 	// Check signature of proposal owner.
 	if !bytes.Equal(pState.ProposalOwner, cptPayload.OwnerPublicKey) {
 		return errors.New("the OwnerPublicKey is not owner of proposal")
 	}
 	signedBuf := new(bytes.Buffer)
 	if err := b.checkProposalOwnerSignature(cptPayload,
-		cptPayload.OwnerPublicKey, signedBuf); err != nil {
+		cptPayload.OwnerPublicKey, signedBuf, payloadVersion); err != nil {
 		return err
 	}
 
@@ -2389,7 +2428,8 @@ func (b *BlockChain) checkCRCProposalTrackingSignature(
 }
 
 func (b *BlockChain) normalCheckCRCProposalTrackingSignature(
-	cptPayload *payload.CRCProposalTracking, pState *crstate.ProposalState) error {
+	cptPayload *payload.CRCProposalTracking, pState *crstate.ProposalState,
+	payloadVersion byte) error {
 	// Check new owner public key.
 	if len(cptPayload.NewOwnerPublicKey) != 0 {
 		return errors.New("the NewOwnerPublicKey need to be empty")
@@ -2401,7 +2441,7 @@ func (b *BlockChain) normalCheckCRCProposalTrackingSignature(
 	}
 	signedBuf := new(bytes.Buffer)
 	if err := b.checkProposalOwnerSignature(cptPayload,
-		cptPayload.OwnerPublicKey, signedBuf); err != nil {
+		cptPayload.OwnerPublicKey, signedBuf, payloadVersion); err != nil {
 		return err
 	}
 
@@ -2422,7 +2462,7 @@ func (b *BlockChain) normalCheckCRCProposalTrackingSignature(
 
 func (b *BlockChain) checkProposalOwnerSignature(
 	cptPayload *payload.CRCProposalTracking, pubKey []byte,
-	signedBuf *bytes.Buffer) error {
+	signedBuf *bytes.Buffer, payloadVersion byte) error {
 	publicKey, err := crypto.DecodePoint(pubKey)
 	if err != nil {
 		return errors.New("invalid proposal owner")
@@ -2431,9 +2471,7 @@ func (b *BlockChain) checkProposalOwnerSignature(
 	if err != nil {
 		return errors.New("invalid proposal owner publicKey")
 	}
-	err = cptPayload.SerializeUnsigned(signedBuf,
-		payload.CRCProposalTrackingVersion)
-	if err != nil {
+	if err = cptPayload.SerializeUnsigned(signedBuf, payloadVersion); err != nil {
 		return err
 	}
 	if err := checkCRTransactionSignature(cptPayload.OwnerSignature, lContract.Code,

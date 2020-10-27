@@ -7,8 +7,9 @@ package state
 
 import (
 	"errors"
-	"github.com/elastos/Elastos.ELA/common"
 	"math"
+
+	"github.com/elastos/Elastos.ELA/common"
 )
 
 // 0 - H1

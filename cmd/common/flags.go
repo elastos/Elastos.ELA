@@ -412,9 +412,20 @@ var (
 		Name:  "newversionheight",
 		Usage: "defines the new version message height",
 	}
+
 	ChangeCommitteeNewCRHeight = cli.StringFlag{
 		Name:  "changecommitteenewcrheight",
 		Usage: "defines the change committee new cr height",
+	}
+
+	NoCRCDPOSNodeHeight = cli.StringFlag{
+		Name:  "nocrcdposnodeheight",
+		Usage: "defines the height when there is no DPOS node of CRC",
+	}
+
+	RandomCandidatePeriod = cli.StringFlag{
+		Name:  "randomcandidateperiod",
+		Usage: "defines the period to get a candidate as DPOS node at random",
 	}
 )
 

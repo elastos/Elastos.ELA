@@ -60,7 +60,16 @@ func (pt CRCProposalTrackingType) Name() string {
 	}
 }
 
-const CRCProposalTrackingVersion byte = 0x00
+const (
+	// CRCProposalTrackingVersion indicates the version of CRC proposal tracking payload
+	CRCProposalTrackingVersion byte = 0x00
+
+	// CRCProposalTrackingVersion01 add message data.
+	CRCProposalTrackingVersion01 byte = 0x01
+
+	// MaxMessageDataSize the max size of message data.
+	MaxMessageDataSize = 2 * 1024 * 1024
+)
 
 type CRCProposalTracking struct {
 	// The hash of current tracking proposal.
@@ -68,6 +77,8 @@ type CRCProposalTracking struct {
 
 	// The hash of proposal tracking message.
 	MessageHash common.Uint256
+
+	MessageData []byte
 
 	// The stage of proposal.
 	Stage uint8
@@ -110,6 +121,12 @@ func (p *CRCProposalTracking) SerializeUnsigned(w io.Writer, version byte) error
 
 	if err := p.MessageHash.Serialize(w); err != nil {
 		return errors.New("failed to serialize MessageHash")
+	}
+
+	if version >= CRCProposalTrackingVersion01 {
+		if err := common.WriteVarBytes(w, p.MessageData); err != nil {
+			return errors.New("failed to serialize MessageData")
+		}
 	}
 
 	if err := common.WriteUint8(w, p.Stage); err != nil {
@@ -163,6 +180,12 @@ func (p *CRCProposalTracking) DeserializeUnSigned(r io.Reader, version byte) err
 
 	if err = p.MessageHash.Deserialize(r); err != nil {
 		return errors.New("failed to deserialize MessageHash")
+	}
+
+	if version >= CRCProposalTrackingVersion01 {
+		if p.MessageData, err = common.ReadVarBytes(r, MaxMessageDataSize, "message data"); err != nil {
+			return errors.New("failed to deserialize MessageData")
+		}
 	}
 
 	if p.Stage, err = common.ReadUint8(r); err != nil {

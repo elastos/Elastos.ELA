@@ -68,7 +68,7 @@ const (
 	CRCProposalTrackingVersion01 byte = 0x01
 
 	// MaxMessageDataSize the max size of message data.
-	MaxMessageDataSize = 2 * 1024 * 1024
+	MaxMessageDataSize = 1 * 1024 * 1024
 )
 
 type CRCProposalTracking struct {

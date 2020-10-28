@@ -2921,10 +2921,10 @@ func (b *BlockChain) checkCRCProposalTransaction(txn *Transaction,
 	}
 
 	if txn.PayloadVersion >= payload.CRCProposalVersion01 {
-		if len(proposal.DraftData) >= MaxDraftDataStringLength {
+		if len(proposal.DraftData) >= payload.MaxProposalDataSize {
 			return errors.New("the Proposal draft data cannot be more than 1000000 byte")
 		}
-		tempDraftHash := common.Hash([]byte(proposal.DraftData))
+		tempDraftHash := common.Hash(proposal.DraftData)
 		if !proposal.DraftHash.IsEqual(tempDraftHash) {
 			return errors.New("the  draft data and draft hash of proposal are  inconsistent\n \n  ")
 		}

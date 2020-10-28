@@ -22,7 +22,7 @@ const (
 	CRCProposalReviewVersion01 byte = 0x01
 
 	// MaxOpinionDataSize the max size of opinion data.
-	MaxOpinionDataSize = 2 * 1024 * 1024
+	MaxOpinionDataSize = 1 * 1024 * 1024
 )
 
 const (

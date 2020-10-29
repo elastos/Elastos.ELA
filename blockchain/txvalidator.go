@@ -1105,6 +1105,12 @@ func (b *BlockChain) checkTxHeightVersion(txn *Transaction, blockHeight uint32) 
 			return errors.New("not support before CRVotingStartHeight")
 		}
 	case CRCProposal:
+		if blockHeight >= b.chainParams.ChangeCommitteeNewCRHeight {
+			if txn.PayloadVersion != payload.CRCProposalVersion01 {
+				return errors.New("should have draft data")
+			}
+		}
+
 		p, ok := txn.Payload.(*payload.CRCProposal)
 		if !ok {
 			return errors.New("not support invalid CRCProposal transaction")
@@ -1119,22 +1125,33 @@ func (b *BlockChain) checkTxHeightVersion(txn *Transaction, blockHeight uint32) 
 				return errors.New("not support before CRCommitteeStartHeight")
 			}
 		}
-
-	case CRCProposalReview, CRCProposalTracking, CRCAppropriation,
-		CRCProposalWithdraw:
+	case CRCProposalReview, CRCProposalTracking:
 		if blockHeight < b.chainParams.CRCommitteeStartHeight {
 			return errors.New("not support before CRCommitteeStartHeight")
 		}
-		if txn.TxType == CRCProposalWithdraw {
-			if txn.PayloadVersion == payload.CRCProposalWithdrawDefault &&
-				blockHeight >= b.chainParams.CRCProposalWithdrawPayloadV1Height {
-				return errors.New("not support after CRCProposalWithdrawPayloadV1Height")
+		if blockHeight >= b.chainParams.ChangeCommitteeNewCRHeight {
+			if txn.PayloadVersion != payload.CRCProposalVersion01 {
+				return errors.New("should have draft data")
 			}
+		}
 
-			if txn.PayloadVersion == payload.CRCProposalWithdrawVersion01 &&
-				blockHeight < b.chainParams.CRCProposalWithdrawPayloadV1Height {
-				return errors.New("not support before CRCProposalWithdrawPayloadV1Height")
-			}
+	case CRCAppropriation:
+		if blockHeight < b.chainParams.CRCommitteeStartHeight {
+			return errors.New("not support before CRCommitteeStartHeight")
+		}
+
+	case CRCProposalWithdraw:
+		if blockHeight < b.chainParams.CRCommitteeStartHeight {
+			return errors.New("not support before CRCommitteeStartHeight")
+		}
+		if txn.PayloadVersion == payload.CRCProposalWithdrawDefault &&
+			blockHeight >= b.chainParams.CRCProposalWithdrawPayloadV1Height {
+			return errors.New("not support after CRCProposalWithdrawPayloadV1Height")
+		}
+
+		if txn.PayloadVersion == payload.CRCProposalWithdrawVersion01 &&
+			blockHeight < b.chainParams.CRCProposalWithdrawPayloadV1Height {
+			return errors.New("not support before CRCProposalWithdrawPayloadV1Height")
 		}
 	case CRAssetsRectify, CRCProposalRealWithdraw:
 		if blockHeight < b.chainParams.CRAssetsRectifyTransactionHeight {

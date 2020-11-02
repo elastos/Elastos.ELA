@@ -230,7 +230,8 @@ var DefaultParams = Params{
 	NewP2PProtocolVersionHeight:        751400,
 	ChangeCommitteeNewCRHeight:         1000000, //TODO reset latter
 	NoCRCDPOSNodeHeight:                1000000, //TODO reset latter
-	RandomCandidatePeriod:              36 * 10,
+	RandomCandidatePeriod:              36 * 10, //TODO reset latter
+	MaxInactiveRoundsOfRandomNode:      36 * 8,  //TODO reset latter
 }
 
 // TestNet returns the network parameters for the test network.
@@ -300,10 +301,11 @@ func (p *Params) TestNet() *Params {
 	copy.MaxNodePerHost = 10
 	copy.CheckVoteCRCountHeight = 546500
 	copy.MaxCRAssetsAddressUTXOCount = 800
-	copy.ChangeCommitteeNewCRHeight = 1000000 //TODO reset latter
-	copy.IllegalPenalty = 5000                //TODO reset latter
-	copy.NoCRCDPOSNodeHeight = 1000000        //TODO reset latter
-	copy.RandomCandidatePeriod = 36 * 10      //TODO reset latter
+	copy.ChangeCommitteeNewCRHeight = 1000000   //TODO reset latter
+	copy.IllegalPenalty = 5000                  //TODO reset latter
+	copy.NoCRCDPOSNodeHeight = 1000000          //TODO reset latter
+	copy.RandomCandidatePeriod = 36 * 10        //TODO reset latter
+	copy.MaxInactiveRoundsOfRandomNode = 36 * 8 //TODO reset latter
 
 	return &copy
 }
@@ -375,10 +377,11 @@ func (p *Params) RegNet() *Params {
 	copy.MaxNodePerHost = 10
 	copy.CheckVoteCRCountHeight = 435000
 	copy.MaxCRAssetsAddressUTXOCount = 1440
-	copy.ChangeCommitteeNewCRHeight = 1000000 //TODO reset latter
-	copy.IllegalPenalty = 5000                //TODO reset latter
-	copy.NoCRCDPOSNodeHeight = 1000000        //TODO reset latter
-	copy.RandomCandidatePeriod = 36 * 10      //TODO reset latter
+	copy.ChangeCommitteeNewCRHeight = 1000000   //TODO reset latter
+	copy.IllegalPenalty = 5000                  //TODO reset latter
+	copy.NoCRCDPOSNodeHeight = 1000000          //TODO reset latter
+	copy.RandomCandidatePeriod = 36 * 10        //TODO reset latter
+	copy.MaxInactiveRoundsOfRandomNode = 36 * 8 //TODO reset latter
 
 	return &copy
 }
@@ -548,6 +551,10 @@ type Params struct {
 	// MaxInactiveRounds defines the maximum inactive rounds before producer
 	// takes penalty.
 	MaxInactiveRounds uint32
+
+	// MaxInactiveRoundsOfRandomNode defines the maximum inactive rounds before
+	// the producer at random takes penalty.
+	MaxInactiveRoundsOfRandomNode uint32
 
 	// InactivePenalty defines the penalty amount the producer takes.
 	InactivePenalty common.Fixed64

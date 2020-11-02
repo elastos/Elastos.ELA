@@ -944,6 +944,12 @@ func NewSettings() *Settings {
 		ConfigPath:   "DPoSConfiguration.RandomCandidatePeriod",
 		ParamName:    "RandomCandidatePeriod"})
 
+	result.Add(&settingItem{
+		Flag:         cmdcom.MaxInactiveRoundsOfRandomNode,
+		DefaultValue: uint32(0),
+		ConfigPath:   "CRConfiguration.MaxInactiveRoundsOfRandomNode",
+		ParamName:    "MaxInactiveRoundsOfRandomNode"})
+
 	return result
 }
 

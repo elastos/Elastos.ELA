@@ -427,6 +427,11 @@ var (
 		Name:  "randomcandidateperiod",
 		Usage: "defines the period to get a candidate as DPOS node at random",
 	}
+
+	MaxInactiveRoundsOfRandomNode = cli.StringFlag{
+		Name:  "maxinactiveroundsofrandomnode",
+		Usage: "defines the maximum inactive rounds before the random producer takes penalty",
+	}
 )
 
 // MoveRPCFlags finds the rpc argument and moves it to the front

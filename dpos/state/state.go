@@ -1762,7 +1762,12 @@ func (s *State) tryUpdateInactivity(key string, producer *Producer,
 		producer.inactiveCountingHeight = height
 	}
 
-	if height-producer.inactiveCountingHeight >= s.chainParams.MaxInactiveRounds {
+	maxInactiveRound := s.chainParams.MaxInactiveRounds
+	if producer.selected {
+		maxInactiveRound = s.chainParams.MaxInactiveRoundsOfRandomNode
+	}
+
+	if height-producer.inactiveCountingHeight >= maxInactiveRound {
 		s.setInactiveProducer(producer, key, height, false)
 		producer.inactiveCountingHeight = 0
 	}

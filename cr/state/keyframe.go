@@ -229,13 +229,17 @@ type ProposalsMap map[common.Uint256]*ProposalState
 // ProposalKeyFrame holds all runtime state about CR proposals.
 type ProposalKeyFrame struct {
 	Proposals ProposalsMap
-	//key is did value is proposalhash set
+	// key is did value is proposalhash set
 	ProposalHashes  map[common.Uint168]ProposalHashSet
 	ProposalSession map[uint64][]common.Uint256
 	// proposalWithdraw info
 	WithdrawableTxInfo map[common.Uint256]types.OutputInfo
-	//publicKey of SecretaryGeneral
+	// publicKey of SecretaryGeneral
 	SecretaryGeneralPublicKey string
+	// reserved did short name list
+	ReservedDIDShortNameLists [][]string
+	// banned did short name list
+	BannedDIDShortNameLists [][]string
 }
 
 func NewProposalMap() ProposalsMap {

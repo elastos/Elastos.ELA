@@ -1120,6 +1120,10 @@ func (b *BlockChain) checkTxHeightVersion(txn *Transaction, blockHeight uint32) 
 			if blockHeight < b.chainParams.CRCProposalV1Height {
 				return errors.New("not support before CRCProposalV1Height")
 			}
+		case payload.ReservedDIDShortName:
+			if blockHeight < b.chainParams.ChangeCommitteeNewCRHeight {
+				return errors.New("not support before ChangeCommitteeNewCRHeight")
+			}
 		default:
 			if blockHeight < b.chainParams.CRCommitteeStartHeight {
 				return errors.New("not support before CRCommitteeStartHeight")
@@ -2683,6 +2687,38 @@ func (b *BlockChain) checkChangeSecretaryGeneralProposalTx(crcProposal *payload.
 	return nil
 }
 
+func (b *BlockChain) checkReservedDIDShortName(proposal *payload.CRCProposal, PayloadVersion byte) error {
+	_, err := crypto.DecodePoint(proposal.OwnerPublicKey)
+	if err != nil {
+		return errors.New("DecodePoint from OwnerPublicKey error")
+	}
+
+	for _, v := range proposal.ReservedDIDShortNameList {
+		if len(v) > 255 {
+			return errors.New("Reserved did short name too long")
+		}
+	}
+
+	for _, v := range proposal.BannedDIDShortNameList {
+		if len(v) > 255 {
+			return errors.New("Banned did short name too long")
+		}
+	}
+
+	if len(proposal.Budgets) > 0 {
+		return errors.New("CloseProposal cannot have budget")
+	}
+	emptyUint168 := common.Uint168{}
+	if proposal.Recipient != emptyUint168 {
+		return errors.New("CloseProposal recipient must be empty")
+	}
+	crMember := b.crCommittee.GetMember(proposal.CRCouncilMemberDID)
+	if crMember == nil {
+		return errors.New("CR Council Member should be one of the CR members")
+	}
+	return b.checkOwnerAndCRCouncilMemberSign(proposal, crMember.Info.Code, PayloadVersion)
+}
+
 func (b *BlockChain) checkCloseProposal(proposal *payload.CRCProposal, PayloadVersion byte) error {
 	_, err := crypto.DecodePoint(proposal.OwnerPublicKey)
 	if err != nil {
@@ -2968,6 +3004,8 @@ func (b *BlockChain) checkCRCProposalTransaction(txn *Transaction,
 		return b.checkChangeProposalOwner(proposal, txn.PayloadVersion)
 	case payload.CloseProposal:
 		return b.checkCloseProposal(proposal, txn.PayloadVersion)
+	case payload.ReservedDIDShortName:
+		return b.checkReservedDIDShortName(proposal, txn.PayloadVersion)
 	case payload.SecretaryGeneral:
 		return b.checkChangeSecretaryGeneralProposalTx(proposal, txn.PayloadVersion)
 	default:

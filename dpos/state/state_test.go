@@ -1405,3 +1405,157 @@ func TestState_ProcessBlock_DepositAndReturnDeposit(t *testing.T) {
 	state.history.Commit(height)
 	assert.Equal(t, common.Fixed64(100), candidate.totalAmount)
 }
+
+func TestState_CountArbitratorsInactivityV1(t *testing.T) {
+	state := NewState(&config.DefaultParams, nil, nil, nil,
+		nil, nil, nil,
+		nil, nil)
+
+	// Create 100 producers info.
+	producers := make([]*payload.ProducerInfo, 100)
+	for i, p := range producers {
+		p = &payload.ProducerInfo{
+			OwnerPublicKey: randomPublicKey(),
+			NodePublicKey:  make([]byte, 33),
+		}
+		rand.Read(p.NodePublicKey)
+		p.NickName = fmt.Sprintf("Producer-%d", i+1)
+		producers[i] = p
+	}
+
+	// Register 10 producers on one height.
+	for i := 0; i < 10; i++ {
+		txs := make([]*types.Transaction, 10)
+		for i, p := range producers[i*10 : (i+1)*10] {
+			txs[i] = mockRegisterProducerTx(p)
+		}
+		state.ProcessBlock(mockBlock(uint32(i+1), txs...), nil)
+	}
+	// at this point, we have 50 pending, 50 active and 100 in total producers.
+	if !assert.Equal(t, 50, len(state.GetPendingProducers())) {
+		t.FailNow()
+	}
+	if !assert.Equal(t, 50, len(state.GetActiveProducers())) {
+		t.FailNow()
+	}
+	if !assert.Equal(t, 100, len(state.GetProducers())) {
+		t.FailNow()
+	}
+
+	// Update 10 producers.
+	txs := make([]*types.Transaction, 10)
+	for i := range txs {
+		producers[i].NickName = fmt.Sprintf("Updated-%d", i)
+		txs[i] = mockUpdateProducerTx(producers[i])
+	}
+	state.ProcessBlock(mockBlock(11, txs...), nil)
+	for i := range txs {
+		p := state.getProducer(producers[i].NodePublicKey)
+		if !assert.Equal(t, fmt.Sprintf("Updated-%d", i), p.info.NickName) {
+			t.FailNow()
+		}
+	}
+
+	// Cancel 10 producers.
+	txs = make([]*types.Transaction, 10)
+	for i := range txs {
+		txs[i] = mockCancelProducerTx(producers[i].OwnerPublicKey)
+	}
+	state.ProcessBlock(mockBlock(12, txs...), nil)
+	// at this point, we have 10 canceled, 30 pending, 60 active and 90 in total producers.
+	if !assert.Equal(t, 10, len(state.GetCanceledProducers())) {
+		t.FailNow()
+	}
+	if !assert.Equal(t, 30, len(state.GetPendingProducers())) {
+		t.FailNow()
+	}
+	if !assert.Equal(t, 60, len(state.GetActiveProducers())) {
+		t.FailNow()
+	}
+	if !assert.Equal(t, 90, len(state.GetProducers())) {
+		t.FailNow()
+	}
+
+	// Vote 10 producers for 10 times.
+	publicKeys := make([][]byte, 10)
+	for i, p := range producers[10:20] {
+		publicKeys[i] = p.OwnerPublicKey
+	}
+	txs = make([]*types.Transaction, 10)
+	for i := range txs {
+		txs[i] = mockVoteTx(publicKeys)
+	}
+	state.ProcessBlock(mockBlock(13, txs...), nil)
+	for _, pk := range publicKeys {
+		p := state.getProducer(pk)
+		if !assert.Equal(t, common.Fixed64(1000), p.votes) {
+			t.FailNow()
+		}
+	}
+
+	// Illegal 10 producers.
+	txs = make([]*types.Transaction, 10)
+	for i := range txs {
+		txs[i] = mockIllegalBlockTx(producers[10+i].NodePublicKey)
+	}
+	state.ProcessBlock(mockBlock(14, txs...), nil)
+	// at this point, we have 10 canceled, 10 pending, 70 active, 10 illegal and 80 in total producers.
+	if !assert.Equal(t, 10, len(state.GetCanceledProducers())) {
+		t.FailNow()
+	}
+	if !assert.Equal(t, 10, len(state.GetPendingProducers())) {
+		t.FailNow()
+	}
+	if !assert.Equal(t, 70, len(state.GetActiveProducers())) {
+		t.FailNow()
+	}
+	if !assert.Equal(t, 10, len(state.GetIllegalProducers())) {
+		t.FailNow()
+	}
+	if !assert.Equal(t, 80, len(state.GetProducers())) {
+		t.FailNow()
+	}
+
+	pds := state.GetActiveProducers()
+	// register getArbiters function
+	state.getArbiters = func() []*ArbiterInfo {
+		result := make([]*ArbiterInfo, 0)
+		for _, p := range pds {
+			result = append(result, &ArbiterInfo{
+				NodePublicKey: p.NodePublicKey(),
+				IsNormal:      true,
+			})
+		}
+		return result
+	}
+
+	// set the random DPOS node.
+	pds[len(pds)-1].selected = true
+
+	// random DPOS node does not work for 10 turns.
+	for i := 0; i < 10*36; i++ {
+		for _, p := range pds {
+			if p.selected {
+				continue
+			}
+			height := state.chainParams.ChangeCommitteeNewCRHeight + 1 + uint32(i)
+			state.countArbitratorsInactivityV1(
+				height,
+				&payload.Confirm{
+					Proposal: payload.DPOSProposal{
+						Sponsor: p.NodePublicKey(),
+					},
+				})
+			state.history.Commit(height)
+		}
+	}
+
+	// check the status of random DPOS node.
+	for _, p := range pds {
+		if p.selected {
+			assert.Equal(t, Inactive, p.state)
+		} else {
+			assert.Equal(t, Active, p.state)
+		}
+	}
+}

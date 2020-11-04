@@ -1694,8 +1694,6 @@ func (s *State) countArbitratorsInactivityV1(height uint32,
 		}
 		countingHeight := producer.inactiveCountingHeight
 
-		// todo add state randomSelected to producer
-
 		s.history.Append(height, func() {
 			s.tryUpdateInactivity(key, producer, needReset, height)
 		}, func() {

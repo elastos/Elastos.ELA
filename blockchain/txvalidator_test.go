@@ -1853,6 +1853,59 @@ func (s *txValidatorTestSuite) getCRCCloseProposalTx(publicKeyStr, privateKeyStr
 	return txn
 }
 
+func randomName(length int) string {
+	charset := "abcdefghijklmnopqrstuvwxyz" +
+		"ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+
+	b := make([]byte, length)
+	for i := range b {
+		b[i] = charset[mrand.Intn(len(charset))]
+	}
+	return string(b)
+}
+
+func (s *txValidatorTestSuite) getCRCReservedDIDShortNameProposalTx(publicKeyStr, privateKeyStr,
+	crPublicKeyStr, crPrivateKeyStr string) *types.Transaction {
+
+	privateKey1, _ := common.HexStringToBytes(privateKeyStr)
+
+	privateKey2, _ := common.HexStringToBytes(crPrivateKeyStr)
+	publicKey2, _ := common.HexStringToBytes(crPublicKeyStr)
+	code2 := getCodeByPubKeyStr(crPublicKeyStr)
+	//did2, _ := getDIDFromCode(code2)
+
+	draftData := randomBytes(10)
+	txn := new(types.Transaction)
+	txn.TxType = types.CRCProposal
+	txn.Version = types.TxVersion09
+	CRCouncilMemberDID, _ := getDIDFromCode(code2)
+	crcProposalPayload := &payload.CRCProposal{
+		ProposalType:             payload.ReservedDIDShortName,
+		OwnerPublicKey:           publicKey2,
+		CRCouncilMemberDID:       *CRCouncilMemberDID,
+		DraftHash:                common.Hash(draftData),
+		ReservedDIDShortNameList: []string{randomName(3), randomName(3), randomName(3)},
+		BannedDIDShortNameList:   []string{randomName(3), randomName(3), randomName(3)},
+	}
+
+	signBuf := new(bytes.Buffer)
+	crcProposalPayload.SerializeUnsigned(signBuf, payload.CRCProposalVersion)
+	sig, _ := crypto.Sign(privateKey1, signBuf.Bytes())
+	crcProposalPayload.Signature = sig
+
+	common.WriteVarBytes(signBuf, sig)
+	crcProposalPayload.CRCouncilMemberDID.Serialize(signBuf)
+	crSig, _ := crypto.Sign(privateKey2, signBuf.Bytes())
+	crcProposalPayload.CRCouncilMemberSignature = crSig
+
+	txn.Payload = crcProposalPayload
+	txn.Programs = []*program.Program{&program.Program{
+		Code:      getCodeByPubKeyStr(publicKeyStr),
+		Parameter: nil,
+	}}
+	return txn
+}
+
 func createBudgets(n int) []payload.Budget {
 	budgets := make([]payload.Budget, 0)
 	for i := 0; i < n; i++ {
@@ -3184,6 +3237,22 @@ func (s *txValidatorTestSuite) TestCheckCRCProposalTransaction() {
 		CRCouncilMemberDID] = proposalHashSet
 	err = s.Chain.checkCRCProposalTransaction(txn, tenureHeight, 0)
 	s.EqualError(err, "proposal is full")
+
+	s.Chain.chainParams.MaxCommitteeProposalCount = s.Chain.chainParams.MaxCommitteeProposalCount + 100
+	// invalid reserved did short name
+	txn = s.getCRCReservedDIDShortNameProposalTx(publicKeyStr2, privateKeyStr2, publicKeyStr1, privateKeyStr1)
+	proposal, _ = txn.Payload.(*payload.CRCProposal)
+	proposal.ReservedDIDShortNameList = append(proposal.ReservedDIDShortNameList, randomName(260))
+	err = s.Chain.checkCRCProposalTransaction(txn, tenureHeight, 0)
+	s.EqualError(err, "Reserved did short name too long")
+
+	// invalid banned did short name
+	txn = s.getCRCReservedDIDShortNameProposalTx(publicKeyStr2, privateKeyStr2, publicKeyStr1, privateKeyStr1)
+	proposal, _ = txn.Payload.(*payload.CRCProposal)
+	proposal.BannedDIDShortNameList = append(proposal.BannedDIDShortNameList, randomName(260))
+	err = s.Chain.checkCRCProposalTransaction(txn, tenureHeight, 0)
+	s.EqualError(err, "Banned did short name too long")
+
 }
 
 func (s *txValidatorTestSuite) TestCheckStringField() {

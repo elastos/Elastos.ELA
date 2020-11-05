@@ -705,7 +705,7 @@ func (p *CRCProposal) Deserialize(r io.Reader, version byte) error {
 	case SecretaryGeneral:
 		return p.DeserializeChangeSecretaryGeneral(r, version)
 	case ReservedDIDShortName:
-		p.DeserializeReserveDIDShortName(r, version)
+		return p.DeserializeReserveDIDShortName(r, version)
 	default:
 		return p.DeserializeNormalOrELIP(r, version)
 	}

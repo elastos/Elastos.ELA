@@ -59,6 +59,8 @@ func registerParams(c *cli.Context, L *lua.LState) {
 	recipient := c.String("recipient")
 	targetHash := c.String("targethash")
 	closeProposalHash := c.String("closeproposalhash")
+	reservedDIDShortNameList := c.String("reserveddidshortnamelist")
+	bannedDIDShortNameList := c.String("banneddidshortnamelist")
 	CRExpensesAddress := c.String("crccommiteeaddr")
 	payloadVersion := c.Int64("payloadversion")
 
@@ -245,6 +247,14 @@ func registerParams(c *cli.Context, L *lua.LState) {
 		L.Push(lua.LString(closeProposalHash))
 		return 1
 	}
+	getReservedDIDShortNameList := func(L *lua.LState) int {
+		L.Push(lua.LString(reservedDIDShortNameList))
+		return 1
+	}
+	getBannedDIDShortNameList := func(L *lua.LState) int {
+		L.Push(lua.LString(bannedDIDShortNameList))
+		return 1
+	}
 	getCRExpensesAddress := func(L *lua.LState) int {
 		L.Push(lua.LString(CRExpensesAddress))
 		return 1
@@ -308,6 +318,8 @@ func registerParams(c *cli.Context, L *lua.LState) {
 	L.Register("getNewOwnerPrivateKey", getNewOwnerPrivateKey)
 	L.Register("getTargetHash", getTargetHash)
 	L.Register("getCloseProposalHash", getCloseProposalHash)
+	L.Register("getReservedDIDShortNameList", getReservedDIDShortNameList)
+	L.Register("getBannedDIDShortNameList", getBannedDIDShortNameList)
 	L.Register("getCRExpensesAddress", getCRExpensesAddress)
 	L.Register("getPayloadVersion", getPayloadVersion)
 	L.Register("getCRManagementPublicKey", getCRManagementPublicKey)
@@ -472,6 +484,14 @@ func NewCommand() *cli.Command {
 			cli.StringFlag{
 				Name:  "closeproposalhash",
 				Usage: "set the close proposal hash",
+			},
+			cli.StringFlag{
+				Name:  "reserveddidshortnamelist",
+				Usage: "reserved did short name list",
+			},
+			cli.StringFlag{
+				Name:  "banneddidshortnamelist",
+				Usage: "banned did short name list",
 			},
 			cli.StringFlag{
 				Name:  "voteresult, votres",

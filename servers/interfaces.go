@@ -2542,7 +2542,7 @@ func getPayloadInfo(p Payload, payloadVersion byte) PayloadInfo {
 			obj.OwnerPublicKey = common.BytesToHexString(object.OwnerPublicKey)
 			obj.DraftHash = common.ToReversedString(object.DraftHash)
 			obj.ReservedDIDShortNameList = object.ReservedDIDShortNameList
-			object.BannedDIDShortNameList = object.BannedDIDShortNameList
+			obj.BannedDIDShortNameList = object.BannedDIDShortNameList
 			obj.Signature = common.BytesToHexString(object.Signature)
 			crmdid, _ := object.CRCouncilMemberDID.ToAddress()
 			obj.CRCouncilMemberDID = crmdid

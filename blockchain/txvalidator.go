@@ -2706,11 +2706,11 @@ func (b *BlockChain) checkReservedDIDShortName(proposal *payload.CRCProposal, Pa
 	}
 
 	if len(proposal.Budgets) > 0 {
-		return errors.New("CloseProposal cannot have budget")
+		return errors.New("ReservedDIDShortName cannot have budget")
 	}
 	emptyUint168 := common.Uint168{}
 	if proposal.Recipient != emptyUint168 {
-		return errors.New("CloseProposal recipient must be empty")
+		return errors.New("ReservedDIDShortName recipient must be empty")
 	}
 	crMember := b.crCommittee.GetMember(proposal.CRCouncilMemberDID)
 	if crMember == nil {

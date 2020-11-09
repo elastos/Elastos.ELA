@@ -1586,7 +1586,9 @@ func (s *State) setInactiveProducer(producer *Producer, key string,
 
 	if height < s.VersionStartHeight || height >= s.VersionEndHeight {
 		if !emergency {
-			producer.penalty += s.chainParams.InactivePenalty
+			if height >= s.chainParams.ChangeCommitteeNewCRHeight {
+				producer.penalty += s.chainParams.InactivePenalty
+			}
 		} else {
 			producer.penalty += s.chainParams.EmergencyInactivePenalty
 		}

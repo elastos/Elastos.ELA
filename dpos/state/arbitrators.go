@@ -376,7 +376,7 @@ func (a *arbitrators) normalChange(height uint32) error {
 
 func (a *arbitrators) notifyNextTurnDPOSInfoTx(blockHeight, versionHeight uint32) {
 	count := a.chainParams.GeneralArbiters
-	votedProducers, err := a.getSortedProducers(blockHeight, a.Unclaimed)
+	votedProducers, err := a.getSortedProducersWithRandom(blockHeight, a.Unclaimed)
 	if err != nil {
 		log.Error("notifyNextTurnDPOSInfoTx err", err)
 		return
@@ -427,14 +427,12 @@ func (a *arbitrators) IncreaseChainHeight(block *types.Block) {
 		a.illegalBlocksPayloadHashes = oriIllegalBlocks
 	})
 	a.history.Commit(block.Height)
-
 	if snapshotVotes {
 		if err := a.snapshotVotesStates(block.Height); err != nil {
 			panic(fmt.Sprintf("snap shot votes states error:%s", err))
 		}
 	}
 	a.history.Commit(block.Height)
-
 	bestHeight := a.bestHeight()
 	if block.Height > bestHeight-MaxSnapshotLength {
 		a.snapshot(block.Height)
@@ -443,7 +441,6 @@ func (a *arbitrators) IncreaseChainHeight(block *types.Block) {
 		a.notifyNextTurnDPOSInfoTx(block.Height, versionHeight)
 	}
 	a.mtx.Unlock()
-
 	if a.started && notify {
 		go events.Notify(events.ETDirectPeersChanged, a.GetNeedConnectArbiters())
 	}
@@ -1289,15 +1286,11 @@ func (a *arbitrators) updateNextTurnInfo(height uint32, producers []ArbiterMembe
 }
 
 func (a *arbitrators) getProducers(count int, height uint32) ([]ArbiterMember, error) {
-	votedProducers, err := a.getSortedProducers(height, 0)
-	if err != nil {
-		return nil, err
-	}
 	return a.GetNormalArbitratorsDesc(height, count,
-		votedProducers, 0)
+		a.getSortedProducers(), 0)
 }
 
-func (a *arbitrators) getSortedProducers(height uint32, unclaimedCount int) ([]*Producer, error) {
+func (a *arbitrators) getSortedProducers() []*Producer {
 	votedProducers := a.State.GetVotedProducers()
 	sort.Slice(votedProducers, func(i, j int) bool {
 		if votedProducers[i].votes == votedProducers[j].votes {
@@ -1307,6 +1300,11 @@ func (a *arbitrators) getSortedProducers(height uint32, unclaimedCount int) ([]*
 		return votedProducers[i].Votes() > votedProducers[j].Votes()
 	})
 
+	return votedProducers
+}
+
+func (a *arbitrators) getSortedProducersWithRandom(height uint32, unclaimedCount int) ([]*Producer, error) {
+	votedProducers := a.getSortedProducers()
 	if height < a.chainParams.NoCRCDPOSNodeHeight {
 		return votedProducers, nil
 	}
@@ -1322,19 +1320,16 @@ func (a *arbitrators) getSortedProducers(height uint32, unclaimedCount int) ([]*
 					// need get again at random.
 					break
 				}
-				candidateIndex := i
 				normalCount := a.chainParams.GeneralArbiters - 1
-				selectedCandidateIndex := unclaimedCount + normalCount + candidateIndex
-				candidateProducer := votedProducers[selectedCandidateIndex]
-
-				a.LastRandomCandidateHeight = height
-				a.LastRandomCandidateOwner = common.BytesToHexString(candidateProducer.info.OwnerPublicKey)
+				selectedCandidateIndex := i
 
 				newProducers := make([]*Producer, 0, len(votedProducers))
 				newProducers = append(newProducers, votedProducers[:unclaimedCount+normalCount]...)
-				newProducers = append(newProducers, candidateProducer)
+				newProducers = append(newProducers, p)
 				newProducers = append(newProducers, votedProducers[unclaimedCount+normalCount:selectedCandidateIndex]...)
 				newProducers = append(newProducers, votedProducers[selectedCandidateIndex+1:]...)
+				log.Info("no need random producer, current random producer:",
+					p.info.NickName, "current height:", height)
 				return newProducers, nil
 			}
 		}
@@ -1358,6 +1353,9 @@ func (a *arbitrators) getSortedProducers(height uint32, unclaimedCount int) ([]*
 	newProducers = append(newProducers, candidateProducer)
 	newProducers = append(newProducers, votedProducers[unclaimedCount+normalCount:selectedCandidateIndex]...)
 	newProducers = append(newProducers, votedProducers[selectedCandidateIndex+1:]...)
+
+	log.Info("random producer, current random producer:",
+		candidateProducer.info.NickName, "current height:", height)
 	return newProducers, nil
 }
 
@@ -1395,7 +1393,7 @@ func (a *arbitrators) updateNextArbitrators(versionHeight, height uint32) error 
 
 	if !a.IsInactiveMode() && !a.IsUnderstaffedMode() {
 		count := a.chainParams.GeneralArbiters
-		votedProducers, err := a.getSortedProducers(height, unclaimed)
+		votedProducers, err := a.getSortedProducersWithRandom(height, unclaimed)
 		if err != nil {
 			return err
 		}
@@ -1423,8 +1421,8 @@ func (a *arbitrators) updateNextArbitrators(versionHeight, height uint32) error 
 							producer.selected = true
 						})
 					}
-					if common.BytesToHexString(producers[len(producers)-1].
-						GetOwnerPublicKey()) == a.LastRandomCandidateOwner {
+					if common.BytesToHexString(producer.info.NodePublicKey) ==
+						a.LastRandomCandidateOwner {
 						a.history.Append(height, func() {
 							producer.selected = true
 						}, func() {
@@ -1466,7 +1464,6 @@ func (a *arbitrators) updateNextArbitrators(versionHeight, height uint32) error 
 			a.nextCandidates = oriNextCandidates
 		})
 	}
-
 	return nil
 }
 
@@ -1755,13 +1752,14 @@ func (a *arbitrators) GetNormalArbitratorsDesc(height uint32,
 
 func (a *arbitrators) snapshotVotesStates(height uint32) error {
 	var nextReward RewardData
-
 	nextReward.OwnerVotesInRound = make(map[common.Uint168]common.Fixed64, 0)
 	nextReward.TotalVotesInRound = 0
 	for _, ar := range a.nextArbitrators {
 		if !a.isNextCRCArbitrator(ar.GetNodePublicKey()) ||
 			(height >= a.chainParams.ChangeCommitteeNewCRHeight &&
-				ar.(*crcArbiter).crMember.DPOSPublicKey == nil && ar.IsNormal()) {
+				ar.GetType() == CRC &&
+				ar.(*crcArbiter).crMember.DPOSPublicKey == nil &&
+				ar.IsNormal()) {
 			producer := a.GetProducer(ar.GetNodePublicKey())
 			if producer == nil {
 				return errors.New("get producer by node public key failed")
@@ -1795,7 +1793,6 @@ func (a *arbitrators) snapshotVotesStates(height uint32) error {
 	}, func() {
 		a.NextReward = oriNextReward
 	})
-
 	return nil
 }
 

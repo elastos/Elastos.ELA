@@ -954,6 +954,7 @@ func TestState_InactiveProducer_Normal(t *testing.T) {
 		nil, nil, nil,
 		nil, nil)
 	state.chainParams.InactivePenalty = 50
+	state.chainParams.ChangeCommitteeNewCRHeight = 1
 
 	// Create 10 producers info.
 	producers := make([]*payload.ProducerInfo, 10)
@@ -1107,7 +1108,7 @@ func TestState_InactiveProducer_RecoverFromInactiveState(t *testing.T) {
 	state := NewState(&config.DefaultParams, arbitrators.GetArbitrators, nil, nil,
 		nil, nil, nil,
 		nil, nil)
-
+	state.chainParams.ChangeCommitteeNewCRHeight = 1
 	// Create 10 producers info.
 	producers := make([]*payload.ProducerInfo, 10)
 	for i, p := range producers {

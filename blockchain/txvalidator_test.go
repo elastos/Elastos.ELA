@@ -1864,7 +1864,7 @@ func randomName(length int) string {
 	return string(b)
 }
 
-func (s *txValidatorTestSuite) getCRCReservedDIDShortNameProposalTx(publicKeyStr, privateKeyStr,
+func (s *txValidatorTestSuite) getCRCReservedCustomIDProposalTx(publicKeyStr, privateKeyStr,
 	crPublicKeyStr, crPrivateKeyStr string) *types.Transaction {
 
 	privateKey1, _ := common.HexStringToBytes(privateKeyStr)
@@ -1880,12 +1880,12 @@ func (s *txValidatorTestSuite) getCRCReservedDIDShortNameProposalTx(publicKeyStr
 	txn.Version = types.TxVersion09
 	CRCouncilMemberDID, _ := getDIDFromCode(code2)
 	crcProposalPayload := &payload.CRCProposal{
-		ProposalType:             payload.ReservedDIDShortName,
-		OwnerPublicKey:           publicKey2,
-		CRCouncilMemberDID:       *CRCouncilMemberDID,
-		DraftHash:                common.Hash(draftData),
-		ReservedDIDShortNameList: []string{randomName(3), randomName(3), randomName(3)},
-		BannedDIDShortNameList:   []string{randomName(3), randomName(3), randomName(3)},
+		ProposalType:         payload.ReserveCustomID,
+		OwnerPublicKey:       publicKey2,
+		CRCouncilMemberDID:   *CRCouncilMemberDID,
+		DraftHash:            common.Hash(draftData),
+		ReservedCustomIDList: []string{randomName(3), randomName(3), randomName(3)},
+		BannedCustomIDList:   []string{randomName(3), randomName(3), randomName(3)},
 	}
 
 	signBuf := new(bytes.Buffer)
@@ -3239,19 +3239,19 @@ func (s *txValidatorTestSuite) TestCheckCRCProposalTransaction() {
 	s.EqualError(err, "proposal is full")
 
 	s.Chain.chainParams.MaxCommitteeProposalCount = s.Chain.chainParams.MaxCommitteeProposalCount + 100
-	// invalid reserved did short name
-	txn = s.getCRCReservedDIDShortNameProposalTx(publicKeyStr2, privateKeyStr2, publicKeyStr1, privateKeyStr1)
+	// invalid reserved custom id
+	txn = s.getCRCReservedCustomIDProposalTx(publicKeyStr2, privateKeyStr2, publicKeyStr1, privateKeyStr1)
 	proposal, _ = txn.Payload.(*payload.CRCProposal)
-	proposal.ReservedDIDShortNameList = append(proposal.ReservedDIDShortNameList, randomName(260))
+	proposal.ReservedCustomIDList = append(proposal.ReservedCustomIDList, randomName(260))
 	err = s.Chain.checkCRCProposalTransaction(txn, tenureHeight, 0)
-	s.EqualError(err, "Reserved did short name too long")
+	s.EqualError(err, "Reserved custom id too long")
 
-	// invalid banned did short name
-	txn = s.getCRCReservedDIDShortNameProposalTx(publicKeyStr2, privateKeyStr2, publicKeyStr1, privateKeyStr1)
+	// invalid banned custom id
+	txn = s.getCRCReservedCustomIDProposalTx(publicKeyStr2, privateKeyStr2, publicKeyStr1, privateKeyStr1)
 	proposal, _ = txn.Payload.(*payload.CRCProposal)
-	proposal.BannedDIDShortNameList = append(proposal.BannedDIDShortNameList, randomName(260))
+	proposal.BannedCustomIDList = append(proposal.BannedCustomIDList, randomName(260))
 	err = s.Chain.checkCRCProposalTransaction(txn, tenureHeight, 0)
-	s.EqualError(err, "Banned did short name too long")
+	s.EqualError(err, "Banned custom id too long")
 
 }
 

@@ -34,7 +34,7 @@ const (
 	luaCRCProposalName              = "crcproposal"
 	luaCRChangeProposalOwnerName    = "crchangeproposalowner"
 	luaCRCCloseProposalHashName     = "crccloseproposalhash"
-	luaCRCReservedDIDShortName      = "crcreserveddidshortname"
+	luaCRCReservedCustomIDName      = "crcreservedcustomidname"
 	luaCRCProposalReviewName        = "crcproposalreview"
 	luaCRCProposalTrackingName      = "crcproposaltracking"
 	luaCRCProposalWithdrawName      = "crcproposalwithdraw"
@@ -968,11 +968,11 @@ func RegisterCRCCloseProposalHashType(L *lua.LState) {
 	L.SetField(mt, "__index", L.SetFuncs(L.NewTable(), crcProposalMethods))
 }
 
-func RegisterCRCReservedDIDShortNameType(L *lua.LState) {
-	mt := L.NewTypeMetatable(luaCRCReservedDIDShortName)
-	L.SetGlobal("crcreserveddidshortname", mt)
+func RegisterCRCReservedCustomIDType(L *lua.LState) {
+	mt := L.NewTypeMetatable(luaCRCReservedCustomIDName)
+	L.SetGlobal("crcreservedcustomid", mt)
 	// static attributes
-	L.SetField(mt, "new", L.NewFunction(newCRCReservedDIDShortName))
+	L.SetField(mt, "new", L.NewFunction(newCRCReservedCustomID))
 	// methods
 	L.SetField(mt, "__index", L.SetFuncs(L.NewTable(), crcProposalMethods))
 }
@@ -1330,12 +1330,12 @@ func newCRChangeProposalOwner(L *lua.LState) int {
 
 }
 
-func newCRCReservedDIDShortName(L *lua.LState) int {
+func newCRCReservedCustomID(L *lua.LState) int {
 	publicKeyStr := L.ToString(1)
 	proposalType := L.ToInt64(2)
 	draftDataStr := L.ToString(3)
-	reserved_did_short_name_list := L.ToString(4)
-	banned_did_short_name_list := L.ToString(5)
+	reserved_custom_id_list := L.ToString(4)
+	banned_custom_id_list := L.ToString(5)
 
 	needSign := true
 	client, err := checkClient(L, 6)
@@ -1343,8 +1343,8 @@ func newCRCReservedDIDShortName(L *lua.LState) int {
 		needSign = false
 	}
 	draftHash := common.Hash([]byte(draftDataStr))
-	reservedNames := strings.Split(reserved_did_short_name_list, ",")
-	bannedNames := strings.Split(banned_did_short_name_list, ",")
+	reservedNames := strings.Split(reserved_custom_id_list, ",")
+	bannedNames := strings.Split(banned_custom_id_list, ",")
 
 	publicKey, err := common.HexStringToBytes(publicKeyStr)
 	if err != nil {
@@ -1365,13 +1365,13 @@ func newCRCReservedDIDShortName(L *lua.LState) int {
 	}
 	did, _ := getDIDFromCode(ct.Code)
 	crcProposal := &payload.CRCProposal{
-		ProposalType:             payload.CRCProposalType(proposalType),
-		OwnerPublicKey:           publicKey,
-		DraftHash:                draftHash,
-		DraftData:                []byte(draftDataStr),
-		CRCouncilMemberDID:       *did,
-		ReservedDIDShortNameList: reservedNames,
-		BannedDIDShortNameList:   bannedNames,
+		ProposalType:         payload.CRCProposalType(proposalType),
+		OwnerPublicKey:       publicKey,
+		DraftHash:            draftHash,
+		DraftData:            []byte(draftDataStr),
+		CRCouncilMemberDID:   *did,
+		ReservedCustomIDList: reservedNames,
+		BannedCustomIDList:   bannedNames,
 	}
 
 	if needSign {
@@ -1418,7 +1418,7 @@ func newCRCReservedDIDShortName(L *lua.LState) int {
 	}
 	ud := L.NewUserData()
 	ud.Value = crcProposal
-	L.SetMetatable(ud, L.GetTypeMetatable(luaCRCReservedDIDShortName))
+	L.SetMetatable(ud, L.GetTypeMetatable(luaCRCReservedCustomIDName))
 	L.Push(ud)
 
 	return 1

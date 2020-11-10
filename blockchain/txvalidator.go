@@ -1120,7 +1120,7 @@ func (b *BlockChain) checkTxHeightVersion(txn *Transaction, blockHeight uint32) 
 			if blockHeight < b.chainParams.CRCProposalV1Height {
 				return errors.New("not support before CRCProposalV1Height")
 			}
-		case payload.ReservedDIDShortName:
+		case payload.ReserveCustomID:
 			if blockHeight < b.chainParams.ChangeCommitteeNewCRHeight {
 				return errors.New("not support before ChangeCommitteeNewCRHeight")
 			}
@@ -2687,30 +2687,30 @@ func (b *BlockChain) checkChangeSecretaryGeneralProposalTx(crcProposal *payload.
 	return nil
 }
 
-func (b *BlockChain) checkReservedDIDShortName(proposal *payload.CRCProposal, PayloadVersion byte) error {
+func (b *BlockChain) checkReservedCustomID(proposal *payload.CRCProposal, PayloadVersion byte) error {
 	_, err := crypto.DecodePoint(proposal.OwnerPublicKey)
 	if err != nil {
 		return errors.New("DecodePoint from OwnerPublicKey error")
 	}
 
-	for _, v := range proposal.ReservedDIDShortNameList {
+	for _, v := range proposal.ReservedCustomIDList {
 		if len(v) > 255 {
-			return errors.New("Reserved did short name too long")
+			return errors.New("Reserved custom id too long")
 		}
 	}
 
-	for _, v := range proposal.BannedDIDShortNameList {
+	for _, v := range proposal.BannedCustomIDList {
 		if len(v) > 255 {
-			return errors.New("Banned did short name too long")
+			return errors.New("Banned custom id too long")
 		}
 	}
 
 	if len(proposal.Budgets) > 0 {
-		return errors.New("ReservedDIDShortName cannot have budget")
+		return errors.New("ReserveCustomID cannot have budget")
 	}
 	emptyUint168 := common.Uint168{}
 	if proposal.Recipient != emptyUint168 {
-		return errors.New("ReservedDIDShortName recipient must be empty")
+		return errors.New("ReserveCustomID recipient must be empty")
 	}
 	crMember := b.crCommittee.GetMember(proposal.CRCouncilMemberDID)
 	if crMember == nil {
@@ -3004,8 +3004,8 @@ func (b *BlockChain) checkCRCProposalTransaction(txn *Transaction,
 		return b.checkChangeProposalOwner(proposal, txn.PayloadVersion)
 	case payload.CloseProposal:
 		return b.checkCloseProposal(proposal, txn.PayloadVersion)
-	case payload.ReservedDIDShortName:
-		return b.checkReservedDIDShortName(proposal, txn.PayloadVersion)
+	case payload.ReserveCustomID:
+		return b.checkReservedCustomID(proposal, txn.PayloadVersion)
 	case payload.SecretaryGeneral:
 		return b.checkChangeSecretaryGeneralProposalTx(proposal, txn.PayloadVersion)
 	default:

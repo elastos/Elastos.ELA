@@ -236,10 +236,10 @@ type ProposalKeyFrame struct {
 	WithdrawableTxInfo map[common.Uint256]types.OutputInfo
 	// publicKey of SecretaryGeneral
 	SecretaryGeneralPublicKey string
-	// reserved did short name list
-	ReservedDIDShortNameLists [][]string
-	// banned did short name list
-	BannedDIDShortNameLists [][]string
+	// reserved custom id list
+	ReservedCustomIDLists [][]string
+	// banned custom id list
+	BannedCustomIDLists [][]string
 }
 
 func NewProposalMap() ProposalsMap {

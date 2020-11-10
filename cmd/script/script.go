@@ -59,8 +59,8 @@ func registerParams(c *cli.Context, L *lua.LState) {
 	recipient := c.String("recipient")
 	targetHash := c.String("targethash")
 	closeProposalHash := c.String("closeproposalhash")
-	reservedDIDShortNameList := c.String("reserveddidshortnamelist")
-	bannedDIDShortNameList := c.String("banneddidshortnamelist")
+	reservedCustomIDList := c.String("reservedcustomidlist")
+	bannedCustomIDList := c.String("bannedcustomidlist")
 	CRExpensesAddress := c.String("crccommiteeaddr")
 	payloadVersion := c.Int64("payloadversion")
 
@@ -247,12 +247,12 @@ func registerParams(c *cli.Context, L *lua.LState) {
 		L.Push(lua.LString(closeProposalHash))
 		return 1
 	}
-	getReservedDIDShortNameList := func(L *lua.LState) int {
-		L.Push(lua.LString(reservedDIDShortNameList))
+	getReservedCustomIDList := func(L *lua.LState) int {
+		L.Push(lua.LString(reservedCustomIDList))
 		return 1
 	}
-	getBannedDIDShortNameList := func(L *lua.LState) int {
-		L.Push(lua.LString(bannedDIDShortNameList))
+	getBannedCustomIDList := func(L *lua.LState) int {
+		L.Push(lua.LString(bannedCustomIDList))
 		return 1
 	}
 	getCRExpensesAddress := func(L *lua.LState) int {
@@ -318,8 +318,8 @@ func registerParams(c *cli.Context, L *lua.LState) {
 	L.Register("getNewOwnerPrivateKey", getNewOwnerPrivateKey)
 	L.Register("getTargetHash", getTargetHash)
 	L.Register("getCloseProposalHash", getCloseProposalHash)
-	L.Register("getReservedDIDShortNameList", getReservedDIDShortNameList)
-	L.Register("getBannedDIDShortNameList", getBannedDIDShortNameList)
+	L.Register("getReservedCustomIDList", getReservedCustomIDList)
+	L.Register("getBannedCustomIDList", getBannedCustomIDList)
 	L.Register("getCRExpensesAddress", getCRExpensesAddress)
 	L.Register("getPayloadVersion", getPayloadVersion)
 	L.Register("getCRManagementPublicKey", getCRManagementPublicKey)
@@ -486,12 +486,12 @@ func NewCommand() *cli.Command {
 				Usage: "set the close proposal hash",
 			},
 			cli.StringFlag{
-				Name:  "reserveddidshortnamelist",
-				Usage: "reserved did short name list",
+				Name:  "reservedcustomidlist",
+				Usage: "reserved custom id list",
 			},
 			cli.StringFlag{
-				Name:  "banneddidshortnamelist",
-				Usage: "banned did short name list",
+				Name:  "bannedcustomidlist",
+				Usage: "banned custom id list",
 			},
 			cli.StringFlag{
 				Name:  "voteresult, votres",

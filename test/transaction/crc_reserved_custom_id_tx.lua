@@ -33,8 +33,8 @@ local proposal_type = getProposalType()
 local draft_hash = getDraftHash()
 local draft_data = getDraftData()
 
-local reserved_did_short_name_list = getReservedDIDShortNameList()
-local banned_did_short_name_list = getBannedDIDShortNameList()
+local reserved_custom_id_list = getReservedCustomIDList()
+local banned_custom_id_list = getBannedCustomIDList()
 
 if fee == 0
     then
@@ -50,13 +50,13 @@ if draft_data == "" then
     return
 end
 
-if reserved_did_short_name_list == "" then
-    print("reserved_did_short_name_list is nil, should use --reserved_did_short_name_list to set it.")
+if reserved_custom_id_list == "" then
+    print("reserved_custom_id_list is nil, should use --reservedcustomidlist to set it.")
     return
 end
 
-if banned_did_short_name_list == "" then
-    print("banned_did_short_name_list is nil, should use --banned_did_short_name_list to set it.")
+if banned_custom_id_list == "" then
+    print("banned_custom_id_list is nil, should use --bannedcustomidlist to set it.")
     return
 end
 
@@ -64,12 +64,12 @@ print("fee:", fee)
 print("public key:", cr_pubkey)
 print("proposal type:", proposal_type)
 print("draft proposal hash:", draft_hash)
-print("reserved_did_short_name_list:", reserved_did_short_name_list)
-print("banned_did_short_name_list:", banned_did_short_name_list)
+print("reserved_custom_id_list:", reserved_custom_id_list)
+print("banned_custom_id_list:", banned_custom_id_list)
 print("draft_data :", draft_data)
 
 -- crc close proposal hash payload: crPublickey, proposalType, draftData, close_proposal_hash, wallet
-local cp_payload =crcreserveddidshortname.new(cr_pubkey, proposal_type, draft_data, reserved_did_short_name_list, banned_did_short_name_list, wallet)
+local cp_payload =crcreservedcustomid.new(cr_pubkey, proposal_type, draft_data, reserved_custom_id_list, banned_custom_id_list, wallet)
 
 print(cp_payload:get())
 

@@ -282,13 +282,13 @@ type CRCCloseProposalInfo struct {
 	Hash                     string `json:"hash"`
 }
 
-type CRCReservedDIDShortNameProposalInfo struct {
+type CRCReservedCustomIDProposalInfo struct {
 	ProposalType             string   `json:"proposaltype"`
 	CategoryData             string   `json:"categorydata"`
 	OwnerPublicKey           string   `json:"ownerpublickey"`
 	DraftHash                string   `json:"drafthash"`
-	ReservedDIDShortNameList []string `json:"reserveddidshortnamelist"`
-	BannedDIDShortNameList   []string `json:"banneddidshortnamelist"`
+	ReservedCustomIDList     []string `json:"reservedcustomidlist"`
+	BannedCustomIDList       []string `json:"bannedcustomidlist"`
 	Signature                string   `json:"signature"`
 	CRCouncilMemberDID       string   `json:"crcouncilmemberdid"`
 	CRCouncilMemberSignature string   `json:"crcouncilmembersignature"`

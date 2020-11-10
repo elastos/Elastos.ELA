@@ -124,11 +124,6 @@ func (a *arbitrators) IsNeedNextTurnDPOSInfo() bool {
 	defer a.mtx.Unlock()
 	return a.NeedNextTurnDposInfo
 }
-func (a *arbitrators) SetNeedNextTurnDPOSInfo(isNeed bool) {
-	a.mtx.Lock()
-	defer a.mtx.Unlock()
-	a.NeedNextTurnDposInfo = isNeed
-}
 
 func (a *arbitrators) RecoverFromCheckPoints(point *CheckPoint) {
 	a.mtx.Lock()
@@ -341,7 +336,9 @@ func (a *arbitrators) ForceChange(height uint32) error {
 		a.forceChanged = oriForceChanged
 	})
 	a.history.Commit(height + 1)
-	a.notifyNextTurnDPOSInfoTx(block.Height, block.Height+1)
+	if block.Height >= a.bestHeight() {
+		a.notifyNextTurnDPOSInfoTx(block.Height, block.Height+1)
+	}
 
 	a.dumpInfo(height)
 	return nil
@@ -1334,11 +1331,15 @@ func (a *arbitrators) updateNextArbitrators(versionHeight, height uint32) error 
 				return err
 			}
 			oriNextCandidates := a.nextCandidates
+			oriNeedNextTurnDposInfo := a.NeedNextTurnDposInfo
+			oriUnclaimed := a.Unclaimed
 			a.history.Append(height, func() {
 				a.nextCandidates = make([]ArbiterMember, 0)
 				a.updateNextTurnInfo(height, producers, unclaimed)
 			}, func() {
 				a.nextCandidates = oriNextCandidates
+				a.NeedNextTurnDposInfo = oriNeedNextTurnDposInfo
+				a.Unclaimed = oriUnclaimed
 			})
 		} else {
 			oriNeedNextTurnDposInfo := a.NeedNextTurnDposInfo
@@ -1368,11 +1369,15 @@ func (a *arbitrators) updateNextArbitrators(versionHeight, height uint32) error 
 		}
 	} else {
 		oriNextCandidates := a.nextCandidates
+		oriNeedNextTurnDposInfo := a.NeedNextTurnDposInfo
+		oriUnClaimed := a.Unclaimed
 		a.history.Append(height, func() {
 			a.nextCandidates = make([]ArbiterMember, 0)
 			a.updateNextTurnInfo(height, nil, unclaimed)
 		}, func() {
 			a.nextCandidates = oriNextCandidates
+			a.NeedNextTurnDposInfo = oriNeedNextTurnDposInfo
+			a.Unclaimed = oriUnClaimed
 		})
 	}
 

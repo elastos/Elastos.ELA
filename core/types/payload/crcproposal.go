@@ -32,6 +32,8 @@ const (
 	SideChainUpgradeCode CRCProposalType = 0x0300
 	// Registration of side chain
 	RegisterSideChain CRCProposalType = 0x0301
+	// Reserved did custom id
+	ReserveCustomID CRCProposalType = 0x0302
 
 	// SecretaryGeneral indicates the vote secretary general types of proposals.
 	SecretaryGeneral CRCProposalType = 0x0400
@@ -42,9 +44,6 @@ const (
 
 	// Common information used to define consensus governance
 	DappConsensus CRCProposalType = 0x0500
-
-	// Reserved did short names
-	ReservedDIDShortName CRCProposalType = 0x0600
 )
 
 type CRCProposalType uint16
@@ -65,8 +64,8 @@ func (pt CRCProposalType) Name() string {
 		return "CloseProposal"
 	case SecretaryGeneral:
 		return "SecretaryGeneral"
-	case ReservedDIDShortName:
-		return "ReservedDIDShortName"
+	case ReserveCustomID:
+		return "ReserveCustomID"
 	default:
 		return "Unknown"
 	}
@@ -137,11 +136,11 @@ type CRCProposal struct {
 	// Hash of proposal that need to change owner or need to be closed.
 	TargetProposalHash common.Uint256
 
-	// Reversed did short name list
-	ReservedDIDShortNameList []string
+	// Reversed did custom id list
+	ReservedCustomIDList []string
 
-	// Banned did short name list
-	BannedDIDShortNameList []string
+	// Banned did custom id list
+	BannedCustomIDList []string
 
 	// The specified ELA address where the funds are to be sent.
 	NewRecipient common.Uint168
@@ -191,8 +190,8 @@ func (p *CRCProposal) SerializeUnsigned(w io.Writer, version byte) error {
 		return p.SerializeUnsignedCloseProposal(w, version)
 	case SecretaryGeneral:
 		return p.SerializeUnsignedChangeSecretaryGeneral(w, version)
-	case ReservedDIDShortName:
-		return p.SerializeUnsignedReserveDIDShortName(w, version)
+	case ReserveCustomID:
+		return p.SerializeUnsignedReservedCustomID(w, version)
 	default:
 		return p.SerializeUnsignedNormalOrELIP(w, version)
 	}
@@ -329,7 +328,7 @@ func (p *CRCProposal) SerializeUnsignedCloseProposal(w io.Writer, version byte) 
 	return nil
 }
 
-func (p *CRCProposal) SerializeUnsignedReserveDIDShortName(w io.Writer, version byte) error {
+func (p *CRCProposal) SerializeUnsignedReservedCustomID(w io.Writer, version byte) error {
 
 	if err := common.WriteElement(w, p.ProposalType); err != nil {
 		return errors.New("failed to serialize ProposalType")
@@ -352,23 +351,23 @@ func (p *CRCProposal) SerializeUnsignedReserveDIDShortName(w io.Writer, version 
 		}
 	}
 
-	if err := common.WriteVarUint(w, uint64(len(p.ReservedDIDShortNameList))); err != nil {
-		return errors.New("failed to serialize ReservedDIDShortNameList len")
+	if err := common.WriteVarUint(w, uint64(len(p.ReservedCustomIDList))); err != nil {
+		return errors.New("failed to serialize ReservedCustomIDList len")
 	}
 
-	for _, v := range p.ReservedDIDShortNameList {
+	for _, v := range p.ReservedCustomIDList {
 		if err := common.WriteVarString(w, v); err != nil {
-			return errors.New("failed to serialize ReservedDIDShortNameList")
+			return errors.New("failed to serialize ReservedCustomIDList")
 		}
 	}
 
-	if err := common.WriteVarUint(w, uint64(len(p.BannedDIDShortNameList))); err != nil {
-		return errors.New("failed to serialize BannedDIDShortNameList len")
+	if err := common.WriteVarUint(w, uint64(len(p.BannedCustomIDList))); err != nil {
+		return errors.New("failed to serialize BannedCustomIDList len")
 	}
 
-	for _, v := range p.BannedDIDShortNameList {
+	for _, v := range p.BannedCustomIDList {
 		if err := common.WriteVarString(w, v); err != nil {
-			return errors.New("failed to serialize BannedDIDShortNameList")
+			return errors.New("failed to serialize BannedCustomIDList")
 		}
 	}
 
@@ -383,8 +382,8 @@ func (p *CRCProposal) Serialize(w io.Writer, version byte) error {
 		return p.SerializeCloseProposal(w, version)
 	case SecretaryGeneral:
 		return p.SerializeChangeSecretaryGeneral(w, version)
-	case ReservedDIDShortName:
-		return p.SerializeReserveDIDShortName(w, version)
+	case ReserveCustomID:
+		return p.SerializeReserveCustomID(w, version)
 	default:
 		return p.SerializeNormalOrELIP(w, version)
 	}
@@ -457,7 +456,7 @@ func (p *CRCProposal) SerializeCloseProposal(w io.Writer, version byte) error {
 	return common.WriteVarBytes(w, p.CRCouncilMemberSignature)
 }
 
-func (p *CRCProposal) SerializeReserveDIDShortName(w io.Writer, version byte) error {
+func (p *CRCProposal) SerializeReserveCustomID(w io.Writer, version byte) error {
 	if err := p.SerializeUnsigned(w, version); err != nil {
 		return err
 	}
@@ -502,8 +501,8 @@ func (p *CRCProposal) DeserializeUnSigned(r io.Reader, version byte) error {
 		return p.DeserializeUnSignedCloseProposal(r, version)
 	case SecretaryGeneral:
 		return p.DeserializeUnSignedChangeSecretaryGeneral(r, version)
-	case ReservedDIDShortName:
-		return p.DeserializeUnSignedReserveDIDShortName(r, version)
+	case ReserveCustomID:
+		return p.DeserializeUnSignedReservedCustomID(r, version)
 	default:
 		return p.DeserializeUnSignedNormalOrELIP(r, version)
 	}
@@ -608,7 +607,7 @@ func (p *CRCProposal) DeserializeUnSignedCloseProposal(r io.Reader, version byte
 	return nil
 }
 
-func (p *CRCProposal) DeserializeUnSignedReserveDIDShortName(r io.Reader, version byte) error {
+func (p *CRCProposal) DeserializeUnSignedReservedCustomID(r io.Reader, version byte) error {
 	var err error
 
 	p.CategoryData, err = common.ReadVarString(r)
@@ -635,27 +634,27 @@ func (p *CRCProposal) DeserializeUnSignedReserveDIDShortName(r io.Reader, versio
 	if count, err = common.ReadVarUint(r, 0); err != nil {
 		return errors.New("failed to deserialize Budgets")
 	}
-	p.ReservedDIDShortNameList = make([]string, 0)
+	p.ReservedCustomIDList = make([]string, 0)
 	for i := 0; i < int(count); i++ {
-		shortName, err := common.ReadVarString(r)
+		customID, err := common.ReadVarString(r)
 		if err != nil {
-			return errors.New("[CRCProposal], reserved did short name deserialize failed")
+			return errors.New("[CRCProposal], reserved custom id deserialize failed")
 		}
 
-		p.ReservedDIDShortNameList = append(p.ReservedDIDShortNameList, shortName)
+		p.ReservedCustomIDList = append(p.ReservedCustomIDList, customID)
 	}
 
 	if count, err = common.ReadVarUint(r, 0); err != nil {
 		return errors.New("failed to deserialize Budgets")
 	}
-	p.BannedDIDShortNameList = make([]string, 0)
+	p.BannedCustomIDList = make([]string, 0)
 	for i := 0; i < int(count); i++ {
-		bannedShortName, err := common.ReadVarString(r)
+		bannedCustomID, err := common.ReadVarString(r)
 		if err != nil {
-			return errors.New("[CRCProposal], banned did short name deserialize failed")
+			return errors.New("[CRCProposal], banned custom id deserialize failed")
 		}
 
-		p.BannedDIDShortNameList = append(p.BannedDIDShortNameList, bannedShortName)
+		p.BannedCustomIDList = append(p.BannedCustomIDList, bannedCustomID)
 	}
 
 	return nil
@@ -704,8 +703,8 @@ func (p *CRCProposal) Deserialize(r io.Reader, version byte) error {
 		return p.DeserializeCloseProposal(r, version)
 	case SecretaryGeneral:
 		return p.DeserializeChangeSecretaryGeneral(r, version)
-	case ReservedDIDShortName:
-		return p.DeserializeReserveDIDShortName(r, version)
+	case ReserveCustomID:
+		return p.DeserializeReservedCustomID(r, version)
 	default:
 		return p.DeserializeNormalOrELIP(r, version)
 	}
@@ -791,7 +790,7 @@ func (p *CRCProposal) DeserializeCloseProposal(r io.Reader, version byte) error 
 	return nil
 }
 
-func (p *CRCProposal) DeserializeReserveDIDShortName(r io.Reader, version byte) error {
+func (p *CRCProposal) DeserializeReservedCustomID(r io.Reader, version byte) error {
 
 	if err := p.DeserializeUnSigned(r, version); err != nil {
 		return err

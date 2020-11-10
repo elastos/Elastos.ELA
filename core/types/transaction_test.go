@@ -613,15 +613,15 @@ func randomName(length int) string {
 func (s *transactionSuite) TestCRCProposal_Deserialize() {
 
 	proposalTypes := []payload.CRCProposalType{payload.Normal, payload.ELIP,
-		payload.CloseProposal, payload.ChangeProposalOwner, payload.ReservedDIDShortName}
+		payload.CloseProposal, payload.ChangeProposalOwner, payload.ReserveCustomID}
 
 	for _, proposalType := range proposalTypes {
 
 		crpPayload1 := createCRCProposalPayload(proposalType)
 
-		if proposalType == payload.ReservedDIDShortName {
-			crpPayload1.ReservedDIDShortNameList = []string{randomName(3), randomName(3), randomName(3)}
-			crpPayload1.BannedDIDShortNameList = []string{randomName(3), randomName(3), randomName(3)}
+		if proposalType == payload.ReserveCustomID {
+			crpPayload1.ReservedCustomIDList = []string{randomName(3), randomName(3), randomName(3)}
+			crpPayload1.BannedCustomIDList = []string{randomName(3), randomName(3), randomName(3)}
 		}
 
 		buf := new(bytes.Buffer)
@@ -636,8 +636,8 @@ func (s *transactionSuite) TestCRCProposal_Deserialize() {
 			s.True(crpPayloadCloseProposalEqual(crpPayload1, crpPayload2))
 		} else if proposalType == payload.ChangeProposalOwner {
 			s.True(crpPayloadChangeProposalOwnerEqual(crpPayload1, crpPayload2))
-		} else if proposalType == payload.ReservedDIDShortName {
-			s.True(crpPayloadReservedDIDShortNameEqual(crpPayload1, crpPayload2))
+		} else if proposalType == payload.ReserveCustomID {
+			s.True(crpPayloadReservedCustomIDEqual(crpPayload1, crpPayload2))
 		}
 
 	}
@@ -688,15 +688,15 @@ func crpPayloadCloseProposalEqual(payload1 *payload.CRCProposal, payload2 *paylo
 		bytes.Equal(payload1.CRCouncilMemberSignature, payload2.CRCouncilMemberSignature)
 }
 
-func crpPayloadReservedDIDShortNameEqual(payload1 *payload.CRCProposal, payload2 *payload.CRCProposal) bool {
-	for i, v := range payload1.ReservedDIDShortNameList {
-		if v != payload2.ReservedDIDShortNameList[i] {
+func crpPayloadReservedCustomIDEqual(payload1 *payload.CRCProposal, payload2 *payload.CRCProposal) bool {
+	for i, v := range payload1.ReservedCustomIDList {
+		if v != payload2.ReservedCustomIDList[i] {
 			return false
 		}
 	}
 
-	for i, v := range payload1.BannedDIDShortNameList {
-		if v != payload2.BannedDIDShortNameList[i] {
+	for i, v := range payload1.BannedCustomIDList {
+		if v != payload2.BannedCustomIDList[i] {
 			return false
 		}
 	}

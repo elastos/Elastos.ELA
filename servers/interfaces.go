@@ -1655,14 +1655,14 @@ type RPCCloseProposal struct {
 	CRCouncilMemberDID string `json:"crcouncilmemberdid"`
 }
 
-type RPCReservedDIDShortNameProposal struct {
-	ProposalType             string   `json:"proposaltype"`
-	CategoryData             string   `json:"categorydata"`
-	OwnerPublicKey           string   `json:"ownerpublickey"`
-	DraftHash                string   `json:"drafthash"`
-	ReservedDIDShortNameList []string `json:"reserveddidshortnamelist"`
-	BannedDIDShortNameList   []string `json:"banneddidshortnamelist"`
-	CRCouncilMemberDID       string   `json:"crcouncilmemberdid"`
+type RPCReservedCustomIDProposal struct {
+	ProposalType         string   `json:"proposaltype"`
+	CategoryData         string   `json:"categorydata"`
+	OwnerPublicKey       string   `json:"ownerpublickey"`
+	DraftHash            string   `json:"drafthash"`
+	ReservedCustomIDList []string `json:"reservedcustomidlist"`
+	BannedCustomIDList   []string `json:"bannedcustomidlist"`
+	CRCouncilMemberDID   string   `json:"crcouncilmemberdid"`
 }
 
 type RPCSecretaryGeneralProposal struct {
@@ -2162,14 +2162,14 @@ func GetCRProposalState(param Params) map[string]interface{} {
 		rpcProposal.CRCouncilMemberDID = did
 
 		rpcProposalState.Proposal = rpcProposal
-	case payload.ReservedDIDShortName:
-		var rpcProposal RPCReservedDIDShortNameProposal
+	case payload.ReserveCustomID:
+		var rpcProposal RPCReservedCustomIDProposal
 		rpcProposal.ProposalType = proposalState.Proposal.ProposalType.Name()
 		rpcProposal.CategoryData = proposalState.Proposal.CategoryData
 		rpcProposal.OwnerPublicKey = common.BytesToHexString(proposalState.Proposal.OwnerPublicKey)
 		rpcProposal.DraftHash = common.ToReversedString(proposalState.Proposal.DraftHash)
-		rpcProposal.ReservedDIDShortNameList = proposalState.Proposal.ReservedDIDShortNameList
-		rpcProposal.BannedDIDShortNameList = proposalState.Proposal.BannedDIDShortNameList
+		rpcProposal.ReservedCustomIDList = proposalState.Proposal.ReservedCustomIDList
+		rpcProposal.BannedCustomIDList = proposalState.Proposal.BannedCustomIDList
 		did, _ := proposalState.Proposal.CRCouncilMemberDID.ToAddress()
 		rpcProposal.CRCouncilMemberDID = did
 
@@ -2535,14 +2535,14 @@ func getPayloadInfo(p Payload, payloadVersion byte) PayloadInfo {
 			obj.Hash = common.ToReversedString(object.Hash(payloadVersion))
 			return obj
 
-		case payload.ReservedDIDShortName:
-			obj := new(CRCReservedDIDShortNameProposalInfo)
+		case payload.ReserveCustomID:
+			obj := new(CRCReservedCustomIDProposalInfo)
 			obj.ProposalType = object.ProposalType.Name()
 			obj.CategoryData = object.CategoryData
 			obj.OwnerPublicKey = common.BytesToHexString(object.OwnerPublicKey)
 			obj.DraftHash = common.ToReversedString(object.DraftHash)
-			obj.ReservedDIDShortNameList = object.ReservedDIDShortNameList
-			obj.BannedDIDShortNameList = object.BannedDIDShortNameList
+			obj.ReservedCustomIDList = object.ReservedCustomIDList
+			obj.BannedCustomIDList = object.BannedCustomIDList
 			obj.Signature = common.BytesToHexString(object.Signature)
 			crmdid, _ := object.CRCouncilMemberDID.ToAddress()
 			obj.CRCouncilMemberDID = crmdid

@@ -318,15 +318,15 @@ func (p *ProposalManager) dealProposal(proposalState *ProposalState, unusedAmoun
 		}, func() {
 			p.SecretaryGeneralPublicKey = oriSecretaryGeneralPublicKey
 		})
-	case payload.ReservedDIDShortName:
-		oriReservedDIDShortNameLists := p.ReservedDIDShortNameLists
-		oriBannedDIDShortNameLists := p.BannedDIDShortNameLists
+	case payload.ReserveCustomID:
+		oriReservedCustomIDLists := p.ReservedCustomIDLists
+		oriBannedCustomIDLists := p.BannedCustomIDLists
 		p.history.Append(height, func() {
-			p.ReservedDIDShortNameLists = append(oriReservedDIDShortNameLists, proposalState.Proposal.ReservedDIDShortNameList)
-			p.BannedDIDShortNameLists = append(oriBannedDIDShortNameLists, proposalState.Proposal.BannedDIDShortNameList)
+			p.ReservedCustomIDLists = append(oriReservedCustomIDLists, proposalState.Proposal.ReservedCustomIDList)
+			p.BannedCustomIDLists = append(oriBannedCustomIDLists, proposalState.Proposal.BannedCustomIDList)
 		}, func() {
-			p.ReservedDIDShortNameLists = oriReservedDIDShortNameLists
-			p.BannedDIDShortNameLists = oriBannedDIDShortNameLists
+			p.ReservedCustomIDLists = oriReservedCustomIDLists
+			p.BannedCustomIDLists = oriBannedCustomIDLists
 		})
 	}
 }
@@ -379,7 +379,7 @@ func (p *ProposalManager) transferCRAgreedState(proposalState *ProposalState,
 
 func isSpecialProposal(proposalType payload.CRCProposalType) bool {
 	switch proposalType {
-	case payload.SecretaryGeneral, payload.ChangeProposalOwner, payload.CloseProposal, payload.ReservedDIDShortName:
+	case payload.SecretaryGeneral, payload.ChangeProposalOwner, payload.CloseProposal, payload.ReserveCustomID:
 		return true
 	default:
 		return false

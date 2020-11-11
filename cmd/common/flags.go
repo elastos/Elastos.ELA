@@ -432,6 +432,11 @@ var (
 		Name:  "maxinactiveroundsofrandomnode",
 		Usage: "defines the maximum inactive rounds before the random producer takes penalty",
 	}
+
+	DPOSNodeCrossChainHeight = cli.StringFlag{
+		Name:  "dposnodecrosschainheight",
+		Usage: "defines the height at which not only CR members are responsible for working across the chain",
+	}
 )
 
 // MoveRPCFlags finds the rpc argument and moves it to the front

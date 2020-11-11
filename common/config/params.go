@@ -556,6 +556,10 @@ type Params struct {
 	// the producer at random takes penalty.
 	MaxInactiveRoundsOfRandomNode uint32
 
+	// DPOSNodeCrossChainHeight defines the height at which not only CR members
+	// are responsible for working across the chain.
+	DPOSNodeCrossChainHeight uint32
+
 	// InactivePenalty defines the penalty amount the producer takes.
 	InactivePenalty common.Fixed64
 

@@ -947,8 +947,14 @@ func NewSettings() *Settings {
 	result.Add(&settingItem{
 		Flag:         cmdcom.MaxInactiveRoundsOfRandomNode,
 		DefaultValue: uint32(0),
-		ConfigPath:   "CRConfiguration.MaxInactiveRoundsOfRandomNode",
+		ConfigPath:   "DPoSConfiguration.MaxInactiveRoundsOfRandomNode",
 		ParamName:    "MaxInactiveRoundsOfRandomNode"})
+
+	result.Add(&settingItem{
+		Flag:         cmdcom.DPOSNodeCrossChainHeight,
+		DefaultValue: uint32(0),
+		ConfigPath:   "DPoSConfiguration.DPOSNodeCrossChainHeight",
+		ParamName:    "DPOSNodeCrossChainHeight"})
 
 	return result
 }

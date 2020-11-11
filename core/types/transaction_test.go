@@ -613,7 +613,7 @@ func randomName(length int) string {
 func (s *transactionSuite) TestCRCProposal_Deserialize() {
 
 	proposalTypes := []payload.CRCProposalType{payload.Normal, payload.ELIP,
-		payload.CloseProposal, payload.ChangeProposalOwner, payload.ReserveCustomID}
+		payload.CloseProposal, payload.ChangeProposalOwner, payload.ReserveCustomID, payload.ReceiveCustomID}
 
 	for _, proposalType := range proposalTypes {
 
@@ -622,6 +622,11 @@ func (s *transactionSuite) TestCRCProposal_Deserialize() {
 		if proposalType == payload.ReserveCustomID {
 			crpPayload1.ReservedCustomIDList = []string{randomName(3), randomName(3), randomName(3)}
 			crpPayload1.BannedCustomIDList = []string{randomName(3), randomName(3), randomName(3)}
+		}
+
+		if proposalType == payload.ReserveCustomID {
+			crpPayload1.ReceivedCustomIDList = []string{randomName(3), randomName(3), randomName(3)}
+			crpPayload1.ReceiverDID = *randomUint168()
 		}
 
 		buf := new(bytes.Buffer)
@@ -638,6 +643,8 @@ func (s *transactionSuite) TestCRCProposal_Deserialize() {
 			s.True(crpPayloadChangeProposalOwnerEqual(crpPayload1, crpPayload2))
 		} else if proposalType == payload.ReserveCustomID {
 			s.True(crpPayloadReservedCustomIDEqual(crpPayload1, crpPayload2))
+		} else if proposalType == payload.ReceiveCustomID {
+			s.True(crpPayloadReceivedCustomIDEqual(crpPayload1, crpPayload2))
 		}
 
 	}
@@ -707,6 +714,22 @@ func crpPayloadReservedCustomIDEqual(payload1 *payload.CRCProposal, payload2 *pa
 		payload1.DraftHash.IsEqual(payload2.DraftHash) &&
 		bytes.Equal(payload1.Signature, payload2.Signature) &&
 		bytes.Equal(payload1.CRCouncilMemberSignature, payload2.CRCouncilMemberSignature)
+}
+
+func crpPayloadReceivedCustomIDEqual(payload1 *payload.CRCProposal, payload2 *payload.CRCProposal) bool {
+	for i, v := range payload1.ReservedCustomIDList {
+		if v != payload2.ReservedCustomIDList[i] {
+			return false
+		}
+	}
+
+	return payload1.ProposalType == payload2.ProposalType &&
+		bytes.Equal(payload1.OwnerPublicKey, payload2.OwnerPublicKey) &&
+		payload1.CRCouncilMemberDID.IsEqual(payload2.CRCouncilMemberDID) &&
+		payload1.DraftHash.IsEqual(payload2.DraftHash) &&
+		bytes.Equal(payload1.Signature, payload2.Signature) &&
+		bytes.Equal(payload1.CRCouncilMemberSignature, payload2.CRCouncilMemberSignature) &&
+		payload1.ReceiverDID.IsEqual(payload2.ReceiverDID)
 }
 
 func crClaimNodeEqual(payload1 *payload.CRCouncilMemberClaimNode, payload2 *payload.CRCouncilMemberClaimNode) bool {

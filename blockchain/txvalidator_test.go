@@ -1865,6 +1865,49 @@ func randomName(length int) string {
 	return string(b)
 }
 
+func (s *txValidatorTestSuite) getCRCReceivedCustomIDProposalTx(publicKeyStr, privateKeyStr,
+	crPublicKeyStr, crPrivateKeyStr string, receivedList []string) *types.Transaction {
+
+	privateKey1, _ := common.HexStringToBytes(privateKeyStr)
+	publicKey1, _ := common.HexStringToBytes(publicKeyStr)
+	privateKey2, _ := common.HexStringToBytes(crPrivateKeyStr)
+	//publicKey2, _ := common.HexStringToBytes(crPublicKeyStr)
+
+	code2 := getCodeByPubKeyStr(crPublicKeyStr)
+	//did2, _ := getDIDFromCode(code2)
+
+	draftData := randomBytes(10)
+	txn := new(types.Transaction)
+	txn.TxType = types.CRCProposal
+	txn.Version = types.TxVersion09
+	CRCouncilMemberDID, _ := getDIDFromCode(code2)
+	crcProposalPayload := &payload.CRCProposal{
+		ProposalType:         payload.ReceiveCustomID,
+		OwnerPublicKey:       publicKey1,
+		CRCouncilMemberDID:   *CRCouncilMemberDID,
+		DraftHash:            common.Hash(draftData),
+		ReceivedCustomIDList: receivedList,
+		ReceiverDID:          *randomUint168(),
+	}
+
+	signBuf := new(bytes.Buffer)
+	crcProposalPayload.SerializeUnsigned(signBuf, payload.CRCProposalVersion)
+	sig, _ := crypto.Sign(privateKey1, signBuf.Bytes())
+	crcProposalPayload.Signature = sig
+
+	common.WriteVarBytes(signBuf, sig)
+	crcProposalPayload.CRCouncilMemberDID.Serialize(signBuf)
+	crSig, _ := crypto.Sign(privateKey2, signBuf.Bytes())
+	crcProposalPayload.CRCouncilMemberSignature = crSig
+
+	txn.Payload = crcProposalPayload
+	txn.Programs = []*program.Program{&program.Program{
+		Code:      getCodeByPubKeyStr(publicKeyStr),
+		Parameter: nil,
+	}}
+	return txn
+}
+
 func (s *txValidatorTestSuite) getCRCReservedCustomIDProposalTx(publicKeyStr, privateKeyStr,
 	crPublicKeyStr, crPrivateKeyStr string) *types.Transaction {
 
@@ -3253,6 +3296,30 @@ func (s *txValidatorTestSuite) TestCheckCRCProposalTransaction() {
 	proposal.BannedCustomIDList = append(proposal.BannedCustomIDList, randomName(260))
 	err = s.Chain.checkCRCProposalTransaction(txn, tenureHeight, 0)
 	s.EqualError(err, "Banned custom id too long")
+
+	manager := s.Chain.crCommittee.GetProposalManager()
+	manager.ReceivedCustomIDLists = make([][]string, 0)
+	manager.ReceivedCustomIDLists = append(manager.ReceivedCustomIDLists, []string{"a"})
+	manager.BannedCustomIDLists = make([][]string, 0)
+	manager.BannedCustomIDLists = append(manager.BannedCustomIDLists, []string{"c", "d", "e"})
+	manager.ReservedCustomIDLists = make([][]string, 0)
+	manager.ReservedCustomIDLists = append(manager.ReservedCustomIDLists, []string{"a", "b", "c"})
+
+	txn = s.getCRCReceivedCustomIDProposalTx(publicKeyStr2, privateKeyStr2, publicKeyStr1, privateKeyStr1, []string{"a", "d"})
+	err = s.Chain.checkCRCProposalTransaction(txn, tenureHeight, 0)
+	s.EqualError(err, "Received custom id already received")
+
+	txn = s.getCRCReceivedCustomIDProposalTx(publicKeyStr2, privateKeyStr2, publicKeyStr1, privateKeyStr1, []string{"b", "f"})
+	err = s.Chain.checkCRCProposalTransaction(txn, tenureHeight, 0)
+	s.EqualError(err, "Received custom id can not be found in reserved custom id list")
+
+	txn = s.getCRCReceivedCustomIDProposalTx(publicKeyStr2, privateKeyStr2, publicKeyStr1, privateKeyStr1, []string{"b", "c"})
+	err = s.Chain.checkCRCProposalTransaction(txn, tenureHeight, 0)
+	s.EqualError(err, "Received custom id found in banned custom id list")
+
+	txn = s.getCRCReceivedCustomIDProposalTx(publicKeyStr2, privateKeyStr2, publicKeyStr1, privateKeyStr1, []string{"b"})
+	err = s.Chain.checkCRCProposalTransaction(txn, tenureHeight, 0)
+	s.NoError(err)
 
 }
 

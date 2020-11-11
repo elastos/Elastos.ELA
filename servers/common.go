@@ -295,6 +295,19 @@ type CRCReservedCustomIDProposalInfo struct {
 	Hash                     string   `json:"hash"`
 }
 
+type CRCReceivedCustomIDProposalInfo struct {
+	ProposalType             string   `json:"proposaltype"`
+	CategoryData             string   `json:"categorydata"`
+	OwnerPublicKey           string   `json:"ownerpublickey"`
+	DraftHash                string   `json:"drafthash"`
+	ReceiveCustomIDList      []string `json:"receivecustomidlist"`
+	ReceiverDID              string   `json:"receiverdid"`
+	Signature                string   `json:"signature"`
+	CRCouncilMemberDID       string   `json:"crcouncilmemberdid"`
+	CRCouncilMemberSignature string   `json:"crcouncilmembersignature"`
+	Hash                     string   `json:"hash"`
+}
+
 type CRCSecretaryGeneralProposalInfo struct {
 	ProposalType              string `json:"proposaltype"`
 	CategoryData              string `json:"categorydata"`

@@ -234,6 +234,39 @@ func (c *Committee) GetMember(did common.Uint168) *CRMember {
 	return c.getMember(did)
 }
 
+func (c *Committee) GetReservedCustomIDLists() [][]string {
+	c.mtx.RLock()
+	defer c.mtx.RUnlock()
+
+	return c.getReservedCustomIDLists()
+}
+
+func (c *Committee) getReservedCustomIDLists() [][]string {
+	return c.manager.ReservedCustomIDLists
+}
+
+func (c *Committee) GetBannedCustomIDLists() [][]string {
+	c.mtx.RLock()
+	defer c.mtx.RUnlock()
+
+	return c.getBannedCustomIDLists()
+}
+
+func (c *Committee) getBannedCustomIDLists() [][]string {
+	return c.manager.BannedCustomIDLists
+}
+
+func (c *Committee) GetReceivedCustomIDLists() [][]string {
+	c.mtx.RLock()
+	defer c.mtx.RUnlock()
+
+	return c.getReceivedCustomIDLists()
+}
+
+func (c *Committee) getReceivedCustomIDLists() [][]string {
+	return c.manager.ReceivedCustomIDLists
+}
+
 func (c *Committee) getMember(did common.Uint168) *CRMember {
 	for _, m := range c.Members {
 		if m.Info.DID.IsEqual(did) {

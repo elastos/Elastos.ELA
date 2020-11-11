@@ -1239,15 +1239,22 @@ func (b *BlockChain) checkWithdrawFromSideChainTransaction(txn *Transaction, ref
 		}
 
 		if height >= b.chainParams.CRClaimDPOSNodeStartHeight {
-			crcs := DefaultLedger.Arbitrators.GetCRCArbiters()
+			var arbiters []*state.ArbiterInfo
+			var minCount uint32
+			if height >= b.chainParams.DPOSNodeCrossChainHeight {
+				arbiters = DefaultLedger.Arbitrators.GetArbitrators()
+				minCount = uint32(b.chainParams.GeneralArbiters) + 1
+			} else {
+				arbiters = DefaultLedger.Arbitrators.GetCRCArbiters()
+				minCount = b.chainParams.CRAgreementCount
+			}
 			var arbitersCount int
-			for _, c := range crcs {
+			for _, c := range arbiters {
 				if !c.IsNormal {
 					continue
 				}
 				arbitersCount++
 			}
-			minCount := b.chainParams.CRAgreementCount
 			if n != arbitersCount {
 				return errors.New("invalid arbiters total count in code")
 			}

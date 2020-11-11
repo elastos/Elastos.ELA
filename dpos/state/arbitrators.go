@@ -832,6 +832,13 @@ func (a *arbitrators) IsArbitrator(pk []byte) bool {
 
 func (a *arbitrators) GetArbitrators() []*ArbiterInfo {
 	a.mtx.Lock()
+	result := a.getArbitrators()
+	a.mtx.Unlock()
+
+	return result
+}
+
+func (a *arbitrators) getArbitrators() []*ArbiterInfo {
 	result := make([]*ArbiterInfo, 0, len(a.currentArbitrators))
 	for _, v := range a.currentArbitrators {
 		isNormal := true
@@ -854,8 +861,6 @@ func (a *arbitrators) GetArbitrators() []*ArbiterInfo {
 			ClaimedDPOSNode: claimedDPOSNode,
 		})
 	}
-	a.mtx.Unlock()
-
 	return result
 }
 
@@ -1096,15 +1101,24 @@ func (a *arbitrators) GetOnDutyCrossChainArbitrator() []byte {
 		ondutyIndex := int(height-a.chainParams.CRCOnlyDPOSHeight+1) % len(crcArbiters)
 		arbiter = crcArbiters[ondutyIndex].NodePublicKey
 		a.mtx.Unlock()
-	} else {
+	} else if height < a.chainParams.DPOSNodeCrossChainHeight {
 		a.mtx.Lock()
 		crcArbiters := a.getCRCArbiters()
 		sort.Slice(crcArbiters, func(i, j int) bool {
-			return bytes.Compare(crcArbiters[i].NodePublicKey, crcArbiters[j].NodePublicKey) < 0
+			return bytes.Compare(crcArbiters[i].NodePublicKey,
+				crcArbiters[j].NodePublicKey) < 0
 		})
 		index := a.dutyIndex % len(a.currentCRCArbitersMap)
 		if crcArbiters[index].IsNormal {
 			arbiter = crcArbiters[index].NodePublicKey
+		} else {
+			arbiter = nil
+		}
+		a.mtx.Unlock()
+	} else {
+		a.mtx.Lock()
+		if a.currentArbitrators[a.dutyIndex].IsNormal() {
+			arbiter = a.currentArbitrators[a.dutyIndex].GetNodePublicKey()
 		} else {
 			arbiter = nil
 		}

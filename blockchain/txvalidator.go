@@ -1362,24 +1362,27 @@ func (b *BlockChain) checkTransferCrossChainAssetTransaction(txn *Transaction, r
 	return nil
 }
 
-func (b *BlockChain) IsNextArbtratorsSame(nextTurnDPOSInfo *payload.NextTurnDPOSInfo, curNodeNextArbitrators [][]byte) bool {
-	if len(nextTurnDPOSInfo.CRPublicKeys)+len(nextTurnDPOSInfo.DPOSPublicKeys) != len(curNodeNextArbitrators) {
+func (b *BlockChain) IsNextArbtratorsSame(nextTurnDPOSInfo *payload.NextTurnDPOSInfo,
+	curNodeNextArbitrators []*state.ArbiterInfo) bool {
+	if len(nextTurnDPOSInfo.CRPublicKeys)+
+		len(nextTurnDPOSInfo.DPOSPublicKeys) != len(curNodeNextArbitrators) {
 		log.Warn("IsNextArbtratorsSame curNodeArbitrators len ", len(curNodeNextArbitrators))
 		return false
 	}
 	crindex := 0
 	dposIndex := 0
 	for _, v := range curNodeNextArbitrators {
-		if DefaultLedger.Arbitrators.IsNextCRCArbitrator(v) {
-			if bytes.Equal(v, nextTurnDPOSInfo.CRPublicKeys[crindex]) ||
-				(bytes.Equal([]byte{}, nextTurnDPOSInfo.CRPublicKeys[crindex]) && !DefaultLedger.Arbitrators.IsMemberElectedNextCRCArbitrator(v)) {
+		if DefaultLedger.Arbitrators.IsNextCRCArbitrator(v.NodePublicKey) {
+			if bytes.Equal(v.NodePublicKey, nextTurnDPOSInfo.CRPublicKeys[crindex]) ||
+				(bytes.Equal([]byte{}, nextTurnDPOSInfo.CRPublicKeys[crindex]) &&
+					!DefaultLedger.Arbitrators.IsMemberElectedNextCRCArbitrator(v.NodePublicKey)) {
 				crindex++
 				continue
 			} else {
 				return false
 			}
 		} else {
-			if bytes.Equal(v, nextTurnDPOSInfo.DPOSPublicKeys[dposIndex]) {
+			if bytes.Equal(v.NodePublicKey, nextTurnDPOSInfo.DPOSPublicKeys[dposIndex]) {
 				dposIndex++
 				continue
 			} else {

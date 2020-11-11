@@ -98,6 +98,7 @@ func StartRPCServer() {
 	mainMux["submitsidechainillegaldata"] = SubmitSidechainIllegalData
 	mainMux["getarbiterpeersinfo"] = GetArbiterPeersInfo
 	mainMux["getcrcpeersinfo"] = GetCRCPeersInfo
+	mainMux["getcrosschainpeersinfo"] = GetCrossChainPeersInfo
 
 	mainMux["estimatesmartfee"] = EstimateSmartFee
 	mainMux["getdepositcoin"] = GetDepositCoin

@@ -321,12 +321,15 @@ func (p *ProposalManager) dealProposal(proposalState *ProposalState, unusedAmoun
 	case payload.ReserveCustomID:
 		oriReservedCustomIDLists := p.ReservedCustomIDLists
 		oriBannedCustomIDLists := p.BannedCustomIDLists
+		oriReceivedCustomIDLists := p.ReceivedCustomIDLists
 		p.history.Append(height, func() {
 			p.ReservedCustomIDLists = append(oriReservedCustomIDLists, proposalState.Proposal.ReservedCustomIDList)
 			p.BannedCustomIDLists = append(oriBannedCustomIDLists, proposalState.Proposal.BannedCustomIDList)
+			p.ReceivedCustomIDLists = append(oriReceivedCustomIDLists, proposalState.Proposal.ReceivedCustomIDList)
 		}, func() {
 			p.ReservedCustomIDLists = oriReservedCustomIDLists
 			p.BannedCustomIDLists = oriBannedCustomIDLists
+			p.ReceivedCustomIDLists = oriReceivedCustomIDLists
 		})
 	}
 }
@@ -379,7 +382,7 @@ func (p *ProposalManager) transferCRAgreedState(proposalState *ProposalState,
 
 func isSpecialProposal(proposalType payload.CRCProposalType) bool {
 	switch proposalType {
-	case payload.SecretaryGeneral, payload.ChangeProposalOwner, payload.CloseProposal, payload.ReserveCustomID:
+	case payload.SecretaryGeneral, payload.ChangeProposalOwner, payload.CloseProposal, payload.ReserveCustomID, payload.ReceiveCustomID:
 		return true
 	default:
 		return false

@@ -240,6 +240,8 @@ type ProposalKeyFrame struct {
 	ReservedCustomIDLists [][]string
 	// banned custom id list
 	BannedCustomIDLists [][]string
+	// received custom id list
+	ReceivedCustomIDLists [][]string
 }
 
 func NewProposalMap() ProposalsMap {

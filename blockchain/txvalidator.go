@@ -27,6 +27,7 @@ import (
 	"github.com/elastos/Elastos.ELA/dpos/state"
 	"github.com/elastos/Elastos.ELA/elanet/pact"
 	elaerr "github.com/elastos/Elastos.ELA/errors"
+	"github.com/elastos/Elastos.ELA/utils"
 	"github.com/elastos/Elastos.ELA/vm"
 )
 
@@ -1120,7 +1121,7 @@ func (b *BlockChain) checkTxHeightVersion(txn *Transaction, blockHeight uint32) 
 			if blockHeight < b.chainParams.CRCProposalV1Height {
 				return errors.New("not support before CRCProposalV1Height")
 			}
-		case payload.ReserveCustomID:
+		case payload.ReserveCustomID, payload.ReceiveCustomID:
 			if blockHeight < b.chainParams.ChangeCommitteeNewCRHeight {
 				return errors.New("not support before ChangeCommitteeNewCRHeight")
 			}
@@ -2687,6 +2688,44 @@ func (b *BlockChain) checkChangeSecretaryGeneralProposalTx(crcProposal *payload.
 	return nil
 }
 
+func (b *BlockChain) checkReceivedCustomID(proposal *payload.CRCProposal, PayloadVersion byte) error {
+	_, err := crypto.DecodePoint(proposal.OwnerPublicKey)
+	if err != nil {
+		return errors.New("DecodePoint from OwnerPublicKey error")
+	}
+	reservedCustomIDList := b.crCommittee.GetReservedCustomIDLists()
+	bannedCustomIDList := b.crCommittee.GetBannedCustomIDLists()
+	receivedCustomIDList := b.crCommittee.GetReceivedCustomIDLists()
+
+	for _, v := range proposal.ReceivedCustomIDList {
+		if  utils.StringExisted(receivedCustomIDList, v) {
+			return errors.New("Received custom id already received")
+		}
+		if !utils.StringExisted(reservedCustomIDList, v)  {
+			return errors.New("Received custom id can not be found in reserved custom id list")
+		}
+		if utils.StringExisted(bannedCustomIDList, v) {
+			return errors.New("Received custom id found in banned custom id list")
+		}
+	}
+
+	if len(proposal.Budgets) > 0 {
+		return errors.New("ReceivedCustomID cannot have budget")
+	}
+	emptyUint168 := common.Uint168{}
+	if proposal.Recipient != emptyUint168 {
+		return errors.New("ReceivedCustomID recipient must be empty")
+	}
+	if proposal.ReceiverDID == emptyUint168 {
+		return errors.New("ReceivedCustomID receiver did can not be empty")
+	}
+	crMember := b.crCommittee.GetMember(proposal.CRCouncilMemberDID)
+	if crMember == nil {
+		return errors.New("CR Council Member should be one of the CR members")
+	}
+	return b.checkOwnerAndCRCouncilMemberSign(proposal, crMember.Info.Code, PayloadVersion)
+}
+
 func (b *BlockChain) checkReservedCustomID(proposal *payload.CRCProposal, PayloadVersion byte) error {
 	_, err := crypto.DecodePoint(proposal.OwnerPublicKey)
 	if err != nil {
@@ -3006,6 +3045,8 @@ func (b *BlockChain) checkCRCProposalTransaction(txn *Transaction,
 		return b.checkCloseProposal(proposal, txn.PayloadVersion)
 	case payload.ReserveCustomID:
 		return b.checkReservedCustomID(proposal, txn.PayloadVersion)
+	case payload.ReceiveCustomID:
+		return b.checkReceivedCustomID(proposal, txn.PayloadVersion)
 	case payload.SecretaryGeneral:
 		return b.checkChangeSecretaryGeneralProposalTx(proposal, txn.PayloadVersion)
 	default:

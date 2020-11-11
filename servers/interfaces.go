@@ -1665,6 +1665,16 @@ type RPCReservedCustomIDProposal struct {
 	CRCouncilMemberDID   string   `json:"crcouncilmemberdid"`
 }
 
+type RPCReceiveCustomIDProposal struct {
+	ProposalType        string   `json:"proposaltype"`
+	CategoryData        string   `json:"categorydata"`
+	OwnerPublicKey      string   `json:"ownerpublickey"`
+	DraftHash           string   `json:"drafthash"`
+	ReceiveCustomIDList []string `json:"receivecustomidlist"`
+	ReceiverDID         string   `json:"receiverdid"`
+	CRCouncilMemberDID  string   `json:"crcouncilmemberdid"`
+}
+
 type RPCSecretaryGeneralProposal struct {
 	ProposalType              string `json:"proposaltype"`
 	CategoryData              string `json:"categorydata"`
@@ -2174,6 +2184,18 @@ func GetCRProposalState(param Params) map[string]interface{} {
 		rpcProposal.CRCouncilMemberDID = did
 
 		rpcProposalState.Proposal = rpcProposal
+	case payload.ReceiveCustomID:
+		var rpcProposal RPCReceiveCustomIDProposal
+		rpcProposal.ProposalType = proposalState.Proposal.ProposalType.Name()
+		rpcProposal.CategoryData = proposalState.Proposal.CategoryData
+		rpcProposal.OwnerPublicKey = common.BytesToHexString(proposalState.Proposal.OwnerPublicKey)
+		rpcProposal.DraftHash = common.ToReversedString(proposalState.Proposal.DraftHash)
+		rpcProposal.ReceiveCustomIDList = proposalState.Proposal.ReceivedCustomIDList
+		rpcProposal.ReceiverDID, _ = proposalState.Proposal.ReceiverDID.ToAddress()
+		did, _ := proposalState.Proposal.CRCouncilMemberDID.ToAddress()
+		rpcProposal.CRCouncilMemberDID = did
+
+		rpcProposalState.Proposal = rpcProposal
 	}
 
 	result := &RPCCRProposalStateInfo{ProposalState: rpcProposalState}
@@ -2543,6 +2565,21 @@ func getPayloadInfo(p Payload, payloadVersion byte) PayloadInfo {
 			obj.DraftHash = common.ToReversedString(object.DraftHash)
 			obj.ReservedCustomIDList = object.ReservedCustomIDList
 			obj.BannedCustomIDList = object.BannedCustomIDList
+			obj.Signature = common.BytesToHexString(object.Signature)
+			crmdid, _ := object.CRCouncilMemberDID.ToAddress()
+			obj.CRCouncilMemberDID = crmdid
+			obj.CRCouncilMemberSignature = common.BytesToHexString(object.CRCouncilMemberSignature)
+			obj.Hash = common.ToReversedString(object.Hash(payloadVersion))
+			return obj
+
+		case payload.ReceiveCustomID:
+			obj := new(CRCReceivedCustomIDProposalInfo)
+			obj.ProposalType = object.ProposalType.Name()
+			obj.CategoryData = object.CategoryData
+			obj.OwnerPublicKey = common.BytesToHexString(object.OwnerPublicKey)
+			obj.DraftHash = common.ToReversedString(object.DraftHash)
+			obj.ReceiveCustomIDList = object.ReceivedCustomIDList
+			obj.ReceiverDID, _ = object.ReceiverDID.ToAddress()
 			obj.Signature = common.BytesToHexString(object.Signature)
 			crmdid, _ := object.CRCouncilMemberDID.ToAddress()
 			obj.CRCouncilMemberDID = crmdid

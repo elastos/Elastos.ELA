@@ -336,6 +336,43 @@ func SubmitSidechainIllegalData(param Params) map[string]interface{} {
 	return ResponsePack(Success, true)
 }
 
+func GetCrossChainPeersInfo(params Params) map[string]interface{} {
+	if Arbiter == nil {
+		return ResponsePack(InternalError, "arbiter disabled")
+	}
+
+	peers := Arbiter.GetCurrentArbitrators()
+	type peerInfo struct {
+		NodePublicKeys []string `json:"nodepublickeys"`
+	}
+	var result peerInfo
+	result.NodePublicKeys = make([]string, 0)
+	peersMap := make(map[string]struct{})
+	for _, p := range peers {
+		if !p.IsNormal {
+			continue
+		}
+		pk := common.BytesToHexString(p.NodePublicKey)
+		peersMap[pk] = struct{}{}
+		result.NodePublicKeys = append(result.NodePublicKeys, pk)
+	}
+
+	nextPeers := Arbiter.GetNextArbitrators()
+	for _, p := range nextPeers {
+		pk := common.BytesToHexString(p.NodePublicKey)
+		if _, ok := peersMap[pk]; ok {
+			continue
+		}
+		result.NodePublicKeys = append(result.NodePublicKeys, pk)
+	}
+
+	sort.Slice(result.NodePublicKeys, func(i, j int) bool {
+		return result.NodePublicKeys[i] < result.NodePublicKeys[j]
+	})
+
+	return ResponsePack(Success, result)
+}
+
 func GetCRCPeersInfo(params Params) map[string]interface{} {
 	if Arbiter == nil {
 		return ResponsePack(InternalError, "arbiter disabled")
@@ -436,7 +473,7 @@ func GetArbitersInfo(params Params) map[string]interface{} {
 	}
 	for _, v := range Arbiters.GetNextArbitrators() {
 		result.NextArbiters = append(result.NextArbiters,
-			common.BytesToHexString(v))
+			common.BytesToHexString(v.NodePublicKey))
 	}
 	for _, v := range Arbiters.GetNextCandidates() {
 		result.NextCandidates = append(result.NextCandidates,

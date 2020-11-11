@@ -258,10 +258,19 @@ func (a *ArbitratorsMock) GetCandidates() [][]byte {
 	return result
 }
 
-func (a *ArbitratorsMock) GetNextArbitrators() [][]byte {
-	result := make([][]byte, 0, len(a.NextArbitrators))
+func (a *ArbitratorsMock) GetNextArbitrators() []*ArbiterInfo {
+	result := make([]*ArbiterInfo, 0, len(a.NextArbitrators))
 	for _, v := range a.NextArbitrators {
-		result = append(result, v.GetNodePublicKey())
+		isNormal := true
+		abt, ok := v.(*crcArbiter)
+		if ok && !abt.isNormal {
+			isNormal = false
+			continue
+		}
+		result = append(result, &ArbiterInfo{
+			NodePublicKey: v.GetNodePublicKey(),
+			IsNormal:      isNormal,
+		})
 	}
 	return result
 }

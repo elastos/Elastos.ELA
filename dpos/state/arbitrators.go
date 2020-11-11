@@ -870,11 +870,29 @@ func (a *arbitrators) GetCandidates() [][]byte {
 	return result
 }
 
-func (a *arbitrators) GetNextArbitrators() [][]byte {
+func (a *arbitrators) GetNextArbitrators() []*ArbiterInfo {
 	a.mtx.Lock()
-	result := make([][]byte, 0, len(a.nextArbitrators))
+	result := make([]*ArbiterInfo, 0, len(a.nextArbitrators))
 	for _, v := range a.nextArbitrators {
-		result = append(result, v.GetNodePublicKey())
+		isNormal := true
+		isCRMember := false
+		claimedDPOSNode := false
+		abt, ok := v.(*crcArbiter)
+		if ok {
+			isCRMember = true
+			if !abt.isNormal {
+				isNormal = false
+			}
+			if abt.crMember.DPOSPublicKey != nil {
+				claimedDPOSNode = true
+			}
+		}
+		result = append(result, &ArbiterInfo{
+			NodePublicKey:   v.GetNodePublicKey(),
+			IsNormal:        isNormal,
+			IsCRMember:      isCRMember,
+			ClaimedDPOSNode: claimedDPOSNode,
+		})
 	}
 	a.mtx.Unlock()
 

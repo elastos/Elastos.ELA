@@ -899,23 +899,41 @@ func GetArbitratorGroupByHeight(param Params) map[string]interface{} {
 	if block == nil {
 		return ResponsePack(InternalError, "not found block at given height")
 	}
-	crcArbiters := Arbiters.GetCRCArbiters()
-	sort.Slice(crcArbiters, func(i, j int) bool {
-		return bytes.Compare(crcArbiters[i].NodePublicKey, crcArbiters[j].NodePublicKey) < 0
-	})
 
-	var arbitrators []string
-	for _, a := range crcArbiters {
-		if !a.IsNormal {
-			arbitrators = append(arbitrators, "")
-		} else {
-			arbitrators = append(arbitrators, common.BytesToHexString(a.NodePublicKey))
+	result := ArbitratorGroupInfo{}
+	if height < ChainParams.DPOSNodeCrossChainHeight {
+		crcArbiters := Arbiters.GetCRCArbiters()
+		sort.Slice(crcArbiters, func(i, j int) bool {
+			return bytes.Compare(crcArbiters[i].NodePublicKey, crcArbiters[j].NodePublicKey) < 0
+		})
+		var arbitrators []string
+		for _, a := range crcArbiters {
+			if !a.IsNormal {
+				arbitrators = append(arbitrators, "")
+			} else {
+				arbitrators = append(arbitrators, common.BytesToHexString(a.NodePublicKey))
+			}
 		}
-	}
 
-	result := ArbitratorGroupInfo{
-		OnDutyArbitratorIndex: Arbiters.GetDutyIndexByHeight(height),
-		Arbitrators:           arbitrators,
+		result = ArbitratorGroupInfo{
+			OnDutyArbitratorIndex: Arbiters.GetDutyIndexByHeight(height),
+			Arbitrators:           arbitrators,
+		}
+	} else {
+		arbiters := Arbiters.GetArbitrators()
+		var arbitrators []string
+		for _, a := range arbiters {
+			if !a.IsNormal {
+				arbitrators = append(arbitrators, "")
+			} else {
+				arbitrators = append(arbitrators, common.BytesToHexString(a.NodePublicKey))
+			}
+		}
+
+		result = ArbitratorGroupInfo{
+			OnDutyArbitratorIndex: Arbiters.GetDutyIndexByHeight(height),
+			Arbitrators:           arbitrators,
+		}
 	}
 
 	return ResponsePack(Success, result)

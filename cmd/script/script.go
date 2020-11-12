@@ -61,6 +61,8 @@ func registerParams(c *cli.Context, L *lua.LState) {
 	closeProposalHash := c.String("closeproposalhash")
 	reservedCustomIDList := c.String("reservedcustomidlist")
 	bannedCustomIDList := c.String("bannedcustomidlist")
+	receivedCustomIDList := c.String("receivedcustomidlist")
+	receiverDID := c.String("receiverdid")
 	CRExpensesAddress := c.String("crccommiteeaddr")
 	payloadVersion := c.Int64("payloadversion")
 
@@ -255,6 +257,14 @@ func registerParams(c *cli.Context, L *lua.LState) {
 		L.Push(lua.LString(bannedCustomIDList))
 		return 1
 	}
+	getReceivedCustomIDList := func(L *lua.LState) int {
+		L.Push(lua.LString(receivedCustomIDList))
+		return 1
+	}
+	getReceiverDID := func(L *lua.LState) int {
+		L.Push(lua.LString(receiverDID))
+		return 1
+	}
 	getCRExpensesAddress := func(L *lua.LState) int {
 		L.Push(lua.LString(CRExpensesAddress))
 		return 1
@@ -320,6 +330,8 @@ func registerParams(c *cli.Context, L *lua.LState) {
 	L.Register("getCloseProposalHash", getCloseProposalHash)
 	L.Register("getReservedCustomIDList", getReservedCustomIDList)
 	L.Register("getBannedCustomIDList", getBannedCustomIDList)
+	L.Register("getReceivedCustomIDList", getReceivedCustomIDList)
+	L.Register("getReceiverDID", getReceiverDID)
 	L.Register("getCRExpensesAddress", getCRExpensesAddress)
 	L.Register("getPayloadVersion", getPayloadVersion)
 	L.Register("getCRManagementPublicKey", getCRManagementPublicKey)
@@ -492,6 +504,14 @@ func NewCommand() *cli.Command {
 			cli.StringFlag{
 				Name:  "bannedcustomidlist",
 				Usage: "banned custom id list",
+			},
+			cli.StringFlag{
+				Name:  "receivedcustomidlist",
+				Usage: "received custom id list",
+			},
+			cli.StringFlag{
+				Name:  "receiverdid",
+				Usage: "receiver did",
 			},
 			cli.StringFlag{
 				Name:  "voteresult, votres",

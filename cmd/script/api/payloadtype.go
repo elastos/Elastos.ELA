@@ -35,6 +35,7 @@ const (
 	luaCRChangeProposalOwnerName    = "crchangeproposalowner"
 	luaCRCCloseProposalHashName     = "crccloseproposalhash"
 	luaCRCReservedCustomIDName      = "crcreservedcustomidname"
+	luaCRCReceivedCustomIDName      = "crcreceivedcustomidname"
 	luaCRCProposalReviewName        = "crcproposalreview"
 	luaCRCProposalTrackingName      = "crcproposaltracking"
 	luaCRCProposalWithdrawName      = "crcproposalwithdraw"
@@ -977,6 +978,15 @@ func RegisterCRCReservedCustomIDType(L *lua.LState) {
 	L.SetField(mt, "__index", L.SetFuncs(L.NewTable(), crcProposalMethods))
 }
 
+func RegisterCRCReceivedCustomIDType(L *lua.LState) {
+	mt := L.NewTypeMetatable(luaCRCReceivedCustomIDName)
+	L.SetGlobal("crcreceivedcustomid", mt)
+	// static attributes
+	L.SetField(mt, "new", L.NewFunction(newCRCReceivedCustomID))
+	// methods
+	L.SetField(mt, "__index", L.SetFuncs(L.NewTable(), crcProposalMethods))
+}
+
 // Constructor
 func newSecretaryGeneralProposal(L *lua.LState) int {
 	fmt.Println("newSecretaryGeneralProposal begin")
@@ -1328,6 +1338,103 @@ func newCRChangeProposalOwner(L *lua.LState) int {
 
 	return 1
 
+}
+
+func newCRCReceivedCustomID(L *lua.LState) int {
+	publicKeyStr := L.ToString(1)
+	proposalType := L.ToInt64(2)
+	draftDataStr := L.ToString(3)
+	reserved_custom_id_list := L.ToString(4)
+	receiver_did := L.ToString(5)
+
+	needSign := true
+	client, err := checkClient(L, 6)
+	if err != nil {
+		needSign = false
+	}
+	draftHash := common.Hash([]byte(draftDataStr))
+	receivedNames := strings.Split(reserved_custom_id_list, ",")
+
+	publicKey, err := common.HexStringToBytes(publicKeyStr)
+	if err != nil {
+		fmt.Println("wrong cr public key")
+		os.Exit(1)
+	}
+
+	pk, err := crypto.DecodePoint(publicKey)
+	if err != nil {
+		fmt.Println("wrong cr public key")
+		os.Exit(1)
+	}
+
+	ct, err := contract.CreateStandardContract(pk)
+	if err != nil {
+		fmt.Println("wrong cr public key")
+		os.Exit(1)
+	}
+	did, _ := getDIDFromCode(ct.Code)
+	receiverDid, err := common.Uint168FromAddress(receiver_did)
+	if err != nil {
+		fmt.Println("receiver did to uint168 failed")
+	}
+	crcProposal := &payload.CRCProposal{
+		ProposalType:         payload.CRCProposalType(proposalType),
+		OwnerPublicKey:       publicKey,
+		DraftHash:            draftHash,
+		DraftData:            []byte(draftDataStr),
+		CRCouncilMemberDID:   *did,
+		ReceivedCustomIDList: receivedNames,
+		ReceiverDID:          *receiverDid,
+	}
+
+	if needSign {
+		signBuf := new(bytes.Buffer)
+		err = crcProposal.SerializeUnsigned(signBuf, payload.CRCProposalVersion01)
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+		codeHash, err := contract.PublicKeyToStandardCodeHash(publicKey)
+
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+
+		acc := client.GetAccountByCodeHash(*codeHash)
+		if acc == nil {
+			fmt.Println("no available account in wallet")
+			os.Exit(1)
+		}
+
+		sig, err := crypto.Sign(acc.PrivKey(), signBuf.Bytes())
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+		crcProposal.Signature = sig
+		if err = common.WriteVarBytes(signBuf, sig); err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+		if err = crcProposal.CRCouncilMemberDID.Serialize(signBuf); err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+		crSig, err := crypto.Sign(acc.PrivKey(), signBuf.Bytes())
+
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+		crcProposal.CRCouncilMemberSignature = crSig
+	}
+	ud := L.NewUserData()
+	ud.Value = crcProposal
+	L.SetMetatable(ud, L.GetTypeMetatable(luaCRCReceivedCustomIDName))
+	L.Push(ud)
+
+	return 1
 }
 
 func newCRCReservedCustomID(L *lua.LState) int {

@@ -1105,7 +1105,11 @@ func (b *BlockChain) checkTxHeightVersion(txn *Transaction, blockHeight uint32) 
 			return errors.New("not support before CRVotingStartHeight")
 		}
 	case CRCProposal:
-		if blockHeight >= b.chainParams.ChangeCommitteeNewCRHeight {
+		if blockHeight < b.chainParams.ChangeCommitteeNewCRHeight {
+			if txn.PayloadVersion != payload.CRCProposalVersion {
+				return errors.New("payload version should be CRCProposalVersion")
+			}
+		} else {
 			if txn.PayloadVersion != payload.CRCProposalVersion01 {
 				return errors.New("should have draft data")
 			}
@@ -1128,8 +1132,11 @@ func (b *BlockChain) checkTxHeightVersion(txn *Transaction, blockHeight uint32) 
 	case CRCProposalReview, CRCProposalTracking:
 		if blockHeight < b.chainParams.CRCommitteeStartHeight {
 			return errors.New("not support before CRCommitteeStartHeight")
-		}
-		if blockHeight >= b.chainParams.ChangeCommitteeNewCRHeight {
+		} else if blockHeight < b.chainParams.ChangeCommitteeNewCRHeight {
+			if txn.PayloadVersion != payload.CRCProposalVersion {
+				return errors.New("payload version should be CRCProposalVersion")
+			}
+		} else {
 			if txn.PayloadVersion != payload.CRCProposalVersion01 {
 				return errors.New("should have draft data")
 			}
@@ -2084,11 +2091,19 @@ func (b *BlockChain) checkCRCProposalTrackingTransaction(txn *Transaction,
 	// check message data.
 	if txn.PayloadVersion >= payload.CRCProposalTrackingVersion01 {
 		if len(cptPayload.MessageData) >= payload.MaxMessageDataSize {
-			return errors.New("the message data cannot be more than 1M byte")
+			return errors.New("the message data cannot be more than 800K byte")
 		}
-		tempDraftHash := common.Hash(cptPayload.MessageData)
-		if !cptPayload.MessageHash.IsEqual(tempDraftHash) {
+		tempMessageHash := common.Hash(cptPayload.MessageData)
+		if !cptPayload.MessageHash.IsEqual(tempMessageHash) {
 			return errors.New("the message data and message hash of" +
+				" proposal tracking are inconsistent")
+		}
+		if len(cptPayload.SecretaryGeneralOpinionData) >= payload.MaxSecretaryGeneralOpinionDataSize {
+			return errors.New("the opinion data cannot be more than 200K byte")
+		}
+		tempOpinionHash := common.Hash(cptPayload.SecretaryGeneralOpinionData)
+		if !cptPayload.MessageHash.IsEqual(tempOpinionHash) {
+			return errors.New("the opinion data and opinion hash of" +
 				" proposal tracking are inconsistent")
 		}
 	}

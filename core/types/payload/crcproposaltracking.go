@@ -68,7 +68,11 @@ const (
 	CRCProposalTrackingVersion01 byte = 0x01
 
 	// MaxMessageDataSize the max size of message data.
-	MaxMessageDataSize = 1 * 1024 * 1024
+	MaxMessageDataSize = 800 * 1024
+
+	// MaxSecretaryGeneralOpinionDataSize indicates the max size of secretary
+	// general`s opinion data.
+	MaxSecretaryGeneralOpinionDataSize = 200 * 1024
 )
 
 type CRCProposalTracking struct {
@@ -78,6 +82,7 @@ type CRCProposalTracking struct {
 	// The hash of proposal tracking message.
 	MessageHash common.Uint256
 
+	// The data of proposal tracking message.
 	MessageData []byte
 
 	// The stage of proposal.
@@ -100,6 +105,9 @@ type CRCProposalTracking struct {
 
 	// The hash of secretary general's opinion.
 	SecretaryGeneralOpinionHash common.Uint256
+
+	// Thee data of secretary general's opinion.
+	SecretaryGeneralOpinionData []byte
 
 	// The signature of secretary general.
 	SecretaryGeneralSignature []byte
@@ -163,6 +171,12 @@ func (p *CRCProposalTracking) Serialize(w io.Writer, version byte) error {
 
 	if err := p.SecretaryGeneralOpinionHash.Serialize(w); err != nil {
 		return errors.New("failed to serialize SecretaryGeneralOpinionHash")
+	}
+
+	if version >= CRCProposalTrackingVersion01 {
+		if err := common.WriteVarBytes(w, p.SecretaryGeneralOpinionData); err != nil {
+			return errors.New("failed to serialize SecretaryGeneralOpinionData")
+		}
 	}
 
 	if err := common.WriteVarBytes(w, p.SecretaryGeneralSignature); err != nil {
@@ -232,6 +246,13 @@ func (p *CRCProposalTracking) Deserialize(r io.Reader, version byte) error {
 
 	if err = p.SecretaryGeneralOpinionHash.Deserialize(r); err != nil {
 		return errors.New("failed to deserialize SecretaryGeneralOpinionHash")
+	}
+
+	if version >= CRCProposalTrackingVersion01 {
+		if p.SecretaryGeneralOpinionData, err = common.ReadVarBytes(r,
+			MaxSecretaryGeneralOpinionDataSize, "opinion data"); err != nil {
+			return errors.New("failed to deserialize SecretaryGeneralOpinionData")
+		}
 	}
 
 	sgSign, err := common.ReadVarBytes(r, crypto.SignatureLength, "secretary general signature")

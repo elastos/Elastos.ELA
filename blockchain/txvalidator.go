@@ -2721,10 +2721,10 @@ func (b *BlockChain) checkReceivedCustomID(proposal *payload.CRCProposal, Payloa
 	receivedCustomIDList := b.crCommittee.GetReceivedCustomIDLists()
 
 	for _, v := range proposal.ReceivedCustomIDList {
-		if  utils.StringExisted(receivedCustomIDList, v) {
+		if utils.StringExisted(receivedCustomIDList, v) {
 			return errors.New("Received custom id already received")
 		}
-		if !utils.StringExisted(reservedCustomIDList, v)  {
+		if !utils.StringExisted(reservedCustomIDList, v) {
 			return errors.New("Received custom id can not be found in reserved custom id list")
 		}
 		if utils.StringExisted(bannedCustomIDList, v) {

@@ -375,9 +375,6 @@ func (c *Committee) checkAndSetMemberToInactive(history *utils.History, height u
 		if m.DPOSPublicKey == nil && m.MemberState == MemberElected {
 			history.Append(height, func() {
 				m.MemberState = MemberInactive
-				if height >= c.params.ChangeCommitteeNewCRHeight {
-					c.state.UpdateCRInactivePenalty(m.Info.CID)
-				}
 			}, func() {
 				m.MemberState = MemberElected
 				if height >= c.params.ChangeCommitteeNewCRHeight {
@@ -1379,9 +1376,6 @@ func (c *Committee) TryUpdateCRMemberInactivity(did common.Uint168,
 			"changed to inactive", "InactiveCountingHeight:", crMember.InactiveCountingHeight,
 			"MaxInactiveRounds:", c.params.MaxInactiveRounds)
 		crMember.InactiveCountingHeight = 0
-		if height >= c.params.ChangeCommitteeNewCRHeight {
-			c.state.UpdateCRInactivePenalty(crMember.Info.CID)
-		}
 	}
 }
 

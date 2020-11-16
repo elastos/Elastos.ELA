@@ -55,6 +55,7 @@ const (
 func (b *BlockChain) CheckTransactionSanity(blockHeight uint32,
 	txn *Transaction) elaerr.ELAError {
 	if err := b.checkTxHeightVersion(txn, blockHeight); err != nil {
+		log.Warn("[CheckTxHeightVersion],", err)
 		return elaerr.Simple(elaerr.ErrTxHeightVersion, err)
 	}
 
@@ -1098,11 +1099,13 @@ func (b *BlockChain) checkTxHeightVersion(txn *Transaction, blockHeight uint32) 
 		if blockHeight < b.chainParams.CRVotingStartHeight ||
 			(blockHeight < b.chainParams.RegisterCRByDIDHeight &&
 				txn.PayloadVersion != payload.CRInfoVersion) {
-			return errors.New("not support before CRVotingStartHeight")
+			return errors.New(fmt.Sprintf("not support %s transaction "+
+				"before CRVotingStartHeight", txn.TxType.Name()))
 		}
 	case UnregisterCR, ReturnCRDepositCoin:
 		if blockHeight < b.chainParams.CRVotingStartHeight {
-			return errors.New("not support before CRVotingStartHeight")
+			return errors.New(fmt.Sprintf("not support %s transaction "+
+				"before CRVotingStartHeight", txn.TxType.Name()))
 		}
 	case CRCProposal:
 		if blockHeight >= b.chainParams.ChangeCommitteeNewCRHeight {
@@ -1118,20 +1121,24 @@ func (b *BlockChain) checkTxHeightVersion(txn *Transaction, blockHeight uint32) 
 		switch p.ProposalType {
 		case payload.ChangeProposalOwner, payload.CloseProposal, payload.SecretaryGeneral:
 			if blockHeight < b.chainParams.CRCProposalV1Height {
-				return errors.New("not support before CRCProposalV1Height")
+				return errors.New(fmt.Sprintf("not support %s CRCProposal"+
+					" transactio before CRCProposalV1Height", p.ProposalType.Name()))
 			}
 		case payload.ReserveCustomID:
 			if blockHeight < b.chainParams.ChangeCommitteeNewCRHeight {
-				return errors.New("not support before ChangeCommitteeNewCRHeight")
+				return errors.New(fmt.Sprintf("not support %s CRCProposal"+
+					" transaction before ChangeCommitteeNewCRHeight", p.ProposalType.Name()))
 			}
 		default:
 			if blockHeight < b.chainParams.CRCommitteeStartHeight {
-				return errors.New("not support before CRCommitteeStartHeight")
+				return errors.New(fmt.Sprintf("not support %s CRCProposal"+
+					" transaction before CRCommitteeStartHeight", p.ProposalType.Name()))
 			}
 		}
 	case CRCProposalReview, CRCProposalTracking:
 		if blockHeight < b.chainParams.CRCommitteeStartHeight {
-			return errors.New("not support before CRCommitteeStartHeight")
+			return errors.New(fmt.Sprintf("not support %s transaction "+
+				"before CRCommitteeStartHeight", txn.TxType.Name()))
 		}
 		if blockHeight >= b.chainParams.ChangeCommitteeNewCRHeight {
 			if txn.PayloadVersion != payload.CRCProposalVersion01 {
@@ -1141,29 +1148,35 @@ func (b *BlockChain) checkTxHeightVersion(txn *Transaction, blockHeight uint32) 
 
 	case CRCAppropriation:
 		if blockHeight < b.chainParams.CRCommitteeStartHeight {
-			return errors.New("not support before CRCommitteeStartHeight")
+			return errors.New(fmt.Sprintf("not support %s transaction "+
+				"before CRCommitteeStartHeight", txn.TxType.Name()))
 		}
 
 	case CRCProposalWithdraw:
 		if blockHeight < b.chainParams.CRCommitteeStartHeight {
-			return errors.New("not support before CRCommitteeStartHeight")
+			return errors.New(fmt.Sprintf("not support %s transaction "+
+				"before CRCommitteeStartHeight", txn.TxType.Name()))
 		}
 		if txn.PayloadVersion == payload.CRCProposalWithdrawDefault &&
 			blockHeight >= b.chainParams.CRCProposalWithdrawPayloadV1Height {
-			return errors.New("not support after CRCProposalWithdrawPayloadV1Height")
+			return errors.New(fmt.Sprintf("not support %s transaction "+
+				"after CRCProposalWithdrawPayloadV1Height", txn.TxType.Name()))
 		}
 
 		if txn.PayloadVersion == payload.CRCProposalWithdrawVersion01 &&
 			blockHeight < b.chainParams.CRCProposalWithdrawPayloadV1Height {
-			return errors.New("not support before CRCProposalWithdrawPayloadV1Height")
+			return errors.New(fmt.Sprintf("not support %s transaction "+
+				"before CRCProposalWithdrawPayloadV1Height", txn.TxType.Name()))
 		}
 	case CRAssetsRectify, CRCProposalRealWithdraw:
 		if blockHeight < b.chainParams.CRAssetsRectifyTransactionHeight {
-			return errors.New("not support before CRAssetsRectifyTransactionHeight")
+			return errors.New(fmt.Sprintf("not support %s transaction "+
+				"before CRCProposalWithdrawPayloadV1Height", txn.TxType.Name()))
 		}
 	case CRCouncilMemberClaimNode:
 		if blockHeight < b.chainParams.CRClaimDPOSNodeStartHeight {
-			return errors.New("not support before CRClaimDPOSNodeStartHeight")
+			return errors.New(fmt.Sprintf("not support %s transaction "+
+				"before CRClaimDPOSNodeStartHeight", txn.TxType.Name()))
 		}
 	case TransferAsset:
 		if blockHeight >= b.chainParams.CRVotingStartHeight {

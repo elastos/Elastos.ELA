@@ -110,35 +110,35 @@ func (s *txValidatorTestSuite) TestCheckTxHeightVersion() {
 	// check height version of registerCR transaction.
 	registerCR := &types.Transaction{TxType: types.RegisterCR}
 	err := s.Chain.checkTxHeightVersion(registerCR, blockHeight1)
-	s.EqualError(err, "not support before CRVotingStartHeight")
+	s.EqualError(err, "not support RegisterCR transaction before CRVotingStartHeight")
 	err = s.Chain.checkTxHeightVersion(registerCR, blockHeight2)
 	s.NoError(err)
 
 	registerCR2 := &types.Transaction{TxType: types.RegisterCR,
 		PayloadVersion: payload.CRInfoDIDVersion}
 	err = s.Chain.checkTxHeightVersion(registerCR2, blockHeight1)
-	s.EqualError(err, "not support before CRVotingStartHeight")
+	s.EqualError(err, "not support RegisterCR transaction before CRVotingStartHeight")
 	err = s.Chain.checkTxHeightVersion(registerCR2, blockHeight3)
 	s.NoError(err)
 
 	// check height version of updateCR transaction.
 	updateCR := &types.Transaction{TxType: types.UpdateCR}
 	err = s.Chain.checkTxHeightVersion(updateCR, blockHeight1)
-	s.EqualError(err, "not support before CRVotingStartHeight")
+	s.EqualError(err, "not support UpdateCR transaction before CRVotingStartHeight")
 	err = s.Chain.checkTxHeightVersion(updateCR, blockHeight2)
 	s.NoError(err)
 
 	// check height version of unregister transaction.
 	unregisterCR := &types.Transaction{TxType: types.UnregisterCR}
 	err = s.Chain.checkTxHeightVersion(unregisterCR, blockHeight1)
-	s.EqualError(err, "not support before CRVotingStartHeight")
+	s.EqualError(err, "not support UnregisterCR transaction before CRVotingStartHeight")
 	err = s.Chain.checkTxHeightVersion(unregisterCR, blockHeight2)
 	s.NoError(err)
 
 	// check height version of unregister transaction.
 	returnCoin := &types.Transaction{TxType: types.ReturnCRDepositCoin}
 	err = s.Chain.checkTxHeightVersion(returnCoin, blockHeight1)
-	s.EqualError(err, "not support before CRVotingStartHeight")
+	s.EqualError(err, "not support ReturnCRDepositCoin transaction before CRVotingStartHeight")
 	err = s.Chain.checkTxHeightVersion(returnCoin, blockHeight2)
 	s.NoError(err)
 

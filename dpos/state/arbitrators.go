@@ -1686,7 +1686,9 @@ func (a *arbitrators) snapshotVotesStates(height uint32) error {
 	for _, ar := range a.nextArbitrators {
 		if !a.isNextCRCArbitrator(ar.GetNodePublicKey()) ||
 			(height >= a.chainParams.ChangeCommitteeNewCRHeight &&
-				ar.(*crcArbiter).crMember.DPOSPublicKey == nil && ar.IsNormal()) {
+				ar.GetType() == CRC &&
+				ar.(*crcArbiter).crMember.DPOSPublicKey == nil &&
+				ar.IsNormal()) {
 			producer := a.GetProducer(ar.GetNodePublicKey())
 			if producer == nil {
 				return errors.New("get producer by node public key failed")

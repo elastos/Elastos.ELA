@@ -1386,8 +1386,9 @@ func (a *arbitrators) updateNextArbitrators(versionHeight, height uint32) error 
 
 func (a *arbitrators) resetNextArbiterByCRC(versionHeight uint32, height uint32) (int, error) {
 	var unclaimed int
+	var needReset bool
+	crcArbiters := map[common.Uint168]ArbiterMember{}
 	if a.crCommittee != nil && a.crCommittee.IsInElectionPeriod() {
-		var crcArbiters map[common.Uint168]ArbiterMember
 		if versionHeight >= a.chainParams.CRClaimDPOSNodeStartHeight {
 			var err error
 			if versionHeight < a.chainParams.ChangeCommitteeNewCRHeight {
@@ -1405,18 +1406,20 @@ func (a *arbitrators) resetNextArbiterByCRC(versionHeight uint32, height uint32)
 				return unclaimed, err
 			}
 		}
-
-		oriNextArbitersMap := a.nextCRCArbitersMap
-		oriCRCChangedHeight := a.crcChangedHeight
-		a.history.Append(height, func() {
-			a.nextCRCArbitersMap = crcArbiters
-			a.crcChangedHeight = a.crCommittee.LastCommitteeHeight
-		}, func() {
-			a.nextCRCArbitersMap = oriNextArbitersMap
-			a.crcChangedHeight = oriCRCChangedHeight
-		})
+		needReset = true
+	} else if versionHeight >= a.chainParams.ChangeCommitteeNewCRHeight {
+		votedProducers := a.State.GetVotedProducers()
+		for i := 0; i < len(a.chainParams.CRCArbiters); i++ {
+			producer := votedProducers[i]
+			ar, err := NewDPoSArbiter(CROrigin, producer)
+			if err != nil {
+				return unclaimed, err
+			}
+			crcArbiters[ar.GetOwnerProgramHash()] = ar
+		}
+		unclaimed = len(a.chainParams.CRCArbiters)
+		needReset = true
 	} else if versionHeight >= a.chainParams.CRCommitteeStartHeight {
-		crcArbiters := map[common.Uint168]ArbiterMember{}
 		for _, pk := range a.chainParams.CRCArbiters {
 			pubKey, err := hex.DecodeString(pk)
 			if err != nil {
@@ -1435,7 +1438,10 @@ func (a *arbitrators) resetNextArbiterByCRC(versionHeight uint32, height uint32)
 			}
 			crcArbiters[ar.GetOwnerProgramHash()] = ar
 		}
+		needReset = true
+	}
 
+	if needReset {
 		oriNextArbitersMap := a.nextCRCArbitersMap
 		oriCRCChangedHeight := a.crcChangedHeight
 		a.history.Append(height, func() {

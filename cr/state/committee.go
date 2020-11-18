@@ -324,7 +324,7 @@ func (c *Committee) ProcessBlock(block *types.Block, confirm *payload.Confirm) {
 
 	inElectionPeriod := c.tryStartVotingPeriod(block.Height)
 	c.updateProposals(block.Height, inElectionPeriod)
-	c.freshCirculationAmount(c.lastHistory, block.Height)
+	c.updateCirculationAmount(c.lastHistory, block.Height)
 	c.updateCRInactivePeriod(c.lastHistory, block.Height)
 	c.updateCRInactiveStatus(c.lastHistory, block.Height)
 	needChg := false
@@ -674,7 +674,7 @@ func (c *Committee) recordCRCRelatedAddressOutputs(block *types.Block) {
 	c.firstHistory.Commit(block.Height)
 }
 
-func (c *Committee) freshCirculationAmount(history *utils.History, height uint32) {
+func (c *Committee) updateCirculationAmount(history *utils.History, height uint32) {
 	circulationAmount := common.Fixed64(config.OriginIssuanceAmount) +
 		common.Fixed64(height)*c.params.RewardPerBlock -
 		c.CRCFoundationBalance - c.CRCCommitteeBalance - c.DestroyedAmount

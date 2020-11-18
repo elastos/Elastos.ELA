@@ -132,6 +132,7 @@ type CRConfiguration struct {
 	RealWithdrawSingleFee              common.Fixed64 `json:"RealWithdrawSingleFee"`
 	NewP2PProtocolVersionHeight        uint64         `json:"NewP2PProtocolVersionHeight"`
 	ChangeCommitteeNewCRHeight         uint32         `json:"ChangeCommitteeNewCRHeight"`
+	MaxReservedCustomIDListCount       uint32         `json:"MaxReservedCustomIDListCount"`
 }
 
 type RPCServiceLevel byte

@@ -3288,14 +3288,14 @@ func (s *txValidatorTestSuite) TestCheckCRCProposalTransaction() {
 	proposal, _ = txn.Payload.(*payload.CRCProposal)
 	proposal.ReservedCustomIDList = append(proposal.ReservedCustomIDList, randomName(260))
 	err = s.Chain.checkCRCProposalTransaction(txn, tenureHeight, 0)
-	s.EqualError(err, "Reserved custom id too long")
+	s.EqualError(err, "reserved custom id too long")
 
 	// invalid banned custom id
 	txn = s.getCRCReservedCustomIDProposalTx(publicKeyStr2, privateKeyStr2, publicKeyStr1, privateKeyStr1)
 	proposal, _ = txn.Payload.(*payload.CRCProposal)
 	proposal.BannedCustomIDList = append(proposal.BannedCustomIDList, randomName(260))
 	err = s.Chain.checkCRCProposalTransaction(txn, tenureHeight, 0)
-	s.EqualError(err, "Banned custom id too long")
+	s.EqualError(err, "banned custom id too long")
 
 	manager := s.Chain.crCommittee.GetProposalManager()
 	manager.ReceivedCustomIDLists = make([][]string, 0)

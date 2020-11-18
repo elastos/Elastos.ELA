@@ -418,6 +418,11 @@ var (
 		Usage: "defines the change committee new cr height",
 	}
 
+	MaxReservedCustomIDListCount = cli.StringFlag{
+		Name:  "maxreservedcustomidlistcount",
+		Usage: "defines the max count of reserved custom iid list per tx",
+	}
+
 	NoCRCDPOSNodeHeight = cli.StringFlag{
 		Name:  "nocrcdposnodeheight",
 		Usage: "defines the height when there is no DPOS node of CRC",

@@ -28,11 +28,7 @@ local asset_id = m.get_asset_id()
 
 local fee = getFee()
 local cr_pubkey = getPublicKey()
-local proposal_type = getProposalType()
-
-local draft_hash = getDraftHash()
 local draft_data = getDraftData()
-
 local rate = getRateOfCustomIDFee()
 
 if fee == 0
@@ -49,25 +45,18 @@ if draft_data == "" then
     return
 end
 
-if received_custom_id_list == "" then
-    print("received_custom_id_list is nil, should use --receivedcustomidlist to set it.")
-    return
-end
-
-if receiver_did == "" then
-    print("receiver_did is nil, should use --receiverdid to set it.")
+if rate == "" then
+    print("customidrate is nil, should use --customidrate to set it.")
     return
 end
 
 print("fee:", fee)
 print("public key:", cr_pubkey)
-print("proposal type:", proposal_type)
-print("draft proposal hash:", draft_hash)
-print("rate:", receiver_did)
+print("rate:", rate)
 print("draft_data :", draft_data)
 
 -- crc close proposal hash payload: crPublickey, proposalType, draftData, close_proposal_hash, wallet
-local cp_payload =crcchangecustomidfee.new(cr_pubkey, proposal_type, draft_data, received_custom_id_list, receiver_did, wallet)
+local cp_payload =crcchangecustomidfee.new(cr_pubkey, draft_data, rate, wallet)
 
 print(cp_payload:get())
 

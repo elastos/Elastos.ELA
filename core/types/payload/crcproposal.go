@@ -72,6 +72,8 @@ func (pt CRCProposalType) Name() string {
 		return "ReserveCustomID"
 	case ReceiveCustomID:
 		return "ReceiveCustomID"
+	case ChangeCustomIDFee:
+		return "ChangeCustomIDFee"
 	default:
 		return "Unknown"
 	}

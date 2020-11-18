@@ -933,6 +933,12 @@ func NewSettings() *Settings {
 		ParamName:    "ChangeCommitteeNewCRHeight"})
 
 	result.Add(&settingItem{
+		Flag:         cmdcom.MaxReservedCustomIDListCount,
+		DefaultValue: uint32(0),
+		ConfigPath:   "CRConfiguration.MaxReservedCustomIDListCount",
+		ParamName:    "MaxReservedCustomIDListCount"})
+
+	result.Add(&settingItem{
 		Flag:         cmdcom.NoCRCDPOSNodeHeight,
 		DefaultValue: uint32(0),
 		ConfigPath:   "DPoSConfiguration.NoCRCDPOSNodeHeight",

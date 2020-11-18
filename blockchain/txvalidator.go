@@ -2711,6 +2711,29 @@ func (b *BlockChain) checkChangeSecretaryGeneralProposalTx(crcProposal *payload.
 	return nil
 }
 
+func (b *BlockChain) checkReservedCustomID(proposal *payload.CRCProposal, PayloadVersion byte) error {
+	_, err := crypto.DecodePoint(proposal.OwnerPublicKey)
+	if err != nil {
+		return errors.New("DecodePoint from OwnerPublicKey error")
+	}
+
+	for _, v := range proposal.ReservedCustomIDList {
+		if len(v) > int(b.chainParams.MaxReservedCustomIDListCount) {
+			return errors.New("reserved custom id too long")
+		}
+	}
+	for _, v := range proposal.BannedCustomIDList {
+		if len(v) > int(b.chainParams.MaxReservedCustomIDListCount) {
+			return errors.New("banned custom id too long")
+		}
+	}
+	crMember := b.crCommittee.GetMember(proposal.CRCouncilMemberDID)
+	if crMember == nil {
+		return errors.New("CR Council Member should be one of the CR members")
+	}
+	return b.checkOwnerAndCRCouncilMemberSign(proposal, crMember.Info.Code, PayloadVersion)
+}
+
 func (b *BlockChain) checkReceivedCustomID(proposal *payload.CRCProposal, PayloadVersion byte) error {
 	_, err := crypto.DecodePoint(proposal.OwnerPublicKey)
 	if err != nil {
@@ -2719,6 +2742,12 @@ func (b *BlockChain) checkReceivedCustomID(proposal *payload.CRCProposal, Payloa
 	reservedCustomIDList := b.crCommittee.GetReservedCustomIDLists()
 	bannedCustomIDList := b.crCommittee.GetBannedCustomIDLists()
 	receivedCustomIDList := b.crCommittee.GetReceivedCustomIDLists()
+
+	for _, v := range proposal.ReceivedCustomIDList {
+		if len(v) > int(b.chainParams.MaxReservedCustomIDListCount) {
+			return errors.New("received custom id too long")
+		}
+	}
 
 	for _, v := range proposal.ReceivedCustomIDList {
 		if utils.StringExisted(receivedCustomIDList, v) {
@@ -2745,30 +2774,6 @@ func (b *BlockChain) checkChangeCustomIDFee(proposal *payload.CRCProposal, Paylo
 	}
 	if proposal.RateOfCustomIDFee < 0 {
 		return errors.New("invalid fee rate of custom ID")
-	}
-	crMember := b.crCommittee.GetMember(proposal.CRCouncilMemberDID)
-	if crMember == nil {
-		return errors.New("CR Council Member should be one of the CR members")
-	}
-	return b.checkOwnerAndCRCouncilMemberSign(proposal, crMember.Info.Code, PayloadVersion)
-}
-
-func (b *BlockChain) checkReservedCustomID(proposal *payload.CRCProposal, PayloadVersion byte) error {
-	_, err := crypto.DecodePoint(proposal.OwnerPublicKey)
-	if err != nil {
-		return errors.New("DecodePoint from OwnerPublicKey error")
-	}
-
-	for _, v := range proposal.ReservedCustomIDList {
-		if len(v) > 255 {
-			return errors.New("Reserved custom id too long")
-		}
-	}
-
-	for _, v := range proposal.BannedCustomIDList {
-		if len(v) > 255 {
-			return errors.New("Banned custom id too long")
-		}
 	}
 	crMember := b.crCommittee.GetMember(proposal.CRCouncilMemberDID)
 	if crMember == nil {

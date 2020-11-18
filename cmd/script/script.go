@@ -62,6 +62,7 @@ func registerParams(c *cli.Context, L *lua.LState) {
 	reservedCustomIDList := c.String("reservedcustomidlist")
 	bannedCustomIDList := c.String("bannedcustomidlist")
 	receivedCustomIDList := c.String("receivedcustomidlist")
+	customidrate := c.String("customidrate")
 	receiverDID := c.String("receiverdid")
 	CRExpensesAddress := c.String("crccommiteeaddr")
 	payloadVersion := c.Int64("payloadversion")
@@ -261,6 +262,10 @@ func registerParams(c *cli.Context, L *lua.LState) {
 		L.Push(lua.LString(receivedCustomIDList))
 		return 1
 	}
+	getRateOfCustomIDFee := func(L *lua.LState) int {
+		L.Push(lua.LString(customidrate))
+		return 1
+	}
 	getReceiverDID := func(L *lua.LState) int {
 		L.Push(lua.LString(receiverDID))
 		return 1
@@ -331,6 +336,7 @@ func registerParams(c *cli.Context, L *lua.LState) {
 	L.Register("getReservedCustomIDList", getReservedCustomIDList)
 	L.Register("getBannedCustomIDList", getBannedCustomIDList)
 	L.Register("getReceivedCustomIDList", getReceivedCustomIDList)
+	L.Register("getRateOfCustomIDFee", getRateOfCustomIDFee)
 	L.Register("getReceiverDID", getReceiverDID)
 	L.Register("getCRExpensesAddress", getCRExpensesAddress)
 	L.Register("getPayloadVersion", getPayloadVersion)
@@ -583,6 +589,10 @@ func NewCommand() *cli.Command {
 			cli.StringFlag{
 				Name:  "crcommitteedid",
 				Usage: "set the crcommittee did",
+			},
+			cli.StringFlag{
+				Name:  "customidrate",
+				Usage: "set the rate of custom id",
 			},
 		},
 		Action: scriptAction,

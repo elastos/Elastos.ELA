@@ -1125,7 +1125,7 @@ func (b *BlockChain) checkTxHeightVersion(txn *Transaction, blockHeight uint32) 
 				return errors.New(fmt.Sprintf("not support %s CRCProposal"+
 					" transactio before CRCProposalV1Height", p.ProposalType.Name()))
 			}
-		case payload.ReserveCustomID, payload.ReceiveCustomID:
+		case payload.ReserveCustomID, payload.ReceiveCustomID, payload.ChangeCustomIDFee:
 			if blockHeight < b.chainParams.ChangeCommitteeNewCRHeight {
 				return errors.New(fmt.Sprintf("not support %s CRCProposal"+
 					" transaction before ChangeCommitteeNewCRHeight", p.ProposalType.Name()))
@@ -2731,16 +2731,20 @@ func (b *BlockChain) checkReceivedCustomID(proposal *payload.CRCProposal, Payloa
 			return errors.New("Received custom id found in banned custom id list")
 		}
 	}
+	crMember := b.crCommittee.GetMember(proposal.CRCouncilMemberDID)
+	if crMember == nil {
+		return errors.New("CR Council Member should be one of the CR members")
+	}
+	return b.checkOwnerAndCRCouncilMemberSign(proposal, crMember.Info.Code, PayloadVersion)
+}
 
-	if len(proposal.Budgets) > 0 {
-		return errors.New("ReceivedCustomID cannot have budget")
+func (b *BlockChain) checkChangeCustomIDFee(proposal *payload.CRCProposal, PayloadVersion byte) error {
+	_, err := crypto.DecodePoint(proposal.OwnerPublicKey)
+	if err != nil {
+		return errors.New("DecodePoint from OwnerPublicKey error")
 	}
-	emptyUint168 := common.Uint168{}
-	if proposal.Recipient != emptyUint168 {
-		return errors.New("ReceivedCustomID recipient must be empty")
-	}
-	if proposal.ReceiverDID == emptyUint168 {
-		return errors.New("ReceivedCustomID receiver did can not be empty")
+	if proposal.RateOfCustomIDFee < 0 {
+		return errors.New("invalid fee rate of custom ID")
 	}
 	crMember := b.crCommittee.GetMember(proposal.CRCouncilMemberDID)
 	if crMember == nil {
@@ -2765,14 +2769,6 @@ func (b *BlockChain) checkReservedCustomID(proposal *payload.CRCProposal, Payloa
 		if len(v) > 255 {
 			return errors.New("Banned custom id too long")
 		}
-	}
-
-	if len(proposal.Budgets) > 0 {
-		return errors.New("ReserveCustomID cannot have budget")
-	}
-	emptyUint168 := common.Uint168{}
-	if proposal.Recipient != emptyUint168 {
-		return errors.New("ReserveCustomID recipient must be empty")
 	}
 	crMember := b.crCommittee.GetMember(proposal.CRCouncilMemberDID)
 	if crMember == nil {
@@ -3066,12 +3062,14 @@ func (b *BlockChain) checkCRCProposalTransaction(txn *Transaction,
 		return b.checkChangeProposalOwner(proposal, txn.PayloadVersion)
 	case payload.CloseProposal:
 		return b.checkCloseProposal(proposal, txn.PayloadVersion)
+	case payload.SecretaryGeneral:
+		return b.checkChangeSecretaryGeneralProposalTx(proposal, txn.PayloadVersion)
 	case payload.ReserveCustomID:
 		return b.checkReservedCustomID(proposal, txn.PayloadVersion)
 	case payload.ReceiveCustomID:
 		return b.checkReceivedCustomID(proposal, txn.PayloadVersion)
-	case payload.SecretaryGeneral:
-		return b.checkChangeSecretaryGeneralProposalTx(proposal, txn.PayloadVersion)
+	case payload.ChangeCustomIDFee:
+		return b.checkChangeCustomIDFee(proposal, txn.PayloadVersion)
 	default:
 		return b.checkNormalOrELIPProposal(proposal, proposalsUsedAmount, txn.PayloadVersion)
 	}

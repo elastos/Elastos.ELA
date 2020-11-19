@@ -368,7 +368,6 @@ func (a *arbitrators) normalChange(height uint32) error {
 }
 
 func (a *arbitrators) notifyNextTurnDPOSInfoTx(blockHeight, versionHeight uint32) {
-	count := a.chainParams.GeneralArbiters
 	votedProducers := a.State.GetVotedProducers()
 	sort.Slice(votedProducers, func(i, j int) bool {
 		if votedProducers[i].votes == votedProducers[j].votes {
@@ -378,16 +377,9 @@ func (a *arbitrators) notifyNextTurnDPOSInfoTx(blockHeight, versionHeight uint32
 		return votedProducers[i].Votes() > votedProducers[j].Votes()
 	})
 
-	producers, err := a.GetNormalArbitratorsDesc(versionHeight, count,
-		votedProducers, a.Unclaimed)
-	if err == nil {
-		sort.Slice(producers, func(i, j int) bool {
-			return bytes.Compare(producers[i].GetNodePublicKey(), producers[j].GetNodePublicKey()) < 0
-		})
-	}
-	workingHeight := blockHeight + uint32(len(a.currentArbitrators))
-	nextTurnDPOSInfoTx := a.createNextTurnDPOSInfoTransaction(a.nextCRCArbiters, producers, workingHeight)
+	nextTurnDPOSInfoTx := a.createNextTurnDPOSInfoTransaction(blockHeight)
 	go events.Notify(events.ETAppendTxToTxPool, nextTurnDPOSInfoTx)
+	return
 }
 
 func (a *arbitrators) IncreaseChainHeight(block *types.Block) {
@@ -1241,20 +1233,23 @@ func (a *arbitrators) ConvertToArbitersStr(arbiters [][]byte) []string {
 	}
 	return arbitersStr
 }
-func (a *arbitrators) createNextTurnDPOSInfoTransaction(crcArbiters, normalDPOSArbiters []ArbiterMember, WorkingHeight uint32) *types.Transaction {
 
+func (a *arbitrators) createNextTurnDPOSInfoTransaction(blockHeight uint32) *types.Transaction {
 	var nextTurnDPOSInfo payload.NextTurnDPOSInfo
-	nextTurnDPOSInfo.WorkingHeight = WorkingHeight
-	for _, v := range crcArbiters {
-		if abt, ok := v.(*crcArbiter); ok && abt.crMember.MemberState != state.MemberElected {
-			nextTurnDPOSInfo.CRPublicKeys = append(nextTurnDPOSInfo.CRPublicKeys, []byte{})
+	workingHeight := blockHeight + uint32(len(a.currentArbitrators))
+	nextTurnDPOSInfo.WorkingHeight = workingHeight
+	for _, v := range a.nextArbitrators {
+		if a.isNextCRCArbitrator(v.GetNodePublicKey()) {
+			if abt, ok := v.(*crcArbiter); ok && abt.crMember.MemberState != state.MemberElected {
+				nextTurnDPOSInfo.CRPublicKeys = append(nextTurnDPOSInfo.CRPublicKeys, []byte{})
+			} else {
+				nextTurnDPOSInfo.CRPublicKeys = append(nextTurnDPOSInfo.CRPublicKeys, v.GetNodePublicKey())
+			}
 		} else {
-			nextTurnDPOSInfo.CRPublicKeys = append(nextTurnDPOSInfo.CRPublicKeys, v.GetNodePublicKey())
+			nextTurnDPOSInfo.DPOSPublicKeys = append(nextTurnDPOSInfo.DPOSPublicKeys, v.GetNodePublicKey())
 		}
 	}
-	for _, v := range normalDPOSArbiters {
-		nextTurnDPOSInfo.DPOSPublicKeys = append(nextTurnDPOSInfo.DPOSPublicKeys, v.GetNodePublicKey())
-	}
+
 	log.Debugf("[createNextTurnDPOSInfoTransaction] CRPublicKeys %v, DPOSPublicKeys%v\n",
 		a.ConvertToArbitersStr(nextTurnDPOSInfo.CRPublicKeys), a.ConvertToArbitersStr(nextTurnDPOSInfo.DPOSPublicKeys))
 
@@ -1352,7 +1347,6 @@ func (a *arbitrators) updateNextArbitrators(versionHeight, height uint32) error 
 				a.NeedNextTurnDposInfo = oriNeedNextTurnDposInfo
 				a.nextCRCArbiters = oriNextCRCArbiters
 				a.Unclaimed = oriUnClaimed
-
 			})
 
 			candidates, err := a.GetCandidatesDesc(versionHeight, count+unclaimed,
@@ -1409,6 +1403,13 @@ func (a *arbitrators) resetNextArbiterByCRC(versionHeight uint32, height uint32)
 		needReset = true
 	} else if versionHeight >= a.chainParams.ChangeCommitteeNewCRHeight {
 		votedProducers := a.State.GetVotedProducers()
+		sort.Slice(votedProducers, func(i, j int) bool {
+			if votedProducers[i].votes == votedProducers[j].votes {
+				return bytes.Compare(votedProducers[i].info.NodePublicKey,
+					votedProducers[j].NodePublicKey()) < 0
+			}
+			return votedProducers[i].Votes() > votedProducers[j].Votes()
+		})
 		for i := 0; i < len(a.chainParams.CRCArbiters); i++ {
 			producer := votedProducers[i]
 			ar, err := NewDPoSArbiter(CROrigin, producer)
@@ -1440,7 +1441,6 @@ func (a *arbitrators) resetNextArbiterByCRC(versionHeight uint32, height uint32)
 		}
 		needReset = true
 	}
-
 	if needReset {
 		oriNextArbitersMap := a.nextCRCArbitersMap
 		oriCRCChangedHeight := a.crcChangedHeight
@@ -1710,6 +1710,9 @@ func (a *arbitrators) snapshotVotesStates(height uint32) error {
 	}
 
 	for _, ar := range a.nextCandidates {
+		if a.isNextCRCArbitrator(ar.GetNodePublicKey()) {
+			continue
+		}
 		producer := a.GetProducer(ar.GetNodePublicKey())
 		if producer == nil {
 			return errors.New("get producer by node public key failed")

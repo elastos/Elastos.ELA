@@ -1365,14 +1365,14 @@ func (b *BlockChain) checkTransferCrossChainAssetTransaction(txn *Transaction, r
 	return nil
 }
 
-func (b *BlockChain) IsNextArbtratorsSame(nextTurnDPOSInfo *payload.NextTurnDPOSInfo, curNodeNextArbitrators [][]byte) bool {
-	if len(nextTurnDPOSInfo.CRPublicKeys)+len(nextTurnDPOSInfo.DPOSPublicKeys) != len(curNodeNextArbitrators) {
-		log.Warn("IsNextArbtratorsSame curNodeArbitrators len ", len(curNodeNextArbitrators))
+func (b *BlockChain) IsNextArbitratorsSame(nextTurnDPOSInfo *payload.NextTurnDPOSInfo, nextArbitrators [][]byte) bool {
+	if len(nextTurnDPOSInfo.CRPublicKeys)+len(nextTurnDPOSInfo.DPOSPublicKeys) != len(nextArbitrators) {
+		log.Warn("[IsNextArbitratorsSame] nexArbitrators len ", len(nextArbitrators))
 		return false
 	}
 	crindex := 0
 	dposIndex := 0
-	for _, v := range curNodeNextArbitrators {
+	for _, v := range nextArbitrators {
 		if DefaultLedger.Arbitrators.IsNextCRCArbitrator(v) {
 			if bytes.Equal(v, nextTurnDPOSInfo.CRPublicKeys[crindex]) ||
 				(bytes.Equal([]byte{}, nextTurnDPOSInfo.CRPublicKeys[crindex]) && !DefaultLedger.Arbitrators.IsMemberElectedNextCRCArbitrator(v)) {
@@ -1406,16 +1406,17 @@ func (b *BlockChain) checkNextTurnDPOSInfoTransaction(txn *Transaction) error {
 	if !ok {
 		return errors.New("invalid NextTurnDPOSInfo payload")
 	}
-	log.Warnf("[checkNextTurnDPOSInfoTransaction] CRPublicKeys %v, DPOSPublicKeys%v\n",
-		b.ConvertToArbitersStr(nextTurnDPOSInfo.CRPublicKeys), b.ConvertToArbitersStr(nextTurnDPOSInfo.DPOSPublicKeys))
 
 	if !DefaultLedger.Arbitrators.IsNeedNextTurnDPOSInfo() {
 		log.Warn("[checkNextTurnDPOSInfoTransaction] !IsNeedNextTurnDPOSInfo")
 		return errors.New("should not have next turn dpos info transaction")
 	}
-	curNodeNextArbitrators := DefaultLedger.Arbitrators.GetNextArbitrators()
+	nextArbitrators := DefaultLedger.Arbitrators.GetNextArbitrators()
 
-	if !b.IsNextArbtratorsSame(nextTurnDPOSInfo, curNodeNextArbitrators) {
+	if !b.IsNextArbitratorsSame(nextTurnDPOSInfo, nextArbitrators) {
+		log.Warnf("[checkNextTurnDPOSInfoTransaction] CRPublicKeys %v, DPOSPublicKeys%v\n",
+			b.ConvertToArbitersStr(nextTurnDPOSInfo.CRPublicKeys), b.ConvertToArbitersStr(nextTurnDPOSInfo.DPOSPublicKeys))
+
 		return errors.New("checkNextTurnDPOSInfoTransaction nextTurnDPOSInfo was wrong")
 	}
 	return nil

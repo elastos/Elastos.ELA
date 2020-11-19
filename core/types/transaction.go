@@ -388,6 +388,16 @@ func (tx *Transaction) IsNextTurnDPOSInfoTx() bool {
 	return tx.TxType == NextTurnDPOSInfo
 }
 
+func (tx *Transaction) IsCustomIDRelatedTx() bool {
+	if tx.IsCRCProposalTx() {
+		p, _ := tx.Payload.(*payload.CRCProposal)
+		return p.ProposalType ==  payload.ReserveCustomID ||
+			p.ProposalType == payload.ReceiveCustomID ||
+			p.ProposalType == payload.ChangeCustomIDFee
+	}
+	return false
+}
+
 func (tx *Transaction) IsCRCProposalRealWithdrawTx() bool {
 	return tx.TxType == CRCProposalRealWithdraw
 }

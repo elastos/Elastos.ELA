@@ -1651,6 +1651,23 @@ func (s *State) countArbitratorsInactivityV1(height uint32,
 	}
 	changingArbiters[s.getProducerKey(confirm.Proposal.Sponsor)] = true
 
+	// should reset the inactiveCountingHeight of first onduty arbiter
+	for k, _ := range changingArbiters {
+		if _, ok := s.PreBlockArbiters[k]; !ok {
+			changingArbiters[k] = true
+		}
+	}
+
+	oriPreBlockArbiters := s.PreBlockArbiters
+	s.history.Append(height, func() {
+		s.PreBlockArbiters = make(map[string]struct{})
+		for k, _ := range changingArbiters {
+			s.PreBlockArbiters[k] = struct{}{}
+		}
+	}, func() {
+		s.PreBlockArbiters = oriPreBlockArbiters
+	})
+
 	crMembersMap := s.getClaimedCRMembersMap()
 	// CRC producers are not in the ActivityProducers,
 	// so they will not be inactive

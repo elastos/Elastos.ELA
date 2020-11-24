@@ -1361,6 +1361,12 @@ func (c *Committee) TryUpdateCRMemberInactivity(did common.Uint168,
 		log.Error("tryUpdateCRMemberInactivity did %+v not exist", did.String())
 		return
 	}
+
+	if crMember.InactiveCountingEndHeight != height-1 {
+		crMember.InactiveCountingHeight = 0
+	}
+	crMember.InactiveCountingEndHeight = height
+
 	if needReset {
 		crMember.InactiveCountingHeight = 0
 		return

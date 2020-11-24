@@ -68,19 +68,20 @@ func (ps ProducerState) String() string {
 // Producer holds a producer's info.  It provides read only methods to access
 // producer's info.
 type Producer struct {
-	info                   payload.ProducerInfo
-	state                  ProducerState
-	registerHeight         uint32
-	cancelHeight           uint32
-	inactiveCountingHeight uint32
-	inactiveSince          uint32
-	activateRequestHeight  uint32
-	illegalHeight          uint32
-	penalty                common.Fixed64
-	votes                  common.Fixed64
-	depositAmount          common.Fixed64
-	totalAmount            common.Fixed64
-	depositHash            common.Uint168
+	info                      payload.ProducerInfo
+	state                     ProducerState
+	registerHeight            uint32
+	cancelHeight              uint32
+	inactiveCountingHeight    uint32
+	inactiveCountingEndHeight uint32
+	inactiveSince             uint32
+	activateRequestHeight     uint32
+	illegalHeight             uint32
+	penalty                   common.Fixed64
+	votes                     common.Fixed64
+	depositAmount             common.Fixed64
+	totalAmount               common.Fixed64
+	depositHash               common.Uint168
 }
 
 // Info returns a copy of the origin registered producer info.
@@ -165,6 +166,10 @@ func (p *Producer) Serialize(w io.Writer) error {
 		return err
 	}
 
+	if err := common.WriteUint32(w, p.inactiveCountingEndHeight); err != nil {
+		return err
+	}
+
 	if err := common.WriteUint32(w, p.inactiveSince); err != nil {
 		return err
 	}
@@ -208,6 +213,10 @@ func (p *Producer) Deserialize(r io.Reader) (err error) {
 	}
 
 	if p.inactiveCountingHeight, err = common.ReadUint32(r); err != nil {
+		return
+	}
+
+	if p.inactiveCountingEndHeight, err = common.ReadUint32(r); err != nil {
 		return
 	}
 
@@ -1651,23 +1660,6 @@ func (s *State) countArbitratorsInactivityV1(height uint32,
 	}
 	changingArbiters[s.getProducerKey(confirm.Proposal.Sponsor)] = true
 
-	// should reset the inactiveCountingHeight of first onduty arbiter
-	for k, _ := range changingArbiters {
-		if _, ok := s.PreBlockArbiters[k]; !ok {
-			changingArbiters[k] = true
-		}
-	}
-
-	oriPreBlockArbiters := s.PreBlockArbiters
-	s.history.Append(height, func() {
-		s.PreBlockArbiters = make(map[string]struct{})
-		for k, _ := range changingArbiters {
-			s.PreBlockArbiters[k] = struct{}{}
-		}
-	}, func() {
-		s.PreBlockArbiters = oriPreBlockArbiters
-	})
-
 	crMembersMap := s.getClaimedCRMembersMap()
 	// CRC producers are not in the ActivityProducers,
 	// so they will not be inactive
@@ -1769,6 +1761,11 @@ func (s *State) countArbitratorsInactivityV0(height uint32,
 
 func (s *State) tryUpdateInactivity(key string, producer *Producer,
 	needReset bool, height uint32) {
+	if producer.inactiveCountingEndHeight != height-1 {
+		producer.inactiveCountingHeight = 0
+	}
+	producer.inactiveCountingEndHeight = height
+
 	if needReset {
 		producer.inactiveCountingHeight = 0
 		return

@@ -237,6 +237,32 @@ func (a *arbitrators) CheckCRCAppropriationTx(block *types.Block) error {
 	return nil
 }
 
+func (a *arbitrators) CheckCustomIDResultsTx(block *types.Block) error {
+	a.mtx.Lock()
+	needCustomProposalResult := a.crCommittee.NeedCIDProposalResult
+	a.mtx.Unlock()
+
+	var cidProposalResultCount uint32
+	for _, tx := range block.Transactions {
+		if tx.IsCustomIDResultTx() {
+			cidProposalResultCount++
+		}
+	}
+
+	var needCIDProposalResultCount uint32
+	if needCustomProposalResult {
+		needCIDProposalResultCount = 1
+	}
+
+	if cidProposalResultCount != needCIDProposalResultCount {
+		return fmt.Errorf("current block height %d, custom ID result "+
+			"transaction count should be %d, current block contains %d",
+			block.Height, needCIDProposalResultCount, cidProposalResultCount)
+	}
+
+	return nil
+}
+
 func (a *arbitrators) ProcessSpecialTxPayload(p types.Payload,
 	height uint32) error {
 	switch obj := p.(type) {

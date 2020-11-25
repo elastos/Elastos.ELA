@@ -147,6 +147,10 @@ func (a *ArbitratorsMock) CheckNextTurnDPOSInfoTx(block *types.Block) error {
 	return nil
 }
 
+func (a *ArbitratorsMock) CheckCustomIDResultsTx(block *types.Block) error {
+	return nil
+}
+
 func (a *ArbitratorsMock) GetNeedConnectArbiters() []peer.PID {
 	panic("implement me")
 }

@@ -566,10 +566,15 @@ func (a *arbitrators) distributeWithNormalArbitratorsV3(height uint32, reward co
 	rewardPerVote := totalTopProducersReward / float64(totalVotesInRound)
 
 	realDPOSReward := common.Fixed64(0)
+	log.Info("############### at height:", height)
+	log.Info("############### individualBlockConfirmReward:", individualBlockConfirmReward)
+	log.Info("############### rewardPerVote:", rewardPerVote)
+	log.Info("############### current arbiters")
 	for _, arbiter := range a.currentArbitrators {
 		ownerHash := arbiter.GetOwnerProgramHash()
 		rewardHash := ownerHash
 		var r common.Fixed64
+		var votes common.Fixed64
 		if arbiter.GetType() == CRC {
 			r = individualBlockConfirmReward
 			m, ok := arbiter.(*crcArbiter)
@@ -586,7 +591,7 @@ func (a *arbitrators) distributeWithNormalArbitratorsV3(height uint32, reward co
 				if err != nil {
 					panic("public key to standard program hash err:" + err.Error())
 				}
-				votes := a.CurrentReward.OwnerVotesInRound[*programHash]
+				votes = a.CurrentReward.OwnerVotesInRound[*programHash]
 				individualCRCProducerReward := common.Fixed64(math.Floor(float64(
 					votes) * rewardPerVote))
 				r = individualBlockConfirmReward + individualCRCProducerReward
@@ -601,23 +606,31 @@ func (a *arbitrators) distributeWithNormalArbitratorsV3(height uint32, reward co
 				}
 			}
 		} else {
-			votes := a.CurrentReward.OwnerVotesInRound[ownerHash]
+			votes = a.CurrentReward.OwnerVotesInRound[ownerHash]
 			individualProducerReward := common.Fixed64(math.Floor(float64(
 				votes) * rewardPerVote))
 			r = individualBlockConfirmReward + individualProducerReward
 		}
+		addr, _ := rewardHash.ToAddress()
+		log.Info("### addr:", addr, " reward:", r, "votes:", votes)
 		roundReward[rewardHash] += r
 		realDPOSReward += r
 	}
+	log.Info("############### current candidates")
 	for _, candidate := range a.currentCandidates {
 		ownerHash := candidate.GetOwnerProgramHash()
 		votes := a.CurrentReward.OwnerVotesInRound[ownerHash]
 		individualProducerReward := common.Fixed64(math.Floor(float64(
 			votes) * rewardPerVote))
+
+		addr, _ := ownerHash.ToAddress()
+		log.Info("### ", addr, " reward:", individualProducerReward, "votes:", votes)
 		roundReward[ownerHash] = individualProducerReward
 
 		realDPOSReward += individualProducerReward
 	}
+
+	log.Info("#############################")
 	// Abnormal CR`s reward need to be destroyed.
 	for i := len(a.currentArbitrators); i < arbitersCount; i++ {
 		roundReward[a.chainParams.DestroyELAAddress] += individualBlockConfirmReward

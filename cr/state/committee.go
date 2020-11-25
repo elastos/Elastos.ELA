@@ -162,6 +162,18 @@ func (c *Committee) IsAppropriationNeeded() bool {
 	return c.NeedAppropriation
 }
 
+func (c *Committee) IsCustomIDResultNeeded() bool {
+	c.mtx.RLock()
+	defer c.mtx.RUnlock()
+	return c.NeedCIDProposalResult
+}
+
+func (c *Committee) GetCustomIDResults() []payload.ProposalResult {
+	c.mtx.RLock()
+	defer c.mtx.RUnlock()
+	return c.CustomIDProposalResults
+}
+
 func (c *Committee) GetMembersDIDs() []common.Uint168 {
 	c.mtx.RLock()
 	defer c.mtx.RUnlock()

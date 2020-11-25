@@ -200,7 +200,11 @@ func (b *BlockChain) CheckTransactionContext(blockHeight uint32,
 		return references, nil
 
 	case CustomIDResult:
-		// todo complete me.
+		if err := b.checkCustomIDResultTransaction(txn); err != nil {
+			log.Warn("[checkCustomIDResultTransaction],", err)
+			return nil, elaerr.Simple(elaerr.ErrTxPayload, err)
+		}
+		return references, nil
 
 	case CancelProducer:
 		if err := b.checkCancelProducerTransaction(txn); err != nil {
@@ -1424,6 +1428,31 @@ func (b *BlockChain) ConvertToArbitersStr(arbiters [][]byte) []string {
 		arbitersStr = append(arbitersStr, common.BytesToHexString(v))
 	}
 	return arbitersStr
+}
+
+func (b *BlockChain) checkCustomIDResultTransaction(txn *Transaction) error {
+	if !DefaultLedger.Committee.IsCustomIDResultNeeded() {
+		return errors.New("should not have custom ID result transaction")
+	}
+	p, ok := txn.Payload.(*payload.CustomIDProposalResult)
+	if !ok {
+		return errors.New("invalid custom ID result payload")
+	}
+	results := DefaultLedger.Committee.GetCustomIDResults()
+	targetResults := make(map[common.Uint256]bool, 0)
+	for _, r := range results {
+		targetResults[r.ProposalHash] = r.Result
+	}
+	if len(p.ProposalResults) != len(targetResults) {
+		return errors.New("invalid custom ID results count")
+	}
+	for _, r := range p.ProposalResults {
+		pass, ok := targetResults[r.ProposalHash]
+		if !ok || pass != r.Result {
+			return errors.New("invalid custom ID results")
+		}
+	}
+	return nil
 }
 
 func (b *BlockChain) checkNextTurnDPOSInfoTransaction(txn *Transaction) error {

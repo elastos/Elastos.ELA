@@ -570,7 +570,7 @@ func (a *arbitrators) distributeWithNormalArbitratorsV3(height uint32, reward co
 		ownerHash := arbiter.GetOwnerProgramHash()
 		rewardHash := ownerHash
 		var r common.Fixed64
-		if _, ok := a.currentCRCArbitersMap[ownerHash]; ok {
+		if arbiter.GetType() == CRC {
 			r = individualBlockConfirmReward
 			m, ok := arbiter.(*crcArbiter)
 			if !ok || m.crMember.MemberState != state.MemberElected {

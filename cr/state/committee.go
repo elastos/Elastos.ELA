@@ -16,6 +16,7 @@ import (
 
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
+	"github.com/elastos/Elastos.ELA/core/contract/program"
 	"github.com/elastos/Elastos.ELA/core/types"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	elaerr "github.com/elastos/Elastos.ELA/errors"
@@ -371,6 +372,9 @@ func (c *Committee) ProcessBlock(block *types.Block, confirm *payload.Confirm) {
 		c.createRealWithdrawTransaction(block.Height)
 	}
 
+	if c.NeedCIDProposalResult {
+		c.createCustomIDResultTransaction(block.Height)
+	}
 	if needChg {
 		c.createAppropriationTransaction(block.Height)
 		c.recordCurrentStageAmount(block.Height)
@@ -438,12 +442,22 @@ func (c *Committee) updateCRInactiveStatus(history *utils.History, height uint32
 }
 
 func (c *Committee) updateProposals(height uint32, inElectionPeriod bool) {
-	unusedAmount := c.manager.updateProposals(
+	unusedAmount, results := c.manager.updateProposals(
 		height, c.CirculationAmount, inElectionPeriod)
+	oriLastCIDProposalResults := c.CustomIDProposalResults
+	oriNeedCIDProposalResult := c.NeedCIDProposalResult
+	var needCIDProposalResult bool
+	if len(results) != 0 {
+		needCIDProposalResult = true
+	}
 	c.manager.history.Append(height, func() {
 		c.CRCCommitteeUsedAmount -= unusedAmount
+		c.CustomIDProposalResults = results
+		c.NeedCIDProposalResult = needCIDProposalResult
 	}, func() {
 		c.CRCCommitteeUsedAmount += unusedAmount
+		c.CustomIDProposalResults = oriLastCIDProposalResults
+		c.NeedCIDProposalResult = oriNeedCIDProposalResult
 	})
 	c.manager.history.Commit(height)
 }
@@ -505,6 +519,36 @@ func (c *Committee) changeCommittee(height uint32) bool {
 	c.resetCRCCommitteeUsedAmount(height)
 	c.resetProposalHashesSet(height)
 	return true
+}
+
+func (c *Committee) createCustomIDResultTransaction(height uint32) {
+	if height == c.getHeight() {
+		tx := &types.Transaction{
+			Version: types.TxVersion09,
+			TxType:  types.CustomIDResult,
+			Payload: &payload.CustomIDProposalResult{
+				ProposalResults: c.CustomIDProposalResults,
+			},
+			Attributes: []*types.Attribute{},
+			Programs:   []*program.Program{},
+			LockTime:   0,
+		}
+		log.Info("create custom ID result transaction:", tx.Hash())
+		if c.isCurrent != nil && c.broadcast != nil && c.
+			appendToTxpool != nil {
+			go func() {
+				if c.isCurrent() {
+					if err := c.appendToTxpool(tx); err == nil {
+						c.broadcast(msg.NewTx(tx))
+					} else {
+						log.Warn("create custom ID result transaction"+
+							" append to tx pool err ", err)
+					}
+				}
+			}()
+		}
+	}
+	return
 }
 
 func (c *Committee) createAppropriationTransaction(height uint32) {

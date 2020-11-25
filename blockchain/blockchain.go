@@ -577,7 +577,7 @@ func (b *BlockChain) GetBestBlockHash() *Uint256 {
 	if len(b.Nodes) == 0 {
 		return nil
 	}
-	return b.Nodes[len(b.Nodes) - 1].Hash
+	return b.Nodes[len(b.Nodes)-1].Hash
 }
 
 func (b *BlockChain) GetHeight() uint32 {

@@ -172,38 +172,58 @@ func getProposalUnusedBudgetAmount(proposalState *ProposalState) common.Fixed64 
 
 // updateProposals will update proposals' status.
 func (p *ProposalManager) updateProposals(height uint32,
-	circulation common.Fixed64, inElectionPeriod bool) common.Fixed64 {
+	circulation common.Fixed64, inElectionPeriod bool) (common.Fixed64, []payload.ProposalResult) {
 	var unusedAmount common.Fixed64
-	for _, v := range p.Proposals {
+	results := make([]payload.ProposalResult, 0)
+	for k, v := range p.Proposals {
+		proposalType := v.Proposal.ProposalType
 		switch v.Status {
 		case Registered:
 			if !inElectionPeriod {
 				p.abortProposal(v, height)
 				unusedAmount += getProposalTotalBudgetAmount(v.Proposal)
+				recordCustomIDProposalResult(&results, proposalType, k, false)
 				break
 			}
 			if p.shouldEndCRCVote(v.RegisterHeight, height) {
+				pass := true
 				if p.transferRegisteredState(v, height) == CRCanceled {
 					unusedAmount += getProposalTotalBudgetAmount(v.Proposal)
+					pass = false
 				}
+				recordCustomIDProposalResult(&results, proposalType, k, pass)
 			}
 		case CRAgreed:
 			if !inElectionPeriod {
 				p.abortProposal(v, height)
 				unusedAmount += getProposalTotalBudgetAmount(v.Proposal)
+				recordCustomIDProposalResult(&results, proposalType, k, false)
 				break
 			}
 			if p.shouldEndPublicVote(v.VoteStartHeight, height) {
 				if p.transferCRAgreedState(v, height, circulation) == VoterCanceled {
 					unusedAmount += getProposalTotalBudgetAmount(v.Proposal)
+					recordCustomIDProposalResult(&results, proposalType, k, false)
 					continue
 				}
 				p.dealProposal(v, &unusedAmount, height)
+				recordCustomIDProposalResult(&results, proposalType, k, true)
 			}
 		}
 	}
 
-	return unusedAmount
+	return unusedAmount, results
+}
+
+func recordCustomIDProposalResult(results *[]payload.ProposalResult,
+	proposalType payload.CRCProposalType, proposalHash common.Uint256, result bool) {
+	switch proposalType {
+	case payload.ReserveCustomID, payload.ReceiveCustomID, payload.ChangeCustomIDFee:
+		*results = append(*results, payload.ProposalResult{
+			ProposalHash: proposalHash,
+			Result:       result,
+		})
+	}
 }
 
 // abortProposal will transfer the status to aborted.

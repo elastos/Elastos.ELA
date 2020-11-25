@@ -118,11 +118,13 @@ type CRMember struct {
 type KeyFrame struct {
 	Members                    map[common.Uint168]*CRMember
 	HistoryMembers             map[uint64]map[common.Uint168]*CRMember
+	CRCFoundationLockedAmounts []common.Fixed64
+	CustomIDProposalResults    []payload.ProposalResult
 	LastCommitteeHeight        uint32
 	LastVotingStartHeight      uint32
 	InElectionPeriod           bool
 	NeedAppropriation          bool
-	CRCFoundationLockedAmounts []common.Fixed64
+	NeedCIDProposalResult      bool
 	CRCFoundationBalance       common.Fixed64
 	CRCCommitteeBalance        common.Fixed64
 	CRCCommitteeUsedAmount     common.Fixed64
@@ -336,10 +338,16 @@ func (kf *KeyFrame) Serialize(w io.Writer) (err error) {
 		return
 	}
 
+	if err = kf.serializeProposalResultList(w, kf.CustomIDProposalResults); err != nil {
+		return
+	}
+
 	return common.WriteElements(w, kf.LastCommitteeHeight,
 		kf.LastVotingStartHeight, kf.InElectionPeriod, kf.NeedAppropriation,
-		kf.CRCFoundationBalance, kf.CRCCommitteeBalance, kf.CRCCommitteeUsedAmount,
-		kf.DestroyedAmount, kf.CirculationAmount, kf.AppropriationAmount, kf.CommitteeUsedAmount)
+		kf.NeedCIDProposalResult, kf.CRCFoundationBalance,
+		kf.CRCCommitteeBalance, kf.CRCCommitteeUsedAmount,
+		kf.DestroyedAmount, kf.CirculationAmount, kf.AppropriationAmount,
+		kf.CommitteeUsedAmount, kf.CRAssetsAddressUTXOCount)
 }
 
 func (kf *KeyFrame) Deserialize(r io.Reader) (err error) {
@@ -355,11 +363,15 @@ func (kf *KeyFrame) Deserialize(r io.Reader) (err error) {
 		return
 	}
 
+	if kf.CustomIDProposalResults, err = kf.deserializeProposalResultList(r); err != nil {
+		return
+	}
+
 	err = common.ReadElements(r, &kf.LastCommitteeHeight,
 		&kf.LastVotingStartHeight, &kf.InElectionPeriod, &kf.NeedAppropriation,
-		&kf.CRCFoundationBalance, &kf.CRCCommitteeBalance,
+		&kf.NeedCIDProposalResult, &kf.CRCFoundationBalance, &kf.CRCCommitteeBalance,
 		&kf.CRCCommitteeUsedAmount, &kf.DestroyedAmount, &kf.CirculationAmount,
-		&kf.AppropriationAmount, &kf.CommitteeUsedAmount)
+		&kf.AppropriationAmount, &kf.CommitteeUsedAmount, &kf.CRAssetsAddressUTXOCount)
 	return
 }
 
@@ -407,6 +419,36 @@ func (kf *KeyFrame) serializeAmountList(w io.Writer,
 		if err = a.Serialize(w); err != nil {
 			return err
 		}
+	}
+	return
+}
+
+func (kf *KeyFrame) serializeProposalResultList(w io.Writer,
+	results []payload.ProposalResult) (err error) {
+	if err = common.WriteVarUint(w, uint64(len(results))); err != nil {
+		return
+	}
+	for _, a := range results {
+		if err = a.Serialize(w, payload.CustomIDResultVersion); err != nil {
+			return err
+		}
+	}
+	return
+}
+
+func (kf *KeyFrame) deserializeProposalResultList(
+	r io.Reader) (results []payload.ProposalResult, err error) {
+	var count uint64
+	if count, err = common.ReadVarUint(r, 0); err != nil {
+		return
+	}
+	results = make([]payload.ProposalResult, 0)
+	for i := uint64(0); i < count; i++ {
+		var amount payload.ProposalResult
+		if err = amount.Deserialize(r, payload.CustomIDResultVersion); err != nil {
+			return
+		}
+		results = append(results, amount)
 	}
 	return
 }

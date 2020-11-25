@@ -1687,25 +1687,38 @@ func (a *arbitrators) GetNormalArbitratorsDesc(height uint32,
 func (a *arbitrators) snapshotVotesStates(height uint32) error {
 	var nextReward RewardData
 
+	recordVotes := func(nodePublicKey []byte) error {
+		producer := a.GetProducer(nodePublicKey)
+		if producer == nil {
+			return errors.New("get producer by node public key failed")
+		}
+		programHash, err := contract.PublicKeyToStandardProgramHash(
+			producer.OwnerPublicKey())
+		if err != nil {
+			return err
+		}
+		nextReward.OwnerVotesInRound[*programHash] = producer.Votes()
+		nextReward.TotalVotesInRound += producer.Votes()
+		return nil
+	}
+
 	nextReward.OwnerVotesInRound = make(map[common.Uint168]common.Fixed64, 0)
 	nextReward.TotalVotesInRound = 0
 	for _, ar := range a.nextArbitrators {
-		if !a.isNextCRCArbitrator(ar.GetNodePublicKey()) ||
-			(height >= a.chainParams.ChangeCommitteeNewCRHeight &&
-				ar.GetType() == CRC &&
-				ar.(*crcArbiter).crMember.DPOSPublicKey == nil &&
-				ar.IsNormal()) {
-			producer := a.GetProducer(ar.GetNodePublicKey())
-			if producer == nil {
-				return errors.New("get producer by node public key failed")
+		if height > a.chainParams.ChangeCommitteeNewCRHeight {
+			if ar.GetType() == CRC && (!ar.IsNormal() ||
+				(ar.(*crcArbiter).crMember.DPOSPublicKey != nil && ar.IsNormal())) {
+				continue
 			}
-			programHash, err := contract.PublicKeyToStandardProgramHash(
-				producer.OwnerPublicKey())
-			if err != nil {
+			if err := recordVotes(ar.GetNodePublicKey()); err != nil {
 				return err
 			}
-			nextReward.OwnerVotesInRound[*programHash] = producer.Votes()
-			nextReward.TotalVotesInRound += producer.Votes()
+		} else {
+			if !a.isNextCRCArbitrator(ar.GetNodePublicKey()) {
+				if err := recordVotes(ar.GetNodePublicKey()); err != nil {
+					return err
+				}
+			}
 		}
 	}
 

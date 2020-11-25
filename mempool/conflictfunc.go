@@ -122,6 +122,15 @@ func hashNextTurnDPOSInfoTxPayloadHash(tx *types.Transaction) (interface{}, erro
 	return payload.Hash(), nil
 }
 
+func hashCustomIDProposalResultTxPayloadHash(tx *types.Transaction) (interface{}, error) {
+	_, ok := tx.Payload.(*payload.CustomIDProposalResult)
+	if !ok {
+		return nil, fmt.Errorf(
+			"NextTurnDPOSInfo tx payload cast failed, tx:%s", tx.Hash())
+	}
+	return "customIDProposalResult", nil
+}
+
 // strings related functions
 func strCancelProducerOwnerPublicKey(tx *types.Transaction) (interface{},
 	error) {

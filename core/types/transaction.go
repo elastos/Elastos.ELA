@@ -49,6 +49,7 @@ const (
 	InactiveArbitrators      TxType = 0x12
 	UpdateVersion            TxType = 0x13
 	NextTurnDPOSInfo         TxType = 0x14
+	CustomIDResult           TxType = 0x15
 
 	RegisterCR          TxType = 0x21
 	UnregisterCR        TxType = 0x22
@@ -133,6 +134,8 @@ func (self TxType) Name() string {
 		return "CRCouncilMemberClaimNode"
 	case NextTurnDPOSInfo:
 		return "NextTurnDPOSInfo"
+	case CustomIDResult:
+		return "CustomIDResult"
 	default:
 		return "Unknown"
 	}
@@ -388,10 +391,14 @@ func (tx *Transaction) IsNextTurnDPOSInfoTx() bool {
 	return tx.TxType == NextTurnDPOSInfo
 }
 
+func (tx *Transaction) IsCustomIDResultTx() bool {
+	return tx.TxType == CustomIDResult
+}
+
 func (tx *Transaction) IsCustomIDRelatedTx() bool {
 	if tx.IsCRCProposalTx() {
 		p, _ := tx.Payload.(*payload.CRCProposal)
-		return p.ProposalType ==  payload.ReserveCustomID ||
+		return p.ProposalType == payload.ReserveCustomID ||
 			p.ProposalType == payload.ReceiveCustomID ||
 			p.ProposalType == payload.ChangeCustomIDFee
 	}

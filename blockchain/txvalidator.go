@@ -198,6 +198,10 @@ func (b *BlockChain) CheckTransactionContext(blockHeight uint32,
 			return nil, elaerr.Simple(elaerr.ErrTxPayload, err)
 		}
 		return references, nil
+
+	case CustomIDResult:
+		// todo complete me.
+
 	case CancelProducer:
 		if err := b.checkCancelProducerTransaction(txn); err != nil {
 			log.Warn("[CheckCancelProducerTransaction],", err)
@@ -936,7 +940,7 @@ func (b *BlockChain) checkAttributeProgram(tx *Transaction,
 		}
 		return nil
 	case IllegalSidechainEvidence, IllegalProposalEvidence, IllegalVoteEvidence,
-		ActivateProducer, NextTurnDPOSInfo:
+		ActivateProducer, NextTurnDPOSInfo, CustomIDResult:
 		if len(tx.Programs) != 0 || len(tx.Attributes) != 0 {
 			return errors.New("zero cost tx should have no attributes and programs")
 		}

@@ -31,6 +31,7 @@ const (
 	slotChangeCustomIDFee                     = "slotChangeCustomIDFee"
 	slotSpecialTxHash                         = "SpecialTxHash"
 	slotSidechainTxHashes                     = "SidechainTxHashes"
+	slotCustomIDProposalResult                = "CustomIDProposalResult"
 	slotTxInputsReferKeys                     = "TxInputsReferKeys"
 	slotCRCouncilMemberNodePublicKey          = "CRCouncilMemberNodePublicKey"
 	slotCRCouncilMemberDID                    = "CRCouncilMemberDID"
@@ -383,6 +384,16 @@ func newConflictManager() conflictManager {
 					keyTypeFuncPair{
 						Type: types.NextTurnDPOSInfo,
 						Func: hashNextTurnDPOSInfoTxPayloadHash,
+					},
+				),
+			},
+			// custom id proposal result.
+			{
+				name: slotCustomIDProposalResult,
+				slot: newConflictSlot(str,
+					keyTypeFuncPair{
+						Type: types.CustomIDResult,
+						Func: hashCustomIDProposalResultTxPayloadHash,
 					},
 				),
 			},

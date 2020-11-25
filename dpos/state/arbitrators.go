@@ -128,11 +128,6 @@ func (a *arbitrators) IsNeedNextTurnDPOSInfo() bool {
 	defer a.mtx.Unlock()
 	return a.NeedNextTurnDposInfo
 }
-func (a *arbitrators) SetNeedNextTurnDPOSInfo(isNeed bool) {
-	a.mtx.Lock()
-	defer a.mtx.Unlock()
-	a.NeedNextTurnDposInfo = isNeed
-}
 
 func (a *arbitrators) RecoverFromCheckPoints(point *CheckPoint) {
 	a.mtx.Lock()

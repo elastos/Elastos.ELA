@@ -402,6 +402,9 @@ func (tx *Transaction) IsCustomIDRelatedTx() bool {
 			p.ProposalType == payload.ReceiveCustomID ||
 			p.ProposalType == payload.ChangeCustomIDFee
 	}
+	if tx.IsCustomIDResultTx() {
+		return true
+	}
 	return false
 }
 

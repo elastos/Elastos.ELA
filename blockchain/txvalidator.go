@@ -1117,7 +1117,11 @@ func (b *BlockChain) checkTxHeightVersion(txn *Transaction, blockHeight uint32) 
 				"before CRVotingStartHeight", txn.TxType.Name()))
 		}
 	case CRCProposal:
-		if blockHeight >= b.chainParams.ChangeCommitteeNewCRHeight {
+		if blockHeight < b.chainParams.ChangeCommitteeNewCRHeight {
+			if txn.PayloadVersion != payload.CRCProposalVersion {
+				return errors.New("payload version should be CRCProposalVersion")
+			}
+		} else {
 			if txn.PayloadVersion != payload.CRCProposalVersion01 {
 				return errors.New("should have draft data")
 			}
@@ -1148,8 +1152,11 @@ func (b *BlockChain) checkTxHeightVersion(txn *Transaction, blockHeight uint32) 
 		if blockHeight < b.chainParams.CRCommitteeStartHeight {
 			return errors.New(fmt.Sprintf("not support %s transaction "+
 				"before CRCommitteeStartHeight", txn.TxType.Name()))
-		}
-		if blockHeight >= b.chainParams.ChangeCommitteeNewCRHeight {
+		} else if blockHeight < b.chainParams.ChangeCommitteeNewCRHeight {
+			if txn.PayloadVersion != payload.CRCProposalVersion {
+				return errors.New("payload version should be CRCProposalVersion")
+			}
+		} else {
 			if txn.PayloadVersion != payload.CRCProposalVersion01 {
 				return errors.New("should have draft data")
 			}
@@ -1391,16 +1398,15 @@ func (b *BlockChain) checkTransferCrossChainAssetTransaction(txn *Transaction, r
 	return nil
 }
 
-func (b *BlockChain) IsNextArbtratorsSame(nextTurnDPOSInfo *payload.NextTurnDPOSInfo,
-	curNodeNextArbitrators []*state.ArbiterInfo) bool {
-	if len(nextTurnDPOSInfo.CRPublicKeys)+
-		len(nextTurnDPOSInfo.DPOSPublicKeys) != len(curNodeNextArbitrators) {
-		log.Warn("IsNextArbtratorsSame curNodeArbitrators len ", len(curNodeNextArbitrators))
+func (b *BlockChain) IsNextArbitratorsSame(nextTurnDPOSInfo *payload.NextTurnDPOSInfo,
+	nextArbitrators []*state.ArbiterInfo) bool {
+	if len(nextTurnDPOSInfo.CRPublicKeys)+len(nextTurnDPOSInfo.DPOSPublicKeys) != len(nextArbitrators) {
+		log.Warn("[IsNextArbitratorsSame] nexArbitrators len ", len(nextArbitrators))
 		return false
 	}
 	crindex := 0
 	dposIndex := 0
-	for _, v := range curNodeNextArbitrators {
+	for _, v := range nextArbitrators {
 		if DefaultLedger.Arbitrators.IsNextCRCArbitrator(v.NodePublicKey) {
 			if bytes.Equal(v.NodePublicKey, nextTurnDPOSInfo.CRPublicKeys[crindex]) ||
 				(bytes.Equal([]byte{}, nextTurnDPOSInfo.CRPublicKeys[crindex]) &&
@@ -1460,16 +1466,17 @@ func (b *BlockChain) checkNextTurnDPOSInfoTransaction(txn *Transaction) error {
 	if !ok {
 		return errors.New("invalid NextTurnDPOSInfo payload")
 	}
-	log.Warnf("[checkNextTurnDPOSInfoTransaction] CRPublicKeys %v, DPOSPublicKeys%v\n",
-		b.ConvertToArbitersStr(nextTurnDPOSInfo.CRPublicKeys), b.ConvertToArbitersStr(nextTurnDPOSInfo.DPOSPublicKeys))
 
 	if !DefaultLedger.Arbitrators.IsNeedNextTurnDPOSInfo() {
 		log.Warn("[checkNextTurnDPOSInfoTransaction] !IsNeedNextTurnDPOSInfo")
 		return errors.New("should not have next turn dpos info transaction")
 	}
-	curNodeNextArbitrators := DefaultLedger.Arbitrators.GetNextArbitrators()
+	nextArbitrators := DefaultLedger.Arbitrators.GetNextArbitrators()
 
-	if !b.IsNextArbtratorsSame(nextTurnDPOSInfo, curNodeNextArbitrators) {
+	if !b.IsNextArbitratorsSame(nextTurnDPOSInfo, nextArbitrators) {
+		log.Warnf("[checkNextTurnDPOSInfoTransaction] CRPublicKeys %v, DPOSPublicKeys%v\n",
+			b.ConvertToArbitersStr(nextTurnDPOSInfo.CRPublicKeys), b.ConvertToArbitersStr(nextTurnDPOSInfo.DPOSPublicKeys))
+
 		return errors.New("checkNextTurnDPOSInfoTransaction nextTurnDPOSInfo was wrong")
 	}
 	return nil
@@ -2145,11 +2152,19 @@ func (b *BlockChain) checkCRCProposalTrackingTransaction(txn *Transaction,
 	// check message data.
 	if txn.PayloadVersion >= payload.CRCProposalTrackingVersion01 {
 		if len(cptPayload.MessageData) >= payload.MaxMessageDataSize {
-			return errors.New("the message data cannot be more than 1M byte")
+			return errors.New("the message data cannot be more than 800K byte")
 		}
-		tempDraftHash := common.Hash(cptPayload.MessageData)
-		if !cptPayload.MessageHash.IsEqual(tempDraftHash) {
+		tempMessageHash := common.Hash(cptPayload.MessageData)
+		if !cptPayload.MessageHash.IsEqual(tempMessageHash) {
 			return errors.New("the message data and message hash of" +
+				" proposal tracking are inconsistent")
+		}
+		if len(cptPayload.SecretaryGeneralOpinionData) >= payload.MaxSecretaryGeneralOpinionDataSize {
+			return errors.New("the opinion data cannot be more than 200K byte")
+		}
+		tempOpinionHash := common.Hash(cptPayload.SecretaryGeneralOpinionData)
+		if !cptPayload.MessageHash.IsEqual(tempOpinionHash) {
+			return errors.New("the opinion data and opinion hash of" +
 				" proposal tracking are inconsistent")
 		}
 	}

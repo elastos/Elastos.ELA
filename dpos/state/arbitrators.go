@@ -366,7 +366,9 @@ func (a *arbitrators) ForceChange(height uint32) error {
 		a.forceChanged = oriForceChanged
 	})
 	a.history.Commit(height + 1)
-	a.notifyNextTurnDPOSInfoTx(block.Height, block.Height+1)
+	if block.Height >= a.bestHeight() {
+		a.notifyNextTurnDPOSInfoTx(block.Height, block.Height+1)
+	}
 
 	a.dumpInfo(height)
 	return nil
@@ -396,22 +398,10 @@ func (a *arbitrators) normalChange(height uint32) error {
 }
 
 func (a *arbitrators) notifyNextTurnDPOSInfoTx(blockHeight, versionHeight uint32) {
-	count := a.chainParams.GeneralArbiters
-	votedProducers, err := a.getSortedProducersWithRandom(blockHeight, a.Unclaimed)
-	if err != nil {
-		log.Error("notifyNextTurnDPOSInfoTx err", err)
-		return
-	}
-	producers, err := a.GetNormalArbitratorsDesc(versionHeight, count,
-		votedProducers, a.Unclaimed)
-	if err == nil {
-		sort.Slice(producers, func(i, j int) bool {
-			return bytes.Compare(producers[i].GetNodePublicKey(), producers[j].GetNodePublicKey()) < 0
-		})
-	}
-	workingHeight := blockHeight + uint32(len(a.currentArbitrators))
-	nextTurnDPOSInfoTx := a.createNextTurnDPOSInfoTransaction(a.nextCRCArbiters, producers, workingHeight)
+
+	nextTurnDPOSInfoTx := a.createNextTurnDPOSInfoTransaction(blockHeight)
 	go events.Notify(events.ETAppendTxToTxPool, nextTurnDPOSInfoTx)
+	return
 }
 
 func (a *arbitrators) IncreaseChainHeight(block *types.Block) {
@@ -599,7 +589,7 @@ func (a *arbitrators) distributeWithNormalArbitratorsV3(height uint32, reward co
 		ownerHash := arbiter.GetOwnerProgramHash()
 		rewardHash := ownerHash
 		var r common.Fixed64
-		if _, ok := a.currentCRCArbitersMap[ownerHash]; ok {
+		if arbiter.GetType() == CRC {
 			r = individualBlockConfirmReward
 			m, ok := arbiter.(*crcArbiter)
 			if !ok || m.crMember.MemberState != state.MemberElected {
@@ -1294,20 +1284,23 @@ func (a *arbitrators) ConvertToArbitersStr(arbiters [][]byte) []string {
 	}
 	return arbitersStr
 }
-func (a *arbitrators) createNextTurnDPOSInfoTransaction(crcArbiters, normalDPOSArbiters []ArbiterMember, WorkingHeight uint32) *types.Transaction {
 
+func (a *arbitrators) createNextTurnDPOSInfoTransaction(blockHeight uint32) *types.Transaction {
 	var nextTurnDPOSInfo payload.NextTurnDPOSInfo
-	nextTurnDPOSInfo.WorkingHeight = WorkingHeight
-	for _, v := range crcArbiters {
-		if abt, ok := v.(*crcArbiter); ok && abt.crMember.MemberState != state.MemberElected {
-			nextTurnDPOSInfo.CRPublicKeys = append(nextTurnDPOSInfo.CRPublicKeys, []byte{})
+	workingHeight := blockHeight + uint32(len(a.currentArbitrators))
+	nextTurnDPOSInfo.WorkingHeight = workingHeight
+	for _, v := range a.nextArbitrators {
+		if a.isNextCRCArbitrator(v.GetNodePublicKey()) {
+			if abt, ok := v.(*crcArbiter); ok && abt.crMember.MemberState != state.MemberElected {
+				nextTurnDPOSInfo.CRPublicKeys = append(nextTurnDPOSInfo.CRPublicKeys, []byte{})
+			} else {
+				nextTurnDPOSInfo.CRPublicKeys = append(nextTurnDPOSInfo.CRPublicKeys, v.GetNodePublicKey())
+			}
 		} else {
-			nextTurnDPOSInfo.CRPublicKeys = append(nextTurnDPOSInfo.CRPublicKeys, v.GetNodePublicKey())
+			nextTurnDPOSInfo.DPOSPublicKeys = append(nextTurnDPOSInfo.DPOSPublicKeys, v.GetNodePublicKey())
 		}
 	}
-	for _, v := range normalDPOSArbiters {
-		nextTurnDPOSInfo.DPOSPublicKeys = append(nextTurnDPOSInfo.DPOSPublicKeys, v.GetNodePublicKey())
-	}
+
 	log.Debugf("[createNextTurnDPOSInfoTransaction] CRPublicKeys %v, DPOSPublicKeys%v\n",
 		a.ConvertToArbitersStr(nextTurnDPOSInfo.CRPublicKeys), a.ConvertToArbitersStr(nextTurnDPOSInfo.DPOSPublicKeys))
 
@@ -1457,11 +1450,15 @@ func (a *arbitrators) updateNextArbitrators(versionHeight, height uint32) error 
 				return err
 			}
 			oriNextCandidates := a.nextCandidates
+			oriNeedNextTurnDposInfo := a.NeedNextTurnDposInfo
+			oriUnclaimed := a.Unclaimed
 			a.history.Append(height, func() {
 				a.nextCandidates = make([]ArbiterMember, 0)
 				a.updateNextTurnInfo(height, producers, unclaimed)
 			}, func() {
 				a.nextCandidates = oriNextCandidates
+				a.NeedNextTurnDposInfo = oriNeedNextTurnDposInfo
+				a.Unclaimed = oriUnclaimed
 			})
 		} else {
 			if height >= a.chainParams.NoCRCDPOSNodeHeight {
@@ -1510,11 +1507,15 @@ func (a *arbitrators) updateNextArbitrators(versionHeight, height uint32) error 
 		}
 	} else {
 		oriNextCandidates := a.nextCandidates
+		oriNeedNextTurnDposInfo := a.NeedNextTurnDposInfo
+		oriUnClaimed := a.Unclaimed
 		a.history.Append(height, func() {
 			a.nextCandidates = make([]ArbiterMember, 0)
 			a.updateNextTurnInfo(height, nil, unclaimed)
 		}, func() {
 			a.nextCandidates = oriNextCandidates
+			a.NeedNextTurnDposInfo = oriNeedNextTurnDposInfo
+			a.Unclaimed = oriUnClaimed
 		})
 	}
 	return nil
@@ -1522,8 +1523,9 @@ func (a *arbitrators) updateNextArbitrators(versionHeight, height uint32) error 
 
 func (a *arbitrators) resetNextArbiterByCRC(versionHeight uint32, height uint32) (int, error) {
 	var unclaimed int
+	var needReset bool
+	crcArbiters := map[common.Uint168]ArbiterMember{}
 	if a.crCommittee != nil && a.crCommittee.IsInElectionPeriod() {
-		var crcArbiters map[common.Uint168]ArbiterMember
 		if versionHeight >= a.chainParams.CRClaimDPOSNodeStartHeight {
 			var err error
 			if versionHeight < a.chainParams.ChangeCommitteeNewCRHeight {
@@ -1541,18 +1543,27 @@ func (a *arbitrators) resetNextArbiterByCRC(versionHeight uint32, height uint32)
 				return unclaimed, err
 			}
 		}
-
-		oriNextArbitersMap := a.nextCRCArbitersMap
-		oriCRCChangedHeight := a.crcChangedHeight
-		a.history.Append(height, func() {
-			a.nextCRCArbitersMap = crcArbiters
-			a.crcChangedHeight = a.crCommittee.LastCommitteeHeight
-		}, func() {
-			a.nextCRCArbitersMap = oriNextArbitersMap
-			a.crcChangedHeight = oriCRCChangedHeight
+		needReset = true
+	} else if versionHeight >= a.chainParams.ChangeCommitteeNewCRHeight {
+		votedProducers := a.State.GetVotedProducers()
+		sort.Slice(votedProducers, func(i, j int) bool {
+			if votedProducers[i].votes == votedProducers[j].votes {
+				return bytes.Compare(votedProducers[i].info.NodePublicKey,
+					votedProducers[j].NodePublicKey()) < 0
+			}
+			return votedProducers[i].Votes() > votedProducers[j].Votes()
 		})
+		for i := 0; i < len(a.chainParams.CRCArbiters); i++ {
+			producer := votedProducers[i]
+			ar, err := NewDPoSArbiter(CROrigin, producer)
+			if err != nil {
+				return unclaimed, err
+			}
+			crcArbiters[ar.GetOwnerProgramHash()] = ar
+		}
+		unclaimed = len(a.chainParams.CRCArbiters)
+		needReset = true
 	} else if versionHeight >= a.chainParams.CRCommitteeStartHeight {
-		crcArbiters := map[common.Uint168]ArbiterMember{}
 		for _, pk := range a.chainParams.CRCArbiters {
 			pubKey, err := hex.DecodeString(pk)
 			if err != nil {
@@ -1571,7 +1582,9 @@ func (a *arbitrators) resetNextArbiterByCRC(versionHeight uint32, height uint32)
 			}
 			crcArbiters[ar.GetOwnerProgramHash()] = ar
 		}
-
+		needReset = true
+	}
+	if needReset {
 		oriNextArbitersMap := a.nextCRCArbitersMap
 		oriCRCChangedHeight := a.crcChangedHeight
 		a.history.Append(height, func() {
@@ -1805,29 +1818,45 @@ func (a *arbitrators) GetNormalArbitratorsDesc(height uint32,
 
 func (a *arbitrators) snapshotVotesStates(height uint32) error {
 	var nextReward RewardData
+	recordVotes := func(nodePublicKey []byte) error {
+		producer := a.GetProducer(nodePublicKey)
+		if producer == nil {
+			return errors.New("get producer by node public key failed")
+		}
+		programHash, err := contract.PublicKeyToStandardProgramHash(
+			producer.OwnerPublicKey())
+		if err != nil {
+			return err
+		}
+		nextReward.OwnerVotesInRound[*programHash] = producer.Votes()
+		nextReward.TotalVotesInRound += producer.Votes()
+		return nil
+	}
+
 	nextReward.OwnerVotesInRound = make(map[common.Uint168]common.Fixed64, 0)
 	nextReward.TotalVotesInRound = 0
 	for _, ar := range a.nextArbitrators {
-		if !a.isNextCRCArbitrator(ar.GetNodePublicKey()) ||
-			(height >= a.chainParams.ChangeCommitteeNewCRHeight &&
-				ar.GetType() == CRC &&
-				ar.(*crcArbiter).crMember.DPOSPublicKey == nil &&
-				ar.IsNormal()) {
-			producer := a.GetProducer(ar.GetNodePublicKey())
-			if producer == nil {
-				return errors.New("get producer by node public key failed")
+		if height > a.chainParams.ChangeCommitteeNewCRHeight {
+			if ar.GetType() == CRC && (!ar.IsNormal() ||
+				(ar.(*crcArbiter).crMember.DPOSPublicKey != nil && ar.IsNormal())) {
+				continue
 			}
-			programHash, err := contract.PublicKeyToStandardProgramHash(
-				producer.OwnerPublicKey())
-			if err != nil {
+			if err := recordVotes(ar.GetNodePublicKey()); err != nil {
 				return err
 			}
-			nextReward.OwnerVotesInRound[*programHash] = producer.Votes()
-			nextReward.TotalVotesInRound += producer.Votes()
+		} else {
+			if !a.isNextCRCArbitrator(ar.GetNodePublicKey()) {
+				if err := recordVotes(ar.GetNodePublicKey()); err != nil {
+					return err
+				}
+			}
 		}
 	}
 
 	for _, ar := range a.nextCandidates {
+		if a.isNextCRCArbitrator(ar.GetNodePublicKey()) {
+			continue
+		}
 		producer := a.GetProducer(ar.GetNodePublicKey())
 		if producer == nil {
 			return errors.New("get producer by node public key failed")

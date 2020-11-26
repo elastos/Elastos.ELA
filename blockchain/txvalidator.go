@@ -1445,16 +1445,16 @@ func (b *BlockChain) checkCustomIDResultTransaction(txn *Transaction) error {
 		return errors.New("invalid custom ID result payload")
 	}
 	results := DefaultLedger.Committee.GetCustomIDResults()
-	targetResults := make(map[common.Uint256]bool, 0)
+	targetResults := make(map[common.Uint256]payload.ProposalResult, 0)
 	for _, r := range results {
-		targetResults[r.ProposalHash] = r.Result
+		targetResults[r.ProposalHash] = r
 	}
 	if len(p.ProposalResults) != len(targetResults) {
 		return errors.New("invalid custom ID results count")
 	}
 	for _, r := range p.ProposalResults {
-		pass, ok := targetResults[r.ProposalHash]
-		if !ok || pass != r.Result {
+		ret, ok := targetResults[r.ProposalHash]
+		if !ok || ret.Result != r.Result || ret.ProposalType != r.ProposalType {
 			return errors.New("invalid custom ID results")
 		}
 	}

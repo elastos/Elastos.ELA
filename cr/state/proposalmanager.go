@@ -221,6 +221,7 @@ func recordCustomIDProposalResult(results *[]payload.ProposalResult,
 	case payload.ReserveCustomID, payload.ReceiveCustomID, payload.ChangeCustomIDFee:
 		*results = append(*results, payload.ProposalResult{
 			ProposalHash: proposalHash,
+			ProposalType: proposalType,
 			Result:       result,
 		})
 	}

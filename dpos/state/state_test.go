@@ -954,6 +954,7 @@ func TestState_InactiveProducer_Normal(t *testing.T) {
 		nil, nil, nil,
 		nil, nil)
 	state.chainParams.InactivePenalty = 50
+	state.chainParams.ChangeCommitteeNewCRHeight = 1
 
 	// Create 10 producers info.
 	producers := make([]*payload.ProducerInfo, 10)
@@ -1107,7 +1108,7 @@ func TestState_InactiveProducer_RecoverFromInactiveState(t *testing.T) {
 	state := NewState(&config.DefaultParams, arbitrators.GetArbitrators, nil, nil,
 		nil, nil, nil,
 		nil, nil)
-
+	state.chainParams.ChangeCommitteeNewCRHeight = 1
 	// Create 10 producers info.
 	producers := make([]*payload.ProducerInfo, 10)
 	for i, p := range producers {
@@ -1520,7 +1521,11 @@ func TestState_CountArbitratorsInactivityV1(t *testing.T) {
 	// register getArbiters function
 	state.getArbiters = func() []*ArbiterInfo {
 		result := make([]*ArbiterInfo, 0)
-		for _, p := range pds {
+		for i, p := range pds {
+			if i >= len(state.chainParams.CRCArbiters)+state.chainParams.GeneralArbiters {
+				break
+			}
+			p.inactiveCountingHeight = 0
 			result = append(result, &ArbiterInfo{
 				NodePublicKey: p.NodePublicKey(),
 				IsNormal:      true,
@@ -1531,27 +1536,32 @@ func TestState_CountArbitratorsInactivityV1(t *testing.T) {
 
 	// set the random DPOS node.
 	pds[len(pds)-1].selected = true
+	config.DefaultParams.MaxInactiveRounds = 36
+	config.DefaultParams.MaxInactiveRoundsOfRandomNode = 10
 
 	// random DPOS node does not work for 10 turns.
 	for i := 0; i < 10*36; i++ {
-		for _, p := range pds {
-			if p.selected {
-				continue
-			}
-			height := state.chainParams.ChangeCommitteeNewCRHeight + 1 + uint32(i)
-			state.countArbitratorsInactivityV1(
-				height,
-				&payload.Confirm{
-					Proposal: payload.DPOSProposal{
-						Sponsor: p.NodePublicKey(),
-					},
-				})
-			state.history.Commit(height)
+		p := pds[i%36]
+		nodePublcKey := p.NodePublicKey()
+		if p.selected {
+			nodePublcKey = pds[0].NodePublicKey()
 		}
+		height := state.chainParams.ChangeCommitteeNewCRHeight + 1 + uint32(i)
+		state.countArbitratorsInactivityV1(
+			height,
+			&payload.Confirm{
+				Proposal: payload.DPOSProposal{
+					Sponsor: nodePublcKey,
+				},
+			})
+		state.history.Commit(height)
 	}
 
 	// check the status of random DPOS node.
-	for _, p := range pds {
+	for i, p := range pds {
+		if i >= 36 {
+			break
+		}
 		if p.selected {
 			assert.Equal(t, Inactive, p.state)
 		} else {

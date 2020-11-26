@@ -103,15 +103,16 @@ func (s *BudgetStatus) Name() string {
 
 // CRMember defines CR committee member related info.
 type CRMember struct {
-	Info                   payload.CRInfo
-	ImpeachmentVotes       common.Fixed64
-	DepositHash            common.Uint168
-	MemberState            MemberState
-	DPOSPublicKey          []byte
-	InactiveSince          uint32
-	InactiveCountingHeight uint32
-	ActivateRequestHeight  uint32
-	InactiveCount          uint32
+	Info                      payload.CRInfo
+	ImpeachmentVotes          common.Fixed64
+	DepositHash               common.Uint168
+	MemberState               MemberState
+	DPOSPublicKey             []byte
+	InactiveSince             uint32
+	InactiveCountingHeight    uint32
+	InactiveCountingEndHeight uint32
+	ActivateRequestHeight     uint32
+	InactiveCount             uint32
 }
 
 // StateKeyFrame holds necessary state about CR committee.
@@ -279,6 +280,10 @@ func (c *CRMember) Serialize(w io.Writer) (err error) {
 		return
 	}
 
+	if err = common.WriteUint32(w, c.InactiveCountingEndHeight); err != nil {
+		return
+	}
+
 	if err = common.WriteUint32(w, c.ActivateRequestHeight); err != nil {
 		return
 	}
@@ -314,7 +319,9 @@ func (c *CRMember) Deserialize(r io.Reader) (err error) {
 	if c.InactiveCountingHeight, err = common.ReadUint32(r); err != nil {
 		return
 	}
-
+	if c.InactiveCountingEndHeight, err = common.ReadUint32(r); err != nil {
+		return
+	}
 	if c.ActivateRequestHeight, err = common.ReadUint32(r); err != nil {
 		return
 	}

@@ -370,7 +370,7 @@ func (c *Committee) ProcessBlock(block *types.Block, confirm *payload.Confirm) {
 
 	inElectionPeriod := c.tryStartVotingPeriod(block.Height)
 	c.updateProposals(block.Height, inElectionPeriod)
-	c.freshCirculationAmount(c.lastHistory, block.Height)
+	c.updateCirculationAmount(c.lastHistory, block.Height)
 	c.updateCRInactivePeriod(c.lastHistory, block.Height)
 	c.updateCRInactiveStatus(c.lastHistory, block.Height)
 	needChg := false
@@ -424,9 +424,6 @@ func (c *Committee) checkAndSetMemberToInactive(history *utils.History, height u
 		if m.DPOSPublicKey == nil && m.MemberState == MemberElected {
 			history.Append(height, func() {
 				m.MemberState = MemberInactive
-				if height >= c.params.ChangeCommitteeNewCRHeight {
-					c.state.UpdateCRInactivePenalty(m.Info.CID)
-				}
 			}, func() {
 				m.MemberState = MemberElected
 				if height >= c.params.ChangeCommitteeNewCRHeight {
@@ -766,7 +763,7 @@ func (c *Committee) recordCRCRelatedAddressOutputs(block *types.Block) {
 	c.firstHistory.Commit(block.Height)
 }
 
-func (c *Committee) freshCirculationAmount(history *utils.History, height uint32) {
+func (c *Committee) updateCirculationAmount(history *utils.History, height uint32) {
 	circulationAmount := common.Fixed64(config.OriginIssuanceAmount) +
 		common.Fixed64(height)*c.params.RewardPerBlock -
 		c.CRCFoundationBalance - c.CRCCommitteeBalance - c.DestroyedAmount
@@ -1453,6 +1450,12 @@ func (c *Committee) TryUpdateCRMemberInactivity(did common.Uint168,
 		log.Error("tryUpdateCRMemberInactivity did %+v not exist", did.String())
 		return
 	}
+
+	if crMember.InactiveCountingEndHeight != height-1 {
+		crMember.InactiveCountingHeight = 0
+	}
+	crMember.InactiveCountingEndHeight = height
+
 	if needReset {
 		crMember.InactiveCountingHeight = 0
 		return
@@ -1468,9 +1471,6 @@ func (c *Committee) TryUpdateCRMemberInactivity(did common.Uint168,
 			"changed to inactive", "InactiveCountingHeight:", crMember.InactiveCountingHeight,
 			"MaxInactiveRounds:", c.params.MaxInactiveRounds)
 		crMember.InactiveCountingHeight = 0
-		if height >= c.params.ChangeCommitteeNewCRHeight {
-			c.state.UpdateCRInactivePenalty(crMember.Info.CID)
-		}
 	}
 }
 

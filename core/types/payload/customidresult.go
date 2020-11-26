@@ -15,6 +15,7 @@ type CustomIDProposalResult struct {
 
 type ProposalResult struct {
 	ProposalHash common.Uint256
+	ProposalType CRCProposalType
 	Result       bool
 }
 
@@ -22,7 +23,7 @@ func (p *ProposalResult) Serialize(w io.Writer, version byte) error {
 	if err := p.ProposalHash.Serialize(w); err != nil {
 		return err
 	}
-	if err := common.WriteElement(w, p.Result); err != nil {
+	if err := common.WriteElements(w, uint16(p.ProposalType), p.Result); err != nil {
 		return err
 	}
 	return nil
@@ -32,9 +33,11 @@ func (p *ProposalResult) Deserialize(r io.Reader, version byte) error {
 	if err := p.ProposalHash.Deserialize(r); err != nil {
 		return err
 	}
-	if err := common.ReadElement(r, &p.Result); err != nil {
+	var proposalType uint16
+	if err := common.ReadElements(r, &proposalType, &p.Result); err != nil {
 		return err
 	}
+	p.ProposalType = CRCProposalType(proposalType)
 	return nil
 }
 

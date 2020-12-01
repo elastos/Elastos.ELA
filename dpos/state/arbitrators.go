@@ -1140,10 +1140,15 @@ func (a *arbitrators) GetOnDutyCrossChainArbitrator() []byte {
 }
 
 func (a *arbitrators) GetCrossChainArbiters() []*ArbiterInfo {
-	if a.bestHeight() < a.chainParams.CRCOnlyDPOSHeight-1 {
+	bestHeight := a.bestHeight()
+	if bestHeight < a.chainParams.CRCOnlyDPOSHeight-1 {
 		return a.GetArbitrators()
 	}
-	return a.GetCRCArbiters()
+	if bestHeight < a.chainParams.ChangeCommitteeNewCRHeight {
+		return a.GetCRCArbiters()
+	}
+
+	return a.GetArbitrators()
 }
 
 func (a *arbitrators) GetCrossChainArbitersCount() int {

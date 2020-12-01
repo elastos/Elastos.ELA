@@ -228,12 +228,13 @@ var DefaultParams = Params{
 	RectifyTxFee:                       10000,
 	RealWithdrawSingleFee:              10000,
 	NewP2PProtocolVersionHeight:        751400,
-	ChangeCommitteeNewCRHeight:         1000000, //TODO reset latter
-	NoCRCDPOSNodeHeight:                1000000, //TODO reset latter
-	RandomCandidatePeriod:              36 * 10, //TODO reset latter
-	MaxInactiveRoundsOfRandomNode:      36 * 8,  //TODO reset latter
-	MaxReservedCustomIDListCount:       255,     //TODO reset latter
-	DPOSNodeCrossChainHeight:           1000000, //TODO reset latter
+	ChangeCommitteeNewCRHeight:         1000000,   //TODO reset latter
+	NoCRCDPOSNodeHeight:                1000000,   //TODO reset latter
+	RandomCandidatePeriod:              36 * 10,   //TODO reset latter
+	MaxInactiveRoundsOfRandomNode:      36 * 8,    //TODO reset latter
+	MaxReservedCustomIDListCount:       255,       //TODO reset latter
+	DPOSNodeCrossChainHeight:           1000000,   //TODO reset latter
+	RevertToPOWNoBlockTime:             12 * 3600, // TODO reset latter
 
 }
 
@@ -311,6 +312,7 @@ func (p *Params) TestNet() *Params {
 	copy.MaxInactiveRoundsOfRandomNode = 36 * 8 //TODO reset latter
 	copy.DPOSNodeCrossChainHeight = 1000000     //TODO reset latter
 	copy.MaxReservedCustomIDListCount = 255     //TODO reset latter
+	copy.RevertToPOWNoBlockTime = 12 * 3600     //TODO reset latter
 
 	return &copy
 }
@@ -389,6 +391,7 @@ func (p *Params) RegNet() *Params {
 	copy.MaxInactiveRoundsOfRandomNode = 36 * 8 //TODO reset latter
 	copy.DPOSNodeCrossChainHeight = 1000000     //TODO reset latter
 	copy.MaxReservedCustomIDListCount = 255     //TODO reset latter
+	copy.RevertToPOWNoBlockTime = 12 * 3600     //TODO reset latter
 
 	return &copy
 }
@@ -679,8 +682,11 @@ type Params struct {
 	// RandomCandidatePeriod defines the period to get a candidate as DPOS node at random.
 	RandomCandidatePeriod uint32
 
-	//MaxReservedCustomIDListCount defines the max count of reserved custom iid list per tx.
+	// MaxReservedCustomIDListCount defines How long does it take to revert to POW mode.
 	MaxReservedCustomIDListCount uint32
+
+	// RevertToPOWInterval defines the time
+	RevertToPOWNoBlockTime time.Duration
 }
 
 // rewardPerBlock calculates the reward for each block by a specified time

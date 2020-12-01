@@ -100,6 +100,7 @@ type DPoSConfiguration struct {
 	RandomCandidatePeriod         uint32         `json:"RandomCandidatePeriod"`
 	MaxInactiveRoundsOfRandomNode uint32         `json:"MaxInactiveRoundsOfRandomNode"`
 	DPOSNodeCrossChainHeight      uint32         `json:"DPOSNodeCrossChainHeight"`
+	RevertToPOWNoBlockTime        time.Duration  `json:"RevertToPOWNoBlockTime"`
 }
 
 type CRConfiguration struct {

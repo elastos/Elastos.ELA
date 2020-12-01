@@ -65,6 +65,7 @@ const (
 	CRAssetsRectify          TxType = 0x2b
 	CRCouncilMemberClaimNode TxType = 0x31
 
+	RevertToPOW  TxType = 0x41
 	RevertToDPOS TxType = 0x42
 )
 
@@ -140,6 +141,8 @@ func (self TxType) Name() string {
 		return "NextTurnDPOSInfo"
 	case CustomIDResult:
 		return "CustomIDResult"
+	case RevertToPOW:
+		return "RevertToPOW"
 	default:
 		return "Unknown"
 	}

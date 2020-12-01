@@ -45,6 +45,7 @@ const (
 	ErrTxAssetsRectify     ErrCode = -22016
 	ErrTxRealWithdraw      ErrCode = -22017
 	ErrTxCRCRClaimNode     ErrCode = -22018
+	ErrTxRevertToPOW       ErrCode = -22019
 	// 23 sidechain
 	ErrTxSidechainValidation   ErrCode = -23000
 	ErrTxSidechainDuplicate    ErrCode = -23001

@@ -10,9 +10,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"math"
-	"sort"
-
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/common/log"
@@ -29,6 +26,8 @@ import (
 	elaerr "github.com/elastos/Elastos.ELA/errors"
 	"github.com/elastos/Elastos.ELA/utils"
 	"github.com/elastos/Elastos.ELA/vm"
+	"math"
+	"sort"
 )
 
 const (
@@ -100,7 +99,7 @@ func (b *BlockChain) CheckTransactionSanity(blockHeight uint32,
 
 // CheckTransactionContext verifies a transaction with history transaction in ledger
 func (b *BlockChain) CheckTransactionContext(blockHeight uint32,
-	txn *Transaction, proposalsUsedAmount common.Fixed64) (map[*Input]Output, elaerr.ELAError) {
+	txn *Transaction, proposalsUsedAmount common.Fixed64, timeStamp uint32) (map[*Input]Output, elaerr.ELAError) {
 
 	if err := b.checkTxHeightVersion(txn, blockHeight); err != nil {
 		return nil, elaerr.Simple(elaerr.ErrTxHeightVersion, nil)
@@ -325,6 +324,11 @@ func (b *BlockChain) CheckTransactionContext(blockHeight uint32,
 		if err := b.checkCRCouncilMemberClaimNodeTransaction(txn); err != nil {
 			log.Warn("[checkCRCouncilMemberClaimNodeTransaction],", err)
 			return nil, elaerr.Simple(elaerr.ErrTxCRCRClaimNode, err)
+		}
+	case RevertToPOW:
+		if err := b.checkRevertToPOWTransaction(txn, blockHeight, timeStamp); err != nil {
+			log.Warn("[checkRevertToPOWTransaction],", err)
+			return nil, elaerr.Simple(elaerr.ErrTxRevertToPOW, err)
 		}
 	}
 
@@ -2340,6 +2344,35 @@ func (b *BlockChain) checkCRAssetsRectifyTransaction(txn *Transaction,
 	if totalInput != totalOutput+b.chainParams.RectifyTxFee {
 		return fmt.Errorf("inputs minus outputs does not match with %d sela fee , "+
 			"inputs:%s outputs:%s", b.chainParams.RectifyTxFee, totalInput, totalOutput)
+	}
+
+	return nil
+}
+
+func (b *BlockChain) checkRevertToPOWTransaction(txn *Transaction, blockHeight uint32, timeStamp uint32) error {
+	p, ok := txn.Payload.(*payload.RevertToPOW)
+	if !ok {
+		return errors.New("invalid payload")
+	}
+	if p.StartPOWBlockHeight != blockHeight {
+		return errors.New("invalid start POW block height")
+	}
+
+	lastBlockTime := b.BestChain.Timestamp
+	noBlockTime := uint32(b.chainParams.RevertToPOWNoBlockTime.Milliseconds() / 1e3)
+
+
+	if timeStamp == 0 {
+		// is not in block, check by local time.
+		localTime :=  uint32(b.MedianAdjustedTime().Unix())
+		if localTime - lastBlockTime < noBlockTime {
+			return errors.New("invalid block time")
+		}
+	} else {
+		// is in block, check by the time of existed block.
+		if timeStamp - lastBlockTime < noBlockTime {
+			return errors.New("invalid block time")
+		}
 	}
 
 	return nil

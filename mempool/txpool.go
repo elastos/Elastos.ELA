@@ -80,7 +80,8 @@ func (mp *TxPool) appendToTxPool(tx *Transaction) elaerr.ELAError {
 		log.Warn("[TxPool CheckTransactionSanity] failed", tx.Hash())
 		return errCode
 	}
-	if _, errCode := chain.CheckTransactionContext(bestHeight+1, tx, mp.proposalsUsedAmount); errCode != nil {
+	if _, errCode := chain.CheckTransactionContext(
+		bestHeight+1, tx, mp.proposalsUsedAmount, 0); errCode != nil {
 		log.Warn("[TxPool CheckTransactionContext] failed", tx.Hash())
 		return errCode
 	}
@@ -258,7 +259,7 @@ func (mp *TxPool) checkAndCleanAllTransactions() {
 	var deleteCount int
 	var proposalsUsedAmount Fixed64
 	for _, tx := range mp.txnList {
-		_, err := chain.CheckTransactionContext(bestHeight+1, tx, proposalsUsedAmount)
+		_, err := chain.CheckTransactionContext(bestHeight+1, tx, proposalsUsedAmount, 0)
 		if err != nil {
 			log.Warn("[checkAndCleanAllTransactions] check transaction context failed,", err)
 			deleteCount++

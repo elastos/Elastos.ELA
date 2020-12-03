@@ -929,6 +929,9 @@ func (s *State) processTransaction(tx *types.Transaction, height uint32) {
 
 	case types.CRCouncilMemberClaimNode:
 		s.processCRCouncilMemberClaimNode(tx, height)
+
+	case types.RevertToPOW:
+		s.processRevertToPOW(height)
 	}
 
 	if tx.TxType != types.RegisterProducer {
@@ -1398,6 +1401,14 @@ func (s *State) processCRCouncilMemberClaimNode(tx *types.Transaction, height ui
 		if strOldNodePublicKey != "" {
 			s.NodeOwnerKeys[strOldNodePublicKey] = strOwnerPubkey
 		}
+	})
+}
+
+func (s *State) processRevertToPOW(height uint32) {
+	s.history.Append(height, func() {
+		s.RevertedToPowMode = true
+	}, func(){
+		s.RevertedToPowMode = false
 	})
 }
 

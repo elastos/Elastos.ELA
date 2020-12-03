@@ -43,6 +43,7 @@ type StateKeyFrame struct {
 	LastRandomCandidateOwner     string
 	ConsensusAlgorithmWorkHeight uint32
 	ConsensusAlgorithm           ConsesusAlgorithm
+	RevertedToPowMode         bool
 	NeedRevertToDPOSTX           bool
 }
 

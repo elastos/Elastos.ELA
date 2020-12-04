@@ -10,6 +10,9 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"math"
+	"sort"
+
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/common/log"
@@ -26,8 +29,6 @@ import (
 	elaerr "github.com/elastos/Elastos.ELA/errors"
 	"github.com/elastos/Elastos.ELA/utils"
 	"github.com/elastos/Elastos.ELA/vm"
-	"math"
-	"sort"
 )
 
 const (
@@ -2358,19 +2359,18 @@ func (b *BlockChain) checkRevertToPOWTransaction(txn *Transaction, blockHeight u
 		return errors.New("invalid start POW block height")
 	}
 
-	lastBlockTime := b.BestChain.Timestamp
-	noBlockTime := uint32(b.chainParams.RevertToPOWNoBlockTime.Milliseconds() / 1e3)
-
+	lastBlockTime := int64(b.BestChain.Timestamp)
+	noBlockTime := b.chainParams.RevertToPOWNoBlockTime
 
 	if timeStamp == 0 {
 		// is not in block, check by local time.
-		localTime :=  uint32(b.MedianAdjustedTime().Unix())
-		if localTime - lastBlockTime < noBlockTime {
+		localTime := b.MedianAdjustedTime().Unix()
+		if localTime-lastBlockTime < noBlockTime {
 			return errors.New("invalid block time")
 		}
 	} else {
 		// is in block, check by the time of existed block.
-		if timeStamp - lastBlockTime < noBlockTime {
+		if int64(timeStamp)-lastBlockTime < noBlockTime {
 			return errors.New("invalid block time")
 		}
 	}

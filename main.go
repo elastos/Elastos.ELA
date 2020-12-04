@@ -349,6 +349,7 @@ func startNode(c *cli.Context, st *settings.Settings) {
 		log.Info("Start POW Services")
 		go servers.Pow.Start()
 	}
+	servers.Pow.ListenForRevert()
 
 	st.Params().CkpManager.SetNeedSave(true)
 

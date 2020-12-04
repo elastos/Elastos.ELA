@@ -43,7 +43,8 @@ type StateKeyFrame struct {
 	LastRandomCandidateOwner     string
 	ConsensusAlgorithmWorkHeight uint32
 	ConsensusAlgorithm           ConsesusAlgorithm
-	RevertedToPowMode         bool
+	LastBlockTimestamp           uint32
+	RevertedToPowMode            bool
 	NeedRevertToDPOSTX           bool
 }
 
@@ -156,7 +157,12 @@ func (s *StateKeyFrame) Serialize(w io.Writer) (err error) {
 		s.LastRandomCandidateHeight); err != nil {
 		return
 	}
+
 	if err = common.WriteVarString(w, s.LastRandomCandidateOwner); err != nil {
+		return
+	}
+
+	if err = common.WriteUint32(w, s.LastBlockTimestamp); err != nil {
 		return
 	}
 	return
@@ -235,6 +241,10 @@ func (s *StateKeyFrame) Deserialize(r io.Reader) (err error) {
 	s.Unclaimed = int(unclaimed)
 
 	if s.LastRandomCandidateOwner, err = common.ReadVarString(r); err != nil {
+		return
+	}
+
+	if s.LastBlockTimestamp, err = common.ReadUint32(r); err != nil {
 		return
 	}
 	return

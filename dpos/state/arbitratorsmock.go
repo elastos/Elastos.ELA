@@ -59,6 +59,7 @@ type ArbitratorsMock struct {
 	DutyChangedCount            int
 	MajorityCount               int
 	FinalRoundChange            common.Fixed64
+	LastBlockTimestamp          uint32
 	InactiveMode                bool
 	ActiveProducer              []ArbiterMember
 	Snapshot                    []*CheckPoint
@@ -129,6 +130,14 @@ func (a *ArbitratorsMock) GetArbitersRoundReward() map[common.Uint168]common.Fix
 
 func (a *ArbitratorsMock) GetFinalRoundChange() common.Fixed64 {
 	return a.FinalRoundChange
+}
+
+func (a *ArbitratorsMock) GetLastBlockTimestamp() uint32 {
+	return a.LastBlockTimestamp
+}
+
+func (a *ArbitratorsMock) IsInPowMode() bool {
+	return false
 }
 
 func (a *ArbitratorsMock) Start() {

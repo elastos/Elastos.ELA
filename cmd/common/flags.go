@@ -442,6 +442,11 @@ var (
 		Name:  "dposnodecrosschainheight",
 		Usage: "defines the height at which not only CR members are responsible for working across the chain",
 	}
+
+	RevertToPOWNoBlockTimeFlag = cli.StringFlag{
+		Name:  "reverttopownoblocktime",
+		Usage: "defines how long time does it take to revert to POW mode",
+	}
 )
 
 // MoveRPCFlags finds the rpc argument and moves it to the front

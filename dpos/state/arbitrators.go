@@ -1642,26 +1642,11 @@ func (a *arbitrators) getCRCArbitersV2(height uint32) (map[common.Uint168]Arbite
 	sort.Slice(unclaimedArbiterKeys, func(i, j int) bool {
 		return strings.Compare(unclaimedArbiterKeys[i], unclaimedArbiterKeys[j]) < 0
 	})
-	producersPublicKeysMap := make(map[string]struct{})
 	producers, err := a.getProducers(int(a.chainParams.CRMemberCount), height)
 	if err != nil {
 		return nil, 0, err
 	}
-	for _, ar := range producers {
-		producersPublicKeysMap[hex.EncodeToString(ar.GetNodePublicKey())] = struct{}{}
-	}
-
-	// get unclaimed arbiter keys list
-	unclaimedProducerKeys := make([]string, 0)
 	var unclaimedCount int
-	for k, _ := range producersPublicKeysMap {
-		if _, ok := crPublicKeysMap[k]; !ok {
-			unclaimedProducerKeys = append(unclaimedProducerKeys, k)
-		}
-	}
-	sort.Slice(unclaimedProducerKeys, func(i, j int) bool {
-		return strings.Compare(unclaimedProducerKeys[i], unclaimedProducerKeys[j]) < 0
-	})
 	crcArbiters := map[common.Uint168]ArbiterMember{}
 	claimHeight := a.chainParams.CRClaimDPOSNodeStartHeight
 	for _, cr := range crMembers {
@@ -1675,12 +1660,7 @@ func (a *arbitrators) getCRCArbitersV2(height uint32) (map[common.Uint168]Arbite
 				}
 				unclaimedArbiterKeys = unclaimedArbiterKeys[1:]
 			} else {
-				var err error
-				pk, err = common.HexStringToBytes(unclaimedProducerKeys[0])
-				if err != nil {
-					return nil, 0, err
-				}
-				unclaimedProducerKeys = unclaimedProducerKeys[1:]
+				pk = producers[unclaimedCount].GetNodePublicKey()
 				unclaimedCount++
 			}
 		} else {

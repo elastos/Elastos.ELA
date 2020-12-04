@@ -765,16 +765,10 @@ func NewSettings() *Settings {
 		ParamName: "ToleranceDuration"})
 
 	result.Add(&settingItem{
-		Flag:         nil,
-		DefaultValue: time.Duration(0),
+		Flag:         cmdcom.RevertToPOWNoBlockTimeFlag,
+		DefaultValue: int64(0),
 		ConfigPath:   "DPoSConfiguration.RevertToPOWNoBlockTime",
-		ConfigSetter: func(s string, params *config.Params,
-			conf *config.Configuration) error {
-			params.RevertToPOWNoBlockTime =
-				conf.DPoSConfiguration.RevertToPOWNoBlockTime * time.Second
-			return nil
-		},
-		ParamName: "RevertToPOWNoBlockTime"})
+		ParamName:    "RevertToPOWNoBlockTime"})
 
 	result.Add(&settingItem{
 		Flag:         cmdcom.MaxInactiveRoundsFlag,

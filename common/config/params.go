@@ -682,11 +682,11 @@ type Params struct {
 	// RandomCandidatePeriod defines the period to get a candidate as DPOS node at random.
 	RandomCandidatePeriod uint32
 
-	// MaxReservedCustomIDListCount defines How long does it take to revert to POW mode.
+	// MaxReservedCustomIDListCount defines the max count of reserved custom iid list per tx.
 	MaxReservedCustomIDListCount uint32
 
-	// RevertToPOWInterval defines the time
-	RevertToPOWNoBlockTime time.Duration
+	// RevertToPOWInterval defines how long time does it take to revert to POW mode.
+	RevertToPOWNoBlockTime int64
 }
 
 // rewardPerBlock calculates the reward for each block by a specified time

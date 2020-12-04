@@ -747,6 +747,7 @@ func (s *State) ProcessBlock(block *types.Block, confirm *payload.Confirm) {
 	s.processTransactions(block.Transactions, block.Height)
 	s.ProcessVoteStatisticsBlock(block)
 	s.updateProducersDepositCoin(block.Height)
+	s.recordLastBlockTime(block)
 
 	if confirm != nil {
 		if block.Height >= s.chainParams.CRClaimDPOSNodeStartHeight {
@@ -758,6 +759,16 @@ func (s *State) ProcessBlock(block *types.Block, confirm *payload.Confirm) {
 
 	// Commit changes here if no errors found.
 	s.history.Commit(block.Height)
+}
+
+// record timestamp of last block
+func (s *State) recordLastBlockTime(block *types.Block) {
+	oriLastBlockTime := s.LastBlockTimestamp
+	s.history.Append(block.Height, func() {
+		s.LastBlockTimestamp = block.Timestamp
+	}, func() {
+		s.LastBlockTimestamp = oriLastBlockTime
+	})
 }
 
 // update producers deposit coin
@@ -1407,7 +1418,7 @@ func (s *State) processCRCouncilMemberClaimNode(tx *types.Transaction, height ui
 func (s *State) processRevertToPOW(height uint32) {
 	s.history.Append(height, func() {
 		s.RevertedToPowMode = true
-	}, func(){
+	}, func() {
 		s.RevertedToPowMode = false
 	})
 }

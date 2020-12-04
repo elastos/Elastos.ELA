@@ -369,6 +369,22 @@ func (a *arbitrators) GetFinalRoundChange() common.Fixed64 {
 	return result
 }
 
+func (a *arbitrators) GetLastBlockTimestamp() uint32 {
+	a.mtx.Lock()
+	result := a.LastBlockTimestamp
+	a.mtx.Unlock()
+
+	return result
+}
+
+func (a *arbitrators) IsInPowMode() bool {
+	a.mtx.Lock()
+	result := a.RevertedToPowMode
+	a.mtx.Unlock()
+
+	return result
+}
+
 func (a *arbitrators) ForceChange(height uint32) error {
 	a.mtx.Lock()
 	defer a.mtx.Unlock()
@@ -462,7 +478,12 @@ func (a *arbitrators) IncreaseChainHeight(block *types.Block) {
 				" transaction, height: %d, error: %s", block.Height, err))
 		}
 		if err := a.normalChange(block.Height); err != nil {
-			panic(fmt.Sprintf("normal change fail at height: %d, error: %s",
+			a.history.Append(block.Height, func(){
+				a.RevertedToPowMode = true
+			}, func(){
+				a.RevertedToPowMode = false
+			})
+			log.Warn(fmt.Sprintf("normal change fail at height: %d, error: %s",
 				block.Height, err))
 		}
 	case none:

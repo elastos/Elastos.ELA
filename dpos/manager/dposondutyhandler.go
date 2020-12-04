@@ -1,7 +1,7 @@
 // Copyright (c) 2017-2020 The Elastos Foundation
 // Use of this source code is governed by an MIT
 // license that can be found in the LICENSE file.
-// 
+//
 
 package manager
 
@@ -75,6 +75,44 @@ func (h *DPOSOnDutyHandler) TryStartNewConsensus(b *types.Block) bool {
 	}
 
 	return result
+}
+
+func (h *DPOSOnDutyHandler) getActiveArbitersCount() int {
+	peers := h.cfg.Network.GetActivePeers()
+	activeArbitersCount := 0
+	for _, p := range peers {
+		pid := p.PID()
+		if h.cfg.Arbitrators.IsActiveProducer(pid[:]) {
+			activeArbitersCount++
+		}
+	}
+	return activeArbitersCount
+}
+
+func (h *DPOSOnDutyHandler) TryCreateRevertToDPOSTx(BlockHeight uint32) bool {
+
+	//connect count is not enough
+	activeArbitersCount := float64(h.getActiveArbitersCount())
+	if activeArbitersCount < float64(h.cfg.Arbitrators.GetArbitersCount())*float64(4)/float64(5)+1 {
+		return false
+	}
+	// if it is in not pow mod
+	if !h.cfg.Arbitrators.IsInPOWMode() {
+		return false
+	}
+
+	// is it onduty
+	curPublicKey := h.proposalDispatcher.cfg.Account.PublicKeyBytes()
+	if h.consensus.IsArbitratorOnDuty(curPublicKey) {
+		tx, err := h.proposalDispatcher.CreateRevertToDPOS()
+		if err != nil {
+			log.Warn("[tryCreateRevertToDPOSTx] create tx error: ", err)
+			return false
+		}
+		h.cfg.Network.BroadcastMessage(&msg.Tx{Serializable: tx})
+		return true
+	}
+	return false
 }
 
 func (h *DPOSOnDutyHandler) tryCreateInactiveArbitratorsTx() bool {

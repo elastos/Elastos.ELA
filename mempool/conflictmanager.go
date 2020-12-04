@@ -36,6 +36,7 @@ const (
 	slotCRCouncilMemberNodePublicKey          = "CRCouncilMemberNodePublicKey"
 	slotCRCouncilMemberDID                    = "CRCouncilMemberDID"
 	slotCRCSecretaryGeneral                   = "CRCSecretaryGeneral"
+	slotRevertToDPOSHash                      = "RevertToDPOSHash"
 )
 
 type conflict struct {
@@ -354,6 +355,15 @@ func newConflictManager() conflictManager {
 					keyTypeFuncPair{
 						Type: types.CRCProposalRealWithdraw,
 						Func: hashArrayCRCProposalRealWithdrawTransactionHashes,
+					},
+				),
+			},
+			{
+				name: slotRevertToDPOSHash,
+				slot: newConflictSlot(hashArray,
+					keyTypeFuncPair{
+						Type: types.RevertToDPOS,
+						Func: hashRevertToDPOS,
 					},
 				),
 			},

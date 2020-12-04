@@ -168,7 +168,12 @@ func (b *BlockChain) CheckTransactionContext(blockHeight uint32,
 			return nil, elaerr.Simple(elaerr.ErrTxPayload, err)
 		}
 		return references, nil
-
+	case RevertToDPOS:
+		if err := b.checkRevertToDPOSTransaction(blockHeight, txn); err != nil {
+			log.Warn("[checkRevertToDPOSTransaction],", err)
+			return nil, elaerr.Simple(elaerr.ErrTxPayload, err)
+		}
+		return references, nil
 	case UpdateVersion:
 		if err := b.checkUpdateVersionTransaction(txn); err != nil {
 			log.Warn("[checkUpdateVersionTransaction],", err)
@@ -957,7 +962,7 @@ func (b *BlockChain) checkAttributeProgram(tx *Transaction,
 			return errors.New("illegal block transactions should have no programs")
 		}
 		return nil
-	case InactiveArbitrators, UpdateVersion:
+	case InactiveArbitrators, UpdateVersion, RevertToDPOS:
 		if len(tx.Programs) != 1 {
 			return errors.New("inactive arbitrators transactions should have one and only one program")
 		}
@@ -1068,6 +1073,7 @@ func checkTransactionPayload(txn *Transaction) error {
 	case *payload.DPOSIllegalBlocks:
 	case *payload.SidechainIllegalData:
 	case *payload.InactiveArbitrators:
+	case *payload.RevertToDPOS:
 	case *payload.CRInfo:
 	case *payload.UnregisterCR:
 	case *payload.CRCProposal:
@@ -1079,7 +1085,6 @@ func checkTransactionPayload(txn *Transaction) error {
 	case *payload.CRCProposalRealWithdraw:
 	case *payload.NextTurnDPOSInfo:
 	case *payload.CRCouncilMemberClaimNode:
-
 	default:
 		return errors.New("[txValidator],invalidate transaction payload type.")
 	}
@@ -3352,6 +3357,29 @@ func (b *BlockChain) checkInactiveArbitratorsTransaction(
 	return CheckInactiveArbitrators(txn)
 }
 
+func CheckRevertToDPOSTransaction(txn *Transaction) error {
+	return checkArbitratorsSignatures(txn.Programs[0])
+}
+
+func (b *BlockChain) checkRevertToDPOSTransaction(
+	blockHeight uint32, txn *Transaction) error {
+	p, ok := txn.Payload.(*payload.RevertToDPOS)
+	if !ok {
+		return errors.New("invalid payload.RevertToDPOS")
+	}
+	if p.WorkHeightInterval != payload.WorkHeightInterval {
+		return errors.New("invalid WorkHeightInterval")
+
+	}
+
+	// check dpos state
+	if b.GetState().GetConsensusAlgorithm() != state.POW {
+		return errors.New("invalid GetConsensusAlgorithm() != state.POW")
+	}
+
+	return CheckRevertToDPOSTransaction(txn)
+}
+
 func (b *BlockChain) checkUpdateVersionTransaction(txn *Transaction) error {
 	payload, ok := txn.Payload.(*payload.UpdateVersion)
 	if !ok {
@@ -3439,6 +3467,34 @@ func CheckInactiveArbitrators(txn *Transaction) error {
 		return err
 	}
 
+	return nil
+}
+
+func checkArbitratorsSignatures(program *program.Program) error {
+
+	code := program.Code
+	// Get N parameter
+	n := int(code[len(code)-2]) - crypto.PUSH1 + 1
+	// Get M parameter
+	m := int(code[0]) - crypto.PUSH1 + 1
+
+	arbitratorsCount := DefaultLedger.Arbitrators.GetArbitersCount()
+	minSignCount := int(float64(arbitratorsCount)*
+		state.MajoritySignRatioNumerator/state.MajoritySignRatioDenominator) + 1
+	if m < 1 || m > n || n != arbitratorsCount || m < minSignCount {
+		fmt.Printf("m:%d n:%d minSignCount:%d crc:  %d", m, n, minSignCount, arbitratorsCount)
+		return errors.New("invalid multi sign script code")
+	}
+	publicKeys, err := crypto.ParseMultisigScript(code)
+	if err != nil {
+		return err
+	}
+
+	for _, pk := range publicKeys {
+		if !DefaultLedger.Arbitrators.IsArbitrator(pk[1:]) {
+			return errors.New("invalid multi sign public key")
+		}
+	}
 	return nil
 }
 

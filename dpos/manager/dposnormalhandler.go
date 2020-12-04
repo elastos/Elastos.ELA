@@ -36,6 +36,10 @@ func (h *DPOSNormalHandler) ProcessAcceptVote(id peer.PID, p *payload.DPOSPropos
 	return false, false
 }
 
+func (h *DPOSNormalHandler) TryCreateRevertToDPOSTx(BlockHeight uint32) bool {
+	return false
+}
+
 func (h *DPOSNormalHandler) ProcessRejectVote(id peer.PID, p *payload.DPOSProposalVote) (succeed bool, finished bool) {
 	log.Info("[Normal-ProcessRejectVote] start")
 	defer log.Info("[Normal-ProcessRejectVote] end")

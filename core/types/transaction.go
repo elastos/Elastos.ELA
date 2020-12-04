@@ -64,6 +64,8 @@ const (
 	CRCProposalRealWithdraw  TxType = 0x2a
 	CRAssetsRectify          TxType = 0x2b
 	CRCouncilMemberClaimNode TxType = 0x31
+
+	RevertToDPOS TxType = 0x42
 )
 
 func (self TxType) Name() string {
@@ -106,6 +108,8 @@ func (self TxType) Name() string {
 		return "IllegalSidechainEvidence"
 	case InactiveArbitrators:
 		return "InactiveArbitrators"
+	case RevertToDPOS:
+		return "RevertToDPOS"
 	case UpdateVersion:
 		return "UpdateVersion"
 	case RegisterCR:
@@ -487,6 +491,10 @@ func (tx *Transaction) IsInactiveArbitrators() bool {
 	return tx.TxType == InactiveArbitrators
 }
 
+func (tx *Transaction) IsRevertToDPOS() bool {
+	return tx.TxType == RevertToDPOS
+}
+
 func (tx *Transaction) IsUpdateVersion() bool {
 	return tx.TxType == UpdateVersion
 }
@@ -599,6 +607,8 @@ func GetPayload(txType TxType) (Payload, error) {
 		p = new(payload.SidechainIllegalData)
 	case InactiveArbitrators:
 		p = new(payload.InactiveArbitrators)
+	case RevertToDPOS:
+		p = new(payload.RevertToDPOS)
 	case UpdateVersion:
 		p = new(payload.UpdateVersion)
 	case RegisterCR:

@@ -2521,6 +2521,9 @@ func getPayloadInfo(p Payload, payloadVersion byte) PayloadInfo {
 		obj.Sponsor = common.BytesToHexString(object.Sponsor)
 		obj.Arbitrators = arbitrators
 		return obj
+	case *payload.RevertToDPOS:
+		obj := new(RevertToDPOSInfo)
+		obj.WorkHeightInterval = object.WorkHeightInterval
 	case *payload.ActivateProducer:
 		obj := new(ActivateProducerInfo)
 		obj.NodePublicKey = common.BytesToHexString(object.NodePublicKey)

@@ -18,6 +18,7 @@ type Arbitrators interface {
 	CheckCRCAppropriationTx(block *types.Block) error
 	CheckNextTurnDPOSInfoTx(block *types.Block) error
 	CheckCustomIDResultsTx(block *types.Block) error
+	CheckRevertToDPOSTX(block *types.Block) error
 
 	IsArbitrator(pk []byte) bool
 	IsNextCRCArbitrator(pk []byte) bool
@@ -35,6 +36,8 @@ type Arbitrators interface {
 	GetNextRewardData() RewardData
 	GetArbitersRoundReward() map[common.Uint168]common.Fixed64
 	GetFinalRoundChange() common.Fixed64
+	SetNeedRevertToDPOSTX(need bool)
+	IsInPOWMode() bool
 	IsInactiveMode() bool
 	IsUnderstaffedMode() bool
 

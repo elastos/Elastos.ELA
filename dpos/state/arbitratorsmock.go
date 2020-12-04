@@ -66,6 +66,14 @@ type ArbitratorsMock struct {
 	NextReward                  RewardData
 }
 
+func (a *ArbitratorsMock) SetNeedRevertToDPOSTX(need bool) {
+	panic("implement me")
+}
+
+func (a *ArbitratorsMock) IsInPOWMode() bool {
+	return false
+}
+
 func (a *ArbitratorsMock) GetConnectedProducer(publicKey []byte) ArbiterMember {
 	panic("implement me")
 }
@@ -132,6 +140,10 @@ func (a *ArbitratorsMock) GetDutyIndexByHeight(uint32) int {
 }
 
 func (a *ArbitratorsMock) GetDutyIndex() int {
+	panic("implement me")
+}
+
+func (a *ArbitratorsMock) CheckRevertToDPOSTX(block *types.Block) error {
 	panic("implement me")
 }
 

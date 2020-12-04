@@ -11,6 +11,13 @@ import (
 	"github.com/elastos/Elastos.ELA/common"
 )
 
+type ConsesusAlgorithm byte
+
+const (
+	POW = iota
+	DPOS
+)
+
 // StateKeyFrame holds necessary state about State
 type StateKeyFrame struct {
 	NodeOwnerKeys            map[string]string // NodePublicKey as key, OwnerPublicKey as value
@@ -27,13 +34,16 @@ type StateKeyFrame struct {
 	PreBlockArbiters         map[string]struct{}
 	ProducerDepositMap       map[common.Uint168]struct{}
 
-	EmergencyInactiveArbiters map[string]struct{}
-	VersionStartHeight        uint32
-	VersionEndHeight          uint32
-	NeedNextTurnDposInfo      bool
-	Unclaimed                 int
-	LastRandomCandidateHeight uint32
-	LastRandomCandidateOwner  string
+	EmergencyInactiveArbiters    map[string]struct{}
+	VersionStartHeight           uint32
+	VersionEndHeight             uint32
+	NeedNextTurnDposInfo         bool
+	Unclaimed                    int
+	LastRandomCandidateHeight    uint32
+	LastRandomCandidateOwner     string
+	ConsensusAlgorithmWorkHeight uint32
+	ConsensusAlgorithm           ConsesusAlgorithm
+	NeedRevertToDPOSTX           bool
 }
 
 // RewardData defines variables to calculate reward of a round

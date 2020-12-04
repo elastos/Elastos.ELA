@@ -54,7 +54,9 @@ type ProposalDispatcher struct {
 
 	inactiveCountDown           ViewChangesCountDown
 	currentInactiveArbitratorTx *types.Transaction
-	signedTxs                   map[common.Uint256]interface{}
+	RevertToDPOSTx              *types.Transaction
+
+	signedTxs map[common.Uint256]interface{}
 
 	eventAnalyzer  *eventAnalyzer
 	illegalMonitor *IllegalBehaviorMonitor
@@ -486,6 +488,35 @@ func (p *ProposalDispatcher) OnIllegalBlocksTxReceived(i *payload.DPOSIllegalBlo
 	p.inactiveCountDown.SetEliminated(i.Hash())
 }
 
+func (p *ProposalDispatcher) OnRevertToDPOSTxReceived(id peer.PID,
+	tx *types.Transaction) {
+	if _, ok := p.signedTxs[tx.Hash()]; ok {
+		log.Warn("[OnRevertToDPOSTxReceived] already processed")
+		return
+	}
+
+	log.Info("[OnRevertToDPOSTxReceived] received RevertToDPOSTx")
+
+	p.signedTxs[tx.Hash()] = nil
+
+	response := &dmsg.ResponseRevertToDPOS{
+		TxHash: tx.Hash(),
+		Signer: p.cfg.Manager.GetPublicKey(),
+	}
+	var err error
+	if response.Sign, err = p.cfg.Account.SignTx(tx); err != nil {
+		log.Warn("[OnRevertToDPOSTxReceived] sign response message"+
+			" error, details: ", err.Error())
+	}
+	go func() {
+		if err := p.cfg.Network.SendMessageToPeer(id, response); err != nil {
+			log.Warn("[OnRevertToDPOSTxReceived] send msg error: ", err)
+		}
+	}()
+
+	log.Info("[OnRevertToDPOSTxReceived] response inactive tx sign")
+}
+
 func (p *ProposalDispatcher) OnInactiveArbitratorsReceived(id peer.PID,
 	tx *types.Transaction) {
 	if _, ok := p.signedTxs[tx.Hash()]; ok {
@@ -553,6 +584,47 @@ func (p *ProposalDispatcher) checkInactivePayloadContent(
 	return nil
 }
 
+func (p *ProposalDispatcher) OnResponseRevertToDPOSTxReceived(
+	txHash *common.Uint256, signer []byte, sign []byte) {
+	log.Info("[OnResponseRevertToDPOSTxReceived] collect transaction signs")
+
+	if p.RevertToDPOSTx == nil ||
+		!p.RevertToDPOSTx.Hash().IsEqual(*txHash) {
+		log.Warn("[OnResponseRevertToDPOSTxReceived] unknown RevertToDPOS transaction")
+		return
+	}
+
+	data := new(bytes.Buffer)
+	if err := p.RevertToDPOSTx.SerializeUnsigned(
+		data); err != nil {
+		log.Warn("[OnResponseRevertToDPOSTxReceived] transaction "+
+			"serialize error, details: ", err)
+		return
+	}
+
+	pk, err := crypto.DecodePoint(signer)
+	if err != nil {
+		log.Warn("[OnResponseRevertToDPOSTxReceived] decode signer "+
+			"error, details: ", err)
+		return
+	}
+
+	if err := crypto.Verify(*pk, data.Bytes(), sign); err != nil {
+		log.Warn("[OnResponseRevertToDPOSTxReceived] sign verify "+
+			"error, details: ", err)
+		return
+	}
+
+	pro := p.RevertToDPOSTx.Programs[0]
+	buf := new(bytes.Buffer)
+	buf.Write(pro.Parameter)
+	buf.WriteByte(byte(len(sign)))
+	buf.Write(sign)
+	pro.Parameter = buf.Bytes()
+
+	p.tryEnterDPOSState(len(pro.Parameter) / crypto.SignatureScriptLength)
+}
+
 func (p *ProposalDispatcher) OnResponseInactiveArbitratorsReceived(
 	txHash *common.Uint256, signer []byte, sign []byte) {
 	log.Info("[OnResponseInactiveArbitratorsReceived] collect transaction" +
@@ -594,6 +666,24 @@ func (p *ProposalDispatcher) OnResponseInactiveArbitratorsReceived(
 	pro.Parameter = buf.Bytes()
 
 	p.tryEnterEmergencyState(len(pro.Parameter) / crypto.SignatureScriptLength)
+}
+
+func (p *ProposalDispatcher) tryEnterDPOSState(signCount int) bool {
+	log.Info("[tryEnterDPOSState] current sign count: ", signCount)
+
+	minSignCount := int(float64(p.cfg.Arbitrators.GetArbitersCount())*
+		state.MajoritySignRatioNumerator/state.MajoritySignRatioDenominator) + 1
+	if signCount >= minSignCount {
+		payload := p.RevertToDPOSTx.Payload.(*payload.RevertToDPOS)
+		p.cfg.Arbitrators.SetNeedRevertToDPOSTX(true)
+		p.cfg.Manager.AppendToTxnPool(p.currentInactiveArbitratorTx)
+		p.cfg.Manager.clearRevertToDPOSData(payload)
+
+		log.Info("[tryEnterDPOSState] successfully entered DPOS state ")
+		return true
+	}
+
+	return false
 }
 
 func (p *ProposalDispatcher) tryEnterEmergencyState(signCount int) bool {
@@ -752,6 +842,49 @@ func (p *ProposalDispatcher) setProcessingProposal(d *payload.DPOSProposal) (fin
 	}
 	p.pendingVotes = make(map[common.Uint256]*payload.DPOSProposalVote)
 	return false
+}
+
+func (p *ProposalDispatcher) CreateRevertToDPOS() (
+	*types.Transaction, error) {
+	var err error
+	revertToDPOSPayload := &payload.RevertToDPOS{
+		WorkHeightInterval: payload.WorkHeightInterval,
+	}
+	con := contract.Contract{Prefix: contract.PrefixMultiSig}
+	if con.Code, err = p.createArbitratorsRedeemScript(); err != nil {
+		return nil, err
+	}
+
+	programHash := con.ToProgramHash()
+	tx := &types.Transaction{
+		Version:        types.TxVersion09,
+		TxType:         types.RevertToDPOS,
+		PayloadVersion: payload.RevertToDPOSVersion,
+		Payload:        revertToDPOSPayload,
+		Attributes: []*types.Attribute{{
+			Usage: types.Script,
+			Data:  programHash.Bytes(),
+		}},
+		LockTime: 0,
+		Outputs:  []*types.Output{},
+		Inputs:   []*types.Input{},
+		Fee:      0,
+	}
+
+	var sign []byte
+	if sign, err = p.cfg.Account.SignTx(tx); err != nil {
+		return nil, err
+	}
+	parameter := append([]byte{byte(len(sign))}, sign...)
+	tx.Programs = []*program.Program{
+		{
+			Code:      con.Code,
+			Parameter: parameter,
+		},
+	}
+
+	p.RevertToDPOSTx = tx
+	return tx, nil
 }
 
 func (p *ProposalDispatcher) CreateInactiveArbitrators() (

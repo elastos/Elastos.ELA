@@ -112,6 +112,19 @@ func (a *arbitrators) Start() {
 	a.mtx.Unlock()
 }
 
+func (a *arbitrators) SetNeedRevertToDPOSTX(need bool) {
+	a.mtx.Lock()
+	defer a.mtx.Unlock()
+	a.NeedRevertToDPOSTX = need
+}
+
+func (a *arbitrators) IsInPOWMode() bool {
+	a.mtx.Lock()
+	defer a.mtx.Unlock()
+	return a.ConsensusAlgorithm == POW
+
+}
+
 func (a *arbitrators) RegisterFunction(bestHeight func() uint32,
 	bestBlockHash func() *common.Uint256,
 	getBlockByHeight func(uint32) (*types.Block, error),
@@ -182,6 +195,32 @@ func (a *arbitrators) CheckDPOSIllegalTx(block *types.Block) error {
 			return errors.New("expect an illegal blocks transaction in this block")
 		}
 	}
+	return nil
+}
+
+func (a *arbitrators) CheckRevertToDPOSTX(block *types.Block) error {
+	a.mtx.Lock()
+	needRevertToDPOSTX := a.NeedRevertToDPOSTX
+	a.mtx.Unlock()
+
+	var revertToDPOSTxCount uint32
+	for _, tx := range block.Transactions {
+		if tx.IsRevertToDPOS() {
+			revertToDPOSTxCount++
+		}
+	}
+
+	var needRevertToDPOSTXCount uint32
+	if needRevertToDPOSTX {
+		needRevertToDPOSTXCount = 1
+	}
+
+	if revertToDPOSTxCount != needRevertToDPOSTXCount {
+		return fmt.Errorf("current block height %d, RevertToDPOSTX "+
+			"transaction count should be %d, current block contains %d",
+			block.Height, needRevertToDPOSTXCount, revertToDPOSTxCount)
+	}
+
 	return nil
 }
 

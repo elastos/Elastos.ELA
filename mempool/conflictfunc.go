@@ -265,6 +265,17 @@ func hashArrayCRCProposalRealWithdrawTransactionHashes(
 	return p.WithdrawTransactionHashes, nil
 }
 
+func hashRevertToDPOS(tx *types.Transaction) (interface{}, error) {
+	_, ok := tx.Payload.(*payload.RevertToDPOS)
+	if !ok {
+		return nil, fmt.Errorf(
+			"RevertToDPOS transaction cast failed, tx: %s",
+			tx.Hash())
+	}
+
+	return "RevertToDPOS", nil
+}
+
 // program hashes related functions
 func addrCRInfoCRCID(tx *types.Transaction) (interface{}, error) {
 	p, err := comGetCRInfo(tx)

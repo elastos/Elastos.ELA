@@ -1,7 +1,7 @@
 // Copyright (c) 2017-2020 The Elastos Foundation
 // Use of this source code is governed by an MIT
 // license that can be found in the LICENSE file.
-// 
+//
 
 package dpos
 
@@ -267,14 +267,26 @@ func (n *network) processMessage(msgItem *messageItem) {
 	case elap2p.CmdTx:
 		msgTx, processed := m.(*elamsg.Tx)
 		if processed {
-			if tx, ok := msgTx.Serializable.(*types.Transaction); ok && tx.IsInactiveArbitrators() {
+			tx, ok := msgTx.Serializable.(*types.Transaction)
+			if !ok {
+				return
+			}
+			if tx.IsInactiveArbitrators() {
 				n.listener.OnInactiveArbitratorsReceived(msgItem.ID, tx)
+			} else if tx.IsRevertToDPOS() {
+				n.listener.OnRevertToDPOSTxReceived(msgItem.ID, tx)
 			}
 		}
 	case msg.CmdResponseInactiveArbitrators:
 		msgResponse, processed := m.(*msg.ResponseInactiveArbitrators)
 		if processed {
 			n.listener.OnResponseInactiveArbitratorsReceived(
+				&msgResponse.TxHash, msgResponse.Signer, msgResponse.Sign)
+		}
+	case msg.CmdResponseRevertToDPOS:
+		msgResponse, processed := m.(*msg.ResponseRevertToDPOS)
+		if processed {
+			n.listener.OnResponseRevertToDPOSTxReceived(
 				&msgResponse.TxHash, msgResponse.Signer, msgResponse.Sign)
 		}
 	}
@@ -399,6 +411,8 @@ func makeEmptyMessage(cmd string) (message elap2p.Message, err error) {
 		message = &msg.SidechainIllegalData{}
 	case msg.CmdResponseInactiveArbitrators:
 		message = &msg.ResponseInactiveArbitrators{}
+	case msg.CmdResponseRevertToDPOS:
+		message = &msg.ResponseRevertToDPOS{}
 	default:
 		return nil, errors.New("Received unsupported message, CMD " + cmd)
 	}

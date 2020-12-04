@@ -554,6 +554,12 @@ func (s *State) IsPendingProducer(publicKey []byte) bool {
 	return ok
 }
 
+func (s *State) GetConsensusAlgorithm() ConsesusAlgorithm {
+	s.mtx.RLock()
+	defer s.mtx.RUnlock()
+	return s.ConsensusAlgorithm
+}
+
 // IsActiveProducer returns if a producer is in activate list according to the
 // public key.
 func (s *State) IsActiveProducer(publicKey []byte) bool {
@@ -855,6 +861,19 @@ func (s *State) processTransactions(txs []*types.Transaction, height uint32) {
 			}
 		}
 	}
+
+	// Check if any pending producers has got 6 confirms, set them to activate.
+	revertToDPOS := func() {
+		s.history.Append(height, func() {
+			s.ConsensusAlgorithm = DPOS
+
+		}, func() {
+			s.ConsensusAlgorithm = POW
+		})
+	}
+	if height >= s.ConsensusAlgorithmWorkHeight && s.ConsensusAlgorithm == POW {
+		revertToDPOS()
+	}
 }
 
 // processTransaction take a transaction and the height it has been packed into
@@ -897,7 +916,8 @@ func (s *State) processTransaction(tx *types.Transaction, height uint32) {
 			return
 		}
 		s.recordSpecialTx(payloadHash, height)
-
+	case types.RevertToDPOS:
+		s.processRevertToDPOS(tx.Payload.(*payload.RevertToDPOS), height)
 	case types.ReturnDepositCoin:
 		s.returnDeposit(tx, height)
 
@@ -1413,6 +1433,19 @@ func (s *State) getClaimedCRMembersMap() map[string]*state.CRMember {
 		}
 	}
 	return crMembersMap
+}
+
+func (s *State) processRevertToDPOS(Payload *payload.RevertToDPOS, height uint32) {
+	oriWorkHeight := s.ConsensusAlgorithmWorkHeight
+	oriNeedRevertToDPOSTX := s.NeedRevertToDPOSTX
+	s.history.Append(height, func() {
+		s.ConsensusAlgorithmWorkHeight = height + Payload.WorkHeightInterval
+		s.NeedRevertToDPOSTX = false
+	}, func() {
+		s.ConsensusAlgorithmWorkHeight = oriWorkHeight
+		s.NeedRevertToDPOSTX = oriNeedRevertToDPOSTX
+
+	})
 }
 
 // processEmergencyInactiveArbitrators change producer state according to

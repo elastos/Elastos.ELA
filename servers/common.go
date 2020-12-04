@@ -204,6 +204,10 @@ type InactiveArbitratorsInfo struct {
 	BlockHeight uint32   `json:"blockheight"`
 }
 
+type RevertToDPOSInfo struct {
+	WorkHeightInterval uint32
+}
+
 type ActivateProducerInfo struct {
 	NodePublicKey string `json:"nodepublickey"`
 	Signature     string `json:"signature"`

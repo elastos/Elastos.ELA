@@ -235,7 +235,7 @@ var DefaultParams = Params{
 	MaxReservedCustomIDListCount:       255,       //TODO reset latter
 	DPOSNodeCrossChainHeight:           1000000,   //TODO reset latter
 	RevertToPOWNoBlockTime:             12 * 3600, // TODO reset latter
-
+	StopConfirmBlockTime:               11 * 3600, // TODO reset latter
 }
 
 // TestNet returns the network parameters for the test network.
@@ -313,6 +313,7 @@ func (p *Params) TestNet() *Params {
 	copy.DPOSNodeCrossChainHeight = 1000000     //TODO reset latter
 	copy.MaxReservedCustomIDListCount = 255     //TODO reset latter
 	copy.RevertToPOWNoBlockTime = 12 * 3600     //TODO reset latter
+	copy.StopConfirmBlockTime = 11 * 3600       //TODO reset latter
 
 	return &copy
 }
@@ -392,6 +393,7 @@ func (p *Params) RegNet() *Params {
 	copy.DPOSNodeCrossChainHeight = 1000000     //TODO reset latter
 	copy.MaxReservedCustomIDListCount = 255     //TODO reset latter
 	copy.RevertToPOWNoBlockTime = 12 * 3600     //TODO reset latter
+	copy.StopConfirmBlockTime = 11 * 3600       //TODO reset latter
 
 	return &copy
 }
@@ -687,6 +689,9 @@ type Params struct {
 
 	// RevertToPOWInterval defines how long time does it take to revert to POW mode.
 	RevertToPOWNoBlockTime int64
+
+	// StopConfirmBlockTime defines how long time dose it take before stop confirm block.
+	StopConfirmBlockTime int64
 }
 
 // rewardPerBlock calculates the reward for each block by a specified time

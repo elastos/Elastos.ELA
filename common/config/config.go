@@ -101,6 +101,7 @@ type DPoSConfiguration struct {
 	MaxInactiveRoundsOfRandomNode uint32         `json:"MaxInactiveRoundsOfRandomNode"`
 	DPOSNodeCrossChainHeight      uint32         `json:"DPOSNodeCrossChainHeight"`
 	RevertToPOWNoBlockTime        time.Duration  `json:"RevertToPOWNoBlockTime"`
+	StopConfirmBlockTime          time.Duration  `json:"StopConfirmBlockTime"`
 }
 
 type CRConfiguration struct {

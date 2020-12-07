@@ -272,6 +272,7 @@ func startNode(c *cli.Context, st *settings.Settings) {
 			st.Config().MaxPerLogSize, st.Config().MaxLogsSize)
 		arbitrator, err = dpos.NewArbitrator(act, dpos.Config{
 			EnableEventLog: true,
+			Chain:          chain,
 			ChainParams:    st.Params(),
 			Arbitrators:    arbiters,
 			Server:         server,

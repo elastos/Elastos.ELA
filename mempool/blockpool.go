@@ -92,7 +92,7 @@ func (bm *BlockPool) appendBlock(dposBlock *types.DposBlock) (bool, bool, error)
 	// confirm block
 	inMainChain, isOrphan, err := bm.confirmBlock(hash)
 	if err != nil {
-		log.Debug("[AppendDposBlock] ConfirmBlock failed, height", block.Height, "len(txs):",
+		log.Debug("[AppendDPOSBlock] ConfirmBlock failed, height", block.Height, "len(txs):",
 			len(block.Transactions), "hash:", hash.String(), "err: ", err)
 
 		// Notify the caller that the new block without confirm was accepted.

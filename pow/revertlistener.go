@@ -25,7 +25,7 @@ func (pow *Service) ListenForRevert() {
 			}
 
 			lastBlockTimestamp := int64(pow.arbiters.GetLastBlockTimestamp())
-			localTimestamp := time.Now().Unix()
+			localTimestamp := pow.chain.TimeSource.AdjustedTime().Unix()
 			if localTimestamp-lastBlockTimestamp < pow.chainParams.RevertToPOWNoBlockTime {
 				continue
 			}

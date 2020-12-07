@@ -148,7 +148,7 @@ func startDstNode() {
 	ledger.Blockchain = chain
 	blockMemPool.Chain = chain
 	arbiters.RegisterFunction(chain.GetHeight,
-		func() *common.Uint256 { return &common.Uint256{} },
+		func() *common.Uint256 { return chain.BestChain.Hash },
 		func(height uint32) (*types.Block, error) {
 			hash, err := chain.GetBlockHash(height)
 			if err != nil {

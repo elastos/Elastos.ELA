@@ -748,6 +748,7 @@ func (s *State) ProcessBlock(block *types.Block, confirm *payload.Confirm) {
 	s.ProcessVoteStatisticsBlock(block)
 	s.updateProducersDepositCoin(block.Height)
 	s.recordLastBlockTime(block)
+	s.tryRevertToPOWByStateOfCRMember(block.Height)
 
 	if confirm != nil {
 		if block.Height >= s.chainParams.CRClaimDPOSNodeStartHeight {
@@ -759,6 +760,23 @@ func (s *State) ProcessBlock(block *types.Block, confirm *payload.Confirm) {
 
 	// Commit changes here if no errors found.
 	s.history.Commit(block.Height)
+}
+
+func (s *State) tryRevertToPOWByStateOfCRMember(height uint32) {
+	if !s.isInElectionPeriod() {
+		return
+	}
+	for _, m := range s.getCRMembers() {
+		if m.MemberState == state.MemberElected {
+			return
+		}
+	}
+	s.history.Append(height, func() {
+		s.ConsensusAlgorithm = POW
+	}, func() {
+		s.ConsensusAlgorithm = DPOS
+	})
+	log.Info("[tryRevertToPOWByStateOfCRMember] revert to POW at height:", height)
 }
 
 // record timestamp of last block
@@ -1360,13 +1378,13 @@ func (s *State) processNextTurnDPOSInfo(tx *types.Transaction, height uint32) {
 		return
 	}
 	log.Warnf("processNextTurnDPOSInfo tx: %s, %d", common.ToReversedString(tx.Hash()), height)
-	oriNeedNextTurnDposInfo := s.NeedNextTurnDposInfo
+	oriNeedNextTurnDposInfo := s.NeedNextTurnDPOSInfo
 	oriUnclaimed := s.Unclaimed
 	s.history.Append(height, func() {
-		s.NeedNextTurnDposInfo = false
+		s.NeedNextTurnDPOSInfo = false
 		s.Unclaimed = 0
 	}, func() {
-		s.NeedNextTurnDposInfo = oriNeedNextTurnDposInfo
+		s.NeedNextTurnDPOSInfo = oriNeedNextTurnDposInfo
 		s.Unclaimed = oriUnclaimed
 	})
 }
@@ -1417,9 +1435,9 @@ func (s *State) processCRCouncilMemberClaimNode(tx *types.Transaction, height ui
 
 func (s *State) processRevertToPOW(height uint32) {
 	s.history.Append(height, func() {
-		s.RevertedToPowMode = true
+		s.ConsensusAlgorithm = POW
 	}, func() {
-		s.RevertedToPowMode = false
+		s.ConsensusAlgorithm = DPOS
 	})
 }
 

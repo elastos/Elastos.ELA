@@ -142,7 +142,7 @@ func (a *Arbitrator) OnBlockReceived(b *types.Block, confirmed bool) {
 	if !a.cfg.Server.IsCurrent() {
 		return
 	}
-	if a.cfg.Arbitrators.IsInPowMode() {
+	if a.cfg.Arbitrators.IsInPOWMode() {
 		return
 	}
 	lastBlockTimestamp := int64(a.cfg.Arbitrators.GetLastBlockTimestamp())

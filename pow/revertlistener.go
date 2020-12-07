@@ -6,11 +6,12 @@
 package pow
 
 import (
+	"time"
+
 	"github.com/elastos/Elastos.ELA/core/contract/program"
 	"github.com/elastos/Elastos.ELA/core/types"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/dpos/log"
-	"time"
 )
 
 const CheckRevertToPOWInterval = time.Minute
@@ -20,10 +21,12 @@ func (pow *Service) ListenForRevert() {
 		for {
 			time.Sleep(CheckRevertToPOWInterval)
 
-			if pow.arbiters.IsInPowMode() {
+			if pow.chain.BestChain.Height < pow.chainParams.RevertToPOWStartHeight {
 				continue
 			}
-
+			if pow.arbiters.IsInPOWMode() {
+				continue
+			}
 			lastBlockTimestamp := int64(pow.arbiters.GetLastBlockTimestamp())
 			localTimestamp := pow.chain.TimeSource.AdjustedTime().Unix()
 			if localTimestamp-lastBlockTimestamp < pow.chainParams.RevertToPOWNoBlockTime {
@@ -31,7 +34,7 @@ func (pow *Service) ListenForRevert() {
 			}
 
 			revertToPOWPayload := payload.RevertToPOW{
-				StartPOWBlockHeight: pow.chain.BestChain.Height,
+				WorkingHeight: pow.chain.BestChain.Height + 1,
 			}
 			tx := &types.Transaction{
 				Version:        types.TxVersion09,

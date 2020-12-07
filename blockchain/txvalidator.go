@@ -1114,6 +1114,12 @@ func checkDuplicateSidechainTx(txn *Transaction) error {
 // validate the type of transaction is allowed or not at current height.
 func (b *BlockChain) checkTxHeightVersion(txn *Transaction, blockHeight uint32) error {
 	switch txn.TxType {
+	case RevertToPOW:
+		if blockHeight < b.chainParams.RevertToPOWStartHeight {
+			return errors.New(fmt.Sprintf("not support %s transaction "+
+				"before RevertToPOWStartHeight", txn.TxType.Name()))
+		}
+
 	case RegisterCR, UpdateCR:
 		if blockHeight < b.chainParams.CRVotingStartHeight ||
 			(blockHeight < b.chainParams.RegisterCRByDIDHeight &&
@@ -1148,7 +1154,7 @@ func (b *BlockChain) checkTxHeightVersion(txn *Transaction, blockHeight uint32) 
 					" transactio before CRCProposalV1Height", p.ProposalType.Name()))
 			}
 		case payload.ReserveCustomID, payload.ReceiveCustomID, payload.ChangeCustomIDFee:
-			if blockHeight < b.chainParams.ChangeCommitteeNewCRHeight {
+			if blockHeight < b.chainParams.CustomIDProposalStartHeight {
 				return errors.New(fmt.Sprintf("not support %s CRCProposal"+
 					" transaction before ChangeCommitteeNewCRHeight", p.ProposalType.Name()))
 			}
@@ -2355,7 +2361,7 @@ func (b *BlockChain) checkRevertToPOWTransaction(txn *Transaction, blockHeight u
 	if !ok {
 		return errors.New("invalid payload")
 	}
-	if p.StartPOWBlockHeight != blockHeight {
+	if p.WorkingHeight != blockHeight {
 		return errors.New("invalid start POW block height")
 	}
 

@@ -44,8 +44,8 @@ type StateKeyFrame struct {
 	ConsensusAlgorithmWorkHeight uint32
 	ConsensusAlgorithm           ConsesusAlgorithm
 	LastBlockTimestamp           uint32
-	RevertedToPowMode            bool
 	NeedRevertToDPOSTX           bool
+	NeedNextTurnDPOSInfo         bool
 }
 
 // RewardData defines variables to calculate reward of a round
@@ -153,7 +153,7 @@ func (s *StateKeyFrame) Serialize(w io.Writer) (err error) {
 		return
 	}
 
-	if err = common.WriteElements(w, s.NeedNextTurnDposInfo, uint8(s.Unclaimed),
+	if err = common.WriteElements(w, s.NeedNextTurnDPOSInfo, uint8(s.Unclaimed),
 		s.LastRandomCandidateHeight); err != nil {
 		return
 	}
@@ -234,7 +234,7 @@ func (s *StateKeyFrame) Deserialize(r io.Reader) (err error) {
 	}
 
 	var unclaimed uint8
-	if err = common.ReadElements(r, &s.NeedNextTurnDposInfo, &unclaimed,
+	if err = common.ReadElements(r, &s.NeedNextTurnDPOSInfo, &unclaimed,
 		&s.LastRandomCandidateHeight); err != nil {
 		return
 	}

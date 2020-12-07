@@ -777,6 +777,12 @@ func NewSettings() *Settings {
 		ParamName:    "StopConfirmBlockTime"})
 
 	result.Add(&settingItem{
+		Flag:         cmdcom.RevertToPOWStartHeightFlag,
+		DefaultValue: int64(0),
+		ConfigPath:   "DPoSConfiguration.RevertToPOWStartHeight",
+		ParamName:    "RevertToPOWStartHeight"})
+
+	result.Add(&settingItem{
 		Flag:         cmdcom.MaxInactiveRoundsFlag,
 		DefaultValue: uint32(0),
 		ConfigPath:   "DPoSConfiguration.MaxInactiveRounds",
@@ -943,6 +949,12 @@ func NewSettings() *Settings {
 		DefaultValue: uint32(0),
 		ConfigPath:   "CRConfiguration.ChangeCommitteeNewCRHeight",
 		ParamName:    "ChangeCommitteeNewCRHeight"})
+
+	result.Add(&settingItem{
+		Flag:         cmdcom.CustomIDProposalStartHeight,
+		DefaultValue: uint32(0),
+		ConfigPath:   "CustomIDProposalStartHeight",
+		ParamName:    "CustomIDProposalStartHeight"})
 
 	result.Add(&settingItem{
 		Flag:         cmdcom.MaxReservedCustomIDListCount,

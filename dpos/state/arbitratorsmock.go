@@ -136,10 +136,6 @@ func (a *ArbitratorsMock) GetLastBlockTimestamp() uint32 {
 	return a.LastBlockTimestamp
 }
 
-func (a *ArbitratorsMock) IsInPowMode() bool {
-	return false
-}
-
 func (a *ArbitratorsMock) Start() {
 	panic("implement me")
 }

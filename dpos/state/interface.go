@@ -39,7 +39,6 @@ type Arbitrators interface {
 	SetNeedRevertToDPOSTX(need bool)
 	IsInPOWMode() bool
 	GetLastBlockTimestamp() uint32
-	IsInPowMode() bool
 	IsInactiveMode() bool
 	IsUnderstaffedMode() bool
 

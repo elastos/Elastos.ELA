@@ -172,7 +172,8 @@ func randomPublicKey() []byte {
 }
 
 func TestState_ProcessTransaction(t *testing.T) {
-	state := NewState(&config.DefaultParams, nil, nil, nil,
+	state := NewState(&config.DefaultParams, nil, nil,
+		func() bool { return false },
 		nil, nil, nil,
 		nil, nil)
 	// Create 10 producers info.
@@ -288,7 +289,8 @@ func TestState_ProcessTransaction(t *testing.T) {
 }
 
 func TestState_ProcessBlock(t *testing.T) {
-	state := NewState(&config.DefaultParams, nil, nil, nil,
+	state := NewState(&config.DefaultParams, nil, nil,
+		func() bool { return false },
 		nil, nil, nil,
 		nil, nil)
 
@@ -457,7 +459,8 @@ func TestState_ProcessBlock(t *testing.T) {
 }
 
 func TestState_ProcessIllegalBlockEvidence(t *testing.T) {
-	state := NewState(&config.DefaultParams, nil, nil, nil,
+	state := NewState(&config.DefaultParams, nil, nil,
+		func() bool { return false },
 		nil, nil, nil,
 		nil, nil)
 
@@ -512,7 +515,8 @@ func TestState_ProcessIllegalBlockEvidence(t *testing.T) {
 }
 
 func TestState_ProcessEmergencyInactiveArbitrators(t *testing.T) {
-	state := NewState(&config.DefaultParams, nil, nil, nil,
+	state := NewState(&config.DefaultParams, nil, nil,
+		func() bool { return false },
 		nil, nil, nil,
 		nil, nil)
 
@@ -570,7 +574,8 @@ func TestState_ProcessEmergencyInactiveArbitrators(t *testing.T) {
 }
 
 func TestState_Rollback(t *testing.T) {
-	state := NewState(&config.DefaultParams, nil, nil, nil,
+	state := NewState(&config.DefaultParams, nil, nil,
+		func() bool { return false },
 		nil, nil, nil,
 		nil, nil)
 
@@ -620,7 +625,8 @@ func TestState_Rollback(t *testing.T) {
 }
 
 func TestState_GetHistory(t *testing.T) {
-	state := NewState(&config.DefaultParams, nil, nil, nil,
+	state := NewState(&config.DefaultParams, nil, nil,
+		func() bool { return false },
 		nil, nil, nil,
 		nil, nil)
 
@@ -768,7 +774,8 @@ func TestState_GetHistory(t *testing.T) {
 }
 
 func TestState_NicknameExists(t *testing.T) {
-	state := NewState(&config.DefaultParams, nil, nil, nil,
+	state := NewState(&config.DefaultParams, nil, nil,
+		func() bool { return false },
 		nil, nil, nil,
 		nil, nil)
 
@@ -832,7 +839,8 @@ func TestState_NicknameExists(t *testing.T) {
 }
 
 func TestState_ProducerExists(t *testing.T) {
-	state := NewState(&config.DefaultParams, nil, nil, nil,
+	state := NewState(&config.DefaultParams, nil, nil,
+		func() bool { return false },
 		nil, nil, nil,
 		nil, nil)
 
@@ -886,7 +894,8 @@ func TestState_ProducerExists(t *testing.T) {
 
 func TestState_IsDPOSTransaction(t *testing.T) {
 	references := make(map[*types.Input]types.Output)
-	state := NewState(&config.DefaultParams, nil, nil, nil,
+	state := NewState(&config.DefaultParams, nil, nil,
+		func() bool { return false },
 		nil, nil, nil,
 		nil, nil)
 	state.getTxReference = func(tx *types.Transaction) (
@@ -950,7 +959,8 @@ func TestState_IsDPOSTransaction(t *testing.T) {
 
 func TestState_InactiveProducer_Normal(t *testing.T) {
 	arbitrators := &ArbitratorsMock{}
-	state := NewState(&config.DefaultParams, arbitrators.GetArbitrators, nil, nil,
+	state := NewState(&config.DefaultParams, arbitrators.GetArbitrators, nil,
+		func() bool { return false },
 		nil, nil, nil,
 		nil, nil)
 	state.chainParams.InactivePenalty = 50
@@ -1027,7 +1037,8 @@ func TestState_InactiveProducer_Normal(t *testing.T) {
 
 func TestState_InactiveProducer_FailNoContinuous(t *testing.T) {
 	arbitrators := &ArbitratorsMock{}
-	state := NewState(&config.DefaultParams, arbitrators.GetArbitrators, nil, nil,
+	state := NewState(&config.DefaultParams, arbitrators.GetArbitrators, nil,
+		func() bool { return false },
 		nil, nil, nil,
 		nil, nil)
 
@@ -1105,7 +1116,8 @@ func TestState_InactiveProducer_FailNoContinuous(t *testing.T) {
 
 func TestState_InactiveProducer_RecoverFromInactiveState(t *testing.T) {
 	arbitrators := &ArbitratorsMock{}
-	state := NewState(&config.DefaultParams, arbitrators.GetArbitrators, nil, nil,
+	state := NewState(&config.DefaultParams, arbitrators.GetArbitrators, nil,
+		func() bool { return false },
 		nil, nil, nil,
 		nil, nil)
 	state.chainParams.ChangeCommitteeNewCRHeight = 1
@@ -1198,7 +1210,8 @@ func TestState_InactiveProducer_RecoverFromInactiveState(t *testing.T) {
 
 func TestState_InactiveProducer_DuringUpdateVersion(t *testing.T) {
 	arbitrators := &ArbitratorsMock{}
-	state := NewState(&config.DefaultParams, arbitrators.GetArbitrators, nil, nil,
+	state := NewState(&config.DefaultParams, arbitrators.GetArbitrators, nil,
+		func() bool { return false },
 		nil, nil, nil,
 		nil, nil)
 	state.chainParams.InactivePenalty = 50
@@ -1282,7 +1295,8 @@ func TestState_InactiveProducer_DuringUpdateVersion(t *testing.T) {
 
 func TestState_ProcessBlock_DepositAndReturnDeposit(t *testing.T) {
 	arbitrators := &ArbitratorsMock{}
-	state := NewState(&config.DefaultParams, arbitrators.GetArbitrators, nil, nil,
+	state := NewState(&config.DefaultParams, arbitrators.GetArbitrators, nil,
+		func() bool { return false },
 		nil, nil, nil,
 		nil, nil)
 	height := config.DefaultParams.CRVotingStartHeight - 1
@@ -1408,7 +1422,8 @@ func TestState_ProcessBlock_DepositAndReturnDeposit(t *testing.T) {
 }
 
 func TestState_CountArbitratorsInactivityV1(t *testing.T) {
-	state := NewState(&config.DefaultParams, nil, nil, nil,
+	state := NewState(&config.DefaultParams, nil, nil,
+		func() bool { return false },
 		nil, nil, nil,
 		nil, nil)
 

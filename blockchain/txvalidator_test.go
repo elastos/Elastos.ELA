@@ -62,7 +62,8 @@ func (s *txValidatorTestSuite) SetupSuite() {
 		s.Error(err)
 	}
 	s.Chain, err = New(chainStore, params,
-		state.NewState(params, nil, nil, nil,
+		state.NewState(params, nil, nil,
+			func() bool { return false },
 			nil, nil,
 			nil, nil, nil),
 		crstate.NewCommittee(params))
@@ -1086,18 +1087,19 @@ func (s *txValidatorTestSuite) TestCheckUpdateProducerTransaction() {
 
 	s.CurrentHeight = 1
 	s.Chain.crCommittee = crstate.NewCommittee(s.Chain.chainParams)
-	s.Chain.state = state.NewState(s.Chain.chainParams, nil, nil, nil, func(programHash common.Uint168) (common.Fixed64,
-		error) {
-		amount := common.Fixed64(0)
-		utxos, err := s.Chain.db.GetFFLDB().GetUTXO(&programHash)
-		if err != nil {
-			return amount, err
-		}
-		for _, utxo := range utxos {
-			amount += utxo.Value
-		}
-		return amount, nil
-	}, nil, nil, nil, nil)
+	s.Chain.state = state.NewState(s.Chain.chainParams, nil, nil,
+		func() bool { return false }, func(programHash common.Uint168) (common.Fixed64,
+			error) {
+			amount := common.Fixed64(0)
+			utxos, err := s.Chain.db.GetFFLDB().GetUTXO(&programHash)
+			if err != nil {
+				return amount, err
+			}
+			for _, utxo := range utxos {
+				amount += utxo.Value
+			}
+			return amount, nil
+		}, nil, nil, nil, nil)
 	s.Chain.crCommittee.RegisterFuncitons(&crstate.CommitteeFuncsConfig{
 		GetTxReference:                   s.Chain.UTXOCache.GetTxReference,
 		GetUTXO:                          s.Chain.db.GetFFLDB().GetUTXO,

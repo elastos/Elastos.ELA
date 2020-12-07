@@ -78,6 +78,7 @@ type Configuration struct {
 	NodeProfileStrategy         string            `json:"NodeProfileStrategy"`
 	TxCacheVolume               uint32            `json:"TxCacheVolume"`
 	MaxNodePerHost              uint32            `json:"MaxNodePerHost"`
+	CustomIDProposalStartHeight uint32            `json:"CustomIDProposalStartHeight"`
 }
 
 // DPoSConfiguration defines the DPoS consensus parameters.
@@ -102,6 +103,7 @@ type DPoSConfiguration struct {
 	DPOSNodeCrossChainHeight      uint32         `json:"DPOSNodeCrossChainHeight"`
 	RevertToPOWNoBlockTime        time.Duration  `json:"RevertToPOWNoBlockTime"`
 	StopConfirmBlockTime          time.Duration  `json:"StopConfirmBlockTime"`
+	RevertToPOWStartHeight        uint32         `json:"RevertToPOWStartHeight"`
 }
 
 type CRConfiguration struct {

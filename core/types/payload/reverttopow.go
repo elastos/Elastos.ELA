@@ -16,7 +16,7 @@ import (
 const RevertToPOWVersion byte = 0x00
 
 type RevertToPOW struct {
-	StartPOWBlockHeight uint32
+	WorkingHeight uint32
 }
 
 func (a *RevertToPOW) Data(version byte) []byte {
@@ -29,18 +29,18 @@ func (a *RevertToPOW) Data(version byte) []byte {
 }
 
 func (a *RevertToPOW) Serialize(w io.Writer, version byte) error {
-	err := common.WriteUint32(w, a.StartPOWBlockHeight)
+	err := common.WriteUint32(w, a.WorkingHeight)
 	if err != nil {
-		return errors.New("[RevertToPOW], failed to serialize StartPOWBlockHeight")
+		return errors.New("[RevertToPOW], failed to serialize WorkingHeight")
 	}
 	return nil
 }
 
 func (a *RevertToPOW) Deserialize(r io.Reader, version byte) error {
 	var err error
-	a.StartPOWBlockHeight, err = common.ReadUint32(r)
+	a.WorkingHeight, err = common.ReadUint32(r)
 	if err != nil {
-		return errors.New("[RevertToPOW], failed to deserialize StartPOWBlockHeight")
+		return errors.New("[RevertToPOW], failed to deserialize WorkingHeight")
 	}
 	return nil
 }

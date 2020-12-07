@@ -418,6 +418,11 @@ var (
 		Usage: "defines the change committee new cr height",
 	}
 
+	CustomIDProposalStartHeight = cli.StringFlag{
+		Name:  "CustomIDProposalStartHeight",
+		Usage: "defines the height to allow custom ID related transaction",
+	}
+
 	MaxReservedCustomIDListCount = cli.StringFlag{
 		Name:  "maxreservedcustomidlistcount",
 		Usage: "defines the max count of reserved custom iid list per tx",
@@ -451,6 +456,11 @@ var (
 	StopConfirmBlockTimeFlag = cli.StringFlag{
 		Name:  "stopconfirmblocktime",
 		Usage: "defines how long time does it take to stop confirm block",
+	}
+
+	RevertToPOWStartHeightFlag = cli.StringFlag{
+		Name:  "reverttopowstartheight",
+		Usage: "defines the start height to allow to revert to POW mode",
 	}
 )
 

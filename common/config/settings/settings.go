@@ -771,6 +771,12 @@ func NewSettings() *Settings {
 		ParamName:    "RevertToPOWNoBlockTime"})
 
 	result.Add(&settingItem{
+		Flag:         cmdcom.StopConfirmBlockTimeFlag,
+		DefaultValue: int64(0),
+		ConfigPath:   "DPoSConfiguration.StopConfirmBlockTime",
+		ParamName:    "StopConfirmBlockTime"})
+
+	result.Add(&settingItem{
 		Flag:         cmdcom.MaxInactiveRoundsFlag,
 		DefaultValue: uint32(0),
 		ConfigPath:   "DPoSConfiguration.MaxInactiveRounds",

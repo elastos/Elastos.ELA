@@ -447,6 +447,11 @@ var (
 		Name:  "reverttopownoblocktime",
 		Usage: "defines how long time does it take to revert to POW mode",
 	}
+
+	StopConfirmBlockTimeFlag = cli.StringFlag{
+		Name:  "stopconfirmblocktime",
+		Usage: "defines how long time does it take to stop confirm block",
+	}
 )
 
 // MoveRPCFlags finds the rpc argument and moves it to the front

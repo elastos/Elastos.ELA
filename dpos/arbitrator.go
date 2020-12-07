@@ -28,6 +28,7 @@ import (
 
 type Config struct {
 	EnableEventLog bool
+	Chain          *blockchain.BlockChain
 	Arbitrators    state.Arbitrators
 	Server         elanet.Server
 	TxMemPool      *mempool.TxPool
@@ -141,6 +142,15 @@ func (a *Arbitrator) OnBlockReceived(b *types.Block, confirmed bool) {
 	if !a.cfg.Server.IsCurrent() {
 		return
 	}
+	if a.cfg.Arbitrators.IsInPowMode() {
+		return
+	}
+	lastBlockTimestamp := int64(a.cfg.Arbitrators.GetLastBlockTimestamp())
+	localTimestamp := a.cfg.Chain.TimeSource.AdjustedTime().Unix()
+	if localTimestamp-lastBlockTimestamp >= a.cfg.ChainParams.StopConfirmBlockTime {
+		return
+	}
+
 	log.Info("[OnBlockReceived] listener received block")
 	a.network.PostBlockReceivedTask(b, confirmed)
 }

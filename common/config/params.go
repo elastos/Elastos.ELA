@@ -233,6 +233,8 @@ var DefaultParams = Params{
 	RandomCandidatePeriod:              36 * 10, //TODO reset latter
 	MaxInactiveRoundsOfRandomNode:      36 * 8,  //TODO reset latter
 	MaxReservedCustomIDListCount:       255,     //TODO reset latter
+	DPOSNodeCrossChainHeight:           1000000, //TODO reset latter
+
 }
 
 // TestNet returns the network parameters for the test network.
@@ -307,6 +309,7 @@ func (p *Params) TestNet() *Params {
 	copy.NoCRCDPOSNodeHeight = 1000000          //TODO reset latter
 	copy.RandomCandidatePeriod = 36 * 10        //TODO reset latter
 	copy.MaxInactiveRoundsOfRandomNode = 36 * 8 //TODO reset latter
+	copy.DPOSNodeCrossChainHeight = 1000000     //TODO reset latter
 	copy.MaxReservedCustomIDListCount = 255     //TODO reset latter
 
 	return &copy
@@ -384,6 +387,7 @@ func (p *Params) RegNet() *Params {
 	copy.NoCRCDPOSNodeHeight = 1000000          //TODO reset latter
 	copy.RandomCandidatePeriod = 36 * 10        //TODO reset latter
 	copy.MaxInactiveRoundsOfRandomNode = 36 * 8 //TODO reset latter
+	copy.DPOSNodeCrossChainHeight = 1000000     //TODO reset latter
 	copy.MaxReservedCustomIDListCount = 255     //TODO reset latter
 
 	return &copy

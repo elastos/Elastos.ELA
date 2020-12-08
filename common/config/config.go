@@ -101,8 +101,8 @@ type DPoSConfiguration struct {
 	RandomCandidatePeriod         uint32         `json:"RandomCandidatePeriod"`
 	MaxInactiveRoundsOfRandomNode uint32         `json:"MaxInactiveRoundsOfRandomNode"`
 	DPOSNodeCrossChainHeight      uint32         `json:"DPOSNodeCrossChainHeight"`
-	RevertToPOWNoBlockTime        time.Duration  `json:"RevertToPOWNoBlockTime"`
-	StopConfirmBlockTime          time.Duration  `json:"StopConfirmBlockTime"`
+	RevertToPOWNoBlockTime        int64          `json:"RevertToPOWNoBlockTime"`
+	StopConfirmBlockTime          int64          `json:"StopConfirmBlockTime"`
 	RevertToPOWStartHeight        uint32         `json:"RevertToPOWStartHeight"`
 }
 

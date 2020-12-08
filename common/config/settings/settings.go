@@ -766,19 +766,19 @@ func NewSettings() *Settings {
 
 	result.Add(&settingItem{
 		Flag:         cmdcom.RevertToPOWNoBlockTimeFlag,
-		DefaultValue: time.Duration(0),
+		DefaultValue: int64(0),
 		ConfigPath:   "DPoSConfiguration.RevertToPOWNoBlockTime",
 		ParamName:    "RevertToPOWNoBlockTime"})
 
 	result.Add(&settingItem{
 		Flag:         cmdcom.StopConfirmBlockTimeFlag,
-		DefaultValue: time.Duration(0),
+		DefaultValue: int64(0),
 		ConfigPath:   "DPoSConfiguration.StopConfirmBlockTime",
 		ParamName:    "StopConfirmBlockTime"})
 
 	result.Add(&settingItem{
 		Flag:         cmdcom.RevertToPOWStartHeightFlag,
-		DefaultValue: int64(0),
+		DefaultValue: uint32(0),
 		ConfigPath:   "DPoSConfiguration.RevertToPOWStartHeight",
 		ParamName:    "RevertToPOWStartHeight"})
 

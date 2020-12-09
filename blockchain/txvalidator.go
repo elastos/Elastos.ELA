@@ -2104,7 +2104,7 @@ func (b *BlockChain) checkCRCProposalTrackingTransaction(txn *Transaction,
 			return errors.New("the opinion data cannot be more than 200K byte")
 		}
 		tempOpinionHash := common.Hash(cptPayload.SecretaryGeneralOpinionData)
-		if !cptPayload.MessageHash.IsEqual(tempOpinionHash) {
+		if !cptPayload.SecretaryGeneralOpinionHash.IsEqual(tempOpinionHash) {
 			return errors.New("the opinion data and opinion hash of" +
 				" proposal tracking are inconsistent")
 		}

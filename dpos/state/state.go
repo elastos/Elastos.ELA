@@ -900,9 +900,12 @@ func (s *State) processTransactions(txs []*types.Transaction, height uint32) {
 			s.ConsensusAlgorithm = POW
 		})
 	}
-	if height >= s.ConsensusAlgorithmWorkHeight && s.ConsensusAlgorithm == POW {
-		revertToDPOS()
+	if s.DPOSWorkHeight != 0 {
+		if height >= s.DPOSWorkHeight && s.ConsensusAlgorithm == POW {
+			revertToDPOS()
+		}
 	}
+
 }
 
 // processTransaction take a transaction and the height it has been packed into
@@ -1434,10 +1437,14 @@ func (s *State) processCRCouncilMemberClaimNode(tx *types.Transaction, height ui
 }
 
 func (s *State) processRevertToPOW(height uint32) {
+	oriConsensusAlgorithmWorkHeight := s.DPOSWorkHeight
 	s.history.Append(height, func() {
 		s.ConsensusAlgorithm = POW
+		s.DPOSWorkHeight = 0
 	}, func() {
 		s.ConsensusAlgorithm = DPOS
+		s.DPOSWorkHeight = oriConsensusAlgorithmWorkHeight
+
 	})
 }
 
@@ -1476,13 +1483,13 @@ func (s *State) getClaimedCRMembersMap() map[string]*state.CRMember {
 }
 
 func (s *State) processRevertToDPOS(Payload *payload.RevertToDPOS, height uint32) {
-	oriWorkHeight := s.ConsensusAlgorithmWorkHeight
+	oriWorkHeight := s.DPOSWorkHeight
 	oriNeedRevertToDPOSTX := s.NeedRevertToDPOSTX
 	s.history.Append(height, func() {
-		s.ConsensusAlgorithmWorkHeight = height + Payload.WorkHeightInterval
+		s.DPOSWorkHeight = height + Payload.WorkHeightInterval
 		s.NeedRevertToDPOSTX = false
 	}, func() {
-		s.ConsensusAlgorithmWorkHeight = oriWorkHeight
+		s.DPOSWorkHeight = oriWorkHeight
 		s.NeedRevertToDPOSTX = oriNeedRevertToDPOSTX
 
 	})

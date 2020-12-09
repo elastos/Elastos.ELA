@@ -34,18 +34,18 @@ type StateKeyFrame struct {
 	PreBlockArbiters         map[string]struct{}
 	ProducerDepositMap       map[common.Uint168]struct{}
 
-	EmergencyInactiveArbiters    map[string]struct{}
-	VersionStartHeight           uint32
-	VersionEndHeight             uint32
-	NeedNextTurnDposInfo         bool
-	Unclaimed                    int
-	LastRandomCandidateHeight    uint32
-	LastRandomCandidateOwner     string
-	ConsensusAlgorithmWorkHeight uint32
-	ConsensusAlgorithm           ConsesusAlgorithm
-	LastBlockTimestamp           uint32
-	NeedRevertToDPOSTX           bool
-	NeedNextTurnDPOSInfo         bool
+	EmergencyInactiveArbiters map[string]struct{}
+	VersionStartHeight        uint32
+	VersionEndHeight          uint32
+	NeedNextTurnDposInfo      bool
+	Unclaimed                 int
+	LastRandomCandidateHeight uint32
+	LastRandomCandidateOwner  string
+	DPOSWorkHeight            uint32
+	ConsensusAlgorithm        ConsesusAlgorithm
+	LastBlockTimestamp        uint32
+	NeedRevertToDPOSTX        bool
+	NeedNextTurnDPOSInfo      bool
 }
 
 // RewardData defines variables to calculate reward of a round

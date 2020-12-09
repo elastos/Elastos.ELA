@@ -15,6 +15,7 @@ import (
 	"github.com/elastos/Elastos.ELA/common/log"
 	"github.com/elastos/Elastos.ELA/core/types"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
+	"github.com/elastos/Elastos.ELA/dpos/state"
 	"github.com/elastos/Elastos.ELA/events"
 )
 
@@ -45,6 +46,18 @@ func (bm *BlockPool) AppendConfirm(confirm *payload.Confirm) (bool,
 }
 
 func (bm *BlockPool) AddDposBlock(dposBlock *types.DposBlock) (bool, bool, error) {
+	if bm.Chain.GetState().ConsensusAlgorithm == state.POW {
+		return bm.Chain.ProcessBlock(dposBlock.Block, dposBlock.Confirm)
+	}
+
+	if dposBlock.Block.Height > bm.chainParams.RevertToPOWStartHeight && !dposBlock.HaveConfirm {
+		for _, tx := range dposBlock.Transactions {
+			if tx.IsRevertToPOW() {
+				return bm.Chain.ProcessBlock(dposBlock.Block, dposBlock.Confirm)
+			}
+		}
+	}
+
 	// main version >=H1
 	if dposBlock.Block.Height >= bm.chainParams.CRCOnlyDPOSHeight {
 		return bm.AppendDposBlock(dposBlock)

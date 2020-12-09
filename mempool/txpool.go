@@ -31,7 +31,7 @@ type TxPool struct {
 	sync.RWMutex
 }
 
-//append transaction to txnpool when check ok.
+//append transaction to txnpool when check ok, and broadcast the transaction.
 //1.check  2.check with ledger(db) 3.check with pool
 func (mp *TxPool) AppendToTxPool(tx *Transaction) elaerr.ELAError {
 	mp.Lock()
@@ -42,6 +42,18 @@ func (mp *TxPool) AppendToTxPool(tx *Transaction) elaerr.ELAError {
 	}
 
 	go events.Notify(events.ETTransactionAccepted, tx)
+	return nil
+}
+
+//append transaction to txnpool when check ok.
+//1.check  2.check with ledger(db) 3.check with pool
+func (mp *TxPool) AppendToTxPoolWithoutRelay(tx *Transaction) elaerr.ELAError {
+	mp.Lock()
+	defer mp.Unlock()
+	err := mp.appendToTxPool(tx)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 

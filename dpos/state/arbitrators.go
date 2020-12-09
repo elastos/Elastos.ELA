@@ -461,7 +461,7 @@ func (a *arbitrators) IncreaseChainHeight(block *types.Block) {
 	switch changeType {
 	case updateNext:
 		if err := a.updateNextArbitrators(versionHeight, block.Height); err != nil {
-			a.revertToPOWMode(block.Height)
+			a.revertToPOWAtNextTurn(block.Height)
 			log.Warn(fmt.Sprintf("update next arbiters at height: %d, "+
 				"error: %s, revert to POW mode", block.Height, err))
 		}
@@ -471,7 +471,7 @@ func (a *arbitrators) IncreaseChainHeight(block *types.Block) {
 				" transaction, height: %d, error: %s", block.Height, err))
 		}
 		if err := a.normalChange(block.Height); err != nil {
-			a.revertToPOWMode(block.Height)
+			a.revertToPOWAtNextTurn(block.Height)
 			log.Warn(fmt.Sprintf("normal change fail at height: %d, "+
 				"error: %s， revert to POW mode", block.Height, err))
 		}
@@ -487,6 +487,11 @@ func (a *arbitrators) IncreaseChainHeight(block *types.Block) {
 		a.illegalBlocksPayloadHashes = oriIllegalBlocks
 	})
 	a.history.Commit(block.Height)
+
+	if len(a.currentArbitrators) == 0 {
+		a.createRevertToPOWTransaction(block.Height)
+	}
+
 	if snapshotVotes {
 		if err := a.snapshotVotesStates(block.Height); err != nil {
 			panic(fmt.Sprintf("snap shot votes states error:%s", err))
@@ -506,11 +511,48 @@ func (a *arbitrators) IncreaseChainHeight(block *types.Block) {
 	}
 }
 
-func (a *arbitrators) revertToPOWMode(height uint32) {
+func (a *arbitrators) createRevertToPOWTransaction(blockHeight uint32) {
+	var revertType payload.RevertType
+	if a.NoClaimDPOSNode {
+		revertType = payload.NoClaimDPOSNode
+	} else {
+		revertType = payload.NoProducers
+	}
+	revertToPOWPayload := payload.RevertToPOW{
+		RevertType:    revertType,
+		WorkingHeight: blockHeight + 1,
+	}
+	tx := &types.Transaction{
+		Version:        types.TxVersion09,
+		TxType:         types.RevertToPOW,
+		PayloadVersion: payload.RevertToPOWVersion,
+		Payload:        &revertToPOWPayload,
+		Attributes:     []*types.Attribute{},
+		Programs:       []*program.Program{},
+		LockTime:       0,
+	}
+	go events.Notify(events.ETAppendTxToTxPoolWithoutRelay, tx)
+}
+
+func (a *arbitrators) revertToPOWAtNextTurn(height uint32) {
+	oriNextArbitrators := a.nextArbitrators
+	oriNextCandidates := a.nextCandidates
+	oriNextCRCArbitersMap := a.nextCRCArbitersMap
+	oriNextCRCArbiters := a.nextCRCArbiters
+	oriNoProducers := a.NoProducers
+
 	a.history.Append(height, func() {
-		a.ConsensusAlgorithm = POW
+		a.nextArbitrators = make([]ArbiterMember, 0)
+		a.nextCandidates = make([]ArbiterMember, 0)
+		a.nextCRCArbitersMap = make(map[common.Uint168]ArbiterMember)
+		a.nextCRCArbiters = make([]ArbiterMember, 0)
+		a.NoProducers = true
 	}, func() {
-		a.ConsensusAlgorithm = DPOS
+		a.nextArbitrators = oriNextArbitrators
+		a.nextCandidates = oriNextCandidates
+		a.nextCRCArbitersMap = oriNextCRCArbitersMap
+		a.nextCRCArbiters = oriNextCRCArbiters
+		a.NoProducers = oriNoProducers
 	})
 }
 
@@ -1255,7 +1297,13 @@ func (a *arbitrators) GetCRCArbitersCount() int {
 
 func (a *arbitrators) GetArbitersMajorityCount() int {
 	a.mtx.Lock()
-	minSignCount := int(float64(len(a.currentArbitrators)) *
+	var currentArbitratorsCount int
+	if len(a.currentArbitrators) != 0 {
+		currentArbitratorsCount = len(a.currentArbitrators)
+	} else {
+		currentArbitratorsCount = len(a.chainParams.CRCArbiters) + a.chainParams.GeneralArbiters
+	}
+	minSignCount := int(float64(currentArbitratorsCount) *
 		MajoritySignRatioNumerator / MajoritySignRatioDenominator)
 	a.mtx.Unlock()
 	return minSignCount
@@ -1294,6 +1342,11 @@ func (a *arbitrators) getChangeType(height uint32) (ChangeType, uint32) {
 	// main version >= H2
 	if height > a.chainParams.PublicDPOSHeight &&
 		a.dutyIndex == len(a.currentArbitrators)-1 {
+		return normalChange, height
+	}
+
+	if height > a.chainParams.RevertToPOWStartHeight &&
+		a.dutyIndex == len(a.chainParams.CRCArbiters)+a.chainParams.GeneralArbiters-1 {
 		return normalChange, height
 	}
 
@@ -1384,7 +1437,6 @@ func (a *arbitrators) updateNextTurnInfo(height uint32, producers []ArbiterMembe
 	})
 	if height >= a.chainParams.CRClaimDPOSNodeStartHeight {
 		a.NeedNextTurnDPOSInfo = true
-		a.Unclaimed = unclaimed
 		//need sent a NextTurnDPOSInfo tx into mempool
 		sort.Slice(nextCRCArbiters, func(i, j int) bool {
 			return bytes.Compare(nextCRCArbiters[i].GetNodePublicKey(), nextCRCArbiters[j].GetNodePublicKey()) < 0
@@ -1513,14 +1565,12 @@ func (a *arbitrators) updateNextArbitrators(versionHeight, height uint32) error 
 			}
 			oriNextCandidates := a.nextCandidates
 			oriNeedNextTurnDposInfo := a.NeedNextTurnDPOSInfo
-			oriUnclaimed := a.Unclaimed
 			a.history.Append(height, func() {
 				a.nextCandidates = make([]ArbiterMember, 0)
 				a.updateNextTurnInfo(height, producers, unclaimed)
 			}, func() {
 				a.nextCandidates = oriNextCandidates
 				a.NeedNextTurnDPOSInfo = oriNeedNextTurnDposInfo
-				a.Unclaimed = oriUnclaimed
 			})
 		} else {
 			if height >= a.chainParams.NoCRCDPOSNodeHeight {
@@ -1544,7 +1594,6 @@ func (a *arbitrators) updateNextArbitrators(versionHeight, height uint32) error 
 				}
 			}
 			oriNeedNextTurnDposInfo := a.NeedNextTurnDPOSInfo
-			oriUnClaimed := a.Unclaimed
 			oriNextCRCArbiters := a.nextCRCArbiters
 			a.history.Append(height, func() {
 				a.updateNextTurnInfo(height, producers, unclaimed)
@@ -1552,7 +1601,6 @@ func (a *arbitrators) updateNextArbitrators(versionHeight, height uint32) error 
 				// next arbitrators will rollback in resetNextArbiterByCRC
 				a.NeedNextTurnDPOSInfo = oriNeedNextTurnDposInfo
 				a.nextCRCArbiters = oriNextCRCArbiters
-				a.Unclaimed = oriUnClaimed
 			})
 
 			candidates, err := a.GetCandidatesDesc(versionHeight, count+unclaimed,
@@ -1570,14 +1618,12 @@ func (a *arbitrators) updateNextArbitrators(versionHeight, height uint32) error 
 	} else {
 		oriNextCandidates := a.nextCandidates
 		oriNeedNextTurnDposInfo := a.NeedNextTurnDPOSInfo
-		oriUnClaimed := a.Unclaimed
 		a.history.Append(height, func() {
 			a.nextCandidates = make([]ArbiterMember, 0)
 			a.updateNextTurnInfo(height, nil, unclaimed)
 		}, func() {
 			a.nextCandidates = oriNextCandidates
 			a.NeedNextTurnDPOSInfo = oriNeedNextTurnDposInfo
-			a.Unclaimed = oriUnClaimed
 		})
 	}
 	return nil

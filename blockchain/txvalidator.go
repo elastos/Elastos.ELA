@@ -2365,19 +2365,30 @@ func (b *BlockChain) checkRevertToPOWTransaction(txn *Transaction, blockHeight u
 		return errors.New("invalid start POW block height")
 	}
 
-	lastBlockTime := int64(b.BestChain.Timestamp)
-	noBlockTime := b.chainParams.RevertToPOWNoBlockTime
+	switch p.RevertType {
+	case payload.NoBlock:
+		lastBlockTime := int64(b.BestChain.Timestamp)
+		noBlockTime := b.chainParams.RevertToPOWNoBlockTime
 
-	if timeStamp == 0 {
-		// is not in block, check by local time.
-		localTime := b.MedianAdjustedTime().Unix()
-		if localTime-lastBlockTime < noBlockTime {
-			return errors.New("invalid block time")
+		if timeStamp == 0 {
+			// is not in block, check by local time.
+			localTime := b.MedianAdjustedTime().Unix()
+			if localTime-lastBlockTime < noBlockTime {
+				return errors.New("invalid block time")
+			}
+		} else {
+			// is in block, check by the time of existed block.
+			if int64(timeStamp)-lastBlockTime < noBlockTime {
+				return errors.New("invalid block time")
+			}
 		}
-	} else {
-		// is in block, check by the time of existed block.
-		if int64(timeStamp)-lastBlockTime < noBlockTime {
-			return errors.New("invalid block time")
+	case payload.NoProducers:
+		if !b.state.NoProducers {
+			return errors.New("current producers is enough")
+		}
+	case payload.NoClaimDPOSNode:
+		if !b.state.NoClaimDPOSNode {
+			return errors.New("current CR member claimed DPoS node")
 		}
 	}
 

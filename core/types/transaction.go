@@ -494,6 +494,10 @@ func (tx *Transaction) IsInactiveArbitrators() bool {
 	return tx.TxType == InactiveArbitrators
 }
 
+func (tx *Transaction) IsRevertToPOW() bool {
+	return tx.TxType == RevertToPOW
+}
+
 func (tx *Transaction) IsRevertToDPOS() bool {
 	return tx.TxType == RevertToDPOS
 }

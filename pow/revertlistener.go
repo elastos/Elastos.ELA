@@ -34,6 +34,7 @@ func (pow *Service) ListenForRevert() {
 			}
 
 			revertToPOWPayload := payload.RevertToPOW{
+				RevertType:    payload.NoBlock,
 				WorkingHeight: pow.chain.BestChain.Height + 1,
 			}
 			tx := &types.Transaction{
@@ -45,7 +46,7 @@ func (pow *Service) ListenForRevert() {
 				Programs:       []*program.Program{},
 				LockTime:       0,
 			}
-			err := pow.txMemPool.AppendToTxPool(tx)
+			err := pow.txMemPool.AppendToTxPoolWithoutRelay(tx)
 			if err != nil {
 				log.Error("failed to append revertToPOW transaction to " +
 					"transaction pool, err:" + err.Error())

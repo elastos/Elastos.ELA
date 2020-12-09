@@ -14,8 +14,8 @@ import (
 type ConsesusAlgorithm byte
 
 const (
-	POW = iota
-	DPOS
+	DPOS ConsesusAlgorithm = 0x00
+	POW  ConsesusAlgorithm = 0x01
 )
 
 // StateKeyFrame holds necessary state about State
@@ -34,18 +34,21 @@ type StateKeyFrame struct {
 	PreBlockArbiters         map[string]struct{}
 	ProducerDepositMap       map[common.Uint168]struct{}
 
-	EmergencyInactiveArbiters map[string]struct{}
-	VersionStartHeight        uint32
-	VersionEndHeight          uint32
-	NeedNextTurnDposInfo      bool
-	Unclaimed                 int
-	LastRandomCandidateHeight uint32
-	LastRandomCandidateOwner  string
-	DPOSWorkHeight            uint32
-	ConsensusAlgorithm        ConsesusAlgorithm
-	LastBlockTimestamp        uint32
-	NeedRevertToDPOSTX        bool
-	NeedNextTurnDPOSInfo      bool
+	EmergencyInactiveArbiters    map[string]struct{}
+	VersionStartHeight           uint32
+	VersionEndHeight             uint32
+	NeedNextTurnDposInfo         bool
+	Unclaimed                    int
+	LastRandomCandidateHeight    uint32
+	LastRandomCandidateOwner     string
+	DPOSWorkHeight               uint32
+	ConsensusAlgorithm           ConsesusAlgorithm
+	LastBlockTimestamp           uint32
+	NeedRevertToDPOSTX           bool
+	NeedNextTurnDPOSInfo         bool
+	NoProducers                  bool
+	NoClaimDPOSNode              bool
+	ConsensusAlgorithmWorkHeight uint32
 }
 
 // RewardData defines variables to calculate reward of a round
@@ -145,26 +148,17 @@ func (s *StateKeyFrame) Serialize(w io.Writer) (err error) {
 		return
 	}
 
-	if err = common.WriteUint32(w, s.VersionStartHeight); err != nil {
-		return
-	}
-
-	if err = common.WriteUint32(w, s.VersionEndHeight); err != nil {
-		return
-	}
-
-	if err = common.WriteElements(w, s.NeedNextTurnDPOSInfo, uint8(s.Unclaimed),
-		s.LastRandomCandidateHeight); err != nil {
-		return
+	if err = common.WriteElements(w, s.VersionStartHeight, s.VersionEndHeight,
+		s.NeedNextTurnDposInfo, s.LastRandomCandidateHeight, s.NoProducers,
+		s.NoClaimDPOSNode, s.LastBlockTimestamp, s.NeedRevertToDPOSTX,
+		s.NeedNextTurnDPOSInfo, s.ConsensusAlgorithmWorkHeight); err != nil {
+		return err
 	}
 
 	if err = common.WriteVarString(w, s.LastRandomCandidateOwner); err != nil {
 		return
 	}
 
-	if err = common.WriteUint32(w, s.LastBlockTimestamp); err != nil {
-		return
-	}
 	return
 }
 
@@ -225,28 +219,17 @@ func (s *StateKeyFrame) Deserialize(r io.Reader) (err error) {
 		return
 	}
 
-	if s.VersionStartHeight, err = common.ReadUint32(r); err != nil {
-		return
+	if err = common.ReadElements(r, &s.VersionStartHeight, &s.VersionEndHeight,
+		&s.NeedNextTurnDposInfo, &s.LastRandomCandidateHeight, &s.NoClaimDPOSNode,
+		&s.NoProducers, &s.LastBlockTimestamp, &s.NeedRevertToDPOSTX,
+		&s.NeedNextTurnDPOSInfo, &s.ConsensusAlgorithmWorkHeight); err != nil {
+		return err
 	}
-
-	if s.VersionEndHeight, err = common.ReadUint32(r); err != nil {
-		return
-	}
-
-	var unclaimed uint8
-	if err = common.ReadElements(r, &s.NeedNextTurnDPOSInfo, &unclaimed,
-		&s.LastRandomCandidateHeight); err != nil {
-		return
-	}
-	s.Unclaimed = int(unclaimed)
 
 	if s.LastRandomCandidateOwner, err = common.ReadVarString(r); err != nil {
 		return
 	}
 
-	if s.LastBlockTimestamp, err = common.ReadUint32(r); err != nil {
-		return
-	}
 	return
 }
 

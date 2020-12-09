@@ -763,7 +763,7 @@ func (s *State) ProcessBlock(block *types.Block, confirm *payload.Confirm) {
 }
 
 func (s *State) tryRevertToPOWByStateOfCRMember(height uint32) {
-	if !s.isInElectionPeriod() {
+	if !s.isInElectionPeriod() || s.NoClaimDPOSNode {
 		return
 	}
 	for _, m := range s.getCRMembers() {
@@ -772,11 +772,12 @@ func (s *State) tryRevertToPOWByStateOfCRMember(height uint32) {
 		}
 	}
 	s.history.Append(height, func() {
-		s.ConsensusAlgorithm = POW
+		s.NoClaimDPOSNode = true
 	}, func() {
-		s.ConsensusAlgorithm = DPOS
+		s.NoClaimDPOSNode = false
 	})
-	log.Info("[tryRevertToPOWByStateOfCRMember] revert to POW at height:", height)
+	log.Info("[tryRevertToPOWByStateOfCRMember] found that no CR member"+
+		" claimed DPoS node at height:", height)
 }
 
 // record timestamp of last block
@@ -948,8 +949,7 @@ func (s *State) processTransaction(tx *types.Transaction, height uint32) {
 			return
 		}
 		s.recordSpecialTx(payloadHash, height)
-	case types.RevertToDPOS:
-		s.processRevertToDPOS(tx.Payload.(*payload.RevertToDPOS), height)
+
 	case types.ReturnDepositCoin:
 		s.returnDeposit(tx, height)
 
@@ -963,7 +963,10 @@ func (s *State) processTransaction(tx *types.Transaction, height uint32) {
 		s.processCRCouncilMemberClaimNode(tx, height)
 
 	case types.RevertToPOW:
-		s.processRevertToPOW(height)
+		s.processRevertToPOW(tx, height)
+
+	case types.RevertToDPOS:
+		s.processRevertToDPOS(tx.Payload.(*payload.RevertToDPOS), height)
 	}
 
 	if tx.TxType != types.RegisterProducer {
@@ -1382,13 +1385,10 @@ func (s *State) processNextTurnDPOSInfo(tx *types.Transaction, height uint32) {
 	}
 	log.Warnf("processNextTurnDPOSInfo tx: %s, %d", common.ToReversedString(tx.Hash()), height)
 	oriNeedNextTurnDposInfo := s.NeedNextTurnDPOSInfo
-	oriUnclaimed := s.Unclaimed
 	s.history.Append(height, func() {
 		s.NeedNextTurnDPOSInfo = false
-		s.Unclaimed = 0
 	}, func() {
 		s.NeedNextTurnDPOSInfo = oriNeedNextTurnDposInfo
-		s.Unclaimed = oriUnclaimed
 	})
 }
 
@@ -1436,16 +1436,26 @@ func (s *State) processCRCouncilMemberClaimNode(tx *types.Transaction, height ui
 	})
 }
 
-func (s *State) processRevertToPOW(height uint32) {
+func (s *State) processRevertToPOW(tx *types.Transaction, height uint32) {
+	oriNoProducers := s.NoProducers
+	oriNoClaimDPOSNode := s.NoClaimDPOSNode
 	oriConsensusAlgorithmWorkHeight := s.DPOSWorkHeight
 	s.history.Append(height, func() {
 		s.ConsensusAlgorithm = POW
+		s.NoProducers = false
+		s.NoClaimDPOSNode = false
 		s.DPOSWorkHeight = 0
+
 	}, func() {
 		s.ConsensusAlgorithm = DPOS
+		s.NoProducers = oriNoProducers
+		s.NoClaimDPOSNode = oriNoClaimDPOSNode
 		s.DPOSWorkHeight = oriConsensusAlgorithmWorkHeight
-
 	})
+
+	pld := tx.Payload.(*payload.RevertToPOW)
+	log.Infof("[processRevertToPOW], revert to POW at height:%d, "+
+		"revert type:%s", height, pld.RevertType.String())
 }
 
 // updateVersion record the update period during that inactive arbitrators

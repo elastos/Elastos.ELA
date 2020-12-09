@@ -15,8 +15,29 @@ import (
 
 const RevertToPOWVersion byte = 0x00
 
+const (
+	NoBlock RevertType = iota
+	NoProducers
+	NoClaimDPOSNode
+)
+
+type RevertType byte
+
 type RevertToPOW struct {
+	RevertType
 	WorkingHeight uint32
+}
+
+func (r RevertType) String() string {
+	switch r {
+	case NoBlock:
+		return "NoBlock"
+	case NoProducers:
+		return "NoProducers"
+	case NoClaimDPOSNode:
+		return "NoClaimDPOSNode"
+	}
+	return "Unknown"
 }
 
 func (a *RevertToPOW) Data(version byte) []byte {
@@ -29,18 +50,15 @@ func (a *RevertToPOW) Data(version byte) []byte {
 }
 
 func (a *RevertToPOW) Serialize(w io.Writer, version byte) error {
-	err := common.WriteUint32(w, a.WorkingHeight)
-	if err != nil {
-		return errors.New("[RevertToPOW], failed to serialize WorkingHeight")
+	if err := common.WriteElements(w, a.RevertType, a.WorkingHeight); err != nil {
+		return errors.New("[RevertToPOW], failed to serialize ")
 	}
 	return nil
 }
 
 func (a *RevertToPOW) Deserialize(r io.Reader, version byte) error {
-	var err error
-	a.WorkingHeight, err = common.ReadUint32(r)
-	if err != nil {
-		return errors.New("[RevertToPOW], failed to deserialize WorkingHeight")
+	if err := common.ReadElements(r, &a.RevertType, &a.WorkingHeight); err != nil {
+		return errors.New("[RevertToPOW], failed to deserialize")
 	}
 	return nil
 }

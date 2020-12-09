@@ -539,8 +539,15 @@ func (p *ProposalManager) proposalReview(tx *types.Transaction,
 		} else {
 			delete(proposalState.CRVotes, did)
 		}
-
 	})
+
+	if _, ok := p.reviewOpinion[proposalReview.OpinionHash]; !ok {
+		history.Append(height, func() {
+			p.reviewOpinion[proposalReview.OpinionHash] = proposalReview.OpinionData
+		}, func() {
+			delete(p.reviewOpinion, proposalReview.OpinionHash)
+		})
+	}
 }
 
 func (p *ProposalManager) proposalWithdraw(tx *types.Transaction,
@@ -592,6 +599,21 @@ func (p *ProposalManager) proposalTracking(tx *types.Transaction,
 	proposalState := p.getProposal(proposalTracking.ProposalHash)
 	if proposalState == nil {
 		return
+	}
+	if _, ok := p.trackingMessage[proposalTracking.MessageHash]; !ok {
+		history.Append(height, func() {
+			p.trackingMessage[proposalTracking.MessageHash] = proposalTracking.MessageData
+		}, func() {
+			delete(p.trackingMessage, proposalTracking.MessageHash)
+		})
+	}
+	if _, ok := p.trackingOpinion[proposalTracking.SecretaryGeneralOpinionHash]; !ok {
+		history.Append(height, func() {
+			p.trackingMessage[proposalTracking.SecretaryGeneralOpinionHash] =
+				proposalTracking.SecretaryGeneralOpinionData
+		}, func() {
+			delete(p.trackingMessage, proposalTracking.MessageHash)
+		})
 	}
 
 	trackingType := proposalTracking.ProposalTrackingType

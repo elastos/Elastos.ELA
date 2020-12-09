@@ -1288,6 +1288,37 @@ func (c *Committee) GetProposalByDraftHash(draftHash common.Uint256) *ProposalSt
 	return c.manager.getProposalByDraftHash(draftHash)
 }
 
+func (c *Committee) GetProposalDraftDataByDraftHash(draftHash common.Uint256) []byte {
+	c.mtx.RLock()
+	defer c.mtx.RUnlock()
+	proposalState := c.manager.getProposalByDraftHash(draftHash)
+	if proposalState != nil {
+		return proposalState.Proposal.DraftData
+	}
+	return nil
+}
+
+func (c *Committee) GetProposalReviewOpinionByDraftHash(draftHash common.Uint256) []byte {
+	c.mtx.RLock()
+	defer c.mtx.RUnlock()
+
+	return c.manager.reviewOpinion[draftHash]
+}
+
+func (c *Committee) GetProposalTrackingMessageDByDraftHash(draftHash common.Uint256) []byte {
+	c.mtx.RLock()
+	defer c.mtx.RUnlock()
+
+	return c.manager.trackingMessage[draftHash]
+}
+
+func (c *Committee) GetProposalTrackingOpinionByDraftHash(draftHash common.Uint256) []byte {
+	c.mtx.RLock()
+	defer c.mtx.RUnlock()
+
+	return c.manager.trackingOpinion[draftHash]
+}
+
 func (c *Committee) GetRealWithdrawTransactions() map[common.Uint256]types.OutputInfo {
 	c.mtx.RLock()
 	defer c.mtx.RUnlock()

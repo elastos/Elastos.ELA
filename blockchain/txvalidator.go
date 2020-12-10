@@ -613,7 +613,8 @@ func checkTransactionInput(txn *Transaction) error {
 
 	if txn.IsIllegalTypeTx() || txn.IsInactiveArbitrators() ||
 		txn.IsNewSideChainPowTx() || txn.IsUpdateVersion() ||
-		txn.IsActivateProducerTx() || txn.IsNextTurnDPOSInfoTx() {
+		txn.IsActivateProducerTx() || txn.IsNextTurnDPOSInfoTx() ||
+		txn.IsRevertToPOW() || txn.IsRevertToDPOS() {
 		if len(txn.Inputs) != 0 {
 			return errors.New("no cost transactions must has no input")
 		}
@@ -698,7 +699,9 @@ func (b *BlockChain) checkTransactionOutput(txn *Transaction,
 	}
 
 	if txn.IsIllegalTypeTx() || txn.IsInactiveArbitrators() ||
-		txn.IsUpdateVersion() || txn.IsActivateProducerTx() || txn.IsNextTurnDPOSInfoTx() {
+		txn.IsUpdateVersion() || txn.IsActivateProducerTx() ||
+		txn.IsNextTurnDPOSInfoTx() || txn.IsRevertToPOW() ||
+		txn.IsRevertToDPOS() {
 		if len(txn.Outputs) != 0 {
 			return errors.New("no cost transactions should have no output")
 		}
@@ -954,7 +957,7 @@ func (b *BlockChain) checkAttributeProgram(tx *Transaction,
 		}
 		return nil
 	case IllegalSidechainEvidence, IllegalProposalEvidence, IllegalVoteEvidence,
-		ActivateProducer, NextTurnDPOSInfo, CustomIDResult:
+		ActivateProducer, NextTurnDPOSInfo, CustomIDResult, RevertToPOW:
 		if len(tx.Programs) != 0 || len(tx.Attributes) != 0 {
 			return errors.New("zero cost tx should have no attributes and programs")
 		}
@@ -1078,7 +1081,6 @@ func checkTransactionPayload(txn *Transaction) error {
 	case *payload.DPOSIllegalBlocks:
 	case *payload.SidechainIllegalData:
 	case *payload.InactiveArbitrators:
-	case *payload.RevertToDPOS:
 	case *payload.CRInfo:
 	case *payload.UnregisterCR:
 	case *payload.CRCProposal:
@@ -1090,6 +1092,8 @@ func checkTransactionPayload(txn *Transaction) error {
 	case *payload.CRCProposalRealWithdraw:
 	case *payload.NextTurnDPOSInfo:
 	case *payload.CRCouncilMemberClaimNode:
+	case *payload.RevertToPOW:
+	case *payload.RevertToDPOS:
 	default:
 		return errors.New("[txValidator],invalidate transaction payload type.")
 	}

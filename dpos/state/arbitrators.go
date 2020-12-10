@@ -1535,6 +1535,9 @@ func (a *arbitrators) getCandidateIndexAtRandom(unclaimedCount, votedProducersCo
 	rand.Seed(seed)
 	normalCount := a.chainParams.GeneralArbiters - 1
 	count := votedProducersCount - unclaimedCount - normalCount
+	if count < 1 {
+		return 0, errors.New("producers is not enough")
+	}
 	candidatesCount := minInt(count, a.chainParams.CandidateArbiters+1)
 	return rand.Intn(candidatesCount), nil
 }

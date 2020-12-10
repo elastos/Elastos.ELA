@@ -34,7 +34,7 @@ func minInt(a, b int) int {
 	if a <= b {
 		return a
 	}
-	return a
+	return b
 }
 
 func readi64(src []byte) (int64, []byte, bool) {

@@ -23,6 +23,8 @@ const (
 	CROSSCHAIN = 0xAF
 )
 
+var EmptyProgramHash = Uint168{}
+
 type Uint168 [UINT168SIZE]uint8
 
 func (u Uint168) String() string {

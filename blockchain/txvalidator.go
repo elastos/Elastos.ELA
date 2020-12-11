@@ -122,6 +122,11 @@ func (b *BlockChain) CheckTransactionContext(blockHeight uint32,
 		return nil, elaerr.Simple(elaerr.ErrTxUnknownReferredTx, nil)
 	}
 
+	if err := b.checkPOWConsensusTransaction(txn, references); err != nil {
+		log.Warn("[checkPOWConsensusTransaction],", err)
+		return nil, elaerr.Simple(elaerr.ErrTxValidation, nil)
+	}
+
 	// check double spent transaction
 	if DefaultLedger.IsDoubleSpend(txn) {
 		log.Warn("[CheckTransactionContext] IsDoubleSpend check failed")
@@ -1115,10 +1120,55 @@ func checkDuplicateSidechainTx(txn *Transaction) error {
 	return nil
 }
 
+func (b *BlockChain) checkPOWConsensusTransaction(txn *Transaction, references map[*Input]Output) error {
+	if b.state.GetConsensusAlgorithm() != state.POW {
+		return nil
+	}
+
+	switch txn.TxType {
+	case RegisterProducer, RegisterCR, ActivateProducer, CRCouncilMemberClaimNode:
+		return nil
+	case CRCAppropriation, CRCProposalRealWithdraw, NextTurnDPOSInfo:
+		return nil
+	case TransferAsset:
+		if txn.Version >= TxVersion09 {
+			var containVoteOutput bool
+			for _, output := range txn.Outputs {
+				if output.Type == OTVote {
+					containVoteOutput = true
+					break
+				}
+			}
+			if !containVoteOutput {
+				return errors.New("not allow to transfer asset in POW consensus")
+			}
+
+			inputProgramHashes := make(map[common.Uint168]struct{})
+			for _, output := range references {
+				inputProgramHashes[output.ProgramHash] = struct{}{}
+			}
+			outputProgramHashes := make(map[common.Uint168]struct{})
+			for _, output := range txn.Outputs {
+				outputProgramHashes[output.ProgramHash] = struct{}{}
+			}
+			for k, _ := range outputProgramHashes {
+				if _, ok := inputProgramHashes[k]; !ok {
+					return errors.New("output program hash is not in inputs")
+				}
+			}
+		} else {
+			return errors.New("not allow to transfer asset in POW consensus")
+		}
+		return nil
+	}
+
+	return fmt.Errorf("not support transaction %s in POW consensus", txn.TxType.Name())
+}
+
 // validate the type of transaction is allowed or not at current height.
 func (b *BlockChain) checkTxHeightVersion(txn *Transaction, blockHeight uint32) error {
 	switch txn.TxType {
-	case RevertToPOW:
+	case RevertToPOW, RevertToDPOS:
 		if blockHeight < b.chainParams.RevertToPOWStartHeight {
 			return errors.New(fmt.Sprintf("not support %s transaction "+
 				"before RevertToPOWStartHeight", txn.TxType.Name()))

@@ -2012,7 +2012,10 @@ func getArbitersInfoWithOnduty(title string, arbiters []ArbiterMember,
 	params = append(params, "INDEX", "PUBLICKEY", "ONDUTY")
 	for i, arbiter := range arbiters {
 		info += "%-5d %-66s %6t\n"
-		publicKey := common.BytesToHexString(arbiter.GetNodePublicKey())
+		var publicKey string
+		if arbiter.IsNormal() {
+			publicKey = common.BytesToHexString(arbiter.GetNodePublicKey())
+		}
 		params = append(params, i+1, publicKey, bytes.Equal(
 			arbiter.GetNodePublicKey(), ondutyArbiter))
 	}
@@ -2028,7 +2031,10 @@ func getArbitersInfoWithoutOnduty(title string,
 	params = append(params, "INDEX", "PUBLICKEY")
 	for i, arbiter := range arbiters {
 		info += "%-5d %-66s\n"
-		publicKey := common.BytesToHexString(arbiter.GetNodePublicKey())
+		var publicKey string
+		if arbiter.IsNormal() {
+			publicKey = common.BytesToHexString(arbiter.GetNodePublicKey())
+		}
 		params = append(params, i+1, publicKey)
 	}
 	info += "----- " + strings.Repeat("-", 66)

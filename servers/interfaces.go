@@ -466,14 +466,21 @@ func GetArbitersInfo(params Params) map[string]interface{} {
 			Arbiters.GetArbitersCount() - dutyIndex,
 	}
 	for _, v := range Arbiters.GetArbitrators() {
-		result.Arbiters = append(result.Arbiters, common.BytesToHexString(v.NodePublicKey))
+		var nodePK string
+		if v.IsNormal {
+			nodePK = common.BytesToHexString(v.NodePublicKey)
+		}
+		result.Arbiters = append(result.Arbiters, nodePK)
 	}
 	for _, v := range Arbiters.GetCandidates() {
 		result.Candidates = append(result.Candidates, common.BytesToHexString(v))
 	}
 	for _, v := range Arbiters.GetNextArbitrators() {
-		result.NextArbiters = append(result.NextArbiters,
-			common.BytesToHexString(v.NodePublicKey))
+		var nodePK string
+		if v.IsNormal {
+			nodePK = common.BytesToHexString(v.NodePublicKey)
+		}
+		result.NextArbiters = append(result.NextArbiters, nodePK)
 	}
 	for _, v := range Arbiters.GetNextCandidates() {
 		result.NextCandidates = append(result.NextCandidates,

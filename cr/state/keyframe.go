@@ -228,11 +228,16 @@ func (set *ProposalHashSet) Equal(other ProposalHashSet) bool {
 }
 
 type ProposalsMap map[common.Uint256]*ProposalState
+type ReviewDraftDataMap map[common.Uint256][]byte
+type TrackingDraftDataMap map[common.Uint256][]byte
 
 // ProposalKeyFrame holds all runtime state about CR proposals.
 type ProposalKeyFrame struct {
-	Proposals ProposalsMap
 	// key is did value is proposalhash set
+	Proposals       ProposalsMap
+	reviewOpinion   ReviewDraftDataMap
+	trackingMessage TrackingDraftDataMap
+	trackingOpinion TrackingDraftDataMap
 	ProposalHashes  map[common.Uint168]ProposalHashSet
 	ProposalSession map[uint64][]common.Uint256
 	// proposalWithdraw info
@@ -1132,6 +1137,15 @@ func (p *ProposalKeyFrame) Serialize(w io.Writer) (err error) {
 			return
 		}
 	}
+	if err = p.serializeDraftDataMap(p.reviewOpinion, w); err != nil {
+		return err
+	}
+	if err = p.serializeDraftDataMap(p.trackingMessage, w); err != nil {
+		return err
+	}
+	if err = p.serializeDraftDataMap(p.trackingOpinion, w); err != nil {
+		return err
+	}
 	if err = p.serializeProposalHashsMap(p.ProposalHashes, w); err != nil {
 		return
 	}
@@ -1140,6 +1154,22 @@ func (p *ProposalKeyFrame) Serialize(w io.Writer) (err error) {
 	}
 	if err = p.serializeWithdrawableTransactionsMap(p.WithdrawableTxInfo, w); err != nil {
 		return
+	}
+	return
+}
+
+func (p *ProposalKeyFrame) serializeDraftDataMap(draftData map[common.Uint256][]byte,
+	w io.Writer) (err error) {
+	if err = common.WriteVarUint(w, uint64(len(draftData))); err != nil {
+		return
+	}
+	for hash, data := range draftData {
+		if err = hash.Serialize(w); err != nil {
+			return
+		}
+		if err = common.WriteVarBytes(w, data); err != nil {
+			return
+		}
 	}
 	return
 }
@@ -1223,6 +1253,15 @@ func (p *ProposalKeyFrame) Deserialize(r io.Reader) (err error) {
 		}
 		p.Proposals[k] = &v
 	}
+	if p.reviewOpinion, err = p.deserializeDraftDataMap(r); err != nil {
+		return
+	}
+	if p.trackingMessage, err = p.deserializeDraftDataMap(r); err != nil {
+		return
+	}
+	if p.trackingOpinion, err = p.deserializeDraftDataMap(r); err != nil {
+		return
+	}
 	if p.ProposalHashes, err = p.deserializeProposalHashsMap(r); err != nil {
 		return
 	}
@@ -1231,6 +1270,30 @@ func (p *ProposalKeyFrame) Deserialize(r io.Reader) (err error) {
 	}
 	if p.WithdrawableTxInfo, err = p.deserializeWithdrawableTransactionsMap(r); err != nil {
 		return
+	}
+	return
+}
+
+func (p *ProposalKeyFrame) deserializeDraftDataMap(r io.Reader) (
+	draftDataMap map[common.Uint256][]byte, err error) {
+	var count uint64
+	if count, err = common.ReadVarUint(r, 0); err != nil {
+		return
+	}
+	draftDataMap = make(map[common.Uint256][]byte)
+	for i := uint64(0); i < count; i++ {
+
+		var hash common.Uint256
+		if err = hash.Deserialize(r); err != nil {
+			return
+		}
+		var data []byte
+		data, err = common.ReadVarBytes(r, payload.MaxPayloadDataSize, "draft data")
+		if err != nil {
+			return
+		}
+
+		draftDataMap[hash] = data
 	}
 	return
 }
@@ -1331,6 +1394,9 @@ func (p *ProposalKeyFrame) Snapshot() *ProposalKeyFrame {
 func NewProposalKeyFrame() *ProposalKeyFrame {
 	return &ProposalKeyFrame{
 		Proposals:          make(map[common.Uint256]*ProposalState),
+		reviewOpinion:      make(map[common.Uint256][]byte),
+		trackingMessage:    make(map[common.Uint256][]byte),
+		trackingOpinion:    make(map[common.Uint256][]byte),
 		ProposalHashes:     make(map[common.Uint168]ProposalHashSet),
 		ProposalSession:    make(map[uint64][]common.Uint256),
 		WithdrawableTxInfo: make(map[common.Uint256]types.OutputInfo),

@@ -2264,6 +2264,42 @@ func GetCRProposalState(param Params) map[string]interface{} {
 	return ResponsePack(Success, result)
 }
 
+func GetDraftDataByDraftHash(param Params) map[string]interface{} {
+	crCommittee := Chain.GetCRCommittee()
+	hash, ok := param.String("drafthash")
+	if !ok {
+		return ResponsePack(InvalidParams, "not found hash")
+	}
+	draftHashStr, err := common.FromReversedString(hash)
+	if err != nil {
+		return ResponsePack(InvalidParams, "invalidate hash")
+	}
+	draftHash, err := common.Uint256FromBytes(draftHashStr)
+	if err != nil {
+		return ResponsePack(InvalidParams, "invalidate draft hash")
+	}
+
+	var data []byte
+	hashType, ok := param.String("type")
+	switch hashType {
+	case "proposal":
+		data = crCommittee.GetProposalDraftDataByDraftHash(*draftHash)
+	case "review":
+		data = crCommittee.GetProposalReviewOpinionByDraftHash(*draftHash)
+	case "tracking":
+		data = crCommittee.GetProposalTrackingMessageDByDraftHash(*draftHash)
+	case "trackingopinion":
+		data = crCommittee.GetProposalTrackingOpinionByDraftHash(*draftHash)
+	}
+
+	var result string
+	if data != nil {
+		result = common.BytesToHexString(data)
+	}
+
+	return ResponsePack(Success, result)
+}
+
 func ProducerStatus(param Params) map[string]interface{} {
 	publicKey, ok := param.String("publickey")
 	if !ok {

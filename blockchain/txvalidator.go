@@ -2163,7 +2163,7 @@ func (b *BlockChain) checkCRCProposalTrackingTransaction(txn *Transaction,
 			return errors.New("the opinion data cannot be more than 200K byte")
 		}
 		tempOpinionHash := common.Hash(cptPayload.SecretaryGeneralOpinionData)
-		if !cptPayload.MessageHash.IsEqual(tempOpinionHash) {
+		if !cptPayload.SecretaryGeneralOpinionHash.IsEqual(tempOpinionHash) {
 			return errors.New("the opinion data and opinion hash of" +
 				" proposal tracking are inconsistent")
 		}
@@ -2517,7 +2517,7 @@ func (b *BlockChain) checkCRCProposalTrackingSignature(
 	}
 
 	// Check secretary general signature。
-	return b.checkSecretaryGeneralSignature(cptPayload, pState, signedBuf)
+	return b.checkSecretaryGeneralSignature(cptPayload, pState, signedBuf, payloadVersion)
 }
 
 func (b *BlockChain) normalCheckCRCProposalTrackingSignature(
@@ -2550,7 +2550,7 @@ func (b *BlockChain) normalCheckCRCProposalTrackingSignature(
 	}
 
 	// Check secretary general signature。
-	return b.checkSecretaryGeneralSignature(cptPayload, pState, signedBuf)
+	return b.checkSecretaryGeneralSignature(cptPayload, pState, signedBuf, payloadVersion)
 }
 
 func (b *BlockChain) checkProposalOwnerSignature(
@@ -2596,7 +2596,7 @@ func (b *BlockChain) checkProposalNewOwnerSignature(
 
 func (b *BlockChain) checkSecretaryGeneralSignature(
 	cptPayload *payload.CRCProposalTracking, pState *crstate.ProposalState,
-	signedBuf *bytes.Buffer) error {
+	signedBuf *bytes.Buffer, payloadVersion byte) error {
 	var sgContract *contract.Contract
 	publicKeyBytes, err := hex.DecodeString(b.crCommittee.GetProposalManager().SecretaryGeneralPublicKey)
 	if err != nil {
@@ -2615,6 +2615,11 @@ func (b *BlockChain) checkSecretaryGeneralSignature(
 	}
 	if err := cptPayload.SecretaryGeneralOpinionHash.Serialize(signedBuf); err != nil {
 		return errors.New("invalid secretary opinion hash")
+	}
+	if payloadVersion >= payload.CRCProposalTrackingVersion01 {
+		if err := common.WriteVarBytes(signedBuf, cptPayload.SecretaryGeneralOpinionData); err != nil {
+			return errors.New("invalid secretary-general opinion data")
+		}
 	}
 	if err = checkCRTransactionSignature(cptPayload.SecretaryGeneralSignature,
 		sgContract.Code, signedBuf.Bytes()); err != nil {

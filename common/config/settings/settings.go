@@ -496,6 +496,7 @@ func NewSettings() *Settings {
 		DefaultValue: uint32(0),
 		ConfigPath:   "DPoSConfiguration.IllegalPenalty",
 		ParamName:    "IllegalPenalty"})
+
 	result.Add(&settingItem{
 		Flag:         cmdcom.CRCommitteeStartHeightFlag,
 		DefaultValue: uint32(0),

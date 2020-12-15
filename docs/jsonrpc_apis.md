@@ -2306,6 +2306,44 @@ Response:
  }
  ```
  
+ ### getdraftdatabydrafthash
+ 
+ Get draft data of proposal or proposalReview or proposalTracking transaction detail state information by drafthash and type.
+ 
+ #### Parameter
+ 
+ | name         | type   | description                                                             |
+ | ------------ | ------ | ------------------------------------------------------------------------|
+ | drafthash    | string | draft hash of proposal or proposalReview or proposalTracking transaction|     |
+ | type         | string | type: proposal or review or tracking or trackingopinion                 |
+ 
+ #### Result
+ Result is the hex string of draft data.
+ 
+ #### Example
+ 
+ Request:
+ ```json
+ {
+ "method": "getdraftdatabydrafthash",
+   "params":{
+     "drafthash":"9c5ab8998718e0c1c405a719542879dc7553fca05b4e89132ec8d0e88551fcc0",
+     "type": "propsal"
+   }
+ }
+ ```
+ 
+ Response:
+ 
+ ```json
+ {
+     "error": null,
+     "id": null,
+     "jsonrpc": "2.0",
+     "result": "6d6d9581ba0156314f1e92fd03430c6e4428a32bb3f1b9dc6271024"
+}
+```
+
  ### createrawtransaction
  
  Create a transaction spending the given inputs and creating new outputs.

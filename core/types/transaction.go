@@ -109,8 +109,6 @@ func (self TxType) Name() string {
 		return "IllegalSidechainEvidence"
 	case InactiveArbitrators:
 		return "InactiveArbitrators"
-	case RevertToDPOS:
-		return "RevertToDPOS"
 	case UpdateVersion:
 		return "UpdateVersion"
 	case RegisterCR:
@@ -143,6 +141,8 @@ func (self TxType) Name() string {
 		return "CustomIDResult"
 	case RevertToPOW:
 		return "RevertToPOW"
+	case RevertToDPOS:
+		return "RevertToDPOS"
 	default:
 		return "Unknown"
 	}

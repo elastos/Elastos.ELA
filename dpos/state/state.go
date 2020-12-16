@@ -1756,10 +1756,13 @@ func (s *State) countArbitratorsInactivityV0(height uint32,
 
 func (s *State) tryUpdateInactivity(key string, producer *Producer,
 	needReset bool, height uint32) {
-	if producer.inactiveCountingEndHeight != height-1 {
-		producer.inactiveCountingHeight = 0
+
+	if height > s.chainParams.ChangeCommitteeNewCRHeight {
+		if producer.inactiveCountingEndHeight != height-1 {
+			producer.inactiveCountingHeight = 0
+		}
+		producer.inactiveCountingEndHeight = height
 	}
-	producer.inactiveCountingEndHeight = height
 
 	if needReset {
 		producer.inactiveCountingHeight = 0

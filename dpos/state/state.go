@@ -740,6 +740,7 @@ func (s *State) IsDPOSTransaction(tx *types.Transaction) bool {
 // ProcessBlock takes a block and it's confirm to update producers state and
 // votes accordingly.
 func (s *State) ProcessBlock(block *types.Block, confirm *payload.Confirm) {
+	log.Error("begin ProcessBlock states.go")
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
 
@@ -760,11 +761,14 @@ func (s *State) ProcessBlock(block *types.Block, confirm *payload.Confirm) {
 
 	// Commit changes here if no errors found.
 	s.history.Commit(block.Height)
+	log.Error("end ProcessBlock states.go")
 }
 
 func (s *State) tryRevertToPOWByStateOfCRMember(height uint32) {
+	log.Error("begin tryRevertToPOWByStateOfCRMember states.go")
 	if !s.isInElectionPeriod() || s.NoClaimDPOSNode ||
 		s.ConsensusAlgorithm == POW {
+		log.Error("tryRevertToPOWByStateOfCRMember ")
 		return
 	}
 	for _, m := range s.getCRMembers() {
@@ -779,6 +783,7 @@ func (s *State) tryRevertToPOWByStateOfCRMember(height uint32) {
 	})
 	log.Info("[tryRevertToPOWByStateOfCRMember] found that no CR member"+
 		" claimed DPoS node at height:", height)
+	log.Error("end tryRevertToPOWByStateOfCRMember states.go")
 }
 
 // record timestamp of last block
@@ -897,6 +902,7 @@ func (s *State) processTransactions(txs []*types.Transaction, height uint32) {
 	revertToDPOS := func() {
 		s.history.Append(height, func() {
 			s.ConsensusAlgorithm = DPOS
+			log.Errorf("3333processTransactionsConsensusAlgorithm %d ", s.ConsensusAlgorithm)
 		}, func() {
 			s.ConsensusAlgorithm = POW
 		})
@@ -1442,6 +1448,7 @@ func (s *State) processRevertToPOW(tx *types.Transaction, height uint32) {
 	oriConsensusAlgorithmWorkHeight := s.DPOSWorkHeight
 	s.history.Append(height, func() {
 		s.ConsensusAlgorithm = POW
+		log.Errorf("### processRevertToPOW ConsensusAlgorithm:%d ", s.ConsensusAlgorithm)
 		s.NoProducers = false
 		s.NoClaimDPOSNode = false
 		s.DPOSWorkHeight = 0
@@ -1495,6 +1502,7 @@ func (s *State) getClaimedCRMembersMap() map[string]*state.CRMember {
 func (s *State) processRevertToDPOS(Payload *payload.RevertToDPOS, height uint32) {
 	oriWorkHeight := s.DPOSWorkHeight
 	oriNeedRevertToDPOSTX := s.NeedRevertToDPOSTX
+	log.Errorf("#### processRevertToDPOS ConsensusAlgorithm:%d ", s.ConsensusAlgorithm)
 	s.history.Append(height, func() {
 		s.DPOSWorkHeight = height + Payload.WorkHeightInterval
 		s.NeedRevertToDPOSTX = false

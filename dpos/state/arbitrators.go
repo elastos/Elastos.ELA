@@ -1144,7 +1144,7 @@ func (a *arbitrators) GetCrossChainArbiters() []*ArbiterInfo {
 	if bestHeight < a.chainParams.CRCOnlyDPOSHeight-1 {
 		return a.GetArbitrators()
 	}
-	if bestHeight < a.chainParams.ChangeCommitteeNewCRHeight {
+	if bestHeight < a.chainParams.DPOSNodeCrossChainHeight {
 		return a.GetCRCArbiters()
 	}
 

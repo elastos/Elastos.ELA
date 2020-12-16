@@ -1485,10 +1485,12 @@ func (c *Committee) TryUpdateCRMemberInactivity(did common.Uint168,
 		return
 	}
 
-	if crMember.InactiveCountingEndHeight != height-1 {
-		crMember.InactiveCountingHeight = 0
+	if height > c.params.ChangeCommitteeNewCRHeight {
+		if crMember.InactiveCountingEndHeight != height-1 {
+			crMember.InactiveCountingHeight = 0
+		}
+		crMember.InactiveCountingEndHeight = height
 	}
-	crMember.InactiveCountingEndHeight = height
 
 	if needReset {
 		crMember.InactiveCountingHeight = 0

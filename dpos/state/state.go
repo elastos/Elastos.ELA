@@ -763,7 +763,8 @@ func (s *State) ProcessBlock(block *types.Block, confirm *payload.Confirm) {
 }
 
 func (s *State) tryRevertToPOWByStateOfCRMember(height uint32) {
-	if !s.isInElectionPeriod() || s.NoClaimDPOSNode {
+	if !s.isInElectionPeriod() || s.NoClaimDPOSNode ||
+		s.ConsensusAlgorithm == POW {
 		return
 	}
 	for _, m := range s.getCRMembers() {
@@ -896,7 +897,6 @@ func (s *State) processTransactions(txs []*types.Transaction, height uint32) {
 	revertToDPOS := func() {
 		s.history.Append(height, func() {
 			s.ConsensusAlgorithm = DPOS
-
 		}, func() {
 			s.ConsensusAlgorithm = POW
 		})

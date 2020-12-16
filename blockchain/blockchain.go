@@ -599,7 +599,6 @@ func (b *BlockChain) getHeight() uint32 {
 func (b *BlockChain) ProcessBlock(block *Block, confirm *payload.Confirm) (bool, bool, error) {
 	b.mutex.Lock()
 	defer b.mutex.Unlock()
-
 	return b.processBlock(block, confirm)
 }
 
@@ -1308,14 +1307,12 @@ func (b *BlockChain) connectBlock(node *BlockNode, block *Block, confirm *payloa
 	if err := PreProcessSpecialTx(block); err != nil {
 		return err
 	}
-
 	// The block must pass all of the validation rules which depend on the
 	// position of the block within the block chain.
 	if err := b.CheckBlockContext(block, node.Parent); err != nil {
 		log.Error("PowCheckBlockContext error!", err)
 		return err
 	}
-
 	var revertToPOW bool
 	for _, tx := range block.Transactions {
 		if tx.IsRevertToPOW() {
@@ -1323,7 +1320,6 @@ func (b *BlockChain) connectBlock(node *BlockNode, block *Block, confirm *payloa
 			break
 		}
 	}
-
 	if block.Height >= b.chainParams.CRCOnlyDPOSHeight && !revertToPOW &&
 		b.state.ConsensusAlgorithm != state.POW {
 		if err := checkBlockWithConfirmation(block, confirm,
@@ -1331,14 +1327,12 @@ func (b *BlockChain) connectBlock(node *BlockNode, block *Block, confirm *payloa
 			return fmt.Errorf("block confirmation validate failed: %s", err)
 		}
 	}
-
 	// Make sure it's extending the end of the best chain.
 	prevHash := &block.Header.Previous
 	if b.BestChain != nil && !prevHash.IsEqual(*b.BestChain.Hash) {
 		return fmt.Errorf("connectBlock must be called with a block " +
 			"that extends the main chain")
 	}
-
 	// Insert the block into the database if it's not already there.  Even
 	// though it is possible the block will ultimately fail to connect, it
 	// has already passed all proof-of-work and validity tests which means
@@ -1358,13 +1352,11 @@ func (b *BlockChain) connectBlock(node *BlockNode, block *Block, confirm *payloa
 	if err != nil {
 		return fmt.Errorf("fflDB store block failed: %s", err)
 	}
-
 	medianTime := CalcPastMedianTime(b.BestChain)
 	// Insert the block into the database which houses the main chain.
 	if err := b.db.SaveBlock(block, node, confirm, medianTime); err != nil {
 		return err
 	}
-
 	// Add the new node to the memory main chain indices for faster
 	// lookups.
 	node.InMainChain = true
@@ -1430,14 +1422,12 @@ func (b *BlockChain) maybeAcceptBlock(block *Block, confirm *payload.Confirm) (b
 		log.Errorf("getPrevNodeFromBlock: %v", err)
 		return false, err
 	}
-
 	// The height of this block is one more than the referenced previous
 	// block.
 	blockHeight := uint32(0)
 	if prevNode != nil {
 		blockHeight = prevNode.Height + 1
 	}
-
 	if block.Header.Height != blockHeight {
 		return false, fmt.Errorf("wrong block height!")
 	}
@@ -1448,7 +1438,6 @@ func (b *BlockChain) maybeAcceptBlock(block *Block, confirm *payload.Confirm) (b
 	if err != nil {
 		return false, err
 	}
-
 	// Create a new block node for the block and add it to the in-memory
 	// block chain (could be either a side chain or the main chain).
 	blockhash := block.Hash()
@@ -1483,7 +1472,11 @@ func (b *BlockChain) maybeAcceptBlock(block *Block, confirm *payload.Confirm) (b
 	// chain.  The caller would typically want to react by relaying the
 	// inventory to other peers.
 	if block.Height >= b.chainParams.CRCOnlyDPOSHeight {
-		events.Notify(events.ETBlockConfirmAccepted, block)
+		if confirm != nil {
+			events.Notify(events.ETBlockConfirmAccepted, block)
+		} else {
+			events.Notify(events.ETBlockAccepted, block)
+		}
 	} else if block.Height == b.chainParams.CRCOnlyDPOSHeight-1 {
 		events.Notify(events.ETNewBlockReceived, &DposBlock{
 			Block:       block,
@@ -1520,8 +1513,7 @@ func (b *BlockChain) isIrreversible(curBlockHeight uint32, detachNodesLen int) b
 
 func (b *BlockChain) connectBestChain(node *BlockNode, block *Block, confirm *payload.Confirm) (bool, bool, error) {
 	// We haven't selected a best chain yet or we are extending the main
-	// (best) chain with   a new block.  This is the most common case.
-
+	// (best) chain with a new block.  This is the most common case.
 	if b.BestChain == nil || (node.Parent.Hash.IsEqual(*b.BestChain.Hash)) {
 		// Perform several checks to verify the block can be connected
 		// to the main chain (including whatever reorganization might
@@ -1546,10 +1538,8 @@ func (b *BlockChain) connectBestChain(node *BlockNode, block *Block, confirm *pa
 		if node.Parent != nil {
 			node.Parent.Children = append(node.Parent.Children, node)
 		}
-
 		return true, false, nil
 	}
-
 	// We're extending (or creating) a side chain which may or may not
 	// become the main chain, but in either case we need the block stored
 	// for future processing, so add the block to the side chain holding
@@ -1590,7 +1580,6 @@ func (b *BlockChain) connectBestChain(node *BlockNode, block *Block, confirm *pa
 
 		return false, false, nil
 	}
-
 	// We're extending (or creating) a side chain and the cumulative work
 	// for this new side chain is more than the old best chain, so this side
 	// chain needs to become the main chain.  In order to accomplish that,
@@ -1676,6 +1665,7 @@ func (b *BlockChain) tryUpdateLastIrreversibleHeight(blockHeight uint32) {
 //3. error
 func (b *BlockChain) processBlock(block *Block, confirm *payload.Confirm) (bool, bool, error) {
 	blockHash := block.Hash()
+
 	log.Debugf("[ProcessBLock] height = %d, hash = %x", block.Header.Height, blockHash.Bytes())
 
 	// The block must not already exist in the main chain or side chains.
@@ -1716,6 +1706,7 @@ func (b *BlockChain) processBlock(block *Block, confirm *payload.Confirm) (bool,
 	// enough to potentially accept it into the block chain.
 	inMainChain, err := b.maybeAcceptBlock(block, confirm)
 	if err != nil {
+
 		return false, true, err
 	}
 
@@ -1730,6 +1721,7 @@ func (b *BlockChain) processBlock(block *Block, confirm *payload.Confirm) (bool,
 
 	//log.Debugf("Accepted block %v", blockHash)
 	b.tryUpdateLastIrreversibleHeight(block.Height)
+
 	return inMainChain, false, nil
 }
 

@@ -440,7 +440,6 @@ func (a *arbitrators) normalChange(height uint32) error {
 		log.Warn("[NormalChange] update next arbiters error: ", err)
 		return err
 	}
-
 	return nil
 }
 
@@ -454,7 +453,6 @@ func (a *arbitrators) notifyNextTurnDPOSInfoTx(blockHeight, versionHeight uint32
 func (a *arbitrators) IncreaseChainHeight(block *types.Block) {
 	var notify = true
 	var snapshotVotes = true
-
 	a.mtx.Lock()
 
 	changeType, versionHeight := a.getChangeType(block.Height + 1)
@@ -487,11 +485,11 @@ func (a *arbitrators) IncreaseChainHeight(block *types.Block) {
 		a.illegalBlocksPayloadHashes = oriIllegalBlocks
 	})
 	a.history.Commit(block.Height)
-
-	if len(a.currentArbitrators) == 0 {
-		a.createRevertToPOWTransaction(block.Height)
+	if a.ConsensusAlgorithm != POW {
+		if len(a.currentArbitrators) == 0 || a.NoClaimDPOSNode || a.NoProducers {
+			a.createRevertToPOWTransaction(block.Height)
+		}
 	}
-
 	if snapshotVotes {
 		if err := a.snapshotVotesStates(block.Height); err != nil {
 			panic(fmt.Sprintf("snap shot votes states error:%s", err))
@@ -547,6 +545,9 @@ func (a *arbitrators) revertToPOWAtNextTurn(height uint32) {
 		a.nextCRCArbitersMap = make(map[common.Uint168]ArbiterMember)
 		a.nextCRCArbiters = make([]ArbiterMember, 0)
 		a.NoProducers = true
+		if a.ConsensusAlgorithm == DPOS {
+			a.NoProducers = true
+		}
 	}, func() {
 		a.nextArbitrators = oriNextArbitrators
 		a.nextCandidates = oriNextCandidates
@@ -663,10 +664,10 @@ func (a *arbitrators) distributeDPOSReward(height uint32,
 
 func (a *arbitrators) distributeWithNormalArbitratorsV3(height uint32, reward common.Fixed64) (
 	map[common.Uint168]common.Fixed64, common.Fixed64, error) {
-	if len(a.currentArbitrators) == 0 {
-		return nil, 0, errors.New("not found arbiters when " +
-			"distributeWithNormalArbitratorsV3")
-	}
+	//if len(a.currentArbitrators) == 0 {
+	//	return nil, 0, errors.New("not found arbiters when " +
+	//		"distributeWithNormalArbitratorsV3")
+	//}
 
 	roundReward := map[common.Uint168]common.Fixed64{}
 	totalBlockConfirmReward := float64(reward) * 0.25
@@ -746,10 +747,10 @@ func (a *arbitrators) distributeWithNormalArbitratorsV3(height uint32, reward co
 
 func (a *arbitrators) distributeWithNormalArbitratorsV2(height uint32, reward common.Fixed64) (
 	map[common.Uint168]common.Fixed64, common.Fixed64, error) {
-	if len(a.currentArbitrators) == 0 {
-		return nil, 0, errors.New("not found arbiters when " +
-			"distributeWithNormalArbitratorsV2")
-	}
+	//if len(a.currentArbitrators) == 0 {
+	//	return nil, 0, errors.New("not found arbiters when " +
+	//		"distributeWithNormalArbitratorsV2")
+	//}
 
 	roundReward := map[common.Uint168]common.Fixed64{}
 	totalBlockConfirmReward := float64(reward) * 0.25
@@ -759,7 +760,8 @@ func (a *arbitrators) distributeWithNormalArbitratorsV2(height uint32, reward co
 	individualBlockConfirmReward := common.Fixed64(
 		math.Floor(totalBlockConfirmReward / float64(arbitersCount)))
 	totalVotesInRound := a.CurrentReward.TotalVotesInRound
-	if len(a.chainParams.CRCArbiters) == len(a.currentArbitrators) {
+	if len(a.currentArbitrators) == 0 &&
+		len(a.chainParams.CRCArbiters) == len(a.currentArbitrators) {
 		// if no normal DPOS node, need to destroy reward.
 		roundReward[a.chainParams.DestroyELAAddress] = reward
 		return roundReward, reward, nil

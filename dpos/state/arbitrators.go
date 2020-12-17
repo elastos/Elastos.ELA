@@ -295,7 +295,13 @@ func (a *arbitrators) RollbackTo(height uint32) error {
 
 func (a *arbitrators) GetDutyIndexByHeight(height uint32) (index int) {
 	a.mtx.Lock()
-	if height >= a.chainParams.CRClaimDPOSNodeStartHeight {
+	if height >= a.chainParams.DPOSNodeCrossChainHeight {
+		if len(a.currentArbitrators) == 0 {
+			index = 0
+		} else {
+			index = a.dutyIndex % len(a.currentArbitrators)
+		}
+	} else if height >= a.chainParams.CRClaimDPOSNodeStartHeight {
 		index = a.dutyIndex % len(a.currentCRCArbitersMap)
 	} else if height >= a.chainParams.CRCOnlyDPOSHeight-1 {
 		index = int(height-a.chainParams.CRCOnlyDPOSHeight+1) % len(a.currentCRCArbitersMap)
@@ -1128,7 +1134,7 @@ func (a *arbitrators) GetOnDutyCrossChainArbitrator() []byte {
 		a.mtx.Unlock()
 	} else {
 		a.mtx.Lock()
-		if a.currentArbitrators[a.dutyIndex].IsNormal() {
+		if len(a.currentArbitrators) != 0 && a.currentArbitrators[a.dutyIndex].IsNormal() {
 			arbiter = a.currentArbitrators[a.dutyIndex].GetNodePublicKey()
 		} else {
 			arbiter = nil

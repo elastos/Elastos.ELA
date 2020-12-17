@@ -416,6 +416,22 @@ func (a *arbitrators) IncreaseChainHeight(block *types.Block) {
 
 	a.mtx.Lock()
 
+	var containsIllegalBlockEvidence bool
+	for _, tx := range block.Transactions {
+		if tx.IsIllegalBlockTx() {
+			containsIllegalBlockEvidence = true
+			break
+		}
+	}
+	if containsIllegalBlockEvidence {
+		if err := a.ForceChange(block.Height); err != nil {
+			log.Errorf("Found illegal blocks, ForceChange failed:%s", err)
+			// todo revert to pow
+			panic(fmt.Sprintf("force change fail at height: %d, error: %s",
+				block.Height, err))
+		}
+	}
+
 	changeType, versionHeight := a.getChangeType(block.Height + 1)
 	switch changeType {
 	case updateNext:

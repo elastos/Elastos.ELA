@@ -426,9 +426,6 @@ func (c *Committee) checkAndSetMemberToInactive(history *utils.History, height u
 				m.MemberState = MemberInactive
 			}, func() {
 				m.MemberState = MemberElected
-				if height >= c.params.ChangeCommitteeNewCRHeight {
-					c.state.RevertUpdateCRInactivePenalty(m.Info.CID)
-				}
 			})
 		}
 	}
@@ -899,12 +896,12 @@ func (c *Committee) processCRCRealWithdraw(tx *types.Transaction,
 func (c *Committee) activateProducer(tx *types.Transaction,
 	height uint32, history *utils.History) {
 	apPayload := tx.Payload.(*payload.ActivateProducer)
-	crMemebr := c.getMemberByNodePublicKey(apPayload.NodePublicKey)
-	if crMemebr != nil && crMemebr.MemberState == MemberInactive {
+	crMember := c.getMemberByNodePublicKey(apPayload.NodePublicKey)
+	if crMember != nil && crMember.MemberState == MemberInactive {
 		history.Append(height, func() {
-			crMemebr.ActivateRequestHeight = height
+			crMember.ActivateRequestHeight = height
 		}, func() {
-			crMemebr.ActivateRequestHeight = math.MaxUint32
+			crMember.ActivateRequestHeight = math.MaxUint32
 		})
 	}
 }

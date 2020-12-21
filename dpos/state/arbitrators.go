@@ -519,7 +519,7 @@ func (a *arbitrators) createRevertToPOWTransaction(blockHeight uint32) {
 		revertType = payload.NoProducers
 	}
 	revertToPOWPayload := payload.RevertToPOW{
-		RevertType:    revertType,
+		Type:    revertType,
 		WorkingHeight: blockHeight + 1,
 	}
 	tx := &types.Transaction{

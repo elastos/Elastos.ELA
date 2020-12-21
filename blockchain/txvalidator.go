@@ -2419,7 +2419,7 @@ func (b *BlockChain) checkRevertToPOWTransaction(txn *Transaction, blockHeight u
 		return errors.New("invalid start POW block height")
 	}
 
-	switch p.RevertType {
+	switch p.Type {
 	case payload.NoBlock:
 		lastBlockTime := int64(b.BestChain.Timestamp)
 		noBlockTime := b.chainParams.RevertToPOWNoBlockTime

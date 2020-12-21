@@ -1455,7 +1455,7 @@ func (s *State) processRevertToPOW(tx *types.Transaction, height uint32) {
 
 	pld := tx.Payload.(*payload.RevertToPOW)
 	log.Infof("[processRevertToPOW], revert to POW at height:%d, "+
-		"revert type:%s", height, pld.RevertType.String())
+		"revert type:%s", height, pld.Type.String())
 }
 
 // updateVersion record the update period during that inactive arbitrators

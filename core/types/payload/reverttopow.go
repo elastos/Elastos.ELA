@@ -24,7 +24,7 @@ const (
 type RevertType byte
 
 type RevertToPOW struct {
-	RevertType
+	Type          RevertType
 	WorkingHeight uint32
 }
 
@@ -50,15 +50,24 @@ func (a *RevertToPOW) Data(version byte) []byte {
 }
 
 func (a *RevertToPOW) Serialize(w io.Writer, version byte) error {
-	if err := common.WriteElements(w, a.RevertType, a.WorkingHeight); err != nil {
-		return errors.New("[RevertToPOW], failed to serialize ")
+	if err := common.WriteUint8(w, byte(a.Type)); err != nil {
+		return errors.New("[RevertToPOW], failed to serialize Type")
+	}
+
+	if err := common.WriteElement(w, a.WorkingHeight); err != nil {
+		return errors.New("[RevertToPOW], failed to serialize WorkingHeight")
 	}
 	return nil
 }
 
 func (a *RevertToPOW) Deserialize(r io.Reader, version byte) error {
-	if err := common.ReadElements(r, &a.RevertType, &a.WorkingHeight); err != nil {
-		return errors.New("[RevertToPOW], failed to deserialize")
+	revertType, err := common.ReadUint8(r)
+	if err != nil {
+		return errors.New("[RevertToPOW], failed to deserialize Type")
+	}
+	a.Type = RevertType(revertType)
+	if err := common.ReadElement(r, &a.WorkingHeight); err != nil {
+		return errors.New("[RevertToPOW], failed to deserialize WorkingHeight")
 	}
 	return nil
 }

@@ -34,7 +34,7 @@ func (pow *Service) ListenForRevert() {
 			}
 
 			revertToPOWPayload := payload.RevertToPOW{
-				RevertType:    payload.NoBlock,
+				Type:    payload.NoBlock,
 				WorkingHeight: pow.chain.BestChain.Height + 1,
 			}
 			tx := &types.Transaction{

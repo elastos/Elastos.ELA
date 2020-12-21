@@ -340,6 +340,10 @@ func (a *arbitrators) ForceChange(height uint32) error {
 	a.mtx.Lock()
 	defer a.mtx.Unlock()
 
+	return a.forceChange(height)
+}
+
+func (a *arbitrators) forceChange(height uint32) error {
 	block, err := a.getBlockByHeight(height)
 	if err != nil {
 		block, err = a.getBlockByHeight(a.bestHeight())
@@ -424,7 +428,7 @@ func (a *arbitrators) IncreaseChainHeight(block *types.Block) {
 		}
 	}
 	if containsIllegalBlockEvidence {
-		if err := a.ForceChange(block.Height); err != nil {
+		if err := a.forceChange(block.Height); err != nil {
 			log.Errorf("Found illegal blocks, ForceChange failed:%s", err)
 			// todo revert to pow
 			panic(fmt.Sprintf("force change fail at height: %d, error: %s",

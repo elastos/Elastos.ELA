@@ -1412,7 +1412,7 @@ func (a *arbitrators) getSortedProducersWithRandom(height uint32, unclaimedCount
 		}
 	}
 
-	candidateIndex, err := a.getCandidateIndexAtRandom(unclaimedCount, len(votedProducers))
+	candidateIndex, err := a.getCandidateIndexAtRandom(height, unclaimedCount, len(votedProducers))
 	if err != nil {
 		return nil, err
 	}
@@ -1436,13 +1436,13 @@ func (a *arbitrators) getSortedProducersWithRandom(height uint32, unclaimedCount
 	return newProducers, nil
 }
 
-func (a *arbitrators) getCandidateIndexAtRandom(unclaimedCount, votedProducersCount int) (int, error) {
-	bestBlockHash := a.bestBlockHash()
-	if bestBlockHash == nil {
-		return 0, errors.New("best block is not found")
+func (a *arbitrators) getCandidateIndexAtRandom(height uint32, unclaimedCount, votedProducersCount int) (int, error) {
+	block, _ := a.getBlockByHeight(height - 1)
+	if block == nil {
+		return 0, errors.New("block is not found")
 	}
-	blockHash := *bestBlockHash
 	var x = make([]byte, 8)
+	blockHash := block.Hash()
 	copy(x, blockHash[24:])
 	seed, _, ok := readi64(x)
 	if !ok {

@@ -1,7 +1,7 @@
 // Copyright (c) 2017-2020 The Elastos Foundation
 // Use of this source code is governed by an MIT
 // license that can be found in the LICENSE file.
-// 
+//
 
 package blockchain
 
@@ -70,18 +70,21 @@ type IFFLDBChainStore interface {
 	// return true.
 	IsBlockInStore(hash *Uint256) bool
 
-	// Get a transaction by transaction hash
+	// Get a transaction by transaction hash.
 	GetTransaction(txID Uint256) (*Transaction, uint32, error)
 
-	// InitIndex use to initialize the index manager
+	// InitIndex use to initialize the index manager.
 	InitIndex(chain indexers.IChain, interrupt <-chan struct{}) error
 
-	// Get unspent by transaction hash
+	// Get unspent by transaction hash.
 	GetUnspent(txID Uint256) ([]uint16, error)
 
-	// Get utxo by program hash
+	// Get utxo by program hash.
 	GetUTXO(programHash *Uint168) ([]*UTXO, error)
 
-	// IsTx3Exist use to find if tx3 exist in db
+	// IsTx3Exist use to find if tx3 exist in db.
 	IsTx3Exist(txHash *Uint256) bool
+
+	// Get proposal draft data by draft hash.
+	GetProposalDraftDataByDraftHash(draftHash *Uint256) ([]byte, error)
 }

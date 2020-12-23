@@ -273,12 +273,25 @@ func dbPutBlockIndex(dbTx database.Tx, hash *common.Uint256, height uint32) erro
 	return heightIndex.Put(serializedHeight[:], hash[:])
 }
 
+// dbPutProposalDraftData store the CR council member proposal related draft data.
 func dbPutProposalDraftData(dbTx database.Tx, hash *common.Uint256, draftData []byte) error {
 	// Add the block hash to height mapping to the index.
 	meta := dbTx.Metadata()
 	// Add the block height to hash mapping to the index.
 	draftDataBucket := meta.Bucket(proposalDraftDataBucketName)
 	return draftDataBucket.Put(hash[:], draftData)
+}
+
+// dbFetchProposalDraftData get the proposal draft data by draft hash.
+func dbFetchProposalDraftData(dbTx database.Tx, hash *common.Uint256) ([]byte, error) {
+	meta := dbTx.Metadata()
+	draftDataBucket := meta.Bucket(proposalDraftDataBucketName)
+	draftData := draftDataBucket.Get(hash[:])
+	if draftData == nil {
+		return nil, fmt.Errorf("draft data %s is not found", hash)
+	}
+
+	return draftData, nil
 }
 
 // DBRemoveBlockIndex uses an existing database transaction remove block index

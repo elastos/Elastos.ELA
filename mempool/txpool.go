@@ -112,27 +112,18 @@ func (mp *TxPool) appendToTxPool(tx *Transaction) elaerr.ELAError {
 		log.Warn("TxPool check transactions size failed", tx.Hash())
 		return elaerr.Simple(elaerr.ErrTxPoolOverCapacity, nil)
 	}
-<<<<<<< HEAD
-=======
 	log.Error("append444")
->>>>>>> 94754b3e (Add debug log info)
 	if errCode := mp.AppendTx(tx); errCode != nil {
 		log.Warn("[TxPool verifyTransactionWithTxnPool] failed", tx.Hash())
 		return errCode
 	}
-<<<<<<< HEAD
-=======
 	log.Error("append555")
->>>>>>> 94754b3e (Add debug log info)
 	// Add the transaction to mem pool
 	if err := mp.doAddTransaction(tx); err != nil {
 		mp.removeTx(tx)
 		return err
 	}
-<<<<<<< HEAD
-=======
 	log.Infof("endAppendToTxPool:  Hash: %s, %d", tx.Hash(), tx.TxType)
->>>>>>> 94754b3e (Add debug log info)
 	return nil
 }
 

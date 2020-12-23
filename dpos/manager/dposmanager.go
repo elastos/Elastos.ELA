@@ -477,10 +477,19 @@ func (d *DPOSManager) OnChangeView() {
 }
 
 func (d *DPOSManager) OnBlockReceived(b *types.Block, confirmed bool) {
-	log.Info("[OnBlockReceived] start")
+	log.Warnf("#### [OnBlockReceived] start hash %s IsCurrent %t", b.Hash().String(), d.server.IsCurrent())
 	defer log.Info("[OnBlockReceived] end")
 	if d.server.IsCurrent() {
-		d.handler.currentHandler.TryCreateRevertToDPOSTx(b.Height)
+		log.Warnf("#### OnBlockReceived currentHandler %v", d.handler.currentHandler)
+		log.Warnf("#### OnBlockReceived onDutyHandler %v", d.handler.onDutyHandler)
+		log.Warnf("#### OnBlockReceived normalHandler %v", d.handler.normalHandler)
+
+		d.handler.onDutyHandler.TryCreateRevertToDPOSTx(b.Height)
+	}
+
+	if d.arbitrators.IsInPOWMode() {
+		log.Warnf("#### [OnBlockReceived] IsInPOWMode return ")
+		return
 	}
 	if confirmed {
 		d.ConfirmBlock(b.Height, b.Hash())
@@ -601,14 +610,20 @@ func (d *DPOSManager) clearInactiveData(p *payload.InactiveArbitrators) {
 
 func (d *DPOSManager) OnRevertToDPOSTxReceived(id dpeer.PID,
 	tx *types.Transaction) {
+	log.Warnf("#### OnRevertToDPOSTxReceived  %d begin", tx.TxType)
+
 	if !d.isCurrentArbiter() {
+		log.Warnf("#### OnRevertToDPOSTxReceived  %d !d.isCurrentArbiter()", tx.TxType)
 		return
 	}
 	if err := blockchain.CheckRevertToDPOSTransaction(tx); err != nil {
-		log.Info("[OnRevertToDPOSTxReceived] received error evidence: ", err)
+		log.Warnf("#### [OnRevertToDPOSTxReceived]" +
+			"CheckRevertToDPOSTransaction: TxType %d, err: %s", tx.TxType, err)
 		return
 	}
 	d.dispatcher.OnRevertToDPOSTxReceived(id, tx)
+	log.Warnf("#### OnRevertToDPOSTxReceived  %d end", tx.TxType)
+
 }
 
 func (d *DPOSManager) OnInactiveArbitratorsReceived(id dpeer.PID,
@@ -636,10 +651,15 @@ func (d *DPOSManager) OnResponseInactiveArbitratorsReceived(
 
 func (d *DPOSManager) OnResponseRevertToDPOSTxReceived(
 	txHash *common.Uint256, signers []byte, signs []byte) {
+	log.Warn("#### [processMessage] OnResponseRevertToDPOSTxReceived begin")
+
 	if !d.isCurrentArbiter() {
+		log.Warn("#### [processMessage] !d.isCurrentArbiter()")
 		return
 	}
 	d.dispatcher.OnResponseRevertToDPOSTxReceived(txHash, signers, signs)
+	log.Warn("#### [processMessage] OnResponseRevertToDPOSTxReceived end")
+
 }
 
 func (d *DPOSManager) OnRequestProposal(id dpeer.PID, hash common.Uint256) {

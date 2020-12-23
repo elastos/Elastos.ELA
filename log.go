@@ -178,12 +178,12 @@ func setupLog(c *cli.Context, s *settings.Settings) {
 		s.Config().MaxPerLogSize, s.Config().MaxLogsSize)
 	pgBar = newProgress(logger.Writer())
 
-	admrlog := wrap(logger, elalog.LevelOff)
-	cmgrlog := wrap(logger, elalog.LevelOff)
-	synclog := wrap(logger, elalog.LevelOff)
-	peerlog := wrap(logger, elalog.LevelOff)
-	routlog := wrap(logger, elalog.LevelOff)
-	elanlog := wrap(logger, elalog.LevelOff)
+	admrlog := wrap(logger, elalog.Level(s.Params().PrintLevel))
+	cmgrlog := wrap(logger, elalog.Level(s.Params().PrintLevel))
+	synclog := wrap(logger, elalog.Level(s.Params().PrintLevel))
+	peerlog := wrap(logger, elalog.Level(s.Params().PrintLevel))
+	routlog := wrap(logger, elalog.Level(s.Params().PrintLevel))
+	elanlog := wrap(logger, elalog.Level(s.Params().PrintLevel))
 	statlog := wrap(logger, elalog.Level(s.Params().PrintLevel))
 	crstatlog := wrap(logger, elalog.Level(s.Params().PrintLevel))
 

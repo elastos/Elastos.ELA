@@ -471,7 +471,11 @@ func (s *State) GetActiveProducers() []*Producer {
 
 // GetVotedProducers returns all producers that in active state with votes.
 func (s *State) GetVotedProducers() []*Producer {
+	log.Error("### c GetVotedProducers begin")
+
 	s.mtx.RLock()
+	log.Error("### c GetVotedProducers RLock")
+
 	producers := make([]*Producer, 0, len(s.ActivityProducers))
 	for _, producer := range s.ActivityProducers {
 		// limit arbiters can only be producers who have votes
@@ -480,6 +484,8 @@ func (s *State) GetVotedProducers() []*Producer {
 		}
 	}
 	s.mtx.RUnlock()
+	log.Error("### c GetVotedProducers end")
+
 	return producers
 }
 
@@ -1506,6 +1512,8 @@ func (s *State) processRevertToDPOS(Payload *payload.RevertToDPOS, height uint32
 	s.history.Append(height, func() {
 		s.DPOSWorkHeight = height + Payload.WorkHeightInterval
 		s.NeedRevertToDPOSTX = false
+		log.Errorf("#### processRevertToDPOS DPOSWorkHeight:%d  NeedRevertToDPOSTX false", s.DPOSWorkHeight)
+
 	}, func() {
 		s.DPOSWorkHeight = oriWorkHeight
 		s.NeedRevertToDPOSTX = oriNeedRevertToDPOSTX

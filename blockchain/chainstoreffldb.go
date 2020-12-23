@@ -439,6 +439,17 @@ func (c *ChainStoreFFLDB) BlockExists(hash *Uint256) (bool, uint32, error) {
 	return exists, height, err
 }
 
+// GetProposalDraftDataByHash try get proposal draft data by draft hash
+func (c *ChainStoreFFLDB) GetProposalDraftDataByDraftHash(hash *Uint256) ([]byte, error) {
+	var draftData []byte
+	err := c.db.View(func(dbTx database.Tx) error {
+		var err error
+		draftData, err = dbFetchProposalDraftData(dbTx, hash)
+		return err
+	})
+	return draftData, err
+}
+
 func (c *ChainStoreFFLDB) GetTransaction(txID Uint256) (*Transaction, uint32, error) {
 	return c.indexManager.FetchTx(txID)
 }

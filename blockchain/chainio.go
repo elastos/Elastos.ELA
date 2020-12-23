@@ -1,7 +1,7 @@
 // Copyright (c) 2017-2020 The Elastos Foundation
 // Use of this source code is governed by an MIT
 // license that can be found in the LICENSE file.
-// 
+//
 
 // Copyright (c) 2013-2016 The btcsuite developers
 // Copyright (c) 2017-2019 Elastos Foundation
@@ -77,6 +77,10 @@ var (
 	// utxoSetBucketName is the name of the db bucket used to house the
 	// unspent transaction output set.
 	utxoSetBucketName = []byte("utxosetv2")
+
+	// proposalDraftDataBucketName is the name of the db bucket used to house the
+	// proposal releated draft data and draft hash.
+	proposalDraftDataBucketName = []byte("proposaldraftdata")
 
 	// byteOrder is the preferred byte order used for serializing numeric
 	// fields for storage in the database.
@@ -269,6 +273,24 @@ func dbPutBlockIndex(dbTx database.Tx, hash *common.Uint256, height uint32) erro
 	return heightIndex.Put(serializedHeight[:], hash[:])
 }
 
+func dbPutProposalDraftData(dbTx database.Tx, hash *common.Uint256, draftData []byte) error {
+	// Add the block hash to height mapping to the index.
+	meta := dbTx.Metadata()
+	// Add the block height to hash mapping to the index.
+	draftDataBucket := meta.Bucket(proposalDraftDataBucketName)
+	return draftDataBucket.Put(hash[:], draftData)
+}
+
+// DBRemoveBlockIndex uses an existing database transaction remove block index
+// entries from the hash to height and height to hash mappings for the provided
+// values.
+func DBRemoveProposalDraftData(dbTx database.Tx, hash *common.Uint256) error {
+	// Remove the block hash to height mapping.
+	meta := dbTx.Metadata()
+	draftDataBucket := meta.Bucket(proposalDraftDataBucketName)
+	return draftDataBucket.Delete(hash[:])
+}
+
 // createChainState initializes both the database and the chain state to the
 // genesis block.  This includes creating the necessary buckets and inserting
 // the genesis block, so it must only be called on an uninitialized database.
@@ -333,6 +355,12 @@ func (b *BlockChain) createChainState() error {
 		// intentionally not inserted here since it is not spendable by
 		// consensus rules.
 		_, err = meta.CreateBucket(utxoSetBucketName)
+		if err != nil {
+			return err
+		}
+
+		// Create the bucket that houses proposal related draft data
+		_, err = meta.CreateBucket(proposalDraftDataBucketName)
 		if err != nil {
 			return err
 		}

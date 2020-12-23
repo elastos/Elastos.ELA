@@ -420,6 +420,14 @@ func (tx *Transaction) IsCRCProposalWithdrawTx() bool {
 	return tx.TxType == CRCProposalWithdraw
 }
 
+func (tx *Transaction) IsCRCProposalReviewTx() bool {
+	return tx.TxType == CRCProposalReview
+}
+
+func (tx *Transaction) IsCRCProposalTrackingTx() bool {
+	return tx.TxType == CRCProposalTracking
+}
+
 func (tx *Transaction) IsCRCProposalTx() bool {
 	return tx.TxType == CRCProposal
 }

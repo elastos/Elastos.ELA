@@ -1,7 +1,7 @@
 // Copyright (c) 2017-2020 The Elastos Foundation
 // Use of this source code is governed by an MIT
 // license that can be found in the LICENSE file.
-// 
+//
 
 package blockchain
 
@@ -42,6 +42,7 @@ type ChainStoreFFLDB struct {
 	mtx              sync.RWMutex
 	blockHashesCache []Uint256
 	blocksCache      map[Uint256]*DposBlock
+	params           *config.Params
 }
 
 func NewChainStoreFFLDB(dataDir string, params *config.Params) (IFFLDBChainStore, error) {
@@ -49,6 +50,7 @@ func NewChainStoreFFLDB(dataDir string, params *config.Params) (IFFLDBChainStore
 	if err != nil {
 		return nil, err
 	}
+
 	indexManager := indexers.NewManager(fflDB, params)
 
 	s := &ChainStoreFFLDB{
@@ -56,6 +58,7 @@ func NewChainStoreFFLDB(dataDir string, params *config.Params) (IFFLDBChainStore
 		indexManager:     indexManager,
 		blockHashesCache: make([]Uint256, 0, BlocksCacheSize),
 		blocksCache:      make(map[Uint256]*DposBlock),
+		params:           params,
 	}
 
 	return s, nil
@@ -128,6 +131,69 @@ func (c *ChainStoreFFLDB) Close() error {
 	return c.db.Close()
 }
 
+func ProcessProposalDraftData(dbTx database.Tx, Transactions []*Transaction) (err error) {
+	//var err error
+	for _, tx := range Transactions {
+		switch tx.TxType {
+		case CRCProposal:
+			proposal := tx.Payload.(*payload.CRCProposal)
+			err = dbPutProposalDraftData(dbTx, &proposal.DraftHash, proposal.DraftData)
+			if err != nil {
+				return err
+			}
+		case CRCProposalTracking:
+			proposalTracking := tx.Payload.(*payload.CRCProposalTracking)
+			err = dbPutProposalDraftData(dbTx, &proposalTracking.SecretaryGeneralOpinionHash,
+				proposalTracking.SecretaryGeneralOpinionData)
+			if err != nil {
+				return err
+			}
+			err = dbPutProposalDraftData(dbTx, &proposalTracking.MessageHash, proposalTracking.MessageData)
+			if err != nil {
+				return err
+			}
+		case CRCProposalReview:
+			proposalReview := tx.Payload.(*payload.CRCProposalReview)
+			err = dbPutProposalDraftData(dbTx, &proposalReview.OpinionHash, proposalReview.OpinionData)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return err
+}
+
+func RollbackProcessProposalDraftData(dbTx database.Tx, Transactions []*Transaction) (err error) {
+	//var err error
+	for _, tx := range Transactions {
+		switch tx.TxType {
+		case CRCProposal:
+			proposal := tx.Payload.(*payload.CRCProposal)
+			err = DBRemoveProposalDraftData(dbTx, &proposal.DraftHash)
+			if err != nil {
+				return err
+			}
+		case CRCProposalTracking:
+			proposalTracking := tx.Payload.(*payload.CRCProposalTracking)
+			err = DBRemoveProposalDraftData(dbTx, &proposalTracking.SecretaryGeneralOpinionHash)
+			if err != nil {
+				return err
+			}
+			err = DBRemoveProposalDraftData(dbTx, &proposalTracking.MessageHash)
+			if err != nil {
+				return err
+			}
+		case CRCProposalReview:
+			proposalReview := tx.Payload.(*payload.CRCProposalReview)
+			err = DBRemoveProposalDraftData(dbTx, &proposalReview.OpinionHash)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return err
+}
+
 func (c *ChainStoreFFLDB) SaveBlock(b *Block, node *BlockNode,
 	confirm *payload.Confirm, medianTimePast time.Time) error {
 
@@ -163,6 +229,10 @@ func (c *ChainStoreFFLDB) SaveBlock(b *Block, node *BlockNode,
 		err = dbPutBlockIndex(dbTx, &blockHash, node.Height)
 		if err != nil {
 			return err
+		}
+
+		if b.Height >= c.params.ChangeCommitteeNewCRHeight {
+			ProcessProposalDraftData(dbTx, b.Transactions)
 		}
 
 		// Allow the index manager to call each of the currently active
@@ -215,6 +285,13 @@ func (c *ChainStoreFFLDB) RollbackBlock(b *Block, node *BlockNode,
 		err = DBRemoveBlockIndex(dbTx, &blockHash, node.Height)
 		if err != nil {
 			return err
+		}
+
+		if b.Height >= c.params.ChangeCommitteeNewCRHeight {
+			err = RollbackProcessProposalDraftData(dbTx, b.Transactions)
+			if err != nil {
+				return err
+			}
 		}
 
 		// Allow the index manager to call each of the currently active

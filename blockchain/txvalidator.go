@@ -3580,6 +3580,7 @@ func CheckInactiveArbitrators(txn *Transaction) error {
 }
 
 func checkArbitratorsSignatures(program *program.Program) error {
+	log.Warnf("#### checkArbitratorsSignatures begin")
 
 	code := program.Code
 	// Get N parameter
@@ -3591,19 +3592,27 @@ func checkArbitratorsSignatures(program *program.Program) error {
 	minSignCount := int(float64(arbitratorsCount)*
 		state.MajoritySignRatioNumerator/state.MajoritySignRatioDenominator) + 1
 	if m < 1 || m > n || n != arbitratorsCount || m < minSignCount {
-		fmt.Printf("m:%d n:%d minSignCount:%d crc:  %d", m, n, minSignCount, arbitratorsCount)
+		log.Warnf("#### checkArbitratorsSignatures m:%d n:%d minSignCount:%d crc:  %d",
+			m, n, minSignCount, arbitratorsCount)
 		return errors.New("invalid multi sign script code")
 	}
 	publicKeys, err := crypto.ParseMultisigScript(code)
 	if err != nil {
+		log.Warnf("#### checkArbitratorsSignatures ParseMultisigScript err ", err)
+
 		return err
 	}
 
 	for _, pk := range publicKeys {
+		tempPK := pk[1:]
 		if !DefaultLedger.Arbitrators.IsArbitrator(pk[1:]) {
+			strPk := common.BytesToHexString(tempPK)
+			log.Warnf("#### checkArbitratorsSignatures %s Is  not Arbitrator  ", strPk)
 			return errors.New("invalid multi sign public key")
 		}
 	}
+	log.Warnf("#### checkArbitratorsSignatures end")
+
 	return nil
 }
 

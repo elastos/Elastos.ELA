@@ -139,20 +139,23 @@ func (a *Arbitrator) OnSidechainIllegalEvidenceReceived(
 }
 
 func (a *Arbitrator) OnBlockReceived(b *types.Block, confirmed bool) {
+	log.Info("#### [OnBlockReceived] begin")
+
 	if !a.cfg.Server.IsCurrent() {
+		log.Info("#### [OnBlockReceived] !a.cfg.Server.IsCurrent() ")
 		return
 	}
-	if a.cfg.Arbitrators.IsInPOWMode() {
-		return
-	}
+
 	lastBlockTimestamp := int64(a.cfg.Arbitrators.GetLastBlockTimestamp())
 	localTimestamp := a.cfg.Chain.TimeSource.AdjustedTime().Unix()
 	if localTimestamp-lastBlockTimestamp >= a.cfg.ChainParams.StopConfirmBlockTime {
 		return
 	}
 
-	log.Info("[OnBlockReceived] listener received block")
+	log.Info("#### [OnBlockReceived] listener received block")
 	a.network.PostBlockReceivedTask(b, confirmed)
+	log.Info("#### [OnBlockReceived] end")
+
 }
 
 func (a *Arbitrator) OnConfirmReceived(p *mempool.ConfirmInfo) {
@@ -254,9 +257,11 @@ func NewArbitrator(account account.Account, cfg Config) (*Arbitrator, error) {
 	}
 
 	events.Subscribe(func(e *events.Event) {
+		log.Warnf("#### ETNewBlockReceived  before switch", e.Type)
 		switch e.Type {
 		case events.ETNewBlockReceived:
 			block := e.Data.(*types.DposBlock)
+			log.Warnf("#### ETNewBlockReceived 111111received")
 			go a.OnBlockReceived(block.Block, block.HaveConfirm)
 
 		case events.ETConfirmAccepted:

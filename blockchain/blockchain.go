@@ -1500,6 +1500,14 @@ func (b *BlockChain) maybeAcceptBlock(block *Block, confirm *payload.Confirm) (b
 		if confirm != nil {
 			events.Notify(events.ETBlockConfirmAccepted, block)
 		} else {
+			log.Warnf("#### confirm==nil ETNewBlockReceived")
+
+			events.Notify(events.ETNewBlockReceived, &DposBlock{
+				Block:       block,
+				HaveConfirm: true,
+			})
+			log.Warnf("#### confirm==nil ETBlockAccepted")
+
 			events.Notify(events.ETBlockAccepted, block)
 		}
 	} else if block.Height == b.chainParams.CRCOnlyDPOSHeight-1 {

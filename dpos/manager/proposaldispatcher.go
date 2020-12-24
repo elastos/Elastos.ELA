@@ -864,7 +864,7 @@ func (p *ProposalDispatcher) CreateRevertToDPOS() (
 		WorkHeightInterval: payload.WorkHeightInterval,
 	}
 	con := contract.Contract{Prefix: contract.PrefixMultiSig}
-	if con.Code, err = p.createArbitratorsRedeemScript(); err != nil {
+	if con.Code, err = p.createRevertToDPOSRedeemScript(); err != nil {
 		return nil, err
 	}
 
@@ -959,6 +959,25 @@ func (p *ProposalDispatcher) CreateInactiveArbitrators() (
 
 	p.currentInactiveArbitratorTx = tx
 	return tx, nil
+}
+
+func (p *ProposalDispatcher) createRevertToDPOSRedeemScript() ([]byte, error) {
+	var pks []*crypto.PublicKey
+	for _, v := range p.cfg.Arbitrators.GetArbitrators() {
+		if !v.IsNormal {
+			continue
+		}
+		pk, err := crypto.DecodePoint(v.NodePublicKey)
+		if err != nil {
+			return nil, err
+		}
+		pks = append(pks, pk)
+	}
+
+	arbitratorsCount := p.cfg.Arbitrators.GetArbitrators()
+	minSignCount := int(float64(len(arbitratorsCount))*
+		state.MajoritySignRatioNumerator/state.MajoritySignRatioDenominator) + 1
+	return contract.CreateMultiSigRedeemScript(minSignCount, pks)
 }
 
 func (p *ProposalDispatcher) createArbitratorsRedeemScript() ([]byte, error) {

@@ -3588,7 +3588,13 @@ func checkArbitratorsSignatures(program *program.Program) error {
 	// Get M parameter
 	m := int(code[0]) - crypto.PUSH1 + 1
 
-	arbitratorsCount := DefaultLedger.Arbitrators.GetArbitersCount()
+	var arbitratorsCount int
+	arbiters := DefaultLedger.Arbitrators.GetArbitrators()
+	for _, a := range arbiters {
+		if a.IsNormal {
+			arbitratorsCount++
+		}
+	}
 	minSignCount := int(float64(arbitratorsCount)*
 		state.MajoritySignRatioNumerator/state.MajoritySignRatioDenominator) + 1
 	if m < 1 || m > n || n != arbitratorsCount || m < minSignCount {

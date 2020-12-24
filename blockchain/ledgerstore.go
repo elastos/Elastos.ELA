@@ -37,6 +37,8 @@ type IChainStore interface {
 	IsTxHashDuplicate(txhash Uint256) bool
 	IsSidechainTxHashDuplicate(sidechainTxHash Uint256) bool
 
+	GetProposalDraftDataByDraftHash(draftHash *Uint256) ([]byte, error)
+
 	Close()
 	CloseLeveldb()
 }

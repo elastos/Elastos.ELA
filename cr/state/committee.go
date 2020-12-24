@@ -258,17 +258,6 @@ func (c *Committee) getReservedCustomIDLists() [][]string {
 	return c.manager.ReservedCustomIDLists
 }
 
-func (c *Committee) GetBannedCustomIDLists() [][]string {
-	c.mtx.RLock()
-	defer c.mtx.RUnlock()
-
-	return c.getBannedCustomIDLists()
-}
-
-func (c *Committee) getBannedCustomIDLists() [][]string {
-	return c.manager.BannedCustomIDLists
-}
-
 func (c *Committee) GetReceivedCustomIDLists() [][]string {
 	c.mtx.RLock()
 	defer c.mtx.RUnlock()
@@ -1382,27 +1371,6 @@ func (c *Committee) GetProposalDraftDataByDraftHash(draftHash common.Uint256) []
 		return proposalState.Proposal.DraftData
 	}
 	return nil
-}
-
-func (c *Committee) GetProposalReviewOpinionByDraftHash(draftHash common.Uint256) []byte {
-	c.mtx.RLock()
-	defer c.mtx.RUnlock()
-
-	return c.manager.reviewOpinion[draftHash]
-}
-
-func (c *Committee) GetProposalTrackingMessageDByDraftHash(draftHash common.Uint256) []byte {
-	c.mtx.RLock()
-	defer c.mtx.RUnlock()
-
-	return c.manager.trackingMessage[draftHash]
-}
-
-func (c *Committee) GetProposalTrackingOpinionByDraftHash(draftHash common.Uint256) []byte {
-	c.mtx.RLock()
-	defer c.mtx.RUnlock()
-
-	return c.manager.trackingOpinion[draftHash]
 }
 
 func (c *Committee) GetRealWithdrawTransactions() map[common.Uint256]types.OutputInfo {

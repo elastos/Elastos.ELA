@@ -2381,14 +2381,13 @@ Response:
  
  ### getdraftdatabydrafthash
  
- Get draft data of proposal or proposalReview or proposalTracking transaction detail state information by drafthash and type.
+ Get draft data of proposal or proposalReview or proposalTracking transaction detail information by draft hash.
  
  #### Parameter
  
  | name         | type   | description                                                             |
  | ------------ | ------ | ------------------------------------------------------------------------|
- | drafthash    | string | draft hash of proposal or proposalReview or proposalTracking transaction|     |
- | type         | string | type: proposal or review or tracking or trackingopinion                 |
+ | drafthash    | string | draft hash of proposal or proposalReview or proposalTracking transaction|
  
  #### Result
  Result is the hex string of draft data.
@@ -2400,8 +2399,7 @@ Response:
  {
  "method": "getdraftdatabydrafthash",
    "params":{
-     "drafthash":"9c5ab8998718e0c1c405a719542879dc7553fca05b4e89132ec8d0e88551fcc0",
-     "type": "propsal"
+     "drafthash": "9c5ab8998718e0c1c405a719542879dc7553fca05b4e89132ec8d0e88551fcc0"
    }
  }
  ```

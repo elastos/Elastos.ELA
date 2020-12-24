@@ -1547,16 +1547,14 @@ func newCRCReservedCustomID(L *lua.LState) int {
 	proposalType := L.ToInt64(2)
 	draftDataStr := L.ToString(3)
 	reserved_custom_id_list := L.ToString(4)
-	banned_custom_id_list := L.ToString(5)
 
 	needSign := true
-	client, err := checkClient(L, 6)
+	client, err := checkClient(L, 5)
 	if err != nil {
 		needSign = false
 	}
 	draftHash := common.Hash([]byte(draftDataStr))
 	reservedNames := strings.Split(reserved_custom_id_list, ",")
-	bannedNames := strings.Split(banned_custom_id_list, ",")
 
 	publicKey, err := common.HexStringToBytes(publicKeyStr)
 	if err != nil {
@@ -1583,7 +1581,6 @@ func newCRCReservedCustomID(L *lua.LState) int {
 		DraftData:            []byte(draftDataStr),
 		CRCouncilMemberDID:   *did,
 		ReservedCustomIDList: reservedNames,
-		BannedCustomIDList:   bannedNames,
 	}
 
 	if needSign {

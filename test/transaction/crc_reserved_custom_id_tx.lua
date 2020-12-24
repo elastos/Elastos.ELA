@@ -34,7 +34,6 @@ local draft_hash = getDraftHash()
 local draft_data = getDraftData()
 
 local reserved_custom_id_list = getReservedCustomIDList()
-local banned_custom_id_list = getBannedCustomIDList()
 
 if fee == 0
     then
@@ -55,21 +54,15 @@ if reserved_custom_id_list == "" then
     return
 end
 
-if banned_custom_id_list == "" then
-    print("banned_custom_id_list is nil, should use --bannedcustomidlist to set it.")
-    return
-end
-
 print("fee:", fee)
 print("public key:", cr_pubkey)
 print("proposal type:", proposal_type)
 print("draft proposal hash:", draft_hash)
 print("reserved_custom_id_list:", reserved_custom_id_list)
-print("banned_custom_id_list:", banned_custom_id_list)
 print("draft_data :", draft_data)
 
 -- crc close proposal hash payload: crPublickey, proposalType, draftData, close_proposal_hash, wallet
-local cp_payload =crcreservedcustomid.new(cr_pubkey, proposal_type, draft_data, reserved_custom_id_list, banned_custom_id_list, wallet)
+local cp_payload =crcreservedcustomid.new(cr_pubkey, proposal_type, draft_data, reserved_custom_id_list, wallet)
 
 print(cp_payload:get())
 

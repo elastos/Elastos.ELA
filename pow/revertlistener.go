@@ -8,10 +8,10 @@ package pow
 import (
 	"time"
 
+	"github.com/elastos/Elastos.ELA/common/log"
 	"github.com/elastos/Elastos.ELA/core/contract/program"
 	"github.com/elastos/Elastos.ELA/core/types"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
-	"github.com/elastos/Elastos.ELA/dpos/log"
 )
 
 const CheckRevertToPOWInterval = time.Minute
@@ -34,7 +34,7 @@ func (pow *Service) ListenForRevert() {
 			}
 
 			revertToPOWPayload := payload.RevertToPOW{
-				Type:    payload.NoBlock,
+				Type:          payload.NoBlock,
 				WorkingHeight: pow.chain.BestChain.Height + 1,
 			}
 			tx := &types.Transaction{

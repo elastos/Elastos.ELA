@@ -2379,7 +2379,7 @@ Response:
  }
  ```
  
- ### getdraftdatabydrafthash
+ ### getproposaldraftdata
  
  Get draft data of proposal or proposalReview or proposalTracking transaction detail information by draft hash.
  
@@ -2397,7 +2397,7 @@ Response:
  Request:
  ```json
  {
- "method": "getdraftdatabydrafthash",
+ "method": "getproposaldraftdata",
    "params":{
      "drafthash": "9c5ab8998718e0c1c405a719542879dc7553fca05b4e89132ec8d0e88551fcc0"
    }

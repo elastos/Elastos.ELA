@@ -2261,7 +2261,7 @@ func GetCRProposalState(param Params) map[string]interface{} {
 	return ResponsePack(Success, result)
 }
 
-func GetDraftDataByDraftHash(param Params) map[string]interface{} {
+func GetProposalDraftData(param Params) map[string]interface{} {
 	hash, ok := param.String("drafthash")
 	if !ok {
 		return ResponsePack(InvalidParams, "not found hash")

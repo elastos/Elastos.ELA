@@ -398,13 +398,19 @@ func (sm *SyncManager) handleBlockMsg(bmsg *blockMsg) {
 		delete(sm.requestedConfirmedBlocks, blockHash)
 	} else {
 		if _, exists = state.requestedBlocks[blockHash]; !exists {
-			log.Warnf("Got unrequested block %v from %s -- "+
-				"disconnecting", blockHash, peer)
-			peer.Disconnect()
-			return
+			if _, exists = state.requestedConfirmedBlocks[blockHash]; !exists {
+				log.Warnf("Got unrequested block %v from %s -- "+
+					"disconnecting", blockHash, peer)
+				peer.Disconnect()
+				return
+			} else {
+				delete(state.requestedConfirmedBlocks, blockHash)
+				delete(sm.requestedConfirmedBlocks, blockHash)
+			}
+		} else {
+			delete(state.requestedBlocks, blockHash)
+			delete(sm.requestedBlocks, blockHash)
 		}
-		delete(state.requestedBlocks, blockHash)
-		delete(sm.requestedBlocks, blockHash)
 	}
 
 	// Process the block to include validation, best chain selection, orphan

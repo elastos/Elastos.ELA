@@ -1723,7 +1723,6 @@ type RPCReservedCustomIDProposal struct {
 	OwnerPublicKey       string   `json:"ownerpublickey"`
 	DraftHash            string   `json:"drafthash"`
 	ReservedCustomIDList []string `json:"reservedcustomidlist"`
-	BannedCustomIDList   []string `json:"bannedcustomidlist"`
 	CRCouncilMemberDID   string   `json:"crcouncilmemberdid"`
 }
 
@@ -2062,7 +2061,7 @@ func ListCRProposalBaseState(param Params) map[string]interface{} {
 		}
 		rpcProposalBaseState := RPCProposalBaseState{
 			Status:             proposal.Status.String(),
-			ProposalHash:       common.ToReversedString(proposal.Proposal.Hash(proposal.TxPayloadVer)),
+			ProposalHash:       common.ToReversedString(proposal.Proposal.Hash),
 			TxHash:             common.ToReversedString(proposal.TxHash),
 			CRVotes:            crVotes,
 			VotersRejectAmount: proposal.VotersRejectAmount.String(),
@@ -2147,8 +2146,7 @@ func GetCRProposalState(param Params) map[string]interface{} {
 		}
 	}
 
-	proposalHash := proposalState.Proposal.Hash(proposalState.TxPayloadVer)
-
+	proposalHash := proposalState.Proposal.Hash
 	crVotes := make(map[string]string)
 	for k, v := range proposalState.CRVotes {
 		did, _ := k.ToAddress()
@@ -2241,7 +2239,6 @@ func GetCRProposalState(param Params) map[string]interface{} {
 		rpcProposal.OwnerPublicKey = common.BytesToHexString(proposalState.Proposal.OwnerPublicKey)
 		rpcProposal.DraftHash = common.ToReversedString(proposalState.Proposal.DraftHash)
 		rpcProposal.ReservedCustomIDList = proposalState.Proposal.ReservedCustomIDList
-		rpcProposal.BannedCustomIDList = proposalState.Proposal.BannedCustomIDList
 		did, _ := proposalState.Proposal.CRCouncilMemberDID.ToAddress()
 		rpcProposal.CRCouncilMemberDID = did
 
@@ -2265,7 +2262,6 @@ func GetCRProposalState(param Params) map[string]interface{} {
 }
 
 func GetDraftDataByDraftHash(param Params) map[string]interface{} {
-	crCommittee := Chain.GetCRCommittee()
 	hash, ok := param.String("drafthash")
 	if !ok {
 		return ResponsePack(InvalidParams, "not found hash")
@@ -2279,19 +2275,7 @@ func GetDraftDataByDraftHash(param Params) map[string]interface{} {
 		return ResponsePack(InvalidParams, "invalidate draft hash")
 	}
 
-	var data []byte
-	hashType, ok := param.String("type")
-	switch hashType {
-	case "proposal":
-		data = crCommittee.GetProposalDraftDataByDraftHash(*draftHash)
-	case "review":
-		data = crCommittee.GetProposalReviewOpinionByDraftHash(*draftHash)
-	case "tracking":
-		data = crCommittee.GetProposalTrackingMessageDByDraftHash(*draftHash)
-	case "trackingopinion":
-		data = crCommittee.GetProposalTrackingOpinionByDraftHash(*draftHash)
-	}
-
+	data, _ := Chain.GetDB().GetProposalDraftDataByDraftHash(draftHash)
 	var result string
 	if data != nil {
 		result = common.BytesToHexString(data)
@@ -2662,7 +2646,6 @@ func getPayloadInfo(p Payload, payloadVersion byte) PayloadInfo {
 			obj.OwnerPublicKey = common.BytesToHexString(object.OwnerPublicKey)
 			obj.DraftHash = common.ToReversedString(object.DraftHash)
 			obj.ReservedCustomIDList = object.ReservedCustomIDList
-			obj.BannedCustomIDList = object.BannedCustomIDList
 			obj.Signature = common.BytesToHexString(object.Signature)
 			crmdid, _ := object.CRCouncilMemberDID.ToAddress()
 			obj.CRCouncilMemberDID = crmdid

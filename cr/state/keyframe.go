@@ -162,7 +162,7 @@ type StateKeyFrame struct {
 // ProposalState defines necessary state about an CR proposals.
 type ProposalState struct {
 	Status             ProposalStatus
-	Proposal           payload.CRCProposal
+	Proposal           payload.CRCProposalInfo
 	TxHash             common.Uint256
 	TxPayloadVer       byte
 	CRVotes            map[common.Uint168]payload.VoteResult
@@ -235,9 +235,6 @@ type TrackingDraftDataMap map[common.Uint256][]byte
 type ProposalKeyFrame struct {
 	// key is did value is proposalhash set
 	Proposals       ProposalsMap
-	reviewOpinion   ReviewDraftDataMap
-	trackingMessage TrackingDraftDataMap
-	trackingOpinion TrackingDraftDataMap
 	ProposalHashes  map[common.Uint168]ProposalHashSet
 	ProposalSession map[uint64][]common.Uint256
 	// proposalWithdraw info
@@ -246,8 +243,6 @@ type ProposalKeyFrame struct {
 	SecretaryGeneralPublicKey string
 	// reserved custom id list
 	ReservedCustomIDLists [][]string
-	// banned custom id list
-	BannedCustomIDLists [][]string
 	// received custom id list
 	ReceivedCustomIDLists [][]string
 }
@@ -1137,15 +1132,6 @@ func (p *ProposalKeyFrame) Serialize(w io.Writer) (err error) {
 			return
 		}
 	}
-	if err = p.serializeDraftDataMap(p.reviewOpinion, w); err != nil {
-		return err
-	}
-	if err = p.serializeDraftDataMap(p.trackingMessage, w); err != nil {
-		return err
-	}
-	if err = p.serializeDraftDataMap(p.trackingOpinion, w); err != nil {
-		return err
-	}
 	if err = p.serializeProposalHashsMap(p.ProposalHashes, w); err != nil {
 		return
 	}
@@ -1252,15 +1238,6 @@ func (p *ProposalKeyFrame) Deserialize(r io.Reader) (err error) {
 			return
 		}
 		p.Proposals[k] = &v
-	}
-	if p.reviewOpinion, err = p.deserializeDraftDataMap(r); err != nil {
-		return
-	}
-	if p.trackingMessage, err = p.deserializeDraftDataMap(r); err != nil {
-		return
-	}
-	if p.trackingOpinion, err = p.deserializeDraftDataMap(r); err != nil {
-		return
 	}
 	if p.ProposalHashes, err = p.deserializeProposalHashsMap(r); err != nil {
 		return
@@ -1394,9 +1371,6 @@ func (p *ProposalKeyFrame) Snapshot() *ProposalKeyFrame {
 func NewProposalKeyFrame() *ProposalKeyFrame {
 	return &ProposalKeyFrame{
 		Proposals:          make(map[common.Uint256]*ProposalState),
-		reviewOpinion:      make(map[common.Uint256][]byte),
-		trackingMessage:    make(map[common.Uint256][]byte),
-		trackingOpinion:    make(map[common.Uint256][]byte),
 		ProposalHashes:     make(map[common.Uint168]ProposalHashSet),
 		ProposalSession:    make(map[uint64][]common.Uint256),
 		WithdrawableTxInfo: make(map[common.Uint256]types.OutputInfo),

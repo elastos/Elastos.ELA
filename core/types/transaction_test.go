@@ -621,7 +621,6 @@ func (s *transactionSuite) TestCRCProposal_Deserialize() {
 
 		if proposalType == payload.ReserveCustomID {
 			crpPayload1.ReservedCustomIDList = []string{randomName(3), randomName(3), randomName(3)}
-			crpPayload1.BannedCustomIDList = []string{randomName(3), randomName(3), randomName(3)}
 		}
 
 		if proposalType == payload.ReserveCustomID {
@@ -698,12 +697,6 @@ func crpPayloadCloseProposalEqual(payload1 *payload.CRCProposal, payload2 *paylo
 func crpPayloadReservedCustomIDEqual(payload1 *payload.CRCProposal, payload2 *payload.CRCProposal) bool {
 	for i, v := range payload1.ReservedCustomIDList {
 		if v != payload2.ReservedCustomIDList[i] {
-			return false
-		}
-	}
-
-	for i, v := range payload1.BannedCustomIDList {
-		if v != payload2.BannedCustomIDList[i] {
 			return false
 		}
 	}

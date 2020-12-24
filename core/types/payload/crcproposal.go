@@ -959,7 +959,6 @@ func (p *CRCProposal) ToProposalInfo(payloadVersion byte) CRCProposalInfo {
 		CategoryData:              p.CategoryData,
 		OwnerPublicKey:            p.OwnerPublicKey,
 		DraftHash:                 p.DraftHash,
-		DraftData:                 p.DraftData,
 		Budgets:                   p.Budgets,
 		Recipient:                 p.Recipient,
 		TargetProposalHash:        p.TargetProposalHash,
@@ -975,9 +974,6 @@ func (p *CRCProposal) ToProposalInfo(payloadVersion byte) CRCProposalInfo {
 		Hash:                      p.Hash(payloadVersion),
 	}
 
-	if info.DraftData == nil {
-		info.DraftData = []byte{}
-	}
 	if info.Budgets == nil {
 		info.Budgets = []Budget{}
 	}
@@ -1010,10 +1006,6 @@ type CRCProposalInfo struct {
 
 	// The hash of draft proposal.
 	DraftHash common.Uint256
-
-	// Used to store draft data
-	// with a length limit not exceeding 1M byte
-	DraftData []byte
 
 	// The detailed budget and expenditure plan.
 	Budgets []Budget
@@ -1072,10 +1064,6 @@ func (p *CRCProposalInfo) Serialize(w io.Writer, version byte) error {
 
 	if err := p.DraftHash.Serialize(w); err != nil {
 		return errors.New("failed to serialize DraftHash")
-	}
-
-	if err := common.WriteVarBytes(w, p.DraftData); err != nil {
-		return errors.New("failed to serialize DraftData")
 	}
 
 	if err := common.WriteVarUint(w, uint64(len(p.Budgets))); err != nil {
@@ -1169,10 +1157,6 @@ func (p *CRCProposalInfo) Deserialize(r io.Reader, version byte) error {
 
 	if err = p.DraftHash.Deserialize(r); err != nil {
 		return errors.New("failed to deserialize DraftHash")
-	}
-	p.DraftData, err = common.ReadVarBytes(r, MaxProposalDataSize, "draft data")
-	if err != nil {
-		return errors.New("failed to deserialize draft data")
 	}
 
 	var count uint64

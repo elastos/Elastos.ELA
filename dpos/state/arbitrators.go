@@ -499,7 +499,8 @@ func (a *arbitrators) IncreaseChainHeight(block *types.Block) {
 	log.Error("111 IncreaseChainHeight  arbitrators.go")
 	log.Infof("### CreateRevertToPOWTransaction, NoClaimDPOSNode: %t, "+
 		"NoProducers: %t", a.NoClaimDPOSNode, a.NoProducers)
-	if a.ConsensusAlgorithm != POW {
+	bestHeight := a.bestHeight()
+	if a.ConsensusAlgorithm != POW && block.Height >= bestHeight{
 		if len(a.currentArbitrators) == 0 || a.NoClaimDPOSNode || a.NoProducers {
 			a.createRevertToPOWTransaction(block.Height)
 			log.Error("222 IncreaseChainHeight arbitrators.go")
@@ -512,7 +513,6 @@ func (a *arbitrators) IncreaseChainHeight(block *types.Block) {
 		}
 	}
 	a.history.Commit(block.Height)
-	bestHeight := a.bestHeight()
 	log.Error("444 IncreaseChainHeight arbitrators.go")
 	if block.Height > bestHeight-MaxSnapshotLength {
 		a.snapshot(block.Height)

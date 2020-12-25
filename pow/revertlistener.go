@@ -32,6 +32,8 @@ func (pow *Service) ListenForRevert() {
 			if localTimestamp-lastBlockTimestamp < pow.chainParams.RevertToPOWNoBlockTime {
 				continue
 			}
+			log.Info("### Create revert to pow tx, localTimestamp:", localTimestamp,
+				"lastBlockTimestamp:", lastBlockTimestamp, "RevertToPOWNoBlockTime:", pow.chainParams.RevertToPOWNoBlockTime)
 
 			revertToPOWPayload := payload.RevertToPOW{
 				Type:          payload.NoBlock,

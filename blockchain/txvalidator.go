@@ -3595,12 +3595,19 @@ func checkArbitratorsSignatures(program *program.Program) error {
 			arbitratorsCount++
 		}
 	}
-	minSignCount := int(float64(arbitratorsCount)*
+	minSignCount := int(float64(DefaultLedger.Arbitrators.GetArbitersCount())*
 		state.MajoritySignRatioNumerator/state.MajoritySignRatioDenominator) + 1
 	if m < 1 || m > n || n != arbitratorsCount || m < minSignCount {
 		log.Warnf("#### checkArbitratorsSignatures m:%d n:%d minSignCount:%d crc:  %d",
 			m, n, minSignCount, arbitratorsCount)
 		return errors.New("invalid multi sign script code")
+	}
+	log.Warnf("#### checkArbitratorsSignatures len(code) %d %d", len(code), code[len(code)-1])
+	if len(code) < MinMultiSignCodeLength || code[len(code)-1] != common.MULTISIG {
+		log.Warnf("#### checkArbitratorsSignatures11 len(code) %d %d", len(code), code[len(code)-1])
+	} else {
+		log.Warnf("#### 11111111111111111111111111")
+
 	}
 	publicKeys, err := crypto.ParseMultisigScript(code)
 	if err != nil {

@@ -8,6 +8,7 @@ package manager
 import (
 	"bytes"
 	"errors"
+
 	"github.com/elastos/Elastos.ELA/blockchain"
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
@@ -686,7 +687,10 @@ func (p *ProposalDispatcher) tryEnterDPOSState(signCount int) bool {
 	if signCount >= minSignCount {
 		payload := p.RevertToDPOSTx.Payload.(*payload.RevertToDPOS)
 		p.cfg.Arbitrators.SetNeedRevertToDPOSTX(true)
-		p.cfg.Manager.AppendToTxnPool(p.currentInactiveArbitratorTx)
+		err := p.cfg.Manager.AppendToTxnPool(p.RevertToDPOSTx)
+		if err != nil {
+			log.Warnf("#### [tryEnterDPOSState] err ", err)
+		}
 		p.cfg.Manager.clearRevertToDPOSData(payload)
 
 		log.Info("#### [tryEnterDPOSState] successfully entered DPOS state end")
@@ -897,7 +901,9 @@ func (p *ProposalDispatcher) CreateRevertToDPOS() (
 	}
 
 	p.RevertToDPOSTx = tx
-	log.Warnf("#### CreateRevertToDPOS end")
+	log.Warn("#### CreateRevertToDPOS end len(con.Code)", len(con.Code))
+
+	log.Warn("#### CreateRevertToDPOS end con.Code", con.Code)
 
 	return tx, nil
 }

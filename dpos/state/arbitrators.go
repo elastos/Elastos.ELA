@@ -564,7 +564,6 @@ func (a *arbitrators) revertToPOWAtNextTurn(height uint32) {
 		a.nextCandidates = make([]ArbiterMember, 0)
 		a.nextCRCArbitersMap = make(map[common.Uint168]ArbiterMember)
 		a.nextCRCArbiters = make([]ArbiterMember, 0)
-		a.NoProducers = true
 		if a.ConsensusAlgorithm == DPOS {
 			a.NoProducers = true
 			log.Error("ATrevertToPOWAtNextTurn")

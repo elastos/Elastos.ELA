@@ -1,11 +1,12 @@
 // Copyright (c) 2017-2020 The Elastos Foundation
 // Use of this source code is governed by an MIT
 // license that can be found in the LICENSE file.
-// 
+//
 
 package contract
 
 import (
+	"bytes"
 	"errors"
 	"math/big"
 
@@ -13,6 +14,45 @@ import (
 	"github.com/elastos/Elastos.ELA/crypto"
 	"github.com/elastos/Elastos.ELA/vm"
 )
+
+func CreateRevertToPOWRedeemScript(M int, pubkeys []*crypto.PublicKey) ([]byte, error) {
+	if len(pubkeys) == 0 {
+		return nil, errors.New("public keys is nil")
+	}
+	for _, pk := range pubkeys {
+		if nil == pk {
+			return nil, errors.New("public keys has nil public key")
+		}
+	}
+	if !(M >= 1 && M <= len(pubkeys)) {
+		return nil, errors.New("invalid M")
+	}
+
+	// Write M
+	opCode := vm.OpCode(byte(crypto.PUSH1) + byte(M) - 1)
+	buf := new(bytes.Buffer)
+	buf.WriteByte(byte(opCode))
+
+	//sort pubkey
+	crypto.SortPublicKeys(pubkeys)
+
+	for _, pubkey := range pubkeys {
+		content, err := pubkey.EncodePoint(true)
+		if err != nil {
+			return nil, errors.New("[Contract],CreateMultiSigContract failed.")
+		}
+		buf.WriteByte(byte(len(content)))
+		buf.Write(content)
+	}
+
+	// Write N
+	N := len(pubkeys)
+	opCode = vm.OpCode(byte(crypto.PUSH1) + byte(N) - 1)
+	buf.WriteByte(byte(opCode))
+	buf.WriteByte(vm.CHECKMULTISIG)
+
+	return buf.Bytes(), nil
+}
 
 func CreateMultiSigRedeemScript(m int, pubkeys []*crypto.PublicKey) ([]byte, error) {
 	if len(pubkeys) == 0 {

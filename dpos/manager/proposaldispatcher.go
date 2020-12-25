@@ -977,7 +977,7 @@ func (p *ProposalDispatcher) createRevertToDPOSRedeemScript() ([]byte, error) {
 	arbitratorsCount := p.cfg.Arbitrators.GetArbitrators()
 	minSignCount := int(float64(len(arbitratorsCount))*
 		state.MajoritySignRatioNumerator/state.MajoritySignRatioDenominator) + 1
-	return contract.CreateMultiSigRedeemScript(minSignCount, pks)
+	return contract.CreateRevertToPOWRedeemScript(minSignCount, pks)
 }
 
 func (p *ProposalDispatcher) createArbitratorsRedeemScript() ([]byte, error) {

@@ -46,7 +46,7 @@ func (pow *Service) ListenForRevert() {
 				Programs:       []*program.Program{},
 				LockTime:       0,
 			}
-			err := pow.txMemPool.AppendToTxPoolWithoutRelay(tx)
+			err := pow.txMemPool.AppendToTxPoolWithoutEvent(tx)
 			if err != nil {
 				log.Error("failed to append revertToPOW transaction to " +
 					"transaction pool, err:" + err.Error())

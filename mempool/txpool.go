@@ -47,7 +47,7 @@ func (mp *TxPool) AppendToTxPool(tx *Transaction) elaerr.ELAError {
 
 //append transaction to txnpool when check ok.
 //1.check  2.check with ledger(db) 3.check with pool
-func (mp *TxPool) AppendToTxPoolWithoutRelay(tx *Transaction) elaerr.ELAError {
+func (mp *TxPool) AppendToTxPoolWithoutEvent(tx *Transaction) elaerr.ELAError {
 	mp.Lock()
 	defer mp.Unlock()
 	err := mp.appendToTxPool(tx)

@@ -747,7 +747,7 @@ func (sm *SyncManager) handleBlockchainEvents(event *events.Event) {
 			sm.chain.ProcessInactiveArbiter(tx.Payload.(*payload.InactiveArbitrators))
 		}
 
-		if tx.IsIllegalTypeTx() || tx.IsInactiveArbitrators() {
+		if tx.IsIllegalTypeTx() || tx.IsInactiveArbitrators() || tx.IsRevertToDPOS() {
 			// Relay tx inventory to other peers.
 			txHash := tx.Hash()
 			iv := msg.NewInvVect(msg.InvTypeTx, &txHash)
@@ -865,7 +865,7 @@ func (sm *SyncManager) handleBlockchainEvents(event *events.Event) {
 			break
 		}
 
-		if err := sm.txMemPool.AppendToTxPoolWithoutRelay(tx); err != nil {
+		if err := sm.txMemPool.AppendToTxPoolWithoutEvent(tx); err != nil {
 			log.Warnf("ETAppendTxToTxPool tx append to txpool failed TxType %v, err %v", tx.TxType, err)
 			break
 		}

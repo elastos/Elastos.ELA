@@ -360,7 +360,7 @@ func newConflictManager() conflictManager {
 			},
 			{
 				name: slotRevertToDPOSHash,
-				slot: newConflictSlot(hashArray,
+				slot: newConflictSlot(str,
 					keyTypeFuncPair{
 						Type: types.RevertToDPOS,
 						Func: hashRevertToDPOS,

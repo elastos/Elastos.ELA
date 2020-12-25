@@ -1507,7 +1507,7 @@ func (a *arbitrators) updateNextArbitrators(versionHeight, height uint32) error 
 							producer.selected = true
 						})
 					}
-					if common.BytesToHexString(producer.info.NodePublicKey) ==
+					if common.BytesToHexString(producer.info.OwnerPublicKey) ==
 						a.LastRandomCandidateOwner {
 						a.history.Append(height, func() {
 							producer.selected = true

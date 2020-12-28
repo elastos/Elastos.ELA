@@ -357,7 +357,7 @@ func (a *arbitrators) forceChange(height uint32) error {
 		return err
 	}
 
-	if err := a.updateNextArbitrators(height+1, height+1); err != nil {
+	if err := a.updateNextArbitrators(height+1, height); err != nil {
 		return err
 	}
 

@@ -1415,6 +1415,20 @@ func (s *State) getClaimedCRMembersMap() map[string]*state.CRMember {
 	return crMembersMap
 }
 
+func (s *State) getClaimedCRMemberDPOSPublicKeyMap() map[string]*state.CRMember {
+	crMembersMap := make(map[string]*state.CRMember)
+	if s.getCRMembers == nil {
+		return crMembersMap
+	}
+	crMembers := s.getCRMembers()
+	for _, m := range crMembers {
+		if m.DPOSPublicKey != nil {
+			crMembersMap[hex.EncodeToString(m.DPOSPublicKey)] = m
+		}
+	}
+	return crMembersMap
+}
+
 // processEmergencyInactiveArbitrators change producer state according to
 // emergency inactive arbitrators
 func (s *State) processEmergencyInactiveArbitrators(
@@ -1497,13 +1511,9 @@ func (s *State) processIllegalEvidence(payloadData types.Payload,
 		return
 	}
 
-	crMembersMap := s.getClaimedCRMembersMap()
+	crMembersMap := s.getClaimedCRMemberDPOSPublicKeyMap()
 	// Set illegal producers to FoundBad state
 	for _, pk := range illegalProducers {
-		key, ok := s.NodeOwnerKeys[hex.EncodeToString(pk)]
-		if !ok {
-			continue
-		}
 		if cr, ok := crMembersMap[hex.EncodeToString(pk)]; ok {
 			if cr.DPOSPublicKey == nil {
 				continue
@@ -1515,7 +1525,10 @@ func (s *State) processIllegalEvidence(payloadData types.Payload,
 				s.tryRevertCRMemberIllegal(cr.Info.DID, oriState, height)
 			})
 		}
-
+		key, ok := s.NodeOwnerKeys[hex.EncodeToString(pk)]
+		if !ok {
+			continue
+		}
 		if producer, ok := s.ActivityProducers[key]; ok {
 			oriPenalty := producer.penalty
 			s.history.Append(height, func() {

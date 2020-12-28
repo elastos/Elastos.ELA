@@ -1117,7 +1117,11 @@ func (a *arbitrators) getOnDutyArbitrator() []byte {
 func (a *arbitrators) GetOnDutyArbitrator() []byte {
 	a.mtx.Lock()
 	defer a.mtx.Unlock()
-	return a.getNextOnDutyArbitratorV(a.bestHeight()+1, 0).GetNodePublicKey()
+	arbiter := a.getNextOnDutyArbitratorV(a.bestHeight()+1, 0)
+	if arbiter.IsNormal() {
+		return arbiter.GetNodePublicKey()
+	}
+	return []byte{}
 }
 
 func (a *arbitrators) GetNextOnDutyArbitrator(offset uint32) []byte {

@@ -353,7 +353,7 @@ func (a *arbitrators) forceChange(height uint32) error {
 	}
 	a.snapshot(height)
 
-	if err := a.clearingDPOSReward(block, height+1, false); err != nil {
+	if err := a.clearingDPOSReward(block, height, false); err != nil {
 		return err
 	}
 
@@ -361,7 +361,7 @@ func (a *arbitrators) forceChange(height uint32) error {
 		return err
 	}
 
-	if err := a.changeCurrentArbitrators(height + 1); err != nil {
+	if err := a.changeCurrentArbitrators(height); err != nil {
 		return err
 	}
 
@@ -370,12 +370,12 @@ func (a *arbitrators) forceChange(height uint32) error {
 			a.getNeedConnectArbiters())
 	}
 	oriForceChanged := a.forceChanged
-	a.history.Append(height+1, func() {
+	a.history.Append(height, func() {
 		a.forceChanged = true
 	}, func() {
 		a.forceChanged = oriForceChanged
 	})
-	a.history.Commit(height + 1)
+	a.history.Commit(height)
 	if block.Height >= a.bestHeight() {
 		a.notifyNextTurnDPOSInfoTx(block.Height, block.Height+1)
 	}

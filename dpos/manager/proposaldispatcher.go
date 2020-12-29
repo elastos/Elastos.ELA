@@ -689,7 +689,7 @@ func (p *ProposalDispatcher) tryEnterDPOSState(signCount int) bool {
 		p.cfg.Arbitrators.SetNeedRevertToDPOSTX(true)
 		err := p.cfg.Manager.AppendToTxnPool(p.RevertToDPOSTx)
 		if err != nil {
-			log.Warnf("#### [tryEnterDPOSState] err ", err)
+			log.Warnf("#### [tryEnterDPOSState] err %s", err)
 		}
 		p.cfg.Manager.clearRevertToDPOSData(payload)
 
@@ -859,13 +859,14 @@ func (p *ProposalDispatcher) setProcessingProposal(d *payload.DPOSProposal) (fin
 	return false
 }
 
-func (p *ProposalDispatcher) CreateRevertToDPOS() (
+func (p *ProposalDispatcher) CreateRevertToDPOS(BlockHeight uint32) (
 	*types.Transaction, error) {
 	log.Warnf("#### CreateRevertToDPOS begin")
 
 	var err error
 	revertToDPOSPayload := &payload.RevertToDPOS{
 		WorkHeightInterval: payload.WorkHeightInterval,
+		//CurBlockHeight:     BlockHeight,
 	}
 	con := contract.Contract{Prefix: contract.PrefixMultiSig}
 	if con.Code, err = p.createRevertToDPOSRedeemScript(); err != nil {

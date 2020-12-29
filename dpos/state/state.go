@@ -1508,11 +1508,11 @@ func (s *State) getClaimedCRMembersMap() map[string]*state.CRMember {
 func (s *State) processRevertToDPOS(Payload *payload.RevertToDPOS, height uint32) {
 	oriWorkHeight := s.DPOSWorkHeight
 	oriNeedRevertToDPOSTX := s.NeedRevertToDPOSTX
-	log.Errorf("#### processRevertToDPOS ConsensusAlgorithm:%d ", s.ConsensusAlgorithm)
+	log.Warnf("#### processRevertToDPOS ConsensusAlgorithm:%d ", s.ConsensusAlgorithm)
 	s.history.Append(height, func() {
 		s.DPOSWorkHeight = height + Payload.WorkHeightInterval
 		s.NeedRevertToDPOSTX = false
-		log.Errorf("#### processRevertToDPOS DPOSWorkHeight:%d  NeedRevertToDPOSTX false", s.DPOSWorkHeight)
+		log.Warnf("#### processRevertToDPOS DPOSWorkHeight:%d  NeedRevertToDPOSTX false", s.DPOSWorkHeight)
 
 	}, func() {
 		s.DPOSWorkHeight = oriWorkHeight

@@ -20,7 +20,9 @@ func (pow *Service) ListenForRevert() {
 	go func() {
 		for {
 			time.Sleep(CheckRevertToPOWInterval)
-
+			if pow.chain.BestChain.Height < 2235 {
+				continue
+			}
 			if pow.chain.BestChain.Height < pow.chainParams.RevertToPOWStartHeight {
 				continue
 			}

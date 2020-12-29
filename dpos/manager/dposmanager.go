@@ -479,12 +479,14 @@ func (d *DPOSManager) OnChangeView() {
 func (d *DPOSManager) OnBlockReceived(b *types.Block, confirmed bool) {
 	log.Warnf("#### [OnBlockReceived] start hash %s IsCurrent %t", b.Hash().String(), d.server.IsCurrent())
 	defer log.Info("[OnBlockReceived] end")
-	if d.server.IsCurrent() {
+	isCurArbiter := d.isCurrentArbiter()
+
+	if d.server.IsCurrent() && isCurArbiter {
 		log.Warnf("#### OnBlockReceived currentHandler %v", d.handler.currentHandler)
 		log.Warnf("#### OnBlockReceived onDutyHandler %v", d.handler.onDutyHandler)
 		log.Warnf("#### OnBlockReceived normalHandler %v", d.handler.normalHandler)
 
-		d.handler.onDutyHandler.TryCreateRevertToDPOSTx(b.Height)
+		d.handler.currentHandler.TryCreateRevertToDPOSTx(b.Height)
 	}
 
 	if d.arbitrators.IsInPOWMode() {
@@ -498,7 +500,7 @@ func (d *DPOSManager) OnBlockReceived(b *types.Block, confirmed bool) {
 		log.Info("[OnBlockReceived] received confirmed block")
 		return
 	}
-	if !d.isCurrentArbiter() {
+	if !isCurArbiter {
 		return
 	}
 	for _, tx := range b.Transactions {
@@ -617,7 +619,7 @@ func (d *DPOSManager) OnRevertToDPOSTxReceived(id dpeer.PID,
 		return
 	}
 	if err := blockchain.CheckRevertToDPOSTransaction(tx); err != nil {
-		log.Warnf("#### [OnRevertToDPOSTxReceived]" +
+		log.Warnf("#### [OnRevertToDPOSTxReceived]"+
 			"CheckRevertToDPOSTransaction: TxType %d, err: %s", tx.TxType, err)
 		return
 	}
@@ -655,6 +657,17 @@ func (d *DPOSManager) OnResponseRevertToDPOSTxReceived(
 
 	if !d.isCurrentArbiter() {
 		log.Warn("#### [processMessage] !d.isCurrentArbiter()")
+		return
+	}
+	if !d.arbitrators.IsActiveProducer(signers) {
+		log.Debugf("#### [OnResponseRevertToDPOSTxReceived] signer %s is not ActiveProducer ",
+			common.BytesToHexString(signers))
+		return
+	}
+
+	if !d.arbitrators.IsArbitrator(signers) {
+		log.Debugf("#### [OnResponseRevertToDPOSTxReceived] signer %s is not current arbiter ",
+			common.BytesToHexString(signers))
 		return
 	}
 	d.dispatcher.OnResponseRevertToDPOSTxReceived(txHash, signers, signs)

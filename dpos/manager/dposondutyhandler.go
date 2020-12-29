@@ -79,13 +79,13 @@ func (h *DPOSOnDutyHandler) TryStartNewConsensus(b *types.Block) bool {
 
 func (h *DPOSOnDutyHandler) getActiveArbitersCount() int {
 	peers := h.cfg.Network.GetActivePeers()
-	log.Warn("#### getActiveArbitersCount ", peers)
+	log.Warn("#### getActiveArbitersCount peers", peers)
 
 	activeArbitersCount := 0
 	for _, p := range peers {
 		pid := p.PID()
-		//todo is current arbiter
-		if h.cfg.Arbitrators.IsActiveProducer(pid[:]) {
+		log.Warnf("#### getActiveArbitersCount peers %s publickey %s", p.ToPeer().String(), common.BytesToHexString(pid[:]))
+		if h.cfg.Arbitrators.IsActiveProducer(pid[:]) && h.cfg.Arbitrators.IsArbitrator(pid[:]) {
 			activeArbitersCount++
 		}
 	}
@@ -95,9 +95,11 @@ func (h *DPOSOnDutyHandler) getActiveArbitersCount() int {
 func (h *DPOSOnDutyHandler) TryCreateRevertToDPOSTx(BlockHeight uint32) bool {
 	log.Warnf("#### TryCreateRevertToDPOSTx begin ")
 
+	//todo if i am not onduty return
+
 	//connect count is not enough
 	activeArbitersCount := float64(h.getActiveArbitersCount())
-	log.Warnf("#### activeArbitersCount: %d, ArbitersCount %d", activeArbitersCount,
+	log.Warnf("#### activeArbitersCount: %f, ArbitersCount %d", activeArbitersCount,
 		h.cfg.Arbitrators.GetArbitersCount())
 	if activeArbitersCount < float64(h.cfg.Arbitrators.GetArbitersCount())*float64(4)/float64(5)+1 {
 		log.Warnf("#### TryCreateRevertToDPOSTx end activeArbitersCount <")
@@ -120,7 +122,7 @@ func (h *DPOSOnDutyHandler) TryCreateRevertToDPOSTx(BlockHeight uint32) bool {
 	if h.consensus.IsArbitratorOnDuty(curPublicKey) {
 		log.Warnf("#### Account.PublicKeyBytes onduty %s ", common.BytesToHexString(curPublicKey))
 
-		tx, err := h.proposalDispatcher.CreateRevertToDPOS()
+		tx, err := h.proposalDispatcher.CreateRevertToDPOS(BlockHeight)
 		if err != nil {
 			log.Warnf("#### TryCreateRevertToDPOSTx end create tx error:", err)
 			return false

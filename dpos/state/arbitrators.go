@@ -434,29 +434,30 @@ func (a *arbitrators) IncreaseChainHeight(block *types.Block) {
 			panic(fmt.Sprintf("force change fail at height: %d, error: %s",
 				block.Height, err))
 		}
+	} else {
+		changeType, versionHeight := a.getChangeType(block.Height + 1)
+		switch changeType {
+		case updateNext:
+			if err := a.updateNextArbitrators(versionHeight, block.Height); err != nil {
+				panic(fmt.Sprintf("[IncreaseChainHeight] update next arbiters"+
+					" at height: %d, error: %s", block.Height, err))
+			}
+		case normalChange:
+			if err := a.clearingDPOSReward(block, block.Height, true); err != nil {
+				panic(fmt.Sprintf("normal change fail when clear DPOS reward: "+
+					" transaction, height: %d, error: %s", block.Height, err))
+			}
+			if err := a.normalChange(block.Height); err != nil {
+				panic(fmt.Sprintf("normal change fail at height: %d, error: %s",
+					block.Height, err))
+			}
+		case none:
+			a.accumulateReward(block)
+			notify = false
+			snapshotVotes = false
+		}
 	}
 
-	changeType, versionHeight := a.getChangeType(block.Height + 1)
-	switch changeType {
-	case updateNext:
-		if err := a.updateNextArbitrators(versionHeight, block.Height); err != nil {
-			panic(fmt.Sprintf("[IncreaseChainHeight] update next arbiters"+
-				" at height: %d, error: %s", block.Height, err))
-		}
-	case normalChange:
-		if err := a.clearingDPOSReward(block, block.Height, true); err != nil {
-			panic(fmt.Sprintf("normal change fail when clear DPOS reward: "+
-				" transaction, height: %d, error: %s", block.Height, err))
-		}
-		if err := a.normalChange(block.Height); err != nil {
-			panic(fmt.Sprintf("normal change fail at height: %d, error: %s",
-				block.Height, err))
-		}
-	case none:
-		a.accumulateReward(block)
-		notify = false
-		snapshotVotes = false
-	}
 	oriIllegalBlocks := a.illegalBlocksPayloadHashes
 	a.history.Append(block.Height, func() {
 		a.illegalBlocksPayloadHashes = make(map[common.Uint256]interface{})
@@ -475,7 +476,7 @@ func (a *arbitrators) IncreaseChainHeight(block *types.Block) {
 		a.snapshot(block.Height)
 	}
 	if block.Height >= bestHeight && a.NeedNextTurnDposInfo {
-		a.notifyNextTurnDPOSInfoTx(block.Height, versionHeight)
+		a.notifyNextTurnDPOSInfoTx(block.Height, block.Height+1)
 	}
 	a.mtx.Unlock()
 	if a.started && notify {

@@ -127,18 +127,23 @@ func (h *DPOSHandlerSwitch) ChangeView(firstBlockHash *common.Uint256) {
 }
 
 func (h *DPOSHandlerSwitch) TryStartNewConsensus(b *types.Block) bool {
+	log.Info("#### [TryStartNewConsensus] begin")
+
 	if _, ok := h.cfg.Manager.GetBlockCache().TryGetValue(b.Hash()); ok {
 		log.Info("[TryStartNewConsensus] failed, already have the block")
 		return false
 	}
 
 	if h.currentHandler.TryStartNewConsensus(b) {
+		log.Info("#### [TryStartNewConsensus] currentHandler.TryStartNewConsensus(b)")
+
 		h.proposalDispatcher.eventAnalyzer.IncreaseLastConsensusViewCount()
 		c := log.ConsensusEvent{StartTime: h.cfg.TimeSource.AdjustedTime(), Height: b.Height,
 			RawData: &b.Header}
 		h.cfg.Monitor.OnConsensusStarted(&c)
 		return true
 	}
+	log.Info("#### [TryStartNewConsensus] end")
 
 	return false
 }

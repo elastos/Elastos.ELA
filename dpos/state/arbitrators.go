@@ -468,26 +468,26 @@ func (a *arbitrators) IncreaseChainHeight(block *types.Block) {
 				"error: %s, revert to POW mode", block.Height, err))
 		}
 	case normalChange:
-		log.Error("##### 1 beginnormalChange arbitrators.go")
+		log.Warn("##### 1 beginnormalChange arbitrators.go")
 		if err := a.clearingDPOSReward(block, block.Height, true); err != nil {
-			log.Errorf("#### panic err: %s", err)
+			log.Warnf("#### panic err: %s", err)
 			panic(fmt.Sprintf("normal change fail when clear DPOS reward: "+
 				" transaction, height: %d, error: %s", block.Height, err))
 		}
 
-		log.Error("##### 2 normalChange arbitrators.go")
+		log.Warn("##### 2 normalChange arbitrators.go")
 		if err := a.normalChange(block.Height); err != nil {
 			a.revertToPOWAtNextTurn(block.Height)
 			log.Warn(fmt.Sprintf("normal change fail at height: %d, "+
 				"error: %s， revert to POW mode", block.Height, err))
 		}
-		log.Error("##### 3 endnormalChange arbitrators.go")
+		log.Warn("##### 3 endnormalChange arbitrators.go")
 	case none:
-		log.Error("##### endnode arbitrators.go")
+		log.Warn("##### endnode arbitrators.go")
 		a.accumulateReward(block)
 		notify = false
 		snapshotVotes = false
-		log.Error("##### endnode arbitrators.go")
+		log.Warn("##### endnode arbitrators.go")
 	}
 	oriIllegalBlocks := a.illegalBlocksPayloadHashes
 	a.history.Append(block.Height, func() {
@@ -500,7 +500,7 @@ func (a *arbitrators) IncreaseChainHeight(block *types.Block) {
 	log.Infof("### CreateRevertToPOWTransaction, NoClaimDPOSNode: %t, "+
 		"NoProducers: %t", a.NoClaimDPOSNode, a.NoProducers)
 	bestHeight := a.bestHeight()
-	if a.ConsensusAlgorithm != POW && block.Height >= bestHeight{
+	if a.ConsensusAlgorithm != POW && block.Height >= bestHeight {
 		if len(a.currentArbitrators) == 0 || a.NoClaimDPOSNode || a.NoProducers {
 			a.createRevertToPOWTransaction(block.Height)
 			log.Error("222 IncreaseChainHeight arbitrators.go")

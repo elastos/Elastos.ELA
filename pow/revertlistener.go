@@ -20,9 +20,9 @@ func (pow *Service) ListenForRevert() {
 	go func() {
 		for {
 			time.Sleep(CheckRevertToPOWInterval)
-			if pow.chain.BestChain.Height < 2235 {
-				continue
-			}
+			//if pow.chain.BestChain.Height < 2235 {
+			//	continue
+			//}
 			if pow.chain.BestChain.Height < pow.chainParams.RevertToPOWStartHeight {
 				continue
 			}
@@ -34,8 +34,6 @@ func (pow *Service) ListenForRevert() {
 			if localTimestamp-lastBlockTimestamp < pow.chainParams.RevertToPOWNoBlockTime {
 				continue
 			}
-			log.Info("### Create revert to pow tx, localTimestamp:", localTimestamp,
-				"lastBlockTimestamp:", lastBlockTimestamp, "RevertToPOWNoBlockTime:", pow.chainParams.RevertToPOWNoBlockTime)
 
 			revertToPOWPayload := payload.RevertToPOW{
 				Type:          payload.NoBlock,

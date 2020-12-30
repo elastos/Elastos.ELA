@@ -46,11 +46,6 @@ func (bm *BlockPool) AppendConfirm(confirm *payload.Confirm) (bool,
 }
 
 func (bm *BlockPool) AddDposBlock(dposBlock *types.DposBlock) (bool, bool, error) {
-	log.Errorf("1111AddDposBlock %d RevertToPOWStartHeight %d HaveConfirm %t ", dposBlock.Block.Height,
-		bm.chainParams.RevertToPOWStartHeight, dposBlock.HaveConfirm)
-
-	log.Errorf("22222bm.Chain.GetState().ConsensusAlgorithm %d ", bm.Chain.GetState().ConsensusAlgorithm)
-
 	if bm.Chain.GetState().ConsensusAlgorithm == state.POW {
 		return bm.Chain.ProcessBlock(dposBlock.Block, dposBlock.Confirm)
 	}
@@ -58,7 +53,6 @@ func (bm *BlockPool) AddDposBlock(dposBlock *types.DposBlock) (bool, bool, error
 	if dposBlock.Block.Height > bm.chainParams.RevertToPOWStartHeight && !dposBlock.HaveConfirm {
 		for _, tx := range dposBlock.Transactions {
 			if tx.IsRevertToPOW() {
-				log.Error("3333AddDposBlockProcessBlock")
 				return bm.Chain.ProcessBlock(dposBlock.Block, dposBlock.Confirm)
 			}
 		}

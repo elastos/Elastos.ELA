@@ -266,22 +266,14 @@ func (n *network) processMessage(msgItem *messageItem) {
 		}
 	case elap2p.CmdTx:
 		msgTx, processed := m.(*elamsg.Tx)
-		log.Warnf("#### processMessage msgTx")
-
 		if processed {
 			tx, ok := msgTx.Serializable.(*types.Transaction)
-			log.Warnf("#### processMessage TxType %d", tx.TxType)
-
 			if !ok {
 				return
 			}
 			if tx.IsInactiveArbitrators() {
-				log.Warnf("#### processMessage IsInactiveArbitrators TxType %d", tx.TxType)
-
 				n.listener.OnInactiveArbitratorsReceived(msgItem.ID, tx)
 			} else if tx.IsRevertToDPOS() {
-				log.Warnf("#### processMessage IsRevertToDPOS %d", tx.TxType)
-
 				n.listener.OnRevertToDPOSTxReceived(msgItem.ID, tx)
 			}
 		}
@@ -293,17 +285,11 @@ func (n *network) processMessage(msgItem *messageItem) {
 		}
 	case msg.CmdResponseRevertToDPOS:
 		msgResponse, processed := m.(*msg.ResponseRevertToDPOS)
-		log.Warn("#### [processMessage] CmdResponseRevertToDPOS begin")
 
 		if processed {
-			log.Warn("#### [processMessage] OnResponseRevertToDPOSTxReceived before")
 			n.listener.OnResponseRevertToDPOSTxReceived(
 				&msgResponse.TxHash, msgResponse.Signer, msgResponse.Sign)
-			log.Warn("#### [processMessage] OnResponseRevertToDPOSTxReceived after")
-
 		}
-		log.Warn("#### [processMessage] CmdResponseRevertToDPOS end")
-
 	}
 }
 

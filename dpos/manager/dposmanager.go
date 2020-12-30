@@ -477,20 +477,14 @@ func (d *DPOSManager) OnChangeView() {
 }
 
 func (d *DPOSManager) OnBlockReceived(b *types.Block, confirmed bool) {
-	log.Warnf("#### [OnBlockReceived] start hash %s IsCurrent %t", b.Hash().String(), d.server.IsCurrent())
 	defer log.Info("[OnBlockReceived] end")
 	isCurArbiter := d.isCurrentArbiter()
 
 	if d.server.IsCurrent() && isCurArbiter {
-		log.Warnf("#### OnBlockReceived currentHandler %v", d.handler.currentHandler)
-		log.Warnf("#### OnBlockReceived onDutyHandler %v", d.handler.onDutyHandler)
-		log.Warnf("#### OnBlockReceived normalHandler %v", d.handler.normalHandler)
-
 		d.handler.currentHandler.TryCreateRevertToDPOSTx(b.Height)
 	}
 
 	if d.arbitrators.IsInPOWMode() {
-		log.Warnf("#### [OnBlockReceived] IsInPOWMode return ")
 		return
 	}
 	if confirmed {
@@ -612,20 +606,14 @@ func (d *DPOSManager) clearInactiveData(p *payload.InactiveArbitrators) {
 
 func (d *DPOSManager) OnRevertToDPOSTxReceived(id dpeer.PID,
 	tx *types.Transaction) {
-	log.Warnf("#### OnRevertToDPOSTxReceived  %d begin", tx.TxType)
 
 	if !d.isCurrentArbiter() {
-		log.Warnf("#### OnRevertToDPOSTxReceived  %d !d.isCurrentArbiter()", tx.TxType)
 		return
 	}
 	if err := blockchain.CheckRevertToDPOSTransaction(tx); err != nil {
-		log.Warnf("#### [OnRevertToDPOSTxReceived]"+
-			"CheckRevertToDPOSTransaction: TxType %d, err: %s", tx.TxType, err)
 		return
 	}
 	d.dispatcher.OnRevertToDPOSTxReceived(id, tx)
-	log.Warnf("#### OnRevertToDPOSTxReceived  %d end", tx.TxType)
-
 }
 
 func (d *DPOSManager) OnInactiveArbitratorsReceived(id dpeer.PID,
@@ -653,25 +641,13 @@ func (d *DPOSManager) OnResponseInactiveArbitratorsReceived(
 
 func (d *DPOSManager) OnResponseRevertToDPOSTxReceived(
 	txHash *common.Uint256, signers []byte, signs []byte) {
-	log.Warn("#### [processMessage] OnResponseRevertToDPOSTxReceived begin")
 
-	if !d.isCurrentArbiter() {
-		log.Warn("#### [processMessage] !d.isCurrentArbiter()")
-		return
-	}
-	if !d.arbitrators.IsActiveProducer(signers) {
-		log.Debugf("#### [OnResponseRevertToDPOSTxReceived] signer %s is not ActiveProducer ",
-			common.BytesToHexString(signers))
-		return
-	}
-
-	if !d.arbitrators.IsArbitrator(signers) {
-		log.Debugf("#### [OnResponseRevertToDPOSTxReceived] signer %s is not current arbiter ",
-			common.BytesToHexString(signers))
+	if !d.isCurrentArbiter() ||
+		!d.arbitrators.IsActiveProducer(signers) ||
+		!d.arbitrators.IsArbitrator(signers) {
 		return
 	}
 	d.dispatcher.OnResponseRevertToDPOSTxReceived(txHash, signers, signs)
-	log.Warn("#### [processMessage] OnResponseRevertToDPOSTxReceived end")
 
 }
 

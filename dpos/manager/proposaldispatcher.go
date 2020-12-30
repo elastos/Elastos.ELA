@@ -491,14 +491,9 @@ func (p *ProposalDispatcher) OnIllegalBlocksTxReceived(i *payload.DPOSIllegalBlo
 
 func (p *ProposalDispatcher) OnRevertToDPOSTxReceived(id peer.PID,
 	tx *types.Transaction) {
-	log.Warnf("#### OnRevertToDPOSTxReceived  %d begin", tx.TxType)
-
 	if _, ok := p.signedTxs[tx.Hash()]; ok {
-		log.Warn("#### [OnRevertToDPOSTxReceived] already processed")
 		return
 	}
-
-	log.Info("#### [OnRevertToDPOSTxReceived] received RevertToDPOSTx")
 
 	p.signedTxs[tx.Hash()] = nil
 
@@ -508,20 +503,14 @@ func (p *ProposalDispatcher) OnRevertToDPOSTxReceived(id peer.PID,
 	}
 	var err error
 	if response.Sign, err = p.cfg.Account.SignTx(tx); err != nil {
-		log.Warn("#### [OnRevertToDPOSTxReceived] sign response message"+
-			" error, details: ", err.Error())
 		//todo is here need return
 	}
 	go func() {
-		log.Warn("#### [OnRevertToDPOSTxReceived] SendMessageToPeer: response%+v begin", response)
 		if err := p.cfg.Network.SendMessageToPeer(id, response); err != nil {
-			log.Warn("#### [OnRevertToDPOSTxReceived] send msg error: ", err)
+			log.Warn("[OnRevertToDPOSTxReceived] send msg error: ", err)
 		}
-		log.Warn("#### [OnRevertToDPOSTxReceived] SendMessageToPeer: response%+v end", response)
 
 	}()
-
-	log.Info("#### [OnRevertToDPOSTxReceived] response inactive tx sign")
 }
 
 func (p *ProposalDispatcher) OnInactiveArbitratorsReceived(id peer.PID,
@@ -594,32 +583,23 @@ func (p *ProposalDispatcher) checkInactivePayloadContent(
 func (p *ProposalDispatcher) OnResponseRevertToDPOSTxReceived(
 	txHash *common.Uint256, signer []byte, sign []byte) {
 
-	log.Info("#### [OnResponseRevertToDPOSTxReceived] collect transaction signs")
-
 	if p.RevertToDPOSTx == nil ||
 		!p.RevertToDPOSTx.Hash().IsEqual(*txHash) {
-		log.Warn("#### [OnResponseRevertToDPOSTxReceived] unknown RevertToDPOS transaction")
 		return
 	}
 
 	data := new(bytes.Buffer)
 	if err := p.RevertToDPOSTx.SerializeUnsigned(
 		data); err != nil {
-		log.Warn("#### [OnResponseRevertToDPOSTxReceived] transaction "+
-			"serialize error, details: ", err)
 		return
 	}
 
 	pk, err := crypto.DecodePoint(signer)
 	if err != nil {
-		log.Warn("#### [OnResponseRevertToDPOSTxReceived] decode signer "+
-			"error, details: ", err)
 		return
 	}
 
 	if err := crypto.Verify(*pk, data.Bytes(), sign); err != nil {
-		log.Warn("#### [OnResponseRevertToDPOSTxReceived] sign verify "+
-			"error, details: ", err)
 		return
 	}
 
@@ -629,11 +609,7 @@ func (p *ProposalDispatcher) OnResponseRevertToDPOSTxReceived(
 	buf.WriteByte(byte(len(sign)))
 	buf.Write(sign)
 	pro.Parameter = buf.Bytes()
-	log.Info("#### [OnResponseRevertToDPOSTxReceived] tryEnterDPOSState before")
-
 	p.tryEnterDPOSState(len(pro.Parameter) / crypto.SignatureScriptLength)
-	log.Info("#### [OnResponseRevertToDPOSTxReceived] tryEnterDPOSState after")
-
 }
 
 func (p *ProposalDispatcher) OnResponseInactiveArbitratorsReceived(
@@ -680,8 +656,6 @@ func (p *ProposalDispatcher) OnResponseInactiveArbitratorsReceived(
 }
 
 func (p *ProposalDispatcher) tryEnterDPOSState(signCount int) bool {
-	log.Warnf("#### [tryEnterDPOSState] current sign count:%d begin", signCount)
-
 	minSignCount := int(float64(p.cfg.Arbitrators.GetArbitersCount())*
 		state.MajoritySignRatioNumerator/state.MajoritySignRatioDenominator) + 1
 	if signCount >= minSignCount {
@@ -692,11 +666,8 @@ func (p *ProposalDispatcher) tryEnterDPOSState(signCount int) bool {
 			log.Warnf("#### [tryEnterDPOSState] err %s", err)
 		}
 		p.cfg.Manager.clearRevertToDPOSData(payload)
-
-		log.Info("#### [tryEnterDPOSState] successfully entered DPOS state end")
 		return true
 	}
-	log.Warnf("#### [tryEnterDPOSState] minSignCount %d end", minSignCount)
 
 	return false
 }
@@ -861,7 +832,6 @@ func (p *ProposalDispatcher) setProcessingProposal(d *payload.DPOSProposal) (fin
 
 func (p *ProposalDispatcher) CreateRevertToDPOS(BlockHeight uint32) (
 	*types.Transaction, error) {
-	log.Warnf("#### CreateRevertToDPOS begin")
 
 	var err error
 	revertToDPOSPayload := &payload.RevertToDPOS{
@@ -902,10 +872,6 @@ func (p *ProposalDispatcher) CreateRevertToDPOS(BlockHeight uint32) (
 	}
 
 	p.RevertToDPOSTx = tx
-	log.Warn("#### CreateRevertToDPOS end len(con.Code)", len(con.Code))
-
-	log.Warn("#### CreateRevertToDPOS end con.Code", con.Code)
-
 	return tx, nil
 }
 

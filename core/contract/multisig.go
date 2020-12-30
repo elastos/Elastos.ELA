@@ -8,7 +8,6 @@ package contract
 import (
 	"bytes"
 	"errors"
-	"fmt"
 	"math/big"
 
 	pg "github.com/elastos/Elastos.ELA/core/contract/program"
@@ -79,7 +78,6 @@ func CreateMultiSigRedeemScript(m int, pubkeys []*crypto.PublicKey) ([]byte, err
 		if err != nil {
 			return nil, errors.New("[Contract],CreateMultiSigContract failed.")
 		}
-		fmt.Println("len(temp)", len(temp))
 		sb.PushData(temp)
 	}
 

@@ -2412,13 +2412,10 @@ func (b *BlockChain) checkCRAssetsRectifyTransaction(txn *Transaction,
 }
 
 func (b *BlockChain) checkRevertToPOWTransaction(txn *Transaction, blockHeight uint32, timeStamp uint32) error {
-	log.Infof("beginCheckRevertToPOWTransaction: %s, Type: %d", txn.Hash(), txn.TxType)
 	p, ok := txn.Payload.(*payload.RevertToPOW)
 	if !ok {
 		return errors.New("invalid payload")
 	}
-
-	log.Errorf("WorkingHeight: %d, blockHeight: %d", p.WorkingHeight, blockHeight)
 
 	if p.WorkingHeight != blockHeight {
 		return errors.New("invalid start POW block height")
@@ -2450,7 +2447,6 @@ func (b *BlockChain) checkRevertToPOWTransaction(txn *Transaction, blockHeight u
 			return errors.New("current CR member claimed DPoS node")
 		}
 	}
-	log.Infof("endCheckRevertToPOWTransaction:  %s, %d", txn.Hash(), txn.TxType)
 	return nil
 }
 
@@ -3580,8 +3576,6 @@ func CheckInactiveArbitrators(txn *Transaction) error {
 }
 
 func checkArbitratorsSignatures(program *program.Program) error {
-	log.Warnf("#### checkArbitratorsSignatures begin")
-
 	code := program.Code
 	// Get N parameter
 	n := int(code[len(code)-2]) - crypto.PUSH1 + 1
@@ -3598,33 +3592,18 @@ func checkArbitratorsSignatures(program *program.Program) error {
 	minSignCount := int(float64(DefaultLedger.Arbitrators.GetArbitersCount())*
 		state.MajoritySignRatioNumerator/state.MajoritySignRatioDenominator) + 1
 	if m < 1 || m > n || n != arbitratorsCount || m < minSignCount {
-		log.Warnf("#### checkArbitratorsSignatures m:%d n:%d minSignCount:%d crc:  %d",
-			m, n, minSignCount, arbitratorsCount)
 		return errors.New("invalid multi sign script code")
-	}
-	log.Warnf("#### checkArbitratorsSignatures len(code) %d %d", len(code), code[len(code)-1])
-	if len(code) < MinMultiSignCodeLength || code[len(code)-1] != common.MULTISIG {
-		log.Warnf("#### checkArbitratorsSignatures11 len(code) %d %d", len(code), code[len(code)-1])
-	} else {
-		log.Warnf("#### 11111111111111111111111111")
-
 	}
 	publicKeys, err := crypto.ParseMultisigScript(code)
 	if err != nil {
-		log.Warnf("#### checkArbitratorsSignatures ParseMultisigScript err ", err)
-
 		return err
 	}
 
 	for _, pk := range publicKeys {
-		tempPK := pk[1:]
 		if !DefaultLedger.Arbitrators.IsArbitrator(pk[1:]) {
-			strPk := common.BytesToHexString(tempPK)
-			log.Warnf("#### checkArbitratorsSignatures %s Is  not Arbitrator  ", strPk)
 			return errors.New("invalid multi sign public key")
 		}
 	}
-	log.Warnf("#### checkArbitratorsSignatures end")
 
 	return nil
 }

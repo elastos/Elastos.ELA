@@ -66,7 +66,6 @@ func (mp *TxPool) removeCRAppropriationConflictTransactions() {
 }
 
 func (mp *TxPool) appendToTxPool(tx *Transaction) elaerr.ELAError {
-	log.Errorf("123456 beginAppendToTxPool:  Hash: %s, %d", tx.Hash(), tx.TxType)
 	txHash := tx.Hash()
 
 	// If the transaction is CR appropriation transaction, need to remove
@@ -89,18 +88,15 @@ func (mp *TxPool) appendToTxPool(tx *Transaction) elaerr.ELAError {
 
 	chain := blockchain.DefaultLedger.Blockchain
 	bestHeight := blockchain.DefaultLedger.Blockchain.GetHeight()
-	log.Error("append111")
 	if errCode := chain.CheckTransactionSanity(bestHeight+1, tx); errCode != nil {
 		log.Warn("[TxPool CheckTransactionSanity] failed", tx.Hash())
 		return errCode
 	}
-	log.Error("append222")
 	if _, errCode := chain.CheckTransactionContext(
 		bestHeight+1, tx, mp.proposalsUsedAmount, 0); errCode != nil {
 		log.Warn("[TxPool CheckTransactionContext] failed", tx.Hash())
 		return errCode
 	}
-	log.Error("append333")
 	//verify transaction by pool with lock
 	if errCode := mp.verifyTransactionWithTxnPool(tx); errCode != nil {
 		log.Warn("[TxPool verifyTransactionWithTxnPool] failed", tx.Hash())
@@ -112,18 +108,16 @@ func (mp *TxPool) appendToTxPool(tx *Transaction) elaerr.ELAError {
 		log.Warn("TxPool check transactions size failed", tx.Hash())
 		return elaerr.Simple(elaerr.ErrTxPoolOverCapacity, nil)
 	}
-	log.Error("append444")
 	if errCode := mp.AppendTx(tx); errCode != nil {
 		log.Warn("[TxPool verifyTransactionWithTxnPool] failed", tx.Hash())
 		return errCode
 	}
-	log.Error("append555")
 	// Add the transaction to mem pool
 	if err := mp.doAddTransaction(tx); err != nil {
 		mp.removeTx(tx)
 		return err
 	}
-	log.Infof("endAppendToTxPool:  Hash: %s, %d", tx.Hash(), tx.TxType)
+	//log.Infof("endAppendToTxPool:  Hash: %s, %d", tx.Hash(), tx.TxType)
 	return nil
 }
 

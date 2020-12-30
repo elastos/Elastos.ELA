@@ -9,7 +9,6 @@ import (
 	"errors"
 
 	"github.com/elastos/Elastos.ELA/common"
-	"github.com/elastos/Elastos.ELA/common/log"
 )
 
 const (
@@ -34,10 +33,8 @@ const (
 )
 
 func ParseMultisigScript(code []byte) ([][]byte, error) {
-	log.Warnf("#### ParseMultisigScript begin")
 
 	if len(code) < MinMultiSignCodeLength || code[len(code)-1] != common.MULTISIG {
-		log.Warnf("#### checkArbitratorsSignatures len(code) %d %d", len(code), code[len(code)-1])
 		return nil, errors.New("not a valid multi sign transaction code, length not enough")
 	}
 	return parsePublicKeys(code)

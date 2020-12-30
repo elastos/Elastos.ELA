@@ -359,6 +359,9 @@ func GetCrossChainPeersInfo(params Params) map[string]interface{} {
 
 	nextPeers := Arbiter.GetNextArbitrators()
 	for _, p := range nextPeers {
+		if !p.IsNormal {
+			continue
+		}
 		pk := common.BytesToHexString(p.NodePublicKey)
 		if _, ok := peersMap[pk]; ok {
 			continue

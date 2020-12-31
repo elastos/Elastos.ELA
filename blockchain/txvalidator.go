@@ -1658,8 +1658,9 @@ func (b *BlockChain) checkActivateProducerTransaction(txn *Transaction,
 
 	if b.GetCRCommittee().IsInElectionPeriod() {
 		crMember := b.GetCRCommittee().GetMemberByNodePublicKey(activateProducer.NodePublicKey)
-		if crMember != nil && crMember.MemberState == crstate.MemberInactive {
+		if crMember != nil && (crMember.MemberState == crstate.MemberInactive || crMember.MemberState == crstate.MemberIllegal) {
 			// todo check penalty
+
 			return nil
 		}
 	}

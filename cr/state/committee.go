@@ -397,7 +397,7 @@ func (c *Committee) ProcessBlock(block *types.Block, confirm *payload.Confirm) {
 func (c *Committee) updateCRInactivePeriod(history *utils.History, height uint32) {
 	for _, v := range c.Members {
 		cr := v
-		if cr.MemberState == MemberInactive {
+		if cr.MemberState == MemberInactive || cr.MemberState == MemberIllegal {
 			history.Append(height, func() {
 				cr.InactiveCount += 1
 			}, func() {
@@ -464,7 +464,8 @@ func (c *Committee) updateCRMembers(
 	}
 	circulation := c.CirculationAmount
 	for _, v := range c.Members {
-		if v.MemberState != MemberElected && v.MemberState != MemberInactive {
+		if v.MemberState != MemberElected && v.MemberState != MemberInactive &&
+			v.MemberState != MemberIllegal {
 			continue
 		}
 
@@ -809,7 +810,8 @@ func (c *Committee) tryStartVotingPeriod(height uint32) (inElection bool) {
 		inElection = false
 
 		for _, v := range c.Members {
-			if (v.MemberState == MemberElected || v.MemberState == MemberInactive) &&
+			if (v.MemberState == MemberElected || v.MemberState == MemberInactive ||
+				v.MemberState == MemberIllegal) &&
 				v.ImpeachmentVotes < common.Fixed64(float64(c.CirculationAmount)*
 					c.params.VoterRejectPercentage/100.0) {
 				c.terminateCRMember(v, height)
@@ -841,7 +843,8 @@ func (c *Committee) processImpeachment(height uint32, member []byte,
 	var crMember *CRMember
 	for _, v := range c.Members {
 		if bytes.Equal(v.Info.CID.Bytes(), member) &&
-			(v.MemberState == MemberElected || v.MemberState == MemberInactive) {
+			(v.MemberState == MemberElected ||
+				v.MemberState == MemberInactive || v.MemberState == MemberIllegal) {
 			crMember = v
 			break
 		}
@@ -885,12 +888,13 @@ func (c *Committee) processCRCRealWithdraw(tx *types.Transaction,
 func (c *Committee) activateProducer(tx *types.Transaction,
 	height uint32, history *utils.History) {
 	apPayload := tx.Payload.(*payload.ActivateProducer)
-	crMemebr := c.getMemberByNodePublicKey(apPayload.NodePublicKey)
-	if crMemebr != nil && crMemebr.MemberState == MemberInactive {
+	crMember := c.getMemberByNodePublicKey(apPayload.NodePublicKey)
+	if crMember != nil && (crMember.MemberState == MemberInactive ||
+		crMember.MemberState == MemberIllegal) {
 		history.Append(height, func() {
-			crMemebr.ActivateRequestHeight = height
+			crMember.ActivateRequestHeight = height
 		}, func() {
-			crMemebr.ActivateRequestHeight = math.MaxUint32
+			crMember.ActivateRequestHeight = math.MaxUint32
 		})
 	}
 }

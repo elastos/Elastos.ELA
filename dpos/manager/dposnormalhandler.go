@@ -37,7 +37,6 @@ func (h *DPOSNormalHandler) ProcessAcceptVote(id peer.PID, p *payload.DPOSPropos
 }
 
 func (h *DPOSNormalHandler) TryCreateRevertToDPOSTx(BlockHeight uint32) bool {
-	//log.Info("TryCreateRevertToDPOST: %d", BlockHeight)
 	return false
 }
 

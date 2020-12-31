@@ -503,7 +503,8 @@ func (p *ProposalDispatcher) OnRevertToDPOSTxReceived(id peer.PID,
 	}
 	var err error
 	if response.Sign, err = p.cfg.Account.SignTx(tx); err != nil {
-		//todo is here need return
+		log.Warn("[OnRevertToDPOSTxReceived] sign response message"+
+			" error, details: ", err.Error())
 	}
 	go func() {
 		if err := p.cfg.Network.SendMessageToPeer(id, response); err != nil {
@@ -663,7 +664,7 @@ func (p *ProposalDispatcher) tryEnterDPOSState(signCount int) bool {
 		p.cfg.Arbitrators.SetNeedRevertToDPOSTX(true)
 		err := p.cfg.Manager.AppendToTxnPool(p.RevertToDPOSTx)
 		if err != nil {
-			log.Warnf("#### [tryEnterDPOSState] err %s", err)
+			log.Warnf("[tryEnterDPOSState] err %s", err)
 		}
 		p.cfg.Manager.clearRevertToDPOSData(payload)
 		return true
@@ -836,7 +837,7 @@ func (p *ProposalDispatcher) CreateRevertToDPOS(BlockHeight uint32) (
 	var err error
 	revertToDPOSPayload := &payload.RevertToDPOS{
 		WorkHeightInterval: payload.WorkHeightInterval,
-		//CurBlockHeight:     BlockHeight,
+		CurBlockHeight:     BlockHeight,
 	}
 	con := contract.Contract{Prefix: contract.PrefixMultiSig}
 	if con.Code, err = p.createRevertToDPOSRedeemScript(); err != nil {

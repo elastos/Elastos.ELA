@@ -91,8 +91,8 @@ func (h *DPOSOnDutyHandler) getActiveArbitersCount() int {
 }
 
 func (h *DPOSOnDutyHandler) TryCreateRevertToDPOSTx(BlockHeight uint32) bool {
-	//todo if i am not onduty return
-	//connect count is not enough
+	// connect count is not enough
+	// if i am not onduty return
 	activeArbitersCount := float64(h.getActiveArbitersCount())
 	if activeArbitersCount < float64(h.cfg.Arbitrators.GetArbitersCount())*float64(4)/float64(5)+1 {
 		return false
@@ -101,10 +101,8 @@ func (h *DPOSOnDutyHandler) TryCreateRevertToDPOSTx(BlockHeight uint32) bool {
 	if !h.cfg.Arbitrators.IsInPOWMode() {
 		return false
 	}
-
 	// is it onduty
 	curPublicKey := h.proposalDispatcher.cfg.Account.PublicKeyBytes()
-
 	if h.consensus.IsArbitratorOnDuty(curPublicKey) {
 
 		tx, err := h.proposalDispatcher.CreateRevertToDPOS(BlockHeight)

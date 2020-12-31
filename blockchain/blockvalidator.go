@@ -333,9 +333,6 @@ func (b *BlockChain) CheckBlockContext(block *Block, prevNode *BlockNode) error 
 	if err := DefaultLedger.Arbitrators.CheckCustomIDResultsTx(block); err != nil {
 		return err
 	}
-	//if err := DefaultLedger.Arbitrators.CheckRevertToDPOSTX(block); err != nil {
-	//	return err
-	//}
 	return b.checkTxsContext(block)
 }
 

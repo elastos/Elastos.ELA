@@ -1661,6 +1661,7 @@ func (a *arbitrators) resetNextArbiterByCRC(versionHeight uint32, height uint32)
 		needReset = true
 	} else if versionHeight >= a.chainParams.ChangeCommitteeNewCRHeight {
 		votedProducers := a.State.GetVotedProducers()
+
 		if len(votedProducers) < len(a.chainParams.CRCArbiters) {
 			return unclaimed, errors.New("votedProducers less than CRCArbiters")
 		}
@@ -1672,9 +1673,6 @@ func (a *arbitrators) resetNextArbiterByCRC(versionHeight uint32, height uint32)
 			}
 			return votedProducers[i].Votes() > votedProducers[j].Votes()
 		})
-		if len(votedProducers) < len(a.chainParams.CRCArbiters) {
-			return 0, errors.New("voted producers is not enough")
-		}
 
 		for i := 0; i < len(a.chainParams.CRCArbiters); i++ {
 			producer := votedProducers[i]

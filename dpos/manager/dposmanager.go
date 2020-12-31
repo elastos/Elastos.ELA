@@ -611,6 +611,7 @@ func (d *DPOSManager) OnRevertToDPOSTxReceived(id dpeer.PID,
 		return
 	}
 	if err := blockchain.CheckRevertToDPOSTransaction(tx); err != nil {
+		log.Info("[OnRevertToDPOSTxReceived] received error evidence: ", err)
 		return
 	}
 	d.dispatcher.OnRevertToDPOSTxReceived(id, tx)

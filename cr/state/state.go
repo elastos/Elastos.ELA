@@ -88,10 +88,11 @@ func (s *State) RevertUpdateCRIllegalPenalty(cid common.Uint168) {
 		return
 	}
 	var penalty = s.params.IllegalPenalty
+	oriPenalty := depositInfo.Penalty
 	if depositInfo.Penalty < penalty {
 		depositInfo.Penalty = common.Fixed64(0)
 	} else {
-		depositInfo.Penalty -= penalty
+		depositInfo.Penalty = oriPenalty
 	}
 }
 

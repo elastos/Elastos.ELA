@@ -1658,9 +1658,14 @@ func (b *BlockChain) checkActivateProducerTransaction(txn *Transaction,
 
 	if b.GetCRCommittee().IsInElectionPeriod() {
 		crMember := b.GetCRCommittee().GetMemberByNodePublicKey(activateProducer.NodePublicKey)
-		if crMember != nil && (crMember.MemberState == crstate.MemberInactive || crMember.MemberState == crstate.MemberIllegal) {
-			// todo check penalty
-
+		if crMember != nil && (crMember.MemberState == crstate.MemberInactive ||
+			crMember.MemberState == crstate.MemberIllegal) {
+			if height < b.chainParams.EnableActivateIllegalHeight {
+				return errors.New("activate CR is not allowed before EnableActivateIllegalHeight")
+			}
+			if b.crCommittee.GetAvailableDepositAmount(crMember.Info.CID) < 0 {
+				return errors.New("balance of CR is not enough ")
+			}
 			return nil
 		}
 	}

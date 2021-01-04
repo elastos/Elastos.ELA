@@ -833,8 +833,16 @@ func checkOutputProgramHash(height uint32, programHash common.Uint168) error {
 }
 
 func checkOutputPayload(txType TxType, output *Output) error {
-	// OTVote information can only be placed in TransferAsset transaction.
-	if txType == TransferAsset {
+	if txType == TransferCrossChainAsset {
+		// OTCrossChain information can only be placed in TransferCrossChainAsset transaction.
+		switch output.Type {
+		case OTNone:
+		case OTCrossChain:
+		default:
+			return errors.New("transaction type dose not match the output payload type")
+		}
+	} else if txType == TransferAsset {
+		// OTVote information can only be placed in TransferAsset transaction.
 		switch output.Type {
 		case OTVote:
 			if contract.GetPrefixType(output.ProgramHash) !=
@@ -1308,6 +1316,19 @@ func (b *BlockChain) checkTxHeightVersion(txn *Transaction, blockHeight uint32) 
 				}
 			}
 		}
+	case TransferCrossChainAsset:
+		if blockHeight < b.chainParams.NewCrossChainStartHeight {
+			if txn.PayloadVersion != payload.TransferCrossChainVersion {
+				return errors.New("not support " +
+					"TransferCrossChainAsset payload version V1 before NewCrossChainStartHeight")
+			}
+			return nil
+		} else {
+			if txn.PayloadVersion != payload.TransferCrossChainVersionV1 {
+				return errors.New("not support " +
+					"TransferCrossChainAsset payload version V0 after NewCrossChainStartHeight")
+			}
+		}
 	}
 
 	return nil
@@ -1436,6 +1457,40 @@ func (b *BlockChain) checkCrossChainArbitrators(publicKeys [][]byte) error {
 }
 
 func (b *BlockChain) checkTransferCrossChainAssetTransaction(txn *Transaction, references map[*Input]Output) error {
+	if txn.PayloadVersion > payload.TransferCrossChainVersionV1 {
+		return errors.New("invalid payload version")
+	} else if txn.PayloadVersion == payload.TransferCrossChainVersionV1 {
+		return b.checkTransferCrossChainAssetTransactionV1(txn, references)
+	}
+	return b.checkTransferCrossChainAssetTransactionV0(txn, references)
+}
+
+func (b *BlockChain) checkTransferCrossChainAssetTransactionV1(txn *Transaction, references map[*Input]Output) error {
+	if txn.Version < TxVersion09 {
+		return errors.New("invalid transaction version")
+	}
+
+	var crossChainOutputCount uint32
+	for _, output := range txn.Outputs {
+		switch output.Type {
+		case OTNone:
+		case OTCrossChain:
+			if bytes.Compare(output.ProgramHash[0:1], []byte{byte(contract.PrefixCrossChain)}) != 0 {
+				return errors.New("invalid transaction output address, without \"X\" at beginning")
+			}
+			crossChainOutputCount++
+		default:
+			return errors.New("invalid output type in cross chain transaction")
+		}
+	}
+	if crossChainOutputCount == 0 {
+		return errors.New("invalid cross chain output count")
+	}
+
+	return nil
+}
+
+func (b *BlockChain) checkTransferCrossChainAssetTransactionV0(txn *Transaction, references map[*Input]Output) error {
 	payloadObj, ok := txn.Payload.(*payload.TransferCrossChainAsset)
 	if !ok {
 		return errors.New("Invalid transfer cross chain asset payload type")

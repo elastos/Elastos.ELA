@@ -535,6 +535,9 @@ type Params struct {
 	// CRVotingStartHeight defines the height of CR voting started.
 	CRVotingStartHeight uint32
 
+	// NewCrossChainStartHeight defines the height of new cross chain transaction started.
+	NewCrossChainStartHeight uint32
+
 	// CRCommitteeStartHeight defines the height of CR Committee started.
 	CRCommitteeStartHeight uint32
 

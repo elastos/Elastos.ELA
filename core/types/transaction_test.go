@@ -870,7 +870,7 @@ func randomOldVersionTransaction(oldVersion bool, txType byte, inputNum, outputN
 	txn := &Transaction{
 		Version:        TransactionVersion(txType),
 		TxType:         TxType(txType),
-		PayloadVersion: byte(rand.Uint32()),
+		PayloadVersion: byte(0),
 		LockTime:       rand.Uint32(),
 		Inputs:         make([]*Input, 0),
 		Outputs:        make([]*Output, 0),

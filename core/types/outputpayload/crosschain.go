@@ -14,12 +14,14 @@ import (
 )
 
 const CrossChainOutputVersion byte = 0x00
+const MaxTargetDataSize uint32 = 1024
 
 // CrossChainOutput defines the output payload for cross chain.
 type CrossChainOutput struct {
 	Version       byte
 	TargetAddress string
 	TargetAmount  common.Fixed64
+	TargetData    []byte
 }
 
 func (o *CrossChainOutput) Data() []byte {
@@ -36,6 +38,9 @@ func (o *CrossChainOutput) Serialize(w io.Writer) error {
 	if err := o.TargetAmount.Serialize(w); err != nil {
 		return err
 	}
+	if err := common.WriteVarBytes(w, o.TargetData); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -46,13 +51,17 @@ func (o *CrossChainOutput) Deserialize(r io.Reader) error {
 	}
 	o.Version = version[0]
 
-	address, err := common.ReadVarString(r)
+	o.TargetAddress, err = common.ReadVarString(r)
 	if err != nil {
 		return err
 	}
-	o.TargetAddress = address
 
 	if err = o.TargetAmount.Deserialize(r); err != nil {
+		return err
+	}
+
+	o.TargetData, err = common.ReadVarBytes(r, MaxTargetDataSize, "target data")
+	if err != nil {
 		return err
 	}
 	return nil

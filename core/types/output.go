@@ -26,6 +26,9 @@ const (
 
 	// OTMapping indicates the output payload is a mapping.
 	OTMapping
+
+	// OTCrossChain indicates the output payload is cross chain information.
+	OTCrossChain
 )
 
 type OutputPayload interface {
@@ -136,6 +139,8 @@ func getOutputPayload(outputType OutputType) (OutputPayload, error) {
 		op = new(outputpayload.VoteOutput)
 	case OTMapping:
 		op = new(outputpayload.Mapping)
+	case OTCrossChain:
+		op =new(outputpayload.CrossChainOutput)
 	default:
 		return nil, errors.New("invalid transaction output type")
 	}

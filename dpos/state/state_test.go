@@ -1525,7 +1525,6 @@ func TestState_CountArbitratorsInactivityV1(t *testing.T) {
 			if i >= len(state.chainParams.CRCArbiters)+state.chainParams.GeneralArbiters {
 				break
 			}
-			p.inactiveCountingHeight = 0
 			result = append(result, &ArbiterInfo{
 				NodePublicKey: p.NodePublicKey(),
 				IsNormal:      true,

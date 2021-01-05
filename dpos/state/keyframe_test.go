@@ -299,7 +299,6 @@ func producerEqual(first *Producer, second *Producer) bool {
 	if first.state != second.state ||
 		first.registerHeight != second.registerHeight ||
 		first.cancelHeight != second.cancelHeight ||
-		first.inactiveCountingHeight != second.inactiveCountingHeight ||
 		first.inactiveSince != second.inactiveSince ||
 		first.activateRequestHeight != second.activateRequestHeight ||
 		first.illegalHeight != second.illegalHeight ||
@@ -402,15 +401,14 @@ func randomProducer() *Producer {
 			NetAddress:     randomString(),
 			Signature:      randomBytes(64),
 		},
-		state:                  ProducerState(rand.Uint32()),
-		registerHeight:         rand.Uint32(),
-		cancelHeight:           rand.Uint32(),
-		inactiveCountingHeight: rand.Uint32(),
-		inactiveSince:          rand.Uint32(),
-		activateRequestHeight:  rand.Uint32(),
-		illegalHeight:          rand.Uint32(),
-		penalty:                common.Fixed64(rand.Uint64()),
-		votes:                  common.Fixed64(rand.Intn(10000) + 1),
+		state:                 ProducerState(rand.Uint32()),
+		registerHeight:        rand.Uint32(),
+		cancelHeight:          rand.Uint32(),
+		inactiveSince:         rand.Uint32(),
+		activateRequestHeight: rand.Uint32(),
+		illegalHeight:         rand.Uint32(),
+		penalty:               common.Fixed64(rand.Uint64()),
+		votes:                 common.Fixed64(rand.Intn(10000) + 1),
 	}
 }
 

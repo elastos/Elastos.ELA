@@ -68,21 +68,21 @@ func (ps ProducerState) String() string {
 // Producer holds a producer's info.  It provides read only methods to access
 // producer's info.
 type Producer struct {
-	info                      payload.ProducerInfo
-	state                     ProducerState
-	registerHeight            uint32
-	cancelHeight              uint32
-	inactiveCountingHeight    uint32
-	inactiveCountingEndHeight uint32
-	inactiveSince             uint32
-	activateRequestHeight     uint32
-	illegalHeight             uint32
-	penalty                   common.Fixed64
-	votes                     common.Fixed64
-	depositAmount             common.Fixed64
-	totalAmount               common.Fixed64
-	depositHash               common.Uint168
-	selected                  bool
+	info                         payload.ProducerInfo
+	state                        ProducerState
+	registerHeight               uint32
+	cancelHeight                 uint32
+	inactiveSince                uint32
+	activateRequestHeight        uint32
+	illegalHeight                uint32
+	penalty                      common.Fixed64
+	votes                        common.Fixed64
+	depositAmount                common.Fixed64
+	totalAmount                  common.Fixed64
+	depositHash                  common.Uint168
+	selected                     bool
+	randomCandidateinactiveCount uint32
+	inactiveCount                uint32
 }
 
 // Info returns a copy of the origin registered producer info.
@@ -163,14 +163,6 @@ func (p *Producer) Serialize(w io.Writer) error {
 		return err
 	}
 
-	if err := common.WriteUint32(w, p.inactiveCountingHeight); err != nil {
-		return err
-	}
-
-	if err := common.WriteUint32(w, p.inactiveCountingEndHeight); err != nil {
-		return err
-	}
-
 	if err := common.WriteUint32(w, p.inactiveSince); err != nil {
 		return err
 	}
@@ -188,6 +180,14 @@ func (p *Producer) Serialize(w io.Writer) error {
 	}
 
 	if err := common.WriteUint64(w, uint64(p.votes)); err != nil {
+		return err
+	}
+
+	if err := common.WriteUint32(w, p.inactiveCount); err != nil {
+		return err
+	}
+
+	if err := common.WriteUint32(w, p.randomCandidateinactiveCount); err != nil {
 		return err
 	}
 
@@ -210,14 +210,6 @@ func (p *Producer) Deserialize(r io.Reader) (err error) {
 	}
 
 	if p.cancelHeight, err = common.ReadUint32(r); err != nil {
-		return
-	}
-
-	if p.inactiveCountingHeight, err = common.ReadUint32(r); err != nil {
-		return
-	}
-
-	if p.inactiveCountingEndHeight, err = common.ReadUint32(r); err != nil {
 		return
 	}
 
@@ -244,7 +236,13 @@ func (p *Producer) Deserialize(r io.Reader) (err error) {
 		return
 	}
 	p.votes = common.Fixed64(votes)
+	if p.inactiveCount, err = common.ReadUint32(r); err != nil {
+		return
+	}
 
+	if p.randomCandidateinactiveCount, err = common.ReadUint32(r); err != nil {
+		return
+	}
 	return p.depositHash.Deserialize(r)
 }
 
@@ -805,12 +803,28 @@ func (s *State) processTransactions(txs []*types.Transaction, height uint32) {
 	// Check if any pending inactive producers has got 6 confirms,
 	// then set them to activate.
 	activateProducerFromInactive := func(key string, producer *Producer) {
+		oriInactiveCount := uint32(0)
+		if producer.selected {
+			oriInactiveCount = producer.randomCandidateinactiveCount
+		} else {
+			oriInactiveCount = producer.inactiveCount
+		}
 		s.history.Append(height, func() {
 			producer.state = Active
+			if producer.selected {
+				producer.randomCandidateinactiveCount = 0
+			} else {
+				producer.inactiveCount = 0
+			}
 			s.ActivityProducers[key] = producer
 			delete(s.InactiveProducers, key)
 		}, func() {
 			producer.state = Inactive
+			if producer.selected {
+				producer.randomCandidateinactiveCount = oriInactiveCount
+			} else {
+				producer.inactiveCount = oriInactiveCount
+			}
 			s.InactiveProducers[key] = producer
 			delete(s.ActivityProducers, key)
 		})
@@ -939,16 +953,17 @@ func (s *State) registerProducer(tx *types.Transaction, height uint32) {
 	}
 
 	producer := Producer{
-		info:                   *info,
-		registerHeight:         height,
-		votes:                  0,
-		inactiveSince:          0,
-		inactiveCountingHeight: 0,
-		penalty:                common.Fixed64(0),
-		activateRequestHeight:  math.MaxUint32,
-		depositAmount:          state.MinDepositAmount,
-		totalAmount:            amount,
-		depositHash:            *programHash,
+		info:                         *info,
+		registerHeight:               height,
+		votes:                        0,
+		inactiveSince:                0,
+		inactiveCount:                0,
+		randomCandidateinactiveCount: 0,
+		penalty:                      common.Fixed64(0),
+		activateRequestHeight:        math.MaxUint32,
+		depositAmount:                state.MinDepositAmount,
+		totalAmount:                  amount,
+		depositHash:                  *programHash,
 	}
 
 	s.history.Append(height, func() {
@@ -1687,19 +1702,24 @@ func (s *State) countArbitratorsInactivityV1(height uint32,
 					if !ok {
 						continue
 					}
-					countingHeight := producer.inactiveCountingHeight
+					oriInactiveCount := uint32(0)
+					if producer.selected {
+						oriInactiveCount = producer.randomCandidateinactiveCount
+					} else {
+						oriInactiveCount = producer.inactiveCount
+					}
 					s.history.Append(height, func() {
-						s.tryUpdateInactivity(key, producer, needReset, height)
+						s.tryUpdateInactivity(key, producer, needReset, height, false)
 					}, func() {
-						s.tryRevertInactivity(key, producer, needReset, height, countingHeight)
+						s.tryRevertInactivity(key, producer, needReset, height, oriInactiveCount)
 					})
 				} else {
 					oriState := cr.MemberState
-					oriCountingHeight := cr.InactiveCountingHeight
+					oriInactiveCount := cr.InactiveCount
 					s.history.Append(height, func() {
 						s.tryUpdateCRMemberInactivity(cr.Info.DID, needReset, height)
 					}, func() {
-						s.tryRevertCRMemberInactivity(cr.Info.DID, oriState, oriCountingHeight, height)
+						s.tryRevertCRMemberInactivity(cr.Info.DID, oriState, oriInactiveCount, height)
 					})
 				}
 				continue
@@ -1711,12 +1731,16 @@ func (s *State) countArbitratorsInactivityV1(height uint32,
 		if !ok {
 			continue
 		}
-		countingHeight := producer.inactiveCountingHeight
-
+		oriInactiveCount := uint32(0)
+		if producer.selected {
+			oriInactiveCount = producer.randomCandidateinactiveCount
+		} else {
+			oriInactiveCount = producer.inactiveCount
+		}
 		s.history.Append(height, func() {
-			s.tryUpdateInactivity(key, producer, needReset, height)
+			s.tryUpdateInactivity(key, producer, needReset, height, false)
 		}, func() {
-			s.tryRevertInactivity(key, producer, needReset, height, countingHeight)
+			s.tryRevertInactivity(key, producer, needReset, height, oriInactiveCount)
 		})
 	}
 }
@@ -1758,60 +1782,65 @@ func (s *State) countArbitratorsInactivityV0(height uint32,
 		if !ok {
 			continue
 		}
-		countingHeight := producer.inactiveCountingHeight
 
+		oriInactiveCount := uint32(0)
+		if producer.selected {
+			oriInactiveCount = producer.randomCandidateinactiveCount
+		} else {
+			oriInactiveCount = producer.inactiveCount
+		}
 		s.history.Append(height, func() {
-			s.tryUpdateInactivity(key, producer, needReset, height)
+			s.tryUpdateInactivity(key, producer, needReset, height, true)
 		}, func() {
-			s.tryRevertInactivity(key, producer, needReset, height, countingHeight)
+			s.tryRevertInactivity(key, producer, needReset, height, oriInactiveCount)
 		})
 	}
 }
 
 func (s *State) tryUpdateInactivity(key string, producer *Producer,
-	needReset bool, height uint32) {
-
-	if height > s.chainParams.ChangeCommitteeNewCRHeight {
-		if producer.inactiveCountingEndHeight != height-1 {
-			producer.inactiveCountingHeight = 0
-		}
-		producer.inactiveCountingEndHeight = height
-	}
-
+	needReset bool, height uint32, v0 bool) {
 	if needReset {
-		producer.inactiveCountingHeight = 0
+		if producer.selected {
+			producer.randomCandidateinactiveCount = 0
+
+		} else {
+			producer.inactiveCount = 0
+		}
 		return
 	}
 
-	if producer.inactiveCountingHeight == 0 {
-		producer.inactiveCountingHeight = height
-	}
-
-	maxInactiveRound := s.chainParams.MaxInactiveRounds
 	if producer.selected {
-		maxInactiveRound = s.chainParams.MaxInactiveRoundsOfRandomNode
-	}
+		producer.randomCandidateinactiveCount++
+		if producer.randomCandidateinactiveCount >= s.chainParams.MaxInactiveRoundsOfRandomNode {
+			s.setInactiveProducer(producer, key, height, false)
+		}
+	} else {
+		producer.inactiveCount++
+		inactiveCount := producer.inactiveCount
+		if v0 {
+			inactiveCount--
+		}
 
-	if height-producer.inactiveCountingHeight >= maxInactiveRound {
-		s.setInactiveProducer(producer, key, height, false)
-		producer.inactiveCountingHeight = 0
+		if inactiveCount >= s.chainParams.MaxInactiveRounds {
+			s.setInactiveProducer(producer, key, height, false)
+		}
 	}
 }
 
 func (s *State) tryRevertInactivity(key string, producer *Producer,
-	needReset bool, height, startHeight uint32) {
+	needReset bool, height, oriInactiveCount uint32) {
 	if needReset {
-		producer.inactiveCountingHeight = startHeight
-		return
-	}
+		if producer.selected {
+			producer.randomCandidateinactiveCount = oriInactiveCount
 
-	if producer.inactiveCountingHeight == height {
-		producer.inactiveCountingHeight = 0
+		} else {
+			producer.inactiveCount = oriInactiveCount
+		}
+		return
 	}
 
 	if producer.state == Inactive {
 		s.revertSettingInactiveProducer(producer, key, height, false)
-		producer.inactiveCountingHeight = startHeight
 	}
 }
 
@@ -1859,7 +1888,7 @@ func NewState(chainParams *config.Params, getArbiters func() []*ArbiterInfo,
 	isInElectionPeriod func() bool,
 	getProducerDepositAmount func(common.Uint168) (common.Fixed64, error),
 	tryUpdateCRMemberInactivity func(did common.Uint168, needReset bool, height uint32),
-	tryRevertCRMemberInactivityfunc func(did common.Uint168, oriState state.MemberState, oriInactiveCountingHeight uint32, height uint32),
+	tryRevertCRMemberInactivityfunc func(did common.Uint168, oriState state.MemberState, oriInactiveCount uint32, height uint32),
 	tryUpdateCRMemberIllegal func(did common.Uint168, height uint32),
 	tryRevertCRMemberIllegal func(did common.Uint168, oriState state.MemberState, height uint32)) *State {
 	state := State{

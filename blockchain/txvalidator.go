@@ -1681,10 +1681,18 @@ func (b *BlockChain) checkActivateProducerTransaction(txn *Transaction,
 			return errors.New("can not activate this producer")
 		}
 	} else {
-		if producer.State() != state.Inactive &&
-			producer.State() != state.Illegal {
-			return errors.New("can not activate this producer")
+		if height < b.chainParams.ChangeCommitteeNewCRHeight {
+			if producer.State() != state.Inactive &&
+				producer.State() != state.Illegal {
+				return errors.New("can not activate this producer")
+			}
+		} else {
+			if producer.State() != state.Active && producer.State() != state.Inactive &&
+				producer.State() != state.Illegal {
+				return errors.New("can not activate this producer")
+			}
 		}
+
 	}
 
 	if height > producer.ActivateRequestHeight() &&

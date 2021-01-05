@@ -360,7 +360,7 @@ func (c *Committee) ProcessBlock(block *types.Block, confirm *payload.Confirm) {
 	inElectionPeriod := c.tryStartVotingPeriod(block.Height)
 	c.updateProposals(block.Height, inElectionPeriod)
 	c.updateCirculationAmount(c.lastHistory, block.Height)
-	c.updateCRInactivePeriod(c.lastHistory, block.Height)
+	c.updateInactiveCountPenalty(c.lastHistory, block.Height)
 	c.updateCRInactiveStatus(c.lastHistory, block.Height)
 	needChg := false
 	if c.shouldChange(block.Height) && c.changeCommittee(block.Height) {
@@ -394,14 +394,14 @@ func (c *Committee) ProcessBlock(block *types.Block, confirm *payload.Confirm) {
 	}
 }
 
-func (c *Committee) updateCRInactivePeriod(history *utils.History, height uint32) {
+func (c *Committee) updateInactiveCountPenalty(history *utils.History, height uint32) {
 	for _, v := range c.Members {
 		cr := v
 		if cr.MemberState == MemberInactive || cr.MemberState == MemberIllegal {
 			history.Append(height, func() {
-				cr.InactiveCount += 1
+				cr.PenaltyBlockCount += 1
 			}, func() {
-				cr.InactiveCount -= 1
+				cr.PenaltyBlockCount -= 1
 			})
 		}
 	}
@@ -908,14 +908,18 @@ func (c *Committee) processCRCouncilMemberClaimNode(tx *types.Transaction,
 	}
 	oriPublicKey := cr.DPOSPublicKey
 	oriMemberState := cr.MemberState
+	oriInactiveCount := cr.InactiveCount
 	history.Append(height, func() {
 		cr.DPOSPublicKey = claimNodePayload.NodePublicKey
 		if cr.MemberState == MemberInactive {
 			cr.MemberState = MemberElected
+			cr.InactiveCount = 0
 		}
 	}, func() {
 		cr.DPOSPublicKey = oriPublicKey
 		cr.MemberState = oriMemberState
+		cr.InactiveCount = oriInactiveCount
+
 	})
 }
 
@@ -1204,9 +1208,9 @@ func (c *Committee) getMemberPenalty(height uint32, member *CRMember, impeached 
 	// Calculate penalty by election block count.
 	var electionCount uint32
 	if impeached {
-		electionCount = height - c.LastCommitteeHeight - member.InactiveCount
+		electionCount = height - c.LastCommitteeHeight - member.PenaltyBlockCount
 	} else {
-		electionCount = c.params.CRDutyPeriod - member.InactiveCount
+		electionCount = c.params.CRDutyPeriod - member.PenaltyBlockCount
 	}
 	if member.MemberState == MemberInactive {
 		electionCount -= 1
@@ -1239,7 +1243,7 @@ func (c *Committee) getMemberPenalty(height uint32, member *CRMember, impeached 
 		" penalty: %s, old penalty: %s, final penalty: %s",
 		height, member.Info.NickName, currentPenalty, penalty, finalPenalty)
 	log.Info("electionRate:", electionRate, "voteRate:", voteRate,
-		"electionCount:", electionCount, "inactiveCount:", member.InactiveCount,
+		"electionCount:", electionCount, "PenaltyBlockCount:", member.PenaltyBlockCount,
 		"dutyPeriod:", c.params.CRDutyPeriod, "voteCount:", voteCount,
 		"proposalsCount:", proposalsCount)
 
@@ -1441,33 +1445,22 @@ func (c *Committee) TryUpdateCRMemberInactivity(did common.Uint168,
 		return
 	}
 
-	if height > c.params.ChangeCommitteeNewCRHeight {
-		if crMember.InactiveCountingEndHeight != height-1 {
-			crMember.InactiveCountingHeight = 0
-		}
-		crMember.InactiveCountingEndHeight = height
-	}
-
 	if needReset {
-		crMember.InactiveCountingHeight = 0
+		crMember.InactiveCount = 0
 		return
 	}
 
-	if crMember.InactiveCountingHeight == 0 {
-		crMember.InactiveCountingHeight = height
-	}
-
-	if height-crMember.InactiveCountingHeight >= c.params.MaxInactiveRounds {
+	crMember.InactiveCount++
+	if crMember.InactiveCount >= c.params.MaxInactiveRounds {
 		log.Info("at height", height, crMember.Info.NickName,
-			"changed to inactive", "InactiveCountingHeight:", crMember.InactiveCountingHeight,
+			"changed to inactive", "InactiveCount:", crMember.InactiveCount,
 			"MaxInactiveRounds:", c.params.MaxInactiveRounds)
 		crMember.MemberState = MemberInactive
-		crMember.InactiveCountingHeight = 0
 	}
 }
 
 func (c *Committee) TryRevertCRMemberInactivity(did common.Uint168,
-	oriState MemberState, oriInactiveCountingHeight uint32, height uint32) {
+	oriState MemberState, oriInactiveCount uint32, height uint32) {
 	c.mtx.RLock()
 	defer c.mtx.RUnlock()
 	crMember := c.getMember(did)
@@ -1476,7 +1469,7 @@ func (c *Committee) TryRevertCRMemberInactivity(did common.Uint168,
 		return
 	}
 	crMember.MemberState = oriState
-	crMember.InactiveCountingHeight = oriInactiveCountingHeight
+	crMember.InactiveCount = oriInactiveCount
 }
 
 func (c *Committee) TryUpdateCRMemberIllegal(did common.Uint168, height uint32) {

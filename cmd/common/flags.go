@@ -408,6 +408,16 @@ var (
 		Name:  "newversionheight",
 		Usage: "defines the new version message height",
 	}
+
+	// Config flags
+	OracleIdFlag = cli.StringFlag{
+		Name:  "oracleid",
+		Usage: "specify network type to test net",
+	}
+	JobIdFlag = cli.StringFlag{
+		Name:  "jobid",
+		Usage: "specify the oracle node job ID",
+	}
 )
 
 // MoveRPCFlags finds the rpc argument and moves it to the front

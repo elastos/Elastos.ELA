@@ -1,7 +1,7 @@
 // Copyright (c) 2017-2020 The Elastos Foundation
 // Use of this source code is governed by an MIT
 // license that can be found in the LICENSE file.
-// 
+//
 
 package wallet
 
@@ -13,6 +13,7 @@ func NewCommand() *cli.Command {
 	var subCommands []cli.Command
 	subCommands = append(subCommands, txCommand...)
 	subCommands = append(subCommands, accountCommand...)
+	subCommands = append(subCommands, toolsCommand...)
 
 	return &cli.Command{
 		Name:        "wallet",

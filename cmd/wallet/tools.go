@@ -53,9 +53,9 @@ func signOracleId(c *cli.Context) error {
 		return err
 	}
 
-	data := make([]byte, len(oracleId)+32)
-	copy(data[0:len(oracleId)], oracleId)
-	copy(data[len(oracleId):], Keccak256([]byte(jobId)))
+	data := make([]byte, 64)
+	copy(data[0:32], Keccak256(oracleId))
+	copy(data[32:], Keccak256([]byte(jobId)))
 	signature, err := crypto.Sign(client.GetMainAccount().PrivKey(), data)
 	if err != nil {
 		return err

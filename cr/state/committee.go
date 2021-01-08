@@ -413,8 +413,14 @@ func (c *Committee) checkAndSetMemberToInactive(history *utils.History, height u
 		if m.DPOSPublicKey == nil && m.MemberState == MemberElected {
 			history.Append(height, func() {
 				m.MemberState = MemberInactive
+				if height >= c.params.ChangeCommitteeNewCRHeight {
+					c.state.UpdateCRInactivePenalty(m.Info.CID)
+				}
 			}, func() {
 				m.MemberState = MemberElected
+				if height >= c.params.ChangeCommitteeNewCRHeight {
+					c.state.RevertUpdateCRInactivePenalty(m.Info.CID)
+				}
 			})
 		}
 	}
@@ -1451,11 +1457,15 @@ func (c *Committee) TryUpdateCRMemberInactivity(did common.Uint168,
 	}
 
 	crMember.InactiveCount++
-	if crMember.InactiveCount >= c.params.MaxInactiveRounds {
+	if crMember.InactiveCount >= c.params.MaxInactiveRounds &&
+		crMember.MemberState == MemberElected {
 		log.Info("at height", height, crMember.Info.NickName,
 			"changed to inactive", "InactiveCount:", crMember.InactiveCount,
 			"MaxInactiveRounds:", c.params.MaxInactiveRounds)
 		crMember.MemberState = MemberInactive
+		if height >= c.params.ChangeCommitteeNewCRHeight {
+			c.state.UpdateCRInactivePenalty(crMember.Info.CID)
+		}
 	}
 }
 
@@ -1468,6 +1478,13 @@ func (c *Committee) TryRevertCRMemberInactivity(did common.Uint168,
 		log.Error("tryRevertCRMemberInactivity did %+v not exist", did.String())
 		return
 	}
+
+	if height >= c.params.ChangeCommitteeNewCRHeight &&
+		oriInactiveCount < c.params.MaxInactiveRounds &&
+		crMember.MemberState == MemberInactive {
+		c.state.RevertUpdateCRInactivePenalty(crMember.Info.CID)
+	}
+
 	crMember.MemberState = oriState
 	crMember.InactiveCount = oriInactiveCount
 }

@@ -18,6 +18,7 @@ const (
 	// Normal indicates the normal types of proposal.
 	Normal CRCProposalType = 0x0000
 
+	// 0x01 ELIP proposals.
 	// ELIP indicates elastos improvement type of proposal.
 	ELIP CRCProposalType = 0x0100
 	// Used to identify process-related elips
@@ -25,26 +26,31 @@ const (
 	// Used to flag Elastos design issues
 	INFOELIP CRCProposalType = 0x0102
 
-	// MainChainUpgradeCode indicates the code upgrade types of proposals.
+	// 0x02 code upgrade related proposals.
+	// MainChainUpgradeCode indicates the ELA code upgrade types of proposals.
 	MainChainUpgradeCode CRCProposalType = 0x0200
+	// DIDUpgradeCode indicates the DID code upgrade types of proposals.
+	DIDUpgradeCode CRCProposalType = 0x0201
+	// DIDUpgradeCode indicates the ETH code upgrade types of proposals.
+	ETHUpgradeCode CRCProposalType = 0x0202
 
-	// SideChainUpgradeCode indicates the side chain related types of proposals.
-	SideChainUpgradeCode CRCProposalType = 0x0300
-	// Registration of side chain.
-	RegisterSideChain CRCProposalType = 0x0301
-	// Reserved did custom id.
-	ReserveCustomID CRCProposalType = 0x0302
-	// Receive did custom id.
-	ReceiveCustomID CRCProposalType = 0x0303
-	// The rate of custom id fee.
-	ChangeCustomIDFee CRCProposalType = 0x0304
-
+	/// 0x03 main chain related proposals.
 	// SecretaryGeneral indicates the vote secretary general types of proposals.
-	SecretaryGeneral CRCProposalType = 0x0400
+	SecretaryGeneral CRCProposalType = 0x0300
 	// ChangeProposalOwner indicates the change proposal owner types of proposals.
-	ChangeProposalOwner CRCProposalType = 0x0401
+	ChangeProposalOwner CRCProposalType = 0x0301
 	// CloseProposal indicates the close proposal types of proposals.
-	CloseProposal CRCProposalType = 0x0402
+	CloseProposal CRCProposalType = 0x0302
+	// Registration of side chain.
+	RegisterSideChain CRCProposalType = 0x0310
+
+	// 0x04 DID related proposals.
+	// Reserved did custom id.
+	ReserveCustomID CRCProposalType = 0x0400
+	// Receive did custom id.
+	ReceiveCustomID CRCProposalType = 0x0401
+	// The rate of custom id fee.
+	ChangeCustomIDFee CRCProposalType = 0x0402
 
 	// Common information used to define consensus governance
 	DappConsensus CRCProposalType = 0x0500
@@ -60,8 +66,12 @@ func (pt CRCProposalType) Name() string {
 		return "ELIP"
 	//case MainChainUpgradeCode:
 	//	return "MainChainUpgradeCode"
-	//case SideChainUpgradeCode:
-	//	return "SideChainUpgradeCode"
+	//case DIDUpgradeCode:
+	//	return "DIDUpgradeCode"
+	//case ETHUpgradeCode:
+	//	return "ETHUpgradeCode"
+	//case RegisterSideChain:
+	//	return "RegisterSideChain"
 	case ChangeProposalOwner:
 		return "ChangeProposalOwner"
 	case CloseProposal:

@@ -1439,18 +1439,21 @@ func (s *State) processCRCouncilMemberClaimNode(tx *types.Transaction, height ui
 func (s *State) processRevertToPOW(tx *types.Transaction, height uint32) {
 	oriNoProducers := s.NoProducers
 	oriNoClaimDPOSNode := s.NoClaimDPOSNode
-	oriConsensusAlgorithmWorkHeight := s.DPOSWorkHeight
+	oriDPOSWorkHeight := s.DPOSWorkHeight
+	oriRevertToPOWBlockHeight := s.RevertToPOWBlockHeight
 	s.history.Append(height, func() {
 		s.ConsensusAlgorithm = POW
 		s.NoProducers = false
 		s.NoClaimDPOSNode = false
 		s.DPOSWorkHeight = 0
-
+		s.RevertToPOWBlockHeight = height
 	}, func() {
 		s.ConsensusAlgorithm = DPOS
 		s.NoProducers = oriNoProducers
 		s.NoClaimDPOSNode = oriNoClaimDPOSNode
-		s.DPOSWorkHeight = oriConsensusAlgorithmWorkHeight
+		s.DPOSWorkHeight = oriDPOSWorkHeight
+		s.RevertToPOWBlockHeight = oriRevertToPOWBlockHeight
+
 	})
 
 	pld := tx.Payload.(*payload.RevertToPOW)

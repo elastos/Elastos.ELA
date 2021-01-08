@@ -3482,6 +3482,11 @@ func (b *BlockChain) checkRevertToDPOSTransaction(
 		return errors.New("invalid GetConsensusAlgorithm() != state.POW")
 	}
 
+	// to avoid init DPOSWorkHeight repeatedly
+	if b.GetState().DPOSWorkHeight > blockHeight {
+		return errors.New("already receieved  revertodpos")
+	}
+
 	return CheckRevertToDPOSTransaction(txn)
 }
 

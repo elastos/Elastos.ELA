@@ -38,6 +38,7 @@ type Arbitrators interface {
 	GetFinalRoundChange() common.Fixed64
 	SetNeedRevertToDPOSTX(need bool)
 	IsInPOWMode() bool
+	GetRevertToPOWBlockHeight() uint32
 	GetLastBlockTimestamp() uint32
 	IsInactiveMode() bool
 	IsUnderstaffedMode() bool

@@ -16,8 +16,8 @@ const WorkHeightInterval = 10
 const RevertToDPOSVersion byte = 0x00
 
 type RevertToDPOS struct {
-	WorkHeightInterval uint32
-	CurBlockHeight     uint32
+	WorkHeightInterval     uint32
+	RevertToPOWBlockHeight uint32
 }
 
 func (i *RevertToDPOS) GetBlockHeight() uint32 {
@@ -36,7 +36,7 @@ func (i *RevertToDPOS) SerializeUnsigned(w io.Writer, version byte) error {
 	if err := common.WriteUint32(w, i.WorkHeightInterval); err != nil {
 		return err
 	}
-	if err := common.WriteUint32(w, i.CurBlockHeight); err != nil {
+	if err := common.WriteUint32(w, i.RevertToPOWBlockHeight); err != nil {
 		return err
 	}
 	return nil
@@ -54,7 +54,7 @@ func (i *RevertToDPOS) DeserializeUnsigned(r io.Reader,
 	if i.WorkHeightInterval, err = common.ReadUint32(r); err != nil {
 		return err
 	}
-	if i.CurBlockHeight, err = common.ReadUint32(r); err != nil {
+	if i.RevertToPOWBlockHeight, err = common.ReadUint32(r); err != nil {
 		return err
 	}
 	return err

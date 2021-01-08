@@ -831,13 +831,13 @@ func (p *ProposalDispatcher) setProcessingProposal(d *payload.DPOSProposal) (fin
 	return false
 }
 
-func (p *ProposalDispatcher) CreateRevertToDPOS(BlockHeight uint32) (
+func (p *ProposalDispatcher) CreateRevertToDPOS(RevertToPOWBlockHeight uint32) (
 	*types.Transaction, error) {
 
 	var err error
 	revertToDPOSPayload := &payload.RevertToDPOS{
-		WorkHeightInterval: payload.WorkHeightInterval,
-		CurBlockHeight:     BlockHeight,
+		WorkHeightInterval:     payload.WorkHeightInterval,
+		RevertToPOWBlockHeight: RevertToPOWBlockHeight,
 	}
 	con := contract.Contract{Prefix: contract.PrefixMultiSig}
 	if con.Code, err = p.createRevertToDPOSRedeemScript(); err != nil {

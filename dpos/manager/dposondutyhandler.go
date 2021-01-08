@@ -105,7 +105,7 @@ func (h *DPOSOnDutyHandler) TryCreateRevertToDPOSTx(BlockHeight uint32) bool {
 	curPublicKey := h.proposalDispatcher.cfg.Account.PublicKeyBytes()
 	if h.consensus.IsArbitratorOnDuty(curPublicKey) {
 
-		tx, err := h.proposalDispatcher.CreateRevertToDPOS(BlockHeight)
+		tx, err := h.proposalDispatcher.CreateRevertToDPOS(h.cfg.Arbitrators.GetRevertToPOWBlockHeight())
 		if err != nil {
 			return false
 		}

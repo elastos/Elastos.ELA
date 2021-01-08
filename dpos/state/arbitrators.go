@@ -125,6 +125,12 @@ func (a *arbitrators) IsInPOWMode() bool {
 
 }
 
+func (a *arbitrators) GetRevertToPOWBlockHeight() uint32 {
+	a.mtx.Lock()
+	defer a.mtx.Unlock()
+	return a.RevertToPOWBlockHeight
+}
+
 func (a *arbitrators) RegisterFunction(bestHeight func() uint32,
 	bestBlockHash func() *common.Uint256,
 	getBlockByHeight func(uint32) (*types.Block, error),

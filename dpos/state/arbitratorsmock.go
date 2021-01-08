@@ -75,6 +75,10 @@ func (a *ArbitratorsMock) IsInPOWMode() bool {
 	return false
 }
 
+func (a *ArbitratorsMock) GetRevertToPOWBlockHeight() uint32 {
+	return 0
+}
+
 func (a *ArbitratorsMock) GetConnectedProducer(publicKey []byte) ArbiterMember {
 	panic("implement me")
 }

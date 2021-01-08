@@ -1546,18 +1546,19 @@ func (s *State) processIllegalEvidence(payloadData types.Payload,
 		}
 		if producer, ok := s.ActivityProducers[key]; ok {
 			oriPenalty := producer.penalty
+			oriState := producer.state
 			s.history.Append(height, func() {
 				producer.state = Illegal
 				producer.illegalHeight = height
 				s.IllegalProducers[key] = producer
 				producer.activateRequestHeight = math.MaxUint32
-				if height >= s.chainParams.ChangeCommitteeNewCRHeight {
+				if height >= s.chainParams.ChangeCommitteeNewCRHeight && oriState != Illegal {
 					producer.penalty += s.chainParams.IllegalPenalty
 				}
 				delete(s.ActivityProducers, key)
 				delete(s.Nicknames, producer.info.NickName)
 			}, func() {
-				producer.state = Active
+				producer.state = oriState
 				producer.penalty = oriPenalty
 				producer.illegalHeight = 0
 				s.ActivityProducers[key] = producer
@@ -1570,17 +1571,18 @@ func (s *State) processIllegalEvidence(payloadData types.Payload,
 
 		if producer, ok := s.CanceledProducers[key]; ok {
 			oriPenalty := producer.penalty
+			oriState := producer.state
 			s.history.Append(height, func() {
 				producer.state = Illegal
 				producer.illegalHeight = height
 				s.IllegalProducers[key] = producer
-				if height >= s.chainParams.ChangeCommitteeNewCRHeight {
+				if height >= s.chainParams.ChangeCommitteeNewCRHeight && oriState != Illegal {
 					producer.penalty += s.chainParams.IllegalPenalty
 				}
 				delete(s.CanceledProducers, key)
 				delete(s.Nicknames, producer.info.NickName)
 			}, func() {
-				producer.state = Canceled
+				producer.state = oriState
 				producer.illegalHeight = 0
 				producer.penalty = oriPenalty
 				s.CanceledProducers[key] = producer

@@ -34,21 +34,22 @@ type StateKeyFrame struct {
 	PreBlockArbiters         map[string]struct{}
 	ProducerDepositMap       map[common.Uint168]struct{}
 
-	EmergencyInactiveArbiters    map[string]struct{}
-	VersionStartHeight           uint32
-	VersionEndHeight             uint32
-	NeedNextTurnDposInfo         bool
-	Unclaimed                    int
-	LastRandomCandidateHeight    uint32
-	LastRandomCandidateOwner     string
-	DPOSWorkHeight               uint32
-	ConsensusAlgorithm           ConsesusAlgorithm
-	LastBlockTimestamp           uint32
-	NeedRevertToDPOSTX           bool
-	NeedNextTurnDPOSInfo         bool
-	NoProducers                  bool
-	NoClaimDPOSNode              bool
-	ConsensusAlgorithmWorkHeight uint32
+	EmergencyInactiveArbiters map[string]struct{}
+	VersionStartHeight        uint32
+	VersionEndHeight          uint32
+	NeedNextTurnDposInfo      bool
+	Unclaimed                 int
+	LastRandomCandidateHeight uint32
+	LastRandomCandidateOwner  string
+	DPOSWorkHeight            uint32
+	ConsensusAlgorithm        ConsesusAlgorithm
+	LastBlockTimestamp        uint32
+	NeedRevertToDPOSTX        bool
+	NeedNextTurnDPOSInfo      bool
+	NoProducers               bool
+	NoClaimDPOSNode           bool
+	//this height we receieved reverttopow tx and also it is pow work height
+	RevertToPOWBlockHeight uint32
 }
 
 // RewardData defines variables to calculate reward of a round
@@ -151,7 +152,7 @@ func (s *StateKeyFrame) Serialize(w io.Writer) (err error) {
 	if err = common.WriteElements(w, s.VersionStartHeight, s.VersionEndHeight,
 		s.NeedNextTurnDposInfo, s.LastRandomCandidateHeight, s.NoProducers,
 		s.NoClaimDPOSNode, s.LastBlockTimestamp, s.NeedRevertToDPOSTX,
-		s.NeedNextTurnDPOSInfo, s.ConsensusAlgorithmWorkHeight); err != nil {
+		s.NeedNextTurnDPOSInfo, s.RevertToPOWBlockHeight); err != nil {
 		return err
 	}
 
@@ -222,7 +223,7 @@ func (s *StateKeyFrame) Deserialize(r io.Reader) (err error) {
 	if err = common.ReadElements(r, &s.VersionStartHeight, &s.VersionEndHeight,
 		&s.NeedNextTurnDposInfo, &s.LastRandomCandidateHeight, &s.NoClaimDPOSNode,
 		&s.NoProducers, &s.LastBlockTimestamp, &s.NeedRevertToDPOSTX,
-		&s.NeedNextTurnDPOSInfo, &s.ConsensusAlgorithmWorkHeight); err != nil {
+		&s.NeedNextTurnDPOSInfo, &s.RevertToPOWBlockHeight); err != nil {
 		return err
 	}
 

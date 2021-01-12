@@ -2524,6 +2524,13 @@ func getPayloadInfo(p Payload, payloadVersion byte) PayloadInfo {
 	case *payload.RevertToDPOS:
 		obj := new(RevertToDPOSInfo)
 		obj.WorkHeightInterval = object.WorkHeightInterval
+		obj.RevertToPOWBlockHeight = object.RevertToPOWBlockHeight
+		return obj
+	case *payload.RevertToPOW:
+		obj := new(RevertToPOWInfo)
+		obj.Type = object.Type.String()
+		obj.WorkingHeight = object.WorkingHeight
+		return obj
 	case *payload.ActivateProducer:
 		obj := new(ActivateProducerInfo)
 		obj.NodePublicKey = common.BytesToHexString(object.NodePublicKey)
@@ -2645,6 +2652,20 @@ func getPayloadInfo(p Payload, payloadVersion byte) PayloadInfo {
 			obj.Hash = common.ToReversedString(object.Hash(payloadVersion))
 			return obj
 
+		case payload.ChangeCustomIDFee:
+			obj := new(CRCChangeCustomIDFeeInfo)
+			obj.ProposalType = object.ProposalType.Name()
+			obj.CategoryData = object.CategoryData
+			obj.OwnerPublicKey = common.BytesToHexString(object.OwnerPublicKey)
+			obj.DraftHash = common.ToReversedString(object.DraftHash)
+			obj.FeeRate = object.RateOfCustomIDFee.String()
+			obj.Signature = common.BytesToHexString(object.Signature)
+			crmdid, _ := object.CRCouncilMemberDID.ToAddress()
+			obj.CRCouncilMemberDID = crmdid
+			obj.CRCouncilMemberSignature = common.BytesToHexString(object.CRCouncilMemberSignature)
+			obj.Hash = common.ToReversedString(object.Hash(payloadVersion))
+			return obj
+
 		case payload.SecretaryGeneral:
 			obj := new(CRCSecretaryGeneralProposalInfo)
 			obj.ProposalType = object.ProposalType.Name()
@@ -2662,6 +2683,19 @@ func getPayloadInfo(p Payload, payloadVersion byte) PayloadInfo {
 			obj.Hash = common.ToReversedString(object.Hash(payloadVersion))
 			return obj
 		}
+
+	case *payload.CustomIDProposalResult:
+		obj := new(CRCCustomIDProposalResultInfo)
+		for _, r := range object.ProposalResults {
+			result := ProposalResultInfo{
+				ProposalHash: common.ToReversedString(r.ProposalHash),
+				ProposalType: r.ProposalType.Name(),
+				Result:       r.Result,
+			}
+			obj.ProposalResults = append(obj.ProposalResults, result)
+		}
+
+		return obj
 
 	case *payload.CRCProposalReview:
 		obj := new(CRCProposalReviewInfo)

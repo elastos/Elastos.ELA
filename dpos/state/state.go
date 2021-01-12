@@ -53,6 +53,9 @@ const (
 // CacheVotesSize indicate the size to cache votes information.
 const CacheVotesSize = 6
 
+// IrreversibleHeight defines the max height that the chain be reorganized
+const IrreversibleHeight = 6
+
 // producerStateStrings is a array of producer states back to their constant
 // names for pretty printing.
 var producerStateStrings = []string{"Pending", "Active", "Inactive",
@@ -749,6 +752,7 @@ func (s *State) ProcessBlock(block *types.Block, confirm *payload.Confirm) {
 	s.updateProducersDepositCoin(block.Height)
 	s.recordLastBlockTime(block)
 	s.tryRevertToPOWByStateOfCRMember(block.Height)
+	s.tryUpdateLastIrreversibleHeight(block.Height)
 
 	if confirm != nil {
 		if block.Height >= s.chainParams.CRClaimDPOSNodeStartHeight {
@@ -1917,6 +1921,87 @@ func (s *State) GetHistory(height uint32) (*StateKeyFrame, error) {
 
 	// Take a snapshot of the history.
 	return s.snapshot(), nil
+}
+
+func (s *State) GetLastIrreversibleHeight() uint32 {
+	s.mtx.RLock()
+	defer s.mtx.RUnlock()
+	return s.LastIrreversibleHeight
+}
+
+func (s *State) tryUpdateLastIrreversibleHeight(height uint32) {
+	if height < s.chainParams.RevertToPOWStartHeight {
+		return
+	}
+
+	oriLastIrreversibleHeight := s.LastIrreversibleHeight
+	oriDPOSStartHeight := s.DPOSStartHeight
+	//init LastIrreversibleHeight
+	if s.LastIrreversibleHeight == 0 {
+		s.history.Append(height, func() {
+			s.LastIrreversibleHeight = height - IrreversibleHeight
+			s.DPOSStartHeight = s.LastIrreversibleHeight
+			log.Debugf("[tryUpdateLastIrreversibleHeight] init LastIrreversibleHeight %d, DPOSStartHeight",
+				s.LastIrreversibleHeight, s.DPOSStartHeight)
+		}, func() {
+			s.LastIrreversibleHeight = oriLastIrreversibleHeight
+			s.DPOSStartHeight = oriDPOSStartHeight
+			log.Debugf("[tryUpdateLastIrreversibleHeight] init rollback LastIrreversibleHeight %d, DPOSStartHeight",
+				s.LastIrreversibleHeight, s.DPOSStartHeight)
+		})
+
+	} else if s.ConsensusAlgorithm == DPOS {
+		//from pow to dpow
+		if s.DPOSWorkHeight != 0 && height == s.DPOSWorkHeight+1 {
+			s.history.Append(height, func() {
+				s.DPOSStartHeight = height
+				log.Debugf("[tryUpdateLastIrreversibleHeight] from pow to dpow  DPOSStartHeight",
+					s.DPOSStartHeight)
+			}, func() {
+				s.DPOSStartHeight = oriDPOSStartHeight
+				log.Debugf("[tryUpdateLastIrreversibleHeight] from pow to dpow rollback DPOSStartHeight",
+					s.DPOSStartHeight)
+			})
+		}
+		if height-s.DPOSStartHeight >= IrreversibleHeight {
+			s.history.Append(height, func() {
+				s.DPOSStartHeight++
+				s.LastIrreversibleHeight = s.DPOSStartHeight
+				log.Debugf("[tryUpdateLastIrreversibleHeight] LastIrreversibleHeight %d, DPOSStartHeight %d",
+					s.LastIrreversibleHeight, s.DPOSStartHeight)
+			}, func() {
+				s.LastIrreversibleHeight = oriLastIrreversibleHeight
+				s.DPOSStartHeight = oriDPOSStartHeight
+				log.Debugf("[tryUpdateLastIrreversibleHeight] rollback LastIrreversibleHeight %d, DPOSStartHeight %d",
+					s.LastIrreversibleHeight, s.DPOSStartHeight)
+			})
+		}
+	}
+}
+
+//is this Height Irreversible
+func (s *State) IsIrreversible(curBlockHeight uint32, detachNodesLen int) bool {
+	s.mtx.RLock()
+	defer s.mtx.RUnlock()
+
+	if curBlockHeight <= s.chainParams.CRCOnlyDPOSHeight {
+		return false
+	}
+	if curBlockHeight-uint32(detachNodesLen)-1 <= s.LastIrreversibleHeight {
+		return true
+	}
+	if curBlockHeight >= s.chainParams.RevertToPOWStartHeight {
+		if s.ConsensusAlgorithm == DPOS {
+			if detachNodesLen > IrreversibleHeight {
+				return true
+			}
+		}
+	} else {
+		if detachNodesLen > IrreversibleHeight {
+			return true
+		}
+	}
+	return false
 }
 
 func (s *State) handleEvents(event *events.Event) {

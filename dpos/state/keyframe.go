@@ -50,6 +50,11 @@ type StateKeyFrame struct {
 	NoClaimDPOSNode           bool
 	//this height we receieved reverttopow tx and also it is pow work height
 	RevertToPOWBlockHeight uint32
+	//last irreversible height
+	LastIrreversibleHeight uint32
+	//record the height our consensus chang from pow into dpos.
+	//when it is dpos and before RevertToPOWStartHeight  DPOSStartHeight is height - IrreversibleHeight
+	DPOSStartHeight uint32
 }
 
 // RewardData defines variables to calculate reward of a round
@@ -152,7 +157,8 @@ func (s *StateKeyFrame) Serialize(w io.Writer) (err error) {
 	if err = common.WriteElements(w, s.VersionStartHeight, s.VersionEndHeight,
 		s.NeedNextTurnDposInfo, s.LastRandomCandidateHeight, s.NoProducers,
 		s.NoClaimDPOSNode, s.LastBlockTimestamp, s.NeedRevertToDPOSTX,
-		s.NeedNextTurnDPOSInfo, s.RevertToPOWBlockHeight); err != nil {
+		s.NeedNextTurnDPOSInfo, s.RevertToPOWBlockHeight, s.LastIrreversibleHeight,
+		s.DPOSStartHeight); err != nil {
 		return err
 	}
 
@@ -223,7 +229,8 @@ func (s *StateKeyFrame) Deserialize(r io.Reader) (err error) {
 	if err = common.ReadElements(r, &s.VersionStartHeight, &s.VersionEndHeight,
 		&s.NeedNextTurnDposInfo, &s.LastRandomCandidateHeight, &s.NoClaimDPOSNode,
 		&s.NoProducers, &s.LastBlockTimestamp, &s.NeedRevertToDPOSTX,
-		&s.NeedNextTurnDPOSInfo, &s.RevertToPOWBlockHeight); err != nil {
+		&s.NeedNextTurnDPOSInfo, &s.RevertToPOWBlockHeight, &s.LastIrreversibleHeight,
+		&s.DPOSStartHeight); err != nil {
 		return err
 	}
 

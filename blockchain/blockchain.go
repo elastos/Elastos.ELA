@@ -37,9 +37,6 @@ const (
 	minMemoryNodes   = 20160
 	maxBlockLocators = 500
 	medianTimeBlocks = 11
-
-	// irreversibleHeight defines the max height that the chain be reorganized
-	irreversibleHeight = 6
 )
 
 var (
@@ -62,11 +59,9 @@ type BlockChain struct {
 	maxRetargetTimespan int64  // target timespan * adjustment factor
 	blocksPerRetarget   uint32 // target timespan / target time per block
 
-	BestChain              *BlockNode
-	Root                   *BlockNode
-	index                  *blockIndex
-	lastIrreversibleHeight uint32 //last irreversible height
-	DPOSStartHeight        uint32
+	BestChain *BlockNode
+	Root      *BlockNode
+	index     *blockIndex
 
 	IndexLock sync.RWMutex
 	Nodes     []*BlockNode
@@ -1481,7 +1476,7 @@ func (b *BlockChain) maybeAcceptBlock(block *Block, confirm *payload.Confirm) (b
 		} else {
 			events.Notify(events.ETNewBlockReceived, &DposBlock{
 				Block:       block,
-				HaveConfirm: true,
+				HaveConfirm: false,
 			})
 			events.Notify(events.ETBlockAccepted, block)
 		}
@@ -1495,28 +1490,6 @@ func (b *BlockChain) maybeAcceptBlock(block *Block, confirm *payload.Confirm) (b
 		events.Notify(events.ETBlockAccepted, block)
 	}
 	return inMainChain, nil
-}
-
-//is this Height Irreversible
-func (b *BlockChain) isIrreversible(curBlockHeight uint32, detachNodesLen int) bool {
-	if curBlockHeight <= b.chainParams.CRCOnlyDPOSHeight {
-		return false
-	}
-	if curBlockHeight-uint32(detachNodesLen)-1 <= b.lastIrreversibleHeight {
-		return true
-	}
-	if curBlockHeight >= b.chainParams.RevertToPOWStartHeight {
-		if b.state.GetConsensusAlgorithm() == state.DPOS {
-			if detachNodesLen > irreversibleHeight {
-				return true
-			}
-		}
-	} else {
-		if detachNodesLen > irreversibleHeight {
-			return true
-		}
-	}
-	return false
 }
 
 func (b *BlockChain) connectBestChain(node *BlockNode, block *Block, confirm *payload.Confirm) (bool, bool, error) {
@@ -1596,8 +1569,8 @@ func (b *BlockChain) connectBestChain(node *BlockNode, block *Block, confirm *pa
 	// the blocks that form the new chain to the main chain starting at the
 	// common ancenstor (the point where the chain forked).
 	detachNodes, attachNodes := b.getReorganizeNodes(node)
-	// forbid reorganize if detaching nodes more than irreversibleHeight
-	if b.isIrreversible(block.Height, detachNodes.Len()) {
+	// forbid reorganize if detaching nodes more than IrreversibleHeight
+	if b.state.IsIrreversible(block.Height, detachNodes.Len()) {
 		return false, false, nil
 	}
 	//for e := detachNodes.Front(); e != nil; e = e.Next() {
@@ -1631,8 +1604,8 @@ func (b *BlockChain) ReorganizeChain(block *Block) error {
 	}
 
 	detachNodes, attachNodes := b.getReorganizeNodes(node)
-	// forbid reorganize if detaching nodes more than irreversibleHeight
-	if b.isIrreversible(block.Height, detachNodes.Len()) {
+	// forbid reorganize if detaching nodes more than IrreversibleHeight
+	if b.state.IsIrreversible(block.Height, detachNodes.Len()) {
 		return nil
 	}
 
@@ -1643,28 +1616,6 @@ func (b *BlockChain) ReorganizeChain(block *Block) error {
 	}
 
 	return nil
-}
-
-func (b *BlockChain) tryUpdateLastIrreversibleHeight(blockHeight uint32) {
-	//log.Debugf("Accepted block %v", blockHash)
-	curConsensus := b.state.GetConsensusAlgorithm()
-	if blockHeight >= b.chainParams.CRCOnlyDPOSHeight+irreversibleHeight &&
-		blockHeight < b.chainParams.RevertToPOWStartHeight {
-		//init lastIrreversibleHeight
-		if b.lastIrreversibleHeight == 0 {
-			b.lastIrreversibleHeight = blockHeight - irreversibleHeight
-			b.DPOSStartHeight = b.lastIrreversibleHeight
-		}
-	} else if curConsensus == state.DPOS {
-		//from pow to dpow
-		if b.state.DPOSWorkHeight != 0 && blockHeight == b.state.DPOSWorkHeight+1 {
-			b.DPOSStartHeight = blockHeight
-		}
-		if blockHeight-b.DPOSStartHeight >= irreversibleHeight {
-			b.DPOSStartHeight++
-			b.lastIrreversibleHeight = b.DPOSStartHeight
-		}
-	}
 }
 
 //(bool, bool, error)
@@ -1728,7 +1679,6 @@ func (b *BlockChain) processBlock(block *Block, confirm *payload.Confirm) (bool,
 	}
 
 	//log.Debugf("Accepted block %v", blockHash)
-	b.tryUpdateLastIrreversibleHeight(block.Height)
 
 	return inMainChain, false, nil
 }

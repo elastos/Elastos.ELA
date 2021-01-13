@@ -372,12 +372,6 @@ func (b *BlockChain) createChainState() error {
 			return err
 		}
 
-		// Create the bucket that houses proposal related draft data
-		_, err = meta.CreateBucket(proposalDraftDataBucketName)
-		if err != nil {
-			return err
-		}
-
 		// Save the genesis block to the block index database.
 		err = DBStoreBlockNode(dbTx, header, node.Status)
 		if err != nil {
@@ -432,6 +426,22 @@ func (b *BlockChain) initChainState() error {
 		//}
 		//return initialized, errors.New("initChainState failed")
 		return nil
+	}
+
+	// try create other bucket
+	err = b.db.GetFFLDB().Update(func(dbTx database.Tx) error {
+		// Create the bucket that houses proposal related draft data
+		meta := dbTx.Metadata()
+		if b := meta.Bucket(proposalDraftDataBucketName); b == nil {
+			_, err = meta.CreateBucket(proposalDraftDataBucketName)
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		return err
 	}
 
 	// Attempt to load the chain state from the database.

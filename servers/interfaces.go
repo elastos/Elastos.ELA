@@ -2282,6 +2282,8 @@ func GetProposalDraftData(param Params) map[string]interface{} {
 	var result string
 	if data != nil {
 		result = common.BytesToHexString(data)
+	} else {
+		return ResponsePack(InvalidParams, "invalidate draft hash")
 	}
 
 	return ResponsePack(Success, result)

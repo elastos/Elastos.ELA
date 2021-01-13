@@ -372,6 +372,12 @@ func (b *BlockChain) createChainState() error {
 			return err
 		}
 
+		// Create the bucket that houses proposal related draft data
+		_, err = meta.CreateBucket(proposalDraftDataBucketName)
+		if err != nil {
+			return err
+		}
+
 		// Save the genesis block to the block index database.
 		err = DBStoreBlockNode(dbTx, header, node.Status)
 		if err != nil {

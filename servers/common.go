@@ -298,7 +298,6 @@ type CRCReservedCustomIDProposalInfo struct {
 	OwnerPublicKey           string   `json:"ownerpublickey"`
 	DraftHash                string   `json:"drafthash"`
 	ReservedCustomIDList     []string `json:"reservedcustomidlist"`
-	BannedCustomIDList       []string `json:"bannedcustomidlist"`
 	Signature                string   `json:"signature"`
 	CRCouncilMemberDID       string   `json:"crcouncilmemberdid"`
 	CRCouncilMemberSignature string   `json:"crcouncilmembersignature"`

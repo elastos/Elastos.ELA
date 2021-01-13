@@ -551,8 +551,8 @@ func (d *DPOSManager) OnIllegalBlocksTxReceived(i *payload.DPOSIllegalBlocks) {
 		log.Info("[OnIllegalProposalReceived] received error evidence: ", err)
 		return
 	}
-	d.illegalMonitor.AddEvidence(i)
-	d.dispatcher.OnIllegalBlocksTxReceived(i)
+	//d.illegalMonitor.AddEvidence(i)
+	//d.dispatcher.OnIllegalBlocksTxReceived(i)
 }
 
 func (d *DPOSManager) OnSidechainIllegalEvidenceReceived(s *payload.SidechainIllegalData) {

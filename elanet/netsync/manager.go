@@ -15,7 +15,6 @@ import (
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/core/types"
-	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/elanet/pact"
 	"github.com/elastos/Elastos.ELA/elanet/peer"
 	"github.com/elastos/Elastos.ELA/errors"
@@ -739,13 +738,13 @@ func (sm *SyncManager) handleBlockchainEvents(event *events.Event) {
 	// is a illegal block transaction.
 	case events.ETTransactionAccepted:
 		tx := event.Data.(*types.Transaction)
-		if tx.IsIllegalBlockTx() {
-			sm.chain.ProcessIllegalBlock(tx.Payload.(*payload.DPOSIllegalBlocks))
-		}
-
-		if tx.IsInactiveArbitrators() {
-			sm.chain.ProcessInactiveArbiter(tx.Payload.(*payload.InactiveArbitrators))
-		}
+		//if tx.IsIllegalBlockTx() {
+		//	sm.chain.ProcessIllegalBlock(tx.Payload.(*payload.DPOSIllegalBlocks))
+		//}
+		//
+		//if tx.IsInactiveArbitrators() {
+		//	sm.chain.ProcessInactiveArbiter(tx.Payload.(*payload.InactiveArbitrators))
+		//}
 
 		if tx.IsIllegalTypeTx() || tx.IsInactiveArbitrators() || tx.IsRevertToDPOS() {
 			// Relay tx inventory to other peers.

@@ -1729,8 +1729,14 @@ func (b *BlockChain) checkActivateProducerTransaction(txn *Transaction,
 
 	if b.GetCRCommittee().IsInElectionPeriod() {
 		crMember := b.GetCRCommittee().GetMemberByNodePublicKey(activateProducer.NodePublicKey)
-		if crMember != nil && crMember.MemberState == crstate.MemberInactive {
-			// todo check penalty
+		if crMember != nil && (crMember.MemberState == crstate.MemberInactive ||
+			crMember.MemberState == crstate.MemberIllegal) {
+			if height < b.chainParams.EnableActivateIllegalHeight && crMember.MemberState == crstate.MemberIllegal {
+				return errors.New("activate MemberIllegal CR is not allowed before EnableActivateIllegalHeight")
+			}
+			if b.crCommittee.GetAvailableDepositAmount(crMember.Info.CID) < 0 {
+				return errors.New("balance of CR is not enough ")
+			}
 			return nil
 		}
 	}
@@ -1746,10 +1752,18 @@ func (b *BlockChain) checkActivateProducerTransaction(txn *Transaction,
 			return errors.New("can not activate this producer")
 		}
 	} else {
-		if producer.State() != state.Inactive &&
-			producer.State() != state.Illegal {
-			return errors.New("can not activate this producer")
+		if height < b.chainParams.ChangeCommitteeNewCRHeight {
+			if producer.State() != state.Inactive &&
+				producer.State() != state.Illegal {
+				return errors.New("can not activate this producer")
+			}
+		} else {
+			if producer.State() != state.Active && producer.State() != state.Inactive &&
+				producer.State() != state.Illegal {
+				return errors.New("can not activate this producer")
+			}
 		}
+
 	}
 
 	if height > producer.ActivateRequestHeight() &&
@@ -2234,7 +2248,7 @@ func (b *BlockChain) checkCRCProposalTrackingTransaction(txn *Transaction,
 			return errors.New("the opinion data cannot be more than 200K byte")
 		}
 		tempOpinionHash := common.Hash(cptPayload.SecretaryGeneralOpinionData)
-		if !cptPayload.MessageHash.IsEqual(tempOpinionHash) {
+		if !cptPayload.SecretaryGeneralOpinionHash.IsEqual(tempOpinionHash) {
 			return errors.New("the opinion data and opinion hash of" +
 				" proposal tracking are inconsistent")
 		}
@@ -2627,7 +2641,7 @@ func (b *BlockChain) checkCRCProposalTrackingSignature(
 	}
 
 	// Check secretary general signature。
-	return b.checkSecretaryGeneralSignature(cptPayload, pState, signedBuf)
+	return b.checkSecretaryGeneralSignature(cptPayload, pState, signedBuf, payloadVersion)
 }
 
 func (b *BlockChain) normalCheckCRCProposalTrackingSignature(
@@ -2660,7 +2674,7 @@ func (b *BlockChain) normalCheckCRCProposalTrackingSignature(
 	}
 
 	// Check secretary general signature。
-	return b.checkSecretaryGeneralSignature(cptPayload, pState, signedBuf)
+	return b.checkSecretaryGeneralSignature(cptPayload, pState, signedBuf, payloadVersion)
 }
 
 func (b *BlockChain) checkProposalOwnerSignature(
@@ -2706,7 +2720,7 @@ func (b *BlockChain) checkProposalNewOwnerSignature(
 
 func (b *BlockChain) checkSecretaryGeneralSignature(
 	cptPayload *payload.CRCProposalTracking, pState *crstate.ProposalState,
-	signedBuf *bytes.Buffer) error {
+	signedBuf *bytes.Buffer, payloadVersion byte) error {
 	var sgContract *contract.Contract
 	publicKeyBytes, err := hex.DecodeString(b.crCommittee.GetProposalManager().SecretaryGeneralPublicKey)
 	if err != nil {
@@ -2725,6 +2739,11 @@ func (b *BlockChain) checkSecretaryGeneralSignature(
 	}
 	if err := cptPayload.SecretaryGeneralOpinionHash.Serialize(signedBuf); err != nil {
 		return errors.New("invalid secretary opinion hash")
+	}
+	if payloadVersion >= payload.CRCProposalTrackingVersion01 {
+		if err := common.WriteVarBytes(signedBuf, cptPayload.SecretaryGeneralOpinionData); err != nil {
+			return errors.New("invalid secretary-general opinion data")
+		}
 	}
 	if err = checkCRTransactionSignature(cptPayload.SecretaryGeneralSignature,
 		sgContract.Code, signedBuf.Bytes()); err != nil {
@@ -2880,11 +2899,6 @@ func (b *BlockChain) checkReservedCustomID(proposal *payload.CRCProposal, Payloa
 			return errors.New("reserved custom id too long")
 		}
 	}
-	for _, v := range proposal.BannedCustomIDList {
-		if len(v) > int(b.chainParams.MaxReservedCustomIDListCount) {
-			return errors.New("banned custom id too long")
-		}
-	}
 	crMember := b.crCommittee.GetMember(proposal.CRCouncilMemberDID)
 	if crMember == nil {
 		return errors.New("CR Council Member should be one of the CR members")
@@ -2898,7 +2912,6 @@ func (b *BlockChain) checkReceivedCustomID(proposal *payload.CRCProposal, Payloa
 		return errors.New("DecodePoint from OwnerPublicKey error")
 	}
 	reservedCustomIDList := b.crCommittee.GetReservedCustomIDLists()
-	bannedCustomIDList := b.crCommittee.GetBannedCustomIDLists()
 	receivedCustomIDList := b.crCommittee.GetReceivedCustomIDLists()
 
 	for _, v := range proposal.ReceivedCustomIDList {
@@ -2913,9 +2926,6 @@ func (b *BlockChain) checkReceivedCustomID(proposal *payload.CRCProposal, Payloa
 		}
 		if !utils.StringExisted(reservedCustomIDList, v) {
 			return errors.New("Received custom id can not be found in reserved custom id list")
-		}
-		if utils.StringExisted(bannedCustomIDList, v) {
-			return errors.New("Received custom id found in banned custom id list")
 		}
 	}
 	crMember := b.crCommittee.GetMember(proposal.CRCouncilMemberDID)

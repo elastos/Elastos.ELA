@@ -152,7 +152,7 @@ func (p *ProposalManager) availableWithdrawalAmount(hash common.Uint256) common.
 	return amount
 }
 
-func getProposalTotalBudgetAmount(proposal payload.CRCProposal) common.Fixed64 {
+func getProposalTotalBudgetAmount(proposal payload.CRCProposalInfo) common.Fixed64 {
 	var budget common.Fixed64
 	for _, b := range proposal.Budgets {
 		budget += b.Amount
@@ -341,13 +341,10 @@ func (p *ProposalManager) dealProposal(proposalState *ProposalState, unusedAmoun
 		})
 	case payload.ReserveCustomID:
 		oriReservedCustomIDLists := p.ReservedCustomIDLists
-		oriBannedCustomIDLists := p.BannedCustomIDLists
 		p.history.Append(height, func() {
 			p.ReservedCustomIDLists = append(oriReservedCustomIDLists, proposalState.Proposal.ReservedCustomIDList)
-			p.BannedCustomIDLists = append(oriBannedCustomIDLists, proposalState.Proposal.BannedCustomIDList)
 		}, func() {
 			p.ReservedCustomIDLists = oriReservedCustomIDLists
-			p.BannedCustomIDLists = oriBannedCustomIDLists
 		})
 	case payload.ReceiveCustomID:
 		oriReceivedCustomIDLists := p.ReceivedCustomIDLists
@@ -484,7 +481,7 @@ func (p *ProposalManager) registerProposal(tx *types.Transaction,
 	}
 	proposalState := &ProposalState{
 		Status:              Registered,
-		Proposal:            *proposal,
+		Proposal:            proposal.ToProposalInfo(tx.PayloadVersion),
 		TxHash:              tx.Hash(),
 		TxPayloadVer:        tx.PayloadVersion,
 		CRVotes:             map[common.Uint168]payload.VoteResult{},
@@ -577,7 +574,6 @@ func (p *ProposalManager) proposalReview(tx *types.Transaction,
 		} else {
 			delete(proposalState.CRVotes, did)
 		}
-
 	})
 }
 

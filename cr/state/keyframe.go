@@ -103,16 +103,15 @@ func (s *BudgetStatus) Name() string {
 
 // CRMember defines CR committee member related info.
 type CRMember struct {
-	Info                      payload.CRInfo
-	ImpeachmentVotes          common.Fixed64
-	DepositHash               common.Uint168
-	MemberState               MemberState
-	DPOSPublicKey             []byte
-	InactiveSince             uint32
-	InactiveCountingHeight    uint32
-	InactiveCountingEndHeight uint32
-	ActivateRequestHeight     uint32
-	InactiveCount             uint32
+	Info                  payload.CRInfo
+	ImpeachmentVotes      common.Fixed64
+	DepositHash           common.Uint168
+	MemberState           MemberState
+	DPOSPublicKey         []byte
+	InactiveSince         uint32
+	ActivateRequestHeight uint32
+	PenaltyBlockCount     uint32
+	InactiveCount         uint32
 }
 
 // StateKeyFrame holds necessary state about CR committee.
@@ -162,7 +161,7 @@ type StateKeyFrame struct {
 // ProposalState defines necessary state about an CR proposals.
 type ProposalState struct {
 	Status             ProposalStatus
-	Proposal           payload.CRCProposal
+	Proposal           payload.CRCProposalInfo
 	TxHash             common.Uint256
 	TxPayloadVer       byte
 	CRVotes            map[common.Uint168]payload.VoteResult
@@ -228,11 +227,13 @@ func (set *ProposalHashSet) Equal(other ProposalHashSet) bool {
 }
 
 type ProposalsMap map[common.Uint256]*ProposalState
+type ReviewDraftDataMap map[common.Uint256][]byte
+type TrackingDraftDataMap map[common.Uint256][]byte
 
 // ProposalKeyFrame holds all runtime state about CR proposals.
 type ProposalKeyFrame struct {
-	Proposals ProposalsMap
 	// key is did value is proposalhash set
+	Proposals       ProposalsMap
 	ProposalHashes  map[common.Uint168]ProposalHashSet
 	ProposalSession map[uint64][]common.Uint256
 	// proposalWithdraw info
@@ -241,8 +242,6 @@ type ProposalKeyFrame struct {
 	SecretaryGeneralPublicKey string
 	// reserved custom id list
 	ReservedCustomIDLists [][]string
-	// banned custom id list
-	BannedCustomIDLists [][]string
 	// received custom id list
 	ReceivedCustomIDLists [][]string
 }
@@ -276,17 +275,13 @@ func (c *CRMember) Serialize(w io.Writer) (err error) {
 		return
 	}
 
-	if err = common.WriteUint32(w, c.InactiveCountingHeight); err != nil {
-		return
-	}
-
-	if err = common.WriteUint32(w, c.InactiveCountingEndHeight); err != nil {
-		return
-	}
-
 	if err = common.WriteUint32(w, c.ActivateRequestHeight); err != nil {
 		return
 	}
+	if err = common.WriteUint32(w, c.PenaltyBlockCount); err != nil {
+		return
+	}
+
 	return common.WriteUint32(w, c.InactiveCount)
 }
 
@@ -316,16 +311,13 @@ func (c *CRMember) Deserialize(r io.Reader) (err error) {
 		return
 	}
 
-	if c.InactiveCountingHeight, err = common.ReadUint32(r); err != nil {
-		return
-	}
-	if c.InactiveCountingEndHeight, err = common.ReadUint32(r); err != nil {
-		return
-	}
 	if c.ActivateRequestHeight, err = common.ReadUint32(r); err != nil {
 		return
 	}
 
+	if c.PenaltyBlockCount, err = common.ReadUint32(r); err != nil {
+		return
+	}
 	if c.InactiveCount, err = common.ReadUint32(r); err != nil {
 		return
 	}
@@ -1144,6 +1136,22 @@ func (p *ProposalKeyFrame) Serialize(w io.Writer) (err error) {
 	return
 }
 
+func (p *ProposalKeyFrame) serializeDraftDataMap(draftData map[common.Uint256][]byte,
+	w io.Writer) (err error) {
+	if err = common.WriteVarUint(w, uint64(len(draftData))); err != nil {
+		return
+	}
+	for hash, data := range draftData {
+		if err = hash.Serialize(w); err != nil {
+			return
+		}
+		if err = common.WriteVarBytes(w, data); err != nil {
+			return
+		}
+	}
+	return
+}
+
 func (p *ProposalKeyFrame) serializeProposalHashsMap(proposalHashMap map[common.Uint168]ProposalHashSet,
 	w io.Writer) (err error) {
 	if err = common.WriteVarUint(w, uint64(len(proposalHashMap))); err != nil {
@@ -1231,6 +1239,30 @@ func (p *ProposalKeyFrame) Deserialize(r io.Reader) (err error) {
 	}
 	if p.WithdrawableTxInfo, err = p.deserializeWithdrawableTransactionsMap(r); err != nil {
 		return
+	}
+	return
+}
+
+func (p *ProposalKeyFrame) deserializeDraftDataMap(r io.Reader) (
+	draftDataMap map[common.Uint256][]byte, err error) {
+	var count uint64
+	if count, err = common.ReadVarUint(r, 0); err != nil {
+		return
+	}
+	draftDataMap = make(map[common.Uint256][]byte)
+	for i := uint64(0); i < count; i++ {
+
+		var hash common.Uint256
+		if err = hash.Deserialize(r); err != nil {
+			return
+		}
+		var data []byte
+		data, err = common.ReadVarBytes(r, payload.MaxPayloadDataSize, "draft data")
+		if err != nil {
+			return
+		}
+
+		draftDataMap[hash] = data
 	}
 	return
 }
@@ -1467,7 +1499,8 @@ func getElectedCRMembers(src map[common.Uint168]*CRMember) []*CRMember {
 func getImpeachableCRMembers(src map[common.Uint168]*CRMember) []*CRMember {
 	dst := make([]*CRMember, 0)
 	for _, v := range src {
-		if v.MemberState == MemberElected || v.MemberState == MemberInactive || v.MemberState == MemberImpeached {
+		if v.MemberState == MemberElected ||
+			v.MemberState == MemberInactive || v.MemberState == MemberImpeached {
 			m := *v
 			dst = append(dst, &m)
 		}

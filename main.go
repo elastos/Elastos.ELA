@@ -98,6 +98,7 @@ func setupNode() *cli.App {
 		cmdcom.WsPortFlag,
 		cmdcom.InstantBlockFlag,
 		cmdcom.RPCPortFlag,
+		cmdcom.RPCIpFlag,
 	}
 	app.Flags = append(app.Flags, appSettings.Flags()...)
 	app.Action = func(c *cli.Context) {

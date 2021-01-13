@@ -50,7 +50,7 @@ func (c *Committee) processTransactions(txs []*types.Transaction, height uint32)
 	if c.InElectionPeriod {
 		for _, v := range c.Members {
 			m := v
-			if m.MemberState == MemberInactive &&
+			if (m.MemberState == MemberInactive || m.MemberState == MemberIllegal) &&
 				height > m.ActivateRequestHeight &&
 				height-m.ActivateRequestHeight+1 >= ActivateDuration {
 				activateCRMemberFromInactive(m)
@@ -267,7 +267,8 @@ func (c *Committee) processCancelImpeachment(height uint32, member []byte,
 	var crMember *CRMember
 	for _, v := range c.Members {
 		if bytes.Equal(v.Info.CID.Bytes(), member) &&
-			(v.MemberState == MemberElected || v.MemberState == MemberInactive) {
+			(v.MemberState == MemberElected ||
+				v.MemberState == MemberInactive || v.MemberState == MemberIllegal) {
 			crMember = v
 			break
 		}

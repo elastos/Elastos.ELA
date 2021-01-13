@@ -359,6 +359,9 @@ func GetCrossChainPeersInfo(params Params) map[string]interface{} {
 
 	nextPeers := Arbiter.GetNextArbitrators()
 	for _, p := range nextPeers {
+		if !p.IsNormal {
+			continue
+		}
 		pk := common.BytesToHexString(p.NodePublicKey)
 		if _, ok := peersMap[pk]; ok {
 			continue
@@ -466,14 +469,21 @@ func GetArbitersInfo(params Params) map[string]interface{} {
 			Arbiters.GetArbitersCount() - dutyIndex,
 	}
 	for _, v := range Arbiters.GetArbitrators() {
-		result.Arbiters = append(result.Arbiters, common.BytesToHexString(v.NodePublicKey))
+		var nodePK string
+		if v.IsNormal {
+			nodePK = common.BytesToHexString(v.NodePublicKey)
+		}
+		result.Arbiters = append(result.Arbiters, nodePK)
 	}
 	for _, v := range Arbiters.GetCandidates() {
 		result.Candidates = append(result.Candidates, common.BytesToHexString(v))
 	}
 	for _, v := range Arbiters.GetNextArbitrators() {
-		result.NextArbiters = append(result.NextArbiters,
-			common.BytesToHexString(v.NodePublicKey))
+		var nodePK string
+		if v.IsNormal {
+			nodePK = common.BytesToHexString(v.NodePublicKey)
+		}
+		result.NextArbiters = append(result.NextArbiters, nodePK)
 	}
 	for _, v := range Arbiters.GetNextCandidates() {
 		result.NextCandidates = append(result.NextCandidates,
@@ -1716,7 +1726,6 @@ type RPCReservedCustomIDProposal struct {
 	OwnerPublicKey       string   `json:"ownerpublickey"`
 	DraftHash            string   `json:"drafthash"`
 	ReservedCustomIDList []string `json:"reservedcustomidlist"`
-	BannedCustomIDList   []string `json:"bannedcustomidlist"`
 	CRCouncilMemberDID   string   `json:"crcouncilmemberdid"`
 }
 
@@ -2055,7 +2064,7 @@ func ListCRProposalBaseState(param Params) map[string]interface{} {
 		}
 		rpcProposalBaseState := RPCProposalBaseState{
 			Status:             proposal.Status.String(),
-			ProposalHash:       common.ToReversedString(proposal.Proposal.Hash(proposal.TxPayloadVer)),
+			ProposalHash:       common.ToReversedString(proposal.Proposal.Hash),
 			TxHash:             common.ToReversedString(proposal.TxHash),
 			CRVotes:            crVotes,
 			VotersRejectAmount: proposal.VotersRejectAmount.String(),
@@ -2140,8 +2149,7 @@ func GetCRProposalState(param Params) map[string]interface{} {
 		}
 	}
 
-	proposalHash := proposalState.Proposal.Hash(proposalState.TxPayloadVer)
-
+	proposalHash := proposalState.Proposal.Hash
 	crVotes := make(map[string]string)
 	for k, v := range proposalState.CRVotes {
 		did, _ := k.ToAddress()
@@ -2234,7 +2242,6 @@ func GetCRProposalState(param Params) map[string]interface{} {
 		rpcProposal.OwnerPublicKey = common.BytesToHexString(proposalState.Proposal.OwnerPublicKey)
 		rpcProposal.DraftHash = common.ToReversedString(proposalState.Proposal.DraftHash)
 		rpcProposal.ReservedCustomIDList = proposalState.Proposal.ReservedCustomIDList
-		rpcProposal.BannedCustomIDList = proposalState.Proposal.BannedCustomIDList
 		did, _ := proposalState.Proposal.CRCouncilMemberDID.ToAddress()
 		rpcProposal.CRCouncilMemberDID = did
 
@@ -2254,6 +2261,29 @@ func GetCRProposalState(param Params) map[string]interface{} {
 	}
 
 	result := &RPCCRProposalStateInfo{ProposalState: rpcProposalState}
+	return ResponsePack(Success, result)
+}
+
+func GetProposalDraftData(param Params) map[string]interface{} {
+	hash, ok := param.String("drafthash")
+	if !ok {
+		return ResponsePack(InvalidParams, "not found hash")
+	}
+	draftHashStr, err := common.FromReversedString(hash)
+	if err != nil {
+		return ResponsePack(InvalidParams, "invalidate hash")
+	}
+	draftHash, err := common.Uint256FromBytes(draftHashStr)
+	if err != nil {
+		return ResponsePack(InvalidParams, "invalidate draft hash")
+	}
+
+	data, _ := Chain.GetDB().GetProposalDraftDataByDraftHash(draftHash)
+	var result string
+	if data != nil {
+		result = common.BytesToHexString(data)
+	}
+
 	return ResponsePack(Success, result)
 }
 
@@ -2629,7 +2659,6 @@ func getPayloadInfo(p Payload, payloadVersion byte) PayloadInfo {
 			obj.OwnerPublicKey = common.BytesToHexString(object.OwnerPublicKey)
 			obj.DraftHash = common.ToReversedString(object.DraftHash)
 			obj.ReservedCustomIDList = object.ReservedCustomIDList
-			obj.BannedCustomIDList = object.BannedCustomIDList
 			obj.Signature = common.BytesToHexString(object.Signature)
 			crmdid, _ := object.CRCouncilMemberDID.ToAddress()
 			obj.CRCouncilMemberDID = crmdid

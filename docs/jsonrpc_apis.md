@@ -415,6 +415,79 @@ Response:
 }
 ```
 
+Request:
+
+```json
+{
+	"method":"getrawmempool",
+	"params":{
+		"state":"all"
+	}
+}
+```
+
+Response:
+
+```json
+{
+    "jsonrpc": "2.0",
+    "result": [
+        {
+            "txid": "7bc35c1bb5d21c74cb94b73e2774c1be77a460b7ba1a5d8e73baa1721bb8c98d",
+            "hash": "7bc35c1bb5d21c74cb94b73e2774c1be77a460b7ba1a5d8e73baa1721bb8c98d",
+            "size": 369,
+            "vsize": 369,
+            "version": 0,
+            "type": 5,
+            "payloadversion": 0,
+            "payload": {
+                "blockheight": 366174,
+                "sideblockhash": "50e95c5452808282249827971def9b6d01a83a62251aada221b20ea66755f44b",
+                "sidegenesishash": "a3c455a90843db2acd22554f2768a8d4233fafbf8dd549e6b261c2786993be56",
+                "signature": "fdcb69746140a2c9b42c91642e5f887c7859c3709c189a83ed09ac2305d524d66e3b77dff3e9c070323d312afb8efedc60ce41c12e6684e0db5088bad1683a92"
+            },
+            "attributes": [
+                {
+                    "usage": 0,
+                    "data": "38303631373539313233303934363232343938"
+                }
+            ],
+            "vin": [
+                {
+                    "txid": "754552520bbc5241fe5e59aae333a7e72d65c1d4ecec3a123cab3c773186a6b2",
+                    "vout": 0,
+                    "sequence": 0
+                }
+            ],
+            "vout": [
+                {
+                    "value": "0.00300000",
+                    "n": 0,
+                    "address": "EfJDXdRiPk8aiSFwQ4Wf6BCddxgLS4o5hG",
+                    "assetid": "a3d0eaa466df74983b5d7c543de6904f4c9418ead5ffd6d25814234a96db37b0",
+                    "outputlock": 0,
+                    "type": 0,
+                    "payload": null
+                }
+            ],
+            "locktime": 688434,
+            "programs": [
+                {
+                    "code": "21036eac18a8fe9722f5afee095334b3970496a92024f832530a51f6f1faba36a881ac",
+                    "parameter": "407943915fb2d4938479757dea9cd75e957a9bfe9b45fd973139dd101e1ce4cba3520360ecb2a5da90652fbe05682bb6c7548075225effc87aadc272c27eddcc83"
+                }
+            ],
+            "blockhash": "",
+            "confirmations": 0,
+            "time": 0,
+            "blocktime": 0
+        }
+    ],
+    "id": null,
+    "error": null
+}
+```
+
 ### getreceivedbyaddress
 
 Get the balance of an address
@@ -2306,6 +2379,42 @@ Response:
  }
  ```
  
+ ### getproposaldraftdata
+ 
+ Get draft data of proposal or proposalReview or proposalTracking transaction detail information by draft hash.
+ 
+ #### Parameter
+ 
+ | name         | type   | description                                                             |
+ | ------------ | ------ | ------------------------------------------------------------------------|
+ | drafthash    | string | draft hash of proposal or proposalReview or proposalTracking transaction|
+ 
+ #### Result
+ Result is the hex string of draft data.
+ 
+ #### Example
+ 
+ Request:
+ ```json
+ {
+ "method": "getproposaldraftdata",
+   "params":{
+     "drafthash": "9c5ab8998718e0c1c405a719542879dc7553fca05b4e89132ec8d0e88551fcc0"
+   }
+ }
+ ```
+ 
+ Response:
+ 
+ ```json
+ {
+     "error": null,
+     "id": null,
+     "jsonrpc": "2.0",
+     "result": "6d6d9581ba0156314f1e92fd03430c6e4428a32bb3f1b9dc6271024"
+}
+```
+
  ### createrawtransaction
  
  Create a transaction spending the given inputs and creating new outputs.

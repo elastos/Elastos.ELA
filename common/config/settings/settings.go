@@ -960,7 +960,7 @@ func NewSettings() *Settings {
 	result.Add(&settingItem{
 		Flag:         cmdcom.MaxReservedCustomIDListCount,
 		DefaultValue: uint32(0),
-		ConfigPath:   "CRConfiguration.MaxReservedCustomIDListCount",
+		ConfigPath:   "MaxReservedCustomIDListCount",
 		ParamName:    "MaxReservedCustomIDListCount"})
 
 	result.Add(&settingItem{

@@ -85,6 +85,7 @@ type Producer struct {
 	depositHash                  common.Uint168
 	selected                     bool
 	randomCandidateinactiveCount uint32
+	lastUpdateInactiveheight     uint32
 	inactiveCount                uint32
 }
 
@@ -194,6 +195,10 @@ func (p *Producer) Serialize(w io.Writer) error {
 		return err
 	}
 
+	if err := common.WriteUint32(w, p.lastUpdateInactiveheight); err != nil {
+		return err
+	}
+
 	return p.depositHash.Serialize(w)
 }
 
@@ -246,6 +251,11 @@ func (p *Producer) Deserialize(r io.Reader) (err error) {
 	if p.randomCandidateinactiveCount, err = common.ReadUint32(r); err != nil {
 		return
 	}
+
+	if p.lastUpdateInactiveheight, err = common.ReadUint32(r); err != nil {
+		return
+	}
+
 	return p.depositHash.Deserialize(r)
 }
 
@@ -874,12 +884,15 @@ func (s *State) processTransactions(txs []*types.Transaction, height uint32) {
 	// Check if any pending illegal producers has got 6 confirms,
 	// then set them to activate.
 	activateProducerFromIllegal := func(key string, producer *Producer) {
+		oriInactiveCount := producer.illegalHeight
 		s.history.Append(height, func() {
 			producer.state = Active
+			producer.inactiveCount += height - producer.illegalHeight
 			s.ActivityProducers[key] = producer
 			delete(s.IllegalProducers, key)
 		}, func() {
 			producer.state = Illegal
+			producer.inactiveCount = oriInactiveCount
 			s.IllegalProducers[key] = producer
 			delete(s.ActivityProducers, key)
 		})
@@ -1807,7 +1820,7 @@ func (s *State) countArbitratorsInactivityV1(height uint32,
 						oriInactiveCount = producer.inactiveCount
 					}
 					s.history.Append(height, func() {
-						s.tryUpdateInactivity(key, producer, needReset, height, false)
+						s.tryUpdateInactivityV1(key, producer, needReset, height)
 					}, func() {
 						s.tryRevertInactivity(key, producer, needReset, height, oriInactiveCount)
 					})
@@ -1836,7 +1849,7 @@ func (s *State) countArbitratorsInactivityV1(height uint32,
 			oriInactiveCount = producer.inactiveCount
 		}
 		s.history.Append(height, func() {
-			s.tryUpdateInactivity(key, producer, needReset, height, false)
+			s.tryUpdateInactivityV1(key, producer, needReset, height)
 		}, func() {
 			s.tryRevertInactivity(key, producer, needReset, height, oriInactiveCount)
 		})
@@ -1888,15 +1901,22 @@ func (s *State) countArbitratorsInactivityV0(height uint32,
 			oriInactiveCount = producer.inactiveCount
 		}
 		s.history.Append(height, func() {
-			s.tryUpdateInactivity(key, producer, needReset, height, true)
+			s.tryUpdateInactivityV0(key, producer, needReset, height)
 		}, func() {
 			s.tryRevertInactivity(key, producer, needReset, height, oriInactiveCount)
 		})
 	}
 }
 
-func (s *State) tryUpdateInactivity(key string, producer *Producer,
-	needReset bool, height uint32, v0 bool) {
+func (s *State) tryUpdateInactivityV1(key string, producer *Producer,
+	needReset bool, height uint32) {
+	// old: need to reset inactiveCount when first on duty.
+	if height != producer.lastUpdateInactiveheight+1 &&
+		height < s.chainParams.ChangeCommitteeNewCRHeight {
+		producer.inactiveCount =
+			height - producer.lastUpdateInactiveheight + producer.inactiveCount - 1
+	}
+
 	if needReset {
 		if producer.selected {
 			producer.randomCandidateinactiveCount = 0
@@ -1904,6 +1924,7 @@ func (s *State) tryUpdateInactivity(key string, producer *Producer,
 		} else {
 			producer.inactiveCount = 0
 		}
+		producer.lastUpdateInactiveheight = height
 		return
 	}
 
@@ -1915,13 +1936,25 @@ func (s *State) tryUpdateInactivity(key string, producer *Producer,
 	} else {
 		producer.inactiveCount++
 		inactiveCount := producer.inactiveCount
-		if v0 {
-			inactiveCount--
-		}
 
 		if inactiveCount >= s.chainParams.MaxInactiveRounds {
 			s.setInactiveProducer(producer, key, height, false)
 		}
+	}
+	producer.lastUpdateInactiveheight = height
+}
+
+func (s *State) tryUpdateInactivityV0(key string, producer *Producer,
+	needReset bool, height uint32) {
+	if needReset {
+		producer.inactiveCount = 0
+		return
+	}
+
+	producer.inactiveCount++
+	if producer.inactiveCount >= s.chainParams.MaxInactiveRounds {
+		s.setInactiveProducer(producer, key, height, false)
+		producer.inactiveCount = 0
 	}
 }
 

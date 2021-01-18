@@ -84,9 +84,10 @@ type Producer struct {
 	totalAmount                  common.Fixed64
 	depositHash                  common.Uint168
 	selected                     bool
-	randomCandidateinactiveCount uint32
-	lastUpdateInactiveheight     uint32
+	randomCandidateInactiveCount uint32
+	lastUpdateInactiveHeight     uint32
 	inactiveCount                uint32
+	inactiveCountReseted         bool
 }
 
 // Info returns a copy of the origin registered producer info.
@@ -179,27 +180,28 @@ func (p *Producer) Serialize(w io.Writer) error {
 		return err
 	}
 
-	if err := common.WriteUint64(w, uint64(p.penalty)); err != nil {
+	if err := p.penalty.Serialize(w); err != nil {
 		return err
 	}
 
-	if err := common.WriteUint64(w, uint64(p.votes)); err != nil {
+	if err := p.votes.Serialize(w); err != nil {
 		return err
 	}
 
-	if err := common.WriteUint32(w, p.inactiveCount); err != nil {
+	if err := p.depositAmount.Serialize(w); err != nil {
 		return err
 	}
 
-	if err := common.WriteUint32(w, p.randomCandidateinactiveCount); err != nil {
+	if err := p.totalAmount.Serialize(w); err != nil {
 		return err
 	}
 
-	if err := common.WriteUint32(w, p.lastUpdateInactiveheight); err != nil {
+	if err := p.depositHash.Serialize(w); err != nil {
 		return err
 	}
 
-	return p.depositHash.Serialize(w)
+	return common.WriteElements(w, p.selected, p.randomCandidateInactiveCount,
+		p.lastUpdateInactiveHeight, p.inactiveCount, p.inactiveCountReseted)
 }
 
 func (p *Producer) Deserialize(r io.Reader) (err error) {
@@ -233,30 +235,28 @@ func (p *Producer) Deserialize(r io.Reader) (err error) {
 		return
 	}
 
-	var penalty uint64
-	if penalty, err = common.ReadUint64(r); err != nil {
-		return
-	}
-	p.penalty = common.Fixed64(penalty)
-
-	var votes uint64
-	if votes, err = common.ReadUint64(r); err != nil {
-		return
-	}
-	p.votes = common.Fixed64(votes)
-	if p.inactiveCount, err = common.ReadUint32(r); err != nil {
-		return
+	if err := p.penalty.Deserialize(r); err != nil {
+		return err
 	}
 
-	if p.randomCandidateinactiveCount, err = common.ReadUint32(r); err != nil {
-		return
+	if err := p.votes.Deserialize(r); err != nil {
+		return err
 	}
 
-	if p.lastUpdateInactiveheight, err = common.ReadUint32(r); err != nil {
-		return
+	if err := p.depositAmount.Deserialize(r); err != nil {
+		return err
 	}
 
-	return p.depositHash.Deserialize(r)
+	if err := p.totalAmount.Deserialize(r); err != nil {
+		return err
+	}
+
+	if err := p.depositHash.Deserialize(r); err != nil {
+		return err
+	}
+
+	return common.ReadElements(r, &p.selected, &p.randomCandidateInactiveCount,
+		&p.lastUpdateInactiveHeight, &p.inactiveCount, &p.inactiveCountReseted)
 }
 
 const (
@@ -856,14 +856,14 @@ func (s *State) processTransactions(txs []*types.Transaction, height uint32) {
 	activateProducerFromInactive := func(key string, producer *Producer) {
 		oriInactiveCount := uint32(0)
 		if producer.selected {
-			oriInactiveCount = producer.randomCandidateinactiveCount
+			oriInactiveCount = producer.randomCandidateInactiveCount
 		} else {
 			oriInactiveCount = producer.inactiveCount
 		}
 		s.history.Append(height, func() {
 			producer.state = Active
 			if producer.selected {
-				producer.randomCandidateinactiveCount = 0
+				producer.randomCandidateInactiveCount = 0
 			} else {
 				producer.inactiveCount = 0
 			}
@@ -872,7 +872,7 @@ func (s *State) processTransactions(txs []*types.Transaction, height uint32) {
 		}, func() {
 			producer.state = Inactive
 			if producer.selected {
-				producer.randomCandidateinactiveCount = oriInactiveCount
+				producer.randomCandidateInactiveCount = oriInactiveCount
 			} else {
 				producer.inactiveCount = oriInactiveCount
 			}
@@ -1033,7 +1033,7 @@ func (s *State) registerProducer(tx *types.Transaction, height uint32) {
 		votes:                        0,
 		inactiveSince:                0,
 		inactiveCount:                0,
-		randomCandidateinactiveCount: 0,
+		randomCandidateInactiveCount: 0,
 		penalty:                      common.Fixed64(0),
 		activateRequestHeight:        math.MaxUint32,
 		depositAmount:                state.MinDepositAmount,
@@ -1815,14 +1815,16 @@ func (s *State) countArbitratorsInactivityV1(height uint32,
 					}
 					oriInactiveCount := uint32(0)
 					if producer.selected {
-						oriInactiveCount = producer.randomCandidateinactiveCount
+						oriInactiveCount = producer.randomCandidateInactiveCount
 					} else {
 						oriInactiveCount = producer.inactiveCount
 					}
+					oriLastUpdateInactiveHeight := producer.lastUpdateInactiveHeight
 					s.history.Append(height, func() {
 						s.tryUpdateInactivityV1(key, producer, needReset, height)
 					}, func() {
-						s.tryRevertInactivity(key, producer, needReset, height, oriInactiveCount)
+						s.tryRevertInactivity(key, producer, needReset, height,
+							oriInactiveCount, oriLastUpdateInactiveHeight)
 					})
 				} else {
 					oriState := cr.MemberState
@@ -1844,14 +1846,16 @@ func (s *State) countArbitratorsInactivityV1(height uint32,
 		}
 		oriInactiveCount := uint32(0)
 		if producer.selected {
-			oriInactiveCount = producer.randomCandidateinactiveCount
+			oriInactiveCount = producer.randomCandidateInactiveCount
 		} else {
 			oriInactiveCount = producer.inactiveCount
 		}
+		oriLastUpdateInactiveHeight := producer.lastUpdateInactiveHeight
 		s.history.Append(height, func() {
 			s.tryUpdateInactivityV1(key, producer, needReset, height)
 		}, func() {
-			s.tryRevertInactivity(key, producer, needReset, height, oriInactiveCount)
+			s.tryRevertInactivity(key, producer, needReset, height,
+				oriInactiveCount, oriLastUpdateInactiveHeight)
 		})
 	}
 }
@@ -1896,14 +1900,16 @@ func (s *State) countArbitratorsInactivityV0(height uint32,
 
 		oriInactiveCount := uint32(0)
 		if producer.selected {
-			oriInactiveCount = producer.randomCandidateinactiveCount
+			oriInactiveCount = producer.randomCandidateInactiveCount
 		} else {
 			oriInactiveCount = producer.inactiveCount
 		}
+		oriLastUpdateInactiveHeight := producer.lastUpdateInactiveHeight
 		s.history.Append(height, func() {
 			s.tryUpdateInactivityV0(key, producer, needReset, height)
 		}, func() {
-			s.tryRevertInactivity(key, producer, needReset, height, oriInactiveCount)
+			s.tryRevertInactivity(key, producer, needReset, height,
+				oriInactiveCount, oriLastUpdateInactiveHeight)
 		})
 	}
 }
@@ -1911,26 +1917,26 @@ func (s *State) countArbitratorsInactivityV0(height uint32,
 func (s *State) tryUpdateInactivityV1(key string, producer *Producer,
 	needReset bool, height uint32) {
 	// old: need to reset inactiveCount when first on duty.
-	if height != producer.lastUpdateInactiveheight+1 &&
+	if height != producer.lastUpdateInactiveHeight+1 &&
 		height < s.chainParams.ChangeCommitteeNewCRHeight {
 		producer.inactiveCount =
-			height - producer.lastUpdateInactiveheight + producer.inactiveCount - 1
+			height - producer.lastUpdateInactiveHeight + producer.inactiveCount - 1
 	}
 
 	if needReset {
 		if producer.selected {
-			producer.randomCandidateinactiveCount = 0
+			producer.randomCandidateInactiveCount = 0
 
 		} else {
 			producer.inactiveCount = 0
 		}
-		producer.lastUpdateInactiveheight = height
+		producer.lastUpdateInactiveHeight = height
 		return
 	}
 
 	if producer.selected {
-		producer.randomCandidateinactiveCount++
-		if producer.randomCandidateinactiveCount >= s.chainParams.MaxInactiveRoundsOfRandomNode {
+		producer.randomCandidateInactiveCount++
+		if producer.randomCandidateInactiveCount >= s.chainParams.MaxInactiveRoundsOfRandomNode {
 			s.setInactiveProducer(producer, key, height, false)
 		}
 	} else {
@@ -1941,28 +1947,41 @@ func (s *State) tryUpdateInactivityV1(key string, producer *Producer,
 			s.setInactiveProducer(producer, key, height, false)
 		}
 	}
-	producer.lastUpdateInactiveheight = height
+	producer.lastUpdateInactiveHeight = height
 }
 
 func (s *State) tryUpdateInactivityV0(key string, producer *Producer,
 	needReset bool, height uint32) {
 	if needReset {
 		producer.inactiveCount = 0
+		producer.inactiveCountReseted = true
+		producer.lastUpdateInactiveHeight = height
 		return
 	}
 
+	if height != producer.lastUpdateInactiveHeight+1 {
+		producer.inactiveCountReseted = false
+	}
+
 	producer.inactiveCount++
-	if producer.inactiveCount >= s.chainParams.MaxInactiveRounds {
+	inactiveCount := producer.inactiveCount
+	if !producer.inactiveCountReseted {
+		inactiveCount--
+	}
+
+	if inactiveCount >= s.chainParams.MaxInactiveRounds {
 		s.setInactiveProducer(producer, key, height, false)
 		producer.inactiveCount = 0
+		producer.lastUpdateInactiveHeight = height
 	}
 }
 
 func (s *State) tryRevertInactivity(key string, producer *Producer,
-	needReset bool, height, oriInactiveCount uint32) {
+	needReset bool, height, oriInactiveCount uint32, oriLastUpdateInactiveHeight uint32) {
+	producer.lastUpdateInactiveHeight = oriLastUpdateInactiveHeight
 	if needReset {
 		if producer.selected {
-			producer.randomCandidateinactiveCount = oriInactiveCount
+			producer.randomCandidateInactiveCount = oriInactiveCount
 
 		} else {
 			producer.inactiveCount = oriInactiveCount

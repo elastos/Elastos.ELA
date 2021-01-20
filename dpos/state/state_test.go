@@ -1109,7 +1109,7 @@ func TestState_InactiveProducer_FailNoContinuous(t *testing.T) {
 	}
 
 	// only producer[0] will be inactive
-	if !assert.Equal(t, 0, len(state.GetInactiveProducers())) {
+	if !assert.Equal(t, 1, len(state.GetInactiveProducers())) {
 		t.FailNow()
 	}
 }

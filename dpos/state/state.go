@@ -85,9 +85,9 @@ type Producer struct {
 	depositHash                  common.Uint168
 	selected                     bool
 	randomCandidateInactiveCount uint32
+	inactiveCountingHeight       uint32
 	lastUpdateInactiveHeight     uint32
 	inactiveCount                uint32
-	inactiveCountReseted         bool
 }
 
 // Info returns a copy of the origin registered producer info.
@@ -201,7 +201,7 @@ func (p *Producer) Serialize(w io.Writer) error {
 	}
 
 	return common.WriteElements(w, p.selected, p.randomCandidateInactiveCount,
-		p.lastUpdateInactiveHeight, p.inactiveCount, p.inactiveCountReseted)
+		p.inactiveCountingHeight, p.lastUpdateInactiveHeight, p.inactiveCount)
 }
 
 func (p *Producer) Deserialize(r io.Reader) (err error) {
@@ -256,7 +256,7 @@ func (p *Producer) Deserialize(r io.Reader) (err error) {
 	}
 
 	return common.ReadElements(r, &p.selected, &p.randomCandidateInactiveCount,
-		&p.lastUpdateInactiveHeight, &p.inactiveCount, &p.inactiveCountReseted)
+		&p.inactiveCountingHeight, &p.lastUpdateInactiveHeight, &p.inactiveCount)
 }
 
 const (
@@ -763,7 +763,9 @@ func (s *State) ProcessBlock(block *types.Block, confirm *payload.Confirm) {
 	s.tryUpdateLastIrreversibleHeight(block.Height)
 
 	if confirm != nil {
-		if block.Height >= s.chainParams.CRClaimDPOSNodeStartHeight {
+		if block.Height >= s.chainParams.ChangeCommitteeNewCRHeight {
+			s.countArbitratorsInactivityV2(block.Height, confirm)
+		} else if block.Height >= s.chainParams.CRClaimDPOSNodeStartHeight {
 			s.countArbitratorsInactivityV1(block.Height, confirm)
 		} else {
 			s.countArbitratorsInactivityV0(block.Height, confirm)
@@ -854,28 +856,12 @@ func (s *State) processTransactions(txs []*types.Transaction, height uint32) {
 	// Check if any pending inactive producers has got 6 confirms,
 	// then set them to activate.
 	activateProducerFromInactive := func(key string, producer *Producer) {
-		oriInactiveCount := uint32(0)
-		if producer.selected {
-			oriInactiveCount = producer.randomCandidateInactiveCount
-		} else {
-			oriInactiveCount = producer.inactiveCount
-		}
 		s.history.Append(height, func() {
 			producer.state = Active
-			if producer.selected {
-				producer.randomCandidateInactiveCount = 0
-			} else {
-				producer.inactiveCount = 0
-			}
 			s.ActivityProducers[key] = producer
 			delete(s.InactiveProducers, key)
 		}, func() {
 			producer.state = Inactive
-			if producer.selected {
-				producer.randomCandidateInactiveCount = oriInactiveCount
-			} else {
-				producer.inactiveCount = oriInactiveCount
-			}
 			s.InactiveProducers[key] = producer
 			delete(s.ActivityProducers, key)
 		})
@@ -884,15 +870,12 @@ func (s *State) processTransactions(txs []*types.Transaction, height uint32) {
 	// Check if any pending illegal producers has got 6 confirms,
 	// then set them to activate.
 	activateProducerFromIllegal := func(key string, producer *Producer) {
-		oriInactiveCount := producer.illegalHeight
 		s.history.Append(height, func() {
 			producer.state = Active
-			producer.inactiveCount += height - producer.illegalHeight
 			s.ActivityProducers[key] = producer
 			delete(s.IllegalProducers, key)
 		}, func() {
 			producer.state = Illegal
-			producer.inactiveCount = oriInactiveCount
 			s.IllegalProducers[key] = producer
 			delete(s.ActivityProducers, key)
 		})
@@ -1765,7 +1748,7 @@ func (s *State) revertSettingInactiveProducer(producer *Producer, key string,
 
 // countArbitratorsInactivity count arbitrators inactive rounds, and change to
 // inactive if more than "MaxInactiveRounds"
-func (s *State) countArbitratorsInactivityV1(height uint32,
+func (s *State) countArbitratorsInactivityV2(height uint32,
 	confirm *payload.Confirm) {
 	// check inactive arbitrators after producers has participated in
 	if height < s.chainParams.PublicDPOSHeight {
@@ -1821,7 +1804,7 @@ func (s *State) countArbitratorsInactivityV1(height uint32,
 					}
 					oriLastUpdateInactiveHeight := producer.lastUpdateInactiveHeight
 					s.history.Append(height, func() {
-						s.tryUpdateInactivityV1(key, producer, needReset, height)
+						s.tryUpdateInactivityV2(key, producer, needReset, height)
 					}, func() {
 						s.tryRevertInactivity(key, producer, needReset, height,
 							oriInactiveCount, oriLastUpdateInactiveHeight)
@@ -1852,7 +1835,68 @@ func (s *State) countArbitratorsInactivityV1(height uint32,
 		}
 		oriLastUpdateInactiveHeight := producer.lastUpdateInactiveHeight
 		s.history.Append(height, func() {
-			s.tryUpdateInactivityV1(key, producer, needReset, height)
+			s.tryUpdateInactivityV2(key, producer, needReset, height)
+		}, func() {
+			s.tryRevertInactivity(key, producer, needReset, height,
+				oriInactiveCount, oriLastUpdateInactiveHeight)
+		})
+	}
+}
+
+// countArbitratorsInactivity count arbitrators inactive rounds, and change to
+// inactive if more than "MaxInactiveRounds"
+func (s *State) countArbitratorsInactivityV1(height uint32,
+	confirm *payload.Confirm) {
+	// check inactive arbitrators after producers has participated in
+	if height < s.chainParams.PublicDPOSHeight {
+		return
+	}
+	// changingArbiters indicates the arbiters that should reset inactive
+	// counting state. With the value of true means the producer is on duty or
+	// is not current arbiter any more, or just becoming current arbiter; and
+	// false means producer is arbiter in both heights and not on duty.
+	changingArbiters := make(map[string]bool)
+	for _, a := range s.getArbiters() {
+		if !a.IsNormal || (a.IsCRMember && !a.ClaimedDPOSNode) {
+			continue
+		}
+		key := s.getProducerKey(a.NodePublicKey)
+		changingArbiters[key] = false
+	}
+	changingArbiters[s.getProducerKey(confirm.Proposal.Sponsor)] = true
+
+	crMembersMap := s.getClaimedCRMembersMap()
+	// CRC producers are not in the ActivityProducers,
+	// so they will not be inactive
+	for k, v := range changingArbiters {
+		needReset := v // avoiding pass iterator to closure
+
+		if s.isInElectionPeriod != nil && s.isInElectionPeriod() {
+			if cr, ok := crMembersMap[k]; ok {
+				if cr.MemberState != state.MemberElected {
+					continue
+				}
+				oriState := cr.MemberState
+				oriInactiveCount := cr.InactiveCount
+				s.history.Append(height, func() {
+					s.tryUpdateCRMemberInactivity(cr.Info.DID, needReset, height)
+				}, func() {
+					s.tryRevertCRMemberInactivity(cr.Info.DID, oriState, oriInactiveCount, height)
+				})
+				continue
+			}
+		}
+
+		key := k // avoiding pass iterator to closure
+		producer, ok := s.ActivityProducers[key]
+		if !ok {
+			continue
+		}
+
+		oriInactiveCount := producer.inactiveCount
+		oriLastUpdateInactiveHeight := producer.lastUpdateInactiveHeight
+		s.history.Append(height, func() {
+			s.tryUpdateInactivity(key, producer, needReset, height)
 		}, func() {
 			s.tryRevertInactivity(key, producer, needReset, height,
 				oriInactiveCount, oriLastUpdateInactiveHeight)
@@ -1906,7 +1950,7 @@ func (s *State) countArbitratorsInactivityV0(height uint32,
 		}
 		oriLastUpdateInactiveHeight := producer.lastUpdateInactiveHeight
 		s.history.Append(height, func() {
-			s.tryUpdateInactivityV0(key, producer, needReset, height)
+			s.tryUpdateInactivity(key, producer, needReset, height)
 		}, func() {
 			s.tryRevertInactivity(key, producer, needReset, height,
 				oriInactiveCount, oriLastUpdateInactiveHeight)
@@ -1914,15 +1958,8 @@ func (s *State) countArbitratorsInactivityV0(height uint32,
 	}
 }
 
-func (s *State) tryUpdateInactivityV1(key string, producer *Producer,
+func (s *State) tryUpdateInactivityV2(key string, producer *Producer,
 	needReset bool, height uint32) {
-	// old: need to reset inactiveCount when first on duty.
-	if height != producer.lastUpdateInactiveHeight+1 &&
-		height < s.chainParams.ChangeCommitteeNewCRHeight {
-		producer.inactiveCount =
-			height - producer.lastUpdateInactiveHeight + producer.inactiveCount - 1
-	}
-
 	if needReset {
 		if producer.selected {
 			producer.randomCandidateInactiveCount = 0
@@ -1934,6 +1971,12 @@ func (s *State) tryUpdateInactivityV1(key string, producer *Producer,
 		return
 	}
 
+	if height != producer.lastUpdateInactiveHeight+1 {
+		if producer.selected {
+			producer.randomCandidateInactiveCount = 0
+		}
+	}
+
 	if producer.selected {
 		producer.randomCandidateInactiveCount++
 		if producer.randomCandidateInactiveCount >= s.chainParams.MaxInactiveRoundsOfRandomNode {
@@ -1941,39 +1984,28 @@ func (s *State) tryUpdateInactivityV1(key string, producer *Producer,
 		}
 	} else {
 		producer.inactiveCount++
-		inactiveCount := producer.inactiveCount
-
-		if inactiveCount >= s.chainParams.MaxInactiveRounds {
+		if producer.inactiveCount >= s.chainParams.MaxInactiveRounds {
 			s.setInactiveProducer(producer, key, height, false)
 		}
 	}
 	producer.lastUpdateInactiveHeight = height
 }
 
-func (s *State) tryUpdateInactivityV0(key string, producer *Producer,
+func (s *State) tryUpdateInactivity(key string, producer *Producer,
 	needReset bool, height uint32) {
 	if needReset {
-		producer.inactiveCount = 0
-		producer.inactiveCountReseted = true
-		producer.lastUpdateInactiveHeight = height
+		producer.inactiveCountingHeight = 0
 		return
 	}
 
-	if height != producer.lastUpdateInactiveHeight+1 {
-		producer.inactiveCountReseted = false
-		producer.inactiveCount = 0
+	if producer.inactiveCountingHeight == 0 {
+		producer.inactiveCountingHeight = height
 	}
 
-	producer.inactiveCount++
-	inactiveCount := producer.inactiveCount
-	if !producer.inactiveCountReseted {
-		inactiveCount--
-	}
-
-	if inactiveCount >= s.chainParams.MaxInactiveRounds {
+	if height-producer.inactiveCountingHeight >= s.chainParams.MaxInactiveRounds {
 		s.setInactiveProducer(producer, key, height, false)
+		producer.inactiveCountingHeight = 0
 	}
-	producer.lastUpdateInactiveHeight = height
 }
 
 func (s *State) tryRevertInactivity(key string, producer *Producer,

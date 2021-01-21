@@ -193,10 +193,12 @@ func (a *Arbitrator) OnBlockReceived(b *types.Block, confirmed bool) {
 	if a.cfg.Arbitrators.IsInPOWMode() {
 		return
 	}
-	lastBlockTimestamp := int64(a.cfg.Arbitrators.GetLastBlockTimestamp())
-	localTimestamp := a.cfg.Chain.TimeSource.AdjustedTime().Unix()
-	if localTimestamp-lastBlockTimestamp >= a.cfg.ChainParams.StopConfirmBlockTime {
-		return
+	if b.Height >= a.cfg.ChainParams.RevertToPOWStartHeight {
+		lastBlockTimestamp := int64(a.cfg.Arbitrators.GetLastBlockTimestamp())
+		localTimestamp := a.cfg.Chain.TimeSource.AdjustedTime().Unix()
+		if localTimestamp-lastBlockTimestamp >= a.cfg.ChainParams.StopConfirmBlockTime {
+			return
+		}
 	}
 	a.network.PostBlockReceivedTask(b, confirmed)
 }

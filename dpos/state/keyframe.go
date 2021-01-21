@@ -37,7 +37,6 @@ type StateKeyFrame struct {
 	EmergencyInactiveArbiters map[string]struct{}
 	VersionStartHeight        uint32
 	VersionEndHeight          uint32
-	NeedNextTurnDposInfo      bool
 	Unclaimed                 int
 	LastRandomCandidateHeight uint32
 	LastRandomCandidateOwner  string
@@ -155,7 +154,7 @@ func (s *StateKeyFrame) Serialize(w io.Writer) (err error) {
 	}
 
 	if err = common.WriteElements(w, s.VersionStartHeight, s.VersionEndHeight,
-		s.NeedNextTurnDposInfo, s.LastRandomCandidateHeight, s.NoProducers,
+		s.LastRandomCandidateHeight, s.NoProducers,
 		s.NoClaimDPOSNode, s.LastBlockTimestamp, s.NeedRevertToDPOSTX,
 		s.NeedNextTurnDPOSInfo, s.RevertToPOWBlockHeight, s.LastIrreversibleHeight,
 		s.DPOSStartHeight); err != nil {
@@ -227,7 +226,7 @@ func (s *StateKeyFrame) Deserialize(r io.Reader) (err error) {
 	}
 
 	if err = common.ReadElements(r, &s.VersionStartHeight, &s.VersionEndHeight,
-		&s.NeedNextTurnDposInfo, &s.LastRandomCandidateHeight, &s.NoClaimDPOSNode,
+		&s.LastRandomCandidateHeight, &s.NoClaimDPOSNode,
 		&s.NoProducers, &s.LastBlockTimestamp, &s.NeedRevertToDPOSTX,
 		&s.NeedNextTurnDPOSInfo, &s.RevertToPOWBlockHeight, &s.LastIrreversibleHeight,
 		&s.DPOSStartHeight); err != nil {

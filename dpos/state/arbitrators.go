@@ -534,7 +534,7 @@ func (a *arbitrators) IncreaseChainHeight(block *types.Block) {
 	if block.Height > bestHeight-MaxSnapshotLength {
 		a.snapshot(block.Height)
 	}
-	if block.Height >= bestHeight && a.NeedNextTurnDposInfo {
+	if block.Height >= bestHeight && a.NeedNextTurnDPOSInfo {
 		a.notifyNextTurnDPOSInfoTx(block.Height, block.Height+1)
 	}
 	a.mtx.Unlock()

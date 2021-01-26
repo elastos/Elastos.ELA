@@ -670,9 +670,16 @@ func (b *BlockChain) checkTransactionOutput(txn *Transaction,
 		}
 
 		if blockHeight >= b.chainParams.CRCommitteeStartHeight {
-			if !txn.Outputs[0].ProgramHash.IsEqual(b.chainParams.CRAssetsAddress) {
-				return errors.New("first output address should be CRC " +
-					"foundation address")
+			if b.state.GetConsensusAlgorithm() == state.POW {
+				if !txn.Outputs[0].ProgramHash.IsEqual(b.chainParams.DestroyELAAddress) {
+					return errors.New("first output address should be " +
+						"DestroyAddress in POW consensus algorithm")
+				}
+			} else {
+				if !txn.Outputs[0].ProgramHash.IsEqual(b.chainParams.CRAssetsAddress) {
+					return errors.New("first output address should be CR " +
+						"assets address")
+				}
 			}
 		} else if !txn.Outputs[0].ProgramHash.IsEqual(FoundationAddress) {
 			return errors.New("first output address should be foundation " +

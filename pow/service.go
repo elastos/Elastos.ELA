@@ -185,6 +185,9 @@ func (pow *Service) AssignCoinbaseTxRewards(block *types.Block, totalReward comm
 
 		block.Transactions[0].Outputs[0].Value = rewardCyberRepublic
 		block.Transactions[0].Outputs[1].Value = rewardMergeMiner
+		if pow.arbiters.IsInPOWMode() {
+			block.Transactions[0].Outputs[0].ProgramHash = pow.chainParams.DestroyELAAddress
+		}
 		return nil
 	}
 

@@ -40,22 +40,22 @@ local cr_publickey = getPublicKey()
 proposal_hash = getProposalHash()
 vote_result = getVoteResult()
 code = getCode()
-local cr_opinion_hash = getCROpinionHash()
+local cr_opinion_data = getCROpinionData()
 --sign = getSign()
 
 print("proposal_hash:", proposal_hash)
 print("vote_result:", vote_result)
-print("opinion hash:", cr_opinion_hash)
+print("cr_opinion_data:", cr_opinion_data)
 print("code:", code)
 
 print(crcproposalreview)
 
 local crcproposalreview_payload =crcproposalreview.new(proposal_hash,
-        vote_result, code, cr_opinion_hash, wallet)
+        vote_result, code, cr_opinion_data, wallet)
 --print(crcproposalreview_payload:get())
 
 -- transaction: version, txType, payloadVersion, payload, locktime
-local tx = transaction.new(9, 0x26, 0, crcproposalreview_payload, 0)
+local tx = transaction.new(9, 0x26, 1, crcproposalreview_payload, 0)
 print(tx:get())
 
 -- input: from, amount + fee

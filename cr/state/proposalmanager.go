@@ -188,10 +188,11 @@ func (p *ProposalManager) updateProposals(height uint32,
 			if p.shouldEndCRCVote(v.RegisterHeight, height) {
 				pass := true
 				if p.transferRegisteredState(v, height) == CRCanceled {
+
 					unusedAmount += getProposalTotalBudgetAmount(v.Proposal)
 					pass = false
+					recordCustomIDProposalResult(&results, proposalType, k, pass)
 				}
-				recordCustomIDProposalResult(&results, proposalType, k, pass)
 			}
 		case CRAgreed:
 			if !inElectionPeriod {
@@ -404,7 +405,8 @@ func (p *ProposalManager) transferCRAgreedState(proposalState *ProposalState,
 
 func isSpecialProposal(proposalType payload.CRCProposalType) bool {
 	switch proposalType {
-	case payload.SecretaryGeneral, payload.ChangeProposalOwner, payload.CloseProposal, payload.ReserveCustomID, payload.ReceiveCustomID:
+	case payload.SecretaryGeneral, payload.ChangeProposalOwner, payload.CloseProposal, payload.ReserveCustomID,
+		payload.ReceiveCustomID, payload.ChangeCustomIDFee:
 		return true
 	default:
 		return false

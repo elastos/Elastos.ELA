@@ -49,6 +49,7 @@ func registerParams(c *cli.Context, L *lua.LState) {
 	proposalTrackingType := c.Int64("proposaltrackingtype")
 	MessageHash := c.String("messagehash")
 	crOpinionHash := c.String("cropinionhash")
+	crOpinionData := c.String("cropiniondata")
 	SecretaryGeneralOpinionHash := c.String("secretarygeneralopinionhash")
 	stage := c.Int64("stage")
 
@@ -205,6 +206,11 @@ func registerParams(c *cli.Context, L *lua.LState) {
 		L.Push(lua.LString(crOpinionHash))
 		return 1
 	}
+	getCROpinionData := func(L *lua.LState) int {
+		L.Push(lua.LString(crOpinionData))
+		return 1
+	}
+
 	getSecretaryGeneralOpinionHash := func(L *lua.LState) int {
 		L.Push(lua.LString(SecretaryGeneralOpinionHash))
 		return 1
@@ -316,6 +322,8 @@ func registerParams(c *cli.Context, L *lua.LState) {
 	L.Register("getProposalTrackingType", getProposalTrackingType)
 	L.Register("getMessageHash", getMessageHash)
 	L.Register("getCROpinionHash", getCROpinionHash)
+	L.Register("getCROpinionData", getCROpinionData)
+
 	L.Register("getSecretaryGeneralOpinionHash", getSecretaryGeneralOpinionHash)
 	L.Register("getStage", getStage)
 
@@ -536,6 +544,10 @@ func NewCommand() *cli.Command {
 			cli.StringFlag{
 				Name:  "cropinionhash",
 				Usage: "set the hash of proposal opinion",
+			},
+			cli.StringFlag{
+				Name:  "cropiniondata",
+				Usage: "set the data of cr opinion",
 			},
 			cli.StringFlag{
 				Name:  "secretarygeneralopinionhash",

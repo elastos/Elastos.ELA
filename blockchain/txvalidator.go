@@ -620,7 +620,7 @@ func checkTransactionInput(txn *Transaction) error {
 	if txn.IsIllegalTypeTx() || txn.IsInactiveArbitrators() ||
 		txn.IsNewSideChainPowTx() || txn.IsUpdateVersion() ||
 		txn.IsActivateProducerTx() || txn.IsNextTurnDPOSInfoTx() ||
-		txn.IsRevertToPOW() || txn.IsRevertToDPOS() {
+		txn.IsRevertToPOW() || txn.IsRevertToDPOS() || txn.IsCustomIDResultTx() {
 		if len(txn.Inputs) != 0 {
 			return errors.New("no cost transactions must has no input")
 		}
@@ -707,7 +707,7 @@ func (b *BlockChain) checkTransactionOutput(txn *Transaction,
 	if txn.IsIllegalTypeTx() || txn.IsInactiveArbitrators() ||
 		txn.IsUpdateVersion() || txn.IsActivateProducerTx() ||
 		txn.IsNextTurnDPOSInfoTx() || txn.IsRevertToPOW() ||
-		txn.IsRevertToDPOS() {
+		txn.IsRevertToDPOS() || txn.IsCustomIDResultTx() {
 		if len(txn.Outputs) != 0 {
 			return errors.New("no cost transactions should have no output")
 		}
@@ -1100,6 +1100,7 @@ func checkTransactionPayload(txn *Transaction) error {
 	case *payload.CRCouncilMemberClaimNode:
 	case *payload.RevertToPOW:
 	case *payload.RevertToDPOS:
+	case *payload.CustomIDProposalResult:
 	default:
 		return errors.New("[txValidator],invalidate transaction payload type.")
 	}
@@ -1211,7 +1212,7 @@ func (b *BlockChain) checkTxHeightVersion(txn *Transaction, blockHeight uint32) 
 		case payload.ReserveCustomID, payload.ReceiveCustomID, payload.ChangeCustomIDFee:
 			if blockHeight < b.chainParams.CustomIDProposalStartHeight {
 				return errors.New(fmt.Sprintf("not support %s CRCProposal"+
-					" transaction before ChangeCommitteeNewCRHeight", p.ProposalType.Name()))
+					" transaction before CustomIDProposalStartHeight", p.ProposalType.Name()))
 			}
 		default:
 			if blockHeight < b.chainParams.CRCommitteeStartHeight {

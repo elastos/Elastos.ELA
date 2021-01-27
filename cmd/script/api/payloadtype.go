@@ -1482,6 +1482,7 @@ func newCRCReceivedCustomID(L *lua.LState) int {
 	if err != nil {
 		fmt.Println("receiver did to uint168 failed")
 	}
+
 	crcProposal := &payload.CRCProposal{
 		ProposalType:         payload.CRCProposalType(proposalType),
 		OwnerPublicKey:       publicKey,
@@ -1816,8 +1817,7 @@ func newCRCProposalReview(L *lua.LState) int {
 	proposalHashString := L.ToString(1)
 	voteResult := L.ToInt(2)
 	code := L.ToString(3)
-	opinionHashStr := L.ToString(4)
-
+	opinionDataStr := L.ToString(4)
 	needSign := true
 	client, err := checkClient(L, 5)
 	if err != nil {
@@ -1825,24 +1825,26 @@ func newCRCProposalReview(L *lua.LState) int {
 	}
 	proposalHash, _ := common.Uint256FromHexString(proposalHashString)
 	codeByte, _ := common.HexStringToBytes(code)
-	opinionHash := &common.Uint256{}
-	if opinionHashStr != "" {
-		var err error
-		opinionHash, err = common.Uint256FromHexString(opinionHashStr)
-		if err != nil {
-			return 1
-		}
+	opinionHash := common.Uint256{}
+	opinionData, _ := common.HexStringToBytes(opinionDataStr)
+
+	if opinionDataStr != "" {
+		opinionHash = common.Hash(opinionData)
+		fmt.Println(" opinionHash1 ", opinionHash.String())
+
 	}
 	did, _ := getDIDFromCode(codeByte)
+
 	crcProposalReview := &payload.CRCProposalReview{
 		ProposalHash: *proposalHash,
 		VoteResult:   payload.VoteResult(voteResult),
-		OpinionHash:  *opinionHash,
+		OpinionHash:  opinionHash,
+		OpinionData:  opinionData,
 		DID:          *did,
 	}
 	if needSign {
 		rpSignBuf := new(bytes.Buffer)
-		err = crcProposalReview.SerializeUnsigned(rpSignBuf, payload.CRCProposalReviewVersion)
+		err = crcProposalReview.SerializeUnsigned(rpSignBuf, payload.CRCProposalReviewVersion01)
 		codeHash := common.ToCodeHash(codeByte)
 		fmt.Println("newCRCProposalReview codeHash", common.BytesToHexString(codeHash.Bytes()))
 		acc := client.GetAccountByCodeHash(*codeHash)

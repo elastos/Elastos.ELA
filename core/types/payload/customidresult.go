@@ -23,7 +23,11 @@ func (p *ProposalResult) Serialize(w io.Writer, version byte) error {
 	if err := p.ProposalHash.Serialize(w); err != nil {
 		return err
 	}
-	if err := common.WriteElements(w, uint16(p.ProposalType), p.Result); err != nil {
+
+	if err := common.WriteUint16(w, uint16(p.ProposalType)); err != nil {
+		return err
+	}
+	if err := common.WriteElements(w, p.Result); err != nil {
 		return err
 	}
 	return nil
@@ -33,11 +37,15 @@ func (p *ProposalResult) Deserialize(r io.Reader, version byte) error {
 	if err := p.ProposalHash.Deserialize(r); err != nil {
 		return err
 	}
-	var proposalType uint16
-	if err := common.ReadElements(r, &proposalType, &p.Result); err != nil {
+	//var proposalType uint16
+	proposalType, err := common.ReadUint16(r)
+	if err != nil {
 		return err
 	}
 	p.ProposalType = CRCProposalType(proposalType)
+	if err := common.ReadElements(r, &p.Result); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -87,6 +95,7 @@ func (p *CustomIDProposalResult) DeserializeUnsigned(r io.Reader, version byte) 
 		if err = result.Deserialize(r, version); err != nil {
 			return err
 		}
+		p.ProposalResults = append(p.ProposalResults, result)
 	}
 	return nil
 }

@@ -71,7 +71,7 @@ print("draft_data :", draft_data)
 -- crc close proposal hash payload: crPublickey, proposalType, draftData, close_proposal_hash, wallet
 local cp_payload =crcreceivedcustomid.new(cr_pubkey, proposal_type, draft_data, received_custom_id_list, receiver_did, wallet)
 
-print(cp_payload:get())
+print("cp_payload :",cp_payload:get())
 
 -- transaction: version, txType, payloadVersion, payload, locktime
 local tx = transaction.new(9, 0x25, 1, cp_payload, 0)

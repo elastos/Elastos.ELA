@@ -654,6 +654,8 @@ func GetPayload(txType TxType) (Payload, error) {
 		p = new(payload.NextTurnDPOSInfo)
 	case RevertToPOW:
 		p = new(payload.RevertToPOW)
+	case CustomIDResult:
+		p = new(payload.CustomIDProposalResult)
 	default:
 		return nil, errors.New("[Transaction], invalid transaction type.")
 	}

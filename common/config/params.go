@@ -191,6 +191,7 @@ var DefaultParams = Params{
 	ToleranceDuration:           5 * time.Second,
 	MaxInactiveRounds:           720 * 2,
 	InactivePenalty:             0, //there will be no penalty in this version
+	IllegalPenalty:              5000,
 	EmergencyInactivePenalty:    0, //there will be no penalty in this version
 	GeneralArbiters:             24,
 	CandidateArbiters:           72,
@@ -226,6 +227,16 @@ var DefaultParams = Params{
 	RectifyTxFee:                       10000,
 	RealWithdrawSingleFee:              10000,
 	NewP2PProtocolVersionHeight:        751400,
+	ChangeCommitteeNewCRHeight:         1000000,   //TODO reset latter
+	CustomIDProposalStartHeight:        1000000,   //TODO reset latter
+	NoCRCDPOSNodeHeight:                1000000,   //TODO reset latter
+	RandomCandidatePeriod:              36 * 10,   //TODO reset latter
+	MaxInactiveRoundsOfRandomNode:      36 * 8,    //TODO reset latter
+	MaxReservedCustomIDListCount:       255,       //TODO reset latter
+	DPOSNodeCrossChainHeight:           1000000,   //TODO reset latter
+	RevertToPOWNoBlockTime:             12 * 3600, //TODO reset latter
+	StopConfirmBlockTime:               11 * 3600, //TODO reset latter
+	RevertToPOWStartHeight:             1000000,   //TODO reset latter
 }
 
 // TestNet returns the network parameters for the test network.
@@ -294,6 +305,18 @@ func (p *Params) TestNet() *Params {
 	copy.MaxCommitteeProposalCount = 128
 	copy.MaxNodePerHost = 10
 	copy.CheckVoteCRCountHeight = 546500
+	copy.MaxCRAssetsAddressUTXOCount = 800
+	copy.ChangeCommitteeNewCRHeight = 1000000   //TODO reset latter
+	copy.CustomIDProposalStartHeight = 1000000  //TODO reset latter
+	copy.IllegalPenalty = 5000                  //TODO reset latter
+	copy.NoCRCDPOSNodeHeight = 1000000          //TODO reset latter
+	copy.RandomCandidatePeriod = 36 * 10        //TODO reset latter
+	copy.MaxInactiveRoundsOfRandomNode = 36 * 8 //TODO reset latter
+	copy.DPOSNodeCrossChainHeight = 1000000     //TODO reset latter
+	copy.MaxReservedCustomIDListCount = 255     //TODO reset latter
+	copy.RevertToPOWNoBlockTime = 12 * 3600     //TODO reset latter
+	copy.StopConfirmBlockTime = 11 * 3600       //TODO reset latter
+	copy.RevertToPOWStartHeight = 1000000       //TODO reset latter
 
 	return &copy
 }
@@ -364,6 +387,18 @@ func (p *Params) RegNet() *Params {
 	copy.MaxCommitteeProposalCount = 128
 	copy.MaxNodePerHost = 10
 	copy.CheckVoteCRCountHeight = 435000
+	copy.MaxCRAssetsAddressUTXOCount = 1440
+	copy.ChangeCommitteeNewCRHeight = 1000000   //TODO reset latter
+	copy.CustomIDProposalStartHeight = 1000000  //TODO reset latter
+	copy.IllegalPenalty = 5000                  //TODO reset latter
+	copy.NoCRCDPOSNodeHeight = 1000000          //TODO reset latter
+	copy.RandomCandidatePeriod = 36 * 10        //TODO reset latter
+	copy.MaxInactiveRoundsOfRandomNode = 36 * 8 //TODO reset latter
+	copy.DPOSNodeCrossChainHeight = 1000000     //TODO reset latter
+	copy.MaxReservedCustomIDListCount = 255     //TODO reset latter
+	copy.RevertToPOWNoBlockTime = 12 * 3600     //TODO reset latter
+	copy.StopConfirmBlockTime = 11 * 3600       //TODO reset latter
+	copy.RevertToPOWStartHeight = 1000000       //TODO reset latter
 
 	return &copy
 }
@@ -474,6 +509,9 @@ type Params struct {
 	// elected producers participate in DPOS consensus.
 	PublicDPOSHeight uint32
 
+	// NoCRCDPOSNodeHeight indicates the height when there is no DPOS node of CRC.
+	NoCRCDPOSNodeHeight uint32
+
 	// CRVotingStartHeight defines the height of CR voting started.
 	CRVotingStartHeight uint32
 
@@ -491,7 +529,6 @@ type Params struct {
 	EnableActivateIllegalHeight uint32
 
 	// CheckRewardHeight defines the height to check reward in coin base
-
 	// with new check function.
 	CheckRewardHeight uint32
 
@@ -532,8 +569,19 @@ type Params struct {
 	// takes penalty.
 	MaxInactiveRounds uint32
 
+	// MaxInactiveRoundsOfRandomNode defines the maximum inactive rounds before
+	// the producer at random takes penalty.
+	MaxInactiveRoundsOfRandomNode uint32
+
+	// DPOSNodeCrossChainHeight defines the height at which not only CR members
+	// are responsible for working across the chain.
+	DPOSNodeCrossChainHeight uint32
+
 	// InactivePenalty defines the penalty amount the producer takes.
 	InactivePenalty common.Fixed64
+
+	// InactivePenalty defines the penalty amount the producer takes.
+	IllegalPenalty common.Fixed64
 
 	// EmergencyInactivePenalty defines the penalty amount the emergency
 	// producer takes.
@@ -626,14 +674,35 @@ type Params struct {
 	// CloseProposal and SecretaryGeneral proposal.
 	CRCProposalV1Height uint32
 
-	// RectifyTxFee defines the fee of cr rectify transaction
+	// RectifyTxFee defines the fee of cr rectify transaction.
 	RectifyTxFee common.Fixed64
 
-	// RealWithdrawSingleFee defines the single fee of cr real proposal withdraw transaction
+	// RealWithdrawSingleFee defines the single fee of cr real proposal withdraw transaction.
 	RealWithdrawSingleFee common.Fixed64
 
-	// NewP2PProtocolVersionHeight defines the new p2p protocol version message height
+	// NewP2PProtocolVersionHeight defines the new p2p protocol version message height.
 	NewP2PProtocolVersionHeight uint64
+
+	// ChangeCommitteeNewCRHeight defines the new arbiter logic after change committee.
+	ChangeCommitteeNewCRHeight uint32
+
+	// CustomIDProposalStartHeight defines the height to allow custom ID related transaction.
+	CustomIDProposalStartHeight uint32
+
+	// RandomCandidatePeriod defines the period to get a candidate as DPOS node at random.
+	RandomCandidatePeriod uint32
+
+	// MaxReservedCustomIDListCount defines the max count of reserved custom iid list per tx.
+	MaxReservedCustomIDListCount uint32
+
+	// RevertToPOWInterval defines how long time does it take to revert to POW mode.
+	RevertToPOWNoBlockTime int64
+
+	// StopConfirmBlockTime defines how long time dose it take before stop confirm block.
+	StopConfirmBlockTime int64
+
+	// RevertToPOWStartHeight defines the start height to allow to revert to POW mode.
+	RevertToPOWStartHeight uint32
 }
 
 // rewardPerBlock calculates the reward for each block by a specified time

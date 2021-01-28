@@ -1,7 +1,7 @@
 // Copyright (c) 2017-2020 The Elastos Foundation
 // Use of this source code is governed by an MIT
 // license that can be found in the LICENSE file.
-// 
+//
 
 package state
 
@@ -369,8 +369,6 @@ func proposalKeyFrameEqual(first, second *ProposalKeyFrame) bool {
 
 		if !v.Proposal.DraftHash.IsEqual(proposalState.Proposal.DraftHash) ||
 			v.Proposal.ProposalType != proposalState.Proposal.ProposalType ||
-			!bytes.Equal(v.Proposal.CRCouncilMemberSignature, proposalState.Proposal.CRCouncilMemberSignature) ||
-			!bytes.Equal(v.Proposal.Signature, proposalState.Proposal.Signature) ||
 			!bytes.Equal(v.Proposal.OwnerPublicKey, proposalState.Proposal.OwnerPublicKey) ||
 			!v.Proposal.CRCouncilMemberDID.IsEqual(proposalState.Proposal.CRCouncilMemberDID) {
 			return false
@@ -402,9 +400,10 @@ func randomProposalKeyframe() *ProposalKeyFrame {
 }
 
 func randomProposalState() *ProposalState {
+	pld := randomCRCProposal()
 	return &ProposalState{
 		Status:             ProposalStatus(rand.Int31n(7)),
-		Proposal:           *randomCRCProposal(),
+		Proposal:           pld.ToProposalInfo(0),
 		TxHash:             *randomUint256(),
 		RegisterHeight:     rand.Uint32(),
 		VoteStartHeight:    rand.Uint32(),

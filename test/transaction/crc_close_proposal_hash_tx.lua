@@ -31,6 +31,8 @@ local cr_pubkey = getPublicKey()
 local proposal_type = getProposalType()
 
 local draft_hash = getDraftHash()
+local draft_data = getDraftData()
+
 local close_proposal_hash = getCloseProposalHash()
 
 if fee == 0
@@ -42,8 +44,8 @@ if cr_pubkey == "" then
     cr_pubkey = pubkey
 end
 
-if draft_hash == "" then
-    print("draft_hash is nil, should use --draftHash to set it.")
+if draft_data == "" then
+    print("draft_data is nil, should use --draftData to set it.")
     return
 end
 
@@ -57,13 +59,14 @@ print("public key:", cr_pubkey)
 print("proposal type:", proposal_type)
 print("draft proposal hash:", draft_hash)
 print("close_proposal_hash:", close_proposal_hash)
+print("draft_data :", draft_data)
 
 -- crc close proposal hash payload: crPublickey, proposalType, draftData, close_proposal_hash, wallet
-local cp_payload =crccloseproposalhash.new(cr_pubkey, proposal_type, draft_hash, close_proposal_hash, wallet)
+local cp_payload =crccloseproposalhash.new(cr_pubkey, proposal_type, draft_data, close_proposal_hash, wallet)
 print(cp_payload:get())
 
 -- transaction: version, txType, payloadVersion, payload, locktime
-local tx = transaction.new(9, 0x25, 0, cp_payload, 0)
+local tx = transaction.new(9, 0x25, 1, cp_payload, 0)
 print(tx:get())
 
 -- input: from, fee

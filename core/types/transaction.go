@@ -49,6 +49,7 @@ const (
 	InactiveArbitrators      TxType = 0x12
 	UpdateVersion            TxType = 0x13
 	NextTurnDPOSInfo         TxType = 0x14
+	CustomIDResult           TxType = 0x15
 
 	RegisterCR          TxType = 0x21
 	UnregisterCR        TxType = 0x22
@@ -63,6 +64,9 @@ const (
 	CRCProposalRealWithdraw  TxType = 0x2a
 	CRAssetsRectify          TxType = 0x2b
 	CRCouncilMemberClaimNode TxType = 0x31
+
+	RevertToPOW  TxType = 0x41
+	RevertToDPOS TxType = 0x42
 )
 
 func (self TxType) Name() string {
@@ -133,6 +137,12 @@ func (self TxType) Name() string {
 		return "CRCouncilMemberClaimNode"
 	case NextTurnDPOSInfo:
 		return "NextTurnDPOSInfo"
+	case CustomIDResult:
+		return "CustomIDResult"
+	case RevertToPOW:
+		return "RevertToPOW"
+	case RevertToDPOS:
+		return "RevertToDPOS"
 	default:
 		return "Unknown"
 	}
@@ -388,6 +398,23 @@ func (tx *Transaction) IsNextTurnDPOSInfoTx() bool {
 	return tx.TxType == NextTurnDPOSInfo
 }
 
+func (tx *Transaction) IsCustomIDResultTx() bool {
+	return tx.TxType == CustomIDResult
+}
+
+func (tx *Transaction) IsCustomIDRelatedTx() bool {
+	if tx.IsCRCProposalTx() {
+		p, _ := tx.Payload.(*payload.CRCProposal)
+		return p.ProposalType == payload.ReserveCustomID ||
+			p.ProposalType == payload.ReceiveCustomID ||
+			p.ProposalType == payload.ChangeCustomIDFee
+	}
+	if tx.IsCustomIDResultTx() {
+		return true
+	}
+	return false
+}
+
 func (tx *Transaction) IsCRCProposalRealWithdrawTx() bool {
 	return tx.TxType == CRCProposalRealWithdraw
 }
@@ -398,6 +425,14 @@ func (tx *Transaction) IsUpdateCRTx() bool {
 
 func (tx *Transaction) IsCRCProposalWithdrawTx() bool {
 	return tx.TxType == CRCProposalWithdraw
+}
+
+func (tx *Transaction) IsCRCProposalReviewTx() bool {
+	return tx.TxType == CRCProposalReview
+}
+
+func (tx *Transaction) IsCRCProposalTrackingTx() bool {
+	return tx.TxType == CRCProposalTracking
 }
 
 func (tx *Transaction) IsCRCProposalTx() bool {
@@ -465,6 +500,14 @@ func (tx *Transaction) IsSidechainIllegalDataTx() bool {
 
 func (tx *Transaction) IsInactiveArbitrators() bool {
 	return tx.TxType == InactiveArbitrators
+}
+
+func (tx *Transaction) IsRevertToPOW() bool {
+	return tx.TxType == RevertToPOW
+}
+
+func (tx *Transaction) IsRevertToDPOS() bool {
+	return tx.TxType == RevertToDPOS
 }
 
 func (tx *Transaction) IsUpdateVersion() bool {
@@ -579,6 +622,8 @@ func GetPayload(txType TxType) (Payload, error) {
 		p = new(payload.SidechainIllegalData)
 	case InactiveArbitrators:
 		p = new(payload.InactiveArbitrators)
+	case RevertToDPOS:
+		p = new(payload.RevertToDPOS)
 	case UpdateVersion:
 		p = new(payload.UpdateVersion)
 	case RegisterCR:
@@ -607,6 +652,10 @@ func GetPayload(txType TxType) (Payload, error) {
 		p = new(payload.CRCouncilMemberClaimNode)
 	case NextTurnDPOSInfo:
 		p = new(payload.NextTurnDPOSInfo)
+	case RevertToPOW:
+		p = new(payload.RevertToPOW)
+	case CustomIDResult:
+		p = new(payload.CustomIDProposalResult)
 	default:
 		return nil, errors.New("[Transaction], invalid transaction type.")
 	}

@@ -31,7 +31,7 @@ type TxPool struct {
 	sync.RWMutex
 }
 
-//append transaction to txnpool when check ok.
+//append transaction to txnpool when check ok, and broadcast the transaction.
 //1.check  2.check with ledger(db) 3.check with pool
 func (mp *TxPool) AppendToTxPool(tx *Transaction) elaerr.ELAError {
 	mp.Lock()
@@ -42,6 +42,18 @@ func (mp *TxPool) AppendToTxPool(tx *Transaction) elaerr.ELAError {
 	}
 
 	go events.Notify(events.ETTransactionAccepted, tx)
+	return nil
+}
+
+//append transaction to txnpool when check ok.
+//1.check  2.check with ledger(db) 3.check with pool
+func (mp *TxPool) AppendToTxPoolWithoutEvent(tx *Transaction) elaerr.ELAError {
+	mp.Lock()
+	defer mp.Unlock()
+	err := mp.appendToTxPool(tx)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -80,7 +92,8 @@ func (mp *TxPool) appendToTxPool(tx *Transaction) elaerr.ELAError {
 		log.Warn("[TxPool CheckTransactionSanity] failed", tx.Hash())
 		return errCode
 	}
-	if _, errCode := chain.CheckTransactionContext(bestHeight+1, tx, mp.proposalsUsedAmount); errCode != nil {
+	if _, errCode := chain.CheckTransactionContext(
+		bestHeight+1, tx, mp.proposalsUsedAmount, 0); errCode != nil {
 		log.Warn("[TxPool CheckTransactionContext] failed", tx.Hash())
 		return errCode
 	}
@@ -95,18 +108,16 @@ func (mp *TxPool) appendToTxPool(tx *Transaction) elaerr.ELAError {
 		log.Warn("TxPool check transactions size failed", tx.Hash())
 		return elaerr.Simple(elaerr.ErrTxPoolOverCapacity, nil)
 	}
-
 	if errCode := mp.AppendTx(tx); errCode != nil {
 		log.Warn("[TxPool verifyTransactionWithTxnPool] failed", tx.Hash())
 		return errCode
 	}
-
 	// Add the transaction to mem pool
 	if err := mp.doAddTransaction(tx); err != nil {
 		mp.removeTx(tx)
 		return err
 	}
-
+	//log.Infof("endAppendToTxPool:  Hash: %s, %d", tx.Hash(), tx.TxType)
 	return nil
 }
 
@@ -258,7 +269,7 @@ func (mp *TxPool) checkAndCleanAllTransactions() {
 	var deleteCount int
 	var proposalsUsedAmount Fixed64
 	for _, tx := range mp.txnList {
-		_, err := chain.CheckTransactionContext(bestHeight+1, tx, proposalsUsedAmount)
+		_, err := chain.CheckTransactionContext(bestHeight+1, tx, proposalsUsedAmount, 0)
 		if err != nil {
 			log.Warn("[checkAndCleanAllTransactions] check transaction context failed,", err)
 			deleteCount++

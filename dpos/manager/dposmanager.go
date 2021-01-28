@@ -85,7 +85,10 @@ type NetworkEventListener interface {
 	OnIllegalBlocksTxReceived(i *payload.DPOSIllegalBlocks)
 	OnSidechainIllegalEvidenceReceived(s *payload.SidechainIllegalData)
 	OnInactiveArbitratorsReceived(id dpeer.PID, tx *types.Transaction)
+	OnRevertToDPOSTxReceived(id dpeer.PID, tx *types.Transaction)
 	OnResponseInactiveArbitratorsReceived(txHash *common.Uint256,
+		Signer []byte, Sign []byte)
+	OnResponseRevertToDPOSTxReceived(txHash *common.Uint256,
 		Signer []byte, Sign []byte)
 	OnInactiveArbitratorsAccepted(p *payload.InactiveArbitrators)
 }
@@ -474,9 +477,16 @@ func (d *DPOSManager) OnChangeView() {
 }
 
 func (d *DPOSManager) OnBlockReceived(b *types.Block, confirmed bool) {
-	log.Info("[OnBlockReceived] start")
 	defer log.Info("[OnBlockReceived] end")
+	isCurArbiter := d.isCurrentArbiter()
 
+	if d.server.IsCurrent() && isCurArbiter {
+		d.handler.currentHandler.TryCreateRevertToDPOSTx(b.Height)
+	}
+
+	if d.arbitrators.IsInPOWMode() {
+		return
+	}
 	if confirmed {
 		d.ConfirmBlock(b.Height, b.Hash())
 		d.changeHeight()
@@ -484,7 +494,7 @@ func (d *DPOSManager) OnBlockReceived(b *types.Block, confirmed bool) {
 		log.Info("[OnBlockReceived] received confirmed block")
 		return
 	}
-	if !d.isCurrentArbiter() {
+	if !isCurArbiter {
 		return
 	}
 	for _, tx := range b.Transactions {
@@ -541,8 +551,8 @@ func (d *DPOSManager) OnIllegalBlocksTxReceived(i *payload.DPOSIllegalBlocks) {
 		log.Info("[OnIllegalProposalReceived] received error evidence: ", err)
 		return
 	}
-	d.illegalMonitor.AddEvidence(i)
-	d.dispatcher.OnIllegalBlocksTxReceived(i)
+	//d.illegalMonitor.AddEvidence(i)
+	//d.dispatcher.OnIllegalBlocksTxReceived(i)
 }
 
 func (d *DPOSManager) OnSidechainIllegalEvidenceReceived(s *payload.SidechainIllegalData) {
@@ -560,6 +570,12 @@ func (d *DPOSManager) OnInactiveArbitratorsAccepted(p *payload.InactiveArbitrato
 	}
 	d.arbitrators.ProcessSpecialTxPayload(p, blockchain.DefaultLedger.Blockchain.GetHeight())
 	d.clearInactiveData(p)
+}
+
+func (d *DPOSManager) clearRevertToDPOSData(p *payload.RevertToDPOS) {
+	d.dispatcher.RevertToDPOSTx = nil
+	log.Info("clearRevertToDPOSData finished:")
+
 }
 
 func (d *DPOSManager) clearInactiveData(p *payload.InactiveArbitrators) {
@@ -588,6 +604,19 @@ func (d *DPOSManager) clearInactiveData(p *payload.InactiveArbitrators) {
 	log.Info("clearInactiveData finished:", len(d.blockCache.ConsensusBlocks))
 }
 
+func (d *DPOSManager) OnRevertToDPOSTxReceived(id dpeer.PID,
+	tx *types.Transaction) {
+
+	if !d.isCurrentArbiter() {
+		return
+	}
+	if err := blockchain.CheckRevertToDPOSTransaction(tx); err != nil {
+		log.Info("[OnRevertToDPOSTxReceived] received error evidence: ", err)
+		return
+	}
+	d.dispatcher.OnRevertToDPOSTxReceived(id, tx)
+}
+
 func (d *DPOSManager) OnInactiveArbitratorsReceived(id dpeer.PID,
 	tx *types.Transaction) {
 	if !d.isCRCArbiter() {
@@ -609,6 +638,18 @@ func (d *DPOSManager) OnResponseInactiveArbitratorsReceived(
 		return
 	}
 	d.dispatcher.OnResponseInactiveArbitratorsReceived(txHash, signers, signs)
+}
+
+func (d *DPOSManager) OnResponseRevertToDPOSTxReceived(
+	txHash *common.Uint256, signers []byte, signs []byte) {
+
+	if !d.isCurrentArbiter() ||
+		!d.arbitrators.IsActiveProducer(signers) ||
+		!d.arbitrators.IsArbitrator(signers) {
+		return
+	}
+	d.dispatcher.OnResponseRevertToDPOSTxReceived(txHash, signers, signs)
+
 }
 
 func (d *DPOSManager) OnRequestProposal(id dpeer.PID, hash common.Uint256) {

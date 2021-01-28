@@ -97,6 +97,10 @@ var (
 		Name:  "rpcport",
 		Usage: "JSON-RPC server listening port `<number>`",
 	}
+	RPCIpFlag = cli.StringFlag{
+		Name:  "rpcip",
+		Usage: "JSON-RPC server listening ip `<string>`",
+	}
 	EnableRPCFlag = cli.StringFlag{
 		Name:  "server",
 		Usage: "decide if open JSON-RPC server or not",
@@ -225,6 +229,10 @@ var (
 		Name: "publicdposheight",
 		Usage: "(H2) indicates the height when public registered and elected " +
 			"producers participate in DPOS consensus",
+	}
+	IllegalPenaltyFlag = cli.StringFlag{
+		Name:  "illegalpenalty",
+		Usage: "defines the num of illegal penalty should be punished ",
 	}
 	CRCommitteeStartHeightFlag = cli.StringFlag{
 		Name:  "crcommitteestartheight",
@@ -417,6 +425,55 @@ var (
 	JobIdFlag = cli.StringFlag{
 		Name:  "jobid",
 		Usage: "specify the oracle node job ID",
+  }
+	ChangeCommitteeNewCRHeight = cli.StringFlag{
+		Name:  "changecommitteenewcrheight",
+		Usage: "defines the change committee new cr height",
+	}
+
+	CustomIDProposalStartHeight = cli.StringFlag{
+		Name:  "CustomIDProposalStartHeight",
+		Usage: "defines the height to allow custom ID related transaction",
+	}
+
+	MaxReservedCustomIDListCount = cli.StringFlag{
+		Name:  "maxreservedcustomidlistcount",
+		Usage: "defines the max count of reserved custom iid list per tx",
+	}
+
+	NoCRCDPOSNodeHeight = cli.StringFlag{
+		Name:  "nocrcdposnodeheight",
+		Usage: "defines the height when there is no DPOS node of CRC",
+	}
+
+	RandomCandidatePeriod = cli.StringFlag{
+		Name:  "randomcandidateperiod",
+		Usage: "defines the period to get a candidate as DPOS node at random",
+	}
+
+	MaxInactiveRoundsOfRandomNode = cli.StringFlag{
+		Name:  "maxinactiveroundsofrandomnode",
+		Usage: "defines the maximum inactive rounds before the random producer takes penalty",
+	}
+
+	DPOSNodeCrossChainHeight = cli.StringFlag{
+		Name:  "dposnodecrosschainheight",
+		Usage: "defines the height at which not only CR members are responsible for working across the chain",
+	}
+
+	RevertToPOWNoBlockTimeFlag = cli.StringFlag{
+		Name:  "reverttopownoblocktime",
+		Usage: "defines how long time does it take to revert to POW mode",
+	}
+
+	StopConfirmBlockTimeFlag = cli.StringFlag{
+		Name:  "stopconfirmblocktime",
+		Usage: "defines how long time does it take to stop confirm block",
+	}
+
+	RevertToPOWStartHeightFlag = cli.StringFlag{
+		Name:  "reverttopowstartheight",
+		Usage: "defines the start height to allow to revert to POW mode",
 	}
 )
 
@@ -428,6 +485,8 @@ func MoveRPCFlags(args []string) ([]string, error) {
 
 	for i := 1; i < len(args); i++ {
 		switch args[i] {
+		case "--rpcip":
+			fallthrough
 		case "--rpcport":
 			fallthrough
 		case "--rpcuser":

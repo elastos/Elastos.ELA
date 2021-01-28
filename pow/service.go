@@ -185,6 +185,9 @@ func (pow *Service) AssignCoinbaseTxRewards(block *types.Block, totalReward comm
 
 		block.Transactions[0].Outputs[0].Value = rewardCyberRepublic
 		block.Transactions[0].Outputs[1].Value = rewardMergeMiner
+		if pow.arbiters.IsInPOWMode() {
+			block.Transactions[0].Outputs[0].ProgramHash = pow.chainParams.DestroyELAAddress
+		}
 		return nil
 	}
 
@@ -284,7 +287,7 @@ func (pow *Service) GenerateBlock(minerAddr string,
 		if !blockchain.IsFinalizedTransaction(tx, nextBlockHeight) {
 			continue
 		}
-		_, errCode := pow.chain.CheckTransactionContext(nextBlockHeight, tx, proposalsUsedAmount)
+		_, errCode := pow.chain.CheckTransactionContext(nextBlockHeight, tx, proposalsUsedAmount, header.Timestamp)
 		if errCode != nil {
 			log.Warn("check transaction context failed, wrong transaction:", tx.Hash().String())
 			continue

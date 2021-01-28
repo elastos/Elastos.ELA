@@ -60,7 +60,20 @@ func (pt CRCProposalTrackingType) Name() string {
 	}
 }
 
-const CRCProposalTrackingVersion byte = 0x00
+const (
+	// CRCProposalTrackingVersion indicates the version of CRC proposal tracking payload
+	CRCProposalTrackingVersion byte = 0x00
+
+	// CRCProposalTrackingVersion01 add message data.
+	CRCProposalTrackingVersion01 byte = 0x01
+
+	// MaxMessageDataSize the max size of message data.
+	MaxMessageDataSize = 800 * 1024
+
+	// MaxSecretaryGeneralOpinionDataSize indicates the max size of secretary
+	// general`s opinion data.
+	MaxSecretaryGeneralOpinionDataSize = 200 * 1024
+)
 
 type CRCProposalTracking struct {
 	// The hash of current tracking proposal.
@@ -68,6 +81,9 @@ type CRCProposalTracking struct {
 
 	// The hash of proposal tracking message.
 	MessageHash common.Uint256
+
+	// The data of proposal tracking message.
+	MessageData []byte
 
 	// The stage of proposal.
 	Stage uint8
@@ -90,6 +106,9 @@ type CRCProposalTracking struct {
 	// The hash of secretary general's opinion.
 	SecretaryGeneralOpinionHash common.Uint256
 
+	// Thee data of secretary general's opinion.
+	SecretaryGeneralOpinionData []byte
+
 	// The signature of secretary general.
 	SecretaryGeneralSignature []byte
 }
@@ -110,6 +129,12 @@ func (p *CRCProposalTracking) SerializeUnsigned(w io.Writer, version byte) error
 
 	if err := p.MessageHash.Serialize(w); err != nil {
 		return errors.New("failed to serialize MessageHash")
+	}
+
+	if version >= CRCProposalTrackingVersion01 {
+		if err := common.WriteVarBytes(w, p.MessageData); err != nil {
+			return errors.New("failed to serialize MessageData")
+		}
 	}
 
 	if err := common.WriteUint8(w, p.Stage); err != nil {
@@ -148,6 +173,12 @@ func (p *CRCProposalTracking) Serialize(w io.Writer, version byte) error {
 		return errors.New("failed to serialize SecretaryGeneralOpinionHash")
 	}
 
+	if version >= CRCProposalTrackingVersion01 {
+		if err := common.WriteVarBytes(w, p.SecretaryGeneralOpinionData); err != nil {
+			return errors.New("failed to serialize SecretaryGeneralOpinionData")
+		}
+	}
+
 	if err := common.WriteVarBytes(w, p.SecretaryGeneralSignature); err != nil {
 		return errors.New("failed to serialize SecretaryGeneralSignature")
 	}
@@ -163,6 +194,12 @@ func (p *CRCProposalTracking) DeserializeUnSigned(r io.Reader, version byte) err
 
 	if err = p.MessageHash.Deserialize(r); err != nil {
 		return errors.New("failed to deserialize MessageHash")
+	}
+
+	if version >= CRCProposalTrackingVersion01 {
+		if p.MessageData, err = common.ReadVarBytes(r, MaxMessageDataSize, "message data"); err != nil {
+			return errors.New("failed to deserialize MessageData")
+		}
 	}
 
 	if p.Stage, err = common.ReadUint8(r); err != nil {
@@ -209,6 +246,13 @@ func (p *CRCProposalTracking) Deserialize(r io.Reader, version byte) error {
 
 	if err = p.SecretaryGeneralOpinionHash.Deserialize(r); err != nil {
 		return errors.New("failed to deserialize SecretaryGeneralOpinionHash")
+	}
+
+	if version >= CRCProposalTrackingVersion01 {
+		if p.SecretaryGeneralOpinionData, err = common.ReadVarBytes(r,
+			MaxSecretaryGeneralOpinionDataSize, "opinion data"); err != nil {
+			return errors.New("failed to deserialize SecretaryGeneralOpinionData")
+		}
 	}
 
 	sgSign, err := common.ReadVarBytes(r, crypto.SignatureLength, "secretary general signature")

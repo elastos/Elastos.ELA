@@ -38,7 +38,8 @@ func (f *NextTurnDPOSInfoFilter) Add(data []byte) error {
 // MatchConfirmed returns if a confirmed (packed into a block) transaction
 // matches the filter.
 func (f *NextTurnDPOSInfoFilter) MatchConfirmed(tx *types.Transaction) bool {
-	return f.TxFilter.MatchConfirmed(tx) || tx.IsNextTurnDPOSInfoTx()
+	return f.TxFilter.MatchConfirmed(tx) || tx.IsNextTurnDPOSInfoTx() ||
+		tx.IsRevertToPOW() || tx.IsRevertToDPOS()
 }
 
 // MatchUnconfirmed returns if a unconfirmed (not packed into a block yet)

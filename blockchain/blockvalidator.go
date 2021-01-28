@@ -252,7 +252,7 @@ func (b *BlockChain) checkTxsContext(block *Block) error {
 	var proposalsUsedAmount Fixed64
 	for i := 1; i < len(block.Transactions); i++ {
 		references, errCode := b.CheckTransactionContext(block.Height,
-			block.Transactions[i], proposalsUsedAmount)
+			block.Transactions[i], proposalsUsedAmount, block.Timestamp)
 		if errCode != nil {
 			return elaerr.SimpleWithMessage(elaerr.ErrBlockValidation, errCode,
 				"CheckTransactionContext failed when verify block")
@@ -330,7 +330,9 @@ func (b *BlockChain) CheckBlockContext(block *Block, prevNode *BlockNode) error 
 	if err := DefaultLedger.Arbitrators.CheckNextTurnDPOSInfoTx(block); err != nil {
 		return err
 	}
-
+	if err := DefaultLedger.Arbitrators.CheckCustomIDResultsTx(block); err != nil {
+		return err
+	}
 	return b.checkTxsContext(block)
 }
 

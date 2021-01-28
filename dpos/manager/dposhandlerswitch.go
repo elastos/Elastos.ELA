@@ -1,7 +1,7 @@
 // Copyright (c) 2017-2020 The Elastos Foundation
 // Use of this source code is governed by an MIT
 // license that can be found in the LICENSE file.
-// 
+//
 
 package manager
 
@@ -27,6 +27,7 @@ type DPOSEventConditionHandler interface {
 	ProcessProposal(id peer.PID, p *payload.DPOSProposal) (handled bool)
 	ProcessAcceptVote(id peer.PID, p *payload.DPOSProposalVote) (succeed bool, finished bool)
 	ProcessRejectVote(id peer.PID, p *payload.DPOSProposalVote) (succeed bool, finished bool)
+	TryCreateRevertToDPOSTx(BlockHeight uint32) bool
 }
 
 type DPOSHandlerConfig struct {
@@ -132,6 +133,7 @@ func (h *DPOSHandlerSwitch) TryStartNewConsensus(b *types.Block) bool {
 	}
 
 	if h.currentHandler.TryStartNewConsensus(b) {
+
 		h.proposalDispatcher.eventAnalyzer.IncreaseLastConsensusViewCount()
 		c := log.ConsensusEvent{StartTime: h.cfg.TimeSource.AdjustedTime(), Height: b.Height,
 			RawData: &b.Header}

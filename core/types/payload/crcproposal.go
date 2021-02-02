@@ -34,26 +34,25 @@ const (
 	// DIDUpgradeCode indicates the ETH code upgrade types of proposals.
 	ETHUpgradeCode CRCProposalType = 0x0202
 
-	/// 0x03 main chain related proposals.
+	// 0x03 for future usage.
+
+	/// 0x04 main chain related proposals.
 	// SecretaryGeneral indicates the vote secretary general types of proposals.
-	SecretaryGeneral CRCProposalType = 0x0300
+	SecretaryGeneral CRCProposalType = 0x0400
 	// ChangeProposalOwner indicates the change proposal owner types of proposals.
-	ChangeProposalOwner CRCProposalType = 0x0301
+	ChangeProposalOwner CRCProposalType = 0x0401
 	// CloseProposal indicates the close proposal types of proposals.
-	CloseProposal CRCProposalType = 0x0302
+	CloseProposal CRCProposalType = 0x0402
 	// Registration of side chain.
-	RegisterSideChain CRCProposalType = 0x0310
+	RegisterSideChain CRCProposalType = 0x0410
 
 	// 0x04 DID related proposals.
 	// Reserved did custom id.
-	ReserveCustomID CRCProposalType = 0x0400
+	ReserveCustomID CRCProposalType = 0x0500
 	// Receive did custom id.
-	ReceiveCustomID CRCProposalType = 0x0401
+	ReceiveCustomID CRCProposalType = 0x0501
 	// The rate of custom id fee.
-	ChangeCustomIDFee CRCProposalType = 0x0402
-
-	// Common information used to define consensus governance
-	DappConsensus CRCProposalType = 0x0500
+	ChangeCustomIDFee CRCProposalType = 0x0502
 )
 
 type CRCProposalType uint16

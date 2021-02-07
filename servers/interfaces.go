@@ -911,7 +911,7 @@ func GetArbitratorGroupByHeight(param Params) map[string]interface{} {
 	}
 
 	result := ArbitratorGroupInfo{}
-	if height < ChainParams.ChangeCommitteeNewCRHeight {
+	if height < ChainParams.DPOSNodeCrossChainHeight {
 		crcArbiters := Arbiters.GetCRCArbiters()
 		sort.Slice(crcArbiters, func(i, j int) bool {
 			return bytes.Compare(crcArbiters[i].NodePublicKey, crcArbiters[j].NodePublicKey) < 0

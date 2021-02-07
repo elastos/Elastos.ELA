@@ -529,8 +529,8 @@ func (a *arbitrators) IncreaseChainHeight(block *types.Block) {
 		if err := a.snapshotVotesStates(block.Height); err != nil {
 			panic(fmt.Sprintf("snap shot votes states error:%s", err))
 		}
+		a.history.Commit(block.Height)
 	}
-	a.history.Commit(block.Height)
 	if block.Height > bestHeight-MaxSnapshotLength {
 		a.snapshot(block.Height)
 	}

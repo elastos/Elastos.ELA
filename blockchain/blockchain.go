@@ -1269,15 +1269,6 @@ func (b *BlockChain) disconnectBlock(node *BlockNode, block *Block, confirm *pay
 		return err
 	}
 
-	// Rollback state memory DB
-	if block.Height-1 >= b.chainParams.VoteStartHeight {
-
-		err := b.chainParams.CkpManager.OnRollbackTo(block.Height - 1)
-		if err != nil {
-			return err
-		}
-	}
-
 	// Put block in the side chain cache.
 	node.InMainChain = false
 	b.blockCache[*node.Hash] = block

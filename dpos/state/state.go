@@ -261,7 +261,7 @@ func (p *Producer) Deserialize(r io.Reader) (err error) {
 
 const (
 	// maxHistoryCapacity indicates the maximum capacity of change history.
-	maxHistoryCapacity = 10
+	maxHistoryCapacity = 720
 
 	// ActivateDuration is about how long we should activate from pending or
 	// inactive state

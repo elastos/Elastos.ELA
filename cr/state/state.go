@@ -21,7 +21,7 @@ const (
 	MinDepositAmount = 5000 * 100000000
 
 	// maxHistoryCapacity indicates the maximum capacity of change history.
-	maxHistoryCapacity = 10
+	maxHistoryCapacity = 720
 
 	// ActivateDuration is about how long we should activate from pending or
 	// inactive state.

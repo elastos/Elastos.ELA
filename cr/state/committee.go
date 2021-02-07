@@ -894,10 +894,13 @@ func (c *Committee) activateProducer(tx *types.Transaction,
 	crMember := c.getMemberByNodePublicKey(apPayload.NodePublicKey)
 	if crMember != nil && (crMember.MemberState == MemberInactive ||
 		crMember.MemberState == MemberIllegal) {
+		oriInactiveCount := crMember.InactiveCount
 		history.Append(height, func() {
 			crMember.ActivateRequestHeight = height
+			crMember.InactiveCount = 0
 		}, func() {
 			crMember.ActivateRequestHeight = math.MaxUint32
+			crMember.InactiveCount = oriInactiveCount
 		})
 	}
 }

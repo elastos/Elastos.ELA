@@ -1877,7 +1877,7 @@ func (s *State) countArbitratorsInactivityV1(height uint32,
 					continue
 				}
 				oriState := cr.MemberState
-				oriInactiveCount := cr.InactiveCount
+				oriInactiveCount := cr.InactiveCountingHeight
 				s.history.Append(height, func() {
 					s.tryUpdateCRMemberInactivity(cr.Info.DID, needReset, height)
 				}, func() {
@@ -1976,7 +1976,6 @@ func (s *State) tryUpdateInactivityV2(key string, producer *Producer,
 			producer.randomCandidateInactiveCount = 0
 		}
 	}
-
 
 	if producer.selected {
 		producer.randomCandidateInactiveCount++

@@ -1977,6 +1977,7 @@ func (s *State) tryUpdateInactivityV2(key string, producer *Producer,
 		}
 	}
 
+
 	if producer.selected {
 		producer.randomCandidateInactiveCount++
 		if producer.randomCandidateInactiveCount >= s.chainParams.MaxInactiveRoundsOfRandomNode {

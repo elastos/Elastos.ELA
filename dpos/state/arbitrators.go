@@ -1619,22 +1619,34 @@ func (a *arbitrators) updateNextArbitrators(versionHeight, height uint32) error 
 			})
 		} else {
 			if height >= a.chainParams.NoCRCDPOSNodeHeight {
+				count := len(a.chainParams.CRCArbiters) + a.chainParams.GeneralArbiters
+				var newSelected bool
 				for _, p := range votedProducers {
 					producer := p
-					if producer.selected {
-						a.history.Append(height, func() {
-							producer.selected = false
-						}, func() {
-							producer.selected = true
-						})
+					ownerPK := common.BytesToHexString(producer.info.OwnerPublicKey)
+					if !producer.selected && ownerPK == a.LastRandomCandidateOwner &&
+						height-a.LastRandomCandidateHeight >= uint32(count) {
+						newSelected = true
 					}
-					if common.BytesToHexString(producer.info.OwnerPublicKey) ==
-						a.LastRandomCandidateOwner {
-						a.history.Append(height, func() {
-							producer.selected = true
-						}, func() {
-							producer.selected = false
-						})
+				}
+				if newSelected {
+					for _, p := range votedProducers {
+						producer := p
+						if producer.selected {
+							a.history.Append(height, func() {
+								producer.selected = false
+							}, func() {
+								producer.selected = true
+							})
+						}
+						ownerPK := common.BytesToHexString(producer.info.OwnerPublicKey)
+						if ownerPK == a.LastRandomCandidateOwner {
+							a.history.Append(height, func() {
+								producer.selected = true
+							}, func() {
+								producer.selected = false
+							})
+						}
 					}
 				}
 			}

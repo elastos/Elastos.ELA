@@ -755,7 +755,7 @@ func (c *Committee) recordCRCRelatedAddressOutputs(block *types.Block) {
 
 func (c *Committee) updateCirculationAmount(history *utils.History, height uint32) {
 	circulationAmount := common.Fixed64(config.OriginIssuanceAmount) +
-		common.Fixed64(height)*c.params.RewardPerBlock -
+		common.Fixed64(height)*c.params.GetBlockReward(height) -
 		c.CRCFoundationBalance - c.CRCCommitteeBalance - c.DestroyedAmount
 	oriCirculationAmount := c.CirculationAmount
 	history.Append(height, func() {

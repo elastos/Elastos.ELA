@@ -2099,7 +2099,7 @@ func (a *arbitrators) getBlockDPOSReward(block *types.Block) common.Fixed64 {
 	}
 
 	return common.Fixed64(math.Ceil(float64(totalTxFx+
-		a.chainParams.RewardPerBlock) * 0.35))
+		a.chainParams.GetBlockReward(block.Height)) * 0.35))
 }
 
 func (a *arbitrators) newCheckPoint(height uint32) *CheckPoint {

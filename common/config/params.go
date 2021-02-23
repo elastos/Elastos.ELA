@@ -53,8 +53,14 @@ var (
 	// OriginIssuanceAmount is the origin issuance ELA amount.
 	OriginIssuanceAmount = 3300 * 10000 * 100000000
 
+	// AfterBurnIssuanceAmount is the new issurance ELA amount after cr proposal #1631.
+	AfterBurnIssuanceAmount = 2000 * 10000 * 100000000
+
 	// inflationPerYear is the inflation amount per year.
 	inflationPerYear = OriginIssuanceAmount * 4 / 100
+
+	// newInflationPerYear is the new inflation amount per year.
+	newInflationPerYear = AfterBurnIssuanceAmount * 4 / 100
 
 	// bigOne is 1 represented as a big.Int.  It is defined here to avoid
 	// the overhead of creating it multiple times.
@@ -237,6 +243,8 @@ var DefaultParams = Params{
 	RevertToPOWNoBlockTime:             12 * 3600, //TODO reset latter
 	StopConfirmBlockTime:               11 * 3600, //TODO reset latter
 	RevertToPOWStartHeight:             1000000,   //TODO reset latter
+	HalvingRewardHeight:                1051200,
+	NewELAIssuanceHeight:               919800,
 }
 
 // TestNet returns the network parameters for the test network.
@@ -317,6 +325,8 @@ func (p *Params) TestNet() *Params {
 	copy.RevertToPOWNoBlockTime = 12 * 3600     //TODO reset latter
 	copy.StopConfirmBlockTime = 11 * 3600       //TODO reset latter
 	copy.RevertToPOWStartHeight = 1000000       //TODO reset latter
+	copy.HalvingRewardHeight = 1051200          //TODO reset latter
+	copy.NewELAIssuanceHeight = 919800          //TODO reset latter
 
 	return &copy
 }
@@ -399,6 +409,8 @@ func (p *Params) RegNet() *Params {
 	copy.RevertToPOWNoBlockTime = 12 * 3600     //TODO reset latter
 	copy.StopConfirmBlockTime = 11 * 3600       //TODO reset latter
 	copy.RevertToPOWStartHeight = 1000000       //TODO reset latter
+	copy.HalvingRewardHeight = 1051200          //TODO reset latter
+	copy.NewELAIssuanceHeight = 919800          //TODO reset latter
 
 	return &copy
 }
@@ -476,6 +488,9 @@ type Params struct {
 
 	// RewardPerBlock is the reward amount per block.
 	RewardPerBlock common.Fixed64
+
+	// NewRewardPerBlock is the reward amount per block.
+	NewRewardPerBlock common.Fixed64
 
 	// CoinbaseMaturity is the number of blocks required before newly mined
 	// coins (coinbase transactions) can be spent.
@@ -703,6 +718,12 @@ type Params struct {
 
 	// RevertToPOWStartHeight defines the start height to allow to revert to POW mode.
 	RevertToPOWStartHeight uint32
+
+	// HalvingRewardHeight represents the height of halving reward
+	HalvingRewardHeight uint32
+
+	// NewELAIssuanceHeight represents the new issuance ELA amount after proposal #1631
+	NewELAIssuanceHeight uint32
 }
 
 // rewardPerBlock calculates the reward for each block by a specified time
@@ -711,6 +732,21 @@ func rewardPerBlock(targetTimePerBlock time.Duration) common.Fixed64 {
 	blockGenerateInterval := int64(targetTimePerBlock / time.Second)
 	generatedBlocksPerYear := 365 * 24 * 60 * 60 / blockGenerateInterval
 	return common.Fixed64(float64(inflationPerYear) / float64(generatedBlocksPerYear))
+}
+
+// newRewardPerBlock calculates the reward for each block by a specified time
+// duration.
+func (p *Params) newRewardPerBlock(targetTimePerBlock time.Duration, height uint32) common.Fixed64 {
+	blockGenerateInterval := int64(targetTimePerBlock / time.Second)
+	generatedBlocksPerYear := 365 * 24 * 60 * 60 / blockGenerateInterval
+	var factor uint32
+	if height < p.HalvingRewardHeight {
+		factor = 1
+	} else {
+		factor = (height - height%p.HalvingRewardHeight) / p.HalvingRewardHeight
+	}
+
+	return common.Fixed64(float64(newInflationPerYear) / float64(generatedBlocksPerYear) / float64(factor))
 }
 
 // GenesisBlock creates a genesis block by the specified foundation address.
@@ -758,4 +794,13 @@ func GenesisBlock(foundation *common.Uint168) *types.Block {
 		},
 		Transactions: []*types.Transaction{&coinBase, &elaAsset},
 	}
+}
+
+func (p *Params) GetBlockReward(height uint32) (rewardPerBlock common.Fixed64) {
+	if height < p.NewELAIssuanceHeight {
+		rewardPerBlock = p.RewardPerBlock
+	} else {
+		rewardPerBlock = p.newRewardPerBlock(2 * time.Minute, height)
+	}
+	return
 }

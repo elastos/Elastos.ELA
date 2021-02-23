@@ -1624,8 +1624,8 @@ func (a *arbitrators) updateNextArbitrators(versionHeight, height uint32) error 
 				for _, p := range votedProducers {
 					producer := p
 					ownerPK := common.BytesToHexString(producer.info.OwnerPublicKey)
-					if !producer.selected && ownerPK == a.LastRandomCandidateOwner &&
-						height-a.LastRandomCandidateHeight >= uint32(count) {
+					if ownerPK == a.LastRandomCandidateOwner &&
+						height-a.LastRandomCandidateHeight == uint32(count) {
 						newSelected = true
 					}
 				}
@@ -1640,11 +1640,14 @@ func (a *arbitrators) updateNextArbitrators(versionHeight, height uint32) error 
 							})
 						}
 						ownerPK := common.BytesToHexString(producer.info.OwnerPublicKey)
+						oriRandomInacitveCount := producer.randomCandidateInactiveCount
 						if ownerPK == a.LastRandomCandidateOwner {
 							a.history.Append(height, func() {
 								producer.selected = true
+								producer.randomCandidateInactiveCount = 0
 							}, func() {
 								producer.selected = false
+								producer.randomCandidateInactiveCount = oriRandomInacitveCount
 							})
 						}
 					}

@@ -521,7 +521,7 @@ func (a *arbitrators) IncreaseChainHeight(block *types.Block) {
 	a.history.Commit(block.Height)
 	bestHeight := a.bestHeight()
 	if a.ConsensusAlgorithm != POW && block.Height >= bestHeight {
-		if len(a.currentArbitrators) == 0 || a.NoClaimDPOSNode || a.NoProducers {
+		if len(a.currentArbitrators) == 0 && (a.NoClaimDPOSNode || a.NoProducers) {
 			a.createRevertToPOWTransaction(block.Height)
 		}
 	}

@@ -466,6 +466,16 @@ var (
 		Name:  "reverttopowstartheight",
 		Usage: "defines the start height to allow to revert to POW mode",
 	}
+
+	HalvingRewardHeightFlag = cli.StringFlag{
+		Name:  "halvingrewardheight",
+		Usage: "defines height of having reward",
+	}
+
+	NewELAIssuanceHeightFlag = cli.StringFlag{
+		Name:  "newelaissuanceheight",
+		Usage: "defines height of using the new ela issuance (2000w)",
+	}
 )
 
 // MoveRPCFlags finds the rpc argument and moves it to the front

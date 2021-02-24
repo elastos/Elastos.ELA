@@ -987,6 +987,18 @@ func NewSettings() *Settings {
 		ConfigPath:   "DPoSConfiguration.DPOSNodeCrossChainHeight",
 		ParamName:    "DPOSNodeCrossChainHeight"})
 
+	result.Add(&settingItem{
+		Flag:         cmdcom.HalvingRewardHeightFlag,
+		DefaultValue: uint32(0),
+		ConfigPath:   "HalvingRewardHeight",
+		ParamName:    "HalvingRewardHeight"})
+
+	result.Add(&settingItem{
+		Flag:         cmdcom.NewELAIssuanceHeightFlag,
+		DefaultValue: uint32(0),
+		ConfigPath:   "NewELAIssuanceHeight",
+		ParamName:    "NewELAIssuanceHeight"})
+
 	return result
 }
 

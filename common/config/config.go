@@ -80,6 +80,8 @@ type Configuration struct {
 	MaxNodePerHost               uint32            `json:"MaxNodePerHost"`
 	CustomIDProposalStartHeight  uint32            `json:"CustomIDProposalStartHeight"`
 	MaxReservedCustomIDListCount uint32            `json:"MaxReservedCustomIDListCount"`
+	HalvingRewardHeight          uint32            `json:"HalvingRewardHeight"`
+	NewELAIssuanceHeight         uint32            `json:"NewELAIssuanceHeight"`
 }
 
 // DPoSConfiguration defines the DPoS consensus parameters.

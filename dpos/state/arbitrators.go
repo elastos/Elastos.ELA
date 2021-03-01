@@ -793,7 +793,7 @@ func (a *arbitrators) distributeWithNormalArbitratorsV2(height uint32, reward co
 	individualBlockConfirmReward := common.Fixed64(
 		math.Floor(totalBlockConfirmReward / float64(arbitersCount)))
 	totalVotesInRound := a.CurrentReward.TotalVotesInRound
-	if len(a.currentArbitrators) == 0 &&
+	if len(a.currentArbitrators) == 0 ||
 		len(a.chainParams.CRCArbiters) == len(a.currentArbitrators) {
 		//if len(a.chainParams.CRCArbiters) == len(a.currentArbitrators) {
 		// if no normal DPOS node, need to destroy reward.

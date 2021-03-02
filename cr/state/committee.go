@@ -381,6 +381,9 @@ func (c *Committee) ProcessBlock(block *types.Block, confirm *payload.Confirm) {
 		c.recordCurrentStageAmount(block.Height)
 		c.appropriationHistory.Commit(block.Height)
 	} else {
+		log.Info("########## c.CRAssetsAddressUTXOCount:", c.CRAssetsAddressUTXOCount,
+			"c.params.MaxCRAssetsAddressUTXOCount+c.params.CoinbaseMaturity:", c.params.MaxCRAssetsAddressUTXOCount+c.params.CoinbaseMaturity)
+		log.Info("####### block.Height:", block.Height, "c.params.CRAssetsRectifyTransactionHeight:", c.params.CRAssetsRectifyTransactionHeight)
 		if c.CRAssetsAddressUTXOCount >=
 			c.params.MaxCRAssetsAddressUTXOCount+c.params.CoinbaseMaturity &&
 			block.Height >= c.params.CRAssetsRectifyTransactionHeight {

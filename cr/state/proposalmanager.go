@@ -504,7 +504,7 @@ func (p *ProposalManager) registerProposal(tx *types.Transaction,
 
 	history.Append(height, func() {
 		hash := proposal.Hash(tx.PayloadVersion)
-		log.Debugf("registerProposal hash", hash.String())
+		log.Debug("registerProposal hash", hash.String())
 		p.Proposals[hash] = proposalState
 		p.addProposal(crCouncilMemberDID, hash)
 		if _, ok := p.ProposalSession[currentsSession]; !ok {

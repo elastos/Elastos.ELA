@@ -7,6 +7,7 @@ package blockchain
 
 import (
 	"bytes"
+	"encoding/hex"
 	"errors"
 	"path/filepath"
 	"sync"
@@ -22,6 +23,8 @@ import (
 )
 
 type ProducerState byte
+
+var SMALL_CROSS_TRANSFER_RPEFIX = []byte("SMALL_CROSS_TRANSFER")
 
 type ProducerInfo struct {
 	Payload   *payload.ProducerInfo
@@ -51,6 +54,33 @@ func NewChainStore(dataDir string, params *config.Params) (IChainStore, error) {
 	}
 
 	return s, nil
+}
+
+func (c *ChainStore) CleanSmallCrossTransferTx(txHash Uint256) error {
+	var key bytes.Buffer
+	key.Write(SMALL_CROSS_TRANSFER_RPEFIX)
+	key.Write(txHash.Bytes())
+	return c.levelDB.Delete(key.Bytes())
+}
+
+func (c *ChainStore) SaveSmallCrossTransferTx(tx *Transaction) error {
+	buf := new(bytes.Buffer)
+	tx.Serialize(buf)
+	var key bytes.Buffer
+	key.Write(SMALL_CROSS_TRANSFER_RPEFIX)
+	key.Write(tx.Hash().Bytes())
+	c.levelDB.Put(key.Bytes(), buf.Bytes())
+	return nil
+}
+
+func (c *ChainStore) GetSmallCrossTransferTx() ([]string, error) {
+	Iter := c.levelDB.NewIterator(SMALL_CROSS_TRANSFER_RPEFIX)
+	txns := make([]string, 0)
+	for Iter.Next() {
+		val := Iter.Value()
+		txns = append(txns, hex.EncodeToString(val))
+	}
+	return txns, nil
 }
 
 func (c *ChainStore) CloseLeveldb() {

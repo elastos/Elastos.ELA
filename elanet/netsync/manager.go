@@ -753,6 +753,14 @@ func (sm *SyncManager) handleBlockchainEvents(event *events.Event) {
 			sm.peerNotifier.RelayInventory(iv, tx)
 		}
 
+		if tx.IsTransferCrossChainAssetTx() && tx.IsSmallTransfer(sm.chainParams.SmallCrossTransferThreshold) {
+			err := sm.blockMemPool.Store.SaveSmallCrossTransferTx(tx)
+			if err != nil {
+				log.Warnf("Save small cross chain transfer error.")
+				return
+			}
+		}
+
 	// A block has been accepted into the block chain.  Relay it to other
 	// peers.
 	case events.ETBlockAccepted:

@@ -661,3 +661,7 @@ func GetPayload(txType TxType) (Payload, error) {
 	}
 	return p, nil
 }
+
+func (tx *Transaction) IsSmallTransfer(min common.Fixed64) bool {
+	return tx.Outputs[0].Value <= min
+}

@@ -999,6 +999,12 @@ func NewSettings() *Settings {
 		ConfigPath:   "NewELAIssuanceHeight",
 		ParamName:    "NewELAIssuanceHeight"})
 
+	result.Add(&settingItem{
+		Flag:         cmdcom.SmallCrossTransferThreshold,
+		DefaultValue: common.Fixed64(0),
+		ConfigPath:   "SmallCrossTransferThreshold",
+		ParamName:    "SmallCrossTransferThreshold"})
+
 	return result
 }
 

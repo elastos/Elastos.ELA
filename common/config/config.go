@@ -82,6 +82,7 @@ type Configuration struct {
 	MaxReservedCustomIDListCount uint32            `json:"MaxReservedCustomIDListCount"`
 	HalvingRewardHeight          uint32            `json:"HalvingRewardHeight"`
 	NewELAIssuanceHeight         uint32            `json:"NewELAIssuanceHeight"`
+	SmallCrossTransferThreshold  common.Fixed64    `json:"SmallCrossTransferThreshold"`
 }
 
 // DPoSConfiguration defines the DPoS consensus parameters.

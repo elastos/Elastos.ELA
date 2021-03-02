@@ -476,6 +476,11 @@ var (
 		Name:  "newelaissuanceheight",
 		Usage: "defines height of using the new ela issuance (2000w)",
 	}
+
+	SmallCrossTransferThreshold = cli.StringFlag{
+		Name:  "smallcrosstransferthreshold",
+		Usage: "defines the minimum amount of transfer consider as small cross transfer",
+	}
 )
 
 // MoveRPCFlags finds the rpc argument and moves it to the front

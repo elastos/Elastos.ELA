@@ -230,6 +230,10 @@ func (mp *TxPool) cleanTransactions(blockTxs []*Transaction) {
 		if err := mp.removeTx(blockTx); err != nil {
 			log.Warnf("remove tx %s when delete", blockTx.Hash())
 		}
+
+		if blockTx.IsTransferCrossChainAssetTx() && blockTx.IsSmallTransfer(mp.chainParams.SmallCrossTransferThreshold) {
+			blockchain.DefaultLedger.Store.CleanSmallCrossTransferTx(blockTx.Hash())
+		}
 	}
 	log.Debug(fmt.Sprintf("[cleanTransactionList],transaction %d in block, %d in transaction pool before, %d deleted,"+
 		" Remains %d in TxPool",

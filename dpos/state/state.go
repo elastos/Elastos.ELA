@@ -1644,7 +1644,7 @@ func (s *State) processIllegalEvidence(payloadData types.Payload,
 				producer.illegalHeight = height
 				s.IllegalProducers[key] = producer
 				producer.activateRequestHeight = math.MaxUint32
-				if height >= s.chainParams.ChangeCommitteeNewCRHeight && oriState != Illegal {
+				if height >= s.chainParams.ChangeCommitteeNewCRHeight {
 					producer.penalty += s.chainParams.IllegalPenalty
 				}
 				delete(s.ActivityProducers, key)
@@ -1668,7 +1668,7 @@ func (s *State) processIllegalEvidence(payloadData types.Payload,
 				producer.state = Illegal
 				producer.illegalHeight = height
 				s.IllegalProducers[key] = producer
-				if height >= s.chainParams.ChangeCommitteeNewCRHeight && oriState != Illegal {
+				if height >= s.chainParams.ChangeCommitteeNewCRHeight {
 					producer.penalty += s.chainParams.IllegalPenalty
 				}
 				delete(s.CanceledProducers, key)

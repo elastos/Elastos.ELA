@@ -1135,7 +1135,7 @@ func (b *BlockChain) checkPOWConsensusTransaction(txn *Transaction, references m
 	}
 
 	switch txn.TxType {
-	case RegisterProducer, RegisterCR, ActivateProducer, CRCouncilMemberClaimNode:
+	case RegisterProducer, ActivateProducer, CRCouncilMemberClaimNode:
 		return nil
 	case CRCAppropriation, CRAssetsRectify, CRCProposalRealWithdraw,
 		NextTurnDPOSInfo, RevertToDPOS:
@@ -1145,8 +1145,19 @@ func (b *BlockChain) checkPOWConsensusTransaction(txn *Transaction, references m
 			var containVoteOutput bool
 			for _, output := range txn.Outputs {
 				if output.Type == OTVote {
+					p := output.Payload.(*outputpayload.VoteOutput)
+					for _, vote := range p.Contents {
+						switch vote.VoteType {
+						case outputpayload.Delegate:
+						case outputpayload.CRC:
+							return errors.New("not allow to vote CR in POW consensus")
+						case outputpayload.CRCProposal:
+							return errors.New("not allow to vote CRC proposal in POW consensus")
+						case outputpayload.CRCImpeachment:
+							return errors.New("not allow to vote CRImpeachment in POW consensus")
+						}
+					}
 					containVoteOutput = true
-					break
 				}
 			}
 			if !containVoteOutput {

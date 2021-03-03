@@ -706,8 +706,10 @@ func getBlock(hash common.Uint256, verbose uint32) (interface{}, ServerErrCode) 
 
 func getConfirm(hash common.Uint256, verbose uint32) (interface{}, ServerErrCode) {
 	block, _ := Store.GetFFLDB().GetBlock(hash)
-	if block == nil || !block.HaveConfirm {
+	if block == nil {
 		return "", UnknownBlock
+	} else if !block.HaveConfirm {
+		return "", UnknownConfirm
 	}
 	if verbose == 0 {
 		w := new(bytes.Buffer)

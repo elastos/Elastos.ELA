@@ -133,7 +133,6 @@ func (h *DPOSHandlerSwitch) TryStartNewConsensus(b *types.Block) bool {
 	}
 
 	if h.currentHandler.TryStartNewConsensus(b) {
-
 		h.proposalDispatcher.eventAnalyzer.IncreaseLastConsensusViewCount()
 		c := log.ConsensusEvent{StartTime: h.cfg.TimeSource.AdjustedTime(), Height: b.Height,
 			RawData: &b.Header}

@@ -1720,6 +1720,7 @@ func (s *State) setInactiveProducer(producer *Producer, key string,
 			}
 		} else {
 			producer.penalty += s.chainParams.EmergencyInactivePenalty
+
 		}
 	}
 }

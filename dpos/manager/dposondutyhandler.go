@@ -94,19 +94,22 @@ func (h *DPOSOnDutyHandler) TryCreateRevertToDPOSTx(BlockHeight uint32) bool {
 	// connect count is not enough
 	// if i am not onduty return
 	activeArbitersCount := float64(h.getActiveArbitersCount())
-	if activeArbitersCount < float64(h.cfg.Arbitrators.GetArbitersCount())*float64(4)/float64(5)+1 {
+	needCount := float64(h.cfg.Arbitrators.GetArbitersCount())*float64(4)/float64(5) + 1
+	log.Info("[TryCreateRevertToDPOSTx] current active arbiters count:", activeArbitersCount, "need:", needCount)
+	if activeArbitersCount < needCount {
 		return false
 	}
 	// if it is in not pow mod
 	if !h.cfg.Arbitrators.IsInPOWMode() {
+		log.Warn("[TryCreateRevertToDPOSTx] is not in POW mode")
 		return false
 	}
 	// is it onduty
 	curPublicKey := h.proposalDispatcher.cfg.Account.PublicKeyBytes()
 	if h.consensus.IsArbitratorOnDuty(curPublicKey) {
-
 		tx, err := h.proposalDispatcher.CreateRevertToDPOS(h.cfg.Arbitrators.GetRevertToPOWBlockHeight())
 		if err != nil {
+			log.Warn("[TryCreateRevertToDPOSTx] failed to create revert to DPoS transaction:", err)
 			return false
 		}
 		h.cfg.Network.BroadcastMessage(&msg.Tx{Serializable: tx})

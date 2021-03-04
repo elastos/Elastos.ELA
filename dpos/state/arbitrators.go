@@ -1481,7 +1481,6 @@ func (a *arbitrators) updateNextTurnInfo(height uint32, producers []ArbiterMembe
 		return bytes.Compare(a.nextArbitrators[i].GetNodePublicKey(), a.nextArbitrators[j].GetNodePublicKey()) < 0
 	})
 	if height >= a.chainParams.CRClaimDPOSNodeStartHeight {
-		a.NeedNextTurnDPOSInfo = true
 		//need sent a NextTurnDPOSInfo tx into mempool
 		sort.Slice(nextCRCArbiters, func(i, j int) bool {
 			return bytes.Compare(nextCRCArbiters[i].GetNodePublicKey(), nextCRCArbiters[j].GetNodePublicKey()) < 0
@@ -1587,6 +1586,16 @@ func (a *arbitrators) getCandidateIndexAtRandom(height uint32, unclaimedCount, v
 }
 
 func (a *arbitrators) updateNextArbitrators(versionHeight, height uint32) error {
+
+	if height >= a.chainParams.CRClaimDPOSNodeStartHeight {
+		oriNeedNextTurnDPOSInfo := a.NeedNextTurnDPOSInfo
+		a.history.Append(height, func() {
+			a.NeedNextTurnDPOSInfo = true
+		}, func() {
+			a.NeedNextTurnDPOSInfo = oriNeedNextTurnDPOSInfo
+		})
+	}
+
 	_, recover := a.InactiveModeSwitch(versionHeight, a.IsAbleToRecoverFromInactiveMode)
 	if recover {
 		a.LeaveEmergency(a.history, height)
@@ -1608,18 +1617,15 @@ func (a *arbitrators) updateNextArbitrators(versionHeight, height uint32) error 
 		producers, err := a.GetNormalArbitratorsDesc(versionHeight, count,
 			votedProducers, unclaimed)
 		if err != nil {
-
 			if err := a.tryHandleError(versionHeight, err); err != nil {
 				return err
 			}
 			oriNextCandidates := a.nextCandidates
-			oriNeedNextTurnDposInfo := a.NeedNextTurnDPOSInfo
 			a.history.Append(height, func() {
 				a.nextCandidates = make([]ArbiterMember, 0)
 				a.updateNextTurnInfo(height, producers, unclaimed)
 			}, func() {
 				a.nextCandidates = oriNextCandidates
-				a.NeedNextTurnDPOSInfo = oriNeedNextTurnDposInfo
 			})
 		} else {
 			if height >= a.chainParams.NoCRCDPOSNodeHeight {
@@ -1657,13 +1663,11 @@ func (a *arbitrators) updateNextArbitrators(versionHeight, height uint32) error 
 					}
 				}
 			}
-			oriNeedNextTurnDposInfo := a.NeedNextTurnDPOSInfo
 			oriNextCRCArbiters := a.nextCRCArbiters
 			a.history.Append(height, func() {
 				a.updateNextTurnInfo(height, producers, unclaimed)
 			}, func() {
 				// next arbitrators will rollback in resetNextArbiterByCRC
-				a.NeedNextTurnDPOSInfo = oriNeedNextTurnDposInfo
 				a.nextCRCArbiters = oriNextCRCArbiters
 			})
 

@@ -381,9 +381,6 @@ func (c *Committee) ProcessBlock(block *types.Block, confirm *payload.Confirm) {
 		c.recordCurrentStageAmount(block.Height)
 		c.appropriationHistory.Commit(block.Height)
 	} else {
-		log.Info("########## c.CRAssetsAddressUTXOCount:", c.CRAssetsAddressUTXOCount,
-			"c.params.MaxCRAssetsAddressUTXOCount+c.params.CoinbaseMaturity:", c.params.MaxCRAssetsAddressUTXOCount+c.params.CoinbaseMaturity)
-		log.Info("####### block.Height:", block.Height, "c.params.CRAssetsRectifyTransactionHeight:", c.params.CRAssetsRectifyTransactionHeight)
 		if c.CRAssetsAddressUTXOCount >=
 			c.params.MaxCRAssetsAddressUTXOCount+c.params.CoinbaseMaturity &&
 			block.Height >= c.params.CRAssetsRectifyTransactionHeight {
@@ -1521,7 +1518,7 @@ func (c *Committee) TryUpdateCRMemberIllegal(did common.Uint168, height uint32) 
 	defer c.mtx.RUnlock()
 	crMember := c.getMember(did)
 	if crMember == nil {
-		log.Error("TryUpdateCRMemberIllegal did %+v not exist", did.String())
+		log.Errorf("TryUpdateCRMemberIllegal did %+v not exist", did.String())
 		return
 	}
 	if height >= c.params.ChangeCommitteeNewCRHeight {
@@ -1536,7 +1533,7 @@ func (c *Committee) TryRevertCRMemberIllegal(did common.Uint168, oriState Member
 	defer c.mtx.RUnlock()
 	crMember := c.getMember(did)
 	if crMember == nil {
-		log.Error("TryRevertCRMemberIllegal did %+v not exist", did.String())
+		log.Errorf("TryRevertCRMemberIllegal did %+v not exist", did.String())
 		return
 	}
 	crMember.MemberState = oriState

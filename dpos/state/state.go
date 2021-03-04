@@ -1639,6 +1639,7 @@ func (s *State) processIllegalEvidence(payloadData types.Payload,
 		if producer, ok := s.ActivityProducers[key]; ok {
 			oriPenalty := producer.penalty
 			oriState := producer.state
+			oriIllegalHeight := producer.illegalHeight
 			s.history.Append(height, func() {
 				producer.state = Illegal
 				producer.illegalHeight = height
@@ -1652,10 +1653,55 @@ func (s *State) processIllegalEvidence(payloadData types.Payload,
 			}, func() {
 				producer.state = oriState
 				producer.penalty = oriPenalty
-				producer.illegalHeight = 0
+				producer.illegalHeight = oriIllegalHeight
 				s.ActivityProducers[key] = producer
 				producer.activateRequestHeight = math.MaxUint32
 				delete(s.IllegalProducers, key)
+				s.Nicknames[producer.info.NickName] = struct{}{}
+			})
+			continue
+		}
+
+		if producer, ok := s.InactiveProducers[key]; ok {
+			oriPenalty := producer.penalty
+			oriState := producer.state
+			oriIllegalHeight := producer.illegalHeight
+			s.history.Append(height, func() {
+				producer.state = Illegal
+				producer.illegalHeight = height
+				s.IllegalProducers[key] = producer
+				producer.activateRequestHeight = math.MaxUint32
+				if height >= s.chainParams.ChangeCommitteeNewCRHeight {
+					producer.penalty += s.chainParams.IllegalPenalty
+				}
+				delete(s.InactiveProducers, key)
+				delete(s.Nicknames, producer.info.NickName)
+			}, func() {
+				producer.state = oriState
+				producer.penalty = oriPenalty
+				producer.illegalHeight = oriIllegalHeight
+				s.InactiveProducers[key] = producer
+				producer.activateRequestHeight = math.MaxUint32
+				delete(s.IllegalProducers, key)
+				s.Nicknames[producer.info.NickName] = struct{}{}
+			})
+			continue
+		}
+
+		if producer, ok := s.IllegalProducers[key]; ok {
+			oriPenalty := producer.penalty
+			oriIllegalHeight := producer.illegalHeight
+			s.history.Append(height, func() {
+				producer.illegalHeight = height
+				producer.activateRequestHeight = math.MaxUint32
+				if height >= s.chainParams.ChangeCommitteeNewCRHeight {
+					producer.penalty += s.chainParams.IllegalPenalty
+				}
+				delete(s.Nicknames, producer.info.NickName)
+			}, func() {
+				producer.penalty = oriPenalty
+				producer.illegalHeight = oriIllegalHeight
+				producer.activateRequestHeight = math.MaxUint32
 				s.Nicknames[producer.info.NickName] = struct{}{}
 			})
 			continue

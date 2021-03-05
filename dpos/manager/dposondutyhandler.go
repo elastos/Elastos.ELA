@@ -104,18 +104,14 @@ func (h *DPOSOnDutyHandler) TryCreateRevertToDPOSTx(BlockHeight uint32) bool {
 		log.Warn("[TryCreateRevertToDPOSTx] is not in POW mode")
 		return false
 	}
-	// is it onduty
-	curPublicKey := h.proposalDispatcher.cfg.Account.PublicKeyBytes()
-	if h.consensus.IsArbitratorOnDuty(curPublicKey) {
-		tx, err := h.proposalDispatcher.CreateRevertToDPOS(h.cfg.Arbitrators.GetRevertToPOWBlockHeight())
-		if err != nil {
-			log.Warn("[TryCreateRevertToDPOSTx] failed to create revert to DPoS transaction:", err)
-			return false
-		}
-		h.cfg.Network.BroadcastMessage(&msg.Tx{Serializable: tx})
-		return true
+	tx, err := h.proposalDispatcher.CreateRevertToDPOS(h.cfg.Arbitrators.GetRevertToPOWBlockHeight())
+	if err != nil {
+		log.Warn("[TryCreateRevertToDPOSTx] failed to create revert to DPoS transaction:", err)
+		return false
 	}
-	return false
+	h.cfg.Network.BroadcastMessage(&msg.Tx{Serializable: tx})
+	log.Info("[TryCreateRevertToDPOSTx] create revert to DPoS transaction:", tx)
+	return true
 }
 
 func (h *DPOSOnDutyHandler) tryCreateInactiveArbitratorsTx() bool {

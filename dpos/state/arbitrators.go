@@ -1447,7 +1447,7 @@ func (a *arbitrators) ConvertToArbitersStr(arbiters [][]byte) []string {
 
 func (a *arbitrators) createNextTurnDPOSInfoTransaction(blockHeight uint32) *types.Transaction {
 	var nextTurnDPOSInfo payload.NextTurnDPOSInfo
-	workingHeight := blockHeight + uint32(len(a.currentArbitrators))
+	workingHeight := blockHeight + uint32(a.chainParams.GeneralArbiters+len(a.chainParams.CRCArbiters))
 	nextTurnDPOSInfo.WorkingHeight = workingHeight
 	for _, v := range a.nextArbitrators {
 		if a.isNextCRCArbitrator(v.GetNodePublicKey()) {

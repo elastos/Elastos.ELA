@@ -2037,6 +2037,7 @@ func (s *State) tryUpdateInactivityV2(key string, producer *Producer,
 		producer.inactiveCount++
 		if producer.inactiveCount >= s.chainParams.MaxInactiveRounds {
 			s.setInactiveProducer(producer, key, height, false)
+			producer.inactiveCount = 0
 		}
 	}
 	producer.lastUpdateInactiveHeight = height

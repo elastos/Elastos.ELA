@@ -933,7 +933,7 @@ func GetArbitratorGroupByHeight(param Params) map[string]interface{} {
 		}
 	} else {
 		arbiters := Arbiters.GetArbitrators()
-		var arbitrators []string
+		arbitrators := make([]string, 0)
 		for _, a := range arbiters {
 			if !a.IsNormal {
 				arbitrators = append(arbitrators, "")
@@ -2774,8 +2774,8 @@ func getPayloadInfo(p Payload, payloadVersion byte) PayloadInfo {
 		return obj
 	case *payload.NextTurnDPOSInfo:
 		obj := new(NextTurnDPOSPayloadInfo)
-		var crPublicKeysString []string
-		var dposPublicKeysString []string
+		crPublicKeysString := make([]string, 0)
+		dposPublicKeysString := make([]string, 0)
 		for _, v := range object.CRPublicKeys {
 			crPublicKeysString = append(crPublicKeysString, common.BytesToHexString(v))
 		}

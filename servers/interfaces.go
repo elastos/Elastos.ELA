@@ -466,7 +466,7 @@ func GetArbitersInfo(params Params) map[string]interface{} {
 
 		CurrentTurnStartHeight: int(Chain.GetHeight()) - dutyIndex,
 		NextTurnStartHeight: int(Chain.GetHeight()) +
-			Arbiters.GetArbitersCount() - dutyIndex,
+			len(ChainParams.CRCArbiters) + ChainParams.GeneralArbiters - dutyIndex,
 	}
 	for _, v := range Arbiters.GetArbitrators() {
 		var nodePK string

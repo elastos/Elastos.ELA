@@ -347,11 +347,23 @@ func (a *arbitrators) GetDutyIndexByHeight(height uint32) (index int) {
 			index = a.dutyIndex % len(a.currentArbitrators)
 		}
 	} else if height >= a.chainParams.CRClaimDPOSNodeStartHeight {
-		index = a.dutyIndex % len(a.currentCRCArbitersMap)
+		if len(a.currentCRCArbitersMap) == 0 {
+			index = 0
+		} else {
+			index = a.dutyIndex % len(a.currentCRCArbitersMap)
+		}
 	} else if height >= a.chainParams.CRCOnlyDPOSHeight-1 {
-		index = int(height-a.chainParams.CRCOnlyDPOSHeight+1) % len(a.currentCRCArbitersMap)
+		if len(a.currentCRCArbitersMap) == 0 {
+			index = 0
+		} else {
+			index = int(height-a.chainParams.CRCOnlyDPOSHeight+1) % len(a.currentCRCArbitersMap)
+		}
 	} else {
-		index = int(height) % len(a.currentArbitrators)
+		if len(a.currentArbitrators) == 0 {
+			index = 0
+		} else {
+			index = int(height) % len(a.currentArbitrators)
+		}
 	}
 	a.mtx.Unlock()
 	return index
@@ -1329,6 +1341,9 @@ func (a *arbitrators) getNextOnDutyArbitratorV(height, offset uint32) ArbiterMem
 func (a *arbitrators) GetArbitersCount() int {
 	a.mtx.Lock()
 	result := len(a.currentArbitrators)
+	if result == 0 {
+		result = a.chainParams.GeneralArbiters + len(a.chainParams.CRCArbiters)
+	}
 	a.mtx.Unlock()
 	return result
 }

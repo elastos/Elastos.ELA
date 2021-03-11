@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/elastos/Elastos.ELA/core/contract"
 	"io"
 
 	"github.com/elastos/Elastos.ELA/common"
@@ -663,5 +664,16 @@ func GetPayload(txType TxType) (Payload, error) {
 }
 
 func (tx *Transaction) IsSmallTransfer(min common.Fixed64) bool {
-	return tx.Outputs[0].Value <= min
+	payloadObj, ok := tx.Payload.(*payload.TransferCrossChainAsset)
+	if !ok {
+		return false
+	}
+	var totalCrossAmt common.Fixed64
+	for i := 0; i < len(payloadObj.CrossChainAddresses); i++ {
+		if bytes.Compare(tx.Outputs[payloadObj.OutputIndexes[i]].ProgramHash[0:1], []byte{byte(contract.PrefixCrossChain)}) == 0 {
+			totalCrossAmt += tx.Outputs[payloadObj.OutputIndexes[i]].Value
+		}
+	}
+
+	return totalCrossAmt <= min
 }

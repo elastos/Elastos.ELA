@@ -135,7 +135,7 @@ func (a *arbitrators) RegisterFunction(bestHeight func() uint32,
 	bestBlockHash func() *common.Uint256,
 	getBlockByHeight func(uint32) (*types.Block, error),
 	getTxReference func(tx *types.Transaction) (
-		map[*types.Input]types.Output, error)) {
+	map[*types.Input]types.Output, error)) {
 	a.bestHeight = bestHeight
 	a.bestBlockHash = bestBlockHash
 	a.getBlockByHeight = getBlockByHeight
@@ -423,6 +423,7 @@ func (a *arbitrators) forceChange(height uint32) error {
 	}
 
 	if err := a.updateNextArbitrators(height+1, height); err != nil {
+		log.Info("force change failed at height:", height)
 		return err
 	}
 
@@ -493,7 +494,7 @@ func (a *arbitrators) IncreaseChainHeight(block *types.Block) {
 	if containsIllegalBlockEvidence {
 		if err := a.forceChange(block.Height); err != nil {
 			log.Errorf("Found illegal blocks, ForceChange failed:%s", err)
-			// todo revert to pow
+			a.cleanArbitrators(block.Height)
 			a.revertToPOWAtNextTurn(block.Height)
 			log.Warn(fmt.Sprintf("force change fail at height: %d, error: %s",
 				block.Height, err))
@@ -1413,6 +1414,33 @@ func (a *arbitrators) getChangeType(height uint32) (ChangeType, uint32) {
 	return none, height
 }
 
+func (a *arbitrators) cleanArbitrators(height uint32) {
+	oriCurrentCRCArbitersMap := copyCRCArbitersMap(a.currentCRCArbitersMap)
+	oriCurrentArbitrators := a.currentArbitrators
+	oriCurrentCandidates := a.currentCandidates
+	oriNextCRCArbitersMap := copyCRCArbitersMap(a.nextCRCArbitersMap)
+	oriNextArbitrators := a.nextArbitrators
+	oriNextCandidates := a.nextCandidates
+	oriDutyIndex := a.dutyIndex
+	a.history.Append(height, func() {
+		a.currentCRCArbitersMap = make(map[common.Uint168]ArbiterMember)
+		a.currentArbitrators = make([]ArbiterMember, 0)
+		a.currentCandidates = make([]ArbiterMember, 0)
+		a.nextCRCArbitersMap = make(map[common.Uint168]ArbiterMember)
+		a.nextArbitrators = make([]ArbiterMember, 0)
+		a.nextCandidates = make([]ArbiterMember, 0)
+		a.dutyIndex = 0
+	}, func() {
+		a.currentCRCArbitersMap = oriCurrentCRCArbitersMap
+		a.currentArbitrators = oriCurrentArbitrators
+		a.currentCandidates = oriCurrentCandidates
+		a.nextCRCArbitersMap = oriNextCRCArbitersMap
+		a.nextArbitrators = oriNextArbitrators
+		a.nextCandidates = oriNextCandidates
+		a.dutyIndex = oriDutyIndex
+	})
+}
+
 func (a *arbitrators) changeCurrentArbitrators(height uint32) error {
 
 	oriCurrentCRCArbitersMap := copyCRCArbitersMap(a.currentCRCArbitersMap)
@@ -1464,7 +1492,7 @@ func (a *arbitrators) createNextTurnDPOSInfoTransaction(blockHeight uint32) *typ
 	var nextTurnDPOSInfo payload.NextTurnDPOSInfo
 	nextTurnDPOSInfo.CRPublicKeys = make([][]byte, 0)
 	nextTurnDPOSInfo.DPOSPublicKeys = make([][]byte, 0)
-	workingHeight := blockHeight + uint32(a.chainParams.GeneralArbiters+len(a.chainParams.CRCArbiters))
+	workingHeight := blockHeight + uint32(len(a.currentArbitrators))
 	nextTurnDPOSInfo.WorkingHeight = workingHeight
 	for _, v := range a.nextArbitrators {
 		if a.isNextCRCArbitrator(v.GetNodePublicKey()) {

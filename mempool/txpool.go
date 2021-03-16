@@ -173,6 +173,23 @@ func (mp *TxPool) CheckAndCleanAllTransactions() {
 	mp.Unlock()
 }
 
+func (mp *TxPool) BroadcastSmallCrossChainTransactions() {
+	mp.Lock()
+	log.Info("####### BroadcastSmallCrossChainTransactions start")
+	txs := make([]*Transaction, 0)
+	for _, tx := range mp.txnList {
+		if tx.IsTransferCrossChainAssetTx() &&
+			tx.IsSmallTransfer(mp.chainParams.SmallCrossTransferThreshold) {
+			txs = append(txs, tx)
+		}
+	}
+	if len(txs) != 0 {
+		go events.Notify(events.ETSmallCrossChainNeedRelay, txs)
+	}
+	log.Info("####### BroadcastSmallCrossChainTransactions end, found ", len(txs), "small tx")
+	mp.Unlock()
+}
+
 func (mp *TxPool) cleanTransactions(blockTxs []*Transaction) {
 	txsInPool := len(mp.txnList)
 	deleteCount := 0

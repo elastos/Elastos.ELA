@@ -63,8 +63,12 @@ const (
 	//to tx pool but do not relay.
 	ETAppendTxToTxPoolWithoutRelay
 
-	//ETCRCChangeCommittee indicates need add crc chaged committee
+	//ETCRCChangeCommittee indicates need add crc changed committee
 	ETCRCChangeCommittee
+
+	//ETSmallCrossChainNeedRelay indicates that need to relay some small cross
+	//chain transaction
+	ETSmallCrossChainNeedRelay
 )
 
 // notificationTypeStrings is a map of notification types back to their constant
@@ -78,9 +82,12 @@ var notificationTypeStrings = map[EventType]string{
 	ETConfirmAccepted:              "ETConfirmAccepted",
 	ETDirectPeersChanged:           "ETDirectPeersChanged",
 	ETBlockConfirmAccepted:         "ETBlockConfirmAccepted",
+	ETBlockProcessed:               "ETBlockProcessed",
 	ETIllegalBlockEvidence:         "ETIllegalBlockEvidence",
 	ETAppendTxToTxPool:             "ETAppendTxToTxPool",
 	ETAppendTxToTxPoolWithoutRelay: "ETAppendTxToTxPoolWithoutRelay",
+	ETCRCChangeCommittee:           "ETCRCChangeCommittee",
+	ETSmallCrossChainNeedRelay:     "ETSmallCrossChainNeedRelay",
 }
 
 // String returns the EventType in human-readable form.

@@ -135,7 +135,7 @@ func (a *arbitrators) RegisterFunction(bestHeight func() uint32,
 	bestBlockHash func() *common.Uint256,
 	getBlockByHeight func(uint32) (*types.Block, error),
 	getTxReference func(tx *types.Transaction) (
-	map[*types.Input]types.Output, error)) {
+		map[*types.Input]types.Output, error)) {
 	a.bestHeight = bestHeight
 	a.bestBlockHash = bestBlockHash
 	a.getBlockByHeight = getBlockByHeight
@@ -442,9 +442,6 @@ func (a *arbitrators) forceChange(height uint32) error {
 		a.forceChanged = oriForceChanged
 	})
 	a.history.Commit(height)
-	if block.Height >= a.bestHeight() {
-		a.notifyNextTurnDPOSInfoTx(block.Height, block.Height+1)
-	}
 
 	a.dumpInfo(height)
 	return nil
@@ -472,9 +469,9 @@ func (a *arbitrators) normalChange(height uint32) error {
 	return nil
 }
 
-func (a *arbitrators) notifyNextTurnDPOSInfoTx(blockHeight, versionHeight uint32) {
+func (a *arbitrators) notifyNextTurnDPOSInfoTx(blockHeight, versionHeight uint32, forceChange bool) {
 
-	nextTurnDPOSInfoTx := a.createNextTurnDPOSInfoTransaction(blockHeight)
+	nextTurnDPOSInfoTx := a.createNextTurnDPOSInfoTransaction(blockHeight, forceChange)
 	go events.Notify(events.ETAppendTxToTxPool, nextTurnDPOSInfoTx)
 	return
 }
@@ -491,6 +488,7 @@ func (a *arbitrators) IncreaseChainHeight(block *types.Block) {
 			break
 		}
 	}
+	var forceChanged bool
 	if containsIllegalBlockEvidence {
 		if err := a.forceChange(block.Height); err != nil {
 			log.Errorf("Found illegal blocks, ForceChange failed:%s", err)
@@ -499,6 +497,7 @@ func (a *arbitrators) IncreaseChainHeight(block *types.Block) {
 			log.Warn(fmt.Sprintf("force change fail at height: %d, error: %s",
 				block.Height, err))
 		}
+		forceChanged = true
 	} else {
 		changeType, versionHeight := a.getChangeType(block.Height + 1)
 		switch changeType {
@@ -547,8 +546,8 @@ func (a *arbitrators) IncreaseChainHeight(block *types.Block) {
 	if block.Height > bestHeight-MaxSnapshotLength {
 		a.snapshot(block.Height)
 	}
-	if block.Height >= bestHeight && a.NeedNextTurnDPOSInfo {
-		a.notifyNextTurnDPOSInfoTx(block.Height, block.Height+1)
+	if block.Height >= bestHeight && (a.NeedNextTurnDPOSInfo || forceChanged) {
+		a.notifyNextTurnDPOSInfoTx(block.Height, block.Height+1, forceChanged)
 	}
 	a.mtx.Unlock()
 	if a.started && notify {
@@ -1442,7 +1441,6 @@ func (a *arbitrators) cleanArbitrators(height uint32) {
 }
 
 func (a *arbitrators) changeCurrentArbitrators(height uint32) error {
-
 	oriCurrentCRCArbitersMap := copyCRCArbitersMap(a.currentCRCArbitersMap)
 	oriCurrentArbitrators := a.currentArbitrators
 	oriCurrentCandidates := a.currentCandidates
@@ -1480,6 +1478,7 @@ func (a *arbitrators) IsSameWithNextArbitrators() bool {
 	}
 	return true
 }
+
 func (a *arbitrators) ConvertToArbitersStr(arbiters [][]byte) []string {
 	var arbitersStr []string
 	for _, v := range arbiters {
@@ -1488,11 +1487,16 @@ func (a *arbitrators) ConvertToArbitersStr(arbiters [][]byte) []string {
 	return arbitersStr
 }
 
-func (a *arbitrators) createNextTurnDPOSInfoTransaction(blockHeight uint32) *types.Transaction {
+func (a *arbitrators) createNextTurnDPOSInfoTransaction(blockHeight uint32, forceChange bool) *types.Transaction {
 	var nextTurnDPOSInfo payload.NextTurnDPOSInfo
 	nextTurnDPOSInfo.CRPublicKeys = make([][]byte, 0)
 	nextTurnDPOSInfo.DPOSPublicKeys = make([][]byte, 0)
-	workingHeight := blockHeight + uint32(len(a.currentArbitrators))
+	var workingHeight uint32
+	if forceChange {
+		workingHeight = blockHeight
+	} else {
+		workingHeight = blockHeight + uint32(a.chainParams.GeneralArbiters+len(a.chainParams.CRCArbiters))
+	}
 	nextTurnDPOSInfo.WorkingHeight = workingHeight
 	for _, v := range a.nextArbitrators {
 		if a.isNextCRCArbitrator(v.GetNodePublicKey()) {

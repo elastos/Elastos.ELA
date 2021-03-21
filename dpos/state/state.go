@@ -505,7 +505,9 @@ func (s *State) GetCanceledProducers() []*Producer {
 func (s *State) getCanceledProducers() []*Producer {
 	producers := make([]*Producer, 0, len(s.CanceledProducers))
 	for _, producer := range s.CanceledProducers {
-		producers = append(producers, producer)
+		if producer.state == Canceled {
+			producers = append(producers, producer)
+		}
 	}
 	return producers
 }

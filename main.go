@@ -322,6 +322,14 @@ func startNode(c *cli.Context, st *settings.Settings) {
 	}
 	pgBar.Stop()
 
+	// Add small cross chain transactions to transaction pool
+	txs, _ := chain.GetDB().GetSmallCrossTransferTxs()
+	for _, tx := range txs {
+		if err := txMemPool.AppendToTxPoolWithoutEvent(tx); err != nil {
+			continue
+		}
+	}
+
 	log.Info("Start the P2P networks")
 	server.Start()
 	defer server.Stop()

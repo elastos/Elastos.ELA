@@ -73,6 +73,21 @@ func (c *ChainStore) SaveSmallCrossTransferTx(tx *Transaction) error {
 	return nil
 }
 
+func (c *ChainStore) GetSmallCrossTransferTxs() ([]*Transaction, error) {
+	Iter := c.levelDB.NewIterator(SMALL_CROSS_TRANSFER_RPEFIX)
+	txs := make([]*Transaction, 0)
+	for Iter.Next() {
+		val := Iter.Value()
+		r := bytes.NewReader(val)
+		tx := new(Transaction)
+		if err := tx.Deserialize(r); err != nil {
+			return nil, err
+		}
+		txs = append(txs, tx)
+	}
+	return txs, nil
+}
+
 func (c *ChainStore) GetSmallCrossTransferTx() ([]string, error) {
 	Iter := c.levelDB.NewIterator(SMALL_CROSS_TRANSFER_RPEFIX)
 	txns := make([]string, 0)

@@ -1133,7 +1133,9 @@ func (c *Committee) processCurrentMembersDepositInfo(height uint32) {
 	if len(c.Members) != 0 {
 		for _, m := range oriMembers {
 			member := *m
-			if member.MemberState != MemberElected {
+			if member.MemberState != MemberElected &&
+				member.MemberState != MemberInactive &&
+				member.MemberState != MemberIllegal {
 				continue
 			}
 			oriPenalty := c.state.depositInfo[m.Info.CID].Penalty

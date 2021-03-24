@@ -1,7 +1,7 @@
 // Copyright (c) 2017-2020 The Elastos Foundation
 // Use of this source code is governed by an MIT
 // license that can be found in the LICENSE file.
-// 
+//
 
 package errors
 
@@ -83,6 +83,19 @@ var ErrMap = map[ErrCode]string{
 		"asset precision invalid"),
 	ErrTxReturnDeposit: FormatErrString(prefixTx, prefixValidate,
 		"return deposit content invalid"),
+	ErrTxAppropriation: FormatErrString(prefixTx, prefixValidate,
+		"appropriation invalid"),
+	ErrTxAssetsRectify: FormatErrString(prefixTx, prefixValidate,
+		"asset rectify invalid"),
+	ErrTxRealWithdraw: FormatErrString(prefixTx, prefixValidate,
+		"real withdraw invalid"),
+	ErrTxCRCRClaimNode: FormatErrString(prefixTx, prefixValidate,
+		"CRC claim node invalid"),
+	ErrTxRevertToPOW: FormatErrString(prefixTx, prefixValidate,
+		"revert to POW invalid"),
+	ErrTxReturnSideChainDeposit: FormatErrString(prefixTx, prefixValidate,
+		"return side chain deposit coin invalid"),
+
 	// 23 sidechain
 	ErrTxSidechainValidation: FormatErrString(prefixTx, prefixSidechain,
 		"unknown"),

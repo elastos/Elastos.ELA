@@ -337,6 +337,12 @@ func (b *BlockChain) CheckTransactionContext(blockHeight uint32,
 			return nil, elaerr.Simple(elaerr.ErrTxRevertToPOW, err)
 		}
 		return references, nil
+
+	case ReturnSideChainDepositCoin:
+		if err := b.checkReturnSideChainDepositTransaction(txn, references); err != nil {
+			log.Warn("[checkReturnSideChainDepositTransaction]", err)
+			return nil, elaerr.Simple(elaerr.ErrTxReturnSideChainDeposit, err)
+		}
 	}
 
 	if err := b.checkTransactionFee(txn, references); err != nil {
@@ -2441,6 +2447,63 @@ func (b *BlockChain) checkCRAssetsRectifyTransaction(txn *Transaction,
 	if totalInput != totalOutput+b.chainParams.RectifyTxFee {
 		return fmt.Errorf("inputs minus outputs does not match with %d sela fee , "+
 			"inputs:%s outputs:%s", b.chainParams.RectifyTxFee, totalInput, totalOutput)
+	}
+
+	return nil
+}
+
+func (b *BlockChain) checkReturnSideChainDepositTransaction(txn *Transaction, references map[*Input]Output) error {
+	// todo complete me
+	p, ok := txn.Payload.(*payload.ReturnSideChainDepositCoin)
+	if !ok {
+		return errors.New("invalid payload")
+	}
+
+	// check outputs
+	depositAmount := make(map[common.Uint168]common.Fixed64)
+	depositFee := make(map[common.Uint168]common.Fixed64)
+	// todo make fee configurable
+	fee := common.Fixed64(100)
+	for _, tx := range p.DepositTxs {
+		tx, _, err := b.db.GetTransaction(tx)
+		if err != nil {
+			return errors.New("invalid deposit tx:" + tx.Hash().String())
+		}
+		for _, output := range tx.Outputs {
+			if bytes.Compare(output.ProgramHash[0:1], []byte{byte(contract.PrefixCrossChain)}) != 0 {
+				continue
+			}
+
+			genesisHash, err := common.HexStringToBytes(p.GenesisBlockAddress)
+			hash, err := common.Uint256FromBytes(genesisHash)
+			if err != nil {
+				return err
+			}
+			code := contract.CreateCrossChainRedeemScript(*hash)
+			crossChainHash := common.ToProgramHash(byte(contract.PrefixCrossChain), code)
+			if !crossChainHash.IsEqual(output.ProgramHash) {
+				continue
+			}
+
+			// need to return the deposit coin to first input address
+			o := references[tx.Inputs[0]]
+			depositAmount[o.ProgramHash] += output.Value
+			depositFee[o.ProgramHash] += fee
+		}
+	}
+	for _, output := range txn.Outputs {
+		amount, ok := depositAmount[output.ProgramHash]
+		if !ok {
+			return errors.New("invalid output")
+		}
+		fee := depositFee[output.ProgramHash]
+		if output.Value+fee != amount {
+			return errors.New("invalid output amount")
+		}
+		delete(depositAmount, output.ProgramHash)
+	}
+	if len(depositAmount) != 0 {
+		return errors.New("invalid output amount fee")
 	}
 
 	return nil

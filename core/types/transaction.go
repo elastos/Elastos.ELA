@@ -68,6 +68,8 @@ const (
 
 	RevertToPOW  TxType = 0x41
 	RevertToDPOS TxType = 0x42
+
+	ReturnSideChainDepositCoin TxType = 0x51
 )
 
 func (self TxType) Name() string {
@@ -381,6 +383,10 @@ func (tx *Transaction) Hash() common.Uint256 {
 		tx.txHash = &txHash
 	}
 	return *tx.txHash
+}
+
+func (tx *Transaction) IsReturnSideChainDepositCoinTx() bool {
+	return tx.TxType == ReturnSideChainDepositCoin
 }
 
 func (tx *Transaction) ISCRCouncilMemberClaimNode() bool {

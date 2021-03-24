@@ -26,26 +26,27 @@ const (
 	// 21 serialize
 	ErrTxSerializeDeserialize ErrCode = -21000
 	// 22 check
-	ErrTxValidation        ErrCode = -22000
-	ErrTxInvalidInput      ErrCode = -22001
-	ErrTxInvalidOutput     ErrCode = -22002
-	ErrTxBalance           ErrCode = -22003
-	ErrTxAttributeProgram  ErrCode = -22004
-	ErrTxSignature         ErrCode = -22005
-	ErrTxPayload           ErrCode = -22006
-	ErrTxDoubleSpend       ErrCode = -22007
-	ErrTxSize              ErrCode = -22008
-	ErrTxUnknownReferredTx ErrCode = -22009
-	ErrTxUTXOLocked        ErrCode = -22010
-	ErrTxDuplicate         ErrCode = -22011
-	ErrTxHeightVersion     ErrCode = -22012
-	ErrTxAssetPrecision    ErrCode = -22013
-	ErrTxReturnDeposit     ErrCode = -22014
-	ErrTxAppropriation     ErrCode = -22015
-	ErrTxAssetsRectify     ErrCode = -22016
-	ErrTxRealWithdraw      ErrCode = -22017
-	ErrTxCRCRClaimNode     ErrCode = -22018
-	ErrTxRevertToPOW       ErrCode = -22019
+	ErrTxValidation             ErrCode = -22000
+	ErrTxInvalidInput           ErrCode = -22001
+	ErrTxInvalidOutput          ErrCode = -22002
+	ErrTxBalance                ErrCode = -22003
+	ErrTxAttributeProgram       ErrCode = -22004
+	ErrTxSignature              ErrCode = -22005
+	ErrTxPayload                ErrCode = -22006
+	ErrTxDoubleSpend            ErrCode = -22007
+	ErrTxSize                   ErrCode = -22008
+	ErrTxUnknownReferredTx      ErrCode = -22009
+	ErrTxUTXOLocked             ErrCode = -22010
+	ErrTxDuplicate              ErrCode = -22011
+	ErrTxHeightVersion          ErrCode = -22012
+	ErrTxAssetPrecision         ErrCode = -22013
+	ErrTxReturnDeposit          ErrCode = -22014
+	ErrTxAppropriation          ErrCode = -22015
+	ErrTxAssetsRectify          ErrCode = -22016
+	ErrTxRealWithdraw           ErrCode = -22017
+	ErrTxCRCRClaimNode          ErrCode = -22018
+	ErrTxRevertToPOW            ErrCode = -22019
+	ErrTxReturnSideChainDeposit ErrCode = -22020
 	// 23 sidechain
 	ErrTxSidechainValidation   ErrCode = -23000
 	ErrTxSidechainDuplicate    ErrCode = -23001

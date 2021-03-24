@@ -14,9 +14,9 @@ import (
 	"github.com/elastos/Elastos.ELA/crypto"
 )
 
-const IllegalDepositTxsVersion byte = 0x00
+const ReturnSideChainDepositCoinVersion byte = 0x00
 
-type IllegalDepositTxs struct {
+type ReturnSideChainDepositCoin struct {
 	Height              uint32
 	GenesisBlockAddress string
 	DepositTxs          []common.Uint256
@@ -25,7 +25,7 @@ type IllegalDepositTxs struct {
 	hash *common.Uint256
 }
 
-func (s *IllegalDepositTxs) Data(version byte) []byte {
+func (s *ReturnSideChainDepositCoin) Data(version byte) []byte {
 	buf := new(bytes.Buffer)
 	if err := s.Serialize(buf, version); err != nil {
 		return []byte{0}
@@ -33,11 +33,11 @@ func (s *IllegalDepositTxs) Data(version byte) []byte {
 	return buf.Bytes()
 }
 
-func (s *IllegalDepositTxs) GetBlockHeight() uint32 {
+func (s *ReturnSideChainDepositCoin) GetBlockHeight() uint32 {
 	return s.Height
 }
 
-func (s *IllegalDepositTxs) SerializeUnsigned(w io.Writer, version byte) error {
+func (s *ReturnSideChainDepositCoin) SerializeUnsigned(w io.Writer, version byte) error {
 	if err := common.WriteUint32(w, s.Height); err != nil {
 		return err
 	}
@@ -62,7 +62,7 @@ func (s *IllegalDepositTxs) SerializeUnsigned(w io.Writer, version byte) error {
 	return nil
 }
 
-func (s *IllegalDepositTxs) Serialize(w io.Writer, version byte) error {
+func (s *ReturnSideChainDepositCoin) Serialize(w io.Writer, version byte) error {
 	if err := s.SerializeUnsigned(w, version); err != nil {
 		return err
 	}
@@ -79,7 +79,7 @@ func (s *IllegalDepositTxs) Serialize(w io.Writer, version byte) error {
 	return nil
 }
 
-func (s *IllegalDepositTxs) DeserializeUnsigned(r io.Reader,
+func (s *ReturnSideChainDepositCoin) DeserializeUnsigned(r io.Reader,
 	version byte) error {
 	var err error
 
@@ -105,7 +105,7 @@ func (s *IllegalDepositTxs) DeserializeUnsigned(r io.Reader,
 	return nil
 }
 
-func (s *IllegalDepositTxs) Deserialize(r io.Reader, version byte) error {
+func (s *ReturnSideChainDepositCoin) Deserialize(r io.Reader, version byte) error {
 	var err error
 	if err = s.DeserializeUnsigned(r, version); err != nil {
 		return err
@@ -127,10 +127,10 @@ func (s *IllegalDepositTxs) Deserialize(r io.Reader, version byte) error {
 	return nil
 }
 
-func (s *IllegalDepositTxs) Hash() common.Uint256 {
+func (s *ReturnSideChainDepositCoin) Hash() common.Uint256 {
 	if s.hash == nil {
 		buf := new(bytes.Buffer)
-		s.SerializeUnsigned(buf, IllegalDepositTxsVersion)
+		s.SerializeUnsigned(buf, ReturnSideChainDepositCoinVersion)
 		hash := common.Hash(buf.Bytes())
 		s.hash = &hash
 	}

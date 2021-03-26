@@ -119,7 +119,6 @@ type CRMember struct {
 type KeyFrame struct {
 	Members                    map[common.Uint168]*CRMember
 	HistoryMembers             map[uint64]map[common.Uint168]*CRMember
-	CRCFoundationLockedAmounts []common.Fixed64
 	CustomIDProposalResults    []payload.ProposalResult
 	LastCommitteeHeight        uint32
 	LastVotingStartHeight      uint32
@@ -340,10 +339,6 @@ func (kf *KeyFrame) Serialize(w io.Writer) (err error) {
 		return
 	}
 
-	if err = kf.serializeAmountList(w, kf.CRCFoundationLockedAmounts); err != nil {
-		return
-	}
-
 	if err = kf.serializeProposalResultList(w, kf.CustomIDProposalResults); err != nil {
 		return
 	}
@@ -362,10 +357,6 @@ func (kf *KeyFrame) Deserialize(r io.Reader) (err error) {
 	}
 
 	if kf.HistoryMembers, err = kf.deserializeHistoryMembersMap(r); err != nil {
-		return
-	}
-
-	if kf.CRCFoundationLockedAmounts, err = kf.deserializeAmountList(r); err != nil {
 		return
 	}
 
@@ -543,7 +534,6 @@ func NewKeyFrame() *KeyFrame {
 	return &KeyFrame{
 		Members:                    make(map[common.Uint168]*CRMember, 0),
 		HistoryMembers:             make(map[uint64]map[common.Uint168]*CRMember, 0),
-		CRCFoundationLockedAmounts: make([]common.Fixed64, 0),
 		LastCommitteeHeight:        0,
 	}
 }

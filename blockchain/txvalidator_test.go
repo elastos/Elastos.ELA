@@ -4223,7 +4223,7 @@ func (s *txValidatorTestSuite) TestCreateCRCAppropriationTransaction() {
 	hash := block.Hash()
 	node, _ := s.Chain.LoadBlockNode(&block.Header, &hash)
 	s.Chain.db.SaveBlock(block, node, nil, CalcPastMedianTime(node))
-	txCrcAppropriation, _ := s.Chain.CreateCRCAppropriationTransaction()
+	txCrcAppropriation, _, _ := s.Chain.CreateCRCAppropriationTransaction()
 	s.NotNil(txCrcAppropriation)
 }
 

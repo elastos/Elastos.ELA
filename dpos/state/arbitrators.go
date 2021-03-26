@@ -1670,11 +1670,15 @@ func (a *arbitrators) updateNextArbitrators(versionHeight, height uint32) error 
 				return err
 			}
 			oriNextCandidates := a.nextCandidates
+			oriNextArbitrators := a.nextArbitrators
+			oriNextCRCArbiters := a.nextCRCArbiters
 			a.history.Append(height, func() {
 				a.nextCandidates = make([]ArbiterMember, 0)
 				a.updateNextTurnInfo(height, producers, unclaimed)
 			}, func() {
 				a.nextCandidates = oriNextCandidates
+				a.nextArbitrators = oriNextArbitrators
+				a.nextCRCArbiters = oriNextCRCArbiters
 			})
 		} else {
 			if height >= a.chainParams.NoCRCDPOSNodeHeight {
@@ -1712,11 +1716,13 @@ func (a *arbitrators) updateNextArbitrators(versionHeight, height uint32) error 
 					}
 				}
 			}
+			oriNextArbitrators := a.nextArbitrators
 			oriNextCRCArbiters := a.nextCRCArbiters
 			a.history.Append(height, func() {
 				a.updateNextTurnInfo(height, producers, unclaimed)
 			}, func() {
 				// next arbitrators will rollback in resetNextArbiterByCRC
+				a.nextArbitrators = oriNextArbitrators
 				a.nextCRCArbiters = oriNextCRCArbiters
 			})
 
@@ -1734,13 +1740,15 @@ func (a *arbitrators) updateNextArbitrators(versionHeight, height uint32) error 
 		}
 	} else {
 		oriNextCandidates := a.nextCandidates
-		oriNeedNextTurnDposInfo := a.NeedNextTurnDPOSInfo
+		oriNextArbitrators := a.nextArbitrators
+		oriNextCRCArbiters := a.nextCRCArbiters
 		a.history.Append(height, func() {
 			a.nextCandidates = make([]ArbiterMember, 0)
 			a.updateNextTurnInfo(height, nil, unclaimed)
 		}, func() {
 			a.nextCandidates = oriNextCandidates
-			a.NeedNextTurnDPOSInfo = oriNeedNextTurnDposInfo
+			a.nextArbitrators = oriNextArbitrators
+			a.nextCRCArbiters = oriNextCRCArbiters
 		})
 	}
 	return nil

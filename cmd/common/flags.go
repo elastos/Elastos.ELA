@@ -472,6 +472,11 @@ var (
 		Usage: "defines height of having reward",
 	}
 
+	HalvingRewardIntervalFlag = cli.StringFlag{
+		Name:  "halvingrewardinterval",
+		Usage: "defines interval of having reward",
+	}
+
 	NewELAIssuanceHeightFlag = cli.StringFlag{
 		Name:  "newelaissuanceheight",
 		Usage: "defines height of using the new ela issuance (2000w)",

@@ -994,6 +994,12 @@ func NewSettings() *Settings {
 		ParamName:    "HalvingRewardHeight"})
 
 	result.Add(&settingItem{
+		Flag:         cmdcom.HalvingRewardIntervalFlag,
+		DefaultValue: uint32(0),
+		ConfigPath:   "HalvingRewardInterval",
+		ParamName:    "HalvingRewardInterval"})
+
+	result.Add(&settingItem{
 		Flag:         cmdcom.NewELAIssuanceHeightFlag,
 		DefaultValue: uint32(0),
 		ConfigPath:   "NewELAIssuanceHeight",

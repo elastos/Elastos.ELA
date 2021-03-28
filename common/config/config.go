@@ -81,6 +81,7 @@ type Configuration struct {
 	CustomIDProposalStartHeight  uint32            `json:"CustomIDProposalStartHeight"`
 	MaxReservedCustomIDListCount uint32            `json:"MaxReservedCustomIDListCount"`
 	HalvingRewardHeight          uint32            `json:"HalvingRewardHeight"`
+	HalvingRewardInterval        uint32            `json:"HalvingRewardInterval"`
 	NewELAIssuanceHeight         uint32            `json:"NewELAIssuanceHeight"`
 }
 

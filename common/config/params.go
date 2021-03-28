@@ -244,6 +244,7 @@ var DefaultParams = Params{
 	StopConfirmBlockTime:               11 * 3600, //TODO reset latter
 	RevertToPOWStartHeight:             1000000,   //TODO reset latter
 	HalvingRewardHeight:                1051200,
+	HalvingRewardInterval:              4 * 365 * 720,
 	NewELAIssuanceHeight:               919800,
 }
 
@@ -326,6 +327,7 @@ func (p *Params) TestNet() *Params {
 	copy.StopConfirmBlockTime = 11 * 3600       //TODO reset latter
 	copy.RevertToPOWStartHeight = 1000000       //TODO reset latter
 	copy.HalvingRewardHeight = 1051200          //TODO reset latter
+	copy.HalvingRewardInterval = 4 * 365 * 720  //TODO reset latter
 	copy.NewELAIssuanceHeight = 919800          //TODO reset latter
 
 	return &copy
@@ -410,6 +412,7 @@ func (p *Params) RegNet() *Params {
 	copy.StopConfirmBlockTime = 11 * 3600       //TODO reset latter
 	copy.RevertToPOWStartHeight = 1000000       //TODO reset latter
 	copy.HalvingRewardHeight = 1051200          //TODO reset latter
+	copy.HalvingRewardInterval = 4 * 365 * 720  //TODO reset latter
 	copy.NewELAIssuanceHeight = 919800          //TODO reset latter
 
 	return &copy
@@ -722,6 +725,9 @@ type Params struct {
 	// HalvingRewardHeight represents the height of halving reward
 	HalvingRewardHeight uint32
 
+	// HalvingRewardInterval represents the interval of halving reward
+	HalvingRewardInterval uint32
+
 	// NewELAIssuanceHeight represents the new issuance ELA amount after proposal #1631
 	NewELAIssuanceHeight uint32
 }
@@ -743,7 +749,7 @@ func (p *Params) newRewardPerBlock(targetTimePerBlock time.Duration, height uint
 	if height < p.HalvingRewardHeight {
 		factor = 1
 	} else {
-		factor = (height - height%p.HalvingRewardHeight) / p.HalvingRewardHeight
+		factor = 1 + (height-p.HalvingRewardHeight)/p.HalvingRewardInterval
 	}
 
 	return common.Fixed64(float64(newInflationPerYear) / float64(generatedBlocksPerYear) / float64(factor))
@@ -800,7 +806,7 @@ func (p *Params) GetBlockReward(height uint32) (rewardPerBlock common.Fixed64) {
 	if height < p.NewELAIssuanceHeight {
 		rewardPerBlock = p.RewardPerBlock
 	} else {
-		rewardPerBlock = p.newRewardPerBlock(2 * time.Minute, height)
+		rewardPerBlock = p.newRewardPerBlock(2*time.Minute, height)
 	}
 	return
 }

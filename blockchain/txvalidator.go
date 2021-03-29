@@ -2453,7 +2453,6 @@ func (b *BlockChain) checkCRAssetsRectifyTransaction(txn *Transaction,
 }
 
 func (b *BlockChain) checkReturnSideChainDepositTransaction(txn *Transaction, references map[*Input]Output) error {
-	// todo complete me
 	p, ok := txn.Payload.(*payload.ReturnSideChainDepositCoin)
 	if !ok {
 		return errors.New("invalid payload")
@@ -2462,8 +2461,7 @@ func (b *BlockChain) checkReturnSideChainDepositTransaction(txn *Transaction, re
 	// check outputs
 	depositAmount := make(map[common.Uint168]common.Fixed64)
 	depositFee := make(map[common.Uint168]common.Fixed64)
-	// todo make fee configurable
-	fee := common.Fixed64(100)
+	fee := b.chainParams.ReturnDepositCoinFee
 	for _, tx := range p.DepositTxs {
 		tx, _, err := b.db.GetTransaction(tx)
 		if err != nil {

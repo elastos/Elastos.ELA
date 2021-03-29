@@ -246,6 +246,7 @@ var DefaultParams = Params{
 	HalvingRewardHeight:                1051200,
 	NewELAIssuanceHeight:               919800,
 	SmallCrossTransferThreshold:        100000000, //TODO reset latter
+	ReturnDepositCoinFee:               100,       //TODO reset latter
 }
 
 // TestNet returns the network parameters for the test network.
@@ -329,6 +330,7 @@ func (p *Params) TestNet() *Params {
 	copy.HalvingRewardHeight = 1051200           //TODO reset latter
 	copy.NewELAIssuanceHeight = 919800           //TODO reset latter
 	copy.SmallCrossTransferThreshold = 100000000 //TODO reset latter
+	copy.ReturnDepositCoinFee = 100              //TODO reset latter
 
 	return &copy
 }
@@ -414,6 +416,7 @@ func (p *Params) RegNet() *Params {
 	copy.HalvingRewardHeight = 1051200           //TODO reset latter
 	copy.NewELAIssuanceHeight = 919800           //TODO reset latter
 	copy.SmallCrossTransferThreshold = 100000000 //TODO reset latter
+	copy.ReturnDepositCoinFee = 100              //TODO reset latter
 	return &copy
 }
 
@@ -729,6 +732,9 @@ type Params struct {
 
 	// SMALLCrossTransferThreshold indicates the minimum amount consider as Small transfer
 	SmallCrossTransferThreshold common.Fixed64
+
+	// ReturnDepositCoinFee indicates the fee the
+	ReturnDepositCoinFee common.Fixed64
 }
 
 // rewardPerBlock calculates the reward for each block by a specified time

@@ -481,6 +481,11 @@ var (
 		Name:  "smallcrosstransferthreshold",
 		Usage: "defines the minimum amount of transfer consider as small cross transfer",
 	}
+
+	ReturnDepositCoinFeeFlag = cli.StringFlag{
+		Name:  "ReturnDepositCoinFee",
+		Usage: "defines the fee of return cross chain deposit coin",
+	}
 )
 
 // MoveRPCFlags finds the rpc argument and moves it to the front

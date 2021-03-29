@@ -1005,6 +1005,12 @@ func NewSettings() *Settings {
 		ConfigPath:   "SmallCrossTransferThreshold",
 		ParamName:    "SmallCrossTransferThreshold"})
 
+	result.Add(&settingItem{
+		Flag:         cmdcom.ReturnDepositCoinFeeFlag,
+		DefaultValue: common.Fixed64(0),
+		ConfigPath:   "ReturnDepositCoinFee",
+		ParamName:    "ReturnDepositCoinFee"})
+
 	return result
 }
 

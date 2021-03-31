@@ -43,7 +43,7 @@ type Committee struct {
 	isCurrent                        func() bool
 	broadcast                        func(msg p2p.Message)
 	appendToTxpool                   func(transaction *types.Transaction) elaerr.ELAError
-	createCRCAppropriationTx         func() (*types.Transaction, error)
+	createCRCAppropriationTx         func() (*types.Transaction, common.Fixed64, error)
 	createCRAssetsRectifyTransaction func() (*types.Transaction, error)
 	createCRRealWithdrawTransaction  func(withdrawTransactionHashes []common.Uint256,
 		outputs []*types.OutputInfo) (*types.Transaction, error)
@@ -377,8 +377,8 @@ func (c *Committee) ProcessBlock(block *types.Block, confirm *payload.Confirm) {
 		c.createCustomIDResultTransaction(block.Height)
 	}
 	if needChg {
-		c.createAppropriationTransaction(block.Height)
-		c.recordCurrentStageAmount(block.Height)
+		lockedAmount := c.createAppropriationTransaction(block.Height)
+		c.recordCurrentStageAmount(block.Height, lockedAmount)
 		c.appropriationHistory.Commit(block.Height)
 	} else {
 		if c.CRAssetsAddressUTXOCount >=
@@ -550,12 +550,13 @@ func (c *Committee) createCustomIDResultTransaction(height uint32) {
 	return
 }
 
-func (c *Committee) createAppropriationTransaction(height uint32) {
+func (c *Committee) createAppropriationTransaction(height uint32) common.Fixed64 {
+	lockedAmount := common.Fixed64(0)
 	if c.createCRCAppropriationTx != nil && height == c.getHeight() {
-		tx, err := c.createCRCAppropriationTx()
+		tx, amount, err := c.createCRCAppropriationTx()
 		if err != nil {
 			log.Error("create appropriation tx failed:", err.Error())
-			return
+			return 0
 		} else if tx == nil {
 			log.Info("no need to create appropriation")
 			oriNeedAppropriation := c.NeedAppropriation
@@ -564,8 +565,9 @@ func (c *Committee) createAppropriationTransaction(height uint32) {
 			}, func() {
 				c.NeedAppropriation = oriNeedAppropriation
 			})
-			return
+			return 0
 		}
+		lockedAmount = amount
 
 		log.Info("create CRCAppropriation transaction:", tx.Hash())
 		if c.isCurrent != nil && c.broadcast != nil && c.
@@ -581,7 +583,7 @@ func (c *Committee) createAppropriationTransaction(height uint32) {
 			}()
 		}
 	}
-	return
+	return lockedAmount
 }
 
 func (c *Committee) createRectifyCRAssetsTransaction(height uint32) {
@@ -702,11 +704,7 @@ func (c *Committee) GetCommitteeCanUseAmount() common.Fixed64 {
 	return c.CRCCurrentStageAmount - c.CRCCommitteeUsedAmount
 }
 
-func (c *Committee) recordCurrentStageAmount(height uint32) {
-	var lockedAmount common.Fixed64
-	for _, v := range c.CRCFoundationLockedAmounts {
-		lockedAmount += v
-	}
+func (c *Committee) recordCurrentStageAmount(height uint32, lockedAmount common.Fixed64) {
 	oriCurrentStageAmount := c.CRCCurrentStageAmount
 	oriAppropriationAmount := c.AppropriationAmount
 	oriCommitteeUsedAmount := c.CommitteeUsedAmount
@@ -1133,7 +1131,9 @@ func (c *Committee) processCurrentMembersDepositInfo(height uint32) {
 	if len(c.Members) != 0 {
 		for _, m := range oriMembers {
 			member := *m
-			if member.MemberState != MemberElected {
+			if member.MemberState != MemberElected &&
+				member.MemberState != MemberInactive &&
+				member.MemberState != MemberIllegal {
 				continue
 			}
 			oriPenalty := c.state.depositInfo[m.Info.CID].Penalty
@@ -1416,7 +1416,7 @@ type CommitteeFuncsConfig struct {
 	GetTxReference func(tx *types.Transaction) (
 		map[*types.Input]types.Output, error)
 	GetHeight                        func() uint32
-	CreateCRAppropriationTransaction func() (*types.Transaction, error)
+	CreateCRAppropriationTransaction func() (*types.Transaction, common.Fixed64, error)
 	CreateCRAssetsRectifyTransaction func() (*types.Transaction, error)
 	CreateCRRealWithdrawTransaction  func(withdrawTransactionHashes []common.Uint256,
 		outpus []*types.OutputInfo) (*types.Transaction, error)

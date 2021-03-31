@@ -423,6 +423,7 @@ func (a *arbitrators) forceChange(height uint32) error {
 	}
 
 	if err := a.updateNextArbitrators(height+1, height); err != nil {
+		log.Info("force change failed at height:", height)
 		return err
 	}
 
@@ -441,9 +442,6 @@ func (a *arbitrators) forceChange(height uint32) error {
 		a.forceChanged = oriForceChanged
 	})
 	a.history.Commit(height)
-	if block.Height >= a.bestHeight() {
-		a.notifyNextTurnDPOSInfoTx(block.Height, block.Height+1)
-	}
 
 	a.dumpInfo(height)
 	return nil
@@ -471,9 +469,9 @@ func (a *arbitrators) normalChange(height uint32) error {
 	return nil
 }
 
-func (a *arbitrators) notifyNextTurnDPOSInfoTx(blockHeight, versionHeight uint32) {
+func (a *arbitrators) notifyNextTurnDPOSInfoTx(blockHeight, versionHeight uint32, forceChange bool) {
 
-	nextTurnDPOSInfoTx := a.createNextTurnDPOSInfoTransaction(blockHeight)
+	nextTurnDPOSInfoTx := a.createNextTurnDPOSInfoTransaction(blockHeight, forceChange)
 	go events.Notify(events.ETAppendTxToTxPool, nextTurnDPOSInfoTx)
 	return
 }
@@ -490,14 +488,16 @@ func (a *arbitrators) IncreaseChainHeight(block *types.Block) {
 			break
 		}
 	}
+	var forceChanged bool
 	if containsIllegalBlockEvidence {
 		if err := a.forceChange(block.Height); err != nil {
 			log.Errorf("Found illegal blocks, ForceChange failed:%s", err)
-			// todo revert to pow
+			a.cleanArbitrators(block.Height)
 			a.revertToPOWAtNextTurn(block.Height)
 			log.Warn(fmt.Sprintf("force change fail at height: %d, error: %s",
 				block.Height, err))
 		}
+		forceChanged = true
 	} else {
 		changeType, versionHeight := a.getChangeType(block.Height + 1)
 		switch changeType {
@@ -546,8 +546,8 @@ func (a *arbitrators) IncreaseChainHeight(block *types.Block) {
 	if block.Height > bestHeight-MaxSnapshotLength {
 		a.snapshot(block.Height)
 	}
-	if block.Height >= bestHeight && a.NeedNextTurnDPOSInfo {
-		a.notifyNextTurnDPOSInfoTx(block.Height, block.Height+1)
+	if block.Height >= bestHeight && (a.NeedNextTurnDPOSInfo || forceChanged) {
+		a.notifyNextTurnDPOSInfoTx(block.Height, block.Height+1, forceChanged)
 	}
 	a.mtx.Unlock()
 	if a.started && notify {
@@ -1413,8 +1413,34 @@ func (a *arbitrators) getChangeType(height uint32) (ChangeType, uint32) {
 	return none, height
 }
 
-func (a *arbitrators) changeCurrentArbitrators(height uint32) error {
+func (a *arbitrators) cleanArbitrators(height uint32) {
+	oriCurrentCRCArbitersMap := copyCRCArbitersMap(a.currentCRCArbitersMap)
+	oriCurrentArbitrators := a.currentArbitrators
+	oriCurrentCandidates := a.currentCandidates
+	oriNextCRCArbitersMap := copyCRCArbitersMap(a.nextCRCArbitersMap)
+	oriNextArbitrators := a.nextArbitrators
+	oriNextCandidates := a.nextCandidates
+	oriDutyIndex := a.dutyIndex
+	a.history.Append(height, func() {
+		a.currentCRCArbitersMap = make(map[common.Uint168]ArbiterMember)
+		a.currentArbitrators = make([]ArbiterMember, 0)
+		a.currentCandidates = make([]ArbiterMember, 0)
+		a.nextCRCArbitersMap = make(map[common.Uint168]ArbiterMember)
+		a.nextArbitrators = make([]ArbiterMember, 0)
+		a.nextCandidates = make([]ArbiterMember, 0)
+		a.dutyIndex = 0
+	}, func() {
+		a.currentCRCArbitersMap = oriCurrentCRCArbitersMap
+		a.currentArbitrators = oriCurrentArbitrators
+		a.currentCandidates = oriCurrentCandidates
+		a.nextCRCArbitersMap = oriNextCRCArbitersMap
+		a.nextArbitrators = oriNextArbitrators
+		a.nextCandidates = oriNextCandidates
+		a.dutyIndex = oriDutyIndex
+	})
+}
 
+func (a *arbitrators) changeCurrentArbitrators(height uint32) error {
 	oriCurrentCRCArbitersMap := copyCRCArbitersMap(a.currentCRCArbitersMap)
 	oriCurrentArbitrators := a.currentArbitrators
 	oriCurrentCandidates := a.currentCandidates
@@ -1452,6 +1478,7 @@ func (a *arbitrators) IsSameWithNextArbitrators() bool {
 	}
 	return true
 }
+
 func (a *arbitrators) ConvertToArbitersStr(arbiters [][]byte) []string {
 	var arbitersStr []string
 	for _, v := range arbiters {
@@ -1460,11 +1487,16 @@ func (a *arbitrators) ConvertToArbitersStr(arbiters [][]byte) []string {
 	return arbitersStr
 }
 
-func (a *arbitrators) createNextTurnDPOSInfoTransaction(blockHeight uint32) *types.Transaction {
+func (a *arbitrators) createNextTurnDPOSInfoTransaction(blockHeight uint32, forceChange bool) *types.Transaction {
 	var nextTurnDPOSInfo payload.NextTurnDPOSInfo
 	nextTurnDPOSInfo.CRPublicKeys = make([][]byte, 0)
 	nextTurnDPOSInfo.DPOSPublicKeys = make([][]byte, 0)
-	workingHeight := blockHeight + uint32(a.chainParams.GeneralArbiters+len(a.chainParams.CRCArbiters))
+	var workingHeight uint32
+	if forceChange {
+		workingHeight = blockHeight
+	} else {
+		workingHeight = blockHeight + uint32(a.chainParams.GeneralArbiters+len(a.chainParams.CRCArbiters))
+	}
 	nextTurnDPOSInfo.WorkingHeight = workingHeight
 	for _, v := range a.nextArbitrators {
 		if a.isNextCRCArbitrator(v.GetNodePublicKey()) {
@@ -1638,11 +1670,15 @@ func (a *arbitrators) updateNextArbitrators(versionHeight, height uint32) error 
 				return err
 			}
 			oriNextCandidates := a.nextCandidates
+			oriNextArbitrators := a.nextArbitrators
+			oriNextCRCArbiters := a.nextCRCArbiters
 			a.history.Append(height, func() {
 				a.nextCandidates = make([]ArbiterMember, 0)
 				a.updateNextTurnInfo(height, producers, unclaimed)
 			}, func() {
 				a.nextCandidates = oriNextCandidates
+				a.nextArbitrators = oriNextArbitrators
+				a.nextCRCArbiters = oriNextCRCArbiters
 			})
 		} else {
 			if height >= a.chainParams.NoCRCDPOSNodeHeight {
@@ -1680,11 +1716,13 @@ func (a *arbitrators) updateNextArbitrators(versionHeight, height uint32) error 
 					}
 				}
 			}
+			oriNextArbitrators := a.nextArbitrators
 			oriNextCRCArbiters := a.nextCRCArbiters
 			a.history.Append(height, func() {
 				a.updateNextTurnInfo(height, producers, unclaimed)
 			}, func() {
 				// next arbitrators will rollback in resetNextArbiterByCRC
+				a.nextArbitrators = oriNextArbitrators
 				a.nextCRCArbiters = oriNextCRCArbiters
 			})
 
@@ -1702,13 +1740,15 @@ func (a *arbitrators) updateNextArbitrators(versionHeight, height uint32) error 
 		}
 	} else {
 		oriNextCandidates := a.nextCandidates
-		oriNeedNextTurnDposInfo := a.NeedNextTurnDPOSInfo
+		oriNextArbitrators := a.nextArbitrators
+		oriNextCRCArbiters := a.nextCRCArbiters
 		a.history.Append(height, func() {
 			a.nextCandidates = make([]ArbiterMember, 0)
 			a.updateNextTurnInfo(height, nil, unclaimed)
 		}, func() {
 			a.nextCandidates = oriNextCandidates
-			a.NeedNextTurnDPOSInfo = oriNeedNextTurnDposInfo
+			a.nextArbitrators = oriNextArbitrators
+			a.nextCRCArbiters = oriNextCRCArbiters
 		})
 	}
 	return nil

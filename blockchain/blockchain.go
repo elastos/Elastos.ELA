@@ -376,20 +376,22 @@ func (b *BlockChain) createNormalOutputs(outputs []*OutputInfo, fee Fixed64,
 	return txOutputs, totalAmount, nil
 }
 
-func (b *BlockChain) getUTXOsFromAddress(address Uint168) ([]*UTXO, error) {
+func (b *BlockChain) getUTXOsFromAddress(address Uint168) ([]*UTXO, Fixed64, error) {
 	var utxoSlice []*UTXO
+	var lockedAmount Fixed64
 	utxos, err := b.db.GetFFLDB().GetUTXO(&address)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	curHeight := b.getHeight()
 	for _, utxo := range utxos {
 		referTxn, err := b.UTXOCache.GetTransaction(utxo.TxID)
 		if err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 		diff := curHeight - referTxn.LockTime
 		if referTxn.IsCoinBaseTx() && diff < b.chainParams.CoinbaseMaturity {
+			lockedAmount += utxo.Value
 			continue
 		}
 		utxoSlice = append(utxoSlice, utxo)
@@ -401,7 +403,7 @@ func (b *BlockChain) getUTXOsFromAddress(address Uint168) ([]*UTXO, error) {
 		return utxoSlice[i].Value > utxoSlice[j].Value
 	})
 
-	return utxoSlice, nil
+	return utxoSlice, lockedAmount, nil
 }
 
 func (b *BlockChain) createInputs(fromAddress Uint168,
@@ -444,10 +446,10 @@ func (b *BlockChain) createInputs(fromAddress Uint168,
 	return txInputs, changeOutputs, nil
 }
 
-func (b *BlockChain) CreateCRCAppropriationTransaction() (*Transaction, error) {
-	utxos, err := b.getUTXOsFromAddress(b.chainParams.CRAssetsAddress)
+func (b *BlockChain) CreateCRCAppropriationTransaction() (*Transaction, Fixed64, error) {
+	utxos, lockedAmount, err := b.getUTXOsFromAddress(b.chainParams.CRAssetsAddress)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	var crcFoundationBalance Fixed64
 	for _, u := range utxos {
@@ -458,7 +460,7 @@ func (b *BlockChain) CreateCRCAppropriationTransaction() (*Transaction, error) {
 
 	log.Info("create appropriation transaction amount:", appropriationAmount)
 	if appropriationAmount <= 0 {
-		return nil, nil
+		return nil, 0, nil
 	}
 	outputs := []*OutputInfo{{b.chainParams.CRExpensesAddress,
 		appropriationAmount}}
@@ -467,14 +469,14 @@ func (b *BlockChain) CreateCRCAppropriationTransaction() (*Transaction, error) {
 	tx, err = b.createTransaction(&payload.CRCAppropriation{}, CRCAppropriation,
 		b.chainParams.CRAssetsAddress, Fixed64(0), uint32(0), utxos, outputs...)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
-	return tx, nil
+	return tx, lockedAmount, nil
 }
 
 func (b *BlockChain) CreateCRRealWithdrawTransaction(
 	withdrawTransactionHashes []Uint256, outputs []*OutputInfo) (*Transaction, error) {
-	utxos, err := b.getUTXOsFromAddress(b.chainParams.CRExpensesAddress)
+	utxos, _, err := b.getUTXOsFromAddress(b.chainParams.CRExpensesAddress)
 	if err != nil {
 		return nil, err
 	}
@@ -498,7 +500,7 @@ func (b *BlockChain) CreateCRRealWithdrawTransaction(
 }
 
 func (b *BlockChain) CreateCRAssetsRectifyTransaction() (*Transaction, error) {
-	utxos, err := b.getUTXOsFromAddress(b.chainParams.CRAssetsAddress)
+	utxos, _, err := b.getUTXOsFromAddress(b.chainParams.CRAssetsAddress)
 	if err != nil {
 		return nil, err
 	}

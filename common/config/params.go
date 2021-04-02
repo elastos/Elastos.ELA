@@ -745,11 +745,9 @@ func rewardPerBlock(targetTimePerBlock time.Duration) common.Fixed64 {
 func (p *Params) newRewardPerBlock(targetTimePerBlock time.Duration, height uint32) common.Fixed64 {
 	blockGenerateInterval := int64(targetTimePerBlock / time.Second)
 	generatedBlocksPerYear := 365 * 24 * 60 * 60 / blockGenerateInterval
-	var factor uint32
-	if height < p.HalvingRewardHeight {
-		factor = 1
-	} else {
-		factor = 1 + (height-p.HalvingRewardHeight)/p.HalvingRewardInterval
+	factor := uint32(1)
+	if height >= p.HalvingRewardHeight {
+		factor = 2 + (height-p.HalvingRewardHeight)/p.HalvingRewardInterval
 	}
 
 	return common.Fixed64(float64(newInflationPerYear) / float64(generatedBlocksPerYear) / float64(factor))

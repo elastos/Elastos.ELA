@@ -29,6 +29,9 @@ const (
 
 	// OTCrossChain indicates the output payload is cross chain information.
 	OTCrossChain
+
+	// OTWithdrawFromSideChain indicates the output payload is withdraw from side chain information.
+	OTWithdrawFromSideChain
 )
 
 type OutputPayload interface {
@@ -140,7 +143,9 @@ func getOutputPayload(outputType OutputType) (OutputPayload, error) {
 	case OTMapping:
 		op = new(outputpayload.Mapping)
 	case OTCrossChain:
-		op =new(outputpayload.CrossChainOutput)
+		op = new(outputpayload.CrossChainOutput)
+	case OTWithdrawFromSideChain:
+		op = new(outputpayload.Withdraw)
 	default:
 		return nil, errors.New("invalid transaction output type")
 	}

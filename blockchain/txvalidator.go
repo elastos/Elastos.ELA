@@ -833,7 +833,15 @@ func checkOutputProgramHash(height uint32, programHash common.Uint168) error {
 }
 
 func checkOutputPayload(txType TxType, output *Output) error {
-	if txType == TransferCrossChainAsset {
+	switch txType {
+	case WithdrawFromSideChain:
+		switch output.Type {
+		case OTNone:
+		case OTWithdrawFromSideChain:
+		default:
+			return errors.New("transaction type dose not match the output payload type")
+		}
+	case TransferCrossChainAsset:
 		// OTCrossChain information can only be placed in TransferCrossChainAsset transaction.
 		switch output.Type {
 		case OTNone:
@@ -841,7 +849,7 @@ func checkOutputPayload(txType TxType, output *Output) error {
 		default:
 			return errors.New("transaction type dose not match the output payload type")
 		}
-	} else if txType == TransferAsset {
+	case TransferAsset:
 		// OTVote information can only be placed in TransferAsset transaction.
 		switch output.Type {
 		case OTVote:
@@ -854,7 +862,7 @@ func checkOutputPayload(txType TxType, output *Output) error {
 		default:
 			return errors.New("transaction type dose not match the output payload type")
 		}
-	} else {
+	default:
 		switch output.Type {
 		case OTNone:
 		default:
@@ -1364,6 +1372,71 @@ func CheckSideChainPowConsensus(txn *Transaction, arbitrator []byte) error {
 }
 
 func (b *BlockChain) checkWithdrawFromSideChainTransaction(txn *Transaction, references map[*Input]Output, height uint32) error {
+
+	if txn.PayloadVersion == payload.WithdrawFromSideChainVersion {
+		return b.checkWithdrawFromSideChainTransactionV0(txn, references, height)
+	} else if txn.PayloadVersion == payload.WithdrawFromSideChainVersionV1 {
+		return b.checkWithdrawFromSideChainTransactionV1(txn, references, height)
+	}
+	return errors.New("invalid payload version")
+}
+
+func (b *BlockChain) checkWithdrawFromSideChainTransactionV1(txn *Transaction, references map[*Input]Output, height uint32) error {
+	for _, output := range txn.Outputs {
+		if output.Type != OTWithdrawFromSideChain {
+			continue
+		}
+		witPayload, ok := output.Payload.(*outputpayload.Withdraw)
+		if !ok {
+			return errors.New("Invalid withdraw from side chain output payload type")
+		}
+		if exist := DefaultLedger.Store.IsSidechainTxHashDuplicate(witPayload.SideChainTransactionHash); exist {
+			return errors.New("Duplicate side chain transaction hash in output paylod")
+		}
+	}
+
+	for _, output := range references {
+		if bytes.Compare(output.ProgramHash[0:1], []byte{byte(contract.PrefixCrossChain)}) != 0 {
+			return errors.New("Invalid transaction inputs address, without \"X\" at beginning")
+		}
+	}
+
+	for _, p := range txn.Programs {
+		publicKeys, m, n, err := crypto.ParseCrossChainScriptV1(p.Code)
+		if err != nil {
+			return err
+		}
+		var arbiters []*state.ArbiterInfo
+		var minCount uint32
+		if height >= b.chainParams.DPOSNodeCrossChainHeight {
+			arbiters = DefaultLedger.Arbitrators.GetArbitrators()
+			minCount = uint32(b.chainParams.GeneralArbiters) + 1
+		} else {
+			arbiters = DefaultLedger.Arbitrators.GetCRCArbiters()
+			minCount = b.chainParams.CRAgreementCount
+		}
+		var arbitersCount int
+		for _, c := range arbiters {
+			if !c.IsNormal {
+				continue
+			}
+			arbitersCount++
+		}
+		if n != arbitersCount {
+			return errors.New("invalid arbiters total count in code")
+		}
+		if m < int(minCount) {
+			return errors.New("invalid arbiters sign count in code")
+		}
+		if err := b.checkCrossChainArbitrators(publicKeys); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (b *BlockChain) checkWithdrawFromSideChainTransactionV0(txn *Transaction, references map[*Input]Output, height uint32) error {
 	witPayload, ok := txn.Payload.(*payload.WithdrawFromSideChain)
 	if !ok {
 		return errors.New("Invalid withdraw from side chain payload type")

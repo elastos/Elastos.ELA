@@ -14,6 +14,7 @@ import (
 )
 
 const WithdrawFromSideChainVersion byte = 0x00
+const WithdrawFromSideChainVersionV1 byte = 0x01
 
 type WithdrawFromSideChain struct {
 	BlockHeight                uint32
@@ -31,6 +32,10 @@ func (t *WithdrawFromSideChain) Data(version byte) []byte {
 }
 
 func (t *WithdrawFromSideChain) Serialize(w io.Writer, version byte) error {
+	if version >= WithdrawFromSideChainVersionV1 {
+		return nil
+	}
+
 	if err := common.WriteUint32(w, t.BlockHeight); err != nil {
 		return errors.New("[WithdrawFromSideChain], BlockHeight serialize failed.")
 	}

@@ -6,6 +6,7 @@
 package config
 
 import (
+	"math"
 	"math/big"
 	"time"
 
@@ -750,7 +751,7 @@ func (p *Params) newRewardPerBlock(targetTimePerBlock time.Duration, height uint
 		factor = 2 + (height-p.HalvingRewardHeight)/p.HalvingRewardInterval
 	}
 
-	return common.Fixed64(float64(newInflationPerYear) / float64(generatedBlocksPerYear) / float64(factor))
+	return common.Fixed64(float64(newInflationPerYear) / float64(generatedBlocksPerYear) / math.Pow(2, float64(factor-1)))
 }
 
 // GenesisBlock creates a genesis block by the specified foundation address.

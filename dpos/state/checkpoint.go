@@ -35,22 +35,26 @@ const (
 // CheckPoint defines all variables need record in database
 type CheckPoint struct {
 	StateKeyFrame
-	Height                     uint32
-	DutyIndex                  int
-	CurrentArbitrators         []ArbiterMember
-	NextArbitrators            []ArbiterMember
-	NextCandidates             []ArbiterMember
-	CurrentCandidates          []ArbiterMember
-	CurrentReward              RewardData
-	NextReward                 RewardData
-	CurrentCRCArbiters         map[common.Uint168]ArbiterMember
-	NextCRCArbiters            map[common.Uint168]ArbiterMember
+	Height                uint32
+	DutyIndex             int
+	CurrentArbitrators    []ArbiterMember
+	NextArbitrators       []ArbiterMember
+	NextCandidates        []ArbiterMember
+	CurrentCandidates     []ArbiterMember
+	CurrentReward         RewardData
+	NextReward            RewardData
+	CurrentCRCArbitersMap map[common.Uint168]ArbiterMember
+	NextCRCArbitersMap    map[common.Uint168]ArbiterMember
+	NextCRCArbiters       []ArbiterMember
+
 	crcChangedHeight           uint32
 	accumulativeReward         common.Fixed64
 	finalRoundChange           common.Fixed64
 	clearingHeight             uint32
 	arbitersRoundReward        map[common.Uint168]common.Fixed64
 	illegalBlocksPayloadHashes map[common.Uint256]interface{}
+
+	forceChanged bool
 
 	arbitrators *arbitrators
 }
@@ -99,7 +103,14 @@ func (c *CheckPoint) Snapshot() checkpoint.ICheckPoint {
 		CurrentReward:      *NewRewardData(),
 		NextReward:         *NewRewardData(),
 		CurrentArbitrators: c.arbitrators.currentArbitrators,
-		StateKeyFrame:      *c.arbitrators.StateKeyFrame.snapshot(),
+
+		CurrentCRCArbitersMap: make(map[common.Uint168]ArbiterMember),
+		NextCRCArbitersMap:    make(map[common.Uint168]ArbiterMember),
+		NextCRCArbiters:       make([]ArbiterMember, 0),
+		crcChangedHeight:      c.arbitrators.crcChangedHeight,
+		forceChanged:          c.arbitrators.forceChanged,
+
+		StateKeyFrame: *c.arbitrators.StateKeyFrame.snapshot(),
 	}
 	point.CurrentArbitrators = copyByteList(c.arbitrators.currentArbitrators)
 	point.CurrentCandidates = copyByteList(c.arbitrators.currentCandidates)
@@ -107,6 +118,9 @@ func (c *CheckPoint) Snapshot() checkpoint.ICheckPoint {
 	point.NextCandidates = copyByteList(c.arbitrators.nextCandidates)
 	point.CurrentReward = *copyReward(&c.arbitrators.CurrentReward)
 	point.NextReward = *copyReward(&c.arbitrators.NextReward)
+	point.NextCRCArbitersMap = copyCRCArbitersMap(c.NextCRCArbitersMap)
+	point.CurrentCRCArbitersMap = copyCRCArbitersMap(c.CurrentCRCArbitersMap)
+	point.NextCRCArbiters = copyByteList(c.NextCRCArbiters)
 	return point
 }
 
@@ -186,11 +200,14 @@ func (c *CheckPoint) Serialize(w io.Writer) (err error) {
 		return
 	}
 
-	if err = c.serializeCRCArbitersMap(w, c.CurrentCRCArbiters); err != nil {
+	if err = c.serializeCRCArbitersMap(w, c.CurrentCRCArbitersMap); err != nil {
 		return
 	}
 
-	if err = c.serializeCRCArbitersMap(w, c.NextCRCArbiters); err != nil {
+	if err = c.serializeCRCArbitersMap(w, c.NextCRCArbitersMap); err != nil {
+		return
+	}
+	if err = c.writeArbiters(w, c.NextCRCArbiters); err != nil {
 		return
 	}
 
@@ -218,6 +235,9 @@ func (c *CheckPoint) Serialize(w io.Writer) (err error) {
 		return
 	}
 
+	if err = common.WriteElements(w, c.forceChanged); err != nil {
+		return
+	}
 	return c.StateKeyFrame.Serialize(w)
 }
 
@@ -308,11 +328,11 @@ func (c *CheckPoint) Deserialize(r io.Reader) (err error) {
 		return
 	}
 
-	if c.CurrentCRCArbiters, err = c.deserializeCRCArbitersMap(r); err != nil {
+	if c.CurrentCRCArbitersMap, err = c.deserializeCRCArbitersMap(r); err != nil {
 		return
 	}
 
-	if c.NextCRCArbiters, err = c.deserializeCRCArbitersMap(r); err != nil {
+	if c.NextCRCArbitersMap, err = c.deserializeCRCArbitersMap(r); err != nil {
 		return
 	}
 
@@ -340,7 +360,9 @@ func (c *CheckPoint) Deserialize(r io.Reader) (err error) {
 	if err != nil {
 		return
 	}
-
+	if err = common.ReadElement(r, &c.forceChanged); err != nil {
+		return
+	}
 	return c.StateKeyFrame.Deserialize(r)
 }
 
@@ -466,6 +488,18 @@ func (c *CheckPoint) initFromArbitrators(ar *arbitrators) {
 	c.NextReward = ar.NextReward
 	c.CurrentArbitrators = ar.currentArbitrators
 	c.StateKeyFrame = *ar.State.StateKeyFrame
+	c.DutyIndex = ar.dutyIndex
+	c.accumulativeReward = ar.accumulativeReward
+	c.finalRoundChange = ar.finalRoundChange
+	c.clearingHeight = ar.clearingHeight
+	c.arbitersRoundReward = ar.arbitersRoundReward
+	c.illegalBlocksPayloadHashes = ar.illegalBlocksPayloadHashes
+	c.crcChangedHeight = ar.crcChangedHeight
+	c.CurrentCRCArbitersMap = ar.currentCRCArbitersMap
+	c.NextCRCArbitersMap = ar.nextCRCArbitersMap
+	c.NextCRCArbiters = ar.nextCRCArbiters
+	c.forceChanged = ar.forceChanged
+
 }
 
 func NewCheckpoint(ar *arbitrators) *CheckPoint {

@@ -31,7 +31,7 @@ const (
 type Checkpoint struct {
 	KeyFrame
 	StateKeyFrame
-
+	ProposalKeyFrame
 	height    uint32
 	committee *Committee
 }
@@ -140,8 +140,10 @@ func (c *Checkpoint) Serialize(w io.Writer) (err error) {
 	if err = c.KeyFrame.Serialize(w); err != nil {
 		return
 	}
-
-	return c.StateKeyFrame.Serialize(w)
+	if err = c.StateKeyFrame.Serialize(w); err != nil {
+		return
+	}
+	return c.ProposalKeyFrame.Serialize(w)
 }
 
 func (c *Checkpoint) Deserialize(r io.Reader) (err error) {
@@ -152,13 +154,18 @@ func (c *Checkpoint) Deserialize(r io.Reader) (err error) {
 	if err = c.KeyFrame.Deserialize(r); err != nil {
 		return
 	}
-
-	return c.StateKeyFrame.Deserialize(r)
+	if err = c.StateKeyFrame.Deserialize(r); err != nil {
+		return
+	}
+	return c.ProposalKeyFrame.Deserialize(r)
 }
 
 func (c *Checkpoint) initFromCommittee(committee *Committee) {
 	c.StateKeyFrame = committee.state.StateKeyFrame
 	c.KeyFrame = committee.KeyFrame
+	if committee.manager != nil {
+		c.ProposalKeyFrame = committee.manager.ProposalKeyFrame
+	}
 }
 
 func NewCheckpoint(committee *Committee) *Checkpoint {

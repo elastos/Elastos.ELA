@@ -97,9 +97,8 @@ type arbitrators struct {
 	arbitersRoundReward        map[common.Uint168]common.Fixed64
 	illegalBlocksPayloadHashes map[common.Uint256]interface{}
 
-	snapshots            map[uint32][]*CheckPoint
-	snapshotKeysDesc     []uint32
-	lastCheckPointHeight uint32
+	snapshots        map[uint32][]*CheckPoint
+	snapshotKeysDesc []uint32
 
 	forceChanged bool
 
@@ -168,6 +167,12 @@ func (a *arbitrators) recoverFromCheckPoints(point *CheckPoint) {
 	a.clearingHeight = point.clearingHeight
 	a.arbitersRoundReward = point.arbitersRoundReward
 	a.illegalBlocksPayloadHashes = point.illegalBlocksPayloadHashes
+
+	a.crcChangedHeight = point.crcChangedHeight
+	a.currentCRCArbitersMap = point.CurrentCRCArbitersMap
+	a.nextCRCArbitersMap = point.NextCRCArbitersMap
+	a.nextCRCArbiters = point.NextCRCArbiters
+	a.forceChanged = point.forceChanged
 }
 
 func (a *arbitrators) ProcessBlock(block *types.Block, confirm *payload.Confirm) {
@@ -2153,12 +2158,14 @@ func (a *arbitrators) newCheckPoint(height uint32) *CheckPoint {
 		NextCandidates:             make([]ArbiterMember, 0),
 		CurrentReward:              *NewRewardData(),
 		NextReward:                 *NewRewardData(),
-		CurrentCRCArbiters:         make(map[common.Uint168]ArbiterMember),
-		NextCRCArbiters:            make(map[common.Uint168]ArbiterMember),
+		CurrentCRCArbitersMap:      make(map[common.Uint168]ArbiterMember),
+		NextCRCArbitersMap:         make(map[common.Uint168]ArbiterMember),
+		NextCRCArbiters:            make([]ArbiterMember, 0),
 		crcChangedHeight:           a.crcChangedHeight,
 		accumulativeReward:         a.accumulativeReward,
 		finalRoundChange:           a.finalRoundChange,
 		clearingHeight:             a.clearingHeight,
+		forceChanged:               a.forceChanged,
 		arbitersRoundReward:        make(map[common.Uint168]common.Fixed64),
 		illegalBlocksPayloadHashes: make(map[common.Uint256]interface{}),
 		CurrentArbitrators:         a.currentArbitrators,
@@ -2170,8 +2177,10 @@ func (a *arbitrators) newCheckPoint(height uint32) *CheckPoint {
 	point.NextCandidates = copyByteList(a.nextCandidates)
 	point.CurrentReward = *copyReward(&a.CurrentReward)
 	point.NextReward = *copyReward(&a.NextReward)
-	point.NextCRCArbiters = copyCRCArbitersMap(a.nextCRCArbitersMap)
-	point.CurrentCRCArbiters = copyCRCArbitersMap(a.currentCRCArbitersMap)
+	point.NextCRCArbitersMap = copyCRCArbitersMap(a.nextCRCArbitersMap)
+	point.CurrentCRCArbitersMap = copyCRCArbitersMap(a.currentCRCArbitersMap)
+	point.NextCRCArbiters = copyByteList(a.nextCRCArbiters)
+
 	for k, v := range a.arbitersRoundReward {
 		point.arbitersRoundReward[k] = v
 	}

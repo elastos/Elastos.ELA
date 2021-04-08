@@ -343,11 +343,10 @@ func (kf *KeyFrame) Serialize(w io.Writer) (err error) {
 	if err = kf.serializeProposalResultList(w, kf.CustomIDProposalResults); err != nil {
 		return
 	}
-
 	return common.WriteElements(w, kf.LastCommitteeHeight,
 		kf.LastVotingStartHeight, kf.InElectionPeriod, kf.NeedAppropriation,
 		kf.NeedCIDProposalResult, kf.CRCFoundationBalance,
-		kf.CRCCommitteeBalance, kf.CRCCommitteeUsedAmount,
+		kf.CRCCommitteeBalance, kf.CRCCommitteeUsedAmount, kf.CRCCurrentStageAmount,
 		kf.DestroyedAmount, kf.CirculationAmount, kf.AppropriationAmount,
 		kf.CommitteeUsedAmount, kf.CRAssetsAddressUTXOCount)
 }
@@ -368,7 +367,7 @@ func (kf *KeyFrame) Deserialize(r io.Reader) (err error) {
 	err = common.ReadElements(r, &kf.LastCommitteeHeight,
 		&kf.LastVotingStartHeight, &kf.InElectionPeriod, &kf.NeedAppropriation,
 		&kf.NeedCIDProposalResult, &kf.CRCFoundationBalance, &kf.CRCCommitteeBalance,
-		&kf.CRCCommitteeUsedAmount, &kf.DestroyedAmount, &kf.CirculationAmount,
+		&kf.CRCCommitteeUsedAmount, &kf.CRCCurrentStageAmount, &kf.DestroyedAmount, &kf.CirculationAmount,
 		&kf.AppropriationAmount, &kf.CommitteeUsedAmount, &kf.CRAssetsAddressUTXOCount)
 	return
 }

@@ -1009,6 +1009,7 @@ func (c *Committee) Recover(checkpoint *Checkpoint) {
 	defer c.mtx.Unlock()
 	c.state.StateKeyFrame = checkpoint.StateKeyFrame
 	c.KeyFrame = checkpoint.KeyFrame
+	c.manager.ProposalKeyFrame = checkpoint.ProposalKeyFrame
 }
 
 func (c *Committee) shouldChange(height uint32) bool {

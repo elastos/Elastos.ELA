@@ -1114,6 +1114,7 @@ func checkTransactionPayload(txn *Transaction) error {
 	case *payload.RevertToPOW:
 	case *payload.RevertToDPOS:
 	case *payload.CustomIDProposalResult:
+	case *payload.ReturnSideChainDepositCoin:
 	default:
 		return errors.New("[txValidator],invalidate transaction payload type.")
 	}
@@ -2462,10 +2463,10 @@ func (b *BlockChain) checkReturnSideChainDepositTransaction(txn *Transaction, re
 	depositAmount := make(map[common.Uint168]common.Fixed64)
 	depositFee := make(map[common.Uint168]common.Fixed64)
 	fee := b.chainParams.ReturnDepositCoinFee
-	for _, tx := range p.DepositTxs {
-		tx, _, err := b.db.GetTransaction(tx)
+	for _, t := range p.DepositTxs {
+		tx, _, err := b.db.GetTransaction(t)
 		if err != nil {
-			return errors.New("invalid deposit tx:" + tx.Hash().String())
+			return errors.New("invalid deposit tx:" + t.String())
 		}
 		for _, output := range tx.Outputs {
 			if bytes.Compare(output.ProgramHash[0:1], []byte{byte(contract.PrefixCrossChain)}) != 0 {

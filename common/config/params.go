@@ -239,7 +239,7 @@ var DefaultParams = Params{
 	NoCRCDPOSNodeHeight:                1000000,   //TODO reset latter
 	RandomCandidatePeriod:              36 * 10,   //TODO reset latter
 	MaxInactiveRoundsOfRandomNode:      36 * 8,    //TODO reset latter
-	MaxReservedCustomIDListCount:       255,       //TODO reset latter
+	MaxReservedCustomIDLength:          255,       //TODO reset latter
 	DPOSNodeCrossChainHeight:           1000000,   //TODO reset latter
 	RevertToPOWNoBlockTime:             12 * 3600, //TODO reset latter
 	StopConfirmBlockTime:               11 * 3600, //TODO reset latter
@@ -323,7 +323,7 @@ func (p *Params) TestNet() *Params {
 	copy.RandomCandidatePeriod = 36 * 10        //TODO reset latter
 	copy.MaxInactiveRoundsOfRandomNode = 36 * 8 //TODO reset latter
 	copy.DPOSNodeCrossChainHeight = 1000000     //TODO reset latter
-	copy.MaxReservedCustomIDListCount = 255     //TODO reset latter
+	copy.MaxReservedCustomIDLength = 255        //TODO reset latter
 	copy.RevertToPOWNoBlockTime = 12 * 3600     //TODO reset latter
 	copy.StopConfirmBlockTime = 11 * 3600       //TODO reset latter
 	copy.RevertToPOWStartHeight = 1000000       //TODO reset latter
@@ -408,7 +408,7 @@ func (p *Params) RegNet() *Params {
 	copy.RandomCandidatePeriod = 36 * 10        //TODO reset latter
 	copy.MaxInactiveRoundsOfRandomNode = 36 * 8 //TODO reset latter
 	copy.DPOSNodeCrossChainHeight = 1000000     //TODO reset latter
-	copy.MaxReservedCustomIDListCount = 255     //TODO reset latter
+	copy.MaxReservedCustomIDLength = 255        //TODO reset latter
 	copy.RevertToPOWNoBlockTime = 12 * 3600     //TODO reset latter
 	copy.StopConfirmBlockTime = 11 * 3600       //TODO reset latter
 	copy.RevertToPOWStartHeight = 1000000       //TODO reset latter
@@ -711,8 +711,8 @@ type Params struct {
 	// RandomCandidatePeriod defines the period to get a candidate as DPOS node at random.
 	RandomCandidatePeriod uint32
 
-	// MaxReservedCustomIDListCount defines the max count of reserved custom iid list per tx.
-	MaxReservedCustomIDListCount uint32
+	// MaxReservedCustomIDLength defines the max length of reserved custom id.
+	MaxReservedCustomIDLength uint32
 
 	// RevertToPOWInterval defines how long time does it take to revert to POW mode.
 	RevertToPOWNoBlockTime int64

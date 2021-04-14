@@ -958,10 +958,10 @@ func NewSettings() *Settings {
 		ParamName:    "CustomIDProposalStartHeight"})
 
 	result.Add(&settingItem{
-		Flag:         cmdcom.MaxReservedCustomIDListCount,
+		Flag:         cmdcom.MaxReservedCustomIDLength,
 		DefaultValue: uint32(0),
-		ConfigPath:   "MaxReservedCustomIDListCount",
-		ParamName:    "MaxReservedCustomIDListCount"})
+		ConfigPath:   "MaxReservedCustomIDLength",
+		ParamName:    "MaxReservedCustomIDLength"})
 
 	result.Add(&settingItem{
 		Flag:         cmdcom.NoCRCDPOSNodeHeight,

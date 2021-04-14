@@ -2915,9 +2915,12 @@ func (b *BlockChain) checkReservedCustomID(proposal *payload.CRCProposal, Payloa
 		return errors.New("DecodePoint from OwnerPublicKey error")
 	}
 
+	if len(proposal.ReservedCustomIDList) == 0 {
+		return errors.New("reserved custom id list is empty")
+	}
 	for _, v := range proposal.ReservedCustomIDList {
-		if len(v) > int(b.chainParams.MaxReservedCustomIDListCount) {
-			return errors.New("reserved custom id too long")
+		if len(v) == 0 || len(v) > int(b.chainParams.MaxReservedCustomIDLength) {
+			return errors.New("invalid reserved custom id length")
 		}
 	}
 	crMember := b.crCommittee.GetMember(proposal.CRCouncilMemberDID)
@@ -2935,9 +2938,12 @@ func (b *BlockChain) checkReceivedCustomID(proposal *payload.CRCProposal, Payloa
 	reservedCustomIDList := b.crCommittee.GetReservedCustomIDLists()
 	receivedCustomIDList := b.crCommittee.GetReceivedCustomIDLists()
 
+	if len(proposal.ReceivedCustomIDList) == 0 {
+		return errors.New("received custom id list is empty")
+	}
 	for _, v := range proposal.ReceivedCustomIDList {
-		if len(v) > int(b.chainParams.MaxReservedCustomIDListCount) {
-			return errors.New("received custom id too long")
+		if len(v) == 0 || len(v) > int(b.chainParams.MaxReservedCustomIDLength) {
+			return errors.New("invalid received custom id length")
 		}
 	}
 

@@ -427,8 +427,8 @@ var (
 		Usage: "defines the height to allow custom ID related transaction",
 	}
 
-	MaxReservedCustomIDListCount = cli.StringFlag{
-		Name:  "maxreservedcustomidlistcount",
+	MaxReservedCustomIDLength = cli.StringFlag{
+		Name:  "maxreservedcustomidlength",
 		Usage: "defines the max count of reserved custom iid list per tx",
 	}
 

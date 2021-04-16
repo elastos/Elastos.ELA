@@ -2918,10 +2918,15 @@ func (b *BlockChain) checkReservedCustomID(proposal *payload.CRCProposal, Payloa
 	if len(proposal.ReservedCustomIDList) == 0 {
 		return errors.New("reserved custom id list is empty")
 	}
+	customIDMap := make(map[string]struct{})
 	for _, v := range proposal.ReservedCustomIDList {
 		if len(v) == 0 || len(v) > int(b.chainParams.MaxReservedCustomIDLength) {
 			return errors.New("invalid reserved custom id length")
 		}
+		if _, ok := customIDMap[v]; ok {
+			return errors.New("duplicated reserved custom ID")
+		}
+		customIDMap[v] = struct{}{}
 	}
 	crMember := b.crCommittee.GetMember(proposal.CRCouncilMemberDID)
 	if crMember == nil {
@@ -2941,20 +2946,23 @@ func (b *BlockChain) checkReceivedCustomID(proposal *payload.CRCProposal, Payloa
 	if len(proposal.ReceivedCustomIDList) == 0 {
 		return errors.New("received custom id list is empty")
 	}
+	customIDMap := make(map[string]struct{})
 	for _, v := range proposal.ReceivedCustomIDList {
 		if len(v) == 0 || len(v) > int(b.chainParams.MaxReservedCustomIDLength) {
 			return errors.New("invalid received custom id length")
 		}
-	}
-
-	for _, v := range proposal.ReceivedCustomIDList {
+		if _, ok := customIDMap[v]; ok {
+			return errors.New("duplicated received custom ID")
+		}
 		if utils.StringExisted(receivedCustomIDList, v) {
 			return errors.New("Received custom id already received")
 		}
 		if !utils.StringExisted(reservedCustomIDList, v) {
 			return errors.New("Received custom id can not be found in reserved custom id list")
 		}
+		customIDMap[v] = struct{}{}
 	}
+
 	crMember := b.crCommittee.GetMember(proposal.CRCouncilMemberDID)
 	if crMember == nil {
 		return errors.New("CR Council Member should be one of the CR members")

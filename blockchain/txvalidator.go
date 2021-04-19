@@ -339,7 +339,7 @@ func (b *BlockChain) CheckTransactionContext(blockHeight uint32,
 		return references, nil
 
 	case ReturnSideChainDepositCoin:
-		if err := b.checkReturnSideChainDepositTransaction(txn, references); err != nil {
+		if err := b.checkReturnSideChainDepositTransaction(txn); err != nil {
 			log.Warn("[checkReturnSideChainDepositTransaction]", err)
 			return nil, elaerr.Simple(elaerr.ErrTxReturnSideChainDeposit, err)
 		}
@@ -2453,7 +2453,7 @@ func (b *BlockChain) checkCRAssetsRectifyTransaction(txn *Transaction,
 	return nil
 }
 
-func (b *BlockChain) checkReturnSideChainDepositTransaction(txn *Transaction, references map[*Input]Output) error {
+func (b *BlockChain) checkReturnSideChainDepositTransaction(txn *Transaction) error {
 	p, ok := txn.Payload.(*payload.ReturnSideChainDepositCoin)
 	if !ok {
 		return errors.New("invalid payload")
@@ -2481,8 +2481,13 @@ func (b *BlockChain) checkReturnSideChainDepositTransaction(txn *Transaction, re
 				continue
 			}
 
+			refTx, _, err := b.db.GetTransaction(tx.Inputs[0].Previous.TxID)
+			if err != nil {
+				return err
+			}
+
 			// need to return the deposit coin to first input address
-			o := references[tx.Inputs[0]]
+			o := refTx.Outputs[tx.Inputs[0].Previous.Index]
 			depositAmount[o.ProgramHash] += output.Value
 			depositFee[o.ProgramHash] += fee
 		}

@@ -37,6 +37,18 @@ func hashCRCProposalDID(tx *types.Transaction) (interface{}, error) {
 	return p.CRCouncilMemberDID, nil
 }
 
+func hashCRCProposalCustomID(tx *types.Transaction) (interface{}, error) {
+	p, ok := tx.Payload.(*payload.CRCProposal)
+	if !ok {
+		return nil, fmt.Errorf(
+			"CRC proposal payload cast failed, tx:%s", tx.Hash())
+	}
+	if p.ProposalType  != payload.ReceiveCustomID {
+		return nil, nil
+	}
+	return p.ReceivedCustomIDList, nil
+}
+
 func hashChangeProposalOwnerTargetProposalHash(tx *types.Transaction) (interface{}, error) {
 	p, ok := tx.Payload.(*payload.CRCProposal)
 	if !ok {

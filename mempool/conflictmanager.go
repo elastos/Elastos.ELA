@@ -24,6 +24,7 @@ const (
 	slotCRCProposalHash                       = "CRCProposalHash"
 	slotCRCProposalTrackingHash               = "CRCProposalTrackingHash"
 	slotCRCProposalReviewKey                  = "CRCProposalReviewKey"
+	slotCRCProposalCustomID                   = "CRCProposalCustomID"
 	slotCRCAppropriationKey                   = "CRCAppropriationKey"
 	slotCRCProposalRealWithdrawKey            = "CRCProposalRealWithdrawKey"
 	slotCloseProposalTargetProposalHash       = "CloseProposalTargetProposalHash"
@@ -295,6 +296,16 @@ func newConflictManager() conflictManager {
 					keyTypeFuncPair{
 						Type: types.CRCProposal,
 						Func: hashCRCProposalDID,
+					},
+				),
+			},
+			// CRC proposal CustomID
+			{
+				name: slotCRCProposalCustomID,
+				slot: newConflictSlot(strArray,
+					keyTypeFuncPair{
+						Type: types.CRCProposal,
+						Func: hashCRCProposalCustomID,
 					},
 				),
 			},

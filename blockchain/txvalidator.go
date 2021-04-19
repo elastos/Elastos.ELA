@@ -2473,13 +2473,10 @@ func (b *BlockChain) checkReturnSideChainDepositTransaction(txn *Transaction, re
 				continue
 			}
 
-			genesisHash, err := common.HexStringToBytes(p.GenesisBlockAddress)
-			hash, err := common.Uint256FromBytes(genesisHash)
+			crossChainHash, err := common.Uint168FromAddress(p.GenesisBlockAddress)
 			if err != nil {
 				return err
 			}
-			code := contract.CreateCrossChainRedeemScript(*hash)
-			crossChainHash := common.ToProgramHash(byte(contract.PrefixCrossChain), code)
 			if !crossChainHash.IsEqual(output.ProgramHash) {
 				continue
 			}

@@ -2691,7 +2691,7 @@ func getPayloadInfo(p Payload, payloadVersion byte) PayloadInfo {
 			obj.CategoryData = object.CategoryData
 			obj.OwnerPublicKey = common.BytesToHexString(object.OwnerPublicKey)
 			obj.DraftHash = common.ToReversedString(object.DraftHash)
-			obj.FeeRate = object.RateOfCustomIDFee.String()
+			obj.FeeRate = int64(object.RateOfCustomIDFee)
 			obj.Signature = common.BytesToHexString(object.Signature)
 			crmdid, _ := object.CRCouncilMemberDID.ToAddress()
 			obj.CRCouncilMemberDID = crmdid

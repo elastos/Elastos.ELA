@@ -3293,7 +3293,7 @@ func (s *txValidatorTestSuite) TestCheckCRCProposalTransaction() {
 	proposal, _ = txn.Payload.(*payload.CRCProposal)
 	proposal.ReservedCustomIDList = append(proposal.ReservedCustomIDList, randomName(260))
 	err = s.Chain.checkCRCProposalTransaction(txn, tenureHeight, 0)
-	s.EqualError(err, "reserved custom id too long")
+	s.EqualError(err, "invalid reserved custom id length")
 }
 
 func (s *txValidatorTestSuite) TestCheckStringField() {

@@ -306,6 +306,16 @@ func (p *ProposalManager) transferRegisteredState(proposalState *ProposalState,
 			proposalState.Status = Registered
 			proposalState.BudgetsStatus = oriBudgetsStatus
 		})
+		if proposalState.Proposal.ProposalType == payload.ReceiveCustomID {
+			oriPendingReceivedCustomIDMap := p.PendingReceivedCustomIDMap
+			p.history.Append(height, func() {
+				for _, id := range proposalState.Proposal.ReceivedCustomIDList {
+					delete(p.PendingReceivedCustomIDMap, id)
+				}
+			}, func() {
+				p.PendingReceivedCustomIDMap = oriPendingReceivedCustomIDMap
+			})
+		}
 	}
 	return
 }
@@ -376,6 +386,16 @@ func (p *ProposalManager) transferCRAgreedState(proposalState *ProposalState,
 			proposalState.Status = CRAgreed
 			proposalState.BudgetsStatus = oriBudgetsStatus
 		})
+		if proposalState.Proposal.ProposalType == payload.ReceiveCustomID {
+			oriPendingReceivedCustomIDMap := p.PendingReceivedCustomIDMap
+			p.history.Append(height, func() {
+				for _, id := range proposalState.Proposal.ReceivedCustomIDList {
+					delete(p.PendingReceivedCustomIDMap, id)
+				}
+			}, func() {
+				p.PendingReceivedCustomIDMap = oriPendingReceivedCustomIDMap
+			})
+		}
 	} else {
 		if isSpecialProposal(proposalState.Proposal.ProposalType) {
 			status = Finished
@@ -522,6 +542,18 @@ func (p *ProposalManager) registerProposal(tx *types.Transaction,
 			p.ProposalSession[currentsSession] = p.ProposalSession[currentsSession][:count-1]
 		}
 	})
+
+	// record to PendingReceivedCustomIDMap
+	if proposal.ProposalType == payload.ReceiveCustomID {
+		oriPendingReceivedCustomIDMap := p.PendingReceivedCustomIDMap
+		history.Append(height, func() {
+			for _, id := range proposal.ReceivedCustomIDList {
+				p.PendingReceivedCustomIDMap[id] = struct{}{}
+			}
+		}, func() {
+			p.PendingReceivedCustomIDMap = oriPendingReceivedCustomIDMap
+		})
+	}
 }
 
 func getCIDByCode(code []byte) (*common.Uint168, error) {

@@ -265,6 +265,13 @@ func (c *Committee) GetReceivedCustomIDLists() [][]string {
 	return c.getReceivedCustomIDLists()
 }
 
+func (c *Committee) GetPendingReceivedCustomIDMap() map[string]struct{} {
+	c.mtx.RLock()
+	defer c.mtx.RUnlock()
+
+	return c.manager.PendingReceivedCustomIDMap
+}
+
 func (c *Committee) getReceivedCustomIDLists() [][]string {
 	return c.manager.ReceivedCustomIDLists
 }

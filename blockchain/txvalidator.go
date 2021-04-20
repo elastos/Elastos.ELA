@@ -2942,6 +2942,7 @@ func (b *BlockChain) checkReceivedCustomID(proposal *payload.CRCProposal, Payloa
 	}
 	reservedCustomIDList := b.crCommittee.GetReservedCustomIDLists()
 	receivedCustomIDList := b.crCommittee.GetReceivedCustomIDLists()
+	pendingReceivedCustomIDMap := b.crCommittee.GetPendingReceivedCustomIDMap()
 
 	if len(proposal.ReceivedCustomIDList) == 0 {
 		return errors.New("received custom id list is empty")
@@ -2954,11 +2955,14 @@ func (b *BlockChain) checkReceivedCustomID(proposal *payload.CRCProposal, Payloa
 		if _, ok := customIDMap[v]; ok {
 			return errors.New("duplicated received custom ID")
 		}
+		if _, ok := pendingReceivedCustomIDMap[v]; ok {
+			return errors.New("received custom id is receiving")
+		}
 		if utils.StringExisted(receivedCustomIDList, v) {
-			return errors.New("Received custom id already received")
+			return errors.New("received custom id already received")
 		}
 		if !utils.StringExisted(reservedCustomIDList, v) {
-			return errors.New("Received custom id can not be found in reserved custom id list")
+			return errors.New("received custom id can not be found in reserved custom id list")
 		}
 		customIDMap[v] = struct{}{}
 	}

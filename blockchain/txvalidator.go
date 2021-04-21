@@ -752,7 +752,6 @@ func (b *BlockChain) checkTransactionOutput(txn *Transaction,
 		if txn.Outputs[0].Type != OTNone {
 			return errors.New("the type of new sideChainPow tx output must be OTNone")
 		}
-
 		return nil
 	}
 
@@ -834,6 +833,13 @@ func checkOutputProgramHash(height uint32, programHash common.Uint168) error {
 
 func checkOutputPayload(txType TxType, output *Output) error {
 	switch txType {
+	case ReturnSideChainDepositCoin:
+		switch output.Type {
+		case OTNone:
+		case OTReturnSideChainDepositCoin:
+		default:
+			return errors.New("transaction type dose not match the output payload type")
+		}
 	case WithdrawFromSideChain:
 		switch output.Type {
 		case OTNone:
@@ -2582,26 +2588,44 @@ func (b *BlockChain) checkCRAssetsRectifyTransaction(txn *Transaction,
 }
 
 func (b *BlockChain) checkReturnSideChainDepositTransaction(txn *Transaction) error {
-	p, ok := txn.Payload.(*payload.ReturnSideChainDepositCoin)
+	_, ok := txn.Payload.(*payload.ReturnSideChainDepositCoin)
 	if !ok {
 		return errors.New("invalid payload")
 	}
 
 	// check outputs
-	depositAmount := make(map[common.Uint168]common.Fixed64)
-	depositFee := make(map[common.Uint168]common.Fixed64)
 	fee := b.chainParams.ReturnDepositCoinFee
-	for _, t := range p.DepositTxs {
-		tx, _, err := b.db.GetTransaction(t)
-		if err != nil {
-			return errors.New("invalid deposit tx:" + t.String())
+	for _, o := range txn.Outputs {
+		if o.Type != OTReturnSideChainDepositCoin {
+			continue
 		}
+		py, ok := o.Payload.(*outputpayload.ReturnSideChainDeposit)
+		if !ok {
+			return errors.New("invalid ReturnSideChainDeposit output payload")
+		}
+
+		tx, _, err := b.db.GetTransaction(py.DepositTransactionHash)
+		if err != nil {
+			return errors.New("invalid deposit tx:" + tx.String())
+		}
+		refTx, _, err := b.db.GetTransaction(tx.Inputs[0].Previous.TxID)
+		if err != nil {
+			return err
+		}
+
+		// need to return the deposit coin to first input address
+		refOutput := refTx.Outputs[tx.Inputs[0].Previous.Index]
+		if o.ProgramHash != refOutput.ProgramHash {
+			return errors.New("invalid output address")
+		}
+
+		var depositAmount common.Fixed64
 		for _, output := range tx.Outputs {
 			if bytes.Compare(output.ProgramHash[0:1], []byte{byte(contract.PrefixCrossChain)}) != 0 {
 				continue
 			}
 
-			crossChainHash, err := common.Uint168FromAddress(p.GenesisBlockAddress)
+			crossChainHash, err := common.Uint168FromAddress(py.GenesisBlockAddress)
 			if err != nil {
 				return err
 			}
@@ -2609,30 +2633,12 @@ func (b *BlockChain) checkReturnSideChainDepositTransaction(txn *Transaction) er
 				continue
 			}
 
-			refTx, _, err := b.db.GetTransaction(tx.Inputs[0].Previous.TxID)
-			if err != nil {
-				return err
-			}
+			depositAmount += output.Value
+		}
 
-			// need to return the deposit coin to first input address
-			o := refTx.Outputs[tx.Inputs[0].Previous.Index]
-			depositAmount[o.ProgramHash] += output.Value
-			depositFee[o.ProgramHash] += fee
-		}
-	}
-	for _, output := range txn.Outputs {
-		amount, ok := depositAmount[output.ProgramHash]
-		if !ok {
-			return errors.New("invalid output")
-		}
-		fee := depositFee[output.ProgramHash]
-		if output.Value+fee != amount {
+		if o.Value +fee != depositAmount {
 			return errors.New("invalid output amount")
 		}
-		delete(depositAmount, output.ProgramHash)
-	}
-	if len(depositAmount) != 0 {
-		return errors.New("invalid output amount fee")
 	}
 
 	return nil

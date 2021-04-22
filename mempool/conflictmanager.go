@@ -305,7 +305,7 @@ func newConflictManager() conflictManager {
 				slot: newConflictSlot(strArray,
 					keyTypeFuncPair{
 						Type: types.CRCProposal,
-						Func: hashCRCProposalCustomID,
+						Func: strArrayCRCProposalCustomID,
 					},
 				),
 			},

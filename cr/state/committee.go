@@ -529,6 +529,9 @@ func (c *Committee) changeCommittee(height uint32) bool {
 
 func (c *Committee) createCustomIDResultTransaction(height uint32) {
 	if height == c.getHeight() {
+		sort.Slice(c.CustomIDProposalResults, func(i, j int) bool {
+			return c.CustomIDProposalResults[i].ProposalHash.Compare(c.CustomIDProposalResults[j].ProposalHash) < 0
+		})
 		tx := &types.Transaction{
 			Version: types.TxVersion09,
 			TxType:  types.CustomIDResult,

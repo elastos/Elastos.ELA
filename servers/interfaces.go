@@ -1741,6 +1741,15 @@ type RPCReceiveCustomIDProposal struct {
 	CRCouncilMemberDID  string   `json:"crcouncilmemberdid"`
 }
 
+type RPCChangeCustomIDFeeProposal struct {
+	ProposalType       string `json:"proposaltype"`
+	CategoryData       string `json:"categorydata"`
+	OwnerPublicKey     string `json:"ownerpublickey"`
+	DraftHash          string `json:"drafthash"`
+	Fee                int64  `json:"fee"`
+	CRCouncilMemberDID string `json:"crcouncilmemberdid"`
+}
+
 type RPCSecretaryGeneralProposal struct {
 	ProposalType              string `json:"proposaltype"`
 	CategoryData              string `json:"categorydata"`
@@ -2256,6 +2265,17 @@ func GetCRProposalState(param Params) map[string]interface{} {
 		rpcProposal.DraftHash = common.ToReversedString(proposalState.Proposal.DraftHash)
 		rpcProposal.ReceiveCustomIDList = proposalState.Proposal.ReceivedCustomIDList
 		rpcProposal.ReceiverDID, _ = proposalState.Proposal.ReceiverDID.ToAddress()
+		did, _ := proposalState.Proposal.CRCouncilMemberDID.ToAddress()
+		rpcProposal.CRCouncilMemberDID = did
+
+		rpcProposalState.Proposal = rpcProposal
+	case payload.ChangeCustomIDFee:
+		var rpcProposal RPCChangeCustomIDFeeProposal
+		rpcProposal.ProposalType = proposalState.Proposal.ProposalType.Name()
+		rpcProposal.CategoryData = proposalState.Proposal.CategoryData
+		rpcProposal.OwnerPublicKey = common.BytesToHexString(proposalState.Proposal.OwnerPublicKey)
+		rpcProposal.DraftHash = common.ToReversedString(proposalState.Proposal.DraftHash)
+		rpcProposal.Fee = int64(proposalState.Proposal.RateOfCustomIDFee)
 		did, _ := proposalState.Proposal.CRCouncilMemberDID.ToAddress()
 		rpcProposal.CRCouncilMemberDID = did
 

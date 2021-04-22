@@ -331,8 +331,10 @@ func (c *CheckPoint) Deserialize(r io.Reader) (err error) {
 	if c.CurrentCRCArbitersMap, err = c.deserializeCRCArbitersMap(r); err != nil {
 		return
 	}
-
 	if c.NextCRCArbitersMap, err = c.deserializeCRCArbitersMap(r); err != nil {
+		return
+	}
+	if c.NextCRCArbiters, err = c.readArbiters(r); err != nil {
 		return
 	}
 

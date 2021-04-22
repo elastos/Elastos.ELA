@@ -37,7 +37,7 @@ func hashCRCProposalDID(tx *types.Transaction) (interface{}, error) {
 	return p.CRCouncilMemberDID, nil
 }
 
-func hashCRCProposalCustomID(tx *types.Transaction) (interface{}, error) {
+func strArrayCRCProposalCustomID(tx *types.Transaction) (interface{}, error) {
 	p, ok := tx.Payload.(*payload.CRCProposal)
 	if !ok {
 		return nil, fmt.Errorf(

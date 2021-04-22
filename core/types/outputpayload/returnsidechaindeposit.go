@@ -18,7 +18,6 @@ const ReturnSideChainDepositVersion byte = 0x00
 // CrossChainOutput defines the output payload for cross chain.
 type ReturnSideChainDeposit struct {
 	Version                byte
-	Height                 uint32
 	GenesisBlockAddress    string
 	DepositTransactionHash common.Uint256
 }
@@ -29,10 +28,6 @@ func (o *ReturnSideChainDeposit) Data() []byte {
 
 func (o *ReturnSideChainDeposit) Serialize(w io.Writer) error {
 	if _, err := w.Write([]byte{byte(o.Version)}); err != nil {
-		return err
-	}
-
-	if err := common.WriteUint32(w, o.Height); err != nil {
 		return err
 	}
 
@@ -53,10 +48,6 @@ func (o *ReturnSideChainDeposit) Deserialize(r io.Reader) error {
 		return err
 	}
 	o.Version = version[0]
-
-	if o.Height, err = common.ReadUint32(r); err != nil {
-		return err
-	}
 
 	o.GenesisBlockAddress, err = common.ReadVarString(r)
 	if err != nil {
@@ -91,7 +82,6 @@ func (o *ReturnSideChainDeposit) Validate() error {
 func (o ReturnSideChainDeposit) String() string {
 	return fmt.Sprint("Withdraw: {\n\t\t\t",
 		"Version: ", o.Version, "\n\t\t\t",
-		"Height: ", o.Height, "\n\t\t\t",
 		"GenesisBlockAddress: ", o.GenesisBlockAddress, "\n\t\t\t",
 		"DepositTransactionHash: ", o.DepositTransactionHash.String(), "\n\t\t\t}")
 }

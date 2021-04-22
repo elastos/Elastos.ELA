@@ -8,6 +8,7 @@ package state
 import (
 	"bytes"
 	"encoding/hex"
+	"math/rand"
 	"strconv"
 	"testing"
 
@@ -20,6 +21,45 @@ import (
 
 	"github.com/stretchr/testify/assert"
 )
+
+func Test_RandomIndex(t *testing.T) {
+	var x = make([]byte, 8)
+	blockHashStr := "303fdce09b22cdb99bf29cec7358bcc518c059d189a729103a7900ebfe356746"
+	blockHash, _ := common.Uint256FromHexString(blockHashStr)
+	copy(x, blockHash[24:])
+	seed, _, _ := readi64(x)
+	oriSeed := seed
+
+	var first []int
+	for i := 0; i < 100; i++ {
+		seed++
+		rand.Seed(seed)
+		first = append(first, rand.Intn(100))
+	}
+
+	var second []int
+	seed = oriSeed
+	for i := 0; i < 100; i++ {
+		seed++
+		rand.Seed(seed)
+		second = append(second, rand.Intn(100))
+	}
+
+	var third []int
+	rand.Seed(oriSeed)
+	for i := 0; i < 100; i++ {
+		third = append(third, rand.Intn(100))
+	}
+
+	var fourth []int
+	rand.Seed(oriSeed)
+	for i := 0; i < 100; i++ {
+		fourth = append(fourth, rand.Intn(100))
+	}
+
+	assert.Equal(t, first, second, "invalid random: seed++")
+	assert.Equal(t, third, fourth, "invalid random: same seed")
+}
 
 func TestArbitrators_GetSortedProducers(t *testing.T) {
 	producers := []int{

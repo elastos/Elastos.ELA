@@ -189,7 +189,6 @@ func (mp *TxPool) CheckAndCleanAllTransactions() {
 
 func (mp *TxPool) BroadcastSmallCrossChainTransactions(bestHeight uint32) {
 	mp.Lock()
-	log.Info("####### BroadcastSmallCrossChainTransactions start")
 	txs := make([]*Transaction, 0)
 	for txHash, height := range mp.crossChainHeightList {
 		if bestHeight >= height+broadcastCrossChainTransactionInterval {
@@ -206,7 +205,6 @@ func (mp *TxPool) BroadcastSmallCrossChainTransactions(bestHeight uint32) {
 	if len(txs) != 0 {
 		go events.Notify(events.ETSmallCrossChainNeedRelay, txs)
 	}
-	log.Info("####### BroadcastSmallCrossChainTransactions end, found ", len(txs), "small tx")
 	mp.Unlock()
 }
 

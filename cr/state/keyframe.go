@@ -517,9 +517,13 @@ func (kf *KeyFrame) Snapshot() *KeyFrame {
 	frame.LastVotingStartHeight = kf.LastVotingStartHeight
 	frame.InElectionPeriod = kf.InElectionPeriod
 	frame.NeedAppropriation = kf.NeedAppropriation
+	frame.NeedCIDProposalResult = kf.NeedCIDProposalResult
+
 	frame.CRCFoundationBalance = kf.CRCFoundationBalance
 	frame.CRCCommitteeBalance = kf.CRCCommitteeBalance
 	frame.CRCCommitteeUsedAmount = kf.CRCCommitteeUsedAmount
+	frame.CRCCurrentStageAmount = kf.CRCCurrentStageAmount
+
 	frame.DestroyedAmount = kf.DestroyedAmount
 	frame.CirculationAmount = kf.CirculationAmount
 	frame.AppropriationAmount = kf.AppropriationAmount
@@ -905,8 +909,8 @@ func (kf *StateKeyFrame) Snapshot() *StateKeyFrame {
 	state.Nicknames = utils.CopyStringSet(kf.Nicknames)
 	state.Votes = utils.CopyStringSet(kf.Votes)
 	state.DepositOutputs = copyFixed64Map(kf.DepositOutputs)
-	state.CRCFoundationOutputs = copyFixed64Map(kf.DepositOutputs)
-	state.CRCCommitteeOutputs = copyFixed64Map(kf.DepositOutputs)
+	state.CRCFoundationOutputs = copyFixed64Map(kf.CRCFoundationOutputs)
+	state.CRCCommitteeOutputs = copyFixed64Map(kf.CRCCommitteeOutputs)
 
 	return state
 }

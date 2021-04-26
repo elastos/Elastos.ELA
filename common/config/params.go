@@ -198,7 +198,7 @@ var DefaultParams = Params{
 	ToleranceDuration:           5 * time.Second,
 	MaxInactiveRounds:           720 * 2,
 	InactivePenalty:             0, //there will be no penalty in this version
-	IllegalPenalty:              5000,
+	IllegalPenalty:              0, //there will be no penalty in this version
 	EmergencyInactivePenalty:    0, //there will be no penalty in this version
 	GeneralArbiters:             24,
 	CandidateArbiters:           72,
@@ -234,19 +234,19 @@ var DefaultParams = Params{
 	RectifyTxFee:                       10000,
 	RealWithdrawSingleFee:              10000,
 	NewP2PProtocolVersionHeight:        751400,
-	ChangeCommitteeNewCRHeight:         1000000,   //TODO reset latter
-	CustomIDProposalStartHeight:        1000000,   //TODO reset latter
-	NoCRCDPOSNodeHeight:                1000000,   //TODO reset latter
-	RandomCandidatePeriod:              36 * 10,   //TODO reset latter
-	MaxInactiveRoundsOfRandomNode:      36 * 8,    //TODO reset latter
-	MaxReservedCustomIDLength:          255,       //TODO reset latter
-	DPOSNodeCrossChainHeight:           1000000,   //TODO reset latter
-	RevertToPOWNoBlockTime:             12 * 3600, //TODO reset latter
-	StopConfirmBlockTime:               11 * 3600, //TODO reset latter
-	RevertToPOWStartHeight:             1000000,   //TODO reset latter
-	HalvingRewardHeight:                1051200,
-	HalvingRewardInterval:              4 * 365 * 720,
-	NewELAIssuanceHeight:               919800,
+	ChangeCommitteeNewCRHeight:         932530,
+	CustomIDProposalStartHeight:        932530,
+	NoCRCDPOSNodeHeight:                932530,
+	RevertToPOWStartHeight:             932530,
+	RandomCandidatePeriod:              36 * 10,
+	MaxInactiveRoundsOfRandomNode:      36 * 8,
+	MaxReservedCustomIDLength:          255,
+	DPOSNodeCrossChainHeight:           2000000,
+	RevertToPOWNoBlockTime:             12 * 3600,
+	StopConfirmBlockTime:               11 * 3600,
+	HalvingRewardHeight:                1051200, // 4 * 365 * 720
+	HalvingRewardInterval:              1051200, // 4 * 365 * 720
+	NewELAIssuanceHeight:               919800,  // 3.5 * 365 * 720
 }
 
 // TestNet returns the network parameters for the test network.
@@ -318,7 +318,7 @@ func (p *Params) TestNet() *Params {
 	copy.MaxCRAssetsAddressUTXOCount = 800
 	copy.ChangeCommitteeNewCRHeight = 1000000   //TODO reset latter
 	copy.CustomIDProposalStartHeight = 1000000  //TODO reset latter
-	copy.IllegalPenalty = 5000                  //TODO reset latter
+	copy.IllegalPenalty = 0                     //TODO reset latter
 	copy.NoCRCDPOSNodeHeight = 1000000          //TODO reset latter
 	copy.RandomCandidatePeriod = 36 * 10        //TODO reset latter
 	copy.MaxInactiveRoundsOfRandomNode = 36 * 8 //TODO reset latter
@@ -403,7 +403,7 @@ func (p *Params) RegNet() *Params {
 	copy.MaxCRAssetsAddressUTXOCount = 1440
 	copy.ChangeCommitteeNewCRHeight = 1000000   //TODO reset latter
 	copy.CustomIDProposalStartHeight = 1000000  //TODO reset latter
-	copy.IllegalPenalty = 5000                  //TODO reset latter
+	copy.IllegalPenalty = 0                     //TODO reset latter
 	copy.NoCRCDPOSNodeHeight = 1000000          //TODO reset latter
 	copy.RandomCandidatePeriod = 36 * 10        //TODO reset latter
 	copy.MaxInactiveRoundsOfRandomNode = 36 * 8 //TODO reset latter

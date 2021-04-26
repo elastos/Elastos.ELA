@@ -1208,7 +1208,7 @@ func (b *BlockChain) checkTxHeightVersion(txn *Transaction, blockHeight uint32) 
 				"before CRVotingStartHeight", txn.TxType.Name()))
 		}
 	case CRCProposal:
-		if blockHeight < b.chainParams.ChangeCommitteeNewCRHeight {
+		if blockHeight < b.chainParams.CRCProposalDraftDataStartHeight {
 			if txn.PayloadVersion != payload.CRCProposalVersion {
 				return errors.New("payload version should be CRCProposalVersion")
 			}
@@ -1243,7 +1243,7 @@ func (b *BlockChain) checkTxHeightVersion(txn *Transaction, blockHeight uint32) 
 		if blockHeight < b.chainParams.CRCommitteeStartHeight {
 			return errors.New(fmt.Sprintf("not support %s transaction "+
 				"before CRCommitteeStartHeight", txn.TxType.Name()))
-		} else if blockHeight < b.chainParams.ChangeCommitteeNewCRHeight {
+		} else if blockHeight < b.chainParams.CRCProposalDraftDataStartHeight {
 			if txn.PayloadVersion != payload.CRCProposalVersion {
 				return errors.New("payload version should be CRCProposalVersion")
 			}

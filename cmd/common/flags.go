@@ -422,6 +422,11 @@ var (
 		Usage: "defines the change committee new cr height",
 	}
 
+	CRCProposalDraftDataStartHeight = cli.StringFlag{
+		Name:  "crcproposaldraftdatastartheight",
+		Usage: "defines the proposal draft data start height",
+	}
+
 	CustomIDProposalStartHeight = cli.StringFlag{
 		Name:  "CustomIDProposalStartHeight",
 		Usage: "defines the height to allow custom ID related transaction",

@@ -317,21 +317,22 @@ func (p *Params) TestNet() *Params {
 	copy.MaxNodePerHost = 10
 	copy.CheckVoteCRCountHeight = 546500
 	copy.MaxCRAssetsAddressUTXOCount = 800
-	copy.ChangeCommitteeNewCRHeight = 1000000      //TODO reset latter
-	copy.CRCProposalDraftDataStartHeight = 2000000 //TODO reset latter
-	copy.CustomIDProposalStartHeight = 1000000     //TODO reset latter
-	copy.IllegalPenalty = 0                        //TODO reset latter
-	copy.NoCRCDPOSNodeHeight = 1000000             //TODO reset latter
-	copy.RandomCandidatePeriod = 36 * 10           //TODO reset latter
-	copy.MaxInactiveRoundsOfRandomNode = 36 * 8    //TODO reset latter
-	copy.DPOSNodeCrossChainHeight = 1000000        //TODO reset latter
-	copy.MaxReservedCustomIDLength = 255           //TODO reset latter
-	copy.RevertToPOWNoBlockTime = 12 * 3600        //TODO reset latter
-	copy.StopConfirmBlockTime = 11 * 3600          //TODO reset latter
-	copy.RevertToPOWStartHeight = 1000000          //TODO reset latter
-	copy.HalvingRewardHeight = 1051200             //TODO reset latter
-	copy.HalvingRewardInterval = 4 * 365 * 720     //TODO reset latter
-	copy.NewELAIssuanceHeight = 919800             //TODO reset latter
+	copy.ChangeCommitteeNewCRHeight = 815060
+	copy.CRCProposalDraftDataStartHeight = 2000000
+	copy.CustomIDProposalStartHeight = 815060
+	copy.InactivePenalty = 0
+	copy.IllegalPenalty = 0
+	copy.NoCRCDPOSNodeHeight = 815060
+	copy.RandomCandidatePeriod = 36 * 10
+	copy.MaxInactiveRoundsOfRandomNode = 36 * 8
+	copy.DPOSNodeCrossChainHeight = 2000000
+	copy.MaxReservedCustomIDLength = 255
+	copy.RevertToPOWNoBlockTime = 12 * 3600
+	copy.StopConfirmBlockTime = 11 * 3600
+	copy.RevertToPOWStartHeight = 815060
+	copy.HalvingRewardHeight = 877880    //767000 + 154 * 720
+	copy.HalvingRewardInterval = 1051200 //4 * 365 * 720
+	copy.NewELAIssuanceHeight = 774920   //767000 + 720 * 11
 
 	return &copy
 }
@@ -403,21 +404,22 @@ func (p *Params) RegNet() *Params {
 	copy.MaxNodePerHost = 10
 	copy.CheckVoteCRCountHeight = 435000
 	copy.MaxCRAssetsAddressUTXOCount = 1440
-	copy.ChangeCommitteeNewCRHeight = 1000000      //TODO reset latter
-	copy.CRCProposalDraftDataStartHeight = 2000000 //TODO reset latter
-	copy.CustomIDProposalStartHeight = 1000000     //TODO reset latter
-	copy.IllegalPenalty = 0                        //TODO reset latter
-	copy.NoCRCDPOSNodeHeight = 1000000             //TODO reset latter
-	copy.RandomCandidatePeriod = 36 * 10           //TODO reset latter
-	copy.MaxInactiveRoundsOfRandomNode = 36 * 8    //TODO reset latter
-	copy.DPOSNodeCrossChainHeight = 1000000        //TODO reset latter
-	copy.MaxReservedCustomIDLength = 255           //TODO reset latter
-	copy.RevertToPOWNoBlockTime = 12 * 3600        //TODO reset latter
-	copy.StopConfirmBlockTime = 11 * 3600          //TODO reset latter
-	copy.RevertToPOWStartHeight = 1000000          //TODO reset latter
-	copy.HalvingRewardHeight = 1051200             //TODO reset latter
-	copy.HalvingRewardInterval = 4 * 365 * 720     //TODO reset latter
-	copy.NewELAIssuanceHeight = 919800             //TODO reset latter
+	copy.ChangeCommitteeNewCRHeight = 706240
+	copy.CRCProposalDraftDataStartHeight = 2000000
+	copy.CustomIDProposalStartHeight = 706240
+	copy.IllegalPenalty = 0
+	copy.InactivePenalty = 0
+	copy.NoCRCDPOSNodeHeight = 706240
+	copy.RandomCandidatePeriod = 36 * 10
+	copy.MaxInactiveRoundsOfRandomNode = 36 * 8
+	copy.DPOSNodeCrossChainHeight = 2000000
+	copy.MaxReservedCustomIDLength = 255
+	copy.RevertToPOWNoBlockTime = 12 * 3600
+	copy.StopConfirmBlockTime = 11 * 3600
+	copy.RevertToPOWStartHeight = 706240
+	copy.HalvingRewardHeight = 801240    //690360 + 154 * 720
+	copy.HalvingRewardInterval = 1051200 //4 * 365 * 720
+	copy.NewELAIssuanceHeight = 691740   //690300 + 720 * 2
 
 	return &copy
 }

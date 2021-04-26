@@ -1148,12 +1148,10 @@ func (c *Committee) processCurrentMembersDepositInfo(height uint32) {
 			}
 			oriPenalty := c.state.depositInfo[m.Info.CID].Penalty
 			oriDepositAmount := c.state.depositInfo[m.Info.CID].DepositAmount
-			var dpositAmount common.Fixed64
-			dpositAmount = MinDepositAmount
 			penalty := c.getMemberPenalty(height, &member, false)
 			c.lastHistory.Append(height, func() {
 				c.state.depositInfo[member.Info.CID].Penalty = penalty
-				c.state.depositInfo[member.Info.CID].DepositAmount -= dpositAmount
+				c.state.depositInfo[member.Info.CID].DepositAmount -= MinDepositAmount
 			}, func() {
 				c.state.depositInfo[member.Info.CID].Penalty = oriPenalty
 				c.state.depositInfo[member.Info.CID].DepositAmount = oriDepositAmount
@@ -1195,10 +1193,11 @@ func (c *Committee) processCurrentCandidates(height uint32,
 		if ca.state == Returned {
 			continue
 		}
+		oriDepositAmount := c.state.depositInfo[ca.info.CID].DepositAmount
 		c.lastHistory.Append(height, func() {
 			c.state.depositInfo[ca.info.CID].DepositAmount -= MinDepositAmount
 		}, func() {
-			c.state.depositInfo[ca.info.CID].DepositAmount += MinDepositAmount
+			c.state.depositInfo[ca.info.CID].DepositAmount = oriDepositAmount
 		})
 	}
 	c.lastHistory.Append(height, func() {

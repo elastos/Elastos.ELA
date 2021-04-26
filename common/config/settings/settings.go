@@ -952,6 +952,12 @@ func NewSettings() *Settings {
 		ParamName:    "ChangeCommitteeNewCRHeight"})
 
 	result.Add(&settingItem{
+		Flag:         cmdcom.CRCProposalDraftDataStartHeight,
+		DefaultValue: uint32(0),
+		ConfigPath:   "CRConfiguration.CRCProposalDraftDataStartHeight",
+		ParamName:    "CRCProposalDraftDataStartHeight"})
+
+	result.Add(&settingItem{
 		Flag:         cmdcom.CustomIDProposalStartHeight,
 		DefaultValue: uint32(0),
 		ConfigPath:   "CustomIDProposalStartHeight",

@@ -241,6 +241,7 @@ var DefaultParams = Params{
 	RandomCandidatePeriod:              36 * 10,
 	MaxInactiveRoundsOfRandomNode:      36 * 8,
 	MaxReservedCustomIDLength:          255,
+	CRCProposalDraftDataStartHeight:    2000000,
 	DPOSNodeCrossChainHeight:           2000000,
 	RevertToPOWNoBlockTime:             12 * 3600,
 	StopConfirmBlockTime:               11 * 3600,
@@ -316,20 +317,21 @@ func (p *Params) TestNet() *Params {
 	copy.MaxNodePerHost = 10
 	copy.CheckVoteCRCountHeight = 546500
 	copy.MaxCRAssetsAddressUTXOCount = 800
-	copy.ChangeCommitteeNewCRHeight = 1000000   //TODO reset latter
-	copy.CustomIDProposalStartHeight = 1000000  //TODO reset latter
-	copy.IllegalPenalty = 0                     //TODO reset latter
-	copy.NoCRCDPOSNodeHeight = 1000000          //TODO reset latter
-	copy.RandomCandidatePeriod = 36 * 10        //TODO reset latter
-	copy.MaxInactiveRoundsOfRandomNode = 36 * 8 //TODO reset latter
-	copy.DPOSNodeCrossChainHeight = 1000000     //TODO reset latter
-	copy.MaxReservedCustomIDLength = 255        //TODO reset latter
-	copy.RevertToPOWNoBlockTime = 12 * 3600     //TODO reset latter
-	copy.StopConfirmBlockTime = 11 * 3600       //TODO reset latter
-	copy.RevertToPOWStartHeight = 1000000       //TODO reset latter
-	copy.HalvingRewardHeight = 1051200          //TODO reset latter
-	copy.HalvingRewardInterval = 4 * 365 * 720  //TODO reset latter
-	copy.NewELAIssuanceHeight = 919800          //TODO reset latter
+	copy.ChangeCommitteeNewCRHeight = 1000000      //TODO reset latter
+	copy.CRCProposalDraftDataStartHeight = 2000000 //TODO reset latter
+	copy.CustomIDProposalStartHeight = 1000000     //TODO reset latter
+	copy.IllegalPenalty = 0                        //TODO reset latter
+	copy.NoCRCDPOSNodeHeight = 1000000             //TODO reset latter
+	copy.RandomCandidatePeriod = 36 * 10           //TODO reset latter
+	copy.MaxInactiveRoundsOfRandomNode = 36 * 8    //TODO reset latter
+	copy.DPOSNodeCrossChainHeight = 1000000        //TODO reset latter
+	copy.MaxReservedCustomIDLength = 255           //TODO reset latter
+	copy.RevertToPOWNoBlockTime = 12 * 3600        //TODO reset latter
+	copy.StopConfirmBlockTime = 11 * 3600          //TODO reset latter
+	copy.RevertToPOWStartHeight = 1000000          //TODO reset latter
+	copy.HalvingRewardHeight = 1051200             //TODO reset latter
+	copy.HalvingRewardInterval = 4 * 365 * 720     //TODO reset latter
+	copy.NewELAIssuanceHeight = 919800             //TODO reset latter
 
 	return &copy
 }
@@ -401,20 +403,21 @@ func (p *Params) RegNet() *Params {
 	copy.MaxNodePerHost = 10
 	copy.CheckVoteCRCountHeight = 435000
 	copy.MaxCRAssetsAddressUTXOCount = 1440
-	copy.ChangeCommitteeNewCRHeight = 1000000   //TODO reset latter
-	copy.CustomIDProposalStartHeight = 1000000  //TODO reset latter
-	copy.IllegalPenalty = 0                     //TODO reset latter
-	copy.NoCRCDPOSNodeHeight = 1000000          //TODO reset latter
-	copy.RandomCandidatePeriod = 36 * 10        //TODO reset latter
-	copy.MaxInactiveRoundsOfRandomNode = 36 * 8 //TODO reset latter
-	copy.DPOSNodeCrossChainHeight = 1000000     //TODO reset latter
-	copy.MaxReservedCustomIDLength = 255        //TODO reset latter
-	copy.RevertToPOWNoBlockTime = 12 * 3600     //TODO reset latter
-	copy.StopConfirmBlockTime = 11 * 3600       //TODO reset latter
-	copy.RevertToPOWStartHeight = 1000000       //TODO reset latter
-	copy.HalvingRewardHeight = 1051200          //TODO reset latter
-	copy.HalvingRewardInterval = 4 * 365 * 720  //TODO reset latter
-	copy.NewELAIssuanceHeight = 919800          //TODO reset latter
+	copy.ChangeCommitteeNewCRHeight = 1000000      //TODO reset latter
+	copy.CRCProposalDraftDataStartHeight = 2000000 //TODO reset latter
+	copy.CustomIDProposalStartHeight = 1000000     //TODO reset latter
+	copy.IllegalPenalty = 0                        //TODO reset latter
+	copy.NoCRCDPOSNodeHeight = 1000000             //TODO reset latter
+	copy.RandomCandidatePeriod = 36 * 10           //TODO reset latter
+	copy.MaxInactiveRoundsOfRandomNode = 36 * 8    //TODO reset latter
+	copy.DPOSNodeCrossChainHeight = 1000000        //TODO reset latter
+	copy.MaxReservedCustomIDLength = 255           //TODO reset latter
+	copy.RevertToPOWNoBlockTime = 12 * 3600        //TODO reset latter
+	copy.StopConfirmBlockTime = 11 * 3600          //TODO reset latter
+	copy.RevertToPOWStartHeight = 1000000          //TODO reset latter
+	copy.HalvingRewardHeight = 1051200             //TODO reset latter
+	copy.HalvingRewardInterval = 4 * 365 * 720     //TODO reset latter
+	copy.NewELAIssuanceHeight = 919800             //TODO reset latter
 
 	return &copy
 }
@@ -704,6 +707,9 @@ type Params struct {
 
 	// ChangeCommitteeNewCRHeight defines the new arbiter logic after change committee.
 	ChangeCommitteeNewCRHeight uint32
+
+	// CRCProposalDraftDataStartHeight defines the proposal draft data start height.
+	CRCProposalDraftDataStartHeight uint32
 
 	// CustomIDProposalStartHeight defines the height to allow custom ID related transaction.
 	CustomIDProposalStartHeight uint32

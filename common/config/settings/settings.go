@@ -952,16 +952,22 @@ func NewSettings() *Settings {
 		ParamName:    "ChangeCommitteeNewCRHeight"})
 
 	result.Add(&settingItem{
+		Flag:         cmdcom.CRCProposalDraftDataStartHeight,
+		DefaultValue: uint32(0),
+		ConfigPath:   "CRConfiguration.CRCProposalDraftDataStartHeight",
+		ParamName:    "CRCProposalDraftDataStartHeight"})
+
+	result.Add(&settingItem{
 		Flag:         cmdcom.CustomIDProposalStartHeight,
 		DefaultValue: uint32(0),
 		ConfigPath:   "CustomIDProposalStartHeight",
 		ParamName:    "CustomIDProposalStartHeight"})
 
 	result.Add(&settingItem{
-		Flag:         cmdcom.MaxReservedCustomIDListCount,
+		Flag:         cmdcom.MaxReservedCustomIDLength,
 		DefaultValue: uint32(0),
-		ConfigPath:   "MaxReservedCustomIDListCount",
-		ParamName:    "MaxReservedCustomIDListCount"})
+		ConfigPath:   "MaxReservedCustomIDLength",
+		ParamName:    "MaxReservedCustomIDLength"})
 
 	result.Add(&settingItem{
 		Flag:         cmdcom.NoCRCDPOSNodeHeight,
@@ -992,6 +998,12 @@ func NewSettings() *Settings {
 		DefaultValue: uint32(0),
 		ConfigPath:   "HalvingRewardHeight",
 		ParamName:    "HalvingRewardHeight"})
+
+	result.Add(&settingItem{
+		Flag:         cmdcom.HalvingRewardIntervalFlag,
+		DefaultValue: uint32(0),
+		ConfigPath:   "HalvingRewardInterval",
+		ParamName:    "HalvingRewardInterval"})
 
 	result.Add(&settingItem{
 		Flag:         cmdcom.NewELAIssuanceHeightFlag,

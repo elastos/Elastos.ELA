@@ -117,22 +117,22 @@ type CRMember struct {
 
 // StateKeyFrame holds necessary state about CR committee.
 type KeyFrame struct {
-	Members                    map[common.Uint168]*CRMember
-	HistoryMembers             map[uint64]map[common.Uint168]*CRMember
-	CustomIDProposalResults    []payload.ProposalResult
-	LastCommitteeHeight        uint32
-	LastVotingStartHeight      uint32
-	InElectionPeriod           bool
-	NeedAppropriation          bool
-	NeedCIDProposalResult      bool
-	CRCFoundationBalance       common.Fixed64
-	CRCCommitteeBalance        common.Fixed64
-	CRCCommitteeUsedAmount     common.Fixed64
-	CRCCurrentStageAmount      common.Fixed64
-	DestroyedAmount            common.Fixed64
-	CirculationAmount          common.Fixed64
-	AppropriationAmount        common.Fixed64
-	CommitteeUsedAmount        common.Fixed64
+	Members                 map[common.Uint168]*CRMember
+	HistoryMembers          map[uint64]map[common.Uint168]*CRMember
+	CustomIDProposalResults []payload.ProposalResult
+	LastCommitteeHeight     uint32
+	LastVotingStartHeight   uint32
+	InElectionPeriod        bool
+	NeedAppropriation       bool
+	NeedCIDProposalResult   bool
+	CRCFoundationBalance    common.Fixed64
+	CRCCommitteeBalance     common.Fixed64
+	CRCCommitteeUsedAmount  common.Fixed64
+	CRCCurrentStageAmount   common.Fixed64
+	DestroyedAmount         common.Fixed64
+	CirculationAmount       common.Fixed64
+	AppropriationAmount     common.Fixed64
+	CommitteeUsedAmount     common.Fixed64
 
 	CRAssetsAddressUTXOCount uint32
 }
@@ -243,7 +243,8 @@ type ProposalKeyFrame struct {
 	// reserved custom id list
 	ReservedCustomIDLists [][]string
 	// received custom id list
-	ReceivedCustomIDLists [][]string
+	PendingReceivedCustomIDMap map[string]struct{} // todo: serialize and deserialize
+	ReceivedCustomIDLists      [][]string
 }
 
 func NewProposalMap() ProposalsMap {
@@ -532,9 +533,9 @@ func (kf *KeyFrame) Snapshot() *KeyFrame {
 
 func NewKeyFrame() *KeyFrame {
 	return &KeyFrame{
-		Members:                    make(map[common.Uint168]*CRMember, 0),
-		HistoryMembers:             make(map[uint64]map[common.Uint168]*CRMember, 0),
-		LastCommitteeHeight:        0,
+		Members:             make(map[common.Uint168]*CRMember, 0),
+		HistoryMembers:      make(map[uint64]map[common.Uint168]*CRMember, 0),
+		LastCommitteeHeight: 0,
 	}
 }
 
@@ -1359,10 +1360,11 @@ func (p *ProposalKeyFrame) Snapshot() *ProposalKeyFrame {
 
 func NewProposalKeyFrame() *ProposalKeyFrame {
 	return &ProposalKeyFrame{
-		Proposals:          make(map[common.Uint256]*ProposalState),
-		ProposalHashes:     make(map[common.Uint168]ProposalHashSet),
-		ProposalSession:    make(map[uint64][]common.Uint256),
-		WithdrawableTxInfo: make(map[common.Uint256]types.OutputInfo),
+		Proposals:                  make(map[common.Uint256]*ProposalState),
+		ProposalHashes:             make(map[common.Uint168]ProposalHashSet),
+		ProposalSession:            make(map[uint64][]common.Uint256),
+		WithdrawableTxInfo:         make(map[common.Uint256]types.OutputInfo),
+		PendingReceivedCustomIDMap: make(map[string]struct{}),
 	}
 }
 

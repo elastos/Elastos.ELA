@@ -6,6 +6,7 @@
 package config
 
 import (
+	"math"
 	"math/big"
 	"time"
 
@@ -53,8 +54,14 @@ var (
 	// OriginIssuanceAmount is the origin issuance ELA amount.
 	OriginIssuanceAmount = 3300 * 10000 * 100000000
 
+	// AfterBurnIssuanceAmount is the new issurance ELA amount after cr proposal #1631.
+	AfterBurnIssuanceAmount = 2000 * 10000 * 100000000
+
 	// inflationPerYear is the inflation amount per year.
 	inflationPerYear = OriginIssuanceAmount * 4 / 100
+
+	// newInflationPerYear is the new inflation amount per year.
+	newInflationPerYear = AfterBurnIssuanceAmount * 4 / 100
 
 	// bigOne is 1 represented as a big.Int.  It is defined here to avoid
 	// the overhead of creating it multiple times.
@@ -191,6 +198,7 @@ var DefaultParams = Params{
 	ToleranceDuration:           5 * time.Second,
 	MaxInactiveRounds:           720 * 2,
 	InactivePenalty:             0, //there will be no penalty in this version
+	IllegalPenalty:              0, //there will be no penalty in this version
 	EmergencyInactivePenalty:    0, //there will be no penalty in this version
 	GeneralArbiters:             24,
 	CandidateArbiters:           72,
@@ -226,6 +234,20 @@ var DefaultParams = Params{
 	RectifyTxFee:                       10000,
 	RealWithdrawSingleFee:              10000,
 	NewP2PProtocolVersionHeight:        751400,
+	ChangeCommitteeNewCRHeight:         932530,
+	CustomIDProposalStartHeight:        932530,
+	NoCRCDPOSNodeHeight:                932530,
+	RevertToPOWStartHeight:             932530,
+	RandomCandidatePeriod:              36 * 10,
+	MaxInactiveRoundsOfRandomNode:      36 * 8,
+	MaxReservedCustomIDLength:          255,
+	CRCProposalDraftDataStartHeight:    2000000,
+	DPOSNodeCrossChainHeight:           2000000,
+	RevertToPOWNoBlockTime:             12 * 3600,
+	StopConfirmBlockTime:               11 * 3600,
+	HalvingRewardHeight:                1051200, // 4 * 365 * 720
+	HalvingRewardInterval:              1051200, // 4 * 365 * 720
+	NewELAIssuanceHeight:               919800,  // 3.5 * 365 * 720
 }
 
 // TestNet returns the network parameters for the test network.
@@ -295,6 +317,22 @@ func (p *Params) TestNet() *Params {
 	copy.MaxNodePerHost = 10
 	copy.CheckVoteCRCountHeight = 546500
 	copy.MaxCRAssetsAddressUTXOCount = 800
+	copy.ChangeCommitteeNewCRHeight = 815060
+	copy.CRCProposalDraftDataStartHeight = 2000000
+	copy.CustomIDProposalStartHeight = 815060
+	copy.InactivePenalty = 0
+	copy.IllegalPenalty = 0
+	copy.NoCRCDPOSNodeHeight = 815060
+	copy.RandomCandidatePeriod = 36 * 10
+	copy.MaxInactiveRoundsOfRandomNode = 36 * 8
+	copy.DPOSNodeCrossChainHeight = 2000000
+	copy.MaxReservedCustomIDLength = 255
+	copy.RevertToPOWNoBlockTime = 12 * 3600
+	copy.StopConfirmBlockTime = 11 * 3600
+	copy.RevertToPOWStartHeight = 815060
+	copy.HalvingRewardHeight = 877880    //767000 + 154 * 720
+	copy.HalvingRewardInterval = 1051200 //4 * 365 * 720
+	copy.NewELAIssuanceHeight = 774920   //767000 + 720 * 11
 
 	return &copy
 }
@@ -366,6 +404,22 @@ func (p *Params) RegNet() *Params {
 	copy.MaxNodePerHost = 10
 	copy.CheckVoteCRCountHeight = 435000
 	copy.MaxCRAssetsAddressUTXOCount = 1440
+	copy.ChangeCommitteeNewCRHeight = 706240
+	copy.CRCProposalDraftDataStartHeight = 2000000
+	copy.CustomIDProposalStartHeight = 706240
+	copy.IllegalPenalty = 0
+	copy.InactivePenalty = 0
+	copy.NoCRCDPOSNodeHeight = 706240
+	copy.RandomCandidatePeriod = 36 * 10
+	copy.MaxInactiveRoundsOfRandomNode = 36 * 8
+	copy.DPOSNodeCrossChainHeight = 2000000
+	copy.MaxReservedCustomIDLength = 255
+	copy.RevertToPOWNoBlockTime = 12 * 3600
+	copy.StopConfirmBlockTime = 11 * 3600
+	copy.RevertToPOWStartHeight = 706240
+	copy.HalvingRewardHeight = 801240    //690360 + 154 * 720
+	copy.HalvingRewardInterval = 1051200 //4 * 365 * 720
+	copy.NewELAIssuanceHeight = 691740   //690300 + 720 * 2
 
 	return &copy
 }
@@ -444,6 +498,9 @@ type Params struct {
 	// RewardPerBlock is the reward amount per block.
 	RewardPerBlock common.Fixed64
 
+	// NewRewardPerBlock is the reward amount per block.
+	NewRewardPerBlock common.Fixed64
+
 	// CoinbaseMaturity is the number of blocks required before newly mined
 	// coins (coinbase transactions) can be spent.
 	CoinbaseMaturity uint32
@@ -476,6 +533,9 @@ type Params struct {
 	// elected producers participate in DPOS consensus.
 	PublicDPOSHeight uint32
 
+	// NoCRCDPOSNodeHeight indicates the height when there is no DPOS node of CRC.
+	NoCRCDPOSNodeHeight uint32
+
 	// CRVotingStartHeight defines the height of CR voting started.
 	CRVotingStartHeight uint32
 
@@ -493,7 +553,6 @@ type Params struct {
 	EnableActivateIllegalHeight uint32
 
 	// CheckRewardHeight defines the height to check reward in coin base
-
 	// with new check function.
 	CheckRewardHeight uint32
 
@@ -534,8 +593,19 @@ type Params struct {
 	// takes penalty.
 	MaxInactiveRounds uint32
 
+	// MaxInactiveRoundsOfRandomNode defines the maximum inactive rounds before
+	// the producer at random takes penalty.
+	MaxInactiveRoundsOfRandomNode uint32
+
+	// DPOSNodeCrossChainHeight defines the height at which not only CR members
+	// are responsible for working across the chain.
+	DPOSNodeCrossChainHeight uint32
+
 	// InactivePenalty defines the penalty amount the producer takes.
 	InactivePenalty common.Fixed64
+
+	// InactivePenalty defines the penalty amount the producer takes.
+	IllegalPenalty common.Fixed64
 
 	// EmergencyInactivePenalty defines the penalty amount the emergency
 	// producer takes.
@@ -628,14 +698,47 @@ type Params struct {
 	// CloseProposal and SecretaryGeneral proposal.
 	CRCProposalV1Height uint32
 
-	// RectifyTxFee defines the fee of cr rectify transaction
+	// RectifyTxFee defines the fee of cr rectify transaction.
 	RectifyTxFee common.Fixed64
 
-	// RealWithdrawSingleFee defines the single fee of cr real proposal withdraw transaction
+	// RealWithdrawSingleFee defines the single fee of cr real proposal withdraw transaction.
 	RealWithdrawSingleFee common.Fixed64
 
-	// NewP2PProtocolVersionHeight defines the new p2p protocol version message height
+	// NewP2PProtocolVersionHeight defines the new p2p protocol version message height.
 	NewP2PProtocolVersionHeight uint64
+
+	// ChangeCommitteeNewCRHeight defines the new arbiter logic after change committee.
+	ChangeCommitteeNewCRHeight uint32
+
+	// CRCProposalDraftDataStartHeight defines the proposal draft data start height.
+	CRCProposalDraftDataStartHeight uint32
+
+	// CustomIDProposalStartHeight defines the height to allow custom ID related transaction.
+	CustomIDProposalStartHeight uint32
+
+	// RandomCandidatePeriod defines the period to get a candidate as DPOS node at random.
+	RandomCandidatePeriod uint32
+
+	// MaxReservedCustomIDLength defines the max length of reserved custom id.
+	MaxReservedCustomIDLength uint32
+
+	// RevertToPOWInterval defines how long time does it take to revert to POW mode.
+	RevertToPOWNoBlockTime int64
+
+	// StopConfirmBlockTime defines how long time dose it take before stop confirm block.
+	StopConfirmBlockTime int64
+
+	// RevertToPOWStartHeight defines the start height to allow to revert to POW mode.
+	RevertToPOWStartHeight uint32
+
+	// HalvingRewardHeight represents the height of halving reward
+	HalvingRewardHeight uint32
+
+	// HalvingRewardInterval represents the interval of halving reward
+	HalvingRewardInterval uint32
+
+	// NewELAIssuanceHeight represents the new issuance ELA amount after proposal #1631
+	NewELAIssuanceHeight uint32
 }
 
 // rewardPerBlock calculates the reward for each block by a specified time
@@ -644,6 +747,19 @@ func rewardPerBlock(targetTimePerBlock time.Duration) common.Fixed64 {
 	blockGenerateInterval := int64(targetTimePerBlock / time.Second)
 	generatedBlocksPerYear := 365 * 24 * 60 * 60 / blockGenerateInterval
 	return common.Fixed64(float64(inflationPerYear) / float64(generatedBlocksPerYear))
+}
+
+// newRewardPerBlock calculates the reward for each block by a specified time
+// duration.
+func (p *Params) newRewardPerBlock(targetTimePerBlock time.Duration, height uint32) common.Fixed64 {
+	blockGenerateInterval := int64(targetTimePerBlock / time.Second)
+	generatedBlocksPerYear := 365 * 24 * 60 * 60 / blockGenerateInterval
+	factor := uint32(1)
+	if height >= p.HalvingRewardHeight {
+		factor = 2 + (height-p.HalvingRewardHeight)/p.HalvingRewardInterval
+	}
+
+	return common.Fixed64(float64(newInflationPerYear) / float64(generatedBlocksPerYear) / math.Pow(2, float64(factor-1)))
 }
 
 // GenesisBlock creates a genesis block by the specified foundation address.
@@ -691,4 +807,13 @@ func GenesisBlock(foundation *common.Uint168) *types.Block {
 		},
 		Transactions: []*types.Transaction{&coinBase, &elaAsset},
 	}
+}
+
+func (p *Params) GetBlockReward(height uint32) (rewardPerBlock common.Fixed64) {
+	if height < p.NewELAIssuanceHeight {
+		rewardPerBlock = p.RewardPerBlock
+	} else {
+		rewardPerBlock = p.newRewardPerBlock(2*time.Minute, height)
+	}
+	return
 }

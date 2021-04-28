@@ -1,7 +1,7 @@
 // Copyright (c) 2017-2020 The Elastos Foundation
 // Use of this source code is governed by an MIT
 // license that can be found in the LICENSE file.
-// 
+//
 
 package state
 
@@ -13,6 +13,7 @@ import (
 
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
+	"github.com/elastos/Elastos.ELA/crypto"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -96,5 +97,11 @@ func randomUint256() *common.Uint256 {
 	rand.Read(randBytes)
 	result, _ := common.Uint256FromBytes(randBytes)
 
+	return result
+}
+
+func randomPublicKey() []byte {
+	_, pub, _ := crypto.GenerateKeyPair()
+	result, _ := pub.EncodePoint(true)
 	return result
 }

@@ -1,7 +1,7 @@
 // Copyright (c) 2017-2020 The Elastos Foundation
 // Use of this source code is governed by an MIT
 // license that can be found in the LICENSE file.
-// 
+//
 
 package common
 
@@ -23,12 +23,17 @@ const (
 )
 
 var (
+	rpcIp       = "127.0.0.1"
 	rpcPort     = "20336"
 	rpcUser     = ""
 	rpcPassword = ""
 )
 
 func SetRpcConfig(c *cli.Context) {
+	serverIp := c.String("rpcip")
+	if serverIp != "" {
+		rpcIp = serverIp
+	}
 	port := c.String("rpcport")
 	if port != "" {
 		rpcPort = port
@@ -44,7 +49,7 @@ func SetRpcConfig(c *cli.Context) {
 }
 
 func localServer() string {
-	return "http://localhost:" + rpcPort
+	return "http://" + rpcIp + ":" + rpcPort
 }
 
 func RPCCall(method string, params http.Params) (interface{}, error) {

@@ -20,6 +20,8 @@ local wallet = client.new(keystore, password, false)
 -- account
 local addr = wallet:get_address()
 local pubkey = wallet:get_publickey()
+local draft_data = getDraftData()
+
 print("wallet addr:", addr)
 print("wallet public key:", pubkey)
 
@@ -34,6 +36,11 @@ end
 local target_hash = getTargetHash()
 if target_hash == "" then
     print("target_hash is nil, should use --targethash to set it.")
+    return
+end
+
+if draft_data == "" then
+    print("draft_data is nil, should use --draftData to set it.")
     return
 end
 
@@ -72,13 +79,14 @@ print("proposal owner key:", owner_public_key)
 print("proposal owner private key:", owner_private_key)
 print("new proposal owner key:", new_owner_public_key)
 print("new proposal owner private key:",new_owner_private_key)
+print("draft_data :", draft_data)
 
 -- crc change proposalowner payload: proposal_type, recipient_addr, target_hash, owner_public_key, owner_private_key,new_owner_public_key, new_owner_private_key, wallet
-local cr_payload =crchangeproposalowner.new(proposal_type, recipient_addr, target_hash, owner_public_key, owner_private_key,new_owner_public_key, new_owner_private_key, wallet)
+local cr_payload =crchangeproposalowner.new(proposal_type, recipient_addr, target_hash, owner_public_key, owner_private_key,new_owner_public_key, new_owner_private_key, draft_data,wallet)
 print(cr_payload:get())
 
 -- transaction: version, txType, payloadVersion, payload, locktime
-local tx = transaction.new(9, 0x25, 0, cr_payload, 0)
+local tx = transaction.new(9, 0x25, 1, cr_payload, 0)
 print(tx:get())
 
 -- input: from, fee

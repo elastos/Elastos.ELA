@@ -109,28 +109,30 @@ type CRMember struct {
 	MemberState            MemberState
 	DPOSPublicKey          []byte
 	InactiveSince          uint32
-	InactiveCountingHeight uint32
 	ActivateRequestHeight  uint32
+	PenaltyBlockCount      uint32
 	InactiveCount          uint32
+	InactiveCountingHeight uint32
 }
 
 // StateKeyFrame holds necessary state about CR committee.
 type KeyFrame struct {
-	Members                    map[common.Uint168]*CRMember
-	HistoryMembers             map[uint64]map[common.Uint168]*CRMember
-	LastCommitteeHeight        uint32
-	LastVotingStartHeight      uint32
-	InElectionPeriod           bool
-	NeedAppropriation          bool
-	CRCFoundationLockedAmounts []common.Fixed64
-	CRCFoundationBalance       common.Fixed64
-	CRCCommitteeBalance        common.Fixed64
-	CRCCommitteeUsedAmount     common.Fixed64
-	CRCCurrentStageAmount      common.Fixed64
-	DestroyedAmount            common.Fixed64
-	CirculationAmount          common.Fixed64
-	AppropriationAmount        common.Fixed64
-	CommitteeUsedAmount        common.Fixed64
+	Members                 map[common.Uint168]*CRMember
+	HistoryMembers          map[uint64]map[common.Uint168]*CRMember
+	CustomIDProposalResults []payload.ProposalResult
+	LastCommitteeHeight     uint32
+	LastVotingStartHeight   uint32
+	InElectionPeriod        bool
+	NeedAppropriation       bool
+	NeedCIDProposalResult   bool
+	CRCFoundationBalance    common.Fixed64
+	CRCCommitteeBalance     common.Fixed64
+	CRCCommitteeUsedAmount  common.Fixed64
+	CRCCurrentStageAmount   common.Fixed64
+	DestroyedAmount         common.Fixed64
+	CirculationAmount       common.Fixed64
+	AppropriationAmount     common.Fixed64
+	CommitteeUsedAmount     common.Fixed64
 
 	CRAssetsAddressUTXOCount uint32
 }
@@ -158,10 +160,10 @@ type StateKeyFrame struct {
 
 // ProposalState defines necessary state about an CR proposals.
 type ProposalState struct {
-	Status   ProposalStatus
-	Proposal payload.CRCProposal
-	TxHash   common.Uint256
-
+	Status             ProposalStatus
+	Proposal           payload.CRCProposalInfo
+	TxHash             common.Uint256
+	TxPayloadVer       byte
 	CRVotes            map[common.Uint168]payload.VoteResult
 	VotersRejectAmount common.Fixed64
 	RegisterHeight     uint32
@@ -225,17 +227,24 @@ func (set *ProposalHashSet) Equal(other ProposalHashSet) bool {
 }
 
 type ProposalsMap map[common.Uint256]*ProposalState
+type ReviewDraftDataMap map[common.Uint256][]byte
+type TrackingDraftDataMap map[common.Uint256][]byte
 
 // ProposalKeyFrame holds all runtime state about CR proposals.
 type ProposalKeyFrame struct {
-	Proposals ProposalsMap
-	//key is did value is proposalhash set
+	// key is did value is proposalhash set
+	Proposals       ProposalsMap
 	ProposalHashes  map[common.Uint168]ProposalHashSet
 	ProposalSession map[uint64][]common.Uint256
 	// proposalWithdraw info
 	WithdrawableTxInfo map[common.Uint256]types.OutputInfo
-	//publicKey of SecretaryGeneral
+	// publicKey of SecretaryGeneral
 	SecretaryGeneralPublicKey string
+	// reserved custom id list
+	ReservedCustomIDLists [][]string
+	// received custom id list
+	PendingReceivedCustomIDMap map[string]struct{} // todo: serialize and deserialize
+	ReceivedCustomIDLists      [][]string
 }
 
 func NewProposalMap() ProposalsMap {
@@ -267,14 +276,17 @@ func (c *CRMember) Serialize(w io.Writer) (err error) {
 		return
 	}
 
-	if err = common.WriteUint32(w, c.InactiveCountingHeight); err != nil {
-		return
-	}
-
 	if err = common.WriteUint32(w, c.ActivateRequestHeight); err != nil {
 		return
 	}
-	return common.WriteUint32(w, c.InactiveCount)
+
+	if err = common.WriteUint32(w, c.PenaltyBlockCount); err != nil {
+		return
+	}
+	if err = common.WriteUint32(w, c.InactiveCount); err != nil {
+		return
+	}
+	return common.WriteUint32(w, c.InactiveCountingHeight)
 }
 
 func (c *CRMember) Deserialize(r io.Reader) (err error) {
@@ -303,15 +315,17 @@ func (c *CRMember) Deserialize(r io.Reader) (err error) {
 		return
 	}
 
-	if c.InactiveCountingHeight, err = common.ReadUint32(r); err != nil {
-		return
-	}
-
 	if c.ActivateRequestHeight, err = common.ReadUint32(r); err != nil {
 		return
 	}
 
+	if c.PenaltyBlockCount, err = common.ReadUint32(r); err != nil {
+		return
+	}
 	if c.InactiveCount, err = common.ReadUint32(r); err != nil {
+		return
+	}
+	if c.InactiveCountingHeight, err = common.ReadUint32(r); err != nil {
 		return
 	}
 	return
@@ -326,14 +340,16 @@ func (kf *KeyFrame) Serialize(w io.Writer) (err error) {
 		return
 	}
 
-	if err = kf.serializeAmountList(w, kf.CRCFoundationLockedAmounts); err != nil {
+	if err = kf.serializeProposalResultList(w, kf.CustomIDProposalResults); err != nil {
 		return
 	}
 
 	return common.WriteElements(w, kf.LastCommitteeHeight,
 		kf.LastVotingStartHeight, kf.InElectionPeriod, kf.NeedAppropriation,
-		kf.CRCFoundationBalance, kf.CRCCommitteeBalance, kf.CRCCommitteeUsedAmount,
-		kf.DestroyedAmount, kf.CirculationAmount, kf.AppropriationAmount, kf.CommitteeUsedAmount)
+		kf.NeedCIDProposalResult, kf.CRCFoundationBalance,
+		kf.CRCCommitteeBalance, kf.CRCCommitteeUsedAmount,
+		kf.DestroyedAmount, kf.CirculationAmount, kf.AppropriationAmount,
+		kf.CommitteeUsedAmount, kf.CRAssetsAddressUTXOCount)
 }
 
 func (kf *KeyFrame) Deserialize(r io.Reader) (err error) {
@@ -345,15 +361,15 @@ func (kf *KeyFrame) Deserialize(r io.Reader) (err error) {
 		return
 	}
 
-	if kf.CRCFoundationLockedAmounts, err = kf.deserializeAmountList(r); err != nil {
+	if kf.CustomIDProposalResults, err = kf.deserializeProposalResultList(r); err != nil {
 		return
 	}
 
 	err = common.ReadElements(r, &kf.LastCommitteeHeight,
 		&kf.LastVotingStartHeight, &kf.InElectionPeriod, &kf.NeedAppropriation,
-		&kf.CRCFoundationBalance, &kf.CRCCommitteeBalance,
+		&kf.NeedCIDProposalResult, &kf.CRCFoundationBalance, &kf.CRCCommitteeBalance,
 		&kf.CRCCommitteeUsedAmount, &kf.DestroyedAmount, &kf.CirculationAmount,
-		&kf.AppropriationAmount, &kf.CommitteeUsedAmount)
+		&kf.AppropriationAmount, &kf.CommitteeUsedAmount, &kf.CRAssetsAddressUTXOCount)
 	return
 }
 
@@ -401,6 +417,36 @@ func (kf *KeyFrame) serializeAmountList(w io.Writer,
 		if err = a.Serialize(w); err != nil {
 			return err
 		}
+	}
+	return
+}
+
+func (kf *KeyFrame) serializeProposalResultList(w io.Writer,
+	results []payload.ProposalResult) (err error) {
+	if err = common.WriteVarUint(w, uint64(len(results))); err != nil {
+		return
+	}
+	for _, a := range results {
+		if err = a.Serialize(w, payload.CustomIDResultVersion); err != nil {
+			return err
+		}
+	}
+	return
+}
+
+func (kf *KeyFrame) deserializeProposalResultList(
+	r io.Reader) (results []payload.ProposalResult, err error) {
+	var count uint64
+	if count, err = common.ReadVarUint(r, 0); err != nil {
+		return
+	}
+	results = make([]payload.ProposalResult, 0)
+	for i := uint64(0); i < count; i++ {
+		var amount payload.ProposalResult
+		if err = amount.Deserialize(r, payload.CustomIDResultVersion); err != nil {
+			return
+		}
+		results = append(results, amount)
 	}
 	return
 }
@@ -487,10 +533,9 @@ func (kf *KeyFrame) Snapshot() *KeyFrame {
 
 func NewKeyFrame() *KeyFrame {
 	return &KeyFrame{
-		Members:                    make(map[common.Uint168]*CRMember, 0),
-		HistoryMembers:             make(map[uint64]map[common.Uint168]*CRMember, 0),
-		CRCFoundationLockedAmounts: make([]common.Fixed64, 0),
-		LastCommitteeHeight:        0,
+		Members:             make(map[common.Uint168]*CRMember, 0),
+		HistoryMembers:      make(map[uint64]map[common.Uint168]*CRMember, 0),
+		LastCommitteeHeight: 0,
 	}
 }
 
@@ -1089,6 +1134,22 @@ func (p *ProposalKeyFrame) Serialize(w io.Writer) (err error) {
 	return
 }
 
+func (p *ProposalKeyFrame) serializeDraftDataMap(draftData map[common.Uint256][]byte,
+	w io.Writer) (err error) {
+	if err = common.WriteVarUint(w, uint64(len(draftData))); err != nil {
+		return
+	}
+	for hash, data := range draftData {
+		if err = hash.Serialize(w); err != nil {
+			return
+		}
+		if err = common.WriteVarBytes(w, data); err != nil {
+			return
+		}
+	}
+	return
+}
+
 func (p *ProposalKeyFrame) serializeProposalHashsMap(proposalHashMap map[common.Uint168]ProposalHashSet,
 	w io.Writer) (err error) {
 	if err = common.WriteVarUint(w, uint64(len(proposalHashMap))); err != nil {
@@ -1176,6 +1237,30 @@ func (p *ProposalKeyFrame) Deserialize(r io.Reader) (err error) {
 	}
 	if p.WithdrawableTxInfo, err = p.deserializeWithdrawableTransactionsMap(r); err != nil {
 		return
+	}
+	return
+}
+
+func (p *ProposalKeyFrame) deserializeDraftDataMap(r io.Reader) (
+	draftDataMap map[common.Uint256][]byte, err error) {
+	var count uint64
+	if count, err = common.ReadVarUint(r, 0); err != nil {
+		return
+	}
+	draftDataMap = make(map[common.Uint256][]byte)
+	for i := uint64(0); i < count; i++ {
+
+		var hash common.Uint256
+		if err = hash.Deserialize(r); err != nil {
+			return
+		}
+		var data []byte
+		data, err = common.ReadVarBytes(r, payload.MaxPayloadDataSize, "draft data")
+		if err != nil {
+			return
+		}
+
+		draftDataMap[hash] = data
 	}
 	return
 }
@@ -1275,10 +1360,11 @@ func (p *ProposalKeyFrame) Snapshot() *ProposalKeyFrame {
 
 func NewProposalKeyFrame() *ProposalKeyFrame {
 	return &ProposalKeyFrame{
-		Proposals:          make(map[common.Uint256]*ProposalState),
-		ProposalHashes:     make(map[common.Uint168]ProposalHashSet),
-		ProposalSession:    make(map[uint64][]common.Uint256),
-		WithdrawableTxInfo: make(map[common.Uint256]types.OutputInfo),
+		Proposals:                  make(map[common.Uint256]*ProposalState),
+		ProposalHashes:             make(map[common.Uint168]ProposalHashSet),
+		ProposalSession:            make(map[uint64][]common.Uint256),
+		WithdrawableTxInfo:         make(map[common.Uint256]types.OutputInfo),
+		PendingReceivedCustomIDMap: make(map[string]struct{}),
 	}
 }
 
@@ -1412,7 +1498,8 @@ func getElectedCRMembers(src map[common.Uint168]*CRMember) []*CRMember {
 func getImpeachableCRMembers(src map[common.Uint168]*CRMember) []*CRMember {
 	dst := make([]*CRMember, 0)
 	for _, v := range src {
-		if v.MemberState == MemberElected || v.MemberState == MemberInactive || v.MemberState == MemberImpeached {
+		if v.MemberState == MemberElected ||
+			v.MemberState == MemberInactive || v.MemberState == MemberImpeached {
 			m := *v
 			dst = append(dst, &m)
 		}

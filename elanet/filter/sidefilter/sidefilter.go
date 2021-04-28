@@ -1,7 +1,7 @@
 // Copyright (c) 2017-2020 The Elastos Foundation
 // Use of this source code is governed by an MIT
 // license that can be found in the LICENSE file.
-// 
+//
 
 /*
 Side filter is a filter of for SideChain SPV module, it filters transactions
@@ -41,7 +41,8 @@ func (f *Filter) Add(data []byte) error {
 // MatchConfirmed returns if a confirmed (packed into a block) transaction
 // matches the filter.
 func (f *Filter) MatchConfirmed(tx *types.Transaction) bool {
-	return f.TxFilter.MatchConfirmed(tx) || f.state.IsDPOSTransaction(tx)
+	return f.TxFilter.MatchConfirmed(tx) || f.state.IsDPOSTransaction(tx) ||
+		tx.IsRevertToPOW() || tx.IsRevertToDPOS()
 }
 
 // MatchUnconfirmed returns if a unconfirmed (not packed into a block yet)

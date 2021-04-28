@@ -1,7 +1,7 @@
 // Copyright (c) 2017-2020 The Elastos Foundation
 // Use of this source code is governed by an MIT
 // license that can be found in the LICENSE file.
-// 
+//
 
 package manager
 
@@ -34,6 +34,10 @@ func (h *DPOSNormalHandler) ProcessAcceptVote(id peer.PID, p *payload.DPOSPropos
 	}
 
 	return false, false
+}
+
+func (h *DPOSNormalHandler) TryCreateRevertToDPOSTx(BlockHeight uint32) bool {
+	return false
 }
 
 func (h *DPOSNormalHandler) ProcessRejectVote(id peer.PID, p *payload.DPOSProposalVote) (succeed bool, finished bool) {

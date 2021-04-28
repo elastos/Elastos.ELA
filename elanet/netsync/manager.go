@@ -15,7 +15,6 @@ import (
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/core/types"
-	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/elanet/pact"
 	"github.com/elastos/Elastos.ELA/elanet/peer"
 	"github.com/elastos/Elastos.ELA/errors"
@@ -398,13 +397,19 @@ func (sm *SyncManager) handleBlockMsg(bmsg *blockMsg) {
 		delete(sm.requestedConfirmedBlocks, blockHash)
 	} else {
 		if _, exists = state.requestedBlocks[blockHash]; !exists {
-			log.Warnf("Got unrequested block %v from %s -- "+
-				"disconnecting", blockHash, peer)
-			peer.Disconnect()
-			return
+			if _, exists = state.requestedConfirmedBlocks[blockHash]; !exists {
+				log.Warnf("Got unrequested block %v from %s -- "+
+					"disconnecting", blockHash, peer)
+				peer.Disconnect()
+				return
+			} else {
+				delete(state.requestedConfirmedBlocks, blockHash)
+				delete(sm.requestedConfirmedBlocks, blockHash)
+			}
+		} else {
+			delete(state.requestedBlocks, blockHash)
+			delete(sm.requestedBlocks, blockHash)
 		}
-		delete(state.requestedBlocks, blockHash)
-		delete(sm.requestedBlocks, blockHash)
 	}
 
 	// Process the block to include validation, best chain selection, orphan
@@ -733,15 +738,15 @@ func (sm *SyncManager) handleBlockchainEvents(event *events.Event) {
 	// is a illegal block transaction.
 	case events.ETTransactionAccepted:
 		tx := event.Data.(*types.Transaction)
-		if tx.IsIllegalBlockTx() {
-			sm.chain.ProcessIllegalBlock(tx.Payload.(*payload.DPOSIllegalBlocks))
-		}
+		//if tx.IsIllegalBlockTx() {
+		//	sm.chain.ProcessIllegalBlock(tx.Payload.(*payload.DPOSIllegalBlocks))
+		//}
+		//
+		//if tx.IsInactiveArbitrators() {
+		//	sm.chain.ProcessInactiveArbiter(tx.Payload.(*payload.InactiveArbitrators))
+		//}
 
-		if tx.IsInactiveArbitrators() {
-			sm.chain.ProcessInactiveArbiter(tx.Payload.(*payload.InactiveArbitrators))
-		}
-
-		if tx.IsIllegalTypeTx() || tx.IsInactiveArbitrators() {
+		if tx.IsIllegalTypeTx() || tx.IsInactiveArbitrators() || tx.IsRevertToDPOS() {
 			// Relay tx inventory to other peers.
 			txHash := tx.Hash()
 			iv := msg.NewInvVect(msg.InvTypeTx, &txHash)
@@ -849,6 +854,17 @@ func (sm *SyncManager) handleBlockchainEvents(event *events.Event) {
 		}
 
 		if err := sm.txMemPool.AppendToTxPool(tx); err != nil {
+			log.Warnf("ETAppendTxToTxPool tx append to txpool failed TxType %v, err %v", tx.TxType, err)
+			break
+		}
+	case events.ETAppendTxToTxPoolWithoutRelay:
+		tx, ok := event.Data.(*types.Transaction)
+		if !ok {
+			log.Warnf("ETAppendTxToTxPool event is not a tx")
+			break
+		}
+
+		if err := sm.txMemPool.AppendToTxPoolWithoutEvent(tx); err != nil {
 			log.Warnf("ETAppendTxToTxPool tx append to txpool failed TxType %v, err %v", tx.TxType, err)
 			break
 		}

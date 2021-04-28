@@ -1,7 +1,7 @@
 // Copyright (c) 2017-2020 The Elastos Foundation
 // Use of this source code is governed by an MIT
 // license that can be found in the LICENSE file.
-// 
+//
 
 package msg
 
@@ -33,6 +33,7 @@ const (
 	CmdIllegalVotes                = "ill_vote"
 	CmdSidechainIllegalData        = "side_ill"
 	CmdResponseInactiveArbitrators = "ina_ars"
+	CmdResponseRevertToDPOS        = "rev_to_dpos"
 )
 
 func GetMessageHash(msg p2p.Message) common.Uint256 {

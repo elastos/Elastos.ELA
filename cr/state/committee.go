@@ -265,6 +265,13 @@ func (c *Committee) GetReceivedCustomIDLists() [][]string {
 	return c.getReceivedCustomIDLists()
 }
 
+func (c *Committee) GetPendingReceivedCustomIDMap() map[string]struct{} {
+	c.mtx.RLock()
+	defer c.mtx.RUnlock()
+
+	return c.manager.PendingReceivedCustomIDMap
+}
+
 func (c *Committee) getReceivedCustomIDLists() [][]string {
 	return c.manager.ReceivedCustomIDLists
 }
@@ -522,6 +529,9 @@ func (c *Committee) changeCommittee(height uint32) bool {
 
 func (c *Committee) createCustomIDResultTransaction(height uint32) {
 	if height == c.getHeight() {
+		sort.Slice(c.CustomIDProposalResults, func(i, j int) bool {
+			return c.CustomIDProposalResults[i].ProposalHash.Compare(c.CustomIDProposalResults[j].ProposalHash) < 0
+		})
 		tx := &types.Transaction{
 			Version: types.TxVersion09,
 			TxType:  types.CustomIDResult,
@@ -1138,12 +1148,10 @@ func (c *Committee) processCurrentMembersDepositInfo(height uint32) {
 			}
 			oriPenalty := c.state.depositInfo[m.Info.CID].Penalty
 			oriDepositAmount := c.state.depositInfo[m.Info.CID].DepositAmount
-			var dpositAmount common.Fixed64
-			dpositAmount = MinDepositAmount
 			penalty := c.getMemberPenalty(height, &member, false)
 			c.lastHistory.Append(height, func() {
 				c.state.depositInfo[member.Info.CID].Penalty = penalty
-				c.state.depositInfo[member.Info.CID].DepositAmount -= dpositAmount
+				c.state.depositInfo[member.Info.CID].DepositAmount -= MinDepositAmount
 			}, func() {
 				c.state.depositInfo[member.Info.CID].Penalty = oriPenalty
 				c.state.depositInfo[member.Info.CID].DepositAmount = oriDepositAmount
@@ -1185,10 +1193,11 @@ func (c *Committee) processCurrentCandidates(height uint32,
 		if ca.state == Returned {
 			continue
 		}
+		oriDepositAmount := c.state.depositInfo[ca.info.CID].DepositAmount
 		c.lastHistory.Append(height, func() {
 			c.state.depositInfo[ca.info.CID].DepositAmount -= MinDepositAmount
 		}, func() {
-			c.state.depositInfo[ca.info.CID].DepositAmount += MinDepositAmount
+			c.state.depositInfo[ca.info.CID].DepositAmount = oriDepositAmount
 		})
 	}
 	c.lastHistory.Append(height, func() {

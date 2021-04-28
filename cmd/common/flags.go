@@ -422,13 +422,18 @@ var (
 		Usage: "defines the change committee new cr height",
 	}
 
+	CRCProposalDraftDataStartHeight = cli.StringFlag{
+		Name:  "crcproposaldraftdatastartheight",
+		Usage: "defines the proposal draft data start height",
+	}
+
 	CustomIDProposalStartHeight = cli.StringFlag{
 		Name:  "CustomIDProposalStartHeight",
 		Usage: "defines the height to allow custom ID related transaction",
 	}
 
-	MaxReservedCustomIDListCount = cli.StringFlag{
-		Name:  "maxreservedcustomidlistcount",
+	MaxReservedCustomIDLength = cli.StringFlag{
+		Name:  "maxreservedcustomidlength",
 		Usage: "defines the max count of reserved custom iid list per tx",
 	}
 
@@ -470,6 +475,11 @@ var (
 	HalvingRewardHeightFlag = cli.StringFlag{
 		Name:  "halvingrewardheight",
 		Usage: "defines height of having reward",
+	}
+
+	HalvingRewardIntervalFlag = cli.StringFlag{
+		Name:  "halvingrewardinterval",
+		Usage: "defines interval of having reward",
 	}
 
 	NewELAIssuanceHeightFlag = cli.StringFlag{

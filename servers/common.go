@@ -309,7 +309,7 @@ type CRCChangeCustomIDFeeInfo struct {
 	CategoryData             string `json:"categorydata"`
 	OwnerPublicKey           string `json:"ownerpublickey"`
 	DraftHash                string `json:"drafthash"`
-	FeeRate                  string `json:"feerate"`
+	FeeRate                  int64 `json:"feerate"`
 	Signature                string `json:"signature"`
 	CRCouncilMemberDID       string `json:"crcouncilmemberdid"`
 	CRCouncilMemberSignature string `json:"crcouncilmembersignature"`

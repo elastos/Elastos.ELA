@@ -1665,6 +1665,9 @@ func (a *arbitrators) updateNextArbitrators(versionHeight, height uint32) error 
 		producers, err := a.GetNormalArbitratorsDesc(versionHeight, count,
 			votedProducers, unclaimed)
 		if err != nil {
+			if height > a.chainParams.ChangeCommitteeNewCRHeight {
+				return err
+			}
 			if err := a.tryHandleError(versionHeight, err); err != nil {
 				return err
 			}

@@ -252,7 +252,7 @@ func (b *BlockChain) checkTxsContext(block *Block) error {
 	var proposalsUsedAmount Fixed64
 	for i := 1; i < len(block.Transactions); i++ {
 		references, errCode := b.CheckTransactionContext(block.Height,
-			block.Transactions[i], proposalsUsedAmount)
+			block.Transactions[i], proposalsUsedAmount, block.Timestamp)
 		if errCode != nil {
 			return elaerr.SimpleWithMessage(elaerr.ErrBlockValidation, errCode,
 				"CheckTransactionContext failed when verify block")
@@ -330,7 +330,9 @@ func (b *BlockChain) CheckBlockContext(block *Block, prevNode *BlockNode) error 
 	if err := DefaultLedger.Arbitrators.CheckNextTurnDPOSInfoTx(block); err != nil {
 		return err
 	}
-
+	if err := DefaultLedger.Arbitrators.CheckCustomIDResultsTx(block); err != nil {
+		return err
+	}
 	return b.checkTxsContext(block)
 }
 
@@ -431,7 +433,7 @@ func GetTxFeeMap(tx *Transaction, references map[*Input]Output) (map[Uint256]Fix
 func (b *BlockChain) checkCoinbaseTransactionContext(blockHeight uint32, coinbase *Transaction, totalTxFee Fixed64) error {
 	// main version >= H2
 	if blockHeight >= b.chainParams.PublicDPOSHeight {
-		totalReward := totalTxFee + b.chainParams.RewardPerBlock
+		totalReward := totalTxFee + b.chainParams.GetBlockReward(blockHeight)
 		rewardDPOSArbiter := Fixed64(math.Ceil(float64(totalReward) * 0.35))
 		if totalReward-rewardDPOSArbiter+DefaultLedger.Arbitrators.
 			GetFinalRoundChange() != coinbase.Outputs[0].Value+
@@ -449,7 +451,7 @@ func (b *BlockChain) checkCoinbaseTransactionContext(blockHeight uint32, coinbas
 		}
 
 		// Reward in coinbase must match inflation 4% per year
-		if rewardInCoinbase-totalTxFee != b.chainParams.RewardPerBlock {
+		if rewardInCoinbase-totalTxFee != b.chainParams.GetBlockReward(blockHeight) {
 			return errors.New("Reward amount in coinbase not correct, " +
 				"height:" + strconv.FormatUint(uint64(blockHeight),
 				10) + "dposheight: " + strconv.FormatUint(uint64(config.

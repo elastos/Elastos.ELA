@@ -116,6 +116,10 @@ func (c *ChainStore) GetTransaction(txID Uint256) (*Transaction, uint32, error) 
 	return c.fflDB.GetTransaction(txID)
 }
 
+func (c *ChainStore) GetProposalDraftDataByDraftHash(draftHash *Uint256) ([]byte, error) {
+	return c.fflDB.GetProposalDraftDataByDraftHash(draftHash)
+}
+
 func (c *ChainStore) GetTxReference(tx *Transaction) (map[*Input]*Output, error) {
 	if tx.TxType == RegisterAsset {
 		return nil, nil

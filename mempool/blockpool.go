@@ -1,7 +1,7 @@
 // Copyright (c) 2017-2020 The Elastos Foundation
 // Use of this source code is governed by an MIT
 // license that can be found in the LICENSE file.
-// 
+//
 
 package mempool
 
@@ -15,6 +15,7 @@ import (
 	"github.com/elastos/Elastos.ELA/common/log"
 	"github.com/elastos/Elastos.ELA/core/types"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
+	"github.com/elastos/Elastos.ELA/dpos/state"
 	"github.com/elastos/Elastos.ELA/events"
 )
 
@@ -45,6 +46,18 @@ func (bm *BlockPool) AppendConfirm(confirm *payload.Confirm) (bool,
 }
 
 func (bm *BlockPool) AddDposBlock(dposBlock *types.DposBlock) (bool, bool, error) {
+	if bm.Chain.GetState().ConsensusAlgorithm == state.POW {
+		return bm.Chain.ProcessBlock(dposBlock.Block, dposBlock.Confirm)
+	}
+
+	if dposBlock.Block.Height > bm.chainParams.RevertToPOWStartHeight && !dposBlock.HaveConfirm {
+		for _, tx := range dposBlock.Transactions {
+			if tx.IsRevertToPOW() {
+				return bm.Chain.ProcessBlock(dposBlock.Block, dposBlock.Confirm)
+			}
+		}
+	}
+
 	// main version >=H1
 	if dposBlock.Block.Height >= bm.chainParams.CRCOnlyDPOSHeight {
 		return bm.AppendDposBlock(dposBlock)
@@ -92,7 +105,7 @@ func (bm *BlockPool) appendBlock(dposBlock *types.DposBlock) (bool, bool, error)
 	// confirm block
 	inMainChain, isOrphan, err := bm.confirmBlock(hash)
 	if err != nil {
-		log.Debug("[AppendDposBlock] ConfirmBlock failed, height", block.Height, "len(txs):",
+		log.Debug("[AppendDPOSBlock] ConfirmBlock failed, height", block.Height, "len(txs):",
 			len(block.Transactions), "hash:", hash.String(), "err: ", err)
 
 		// Notify the caller that the new block without confirm was accepted.
@@ -191,6 +204,7 @@ func (bm *BlockPool) confirmBlock(hash common.Uint256) (bool, bool, error) {
 
 		if !inMainChain && !isOrphan {
 			if err := bm.CheckConfirmedBlockOnFork(bm.Chain.GetHeight(), block); err != nil {
+				log.Error("[CheckConfirmedBlockOnFork] error:", err)
 				return inMainChain, isOrphan, err
 			}
 		}

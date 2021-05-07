@@ -7,6 +7,7 @@ package crypto
 
 import (
 	"errors"
+
 	"github.com/elastos/Elastos.ELA/common"
 )
 
@@ -32,6 +33,7 @@ const (
 )
 
 func ParseMultisigScript(code []byte) ([][]byte, error) {
+
 	if len(code) < MinMultiSignCodeLength || code[len(code)-1] != common.MULTISIG {
 		return nil, errors.New("not a valid multi sign transaction code, length not enough")
 	}

@@ -1,13 +1,15 @@
 // Copyright (c) 2017-2020 The Elastos Foundation
 // Use of this source code is governed by an MIT
 // license that can be found in the LICENSE file.
-// 
+//
 
 package jsonrpc
 
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 
@@ -43,7 +45,7 @@ func Call(url string, reqData Request, rpcUser string, rpcPassword string) (inte
 	}
 
 	if ret.Error != nil {
-		return nil, ret.Error
+		return nil, errors.New(fmt.Sprintln(ret.Error))
 	}
 
 	return ret.Result, nil

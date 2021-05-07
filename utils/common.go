@@ -1,7 +1,7 @@
 // Copyright (c) 2017-2020 The Elastos Foundation
 // Use of this source code is governed by an MIT
 // license that can be found in the LICENSE file.
-// 
+//
 
 package utils
 
@@ -53,6 +53,17 @@ func GetConfirmedPassword() ([]byte, error) {
 func FileExisted(filename string) bool {
 	_, err := os.Stat(filename)
 	return err == nil || os.IsExist(err)
+}
+
+func StringExisted(src [][]string, check string) bool {
+	for _, ar := range src {
+		for _, v := range ar {
+			if v == check {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 //open ela pprof ,must run with goroutine

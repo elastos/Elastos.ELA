@@ -59,11 +59,24 @@ type ArbitratorsMock struct {
 	DutyChangedCount            int
 	MajorityCount               int
 	FinalRoundChange            common.Fixed64
+	LastBlockTimestamp          uint32
 	InactiveMode                bool
 	ActiveProducer              []ArbiterMember
 	Snapshot                    []*CheckPoint
 	CurrentReward               RewardData
 	NextReward                  RewardData
+}
+
+func (a *ArbitratorsMock) SetNeedRevertToDPOSTX(need bool) {
+	panic("implement me")
+}
+
+func (a *ArbitratorsMock) IsInPOWMode() bool {
+	return false
+}
+
+func (a *ArbitratorsMock) GetRevertToPOWBlockHeight() uint32 {
+	return 0
 }
 
 func (a *ArbitratorsMock) GetConnectedProducer(publicKey []byte) ArbiterMember {
@@ -123,6 +136,10 @@ func (a *ArbitratorsMock) GetFinalRoundChange() common.Fixed64 {
 	return a.FinalRoundChange
 }
 
+func (a *ArbitratorsMock) GetLastBlockTimestamp() uint32 {
+	return a.LastBlockTimestamp
+}
+
 func (a *ArbitratorsMock) Start() {
 	panic("implement me")
 }
@@ -135,6 +152,10 @@ func (a *ArbitratorsMock) GetDutyIndex() int {
 	panic("implement me")
 }
 
+func (a *ArbitratorsMock) CheckRevertToDPOSTX(block *types.Block) error {
+	panic("implement me")
+}
+
 func (a *ArbitratorsMock) ProcessSpecialTxPayload(p types.Payload, height uint32) error {
 	panic("implement me")
 }
@@ -144,6 +165,10 @@ func (a *ArbitratorsMock) CheckCRCAppropriationTx(block *types.Block) error {
 }
 
 func (a *ArbitratorsMock) CheckNextTurnDPOSInfoTx(block *types.Block) error {
+	return nil
+}
+
+func (a *ArbitratorsMock) CheckCustomIDResultsTx(block *types.Block) error {
 	return nil
 }
 
@@ -234,6 +259,14 @@ func (a *ArbitratorsMock) GetArbitrators() []*ArbiterInfo {
 	return result
 }
 
+func (a *ArbitratorsMock) GetAllProducersPublicKey() []string {
+	result := make([]string, 0, len(a.CurrentArbitrators))
+	for _, v := range a.CurrentArbitrators {
+		result = append(result, common.BytesToHexString(v.GetNodePublicKey()))
+	}
+	return result
+}
+
 func (a *ArbitratorsMock) GetNormalArbitrators() ([][]byte, error) {
 	result := make([][]byte, 0, len(a.CurrentArbitrators))
 	for _, v := range a.CurrentArbitrators {
@@ -250,10 +283,19 @@ func (a *ArbitratorsMock) GetCandidates() [][]byte {
 	return result
 }
 
-func (a *ArbitratorsMock) GetNextArbitrators() [][]byte {
-	result := make([][]byte, 0, len(a.NextArbitrators))
+func (a *ArbitratorsMock) GetNextArbitrators() []*ArbiterInfo {
+	result := make([]*ArbiterInfo, 0, len(a.NextArbitrators))
 	for _, v := range a.NextArbitrators {
-		result = append(result, v.GetNodePublicKey())
+		isNormal := true
+		abt, ok := v.(*crcArbiter)
+		if ok && !abt.isNormal {
+			isNormal = false
+			continue
+		}
+		result = append(result, &ArbiterInfo{
+			NodePublicKey: v.GetNodePublicKey(),
+			IsNormal:      isNormal,
+		})
 	}
 	return result
 }

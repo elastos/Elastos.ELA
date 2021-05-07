@@ -37,6 +37,18 @@ func hashCRCProposalDID(tx *types.Transaction) (interface{}, error) {
 	return p.CRCouncilMemberDID, nil
 }
 
+func strArrayCRCProposalCustomID(tx *types.Transaction) (interface{}, error) {
+	p, ok := tx.Payload.(*payload.CRCProposal)
+	if !ok {
+		return nil, fmt.Errorf(
+			"CRC proposal payload cast failed, tx:%s", tx.Hash())
+	}
+	if p.ProposalType  != payload.ReceiveCustomID {
+		return nil, nil
+	}
+	return p.ReceivedCustomIDList, nil
+}
+
 func hashChangeProposalOwnerTargetProposalHash(tx *types.Transaction) (interface{}, error) {
 	p, ok := tx.Payload.(*payload.CRCProposal)
 	if !ok {
@@ -69,6 +81,17 @@ func hashCRCProposalSecretaryGeneralDID(tx *types.Transaction) (interface{}, err
 	}
 	if p.ProposalType == payload.SecretaryGeneral {
 		return p.SecretaryGeneralDID, nil
+	}
+	return nil, nil
+}
+func strChangeCustomIDFee(tx *types.Transaction) (interface{}, error) {
+	p, ok := tx.Payload.(*payload.CRCProposal)
+	if !ok {
+		return nil, fmt.Errorf(
+			"CRC proposal payload cast failed, tx:%s", tx.Hash())
+	}
+	if p.ProposalType == payload.ChangeCustomIDFee {
+		return "Change the fee of custom ID", nil
 	}
 	return nil, nil
 }
@@ -109,6 +132,15 @@ func hashNextTurnDPOSInfoTxPayloadHash(tx *types.Transaction) (interface{}, erro
 			"NextTurnDPOSInfo tx payload cast failed, tx:%s", tx.Hash())
 	}
 	return payload.Hash(), nil
+}
+
+func hashCustomIDProposalResultTxPayloadHash(tx *types.Transaction) (interface{}, error) {
+	_, ok := tx.Payload.(*payload.CustomIDProposalResult)
+	if !ok {
+		return nil, fmt.Errorf(
+			"custom ID proposal result tx payload cast failed, tx:%s", tx.Hash())
+	}
+	return "customIDProposalResult", nil
 }
 
 // strings related functions
@@ -243,6 +275,17 @@ func hashArrayCRCProposalRealWithdrawTransactionHashes(
 	}
 
 	return p.WithdrawTransactionHashes, nil
+}
+
+func hashRevertToDPOS(tx *types.Transaction) (interface{}, error) {
+	_, ok := tx.Payload.(*payload.RevertToDPOS)
+	if !ok {
+		return nil, fmt.Errorf(
+			"RevertToDPOS transaction cast failed, tx: %s",
+			tx.Hash())
+	}
+
+	return "RevertToDPOS", nil
 }
 
 // program hashes related functions

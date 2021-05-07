@@ -7,9 +7,11 @@ package dpos
 
 import (
 	"bytes"
+	"fmt"
 	"time"
 
 	"github.com/elastos/Elastos.ELA/blockchain"
+	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/core/types"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
@@ -26,8 +28,11 @@ import (
 	"github.com/elastos/Elastos.ELA/p2p"
 )
 
+const DumpPeersInfoInterval = 10 * time.Minute
+
 type Config struct {
 	EnableEventLog bool
+	Chain          *blockchain.BlockChain
 	Arbitrators    state.Arbitrators
 	Server         elanet.Server
 	TxMemPool      *mempool.TxPool
@@ -45,11 +50,28 @@ type Arbitrator struct {
 	dposManager    *manager.DPOSManager
 }
 
+type PeerInfo struct {
+	OwnerPublicKey string `json:"ownerpublickey"`
+	NodePublicKey  string `json:"nodepublickey"`
+	IP             string `json:"ip"`
+	ConnState      string `json:"connstate"`
+}
+
+func (p *PeerInfo) String() string {
+	return fmt.Sprint("PeerInfo: {\n\t",
+		"IP: ", p.IP, "\n\t",
+		"ConnState: ", p.ConnState, "\n\t",
+		"OwnerPublicKey: ", p.OwnerPublicKey, "\n\t",
+		"NodePublicKey: ", p.NodePublicKey, "\n\t",
+		"}\n")
+}
+
 func (a *Arbitrator) Start() {
 	a.network.Start()
 
 	go a.changeViewLoop()
 	go a.recover()
+	go a.dumpPeersInfo()
 }
 
 func (a *Arbitrator) recover() {
@@ -73,6 +95,14 @@ func (a *Arbitrator) Stop() error {
 	return nil
 }
 
+func (a *Arbitrator) GetCurrentArbitrators() []*state.ArbiterInfo {
+	return a.dposManager.GetArbitrators().GetArbitrators()
+}
+
+func (a *Arbitrator) GetNextArbitrators() []*state.ArbiterInfo {
+	return a.dposManager.GetArbitrators().GetNextArbitrators()
+}
+
 func (a *Arbitrator) GetCurrentCRCs() []*state.ArbiterInfo {
 	return a.dposManager.GetArbitrators().GetCRCArbiters()
 }
@@ -83,6 +113,33 @@ func (a *Arbitrator) GetNextCRCs() [][]byte {
 
 func (a *Arbitrator) GetArbiterPeersInfo() []*dp2p.PeerInfo {
 	return a.network.p2pServer.DumpPeersInfo()
+}
+
+func (a *Arbitrator) dumpPeersInfo() {
+	for {
+		peers := a.GetArbiterPeersInfo()
+		log.Info("[dumpPeersInfo] peers count ", len(peers))
+		logStr := ""
+		for _, p := range peers {
+			producer := a.cfg.Arbitrators.GetConnectedProducer(p.PID[:])
+			if producer == nil {
+				continue
+			}
+			peerInfo := PeerInfo{
+				OwnerPublicKey: common.BytesToHexString(
+					producer.GetOwnerPublicKey()),
+				NodePublicKey: common.BytesToHexString(
+					producer.GetNodePublicKey()),
+				IP:        p.Addr,
+				ConnState: p.State.String(),
+			}
+			logStr += peerInfo.String()
+		}
+		log.Info("[dumpPeersInfo] ", logStr)
+
+		time.Sleep(DumpPeersInfoInterval)
+	}
+
 }
 
 func (a *Arbitrator) OnIllegalBlockTxReceived(p *payload.DPOSIllegalBlocks) {
@@ -133,7 +190,13 @@ func (a *Arbitrator) OnBlockReceived(b *types.Block, confirmed bool) {
 	if !a.cfg.Server.IsCurrent() {
 		return
 	}
-	log.Info("[OnBlockReceived] listener received block")
+	if b.Height >= a.cfg.ChainParams.RevertToPOWStartHeight {
+		lastBlockTimestamp := int64(a.cfg.Arbitrators.GetLastBlockTimestamp())
+		localTimestamp := a.cfg.Chain.TimeSource.AdjustedTime().Unix()
+		if localTimestamp-lastBlockTimestamp >= a.cfg.ChainParams.StopConfirmBlockTime {
+			return
+		}
+	}
 	a.network.PostBlockReceivedTask(b, confirmed)
 }
 

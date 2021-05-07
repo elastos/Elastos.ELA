@@ -21,7 +21,7 @@ const (
 	MinDepositAmount = 5000 * 100000000
 
 	// maxHistoryCapacity indicates the maximum capacity of change history.
-	maxHistoryCapacity = 10
+	maxHistoryCapacity = 720
 
 	// ActivateDuration is about how long we should activate from pending or
 	// inactive state.
@@ -51,6 +51,49 @@ type FunctionsConfig struct {
 	GetHistoryMember func(code []byte) []*CRMember
 	GetTxReference   func(tx *types.Transaction) (
 		map[*types.Input]types.Output, error)
+}
+
+func (s *State) UpdateCRInactivePenalty(cid common.Uint168) {
+	depositInfo, ok := s.depositInfo[cid]
+	if !ok {
+		return
+	}
+	depositInfo.Penalty += s.params.InactivePenalty
+}
+
+func (s *State) RevertUpdateCRInactivePenalty(cid common.Uint168) {
+	depositInfo, ok := s.depositInfo[cid]
+	if !ok {
+		return
+	}
+	var penalty = s.params.InactivePenalty
+	if depositInfo.Penalty < penalty {
+		depositInfo.Penalty = common.Fixed64(0)
+	} else {
+		depositInfo.Penalty -= penalty
+	}
+}
+
+func (s *State) UpdateCRIllegalPenalty(cid common.Uint168) {
+	depositInfo, ok := s.depositInfo[cid]
+	if !ok {
+		return
+	}
+	depositInfo.Penalty += s.params.IllegalPenalty
+}
+
+func (s *State) RevertUpdateCRIllegalPenalty(cid common.Uint168) {
+	depositInfo, ok := s.depositInfo[cid]
+	if !ok {
+		return
+	}
+	var penalty = s.params.IllegalPenalty
+	oriPenalty := depositInfo.Penalty
+	if depositInfo.Penalty < penalty {
+		depositInfo.Penalty = common.Fixed64(0)
+	} else {
+		depositInfo.Penalty = oriPenalty
+	}
 }
 
 // registerFunctions set the tryStartVotingPeriod and processImpeachment function

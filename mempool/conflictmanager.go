@@ -24,16 +24,20 @@ const (
 	slotCRCProposalHash                       = "CRCProposalHash"
 	slotCRCProposalTrackingHash               = "CRCProposalTrackingHash"
 	slotCRCProposalReviewKey                  = "CRCProposalReviewKey"
+	slotCRCProposalCustomID                   = "CRCProposalCustomID"
 	slotCRCAppropriationKey                   = "CRCAppropriationKey"
 	slotCRCProposalRealWithdrawKey            = "CRCProposalRealWithdrawKey"
 	slotCloseProposalTargetProposalHash       = "CloseProposalTargetProposalHash"
 	slotChangeProposalOwnerTargetProposalHash = "ChangeProposalOwnerTargetProposalHash"
+	slotChangeCustomIDFee                     = "slotChangeCustomIDFee"
 	slotSpecialTxHash                         = "SpecialTxHash"
 	slotSidechainTxHashes                     = "SidechainTxHashes"
+	slotCustomIDProposalResult                = "CustomIDProposalResult"
 	slotTxInputsReferKeys                     = "TxInputsReferKeys"
 	slotCRCouncilMemberNodePublicKey          = "CRCouncilMemberNodePublicKey"
 	slotCRCouncilMemberDID                    = "CRCouncilMemberDID"
 	slotCRCSecretaryGeneral                   = "CRCSecretaryGeneral"
+	slotRevertToDPOSHash                      = "RevertToDPOSHash"
 )
 
 type conflict struct {
@@ -246,6 +250,16 @@ func newConflictManager() conflictManager {
 					},
 				),
 			},
+			// Proposal change custom ID fee.
+			{
+				name: slotChangeCustomIDFee,
+				slot: newConflictSlot(str,
+					keyTypeFuncPair{
+						Type: types.CRCProposal,
+						Func: strChangeCustomIDFee,
+					},
+				),
+			},
 			// CRC Proposal target proposal hash
 			{
 				name: slotCloseProposalTargetProposalHash,
@@ -282,6 +296,16 @@ func newConflictManager() conflictManager {
 					keyTypeFuncPair{
 						Type: types.CRCProposal,
 						Func: hashCRCProposalDID,
+					},
+				),
+			},
+			// CRC proposal CustomID
+			{
+				name: slotCRCProposalCustomID,
+				slot: newConflictSlot(strArray,
+					keyTypeFuncPair{
+						Type: types.CRCProposal,
+						Func: strArrayCRCProposalCustomID,
 					},
 				),
 			},
@@ -345,6 +369,15 @@ func newConflictManager() conflictManager {
 					},
 				),
 			},
+			{
+				name: slotRevertToDPOSHash,
+				slot: newConflictSlot(str,
+					keyTypeFuncPair{
+						Type: types.RevertToDPOS,
+						Func: hashRevertToDPOS,
+					},
+				),
+			},
 			// special tx hash
 			{
 				name: slotSpecialTxHash,
@@ -372,6 +405,16 @@ func newConflictManager() conflictManager {
 					keyTypeFuncPair{
 						Type: types.NextTurnDPOSInfo,
 						Func: hashNextTurnDPOSInfoTxPayloadHash,
+					},
+				),
+			},
+			// custom id proposal result.
+			{
+				name: slotCustomIDProposalResult,
+				slot: newConflictSlot(str,
+					keyTypeFuncPair{
+						Type: types.CustomIDResult,
+						Func: hashCustomIDProposalResultTxPayloadHash,
 					},
 				),
 			},

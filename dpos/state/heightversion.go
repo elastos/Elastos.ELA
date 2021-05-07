@@ -30,6 +30,41 @@ func (a *arbitrators) getNormalArbitratorsDescV0() ([]ArbiterMember, error) {
 	return arbitersByte, nil
 }
 
+func minInt(a, b int) int {
+	if a <= b {
+		return a
+	}
+	return b
+}
+
+func readi64(src []byte) (int64, []byte, bool) {
+	if len(src) < 8 {
+		return 0, src, false
+	}
+	i64 := int64(src[0]) | int64(src[1])<<8 | int64(src[2])<<16 |
+		int64(src[3])<<24 | int64(src[4])<<32 | int64(src[5])<<40 |
+		int64(src[6])<<48 | int64(src[7])<<56
+	return i64, src[8:], true
+}
+
+// H2 - H3
+func (a *arbitrators) getNormalArbitratorsDescV2(arbitratorsCount int,
+	producers []*Producer, start int) ([]ArbiterMember, error) {
+	if len(producers) < arbitratorsCount {
+		return nil, ErrInsufficientProducer
+	}
+
+	result := make([]ArbiterMember, 0)
+	for i := start; i < start+arbitratorsCount && i < len(producers); i++ {
+		ar, err := NewDPoSArbiter(DPoS, producers[i])
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, ar)
+	}
+	return result, nil
+}
+
 // H1 - H2
 func (a *arbitrators) getNormalArbitratorsDescV1() ([]ArbiterMember, error) {
 	return nil, nil

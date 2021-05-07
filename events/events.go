@@ -59,6 +59,10 @@ const (
 	//ETNextTurnDPOSInfo indicates need add an NextTurnDPOSInfo to tx pool
 	ETAppendTxToTxPool
 
+	//ETAppendTxToTxPoolWithoutRelay indicates need add an NextTurnDPOSInfo
+	//to tx pool but do not relay.
+	ETAppendTxToTxPoolWithoutRelay
+
 	//ETCRCChangeCommittee indicates need add crc chaged committee
 	ETCRCChangeCommittee
 )
@@ -66,16 +70,17 @@ const (
 // notificationTypeStrings is a map of notification types back to their constant
 // names for pretty printing.
 var notificationTypeStrings = map[EventType]string{
-	ETBlockAccepted:        "ETBlockAccepted",
-	ETBlockConnected:       "ETBlockConnected",
-	ETBlockDisconnected:    "ETBlockDisconnected",
-	ETTransactionAccepted:  "ETTransactionAccepted",
-	ETNewBlockReceived:     "ETNewBlockReceived",
-	ETConfirmAccepted:      "ETConfirmAccepted",
-	ETDirectPeersChanged:   "ETDirectPeersChanged",
-	ETBlockConfirmAccepted: "ETBlockConfirmAccepted",
-	ETIllegalBlockEvidence: "ETIllegalBlockEvidence",
-	ETAppendTxToTxPool:     "ETAppendTxToTxPool",
+	ETBlockAccepted:                "ETBlockAccepted",
+	ETBlockConnected:               "ETBlockConnected",
+	ETBlockDisconnected:            "ETBlockDisconnected",
+	ETTransactionAccepted:          "ETTransactionAccepted",
+	ETNewBlockReceived:             "ETNewBlockReceived",
+	ETConfirmAccepted:              "ETConfirmAccepted",
+	ETDirectPeersChanged:           "ETDirectPeersChanged",
+	ETBlockConfirmAccepted:         "ETBlockConfirmAccepted",
+	ETIllegalBlockEvidence:         "ETIllegalBlockEvidence",
+	ETAppendTxToTxPool:             "ETAppendTxToTxPool",
+	ETAppendTxToTxPoolWithoutRelay: "ETAppendTxToTxPoolWithoutRelay",
 }
 
 // String returns the EventType in human-readable form.

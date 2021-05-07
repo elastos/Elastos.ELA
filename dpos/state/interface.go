@@ -17,13 +17,16 @@ type Arbitrators interface {
 	ProcessSpecialTxPayload(p types.Payload, height uint32) error
 	CheckCRCAppropriationTx(block *types.Block) error
 	CheckNextTurnDPOSInfoTx(block *types.Block) error
+	CheckCustomIDResultsTx(block *types.Block) error
+	CheckRevertToDPOSTX(block *types.Block) error
 
 	IsArbitrator(pk []byte) bool
 	IsNextCRCArbitrator(pk []byte) bool
 	IsMemberElectedNextCRCArbitrator(pk []byte) bool
 	GetArbitrators() []*ArbiterInfo
 	GetCandidates() [][]byte
-	GetNextArbitrators() [][]byte
+	GetAllProducersPublicKey() []string
+	GetNextArbitrators() []*ArbiterInfo
 	GetNextCandidates() [][]byte
 	GetNeedConnectArbiters() []peer.PID
 	GetDutyIndexByHeight(height uint32) int
@@ -33,6 +36,10 @@ type Arbitrators interface {
 	GetNextRewardData() RewardData
 	GetArbitersRoundReward() map[common.Uint168]common.Fixed64
 	GetFinalRoundChange() common.Fixed64
+	SetNeedRevertToDPOSTX(need bool)
+	IsInPOWMode() bool
+	GetRevertToPOWBlockHeight() uint32
+	GetLastBlockTimestamp() uint32
 	IsInactiveMode() bool
 	IsUnderstaffedMode() bool
 

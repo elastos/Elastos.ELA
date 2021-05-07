@@ -179,11 +179,13 @@ func initLedger(L *lua.LState) int {
 	}
 
 	arbiters, err := state.NewArbitrators(chainParams,
-		nil, nil, nil, nil)
+		nil, nil, nil,
+		nil, nil, nil)
 	if err != nil {
 		fmt.Printf("New arbitrators error: %s \n", err.Error())
 	}
 	arbiters.RegisterFunction(chainStore.GetHeight,
+		func() *common.Uint256 { return &common.Uint256{} },
 		func(height uint32) (*types.Block, error) {
 			return nil, nil
 		}, nil)
@@ -191,7 +193,8 @@ func initLedger(L *lua.LState) int {
 	var interrupt = signal.NewInterrupt()
 	chain, err := blockchain.New(chainStore, chainParams,
 		state.NewState(chainParams, arbiters.GetArbitrators, nil,
-			nil, nil, nil, nil), nil)
+			nil, nil, nil,
+			nil, nil, nil), nil)
 	if err != nil {
 		fmt.Printf("Init block chain error: %s \n", err.Error())
 	}
@@ -281,6 +284,9 @@ func RegisterDataType(L *lua.LState) int {
 	RegisterCRCProposalType(L)
 	RegisterCRChangeProposalOwnerType(L)
 	RegisterCRCCloseProposalHashType(L)
+	RegisterCRCReservedCustomIDType(L)
+	RegisterCRCReceivedCustomIDType(L)
+	RegisterCRCChangeCustomIDFeeType(L)
 	RegisterCRCProposalReviewType(L)
 	RegisterCRCProposalWithdrawType(L)
 	RegisterCRCProposalTrackingType(L)

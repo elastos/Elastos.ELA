@@ -1,7 +1,7 @@
 // Copyright (c) 2017-2020 The Elastos Foundation
 // Use of this source code is governed by an MIT
 // license that can be found in the LICENSE file.
-// 
+//
 
 package jsonrpc
 
@@ -13,11 +13,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"mime"
 	"net"
 	"net/http"
 	"sync"
 
-	"github.com/elastos/Elastos.ELA/common/log"
+	"github.com/rs/cors"
+
+	elaErr "github.com/elastos/Elastos.ELA/servers/errors"
 	htp "github.com/elastos/Elastos.ELA/utils/http"
 )
 
@@ -40,7 +43,7 @@ type Handler func(htp.Params) (interface{}, error)
 
 // Request represent the standard JSON-RPC request data structure.
 type Request struct {
-	Id      interface{} `json:"id"`
+	ID      interface{} `json:"id"`
 	Version string      `json:"jsonrpc"`
 	Method  string      `json:"method"`
 	Params  interface{} `json:"params"`
@@ -48,10 +51,10 @@ type Request struct {
 
 // Response represent the standard JSON-RPC Response data structure.
 type Response struct {
-	Id      interface{} `json:"id"`
+	ID      interface{} `json:"id"`
 	Version string      `json:"jsonrpc"`
 	Result  interface{} `json:"result"`
-	Error   *htp.Error  `json:"error"`
+	Error   interface{} `json:"error"`
 }
 
 // error returns an error response to the http client.
@@ -119,10 +122,13 @@ func (s *Server) Start() error {
 		return err
 	}
 
+	c := cors.New(cors.Options{})
+	handler := c.Handler(s)
+
 	if s.cfg.Path == "" {
-		s.server = &http.Server{Handler: s}
+		s.server = &http.Server{Handler: handler}
 	} else {
-		http.Handle(s.cfg.Path, s)
+		http.Handle(s.cfg.Path, handler)
 		s.server = &http.Server{}
 	}
 	return s.server.Serve(listener)
@@ -152,29 +158,29 @@ func (s *Server) clientAllowed(r *http.Request) bool {
 	//this ipAbbr  may be  ::1 when request is localhost
 	ipAbbr, _, err := net.SplitHostPort(r.RemoteAddr)
 	if err != nil {
-		log.Errorf("RemoteAddr clientAllowed SplitHostPort failure %s \n", r.RemoteAddr)
+		fmt.Printf("RemoteAddr clientAllowed SplitHostPort failure %s \n", r.RemoteAddr)
 		return false
 
 	}
 	//after ParseIP ::1 chg to 0:0:0:0:0:0:0:1 the true ip
-	remoteIp := net.ParseIP(ipAbbr)
+	remoteIP := net.ParseIP(ipAbbr)
 
-	if remoteIp == nil {
-		log.Errorf("clientAllowed ParseIP ipAbbr %s failure  \n", ipAbbr)
+	if remoteIP == nil {
+		fmt.Printf("clientAllowed ParseIP ipAbbr %s failure  \n", ipAbbr)
 		return false
 	}
 
-	if remoteIp.IsLoopback() {
-		//log.Debugf("remoteIp %s IsLoopback\n", remoteIp)
+	if remoteIP.IsLoopback() {
+		//log.Debugf("remoteIP %s IsLoopback\n", remoteIP)
 		return true
 	}
 
-	for _, cfgIp := range s.cfg.WhiteList {
+	for _, cfgIP := range s.cfg.WhiteList {
 		//WhiteIPList have 0.0.0.0  allow all ip in
-		if cfgIp == "0.0.0.0" {
+		if cfgIP == "0.0.0.0" {
 			return true
 		}
-		if cfgIp == remoteIp.String() {
+		if cfgIP == remoteIP.String() {
 			return true
 		}
 
@@ -187,7 +193,6 @@ func (s *Server) checkAuth(r *http.Request) bool {
 	User := s.cfg.User
 	Pass := s.cfg.Pass
 
-	//log.Infof("ServeHTTP checkAuth RpcConfiguration %+v" , s.cfg.RpcConfiguration)
 	if (User == Pass) && (len(User) == 0) {
 		return true
 	}
@@ -216,92 +221,64 @@ func (s *Server) checkAuth(r *http.Request) bool {
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	isClientAllowed := s.clientAllowed(r)
 	if !isClientAllowed {
-		//log.Warn("HTTP Client ip is not allowd")
 		http.Error(w, "Client ip is not allowd", http.StatusForbidden)
 		return
 	}
 	//JSON RPC commands should be POSTs
 	if r.Method != "POST" {
-		//log.Warn("HTTP JSON RPC Handle - Method!=\"POST\"")
 		http.Error(w, "JSON RPC procotol only allows POST method",
 			http.StatusMethodNotAllowed)
 		return
 	}
 
-	if r.Header["Content-Type"][0] != "application/json" {
-		//log.Warn("need content type to be application/json")
-
-		http.Error(w, "need content type to be application/json",
-			http.StatusUnsupportedMediaType)
+	contentType, _, _ := mime.ParseMediaType(r.Header.Get("Content-Type"))
+	if contentType != "application/json" && contentType != "text/plain" {
+		RPCError(w, http.StatusUnsupportedMediaType, InternalError, "JSON-RPC need content type to be application/json or text/plain")
 		return
 	}
+
 	isCheckAuthOk := s.checkAuth(r)
 
 	if !isCheckAuthOk {
-		//log.Warn("checkAuth client authenticate failed %v",r.RemoteAddr)
-		http.Error(w, "client authenticate failed", http.StatusUnauthorized)
+		RPCError(w, http.StatusUnauthorized, InternalError, "Client authenticate failed")
 		return
 	}
-	//read the body of the request
-	body, _ := ioutil.ReadAll(r.Body)
-	var req Request
-	var resp Response
-	err := json.Unmarshal(body, &req)
+	// read the body of the request
+	// TODO: add Max-Length check
+	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		resp.error(w, http.StatusBadRequest, ParseError,
-			fmt.Sprintf("json parse failed: %s", err))
+		RPCError(w, http.StatusBadRequest, InvalidRequest, "JSON-RPC request reading error:"+err.Error())
 		return
 	}
 
-	resp.Id = req.Id
-
-	if len(req.Method) == 0 {
-		resp.error(w, http.StatusBadRequest, InvalidRequest,
-			"method parameter not found")
-		return
-	}
-	handler, ok := s.handlers[req.Method]
-	if !ok {
-		resp.error(w, http.StatusNotFound, MethodNotFound,
-			fmt.Sprintf("method %s not found", req.Method))
-		return
-	}
-
-	// Json rpc 1.0 support positional parameters while json rpc 2.0 support
-	// named parameters.
-	// Positional parameters: { "params":[1, 2, 3....] }
-	// named parameters: { "params":{ "a":1, "b":2, "c":3 } }
-	// Here we support both of them.
-	var params htp.Params
-	switch requestParams := req.Params.(type) {
-	case nil:
-	case []interface{}:
-		params = s.parseParams(req.Method, requestParams)
-	case map[string]interface{}:
-		params = htp.Params(requestParams)
-	default:
-		resp.error(w, http.StatusBadRequest, InvalidRequest,
-			"params format err, must be an array or a map")
-		return
-	}
-
-	result, err := handler(params)
+	var requestArray []Request
+	var request Request
+	err = json.Unmarshal(body, &request)
 	if err != nil {
-		code := InternalError
-		message := fmt.Sprintf("internal error: %s", err)
-
-		switch e := err.(type) {
-		case *htp.Error:
-			code = e.Code
-			message = e.Message
+		fmt.Println("JSON-RPC request parsing error: ", err, "Try to unmarshal batches requests")
+		errArray := json.Unmarshal(body, &requestArray)
+		if errArray != nil {
+			fmt.Println("JSON-RPC request parsing error: ", errArray)
+			RPCError(w, http.StatusBadRequest, ParseError, "JSON-RPC request parsing error:"+err.Error())
+			return
+		}
+	}
+	var data []byte
+	if len(requestArray) == 0 {
+		response := s.getResponse(request)
+		data, _ = json.Marshal(response)
+	} else {
+		var responseArray []Response
+		for _, req := range requestArray {
+			response := s.getResponse(req)
+			responseArray = append(responseArray, response)
 		}
 
-		resp.error(w, http.StatusInternalServerError, code, message)
-		return
+		data, _ = json.Marshal(responseArray)
 	}
 
-	resp.Result = result
-	resp.write(w, http.StatusOK)
+	w.Header().Set("Content-type", "application/json")
+	w.Write(data)
 }
 
 // NewServer creates and return a JSON-RPC server instance.
@@ -318,4 +295,102 @@ func min(a int, b int) int {
 		return b
 	}
 	return a
+}
+
+// RPCError constructs an RPC access error
+func RPCError(w http.ResponseWriter, httpStatus int, code elaErr.ServerErrCode, message string) {
+	data, _ := json.Marshal(map[string]interface{}{
+		"jsonrpc": "2.0",
+		"result":  nil,
+		"error": map[string]interface{}{
+			"code":    code,
+			"message": message,
+			"id":      nil,
+		},
+	})
+	w.Header().Set("Content-type", "application/json")
+	w.WriteHeader(httpStatus)
+	w.Write(data)
+}
+
+func (s *Server) getResponse(request Request) Response {
+	var resp Response
+	requestMethod := request.Method
+	if len(requestMethod) == 0 {
+		resp = Response{
+			Version: "2.0",
+			Result:  nil,
+			ID:      request.ID,
+			Error: map[string]interface{}{
+				"id":      request.ID,
+				"code":    InvalidRequest,
+				"message": "JSON-RPC need a method",
+			},
+		}
+		return resp
+	}
+	handler, ok := s.handlers[requestMethod]
+	if !ok {
+		resp = Response{
+			Version: "2.0",
+			Result:  nil,
+			ID:      request.ID,
+			Error: map[string]interface{}{
+				"id":      request.ID,
+				"code":    MethodNotFound,
+				"message": "JSON-RPC method " + requestMethod + " not found",
+			},
+		}
+		return resp
+	}
+
+	requestParams := request.Params
+	// Json rpc 1.0 support positional parameters while json rpc 2.0 support named parameters.
+	// positional parameters: { "requestParams":[1, 2, 3....] }
+	// named parameters: { "requestParams":{ "a":1, "b":2, "c":3 } }
+	// Here we support both of them.
+	var params htp.Params
+	switch requestParams := requestParams.(type) {
+	case nil:
+	case []interface{}:
+		params = s.parseParams(requestMethod, requestParams)
+	case map[string]interface{}:
+		params = htp.Params(requestParams)
+	default:
+		resp = Response{
+			Version: "2.0",
+			Result:  nil,
+			ID:      request.ID,
+			Error: map[string]interface{}{
+				"id":      request.ID,
+				"code":    InvalidRequest,
+				"message": "params format error, must be an array or a map",
+			},
+		}
+		return resp
+	}
+
+	result, err := handler(params)
+	if err != nil {
+		code := InternalError
+		message := fmt.Sprintf("internal error: %s", err)
+		resp = Response{
+			Version: "2.0",
+			Result:  nil,
+			ID:      request.ID,
+			Error: map[string]interface{}{
+				"id":      request.ID,
+				"code":    code,
+				"message": message,
+			},
+		}
+	} else {
+		resp = Response{
+			Version: "2.0",
+			Result:  result,
+			ID:      request.ID,
+			Error:   nil,
+		}
+	}
+	return resp
 }

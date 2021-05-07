@@ -49,6 +49,7 @@ func registerParams(c *cli.Context, L *lua.LState) {
 	proposalTrackingType := c.Int64("proposaltrackingtype")
 	MessageHash := c.String("messagehash")
 	crOpinionHash := c.String("cropinionhash")
+	crOpinionData := c.String("cropiniondata")
 	SecretaryGeneralOpinionHash := c.String("secretarygeneralopinionhash")
 	stage := c.Int64("stage")
 
@@ -59,6 +60,10 @@ func registerParams(c *cli.Context, L *lua.LState) {
 	recipient := c.String("recipient")
 	targetHash := c.String("targethash")
 	closeProposalHash := c.String("closeproposalhash")
+	reservedCustomIDList := c.String("reservedcustomidlist")
+	receivedCustomIDList := c.String("receivedcustomidlist")
+	customidrate := c.String("customidrate")
+	receiverDID := c.String("receiverdid")
 	CRExpensesAddress := c.String("crccommiteeaddr")
 	payloadVersion := c.Int64("payloadversion")
 
@@ -201,6 +206,11 @@ func registerParams(c *cli.Context, L *lua.LState) {
 		L.Push(lua.LString(crOpinionHash))
 		return 1
 	}
+	getCROpinionData := func(L *lua.LState) int {
+		L.Push(lua.LString(crOpinionData))
+		return 1
+	}
+
 	getSecretaryGeneralOpinionHash := func(L *lua.LState) int {
 		L.Push(lua.LString(SecretaryGeneralOpinionHash))
 		return 1
@@ -243,6 +253,22 @@ func registerParams(c *cli.Context, L *lua.LState) {
 	}
 	getCloseProposalHash := func(L *lua.LState) int {
 		L.Push(lua.LString(closeProposalHash))
+		return 1
+	}
+	getReservedCustomIDList := func(L *lua.LState) int {
+		L.Push(lua.LString(reservedCustomIDList))
+		return 1
+	}
+	getReceivedCustomIDList := func(L *lua.LState) int {
+		L.Push(lua.LString(receivedCustomIDList))
+		return 1
+	}
+	getRateOfCustomIDFee := func(L *lua.LState) int {
+		L.Push(lua.LString(customidrate))
+		return 1
+	}
+	getReceiverDID := func(L *lua.LState) int {
+		L.Push(lua.LString(receiverDID))
 		return 1
 	}
 	getCRExpensesAddress := func(L *lua.LState) int {
@@ -296,6 +322,8 @@ func registerParams(c *cli.Context, L *lua.LState) {
 	L.Register("getProposalTrackingType", getProposalTrackingType)
 	L.Register("getMessageHash", getMessageHash)
 	L.Register("getCROpinionHash", getCROpinionHash)
+	L.Register("getCROpinionData", getCROpinionData)
+
 	L.Register("getSecretaryGeneralOpinionHash", getSecretaryGeneralOpinionHash)
 	L.Register("getStage", getStage)
 
@@ -308,6 +336,10 @@ func registerParams(c *cli.Context, L *lua.LState) {
 	L.Register("getNewOwnerPrivateKey", getNewOwnerPrivateKey)
 	L.Register("getTargetHash", getTargetHash)
 	L.Register("getCloseProposalHash", getCloseProposalHash)
+	L.Register("getReservedCustomIDList", getReservedCustomIDList)
+	L.Register("getReceivedCustomIDList", getReceivedCustomIDList)
+	L.Register("getRateOfCustomIDFee", getRateOfCustomIDFee)
+	L.Register("getReceiverDID", getReceiverDID)
 	L.Register("getCRExpensesAddress", getCRExpensesAddress)
 	L.Register("getPayloadVersion", getPayloadVersion)
 	L.Register("getCRManagementPublicKey", getCRManagementPublicKey)
@@ -458,6 +490,10 @@ func NewCommand() *cli.Command {
 				Usage: "set the draft proposal hash",
 			},
 			cli.StringFlag{
+				Name:  "draftdata",
+				Usage: "set the draft data",
+			},
+			cli.StringFlag{
 				Name:  "targethash",
 				Usage: "set the target proposal hash",
 			},
@@ -468,6 +504,18 @@ func NewCommand() *cli.Command {
 			cli.StringFlag{
 				Name:  "closeproposalhash",
 				Usage: "set the close proposal hash",
+			},
+			cli.StringFlag{
+				Name:  "reservedcustomidlist",
+				Usage: "reserved custom id list",
+			},
+			cli.StringFlag{
+				Name:  "receivedcustomidlist",
+				Usage: "received custom id list",
+			},
+			cli.StringFlag{
+				Name:  "receiverdid",
+				Usage: "receiver did",
 			},
 			cli.StringFlag{
 				Name:  "voteresult, votres",
@@ -496,6 +544,10 @@ func NewCommand() *cli.Command {
 			cli.StringFlag{
 				Name:  "cropinionhash",
 				Usage: "set the hash of proposal opinion",
+			},
+			cli.StringFlag{
+				Name:  "cropiniondata",
+				Usage: "set the data of cr opinion",
 			},
 			cli.StringFlag{
 				Name:  "secretarygeneralopinionhash",
@@ -539,6 +591,10 @@ func NewCommand() *cli.Command {
 			cli.StringFlag{
 				Name:  "crcommitteedid",
 				Usage: "set the crcommittee did",
+			},
+			cli.StringFlag{
+				Name:  "customidrate",
+				Usage: "set the rate of custom id",
 			},
 		},
 		Action: scriptAction,

@@ -1,7 +1,7 @@
 // Copyright (c) 2017-2020 The Elastos Foundation
 // Use of this source code is governed by an MIT
 // license that can be found in the LICENSE file.
-// 
+//
 
 package manager
 
@@ -75,6 +75,43 @@ func (h *DPOSOnDutyHandler) TryStartNewConsensus(b *types.Block) bool {
 	}
 
 	return result
+}
+
+func (h *DPOSOnDutyHandler) getActiveArbitersCount() int {
+	peers := h.cfg.Network.GetActivePeers()
+
+	peersMap := make(map[string]struct{})
+	for _, p := range peers {
+		pid := p.PID()
+		if h.cfg.Arbitrators.IsArbitrator(pid[:]) {
+			peersMap[common.BytesToHexString(pid[:])] = struct{}{}
+		}
+	}
+	return len(peersMap) + 1
+}
+
+func (h *DPOSOnDutyHandler) TryCreateRevertToDPOSTx(BlockHeight uint32) bool {
+	// connect count is not enough
+	// if i am not onduty return
+	activeArbitersCount := float64(h.getActiveArbitersCount())
+	needCount := float64(h.cfg.Arbitrators.GetArbitersCount())*float64(4)/float64(5) + 1
+	log.Info("[TryCreateRevertToDPOSTx] current active arbiters count:", activeArbitersCount, "need:", needCount)
+	if activeArbitersCount < needCount {
+		return false
+	}
+	// if it is in not pow mod
+	if !h.cfg.Arbitrators.IsInPOWMode() {
+		log.Warn("[TryCreateRevertToDPOSTx] is not in POW mode")
+		return false
+	}
+	tx, err := h.proposalDispatcher.CreateRevertToDPOS(h.cfg.Arbitrators.GetRevertToPOWBlockHeight())
+	if err != nil {
+		log.Warn("[TryCreateRevertToDPOSTx] failed to create revert to DPoS transaction:", err)
+		return false
+	}
+	h.cfg.Network.BroadcastMessage(&msg.Tx{Serializable: tx})
+	log.Info("[TryCreateRevertToDPOSTx] create revert to DPoS transaction:", tx)
+	return true
 }
 
 func (h *DPOSOnDutyHandler) tryCreateInactiveArbitratorsTx() bool {

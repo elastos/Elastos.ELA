@@ -11,6 +11,13 @@ import (
 	"github.com/elastos/Elastos.ELA/common"
 )
 
+type ConsesusAlgorithm byte
+
+const (
+	DPOS ConsesusAlgorithm = 0x00
+	POW  ConsesusAlgorithm = 0x01
+)
+
 // StateKeyFrame holds necessary state about State
 type StateKeyFrame struct {
 	NodeOwnerKeys            map[string]string // NodePublicKey as key, OwnerPublicKey as value
@@ -30,7 +37,23 @@ type StateKeyFrame struct {
 	EmergencyInactiveArbiters map[string]struct{}
 	VersionStartHeight        uint32
 	VersionEndHeight          uint32
-	NeedNextTurnDposInfo      bool
+	Unclaimed                 int
+	LastRandomCandidateHeight uint32
+	LastRandomCandidateOwner  string
+	DPOSWorkHeight            uint32
+	ConsensusAlgorithm        ConsesusAlgorithm
+	LastBlockTimestamp        uint32
+	NeedRevertToDPOSTX        bool
+	NeedNextTurnDPOSInfo      bool
+	NoProducers               bool
+	NoClaimDPOSNode           bool
+	//this height we receieved reverttopow tx and also it is pow work height
+	RevertToPOWBlockHeight uint32
+	//last irreversible height
+	LastIrreversibleHeight uint32
+	//record the height our consensus chang from pow into dpos.
+	//when it is dpos and before RevertToPOWStartHeight  DPOSStartHeight is height - IrreversibleHeight
+	DPOSStartHeight uint32
 }
 
 // RewardData defines variables to calculate reward of a round
@@ -130,11 +153,19 @@ func (s *StateKeyFrame) Serialize(w io.Writer) (err error) {
 		return
 	}
 
-	if err = common.WriteUint32(w, s.VersionStartHeight); err != nil {
+	if err = common.WriteElements(w, s.VersionStartHeight, s.VersionEndHeight,
+		s.LastRandomCandidateHeight, s.NoProducers,
+		s.NoClaimDPOSNode, s.LastBlockTimestamp, s.NeedRevertToDPOSTX,
+		s.NeedNextTurnDPOSInfo, s.RevertToPOWBlockHeight, s.LastIrreversibleHeight,
+		s.DPOSStartHeight); err != nil {
+		return err
+	}
+
+	if err = common.WriteVarString(w, s.LastRandomCandidateOwner); err != nil {
 		return
 	}
 
-	return common.WriteUint32(w, s.VersionEndHeight)
+	return
 }
 
 func (s *StateKeyFrame) Deserialize(r io.Reader) (err error) {
@@ -194,13 +225,18 @@ func (s *StateKeyFrame) Deserialize(r io.Reader) (err error) {
 		return
 	}
 
-	if s.VersionStartHeight, err = common.ReadUint32(r); err != nil {
+	if err = common.ReadElements(r, &s.VersionStartHeight, &s.VersionEndHeight,
+		&s.LastRandomCandidateHeight, &s.NoClaimDPOSNode,
+		&s.NoProducers, &s.LastBlockTimestamp, &s.NeedRevertToDPOSTX,
+		&s.NeedNextTurnDPOSInfo, &s.RevertToPOWBlockHeight, &s.LastIrreversibleHeight,
+		&s.DPOSStartHeight); err != nil {
+		return err
+	}
+
+	if s.LastRandomCandidateOwner, err = common.ReadVarString(r); err != nil {
 		return
 	}
 
-	if s.VersionEndHeight, err = common.ReadUint32(r); err != nil {
-		return
-	}
 	return
 }
 

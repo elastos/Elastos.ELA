@@ -250,6 +250,7 @@ var DefaultParams = Params{
 	NewELAIssuanceHeight:               919800,    // 3.5 * 365 * 720
 	SmallCrossTransferThreshold:        100000000, //TODO reset latter
 	ReturnDepositCoinFee:               100,       //TODO reset latter
+	NewCrossChainStartHeight:           2000000,   // todo complete me
 }
 
 // TestNet returns the network parameters for the test network.
@@ -337,6 +338,7 @@ func (p *Params) TestNet() *Params {
 	copy.NewELAIssuanceHeight = 774920           //767000 + 720 * 11
 	copy.SmallCrossTransferThreshold = 100000000 //TODO reset latter
 	copy.ReturnDepositCoinFee = 100              //TODO reset latter
+	copy.NewCrossChainStartHeight = 2000000      // todo complete me
 
 	return &copy
 }
@@ -426,6 +428,7 @@ func (p *Params) RegNet() *Params {
 	copy.NewELAIssuanceHeight = 691740           //690300 + 720 * 2
 	copy.SmallCrossTransferThreshold = 100000000 //TODO reset latter
 	copy.ReturnDepositCoinFee = 100              //TODO reset latter
+	copy.NewCrossChainStartHeight = 2000000      // todo complete me
 
 	return &copy
 }

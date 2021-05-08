@@ -1023,6 +1023,11 @@ func NewSettings() *Settings {
 		ConfigPath:   "ReturnDepositCoinFee",
 		ParamName:    "ReturnDepositCoinFee"})
 
+	result.Add(&settingItem{
+		Flag:         cmdcom.NewCrossChainStartHeightFlag,
+		DefaultValue: uint32(0),
+		ConfigPath:   "NewCrossChainStartHeight",
+		ParamName:    "NewCrossChainStartHeight"})
 	return result
 }
 

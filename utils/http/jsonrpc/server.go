@@ -18,8 +18,6 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/rs/cors"
-
 	elaErr "github.com/elastos/Elastos.ELA/servers/errors"
 	htp "github.com/elastos/Elastos.ELA/utils/http"
 )
@@ -122,13 +120,11 @@ func (s *Server) Start() error {
 		return err
 	}
 
-	c := cors.New(cors.Options{})
-	handler := c.Handler(s)
 
 	if s.cfg.Path == "" {
-		s.server = &http.Server{Handler: handler}
+		s.server = &http.Server{Handler: s}
 	} else {
-		http.Handle(s.cfg.Path, handler)
+		http.Handle(s.cfg.Path, s)
 		s.server = &http.Server{}
 	}
 	return s.server.Serve(listener)

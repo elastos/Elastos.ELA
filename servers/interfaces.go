@@ -2928,6 +2928,19 @@ func getPayloadInfo(p Payload, payloadVersion byte) PayloadInfo {
 
 func getOutputPayloadInfo(op OutputPayload) OutputPayloadInfo {
 	switch object := op.(type) {
+	case *outputpayload.CrossChainOutput:
+		obj := new(CrossChainOutputInfo)
+		obj.Version = object.Version
+		obj.TargetAddress = object.TargetAddress
+		obj.TargetAmount = object.TargetAmount.String()
+		obj.TargetData = string(object.TargetData)
+		return obj
+	case *outputpayload.ReturnSideChainDeposit:
+		obj := new(ReturnSideChainDepositInfo)
+		obj.Version = object.Version
+		obj.GenesisBlockAddress = object.GenesisBlockAddress
+		obj.DepositTransactionHash = common.ToReversedString(object.DepositTransactionHash)
+		return obj
 	case *outputpayload.DefaultOutput:
 		obj := new(DefaultOutputInfo)
 		return obj

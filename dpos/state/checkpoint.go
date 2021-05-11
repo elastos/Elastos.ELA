@@ -18,7 +18,7 @@ import (
 
 const (
 	// checkpointKey defines key of DPoS checkpoint.
-	checkpointKey = "dpos"
+	checkpointKey = "cp_dpos"
 
 	// checkpointExtension defines checkpoint file extension of DPoS checkpoint.
 	checkpointExtension = ".dcp"

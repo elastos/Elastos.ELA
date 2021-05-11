@@ -39,6 +39,19 @@ type OutputPayloadInfo interface{}
 
 type DefaultOutputInfo struct{}
 
+type CrossChainOutputInfo struct {
+	Version       byte   `json:"Version"`
+	TargetAddress string `json:"TargetAddress"`
+	TargetAmount  string `json:"TargetAmount"`
+	TargetData    string `json:"TargetData"`
+}
+
+type ReturnSideChainDepositInfo struct {
+	Version                byte   `json:"Version"`
+	GenesisBlockAddress    string `json:"GenesisBlockAddress"`
+	DepositTransactionHash string `json:"DepositTransactionHash"`
+}
+
 type CandidateVotes struct {
 	Candidate string `json:"candidate"`
 	Votes     string `json:"votes"`
@@ -309,7 +322,7 @@ type CRCChangeCustomIDFeeInfo struct {
 	CategoryData             string `json:"categorydata"`
 	OwnerPublicKey           string `json:"ownerpublickey"`
 	DraftHash                string `json:"drafthash"`
-	FeeRate                  int64 `json:"feerate"`
+	FeeRate                  int64  `json:"feerate"`
 	Signature                string `json:"signature"`
 	CRCouncilMemberDID       string `json:"crcouncilmemberdid"`
 	CRCouncilMemberSignature string `json:"crcouncilmembersignature"`

@@ -18,7 +18,7 @@ import (
 
 const (
 	// checkpointKey defines key of DPoS checkpoint.
-	checkpointKey = "txPool"
+	checkpointKey = "cp_txPool"
 
 	// checkpointExtension defines checkpoint file extension of DPoS checkpoint.
 	checkpointExtension = ".txpcp"

@@ -1589,6 +1589,32 @@ func GetExistWithdrawTransactions(param Params) map[string]interface{} {
 	return ResponsePack(Success, resultTxHashes)
 }
 
+func GetExistSideChainReturnDepositTransactions(param Params) map[string]interface{} {
+	txList, ok := param.ArrayString("txs")
+	if !ok {
+		return ResponsePack(InvalidParams, "txs not found")
+	}
+
+	var resultTxHashes []string
+	for _, txHash := range txList {
+		txHashBytes, err := common.HexStringToBytes(txHash)
+		if err != nil {
+			return ResponsePack(InvalidParams, "")
+		}
+		hash, err := common.Uint256FromBytes(txHashBytes)
+		if err != nil {
+			return ResponsePack(InvalidParams, "")
+		}
+		inStore := Store.IsSidechainReturnDepositTxHashDuplicate(*hash)
+		inTxPool := TxMemPool.IsDuplicateSidechainReturnDepositTx(*hash)
+		if inTxPool || inStore {
+			resultTxHashes = append(resultTxHashes, txHash)
+		}
+	}
+
+	return ResponsePack(Success, resultTxHashes)
+}
+
 //single producer info
 type RPCProducerInfo struct {
 	OwnerPublicKey string `json:"ownerpublickey"`

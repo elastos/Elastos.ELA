@@ -440,6 +440,12 @@ func (mp *TxPool) IsDuplicateSidechainTx(sidechainTxHash Uint256) bool {
 	return mp.ContainsKey(sidechainTxHash, slotSidechainTxHashes)
 }
 
+func (mp *TxPool) IsDuplicateSidechainReturnDepositTx(sidechainReturnDepositTxHash Uint256) bool {
+	mp.RLock()
+	defer mp.RUnlock()
+	return mp.ContainsKey(sidechainReturnDepositTxHash, slotSidechainReturnDepositTxHashes)
+}
+
 // check and replace the duplicate sidechainpow tx
 func (mp *TxPool) replaceDuplicateSideChainPowTx(txn *Transaction) {
 	var replaceList []*Transaction

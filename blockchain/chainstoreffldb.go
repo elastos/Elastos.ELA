@@ -469,3 +469,7 @@ func (c *ChainStoreFFLDB) GetUTXO(programHash *Uint168) ([]*UTXO, error) {
 func (c *ChainStoreFFLDB) IsTx3Exist(txHash *Uint256) bool {
 	return c.indexManager.IsTx3Exist(txHash)
 }
+
+func (c *ChainStoreFFLDB) IsSideChainReturnDepositExist(txHash *Uint256) bool {
+	return c.indexManager.IsSideChainReturnDepositExist(txHash)
+}

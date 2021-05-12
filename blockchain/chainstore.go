@@ -123,6 +123,10 @@ func (c *ChainStore) IsSidechainTxHashDuplicate(sidechainTxHash Uint256) bool {
 	return c.GetFFLDB().IsTx3Exist(&sidechainTxHash)
 }
 
+func (c *ChainStore) IsSidechainReturnDepositTxHashDuplicate(sidechainReturnDepositTxHash Uint256) bool {
+	return c.GetFFLDB().IsSideChainReturnDepositExist(&sidechainReturnDepositTxHash)
+}
+
 func (c *ChainStore) IsDoubleSpend(txn *Transaction) bool {
 	if len(txn.Inputs) == 0 {
 		return false

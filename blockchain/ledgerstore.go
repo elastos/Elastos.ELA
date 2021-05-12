@@ -36,6 +36,7 @@ type IChainStore interface {
 
 	IsTxHashDuplicate(txhash Uint256) bool
 	IsSidechainTxHashDuplicate(sidechainTxHash Uint256) bool
+	IsSidechainReturnDepositTxHashDuplicate(sidechainReturnDepositTxHash Uint256) bool
 
 	GetProposalDraftDataByDraftHash(draftHash *Uint256) ([]byte, error)
 
@@ -91,6 +92,9 @@ type IFFLDBChainStore interface {
 
 	// IsTx3Exist use to find if tx3 exist in db.
 	IsTx3Exist(txHash *Uint256) bool
+
+	// IsSideChainReturnDepositExist use to find if return deposit exist in db.
+	IsSideChainReturnDepositExist(txHash *Uint256) bool
 
 	// Get proposal draft data by draft hash.
 	GetProposalDraftDataByDraftHash(draftHash *Uint256) ([]byte, error)

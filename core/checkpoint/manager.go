@@ -232,6 +232,9 @@ func (m *Manager) SafeHeight() uint32 {
 
 	height := uint32(math.MaxUint32)
 	for _, v := range m.checkpoints {
+		if v.Key() == "cp_txPool" {
+			continue
+		}
 		safeHeight := uint32(math.Max(float64(v.GetHeight()),
 			float64(v.StartHeight())))
 		if safeHeight < height {
@@ -304,6 +307,7 @@ func (m *Manager) onBlockSaved(block *types.DposBlock,
 		if block.Height >= originalHeight+v.SavePeriod() {
 			v.SetHeight(block.Height)
 			snapshot := v.Snapshot()
+
 			if snapshot == nil {
 				log.Error("snapshot is nil, key:", v.Key())
 				continue

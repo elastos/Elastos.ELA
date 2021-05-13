@@ -391,13 +391,9 @@ func (c *CheckPoint) deserializeCRCArbitersMap(r io.Reader) (
 		case Origin:
 			am = &originArbiter{}
 		case DPoS:
-			am = &dposArbiter{
-				arType: DPoS,
-			}
+			am = &dposArbiter{}
 		case CROrigin:
-			am = &dposArbiter{
-				arType: CROrigin,
-			}
+			am = &dposArbiter{}
 		case CRC:
 			am = &crcArbiter{}
 		default:

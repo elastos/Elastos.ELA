@@ -55,7 +55,7 @@ func TestService_Init(t *testing.T) {
 	arbitrators = make([]state.ArbiterMember, 0)
 	for _, v := range arbitratorsStr {
 		a, _ := common.HexStringToBytes(v)
-		ar, _ := state.NewOriginArbiter(state.Origin, a)
+		ar, _ := state.NewOriginArbiter(a)
 		arbitrators = append(arbitrators, ar)
 	}
 	arbitratorsMock = &state.ArbitratorsMock{
@@ -122,7 +122,7 @@ func TestService_AssignCoinbaseTxRewards(t *testing.T) {
 	for i, v := range candidatesStr {
 		vote := i + 1
 		a, _ := common.HexStringToBytes(v)
-		ar, _ := state.NewOriginArbiter(state.Origin, a)
+		ar, _ := state.NewOriginArbiter(a)
 		candidates = append(candidates, ar)
 		hash, _ := contract.PublicKeyToStandardProgramHash(a)
 		candidateHashes = append(candidateHashes, hash)

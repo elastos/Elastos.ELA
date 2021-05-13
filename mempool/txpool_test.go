@@ -87,7 +87,7 @@ func TestTxPoolInit(t *testing.T) {
 	arbiters := make([]state.ArbiterMember, 0)
 	for _, arbiter := range arbitratorsPublicKeys {
 		arbiterByte, _ := common.HexStringToBytes(arbiter)
-		ar, _ := state.NewOriginArbiter(state.Origin, arbiterByte)
+		ar, _ := state.NewOriginArbiter(arbiterByte)
 		arbiters = append(arbiters, ar)
 	}
 	arbitrators := state.NewArbitratorsMock(arbiters, 0, 3)

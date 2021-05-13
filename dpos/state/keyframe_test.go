@@ -107,20 +107,20 @@ func generateCheckPoint(height uint32) *CheckPoint {
 	result.NextReward.TotalVotesInRound = common.Fixed64(rand.Uint64())
 
 	for i := 0; i < 5; i++ {
-		ar, _ := NewOriginArbiter(Origin, randomFakePK())
+		ar, _ := NewOriginArbiter(randomFakePK())
 		result.CurrentArbitrators = append(result.CurrentArbitrators, ar)
-		ar, _ = NewOriginArbiter(Origin, randomFakePK())
+		ar, _ = NewOriginArbiter(randomFakePK())
 		result.CurrentCandidates = append(result.CurrentCandidates, ar)
-		ar, _ = NewOriginArbiter(Origin, randomFakePK())
+		ar, _ = NewOriginArbiter(randomFakePK())
 		result.NextArbitrators = append(result.NextArbitrators, ar)
-		ar, _ = NewOriginArbiter(Origin, randomFakePK())
+		ar, _ = NewOriginArbiter(randomFakePK())
 		result.NextCandidates = append(result.NextCandidates, ar)
 
-		ar, _ = NewOriginArbiter(Origin, randomFakePK())
+		ar, _ = NewOriginArbiter(randomFakePK())
 		result.NextCRCArbiters = append(result.NextCRCArbiters, ar)
-		ar, _ = NewOriginArbiter(Origin, randomFakePK())
+		ar, _ = NewOriginArbiter(randomFakePK())
 		result.CurrentCRCArbitersMap[ar.GetOwnerProgramHash()] = ar
-		ar, _ = NewOriginArbiter(Origin, randomFakePK())
+		ar, _ = NewOriginArbiter(randomFakePK())
 		result.NextCRCArbitersMap[ar.GetOwnerProgramHash()] = ar
 
 		result.CurrentReward.OwnerVotesInRound[*randomProgramHash()] =

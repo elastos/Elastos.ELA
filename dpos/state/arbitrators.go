@@ -705,6 +705,9 @@ func (a *arbitrators) distributeDPOSReward(height uint32,
 
 	change = reward - realDPOSReward
 	if change < 0 {
+		log.Error("reward:", reward, "realDPOSReward:", realDPOSReward, "height:", height,
+			"b", a.chainParams.CRClaimDPOSNodeStartHeight+2*uint32(len(a.currentArbitrators)),
+			"c", a.chainParams.CRCommitteeStartHeight+2*uint32(len(a.currentArbitrators)))
 		return nil, 0, errors.New("real dpos reward more than reward limit")
 	}
 
@@ -1801,7 +1804,7 @@ func (a *arbitrators) resetNextArbiterByCRC(versionHeight uint32, height uint32)
 
 		for i := 0; i < len(a.chainParams.CRCArbiters); i++ {
 			producer := votedProducers[i]
-			ar, err := NewDPoSArbiter(CROrigin, producer)
+			ar, err := NewDPoSArbiter(producer)
 			if err != nil {
 				return unclaimed, err
 			}
@@ -1823,7 +1826,7 @@ func (a *arbitrators) resetNextArbiterByCRC(versionHeight uint32, height uint32)
 				},
 				activateRequestHeight: math.MaxUint32,
 			}
-			ar, err := NewDPoSArbiter(CROrigin, producer)
+			ar, err := NewDPoSArbiter(producer)
 			if err != nil {
 				return unclaimed, err
 			}
@@ -2014,7 +2017,7 @@ func (a *arbitrators) GetCandidatesDesc(height uint32, startIndex int,
 		result := make([]ArbiterMember, 0)
 		for i := startIndex; i < len(producers) && i < startIndex+a.
 			chainParams.CandidateArbiters; i++ {
-			ar, err := NewDPoSArbiter(DPoS, producers[i])
+			ar, err := NewDPoSArbiter(producers[i])
 			if err != nil {
 				return nil, err
 			}
@@ -2295,7 +2298,7 @@ func (a *arbitrators) initArbitrators(chainParams *config.Params) error {
 		if err != nil {
 			return err
 		}
-		ar, err := NewOriginArbiter(Origin, b)
+		ar, err := NewOriginArbiter(b)
 		if err != nil {
 			return err
 		}
@@ -2316,7 +2319,7 @@ func (a *arbitrators) initArbitrators(chainParams *config.Params) error {
 			},
 			activateRequestHeight: math.MaxUint32,
 		}
-		ar, err := NewDPoSArbiter(CROrigin, producer)
+		ar, err := NewDPoSArbiter(producer)
 		if err != nil {
 			return err
 		}

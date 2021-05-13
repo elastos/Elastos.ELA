@@ -784,6 +784,11 @@ func (b *BlockChain) checkTransactionOutput(txn *Transaction,
 			}
 		}
 	}
+
+	if txn.IsReturnSideChainDepositCoinTx() {
+		return nil
+	}
+
 	if b.GetHeight() >= b.chainParams.PublicDPOSHeight && specialOutputCount > 1 {
 		return errors.New("special output count should less equal than 1")
 	}

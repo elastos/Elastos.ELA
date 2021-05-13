@@ -325,14 +325,14 @@ func hashArraySidechainTransactionHashes(
 }
 
 // hash array related functions
-func hashSidechainReturnDepositTransactionHashes(
+func hashArraySidechainReturnDepositTransactionHashes(
 	tx *types.Transaction) (interface{}, error) {
-	var hash common.Uint256
+	arrayHash := make([]common.Uint256, 0)
 	for _, output := range tx.Outputs {
 		if output.Type == types.OTReturnSideChainDepositCoin {
 			payload, ok := output.Payload.(*outputpayload.ReturnSideChainDeposit)
 			if ok {
-				hash = payload.DepositTransactionHash
+				arrayHash = append(arrayHash, payload.DepositTransactionHash)
 			} else {
 				return nil, fmt.Errorf(
 					"sidechain return deposit tx from sidechain output payload cast failed, tx: %s",
@@ -340,7 +340,7 @@ func hashSidechainReturnDepositTransactionHashes(
 			}
 		}
 	}
-	return hash, nil
+	return arrayHash, nil
 }
 
 // str array related functions

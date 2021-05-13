@@ -435,7 +435,7 @@ func newConflictManager() conflictManager {
 				slot: newConflictSlot(hashArray,
 					keyTypeFuncPair{
 						Type: types.ReturnSideChainDepositCoin,
-						Func: hashSidechainReturnDepositTransactionHashes,
+						Func: hashArraySidechainReturnDepositTransactionHashes,
 					},
 				),
 			},

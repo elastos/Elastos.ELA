@@ -2624,51 +2624,24 @@ func (b *BlockChain) checkReturnSideChainDepositTransaction(txn *Transaction) er
 			return errors.New("invalid output address")
 		}
 
-		// side chain deposit address
-		crossChainHash, err := common.Uint168FromAddress(py.GenesisBlockAddress)
-		if err != nil {
-			return err
-		}
-		var crossChainAmount common.Fixed64
-		switch tx.PayloadVersion {
-		case payload.TransferCrossChainVersion:
-			p, ok := tx.Payload.(*payload.TransferCrossChainAsset)
-			if !ok {
-				log.Error("Invalid payload type need TransferCrossChainAsset")
+		var depositAmount common.Fixed64
+		for _, output := range tx.Outputs {
+			if bytes.Compare(output.ProgramHash[0:1], []byte{byte(contract.PrefixCrossChain)}) != 0 {
 				continue
 			}
 
-			for i, cca := range p.CrossChainAmounts {
-				idx := p.OutputIndexes[i]
-				// output to current side chain
-				if !crossChainHash.IsEqual(tx.Outputs[idx].ProgramHash) {
-					continue
-				}
-				crossChainAmount += cca
+			crossChainHash, err := common.Uint168FromAddress(py.GenesisBlockAddress)
+			if err != nil {
+				return err
 			}
-		case payload.TransferCrossChainVersionV1:
-			_, ok := tx.Payload.(*payload.TransferCrossChainAsset)
-			if !ok {
-				log.Error("Invalid payload type need TransferCrossChainAsset")
+			if !crossChainHash.IsEqual(output.ProgramHash) {
 				continue
 			}
-			for _, o := range tx.Outputs {
-				if o.Type != OTCrossChain {
-					continue
-				}
-				// output to current side chain
-				if !crossChainHash.IsEqual(o.ProgramHash) {
-					continue
-				}
-				p, ok := o.Payload.(*outputpayload.CrossChainOutput)
-				if !ok {
-					continue
-				}
-				crossChainAmount += p.TargetAmount
-			}
+
+			depositAmount += output.Value
 		}
 
-		if o.Value+fee != crossChainAmount {
+		if o.Value+fee != depositAmount {
 			return errors.New("invalid output amount")
 		}
 	}

@@ -71,6 +71,8 @@ func registerParams(c *cli.Context, L *lua.LState) {
 	crDPOSPrivateKey := c.String("crdposprivatekey")
 	crCommitteeDID := c.String("crcommitteedid")
 
+	targetData := c.String("targetdata")
+
 	getWallet := func(L *lua.LState) int {
 		L.Push(lua.LString(wallet))
 		return 1
@@ -291,6 +293,10 @@ func registerParams(c *cli.Context, L *lua.LState) {
 		L.Push(lua.LString(crCommitteeDID))
 		return 1
 	}
+	getTargetData := func(L *lua.LState) int {
+		L.Push(lua.LString(targetData))
+		return 1
+	}
 
 	L.Register("getWallet", getWallet)
 	L.Register("getPassword", getPassword)
@@ -345,6 +351,7 @@ func registerParams(c *cli.Context, L *lua.LState) {
 	L.Register("getCRManagementPublicKey", getCRManagementPublicKey)
 	L.Register("getCRDPOSPrivateKey", getCRDPOSPrivateKey)
 	L.Register("getCRCommitteeDID", getCRCommitteeDID)
+	L.Register("getTargetData", getTargetData)
 }
 
 func scriptAction(c *cli.Context) error {
@@ -580,7 +587,8 @@ func NewCommand() *cli.Command {
 			cli.Int64Flag{
 				Name:  "payloadversion",
 				Usage: "set the version of payload",
-			}, cli.StringFlag{
+			},
+			cli.StringFlag{
 				Name:  "crmanagementpublickey",
 				Usage: "set the public key of crmanagement",
 			},
@@ -595,6 +603,10 @@ func NewCommand() *cli.Command {
 			cli.StringFlag{
 				Name:  "customidrate",
 				Usage: "set the rate of custom id",
+			},
+			cli.StringFlag{
+				Name:  "targetdata",
+				Usage: "set the target data of proposal",
 			},
 		},
 		Action: scriptAction,

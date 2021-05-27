@@ -304,7 +304,7 @@ func (b *BlockChain) InitCheckpoint(interrupt <-chan struct{},
 				break
 			}
 
-			b.chainParams.CkpManager.OnBlockSaved(block, nil)
+			b.chainParams.CkpManager.OnBlockSaved(block, nil, b.state.ConsensusAlgorithm == state.POW)
 
 			// Notify process increase.
 			if increase != nil {
@@ -1241,7 +1241,7 @@ func (b *BlockChain) reorganizeChain(detachNodes, attachNodes *list.List) error 
 			Block:       block,
 			HaveConfirm: confirm != nil,
 			Confirm:     confirm,
-		}, nil)
+		}, nil, b.state.ConsensusAlgorithm == state.POW)
 		DefaultLedger.Arbitrators.DumpInfo(block.Height)
 
 		delete(b.blockCache, *n.Hash)
@@ -1454,7 +1454,7 @@ func (b *BlockChain) maybeAcceptBlock(block *Block, confirm *payload.Confirm) (b
 			Block:       block,
 			HaveConfirm: confirm != nil,
 			Confirm:     confirm,
-		}, nil)
+		}, nil, b.state.ConsensusAlgorithm == state.POW)
 		DefaultLedger.Arbitrators.DumpInfo(block.Height)
 	}
 

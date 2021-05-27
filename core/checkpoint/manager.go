@@ -132,10 +132,10 @@ type Manager struct {
 // OnBlockSaved is an event fired after block saved to chain db,
 // which means block has been settled in block chain.
 func (m *Manager) OnBlockSaved(block *types.DposBlock,
-	filter func(point ICheckPoint) bool) {
+	filter func(point ICheckPoint) bool, isPow bool) {
 	m.mtx.Lock()
 	defer m.mtx.Unlock()
-	m.onBlockSaved(block, filter, true)
+	m.onBlockSaved(block, filter, true, isPow)
 }
 
 // OnRollbackTo is an event fired during the block chain rollback, since we
@@ -289,7 +289,7 @@ func (m *Manager) getOrderedCheckpoints() []ICheckPoint {
 }
 
 func (m *Manager) onBlockSaved(block *types.DposBlock,
-	filter func(point ICheckPoint) bool, async bool) {
+	filter func(point ICheckPoint) bool, async bool, isPow bool) {
 
 	sortedPoints := m.getOrderedCheckpoints()
 	var saveCheckPoint bool
@@ -327,7 +327,7 @@ func (m *Manager) onBlockSaved(block *types.DposBlock,
 
 		if v.Key() != dposCheckpointKey && block.Height >=
 			originalHeight+v.SavePeriod() ||
-			v.Key() == dposCheckpointKey && saveCheckPoint {
+			v.Key() == dposCheckpointKey && saveCheckPoint || isPow {
 			v.SetHeight(block.Height)
 			snapshot := v.Snapshot()
 			if snapshot == nil {

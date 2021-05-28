@@ -39,7 +39,7 @@ func (f *CustomIdFilter) Add(data []byte) error {
 // matches the filter.
 func (f *CustomIdFilter) MatchConfirmed(tx *types.Transaction) bool {
 	return f.TxFilter.MatchConfirmed(tx) || tx.IsNextTurnDPOSInfoTx() ||
-		tx.IsCustomIDRelatedTx()
+		tx.IsCustomIDRelatedTx() || tx.IsRevertToPOW() || tx.IsRevertToDPOS()
 }
 
 // MatchUnconfirmed returns if a unconfirmed (not packed into a block yet)

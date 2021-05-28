@@ -17,6 +17,7 @@ import (
 	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/core/types"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
+	"github.com/elastos/Elastos.ELA/dpos/state"
 	"github.com/elastos/Elastos.ELA/elanet/bloom"
 	"github.com/elastos/Elastos.ELA/elanet/filter"
 	"github.com/elastos/Elastos.ELA/elanet/filter/customidfilter"
@@ -111,7 +112,7 @@ func newServerPeer(s *server) *serverPeer {
 		case filter.FTDPOS:
 			return sidefilter.New(s.chain.GetState())
 		case filter.FTNexTTurnDPOSInfo:
-			return customidfilter.New()
+			return nextturndposfilter.New()
 		case filter.FTCustomID:
 			return customidfilter.New()
 		}
@@ -795,6 +796,7 @@ func (s *server) handleRelayInvMsg(peers map[svr.IPeer]*serverPeer, rmsg relayMs
 			if sp.filter.IsLoaded() {
 				// Do not send unconfirmed block to SPV client after H1.
 				if current >= s.chainParams.CRCOnlyDPOSHeight-1 &&
+					s.chain.GetState().ConsensusAlgorithm != state.POW &&
 					rmsg.invVect.Type == msg.InvTypeBlock {
 					continue
 				}

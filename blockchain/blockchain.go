@@ -1209,7 +1209,7 @@ func (b *BlockChain) reorganizeChain(detachNodes, attachNodes *list.List) error 
 
 		// roll back state about the last block before disconnect
 		if block.Height-1 >= b.chainParams.VoteStartHeight {
-			err = b.chainParams.CkpManager.OnRollbackTo(block.Height - 1)
+			err = b.chainParams.CkpManager.OnRollbackTo(block.Height-1, b.state.ConsensusAlgorithm == state.POW)
 			if err != nil {
 				return err
 			}
@@ -1312,7 +1312,7 @@ func (b *BlockChain) connectBlock(node *BlockNode, block *Block, confirm *payloa
 	if block.Height >= b.chainParams.CRCOnlyDPOSHeight && !revertToPOW &&
 		b.state.ConsensusAlgorithm != state.POW {
 		if err := checkBlockWithConfirmation(block, confirm,
-			b.chainParams.CkpManager); err != nil {
+			b.chainParams.CkpManager, b.state.ConsensusAlgorithm == state.POW); err != nil {
 			return fmt.Errorf("block confirmation validate failed: %s", err)
 		}
 	}

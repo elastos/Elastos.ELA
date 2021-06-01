@@ -277,7 +277,7 @@ func TestManager_OnRollbackTo(t *testing.T) {
 	}, nil, false, false)
 
 	assert.Equal(t, currentHeight, uint32(*pt.data))
-	assert.NoError(t, manager.OnRollbackTo(originalHeight))
+	assert.NoError(t, manager.OnRollbackTo(originalHeight, false))
 	assert.Equal(t, originalHeight, uint32(*pt.data))
 
 	cleanCheckpoints()

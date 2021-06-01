@@ -141,10 +141,17 @@ func (m *Manager) OnBlockSaved(block *types.DposBlock,
 // OnRollbackTo is an event fired during the block chain rollback, since we
 // only tolerance 6 blocks rollback so out max rollback support can be 6 blocks
 // by default.
-func (m *Manager) OnRollbackTo(height uint32) error {
+func (m *Manager) OnRollbackTo(height uint32, isPow bool) error {
 	m.mtx.Lock()
 	defer m.mtx.Unlock()
 
+	if isPow {
+		err := m.RestoreTo(int(height))
+		if err != nil {
+			log.Errorf("Error rollback to height %d , %s ", height, err.Error())
+			return err
+		}
+	}
 	sortedPoints := m.getOrderedCheckpoints()
 	for _, v := range sortedPoints {
 		if err := v.OnRollbackTo(height); err != nil {
@@ -221,6 +228,22 @@ func (m *Manager) Restore() (err error) {
 	return
 }
 
+// RestoreTo will load all data of specific height in each checkpoints file and store in
+// corresponding meta-data.
+func (m *Manager) RestoreTo(height int) (err error) {
+	m.mtx.Lock()
+	defer m.mtx.Unlock()
+
+	sortedPoints := m.getOrderedCheckpoints()
+	for _, v := range sortedPoints {
+		if err = m.loadSpecificHeightCheckpoint(v, height); err != nil {
+			return
+		}
+		v.OnInit()
+	}
+	return
+}
+
 func (m *Manager) Reset(filter func(point ICheckPoint) bool) {
 	for _, v := range m.checkpoints {
 		if filter != nil && !filter(v) {
@@ -275,6 +298,13 @@ func (m *Manager) SetNeedSave(needSave bool) {
 	m.mtx.Lock()
 	defer m.mtx.Unlock()
 	m.cfg.NeedSave = needSave
+}
+
+// RegisterEnableHistory register the enable history function.
+func (m *Manager) SetEnableHistory(enableHistory bool) {
+	m.mtx.Lock()
+	defer m.mtx.Unlock()
+	m.cfg.EnableHistory = enableHistory
 }
 
 func (m *Manager) getOrderedCheckpoints() []ICheckPoint {
@@ -375,6 +405,17 @@ func (m *Manager) loadDefaultCheckpoint(current ICheckPoint) (err error) {
 	return current.Deserialize(buf)
 }
 
+func (m *Manager) loadSpecificHeightCheckpoint(current ICheckPoint, height int) (err error) {
+	path := getSpecificHeightPath(m.cfg.DataPath, current, height)
+	data, err := m.readFileBuffer(path)
+	if err != nil {
+		return err
+	}
+	buf := new(bytes.Buffer)
+	buf.Write(data)
+	return current.Deserialize(buf)
+}
+
 func (m *Manager) readFileBuffer(path string) (buf []byte, err error) {
 	if !utils.FileExisted(path) {
 		err = errors.New(fmt.Sprintf("can't find file: %s", path))
@@ -408,6 +449,11 @@ func getDefaultPath(root string, checkpoint ICheckPoint) string {
 		string(os.PathSeparator), getDefaultFileName(checkpoint))
 }
 
+func getSpecificHeightPath(root string, checkpoint ICheckPoint, height int) string {
+	return filepath.Join(getCheckpointDirectory(root, checkpoint),
+		string(os.PathSeparator), getSpecificHeightFileName(checkpoint, height))
+}
+
 func getFilePathByHeight(root string, checkpoint ICheckPoint,
 	height uint32) string {
 	return filepath.Join(getCheckpointDirectory(root, checkpoint),
@@ -421,6 +467,10 @@ func getFileName(checkpoint ICheckPoint, height uint32) string {
 
 func getDefaultFileName(checkpoint ICheckPoint) string {
 	return DefaultCheckpoint + checkpoint.DataExtension()
+}
+
+func getSpecificHeightFileName(checkpoint ICheckPoint, height int) string {
+	return strconv.Itoa(height) + checkpoint.DataExtension()
 }
 
 func getCheckpointDirectory(root string,

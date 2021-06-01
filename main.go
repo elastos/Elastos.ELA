@@ -362,6 +362,7 @@ func startNode(c *cli.Context, st *settings.Settings) {
 	servers.Pow.ListenForRevert()
 
 	st.Params().CkpManager.SetNeedSave(true)
+	st.Params().CkpManager.SetEnableHistory(true)
 
 	<-interrupt.C
 }

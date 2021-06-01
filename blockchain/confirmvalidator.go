@@ -104,7 +104,7 @@ func ConfirmContextCheck(confirm *payload.Confirm) error {
 }
 
 func checkBlockWithConfirmation(block *Block, confirm *payload.Confirm,
-	manager *checkpoint.Manager) error {
+	manager *checkpoint.Manager, isPow bool) error {
 	if block.Hash() != confirm.Proposal.BlockHash {
 		return errors.New("[CheckBlockWithConfirmation] block " +
 			"confirmation validate failed")
@@ -112,7 +112,7 @@ func checkBlockWithConfirmation(block *Block, confirm *payload.Confirm,
 
 	if err := ConfirmContextCheck(confirm); err != nil {
 		// rollback to the state before this method
-		if e := manager.OnRollbackTo(block.Height - 1); e != nil {
+		if e := manager.OnRollbackTo(block.Height-1, isPow); e != nil {
 			panic("rollback fail when check block with confirmation")
 		}
 		return err
@@ -136,16 +136,16 @@ func PreProcessSpecialTx(block *Block) error {
 
 			inactivePayloads = append(inactivePayloads,
 				tx.Payload.(*payload.InactiveArbitrators))
-		//case IllegalBlockEvidence:
-		//	p, ok := tx.Payload.(*payload.DPOSIllegalBlocks)
-		//	if !ok {
-		//		return errors.New("invalid payload")
-		//	}
-		//	if err := CheckDPOSIllegalBlocks(p); err != nil {
-		//		return err
-		//	}
-		//
-		//	illegalBlocks = append(illegalBlocks, p)
+			//case IllegalBlockEvidence:
+			//	p, ok := tx.Payload.(*payload.DPOSIllegalBlocks)
+			//	if !ok {
+			//		return errors.New("invalid payload")
+			//	}
+			//	if err := CheckDPOSIllegalBlocks(p); err != nil {
+			//		return err
+			//	}
+			//
+			//	illegalBlocks = append(illegalBlocks, p)
 		}
 	}
 

@@ -14,7 +14,7 @@ import (
 
 func TestArbiterMemberInterfaceDeserialize(t *testing.T) {
 	// origin
-	ar1, _ := NewOriginArbiter(Origin, randomPublicKey())
+	ar1, _ := NewOriginArbiter(randomPublicKey())
 	buf := new(bytes.Buffer)
 	SerializeArbiterMember(ar1, buf)
 	ar2, _ := ArbiterMemberFromReader(buf)
@@ -26,7 +26,7 @@ func TestArbiterMemberInterfaceDeserialize(t *testing.T) {
 	assert.True(t, origin1.ownerHash.IsEqual(origin2.ownerHash))
 
 	// DPoS
-	ar1, _ = NewDPoSArbiter(DPoS, randomProducer())
+	ar1, _ = NewDPoSArbiter(randomProducer())
 	buf = new(bytes.Buffer)
 	SerializeArbiterMember(ar1, buf)
 	ar2, _ = ArbiterMemberFromReader(buf)
@@ -38,7 +38,7 @@ func TestArbiterMemberInterfaceDeserialize(t *testing.T) {
 	assert.True(t, dpos1.ownerHash.IsEqual(dpos2.ownerHash))
 
 	// CROrigin
-	ar1, _ = NewDPoSArbiter(CROrigin, randomProducer())
+	ar1, _ = NewDPoSArbiter(randomProducer())
 	buf = new(bytes.Buffer)
 	SerializeArbiterMember(ar1, buf)
 	ar2, _ = ArbiterMemberFromReader(buf)

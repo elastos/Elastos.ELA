@@ -42,13 +42,13 @@ func ArbiterMemberFromReader(r io.Reader) (result ArbiterMember, err error) {
 
 	switch ArbiterType(typeByte) {
 	case Origin:
-		result = &originArbiter{arType: Origin}
+		result = &originArbiter{}
 	case DPoS:
-		result = &dposArbiter{arType: DPoS}
+		result = &dposArbiter{}
 	case CROrigin:
-		result = &dposArbiter{arType: CROrigin}
+		result = &dposArbiter{}
 	case CRC:
-		return nil, errors.New("CRC arbiter not supported yet")
+		result = &crcArbiter{}
 	default:
 		return nil, errors.New("unknown arbiter member type")
 	}

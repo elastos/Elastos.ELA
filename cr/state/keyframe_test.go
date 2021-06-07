@@ -11,6 +11,7 @@ import (
 	"encoding/binary"
 	"math/rand"
 	"testing"
+	"time"
 
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/core/types"
@@ -74,6 +75,37 @@ func TestProposalKeyFrame_Snapshot(t *testing.T) {
 	assert.True(t, proposalKeyFrameEqual(frame, frame2))
 }
 
+func TestCheckPoint_Deserialize(t *testing.T) {
+	originCheckPoint := generateCheckPoint(rand.Uint32())
+
+	buf := new(bytes.Buffer)
+	assert.NoError(t, originCheckPoint.Serialize(buf))
+
+	cmpData := &Checkpoint{}
+	assert.NoError(t, cmpData.Deserialize(buf))
+
+	assert.True(t, checkPointsEqual(originCheckPoint, cmpData))
+}
+
+func generateCheckPoint(height uint32) *Checkpoint {
+	result := &Checkpoint{
+		KeyFrame:         *randomKeyFrame(5, rand.Uint32()),
+		StateKeyFrame:    *randomStateKeyFrame(5, true),
+		ProposalKeyFrame: *randomProposalKeyframe(),
+		height:           height,
+	}
+	return result
+}
+
+func checkPointsEqual(first *Checkpoint, second *Checkpoint) bool {
+	if first.height != second.height {
+		return false
+	}
+	return keyframeEqual(&first.KeyFrame, &second.KeyFrame) &&
+		stateKeyframeEqual(&first.StateKeyFrame, &second.StateKeyFrame) &&
+		proposalKeyFrameEqual(&first.ProposalKeyFrame, &second.ProposalKeyFrame)
+}
+
 func stateKeyframeEqual(first *StateKeyFrame, second *StateKeyFrame) bool {
 	if first.CurrentSession != second.CurrentSession ||
 		len(first.Candidates) != len(second.Candidates) ||
@@ -84,7 +116,8 @@ func stateKeyframeEqual(first *StateKeyFrame, second *StateKeyFrame) bool {
 		len(first.CRCFoundationOutputs) != len(second.CRCFoundationOutputs) ||
 		len(first.CRCCommitteeOutputs) != len(second.CRCCommitteeOutputs) ||
 		len(first.Nicknames) != len(second.Nicknames) ||
-		len(first.Votes) != len(second.Votes) {
+		len(first.Votes) != len(second.Votes) ||
+		len(first.depositInfo) != len(second.depositInfo) {
 		return false
 	}
 
@@ -96,7 +129,8 @@ func stateKeyframeEqual(first *StateKeyFrame, second *StateKeyFrame) bool {
 		amountMapEqual(first.CRCFoundationOutputs, second.CRCFoundationOutputs) &&
 		amountMapEqual(first.CRCCommitteeOutputs, second.CRCCommitteeOutputs) &&
 		stringMapEqual(first.Nicknames, second.Nicknames) &&
-		stringMapEqual(first.Votes, second.Votes)
+		stringMapEqual(first.Votes, second.Votes) &&
+		depositInfoMapEqual(first.depositInfo, second.depositInfo)
 
 }
 
@@ -181,6 +215,24 @@ func candidatesMapEqual(first map[common.Uint168]*Candidate,
 	return true
 }
 
+func depositInfoMapEqual(first map[common.Uint168]*DepositInfo,
+	second map[common.Uint168]*DepositInfo) bool {
+	if len(first) != len(second) {
+		return false
+	}
+	for k, v := range first {
+		v2, ok := second[k]
+		if !ok {
+			return false
+		}
+
+		if !depositInfoEqual(v, v2) {
+			return false
+		}
+	}
+	return true
+}
+
 func candidatesHistoryMapEqual(first map[uint64]map[common.Uint168]*Candidate,
 	second map[uint64]map[common.Uint168]*Candidate) bool {
 	if len(first) != len(second) {
@@ -205,7 +257,8 @@ func keyframeEqual(first *KeyFrame, second *KeyFrame) bool {
 		first.DestroyedAmount != second.DestroyedAmount ||
 		first.CirculationAmount != second.CirculationAmount ||
 		len(first.Members) != len(second.Members) ||
-		len(first.HistoryMembers) != len(second.HistoryMembers) {
+		len(first.HistoryMembers) != len(second.HistoryMembers) ||
+		first.CRCCurrentStageAmount != second.CRCCurrentStageAmount {
 		return false
 	}
 
@@ -234,13 +287,41 @@ func membersEuqal(first map[common.Uint168]*CRMember,
 
 func randomKeyFrame(size int, commitHeight uint32) *KeyFrame {
 	frame := &KeyFrame{
-		LastCommitteeHeight: commitHeight,
+		Members:                  make(map[common.Uint168]*CRMember, size),
+		HistoryMembers:           make(map[uint64]map[common.Uint168]*CRMember, 0),
+		CustomIDProposalResults:  make([]payload.ProposalResult, size, size),
+		LastCommitteeHeight:      commitHeight,
+		LastVotingStartHeight:    rand.Uint32(),
+		InElectionPeriod:         randomBool(),
+		NeedAppropriation:        randomBool(),
+		NeedCIDProposalResult:    randomBool(),
+		CRCFoundationBalance:     randomFix64(),
+		CRCCommitteeBalance:      randomFix64(),
+		CRCCommitteeUsedAmount:   randomFix64(),
+		CRCCurrentStageAmount:    randomFix64(),
+		DestroyedAmount:          randomFix64(),
+		CirculationAmount:        randomFix64(),
+		AppropriationAmount:      randomFix64(),
+		CommitteeUsedAmount:      randomFix64(),
+		CRAssetsAddressUTXOCount: rand.Uint32(),
 	}
 
-	frame.Members = make(map[common.Uint168]*CRMember, size)
 	for i := 0; i < size; i++ {
 		m := randomCRMember()
 		frame.Members[m.Info.DID] = m
+	}
+
+	for i := 0; i < size; i++ {
+		session := uint64(i)
+		frame.HistoryMembers[session] = make(map[common.Uint168]*CRMember)
+		for j := 0; j <= i; j++ {
+			m := randomCRMember()
+			frame.HistoryMembers[session][m.Info.DID] = m
+		}
+	}
+
+	for i := 0; i < size; i++ {
+		frame.CustomIDProposalResults = append(frame.CustomIDProposalResults, randomProposalResult())
 	}
 
 	return frame
@@ -249,6 +330,15 @@ func randomKeyFrame(size int, commitHeight uint32) *KeyFrame {
 func crMemberEqual(first *CRMember, second *CRMember) bool {
 	return crInfoEqual(&first.Info, &second.Info) &&
 		first.ImpeachmentVotes == second.ImpeachmentVotes
+}
+
+func randomProposalResult() payload.ProposalResult {
+	return payload.ProposalResult{
+		ProposalHash: *randomUint256(),
+		ProposalType: payload.SecretaryGeneral,
+		Result:       randomBool(),
+	}
+
 }
 
 func randomCRMember() *CRMember {
@@ -260,6 +350,13 @@ func randomCRMember() *CRMember {
 
 func randomStateKeyFrame(size int, hasPending bool) *StateKeyFrame {
 	frame := NewStateKeyFrame()
+	for i := 0; i < size; i++ {
+		frame.DepositOutputs[randomString()] = randomFix64()
+		frame.CRCFoundationOutputs[randomString()] = randomFix64()
+		frame.CRCCommitteeOutputs[randomString()] = randomFix64()
+		hash := randomUint168()
+		frame.DepositHashCIDMap[*hash] = *hash
+	}
 
 	if hasPending {
 		for i := 0; i < size; i++ {
@@ -322,6 +419,28 @@ func randomStateKeyFrame(size int, hasPending bool) *StateKeyFrame {
 	return frame
 }
 
+func proposalSessionEqual(first, second map[uint64][]common.Uint256) bool {
+	if len(first) != len(second) {
+		return false
+	}
+	for firstK, firstV := range first {
+		secondV, ok := second[firstK]
+		if !ok {
+			return false
+		}
+		if len(firstV) != len(secondV) {
+			return false
+		}
+		for i := range firstV {
+			if firstV[i] != secondV[i] {
+				return false
+			}
+
+		}
+	}
+	return true
+}
+
 func proposalHashEqual(first, second map[common.Uint168]ProposalHashSet) bool {
 	if len(first) != len(second) {
 		return false
@@ -381,11 +500,17 @@ func proposalKeyFrameEqual(first, second *ProposalKeyFrame) bool {
 		}
 	}
 
+	if !proposalSessionEqual(first.ProposalSession, second.ProposalSession) {
+		return false
+	}
+
 	return proposalHashEqual(first.ProposalHashes, second.ProposalHashes)
 }
 
 func randomProposalKeyframe() *ProposalKeyFrame {
-	return &ProposalKeyFrame{Proposals: map[common.Uint256]*ProposalState{
+	size := uint64(5)
+
+	proposalKeyFrame := &ProposalKeyFrame{Proposals: map[common.Uint256]*ProposalState{
 		*randomUint256(): randomProposalState(),
 		*randomUint256(): randomProposalState(),
 		*randomUint256(): randomProposalState(),
@@ -396,7 +521,39 @@ func randomProposalKeyframe() *ProposalKeyFrame {
 			*randomUint168(): randomProposalHashSet(),
 			*randomUint168(): randomProposalHashSet(),
 		},
+		ProposalSession:           make(map[uint64][]common.Uint256, size),
+		WithdrawableTxInfo:        make(map[common.Uint256]types.OutputInfo, size),
+		SecretaryGeneralPublicKey: randomString(),
 	}
+
+	for i := uint64(0); i < size; i++ {
+		proposalKeyFrame.ProposalSession[i] = make([]common.Uint256, size)
+		for j := 0; j <= rand.Intn(j+1); j++ {
+			proposalKeyFrame.ProposalSession[i] = append(proposalKeyFrame.ProposalSession[i], *randomUint256())
+		}
+	}
+	for i := uint64(0); i < size; i++ {
+		hash := randomUint256()
+		proposalKeyFrame.WithdrawableTxInfo[*hash] = *randomOutputInfo()
+	}
+	var reserverCustomIDs []string
+	for i := uint64(0); i < size; i++ {
+		reserverCustomIDs = []string{}
+		for j := uint64(0); j < i; j++ {
+			reserverCustomIDs = append(reserverCustomIDs, randomString())
+		}
+		proposalKeyFrame.ReservedCustomIDLists = append(proposalKeyFrame.ReservedCustomIDLists, reserverCustomIDs)
+	}
+
+	var receivedCustomIDs []string
+	for i := uint64(0); i < size; i++ {
+		receivedCustomIDs = []string{}
+		for j := uint64(0); j < i; j++ {
+			receivedCustomIDs = append(receivedCustomIDs, randomString())
+		}
+		proposalKeyFrame.ReceivedCustomIDLists = append(proposalKeyFrame.ReceivedCustomIDLists, receivedCustomIDs)
+	}
+	return proposalKeyFrame
 }
 
 func randomProposalState() *ProposalState {
@@ -464,6 +621,18 @@ func randomFix64() common.Fixed64 {
 	var randNum int64
 	binary.Read(crand.Reader, binary.BigEndian, &randNum)
 	return common.Fixed64(randNum)
+}
+
+func randomBool() bool {
+	rand.Seed(time.Now().UnixNano())
+	return rand.Intn(2) == 0
+}
+
+func randomOutputInfo() *types.OutputInfo {
+	return &types.OutputInfo{
+		Recipient: *randomUint168(),
+		Amount:    randomFix64(),
+	}
 }
 
 func randomOutputs() *types.Output {

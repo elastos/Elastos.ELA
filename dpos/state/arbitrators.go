@@ -97,9 +97,8 @@ type arbitrators struct {
 	arbitersRoundReward        map[common.Uint168]common.Fixed64
 	illegalBlocksPayloadHashes map[common.Uint256]interface{}
 
-	snapshots            map[uint32][]*CheckPoint
-	snapshotKeysDesc     []uint32
-	lastCheckPointHeight uint32
+	snapshots        map[uint32][]*CheckPoint
+	snapshotKeysDesc []uint32
 
 	forceChanged bool
 
@@ -168,6 +167,12 @@ func (a *arbitrators) recoverFromCheckPoints(point *CheckPoint) {
 	a.clearingHeight = point.clearingHeight
 	a.arbitersRoundReward = point.arbitersRoundReward
 	a.illegalBlocksPayloadHashes = point.illegalBlocksPayloadHashes
+
+	a.crcChangedHeight = point.crcChangedHeight
+	a.currentCRCArbitersMap = point.CurrentCRCArbitersMap
+	a.nextCRCArbitersMap = point.NextCRCArbitersMap
+	a.nextCRCArbiters = point.NextCRCArbiters
+	a.forceChanged = point.forceChanged
 }
 
 func (a *arbitrators) ProcessBlock(block *types.Block, confirm *payload.Confirm) {
@@ -700,6 +705,9 @@ func (a *arbitrators) distributeDPOSReward(height uint32,
 
 	change = reward - realDPOSReward
 	if change < 0 {
+		log.Error("reward:", reward, "realDPOSReward:", realDPOSReward, "height:", height,
+			"b", a.chainParams.CRClaimDPOSNodeStartHeight+2*uint32(len(a.currentArbitrators)),
+			"c", a.chainParams.CRCommitteeStartHeight+2*uint32(len(a.currentArbitrators)))
 		return nil, 0, errors.New("real dpos reward more than reward limit")
 	}
 
@@ -1796,7 +1804,7 @@ func (a *arbitrators) resetNextArbiterByCRC(versionHeight uint32, height uint32)
 
 		for i := 0; i < len(a.chainParams.CRCArbiters); i++ {
 			producer := votedProducers[i]
-			ar, err := NewDPoSArbiter(CROrigin, producer)
+			ar, err := NewDPoSArbiter(producer)
 			if err != nil {
 				return unclaimed, err
 			}
@@ -1818,7 +1826,7 @@ func (a *arbitrators) resetNextArbiterByCRC(versionHeight uint32, height uint32)
 				},
 				activateRequestHeight: math.MaxUint32,
 			}
-			ar, err := NewDPoSArbiter(CROrigin, producer)
+			ar, err := NewDPoSArbiter(producer)
 			if err != nil {
 				return unclaimed, err
 			}
@@ -2009,7 +2017,7 @@ func (a *arbitrators) GetCandidatesDesc(height uint32, startIndex int,
 		result := make([]ArbiterMember, 0)
 		for i := startIndex; i < len(producers) && i < startIndex+a.
 			chainParams.CandidateArbiters; i++ {
-			ar, err := NewDPoSArbiter(DPoS, producers[i])
+			ar, err := NewDPoSArbiter(producers[i])
 			if err != nil {
 				return nil, err
 			}
@@ -2153,12 +2161,14 @@ func (a *arbitrators) newCheckPoint(height uint32) *CheckPoint {
 		NextCandidates:             make([]ArbiterMember, 0),
 		CurrentReward:              *NewRewardData(),
 		NextReward:                 *NewRewardData(),
-		CurrentCRCArbiters:         make(map[common.Uint168]ArbiterMember),
-		NextCRCArbiters:            make(map[common.Uint168]ArbiterMember),
+		CurrentCRCArbitersMap:      make(map[common.Uint168]ArbiterMember),
+		NextCRCArbitersMap:         make(map[common.Uint168]ArbiterMember),
+		NextCRCArbiters:            make([]ArbiterMember, 0),
 		crcChangedHeight:           a.crcChangedHeight,
 		accumulativeReward:         a.accumulativeReward,
 		finalRoundChange:           a.finalRoundChange,
 		clearingHeight:             a.clearingHeight,
+		forceChanged:               a.forceChanged,
 		arbitersRoundReward:        make(map[common.Uint168]common.Fixed64),
 		illegalBlocksPayloadHashes: make(map[common.Uint256]interface{}),
 		CurrentArbitrators:         a.currentArbitrators,
@@ -2170,8 +2180,10 @@ func (a *arbitrators) newCheckPoint(height uint32) *CheckPoint {
 	point.NextCandidates = copyByteList(a.nextCandidates)
 	point.CurrentReward = *copyReward(&a.CurrentReward)
 	point.NextReward = *copyReward(&a.NextReward)
-	point.NextCRCArbiters = copyCRCArbitersMap(a.nextCRCArbitersMap)
-	point.CurrentCRCArbiters = copyCRCArbitersMap(a.currentCRCArbitersMap)
+	point.NextCRCArbitersMap = copyCRCArbitersMap(a.nextCRCArbitersMap)
+	point.CurrentCRCArbitersMap = copyCRCArbitersMap(a.currentCRCArbitersMap)
+	point.NextCRCArbiters = copyByteList(a.nextCRCArbiters)
+
 	for k, v := range a.arbitersRoundReward {
 		point.arbitersRoundReward[k] = v
 	}
@@ -2286,7 +2298,7 @@ func (a *arbitrators) initArbitrators(chainParams *config.Params) error {
 		if err != nil {
 			return err
 		}
-		ar, err := NewOriginArbiter(Origin, b)
+		ar, err := NewOriginArbiter(b)
 		if err != nil {
 			return err
 		}
@@ -2307,7 +2319,7 @@ func (a *arbitrators) initArbitrators(chainParams *config.Params) error {
 			},
 			activateRequestHeight: math.MaxUint32,
 		}
-		ar, err := NewDPoSArbiter(CROrigin, producer)
+		ar, err := NewDPoSArbiter(producer)
 		if err != nil {
 			return err
 		}

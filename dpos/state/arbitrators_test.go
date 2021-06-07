@@ -111,12 +111,12 @@ func TestArbitrators_GetSnapshot(t *testing.T) {
 	firstSnapshotPk := randomFakePK()
 	secondSnapshotHeight := uint32(20)
 	secondSnapshotPk := randomFakePK()
-	ar, _ := NewOriginArbiter(Origin, firstSnapshotPk)
+	ar, _ := NewOriginArbiter(firstSnapshotPk)
 	arbitrators.currentArbitrators = []ArbiterMember{ar}
 
 	// take the first snapshot
 	arbitrators.snapshot(firstSnapshotHeight)
-	ar, _ = NewOriginArbiter(Origin, secondSnapshotPk)
+	ar, _ = NewOriginArbiter(secondSnapshotPk)
 	arbitrators.currentArbitrators = []ArbiterMember{ar}
 
 	// height1
@@ -161,7 +161,7 @@ func TestArbitrators_GetSnapshot(t *testing.T) {
 
 	// take the second snapshot
 	arbitrators.snapshot(secondSnapshotHeight)
-	ar, _ = NewOriginArbiter(Origin, randomFakePK())
+	ar, _ = NewOriginArbiter(randomFakePK())
 	arbitrators.currentArbitrators = []ArbiterMember{ar}
 
 	// height1

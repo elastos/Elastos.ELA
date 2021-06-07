@@ -20,7 +20,7 @@ func (a *arbitrators) getNormalArbitratorsDescV0() ([]ArbiterMember, error) {
 		if err != nil {
 			return nil, err
 		}
-		ar, err := NewOriginArbiter(Origin, arbiterByte)
+		ar, err := NewOriginArbiter(arbiterByte)
 		if err != nil {
 			return nil, err
 		}
@@ -56,7 +56,7 @@ func (a *arbitrators) getNormalArbitratorsDescV2(arbitratorsCount int,
 
 	result := make([]ArbiterMember, 0)
 	for i := start; i < start+arbitratorsCount && i < len(producers); i++ {
-		ar, err := NewDPoSArbiter(DPoS, producers[i])
+		ar, err := NewDPoSArbiter(producers[i])
 		if err != nil {
 			return nil, err
 		}

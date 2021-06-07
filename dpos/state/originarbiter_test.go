@@ -15,7 +15,7 @@ import (
 )
 
 func TestOriginArbiter_Deserialize(t *testing.T) {
-	a1, err := NewOriginArbiter(Origin, randomPublicKey())
+	a1, err := NewOriginArbiter(randomPublicKey())
 	assert.NoError(t, err)
 
 	buf := new(bytes.Buffer)

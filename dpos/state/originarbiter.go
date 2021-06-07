@@ -6,15 +6,14 @@
 package state
 
 import (
+	"github.com/elastos/Elastos.ELA/crypto"
 	"io"
 
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/core/contract"
-	"github.com/elastos/Elastos.ELA/crypto"
 )
 
 type originArbiter struct {
-	arType    ArbiterType
 	key       []byte
 	ownerHash common.Uint168
 }
@@ -36,7 +35,7 @@ func (o *originArbiter) Deserialize(r io.Reader) (err error) {
 }
 
 func (o *originArbiter) GetType() ArbiterType {
-	return o.arType
+	return Origin
 }
 
 func (o *originArbiter) GetOwnerPublicKey() []byte {
@@ -58,16 +57,15 @@ func (o *originArbiter) IsNormal() bool {
 func (o *originArbiter) Clone() ArbiterMember {
 	k := make([]byte, len(o.key))
 	copy(k, o.key)
-	return &originArbiter{arType: o.arType, key: k, ownerHash: o.ownerHash}
+	return &originArbiter{key: k, ownerHash: o.ownerHash}
 }
 
-func NewOriginArbiter(t ArbiterType, key []byte) (ArbiterMember, error) {
+func NewOriginArbiter(key []byte) (ArbiterMember, error) {
 	hash, err := contract.PublicKeyToStandardProgramHash(key)
 	if err != nil {
 		return nil, err
 	}
 	return &originArbiter{
-		arType:    t,
 		key:       key,
 		ownerHash: *hash,
 	}, nil

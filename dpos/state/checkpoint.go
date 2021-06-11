@@ -94,6 +94,9 @@ func (c *CheckPoint) OnInit() {
 }
 
 func (c *CheckPoint) Snapshot() checkpoint.ICheckPoint {
+	// init check point
+	c.initFromArbitrators(c.arbitrators)
+
 	point := &CheckPoint{
 		Height:             c.Height,
 		DutyIndex:          c.arbitrators.dutyIndex,

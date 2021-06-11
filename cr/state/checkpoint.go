@@ -69,6 +69,9 @@ func (c *Checkpoint) Key() string {
 }
 
 func (c *Checkpoint) Snapshot() checkpoint.ICheckPoint {
+	// init check point
+	c.initFromCommittee(c.committee)
+
 	buf := new(bytes.Buffer)
 	if err := c.Serialize(buf); err != nil {
 		c.LogError(err)

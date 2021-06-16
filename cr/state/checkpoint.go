@@ -25,6 +25,9 @@ const (
 	// checkpointHeight defines interval height between two neighbor check
 	// points.
 	checkpointHeight = uint32(720)
+
+	// EffectiveHeight defines interval to change src file to default file.
+	EffectiveHeight = uint32(7)
 )
 
 // Checkpoint hold all CR related states to recover from scratch.
@@ -98,7 +101,7 @@ func (c *Checkpoint) SavePeriod() uint32 {
 }
 
 func (c *Checkpoint) EffectivePeriod() uint32 {
-	return checkpointHeight
+	return EffectiveHeight
 }
 
 func (c *Checkpoint) DataExtension() string {

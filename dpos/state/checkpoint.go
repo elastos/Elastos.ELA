@@ -29,7 +29,7 @@ const (
 
 	// checkpointEffectiveHeight defines the minimal height arbitrators obj
 	// should scan to recover effective state.
-	checkpointEffectiveHeight = uint32(720)
+	checkpointEffectiveHeight = uint32(7)
 )
 
 // CheckPoint defines all variables need record in database

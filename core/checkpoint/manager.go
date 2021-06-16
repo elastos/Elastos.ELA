@@ -235,7 +235,13 @@ func (m *Manager) SafeHeight() uint32 {
 		if v.Key() == "cp_txPool" {
 			continue
 		}
-		safeHeight := uint32(math.Max(float64(v.GetHeight()),
+		var recordHeight uint32
+		if v.GetHeight() >= v.EffectivePeriod() {
+			recordHeight = v.GetHeight() - v.EffectivePeriod()
+		} else {
+			recordHeight = 0
+		}
+		safeHeight := uint32(math.Max(float64(recordHeight),
 			float64(v.StartHeight())))
 		if safeHeight < height {
 			height = safeHeight

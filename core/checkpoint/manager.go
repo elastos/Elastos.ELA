@@ -24,6 +24,7 @@ import (
 )
 
 type Priority byte
+type RollBackStatus byte
 
 const (
 	DefaultCheckpoint = "default"
@@ -35,13 +36,18 @@ const (
 	MediumLow  Priority = 0x04
 	Low        Priority = 0x05
 	VeryLow    Priority = 0x06
+
+
+	NoRollback RollBackStatus = 0x00
+	NeedRollback RollBackStatus = 0x01
+	AlreadyRollback	 RollBackStatus = 0x02
 )
 
 // BlockListener defines events during block lifetime.
 type BlockListener interface {
 	// OnBlockSaved is an event fired after block saved to chain db,
 	// which means block has been settled in block chain.
-	OnBlockSaved(block *types.DposBlock)
+	OnBlockSaved(block *types.DposBlock,needRollBack bool)
 
 	// OnRollbackTo is an event fired during the block chain rollback,
 	// since we only tolerance 6 blocks rollback so out max rollback support
@@ -113,6 +119,9 @@ type Config struct {
 	// NeedSave indicate whether or not manager should save checkpoints when
 	//	reached a save point.
 	NeedSave bool
+
+	// RollBackStatus define is right now the rollback situation
+	RollBackStatus RollBackStatus
 }
 
 // Manager holds checkpoints save automatically.
@@ -138,18 +147,11 @@ func (m *Manager) OnBlockSaved(block *types.DposBlock,
 func (m *Manager) OnRollbackTo(height uint32, isPow bool) error {
 	m.mtx.Lock()
 	defer m.mtx.Unlock()
-
 	if isPow {
 		err := m.RestoreTo(int(height))
 		if err != nil {
 			log.Errorf("Error rollback to height %d , %s ", height, err.Error())
 			return err
-		}
-	}
-	sortedPoints := m.getOrderedCheckpoints()
-	for _, v := range sortedPoints {
-		if err := v.OnRollbackTo(height); err != nil {
-			log.Debug("manager rollback failed,", err)
 		}
 	}
 	return nil
@@ -225,9 +227,6 @@ func (m *Manager) Restore() (err error) {
 // RestoreTo will load all data of specific height in each checkpoints file and store in
 // corresponding meta-data.
 func (m *Manager) RestoreTo(height int) (err error) {
-	m.mtx.Lock()
-	defer m.mtx.Unlock()
-
 	sortedPoints := m.getOrderedCheckpoints()
 	for _, v := range sortedPoints {
 		if err = m.loadSpecificHeightCheckpoint(v, height); err != nil {
@@ -301,6 +300,20 @@ func (m *Manager) SetEnableHistory(enableHistory bool) {
 	m.cfg.EnableHistory = enableHistory
 }
 
+// SetIsRollBack define if current is rollback situation
+func (m *Manager) SetRollBackStatus(status RollBackStatus) {
+	m.mtx.Lock()
+	defer m.mtx.Unlock()
+	m.cfg.RollBackStatus = status
+}
+
+// SetIsRollBack define if current is rollback situation
+func (m *Manager) GetRollBackStatus() RollBackStatus{
+	m.mtx.Lock()
+	defer m.mtx.Unlock()
+	return m.cfg.RollBackStatus
+}
+
 func (m *Manager) getOrderedCheckpoints() []ICheckPoint {
 	sortedPoints := make([]ICheckPoint, 0, len(m.checkpoints))
 	for _, v := range m.checkpoints {
@@ -324,8 +337,7 @@ func (m *Manager) onBlockSaved(block *types.DposBlock,
 		if block.Height < v.StartHeight() {
 			continue
 		}
-		v.OnBlockSaved(block)
-
+		v.OnBlockSaved(block, m.cfg.RollBackStatus == NeedRollback)
 		if !m.cfg.NeedSave {
 			continue
 		}

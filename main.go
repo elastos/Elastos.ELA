@@ -315,6 +315,8 @@ func startNode(c *cli.Context, st *settings.Settings) {
 		Arbitrators: arbiters,
 	})
 
+	st.Params().CkpManager.SetNeedSave(true)
+	st.Params().CkpManager.SetEnableHistory(true)
 	// initialize producer state after arbiters has initialized.
 	if err = chain.InitCheckpoint(interrupt.C, pgBar.Start,
 		pgBar.Increase); err != nil {
@@ -360,9 +362,6 @@ func startNode(c *cli.Context, st *settings.Settings) {
 		go servers.Pow.Start()
 	}
 	servers.Pow.ListenForRevert()
-
-	st.Params().CkpManager.SetNeedSave(true)
-	st.Params().CkpManager.SetEnableHistory(true)
 
 	<-interrupt.C
 }

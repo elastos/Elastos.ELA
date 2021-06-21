@@ -180,6 +180,36 @@ func (h *History) SeekTo(height uint32) error {
 	return nil
 }
 
+// RollbackSeekToSeekTo changes state to a historical height in range of history capacity.
+func (h *History) RollbackSeekTo(height uint32) error {
+
+	if height > h.height {
+		return fmt.Errorf("RollbackSeekTo current height %d, to height %d",h.height, height)
+	}
+
+	if height == h.height {
+		return nil
+	}
+
+	// check whether history is enough to seek
+	limitHeight := h.height - uint32(len(h.changes))
+	if height < limitHeight {
+		return fmt.Errorf("RollbackSeekTo to %d overflow history capacity,"+
+			" at most seek to %d", height, limitHeight)
+	}
+
+	for i:= len(h.changes)-1; i >0 ;i-- {
+		if h.changes[i].height > height {
+			h.changes = h.changes[0:i]
+		}
+	}
+
+	h.seekHeight = height
+	h.height = height
+
+	return nil
+}
+
 // RollbackTo restores state to height, and remove all histories after height.
 // If no enough histories to rollback return error.
 func (h *History) RollbackTo(height uint32) error {

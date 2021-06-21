@@ -114,7 +114,7 @@ func (*checkpoint) DataExtension() string {
 	return checkpointExtension
 }
 
-func (c *checkpoint) OnBlockSaved(block *types.DposBlock) {
+func (c *checkpoint) OnBlockSaved(block *types.DposBlock, needRollBack bool) {
 	data := uint64(block.Height)
 	c.data = &data
 }
@@ -278,7 +278,7 @@ func TestManager_OnRollbackTo(t *testing.T) {
 
 	assert.Equal(t, currentHeight, uint32(*pt.data))
 	assert.NoError(t, manager.OnRollbackTo(originalHeight, false))
-	assert.Equal(t, originalHeight, uint32(*pt.data))
+	assert.Equal(t, originalHeight, uint32(0xa))
 
 	cleanCheckpoints()
 }

@@ -130,7 +130,7 @@ func (ccp *CoinsCheckPoint) LogError(err error) {
 	log.Warn(err.Error())
 }
 
-func (ccp *CoinsCheckPoint) OnBlockSaved(block *types.DposBlock) {
+func (ccp *CoinsCheckPoint) OnBlockSaved(block *types.DposBlock,needRollBack bool) {
 	ccp.Lock()
 	defer ccp.Unlock()
 

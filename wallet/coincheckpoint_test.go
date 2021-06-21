@@ -1,7 +1,7 @@
 // Copyright (c) 2017-2020 The Elastos Foundation
 // Use of this source code is governed by an MIT
 // license that can be found in the LICENSE file.
-// 
+//
 
 package wallet
 
@@ -90,7 +90,7 @@ func TestInitBlock(t *testing.T) {
 }
 
 func TestCoinsCheckPoint_BlockSaved(t *testing.T) {
-	ccp.OnBlockSaved(block1)
+	ccp.OnBlockSaved(block1, false)
 
 	verifyCoins(ccp.coins, t)
 }

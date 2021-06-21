@@ -10,6 +10,7 @@ import (
 	"container/list"
 	"errors"
 	"fmt"
+	"github.com/elastos/Elastos.ELA/core/checkpoint"
 	"math/big"
 	"os"
 	"path/filepath"
@@ -1223,7 +1224,6 @@ func (b *BlockChain) reorganizeChain(detachNodes, attachNodes *list.List) error 
 			return err
 		}
 	}
-
 	// Connect the new best chain blocks.
 	for e := attachNodes.Front(); e != nil; e = e.Next() {
 		n := e.Value.(*BlockNode)
@@ -1235,7 +1235,9 @@ func (b *BlockChain) reorganizeChain(detachNodes, attachNodes *list.List) error 
 		if err != nil {
 			return err
 		}
-
+		if b.chainParams.CkpManager.GetRollBackStatus() == checkpoint.NoRollback {
+			b.chainParams.CkpManager.SetRollBackStatus(checkpoint.NeedRollback)
+		}
 		// update state after connected block
 		b.chainParams.CkpManager.OnBlockSaved(&DposBlock{
 			Block:       block,
@@ -1243,7 +1245,9 @@ func (b *BlockChain) reorganizeChain(detachNodes, attachNodes *list.List) error 
 			Confirm:     confirm,
 		}, nil, b.state.ConsensusAlgorithm == state.POW)
 		DefaultLedger.Arbitrators.DumpInfo(block.Height)
-
+		if  b.chainParams.CkpManager.GetRollBackStatus() == checkpoint.NeedRollback {
+			b.chainParams.CkpManager.SetRollBackStatus(checkpoint.AlreadyRollback)
+		}
 		delete(b.blockCache, *n.Hash)
 		delete(b.confirmCache, *n.Hash)
 	}
@@ -1400,7 +1404,6 @@ func (b *BlockChain) BlockExists(hash *Uint256) bool {
 	if uint32(len(b.Nodes)) <= height || !b.Nodes[height].Hash.IsEqual(*hash) {
 		return false
 	}
-
 	return true
 }
 
@@ -1777,6 +1780,7 @@ func (b *BlockChain) BlockLocatorFromHash(inhash *Uint256) []*Uint256 {
 	} else {
 		blockHeight = int32(node.Height)
 	}
+
 
 	// Generate the block locators according to the algorithm described in
 	// in the Locator comment and make sure to leave room for the

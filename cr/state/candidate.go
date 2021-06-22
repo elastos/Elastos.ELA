@@ -1,7 +1,7 @@
 // Copyright (c) 2017-2020 The Elastos Foundation
 // Use of this source code is governed by an MIT
 // license that can be found in the LICENSE file.
-// 
+//
 
 package state
 
@@ -55,7 +55,7 @@ type Candidate struct {
 }
 
 func (c *Candidate) Serialize(w io.Writer) (err error) {
-	if err = c.info.SerializeUnsigned(w, payload.CRInfoVersion); err != nil {
+	if err = c.info.SerializeUnsigned(w, payload.CRInfoDIDVersion); err != nil {
 		return
 	}
 
@@ -79,7 +79,7 @@ func (c *Candidate) Serialize(w io.Writer) (err error) {
 }
 
 func (c *Candidate) Deserialize(r io.Reader) (err error) {
-	if err = c.info.DeserializeUnsigned(r, payload.CRInfoVersion); err != nil {
+	if err = c.info.DeserializeUnsigned(r, payload.CRInfoDIDVersion); err != nil {
 		return
 	}
 

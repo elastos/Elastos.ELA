@@ -252,7 +252,7 @@ func NewProposalMap() ProposalsMap {
 }
 
 func (c *CRMember) Serialize(w io.Writer) (err error) {
-	if err = c.Info.SerializeUnsigned(w, payload.CRInfoVersion); err != nil {
+	if err = c.Info.SerializeUnsigned(w, payload.CRInfoDIDVersion); err != nil {
 		return
 	}
 
@@ -290,7 +290,7 @@ func (c *CRMember) Serialize(w io.Writer) (err error) {
 }
 
 func (c *CRMember) Deserialize(r io.Reader) (err error) {
-	if err = c.Info.DeserializeUnsigned(r, payload.CRInfoVersion); err != nil {
+	if err = c.Info.DeserializeUnsigned(r, payload.CRInfoDIDVersion); err != nil {
 		return
 	}
 

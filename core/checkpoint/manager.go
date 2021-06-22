@@ -290,10 +290,10 @@ func (m *Manager) onBlockSaved(block *types.DposBlock,
 		if filter != nil && !filter(v) {
 			continue
 		}
-
-		if block.Height < v.StartHeight() {
+		if block.Height < v.StartHeight() || block.Height <= v.GetHeight()  {
 			continue
 		}
+
 		v.OnBlockSaved(block)
 
 		if !m.cfg.NeedSave {
@@ -313,7 +313,6 @@ func (m *Manager) onBlockSaved(block *types.DposBlock,
 		if block.Height >= originalHeight+v.SavePeriod() {
 			v.SetHeight(block.Height)
 			snapshot := v.Snapshot()
-
 			if snapshot == nil {
 				log.Error("snapshot is nil, key:", v.Key())
 				continue

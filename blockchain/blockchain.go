@@ -1245,13 +1245,13 @@ func (b *BlockChain) reorganizeChain(detachNodes, attachNodes *list.List) error 
 			Confirm:     confirm,
 		}, nil, b.state.ConsensusAlgorithm == state.POW)
 		DefaultLedger.Arbitrators.DumpInfo(block.Height)
-		if  b.chainParams.CkpManager.GetRollBackStatus() == checkpoint.NeedRollback {
+		if b.chainParams.CkpManager.GetRollBackStatus() == checkpoint.NeedRollback {
 			b.chainParams.CkpManager.SetRollBackStatus(checkpoint.AlreadyRollback)
 		}
 		delete(b.blockCache, *n.Hash)
 		delete(b.confirmCache, *n.Hash)
 	}
-
+	b.chainParams.CkpManager.SetRollBackStatus(checkpoint.NoRollback)
 	return nil
 }
 
@@ -1780,7 +1780,6 @@ func (b *BlockChain) BlockLocatorFromHash(inhash *Uint256) []*Uint256 {
 	} else {
 		blockHeight = int32(node.Height)
 	}
-
 
 	// Generate the block locators according to the algorithm described in
 	// in the Locator comment and make sure to leave room for the

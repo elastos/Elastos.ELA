@@ -17,8 +17,8 @@ import (
 )
 
 const (
-	// checkpointKey defines key of DPoS checkpoint.
-	checkpointKey = "cp_dpos"
+	// CheckpointKey defines key of DPoS checkpoint.
+	CheckpointKey = "cp_dpos"
 
 	// checkpointExtension defines checkpoint file extension of DPoS checkpoint.
 	checkpointExtension = ".dcp"
@@ -86,7 +86,7 @@ func (c *CheckPoint) OnRollbackTo(height uint32) error {
 }
 
 func (c *CheckPoint) Key() string {
-	return checkpointKey
+	return CheckpointKey
 }
 
 func (c *CheckPoint) OnInit() {

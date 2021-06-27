@@ -417,7 +417,7 @@ func (c *Committee) updateInactiveCountPenalty(history *utils.History, height ui
 func (c *Committee) checkAndSetMemberToInactive(history *utils.History, height uint32) {
 	for _, v := range c.Members {
 		m := v
-		if m.DPOSPublicKey == nil && m.MemberState == MemberElected {
+		if len(m.DPOSPublicKey) == 0 && m.MemberState == MemberElected {
 			history.Append(height, func() {
 				m.MemberState = MemberInactive
 				if height >= c.params.ChangeCommitteeNewCRHeight {

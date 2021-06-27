@@ -2735,7 +2735,7 @@ func (b *BlockChain) checkCRCouncilMemberClaimNodeTransaction(txn *Transaction) 
 		return errors.New("CR Council Member should be an elected or inactive CR members")
 	}
 
-	if crMember.DPOSPublicKey != nil {
+	if len(crMember.DPOSPublicKey) != 0 {
 		if bytes.Equal(crMember.DPOSPublicKey, manager.NodePublicKey) {
 			return errors.New("NodePublicKey is the same as crMember.DPOSPublicKey")
 		}

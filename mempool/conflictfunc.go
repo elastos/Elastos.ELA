@@ -8,6 +8,7 @@ package mempool
 import (
 	"encoding/hex"
 	"fmt"
+	"github.com/elastos/Elastos.ELA/core/types/outputpayload"
 
 	"github.com/elastos/Elastos.ELA/blockchain"
 	"github.com/elastos/Elastos.ELA/common"
@@ -43,7 +44,7 @@ func strArrayCRCProposalCustomID(tx *types.Transaction) (interface{}, error) {
 		return nil, fmt.Errorf(
 			"CRC proposal payload cast failed, tx:%s", tx.Hash())
 	}
-	if p.ProposalType  != payload.ReceiveCustomID {
+	if p.ProposalType != payload.ReceiveCustomID {
 		return nil, nil
 	}
 	return p.ReceivedCustomIDList, nil
@@ -321,6 +322,25 @@ func hashArraySidechainTransactionHashes(
 		array = append(array, v)
 	}
 	return array, nil
+}
+
+// hash array related functions
+func hashArraySidechainReturnDepositTransactionHashes(
+	tx *types.Transaction) (interface{}, error) {
+	arrayHash := make([]common.Uint256, 0)
+	for _, output := range tx.Outputs {
+		if output.Type == types.OTReturnSideChainDepositCoin {
+			payload, ok := output.Payload.(*outputpayload.ReturnSideChainDeposit)
+			if ok {
+				arrayHash = append(arrayHash, payload.DepositTransactionHash)
+			} else {
+				return nil, fmt.Errorf(
+					"sidechain return deposit tx from sidechain output payload cast failed, tx: %s",
+					tx.Hash())
+			}
+		}
+	}
+	return arrayHash, nil
 }
 
 // str array related functions

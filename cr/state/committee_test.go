@@ -290,6 +290,7 @@ func TestCommittee_RollbackTo_SameCommittee_BeforeVoting(t *testing.T) {
 	//let committee be the first committee started state
 	keyframe := randomKeyFrame(12,
 		config.DefaultParams.CRCommitteeStartHeight)
+	keyframe.InElectionPeriod = false
 	committee := NewCommittee(&config.DefaultParams)
 	committee.KeyFrame = *keyframe
 	committee.RegisterFuncitons(&CommitteeFuncsConfig{})

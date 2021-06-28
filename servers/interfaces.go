@@ -1589,6 +1589,32 @@ func GetExistWithdrawTransactions(param Params) map[string]interface{} {
 	return ResponsePack(Success, resultTxHashes)
 }
 
+func GetExistSideChainReturnDepositTransactions(param Params) map[string]interface{} {
+	txList, ok := param.ArrayString("txs")
+	if !ok {
+		return ResponsePack(InvalidParams, "txs not found")
+	}
+
+	var resultTxHashes []string
+	for _, txHash := range txList {
+		txHashBytes, err := common.HexStringToBytes(txHash)
+		if err != nil {
+			return ResponsePack(InvalidParams, "")
+		}
+		hash, err := common.Uint256FromBytes(txHashBytes)
+		if err != nil {
+			return ResponsePack(InvalidParams, "")
+		}
+		inStore := Store.IsSidechainReturnDepositTxHashDuplicate(*hash)
+		inTxPool := TxMemPool.IsDuplicateSidechainReturnDepositTx(*hash)
+		if inTxPool || inStore {
+			resultTxHashes = append(resultTxHashes, txHash)
+		}
+	}
+
+	return ResponsePack(Success, resultTxHashes)
+}
+
 //single producer info
 type RPCProducerInfo struct {
 	OwnerPublicKey string `json:"ownerpublickey"`
@@ -2928,6 +2954,19 @@ func getPayloadInfo(p Payload, payloadVersion byte) PayloadInfo {
 
 func getOutputPayloadInfo(op OutputPayload) OutputPayloadInfo {
 	switch object := op.(type) {
+	case *outputpayload.CrossChainOutput:
+		obj := new(CrossChainOutputInfo)
+		obj.Version = object.Version
+		obj.TargetAddress = object.TargetAddress
+		obj.TargetAmount = object.TargetAmount.String()
+		obj.TargetData = string(object.TargetData)
+		return obj
+	case *outputpayload.ReturnSideChainDeposit:
+		obj := new(ReturnSideChainDepositInfo)
+		obj.Version = object.Version
+		obj.GenesisBlockAddress = object.GenesisBlockAddress
+		obj.DepositTransactionHash = common.ToReversedString(object.DepositTransactionHash)
+		return obj
 	case *outputpayload.DefaultOutput:
 		obj := new(DefaultOutputInfo)
 		return obj

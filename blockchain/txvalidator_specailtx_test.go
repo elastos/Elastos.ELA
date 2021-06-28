@@ -64,7 +64,7 @@ func (s *txValidatorSpecialTxTestSuite) SetupSuite() {
 	}
 	for _, v := range arbitratorsStr {
 		a, _ := common.HexStringToBytes(v)
-		ar, _ := state.NewOriginArbiter(state.Origin, a)
+		ar, _ := state.NewOriginArbiter(a)
 		s.arbitrators.CurrentArbitrators = append(
 			s.arbitrators.CurrentArbitrators, ar)
 	}
@@ -499,7 +499,6 @@ func (s *txValidatorSpecialTxTestSuite) TestCheckDPOSIllegalBlocks() {
 		},
 		Votes: []payload.DPOSProposalVote{},
 	}
-	log.Info("### view offset:", confirm.Proposal.ViewOffset)
 	cmpConfirm := &payload.Confirm{
 		Proposal: payload.DPOSProposal{
 			Sponsor:    s.arbitrators.CurrentArbitrators[0].GetNodePublicKey(),
@@ -508,7 +507,6 @@ func (s *txValidatorSpecialTxTestSuite) TestCheckDPOSIllegalBlocks() {
 		},
 		Votes: []payload.DPOSProposalVote{},
 	}
-	log.Info("### view offset2:", cmpConfirm.Proposal.ViewOffset)
 
 	confirm.Proposal.Sign, _ = crypto.Sign(s.arbitratorsPriKeys[0],
 		confirm.Proposal.Data())
@@ -697,7 +695,7 @@ func (s *txValidatorSpecialTxTestSuite) TestCheckInactiveArbitrators() {
 		"sponsor is not belong to arbitrators")
 
 	// correct sponsor
-	ar, _ := state.NewOriginArbiter(state.Origin, p.Sponsor)
+	ar, _ := state.NewOriginArbiter(p.Sponsor)
 	s.arbitrators.CRCArbitrators = []state.ArbiterMember{ar}
 	for i := 0; i < 3; i++ { // add more than InactiveEliminateCount arbiters
 		p.Arbitrators = append(p.Arbitrators,
@@ -720,7 +718,7 @@ func (s *txValidatorSpecialTxTestSuite) TestCheckInactiveArbitrators() {
 		"invalid multi sign script code")
 
 	// let "Arbitrators" has CRC arbitrators
-	ar, _ = state.NewOriginArbiter(state.Origin, p.Sponsor)
+	ar, _ = state.NewOriginArbiter(p.Sponsor)
 	s.arbitrators.CRCArbitrators = []state.ArbiterMember{
 		ar,
 		s.arbitrators.CurrentArbitrators[4],
@@ -733,7 +731,7 @@ func (s *txValidatorSpecialTxTestSuite) TestCheckInactiveArbitrators() {
 	for i := 0; i < 5; i++ {
 		_, pk, _ := crypto.GenerateKeyPair()
 		pkBuf, _ := pk.EncodePoint(true)
-		ar, _ = state.NewOriginArbiter(state.Origin, pkBuf)
+		ar, _ = state.NewOriginArbiter(pkBuf)
 		s.arbitrators.CRCArbitrators = append(s.arbitrators.CRCArbitrators, ar)
 	}
 	s.arbitrators.CRCArbitratorsMap = map[string]*state.Producer{}
@@ -748,7 +746,7 @@ func (s *txValidatorSpecialTxTestSuite) TestCheckInactiveArbitrators() {
 	}
 	_, pk, _ := crypto.GenerateKeyPair()
 	pkBuf, _ := pk.EncodePoint(true)
-	ar, _ = state.NewOriginArbiter(state.Origin, pkBuf)
+	ar, _ = state.NewOriginArbiter(pkBuf)
 	arbitrators = append(arbitrators, ar)
 	tx.Programs[0].Code = s.createArbitratorsRedeemScript(arbitrators)
 	s.EqualError(CheckInactiveArbitrators(tx),
@@ -793,7 +791,7 @@ func (s *txValidatorSpecialTxTestSuite) TestCheckUpdateVersion() {
 	for i := 0; i < 5; i++ {
 		_, pk, _ := crypto.GenerateKeyPair()
 		pkBuf, _ := pk.EncodePoint(true)
-		ar, _ := state.NewOriginArbiter(state.Origin, pkBuf)
+		ar, _ := state.NewOriginArbiter(pkBuf)
 		s.arbitrators.CRCArbitrators = append(s.arbitrators.CRCArbitrators, ar)
 	}
 	s.arbitrators.CRCArbitratorsMap = map[string]*state.Producer{}
@@ -807,7 +805,7 @@ func (s *txValidatorSpecialTxTestSuite) TestCheckUpdateVersion() {
 	}
 	_, pk, _ := crypto.GenerateKeyPair()
 	pkBuf, _ := pk.EncodePoint(true)
-	ar, _ := state.NewOriginArbiter(state.Origin, pkBuf)
+	ar, _ := state.NewOriginArbiter(pkBuf)
 	arbitrators = append(arbitrators, ar)
 	tx.Programs[0].Code = s.createArbitratorsRedeemScript(arbitrators)
 	s.EqualError(s.Chain.checkUpdateVersionTransaction(tx),

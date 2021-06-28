@@ -20,27 +20,28 @@ import (
 )
 
 const (
-	luaCoinBaseTypeName             = "coinbase"
-	luaTransferAssetTypeName        = "transferasset"
-	luaRegisterProducerName         = "registerproducer"
-	luaUpdateProducerName           = "updateproducer"
-	luaCancelProducerName           = "cancelproducer"
-	luaActivateProducerName         = "activateproducer"
-	luaReturnDepositCoinName        = "returndepositcoin"
-	luaSideChainPowName             = "sidechainpow"
-	luaRegisterCRName               = "registercr"
-	luaUpdateCRName                 = "updatecr"
-	luaUnregisterCRName             = "unregistercr"
-	luaCRCProposalName              = "crcproposal"
-	luaCRChangeProposalOwnerName    = "crchangeproposalowner"
-	luaCRCCloseProposalHashName     = "crccloseproposalhash"
-	luaCRCReservedCustomIDName      = "crcreservedcustomidname"
-	luaCRCReceivedCustomIDName      = "crcreceivedcustomidname"
-	luaCRCChangeCustomIDFeeName     = "luacrcchangecustomidfeename"
-	luaCRCProposalReviewName        = "crcproposalreview"
-	luaCRCProposalTrackingName      = "crcproposaltracking"
-	luaCRCProposalWithdrawName      = "crcproposalwithdraw"
-	luaCRCouncilMemberClaimNodeName = "crcouncilmemebrclaimnode"
+	luaCoinBaseTypeName                = "coinbase"
+	luaTransferAssetTypeName           = "transferasset"
+	luaTransferCrossChainAssetTypeName = "transfercrosschainasset"
+	luaRegisterProducerName            = "registerproducer"
+	luaUpdateProducerName              = "updateproducer"
+	luaCancelProducerName              = "cancelproducer"
+	luaActivateProducerName            = "activateproducer"
+	luaReturnDepositCoinName           = "returndepositcoin"
+	luaSideChainPowName                = "sidechainpow"
+	luaRegisterCRName                  = "registercr"
+	luaUpdateCRName                    = "updatecr"
+	luaUnregisterCRName                = "unregistercr"
+	luaCRCProposalName                 = "crcproposal"
+	luaCRChangeProposalOwnerName       = "crchangeproposalowner"
+	luaCRCCloseProposalHashName        = "crccloseproposalhash"
+	luaCRCReservedCustomIDName         = "crcreservedcustomidname"
+	luaCRCReceivedCustomIDName         = "crcreceivedcustomidname"
+	luaCRCChangeCustomIDFeeName        = "luacrcchangecustomidfeename"
+	luaCRCProposalReviewName           = "crcproposalreview"
+	luaCRCProposalTrackingName         = "crcproposaltracking"
+	luaCRCProposalWithdrawName         = "crcproposalwithdraw"
+	luaCRCouncilMemberClaimNodeName    = "crcouncilmemebrclaimnode"
 )
 
 func RegisterCoinBaseType(L *lua.LState) {
@@ -127,6 +128,50 @@ var transferassetMethods = map[string]lua.LGFunction{
 // Getter and setter for the Person#Name
 func transferassetGet(L *lua.LState) int {
 	p := checkTransferAsset(L, 1)
+	fmt.Println(p)
+
+	return 0
+}
+
+// Registers my person type to given L.
+func RegisterTransferCrossChainAssetType(L *lua.LState) {
+	mt := L.NewTypeMetatable(luaTransferCrossChainAssetTypeName)
+	L.SetGlobal("transfercrosschainasset", mt)
+	// static attributes
+	L.SetField(mt, "new", L.NewFunction(newTransferCrossChainAsset))
+	// methods
+	L.SetField(mt, "__index", L.SetFuncs(L.NewTable(), transferassetCrossChainMethods))
+}
+
+// Constructor
+func newTransferCrossChainAsset(L *lua.LState) int {
+	ta := &payload.TransferCrossChainAsset{}
+	ud := L.NewUserData()
+	ud.Value = ta
+	L.SetMetatable(ud, L.GetTypeMetatable(luaTransferCrossChainAssetTypeName))
+	L.Push(ud)
+
+	return 1
+}
+
+// Checks whether the first lua argument is a *LUserData with
+// *checkTransferCrossChainAsset and returns this *checkTransferCrossChainAsset.
+func checkTransferCrossChainAsset(L *lua.LState, idx int) *payload.TransferCrossChainAsset {
+	ud := L.CheckUserData(idx)
+	if v, ok := ud.Value.(*payload.TransferCrossChainAsset); ok {
+		return v
+	}
+	L.ArgError(1, "TransferCrossChainAsset expected")
+	return nil
+}
+
+var transferassetCrossChainMethods = map[string]lua.LGFunction{
+	"get": transferassetCrossChainGet,
+}
+
+// Getter and setter for the Person#Name
+func transferassetCrossChainGet(L *lua.LState) int {
+	p := checkTransferCrossChainAsset(L, 1)
 	fmt.Println(p)
 
 	return 0

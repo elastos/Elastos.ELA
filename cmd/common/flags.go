@@ -496,6 +496,11 @@ var (
 		Name:  "ReturnDepositCoinFee",
 		Usage: "defines the fee of return cross chain deposit coin",
 	}
+
+	NewCrossChainStartHeightFlag = cli.StringFlag{
+		Name:  "NewCrossChainStartHeight",
+		Usage: "defines the height to only support TransferCrossChainAsset v1",
+	}
 )
 
 // MoveRPCFlags finds the rpc argument and moves it to the front

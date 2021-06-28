@@ -1,7 +1,7 @@
 // Copyright (c) 2017-2020 The Elastos Foundation
 // Use of this source code is governed by an MIT
 // license that can be found in the LICENSE file.
-// 
+//
 
 // Copyright (c) 2016 The btcsuite developers
 // Copyright (c) 2017-2019 Elastos Foundation
@@ -69,6 +69,9 @@ type IndexManager interface {
 
 	// IsTx3Exist use to find if tx3 exist in db
 	IsTx3Exist(txHash *common.Uint256) bool
+
+	// IsSideChainReturnDepositExist use to find if return deposit exist in db
+	IsSideChainReturnDepositExist(txHash *common.Uint256) bool
 }
 
 // Indexer provides a generic interface for an indexer that is managed by an

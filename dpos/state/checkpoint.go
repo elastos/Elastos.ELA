@@ -17,8 +17,8 @@ import (
 )
 
 const (
-	// checkpointKey defines key of DPoS checkpoint.
-	checkpointKey = "dpos"
+	// CheckpointKey defines key of DPoS checkpoint.
+	CheckpointKey = "cp_dpos"
 
 	// checkpointExtension defines checkpoint file extension of DPoS checkpoint.
 	checkpointExtension = ".dcp"
@@ -29,7 +29,7 @@ const (
 
 	// checkpointEffectiveHeight defines the minimal height arbitrators obj
 	// should scan to recover effective state.
-	checkpointEffectiveHeight = uint32(720)
+	checkpointEffectiveHeight = uint32(7)
 )
 
 // CheckPoint defines all variables need record in database
@@ -86,7 +86,7 @@ func (c *CheckPoint) OnRollbackTo(height uint32) error {
 }
 
 func (c *CheckPoint) Key() string {
-	return checkpointKey
+	return CheckpointKey
 }
 
 func (c *CheckPoint) OnInit() {
@@ -94,34 +94,20 @@ func (c *CheckPoint) OnInit() {
 }
 
 func (c *CheckPoint) Snapshot() checkpoint.ICheckPoint {
-	point := &CheckPoint{
-		Height:             c.Height,
-		DutyIndex:          c.arbitrators.dutyIndex,
-		CurrentCandidates:  make([]ArbiterMember, 0),
-		NextArbitrators:    make([]ArbiterMember, 0),
-		NextCandidates:     make([]ArbiterMember, 0),
-		CurrentReward:      *NewRewardData(),
-		NextReward:         *NewRewardData(),
-		CurrentArbitrators: c.arbitrators.currentArbitrators,
+	// init check point
+	c.initFromArbitrators(c.arbitrators)
 
-		CurrentCRCArbitersMap: make(map[common.Uint168]ArbiterMember),
-		NextCRCArbitersMap:    make(map[common.Uint168]ArbiterMember),
-		NextCRCArbiters:       make([]ArbiterMember, 0),
-		crcChangedHeight:      c.arbitrators.crcChangedHeight,
-		forceChanged:          c.arbitrators.forceChanged,
-
-		StateKeyFrame: *c.arbitrators.StateKeyFrame.snapshot(),
+	buf := new(bytes.Buffer)
+	if err := c.Serialize(buf); err != nil {
+		c.LogError(err)
+		return nil
 	}
-	point.CurrentArbitrators = copyByteList(c.arbitrators.currentArbitrators)
-	point.CurrentCandidates = copyByteList(c.arbitrators.currentCandidates)
-	point.NextArbitrators = copyByteList(c.arbitrators.nextArbitrators)
-	point.NextCandidates = copyByteList(c.arbitrators.nextCandidates)
-	point.CurrentReward = *copyReward(&c.arbitrators.CurrentReward)
-	point.NextReward = *copyReward(&c.arbitrators.NextReward)
-	point.NextCRCArbitersMap = copyCRCArbitersMap(c.NextCRCArbitersMap)
-	point.CurrentCRCArbitersMap = copyCRCArbitersMap(c.CurrentCRCArbitersMap)
-	point.NextCRCArbiters = copyByteList(c.NextCRCArbiters)
-	return point
+	result := &CheckPoint{}
+	if err := result.Deserialize(buf); err != nil {
+		c.LogError(err)
+		return nil
+	}
+	return result
 }
 
 func (c *CheckPoint) GetHeight() uint32 {
@@ -391,13 +377,9 @@ func (c *CheckPoint) deserializeCRCArbitersMap(r io.Reader) (
 		case Origin:
 			am = &originArbiter{}
 		case DPoS:
-			am = &dposArbiter{
-				arType: DPoS,
-			}
+			am = &dposArbiter{}
 		case CROrigin:
-			am = &dposArbiter{
-				arType: CROrigin,
-			}
+			am = &dposArbiter{}
 		case CRC:
 			am = &crcArbiter{}
 		default:

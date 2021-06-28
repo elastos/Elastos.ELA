@@ -252,7 +252,7 @@ func NewProposalMap() ProposalsMap {
 }
 
 func (c *CRMember) Serialize(w io.Writer) (err error) {
-	if err = c.Info.SerializeUnsigned(w, payload.CRInfoVersion); err != nil {
+	if err = c.Info.SerializeUnsigned(w, payload.CRInfoDIDVersion); err != nil {
 		return
 	}
 
@@ -290,7 +290,7 @@ func (c *CRMember) Serialize(w io.Writer) (err error) {
 }
 
 func (c *CRMember) Deserialize(r io.Reader) (err error) {
-	if err = c.Info.DeserializeUnsigned(r, payload.CRInfoVersion); err != nil {
+	if err = c.Info.DeserializeUnsigned(r, payload.CRInfoDIDVersion); err != nil {
 		return
 	}
 
@@ -343,6 +343,7 @@ func (kf *KeyFrame) Serialize(w io.Writer) (err error) {
 	if err = kf.serializeProposalResultList(w, kf.CustomIDProposalResults); err != nil {
 		return
 	}
+
 	return common.WriteElements(w, kf.LastCommitteeHeight,
 		kf.LastVotingStartHeight, kf.InElectionPeriod, kf.NeedAppropriation,
 		kf.NeedCIDProposalResult, kf.CRCFoundationBalance,

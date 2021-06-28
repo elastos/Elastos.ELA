@@ -32,6 +32,7 @@ const (
 	slotChangeCustomIDFee                     = "slotChangeCustomIDFee"
 	slotSpecialTxHash                         = "SpecialTxHash"
 	slotSidechainTxHashes                     = "SidechainTxHashes"
+	slotSidechainReturnDepositTxHashes        = "SidechainReturnDepositTxHashes"
 	slotCustomIDProposalResult                = "CustomIDProposalResult"
 	slotTxInputsReferKeys                     = "TxInputsReferKeys"
 	slotCRCouncilMemberNodePublicKey          = "CRCouncilMemberNodePublicKey"
@@ -425,6 +426,16 @@ func newConflictManager() conflictManager {
 					keyTypeFuncPair{
 						Type: types.WithdrawFromSideChain,
 						Func: hashArraySidechainTransactionHashes,
+					},
+				),
+			},
+			// side chain transaction hashes
+			{
+				name: slotSidechainReturnDepositTxHashes,
+				slot: newConflictSlot(hashArray,
+					keyTypeFuncPair{
+						Type: types.ReturnSideChainDepositCoin,
+						Func: hashArraySidechainReturnDepositTransactionHashes,
 					},
 				),
 			},

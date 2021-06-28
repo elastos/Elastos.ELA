@@ -27,6 +27,9 @@ func (a *TransferCrossChainAsset) Data(version byte) []byte {
 	if err := a.Serialize(buf, version); err != nil {
 		return []byte{0}
 	}
+	if buf.Len() == 0 {
+		return []byte{0}
+	}
 
 	return buf.Bytes()
 }

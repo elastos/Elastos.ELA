@@ -23,6 +23,12 @@ import (
 	"github.com/elastos/Elastos.ELA/utils"
 )
 
+// todo remove this
+const (
+	dposCheckpointKey = "cp_dpos"
+	crCheckpointKey   = "cp_cr"
+)
+
 type Priority byte
 
 const (
@@ -232,7 +238,16 @@ func (m *Manager) SafeHeight() uint32 {
 
 	height := uint32(math.MaxUint32)
 	for _, v := range m.checkpoints {
-		safeHeight := uint32(math.Max(float64(v.GetHeight()),
+		if v.Key() == "cp_txPool" {
+			continue
+		}
+		var recordHeight uint32
+		if v.GetHeight() >= v.EffectivePeriod() {
+			recordHeight = v.GetHeight() - v.EffectivePeriod()
+		} else {
+			recordHeight = 0
+		}
+		safeHeight := uint32(math.Max(float64(recordHeight),
 			float64(v.StartHeight())))
 		if safeHeight < height {
 			height = safeHeight
@@ -277,14 +292,16 @@ func (m *Manager) onBlockSaved(block *types.DposBlock,
 	filter func(point ICheckPoint) bool, async bool) {
 
 	sortedPoints := m.getOrderedCheckpoints()
+	var saveCheckPoint bool
+	var useCheckPoint bool
 	for _, v := range sortedPoints {
 		if filter != nil && !filter(v) {
 			continue
 		}
-
-		if block.Height < v.StartHeight() {
+		if block.Height < v.StartHeight() || block.Height <= v.GetHeight() {
 			continue
 		}
+
 		v.OnBlockSaved(block)
 
 		if !m.cfg.NeedSave {
@@ -293,15 +310,24 @@ func (m *Manager) onBlockSaved(block *types.DposBlock,
 
 		originalHeight := v.GetHeight()
 		if originalHeight > 0 &&
-			block.Height == originalHeight+v.EffectivePeriod() {
+			(v.Key() != dposCheckpointKey && block.Height ==
+				originalHeight+v.EffectivePeriod() ||
+				v.Key() == dposCheckpointKey && useCheckPoint) {
 			reply := make(chan bool, 1)
 			m.channels[v.Key()].Replace(v, reply, originalHeight)
 			if !async {
 				<-reply
 			}
+			if v.Key() == crCheckpointKey {
+				useCheckPoint = true
+			} else if v.Key() == dposCheckpointKey {
+				useCheckPoint = false
+			}
 		}
 
-		if block.Height >= originalHeight+v.SavePeriod() {
+		if v.Key() != dposCheckpointKey && block.Height >=
+			originalHeight+v.SavePeriod() ||
+			v.Key() == dposCheckpointKey && saveCheckPoint {
 			v.SetHeight(block.Height)
 			snapshot := v.Snapshot()
 			if snapshot == nil {
@@ -312,6 +338,11 @@ func (m *Manager) onBlockSaved(block *types.DposBlock,
 			m.channels[v.Key()].Save(snapshot, reply)
 			if !async {
 				<-reply
+			}
+			if v.Key() == crCheckpointKey {
+				saveCheckPoint = true
+			} else if v.Key() == dposCheckpointKey {
+				saveCheckPoint = false
 			}
 		}
 	}

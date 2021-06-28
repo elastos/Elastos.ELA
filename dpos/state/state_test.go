@@ -995,11 +995,11 @@ func TestState_InactiveProducer_Normal(t *testing.T) {
 	}
 
 	// arbitrators should set inactive after continuous three blocks
-	ar1, _ := NewOriginArbiter(Origin, producers[0].NodePublicKey)
-	ar2, _ := NewOriginArbiter(Origin, producers[1].NodePublicKey)
-	ar3, _ := NewOriginArbiter(Origin, producers[2].NodePublicKey)
-	ar4, _ := NewOriginArbiter(Origin, producers[3].NodePublicKey)
-	ar5, _ := NewOriginArbiter(Origin, producers[4].NodePublicKey)
+	ar1, _ := NewOriginArbiter(producers[0].NodePublicKey)
+	ar2, _ := NewOriginArbiter(producers[1].NodePublicKey)
+	ar3, _ := NewOriginArbiter(producers[2].NodePublicKey)
+	ar4, _ := NewOriginArbiter(producers[3].NodePublicKey)
+	ar5, _ := NewOriginArbiter(producers[4].NodePublicKey)
 	arbitrators.CurrentArbitrators = []ArbiterMember{
 		ar1, ar2, ar3, ar4, ar5,
 	}
@@ -1071,11 +1071,11 @@ func TestState_InactiveProducer_FailNoContinuous(t *testing.T) {
 	}
 
 	// arbitrators should set inactive after continuous three blocks
-	ar1, _ := NewOriginArbiter(Origin, producers[0].NodePublicKey)
-	ar2, _ := NewOriginArbiter(Origin, producers[1].NodePublicKey)
-	ar3, _ := NewOriginArbiter(Origin, producers[2].NodePublicKey)
-	ar4, _ := NewOriginArbiter(Origin, producers[3].NodePublicKey)
-	ar5, _ := NewOriginArbiter(Origin, producers[4].NodePublicKey)
+	ar1, _ := NewOriginArbiter(producers[0].NodePublicKey)
+	ar2, _ := NewOriginArbiter(producers[1].NodePublicKey)
+	ar3, _ := NewOriginArbiter(producers[2].NodePublicKey)
+	ar4, _ := NewOriginArbiter(producers[3].NodePublicKey)
+	ar5, _ := NewOriginArbiter(producers[4].NodePublicKey)
 	arbitrators.CurrentArbitrators = []ArbiterMember{
 		ar1, ar2, ar3, ar4, ar5,
 	}
@@ -1150,11 +1150,11 @@ func TestState_InactiveProducer_RecoverFromInactiveState(t *testing.T) {
 	}
 
 	// arbitrators should set inactive after continuous three blocks
-	ar1, _ := NewOriginArbiter(Origin, producers[0].NodePublicKey)
-	ar2, _ := NewOriginArbiter(Origin, producers[1].NodePublicKey)
-	ar3, _ := NewOriginArbiter(Origin, producers[2].NodePublicKey)
-	ar4, _ := NewOriginArbiter(Origin, producers[3].NodePublicKey)
-	ar5, _ := NewOriginArbiter(Origin, producers[4].NodePublicKey)
+	ar1, _ := NewOriginArbiter(producers[0].NodePublicKey)
+	ar2, _ := NewOriginArbiter(producers[1].NodePublicKey)
+	ar3, _ := NewOriginArbiter(producers[2].NodePublicKey)
+	ar4, _ := NewOriginArbiter(producers[3].NodePublicKey)
+	ar5, _ := NewOriginArbiter(producers[4].NodePublicKey)
 	arbitrators.CurrentArbitrators = []ArbiterMember{
 		ar1, ar2, ar3, ar4, ar5,
 	}
@@ -1254,11 +1254,11 @@ func TestState_InactiveProducer_DuringUpdateVersion(t *testing.T) {
 	}), nil)
 
 	// arbitrators should set inactive after continuous three blocks
-	ar1, _ := NewOriginArbiter(Origin, producers[0].NodePublicKey)
-	ar2, _ := NewOriginArbiter(Origin, producers[1].NodePublicKey)
-	ar3, _ := NewOriginArbiter(Origin, producers[2].NodePublicKey)
-	ar4, _ := NewOriginArbiter(Origin, producers[3].NodePublicKey)
-	ar5, _ := NewOriginArbiter(Origin, producers[4].NodePublicKey)
+	ar1, _ := NewOriginArbiter(producers[0].NodePublicKey)
+	ar2, _ := NewOriginArbiter(producers[1].NodePublicKey)
+	ar3, _ := NewOriginArbiter(producers[2].NodePublicKey)
+	ar4, _ := NewOriginArbiter(producers[3].NodePublicKey)
+	ar5, _ := NewOriginArbiter(producers[4].NodePublicKey)
 	arbitrators.CurrentArbitrators = []ArbiterMember{
 		ar1, ar2, ar3, ar4, ar5,
 	}

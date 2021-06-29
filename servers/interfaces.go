@@ -2830,7 +2830,7 @@ func getPayloadInfo(p Payload, payloadVersion byte) PayloadInfo {
 			crmdid, _ := object.CRCouncilMemberDID.ToAddress()
 			obj.CRCouncilMemberDID = crmdid
 			obj.CRCouncilMemberSignature = common.BytesToHexString(object.CRCouncilMemberSignature)
-			obj.Hash = common.ToReversedString(object.Hash())
+			obj.Hash = common.ToReversedString(object.Hash(payloadVersion))
 			return obj
 		}
 

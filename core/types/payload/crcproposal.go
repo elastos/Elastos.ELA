@@ -1432,6 +1432,8 @@ type CRCProposalInfo struct {
 	// DID of CR Council Member.
 	CRCouncilMemberDID common.Uint168
 
+	SideChainInfo
+
 	// The proposal hash
 	Hash common.Uint256
 }

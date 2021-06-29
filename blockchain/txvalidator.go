@@ -3163,7 +3163,7 @@ func (b *BlockChain) checkChangeSecretaryGeneralProposalTx(crcProposal *payload.
 	return nil
 }
 
-func (b *BlockChain) checkRegisterSideChainProposal(proposal *payload.CRCProposal) error {
+func (b *BlockChain) checkRegisterSideChainProposal(proposal *payload.CRCProposal, payloadVersion byte) error {
 	_, err := crypto.DecodePoint(proposal.OwnerPublicKey)
 	if err != nil {
 		return errors.New("DecodePoint from OwnerPublicKey error")
@@ -3225,7 +3225,7 @@ func (b *BlockChain) checkRegisterSideChainProposal(proposal *payload.CRCProposa
 	if crMember == nil {
 		return errors.New("CR Council Member should be one of the CR members")
 	}
-	return b.checkOwnerAndCRCouncilMemberSign(proposal, crMember.Info.Code)
+	return b.checkOwnerAndCRCouncilMemberSign(proposal, crMember.Info.Code, payloadVersion)
 }
 
 func (b *BlockChain) checkReservedCustomID(proposal *payload.CRCProposal, PayloadVersion byte) error {
@@ -3602,7 +3602,7 @@ func (b *BlockChain) checkCRCProposalTransaction(txn *Transaction,
 	case payload.ChangeCustomIDFee:
 		return b.checkChangeCustomIDFee(proposal, txn.PayloadVersion)
 	case payload.RegisterSideChain:
-		return b.checkRegisterSideChainProposal(proposal)
+		return b.checkRegisterSideChainProposal(proposal, txn.PayloadVersion)
 	default:
 		return b.checkNormalOrELIPProposal(proposal, proposalsUsedAmount, txn.PayloadVersion)
 	}

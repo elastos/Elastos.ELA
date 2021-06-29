@@ -367,6 +367,7 @@ func (p *ProposalManager) dealProposal(proposalState *ProposalState, unusedAmoun
 			p.ReceivedCustomIDLists = append(p.ReceivedCustomIDLists, proposalState.Proposal.ReceivedCustomIDList)
 		}, func() {
 			p.ReceivedCustomIDLists = oriReceivedCustomIDLists
+		})
 	case payload.RegisterSideChain:
 		originRegisteredSideChainNames := p.RegisteredSideChainNames
 		originRegisteredSideChainPayloadInfo := p.RegisteredSideChainPayloadInfo

@@ -81,6 +81,7 @@ func registerParams(c *cli.Context, L *lua.LState) {
 	genesisHash := c.String("genesishash")
 	genesisTimestamp := c.Int64("genesistimestamp")
 	genesisBlockDifficulty := c.String("genesisblockdifficulty")
+	upgradeProposalType := c.Int64("upgradeProposalType")
 
 	getWallet := func(L *lua.LState) int {
 		L.Push(lua.LString(wallet))
@@ -343,6 +344,11 @@ func registerParams(c *cli.Context, L *lua.LState) {
 		return 1
 	}
 
+	getUpgradeProposalType := func(L *lua.LState) int {
+		L.Push(lua.LNumber(upgradeProposalType))
+		return 1
+	}
+
 	L.Register("getWallet", getWallet)
 	L.Register("getPassword", getPassword)
 	L.Register("getDepositAddr", getDepositAddr)
@@ -406,6 +412,7 @@ func registerParams(c *cli.Context, L *lua.LState) {
 	L.Register("getGenesisHash", getGenesisHash)
 	L.Register("getGenesisTimestamp", getGenesisTimestamp)
 	L.Register("getGenesisBlockDifficulty", getGenesisBlockDifficulty)
+	L.Register("getUpgradeProposalType", getUpgradeProposalType)
 }
 
 func scriptAction(c *cli.Context) error {

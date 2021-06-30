@@ -3157,6 +3157,16 @@ func (b *BlockChain) checkRegisterSideChainProposal(proposal *payload.CRCProposa
 		}
 	}
 
+	if proposal.UpgradeProposalType < 0x0202 || proposal.UpgradeProposalType > 0x02ff {
+		return errors.New("UpgradeProposalType must between 0x0202 and 0x02ff")
+	}
+
+	for _, upt := range b.crCommittee.GetProposalManager().ExistedUpgradeProposalType {
+		if upt == proposal.UpgradeProposalType {
+			return errors.New("UpgradeProposalType already registered")
+		}
+	}
+
 	if len(proposal.DNSSeeds) == 0 {
 		return errors.New("DNSSeeds can not be blank")
 	}
@@ -3203,6 +3213,7 @@ func (b *BlockChain) checkRegisterSideChainProposal(proposal *payload.CRCProposa
 	if crMember == nil {
 		return errors.New("CR Council Member should be one of the CR members")
 	}
+
 	return b.checkOwnerAndCRCouncilMemberSign(proposal, crMember.Info.Code, payloadVersion)
 }
 

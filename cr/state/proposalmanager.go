@@ -381,6 +381,7 @@ func (p *ProposalManager) dealProposal(proposalState *ProposalState, unusedAmoun
 	case payload.RegisterSideChain:
 		originRegisteredSideChainNames := p.RegisteredSideChainNames
 		originRegisteredSideChainPayloadInfo := p.RegisteredSideChainPayloadInfo
+		originExistedUpgradeProposalType := p.ExistedUpgradeProposalType
 		p.history.Append(height, func() {
 			p.RegisteredSideChainNames = append(p.RegisteredSideChainNames, proposalState.Proposal.SideChainName)
 			if info, ok := p.RegisteredSideChainPayloadInfo[height]; ok {
@@ -390,9 +391,11 @@ func (p *ProposalManager) dealProposal(proposalState *ProposalState, unusedAmoun
 				rs[proposalState.TxHash] = proposalState.Proposal.SideChainInfo
 				p.RegisteredSideChainPayloadInfo[height] = rs
 			}
+			p.ExistedUpgradeProposalType = append(p.ExistedUpgradeProposalType, proposalState.Proposal.UpgradeProposalType)
 		}, func() {
 			p.RegisteredSideChainNames = originRegisteredSideChainNames
 			p.RegisteredSideChainPayloadInfo = originRegisteredSideChainPayloadInfo
+			p.ExistedUpgradeProposalType = originExistedUpgradeProposalType
 		})
 	}
 }

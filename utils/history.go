@@ -157,7 +157,18 @@ func (h *History) Commit(height uint32) {
 // SeekTo changes state to a historical height in range of history capacity.
 func (h *History) SeekTo(height uint32) error {
 	// check whether history is enough to seek
-	limitHeight := h.height - uint32(len(h.changes))
+	holdHeight := make(map[uint32]bool, 0)
+	trueChange := 0
+	for _, change := range h.changes {
+		_, ok := holdHeight[change.height]
+		if !ok {
+			trueChange++
+			holdHeight[change.height] = true
+		}
+	}
+
+	// check whether history is enough to seek
+	limitHeight := h.height - uint32(trueChange)
 	if height < limitHeight {
 		return fmt.Errorf("seek to %d overflow history capacity,"+
 			" at most seek to %d", height, limitHeight)
@@ -184,21 +195,31 @@ func (h *History) SeekTo(height uint32) error {
 func (h *History) RollbackSeekTo(height uint32) error {
 
 	if height > h.height {
-		return fmt.Errorf("RollbackSeekTo current height %d, to height %d",h.height, height)
+		return fmt.Errorf("RollbackSeekTo current height %d, to height %d", h.height, height)
 	}
 
 	if height == h.height {
 		return nil
 	}
 
+	holdHeight := make(map[uint32]bool, 0)
+	trueChange := 0
+	for _, change := range h.changes {
+		_, ok := holdHeight[change.height]
+		if !ok {
+			trueChange++
+			holdHeight[change.height] = true
+		}
+	}
+
 	// check whether history is enough to seek
-	limitHeight := h.height - uint32(len(h.changes))
+	limitHeight := h.height - uint32(trueChange)
 	if height < limitHeight {
 		return fmt.Errorf("RollbackSeekTo to %d overflow history capacity,"+
 			" at most seek to %d", height, limitHeight)
 	}
 
-	for i:= len(h.changes)-1; i >0 ;i-- {
+	for i := len(h.changes) - 1; i > 0; i-- {
 		if h.changes[i].height > height {
 			h.changes = h.changes[0:i]
 		}

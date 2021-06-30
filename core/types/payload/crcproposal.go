@@ -63,12 +63,13 @@ func (pt CRCProposalType) Name() string {
 		return "Normal"
 	case ELIP:
 		return "ELIP"
-	//case MainChainUpgradeCode:
-	//	return "MainChainUpgradeCode"
-	//case DIDUpgradeCode:
-	//	return "DIDUpgradeCode"
-	//case ETHUpgradeCode:
-	//	return "ETHUpgradeCode"
+		//todo if it is UpgradeCode should use if else
+	case MainChainUpgradeCode:
+		return "MainChainUpgradeCode"
+	case DIDUpgradeCode:
+		return "DIDUpgradeCode"
+	case ETHUpgradeCode:
+		return "ETHUpgradeCode"
 	//case RegisterSideChain:
 	//	return "RegisterSideChain"
 	case ChangeProposalOwner:
@@ -97,6 +98,8 @@ const (
 	// MaxProposalDataSize the max size of proposal draft data or proposal
 	// tracking document data.
 	MaxProposalDataSize = 1 * 1024 * 1024
+
+	CRCProposalUpgradeCodeVersion byte = 0x00
 )
 
 const (
@@ -193,7 +196,75 @@ type CRCProposal struct {
 	// proposal owner.
 	CRCouncilMemberSignature []byte
 
+	//upgrade code info
+	UpgradeCodeInfo *UpgradeCodeInfo
+
 	hash *common.Uint256
+}
+
+type UpgradeCodeInfo struct {
+	//upgrade code working hegiht
+	WorkingHeight uint32
+
+	//node version
+	NodeVersion string
+
+	//node bin download url
+	NodeDownLoadUrl string
+
+	//node bin hash
+	NodeBinHash *common.Uint256
+
+	// if ForceUpgrade is true when height reaches WorkingHeight
+	// version of msg.Version must greater or equal to NodeVersion
+	ForceUpgrade bool
+}
+
+func (upgradeInfo *UpgradeCodeInfo) Serialize(w io.Writer, version byte) error {
+	if err := common.WriteElement(w, upgradeInfo.WorkingHeight); err != nil {
+		return errors.New("failed to serialize WorkingHeight")
+	}
+	if err := common.WriteVarString(w, upgradeInfo.NodeVersion); err != nil {
+		return errors.New("failed to serialize NodeVersion")
+	}
+	if err := common.WriteVarString(w, upgradeInfo.NodeDownLoadUrl); err != nil {
+		return errors.New("failed to serialize NodeDownLoadUrl")
+	}
+	if err := upgradeInfo.NodeBinHash.Serialize(w); err != nil {
+		return errors.New("failed to serialize NodeBinHash")
+	}
+
+	if err := common.WriteElement(w, upgradeInfo.ForceUpgrade); err != nil {
+		return errors.New("failed to serialize ForceUpgrade")
+	}
+	return nil
+}
+
+func (upgradeInfo *UpgradeCodeInfo) Deserialize(r io.Reader, version byte) error {
+	var err error
+
+	if err := common.ReadElement(r, &upgradeInfo.WorkingHeight); err != nil {
+		return err
+	}
+
+	upgradeInfo.NodeVersion, err = common.ReadVarString(r)
+	if err != nil {
+		return errors.New("[UpgradeCodeInfo], NodeVersion deserialize failed")
+	}
+
+	upgradeInfo.NodeDownLoadUrl, err = common.ReadVarString(r)
+	if err != nil {
+		return errors.New("[UpgradeCodeInfo], NodeDownLoadUrl deserialize failed")
+	}
+
+	if err = upgradeInfo.NodeBinHash.Deserialize(r); err != nil {
+		return errors.New("failed to deserialize NodeBinHash")
+	}
+
+	if err := common.ReadElement(r, &upgradeInfo.ForceUpgrade); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (p *CRCProposal) Data(version byte) []byte {
@@ -213,6 +284,8 @@ func (p *CRCProposal) SerializeUnsigned(w io.Writer, version byte) error {
 		return p.SerializeUnsignedCloseProposal(w, version)
 	case SecretaryGeneral:
 		return p.SerializeUnsignedChangeSecretaryGeneral(w, version)
+	case MainChainUpgradeCode, DIDUpgradeCode, ETHUpgradeCode:
+		return p.SerializeUnsignedUpgradeCode(w, version)
 	case ReserveCustomID:
 		return p.SerializeUnsignedReservedCustomID(w, version)
 	case ReceiveCustomID:
@@ -222,6 +295,7 @@ func (p *CRCProposal) SerializeUnsigned(w io.Writer, version byte) error {
 	default:
 		return p.SerializeUnsignedNormalOrELIP(w, version)
 	}
+	return nil
 }
 
 func (p *CRCProposal) SerializeUnsignedNormalOrELIP(w io.Writer, version byte) error {
@@ -322,6 +396,32 @@ func (p *CRCProposal) SerializeUnsignedChangeSecretaryGeneral(w io.Writer, versi
 
 	if err := p.SecretaryGeneralDID.Serialize(w); err != nil {
 		return errors.New("failed to serialize SecretaryGeneralDID")
+	}
+	return nil
+}
+
+func (p *CRCProposal) SerializeUnsignedUpgradeCode(w io.Writer, version byte) error {
+
+	if err := common.WriteElement(w, p.ProposalType); err != nil {
+		return errors.New("failed to serialize ProposalType")
+	}
+
+	if err := common.WriteVarString(w, p.CategoryData); err != nil {
+		return errors.New("failed to serialize CategoryData")
+	}
+
+	if err := common.WriteVarBytes(w, p.OwnerPublicKey); err != nil {
+		return errors.New("failed to serialize OwnerPublicKey")
+	}
+
+	if err := p.DraftHash.Serialize(w); err != nil {
+		return errors.New("failed to serialize DraftHash")
+	}
+	//UpgradeCodeInfo Serialize
+	if p.UpgradeCodeInfo != nil {
+		if err := p.UpgradeCodeInfo.Serialize(w, CRCProposalUpgradeCodeVersion); err != nil {
+			return errors.New("failed to serialize UpgradeCodeInfo")
+		}
 	}
 	return nil
 }
@@ -469,6 +569,8 @@ func (p *CRCProposal) Serialize(w io.Writer, version byte) error {
 		return p.SerializeCloseProposal(w, version)
 	case SecretaryGeneral:
 		return p.SerializeChangeSecretaryGeneral(w, version)
+	case MainChainUpgradeCode, DIDUpgradeCode, ETHUpgradeCode:
+		return p.SerializeUpgradeCode(w, version)
 	default:
 		return p.SerializeNormalOrELIP(w, version)
 	}
@@ -503,6 +605,22 @@ func (p *CRCProposal) SerializeChangeProposalOwner(w io.Writer, version byte) er
 	if err := p.CRCouncilMemberDID.Serialize(w); err != nil {
 		return errors.New("failed to serialize CRCouncilMemberDID")
 	}
+	return common.WriteVarBytes(w, p.CRCouncilMemberSignature)
+}
+
+func (p *CRCProposal) SerializeUpgradeCode(w io.Writer, version byte) error {
+	if err := p.SerializeUnsigned(w, version); err != nil {
+		return err
+	}
+
+	if err := common.WriteVarBytes(w, p.Signature); err != nil {
+		return err
+	}
+
+	if err := p.CRCouncilMemberDID.Serialize(w); err != nil {
+		return errors.New("failed to serialize CRCouncilMemberDID")
+	}
+
 	return common.WriteVarBytes(w, p.CRCouncilMemberSignature)
 }
 
@@ -570,6 +688,8 @@ func (p *CRCProposal) DeserializeUnSigned(r io.Reader, version byte) error {
 		return p.DeserializeUnSignedCloseProposal(r, version)
 	case SecretaryGeneral:
 		return p.DeserializeUnSignedChangeSecretaryGeneral(r, version)
+	case MainChainUpgradeCode, DIDUpgradeCode, ETHUpgradeCode:
+		return p.DeserializeUnsignedUpgradeCode(r, version)
 	case ReserveCustomID:
 		return p.DeserializeUnSignedReservedCustomID(r, version)
 	case ReceiveCustomID:
@@ -579,6 +699,26 @@ func (p *CRCProposal) DeserializeUnSigned(r io.Reader, version byte) error {
 	default:
 		return p.DeserializeUnSignedNormalOrELIP(r, version)
 	}
+}
+
+func (p *CRCProposal) DeserializeUnsignedUpgradeCode(r io.Reader, version byte) error {
+	var err error
+	if p.CategoryData, err = common.ReadVarString(r); err != nil {
+		return errors.New("[CRCProposal], Category data deserialize failed")
+	}
+	if p.OwnerPublicKey, err = common.ReadVarBytes(r, crypto.NegativeBigLength, "owner"); err != nil {
+		return errors.New("failed to deserialize OwnerPublicKey")
+	}
+	if err = p.DraftHash.Deserialize(r); err != nil {
+		return errors.New("failed to deserialize DraftHash")
+	}
+	//
+	p.UpgradeCodeInfo = new(UpgradeCodeInfo)
+	//UpgradeCodeInfo Deserialize
+	if err := p.UpgradeCodeInfo.Deserialize(r, CRCProposalUpgradeCodeVersion); err != nil {
+		return errors.New("failed to serialize UpgradeCodeInfo")
+	}
+	return nil
 }
 
 func (p *CRCProposal) DeserializeUnSignedNormalOrELIP(r io.Reader, version byte) error {
@@ -837,6 +977,8 @@ func (p *CRCProposal) Deserialize(r io.Reader, version byte) error {
 		return p.DeserializeCloseProposal(r, version)
 	case SecretaryGeneral:
 		return p.DeserializeChangeSecretaryGeneral(r, version)
+	case MainChainUpgradeCode, DIDUpgradeCode, ETHUpgradeCode:
+		return p.DeserializeUpgradeCode(r, version)
 	default:
 		return p.DeserializeNormalOrELIP(r, version)
 	}
@@ -863,6 +1005,30 @@ func (p *CRCProposal) DeserializeNormalOrELIP(r io.Reader, version byte) error {
 	}
 	p.CRCouncilMemberSignature = CRCouncilMemberSignature
 
+	return nil
+}
+
+func (p *CRCProposal) DeserializeUpgradeCode(r io.Reader, version byte) error {
+	if err := p.DeserializeUnsignedUpgradeCode(r, version); err != nil {
+		return err
+	}
+
+	// owner signature
+	sign, err := common.ReadVarBytes(r, crypto.SignatureLength, "sign data")
+	if err != nil {
+		return err
+	}
+	p.Signature = sign
+
+	if err := p.CRCouncilMemberDID.Deserialize(r); err != nil {
+		return errors.New("failed to deserialize CRCouncilMemberDID")
+	}
+	// cr signature
+	CRCouncilMemberSignature, err := common.ReadVarBytes(r, crypto.SignatureLength, "CR sign data")
+	if err != nil {
+		return err
+	}
+	p.CRCouncilMemberSignature = CRCouncilMemberSignature
 	return nil
 }
 

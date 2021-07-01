@@ -1027,32 +1027,27 @@ func GetBalanceByAsset(param Params) map[string]interface{} {
 }
 
 func Getregistertransactionsbyheight(param Params) map[string]interface{} {
-	//height, ok := param.Uint("height")
-	//if !ok {
-	//	return ResponsePack(InvalidParams, "height parameter should be a positive integer")
-	//}
-	//crCommittee := Chain.GetCRCommittee()
-	//
-	//rs := crCommittee.GetRegisteredSideChainByHeight(height)
-	//
-	//result := RsInfo{SCInfo: rs}
-	txid, _ := common.Uint256FromHexString("b135a3a31b49244cba5ccf4270a7eeda982e17c433cb72e2d5a9c70f6650e54d")
-	genesisHash, _ := common.Uint256FromHexString("f5f5ece6b4c6bbce9c9fc12aa7783414080ef0aaaefef982fdf0c4d84ab48ae7")
-	var result []*RsInfo
-	result = append(result, &RsInfo{
-		SideChainName: "NEO",
-		MagicNumber:   100,
-		DNSSeeds: []string{
-			"neo.elastos.cn:20338",
-			"neo-abc.us:20338",
-			"neo-mainnet-003.elastos.org:20338",
-		},
-		NodePort:               20209,
-		GenesisHash:            *genesisHash,
-		GenesisTimestamp:       1513936800,
-		GenesisBlockDifficulty: "575",
-		TxHash:                 *txid,
-	})
+	height, ok := param.Uint("height")
+	if !ok {
+		return ResponsePack(InvalidParams, "height parameter should be a positive integer")
+	}
+	crCommittee := Chain.GetCRCommittee()
+
+	rs := crCommittee.GetRegisteredSideChainByHeight(height)
+	var result []RsInfo
+	for k, v := range rs {
+		result = append(result, RsInfo{
+			SideChainName:          v.SideChainName,
+			MagicNumber:            v.MagicNumber,
+			DNSSeeds:               v.DNSSeeds,
+			NodePort:               v.NodePort,
+			GenesisHash:            v.GenesisHash,
+			GenesisTimestamp:       v.GenesisTimestamp,
+			GenesisBlockDifficulty: v.GenesisBlockDifficulty,
+			TxHash:                 k,
+			UpgradeProposalType:    v.UpgradeProposalType,
+		})
+	}
 	return ResponsePack(Success, result)
 }
 

@@ -514,4 +514,5 @@ type RsInfo struct {
 	GenesisTimestamp       uint32         `json:"genesistimestamp"`
 	GenesisBlockDifficulty string         `json:"genesisblockdifficulty"`
 	TxHash                 common.Uint256 `json:"txhash"`
+	UpgradeProposalType    uint16         `json:"upgradeproposaltype"`
 }

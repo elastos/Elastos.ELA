@@ -2069,7 +2069,7 @@ func (a *arbitrators) snapshotVotesStates(height uint32) error {
 	for _, ar := range a.nextArbitrators {
 		if height > a.chainParams.ChangeCommitteeNewCRHeight {
 			if ar.GetType() == CRC && (!ar.IsNormal() ||
-				(ar.(*crcArbiter).crMember.DPOSPublicKey != nil && ar.IsNormal())) {
+				(len(ar.(*crcArbiter).crMember.DPOSPublicKey) != 0 && ar.IsNormal())) {
 				continue
 			}
 			if err := recordVotes(ar.GetNodePublicKey()); err != nil {

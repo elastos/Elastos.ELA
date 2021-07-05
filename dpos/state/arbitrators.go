@@ -289,7 +289,7 @@ func (a *arbitrators) CheckCRCAppropriationTx(block *types.Block) error {
 
 func (a *arbitrators) CheckCustomIDResultsTx(block *types.Block) error {
 	a.mtx.Lock()
-	needCustomProposalResult := a.crCommittee.NeedCIDProposalResult
+	needCustomProposalResult := a.crCommittee.NeedRecordProposalResult
 	a.mtx.Unlock()
 
 	var cidProposalResultCount uint32

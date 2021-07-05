@@ -50,7 +50,7 @@ const (
 	InactiveArbitrators      TxType = 0x12
 	UpdateVersion            TxType = 0x13
 	NextTurnDPOSInfo         TxType = 0x14
-	CustomIDResult           TxType = 0x15
+	ProposalResult           TxType = 0x15
 
 	RegisterCR          TxType = 0x21
 	UnregisterCR        TxType = 0x22
@@ -140,8 +140,8 @@ func (self TxType) Name() string {
 		return "CRCouncilMemberClaimNode"
 	case NextTurnDPOSInfo:
 		return "NextTurnDPOSInfo"
-	case CustomIDResult:
-		return "CustomIDResult"
+	case ProposalResult:
+		return "ProposalResult"
 	case RevertToPOW:
 		return "RevertToPOW"
 	case RevertToDPOS:
@@ -406,7 +406,7 @@ func (tx *Transaction) IsNextTurnDPOSInfoTx() bool {
 }
 
 func (tx *Transaction) IsCustomIDResultTx() bool {
-	return tx.TxType == CustomIDResult
+	return tx.TxType == ProposalResult
 }
 
 func (tx *Transaction) IsCustomIDRelatedTx() bool {
@@ -670,8 +670,8 @@ func GetPayload(txType TxType) (Payload, error) {
 		p = new(payload.NextTurnDPOSInfo)
 	case RevertToPOW:
 		p = new(payload.RevertToPOW)
-	case CustomIDResult:
-		p = new(payload.CustomIDProposalResult)
+	case ProposalResult:
+		p = new(payload.RecordProposalResult)
 	case ReturnSideChainDepositCoin:
 		p = new(payload.ReturnSideChainDepositCoin)
 	default:

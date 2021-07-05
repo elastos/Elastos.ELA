@@ -182,7 +182,7 @@ func (p *ProposalManager) updateProposals(height uint32,
 			if !inElectionPeriod {
 				p.abortProposal(v, height)
 				unusedAmount += getProposalTotalBudgetAmount(v.Proposal)
-				recordCustomIDProposalResult(&results, proposalType, k, false)
+				recordPartProposalResult(&results, proposalType, k, false)
 				break
 			}
 			if p.shouldEndCRCVote(v.RegisterHeight, height) {
@@ -191,24 +191,24 @@ func (p *ProposalManager) updateProposals(height uint32,
 
 					unusedAmount += getProposalTotalBudgetAmount(v.Proposal)
 					pass = false
-					recordCustomIDProposalResult(&results, proposalType, k, pass)
+					recordPartProposalResult(&results, proposalType, k, pass)
 				}
 			}
 		case CRAgreed:
 			if !inElectionPeriod {
 				p.abortProposal(v, height)
 				unusedAmount += getProposalTotalBudgetAmount(v.Proposal)
-				recordCustomIDProposalResult(&results, proposalType, k, false)
+				recordPartProposalResult(&results, proposalType, k, false)
 				break
 			}
 			if p.shouldEndPublicVote(v.VoteStartHeight, height) {
 				if p.transferCRAgreedState(v, height, circulation) == VoterCanceled {
 					unusedAmount += getProposalTotalBudgetAmount(v.Proposal)
-					recordCustomIDProposalResult(&results, proposalType, k, false)
+					recordPartProposalResult(&results, proposalType, k, false)
 					continue
 				}
 				p.dealProposal(v, &unusedAmount, height)
-				recordCustomIDProposalResult(&results, proposalType, k, true)
+				recordPartProposalResult(&results, proposalType, k, true)
 			}
 		}
 	}
@@ -216,10 +216,20 @@ func (p *ProposalManager) updateProposals(height uint32,
 	return unusedAmount, results
 }
 
-func recordCustomIDProposalResult(results *[]payload.ProposalResult,
+func recordPartProposalResult(results *[]payload.ProposalResult,
 	proposalType payload.CRCProposalType, proposalHash common.Uint256, result bool) {
+	var needRecordResult bool
 	switch proposalType {
 	case payload.ReserveCustomID, payload.ReceiveCustomID, payload.ChangeCustomIDFee:
+		needRecordResult = true
+
+	default:
+		if proposalType > payload.MinUpgradeProposalType && proposalType <= payload.MaxUpgradeProposalType {
+			needRecordResult = true
+		}
+	}
+	
+	if needRecordResult {
 		*results = append(*results, payload.ProposalResult{
 			ProposalHash: proposalHash,
 			ProposalType: proposalType,

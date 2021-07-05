@@ -209,7 +209,7 @@ func (b *BlockChain) CheckTransactionContext(blockHeight uint32,
 		}
 		return references, nil
 
-	case CustomIDResult:
+	case ProposalResult:
 		if err := b.checkCustomIDResultTransaction(txn); err != nil {
 			log.Warn("[checkCustomIDResultTransaction],", err)
 			return nil, elaerr.Simple(elaerr.ErrTxPayload, err)
@@ -1003,7 +1003,7 @@ func (b *BlockChain) checkAttributeProgram(tx *Transaction,
 		}
 		return nil
 	case IllegalSidechainEvidence, IllegalProposalEvidence, IllegalVoteEvidence,
-		ActivateProducer, NextTurnDPOSInfo, CustomIDResult, RevertToPOW:
+		ActivateProducer, NextTurnDPOSInfo, ProposalResult, RevertToPOW:
 		if len(tx.Programs) != 0 || len(tx.Attributes) != 0 {
 			return errors.New("zero cost tx should have no attributes and programs")
 		}
@@ -1140,7 +1140,7 @@ func checkTransactionPayload(txn *Transaction) error {
 	case *payload.CRCouncilMemberClaimNode:
 	case *payload.RevertToPOW:
 	case *payload.RevertToDPOS:
-	case *payload.CustomIDProposalResult:
+	case *payload.RecordProposalResult:
 	case *payload.ReturnSideChainDepositCoin:
 	default:
 		return errors.New("[txValidator],invalidate transaction payload type.")
@@ -1677,7 +1677,7 @@ func (b *BlockChain) checkCustomIDResultTransaction(txn *Transaction) error {
 	if !DefaultLedger.Committee.IsCustomIDResultNeeded() {
 		return errors.New("should not have custom ID result transaction")
 	}
-	p, ok := txn.Payload.(*payload.CustomIDProposalResult)
+	p, ok := txn.Payload.(*payload.RecordProposalResult)
 	if !ok {
 		return errors.New("invalid custom ID result payload")
 	}

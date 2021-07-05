@@ -414,7 +414,7 @@ func newConflictManager() conflictManager {
 				name: slotCustomIDProposalResult,
 				slot: newConflictSlot(str,
 					keyTypeFuncPair{
-						Type: types.CustomIDResult,
+						Type: types.ProposalResult,
 						Func: hashCustomIDProposalResultTxPayloadHash,
 					},
 				),

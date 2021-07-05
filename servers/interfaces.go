@@ -2779,7 +2779,7 @@ func getPayloadInfo(p Payload, payloadVersion byte) PayloadInfo {
 			return obj
 		}
 
-	case *payload.CustomIDProposalResult:
+	case *payload.RecordProposalResult:
 		obj := new(CRCCustomIDProposalResultInfo)
 		for _, r := range object.ProposalResults {
 			result := ProposalResultInfo{

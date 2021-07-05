@@ -15,6 +15,12 @@ import (
 )
 
 const (
+	// upgrade side chain proposal type
+	MinUpgradeProposalType = 0x0200
+	MaxUpgradeProposalType = 0x02ff
+)
+
+const (
 	// Normal indicates the normal types of proposal.
 	Normal CRCProposalType = 0x0000
 

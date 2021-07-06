@@ -10,6 +10,7 @@ import (
 	"container/list"
 	"errors"
 	"fmt"
+	"github.com/elastos/Elastos.ELA/core/checkpoint"
 	"math/big"
 	"os"
 	"path/filepath"
@@ -304,7 +305,7 @@ func (b *BlockChain) InitCheckpoint(interrupt <-chan struct{},
 				break
 			}
 
-			b.chainParams.CkpManager.OnBlockSaved(block, nil)
+			b.chainParams.CkpManager.OnBlockSaved(block, nil, b.state.ConsensusAlgorithm == state.POW)
 
 			// Notify process increase.
 			if increase != nil {
@@ -1209,7 +1210,7 @@ func (b *BlockChain) reorganizeChain(detachNodes, attachNodes *list.List) error 
 
 		// roll back state about the last block before disconnect
 		if block.Height-1 >= b.chainParams.VoteStartHeight {
-			err = b.chainParams.CkpManager.OnRollbackTo(block.Height - 1)
+			err = b.chainParams.CkpManager.OnRollbackTo(block.Height-1, b.state.ConsensusAlgorithm == state.POW)
 			if err != nil {
 				return err
 			}
@@ -1223,7 +1224,6 @@ func (b *BlockChain) reorganizeChain(detachNodes, attachNodes *list.List) error 
 			return err
 		}
 	}
-
 	// Connect the new best chain blocks.
 	for e := attachNodes.Front(); e != nil; e = e.Next() {
 		n := e.Value.(*BlockNode)
@@ -1235,19 +1235,23 @@ func (b *BlockChain) reorganizeChain(detachNodes, attachNodes *list.List) error 
 		if err != nil {
 			return err
 		}
-
+		if b.chainParams.CkpManager.GetRollBackStatus() == checkpoint.NoRollback {
+			b.chainParams.CkpManager.SetRollBackStatus(checkpoint.NeedRollback)
+		}
 		// update state after connected block
 		b.chainParams.CkpManager.OnBlockSaved(&DposBlock{
 			Block:       block,
 			HaveConfirm: confirm != nil,
 			Confirm:     confirm,
-		}, nil)
+		}, nil, b.state.ConsensusAlgorithm == state.POW)
 		DefaultLedger.Arbitrators.DumpInfo(block.Height)
-
+		if b.chainParams.CkpManager.GetRollBackStatus() == checkpoint.NeedRollback {
+			b.chainParams.CkpManager.SetRollBackStatus(checkpoint.AlreadyRollback)
+		}
 		delete(b.blockCache, *n.Hash)
 		delete(b.confirmCache, *n.Hash)
 	}
-
+	b.chainParams.CkpManager.SetRollBackStatus(checkpoint.NoRollback)
 	return nil
 }
 
@@ -1312,7 +1316,7 @@ func (b *BlockChain) connectBlock(node *BlockNode, block *Block, confirm *payloa
 	if block.Height >= b.chainParams.CRCOnlyDPOSHeight && !revertToPOW &&
 		b.state.ConsensusAlgorithm != state.POW {
 		if err := checkBlockWithConfirmation(block, confirm,
-			b.chainParams.CkpManager); err != nil {
+			b.chainParams.CkpManager, b.state.ConsensusAlgorithm == state.POW); err != nil {
 			return fmt.Errorf("block confirmation validate failed: %s", err)
 		}
 	}
@@ -1400,7 +1404,6 @@ func (b *BlockChain) BlockExists(hash *Uint256) bool {
 	if uint32(len(b.Nodes)) <= height || !b.Nodes[height].Hash.IsEqual(*hash) {
 		return false
 	}
-
 	return true
 }
 
@@ -1454,7 +1457,7 @@ func (b *BlockChain) maybeAcceptBlock(block *Block, confirm *payload.Confirm) (b
 			Block:       block,
 			HaveConfirm: confirm != nil,
 			Confirm:     confirm,
-		}, nil)
+		}, nil, b.state.ConsensusAlgorithm == state.POW)
 		DefaultLedger.Arbitrators.DumpInfo(block.Height)
 	}
 

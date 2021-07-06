@@ -38,7 +38,7 @@ type txPoolCheckpoint struct {
 	initConflictManager func(map[common.Uint256]*types.Transaction)
 }
 
-func (c *txPoolCheckpoint) OnBlockSaved(*types.DposBlock) {
+func (c *txPoolCheckpoint) OnBlockSaved(block *types.DposBlock,needRollBack bool) {
 }
 
 func (c *txPoolCheckpoint) OnRollbackTo(uint32) error {

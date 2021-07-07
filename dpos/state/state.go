@@ -846,6 +846,7 @@ func (s *State) processTransactions(txs []*types.Transaction, height uint32) {
 	activateProducerFromPending := func(key string, producer *Producer) {
 		s.history.Append(height, func() {
 			producer.state = Active
+			producer.selected = true
 			s.ActivityProducers[key] = producer
 			delete(s.PendingProducers, key)
 		}, func() {
@@ -860,6 +861,7 @@ func (s *State) processTransactions(txs []*types.Transaction, height uint32) {
 	activateProducerFromInactive := func(key string, producer *Producer) {
 		s.history.Append(height, func() {
 			producer.state = Active
+			producer.selected = true
 			s.ActivityProducers[key] = producer
 			delete(s.InactiveProducers, key)
 		}, func() {
@@ -874,6 +876,7 @@ func (s *State) processTransactions(txs []*types.Transaction, height uint32) {
 	activateProducerFromIllegal := func(key string, producer *Producer) {
 		s.history.Append(height, func() {
 			producer.state = Active
+			producer.selected = true
 			s.ActivityProducers[key] = producer
 			delete(s.IllegalProducers, key)
 		}, func() {
@@ -1779,6 +1782,7 @@ func (s *State) revertSettingInactiveProducer(producer *Producer, key string,
 	producer.inactiveSince = 0
 	producer.activateRequestHeight = math.MaxUint32
 	producer.state = Active
+	producer.selected = true
 	s.ActivityProducers[key] = producer
 	delete(s.InactiveProducers, key)
 

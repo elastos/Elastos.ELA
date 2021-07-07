@@ -346,6 +346,10 @@ var (
 		Usage: "defines the duration of all voters send reject vote about " +
 			"a proposal",
 	}
+	ProposalUpgradeCodePeriodFlag = cli.StringFlag{
+		Name:  "proposalupgradecodeperiod",
+		Usage: "defines the least duration of upgrade code proposal period ",
+	}
 	CRAgreementCountFlag = cli.StringFlag{
 		Name: "cragreementcount",
 		Usage: "defines minimum count to let a registered proposal transfer " +
@@ -403,6 +407,10 @@ var (
 		Name: "crcproposalv1height",
 		Usage: "defines the ChangeProposalOwner，CloseProposal and " +
 			"SecretaryGeneral crc proposal type accept height",
+	}
+	CRCProposalUpgradeCodeHeight = cli.StringFlag{
+		Name:  "crcproposalupgradcodeheight",
+		Usage: "after this height upgrade code proposal works",
 	}
 	RectifyTxFee = cli.StringFlag{
 		Name:  "rectifytxfee",

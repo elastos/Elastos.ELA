@@ -120,6 +120,7 @@ type CRConfiguration struct {
 	DepositLockupBlocks                uint32         `json:"DepositLockupBlocks"`
 	ProposalCRVotingPeriod             uint32         `json:"ProposalCRVotingPeriod"`
 	ProposalPublicVotingPeriod         uint32         `json:"ProposalPublicVotingPeriod"`
+	ProposalUpgradeCodePeriod          uint32         `json:"ProposalUpgradeCodePeriod"`
 	CRAgreementCount                   uint32         `json:"CRAgreementCount"`
 	VoterRejectPercentage              float64        `json:"VoterRejectPercentage"`
 	CRCAppropriatePercentage           float64        `json:"CRCAppropriatePercentage"`

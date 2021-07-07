@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"errors"
 	"io"
+	"strconv"
 
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/crypto"
@@ -61,9 +62,14 @@ const (
 	ChangeCustomIDFee CRCProposalType = 0x0502
 )
 
+const UpgradeCodeProposalTypeBase = 0x0200
+
 type CRCProposalType uint16
 
 func (pt CRCProposalType) Name() string {
+	if IsUpgradeCodeProposal(pt) {
+		return strconv.Itoa(int(pt))
+	}
 	switch pt {
 	case Normal:
 		return "Normal"
@@ -219,7 +225,7 @@ type UpgradeCodeInfo struct {
 	NodeDownLoadUrl string
 
 	//node bin hash
-	NodeBinHash *common.Uint256
+	NodeBinHash common.Uint256
 
 	// if ForceUpgrade is true when height reaches WorkingHeight
 	// version of msg.Version must greater or equal to NodeVersion
@@ -262,7 +268,6 @@ func (upgradeInfo *UpgradeCodeInfo) Deserialize(r io.Reader, version byte) error
 	if err != nil {
 		return errors.New("[UpgradeCodeInfo], NodeDownLoadUrl deserialize failed")
 	}
-	upgradeInfo.NodeBinHash = new(common.Uint256)
 	if err = upgradeInfo.NodeBinHash.Deserialize(r); err != nil {
 		return errors.New("failed to deserialize NodeBinHash")
 	}
@@ -287,7 +292,19 @@ func (pt CRCProposalType) IsSideChainUpgradeProposal() bool {
 		pt <= MaxUpgradeProposalType
 }
 
+func IsUpgradeCodeProposal(ProposalType CRCProposalType) bool {
+	if ProposalType&UpgradeCodeProposalTypeBase == UpgradeCodeProposalTypeBase {
+		return true
+	}
+	return false
+}
+
 func (p *CRCProposal) SerializeUnsigned(w io.Writer, version byte) error {
+
+	if IsUpgradeCodeProposal(p.ProposalType) {
+		return p.SerializeUnsignedUpgradeCode(w, version)
+	}
+
 	switch p.ProposalType {
 	case ChangeProposalOwner:
 		return p.SerializeUnsignedChangeProposalOwner(w, version)
@@ -295,8 +312,6 @@ func (p *CRCProposal) SerializeUnsigned(w io.Writer, version byte) error {
 		return p.SerializeUnsignedCloseProposal(w, version)
 	case SecretaryGeneral:
 		return p.SerializeUnsignedChangeSecretaryGeneral(w, version)
-	case MainChainUpgradeCode, DIDUpgradeCode, ETHUpgradeCode:
-		return p.SerializeUnsignedUpgradeCode(w, version)
 	case ReserveCustomID:
 		return p.SerializeUnsignedReservedCustomID(w, version)
 	case ReceiveCustomID:
@@ -573,6 +588,9 @@ func (p *CRCProposal) SerializeUnsignedReservedCustomID(w io.Writer, version byt
 }
 
 func (p *CRCProposal) Serialize(w io.Writer, version byte) error {
+	if IsUpgradeCodeProposal(p.ProposalType) {
+		return p.SerializeUpgradeCode(w, version)
+	}
 	switch p.ProposalType {
 	case ChangeProposalOwner:
 		return p.SerializeChangeProposalOwner(w, version)
@@ -580,8 +598,6 @@ func (p *CRCProposal) Serialize(w io.Writer, version byte) error {
 		return p.SerializeCloseProposal(w, version)
 	case SecretaryGeneral:
 		return p.SerializeChangeSecretaryGeneral(w, version)
-	case MainChainUpgradeCode, DIDUpgradeCode, ETHUpgradeCode:
-		return p.SerializeUpgradeCode(w, version)
 	default:
 		return p.SerializeNormalOrELIP(w, version)
 	}
@@ -692,6 +708,9 @@ func (b *Budget) Deserialize(r io.Reader) error {
 }
 
 func (p *CRCProposal) DeserializeUnSigned(r io.Reader, version byte) error {
+	if IsUpgradeCodeProposal(p.ProposalType) {
+		return p.DeserializeUnsignedUpgradeCode(r, version)
+	}
 	switch p.ProposalType {
 	case ChangeProposalOwner:
 		return p.DeserializeUnSignedChangeProposalOwner(r, version)
@@ -699,8 +718,6 @@ func (p *CRCProposal) DeserializeUnSigned(r io.Reader, version byte) error {
 		return p.DeserializeUnSignedCloseProposal(r, version)
 	case SecretaryGeneral:
 		return p.DeserializeUnSignedChangeSecretaryGeneral(r, version)
-	case MainChainUpgradeCode, DIDUpgradeCode, ETHUpgradeCode:
-		return p.DeserializeUnsignedUpgradeCode(r, version)
 	case ReserveCustomID:
 		return p.DeserializeUnSignedReservedCustomID(r, version)
 	case ReceiveCustomID:
@@ -981,6 +998,9 @@ func (p *CRCProposal) Deserialize(r io.Reader, version byte) error {
 	if err != nil {
 		return errors.New("[CRCProposal], ProposalType deserialize failed")
 	}
+	if IsUpgradeCodeProposal(p.ProposalType) {
+		return p.DeserializeUpgradeCode(r, version)
+	}
 	switch p.ProposalType {
 	case ChangeProposalOwner:
 		return p.DeserializeChangeProposalOwner(r, version)
@@ -988,8 +1008,6 @@ func (p *CRCProposal) Deserialize(r io.Reader, version byte) error {
 		return p.DeserializeCloseProposal(r, version)
 	case SecretaryGeneral:
 		return p.DeserializeChangeSecretaryGeneral(r, version)
-	case MainChainUpgradeCode, DIDUpgradeCode, ETHUpgradeCode:
-		return p.DeserializeUpgradeCode(r, version)
 	default:
 		return p.DeserializeNormalOrELIP(r, version)
 	}
@@ -1139,6 +1157,10 @@ func (p *CRCProposal) Hash(payloadVersion byte) common.Uint256 {
 	return *p.hash
 }
 
+func (p *CRCProposal) IsEqual(other *CRCProposal, payloadVersion byte) bool {
+	return p.Hash(payloadVersion).IsEqual(other.Hash(payloadVersion))
+}
+
 func (p *CRCProposal) ToProposalInfo(payloadVersion byte) CRCProposalInfo {
 	info := CRCProposalInfo{
 		ProposalType:              p.ProposalType,
@@ -1157,6 +1179,7 @@ func (p *CRCProposal) ToProposalInfo(payloadVersion byte) CRCProposalInfo {
 		SecretaryGeneralPublicKey: p.SecretaryGeneralPublicKey,
 		SecretaryGeneralDID:       p.SecretaryGeneralDID,
 		CRCouncilMemberDID:        p.CRCouncilMemberDID,
+		UpgradeCodeInfo:           p.UpgradeCodeInfo,
 		Hash:                      p.Hash(payloadVersion),
 	}
 
@@ -1228,6 +1251,9 @@ type CRCProposalInfo struct {
 
 	// DID of CR Council Member.
 	CRCouncilMemberDID common.Uint168
+
+	//upgrade code info
+	UpgradeCodeInfo *UpgradeCodeInfo
 
 	// The proposal hash
 	Hash common.Uint256

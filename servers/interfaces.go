@@ -1802,6 +1802,33 @@ type RPCSecretaryGeneralProposal struct {
 	CRCouncilMemberDID        string `json:"crcouncilmemberdid"`
 }
 
+type RPCUpgradeCodeInfo struct {
+	//upgrade code working hegiht
+	WorkingHeight uint32 `json:"workingheight"`
+
+	//node version
+	NodeVersion string `json:"nodeversion"`
+
+	//node bin download url
+	NodeDownLoadUrl string `json:"nodedownloadurl"`
+
+	//node bin hash
+	NodeBinHash *common.Uint256 `json:"nodebinhash"`
+
+	// if ForceUpgrade is true when height reaches WorkingHeight
+	// version of msg.Version must greater or equal to NodeVersion
+	ForceUpgrade bool `json:"forceupgrade"`
+}
+
+type RPCUpgradeCodeProposal struct {
+	ProposalType       string                  `json:"proposaltype"`
+	CategoryData       string                  `json:"categorydata"`
+	OwnerPublicKey     string                  `json:"ownerpublickey"`
+	DraftHash          string                  `json:"drafthash"`
+	UpgradeCodeinfo    payload.UpgradeCodeInfo `json:"upgradecodeinfo"`
+	CRCouncilMemberDID string                  `json:"crcouncilmemberdid"`
+}
+
 type RPCCRProposalStateInfo struct {
 	ProposalState RPCProposalState `json:"proposalstate"`
 }
@@ -2309,7 +2336,6 @@ func GetCRProposalState(param Params) map[string]interface{} {
 		rpcProposal.ReceiverDID, _ = proposalState.Proposal.ReceiverDID.ToAddress()
 		did, _ := proposalState.Proposal.CRCouncilMemberDID.ToAddress()
 		rpcProposal.CRCouncilMemberDID = did
-
 		rpcProposalState.Proposal = rpcProposal
 	case payload.ChangeCustomIDFee:
 		var rpcProposal RPCChangeCustomIDFeeProposal
@@ -2320,10 +2346,24 @@ func GetCRProposalState(param Params) map[string]interface{} {
 		rpcProposal.Fee = int64(proposalState.Proposal.RateOfCustomIDFee)
 		did, _ := proposalState.Proposal.CRCouncilMemberDID.ToAddress()
 		rpcProposal.CRCouncilMemberDID = did
-
 		rpcProposalState.Proposal = rpcProposal
 	}
 
+	if payload.IsUpgradeCodeProposal(proposalState.Proposal.ProposalType) {
+		var rpcProposal RPCUpgradeCodeProposal
+		rpcProposal.ProposalType = proposalState.Proposal.ProposalType.Name()
+		rpcProposal.CategoryData = proposalState.Proposal.CategoryData
+		rpcProposal.OwnerPublicKey = common.BytesToHexString(proposalState.Proposal.OwnerPublicKey)
+		rpcProposal.DraftHash = common.ToReversedString(proposalState.Proposal.DraftHash)
+		cmDID, _ := proposalState.Proposal.CRCouncilMemberDID.ToAddress()
+		rpcProposal.CRCouncilMemberDID = cmDID
+		if proposalState.Proposal.UpgradeCodeInfo != nil {
+			rpcProposal.UpgradeCodeinfo = *proposalState.Proposal.UpgradeCodeInfo
+		}
+
+		rpcProposalState.Proposal = rpcProposal
+
+	}
 	result := &RPCCRProposalStateInfo{ProposalState: rpcProposalState}
 	return ResponsePack(Success, result)
 }

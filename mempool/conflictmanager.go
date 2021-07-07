@@ -39,6 +39,7 @@ const (
 	slotCRCouncilMemberDID                    = "CRCouncilMemberDID"
 	slotCRCSecretaryGeneral                   = "CRCSecretaryGeneral"
 	slotRevertToDPOSHash                      = "RevertToDPOSHash"
+	slotCRCUpgradeCode                        = "CRCUpgradeCode"
 )
 
 type conflict struct {
@@ -357,6 +358,16 @@ func newConflictManager() conflictManager {
 					keyTypeFuncPair{
 						Type: types.CRCProposal,
 						Func: strSecretaryGeneral,
+					},
+				),
+			},
+			//upgrade code strUpgradCodeProposal
+			{
+				name: slotCRCUpgradeCode,
+				slot: newConflictSlot(str,
+					keyTypeFuncPair{
+						Type: types.CRCProposal,
+						Func: strUpgradCodeProposal,
 					},
 				),
 			},

@@ -209,6 +209,7 @@ var DefaultParams = Params{
 	CRDepositLockupBlocks:       2160,
 	ProposalCRVotingPeriod:      7 * 720,
 	ProposalPublicVotingPeriod:  7 * 720,
+	ProposalUpgradeCodePeriod:   2 * 720,
 	CRAgreementCount:            8,
 	VoterRejectPercentage:       10,
 	CRCAppropriatePercentage:    10,
@@ -231,26 +232,28 @@ var DefaultParams = Params{
 	CRAssetsRectifyTransactionHeight:   751400,
 	CRCProposalWithdrawPayloadV1Height: 751400,
 	CRCProposalV1Height:                751400,
-	RectifyTxFee:                       10000,
-	RealWithdrawSingleFee:              10000,
-	NewP2PProtocolVersionHeight:        751400,
-	ChangeCommitteeNewCRHeight:         932530,
-	CustomIDProposalStartHeight:        932530,
-	NoCRCDPOSNodeHeight:                932530,
-	RevertToPOWStartHeight:             932530,
-	RandomCandidatePeriod:              36 * 10,
-	MaxInactiveRoundsOfRandomNode:      36 * 8,
-	MaxReservedCustomIDLength:          255,
-	CRCProposalDraftDataStartHeight:    2000000,
-	DPOSNodeCrossChainHeight:           2000000,
-	RevertToPOWNoBlockTime:             12 * 3600,
-	StopConfirmBlockTime:               11 * 3600,
-	HalvingRewardHeight:                1051200,   // 4 * 365 * 720
-	HalvingRewardInterval:              1051200,   // 4 * 365 * 720
-	NewELAIssuanceHeight:               919800,    // 3.5 * 365 * 720
-	SmallCrossTransferThreshold:        100000000, //TODO reset latter
-	ReturnDepositCoinFee:               100,       //TODO reset latter
-	NewCrossChainStartHeight:           2000000,   // todo complete me
+	//todo
+	CRCProposalUpgradeCodeHeight:    0,
+	RectifyTxFee:                    10000,
+	RealWithdrawSingleFee:           10000,
+	NewP2PProtocolVersionHeight:     751400,
+	ChangeCommitteeNewCRHeight:      932530,
+	CustomIDProposalStartHeight:     932530,
+	NoCRCDPOSNodeHeight:             932530,
+	RevertToPOWStartHeight:          932530,
+	RandomCandidatePeriod:           36 * 10,
+	MaxInactiveRoundsOfRandomNode:   36 * 8,
+	MaxReservedCustomIDLength:       255,
+	CRCProposalDraftDataStartHeight: 2000000,
+	DPOSNodeCrossChainHeight:        2000000,
+	RevertToPOWNoBlockTime:          12 * 3600,
+	StopConfirmBlockTime:            11 * 3600,
+	HalvingRewardHeight:             1051200,   // 4 * 365 * 720
+	HalvingRewardInterval:           1051200,   // 4 * 365 * 720
+	NewELAIssuanceHeight:            919800,    // 3.5 * 365 * 720
+	SmallCrossTransferThreshold:     100000000, //TODO reset latter
+	ReturnDepositCoinFee:            100,       //TODO reset latter
+	NewCrossChainStartHeight:        2000000,   // todo complete me
 }
 
 // TestNet returns the network parameters for the test network.
@@ -305,6 +308,8 @@ func (p *Params) TestNet() *Params {
 	copy.CRClaimDPOSNodeStartHeight = 646700
 	copy.CRClaimDPOSNodePeriod = 720 * 7
 	copy.CRCProposalV1Height = 646700
+	//todo
+	copy.CRCProposalUpgradeCodeHeight = 0
 	copy.NewP2PProtocolVersionHeight = 646700
 	copy.CRAssetsRectifyTransactionHeight = 646700
 	copy.CRCProposalWithdrawPayloadV1Height = 646700
@@ -395,6 +400,7 @@ func (p *Params) RegNet() *Params {
 	copy.CRClaimDPOSNodeStartHeight = 532650
 	copy.CRClaimDPOSNodePeriod = 720
 	copy.CRCProposalV1Height = 530000
+	copy.CRCProposalUpgradeCodeHeight = 0
 	copy.NewP2PProtocolVersionHeight = 531030
 	copy.CRAssetsRectifyTransactionHeight = 532650
 	copy.CRCProposalWithdrawPayloadV1Height = 532650
@@ -645,6 +651,9 @@ type Params struct {
 	// reject vote about a proposal
 	ProposalPublicVotingPeriod uint32
 
+	//ProposalUpgradeCodePeriod defines the least duration of upgrade code
+	ProposalUpgradeCodePeriod uint32
+
 	// CRAgreementCount defines minimum count to let a registered proposal
 	// transfer to CRAgreed state.
 	CRAgreementCount uint32
@@ -709,6 +718,9 @@ type Params struct {
 	// CRCProposalV1Height defines the height to support ChangeProposalOwner,
 	// CloseProposal and SecretaryGeneral proposal.
 	CRCProposalV1Height uint32
+
+	//CRCProposalUpgradeCodeHeight defines the height to support upgrade code
+	CRCProposalUpgradeCodeHeight uint32
 
 	// RectifyTxFee defines the fee of cr rectify transaction.
 	RectifyTxFee common.Fixed64

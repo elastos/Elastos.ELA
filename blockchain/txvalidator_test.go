@@ -1686,6 +1686,55 @@ func (s *txValidatorTestSuite) getSecretaryGeneralCRCProposalTx(ownerPublicKeySt
 	return txn
 }
 
+func (s *txValidatorTestSuite) getUpgradeCodeCRCProposalTx(ownerPublicKeyStr, ownerPrivateKeyStr,
+	crPublicKeyStr, crPrivateKeyStr string, workingHeight uint32, nodeVersion string) *types.Transaction {
+
+	ownerPublicKey, _ := common.HexStringToBytes(ownerPublicKeyStr)
+	ownerPrivateKey, _ := common.HexStringToBytes(ownerPrivateKeyStr)
+	crPrivateKey, _ := common.HexStringToBytes(crPrivateKeyStr)
+	crCode := getCodeByPubKeyStr(crPublicKeyStr)
+
+	draftData := randomBytes(10)
+	txn := new(types.Transaction)
+	txn.TxType = types.CRCProposal
+	txn.Version = types.TxVersion09
+
+	recipient := *randomUint168()
+	recipient[0] = uint8(contract.PrefixStandard)
+	crDID, _ := getDIDFromCode(crCode)
+	crcProposalPayload := &payload.CRCProposal{
+		ProposalType:       payload.MainChainUpgradeCode,
+		CategoryData:       "111",
+		OwnerPublicKey:     ownerPublicKey,
+		DraftHash:          common.Hash(draftData),
+		CRCouncilMemberDID: *crDID,
+		UpgradeCodeInfo: &payload.UpgradeCodeInfo{
+			WorkingHeight:   workingHeight,
+			NodeVersion:     nodeVersion,
+			NodeDownLoadUrl: "https://www.google.com/",
+			NodeBinHash:     common.Uint256{},
+			ForceUpgrade:    false,
+		},
+	}
+
+	signBuf := new(bytes.Buffer)
+	crcProposalPayload.SerializeUnsigned(signBuf, payload.CRCProposalVersion)
+	sig, _ := crypto.Sign(ownerPrivateKey, signBuf.Bytes())
+	crcProposalPayload.Signature = sig
+
+	common.WriteVarBytes(signBuf, sig)
+	crcProposalPayload.CRCouncilMemberDID.Serialize(signBuf)
+	crSig, _ := crypto.Sign(crPrivateKey, signBuf.Bytes())
+	crcProposalPayload.CRCouncilMemberSignature = crSig
+
+	txn.Payload = crcProposalPayload
+	txn.Programs = []*program.Program{&program.Program{
+		Code:      getCodeByPubKeyStr(ownerPublicKeyStr),
+		Parameter: nil,
+	}}
+	return txn
+}
+
 func (s *txValidatorTestSuite) getCRCProposalTx(publicKeyStr, privateKeyStr,
 	crPublicKeyStr, crPrivateKeyStr string) *types.Transaction {
 
@@ -2810,14 +2859,14 @@ func (s *txValidatorTestSuite) TestCheckCRCProposalWithdrawTransaction() {
 	txn := s.getCRCProposalWithdrawTx(publicKeyStr1, privateKeyStr1,
 		Recipient, CRExpensesAddressU168, 9*ela, 50*ela, 0)
 	crcProposalWithdraw, _ := txn.Payload.(*payload.CRCProposalWithdraw)
-	pld :=payload.CRCProposal{
+	pld := payload.CRCProposal{
 		OwnerPublicKey: pk1Bytes,
 		Recipient:      *Recipient,
 		Budgets:        createBudgets(3),
 	}
 	propState := &crstate.ProposalState{
-		Status: crstate.VoterAgreed,
-		Proposal: pld.ToProposalInfo(0),
+		Status:              crstate.VoterAgreed,
+		Proposal:            pld.ToProposalInfo(0),
 		FinalPaymentStatus:  false,
 		WithdrawableBudgets: map[uint8]common.Fixed64{0: 10 * 1e8},
 		ProposalOwner:       pk1Bytes,
@@ -3097,6 +3146,67 @@ func (s *txValidatorTestSuite) TestCheckSecretaryGeneralProposalTransaction() {
 		config.DefaultParams.CRVotingPeriod + 1
 	err = s.Chain.checkCRCProposalTransaction(txn, tenureHeight, 0)
 	s.EqualError(err, "cr proposal tx must not during voting period")
+}
+
+func (s *txValidatorTestSuite) TestCheckUpgradCodeProposalTransaction() {
+
+	ownerPublicKeyStr1 := "02f981e4dae4983a5d284d01609ad735e3242c5672bb2c7bb0018cc36f9ab0c4a5"
+	ownerPrivateKeyStr1 := "15e0947580575a9b6729570bed6360a890f84a07dc837922fe92275feec837d4"
+
+	crPublicKeyStr := "036db5984e709d2e0ec62fd974283e9a18e7b87e8403cc784baf1f61f775926535"
+	crPrivateKeyStr := "b2c25e877c8a87d54e8a20a902d27c7f24ed52810813ba175ca4e8d3036d130e"
+
+	tenureHeight := config.DefaultParams.CRCommitteeStartHeight + 1
+	ownerNickName := "nickname owner"
+	crNickName := "nickname cr"
+
+	memberOwner := s.getCRMember(ownerPublicKeyStr1, ownerPrivateKeyStr1, ownerNickName)
+	memberCr := s.getCRMember(crPublicKeyStr, crPrivateKeyStr, crNickName)
+
+	memebers := make(map[common.Uint168]*crstate.CRMember)
+
+	s.Chain.crCommittee.Members = memebers
+	s.Chain.crCommittee.CRCCommitteeBalance = common.Fixed64(100 * 1e8)
+	s.Chain.crCommittee.CRCCurrentStageAmount = common.Fixed64(100 * 1e8)
+	s.Chain.crCommittee.InElectionPeriod = true
+	s.Chain.crCommittee.NeedAppropriation = false
+
+	period := s.Chain.chainParams.ProposalUpgradeCodePeriod + s.Chain.chainParams.ProposalCRVotingPeriod +
+		s.Chain.chainParams.ProposalPublicVotingPeriod
+	//owner not elected cr
+	txn := s.getUpgradeCodeCRCProposalTx(ownerPublicKeyStr1, ownerPrivateKeyStr1, crPublicKeyStr, crPrivateKeyStr,
+		tenureHeight+period, "0.1.2")
+
+	//CRCouncilMember not elected cr
+	err := s.Chain.checkCRCProposalTransaction(txn, tenureHeight, 0)
+	s.EqualError(err, "CR Council Member should be one of the CR members")
+	memebers[memberCr.Info.DID] = memberCr
+	memebers[memberOwner.Info.DID] = memberOwner
+
+	//ok
+	err = s.Chain.checkCRCProposalTransaction(txn, tenureHeight, 0)
+	s.NoError(err)
+
+	//owner signature check failed
+	rightSign := txn.Payload.(*payload.CRCProposal).Signature
+	txn.Payload.(*payload.CRCProposal).Signature = []byte{}
+	err = s.Chain.checkCRCProposalTransaction(txn, tenureHeight, 0)
+	s.EqualError(err, "owner signature check failed")
+	txn.Payload.(*payload.CRCProposal).Signature = rightSign
+
+	//CRCouncilMemberSignature signature check failed
+	crcouncilMemberSignature := txn.Payload.(*payload.CRCProposal).CRCouncilMemberSignature
+	txn.Payload.(*payload.CRCProposal).CRCouncilMemberSignature = []byte{}
+	err = s.Chain.checkCRCProposalTransaction(txn, tenureHeight, 0)
+	s.EqualError(err, "failed to check CR Council Member signature")
+	txn.Payload.(*payload.CRCProposal).CRCouncilMemberSignature = crcouncilMemberSignature
+
+	//checkUpgradCodeProposalTx WorkingHeight is invalid
+	oldWorkingHeight := txn.Payload.(*payload.CRCProposal).UpgradeCodeInfo.WorkingHeight
+	txn.Payload.(*payload.CRCProposal).UpgradeCodeInfo.WorkingHeight = 123
+	err = s.Chain.checkCRCProposalTransaction(txn, tenureHeight, 0)
+	s.EqualError(err, "checkUpgradCodeProposalTx WorkingHeight is invalid")
+	txn.Payload.(*payload.CRCProposal).UpgradeCodeInfo.WorkingHeight = oldWorkingHeight
 }
 
 func (s *txValidatorTestSuite) TestCheckCRCProposalTransaction() {

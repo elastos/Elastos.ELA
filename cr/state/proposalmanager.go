@@ -236,6 +236,13 @@ func recordPartProposalResult(results *[]payload.ProposalResult,
 			Result:       result,
 		})
 	}
+	if payload.IsUpgradeCodeProposal(proposalType) {
+		*results = append(*results, payload.ProposalResult{
+			ProposalHash: proposalHash,
+			ProposalType: proposalType,
+			Result:       result,
+		})
+	}
 }
 
 // abortProposal will transfer the status to aborted.
@@ -375,6 +382,24 @@ func (p *ProposalManager) dealProposal(proposalState *ProposalState, unusedAmoun
 			p.ReceivedCustomIDLists = oriReceivedCustomIDLists
 		})
 	}
+	//upgrade code proposal agreed
+	proposalType := proposalState.Proposal.ProposalType
+	if payload.IsUpgradeCodeProposal(proposalType) {
+		p.history.Append(height, func() {
+			if _, ok := p.UpgradCodeProposalMgr[proposalType]; !ok {
+				p.UpgradCodeProposalMgr[proposalType] = make([]*payload.UpgradeCodeInfo, 0)
+			}
+			p.UpgradCodeProposalMgr[proposalType] =
+				append(p.UpgradCodeProposalMgr[proposalType], proposalState.Proposal.UpgradeCodeInfo)
+		}, func() {
+			if len(p.UpgradCodeProposalMgr[proposalType]) == 1 {
+				delete(p.UpgradCodeProposalMgr, proposalType)
+			} else {
+				count := len(p.UpgradCodeProposalMgr[proposalType])
+				p.UpgradCodeProposalMgr[proposalType] = p.UpgradCodeProposalMgr[proposalType][:count-1]
+			}
+		})
+	}
 }
 
 // transferCRAgreedState will transfer CRAgreed state by votes' reject amount.
@@ -434,6 +459,10 @@ func (p *ProposalManager) transferCRAgreedState(proposalState *ProposalState,
 }
 
 func isSpecialProposal(proposalType payload.CRCProposalType) bool {
+	if payload.IsUpgradeCodeProposal(proposalType) {
+		return true
+	}
+
 	switch proposalType {
 	case payload.SecretaryGeneral, payload.ChangeProposalOwner, payload.CloseProposal, payload.ReserveCustomID,
 		payload.ReceiveCustomID, payload.ChangeCustomIDFee:

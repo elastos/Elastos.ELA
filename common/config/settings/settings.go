@@ -834,6 +834,12 @@ func NewSettings() *Settings {
 		ParamName:    "ProposalCRVotingPeriod"})
 
 	result.Add(&settingItem{
+		Flag:         cmdcom.ProposalUpgradeCodePeriodFlag,
+		DefaultValue: uint32(0),
+		ConfigPath:   "CRConfiguration.ProposalUpgradeCodePeriod",
+		ParamName:    "ProposalUpgradeCodePeriod"})
+
+	result.Add(&settingItem{
 		Flag:         cmdcom.ProposalPublicVotingPeriodFlag,
 		DefaultValue: uint32(0),
 		ConfigPath:   "CRConfiguration.ProposalPublicVotingPeriod",
@@ -926,7 +932,11 @@ func NewSettings() *Settings {
 		DefaultValue: uint32(0),
 		ConfigPath:   "CRConfiguration.CRCProposalV1Height",
 		ParamName:    "CRCProposalV1Height"})
-
+	result.Add(&settingItem{
+		Flag:         cmdcom.CRCProposalUpgradeCodeHeight,
+		DefaultValue: uint32(0),
+		ConfigPath:   "CRConfiguration.CRCProposalUpgradeCodeHeight",
+		ParamName:    "CRCProposalUpgradeCodeHeight"})
 	result.Add(&settingItem{
 		Flag:         cmdcom.RectifyTxFee,
 		DefaultValue: common.Fixed64(0),

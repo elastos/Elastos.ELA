@@ -245,6 +245,9 @@ type ProposalKeyFrame struct {
 	// received custom id list
 	PendingReceivedCustomIDMap map[string]struct{} // todo: serialize and deserialize
 	ReceivedCustomIDLists      [][]string
+
+	//key is proposal type, value is status is  agreed proposal slice
+	UpgradCodeProposalMgr map[payload.CRCProposalType][]*payload.UpgradeCodeInfo
 }
 
 func NewProposalMap() ProposalsMap {
@@ -1369,6 +1372,7 @@ func NewProposalKeyFrame() *ProposalKeyFrame {
 		ProposalSession:            make(map[uint64][]common.Uint256),
 		WithdrawableTxInfo:         make(map[common.Uint256]types.OutputInfo),
 		PendingReceivedCustomIDMap: make(map[string]struct{}),
+		UpgradCodeProposalMgr:      make(map[payload.CRCProposalType][]*payload.UpgradeCodeInfo),
 	}
 }
 

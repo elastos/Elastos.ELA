@@ -1256,6 +1256,12 @@ func (b *BlockChain) checkTxHeightVersion(txn *Transaction, blockHeight uint32) 
 		if !ok {
 			return errors.New("not support invalid CRCProposal transaction")
 		}
+		if payload.IsUpgradeCodeProposal(p.ProposalType) {
+			if blockHeight < b.chainParams.CRCProposalUpgradeCodeHeight {
+				return errors.New(fmt.Sprintf("not support %s upgrade code CRCProposal"+
+					" transaction before CRCProposalUpgradeCodeHeight", p.ProposalType.Name()))
+			}
+		}
 		switch p.ProposalType {
 		case payload.ChangeProposalOwner, payload.CloseProposal, payload.SecretaryGeneral:
 			if blockHeight < b.chainParams.CRCProposalV1Height {
@@ -3103,6 +3109,49 @@ func (b *BlockChain) checkProposalCRCouncilMemberSign(crcProposal *payload.CRCPr
 
 	return nil
 }
+
+//check UpgradCode Proposal
+func (b *BlockChain) checkUpgradCodeProposalTx(crcProposal *payload.CRCProposal, PayloadVersion byte, blockHeight uint32) error {
+	if crcProposal.UpgradeCodeInfo == nil {
+		return errors.New("checkUpgradCodeProposalTx UpgradeCodeInfo is nil")
+	}
+	ProposalUpgradeCodePeriod := b.chainParams.ProposalCRVotingPeriod + b.chainParams.ProposalPublicVotingPeriod +
+		b.chainParams.ProposalUpgradeCodePeriod
+	//ProposalUpgradeCodePeriod
+	if crcProposal.UpgradeCodeInfo.WorkingHeight < blockHeight+ProposalUpgradeCodePeriod {
+		return errors.New("checkUpgradCodeProposalTx WorkingHeight is invalid")
+	}
+
+	//todo check nodeversion format
+
+	//check all signature
+
+	//Check signature of owner
+	signedBuf := new(bytes.Buffer)
+	if err := b.checkProposalOwnerSign(crcProposal, signedBuf, PayloadVersion); err != nil {
+		return errors.New("owner signature check failed")
+	}
+
+	// Check signature of CR Council Member.
+	crMember := b.crCommittee.GetMember(crcProposal.CRCouncilMemberDID)
+	if crMember == nil {
+		return errors.New("CR Council Member should be one of the CR members")
+	}
+	// Check signature of CR Council Member.
+	if err := common.WriteVarBytes(signedBuf, crcProposal.Signature); err != nil {
+		return errors.New("failed to write proposal owner signature")
+	}
+	if err := crcProposal.CRCouncilMemberDID.Serialize(signedBuf); err != nil {
+		return errors.New("failed to write CR Council Member's DID")
+	}
+	if err := checkCRTransactionSignature(crcProposal.CRCouncilMemberSignature, crMember.Info.Code,
+		signedBuf.Bytes()); err != nil {
+		return errors.New("failed to check CR Council Member signature")
+	}
+
+	return nil
+}
+
 func (b *BlockChain) checkChangeSecretaryGeneralProposalTx(crcProposal *payload.CRCProposal, PayloadVersion byte) error {
 	// The number of the proposals of the committee can not more than 128
 	if !b.isPublicKeyDIDMatch(crcProposal.SecretaryGeneralPublicKey, &crcProposal.SecretaryGeneralDID) {
@@ -3499,6 +3548,11 @@ func (b *BlockChain) checkCRCProposalTransaction(txn *Transaction,
 	if crMember.MemberState != crstate.MemberElected {
 		return errors.New("CR Council Member should be an elected CR members")
 	}
+
+	if payload.IsUpgradeCodeProposal(proposal.ProposalType) {
+		return b.checkUpgradCodeProposalTx(proposal, txn.PayloadVersion, blockHeight)
+	}
+
 	switch proposal.ProposalType {
 	case payload.ChangeProposalOwner:
 		return b.checkChangeProposalOwner(proposal, txn.PayloadVersion)

@@ -8,11 +8,12 @@ package mempool
 import (
 	"encoding/hex"
 	"fmt"
-	"github.com/elastos/Elastos.ELA/core/types/outputpayload"
+	"strconv"
 
 	"github.com/elastos/Elastos.ELA/blockchain"
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/core/types"
+	"github.com/elastos/Elastos.ELA/core/types/outputpayload"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/crypto"
 	"github.com/elastos/Elastos.ELA/errors"
@@ -376,4 +377,17 @@ func comGetCRInfo(tx *types.Transaction) (*payload.CRInfo, error) {
 			"register CR payload cast failed, tx:%s", tx.Hash())
 	}
 	return p, nil
+}
+
+func strUpgradCodeProposal(tx *types.Transaction) (interface{}, error) {
+	// const string to ensure only one tx added to the tx pool
+	p, ok := tx.Payload.(*payload.CRCProposal)
+	if !ok {
+		return nil, fmt.Errorf(
+			"CRC proposal payload cast failed, tx:%s", tx.Hash())
+	}
+	if payload.IsUpgradeCodeProposal(p.ProposalType) {
+		return strconv.Itoa(int(p.ProposalType)) + "upgradecode", nil
+	}
+	return nil, nil
 }

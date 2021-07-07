@@ -262,7 +262,7 @@ func (upgradeInfo *UpgradeCodeInfo) Deserialize(r io.Reader, version byte) error
 	if err != nil {
 		return errors.New("[UpgradeCodeInfo], NodeDownLoadUrl deserialize failed")
 	}
-
+	upgradeInfo.NodeBinHash = new(common.Uint256)
 	if err = upgradeInfo.NodeBinHash.Deserialize(r); err != nil {
 		return errors.New("failed to deserialize NodeBinHash")
 	}

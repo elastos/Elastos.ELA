@@ -1026,6 +1026,28 @@ func GetBalanceByAsset(param Params) map[string]interface{} {
 	return ResponsePack(Success, balance.String())
 }
 
+func Getallregistertransactions(param Params) map[string]interface{} {
+	crCommittee := Chain.GetCRCommittee()
+	rs := crCommittee.GetAllRegisteredSideChain()
+	var result []RsInfo
+	for k, v := range rs {
+		for k1, v1 := range v {
+			result = append(result, RsInfo{
+				SideChainName:          v1.SideChainName,
+				MagicNumber:            v1.MagicNumber,
+				DNSSeeds:               v1.DNSSeeds,
+				NodePort:               v1.NodePort,
+				GenesisHash:            common.ToReversedString(v1.GenesisHash),
+				GenesisTimestamp:       v1.GenesisTimestamp,
+				GenesisBlockDifficulty: v1.GenesisBlockDifficulty,
+				TxHash:                 common.ToReversedString(k1),
+				UpgradeProposalType:    v1.UpgradeProposalType,
+				Height:                 k,
+			})
+		}
+	}
+	return ResponsePack(Success, result)
+}
 func Getregistertransactionsbyheight(param Params) map[string]interface{} {
 	height, ok := param.Uint("height")
 	if !ok {
@@ -1041,11 +1063,12 @@ func Getregistertransactionsbyheight(param Params) map[string]interface{} {
 			MagicNumber:            v.MagicNumber,
 			DNSSeeds:               v.DNSSeeds,
 			NodePort:               v.NodePort,
-			GenesisHash:            v.GenesisHash,
+			GenesisHash:            common.ToReversedString(v.GenesisHash),
 			GenesisTimestamp:       v.GenesisTimestamp,
 			GenesisBlockDifficulty: v.GenesisBlockDifficulty,
-			TxHash:                 k,
+			TxHash:                 common.ToReversedString(k),
 			UpgradeProposalType:    v.UpgradeProposalType,
+			Height:                 height,
 		})
 	}
 	return ResponsePack(Success, result)

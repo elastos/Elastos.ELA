@@ -513,13 +513,14 @@ type SidechainIllegalDataInfo struct {
 }
 
 type RsInfo struct {
-	SideChainName          string         `json:"sidechainname"`
-	MagicNumber            uint32         `json:"magicnumber"`
-	DNSSeeds               []string       `json:"dnsseeds"`
-	NodePort               uint16         `json:"nodeport"`
-	GenesisHash            common.Uint256 `json:"genesishash"`
-	GenesisTimestamp       uint32         `json:"genesistimestamp"`
-	GenesisBlockDifficulty string         `json:"genesisblockdifficulty"`
-	TxHash                 common.Uint256 `json:"txhash"`
-	UpgradeProposalType    uint16         `json:"upgradeproposaltype"`
+	SideChainName          string   `json:"sidechainname"`
+	MagicNumber            uint32   `json:"magicnumber"`
+	DNSSeeds               []string `json:"dnsseeds"`
+	NodePort               uint16   `json:"nodeport"`
+	GenesisHash            string   `json:"genesishash"`
+	GenesisTimestamp       uint32   `json:"genesistimestamp"`
+	GenesisBlockDifficulty string   `json:"genesisblockdifficulty"`
+	TxHash                 string   `json:"txhash"`
+	UpgradeProposalType    uint16   `json:"upgradeproposaltype"`
+	Height                 uint32   `json:"height"`
 }

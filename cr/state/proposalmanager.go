@@ -132,6 +132,10 @@ func (p *ProposalManager) getRegisteredSideChainByHeight(height uint32) map[comm
 	return p.RegisteredSideChainPayloadInfo[height]
 }
 
+func (p *ProposalManager) getAllRegisteredSideChain() map[uint32]map[common.Uint256]payload.SideChainInfo {
+	return p.RegisteredSideChainPayloadInfo
+}
+
 // getProposal will return a proposal with specified hash,
 // and return nil if not found.
 func (p *ProposalManager) getProposal(hash common.Uint256) *ProposalState {
@@ -232,7 +236,7 @@ func recordPartProposalResult(results *[]payload.ProposalResult,
 			needRecordResult = true
 		}
 	}
-	
+
 	if needRecordResult {
 		*results = append(*results, payload.ProposalResult{
 			ProposalHash: proposalHash,

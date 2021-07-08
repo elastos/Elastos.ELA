@@ -70,6 +70,7 @@ func StartRPCServer() {
 
 	// register sidechain interfaces
 	mainMux["getregistertransactionsbyheight"] = Getregistertransactionsbyheight
+	mainMux["getallregistertransactions"] = Getallregistertransactions
 
 	// wallet interfaces
 	mainMux["getamountbyinputs"] = GetAmountByInputs

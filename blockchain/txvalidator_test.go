@@ -15,7 +15,9 @@ import (
 	"fmt"
 	"math"
 	mrand "math/rand"
+	"net"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	elaact "github.com/elastos/Elastos.ELA/account"
@@ -4386,6 +4388,17 @@ func (a *txValidatorTestSuite) createNextTurnDPOSInfoTransaction(crcArbiters, no
 		Attributes: []*types.Attribute{},
 		Programs:   []*program.Program{},
 		LockTime:   0,
+	}
+}
+func (s *txValidatorTestSuite) TestHostPort() {
+	seeds := "one.elastos.cn:20821,two.elastos.cn:20822"
+	seedArr := strings.Split(seeds, ",")
+	for _, seed := range seedArr {
+		host, _, err := net.SplitHostPort(seed)
+		if err != nil {
+			host = seed
+		}
+		s.True(payload.SeedRegexp.MatchString(host), seed+" not correct")
 	}
 }
 

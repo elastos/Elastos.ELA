@@ -81,7 +81,7 @@ func registerParams(c *cli.Context, L *lua.LState) {
 	genesisHash := c.String("genesishash")
 	genesisTimestamp := c.Int64("genesistimestamp")
 	genesisBlockDifficulty := c.String("genesisblockdifficulty")
-	upgradeProposalType := c.Int64("upgradeProposalType")
+	upgradeProposalType := c.Int64("upgradeproposaltype")
 
 	getWallet := func(L *lua.LState) int {
 		L.Push(lua.LString(wallet))
@@ -697,6 +697,10 @@ func NewCommand() *cli.Command {
 			cli.StringFlag{
 				Name:  "genesisblockdifficulty",
 				Usage: "set genesis block difficulty ",
+			},
+			cli.Int64Flag{
+				Name:  "upgradeproposaltype",
+				Usage: "upgrade proposal type ",
 			},
 		},
 		Action: scriptAction,

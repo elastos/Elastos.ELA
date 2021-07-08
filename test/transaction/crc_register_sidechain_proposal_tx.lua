@@ -28,7 +28,7 @@ local asset_id = m.get_asset_id()
 
 local fee = getFee()
 local cr_pubkey = getPublicKey()
-local proposal_type = 0x0301
+local proposal_type = 0x0410
 local sideChainName = getSideChainName()
 local magicNumber = getMagicNumber()
 local dnsSeeds = getDNSSeeds()

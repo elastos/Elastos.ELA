@@ -113,6 +113,23 @@ func (b *BlockChain) CheckTransactionContext(blockHeight uint32,
 	}
 
 	if txn.IsCoinBaseTx() {
+		if blockHeight >= b.chainParams.CRCommitteeStartHeight {
+			if b.state.GetConsensusAlgorithm() == state.POW {
+				if !txn.Outputs[0].ProgramHash.IsEqual(b.chainParams.DestroyELAAddress) {
+					return nil, elaerr.Simple(elaerr.ErrTxInvalidOutput,
+						errors.New("first output address should be "+
+							"DestroyAddress in POW consensus algorithm"))
+				}
+			} else {
+				if !txn.Outputs[0].ProgramHash.IsEqual(b.chainParams.CRAssetsAddress) {
+					return nil, elaerr.Simple(elaerr.ErrTxInvalidOutput,
+						errors.New("first output address should be CR assets address"))
+				}
+			}
+		} else if !txn.Outputs[0].ProgramHash.IsEqual(FoundationAddress) {
+			return nil, elaerr.Simple(elaerr.ErrTxInvalidOutput,
+				errors.New("first output address should be foundation address"))
+		}
 		return nil, nil
 	}
 
@@ -673,23 +690,6 @@ func (b *BlockChain) checkTransactionOutput(txn *Transaction,
 	if txn.IsCoinBaseTx() {
 		if len(txn.Outputs) < 2 {
 			return errors.New("coinbase output is not enough, at least 2")
-		}
-
-		if blockHeight >= b.chainParams.CRCommitteeStartHeight {
-			if b.state.GetConsensusAlgorithm() == state.POW {
-				if !txn.Outputs[0].ProgramHash.IsEqual(b.chainParams.DestroyELAAddress) {
-					return errors.New("first output address should be " +
-						"DestroyAddress in POW consensus algorithm")
-				}
-			} else {
-				if !txn.Outputs[0].ProgramHash.IsEqual(b.chainParams.CRAssetsAddress) {
-					return errors.New("first output address should be CR " +
-						"assets address")
-				}
-			}
-		} else if !txn.Outputs[0].ProgramHash.IsEqual(FoundationAddress) {
-			return errors.New("first output address should be foundation " +
-				"address")
 		}
 
 		foundationReward := txn.Outputs[0].Value

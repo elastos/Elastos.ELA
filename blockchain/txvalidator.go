@@ -1559,6 +1559,14 @@ func (b *BlockChain) checkTransferCrossChainAssetTransactionV1(txn *Transaction,
 		switch output.Type {
 		case OTNone:
 		case OTCrossChain:
+			address, err := output.ProgramHash.ToAddress()
+			if err != nil {
+				return err
+			}
+			if address == b.chainParams.DIDSideChainAddress {
+				return errors.New("no more DIDSideChain tx ")
+
+			}
 			if bytes.Compare(output.ProgramHash[0:1], []byte{byte(contract.PrefixCrossChain)}) != 0 {
 				return errors.New("invalid transaction output address, without \"X\" at beginning")
 			}

@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	// upgrade side chain proposal type
+	// upgrade proposal type
 	MinUpgradeProposalType = 0x0200
 	MaxUpgradeProposalType = 0x02ff
 )
@@ -280,6 +280,11 @@ func (p *CRCProposal) Data(version byte) []byte {
 	}
 
 	return buf.Bytes()
+}
+
+func (pt CRCProposalType) IsSideChainUpgradeProposal() bool {
+	return pt > MinUpgradeProposalType &&
+		pt <= MaxUpgradeProposalType
 }
 
 func (p *CRCProposal) SerializeUnsigned(w io.Writer, version byte) error {

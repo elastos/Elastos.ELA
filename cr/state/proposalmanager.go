@@ -224,7 +224,7 @@ func recordPartProposalResult(results *[]payload.ProposalResult,
 		needRecordResult = true
 
 	default:
-		if proposalType > payload.MinUpgradeProposalType && proposalType <= payload.MaxUpgradeProposalType {
+		if proposalType.IsSideChainUpgradeProposal() {
 			needRecordResult = true
 		}
 	}

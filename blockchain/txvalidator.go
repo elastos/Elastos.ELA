@@ -288,7 +288,7 @@ func (b *BlockChain) CheckTransactionContext(blockHeight uint32,
 		}
 
 	case TransferCrossChainAsset:
-		if err := b.checkTransferCrossChainAssetTransaction(txn, references); err != nil {
+		if err := b.checkTransferCrossChainAssetTransaction(txn, references, blockHeight); err != nil {
 			log.Warn("[CheckTransferCrossChainAssetTransaction],", err)
 			return nil, elaerr.Simple(elaerr.ErrTxInvalidOutput, err)
 		}
@@ -1540,16 +1540,18 @@ func (b *BlockChain) checkCrossChainArbitrators(publicKeys [][]byte) error {
 	return nil
 }
 
-func (b *BlockChain) checkTransferCrossChainAssetTransaction(txn *Transaction, references map[*Input]Output) error {
+func (b *BlockChain) checkTransferCrossChainAssetTransaction(txn *Transaction, references map[*Input]Output,
+	blockHeight uint32) error {
 	if txn.PayloadVersion > payload.TransferCrossChainVersionV1 {
 		return errors.New("invalid payload version")
 	} else if txn.PayloadVersion == payload.TransferCrossChainVersionV1 {
-		return b.checkTransferCrossChainAssetTransactionV1(txn, references)
+		return b.checkTransferCrossChainAssetTransactionV1(txn, references, blockHeight)
 	}
 	return b.checkTransferCrossChainAssetTransactionV0(txn, references)
 }
 
-func (b *BlockChain) checkTransferCrossChainAssetTransactionV1(txn *Transaction, references map[*Input]Output) error {
+func (b *BlockChain) checkTransferCrossChainAssetTransactionV1(txn *Transaction, references map[*Input]Output,
+	blockHeight uint32) error {
 	if txn.Version < TxVersion09 {
 		return errors.New("invalid transaction version")
 	}
@@ -1559,13 +1561,15 @@ func (b *BlockChain) checkTransferCrossChainAssetTransactionV1(txn *Transaction,
 		switch output.Type {
 		case OTNone:
 		case OTCrossChain:
-			address, err := output.ProgramHash.ToAddress()
-			if err != nil {
-				return err
-			}
-			if address == b.chainParams.DIDSideChainAddress {
-				return errors.New("no more DIDSideChain tx ")
+			if blockHeight >= b.chainParams.ProhibitTransferToDIDHeight {
+				address, err := output.ProgramHash.ToAddress()
+				if err != nil {
+					return err
+				}
+				if address == b.chainParams.DIDSideChainAddress {
+					return errors.New("no more DIDSideChain tx ")
 
+				}
 			}
 			if bytes.Compare(output.ProgramHash[0:1], []byte{byte(contract.PrefixCrossChain)}) != 0 {
 				return errors.New("invalid transaction output address, without \"X\" at beginning")

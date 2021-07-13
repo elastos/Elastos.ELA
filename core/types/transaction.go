@@ -425,8 +425,7 @@ func (tx *Transaction) IsCustomIDRelatedTx() bool {
 func (tx *Transaction) IsSideChainUpgradeTx() bool {
 	if tx.IsCRCProposalTx() {
 		p, _ := tx.Payload.(*payload.CRCProposal)
-		return p.ProposalType > payload.MinUpgradeProposalType &&
-			p.ProposalType <= payload.MaxUpgradeProposalType
+		return p.ProposalType.IsSideChainUpgradeProposal()
 	}
 	return false
 }

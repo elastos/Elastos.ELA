@@ -33,12 +33,16 @@ type Checkpoint struct {
 	sync.Mutex
 }
 
-func (c *Checkpoint) OnBlockSaved(block *types.DposBlock,needRollBack bool) {
+func (c *Checkpoint) OnBlockSaved(block *types.DposBlock) {
 
 }
 
 func (c *Checkpoint) OnRollbackTo(height uint32) error {
 	return nil
+}
+
+func (c *Checkpoint) OnRollbackSeekTo(height uint32) {
+	return
 }
 
 func (c *Checkpoint) Key() string {

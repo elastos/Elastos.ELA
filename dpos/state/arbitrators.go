@@ -333,6 +333,13 @@ func (a *arbitrators) ProcessSpecialTxPayload(p types.Payload,
 	return a.ForceChange(height)
 }
 
+func (a *arbitrators) RollbackSeekTo(height uint32) {
+	a.mtx.Lock()
+	a.history.RollbackSeekTo(height)
+	a.State.RollbackSeekTo(height)
+	a.mtx.Unlock()
+}
+
 func (a *arbitrators) RollbackTo(height uint32) error {
 	a.mtx.Lock()
 	a.history.RollbackTo(height)

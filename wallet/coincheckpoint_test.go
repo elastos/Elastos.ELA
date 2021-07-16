@@ -90,7 +90,7 @@ func TestInitBlock(t *testing.T) {
 }
 
 func TestCoinsCheckPoint_BlockSaved(t *testing.T) {
-	ccp.OnBlockSaved(block1, false)
+	ccp.OnBlockSaved(block1)
 
 	verifyCoins(ccp.coins, t)
 }

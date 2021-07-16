@@ -2043,6 +2043,13 @@ func (s *State) tryRevertInactivity(key string, producer *Producer,
 	}
 }
 
+// OnRollbackSeekTo restores the database state to the given height.
+func (s *State) RollbackSeekTo(height uint32) {
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
+	s.history.RollbackSeekTo(height)
+}
+
 // RollbackTo restores the database state to the given height, if no enough
 // history to rollback to return error.
 func (s *State) RollbackTo(height uint32) error {

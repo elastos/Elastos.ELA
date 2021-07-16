@@ -1574,6 +1574,16 @@ func (b *BlockChain) checkTransferCrossChainAssetTransactionV1(txn *Transaction,
 			if bytes.Compare(output.ProgramHash[0:1], []byte{byte(contract.PrefixCrossChain)}) != 0 {
 				return errors.New("invalid transaction output address, without \"X\" at beginning")
 			}
+
+			p, ok := output.Payload.(*outputpayload.CrossChainOutput)
+			if !ok {
+				return errors.New("invalid cross chain output payload")
+			}
+
+			if output.Value < b.chainParams.MinCrossChainTxFee+p.TargetAmount {
+				return errors.New("invalid cross chain output amount")
+			}
+
 			crossChainOutputCount++
 		default:
 			return errors.New("invalid output type in cross chain transaction")

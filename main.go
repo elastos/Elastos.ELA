@@ -316,7 +316,6 @@ func startNode(c *cli.Context, st *settings.Settings) {
 	})
 
 	st.Params().CkpManager.SetNeedSave(true)
-	st.Params().CkpManager.SetEnableHistory(true)
 	// initialize producer state after arbiters has initialized.
 	if err = chain.InitCheckpoint(interrupt.C, pgBar.Start,
 		pgBar.Increase); err != nil {

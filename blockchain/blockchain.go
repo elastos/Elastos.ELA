@@ -10,7 +10,6 @@ import (
 	"container/list"
 	"errors"
 	"fmt"
-	"github.com/elastos/Elastos.ELA/core/checkpoint"
 	"math/big"
 	"os"
 	"path/filepath"
@@ -30,6 +29,7 @@ import (
 	"github.com/elastos/Elastos.ELA/database"
 	"github.com/elastos/Elastos.ELA/dpos/state"
 	"github.com/elastos/Elastos.ELA/events"
+	"github.com/elastos/Elastos.ELA/p2p/msg"
 	"github.com/elastos/Elastos.ELA/utils"
 )
 
@@ -1210,7 +1210,8 @@ func (b *BlockChain) reorganizeChain(detachNodes, attachNodes *list.List) error 
 
 		// roll back state about the last block before disconnect
 		if block.Height-1 >= b.chainParams.VoteStartHeight {
-			err = b.chainParams.CkpManager.OnRollbackTo(block.Height-1, b.state.ConsensusAlgorithm == state.POW)
+			err = b.chainParams.CkpManager.OnRollbackTo(
+				block.Height-1, b.state.ConsensusAlgorithm == state.POW)
 			if err != nil {
 				return err
 			}
@@ -1235,9 +1236,7 @@ func (b *BlockChain) reorganizeChain(detachNodes, attachNodes *list.List) error 
 		if err != nil {
 			return err
 		}
-		if b.chainParams.CkpManager.GetRollBackStatus() == checkpoint.NoRollback {
-			b.chainParams.CkpManager.SetRollBackStatus(checkpoint.NeedRollback)
-		}
+
 		// update state after connected block
 		b.chainParams.CkpManager.OnBlockSaved(&DposBlock{
 			Block:       block,
@@ -1245,13 +1244,9 @@ func (b *BlockChain) reorganizeChain(detachNodes, attachNodes *list.List) error 
 			Confirm:     confirm,
 		}, nil, b.state.ConsensusAlgorithm == state.POW)
 		DefaultLedger.Arbitrators.DumpInfo(block.Height)
-		if b.chainParams.CkpManager.GetRollBackStatus() == checkpoint.NeedRollback {
-			b.chainParams.CkpManager.SetRollBackStatus(checkpoint.AlreadyRollback)
-		}
 		delete(b.blockCache, *n.Hash)
 		delete(b.confirmCache, *n.Hash)
 	}
-	b.chainParams.CkpManager.SetRollBackStatus(checkpoint.NoRollback)
 	return nil
 }
 
@@ -1677,6 +1672,14 @@ func (b *BlockChain) processBlock(block *Block, confirm *payload.Confirm) (bool,
 	//log.Debugf("Accepted block %v", blockHash)
 
 	return inMainChain, false, nil
+}
+
+// length of inv need to be >= 2
+func (b *BlockChain) GetOrphanBlockLocator(inv []*msg.InvVect) []*Uint256 {
+	locator := make([]*Uint256, 0)
+	locator = append(locator, &inv[len(inv)-1].Hash)
+	locator = append(locator, &inv[0].Hash)
+	return locator
 }
 
 func (b *BlockChain) LatestBlockLocator() ([]*Uint256, error) {

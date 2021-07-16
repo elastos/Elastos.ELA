@@ -130,7 +130,7 @@ func (ccp *CoinsCheckPoint) LogError(err error) {
 	log.Warn(err.Error())
 }
 
-func (ccp *CoinsCheckPoint) OnBlockSaved(block *types.DposBlock,needRollBack bool) {
+func (ccp *CoinsCheckPoint) OnBlockSaved(block *types.DposBlock) {
 	ccp.Lock()
 	defer ccp.Unlock()
 
@@ -156,6 +156,10 @@ func (ccp *CoinsCheckPoint) OnBlockSaved(block *types.DposBlock,needRollBack boo
 			})
 		}
 	}
+}
+
+func (ccp *CoinsCheckPoint) OnRollbackSeekTo(height uint32) {
+	return
 }
 
 func (ccp *CoinsCheckPoint) OnRollbackTo(height uint32) error {

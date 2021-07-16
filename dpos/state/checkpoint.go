@@ -65,15 +65,15 @@ func (c *CheckPoint) StartHeight() uint32 {
 			c.arbitrators.chainParams.PreConnectOffset)))
 }
 
-func (c *CheckPoint) OnBlockSaved(block *types.DposBlock,needRollBack bool) {
+func (c *CheckPoint) OnBlockSaved(block *types.DposBlock) {
 	if block.Height <= c.GetHeight() {
 		return
 	}
-	if needRollBack {
-		c.arbitrators.history.RollbackSeekTo(block.Height)
-		c.arbitrators.State.history.RollbackSeekTo(block.Height)
-	}
 	c.arbitrators.ProcessBlock(block.Block, block.Confirm)
+}
+
+func (c *CheckPoint) OnRollbackSeekTo(height uint32) {
+	c.arbitrators.RollbackSeekTo(height)
 }
 
 func (c *CheckPoint) OnRollbackTo(height uint32) error {

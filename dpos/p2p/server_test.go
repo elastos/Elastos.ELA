@@ -1,7 +1,7 @@
 // Copyright (c) 2017-2020 The Elastos Foundation
 // Use of this source code is governed by an MIT
 // license that can be found in the LICENSE file.
-// 
+//
 
 package p2p
 
@@ -614,6 +614,7 @@ func TestServer_DumpPeersInfo(t *testing.T) {
 			sign, _ := crypto.Sign(priKey, nonce)
 			return sign
 		},
+		MaxNodePerHost:   20,
 		MakeEmptyMessage: makeEmptyMessage,
 	})
 	if !assert.NoError(t, err) {

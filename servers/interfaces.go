@@ -2959,7 +2959,7 @@ func getOutputPayloadInfo(op OutputPayload) OutputPayloadInfo {
 		obj.Version = object.Version
 		obj.TargetAddress = object.TargetAddress
 		obj.TargetAmount = object.TargetAmount.String()
-		obj.TargetData = string(object.TargetData)
+		obj.TargetData = common.BytesToHexString(object.TargetData)
 		return obj
 	case *outputpayload.ReturnSideChainDeposit:
 		obj := new(ReturnSideChainDepositInfo)

@@ -225,7 +225,7 @@ func (c *ChainStore) GetFFLDB() IFFLDBChainStore {
 
 func (c *ChainStore) SaveBlock(b *Block, node *BlockNode,
 	confirm *payload.Confirm, medianTimePast time.Time) error {
-	log.Debug("SaveBlock()")
+	log.Info("SaveBlock ", b.Height)
 
 	now := time.Now()
 	err := c.handlePersistBlockTask(b, node, confirm, medianTimePast)

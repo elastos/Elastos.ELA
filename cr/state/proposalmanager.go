@@ -128,6 +128,14 @@ func (p *ProposalManager) getProposals(status ProposalStatus) (dst ProposalsMap)
 	return
 }
 
+func (p *ProposalManager) getRegisteredSideChainByHeight(height uint32) map[common.Uint256]payload.SideChainInfo {
+	return p.RegisteredSideChainPayloadInfo[height]
+}
+
+func (p *ProposalManager) getAllRegisteredSideChain() map[uint32]map[common.Uint256]payload.SideChainInfo {
+	return p.RegisteredSideChainPayloadInfo
+}
+
 // getProposal will return a proposal with specified hash,
 // and return nil if not found.
 func (p *ProposalManager) getProposal(hash common.Uint256) *ProposalState {
@@ -228,7 +236,7 @@ func recordPartProposalResult(results *[]payload.ProposalResult,
 			needRecordResult = true
 		}
 	}
-	
+
 	if needRecordResult {
 		*results = append(*results, payload.ProposalResult{
 			ProposalHash: proposalHash,
@@ -374,6 +382,25 @@ func (p *ProposalManager) dealProposal(proposalState *ProposalState, unusedAmoun
 		}, func() {
 			p.ReceivedCustomIDLists = oriReceivedCustomIDLists
 		})
+	case payload.RegisterSideChain:
+		originRegisteredSideChainNames := p.RegisteredSideChainNames
+		originRegisteredSideChainPayloadInfo := p.RegisteredSideChainPayloadInfo
+		originExistedUpgradeProposalType := p.ExistedUpgradeProposalType
+		p.history.Append(height, func() {
+			p.RegisteredSideChainNames = append(p.RegisteredSideChainNames, proposalState.Proposal.SideChainName)
+			if info, ok := p.RegisteredSideChainPayloadInfo[height]; ok {
+				info[proposalState.TxHash] = proposalState.Proposal.SideChainInfo
+			} else {
+				rs := make(map[common.Uint256]payload.SideChainInfo)
+				rs[proposalState.TxHash] = proposalState.Proposal.SideChainInfo
+				p.RegisteredSideChainPayloadInfo[height] = rs
+			}
+			p.ExistedUpgradeProposalType = append(p.ExistedUpgradeProposalType, proposalState.Proposal.UpgradeProposalType)
+		}, func() {
+			p.RegisteredSideChainNames = originRegisteredSideChainNames
+			p.RegisteredSideChainPayloadInfo = originRegisteredSideChainPayloadInfo
+			p.ExistedUpgradeProposalType = originExistedUpgradeProposalType
+		})
 	}
 }
 
@@ -436,7 +463,7 @@ func (p *ProposalManager) transferCRAgreedState(proposalState *ProposalState,
 func isSpecialProposal(proposalType payload.CRCProposalType) bool {
 	switch proposalType {
 	case payload.SecretaryGeneral, payload.ChangeProposalOwner, payload.CloseProposal, payload.ReserveCustomID,
-		payload.ReceiveCustomID, payload.ChangeCustomIDFee:
+		payload.ReceiveCustomID, payload.ChangeCustomIDFee, payload.RegisterSideChain:
 		return true
 	default:
 		return false

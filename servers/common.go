@@ -356,6 +356,24 @@ type CRCSecretaryGeneralProposalInfo struct {
 	Hash                      string `json:"hash"`
 }
 
+type CRCRegisterSideChainProposalInfo struct {
+	ProposalType             string   `json:"proposaltype"`
+	CategoryData             string   `json:"categorydata"`
+	OwnerPublicKey           string   `json:"ownerpublickey"`
+	DraftHash                string   `json:"drafthash"`
+	SideChainName            string   `json:"sidechainname"`
+	MagicNumber              uint32   `json:"magicnumber"`
+	DNSSeeds                 []string `json:"dnsseeds"`
+	NodePort                 uint16   `json:"nodeport"`
+	GenesisHash              string   `json:"genesishash"`
+	GenesisTimestamp         uint32   `json:"genesistimestamp"`
+	GenesisBlockDifficulty   string   `json:"genesisblockdifficulty"`
+	Signature                string   `json:"signature"`
+	CRCouncilMemberDID       string   `json:"crcouncilmemberdid"`
+	CRCouncilMemberSignature string   `json:"crcouncilmembersignature"`
+	Hash                     string   `json:"hash"`
+}
+
 type CRCProposalReviewInfo struct {
 	ProposalHash string `json:"proposalhash"`
 	VoteResult   string `json:"voteresult"`
@@ -485,4 +503,17 @@ type SidechainIllegalDataInfo struct {
 	CompareEvidence     string   `json:"compareevidence"`
 	GenesisBlockAddress string   `json:"genesisblockaddress"`
 	Signs               []string `json:"signs"`
+}
+
+type RsInfo struct {
+	SideChainName          string   `json:"sidechainname"`
+	MagicNumber            uint32   `json:"magicnumber"`
+	DNSSeeds               []string `json:"dnsseeds"`
+	NodePort               uint16   `json:"nodeport"`
+	GenesisHash            string   `json:"genesishash"`
+	GenesisTimestamp       uint32   `json:"genesistimestamp"`
+	GenesisBlockDifficulty string   `json:"genesisblockdifficulty"`
+	TxHash                 string   `json:"txhash"`
+	UpgradeProposalType    uint16   `json:"upgradeproposaltype"`
+	Height                 uint32   `json:"height"`
 }

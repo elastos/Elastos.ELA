@@ -672,14 +672,22 @@ func GetPayload(txType TxType) (Payload, error) {
 }
 
 func (tx *Transaction) IsSmallTransfer(min common.Fixed64) bool {
-	payloadObj, ok := tx.Payload.(*payload.TransferCrossChainAsset)
-	if !ok {
-		return false
-	}
 	var totalCrossAmt common.Fixed64
-	for i := 0; i < len(payloadObj.CrossChainAddresses); i++ {
-		if bytes.Compare(tx.Outputs[payloadObj.OutputIndexes[i]].ProgramHash[0:1], []byte{byte(contract.PrefixCrossChain)}) == 0 {
-			totalCrossAmt += tx.Outputs[payloadObj.OutputIndexes[i]].Value
+	if tx.PayloadVersion == payload.TransferCrossChainVersion {
+		payloadObj, ok := tx.Payload.(*payload.TransferCrossChainAsset)
+		if !ok {
+			return false
+		}
+		for i := 0; i < len(payloadObj.CrossChainAddresses); i++ {
+			if bytes.Compare(tx.Outputs[payloadObj.OutputIndexes[i]].ProgramHash[0:1], []byte{byte(contract.PrefixCrossChain)}) == 0 {
+				totalCrossAmt += tx.Outputs[payloadObj.OutputIndexes[i]].Value
+			}
+		}
+	} else {
+		for _, o := range tx.Outputs {
+			if bytes.Compare(o.ProgramHash[0:1], []byte{byte(contract.PrefixCrossChain)}) == 0 {
+				totalCrossAmt += o.Value
+			}
 		}
 	}
 

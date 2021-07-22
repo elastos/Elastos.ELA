@@ -116,7 +116,11 @@ const (
 	HASH256       = 0xAA
 	CHECKSIG      = 0xAC // The entire transaction's outputs inputs and script (from the most recently-executed CODESEPARATOR to the end) are hashed. The signature used by CHECKSIG must be a valid signature for this hash and public key. If it is 1 is returned 0 otherwise.
 	CHECKMULTISIG = 0xAE // For each signature and public key pair CHECKSIG is executed. If more public keys than signatures are listed some key/sig pairs can fail. All signatures need to match a public key. If all signatures are valid 1 is returned 0 otherwise. Due to a bug one extra unused value is removed from the stack.
-
+	CROSSCHAIN    = 0xAF
+	
+	// For schnorr
+	SCHNORR       = 0xC1
+	
 	// Array
 	ARRAYSIZE = 0xC0
 	PACK      = 0xC1

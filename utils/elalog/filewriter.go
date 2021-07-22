@@ -82,10 +82,15 @@ func (w *fileWriter) writeHandler() {
 		}
 
 		// force write buffer to file.
-		if _, err := current.Write(buf); err != nil {
-			fmt.Fprintf(os.Stderr, "Write log file %s, err %v\n",
-				current.Name(), err)
+		if current != nil {
+			if _, err := current.Write(buf); err != nil {
+				fmt.Fprintf(os.Stderr, "Write log file %s, err %v\n",
+					current.Name(), err)
+			}
+		} else {
+			fmt.Println("current log file is nil")
 		}
+
 		w.writeReply <- struct{}{}
 
 		// check folder size by check buf interval, if folder size

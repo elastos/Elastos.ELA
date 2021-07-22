@@ -2967,6 +2967,13 @@ func getOutputPayloadInfo(op OutputPayload) OutputPayloadInfo {
 		obj.TargetAmount = object.TargetAmount.String()
 		obj.TargetData = common.BytesToHexString(object.TargetData)
 		return obj
+	case *outputpayload.Withdraw:
+		obj := new(WithdrawInfo)
+		obj.Version = object.Version
+		obj.GenesisBlockAddress = object.GenesisBlockAddress
+		obj.SideChainTransactionHash = object.SideChainTransactionHash.String()
+		obj.TargetData = common.BytesToHexString(object.TargetData)
+		return obj
 	case *outputpayload.ReturnSideChainDeposit:
 		obj := new(ReturnSideChainDepositInfo)
 		obj.Version = object.Version

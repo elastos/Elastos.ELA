@@ -113,6 +113,23 @@ func (b *BlockChain) CheckTransactionContext(blockHeight uint32,
 	}
 
 	if txn.IsCoinBaseTx() {
+		if blockHeight >= b.chainParams.CRCommitteeStartHeight {
+			if b.state.GetConsensusAlgorithm() == state.POW {
+				if !txn.Outputs[0].ProgramHash.IsEqual(b.chainParams.DestroyELAAddress) {
+					return nil, elaerr.Simple(elaerr.ErrTxInvalidOutput,
+						errors.New("first output address should be "+
+							"DestroyAddress in POW consensus algorithm"))
+				}
+			} else {
+				if !txn.Outputs[0].ProgramHash.IsEqual(b.chainParams.CRAssetsAddress) {
+					return nil, elaerr.Simple(elaerr.ErrTxInvalidOutput,
+						errors.New("first output address should be CR assets address"))
+				}
+			}
+		} else if !txn.Outputs[0].ProgramHash.IsEqual(FoundationAddress) {
+			return nil, elaerr.Simple(elaerr.ErrTxInvalidOutput,
+				errors.New("first output address should be foundation address"))
+		}
 		return nil, nil
 	}
 
@@ -288,7 +305,7 @@ func (b *BlockChain) CheckTransactionContext(blockHeight uint32,
 		}
 
 	case TransferCrossChainAsset:
-		if err := b.checkTransferCrossChainAssetTransaction(txn, references); err != nil {
+		if err := b.checkTransferCrossChainAssetTransaction(txn, references, blockHeight); err != nil {
 			log.Warn("[CheckTransferCrossChainAssetTransaction],", err)
 			return nil, elaerr.Simple(elaerr.ErrTxInvalidOutput, err)
 		}
@@ -673,23 +690,6 @@ func (b *BlockChain) checkTransactionOutput(txn *Transaction,
 	if txn.IsCoinBaseTx() {
 		if len(txn.Outputs) < 2 {
 			return errors.New("coinbase output is not enough, at least 2")
-		}
-
-		if blockHeight >= b.chainParams.CRCommitteeStartHeight {
-			if b.state.GetConsensusAlgorithm() == state.POW {
-				if !txn.Outputs[0].ProgramHash.IsEqual(b.chainParams.DestroyELAAddress) {
-					return errors.New("first output address should be " +
-						"DestroyAddress in POW consensus algorithm")
-				}
-			} else {
-				if !txn.Outputs[0].ProgramHash.IsEqual(b.chainParams.CRAssetsAddress) {
-					return errors.New("first output address should be CR " +
-						"assets address")
-				}
-			}
-		} else if !txn.Outputs[0].ProgramHash.IsEqual(FoundationAddress) {
-			return errors.New("first output address should be foundation " +
-				"address")
 		}
 
 		foundationReward := txn.Outputs[0].Value
@@ -1540,16 +1540,18 @@ func (b *BlockChain) checkCrossChainArbitrators(publicKeys [][]byte) error {
 	return nil
 }
 
-func (b *BlockChain) checkTransferCrossChainAssetTransaction(txn *Transaction, references map[*Input]Output) error {
+func (b *BlockChain) checkTransferCrossChainAssetTransaction(txn *Transaction, references map[*Input]Output,
+	blockHeight uint32) error {
 	if txn.PayloadVersion > payload.TransferCrossChainVersionV1 {
 		return errors.New("invalid payload version")
 	} else if txn.PayloadVersion == payload.TransferCrossChainVersionV1 {
-		return b.checkTransferCrossChainAssetTransactionV1(txn, references)
+		return b.checkTransferCrossChainAssetTransactionV1(txn, references, blockHeight)
 	}
 	return b.checkTransferCrossChainAssetTransactionV0(txn, references)
 }
 
-func (b *BlockChain) checkTransferCrossChainAssetTransactionV1(txn *Transaction, references map[*Input]Output) error {
+func (b *BlockChain) checkTransferCrossChainAssetTransactionV1(txn *Transaction, references map[*Input]Output,
+	blockHeight uint32) error {
 	if txn.Version < TxVersion09 {
 		return errors.New("invalid transaction version")
 	}
@@ -1559,9 +1561,29 @@ func (b *BlockChain) checkTransferCrossChainAssetTransactionV1(txn *Transaction,
 		switch output.Type {
 		case OTNone:
 		case OTCrossChain:
+			if blockHeight >= b.chainParams.ProhibitTransferToDIDHeight {
+				address, err := output.ProgramHash.ToAddress()
+				if err != nil {
+					return err
+				}
+				if address == b.chainParams.DIDSideChainAddress {
+					return errors.New("no more DIDSideChain tx ")
+
+				}
+			}
 			if bytes.Compare(output.ProgramHash[0:1], []byte{byte(contract.PrefixCrossChain)}) != 0 {
 				return errors.New("invalid transaction output address, without \"X\" at beginning")
 			}
+
+			p, ok := output.Payload.(*outputpayload.CrossChainOutput)
+			if !ok {
+				return errors.New("invalid cross chain output payload")
+			}
+
+			if output.Value < b.chainParams.MinCrossChainTxFee+p.TargetAmount {
+				return errors.New("invalid cross chain output amount")
+			}
+
 			crossChainOutputCount++
 		default:
 			return errors.New("invalid output type in cross chain transaction")

@@ -374,6 +374,11 @@ func NewSettings() *Settings {
 		return nil
 	}
 	result.Add(&settingItem{
+		Flag:         cmdcom.DIDSideChainAddressFlag,
+		DefaultValue: "",
+		ConfigPath:   "DIDSideChainAddress",
+		ParamName:    "DIDSideChainAddress"})
+	result.Add(&settingItem{
 		Flag:         cmdcom.FoundationAddrFlag,
 		DefaultValue: "",
 		ConfigSetter: func(path string, params *config.Params,
@@ -895,6 +900,13 @@ func NewSettings() *Settings {
 		DefaultValue: uint32(0),
 		ConfigPath:   "CRConfiguration.RegisterCRByDIDHeight",
 		ParamName:    "RegisterCRByDIDHeight",
+	})
+
+	result.Add(&settingItem{
+		Flag:         cmdcom.ProhibitTransferToDIDHeightFlag,
+		DefaultValue: uint32(0),
+		ConfigPath:   "ProhibitTransferToDIDHeight",
+		ParamName:    "ProhibitTransferToDIDHeight",
 	})
 
 	result.Add(&settingItem{

@@ -33,7 +33,7 @@ type Checkpoint struct {
 	sync.Mutex
 }
 
-func (c *Checkpoint) OnBlockSaved(block *types.DposBlock) {
+func (c *Checkpoint) OnBlockSaved(block *types.DposBlock,needRollBack bool) {
 
 }
 

@@ -434,6 +434,7 @@ func (sm *SyncManager) handleBlockMsg(bmsg *blockMsg) {
 		sm.syncPeer = nil
 	}
 
+	log.Info("###### sm.chain.BestChain.Height:", sm.chain.BestChain.Height, "sm.syncHeight:", sm.syncHeight, "isOrphan:", isOrphan)
 	// Request the parents for the orphan block from the peer that sent it.
 	if isOrphan {
 		orphanRoot := sm.chain.GetOrphanRoot(&blockHash)

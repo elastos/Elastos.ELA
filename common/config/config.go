@@ -54,6 +54,8 @@ type Configuration struct {
 	RestKeyPath                 string            `json:"RestKeyPath"`
 	MinCrossChainTxFee          common.Fixed64    `json:"MinCrossChainTxFee"`
 	FoundationAddress           string            `json:"FoundationAddress"`
+	DIDSideChainAddress         string            `json:"DIDSideChainAddress"`
+	ProhibitTransferToDIDHeight uint32            `json:"ProhibitTransferToDIDHeight"`
 	PowConfiguration            PowConfiguration  `json:"PowConfiguration"`
 	RpcConfiguration            RpcConfiguration  `json:"RpcConfiguration"`
 	DPoSConfiguration           DPoSConfiguration `json:"DPoSConfiguration"`

@@ -292,7 +292,6 @@ func randomKeyFrame(size int, commitHeight uint32) *KeyFrame {
 		PartProposalResults:      make([]payload.ProposalResult, size, size),
 		LastCommitteeHeight:      commitHeight,
 		LastVotingStartHeight:    rand.Uint32(),
-		InElectionPeriod:         randomBool(),
 		NeedAppropriation:        randomBool(),
 		NeedRecordProposalResult: randomBool(),
 		CRCFoundationBalance:     randomFix64(),

@@ -39,9 +39,17 @@ type Checkpoint struct {
 	committee *Committee
 }
 
-func (c *Checkpoint) OnBlockSaved(block *types.DposBlock) {
+func (c *Checkpoint) OnBlockSaved(block *types.DposBlock,needRollBack bool) {
 	if block.Height <= c.GetHeight() {
 		return
+	}
+	if needRollBack {
+		c.committee.firstHistory.RollbackSeekTo(block.Height)
+		c.committee.lastHistory.RollbackSeekTo(block.Height)
+		c.committee.appropriationHistory.RollbackSeekTo(block.Height)
+		c.committee.manager.history.RollbackSeekTo(block.Height)
+		c.committee.state.history.RollbackSeekTo(block.Height)
+		c.committee.state.manager.history.RollbackSeekTo(block.Height)
 	}
 	c.committee.ProcessBlock(block.Block, block.Confirm)
 }

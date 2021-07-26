@@ -191,6 +191,10 @@ var (
 		Name:  "foundation",
 		Usage: "specify the foundation address",
 	}
+	DIDSideChainAddressFlag = cli.StringFlag{
+		Name:  "didsidechainaddress",
+		Usage: "specify the did sidechain address",
+	}
 	PayToAddrFlag = cli.StringFlag{
 		Name:  "paytoaddr",
 		Usage: "specify the miner reward address",
@@ -382,6 +386,10 @@ var (
 	RegisterCRByDIDHeightFlag = cli.StringFlag{
 		Name:  "registercrbydidheight",
 		Usage: "defines the height to support register CR by CID",
+	}
+	ProhibitTransferToDIDHeightFlag = cli.StringFlag{
+		Name:  "prohibittransfertodidheight",
+		Usage: "defines the height to prohibit transfer to did",
 	}
 	MaxCRAssetsAddressUTXOCount = cli.StringFlag{
 		Name:  "maxcrassetsaddressutxocount",

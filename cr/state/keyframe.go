@@ -971,6 +971,9 @@ func (p *ProposalState) Serialize(w io.Writer) (err error) {
 	if err := common.WriteVarBytes(w, p.ProposalOwner); err != nil {
 		return err
 	}
+	if err := p.Recipient.Serialize(w); err != nil {
+		return err
+	}
 
 	return p.TxHash.Serialize(w)
 }
@@ -1041,6 +1044,10 @@ func (p *ProposalState) Deserialize(r io.Reader) (err error) {
 		"proposal owner"); err != nil {
 		return err
 	}
+	if err = p.Recipient.Deserialize(r); err != nil {
+		return err
+	}
+
 	return p.TxHash.Deserialize(r)
 }
 

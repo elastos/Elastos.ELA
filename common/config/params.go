@@ -195,6 +195,9 @@ var DefaultParams = Params{
 	CheckRewardHeight:           436812,
 	VoteStatisticsHeight:        512881,
 	RegisterCRByDIDHeight:       598000,
+	//todo
+	ProhibitTransferToDIDHeight: 0,
+	DIDSideChainAddress:         "XKUh4GLhFJiqAMTF6HyWQrV9pK9HcGUdfJ",
 	ToleranceDuration:           5 * time.Second,
 	MaxInactiveRounds:           720 * 2,
 	InactivePenalty:             0, //there will be no penalty in this version
@@ -312,6 +315,9 @@ func (p *Params) TestNet() *Params {
 	copy.CheckRewardHeight = 100
 	copy.VoteStatisticsHeight = 0
 	copy.RegisterCRByDIDHeight = 483500
+	//todo
+	copy.ProhibitTransferToDIDHeight = 0
+	copy.DIDSideChainAddress = "XKUh4GLhFJiqAMTF6HyWQrV9pK9HcGUdfJ"
 	copy.EnableUtxoDB = true
 	copy.EnableCORS = false
 	copy.VoterRejectPercentage = 10
@@ -402,6 +408,10 @@ func (p *Params) RegNet() *Params {
 	copy.CheckRewardHeight = 280000
 	copy.VoteStatisticsHeight = 0
 	copy.RegisterCRByDIDHeight = 393000
+	//todo
+	copy.ProhibitTransferToDIDHeight = 0
+	copy.DIDSideChainAddress = "XKUh4GLhFJiqAMTF6HyWQrV9pK9HcGUdfJ"
+
 	copy.EnableUtxoDB = true
 	copy.EnableCORS = false
 	copy.VoterRejectPercentage = 10
@@ -575,6 +585,12 @@ type Params struct {
 	// RegisterCRByDIDHeight defines the height to support register and update
 	// CR by CID and CID.
 	RegisterCRByDIDHeight uint32
+
+	//Prohibit transfers to did height
+	ProhibitTransferToDIDHeight uint32
+
+	//did side chain address
+	DIDSideChainAddress string
 
 	// CRCArbiters defines the fixed CRC arbiters producing the block.
 	CRCArbiters []string

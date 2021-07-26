@@ -46,6 +46,13 @@ type CrossChainOutputInfo struct {
 	TargetData    string `json:"TargetData"`
 }
 
+type WithdrawInfo struct {
+	Version                  byte `json:"Version"`
+	GenesisBlockAddress      string `json:"GenesisBlockAddress"`
+	SideChainTransactionHash string `json:"SideChainTransactionHash"`
+	TargetData               string `json:"TargetData"`
+}
+
 type ReturnSideChainDepositInfo struct {
 	Version                byte   `json:"Version"`
 	GenesisBlockAddress    string `json:"GenesisBlockAddress"`

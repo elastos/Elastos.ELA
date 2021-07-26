@@ -2578,6 +2578,9 @@ func getPayloadInfo(p Payload, payloadVersion byte) PayloadInfo {
 		obj.Signature = common.BytesToHexString(object.Signature)
 		return obj
 	case *payload.WithdrawFromSideChain:
+		if payloadVersion == payload.WithdrawFromSideChainVersionV1 {
+			return nil
+		}
 		obj := new(WithdrawFromSideChainInfo)
 		obj.BlockHeight = object.BlockHeight
 		obj.GenesisBlockAddress = object.GenesisBlockAddress
@@ -2586,6 +2589,9 @@ func getPayloadInfo(p Payload, payloadVersion byte) PayloadInfo {
 		}
 		return obj
 	case *payload.TransferCrossChainAsset:
+		if payloadVersion == payload.TransferCrossChainVersionV1 {
+			return nil
+		}
 		obj := new(TransferCrossChainAssetInfo)
 		obj.CrossChainAddresses = object.CrossChainAddresses
 		obj.OutputIndexes = object.OutputIndexes
@@ -2959,7 +2965,14 @@ func getOutputPayloadInfo(op OutputPayload) OutputPayloadInfo {
 		obj.Version = object.Version
 		obj.TargetAddress = object.TargetAddress
 		obj.TargetAmount = object.TargetAmount.String()
-		obj.TargetData = string(object.TargetData)
+		obj.TargetData = common.BytesToHexString(object.TargetData)
+		return obj
+	case *outputpayload.Withdraw:
+		obj := new(WithdrawInfo)
+		obj.Version = object.Version
+		obj.GenesisBlockAddress = object.GenesisBlockAddress
+		obj.SideChainTransactionHash = object.SideChainTransactionHash.String()
+		obj.TargetData = common.BytesToHexString(object.TargetData)
 		return obj
 	case *outputpayload.ReturnSideChainDeposit:
 		obj := new(ReturnSideChainDepositInfo)

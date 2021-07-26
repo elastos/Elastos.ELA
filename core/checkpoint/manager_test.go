@@ -1,7 +1,7 @@
 // Copyright (c) 2017-2020 The Elastos Foundation
 // Use of this source code is governed by an MIT
 // license that can be found in the LICENSE file.
-// 
+//
 
 package checkpoint
 
@@ -114,7 +114,7 @@ func (*checkpoint) DataExtension() string {
 	return checkpointExtension
 }
 
-func (c *checkpoint) OnBlockSaved(block *types.DposBlock) {
+func (c *checkpoint) OnBlockSaved(block *types.DposBlock, needRollBack bool) {
 	data := uint64(block.Height)
 	c.data = &data
 }
@@ -147,7 +147,7 @@ func TestManager_SaveAndRestore(t *testing.T) {
 		Block: &types.Block{
 			Header: types.Header{Height: currentHeight},
 		},
-	}, nil, false)
+	}, nil, false, false)
 
 	// save current height
 	currentHeight += pt.SavePeriod()
@@ -155,7 +155,7 @@ func TestManager_SaveAndRestore(t *testing.T) {
 		Block: &types.Block{
 			Header: types.Header{Height: currentHeight},
 		},
-	}, nil, false)
+	}, nil, false, false)
 
 	// replace to default.pt
 	currentHeight += pt.EffectivePeriod()
@@ -163,7 +163,7 @@ func TestManager_SaveAndRestore(t *testing.T) {
 		Block: &types.Block{
 			Header: types.Header{Height: currentHeight},
 		},
-	}, nil, false)
+	}, nil, false, false)
 
 	// new a checkpoint manager and restore
 	manager2 := NewManager(&Config{
@@ -224,14 +224,14 @@ func TestManager_GetCheckpoint_EnableHistory(t *testing.T) {
 		Block: &types.Block{
 			Header: types.Header{Height: currentHeight},
 		},
-	}, nil)
+	}, nil, false)
 	currentHeight += pt.SavePeriod()
 
 	manager.OnBlockSaved(&types.DposBlock{
 		Block: &types.Block{
 			Header: types.Header{Height: currentHeight},
 		},
-	}, nil)
+	}, nil, false)
 
 	result, ok := manager.GetCheckpoint(pt.Key(),
 		currentHeight-pt.SavePeriod()-1)
@@ -274,11 +274,11 @@ func TestManager_OnRollbackTo(t *testing.T) {
 		Block: &types.Block{
 			Header: types.Header{Height: currentHeight},
 		},
-	}, nil, false)
+	}, nil, false, false)
 
 	assert.Equal(t, currentHeight, uint32(*pt.data))
-	assert.NoError(t, manager.OnRollbackTo(originalHeight))
-	assert.Equal(t, originalHeight, uint32(*pt.data))
+	assert.NoError(t, manager.OnRollbackTo(originalHeight, false))
+	assert.Equal(t, originalHeight, uint32(0xa))
 
 	cleanCheckpoints()
 }

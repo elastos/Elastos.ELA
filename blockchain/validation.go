@@ -63,19 +63,18 @@ func RunPrograms(data []byte, programHashes []common.Uint168, programs []*Progra
 		}
 
 		if prefixType == contract.PrefixStandard || prefixType == contract.PrefixDeposit {
-			if err := checkStandardSignature(*program, data); err != nil {
-				return err
-			}
-
-		} else if prefixType == contract.PrefixMultiSig {
 			if contract.IsSchnorr(program.Code) {
 				if ok, err := checkSchnorrSignatures(*program, data); !ok {
 					return errors.New("check schnorr signature failed:" + err.Error())
 				}
 			} else {
-				if err := checkMultiSigSignatures(*program, data); err != nil {
+				if err := checkStandardSignature(*program, data); err != nil {
 					return err
 				}
+			}
+		} else if prefixType == contract.PrefixMultiSig {
+			if err := checkMultiSigSignatures(*program, data); err != nil {
+				return err
 			}
 		} else {
 			return errors.New("unknown signature type")

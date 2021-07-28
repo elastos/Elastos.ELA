@@ -1416,10 +1416,9 @@ func newCRCRegisterSideChainProposalHash(L *lua.LState) int {
 	genesisTimestamp := L.ToInt64(8)
 	genesisBlockDifficulty := L.ToString(9)
 	draftHashStr := L.ToString(10)
-	upgradeProposalType := L.ToInt64(11)
 
 	needSign := true
-	client, err := checkClient(L, 12)
+	client, err := checkClient(L, 11)
 	if err != nil {
 		needSign = false
 	}
@@ -1466,7 +1465,6 @@ func newCRCRegisterSideChainProposalHash(L *lua.LState) int {
 			GenesisHash:            *genesisHash,
 			GenesisTimestamp:       uint32(genesisTimestamp),
 			GenesisBlockDifficulty: genesisBlockDifficulty,
-			UpgradeProposalType:    uint16(upgradeProposalType),
 		},
 		CRCouncilMemberDID: *did,
 	}

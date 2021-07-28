@@ -1818,7 +1818,7 @@ func (s *txValidatorTestSuite) getCRCCloseProposalTxWithHash(publicKeyStr, priva
 }
 
 func (s *txValidatorTestSuite) getCRCRegisterSideChainProposalTx(publicKeyStr, privateKeyStr,
-	crPublicKeyStr, crPrivateKeyStr string, upgradeProposalType uint16) *types.Transaction {
+	crPublicKeyStr, crPrivateKeyStr string) *types.Transaction {
 
 	normalPrivateKey, _ := common.HexStringToBytes(privateKeyStr)
 	normalPublicKey, _ := common.HexStringToBytes(publicKeyStr)
@@ -1846,7 +1846,6 @@ func (s *txValidatorTestSuite) getCRCRegisterSideChainProposalTx(publicKeyStr, p
 			GenesisHash:            *randomUint256(),
 			GenesisTimestamp:       1513936800,
 			GenesisBlockDifficulty: "575",
-			UpgradeProposalType:    upgradeProposalType,
 		},
 	}
 
@@ -3174,7 +3173,7 @@ func (s *txValidatorTestSuite) TestCheckCRCProposalRegisterSideChainTransaction(
 
 	{
 		// no error
-		txn := s.getCRCRegisterSideChainProposalTx(publicKeyStr2, privateKeyStr2, publicKeyStr1, privateKeyStr1, 0x0204)
+		txn := s.getCRCRegisterSideChainProposalTx(publicKeyStr2, privateKeyStr2, publicKeyStr1, privateKeyStr1)
 		err := s.Chain.checkCRCProposalTransaction(txn, tenureHeight, 0)
 		s.NoError(err)
 
@@ -3186,7 +3185,7 @@ func (s *txValidatorTestSuite) TestCheckCRCProposalRegisterSideChainTransaction(
 	}
 
 	{
-		txn := s.getCRCRegisterSideChainProposalTx(publicKeyStr2, privateKeyStr2, publicKeyStr1, privateKeyStr1, 0x0205)
+		txn := s.getCRCRegisterSideChainProposalTx(publicKeyStr2, privateKeyStr2, publicKeyStr1, privateKeyStr1)
 		payload, _ := txn.Payload.(*payload.CRCProposal)
 		payload.SideChainName = ""
 		err := s.Chain.checkCRCProposalTransaction(txn, tenureHeight, 0)
@@ -3194,7 +3193,7 @@ func (s *txValidatorTestSuite) TestCheckCRCProposalRegisterSideChainTransaction(
 	}
 
 	{
-		txn := s.getCRCRegisterSideChainProposalTx(publicKeyStr2, privateKeyStr2, publicKeyStr1, privateKeyStr1, 0x0206)
+		txn := s.getCRCRegisterSideChainProposalTx(publicKeyStr2, privateKeyStr2, publicKeyStr1, privateKeyStr1)
 		payload, _ := txn.Payload.(*payload.CRCProposal)
 		payload.DNSSeeds = []string{}
 		err := s.Chain.checkCRCProposalTransaction(txn, tenureHeight, 0)
@@ -3202,7 +3201,7 @@ func (s *txValidatorTestSuite) TestCheckCRCProposalRegisterSideChainTransaction(
 	}
 
 	{
-		txn := s.getCRCRegisterSideChainProposalTx(publicKeyStr2, privateKeyStr2, publicKeyStr1, privateKeyStr1, 0x0207)
+		txn := s.getCRCRegisterSideChainProposalTx(publicKeyStr2, privateKeyStr2, publicKeyStr1, privateKeyStr1)
 		payload, _ := txn.Payload.(*payload.CRCProposal)
 		payload.GenesisBlockDifficulty = ""
 		err := s.Chain.checkCRCProposalTransaction(txn, tenureHeight, 0)
@@ -3211,7 +3210,7 @@ func (s *txValidatorTestSuite) TestCheckCRCProposalRegisterSideChainTransaction(
 
 	{
 		s.Chain.crCommittee.GetProposalManager().RegisteredSideChainNames = []string{"NEO"}
-		txn := s.getCRCRegisterSideChainProposalTx(publicKeyStr2, privateKeyStr2, publicKeyStr1, privateKeyStr1, 0x0208)
+		txn := s.getCRCRegisterSideChainProposalTx(publicKeyStr2, privateKeyStr2, publicKeyStr1, privateKeyStr1)
 		err := s.Chain.checkCRCProposalTransaction(txn, tenureHeight, 0)
 		s.EqualError(err, "SideChainName already registered")
 	}

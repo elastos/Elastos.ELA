@@ -249,8 +249,6 @@ type ProposalKeyFrame struct {
 	RegisteredSideChainNames []string
 	// store register info with the approved height
 	RegisteredSideChainPayloadInfo map[uint32]map[common.Uint256]payload.SideChainInfo
-	// Store existed upgrade proposal type
-	ExistedUpgradeProposalType []uint16
 }
 
 func NewProposalMap() ProposalsMap {
@@ -1376,7 +1374,6 @@ func NewProposalKeyFrame() *ProposalKeyFrame {
 		WithdrawableTxInfo:             make(map[common.Uint256]types.OutputInfo),
 		PendingReceivedCustomIDMap:     make(map[string]struct{}),
 		RegisteredSideChainPayloadInfo: make(map[uint32]map[common.Uint256]payload.SideChainInfo),
-		ExistedUpgradeProposalType:     []uint16{0x0200, 0x0201, 0x0202},
 	}
 }
 

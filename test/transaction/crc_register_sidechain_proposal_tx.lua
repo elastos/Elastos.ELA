@@ -37,7 +37,6 @@ local genesisHash = getGenesisHash()
 local genesisTimestamp = getGenesisTimestamp()
 local genesisBlockDifficulty = getGenesisBlockDifficulty()
 local draft_hash = getDraftHash()
-local upgradeProposalType = getUpgradeProposalType()
 
 if fee == 0
     then
@@ -88,11 +87,6 @@ if draftHash == "" then
     return
 end
 
-if upgradeProposalType == "" then
-    print("upgradeProposalType is 0, should use --upgradeProposalType to set it.")
-    return
-end
-
 print("fee:", fee)
 print("public key:", cr_pubkey)
 print("proposal type:", proposal_type)
@@ -103,10 +97,9 @@ print("nodePort:", nodePort)
 print("genesisHash:", genesisHash)
 print("genesisTimestamp:", genesisTimestamp)
 print("genesisBlockDifficulty:", genesisBlockDifficulty)
-print("upgradeProposalType:", upgradeProposalType)
 
 
-local cp_payload =crcregistersidechainproposal.new(cr_pubkey, proposal_type,sideChainName,magicNumber,dnsSeeds,nodePort,genesisHash,genesisTimestamp,genesisBlockDifficulty,draft_hash,upgradeProposalType, wallet)
+local cp_payload =crcregistersidechainproposal.new(cr_pubkey, proposal_type,sideChainName,magicNumber,dnsSeeds,nodePort,genesisHash,genesisTimestamp,genesisBlockDifficulty,draft_hash, wallet)
 print(cp_payload:get())
 
 -- transaction: version, txType, payloadVersion, payload, locktime

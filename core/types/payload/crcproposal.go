@@ -299,9 +299,6 @@ type SideChainInfo struct {
 
 	// Genesis block difficulty of side chain
 	GenesisBlockDifficulty string
-
-	// Upgrade types of proposals
-	UpgradeProposalType uint16
 }
 
 func (sc *SideChainInfo) Serialize(w io.Writer) error {
@@ -338,9 +335,6 @@ func (sc *SideChainInfo) Serialize(w io.Writer) error {
 		return errors.New("failed to serialize GenesisTimestamp")
 	}
 
-	if err := common.WriteUint16(w, sc.UpgradeProposalType); err != nil {
-		return errors.New("failed to serialize UpgradeProposalType")
-	}
 	return nil
 }
 
@@ -389,10 +383,6 @@ func (sc *SideChainInfo) Deserialize(r io.Reader) error {
 		return errors.New("[CRCProposal], GenesisBlockDifficulty deserialize failed")
 	}
 
-	sc.UpgradeProposalType, err = common.ReadUint16(r)
-	if err != nil {
-		return errors.New("[CRCProposal], UpgradeProposalType deserialize failed")
-	}
 	return nil
 }
 

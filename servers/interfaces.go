@@ -1041,7 +1041,6 @@ func Getallregistertransactions(param Params) map[string]interface{} {
 				GenesisTimestamp:       v1.GenesisTimestamp,
 				GenesisBlockDifficulty: v1.GenesisBlockDifficulty,
 				TxHash:                 common.ToReversedString(k1),
-				UpgradeProposalType:    v1.UpgradeProposalType,
 				Height:                 k,
 			})
 		}
@@ -1067,7 +1066,6 @@ func Getregistertransactionsbyheight(param Params) map[string]interface{} {
 			GenesisTimestamp:       v.GenesisTimestamp,
 			GenesisBlockDifficulty: v.GenesisBlockDifficulty,
 			TxHash:                 common.ToReversedString(k),
-			UpgradeProposalType:    v.UpgradeProposalType,
 			Height:                 height,
 		})
 	}

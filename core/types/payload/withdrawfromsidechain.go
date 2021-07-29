@@ -57,6 +57,9 @@ func (t *WithdrawFromSideChain) Serialize(w io.Writer, version byte) error {
 }
 
 func (t *WithdrawFromSideChain) Deserialize(r io.Reader, version byte) error {
+	if version >= WithdrawFromSideChainVersionV1 {
+		return nil
+	}
 	height, err := common.ReadUint32(r)
 	if err != nil {
 		return errors.New("[WithdrawFromSideChain], BlockHeight deserialize failed.")

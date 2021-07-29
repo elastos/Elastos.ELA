@@ -17,6 +17,9 @@ import (
 const (
 	// TrimmingInterval is the interval number for each cache trimming.
 	TrimmingInterval = 10000
+
+	// MaxCacheInputsCountPerTransaction is the max inputs count of transaction for cache.
+	MaxCacheInputsCountPerTransaction = 100
 )
 
 type TxInfo struct {
@@ -93,6 +96,10 @@ func (t *TxCache) Deserialize(r io.Reader) (err error) {
 func (t *TxCache) setTxn(height uint32, txn *types.Transaction) {
 	if t.params.NodeProfileStrategy ==
 		config.MemoryFirst.String() {
+		return
+	}
+
+	if len(txn.Inputs) > MaxCacheInputsCountPerTransaction {
 		return
 	}
 

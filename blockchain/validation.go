@@ -17,13 +17,11 @@ import (
 	. "github.com/elastos/Elastos.ELA/core/contract/program"
 	. "github.com/elastos/Elastos.ELA/core/types"
 	"github.com/elastos/Elastos.ELA/crypto"
-
-	"github.com/btcsuite/btcd/btcec"
 )
 
 var (
 	// Curve is a KoblitzCurve which implements secp256k1.
-	Curve = btcec.S256()
+	Curve = elliptic.P256()
 	// One holds a big integer of 1
 	One = new(big.Int).SetInt64(1)
 	// Two holds a big integer of 2
@@ -32,10 +30,8 @@ var (
 	Three = new(big.Int).SetInt64(3)
 	// Four holds a big integer of 4
 	Four = new(big.Int).SetInt64(4)
-	// Seven holds a big integer of 7
-	Seven = new(big.Int).SetInt64(7)
 	// N2 holds a big integer of N-2
-	N2 = new(big.Int).Sub(Curve.N, Two)
+	N2 = new(big.Int).Sub(Curve.Params().N, Two)
 )
 
 func RunPrograms(data []byte, programHashes []common.Uint168, programs []*Program) error {
@@ -163,21 +159,21 @@ func verify(publicKey [33]byte, message []byte, signature [64]byte) (bool, error
 		return false, errors.New("signature verification failed")
 	}
 	r := new(big.Int).SetBytes(signature[:32])
-	if r.Cmp(Curve.P) >= 0 {
+	if r.Cmp(Curve.Params().P) >= 0 {
 		return false, errors.New("r is larger than or equal to field size")
 	}
 	s := new(big.Int).SetBytes(signature[32:])
-	if s.Cmp(Curve.N) >= 0 {
+	if s.Cmp(Curve.Params().P) >= 0 {
 		return false, errors.New("s is larger than or equal to curve order")
 	}
 
 	e := getE(Px, Py, intToByte(r), message)
 	sGx, sGy := Curve.ScalarBaseMult(intToByte(s))
 	ePx, ePy := Curve.ScalarMult(Px, Py, intToByte(e))
-	ePy.Sub(Curve.P, ePy)
+	ePy.Sub(Curve.Params().P, ePy)
 	Rx, Ry := Curve.Add(sGx, sGy, ePx, ePy)
 
-	if (Rx.Sign() == 0 && Ry.Sign() == 0) || big.Jacobi(Ry, Curve.P) != 1 || Rx.Cmp(r) != 0 {
+	if (Rx.Sign() == 0 && Ry.Sign() == 0) || big.Jacobi(Ry, Curve.Params().P) != 1 || Rx.Cmp(r) != 0 {
 		return false, errors.New("signature verification failed")
 	}
 	return true, nil
@@ -188,7 +184,7 @@ func getE(Px, Py *big.Int, rX []byte, m []byte) *big.Int {
 	r = append(r, m[:]...)
 	h := sha256.Sum256(r)
 	i := new(big.Int).SetBytes(h[:])
-	return i.Mod(i, Curve.N)
+	return i.Mod(i, Curve.Params().P)
 }
 
 func intToByte(i *big.Int) []byte {
@@ -222,7 +218,7 @@ func Unmarshal(curve elliptic.Curve, data []byte) (x, y *big.Int) {
 	P := curve.Params().P
 	ySq := new(big.Int)
 	ySq.Exp(x0, Three, P)
-	ySq.Add(ySq, Seven)
+	ySq.Add(ySq, curve.Params().B)
 	ySq.Mod(ySq, P)
 	y0 := new(big.Int)
 	P1 := new(big.Int).Add(P, One)

@@ -109,6 +109,10 @@ func (o *Output) Deserialize(r io.Reader, txVersion TransactionVersion) error {
 			return err
 		}
 		o.Type = OutputType(outputType)
+		o.Payload, err = getOutputPayload(o.Type)
+		if err != nil {
+			return err
+		}
 		o.Payload, err = getOutputPayload(OutputType(outputType))
 		if err != nil {
 			return err
@@ -119,6 +123,27 @@ func (o *Output) Deserialize(r io.Reader, txVersion TransactionVersion) error {
 	}
 
 	return nil
+}
+
+func GetOutputPayload(txType OutputType) (OutputPayload, error) {
+	var p OutputPayload
+	switch txType {
+	case OTNone:
+		p = new(outputpayload.DefaultOutput)
+	case OTVote:
+		p = new(outputpayload.VoteOutput)
+	case OTMapping:
+		p = new(outputpayload.Mapping)
+	case OTCrossChain:
+		p = new(outputpayload.CrossChainOutput)
+	case OTWithdrawFromSideChain:
+		p = new(outputpayload.Withdraw)
+	case OTReturnSideChainDepositCoin:
+		p = new(outputpayload.ReturnSideChainDeposit)
+	default:
+		return nil, errors.New("[OutputType], invalid output type.")
+	}
+	return p, nil
 }
 
 func (o *Output) String() string {

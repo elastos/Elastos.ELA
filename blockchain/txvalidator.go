@@ -785,7 +785,7 @@ func (b *BlockChain) checkTransactionOutput(txn *Transaction,
 		}
 	}
 
-	if txn.IsReturnSideChainDepositCoinTx() {
+	if txn.IsReturnSideChainDepositCoinTx() || txn.IsWithdrawFromSideChainTx() {
 		return nil
 	}
 

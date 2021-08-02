@@ -23,7 +23,6 @@ import (
 var (
 	// Curve is a KoblitzCurve which implements secp256k1.
 
-	//Curve = btcec.S256()
 	Curve = elliptic.P256()
 	// One holds a big integer of 1
 	One = new(big.Int).SetInt64(1)
@@ -225,13 +224,18 @@ func Unmarshal(curve elliptic.Curve, data []byte) (x, y *big.Int) {
 	if len(data) != 1+byteLen {
 		return
 	}
-
+	paramA := big.NewInt(crypto.P256PARAMA)
 	x0 := new(big.Int).SetBytes(data[1 : 1+byteLen])
 	P := curve.Params().P
 	ySq := new(big.Int)
-	ySq.Exp(x0, Three, P)
+	ySq.Exp(x0, Two, P)
+	ySq.Add(ySq, paramA)
+	ySq.Mod(ySq, P)
+	ySq.Mul(ySq, x0)
+	ySq.Mod(ySq, P)
 	ySq.Add(ySq, curve.Params().B)
 	ySq.Mod(ySq, P)
+
 	y0 := new(big.Int)
 	P1 := new(big.Int).Add(P, One)
 	d := new(big.Int).Mod(P1, Four)

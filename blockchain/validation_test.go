@@ -805,11 +805,18 @@ func TestSchnorrRunPrograms(t *testing.T) {
 		//acts = append(acts, act)
 
 		hashes = append(hashes, *act.ProgramHash())
-		signature, err := act.Sign(data)
+
+		p1 := new(big.Int).SetBytes(act.accounts[0].private)
+		p2 := new(big.Int).SetBytes(act.accounts[1].private)
+		pks := []*big.Int{}
+		pks = append(pks, p1)
+		pks = append(pks, p2)
+
+		signature, err := AggregateSignatures(pks[:], data)
 		if err != nil {
-			t.Errorf("Generate signature failed, error %s", err.Error())
+			t.Fatalf("Unexpected error from AggregateSignatures(%x, %x): %v", pks[:], data, err)
 		}
-		programs = append(programs, &program.Program{Code: act.RedeemScript(), Parameter: signature})
+		programs = append(programs, &program.Program{Code: act.RedeemScript(), Parameter: signature[:]})
 		//}
 	}
 	init()

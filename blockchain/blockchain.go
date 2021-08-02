@@ -1314,7 +1314,7 @@ func (b *BlockChain) connectBlock(node *BlockNode, block *Block, confirm *payloa
 	}
 
 	if block.Height >= b.chainParams.CRCOnlyDPOSHeight && !revertToPOW &&
-		b.state.ConsensusAlgorithm != state.POW {
+		b.state.ConsensusAlgorithm != state.POW && confirm != nil {
 		if err := checkBlockWithConfirmation(block, confirm,
 			b.chainParams.CkpManager, b.state.ConsensusAlgorithm == state.POW); err != nil {
 			return fmt.Errorf("block confirmation validate failed: %s", err)

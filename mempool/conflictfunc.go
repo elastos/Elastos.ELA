@@ -310,6 +310,34 @@ func addrUnregisterCRCID(tx *types.Transaction) (interface{}, error) {
 // hash array related functions
 func hashArraySidechainTransactionHashes(
 	tx *types.Transaction) (interface{}, error) {
+	if tx.PayloadVersion == payload.WithdrawFromSideChainVersion {
+		p, ok := tx.Payload.(*payload.WithdrawFromSideChain)
+		if !ok {
+			return nil, fmt.Errorf(
+				"withdraw from sidechain payload cast failed, tx: %s",
+				tx.Hash())
+		}
+
+		array := make([]common.Uint256, 0, len(p.SideChainTransactionHashes))
+		for _, v := range p.SideChainTransactionHashes {
+			array = append(array, v)
+		}
+		return array, nil
+	} else if tx.PayloadVersion == payload.WithdrawFromSideChainVersionV1 {
+		array := make([]common.Uint256, 0)
+		for _, output := range tx.Outputs {
+			if output.Type != types.OTWithdrawFromSideChain {
+				continue
+			}
+			witPayload, ok := output.Payload.(*outputpayload.Withdraw)
+			if !ok {
+				continue
+			}
+			array = append(array, witPayload.SideChainTransactionHash)
+		}
+		return array, nil
+	}
+
 	p, ok := tx.Payload.(*payload.WithdrawFromSideChain)
 	if !ok {
 		return nil, fmt.Errorf(

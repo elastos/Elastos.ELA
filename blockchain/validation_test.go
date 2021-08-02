@@ -405,7 +405,7 @@ func TestSchnorrRunProgramsOrigin(t *testing.T) {
 	t.Run("Can sign and verify two aggregated signatures over same message", func(t *testing.T) {
 
 		Px, Py := Curve.Add(Pxs[0], Pys[0], Pxs[1], Pys[1])
-		//this is the sum pk
+		//this is the sum pk elliptic.
 		copy(pk[:], Marshal(Curve, Px, Py))
 
 		///////////////////////////////////
@@ -786,43 +786,35 @@ func TestAggregateSignatures(t *testing.T) {
 func TestSchnorrRunPrograms(t *testing.T) {
 	var err error
 	var tx *types.Transaction
-	var acts []act
+	//var acts []act
 	var hashes []common.Uint168
 	var programs []*program.Program
 
 	tx = buildTx()
 	data := getData(tx)
 	// Normal
-	num := math.Intn(90) + 10
-	num = 1
-	acts = make([]act, 0, num)
+	//num := math.Intn(90) + 10
+	num := 1
+	var act *multiAccount
+	//acts = make([]act, 0, num)
 	init := func() {
 		hashes = make([]common.Uint168, 0, num)
 		programs = make([]*program.Program, 0, num)
-		for i := 0; i < num; i++ {
-			act := newSchnorrMultiAccount(2, t)
-			acts = append(acts, act)
+		//for i := 0; i < num; i++ {
+		act = newSchnorrMultiAccount(2, t)
+		//acts = append(acts, act)
 
-			hashes = append(hashes, *acts[i].ProgramHash())
-			signature, err := acts[i].Sign(data)
-			if err != nil {
-				t.Errorf("Generate signature failed, error %s", err.Error())
-			}
-			programs = append(programs, &program.Program{Code: acts[i].RedeemScript(), Parameter: signature})
+		hashes = append(hashes, *act.ProgramHash())
+		signature, err := act.Sign(data)
+		if err != nil {
+			t.Errorf("Generate signature failed, error %s", err.Error())
 		}
+		programs = append(programs, &program.Program{Code: act.RedeemScript(), Parameter: signature})
+		//}
 	}
 	init()
 
-	// 1 loop checksig
-	var index int
-	for i, act := range acts {
-		switch act.(type) {
-		case *multiAccount:
-			index = i
-			break
-		}
-	}
-	err = RunPrograms(data, hashes[index:index+1], programs[index:index+1])
+	err = RunPrograms(data, hashes[0:1], programs[0:1])
 	assert.NoError(t, err, "[RunProgram] passed with 1 checksig program")
 }
 

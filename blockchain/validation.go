@@ -176,9 +176,14 @@ func verify(publicKey [33]byte, message []byte, signature [64]byte) (bool, error
 	ePy.Sub(Curve.Params().P, ePy)
 	Rx, Ry := Curve.Add(sGx, sGy, ePx, ePy)
 
-	if (Rx.Sign() == 0 && Ry.Sign() == 0) || big.Jacobi(Ry, Curve.Params().P) != 1 || Rx.Cmp(r) != 0 {
-
+	if Rx.Sign() == 0 && Ry.Sign() == 0 {
 		return false, errors.New("signature verification failed")
+	}
+	if big.Jacobi(Ry, Curve.Params().P) != 1 {
+		return false, errors.New("signature Ry verification failed")
+	}
+	if Rx.Cmp(r) != 0 {
+		return false, errors.New("signature Rx verification failed")
 	}
 	return true, nil
 }
@@ -227,12 +232,14 @@ func Unmarshal(curve elliptic.Curve, data []byte) (x, y *big.Int) {
 	paramA := big.NewInt(crypto.P256PARAMA)
 	x0 := new(big.Int).SetBytes(data[1 : 1+byteLen])
 	P := curve.Params().P
+
+	ax := new(big.Int)
+	ax.Add(ax, paramA)
+	ax.Mul(ax, x0)
+
 	ySq := new(big.Int)
-	ySq.Exp(x0, Two, P)
-	ySq.Add(ySq, paramA)
-	ySq.Mod(ySq, P)
-	ySq.Mul(ySq, x0)
-	ySq.Mod(ySq, P)
+	ySq.Exp(x0, Three, P)
+	ySq.Add(ySq, ax)
 	ySq.Add(ySq, curve.Params().B)
 	ySq.Mod(ySq, P)
 

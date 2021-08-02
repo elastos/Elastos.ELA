@@ -9,7 +9,6 @@ import (
 	"bytes"
 	"crypto/rand"
 	"encoding/hex"
-	"errors"
 	"fmt"
 	"math/big"
 	math "math/rand"
@@ -59,12 +58,10 @@ type multiAccount struct {
 	accounts     []*account
 	redeemScript []byte
 	programHash  *common.Uint168
-	sumpk        [33]byte
-	pks          []*big.Int
 }
 
 type schnorAccount struct {
-	*multiAccount
+	multiAccount
 	sumPublicKey [33]byte
 	privateKeys  []*big.Int
 }
@@ -253,132 +250,6 @@ func TestSchnorrRunProgramsOrigin(t *testing.T) {
 			nil,
 			"",
 		},
-		{
-			"",
-			"03DEFDEA4CDB677750A420FEE807EACF21EB9898AE79B9768766E4FAA04A2D4A34",
-			"4DF3C3F68FCC83B27E9D42C90431A72499F17875C81A599B566C9889B9696703",
-			"00000000000000000000003B78CE563F89A0ED9414F5AA28AD0D96D6795F9C6302A8DC32E64E86A333F20EF56EAC9BA30B7246D6D25E22ADB8C6BE1AEB08D49D",
-			true,
-			nil,
-			"",
-		},
-		{
-			"",
-			"031B84C5567B126440995D3ED5AABA0565D71E1834604819FF9C17F5E9D5DD078F",
-			"0000000000000000000000000000000000000000000000000000000000000000",
-			"52818579ACA59767E3291D91B76B637BEF062083284992F2D95F564CA6CB4E3530B1DA849C8E8304ADC0CFE870660334B3CFC18E825EF1DB34CFAE3DFC5D8187",
-			true,
-			nil,
-			"test fails if jacobi symbol of x(R) instead of y(R) is used",
-		},
-		{
-			"",
-			"03FAC2114C2FBB091527EB7C64ECB11F8021CB45E8E7809D3C0938E4B8C0E5F84B",
-			"FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF",
-			"570DD4CA83D4E6317B8EE6BAE83467A1BF419D0767122DE409394414B05080DCE9EE5F237CBD108EABAE1E37759AE47F8E4203DA3532EB28DB860F33D62D49BD",
-			true,
-			nil,
-			"test fails if msg is reduced",
-		},
-		{
-			"",
-			"03EEFDEA4CDB677750A420FEE807EACF21EB9898AE79B9768766E4FAA04A2D4A34",
-			"4DF3C3F68FCC83B27E9D42C90431A72499F17875C81A599B566C9889B9696703",
-			"00000000000000000000003B78CE563F89A0ED9414F5AA28AD0D96D6795F9C6302A8DC32E64E86A333F20EF56EAC9BA30B7246D6D25E22ADB8C6BE1AEB08D49D",
-			false,
-			errors.New("signature verification failed"),
-			"public key not on the curve",
-		},
-		{
-			"",
-			"02DFF1D77F2A671C5F36183726DB2341BE58FEAE1DA2DECED843240F7B502BA659",
-			"243F6A8885A308D313198A2E03707344A4093822299F31D0082EFA98EC4E6C89",
-			"2A298DACAE57395A15D0795DDBFD1DCB564DA82B0F269BC70A74F8220429BA1DFA16AEE06609280A19B67A24E1977E4697712B5FD2943914ECD5F730901B4AB7",
-			false,
-			errors.New("signature verification failed"),
-			"incorrect R residuosity",
-		},
-		{
-			"",
-			"03FAC2114C2FBB091527EB7C64ECB11F8021CB45E8E7809D3C0938E4B8C0E5F84B",
-			"5E2D58D8B3BCDF1ABADEC7829054F90DDA9805AAB56C77333024B9D0A508B75C",
-			"00DA9B08172A9B6F0466A2DEFD817F2D7AB437E0D253CB5395A963866B3574BED092F9D860F1776A1F7412AD8A1EB50DACCC222BC8C0E26B2056DF2F273EFDEC",
-			false,
-			errors.New("signature verification failed"),
-			"negated message hash",
-		},
-		{
-			"",
-			"0279BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F81798",
-			"0000000000000000000000000000000000000000000000000000000000000000",
-			"787A848E71043D280C50470E8E1532B2DD5D20EE912A45DBDD2BD1DFBF187EF68FCE5677CE7A623CB20011225797CE7A8DE1DC6CCD4F754A47DA6C600E59543C",
-			false,
-			errors.New("signature verification failed"),
-			"negated s value",
-		},
-		{
-			"",
-			"03DFF1D77F2A671C5F36183726DB2341BE58FEAE1DA2DECED843240F7B502BA659",
-			"243F6A8885A308D313198A2E03707344A4093822299F31D0082EFA98EC4E6C89",
-			"2A298DACAE57395A15D0795DDBFD1DCB564DA82B0F269BC70A74F8220429BA1D1E51A22CCEC35599B8F266912281F8365FFC2D035A230434A1A64DC59F7013FD",
-			false,
-			errors.New("signature verification failed"),
-			"negated public key",
-		},
-		{
-			"",
-			"02DFF1D77F2A671C5F36183726DB2341BE58FEAE1DA2DECED843240F7B502BA659",
-			"243F6A8885A308D313198A2E03707344A4093822299F31D0082EFA98EC4E6C89",
-			"00000000000000000000000000000000000000000000000000000000000000009E9D01AF988B5CEDCE47221BFA9B222721F3FA408915444A4B489021DB55775F",
-			false,
-			errors.New("signature verification failed"),
-			"sG - eP is infinite. Test fails in single verification if jacobi(y(inf)) is defined as 1 and x(inf) as 0",
-		},
-		{
-			"",
-			"02DFF1D77F2A671C5F36183726DB2341BE58FEAE1DA2DECED843240F7B502BA659",
-			"243F6A8885A308D313198A2E03707344A4093822299F31D0082EFA98EC4E6C89",
-			"0000000000000000000000000000000000000000000000000000000000000001D37DDF0254351836D84B1BD6A795FD5D523048F298C4214D187FE4892947F728",
-			false,
-			errors.New("signature verification failed"),
-			"sG - eP is infinite. Test fails in single verification if jacobi(y(inf)) is defined as 1 and x(inf) as 1",
-		},
-		{
-			"",
-			"02DFF1D77F2A671C5F36183726DB2341BE58FEAE1DA2DECED843240F7B502BA659",
-			"243F6A8885A308D313198A2E03707344A4093822299F31D0082EFA98EC4E6C89",
-			"4A298DACAE57395A15D0795DDBFD1DCB564DA82B0F269BC70A74F8220429BA1D1E51A22CCEC35599B8F266912281F8365FFC2D035A230434A1A64DC59F7013FD",
-			false,
-			errors.New("signature verification failed"),
-			"sig[0:32] is not an X coordinate on the curve",
-		},
-		{
-			"",
-			"02DFF1D77F2A671C5F36183726DB2341BE58FEAE1DA2DECED843240F7B502BA659",
-			"243F6A8885A308D313198A2E03707344A4093822299F31D0082EFA98EC4E6C89",
-			"FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFC2F1E51A22CCEC35599B8F266912281F8365FFC2D035A230434A1A64DC59F7013FD",
-			false,
-			errors.New("r is larger than or equal to field size"),
-			"sig[0:32] is equal to field size",
-		},
-		{
-			"",
-			"02DFF1D77F2A671C5F36183726DB2341BE58FEAE1DA2DECED843240F7B502BA659",
-			"243F6A8885A308D313198A2E03707344A4093822299F31D0082EFA98EC4E6C89",
-			"2A298DACAE57395A15D0795DDBFD1DCB564DA82B0F269BC70A74F8220429BA1DFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141",
-			false,
-			errors.New("s is larger than or equal to curve order"),
-			"sig[32:64] is equal to curve order",
-		},
-		{
-			"",
-			"6d6c66873739bc7bfb3526629670d0ea",
-			"b2f0cd8ecb23c1710903f872c31b0fd37e15224af457722a87c5e0c7f50fffb3",
-			"2A298DACAE57395A15D0795DDBFD1DCB564DA82B0F269BC70A74F8220429BA1D1E51A22CCEC35599B8F266912281F8365FFC2D035A230434A1A64DC59F7013FD",
-			false,
-			errors.New("signature verification failed"),
-			"public key is only 16 bytes",
-		},
 	}
 
 	pks := []*big.Int{}
@@ -416,15 +287,6 @@ func TestSchnorrRunProgramsOrigin(t *testing.T) {
 		//this is the sum pk elliptic.
 		copy(pk[:], Marshal(Curve, Px, Py))
 
-		///////////////////////////////////
-		PxNew, PyNew := Unmarshal(Curve, pk[:])
-		if PxNew == nil || PyNew == nil || !Curve.IsOnCurve(PxNew, PyNew) {
-			fmt.Println("signature verification failed")
-		}
-		if Px.Cmp(PxNew) != 0 || Py.Cmp(PyNew) != 0 {
-			fmt.Println("Px != PxNew || Py != PyNew")
-		}
-		////////////////////////////
 		publicKey1, _ := crypto.DecodePoint(pk[:])
 		fmt.Println(publicKey1)
 		//var err error
@@ -441,14 +303,12 @@ func TestSchnorrRunProgramsOrigin(t *testing.T) {
 		}
 
 		publicKey, _ := crypto.DecodePoint(pk[:])
-		var pubkeys []*crypto.PublicKey
-		pubkeys = append(pubkeys, publicKey)
-		redeemscript, err := contract.CreateSchnorrMultiSigRedeemScript(pubkeys)
+		redeemscript, err := contract.CreateSchnorrMultiSigRedeemScript(publicKey)
 		if err != nil {
 			fmt.Println("err ", err)
 		}
 
-		c, err := contract.CreateSchnorrMultiSigContract(pubkeys)
+		c, err := contract.CreateSchnorrMultiSigContract(publicKey)
 		if err != nil {
 			t.Errorf("Create standard contract failed, error %s", err.Error())
 		}
@@ -508,132 +368,6 @@ func TestAggregateSignatures(t *testing.T) {
 			true,
 			nil,
 			"",
-		},
-		{
-			"",
-			"03DEFDEA4CDB677750A420FEE807EACF21EB9898AE79B9768766E4FAA04A2D4A34",
-			"4DF3C3F68FCC83B27E9D42C90431A72499F17875C81A599B566C9889B9696703",
-			"00000000000000000000003B78CE563F89A0ED9414F5AA28AD0D96D6795F9C6302A8DC32E64E86A333F20EF56EAC9BA30B7246D6D25E22ADB8C6BE1AEB08D49D",
-			true,
-			nil,
-			"",
-		},
-		{
-			"",
-			"031B84C5567B126440995D3ED5AABA0565D71E1834604819FF9C17F5E9D5DD078F",
-			"0000000000000000000000000000000000000000000000000000000000000000",
-			"52818579ACA59767E3291D91B76B637BEF062083284992F2D95F564CA6CB4E3530B1DA849C8E8304ADC0CFE870660334B3CFC18E825EF1DB34CFAE3DFC5D8187",
-			true,
-			nil,
-			"test fails if jacobi symbol of x(R) instead of y(R) is used",
-		},
-		{
-			"",
-			"03FAC2114C2FBB091527EB7C64ECB11F8021CB45E8E7809D3C0938E4B8C0E5F84B",
-			"FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF",
-			"570DD4CA83D4E6317B8EE6BAE83467A1BF419D0767122DE409394414B05080DCE9EE5F237CBD108EABAE1E37759AE47F8E4203DA3532EB28DB860F33D62D49BD",
-			true,
-			nil,
-			"test fails if msg is reduced",
-		},
-		{
-			"",
-			"03EEFDEA4CDB677750A420FEE807EACF21EB9898AE79B9768766E4FAA04A2D4A34",
-			"4DF3C3F68FCC83B27E9D42C90431A72499F17875C81A599B566C9889B9696703",
-			"00000000000000000000003B78CE563F89A0ED9414F5AA28AD0D96D6795F9C6302A8DC32E64E86A333F20EF56EAC9BA30B7246D6D25E22ADB8C6BE1AEB08D49D",
-			false,
-			errors.New("signature verification failed"),
-			"public key not on the curve",
-		},
-		{
-			"",
-			"02DFF1D77F2A671C5F36183726DB2341BE58FEAE1DA2DECED843240F7B502BA659",
-			"243F6A8885A308D313198A2E03707344A4093822299F31D0082EFA98EC4E6C89",
-			"2A298DACAE57395A15D0795DDBFD1DCB564DA82B0F269BC70A74F8220429BA1DFA16AEE06609280A19B67A24E1977E4697712B5FD2943914ECD5F730901B4AB7",
-			false,
-			errors.New("signature verification failed"),
-			"incorrect R residuosity",
-		},
-		{
-			"",
-			"03FAC2114C2FBB091527EB7C64ECB11F8021CB45E8E7809D3C0938E4B8C0E5F84B",
-			"5E2D58D8B3BCDF1ABADEC7829054F90DDA9805AAB56C77333024B9D0A508B75C",
-			"00DA9B08172A9B6F0466A2DEFD817F2D7AB437E0D253CB5395A963866B3574BED092F9D860F1776A1F7412AD8A1EB50DACCC222BC8C0E26B2056DF2F273EFDEC",
-			false,
-			errors.New("signature verification failed"),
-			"negated message hash",
-		},
-		{
-			"",
-			"0279BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F81798",
-			"0000000000000000000000000000000000000000000000000000000000000000",
-			"787A848E71043D280C50470E8E1532B2DD5D20EE912A45DBDD2BD1DFBF187EF68FCE5677CE7A623CB20011225797CE7A8DE1DC6CCD4F754A47DA6C600E59543C",
-			false,
-			errors.New("signature verification failed"),
-			"negated s value",
-		},
-		{
-			"",
-			"03DFF1D77F2A671C5F36183726DB2341BE58FEAE1DA2DECED843240F7B502BA659",
-			"243F6A8885A308D313198A2E03707344A4093822299F31D0082EFA98EC4E6C89",
-			"2A298DACAE57395A15D0795DDBFD1DCB564DA82B0F269BC70A74F8220429BA1D1E51A22CCEC35599B8F266912281F8365FFC2D035A230434A1A64DC59F7013FD",
-			false,
-			errors.New("signature verification failed"),
-			"negated public key",
-		},
-		{
-			"",
-			"02DFF1D77F2A671C5F36183726DB2341BE58FEAE1DA2DECED843240F7B502BA659",
-			"243F6A8885A308D313198A2E03707344A4093822299F31D0082EFA98EC4E6C89",
-			"00000000000000000000000000000000000000000000000000000000000000009E9D01AF988B5CEDCE47221BFA9B222721F3FA408915444A4B489021DB55775F",
-			false,
-			errors.New("signature verification failed"),
-			"sG - eP is infinite. Test fails in single verification if jacobi(y(inf)) is defined as 1 and x(inf) as 0",
-		},
-		{
-			"",
-			"02DFF1D77F2A671C5F36183726DB2341BE58FEAE1DA2DECED843240F7B502BA659",
-			"243F6A8885A308D313198A2E03707344A4093822299F31D0082EFA98EC4E6C89",
-			"0000000000000000000000000000000000000000000000000000000000000001D37DDF0254351836D84B1BD6A795FD5D523048F298C4214D187FE4892947F728",
-			false,
-			errors.New("signature verification failed"),
-			"sG - eP is infinite. Test fails in single verification if jacobi(y(inf)) is defined as 1 and x(inf) as 1",
-		},
-		{
-			"",
-			"02DFF1D77F2A671C5F36183726DB2341BE58FEAE1DA2DECED843240F7B502BA659",
-			"243F6A8885A308D313198A2E03707344A4093822299F31D0082EFA98EC4E6C89",
-			"4A298DACAE57395A15D0795DDBFD1DCB564DA82B0F269BC70A74F8220429BA1D1E51A22CCEC35599B8F266912281F8365FFC2D035A230434A1A64DC59F7013FD",
-			false,
-			errors.New("signature verification failed"),
-			"sig[0:32] is not an X coordinate on the curve",
-		},
-		{
-			"",
-			"02DFF1D77F2A671C5F36183726DB2341BE58FEAE1DA2DECED843240F7B502BA659",
-			"243F6A8885A308D313198A2E03707344A4093822299F31D0082EFA98EC4E6C89",
-			"FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFC2F1E51A22CCEC35599B8F266912281F8365FFC2D035A230434A1A64DC59F7013FD",
-			false,
-			errors.New("r is larger than or equal to field size"),
-			"sig[0:32] is equal to field size",
-		},
-		{
-			"",
-			"02DFF1D77F2A671C5F36183726DB2341BE58FEAE1DA2DECED843240F7B502BA659",
-			"243F6A8885A308D313198A2E03707344A4093822299F31D0082EFA98EC4E6C89",
-			"2A298DACAE57395A15D0795DDBFD1DCB564DA82B0F269BC70A74F8220429BA1DFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141",
-			false,
-			errors.New("s is larger than or equal to curve order"),
-			"sig[32:64] is equal to curve order",
-		},
-		{
-			"",
-			"6d6c66873739bc7bfb3526629670d0ea",
-			"b2f0cd8ecb23c1710903f872c31b0fd37e15224af457722a87c5e0c7f50fffb3",
-			"2A298DACAE57395A15D0795DDBFD1DCB564DA82B0F269BC70A74F8220429BA1D1E51A22CCEC35599B8F266912281F8365FFC2D035A230434A1A64DC59F7013FD",
-			false,
-			errors.New("signature verification failed"),
-			"public key is only 16 bytes",
 		},
 	}
 
@@ -799,40 +533,39 @@ func TestSchnorrRunPrograms(t *testing.T) {
 	var tx *types.Transaction
 	var hashes []common.Uint168
 	var programs []*program.Program
-
+	var acts []act
 	tx = buildTx()
 	data := getData(tx)
-	num := 1
-	var act *multiAccount
-	init := func() {
-		hashes = make([]common.Uint168, 0, num)
-		programs = make([]*program.Program, 0, num)
-		act = newSchnorrMultiAccount(2, t)
-		hashes = append(hashes, *act.ProgramHash())
-		//<<<<<<< HEAD
-		//
-		//		p1 := new(big.Int).SetBytes(act.accounts[0].private)
-		//		p2 := new(big.Int).SetBytes(act.accounts[1].private)
-		//		pks := []*big.Int{}
-		//		pks = append(pks, p1)
-		//		pks = append(pks, p2)
-		//
-		//		signature, err := AggregateSignatures(pks[:], data)
-		//		if err != nil {
-		//			t.Fatalf("Unexpected error from AggregateSignatures(%x, %x): %v", pks[:], data, err)
-		//		}
-		//		programs = append(programs, &program.Program{Code: act.RedeemScript(), Parameter: signature[:]})
-		//		//}
-		//=======
-		sig, err := AggregateSignatures(act.pks[:2], data[:])
-		if err != nil {
-			fmt.Println("AggregateSignatures fail")
+	//aggregate num from 2 to 36
+	aggregateNum := math.Intn(34) + 2
+	//random schnorrAccountNum to test schnorr sign
+	schnorrAccountNum := 100
+	var act *schnorAccount
+	init := func(schnorrAccountNum int) {
+		hashes = make([]common.Uint168, 0, schnorrAccountNum)
+		programs = make([]*program.Program, 0, schnorrAccountNum)
+		for i := 0; i < schnorrAccountNum; i++ {
+			act = newSchnorrMultiAccount(aggregateNum, t)
+			acts = append(acts, act)
+			hashes = append(hashes, *act.ProgramHash())
+			sig, err := AggregateSignatures(act.privateKeys[:aggregateNum], data[:])
+			if err != nil {
+				fmt.Println("AggregateSignatures fail")
+			}
+			programs = append(programs, &program.Program{Code: act.RedeemScript(), Parameter: sig[:]})
 		}
-		programs = append(programs, &program.Program{Code: act.RedeemScript(), Parameter: sig[:]})
-		//>>>>>>> Schnor sign function was finished
+
 	}
-	init()
-	err = RunPrograms(data, hashes[0:1], programs[0:1])
+	init(schnorrAccountNum)
+
+	for index := 0; index < schnorrAccountNum; index++ {
+		err = RunPrograms(data, hashes[index:index+1], programs[index:index+1])
+		if err != nil {
+			fmt.Printf("AggregateSignatures index %d fail err %s \n", index, err.Error())
+		} else {
+			fmt.Printf("AggregateSignatures index %d passed \n", index)
+		}
+	}
 	assert.NoError(t, err, "[RunProgram] passed with 1 checksig program")
 }
 
@@ -970,71 +703,33 @@ func newAccount(t *testing.T) *account {
 	return a
 }
 
-func newAccountWithIndex(index int, t *testing.T) *account {
-	a := new(account)
-	var err error
-	a.private, a.public, err = crypto.GenerateKeyPair()
-	if err != nil {
-		t.Errorf("Generate key pair failed, error %s", err.Error())
-	}
-
-	a.redeemScript, err = contract.CreateStandardRedeemScript(a.public)
-	if err != nil {
-		t.Errorf("Create standard redeem script failed, error %s", err.Error())
-	}
-
-	c, err := contract.CreateStandardContract(a.public)
-	if err != nil {
-		t.Errorf("Create standard contract failed, error %s", err.Error())
-	}
-
-	a.programHash = c.ToProgramHash()
-
-	return a
-}
-
-func newSchnorrMultiAccount(num int, t *testing.T) *multiAccount {
-	ma := new(multiAccount)
-	publicKeys := make([]*crypto.PublicKey, 0, num)
-	//pks := []*big.Int{}
+func newSchnorrMultiAccount(num int, t *testing.T) *schnorAccount {
+	ma := new(schnorAccount)
 
 	Pxs, Pys := []*big.Int{}, []*big.Int{}
 	for i := 0; i < num; i++ {
-		newAccount := newAccountWithIndex(i, t)
+		newAccount := newAccount(t)
 		ma.accounts = append(ma.accounts, newAccount)
-		hexPriKey := hex.EncodeToString(newAccount.private)
-		privKey := decodePrivateKey(hexPriKey, t)
-		ma.pks = append(ma.pks, privKey)
-
-		//privateStr := hex.EncodeToString(ma.accounts[i].private)
-		//privKey := decodePrivateKey(privateStr, t)
-		//Px, Py := Curve.ScalarBaseMult(privKey.Bytes())
+		privKey := new(big.Int).SetBytes(newAccount.private)
+		ma.privateKeys = append(ma.privateKeys, privKey)
 		Px, Py := Curve.ScalarBaseMult(newAccount.private)
 		Pxs = append(Pxs, Px)
 		Pys = append(Pys, Py)
 	}
-	var pk [33]byte
-
 	Px, Py := Curve.Add(Pxs[0], Pys[0], Pxs[1], Pys[1])
-	copy(pk[:], Marshal(Curve, Px, Py))
-	copy(ma.sumpk[:], pk[:])
-
-	///////////////////////////////////
-	PxNew, PyNew := Unmarshal(Curve, pk[:])
-	if PxNew == nil || PyNew == nil || !Curve.IsOnCurve(PxNew, PyNew) {
-		fmt.Println("signature verification failed")
+	for i := 2; i < num; i++ {
+		Px, Py = Curve.Add(Px, Py, Pxs[i], Pys[i])
 	}
-	////////////////////////////
-	publicKey, _ := crypto.DecodePoint(pk[:])
-	//var pubkeys []*crypto.PublicKey
-	publicKeys = append(publicKeys, publicKey)
+	copy(ma.sumPublicKey[:], Marshal(Curve, Px, Py))
+
+	publicKey, _ := crypto.DecodePoint(ma.sumPublicKey[:])
 	var err error
-	ma.redeemScript, err = contract.CreateSchnorrMultiSigRedeemScript(publicKeys)
+	ma.redeemScript, err = contract.CreateSchnorrMultiSigRedeemScript(publicKey)
 	if err != nil {
 		t.Errorf("Create multisig redeem script failed, error %s", err.Error())
 	}
 
-	c, err := contract.CreateSchnorrMultiSigContract(publicKeys)
+	c, err := contract.CreateSchnorrMultiSigContract(publicKey)
 	if err != nil {
 		t.Errorf("Create multi-sign contract failed, error %s", err.Error())
 	}

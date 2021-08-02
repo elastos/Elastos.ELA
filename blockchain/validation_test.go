@@ -660,7 +660,7 @@ func TestAggregateSignatures(t *testing.T) {
 		copy(pk[:], Marshal(Curve, Px, Py))
 
 		observedSum := hex.EncodeToString(pk[:])
-		expected := "02bca9ea6e07a63bec3d28a00329ac3d25d2595a5f86e512142affde48a34d9a97"
+		expected := "03c0cba209687e8f213f9b00ba0202d98ef17d189bd0d4c5decd7382b7a63bc64e"
 
 		// then
 		if observedSum != expected {
@@ -688,7 +688,7 @@ func TestAggregateSignatures(t *testing.T) {
 		copy(pk[:], Marshal(Curve, Px, Py))
 
 		observedSum := hex.EncodeToString(pk[:])
-		expected := "03f0a6305d39a34582ba49a78bdf38ced935b3efce1e889d6820103665f35ee45b"
+		expected := "038c47ce8f4f20fd041a25ef78e872448340b1dc28f6539d4fe0126018f1b8e0ea"
 
 		// then
 		if observedSum != expected {
@@ -717,7 +717,7 @@ func TestAggregateSignatures(t *testing.T) {
 		copy(pk[:], Marshal(Curve, Px, Py))
 
 		observedSum := hex.EncodeToString(pk[:])
-		expected := "025038e8f113785d84e86584d8a323debb1c212bf19c678185ddb1bb3e478ecde3"
+		expected := "02adde346abd5b690dae4ebbb74e59ea0e41cdc00c8a5b05b0057678e5e98f9f2e"
 
 		// then
 		if observedSum != expected {
@@ -736,13 +736,13 @@ func TestAggregateSignatures(t *testing.T) {
 	})
 
 	t.Run("Can aggregate and verify example in README", func(t *testing.T) {
-		privKey1 := decodePrivateKey("B7E151628AED2A6ABF7158809CF4F3C762E7160F38B4DA56A784D9045190CFEF", t)
-		privKey2 := decodePrivateKey("C90FDAA22168C234C4C6628B80DC1CD129024E088A67CC74020BBEA63B14E5C7", t)
+		privKey1 := decodePrivateKey("8e7b372c1ceea18883032d6cdbf67e7dee5e7507c30012af81cfb7e9b60c00cc", t)
+		privKey2 := decodePrivateKey("3adfeb9c654863522b74cd0feeb5744102067e6a1a1867bb1dfdc080a2716858", t)
 		m := decodeMessage("243F6A8885A308D313198A2E03707344A4093822299F31D0082EFA98EC4E6C89", t)
 
 		pks := []*big.Int{privKey1, privKey2}
 		aggregatedSignature, err := AggregateSignatures(pks, m[:])
-		expected := "d60d7f81c15d57b04f8f6074de17f1b9eef2e0a9c9b2e93550c15b45d6998dc24ef5e393b356e7c334f36cee15e0f5f1e9ce06e7911793ddb9bd922d545b7525"
+		expected := "436f519c7c3a32b794a0252d1af33c34f4a14e4e54282d004983a41b0b12270773057726f0bdd41917998a55ab1d0f5ca1ea01d50b1a6731060351e78b9a7e00"
 		observed := hex.EncodeToString(aggregatedSignature[:])
 
 		// then
@@ -754,8 +754,8 @@ func TestAggregateSignatures(t *testing.T) {
 		}
 
 		// verifying an aggregated signature
-		pubKey1 := decodePublicKey("02DFF1D77F2A671C5F36183726DB2341BE58FEAE1DA2DECED843240F7B502BA659", t)
-		pubKey2 := decodePublicKey("03FAC2114C2FBB091527EB7C64ECB11F8021CB45E8E7809D3C0938E4B8C0E5F84B", t)
+		pubKey1 := decodePublicKey("031c7ce0c8d4812b12a9a8988697f45351d83cba72ea9e16f227445599666ea415", t)
+		pubKey2 := decodePublicKey("03460cfbe83d295c072c547e831ce224dd903f888a183a35d2888b7ab3a8666054", t)
 
 		P1x, P1y := Unmarshal(Curve, pubKey1[:])
 		P2x, P2y := Unmarshal(Curve, pubKey2[:])
@@ -764,7 +764,7 @@ func TestAggregateSignatures(t *testing.T) {
 		copy(pk[:], Marshal(Curve, Px, Py))
 
 		observed = hex.EncodeToString(pk[:])
-		expected = "03f0a6305d39a34582ba49a78bdf38ced935b3efce1e889d6820103665f35ee45b"
+		expected = "03486ca0cb4360d2b8c4be796772f77815932e18d3fe29ca81b5b30c41a1f3272e"
 
 		// then
 		if observed != expected {

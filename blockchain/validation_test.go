@@ -59,6 +59,14 @@ type multiAccount struct {
 	accounts     []*account
 	redeemScript []byte
 	programHash  *common.Uint168
+	sumpk        [33]byte
+	pks          []*big.Int
+}
+
+type schnorAccount struct {
+	*multiAccount
+	sumPublicKey [33]byte
+	privateKeys  []*big.Int
 }
 
 func (a *multiAccount) RedeemScript() []byte {
@@ -412,6 +420,9 @@ func TestSchnorrRunProgramsOrigin(t *testing.T) {
 		PxNew, PyNew := Unmarshal(Curve, pk[:])
 		if PxNew == nil || PyNew == nil || !Curve.IsOnCurve(PxNew, PyNew) {
 			fmt.Println("signature verification failed")
+		}
+		if Px.Cmp(PxNew) != 0 || Py.Cmp(PyNew) != 0 {
+			fmt.Println("Px != PxNew || Py != PyNew")
 		}
 		////////////////////////////
 		publicKey1, _ := crypto.DecodePoint(pk[:])
@@ -786,41 +797,41 @@ func TestAggregateSignatures(t *testing.T) {
 func TestSchnorrRunPrograms(t *testing.T) {
 	var err error
 	var tx *types.Transaction
-	//var acts []act
 	var hashes []common.Uint168
 	var programs []*program.Program
 
 	tx = buildTx()
 	data := getData(tx)
-	// Normal
-	//num := math.Intn(90) + 10
 	num := 1
 	var act *multiAccount
-	//acts = make([]act, 0, num)
 	init := func() {
 		hashes = make([]common.Uint168, 0, num)
 		programs = make([]*program.Program, 0, num)
-		//for i := 0; i < num; i++ {
 		act = newSchnorrMultiAccount(2, t)
-		//acts = append(acts, act)
-
 		hashes = append(hashes, *act.ProgramHash())
-
-		p1 := new(big.Int).SetBytes(act.accounts[0].private)
-		p2 := new(big.Int).SetBytes(act.accounts[1].private)
-		pks := []*big.Int{}
-		pks = append(pks, p1)
-		pks = append(pks, p2)
-
-		signature, err := AggregateSignatures(pks[:], data)
+		//<<<<<<< HEAD
+		//
+		//		p1 := new(big.Int).SetBytes(act.accounts[0].private)
+		//		p2 := new(big.Int).SetBytes(act.accounts[1].private)
+		//		pks := []*big.Int{}
+		//		pks = append(pks, p1)
+		//		pks = append(pks, p2)
+		//
+		//		signature, err := AggregateSignatures(pks[:], data)
+		//		if err != nil {
+		//			t.Fatalf("Unexpected error from AggregateSignatures(%x, %x): %v", pks[:], data, err)
+		//		}
+		//		programs = append(programs, &program.Program{Code: act.RedeemScript(), Parameter: signature[:]})
+		//		//}
+		//=======
+		sig, err := AggregateSignatures(act.pks[:2], data[:])
 		if err != nil {
-			t.Fatalf("Unexpected error from AggregateSignatures(%x, %x): %v", pks[:], data, err)
+			fmt.Println("AggregateSignatures fail")
 		}
-		programs = append(programs, &program.Program{Code: act.RedeemScript(), Parameter: signature[:]})
-		//}
+		programs = append(programs, &program.Program{Code: act.RedeemScript(), Parameter: sig[:]})
+		//>>>>>>> Schnor sign function was finished
 	}
 	init()
-
 	err = RunPrograms(data, hashes[0:1], programs[0:1])
 	assert.NoError(t, err, "[RunProgram] passed with 1 checksig program")
 }
@@ -985,10 +996,16 @@ func newAccountWithIndex(index int, t *testing.T) *account {
 func newSchnorrMultiAccount(num int, t *testing.T) *multiAccount {
 	ma := new(multiAccount)
 	publicKeys := make([]*crypto.PublicKey, 0, num)
+	//pks := []*big.Int{}
+
 	Pxs, Pys := []*big.Int{}, []*big.Int{}
 	for i := 0; i < num; i++ {
 		newAccount := newAccountWithIndex(i, t)
 		ma.accounts = append(ma.accounts, newAccount)
+		hexPriKey := hex.EncodeToString(newAccount.private)
+		privKey := decodePrivateKey(hexPriKey, t)
+		ma.pks = append(ma.pks, privKey)
+
 		//privateStr := hex.EncodeToString(ma.accounts[i].private)
 		//privKey := decodePrivateKey(privateStr, t)
 		//Px, Py := Curve.ScalarBaseMult(privKey.Bytes())
@@ -1000,6 +1017,7 @@ func newSchnorrMultiAccount(num int, t *testing.T) *multiAccount {
 
 	Px, Py := Curve.Add(Pxs[0], Pys[0], Pxs[1], Pys[1])
 	copy(pk[:], Marshal(Curve, Px, Py))
+	copy(ma.sumpk[:], pk[:])
 
 	///////////////////////////////////
 	PxNew, PyNew := Unmarshal(Curve, pk[:])

@@ -38,3 +38,8 @@ Ecies
   Copyright (c) 2012 The Go Authors. All rights reserved.
   https://github.com/obscuren/ecies
   BSD3 License
+
+Schnorr
+  Copyright (c) 2019 Hbakhtiyor. All rights reserved.
+  https://github.com/hbakhtiyor/schnorr
+  MIT-like License

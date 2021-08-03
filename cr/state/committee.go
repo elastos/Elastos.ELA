@@ -534,7 +534,7 @@ func (c *Committee) createCustomIDResultTransaction(height uint32) {
 		})
 		tx := &types.Transaction{
 			Version: types.TxVersion09,
-			TxType:  types.CustomIDResult,
+			TxType:  types.ProposalResult,
 			Payload: &payload.CustomIDProposalResult{
 				ProposalResults: c.CustomIDProposalResults,
 			},

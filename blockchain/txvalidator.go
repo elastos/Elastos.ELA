@@ -226,7 +226,7 @@ func (b *BlockChain) CheckTransactionContext(blockHeight uint32,
 		}
 		return references, nil
 
-	case CustomIDResult:
+	case ProposalResult:
 		if err := b.checkCustomIDResultTransaction(txn); err != nil {
 			log.Warn("[checkCustomIDResultTransaction],", err)
 			return nil, elaerr.Simple(elaerr.ErrTxPayload, err)
@@ -785,7 +785,7 @@ func (b *BlockChain) checkTransactionOutput(txn *Transaction,
 		}
 	}
 
-	if txn.IsReturnSideChainDepositCoinTx() {
+	if txn.IsReturnSideChainDepositCoinTx() || txn.IsWithdrawFromSideChainTx() {
 		return nil
 	}
 
@@ -1003,7 +1003,7 @@ func (b *BlockChain) checkAttributeProgram(tx *Transaction,
 		}
 		return nil
 	case IllegalSidechainEvidence, IllegalProposalEvidence, IllegalVoteEvidence,
-		ActivateProducer, NextTurnDPOSInfo, CustomIDResult, RevertToPOW:
+		ActivateProducer, NextTurnDPOSInfo, ProposalResult, RevertToPOW:
 		if len(tx.Programs) != 0 || len(tx.Attributes) != 0 {
 			return errors.New("zero cost tx should have no attributes and programs")
 		}
@@ -2660,13 +2660,12 @@ func (b *BlockChain) checkReturnSideChainDepositTransaction(txn *Transaction) er
 				continue
 			}
 
-			for i, cca := range p.CrossChainAmounts {
-				idx := p.OutputIndexes[i]
+			for _, idx := range p.OutputIndexes {
 				// output to current side chain
 				if !crossChainHash.IsEqual(tx.Outputs[idx].ProgramHash) {
 					continue
 				}
-				crossChainAmount += cca
+				crossChainAmount += tx.Outputs[idx].Value
 			}
 		case payload.TransferCrossChainVersionV1:
 			_, ok := tx.Payload.(*payload.TransferCrossChainAsset)
@@ -2682,11 +2681,11 @@ func (b *BlockChain) checkReturnSideChainDepositTransaction(txn *Transaction) er
 				if !crossChainHash.IsEqual(o.ProgramHash) {
 					continue
 				}
-				p, ok := o.Payload.(*outputpayload.CrossChainOutput)
+				_, ok := o.Payload.(*outputpayload.CrossChainOutput)
 				if !ok {
 					continue
 				}
-				crossChainAmount += p.TargetAmount
+				crossChainAmount += o.Value
 			}
 		}
 

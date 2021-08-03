@@ -289,11 +289,11 @@ func randomKeyFrame(size int, commitHeight uint32) *KeyFrame {
 	frame := &KeyFrame{
 		Members:                  make(map[common.Uint168]*CRMember, size),
 		HistoryMembers:           make(map[uint64]map[common.Uint168]*CRMember, 0),
-		CustomIDProposalResults:  make([]payload.ProposalResult, size, size),
+		PartProposalResults:      make([]payload.ProposalResult, size, size),
 		LastCommitteeHeight:      commitHeight,
 		LastVotingStartHeight:    rand.Uint32(),
 		NeedAppropriation:        randomBool(),
-		NeedCIDProposalResult:    randomBool(),
+		NeedRecordProposalResult: randomBool(),
 		CRCFoundationBalance:     randomFix64(),
 		CRCCommitteeBalance:      randomFix64(),
 		CRCCommitteeUsedAmount:   randomFix64(),
@@ -320,7 +320,7 @@ func randomKeyFrame(size int, commitHeight uint32) *KeyFrame {
 	}
 
 	for i := 0; i < size; i++ {
-		frame.CustomIDProposalResults = append(frame.CustomIDProposalResults, randomProposalResult())
+		frame.PartProposalResults = append(frame.PartProposalResults, randomProposalResult())
 	}
 
 	return frame

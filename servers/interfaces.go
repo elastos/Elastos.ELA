@@ -1026,6 +1026,52 @@ func GetBalanceByAsset(param Params) map[string]interface{} {
 	return ResponsePack(Success, balance.String())
 }
 
+func Getallregistertransactions(param Params) map[string]interface{} {
+	crCommittee := Chain.GetCRCommittee()
+	rs := crCommittee.GetAllRegisteredSideChain()
+	var result []RsInfo
+	for k, v := range rs {
+		for k1, v1 := range v {
+			result = append(result, RsInfo{
+				SideChainName:          v1.SideChainName,
+				MagicNumber:            v1.MagicNumber,
+				DNSSeeds:               v1.DNSSeeds,
+				NodePort:               v1.NodePort,
+				GenesisHash:            common.ToReversedString(v1.GenesisHash),
+				GenesisTimestamp:       v1.GenesisTimestamp,
+				GenesisBlockDifficulty: v1.GenesisBlockDifficulty,
+				TxHash:                 common.ToReversedString(k1),
+				Height:                 k,
+			})
+		}
+	}
+	return ResponsePack(Success, result)
+}
+func Getregistertransactionsbyheight(param Params) map[string]interface{} {
+	height, ok := param.Uint("height")
+	if !ok {
+		return ResponsePack(InvalidParams, "height parameter should be a positive integer")
+	}
+	crCommittee := Chain.GetCRCommittee()
+
+	rs := crCommittee.GetRegisteredSideChainByHeight(height)
+	var result []RsInfo
+	for k, v := range rs {
+		result = append(result, RsInfo{
+			SideChainName:          v.SideChainName,
+			MagicNumber:            v.MagicNumber,
+			DNSSeeds:               v.DNSSeeds,
+			NodePort:               v.NodePort,
+			GenesisHash:            common.ToReversedString(v.GenesisHash),
+			GenesisTimestamp:       v.GenesisTimestamp,
+			GenesisBlockDifficulty: v.GenesisBlockDifficulty,
+			TxHash:                 common.ToReversedString(k),
+			Height:                 height,
+		})
+	}
+	return ResponsePack(Success, result)
+}
+
 func GetReceivedByAddress(param Params) map[string]interface{} {
 	address, ok := param.String("address")
 	if !ok {
@@ -2783,9 +2829,28 @@ func getPayloadInfo(p Payload, payloadVersion byte) PayloadInfo {
 			obj.CRCouncilMemberSignature = common.BytesToHexString(object.CRCouncilMemberSignature)
 			obj.Hash = common.ToReversedString(object.Hash(payloadVersion))
 			return obj
+		case payload.RegisterSideChain:
+			obj := new(CRCRegisterSideChainProposalInfo)
+			obj.ProposalType = object.ProposalType.Name()
+			obj.CategoryData = object.CategoryData
+			obj.OwnerPublicKey = common.BytesToHexString(object.OwnerPublicKey)
+			obj.DraftHash = common.ToReversedString(object.DraftHash)
+			obj.SideChainName = object.SideChainName
+			obj.MagicNumber = object.MagicNumber
+			obj.DNSSeeds = object.DNSSeeds
+			obj.NodePort = object.NodePort
+			obj.GenesisHash = common.ToReversedString(object.GenesisHash)
+			obj.GenesisTimestamp = object.GenesisTimestamp
+			obj.GenesisBlockDifficulty = object.GenesisBlockDifficulty
+			obj.Signature = common.BytesToHexString(object.Signature)
+			crmdid, _ := object.CRCouncilMemberDID.ToAddress()
+			obj.CRCouncilMemberDID = crmdid
+			obj.CRCouncilMemberSignature = common.BytesToHexString(object.CRCouncilMemberSignature)
+			obj.Hash = common.ToReversedString(object.Hash(payloadVersion))
+			return obj
 		}
 
-	case *payload.CustomIDProposalResult:
+	case *payload.RecordProposalResult:
 		obj := new(CRCCustomIDProposalResultInfo)
 		for _, r := range object.ProposalResults {
 			result := ProposalResultInfo{

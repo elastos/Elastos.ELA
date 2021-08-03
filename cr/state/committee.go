@@ -165,13 +165,13 @@ func (c *Committee) IsAppropriationNeeded() bool {
 func (c *Committee) IsCustomIDResultNeeded() bool {
 	c.mtx.RLock()
 	defer c.mtx.RUnlock()
-	return c.NeedCIDProposalResult
+	return c.NeedRecordProposalResult
 }
 
 func (c *Committee) GetCustomIDResults() []payload.ProposalResult {
 	c.mtx.RLock()
 	defer c.mtx.RUnlock()
-	return c.CustomIDProposalResults
+	return c.PartProposalResults
 }
 
 func (c *Committee) GetMembersDIDs() []common.Uint168 {
@@ -380,8 +380,8 @@ func (c *Committee) ProcessBlock(block *types.Block, confirm *payload.Confirm) {
 		c.createRealWithdrawTransaction(block.Height)
 	}
 
-	if c.NeedCIDProposalResult {
-		c.createCustomIDResultTransaction(block.Height)
+	if c.NeedRecordProposalResult {
+		c.createProposalResultTransaction(block.Height)
 	}
 	if needChg {
 		lockedAmount := c.createAppropriationTransaction(block.Height)
@@ -449,20 +449,20 @@ func (c *Committee) updateCRInactiveStatus(history *utils.History, height uint32
 func (c *Committee) updateProposals(height uint32, inElectionPeriod bool) {
 	unusedAmount, results := c.manager.updateProposals(
 		height, c.CirculationAmount, inElectionPeriod)
-	oriLastCIDProposalResults := c.CustomIDProposalResults
-	oriNeedCIDProposalResult := c.NeedCIDProposalResult
+	oriLastCIDProposalResults := c.PartProposalResults
+	oriNeedCIDProposalResult := c.NeedRecordProposalResult
 	var needCIDProposalResult bool
 	if len(results) != 0 {
 		needCIDProposalResult = true
 	}
 	c.manager.history.Append(height, func() {
 		c.CRCCommitteeUsedAmount -= unusedAmount
-		c.CustomIDProposalResults = results
-		c.NeedCIDProposalResult = needCIDProposalResult
+		c.PartProposalResults = results
+		c.NeedRecordProposalResult = needCIDProposalResult
 	}, func() {
 		c.CRCCommitteeUsedAmount += unusedAmount
-		c.CustomIDProposalResults = oriLastCIDProposalResults
-		c.NeedCIDProposalResult = oriNeedCIDProposalResult
+		c.PartProposalResults = oriLastCIDProposalResults
+		c.NeedRecordProposalResult = oriNeedCIDProposalResult
 	})
 	c.manager.history.Commit(height)
 }
@@ -527,22 +527,22 @@ func (c *Committee) changeCommittee(height uint32) bool {
 	return true
 }
 
-func (c *Committee) createCustomIDResultTransaction(height uint32) {
+func (c *Committee) createProposalResultTransaction(height uint32) {
 	if height == c.getHeight() {
-		sort.Slice(c.CustomIDProposalResults, func(i, j int) bool {
-			return c.CustomIDProposalResults[i].ProposalHash.Compare(c.CustomIDProposalResults[j].ProposalHash) < 0
+		sort.Slice(c.PartProposalResults, func(i, j int) bool {
+			return c.PartProposalResults[i].ProposalHash.Compare(c.PartProposalResults[j].ProposalHash) < 0
 		})
 		tx := &types.Transaction{
 			Version: types.TxVersion09,
 			TxType:  types.ProposalResult,
-			Payload: &payload.CustomIDProposalResult{
-				ProposalResults: c.CustomIDProposalResults,
+			Payload: &payload.RecordProposalResult{
+				ProposalResults: c.PartProposalResults,
 			},
 			Attributes: []*types.Attribute{},
 			Programs:   []*program.Program{},
 			LockTime:   0,
 		}
-		log.Info("create custom ID result transaction:", tx.Hash())
+		log.Info("create record proposal result transaction:", tx.Hash())
 		if c.isCurrent != nil && c.broadcast != nil && c.
 			appendToTxpool != nil {
 			go func() {
@@ -550,7 +550,7 @@ func (c *Committee) createCustomIDResultTransaction(height uint32) {
 					if err := c.appendToTxpool(tx); err == nil {
 						c.broadcast(msg.NewTx(tx))
 					} else {
-						log.Warn("create custom ID result transaction"+
+						log.Warn("create record proposal result transaction"+
 							" append to tx pool err ", err)
 					}
 				}
@@ -1380,6 +1380,18 @@ func (c *Committee) GetProposals(status ProposalStatus) ProposalsMap {
 	c.mtx.RLock()
 	defer c.mtx.RUnlock()
 	return c.manager.getProposals(status)
+}
+
+func (c *Committee) GetRegisteredSideChainByHeight(height uint32) map[common.Uint256]payload.SideChainInfo {
+	c.mtx.RLock()
+	defer c.mtx.RUnlock()
+	return c.manager.getRegisteredSideChainByHeight(height)
+}
+
+func (c *Committee) GetAllRegisteredSideChain() map[uint32]map[common.Uint256]payload.SideChainInfo {
+	c.mtx.RLock()
+	defer c.mtx.RUnlock()
+	return c.manager.getAllRegisteredSideChain()
 }
 
 func (c *Committee) GetProposalByDraftHash(draftHash common.Uint256) *ProposalState {

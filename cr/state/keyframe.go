@@ -117,22 +117,22 @@ type CRMember struct {
 
 // StateKeyFrame holds necessary state about CR committee.
 type KeyFrame struct {
-	Members                 map[common.Uint168]*CRMember
-	HistoryMembers          map[uint64]map[common.Uint168]*CRMember
-	CustomIDProposalResults []payload.ProposalResult
-	LastCommitteeHeight     uint32
-	LastVotingStartHeight   uint32
-	InElectionPeriod        bool
-	NeedAppropriation       bool
-	NeedCIDProposalResult   bool
-	CRCFoundationBalance    common.Fixed64
-	CRCCommitteeBalance     common.Fixed64
-	CRCCommitteeUsedAmount  common.Fixed64
-	CRCCurrentStageAmount   common.Fixed64
-	DestroyedAmount         common.Fixed64
-	CirculationAmount       common.Fixed64
-	AppropriationAmount     common.Fixed64
-	CommitteeUsedAmount     common.Fixed64
+	Members                  map[common.Uint168]*CRMember
+	HistoryMembers           map[uint64]map[common.Uint168]*CRMember
+	PartProposalResults      []payload.ProposalResult
+	LastCommitteeHeight      uint32
+	LastVotingStartHeight    uint32
+	InElectionPeriod         bool
+	NeedAppropriation        bool
+	NeedRecordProposalResult bool
+	CRCFoundationBalance     common.Fixed64
+	CRCCommitteeBalance      common.Fixed64
+	CRCCommitteeUsedAmount   common.Fixed64
+	CRCCurrentStageAmount    common.Fixed64
+	DestroyedAmount          common.Fixed64
+	CirculationAmount        common.Fixed64
+	AppropriationAmount      common.Fixed64
+	CommitteeUsedAmount      common.Fixed64
 
 	CRAssetsAddressUTXOCount uint32
 }
@@ -245,6 +245,10 @@ type ProposalKeyFrame struct {
 	// received custom id list
 	PendingReceivedCustomIDMap map[string]struct{} // todo: serialize and deserialize
 	ReceivedCustomIDLists      [][]string
+	// registered side chain name
+	RegisteredSideChainNames []string
+	// store register info with the approved height
+	RegisteredSideChainPayloadInfo map[uint32]map[common.Uint256]payload.SideChainInfo
 }
 
 func NewProposalMap() ProposalsMap {
@@ -340,13 +344,13 @@ func (kf *KeyFrame) Serialize(w io.Writer) (err error) {
 		return
 	}
 
-	if err = kf.serializeProposalResultList(w, kf.CustomIDProposalResults); err != nil {
+	if err = kf.serializeProposalResultList(w, kf.PartProposalResults); err != nil {
 		return
 	}
 
 	return common.WriteElements(w, kf.LastCommitteeHeight,
 		kf.LastVotingStartHeight, kf.InElectionPeriod, kf.NeedAppropriation,
-		kf.NeedCIDProposalResult, kf.CRCFoundationBalance,
+		kf.NeedRecordProposalResult, kf.CRCFoundationBalance,
 		kf.CRCCommitteeBalance, kf.CRCCommitteeUsedAmount, kf.CRCCurrentStageAmount,
 		kf.DestroyedAmount, kf.CirculationAmount, kf.AppropriationAmount,
 		kf.CommitteeUsedAmount, kf.CRAssetsAddressUTXOCount)
@@ -361,13 +365,13 @@ func (kf *KeyFrame) Deserialize(r io.Reader) (err error) {
 		return
 	}
 
-	if kf.CustomIDProposalResults, err = kf.deserializeProposalResultList(r); err != nil {
+	if kf.PartProposalResults, err = kf.deserializeProposalResultList(r); err != nil {
 		return
 	}
 
 	err = common.ReadElements(r, &kf.LastCommitteeHeight,
 		&kf.LastVotingStartHeight, &kf.InElectionPeriod, &kf.NeedAppropriation,
-		&kf.NeedCIDProposalResult, &kf.CRCFoundationBalance, &kf.CRCCommitteeBalance,
+		&kf.NeedRecordProposalResult, &kf.CRCFoundationBalance, &kf.CRCCommitteeBalance,
 		&kf.CRCCommitteeUsedAmount, &kf.CRCCurrentStageAmount, &kf.DestroyedAmount, &kf.CirculationAmount,
 		&kf.AppropriationAmount, &kf.CommitteeUsedAmount, &kf.CRAssetsAddressUTXOCount)
 	return
@@ -518,7 +522,7 @@ func (kf *KeyFrame) Snapshot() *KeyFrame {
 	frame.LastVotingStartHeight = kf.LastVotingStartHeight
 	frame.InElectionPeriod = kf.InElectionPeriod
 	frame.NeedAppropriation = kf.NeedAppropriation
-	frame.NeedCIDProposalResult = kf.NeedCIDProposalResult
+	frame.NeedRecordProposalResult = kf.NeedRecordProposalResult
 
 	frame.CRCFoundationBalance = kf.CRCFoundationBalance
 	frame.CRCCommitteeBalance = kf.CRCCommitteeBalance
@@ -1371,11 +1375,12 @@ func (p *ProposalKeyFrame) Snapshot() *ProposalKeyFrame {
 
 func NewProposalKeyFrame() *ProposalKeyFrame {
 	return &ProposalKeyFrame{
-		Proposals:                  make(map[common.Uint256]*ProposalState),
-		ProposalHashes:             make(map[common.Uint168]ProposalHashSet),
-		ProposalSession:            make(map[uint64][]common.Uint256),
-		WithdrawableTxInfo:         make(map[common.Uint256]types.OutputInfo),
-		PendingReceivedCustomIDMap: make(map[string]struct{}),
+		Proposals:                      make(map[common.Uint256]*ProposalState),
+		ProposalHashes:                 make(map[common.Uint168]ProposalHashSet),
+		ProposalSession:                make(map[uint64][]common.Uint256),
+		WithdrawableTxInfo:             make(map[common.Uint256]types.OutputInfo),
+		PendingReceivedCustomIDMap:     make(map[string]struct{}),
+		RegisteredSideChainPayloadInfo: make(map[uint32]map[common.Uint256]payload.SideChainInfo),
 	}
 }
 

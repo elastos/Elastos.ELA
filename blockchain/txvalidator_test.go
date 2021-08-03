@@ -15,7 +15,9 @@ import (
 	"fmt"
 	"math"
 	mrand "math/rand"
+	"net"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	elaact "github.com/elastos/Elastos.ELA/account"
@@ -1815,6 +1817,57 @@ func (s *txValidatorTestSuite) getCRCCloseProposalTxWithHash(publicKeyStr, priva
 	return txn
 }
 
+func (s *txValidatorTestSuite) getCRCRegisterSideChainProposalTx(publicKeyStr, privateKeyStr,
+	crPublicKeyStr, crPrivateKeyStr string) *types.Transaction {
+
+	normalPrivateKey, _ := common.HexStringToBytes(privateKeyStr)
+	normalPublicKey, _ := common.HexStringToBytes(publicKeyStr)
+	crPrivateKey, _ := common.HexStringToBytes(crPrivateKeyStr)
+
+	draftData := randomBytes(10)
+	txn := new(types.Transaction)
+	txn.TxType = types.CRCProposal
+	txn.Version = types.TxVersion09
+	CRCouncilMemberDID, _ := getDIDFromCode(getCodeByPubKeyStr(crPublicKeyStr))
+	crcProposalPayload := &payload.CRCProposal{
+		ProposalType:       payload.RegisterSideChain,
+		OwnerPublicKey:     normalPublicKey,
+		CRCouncilMemberDID: *CRCouncilMemberDID,
+		DraftHash:          common.Hash(draftData),
+		SideChainInfo: payload.SideChainInfo{
+			SideChainName: "NEO",
+			MagicNumber:   100,
+			DNSSeeds: []string{
+				"neo.elastos.cn:20338",
+				"neo-abc.us:20338",
+				"neo-mainnet-003.elastos.org:20338",
+			},
+			NodePort:               20209,
+			GenesisHash:            *randomUint256(),
+			GenesisTimestamp:       1513936800,
+			GenesisBlockDifficulty: "575",
+		},
+	}
+
+	signBuf := new(bytes.Buffer)
+	crcProposalPayload.SerializeUnsigned(signBuf, payload.CRCProposalVersion)
+
+	sig, _ := crypto.Sign(normalPrivateKey, signBuf.Bytes())
+	crcProposalPayload.Signature = sig
+
+	common.WriteVarBytes(signBuf, sig)
+	crcProposalPayload.CRCouncilMemberDID.Serialize(signBuf)
+	crSig, _ := crypto.Sign(crPrivateKey, signBuf.Bytes())
+	crcProposalPayload.CRCouncilMemberSignature = crSig
+
+	txn.Payload = crcProposalPayload
+	txn.Programs = []*program.Program{&program.Program{
+		Code:      getCodeByPubKeyStr(publicKeyStr),
+		Parameter: nil,
+	}}
+	return txn
+}
+
 func (s *txValidatorTestSuite) getCRCCloseProposalTx(publicKeyStr, privateKeyStr,
 	crPublicKeyStr, crPrivateKeyStr string) *types.Transaction {
 
@@ -2810,14 +2863,14 @@ func (s *txValidatorTestSuite) TestCheckCRCProposalWithdrawTransaction() {
 	txn := s.getCRCProposalWithdrawTx(publicKeyStr1, privateKeyStr1,
 		Recipient, CRExpensesAddressU168, 9*ela, 50*ela, 0)
 	crcProposalWithdraw, _ := txn.Payload.(*payload.CRCProposalWithdraw)
-	pld :=payload.CRCProposal{
+	pld := payload.CRCProposal{
 		OwnerPublicKey: pk1Bytes,
 		Recipient:      *Recipient,
 		Budgets:        createBudgets(3),
 	}
 	propState := &crstate.ProposalState{
-		Status: crstate.VoterAgreed,
-		Proposal: pld.ToProposalInfo(0),
+		Status:              crstate.VoterAgreed,
+		Proposal:            pld.ToProposalInfo(0),
 		FinalPaymentStatus:  false,
 		WithdrawableBudgets: map[uint8]common.Fixed64{0: 10 * 1e8},
 		ProposalOwner:       pk1Bytes,
@@ -3097,6 +3150,71 @@ func (s *txValidatorTestSuite) TestCheckSecretaryGeneralProposalTransaction() {
 		config.DefaultParams.CRVotingPeriod + 1
 	err = s.Chain.checkCRCProposalTransaction(txn, tenureHeight, 0)
 	s.EqualError(err, "cr proposal tx must not during voting period")
+}
+
+func (s *txValidatorTestSuite) TestCheckCRCProposalRegisterSideChainTransaction() {
+	publicKeyStr1 := "02f981e4dae4983a5d284d01609ad735e3242c5672bb2c7bb0018cc36f9ab0c4a5"
+	privateKeyStr1 := "15e0947580575a9b6729570bed6360a890f84a07dc837922fe92275feec837d4"
+
+	publicKeyStr2 := "036db5984e709d2e0ec62fd974283e9a18e7b87e8403cc784baf1f61f775926535"
+	privateKeyStr2 := "b2c25e877c8a87d54e8a20a902d27c7f24ed52810813ba175ca4e8d3036d130e"
+
+	tenureHeight := config.DefaultParams.CRCommitteeStartHeight + 1
+	nickName1 := "nickname 1"
+
+	member1 := s.getCRMember(publicKeyStr1, privateKeyStr1, nickName1)
+	memebers := make(map[common.Uint168]*crstate.CRMember)
+	memebers[member1.Info.DID] = member1
+	s.Chain.crCommittee.Members = memebers
+	s.Chain.crCommittee.CRCCommitteeBalance = common.Fixed64(100 * 1e8)
+	s.Chain.crCommittee.CRCCurrentStageAmount = common.Fixed64(100 * 1e8)
+	s.Chain.crCommittee.InElectionPeriod = true
+	s.Chain.crCommittee.NeedAppropriation = false
+
+	{
+		// no error
+		txn := s.getCRCRegisterSideChainProposalTx(publicKeyStr2, privateKeyStr2, publicKeyStr1, privateKeyStr1)
+		err := s.Chain.checkCRCProposalTransaction(txn, tenureHeight, 0)
+		s.NoError(err)
+
+		// genesis hash can not be blank
+		payload, _ := txn.Payload.(*payload.CRCProposal)
+		payload.GenesisHash = common.Uint256{}
+		err = s.Chain.checkCRCProposalTransaction(txn, tenureHeight, 0)
+		s.EqualError(err, "GenesisHash can not be empty")
+	}
+
+	{
+		txn := s.getCRCRegisterSideChainProposalTx(publicKeyStr2, privateKeyStr2, publicKeyStr1, privateKeyStr1)
+		payload, _ := txn.Payload.(*payload.CRCProposal)
+		payload.SideChainName = ""
+		err := s.Chain.checkCRCProposalTransaction(txn, tenureHeight, 0)
+		s.EqualError(err, "SideChainName can not be empty")
+	}
+
+	{
+		txn := s.getCRCRegisterSideChainProposalTx(publicKeyStr2, privateKeyStr2, publicKeyStr1, privateKeyStr1)
+		payload, _ := txn.Payload.(*payload.CRCProposal)
+		payload.DNSSeeds = []string{}
+		err := s.Chain.checkCRCProposalTransaction(txn, tenureHeight, 0)
+		s.EqualError(err, "DNSSeeds can not be blank")
+	}
+
+	{
+		txn := s.getCRCRegisterSideChainProposalTx(publicKeyStr2, privateKeyStr2, publicKeyStr1, privateKeyStr1)
+		payload, _ := txn.Payload.(*payload.CRCProposal)
+		payload.GenesisBlockDifficulty = ""
+		err := s.Chain.checkCRCProposalTransaction(txn, tenureHeight, 0)
+		s.EqualError(err, "GenesisBlockDifficulty can not be blank")
+	}
+
+	{
+		s.Chain.crCommittee.GetProposalManager().RegisteredSideChainNames = []string{"NEO"}
+		txn := s.getCRCRegisterSideChainProposalTx(publicKeyStr2, privateKeyStr2, publicKeyStr1, privateKeyStr1)
+		err := s.Chain.checkCRCProposalTransaction(txn, tenureHeight, 0)
+		s.EqualError(err, "SideChainName already registered")
+	}
+
 }
 
 func (s *txValidatorTestSuite) TestCheckCRCProposalTransaction() {
@@ -4269,6 +4387,17 @@ func (a *txValidatorTestSuite) createNextTurnDPOSInfoTransaction(crcArbiters, no
 		Attributes: []*types.Attribute{},
 		Programs:   []*program.Program{},
 		LockTime:   0,
+	}
+}
+func (s *txValidatorTestSuite) TestHostPort() {
+	seeds := "one.elastos.cn:20821,two.elastos.cn:20822"
+	seedArr := strings.Split(seeds, ",")
+	for _, seed := range seedArr {
+		host, _, err := net.SplitHostPort(seed)
+		if err != nil {
+			host = seed
+		}
+		s.True(payload.SeedRegexp.MatchString(host), seed+" not correct")
 	}
 }
 

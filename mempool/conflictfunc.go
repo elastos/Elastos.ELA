@@ -136,7 +136,7 @@ func hashNextTurnDPOSInfoTxPayloadHash(tx *types.Transaction) (interface{}, erro
 }
 
 func hashCustomIDProposalResultTxPayloadHash(tx *types.Transaction) (interface{}, error) {
-	_, ok := tx.Payload.(*payload.CustomIDProposalResult)
+	_, ok := tx.Payload.(*payload.RecordProposalResult)
 	if !ok {
 		return nil, fmt.Errorf(
 			"custom ID proposal result tx payload cast failed, tx:%s", tx.Hash())

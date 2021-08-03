@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/elastos/Elastos.ELA/elanet/filter/upgradefilter"
 	"sync/atomic"
 	"time"
 
@@ -115,6 +116,8 @@ func newServerPeer(s *server) *serverPeer {
 			return nextturndposfilter.New()
 		case filter.FTCustomID:
 			return customidfilter.New()
+		case filter.FTUpgrade:
+			return upgradefilter.New()
 		}
 		return nil
 	})

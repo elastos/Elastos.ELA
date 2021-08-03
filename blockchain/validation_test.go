@@ -277,15 +277,15 @@ func TestSchnorrRunProgramsOrigin(t *testing.T) {
 			m = decodeMessage(test.m, t)
 		}
 
-		Px, Py := Curve.ScalarBaseMult(privKey.Bytes())
+		Px, Py := crypto.Curve.ScalarBaseMult(privKey.Bytes())
 		Pxs = append(Pxs, Px)
 		Pys = append(Pys, Py)
 	}
 	t.Run("Can sign and verify two aggregated signatures over same message", func(t *testing.T) {
 
-		Px, Py := Curve.Add(Pxs[0], Pys[0], Pxs[1], Pys[1])
+		Px, Py := crypto.Curve.Add(Pxs[0], Pys[0], Pxs[1], Pys[1])
 		//this is the sum pk elliptic.
-		copy(pk[:], Marshal(Curve, Px, Py))
+		copy(pk[:], crypto.Marshal(crypto.Curve, Px, Py))
 
 		publicKey1, _ := crypto.DecodePoint(pk[:])
 		fmt.Println(publicKey1)
@@ -297,7 +297,7 @@ func TestSchnorrRunProgramsOrigin(t *testing.T) {
 
 		tx = buildTx()
 		data := getData(tx)
-		sig, err := AggregateSignatures(pks[:2], data[:])
+		sig, err := crypto.AggregateSignatures(pks[:2], data[:])
 		if err != nil {
 			t.Fatalf("Unexpected error from AggregateSignatures(%x, %x): %v", pks[:2], m, err)
 		}
@@ -390,19 +390,19 @@ func TestAggregateSignatures(t *testing.T) {
 			m = decodeMessage(test.m, t)
 		}
 
-		Px, Py := Curve.ScalarBaseMult(privKey.Bytes())
+		Px, Py := crypto.Curve.ScalarBaseMult(privKey.Bytes())
 		Pxs = append(Pxs, Px)
 		Pys = append(Pys, Py)
 	}
 
 	t.Run("Can sign and verify two aggregated signatures over same message", func(t *testing.T) {
-		sig, err := AggregateSignatures(pks[:2], m[:])
+		sig, err := crypto.AggregateSignatures(pks[:2], m[:])
 		if err != nil {
 			t.Fatalf("Unexpected error from AggregateSignatures(%x, %x): %v", pks[:2], m, err)
 		}
 
-		Px, Py := Curve.Add(Pxs[0], Pys[0], Pxs[1], Pys[1])
-		copy(pk[:], Marshal(Curve, Px, Py))
+		Px, Py := crypto.Curve.Add(Pxs[0], Pys[0], Pxs[1], Pys[1])
+		copy(pk[:], crypto.Marshal(crypto.Curve, Px, Py))
 
 		observedSum := hex.EncodeToString(pk[:])
 		expected := "03c0cba209687e8f213f9b00ba0202d98ef17d189bd0d4c5decd7382b7a63bc64e"
@@ -412,7 +412,7 @@ func TestAggregateSignatures(t *testing.T) {
 			t.Fatalf("Sum of public keys, %s, want %s", observedSum, expected)
 		}
 
-		observed, err := verify(pk, m[:], sig)
+		observed, err := crypto.SchnorrVerify(pk, m[:], sig)
 		if err != nil {
 			t.Fatalf("Unexpected error from Verify(%x, %x, %x): %v", pk, m, sig, err)
 		}
@@ -424,13 +424,13 @@ func TestAggregateSignatures(t *testing.T) {
 	})
 
 	t.Run("Can sign and verify two more aggregated signatures over same message", func(t *testing.T) {
-		sig, err := AggregateSignatures(pks[1:3], m[:])
+		sig, err := crypto.AggregateSignatures(pks[1:3], m[:])
 		if err != nil {
 			t.Fatalf("Unexpected error from AggregateSignatures(%x, %x): %v", pks[1:3], m, err)
 		}
 
-		Px, Py := Curve.Add(Pxs[1], Pys[1], Pxs[2], Pys[2])
-		copy(pk[:], Marshal(Curve, Px, Py))
+		Px, Py := crypto.Curve.Add(Pxs[1], Pys[1], Pxs[2], Pys[2])
+		copy(pk[:], crypto.Marshal(crypto.Curve, Px, Py))
 
 		observedSum := hex.EncodeToString(pk[:])
 		expected := "038c47ce8f4f20fd041a25ef78e872448340b1dc28f6539d4fe0126018f1b8e0ea"
@@ -440,7 +440,7 @@ func TestAggregateSignatures(t *testing.T) {
 			t.Fatalf("Sum of public keys, %s, want %s", observedSum, expected)
 		}
 
-		observed, err := verify(pk, m[:], sig)
+		observed, err := crypto.SchnorrVerify(pk, m[:], sig)
 		if err != nil {
 			t.Fatalf("Unexpected error from Verify(%x, %x, %x): %v", pk, m, sig, err)
 		}
@@ -452,14 +452,14 @@ func TestAggregateSignatures(t *testing.T) {
 	})
 
 	t.Run("Can sign and verify three aggregated signatures over same message", func(t *testing.T) {
-		sig, err := AggregateSignatures(pks[:3], m[:])
+		sig, err := crypto.AggregateSignatures(pks[:3], m[:])
 		if err != nil {
 			t.Fatalf("Unexpected error from AggregateSignatures(%x, %x): %v", pks[:3], m, err)
 		}
 
-		Px, Py := Curve.Add(Pxs[0], Pys[0], Pxs[1], Pys[1])
-		Px, Py = Curve.Add(Px, Py, Pxs[2], Pys[2])
-		copy(pk[:], Marshal(Curve, Px, Py))
+		Px, Py := crypto.Curve.Add(Pxs[0], Pys[0], Pxs[1], Pys[1])
+		Px, Py = crypto.Curve.Add(Px, Py, Pxs[2], Pys[2])
+		copy(pk[:], crypto.Marshal(crypto.Curve, Px, Py))
 
 		observedSum := hex.EncodeToString(pk[:])
 		expected := "02adde346abd5b690dae4ebbb74e59ea0e41cdc00c8a5b05b0057678e5e98f9f2e"
@@ -469,7 +469,7 @@ func TestAggregateSignatures(t *testing.T) {
 			t.Fatalf("Sum of public keys, %s, want %s", observedSum, expected)
 		}
 
-		observed, err := verify(pk, m[:], sig)
+		observed, err := crypto.SchnorrVerify(pk, m[:], sig)
 		if err != nil {
 			t.Fatalf("Unexpected error from Verify(%x, %x, %x): %v", pk, m, sig, err)
 		}
@@ -486,7 +486,7 @@ func TestAggregateSignatures(t *testing.T) {
 		m := decodeMessage("243F6A8885A308D313198A2E03707344A4093822299F31D0082EFA98EC4E6C89", t)
 
 		pks := []*big.Int{privKey1, privKey2}
-		aggregatedSignature, err := AggregateSignatures(pks, m[:])
+		aggregatedSignature, err := crypto.AggregateSignatures(pks, m[:])
 		expected := "436f519c7c3a32b794a0252d1af33c34f4a14e4e54282d004983a41b0b12270773057726f0bdd41917998a55ab1d0f5ca1ea01d50b1a6731060351e78b9a7e00"
 		observed := hex.EncodeToString(aggregatedSignature[:])
 
@@ -502,11 +502,11 @@ func TestAggregateSignatures(t *testing.T) {
 		pubKey1 := decodePublicKey("031c7ce0c8d4812b12a9a8988697f45351d83cba72ea9e16f227445599666ea415", t)
 		pubKey2 := decodePublicKey("03460cfbe83d295c072c547e831ce224dd903f888a183a35d2888b7ab3a8666054", t)
 
-		P1x, P1y := Unmarshal(Curve, pubKey1[:])
-		P2x, P2y := Unmarshal(Curve, pubKey2[:])
-		Px, Py := Curve.Add(P1x, P1y, P2x, P2y)
+		P1x, P1y := crypto.Unmarshal(crypto.Curve, pubKey1[:])
+		P2x, P2y := crypto.Unmarshal(crypto.Curve, pubKey2[:])
+		Px, Py := crypto.Curve.Add(P1x, P1y, P2x, P2y)
 
-		copy(pk[:], Marshal(Curve, Px, Py))
+		copy(pk[:], crypto.Marshal(crypto.Curve, Px, Py))
 
 		observed = hex.EncodeToString(pk[:])
 		expected = "03486ca0cb4360d2b8c4be796772f77815932e18d3fe29ca81b5b30c41a1f3272e"
@@ -516,7 +516,7 @@ func TestAggregateSignatures(t *testing.T) {
 			t.Fatalf("Sum of public keys, %s, want %s", observed, expected)
 		}
 
-		result, err := verify(pk, m[:], aggregatedSignature)
+		result, err := crypto.SchnorrVerify(pk, m[:], aggregatedSignature)
 		if err != nil {
 			t.Fatalf("Unexpected error from Verify(%x, %x, %x): %v", pk, m, aggregatedSignature, err)
 		}
@@ -548,7 +548,7 @@ func TestSchnorrRunPrograms(t *testing.T) {
 			act = newSchnorrMultiAccount(aggregateNum, t)
 			acts = append(acts, act)
 			hashes = append(hashes, *act.ProgramHash())
-			sig, err := AggregateSignatures(act.privateKeys[:aggregateNum], data[:])
+			sig, err := crypto.AggregateSignatures(act.privateKeys[:aggregateNum], data[:])
 			if err != nil {
 				fmt.Println("AggregateSignatures fail")
 			}
@@ -712,15 +712,15 @@ func newSchnorrMultiAccount(num int, t *testing.T) *schnorAccount {
 		ma.accounts = append(ma.accounts, newAccount)
 		privKey := new(big.Int).SetBytes(newAccount.private)
 		ma.privateKeys = append(ma.privateKeys, privKey)
-		Px, Py := Curve.ScalarBaseMult(newAccount.private)
+		Px, Py := crypto.Curve.ScalarBaseMult(newAccount.private)
 		Pxs = append(Pxs, Px)
 		Pys = append(Pys, Py)
 	}
-	Px, Py := Curve.Add(Pxs[0], Pys[0], Pxs[1], Pys[1])
+	Px, Py := crypto.Curve.Add(Pxs[0], Pys[0], Pxs[1], Pys[1])
 	for i := 2; i < num; i++ {
-		Px, Py = Curve.Add(Px, Py, Pxs[i], Pys[i])
+		Px, Py = crypto.Curve.Add(Px, Py, Pxs[i], Pys[i])
 	}
-	copy(ma.sumPublicKey[:], Marshal(Curve, Px, Py))
+	copy(ma.sumPublicKey[:], crypto.Marshal(crypto.Curve, Px, Py))
 
 	publicKey, _ := crypto.DecodePoint(ma.sumPublicKey[:])
 	var err error

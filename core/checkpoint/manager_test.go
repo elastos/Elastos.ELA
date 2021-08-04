@@ -114,7 +114,7 @@ func (*checkpoint) DataExtension() string {
 	return checkpointExtension
 }
 
-func (c *checkpoint) OnBlockSaved(block *types.DposBlock, needRollBack bool) {
+func (c *checkpoint) OnBlockSaved(block *types.DposBlock) {
 	data := uint64(block.Height)
 	c.data = &data
 }
@@ -126,6 +126,10 @@ func (c *checkpoint) OnRollbackTo(height uint32) error {
 	data := uint64(height)
 	c.data = &data
 	return nil
+}
+
+func (c *checkpoint) OnRollbackSeekTo(height uint32) {
+	return
 }
 
 func TestManager_SaveAndRestore(t *testing.T) {

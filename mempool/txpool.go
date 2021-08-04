@@ -81,7 +81,9 @@ func (mp *TxPool) appendToTxPool(tx *Transaction) elaerr.ELAError {
 	chain := blockchain.DefaultLedger.Blockchain
 	bestHeight := chain.GetHeight()
 
-	if tx.IsTransferCrossChainAssetTx() && tx.IsSmallTransfer(mp.chainParams.SmallCrossTransferThreshold) {
+	if bestHeight > mp.chainParams.NewCrossChainStartHeight &&
+		tx.IsTransferCrossChainAssetTx() &&
+		tx.IsSmallTransfer(mp.chainParams.SmallCrossTransferThreshold) {
 		err := blockchain.DefaultLedger.Store.SaveSmallCrossTransferTx(tx)
 		if err != nil {
 			log.Warnf("failed to save small cross chain transaction %s", tx.Hash())

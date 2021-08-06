@@ -554,7 +554,6 @@ func TestSchnorrRunPrograms(t *testing.T) {
 			}
 			programs = append(programs, &program.Program{Code: act.RedeemScript(), Parameter: sig[:]})
 		}
-
 	}
 	init(schnorrAccountNum)
 

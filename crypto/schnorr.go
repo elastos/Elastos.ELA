@@ -44,7 +44,7 @@ func SchnorrVerify(publicKey [33]byte, message []byte, signature [64]byte) (bool
 		return false, errors.New("r is larger than or equal to field size")
 	}
 	s := new(big.Int).SetBytes(signature[32:])
-	if s.Cmp(P) >= 0 {
+	if s.Cmp(N) >= 0 {
 
 		return false, errors.New("s is larger than or equal to curve order")
 	}
@@ -79,7 +79,7 @@ func getE(Px, Py *big.Int, rX []byte, m []byte) *big.Int {
 	r = append(r, m[:]...)
 	h := sha256.Sum256(r)
 	i := new(big.Int).SetBytes(h[:])
-	return i.Mod(i, P)
+	return i.Mod(i, N)
 }
 
 func intToByte(i *big.Int) []byte {

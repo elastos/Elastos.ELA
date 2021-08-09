@@ -41,51 +41,51 @@ This project is the source code that can build a full node of ELA blockchain(mai
 
 ## Prerequisites on Mac
 
-#### 1. Check OS version
+### 1. Check OS version
 
 Make sure the OSX version is 16.7 or later
 
-```shell
+```bash
 $ uname -srm
 Darwin 16.7.0 x86_64
 ```
 
-#### 2. Install Go distribution
+### 2. Install Go distribution
 
 Use [Homebrew](https://brew.sh/) to install Golang 1.13.
 
-```shell
+```bash
 $ brew install go@1.13
 ```
 
-#### 3. Check Go version
+### 3. Check Go version
 Check the golang version. Make sure they are the following version number or above.
 
-```shell
+```bash
 $ go version
 go version go1.13.15 darwin/amd64
 ```
 
 ## Prerequisites on Ubuntu
 
-#### 1. Check Ubuntu version
+### 1. Check Ubuntu version
 
 Make sure your ubuntu version is 18.04 or later
 
-```shell
+```bash
 $ cat /etc/issue
 Ubuntu 18.04.5 LTS \n \l
 ```
 
-#### 2. Install Git
+### 2. Install Git
 
-```shell
+```bash
 $ sudo apt-get install -y git
 ```
 
-#### 3. Install Go distribution
+### 3. Install Go distribution
 
-```shell
+```bash
 $ curl -O https://golang.org/dl/go1.13.15.linux-amd64.tar.gz
 $ tar -xvf go1.13.15.linux-amd64.tar.gz
 $ sudo chown -R root:root ./go
@@ -102,12 +102,12 @@ You can just run a `ela` node without a `config.json` file, the `ela` node will 
 If you want to customize the node configuration, see the [`config.json`](./docs/config.json.md) to understand what each parameter means on the configuration file.
 
 If you would like to connect to testnet, do the following:
-```shell
+```bash
 $ cp -v docs/testnet_config.json.sample config.json
 ```
 
 If you would like a simple config template, do the following:
-```shell
+```bash
 $ cp -v docs/mainnet_config.json.sample config.json
 ```
 
@@ -115,28 +115,28 @@ Make sure to modify the parameters to what your own specification.
 
 ## Build and run step by step
 
-#### 1. Clone source code
+### 1. Clone source code
 Make sure you are in the folder
-```shell
+```bash
 $ git clone https://github.com/elastos/Elastos.ELA.git
 ```
 
 If clone works successfully, you should see folder structure like Elastos.ELA/Makefile
 
-#### 2. Make
+### 2. Make
 
 Build the node.
-```shell
+```bash
 $ cd Elastos.ELA
 $ make
 ```
 
 If you did not see any error message, congratulations, you have made the ELA full node.
 
-#### 3. Run the node on Ubuntu and Mac
+### 3. Run the node on Ubuntu and Mac
 
 Run the node.
-```shell
+```bash
 $ ./ela
 ```
 
@@ -144,16 +144,16 @@ $ ./ela
 
 Alternatively, if don't want to build it manually on Mac or Linux, we also provide a `Dockerfile` to help you (You need to have [Docker](https://www.docker.com/get-started) installed).
 
-#### 1. Build the Docker node
+### 1. Build the Docker node
 
-```shell
+```bash
 $ cd docker
 $ docker build -t ela_node_run .
 ```
 
-#### 2. Run the node in the Docker container
+### 2. Run the node in the Docker container
 
-```shell
+```bash
 $ docker run -p 20334:20334 -p 20335:20335 -p 20336:20336 -p 20338:20338 ela_node_run
 ```
 
@@ -163,11 +163,11 @@ $ docker run -p 20334:20334 -p 20335:20335 -p 20336:20336 -p 20338:20338 ela_nod
 
 ## Interact with the node
 
-#### 1. Web UI
+### 1. Web UI
 
 If you would like to access the web UI of the node to get different stats about the node, go to the following URL on your browser: [http://localhost:21333/info](http://localhost:21333/info)
 
-#### 2. REST API
+### 2. REST API
 
 Once the node is running successfully, you can access ELA Node's REST APIs:
 
@@ -192,7 +192,7 @@ $ curl http://localhost:21334/api/v1/block/height
 
 If you would like to learn more about what other REST APIs are available for the node, please check out the [Restful API](docs/Restful_API.md)
 
-#### 3. JSON-RPC API
+### 3. JSON-RPC API
 
 Once the node is running successfully, you can access ELA Node's JSON-RPC APIs:
 

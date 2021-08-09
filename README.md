@@ -121,7 +121,7 @@ $ cp -v docs/mainnet_config.json.sample config.json
 
 Make sure to modify the parameters to what your own specification.
 
-### 6. Run the node on Ubuntu and Mac
+### 6. Run the node on Ubuntu and macOS
 
 Run the node.
 ```bash

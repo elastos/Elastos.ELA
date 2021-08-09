@@ -15,12 +15,12 @@ This project is the source code that can build a full node of ELA blockchain(mai
     - [Introduction](#introduction)
     - [Table of Contents](#table-of-contents)
 - [Build and run step by step](#build-and-run-step-by-step)
-    - [1. Prerequisites on Mac](#2-clone-source-code)
-    - [2. Prerequisites on Ubuntu](#2-clone-source-code)
+    - [1. macOS Prerequisites](#1-macos-prerequisites)
+    - [2. Ubuntu Prerequisites](#2-ubuntu-prerequisites)
     - [3. Clone source code](#3-clone-source-code)
     - [4. Make](#4-make)
     - [5. Configure the node](#5-configure-the-node)
-    - [6. Run the node on Ubuntu and Mac](#6-run-the-node-on-ubuntu-and-mac)
+    - [6. Run the node on Ubuntu and macOS](#6-run-the-node-on-ubuntu-and-macos)
 - [Build and run using Docker](#build-and-run-using-docker)
     - [1. Build the Docker node](#1-build-the-docker-node)
     - [2. Run the node in the Docker container](#2-run-the-node-in-the-docker-container)
@@ -34,9 +34,9 @@ This project is the source code that can build a full node of ELA blockchain(mai
 
 ## Build and run step by step
 
-### 1. Prerequisites on Mac
+### 1. macOS Prerequisites
 
-Make sure the OSX version is 16.7 or later.
+Make sure the macOS version is 16.7 or later.
 
 ```bash
 $ uname -srm
@@ -56,7 +56,7 @@ $ go version
 go version go1.13.15 darwin/amd64
 ```
 
-### 2. Prerequisites on Ubuntu
+### 2. Ubuntu Prerequisites
 
 Make sure your ubuntu version is 18.04 or later.
 

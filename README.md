@@ -14,11 +14,11 @@ This project is the source code that can build a full node of ELA blockchain(mai
 - [Elastos ELA](#elastos-ela)
     - [Introduction](#introduction)
     - [Table of Contents](#table-of-contents)
-- [Pre-requisites on Mac](#pre-requisites-on-mac)
+- [Prerequisites on Mac](#pre-requisites-on-mac)
     - [1. Check OS version](#1-check-os-version)
     - [2. Install Go distribution 1.13](#2-install-go-distribution-113)
     - [3. Check Go version](#3-check-go-version)
-- [Pre-requisites on Ubuntu](#pre-requisites-on-ubuntu)
+- [Prerequisites on Ubuntu](#pre-requisites-on-ubuntu)
     - [1. Check Ubuntu version](#1-check-ubuntu-version)
     - [2. Install git](#2-install-git)
     - [3. Install Go distribution 1.13](#3-install-go-distribution-113)
@@ -79,7 +79,7 @@ $ cat /etc/issue
 Ubuntu 16.04.3 LTS \n \l
 ```
 
-#### 2. Install git
+#### 2. Install Git
 
 ```shell
 $ sudo apt-get install -y git
@@ -155,7 +155,7 @@ $ ./ela
 
 ## Build and Run using docker
 
-Alternatively, if don't want to build it manually on Mac or Linux, we also provide a `Dockerfile` to help you (You need to have docker installed).
+Alternatively, if don't want to build it manually on Mac or Linux, we also provide a `Dockerfile` to help you (You need to have [docker](https://www.docker.com/get-started) installed).
 
 #### 1. Build the docker node
 

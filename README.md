@@ -95,24 +95,6 @@ $ export PATH=$PATH:/usr/local/go/bin:$GOPATH/bin
 $ source ~/.profile
 ```
 
-## Configure the node
-
-You can just run a `ela` node without a `config.json` file, the `ela` node will use the main net configuration by default, and provide a JSON-RPC service on [http://localhost:20336](http://localhost:20336).
-
-If you want to customize the node configuration, see the [`config.json`](./docs/config.json.md) to understand what each parameter means on the configuration file.
-
-If you would like to connect to testnet, do the following:
-```bash
-$ cp -v docs/testnet_config.json.sample config.json
-```
-
-If you would like a simple config template, do the following:
-```bash
-$ cp -v docs/mainnet_config.json.sample config.json
-```
-
-Make sure to modify the parameters to what your own specification.
-
 ## Build and run step by step
 
 ### 1. Clone source code
@@ -133,7 +115,27 @@ $ make
 
 If you did not see any error message, congratulations, you have made the ELA full node.
 
-### 3. Run the node on Ubuntu and Mac
+### 3. Configure the node
+
+You can just run a `ela` node without a `config.json` file, the `ela` node will use the main net configuration by default, and provide a JSON-RPC service on [http://localhost:20336](http://localhost:20336).
+
+If you want to customize the node configuration, see the [`config.json`](./docs/config.json.md) to understand what each parameter means on the configuration file.
+
+If you would like to connect to testnet, do the following:
+
+```bash
+$ cp -v docs/testnet_config.json.sample config.json
+```
+
+If you would like a simple config template, do the following:
+
+```bash
+$ cp -v docs/mainnet_config.json.sample config.json
+```
+
+Make sure to modify the parameters to what your own specification.
+
+### 4. Run the node on Ubuntu and Mac
 
 Run the node.
 ```bash
@@ -198,7 +200,8 @@ Once the node is running successfully, you can access ELA Node's JSON-RPC APIs:
 
 Example 1: Get the hash of the most recent block
 ```bash
-$ curl -H 'Content-Type: application/json' -H 'Accept:application/json' --data '{"method":"getbestblockhash"}' http://localhost:21336
+$ curl -H 'Content-Type: application/json' -H 'Accept:application/json' \
+  --data '{"method":"getbestblockhash"}' http://localhost:21336
 {
     "error": null,
     "id": null,
@@ -209,7 +212,8 @@ $ curl -H 'Content-Type: application/json' -H 'Accept:application/json' --data '
 
 Example 2: Get the hash of the specific blockchain height
 ```bash
-$ curl -H 'Content-Type: application/json' -H 'Accept:application/json' --data '{"method":"getblockhash","params":{"height":1}}' http://localhost:21336
+$ curl -H 'Content-Type: application/json' -H 'Accept:application/json' \
+  --data '{"method":"getblockhash","params":{"height":1}}' http://localhost:21336
 {
     "error": null,
     "id": null,

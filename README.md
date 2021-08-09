@@ -36,11 +36,11 @@ This project is the source code that can build a full node of ELA blockchain(mai
 
 ### 1. macOS Prerequisites
 
-Make sure the macOS version is 16.7 or later.
+Make sure the [macOS version](https://en.wikipedia.org/wiki/MacOS#Release_history) Mojave or later 64-bit Intel.
 
 ```bash
 $ uname -srm
-Darwin 16.7.0 x86_64
+Darwin 18.7.0 x86_64
 ```
 
 Use [Homebrew](https://brew.sh/) to install Golang 1.13.

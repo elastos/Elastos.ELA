@@ -34,7 +34,7 @@ This project is the source code that can build a full node of ELA blockchain(mai
 - [Interact with the node](#interact-with-the-node)
     - [1. Access the web UI of the node](#1-access-the-web-ui-of-the-node)
     - [2. REST API of the node](#2-rest-api-of-the-node)
-    - [3. JSON RPC API of the node](#3-json-rpc-api-of-the-node)
+    - [3. JSON-RPC API of the node](#3-json-rpc-api-of-the-node)
 - [Contribution](#contribution)
 - [Acknowledgments](#acknowledgments)
 - [License](#license)
@@ -43,14 +43,14 @@ This project is the source code that can build a full node of ELA blockchain(mai
 
 #### 1. Check OS version
 
-Make sure the OSX version is 16.7+
+Make sure the OSX version is 16.7 or later
 
 ```shell
 $ uname -srm
 Darwin 16.7.0 x86_64
 ```
 
-#### 2. Install Go distribution 1.13
+#### 2. Install Go distribution
 
 Use Homebrew to install Golang 1.13.
 
@@ -65,18 +65,18 @@ Check the golang version. Make sure they are the following version number or abo
 
 ```shell
 $ go version
-go version go1.13 darwin/amd64
+go version go1.13.15 darwin/amd64
 ```
 
 ## Prerequisites on Ubuntu
 
 #### 1. Check Ubuntu version
 
-Make sure your ubuntu version is 16.04+
+Make sure your ubuntu version is 18.04 or later
 
 ```shell
 $ cat /etc/issue
-Ubuntu 16.04.3 LTS \n \l
+Ubuntu 18.04.5 LTS \n \l
 ```
 
 #### 2. Install Git
@@ -85,10 +85,10 @@ Ubuntu 16.04.3 LTS \n \l
 $ sudo apt-get install -y git
 ```
 
-#### 3. Install Go distribution 1.13
+#### 3. Install Go distribution
 
 ```shell
-$ curl -O https://storage.googleapis.com/golang/go1.13.5.linux-amd64.tar.gz
+$ curl -O https://storage.googleapis.com/golang/go1.13.15.linux-amd64.tar.gz
 $ tar -xvf go1.13.5.linux-amd64.tar.gz
 $ sudo chown -R root:root ./go
 $ sudo mv go /usr/local
@@ -123,7 +123,7 @@ Check the golang version. Make sure they are the following version number or abo
 
 ```shell
 $ go version
-go version go1.13.5 linux/amd64
+go version go1.13.15 linux/amd64
 ```
 
 If you cannot see the version number, there must be something wrong when install.
@@ -176,17 +176,17 @@ $ docker run -p 20334:20334 -p 20335:20335 -p 20336:20336 -p 20338:20338 ela_nod
 
 ## Interact with the node
 
-#### 1. Access the web UI of the node
+#### 1. Web UI
 
 If you would like to access the web UI of the node to get different stats about the node, go to the following URL on your browser: [http://localhost:21333/info](http://localhost:21333/info)
 
-#### 2. REST API of the node
+#### 2. REST API
 
 Once the node is running successfully, you can access ELA Node's REST APIs:
 
 Example 1: Get the number of nodes to which the node is connected
 ```bash
-curl http://localhost:21334/api/v1/node/connectioncount
+$ curl http://localhost:21334/api/v1/node/connectioncount
 {
     "Desc": "Success",
     "Error": 0,
@@ -195,7 +195,7 @@ curl http://localhost:21334/api/v1/node/connectioncount
 ```
 Example 2: Get the block height of the node
 ```bash
-curl http://localhost:21334/api/v1/block/height
+$ curl http://localhost:21334/api/v1/block/height
 {
     "Desc": "Success",
     "Error": 0,
@@ -205,13 +205,13 @@ curl http://localhost:21334/api/v1/block/height
 
 If you would like to learn more about what other REST APIs are available for the node, please check out the [Restful API](docs/Restful_API.md)
 
-#### 3. JSON RPC API of the node
+#### 3. JSON-RPC API
 
-Once the node is running successfully, you can access ELA Node's JSON RPC APIs:
+Once the node is running successfully, you can access ELA Node's JSON-RPC APIs:
 
 Example 1: Get the hash of the most recent block
 ```bash
-curl -H 'Content-Type: application/json' -H 'Accept:application/json' --data '{"method":"getbestblockhash"}' http://localhost:21336
+$ curl -H 'Content-Type: application/json' -H 'Accept:application/json' --data '{"method":"getbestblockhash"}' http://localhost:21336
 {
     "error": null,
     "id": null,
@@ -222,7 +222,7 @@ curl -H 'Content-Type: application/json' -H 'Accept:application/json' --data '{"
 
 Example 2: Get the hash of the specific blockchain height
 ```bash
-curl -H 'Content-Type: application/json' -H 'Accept:application/json' --data '{"method":"getblockhash","params":{"height":1}}' http://localhost:21336
+$ curl -H 'Content-Type: application/json' -H 'Accept:application/json' --data '{"method":"getblockhash","params":{"height":1}}' http://localhost:21336
 {
     "error": null,
     "id": null,
@@ -231,7 +231,7 @@ curl -H 'Content-Type: application/json' -H 'Accept:application/json' --data '{"
 }
 ```
 
-If you would like to learn more about what other JSON RPC APIs are available for the node, please check out the [JSON RPC API](docs/jsonrpc_apis.md)
+If you would like to learn more about what other JSON-RPC APIs are available for the node, please check out the [JSON-RPC API](docs/jsonrpc_apis.md)
 
 ## Contribution
 

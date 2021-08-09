@@ -10,6 +10,7 @@ import (
 	"crypto/sha256"
 	"errors"
 	"math/big"
+	"math/rand"
 )
 
 var (
@@ -33,7 +34,7 @@ var (
 	BitSize = DefaultParams.BitSize
 )
 
-func SchnorrVerify(publicKey [33]byte, message []byte, signature [64]byte) (bool, error) {
+func SchnorrVerify(publicKey [33]byte, message [32]byte, signature [64]byte) (bool, error) {
 	Px, Py := Unmarshal(Curve, publicKey[:])
 
 	if Px == nil || Py == nil || !Curve.IsOnCurve(Px, Py) {
@@ -74,7 +75,7 @@ func getK(Ry, k0 *big.Int) *big.Int {
 	return k0.Sub(N, k0)
 }
 
-func getE(Px, Py *big.Int, rX []byte, m []byte) *big.Int {
+func getE(Px, Py *big.Int, rX []byte, m [32]byte) *big.Int {
 	r := append(rX, Marshal(Curve, Px, Py)...)
 	r = append(r, m[:]...)
 	h := sha256.Sum256(r)
@@ -140,7 +141,7 @@ func Unmarshal(curve elliptic.Curve, data []byte) (x, y *big.Int) {
 
 // AggregateSignatures aggregates multiple signatures of different private keys over
 // the same message into a single 64 byte signature.
-func AggregateSignatures(privateKeys []*big.Int, message []byte) ([64]byte, error) {
+func AggregateSignatures(privateKeys []*big.Int, message [32]byte) ([64]byte, error) {
 	sig := [64]byte{}
 	if privateKeys == nil || len(privateKeys) == 0 {
 		return sig, errors.New("privateKeys must be an array with one or more elements")
@@ -155,7 +156,7 @@ func AggregateSignatures(privateKeys []*big.Int, message []byte) ([64]byte, erro
 		}
 
 		d := intToByte(privateKey)
-		k0i, err := deterministicGetK0(d, message)
+		k0i, err := deterministicGetK0(d)
 		if err != nil {
 			return sig, err
 		}
@@ -170,7 +171,7 @@ func AggregateSignatures(privateKeys []*big.Int, message []byte) ([64]byte, erro
 	}
 
 	rX := intToByte(Rx)
-	e := getE(Px, Py, rX, message[:])
+	e := getE(Px, Py, rX, message)
 	s := new(big.Int).SetInt64(0)
 
 	for i, k0 := range k0s {
@@ -184,13 +185,21 @@ func AggregateSignatures(privateKeys []*big.Int, message []byte) ([64]byte, erro
 	return sig, nil
 }
 
-func deterministicGetK0(d []byte, message []byte) (*big.Int, error) {
-	h := sha256.Sum256(append(d, message[:]...))
-	i := new(big.Int).SetBytes(h[:])
-	k0 := i.Mod(i, N)
-	if k0.Sign() == 0 {
-		return nil, errors.New("k0 is zero")
-	}
+func randomBytes(len int) []byte {
+	a := make([]byte, len)
+	rand.Read(a)
+	return a
+}
 
-	return k0, nil
+func deterministicGetK0(d []byte) (*big.Int, error) {
+	for {
+		message := randomBytes(32)
+		h := sha256.Sum256(append(d, message[:]...))
+		i := new(big.Int).SetBytes(h[:])
+		k0 := i.Mod(i, N)
+		if k0.Sign() == 0 {
+			return nil, errors.New("k0 is zero")
+		}
+		return k0, nil
+	}
 }

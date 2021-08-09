@@ -43,7 +43,12 @@ func RunPrograms(data []byte, programHashes []common.Uint168, programs []*Progra
 
 		if prefixType == contract.PrefixStandard || prefixType == contract.PrefixDeposit {
 			if contract.IsSchnorr(program.Code) {
-				if ok, err := checkSchnorrSignatures(*program, data); !ok {
+				if len(data) != 32 {
+					return errors.New("schnorr verify data must be 32 bytes")
+				}
+				var bytes32 [32]byte
+				copy(bytes32[:], data[:])
+				if ok, err := checkSchnorrSignatures(*program, bytes32); !ok {
 					return errors.New("check schnorr signature failed:" + err.Error())
 				}
 			} else {
@@ -125,7 +130,7 @@ func checkMultiSigSignatures(program Program, data []byte) error {
 	return verifyMultisigSignatures(m, n, publicKeys, program.Parameter, data)
 }
 
-func checkSchnorrSignatures(program Program, data []byte) (bool, error) {
+func checkSchnorrSignatures(program Program, data [32]byte) (bool, error) {
 	publicKey := [33]byte{}
 	copy(publicKey[:], program.Code[1:len(program.Code)-1])
 

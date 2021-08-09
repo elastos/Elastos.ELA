@@ -28,9 +28,9 @@ This project is the source code that can build a full node of ELA blockchain(mai
     - [2. Clone source code](#2-clone-source-code)
     - [3. Make](#3-make)
     - [4. Run the node on Ubuntu and Mac](#4-run-the-node-on-ubuntu-and-mac)
-- [Build and Run using docker](#build-and-run-using-docker)
-    - [1. Build the docker node](#1-build-the-docker-node)
-    - [2. Run the node in the docker container](#2-run-the-node-in-the-docker-container)
+- [Build and Run using Docker](#build-and-run-using-docker)
+    - [1. Build the Docker node](#1-build-the-docker-node)
+    - [2. Run the node in the Docker container](#2-run-the-node-in-the-docker-container)
 - [Interact with the node](#interact-with-the-node)
     - [1. Access the web UI of the node](#1-access-the-web-ui-of-the-node)
     - [2. REST API of the node](#2-rest-api-of-the-node)
@@ -153,18 +153,18 @@ Run the node.
 $ ./ela
 ```
 
-## Build and Run using docker
+## Build and Run using Docker
 
-Alternatively, if don't want to build it manually on Mac or Linux, we also provide a `Dockerfile` to help you (You need to have [docker](https://www.docker.com/get-started) installed).
+Alternatively, if don't want to build it manually on Mac or Linux, we also provide a `Dockerfile` to help you (You need to have [Docker](https://www.docker.com/get-started) installed).
 
-#### 1. Build the docker node
+#### 1. Build the Docker node
 
 ```shell
 $ cd docker
 $ docker build -t ela_node_run .
 ```
 
-#### 2. Run the node in the docker container
+#### 2. Run the node in the Docker container
 
 ```shell
 $ docker run -p 20334:20334 -p 20335:20335 -p 20336:20336 -p 20338:20338 ela_node_run
@@ -172,7 +172,7 @@ $ docker run -p 20334:20334 -p 20335:20335 -p 20336:20336 -p 20338:20338 ela_nod
 
 > Note: Don't hit Ctrl-C to terminate the output; instead close this terminal and open another.
 
-> Please note the dockerfile uses the default 'config.json' in the repository. If you're familiar with docker, you can change the docker file to make it use your own ELA Node configuration file.
+> Please note the dockerfile uses the default 'config.json' in the repository. If you're familiar with Docker, you can change the dockerfile to make it use your own ELA Node configuration file.
 
 ## Interact with the node
 

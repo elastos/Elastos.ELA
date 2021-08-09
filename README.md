@@ -16,12 +16,12 @@ This project is the source code that can build a full node of ELA blockchain(mai
     - [Table of Contents](#table-of-contents)
 - [Prerequisites on Mac](#prerequisites-on-mac)
     - [1. Check OS version](#1-check-os-version)
-    - [2. Install Go distribution 1.13](#2-install-go-distribution-113)
+    - [2. Install Go distribution](#2-install-go-distribution)
     - [3. Check Go version](#3-check-go-version)
 - [Prerequisites on Ubuntu](#prerequisites-on-ubuntu)
     - [1. Check Ubuntu version](#1-check-ubuntu-version)
     - [2. Install git](#2-install-git)
-    - [3. Install Go distribution 1.13](#3-install-go-distribution-113)
+    - [3. Install Go distribution](#3-install-go-distribution)
 - [Configure the node](#configure-the-node)
 - [Build the node](#build-the-node)
     - [1. Check Go version](#1-check-go-version)
@@ -52,12 +52,10 @@ Darwin 16.7.0 x86_64
 
 #### 2. Install Go distribution
 
-Use Homebrew to install Golang 1.13.
+Use [Homebrew](https://brew.sh/) to install Golang 1.13.
 
 ```shell
 $ brew install go@1.13
-$ go version
-
 ```
 
 #### 3. Check Go version
@@ -88,8 +86,8 @@ $ sudo apt-get install -y git
 #### 3. Install Go distribution
 
 ```shell
-$ curl -O https://storage.googleapis.com/golang/go1.13.15.linux-amd64.tar.gz
-$ tar -xvf go1.13.5.linux-amd64.tar.gz
+$ curl -O https://golang.org/dl/go1.13.15.linux-amd64.tar.gz
+$ tar -xvf go1.13.15.linux-amd64.tar.gz
 $ sudo chown -R root:root ./go
 $ sudo mv go /usr/local
 $ export GOPATH=$HOME/go
@@ -99,36 +97,25 @@ $ source ~/.profile
 
 ## Configure the node
 
-You can just run a `ela` node without a `config.json` file, the `ela` node will use the main net configuration by default, and provide a JSON-RPC service on `localhost:20336`.
+You can just run a `ela` node without a `config.json` file, the `ela` node will use the main net configuration by default, and provide a JSON-RPC service on [http://localhost:20336](http://localhost:20336).
 
 If you want to customize the node configuration, see the [`config.json`](./docs/config.json.md) to understand what each parameter means on the configuration file.
 
 If you would like to connect to testnet, do the following:
 ```shell
-$ cp docs/testnet_config.json.sample config.json
+$ cp -v docs/testnet_config.json.sample config.json
 ```
 
 If you would like a simple config template, do the following:
 ```shell
-$ cp docs/mainnet_config.json.sample config.json
+$ cp -v docs/mainnet_config.json.sample config.json
 ```
 
 Make sure to modify the parameters to what your own specification.
 
-## Build the node
+## Build and run step by step
 
-#### 1. Check Go version
-
-Check the golang version. Make sure they are the following version number or above.
-
-```shell
-$ go version
-go version go1.13.15 linux/amd64
-```
-
-If you cannot see the version number, there must be something wrong when install.
-
-#### 2. Clone source code
+#### 1. Clone source code
 Make sure you are in the folder
 ```shell
 $ git clone https://github.com/elastos/Elastos.ELA.git
@@ -136,7 +123,7 @@ $ git clone https://github.com/elastos/Elastos.ELA.git
 
 If clone works successfully, you should see folder structure like Elastos.ELA/Makefile
 
-#### 3. Make
+#### 2. Make
 
 Build the node.
 ```shell
@@ -146,14 +133,14 @@ $ make
 
 If you did not see any error message, congratulations, you have made the ELA full node.
 
-#### 4. Run the node on Ubuntu and Mac
+#### 3. Run the node on Ubuntu and Mac
 
 Run the node.
 ```shell
 $ ./ela
 ```
 
-## Build and Run using Docker
+## Build and run using Docker
 
 Alternatively, if don't want to build it manually on Mac or Linux, we also provide a `Dockerfile` to help you (You need to have [Docker](https://www.docker.com/get-started) installed).
 

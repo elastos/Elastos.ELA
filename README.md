@@ -14,11 +14,11 @@ This project is the source code that can build a full node of ELA blockchain(mai
 - [Elastos ELA](#elastos-ela)
     - [Introduction](#introduction)
     - [Table of Contents](#table-of-contents)
-- [Prerequisites on Mac](#pre-requisites-on-mac)
+- [Prerequisites on Mac](#prerequisites-on-mac)
     - [1. Check OS version](#1-check-os-version)
     - [2. Install Go distribution 1.13](#2-install-go-distribution-113)
     - [3. Check Go version](#3-check-go-version)
-- [Prerequisites on Ubuntu](#pre-requisites-on-ubuntu)
+- [Prerequisites on Ubuntu](#prerequisites-on-ubuntu)
     - [1. Check Ubuntu version](#1-check-ubuntu-version)
     - [2. Install git](#2-install-git)
     - [3. Install Go distribution 1.13](#3-install-go-distribution-113)
@@ -39,7 +39,7 @@ This project is the source code that can build a full node of ELA blockchain(mai
 - [Acknowledgments](#acknowledgments)
 - [License](#license)
 
-## Pre-requisites on Mac
+## Prerequisites on Mac
 
 #### 1. Check OS version
 
@@ -68,7 +68,7 @@ $ go version
 go version go1.13 darwin/amd64
 ```
 
-## Pre-requisites on Ubuntu
+## Prerequisites on Ubuntu
 
 #### 1. Check Ubuntu version
 

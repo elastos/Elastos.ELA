@@ -178,7 +178,7 @@ $ docker run -p 20334:20334 -p 20335:20335 -p 20336:20336 -p 20338:20338 ela_nod
 
 #### 1. Access the web UI of the node
 
-If you would like to access the web UI of the node to get different stats about the node, go to the following URL on your browser: `http://localhost:21333/info`
+If you would like to access the web UI of the node to get different stats about the node, go to the following URL on your browser: [http://localhost:21333/info](http://localhost:21333/info)
 
 #### 2. REST API of the node
 

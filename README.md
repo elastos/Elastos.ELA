@@ -14,43 +14,34 @@ This project is the source code that can build a full node of ELA blockchain(mai
 - [Elastos ELA](#elastos-ela)
     - [Introduction](#introduction)
     - [Table of Contents](#table-of-contents)
-- [Prerequisites on Mac](#prerequisites-on-mac)
-    - [1. Check OS version](#1-check-os-version)
-    - [2. Install Go distribution](#2-install-go-distribution)
-    - [3. Check Go version](#3-check-go-version)
-- [Prerequisites on Ubuntu](#prerequisites-on-ubuntu)
-    - [1. Check Ubuntu version](#1-check-ubuntu-version)
-    - [2. Install git](#2-install-git)
-    - [3. Install Go distribution](#3-install-go-distribution)
-- [Configure the node](#configure-the-node)
-- [Build the node](#build-the-node)
-    - [1. Check Go version](#1-check-go-version)
-    - [2. Clone source code](#2-clone-source-code)
-    - [3. Make](#3-make)
-    - [4. Run the node on Ubuntu and Mac](#4-run-the-node-on-ubuntu-and-mac)
-- [Build and Run using Docker](#build-and-run-using-docker)
+- [Build and run step by step](#build-and-run-step-by-step)
+    - [1. Prerequisites on Mac](#2-clone-source-code)
+    - [2. Prerequisites on Ubuntu](#2-clone-source-code)
+    - [3. Clone source code](#3-clone-source-code)
+    - [4. Make](#4-make)
+    - [5. Configure the node](#5-configure-the-node)
+    - [6. Run the node on Ubuntu and Mac](#6-run-the-node-on-ubuntu-and-mac)
+- [Build and run using Docker](#build-and-run-using-docker)
     - [1. Build the Docker node](#1-build-the-docker-node)
     - [2. Run the node in the Docker container](#2-run-the-node-in-the-docker-container)
 - [Interact with the node](#interact-with-the-node)
-    - [1. Access the web UI of the node](#1-access-the-web-ui-of-the-node)
-    - [2. REST API of the node](#2-rest-api-of-the-node)
-    - [3. JSON-RPC API of the node](#3-json-rpc-api-of-the-node)
+    - [1. Web UI](#1-web-ui)
+    - [2. REST API](#2-rest-api)
+    - [3. JSON-RPC API](#3-json-rpc-api)
 - [Contribution](#contribution)
 - [Acknowledgments](#acknowledgments)
 - [License](#license)
 
-## Prerequisites on Mac
+## Build and run step by step
 
-### 1. Check OS version
+### 1. Prerequisites on Mac
 
-Make sure the OSX version is 16.7 or later
+Make sure the OSX version is 16.7 or later.
 
 ```bash
 $ uname -srm
 Darwin 16.7.0 x86_64
 ```
-
-### 2. Install Go distribution
 
 Use [Homebrew](https://brew.sh/) to install Golang 1.13.
 
@@ -58,7 +49,6 @@ Use [Homebrew](https://brew.sh/) to install Golang 1.13.
 $ brew install go@1.13
 ```
 
-### 3. Check Go version
 Check the golang version. Make sure they are the following version number or above.
 
 ```bash
@@ -66,24 +56,22 @@ $ go version
 go version go1.13.15 darwin/amd64
 ```
 
-## Prerequisites on Ubuntu
+### 2. Prerequisites on Ubuntu
 
-### 1. Check Ubuntu version
-
-Make sure your ubuntu version is 18.04 or later
+Make sure your ubuntu version is 18.04 or later.
 
 ```bash
 $ cat /etc/issue
 Ubuntu 18.04.5 LTS \n \l
 ```
 
-### 2. Install Git
+Install Git.
 
 ```bash
 $ sudo apt-get install -y git
 ```
 
-### 3. Install Go distribution
+Install Go distribution.
 
 ```bash
 $ curl -O https://golang.org/dl/go1.13.15.linux-amd64.tar.gz
@@ -95,17 +83,15 @@ $ export PATH=$PATH:/usr/local/go/bin:$GOPATH/bin
 $ source ~/.profile
 ```
 
-## Build and run step by step
-
-### 1. Clone source code
-Make sure you are in the folder
+### 3. Clone source code
+Make sure you are in the working folder.
 ```bash
 $ git clone https://github.com/elastos/Elastos.ELA.git
 ```
 
 If clone works successfully, you should see folder structure like Elastos.ELA/Makefile
 
-### 2. Make
+### 4. Make
 
 Build the node.
 ```bash
@@ -115,7 +101,7 @@ $ make
 
 If you did not see any error message, congratulations, you have made the ELA full node.
 
-### 3. Configure the node
+### 5. Configure the node
 
 You can just run a `ela` node without a `config.json` file, the `ela` node will use the main net configuration by default, and provide a JSON-RPC service on [http://localhost:20336](http://localhost:20336).
 
@@ -135,7 +121,7 @@ $ cp -v docs/mainnet_config.json.sample config.json
 
 Make sure to modify the parameters to what your own specification.
 
-### 4. Run the node on Ubuntu and Mac
+### 6. Run the node on Ubuntu and Mac
 
 Run the node.
 ```bash
@@ -167,13 +153,14 @@ $ docker run -p 20334:20334 -p 20335:20335 -p 20336:20336 -p 20338:20338 ela_nod
 
 ### 1. Web UI
 
-If you would like to access the web UI of the node to get different stats about the node, go to the following URL on your browser: [http://localhost:21333/info](http://localhost:21333/info)
+If you would like to access the Web UI of the node to get different stats about the node, go to the following URL on your browser: [http://localhost:21333/info](http://localhost:21333/info)
 
 ### 2. REST API
 
 Once the node is running successfully, you can access ELA Node's REST APIs:
 
-Example 1: Get the number of nodes to which the node is connected
+**Example 1**: Get the number of nodes to which the node is connected
+
 ```bash
 $ curl http://localhost:21334/api/v1/node/connectioncount
 {
@@ -182,7 +169,8 @@ $ curl http://localhost:21334/api/v1/node/connectioncount
     "Result": 5
 }
 ```
-Example 2: Get the block height of the node
+**Example 2**: Get the block height of the node
+
 ```bash
 $ curl http://localhost:21334/api/v1/block/height
 {
@@ -198,7 +186,8 @@ If you would like to learn more about what other REST APIs are available for the
 
 Once the node is running successfully, you can access ELA Node's JSON-RPC APIs:
 
-Example 1: Get the hash of the most recent block
+**Example 1**: Get the hash of the most recent block
+
 ```bash
 $ curl -H 'Content-Type: application/json' -H 'Accept:application/json' \
   --data '{"method":"getbestblockhash"}' http://localhost:21336
@@ -210,7 +199,8 @@ $ curl -H 'Content-Type: application/json' -H 'Accept:application/json' \
 }
 ```
 
-Example 2: Get the hash of the specific blockchain height
+**Example 2**: Get the hash of the specific blockchain height
+
 ```bash
 $ curl -H 'Content-Type: application/json' -H 'Accept:application/json' \
   --data '{"method":"getblockhash","params":{"height":1}}' http://localhost:21336

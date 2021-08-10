@@ -617,14 +617,14 @@ func (s *server) pushBlockMsg(sp *serverPeer, hash *common.Uint256, doneChan cha
 	// would fit into a single message, send it a new inventory message
 	// to trigger it to issue another getblocks message for the next
 	// batch of inventory.
-	//if sendInv {
-	//	best := sp.server.chain.GetBestChain()
-	//	invMsg := msg.NewInvSize(1)
-	//	iv := msg.NewInvVect(msg.InvTypeBlock, best.Hash)
-	//	invMsg.AddInvVect(iv)
-	//	sp.QueueMessage(invMsg, doneChan)
-	//	sp.continueHash = nil
-	//}
+	if sendInv {
+		best := sp.server.chain.GetBestChain()
+		invMsg := msg.NewInvSize(1)
+		iv := msg.NewInvVect(msg.InvTypeBlock, best.Hash)
+		invMsg.AddInvVect(iv)
+		sp.QueueMessage(invMsg, doneChan)
+		sp.continueHash = nil
+	}
 	return nil
 }
 
@@ -666,14 +666,14 @@ func (s *server) pushConfirmedBlockMsg(sp *serverPeer, hash *common.Uint256, don
 	// would fit into a single message, send it a new inventory message
 	// to trigger it to issue another getblocks message for the next
 	// batch of inventory.
-	//if sendInv {
-	//	best := sp.server.chain.GetBestChain()
-	//	invMsg := msg.NewInvSize(1)
-	//	iv := msg.NewInvVect(msg.InvTypeConfirmedBlock, best.Hash)
-	//	invMsg.AddInvVect(iv)
-	//	sp.QueueMessage(invMsg, doneChan)
-	//	sp.continueHash = nil
-	//}
+	if sendInv {
+		best := sp.server.chain.GetBestChain()
+		invMsg := msg.NewInvSize(1)
+		iv := msg.NewInvVect(msg.InvTypeConfirmedBlock, best.Hash)
+		invMsg.AddInvVect(iv)
+		sp.QueueMessage(invMsg, doneChan)
+		sp.continueHash = nil
+	}
 	return nil
 }
 

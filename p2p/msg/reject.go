@@ -1,7 +1,7 @@
 // Copyright (c) 2017-2020 The Elastos Foundation
 // Use of this source code is governed by an MIT
 // license that can be found in the LICENSE file.
-// 
+//
 
 package msg
 
@@ -129,13 +129,13 @@ func NewReject(cmd string, err errors.ELAError) *Reject {
 		code = RejectInvalid
 	case errors.ErrP2pRejectObsolete:
 		code = RejectObsolete
-	case errors.ErrTxDuplicate,errors.ErrP2pRejectDuplicate:
+	case errors.ErrTxDuplicate, errors.ErrP2pRejectDuplicate:
 		code = RejectDuplicate
 	case errors.ErrP2pRejectNonstandard:
 		code = RejectNonstandard
 	case errors.ErrP2pRejectDust:
 		code = RejectDust
-	case errors.ErrTxBalance,errors.ErrP2pRejectInsufficientFee:
+	case errors.ErrTxBalance, errors.ErrP2pRejectInsufficientFee:
 		code = RejectInsufficientFee
 	case errors.ErrP2pRejectCheckpoint:
 		code = RejectCheckpoint

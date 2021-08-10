@@ -2810,14 +2810,14 @@ func (s *txValidatorTestSuite) TestCheckCRCProposalWithdrawTransaction() {
 	txn := s.getCRCProposalWithdrawTx(publicKeyStr1, privateKeyStr1,
 		Recipient, CRExpensesAddressU168, 9*ela, 50*ela, 0)
 	crcProposalWithdraw, _ := txn.Payload.(*payload.CRCProposalWithdraw)
-	pld :=payload.CRCProposal{
+	pld := payload.CRCProposal{
 		OwnerPublicKey: pk1Bytes,
 		Recipient:      *Recipient,
 		Budgets:        createBudgets(3),
 	}
 	propState := &crstate.ProposalState{
-		Status: crstate.VoterAgreed,
-		Proposal: pld.ToProposalInfo(0),
+		Status:              crstate.VoterAgreed,
+		Proposal:            pld.ToProposalInfo(0),
 		FinalPaymentStatus:  false,
 		WithdrawableBudgets: map[uint8]common.Fixed64{0: 10 * 1e8},
 		ProposalOwner:       pk1Bytes,

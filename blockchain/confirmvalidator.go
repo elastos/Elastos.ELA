@@ -136,16 +136,16 @@ func PreProcessSpecialTx(block *Block) error {
 
 			inactivePayloads = append(inactivePayloads,
 				tx.Payload.(*payload.InactiveArbitrators))
-		//case IllegalBlockEvidence:
-		//	p, ok := tx.Payload.(*payload.DPOSIllegalBlocks)
-		//	if !ok {
-		//		return errors.New("invalid payload")
-		//	}
-		//	if err := CheckDPOSIllegalBlocks(p); err != nil {
-		//		return err
-		//	}
-		//
-		//	illegalBlocks = append(illegalBlocks, p)
+			//case IllegalBlockEvidence:
+			//	p, ok := tx.Payload.(*payload.DPOSIllegalBlocks)
+			//	if !ok {
+			//		return errors.New("invalid payload")
+			//	}
+			//	if err := CheckDPOSIllegalBlocks(p); err != nil {
+			//		return err
+			//	}
+			//
+			//	illegalBlocks = append(illegalBlocks, p)
 		}
 	}
 

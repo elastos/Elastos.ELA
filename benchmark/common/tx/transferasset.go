@@ -1,7 +1,7 @@
 // Copyright (c) 2017-2020 The Elastos Foundation
 // Use of this source code is governed by an MIT
 // license that can be found in the LICENSE file.
-// 
+//
 
 package tx
 
@@ -47,7 +47,7 @@ func (g *transferAssetGenerator) Generate() *types.Transaction {
 			ProgramHash: v.ProgramHash,
 			Type:        types.OTNone,
 			Payload:     &outputpayload.DefaultOutput{},
-		}, )
+		})
 	}
 
 	return txn

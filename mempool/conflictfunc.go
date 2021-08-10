@@ -43,7 +43,7 @@ func strArrayCRCProposalCustomID(tx *types.Transaction) (interface{}, error) {
 		return nil, fmt.Errorf(
 			"CRC proposal payload cast failed, tx:%s", tx.Hash())
 	}
-	if p.ProposalType  != payload.ReceiveCustomID {
+	if p.ProposalType != payload.ReceiveCustomID {
 		return nil, nil
 	}
 	return p.ReceivedCustomIDList, nil

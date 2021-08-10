@@ -163,6 +163,8 @@ Once the node is running successfully, you can access ELA Node's REST APIs:
 
 ```bash
 $ curl http://localhost:21334/api/v1/node/connectioncount
+```
+```bash
 {
     "Desc": "Success",
     "Error": 0,
@@ -173,6 +175,8 @@ $ curl http://localhost:21334/api/v1/node/connectioncount
 
 ```bash
 $ curl http://localhost:21334/api/v1/block/height
+```
+```bash
 {
     "Desc": "Success",
     "Error": 0,
@@ -191,6 +195,8 @@ Once the node is running successfully, you can access ELA Node's JSON-RPC APIs:
 ```bash
 $ curl -H 'Content-Type: application/json' -H 'Accept:application/json' \
   --data '{"method":"getbestblockhash"}' http://localhost:21336
+```
+```bash
 {
     "error": null,
     "id": null,
@@ -204,6 +210,8 @@ $ curl -H 'Content-Type: application/json' -H 'Accept:application/json' \
 ```bash
 $ curl -H 'Content-Type: application/json' -H 'Accept:application/json' \
   --data '{"method":"getblockhash","params":{"height":1}}' http://localhost:21336
+```
+```bash
 {
     "error": null,
     "id": null,

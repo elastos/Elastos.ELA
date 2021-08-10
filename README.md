@@ -10,28 +10,6 @@ ELA is the digital currency solution within the Elastos ecosystem. It is merged 
 
 This project is the source code that can build a full node of ELA blockchain(main chain).
 
-## Table of Contents
-- [Elastos ELA](#elastos-ela)
-    - [Introduction](#introduction)
-    - [Table of Contents](#table-of-contents)
-- [Build and run step by step](#build-and-run-step-by-step)
-    - [1. macOS Prerequisites](#1-macos-prerequisites)
-    - [2. Ubuntu Prerequisites](#2-ubuntu-prerequisites)
-    - [3. Clone source code](#3-clone-source-code)
-    - [4. Make](#4-make)
-    - [5. Configure the node](#5-configure-the-node)
-    - [6. Run the node on Ubuntu and macOS](#6-run-the-node-on-ubuntu-and-macos)
-- [Build and run using Docker](#build-and-run-using-docker)
-    - [1. Build the Docker node](#1-build-the-docker-node)
-    - [2. Run the node in the Docker container](#2-run-the-node-in-the-docker-container)
-- [Interact with the node](#interact-with-the-node)
-    - [1. Web UI](#1-web-ui)
-    - [2. REST API](#2-rest-api)
-    - [3. JSON-RPC API](#3-json-rpc-api)
-- [Contribution](#contribution)
-- [Acknowledgments](#acknowledgments)
-- [License](#license)
-
 ## Build and run step by step
 
 ### 1. macOS Prerequisites

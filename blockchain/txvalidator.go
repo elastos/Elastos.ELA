@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"math/big"
 	"net"
 	"sort"
 	"strconv"
@@ -87,7 +88,7 @@ func (b *BlockChain) CheckTransactionSanity(blockHeight uint32,
 		return elaerr.Simple(elaerr.ErrTxAttributeProgram, err)
 	}
 
-	if err := checkTransactionPayload(txn); err != nil {
+	if err := b.checkTransactionPayload(txn); err != nil {
 		log.Warn("[CheckTransactionPayload],", err)
 		return elaerr.Simple(elaerr.ErrTxPayload, err)
 	}
@@ -1105,7 +1106,7 @@ func checkAmountPrecise(amount common.Fixed64, precision byte) bool {
 	return amount.IntValue()%int64(math.Pow(10, float64(8-precision))) == 0
 }
 
-func checkTransactionPayload(txn *Transaction) error {
+func (b *BlockChain) checkTransactionPayload(txn *Transaction) error {
 	switch pld := txn.Payload.(type) {
 	case *payload.RegisterAsset:
 		if pld.Asset.Precision < payload.MinPrecision || pld.Asset.Precision > payload.MaxPrecision {
@@ -1146,6 +1147,41 @@ func checkTransactionPayload(txn *Transaction) error {
 	case *payload.ReturnSideChainDepositCoin:
 	default:
 		return errors.New("[txValidator],invalidate transaction payload type.")
+	}
+	return nil
+}
+
+func checkSchnorrWithdrawFromSidechain(txn *Transaction, pld *payload.WithdrawFromSideChain) error {
+	var pxArr []*big.Int
+	var pyArr []*big.Int
+	for _, index := range pld.Signers {
+		arbiters := DefaultLedger.Arbitrators.GetCrossChainArbiters()
+		px, py := crypto.Unmarshal(crypto.Curve, arbiters[index].NodePublicKey)
+		pxArr = append(pxArr, px)
+		pyArr = append(pyArr, py)
+	}
+	Px, Py := crypto.Curve.Add(pxArr[0], pyArr[0], pxArr[1], pyArr[1])
+	for i := 2; i < len(pxArr); i++ {
+		Px, Py = crypto.Curve.Add(Px, Py, pxArr[i], pyArr[i])
+	}
+	var sumPublicKey []byte
+	copy(sumPublicKey, crypto.Marshal(crypto.Curve, Px, Py))
+	publicKey, err := crypto.DecodePoint(sumPublicKey)
+	if err != nil {
+		return errors.New("Invalid schnorr public key")
+	}
+	redeemScript, err := contract.CreateSchnorrMultiSigRedeemScript(publicKey)
+	if err != nil {
+		return errors.New("CreateSchnorrMultiSigRedeemScript error")
+	}
+	for _, program := range txn.Programs {
+		if contract.IsSchnorr(program.Code) {
+			if hex.EncodeToString(program.Code) != hex.EncodeToString(redeemScript) {
+				return errors.New("WithdrawFromSideChain invalid , signers can not match")
+			}
+		} else {
+			return errors.New("Invalid schnorr program code")
+		}
 	}
 	return nil
 }
@@ -1390,7 +1426,10 @@ func (b *BlockChain) checkWithdrawFromSideChainTransaction(txn *Transaction, ref
 		return b.checkWithdrawFromSideChainTransactionV0(txn, references, height)
 	} else if txn.PayloadVersion == payload.WithdrawFromSideChainVersionV1 {
 		return b.checkWithdrawFromSideChainTransactionV1(txn, references, height)
+	} else if txn.PayloadVersion == payload.WithdrawFromSideChainVersionV2 {
+		return b.checkWithdrawFromSideChainTransactionV2(txn, references)
 	}
+
 	return errors.New("invalid payload version")
 }
 
@@ -1506,6 +1545,29 @@ func (b *BlockChain) checkWithdrawFromSideChainTransactionV0(txn *Transaction, r
 		}
 	}
 
+	return nil
+}
+
+func (b *BlockChain) checkWithdrawFromSideChainTransactionV2(txn *Transaction, references map[*Input]Output) error {
+	pld, ok := txn.Payload.(*payload.WithdrawFromSideChain)
+	if !ok {
+		return errors.New("Invalid withdraw from side chain payload type")
+	}
+
+	if len(pld.Signers) < (int(b.chainParams.CRMemberCount)*2/3 + 1) {
+		return errors.New("Signers number must be bigger than 2/3+1 CRMemberCount")
+	}
+
+	for _, output := range references {
+		if bytes.Compare(output.ProgramHash[0:1], []byte{byte(contract.PrefixCrossChain)}) != 0 {
+			return errors.New("Invalid transaction inputs address, without \"X\" at beginning")
+		}
+	}
+
+	err := checkSchnorrWithdrawFromSidechain(txn, pld)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 

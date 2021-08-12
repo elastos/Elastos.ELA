@@ -674,6 +674,31 @@ func TestRunPrograms(t *testing.T) {
 	assert.Error(t, err, "[RunProgram] passed with random no parameter")
 }
 
+func TestSchnorrPxPyToPublic(t *testing.T) {
+	nA := newAccount(t)
+	initialPublicKey, _ := nA.public.EncodePoint(true)
+	i := hex.EncodeToString(initialPublicKey)
+	Px, Py := crypto.Curve.ScalarBaseMult(nA.private)
+	comparePubKeys := crypto.Marshal(crypto.Curve, Px, Py)
+	c := hex.EncodeToString(comparePubKeys)
+	if i != c {
+		t.Fatalf("[TestSchnorrPxPyToPublic] public key not equals")
+	}
+}
+
+func TestSchnorrPublicToPxPy(t *testing.T) {
+	nA := newAccount(t)
+	Px, Py := crypto.Curve.ScalarBaseMult(nA.private)
+	pubKey := crypto.Marshal(crypto.Curve, Px, Py)
+	c := hex.EncodeToString(pubKey)
+	cBuf, _ := hex.DecodeString(c)
+	cPx, cPy := crypto.Unmarshal(crypto.Curve, cBuf)
+
+	if Px.String() != cPx.String() || Py.String() != cPy.String() {
+		t.Fatalf("[TestSchnorrPublicToPxPy] px py not equals")
+	}
+}
+
 func newAccount(t *testing.T) *account {
 	a := new(account)
 	var err error

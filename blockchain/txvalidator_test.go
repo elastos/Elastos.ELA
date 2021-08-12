@@ -456,18 +456,18 @@ func (s *txValidatorTestSuite) TestCheckTransactionPayload() {
 		Amount: 3300 * 10000 * 10000000,
 	}
 	tx.Payload = payload
-	err := checkTransactionPayload(tx)
+	err := s.Chain.checkTransactionPayload(tx)
 	s.NoError(err)
 
 	// invalid precision
 	payload.Asset.Precision = 9
-	err = checkTransactionPayload(tx)
+	err = s.Chain.checkTransactionPayload(tx)
 	s.EqualError(err, "Invalide asset Precision.")
 
 	// invalid amount
 	payload.Asset.Precision = 0
 	payload.Amount = 1234567
-	err = checkTransactionPayload(tx)
+	err = s.Chain.checkTransactionPayload(tx)
 	s.EqualError(err, "Invalide asset value,out of precise.")
 }
 

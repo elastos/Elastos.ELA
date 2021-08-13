@@ -1,7 +1,7 @@
 // Copyright (c) 2017-2020 The Elastos Foundation
 // Use of this source code is governed by an MIT
 // license that can be found in the LICENSE file.
-//
+// 
 
 package p2p
 
@@ -53,9 +53,6 @@ type Config struct {
 	// PingInterval is the interval of time to wait in between sending ping
 	// messages.
 	PingInterval time.Duration
-
-	//defines max nodes that one host can establish
-	MaxNodePerHost uint32
 
 	// Signature will be invoked when creating a signature of the data content.
 	Sign func(data []byte) (signature []byte)

@@ -1,7 +1,7 @@
 // Copyright (c) 2017-2020 The Elastos Foundation
 // Use of this source code is governed by an MIT
 // license that can be found in the LICENSE file.
-//
+// 
 
 package p2p
 
@@ -18,7 +18,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/dpos/p2p/addrmgr"
 	"github.com/elastos/Elastos.ELA/dpos/p2p/connmgr"
 	"github.com/elastos/Elastos.ELA/dpos/p2p/hub"
@@ -140,14 +139,11 @@ type server struct {
 	hubService  *hub.Hub
 	addrManager *addrmgr.AddrManager
 	connManager *connmgr.ConnManager
-	//per host conn manager key is host ip,value is the count of this ip
-	hostConnManger map[string]uint32
-
-	peerQueue chan interface{}
-	query     chan interface{}
-	broadcast chan broadcastMsg
-	wg        sync.WaitGroup
-	quit      chan struct{}
+	peerQueue   chan interface{}
+	query       chan interface{}
+	broadcast   chan broadcastMsg
+	wg          sync.WaitGroup
+	quit        chan struct{}
 }
 
 // IPeer extends the peer to maintain state shared by the server.
@@ -269,18 +265,6 @@ func (s *server) handleAddPeerMsg(state *peerState, sp *serverPeer) bool {
 // invoked from the peerHandler goroutine.
 func (s *server) handleDonePeerMsg(state *peerState, sp *serverPeer) {
 	var list map[uint64]*serverPeer
-	ip := common.GetIpFromAddr(sp.Addr())
-	if sp.Inbound() {
-		if _, ok := s.hostConnManger[ip]; ok {
-			s.hostConnManger[ip]--
-			if s.hostConnManger[ip] <= 0 {
-				delete(s.hostConnManger, ip)
-				log.Debugf("handleDonePeerMsg  delete ip %s from %s,%s", ip, sp.Addr(), sp.LocalAddr().String())
-			}
-			log.Debug("handleDonePeerMsg hostConnManger ", s.hostConnManger)
-
-		}
-	}
 	if sp.Inbound() {
 		list = state.inboundPeers
 	} else {
@@ -560,26 +544,7 @@ func (s *server) inboundPeerConnected(conn net.Conn) {
 
 	sp := newServerPeer(s)
 	sp.Peer = peer.NewInboundPeer(newPeerConfig(sp))
-	addr := conn.RemoteAddr().String()
-	ip := common.GetIpFromAddr(addr)
-	if ip == "" {
-		conn.Close()
-		log.Error("inboundPeerConnected serious error should not be here ")
-		return
-	}
-	if _, ok := s.hostConnManger[ip]; !ok {
-		s.hostConnManger[ip] = 0
-	}
-	if s.hostConnManger[ip] < s.cfg.MaxNodePerHost {
-		s.hostConnManger[ip]++
-		log.Debugf("hostConnManger  ip %s  count %d ", ip, s.hostConnManger[ip])
-		sp.AssociateConnection(conn)
-	} else {
-		conn.Close()
-		log.Debugf("hostConnManger ip %s count %d OverMaxNodePerHost", ip, s.hostConnManger[ip])
-		return
-	}
-
+	sp.AssociateConnection(conn)
 	go s.peerDoneHandler(sp)
 }
 
@@ -884,14 +849,13 @@ func NewServer(origCfg *Config) (*server, error) {
 	}
 
 	s := server{
-		cfg:            cfg,
-		hubService:     hubService,
-		addrManager:    admgr,
-		hostConnManger: make(map[string]uint32),
-		peerQueue:      make(chan interface{}, maxPeers),
-		query:          make(chan interface{}, maxPeers),
-		broadcast:      make(chan broadcastMsg, maxPeers),
-		quit:           make(chan struct{}),
+		cfg:         cfg,
+		hubService:  hubService,
+		addrManager: admgr,
+		peerQueue:   make(chan interface{}, maxPeers),
+		query:       make(chan interface{}, maxPeers),
+		broadcast:   make(chan broadcastMsg, maxPeers),
+		quit:        make(chan struct{}),
 	}
 
 	cmgr, err := connmgr.New(&connmgr.Config{

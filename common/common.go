@@ -128,13 +128,3 @@ func VarIntSerializeSize(val uint64) int {
 	// Discriminant 1 byte plus 8 bytes for the uint64.
 	return 9
 }
-
-//get ip string from addr string
-//if addr is not the format x.x.x.x:port return empt string ""
-func GetIpFromAddr(addr string) string {
-	endIndex := strings.Index(addr, ":")
-	if endIndex < 0 {
-		return ""
-	}
-	return addr[0:endIndex]
-}

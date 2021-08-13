@@ -141,7 +141,6 @@ type server struct {
 	addrManager *addrmgr.AddrManager
 	connManager *connmgr.ConnManager
 	//per host conn manager key is host ip,value is the count of this ip
-	mu             sync.Mutex
 	hostConnManger map[string]uint32
 
 	peerQueue chan interface{}
@@ -272,7 +271,6 @@ func (s *server) handleDonePeerMsg(state *peerState, sp *serverPeer) {
 	var list map[uint64]*serverPeer
 	ip := common.GetIpFromAddr(sp.Addr())
 	if sp.Inbound() {
-		s.mu.Lock()
 		if _, ok := s.hostConnManger[ip]; ok {
 			s.hostConnManger[ip]--
 			if s.hostConnManger[ip] <= 0 {
@@ -280,8 +278,8 @@ func (s *server) handleDonePeerMsg(state *peerState, sp *serverPeer) {
 				log.Debugf("handleDonePeerMsg  delete ip %s from %s,%s", ip, sp.Addr(), sp.LocalAddr().String())
 			}
 			log.Debug("handleDonePeerMsg hostConnManger ", s.hostConnManger)
+
 		}
-		s.mu.Unlock()
 	}
 	if sp.Inbound() {
 		list = state.inboundPeers
@@ -569,20 +567,16 @@ func (s *server) inboundPeerConnected(conn net.Conn) {
 		log.Error("inboundPeerConnected serious error should not be here ")
 		return
 	}
-	s.mu.Lock()
 	if _, ok := s.hostConnManger[ip]; !ok {
 		s.hostConnManger[ip] = 0
 	}
-
 	if s.hostConnManger[ip] < s.cfg.MaxNodePerHost {
 		s.hostConnManger[ip]++
 		log.Debugf("hostConnManger  ip %s  count %d ", ip, s.hostConnManger[ip])
-		s.mu.Unlock()
 		sp.AssociateConnection(conn)
 	} else {
 		conn.Close()
 		log.Debugf("hostConnManger ip %s count %d OverMaxNodePerHost", ip, s.hostConnManger[ip])
-		s.mu.Unlock()
 		return
 	}
 

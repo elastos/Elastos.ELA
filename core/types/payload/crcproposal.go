@@ -564,6 +564,12 @@ func (p *CRCProposal) SerializeUnsignedRegisterSideChain(w io.Writer, version by
 		return errors.New("failed to serialize DraftHash")
 	}
 
+	if version >= CRCProposalVersion01 {
+		if err := common.WriteVarBytes(w, p.DraftData); err != nil {
+			return errors.New("failed to serialize DraftData")
+		}
+	}
+
 	if err := p.SideChainInfo.Serialize(w); err != nil {
 		return err
 	}
@@ -971,6 +977,13 @@ func (p *CRCProposal) DeserializeUnsignedRegisterSideChain(r io.Reader, version 
 
 	if err = p.DraftHash.Deserialize(r); err != nil {
 		return errors.New("failed to deserialize DraftHash")
+	}
+
+	if version >= CRCProposalVersion01 {
+		p.DraftData, err = common.ReadVarBytes(r, MaxProposalDataSize, "draft data")
+		if err != nil {
+			return errors.New("failed to deserialize draft data")
+		}
 	}
 
 	if err = p.SideChainInfo.Deserialize(r); err != nil {

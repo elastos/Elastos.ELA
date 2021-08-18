@@ -2697,7 +2697,7 @@ func (b *BlockChain) checkReturnSideChainDepositTransaction(txn *Transaction) er
 
 		tx, _, err := b.db.GetTransaction(py.DepositTransactionHash)
 		if err != nil {
-			return errors.New("invalid deposit tx:" + tx.String())
+			return errors.New("invalid deposit tx:" + py.DepositTransactionHash.String())
 		}
 		refTx, _, err := b.db.GetTransaction(tx.Inputs[0].Previous.TxID)
 		if err != nil {

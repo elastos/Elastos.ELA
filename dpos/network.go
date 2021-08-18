@@ -363,6 +363,7 @@ func NewDposNetwork(cfg NetworkConfig) (*network, error) {
 		MagicNumber:      cfg.ChainParams.DPoSMagic,
 		DefaultPort:      cfg.ChainParams.DPoSDefaultPort,
 		TimeSource:       cfg.MedianTime,
+		MaxNodePerHost:   cfg.ChainParams.MaxNodePerHost,
 		MakeEmptyMessage: makeEmptyMessage,
 		HandleMessage:    network.handleMessage,
 		PingNonce:        network.getCurrentHeight,

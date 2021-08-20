@@ -42,6 +42,7 @@ func (mp *TxPool) AppendToTxPool(tx *Transaction) elaerr.ELAError {
 	defer mp.Unlock()
 	err := mp.appendToTxPool(tx)
 	if err != nil {
+		log.Info("####", tx.String())
 		return err
 	}
 

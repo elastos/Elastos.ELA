@@ -100,7 +100,7 @@ func newTransaction(L *lua.LState) int {
 	case *payload.CRCouncilMemberClaimNode:
 		pload, _ = ud.Value.(*payload.CRCouncilMemberClaimNode)
 	case *payload.TransferCrossChainAsset:
-		pload, _= ud.Value.(*payload.TransferCrossChainAsset)
+		pload, _ = ud.Value.(*payload.TransferCrossChainAsset)
 	default:
 		fmt.Println("error: undefined payload type")
 		os.Exit(1)
@@ -168,6 +168,7 @@ var transactionMethods = map[string]lua.LGFunction{
 	"appendattr":    txAppendAttribute,
 	"get":           txGet,
 	"sign":          signTx,
+	"signschnorr":   signSchnorrTx,
 	"hash":          txHash,
 	"serialize":     serialize,
 	"deserialize":   deserialize,
@@ -284,6 +285,35 @@ func signTx(L *lua.LState) int {
 	txn, err = client.Sign(txn)
 	if err != nil {
 		fmt.Println(err)
+		os.Exit(1)
+	}
+
+	return 0
+}
+
+func signSchnorrTx(L *lua.LState) int {
+	txn := checkTransaction(L, 1)
+	account, err := checkAccount(L, 2)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+	buf := new(bytes.Buffer)
+	if err := txn.SerializeUnsigned(buf); err != nil {
+		return -1
+	}
+	signature, err := crypto.AggregateSignatures(account.PrivateKeys, buf.Bytes())
+	if err != nil {
+		return -1
+	}
+	txn.Programs = []*pg.Program{
+		&pg.Program{
+			Code:      account.RedeemScript,
+			Parameter: signature[:],
+		},
+	}
+	if err != nil {
+		fmt.Println("signSchnorrTx error:", err.Error(), txn)
 		os.Exit(1)
 	}
 

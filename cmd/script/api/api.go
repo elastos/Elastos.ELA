@@ -27,8 +27,7 @@ import (
 	"github.com/elastos/Elastos.ELA/utils/http"
 	"github.com/elastos/Elastos.ELA/utils/signal"
 	"github.com/elastos/Elastos.ELA/utils/test"
-
-	"github.com/yuin/gopher-lua"
+	lua "github.com/yuin/gopher-lua"
 )
 
 func Loader(L *lua.LState) int {
@@ -249,6 +248,7 @@ func walkDir(dirPth, suffix string) (files []string, err error) {
 
 func RegisterDataType(L *lua.LState) int {
 	RegisterClientType(L)
+	RegisterAccountType(L)
 	RegisterAttributeType(L)
 	RegisterInputType(L)
 	RegisterOutputType(L)

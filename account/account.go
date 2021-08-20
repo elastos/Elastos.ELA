@@ -7,6 +7,9 @@ package account
 
 import (
 	"encoding/json"
+	"fmt"
+	"math/big"
+
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/core/contract"
 	"github.com/elastos/Elastos.ELA/crypto"
@@ -19,6 +22,7 @@ program hash is the sha256 value of redeem script and converted to ripemd160 for
 address is the base58 format of program hash, which is the string value show up on user interface as account address.
 With account, you can get the transfer address or sign transaction etc.
 */
+
 type Account struct {
 	PrivateKey   []byte
 	PublicKey    *crypto.PublicKey
@@ -27,7 +31,16 @@ type Account struct {
 	Address      string
 }
 
+type SchnorAccount struct {
+	Accounts     []*Account
+	PrivateKeys  []*big.Int
+	SumPublicKey [33]byte
+	RedeemScript []byte
+	ProgramHash  *common.Uint168
+}
+
 // String format of Account
+
 type AccountInfo struct {
 	PrivateKey   string `json:"PrivateKey"`
 	PublicKey    string `json:"PublicKey"`
@@ -37,6 +50,7 @@ type AccountInfo struct {
 }
 
 // Create an account instance with private key and public key
+
 func NewAccount() (*Account, error) {
 	priKey, pubKey, _ := crypto.GenerateKeyPair()
 	signatureContract, err := contract.CreateStandardContract(pubKey)
@@ -100,22 +114,57 @@ func NewMultiSigAccount(m int, pubKeys []*crypto.PublicKey) (*Account, error) {
 	}, nil
 }
 
+func NewSchnorrAggregateAccount(accounts []*Account) *SchnorAccount {
+	var sa = new(SchnorAccount)
+	var Pxs, Pys []*big.Int
+	for _, account := range accounts {
+		privKey := new(big.Int).SetBytes(account.PrivateKey)
+		sa.PrivateKeys = append(sa.PrivateKeys, privKey)
+		Px, Py := crypto.Curve.ScalarBaseMult(account.PrivateKey)
+		Pxs, Pys = append(Pxs, Px), append(Pys, Py)
+	}
+	Px, Py := new(big.Int), new(big.Int)
+	for i := 0; i < len(Pxs); i++ {
+		Px, Py = crypto.Curve.Add(Px, Py, Pxs[i], Pys[i])
+	}
+	copy(sa.SumPublicKey[:], crypto.Marshal(crypto.Curve, Px, Py))
+	publicKey, _ := crypto.DecodePoint(sa.SumPublicKey[:])
+	fmt.Println("===", len(sa.PrivateKeys), common.BytesToHexString(sa.SumPublicKey[:]))
+
+	var err error
+	sa.RedeemScript, err = contract.CreateSchnorrMultiSigRedeemScript(publicKey)
+	if err != nil {
+		fmt.Errorf("Create multisig redeem script failed, error %s", err.Error())
+	}
+	ct, err := contract.CreateSchnorrMultiSigContract(publicKey)
+	if err != nil {
+		fmt.Errorf("Create multi-sign contract failed, error %s", err.Error())
+	}
+	sa.ProgramHash = ct.ToProgramHash()
+	fmt.Println("===", common.BytesToHexString(sa.RedeemScript), sa.ProgramHash)
+	return sa
+}
+
 // Get account private key
+
 func (ac *Account) PrivKey() []byte {
 	return ac.PrivateKey
 }
 
 // Get account public key
+
 func (ac *Account) PubKey() *crypto.PublicKey {
 	return ac.PublicKey
 }
 
 // Sign data with account
+
 func (ac *Account) Sign(data []byte) ([]byte, error) {
 	return crypto.Sign(ac.PrivateKey, data)
 }
 
 // Convert account to JSON string
+
 func (ac *Account) ToJson() (string, error) {
 	pk, err := ac.PublicKey.EncodePoint(true)
 	if err != nil {
@@ -137,6 +186,7 @@ func (ac *Account) ToJson() (string, error) {
 }
 
 // Create account from JSON string
+
 func FromJson(data string) (*Account, error) {
 	var info AccountInfo
 	if err := json.Unmarshal([]byte(data), &info); err != nil {

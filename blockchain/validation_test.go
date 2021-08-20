@@ -735,8 +735,8 @@ func newSchnorrMultiAccount(num int, t *testing.T) *schnorAccount {
 		Pxs = append(Pxs, Px)
 		Pys = append(Pys, Py)
 	}
-	Px, Py := crypto.Curve.Add(Pxs[0], Pys[0], Pxs[1], Pys[1])
-	for i := 2; i < num; i++ {
+	Px, Py := new(big.Int), new(big.Int)
+	for i := 0; i < len(Pxs); i++ {
 		Px, Py = crypto.Curve.Add(Px, Py, Pxs[i], Pys[i])
 	}
 	copy(ma.sumPublicKey[:], crypto.Marshal(crypto.Curve, Px, Py))

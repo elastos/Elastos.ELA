@@ -317,7 +317,7 @@ func TestSchnorrRunProgramsOrigin(t *testing.T) {
 		programHash := c.ToProgramHash()
 		hashes = append(hashes, *programHash)
 		programs = append(programs, &program.Program{Code: redeemscript, Parameter: sig[:]})
-		err = RunPrograms(msg[:], hashes[0:1], programs)
+		err = RunPrograms(data, hashes[0:1], programs)
 		assert.NoError(t, err, "[RunProgram] passed with 1 checksig program")
 
 	})
@@ -553,7 +553,7 @@ func TestSchnorrRunPrograms(t *testing.T) {
 	init(schnorrAccountNum)
 
 	for index := 0; index < schnorrAccountNum; index++ {
-		err = RunPrograms(msg[:], hashes[index:index+1], programs[index:index+1])
+		err = RunPrograms(data, hashes[index:index+1], programs[index:index+1])
 		if err != nil {
 			fmt.Printf("AggregateSignatures index %d fail err %s \n", index, err.Error())
 		} else {
@@ -679,8 +679,8 @@ func TestSchnorrPxPyToPublic(t *testing.T) {
 	initialPublicKey, _ := nA.public.EncodePoint(true)
 	i := hex.EncodeToString(initialPublicKey)
 	Px, Py := crypto.Curve.ScalarBaseMult(nA.private)
-	comparePubKeys := crypto.Marshal(crypto.Curve, Px, Py)
-	c := hex.EncodeToString(comparePubKeys)
+	comparePubKey := crypto.Marshal(crypto.Curve, Px, Py)
+	c := hex.EncodeToString(comparePubKey)
 	if i != c {
 		t.Fatalf("[TestSchnorrPxPyToPublic] public key not equals")
 	}

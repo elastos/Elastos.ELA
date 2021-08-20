@@ -739,10 +739,8 @@ func newSchnorrMultiAccount(num int, t *testing.T) *schnorAccount {
 	for i := 0; i < len(Pxs); i++ {
 		Px, Py = crypto.Curve.Add(Px, Py, Pxs[i], Pys[i])
 	}
-	copy(ma.sumPublicKey[:], crypto.Marshal(crypto.Curve, Px, Py))
-
-	publicKey, _ := crypto.DecodePoint(ma.sumPublicKey[:])
-	var err error
+	sumPublicKey := crypto.Marshal(crypto.Curve, Px, Py)
+	publicKey, err := crypto.DecodePoint(sumPublicKey)
 	ma.redeemScript, err = contract.CreateSchnorrMultiSigRedeemScript(publicKey)
 	if err != nil {
 		t.Errorf("Create multisig redeem script failed, error %s", err.Error())

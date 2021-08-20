@@ -302,7 +302,7 @@ func signSchnorrTx(L *lua.LState) int {
 	if err := txn.SerializeUnsigned(buf); err != nil {
 		return -1
 	}
-	signature, err := crypto.AggregateSignatures(account.PrivateKeys, buf.Bytes())
+	signature, err := crypto.AggregateSignatures(account.PrivateKeys, common.Sha256D(buf.Bytes()))
 	if err != nil {
 		return -1
 	}

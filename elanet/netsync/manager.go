@@ -196,7 +196,6 @@ func (sm *SyncManager) startSync() {
 		sm.syncPeer = bestPeer
 		sm.syncHeight = bestPeer.Height()
 		sm.syncStartTime = time.Now()
-		log.Info("########### PushGetBlocksMsg 3:", locator)
 		bestPeer.PushGetBlocksMsg(locator, &zeroHash)
 	} else {
 		log.Warnf("No sync peer candidates available")
@@ -450,7 +449,6 @@ func (sm *SyncManager) handleBlockMsg(bmsg *blockMsg) {
 				sm.syncHeight = bmsg.block.Block.Height
 				sm.syncStartTime = time.Now()
 				log.Debug("Syncing blocks locator:", locator)
-				log.Info("###### PushGetBlocksMsgSyncing blocks locator:", locator, "height:", bmsg.block.Height)
 				peer.PushGetBlocksMsg(locator, orphanRoot)
 			}
 		}
@@ -598,7 +596,6 @@ func (sm *SyncManager) handleInvMsg(imsg *invMsg) {
 					sm.syncStartTime = time.Now()
 				}
 				if sm.syncPeer == peer {
-					log.Info("########### PushGetBlocksMsg 1:", locator)
 					peer.PushGetBlocksMsg(locator, orphanRoot)
 				}
 				continue
@@ -660,7 +657,6 @@ func (sm *SyncManager) handleInvMsg(imsg *invMsg) {
 
 	if len(gdmsg.InvList) > 1 {
 		locator := sm.chain.GetOrphanBlockLocator(invVects)
-		log.Info("########### PushGetBlocksMsg 2:", locator, "count:", len(gdmsg.InvList))
 		if err := peer.PushGetBlocksMsg(locator, &zeroHash); err != nil {
 			log.Info("PushGetBlocksMsg error:", err)
 		}

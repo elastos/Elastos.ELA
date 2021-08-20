@@ -30,8 +30,14 @@ func RunPrograms(data []byte, programHashes []common.Uint168, programs []*Progra
 
 		// TODO: this implementation will be deprecated
 		if prefixType == contract.PrefixCrossChain {
-			if err := checkCrossChainSignatures(*program, data); err != nil {
-				return err
+			if contract.IsSchnorr(program.Code) {
+				if ok, err := checkSchnorrSignatures(*program, common.Sha256D(data[:])); !ok {
+					return errors.New("check schnorr signature failed:" + err.Error())
+				}
+			} else {
+				if err := checkCrossChainSignatures(*program, data); err != nil {
+					return err
+				}
 			}
 			continue
 		}
@@ -45,12 +51,7 @@ func RunPrograms(data []byte, programHashes []common.Uint168, programs []*Progra
 
 		if prefixType == contract.PrefixStandard || prefixType == contract.PrefixDeposit {
 			if contract.IsSchnorr(program.Code) {
-				if len(data) != 32 {
-					return errors.New("schnorr verify data must be 32 bytes")
-				}
-				var bytes32 [32]byte
-				copy(bytes32[:], data[:])
-				if ok, err := checkSchnorrSignatures(*program, bytes32); !ok {
+				if ok, err := checkSchnorrSignatures(*program, common.Sha256D(data[:])); !ok {
 					return errors.New("check schnorr signature failed:" + err.Error())
 				}
 			} else {

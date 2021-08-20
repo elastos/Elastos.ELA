@@ -938,21 +938,21 @@ func (b *BlockChain) CheckTransactionPayload(txn interfaces.Transaction) error {
 func checkSchnorrWithdrawFromSidechain(txn interfaces.Transaction, pld *payload.WithdrawFromSideChain) error {
 	var pxArr []*big.Int
 	var pyArr []*big.Int
+	arbiters := DefaultLedger.Arbitrators.GetCrossChainArbiters()
+
 	for _, index := range pld.Signers {
-		arbiters := DefaultLedger.Arbitrators.GetCrossChainArbiters()
 		px, py := crypto.Unmarshal(crypto.Curve, arbiters[index].NodePublicKey)
 		pxArr = append(pxArr, px)
 		pyArr = append(pyArr, py)
 	}
-	Px, Py := crypto.Curve.Add(pxArr[0], pyArr[0], pxArr[1], pyArr[1])
-	for i := 2; i < len(pxArr); i++ {
+	Px, Py := new(big.Int), new(big.Int)
+	for i := 0; i < len(pxArr); i++ {
 		Px, Py = crypto.Curve.Add(Px, Py, pxArr[i], pyArr[i])
 	}
-	var sumPublicKey []byte
-	copy(sumPublicKey, crypto.Marshal(crypto.Curve, Px, Py))
+	sumPublicKey := crypto.Marshal(crypto.Curve, Px, Py)
 	publicKey, err := crypto.DecodePoint(sumPublicKey)
 	if err != nil {
-		return errors.New("Invalid schnorr public key")
+		return errors.New("Invalid schnorr public key" + err.Error())
 	}
 	redeemScript, err := contract.CreateSchnorrMultiSigRedeemScript(publicKey)
 	if err != nil {

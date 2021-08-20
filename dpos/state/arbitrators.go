@@ -1408,7 +1408,11 @@ func (a *Arbiters) GetCrossChainArbiters() []*ArbiterInfo {
 		return a.GetArbitrators()
 	}
 	if bestHeight < a.ChainParams.DPOSNodeCrossChainHeight {
-		return a.GetCRCArbiters()
+		crcArbiters := a.GetCRCArbiters()
+		sort.Slice(crcArbiters, func(i, j int) bool {
+			return bytes.Compare(crcArbiters[i].NodePublicKey, crcArbiters[j].NodePublicKey) < 0
+		})
+		return crcArbiters
 	}
 
 	return a.GetArbitrators()

@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/elastos/Elastos.ELA/elanet/filter/returnsidechaindepositcoinfilter"
 	"github.com/elastos/Elastos.ELA/elanet/filter/upgradefilter"
 	"sync/atomic"
 	"time"
@@ -118,6 +119,8 @@ func newServerPeer(s *server) *serverPeer {
 			return customidfilter.New()
 		case filter.FTUpgrade:
 			return upgradefilter.New()
+		case filter.FTReturnSidechainDepositCoinFilter:
+			return returnsidechaindepositcoinfilter.New()
 		}
 		return nil
 	})
@@ -724,6 +727,8 @@ func (s *server) pushMerkleBlockMsg(sp *serverPeer, hash *common.Uint256,
 			Confirm:     confirm,
 		}
 	case *nextturndposfilter.NextTurnDPOSInfoFilter:
+		merkle.Header = &blk.Header
+	case *returnsidechaindepositcoinfilter.ReturnSidechainDepositCoinFilter:
 		merkle.Header = &blk.Header
 	case *customidfilter.CustomIdFilter:
 		merkle.Header = &blk.Header

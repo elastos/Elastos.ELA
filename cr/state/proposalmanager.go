@@ -384,9 +384,13 @@ func (p *ProposalManager) dealProposal(proposalState *ProposalState, unusedAmoun
 		})
 	case payload.RegisterSideChain:
 		originRegisteredSideChainNames := p.RegisteredSideChainNames
+		originRegisteredMagicNumbers := p.RegisteredMagicNumbers
+		originRegisteredGenesisHash := p.RegisteredGenesisHashes
 		originRegisteredSideChainPayloadInfo := p.RegisteredSideChainPayloadInfo
 		p.history.Append(height, func() {
 			p.RegisteredSideChainNames = append(p.RegisteredSideChainNames, proposalState.Proposal.SideChainName)
+			p.RegisteredMagicNumbers = append(p.RegisteredMagicNumbers, proposalState.Proposal.MagicNumber)
+			p.RegisteredGenesisHashes = append(p.RegisteredGenesisHashes, proposalState.Proposal.GenesisHash)
 			if info, ok := p.RegisteredSideChainPayloadInfo[height]; ok {
 				info[proposalState.TxHash] = proposalState.Proposal.SideChainInfo
 			} else {
@@ -396,6 +400,8 @@ func (p *ProposalManager) dealProposal(proposalState *ProposalState, unusedAmoun
 			}
 		}, func() {
 			p.RegisteredSideChainNames = originRegisteredSideChainNames
+			p.RegisteredMagicNumbers = originRegisteredMagicNumbers
+			p.RegisteredGenesisHashes = originRegisteredGenesisHash
 			p.RegisteredSideChainPayloadInfo = originRegisteredSideChainPayloadInfo
 		})
 	}

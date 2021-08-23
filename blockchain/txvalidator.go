@@ -3183,6 +3183,18 @@ func (b *BlockChain) checkRegisterSideChainProposal(proposal *payload.CRCProposa
 		}
 	}
 
+	for _, mn := range b.crCommittee.GetProposalManager().RegisteredMagicNumbers {
+		if mn == proposal.MagicNumber {
+			return errors.New("MagicNumber already registered")
+		}
+	}
+
+	for _, gene := range b.crCommittee.GetProposalManager().RegisteredGenesisHashes {
+		if gene.IsEqual(proposal.GenesisHash) {
+			return errors.New("Genesis Hash already registered")
+		}
+	}
+
 	if len(proposal.DNSSeeds) == 0 {
 		return errors.New("DNSSeeds can not be blank")
 	}

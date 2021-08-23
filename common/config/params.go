@@ -254,6 +254,7 @@ var DefaultParams = Params{
 	SmallCrossTransferThreshold:        100000000, //TODO reset latter
 	ReturnDepositCoinFee:               100,       //TODO reset latter
 	NewCrossChainStartHeight:           2000000,   // todo complete me
+	ReturnCrossChainCoinStartHeight:    2000000,   // todo complete me
 }
 
 // TestNet returns the network parameters for the test network.
@@ -345,6 +346,7 @@ func (p *Params) TestNet() *Params {
 	copy.SmallCrossTransferThreshold = 100000000 //TODO reset latter
 	copy.ReturnDepositCoinFee = 100              //TODO reset latter
 	copy.NewCrossChainStartHeight = 2000000      // todo complete me
+	copy.ReturnCrossChainCoinStartHeight = 2000000 // todo complete me
 
 	return &copy
 }
@@ -439,6 +441,7 @@ func (p *Params) RegNet() *Params {
 	copy.SmallCrossTransferThreshold = 100000000 //TODO reset latter
 	copy.ReturnDepositCoinFee = 100              //TODO reset latter
 	copy.NewCrossChainStartHeight = 2000000      // todo complete me
+	copy.ReturnCrossChainCoinStartHeight = 2000000 // todo complete me
 
 	return &copy
 }
@@ -773,6 +776,10 @@ type Params struct {
 
 	// ReturnDepositCoinFee indicates the fee the
 	ReturnDepositCoinFee common.Fixed64
+
+	// ReturnCrossChainCoinStartHeight indeicates the start height of
+	// ReturnCroossChainDepositCoin transaction
+	ReturnCrossChainCoinStartHeight uint32
 }
 
 // rewardPerBlock calculates the reward for each block by a specified time

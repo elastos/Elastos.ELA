@@ -247,6 +247,11 @@ type ProposalKeyFrame struct {
 	ReceivedCustomIDLists      [][]string
 	// registered side chain name
 	RegisteredSideChainNames []string
+	// magic numbers
+	RegisteredMagicNumbers []uint32
+	// magic numbers
+	RegisteredGenesisHashes []common.Uint256
+
 	// store register info with the approved height
 	RegisteredSideChainPayloadInfo map[uint32]map[common.Uint256]payload.SideChainInfo
 }

@@ -50,7 +50,7 @@ func (f *UpgradeFilter) MatchUnconfirmed(tx *types.Transaction) bool {
 	return f.TxFilter.MatchUnconfirmed(tx)
 }
 
-// New returns a new NextTurnDPOSInfoFilter instance.
+// New returns a new UpgradeFilter instance.
 func New() *UpgradeFilter {
 	return &UpgradeFilter{}
 }

@@ -49,7 +49,7 @@ func (f *CustomIdFilter) MatchUnconfirmed(tx *types.Transaction) bool {
 	return f.TxFilter.MatchUnconfirmed(tx)
 }
 
-// New returns a new NextTurnDPOSInfoFilter instance.
+// New returns a new CustomIdFilter instance.
 func New() *CustomIdFilter {
 	return &CustomIdFilter{}
 }

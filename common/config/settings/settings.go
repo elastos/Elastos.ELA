@@ -1040,6 +1040,13 @@ func NewSettings() *Settings {
 		DefaultValue: uint32(0),
 		ConfigPath:   "NewCrossChainStartHeight",
 		ParamName:    "NewCrossChainStartHeight"})
+
+	result.Add(&settingItem{
+		Flag:         cmdcom.ReturnCrossChainCoinStartHeightFlag,
+		DefaultValue: uint32(0),
+		ConfigPath:   "ReturnCrossChainCoinStartHeight",
+		ParamName:    "ReturnCrossChainCoinStartHeight"})
+
 	return result
 }
 

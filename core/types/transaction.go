@@ -146,6 +146,8 @@ func (self TxType) Name() string {
 		return "RevertToPOW"
 	case RevertToDPOS:
 		return "RevertToDPOS"
+	case ReturnSideChainDepositCoin:
+		return "ReturnSideChainDepositCoin"
 	default:
 		return "Unknown"
 	}

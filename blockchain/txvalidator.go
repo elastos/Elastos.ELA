@@ -1350,6 +1350,11 @@ func (b *BlockChain) checkTxHeightVersion(txn *Transaction, blockHeight uint32) 
 					"TransferCrossChainAsset payload version V0 after NewCrossChainStartHeight")
 			}
 		}
+	case ReturnSideChainDepositCoin:
+		if blockHeight < b.chainParams.ReturnCrossChainCoinStartHeight {
+			return errors.New(fmt.Sprintf("not support %s transaction "+
+				"before ReturnCrossChainCoinStartHeight", txn.TxType.Name()))
+		}
 	}
 
 	return nil

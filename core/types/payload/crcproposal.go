@@ -299,6 +299,9 @@ type SideChainInfo struct {
 
 	// Genesis block difficulty of side chain
 	GenesisBlockDifficulty string
+
+	// 1 ELA on main chain equals to how many coin on side chain
+	ExchangeRate common.Fixed64
 }
 
 func (sc *SideChainInfo) Serialize(w io.Writer) error {
@@ -332,7 +335,11 @@ func (sc *SideChainInfo) Serialize(w io.Writer) error {
 	}
 
 	if err := common.WriteVarString(w, sc.GenesisBlockDifficulty); err != nil {
-		return errors.New("failed to serialize GenesisTimestamp")
+		return errors.New("failed to serialize GenesisBlockDifficulty")
+	}
+
+	if err := sc.ExchangeRate.Serialize(w); err != nil {
+		return errors.New("failed to serialize ExchangeRate")
 	}
 
 	return nil
@@ -375,12 +382,17 @@ func (sc *SideChainInfo) Deserialize(r io.Reader) error {
 
 	sc.GenesisTimestamp, err = common.ReadUint32(r)
 	if err != nil {
-		return errors.New("[CRCProposal], NodePort deserialize failed")
+		return errors.New("[CRCProposal], GenesisTimestamp deserialize failed")
 	}
 
 	sc.GenesisBlockDifficulty, err = common.ReadVarString(r)
 	if err != nil {
 		return errors.New("[CRCProposal], GenesisBlockDifficulty deserialize failed")
+	}
+
+	err = sc.ExchangeRate.Deserialize(r)
+	if err != nil {
+		return errors.New("[CRCProposal], ExchangeRate deserialize failed")
 	}
 
 	return nil

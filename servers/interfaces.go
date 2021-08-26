@@ -1040,6 +1040,7 @@ func Getallregistertransactions(param Params) map[string]interface{} {
 				GenesisHash:            common.ToReversedString(v1.GenesisHash),
 				GenesisTimestamp:       v1.GenesisTimestamp,
 				GenesisBlockDifficulty: v1.GenesisBlockDifficulty,
+				ExchangeRate:           v1.ExchangeRate,
 				TxHash:                 common.ToReversedString(k1),
 				Height:                 k,
 			})
@@ -1065,6 +1066,7 @@ func Getregistertransactionsbyheight(param Params) map[string]interface{} {
 			GenesisHash:            common.ToReversedString(v.GenesisHash),
 			GenesisTimestamp:       v.GenesisTimestamp,
 			GenesisBlockDifficulty: v.GenesisBlockDifficulty,
+			ExchangeRate:           v.ExchangeRate,
 			TxHash:                 common.ToReversedString(k),
 			Height:                 height,
 		})
@@ -2842,6 +2844,7 @@ func getPayloadInfo(p Payload, payloadVersion byte) PayloadInfo {
 			obj.GenesisHash = common.ToReversedString(object.GenesisHash)
 			obj.GenesisTimestamp = object.GenesisTimestamp
 			obj.GenesisBlockDifficulty = object.GenesisBlockDifficulty
+			obj.ExchangeRate = object.ExchangeRate
 			obj.Signature = common.BytesToHexString(object.Signature)
 			crmdid, _ := object.CRCouncilMemberDID.ToAddress()
 			obj.CRCouncilMemberDID = crmdid

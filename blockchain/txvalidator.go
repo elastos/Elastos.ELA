@@ -3214,6 +3214,10 @@ func (b *BlockChain) checkRegisterSideChainProposal(proposal *payload.CRCProposa
 		return errors.New("GenesisBlockDifficulty can not be blank")
 	}
 
+	if proposal.ExchangeRate == 0 {
+		return errors.New("ExchangeRate can not be 0")
+	}
+
 	if _, err := strconv.Atoi(proposal.GenesisBlockDifficulty); err != nil {
 		return errors.New("GenesisBlockDifficulty value is not valid")
 	}

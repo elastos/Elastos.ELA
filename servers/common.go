@@ -47,7 +47,7 @@ type CrossChainOutputInfo struct {
 }
 
 type WithdrawInfo struct {
-	Version                  byte `json:"Version"`
+	Version                  byte   `json:"Version"`
 	GenesisBlockAddress      string `json:"GenesisBlockAddress"`
 	SideChainTransactionHash string `json:"SideChainTransactionHash"`
 	TargetData               string `json:"TargetData"`
@@ -375,6 +375,7 @@ type CRCRegisterSideChainProposalInfo struct {
 	GenesisHash              string   `json:"genesishash"`
 	GenesisTimestamp         uint32   `json:"genesistimestamp"`
 	GenesisBlockDifficulty   string   `json:"genesisblockdifficulty"`
+	ExchangeRate             common.Fixed64  `json:"exchangerate"`
 	Signature                string   `json:"signature"`
 	CRCouncilMemberDID       string   `json:"crcouncilmemberdid"`
 	CRCouncilMemberSignature string   `json:"crcouncilmembersignature"`
@@ -520,6 +521,7 @@ type RsInfo struct {
 	GenesisHash            string   `json:"genesishash"`
 	GenesisTimestamp       uint32   `json:"genesistimestamp"`
 	GenesisBlockDifficulty string   `json:"genesisblockdifficulty"`
+	ExchangeRate           common.Fixed64  `json:"exchangerate"`
 	TxHash                 string   `json:"txhash"`
 	Height                 uint32   `json:"height"`
 }

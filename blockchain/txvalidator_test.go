@@ -1846,6 +1846,7 @@ func (s *txValidatorTestSuite) getCRCRegisterSideChainProposalTx(publicKeyStr, p
 			GenesisHash:            *randomUint256(),
 			GenesisTimestamp:       1513936800,
 			GenesisBlockDifficulty: "575",
+			ExchangeRate:           100000000,
 		},
 	}
 
@@ -3204,6 +3205,7 @@ func (s *txValidatorTestSuite) TestCheckCRCProposalRegisterSideChainTransaction(
 		txn := s.getCRCRegisterSideChainProposalTx(publicKeyStr2, privateKeyStr2, publicKeyStr1, privateKeyStr1)
 		payload, _ := txn.Payload.(*payload.CRCProposal)
 		payload.GenesisBlockDifficulty = ""
+		payload.ExchangeRate = 100000000
 		err := s.Chain.checkCRCProposalTransaction(txn, tenureHeight, 0)
 		s.EqualError(err, "GenesisBlockDifficulty can not be blank")
 	}

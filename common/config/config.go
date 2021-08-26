@@ -71,8 +71,6 @@ type Configuration struct {
 	MaxBlockSize                    uint32            `json:"MaxBlockSize"`
 	MaxBlockHeaderSize              uint32            `json:"MaxBlockHeaderSize"`
 	MaxTxPerBlock                   uint32            `json:"MaxTxPerBlock"`
-	EnableHistory                   bool              `json:"EnableHistory"`
-	HistoryStartHeight              uint32            `json:"HistoryStartHeight"`
 	EnableUtxoDB                    bool              `json:"EnableUtxoDB"`
 	EnableCORS                      bool              `json:"EnableCORS"`
 	WalletPath                      string            `json:"WalletPath"`

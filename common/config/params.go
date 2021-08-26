@@ -223,7 +223,7 @@ var DefaultParams = Params{
 	NodeProfileStrategy:         Balanced.String(),
 	MaxNodePerHost:              10,
 	CkpManager: checkpoint.NewManager(&checkpoint.Config{
-		EnableHistory:      false,
+		EnableHistory:      true,
 		HistoryStartHeight: uint32(0),
 		NeedSave:           true,
 	}),
@@ -340,12 +340,12 @@ func (p *Params) TestNet() *Params {
 	copy.RevertToPOWNoBlockTime = 12 * 3600
 	copy.StopConfirmBlockTime = 11 * 3600
 	copy.RevertToPOWStartHeight = 815060
-	copy.HalvingRewardHeight = 877880            //767000 + 154 * 720
-	copy.HalvingRewardInterval = 1051200         //4 * 365 * 720
-	copy.NewELAIssuanceHeight = 774920           //767000 + 720 * 11
-	copy.SmallCrossTransferThreshold = 100000000 //TODO reset latter
-	copy.ReturnDepositCoinFee = 100              //TODO reset latter
-	copy.NewCrossChainStartHeight = 2000000      // todo complete me
+	copy.HalvingRewardHeight = 877880              //767000 + 154 * 720
+	copy.HalvingRewardInterval = 1051200           //4 * 365 * 720
+	copy.NewELAIssuanceHeight = 774920             //767000 + 720 * 11
+	copy.SmallCrossTransferThreshold = 100000000   //TODO reset latter
+	copy.ReturnDepositCoinFee = 100                //TODO reset latter
+	copy.NewCrossChainStartHeight = 2000000        // todo complete me
 	copy.ReturnCrossChainCoinStartHeight = 2000000 // todo complete me
 
 	return &copy
@@ -435,12 +435,12 @@ func (p *Params) RegNet() *Params {
 	copy.RevertToPOWNoBlockTime = 12 * 3600
 	copy.StopConfirmBlockTime = 11 * 3600
 	copy.RevertToPOWStartHeight = 706240
-	copy.HalvingRewardHeight = 801240            //690360 + 154 * 720
-	copy.HalvingRewardInterval = 1051200         //4 * 365 * 720
-	copy.NewELAIssuanceHeight = 691740           //690300 + 720 * 2
-	copy.SmallCrossTransferThreshold = 100000000 //TODO reset latter
-	copy.ReturnDepositCoinFee = 100              //TODO reset latter
-	copy.NewCrossChainStartHeight = 2000000      // todo complete me
+	copy.HalvingRewardHeight = 801240              //690360 + 154 * 720
+	copy.HalvingRewardInterval = 1051200           //4 * 365 * 720
+	copy.NewELAIssuanceHeight = 691740             //690300 + 720 * 2
+	copy.SmallCrossTransferThreshold = 100000000   //TODO reset latter
+	copy.ReturnDepositCoinFee = 100                //TODO reset latter
+	copy.NewCrossChainStartHeight = 2000000        // todo complete me
 	copy.ReturnCrossChainCoinStartHeight = 2000000 // todo complete me
 
 	return &copy

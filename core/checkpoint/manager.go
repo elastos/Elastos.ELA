@@ -337,6 +337,7 @@ func (m *Manager) onBlockSaved(block *types.DposBlock,
 			(v.Key() != dposCheckpointKey && block.Height ==
 				originalHeight+v.EffectivePeriod() ||
 				v.Key() == dposCheckpointKey && useCheckPoint) {
+
 			reply := make(chan bool, 1)
 			m.channels[v.Key()].Replace(v, reply, originalHeight)
 			if !async {

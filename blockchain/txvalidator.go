@@ -1386,6 +1386,11 @@ func (b *BlockChain) checkTxHeightVersion(txn *Transaction, blockHeight uint32) 
 					"TransferCrossChainAsset payload version V0 after NewCrossChainStartHeight")
 			}
 		}
+	case ReturnSideChainDepositCoin:
+		if blockHeight < b.chainParams.ReturnCrossChainCoinStartHeight {
+			return errors.New(fmt.Sprintf("not support %s transaction "+
+				"before ReturnCrossChainCoinStartHeight", txn.TxType.Name()))
+		}
 	}
 
 	return nil
@@ -3240,6 +3245,18 @@ func (b *BlockChain) checkRegisterSideChainProposal(proposal *payload.CRCProposa
 		}
 	}
 
+	for _, mn := range b.crCommittee.GetProposalManager().RegisteredMagicNumbers {
+		if mn == proposal.MagicNumber {
+			return errors.New("MagicNumber already registered")
+		}
+	}
+
+	for _, gene := range b.crCommittee.GetProposalManager().RegisteredGenesisHashes {
+		if gene.IsEqual(proposal.GenesisHash) {
+			return errors.New("Genesis Hash already registered")
+		}
+	}
+
 	if len(proposal.DNSSeeds) == 0 {
 		return errors.New("DNSSeeds can not be blank")
 	}
@@ -3257,6 +3274,10 @@ func (b *BlockChain) checkRegisterSideChainProposal(proposal *payload.CRCProposa
 
 	if proposal.GenesisBlockDifficulty == "" {
 		return errors.New("GenesisBlockDifficulty can not be blank")
+	}
+
+	if proposal.ExchangeRate == 0 {
+		return errors.New("ExchangeRate can not be 0")
 	}
 
 	if _, err := strconv.Atoi(proposal.GenesisBlockDifficulty); err != nil {

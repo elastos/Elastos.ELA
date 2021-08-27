@@ -501,13 +501,18 @@ var (
 	}
 
 	ReturnDepositCoinFeeFlag = cli.StringFlag{
-		Name:  "ReturnDepositCoinFee",
+		Name:  "returndepositcoinfee",
 		Usage: "defines the fee of return cross chain deposit coin",
 	}
 
 	NewCrossChainStartHeightFlag = cli.StringFlag{
-		Name:  "NewCrossChainStartHeight",
+		Name:  "newcrosschainstartheight",
 		Usage: "defines the height to only support TransferCrossChainAsset v1",
+	}
+
+	ReturnCrossChainCoinStartHeightFlag = cli.StringFlag{
+		Name:  "returncrosschaincoinstartheight",
+		Usage: "defines the start height to support ReturnCrossChainDepositCoin transaction",
 	}
 )
 

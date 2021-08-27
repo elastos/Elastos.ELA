@@ -247,6 +247,11 @@ type ProposalKeyFrame struct {
 	ReceivedCustomIDLists      [][]string
 	// registered side chain name
 	RegisteredSideChainNames []string
+	// magic numbers
+	RegisteredMagicNumbers []uint32
+	// genesis hashes
+	RegisteredGenesisHashes []common.Uint256
+
 	// store register info with the approved height
 	RegisteredSideChainPayloadInfo map[uint32]map[common.Uint256]payload.SideChainInfo
 }
@@ -1146,6 +1151,36 @@ func (p *ProposalKeyFrame) Serialize(w io.Writer) (err error) {
 	if err = p.serializeWithdrawableTransactionsMap(p.WithdrawableTxInfo, w); err != nil {
 		return
 	}
+
+	if err = common.WriteVarUint(w, uint64(len(p.RegisteredSideChainNames))); err != nil {
+		return
+	}
+	for _, name := range p.RegisteredSideChainNames {
+		err = common.WriteVarString(w, name)
+		if err != nil {
+			return
+		}
+	}
+
+	if err = common.WriteVarUint(w, uint64(len(p.RegisteredMagicNumbers))); err != nil {
+		return
+	}
+	for _, magic := range p.RegisteredMagicNumbers {
+		err = common.WriteUint32(w, magic)
+		if err != nil {
+			return
+		}
+	}
+
+	if err = common.WriteVarUint(w, uint64(len(p.RegisteredGenesisHashes))); err != nil {
+		return
+	}
+	for _, hash := range p.RegisteredGenesisHashes {
+		err = hash.Serialize(w)
+		if err != nil {
+			return
+		}
+	}
 	return
 }
 
@@ -1252,6 +1287,45 @@ func (p *ProposalKeyFrame) Deserialize(r io.Reader) (err error) {
 	}
 	if p.WithdrawableTxInfo, err = p.deserializeWithdrawableTransactionsMap(r); err != nil {
 		return
+	}
+
+	if count, err = common.ReadVarUint(r, 0); err != nil {
+		return
+	}
+
+	for i := uint64(0); i < count; i++ {
+		var name string
+		name, err = common.ReadVarString(r)
+		p.RegisteredSideChainNames = append(p.RegisteredSideChainNames, name)
+		if err != nil {
+			return
+		}
+	}
+
+	if count, err = common.ReadVarUint(r, 0); err != nil {
+		return
+	}
+
+	for i := uint64(0); i < count; i++ {
+		var magic uint32
+		magic, err = common.ReadUint32(r)
+		p.RegisteredMagicNumbers = append(p.RegisteredMagicNumbers, magic)
+		if err != nil {
+			return
+		}
+	}
+
+	if count, err = common.ReadVarUint(r, 0); err != nil {
+		return
+	}
+
+	for i := uint64(0); i < count; i++ {
+		var h common.Uint256
+		err = h.Deserialize(r)
+		if err != nil {
+			return err
+		}
+		p.RegisteredGenesisHashes = append(p.RegisteredGenesisHashes, h)
 	}
 	return
 }
@@ -1374,6 +1448,7 @@ func (p *ProposalKeyFrame) Snapshot() *ProposalKeyFrame {
 }
 
 func NewProposalKeyFrame() *ProposalKeyFrame {
+	genesisHash, _ := common.Uint256FromHexString("2ce99b16ab5ad0e2027709ad61520fa07017ee639b49154bdee3bec8fadb0d2c")
 	return &ProposalKeyFrame{
 		Proposals:                      make(map[common.Uint256]*ProposalState),
 		ProposalHashes:                 make(map[common.Uint168]ProposalHashSet),
@@ -1381,6 +1456,9 @@ func NewProposalKeyFrame() *ProposalKeyFrame {
 		WithdrawableTxInfo:             make(map[common.Uint256]types.OutputInfo),
 		PendingReceivedCustomIDMap:     make(map[string]struct{}),
 		RegisteredSideChainPayloadInfo: make(map[uint32]map[common.Uint256]payload.SideChainInfo),
+		RegisteredSideChainNames:       []string{"ID"},
+		RegisteredMagicNumbers:         []uint32{2018201},
+		RegisteredGenesisHashes:        []common.Uint256{*genesisHash},
 	}
 }
 

@@ -36,6 +36,7 @@ local nodePort = getNodePort()
 local genesisHash = getGenesisHash()
 local genesisTimestamp = getGenesisTimestamp()
 local genesisBlockDifficulty = getGenesisBlockDifficulty()
+local exchangeRate = getExchangeRate()
 local draft_hash = getDraftHash()
 
 if fee == 0
@@ -82,6 +83,11 @@ if genesisBlockDifficulty == "" then
     return
 end
 
+if exchangeRate == "" then
+    print("exchangeRate is nil, should use --exchangerate to set it.")
+    return
+end
+
 if draftHash == "" then
     print("draftHash is nil, should use --drafthash to set it.")
     return
@@ -97,9 +103,10 @@ print("nodePort:", nodePort)
 print("genesisHash:", genesisHash)
 print("genesisTimestamp:", genesisTimestamp)
 print("genesisBlockDifficulty:", genesisBlockDifficulty)
+print("exchangeRate:", exchangeRate)
 
 
-local cp_payload =crcregistersidechainproposal.new(cr_pubkey, proposal_type,sideChainName,magicNumber,dnsSeeds,nodePort,genesisHash,genesisTimestamp,genesisBlockDifficulty,draft_hash, wallet)
+local cp_payload =crcregistersidechainproposal.new(cr_pubkey, proposal_type,sideChainName,magicNumber,dnsSeeds,nodePort,genesisHash,genesisTimestamp,genesisBlockDifficulty,exchangeRate, draft_hash, wallet)
 print(cp_payload:get())
 
 -- transaction: version, txType, payloadVersion, payload, locktime

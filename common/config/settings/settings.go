@@ -20,7 +20,6 @@ import (
 	cmdcom "github.com/elastos/Elastos.ELA/cmd/common"
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
-	"github.com/elastos/Elastos.ELA/core/checkpoint"
 	"github.com/elastos/Elastos.ELA/elanet/pact"
 	"github.com/elastos/Elastos.ELA/utils/elalog"
 	"github.com/elastos/Elastos.ELA/utils/gpath"
@@ -550,30 +549,6 @@ func NewSettings() *Settings {
 		ConfigPath:   "EnableActivateIllegalHeight",
 		ParamName:    "EnableActivateIllegalHeight"})
 
-	ckpManagerSetter := func(path string, params *config.Params,
-		conf *config.Configuration) error {
-		params.CkpManager = checkpoint.NewManager(&checkpoint.Config{
-			EnableHistory:      conf.EnableHistory,
-			HistoryStartHeight: conf.HistoryStartHeight,
-			NeedSave:           false,
-		})
-		return nil
-	}
-
-	result.Add(&settingItem{
-		Flag:         nil,
-		DefaultValue: false,
-		ConfigSetter: ckpManagerSetter,
-		ConfigPath:   "EnableHistory",
-		ParamName:    ""})
-
-	result.Add(&settingItem{
-		Flag:         nil,
-		DefaultValue: uint32(0),
-		ConfigSetter: ckpManagerSetter,
-		ConfigPath:   "HistoryStartHeight",
-		ParamName:    ""})
-
 	result.Add(&settingItem{
 		Flag:         nil,
 		DefaultValue: false,
@@ -1040,6 +1015,13 @@ func NewSettings() *Settings {
 		DefaultValue: uint32(0),
 		ConfigPath:   "NewCrossChainStartHeight",
 		ParamName:    "NewCrossChainStartHeight"})
+
+	result.Add(&settingItem{
+		Flag:         cmdcom.ReturnCrossChainCoinStartHeightFlag,
+		DefaultValue: uint32(0),
+		ConfigPath:   "ReturnCrossChainCoinStartHeight",
+		ParamName:    "ReturnCrossChainCoinStartHeight"})
+
 	return result
 }
 

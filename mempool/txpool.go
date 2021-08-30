@@ -81,17 +81,6 @@ func (mp *TxPool) appendToTxPool(tx *Transaction) elaerr.ELAError {
 	chain := blockchain.DefaultLedger.Blockchain
 	bestHeight := chain.GetHeight()
 
-	if bestHeight > mp.chainParams.NewCrossChainStartHeight &&
-		tx.IsTransferCrossChainAssetTx() &&
-		tx.IsSmallTransfer(mp.chainParams.SmallCrossTransferThreshold) {
-		err := blockchain.DefaultLedger.Store.SaveSmallCrossTransferTx(tx)
-		if err != nil {
-			log.Warnf("failed to save small cross chain transaction %s", tx.Hash())
-			return elaerr.Simple(elaerr.ErrTxValidation, nil)
-		}
-		mp.crossChainHeightList[tx.Hash()] = bestHeight
-	}
-
 	// Don't accept the transaction if it already exists in the pool.  This
 	// applies to orphan transactions as well.  This check is intended to
 	// be a quick check to weed out duplicates.
@@ -132,6 +121,17 @@ func (mp *TxPool) appendToTxPool(tx *Transaction) elaerr.ELAError {
 	if err := mp.doAddTransaction(tx); err != nil {
 		mp.removeTx(tx)
 		return err
+	}
+
+	if bestHeight > mp.chainParams.NewCrossChainStartHeight &&
+		tx.IsTransferCrossChainAssetTx() &&
+		tx.IsSmallTransfer(mp.chainParams.SmallCrossTransferThreshold) {
+		err := blockchain.DefaultLedger.Store.SaveSmallCrossTransferTx(tx)
+		if err != nil {
+			log.Warnf("failed to save small cross chain transaction %s", tx.Hash())
+			return elaerr.Simple(elaerr.ErrTxValidation, nil)
+		}
+		mp.crossChainHeightList[tx.Hash()] = bestHeight
 	}
 	//log.Infof("endAppendToTxPool:  Hash: %s, %d", tx.Hash(), tx.TxType)
 	return nil

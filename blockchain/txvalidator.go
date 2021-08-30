@@ -1338,7 +1338,7 @@ func (b *BlockChain) checkTxHeightVersion(txn *Transaction, blockHeight uint32) 
 			}
 		}
 	case TransferCrossChainAsset:
-		if blockHeight < b.chainParams.NewCrossChainStartHeight {
+		if blockHeight <= b.chainParams.NewCrossChainStartHeight {
 			if txn.PayloadVersion != payload.TransferCrossChainVersion {
 				return errors.New("not support " +
 					"TransferCrossChainAsset payload version V1 before NewCrossChainStartHeight")

@@ -31,12 +31,11 @@ local cr_pubkey = getPublicKey()
 local proposal_type = 0x0410
 local sideChainName = getSideChainName()
 local magicNumber = getMagicNumber()
-local dnsSeeds = getDNSSeeds()
 local nodePort = getNodePort()
 local genesisHash = getGenesisHash()
-local genesisTimestamp = getGenesisTimestamp()
-local genesisBlockDifficulty = getGenesisBlockDifficulty()
 local exchangeRate = getExchangeRate()
+local effectiveHeight = getEffectiveHeight()
+local resourcePath = getResourcePath()
 local draft_hash = getDraftHash()
 
 if fee == 0
@@ -58,11 +57,6 @@ if magicNumber == 0 then
     return
 end
 
-if dnsSeeds == "" then
-    print("dnsSeeds is nil, should use --dnsseeds to set it.")
-    return
-end
-
 if nodePort == "" then
     print("nodePort is nil, should use --nodeport to set it.")
     return
@@ -73,18 +67,18 @@ if genesisHash == "" then
     return
 end
 
-if genesisTimestamp == 0 then
-    print("genesisTimestamp is 0, should use --genesistimestamp to set it.")
-    return
-end
-
-if genesisBlockDifficulty == "" then
-    print("genesisBlockDifficulty is nil, should use --genesisblockdifficulty to set it.")
-    return
-end
-
 if exchangeRate == "" then
     print("exchangeRate is nil, should use --exchangerate to set it.")
+    return
+end
+
+if effectiveHeight == 0 then
+    print("effectiveHeight is nil, should use --effectiveheight to set it.")
+    return
+end
+
+if resourcePath == "" then
+    print("resourcePath is nil, should use --resourcepath to set it.")
     return
 end
 
@@ -98,15 +92,14 @@ print("public key:", cr_pubkey)
 print("proposal type:", proposal_type)
 print("sideChainName:", sideChainName)
 print("magicNumber:", magicNumber)
-print("dnsSeeds:", dnsSeeds)
 print("nodePort:", nodePort)
 print("genesisHash:", genesisHash)
-print("genesisTimestamp:", genesisTimestamp)
-print("genesisBlockDifficulty:", genesisBlockDifficulty)
 print("exchangeRate:", exchangeRate)
+print("effectiveHeight:", effectiveHeight)
+print("resourcePath:", resourcePath)
 
 
-local cp_payload =crcregistersidechainproposal.new(cr_pubkey, proposal_type,sideChainName,magicNumber,dnsSeeds,nodePort,genesisHash,genesisTimestamp,genesisBlockDifficulty,exchangeRate, draft_hash, wallet)
+local cp_payload =crcregistersidechainproposal.new(cr_pubkey, proposal_type,sideChainName,magicNumber,nodePort,genesisHash,exchangeRate,effectiveHeight, resourcePath,draft_hash, wallet)
 print(cp_payload:get())
 
 -- transaction: version, txType, payloadVersion, payload, locktime

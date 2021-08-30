@@ -10,10 +10,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"math"
-	"sort"
-	"strconv"
-
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/common/log"
@@ -30,6 +26,8 @@ import (
 	elaerr "github.com/elastos/Elastos.ELA/errors"
 	"github.com/elastos/Elastos.ELA/utils"
 	"github.com/elastos/Elastos.ELA/vm"
+	"math"
+	"sort"
 )
 
 const (
@@ -3194,20 +3192,12 @@ func (b *BlockChain) checkRegisterSideChainProposal(proposal *payload.CRCProposa
 		}
 	}
 
-	if proposal.GenesisBlockDifficulty == "" {
-		return errors.New("GenesisBlockDifficulty can not be blank")
-	}
-
 	if proposal.ExchangeRate == 0 {
 		return errors.New("ExchangeRate can not be 0")
 	}
 
 	if proposal.EffectiveHeight < b.GetHeight() {
 		return errors.New("EffectiveHeight must be bigger than current height")
-	}
-
-	if _, err := strconv.Atoi(proposal.GenesisBlockDifficulty); err != nil {
-		return errors.New("GenesisBlockDifficulty value is not valid")
 	}
 
 	if proposal.GenesisHash == common.EmptyHash {

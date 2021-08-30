@@ -82,6 +82,8 @@ func registerParams(c *cli.Context, L *lua.LState) {
 	genesisTimestamp := c.Int64("genesistimestamp")
 	genesisBlockDifficulty := c.String("genesisblockdifficulty")
 	exchangeRate := c.String("exchangerate")
+	effectiveHeight := c.Int64("effectiveheight")
+	resourcePath := c.String("resourcepath")
 
 	getWallet := func(L *lua.LState) int {
 		L.Push(lua.LString(wallet))
@@ -349,6 +351,16 @@ func registerParams(c *cli.Context, L *lua.LState) {
 		return 1
 	}
 
+	getEffectiveHeight := func(L *lua.LState) int {
+		L.Push(lua.LString(effectiveHeight))
+		return 1
+	}
+
+	getResourcePath := func(L *lua.LState) int {
+		L.Push(lua.LString(resourcePath))
+		return 1
+	}
+
 	L.Register("getWallet", getWallet)
 	L.Register("getPassword", getPassword)
 	L.Register("getDepositAddr", getDepositAddr)
@@ -413,6 +425,8 @@ func registerParams(c *cli.Context, L *lua.LState) {
 	L.Register("getGenesisTimestamp", getGenesisTimestamp)
 	L.Register("getGenesisBlockDifficulty", getGenesisBlockDifficulty)
 	L.Register("getExchangeRate", getExchangeRate)
+	L.Register("getEffectiveHeight", getEffectiveHeight)
+	L.Register("getResourcePath", getResourcePath)
 }
 
 func scriptAction(c *cli.Context) error {

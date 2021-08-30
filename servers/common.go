@@ -372,9 +372,9 @@ type CRCRegisterSideChainProposalInfo struct {
 	MagicNumber              uint32         `json:"magicnumber"`
 	NodePort                 uint16         `json:"nodeport"`
 	GenesisHash              string         `json:"genesishash"`
-	GenesisBlockDifficulty   string         `json:"genesisblockdifficulty"`
 	ExchangeRate             common.Fixed64 `json:"exchangerate"`
 	EffectiveHeight          uint32         `json:"effectiveheight"`
+	ResourcePath             string         `json:"resourcepath"`
 	Signature                string         `json:"signature"`
 	CRCouncilMemberDID       string         `json:"crcouncilmemberdid"`
 	CRCouncilMemberSignature string         `json:"crcouncilmembersignature"`
@@ -517,8 +517,8 @@ type RsInfo struct {
 	MagicNumber            uint32         `json:"magicnumber"`
 	NodePort               uint16         `json:"nodeport"`
 	GenesisHash            string         `json:"genesishash"`
-	GenesisBlockDifficulty string         `json:"genesisblockdifficulty"`
 	ExchangeRate           common.Fixed64 `json:"exchangerate"`
+	ResourcePath           string         `json:"resourcepath"`
 	TxHash                 string         `json:"txhash"`
 	Height                 uint32         `json:"height"`
 	EffectiveHeight        uint32         `json:"effectiveheight"`

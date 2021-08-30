@@ -1410,12 +1410,11 @@ func newCRCRegisterSideChainProposalHash(L *lua.LState) int {
 	proposalType := L.ToInt64(2)
 	sideChainName := L.ToString(3)
 	magicNumber := L.ToInt64(4)
-	dNSSeeds := L.ToString(5)
 	nodePort := L.ToInt64(6)
 	genesisHashStr := L.ToString(7)
-	genesisTimestamp := L.ToInt64(8)
 	genesisBlockDifficulty := L.ToString(9)
 	exchangeRate := L.ToInt64(10)
+	effectiveHeight := L.ToInt64(11)
 	draftHashStr := L.ToString(11)
 
 	needSign := true
@@ -1461,12 +1460,11 @@ func newCRCRegisterSideChainProposalHash(L *lua.LState) int {
 		SideChainInfo: payload.SideChainInfo{
 			SideChainName:          sideChainName,
 			MagicNumber:            uint32(magicNumber),
-			DNSSeeds:               strings.Split(dNSSeeds, ","),
 			NodePort:               uint16(nodePort),
 			GenesisHash:            *genesisHash,
-			GenesisTimestamp:       uint32(genesisTimestamp),
 			GenesisBlockDifficulty: genesisBlockDifficulty,
 			ExchangeRate:           common.Fixed64(exchangeRate),
+			EffectiveHeight:        uint32(effectiveHeight),
 		},
 		CRCouncilMemberDID: *did,
 	}

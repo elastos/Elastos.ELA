@@ -1835,18 +1835,13 @@ func (s *txValidatorTestSuite) getCRCRegisterSideChainProposalTx(publicKeyStr, p
 		CRCouncilMemberDID: *CRCouncilMemberDID,
 		DraftHash:          common.Hash(draftData),
 		SideChainInfo: payload.SideChainInfo{
-			SideChainName: "NEO",
-			MagicNumber:   100,
-			DNSSeeds: []string{
-				"neo.elastos.cn:20338",
-				"neo-abc.us:20338",
-				"neo-mainnet-003.elastos.org:20338",
-			},
+			SideChainName:          "NEO",
+			MagicNumber:            100,
 			NodePort:               20209,
 			GenesisHash:            *randomUint256(),
-			GenesisTimestamp:       1513936800,
 			GenesisBlockDifficulty: "575",
 			ExchangeRate:           100000000,
+			EffectiveHeight:        100000,
 		},
 	}
 
@@ -3196,16 +3191,9 @@ func (s *txValidatorTestSuite) TestCheckCRCProposalRegisterSideChainTransaction(
 	{
 		txn := s.getCRCRegisterSideChainProposalTx(publicKeyStr2, privateKeyStr2, publicKeyStr1, privateKeyStr1)
 		payload, _ := txn.Payload.(*payload.CRCProposal)
-		payload.DNSSeeds = []string{}
-		err := s.Chain.checkCRCProposalTransaction(txn, tenureHeight, 0)
-		s.EqualError(err, "DNSSeeds can not be blank")
-	}
-
-	{
-		txn := s.getCRCRegisterSideChainProposalTx(publicKeyStr2, privateKeyStr2, publicKeyStr1, privateKeyStr1)
-		payload, _ := txn.Payload.(*payload.CRCProposal)
 		payload.GenesisBlockDifficulty = ""
 		payload.ExchangeRate = 100000000
+		payload.EffectiveHeight = 100000
 		err := s.Chain.checkCRCProposalTransaction(txn, tenureHeight, 0)
 		s.EqualError(err, "GenesisBlockDifficulty can not be blank")
 	}

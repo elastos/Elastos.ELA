@@ -364,22 +364,21 @@ type CRCSecretaryGeneralProposalInfo struct {
 }
 
 type CRCRegisterSideChainProposalInfo struct {
-	ProposalType             string   `json:"proposaltype"`
-	CategoryData             string   `json:"categorydata"`
-	OwnerPublicKey           string   `json:"ownerpublickey"`
-	DraftHash                string   `json:"drafthash"`
-	SideChainName            string   `json:"sidechainname"`
-	MagicNumber              uint32   `json:"magicnumber"`
-	DNSSeeds                 []string `json:"dnsseeds"`
-	NodePort                 uint16   `json:"nodeport"`
-	GenesisHash              string   `json:"genesishash"`
-	GenesisTimestamp         uint32   `json:"genesistimestamp"`
-	GenesisBlockDifficulty   string   `json:"genesisblockdifficulty"`
-	ExchangeRate             common.Fixed64  `json:"exchangerate"`
-	Signature                string   `json:"signature"`
-	CRCouncilMemberDID       string   `json:"crcouncilmemberdid"`
-	CRCouncilMemberSignature string   `json:"crcouncilmembersignature"`
-	Hash                     string   `json:"hash"`
+	ProposalType             string         `json:"proposaltype"`
+	CategoryData             string         `json:"categorydata"`
+	OwnerPublicKey           string         `json:"ownerpublickey"`
+	DraftHash                string         `json:"drafthash"`
+	SideChainName            string         `json:"sidechainname"`
+	MagicNumber              uint32         `json:"magicnumber"`
+	NodePort                 uint16         `json:"nodeport"`
+	GenesisHash              string         `json:"genesishash"`
+	GenesisBlockDifficulty   string         `json:"genesisblockdifficulty"`
+	ExchangeRate             common.Fixed64 `json:"exchangerate"`
+	EffectiveHeight          uint32         `json:"effectiveheight"`
+	Signature                string         `json:"signature"`
+	CRCouncilMemberDID       string         `json:"crcouncilmemberdid"`
+	CRCouncilMemberSignature string         `json:"crcouncilmembersignature"`
+	Hash                     string         `json:"hash"`
 }
 
 type CRCProposalReviewInfo struct {
@@ -514,14 +513,13 @@ type SidechainIllegalDataInfo struct {
 }
 
 type RsInfo struct {
-	SideChainName          string   `json:"sidechainname"`
-	MagicNumber            uint32   `json:"magicnumber"`
-	DNSSeeds               []string `json:"dnsseeds"`
-	NodePort               uint16   `json:"nodeport"`
-	GenesisHash            string   `json:"genesishash"`
-	GenesisTimestamp       uint32   `json:"genesistimestamp"`
-	GenesisBlockDifficulty string   `json:"genesisblockdifficulty"`
-	ExchangeRate           common.Fixed64  `json:"exchangerate"`
-	TxHash                 string   `json:"txhash"`
-	Height                 uint32   `json:"height"`
+	SideChainName          string         `json:"sidechainname"`
+	MagicNumber            uint32         `json:"magicnumber"`
+	NodePort               uint16         `json:"nodeport"`
+	GenesisHash            string         `json:"genesishash"`
+	GenesisBlockDifficulty string         `json:"genesisblockdifficulty"`
+	ExchangeRate           common.Fixed64 `json:"exchangerate"`
+	TxHash                 string         `json:"txhash"`
+	Height                 uint32         `json:"height"`
+	EffectiveHeight        uint32         `json:"effectiveheight"`
 }

@@ -11,7 +11,6 @@ import (
 	"errors"
 	"fmt"
 	"math"
-	"net"
 	"sort"
 	"strconv"
 
@@ -3195,21 +3194,6 @@ func (b *BlockChain) checkRegisterSideChainProposal(proposal *payload.CRCProposa
 		}
 	}
 
-	if len(proposal.DNSSeeds) == 0 {
-		return errors.New("DNSSeeds can not be blank")
-	}
-
-	for _, seed := range proposal.DNSSeeds {
-		host, _, err := net.SplitHostPort(seed)
-		if err != nil {
-			host = seed
-		}
-
-		if !payload.SeedRegexp.MatchString(host) {
-			return errors.New("DNSSeed not valid " + seed)
-		}
-	}
-
 	if proposal.GenesisBlockDifficulty == "" {
 		return errors.New("GenesisBlockDifficulty can not be blank")
 	}
@@ -3218,16 +3202,16 @@ func (b *BlockChain) checkRegisterSideChainProposal(proposal *payload.CRCProposa
 		return errors.New("ExchangeRate can not be 0")
 	}
 
+	if proposal.EffectiveHeight < b.GetHeight() {
+		return errors.New("EffectiveHeight must be bigger than current height")
+	}
+
 	if _, err := strconv.Atoi(proposal.GenesisBlockDifficulty); err != nil {
 		return errors.New("GenesisBlockDifficulty value is not valid")
 	}
 
 	if proposal.GenesisHash == common.EmptyHash {
 		return errors.New("GenesisHash can not be empty")
-	}
-
-	if proposal.GenesisTimestamp == 0 {
-		return errors.New("GenesisTimestamp can not be 0")
 	}
 
 	if proposal.NodePort == 0 {

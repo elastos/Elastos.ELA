@@ -1035,14 +1035,13 @@ func Getallregistertransactions(param Params) map[string]interface{} {
 			result = append(result, RsInfo{
 				SideChainName:          v1.SideChainName,
 				MagicNumber:            v1.MagicNumber,
-				DNSSeeds:               v1.DNSSeeds,
 				NodePort:               v1.NodePort,
 				GenesisHash:            common.ToReversedString(v1.GenesisHash),
-				GenesisTimestamp:       v1.GenesisTimestamp,
 				GenesisBlockDifficulty: v1.GenesisBlockDifficulty,
 				ExchangeRate:           v1.ExchangeRate,
 				TxHash:                 common.ToReversedString(k1),
 				Height:                 k,
+				EffectiveHeight:        v1.EffectiveHeight,
 			})
 		}
 	}
@@ -1061,12 +1060,11 @@ func Getregistertransactionsbyheight(param Params) map[string]interface{} {
 		result = append(result, RsInfo{
 			SideChainName:          v.SideChainName,
 			MagicNumber:            v.MagicNumber,
-			DNSSeeds:               v.DNSSeeds,
 			NodePort:               v.NodePort,
 			GenesisHash:            common.ToReversedString(v.GenesisHash),
-			GenesisTimestamp:       v.GenesisTimestamp,
 			GenesisBlockDifficulty: v.GenesisBlockDifficulty,
 			ExchangeRate:           v.ExchangeRate,
+			EffectiveHeight:        v.EffectiveHeight,
 			TxHash:                 common.ToReversedString(k),
 			Height:                 height,
 		})
@@ -2839,12 +2837,11 @@ func getPayloadInfo(p Payload, payloadVersion byte) PayloadInfo {
 			obj.DraftHash = common.ToReversedString(object.DraftHash)
 			obj.SideChainName = object.SideChainName
 			obj.MagicNumber = object.MagicNumber
-			obj.DNSSeeds = object.DNSSeeds
 			obj.NodePort = object.NodePort
 			obj.GenesisHash = common.ToReversedString(object.GenesisHash)
-			obj.GenesisTimestamp = object.GenesisTimestamp
 			obj.GenesisBlockDifficulty = object.GenesisBlockDifficulty
 			obj.ExchangeRate = object.ExchangeRate
+			obj.EffectiveHeight = object.EffectiveHeight
 			obj.Signature = common.BytesToHexString(object.Signature)
 			crmdid, _ := object.CRCouncilMemberDID.ToAddress()
 			obj.CRCouncilMemberDID = crmdid

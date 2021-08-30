@@ -64,7 +64,7 @@ local charge = tx:appendenough(addr, (amount + fee) * 100000000)
 print("charge", charge)
 
 -- outputpayload
-local cross_chain_output = crosschainoutput.new(recipient, amount, target_data)
+local cross_chain_output = crosschainoutput.new(recipient, (amount-fee) * 100000000, target_data)
 print("cross_chain_output", cross_chain_output:get())
 
 local default_output = defaultoutput.new()

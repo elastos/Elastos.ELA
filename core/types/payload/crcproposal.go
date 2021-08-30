@@ -291,14 +291,14 @@ type SideChainInfo struct {
 	// Genesis hash of side chain
 	GenesisHash common.Uint256
 
-	// Genesis block difficulty of side chain
-	GenesisBlockDifficulty string
-
 	// 1 ELA on main chain equals to how many coin on side chain
 	ExchangeRate common.Fixed64
 
 	// Effective height of register side chain
 	EffectiveHeight uint32
+
+	// Resource path
+	ResourcePath string
 }
 
 func (sc *SideChainInfo) Serialize(w io.Writer) error {
@@ -317,10 +317,6 @@ func (sc *SideChainInfo) Serialize(w io.Writer) error {
 		return errors.New("failed to serialize GenesisHash")
 	}
 
-	if err := common.WriteVarString(w, sc.GenesisBlockDifficulty); err != nil {
-		return errors.New("failed to serialize GenesisBlockDifficulty")
-	}
-
 	if err := sc.ExchangeRate.Serialize(w); err != nil {
 		return errors.New("failed to serialize ExchangeRate")
 	}
@@ -328,6 +324,11 @@ func (sc *SideChainInfo) Serialize(w io.Writer) error {
 	if err := common.WriteUint32(w, sc.EffectiveHeight); err != nil {
 		return errors.New("failed to serialize EffectiveHeight")
 	}
+
+	if err := common.WriteVarString(w, sc.ResourcePath); err != nil {
+		return errors.New("fail to serialize ResourcePath")
+	}
+
 	return nil
 }
 
@@ -352,11 +353,6 @@ func (sc *SideChainInfo) Deserialize(r io.Reader) error {
 		return errors.New("failed to deserialize GenesisHash")
 	}
 
-	sc.GenesisBlockDifficulty, err = common.ReadVarString(r)
-	if err != nil {
-		return errors.New("[CRCProposal], GenesisBlockDifficulty deserialize failed")
-	}
-
 	err = sc.ExchangeRate.Deserialize(r)
 	if err != nil {
 		return errors.New("[CRCProposal], ExchangeRate deserialize failed")
@@ -367,6 +363,10 @@ func (sc *SideChainInfo) Deserialize(r io.Reader) error {
 		return errors.New("[CRCProposal], EffectiveHeight deserialize failed")
 	}
 
+	sc.ResourcePath, err = common.ReadVarString(r)
+	if err != nil {
+		return errors.New("[CRCProposal], ResourcePath deserialize failed")
+	}
 	return nil
 }
 

@@ -1410,15 +1410,15 @@ func newCRCRegisterSideChainProposalHash(L *lua.LState) int {
 	proposalType := L.ToInt64(2)
 	sideChainName := L.ToString(3)
 	magicNumber := L.ToInt64(4)
-	nodePort := L.ToInt64(6)
-	genesisHashStr := L.ToString(7)
-	genesisBlockDifficulty := L.ToString(9)
-	exchangeRate := L.ToInt64(10)
-	effectiveHeight := L.ToInt64(11)
-	draftHashStr := L.ToString(11)
+	nodePort := L.ToInt64(5)
+	genesisHashStr := L.ToString(6)
+	exchangeRate := L.ToInt64(7)
+	effectiveHeight := L.ToInt64(8)
+	resourcePath := L.ToString(9)
+	draftHashStr := L.ToString(10)
 
 	needSign := true
-	client, err := checkClient(L, 12)
+	client, err := checkClient(L, 11)
 	if err != nil {
 		needSign = false
 	}
@@ -1458,13 +1458,13 @@ func newCRCRegisterSideChainProposalHash(L *lua.LState) int {
 		OwnerPublicKey: publicKey,
 		DraftHash:      *draftHash,
 		SideChainInfo: payload.SideChainInfo{
-			SideChainName:          sideChainName,
-			MagicNumber:            uint32(magicNumber),
-			NodePort:               uint16(nodePort),
-			GenesisHash:            *genesisHash,
-			GenesisBlockDifficulty: genesisBlockDifficulty,
-			ExchangeRate:           common.Fixed64(exchangeRate),
-			EffectiveHeight:        uint32(effectiveHeight),
+			SideChainName:   sideChainName,
+			MagicNumber:     uint32(magicNumber),
+			NodePort:        uint16(nodePort),
+			GenesisHash:     *genesisHash,
+			ExchangeRate:    common.Fixed64(exchangeRate),
+			EffectiveHeight: uint32(effectiveHeight),
+			ResourcePath:    resourcePath,
 		},
 		CRCouncilMemberDID: *did,
 	}

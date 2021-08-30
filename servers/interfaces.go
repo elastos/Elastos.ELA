@@ -1033,15 +1033,15 @@ func Getallregistertransactions(param Params) map[string]interface{} {
 	for k, v := range rs {
 		for k1, v1 := range v {
 			result = append(result, RsInfo{
-				SideChainName:          v1.SideChainName,
-				MagicNumber:            v1.MagicNumber,
-				NodePort:               v1.NodePort,
-				GenesisHash:            common.ToReversedString(v1.GenesisHash),
-				GenesisBlockDifficulty: v1.GenesisBlockDifficulty,
-				ExchangeRate:           v1.ExchangeRate,
-				TxHash:                 common.ToReversedString(k1),
-				Height:                 k,
-				EffectiveHeight:        v1.EffectiveHeight,
+				SideChainName:   v1.SideChainName,
+				MagicNumber:     v1.MagicNumber,
+				NodePort:        v1.NodePort,
+				GenesisHash:     common.ToReversedString(v1.GenesisHash),
+				ExchangeRate:    v1.ExchangeRate,
+				TxHash:          common.ToReversedString(k1),
+				Height:          k,
+				EffectiveHeight: v1.EffectiveHeight,
+				ResourcePath:    v1.ResourcePath,
 			})
 		}
 	}
@@ -1058,15 +1058,15 @@ func Getregistertransactionsbyheight(param Params) map[string]interface{} {
 	var result []RsInfo
 	for k, v := range rs {
 		result = append(result, RsInfo{
-			SideChainName:          v.SideChainName,
-			MagicNumber:            v.MagicNumber,
-			NodePort:               v.NodePort,
-			GenesisHash:            common.ToReversedString(v.GenesisHash),
-			GenesisBlockDifficulty: v.GenesisBlockDifficulty,
-			ExchangeRate:           v.ExchangeRate,
-			EffectiveHeight:        v.EffectiveHeight,
-			TxHash:                 common.ToReversedString(k),
-			Height:                 height,
+			SideChainName:   v.SideChainName,
+			MagicNumber:     v.MagicNumber,
+			NodePort:        v.NodePort,
+			GenesisHash:     common.ToReversedString(v.GenesisHash),
+			ExchangeRate:    v.ExchangeRate,
+			EffectiveHeight: v.EffectiveHeight,
+			ResourcePath:    v.ResourcePath,
+			TxHash:          common.ToReversedString(k),
+			Height:          height,
 		})
 	}
 	return ResponsePack(Success, result)
@@ -2839,9 +2839,9 @@ func getPayloadInfo(p Payload, payloadVersion byte) PayloadInfo {
 			obj.MagicNumber = object.MagicNumber
 			obj.NodePort = object.NodePort
 			obj.GenesisHash = common.ToReversedString(object.GenesisHash)
-			obj.GenesisBlockDifficulty = object.GenesisBlockDifficulty
 			obj.ExchangeRate = object.ExchangeRate
 			obj.EffectiveHeight = object.EffectiveHeight
+			obj.ResourcePath = object.ResourcePath
 			obj.Signature = common.BytesToHexString(object.Signature)
 			crmdid, _ := object.CRCouncilMemberDID.ToAddress()
 			obj.CRCouncilMemberDID = crmdid

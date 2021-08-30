@@ -1835,13 +1835,12 @@ func (s *txValidatorTestSuite) getCRCRegisterSideChainProposalTx(publicKeyStr, p
 		CRCouncilMemberDID: *CRCouncilMemberDID,
 		DraftHash:          common.Hash(draftData),
 		SideChainInfo: payload.SideChainInfo{
-			SideChainName:          "NEO",
-			MagicNumber:            100,
-			NodePort:               20209,
-			GenesisHash:            *randomUint256(),
-			GenesisBlockDifficulty: "575",
-			ExchangeRate:           100000000,
-			EffectiveHeight:        100000,
+			SideChainName:   "NEO",
+			MagicNumber:     100,
+			NodePort:        20209,
+			GenesisHash:     *randomUint256(),
+			ExchangeRate:    100000000,
+			EffectiveHeight: 100000,
 		},
 	}
 
@@ -3186,16 +3185,6 @@ func (s *txValidatorTestSuite) TestCheckCRCProposalRegisterSideChainTransaction(
 		payload.SideChainName = ""
 		err := s.Chain.checkCRCProposalTransaction(txn, tenureHeight, 0)
 		s.EqualError(err, "SideChainName can not be empty")
-	}
-
-	{
-		txn := s.getCRCRegisterSideChainProposalTx(publicKeyStr2, privateKeyStr2, publicKeyStr1, privateKeyStr1)
-		payload, _ := txn.Payload.(*payload.CRCProposal)
-		payload.GenesisBlockDifficulty = ""
-		payload.ExchangeRate = 100000000
-		payload.EffectiveHeight = 100000
-		err := s.Chain.checkCRCProposalTransaction(txn, tenureHeight, 0)
-		s.EqualError(err, "GenesisBlockDifficulty can not be blank")
 	}
 
 	{

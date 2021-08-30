@@ -221,7 +221,7 @@ var DefaultParams = Params{
 	WalletPath:                  "keystore.dat",
 	RPCServiceLevel:             ConfigurationPermitted.String(),
 	NodeProfileStrategy:         Balanced.String(),
-	MaxNodePerHost:              10,
+	MaxNodePerHost:              72,
 	CkpManager: checkpoint.NewManager(&checkpoint.Config{
 		EnableHistory:      true,
 		HistoryStartHeight: uint32(0),

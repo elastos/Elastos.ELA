@@ -1035,7 +1035,6 @@ func Getallregistertransactions(param Params) map[string]interface{} {
 			result = append(result, RsInfo{
 				SideChainName:   v1.SideChainName,
 				MagicNumber:     v1.MagicNumber,
-				NodePort:        v1.NodePort,
 				GenesisHash:     common.ToReversedString(v1.GenesisHash),
 				ExchangeRate:    v1.ExchangeRate,
 				TxHash:          common.ToReversedString(k1),
@@ -1060,7 +1059,6 @@ func Getregistertransactionsbyheight(param Params) map[string]interface{} {
 		result = append(result, RsInfo{
 			SideChainName:   v.SideChainName,
 			MagicNumber:     v.MagicNumber,
-			NodePort:        v.NodePort,
 			GenesisHash:     common.ToReversedString(v.GenesisHash),
 			ExchangeRate:    v.ExchangeRate,
 			EffectiveHeight: v.EffectiveHeight,
@@ -2837,7 +2835,6 @@ func getPayloadInfo(p Payload, payloadVersion byte) PayloadInfo {
 			obj.DraftHash = common.ToReversedString(object.DraftHash)
 			obj.SideChainName = object.SideChainName
 			obj.MagicNumber = object.MagicNumber
-			obj.NodePort = object.NodePort
 			obj.GenesisHash = common.ToReversedString(object.GenesisHash)
 			obj.ExchangeRate = object.ExchangeRate
 			obj.EffectiveHeight = object.EffectiveHeight

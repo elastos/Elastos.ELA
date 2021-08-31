@@ -31,7 +31,6 @@ local cr_pubkey = getPublicKey()
 local proposal_type = 0x0410
 local sideChainName = getSideChainName()
 local magicNumber = getMagicNumber()
-local nodePort = getNodePort()
 local genesisHash = getGenesisHash()
 local exchangeRate = getExchangeRate()
 local effectiveHeight = getEffectiveHeight()
@@ -54,11 +53,6 @@ end
 
 if magicNumber == 0 then
     print("magicNumber is 0, should use --magicnumber to set it.")
-    return
-end
-
-if nodePort == "" then
-    print("nodePort is nil, should use --nodeport to set it.")
     return
 end
 
@@ -92,14 +86,13 @@ print("public key:", cr_pubkey)
 print("proposal type:", proposal_type)
 print("sideChainName:", sideChainName)
 print("magicNumber:", magicNumber)
-print("nodePort:", nodePort)
 print("genesisHash:", genesisHash)
 print("exchangeRate:", exchangeRate)
 print("effectiveHeight:", effectiveHeight)
 print("resourcePath:", resourcePath)
 
 
-local cp_payload =crcregistersidechainproposal.new(cr_pubkey, proposal_type,sideChainName,magicNumber,nodePort,genesisHash,exchangeRate,effectiveHeight, resourcePath,draft_hash, wallet)
+local cp_payload =crcregistersidechainproposal.new(cr_pubkey, proposal_type,sideChainName,magicNumber,genesisHash,exchangeRate,effectiveHeight, resourcePath,draft_hash, wallet)
 print(cp_payload:get())
 
 -- transaction: version, txType, payloadVersion, payload, locktime

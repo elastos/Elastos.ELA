@@ -285,9 +285,6 @@ type SideChainInfo struct {
 	// Magic number of side chain
 	MagicNumber uint32
 
-	// Node port of side chain
-	NodePort uint16
-
 	// Genesis hash of side chain
 	GenesisHash common.Uint256
 
@@ -307,10 +304,6 @@ func (sc *SideChainInfo) Serialize(w io.Writer) error {
 	}
 	if err := common.WriteUint32(w, sc.MagicNumber); err != nil {
 		return errors.New("fail to serialize MagicNumber")
-	}
-
-	if err := common.WriteUint16(w, sc.NodePort); err != nil {
-		return errors.New("failed to serialize NodePort")
 	}
 
 	if err := sc.GenesisHash.Serialize(w); err != nil {
@@ -342,11 +335,6 @@ func (sc *SideChainInfo) Deserialize(r io.Reader) error {
 	sc.MagicNumber, err = common.ReadUint32(r)
 	if err != nil {
 		return errors.New("[CRCProposal], MagicNumber deserialize failed")
-	}
-
-	sc.NodePort, err = common.ReadUint16(r)
-	if err != nil {
-		return errors.New("[CRCProposal], NodePort deserialize failed")
 	}
 
 	if err := sc.GenesisHash.Deserialize(r); err != nil {

@@ -3204,10 +3204,6 @@ func (b *BlockChain) checkRegisterSideChainProposal(proposal *payload.CRCProposa
 		return errors.New("GenesisHash can not be empty")
 	}
 
-	if proposal.NodePort == 0 {
-		return errors.New("NodePort can not be 0")
-	}
-
 	if len(proposal.Budgets) > 0 {
 		return errors.New("RegisterSideChain cannot have budget")
 	}

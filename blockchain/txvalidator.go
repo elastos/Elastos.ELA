@@ -1266,6 +1266,11 @@ func (b *BlockChain) checkTxHeightVersion(txn *Transaction, blockHeight uint32) 
 				return errors.New(fmt.Sprintf("not support %s CRCProposal"+
 					" transaction before CustomIDProposalStartHeight", p.ProposalType.Name()))
 			}
+		case payload.RegisterSideChain:
+			if blockHeight < b.chainParams.NewCrossChainStartHeight {
+				return errors.New(fmt.Sprintf("not support %s CRCProposal"+
+					" transaction before NewCrossChainStartHeight", p.ProposalType.Name()))
+			}
 		default:
 			if blockHeight < b.chainParams.CRCommitteeStartHeight {
 				return errors.New(fmt.Sprintf("not support %s CRCProposal"+

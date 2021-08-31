@@ -1837,7 +1837,6 @@ func (s *txValidatorTestSuite) getCRCRegisterSideChainProposalTx(publicKeyStr, p
 		SideChainInfo: payload.SideChainInfo{
 			SideChainName:   "NEO",
 			MagicNumber:     100,
-			NodePort:        20209,
 			GenesisHash:     *randomUint256(),
 			ExchangeRate:    100000000,
 			EffectiveHeight: 100000,

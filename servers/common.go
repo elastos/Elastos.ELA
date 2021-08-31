@@ -370,7 +370,6 @@ type CRCRegisterSideChainProposalInfo struct {
 	DraftHash                string         `json:"drafthash"`
 	SideChainName            string         `json:"sidechainname"`
 	MagicNumber              uint32         `json:"magicnumber"`
-	NodePort                 uint16         `json:"nodeport"`
 	GenesisHash              string         `json:"genesishash"`
 	ExchangeRate             common.Fixed64 `json:"exchangerate"`
 	EffectiveHeight          uint32         `json:"effectiveheight"`
@@ -513,13 +512,12 @@ type SidechainIllegalDataInfo struct {
 }
 
 type RsInfo struct {
-	SideChainName          string         `json:"sidechainname"`
-	MagicNumber            uint32         `json:"magicnumber"`
-	NodePort               uint16         `json:"nodeport"`
-	GenesisHash            string         `json:"genesishash"`
-	ExchangeRate           common.Fixed64 `json:"exchangerate"`
-	ResourcePath           string         `json:"resourcepath"`
-	TxHash                 string         `json:"txhash"`
-	Height                 uint32         `json:"height"`
-	EffectiveHeight        uint32         `json:"effectiveheight"`
+	SideChainName   string         `json:"sidechainname"`
+	MagicNumber     uint32         `json:"magicnumber"`
+	GenesisHash     string         `json:"genesishash"`
+	ExchangeRate    common.Fixed64 `json:"exchangerate"`
+	ResourcePath    string         `json:"resourcepath"`
+	TxHash          string         `json:"txhash"`
+	Height          uint32         `json:"height"`
+	EffectiveHeight uint32         `json:"effectiveheight"`
 }

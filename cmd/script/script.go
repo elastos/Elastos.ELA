@@ -76,11 +76,7 @@ func registerParams(c *cli.Context, L *lua.LState) {
 	// Register SideChain
 	sideChainName := c.String("sidechainname")
 	magicNumber := c.Int64("magicnumber")
-	dNSSeeds := c.String("dnsseeds")
-	nodePort := c.Int64("nodeport")
 	genesisHash := c.String("genesishash")
-	genesisTimestamp := c.Int64("genesistimestamp")
-	genesisBlockDifficulty := c.String("genesisblockdifficulty")
 	exchangeRate := c.String("exchangerate")
 	effectiveHeight := c.Int64("effectiveheight")
 	resourcePath := c.String("resourcepath")
@@ -321,28 +317,8 @@ func registerParams(c *cli.Context, L *lua.LState) {
 		return 1
 	}
 
-	getDNSSeeds := func(L *lua.LState) int {
-		L.Push(lua.LString(dNSSeeds))
-		return 1
-	}
-
-	getNodePort := func(L *lua.LState) int {
-		L.Push(lua.LNumber(nodePort))
-		return 1
-	}
-
 	getGenesisHash := func(L *lua.LState) int {
 		L.Push(lua.LString(genesisHash))
-		return 1
-	}
-
-	getGenesisTimestamp := func(L *lua.LState) int {
-		L.Push(lua.LNumber(genesisTimestamp))
-		return 1
-	}
-
-	getGenesisBlockDifficulty := func(L *lua.LState) int {
-		L.Push(lua.LString(genesisBlockDifficulty))
 		return 1
 	}
 
@@ -419,11 +395,7 @@ func registerParams(c *cli.Context, L *lua.LState) {
 	//Register SideChain
 	L.Register("getSideChainName", getSideChainName)
 	L.Register("getMagicNumber", getMagicNumber)
-	L.Register("getDNSSeeds", getDNSSeeds)
-	L.Register("getNodePort", getNodePort)
 	L.Register("getGenesisHash", getGenesisHash)
-	L.Register("getGenesisTimestamp", getGenesisTimestamp)
-	L.Register("getGenesisBlockDifficulty", getGenesisBlockDifficulty)
 	L.Register("getExchangeRate", getExchangeRate)
 	L.Register("getEffectiveHeight", getEffectiveHeight)
 	L.Register("getResourcePath", getResourcePath)

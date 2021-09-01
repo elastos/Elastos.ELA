@@ -70,12 +70,12 @@ func (pt CRCProposalType) Name() string {
 	case ELIP:
 		return "ELIP"
 		//todo if it is UpgradeCode should use if else
-	case MainChainUpgradeCode:
-		return "MainChainUpgradeCode"
-	case DIDUpgradeCode:
-		return "DIDUpgradeCode"
-	case ETHUpgradeCode:
-		return "ETHUpgradeCode"
+	//case MainChainUpgradeCode:
+	//	return "MainChainUpgradeCode"
+	//case DIDUpgradeCode:
+	//	return "DIDUpgradeCode"
+	//case ETHUpgradeCode:
+	//	return "ETHUpgradeCode"
 	case RegisterSideChain:
 		return "RegisterSideChain"
 	case ChangeProposalOwner:

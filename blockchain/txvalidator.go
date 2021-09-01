@@ -3197,8 +3197,8 @@ func (b *BlockChain) checkRegisterSideChainProposal(proposal *payload.CRCProposa
 		}
 	}
 
-	if proposal.ExchangeRate == 0 {
-		return errors.New("ExchangeRate can not be 0")
+	if proposal.ExchangeRate != common.Fixed64(1e8) {
+		return errors.New("ExchangeRate should be 1.0")
 	}
 
 	if proposal.EffectiveHeight < b.GetHeight() {

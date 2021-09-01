@@ -9,6 +9,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"github.com/elastos/Elastos.ELA/core/types/outputpayload"
+	"strconv"
 
 	"github.com/elastos/Elastos.ELA/blockchain"
 	"github.com/elastos/Elastos.ELA/common"
@@ -93,6 +94,46 @@ func strChangeCustomIDFee(tx *types.Transaction) (interface{}, error) {
 	}
 	if p.ProposalType == payload.ChangeCustomIDFee {
 		return "Change the fee of custom ID", nil
+	}
+	return nil, nil
+}
+
+func hashCRCProposalRegisterSideChainName(
+	tx *types.Transaction) (interface{}, error) {
+	p, ok := tx.Payload.(*payload.CRCProposal)
+	if !ok {
+		return nil, fmt.Errorf(
+			"crcProposal payload cast failed, tx:%s", tx.Hash())
+	}
+	if p.ProposalType == payload.RegisterSideChain {
+		return p.SideChainName, nil
+	}
+
+	return nil, nil
+}
+
+func hashCRCProposalRegisterSideChainMagicNumber(
+	tx *types.Transaction) (interface{}, error) {
+	p, ok := tx.Payload.(*payload.CRCProposal)
+	if !ok {
+		return nil, fmt.Errorf(
+			"crcProposal payload cast failed, tx:%s", tx.Hash())
+	}
+	if p.ProposalType == payload.RegisterSideChain {
+		return strconv.Itoa(int(p.MagicNumber)), nil
+	}
+	return nil, nil
+}
+
+func hashCRCProposalRegisterSideChainGenesisHash(
+	tx *types.Transaction) (interface{}, error) {
+	p, ok := tx.Payload.(*payload.CRCProposal)
+	if !ok {
+		return nil, fmt.Errorf(
+			"crcProposal payload cast failed, tx:%s", tx.Hash())
+	}
+	if p.ProposalType == payload.RegisterSideChain {
+		return p.GenesisHash, nil
 	}
 	return nil, nil
 }

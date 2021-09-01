@@ -1846,6 +1846,23 @@ type RPCSecretaryGeneralProposal struct {
 	CRCouncilMemberDID        string `json:"crcouncilmemberdid"`
 }
 
+type RegisterSideChainInfo struct {
+	SideChainName   string `json:"sidechainname"`
+	MagicNumber     uint32 `json:"magic"`
+	GenesisHash     string `json:"genesishash"`
+	ExchangeRate    string `json:"exchangerate"`
+	EffectiveHeight uint32 `json:"effectiveheight"`
+	ResourcePath    string `json:"resourcepath"`
+}
+
+type RPCRegisterSideChainProposal struct {
+	ProposalType   string                `json:"proposaltype"`
+	CategoryData   string                `json:"categorydata"`
+	OwnerPublicKey string                `json:"ownerpublickey"`
+	DraftHash      string                `json:"drafthash"`
+	SideChainInfo  RegisterSideChainInfo `json:"sidechaininfo"`
+}
+
 type RPCCRProposalStateInfo struct {
 	ProposalState RPCProposalState `json:"proposalstate"`
 }
@@ -2364,6 +2381,22 @@ func GetCRProposalState(param Params) map[string]interface{} {
 		rpcProposal.Fee = int64(proposalState.Proposal.RateOfCustomIDFee)
 		did, _ := proposalState.Proposal.CRCouncilMemberDID.ToAddress()
 		rpcProposal.CRCouncilMemberDID = did
+
+		rpcProposalState.Proposal = rpcProposal
+
+	case payload.RegisterSideChain:
+		var rpcProposal RPCRegisterSideChainProposal
+		rpcProposal.ProposalType = proposalState.Proposal.ProposalType.Name()
+		rpcProposal.CategoryData = proposalState.Proposal.CategoryData
+		rpcProposal.OwnerPublicKey = common.BytesToHexString(proposalState.Proposal.OwnerPublicKey)
+		rpcProposal.DraftHash = common.ToReversedString(proposalState.Proposal.DraftHash)
+
+		rpcProposal.SideChainInfo.SideChainName = proposalState.Proposal.SideChainName
+		rpcProposal.SideChainInfo.MagicNumber = proposalState.Proposal.MagicNumber
+		rpcProposal.SideChainInfo.GenesisHash = proposalState.Proposal.GenesisHash.String()
+		rpcProposal.SideChainInfo.ExchangeRate = proposalState.Proposal.ExchangeRate.String()
+		rpcProposal.SideChainInfo.EffectiveHeight = proposalState.Proposal.EffectiveHeight
+		rpcProposal.SideChainInfo.ResourcePath = proposalState.Proposal.ResourcePath
 
 		rpcProposalState.Proposal = rpcProposal
 	}

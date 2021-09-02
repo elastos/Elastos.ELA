@@ -494,13 +494,15 @@ func (p *ProposalManager) addRegisterSideChainInfo(proposalState *ProposalState,
 
 func (p *ProposalManager) removeRegisterSideChainInfo(proposalState *ProposalState, height uint32) {
 	location := 0
+	var exist bool
 	for i, name := range p.RegisteredSideChainNames {
 		if name == proposalState.Proposal.SideChainName {
 			location = i
+			exist = true
 			break
 		}
 	}
-	if location != 0 {
+	if exist {
 		originRegisteredSideChainNames := p.RegisteredSideChainNames
 		originRegisteredMagicNumbers := p.RegisteredMagicNumbers
 		originRegisteredGenesisHash := p.RegisteredGenesisHashes

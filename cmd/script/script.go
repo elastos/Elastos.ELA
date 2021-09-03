@@ -75,10 +75,10 @@ func registerParams(c *cli.Context, L *lua.LState) {
 
 	// Register SideChain
 	sideChainName := c.String("sidechainname")
-	magicNumber := c.Int64("magicnumber")
+	magicNumber := c.Uint("magicnumber")
 	genesisHash := c.String("genesishash")
 	exchangeRate := c.String("exchangerate")
-	effectiveHeight := c.Int64("effectiveheight")
+	effectiveHeight := c.Uint("effectiveheight")
 	resourcePath := c.String("resourcepath")
 
 	getWallet := func(L *lua.LState) int {

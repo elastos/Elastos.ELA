@@ -1292,7 +1292,7 @@ func (p *ProposalKeyFrame) Deserialize(r io.Reader) (err error) {
 	if count, err = common.ReadVarUint(r, 0); err != nil {
 		return
 	}
-
+	p.RegisteredSideChainNames = make([]string, 0)
 	for i := uint64(0); i < count; i++ {
 		var name string
 		name, err = common.ReadVarString(r)
@@ -1305,7 +1305,7 @@ func (p *ProposalKeyFrame) Deserialize(r io.Reader) (err error) {
 	if count, err = common.ReadVarUint(r, 0); err != nil {
 		return
 	}
-
+	p.RegisteredMagicNumbers = make([]uint32, 0)
 	for i := uint64(0); i < count; i++ {
 		var magic uint32
 		magic, err = common.ReadUint32(r)
@@ -1318,7 +1318,7 @@ func (p *ProposalKeyFrame) Deserialize(r io.Reader) (err error) {
 	if count, err = common.ReadVarUint(r, 0); err != nil {
 		return
 	}
-
+	p.RegisteredGenesisHashes = make([]common.Uint256, 0)
 	for i := uint64(0); i < count; i++ {
 		var h common.Uint256
 		err = h.Deserialize(r)

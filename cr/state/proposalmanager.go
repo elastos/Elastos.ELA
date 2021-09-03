@@ -194,7 +194,6 @@ func (p *ProposalManager) updateProposals(height uint32,
 				break
 			}
 
-			p.addRegisterSideChainInfo(v, height)
 			if p.shouldEndCRCVote(v.RegisterHeight, height) {
 				pass := true
 				if p.transferRegisteredState(v, height) == CRCanceled {
@@ -493,6 +492,10 @@ func (p *ProposalManager) addRegisterSideChainInfo(proposalState *ProposalState,
 }
 
 func (p *ProposalManager) removeRegisterSideChainInfo(proposalState *ProposalState, height uint32) {
+	if proposalState.Proposal.ProposalType != payload.RegisterSideChain {
+		return
+	}
+
 	location := 0
 	var exist bool
 	for i, name := range p.RegisteredSideChainNames {
@@ -506,19 +509,14 @@ func (p *ProposalManager) removeRegisterSideChainInfo(proposalState *ProposalSta
 		originRegisteredSideChainNames := p.RegisteredSideChainNames
 		originRegisteredMagicNumbers := p.RegisteredMagicNumbers
 		originRegisteredGenesisHash := p.RegisteredGenesisHashes
+
 		p.history.Append(height, func() {
 			p.RegisteredSideChainNames = []string{}
 			p.RegisteredMagicNumbers = []uint32{}
 			p.RegisteredGenesisHashes = []common.Uint256{}
-			if location < len(p.RegisteredSideChainNames)-1 {
-				p.RegisteredSideChainNames = append(originRegisteredSideChainNames[0:location], originRegisteredSideChainNames[location+1:]...)
-				p.RegisteredMagicNumbers = append(originRegisteredMagicNumbers[0:location], originRegisteredMagicNumbers[location+1:]...)
-				p.RegisteredGenesisHashes = append(originRegisteredGenesisHash[0:location], originRegisteredGenesisHash[location+1:]...)
-			} else {
-				p.RegisteredSideChainNames = originRegisteredSideChainNames[0:location]
-				p.RegisteredMagicNumbers = originRegisteredMagicNumbers[0:location]
-				p.RegisteredGenesisHashes = originRegisteredGenesisHash[0:location]
-			}
+			p.RegisteredSideChainNames = append(originRegisteredSideChainNames[0:location], originRegisteredSideChainNames[location+1:]...)
+			p.RegisteredMagicNumbers = append(originRegisteredMagicNumbers[0:location], originRegisteredMagicNumbers[location+1:]...)
+			p.RegisteredGenesisHashes = append(originRegisteredGenesisHash[0:location], originRegisteredGenesisHash[location+1:]...)
 		}, func() {
 			p.RegisteredSideChainNames = originRegisteredSideChainNames
 			p.RegisteredMagicNumbers = originRegisteredMagicNumbers
@@ -630,7 +628,8 @@ func (p *ProposalManager) registerProposal(tx *types.Transaction,
 	})
 
 	// record to PendingReceivedCustomIDMap
-	if proposal.ProposalType == payload.ReceiveCustomID {
+	switch proposal.ProposalType {
+	case payload.ReceiveCustomID:
 		oriPendingReceivedCustomIDMap := p.PendingReceivedCustomIDMap
 		history.Append(height, func() {
 			for _, id := range proposal.ReceivedCustomIDList {
@@ -639,6 +638,8 @@ func (p *ProposalManager) registerProposal(tx *types.Transaction,
 		}, func() {
 			p.PendingReceivedCustomIDMap = oriPendingReceivedCustomIDMap
 		})
+	case payload.RegisterSideChain:
+		p.addRegisterSideChainInfo(proposalState, height)
 	}
 }
 

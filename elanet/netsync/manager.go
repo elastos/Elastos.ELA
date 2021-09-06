@@ -658,7 +658,8 @@ func (sm *SyncManager) handleInvMsg(imsg *invMsg) {
 		peer.QueueMessage(gdmsg, nil)
 	}
 
-	if len(gdmsg.InvList) > 1 {
+	// maxBlockLocators = 500
+	if len(gdmsg.InvList) == 500 {
 		locator := sm.chain.GetOrphanBlockLocator(invVects)
 		log.Info("########### PushGetBlocksMsg 2:", locator, "count:", len(gdmsg.InvList))
 		if err := peer.PushGetBlocksMsg(locator, &zeroHash); err != nil {

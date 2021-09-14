@@ -632,7 +632,8 @@ func checkTransactionInput(txn *Transaction) error {
 		inputHash := txn.Inputs[0].Previous.TxID
 		inputIndex := txn.Inputs[0].Previous.Index
 		sequence := txn.Inputs[0].Sequence
-		if !inputHash.IsEqual(common.EmptyHash) || inputIndex != math.MaxUint16 || sequence != math.MaxUint32 {
+		if !inputHash.IsEqual(common.EmptyHash) ||
+			inputIndex != math.MaxUint16 || sequence != math.MaxUint32 {
 			return errors.New("invalid coinbase input")
 		}
 

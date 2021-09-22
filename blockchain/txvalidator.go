@@ -3298,6 +3298,9 @@ func (b *BlockChain) checkChangeCustomIDFee(proposal *payload.CRCProposal, Paylo
 	if proposal.RateOfCustomIDFee < 0 {
 		return errors.New("invalid fee rate of custom ID")
 	}
+	if proposal.EIDEffectiveHeight <= 0 {
+		return errors.New("invalid EID effective height")
+	}
 	crMember := b.crCommittee.GetMember(proposal.CRCouncilMemberDID)
 	if crMember == nil {
 		return errors.New("CR Council Member should be one of the CR members")

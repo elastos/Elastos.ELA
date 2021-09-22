@@ -173,8 +173,7 @@ type CRCProposal struct {
 	// Receiver did.
 	ReceiverDID common.Uint168
 
-	// The rate of custom DID fee.
-	RateOfCustomIDFee common.Fixed64
+	CustomIDFeeRateInfo
 
 	// The specified ELA address where the funds are to be sent.
 	NewRecipient common.Uint168
@@ -354,6 +353,39 @@ func (sc *SideChainInfo) Deserialize(r io.Reader) error {
 	sc.ResourcePath, err = common.ReadVarString(r)
 	if err != nil {
 		return errors.New("[CRCProposal], ResourcePath deserialize failed")
+	}
+	return nil
+}
+
+type CustomIDFeeRateInfo struct {
+	// The rate of custom DID fee.
+	RateOfCustomIDFee common.Fixed64
+
+	// Effective at the side chain height of EID.
+	EIDEffectiveHeight uint32
+}
+
+func (sc *CustomIDFeeRateInfo) Serialize(w io.Writer) error {
+	if err := sc.RateOfCustomIDFee.Serialize(w); err != nil {
+		return errors.New("failed to serialize RateOfCustomIDFee")
+	}
+
+	if err := common.WriteUint32(w, sc.EIDEffectiveHeight); err != nil {
+		return errors.New("failed to serialize EIDEffectiveHeight")
+	}
+
+	return nil
+}
+
+func (sc *CustomIDFeeRateInfo) Deserialize(r io.Reader) error {
+	var err error
+	if err = sc.RateOfCustomIDFee.Deserialize(r); err != nil {
+		return errors.New("failed to deserialize RateOfCustomIDFee")
+	}
+
+	sc.EIDEffectiveHeight, err = common.ReadUint32(r)
+	if err != nil {
+		return errors.New("failed to deserialize EIDEffectiveHeight")
 	}
 	return nil
 }
@@ -601,8 +633,8 @@ func (p *CRCProposal) SerializeUnsignedChangeCustomIDFee(w io.Writer, version by
 		}
 	}
 
-	if err := p.RateOfCustomIDFee.Serialize(w); err != nil {
-		return errors.New("failed to serialize RateOfCustomIDFee")
+	if err := p.CustomIDFeeRateInfo.Serialize(w); err != nil {
+		return errors.New("failed to serialize CustomIDFeeRateInfo")
 	}
 
 	return nil
@@ -1017,8 +1049,8 @@ func (p *CRCProposal) DeserializeUnSignedChangeCustomIDFee(r io.Reader, version 
 		}
 	}
 
-	if err = p.RateOfCustomIDFee.Deserialize(r); err != nil {
-		return errors.New("failed to deserialize RateOfCustomIDFee")
+	if err = p.CustomIDFeeRateInfo.Deserialize(r); err != nil {
+		return errors.New("failed to deserialize CustomIDFeeRateInfo")
 	}
 
 	return nil
@@ -1340,6 +1372,7 @@ func (p *CRCProposal) ToProposalInfo(payloadVersion byte) CRCProposalInfo {
 		ReceivedCustomIDList:      p.ReceivedCustomIDList,
 		ReceiverDID:               p.ReceiverDID,
 		RateOfCustomIDFee:         p.RateOfCustomIDFee,
+		EIDEffectiveHeight:        p.EIDEffectiveHeight,
 		NewRecipient:              p.NewRecipient,
 		NewOwnerPublicKey:         p.NewOwnerPublicKey,
 		SecretaryGeneralPublicKey: p.SecretaryGeneralPublicKey,
@@ -1402,6 +1435,9 @@ type CRCProposalInfo struct {
 
 	// The rate of custom DID fee.
 	RateOfCustomIDFee common.Fixed64
+
+	// The effective height of EID.
+	EIDEffectiveHeight uint32
 
 	// The specified ELA address where the funds are to be sent.
 	NewRecipient common.Uint168

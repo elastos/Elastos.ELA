@@ -330,6 +330,7 @@ type CRCChangeCustomIDFeeInfo struct {
 	OwnerPublicKey           string `json:"ownerpublickey"`
 	DraftHash                string `json:"drafthash"`
 	FeeRate                  int64  `json:"feerate"`
+	EIDEffectiveHeight       uint32 `json:"eideffectiveheight"`
 	Signature                string `json:"signature"`
 	CRCouncilMemberDID       string `json:"crcouncilmemberdid"`
 	CRCouncilMemberSignature string `json:"crcouncilmembersignature"`

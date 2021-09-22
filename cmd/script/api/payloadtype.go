@@ -1554,12 +1554,12 @@ func newCRCChangeCustomIDFee(L *lua.LState) int {
 		os.Exit(1)
 	}
 	crcProposal := &payload.CRCProposal{
-		ProposalType:       payload.ChangeCustomIDFee,
-		OwnerPublicKey:     publicKey,
-		DraftHash:          draftHash,
-		DraftData:          []byte(draftDataStr),
-		RateOfCustomIDFee:  *rate,
-		CRCouncilMemberDID: *did,
+		ProposalType:        payload.ChangeCustomIDFee,
+		OwnerPublicKey:      publicKey,
+		DraftHash:           draftHash,
+		DraftData:           []byte(draftDataStr),
+		CustomIDFeeRateInfo: payload.CustomIDFeeRateInfo{RateOfCustomIDFee: *rate},
+		CRCouncilMemberDID:  *did,
 	}
 
 	if needSign {

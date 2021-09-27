@@ -1833,6 +1833,7 @@ type RPCChangeCustomIDFeeProposal struct {
 	OwnerPublicKey     string `json:"ownerpublickey"`
 	DraftHash          string `json:"drafthash"`
 	Fee                int64  `json:"fee"`
+	EIDEffectiveHeight uint32 `json:"eideffectiveheight"`
 	CRCouncilMemberDID string `json:"crcouncilmemberdid"`
 }
 
@@ -2379,6 +2380,7 @@ func GetCRProposalState(param Params) map[string]interface{} {
 		rpcProposal.OwnerPublicKey = common.BytesToHexString(proposalState.Proposal.OwnerPublicKey)
 		rpcProposal.DraftHash = common.ToReversedString(proposalState.Proposal.DraftHash)
 		rpcProposal.Fee = int64(proposalState.Proposal.RateOfCustomIDFee)
+		rpcProposal.EIDEffectiveHeight = proposalState.Proposal.EIDEffectiveHeight
 		did, _ := proposalState.Proposal.CRCouncilMemberDID.ToAddress()
 		rpcProposal.CRCouncilMemberDID = did
 

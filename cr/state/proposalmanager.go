@@ -78,6 +78,12 @@ type ProposalManager struct {
 	history *utils.History
 }
 
+func (p *ProposalManager) tryCancelReservedCustomID() {
+	if len(p.ReservedCustomIDLists) == 0 {
+		p.ReservedCustomID = false
+	}
+}
+
 //only init use
 func (p *ProposalManager) InitSecretaryGeneralPublicKey(publicKey string) {
 	p.SecretaryGeneralPublicKey = publicKey
@@ -191,6 +197,9 @@ func (p *ProposalManager) updateProposals(height uint32,
 				p.abortProposal(v, height)
 				unusedAmount += getProposalTotalBudgetAmount(v.Proposal)
 				recordPartProposalResult(&results, proposalType, k, false)
+				if proposalType == payload.ReserveCustomID {
+					p.tryCancelReservedCustomID()
+				}
 				break
 			}
 
@@ -201,6 +210,9 @@ func (p *ProposalManager) updateProposals(height uint32,
 					unusedAmount += getProposalTotalBudgetAmount(v.Proposal)
 					pass = false
 					recordPartProposalResult(&results, proposalType, k, pass)
+					if proposalType == payload.ReserveCustomID {
+						p.tryCancelReservedCustomID()
+					}
 				}
 			}
 		case CRAgreed:
@@ -208,6 +220,9 @@ func (p *ProposalManager) updateProposals(height uint32,
 				p.abortProposal(v, height)
 				unusedAmount += getProposalTotalBudgetAmount(v.Proposal)
 				recordPartProposalResult(&results, proposalType, k, false)
+				if proposalType == payload.ReserveCustomID {
+					p.tryCancelReservedCustomID()
+				}
 				break
 			}
 			if p.shouldEndPublicVote(v.VoteStartHeight, height) {
@@ -215,6 +230,9 @@ func (p *ProposalManager) updateProposals(height uint32,
 					p.removeRegisterSideChainInfo(v, height)
 					unusedAmount += getProposalTotalBudgetAmount(v.Proposal)
 					recordPartProposalResult(&results, proposalType, k, false)
+					if proposalType == payload.ReserveCustomID {
+						p.tryCancelReservedCustomID()
+					}
 					continue
 				}
 				p.dealProposal(v, &unusedAmount, height)
@@ -629,6 +647,13 @@ func (p *ProposalManager) registerProposal(tx *types.Transaction,
 
 	// record to PendingReceivedCustomIDMap
 	switch proposal.ProposalType {
+	case payload.ReserveCustomID:
+		oriReservedCustomID := p.ReservedCustomID
+		history.Append(height, func() {
+			p.ReservedCustomID = true
+		}, func() {
+			p.ReservedCustomID = oriReservedCustomID
+		})
 	case payload.ReceiveCustomID:
 		oriPendingReceivedCustomIDMap := p.PendingReceivedCustomIDMap
 		history.Append(height, func() {

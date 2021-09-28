@@ -3226,6 +3226,10 @@ func (b *BlockChain) checkRegisterSideChainProposal(proposal *payload.CRCProposa
 }
 
 func (b *BlockChain) checkReservedCustomID(proposal *payload.CRCProposal, PayloadVersion byte) error {
+
+	if b.crCommittee.GetProposalManager().ReservedCustomID {
+		return errors.New("Already have one ReservedCustomID proposal")
+	}
 	_, err := crypto.DecodePoint(proposal.OwnerPublicKey)
 	if err != nil {
 		return errors.New("DecodePoint from OwnerPublicKey error")

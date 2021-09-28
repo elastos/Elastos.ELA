@@ -254,6 +254,9 @@ type ProposalKeyFrame struct {
 
 	// store register info with the approved height
 	RegisteredSideChainPayloadInfo map[uint32]map[common.Uint256]payload.SideChainInfo
+
+	//reserve CustomID
+	ReservedCustomID bool
 }
 
 func NewProposalMap() ProposalsMap {
@@ -1181,6 +1184,10 @@ func (p *ProposalKeyFrame) Serialize(w io.Writer) (err error) {
 			return
 		}
 	}
+	////ReservedCustomID
+	if err = common.WriteElements(w, p.ReservedCustomID); err != nil {
+		return
+	}
 	return
 }
 
@@ -1326,6 +1333,10 @@ func (p *ProposalKeyFrame) Deserialize(r io.Reader) (err error) {
 			return err
 		}
 		p.RegisteredGenesisHashes = append(p.RegisteredGenesisHashes, h)
+	}
+
+	if err = common.ReadElements(r, &p.ReservedCustomID); err != nil {
+		return
 	}
 	return
 }

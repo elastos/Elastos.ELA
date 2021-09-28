@@ -1,7 +1,7 @@
 // Copyright (c) 2017-2020 The Elastos Foundation
 // Use of this source code is governed by an MIT
 // license that can be found in the LICENSE file.
-// 
+//
 
 package api
 
@@ -64,7 +64,7 @@ func checkHeader(L *lua.LState, idx int) *types.Header {
 }
 
 var headerMethods = map[string]lua.LGFunction{
-	"hash": headerHash,
+	"hash":   headerHash,
 	"height": headerHeight,
 }
 

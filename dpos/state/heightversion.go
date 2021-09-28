@@ -114,8 +114,8 @@ func (a *arbitrators) distributeWithNormalArbitratorsV0(
 
 		realDPOSReward += r
 	}
-	for _, candiate := range a.currentCandidates {
-		ownerHash := candiate.GetOwnerProgramHash()
+	for _, candidate := range a.currentCandidates {
+		ownerHash := candidate.GetOwnerProgramHash()
 		votes := a.CurrentReward.OwnerVotesInRound[ownerHash]
 		individualProducerReward := common.Fixed64(math.Floor(float64(
 			votes) * rewardPerVote))

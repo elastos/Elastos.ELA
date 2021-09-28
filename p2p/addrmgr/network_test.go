@@ -1,7 +1,7 @@
 // Copyright (c) 2017-2020 The Elastos Foundation
 // Use of this source code is governed by an MIT
 // license that can be found in the LICENSE file.
-// 
+//
 
 package addrmgr_test
 
@@ -37,8 +37,8 @@ func TestIPTypes(t *testing.T) {
 	}
 
 	newIPTest := func(ip string, rfc1918, rfc2544, rfc3849, rfc3927, rfc3964,
-	rfc4193, rfc4380, rfc4843, rfc4862, rfc5737, rfc6052, rfc6145, rfc6598,
-	local, valid, routable bool) ipTest {
+		rfc4193, rfc4380, rfc4843, rfc4862, rfc5737, rfc6052, rfc6145, rfc6598,
+		local, valid, routable bool) ipTest {
 		nip := net.ParseIP(ip)
 		na := *p2p.NewNetAddressIPPort(nip, 8333, 1)
 		test := ipTest{na, rfc1918, rfc2544, rfc3849, rfc3927, rfc3964, rfc4193, rfc4380,

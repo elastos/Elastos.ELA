@@ -1,7 +1,7 @@
 // Copyright (c) 2017-2020 The Elastos Foundation
 // Use of this source code is governed by an MIT
 // license that can be found in the LICENSE file.
-// 
+//
 
 package signal
 
@@ -29,7 +29,7 @@ func (i *interrupt) Interrupted() bool {
 // such as SIGINT (Ctrl+C) and SIGKILL (kill -9).
 func NewInterrupt() *interrupt {
 	i := interrupt{
-		C:make(chan struct{}),
+		C: make(chan struct{}),
 	}
 	go func() {
 		signals := make(chan os.Signal, 1)

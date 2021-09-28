@@ -3965,7 +3965,7 @@ func (s *txValidatorTestSuite) TestCheckVoteOutputs() {
 		outputs4, references, producersMap, crsMap),
 		"invalid vote output payload producer candidate: "+publicKey2)
 
-	// Check vote output v0 with correct ouput program hash
+	// Check vote output v0 with correct output program hash
 	s.NoError(s.Chain.checkVoteOutputs(config.DefaultParams.CRVotingStartHeight,
 		outputs1, references, producersMap, crsMap))
 	s.NoError(s.Chain.checkVoteOutputs(config.DefaultParams.CRVotingStartHeight,

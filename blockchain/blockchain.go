@@ -506,7 +506,7 @@ func (b *BlockChain) CreateCRAssetsRectifyTransaction() (*Transaction, error) {
 		return nil, err
 	}
 	if len(utxos) < int(b.chainParams.MinCRAssetsAddressUTXOCount) {
-		return nil, errors.New("Avaliable utxo is less than MinCRAssetsAddressUTXOCount")
+		return nil, errors.New("Available utxo is less than MinCRAssetsAddressUTXOCount")
 	}
 	if len(utxos) > int(b.chainParams.MaxCRAssetsAddressUTXOCount) {
 		utxos = utxos[:b.chainParams.MaxCRAssetsAddressUTXOCount]

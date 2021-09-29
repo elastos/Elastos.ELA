@@ -60,8 +60,6 @@ func TestIsLetterOrNumber(t *testing.T) {
 	assert.False(t, IsLetterOrNumber(":alice"))
 	assert.False(t, IsLetterOrNumber("alice bob"))
 	assert.False(t, IsLetterOrNumber("(alice)"))
-	assert.False(t, IsLetterOrNumber(":"))
-	assert.False(t, IsLetterOrNumber("."))
 	assert.False(t, IsLetterOrNumber("("))
 	assert.False(t, IsLetterOrNumber(")"))
 	assert.False(t, IsLetterOrNumber("["))
@@ -90,5 +88,4 @@ func TestIsLetterOrNumber(t *testing.T) {
 	assert.False(t, IsLetterOrNumber("?"))
 	assert.False(t, IsLetterOrNumber("/"))
 	assert.False(t, IsLetterOrNumber(" "))
-
 }

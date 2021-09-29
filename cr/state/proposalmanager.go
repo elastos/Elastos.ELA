@@ -78,9 +78,15 @@ type ProposalManager struct {
 	history *utils.History
 }
 
-func (p *ProposalManager) tryCancelReservedCustomID() {
+func (p *ProposalManager) tryCancelReservedCustomID(height uint32) {
 	if len(p.ReservedCustomIDLists) == 0 {
-		p.ReservedCustomID = false
+		oriReservedCustomID := p.ReservedCustomID
+		p.history.Append(height, func() {
+			p.ReservedCustomID = false
+		}, func() {
+			p.ReservedCustomID = oriReservedCustomID
+		})
+
 	}
 }
 
@@ -198,7 +204,7 @@ func (p *ProposalManager) updateProposals(height uint32,
 				unusedAmount += getProposalTotalBudgetAmount(v.Proposal)
 				recordPartProposalResult(&results, proposalType, k, false)
 				if proposalType == payload.ReserveCustomID {
-					p.tryCancelReservedCustomID()
+					p.tryCancelReservedCustomID(height)
 				}
 				break
 			}
@@ -211,7 +217,7 @@ func (p *ProposalManager) updateProposals(height uint32,
 					pass = false
 					recordPartProposalResult(&results, proposalType, k, pass)
 					if proposalType == payload.ReserveCustomID {
-						p.tryCancelReservedCustomID()
+						p.tryCancelReservedCustomID(height)
 					}
 				}
 			}
@@ -221,7 +227,7 @@ func (p *ProposalManager) updateProposals(height uint32,
 				unusedAmount += getProposalTotalBudgetAmount(v.Proposal)
 				recordPartProposalResult(&results, proposalType, k, false)
 				if proposalType == payload.ReserveCustomID {
-					p.tryCancelReservedCustomID()
+					p.tryCancelReservedCustomID(height)
 				}
 				break
 			}
@@ -231,7 +237,7 @@ func (p *ProposalManager) updateProposals(height uint32,
 					unusedAmount += getProposalTotalBudgetAmount(v.Proposal)
 					recordPartProposalResult(&results, proposalType, k, false)
 					if proposalType == payload.ReserveCustomID {
-						p.tryCancelReservedCustomID()
+						p.tryCancelReservedCustomID(height)
 					}
 					continue
 				}

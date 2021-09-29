@@ -3246,6 +3246,9 @@ func (b *BlockChain) checkReservedCustomID(proposal *payload.CRCProposal, Payloa
 		if _, ok := customIDMap[v]; ok {
 			return errors.New("duplicated reserved custom ID")
 		}
+		if !common.IsLetterOrNumber(v) {
+			return errors.New("invalid custom ID: only letter and number is allowed")
+		}
 		customIDMap[v] = struct{}{}
 	}
 	crMember := b.crCommittee.GetMember(proposal.CRCouncilMemberDID)

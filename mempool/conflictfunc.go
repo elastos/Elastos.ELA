@@ -86,6 +86,7 @@ func hashCRCProposalSecretaryGeneralDID(tx *types.Transaction) (interface{}, err
 	}
 	return nil, nil
 }
+
 func strChangeCustomIDFee(tx *types.Transaction) (interface{}, error) {
 	p, ok := tx.Payload.(*payload.CRCProposal)
 	if !ok {
@@ -94,6 +95,18 @@ func strChangeCustomIDFee(tx *types.Transaction) (interface{}, error) {
 	}
 	if p.ProposalType == payload.ChangeCustomIDFee {
 		return "Change the fee of custom ID", nil
+	}
+	return nil, nil
+}
+
+func strReserveCustomID(tx *types.Transaction) (interface{}, error) {
+	p, ok := tx.Payload.(*payload.CRCProposal)
+	if !ok {
+		return nil, fmt.Errorf(
+			"CRC proposal payload cast failed, tx:%s", tx.Hash())
+	}
+	if p.ProposalType == payload.ChangeCustomIDFee {
+		return "Reserve custom ID", nil
 	}
 	return nil, nil
 }

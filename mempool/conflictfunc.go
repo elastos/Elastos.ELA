@@ -105,7 +105,7 @@ func strReserveCustomID(tx *types.Transaction) (interface{}, error) {
 		return nil, fmt.Errorf(
 			"CRC proposal payload cast failed, tx:%s", tx.Hash())
 	}
-	if p.ProposalType == payload.ChangeCustomIDFee {
+	if p.ProposalType == payload.ReserveCustomID {
 		return "Reserve custom ID", nil
 	}
 	return nil, nil

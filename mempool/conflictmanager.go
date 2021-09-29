@@ -32,7 +32,8 @@ const (
 	slotCRCProposalRealWithdrawKey              = "CRCProposalRealWithdrawKey"
 	slotCloseProposalTargetProposalHash         = "CloseProposalTargetProposalHash"
 	slotChangeProposalOwnerTargetProposalHash   = "ChangeProposalOwnerTargetProposalHash"
-	slotChangeCustomIDFee                       = "slotChangeCustomIDFee"
+	slotChangeCustomIDFee                       = "ChangeCustomIDFee"
+	slotReserveCustomID                         = "ReserveCustomID"
 	slotSpecialTxHash                           = "SpecialTxHash"
 	slotSidechainTxHashes                       = "SidechainTxHashes"
 	slotSidechainReturnDepositTxHashes          = "SidechainReturnDepositTxHashes"
@@ -261,6 +262,15 @@ func newConflictManager() conflictManager {
 					keyTypeFuncPair{
 						Type: types.CRCProposal,
 						Func: strChangeCustomIDFee,
+					},
+				),
+			},
+			{
+				name: slotReserveCustomID,
+				slot: newConflictSlot(str,
+					keyTypeFuncPair{
+						Type: types.CRCProposal,
+						Func: strReserveCustomID,
 					},
 				),
 			},

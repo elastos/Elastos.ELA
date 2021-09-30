@@ -1549,6 +1549,10 @@ func (p *CRCProposalInfo) Serialize(w io.Writer, version byte) error {
 		return errors.New("failed to serialize CRCouncilMemberDID")
 	}
 
+	if err := p.SideChainInfo.Serialize(w); err != nil {
+		return errors.New("failed to serialize SideChainInfo")
+	}
+
 	if err := p.Hash.Serialize(w); err != nil {
 		return errors.New("failed to serialize Hash")
 	}
@@ -1654,6 +1658,10 @@ func (p *CRCProposalInfo) Deserialize(r io.Reader, version byte) error {
 
 	if err := p.CRCouncilMemberDID.Deserialize(r); err != nil {
 		return errors.New("failed to deserialize CRCouncilMemberDID")
+	}
+
+	if err := p.SideChainInfo.Deserialize(r); err != nil {
+		return errors.New("failed to deserialize SideChainInfo")
 	}
 
 	if err := p.Hash.Deserialize(r); err != nil {

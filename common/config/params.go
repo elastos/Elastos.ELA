@@ -250,9 +250,9 @@ var DefaultParams = Params{
 	NewELAIssuanceHeight:               919800,  // 3.5 * 365 * 720
 	SmallCrossTransferThreshold:        100000000,
 	ReturnDepositCoinFee:               100,
-	NewCrossChainStartHeight:           1027800,
-	ReturnCrossChainCoinStartHeight:    1027800,
-	ProhibitTransferToDIDHeight:        1056600,
+	NewCrossChainStartHeight:           1032840,
+	ReturnCrossChainCoinStartHeight:    1032840,
+	ProhibitTransferToDIDHeight:        1032840,
 	DIDSideChainAddress:                "XKUh4GLhFJiqAMTF6HyWQrV9pK9HcGUdfJ",
 }
 

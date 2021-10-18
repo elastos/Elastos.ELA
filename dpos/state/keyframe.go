@@ -28,6 +28,7 @@ type StateKeyFrame struct {
 	IllegalProducers         map[string]*Producer
 	PendingCanceledProducers map[string]*Producer
 	Votes                    map[string]struct{}
+	DposV2Votes              map[string]struct{}
 	DepositOutputs           map[string]common.Fixed64
 	Nicknames                map[string]struct{}
 	SpecialTxHashes          map[common.Uint256]struct{}
@@ -72,6 +73,7 @@ func (s *StateKeyFrame) snapshot() *StateKeyFrame {
 		IllegalProducers:         make(map[string]*Producer),
 		PendingCanceledProducers: make(map[string]*Producer),
 		Votes:                    make(map[string]struct{}),
+		DposV2Votes:              make(map[string]struct{}),
 		DepositOutputs:           make(map[string]common.Fixed64),
 		Nicknames:                make(map[string]struct{}),
 		SpecialTxHashes:          make(map[common.Uint256]struct{}),
@@ -86,6 +88,7 @@ func (s *StateKeyFrame) snapshot() *StateKeyFrame {
 	state.IllegalProducers = copyProducerMap(s.IllegalProducers)
 	state.PendingCanceledProducers = copyProducerMap(s.PendingCanceledProducers)
 	state.Votes = copyStringSet(s.Votes)
+	state.DposV2Votes = copyStringSet(s.DposV2Votes)
 	state.DepositOutputs = copyFixed64Map(s.DepositOutputs)
 	state.Nicknames = copyStringSet(s.Nicknames)
 	state.SpecialTxHashes = copyHashSet(s.SpecialTxHashes)
@@ -125,6 +128,10 @@ func (s *StateKeyFrame) Serialize(w io.Writer) (err error) {
 	}
 
 	if err = s.SerializeStringSet(s.Votes, w); err != nil {
+		return
+	}
+
+	if err = s.SerializeStringSet(s.DposV2Votes, w); err != nil {
 		return
 	}
 
@@ -198,6 +205,10 @@ func (s *StateKeyFrame) Deserialize(r io.Reader) (err error) {
 	}
 
 	if s.Votes, err = s.DeserializeStringSet(r); err != nil {
+		return
+	}
+
+	if s.DposV2Votes, err = s.DeserializeStringSet(r); err != nil {
 		return
 	}
 
@@ -457,6 +468,7 @@ func NewStateKeyFrame() *StateKeyFrame {
 		IllegalProducers:          make(map[string]*Producer),
 		PendingCanceledProducers:  make(map[string]*Producer),
 		Votes:                     make(map[string]struct{}),
+		DposV2Votes:               make(map[string]struct{}),
 		DepositOutputs:            make(map[string]common.Fixed64),
 		Nicknames:                 make(map[string]struct{}),
 		SpecialTxHashes:           make(map[common.Uint256]struct{}),

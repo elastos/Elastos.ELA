@@ -80,6 +80,7 @@ type Producer struct {
 	illegalHeight                uint32
 	penalty                      common.Fixed64
 	votes                        common.Fixed64
+	dposV2Votes                  common.Fixed64
 	depositAmount                common.Fixed64
 	totalAmount                  common.Fixed64
 	depositHash                  common.Uint168
@@ -113,6 +114,11 @@ func (p *Producer) CancelHeight() uint32 {
 // Votes returns the votes of the producer.
 func (p *Producer) Votes() common.Fixed64 {
 	return p.votes
+}
+
+// DposV2Votes returns the votes of the dposV2.
+func (p *Producer) DposV2Votes() common.Fixed64 {
+	return p.dposV2Votes
 }
 
 func (p *Producer) NodePublicKey() []byte {
@@ -188,6 +194,10 @@ func (p *Producer) Serialize(w io.Writer) error {
 		return err
 	}
 
+	if err := p.dposV2Votes.Serialize(w); err != nil {
+		return err
+	}
+
 	if err := p.depositAmount.Serialize(w); err != nil {
 		return err
 	}
@@ -240,6 +250,10 @@ func (p *Producer) Deserialize(r io.Reader) (err error) {
 	}
 
 	if err := p.votes.Deserialize(r); err != nil {
+		return err
+	}
+
+	if err := p.dposV2Votes.Deserialize(r); err != nil {
 		return err
 	}
 
@@ -731,6 +745,9 @@ func (s *State) IsDPOSTransaction(tx *types.Transaction) bool {
 						if content.VoteType == outputpayload.Delegate {
 							return true
 						}
+						if content.VoteType == outputpayload.DposV2 {
+							return true
+						}
 					}
 				}
 			}
@@ -742,6 +759,14 @@ func (s *State) IsDPOSTransaction(tx *types.Transaction) bool {
 	// Cancel votes.
 	for _, input := range tx.Inputs {
 		_, ok := s.Votes[input.ReferKey()]
+		if ok {
+			return true
+		}
+	}
+
+	// Cancel dpos v2 votes.
+	for _, input := range tx.Inputs {
+		_, ok := s.DposV2Votes[input.ReferKey()]
 		if ok {
 			return true
 		}
@@ -1016,6 +1041,7 @@ func (s *State) registerProducer(tx *types.Transaction, height uint32) {
 		info:                         *info,
 		registerHeight:               height,
 		votes:                        0,
+		dposV2Votes:                  0,
 		inactiveSince:                0,
 		inactiveCount:                0,
 		randomCandidateInactiveCount: 0,
@@ -1115,7 +1141,15 @@ func (s *State) processVotes(tx *types.Transaction, height uint32) {
 				continue
 			}
 			p, _ := output.Payload.(*outputpayload.VoteOutput)
-			if p.Version == outputpayload.VoteProducerVersion {
+			if p.Version == outputpayload.VoteDposV2Version {
+				op := types.NewOutPoint(tx.Hash(), uint16(i))
+				s.history.Append(height, func() {
+					s.DposV2Votes[op.ReferKey()] = struct{}{}
+				}, func() {
+					delete(s.DposV2Votes, op.ReferKey())
+				})
+				s.processDposV2VoteOutput(output, height)
+			} else if p.Version == outputpayload.VoteProducerVersion {
 				op := types.NewOutPoint(tx.Hash(), uint16(i))
 				s.history.Append(height, func() {
 					s.Votes[op.ReferKey()] = struct{}{}
@@ -1227,6 +1261,90 @@ func (s *State) processCancelVotes(tx *types.Transaction, height uint32) {
 		if ok {
 			out := references[input]
 			s.processVoteCancel(&out, height)
+		}
+	}
+}
+
+// processCancelVotes takes a transaction output with vote payload.
+func (s *State) processCancelDposV2Votes(tx *types.Transaction, height uint32) {
+	var exist bool
+	for _, input := range tx.Inputs {
+		referKey := input.ReferKey()
+		if _, ok := s.DposV2Votes[referKey]; ok {
+			exist = true
+		}
+	}
+	if !exist {
+		return
+	}
+
+	references, err := s.getTxReference(tx)
+	if err != nil {
+		log.Errorf("get tx reference failed, tx hash:%s", common.ToReversedString(tx.Hash()))
+		return
+	}
+	for _, input := range tx.Inputs {
+		referKey := input.ReferKey()
+		_, ok := s.DposV2Votes[referKey]
+		if ok {
+			out := references[input]
+			s.processDposV2VoteCancel(&out, height)
+		}
+	}
+}
+
+// processVoteCancel takes a previous vote output and decrease producers votes.
+func (s *State) processDposV2VoteCancel(output *types.Output, height uint32) {
+	subtractByVote := func(producer *Producer, vote common.Fixed64) {
+		s.history.Append(height, func() {
+			producer.dposV2Votes -= vote
+		}, func() {
+			producer.dposV2Votes += vote
+		})
+	}
+
+	p := output.Payload.(*outputpayload.VoteOutput)
+	for _, vote := range p.Contents {
+		for _, cv := range vote.CandidateVotes {
+			producer := s.getProducer(cv.Candidate)
+			if producer == nil {
+				continue
+			}
+			switch vote.VoteType {
+			case outputpayload.DposV2:
+				if p.Version == outputpayload.VoteDposV2Version {
+					v := cv.Votes
+					subtractByVote(producer, v)
+				}
+			}
+		}
+	}
+}
+
+// processDposV2VoteOutput takes a transaction output with vote payload.
+func (s *State) processDposV2VoteOutput(output *types.Output, height uint32) {
+	countByVote := func(producer *Producer, vote common.Fixed64) {
+		s.history.Append(height, func() {
+			producer.dposV2Votes += vote
+		}, func() {
+			producer.dposV2Votes -= vote
+		})
+	}
+
+	p := output.Payload.(*outputpayload.VoteOutput)
+	for _, vote := range p.Contents {
+		for _, cv := range vote.CandidateVotes {
+			producer := s.getProducer(cv.Candidate)
+			if producer == nil {
+				continue
+			}
+			switch vote.VoteType {
+			case outputpayload.DposV2:
+				if p.Version == outputpayload.VoteDposV2Version {
+					v := cv.Votes
+					countByVote(producer, v)
+				}
+			}
 		}
 	}
 }

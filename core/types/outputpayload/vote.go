@@ -30,6 +30,9 @@ const (
 
 	// Reject indicates the vote content is for impeachment.
 	CRCImpeachment VoteType = 0x03
+
+	// DposV2 indicates the vote content is for dpos 2.0 pledge address.
+	DposV2 VoteType = 0x04
 )
 
 // VoteType indicates the type of vote content.
@@ -43,6 +46,9 @@ const (
 	// VoteProducerAndCRVersion indicates the output version support delegate
 	// and CRC vote type, and support different votes for different candidates.
 	VoteProducerAndCRVersion = 0x01
+
+	// VoteDposV2Version indicates the output version support DposV2
+	VoteDposV2Version = 0x02
 )
 
 // CandidateVotes defines the voting information for individual candidates.
@@ -203,7 +209,7 @@ func (o *VoteOutput) Validate() error {
 	if o == nil {
 		return errors.New("vote output payload is nil")
 	}
-	if o.Version > VoteProducerAndCRVersion {
+	if o.Version > VoteDposV2Version {
 		return errors.New("invalid vote version")
 	}
 	typeMap := make(map[VoteType]struct{})
@@ -212,12 +218,12 @@ func (o *VoteOutput) Validate() error {
 			return errors.New("duplicate vote type")
 		}
 		typeMap[content.VoteType] = struct{}{}
-		if len(content.CandidateVotes) == 0 || (content.VoteType != CRC &&
+		if len(content.CandidateVotes) == 0 || (content.VoteType == Delegate &&
 			len(content.CandidateVotes) > MaxVoteProducersPerTransaction) {
 			return errors.New("invalid public key count")
 		}
 		if content.VoteType != Delegate && content.VoteType != CRC &&
-			content.VoteType != CRCProposal && content.VoteType != CRCImpeachment {
+			content.VoteType != CRCProposal && content.VoteType != CRCImpeachment && content.VoteType != DposV2 {
 			return errors.New("invalid vote type")
 		}
 

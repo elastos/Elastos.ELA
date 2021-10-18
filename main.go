@@ -165,7 +165,6 @@ func startNode(c *cli.Context, st *settings.Settings) {
 	if err != nil {
 		printErrorAndExit(err)
 	}
-	defer chainStore.Close()
 	ledger.Store = chainStore // fixme
 
 	txMemPool := mempool.NewTxPool(st.Params())
@@ -211,6 +210,13 @@ func startNode(c *cli.Context, st *settings.Settings) {
 		pgBar.Increase, dataDir, st.Params()); err != nil {
 		printErrorAndExit(err)
 	}
+	var chainStoreEx blockchain.IChainStoreExtend
+	chainStoreEx, err = blockchain.NewChainStoreEx(chain, chainStore, filepath.Join(dataDir, "ext"))
+	if err != nil {
+		printErrorAndExit(err)
+	}
+	defer chainStore.Close()
+	defer chainStoreEx.CloseEx()
 	pgBar.Stop()
 	ledger.Blockchain = chain // fixme
 	blockMemPool.Chain = chain

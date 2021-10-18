@@ -577,6 +577,88 @@ Response:
 }
 ```
 
+### gethistory
+
+Get the transaction history of given address
+
+#### Parameter
+
+| name        | type                             | description                                          |
+| ----------- | -------------------------------- | ---------------------------------------------------- |
+| address     | string                           | address                                              |
+| order       | string, optional, default=desc   | query order                                          |
+| skip        | int, optional, default=0         | the skip count of the transaction record             |
+| limit       | int, optional, default=10,max=50 | the limit count of the transaction record            |
+| timestamp   | int, optional, default=0         | the transaction after the timestamp will be returned |
+
+#### Example
+
+Request:
+
+```json
+{
+  "method": "gethistory",
+  "params": {
+    "address": "CREXPENSESXXXXXXXXXXXXXXXXXX4UdT6b",
+    "order": "desc",
+    "skip": 1,
+    "limit": 2
+  }
+}
+```
+
+Response:
+
+```json
+{
+  "jsonrpc": "2.0",
+  "result": {
+    "txhistory": [
+      {
+        "address": "CREXPENSESXXXXXXXXXXXXXXXXXX4UdT6b",
+        "txid": "13abbc3eb9e86c9d018cf490b47d6bf5f54b300cb2594d9572adb710919b1fc7",
+        "type": "sent",
+        "value": "50000",
+        "time": 1593673406,
+        "height": 675302,
+        "fee": "0.00010000",
+        "inputs": [
+          "CREXPENSESXXXXXXXXXXXXXXXXXX4UdT6b"
+        ],
+        "outputs": [
+          "8Kvg8Y6wka3sAG6ePoYnPPr4AxyqNozfp4",
+          "CREXPENSESXXXXXXXXXXXXXXXXXX4UdT6b"
+        ],
+        "txtype": "crcproposalwithdraw",
+        "memo": "",
+        "Status": "confirmed"
+      },
+      {
+        "address": "CREXPENSESXXXXXXXXXXXXXXXXXX4UdT6b",
+        "txid": "e731ae5d412b3952b9634d2f28b50d0db5c99d636d49ed4e69fabcb184775a92",
+        "type": "received",
+        "value": "1235547.63182878",
+        "time": 1591452410,
+        "height": 656679,
+        "fee": "0",
+        "inputs": [
+          "8VYXVxKKSAxkmRrfmGpQR2Kc66XhG6m3ta"
+        ],
+        "outputs": [
+          "CREXPENSESXXXXXXXXXXXXXXXXXX4UdT6b"
+        ],
+        "txtype": "transferasset",
+        "memo": "",
+        "Status": "confirmed"
+      }
+    ],
+    "totalcount": 4
+  },
+  "id": null,
+  "error": null
+}
+```
+
 ### setloglevel
 
 Set log level

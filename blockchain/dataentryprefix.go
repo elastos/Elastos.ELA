@@ -19,6 +19,10 @@ const (
 	SYSCurrentBlock      DataEntryPrefix = 0x40
 	SYSCurrentBookKeeper DataEntryPrefix = 0x42
 
+	DataTxHistoryPrefix    DataEntryPrefix = 0x60
+	DataBestHeightPrefix   DataEntryPrefix = 0x61
+	DataStoredHeightPrefix DataEntryPrefix = 0x62
+
 	// INDEX
 	IXHeaderHashList DataEntryPrefix = 0x80
 	IXUnspent        DataEntryPrefix = 0x90

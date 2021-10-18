@@ -475,11 +475,12 @@ func (mp *TxPool) replaceDuplicateSideChainPowTx(txn *Transaction) {
 
 // clean the sidechainpow tx pool
 func (mp *TxPool) cleanSideChainPowTx() {
-	for _, txn := range mp.txnList {
+	for txid, txn := range mp.txnList {
 		if txn.IsSideChainPowTx() {
 			arbiter := blockchain.DefaultLedger.Arbitrators.GetOnDutyCrossChainArbitrator()
 			if err := blockchain.CheckSideChainPowConsensus(txn, arbiter); err != nil {
 				// delete tx
+				blockchain.MemPoolEx.DeleteMemPoolTx(txid)
 				mp.doRemoveTransaction(txn)
 			}
 		}
@@ -567,6 +568,7 @@ func (mp *TxPool) doRemoveTransaction(tx *Transaction) {
 		}
 		mp.txFees.RemoveTx(hash, uint64(txSize), feeRate)
 		mp.removeTx(tx)
+		blockchain.MemPoolEx.DeleteMemPoolTx(hash)
 	}
 }
 

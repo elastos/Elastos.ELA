@@ -14,7 +14,9 @@ import (
 	"github.com/elastos/Elastos.ELA/crypto"
 )
 
-const ProducerInfoVersion byte = 0x00
+const (
+	ProducerInfoVersion byte = 0x00
+)
 
 type ProducerInfo struct {
 	OwnerPublicKey []byte

@@ -402,6 +402,7 @@ func (b *BlockChain) CheckTransactionContext(blockHeight uint32,
 		} else {
 			candidates = []*crstate.Candidate{}
 		}
+
 		err := b.checkVoteOutputs(blockHeight, txn.Outputs, references,
 			getProducerPublicKeysMap(producers), getCRCIDsMap(candidates))
 		if err != nil {
@@ -437,7 +438,7 @@ func (b *BlockChain) checkVoteOutputs(
 		programHashes[output.ProgramHash] = struct{}{}
 	}
 	for _, o := range outputs {
-		if o.Type != OTVote {
+		if o.Type != OTVote && o.Type != OTDposV2Vote {
 			continue
 		}
 		if _, ok := programHashes[o.ProgramHash]; !ok {
@@ -471,6 +472,11 @@ func (b *BlockChain) checkVoteOutputs(
 			case outputpayload.CRCImpeachment:
 				err := b.checkCRImpeachmentContent(
 					content, votePayload.Version, o.Value)
+				if err != nil {
+					return err
+				}
+			case outputpayload.DposV2:
+				err := b.checkVoteDposV2Content(content, pds, votePayload.Version, o.Value)
 				if err != nil {
 					return err
 				}
@@ -513,6 +519,25 @@ func (b *BlockChain) checkVoteProducerContent(content outputpayload.VoteContent,
 		}
 	}
 	if payloadVersion >= outputpayload.VoteProducerAndCRVersion {
+		for _, cv := range content.CandidateVotes {
+			if cv.Votes > amount {
+				return errors.New("votes larger than output amount")
+			}
+		}
+	}
+
+	return nil
+}
+
+func (b *BlockChain) checkVoteDposV2Content(content outputpayload.VoteContent,
+	pds map[string]struct{}, payloadVersion byte, amount common.Fixed64) error {
+	for _, cv := range content.CandidateVotes {
+		if _, ok := pds[common.BytesToHexString(cv.Candidate)]; !ok {
+			return fmt.Errorf("invalid vote output payload "+
+				"producer candidate: %s", common.BytesToHexString(cv.Candidate))
+		}
+	}
+	if payloadVersion >= outputpayload.VoteDposV2Version {
 		for _, cv := range content.CandidateVotes {
 			if cv.Votes > amount {
 				return errors.New("votes larger than output amount")
@@ -870,6 +895,11 @@ func checkOutputPayload(txType TxType, output *Output) error {
 			}
 		case OTNone:
 		case OTMapping:
+		case OTDposV2Vote:
+			if contract.GetPrefixType(output.ProgramHash) !=
+				contract.PrefixDposV2 {
+				return errors.New("output address should be dposV2")
+			}
 		default:
 			return errors.New("transaction type dose not match the output payload type")
 		}
@@ -1189,6 +1219,8 @@ func (b *BlockChain) checkPOWConsensusTransaction(txn *Transaction, references m
 							return errors.New("not allow to vote CRC proposal in POW consensus")
 						case outputpayload.CRCImpeachment:
 							return errors.New("not allow to vote CRImpeachment in POW consensus")
+						case outputpayload.DposV2:
+							return errors.New("not allow to vote Dpos V2 in POW consensus")
 						}
 					}
 					containVoteOutput = true
@@ -1325,7 +1357,7 @@ func (b *BlockChain) checkTxHeightVersion(txn *Transaction, blockHeight uint32) 
 				"before CRClaimDPOSNodeStartHeight", txn.TxType.Name()))
 		}
 	case TransferAsset:
-		if blockHeight >= b.chainParams.CRVotingStartHeight {
+		if blockHeight >= b.chainParams.DposV2StartHeight {
 			return nil
 		}
 		if txn.Version >= TxVersion09 {
@@ -1334,9 +1366,13 @@ func (b *BlockChain) checkTxHeightVersion(txn *Transaction, blockHeight uint32) 
 					continue
 				}
 				p, _ := output.Payload.(*outputpayload.VoteOutput)
-				if p.Version >= outputpayload.VoteProducerAndCRVersion {
+				if blockHeight < b.chainParams.CRVotingStartHeight && p.Version == outputpayload.VoteProducerAndCRVersion {
 					return errors.New("not support " +
 						"VoteProducerAndCRVersion before CRVotingStartHeight")
+				}
+				if blockHeight >= b.chainParams.CRVotingStartHeight && p.Version == outputpayload.VoteDposV2Version {
+					return errors.New("not support " +
+						"VoteDposV2Version before DposV2StartHeight")
 				}
 			}
 		}

@@ -142,6 +142,7 @@ func stateKeyFrameEqual(first *StateKeyFrame, second *StateKeyFrame) bool {
 		len(first.IllegalProducers) != len(second.IllegalProducers) ||
 		len(first.PendingCanceledProducers) != len(second.PendingCanceledProducers) ||
 		len(first.Votes) != len(second.Votes) ||
+		len(first.DposV2Votes) != len(second.DposV2Votes) ||
 		len(first.DepositOutputs) != len(second.DepositOutputs) ||
 		len(first.Nicknames) != len(second.Nicknames) ||
 		len(first.SpecialTxHashes) != len(second.SpecialTxHashes) ||
@@ -228,6 +229,13 @@ func stateKeyFrameEqual(first *StateKeyFrame, second *StateKeyFrame) bool {
 		}
 	}
 
+	for k := range first.DposV2Votes {
+		_, ok := second.DposV2Votes[k]
+		if !ok {
+			return false
+		}
+	}
+
 	for k := range first.DepositOutputs {
 		_, ok := second.DepositOutputs[k]
 		if !ok {
@@ -284,6 +292,7 @@ func randomStateKeyFrame() *StateKeyFrame {
 		IllegalProducers:          make(map[string]*Producer),
 		PendingCanceledProducers:  make(map[string]*Producer),
 		Votes:                     make(map[string]struct{}),
+		DposV2Votes:               make(map[string]struct{}),
 		DepositOutputs:            make(map[string]common.Fixed64),
 		Nicknames:                 make(map[string]struct{}),
 		SpecialTxHashes:           make(map[common.Uint256]struct{}),
@@ -321,7 +330,8 @@ func producerEqual(first *Producer, second *Producer) bool {
 		first.activateRequestHeight != second.activateRequestHeight ||
 		first.illegalHeight != second.illegalHeight ||
 		first.penalty != second.penalty ||
-		first.votes != second.votes {
+		first.votes != second.votes ||
+		first.dposV2Votes != second.dposV2Votes {
 		return false
 	}
 
@@ -427,6 +437,7 @@ func randomProducer() *Producer {
 		illegalHeight:         rand.Uint32(),
 		penalty:               common.Fixed64(rand.Uint64()),
 		votes:                 common.Fixed64(rand.Intn(10000) + 1),
+		dposV2Votes:           common.Fixed64(rand.Intn(10000) + 1),
 	}
 }
 

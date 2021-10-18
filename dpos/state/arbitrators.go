@@ -1570,6 +1570,19 @@ func (a *arbitrators) getSortedProducers() []*Producer {
 	return votedProducers
 }
 
+func (a *arbitrators) getSortedProducersDposV2() []*Producer {
+	votedProducers := a.State.GetVotedProducers()
+	sort.Slice(votedProducers, func(i, j int) bool {
+		if votedProducers[i].votes == votedProducers[j].votes {
+			return bytes.Compare(votedProducers[i].info.NodePublicKey,
+				votedProducers[j].NodePublicKey()) < 0
+		}
+		return votedProducers[i].DposV2Votes() > votedProducers[j].DposV2Votes()
+	})
+
+	return votedProducers
+}
+
 func (a *arbitrators) getSortedProducersWithRandom(height uint32, unclaimedCount int) ([]*Producer, error) {
 	votedProducers := a.getSortedProducers()
 	if height < a.chainParams.NoCRCDPOSNodeHeight {

@@ -35,6 +35,9 @@ const (
 
 	// OTReturnSideChainDepositCoin indicates the output payload is return side chain deposit coin.
 	OTReturnSideChainDepositCoin
+
+	//OTDposV2Vote indicates the output payload is a dposV2 vote.
+	OTDposV2Vote
 )
 
 type OutputPayload interface {

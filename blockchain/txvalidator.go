@@ -476,7 +476,7 @@ func (b *BlockChain) checkVoteOutputs(
 					return err
 				}
 			case outputpayload.DposV2:
-				err := b.checkVoteDposV2Content(content, pds, votePayload.Version, o.Value)
+				err := b.checkVoteDposV2Content(blockHeight, content, pds, votePayload.Version, o.Value)
 				if err != nil {
 					return err
 				}
@@ -529,7 +529,7 @@ func (b *BlockChain) checkVoteProducerContent(content outputpayload.VoteContent,
 	return nil
 }
 
-func (b *BlockChain) checkVoteDposV2Content(content outputpayload.VoteContent,
+func (b *BlockChain) checkVoteDposV2Content(blockHeight uint32, content outputpayload.VoteContent,
 	pds map[string]struct{}, payloadVersion byte, amount common.Fixed64) error {
 	for _, cv := range content.CandidateVotes {
 		if _, ok := pds[common.BytesToHexString(cv.Candidate)]; !ok {
@@ -537,12 +537,22 @@ func (b *BlockChain) checkVoteDposV2Content(content outputpayload.VoteContent,
 				"producer candidate: %s", common.BytesToHexString(cv.Candidate))
 		}
 	}
-	if payloadVersion >= outputpayload.VoteDposV2Version {
-		for _, cv := range content.CandidateVotes {
-			if cv.Votes > amount {
-				return errors.New("votes larger than output amount")
-			}
+
+	if payloadVersion < outputpayload.VoteDposV2Version {
+		return errors.New("payload VoteDposV2Version not support vote CR")
+	}
+	if blockHeight >= b.chainParams.DposV2StartHeight {
+		if len(content.CandidateVotes) > outputpayload.MaxVoteProducersPerTransaction {
+			return errors.New("invalid count of DposV2 candidates ")
 		}
+	}
+
+	var totalVotes common.Fixed64
+	for _, cv := range content.CandidateVotes {
+		totalVotes += cv.Votes
+	}
+	if totalVotes > amount {
+		return errors.New("total votes larger than output amount")
 	}
 
 	return nil
@@ -1370,7 +1380,7 @@ func (b *BlockChain) checkTxHeightVersion(txn *Transaction, blockHeight uint32) 
 					return errors.New("not support " +
 						"VoteProducerAndCRVersion before CRVotingStartHeight")
 				}
-				if blockHeight >= b.chainParams.CRVotingStartHeight && p.Version == outputpayload.VoteDposV2Version {
+				if p.Version == outputpayload.VoteDposV2Version {
 					return errors.New("not support " +
 						"VoteDposV2Version before DposV2StartHeight")
 				}

@@ -27,6 +27,7 @@ func registerParams(c *cli.Context, L *lua.LState) {
 	url := c.String("url")
 	location := c.Int64("location")
 	depositAmount := c.Float64("depositamount")
+	stakeUntil := c.Int64("stakeuntil")
 	amount := c.Float64("amount")
 	fee := c.Float64("fee")
 	votes := c.Float64("votes")
@@ -115,6 +116,10 @@ func registerParams(c *cli.Context, L *lua.LState) {
 	}
 	getDepositAmount := func(L *lua.LState) int {
 		L.Push(lua.LNumber(depositAmount))
+		return 1
+	}
+	getStakeUntil := func(L *lua.LState) int {
+		L.Push(lua.LNumber(stakeUntil))
 		return 1
 	}
 	getAmount := func(L *lua.LState) int {
@@ -346,6 +351,7 @@ func registerParams(c *cli.Context, L *lua.LState) {
 	L.Register("getUrl", getUrl)
 	L.Register("getLocation", getLocation)
 	L.Register("getDepositAmount", getDepositAmount)
+	L.Register("getStakeUntil", getStakeUntil)
 	L.Register("getAmount", getAmount)
 	L.Register("getFee", getFee)
 	L.Register("getVotes", getVotes)
@@ -490,6 +496,10 @@ func NewCommand() *cli.Command {
 			cli.Float64Flag{
 				Name:  "amount",
 				Usage: "set the amount",
+			},
+			cli.Int64Flag{
+				Name:  "stakeuntil",
+				Usage: "set the stakeuntil height",
 			},
 			cli.Float64Flag{
 				Name:  "fee",

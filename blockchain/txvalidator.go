@@ -1823,74 +1823,78 @@ func (b *BlockChain) checkRegisterProducerTransaction(txn *Transaction) error {
 			return fmt.Errorf("producer owner already registered")
 		}
 	} else {
-		// check duplication of node.
-		if b.state.ProducerNodePublicKeyExists(info.NodePublicKey) {
-			return fmt.Errorf("producer already registered")
-		}
-
-		// check duplication of owner.
-		if b.state.ProducerOwnerPublicKeyExists(info.OwnerPublicKey) {
-			return fmt.Errorf("producer owner already registered")
-		}
-	}
-
-	// check duplication of nickname.
-	if b.state.NicknameExists(info.NickName) {
-		return fmt.Errorf("nick name %s already inuse", info.NickName)
-	}
-
-	// check if public keys conflict with cr program code
-	ownerCode := append([]byte{byte(COMPRESSEDLEN)}, info.OwnerPublicKey...)
-	ownerCode = append(ownerCode, vm.CHECKSIG)
-	if b.crCommittee.ExistCR(ownerCode) {
-		return fmt.Errorf("owner public key %s already exist in cr list",
-			common.BytesToHexString(info.OwnerPublicKey))
-	}
-	nodeCode := append([]byte{byte(COMPRESSEDLEN)}, info.NodePublicKey...)
-	nodeCode = append(nodeCode, vm.CHECKSIG)
-	if b.crCommittee.ExistCR(nodeCode) {
-		return fmt.Errorf("node public key %s already exist in cr list",
-			common.BytesToHexString(info.NodePublicKey))
-	}
-
-	if err := b.additionalProducerInfoCheck(info); err != nil {
-		return err
-	}
-
-	// check signature
-	publicKey, err := DecodePoint(info.OwnerPublicKey)
-	if err != nil {
-		return errors.New("invalid owner public key in payload")
-	}
-	signedBuf := new(bytes.Buffer)
-	err = info.SerializeUnsigned(signedBuf, payload.ProducerInfoVersion)
-	if err != nil {
-		return err
-	}
-	err = Verify(*publicKey, signedBuf.Bytes(), info.Signature)
-	if err != nil {
-		return errors.New("invalid signature in payload")
-	}
-
-	// check deposit coin
-	hash, err := contract.PublicKeyToDepositProgramHash(info.OwnerPublicKey)
-	if err != nil {
-		return errors.New("invalid public key")
-	}
-	var depositCount int
-	for _, output := range txn.Outputs {
-		if contract.GetPrefixType(output.ProgramHash) == contract.PrefixDeposit {
-			depositCount++
-			if !output.ProgramHash.IsEqual(*hash) {
-				return errors.New("deposit address does not match the public key in payload")
+		if b.GetHeight() < b.chainParams.DposV2StartHeight && txn.PayloadVersion == payload.ProducerInfoVersion {
+			// check duplication of node.
+			if b.state.ProducerNodePublicKeyExists(info.NodePublicKey) {
+				return fmt.Errorf("producer already registered")
 			}
-			if output.Value < crstate.MinDepositAmount {
-				return errors.New("producer deposit amount is insufficient")
+
+			// check duplication of owner.
+			if b.state.ProducerOwnerPublicKeyExists(info.OwnerPublicKey) {
+				return fmt.Errorf("producer owner already registered")
 			}
 		}
 	}
-	if depositCount != 1 {
-		return errors.New("there must be only one deposit address in outputs")
+
+	if b.GetHeight() < b.chainParams.DposV2StartHeight && txn.PayloadVersion == payload.ProducerInfoVersion {
+		// check duplication of nickname.
+		if b.state.NicknameExists(info.NickName) {
+			return fmt.Errorf("nick name %s already inuse", info.NickName)
+		}
+
+		// check if public keys conflict with cr program code
+		ownerCode := append([]byte{byte(COMPRESSEDLEN)}, info.OwnerPublicKey...)
+		ownerCode = append(ownerCode, vm.CHECKSIG)
+		if b.crCommittee.ExistCR(ownerCode) {
+			return fmt.Errorf("owner public key %s already exist in cr list",
+				common.BytesToHexString(info.OwnerPublicKey))
+		}
+		nodeCode := append([]byte{byte(COMPRESSEDLEN)}, info.NodePublicKey...)
+		nodeCode = append(nodeCode, vm.CHECKSIG)
+		if b.crCommittee.ExistCR(nodeCode) {
+			return fmt.Errorf("node public key %s already exist in cr list",
+				common.BytesToHexString(info.NodePublicKey))
+		}
+
+		if err := b.additionalProducerInfoCheck(info); err != nil {
+			return err
+		}
+
+		// check signature
+		publicKey, err := DecodePoint(info.OwnerPublicKey)
+		if err != nil {
+			return errors.New("invalid owner public key in payload")
+		}
+		signedBuf := new(bytes.Buffer)
+		err = info.SerializeUnsigned(signedBuf, payload.ProducerInfoVersion)
+		if err != nil {
+			return err
+		}
+		err = Verify(*publicKey, signedBuf.Bytes(), info.Signature)
+		if err != nil {
+			return errors.New("invalid signature in payload")
+		}
+
+		// check deposit coin
+		hash, err := contract.PublicKeyToDepositProgramHash(info.OwnerPublicKey)
+		if err != nil {
+			return errors.New("invalid public key")
+		}
+		var depositCount int
+		for _, output := range txn.Outputs {
+			if contract.GetPrefixType(output.ProgramHash) == contract.PrefixDeposit {
+				depositCount++
+				if !output.ProgramHash.IsEqual(*hash) {
+					return errors.New("deposit address does not match the public key in payload")
+				}
+				if output.Value < crstate.MinDepositAmount {
+					return errors.New("producer deposit amount is insufficient")
+				}
+			}
+		}
+		if depositCount != 1 {
+			return errors.New("there must be only one deposit address in outputs")
+		}
 	}
 
 	return nil

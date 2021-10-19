@@ -807,7 +807,7 @@ func (s *txValidatorTestSuite) TestCheckVoteProducerOutput() {
 			ProgramHash: common.Uint168{123},
 			Type:        types.OTVote,
 			Payload: &outputpayload.VoteOutput{
-				Version: 2,
+				Version: 3,
 				Contents: []outputpayload.VoteContent{
 					outputpayload.VoteContent{
 						VoteType: outputpayload.Delegate,
@@ -964,7 +964,7 @@ func (s *txValidatorTestSuite) TestCheckVoteProducerOutput() {
 			ProgramHash: common.Uint168{123},
 			Type:        types.OTVote,
 			Payload: &outputpayload.VoteOutput{
-				Version: 2,
+				Version: 3,
 				Contents: []outputpayload.VoteContent{
 					outputpayload.VoteContent{
 						VoteType: outputpayload.Delegate,

@@ -1666,6 +1666,7 @@ type RPCProducerInfo struct {
 	Nickname       string `json:"nickname"`
 	Url            string `json:"url"`
 	Location       uint64 `json:"location"`
+	StakeUntil     uint32 `json:"stakeuntil"`
 	Active         bool   `json:"active"`
 	Votes          string `json:"votes"`
 	State          string `json:"state"`
@@ -1916,6 +1917,7 @@ func ListProducers(param Params) map[string]interface{} {
 			Nickname:       p.Info().NickName,
 			Url:            p.Info().Url,
 			Location:       p.Info().Location,
+			StakeUntil:     p.Info().StakeUntil,
 			Active:         p.State() == state.Active,
 			Votes:          p.Votes().String(),
 			State:          p.State().String(),

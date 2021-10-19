@@ -289,8 +289,9 @@ func newRegisterProducer(L *lua.LState) int {
 	url := L.ToString(4)
 	location := L.ToInt64(5)
 	address := L.ToString(6)
+	stakeUntil := L.ToInt64(7)
 	needSign := true
-	client, err := checkClient(L, 7)
+	client, err := checkClient(L, 8)
 	if err != nil {
 		needSign = false
 	}
@@ -313,6 +314,7 @@ func newRegisterProducer(L *lua.LState) int {
 		Url:            url,
 		Location:       uint64(location),
 		NetAddress:     address,
+		StakeUntil:     uint32(stakeUntil),
 	}
 
 	if needSign {

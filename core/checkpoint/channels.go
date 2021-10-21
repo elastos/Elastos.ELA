@@ -1,7 +1,7 @@
 // Copyright (c) 2017-2020 The Elastos Foundation
 // Use of this source code is governed by an MIT
 // license that can be found in the LICENSE file.
-// 
+//
 
 package checkpoint
 
@@ -9,7 +9,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -169,25 +168,7 @@ func (c *fileChannels) replaceCheckpoints(msg *heightFileMsg) (err error) {
 		}
 	}
 
-	if !c.cfg.EnableHistory {
-		err = os.Rename(sourceFullName, defaultFullName)
-	} else {
-		var srcFile, desFile *os.File
-		if srcFile, err = os.OpenFile(sourceFullName, os.O_RDONLY, 0400);
-			err != nil || srcFile == nil {
-			return
-		}
-		defer srcFile.Close()
-
-		if desFile, err = os.OpenFile(defaultFullName,
-			os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0600); err != nil {
-			return
-		}
-		defer desFile.Close()
-
-		_, err = io.Copy(desFile, srcFile)
-	}
-	return
+	return os.Rename(sourceFullName, defaultFullName)
 }
 
 func (c *fileChannels) replyMsg(msg *fileMsg) {

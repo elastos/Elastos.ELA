@@ -11,6 +11,7 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"math"
+	"regexp"
 	"runtime"
 	"sort"
 	"strings"
@@ -137,4 +138,10 @@ func GetIpFromAddr(addr string) string {
 		return ""
 	}
 	return addr[0:endIndex]
+}
+
+// check if the string is only letter or number.
+func IsLetterOrNumber(s string) bool {
+	isLetterOrNumber := regexp.MustCompile(`^[a-zA-Z0-9]+$`).MatchString
+	return isLetterOrNumber(s)
 }

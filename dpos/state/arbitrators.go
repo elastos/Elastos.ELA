@@ -836,7 +836,7 @@ func (a *arbitrators) distributeWithNormalArbitratorsV2(height uint32, reward co
 		if _, ok := a.currentCRCArbitersMap[ownerHash]; ok {
 			r = individualBlockConfirmReward
 			m, ok := arbiter.(*crcArbiter)
-			if !ok || m.crMember.MemberState != state.MemberElected || m.crMember.DPOSPublicKey == nil {
+			if !ok || m.crMember.MemberState != state.MemberElected || len(m.crMember.DPOSPublicKey) == 0 {
 				rewardHash = a.chainParams.DestroyELAAddress
 			} else {
 				pk := arbiter.GetOwnerPublicKey()

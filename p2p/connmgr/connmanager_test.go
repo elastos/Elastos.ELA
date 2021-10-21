@@ -1,7 +1,7 @@
 // Copyright (c) 2017-2020 The Elastos Foundation
 // Use of this source code is governed by an MIT
 // license that can be found in the LICENSE file.
-// 
+//
 
 package connmgr
 
@@ -235,16 +235,16 @@ func TestTargetOutbound(t *testing.T) {
 func TestDuplicateOutbound(t *testing.T) {
 	targetOutbound := uint32(10)
 	addresses := []*net.TCPAddr{
-		{IP:   net.ParseIP("127.0.0.1"), Port: 18551},
-		{IP:   net.ParseIP("127.0.0.1"), Port: 18552},
-		{IP:   net.ParseIP("127.0.0.1"), Port: 18553},
-		{IP:   net.ParseIP("127.0.0.1"), Port: 18554},
-		{IP:   net.ParseIP("127.0.0.1"), Port: 18555},
-		{IP:   net.ParseIP("127.0.0.1"), Port: 18551},
-		{IP:   net.ParseIP("127.0.0.1"), Port: 18552},
-		{IP:   net.ParseIP("127.0.0.1"), Port: 18553},
-		{IP:   net.ParseIP("127.0.0.1"), Port: 18554},
-		{IP:   net.ParseIP("127.0.0.1"), Port: 18555},
+		{IP: net.ParseIP("127.0.0.1"), Port: 18551},
+		{IP: net.ParseIP("127.0.0.1"), Port: 18552},
+		{IP: net.ParseIP("127.0.0.1"), Port: 18553},
+		{IP: net.ParseIP("127.0.0.1"), Port: 18554},
+		{IP: net.ParseIP("127.0.0.1"), Port: 18555},
+		{IP: net.ParseIP("127.0.0.1"), Port: 18551},
+		{IP: net.ParseIP("127.0.0.1"), Port: 18552},
+		{IP: net.ParseIP("127.0.0.1"), Port: 18553},
+		{IP: net.ParseIP("127.0.0.1"), Port: 18554},
+		{IP: net.ParseIP("127.0.0.1"), Port: 18555},
 	}
 	connected := make(chan *ConnReq)
 	cmgr, err := New(&Config{

@@ -18,7 +18,7 @@ import (
 // possibly fit into a merkle block.  Since each transaction is represented by
 // a single bit, this is the max number of transactions per block divided by
 // 8 bits per byte.  Then an extra one to cover partials.
-func maxFlagsPerMerkleBlock () uint32 {
+func maxFlagsPerMerkleBlock() uint32 {
 	return pact.MaxTxPerBlock / 8
 }
 

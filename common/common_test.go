@@ -1,7 +1,7 @@
 // Copyright (c) 2017-2020 The Elastos Foundation
 // Use of this source code is governed by an MIT
 // license that can be found in the LICENSE file.
-// 
+//
 
 package common
 
@@ -10,6 +10,8 @@ import (
 	"fmt"
 	"sort"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestSortProgramHashes(t *testing.T) {
@@ -47,4 +49,43 @@ func (a byProgramHashes) Less(i, j int) bool {
 	} else {
 		return true
 	}
+}
+
+func TestIsLetterOrNumber(t *testing.T) {
+	assert.True(t, IsLetterOrNumber("alice"))
+	assert.True(t, IsLetterOrNumber("alice1"))
+	assert.True(t, IsLetterOrNumber("Alice2"))
+	assert.True(t, IsLetterOrNumber("123"))
+	assert.False(t, IsLetterOrNumber("艾丽斯"))
+	assert.False(t, IsLetterOrNumber(":alice"))
+	assert.False(t, IsLetterOrNumber("alice bob"))
+	assert.False(t, IsLetterOrNumber("(alice)"))
+	assert.False(t, IsLetterOrNumber("("))
+	assert.False(t, IsLetterOrNumber(")"))
+	assert.False(t, IsLetterOrNumber("["))
+	assert.False(t, IsLetterOrNumber("]"))
+	assert.False(t, IsLetterOrNumber("{"))
+	assert.False(t, IsLetterOrNumber("}"))
+	assert.False(t, IsLetterOrNumber("<"))
+	assert.False(t, IsLetterOrNumber(">"))
+	assert.False(t, IsLetterOrNumber("+"))
+	assert.False(t, IsLetterOrNumber("-"))
+	assert.False(t, IsLetterOrNumber("*"))
+	assert.False(t, IsLetterOrNumber("~"))
+	assert.False(t, IsLetterOrNumber("!"))
+	assert.False(t, IsLetterOrNumber("@"))
+	assert.False(t, IsLetterOrNumber("#"))
+	assert.False(t, IsLetterOrNumber("$"))
+	assert.False(t, IsLetterOrNumber("%"))
+	assert.False(t, IsLetterOrNumber("^"))
+	assert.False(t, IsLetterOrNumber("&"))
+	assert.False(t, IsLetterOrNumber(":"))
+	assert.False(t, IsLetterOrNumber(";"))
+	assert.False(t, IsLetterOrNumber("'"))
+	assert.False(t, IsLetterOrNumber(""))
+	assert.False(t, IsLetterOrNumber(","))
+	assert.False(t, IsLetterOrNumber("."))
+	assert.False(t, IsLetterOrNumber("?"))
+	assert.False(t, IsLetterOrNumber("/"))
+	assert.False(t, IsLetterOrNumber(" "))
 }

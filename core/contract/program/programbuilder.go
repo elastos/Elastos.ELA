@@ -1,7 +1,7 @@
 // Copyright (c) 2017-2020 The Elastos Foundation
 // Use of this source code is governed by an MIT
 // license that can be found in the LICENSE file.
-// 
+//
 
 package program
 
@@ -19,7 +19,7 @@ type Builder struct {
 
 func NewProgramBuilder() *Builder {
 	return &Builder{
-	//TODO: add sync pool for create Builder
+		//TODO: add sync pool for create Builder
 	}
 }
 

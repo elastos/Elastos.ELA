@@ -25,8 +25,9 @@ import (
 
 // todo remove this
 const (
-	dposCheckpointKey = "cp_dpos"
-	crCheckpointKey   = "cp_cr"
+	txpoolCheckpointKey = "cp_txPool"
+	dposCheckpointKey   = "cp_dpos"
+	crCheckpointKey     = "cp_cr"
 )
 
 type Priority byte
@@ -226,7 +227,7 @@ func (m *Manager) Restore() (err error) {
 		//	continue
 		//}
 		if err = m.loadDefaultCheckpoint(v); err != nil {
-			return
+			continue
 		}
 		v.OnInit()
 	}
@@ -333,7 +334,13 @@ func (m *Manager) onBlockSaved(block *types.DposBlock,
 		}
 
 		originalHeight := v.GetHeight()
-		if originalHeight > 0 &&
+		if originalHeight > 0 && v.Key() == txpoolCheckpointKey {
+			reply := make(chan bool, 1)
+			m.channels[v.Key()].Replace(v, reply, block.Height-1)
+			if !async {
+				<-reply
+			}
+		} else if originalHeight > 0 &&
 			(v.Key() != dposCheckpointKey && block.Height ==
 				originalHeight+v.EffectivePeriod() ||
 				v.Key() == dposCheckpointKey && useCheckPoint) {

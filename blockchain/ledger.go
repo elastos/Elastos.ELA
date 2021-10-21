@@ -7,6 +7,7 @@ package blockchain
 
 import (
 	"errors"
+	"strconv"
 
 	. "github.com/elastos/Elastos.ELA/common"
 	. "github.com/elastos/Elastos.ELA/core/types"
@@ -36,7 +37,7 @@ func (l *Ledger) IsDoubleSpend(Tx *Transaction) bool {
 func (l *Ledger) GetBlockWithHeight(height uint32) (*Block, error) {
 	temp, err := l.Blockchain.GetBlockHash(height)
 	if err != nil {
-		return nil, errors.New("[Ledger],GetBlockWithHeight failed with height=" + string(height))
+		return nil, errors.New("[Ledger],GetBlockWithHeight failed with height=" + strconv.Itoa(int(height)))
 	}
 	bk, err := DefaultLedger.Store.GetFFLDB().GetBlock(temp)
 	if err != nil {

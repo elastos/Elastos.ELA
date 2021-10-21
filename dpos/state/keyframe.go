@@ -35,11 +35,10 @@ type StateKeyFrame struct {
 	ProducerDepositMap       map[common.Uint168]struct{}
 
 	EmergencyInactiveArbiters map[string]struct{}
+	LastRandomCandidateOwner  string
 	VersionStartHeight        uint32
 	VersionEndHeight          uint32
-	Unclaimed                 int
 	LastRandomCandidateHeight uint32
-	LastRandomCandidateOwner  string
 	DPOSWorkHeight            uint32
 	ConsensusAlgorithm        ConsesusAlgorithm
 	LastBlockTimestamp        uint32
@@ -153,16 +152,17 @@ func (s *StateKeyFrame) Serialize(w io.Writer) (err error) {
 		return
 	}
 
-	if err = common.WriteElements(w, s.VersionStartHeight, s.VersionEndHeight,
-		s.LastRandomCandidateHeight, s.NoProducers,
-		s.NoClaimDPOSNode, s.LastBlockTimestamp, s.NeedRevertToDPOSTX,
-		s.NeedNextTurnDPOSInfo, s.RevertToPOWBlockHeight, s.LastIrreversibleHeight,
-		s.DPOSStartHeight); err != nil {
-		return err
-	}
-
 	if err = common.WriteVarString(w, s.LastRandomCandidateOwner); err != nil {
 		return
+	}
+
+	if err = common.WriteElements(w, s.VersionStartHeight, s.VersionEndHeight,
+		s.LastRandomCandidateHeight, s.DPOSWorkHeight, uint8(s.ConsensusAlgorithm),
+		s.LastBlockTimestamp, s.NeedRevertToDPOSTX,
+		s.NeedNextTurnDPOSInfo, s.NoProducers, s.NoClaimDPOSNode,
+		s.RevertToPOWBlockHeight, s.LastIrreversibleHeight,
+		s.DPOSStartHeight); err != nil {
+		return err
 	}
 
 	return
@@ -225,17 +225,21 @@ func (s *StateKeyFrame) Deserialize(r io.Reader) (err error) {
 		return
 	}
 
+	if s.LastRandomCandidateOwner, err = common.ReadVarString(r); err != nil {
+		return
+	}
+
+	var consensusAlgorithm uint8
 	if err = common.ReadElements(r, &s.VersionStartHeight, &s.VersionEndHeight,
-		&s.LastRandomCandidateHeight, &s.NoClaimDPOSNode,
-		&s.NoProducers, &s.LastBlockTimestamp, &s.NeedRevertToDPOSTX,
-		&s.NeedNextTurnDPOSInfo, &s.RevertToPOWBlockHeight, &s.LastIrreversibleHeight,
+		&s.LastRandomCandidateHeight, &s.DPOSWorkHeight, &consensusAlgorithm,
+		&s.LastBlockTimestamp, &s.NeedRevertToDPOSTX,
+		&s.NeedNextTurnDPOSInfo, &s.NoProducers, &s.NoClaimDPOSNode,
+		&s.RevertToPOWBlockHeight, &s.LastIrreversibleHeight,
 		&s.DPOSStartHeight); err != nil {
 		return err
 	}
 
-	if s.LastRandomCandidateOwner, err = common.ReadVarString(r); err != nil {
-		return
-	}
+	s.ConsensusAlgorithm = ConsesusAlgorithm(consensusAlgorithm)
 
 	return
 }

@@ -336,6 +336,22 @@ func SubmitSidechainIllegalData(param Params) map[string]interface{} {
 	return ResponsePack(Success, true)
 }
 
+func GetSmallCrossTransferTxs(params Params) map[string]interface{} {
+	type SmallCrossTransferTx struct {
+		Txs []string `json:"txs"`
+	}
+	txs, err := Store.GetSmallCrossTransferTx()
+	if err != nil {
+		return ResponsePack(InternalError, "internal error fail to get small crosschain transfer txs")
+	}
+
+	result := SmallCrossTransferTx{
+		Txs: txs,
+	}
+
+	return ResponsePack(Success, result)
+}
+
 func GetCrossChainPeersInfo(params Params) map[string]interface{} {
 	if Arbiter == nil {
 		return ResponsePack(InternalError, "arbiter disabled")
@@ -1010,6 +1026,50 @@ func GetBalanceByAsset(param Params) map[string]interface{} {
 	return ResponsePack(Success, balance.String())
 }
 
+func Getallregistertransactions(param Params) map[string]interface{} {
+	crCommittee := Chain.GetCRCommittee()
+	rs := crCommittee.GetAllRegisteredSideChain()
+	var result []RsInfo
+	for k, v := range rs {
+		for k1, v1 := range v {
+			result = append(result, RsInfo{
+				SideChainName:   v1.SideChainName,
+				MagicNumber:     v1.MagicNumber,
+				GenesisHash:     common.ToReversedString(v1.GenesisHash),
+				ExchangeRate:    v1.ExchangeRate,
+				TxHash:          common.ToReversedString(k1),
+				Height:          k,
+				EffectiveHeight: v1.EffectiveHeight,
+				ResourcePath:    v1.ResourcePath,
+			})
+		}
+	}
+	return ResponsePack(Success, result)
+}
+func Getregistertransactionsbyheight(param Params) map[string]interface{} {
+	height, ok := param.Uint("height")
+	if !ok {
+		return ResponsePack(InvalidParams, "height parameter should be a positive integer")
+	}
+	crCommittee := Chain.GetCRCommittee()
+
+	rs := crCommittee.GetRegisteredSideChainByHeight(height)
+	var result []RsInfo
+	for k, v := range rs {
+		result = append(result, RsInfo{
+			SideChainName:   v.SideChainName,
+			MagicNumber:     v.MagicNumber,
+			GenesisHash:     common.ToReversedString(v.GenesisHash),
+			ExchangeRate:    v.ExchangeRate,
+			EffectiveHeight: v.EffectiveHeight,
+			ResourcePath:    v.ResourcePath,
+			TxHash:          common.ToReversedString(k),
+			Height:          height,
+		})
+	}
+	return ResponsePack(Success, result)
+}
+
 func GetReceivedByAddress(param Params) map[string]interface{} {
 	address, ok := param.String("address")
 	if !ok {
@@ -1573,6 +1633,32 @@ func GetExistWithdrawTransactions(param Params) map[string]interface{} {
 	return ResponsePack(Success, resultTxHashes)
 }
 
+func GetExistSideChainReturnDepositTransactions(param Params) map[string]interface{} {
+	txList, ok := param.ArrayString("txs")
+	if !ok {
+		return ResponsePack(InvalidParams, "txs not found")
+	}
+
+	var resultTxHashes []string
+	for _, txHash := range txList {
+		txHashBytes, err := common.HexStringToBytes(txHash)
+		if err != nil {
+			return ResponsePack(InvalidParams, "")
+		}
+		hash, err := common.Uint256FromBytes(txHashBytes)
+		if err != nil {
+			return ResponsePack(InvalidParams, "")
+		}
+		inStore := Store.IsSidechainReturnDepositTxHashDuplicate(*hash)
+		inTxPool := TxMemPool.IsDuplicateSidechainReturnDepositTx(*hash)
+		if inTxPool || inStore {
+			resultTxHashes = append(resultTxHashes, txHash)
+		}
+	}
+
+	return ResponsePack(Success, resultTxHashes)
+}
+
 //single producer info
 type RPCProducerInfo struct {
 	OwnerPublicKey string `json:"ownerpublickey"`
@@ -1747,6 +1833,7 @@ type RPCChangeCustomIDFeeProposal struct {
 	OwnerPublicKey     string `json:"ownerpublickey"`
 	DraftHash          string `json:"drafthash"`
 	Fee                int64  `json:"fee"`
+	EIDEffectiveHeight uint32 `json:"eideffectiveheight"`
 	CRCouncilMemberDID string `json:"crcouncilmemberdid"`
 }
 
@@ -1758,6 +1845,23 @@ type RPCSecretaryGeneralProposal struct {
 	SecretaryGeneralPublicKey string `json:"secretarygeneralpublickey"`
 	SecretaryGeneralDID       string `json:"secretarygeneraldid"`
 	CRCouncilMemberDID        string `json:"crcouncilmemberdid"`
+}
+
+type RegisterSideChainInfo struct {
+	SideChainName   string `json:"sidechainname"`
+	MagicNumber     uint32 `json:"magic"`
+	GenesisHash     string `json:"genesishash"`
+	ExchangeRate    string `json:"exchangerate"`
+	EffectiveHeight uint32 `json:"effectiveheight"`
+	ResourcePath    string `json:"resourcepath"`
+}
+
+type RPCRegisterSideChainProposal struct {
+	ProposalType   string                `json:"proposaltype"`
+	CategoryData   string                `json:"categorydata"`
+	OwnerPublicKey string                `json:"ownerpublickey"`
+	DraftHash      string                `json:"drafthash"`
+	SideChainInfo  RegisterSideChainInfo `json:"sidechaininfo"`
 }
 
 type RPCCRProposalStateInfo struct {
@@ -2276,8 +2380,25 @@ func GetCRProposalState(param Params) map[string]interface{} {
 		rpcProposal.OwnerPublicKey = common.BytesToHexString(proposalState.Proposal.OwnerPublicKey)
 		rpcProposal.DraftHash = common.ToReversedString(proposalState.Proposal.DraftHash)
 		rpcProposal.Fee = int64(proposalState.Proposal.RateOfCustomIDFee)
+		rpcProposal.EIDEffectiveHeight = proposalState.Proposal.EIDEffectiveHeight
 		did, _ := proposalState.Proposal.CRCouncilMemberDID.ToAddress()
 		rpcProposal.CRCouncilMemberDID = did
+
+		rpcProposalState.Proposal = rpcProposal
+
+	case payload.RegisterSideChain:
+		var rpcProposal RPCRegisterSideChainProposal
+		rpcProposal.ProposalType = proposalState.Proposal.ProposalType.Name()
+		rpcProposal.CategoryData = proposalState.Proposal.CategoryData
+		rpcProposal.OwnerPublicKey = common.BytesToHexString(proposalState.Proposal.OwnerPublicKey)
+		rpcProposal.DraftHash = common.ToReversedString(proposalState.Proposal.DraftHash)
+
+		rpcProposal.SideChainInfo.SideChainName = proposalState.Proposal.SideChainName
+		rpcProposal.SideChainInfo.MagicNumber = proposalState.Proposal.MagicNumber
+		rpcProposal.SideChainInfo.GenesisHash = common.ToReversedString(proposalState.Proposal.GenesisHash)
+		rpcProposal.SideChainInfo.ExchangeRate = proposalState.Proposal.ExchangeRate.String()
+		rpcProposal.SideChainInfo.EffectiveHeight = proposalState.Proposal.EffectiveHeight
+		rpcProposal.SideChainInfo.ResourcePath = proposalState.Proposal.ResourcePath
 
 		rpcProposalState.Proposal = rpcProposal
 	}
@@ -2536,6 +2657,9 @@ func getPayloadInfo(p Payload, payloadVersion byte) PayloadInfo {
 		obj.Signature = common.BytesToHexString(object.Signature)
 		return obj
 	case *payload.WithdrawFromSideChain:
+		if payloadVersion == payload.WithdrawFromSideChainVersionV1 {
+			return nil
+		}
 		obj := new(WithdrawFromSideChainInfo)
 		obj.BlockHeight = object.BlockHeight
 		obj.GenesisBlockAddress = object.GenesisBlockAddress
@@ -2544,6 +2668,9 @@ func getPayloadInfo(p Payload, payloadVersion byte) PayloadInfo {
 		}
 		return obj
 	case *payload.TransferCrossChainAsset:
+		if payloadVersion == payload.TransferCrossChainVersionV1 {
+			return nil
+		}
 		obj := new(TransferCrossChainAssetInfo)
 		obj.CrossChainAddresses = object.CrossChainAddresses
 		obj.OutputIndexes = object.OutputIndexes
@@ -2712,6 +2839,7 @@ func getPayloadInfo(p Payload, payloadVersion byte) PayloadInfo {
 			obj.OwnerPublicKey = common.BytesToHexString(object.OwnerPublicKey)
 			obj.DraftHash = common.ToReversedString(object.DraftHash)
 			obj.FeeRate = int64(object.RateOfCustomIDFee)
+			obj.EIDEffectiveHeight = object.EIDEffectiveHeight
 			obj.Signature = common.BytesToHexString(object.Signature)
 			crmdid, _ := object.CRCouncilMemberDID.ToAddress()
 			obj.CRCouncilMemberDID = crmdid
@@ -2735,9 +2863,27 @@ func getPayloadInfo(p Payload, payloadVersion byte) PayloadInfo {
 			obj.CRCouncilMemberSignature = common.BytesToHexString(object.CRCouncilMemberSignature)
 			obj.Hash = common.ToReversedString(object.Hash(payloadVersion))
 			return obj
+		case payload.RegisterSideChain:
+			obj := new(CRCRegisterSideChainProposalInfo)
+			obj.ProposalType = object.ProposalType.Name()
+			obj.CategoryData = object.CategoryData
+			obj.OwnerPublicKey = common.BytesToHexString(object.OwnerPublicKey)
+			obj.DraftHash = common.ToReversedString(object.DraftHash)
+			obj.SideChainName = object.SideChainName
+			obj.MagicNumber = object.MagicNumber
+			obj.GenesisHash = common.ToReversedString(object.GenesisHash)
+			obj.ExchangeRate = object.ExchangeRate
+			obj.EffectiveHeight = object.EffectiveHeight
+			obj.ResourcePath = object.ResourcePath
+			obj.Signature = common.BytesToHexString(object.Signature)
+			crmdid, _ := object.CRCouncilMemberDID.ToAddress()
+			obj.CRCouncilMemberDID = crmdid
+			obj.CRCouncilMemberSignature = common.BytesToHexString(object.CRCouncilMemberSignature)
+			obj.Hash = common.ToReversedString(object.Hash(payloadVersion))
+			return obj
 		}
 
-	case *payload.CustomIDProposalResult:
+	case *payload.RecordProposalResult:
 		obj := new(CRCCustomIDProposalResultInfo)
 		for _, r := range object.ProposalResults {
 			result := ProposalResultInfo{
@@ -2912,6 +3058,26 @@ func getPayloadInfo(p Payload, payloadVersion byte) PayloadInfo {
 
 func getOutputPayloadInfo(op OutputPayload) OutputPayloadInfo {
 	switch object := op.(type) {
+	case *outputpayload.CrossChainOutput:
+		obj := new(CrossChainOutputInfo)
+		obj.Version = object.Version
+		obj.TargetAddress = object.TargetAddress
+		obj.TargetAmount = object.TargetAmount.String()
+		obj.TargetData = common.BytesToHexString(object.TargetData)
+		return obj
+	case *outputpayload.Withdraw:
+		obj := new(WithdrawInfo)
+		obj.Version = object.Version
+		obj.GenesisBlockAddress = object.GenesisBlockAddress
+		obj.SideChainTransactionHash = object.SideChainTransactionHash.String()
+		obj.TargetData = common.BytesToHexString(object.TargetData)
+		return obj
+	case *outputpayload.ReturnSideChainDeposit:
+		obj := new(ReturnSideChainDepositInfo)
+		obj.Version = object.Version
+		obj.GenesisBlockAddress = object.GenesisBlockAddress
+		obj.DepositTransactionHash = common.ToReversedString(object.DepositTransactionHash)
+		return obj
 	case *outputpayload.DefaultOutput:
 		obj := new(DefaultOutputInfo)
 		return obj

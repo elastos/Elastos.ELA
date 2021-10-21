@@ -39,6 +39,26 @@ type OutputPayloadInfo interface{}
 
 type DefaultOutputInfo struct{}
 
+type CrossChainOutputInfo struct {
+	Version       byte   `json:"Version"`
+	TargetAddress string `json:"TargetAddress"`
+	TargetAmount  string `json:"TargetAmount"`
+	TargetData    string `json:"TargetData"`
+}
+
+type WithdrawInfo struct {
+	Version                  byte   `json:"Version"`
+	GenesisBlockAddress      string `json:"GenesisBlockAddress"`
+	SideChainTransactionHash string `json:"SideChainTransactionHash"`
+	TargetData               string `json:"TargetData"`
+}
+
+type ReturnSideChainDepositInfo struct {
+	Version                byte   `json:"Version"`
+	GenesisBlockAddress    string `json:"GenesisBlockAddress"`
+	DepositTransactionHash string `json:"DepositTransactionHash"`
+}
+
 type CandidateVotes struct {
 	Candidate string `json:"candidate"`
 	Votes     string `json:"votes"`
@@ -310,6 +330,7 @@ type CRCChangeCustomIDFeeInfo struct {
 	OwnerPublicKey           string `json:"ownerpublickey"`
 	DraftHash                string `json:"drafthash"`
 	FeeRate                  int64  `json:"feerate"`
+	EIDEffectiveHeight       uint32 `json:"eideffectiveheight"`
 	Signature                string `json:"signature"`
 	CRCouncilMemberDID       string `json:"crcouncilmemberdid"`
 	CRCouncilMemberSignature string `json:"crcouncilmembersignature"`
@@ -341,6 +362,23 @@ type CRCSecretaryGeneralProposalInfo struct {
 	CRCouncilMemberDID        string `json:"crcouncilmemberdid"`
 	CRCouncilMemberSignature  string `json:"crcouncilmembersignature"`
 	Hash                      string `json:"hash"`
+}
+
+type CRCRegisterSideChainProposalInfo struct {
+	ProposalType             string         `json:"proposaltype"`
+	CategoryData             string         `json:"categorydata"`
+	OwnerPublicKey           string         `json:"ownerpublickey"`
+	DraftHash                string         `json:"drafthash"`
+	SideChainName            string         `json:"sidechainname"`
+	MagicNumber              uint32         `json:"magicnumber"`
+	GenesisHash              string         `json:"genesishash"`
+	ExchangeRate             common.Fixed64 `json:"exchangerate"`
+	EffectiveHeight          uint32         `json:"effectiveheight"`
+	ResourcePath             string         `json:"resourcepath"`
+	Signature                string         `json:"signature"`
+	CRCouncilMemberDID       string         `json:"crcouncilmemberdid"`
+	CRCouncilMemberSignature string         `json:"crcouncilmembersignature"`
+	Hash                     string         `json:"hash"`
 }
 
 type CRCProposalReviewInfo struct {
@@ -472,4 +510,15 @@ type SidechainIllegalDataInfo struct {
 	CompareEvidence     string   `json:"compareevidence"`
 	GenesisBlockAddress string   `json:"genesisblockaddress"`
 	Signs               []string `json:"signs"`
+}
+
+type RsInfo struct {
+	SideChainName   string         `json:"sidechainname"`
+	MagicNumber     uint32         `json:"magicnumber"`
+	GenesisHash     string         `json:"genesishash"`
+	ExchangeRate    common.Fixed64 `json:"exchangerate"`
+	ResourcePath    string         `json:"resourcepath"`
+	TxHash          string         `json:"txhash"`
+	Height          uint32         `json:"height"`
+	EffectiveHeight uint32         `json:"effectiveheight"`
 }

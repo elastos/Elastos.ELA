@@ -128,6 +128,10 @@ func (c *checkpoint) OnRollbackTo(height uint32) error {
 	return nil
 }
 
+func (c *checkpoint) OnRollbackSeekTo(height uint32) {
+	return
+}
+
 func TestManager_SaveAndRestore(t *testing.T) {
 	data := uint64(1)
 	currentHeight := uint32(10)
@@ -147,7 +151,7 @@ func TestManager_SaveAndRestore(t *testing.T) {
 		Block: &types.Block{
 			Header: types.Header{Height: currentHeight},
 		},
-	}, nil, false)
+	}, nil, false, false)
 
 	// save current height
 	currentHeight += pt.SavePeriod()
@@ -155,7 +159,7 @@ func TestManager_SaveAndRestore(t *testing.T) {
 		Block: &types.Block{
 			Header: types.Header{Height: currentHeight},
 		},
-	}, nil, false)
+	}, nil, false, false)
 
 	// replace to default.pt
 	currentHeight += pt.EffectivePeriod()
@@ -163,7 +167,7 @@ func TestManager_SaveAndRestore(t *testing.T) {
 		Block: &types.Block{
 			Header: types.Header{Height: currentHeight},
 		},
-	}, nil, false)
+	}, nil, false, false)
 
 	// new a checkpoint manager and restore
 	manager2 := NewManager(&Config{
@@ -224,14 +228,14 @@ func TestManager_GetCheckpoint_EnableHistory(t *testing.T) {
 		Block: &types.Block{
 			Header: types.Header{Height: currentHeight},
 		},
-	}, nil)
+	}, nil, false)
 	currentHeight += pt.SavePeriod()
 
 	manager.OnBlockSaved(&types.DposBlock{
 		Block: &types.Block{
 			Header: types.Header{Height: currentHeight},
 		},
-	}, nil)
+	}, nil, false)
 
 	result, ok := manager.GetCheckpoint(pt.Key(),
 		currentHeight-pt.SavePeriod()-1)
@@ -274,11 +278,11 @@ func TestManager_OnRollbackTo(t *testing.T) {
 		Block: &types.Block{
 			Header: types.Header{Height: currentHeight},
 		},
-	}, nil, false)
+	}, nil, false, false)
 
 	assert.Equal(t, currentHeight, uint32(*pt.data))
-	assert.NoError(t, manager.OnRollbackTo(originalHeight))
-	assert.Equal(t, originalHeight, uint32(*pt.data))
+	assert.NoError(t, manager.OnRollbackTo(originalHeight, false))
+	assert.Equal(t, originalHeight, uint32(0xa))
 
 	cleanCheckpoints()
 }

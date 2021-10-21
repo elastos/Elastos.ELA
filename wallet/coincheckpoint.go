@@ -158,6 +158,10 @@ func (ccp *CoinsCheckPoint) OnBlockSaved(block *types.DposBlock) {
 	}
 }
 
+func (ccp *CoinsCheckPoint) OnRollbackSeekTo(height uint32) {
+	return
+}
+
 func (ccp *CoinsCheckPoint) OnRollbackTo(height uint32) error {
 	ccp.Lock()
 	defer ccp.Unlock()

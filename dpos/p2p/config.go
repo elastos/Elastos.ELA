@@ -54,6 +54,9 @@ type Config struct {
 	// messages.
 	PingInterval time.Duration
 
+	//defines max nodes that one host can establish
+	MaxNodePerHost uint32
+
 	// Signature will be invoked when creating a signature of the data content.
 	Sign func(data []byte) (signature []byte)
 

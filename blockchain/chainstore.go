@@ -7,6 +7,7 @@ package blockchain
 
 import (
 	"bytes"
+	"encoding/hex"
 	"errors"
 	"path/filepath"
 	"sync"
@@ -22,6 +23,8 @@ import (
 )
 
 type ProducerState byte
+
+var SMALL_CROSS_TRANSFER_RPEFIX = []byte("SMALL_CROSS_TRANSFER")
 
 type ProducerInfo struct {
 	Payload   *payload.ProducerInfo
@@ -53,6 +56,48 @@ func NewChainStore(dataDir string, params *config.Params) (IChainStore, error) {
 	return s, nil
 }
 
+func (c *ChainStore) CleanSmallCrossTransferTx(txHash Uint256) error {
+	var key bytes.Buffer
+	key.Write(SMALL_CROSS_TRANSFER_RPEFIX)
+	key.Write(txHash.Bytes())
+	return c.levelDB.Delete(key.Bytes())
+}
+
+func (c *ChainStore) SaveSmallCrossTransferTx(tx *Transaction) error {
+	buf := new(bytes.Buffer)
+	tx.Serialize(buf)
+	var key bytes.Buffer
+	key.Write(SMALL_CROSS_TRANSFER_RPEFIX)
+	key.Write(tx.Hash().Bytes())
+	c.levelDB.Put(key.Bytes(), buf.Bytes())
+	return nil
+}
+
+func (c *ChainStore) GetSmallCrossTransferTxs() ([]*Transaction, error) {
+	Iter := c.levelDB.NewIterator(SMALL_CROSS_TRANSFER_RPEFIX)
+	txs := make([]*Transaction, 0)
+	for Iter.Next() {
+		val := Iter.Value()
+		r := bytes.NewReader(val)
+		tx := new(Transaction)
+		if err := tx.Deserialize(r); err != nil {
+			return nil, err
+		}
+		txs = append(txs, tx)
+	}
+	return txs, nil
+}
+
+func (c *ChainStore) GetSmallCrossTransferTx() ([]string, error) {
+	Iter := c.levelDB.NewIterator(SMALL_CROSS_TRANSFER_RPEFIX)
+	txns := make([]string, 0)
+	for Iter.Next() {
+		val := Iter.Value()
+		txns = append(txns, hex.EncodeToString(val))
+	}
+	return txns, nil
+}
+
 func (c *ChainStore) CloseLeveldb() {
 	c.levelDB.Close()
 }
@@ -76,6 +121,10 @@ func (c *ChainStore) IsTxHashDuplicate(txID Uint256) bool {
 
 func (c *ChainStore) IsSidechainTxHashDuplicate(sidechainTxHash Uint256) bool {
 	return c.GetFFLDB().IsTx3Exist(&sidechainTxHash)
+}
+
+func (c *ChainStore) IsSidechainReturnDepositTxHashDuplicate(sidechainReturnDepositTxHash Uint256) bool {
+	return c.GetFFLDB().IsSideChainReturnDepositExist(&sidechainReturnDepositTxHash)
 }
 
 func (c *ChainStore) IsDoubleSpend(txn *Transaction) bool {
@@ -176,7 +225,7 @@ func (c *ChainStore) GetFFLDB() IFFLDBChainStore {
 
 func (c *ChainStore) SaveBlock(b *Block, node *BlockNode,
 	confirm *payload.Confirm, medianTimePast time.Time) error {
-	log.Debug("SaveBlock()")
+	log.Info("SaveBlock ", b.Height)
 
 	now := time.Now()
 	err := c.handlePersistBlockTask(b, node, confirm, medianTimePast)

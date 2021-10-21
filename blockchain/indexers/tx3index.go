@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/core/types"
+	"github.com/elastos/Elastos.ELA/core/types/outputpayload"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/database"
 )
@@ -95,11 +96,27 @@ func (idx *Tx3Index) ConnectBlock(dbTx database.Tx, block *types.Block) error {
 		if txn.TxType != types.WithdrawFromSideChain {
 			continue
 		}
-		witPayload := txn.Payload.(*payload.WithdrawFromSideChain)
-		for _, hash := range witPayload.SideChainTransactionHashes {
-			err := dbPutTx3IndexEntry(dbTx, &hash)
-			if err != nil {
-				return err
+		if txn.PayloadVersion == payload.WithdrawFromSideChainVersion {
+			witPayload := txn.Payload.(*payload.WithdrawFromSideChain)
+			for _, hash := range witPayload.SideChainTransactionHashes {
+				err := dbPutTx3IndexEntry(dbTx, &hash)
+				if err != nil {
+					return err
+				}
+			}
+		} else if txn.PayloadVersion == payload.WithdrawFromSideChainVersionV1 {
+			for _, output := range txn.Outputs {
+				if output.Type != types.OTWithdrawFromSideChain {
+					continue
+				}
+				witPayload, ok := output.Payload.(*outputpayload.Withdraw)
+				if !ok {
+					continue
+				}
+				err := dbPutTx3IndexEntry(dbTx, &witPayload.SideChainTransactionHash)
+				if err != nil {
+					return err
+				}
 			}
 		}
 	}

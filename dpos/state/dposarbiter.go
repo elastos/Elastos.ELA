@@ -14,7 +14,6 @@ import (
 )
 
 type dposArbiter struct {
-	arType    ArbiterType
 	producer  Producer
 	ownerHash common.Uint168
 }
@@ -45,7 +44,7 @@ func (d *dposArbiter) Clone() ArbiterMember {
 }
 
 func (d *dposArbiter) GetType() ArbiterType {
-	return d.arType
+	return DPoS
 }
 
 func (d *dposArbiter) GetOwnerPublicKey() []byte {
@@ -64,9 +63,8 @@ func (d *dposArbiter) IsNormal() bool {
 	return true
 }
 
-func NewDPoSArbiter(t ArbiterType, producer *Producer) (ArbiterMember, error) {
+func NewDPoSArbiter(producer *Producer) (ArbiterMember, error) {
 	ar := &dposArbiter{
-		arType:   t,
 		producer: *producer,
 	}
 	hash, err := contract.PublicKeyToStandardProgramHash(

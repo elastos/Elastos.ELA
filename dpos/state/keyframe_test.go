@@ -59,14 +59,16 @@ func checkPointsEqual(first *CheckPoint, second *CheckPoint) bool {
 		first.CurrentReward.TotalVotesInRound !=
 			second.CurrentReward.TotalVotesInRound ||
 		second.NextReward.TotalVotesInRound !=
-			second.NextReward.TotalVotesInRound {
+			second.NextReward.TotalVotesInRound ||
+		first.forceChanged != second.forceChanged {
 		return false
 	}
 
 	if !arrayEqual(first.CurrentArbitrators, second.CurrentArbitrators) ||
 		!arrayEqual(first.CurrentCandidates, second.CurrentCandidates) ||
 		!arrayEqual(first.NextArbitrators, second.NextArbitrators) ||
-		!arrayEqual(first.NextCandidates, second.NextCandidates) {
+		!arrayEqual(first.NextCandidates, second.NextCandidates) ||
+		!arrayEqual(first.NextCRCArbiters, second.NextCRCArbiters) {
 		return false
 	}
 
@@ -74,6 +76,10 @@ func checkPointsEqual(first *CheckPoint, second *CheckPoint) bool {
 		return false
 	}
 
+	if !arbitersMapEqual(first.NextCRCArbitersMap, second.NextCRCArbitersMap) ||
+		!arbitersMapEqual(first.CurrentCRCArbitersMap, second.CurrentCRCArbitersMap) {
+		return false
+	}
 	return votesMapEqual(first.CurrentReward.OwnerVotesInRound,
 		second.CurrentReward.OwnerVotesInRound) &&
 		votesMapEqual(first.NextReward.OwnerVotesInRound,
@@ -82,28 +88,40 @@ func checkPointsEqual(first *CheckPoint, second *CheckPoint) bool {
 
 func generateCheckPoint(height uint32) *CheckPoint {
 	result := &CheckPoint{
-		Height:             height,
-		DutyIndex:          int(rand.Uint32()),
-		NextArbitrators:    []ArbiterMember{},
-		NextCandidates:     []ArbiterMember{},
-		CurrentCandidates:  []ArbiterMember{},
-		CurrentArbitrators: []ArbiterMember{},
-		CurrentReward:      *NewRewardData(),
-		NextReward:         *NewRewardData(),
-		StateKeyFrame:      *randomStateKeyFrame(),
+		Height:                height,
+		DutyIndex:             int(rand.Uint32()),
+		NextArbitrators:       []ArbiterMember{},
+		NextCandidates:        []ArbiterMember{},
+		CurrentCandidates:     []ArbiterMember{},
+		CurrentArbitrators:    []ArbiterMember{},
+		CurrentReward:         *NewRewardData(),
+		NextReward:            *NewRewardData(),
+		CurrentCRCArbitersMap: make(map[common.Uint168]ArbiterMember),
+		NextCRCArbitersMap:    make(map[common.Uint168]ArbiterMember),
+		NextCRCArbiters:       make([]ArbiterMember, 0),
+		crcChangedHeight:      123,
+		forceChanged:          true,
+		StateKeyFrame:         *randomStateKeyFrame(),
 	}
 	result.CurrentReward.TotalVotesInRound = common.Fixed64(rand.Uint64())
 	result.NextReward.TotalVotesInRound = common.Fixed64(rand.Uint64())
 
 	for i := 0; i < 5; i++ {
-		ar, _ := NewOriginArbiter(Origin, randomFakePK())
+		ar, _ := NewOriginArbiter(randomFakePK())
 		result.CurrentArbitrators = append(result.CurrentArbitrators, ar)
-		ar, _ = NewOriginArbiter(Origin, randomFakePK())
+		ar, _ = NewOriginArbiter(randomFakePK())
 		result.CurrentCandidates = append(result.CurrentCandidates, ar)
-		ar, _ = NewOriginArbiter(Origin, randomFakePK())
+		ar, _ = NewOriginArbiter(randomFakePK())
 		result.NextArbitrators = append(result.NextArbitrators, ar)
-		ar, _ = NewOriginArbiter(Origin, randomFakePK())
+		ar, _ = NewOriginArbiter(randomFakePK())
 		result.NextCandidates = append(result.NextCandidates, ar)
+
+		ar, _ = NewOriginArbiter(randomFakePK())
+		result.NextCRCArbiters = append(result.NextCRCArbiters, ar)
+		ar, _ = NewOriginArbiter(randomFakePK())
+		result.CurrentCRCArbitersMap[ar.GetOwnerProgramHash()] = ar
+		ar, _ = NewOriginArbiter(randomFakePK())
+		result.NextCRCArbitersMap[ar.GetOwnerProgramHash()] = ar
 
 		result.CurrentReward.OwnerVotesInRound[*randomProgramHash()] =
 			common.Fixed64(rand.Uint64())
@@ -475,4 +493,19 @@ func arbiterMemberEqual(first ArbiterMember, second ArbiterMember) bool {
 	}
 
 	return false
+}
+
+//	NextCRCArbitersMap    map[common.Uint168]ArbiterMember
+func arbitersMapEqual(first map[common.Uint168]ArbiterMember,
+	second map[common.Uint168]ArbiterMember) bool {
+	if len(first) != len(second) {
+		return false
+	}
+
+	for k, vf := range first {
+		if vs, ok := second[k]; !ok || !arbiterMemberEqual(vs, vf) {
+			return false
+		}
+	}
+	return true
 }

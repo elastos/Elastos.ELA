@@ -6,8 +6,6 @@
 package blockchain
 
 import (
-	"github.com/elastos/Elastos.ELA/utils"
-
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/errors"
 	"github.com/syndtr/goleveldb/leveldb/filter"
@@ -25,9 +23,6 @@ type LevelDB struct {
 const BITSPERKEY = 10
 
 func NewLevelDB(file string) (*LevelDB, error) {
-	if !utils.FileExisted(file) {
-		return nil, nil
-	}
 	// default Options
 	o := opt.Options{
 		NoSync: false,

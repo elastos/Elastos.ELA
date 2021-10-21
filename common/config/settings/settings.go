@@ -20,7 +20,6 @@ import (
 	cmdcom "github.com/elastos/Elastos.ELA/cmd/common"
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
-	"github.com/elastos/Elastos.ELA/core/checkpoint"
 	"github.com/elastos/Elastos.ELA/elanet/pact"
 	"github.com/elastos/Elastos.ELA/utils/elalog"
 	"github.com/elastos/Elastos.ELA/utils/gpath"
@@ -374,6 +373,11 @@ func NewSettings() *Settings {
 		return nil
 	}
 	result.Add(&settingItem{
+		Flag:         cmdcom.DIDSideChainAddressFlag,
+		DefaultValue: "",
+		ConfigPath:   "DIDSideChainAddress",
+		ParamName:    "DIDSideChainAddress"})
+	result.Add(&settingItem{
 		Flag:         cmdcom.FoundationAddrFlag,
 		DefaultValue: "",
 		ConfigSetter: func(path string, params *config.Params,
@@ -544,30 +548,6 @@ func NewSettings() *Settings {
 		DefaultValue: uint32(0),
 		ConfigPath:   "EnableActivateIllegalHeight",
 		ParamName:    "EnableActivateIllegalHeight"})
-
-	ckpManagerSetter := func(path string, params *config.Params,
-		conf *config.Configuration) error {
-		params.CkpManager = checkpoint.NewManager(&checkpoint.Config{
-			EnableHistory:      conf.EnableHistory,
-			HistoryStartHeight: conf.HistoryStartHeight,
-			NeedSave:           false,
-		})
-		return nil
-	}
-
-	result.Add(&settingItem{
-		Flag:         nil,
-		DefaultValue: false,
-		ConfigSetter: ckpManagerSetter,
-		ConfigPath:   "EnableHistory",
-		ParamName:    ""})
-
-	result.Add(&settingItem{
-		Flag:         nil,
-		DefaultValue: uint32(0),
-		ConfigSetter: ckpManagerSetter,
-		ConfigPath:   "HistoryStartHeight",
-		ParamName:    ""})
 
 	result.Add(&settingItem{
 		Flag:         nil,
@@ -898,6 +878,13 @@ func NewSettings() *Settings {
 	})
 
 	result.Add(&settingItem{
+		Flag:         cmdcom.ProhibitTransferToDIDHeightFlag,
+		DefaultValue: uint32(0),
+		ConfigPath:   "ProhibitTransferToDIDHeight",
+		ParamName:    "ProhibitTransferToDIDHeight",
+	})
+
+	result.Add(&settingItem{
 		Flag:         cmdcom.MaxCRAssetsAddressUTXOCount,
 		DefaultValue: uint32(0),
 		ConfigPath:   "CRConfiguration.MaxCRAssetsAddressUTXOCount",
@@ -1010,6 +997,30 @@ func NewSettings() *Settings {
 		DefaultValue: uint32(0),
 		ConfigPath:   "NewELAIssuanceHeight",
 		ParamName:    "NewELAIssuanceHeight"})
+
+	result.Add(&settingItem{
+		Flag:         cmdcom.SmallCrossTransferThreshold,
+		DefaultValue: common.Fixed64(0),
+		ConfigPath:   "SmallCrossTransferThreshold",
+		ParamName:    "SmallCrossTransferThreshold"})
+
+	result.Add(&settingItem{
+		Flag:         cmdcom.ReturnDepositCoinFeeFlag,
+		DefaultValue: common.Fixed64(0),
+		ConfigPath:   "ReturnDepositCoinFee",
+		ParamName:    "ReturnDepositCoinFee"})
+
+	result.Add(&settingItem{
+		Flag:         cmdcom.NewCrossChainStartHeightFlag,
+		DefaultValue: uint32(0),
+		ConfigPath:   "NewCrossChainStartHeight",
+		ParamName:    "NewCrossChainStartHeight"})
+
+	result.Add(&settingItem{
+		Flag:         cmdcom.ReturnCrossChainCoinStartHeightFlag,
+		DefaultValue: uint32(0),
+		ConfigPath:   "ReturnCrossChainCoinStartHeight",
+		ParamName:    "ReturnCrossChainCoinStartHeight"})
 
 	return result
 }

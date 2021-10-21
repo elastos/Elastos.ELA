@@ -69,6 +69,9 @@ type IndexManager interface {
 
 	// IsTx3Exist use to find if tx3 exist in db
 	IsTx3Exist(txHash *common.Uint256) bool
+
+	// IsSideChainReturnDepositExist use to find if return deposit exist in db
+	IsSideChainReturnDepositExist(txHash *common.Uint256) bool
 }
 
 // Indexer provides a generic interface for an indexer that is managed by an

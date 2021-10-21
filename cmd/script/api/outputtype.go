@@ -23,10 +23,11 @@ import (
 )
 
 const (
-	luaOutputTypeName        = "output"
-	luaVoteOutputTypeName    = "voteoutput"
-	luaDefaultOutputTypeName = "defaultoutput"
-	luaVoteContentTypeName   = "votecontent"
+	luaOutputTypeName              = "output"
+	luaVoteOutputTypeName          = "voteoutput"
+	luaNewCrossChainOutputTypeName = "crosschainoutput"
+	luaDefaultOutputTypeName       = "defaultoutput"
+	luaVoteContentTypeName         = "votecontent"
 )
 
 func RegisterOutputType(L *lua.LState) {
@@ -69,6 +70,12 @@ func newTxOutput(L *lua.LState) int {
 		payload, ok := outputPayloadData.Value.(*outputpayload.VoteOutput)
 		if !ok {
 			log.Debug("error vote output payload")
+		}
+		outputPayload = payload
+	case *outputpayload.CrossChainOutput:
+		payload, ok := outputPayloadData.Value.(*outputpayload.CrossChainOutput)
+		if !ok {
+			log.Debug("error cross chain payload")
 		}
 		outputPayload = payload
 	}
@@ -351,6 +358,55 @@ var newVoteContentMethods = map[string]lua.LGFunction{
 
 func voteContentGet(L *lua.LState) int {
 	p := checkVoteContent(L, 1)
+	fmt.Println(p)
+
+	return 0
+}
+
+// New cross chain Content
+func RegisterNewCrossChainOutputType(L *lua.LState) {
+	mt := L.NewTypeMetatable(luaNewCrossChainOutputTypeName)
+	L.SetGlobal("crosschainoutput", mt)
+	// static attributes
+	L.SetField(mt, "new", L.NewFunction(newCrossChainOutput))
+	// methods
+	L.SetField(mt, "__index", L.SetFuncs(L.NewTable(), newCrossChainOutputMethods))
+}
+
+func newCrossChainOutput(L *lua.LState) int {
+	targetAddress := L.ToString(1)
+	amount := L.ToInt(2)
+	targetData := L.ToString(3)
+
+	var output = &outputpayload.CrossChainOutput{
+		Version:       0,
+		TargetAddress: targetAddress,
+		TargetAmount:  common.Fixed64(amount),
+		TargetData:    []byte(targetData),
+	}
+	ud := L.NewUserData()
+	ud.Value = output
+	L.SetMetatable(ud, L.GetTypeMetatable(luaNewCrossChainOutputTypeName))
+	L.Push(ud)
+
+	return 1
+}
+
+func checkNewCrossChainOutput(L *lua.LState, idx int) *outputpayload.CrossChainOutput {
+	ud := L.CheckUserData(idx)
+	if v, ok := ud.Value.(*outputpayload.CrossChainOutput); ok {
+		return v
+	}
+	L.ArgError(1, "New CrossChainOutput expected")
+	return nil
+}
+
+var newCrossChainOutputMethods = map[string]lua.LGFunction{
+	"get": crossChainOutputGet,
+}
+
+func crossChainOutputGet(L *lua.LState) int {
+	p := checkNewCrossChainOutput(L, 1)
 	fmt.Println(p)
 
 	return 0

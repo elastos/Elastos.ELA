@@ -13,6 +13,9 @@ import (
 	"github.com/elastos/Elastos.ELA/common"
 )
 
+const TransferCrossChainVersion byte = 0x00
+const TransferCrossChainVersionV1 byte = 0x01
+
 type TransferCrossChainAsset struct {
 	CrossChainAddresses []string
 	OutputIndexes       []uint64
@@ -24,11 +27,18 @@ func (a *TransferCrossChainAsset) Data(version byte) []byte {
 	if err := a.Serialize(buf, version); err != nil {
 		return []byte{0}
 	}
+	if buf.Len() == 0 {
+		return []byte{0}
+	}
 
 	return buf.Bytes()
 }
 
 func (a *TransferCrossChainAsset) Serialize(w io.Writer, version byte) error {
+	if version > TransferCrossChainVersion {
+		return nil
+	}
+
 	if len(a.CrossChainAddresses) != len(a.OutputIndexes) || len(a.OutputIndexes) != len(a.CrossChainAmounts) {
 		return errors.New("Invalid cross chain asset")
 	}
@@ -56,6 +66,10 @@ func (a *TransferCrossChainAsset) Serialize(w io.Writer, version byte) error {
 }
 
 func (a *TransferCrossChainAsset) Deserialize(r io.Reader, version byte) error {
+	if version > TransferCrossChainVersion {
+		return nil
+	}
+
 	length, err := common.ReadVarUint(r, 0)
 	if err != nil {
 		return errors.New("TransferCrossChainAsset length deserialize failed")

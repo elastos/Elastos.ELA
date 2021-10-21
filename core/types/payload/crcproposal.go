@@ -8,10 +8,16 @@ package payload
 import (
 	"bytes"
 	"errors"
-	"io"
-
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/crypto"
+	"io"
+	"regexp"
+)
+
+const (
+	// upgrade side chain proposal type
+	MinUpgradeProposalType = 0x0200
+	MaxUpgradeProposalType = 0x02ff
 )
 
 const (
@@ -63,14 +69,15 @@ func (pt CRCProposalType) Name() string {
 		return "Normal"
 	case ELIP:
 		return "ELIP"
+		//todo if it is UpgradeCode should use if else
 	//case MainChainUpgradeCode:
 	//	return "MainChainUpgradeCode"
 	//case DIDUpgradeCode:
 	//	return "DIDUpgradeCode"
 	//case ETHUpgradeCode:
 	//	return "ETHUpgradeCode"
-	//case RegisterSideChain:
-	//	return "RegisterSideChain"
+	case RegisterSideChain:
+		return "RegisterSideChain"
 	case ChangeProposalOwner:
 		return "ChangeProposalOwner"
 	case CloseProposal:
@@ -97,6 +104,8 @@ const (
 	// MaxProposalDataSize the max size of proposal draft data or proposal
 	// tracking document data.
 	MaxProposalDataSize = 1 * 1024 * 1024
+
+	CRCProposalUpgradeCodeVersion byte = 0x00
 )
 
 const (
@@ -104,6 +113,8 @@ const (
 	NormalPayment InstallmentType = 0x01
 	FinalPayment  InstallmentType = 0x02
 )
+
+var SeedRegexp = regexp.MustCompile(`^(([a-zA-Z]{1})|([a-zA-Z]{1}[a-zA-Z]{1})|([a-zA-Z]{1}[0-9]{1})|([0-9]{1}[a-zA-Z]{1})|([a-zA-Z0-9][a-zA-Z0-9-_]{1,61}[a-zA-Z0-9]))\.([a-zA-Z]{2,6}|[a-zA-Z0-9-]{2,30}\.[a-zA-Z]{2,3})$`)
 
 type InstallmentType byte
 
@@ -162,8 +173,7 @@ type CRCProposal struct {
 	// Receiver did.
 	ReceiverDID common.Uint168
 
-	// The rate of custom DID fee.
-	RateOfCustomIDFee common.Fixed64
+	CustomIDFeeRateInfo
 
 	// The specified ELA address where the funds are to be sent.
 	NewRecipient common.Uint168
@@ -193,7 +203,191 @@ type CRCProposal struct {
 	// proposal owner.
 	CRCouncilMemberSignature []byte
 
+	//upgrade code info
+	UpgradeCodeInfo *UpgradeCodeInfo
+
+	// The registered side chain information
+	SideChainInfo
+
 	hash *common.Uint256
+}
+
+type UpgradeCodeInfo struct {
+	//upgrade code working hegiht
+	WorkingHeight uint32
+
+	//node version
+	NodeVersion string
+
+	//node bin download url
+	NodeDownLoadUrl string
+
+	//node bin hash
+	NodeBinHash *common.Uint256
+
+	// if ForceUpgrade is true when height reaches WorkingHeight
+	// version of msg.Version must greater or equal to NodeVersion
+	ForceUpgrade bool
+}
+
+func (upgradeInfo *UpgradeCodeInfo) Serialize(w io.Writer, version byte) error {
+	if err := common.WriteElement(w, upgradeInfo.WorkingHeight); err != nil {
+		return errors.New("failed to serialize WorkingHeight")
+	}
+	if err := common.WriteVarString(w, upgradeInfo.NodeVersion); err != nil {
+		return errors.New("failed to serialize NodeVersion")
+	}
+	if err := common.WriteVarString(w, upgradeInfo.NodeDownLoadUrl); err != nil {
+		return errors.New("failed to serialize NodeDownLoadUrl")
+	}
+	if err := upgradeInfo.NodeBinHash.Serialize(w); err != nil {
+		return errors.New("failed to serialize NodeBinHash")
+	}
+
+	if err := common.WriteElement(w, upgradeInfo.ForceUpgrade); err != nil {
+		return errors.New("failed to serialize ForceUpgrade")
+	}
+	return nil
+}
+
+func (upgradeInfo *UpgradeCodeInfo) Deserialize(r io.Reader, version byte) error {
+	var err error
+
+	if err := common.ReadElement(r, &upgradeInfo.WorkingHeight); err != nil {
+		return err
+	}
+
+	upgradeInfo.NodeVersion, err = common.ReadVarString(r)
+	if err != nil {
+		return errors.New("[UpgradeCodeInfo], NodeVersion deserialize failed")
+	}
+
+	upgradeInfo.NodeDownLoadUrl, err = common.ReadVarString(r)
+	if err != nil {
+		return errors.New("[UpgradeCodeInfo], NodeDownLoadUrl deserialize failed")
+	}
+	upgradeInfo.NodeBinHash = new(common.Uint256)
+	if err = upgradeInfo.NodeBinHash.Deserialize(r); err != nil {
+		return errors.New("failed to deserialize NodeBinHash")
+	}
+
+	if err := common.ReadElement(r, &upgradeInfo.ForceUpgrade); err != nil {
+		return err
+	}
+	return nil
+}
+
+type SideChainInfo struct {
+	// Name of side chain
+	SideChainName string
+
+	// Magic number of side chain
+	MagicNumber uint32
+
+	// Genesis hash of side chain
+	GenesisHash common.Uint256
+
+	// 1 ELA on main chain equals to how many coin on side chain
+	ExchangeRate common.Fixed64
+
+	// Effective height of register side chain
+	EffectiveHeight uint32
+
+	// Resource path
+	ResourcePath string
+}
+
+func (sc *SideChainInfo) Serialize(w io.Writer) error {
+	if err := common.WriteVarString(w, sc.SideChainName); err != nil {
+		return errors.New("fail to serialize SideChainName")
+	}
+	if err := common.WriteUint32(w, sc.MagicNumber); err != nil {
+		return errors.New("fail to serialize MagicNumber")
+	}
+
+	if err := sc.GenesisHash.Serialize(w); err != nil {
+		return errors.New("failed to serialize GenesisHash")
+	}
+
+	if err := sc.ExchangeRate.Serialize(w); err != nil {
+		return errors.New("failed to serialize ExchangeRate")
+	}
+
+	if err := common.WriteUint32(w, sc.EffectiveHeight); err != nil {
+		return errors.New("failed to serialize EffectiveHeight")
+	}
+
+	if err := common.WriteVarString(w, sc.ResourcePath); err != nil {
+		return errors.New("fail to serialize ResourcePath")
+	}
+
+	return nil
+}
+
+func (sc *SideChainInfo) Deserialize(r io.Reader) error {
+	var err error
+	sc.SideChainName, err = common.ReadVarString(r)
+	if err != nil {
+		return errors.New("[CRCProposal], SideChainName deserialize failed")
+	}
+
+	sc.MagicNumber, err = common.ReadUint32(r)
+	if err != nil {
+		return errors.New("[CRCProposal], MagicNumber deserialize failed")
+	}
+
+	if err := sc.GenesisHash.Deserialize(r); err != nil {
+		return errors.New("failed to deserialize GenesisHash")
+	}
+
+	err = sc.ExchangeRate.Deserialize(r)
+	if err != nil {
+		return errors.New("[CRCProposal], ExchangeRate deserialize failed")
+	}
+
+	sc.EffectiveHeight, err = common.ReadUint32(r)
+	if err != nil {
+		return errors.New("[CRCProposal], EffectiveHeight deserialize failed")
+	}
+
+	sc.ResourcePath, err = common.ReadVarString(r)
+	if err != nil {
+		return errors.New("[CRCProposal], ResourcePath deserialize failed")
+	}
+	return nil
+}
+
+type CustomIDFeeRateInfo struct {
+	// The rate of custom DID fee.
+	RateOfCustomIDFee common.Fixed64
+
+	// Effective at the side chain height of EID.
+	EIDEffectiveHeight uint32
+}
+
+func (sc *CustomIDFeeRateInfo) Serialize(w io.Writer) error {
+	if err := sc.RateOfCustomIDFee.Serialize(w); err != nil {
+		return errors.New("failed to serialize RateOfCustomIDFee")
+	}
+
+	if err := common.WriteUint32(w, sc.EIDEffectiveHeight); err != nil {
+		return errors.New("failed to serialize EIDEffectiveHeight")
+	}
+
+	return nil
+}
+
+func (sc *CustomIDFeeRateInfo) Deserialize(r io.Reader) error {
+	var err error
+	if err = sc.RateOfCustomIDFee.Deserialize(r); err != nil {
+		return errors.New("failed to deserialize RateOfCustomIDFee")
+	}
+
+	sc.EIDEffectiveHeight, err = common.ReadUint32(r)
+	if err != nil {
+		return errors.New("failed to deserialize EIDEffectiveHeight")
+	}
+	return nil
 }
 
 func (p *CRCProposal) Data(version byte) []byte {
@@ -213,15 +407,20 @@ func (p *CRCProposal) SerializeUnsigned(w io.Writer, version byte) error {
 		return p.SerializeUnsignedCloseProposal(w, version)
 	case SecretaryGeneral:
 		return p.SerializeUnsignedChangeSecretaryGeneral(w, version)
+	case MainChainUpgradeCode, DIDUpgradeCode, ETHUpgradeCode:
+		return p.SerializeUnsignedUpgradeCode(w, version)
 	case ReserveCustomID:
 		return p.SerializeUnsignedReservedCustomID(w, version)
 	case ReceiveCustomID:
 		return p.SerializeUnsignedReceivedCustomID(w, version)
 	case ChangeCustomIDFee:
 		return p.SerializeUnsignedChangeCustomIDFee(w, version)
+	case RegisterSideChain:
+		return p.SerializeUnsignedRegisterSideChain(w, version)
 	default:
 		return p.SerializeUnsignedNormalOrELIP(w, version)
 	}
+	return nil
 }
 
 func (p *CRCProposal) SerializeUnsignedNormalOrELIP(w io.Writer, version byte) error {
@@ -326,6 +525,62 @@ func (p *CRCProposal) SerializeUnsignedChangeSecretaryGeneral(w io.Writer, versi
 	return nil
 }
 
+func (p *CRCProposal) SerializeUnsignedUpgradeCode(w io.Writer, version byte) error {
+
+	if err := common.WriteElement(w, p.ProposalType); err != nil {
+		return errors.New("failed to serialize ProposalType")
+	}
+
+	if err := common.WriteVarString(w, p.CategoryData); err != nil {
+		return errors.New("failed to serialize CategoryData")
+	}
+
+	if err := common.WriteVarBytes(w, p.OwnerPublicKey); err != nil {
+		return errors.New("failed to serialize OwnerPublicKey")
+	}
+
+	if err := p.DraftHash.Serialize(w); err != nil {
+		return errors.New("failed to serialize DraftHash")
+	}
+	//UpgradeCodeInfo Serialize
+	if p.UpgradeCodeInfo != nil {
+		if err := p.UpgradeCodeInfo.Serialize(w, CRCProposalUpgradeCodeVersion); err != nil {
+			return errors.New("failed to serialize UpgradeCodeInfo")
+		}
+	}
+	return nil
+}
+
+func (p *CRCProposal) SerializeUnsignedRegisterSideChain(w io.Writer, version byte) error {
+	if err := common.WriteElement(w, p.ProposalType); err != nil {
+		return errors.New("failed to serialize ProposalType")
+	}
+
+	if err := common.WriteVarString(w, p.CategoryData); err != nil {
+		return errors.New("[CRCProposal], Category Data serialize failed")
+	}
+
+	if err := common.WriteVarBytes(w, p.OwnerPublicKey); err != nil {
+		return errors.New("failed to serialize OwnerPublicKey")
+	}
+
+	if err := p.DraftHash.Serialize(w); err != nil {
+		return errors.New("failed to serialize DraftHash")
+	}
+
+	if version >= CRCProposalVersion01 {
+		if err := common.WriteVarBytes(w, p.DraftData); err != nil {
+			return errors.New("failed to serialize DraftData")
+		}
+	}
+
+	if err := p.SideChainInfo.Serialize(w); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (p *CRCProposal) SerializeUnsignedCloseProposal(w io.Writer, version byte) error {
 
 	if err := common.WriteElement(w, p.ProposalType); err != nil {
@@ -378,8 +633,8 @@ func (p *CRCProposal) SerializeUnsignedChangeCustomIDFee(w io.Writer, version by
 		}
 	}
 
-	if err := p.RateOfCustomIDFee.Serialize(w); err != nil {
-		return errors.New("failed to serialize RateOfCustomIDFee")
+	if err := p.CustomIDFeeRateInfo.Serialize(w); err != nil {
+		return errors.New("failed to serialize CustomIDFeeRateInfo")
 	}
 
 	return nil
@@ -469,6 +724,10 @@ func (p *CRCProposal) Serialize(w io.Writer, version byte) error {
 		return p.SerializeCloseProposal(w, version)
 	case SecretaryGeneral:
 		return p.SerializeChangeSecretaryGeneral(w, version)
+	case MainChainUpgradeCode, DIDUpgradeCode, ETHUpgradeCode:
+		return p.SerializeUpgradeCode(w, version)
+	case RegisterSideChain:
+		return p.SerializeRegisterSideChain(w, version)
 	default:
 		return p.SerializeNormalOrELIP(w, version)
 	}
@@ -506,6 +765,22 @@ func (p *CRCProposal) SerializeChangeProposalOwner(w io.Writer, version byte) er
 	return common.WriteVarBytes(w, p.CRCouncilMemberSignature)
 }
 
+func (p *CRCProposal) SerializeUpgradeCode(w io.Writer, version byte) error {
+	if err := p.SerializeUnsigned(w, version); err != nil {
+		return err
+	}
+
+	if err := common.WriteVarBytes(w, p.Signature); err != nil {
+		return err
+	}
+
+	if err := p.CRCouncilMemberDID.Serialize(w); err != nil {
+		return errors.New("failed to serialize CRCouncilMemberDID")
+	}
+
+	return common.WriteVarBytes(w, p.CRCouncilMemberSignature)
+}
+
 func (p *CRCProposal) SerializeChangeSecretaryGeneral(w io.Writer, version byte) error {
 
 	if err := p.SerializeUnsignedChangeSecretaryGeneral(w, version); err != nil {
@@ -515,6 +790,22 @@ func (p *CRCProposal) SerializeChangeSecretaryGeneral(w io.Writer, version byte)
 		return err
 	}
 	if err := common.WriteVarBytes(w, p.SecretaryGeneraSignature); err != nil {
+		return err
+	}
+
+	if err := p.CRCouncilMemberDID.Serialize(w); err != nil {
+		return errors.New("failed to serialize CRCouncilMemberDID")
+	}
+
+	return common.WriteVarBytes(w, p.CRCouncilMemberSignature)
+}
+
+func (p *CRCProposal) SerializeRegisterSideChain(w io.Writer, version byte) error {
+	if err := p.SerializeUnsigned(w, version); err != nil {
+		return err
+	}
+
+	if err := common.WriteVarBytes(w, p.Signature); err != nil {
 		return err
 	}
 
@@ -570,15 +861,39 @@ func (p *CRCProposal) DeserializeUnSigned(r io.Reader, version byte) error {
 		return p.DeserializeUnSignedCloseProposal(r, version)
 	case SecretaryGeneral:
 		return p.DeserializeUnSignedChangeSecretaryGeneral(r, version)
+	case MainChainUpgradeCode, DIDUpgradeCode, ETHUpgradeCode:
+		return p.DeserializeUnsignedUpgradeCode(r, version)
 	case ReserveCustomID:
 		return p.DeserializeUnSignedReservedCustomID(r, version)
 	case ReceiveCustomID:
 		return p.DeserializeUnSignedReceivedCustomID(r, version)
 	case ChangeCustomIDFee:
 		return p.DeserializeUnSignedChangeCustomIDFee(r, version)
+	case RegisterSideChain:
+		return p.DeserializeUnsignedRegisterSideChain(r, version)
 	default:
 		return p.DeserializeUnSignedNormalOrELIP(r, version)
 	}
+}
+
+func (p *CRCProposal) DeserializeUnsignedUpgradeCode(r io.Reader, version byte) error {
+	var err error
+	if p.CategoryData, err = common.ReadVarString(r); err != nil {
+		return errors.New("[CRCProposal], Category data deserialize failed")
+	}
+	if p.OwnerPublicKey, err = common.ReadVarBytes(r, crypto.NegativeBigLength, "owner"); err != nil {
+		return errors.New("failed to deserialize OwnerPublicKey")
+	}
+	if err = p.DraftHash.Deserialize(r); err != nil {
+		return errors.New("failed to deserialize DraftHash")
+	}
+	//
+	p.UpgradeCodeInfo = new(UpgradeCodeInfo)
+	//UpgradeCodeInfo Deserialize
+	if err := p.UpgradeCodeInfo.Deserialize(r, CRCProposalUpgradeCodeVersion); err != nil {
+		return errors.New("failed to serialize UpgradeCodeInfo")
+	}
+	return nil
 }
 
 func (p *CRCProposal) DeserializeUnSignedNormalOrELIP(r io.Reader, version byte) error {
@@ -651,6 +966,37 @@ func (p *CRCProposal) DeserializeUnSignedChangeProposalOwner(r io.Reader, versio
 	return nil
 }
 
+func (p *CRCProposal) DeserializeUnsignedRegisterSideChain(r io.Reader, version byte) error {
+	var err error
+
+	p.CategoryData, err = common.ReadVarString(r)
+	if err != nil {
+		return errors.New("[CRCProposal], Category data deserialize failed")
+	}
+
+	p.OwnerPublicKey, err = common.ReadVarBytes(r, crypto.NegativeBigLength, "owner")
+	if err != nil {
+		return errors.New("failed to deserialize OwnerPublicKey")
+	}
+
+	if err = p.DraftHash.Deserialize(r); err != nil {
+		return errors.New("failed to deserialize DraftHash")
+	}
+
+	if version >= CRCProposalVersion01 {
+		p.DraftData, err = common.ReadVarBytes(r, MaxProposalDataSize, "draft data")
+		if err != nil {
+			return errors.New("failed to deserialize draft data")
+		}
+	}
+
+	if err = p.SideChainInfo.Deserialize(r); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (p *CRCProposal) DeserializeUnSignedCloseProposal(r io.Reader, version byte) error {
 	var err error
 
@@ -703,8 +1049,8 @@ func (p *CRCProposal) DeserializeUnSignedChangeCustomIDFee(r io.Reader, version 
 		}
 	}
 
-	if err = p.RateOfCustomIDFee.Deserialize(r); err != nil {
-		return errors.New("failed to deserialize RateOfCustomIDFee")
+	if err = p.CustomIDFeeRateInfo.Deserialize(r); err != nil {
+		return errors.New("failed to deserialize CustomIDFeeRateInfo")
 	}
 
 	return nil
@@ -837,6 +1183,10 @@ func (p *CRCProposal) Deserialize(r io.Reader, version byte) error {
 		return p.DeserializeCloseProposal(r, version)
 	case SecretaryGeneral:
 		return p.DeserializeChangeSecretaryGeneral(r, version)
+	case MainChainUpgradeCode, DIDUpgradeCode, ETHUpgradeCode:
+		return p.DeserializeUpgradeCode(r, version)
+	case RegisterSideChain:
+		return p.DeserializeRegisterSideChain(r, version)
 	default:
 		return p.DeserializeNormalOrELIP(r, version)
 	}
@@ -863,6 +1213,30 @@ func (p *CRCProposal) DeserializeNormalOrELIP(r io.Reader, version byte) error {
 	}
 	p.CRCouncilMemberSignature = CRCouncilMemberSignature
 
+	return nil
+}
+
+func (p *CRCProposal) DeserializeUpgradeCode(r io.Reader, version byte) error {
+	if err := p.DeserializeUnsignedUpgradeCode(r, version); err != nil {
+		return err
+	}
+
+	// owner signature
+	sign, err := common.ReadVarBytes(r, crypto.SignatureLength, "sign data")
+	if err != nil {
+		return err
+	}
+	p.Signature = sign
+
+	if err := p.CRCouncilMemberDID.Deserialize(r); err != nil {
+		return errors.New("failed to deserialize CRCouncilMemberDID")
+	}
+	// cr signature
+	CRCouncilMemberSignature, err := common.ReadVarBytes(r, crypto.SignatureLength, "CR sign data")
+	if err != nil {
+		return err
+	}
+	p.CRCouncilMemberSignature = CRCouncilMemberSignature
 	return nil
 }
 
@@ -894,6 +1268,29 @@ func (p *CRCProposal) DeserializeChangeProposalOwner(r io.Reader, version byte) 
 		return err
 	}
 	p.CRCouncilMemberSignature = CRCouncilMemberSignature
+	return nil
+}
+
+func (p *CRCProposal) DeserializeRegisterSideChain(r io.Reader, version byte) error {
+
+	if err := p.DeserializeUnSigned(r, version); err != nil {
+		return err
+	}
+	sign, err := common.ReadVarBytes(r, crypto.SignatureLength, "sign data")
+	if err != nil {
+		return err
+	}
+	p.Signature = sign
+	if err := p.CRCouncilMemberDID.Deserialize(r); err != nil {
+		return errors.New("failed to deserialize CRCouncilMemberDID")
+	}
+
+	CRCouncilMemberSignature, err := common.ReadVarBytes(r, crypto.SignatureLength, "CR sign data")
+	if err != nil {
+		return err
+	}
+	p.CRCouncilMemberSignature = CRCouncilMemberSignature
+
 	return nil
 }
 
@@ -975,11 +1372,13 @@ func (p *CRCProposal) ToProposalInfo(payloadVersion byte) CRCProposalInfo {
 		ReceivedCustomIDList:      p.ReceivedCustomIDList,
 		ReceiverDID:               p.ReceiverDID,
 		RateOfCustomIDFee:         p.RateOfCustomIDFee,
+		EIDEffectiveHeight:        p.EIDEffectiveHeight,
 		NewRecipient:              p.NewRecipient,
 		NewOwnerPublicKey:         p.NewOwnerPublicKey,
 		SecretaryGeneralPublicKey: p.SecretaryGeneralPublicKey,
 		SecretaryGeneralDID:       p.SecretaryGeneralDID,
 		CRCouncilMemberDID:        p.CRCouncilMemberDID,
+		SideChainInfo:             p.SideChainInfo,
 		Hash:                      p.Hash(payloadVersion),
 	}
 
@@ -1037,6 +1436,9 @@ type CRCProposalInfo struct {
 	// The rate of custom DID fee.
 	RateOfCustomIDFee common.Fixed64
 
+	// The effective height of EID.
+	EIDEffectiveHeight uint32
+
 	// The specified ELA address where the funds are to be sent.
 	NewRecipient common.Uint168
 
@@ -1051,6 +1453,8 @@ type CRCProposalInfo struct {
 
 	// DID of CR Council Member.
 	CRCouncilMemberDID common.Uint168
+
+	SideChainInfo
 
 	// The proposal hash
 	Hash common.Uint256
@@ -1121,6 +1525,10 @@ func (p *CRCProposalInfo) Serialize(w io.Writer, version byte) error {
 		return errors.New("failed to serialize RateOfCustomIDFee")
 	}
 
+	if err := common.WriteUint32(w, p.EIDEffectiveHeight); err != nil {
+		return errors.New("failed to serialize EIDEffectiveHeight")
+	}
+
 	if err := p.NewRecipient.Serialize(w); err != nil {
 		return errors.New("failed to serialize Recipient")
 	}
@@ -1139,6 +1547,10 @@ func (p *CRCProposalInfo) Serialize(w io.Writer, version byte) error {
 
 	if err := p.CRCouncilMemberDID.Serialize(w); err != nil {
 		return errors.New("failed to serialize CRCouncilMemberDID")
+	}
+
+	if err := p.SideChainInfo.Serialize(w); err != nil {
+		return errors.New("failed to serialize SideChainInfo")
 	}
 
 	if err := p.Hash.Serialize(w); err != nil {
@@ -1223,11 +1635,15 @@ func (p *CRCProposalInfo) Deserialize(r io.Reader, version byte) error {
 		return errors.New("failed to deserialize RateOfCustomIDFee")
 	}
 
+	if p.EIDEffectiveHeight, err = common.ReadUint32(r); err != nil {
+		return errors.New("failed to deserialize EIDEffectiveHeight")
+	}
+
 	if err = p.NewRecipient.Deserialize(r); err != nil {
 		return errors.New("failed to deserialize Recipient")
 	}
 
-	if p.NewOwnerPublicKey, err = common.ReadVarBytes(r, crypto.NegativeBigLength, "owner"); err != nil {
+	if p.NewOwnerPublicKey, err = common.ReadVarBytes(r, crypto.NegativeBigLength, "owner"); err != nil{
 		return errors.New("failed to deserialize NewOwnerPublicKey")
 	}
 
@@ -1242,6 +1658,10 @@ func (p *CRCProposalInfo) Deserialize(r io.Reader, version byte) error {
 
 	if err := p.CRCouncilMemberDID.Deserialize(r); err != nil {
 		return errors.New("failed to deserialize CRCouncilMemberDID")
+	}
+
+	if err := p.SideChainInfo.Deserialize(r); err != nil {
+		return errors.New("failed to deserialize SideChainInfo")
 	}
 
 	if err := p.Hash.Deserialize(r); err != nil {

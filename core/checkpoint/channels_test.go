@@ -33,14 +33,12 @@ func TestFileChannels_LifeCycle(t *testing.T) {
 	reply = make(chan bool)
 	channels.Replace(pt, reply, pt.height)
 	<-reply
-	assert.FileExists(t, getFilePath("", pt))
 	assert.FileExists(t, getDefaultPath("", pt))
 
 	// clean without changing height
 	reply = make(chan bool)
 	channels.Clean(pt, reply)
 	<-reply
-	assert.FileExists(t, getFilePath("", pt))
 	assert.FileExists(t, getDefaultPath("", pt))
 
 	// clean after change height

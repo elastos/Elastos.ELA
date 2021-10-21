@@ -17,8 +17,8 @@ import (
 )
 
 const (
-	// checkpointKey defines key of DPoS checkpoint.
-	checkpointKey = "dpos"
+	// CheckpointKey defines key of DPoS checkpoint.
+	CheckpointKey = "cp_dpos"
 
 	// checkpointExtension defines checkpoint file extension of DPoS checkpoint.
 	checkpointExtension = ".dcp"
@@ -29,28 +29,32 @@ const (
 
 	// checkpointEffectiveHeight defines the minimal height arbitrators obj
 	// should scan to recover effective state.
-	checkpointEffectiveHeight = uint32(720)
+	checkpointEffectiveHeight = uint32(7)
 )
 
 // CheckPoint defines all variables need record in database
 type CheckPoint struct {
 	StateKeyFrame
-	Height                     uint32
-	DutyIndex                  int
-	CurrentArbitrators         []ArbiterMember
-	NextArbitrators            []ArbiterMember
-	NextCandidates             []ArbiterMember
-	CurrentCandidates          []ArbiterMember
-	CurrentReward              RewardData
-	NextReward                 RewardData
-	CurrentCRCArbiters         map[common.Uint168]ArbiterMember
-	NextCRCArbiters            map[common.Uint168]ArbiterMember
+	Height                uint32
+	DutyIndex             int
+	CurrentArbitrators    []ArbiterMember
+	NextArbitrators       []ArbiterMember
+	NextCandidates        []ArbiterMember
+	CurrentCandidates     []ArbiterMember
+	CurrentReward         RewardData
+	NextReward            RewardData
+	CurrentCRCArbitersMap map[common.Uint168]ArbiterMember
+	NextCRCArbitersMap    map[common.Uint168]ArbiterMember
+	NextCRCArbiters       []ArbiterMember
+
 	crcChangedHeight           uint32
 	accumulativeReward         common.Fixed64
 	finalRoundChange           common.Fixed64
 	clearingHeight             uint32
 	arbitersRoundReward        map[common.Uint168]common.Fixed64
 	illegalBlocksPayloadHashes map[common.Uint256]interface{}
+
+	forceChanged bool
 
 	arbitrators *arbitrators
 }
@@ -68,6 +72,10 @@ func (c *CheckPoint) OnBlockSaved(block *types.DposBlock) {
 	c.arbitrators.ProcessBlock(block.Block, block.Confirm)
 }
 
+func (c *CheckPoint) OnRollbackSeekTo(height uint32) {
+	c.arbitrators.RollbackSeekTo(height)
+}
+
 func (c *CheckPoint) OnRollbackTo(height uint32) error {
 	if height < c.StartHeight() {
 		ar := &arbitrators{}
@@ -82,7 +90,7 @@ func (c *CheckPoint) OnRollbackTo(height uint32) error {
 }
 
 func (c *CheckPoint) Key() string {
-	return checkpointKey
+	return CheckpointKey
 }
 
 func (c *CheckPoint) OnInit() {
@@ -90,24 +98,20 @@ func (c *CheckPoint) OnInit() {
 }
 
 func (c *CheckPoint) Snapshot() checkpoint.ICheckPoint {
-	point := &CheckPoint{
-		Height:             c.Height,
-		DutyIndex:          c.arbitrators.dutyIndex,
-		CurrentCandidates:  make([]ArbiterMember, 0),
-		NextArbitrators:    make([]ArbiterMember, 0),
-		NextCandidates:     make([]ArbiterMember, 0),
-		CurrentReward:      *NewRewardData(),
-		NextReward:         *NewRewardData(),
-		CurrentArbitrators: c.arbitrators.currentArbitrators,
-		StateKeyFrame:      *c.arbitrators.StateKeyFrame.snapshot(),
+	// init check point
+	c.initFromArbitrators(c.arbitrators)
+
+	buf := new(bytes.Buffer)
+	if err := c.Serialize(buf); err != nil {
+		c.LogError(err)
+		return nil
 	}
-	point.CurrentArbitrators = copyByteList(c.arbitrators.currentArbitrators)
-	point.CurrentCandidates = copyByteList(c.arbitrators.currentCandidates)
-	point.NextArbitrators = copyByteList(c.arbitrators.nextArbitrators)
-	point.NextCandidates = copyByteList(c.arbitrators.nextCandidates)
-	point.CurrentReward = *copyReward(&c.arbitrators.CurrentReward)
-	point.NextReward = *copyReward(&c.arbitrators.NextReward)
-	return point
+	result := &CheckPoint{}
+	if err := result.Deserialize(buf); err != nil {
+		c.LogError(err)
+		return nil
+	}
+	return result
 }
 
 func (c *CheckPoint) GetHeight() uint32 {
@@ -186,11 +190,14 @@ func (c *CheckPoint) Serialize(w io.Writer) (err error) {
 		return
 	}
 
-	if err = c.serializeCRCArbitersMap(w, c.CurrentCRCArbiters); err != nil {
+	if err = c.serializeCRCArbitersMap(w, c.CurrentCRCArbitersMap); err != nil {
 		return
 	}
 
-	if err = c.serializeCRCArbitersMap(w, c.NextCRCArbiters); err != nil {
+	if err = c.serializeCRCArbitersMap(w, c.NextCRCArbitersMap); err != nil {
+		return
+	}
+	if err = c.writeArbiters(w, c.NextCRCArbiters); err != nil {
 		return
 	}
 
@@ -218,6 +225,9 @@ func (c *CheckPoint) Serialize(w io.Writer) (err error) {
 		return
 	}
 
+	if err = common.WriteElements(w, c.forceChanged); err != nil {
+		return
+	}
 	return c.StateKeyFrame.Serialize(w)
 }
 
@@ -308,11 +318,13 @@ func (c *CheckPoint) Deserialize(r io.Reader) (err error) {
 		return
 	}
 
-	if c.CurrentCRCArbiters, err = c.deserializeCRCArbitersMap(r); err != nil {
+	if c.CurrentCRCArbitersMap, err = c.deserializeCRCArbitersMap(r); err != nil {
 		return
 	}
-
-	if c.NextCRCArbiters, err = c.deserializeCRCArbitersMap(r); err != nil {
+	if c.NextCRCArbitersMap, err = c.deserializeCRCArbitersMap(r); err != nil {
+		return
+	}
+	if c.NextCRCArbiters, err = c.readArbiters(r); err != nil {
 		return
 	}
 
@@ -340,7 +352,9 @@ func (c *CheckPoint) Deserialize(r io.Reader) (err error) {
 	if err != nil {
 		return
 	}
-
+	if err = common.ReadElement(r, &c.forceChanged); err != nil {
+		return
+	}
 	return c.StateKeyFrame.Deserialize(r)
 }
 
@@ -367,13 +381,9 @@ func (c *CheckPoint) deserializeCRCArbitersMap(r io.Reader) (
 		case Origin:
 			am = &originArbiter{}
 		case DPoS:
-			am = &dposArbiter{
-				arType: DPoS,
-			}
+			am = &dposArbiter{}
 		case CROrigin:
-			am = &dposArbiter{
-				arType: CROrigin,
-			}
+			am = &dposArbiter{}
 		case CRC:
 			am = &crcArbiter{}
 		default:
@@ -466,6 +476,18 @@ func (c *CheckPoint) initFromArbitrators(ar *arbitrators) {
 	c.NextReward = ar.NextReward
 	c.CurrentArbitrators = ar.currentArbitrators
 	c.StateKeyFrame = *ar.State.StateKeyFrame
+	c.DutyIndex = ar.dutyIndex
+	c.accumulativeReward = ar.accumulativeReward
+	c.finalRoundChange = ar.finalRoundChange
+	c.clearingHeight = ar.clearingHeight
+	c.arbitersRoundReward = ar.arbitersRoundReward
+	c.illegalBlocksPayloadHashes = ar.illegalBlocksPayloadHashes
+	c.crcChangedHeight = ar.crcChangedHeight
+	c.CurrentCRCArbitersMap = ar.currentCRCArbitersMap
+	c.NextCRCArbitersMap = ar.nextCRCArbitersMap
+	c.NextCRCArbiters = ar.nextCRCArbiters
+	c.forceChanged = ar.forceChanged
+
 }
 
 func NewCheckpoint(ar *arbitrators) *CheckPoint {

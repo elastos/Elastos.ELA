@@ -514,6 +514,16 @@ func (m *Manager) IsTx3Exist(txHash *common.Uint256) bool {
 	return exist
 }
 
+func (m *Manager) IsSideChainReturnDepositExist(txHash *common.Uint256) bool {
+	exist := false
+	_ = m.db.View(func(dbTx database.Tx) error {
+		exist = dbFetchReturnDepositIndexEntry(dbTx, txHash)
+		return nil
+	})
+
+	return exist
+}
+
 // NewManager returns a new index manager with the provided indexes enabled.
 //
 // The manager returned satisfies the blockchain.IndexManager interface and thus
@@ -523,8 +533,9 @@ func NewManager(db database.DB, params *config.Params) *Manager {
 	unspentIndex := NewUnspentIndex(db, params)
 	utxoIndex := NewUtxoIndex(db, unspentIndex)
 	tx3Index := NewTx3Index(db)
+	returnDepositIndex := NewReturnDepositIndex(db)
 	var enabledIndexes []Indexer
-	enabledIndexes = append(enabledIndexes, txIndex, unspentIndex, utxoIndex, tx3Index)
+	enabledIndexes = append(enabledIndexes, txIndex, unspentIndex, utxoIndex, tx3Index, returnDepositIndex)
 	return &Manager{
 		db:             db,
 		enabledIndexes: enabledIndexes,

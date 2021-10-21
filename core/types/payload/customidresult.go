@@ -9,7 +9,7 @@ import (
 
 const CustomIDResultVersion byte = 0x00
 
-type CustomIDProposalResult struct {
+type RecordProposalResult struct {
 	ProposalResults []ProposalResult
 }
 
@@ -49,7 +49,7 @@ func (p *ProposalResult) Deserialize(r io.Reader, version byte) error {
 	return nil
 }
 
-func (p *CustomIDProposalResult) Data(version byte) []byte {
+func (p *RecordProposalResult) Data(version byte) []byte {
 	buf := new(bytes.Buffer)
 	if err := p.Serialize(buf, version); err != nil {
 		return []byte{0}
@@ -57,7 +57,7 @@ func (p *CustomIDProposalResult) Data(version byte) []byte {
 	return buf.Bytes()
 }
 
-func (p *CustomIDProposalResult) Serialize(w io.Writer, version byte) error {
+func (p *RecordProposalResult) Serialize(w io.Writer, version byte) error {
 	err := p.SerializeUnsigned(w, version)
 	if err != nil {
 		return err
@@ -65,7 +65,7 @@ func (p *CustomIDProposalResult) Serialize(w io.Writer, version byte) error {
 	return nil
 }
 
-func (p *CustomIDProposalResult) SerializeUnsigned(w io.Writer, version byte) error {
+func (p *RecordProposalResult) SerializeUnsigned(w io.Writer, version byte) error {
 	if err := common.WriteVarUint(w, uint64(len(p.ProposalResults))); err != nil {
 		return err
 	}
@@ -77,7 +77,7 @@ func (p *CustomIDProposalResult) SerializeUnsigned(w io.Writer, version byte) er
 	return nil
 }
 
-func (p *CustomIDProposalResult) Deserialize(r io.Reader, version byte) error {
+func (p *RecordProposalResult) Deserialize(r io.Reader, version byte) error {
 	err := p.DeserializeUnsigned(r, version)
 	if err != nil {
 		return err
@@ -85,7 +85,7 @@ func (p *CustomIDProposalResult) Deserialize(r io.Reader, version byte) error {
 	return nil
 }
 
-func (p *CustomIDProposalResult) DeserializeUnsigned(r io.Reader, version byte) error {
+func (p *RecordProposalResult) DeserializeUnsigned(r io.Reader, version byte) error {
 	count, err := common.ReadVarUint(r, 0)
 	if err != nil {
 		return err

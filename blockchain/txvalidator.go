@@ -10,9 +10,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"math"
-	"sort"
-
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/common/log"
@@ -29,6 +26,8 @@ import (
 	elaerr "github.com/elastos/Elastos.ELA/errors"
 	"github.com/elastos/Elastos.ELA/utils"
 	"github.com/elastos/Elastos.ELA/vm"
+	"math"
+	"sort"
 )
 
 const (
@@ -113,6 +112,23 @@ func (b *BlockChain) CheckTransactionContext(blockHeight uint32,
 	}
 
 	if txn.IsCoinBaseTx() {
+		if blockHeight >= b.chainParams.CRCommitteeStartHeight {
+			if b.state.GetConsensusAlgorithm() == state.POW {
+				if !txn.Outputs[0].ProgramHash.IsEqual(b.chainParams.DestroyELAAddress) {
+					return nil, elaerr.Simple(elaerr.ErrTxInvalidOutput,
+						errors.New("first output address should be "+
+							"DestroyAddress in POW consensus algorithm"))
+				}
+			} else {
+				if !txn.Outputs[0].ProgramHash.IsEqual(b.chainParams.CRAssetsAddress) {
+					return nil, elaerr.Simple(elaerr.ErrTxInvalidOutput,
+						errors.New("first output address should be CR assets address"))
+				}
+			}
+		} else if !txn.Outputs[0].ProgramHash.IsEqual(FoundationAddress) {
+			return nil, elaerr.Simple(elaerr.ErrTxInvalidOutput,
+				errors.New("first output address should be foundation address"))
+		}
 		return nil, nil
 	}
 
@@ -209,7 +225,7 @@ func (b *BlockChain) CheckTransactionContext(blockHeight uint32,
 		}
 		return references, nil
 
-	case CustomIDResult:
+	case ProposalResult:
 		if err := b.checkCustomIDResultTransaction(txn); err != nil {
 			log.Warn("[checkCustomIDResultTransaction],", err)
 			return nil, elaerr.Simple(elaerr.ErrTxPayload, err)
@@ -288,7 +304,7 @@ func (b *BlockChain) CheckTransactionContext(blockHeight uint32,
 		}
 
 	case TransferCrossChainAsset:
-		if err := b.checkTransferCrossChainAssetTransaction(txn, references); err != nil {
+		if err := b.checkTransferCrossChainAssetTransaction(txn, references, blockHeight); err != nil {
 			log.Warn("[CheckTransferCrossChainAssetTransaction],", err)
 			return nil, elaerr.Simple(elaerr.ErrTxInvalidOutput, err)
 		}
@@ -337,6 +353,12 @@ func (b *BlockChain) CheckTransactionContext(blockHeight uint32,
 			return nil, elaerr.Simple(elaerr.ErrTxRevertToPOW, err)
 		}
 		return references, nil
+
+	case ReturnSideChainDepositCoin:
+		if err := b.checkReturnSideChainDepositTransaction(txn); err != nil {
+			log.Warn("[checkReturnSideChainDepositTransaction]", err)
+			return nil, elaerr.Simple(elaerr.ErrTxReturnSideChainDeposit, err)
+		}
 	}
 
 	if err := b.checkTransactionFee(txn, references); err != nil {
@@ -610,7 +632,8 @@ func checkTransactionInput(txn *Transaction) error {
 		inputHash := txn.Inputs[0].Previous.TxID
 		inputIndex := txn.Inputs[0].Previous.Index
 		sequence := txn.Inputs[0].Sequence
-		if !inputHash.IsEqual(common.EmptyHash) || inputIndex != math.MaxUint16 || sequence != math.MaxUint32 {
+		if !inputHash.IsEqual(common.EmptyHash) ||
+			inputIndex != math.MaxUint16 || sequence != math.MaxUint32 {
 			return errors.New("invalid coinbase input")
 		}
 
@@ -667,23 +690,6 @@ func (b *BlockChain) checkTransactionOutput(txn *Transaction,
 	if txn.IsCoinBaseTx() {
 		if len(txn.Outputs) < 2 {
 			return errors.New("coinbase output is not enough, at least 2")
-		}
-
-		if blockHeight >= b.chainParams.CRCommitteeStartHeight {
-			if b.state.GetConsensusAlgorithm() == state.POW {
-				if !txn.Outputs[0].ProgramHash.IsEqual(b.chainParams.DestroyELAAddress) {
-					return errors.New("first output address should be " +
-						"DestroyAddress in POW consensus algorithm")
-				}
-			} else {
-				if !txn.Outputs[0].ProgramHash.IsEqual(b.chainParams.CRAssetsAddress) {
-					return errors.New("first output address should be CR " +
-						"assets address")
-				}
-			}
-		} else if !txn.Outputs[0].ProgramHash.IsEqual(FoundationAddress) {
-			return errors.New("first output address should be foundation " +
-				"address")
 		}
 
 		foundationReward := txn.Outputs[0].Value
@@ -746,7 +752,6 @@ func (b *BlockChain) checkTransactionOutput(txn *Transaction,
 		if txn.Outputs[0].Type != OTNone {
 			return errors.New("the type of new sideChainPow tx output must be OTNone")
 		}
-
 		return nil
 	}
 
@@ -779,6 +784,11 @@ func (b *BlockChain) checkTransactionOutput(txn *Transaction,
 			}
 		}
 	}
+
+	if txn.IsReturnSideChainDepositCoinTx() || txn.IsWithdrawFromSideChainTx() {
+		return nil
+	}
+
 	if b.GetHeight() >= b.chainParams.PublicDPOSHeight && specialOutputCount > 1 {
 		return errors.New("special output count should less equal than 1")
 	}
@@ -827,8 +837,31 @@ func checkOutputProgramHash(height uint32, programHash common.Uint168) error {
 }
 
 func checkOutputPayload(txType TxType, output *Output) error {
-	// OTVote information can only be placed in TransferAsset transaction.
-	if txType == TransferAsset {
+	switch txType {
+	case ReturnSideChainDepositCoin:
+		switch output.Type {
+		case OTNone:
+		case OTReturnSideChainDepositCoin:
+		default:
+			return errors.New("transaction type dose not match the output payload type")
+		}
+	case WithdrawFromSideChain:
+		switch output.Type {
+		case OTNone:
+		case OTWithdrawFromSideChain:
+		default:
+			return errors.New("transaction type dose not match the output payload type")
+		}
+	case TransferCrossChainAsset:
+		// OTCrossChain information can only be placed in TransferCrossChainAsset transaction.
+		switch output.Type {
+		case OTNone:
+		case OTCrossChain:
+		default:
+			return errors.New("transaction type dose not match the output payload type")
+		}
+	case TransferAsset:
+		// OTVote information can only be placed in TransferAsset transaction.
 		switch output.Type {
 		case OTVote:
 			if contract.GetPrefixType(output.ProgramHash) !=
@@ -840,7 +873,7 @@ func checkOutputPayload(txType TxType, output *Output) error {
 		default:
 			return errors.New("transaction type dose not match the output payload type")
 		}
-	} else {
+	default:
 		switch output.Type {
 		case OTNone:
 		default:
@@ -970,7 +1003,7 @@ func (b *BlockChain) checkAttributeProgram(tx *Transaction,
 		}
 		return nil
 	case IllegalSidechainEvidence, IllegalProposalEvidence, IllegalVoteEvidence,
-		ActivateProducer, NextTurnDPOSInfo, CustomIDResult, RevertToPOW:
+		ActivateProducer, NextTurnDPOSInfo, ProposalResult, RevertToPOW:
 		if len(tx.Programs) != 0 || len(tx.Attributes) != 0 {
 			return errors.New("zero cost tx should have no attributes and programs")
 		}
@@ -1107,7 +1140,8 @@ func checkTransactionPayload(txn *Transaction) error {
 	case *payload.CRCouncilMemberClaimNode:
 	case *payload.RevertToPOW:
 	case *payload.RevertToDPOS:
-	case *payload.CustomIDProposalResult:
+	case *payload.RecordProposalResult:
+	case *payload.ReturnSideChainDepositCoin:
 	default:
 		return errors.New("[txValidator],invalidate transaction payload type.")
 	}
@@ -1233,6 +1267,11 @@ func (b *BlockChain) checkTxHeightVersion(txn *Transaction, blockHeight uint32) 
 				return errors.New(fmt.Sprintf("not support %s CRCProposal"+
 					" transaction before CustomIDProposalStartHeight", p.ProposalType.Name()))
 			}
+		case payload.RegisterSideChain:
+			if blockHeight < b.chainParams.NewCrossChainStartHeight {
+				return errors.New(fmt.Sprintf("not support %s CRCProposal"+
+					" transaction before NewCrossChainStartHeight", p.ProposalType.Name()))
+			}
 		default:
 			if blockHeight < b.chainParams.CRCommitteeStartHeight {
 				return errors.New(fmt.Sprintf("not support %s CRCProposal"+
@@ -1301,6 +1340,24 @@ func (b *BlockChain) checkTxHeightVersion(txn *Transaction, blockHeight uint32) 
 				}
 			}
 		}
+	case TransferCrossChainAsset:
+		if blockHeight <= b.chainParams.NewCrossChainStartHeight {
+			if txn.PayloadVersion != payload.TransferCrossChainVersion {
+				return errors.New("not support " +
+					"TransferCrossChainAsset payload version V1 before NewCrossChainStartHeight")
+			}
+			return nil
+		} else {
+			if txn.PayloadVersion != payload.TransferCrossChainVersionV1 {
+				return errors.New("not support " +
+					"TransferCrossChainAsset payload version V0 after NewCrossChainStartHeight")
+			}
+		}
+	case ReturnSideChainDepositCoin:
+		if blockHeight < b.chainParams.ReturnCrossChainCoinStartHeight {
+			return errors.New(fmt.Sprintf("not support %s transaction "+
+				"before ReturnCrossChainCoinStartHeight", txn.TxType.Name()))
+		}
 	}
 
 	return nil
@@ -1336,6 +1393,71 @@ func CheckSideChainPowConsensus(txn *Transaction, arbitrator []byte) error {
 }
 
 func (b *BlockChain) checkWithdrawFromSideChainTransaction(txn *Transaction, references map[*Input]Output, height uint32) error {
+
+	if txn.PayloadVersion == payload.WithdrawFromSideChainVersion {
+		return b.checkWithdrawFromSideChainTransactionV0(txn, references, height)
+	} else if txn.PayloadVersion == payload.WithdrawFromSideChainVersionV1 {
+		return b.checkWithdrawFromSideChainTransactionV1(txn, references, height)
+	}
+	return errors.New("invalid payload version")
+}
+
+func (b *BlockChain) checkWithdrawFromSideChainTransactionV1(txn *Transaction, references map[*Input]Output, height uint32) error {
+	for _, output := range txn.Outputs {
+		if output.Type != OTWithdrawFromSideChain {
+			continue
+		}
+		witPayload, ok := output.Payload.(*outputpayload.Withdraw)
+		if !ok {
+			return errors.New("Invalid withdraw from side chain output payload type")
+		}
+		if exist := DefaultLedger.Store.IsSidechainTxHashDuplicate(witPayload.SideChainTransactionHash); exist {
+			return errors.New("Duplicate side chain transaction hash in output paylod")
+		}
+	}
+
+	for _, output := range references {
+		if bytes.Compare(output.ProgramHash[0:1], []byte{byte(contract.PrefixCrossChain)}) != 0 {
+			return errors.New("Invalid transaction inputs address, without \"X\" at beginning")
+		}
+	}
+
+	for _, p := range txn.Programs {
+		publicKeys, m, n, err := crypto.ParseCrossChainScriptV1(p.Code)
+		if err != nil {
+			return err
+		}
+		var arbiters []*state.ArbiterInfo
+		var minCount uint32
+		if height >= b.chainParams.DPOSNodeCrossChainHeight {
+			arbiters = DefaultLedger.Arbitrators.GetArbitrators()
+			minCount = uint32(b.chainParams.GeneralArbiters) + 1
+		} else {
+			arbiters = DefaultLedger.Arbitrators.GetCRCArbiters()
+			minCount = b.chainParams.CRAgreementCount
+		}
+		var arbitersCount int
+		for _, c := range arbiters {
+			if !c.IsNormal {
+				continue
+			}
+			arbitersCount++
+		}
+		if n != arbitersCount {
+			return errors.New("invalid arbiters total count in code")
+		}
+		if m < int(minCount) {
+			return errors.New("invalid arbiters sign count in code")
+		}
+		if err := b.checkCrossChainArbitrators(publicKeys); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (b *BlockChain) checkWithdrawFromSideChainTransactionV0(txn *Transaction, references map[*Input]Output, height uint32) error {
 	witPayload, ok := txn.Payload.(*payload.WithdrawFromSideChain)
 	if !ok {
 		return errors.New("Invalid withdraw from side chain payload type")
@@ -1428,7 +1550,63 @@ func (b *BlockChain) checkCrossChainArbitrators(publicKeys [][]byte) error {
 	return nil
 }
 
-func (b *BlockChain) checkTransferCrossChainAssetTransaction(txn *Transaction, references map[*Input]Output) error {
+func (b *BlockChain) checkTransferCrossChainAssetTransaction(txn *Transaction, references map[*Input]Output,
+	blockHeight uint32) error {
+	if txn.PayloadVersion > payload.TransferCrossChainVersionV1 {
+		return errors.New("invalid payload version")
+	} else if txn.PayloadVersion == payload.TransferCrossChainVersionV1 {
+		return b.checkTransferCrossChainAssetTransactionV1(txn, references, blockHeight)
+	}
+	return b.checkTransferCrossChainAssetTransactionV0(txn, references)
+}
+
+func (b *BlockChain) checkTransferCrossChainAssetTransactionV1(txn *Transaction, references map[*Input]Output,
+	blockHeight uint32) error {
+	if txn.Version < TxVersion09 {
+		return errors.New("invalid transaction version")
+	}
+
+	var crossChainOutputCount uint32
+	for _, output := range txn.Outputs {
+		switch output.Type {
+		case OTNone:
+		case OTCrossChain:
+			if blockHeight >= b.chainParams.ProhibitTransferToDIDHeight {
+				address, err := output.ProgramHash.ToAddress()
+				if err != nil {
+					return err
+				}
+				if address == b.chainParams.DIDSideChainAddress {
+					return errors.New("no more DIDSideChain tx ")
+
+				}
+			}
+			if bytes.Compare(output.ProgramHash[0:1], []byte{byte(contract.PrefixCrossChain)}) != 0 {
+				return errors.New("invalid transaction output address, without \"X\" at beginning")
+			}
+
+			p, ok := output.Payload.(*outputpayload.CrossChainOutput)
+			if !ok {
+				return errors.New("invalid cross chain output payload")
+			}
+
+			if output.Value < b.chainParams.MinCrossChainTxFee+p.TargetAmount {
+				return errors.New("invalid cross chain output amount")
+			}
+
+			crossChainOutputCount++
+		default:
+			return errors.New("invalid output type in cross chain transaction")
+		}
+	}
+	if crossChainOutputCount == 0 {
+		return errors.New("invalid cross chain output count")
+	}
+
+	return nil
+}
+
+func (b *BlockChain) checkTransferCrossChainAssetTransactionV0(txn *Transaction, references map[*Input]Output) error {
 	payloadObj, ok := txn.Payload.(*payload.TransferCrossChainAsset)
 	if !ok {
 		return errors.New("Invalid transfer cross chain asset payload type")
@@ -1531,7 +1709,7 @@ func (b *BlockChain) checkCustomIDResultTransaction(txn *Transaction) error {
 	if !DefaultLedger.Committee.IsCustomIDResultNeeded() {
 		return errors.New("should not have custom ID result transaction")
 	}
-	p, ok := txn.Payload.(*payload.CustomIDProposalResult)
+	p, ok := txn.Payload.(*payload.RecordProposalResult)
 	if !ok {
 		return errors.New("invalid custom ID result payload")
 	}
@@ -2446,6 +2624,89 @@ func (b *BlockChain) checkCRAssetsRectifyTransaction(txn *Transaction,
 	return nil
 }
 
+func (b *BlockChain) checkReturnSideChainDepositTransaction(txn *Transaction) error {
+	_, ok := txn.Payload.(*payload.ReturnSideChainDepositCoin)
+	if !ok {
+		return errors.New("invalid payload")
+	}
+
+	// check outputs
+	fee := b.chainParams.ReturnDepositCoinFee
+	for _, o := range txn.Outputs {
+		if o.Type != OTReturnSideChainDepositCoin {
+			continue
+		}
+		py, ok := o.Payload.(*outputpayload.ReturnSideChainDeposit)
+		if !ok {
+			return errors.New("invalid ReturnSideChainDeposit output payload")
+		}
+
+		tx, _, err := b.db.GetTransaction(py.DepositTransactionHash)
+		if err != nil {
+			return errors.New("invalid deposit tx:" + py.DepositTransactionHash.String())
+		}
+		refTx, _, err := b.db.GetTransaction(tx.Inputs[0].Previous.TxID)
+		if err != nil {
+			return err
+		}
+
+		// need to return the deposit coin to first input address
+		refOutput := refTx.Outputs[tx.Inputs[0].Previous.Index]
+		if o.ProgramHash != refOutput.ProgramHash {
+			return errors.New("invalid output address")
+		}
+
+		// side chain deposit address
+		crossChainHash, err := common.Uint168FromAddress(py.GenesisBlockAddress)
+		if err != nil {
+			return err
+		}
+		var crossChainAmount common.Fixed64
+		switch tx.PayloadVersion {
+		case payload.TransferCrossChainVersion:
+			p, ok := tx.Payload.(*payload.TransferCrossChainAsset)
+			if !ok {
+				log.Error("Invalid payload type need TransferCrossChainAsset")
+				continue
+			}
+
+			for _, idx := range p.OutputIndexes {
+				// output to current side chain
+				if !crossChainHash.IsEqual(tx.Outputs[idx].ProgramHash) {
+					continue
+				}
+				crossChainAmount += tx.Outputs[idx].Value
+			}
+		case payload.TransferCrossChainVersionV1:
+			_, ok := tx.Payload.(*payload.TransferCrossChainAsset)
+			if !ok {
+				log.Error("Invalid payload type need TransferCrossChainAsset")
+				continue
+			}
+			for _, o := range tx.Outputs {
+				if o.Type != OTCrossChain {
+					continue
+				}
+				// output to current side chain
+				if !crossChainHash.IsEqual(o.ProgramHash) {
+					continue
+				}
+				_, ok := o.Payload.(*outputpayload.CrossChainOutput)
+				if !ok {
+					continue
+				}
+				crossChainAmount += o.Value
+			}
+		}
+
+		if o.Value+fee != crossChainAmount {
+			return errors.New("invalid output amount")
+		}
+	}
+
+	return nil
+}
+
 func (b *BlockChain) checkRevertToPOWTransaction(txn *Transaction, blockHeight uint32, timeStamp uint32) error {
 	p, ok := txn.Payload.(*payload.RevertToPOW)
 	if !ok {
@@ -2505,7 +2766,7 @@ func (b *BlockChain) checkCRCouncilMemberClaimNodeTransaction(txn *Transaction) 
 		return errors.New("CR Council Member should be an elected or inactive CR members")
 	}
 
-	if crMember.DPOSPublicKey != nil {
+	if len(crMember.DPOSPublicKey) != 0 {
 		if bytes.Equal(crMember.DPOSPublicKey, manager.NodePublicKey) {
 			return errors.New("NodePublicKey is the same as crMember.DPOSPublicKey")
 		}
@@ -2909,7 +3170,66 @@ func (b *BlockChain) checkChangeSecretaryGeneralProposalTx(crcProposal *payload.
 	return nil
 }
 
+func (b *BlockChain) checkRegisterSideChainProposal(proposal *payload.CRCProposal, payloadVersion byte) error {
+	_, err := crypto.DecodePoint(proposal.OwnerPublicKey)
+	if err != nil {
+		return errors.New("DecodePoint from OwnerPublicKey error")
+	}
+
+	if proposal.SideChainName == "" {
+		return errors.New("SideChainName can not be empty")
+	}
+
+	for _, name := range b.crCommittee.GetProposalManager().RegisteredSideChainNames {
+		if name == proposal.SideChainName {
+			return errors.New("SideChainName already registered")
+		}
+	}
+
+	for _, mn := range b.crCommittee.GetProposalManager().RegisteredMagicNumbers {
+		if mn == proposal.MagicNumber {
+			return errors.New("MagicNumber already registered")
+		}
+	}
+
+	for _, gene := range b.crCommittee.GetProposalManager().RegisteredGenesisHashes {
+		if gene.IsEqual(proposal.GenesisHash) {
+			return errors.New("Genesis Hash already registered")
+		}
+	}
+
+	if proposal.ExchangeRate != common.Fixed64(1e8) {
+		return errors.New("ExchangeRate should be 1.0")
+	}
+
+	if proposal.EffectiveHeight < b.GetHeight() {
+		return errors.New("EffectiveHeight must be bigger than current height")
+	}
+
+	if proposal.GenesisHash == common.EmptyHash {
+		return errors.New("GenesisHash can not be empty")
+	}
+
+	if len(proposal.Budgets) > 0 {
+		return errors.New("RegisterSideChain cannot have budget")
+	}
+	emptyUint168 := common.Uint168{}
+	if proposal.Recipient != emptyUint168 {
+		return errors.New("RegisterSideChain recipient must be empty")
+	}
+	crMember := b.crCommittee.GetMember(proposal.CRCouncilMemberDID)
+	if crMember == nil {
+		return errors.New("CR Council Member should be one of the CR members")
+	}
+
+	return b.checkOwnerAndCRCouncilMemberSign(proposal, crMember.Info.Code, payloadVersion)
+}
+
 func (b *BlockChain) checkReservedCustomID(proposal *payload.CRCProposal, PayloadVersion byte) error {
+
+	if b.crCommittee.GetProposalManager().ReservedCustomID {
+		return errors.New("Already have one ReservedCustomID proposal")
+	}
 	_, err := crypto.DecodePoint(proposal.OwnerPublicKey)
 	if err != nil {
 		return errors.New("DecodePoint from OwnerPublicKey error")
@@ -2925,6 +3245,9 @@ func (b *BlockChain) checkReservedCustomID(proposal *payload.CRCProposal, Payloa
 		}
 		if _, ok := customIDMap[v]; ok {
 			return errors.New("duplicated reserved custom ID")
+		}
+		if !common.IsLetterOrNumber(v) {
+			return errors.New("invalid custom ID: only letter and number is allowed")
 		}
 		customIDMap[v] = struct{}{}
 	}
@@ -2981,6 +3304,9 @@ func (b *BlockChain) checkChangeCustomIDFee(proposal *payload.CRCProposal, Paylo
 	}
 	if proposal.RateOfCustomIDFee < 0 {
 		return errors.New("invalid fee rate of custom ID")
+	}
+	if proposal.EIDEffectiveHeight <= 0 {
+		return errors.New("invalid EID effective height")
 	}
 	crMember := b.crCommittee.GetMember(proposal.CRCouncilMemberDID)
 	if crMember == nil {
@@ -3282,6 +3608,8 @@ func (b *BlockChain) checkCRCProposalTransaction(txn *Transaction,
 		return b.checkReceivedCustomID(proposal, txn.PayloadVersion)
 	case payload.ChangeCustomIDFee:
 		return b.checkChangeCustomIDFee(proposal, txn.PayloadVersion)
+	case payload.RegisterSideChain:
+		return b.checkRegisterSideChainProposal(proposal, txn.PayloadVersion)
 	default:
 		return b.checkNormalOrELIPProposal(proposal, proposalsUsedAmount, txn.PayloadVersion)
 	}

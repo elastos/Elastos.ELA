@@ -315,12 +315,21 @@ func startNode(c *cli.Context, st *settings.Settings) {
 		Arbitrators: arbiters,
 	})
 
+	st.Params().CkpManager.SetNeedSave(true)
 	// initialize producer state after arbiters has initialized.
 	if err = chain.InitCheckpoint(interrupt.C, pgBar.Start,
 		pgBar.Increase); err != nil {
 		printErrorAndExit(err)
 	}
 	pgBar.Stop()
+
+	// Add small cross chain transactions to transaction pool
+	txs, _ := chain.GetDB().GetSmallCrossTransferTxs()
+	for _, tx := range txs {
+		if err := txMemPool.AppendToTxPoolWithoutEvent(tx); err != nil {
+			continue
+		}
+	}
 
 	log.Info("Start the P2P networks")
 	server.Start()
@@ -352,8 +361,6 @@ func startNode(c *cli.Context, st *settings.Settings) {
 		go servers.Pow.Start()
 	}
 	servers.Pow.ListenForRevert()
-
-	st.Params().CkpManager.SetNeedSave(true)
 
 	<-interrupt.C
 }

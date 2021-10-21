@@ -1145,41 +1145,6 @@ func (s *State) processVotes(tx *types.Transaction, height uint32) {
 	}
 }
 
-// tryInitProducerAssetAmounts will initialize deposit amount of all
-// producers after CR voting start height.
-func (s *State) tryInitProducerAssetAmounts(blockHeight uint32) {
-	if blockHeight != s.chainParams.CRVotingStartHeight {
-		return
-	}
-
-	setAmount := func(producer *Producer, amount common.Fixed64) {
-		s.history.Append(blockHeight, func() {
-			producer.totalAmount = amount
-		}, func() {
-			producer.totalAmount = common.Fixed64(0)
-		})
-	}
-
-	producers := s.getAllProducers()
-	for _, v := range producers {
-		programHash, err := contract.PublicKeyToDepositProgramHash(
-			v.info.OwnerPublicKey)
-		if err != nil {
-			log.Warn(err)
-			continue
-		}
-
-		amount, err := s.getProducerDepositAmount(*programHash)
-		if err != nil {
-			log.Warn(err)
-			continue
-		}
-
-		producer := v
-		setAmount(producer, amount)
-	}
-}
-
 // processDeposit takes a transaction output with deposit program hash.
 func (s *State) processDeposit(tx *types.Transaction, height uint32) {
 	for i, output := range tx.Outputs {
@@ -1373,18 +1338,14 @@ func (s *State) returnDeposit(tx *types.Transaction, height uint32) {
 
 			returnAction := func(producer *Producer) {
 				s.history.Append(height, func() {
-					if height >= s.chainParams.CRVotingStartHeight {
-						producer.totalAmount -= inputValue
-					}
+					producer.totalAmount -= inputValue
 					if producer.state == Canceled &&
 						producer.totalAmount+changeValue-producer.penalty <=
 							s.chainParams.MinTransactionFee {
 						producer.state = Returned
 					}
 				}, func() {
-					if height >= s.chainParams.CRVotingStartHeight {
-						producer.totalAmount += inputValue
-					}
+					producer.totalAmount += inputValue
 					producer.state = Canceled
 				})
 			}
@@ -1505,7 +1466,7 @@ func (s *State) getClaimedCRMembersMap() map[string]*state.CRMember {
 	}
 	crMembers := s.getCRMembers()
 	for _, m := range crMembers {
-		if m.DPOSPublicKey != nil {
+		if len(m.DPOSPublicKey) != 0 {
 			crMembersMap[hex.EncodeToString(m.Info.Code[1:len(m.Info.Code)-1])] = m
 		}
 	}
@@ -1531,7 +1492,7 @@ func (s *State) getClaimedCRMemberDPOSPublicKeyMap() map[string]*state.CRMember 
 	}
 	crMembers := s.getCRMembers()
 	for _, m := range crMembers {
-		if m.DPOSPublicKey != nil {
+		if len(m.DPOSPublicKey) != 0 {
 			crMembersMap[hex.EncodeToString(m.DPOSPublicKey)] = m
 		}
 	}
@@ -1624,7 +1585,7 @@ func (s *State) processIllegalEvidence(payloadData types.Payload,
 	// Set illegal producers to FoundBad state
 	for _, pk := range illegalProducers {
 		if cr, ok := crMembersMap[hex.EncodeToString(pk)]; ok {
-			if cr.DPOSPublicKey == nil {
+			if len(cr.DPOSPublicKey) == 0 {
 				continue
 			}
 			oriState := cr.MemberState
@@ -1840,7 +1801,7 @@ func (s *State) countArbitratorsInactivityV2(height uint32,
 				if cr.MemberState != state.MemberElected {
 					continue
 				}
-				if isDPOSAsCR && cr.DPOSPublicKey == nil {
+				if isDPOSAsCR && len(cr.DPOSPublicKey) == 0 {
 					key := k // avoiding pass iterator to closure
 					producer, ok := s.ActivityProducers[key]
 					if !ok {
@@ -2080,6 +2041,13 @@ func (s *State) tryRevertInactivity(key string, producer *Producer,
 	if producer.state == Inactive {
 		s.revertSettingInactiveProducer(producer, key, height, false)
 	}
+}
+
+// OnRollbackSeekTo restores the database state to the given height.
+func (s *State) RollbackSeekTo(height uint32) {
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
+	s.history.RollbackSeekTo(height)
 }
 
 // RollbackTo restores the database state to the given height, if no enough

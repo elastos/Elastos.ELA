@@ -20,27 +20,29 @@ import (
 )
 
 const (
-	luaCoinBaseTypeName             = "coinbase"
-	luaTransferAssetTypeName        = "transferasset"
-	luaRegisterProducerName         = "registerproducer"
-	luaUpdateProducerName           = "updateproducer"
-	luaCancelProducerName           = "cancelproducer"
-	luaActivateProducerName         = "activateproducer"
-	luaReturnDepositCoinName        = "returndepositcoin"
-	luaSideChainPowName             = "sidechainpow"
-	luaRegisterCRName               = "registercr"
-	luaUpdateCRName                 = "updatecr"
-	luaUnregisterCRName             = "unregistercr"
-	luaCRCProposalName              = "crcproposal"
-	luaCRChangeProposalOwnerName    = "crchangeproposalowner"
-	luaCRCCloseProposalHashName     = "crccloseproposalhash"
-	luaCRCReservedCustomIDName      = "crcreservedcustomidname"
-	luaCRCReceivedCustomIDName      = "crcreceivedcustomidname"
-	luaCRCChangeCustomIDFeeName     = "luacrcchangecustomidfeename"
-	luaCRCProposalReviewName        = "crcproposalreview"
-	luaCRCProposalTrackingName      = "crcproposaltracking"
-	luaCRCProposalWithdrawName      = "crcproposalwithdraw"
-	luaCRCouncilMemberClaimNodeName = "crcouncilmemebrclaimnode"
+	luaCoinBaseTypeName                     = "coinbase"
+	luaTransferAssetTypeName                = "transferasset"
+	luaTransferCrossChainAssetTypeName      = "transfercrosschainasset"
+	luaRegisterProducerName                 = "registerproducer"
+	luaUpdateProducerName                   = "updateproducer"
+	luaCancelProducerName                   = "cancelproducer"
+	luaActivateProducerName                 = "activateproducer"
+	luaReturnDepositCoinName                = "returndepositcoin"
+	luaSideChainPowName                     = "sidechainpow"
+	luaRegisterCRName                       = "registercr"
+	luaUpdateCRName                         = "updatecr"
+	luaUnregisterCRName                     = "unregistercr"
+	luaCRCProposalName                      = "crcproposal"
+	luaCRChangeProposalOwnerName            = "crchangeproposalowner"
+	luaCRCCloseProposalHashName             = "crccloseproposalhash"
+	luaCRCReservedCustomIDName              = "crcreservedcustomidname"
+	luaCRCReceivedCustomIDName              = "crcreceivedcustomidname"
+	luaCRCChangeCustomIDFeeName             = "luacrcchangecustomidfeename"
+	luaCRCProposalReviewName                = "crcproposalreview"
+	luaCRCProposalTrackingName              = "crcproposaltracking"
+	luaCRCProposalWithdrawName              = "crcproposalwithdraw"
+	luaCRCouncilMemberClaimNodeName         = "crcouncilmemebrclaimnode"
+	luaCRCRegisterSideChainProposalHashName = "crcproposalregistersidechain"
 )
 
 func RegisterCoinBaseType(L *lua.LState) {
@@ -127,6 +129,50 @@ var transferassetMethods = map[string]lua.LGFunction{
 // Getter and setter for the Person#Name
 func transferassetGet(L *lua.LState) int {
 	p := checkTransferAsset(L, 1)
+	fmt.Println(p)
+
+	return 0
+}
+
+// Registers my person type to given L.
+func RegisterTransferCrossChainAssetType(L *lua.LState) {
+	mt := L.NewTypeMetatable(luaTransferCrossChainAssetTypeName)
+	L.SetGlobal("transfercrosschainasset", mt)
+	// static attributes
+	L.SetField(mt, "new", L.NewFunction(newTransferCrossChainAsset))
+	// methods
+	L.SetField(mt, "__index", L.SetFuncs(L.NewTable(), transferassetCrossChainMethods))
+}
+
+// Constructor
+func newTransferCrossChainAsset(L *lua.LState) int {
+	ta := &payload.TransferCrossChainAsset{}
+	ud := L.NewUserData()
+	ud.Value = ta
+	L.SetMetatable(ud, L.GetTypeMetatable(luaTransferCrossChainAssetTypeName))
+	L.Push(ud)
+
+	return 1
+}
+
+// Checks whether the first lua argument is a *LUserData with
+// *checkTransferCrossChainAsset and returns this *checkTransferCrossChainAsset.
+func checkTransferCrossChainAsset(L *lua.LState, idx int) *payload.TransferCrossChainAsset {
+	ud := L.CheckUserData(idx)
+	if v, ok := ud.Value.(*payload.TransferCrossChainAsset); ok {
+		return v
+	}
+	L.ArgError(1, "TransferCrossChainAsset expected")
+	return nil
+}
+
+var transferassetCrossChainMethods = map[string]lua.LGFunction{
+	"get": transferassetCrossChainGet,
+}
+
+// Getter and setter for the Person#Name
+func transferassetCrossChainGet(L *lua.LState) int {
+	p := checkTransferCrossChainAsset(L, 1)
 	fmt.Println(p)
 
 	return 0
@@ -961,6 +1007,15 @@ func RegisterCRChangeProposalOwnerType(L *lua.LState) {
 	L.SetField(mt, "__index", L.SetFuncs(L.NewTable(), crcProposalMethods))
 }
 
+func RegisterCRCRegisterSideChainProposalHashType(L *lua.LState) {
+	mt := L.NewTypeMetatable(luaCRCRegisterSideChainProposalHashName)
+	L.SetGlobal("crcregistersidechainproposal", mt)
+	// static attributes
+	L.SetField(mt, "new", L.NewFunction(newCRCRegisterSideChainProposalHash))
+	// methods
+	L.SetField(mt, "__index", L.SetFuncs(L.NewTable(), crcProposalMethods))
+}
+
 func RegisterCRCCloseProposalHashType(L *lua.LState) {
 	mt := L.NewTypeMetatable(luaCRCCloseProposalHashName)
 	L.SetGlobal("crccloseproposalhash", mt)
@@ -1350,6 +1405,118 @@ func newCRChangeProposalOwner(L *lua.LState) int {
 
 }
 
+func newCRCRegisterSideChainProposalHash(L *lua.LState) int {
+	publicKeyStr := L.ToString(1)
+	proposalType := L.ToInt64(2)
+	sideChainName := L.ToString(3)
+	magicNumber := L.ToInt64(4)
+	genesisHashStr := L.ToString(5)
+	exchangeRate := L.ToInt64(6)
+	effectiveHeight := L.ToInt64(7)
+	resourcePath := L.ToString(8)
+	draftHashStr := L.ToString(9)
+
+	needSign := true
+	client, err := checkClient(L, 10)
+	if err != nil {
+		needSign = false
+	}
+
+	draftHash, err := common.Uint256FromHexString(draftHashStr)
+	if err != nil {
+		fmt.Println("wrong draft proposal hash")
+		os.Exit(1)
+	}
+
+	genesisHash, err := common.Uint256FromHexString(genesisHashStr)
+	if err != nil {
+		fmt.Println("wrong draft proposal hash")
+		os.Exit(1)
+	}
+
+	publicKey, err := common.HexStringToBytes(publicKeyStr)
+	if err != nil {
+		fmt.Println("wrong cr public key")
+		os.Exit(1)
+	}
+
+	pk, err := crypto.DecodePoint(publicKey)
+	if err != nil {
+		fmt.Println("wrong cr public key")
+		os.Exit(1)
+	}
+
+	ct, err := contract.CreateStandardContract(pk)
+	if err != nil {
+		fmt.Println("wrong cr public key")
+		os.Exit(1)
+	}
+	did, _ := getDIDFromCode(ct.Code)
+	crcProposal := &payload.CRCProposal{
+		ProposalType:   payload.CRCProposalType(proposalType),
+		OwnerPublicKey: publicKey,
+		DraftHash:      *draftHash,
+		SideChainInfo: payload.SideChainInfo{
+			SideChainName:   sideChainName,
+			MagicNumber:     uint32(magicNumber),
+			GenesisHash:     *genesisHash,
+			ExchangeRate:    common.Fixed64(exchangeRate),
+			EffectiveHeight: uint32(effectiveHeight),
+			ResourcePath:    resourcePath,
+		},
+		CRCouncilMemberDID: *did,
+	}
+	fmt.Println(crcProposal.ProposalType.Name())
+	if needSign {
+		signBuf := new(bytes.Buffer)
+		err = crcProposal.SerializeUnsigned(signBuf, payload.CRCProposalVersion)
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+		codeHash, err := contract.PublicKeyToStandardCodeHash(publicKey)
+
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+
+		acc := client.GetAccountByCodeHash(*codeHash)
+		if acc == nil {
+			fmt.Println("no available account in wallet")
+			os.Exit(1)
+		}
+
+		sig, err := crypto.Sign(acc.PrivKey(), signBuf.Bytes())
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+		crcProposal.Signature = sig
+		if err = common.WriteVarBytes(signBuf, sig); err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+		if err = crcProposal.CRCouncilMemberDID.Serialize(signBuf); err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+		crSig, err := crypto.Sign(acc.PrivKey(), signBuf.Bytes())
+
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+		crcProposal.CRCouncilMemberSignature = crSig
+	}
+	ud := L.NewUserData()
+	ud.Value = crcProposal
+	L.SetMetatable(ud, L.GetTypeMetatable(luaCRCRegisterSideChainProposalHashName))
+	L.Push(ud)
+
+	return 1
+}
+
 func newCRCChangeCustomIDFee(L *lua.LState) int {
 	publicKeyStr := L.ToString(1)
 	draftDataStr := L.ToString(2)
@@ -1387,12 +1554,12 @@ func newCRCChangeCustomIDFee(L *lua.LState) int {
 		os.Exit(1)
 	}
 	crcProposal := &payload.CRCProposal{
-		ProposalType:       payload.ChangeCustomIDFee,
-		OwnerPublicKey:     publicKey,
-		DraftHash:          draftHash,
-		DraftData:          []byte(draftDataStr),
-		RateOfCustomIDFee:  *rate,
-		CRCouncilMemberDID: *did,
+		ProposalType:        payload.ChangeCustomIDFee,
+		OwnerPublicKey:      publicKey,
+		DraftHash:           draftHash,
+		DraftData:           []byte(draftDataStr),
+		CustomIDFeeRateInfo: payload.CustomIDFeeRateInfo{RateOfCustomIDFee: *rate},
+		CRCouncilMemberDID:  *did,
 	}
 
 	if needSign {

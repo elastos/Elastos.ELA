@@ -9,6 +9,8 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/elastos/Elastos.ELA/elanet/filter/returnsidechaindepositcoinfilter"
+	"github.com/elastos/Elastos.ELA/elanet/filter/upgradefilter"
 	"sync/atomic"
 	"time"
 
@@ -17,6 +19,7 @@ import (
 	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/core/types"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
+	"github.com/elastos/Elastos.ELA/dpos/state"
 	"github.com/elastos/Elastos.ELA/elanet/bloom"
 	"github.com/elastos/Elastos.ELA/elanet/filter"
 	"github.com/elastos/Elastos.ELA/elanet/filter/customidfilter"
@@ -111,9 +114,13 @@ func newServerPeer(s *server) *serverPeer {
 		case filter.FTDPOS:
 			return sidefilter.New(s.chain.GetState())
 		case filter.FTNexTTurnDPOSInfo:
-			return customidfilter.New()
+			return nextturndposfilter.New()
 		case filter.FTCustomID:
 			return customidfilter.New()
+		case filter.FTUpgrade:
+			return upgradefilter.New()
+		case filter.FTReturnSidechainDepositCoinFilter:
+			return returnsidechaindepositcoinfilter.New()
 		}
 		return nil
 	})
@@ -721,6 +728,8 @@ func (s *server) pushMerkleBlockMsg(sp *serverPeer, hash *common.Uint256,
 		}
 	case *nextturndposfilter.NextTurnDPOSInfoFilter:
 		merkle.Header = &blk.Header
+	case *returnsidechaindepositcoinfilter.ReturnSidechainDepositCoinFilter:
+		merkle.Header = &blk.Header
 	case *customidfilter.CustomIdFilter:
 		merkle.Header = &blk.Header
 	}
@@ -795,6 +804,7 @@ func (s *server) handleRelayInvMsg(peers map[svr.IPeer]*serverPeer, rmsg relayMs
 			if sp.filter.IsLoaded() {
 				// Do not send unconfirmed block to SPV client after H1.
 				if current >= s.chainParams.CRCOnlyDPOSHeight-1 &&
+					s.chain.GetState().ConsensusAlgorithm != state.POW &&
 					rmsg.invVect.Type == msg.InvTypeBlock {
 					continue
 				}

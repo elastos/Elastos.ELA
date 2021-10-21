@@ -43,7 +43,7 @@ func (s *confirmValidatorTestSuite) SetupSuite() {
 	}
 	for _, v := range arbitratorsStr {
 		a, _ := common.HexStringToBytes(v)
-		ar, _ := state.NewOriginArbiter(state.Origin, a)
+		ar, _ := state.NewOriginArbiter(a)
 		s.arbitrators.CurrentArbitrators = append(
 			s.arbitrators.CurrentArbitrators, ar)
 		s.arbitrators.ActiveProducer = append(s.arbitrators.ActiveProducer, ar)

@@ -13,7 +13,7 @@ import (
 )
 
 func TestDposArbiter_Deserialize(t *testing.T) {
-	a, _ := NewDPoSArbiter(DPoS, randomProducer())
+	a, _ := NewDPoSArbiter(randomProducer())
 	ar1 := a.(*dposArbiter)
 
 	buf := new(bytes.Buffer)
@@ -27,7 +27,7 @@ func TestDposArbiter_Deserialize(t *testing.T) {
 }
 
 func TestDposArbiter_Clone(t *testing.T) {
-	a, _ := NewDPoSArbiter(DPoS, randomProducer())
+	a, _ := NewDPoSArbiter(randomProducer())
 	ar1 := a.(*dposArbiter)
 
 	ar2 := ar1.Clone().(*dposArbiter)

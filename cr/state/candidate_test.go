@@ -38,6 +38,12 @@ func candidateEqual(first *Candidate, second *Candidate) bool {
 		first.depositHash.IsEqual(second.depositHash)
 }
 
+func depositInfoEqual(first *DepositInfo, second *DepositInfo) bool {
+	return first.DepositAmount == second.DepositAmount &&
+		first.Penalty == second.Penalty &&
+		first.TotalAmount == second.TotalAmount
+}
+
 func crInfoEqual(first *payload.CRInfo, second *payload.CRInfo) bool {
 	if !bytes.Equal(first.Code, second.Code) ||
 		!first.CID.IsEqual(second.CID) ||

@@ -614,6 +614,7 @@ func TestServer_DumpPeersInfo(t *testing.T) {
 			sign, _ := crypto.Sign(priKey, nonce)
 			return sign
 		},
+		MaxNodePerHost:   20,
 		MakeEmptyMessage: makeEmptyMessage,
 	})
 	if !assert.NoError(t, err) {

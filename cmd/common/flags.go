@@ -191,6 +191,10 @@ var (
 		Name:  "foundation",
 		Usage: "specify the foundation address",
 	}
+	DIDSideChainAddressFlag = cli.StringFlag{
+		Name:  "didsidechainaddress",
+		Usage: "specify the did sidechain address",
+	}
 	PayToAddrFlag = cli.StringFlag{
 		Name:  "paytoaddr",
 		Usage: "specify the miner reward address",
@@ -383,6 +387,10 @@ var (
 		Name:  "registercrbydidheight",
 		Usage: "defines the height to support register CR by CID",
 	}
+	ProhibitTransferToDIDHeightFlag = cli.StringFlag{
+		Name:  "prohibittransfertodidheight",
+		Usage: "defines the height to prohibit transfer to did",
+	}
 	MaxCRAssetsAddressUTXOCount = cli.StringFlag{
 		Name:  "maxcrassetsaddressutxocount",
 		Usage: "defines the maximum number of utxo cr assets address can have ",
@@ -485,6 +493,26 @@ var (
 	NewELAIssuanceHeightFlag = cli.StringFlag{
 		Name:  "newelaissuanceheight",
 		Usage: "defines height of using the new ela issuance (2000w)",
+	}
+
+	SmallCrossTransferThreshold = cli.StringFlag{
+		Name:  "smallcrosstransferthreshold",
+		Usage: "defines the minimum amount of transfer consider as small cross transfer",
+	}
+
+	ReturnDepositCoinFeeFlag = cli.StringFlag{
+		Name:  "returndepositcoinfee",
+		Usage: "defines the fee of return cross chain deposit coin",
+	}
+
+	NewCrossChainStartHeightFlag = cli.StringFlag{
+		Name:  "newcrosschainstartheight",
+		Usage: "defines the height to only support TransferCrossChainAsset v1",
+	}
+
+	ReturnCrossChainCoinStartHeightFlag = cli.StringFlag{
+		Name:  "returncrosschaincoinstartheight",
+		Usage: "defines the start height to support ReturnCrossChainDepositCoin transaction",
 	}
 )
 

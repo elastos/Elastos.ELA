@@ -71,6 +71,16 @@ func registerParams(c *cli.Context, L *lua.LState) {
 	crDPOSPrivateKey := c.String("crdposprivatekey")
 	crCommitteeDID := c.String("crcommitteedid")
 
+	targetData := c.String("targetdata")
+
+	// Register SideChain
+	sideChainName := c.String("sidechainname")
+	magicNumber := c.Uint("magicnumber")
+	genesisHash := c.String("genesishash")
+	exchangeRate := c.String("exchangerate")
+	effectiveHeight := c.Uint("effectiveheight")
+	resourcePath := c.String("resourcepath")
+
 	getWallet := func(L *lua.LState) int {
 		L.Push(lua.LString(wallet))
 		return 1
@@ -291,6 +301,41 @@ func registerParams(c *cli.Context, L *lua.LState) {
 		L.Push(lua.LString(crCommitteeDID))
 		return 1
 	}
+	getTargetData := func(L *lua.LState) int {
+		L.Push(lua.LString(targetData))
+		return 1
+	}
+
+	// Register SideChain
+	getSideChainName := func(L *lua.LState) int {
+		L.Push(lua.LString(sideChainName))
+		return 1
+	}
+
+	getMagicNumber := func(L *lua.LState) int {
+		L.Push(lua.LNumber(magicNumber))
+		return 1
+	}
+
+	getGenesisHash := func(L *lua.LState) int {
+		L.Push(lua.LString(genesisHash))
+		return 1
+	}
+
+	getExchangeRate := func(L *lua.LState) int {
+		L.Push(lua.LString(exchangeRate))
+		return 1
+	}
+
+	getEffectiveHeight := func(L *lua.LState) int {
+		L.Push(lua.LString(effectiveHeight))
+		return 1
+	}
+
+	getResourcePath := func(L *lua.LState) int {
+		L.Push(lua.LString(resourcePath))
+		return 1
+	}
 
 	L.Register("getWallet", getWallet)
 	L.Register("getPassword", getPassword)
@@ -345,6 +390,15 @@ func registerParams(c *cli.Context, L *lua.LState) {
 	L.Register("getCRManagementPublicKey", getCRManagementPublicKey)
 	L.Register("getCRDPOSPrivateKey", getCRDPOSPrivateKey)
 	L.Register("getCRCommitteeDID", getCRCommitteeDID)
+	L.Register("getTargetData", getTargetData)
+
+	//Register SideChain
+	L.Register("getSideChainName", getSideChainName)
+	L.Register("getMagicNumber", getMagicNumber)
+	L.Register("getGenesisHash", getGenesisHash)
+	L.Register("getExchangeRate", getExchangeRate)
+	L.Register("getEffectiveHeight", getEffectiveHeight)
+	L.Register("getResourcePath", getResourcePath)
 }
 
 func scriptAction(c *cli.Context) error {
@@ -580,7 +634,8 @@ func NewCommand() *cli.Command {
 			cli.Int64Flag{
 				Name:  "payloadversion",
 				Usage: "set the version of payload",
-			}, cli.StringFlag{
+			},
+			cli.StringFlag{
 				Name:  "crmanagementpublickey",
 				Usage: "set the public key of crmanagement",
 			},
@@ -595,6 +650,39 @@ func NewCommand() *cli.Command {
 			cli.StringFlag{
 				Name:  "customidrate",
 				Usage: "set the rate of custom id",
+			},
+			cli.StringFlag{
+				Name:  "targetdata",
+				Usage: "set the target data of proposal",
+			},
+			// Register SideChain
+			cli.StringFlag{
+				Name:  "sidechainname",
+				Usage: "set the sidechain name ",
+			},
+			cli.Int64Flag{
+				Name:  "magicnumber",
+				Usage: "set magic number ",
+			},
+			cli.StringFlag{
+				Name:  "dnsseeds",
+				Usage: "set dns seeds ",
+			},
+			cli.Int64Flag{
+				Name:  "nodeport",
+				Usage: "set node port ",
+			},
+			cli.StringFlag{
+				Name:  "genesishash",
+				Usage: "set genesis hash ",
+			},
+			cli.Int64Flag{
+				Name:  "genesistimestamp",
+				Usage: "set genesis timestamp ",
+			},
+			cli.StringFlag{
+				Name:  "genesisblockdifficulty",
+				Usage: "set genesis block difficulty ",
 			},
 		},
 		Action: scriptAction,

@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/elastos/Elastos.ELA/core/contract"
 	"io"
 
 	"github.com/elastos/Elastos.ELA/common"
@@ -49,7 +50,7 @@ const (
 	InactiveArbitrators      TxType = 0x12
 	UpdateVersion            TxType = 0x13
 	NextTurnDPOSInfo         TxType = 0x14
-	CustomIDResult           TxType = 0x15
+	ProposalResult           TxType = 0x15
 
 	RegisterCR          TxType = 0x21
 	UnregisterCR        TxType = 0x22
@@ -67,6 +68,8 @@ const (
 
 	RevertToPOW  TxType = 0x41
 	RevertToDPOS TxType = 0x42
+
+	ReturnSideChainDepositCoin TxType = 0x51
 )
 
 func (self TxType) Name() string {
@@ -137,12 +140,14 @@ func (self TxType) Name() string {
 		return "CRCouncilMemberClaimNode"
 	case NextTurnDPOSInfo:
 		return "NextTurnDPOSInfo"
-	case CustomIDResult:
-		return "CustomIDResult"
+	case ProposalResult:
+		return "ProposalResult"
 	case RevertToPOW:
 		return "RevertToPOW"
 	case RevertToDPOS:
 		return "RevertToDPOS"
+	case ReturnSideChainDepositCoin:
+		return "ReturnSideChainDepositCoin"
 	default:
 		return "Unknown"
 	}
@@ -382,6 +387,10 @@ func (tx *Transaction) Hash() common.Uint256 {
 	return *tx.txHash
 }
 
+func (tx *Transaction) IsReturnSideChainDepositCoinTx() bool {
+	return tx.TxType == ReturnSideChainDepositCoin
+}
+
 func (tx *Transaction) ISCRCouncilMemberClaimNode() bool {
 	return tx.TxType == CRCouncilMemberClaimNode
 }
@@ -399,7 +408,7 @@ func (tx *Transaction) IsNextTurnDPOSInfoTx() bool {
 }
 
 func (tx *Transaction) IsCustomIDResultTx() bool {
-	return tx.TxType == CustomIDResult
+	return tx.TxType == ProposalResult
 }
 
 func (tx *Transaction) IsCustomIDRelatedTx() bool {
@@ -411,6 +420,15 @@ func (tx *Transaction) IsCustomIDRelatedTx() bool {
 	}
 	if tx.IsCustomIDResultTx() {
 		return true
+	}
+	return false
+}
+
+func (tx *Transaction) IsSideChainUpgradeTx() bool {
+	if tx.IsCRCProposalTx() {
+		p, _ := tx.Payload.(*payload.CRCProposal)
+		return p.ProposalType > payload.MinUpgradeProposalType &&
+			p.ProposalType <= payload.MaxUpgradeProposalType
 	}
 	return false
 }
@@ -654,10 +672,35 @@ func GetPayload(txType TxType) (Payload, error) {
 		p = new(payload.NextTurnDPOSInfo)
 	case RevertToPOW:
 		p = new(payload.RevertToPOW)
-	case CustomIDResult:
-		p = new(payload.CustomIDProposalResult)
+	case ProposalResult:
+		p = new(payload.RecordProposalResult)
+	case ReturnSideChainDepositCoin:
+		p = new(payload.ReturnSideChainDepositCoin)
 	default:
 		return nil, errors.New("[Transaction], invalid transaction type.")
 	}
 	return p, nil
+}
+
+func (tx *Transaction) IsSmallTransfer(min common.Fixed64) bool {
+	var totalCrossAmt common.Fixed64
+	if tx.PayloadVersion == payload.TransferCrossChainVersion {
+		payloadObj, ok := tx.Payload.(*payload.TransferCrossChainAsset)
+		if !ok {
+			return false
+		}
+		for i := 0; i < len(payloadObj.CrossChainAddresses); i++ {
+			if bytes.Compare(tx.Outputs[payloadObj.OutputIndexes[i]].ProgramHash[0:1], []byte{byte(contract.PrefixCrossChain)}) == 0 {
+				totalCrossAmt += tx.Outputs[payloadObj.OutputIndexes[i]].Value
+			}
+		}
+	} else {
+		for _, o := range tx.Outputs {
+			if bytes.Compare(o.ProgramHash[0:1], []byte{byte(contract.PrefixCrossChain)}) == 0 {
+				totalCrossAmt += o.Value
+			}
+		}
+	}
+
+	return totalCrossAmt <= min
 }

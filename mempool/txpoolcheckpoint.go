@@ -18,7 +18,7 @@ import (
 
 const (
 	// checkpointKey defines key of DPoS checkpoint.
-	checkpointKey = "txPool"
+	checkpointKey = "cp_txPool"
 
 	// checkpointExtension defines checkpoint file extension of DPoS checkpoint.
 	checkpointExtension = ".txpcp"
@@ -38,11 +38,15 @@ type txPoolCheckpoint struct {
 	initConflictManager func(map[common.Uint256]*types.Transaction)
 }
 
-func (c *txPoolCheckpoint) OnBlockSaved(*types.DposBlock) {
+func (c *txPoolCheckpoint) OnBlockSaved(block *types.DposBlock) {
 }
 
 func (c *txPoolCheckpoint) OnRollbackTo(uint32) error {
 	return nil
+}
+
+func (c *txPoolCheckpoint) OnRollbackSeekTo(uint32) {
+	return
 }
 
 func (c *txPoolCheckpoint) Key() string {

@@ -41,6 +41,10 @@ func (c *Checkpoint) OnRollbackTo(height uint32) error {
 	return nil
 }
 
+func (c *Checkpoint) OnRollbackSeekTo(height uint32) {
+	return
+}
+
 func (c *Checkpoint) Key() string {
 	return checkpointKey
 }

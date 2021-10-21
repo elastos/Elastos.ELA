@@ -1835,18 +1835,11 @@ func (s *txValidatorTestSuite) getCRCRegisterSideChainProposalTx(publicKeyStr, p
 		CRCouncilMemberDID: *CRCouncilMemberDID,
 		DraftHash:          common.Hash(draftData),
 		SideChainInfo: payload.SideChainInfo{
-			SideChainName: "NEO",
-			MagicNumber:   100,
-			DNSSeeds: []string{
-				"neo.elastos.cn:20338",
-				"neo-abc.us:20338",
-				"neo-mainnet-003.elastos.org:20338",
-			},
-			NodePort:               20209,
-			GenesisHash:            *randomUint256(),
-			GenesisTimestamp:       1513936800,
-			GenesisBlockDifficulty: "575",
-			ExchangeRate:           100000000,
+			SideChainName:   "NEO",
+			MagicNumber:     100,
+			GenesisHash:     *randomUint256(),
+			ExchangeRate:    100000000,
+			EffectiveHeight: 100000,
 		},
 	}
 
@@ -3194,23 +3187,6 @@ func (s *txValidatorTestSuite) TestCheckCRCProposalRegisterSideChainTransaction(
 	}
 
 	{
-		txn := s.getCRCRegisterSideChainProposalTx(publicKeyStr2, privateKeyStr2, publicKeyStr1, privateKeyStr1)
-		payload, _ := txn.Payload.(*payload.CRCProposal)
-		payload.DNSSeeds = []string{}
-		err := s.Chain.checkCRCProposalTransaction(txn, tenureHeight, 0)
-		s.EqualError(err, "DNSSeeds can not be blank")
-	}
-
-	{
-		txn := s.getCRCRegisterSideChainProposalTx(publicKeyStr2, privateKeyStr2, publicKeyStr1, privateKeyStr1)
-		payload, _ := txn.Payload.(*payload.CRCProposal)
-		payload.GenesisBlockDifficulty = ""
-		payload.ExchangeRate = 100000000
-		err := s.Chain.checkCRCProposalTransaction(txn, tenureHeight, 0)
-		s.EqualError(err, "GenesisBlockDifficulty can not be blank")
-	}
-
-	{
 		s.Chain.crCommittee.GetProposalManager().RegisteredSideChainNames = []string{"NEO"}
 		txn := s.getCRCRegisterSideChainProposalTx(publicKeyStr2, privateKeyStr2, publicKeyStr1, privateKeyStr1)
 		err := s.Chain.checkCRCProposalTransaction(txn, tenureHeight, 0)
@@ -3989,7 +3965,7 @@ func (s *txValidatorTestSuite) TestCheckVoteOutputs() {
 		outputs4, references, producersMap, crsMap),
 		"invalid vote output payload producer candidate: "+publicKey2)
 
-	// Check vote output v0 with correct ouput program hash
+	// Check vote output v0 with correct output program hash
 	s.NoError(s.Chain.checkVoteOutputs(config.DefaultParams.CRVotingStartHeight,
 		outputs1, references, producersMap, crsMap))
 	s.NoError(s.Chain.checkVoteOutputs(config.DefaultParams.CRVotingStartHeight,

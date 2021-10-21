@@ -254,6 +254,9 @@ type ProposalKeyFrame struct {
 
 	// store register info with the approved height
 	RegisteredSideChainPayloadInfo map[uint32]map[common.Uint256]payload.SideChainInfo
+
+	//reserve CustomID
+	ReservedCustomID bool
 }
 
 func NewProposalMap() ProposalsMap {
@@ -1181,6 +1184,10 @@ func (p *ProposalKeyFrame) Serialize(w io.Writer) (err error) {
 			return
 		}
 	}
+	////ReservedCustomID
+	if err = common.WriteElements(w, p.ReservedCustomID); err != nil {
+		return
+	}
 	return
 }
 
@@ -1292,7 +1299,7 @@ func (p *ProposalKeyFrame) Deserialize(r io.Reader) (err error) {
 	if count, err = common.ReadVarUint(r, 0); err != nil {
 		return
 	}
-
+	p.RegisteredSideChainNames = make([]string, 0)
 	for i := uint64(0); i < count; i++ {
 		var name string
 		name, err = common.ReadVarString(r)
@@ -1305,7 +1312,7 @@ func (p *ProposalKeyFrame) Deserialize(r io.Reader) (err error) {
 	if count, err = common.ReadVarUint(r, 0); err != nil {
 		return
 	}
-
+	p.RegisteredMagicNumbers = make([]uint32, 0)
 	for i := uint64(0); i < count; i++ {
 		var magic uint32
 		magic, err = common.ReadUint32(r)
@@ -1318,7 +1325,7 @@ func (p *ProposalKeyFrame) Deserialize(r io.Reader) (err error) {
 	if count, err = common.ReadVarUint(r, 0); err != nil {
 		return
 	}
-
+	p.RegisteredGenesisHashes = make([]common.Uint256, 0)
 	for i := uint64(0); i < count; i++ {
 		var h common.Uint256
 		err = h.Deserialize(r)
@@ -1326,6 +1333,10 @@ func (p *ProposalKeyFrame) Deserialize(r io.Reader) (err error) {
 			return err
 		}
 		p.RegisteredGenesisHashes = append(p.RegisteredGenesisHashes, h)
+	}
+
+	if err = common.ReadElements(r, &p.ReservedCustomID); err != nil {
+		return
 	}
 	return
 }

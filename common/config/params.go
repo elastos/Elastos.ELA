@@ -195,9 +195,6 @@ var DefaultParams = Params{
 	CheckRewardHeight:           436812,
 	VoteStatisticsHeight:        512881,
 	RegisterCRByDIDHeight:       598000,
-	//todo
-	ProhibitTransferToDIDHeight: 0,
-	DIDSideChainAddress:         "XKUh4GLhFJiqAMTF6HyWQrV9pK9HcGUdfJ",
 	ToleranceDuration:           5 * time.Second,
 	MaxInactiveRounds:           720 * 2,
 	InactivePenalty:             0, //there will be no penalty in this version
@@ -221,7 +218,7 @@ var DefaultParams = Params{
 	WalletPath:                  "keystore.dat",
 	RPCServiceLevel:             ConfigurationPermitted.String(),
 	NodeProfileStrategy:         Balanced.String(),
-	MaxNodePerHost:              10,
+	MaxNodePerHost:              72,
 	CkpManager: checkpoint.NewManager(&checkpoint.Config{
 		EnableHistory:      true,
 		HistoryStartHeight: uint32(0),
@@ -244,17 +241,19 @@ var DefaultParams = Params{
 	RandomCandidatePeriod:              36 * 10,
 	MaxInactiveRoundsOfRandomNode:      36 * 8,
 	MaxReservedCustomIDLength:          255,
-	CRCProposalDraftDataStartHeight:    2000000,
+	CRCProposalDraftDataStartHeight:    1056600,
 	DPOSNodeCrossChainHeight:           2000000,
 	RevertToPOWNoBlockTime:             12 * 3600,
 	StopConfirmBlockTime:               11 * 3600,
-	HalvingRewardHeight:                1051200,   // 4 * 365 * 720
-	HalvingRewardInterval:              1051200,   // 4 * 365 * 720
-	NewELAIssuanceHeight:               919800,    // 3.5 * 365 * 720
-	SmallCrossTransferThreshold:        100000000, //TODO reset latter
-	ReturnDepositCoinFee:               100,       //TODO reset latter
-	NewCrossChainStartHeight:           2000000,   // todo complete me
-	ReturnCrossChainCoinStartHeight:    2000000,   // todo complete me
+	HalvingRewardHeight:                1051200, // 4 * 365 * 720
+	HalvingRewardInterval:              1051200, // 4 * 365 * 720
+	NewELAIssuanceHeight:               919800,  // 3.5 * 365 * 720
+	SmallCrossTransferThreshold:        100000000,
+	ReturnDepositCoinFee:               100,
+	NewCrossChainStartHeight:           1032840,
+	ReturnCrossChainCoinStartHeight:    1032840,
+	ProhibitTransferToDIDHeight:        1032840,
+	DIDSideChainAddress:                "XKUh4GLhFJiqAMTF6HyWQrV9pK9HcGUdfJ",
 }
 
 // TestNet returns the network parameters for the test network.
@@ -316,9 +315,6 @@ func (p *Params) TestNet() *Params {
 	copy.CheckRewardHeight = 100
 	copy.VoteStatisticsHeight = 0
 	copy.RegisterCRByDIDHeight = 483500
-	//todo
-	copy.ProhibitTransferToDIDHeight = 0
-	copy.DIDSideChainAddress = "XKUh4GLhFJiqAMTF6HyWQrV9pK9HcGUdfJ"
 	copy.EnableUtxoDB = true
 	copy.EnableCORS = false
 	copy.VoterRejectPercentage = 10
@@ -328,7 +324,6 @@ func (p *Params) TestNet() *Params {
 	copy.CheckVoteCRCountHeight = 546500
 	copy.MaxCRAssetsAddressUTXOCount = 800
 	copy.ChangeCommitteeNewCRHeight = 815060
-	copy.CRCProposalDraftDataStartHeight = 2000000
 	copy.CustomIDProposalStartHeight = 815060
 	copy.InactivePenalty = 0
 	copy.IllegalPenalty = 0
@@ -340,13 +335,16 @@ func (p *Params) TestNet() *Params {
 	copy.RevertToPOWNoBlockTime = 12 * 3600
 	copy.StopConfirmBlockTime = 11 * 3600
 	copy.RevertToPOWStartHeight = 815060
-	copy.HalvingRewardHeight = 877880              //767000 + 154 * 720
-	copy.HalvingRewardInterval = 1051200           //4 * 365 * 720
-	copy.NewELAIssuanceHeight = 774920             //767000 + 720 * 11
-	copy.SmallCrossTransferThreshold = 100000000   //TODO reset latter
-	copy.ReturnDepositCoinFee = 100                //TODO reset latter
-	copy.NewCrossChainStartHeight = 2000000        // todo complete me
-	copy.ReturnCrossChainCoinStartHeight = 2000000 // todo complete me
+	copy.HalvingRewardHeight = 877880    //767000 + 154 * 720
+	copy.HalvingRewardInterval = 1051200 //4 * 365 * 720
+	copy.NewELAIssuanceHeight = 774920   //767000 + 720 * 11
+	copy.SmallCrossTransferThreshold = 100000000
+	copy.ReturnDepositCoinFee = 100
+	copy.NewCrossChainStartHeight = 807000
+	copy.ReturnCrossChainCoinStartHeight = 807000
+	copy.CRCProposalDraftDataStartHeight = 807000
+	copy.ProhibitTransferToDIDHeight = 807000
+	copy.DIDSideChainAddress = "XKUh4GLhFJiqAMTF6HyWQrV9pK9HcGUdfJ"
 
 	return &copy
 }
@@ -410,9 +408,6 @@ func (p *Params) RegNet() *Params {
 	copy.CheckRewardHeight = 280000
 	copy.VoteStatisticsHeight = 0
 	copy.RegisterCRByDIDHeight = 393000
-	//todo
-	copy.ProhibitTransferToDIDHeight = 0
-	copy.DIDSideChainAddress = "XKUh4GLhFJiqAMTF6HyWQrV9pK9HcGUdfJ"
 
 	copy.EnableUtxoDB = true
 	copy.EnableCORS = false
@@ -423,7 +418,6 @@ func (p *Params) RegNet() *Params {
 	copy.CheckVoteCRCountHeight = 435000
 	copy.MaxCRAssetsAddressUTXOCount = 1440
 	copy.ChangeCommitteeNewCRHeight = 706240
-	copy.CRCProposalDraftDataStartHeight = 2000000
 	copy.CustomIDProposalStartHeight = 706240
 	copy.IllegalPenalty = 0
 	copy.InactivePenalty = 0
@@ -435,13 +429,16 @@ func (p *Params) RegNet() *Params {
 	copy.RevertToPOWNoBlockTime = 12 * 3600
 	copy.StopConfirmBlockTime = 11 * 3600
 	copy.RevertToPOWStartHeight = 706240
-	copy.HalvingRewardHeight = 801240              //690360 + 154 * 720
-	copy.HalvingRewardInterval = 1051200           //4 * 365 * 720
-	copy.NewELAIssuanceHeight = 691740             //690300 + 720 * 2
-	copy.SmallCrossTransferThreshold = 100000000   //TODO reset latter
-	copy.ReturnDepositCoinFee = 100                //TODO reset latter
-	copy.NewCrossChainStartHeight = 2000000        // todo complete me
-	copy.ReturnCrossChainCoinStartHeight = 2000000 // todo complete me
+	copy.HalvingRewardHeight = 801240    //690360 + 154 * 720
+	copy.HalvingRewardInterval = 1051200 //4 * 365 * 720
+	copy.NewELAIssuanceHeight = 691740   //690300 + 720 * 2
+	copy.SmallCrossTransferThreshold = 100000000
+	copy.ReturnDepositCoinFee = 100
+	copy.NewCrossChainStartHeight = 730000
+	copy.ReturnCrossChainCoinStartHeight = 730000
+	copy.CRCProposalDraftDataStartHeight = 730000
+	copy.ProhibitTransferToDIDHeight = 730000
+	copy.DIDSideChainAddress = "XKUh4GLhFJiqAMTF6HyWQrV9pK9HcGUdfJ"
 
 	return &copy
 }

@@ -1,7 +1,7 @@
 // Copyright (c) 2017-2020 The Elastos Foundation
 // Use of this source code is governed by an MIT
 // license that can be found in the LICENSE file.
-// 
+//
 
 package msg
 
@@ -60,5 +60,5 @@ func (msg *Version) Deserialize(r io.Reader) error {
 
 func NewVersion(pid [33]byte, target, nonce [16]byte, port uint16) *Version {
 	return &Version{PID: pid, Target: target, Nonce: nonce, Port: port,
-		Timestamp:dtime.Now()}
+		Timestamp: dtime.Now()}
 }

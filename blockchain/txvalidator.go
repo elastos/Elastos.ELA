@@ -12,9 +12,7 @@ import (
 	"fmt"
 	"math"
 	"math/big"
-	"net"
 	"sort"
-	"strconv"
 
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
@@ -636,7 +634,8 @@ func checkTransactionInput(txn *Transaction) error {
 		inputHash := txn.Inputs[0].Previous.TxID
 		inputIndex := txn.Inputs[0].Previous.Index
 		sequence := txn.Inputs[0].Sequence
-		if !inputHash.IsEqual(common.EmptyHash) || inputIndex != math.MaxUint16 || sequence != math.MaxUint32 {
+		if !inputHash.IsEqual(common.EmptyHash) ||
+			inputIndex != math.MaxUint16 || sequence != math.MaxUint32 {
 			return errors.New("invalid coinbase input")
 		}
 
@@ -1305,6 +1304,11 @@ func (b *BlockChain) checkTxHeightVersion(txn *Transaction, blockHeight uint32) 
 				return errors.New(fmt.Sprintf("not support %s CRCProposal"+
 					" transaction before CustomIDProposalStartHeight", p.ProposalType.Name()))
 			}
+		case payload.RegisterSideChain:
+			if blockHeight < b.chainParams.NewCrossChainStartHeight {
+				return errors.New(fmt.Sprintf("not support %s CRCProposal"+
+					" transaction before NewCrossChainStartHeight", p.ProposalType.Name()))
+			}
 		default:
 			if blockHeight < b.chainParams.CRCommitteeStartHeight {
 				return errors.New(fmt.Sprintf("not support %s CRCProposal"+
@@ -1374,7 +1378,7 @@ func (b *BlockChain) checkTxHeightVersion(txn *Transaction, blockHeight uint32) 
 			}
 		}
 	case TransferCrossChainAsset:
-		if blockHeight < b.chainParams.NewCrossChainStartHeight {
+		if blockHeight <= b.chainParams.NewCrossChainStartHeight {
 			if txn.PayloadVersion != payload.TransferCrossChainVersion {
 				return errors.New("not support " +
 					"TransferCrossChainAsset payload version V1 before NewCrossChainStartHeight")
@@ -3257,43 +3261,16 @@ func (b *BlockChain) checkRegisterSideChainProposal(proposal *payload.CRCProposa
 		}
 	}
 
-	if len(proposal.DNSSeeds) == 0 {
-		return errors.New("DNSSeeds can not be blank")
+	if proposal.ExchangeRate != common.Fixed64(1e8) {
+		return errors.New("ExchangeRate should be 1.0")
 	}
 
-	for _, seed := range proposal.DNSSeeds {
-		host, _, err := net.SplitHostPort(seed)
-		if err != nil {
-			host = seed
-		}
-
-		if !payload.SeedRegexp.MatchString(host) {
-			return errors.New("DNSSeed not valid " + seed)
-		}
-	}
-
-	if proposal.GenesisBlockDifficulty == "" {
-		return errors.New("GenesisBlockDifficulty can not be blank")
-	}
-
-	if proposal.ExchangeRate == 0 {
-		return errors.New("ExchangeRate can not be 0")
-	}
-
-	if _, err := strconv.Atoi(proposal.GenesisBlockDifficulty); err != nil {
-		return errors.New("GenesisBlockDifficulty value is not valid")
+	if proposal.EffectiveHeight < b.GetHeight() {
+		return errors.New("EffectiveHeight must be bigger than current height")
 	}
 
 	if proposal.GenesisHash == common.EmptyHash {
 		return errors.New("GenesisHash can not be empty")
-	}
-
-	if proposal.GenesisTimestamp == 0 {
-		return errors.New("GenesisTimestamp can not be 0")
-	}
-
-	if proposal.NodePort == 0 {
-		return errors.New("NodePort can not be 0")
 	}
 
 	if len(proposal.Budgets) > 0 {
@@ -3312,6 +3289,10 @@ func (b *BlockChain) checkRegisterSideChainProposal(proposal *payload.CRCProposa
 }
 
 func (b *BlockChain) checkReservedCustomID(proposal *payload.CRCProposal, PayloadVersion byte) error {
+
+	if b.crCommittee.GetProposalManager().ReservedCustomID {
+		return errors.New("Already have one ReservedCustomID proposal")
+	}
 	_, err := crypto.DecodePoint(proposal.OwnerPublicKey)
 	if err != nil {
 		return errors.New("DecodePoint from OwnerPublicKey error")
@@ -3327,6 +3308,9 @@ func (b *BlockChain) checkReservedCustomID(proposal *payload.CRCProposal, Payloa
 		}
 		if _, ok := customIDMap[v]; ok {
 			return errors.New("duplicated reserved custom ID")
+		}
+		if !common.IsLetterOrNumber(v) {
+			return errors.New("invalid custom ID: only letter and number is allowed")
 		}
 		customIDMap[v] = struct{}{}
 	}
@@ -3383,6 +3367,9 @@ func (b *BlockChain) checkChangeCustomIDFee(proposal *payload.CRCProposal, Paylo
 	}
 	if proposal.RateOfCustomIDFee < 0 {
 		return errors.New("invalid fee rate of custom ID")
+	}
+	if proposal.EIDEffectiveHeight <= 0 {
+		return errors.New("invalid EID effective height")
 	}
 	crMember := b.crCommittee.GetMember(proposal.CRCouncilMemberDID)
 	if crMember == nil {

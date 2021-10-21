@@ -1,7 +1,7 @@
 // Copyright (c) 2017-2020 The Elastos Foundation
 // Use of this source code is governed by an MIT
 // license that can be found in the LICENSE file.
-// 
+//
 
 package chain
 
@@ -54,7 +54,7 @@ func (r *TxRepository) GeneratePressureTxs(
 		txs = append(txs, txn)
 
 		txSize := txn.GetSize()
-		if totalTxSize + txSize > size {
+		if totalTxSize+txSize > size {
 			break
 		}
 		totalTxSize += txSize

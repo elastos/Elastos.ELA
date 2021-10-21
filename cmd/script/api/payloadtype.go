@@ -1410,16 +1410,14 @@ func newCRCRegisterSideChainProposalHash(L *lua.LState) int {
 	proposalType := L.ToInt64(2)
 	sideChainName := L.ToString(3)
 	magicNumber := L.ToInt64(4)
-	dNSSeeds := L.ToString(5)
-	nodePort := L.ToInt64(6)
-	genesisHashStr := L.ToString(7)
-	genesisTimestamp := L.ToInt64(8)
-	genesisBlockDifficulty := L.ToString(9)
-	exchangeRate := L.ToInt64(10)
-	draftHashStr := L.ToString(11)
+	genesisHashStr := L.ToString(5)
+	exchangeRate := L.ToInt64(6)
+	effectiveHeight := L.ToInt64(7)
+	resourcePath := L.ToString(8)
+	draftHashStr := L.ToString(9)
 
 	needSign := true
-	client, err := checkClient(L, 12)
+	client, err := checkClient(L, 10)
 	if err != nil {
 		needSign = false
 	}
@@ -1459,14 +1457,12 @@ func newCRCRegisterSideChainProposalHash(L *lua.LState) int {
 		OwnerPublicKey: publicKey,
 		DraftHash:      *draftHash,
 		SideChainInfo: payload.SideChainInfo{
-			SideChainName:          sideChainName,
-			MagicNumber:            uint32(magicNumber),
-			DNSSeeds:               strings.Split(dNSSeeds, ","),
-			NodePort:               uint16(nodePort),
-			GenesisHash:            *genesisHash,
-			GenesisTimestamp:       uint32(genesisTimestamp),
-			GenesisBlockDifficulty: genesisBlockDifficulty,
-			ExchangeRate:           common.Fixed64(exchangeRate),
+			SideChainName:   sideChainName,
+			MagicNumber:     uint32(magicNumber),
+			GenesisHash:     *genesisHash,
+			ExchangeRate:    common.Fixed64(exchangeRate),
+			EffectiveHeight: uint32(effectiveHeight),
+			ResourcePath:    resourcePath,
 		},
 		CRCouncilMemberDID: *did,
 	}
@@ -1558,12 +1554,12 @@ func newCRCChangeCustomIDFee(L *lua.LState) int {
 		os.Exit(1)
 	}
 	crcProposal := &payload.CRCProposal{
-		ProposalType:       payload.ChangeCustomIDFee,
-		OwnerPublicKey:     publicKey,
-		DraftHash:          draftHash,
-		DraftData:          []byte(draftDataStr),
-		RateOfCustomIDFee:  *rate,
-		CRCouncilMemberDID: *did,
+		ProposalType:        payload.ChangeCustomIDFee,
+		OwnerPublicKey:      publicKey,
+		DraftHash:           draftHash,
+		DraftData:           []byte(draftDataStr),
+		CustomIDFeeRateInfo: payload.CustomIDFeeRateInfo{RateOfCustomIDFee: *rate},
+		CRCouncilMemberDID:  *did,
 	}
 
 	if needSign {

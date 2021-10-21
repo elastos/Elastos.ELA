@@ -70,12 +70,12 @@ func (pt CRCProposalType) Name() string {
 	case ELIP:
 		return "ELIP"
 		//todo if it is UpgradeCode should use if else
-	case MainChainUpgradeCode:
-		return "MainChainUpgradeCode"
-	case DIDUpgradeCode:
-		return "DIDUpgradeCode"
-	case ETHUpgradeCode:
-		return "ETHUpgradeCode"
+	//case MainChainUpgradeCode:
+	//	return "MainChainUpgradeCode"
+	//case DIDUpgradeCode:
+	//	return "DIDUpgradeCode"
+	//case ETHUpgradeCode:
+	//	return "ETHUpgradeCode"
 	case RegisterSideChain:
 		return "RegisterSideChain"
 	case ChangeProposalOwner:
@@ -173,8 +173,7 @@ type CRCProposal struct {
 	// Receiver did.
 	ReceiverDID common.Uint168
 
-	// The rate of custom DID fee.
-	RateOfCustomIDFee common.Fixed64
+	CustomIDFeeRateInfo
 
 	// The specified ELA address where the funds are to be sent.
 	NewRecipient common.Uint168
@@ -285,23 +284,17 @@ type SideChainInfo struct {
 	// Magic number of side chain
 	MagicNumber uint32
 
-	// DNSSeeds defines a list of DNS seeds for the network to discover peers.
-	DNSSeeds []string
-
-	// Node port of side chain
-	NodePort uint16
-
 	// Genesis hash of side chain
 	GenesisHash common.Uint256
 
-	// Genesis block timestamp of side chain
-	GenesisTimestamp uint32
-
-	// Genesis block difficulty of side chain
-	GenesisBlockDifficulty string
-
 	// 1 ELA on main chain equals to how many coin on side chain
 	ExchangeRate common.Fixed64
+
+	// Effective height of register side chain
+	EffectiveHeight uint32
+
+	// Resource path
+	ResourcePath string
 }
 
 func (sc *SideChainInfo) Serialize(w io.Writer) error {
@@ -312,34 +305,20 @@ func (sc *SideChainInfo) Serialize(w io.Writer) error {
 		return errors.New("fail to serialize MagicNumber")
 	}
 
-	if err := common.WriteVarUint(w, uint64(len(sc.DNSSeeds))); err != nil {
-		return errors.New("failed to serialize DNSSeeds")
-	}
-
-	for _, v := range sc.DNSSeeds {
-		if err := common.WriteVarString(w, v); err != nil {
-			return errors.New("failed to serialize DNSSeeds")
-		}
-	}
-
-	if err := common.WriteUint16(w, sc.NodePort); err != nil {
-		return errors.New("failed to serialize NodePort")
-	}
-
 	if err := sc.GenesisHash.Serialize(w); err != nil {
 		return errors.New("failed to serialize GenesisHash")
 	}
 
-	if err := common.WriteUint32(w, sc.GenesisTimestamp); err != nil {
-		return errors.New("failed to serialize GenesisTimestamp")
-	}
-
-	if err := common.WriteVarString(w, sc.GenesisBlockDifficulty); err != nil {
-		return errors.New("failed to serialize GenesisBlockDifficulty")
-	}
-
 	if err := sc.ExchangeRate.Serialize(w); err != nil {
 		return errors.New("failed to serialize ExchangeRate")
+	}
+
+	if err := common.WriteUint32(w, sc.EffectiveHeight); err != nil {
+		return errors.New("failed to serialize EffectiveHeight")
+	}
+
+	if err := common.WriteVarString(w, sc.ResourcePath); err != nil {
+		return errors.New("fail to serialize ResourcePath")
 	}
 
 	return nil
@@ -357,37 +336,8 @@ func (sc *SideChainInfo) Deserialize(r io.Reader) error {
 		return errors.New("[CRCProposal], MagicNumber deserialize failed")
 	}
 
-	length, err := common.ReadVarUint(r, 0)
-	if err != nil {
-		return errors.New("[CRCProposal], DNSSeeds length deserialize failed")
-	}
-	var seeds []string
-	for i := 0; i < int(length); i++ {
-		seed, err := common.ReadVarString(r)
-		if err != nil {
-			return errors.New("failed to deserialize DNSSeeds")
-		}
-		seeds = append(seeds, seed)
-	}
-	sc.DNSSeeds = seeds
-
-	sc.NodePort, err = common.ReadUint16(r)
-	if err != nil {
-		return errors.New("[CRCProposal], NodePort deserialize failed")
-	}
-
 	if err := sc.GenesisHash.Deserialize(r); err != nil {
 		return errors.New("failed to deserialize GenesisHash")
-	}
-
-	sc.GenesisTimestamp, err = common.ReadUint32(r)
-	if err != nil {
-		return errors.New("[CRCProposal], GenesisTimestamp deserialize failed")
-	}
-
-	sc.GenesisBlockDifficulty, err = common.ReadVarString(r)
-	if err != nil {
-		return errors.New("[CRCProposal], GenesisBlockDifficulty deserialize failed")
 	}
 
 	err = sc.ExchangeRate.Deserialize(r)
@@ -395,6 +345,48 @@ func (sc *SideChainInfo) Deserialize(r io.Reader) error {
 		return errors.New("[CRCProposal], ExchangeRate deserialize failed")
 	}
 
+	sc.EffectiveHeight, err = common.ReadUint32(r)
+	if err != nil {
+		return errors.New("[CRCProposal], EffectiveHeight deserialize failed")
+	}
+
+	sc.ResourcePath, err = common.ReadVarString(r)
+	if err != nil {
+		return errors.New("[CRCProposal], ResourcePath deserialize failed")
+	}
+	return nil
+}
+
+type CustomIDFeeRateInfo struct {
+	// The rate of custom DID fee.
+	RateOfCustomIDFee common.Fixed64
+
+	// Effective at the side chain height of EID.
+	EIDEffectiveHeight uint32
+}
+
+func (sc *CustomIDFeeRateInfo) Serialize(w io.Writer) error {
+	if err := sc.RateOfCustomIDFee.Serialize(w); err != nil {
+		return errors.New("failed to serialize RateOfCustomIDFee")
+	}
+
+	if err := common.WriteUint32(w, sc.EIDEffectiveHeight); err != nil {
+		return errors.New("failed to serialize EIDEffectiveHeight")
+	}
+
+	return nil
+}
+
+func (sc *CustomIDFeeRateInfo) Deserialize(r io.Reader) error {
+	var err error
+	if err = sc.RateOfCustomIDFee.Deserialize(r); err != nil {
+		return errors.New("failed to deserialize RateOfCustomIDFee")
+	}
+
+	sc.EIDEffectiveHeight, err = common.ReadUint32(r)
+	if err != nil {
+		return errors.New("failed to deserialize EIDEffectiveHeight")
+	}
 	return nil
 }
 
@@ -641,8 +633,8 @@ func (p *CRCProposal) SerializeUnsignedChangeCustomIDFee(w io.Writer, version by
 		}
 	}
 
-	if err := p.RateOfCustomIDFee.Serialize(w); err != nil {
-		return errors.New("failed to serialize RateOfCustomIDFee")
+	if err := p.CustomIDFeeRateInfo.Serialize(w); err != nil {
+		return errors.New("failed to serialize CustomIDFeeRateInfo")
 	}
 
 	return nil
@@ -1057,8 +1049,8 @@ func (p *CRCProposal) DeserializeUnSignedChangeCustomIDFee(r io.Reader, version 
 		}
 	}
 
-	if err = p.RateOfCustomIDFee.Deserialize(r); err != nil {
-		return errors.New("failed to deserialize RateOfCustomIDFee")
+	if err = p.CustomIDFeeRateInfo.Deserialize(r); err != nil {
+		return errors.New("failed to deserialize CustomIDFeeRateInfo")
 	}
 
 	return nil
@@ -1380,6 +1372,7 @@ func (p *CRCProposal) ToProposalInfo(payloadVersion byte) CRCProposalInfo {
 		ReceivedCustomIDList:      p.ReceivedCustomIDList,
 		ReceiverDID:               p.ReceiverDID,
 		RateOfCustomIDFee:         p.RateOfCustomIDFee,
+		EIDEffectiveHeight:        p.EIDEffectiveHeight,
 		NewRecipient:              p.NewRecipient,
 		NewOwnerPublicKey:         p.NewOwnerPublicKey,
 		SecretaryGeneralPublicKey: p.SecretaryGeneralPublicKey,
@@ -1442,6 +1435,9 @@ type CRCProposalInfo struct {
 
 	// The rate of custom DID fee.
 	RateOfCustomIDFee common.Fixed64
+
+	// The effective height of EID.
+	EIDEffectiveHeight uint32
 
 	// The specified ELA address where the funds are to be sent.
 	NewRecipient common.Uint168
@@ -1529,6 +1525,10 @@ func (p *CRCProposalInfo) Serialize(w io.Writer, version byte) error {
 		return errors.New("failed to serialize RateOfCustomIDFee")
 	}
 
+	if err := common.WriteUint32(w, p.EIDEffectiveHeight); err != nil {
+		return errors.New("failed to serialize EIDEffectiveHeight")
+	}
+
 	if err := p.NewRecipient.Serialize(w); err != nil {
 		return errors.New("failed to serialize Recipient")
 	}
@@ -1547,6 +1547,10 @@ func (p *CRCProposalInfo) Serialize(w io.Writer, version byte) error {
 
 	if err := p.CRCouncilMemberDID.Serialize(w); err != nil {
 		return errors.New("failed to serialize CRCouncilMemberDID")
+	}
+
+	if err := p.SideChainInfo.Serialize(w); err != nil {
+		return errors.New("failed to serialize SideChainInfo")
 	}
 
 	if err := p.Hash.Serialize(w); err != nil {
@@ -1631,11 +1635,15 @@ func (p *CRCProposalInfo) Deserialize(r io.Reader, version byte) error {
 		return errors.New("failed to deserialize RateOfCustomIDFee")
 	}
 
+	if p.EIDEffectiveHeight, err = common.ReadUint32(r); err != nil {
+		return errors.New("failed to deserialize EIDEffectiveHeight")
+	}
+
 	if err = p.NewRecipient.Deserialize(r); err != nil {
 		return errors.New("failed to deserialize Recipient")
 	}
 
-	if p.NewOwnerPublicKey, err = common.ReadVarBytes(r, crypto.NegativeBigLength, "owner"); err != nil {
+	if p.NewOwnerPublicKey, err = common.ReadVarBytes(r, crypto.NegativeBigLength, "owner"); err != nil{
 		return errors.New("failed to deserialize NewOwnerPublicKey")
 	}
 
@@ -1650,6 +1658,10 @@ func (p *CRCProposalInfo) Deserialize(r io.Reader, version byte) error {
 
 	if err := p.CRCouncilMemberDID.Deserialize(r); err != nil {
 		return errors.New("failed to deserialize CRCouncilMemberDID")
+	}
+
+	if err := p.SideChainInfo.Deserialize(r); err != nil {
+		return errors.New("failed to deserialize SideChainInfo")
 	}
 
 	if err := p.Hash.Deserialize(r); err != nil {

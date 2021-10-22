@@ -17,8 +17,7 @@ const (
 	PrefixCrossChain PrefixType = 0x4B
 	PrefixDeposit    PrefixType = 0x1F
 	PrefixCRDID      PrefixType = 0x67
-	//TODO modify the value of PrefixDposV2 's'
-	PrefixDposV2 PrefixType = 0x99
+	PrefixDposV2     PrefixType = 0x3f
 )
 
 // Contract include the redeem script and hash prefix

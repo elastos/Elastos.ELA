@@ -24,6 +24,7 @@ const (
 	luaTransferAssetTypeName                = "transferasset"
 	luaTransferCrossChainAssetTypeName      = "transfercrosschainasset"
 	luaRegisterProducerName                 = "registerproducer"
+	luaRegisterV2ProducerName       		= "registerv2producer"
 	luaUpdateProducerName                   = "updateproducer"
 	luaCancelProducerName                   = "cancelproducer"
 	luaActivateProducerName                 = "activateproducer"
@@ -281,8 +282,81 @@ func RegisterRegisterProducerType(L *lua.LState) {
 	L.SetField(mt, "__index", L.SetFuncs(L.NewTable(), registerProducerMethods))
 }
 
+// Registers my person type to given L.
+func RegisterRegisterV2ProducerType(L *lua.LState) {
+	mt := L.NewTypeMetatable(luaRegisterV2ProducerName)
+	L.SetGlobal("registerv2producer", mt)
+	// static attributes
+	L.SetField(mt, "new", L.NewFunction(newRegisterV2Producer))
+	// methods
+	L.SetField(mt, "__index", L.SetFuncs(L.NewTable(), registerV2ProducerMethods))
+}
+
 // Constructor
 func newRegisterProducer(L *lua.LState) int {
+	ownerPublicKeyStr := L.ToString(1)
+	nodePublicKeyStr := L.ToString(2)
+	nickName := L.ToString(3)
+	url := L.ToString(4)
+	location := L.ToInt64(5)
+	address := L.ToString(6)
+	needSign := true
+	client, err := checkClient(L, 7)
+	if err != nil {
+		needSign = false
+	}
+
+	ownerPublicKey, err := common.HexStringToBytes(ownerPublicKeyStr)
+	if err != nil {
+		fmt.Println("wrong producer public key")
+		os.Exit(1)
+	}
+	nodePublicKey, err := common.HexStringToBytes(nodePublicKeyStr)
+	if err != nil {
+		fmt.Println("wrong producer public key")
+		os.Exit(1)
+	}
+
+	registerProducer := &payload.ProducerInfo{
+		OwnerPublicKey: []byte(ownerPublicKey),
+		NodePublicKey:  []byte(nodePublicKey),
+		NickName:       nickName,
+		Url:            url,
+		Location:       uint64(location),
+		NetAddress:     address,
+	}
+
+	if needSign {
+		rpSignBuf := new(bytes.Buffer)
+		err = registerProducer.SerializeUnsigned(rpSignBuf, payload.ProducerInfoVersion)
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+		codeHash, err := contract.PublicKeyToStandardCodeHash(ownerPublicKey)
+		acc := client.GetAccountByCodeHash(*codeHash)
+		if acc == nil {
+			fmt.Println("no available account in wallet")
+			os.Exit(1)
+		}
+		rpSig, err := crypto.Sign(acc.PrivKey(), rpSignBuf.Bytes())
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+		registerProducer.Signature = rpSig
+	}
+
+	ud := L.NewUserData()
+	ud.Value = registerProducer
+	L.SetMetatable(ud, L.GetTypeMetatable(luaRegisterProducerName))
+	L.Push(ud)
+
+	return 1
+}
+
+// Constructor
+func newRegisterV2Producer(L *lua.LState) int {
 	ownerPublicKeyStr := L.ToString(1)
 	nodePublicKeyStr := L.ToString(2)
 	nickName := L.ToString(3)
@@ -357,8 +431,31 @@ func checkRegisterProducer(L *lua.LState, idx int) *payload.ProducerInfo {
 	return nil
 }
 
+// Checks whether the first lua argument is a *LUserData with *ProducerInfo and
+// returns this *ProducerInfo.
+func checkRegisterV2Producer(L *lua.LState, idx int) *payload.ProducerInfo {
+	ud := L.CheckUserData(idx)
+	if v, ok := ud.Value.(*payload.ProducerInfo); ok {
+		return v
+	}
+	L.ArgError(1, "ProducerInfo expected")
+	return nil
+}
+
 var registerProducerMethods = map[string]lua.LGFunction{
 	"get": registerProducerGet,
+}
+
+var registerV2ProducerMethods = map[string]lua.LGFunction{
+	"get": registerV2ProducerGet,
+}
+
+// Getter and setter for the Person#Name
+func registerV2ProducerGet(L *lua.LState) int {
+	p := checkRegisterV2Producer(L, 1)
+	fmt.Println(p)
+
+	return 0
 }
 
 // Getter and setter for the Person#Name

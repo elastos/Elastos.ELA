@@ -112,7 +112,7 @@ print("stakeuntil:", stakeuntil)
 
 
 -- register producer payload: publickey, nickname, url, local, host, wallet
-local rp_payload = registerproducer.new(own_publickey, node_publickey, nick_name, url, location, host_address, stakeuntil, wallet)
+local rp_payload = registerv2producer.new(own_publickey, node_publickey, nick_name, url, location, host_address, stakeuntil, wallet)
 print(rp_payload:get())
 
 -- transaction: version, txType, payloadVersion, payload, locktime

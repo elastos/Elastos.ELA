@@ -20,6 +20,7 @@ const (
 )
 
 type CRCProposalWithdraw struct {
+	DefaultChecker
 
 	// Hash of the proposal to withdrawal ela.
 	ProposalHash common.Uint256
@@ -116,3 +117,17 @@ func (p *CRCProposalWithdraw) DeserializeUnsigned(r io.Reader,
 	}
 	return nil
 }
+//
+//// todo add description
+//func (a *CRCProposalWithdraw) SpecialCheck(txn *types.Transaction,
+//	p *CheckParameters) (elaerr.ELAError, bool) {
+//	// todo special check
+//	return nil, false
+//}
+//
+//// todo add description
+//func (a *CRCProposalWithdraw) SecondCheck(txn *types.Transaction,
+//	p *CheckParameters) (elaerr.ELAError, bool) {
+//	// todo special check
+//	return nil, false
+//}

@@ -53,6 +53,17 @@ const (
 	CRCProposalBudgetsPercentage = 10
 )
 
+type TransactionChecker interface {
+	CheckTransactionSanity(blockHeight uint32, txn *Transaction) elaerr.ELAError
+	CheckTransactionContext(blockHeight uint32, txn *Transaction,
+		proposalsUsedAmount common.Fixed64, timeStamp uint32) (
+		map[*Input]Output, elaerr.ELAError)
+}
+
+type BaseChecker struct {
+	BlockChain
+}
+
 // CheckTransactionSanity verifies received single transaction
 func (b *BlockChain) CheckTransactionSanity(blockHeight uint32,
 	txn *Transaction) elaerr.ELAError {
@@ -103,35 +114,50 @@ func (b *BlockChain) CheckTransactionSanity(blockHeight uint32,
 func (b *BlockChain) CheckTransactionContext(blockHeight uint32,
 	txn *Transaction, proposalsUsedAmount common.Fixed64, timeStamp uint32) (map[*Input]Output, elaerr.ELAError) {
 
-	if err := b.checkTxHeightVersion(txn, blockHeight); err != nil {
-		return nil, elaerr.Simple(elaerr.ErrTxHeightVersion, nil)
+	//if err := b.checkTxHeightVersion(txn, blockHeight); err != nil {
+	//	return nil, elaerr.Simple(elaerr.ErrTxHeightVersion, nil)
+	//}
+	//
+
+	//// check if duplicated with transaction in ledger
+	//if exist := b.db.IsTxHashDuplicate(txn.Hash()); exist {
+	//	log.Warn("[CheckTransactionContext] duplicate transaction check failed.")
+	//	return nil, elaerr.Simple(elaerr.ErrTxDuplicate, nil)
+	//}
+
+	//if txn.IsCoinBaseTx() {
+	//	if blockHeight >= b.chainParams.CRCommitteeStartHeight {
+	//		if b.state.GetConsensusAlgorithm() == state.POW {
+	//			if !txn.Outputs[0].ProgramHash.IsEqual(b.chainParams.DestroyELAAddress) {
+	//				return nil, elaerr.Simple(elaerr.ErrTxInvalidOutput,
+	//					errors.New("first output address should be "+
+	//						"DestroyAddress in POW consensus algorithm"))
+	//			}
+	//		} else {
+	//			if !txn.Outputs[0].ProgramHash.IsEqual(b.chainParams.CRAssetsAddress) {
+	//				return nil, elaerr.Simple(elaerr.ErrTxInvalidOutput,
+	//					errors.New("first output address should be CR assets address"))
+	//			}
+	//		}
+	//	} else if !txn.Outputs[0].ProgramHash.IsEqual(FoundationAddress) {
+	//		return nil, elaerr.Simple(elaerr.ErrTxInvalidOutput,
+	//			errors.New("first output address should be foundation address"))
+	//	}
+	//	return nil, nil
+	//}
+
+	para := &payload.CheckParameters{
+		BlockHeight:            0,
+		CRCommitteeStartHeight: 0,
+		ConsensusAlgorithm:     0,
+		DestroyELAAddress:      common.Uint168{},
+		CRAssetsAddress:        common.Uint168{},
+		FoundationAddress:      common.Uint168{},
 	}
 
-	// check if duplicated with transaction in ledger
-	if exist := b.db.IsTxHashDuplicate(txn.Hash()); exist {
-		log.Warn("[CheckTransactionContext] duplicate transaction check failed.")
-		return nil, elaerr.Simple(elaerr.ErrTxDuplicate, nil)
-	}
-
-	if txn.IsCoinBaseTx() {
-		if blockHeight >= b.chainParams.CRCommitteeStartHeight {
-			if b.state.GetConsensusAlgorithm() == state.POW {
-				if !txn.Outputs[0].ProgramHash.IsEqual(b.chainParams.DestroyELAAddress) {
-					return nil, elaerr.Simple(elaerr.ErrTxInvalidOutput,
-						errors.New("first output address should be "+
-							"DestroyAddress in POW consensus algorithm"))
-				}
-			} else {
-				if !txn.Outputs[0].ProgramHash.IsEqual(b.chainParams.CRAssetsAddress) {
-					return nil, elaerr.Simple(elaerr.ErrTxInvalidOutput,
-						errors.New("first output address should be CR assets address"))
-				}
-			}
-		} else if !txn.Outputs[0].ProgramHash.IsEqual(FoundationAddress) {
-			return nil, elaerr.Simple(elaerr.ErrTxInvalidOutput,
-				errors.New("first output address should be foundation address"))
-		}
-		return nil, nil
+	contextErr := txn.Payload.ContextCheck(para)
+	if contextErr != nil {
+		return nil, contextErr
 	}
 
 	references, err := b.UTXOCache.GetTxReference(txn)
@@ -155,6 +181,11 @@ func (b *BlockChain) CheckTransactionContext(blockHeight uint32,
 		log.Warn("[CheckTransactionUTXOLock],", err)
 		return nil, elaerr.Simple(elaerr.ErrTxUTXOLocked, err)
 	}
+
+	//secondErr, end := txn.Payload.SecondCheck(para)
+	//if end {
+	//	return references, secondErr
+	//}
 
 	switch txn.TxType {
 	case IllegalProposalEvidence:

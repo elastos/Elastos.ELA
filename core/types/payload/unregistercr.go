@@ -17,6 +17,8 @@ import (
 const UnregisterCRVersion byte = 0x00
 
 type UnregisterCR struct {
+	DefaultChecker
+
 	CID       common.Uint168
 	Signature []byte
 }
@@ -69,3 +71,17 @@ func (a *UnregisterCR) DeserializeUnsigned(r io.Reader, version byte) error {
 	}
 	return nil
 }
+//
+//// todo add description
+//func (a *UnregisterCR) SpecialCheck(txn *types.Transaction,
+//	p *CheckParameters) (elaerr.ELAError, bool) {
+//	// todo special check
+//	return nil, false
+//}
+//
+//// todo add description
+//func (a *UnregisterCR) SecondCheck(txn *types.Transaction,
+//	p *CheckParameters) (elaerr.ELAError, bool) {
+//	// todo special check
+//	return nil, false
+//}

@@ -12,7 +12,10 @@ import (
 
 const ReturnSideChainDepositCoinVersion byte = 0x00
 const ReturnSideChainDepositCoinVersionV1 byte = 0x01
+
 type ReturnSideChainDepositCoin struct {
+	DefaultChecker
+
 	// schnorr
 	Signers []uint8
 }
@@ -56,3 +59,18 @@ func (s *ReturnSideChainDepositCoin) Deserialize(r io.Reader, version byte) erro
 	}
 	return nil
 }
+
+//
+//// todo add description
+//func (a *ReturnSideChainDepositCoin) SpecialCheck(txn *types.Transaction,
+//	p *CheckParameters) (elaerr.ELAError, bool) {
+//	// todo special check
+//	return nil, false
+//}
+//
+//// todo add description
+//func (a *ReturnSideChainDepositCoin) SecondCheck(txn *types.Transaction,
+//	p *CheckParameters) (elaerr.ELAError, bool) {
+//	// todo special check
+//	return nil, false
+//}

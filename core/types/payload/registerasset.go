@@ -13,6 +13,8 @@ import (
 )
 
 type RegisterAsset struct {
+	DefaultChecker
+
 	Asset      Asset
 	Amount     common.Fixed64
 	Controller common.Uint168
@@ -60,3 +62,17 @@ func (a *RegisterAsset) Deserialize(r io.Reader, version byte) error {
 	}
 	return nil
 }
+//
+//// todo add description
+//func (a *RegisterAsset) SpecialCheck(txn *types.Transaction,
+//	p *CheckParameters) (elaerr.ELAError, bool) {
+//	// todo special check
+//	return nil, false
+//}
+//
+//// todo add description
+//func (a *RegisterAsset) SecondCheck(txn *types.Transaction,
+//	p *CheckParameters) (elaerr.ELAError, bool) {
+//	// todo special check
+//	return nil, false
+//}

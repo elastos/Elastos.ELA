@@ -16,6 +16,8 @@ import (
 const CRCProposalRealWithdrawVersion byte = 0x00
 
 type CRCProposalRealWithdraw struct {
+	DefaultChecker
+
 	// Hash of the proposal to withdrawal ela.
 	WithdrawTransactionHashes []common.Uint256
 }
@@ -64,3 +66,18 @@ func (p *CRCProposalRealWithdraw) Deserialize(r io.Reader, version byte) error {
 
 	return nil
 }
+
+//
+//// todo add description
+//func (a *CRCProposalRealWithdraw) SpecialCheck(txn *types.Transaction,
+//	p *CheckParameters) (elaerr.ELAError, bool) {
+//	// todo special check
+//	return nil, false
+//}
+//
+//// todo add description
+//func (a *CRCProposalRealWithdraw) SecondCheck(txn *types.Transaction,
+//	p *CheckParameters) (elaerr.ELAError, bool) {
+//	// todo special check
+//	return nil, false
+//}

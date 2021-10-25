@@ -14,6 +14,8 @@ import (
 )
 
 type DPOSProposalVote struct {
+	DefaultChecker
+
 	ProposalHash common.Uint256
 
 	Signer []byte
@@ -109,3 +111,17 @@ func (v *DPOSProposalVote) Hash() common.Uint256 {
 	}
 	return *v.hash
 }
+//
+//// todo add description
+//func (a *DPOSProposalVote) SpecialCheck(txn *types.Transaction,
+//	p *CheckParameters) (elaerr.ELAError, bool) {
+//	// todo special check
+//	return nil, false
+//}
+//
+//// todo add description
+//func (a *DPOSProposalVote) SecondCheck(txn *types.Transaction,
+//	p *CheckParameters) (elaerr.ELAError, bool) {
+//	// todo special check
+//	return nil, false
+//}

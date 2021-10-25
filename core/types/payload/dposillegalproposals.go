@@ -24,6 +24,8 @@ type ProposalEvidence struct {
 }
 
 type DPOSIllegalProposals struct {
+	DefaultChecker
+
 	Evidence        ProposalEvidence
 	CompareEvidence ProposalEvidence
 
@@ -112,3 +114,17 @@ func (d *DPOSIllegalProposals) GetBlockHeight() uint32 {
 func (d *DPOSIllegalProposals) Type() IllegalDataType {
 	return IllegalProposal
 }
+//
+//// todo add description
+//func (a *DPOSIllegalProposals) SpecialCheck(txn *types.Transaction,
+//	p *CheckParameters) (elaerr.ELAError, bool) {
+//	// todo special check
+//	return nil, false
+//}
+//
+//// todo add description
+//func (a *DPOSIllegalProposals) SecondCheck(txn *types.Transaction,
+//	p *CheckParameters) (elaerr.ELAError, bool) {
+//	// todo special check
+//	return nil, false
+//}

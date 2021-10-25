@@ -138,6 +138,8 @@ type Budget struct {
 }
 
 type CRCProposal struct {
+	DefaultChecker
+
 	// The type of current CR Council proposal.
 	ProposalType CRCProposalType
 
@@ -1669,3 +1671,18 @@ func (p *CRCProposalInfo) Deserialize(r io.Reader, version byte) error {
 	}
 	return nil
 }
+
+//
+//// todo add description
+//func (a *CRCProposal) SpecialCheck(txn *types.Transaction,
+//	p *CheckParameters) (elaerr.ELAError, bool) {
+//	// todo special check
+//	return nil, false
+//}
+//
+//// todo add description
+//func (a *CRCProposal) SecondCheck(txn *types.Transaction,
+//	p *CheckParameters) (elaerr.ELAError, bool) {
+//	// todo special check
+//	return nil, false
+//}

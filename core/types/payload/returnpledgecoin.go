@@ -5,11 +5,15 @@
 
 package payload
 
-import "io"
+import (
+	"io"
+)
 
 const ReturnDepositCoinVersion byte = 0x00
 
 type ReturnDepositCoin struct {
+	DefaultChecker
+
 }
 
 func (a *ReturnDepositCoin) Data(version byte) []byte {
@@ -23,3 +27,17 @@ func (a *ReturnDepositCoin) Serialize(w io.Writer, version byte) error {
 func (a *ReturnDepositCoin) Deserialize(r io.Reader, version byte) error {
 	return nil
 }
+//
+//// todo add description
+//func (a *ReturnDepositCoin) SpecialCheck(txn *types.Transaction,
+//	p *CheckParameters) (elaerr.ELAError, bool) {
+//	// todo special check
+//	return nil, false
+//}
+//
+//// todo add description
+//func (a *ReturnDepositCoin) SecondCheck(txn *types.Transaction,
+//	p *CheckParameters) (elaerr.ELAError, bool) {
+//	// todo special check
+//	return nil, false
+//}

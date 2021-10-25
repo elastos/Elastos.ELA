@@ -31,6 +31,8 @@ type BlockEvidence struct {
 }
 
 type DPOSIllegalBlocks struct {
+	DefaultChecker
+
 	CoinType        CoinType
 	BlockHeight     uint32
 	Evidence        BlockEvidence
@@ -231,3 +233,17 @@ func (d *DPOSIllegalBlocks) GetBlockHeight() uint32 {
 func (d *DPOSIllegalBlocks) Type() IllegalDataType {
 	return IllegalBlock
 }
+//
+//// todo add description
+//func (a *DPOSIllegalBlocks) SpecialCheck(txn *types.Transaction,
+//	p *CheckParameters) (elaerr.ELAError, bool) {
+//	// todo special check
+//	return nil, false
+//}
+//
+//// todo add description
+//func (a *DPOSIllegalBlocks) SecondCheck(txn *types.Transaction,
+//	p *CheckParameters) (elaerr.ELAError, bool) {
+//	// todo special check
+//	return nil, false
+//}

@@ -14,6 +14,8 @@ import (
 )
 
 type DPOSProposal struct {
+	DefaultChecker
+
 	Sponsor    []byte
 	BlockHash  common.Uint256
 	ViewOffset uint32
@@ -82,3 +84,17 @@ func (p *DPOSProposal) Hash() common.Uint256 {
 	}
 	return *p.hash
 }
+//
+//// todo add description
+//func (a *DPOSProposal) SpecialCheck(txn *types.Transaction,
+//	p *CheckParameters) (elaerr.ELAError, bool) {
+//	// todo special check
+//	return nil, false
+//}
+//
+//// todo add description
+//func (a *DPOSProposal) SecondCheck(txn *types.Transaction,
+//	p *CheckParameters) (elaerr.ELAError, bool) {
+//	// todo special check
+//	return nil, false
+//}

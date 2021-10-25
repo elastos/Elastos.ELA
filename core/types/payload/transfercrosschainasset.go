@@ -17,6 +17,8 @@ const TransferCrossChainVersion byte = 0x00
 const TransferCrossChainVersionV1 byte = 0x01
 
 type TransferCrossChainAsset struct {
+	DefaultChecker
+
 	CrossChainAddresses []string
 	OutputIndexes       []uint64
 	CrossChainAmounts   []common.Fixed64
@@ -99,3 +101,17 @@ func (a *TransferCrossChainAsset) Deserialize(r io.Reader, version byte) error {
 
 	return nil
 }
+//
+//// todo add description
+//func (a *TransferCrossChainAsset) SpecialCheck(txn *types.Transaction,
+//	p *CheckParameters) (elaerr.ELAError, bool) {
+//	// todo special check
+//	return nil, false
+//}
+//
+//// todo add description
+//func (a *TransferCrossChainAsset) SecondCheck(txn *types.Transaction,
+//	p *CheckParameters) (elaerr.ELAError, bool) {
+//	// todo special check
+//	return nil, false
+//}

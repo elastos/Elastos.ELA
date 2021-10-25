@@ -12,6 +12,8 @@ import (
 )
 
 type Confirm struct {
+	DefaultChecker
+
 	Proposal DPOSProposal
 	Votes    []DPOSProposalVote
 }

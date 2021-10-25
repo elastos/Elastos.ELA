@@ -12,6 +12,8 @@ import (
 const CRManagementVersion byte = 0x00
 
 type CRCouncilMemberClaimNode struct {
+	DefaultChecker
+
 	NodePublicKey               []byte
 	CRCouncilCommitteeDID       common.Uint168
 	CRCouncilCommitteeSignature []byte
@@ -70,3 +72,17 @@ func (p *CRCouncilMemberClaimNode) DeserializeUnsigned(r io.Reader, version byte
 	}
 	return nil
 }
+//
+//// todo add description
+//func (a *CRCouncilMemberClaimNode) SpecialCheck(txn *types.Transaction,
+//	p *CheckParameters) (elaerr.ELAError, bool) {
+//	// todo special check
+//	return nil, false
+//}
+//
+//// todo add description
+//func (a *CRCouncilMemberClaimNode) SecondCheck(txn *types.Transaction,
+//	p *CheckParameters) (elaerr.ELAError, bool) {
+//	// todo special check
+//	return nil, false
+//}

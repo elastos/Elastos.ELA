@@ -17,6 +17,8 @@ import (
 const ProducerInfoVersion byte = 0x00
 
 type ProducerInfo struct {
+	DefaultChecker
+
 	OwnerPublicKey []byte
 	NodePublicKey  []byte
 	NickName       string
@@ -129,3 +131,17 @@ func (a *ProducerInfo) DeserializeUnsigned(r io.Reader, version byte) error {
 
 	return nil
 }
+//
+//// todo add description
+//func (a *ProducerInfo) SpecialCheck(txn *types.Transaction,
+//	p *CheckParameters) (elaerr.ELAError, bool) {
+//	// todo special check
+//	return nil, false
+//}
+//
+//// todo add description
+//func (a *ProducerInfo) SecondCheck(txn *types.Transaction,
+//	p *CheckParameters) (elaerr.ELAError, bool) {
+//	// todo special check
+//	return nil, false
+//}

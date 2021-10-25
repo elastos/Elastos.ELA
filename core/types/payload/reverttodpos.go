@@ -16,6 +16,8 @@ const WorkHeightInterval = 10
 const RevertToDPOSVersion byte = 0x00
 
 type RevertToDPOS struct {
+	DefaultChecker
+
 	WorkHeightInterval     uint32
 	RevertToPOWBlockHeight uint32
 }
@@ -67,3 +69,17 @@ func (i *RevertToDPOS) Deserialize(r io.Reader,
 	}
 	return nil
 }
+//
+//// todo add description
+//func (a *RevertToDPOS) SpecialCheck(txn *types.Transaction,
+//	p *CheckParameters) (elaerr.ELAError, bool) {
+//	// todo special check
+//	return nil, false
+//}
+//
+//// todo add description
+//func (a *RevertToDPOS) SecondCheck(txn *types.Transaction,
+//	p *CheckParameters) (elaerr.ELAError, bool) {
+//	// todo special check
+//	return nil, false
+//}

@@ -10,11 +10,11 @@ import (
 	"errors"
 	"fmt"
 	"github.com/elastos/Elastos.ELA/core/contract"
+	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"io"
 
 	"github.com/elastos/Elastos.ELA/common"
 	pg "github.com/elastos/Elastos.ELA/core/contract/program"
-	"github.com/elastos/Elastos.ELA/core/types/payload"
 )
 
 const (
@@ -601,6 +601,8 @@ type Payload interface {
 	Serialize(w io.Writer, version byte) error
 
 	Deserialize(r io.Reader, version byte) error
+
+	payload.PayloadChecker
 }
 
 func GetPayload(txType TxType) (Payload, error) {

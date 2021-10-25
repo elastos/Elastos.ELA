@@ -16,6 +16,8 @@ import (
 const SideChainPowVersion byte = 0x00
 
 type SideChainPow struct {
+	DefaultChecker
+
 	SideBlockHash   common.Uint256
 	SideGenesisHash common.Uint256
 	BlockHeight     uint32
@@ -80,3 +82,17 @@ func (a *SideChainPow) Deserialize(r io.Reader, version byte) error {
 	}
 	return nil
 }
+//
+//// todo add description
+//func (a *SideChainPow) SpecialCheck(txn *types.Transaction,
+//	p *CheckParameters) (elaerr.ELAError, bool) {
+//	// todo special check
+//	return nil, false
+//}
+//
+//// todo add description
+//func (a *SideChainPow) SecondCheck(txn *types.Transaction,
+//	p *CheckParameters) (elaerr.ELAError, bool) {
+//	// todo special check
+//	return nil, false
+//}

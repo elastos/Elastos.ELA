@@ -15,6 +15,8 @@ import (
 const UpdateVersionVersion byte = 0x00
 
 type UpdateVersion struct {
+	DefaultChecker
+
 	StartHeight uint32
 	EndHeight   uint32
 }
@@ -50,3 +52,17 @@ func (u *UpdateVersion) Deserialize(r io.Reader, version byte) (err error) {
 
 	return nil
 }
+//
+//// todo add description
+//func (a *UpdateVersion) SpecialCheck(txn *types.Transaction,
+//	p *CheckParameters) (elaerr.ELAError, bool) {
+//	// todo special check
+//	return nil, false
+//}
+//
+//// todo add description
+//func (a *UpdateVersion) SecondCheck(txn *types.Transaction,
+//	p *CheckParameters) (elaerr.ELAError, bool) {
+//	// todo special check
+//	return nil, false
+//}

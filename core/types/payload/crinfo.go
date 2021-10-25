@@ -19,6 +19,8 @@ const CRInfoDIDVersion byte = 0x01
 
 // CRInfo defines the information of CR.
 type CRInfo struct {
+	DefaultChecker
+
 	Code      []byte
 	CID       common.Uint168
 	DID       common.Uint168
@@ -134,3 +136,17 @@ func (a *CRInfo) DeserializeUnsigned(r io.Reader, version byte) error {
 func (a *CRInfo) GetCodeHash() common.Uint160 {
 	return *common.ToCodeHash(a.Code)
 }
+//
+//// todo add description
+//func (a *CRInfo) SpecialCheck(txn *types.Transaction,
+//	p *CheckParameters) (elaerr.ELAError, bool) {
+//	// todo special check
+//	return nil, false
+//}
+//
+//// todo add description
+//func (a *CRInfo) SecondCheck(txn *types.Transaction,
+//	p *CheckParameters) (elaerr.ELAError, bool) {
+//	// todo special check
+//	return nil, false
+//}

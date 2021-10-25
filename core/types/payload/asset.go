@@ -35,6 +35,8 @@ const (
 
 //registered asset will be assigned to contract address
 type Asset struct {
+	DefaultChecker
+
 	Name        string
 	Description string
 	Precision   byte

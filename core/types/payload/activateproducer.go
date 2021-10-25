@@ -19,6 +19,8 @@ const (
 )
 
 type ActivateProducer struct {
+	DefaultChecker
+
 	NodePublicKey []byte
 	Signature     []byte
 }

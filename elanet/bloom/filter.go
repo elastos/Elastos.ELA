@@ -6,6 +6,7 @@
 package bloom
 
 import (
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"math"
 	"sync"
 
@@ -173,7 +174,7 @@ func (bf *Filter) Matches(data []byte) bool {
 // outpoint and false if it definitely does not.
 //
 // This function MUST be called with the filter lock held.
-func (bf *Filter) matchesOutPoint(outpoint *types.OutPoint) bool {
+func (bf *Filter) matchesOutPoint(outpoint *common2.OutPoint) bool {
 	return bf.matches(outpoint.Bytes())
 }
 
@@ -181,7 +182,7 @@ func (bf *Filter) matchesOutPoint(outpoint *types.OutPoint) bool {
 // outpoint and false if it definitely does not.
 //
 // This function is safe for concurrent access.
-func (bf *Filter) MatchesOutPoint(outpoint *types.OutPoint) bool {
+func (bf *Filter) MatchesOutPoint(outpoint *common2.OutPoint) bool {
 	bf.mtx.Lock()
 	match := bf.matchesOutPoint(outpoint)
 	bf.mtx.Unlock()
@@ -230,14 +231,14 @@ func (bf *Filter) AddHash(hash *common.Uint256) {
 // addOutPoint adds the passed tx outpoint to the bloom filter.
 //
 // This function MUST be called with the filter lock held.
-func (bf *Filter) addOutPoint(outpoint *types.OutPoint) {
+func (bf *Filter) addOutPoint(outpoint *common2.OutPoint) {
 	bf.add(outpoint.Bytes())
 }
 
 // AddOutPoint adds the passed tx outpoint to the bloom filter.
 //
 // This function is safe for concurrent access.
-func (bf *Filter) AddOutPoint(outpoint *types.OutPoint) {
+func (bf *Filter) AddOutPoint(outpoint *common2.OutPoint) {
 	bf.mtx.Lock()
 	bf.addOutPoint(outpoint)
 	bf.mtx.Unlock()
@@ -271,7 +272,7 @@ func (bf *Filter) matchTxAndUpdate(txn *types.Transaction) bool {
 		}
 
 		matched = true
-		bf.addOutPoint(types.NewOutPoint(txn.Hash(), uint16(i)))
+		bf.addOutPoint(common2.NewOutPoint(txn.Hash(), uint16(i)))
 	}
 
 	// Nothing more to do if a match has already been made.

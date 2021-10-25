@@ -6,6 +6,7 @@
 package blockchain
 
 import (
+	"github.com/elastos/Elastos.ELA/core/types/common"
 	"time"
 
 	"github.com/elastos/Elastos.ELA/blockchain/indexers"
@@ -29,7 +30,7 @@ type IChainStore interface {
 		confirm *payload.Confirm, medianTimePast time.Time) error
 
 	GetTransaction(txID Uint256) (*Transaction, uint32, error)
-	GetTxReference(tx *Transaction) (map[*Input]*Output, error)
+	GetTxReference(tx *Transaction) (map[*common.Input]*common.Output, error)
 
 	SetHeight(height uint32)
 	GetHeight() uint32

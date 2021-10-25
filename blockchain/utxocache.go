@@ -8,6 +8,7 @@ package blockchain
 import (
 	"container/list"
 	"errors"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"sync"
 
 	"github.com/elastos/Elastos.ELA/common"
@@ -32,15 +33,15 @@ type UTXOCache struct {
 
 	db        IUTXOCacheStore
 	inputs    *list.List
-	reference map[types.Input]types.Output
+	reference map[common2.Input]common2.Output
 	txCache   map[common.Uint256]*types.Transaction
 }
 
-func (up *UTXOCache) insertReference(input *types.Input, output *types.Output) {
+func (up *UTXOCache) insertReference(input *common2.Input, output *common2.Output) {
 	if up.inputs.Len() >= maxReferenceSize {
 		for e := up.inputs.Front(); e != nil; e = e.Next() {
 			up.inputs.Remove(e)
-			delete(up.reference, e.Value.(types.Input))
+			delete(up.reference, e.Value.(common2.Input))
 			if up.inputs.Len() < maxReferenceSize {
 				break
 			}
@@ -51,11 +52,11 @@ func (up *UTXOCache) insertReference(input *types.Input, output *types.Output) {
 	up.reference[*input] = *output
 }
 
-func (up *UTXOCache) GetTxReference(tx *types.Transaction) (map[*types.Input]types.Output, error) {
+func (up *UTXOCache) GetTxReference(tx *types.Transaction) (map[*common2.Input]common2.Output, error) {
 	up.Lock()
 	defer up.Unlock()
 
-	result := make(map[*types.Input]types.Output)
+	result := make(map[*common2.Input]common2.Output)
 	for _, input := range tx.Inputs {
 		if output, exist := up.reference[*input]; exist {
 			result[input] = output
@@ -123,7 +124,7 @@ func (up *UTXOCache) CleanCache() {
 	defer up.Unlock()
 
 	up.inputs.Init()
-	up.reference = make(map[types.Input]types.Output)
+	up.reference = make(map[common2.Input]common2.Output)
 	up.txCache = make(map[common.Uint256]*types.Transaction)
 }
 
@@ -135,7 +136,7 @@ func NewUTXOCache(db IUTXOCacheStore, params *config.Params) *UTXOCache {
 	return &UTXOCache{
 		db:        db,
 		inputs:    list.New(),
-		reference: make(map[types.Input]types.Output),
+		reference: make(map[common2.Input]common2.Output),
 		txCache:   make(map[common.Uint256]*types.Transaction),
 	}
 }

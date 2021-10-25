@@ -8,6 +8,7 @@ package blockchain
 import (
 	"bytes"
 	"errors"
+	"github.com/elastos/Elastos.ELA/core/types/common"
 	"os"
 	"path/filepath"
 	"sync"
@@ -135,13 +136,13 @@ func ProcessProposalDraftData(dbTx database.Tx, Transactions []*Transaction) (er
 	//var err error
 	for _, tx := range Transactions {
 		switch tx.TxType {
-		case CRCProposal:
+		case common.CRCProposal:
 			proposal := tx.Payload.(*payload.CRCProposal)
 			err = dbPutProposalDraftData(dbTx, &proposal.DraftHash, proposal.DraftData)
 			if err != nil {
 				return err
 			}
-		case CRCProposalTracking:
+		case common.CRCProposalTracking:
 			proposalTracking := tx.Payload.(*payload.CRCProposalTracking)
 			err = dbPutProposalDraftData(dbTx, &proposalTracking.SecretaryGeneralOpinionHash,
 				proposalTracking.SecretaryGeneralOpinionData)
@@ -152,7 +153,7 @@ func ProcessProposalDraftData(dbTx database.Tx, Transactions []*Transaction) (er
 			if err != nil {
 				return err
 			}
-		case CRCProposalReview:
+		case common.CRCProposalReview:
 			proposalReview := tx.Payload.(*payload.CRCProposalReview)
 			err = dbPutProposalDraftData(dbTx, &proposalReview.OpinionHash, proposalReview.OpinionData)
 			if err != nil {
@@ -167,13 +168,13 @@ func RollbackProcessProposalDraftData(dbTx database.Tx, Transactions []*Transact
 	//var err error
 	for _, tx := range Transactions {
 		switch tx.TxType {
-		case CRCProposal:
+		case common.CRCProposal:
 			proposal := tx.Payload.(*payload.CRCProposal)
 			err = DBRemoveProposalDraftData(dbTx, &proposal.DraftHash)
 			if err != nil {
 				return err
 			}
-		case CRCProposalTracking:
+		case common.CRCProposalTracking:
 			proposalTracking := tx.Payload.(*payload.CRCProposalTracking)
 			err = DBRemoveProposalDraftData(dbTx, &proposalTracking.SecretaryGeneralOpinionHash)
 			if err != nil {
@@ -183,7 +184,7 @@ func RollbackProcessProposalDraftData(dbTx database.Tx, Transactions []*Transact
 			if err != nil {
 				return err
 			}
-		case CRCProposalReview:
+		case common.CRCProposalReview:
 			proposalReview := tx.Payload.(*payload.CRCProposalReview)
 			err = DBRemoveProposalDraftData(dbTx, &proposalReview.OpinionHash)
 			if err != nil {

@@ -15,6 +15,7 @@ import (
 	"github.com/elastos/Elastos.ELA/core/contract"
 	"github.com/elastos/Elastos.ELA/core/contract/program"
 	"github.com/elastos/Elastos.ELA/core/types"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/core/types/outputpayload"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/crypto"
@@ -62,8 +63,8 @@ func getRegisterCRTx(publicKeyStr, privateKeyStr, nickName string) *types.Transa
 	hash1, _ := contract.PublicKeyToDepositProgramHash(publicKey1)
 
 	txn := new(types.Transaction)
-	txn.TxType = types.RegisterCR
-	txn.Version = types.TxVersion09
+	txn.TxType = common2.RegisterCR
+	txn.Version = common2.TxVersion09
 	crInfoPayload := &payload.CRInfo{
 		Code:     code1,
 		CID:      *cid1,
@@ -83,7 +84,7 @@ func getRegisterCRTx(publicKeyStr, privateKeyStr, nickName string) *types.Transa
 		Parameter: nil,
 	}}
 
-	txn.Outputs = []*types.Output{&types.Output{
+	txn.Outputs = []*common2.Output{&common2.Output{
 		AssetID:     common.Uint256{},
 		Value:       5000 * 100000000,
 		OutputLock:  0,
@@ -98,7 +99,7 @@ func getUpdateCR(publicKeyStr string, cid common.Uint168,
 	nickname string) *types.Transaction {
 	code := getCodeByPubKeyStr(publicKeyStr)
 	return &types.Transaction{
-		TxType: types.UpdateCR,
+		TxType: common2.UpdateCR,
 		Payload: &payload.CRInfo{
 			Code:     code,
 			CID:      cid,
@@ -109,7 +110,7 @@ func getUpdateCR(publicKeyStr string, cid common.Uint168,
 
 func getUnregisterCR(cid common.Uint168) *types.Transaction {
 	return &types.Transaction{
-		TxType: types.UnregisterCR,
+		TxType: common2.UnregisterCR,
 		Payload: &payload.UnregisterCR{
 			CID: cid,
 		},
@@ -119,9 +120,9 @@ func getUnregisterCR(cid common.Uint168) *types.Transaction {
 func generateReturnDeposite(publicKeyStr string) *types.Transaction {
 	code := getCodeByPubKeyStr(publicKeyStr)
 	return &types.Transaction{
-		TxType:  types.ReturnCRDepositCoin,
+		TxType:  common2.ReturnCRDepositCoin,
 		Payload: &payload.ReturnDepositCoin{},
-		Outputs: []*types.Output{
+		Outputs: []*common2.Output{
 			{Value: 4999 * 100000000},
 		},
 		Programs: []*program.Program{
@@ -136,14 +137,14 @@ func getVoteCRTx(amount common.Fixed64,
 	candidateVotes []outputpayload.CandidateVotes) *types.Transaction {
 	return &types.Transaction{
 		Version: 0x09,
-		TxType:  types.TransferAsset,
-		Outputs: []*types.Output{
+		TxType:  common2.TransferAsset,
+		Outputs: []*common2.Output{
 			{
 				AssetID:     common.Uint256{},
 				Value:       amount,
 				OutputLock:  0,
 				ProgramHash: common.Uint168{123},
-				Type:        types.OTVote,
+				Type:        common2.OTVote,
 				Payload: &outputpayload.VoteOutput{
 					Version: outputpayload.VoteProducerAndCRVersion,
 					Contents: []outputpayload.VoteContent{
@@ -178,8 +179,8 @@ func getCRCProposalTx(elaAddress string, publicKeyStr, privateKeyStr,
 
 	draftData := randomBytes(10)
 	txn := new(types.Transaction)
-	txn.TxType = types.CRCProposal
-	txn.Version = types.TxVersion09
+	txn.TxType = common2.CRCProposal
+	txn.Version = common2.TxVersion09
 	crcProposalPayload := &payload.CRCProposal{
 		ProposalType:       payload.Normal,
 		OwnerPublicKey:     publicKey1,
@@ -213,8 +214,8 @@ func getCRCProposalReviewTx(proposalHash common.Uint256, vote payload.VoteResult
 	privateKey1, _ := common.HexStringToBytes(crPrivateKeyStr)
 	code := getCodeByPubKeyStr(crPublicKeyStr)
 	txn := new(types.Transaction)
-	txn.TxType = types.CRCProposalReview
-	txn.Version = types.TxVersion09
+	txn.TxType = common2.CRCProposalReview
+	txn.Version = common2.TxVersion09
 	crcProposalReviewPayload := &payload.CRCProposalReview{
 		ProposalHash: proposalHash,
 		VoteResult:   vote,
@@ -252,8 +253,8 @@ func getCRCProposalTrackingTx(
 	documentData := randomBytes(10)
 	opinionHash := randomBytes(10)
 	txn := new(types.Transaction)
-	txn.TxType = types.CRCProposalTracking
-	txn.Version = types.TxVersion09
+	txn.TxType = common2.CRCProposalTracking
+	txn.Version = common2.TxVersion09
 	cPayload := &payload.CRCProposalTracking{
 		ProposalTrackingType:        trackingType,
 		ProposalHash:                proposalHash,
@@ -286,7 +287,7 @@ func getCRCProposalTrackingTx(
 
 func getCRCProposalWithdrawTx(proposalHash common.Uint256,
 	OwnerPublicKeyStr, sponsorPrivateKeyStr string, fee common.Fixed64,
-	inputs []*types.Input, outputs []*types.Output) *types.Transaction {
+	inputs []*common2.Input, outputs []*common2.Output) *types.Transaction {
 
 	OwnerPublicKey, _ := common.HexStringToBytes(OwnerPublicKeyStr)
 	sponsorPrivateKey, _ := common.HexStringToBytes(sponsorPrivateKeyStr)
@@ -302,10 +303,10 @@ func getCRCProposalWithdrawTx(proposalHash common.Uint256,
 	crcProposalWithdraw.Signature = signature
 
 	return &types.Transaction{
-		Version:    types.TxVersion09,
-		TxType:     types.CRCProposalWithdraw,
+		Version:    common2.TxVersion09,
+		TxType:     common2.CRCProposalWithdraw,
 		Payload:    crcProposalWithdraw,
-		Attributes: []*types.Attribute{},
+		Attributes: []*common2.Attribute{},
 		Inputs:     inputs,
 		Outputs:    outputs,
 		Programs:   []*program.Program{},
@@ -1354,7 +1355,7 @@ func TestCommittee_RollbackCRCProposalWithdraw(t *testing.T) {
 
 	// proposal withdraw
 	withdrawTx := getCRCProposalWithdrawTx(proposalHash, publicKeyStr1,
-		privateKeyStr1, 1, []*types.Input{}, []*types.Output{})
+		privateKeyStr1, 1, []*common2.Input{}, []*common2.Output{})
 	keyFrameA := committee.Snapshot()
 
 	// process
@@ -1424,7 +1425,7 @@ func TestCommittee_RollbackCRCProposalWithdraw(t *testing.T) {
 
 	// proposal withdraw
 	withdrawTx2 := getCRCProposalWithdrawTx(proposalHash, publicKeyStr1,
-		privateKeyStr1, 1, []*types.Input{}, []*types.Output{})
+		privateKeyStr1, 1, []*common2.Input{}, []*common2.Output{})
 	keyFrameA2 := committee.Snapshot()
 
 	// process
@@ -1745,8 +1746,8 @@ func getAddress(publicKeyHexStr string) (string, error) {
 func getTransferAssetTx(publicKeyStr string, value common.Fixed64, outPutAddr common.Uint168) *types.
 	Transaction {
 	txn := &types.Transaction{
-		Version:    types.TxVersion09,
-		TxType:     types.TransferAsset,
+		Version:    common2.TxVersion09,
+		TxType:     common2.TransferAsset,
 		Payload:    &payload.TransferAsset{},
 		Attributes: nil,
 		Inputs:     nil,
@@ -1759,7 +1760,7 @@ func getTransferAssetTx(publicKeyStr string, value common.Fixed64, outPutAddr co
 		Parameter: nil,
 	}}
 
-	txn.Outputs = []*types.Output{&types.Output{
+	txn.Outputs = []*common2.Output{&common2.Output{
 		AssetID:     common.Uint256{},
 		Value:       value,
 		OutputLock:  0,
@@ -1774,15 +1775,15 @@ func getAppropriationTx(value common.Fixed64, outPutAddr common.Uint168) *types.
 	crcAppropriationPayload := &payload.CRCAppropriation{}
 
 	txn := &types.Transaction{
-		Version:    types.TxVersion09,
-		TxType:     types.CRCAppropriation,
+		Version:    common2.TxVersion09,
+		TxType:     common2.CRCAppropriation,
 		Payload:    crcAppropriationPayload,
-		Attributes: []*types.Attribute{},
+		Attributes: []*common2.Attribute{},
 		Inputs:     nil,
 		Programs:   []*program.Program{},
 		LockTime:   0,
 	}
-	txn.Outputs = []*types.Output{&types.Output{
+	txn.Outputs = []*common2.Output{&common2.Output{
 		AssetID:     common.Uint256{},
 		Value:       value,
 		OutputLock:  0,
@@ -2081,9 +2082,9 @@ func TestCommittee_RollbackCRCImpeachmentAndReelectionTx(t *testing.T) {
 
 func getCRCImpeachmentTx(publicKeyStr string, did *common.Uint168,
 	value common.Fixed64, outPutAddr common.Uint168) *types.Transaction {
-	outputs := []*types.Output{}
-	outputs = append(outputs, &types.Output{
-		Type:        types.OTVote,
+	outputs := []*common2.Output{}
+	outputs = append(outputs, &common2.Output{
+		Type:        common2.OTVote,
 		ProgramHash: outPutAddr,
 		Value:       common.Fixed64(10),
 		Payload: &outputpayload.VoteOutput{
@@ -2100,8 +2101,8 @@ func getCRCImpeachmentTx(publicKeyStr string, did *common.Uint168,
 	})
 
 	txn := &types.Transaction{
-		Version:    types.TxVersion09,
-		TxType:     types.TransferAsset,
+		Version:    common2.TxVersion09,
+		TxType:     common2.TransferAsset,
 		Payload:    &payload.TransferAsset{},
 		Attributes: nil,
 		Inputs:     nil,
@@ -2279,7 +2280,7 @@ func TestCommitee_RollbackCRCBlendTx(t *testing.T) {
 		"", "", privateKeyStr4)
 	// proposal withdraw
 	withdrawCTx := getCRCProposalWithdrawTx(proposalCHash, publicKeyStr1,
-		privateKeyStr1, 1, []*types.Input{}, []*types.Output{})
+		privateKeyStr1, 1, []*common2.Input{}, []*common2.Output{})
 	impeachValue := committee.CirculationAmount*common.Fixed64(committee.
 		params.VoterRejectPercentage)/common.Fixed64(100) + 1
 	//generate impeachment tx
@@ -2516,7 +2517,7 @@ func TestCommitee_RollbackCRCBlendAppropriationTx(t *testing.T) {
 		"", "", privateKeyStr4)
 	// proposal withdraw
 	withdrawCTx := getCRCProposalWithdrawTx(proposalCHash, publicKeyStr1,
-		privateKeyStr1, 1, []*types.Input{}, []*types.Output{})
+		privateKeyStr1, 1, []*common2.Input{}, []*common2.Output{})
 	impeachValue := committee.CirculationAmount*common.Fixed64(committee.
 		params.VoterRejectPercentage)/common.Fixed64(100) + 1
 	//generate impeachment tx
@@ -2801,9 +2802,9 @@ func TestCommitee_RollbackCRCBlendTxPropoalVert(t *testing.T) {
 
 	// proposal withdraw
 	withdrawBTx := getCRCProposalWithdrawTx(proposalBHash, publicKeyStr1,
-		privateKeyStr1, 1, []*types.Input{}, []*types.Output{})
+		privateKeyStr1, 1, []*common2.Input{}, []*common2.Output{})
 	withdrawCTx := getCRCProposalWithdrawTx(proposalCHash, publicKeyStr1,
-		privateKeyStr1, 1, []*types.Input{}, []*types.Output{})
+		privateKeyStr1, 1, []*common2.Input{}, []*common2.Output{})
 	currentHeight++
 	committee.ProcessBlock(&types.Block{
 		Header: types.Header{

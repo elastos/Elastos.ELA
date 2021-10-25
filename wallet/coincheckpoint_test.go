@@ -11,6 +11,7 @@ import (
 
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/core/types"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -25,7 +26,7 @@ var (
 	senderAddr    = "EYXFef272UYHKKD56NGe9BxR7pkcuiZja4"
 	sender        *common.Uint168
 
-	prevOp types.OutPoint
+	prevOp common2.OutPoint
 
 	tx1    = new(types.Transaction)
 	block1 *types.DposBlock
@@ -41,13 +42,13 @@ func TestInitBlock(t *testing.T) {
 	assert.NoError(t, err)
 
 	ccp.height = 99
-	prevOp = types.OutPoint{
+	prevOp = common2.OutPoint{
 		TxID:  *previousTxID,
 		Index: 0,
 	}
 	ccp.coins[prevOp] = &Coin{
 		TxVersion: 0,
-		Output: &types.Output{
+		Output: &common2.Output{
 			Value:       common.Fixed64(52),
 			ProgramHash: *sender,
 		},
@@ -56,13 +57,13 @@ func TestInitBlock(t *testing.T) {
 	assert.Equal(t, 1, len(ccp.coins))
 
 	tx1 := &types.Transaction{
-		Inputs: []*types.Input{
+		Inputs: []*common2.Input{
 			{
 				Previous: prevOp,
 				Sequence: 0,
 			},
 		},
-		Outputs: []*types.Output{
+		Outputs: []*common2.Output{
 			{
 				ProgramHash: *recipient,
 				Value:       common.Fixed64(50),
@@ -110,7 +111,7 @@ func TestCoinsCheckPoint_Serialize_Deserialize(t *testing.T) {
 func TestCoinsCheckPoint_ListCoins(t *testing.T) {
 	senderCoins := ccp.ListCoins(senderAddr)
 	recipientCoins := ccp.ListCoins(recipientAddr)
-	coins := make(map[types.OutPoint]*Coin, 0)
+	coins := make(map[common2.OutPoint]*Coin, 0)
 	for k, v := range senderCoins {
 		coins[k] = v
 	}
@@ -121,11 +122,11 @@ func TestCoinsCheckPoint_ListCoins(t *testing.T) {
 	verifyCoins(coins, t)
 }
 
-func verifyCoins(coins map[types.OutPoint]*Coin, t *testing.T) {
+func verifyCoins(coins map[common2.OutPoint]*Coin, t *testing.T) {
 	assert.Equal(t, 2, len(coins))
 	_, exist := coins[prevOp]
 	assert.Equal(t, false, exist)
-	recipientOp := types.OutPoint{
+	recipientOp := common2.OutPoint{
 		TxID:  tx1.Hash(),
 		Index: 0,
 	}
@@ -135,7 +136,7 @@ func verifyCoins(coins map[types.OutPoint]*Coin, t *testing.T) {
 	assert.Equal(t, *recipient, coin1.Output.ProgramHash)
 	assert.Equal(t, common.Fixed64(50), coin1.Output.Value)
 
-	senderOp := types.OutPoint{
+	senderOp := common2.OutPoint{
 		TxID:  tx1.Hash(),
 		Index: 1,
 	}

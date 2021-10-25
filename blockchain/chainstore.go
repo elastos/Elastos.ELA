@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"errors"
+	"github.com/elastos/Elastos.ELA/core/types/common"
 	"path/filepath"
 	"sync"
 	"sync/atomic"
@@ -169,13 +170,13 @@ func (c *ChainStore) GetProposalDraftDataByDraftHash(draftHash *Uint256) ([]byte
 	return c.fflDB.GetProposalDraftDataByDraftHash(draftHash)
 }
 
-func (c *ChainStore) GetTxReference(tx *Transaction) (map[*Input]*Output, error) {
-	if tx.TxType == RegisterAsset {
+func (c *ChainStore) GetTxReference(tx *Transaction) (map[*common.Input]*common.Output, error) {
+	if tx.TxType == common.RegisterAsset {
 		return nil, nil
 	}
-	txOutputsCache := make(map[Uint256][]*Output)
+	txOutputsCache := make(map[Uint256][]*common.Output)
 	//UTXO input /  Outputs
-	reference := make(map[*Input]*Output)
+	reference := make(map[*common.Input]*common.Output)
 	// Key index，v UTXOInput
 	for _, input := range tx.Inputs {
 		txID := input.Previous.TxID

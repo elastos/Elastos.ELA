@@ -8,6 +8,7 @@ package api
 import (
 	"encoding/hex"
 	"fmt"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"os"
 	"strconv"
 	"strings"
@@ -15,7 +16,6 @@ import (
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/log"
 	"github.com/elastos/Elastos.ELA/core/contract"
-	"github.com/elastos/Elastos.ELA/core/types"
 	"github.com/elastos/Elastos.ELA/core/types/outputpayload"
 	"github.com/elastos/Elastos.ELA/crypto"
 
@@ -58,7 +58,7 @@ func newTxOutput(L *lua.LState) int {
 		os.Exit(1)
 	}
 
-	var outputPayload types.OutputPayload
+	var outputPayload common2.OutputPayload
 	switch outputPayloadData.Value.(type) {
 	case *outputpayload.DefaultOutput:
 		payload, ok := outputPayloadData.Value.(*outputpayload.DefaultOutput)
@@ -80,12 +80,12 @@ func newTxOutput(L *lua.LState) int {
 		outputPayload = payload
 	}
 
-	output := &types.Output{
+	output := &common2.Output{
 		AssetID:     assetID,
 		Value:       common.Fixed64(value),
 		OutputLock:  0,
 		ProgramHash: *programHash,
-		Type:        types.OutputType(outputType),
+		Type:        common2.OutputType(outputType),
 		Payload:     outputPayload,
 	}
 
@@ -98,9 +98,9 @@ func newTxOutput(L *lua.LState) int {
 }
 
 // Checks whether the first lua argument is a *LUserData with *Output and returns this *Output.
-func checkTxOutput(L *lua.LState, idx int) *types.Output {
+func checkTxOutput(L *lua.LState, idx int) *common2.Output {
 	ud := L.CheckUserData(idx)
-	if v, ok := ud.Value.(*types.Output); ok {
+	if v, ok := ud.Value.(*common2.Output); ok {
 		return v
 	}
 	L.ArgError(1, "Output expected")

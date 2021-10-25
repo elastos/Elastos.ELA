@@ -9,6 +9,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"math"
 	"math/rand"
 	"sort"
@@ -101,11 +102,11 @@ type Service struct {
 	lastBlock *types.Block
 }
 
-func (pow *Service) GetDefaultTxVersion(height uint32) types.TransactionVersion {
-	var v types.TransactionVersion = 0
+func (pow *Service) GetDefaultTxVersion(height uint32) common2.TransactionVersion {
+	var v common2.TransactionVersion = 0
 	// when block height greater than H2 use the version TxVersion09
 	if height >= pow.chainParams.PublicDPOSHeight {
-		v = types.TxVersion09
+		v = common2.TxVersion09
 	}
 	return v
 }
@@ -123,43 +124,43 @@ func (pow *Service) CreateCoinbaseTx(minerAddr string, height uint32) (*types.Tr
 
 	tx := &types.Transaction{
 		Version:        pow.GetDefaultTxVersion(height),
-		TxType:         types.CoinBase,
+		TxType:         common2.CoinBase,
 		PayloadVersion: payload.CoinBaseVersion,
 		Payload: &payload.CoinBase{
 			Content: []byte(pow.MinerInfo),
 		},
-		Inputs: []*types.Input{
+		Inputs: []*common2.Input{
 			{
-				Previous: types.OutPoint{
+				Previous: common2.OutPoint{
 					TxID:  common.EmptyHash,
 					Index: math.MaxUint16,
 				},
 				Sequence: math.MaxUint32,
 			},
 		},
-		Outputs: []*types.Output{
+		Outputs: []*common2.Output{
 			{
 				AssetID:     config.ELAAssetID,
 				Value:       0,
 				ProgramHash: crRewardAddr,
-				Type:        types.OTNone,
+				Type:        common2.OTNone,
 				Payload:     &outputpayload.DefaultOutput{},
 			},
 			{
 				AssetID:     config.ELAAssetID,
 				Value:       0,
 				ProgramHash: *minerProgramHash,
-				Type:        types.OTNone,
+				Type:        common2.OTNone,
 				Payload:     &outputpayload.DefaultOutput{},
 			},
 		},
-		Attributes: []*types.Attribute{},
+		Attributes: []*common2.Attribute{},
 		LockTime:   height,
 	}
 
 	nonce := make([]byte, 8)
 	binary.BigEndian.PutUint64(nonce, rand.Uint64())
-	txAttr := types.NewAttribute(types.Nonce, nonce)
+	txAttr := common2.NewAttribute(common2.Nonce, nonce)
 	tx.Attributes = append(tx.Attributes, &txAttr)
 
 	return tx, nil
@@ -198,7 +199,7 @@ func (pow *Service) AssignCoinbaseTxRewards(block *types.Block, totalReward comm
 	rewardDposArbiter := common.Fixed64(totalReward) - rewardCyberRepublic - rewardMergeMiner
 	block.Transactions[0].Outputs[0].Value = rewardCyberRepublic
 	block.Transactions[0].Outputs[1].Value = rewardMergeMiner
-	block.Transactions[0].Outputs = append(block.Transactions[0].Outputs, &types.Output{
+	block.Transactions[0].Outputs = append(block.Transactions[0].Outputs, &common2.Output{
 		AssetID:     config.ELAAssetID,
 		Value:       rewardDposArbiter,
 		ProgramHash: blockchain.FoundationAddress,
@@ -210,11 +211,11 @@ func (pow *Service) distributeDPOSReward(coinBaseTx *types.Transaction,
 	rewards map[common.Uint168]common.Fixed64) (common.Fixed64, error) {
 
 	for ownerHash, reward := range rewards {
-		coinBaseTx.Outputs = append(coinBaseTx.Outputs, &types.Output{
+		coinBaseTx.Outputs = append(coinBaseTx.Outputs, &common2.Output{
 			AssetID:     config.ELAAssetID,
 			Value:       reward,
 			ProgramHash: ownerHash,
-			Type:        types.OTNone,
+			Type:        common2.OTNone,
 			Payload:     &outputpayload.DefaultOutput{},
 		})
 	}

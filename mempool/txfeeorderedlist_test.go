@@ -12,6 +12,7 @@ import (
 
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/core/types"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/elanet/pact"
 	"github.com/stretchr/testify/assert"
@@ -24,11 +25,11 @@ func TestTxFeeOrderedList_AddTx(t *testing.T) {
 	}
 
 	protoTx := types.Transaction{
-		TxType:  types.TransferAsset,
+		TxType:  common2.TransferAsset,
 		Payload: &payload.TransferAsset{},
-		Attributes: []*types.Attribute{
+		Attributes: []*common2.Attribute{
 			{
-				Usage: types.Nonce,
+				Usage: common2.Nonce,
 				Data:  randomNonceData(),
 			},
 		},
@@ -40,9 +41,9 @@ func TestTxFeeOrderedList_AddTx(t *testing.T) {
 	for i := 0; i < 10; i++ {
 		tx := protoTx
 		tx.Fee -= common.Fixed64(rand.Int63n(100))
-		tx.Attributes = []*types.Attribute{
+		tx.Attributes = []*common2.Attribute{
 			{
-				Usage: types.Nonce,
+				Usage: common2.Nonce,
 				Data:  randomNonceData(),
 			},
 		}
@@ -62,9 +63,9 @@ func TestTxFeeOrderedList_AddTx(t *testing.T) {
 
 	tx := protoTx
 	tx.Fee = 1000
-	tx.Attributes = []*types.Attribute{
+	tx.Attributes = []*common2.Attribute{
 		{
-			Usage: types.Nonce,
+			Usage: common2.Nonce,
 			Data:  randomNonceData(),
 		},
 	}
@@ -74,9 +75,9 @@ func TestTxFeeOrderedList_AddTx(t *testing.T) {
 
 	tx = protoTx
 	tx.Fee = 50 // set to the center
-	tx.Attributes = []*types.Attribute{
+	tx.Attributes = []*common2.Attribute{
 		{
-			Usage: types.Nonce,
+			Usage: common2.Nonce,
 			Data:  randomNonceData(),
 		},
 	}
@@ -92,11 +93,11 @@ func TestTxFeeOrderedList_RemoveTx(t *testing.T) {
 		pact.MaxTxPoolSize)
 
 	protoTx := types.Transaction{
-		TxType:  types.TransferAsset,
+		TxType:  common2.TransferAsset,
 		Payload: &payload.TransferAsset{},
-		Attributes: []*types.Attribute{
+		Attributes: []*common2.Attribute{
 			{
-				Usage: types.Nonce,
+				Usage: common2.Nonce,
 				Data:  randomNonceData(),
 			},
 		},
@@ -105,9 +106,9 @@ func TestTxFeeOrderedList_RemoveTx(t *testing.T) {
 	hashMap := make(map[common.Uint256]float64)
 	for i := 0; i < 100; i++ {
 		tx := protoTx
-		tx.Attributes = []*types.Attribute{
+		tx.Attributes = []*common2.Attribute{
 			{
-				Usage: types.Nonce,
+				Usage: common2.Nonce,
 				Data:  randomNonceData(),
 			},
 		}

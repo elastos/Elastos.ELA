@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/elastos/Elastos.ELA/core/types/common"
 	"sync"
 
 	"github.com/elastos/Elastos.ELA/blockchain"
@@ -215,7 +216,7 @@ func (mp *TxPool) cleanTransactions(blockTxs []*Transaction) {
 	txsInPool := len(mp.txnList)
 	deleteCount := 0
 	for _, blockTx := range blockTxs {
-		if blockTx.TxType == CoinBase {
+		if blockTx.TxType == common.CoinBase {
 			continue
 		}
 
@@ -280,7 +281,7 @@ func (mp *TxPool) cleanTransactions(blockTxs []*Transaction) {
 
 func (mp *TxPool) cleanCanceledProducerAndCR(txs []*Transaction) error {
 	for _, txn := range txs {
-		if txn.TxType == CancelProducer {
+		if txn.TxType == common.CancelProducer {
 			cpPayload, ok := txn.Payload.(*payload.ProcessProducer)
 			if !ok {
 				return errors.New("invalid cancel producer payload")
@@ -289,7 +290,7 @@ func (mp *TxPool) cleanCanceledProducerAndCR(txs []*Transaction) error {
 				log.Error(err)
 			}
 		}
-		if txn.TxType == UnregisterCR {
+		if txn.TxType == common.UnregisterCR {
 			crPayload, ok := txn.Payload.(*payload.UnregisterCR)
 			if !ok {
 				return errors.New("invalid cancel producer payload")
@@ -330,10 +331,10 @@ func (mp *TxPool) checkAndCleanAllTransactions() {
 
 func (mp *TxPool) cleanVoteAndUpdateProducer(ownerPublicKey []byte) error {
 	for _, txn := range mp.txnList {
-		if txn.TxType == TransferAsset {
+		if txn.TxType == common.TransferAsset {
 		end:
 			for _, output := range txn.Outputs {
-				if output.Type == OTVote {
+				if output.Type == common.OTVote {
 					opPayload, ok := output.Payload.(*outputpayload.VoteOutput)
 					if !ok {
 						return errors.New("invalid vote output payload")
@@ -350,7 +351,7 @@ func (mp *TxPool) cleanVoteAndUpdateProducer(ownerPublicKey []byte) error {
 					}
 				}
 			}
-		} else if txn.TxType == UpdateProducer {
+		} else if txn.TxType == common.UpdateProducer {
 			upPayload, ok := txn.Payload.(*payload.ProducerInfo)
 			if !ok {
 				return errors.New("invalid update producer payload")
@@ -376,9 +377,9 @@ func (mp *TxPool) cleanVoteAndUpdateProducer(ownerPublicKey []byte) error {
 
 func (mp *TxPool) cleanVoteAndUpdateCR(cid Uint168) error {
 	for _, txn := range mp.txnList {
-		if txn.TxType == TransferAsset {
+		if txn.TxType == common.TransferAsset {
 			for _, output := range txn.Outputs {
-				if output.Type == OTVote {
+				if output.Type == common.OTVote {
 					opPayload, ok := output.Payload.(*outputpayload.VoteOutput)
 					if !ok {
 						return errors.New("invalid vote output payload")
@@ -394,7 +395,7 @@ func (mp *TxPool) cleanVoteAndUpdateCR(cid Uint168) error {
 					}
 				}
 			}
-		} else if txn.TxType == UpdateCR {
+		} else if txn.TxType == common.UpdateCR {
 			crPayload, ok := txn.Payload.(*payload.CRInfo)
 			if !ok {
 				return errors.New("invalid update CR payload")
@@ -454,7 +455,7 @@ func (mp *TxPool) replaceDuplicateSideChainPowTx(txn *Transaction) {
 	var replaceList []*Transaction
 
 	for _, v := range mp.txnList {
-		if v.TxType == SideChainPow {
+		if v.TxType == common.SideChainPow {
 			oldPayload := v.Payload.Data(payload.SideChainPowVersion)
 			oldGenesisHashData := oldPayload[32:64]
 
@@ -493,7 +494,7 @@ func (mp *TxPool) GetTransactionCount() int {
 	return len(mp.txnList)
 }
 
-func (mp *TxPool) getInputUTXOList(input *Input) *Transaction {
+func (mp *TxPool) getInputUTXOList(input *common.Input) *Transaction {
 	return mp.GetTx(input.ReferKey(), slotTxInputsReferKeys)
 }
 
@@ -507,8 +508,8 @@ func (mp *TxPool) RemoveTransaction(txn *Transaction) {
 	mp.Lock()
 	txHash := txn.Hash()
 	for i := range txn.Outputs {
-		input := Input{
-			Previous: OutPoint{
+		input := common.Input{
+			Previous: common.OutPoint{
 				TxID:  txHash,
 				Index: uint16(i),
 			},

@@ -13,6 +13,7 @@ package sidefilter
 
 import (
 	"github.com/elastos/Elastos.ELA/core/types"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/dpos/state"
 	"github.com/elastos/Elastos.ELA/elanet/bloom"
 	"github.com/elastos/Elastos.ELA/elanet/filter"
@@ -49,15 +50,15 @@ func (f *Filter) MatchConfirmed(tx *types.Transaction) bool {
 // transaction matches the filter.
 func (f *Filter) MatchUnconfirmed(tx *types.Transaction) bool {
 	switch tx.TxType {
-	case types.IllegalProposalEvidence:
+	case common2.IllegalProposalEvidence:
 		fallthrough
-	case types.IllegalVoteEvidence:
+	case common2.IllegalVoteEvidence:
 		fallthrough
-	case types.IllegalBlockEvidence:
+	case common2.IllegalBlockEvidence:
 		fallthrough
-	case types.IllegalSidechainEvidence:
+	case common2.IllegalSidechainEvidence:
 		fallthrough
-	case types.InactiveArbitrators:
+	case common2.InactiveArbitrators:
 		return true
 	}
 	return false

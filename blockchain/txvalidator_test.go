@@ -13,6 +13,7 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"math"
 	mrand "math/rand"
 	"net"
@@ -111,13 +112,13 @@ func (s *txValidatorTestSuite) TestCheckTxHeightVersion() {
 	blockHeight3 := s.Chain.chainParams.RegisterCRByDIDHeight
 
 	// check height version of registerCR transaction.
-	registerCR := &types.Transaction{TxType: types.RegisterCR}
+	registerCR := &types.Transaction{TxType: common2.RegisterCR}
 	err := s.Chain.checkTxHeightVersion(registerCR, blockHeight1)
 	s.EqualError(err, "not support RegisterCR transaction before CRVotingStartHeight")
 	err = s.Chain.checkTxHeightVersion(registerCR, blockHeight2)
 	s.NoError(err)
 
-	registerCR2 := &types.Transaction{TxType: types.RegisterCR,
+	registerCR2 := &types.Transaction{TxType: common2.RegisterCR,
 		PayloadVersion: payload.CRInfoDIDVersion}
 	err = s.Chain.checkTxHeightVersion(registerCR2, blockHeight1)
 	s.EqualError(err, "not support RegisterCR transaction before CRVotingStartHeight")
@@ -125,21 +126,21 @@ func (s *txValidatorTestSuite) TestCheckTxHeightVersion() {
 	s.NoError(err)
 
 	// check height version of updateCR transaction.
-	updateCR := &types.Transaction{TxType: types.UpdateCR}
+	updateCR := &types.Transaction{TxType: common2.UpdateCR}
 	err = s.Chain.checkTxHeightVersion(updateCR, blockHeight1)
 	s.EqualError(err, "not support UpdateCR transaction before CRVotingStartHeight")
 	err = s.Chain.checkTxHeightVersion(updateCR, blockHeight2)
 	s.NoError(err)
 
 	// check height version of unregister transaction.
-	unregisterCR := &types.Transaction{TxType: types.UnregisterCR}
+	unregisterCR := &types.Transaction{TxType: common2.UnregisterCR}
 	err = s.Chain.checkTxHeightVersion(unregisterCR, blockHeight1)
 	s.EqualError(err, "not support UnregisterCR transaction before CRVotingStartHeight")
 	err = s.Chain.checkTxHeightVersion(unregisterCR, blockHeight2)
 	s.NoError(err)
 
 	// check height version of unregister transaction.
-	returnCoin := &types.Transaction{TxType: types.ReturnCRDepositCoin}
+	returnCoin := &types.Transaction{TxType: common2.ReturnCRDepositCoin}
 	err = s.Chain.checkTxHeightVersion(returnCoin, blockHeight1)
 	s.EqualError(err, "not support ReturnCRDepositCoin transaction before CRVotingStartHeight")
 	err = s.Chain.checkTxHeightVersion(returnCoin, blockHeight2)
@@ -148,14 +149,14 @@ func (s *txValidatorTestSuite) TestCheckTxHeightVersion() {
 	// check height version of vote CR.
 	voteCR := &types.Transaction{
 		Version: 0x09,
-		TxType:  types.TransferAsset,
-		Outputs: []*types.Output{
+		TxType:  common2.TransferAsset,
+		Outputs: []*common2.Output{
 			{
 				AssetID:     common.Uint256{},
 				Value:       0,
 				OutputLock:  0,
 				ProgramHash: common.Uint168{},
-				Type:        types.OTVote,
+				Type:        common2.OTVote,
 				Payload: &outputpayload.VoteOutput{
 					Version: outputpayload.VoteProducerAndCRVersion,
 				},
@@ -200,7 +201,7 @@ func (s *txValidatorTestSuite) TestCheckTransactionInput() {
 	s.EqualError(err, "invalid coinbase input")
 
 	// multiple coinbase inputs
-	tx.Inputs = append(tx.Inputs, &types.Input{})
+	tx.Inputs = append(tx.Inputs, &common2.Input{})
 	err = checkTransactionInput(tx)
 	s.EqualError(err, "coinbase must has only one input")
 
@@ -215,7 +216,7 @@ func (s *txValidatorTestSuite) TestCheckTransactionInput() {
 	s.EqualError(err, "transaction has no inputs")
 
 	// normal transaction with coinbase input
-	tx.Inputs = append(tx.Inputs, &types.Input{Previous: *types.NewOutPoint(common.EmptyHash, math.MaxUint16)})
+	tx.Inputs = append(tx.Inputs, &common2.Input{Previous: *common2.NewOutPoint(common.EmptyHash, math.MaxUint16)})
 	err = checkTransactionInput(tx)
 	s.EqualError(err, "invalid transaction input")
 
@@ -229,7 +230,7 @@ func (s *txValidatorTestSuite) TestCheckTransactionInput() {
 func (s *txValidatorTestSuite) TestCheckTransactionOutput() {
 	// coinbase
 	tx := newCoinBaseTransaction(new(payload.CoinBase), 0)
-	tx.Outputs = []*types.Output{
+	tx.Outputs = []*common2.Output{
 		{AssetID: config.ELAAssetID, ProgramHash: s.foundationAddress},
 		{AssetID: config.ELAAssetID, ProgramHash: s.foundationAddress},
 	}
@@ -237,14 +238,14 @@ func (s *txValidatorTestSuite) TestCheckTransactionOutput() {
 	s.NoError(err)
 
 	// outputs < 2
-	tx.Outputs = []*types.Output{
+	tx.Outputs = []*common2.Output{
 		{AssetID: config.ELAAssetID, ProgramHash: s.foundationAddress},
 	}
 	err = s.Chain.checkTransactionOutput(tx, s.HeightVersion1)
 	s.EqualError(err, "coinbase output is not enough, at least 2")
 
 	// invalid asset id
-	tx.Outputs = []*types.Output{
+	tx.Outputs = []*common2.Output{
 		{AssetID: common.EmptyHash, ProgramHash: s.foundationAddress},
 		{AssetID: common.EmptyHash, ProgramHash: s.foundationAddress},
 	}
@@ -256,7 +257,7 @@ func (s *txValidatorTestSuite) TestCheckTransactionOutput() {
 	fmt.Printf("Block reward amount %s", totalReward.String())
 	foundationReward := common.Fixed64(float64(totalReward) * 0.3)
 	fmt.Printf("Foundation reward amount %s", foundationReward.String())
-	tx.Outputs = []*types.Output{
+	tx.Outputs = []*common2.Output{
 		{AssetID: config.ELAAssetID, ProgramHash: s.foundationAddress, Value: foundationReward},
 		{AssetID: config.ELAAssetID, ProgramHash: common.Uint168{}, Value: totalReward - foundationReward},
 	}
@@ -266,7 +267,7 @@ func (s *txValidatorTestSuite) TestCheckTransactionOutput() {
 	// reward to foundation in coinbase < 30% (CheckTxOut version)
 	foundationReward = common.Fixed64(float64(totalReward) * 0.299999)
 	fmt.Printf("Foundation reward amount %s", foundationReward.String())
-	tx.Outputs = []*types.Output{
+	tx.Outputs = []*common2.Output{
 		{AssetID: config.ELAAssetID, ProgramHash: s.foundationAddress, Value: foundationReward},
 		{AssetID: config.ELAAssetID, ProgramHash: common.Uint168{}, Value: totalReward - foundationReward},
 	}
@@ -297,13 +298,13 @@ func (s *txValidatorTestSuite) TestCheckTransactionOutput() {
 	s.EqualError(err, "asset ID in output is invalid")
 
 	// should only have one special output
-	tx.Version = types.TxVersion09
-	tx.Outputs = []*types.Output{}
+	tx.Version = common2.TxVersion09
+	tx.Outputs = []*common2.Output{}
 	address := common.Uint168{}
 	address[0] = byte(contract.PrefixStandard)
-	appendSpecial := func() []*types.Output {
-		return append(tx.Outputs, &types.Output{
-			Type:        types.OTVote,
+	appendSpecial := func() []*common2.Output {
+		return append(tx.Outputs, &common2.Output{
+			Type:        common2.OTVote,
 			AssetID:     config.ELAAssetID,
 			ProgramHash: address,
 			Value:       common.Fixed64(mrand.Int63()),
@@ -323,7 +324,7 @@ func (s *txValidatorTestSuite) TestCheckTransactionOutput() {
 	s.EqualError(err, "special output count should less equal than 1")
 
 	// invalid program hash
-	tx.Version = types.TxVersionDefault
+	tx.Version = common2.TxVersionDefault
 	tx.Outputs = randomOutputs()
 	for _, output := range tx.Outputs {
 		output.AssetID = config.ELAAssetID
@@ -338,7 +339,7 @@ func (s *txValidatorTestSuite) TestCheckTransactionOutput() {
 	// new sideChainPow
 	tx = &types.Transaction{
 		TxType: 0x05,
-		Outputs: []*types.Output{
+		Outputs: []*common2.Output{
 			{
 				Value: 0,
 				Type:  0,
@@ -347,7 +348,7 @@ func (s *txValidatorTestSuite) TestCheckTransactionOutput() {
 	}
 	s.NoError(s.Chain.checkTransactionOutput(tx, s.HeightVersion1))
 
-	tx.Outputs = []*types.Output{
+	tx.Outputs = []*common2.Output{
 		{
 			Value: 0,
 			Type:  0,
@@ -360,7 +361,7 @@ func (s *txValidatorTestSuite) TestCheckTransactionOutput() {
 	err = s.Chain.checkTransactionOutput(tx, s.HeightVersion1)
 	s.EqualError(err, "new sideChainPow tx must have only one output")
 
-	tx.Outputs = []*types.Output{
+	tx.Outputs = []*common2.Output{
 		{
 			Value: 100,
 			Type:  0,
@@ -369,7 +370,7 @@ func (s *txValidatorTestSuite) TestCheckTransactionOutput() {
 	err = s.Chain.checkTransactionOutput(tx, s.HeightVersion1)
 	s.EqualError(err, "the value of new sideChainPow tx output must be 0")
 
-	tx.Outputs = []*types.Output{
+	tx.Outputs = []*common2.Output{
 		{
 			Value: 0,
 			Type:  1,
@@ -392,33 +393,33 @@ func (s *txValidatorTestSuite) TestCheckAmountPrecision() {
 func (s *txValidatorTestSuite) TestCheckAttributeProgram() {
 	// valid attributes
 	tx := buildTx()
-	usages := []types.AttributeUsage{
-		types.Nonce,
-		types.Script,
-		types.Description,
-		types.DescriptionUrl,
-		types.Memo,
+	usages := []common2.AttributeUsage{
+		common2.Nonce,
+		common2.Script,
+		common2.Description,
+		common2.DescriptionUrl,
+		common2.Memo,
 	}
 	for _, usage := range usages {
-		attr := types.NewAttribute(usage, nil)
+		attr := common2.NewAttribute(usage, nil)
 		tx.Attributes = append(tx.Attributes, &attr)
 	}
 	err := s.Chain.checkAttributeProgram(tx, 0)
 	s.EqualError(err, "no programs found in transaction")
 
 	// invalid attributes
-	getInvalidUsage := func() types.AttributeUsage {
+	getInvalidUsage := func() common2.AttributeUsage {
 		var usage = make([]byte, 1)
 	NEXT:
 		rand.Read(usage)
-		if types.IsValidAttributeType(types.AttributeUsage(usage[0])) {
+		if common2.IsValidAttributeType(common2.AttributeUsage(usage[0])) {
 			goto NEXT
 		}
-		return types.AttributeUsage(usage[0])
+		return common2.AttributeUsage(usage[0])
 	}
 	for i := 0; i < 10; i++ {
-		attr := types.NewAttribute(getInvalidUsage(), nil)
-		tx.Attributes = []*types.Attribute{&attr}
+		attr := common2.NewAttribute(getInvalidUsage(), nil)
+		tx.Attributes = []*common2.Attribute{&attr}
 		err := s.Chain.checkAttributeProgram(tx, 0)
 		s.EqualError(err, fmt.Sprintf("invalid attribute usage %v", attr.Usage))
 	}
@@ -481,7 +482,7 @@ func (s *txValidatorTestSuite) TestCheckDuplicateSidechainTx() {
 
 	// 1. Generate the ill withdraw transaction which have duplicate sidechain tx
 	txn := new(types.Transaction)
-	txn.TxType = types.WithdrawFromSideChain
+	txn.TxType = common2.WithdrawFromSideChain
 	txn.Payload = &payload.WithdrawFromSideChain{
 		BlockHeight:         100,
 		GenesisBlockAddress: "eb7adb1fea0dd6185b09a43bdcd4924bb22bff7151f0b1b4e08699840ab1384b",
@@ -500,25 +501,25 @@ func (s *txValidatorTestSuite) TestCheckDuplicateSidechainTx() {
 func (s *txValidatorTestSuite) TestCheckTransactionBalance() {
 	// WithdrawFromSideChain will pass check in any condition
 	tx := new(types.Transaction)
-	tx.TxType = types.WithdrawFromSideChain
+	tx.TxType = common2.WithdrawFromSideChain
 
 	// single output
 
 	outputValue1 := common.Fixed64(100 * s.ELA)
 	deposit := newCoinBaseTransaction(new(payload.CoinBase), 0)
-	deposit.Outputs = []*types.Output{
+	deposit.Outputs = []*common2.Output{
 		{AssetID: config.ELAAssetID, ProgramHash: s.foundationAddress, Value: outputValue1},
 	}
 
-	references := map[*types.Input]types.Output{
-		&types.Input{}: {
+	references := map[*common2.Input]common2.Output{
+		&common2.Input{}: {
 			Value: outputValue1,
 		},
 	}
 	s.EqualError(s.Chain.checkTransactionFee(tx, references), "transaction fee not enough")
 
-	references = map[*types.Input]types.Output{
-		&types.Input{}: {
+	references = map[*common2.Input]common2.Output{
+		&common2.Input{}: {
 			Value: outputValue1 + s.Chain.chainParams.MinTransactionFee,
 		},
 	}
@@ -528,20 +529,20 @@ func (s *txValidatorTestSuite) TestCheckTransactionBalance() {
 
 	outputValue1 = common.Fixed64(30 * s.ELA)
 	outputValue2 := common.Fixed64(70 * s.ELA)
-	tx.Outputs = []*types.Output{
+	tx.Outputs = []*common2.Output{
 		{AssetID: config.ELAAssetID, ProgramHash: s.foundationAddress, Value: outputValue1},
 		{AssetID: config.ELAAssetID, ProgramHash: common.Uint168{}, Value: outputValue2},
 	}
 
-	references = map[*types.Input]types.Output{
-		&types.Input{}: {
+	references = map[*common2.Input]common2.Output{
+		&common2.Input{}: {
 			Value: outputValue1 + outputValue2,
 		},
 	}
 	s.EqualError(s.Chain.checkTransactionFee(tx, references), "transaction fee not enough")
 
-	references = map[*types.Input]types.Output{
-		&types.Input{}: {
+	references = map[*common2.Input]common2.Output{
+		&common2.Input{}: {
 			Value: outputValue1 + outputValue2 + s.Chain.chainParams.MinTransactionFee,
 		},
 	}
@@ -551,7 +552,7 @@ func (s *txValidatorTestSuite) TestCheckTransactionBalance() {
 func (s *txValidatorTestSuite) TestCheckSideChainPowConsensus() {
 	// 1. Generate a side chain pow transaction
 	txn := new(types.Transaction)
-	txn.TxType = types.SideChainPow
+	txn.TxType = common2.SideChainPow
 	txn.Payload = &payload.SideChainPow{
 		SideBlockHash:   common.Uint256{1, 1, 1},
 		SideGenesisHash: common.Uint256{2, 2, 2},
@@ -587,8 +588,8 @@ func (s *txValidatorTestSuite) TestCheckDestructionAddress() {
 	destructionAddress := "ELANULLXXXXXXXXXXXXXXXXXXXXXYvs3rr"
 	txID, _ := common.Uint256FromHexString("7e8863a503e90e6464529feb1c25d98c903e01bec00ccfea2475db4e37d7328b")
 	programHash, _ := common.Uint168FromAddress(destructionAddress)
-	reference := map[*types.Input]types.Output{
-		&types.Input{Previous: types.OutPoint{*txID, 1234}, Sequence: 123456}: {
+	reference := map[*common2.Input]common2.Output{
+		&common2.Input{Previous: common2.OutPoint{*txID, 1234}, Sequence: 123456}: {
 			ProgramHash: *programHash,
 		},
 	}
@@ -609,7 +610,7 @@ func (s *txValidatorTestSuite) TestCheckRegisterProducerTransaction() {
 	errPublicKey, _ := common.HexStringToBytes(errPublicKeyStr)
 
 	txn := new(types.Transaction)
-	txn.TxType = types.RegisterProducer
+	txn.TxType = common2.RegisterProducer
 	rpPayload := &payload.ProducerInfo{
 		OwnerPublicKey: publicKey1,
 		NodePublicKey:  publicKey1,
@@ -632,7 +633,7 @@ func (s *txValidatorTestSuite) TestCheckRegisterProducerTransaction() {
 	}}
 
 	publicKeyDeposit1, _ := contract.PublicKeyToDepositProgramHash(publicKey1)
-	txn.Outputs = []*types.Output{&types.Output{
+	txn.Outputs = []*common2.Output{&common2.Output{
 		AssetID:     common.Uint256{},
 		Value:       5000 * 100000000,
 		OutputLock:  0,
@@ -691,7 +692,7 @@ func (s *txValidatorTestSuite) TestCheckRegisterProducerTransaction() {
 	txn.Payload = rpPayload
 
 	publicKeyDeposit2, _ := contract.PublicKeyToDepositProgramHash(publicKey2)
-	txn.Outputs = []*types.Output{&types.Output{
+	txn.Outputs = []*common2.Output{&common2.Output{
 		AssetID:     common.Uint256{},
 		Value:       5000 * 100000000,
 		OutputLock:  0,
@@ -701,7 +702,7 @@ func (s *txValidatorTestSuite) TestCheckRegisterProducerTransaction() {
 	s.EqualError(err, "deposit address does not match the public key in payload")
 
 	// Give a insufficient deposit coin
-	txn.Outputs = []*types.Output{&types.Output{
+	txn.Outputs = []*common2.Output{&common2.Output{
 		AssetID:     common.Uint256{},
 		Value:       4000,
 		OutputLock:  0,
@@ -711,14 +712,14 @@ func (s *txValidatorTestSuite) TestCheckRegisterProducerTransaction() {
 	s.EqualError(err, "producer deposit amount is insufficient")
 
 	// Multi deposit addresses
-	txn.Outputs = []*types.Output{
-		&types.Output{
+	txn.Outputs = []*common2.Output{
+		&common2.Output{
 			AssetID:     common.Uint256{},
 			Value:       5000 * 100000000,
 			OutputLock:  0,
 			ProgramHash: *publicKeyDeposit1,
 		},
-		&types.Output{
+		&common2.Output{
 			AssetID:     common.Uint256{},
 			Value:       5000 * 100000000,
 			OutputLock:  0,
@@ -746,13 +747,13 @@ func (s *txValidatorTestSuite) TestCheckVoteProducerOutput() {
 	// 1. Generate a vote output v0
 	publicKeyStr1 := "02b611f07341d5ddce51b5c4366aca7b889cfe0993bd63fd47e944507292ea08dd"
 	publicKey1, _ := common.HexStringToBytes(publicKeyStr1)
-	outputs1 := []*types.Output{
-		&types.Output{
+	outputs1 := []*common2.Output{
+		&common2.Output{
 			AssetID:     common.Uint256{},
 			Value:       1.0,
 			OutputLock:  0,
 			ProgramHash: common.Uint168{123},
-			Type:        types.OTVote,
+			Type:        common2.OTVote,
 			Payload: &outputpayload.VoteOutput{
 				Version: 0,
 				Contents: []outputpayload.VoteContent{
@@ -765,12 +766,12 @@ func (s *txValidatorTestSuite) TestCheckVoteProducerOutput() {
 				},
 			},
 		},
-		&types.Output{
+		&common2.Output{
 			AssetID:     common.Uint256{},
 			Value:       1.0,
 			OutputLock:  0,
 			ProgramHash: common.Uint168{123},
-			Type:        types.OTVote,
+			Type:        common2.OTVote,
 			Payload: &outputpayload.VoteOutput{
 				Version: 0,
 				Contents: []outputpayload.VoteContent{
@@ -781,12 +782,12 @@ func (s *txValidatorTestSuite) TestCheckVoteProducerOutput() {
 				},
 			},
 		},
-		&types.Output{
+		&common2.Output{
 			AssetID:     common.Uint256{},
 			Value:       1.0,
 			OutputLock:  0,
 			ProgramHash: common.Uint168{123},
-			Type:        types.OTVote,
+			Type:        common2.OTVote,
 			Payload: &outputpayload.VoteOutput{
 				Version: 0,
 				Contents: []outputpayload.VoteContent{
@@ -800,12 +801,12 @@ func (s *txValidatorTestSuite) TestCheckVoteProducerOutput() {
 				},
 			},
 		},
-		&types.Output{
+		&common2.Output{
 			AssetID:     common.Uint256{},
 			Value:       1.0,
 			OutputLock:  0,
 			ProgramHash: common.Uint168{123},
-			Type:        types.OTVote,
+			Type:        common2.OTVote,
 			Payload: &outputpayload.VoteOutput{
 				Version: 2,
 				Contents: []outputpayload.VoteContent{
@@ -818,12 +819,12 @@ func (s *txValidatorTestSuite) TestCheckVoteProducerOutput() {
 				},
 			},
 		},
-		&types.Output{
+		&common2.Output{
 			AssetID:     common.Uint256{},
 			Value:       1.0,
 			OutputLock:  0,
 			ProgramHash: common.Uint168{123},
-			Type:        types.OTVote,
+			Type:        common2.OTVote,
 			Payload: &outputpayload.VoteOutput{
 				Version: 0,
 				Contents: []outputpayload.VoteContent{
@@ -842,12 +843,12 @@ func (s *txValidatorTestSuite) TestCheckVoteProducerOutput() {
 				},
 			},
 		},
-		&types.Output{
+		&common2.Output{
 			AssetID:     common.Uint256{},
 			Value:       1.0,
 			OutputLock:  0,
 			ProgramHash: common.Uint168{123},
-			Type:        types.OTVote,
+			Type:        common2.OTVote,
 			Payload: &outputpayload.VoteOutput{
 				Version: 0,
 				Contents: []outputpayload.VoteContent{
@@ -860,12 +861,12 @@ func (s *txValidatorTestSuite) TestCheckVoteProducerOutput() {
 				},
 			},
 		},
-		&types.Output{
+		&common2.Output{
 			AssetID:     common.Uint256{},
 			Value:       1.0,
 			OutputLock:  0,
 			ProgramHash: common.Uint168{123},
-			Type:        types.OTVote,
+			Type:        common2.OTVote,
 			Payload: &outputpayload.VoteOutput{
 				Version: 0,
 				Contents: []outputpayload.VoteContent{
@@ -903,13 +904,13 @@ func (s *txValidatorTestSuite) TestCheckVoteProducerOutput() {
 	s.NoError(err)
 
 	// 3. Generate a vote output v1
-	outputs := []*types.Output{
-		&types.Output{
+	outputs := []*common2.Output{
+		&common2.Output{
 			AssetID:     common.Uint256{},
 			Value:       1.0,
 			OutputLock:  0,
 			ProgramHash: common.Uint168{123},
-			Type:        types.OTVote,
+			Type:        common2.OTVote,
 			Payload: &outputpayload.VoteOutput{
 				Version: outputpayload.VoteProducerAndCRVersion,
 				Contents: []outputpayload.VoteContent{
@@ -922,12 +923,12 @@ func (s *txValidatorTestSuite) TestCheckVoteProducerOutput() {
 				},
 			},
 		},
-		&types.Output{
+		&common2.Output{
 			AssetID:     common.Uint256{},
 			Value:       1.0,
 			OutputLock:  0,
 			ProgramHash: common.Uint168{123},
-			Type:        types.OTVote,
+			Type:        common2.OTVote,
 			Payload: &outputpayload.VoteOutput{
 				Version: outputpayload.VoteProducerAndCRVersion,
 				Contents: []outputpayload.VoteContent{
@@ -938,12 +939,12 @@ func (s *txValidatorTestSuite) TestCheckVoteProducerOutput() {
 				},
 			},
 		},
-		&types.Output{
+		&common2.Output{
 			AssetID:     common.Uint256{},
 			Value:       1.0,
 			OutputLock:  0,
 			ProgramHash: common.Uint168{123},
-			Type:        types.OTVote,
+			Type:        common2.OTVote,
 			Payload: &outputpayload.VoteOutput{
 				Version: outputpayload.VoteProducerAndCRVersion,
 				Contents: []outputpayload.VoteContent{
@@ -957,12 +958,12 @@ func (s *txValidatorTestSuite) TestCheckVoteProducerOutput() {
 				},
 			},
 		},
-		&types.Output{
+		&common2.Output{
 			AssetID:     common.Uint256{},
 			Value:       1.0,
 			OutputLock:  0,
 			ProgramHash: common.Uint168{123},
-			Type:        types.OTVote,
+			Type:        common2.OTVote,
 			Payload: &outputpayload.VoteOutput{
 				Version: 2,
 				Contents: []outputpayload.VoteContent{
@@ -975,12 +976,12 @@ func (s *txValidatorTestSuite) TestCheckVoteProducerOutput() {
 				},
 			},
 		},
-		&types.Output{
+		&common2.Output{
 			AssetID:     common.Uint256{},
 			Value:       1.0,
 			OutputLock:  0,
 			ProgramHash: common.Uint168{123},
-			Type:        types.OTVote,
+			Type:        common2.OTVote,
 			Payload: &outputpayload.VoteOutput{
 				Version: outputpayload.VoteProducerAndCRVersion,
 				Contents: []outputpayload.VoteContent{
@@ -999,12 +1000,12 @@ func (s *txValidatorTestSuite) TestCheckVoteProducerOutput() {
 				},
 			},
 		},
-		&types.Output{
+		&common2.Output{
 			AssetID:     common.Uint256{},
 			Value:       1.0,
 			OutputLock:  0,
 			ProgramHash: common.Uint168{123},
-			Type:        types.OTVote,
+			Type:        common2.OTVote,
 			Payload: &outputpayload.VoteOutput{
 				Version: outputpayload.VoteProducerAndCRVersion,
 				Contents: []outputpayload.VoteContent{
@@ -1017,12 +1018,12 @@ func (s *txValidatorTestSuite) TestCheckVoteProducerOutput() {
 				},
 			},
 		},
-		&types.Output{
+		&common2.Output{
 			AssetID:     common.Uint256{},
 			Value:       1.0,
 			OutputLock:  0,
 			ProgramHash: common.Uint168{123},
-			Type:        types.OTVote,
+			Type:        common2.OTVote,
 			Payload: &outputpayload.VoteOutput{
 				Version: outputpayload.VoteProducerAndCRVersion,
 				Contents: []outputpayload.VoteContent{
@@ -1071,7 +1072,7 @@ func (s *txValidatorTestSuite) TestCheckUpdateProducerTransaction() {
 	errPublicKey, _ := common.HexStringToBytes(errPublicKeyStr)
 
 	txn := new(types.Transaction)
-	txn.TxType = types.RegisterProducer
+	txn.TxType = common2.RegisterProducer
 	registerPayload := &payload.ProducerInfo{
 		OwnerPublicKey: publicKey1,
 		NodePublicKey:  publicKey1,
@@ -1116,7 +1117,7 @@ func (s *txValidatorTestSuite) TestCheckUpdateProducerTransaction() {
 	}
 	s.Chain.state.ProcessBlock(block, nil)
 
-	txn.TxType = types.UpdateProducer
+	txn.TxType = common2.UpdateProducer
 	updatePayload := &payload.ProducerInfo{
 		OwnerPublicKey: publicKey1,
 		NodePublicKey:  publicKey1,
@@ -1187,7 +1188,7 @@ func (s *txValidatorTestSuite) TestCheckCancelProducerTransaction() {
 	errPublicKey, _ := common.HexStringToBytes(errPublicKeyStr)
 
 	txn := new(types.Transaction)
-	txn.TxType = types.CancelProducer
+	txn.TxType = common2.CancelProducer
 	cancelPayload := &payload.ProcessProducer{
 		OwnerPublicKey: publicKey1,
 	}
@@ -1214,7 +1215,7 @@ func (s *txValidatorTestSuite) TestCheckActivateProducerTransaction() {
 	errPublicKey, _ := common.HexStringToBytes(errPublicKeyStr)
 
 	txn := new(types.Transaction)
-	txn.TxType = types.ActivateProducer
+	txn.TxType = common2.ActivateProducer
 	activatePayload := &payload.ActivateProducer{
 		NodePublicKey: publicKey1,
 	}
@@ -1349,7 +1350,7 @@ func (s *txValidatorTestSuite) TestCheckRegisterCRTransaction() {
 
 	// Give a mismatching deposit address
 	outPuts := txn.Outputs
-	txn.Outputs = []*types.Output{&types.Output{
+	txn.Outputs = []*common2.Output{&common2.Output{
 		AssetID:     common.Uint256{},
 		Value:       5000 * 100000000,
 		OutputLock:  0,
@@ -1361,7 +1362,7 @@ func (s *txValidatorTestSuite) TestCheckRegisterCRTransaction() {
 	s.EqualError(err, "deposit address does not match the code in payload")
 
 	// Give a insufficient deposit coin
-	txn.Outputs = []*types.Output{&types.Output{
+	txn.Outputs = []*common2.Output{&common2.Output{
 		AssetID:     common.Uint256{},
 		Value:       4000 * 100000000,
 		OutputLock:  0,
@@ -1373,15 +1374,15 @@ func (s *txValidatorTestSuite) TestCheckRegisterCRTransaction() {
 	s.EqualError(err, "CR deposit amount is insufficient")
 
 	// Multi deposit addresses
-	txn.Outputs = []*types.Output{
-		&types.Output{
+	txn.Outputs = []*common2.Output{
+		&common2.Output{
 			AssetID:     common.Uint256{},
 			Value:       5000 * 100000000,
 			OutputLock:  0,
 			ProgramHash: *hash1,
 			Payload:     new(outputpayload.DefaultOutput),
 		},
-		&types.Output{
+		&common2.Output{
 			AssetID:     common.Uint256{},
 			Value:       5000 * 100000000,
 			OutputLock:  0,
@@ -1458,8 +1459,8 @@ func (s *txValidatorTestSuite) getRegisterCRTx(publicKeyStr, privateKeyStr,
 	hash1, _ := contract.PublicKeyToDepositProgramHash(publicKey1)
 
 	txn := new(types.Transaction)
-	txn.TxType = types.RegisterCR
-	txn.Version = types.TxVersion09
+	txn.TxType = common2.RegisterCR
+	txn.Version = common2.TxVersion09
 	txn.PayloadVersion = payloadVersion
 	crInfoPayload := &payload.CRInfo{
 		Code:     code1,
@@ -1480,7 +1481,7 @@ func (s *txValidatorTestSuite) getRegisterCRTx(publicKeyStr, privateKeyStr,
 		Parameter: nil,
 	}}
 
-	txn.Outputs = []*types.Output{&types.Output{
+	txn.Outputs = []*common2.Output{&common2.Output{
 		AssetID:     common.Uint256{},
 		Value:       5000 * 100000000,
 		OutputLock:  0,
@@ -1510,8 +1511,8 @@ func (s *txValidatorTestSuite) getMultiSigRegisterCRTx(
 	deposit := ctDeposit.ToProgramHash()
 
 	txn := new(types.Transaction)
-	txn.TxType = types.RegisterCR
-	txn.Version = types.TxVersion09
+	txn.TxType = common2.RegisterCR
+	txn.Version = common2.TxVersion09
 	crInfoPayload := &payload.CRInfo{
 		Code:     multiCode,
 		CID:      *cid,
@@ -1534,7 +1535,7 @@ func (s *txValidatorTestSuite) getMultiSigRegisterCRTx(
 		Code:      multiCode,
 		Parameter: nil,
 	}}
-	txn.Outputs = []*types.Output{&types.Output{
+	txn.Outputs = []*common2.Output{&common2.Output{
 		AssetID:     common.Uint256{},
 		Value:       5000 * 100000000,
 		OutputLock:  0,
@@ -1555,8 +1556,8 @@ func (s *txValidatorTestSuite) getUpdateCRTx(publicKeyStr, privateKeyStr, nickNa
 	cid1 := ct1.ToProgramHash()
 
 	txn := new(types.Transaction)
-	txn.TxType = types.UpdateCR
-	txn.Version = types.TxVersion09
+	txn.TxType = common2.UpdateCR
+	txn.Version = common2.TxVersion09
 	crInfoPayload := &payload.CRInfo{
 		Code:     code1,
 		CID:      *cid1,
@@ -1588,8 +1589,8 @@ func (s *txValidatorTestSuite) getUnregisterCRTx(publicKeyStr, privateKeyStr str
 	code1 := getCodeByPubKeyStr(publicKeyStr1)
 
 	txn := new(types.Transaction)
-	txn.TxType = types.UnregisterCR
-	txn.Version = types.TxVersion09
+	txn.TxType = common2.UnregisterCR
+	txn.Version = common2.TxVersion09
 	unregisterCRPayload := &payload.UnregisterCR{
 		CID: *getCID(code1),
 	}
@@ -1616,8 +1617,8 @@ func (s *txValidatorTestSuite) getCRMember(publicKeyStr, privateKeyStr, nickName
 	did1, _ := getDIDFromCode(code1)
 
 	txn := new(types.Transaction)
-	txn.TxType = types.RegisterCR
-	txn.Version = types.TxVersion09
+	txn.TxType = common2.RegisterCR
+	txn.Version = common2.TxVersion09
 	crInfoPayload := payload.CRInfo{
 		Code:     code1,
 		DID:      *did1,
@@ -1650,8 +1651,8 @@ func (s *txValidatorTestSuite) getSecretaryGeneralCRCProposalTx(ownerPublicKeySt
 
 	draftData := randomBytes(10)
 	txn := new(types.Transaction)
-	txn.TxType = types.CRCProposal
-	txn.Version = types.TxVersion09
+	txn.TxType = common2.CRCProposal
+	txn.Version = common2.TxVersion09
 
 	recipient := *randomUint168()
 	recipient[0] = uint8(contract.PrefixStandard)
@@ -1699,8 +1700,8 @@ func (s *txValidatorTestSuite) getCRCProposalTx(publicKeyStr, privateKeyStr,
 
 	draftData := randomBytes(10)
 	txn := new(types.Transaction)
-	txn.TxType = types.CRCProposal
-	txn.Version = types.TxVersion09
+	txn.TxType = common2.CRCProposal
+	txn.Version = common2.TxVersion09
 
 	recipient := *randomUint168()
 	recipient[0] = uint8(contract.PrefixStandard)
@@ -1788,8 +1789,8 @@ func (s *txValidatorTestSuite) getCRCCloseProposalTxWithHash(publicKeyStr, priva
 
 	//draftData := randomBytes(10)
 	txn := new(types.Transaction)
-	txn.TxType = types.CRCProposal
-	txn.Version = types.TxVersion09
+	txn.TxType = common2.CRCProposal
+	txn.Version = common2.TxVersion09
 	CRCouncilMemberDID, _ := getDIDFromCode(code2)
 	crcProposalPayload := &payload.CRCProposal{
 		ProposalType:       payload.CloseProposal,
@@ -1826,8 +1827,8 @@ func (s *txValidatorTestSuite) getCRCRegisterSideChainProposalTx(publicKeyStr, p
 
 	draftData := randomBytes(10)
 	txn := new(types.Transaction)
-	txn.TxType = types.CRCProposal
-	txn.Version = types.TxVersion09
+	txn.TxType = common2.CRCProposal
+	txn.Version = common2.TxVersion09
 	CRCouncilMemberDID, _ := getDIDFromCode(getCodeByPubKeyStr(crPublicKeyStr))
 	crcProposalPayload := &payload.CRCProposal{
 		ProposalType:       payload.RegisterSideChain,
@@ -1874,8 +1875,8 @@ func (s *txValidatorTestSuite) getCRCCloseProposalTx(publicKeyStr, privateKeyStr
 
 	draftData := randomBytes(10)
 	txn := new(types.Transaction)
-	txn.TxType = types.CRCProposal
-	txn.Version = types.TxVersion09
+	txn.TxType = common2.CRCProposal
+	txn.Version = common2.TxVersion09
 	CRCouncilMemberDID, _ := getDIDFromCode(code2)
 	crcProposalPayload := &payload.CRCProposal{
 		ProposalType:       payload.CloseProposal,
@@ -1927,8 +1928,8 @@ func (s *txValidatorTestSuite) getCRCReceivedCustomIDProposalTx(publicKeyStr, pr
 
 	draftData := randomBytes(10)
 	txn := new(types.Transaction)
-	txn.TxType = types.CRCProposal
-	txn.Version = types.TxVersion09
+	txn.TxType = common2.CRCProposal
+	txn.Version = common2.TxVersion09
 	CRCouncilMemberDID, _ := getDIDFromCode(code2)
 	crcProposalPayload := &payload.CRCProposal{
 		ProposalType:         payload.ReceiveCustomID,
@@ -1969,8 +1970,8 @@ func (s *txValidatorTestSuite) getCRCReservedCustomIDProposalTx(publicKeyStr, pr
 
 	draftData := randomBytes(10)
 	txn := new(types.Transaction)
-	txn.TxType = types.CRCProposal
-	txn.Version = types.TxVersion09
+	txn.TxType = common2.CRCProposal
+	txn.Version = common2.TxVersion09
 	CRCouncilMemberDID, _ := getDIDFromCode(code2)
 	crcProposalPayload := &payload.CRCProposal{
 		ProposalType:         payload.ReserveCustomID,
@@ -2198,8 +2199,8 @@ func (s *txValidatorTestSuite) getCRCProposalTrackingTx(
 	documentData := randomBytes(10)
 	opinionHash := randomBytes(10)
 	txn := new(types.Transaction)
-	txn.TxType = types.CRCProposalTracking
-	txn.Version = types.TxVersion09
+	txn.TxType = common2.CRCProposalTracking
+	txn.Version = common2.TxVersion09
 	cPayload := &payload.CRCProposalTracking{
 		ProposalTrackingType:        trackingType,
 		ProposalHash:                proposalHash,
@@ -2245,37 +2246,37 @@ func (s *txValidatorTestSuite) TestCheckCRCAppropriationTransaction() {
 	s.Chain.crCommittee.CRCCommitteeUsedAmount = common.Fixed64(0 * 1e8)
 
 	// Create reference.
-	reference := make(map[*types.Input]types.Output)
-	input := &types.Input{
-		Previous: types.OutPoint{
+	reference := make(map[*common2.Input]common2.Output)
+	input := &common2.Input{
+		Previous: common2.OutPoint{
 			TxID:  *randomUint256(),
 			Index: 0,
 		},
 	}
-	refOutput := types.Output{
+	refOutput := common2.Output{
 		Value:       900 * 1e8,
 		ProgramHash: s.Chain.chainParams.CRAssetsAddress,
 	}
-	refOutputErr := types.Output{
+	refOutputErr := common2.Output{
 		Value:       900 * 1e8,
 		ProgramHash: *randomUint168(),
 	}
 	reference[input] = refOutput
 
 	// Create CRC appropriation transaction.
-	output1 := &types.Output{
+	output1 := &common2.Output{
 		Value:       90 * 1e8,
 		ProgramHash: s.Chain.chainParams.CRExpensesAddress,
 	}
-	output2 := &types.Output{
+	output2 := &common2.Output{
 		Value:       810 * 1e8,
 		ProgramHash: s.Chain.chainParams.CRAssetsAddress,
 	}
-	output1Err := &types.Output{
+	output1Err := &common2.Output{
 		Value:       91 * 1e8,
 		ProgramHash: s.Chain.chainParams.CRExpensesAddress,
 	}
-	output2Err := &types.Output{
+	output2Err := &common2.Output{
 		Value:       809 * 1e8,
 		ProgramHash: s.Chain.chainParams.CRAssetsAddress,
 	}
@@ -2311,27 +2312,27 @@ func (s *txValidatorTestSuite) TestCheckCRCAppropriationTransaction() {
 	s.EqualError(err, "invalid appropriation amount 91, need to be 90")
 }
 
-func (s *txValidatorTestSuite) getCRCAppropriationTx(input *types.Input,
-	output1 *types.Output, output2 *types.Output) *types.Transaction {
+func (s *txValidatorTestSuite) getCRCAppropriationTx(input *common2.Input,
+	output1 *common2.Output, output2 *common2.Output) *types.Transaction {
 	txn := new(types.Transaction)
-	txn.TxType = types.CRCAppropriation
-	txn.Version = types.TxVersion09
+	txn.TxType = common2.CRCAppropriation
+	txn.Version = common2.TxVersion09
 	cPayload := &payload.CRCAppropriation{}
 	txn.Payload = cPayload
-	txn.Inputs = []*types.Input{input}
-	txn.Outputs = []*types.Output{output1, output2}
+	txn.Inputs = []*common2.Input{input}
+	txn.Outputs = []*common2.Output{output1, output2}
 
 	return txn
 }
 
-func (s *txValidatorTestSuite) getCRCProposalRealWithdrawTx(input *types.Input,
-	hashes []common.Uint256, outputs []*types.Output) *types.Transaction {
+func (s *txValidatorTestSuite) getCRCProposalRealWithdrawTx(input *common2.Input,
+	hashes []common.Uint256, outputs []*common2.Output) *types.Transaction {
 	txn := new(types.Transaction)
-	txn.TxType = types.CRCProposalRealWithdraw
-	txn.Version = types.TxVersion09
+	txn.TxType = common2.CRCProposalRealWithdraw
+	txn.Version = common2.TxVersion09
 	cPayload := &payload.CRCProposalRealWithdraw{WithdrawTransactionHashes: hashes}
 	txn.Payload = cPayload
-	txn.Inputs = []*types.Input{input}
+	txn.Inputs = []*common2.Input{input}
 	txn.Outputs = outputs
 	return txn
 }
@@ -2508,53 +2509,53 @@ func (s *txValidatorTestSuite) TestCheckCRCProposalRealWithdrawTransaction() {
 	recipient1 := *randomUint168()
 	withdrawTransactionHash2 := *randomUint256()
 	recipient2 := *randomUint168()
-	wtHashes := make(map[common.Uint256]types.OutputInfo, 0)
-	wtHashes[withdrawTransactionHash1] = types.OutputInfo{
+	wtHashes := make(map[common.Uint256]common2.OutputInfo, 0)
+	wtHashes[withdrawTransactionHash1] = common2.OutputInfo{
 		Recipient: recipient1,
 		Amount:    10 * 1e8,
 	}
-	wtHashes[withdrawTransactionHash2] = types.OutputInfo{
+	wtHashes[withdrawTransactionHash2] = common2.OutputInfo{
 		Recipient: recipient2,
 		Amount:    9 * 1e8,
 	}
 	s.Chain.crCommittee.GetProposalManager().WithdrawableTxInfo = wtHashes
 
 	// Create reference.
-	reference := make(map[*types.Input]types.Output)
-	input := &types.Input{
-		Previous: types.OutPoint{
+	reference := make(map[*common2.Input]common2.Output)
+	input := &common2.Input{
+		Previous: common2.OutPoint{
 			TxID:  *randomUint256(),
 			Index: 0,
 		},
 	}
-	refOutput := types.Output{
+	refOutput := common2.Output{
 		Value:       20 * 1e8,
 		ProgramHash: s.Chain.chainParams.CRExpensesAddress,
 	}
 	reference[input] = refOutput
 
 	// create outputs
-	output1 := &types.Output{
+	output1 := &common2.Output{
 		Value:       10*1e8 - 10000,
 		ProgramHash: recipient1,
 	}
-	output2 := &types.Output{
+	output2 := &common2.Output{
 		Value:       9*1e8 - 10000,
 		ProgramHash: recipient2,
 	}
-	output3 := &types.Output{
+	output3 := &common2.Output{
 		Value:       1 * 1e8,
 		ProgramHash: s.Chain.chainParams.CRExpensesAddress,
 	}
-	output1Err := &types.Output{
+	output1Err := &common2.Output{
 		Value:       10 * 1e8,
 		ProgramHash: recipient1,
 	}
-	output2Err := &types.Output{
+	output2Err := &common2.Output{
 		Value:       9*1e8 - 10000,
 		ProgramHash: recipient1,
 	}
-	output3Err := &types.Output{
+	output3Err := &common2.Output{
 		Value:       1 * 1e8,
 		ProgramHash: recipient1,
 	}
@@ -2562,37 +2563,37 @@ func (s *txValidatorTestSuite) TestCheckCRCProposalRealWithdrawTransaction() {
 	// check transaction
 	txn := s.getCRCProposalRealWithdrawTx(input,
 		[]common.Uint256{},
-		[]*types.Output{output1, output2})
+		[]*common2.Output{output1, output2})
 	err := s.Chain.checkCRCProposalRealWithdrawTransaction(txn, reference)
 	s.EqualError(err, "invalid real withdraw transaction hashes count")
 
 	txn = s.getCRCProposalRealWithdrawTx(input,
 		[]common.Uint256{withdrawTransactionHash1, withdrawTransactionHash2},
-		[]*types.Output{output1Err, output2, output3})
+		[]*common2.Output{output1Err, output2, output3})
 	err = s.Chain.checkCRCProposalRealWithdrawTransaction(txn, reference)
 	s.EqualError(err, "invalid real withdraw output amount:10, need to be:9.99990000")
 
 	txn = s.getCRCProposalRealWithdrawTx(input,
 		[]common.Uint256{withdrawTransactionHash1, withdrawTransactionHash2},
-		[]*types.Output{output1, output2Err, output3})
+		[]*common2.Output{output1, output2Err, output3})
 	err = s.Chain.checkCRCProposalRealWithdrawTransaction(txn, reference)
 	s.EqualError(err, "invalid real withdraw output address")
 
 	txn = s.getCRCProposalRealWithdrawTx(input,
 		[]common.Uint256{withdrawTransactionHash1, withdrawTransactionHash2},
-		[]*types.Output{output1, output1, output3Err})
+		[]*common2.Output{output1, output1, output3Err})
 	err = s.Chain.checkCRCProposalRealWithdrawTransaction(txn, reference)
 	s.EqualError(err, "last output is invalid")
 
 	txn = s.getCRCProposalRealWithdrawTx(input,
 		[]common.Uint256{withdrawTransactionHash1, withdrawTransactionHash1},
-		[]*types.Output{output1, output1, output3})
+		[]*common2.Output{output1, output1, output3})
 	err = s.Chain.checkCRCProposalRealWithdrawTransaction(txn, reference)
 	s.EqualError(err, "duplicated real withdraw transactions hash")
 
 	txn = s.getCRCProposalRealWithdrawTx(input,
 		[]common.Uint256{withdrawTransactionHash1, withdrawTransactionHash2},
-		[]*types.Output{output1, output2, output3})
+		[]*common2.Output{output1, output2, output3})
 	err = s.Chain.checkCRCProposalRealWithdrawTransaction(txn, reference)
 	s.NoError(err)
 }
@@ -2663,8 +2664,8 @@ func (s *txValidatorTestSuite) getCRCProposalReviewTx(crPublicKeyStr,
 	privateKey1, _ := common.HexStringToBytes(crPrivateKeyStr)
 	code := getCodeByPubKeyStr(crPublicKeyStr)
 	txn := new(types.Transaction)
-	txn.TxType = types.CRCProposalReview
-	txn.Version = types.TxVersion09
+	txn.TxType = common2.CRCProposalReview
+	txn.Version = common2.TxVersion09
 	did, _ := getDIDFromCode(code)
 	crcProposalReviewPayload := &payload.CRCProposalReview{
 		ProposalHash: *randomUint256(),
@@ -2760,8 +2761,8 @@ func (s *txValidatorTestSuite) getCRCProposalWithdrawTx(crPublicKeyStr,
 	pkBytes, _ := common.HexStringToBytes(crPublicKeyStr)
 
 	txn := new(types.Transaction)
-	txn.TxType = types.CRCProposalWithdraw
-	txn.Version = types.TxVersionDefault
+	txn.TxType = common2.CRCProposalWithdraw
+	txn.Version = common2.TxVersionDefault
 	var crcProposalWithdraw *payload.CRCProposalWithdraw
 	switch payloadVersion {
 	case 0x00:
@@ -2784,16 +2785,16 @@ func (s *txValidatorTestSuite) getCRCProposalWithdrawTx(crPublicKeyStr,
 	sig, _ := crypto.Sign(privateKey1, signBuf.Bytes())
 	crcProposalWithdraw.Signature = sig
 
-	txn.Inputs = []*types.Input{
+	txn.Inputs = []*common2.Input{
 		{
-			Previous: types.OutPoint{
+			Previous: common2.OutPoint{
 				TxID:  common.EmptyHash,
 				Index: math.MaxUint16,
 			},
 			Sequence: math.MaxUint32,
 		},
 	}
-	txn.Outputs = []*types.Output{
+	txn.Outputs = []*common2.Output{
 		{
 			AssetID:     config.ELAAssetID,
 			ProgramHash: *recipient,
@@ -2827,16 +2828,16 @@ func (s *txValidatorTestSuite) TestCheckCRCProposalWithdrawTransaction() {
 	CRExpensesAddressU168, _ := common.Uint168FromAddress(CRExpensesAddress)
 	NOCRExpensesAddressU168, _ := common.Uint168FromAddress(NOCRExpensesAddress)
 
-	inputs := []*types.Input{
+	inputs := []*common2.Input{
 		{
-			Previous: types.OutPoint{
+			Previous: common2.OutPoint{
 				TxID:  common.EmptyHash,
 				Index: 1,
 			},
 			Sequence: math.MaxUint32,
 		},
 	}
-	outputs := []*types.Output{
+	outputs := []*common2.Output{
 		{
 			AssetID:     config.ELAAssetID,
 			ProgramHash: *CRExpensesAddressU168,
@@ -2849,7 +2850,7 @@ func (s *txValidatorTestSuite) TestCheckCRCProposalWithdrawTransaction() {
 		},
 	}
 
-	references := make(map[*types.Input]types.Output)
+	references := make(map[*common2.Input]common2.Output)
 	references[inputs[0]] = *outputs[0]
 
 	s.Chain.chainParams.CRExpensesAddress = *CRExpensesAddressU168
@@ -2908,7 +2909,7 @@ func (s *txValidatorTestSuite) TestCheckCRCProposalWithdrawTransaction() {
 	s.NoError(err)
 
 	//len(txn.Outputs) ==0 transaction has no outputs
-	txn.Outputs = []*types.Output{}
+	txn.Outputs = []*common2.Output{}
 	err = s.Chain.checkTransactionOutput(txn, tenureHeight)
 	s.EqualError(err, "transaction has no outputs")
 
@@ -2933,27 +2934,27 @@ func (s *txValidatorTestSuite) TestCheckCRCProposalWithdrawTransaction() {
 		ProposalHash] = propState
 	propState.ProposalOwner = pk1Bytes
 	err = s.Chain.checkTransactionOutput(txn, tenureHeight)
-	inputs = []*types.Input{
+	inputs = []*common2.Input{
 		{
-			Previous: types.OutPoint{
+			Previous: common2.OutPoint{
 				TxID:  common.EmptyHash,
 				Index: 1,
 			},
 			Sequence: math.MaxUint32,
 		},
 	}
-	outputs = []*types.Output{
+	outputs = []*common2.Output{
 		{
 			AssetID:     config.ELAAssetID,
 			ProgramHash: *CRExpensesAddressU168,
 			Value:       common.Fixed64(61 * ela),
 		},
 	}
-	references = make(map[*types.Input]types.Output)
+	references = make(map[*common2.Input]common2.Output)
 	references[inputs[0]] = *outputs[0]
 	err = s.Chain.checkCRCProposalWithdrawTransaction(txn, references, tenureHeight)
 	s.EqualError(err, "withdrawPayload.Amount != withdrawAmount ")
-	outputs = []*types.Output{
+	outputs = []*common2.Output{
 		{
 			AssetID:     config.ELAAssetID,
 			ProgramHash: *CRExpensesAddressU168,
@@ -2969,7 +2970,7 @@ func (s *txValidatorTestSuite) TestCheckCRCProposalWithdrawTransaction() {
 	propState.FinalPaymentStatus = false
 	s.Chain.crCommittee.GetProposalManager().Proposals[crcProposalWithdraw.
 		ProposalHash] = propState
-	references = make(map[*types.Input]types.Output)
+	references = make(map[*common2.Input]common2.Output)
 	references[inputs[0]] = *outputs[0]
 	err = s.Chain.checkCRCProposalWithdrawTransaction(txn, references, tenureHeight)
 	s.NoError(err)
@@ -2987,8 +2988,8 @@ func (s *txValidatorTestSuite) getCRChangeProposalOwnerProposalTx(publicKeyStr, 
 	draftData := randomBytes(10)
 
 	txn := new(types.Transaction)
-	txn.TxType = types.CRCProposal
-	txn.Version = types.TxVersion09
+	txn.TxType = common2.CRCProposal
+	txn.Version = common2.TxVersion09
 
 	crcProposalPayload := &payload.CRCProposal{
 		ProposalType:       payload.ChangeProposalOwner,
@@ -3403,46 +3404,46 @@ func (s *txValidatorTestSuite) TestCheckStringField() {
 }
 
 func (s *txValidatorTestSuite) TestCheckTransactionDepositUTXO() {
-	references := make(map[*types.Input]types.Output)
-	input := &types.Input{}
+	references := make(map[*common2.Input]common2.Output)
+	input := &common2.Input{}
 	var txn types.Transaction
 
 	// Use the deposit UTXO in a TransferAsset transaction
 	depositHash, _ := common.Uint168FromAddress("DVgnDnVfPVuPa2y2E4JitaWjWgRGJDuyrD")
-	depositOutput := types.Output{
+	depositOutput := common2.Output{
 		ProgramHash: *depositHash,
 	}
 	references[input] = depositOutput
 
-	txn.TxType = types.TransferAsset
+	txn.TxType = common2.TransferAsset
 	err := checkTransactionDepositUTXO(&txn, references)
 	s.EqualError(err, "only the ReturnDepositCoin and "+
 		"ReturnCRDepositCoin transaction can use the deposit UTXO")
 
 	// Use the deposit UTXO in a ReturnDepositCoin transaction
-	txn.TxType = types.ReturnDepositCoin
+	txn.TxType = common2.ReturnDepositCoin
 	err = checkTransactionDepositUTXO(&txn, references)
 	s.NoError(err)
 
 	// Use the standard UTXO in a ReturnDepositCoin transaction
 	normalHash, _ := common.Uint168FromAddress("EJMzC16Eorq9CuFCGtyMrq4Jmgw9jYCHQR")
-	normalOutput := types.Output{
+	normalOutput := common2.Output{
 		ProgramHash: *normalHash,
 	}
 	references[input] = normalOutput
-	txn.TxType = types.ReturnDepositCoin
+	txn.TxType = common2.ReturnDepositCoin
 	err = checkTransactionDepositUTXO(&txn, references)
 	s.EqualError(err, "the ReturnDepositCoin and ReturnCRDepositCoin "+
 		"transaction can only use the deposit UTXO")
 
 	// Use the deposit UTXO in a ReturnDepositCoin transaction
 	references[input] = depositOutput
-	txn.TxType = types.ReturnCRDepositCoin
+	txn.TxType = common2.ReturnCRDepositCoin
 	err = checkTransactionDepositUTXO(&txn, references)
 	s.NoError(err)
 
 	references[input] = normalOutput
-	txn.TxType = types.ReturnCRDepositCoin
+	txn.TxType = common2.ReturnCRDepositCoin
 	err = checkTransactionDepositUTXO(&txn, references)
 	s.EqualError(err, "the ReturnDepositCoin and ReturnCRDepositCoin "+
 		"transaction can only use the deposit UTXO")
@@ -3467,14 +3468,14 @@ func (s *txValidatorTestSuite) TestCheckReturnDepositCoinTransaction() {
 		},
 		Transactions: []*types.Transaction{
 			{
-				TxType: types.RegisterProducer,
+				TxType: common2.RegisterProducer,
 				Payload: &payload.ProducerInfo{
 					OwnerPublicKey: publicKey,
 					NodePublicKey:  publicKey,
 					NickName:       randomString(),
 					Url:            randomString(),
 				},
-				Outputs: []*types.Output{
+				Outputs: []*common2.Output{
 					{
 						ProgramHash: *depositCont.ToProgramHash(),
 						Value:       common.Fixed64(5000 * 1e8),
@@ -3499,20 +3500,20 @@ func (s *txValidatorTestSuite) TestCheckReturnDepositCoinTransaction() {
 	s.True(producer.State() == state.Active, "active producer failed")
 
 	// check a return deposit coin transaction with wrong state.
-	references := make(map[*types.Input]types.Output)
-	references[&types.Input{}] = types.Output{
+	references := make(map[*common2.Input]common2.Output)
+	references[&common2.Input{}] = common2.Output{
 		ProgramHash: *randomUint168(),
 		Value:       common.Fixed64(5000 * 100000000),
 	}
 
 	code1, _ := contract.CreateStandardRedeemScript(pk)
 	rdTx := &types.Transaction{
-		TxType:  types.ReturnCRDepositCoin,
+		TxType:  common2.ReturnCRDepositCoin,
 		Payload: &payload.ReturnDepositCoin{},
 		Programs: []*program.Program{
 			{Code: code1},
 		},
-		Outputs: []*types.Output{
+		Outputs: []*common2.Output{
 			{Value: 4999 * 100000000},
 		},
 	}
@@ -3528,7 +3529,7 @@ func (s *txValidatorTestSuite) TestCheckReturnDepositCoinTransaction() {
 		},
 		Transactions: []*types.Transaction{
 			{
-				TxType: types.CancelProducer,
+				TxType: common2.CancelProducer,
 				Payload: &payload.ProcessProducer{
 					OwnerPublicKey: publicKey,
 				},
@@ -3600,13 +3601,13 @@ func (s *txValidatorTestSuite) TestCheckReturnCRDepositCoinTransaction() {
 		},
 		Transactions: []*types.Transaction{
 			{
-				TxType: types.RegisterCR,
+				TxType: common2.RegisterCR,
 				Payload: &payload.CRInfo{
 					Code:     code,
 					CID:      *cid,
 					NickName: randomString(),
 				},
-				Outputs: []*types.Output{
+				Outputs: []*common2.Output{
 					{
 						ProgramHash: *depositCont.ToProgramHash(),
 						Value:       common.Fixed64(5000 * 1e8),
@@ -3630,19 +3631,19 @@ func (s *txValidatorTestSuite) TestCheckReturnCRDepositCoinTransaction() {
 	}
 	s.True(candidate.State() == crstate.Active, "active CR failed")
 
-	references := make(map[*types.Input]types.Output)
-	references[&types.Input{}] = types.Output{
+	references := make(map[*common2.Input]common2.Output)
+	references[&common2.Input{}] = common2.Output{
 		ProgramHash: *randomUint168(),
 		Value:       common.Fixed64(5000 * 100000000),
 	}
 
 	rdTx := &types.Transaction{
-		TxType:  types.ReturnCRDepositCoin,
+		TxType:  common2.ReturnCRDepositCoin,
 		Payload: &payload.ReturnDepositCoin{},
 		Programs: []*program.Program{
 			{Code: code},
 		},
-		Outputs: []*types.Output{
+		Outputs: []*common2.Output{
 			{Value: 4999 * 100000000},
 		},
 	}
@@ -3655,7 +3656,7 @@ func (s *txValidatorTestSuite) TestCheckReturnCRDepositCoinTransaction() {
 		},
 		Transactions: []*types.Transaction{
 			{
-				TxType: types.UnregisterCR,
+				TxType: common2.UnregisterCR,
 				Payload: &payload.UnregisterCR{
 					CID: *getCID(code),
 				},
@@ -3723,13 +3724,13 @@ func (s *txValidatorTestSuite) TestCheckOutputPayload() {
 	publicKey1, _ := common.HexStringToBytes(publicKeyStr1)
 	programHash, _ := common.Uint168FromAddress("EJMzC16Eorq9CuFCGtyMrq4Jmgw9jYCHQR")
 
-	outputs := []*types.Output{
+	outputs := []*common2.Output{
 		{
 			AssetID:     common.Uint256{},
 			Value:       1.0,
 			OutputLock:  0,
 			ProgramHash: *programHash,
-			Type:        types.OTVote,
+			Type:        common2.OTVote,
 			Payload: &outputpayload.VoteOutput{
 				Version: 0,
 				Contents: []outputpayload.VoteContent{
@@ -3747,7 +3748,7 @@ func (s *txValidatorTestSuite) TestCheckOutputPayload() {
 			Value:       1.0,
 			OutputLock:  0,
 			ProgramHash: *programHash,
-			Type:        types.OTVote,
+			Type:        common2.OTVote,
 			Payload: &outputpayload.VoteOutput{
 				Version: 0,
 				Contents: []outputpayload.VoteContent{
@@ -3763,7 +3764,7 @@ func (s *txValidatorTestSuite) TestCheckOutputPayload() {
 			Value:       1.0,
 			OutputLock:  0,
 			ProgramHash: *programHash,
-			Type:        types.OTVote,
+			Type:        common2.OTVote,
 			Payload: &outputpayload.VoteOutput{
 				Version: 0,
 				Contents: []outputpayload.VoteContent{
@@ -3782,7 +3783,7 @@ func (s *txValidatorTestSuite) TestCheckOutputPayload() {
 			Value:       1.0,
 			OutputLock:  0,
 			ProgramHash: common.Uint168{123},
-			Type:        types.OTVote,
+			Type:        common2.OTVote,
 			Payload: &outputpayload.VoteOutput{
 				Version: 0,
 				Contents: []outputpayload.VoteContent{
@@ -3797,26 +3798,26 @@ func (s *txValidatorTestSuite) TestCheckOutputPayload() {
 		},
 	}
 
-	err := checkOutputPayload(types.TransferAsset, outputs[0])
+	err := checkOutputPayload(common2.TransferAsset, outputs[0])
 	s.NoError(err)
 
-	err = checkOutputPayload(types.RechargeToSideChain, outputs[0])
+	err = checkOutputPayload(common2.RechargeToSideChain, outputs[0])
 	s.EqualError(err, "transaction type dose not match the output payload type")
 
-	err = checkOutputPayload(types.TransferAsset, outputs[1])
+	err = checkOutputPayload(common2.TransferAsset, outputs[1])
 	s.EqualError(err, "invalid public key count")
 
-	err = checkOutputPayload(types.TransferAsset, outputs[2])
+	err = checkOutputPayload(common2.TransferAsset, outputs[2])
 	s.EqualError(err, "duplicate candidate")
 
-	err = checkOutputPayload(types.TransferAsset, outputs[3])
+	err = checkOutputPayload(common2.TransferAsset, outputs[3])
 	s.EqualError(err, "output address should be standard")
 }
 
 func (s *txValidatorTestSuite) TestCheckVoteOutputs() {
 
-	references := make(map[*types.Input]types.Output)
-	outputs := []*types.Output{{Type: types.OTNone}}
+	references := make(map[*common2.Input]common2.Output)
+	outputs := []*common2.Output{{Type: common2.OTNone}}
 	s.NoError(s.Chain.checkVoteOutputs(0, outputs, references, nil, nil))
 
 	publicKey1 := "02f981e4dae4983a5d284d01609ad735e3242c5672bb2c7bb0018cc36f9ab0c4a5"
@@ -3872,9 +3873,9 @@ func (s *txValidatorTestSuite) TestCheckVoteOutputs() {
 	hash, _ := common.Uint168FromBytes(hashByte)
 
 	// Check vote output of v0 with delegate type and wrong output program hash
-	outputs1 := []*types.Output{{Type: types.OTNone}}
-	outputs1 = append(outputs1, &types.Output{
-		Type:        types.OTVote,
+	outputs1 := []*common2.Output{{Type: common2.OTNone}}
+	outputs1 = append(outputs1, &common2.Output{
+		Type:        common2.OTVote,
 		ProgramHash: *hash,
 		Payload: &outputpayload.VoteOutput{
 			Version: 0,
@@ -3893,9 +3894,9 @@ func (s *txValidatorTestSuite) TestCheckVoteOutputs() {
 		"the output address of vote tx should exist in its input")
 
 	// Check vote output of v0 with crc type and with wrong output program hash
-	outputs2 := []*types.Output{{Type: types.OTNone}}
-	outputs2 = append(outputs2, &types.Output{
-		Type:        types.OTVote,
+	outputs2 := []*common2.Output{{Type: common2.OTNone}}
+	outputs2 = append(outputs2, &common2.Output{
+		Type:        common2.OTVote,
 		ProgramHash: *hash,
 		Payload: &outputpayload.VoteOutput{
 			Version: 1,
@@ -3914,9 +3915,9 @@ func (s *txValidatorTestSuite) TestCheckVoteOutputs() {
 		"the output address of vote tx should exist in its input")
 
 	// Check vote output of v1 with wrong output program hash
-	outputs3 := []*types.Output{{Type: types.OTNone}}
-	outputs3 = append(outputs3, &types.Output{
-		Type:        types.OTVote,
+	outputs3 := []*common2.Output{{Type: common2.OTNone}}
+	outputs3 = append(outputs3, &common2.Output{
+		Type:        common2.OTVote,
 		ProgramHash: *hash,
 		Payload: &outputpayload.VoteOutput{
 			Version: 1,
@@ -3940,14 +3941,14 @@ func (s *txValidatorTestSuite) TestCheckVoteOutputs() {
 		outputs3, references, producersMap, crsMap),
 		"the output address of vote tx should exist in its input")
 
-	references[&types.Input{}] = types.Output{
+	references[&common2.Input{}] = common2.Output{
 		ProgramHash: *hash,
 	}
 
 	// Check vote output of v0 with delegate type and invalid candidate
-	outputs4 := []*types.Output{{Type: types.OTNone}}
-	outputs4 = append(outputs4, &types.Output{
-		Type:        types.OTVote,
+	outputs4 := []*common2.Output{{Type: common2.OTNone}}
+	outputs4 = append(outputs4, &common2.Output{
+		Type:        common2.OTVote,
 		ProgramHash: *hash,
 		Payload: &outputpayload.VoteOutput{
 			Version: 0,
@@ -3974,9 +3975,9 @@ func (s *txValidatorTestSuite) TestCheckVoteOutputs() {
 		outputs3, references, producersMap, crsMap))
 
 	// Check vote output of v0 with crc type and invalid candidate
-	outputs5 := []*types.Output{{Type: types.OTNone}}
-	outputs5 = append(outputs5, &types.Output{
-		Type:        types.OTVote,
+	outputs5 := []*common2.Output{{Type: common2.OTNone}}
+	outputs5 = append(outputs5, &common2.Output{
+		Type:        common2.OTVote,
 		ProgramHash: *hash,
 		Payload: &outputpayload.VoteOutput{
 			Version: 0,
@@ -3995,9 +3996,9 @@ func (s *txValidatorTestSuite) TestCheckVoteOutputs() {
 		"payload VoteProducerVersion not support vote CR")
 
 	// Check vote output of v1 with crc type and invalid candidate
-	outputs6 := []*types.Output{{Type: types.OTNone}}
-	outputs6 = append(outputs6, &types.Output{
-		Type:        types.OTVote,
+	outputs6 := []*common2.Output{{Type: common2.OTNone}}
+	outputs6 = append(outputs6, &common2.Output{
+		Type:        common2.OTVote,
 		ProgramHash: *hash,
 		Payload: &outputpayload.VoteOutput{
 			Version: 1,
@@ -4016,9 +4017,9 @@ func (s *txValidatorTestSuite) TestCheckVoteOutputs() {
 		"invalid vote output payload CR candidate: "+candidateCID2.String())
 
 	// Check vote output of v0 with invalid candidate
-	outputs7 := []*types.Output{{Type: types.OTNone}}
-	outputs7 = append(outputs7, &types.Output{
-		Type:        types.OTVote,
+	outputs7 := []*common2.Output{{Type: common2.OTNone}}
+	outputs7 = append(outputs7, &common2.Output{
+		Type:        common2.OTVote,
 		ProgramHash: *hash,
 		Payload: &outputpayload.VoteOutput{
 			Version: 0,
@@ -4043,9 +4044,9 @@ func (s *txValidatorTestSuite) TestCheckVoteOutputs() {
 		"payload VoteProducerVersion not support vote CR")
 
 	// Check vote output of v1 with delegate type and wrong votes
-	outputs8 := []*types.Output{{Type: types.OTNone}}
-	outputs8 = append(outputs8, &types.Output{
-		Type:        types.OTVote,
+	outputs8 := []*common2.Output{{Type: common2.OTNone}}
+	outputs8 = append(outputs8, &common2.Output{
+		Type:        common2.OTVote,
 		ProgramHash: *hash,
 		Value:       common.Fixed64(10),
 		Payload: &outputpayload.VoteOutput{
@@ -4065,9 +4066,9 @@ func (s *txValidatorTestSuite) TestCheckVoteOutputs() {
 		"votes larger than output amount")
 
 	// Check vote output of v1 with crc type and wrong votes
-	outputs9 := []*types.Output{{Type: types.OTNone}}
-	outputs9 = append(outputs9, &types.Output{
-		Type:        types.OTVote,
+	outputs9 := []*common2.Output{{Type: common2.OTNone}}
+	outputs9 = append(outputs9, &common2.Output{
+		Type:        common2.OTVote,
 		ProgramHash: *hash,
 		Value:       common.Fixed64(10),
 		Payload: &outputpayload.VoteOutput{
@@ -4088,9 +4089,9 @@ func (s *txValidatorTestSuite) TestCheckVoteOutputs() {
 		"total votes larger than output amount")
 
 	// Check vote output of v1 with wrong votes
-	outputs10 := []*types.Output{{Type: types.OTNone}}
-	outputs10 = append(outputs10, &types.Output{
-		Type:        types.OTVote,
+	outputs10 := []*common2.Output{{Type: common2.OTNone}}
+	outputs10 = append(outputs10, &common2.Output{
+		Type:        common2.OTVote,
 		ProgramHash: *hash,
 		Value:       common.Fixed64(10),
 		Payload: &outputpayload.VoteOutput{
@@ -4116,9 +4117,9 @@ func (s *txValidatorTestSuite) TestCheckVoteOutputs() {
 		"votes larger than output amount")
 
 	// Check vote output v1 with correct votes
-	outputs11 := []*types.Output{{Type: types.OTNone}}
-	outputs11 = append(outputs11, &types.Output{
-		Type:        types.OTVote,
+	outputs11 := []*common2.Output{{Type: common2.OTNone}}
+	outputs11 = append(outputs11, &common2.Output{
+		Type:        common2.OTVote,
 		ProgramHash: *hash,
 		Value:       common.Fixed64(10),
 		Payload: &outputpayload.VoteOutput{
@@ -4143,9 +4144,9 @@ func (s *txValidatorTestSuite) TestCheckVoteOutputs() {
 		outputs11, references, producersMap, crsMap))
 
 	// Check vote output of v1 with wrong votes
-	outputs12 := []*types.Output{{Type: types.OTNone}}
-	outputs12 = append(outputs12, &types.Output{
-		Type:        types.OTVote,
+	outputs12 := []*common2.Output{{Type: common2.OTNone}}
+	outputs12 = append(outputs12, &common2.Output{
+		Type:        common2.OTVote,
 		ProgramHash: *hash,
 		Value:       common.Fixed64(10),
 		Payload: &outputpayload.VoteOutput{
@@ -4172,9 +4173,9 @@ func (s *txValidatorTestSuite) TestCheckVoteOutputs() {
 	// Check vote output v1 with correct votes
 	proposalHashStr1 := "5df40cc0a4c6791acb5ebe89a96dd4f3fe21c94275589a65357406216a27ae36"
 	proposalHash1, _ := common.Uint256FromHexString(proposalHashStr1)
-	outputs13 := []*types.Output{{Type: types.OTNone}}
-	outputs13 = append(outputs13, &types.Output{
-		Type:        types.OTVote,
+	outputs13 := []*common2.Output{{Type: common2.OTNone}}
+	outputs13 = append(outputs13, &common2.Output{
+		Type:        common2.OTVote,
 		ProgramHash: *hash,
 		Value:       common.Fixed64(10),
 		Payload: &outputpayload.VoteOutput{
@@ -4197,9 +4198,9 @@ func (s *txValidatorTestSuite) TestCheckVoteOutputs() {
 	// Check vote output of v1 with wrong votes
 	proposalHashStr2 := "9c5ab8998718e0c1c405a719542879dc7553fca05b4e89132ec8d0e88551fcc0"
 	proposalHash2, _ := common.Uint256FromHexString(proposalHashStr2)
-	outputs14 := []*types.Output{{Type: types.OTNone}}
-	outputs14 = append(outputs14, &types.Output{
-		Type:        types.OTVote,
+	outputs14 := []*common2.Output{{Type: common2.OTNone}}
+	outputs14 = append(outputs14, &common2.Output{
+		Type:        common2.OTVote,
 		ProgramHash: *hash,
 		Value:       common.Fixed64(10),
 		Payload: &outputpayload.VoteOutput{
@@ -4265,13 +4266,13 @@ func (s *txValidatorTestSuite) TestCreateCRCAppropriationTransaction() {
 		CreateCRAppropriationTransaction: s.Chain.CreateCRCAppropriationTransaction,
 	})
 
-	var txOutputs []*types.Output
-	txOutput := &types.Output{
+	var txOutputs []*common2.Output
+	txOutput := &common2.Output{
 		AssetID:     *elaact.SystemAssetID,
 		ProgramHash: *crcFoundation,
 		Value:       common.Fixed64(0),
 		OutputLock:  0,
-		Type:        types.OTNone,
+		Type:        common2.OTNone,
 		Payload:     &outputpayload.DefaultOutput{},
 	}
 	for i := 1; i < 5; i++ {
@@ -4281,8 +4282,8 @@ func (s *txValidatorTestSuite) TestCreateCRCAppropriationTransaction() {
 	}
 
 	txn := &types.Transaction{
-		Version:    types.TxVersion09,
-		TxType:     types.TransferAsset,
+		Version:    common2.TxVersion09,
+		TxType:     common2.TransferAsset,
 		Payload:    &payload.TransferAsset{},
 		Attributes: nil,
 		Inputs:     nil,
@@ -4297,8 +4298,8 @@ func (s *txValidatorTestSuite) TestCreateCRCAppropriationTransaction() {
 	txOutputCoinBase.OutputLock = uint32(100)
 	txOutputs = append(txOutputs, &txOutputCoinBase)
 	txnCoinBase := &types.Transaction{
-		Version:    types.TxVersion09,
-		TxType:     types.CoinBase,
+		Version:    common2.TxVersion09,
+		TxType:     common2.CoinBase,
 		Payload:    &payload.TransferAsset{},
 		Attributes: nil,
 		Inputs:     nil,
@@ -4331,19 +4332,19 @@ func newCoinBaseTransaction(coinBasePayload *payload.CoinBase,
 	currentHeight uint32) *types.Transaction {
 	return &types.Transaction{
 		Version:        0,
-		TxType:         types.CoinBase,
+		TxType:         common2.CoinBase,
 		PayloadVersion: payload.CoinBaseVersion,
 		Payload:        coinBasePayload,
-		Inputs: []*types.Input{
+		Inputs: []*common2.Input{
 			{
-				Previous: types.OutPoint{
+				Previous: common2.OutPoint{
 					TxID:  common.EmptyHash,
 					Index: math.MaxUint16,
 				},
 				Sequence: math.MaxUint32,
 			},
 		},
-		Attributes: []*types.Attribute{},
+		Attributes: []*common2.Attribute{},
 		LockTime:   currentHeight,
 		Programs:   []*program.Program{},
 	}
@@ -4359,10 +4360,10 @@ func (a *txValidatorTestSuite) createNextTurnDPOSInfoTransaction(crcArbiters, no
 		nextTurnDPOSInfo.DPOSPublicKeys = append(nextTurnDPOSInfo.DPOSPublicKeys, v)
 	}
 	return &types.Transaction{
-		Version:    types.TxVersion09,
-		TxType:     types.NextTurnDPOSInfo,
+		Version:    common2.TxVersion09,
+		TxType:     common2.NextTurnDPOSInfo,
 		Payload:    &nextTurnDPOSInfo,
-		Attributes: []*types.Attribute{},
+		Attributes: []*common2.Attribute{},
 		Programs:   []*program.Program{},
 		LockTime:   0,
 	}

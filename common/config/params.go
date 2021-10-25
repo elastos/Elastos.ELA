@@ -6,6 +6,7 @@
 package config
 
 import (
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"math"
 	"math/big"
 	"time"
@@ -26,7 +27,7 @@ var (
 
 	// elaAsset is the transaction that create and register the ELA coin.
 	elaAsset = types.Transaction{
-		TxType:         types.RegisterAsset,
+		TxType:         common2.RegisterAsset,
 		PayloadVersion: 0,
 		Payload: &payload.RegisterAsset{
 			Asset: payload.Asset{
@@ -37,15 +38,15 @@ var (
 			Amount:     0 * 100000000,
 			Controller: common.Uint168{},
 		},
-		Attributes: []*types.Attribute{},
-		Inputs:     []*types.Input{},
-		Outputs:    []*types.Output{},
+		Attributes: []*common2.Attribute{},
+		Inputs:     []*common2.Input{},
+		Outputs:    []*common2.Output{},
 		Programs:   []*program.Program{},
 	}
 
 	// attrNonce represents the nonce attribute used in the genesis coinbase
 	// transaction.
-	attrNonce = types.NewAttribute(types.Nonce,
+	attrNonce = common2.NewAttribute(common2.Nonce,
 		[]byte{77, 101, 130, 33, 7, 252, 253, 82})
 
 	// genesisTime indicates the time when ELA genesis block created.
@@ -806,20 +807,20 @@ func (p *Params) newRewardPerBlock(targetTimePerBlock time.Duration, height uint
 func GenesisBlock(foundation *common.Uint168) *types.Block {
 	coinBase := types.Transaction{
 		Version:        0,
-		TxType:         types.CoinBase,
+		TxType:         common2.CoinBase,
 		PayloadVersion: payload.CoinBaseVersion,
 		Payload:        &payload.CoinBase{},
-		Attributes:     []*types.Attribute{&attrNonce},
-		Inputs: []*types.Input{
+		Attributes:     []*common2.Attribute{&attrNonce},
+		Inputs: []*common2.Input{
 			{
-				Previous: types.OutPoint{
+				Previous: common2.OutPoint{
 					TxID:  zeroHash,
 					Index: 0x0000,
 				},
 				Sequence: 0x00000000,
 			},
 		},
-		Outputs: []*types.Output{
+		Outputs: []*common2.Output{
 			{
 				AssetID:     ELAAssetID,
 				Value:       3300 * 10000 * 100000000,

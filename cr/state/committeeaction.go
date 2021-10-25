@@ -7,6 +7,7 @@ package state
 
 import (
 	"bytes"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"math"
 	"sort"
 
@@ -78,47 +79,47 @@ func (c *Committee) processTransaction(tx *types.Transaction, height uint32) {
 	c.processCancelVotes(tx, height)
 
 	switch tx.TxType {
-	case types.RegisterCR:
+	case common2.RegisterCR:
 		c.state.registerCR(tx, height)
 
-	case types.UpdateCR:
+	case common2.UpdateCR:
 		c.state.updateCR(tx.Payload.(*payload.CRInfo), height)
 
-	case types.UnregisterCR:
+	case common2.UnregisterCR:
 		c.state.unregisterCR(tx.Payload.(*payload.UnregisterCR), height)
 
-	case types.TransferAsset:
+	case common2.TransferAsset:
 		c.processVotes(tx, height)
 
-	case types.ReturnCRDepositCoin:
+	case common2.ReturnCRDepositCoin:
 		c.state.returnDeposit(tx, height)
 
-	case types.CRCProposal:
+	case common2.CRCProposal:
 		c.manager.registerProposal(tx, height, c.state.CurrentSession, c.state.history)
 
-	case types.CRCProposalReview:
+	case common2.CRCProposalReview:
 		c.manager.proposalReview(tx, height, c.state.history)
 
-	case types.CRCProposalTracking:
+	case common2.CRCProposalTracking:
 		c.proposalTracking(tx, height)
 
-	case types.CRCProposalWithdraw:
+	case common2.CRCProposalWithdraw:
 		c.manager.proposalWithdraw(tx, height, c.state.history)
 
-	case types.CRCAppropriation:
+	case common2.CRCAppropriation:
 		c.processCRCAppropriation(height, c.state.history)
 
-	case types.CRCProposalRealWithdraw:
+	case common2.CRCProposalRealWithdraw:
 		c.processCRCRealWithdraw(tx, height, c.state.history)
 
-	case types.CRCouncilMemberClaimNode:
+	case common2.CRCouncilMemberClaimNode:
 		c.processCRCouncilMemberClaimNode(tx, height, c.state.history)
 
-	case types.ActivateProducer:
+	case common2.ActivateProducer:
 		c.activateProducer(tx, height, c.state.history)
 	}
 
-	if tx.TxType != types.RegisterCR {
+	if tx.TxType != common2.RegisterCR {
 		c.state.processDeposit(tx, height)
 	}
 	c.processCRCAddressRelatedTx(tx, height)
@@ -137,9 +138,9 @@ func (c *Committee) proposalTracking(tx *types.Transaction, height uint32) {
 // processVotes takes a transaction, if the transaction including any vote
 // outputs, validate and update CR votes.
 func (c *Committee) processVotes(tx *types.Transaction, height uint32) {
-	if tx.Version >= types.TxVersion09 {
+	if tx.Version >= common2.TxVersion09 {
 		for i, output := range tx.Outputs {
-			if output.Type != types.OTVote {
+			if output.Type != common2.OTVote {
 				continue
 			}
 			p, _ := output.Payload.(*outputpayload.VoteOutput)
@@ -157,7 +158,7 @@ func (c *Committee) processVotes(tx *types.Transaction, height uint32) {
 				}
 			}
 			if exist {
-				op := types.NewOutPoint(tx.Hash(), uint16(i))
+				op := common2.NewOutPoint(tx.Hash(), uint16(i))
 				c.state.history.Append(height, func() {
 					c.state.Votes[op.ReferKey()] = struct{}{}
 				}, func() {
@@ -170,7 +171,7 @@ func (c *Committee) processVotes(tx *types.Transaction, height uint32) {
 }
 
 // processVoteOutput takes a transaction output with vote payload.
-func (c *Committee) processVoteOutput(output *types.Output, height uint32) {
+func (c *Committee) processVoteOutput(output *common2.Output, height uint32) {
 	p := output.Payload.(*outputpayload.VoteOutput)
 	for _, vote := range p.Contents {
 		for _, cv := range vote.CandidateVotes {
@@ -218,7 +219,7 @@ func (c *Committee) processCancelVotes(tx *types.Transaction, height uint32) {
 }
 
 // processVoteCancel takes a previous vote output and decrease CR votes.
-func (c *Committee) processVoteCancel(output *types.Output, height uint32) {
+func (c *Committee) processVoteCancel(output *common2.Output, height uint32) {
 	p := output.Payload.(*outputpayload.VoteOutput)
 	for _, vote := range p.Contents {
 		for _, cv := range vote.CandidateVotes {

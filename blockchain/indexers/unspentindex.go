@@ -8,6 +8,7 @@ package indexers
 import (
 	"errors"
 	"fmt"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
@@ -136,7 +137,7 @@ func (idx *UnspentIndex) ConnectBlock(dbTx database.Tx, block *types.Block) erro
 	idx.txCache.trim()
 
 	for _, txn := range block.Transactions {
-		if txn.TxType == types.RegisterAsset {
+		if txn.TxType == common2.RegisterAsset {
 			continue
 		}
 		txnHash := txn.Hash()
@@ -193,7 +194,7 @@ func (idx *UnspentIndex) ConnectBlock(dbTx database.Tx, block *types.Block) erro
 func (idx *UnspentIndex) DisconnectBlock(dbTx database.Tx, block *types.Block) error {
 	unspents := make(map[common.Uint256][]uint16)
 	for _, txn := range block.Transactions {
-		if txn.TxType == types.RegisterAsset {
+		if txn.TxType == common2.RegisterAsset {
 			continue
 		}
 		// remove all utxos created by this transaction

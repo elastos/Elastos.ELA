@@ -8,6 +8,7 @@ package manager
 import (
 	"bytes"
 	"errors"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 
 	"github.com/elastos/Elastos.ELA/blockchain"
 	"github.com/elastos/Elastos.ELA/common"
@@ -846,17 +847,17 @@ func (p *ProposalDispatcher) CreateRevertToDPOS(RevertToPOWBlockHeight uint32) (
 
 	programHash := con.ToProgramHash()
 	tx := &types.Transaction{
-		Version:        types.TxVersion09,
-		TxType:         types.RevertToDPOS,
+		Version:        common2.TxVersion09,
+		TxType:         common2.RevertToDPOS,
 		PayloadVersion: payload.RevertToDPOSVersion,
 		Payload:        revertToDPOSPayload,
-		Attributes: []*types.Attribute{{
-			Usage: types.Script,
+		Attributes: []*common2.Attribute{{
+			Usage: common2.Script,
 			Data:  programHash.Bytes(),
 		}},
 		LockTime: 0,
-		Outputs:  []*types.Output{},
-		Inputs:   []*types.Input{},
+		Outputs:  []*common2.Output{},
+		Inputs:   []*common2.Input{},
 		Fee:      0,
 	}
 
@@ -905,17 +906,17 @@ func (p *ProposalDispatcher) CreateInactiveArbitrators() (
 
 	programHash := con.ToProgramHash()
 	tx := &types.Transaction{
-		Version:        types.TxVersion09,
-		TxType:         types.InactiveArbitrators,
+		Version:        common2.TxVersion09,
+		TxType:         common2.InactiveArbitrators,
 		PayloadVersion: payload.InactiveArbitratorsVersion,
 		Payload:        inactivePayload,
-		Attributes: []*types.Attribute{{
-			Usage: types.Script,
+		Attributes: []*common2.Attribute{{
+			Usage: common2.Script,
 			Data:  programHash.Bytes(),
 		}},
 		LockTime: 0,
-		Outputs:  []*types.Output{},
-		Inputs:   []*types.Input{},
+		Outputs:  []*common2.Output{},
+		Inputs:   []*common2.Input{},
 		Fee:      0,
 	}
 

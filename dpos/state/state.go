@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"io"
 	"math"
 	"sync"
@@ -280,7 +281,7 @@ type State struct {
 	getProducerDepositAmount func(programHash common.Uint168) (
 		common.Fixed64, error)
 	getTxReference func(tx *types.Transaction) (
-		map[*types.Input]types.Output, error)
+		map[*common2.Input]common2.Output, error)
 	tryUpdateCRMemberInactivity func(did common.Uint168, needReset bool, height uint32)
 	tryRevertCRMemberInactivity func(did common.Uint168, oriState state.MemberState,
 		oriInactiveCountingHeight uint32, height uint32)
@@ -708,19 +709,19 @@ func (s *State) SpecialTxExists(tx *types.Transaction) bool {
 func (s *State) IsDPOSTransaction(tx *types.Transaction) bool {
 	switch tx.TxType {
 	// Transactions will changes the producers state.
-	case types.RegisterProducer, types.UpdateProducer, types.CancelProducer,
-		types.ActivateProducer, types.IllegalProposalEvidence,
-		types.IllegalVoteEvidence, types.IllegalBlockEvidence,
-		types.IllegalSidechainEvidence, types.InactiveArbitrators,
-		types.ReturnDepositCoin:
+	case common2.RegisterProducer, common2.UpdateProducer, common2.CancelProducer,
+		common2.ActivateProducer, common2.IllegalProposalEvidence,
+		common2.IllegalVoteEvidence, common2.IllegalBlockEvidence,
+		common2.IllegalSidechainEvidence, common2.InactiveArbitrators,
+		common2.ReturnDepositCoin:
 		return true
 
 	// Transactions will change the producer votes state.
-	case types.TransferAsset:
-		if tx.Version >= types.TxVersion09 {
+	case common2.TransferAsset:
+		if tx.Version >= common2.TxVersion09 {
 			// Votes to producers.
 			for _, output := range tx.Outputs {
-				if output.Type != types.OTVote {
+				if output.Type != common2.OTVote {
 					continue
 				}
 				p, _ := output.Payload.(*outputpayload.VoteOutput)
@@ -930,23 +931,23 @@ func (s *State) processTransactions(txs []*types.Transaction, height uint32) {
 // content.
 func (s *State) processTransaction(tx *types.Transaction, height uint32) {
 	switch tx.TxType {
-	case types.RegisterProducer:
+	case common2.RegisterProducer:
 		s.registerProducer(tx, height)
 
-	case types.UpdateProducer:
+	case common2.UpdateProducer:
 		s.updateProducer(tx.Payload.(*payload.ProducerInfo), height)
 
-	case types.CancelProducer:
+	case common2.CancelProducer:
 		s.cancelProducer(tx.Payload.(*payload.ProcessProducer), height)
 
-	case types.ActivateProducer:
+	case common2.ActivateProducer:
 		s.activateProducer(tx.Payload.(*payload.ActivateProducer), height)
 
-	case types.TransferAsset:
+	case common2.TransferAsset:
 		s.processVotes(tx, height)
 
-	case types.IllegalProposalEvidence, types.IllegalVoteEvidence,
-		types.IllegalBlockEvidence, types.IllegalSidechainEvidence:
+	case common2.IllegalProposalEvidence, common2.IllegalVoteEvidence,
+		common2.IllegalBlockEvidence, common2.IllegalSidechainEvidence:
 		s.processIllegalEvidence(tx.Payload, height)
 
 		payloadHash, err := tx.GetSpecialTxHash()
@@ -956,7 +957,7 @@ func (s *State) processTransaction(tx *types.Transaction, height uint32) {
 		}
 		s.recordSpecialTx(payloadHash, height)
 
-	case types.InactiveArbitrators:
+	case common2.InactiveArbitrators:
 		s.processEmergencyInactiveArbitrators(
 			tx.Payload.(*payload.InactiveArbitrators), height)
 		payloadHash, err := tx.GetSpecialTxHash()
@@ -966,26 +967,26 @@ func (s *State) processTransaction(tx *types.Transaction, height uint32) {
 		}
 		s.recordSpecialTx(payloadHash, height)
 
-	case types.ReturnDepositCoin:
+	case common2.ReturnDepositCoin:
 		s.returnDeposit(tx, height)
 
-	case types.UpdateVersion:
+	case common2.UpdateVersion:
 		s.updateVersion(tx, height)
 
-	case types.NextTurnDPOSInfo:
+	case common2.NextTurnDPOSInfo:
 		s.processNextTurnDPOSInfo(tx, height)
 
-	case types.CRCouncilMemberClaimNode:
+	case common2.CRCouncilMemberClaimNode:
 		s.processCRCouncilMemberClaimNode(tx, height)
 
-	case types.RevertToPOW:
+	case common2.RevertToPOW:
 		s.processRevertToPOW(tx, height)
 
-	case types.RevertToDPOS:
+	case common2.RevertToDPOS:
 		s.processRevertToDPOS(tx.Payload.(*payload.RevertToDPOS), height)
 	}
 
-	if tx.TxType != types.RegisterProducer {
+	if tx.TxType != common2.RegisterProducer {
 		s.processDeposit(tx, height)
 	}
 	s.processCancelVotes(tx, height)
@@ -1007,7 +1008,7 @@ func (s *State) registerProducer(tx *types.Transaction, height uint32) {
 	for i, output := range tx.Outputs {
 		if output.ProgramHash.IsEqual(*programHash) {
 			amount += output.Value
-			op := types.NewOutPoint(tx.Hash(), uint16(i))
+			op := common2.NewOutPoint(tx.Hash(), uint16(i))
 			depositOutputs[op.ReferKey()] = output.Value
 		}
 	}
@@ -1108,15 +1109,15 @@ func (s *State) activateProducer(p *payload.ActivateProducer, height uint32) {
 // processVotes takes a transaction, if the transaction including any vote
 // inputs or outputs, validate and update producers votes.
 func (s *State) processVotes(tx *types.Transaction, height uint32) {
-	if tx.Version >= types.TxVersion09 {
+	if tx.Version >= common2.TxVersion09 {
 		// Votes to producers.
 		for i, output := range tx.Outputs {
-			if output.Type != types.OTVote {
+			if output.Type != common2.OTVote {
 				continue
 			}
 			p, _ := output.Payload.(*outputpayload.VoteOutput)
 			if p.Version == outputpayload.VoteProducerVersion {
-				op := types.NewOutPoint(tx.Hash(), uint16(i))
+				op := common2.NewOutPoint(tx.Hash(), uint16(i))
 				s.history.Append(height, func() {
 					s.Votes[op.ReferKey()] = struct{}{}
 				}, func() {
@@ -1132,7 +1133,7 @@ func (s *State) processVotes(tx *types.Transaction, height uint32) {
 					}
 				}
 				if exist {
-					op := types.NewOutPoint(tx.Hash(), uint16(i))
+					op := common2.NewOutPoint(tx.Hash(), uint16(i))
 					s.history.Append(height, func() {
 						s.Votes[op.ReferKey()] = struct{}{}
 					}, func() {
@@ -1151,7 +1152,7 @@ func (s *State) processDeposit(tx *types.Transaction, height uint32) {
 		if contract.GetPrefixType(output.ProgramHash) ==
 			contract.PrefixDeposit {
 			if s.addProducerAssert(output, height) {
-				op := types.NewOutPoint(tx.Hash(), uint16(i))
+				op := common2.NewOutPoint(tx.Hash(), uint16(i))
 				s.DepositOutputs[op.ReferKey()] = output.Value
 			}
 		}
@@ -1191,7 +1192,7 @@ func (s *State) getProducerByDepositHash(hash common.Uint168) *Producer {
 
 // addProducerAssert will plus deposit amount for producers referenced in
 // program hash of transaction output.
-func (s *State) addProducerAssert(output *types.Output, height uint32) bool {
+func (s *State) addProducerAssert(output *common2.Output, height uint32) bool {
 	if producer := s.getProducerByDepositHash(output.ProgramHash); producer != nil {
 		s.history.Append(height, func() {
 			producer.totalAmount += output.Value
@@ -1232,7 +1233,7 @@ func (s *State) processCancelVotes(tx *types.Transaction, height uint32) {
 }
 
 // processVoteOutput takes a transaction output with vote payload.
-func (s *State) processVoteOutput(output *types.Output, height uint32) {
+func (s *State) processVoteOutput(output *common2.Output, height uint32) {
 	countByGross := func(producer *Producer) {
 		s.history.Append(height, func() {
 			producer.votes += output.Value
@@ -1271,7 +1272,7 @@ func (s *State) processVoteOutput(output *types.Output, height uint32) {
 }
 
 // processVoteCancel takes a previous vote output and decrease producers votes.
-func (s *State) processVoteCancel(output *types.Output, height uint32) {
+func (s *State) processVoteCancel(output *common2.Output, height uint32) {
 	subtractByGross := func(producer *Producer) {
 		s.history.Append(height, func() {
 			producer.votes -= output.Value

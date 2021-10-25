@@ -10,6 +10,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"os"
 
 	cmdcom "github.com/elastos/Elastos.ELA/cmd/common"
@@ -48,7 +49,7 @@ func RegisterTransactionType(L *lua.LState) {
 //	LockTime       uint32
 func newTransaction(L *lua.LState) int {
 	version := L.ToInt(1)
-	txType := types.TxType(L.ToInt(2))
+	txType := common2.TxType(L.ToInt(2))
 	payloadVersion := byte(L.ToInt(3))
 	ud := L.CheckUserData(4)
 	lockTime := uint32(L.ToInt(5))
@@ -107,13 +108,13 @@ func newTransaction(L *lua.LState) int {
 	}
 
 	txn := &types.Transaction{
-		Version:        types.TransactionVersion(version),
+		Version:        common2.TransactionVersion(version),
 		TxType:         txType,
 		PayloadVersion: payloadVersion,
 		Payload:        pload,
-		Attributes:     []*types.Attribute{},
-		Inputs:         []*types.Input{},
-		Outputs:        []*types.Output{},
+		Attributes:     []*common2.Attribute{},
+		Inputs:         []*common2.Input{},
+		Outputs:        []*common2.Output{},
 		LockTime:       lockTime,
 	}
 	udn := L.NewUserData()
@@ -185,9 +186,9 @@ func signPayload(L *lua.LState) int {
 	}
 
 	switch txn.TxType {
-	case types.RegisterProducer:
+	case common2.RegisterProducer:
 		fallthrough
-	case types.UpdateProducer:
+	case common2.UpdateProducer:
 		producerInfo, ok := txn.Payload.(*payload.ProducerInfo)
 		if !ok {
 			cmdcom.PrintErrorAndExit("invalid producer payload")
@@ -362,7 +363,7 @@ func appendEnough(L *lua.LState) int {
 
 	var availabelUtxos []servers.UTXOInfo
 	for _, utxo := range utxos {
-		if types.TxType(utxo.TxType) == types.CoinBase && utxo.Confirmations < 101 {
+		if common2.TxType(utxo.TxType) == common2.CoinBase && utxo.Confirmations < 101 {
 			continue
 		}
 		availabelUtxos = append(availabelUtxos, utxo)
@@ -371,12 +372,12 @@ func appendEnough(L *lua.LState) int {
 	//totalAmount := common.Fixed64(0)
 	var charge int64
 	// Create transaction inputs
-	var txInputs []*types.Input // The inputs in transaction
+	var txInputs []*common2.Input // The inputs in transaction
 	for _, utxo := range availabelUtxos {
 		txIDReverse, _ := hex.DecodeString(utxo.TxID)
 		txID, _ := common.Uint256FromBytes(common.BytesReverse(txIDReverse))
-		input := &types.Input{
-			Previous: types.OutPoint{
+		input := &common2.Input{
+			Previous: common2.OutPoint{
 				TxID:  *txID,
 				Index: uint16(utxo.VOut),
 			},

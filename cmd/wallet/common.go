@@ -12,6 +12,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"io"
 	"os"
 	"strings"
@@ -140,7 +141,7 @@ func getAddressUTXOs(address string) ([]servers.UTXOInfo, []servers.UTXOInfo, er
 	var availableUTXOs []servers.UTXOInfo
 	var lockedUTXOs []servers.UTXOInfo
 	for _, utxo := range UTXOs {
-		if types.TxType(utxo.TxType) == types.CoinBase && utxo.Confirmations < 101 {
+		if common2.TxType(utxo.TxType) == common2.CoinBase && utxo.Confirmations < 101 {
 			lockedUTXOs = append(lockedUTXOs, utxo)
 			continue
 		}

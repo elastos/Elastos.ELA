@@ -7,31 +7,32 @@ package wallet
 
 import (
 	"bytes"
-	"github.com/elastos/Elastos.ELA/common"
-	"github.com/stretchr/testify/assert"
 	"testing"
 
-	"github.com/elastos/Elastos.ELA/core/types"
+	"github.com/elastos/Elastos.ELA/common"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
+
+	"github.com/stretchr/testify/assert"
 )
 
 var (
-	op1 = &types.OutPoint{
+	op1 = &common2.OutPoint{
 		TxID:  common.Uint256{},
 		Index: 1,
 	}
-	op2 = &types.OutPoint{
+	op2 = &common2.OutPoint{
 		TxID:  common.Uint256{},
 		Index: 2,
 	}
-	op3 = &types.OutPoint{
+	op3 = &common2.OutPoint{
 		TxID:  common.Uint256{},
 		Index: 3,
 	}
-	op4 = &types.OutPoint{
+	op4 = &common2.OutPoint{
 		TxID:  common.Uint256{},
 		Index: 4,
 	}
-	op5 = &types.OutPoint{
+	op5 = &common2.OutPoint{
 		TxID:  common.Uint256{},
 		Index: 5,
 	}

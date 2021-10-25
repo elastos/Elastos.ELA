@@ -11,6 +11,7 @@ import (
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/core/contract/program"
 	"github.com/elastos/Elastos.ELA/core/types"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/dpos/log"
 	dmsg "github.com/elastos/Elastos.ELA/dpos/p2p/msg"
@@ -165,15 +166,15 @@ func (i *IllegalBehaviorMonitor) ProcessIllegalProposal(
 func (i *IllegalBehaviorMonitor) sendIllegalProposalTransaction(
 	evidences *payload.DPOSIllegalProposals) {
 	tx := &types.Transaction{
-		Version:        types.TxVersion09,
-		TxType:         types.IllegalProposalEvidence,
+		Version:        common2.TxVersion09,
+		TxType:         common2.IllegalProposalEvidence,
 		PayloadVersion: payload.IllegalProposalVersion,
 		Payload:        evidences,
-		Attributes:     []*types.Attribute{},
+		Attributes:     []*common2.Attribute{},
 		LockTime:       0,
 		Programs:       []*program.Program{},
-		Outputs:        []*types.Output{},
-		Inputs:         []*types.Input{},
+		Outputs:        []*common2.Output{},
+		Inputs:         []*common2.Input{},
 		Fee:            0,
 	}
 
@@ -185,15 +186,15 @@ func (i *IllegalBehaviorMonitor) sendIllegalProposalTransaction(
 func (i *IllegalBehaviorMonitor) SendSidechainIllegalEvidenceTransaction(
 	evidence *payload.SidechainIllegalData) {
 	tx := &types.Transaction{
-		Version:        types.TxVersion09,
-		TxType:         types.IllegalSidechainEvidence,
+		Version:        common2.TxVersion09,
+		TxType:         common2.IllegalSidechainEvidence,
 		PayloadVersion: payload.SidechainIllegalDataVersion,
 		Payload:        evidence,
-		Attributes:     []*types.Attribute{},
+		Attributes:     []*common2.Attribute{},
 		LockTime:       0,
 		Programs:       []*program.Program{},
-		Outputs:        []*types.Output{},
-		Inputs:         []*types.Input{},
+		Outputs:        []*common2.Output{},
+		Inputs:         []*common2.Input{},
 		Fee:            0,
 	}
 
@@ -205,15 +206,15 @@ func (i *IllegalBehaviorMonitor) SendSidechainIllegalEvidenceTransaction(
 func (i *IllegalBehaviorMonitor) sendIllegalVoteTransaction(
 	evidences *payload.DPOSIllegalVotes) {
 	tx := &types.Transaction{
-		Version:        types.TxVersion09,
-		TxType:         types.IllegalVoteEvidence,
+		Version:        common2.TxVersion09,
+		TxType:         common2.IllegalVoteEvidence,
 		PayloadVersion: payload.IllegalVoteVersion,
 		Payload:        evidences,
-		Attributes:     []*types.Attribute{},
+		Attributes:     []*common2.Attribute{},
 		LockTime:       0,
 		Programs:       []*program.Program{},
-		Outputs:        []*types.Output{},
-		Inputs:         []*types.Input{},
+		Outputs:        []*common2.Output{},
+		Inputs:         []*common2.Input{},
 		Fee:            0,
 	}
 

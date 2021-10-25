@@ -14,6 +14,7 @@ import (
 	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/common/log"
 	"github.com/elastos/Elastos.ELA/core/types"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/database"
 	_ "github.com/elastos/Elastos.ELA/database/ffldb"
@@ -31,10 +32,10 @@ var (
 	unspentIndexReferIndex2 = uint16(2)
 	unspentIndexReferIndex3 = uint16(3)
 	unspentIndexCoinbase    = &types.Transaction{
-		TxType:  types.CoinBase,
+		TxType:  common2.CoinBase,
 		Payload: new(payload.CoinBase),
 		Inputs:  nil,
-		Outputs: []*types.Output{
+		Outputs: []*common2.Output{
 			{
 				Value: 10,
 			},
@@ -44,17 +45,17 @@ var (
 		},
 	}
 	testUnspentIndexTx1 = &types.Transaction{
-		TxType:  types.TransferAsset,
+		TxType:  common2.TransferAsset,
 		Payload: new(payload.TransferAsset),
-		Inputs: []*types.Input{
+		Inputs: []*common2.Input{
 			{
-				Previous: types.OutPoint{
+				Previous: common2.OutPoint{
 					TxID:  unspentIndexReferTx1,
 					Index: unspentIndexReferIndex1,
 				},
 			},
 		},
-		Outputs: []*types.Output{
+		Outputs: []*common2.Output{
 			{
 				Value: 30,
 			},
@@ -64,17 +65,17 @@ var (
 		},
 	}
 	testUnspentIndexTx2 = &types.Transaction{
-		TxType:  types.TransferAsset,
+		TxType:  common2.TransferAsset,
 		Payload: new(payload.TransferAsset),
-		Inputs: []*types.Input{
+		Inputs: []*common2.Input{
 			{
-				Previous: types.OutPoint{
+				Previous: common2.OutPoint{
 					TxID:  unspentIndexReferTx2,
 					Index: unspentIndexReferIndex2,
 				},
 			},
 		},
-		Outputs: []*types.Output{
+		Outputs: []*common2.Output{
 			{
 				Value: 50,
 			},
@@ -84,17 +85,17 @@ var (
 		},
 	}
 	testUnspentIndexTx3 = &types.Transaction{
-		TxType:  types.TransferAsset,
+		TxType:  common2.TransferAsset,
 		Payload: new(payload.TransferAsset),
-		Inputs: []*types.Input{
+		Inputs: []*common2.Input{
 			{
-				Previous: types.OutPoint{
+				Previous: common2.OutPoint{
 					TxID:  unspentIndexReferTx3,
 					Index: unspentIndexReferIndex3,
 				},
 			},
 		},
-		Outputs: []*types.Output{
+		Outputs: []*common2.Output{
 			{
 				Value: 0,
 			},
@@ -113,39 +114,39 @@ var (
 		},
 	}
 	testUnspentIndexTx4 = &types.Transaction{
-		TxType:  types.TransferAsset,
+		TxType:  common2.TransferAsset,
 		Payload: new(payload.TransferAsset),
-		Inputs: []*types.Input{
+		Inputs: []*common2.Input{
 			{
-				Previous: types.OutPoint{
+				Previous: common2.OutPoint{
 					TxID:  testUnspentIndexTx3.Hash(),
 					Index: 0,
 				},
 			},
 			{
-				Previous: types.OutPoint{
+				Previous: common2.OutPoint{
 					TxID:  testUnspentIndexTx3.Hash(),
 					Index: 1,
 				},
 			},
 		},
-		Outputs: []*types.Output{
+		Outputs: []*common2.Output{
 			{
 				Value: 40,
 			},
 		},
 	}
 	testUnspentIndexTx5 = &types.Transaction{
-		TxType:  types.TransferAsset,
+		TxType:  common2.TransferAsset,
 		Payload: new(payload.TransferAsset),
-		Inputs:  []*types.Input{},
-		Outputs: []*types.Output{},
+		Inputs:  []*common2.Input{},
+		Outputs: []*common2.Output{},
 	}
 	unspentIndexCoinbase2 = &types.Transaction{
-		TxType:  types.CoinBase,
+		TxType:  common2.CoinBase,
 		Payload: new(payload.CoinBase),
 		Inputs:  nil,
-		Outputs: []*types.Output{
+		Outputs: []*common2.Output{
 			{
 				Value: 30,
 			},

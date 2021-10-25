@@ -8,6 +8,7 @@ package tx
 import (
 	"github.com/elastos/Elastos.ELA/account"
 	"github.com/elastos/Elastos.ELA/core/types"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 )
 
 type AssignerType byte
@@ -25,9 +26,9 @@ type Assigner interface {
 	SignAndChange(tx *types.Transaction) error
 }
 
-func NewGenerator(txType types.TxType, ac ...*account.Account) Generator {
+func NewGenerator(txType common2.TxType, ac ...*account.Account) Generator {
 	switch txType {
-	case types.TransferAsset:
+	case common2.TransferAsset:
 		return &transferAssetGenerator{account: ac}
 	default:
 		return nil

@@ -8,6 +8,7 @@ package state
 import (
 	"bytes"
 	"errors"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"math"
 	"sort"
 	"strconv"
@@ -46,7 +47,7 @@ type Committee struct {
 	createCRCAppropriationTx         func() (*types.Transaction, common.Fixed64, error)
 	createCRAssetsRectifyTransaction func() (*types.Transaction, error)
 	createCRRealWithdrawTransaction  func(withdrawTransactionHashes []common.Uint256,
-		outputs []*types.OutputInfo) (*types.Transaction, error)
+		outputs []*common2.OutputInfo) (*types.Transaction, error)
 	getUTXO func(programHash *common.Uint168) ([]*types.UTXO, error)
 }
 
@@ -533,12 +534,12 @@ func (c *Committee) createProposalResultTransaction(height uint32) {
 			return c.PartProposalResults[i].ProposalHash.Compare(c.PartProposalResults[j].ProposalHash) < 0
 		})
 		tx := &types.Transaction{
-			Version: types.TxVersion09,
-			TxType:  types.ProposalResult,
+			Version: common2.TxVersion09,
+			TxType:  common2.ProposalResult,
 			Payload: &payload.RecordProposalResult{
 				ProposalResults: c.PartProposalResults,
 			},
-			Attributes: []*types.Attribute{},
+			Attributes: []*common2.Attribute{},
 			Programs:   []*program.Program{},
 			LockTime:   0,
 		}
@@ -624,7 +625,7 @@ func (c *Committee) createRectifyCRAssetsTransaction(height uint32) {
 func (c *Committee) createRealWithdrawTransaction(height uint32) {
 	if c.createCRRealWithdrawTransaction != nil && height == c.getHeight() {
 		withdrawTransactionHahses := make([]common.Uint256, 0)
-		ouputs := make([]*types.OutputInfo, 0)
+		ouputs := make([]*common2.OutputInfo, 0)
 		for k, v := range c.manager.WithdrawableTxInfo {
 			withdrawTransactionHahses = append(withdrawTransactionHahses, k)
 			outputInfo := v
@@ -740,7 +741,7 @@ func (c *Committee) recordCRCRelatedAddressOutputs(block *types.Block) {
 	for _, tx := range block.Transactions {
 		for i, output := range tx.Outputs {
 			if output.ProgramHash.IsEqual(c.params.CRAssetsAddress) {
-				key := types.NewOutPoint(tx.Hash(), uint16(i)).ReferKey()
+				key := common2.NewOutPoint(tx.Hash(), uint16(i)).ReferKey()
 				value := output.Value
 				c.firstHistory.Append(block.Height, func() {
 					c.state.CRCFoundationOutputs[key] = value
@@ -748,7 +749,7 @@ func (c *Committee) recordCRCRelatedAddressOutputs(block *types.Block) {
 					delete(c.state.CRCFoundationOutputs, key)
 				})
 			} else if output.ProgramHash.IsEqual(c.params.CRExpensesAddress) {
-				key := types.NewOutPoint(tx.Hash(), uint16(i)).ReferKey()
+				key := common2.NewOutPoint(tx.Hash(), uint16(i)).ReferKey()
 				value := output.Value
 				c.firstHistory.Append(block.Height, func() {
 					c.state.CRCCommitteeOutputs[key] = value
@@ -882,7 +883,7 @@ func (c *Committee) processCRCAppropriation(height uint32, history *utils.Histor
 func (c *Committee) processCRCRealWithdraw(tx *types.Transaction,
 	height uint32, history *utils.History) {
 
-	txs := make(map[common.Uint256]types.OutputInfo)
+	txs := make(map[common.Uint256]common2.OutputInfo)
 	for k, v := range c.manager.WithdrawableTxInfo {
 		txs[k] = v
 	}
@@ -1400,7 +1401,7 @@ func (c *Committee) GetProposalByDraftHash(draftHash common.Uint256) *ProposalSt
 	return c.manager.getProposalByDraftHash(draftHash)
 }
 
-func (c *Committee) GetRealWithdrawTransactions() map[common.Uint256]types.OutputInfo {
+func (c *Committee) GetRealWithdrawTransactions() map[common.Uint256]common2.OutputInfo {
 	c.mtx.RLock()
 	defer c.mtx.RUnlock()
 
@@ -1437,12 +1438,12 @@ func (c *Committee) GetCandidateByPublicKey(publicKey string) *Candidate {
 
 type CommitteeFuncsConfig struct {
 	GetTxReference func(tx *types.Transaction) (
-		map[*types.Input]types.Output, error)
+		map[*common2.Input]common2.Output, error)
 	GetHeight                        func() uint32
 	CreateCRAppropriationTransaction func() (*types.Transaction, common.Fixed64, error)
 	CreateCRAssetsRectifyTransaction func() (*types.Transaction, error)
 	CreateCRRealWithdrawTransaction  func(withdrawTransactionHashes []common.Uint256,
-		outpus []*types.OutputInfo) (*types.Transaction, error)
+		outpus []*common2.OutputInfo) (*types.Transaction, error)
 	IsCurrent      func() bool
 	Broadcast      func(msg p2p.Message)
 	AppendToTxpool func(transaction *types.Transaction) elaerr.ELAError

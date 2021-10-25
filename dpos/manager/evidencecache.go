@@ -8,6 +8,7 @@ package manager
 import (
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/core/types"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/dpos/log"
 )
@@ -74,19 +75,19 @@ func (e *evidenceCache) tryGetEvidenceHash(tx *types.Transaction) (common.Uint25
 	result := true
 
 	switch tx.TxType {
-	case types.IllegalProposalEvidence:
+	case common2.IllegalProposalEvidence:
 		proposalPayload := tx.Payload.(*payload.DPOSIllegalProposals)
 		hash = proposalPayload.Hash()
-	case types.IllegalVoteEvidence:
+	case common2.IllegalVoteEvidence:
 		votePayload := tx.Payload.(*payload.DPOSIllegalVotes)
 		hash = votePayload.Hash()
-	case types.IllegalBlockEvidence:
+	case common2.IllegalBlockEvidence:
 		blockPayload := tx.Payload.(*payload.DPOSIllegalBlocks)
 		hash = blockPayload.Hash()
-	case types.IllegalSidechainEvidence:
+	case common2.IllegalSidechainEvidence:
 		sidechainPayload := tx.Payload.(*payload.SidechainIllegalData)
 		hash = sidechainPayload.Hash()
-	case types.InactiveArbitrators:
+	case common2.InactiveArbitrators:
 		inactiveArbitrators := tx.Payload.(*payload.InactiveArbitrators)
 		hash = inactiveArbitrators.Hash()
 	default:

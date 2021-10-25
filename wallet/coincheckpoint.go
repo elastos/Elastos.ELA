@@ -7,6 +7,7 @@ package wallet
 
 import (
 	"bytes"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"io"
 	"sync"
 
@@ -21,7 +22,7 @@ import (
 // which be subscribed.
 type CoinsCheckPoint struct {
 	height     uint32
-	coins      map[types.OutPoint]*Coin
+	coins      map[common2.OutPoint]*Coin
 	ownedCoins OwnedCoins
 
 	sync.RWMutex
@@ -69,7 +70,7 @@ func (ccp *CoinsCheckPoint) Deserialize(r io.Reader) error {
 		return err
 	}
 	for i := uint32(0); i < count; i++ {
-		var op types.OutPoint
+		var op common2.OutPoint
 		if err := op.Deserialize(r); err != nil {
 			return err
 		}
@@ -145,7 +146,7 @@ func (ccp *CoinsCheckPoint) OnBlockSaved(block *types.DposBlock) {
 
 		// add the new coins
 		for index, output := range tx.Outputs {
-			op := types.OutPoint{
+			op := common2.OutPoint{
 				TxID:  tx.Hash(),
 				Index: uint16(index),
 			}
@@ -182,7 +183,7 @@ func (ccp *CoinsCheckPoint) OnRollbackTo(height uint32) error {
 		for _, tx := range block.Transactions {
 			// rollback coins from output
 			for index := range tx.Outputs {
-				op := types.OutPoint{
+				op := common2.OutPoint{
 					TxID:  tx.Hash(),
 					Index: uint16(index),
 				}
@@ -213,7 +214,7 @@ func (ccp *CoinsCheckPoint) OnRollbackTo(height uint32) error {
 	return nil
 }
 
-func (ccp *CoinsCheckPoint) appendCoin(op *types.OutPoint, coin *Coin) error {
+func (ccp *CoinsCheckPoint) appendCoin(op *common2.OutPoint, coin *Coin) error {
 	addr, err := coin.Output.ProgramHash.ToAddress()
 	if err != nil {
 		return err
@@ -221,7 +222,7 @@ func (ccp *CoinsCheckPoint) appendCoin(op *types.OutPoint, coin *Coin) error {
 
 	// append wallet coin, vote utxo and deposit coin
 	_, exist := GetWalletAccount(addr)
-	if exist || coin.Output.Type == types.OTVote ||
+	if exist || coin.Output.Type == common2.OTVote ||
 		contract.GetPrefixType(coin.Output.ProgramHash) == contract.PrefixDeposit {
 		ccp.coins[*op] = coin
 		ccp.ownedCoins.append(addr, op)
@@ -230,7 +231,7 @@ func (ccp *CoinsCheckPoint) appendCoin(op *types.OutPoint, coin *Coin) error {
 	return nil
 }
 
-func (ccp *CoinsCheckPoint) removeCoin(op *types.OutPoint) {
+func (ccp *CoinsCheckPoint) removeCoin(op *common2.OutPoint) {
 	coin, exist := ccp.coins[*op]
 	if !exist {
 		return
@@ -243,11 +244,11 @@ func (ccp *CoinsCheckPoint) removeCoin(op *types.OutPoint) {
 	ccp.ownedCoins.remove(addr, op)
 }
 
-func (ccp *CoinsCheckPoint) ListCoins(owner string) map[types.OutPoint]*Coin {
+func (ccp *CoinsCheckPoint) ListCoins(owner string) map[common2.OutPoint]*Coin {
 	ccp.RLock()
 	defer ccp.RUnlock()
 
-	coins := make(map[types.OutPoint]*Coin, 0)
+	coins := make(map[common2.OutPoint]*Coin, 0)
 	ops := ccp.ownedCoins.list(owner)
 	for _, op := range ops {
 		coin := ccp.coins[*op]
@@ -257,7 +258,7 @@ func (ccp *CoinsCheckPoint) ListCoins(owner string) map[types.OutPoint]*Coin {
 	return coins
 }
 
-func (ccp *CoinsCheckPoint) AppendCoin(owner string, op *types.OutPoint, coin *Coin) {
+func (ccp *CoinsCheckPoint) AppendCoin(owner string, op *common2.OutPoint, coin *Coin) {
 	ccp.Lock()
 	defer ccp.Unlock()
 
@@ -265,12 +266,12 @@ func (ccp *CoinsCheckPoint) AppendCoin(owner string, op *types.OutPoint, coin *C
 	ccp.ownedCoins.append(owner, op)
 }
 
-func (ccp *CoinsCheckPoint) GetCoin(owner string, op *types.OutPoint) (*Coin, bool) {
+func (ccp *CoinsCheckPoint) GetCoin(owner string, op *common2.OutPoint) (*Coin, bool) {
 	ccp.RLock()
 	defer ccp.RUnlock()
 
 	if op == nil {
-		op = &types.OutPoint{}
+		op = &common2.OutPoint{}
 	}
 	_, exist := ccp.ownedCoins[CoinOwnership{owner, *op}]
 	if !exist {
@@ -284,7 +285,7 @@ func (ccp *CoinsCheckPoint) GetCoin(owner string, op *types.OutPoint) (*Coin, bo
 func NewCoinCheckPoint() *CoinsCheckPoint {
 	return &CoinsCheckPoint{
 		height:     0,
-		coins:      make(map[types.OutPoint]*Coin, 0),
+		coins:      make(map[common2.OutPoint]*Coin, 0),
 		ownedCoins: NewOwnedCoins(),
 	}
 }

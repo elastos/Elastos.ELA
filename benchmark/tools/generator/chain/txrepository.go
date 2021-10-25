@@ -13,6 +13,7 @@ import (
 	"github.com/elastos/Elastos.ELA/benchmark/common/tx"
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/core/types"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/crypto"
 )
 
@@ -290,7 +291,7 @@ func (r *TxRepository) allocateFromFoundation(inCount uint32) (
 		ac := r.randomAccount()
 		accounts = append(accounts, ac)
 	}
-	generator := tx.NewGenerator(types.TransferAsset, accounts...)
+	generator := tx.NewGenerator(common2.TransferAsset, accounts...)
 	transaction = generator.Generate()
 
 	assigner := tx.NewAssigner(tx.FixAmount, r.foundation, &r.foundationUTXO)
@@ -301,7 +302,7 @@ func (r *TxRepository) allocateFromFoundation(inCount uint32) (
 func (r *TxRepository) generateTx() (txn *types.Transaction, err error) {
 	outAccount := r.randomAccount()
 	// todo generate tx by random tx types later
-	generator := tx.NewGenerator(types.TransferAsset, outAccount)
+	generator := tx.NewGenerator(common2.TransferAsset, outAccount)
 	txn = generator.Generate()
 
 	inAccount := r.randomAccount()

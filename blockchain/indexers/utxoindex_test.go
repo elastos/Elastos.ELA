@@ -13,6 +13,7 @@ import (
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/log"
 	"github.com/elastos/Elastos.ELA/core/types"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/core/types/outputpayload"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/database"
@@ -28,42 +29,42 @@ var (
 
 	// refer tx hash: 160da301e49617c037ae9b630919af52b8ac458202cd64558af7e0dcc753e307
 	testUtxoIndexReferTx = &types.Transaction{
-		Version:        types.TxVersion09,
-		TxType:         types.TransferAsset,
+		Version:        common2.TxVersion09,
+		TxType:         common2.TransferAsset,
 		PayloadVersion: 0,
 		Payload:        &payload.TransferAsset{},
-		Attributes:     []*types.Attribute{},
-		Inputs: []*types.Input{
+		Attributes:     []*common2.Attribute{},
+		Inputs: []*common2.Input{
 			{
-				Previous: types.OutPoint{
+				Previous: common2.OutPoint{
 					Index: 0,
 					TxID:  common.EmptyHash,
 				},
 				Sequence: 0,
 			},
 		},
-		Outputs: []*types.Output{
+		Outputs: []*common2.Output{
 			{
 				Value:       0,
-				Type:        types.OTNone,
+				Type:        common2.OTNone,
 				Payload:     &outputpayload.DefaultOutput{},
 				ProgramHash: *referRecipient1,
 			},
 			{
 				Value:       100,
-				Type:        types.OTNone,
+				Type:        common2.OTNone,
 				Payload:     &outputpayload.DefaultOutput{},
 				ProgramHash: *referRecipient1,
 			},
 			{
 				Value:       200,
-				Type:        types.OTNone,
+				Type:        common2.OTNone,
 				Payload:     &outputpayload.DefaultOutput{},
 				ProgramHash: *referRecipient2,
 			},
 			{
 				Value:       300,
-				Type:        types.OTNone,
+				Type:        common2.OTNone,
 				Payload:     &outputpayload.DefaultOutput{},
 				ProgramHash: *referRecipient2,
 			},
@@ -72,10 +73,10 @@ var (
 	}
 	recipient1, _    = common.Uint168FromAddress("EQr9qjiXGF2y7YMtDCHtHNewZynakbDzF7")
 	testUtxoIndexTx1 = &types.Transaction{
-		TxType:  types.CoinBase,
+		TxType:  common2.CoinBase,
 		Payload: new(payload.CoinBase),
 		Inputs:  nil,
-		Outputs: []*types.Output{
+		Outputs: []*common2.Output{
 			{
 				Value:       10,
 				ProgramHash: *recipient1,
@@ -88,33 +89,33 @@ var (
 	}
 	recipient2, _    = common.Uint168FromAddress("EWQfnxDhXQ4vHjncuAG5si2zpbKR79CjLp")
 	testUtxoIndexTx2 = &types.Transaction{
-		TxType:         types.TransferAsset,
+		TxType:         common2.TransferAsset,
 		PayloadVersion: 0,
 		Payload:        &payload.TransferAsset{},
-		Inputs: []*types.Input{
+		Inputs: []*common2.Input{
 			{
-				Previous: types.OutPoint{
+				Previous: common2.OutPoint{
 					Index: 0,
 					TxID:  testUtxoIndexReferTx.Hash(),
 				},
 				Sequence: 0,
 			},
 			{
-				Previous: types.OutPoint{
+				Previous: common2.OutPoint{
 					Index: 1,
 					TxID:  testUtxoIndexReferTx.Hash(),
 				},
 				Sequence: 0,
 			},
 			{
-				Previous: types.OutPoint{
+				Previous: common2.OutPoint{
 					Index: 2,
 					TxID:  testUtxoIndexReferTx.Hash(),
 				},
 				Sequence: 0,
 			},
 		},
-		Outputs: []*types.Output{
+		Outputs: []*common2.Output{
 			{
 				Value:       30,
 				ProgramHash: *recipient1,

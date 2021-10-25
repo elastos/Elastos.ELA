@@ -17,6 +17,7 @@ import (
 	"github.com/elastos/Elastos.ELA/auxpow"
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/core/contract/program"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/core/types/outputpayload"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 
@@ -40,7 +41,7 @@ func (s *transactionSuite) SetupSuite() {
 }
 
 func (s *transactionSuite) TestCoinbaseTransaction_SerializeDeserialize() {
-	txn := randomOldVersionTransaction(true, byte(CoinBase), s.InputNum, s.OutputNum, s.AttrNum, s.ProgramNum)
+	txn := randomOldVersionTransaction(true, byte(common2.CoinBase), s.InputNum, s.OutputNum, s.AttrNum, s.ProgramNum)
 	txn.Payload = &payload.CoinBase{
 		Content: []byte(strconv.FormatUint(rand.Uint64(), 10)),
 	}
@@ -57,7 +58,7 @@ func (s *transactionSuite) TestCoinbaseTransaction_SerializeDeserialize() {
 }
 
 func (s *transactionSuite) TestRegisterAssetTransaction_SerializeDeserialize() {
-	txn := randomOldVersionTransaction(true, byte(RegisterAsset), s.InputNum, s.OutputNum, s.AttrNum, s.ProgramNum)
+	txn := randomOldVersionTransaction(true, byte(common2.RegisterAsset), s.InputNum, s.OutputNum, s.AttrNum, s.ProgramNum)
 	txn.Payload = &payload.RegisterAsset{
 		Asset: payload.Asset{
 			Name:        "test name",
@@ -91,7 +92,7 @@ func (s *transactionSuite) TestRegisterAssetTransaction_SerializeDeserialize() {
 }
 
 func (s *transactionSuite) TestTransferAssert_SerializeDeserialize() {
-	txn := randomOldVersionTransaction(true, byte(TransferAsset), s.InputNum, s.OutputNum, s.AttrNum, s.ProgramNum)
+	txn := randomOldVersionTransaction(true, byte(common2.TransferAsset), s.InputNum, s.OutputNum, s.AttrNum, s.ProgramNum)
 	txn.Payload = &payload.TransferAsset{}
 
 	serializedData := new(bytes.Buffer)
@@ -104,7 +105,7 @@ func (s *transactionSuite) TestTransferAssert_SerializeDeserialize() {
 }
 
 func (s *transactionSuite) TestRecord_SerializeDeserialize() {
-	txn := randomOldVersionTransaction(true, byte(Record), s.InputNum, s.OutputNum, s.AttrNum, s.ProgramNum)
+	txn := randomOldVersionTransaction(true, byte(common2.Record), s.InputNum, s.OutputNum, s.AttrNum, s.ProgramNum)
 	txn.Payload = &payload.Record{
 		Type:    "test record type",
 		Content: []byte(strconv.FormatUint(rand.Uint64(), 10)),
@@ -126,7 +127,7 @@ func (s *transactionSuite) TestRecord_SerializeDeserialize() {
 }
 
 func (s *transactionSuite) TestSideChainPow_SerializeDeserialize() {
-	txn := randomOldVersionTransaction(true, byte(SideChainPow), s.InputNum, s.OutputNum, s.AttrNum, s.ProgramNum)
+	txn := randomOldVersionTransaction(true, byte(common2.SideChainPow), s.InputNum, s.OutputNum, s.AttrNum, s.ProgramNum)
 	txn.Payload = &payload.SideChainPow{
 		SideBlockHash:   *randomUint256(),
 		SideGenesisHash: *randomUint256(),
@@ -152,7 +153,7 @@ func (s *transactionSuite) TestSideChainPow_SerializeDeserialize() {
 }
 
 func (s *transactionSuite) TestWithdrawFromSideChain_SerializeDeserialize() {
-	txn := randomOldVersionTransaction(true, byte(WithdrawFromSideChain), s.InputNum, s.OutputNum, s.AttrNum, s.ProgramNum)
+	txn := randomOldVersionTransaction(true, byte(common2.WithdrawFromSideChain), s.InputNum, s.OutputNum, s.AttrNum, s.ProgramNum)
 	txn.Payload = &payload.WithdrawFromSideChain{
 		BlockHeight:         rand.Uint32(),
 		GenesisBlockAddress: "test genesis block address",
@@ -182,7 +183,7 @@ func (s *transactionSuite) TestWithdrawFromSideChain_SerializeDeserialize() {
 }
 
 func (s *transactionSuite) TestTransferCrossChainAsset_SerializeDeserialize() {
-	txn := randomOldVersionTransaction(true, byte(TransferCrossChainAsset), s.InputNum, s.OutputNum, s.AttrNum, s.ProgramNum)
+	txn := randomOldVersionTransaction(true, byte(common2.TransferCrossChainAsset), s.InputNum, s.OutputNum, s.AttrNum, s.ProgramNum)
 	txn.Payload = &payload.TransferCrossChainAsset{
 		CrossChainAddresses: []string{
 			strconv.FormatUint(rand.Uint64(), 10),
@@ -226,7 +227,7 @@ func (s *transactionSuite) TestTransferCrossChainAsset_SerializeDeserialize() {
 }
 
 func (s *transactionSuite) TestRegisterProducer_SerializeDeserialize() {
-	txn := randomOldVersionTransaction(false, byte(RegisterProducer), s.InputNum, s.OutputNum, s.AttrNum, s.ProgramNum)
+	txn := randomOldVersionTransaction(false, byte(common2.RegisterProducer), s.InputNum, s.OutputNum, s.AttrNum, s.ProgramNum)
 	txn.Payload = &payload.ProducerInfo{
 		OwnerPublicKey: []byte(strconv.FormatUint(rand.Uint64(), 10)),
 		NickName:       strconv.FormatUint(rand.Uint64(), 10),
@@ -254,7 +255,7 @@ func (s *transactionSuite) TestRegisterProducer_SerializeDeserialize() {
 }
 
 func (s *transactionSuite) TestCancelProducer_SerializeDeserialize() {
-	txn := randomOldVersionTransaction(false, byte(CancelProducer),
+	txn := randomOldVersionTransaction(false, byte(common2.CancelProducer),
 		s.InputNum, s.OutputNum, s.AttrNum, s.ProgramNum)
 	txn.Payload = &payload.ProcessProducer{
 		OwnerPublicKey: []byte(strconv.FormatUint(rand.Uint64(), 10)),
@@ -278,7 +279,7 @@ func (s *transactionSuite) TestCancelProducer_SerializeDeserialize() {
 }
 
 func (s *transactionSuite) TestActivateProducer_SerializeDeserialize() {
-	txn := randomOldVersionTransaction(false, byte(ActivateProducer),
+	txn := randomOldVersionTransaction(false, byte(common2.ActivateProducer),
 		s.InputNum, s.OutputNum, s.AttrNum, s.ProgramNum)
 	txn.Payload = &payload.ActivateProducer{
 		NodePublicKey: []byte(strconv.FormatUint(rand.Uint64(), 10)),
@@ -302,7 +303,7 @@ func (s *transactionSuite) TestActivateProducer_SerializeDeserialize() {
 }
 
 func (s *transactionSuite) TestUpdateProducer_SerializeDeserialize() {
-	txn := randomOldVersionTransaction(false, byte(UpdateProducer), s.InputNum, s.OutputNum, s.AttrNum, s.ProgramNum)
+	txn := randomOldVersionTransaction(false, byte(common2.UpdateProducer), s.InputNum, s.OutputNum, s.AttrNum, s.ProgramNum)
 	txn.Payload = &payload.ProducerInfo{
 		OwnerPublicKey: []byte(strconv.FormatUint(rand.Uint64(), 10)),
 		NickName:       strconv.FormatUint(rand.Uint64(), 10),
@@ -330,7 +331,7 @@ func (s *transactionSuite) TestUpdateProducer_SerializeDeserialize() {
 }
 
 func (s *transactionSuite) TestReturnDepositCoin_SerializeDeserialize() {
-	txn := randomOldVersionTransaction(false, byte(ReturnDepositCoin), s.InputNum, s.OutputNum, s.AttrNum, s.ProgramNum)
+	txn := randomOldVersionTransaction(false, byte(common2.ReturnDepositCoin), s.InputNum, s.OutputNum, s.AttrNum, s.ProgramNum)
 	txn.Payload = &payload.ReturnDepositCoin{}
 
 	serializedData := new(bytes.Buffer)
@@ -349,7 +350,7 @@ func (s *transactionSuite) randomPkBytes() []byte {
 }
 
 func (s *transactionSuite) TestIllegalProposalEvidence_SerializeDeserialize() {
-	txn := randomOldVersionTransaction(false, byte(IllegalProposalEvidence), s.InputNum, s.OutputNum, s.AttrNum, s.ProgramNum)
+	txn := randomOldVersionTransaction(false, byte(common2.IllegalProposalEvidence), s.InputNum, s.OutputNum, s.AttrNum, s.ProgramNum)
 	txn.Payload = &payload.DPOSIllegalProposals{
 		Evidence: payload.ProposalEvidence{
 			Proposal: payload.DPOSProposal{
@@ -386,7 +387,7 @@ func (s *transactionSuite) TestIllegalProposalEvidence_SerializeDeserialize() {
 }
 
 func (s *transactionSuite) TestIllegalVoteEvidence_SerializeDeserialize() {
-	txn := randomOldVersionTransaction(false, byte(IllegalVoteEvidence), s.InputNum, s.OutputNum, s.AttrNum, s.ProgramNum)
+	txn := randomOldVersionTransaction(false, byte(common2.IllegalVoteEvidence), s.InputNum, s.OutputNum, s.AttrNum, s.ProgramNum)
 	txn.Payload = &payload.DPOSIllegalVotes{
 		Evidence: payload.VoteEvidence{
 			ProposalEvidence: payload.ProposalEvidence{
@@ -439,7 +440,7 @@ func (s *transactionSuite) TestIllegalVoteEvidence_SerializeDeserialize() {
 }
 
 func (s *transactionSuite) TestIllegalBlockEvidence_SerializeDeserialize() {
-	txn := randomOldVersionTransaction(false, byte(IllegalBlockEvidence), s.InputNum, s.OutputNum, s.AttrNum, s.ProgramNum)
+	txn := randomOldVersionTransaction(false, byte(common2.IllegalBlockEvidence), s.InputNum, s.OutputNum, s.AttrNum, s.ProgramNum)
 	txn.Payload = &payload.DPOSIllegalBlocks{
 		CoinType:    payload.CoinType(rand.Uint32()),
 		BlockHeight: rand.Uint32(),
@@ -474,7 +475,7 @@ func (s *transactionSuite) TestIllegalBlockEvidence_SerializeDeserialize() {
 }
 
 func (s *transactionSuite) TestSidechainIllegalData_SerializeDeserialize() {
-	txn := randomOldVersionTransaction(false, byte(IllegalSidechainEvidence), s.InputNum, s.OutputNum, s.AttrNum, s.ProgramNum)
+	txn := randomOldVersionTransaction(false, byte(common2.IllegalSidechainEvidence), s.InputNum, s.OutputNum, s.AttrNum, s.ProgramNum)
 	p := &payload.SidechainIllegalData{
 		IllegalType:         payload.IllegalDataType(rand.Intn(6)),
 		Height:              rand.Uint32(),
@@ -515,7 +516,7 @@ func (s *transactionSuite) TestSidechainIllegalData_SerializeDeserialize() {
 }
 
 func (s *transactionSuite) TestInactiveArbitrators_SerializeDeserialize() {
-	txn := randomOldVersionTransaction(false, byte(InactiveArbitrators), s.InputNum, s.OutputNum, s.AttrNum, s.ProgramNum)
+	txn := randomOldVersionTransaction(false, byte(common2.InactiveArbitrators), s.InputNum, s.OutputNum, s.AttrNum, s.ProgramNum)
 	p := &payload.InactiveArbitrators{
 		Sponsor:     randomPublicKey(),
 		BlockHeight: rand.Uint32(),
@@ -822,7 +823,7 @@ func TestTransactionSuite(t *testing.T) {
 
 func assertOldVersionTxEqual(oldVersion bool, suite *suite.Suite, first, second *Transaction, inputNum, outputNum, attrNum, programNum int) {
 	if oldVersion {
-		suite.Equal(TxVersionDefault, second.Version)
+		suite.Equal(common2.TxVersionDefault, second.Version)
 	} else {
 		suite.Equal(first.Version, second.Version)
 	}
@@ -868,23 +869,23 @@ func assertOldVersionTxEqual(oldVersion bool, suite *suite.Suite, first, second 
 
 func randomOldVersionTransaction(oldVersion bool, txType byte, inputNum, outputNum, attrNum, programNum int) *Transaction {
 	txn := &Transaction{
-		Version:        TransactionVersion(txType),
-		TxType:         TxType(txType),
+		Version:        common2.TransactionVersion(txType),
+		TxType:         common2.TxType(txType),
 		PayloadVersion: byte(0),
 		LockTime:       rand.Uint32(),
-		Inputs:         make([]*Input, 0),
-		Outputs:        make([]*Output, 0),
-		Attributes:     make([]*Attribute, 0),
+		Inputs:         make([]*common2.Input, 0),
+		Outputs:        make([]*common2.Output, 0),
+		Attributes:     make([]*common2.Attribute, 0),
 		Programs:       make([]*program.Program, 0),
 	}
 	if !oldVersion {
-		txn.Version = TxVersion09
+		txn.Version = common2.TxVersion09
 	}
 
 	for i := 0; i < inputNum; i++ {
-		txn.Inputs = append(txn.Inputs, &Input{
+		txn.Inputs = append(txn.Inputs, &common2.Input{
 			Sequence: rand.Uint32(),
-			Previous: OutPoint{
+			Previous: common2.OutPoint{
 				TxID:  *randomUint256(),
 				Index: uint16(rand.Uint32()),
 			},
@@ -892,7 +893,7 @@ func randomOldVersionTransaction(oldVersion bool, txType byte, inputNum, outputN
 	}
 
 	for i := 0; i < outputNum; i++ {
-		output := &Output{
+		output := &common2.Output{
 			AssetID:     *randomUint256(),
 			Value:       common.Fixed64(rand.Int63()),
 			OutputLock:  rand.Uint32(),
@@ -901,15 +902,17 @@ func randomOldVersionTransaction(oldVersion bool, txType byte, inputNum, outputN
 			Payload:     nil,
 		}
 		if !oldVersion {
-			output.Type = OTNone
+			output.Type = common2.OTNone
 			output.Payload = &outputpayload.DefaultOutput{}
 		}
 		txn.Outputs = append(txn.Outputs, output)
 	}
 
-	validAttrUsage := []AttributeUsage{Nonce, Script, Memo, Description, DescriptionUrl, Confirmations}
+	validAttrUsage := []common2.AttributeUsage{common2.Nonce,
+		common2.Script, common2.Memo, common2.Description,
+		common2.DescriptionUrl, common2.Confirmations}
 	for i := 0; i < attrNum; i++ {
-		txn.Attributes = append(txn.Attributes, &Attribute{
+		txn.Attributes = append(txn.Attributes, &common2.Attribute{
 			Usage: validAttrUsage[rand.Intn(len(validAttrUsage))],
 			Data:  []byte(strconv.FormatUint(rand.Uint64(), 10)),
 		})

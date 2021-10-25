@@ -10,6 +10,7 @@ import (
 	"github.com/elastos/Elastos.ELA/benchmark/common/tx"
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/core/types"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 )
 
 type singleInputOutput struct {
@@ -37,7 +38,7 @@ func createSingleInputOutputTx() (*types.Transaction, error) {
 		return nil, err
 	}
 
-	generator := tx.NewGenerator(types.TransferAsset, acc)
+	generator := tx.NewGenerator(common2.TransferAsset, acc)
 	txn := generator.Generate()
 
 	utxo := types.UTXO{

@@ -13,6 +13,7 @@ import (
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/core/types"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/stretchr/testify/assert"
 )
@@ -86,28 +87,28 @@ func TestArbitrators_GetNormalArbitratorsDesc(t *testing.T) {
 		},
 		Transactions: []*types.Transaction{
 			{
-				TxType: types.RegisterProducer,
+				TxType: common2.RegisterProducer,
 				Payload: &payload.ProducerInfo{
 					OwnerPublicKey: arbitratorList[0],
 					NodePublicKey:  arbitratorList[0],
 				},
 			},
 			{
-				TxType: types.RegisterProducer,
+				TxType: common2.RegisterProducer,
 				Payload: &payload.ProducerInfo{
 					OwnerPublicKey: arbitratorList[1],
 					NodePublicKey:  arbitratorList[1],
 				},
 			},
 			{
-				TxType: types.RegisterProducer,
+				TxType: common2.RegisterProducer,
 				Payload: &payload.ProducerInfo{
 					OwnerPublicKey: arbitratorList[2],
 					NodePublicKey:  arbitratorList[2],
 				},
 			},
 			{
-				TxType: types.RegisterProducer,
+				TxType: common2.RegisterProducer,
 				Payload: &payload.ProducerInfo{
 					OwnerPublicKey: arbitratorList[3],
 					NodePublicKey:  arbitratorList[3],
@@ -139,7 +140,7 @@ func TestArbitrators_GetNormalArbitratorsDesc(t *testing.T) {
 		},
 		Transactions: []*types.Transaction{
 			{
-				TxType: types.RegisterProducer,
+				TxType: common2.RegisterProducer,
 				Payload: &payload.ProducerInfo{
 					OwnerPublicKey: arbitratorList[4],
 					NodePublicKey:  arbitratorList[4],

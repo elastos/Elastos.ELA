@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/core/types"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/core/types/outputpayload"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/database"
@@ -93,7 +94,7 @@ func (idx *Tx3Index) Create(dbTx database.Tx) error {
 // This is part of the Indexer interface.
 func (idx *Tx3Index) ConnectBlock(dbTx database.Tx, block *types.Block) error {
 	for _, txn := range block.Transactions {
-		if txn.TxType != types.WithdrawFromSideChain {
+		if txn.TxType != common2.WithdrawFromSideChain {
 			continue
 		}
 		if txn.PayloadVersion == payload.WithdrawFromSideChainVersion {
@@ -106,7 +107,7 @@ func (idx *Tx3Index) ConnectBlock(dbTx database.Tx, block *types.Block) error {
 			}
 		} else if txn.PayloadVersion == payload.WithdrawFromSideChainVersionV1 {
 			for _, output := range txn.Outputs {
-				if output.Type != types.OTWithdrawFromSideChain {
+				if output.Type != common2.OTWithdrawFromSideChain {
 					continue
 				}
 				witPayload, ok := output.Payload.(*outputpayload.Withdraw)
@@ -130,7 +131,7 @@ func (idx *Tx3Index) ConnectBlock(dbTx database.Tx, block *types.Block) error {
 // This is part of the Indexer interface.
 func (idx *Tx3Index) DisconnectBlock(dbTx database.Tx, block *types.Block) error {
 	for _, txn := range block.Transactions {
-		if txn.TxType != types.WithdrawFromSideChain {
+		if txn.TxType != common2.WithdrawFromSideChain {
 			continue
 		}
 		witPayload := txn.Payload.(*payload.WithdrawFromSideChain)

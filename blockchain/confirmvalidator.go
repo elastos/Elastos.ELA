@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"errors"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/log"
@@ -126,11 +127,11 @@ func PreProcessSpecialTx(block *Block) error {
 	inactivePayloads := make([]*payload.InactiveArbitrators, 0)
 	for _, tx := range block.Transactions {
 		switch tx.TxType {
-		case InactiveArbitrators:
+		case common2.InactiveArbitrators:
 			if err := CheckInactiveArbitrators(tx); err != nil {
 				return err
 			}
-			if err := checkTransactionSignature(tx, map[*Input]Output{}); err != nil {
+			if err := checkTransactionSignature(tx, map[*common2.Input]common2.Output{}); err != nil {
 				return err
 			}
 

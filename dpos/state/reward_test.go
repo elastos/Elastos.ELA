@@ -16,6 +16,7 @@ import (
 	"github.com/elastos/Elastos.ELA/core/contract"
 	"github.com/elastos/Elastos.ELA/core/contract/program"
 	"github.com/elastos/Elastos.ELA/core/types"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/core/types/outputpayload"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/cr/state"
@@ -201,8 +202,8 @@ func getRegisterCRTx(publicKeyStr, privateKeyStr, nickName string) *types.Transa
 	hash1, _ := contract.PublicKeyToDepositProgramHash(publicKey1)
 
 	txn := new(types.Transaction)
-	txn.TxType = types.RegisterCR
-	txn.Version = types.TxVersion09
+	txn.TxType = common2.RegisterCR
+	txn.Version = common2.TxVersion09
 	crInfoPayload := &payload.CRInfo{
 		Code:     code1,
 		CID:      *cid1,
@@ -222,7 +223,7 @@ func getRegisterCRTx(publicKeyStr, privateKeyStr, nickName string) *types.Transa
 		Parameter: nil,
 	}}
 
-	txn.Outputs = []*types.Output{&types.Output{
+	txn.Outputs = []*common2.Output{&common2.Output{
 		AssetID:     common.Uint256{},
 		Value:       5000 * 100000000,
 		OutputLock:  0,
@@ -256,14 +257,14 @@ func getVoteCRTx(amount common.Fixed64,
 	candidateVotes []outputpayload.CandidateVotes) *types.Transaction {
 	return &types.Transaction{
 		Version: 0x09,
-		TxType:  types.TransferAsset,
-		Outputs: []*types.Output{
+		TxType:  common2.TransferAsset,
+		Outputs: []*common2.Output{
 			{
 				AssetID:     common.Uint256{},
 				Value:       amount,
 				OutputLock:  0,
 				ProgramHash: common.Uint168{123},
-				Type:        types.OTVote,
+				Type:        common2.OTVote,
 				Payload: &outputpayload.VoteOutput{
 					Version: outputpayload.VoteProducerAndCRVersion,
 					Contents: []outputpayload.VoteContent{

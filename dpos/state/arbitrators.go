@@ -10,6 +10,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"math"
 	"math/rand"
 	"sort"
@@ -134,7 +135,7 @@ func (a *arbitrators) RegisterFunction(bestHeight func() uint32,
 	bestBlockHash func() *common.Uint256,
 	getBlockByHeight func(uint32) (*types.Block, error),
 	getTxReference func(tx *types.Transaction) (
-		map[*types.Input]types.Output, error)) {
+		map[*common2.Input]common2.Output, error)) {
 	a.bestHeight = bestHeight
 	a.bestBlockHash = bestBlockHash
 	a.getBlockByHeight = getBlockByHeight
@@ -578,11 +579,11 @@ func (a *arbitrators) createRevertToPOWTransaction(blockHeight uint32) {
 		WorkingHeight: blockHeight + 1,
 	}
 	tx := &types.Transaction{
-		Version:        types.TxVersion09,
-		TxType:         types.RevertToPOW,
+		Version:        common2.TxVersion09,
+		TxType:         common2.RevertToPOW,
 		PayloadVersion: payload.RevertToPOWVersion,
 		Payload:        &revertToPOWPayload,
-		Attributes:     []*types.Attribute{},
+		Attributes:     []*common2.Attribute{},
 		Programs:       []*program.Program{},
 		LockTime:       0,
 	}
@@ -1528,10 +1529,10 @@ func (a *arbitrators) createNextTurnDPOSInfoTransaction(blockHeight uint32, forc
 		a.ConvertToArbitersStr(nextTurnDPOSInfo.CRPublicKeys), a.ConvertToArbitersStr(nextTurnDPOSInfo.DPOSPublicKeys))
 
 	return &types.Transaction{
-		Version:    types.TxVersion09,
-		TxType:     types.NextTurnDPOSInfo,
+		Version:    common2.TxVersion09,
+		TxType:     common2.NextTurnDPOSInfo,
 		Payload:    &nextTurnDPOSInfo,
-		Attributes: []*types.Attribute{},
+		Attributes: []*common2.Attribute{},
 		Programs:   []*program.Program{},
 		LockTime:   0,
 	}

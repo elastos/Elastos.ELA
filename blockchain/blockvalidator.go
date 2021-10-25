@@ -8,6 +8,7 @@ package blockchain
 import (
 	"bytes"
 	"errors"
+	"github.com/elastos/Elastos.ELA/core/types/common"
 	"math"
 	"math/big"
 	"strconv"
@@ -139,7 +140,7 @@ func checkDuplicateTx(block *Block) error {
 	existingCR := make(map[Uint168]struct{})
 	for _, txn := range block.Transactions {
 		switch txn.TxType {
-		case WithdrawFromSideChain:
+		case common.WithdrawFromSideChain:
 			witPayload := txn.Payload.(*payload.WithdrawFromSideChain)
 
 			// Check for duplicate sidechain tx in a block
@@ -149,7 +150,7 @@ func checkDuplicateTx(block *Block) error {
 				}
 				existingSideTxs[hash] = struct{}{}
 			}
-		case RegisterProducer:
+		case common.RegisterProducer:
 			producerPayload, ok := txn.Payload.(*payload.ProducerInfo)
 			if !ok {
 				return errors.New("[PowCheckBlockSanity] invalid register producer payload")
@@ -168,7 +169,7 @@ func checkDuplicateTx(block *Block) error {
 				return errors.New("[PowCheckBlockSanity] block contains duplicate producer node")
 			}
 			existingProducerNode[producerNode] = struct{}{}
-		case UpdateProducer:
+		case common.UpdateProducer:
 			producerPayload, ok := txn.Payload.(*payload.ProducerInfo)
 			if !ok {
 				return errors.New("[PowCheckBlockSanity] invalid update producer payload")
@@ -187,7 +188,7 @@ func checkDuplicateTx(block *Block) error {
 				return errors.New("[PowCheckBlockSanity] block contains duplicate producer node")
 			}
 			existingProducerNode[producerNode] = struct{}{}
-		case CancelProducer:
+		case common.CancelProducer:
 			processProducerPayload, ok := txn.Payload.(*payload.ProcessProducer)
 			if !ok {
 				return errors.New("[PowCheckBlockSanity] invalid cancel producer payload")
@@ -199,7 +200,7 @@ func checkDuplicateTx(block *Block) error {
 				return errors.New("[PowCheckBlockSanity] block contains duplicate producer")
 			}
 			existingProducer[producer] = struct{}{}
-		case RegisterCR:
+		case common.RegisterCR:
 			crPayload, ok := txn.Payload.(*payload.CRInfo)
 			if !ok {
 				return errors.New("[PowCheckBlockSanity] invalid register CR payload")
@@ -210,7 +211,7 @@ func checkDuplicateTx(block *Block) error {
 				return errors.New("[PowCheckBlockSanity] block contains duplicate CR")
 			}
 			existingCR[crPayload.CID] = struct{}{}
-		case UpdateCR:
+		case common.UpdateCR:
 			crPayload, ok := txn.Payload.(*payload.CRInfo)
 			if !ok {
 				return errors.New("[PowCheckBlockSanity] invalid update CR payload")
@@ -221,7 +222,7 @@ func checkDuplicateTx(block *Block) error {
 				return errors.New("[PowCheckBlockSanity] block contains duplicate CR")
 			}
 			existingCR[crPayload.CID] = struct{}{}
-		case UnregisterCR:
+		case common.UnregisterCR:
 			unregisterCR, ok := txn.Payload.(*payload.UnregisterCR)
 			if !ok {
 				return errors.New("[PowCheckBlockSanity] invalid unregister CR payload")
@@ -382,7 +383,7 @@ func IsFinalizedTransaction(msgTx *Transaction, blockHeight uint32) bool {
 	return true
 }
 
-func GetTxFee(tx *Transaction, assetId Uint256, references map[*Input]Output) Fixed64 {
+func GetTxFee(tx *Transaction, assetId Uint256, references map[*common.Input]common.Output) Fixed64 {
 	feeMap, err := GetTxFeeMap(tx, references)
 	if err != nil {
 		return 0
@@ -391,7 +392,7 @@ func GetTxFee(tx *Transaction, assetId Uint256, references map[*Input]Output) Fi
 	return feeMap[assetId]
 }
 
-func GetTxFeeMap(tx *Transaction, references map[*Input]Output) (map[Uint256]Fixed64, error) {
+func GetTxFeeMap(tx *Transaction, references map[*common.Input]common.Output) (map[Uint256]Fixed64, error) {
 	feeMap := make(map[Uint256]Fixed64)
 	var inputs = make(map[Uint256]Fixed64)
 	var outputs = make(map[Uint256]Fixed64)

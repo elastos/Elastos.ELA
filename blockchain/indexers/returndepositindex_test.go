@@ -11,6 +11,7 @@ import (
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/log"
 	"github.com/elastos/Elastos.ELA/core/types"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/core/types/outputpayload"
 	"github.com/elastos/Elastos.ELA/database"
 	"github.com/elastos/Elastos.ELA/utils/test"
@@ -20,20 +21,20 @@ import (
 
 var (
 	returnDepositHash = common.Uint256{1, 2, 3}
-	txOutput          = &types.Output{
+	txOutput          = &common2.Output{
 		Value:      100000000,
 		OutputLock: 0,
-		Type:       types.OTReturnSideChainDepositCoin,
+		Type:       common2.OTReturnSideChainDepositCoin,
 		Payload: &outputpayload.ReturnSideChainDeposit{
 			Version:                0,
 			DepositTransactionHash: returnDepositHash,
 		},
 	}
 	tx5 = &types.Transaction{
-		TxType:         types.ReturnSideChainDepositCoin,
+		TxType:         common2.ReturnSideChainDepositCoin,
 		PayloadVersion: 0,
-		Inputs:         []*types.Input{},
-		Outputs:        []*types.Output{txOutput},
+		Inputs:         []*common2.Input{},
+		Outputs:        []*common2.Output{txOutput},
 	}
 
 	testReturnDepositIndexBlock = &types.Block{

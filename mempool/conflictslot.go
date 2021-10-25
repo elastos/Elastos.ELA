@@ -10,6 +10,7 @@ import (
 
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/core/types"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/errors"
 )
 
@@ -21,12 +22,12 @@ type getKeyFunc func(*types.Transaction) (interface{}, error)
 
 // keyTypeFuncPair defines a pair about tx type and related getKeyFunc.
 type keyTypeFuncPair struct {
-	Type types.TxType
+	Type common2.TxType
 	Func getKeyFunc
 }
 
 // self-defined tx type indicates all types of txs.
-const allType types.TxType = 0xff
+const allType common2.TxType = 0xff
 
 const (
 	// str keyType will treat key as type of string.
@@ -53,7 +54,7 @@ const (
 //	generate key by which to detect the conflict.
 type conflictSlot struct {
 	keyType        keyType
-	conflictTypes  map[types.TxType]getKeyFunc
+	conflictTypes  map[common2.TxType]getKeyFunc
 	stringSet      map[string]*types.Transaction
 	hashSet        map[common.Uint256]*types.Transaction
 	programHashSet map[common.Uint168]*types.Transaction
@@ -276,7 +277,7 @@ func (s *conflictSlot) txProcess(key interface{}, t keyType,
 }
 
 func newConflictSlot(t keyType, conflictTypes ...keyTypeFuncPair) *conflictSlot {
-	ts := make(map[types.TxType]getKeyFunc)
+	ts := make(map[common2.TxType]getKeyFunc)
 	for _, v := range conflictTypes {
 		ts[v.Type] = v.Func
 	}

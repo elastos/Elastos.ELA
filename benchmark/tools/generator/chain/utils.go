@@ -16,6 +16,7 @@ import (
 	"github.com/elastos/Elastos.ELA/common/log"
 	"github.com/elastos/Elastos.ELA/core/contract/program"
 	"github.com/elastos/Elastos.ELA/core/types"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	crstate "github.com/elastos/Elastos.ELA/cr/state"
 	"github.com/elastos/Elastos.ELA/crypto"
@@ -90,26 +91,26 @@ func generateChainParams(ac *account.Account) *config.Params {
 }
 
 func newGenesisBlock(ac *account.Account) *types.Block {
-	attrNonce := types.NewAttribute(types.Nonce,
+	attrNonce := common2.NewAttribute(common2.Nonce,
 		[]byte{77, 101, 130, 33, 7, 252, 253, 82})
 	genesisTime, _ := time.Parse(time.RFC3339, "2017-12-22T10:00:00Z")
 
 	coinBase := types.Transaction{
 		Version:        0,
-		TxType:         types.CoinBase,
+		TxType:         common2.CoinBase,
 		PayloadVersion: payload.CoinBaseVersion,
 		Payload:        &payload.CoinBase{},
-		Attributes:     []*types.Attribute{&attrNonce},
-		Inputs: []*types.Input{
+		Attributes:     []*common2.Attribute{&attrNonce},
+		Inputs: []*common2.Input{
 			{
-				Previous: types.OutPoint{
+				Previous: common2.OutPoint{
 					TxID:  common.Uint256{},
 					Index: 0x0000,
 				},
 				Sequence: 0x00000000,
 			},
 		},
-		Outputs: []*types.Output{
+		Outputs: []*common2.Output{
 			{
 				AssetID:     config.ELAAssetID,
 				Value:       3300 * 10000 * 100000000,
@@ -136,7 +137,7 @@ func newGenesisBlock(ac *account.Account) *types.Block {
 		Transactions: []*types.Transaction{
 			&coinBase,
 			{
-				TxType:         types.RegisterAsset,
+				TxType:         common2.RegisterAsset,
 				PayloadVersion: 0,
 				Payload: &payload.RegisterAsset{
 					Asset: payload.Asset{
@@ -147,9 +148,9 @@ func newGenesisBlock(ac *account.Account) *types.Block {
 					Amount:     0 * 100000000,
 					Controller: common.Uint168{},
 				},
-				Attributes: []*types.Attribute{},
-				Inputs:     []*types.Input{},
-				Outputs:    []*types.Output{},
+				Attributes: []*common2.Attribute{},
+				Inputs:     []*common2.Input{},
+				Outputs:    []*common2.Output{},
 				Programs:   []*program.Program{},
 			}},
 	}

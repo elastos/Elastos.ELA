@@ -11,6 +11,7 @@ import (
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/log"
 	"github.com/elastos/Elastos.ELA/core/types"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/database"
 	"github.com/elastos/Elastos.ELA/utils/test"
@@ -21,15 +22,15 @@ import (
 var (
 	tx3Hash = common.Uint256{1, 2, 3}
 	tx4     = &types.Transaction{
-		TxType:         types.WithdrawFromSideChain,
+		TxType:         common2.WithdrawFromSideChain,
 		PayloadVersion: 0,
 		Payload: &payload.WithdrawFromSideChain{
 			SideChainTransactionHashes: []common.Uint256{
 				tx3Hash,
 			},
 		},
-		Inputs:  []*types.Input{},
-		Outputs: []*types.Output{},
+		Inputs:  []*common2.Input{},
+		Outputs: []*common2.Output{},
 	}
 
 	testTx3IndexBlock = &types.Block{

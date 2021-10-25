@@ -10,6 +10,7 @@ import (
 	"github.com/elastos/Elastos.ELA/benchmark/common/utils"
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/core/types"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 )
 
 const (
@@ -22,9 +23,9 @@ type noChangesEvenAssigner struct {
 }
 
 func (a *noChangesEvenAssigner) SignAndChange(tx *types.Transaction) error {
-	tx.Inputs = []*types.Input{
+	tx.Inputs = []*common2.Input{
 		{
-			Previous: types.OutPoint{
+			Previous: common2.OutPoint{
 				TxID:  a.utxo.TxID,
 				Index: a.utxo.Index,
 			},

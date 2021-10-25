@@ -13,20 +13,21 @@ import (
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/core/types"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestSortTransactions(t *testing.T) {
 	txs := []*types.Transaction{
-		&types.Transaction{TxType: types.CoinBase},
-		&types.Transaction{TxType: types.TransferAsset},
-		&types.Transaction{TxType: types.TransferAsset},
-		&types.Transaction{TxType: types.CRCProposalTracking},
-		&types.Transaction{TxType: types.CRCProposalWithdraw},
-		&types.Transaction{TxType: types.CRCProposalWithdraw},
-		&types.Transaction{TxType: types.TransferAsset},
-		&types.Transaction{TxType: types.CRCProposalWithdraw},
+		&types.Transaction{TxType: common2.CoinBase},
+		&types.Transaction{TxType: common2.TransferAsset},
+		&types.Transaction{TxType: common2.TransferAsset},
+		&types.Transaction{TxType: common2.CRCProposalTracking},
+		&types.Transaction{TxType: common2.CRCProposalWithdraw},
+		&types.Transaction{TxType: common2.CRCProposalWithdraw},
+		&types.Transaction{TxType: common2.TransferAsset},
+		&types.Transaction{TxType: common2.CRCProposalWithdraw},
 	}
 
 	sortTransactions(txs[1:])

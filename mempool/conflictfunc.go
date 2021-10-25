@@ -8,6 +8,7 @@ package mempool
 import (
 	"encoding/hex"
 	"fmt"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/core/types/outputpayload"
 	"strconv"
 
@@ -380,7 +381,7 @@ func hashArraySidechainTransactionHashes(
 	} else if tx.PayloadVersion == payload.WithdrawFromSideChainVersionV1 {
 		array := make([]common.Uint256, 0)
 		for _, output := range tx.Outputs {
-			if output.Type != types.OTWithdrawFromSideChain {
+			if output.Type != common2.OTWithdrawFromSideChain {
 				continue
 			}
 			witPayload, ok := output.Payload.(*outputpayload.Withdraw)
@@ -411,7 +412,7 @@ func hashArraySidechainReturnDepositTransactionHashes(
 	tx *types.Transaction) (interface{}, error) {
 	arrayHash := make([]common.Uint256, 0)
 	for _, output := range tx.Outputs {
-		if output.Type == types.OTReturnSideChainDepositCoin {
+		if output.Type == common2.OTReturnSideChainDepositCoin {
 			payload, ok := output.Payload.(*outputpayload.ReturnSideChainDeposit)
 			if ok {
 				arrayHash = append(arrayHash, payload.DepositTransactionHash)

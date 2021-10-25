@@ -10,6 +10,7 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"sort"
 	"strings"
 
@@ -128,7 +129,7 @@ func GetTransactionContextInfo(header *Header, tx *Transaction) *TransactionCont
 	}
 }
 
-// Input JSON string examples for getblock method as following:
+// common2.Input JSON string examples for getblock method as following:
 func GetRawTransaction(param Params) map[string]interface{} {
 	str, ok := param.String("txid")
 	if !ok {
@@ -1133,7 +1134,7 @@ func GetUTXOsByAmount(param Params) map[string]interface{} {
 		var unusedUTXOs []*UTXO
 		usedUTXOs := TxMemPool.GetUsedUTXOs()
 		for _, u := range utxos {
-			outPoint := OutPoint{TxID: u.TxID, Index: u.Index}
+			outPoint := common2.OutPoint{TxID: u.TxID, Index: u.Index}
 			referKey := outPoint.ReferKey()
 			if _, ok := usedUTXOs[referKey]; !ok {
 				unusedUTXOs = append(unusedUTXOs, u)
@@ -1152,15 +1153,15 @@ func GetUTXOsByAmount(param Params) map[string]interface{} {
 			return ResponsePack(InternalError, "unknown transaction "+
 				utxo.TxID.String()+" from persisted utxo")
 		}
-		if utxoType == "vote" && (tx.Version < TxVersion09 ||
-			tx.Version >= TxVersion09 && tx.Outputs[utxo.Index].Type != OTVote) {
+		if utxoType == "vote" && (tx.Version < common2.TxVersion09 ||
+			tx.Version >= common2.TxVersion09 && tx.Outputs[utxo.Index].Type != common2.OTVote) {
 			continue
 		}
-		if utxoType == "normal" && tx.Version >= TxVersion09 &&
-			tx.Outputs[utxo.Index].Type == OTVote {
+		if utxoType == "normal" && tx.Version >= common2.TxVersion09 &&
+			tx.Outputs[utxo.Index].Type == common2.OTVote {
 			continue
 		}
-		if tx.TxType == CoinBase && bestHeight-height < config.DefaultParams.CoinbaseMaturity {
+		if tx.TxType == common2.CoinBase && bestHeight-height < config.DefaultParams.CoinbaseMaturity {
 			continue
 		}
 		totalAmount += utxo.Value
@@ -1202,7 +1203,7 @@ func GetAmountByInputs(param Params) map[string]interface{} {
 
 	amount := common.Fixed64(0)
 	for i := uint64(0); i < count; i++ {
-		input := new(Input)
+		input := new(common2.Input)
 		if err := input.Deserialize(r); err != nil {
 			return ResponsePack(InvalidParams, "invalid inputs")
 		}
@@ -1253,11 +1254,11 @@ func ListUnspent(param Params) map[string]interface{} {
 				return ResponsePack(InternalError,
 					"unknown transaction "+utxo.TxID.String()+" from persisted utxo")
 			}
-			if utxoType == "vote" && (tx.Version < TxVersion09 ||
-				tx.Version >= TxVersion09 && tx.Outputs[utxo.Index].Type != OTVote) {
+			if utxoType == "vote" && (tx.Version < common2.TxVersion09 ||
+				tx.Version >= common2.TxVersion09 && tx.Outputs[utxo.Index].Type != common2.OTVote) {
 				continue
 			}
-			if utxoType == "normal" && tx.Version >= TxVersion09 && tx.Outputs[utxo.Index].Type == OTVote {
+			if utxoType == "normal" && tx.Version >= common2.TxVersion09 && tx.Outputs[utxo.Index].Type == common2.OTVote {
 				continue
 			}
 			if utxo.Value == 0 {
@@ -1308,7 +1309,7 @@ func CreateRawTransaction(param Params) map[string]interface{} {
 		return true
 	})
 
-	txInputs := make([]*Input, 0)
+	txInputs := make([]*common2.Input, 0)
 	for _, v := range inputs {
 		txIDStr := gjson.Get(v, "txid").String()
 		txIDBytes, err := common.HexStringToBytes(txIDStr)
@@ -1319,8 +1320,8 @@ func CreateRawTransaction(param Params) map[string]interface{} {
 		if err != nil {
 			return ResponsePack(InvalidParams, "invalid txid in inputs param")
 		}
-		input := &Input{
-			Previous: OutPoint{
+		input := &common2.Input{
+			Previous: common2.OutPoint{
 				TxID:  *txID,
 				Index: uint16(gjson.Get(v, "vout").Int()),
 			},
@@ -1328,7 +1329,7 @@ func CreateRawTransaction(param Params) map[string]interface{} {
 		txInputs = append(txInputs, input)
 	}
 
-	txOutputs := make([]*Output, 0)
+	txOutputs := make([]*common2.Output, 0)
 	for _, v := range outputs {
 		amount := gjson.Get(v, "amount").String()
 		value, err := common.StringToFixed64(amount)
@@ -1340,22 +1341,22 @@ func CreateRawTransaction(param Params) map[string]interface{} {
 		if err != nil {
 			return ResponsePack(InvalidParams, "invalid address in outputs param")
 		}
-		output := &Output{
+		output := &common2.Output{
 			AssetID:     *account.SystemAssetID,
 			Value:       *value,
 			OutputLock:  0,
 			ProgramHash: *programHash,
-			Type:        OTNone,
+			Type:        common2.OTNone,
 			Payload:     &outputpayload.DefaultOutput{},
 		}
 		txOutputs = append(txOutputs, output)
 	}
 
 	txn := &Transaction{
-		Version:    TxVersion09,
-		TxType:     TransferAsset,
+		Version:    common2.TxVersion09,
+		TxType:     common2.TransferAsset,
 		Payload:    &payload.TransferAsset{},
-		Attributes: []*Attribute{},
+		Attributes: []*common2.Attribute{},
 		Inputs:     txInputs,
 		Outputs:    txOutputs,
 		Programs:   []*pg.Program{},
@@ -2472,7 +2473,7 @@ func VoteStatus(param Params) map[string]interface{} {
 		if err != nil {
 			return ResponsePack(InternalError, "unknown transaction "+utxo.TxID.String()+" from persisted utxo")
 		}
-		if tx.Outputs[utxo.Index].Type == OTVote {
+		if tx.Outputs[utxo.Index].Type == common2.OTVote {
 			voting += utxo.Value
 		}
 		total += utxo.Value
@@ -2490,7 +2491,7 @@ func VoteStatus(param Params) map[string]interface{} {
 			}
 		}
 		for _, o := range t.Outputs {
-			if o.Type == OTVote && o.ProgramHash.IsEqual(*programHash) {
+			if o.Type == common2.OTVote && o.ProgramHash.IsEqual(*programHash) {
 				pending = true
 			}
 		}
@@ -3056,7 +3057,7 @@ func getPayloadInfo(p Payload, payloadVersion byte) PayloadInfo {
 	return nil
 }
 
-func getOutputPayloadInfo(op OutputPayload) OutputPayloadInfo {
+func getOutputPayloadInfo(op common2.OutputPayload) OutputPayloadInfo {
 	switch object := op.(type) {
 	case *outputpayload.CrossChainOutput:
 		obj := new(CrossChainOutputInfo)

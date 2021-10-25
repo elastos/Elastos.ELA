@@ -10,6 +10,7 @@ import (
 	"container/list"
 	"errors"
 	"fmt"
+	"github.com/elastos/Elastos.ELA/core/types/common"
 	"math/big"
 	"os"
 	"path/filepath"
@@ -326,9 +327,9 @@ func (b *BlockChain) InitCheckpoint(interrupt <-chan struct{},
 	return err
 }
 
-func (b *BlockChain) createTransaction(pd Payload, txType TxType,
+func (b *BlockChain) createTransaction(pd Payload, txType common.TxType,
 	fromAddress Uint168, fee Fixed64, lockedUntil uint32,
-	utxos []*UTXO, outputs ...*OutputInfo) (*Transaction, error) {
+	utxos []*UTXO, outputs ...*common.OutputInfo) (*Transaction, error) {
 	// check output
 	if len(outputs) == 0 {
 		return nil, errors.New("invalid transaction target")
@@ -346,10 +347,10 @@ func (b *BlockChain) createTransaction(pd Payload, txType TxType,
 	}
 	txOutputs = append(txOutputs, changeOutputs...)
 	return &Transaction{
-		Version:    TxVersion09,
+		Version:    common.TxVersion09,
 		TxType:     txType,
 		Payload:    pd,
-		Attributes: []*Attribute{},
+		Attributes: []*common.Attribute{},
 		Inputs:     txInputs,
 		Outputs:    txOutputs,
 		Programs:   []*program.Program{},
@@ -357,18 +358,18 @@ func (b *BlockChain) createTransaction(pd Payload, txType TxType,
 	}, nil
 }
 
-func (b *BlockChain) createNormalOutputs(outputs []*OutputInfo, fee Fixed64,
-	lockedUntil uint32) ([]*Output, Fixed64, error) {
+func (b *BlockChain) createNormalOutputs(outputs []*common.OutputInfo, fee Fixed64,
+	lockedUntil uint32) ([]*common.Output, Fixed64, error) {
 	var totalAmount = Fixed64(0) // The total amount will be spend
-	var txOutputs []*Output      // The outputs in transaction
+	var txOutputs []*common.Output      // The outputs in transaction
 	totalAmount += fee           // Add transaction fee
 	for _, output := range outputs {
-		txOutput := &Output{
+		txOutput := &common.Output{
 			AssetID:     *elaact.SystemAssetID,
 			ProgramHash: output.Recipient,
 			Value:       output.Amount,
 			OutputLock:  lockedUntil,
-			Type:        OTNone,
+			Type:        common.OTNone,
 			Payload:     &outputpayload.DefaultOutput{},
 		}
 		totalAmount += output.Amount
@@ -408,12 +409,12 @@ func (b *BlockChain) getUTXOsFromAddress(address Uint168) ([]*UTXO, Fixed64, err
 }
 
 func (b *BlockChain) createInputs(fromAddress Uint168,
-	totalAmount Fixed64, utxos []*UTXO) ([]*Input, []*Output, error) {
-	var txInputs []*Input
-	var changeOutputs []*Output
+	totalAmount Fixed64, utxos []*UTXO) ([]*common.Input, []*common.Output, error) {
+	var txInputs []*common.Input
+	var changeOutputs []*common.Output
 	for _, utxo := range utxos {
-		input := &Input{
-			Previous: OutPoint{
+		input := &common.Input{
+			Previous: common.OutPoint{
 				TxID:  utxo.TxID,
 				Index: uint16(utxo.Index),
 			},
@@ -427,12 +428,12 @@ func (b *BlockChain) createInputs(fromAddress Uint168,
 			totalAmount = 0
 			break
 		} else if *amount > totalAmount {
-			change := &Output{
+			change := &common.Output{
 				AssetID:     *elaact.SystemAssetID,
 				Value:       *amount - totalAmount,
 				OutputLock:  uint32(0),
 				ProgramHash: fromAddress,
-				Type:        OTNone,
+				Type:        common.OTNone,
 				Payload:     &outputpayload.DefaultOutput{},
 			}
 			changeOutputs = append(changeOutputs, change)
@@ -463,11 +464,11 @@ func (b *BlockChain) CreateCRCAppropriationTransaction() (*Transaction, Fixed64,
 	if appropriationAmount <= 0 {
 		return nil, 0, nil
 	}
-	outputs := []*OutputInfo{{b.chainParams.CRExpensesAddress,
+	outputs := []*common.OutputInfo{{b.chainParams.CRExpensesAddress,
 		appropriationAmount}}
 
 	var tx *Transaction
-	tx, err = b.createTransaction(&payload.CRCAppropriation{}, CRCAppropriation,
+	tx, err = b.createTransaction(&payload.CRCAppropriation{}, common.CRCAppropriation,
 		b.chainParams.CRAssetsAddress, Fixed64(0), uint32(0), utxos, outputs...)
 	if err != nil {
 		return nil, 0, err
@@ -476,7 +477,7 @@ func (b *BlockChain) CreateCRCAppropriationTransaction() (*Transaction, Fixed64,
 }
 
 func (b *BlockChain) CreateCRRealWithdrawTransaction(
-	withdrawTransactionHashes []Uint256, outputs []*OutputInfo) (*Transaction, error) {
+	withdrawTransactionHashes []Uint256, outputs []*common.OutputInfo) (*Transaction, error) {
 	utxos, _, err := b.getUTXOsFromAddress(b.chainParams.CRExpensesAddress)
 	if err != nil {
 		return nil, err
@@ -492,7 +493,7 @@ func (b *BlockChain) CreateCRRealWithdrawTransaction(
 
 	txFee := b.chainParams.RealWithdrawSingleFee * Fixed64(len(withdrawTransactionHashes))
 	var tx *Transaction
-	tx, err = b.createTransaction(wPayload, CRCProposalRealWithdraw,
+	tx, err = b.createTransaction(wPayload, common.CRCProposalRealWithdraw,
 		b.chainParams.CRExpensesAddress, txFee, uint32(0), utxos, outputs...)
 	if err != nil {
 		return nil, err
@@ -524,11 +525,11 @@ func (b *BlockChain) CreateCRAssetsRectifyTransaction() (*Transaction, error) {
 	if rectifyAmount <= 0 {
 		return nil, nil
 	}
-	outputs := []*OutputInfo{{b.chainParams.CRAssetsAddress,
+	outputs := []*common.OutputInfo{{b.chainParams.CRAssetsAddress,
 		rectifyAmount}}
 
 	var tx *Transaction
-	tx, err = b.createTransaction(&payload.CRAssetsRectify{}, CRAssetsRectify,
+	tx, err = b.createTransaction(&payload.CRAssetsRectify{}, common.CRAssetsRectify,
 		b.chainParams.CRAssetsAddress, b.chainParams.RectifyTxFee, uint32(0), utxos, outputs...)
 	if err != nil {
 		return nil, err

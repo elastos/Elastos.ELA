@@ -7,6 +7,7 @@ package state
 
 import (
 	"fmt"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
@@ -756,7 +757,7 @@ func (p *ProposalManager) proposalWithdraw(tx *types.Transaction,
 			}
 		}
 		if tx.PayloadVersion == payload.CRCProposalWithdrawVersion01 {
-			p.WithdrawableTxInfo[tx.Hash()] = types.OutputInfo{
+			p.WithdrawableTxInfo[tx.Hash()] = common2.OutputInfo{
 				Recipient: withdrawPayload.Recipient,
 				Amount:    withdrawPayload.Amount,
 			}

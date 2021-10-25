@@ -16,6 +16,7 @@ import (
 	"github.com/elastos/Elastos.ELA/core/contract"
 	"github.com/elastos/Elastos.ELA/core/contract/program"
 	"github.com/elastos/Elastos.ELA/core/types"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/crypto"
 	"github.com/stretchr/testify/assert"
@@ -26,7 +27,7 @@ func TestConflictManager_DPoS_OwnerPublicKey(t *testing.T) {
 		pk := randomPublicKey()
 		txs := []*types.Transaction{
 			{
-				TxType: types.RegisterProducer,
+				TxType: common2.RegisterProducer,
 				Payload: &payload.ProducerInfo{
 					OwnerPublicKey: pk,
 					NodePublicKey:  randomPublicKey(),
@@ -34,7 +35,7 @@ func TestConflictManager_DPoS_OwnerPublicKey(t *testing.T) {
 				},
 			},
 			{
-				TxType: types.UpdateProducer,
+				TxType: common2.UpdateProducer,
 				Payload: &payload.ProducerInfo{
 					OwnerPublicKey: pk,
 					NodePublicKey:  randomPublicKey(),
@@ -42,13 +43,13 @@ func TestConflictManager_DPoS_OwnerPublicKey(t *testing.T) {
 				},
 			},
 			{
-				TxType: types.CancelProducer,
+				TxType: common2.CancelProducer,
 				Payload: &payload.ProcessProducer{
 					OwnerPublicKey: pk,
 				},
 			},
 			{
-				TxType: types.RegisterCR,
+				TxType: common2.RegisterCR,
 				Payload: &payload.CRInfo{
 					Code: redeemScriptFromPk(pk),
 				},
@@ -64,7 +65,7 @@ func TestConflictManager_DPoS_NodePublicKey(t *testing.T) {
 		pk := randomPublicKey()
 		txs := []*types.Transaction{
 			{
-				TxType: types.RegisterProducer,
+				TxType: common2.RegisterProducer,
 				Payload: &payload.ProducerInfo{
 					OwnerPublicKey: randomPublicKey(),
 					NodePublicKey:  pk,
@@ -72,7 +73,7 @@ func TestConflictManager_DPoS_NodePublicKey(t *testing.T) {
 				},
 			},
 			{
-				TxType: types.UpdateProducer,
+				TxType: common2.UpdateProducer,
 				Payload: &payload.ProducerInfo{
 					OwnerPublicKey: randomPublicKey(),
 					NodePublicKey:  pk,
@@ -80,13 +81,13 @@ func TestConflictManager_DPoS_NodePublicKey(t *testing.T) {
 				},
 			},
 			{
-				TxType: types.ActivateProducer,
+				TxType: common2.ActivateProducer,
 				Payload: &payload.ActivateProducer{
 					NodePublicKey: pk,
 				},
 			},
 			{
-				TxType: types.RegisterCR,
+				TxType: common2.RegisterCR,
 				Payload: &payload.CRInfo{
 					Code: redeemScriptFromPk(pk),
 				},
@@ -102,7 +103,7 @@ func TestConflictManager_DPoS_Nickname(t *testing.T) {
 		name := randomNickname()
 		txs := []*types.Transaction{
 			{
-				TxType: types.RegisterProducer,
+				TxType: common2.RegisterProducer,
 				Payload: &payload.ProducerInfo{
 					OwnerPublicKey: randomPublicKey(),
 					NodePublicKey:  randomPublicKey(),
@@ -110,7 +111,7 @@ func TestConflictManager_DPoS_Nickname(t *testing.T) {
 				},
 			},
 			{
-				TxType: types.UpdateProducer,
+				TxType: common2.UpdateProducer,
 				Payload: &payload.ProducerInfo{
 					OwnerPublicKey: randomPublicKey(),
 					NodePublicKey:  randomPublicKey(),
@@ -128,7 +129,7 @@ func TestConflictManager_CR_DID(t *testing.T) {
 		cid := *randomProgramHash()
 		txs := []*types.Transaction{
 			{
-				TxType: types.RegisterCR,
+				TxType: common2.RegisterCR,
 				Payload: &payload.CRInfo{
 					CID:      cid,
 					Code:     redeemScriptFromPk(randomPublicKey()),
@@ -136,7 +137,7 @@ func TestConflictManager_CR_DID(t *testing.T) {
 				},
 			},
 			{
-				TxType: types.UpdateCR,
+				TxType: common2.UpdateCR,
 				Payload: &payload.CRInfo{
 					CID:      cid,
 					Code:     redeemScriptFromPk(randomPublicKey()),
@@ -144,7 +145,7 @@ func TestConflictManager_CR_DID(t *testing.T) {
 				},
 			},
 			{
-				TxType: types.UnregisterCR,
+				TxType: common2.UnregisterCR,
 				Payload: &payload.UnregisterCR{
 					CID: cid,
 				},
@@ -160,7 +161,7 @@ func TestConflictManager_CR_Nickname(t *testing.T) {
 		name := randomNickname()
 		txs := []*types.Transaction{
 			{
-				TxType: types.RegisterCR,
+				TxType: common2.RegisterCR,
 				Payload: &payload.CRInfo{
 					DID:      *randomProgramHash(),
 					Code:     redeemScriptFromPk(randomPublicKey()),
@@ -168,7 +169,7 @@ func TestConflictManager_CR_Nickname(t *testing.T) {
 				},
 			},
 			{
-				TxType: types.UpdateCR,
+				TxType: common2.UpdateCR,
 				Payload: &payload.CRInfo{
 					DID:      *randomProgramHash(),
 					Code:     redeemScriptFromPk(randomPublicKey()),
@@ -186,7 +187,7 @@ func TestConflictManager_ProgramCode(t *testing.T) {
 		code := redeemScriptFromPk(randomPublicKey())
 		txs := []*types.Transaction{
 			{
-				TxType:  types.ReturnDepositCoin,
+				TxType:  common2.ReturnDepositCoin,
 				Payload: &payload.ReturnDepositCoin{},
 				Programs: []*program.Program{
 					{
@@ -195,7 +196,7 @@ func TestConflictManager_ProgramCode(t *testing.T) {
 				},
 			},
 			{
-				TxType:  types.ReturnCRDepositCoin,
+				TxType:  common2.ReturnCRDepositCoin,
 				Payload: &payload.ReturnDepositCoin{},
 				Programs: []*program.Program{
 					{
@@ -214,14 +215,14 @@ func TestConflictManager_CR_DraftHash(t *testing.T) {
 		hash := *randomHash()
 		txs := []*types.Transaction{
 			{
-				TxType: types.CRCProposal,
+				TxType: common2.CRCProposal,
 				Payload: &payload.CRCProposal{
 					DraftHash:          hash,
 					CRCouncilMemberDID: *randomProgramHash(),
 				},
 			},
 			{
-				TxType: types.CRCProposal,
+				TxType: common2.CRCProposal,
 				Payload: &payload.CRCProposal{
 					DraftHash:          hash,
 					CRCouncilMemberDID: *randomProgramHash(),
@@ -238,14 +239,14 @@ func TestConflictManager_CR_SponsorDID(t *testing.T) {
 	conflictTestProc(func(db *UtxoCacheDB) {
 		txs := []*types.Transaction{
 			{
-				TxType: types.CRCProposal,
+				TxType: common2.CRCProposal,
 				Payload: &payload.CRCProposal{
 					DraftHash:          *randomHash(),
 					CRCouncilMemberDID: did,
 				},
 			},
 			{
-				TxType: types.CRCProposal,
+				TxType: common2.CRCProposal,
 				Payload: &payload.CRCProposal{
 					DraftHash:          *randomHash(),
 					CRCouncilMemberDID: did,
@@ -262,7 +263,7 @@ func TestConflictManager_CR_ProposalHash(t *testing.T) {
 		hash := *randomHash()
 		txs := []*types.Transaction{
 			{
-				TxType: types.CRCProposalWithdraw,
+				TxType: common2.CRCProposalWithdraw,
 				Payload: &payload.CRCProposalWithdraw{
 					ProposalHash: hash,
 				},
@@ -278,7 +279,7 @@ func TestConflictManager_CR_ProposalTrackHash(t *testing.T) {
 		hash := *randomHash()
 		txs := []*types.Transaction{
 			{
-				TxType: types.CRCProposalTracking,
+				TxType: common2.CRCProposalTracking,
 				Payload: &payload.CRCProposalTracking{
 					ProposalHash: hash,
 				},
@@ -295,7 +296,7 @@ func TestConflictManager_CR_ProposalReviewKey(t *testing.T) {
 		did := *randomProgramHash()
 		txs := []*types.Transaction{
 			{
-				TxType: types.CRCProposalReview,
+				TxType: common2.CRCProposalReview,
 				Payload: &payload.CRCProposalReview{
 					ProposalHash: hash,
 					DID:          did,
@@ -311,7 +312,7 @@ func TestConflictManager_CR_AppropriationKey(t *testing.T) {
 	conflictTestProc(func(db *UtxoCacheDB) {
 		txs := []*types.Transaction{
 			{
-				TxType:  types.CRCAppropriation,
+				TxType:  common2.CRCAppropriation,
 				Payload: &payload.CRCAppropriation{},
 			},
 		}
@@ -324,7 +325,7 @@ func TestConflictManager_SpecialTxHashes(t *testing.T) {
 	conflictTestProc(func(db *UtxoCacheDB) {
 		txs := []*types.Transaction{
 			{
-				TxType: types.IllegalProposalEvidence,
+				TxType: common2.IllegalProposalEvidence,
 				Payload: &payload.DPOSIllegalProposals{
 					Evidence: payload.ProposalEvidence{
 						BlockHeader: randomHash().Bytes(),
@@ -342,7 +343,7 @@ func TestConflictManager_SpecialTxHashes(t *testing.T) {
 	conflictTestProc(func(db *UtxoCacheDB) {
 		txs := []*types.Transaction{
 			{
-				TxType: types.IllegalVoteEvidence,
+				TxType: common2.IllegalVoteEvidence,
 				Payload: &payload.DPOSIllegalVotes{
 					Evidence: payload.VoteEvidence{
 						ProposalEvidence: payload.ProposalEvidence{
@@ -364,7 +365,7 @@ func TestConflictManager_SpecialTxHashes(t *testing.T) {
 	conflictTestProc(func(db *UtxoCacheDB) {
 		txs := []*types.Transaction{
 			{
-				TxType: types.IllegalBlockEvidence,
+				TxType: common2.IllegalBlockEvidence,
 				Payload: &payload.DPOSIllegalBlocks{
 					Evidence: payload.BlockEvidence{
 						Header: randomHash().Bytes(),
@@ -382,7 +383,7 @@ func TestConflictManager_SpecialTxHashes(t *testing.T) {
 	conflictTestProc(func(db *UtxoCacheDB) {
 		txs := []*types.Transaction{
 			{
-				TxType: types.IllegalSidechainEvidence,
+				TxType: common2.IllegalSidechainEvidence,
 				Payload: &payload.SidechainIllegalData{
 					Evidence: payload.SidechainIllegalEvidence{
 						DataHash: *randomHash(),
@@ -400,7 +401,7 @@ func TestConflictManager_SpecialTxHashes(t *testing.T) {
 	conflictTestProc(func(db *UtxoCacheDB) {
 		txs := []*types.Transaction{
 			{
-				TxType: types.InactiveArbitrators,
+				TxType: common2.InactiveArbitrators,
 				Payload: &payload.InactiveArbitrators{
 					Arbitrators: [][]byte{
 						randomPublicKey(),
@@ -420,7 +421,7 @@ func TestConflictManager_Sidechain_TxHashes(t *testing.T) {
 		hash := *randomHash()
 		txs := []*types.Transaction{
 			{
-				TxType: types.WithdrawFromSideChain,
+				TxType: common2.WithdrawFromSideChain,
 				Payload: &payload.WithdrawFromSideChain{
 					SideChainTransactionHashes: []common.Uint256{
 						hash,
@@ -430,7 +431,7 @@ func TestConflictManager_Sidechain_TxHashes(t *testing.T) {
 				},
 			},
 			{
-				TxType: types.WithdrawFromSideChain,
+				TxType: common2.WithdrawFromSideChain,
 				Payload: &payload.WithdrawFromSideChain{
 					SideChainTransactionHashes: []common.Uint256{
 						hash,
@@ -449,7 +450,7 @@ func TestConflictManager_InputInferKeys(t *testing.T) {
 	conflictTestProc(func(db *UtxoCacheDB) {
 		txs := []*types.Transaction{
 			{
-				TxType: types.RegisterProducer,
+				TxType: common2.RegisterProducer,
 				Payload: &payload.ProducerInfo{
 					OwnerPublicKey: randomPublicKey(),
 					NodePublicKey:  randomPublicKey(),
@@ -457,7 +458,7 @@ func TestConflictManager_InputInferKeys(t *testing.T) {
 				},
 			},
 			{
-				TxType: types.UpdateProducer,
+				TxType: common2.UpdateProducer,
 				Payload: &payload.ProducerInfo{
 					OwnerPublicKey: randomPublicKey(),
 					NodePublicKey:  randomPublicKey(),
@@ -465,13 +466,13 @@ func TestConflictManager_InputInferKeys(t *testing.T) {
 				},
 			},
 			{
-				TxType: types.CancelProducer,
+				TxType: common2.CancelProducer,
 				Payload: &payload.ProcessProducer{
 					OwnerPublicKey: randomPublicKey(),
 				},
 			},
 			{
-				TxType: types.RegisterCR,
+				TxType: common2.RegisterCR,
 				Payload: &payload.CRInfo{
 					DID:      *randomProgramHash(),
 					Code:     redeemScriptFromPk(randomPublicKey()),
@@ -479,7 +480,7 @@ func TestConflictManager_InputInferKeys(t *testing.T) {
 				},
 			},
 			{
-				TxType: types.UpdateCR,
+				TxType: common2.UpdateCR,
 				Payload: &payload.CRInfo{
 					DID:      *randomProgramHash(),
 					Code:     redeemScriptFromPk(randomPublicKey()),
@@ -487,13 +488,13 @@ func TestConflictManager_InputInferKeys(t *testing.T) {
 				},
 			},
 			{
-				TxType: types.UnregisterCR,
+				TxType: common2.UnregisterCR,
 				Payload: &payload.UnregisterCR{
 					CID: *randomProgramHash(),
 				},
 			},
 			{
-				TxType:  types.ReturnDepositCoin,
+				TxType:  common2.ReturnDepositCoin,
 				Payload: &payload.ReturnDepositCoin{},
 				Programs: []*program.Program{
 					{
@@ -502,7 +503,7 @@ func TestConflictManager_InputInferKeys(t *testing.T) {
 				},
 			},
 			{
-				TxType:  types.ReturnCRDepositCoin,
+				TxType:  common2.ReturnCRDepositCoin,
 				Payload: &payload.ReturnDepositCoin{},
 				Programs: []*program.Program{
 					{
@@ -511,36 +512,36 @@ func TestConflictManager_InputInferKeys(t *testing.T) {
 				},
 			},
 			{
-				TxType: types.CRCProposal,
+				TxType: common2.CRCProposal,
 				Payload: &payload.CRCProposal{
 					DraftHash: *randomHash(),
 				},
 			},
 			{
-				TxType: types.CRCProposalWithdraw,
+				TxType: common2.CRCProposalWithdraw,
 				Payload: &payload.CRCProposalWithdraw{
 					ProposalHash: *randomHash(),
 				},
 			},
 			{
-				TxType: types.CRCProposalTracking,
+				TxType: common2.CRCProposalTracking,
 				Payload: &payload.CRCProposalTracking{
 					ProposalHash: *randomHash(),
 				},
 			},
 			{
-				TxType: types.CRCProposalReview,
+				TxType: common2.CRCProposalReview,
 				Payload: &payload.CRCProposalReview{
 					ProposalHash: *randomHash(),
 					DID:          *randomProgramHash(),
 				},
 			},
 			{
-				TxType:  types.CRCAppropriation,
+				TxType:  common2.CRCAppropriation,
 				Payload: &payload.CRCAppropriation{},
 			},
 			{
-				TxType: types.WithdrawFromSideChain,
+				TxType: common2.WithdrawFromSideChain,
 				Payload: &payload.WithdrawFromSideChain{
 					SideChainTransactionHashes: []common.Uint256{
 						*randomHash(),
@@ -571,9 +572,9 @@ func setPreviousTransactionIndividually(txs []*types.Transaction,
 	utxoCacheDB *UtxoCacheDB) {
 	for _, tx := range txs {
 		prevTx := newPreviousTx(utxoCacheDB)
-		tx.Inputs = []*types.Input{
+		tx.Inputs = []*common2.Input{
 			{
-				Previous: types.OutPoint{
+				Previous: common2.OutPoint{
 					TxID:  prevTx.Hash(),
 					Index: 0,
 				},
@@ -587,9 +588,9 @@ func setSamePreviousTransaction(txs []*types.Transaction,
 	utxoCacheDB *UtxoCacheDB) {
 	prevTx := newPreviousTx(utxoCacheDB)
 	for _, tx := range txs {
-		tx.Inputs = []*types.Input{
+		tx.Inputs = []*common2.Input{
 			{
-				Previous: types.OutPoint{
+				Previous: common2.OutPoint{
 					TxID:  prevTx.Hash(),
 					Index: 0,
 				},
@@ -601,9 +602,9 @@ func setSamePreviousTransaction(txs []*types.Transaction,
 
 func newPreviousTx(utxoCacheDB *UtxoCacheDB) *types.Transaction {
 	prevTx := &types.Transaction{
-		TxType:  types.TransferAsset,
+		TxType:  common2.TransferAsset,
 		Payload: &payload.TransferAsset{},
-		Outputs: []*types.Output{
+		Outputs: []*common2.Output{
 			{
 				Value:       common.Fixed64(mrand.Int63()),
 				ProgramHash: *randomProgramHash(),

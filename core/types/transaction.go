@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/elastos/Elastos.ELA/core/contract"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"io"
 
@@ -21,153 +22,14 @@ const (
 	InvalidTransactionSize = -1
 )
 
-// TxType represents different transaction types with different payload format.
-// The TxType range is 0x00 - 0x08. When it is greater than 0x08 it will be
-// interpreted as a TransactionVersion.
-type TxType byte
-
-const (
-	CoinBase                TxType = 0x00
-	RegisterAsset           TxType = 0x01
-	TransferAsset           TxType = 0x02
-	Record                  TxType = 0x03
-	Deploy                  TxType = 0x04
-	SideChainPow            TxType = 0x05
-	RechargeToSideChain     TxType = 0x06
-	WithdrawFromSideChain   TxType = 0x07
-	TransferCrossChainAsset TxType = 0x08
-
-	RegisterProducer  TxType = 0x09
-	CancelProducer    TxType = 0x0a
-	UpdateProducer    TxType = 0x0b
-	ReturnDepositCoin TxType = 0x0c
-	ActivateProducer  TxType = 0x0d
-
-	IllegalProposalEvidence  TxType = 0x0e
-	IllegalVoteEvidence      TxType = 0x0f
-	IllegalBlockEvidence     TxType = 0x10
-	IllegalSidechainEvidence TxType = 0x11
-	InactiveArbitrators      TxType = 0x12
-	UpdateVersion            TxType = 0x13
-	NextTurnDPOSInfo         TxType = 0x14
-	ProposalResult           TxType = 0x15
-
-	RegisterCR          TxType = 0x21
-	UnregisterCR        TxType = 0x22
-	UpdateCR            TxType = 0x23
-	ReturnCRDepositCoin TxType = 0x24
-
-	CRCProposal              TxType = 0x25
-	CRCProposalReview        TxType = 0x26
-	CRCProposalTracking      TxType = 0x27
-	CRCAppropriation         TxType = 0x28
-	CRCProposalWithdraw      TxType = 0x29
-	CRCProposalRealWithdraw  TxType = 0x2a
-	CRAssetsRectify          TxType = 0x2b
-	CRCouncilMemberClaimNode TxType = 0x31
-
-	RevertToPOW  TxType = 0x41
-	RevertToDPOS TxType = 0x42
-
-	ReturnSideChainDepositCoin TxType = 0x51
-)
-
-func (self TxType) Name() string {
-	switch self {
-	case CoinBase:
-		return "CoinBase"
-	case RegisterAsset:
-		return "RegisterAsset"
-	case TransferAsset:
-		return "TransferAsset"
-	case Record:
-		return "Record"
-	case Deploy:
-		return "Deploy"
-	case SideChainPow:
-		return "SideChainPow"
-	case RechargeToSideChain:
-		return "RechargeToSideChain"
-	case WithdrawFromSideChain:
-		return "WithdrawFromSideChain"
-	case TransferCrossChainAsset:
-		return "TransferCrossChainAsset"
-	case RegisterProducer:
-		return "RegisterProducer"
-	case CancelProducer:
-		return "CancelProducer"
-	case UpdateProducer:
-		return "UpdateProducer"
-	case ReturnDepositCoin:
-		return "ReturnDepositCoin"
-	case ActivateProducer:
-		return "ActivateProducer"
-	case IllegalProposalEvidence:
-		return "IllegalProposalEvidence"
-	case IllegalVoteEvidence:
-		return "IllegalVoteEvidence"
-	case IllegalBlockEvidence:
-		return "IllegalBlockEvidence"
-	case IllegalSidechainEvidence:
-		return "IllegalSidechainEvidence"
-	case InactiveArbitrators:
-		return "InactiveArbitrators"
-	case UpdateVersion:
-		return "UpdateVersion"
-	case RegisterCR:
-		return "RegisterCR"
-	case UnregisterCR:
-		return "UnregisterCR"
-	case UpdateCR:
-		return "UpdateCR"
-	case ReturnCRDepositCoin:
-		return "ReturnCRDepositCoin"
-	case CRCProposal:
-		return "CRCProposal"
-	case CRCProposalReview:
-		return "CRCProposalReview"
-	case CRCProposalWithdraw:
-		return "CRCProposalWithdraw"
-	case CRCProposalTracking:
-		return "CRCProposalTracking"
-	case CRCAppropriation:
-		return "CRCAppropriation"
-	case CRCProposalRealWithdraw:
-		return "CRCProposalRealWithdraw"
-	case CRAssetsRectify:
-		return "CRAssetsRectify"
-	case CRCouncilMemberClaimNode:
-		return "CRCouncilMemberClaimNode"
-	case NextTurnDPOSInfo:
-		return "NextTurnDPOSInfo"
-	case ProposalResult:
-		return "ProposalResult"
-	case RevertToPOW:
-		return "RevertToPOW"
-	case RevertToDPOS:
-		return "RevertToDPOS"
-	case ReturnSideChainDepositCoin:
-		return "ReturnSideChainDepositCoin"
-	default:
-		return "Unknown"
-	}
-}
-
-type TransactionVersion byte
-
-const (
-	TxVersionDefault TransactionVersion = 0x00
-	TxVersion09      TransactionVersion = 0x09
-)
-
 type Transaction struct {
-	Version        TransactionVersion // New field added in TxVersion09
-	TxType         TxType
+	Version        common2.TransactionVersion // New field added in TxVersion09
+	TxType         common2.TxType
 	PayloadVersion byte
 	Payload        Payload
-	Attributes     []*Attribute
-	Inputs         []*Input
-	Outputs        []*Output
+	Attributes     []*common2.Attribute
+	Inputs         []*common2.Input
+	Outputs        []*common2.Output
 	LockTime       uint32
 	Programs       []*pg.Program
 	Fee            common.Fixed64
@@ -211,7 +73,7 @@ func (tx *Transaction) Serialize(w io.Writer) error {
 // Serialize the Transaction data without contracts
 func (tx *Transaction) SerializeUnsigned(w io.Writer) error {
 	// Version
-	if tx.Version >= TxVersion09 {
+	if tx.Version >= common2.TxVersion09 {
 		if _, err := w.Write([]byte{byte(tx.Version)}); err != nil {
 			return err
 		}
@@ -293,16 +155,16 @@ func (tx *Transaction) DeserializeUnsigned(r io.Reader) error {
 		return err
 	}
 
-	if TransactionVersion(flagByte[0]) >= TxVersion09 {
-		tx.Version = TransactionVersion(flagByte[0])
+	if common2.TransactionVersion(flagByte[0]) >= common2.TxVersion09 {
+		tx.Version = common2.TransactionVersion(flagByte[0])
 		txType, err := common.ReadBytes(r, 1)
 		if err != nil {
 			return err
 		}
-		tx.TxType = TxType(txType[0])
+		tx.TxType = common2.TxType(txType[0])
 	} else {
-		tx.Version = TxVersionDefault
-		tx.TxType = TxType(flagByte[0])
+		tx.Version = common2.TxVersionDefault
+		tx.TxType = common2.TxType(flagByte[0])
 	}
 
 	payloadVersion, err := common.ReadBytes(r, 1)
@@ -326,7 +188,7 @@ func (tx *Transaction) DeserializeUnsigned(r io.Reader) error {
 		return err
 	}
 	for i := uint64(0); i < count; i++ {
-		var attr Attribute
+		var attr common2.Attribute
 		if err := attr.Deserialize(r); err != nil {
 			return err
 		}
@@ -338,7 +200,7 @@ func (tx *Transaction) DeserializeUnsigned(r io.Reader) error {
 		return err
 	}
 	for i := uint64(0); i < count; i++ {
-		var input Input
+		var input common2.Input
 		if err := input.Deserialize(r); err != nil {
 			return err
 		}
@@ -350,7 +212,7 @@ func (tx *Transaction) DeserializeUnsigned(r io.Reader) error {
 		return err
 	}
 	for i := uint64(0); i < count; i++ {
-		var output Output
+		var output common2.Output
 		if err := output.Deserialize(r, tx.Version); err != nil {
 			return err
 		}
@@ -388,27 +250,27 @@ func (tx *Transaction) Hash() common.Uint256 {
 }
 
 func (tx *Transaction) IsReturnSideChainDepositCoinTx() bool {
-	return tx.TxType == ReturnSideChainDepositCoin
+	return tx.TxType == common2.ReturnSideChainDepositCoin
 }
 
 func (tx *Transaction) ISCRCouncilMemberClaimNode() bool {
-	return tx.TxType == CRCouncilMemberClaimNode
+	return tx.TxType == common2.CRCouncilMemberClaimNode
 }
 
 func (tx *Transaction) IsCRAssetsRectifyTx() bool {
-	return tx.TxType == CRAssetsRectify
+	return tx.TxType == common2.CRAssetsRectify
 }
 
 func (tx *Transaction) IsCRCAppropriationTx() bool {
-	return tx.TxType == CRCAppropriation
+	return tx.TxType == common2.CRCAppropriation
 }
 
 func (tx *Transaction) IsNextTurnDPOSInfoTx() bool {
-	return tx.TxType == NextTurnDPOSInfo
+	return tx.TxType == common2.NextTurnDPOSInfo
 }
 
 func (tx *Transaction) IsCustomIDResultTx() bool {
-	return tx.TxType == ProposalResult
+	return tx.TxType == common2.ProposalResult
 }
 
 func (tx *Transaction) IsCustomIDRelatedTx() bool {
@@ -434,39 +296,39 @@ func (tx *Transaction) IsSideChainUpgradeTx() bool {
 }
 
 func (tx *Transaction) IsCRCProposalRealWithdrawTx() bool {
-	return tx.TxType == CRCProposalRealWithdraw
+	return tx.TxType == common2.CRCProposalRealWithdraw
 }
 
 func (tx *Transaction) IsUpdateCRTx() bool {
-	return tx.TxType == UpdateCR
+	return tx.TxType == common2.UpdateCR
 }
 
 func (tx *Transaction) IsCRCProposalWithdrawTx() bool {
-	return tx.TxType == CRCProposalWithdraw
+	return tx.TxType == common2.CRCProposalWithdraw
 }
 
 func (tx *Transaction) IsCRCProposalReviewTx() bool {
-	return tx.TxType == CRCProposalReview
+	return tx.TxType == common2.CRCProposalReview
 }
 
 func (tx *Transaction) IsCRCProposalTrackingTx() bool {
-	return tx.TxType == CRCProposalTracking
+	return tx.TxType == common2.CRCProposalTracking
 }
 
 func (tx *Transaction) IsCRCProposalTx() bool {
-	return tx.TxType == CRCProposal
+	return tx.TxType == common2.CRCProposal
 }
 
 func (tx *Transaction) IsReturnCRDepositCoinTx() bool {
-	return tx.TxType == ReturnCRDepositCoin
+	return tx.TxType == common2.ReturnCRDepositCoin
 }
 
 func (tx *Transaction) IsUnregisterCRTx() bool {
-	return tx.TxType == UnregisterCR
+	return tx.TxType == common2.UnregisterCR
 }
 
 func (tx *Transaction) IsRegisterCRTx() bool {
-	return tx.TxType == RegisterCR
+	return tx.TxType == common2.RegisterCR
 }
 
 func (tx *Transaction) IsIllegalTypeTx() bool {
@@ -483,14 +345,14 @@ func (tx *Transaction) IsSpecialTx() bool {
 
 func (tx *Transaction) GetSpecialTxHash() (common.Uint256, error) {
 	switch tx.TxType {
-	case IllegalProposalEvidence, IllegalVoteEvidence,
-		IllegalBlockEvidence, IllegalSidechainEvidence, InactiveArbitrators:
+	case common2.IllegalProposalEvidence, common2.IllegalVoteEvidence,
+		common2.IllegalBlockEvidence, common2.IllegalSidechainEvidence, common2.InactiveArbitrators:
 		illegalData, ok := tx.Payload.(payload.DPOSIllegalData)
 		if !ok {
 			return common.Uint256{}, errors.New("special tx payload cast failed")
 		}
 		return illegalData.Hash(), nil
-	case NextTurnDPOSInfo:
+	case common2.NextTurnDPOSInfo:
 		payloadData, ok := tx.Payload.(*payload.NextTurnDPOSInfo)
 		if !ok {
 			return common.Uint256{}, errors.New("NextTurnDPOSInfo tx payload cast failed")
@@ -501,64 +363,64 @@ func (tx *Transaction) GetSpecialTxHash() (common.Uint256, error) {
 }
 
 func (tx *Transaction) IsIllegalProposalTx() bool {
-	return tx.TxType == IllegalProposalEvidence
+	return tx.TxType == common2.IllegalProposalEvidence
 }
 
 func (tx *Transaction) IsIllegalVoteTx() bool {
-	return tx.TxType == IllegalVoteEvidence
+	return tx.TxType == common2.IllegalVoteEvidence
 }
 
 func (tx *Transaction) IsIllegalBlockTx() bool {
-	return tx.TxType == IllegalBlockEvidence
+	return tx.TxType == common2.IllegalBlockEvidence
 }
 
 func (tx *Transaction) IsSidechainIllegalDataTx() bool {
-	return tx.TxType == IllegalSidechainEvidence
+	return tx.TxType == common2.IllegalSidechainEvidence
 }
 
 func (tx *Transaction) IsInactiveArbitrators() bool {
-	return tx.TxType == InactiveArbitrators
+	return tx.TxType == common2.InactiveArbitrators
 }
 
 func (tx *Transaction) IsRevertToPOW() bool {
-	return tx.TxType == RevertToPOW
+	return tx.TxType == common2.RevertToPOW
 }
 
 func (tx *Transaction) IsRevertToDPOS() bool {
-	return tx.TxType == RevertToDPOS
+	return tx.TxType == common2.RevertToDPOS
 }
 
 func (tx *Transaction) IsUpdateVersion() bool {
-	return tx.TxType == UpdateVersion
+	return tx.TxType == common2.UpdateVersion
 }
 
 func (tx *Transaction) IsProducerRelatedTx() bool {
-	return tx.TxType == RegisterProducer || tx.TxType == UpdateProducer ||
-		tx.TxType == ActivateProducer || tx.TxType == CancelProducer
+	return tx.TxType == common2.RegisterProducer || tx.TxType == common2.UpdateProducer ||
+		tx.TxType == common2.ActivateProducer || tx.TxType == common2.CancelProducer
 }
 
 func (tx *Transaction) IsUpdateProducerTx() bool {
-	return tx.TxType == UpdateProducer
+	return tx.TxType == common2.UpdateProducer
 }
 
 func (tx *Transaction) IsReturnDepositCoin() bool {
-	return tx.TxType == ReturnDepositCoin
+	return tx.TxType == common2.ReturnDepositCoin
 }
 
 func (tx *Transaction) IsCancelProducerTx() bool {
-	return tx.TxType == CancelProducer
+	return tx.TxType == common2.CancelProducer
 }
 
 func (tx *Transaction) IsActivateProducerTx() bool {
-	return tx.TxType == ActivateProducer
+	return tx.TxType == common2.ActivateProducer
 }
 
 func (tx *Transaction) IsRegisterProducerTx() bool {
-	return tx.TxType == RegisterProducer
+	return tx.TxType == common2.RegisterProducer
 }
 
 func (tx *Transaction) IsSideChainPowTx() bool {
-	return tx.TxType == SideChainPow
+	return tx.TxType == common2.SideChainPow
 }
 
 func (tx *Transaction) IsNewSideChainPowTx() bool {
@@ -570,19 +432,19 @@ func (tx *Transaction) IsNewSideChainPowTx() bool {
 }
 
 func (tx *Transaction) IsTransferCrossChainAssetTx() bool {
-	return tx.TxType == TransferCrossChainAsset
+	return tx.TxType == common2.TransferCrossChainAsset
 }
 
 func (tx *Transaction) IsWithdrawFromSideChainTx() bool {
-	return tx.TxType == WithdrawFromSideChain
+	return tx.TxType == common2.WithdrawFromSideChain
 }
 
 func (tx *Transaction) IsRechargeToSideChainTx() bool {
-	return tx.TxType == RechargeToSideChain
+	return tx.TxType == common2.RechargeToSideChain
 }
 
 func (tx *Transaction) IsCoinBaseTx() bool {
-	return tx.TxType == CoinBase
+	return tx.TxType == common2.CoinBase
 }
 
 // SerializeSizeStripped returns the number of bytes it would take to serialize
@@ -605,78 +467,78 @@ type Payload interface {
 	payload.PayloadChecker
 }
 
-func GetPayload(txType TxType) (Payload, error) {
+func GetPayload(txType common2.TxType) (Payload, error) {
 	var p Payload
 	switch txType {
-	case CoinBase:
+	case common2.CoinBase:
 		p = new(payload.CoinBase)
-	case RegisterAsset:
+	case common2.RegisterAsset:
 		p = new(payload.RegisterAsset)
-	case TransferAsset:
+	case common2.TransferAsset:
 		p = new(payload.TransferAsset)
-	case Record:
+	case common2.Record:
 		p = new(payload.Record)
-	case SideChainPow:
+	case common2.SideChainPow:
 		p = new(payload.SideChainPow)
-	case WithdrawFromSideChain:
+	case common2.WithdrawFromSideChain:
 		p = new(payload.WithdrawFromSideChain)
-	case TransferCrossChainAsset:
+	case common2.TransferCrossChainAsset:
 		p = new(payload.TransferCrossChainAsset)
-	case RegisterProducer:
+	case common2.RegisterProducer:
 		p = new(payload.ProducerInfo)
-	case CancelProducer:
+	case common2.CancelProducer:
 		p = new(payload.ProcessProducer)
-	case UpdateProducer:
+	case common2.UpdateProducer:
 		p = new(payload.ProducerInfo)
-	case ReturnDepositCoin:
+	case common2.ReturnDepositCoin:
 		p = new(payload.ReturnDepositCoin)
-	case ActivateProducer:
+	case common2.ActivateProducer:
 		p = new(payload.ActivateProducer)
-	case IllegalProposalEvidence:
+	case common2.IllegalProposalEvidence:
 		p = new(payload.DPOSIllegalProposals)
-	case IllegalVoteEvidence:
+	case common2.IllegalVoteEvidence:
 		p = new(payload.DPOSIllegalVotes)
-	case IllegalBlockEvidence:
+	case common2.IllegalBlockEvidence:
 		p = new(payload.DPOSIllegalBlocks)
-	case IllegalSidechainEvidence:
+	case common2.IllegalSidechainEvidence:
 		p = new(payload.SidechainIllegalData)
-	case InactiveArbitrators:
+	case common2.InactiveArbitrators:
 		p = new(payload.InactiveArbitrators)
-	case RevertToDPOS:
+	case common2.RevertToDPOS:
 		p = new(payload.RevertToDPOS)
-	case UpdateVersion:
+	case common2.UpdateVersion:
 		p = new(payload.UpdateVersion)
-	case RegisterCR:
+	case common2.RegisterCR:
 		p = new(payload.CRInfo)
-	case UpdateCR:
+	case common2.UpdateCR:
 		p = new(payload.CRInfo)
-	case UnregisterCR:
+	case common2.UnregisterCR:
 		p = new(payload.UnregisterCR)
-	case ReturnCRDepositCoin:
+	case common2.ReturnCRDepositCoin:
 		p = new(payload.ReturnDepositCoin)
-	case CRCProposal:
+	case common2.CRCProposal:
 		p = new(payload.CRCProposal)
-	case CRCProposalReview:
+	case common2.CRCProposalReview:
 		p = new(payload.CRCProposalReview)
-	case CRCProposalWithdraw:
+	case common2.CRCProposalWithdraw:
 		p = new(payload.CRCProposalWithdraw)
-	case CRCProposalTracking:
+	case common2.CRCProposalTracking:
 		p = new(payload.CRCProposalTracking)
-	case CRCAppropriation:
+	case common2.CRCAppropriation:
 		p = new(payload.CRCAppropriation)
-	case CRAssetsRectify:
+	case common2.CRAssetsRectify:
 		p = new(payload.CRAssetsRectify)
-	case CRCProposalRealWithdraw:
+	case common2.CRCProposalRealWithdraw:
 		p = new(payload.CRCProposalRealWithdraw)
-	case CRCouncilMemberClaimNode:
+	case common2.CRCouncilMemberClaimNode:
 		p = new(payload.CRCouncilMemberClaimNode)
-	case NextTurnDPOSInfo:
+	case common2.NextTurnDPOSInfo:
 		p = new(payload.NextTurnDPOSInfo)
-	case RevertToPOW:
+	case common2.RevertToPOW:
 		p = new(payload.RevertToPOW)
-	case ProposalResult:
+	case common2.ProposalResult:
 		p = new(payload.RecordProposalResult)
-	case ReturnSideChainDepositCoin:
+	case common2.ReturnSideChainDepositCoin:
 		p = new(payload.ReturnSideChainDepositCoin)
 	default:
 		return nil, errors.New("[Transaction], invalid transaction type.")

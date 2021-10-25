@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/core/types"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/core/types/outputpayload"
 	"github.com/elastos/Elastos.ELA/database"
 )
@@ -87,11 +88,11 @@ func (idx *ReturnDepositIndex) Create(dbTx database.Tx) error {
 // This is part of the Indexer interface.
 func (idx *ReturnDepositIndex) ConnectBlock(dbTx database.Tx, block *types.Block) error {
 	for _, txn := range block.Transactions {
-		if txn.TxType != types.ReturnSideChainDepositCoin {
+		if txn.TxType != common2.ReturnSideChainDepositCoin {
 			continue
 		}
 		for _, output := range txn.Outputs {
-			if output.Type == types.OTReturnSideChainDepositCoin {
+			if output.Type == common2.OTReturnSideChainDepositCoin {
 				payload, ok := output.Payload.(*outputpayload.ReturnSideChainDeposit)
 				if ok {
 					err := dbPutReturnDepositIndexEntry(dbTx, &payload.DepositTransactionHash)
@@ -112,11 +113,11 @@ func (idx *ReturnDepositIndex) ConnectBlock(dbTx database.Tx, block *types.Block
 // This is part of the Indexer interface.
 func (idx *ReturnDepositIndex) DisconnectBlock(dbTx database.Tx, block *types.Block) error {
 	for _, txn := range block.Transactions {
-		if txn.TxType != types.ReturnSideChainDepositCoin {
+		if txn.TxType != common2.ReturnSideChainDepositCoin {
 			continue
 		}
 		for _, output := range txn.Outputs {
-			if output.Type == types.OTReturnSideChainDepositCoin {
+			if output.Type == common2.OTReturnSideChainDepositCoin {
 				payload, ok := output.Payload.(*outputpayload.ReturnSideChainDeposit)
 				if ok {
 					err := dbRemoveReturnDepositIndexEntry(dbTx, &payload.DepositTransactionHash)

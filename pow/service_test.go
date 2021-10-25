@@ -17,6 +17,7 @@ import (
 	"github.com/elastos/Elastos.ELA/common/log"
 	"github.com/elastos/Elastos.ELA/core/contract"
 	"github.com/elastos/Elastos.ELA/core/types"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/dpos/state"
 	"github.com/elastos/Elastos.ELA/utils/test"
 
@@ -164,10 +165,10 @@ func TestService_AssignCoinbaseTxRewards(t *testing.T) {
 	arbitratorsMock.FinalRoundChange = arbitratorsChange
 
 	tx := &types.Transaction{
-		Version: types.TxVersion09,
-		TxType:  types.CoinBase,
+		Version: common2.TxVersion09,
+		TxType:  common2.CoinBase,
 	}
-	tx.Outputs = []*types.Output{
+	tx.Outputs = []*common2.Output{
 		{ProgramHash: blockchain.FoundationAddress, Value: 0},
 		{ProgramHash: common.Uint168{}, Value: 0},
 	}
@@ -236,10 +237,10 @@ func TestService_AssignCoinbaseTxRewards(t *testing.T) {
 	arbitratorsMock.FinalRoundChange = arbitratorsChange
 
 	tx = &types.Transaction{
-		Version: types.TxVersion09,
-		TxType:  types.CoinBase,
+		Version: common2.TxVersion09,
+		TxType:  common2.CoinBase,
 	}
-	tx.Outputs = []*types.Output{
+	tx.Outputs = []*common2.Output{
 		{ProgramHash: blockchain.FoundationAddress, Value: 0},
 		{ProgramHash: common.Uint168{}, Value: 0},
 	}
@@ -291,9 +292,9 @@ func TestService_AssignCoinbaseTxRewards(t *testing.T) {
 
 	tx = &types.Transaction{
 		Version: 0,
-		TxType:  types.CoinBase,
+		TxType:  common2.CoinBase,
 	}
-	tx.Outputs = []*types.Output{
+	tx.Outputs = []*common2.Output{
 		{ProgramHash: blockchain.FoundationAddress, Value: 0},
 		{ProgramHash: common.Uint168{}, Value: 0},
 	}
@@ -317,9 +318,9 @@ func TestService_AssignCoinbaseTxRewards(t *testing.T) {
 
 	tx = &types.Transaction{
 		Version: 0,
-		TxType:  types.CoinBase,
+		TxType:  common2.CoinBase,
 	}
-	tx.Outputs = []*types.Output{
+	tx.Outputs = []*common2.Output{
 		{ProgramHash: blockchain.FoundationAddress, Value: 0},
 		{ProgramHash: common.Uint168{}, Value: 0},
 	}

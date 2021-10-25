@@ -19,6 +19,7 @@ import (
 	"github.com/elastos/Elastos.ELA/core/contract"
 	"github.com/elastos/Elastos.ELA/core/contract/program"
 	"github.com/elastos/Elastos.ELA/core/types"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/crypto"
 
@@ -780,36 +781,36 @@ func newMultiAccount(num int, t *testing.T) *multiAccount {
 
 func buildTx() *types.Transaction {
 	tx := new(types.Transaction)
-	tx.TxType = types.TransferAsset
+	tx.TxType = common2.TransferAsset
 	tx.Payload = new(payload.TransferAsset)
 	tx.Inputs = randomInputs()
 	tx.Outputs = randomOutputs()
 	return tx
 }
 
-func randomInputs() []*types.Input {
+func randomInputs() []*common2.Input {
 	num := math.Intn(100) + 1
-	inputs := make([]*types.Input, 0, num)
+	inputs := make([]*common2.Input, 0, num)
 	for i := 0; i < num; i++ {
 		var txID common.Uint256
 		rand.Read(txID[:])
 		index := math.Intn(100)
-		inputs = append(inputs, &types.Input{
-			Previous: *types.NewOutPoint(txID, uint16(index)),
+		inputs = append(inputs, &common2.Input{
+			Previous: *common2.NewOutPoint(txID, uint16(index)),
 		})
 	}
 	return inputs
 }
 
-func randomOutputs() []*types.Output {
+func randomOutputs() []*common2.Output {
 	num := math.Intn(100) + 1
-	outputs := make([]*types.Output, 0, num)
+	outputs := make([]*common2.Output, 0, num)
 	var asset common.Uint256
 	rand.Read(asset[:])
 	for i := 0; i < num; i++ {
 		var addr common.Uint168
 		rand.Read(addr[:])
-		outputs = append(outputs, &types.Output{
+		outputs = append(outputs, &common2.Output{
 			AssetID:     asset,
 			Value:       common.Fixed64(math.Int63()),
 			OutputLock:  0,

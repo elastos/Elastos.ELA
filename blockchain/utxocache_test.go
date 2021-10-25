@@ -13,6 +13,7 @@ import (
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/core/types"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/core/types/outputpayload"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/utils/test"
@@ -26,24 +27,24 @@ var (
 
 	// refer tx hash: 160da301e49617c037ae9b630919af52b8ac458202cd64558af7e0dcc753e307
 	referTx = &types.Transaction{
-		Version:        types.TxVersion09,
-		TxType:         types.TransferAsset,
+		Version:        common2.TxVersion09,
+		TxType:         common2.TransferAsset,
 		PayloadVersion: 0,
 		Payload:        &payload.TransferAsset{},
-		Attributes:     []*types.Attribute{},
-		Inputs: []*types.Input{
+		Attributes:     []*common2.Attribute{},
+		Inputs: []*common2.Input{
 			{
-				Previous: types.OutPoint{
+				Previous: common2.OutPoint{
 					Index: 0,
 					TxID:  common.EmptyHash,
 				},
 				Sequence: 0,
 			},
 		},
-		Outputs: []*types.Output{
+		Outputs: []*common2.Output{
 			{
 				Value:   100,
-				Type:    types.OTVote,
+				Type:    common2.OTVote,
 				Payload: &outputpayload.VoteOutput{},
 			},
 		},
@@ -51,9 +52,9 @@ var (
 	}
 
 	spendTx = &types.Transaction{
-		Inputs: []*types.Input{
+		Inputs: []*common2.Input{
 			{
-				Previous: types.OutPoint{
+				Previous: common2.OutPoint{
 					Index: 0,
 					TxID:  referTx.Hash(),
 				},
@@ -112,7 +113,7 @@ func TestUTXOCache_GetTxReferenceInfo(t *testing.T) {
 		assert.Equal(t, uint32(0), input.Sequence)
 
 		assert.Equal(t, common.Fixed64(100), output.Value)
-		assert.Equal(t, types.OTVote, output.Type)
+		assert.Equal(t, common2.OTVote, output.Type)
 	}
 
 	// ensure above reference have been cached.
@@ -128,7 +129,7 @@ func TestUTXOCache_GetTxReferenceInfo(t *testing.T) {
 		assert.Equal(t, uint32(0), input.Sequence)
 
 		assert.Equal(t, common.Fixed64(100), output.Value)
-		assert.Equal(t, types.OTVote, output.Type)
+		assert.Equal(t, common2.OTVote, output.Type)
 	}
 }
 
@@ -149,7 +150,7 @@ func TestUTXOCache_CleanCache(t *testing.T) {
 		assert.Equal(t, uint32(0), input.Sequence)
 
 		assert.Equal(t, common.Fixed64(100), output.Value)
-		assert.Equal(t, types.OTVote, output.Type)
+		assert.Equal(t, common2.OTVote, output.Type)
 	}
 
 	utxoCacheDB.RemoveTransaction(referTx.Hash())
@@ -166,16 +167,16 @@ func TestUTXOCache_CleanCache(t *testing.T) {
 // Test for case that a map use pointer as a key
 func Test_PointerKeyForMap(t *testing.T) {
 	test.SkipShort(t)
-	i1 := types.Input{
-		Previous: types.OutPoint{
+	i1 := common2.Input{
+		Previous: common2.OutPoint{
 			TxID:  common.EmptyHash,
 			Index: 15,
 		},
 		Sequence: 10,
 	}
 
-	i2 := types.Input{
-		Previous: types.OutPoint{
+	i2 := common2.Input{
+		Previous: common2.OutPoint{
 			TxID:  common.EmptyHash,
 			Index: 15,
 		},
@@ -185,7 +186,7 @@ func Test_PointerKeyForMap(t *testing.T) {
 	assert.Equal(t, i1, i2)
 
 	// pointer as a key
-	m1 := make(map[*types.Input]int)
+	m1 := make(map[*common2.Input]int)
 	m1[&i1] = 1
 	m1[&i2] = 2
 	assert.Equal(t, 2, len(m1))
@@ -194,7 +195,7 @@ func Test_PointerKeyForMap(t *testing.T) {
 	// map[{TxID: 0000000000000000000000000000000000000000000000000000000000000000 Index: 15 Sequence: 10}:1 {TxID: 0000000000000000000000000000000000000000000000000000000000000000 Index: 15 Sequence: 10}:2]
 
 	// object as a key
-	m2 := make(map[types.Input]int)
+	m2 := make(map[common2.Input]int)
 	m2[i1] = 1
 	m2[i2] = 2
 	assert.Equal(t, 1, len(m2))
@@ -215,35 +216,35 @@ func Test_PointerKeyForMap(t *testing.T) {
 func TestUTXOCache_InsertReference(t *testing.T) {
 	// init reference
 	for i := uint32(0); i < uint32(maxReferenceSize); i++ {
-		input := &types.Input{
+		input := &common2.Input{
 			Sequence: i,
 		}
-		output := &types.Output{
+		output := &common2.Output{
 			OutputLock: i,
 		}
 		utxoCache.insertReference(input, output)
 	}
 	assert.Equal(t, maxReferenceSize, len(utxoCache.reference))
 	assert.Equal(t, maxReferenceSize, utxoCache.inputs.Len())
-	assert.Equal(t, uint32(0), utxoCache.inputs.Front().Value.(types.Input).Sequence)
-	assert.Equal(t, uint32(maxReferenceSize-1), utxoCache.inputs.Back().Value.(types.Input).Sequence)
-	assert.Equal(t, uint32(0), utxoCache.reference[utxoCache.inputs.Front().Value.(types.Input)].OutputLock)
-	assert.Equal(t, uint32(maxReferenceSize-1), utxoCache.reference[utxoCache.inputs.Back().Value.(types.Input)].OutputLock)
+	assert.Equal(t, uint32(0), utxoCache.inputs.Front().Value.(common2.Input).Sequence)
+	assert.Equal(t, uint32(maxReferenceSize-1), utxoCache.inputs.Back().Value.(common2.Input).Sequence)
+	assert.Equal(t, uint32(0), utxoCache.reference[utxoCache.inputs.Front().Value.(common2.Input)].OutputLock)
+	assert.Equal(t, uint32(maxReferenceSize-1), utxoCache.reference[utxoCache.inputs.Back().Value.(common2.Input)].OutputLock)
 
 	for i := uint32(maxReferenceSize); i < uint32(maxReferenceSize+500); i++ {
-		input := &types.Input{
+		input := &common2.Input{
 			Sequence: i,
 		}
-		output := &types.Output{
+		output := &common2.Output{
 			OutputLock: i,
 		}
 		utxoCache.insertReference(input, output)
 	}
 	assert.Equal(t, maxReferenceSize, len(utxoCache.reference))
 	assert.Equal(t, maxReferenceSize, utxoCache.inputs.Len())
-	assert.Equal(t, uint32(500), utxoCache.inputs.Front().Value.(types.Input).Sequence)
-	assert.Equal(t, uint32(maxReferenceSize+499), utxoCache.inputs.Back().Value.(types.Input).Sequence)
-	assert.Equal(t, uint32(500), utxoCache.reference[utxoCache.inputs.Front().Value.(types.Input)].OutputLock)
-	assert.Equal(t, uint32(maxReferenceSize+499), utxoCache.reference[utxoCache.inputs.Back().Value.(types.Input)].
+	assert.Equal(t, uint32(500), utxoCache.inputs.Front().Value.(common2.Input).Sequence)
+	assert.Equal(t, uint32(maxReferenceSize+499), utxoCache.inputs.Back().Value.(common2.Input).Sequence)
+	assert.Equal(t, uint32(500), utxoCache.reference[utxoCache.inputs.Front().Value.(common2.Input)].OutputLock)
+	assert.Equal(t, uint32(maxReferenceSize+499), utxoCache.reference[utxoCache.inputs.Back().Value.(common2.Input)].
 		OutputLock)
 }

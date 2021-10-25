@@ -20,8 +20,10 @@ local wallet = client.new(keystore, password, false)
 -- account
 local addr = wallet:get_address()
 local pubkey = wallet:get_publickey()
+local saddr = wallet:get_s_address()
 
 print("addr", addr)
+print("saddr", saddr)
 print("pubkey", pubkey)
 
 -- asset_id
@@ -90,18 +92,18 @@ print("charge", charge)
 
 if vote_candidates_num == vote_candidate_votes_num then
 -- votecontent: vote_type, vote_candidates, vote_candidate_votes
-    local vote_content = votecontent.newcr(vote_type, vote_candidates, vote_candidate_votes)
+    local vote_content = votecontent.newdposv2(vote_type, vote_candidates, vote_candidate_votes)
     print("vote_content", vote_content:get())
 
     -- outputpayload
-    local vote_output = voteoutput.new(1, { vote_content })
+    local vote_output = voteoutput.new(2, { vote_content })
     print("vote_output", vote_output:get())
 
     local default_output = defaultoutput.new()
 
     -- output: asset_id, value, recipient, output_paload_type, output_paload
     local charge_output = output.new(asset_id, charge, addr, 0, default_output)
-    local amount_output = output.new(asset_id, amount * 100000000, addr, 1, vote_output)
+    local amount_output = output.new(asset_id, amount * 100000000, saddr, 6, vote_output)
     -- print("txoutput", charge_output:get())
     -- print("txoutput", amount_output:get())
     tx:appendtxout(charge_output)

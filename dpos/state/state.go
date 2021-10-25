@@ -1036,8 +1036,7 @@ func (s *State) registerProducer(tx *types.Transaction, height uint32) {
 			depositOutputs[op.ReferKey()] = output.Value
 		}
 	}
-
-	if tx.PayloadVersion != payload.ProducerInfoDposV2Version || s.GetProducer(info.NodePublicKey) == nil {
+	if tx.PayloadVersion != payload.ProducerInfoDposV2Version || s.getProducer(info.NodePublicKey) == nil {
 		producer := Producer{
 			info:                         *info,
 			registerHeight:               height,
@@ -1141,7 +1140,7 @@ func (s *State) processVotes(tx *types.Transaction, height uint32) {
 	if tx.Version >= types.TxVersion09 {
 		// Votes to producers.
 		for i, output := range tx.Outputs {
-			if output.Type != types.OTVote {
+			if output.Type != types.OTVote && output.Type != types.OTDposV2Vote {
 				continue
 			}
 			p, _ := output.Payload.(*outputpayload.VoteOutput)

@@ -441,10 +441,18 @@ func (b *BlockChain) checkVoteOutputs(
 		if o.Type != OTVote && o.Type != OTDposV2Vote {
 			continue
 		}
-		if _, ok := programHashes[o.ProgramHash]; !ok {
+		var checkProhash common.Uint168
+		if o.Type == OTDposV2Vote {
+			checkProhash = common.Uint168FromCodeHash(byte(contract.PrefixStandard), o.ProgramHash.ToCodeHash())
+		} else {
+			checkProhash = o.ProgramHash
+		}
+
+		if _, ok := programHashes[checkProhash]; !ok {
 			return errors.New("the output address of vote tx " +
 				"should exist in its input")
 		}
+
 		votePayload, ok := o.Payload.(*outputpayload.VoteOutput)
 		if !ok {
 			return errors.New("invalid vote output payload")

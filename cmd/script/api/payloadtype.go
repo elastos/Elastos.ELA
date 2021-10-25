@@ -1000,6 +1000,14 @@ func getIDProgramHash(code []byte) *common.Uint168 {
 	return ct.ToProgramHash()
 }
 
+func getDposV2ProgramHash(code []byte) *common.Uint168 {
+	ct := &contract.Contract{
+		Code:   code,
+		Prefix: contract.PrefixDposV2,
+	}
+	return ct.ToProgramHash()
+}
+
 // Constructor
 func newUnregisterCR(L *lua.LState) int {
 	publicKeyStr := L.ToString(1)

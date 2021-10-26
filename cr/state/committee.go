@@ -247,18 +247,18 @@ func (c *Committee) GetMember(did common.Uint168) *CRMember {
 	return c.getMember(did)
 }
 
-func (c *Committee) GetReservedCustomIDLists() [][]string {
+func (c *Committee) GetReservedCustomIDLists() []string {
 	c.mtx.RLock()
 	defer c.mtx.RUnlock()
 
 	return c.getReservedCustomIDLists()
 }
 
-func (c *Committee) getReservedCustomIDLists() [][]string {
+func (c *Committee) getReservedCustomIDLists() []string {
 	return c.manager.ReservedCustomIDLists
 }
 
-func (c *Committee) GetReceivedCustomIDLists() [][]string {
+func (c *Committee) GetReceivedCustomIDLists() []string {
 	c.mtx.RLock()
 	defer c.mtx.RUnlock()
 
@@ -272,7 +272,7 @@ func (c *Committee) GetPendingReceivedCustomIDMap() map[string]struct{} {
 	return c.manager.PendingReceivedCustomIDMap
 }
 
-func (c *Committee) getReceivedCustomIDLists() [][]string {
+func (c *Committee) getReceivedCustomIDLists() []string {
 	return c.manager.ReceivedCustomIDLists
 }
 

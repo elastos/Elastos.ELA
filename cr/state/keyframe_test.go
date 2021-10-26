@@ -541,7 +541,7 @@ func randomProposalKeyframe() *ProposalKeyFrame {
 		for j := uint64(0); j < i; j++ {
 			reserverCustomIDs = append(reserverCustomIDs, randomString())
 		}
-		proposalKeyFrame.ReservedCustomIDLists = append(proposalKeyFrame.ReservedCustomIDLists, reserverCustomIDs)
+		proposalKeyFrame.ReservedCustomIDLists = append(proposalKeyFrame.ReservedCustomIDLists, reserverCustomIDs...)
 	}
 
 	var receivedCustomIDs []string
@@ -550,7 +550,7 @@ func randomProposalKeyframe() *ProposalKeyFrame {
 		for j := uint64(0); j < i; j++ {
 			receivedCustomIDs = append(receivedCustomIDs, randomString())
 		}
-		proposalKeyFrame.ReceivedCustomIDLists = append(proposalKeyFrame.ReceivedCustomIDLists, receivedCustomIDs)
+		proposalKeyFrame.ReceivedCustomIDLists = append(proposalKeyFrame.ReceivedCustomIDLists, receivedCustomIDs...)
 	}
 	return proposalKeyFrame
 }

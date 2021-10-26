@@ -55,12 +55,10 @@ func FileExisted(filename string) bool {
 	return err == nil || os.IsExist(err)
 }
 
-func StringExisted(src [][]string, check string) bool {
+func StringExisted(src []string, check string) bool {
 	for _, ar := range src {
-		for _, v := range ar {
-			if v == check {
-				return true
-			}
+		if ar == check {
+			return true
 		}
 	}
 	return false

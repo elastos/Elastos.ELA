@@ -241,10 +241,10 @@ type ProposalKeyFrame struct {
 	// publicKey of SecretaryGeneral
 	SecretaryGeneralPublicKey string
 	// reserved custom id list
-	ReservedCustomIDLists [][]string
+	ReservedCustomIDLists []string
 	// received custom id list
-	PendingReceivedCustomIDMap map[string]struct{} // todo: serialize and deserialize
-	ReceivedCustomIDLists      [][]string
+	PendingReceivedCustomIDMap map[string]struct{}
+	ReceivedCustomIDLists      []string
 	// registered side chain name
 	RegisteredSideChainNames []string
 	// magic numbers
@@ -937,6 +937,10 @@ func (p *ProposalState) Serialize(w io.Writer) (err error) {
 		return
 	}
 
+	if err = common.WriteUint8(w, p.TxPayloadVer); err != nil {
+		return
+	}
+
 	if err = common.WriteUint32(w, p.RegisterHeight); err != nil {
 		return
 	}
@@ -1000,6 +1004,12 @@ func (p *ProposalState) Deserialize(r io.Reader) (err error) {
 		return
 	}
 	p.Status = ProposalStatus(status)
+
+	var payloadVersion uint8
+	if payloadVersion, err = common.ReadUint8(r); err != nil {
+		return
+	}
+	p.TxPayloadVer = payloadVersion
 
 	if p.RegisterHeight, err = common.ReadUint32(r); err != nil {
 		return
@@ -1158,6 +1168,30 @@ func (p *ProposalKeyFrame) Serialize(w io.Writer) (err error) {
 		return
 	}
 
+	if err = common.WriteVarUint(w, uint64(len(p.ReservedCustomIDLists))); err != nil {
+		return
+	}
+	for _, name := range p.ReservedCustomIDLists {
+		err = common.WriteVarString(w, name)
+		if err != nil {
+			return
+		}
+	}
+
+	if err = p.serializeMapStringNULL(w, p.PendingReceivedCustomIDMap); err != nil {
+		return
+	}
+
+	if err = common.WriteVarUint(w, uint64(len(p.ReceivedCustomIDLists))); err != nil {
+		return
+	}
+	for _, name := range p.ReceivedCustomIDLists {
+		err = common.WriteVarString(w, name)
+		if err != nil {
+			return
+		}
+	}
+
 	if err = common.WriteVarUint(w, uint64(len(p.RegisteredSideChainNames))); err != nil {
 		return
 	}
@@ -1187,6 +1221,11 @@ func (p *ProposalKeyFrame) Serialize(w io.Writer) (err error) {
 			return
 		}
 	}
+
+	if err = p.serializeRegisterSideChainData(w, p.RegisteredSideChainPayloadInfo); err != nil {
+		return
+	}
+
 	////ReservedCustomID
 	if err = common.WriteElements(w, p.ReservedCustomID); err != nil {
 		return
@@ -1206,6 +1245,104 @@ func (p *ProposalKeyFrame) serializeDraftDataMap(draftData map[common.Uint256][]
 		if err = common.WriteVarBytes(w, data); err != nil {
 			return
 		}
+	}
+	return
+}
+
+func (p *ProposalKeyFrame) serializeMapStringNULL(w io.Writer, data map[string]struct{}) (err error) {
+	if err = common.WriteVarUint(w, uint64(len(data))); err != nil {
+		return
+	}
+	for k, _ := range data {
+		if err = common.WriteVarString(w, k); err != nil {
+			return
+		}
+	}
+	return
+}
+
+func (p *ProposalKeyFrame) deserializeMapStringNULL(r io.Reader) (
+	result map[string]struct{}, err error) {
+	var count uint64
+	if count, err = common.ReadVarUint(r, 0); err != nil {
+		return
+	}
+	result = make(map[string]struct{})
+	for i := uint64(0); i < count; i++ {
+
+		var str string
+		str, err = common.ReadVarString(r)
+		if err != nil {
+			return
+		}
+		result[str] = struct{}{}
+	}
+	return
+}
+
+func (p *ProposalKeyFrame) serializeRegisterSideChainData(w io.Writer,
+	data map[uint32]map[common.Uint256]payload.SideChainInfo) (err error) {
+	if err = common.WriteVarUint(w, uint64(len(data))); err != nil {
+		return
+	}
+	for k1, v1 := range data {
+		// write key
+		if err = common.WriteUint32(w, k1); err != nil {
+			return
+		}
+
+		// write value
+		if err = common.WriteVarUint(w, uint64(len(v1))); err != nil {
+			return
+		}
+		for k2, v2 := range v1 {
+			if err = k2.Serialize(w); err != nil {
+				return
+			}
+			if err = v2.Serialize(w); err != nil {
+				return
+			}
+		}
+	}
+	return
+}
+
+func (p *ProposalKeyFrame) deserializeRegisterSideChainData(r io.Reader) (
+	result map[uint32]map[common.Uint256]payload.SideChainInfo, err error) {
+	var count1 uint64
+	if count1, err = common.ReadVarUint(r, 0); err != nil {
+		return
+	}
+	result = make(map[uint32]map[common.Uint256]payload.SideChainInfo)
+	for i := uint64(0); i < count1; i++ {
+		var height uint32
+		height, err = common.ReadUint32(r)
+		if err != nil {
+			return
+		}
+
+		var count2 uint64
+		if count2, err = common.ReadVarUint(r, 0); err != nil {
+			return
+		}
+		data := make(map[common.Uint256]payload.SideChainInfo)
+		for i := uint64(0); i < count2; i++ {
+			var hash common.Uint256
+			err = hash.Deserialize(r)
+			if err != nil {
+				return
+			}
+
+			var sideChainInfo payload.SideChainInfo
+			err = sideChainInfo.Deserialize(r)
+			if err != nil {
+				return
+			}
+
+			data[hash] = sideChainInfo
+		}
+
+		result[height] = data
 	}
 	return
 }
@@ -1305,6 +1442,36 @@ func (p *ProposalKeyFrame) Deserialize(r io.Reader) (err error) {
 	if count, err = common.ReadVarUint(r, 0); err != nil {
 		return
 	}
+	p.ReservedCustomIDLists = make([]string, 0)
+	for i := uint64(0); i < count; i++ {
+		var name string
+		name, err = common.ReadVarString(r)
+		p.ReservedCustomIDLists = append(p.ReservedCustomIDLists, name)
+		if err != nil {
+			return
+		}
+	}
+
+	if p.PendingReceivedCustomIDMap, err = p.deserializeMapStringNULL(r); err != nil {
+		return
+	}
+
+	if count, err = common.ReadVarUint(r, 0); err != nil {
+		return
+	}
+	p.ReceivedCustomIDLists = make([]string, 0)
+	for i := uint64(0); i < count; i++ {
+		var name string
+		name, err = common.ReadVarString(r)
+		p.ReceivedCustomIDLists = append(p.ReceivedCustomIDLists, name)
+		if err != nil {
+			return
+		}
+	}
+
+	if count, err = common.ReadVarUint(r, 0); err != nil {
+		return
+	}
 	p.RegisteredSideChainNames = make([]string, 0)
 	for i := uint64(0); i < count; i++ {
 		var name string
@@ -1339,6 +1506,10 @@ func (p *ProposalKeyFrame) Deserialize(r io.Reader) (err error) {
 			return err
 		}
 		p.RegisteredGenesisHashes = append(p.RegisteredGenesisHashes, h)
+	}
+
+	if p.RegisteredSideChainPayloadInfo, err = p.deserializeRegisterSideChainData(r); err != nil {
+		return
 	}
 
 	if err = common.ReadElements(r, &p.ReservedCustomID); err != nil {

@@ -1154,6 +1154,9 @@ func (p *ProposalKeyFrame) Serialize(w io.Writer) (err error) {
 	if err = p.serializeWithdrawableTransactionsMap(p.WithdrawableTxInfo, w); err != nil {
 		return
 	}
+	if err = common.WriteVarString(w, p.SecretaryGeneralPublicKey); err != nil {
+		return
+	}
 
 	if err = common.WriteVarUint(w, uint64(len(p.RegisteredSideChainNames))); err != nil {
 		return
@@ -1293,6 +1296,9 @@ func (p *ProposalKeyFrame) Deserialize(r io.Reader) (err error) {
 		return
 	}
 	if p.WithdrawableTxInfo, err = p.deserializeWithdrawableTransactionsMap(r); err != nil {
+		return
+	}
+	if p.SecretaryGeneralPublicKey, err = common.ReadVarString(r); err != nil {
 		return
 	}
 

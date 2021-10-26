@@ -149,24 +149,35 @@ func (b *BlockChain) CheckTransactionContext(blockHeight uint32,
 	//}
 
 	para := &payload.CheckParameters{
-		BlockHeight:            0,
-		CRCommitteeStartHeight: 0,
-		ConsensusAlgorithm:     0,
-		DestroyELAAddress:      common.Uint168{},
-		CRAssetsAddress:        common.Uint168{},
-		FoundationAddress:      common.Uint168{},
+		Version:        txn.Version,
+		TxType:         txn.TxType,
+		PayloadVersion: txn.PayloadVersion,
+		Attributes:     txn.Attributes,
+		Inputs:         txn.Inputs,
+		Outputs:        txn.Outputs,
+		LockTime:       txn.LockTime,
+		Programs:       txn.Programs,
+		TxHash:         txn.Hash(),
+
+		BlockHeight:            blockHeight,
+		CRCommitteeStartHeight: b.chainParams.CRCommitteeStartHeight,
+		ConsensusAlgorithm:     byte(b.state.GetConsensusAlgorithm()),
+		DestroyELAAddress:      b.chainParams.DestroyELAAddress,
+		CRAssetsAddress:        b.chainParams.CRAssetsAddress,
+		FoundationAddress:      b.chainParams.Foundation,
 	}
 
-	contextErr := txn.Payload.ContextCheck(para)
+	references, contextErr := txn.Payload.ContextCheck(para)
 	if contextErr != nil {
 		return nil, contextErr
 	}
 
-	references, err := b.UTXOCache.GetTxReference(txn)
-	if err != nil {
-		log.Warn("[CheckTransactionContext] get transaction reference failed")
-		return nil, elaerr.Simple(elaerr.ErrTxUnknownReferredTx, nil)
-	}
+	//
+	//references, err := b.UTXOCache.GetTxReference(txn)
+	//if err != nil {
+	//	log.Warn("[CheckTransactionContext] get transaction reference failed")
+	//	return nil, elaerr.Simple(elaerr.ErrTxUnknownReferredTx, nil)
+	//}
 
 	if err := b.checkPOWConsensusTransaction(txn, references); err != nil {
 		log.Warn("[checkPOWConsensusTransaction],", err)

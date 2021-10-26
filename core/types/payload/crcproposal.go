@@ -8,10 +8,11 @@ package payload
 import (
 	"bytes"
 	"errors"
-	"github.com/elastos/Elastos.ELA/common"
-	"github.com/elastos/Elastos.ELA/crypto"
 	"io"
 	"regexp"
+
+	"github.com/elastos/Elastos.ELA/common"
+	"github.com/elastos/Elastos.ELA/crypto"
 )
 
 const (

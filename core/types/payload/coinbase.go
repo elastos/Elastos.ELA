@@ -6,7 +6,9 @@
 package payload
 
 import (
+	"errors"
 	"fmt"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"io"
 
 	elaerr "github.com/elastos/Elastos.ELA/errors"
@@ -43,35 +45,34 @@ func (a *CoinBase) Deserialize(r io.Reader, version byte) error {
 }
 
 // todo add description
-func (a *CoinBase) SpecialCheck(p *CheckParameters) (elaerr.ELAError, bool) {
+func (a *CoinBase) SpecialCheck(para *CheckParameters) (elaerr.ELAError, bool) {
 	// todo special check, all check witch used isCoinbase function, need to move here.
-	//if p.BlockHeight >= p.CRCommitteeStartHeight {
-	//	if p.ConsensusAlgorithm == 0x01 {
-	//		if !txn.Outputs[0].ProgramHash.IsEqual(p.DestroyELAAddress) {
-	//			return elaerr.Simple(elaerr.ErrTxInvalidOutput,
-	//				errors.New("first output address should be "+
-	//					"DestroyAddress in POW consensus algorithm")), true
-	//		}
-	//	} else {
-	//		if !txn.Outputs[0].ProgramHash.IsEqual(p.CRAssetsAddress) {
-	//			return elaerr.Simple(elaerr.ErrTxInvalidOutput,
-	//				errors.New("first output address should be CR assets address")), true
-	//		}
-	//	}
-	//} else if !txn.Outputs[0].ProgramHash.IsEqual(p.FoundationAddress) {
-	//	return elaerr.Simple(elaerr.ErrTxInvalidOutput,
-	//		errors.New("first output address should be foundation address")), true
-	//}
-	//
+	if para.BlockHeight >= para.CRCommitteeStartHeight {
+		if para.ConsensusAlgorithm == 0x01 {
+			if !para.Outputs[0].ProgramHash.IsEqual(para.DestroyELAAddress) {
+				return elaerr.Simple(elaerr.ErrTxInvalidOutput,
+					errors.New("first output address should be "+
+						"DestroyAddress in POW consensus algorithm")), true
+			}
+		} else {
+			if !para.Outputs[0].ProgramHash.IsEqual(para.CRAssetsAddress) {
+				return elaerr.Simple(elaerr.ErrTxInvalidOutput,
+					errors.New("first output address should be CR assets address")), true
+			}
+		}
+	} else if !para.Outputs[0].ProgramHash.IsEqual(para.FoundationAddress) {
+		return elaerr.Simple(elaerr.ErrTxInvalidOutput,
+			errors.New("first output address should be foundation address")), true
+	}
 
 	fmt.Println("CoinBase self check")
 	return nil, true
 }
 
-func (a *CoinBase) ContextCheck(para *CheckParameters) elaerr.ELAError {
+func (a *CoinBase) ContextCheck(para *CheckParameters) (map[*common2.Input]common2.Output, elaerr.ELAError) {
 
 	if err := a.CheckTxHeightVersion(para); err != nil {
-		return elaerr.Simple(elaerr.ErrTxHeightVersion, nil)
+		return nil, elaerr.Simple(elaerr.ErrTxHeightVersion, nil)
 	}
 
 	//// check if duplicated with transaction in ledger
@@ -81,13 +82,13 @@ func (a *CoinBase) ContextCheck(para *CheckParameters) elaerr.ELAError {
 	//}
 	if exist := a.IsTxHashDuplicate(para.TxHash); exist {
 		//log.Warn("[CheckTransactionContext] duplicate transaction check failed.")
-		return elaerr.Simple(elaerr.ErrTxDuplicate, nil)
+		return nil, elaerr.Simple(elaerr.ErrTxDuplicate, nil)
 	}
 
 	firstErr, end := a.SpecialCheck(para)
 	if end {
-		return firstErr
+		return nil, firstErr
 	}
 
-	return nil
+	return nil, nil
 }

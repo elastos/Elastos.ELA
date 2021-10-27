@@ -9,10 +9,10 @@ import (
 	"github.com/elastos/Elastos.ELA/account"
 	"github.com/elastos/Elastos.ELA/benchmark/common/utils"
 	"github.com/elastos/Elastos.ELA/common/config"
-	"github.com/elastos/Elastos.ELA/core/types"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/core/types/outputpayload"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
+	"github.com/elastos/Elastos.ELA/core/types/transactions"
 )
 
 const (
@@ -23,8 +23,8 @@ type transferAssetGenerator struct {
 	account []*account.Account
 }
 
-func (g *transferAssetGenerator) Generate() *types.Transaction {
-	txn := &types.Transaction{
+func (g *transferAssetGenerator) Generate() *transactions.BaseTransaction {
+	txn := &transactions.BaseTransaction{
 		Version:        common2.TxVersion09,
 		TxType:         common2.TransferAsset,
 		PayloadVersion: 0,

@@ -7,6 +7,7 @@ package config
 
 import (
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/transactions"
 	"math"
 	"math/big"
 	"time"
@@ -26,7 +27,7 @@ var (
 	zeroHash = common.Uint256{}
 
 	// elaAsset is the transaction that create and register the ELA coin.
-	elaAsset = types.Transaction{
+	elaAsset = transactions.BaseTransaction{
 		TxType:         common2.RegisterAsset,
 		PayloadVersion: 0,
 		Payload: &payload.RegisterAsset{
@@ -805,7 +806,7 @@ func (p *Params) newRewardPerBlock(targetTimePerBlock time.Duration, height uint
 // The genesis block goes different because the foundation address in each
 // network is different.
 func GenesisBlock(foundation *common.Uint168) *types.Block {
-	coinBase := types.Transaction{
+	coinBase := transactions.BaseTransaction{
 		Version:        0,
 		TxType:         common2.CoinBase,
 		PayloadVersion: payload.CoinBaseVersion,
@@ -844,7 +845,7 @@ func GenesisBlock(foundation *common.Uint168) *types.Block {
 			Nonce:      2083236893,
 			Height:     0,
 		},
-		Transactions: []*types.Transaction{&coinBase, &elaAsset},
+		Transactions: []*transactions.BaseTransaction{&coinBase, &elaAsset},
 	}
 }
 

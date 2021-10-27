@@ -14,6 +14,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/elastos/Elastos.ELA/core/types/transactions"
 
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/log"
@@ -296,7 +297,7 @@ func dbRemoveTxIndexEntries(dbTx database.Tx, block *types.Block) error {
 
 // dbFetchTx looks up the passed transaction hash in the transaction index and
 // loads it from the database.
-func dbFetchTx(dbTx database.Tx, hash *common.Uint256) (*types.Transaction, *common.Uint256, error) {
+func dbFetchTx(dbTx database.Tx, hash *common.Uint256) (*transactions.BaseTransaction, *common.Uint256, error) {
 	// Look up the location of the transaction.
 	blockRegion, err := dbFetchTxIndexEntry(dbTx, hash)
 	if err != nil {
@@ -313,7 +314,7 @@ func dbFetchTx(dbTx database.Tx, hash *common.Uint256) (*types.Transaction, *com
 	}
 
 	// Deserialize the transaction.
-	var txn types.Transaction
+	var txn transactions.BaseTransaction
 	err = txn.Deserialize(bytes.NewReader(txBytes))
 	if err != nil {
 		return nil, &common.EmptyHash, err

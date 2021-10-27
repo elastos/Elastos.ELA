@@ -8,6 +8,7 @@ package indexers
 import (
 	"errors"
 	"fmt"
+	"github.com/elastos/Elastos.ELA/core/types/transactions"
 	"testing"
 
 	"github.com/elastos/Elastos.ELA/common"
@@ -28,7 +29,7 @@ var (
 	referRecipient2, _ = common.Uint168FromAddress("EKnWs1jyNdhzH65UST8qMo8ZpQrTpXGnLH")
 
 	// refer tx hash: 160da301e49617c037ae9b630919af52b8ac458202cd64558af7e0dcc753e307
-	testUtxoIndexReferTx = &types.Transaction{
+	testUtxoIndexReferTx = &transactions.BaseTransaction{
 		Version:        common2.TxVersion09,
 		TxType:         common2.TransferAsset,
 		PayloadVersion: 0,
@@ -72,7 +73,7 @@ var (
 		LockTime: 5,
 	}
 	recipient1, _    = common.Uint168FromAddress("EQr9qjiXGF2y7YMtDCHtHNewZynakbDzF7")
-	testUtxoIndexTx1 = &types.Transaction{
+	testUtxoIndexTx1 = &transactions.BaseTransaction{
 		TxType:  common2.CoinBase,
 		Payload: new(payload.CoinBase),
 		Inputs:  nil,
@@ -88,7 +89,7 @@ var (
 		},
 	}
 	recipient2, _    = common.Uint168FromAddress("EWQfnxDhXQ4vHjncuAG5si2zpbKR79CjLp")
-	testUtxoIndexTx2 = &types.Transaction{
+	testUtxoIndexTx2 = &transactions.BaseTransaction{
 		TxType:         common2.TransferAsset,
 		PayloadVersion: 0,
 		Payload:        &payload.TransferAsset{},
@@ -134,7 +135,7 @@ var (
 		Header: types.Header{
 			Height: 200,
 		},
-		Transactions: []*types.Transaction{
+		Transactions: []*transactions.BaseTransaction{
 			testUtxoIndexTx1,
 			testUtxoIndexTx2,
 		},
@@ -146,11 +147,11 @@ var (
 )
 
 type TestTxStore struct {
-	transactions map[common.Uint256]*types.Transaction
+	transactions map[common.Uint256]*transactions.BaseTransaction
 	heights      map[common.Uint256]uint32
 }
 
-func (s *TestTxStore) FetchTx(txID common.Uint256) (*types.Transaction,
+func (s *TestTxStore) FetchTx(txID common.Uint256) (*transactions.BaseTransaction,
 	uint32, error) {
 	txn, exist := s.transactions[txID]
 	if exist {
@@ -159,7 +160,7 @@ func (s *TestTxStore) FetchTx(txID common.Uint256) (*types.Transaction,
 	return nil, 0, errors.New("leveldb: not found")
 }
 
-func (s *TestTxStore) SetTx(txn *types.Transaction, height uint32) {
+func (s *TestTxStore) SetTx(txn *transactions.BaseTransaction, height uint32) {
 	s.transactions[txn.Hash()] = txn
 	s.heights[txn.Hash()] = height
 }
@@ -170,7 +171,7 @@ func (s *TestTxStore) RemoveTx(txID common.Uint256) {
 
 func NewTestTxStore() *TestTxStore {
 	var db TestTxStore
-	db.transactions = make(map[common.Uint256]*types.Transaction)
+	db.transactions = make(map[common.Uint256]*transactions.BaseTransaction)
 	db.heights = make(map[common.Uint256]uint32)
 	return &db
 }
@@ -194,21 +195,21 @@ func TestUTXOIndexInit(t *testing.T) {
 		assert.NoError(t, err)
 
 		// initialize test utxo
-		utxos1 := make([]*types.UTXO, 0)
-		utxos2 := make([]*types.UTXO, 0)
+		utxos1 := make([]*common2.UTXO, 0)
+		utxos2 := make([]*common2.UTXO, 0)
 		for i, output := range testUtxoIndexReferTx.Outputs {
 			if output.Value == 0 {
 				continue
 			}
 			if output.ProgramHash.IsEqual(*referRecipient1) {
-				utxos1 = append(utxos1, &types.UTXO{
+				utxos1 = append(utxos1, &common2.UTXO{
 					TxID:  testUtxoIndexReferTx.Hash(),
 					Index: uint16(i),
 					Value: output.Value,
 				})
 			}
 			if output.ProgramHash.IsEqual(*referRecipient2) {
-				utxos2 = append(utxos2, &types.UTXO{
+				utxos2 = append(utxos2, &common2.UTXO{
 					TxID:  testUtxoIndexReferTx.Hash(),
 					Index: uint16(i),
 					Value: output.Value,
@@ -227,7 +228,7 @@ func TestUTXOIndexInit(t *testing.T) {
 
 		utxos1, err = dbFetchUtxoIndexEntryByHeight(dbTx, referRecipient1, referHeight)
 		assert.NoError(t, err)
-		assert.Equal(t, []*types.UTXO{
+		assert.Equal(t, []*common2.UTXO{
 			{
 				TxID:  testUtxoIndexReferTx.Hash(),
 				Index: 1,
@@ -236,7 +237,7 @@ func TestUTXOIndexInit(t *testing.T) {
 		}, utxos1)
 		utxos2, err = dbFetchUtxoIndexEntryByHeight(dbTx, referRecipient2, referHeight)
 		assert.NoError(t, err)
-		assert.Equal(t, []*types.UTXO{
+		assert.Equal(t, []*common2.UTXO{
 			{
 				TxID:  testUtxoIndexReferTx.Hash(),
 				Index: 2,
@@ -264,10 +265,10 @@ func TestUtxoIndex_ConnectBlock(t *testing.T) {
 		// input items should be removed from db
 		inputUtxo1, err := dbFetchUtxoIndexEntry(dbTx, referRecipient1)
 		assert.NoError(t, err)
-		assert.Equal(t, []*types.UTXO{}, inputUtxo1)
+		assert.Equal(t, []*common2.UTXO{}, inputUtxo1)
 		inputUtxo2, err := dbFetchUtxoIndexEntry(dbTx, referRecipient2)
 		assert.NoError(t, err)
-		assert.Equal(t, []*types.UTXO{
+		assert.Equal(t, []*common2.UTXO{
 			{
 				TxID:  testUtxoIndexReferTx.Hash(),
 				Index: 3,
@@ -278,7 +279,7 @@ func TestUtxoIndex_ConnectBlock(t *testing.T) {
 		// output items should be added in db
 		outputUtxo1, err := dbFetchUtxoIndexEntry(dbTx, recipient1)
 		assert.NoError(t, err)
-		assert.Equal(t, []*types.UTXO{
+		assert.Equal(t, []*common2.UTXO{
 			{
 				TxID:  testUtxoIndexTx1.Hash(),
 				Index: 0,
@@ -297,7 +298,7 @@ func TestUtxoIndex_ConnectBlock(t *testing.T) {
 		}, outputUtxo1)
 		outputUtxo2, err := dbFetchUtxoIndexEntry(dbTx, recipient2)
 		assert.NoError(t, err)
-		assert.Equal(t, []*types.UTXO{
+		assert.Equal(t, []*common2.UTXO{
 			{
 				TxID:  testUtxoIndexTx2.Hash(),
 				Index: 1,
@@ -317,7 +318,7 @@ func TestUtxoIndex_DisconnectBlock(t *testing.T) {
 		// input items should be added to db
 		utxos1, err := dbFetchUtxoIndexEntry(dbTx, referRecipient1)
 		assert.NoError(t, err)
-		assert.Equal(t, []*types.UTXO{
+		assert.Equal(t, []*common2.UTXO{
 			{
 				TxID:  testUtxoIndexReferTx.Hash(),
 				Index: 1,
@@ -326,7 +327,7 @@ func TestUtxoIndex_DisconnectBlock(t *testing.T) {
 		}, utxos1)
 		utxos2, err := dbFetchUtxoIndexEntry(dbTx, referRecipient2)
 		assert.NoError(t, err)
-		assert.Equal(t, []*types.UTXO{
+		assert.Equal(t, []*common2.UTXO{
 			{
 				TxID:  testUtxoIndexReferTx.Hash(),
 				Index: 3,
@@ -342,10 +343,10 @@ func TestUtxoIndex_DisconnectBlock(t *testing.T) {
 		// output items should be removed from db
 		outputUtxo1, err := dbFetchUtxoIndexEntry(dbTx, recipient1)
 		assert.NoError(t, err)
-		assert.Equal(t, []*types.UTXO{}, outputUtxo1)
+		assert.Equal(t, []*common2.UTXO{}, outputUtxo1)
 		outputUtxo2, err := dbFetchUtxoIndexEntry(dbTx, recipient2)
 		assert.NoError(t, err)
-		assert.Equal(t, []*types.UTXO{}, outputUtxo2)
+		assert.Equal(t, []*common2.UTXO{}, outputUtxo2)
 
 		return nil
 	})

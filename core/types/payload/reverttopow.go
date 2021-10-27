@@ -24,8 +24,6 @@ const (
 type RevertType byte
 
 type RevertToPOW struct {
-	DefaultChecker
-
 	Type          RevertType
 	WorkingHeight uint32
 }
@@ -73,17 +71,3 @@ func (a *RevertToPOW) Deserialize(r io.Reader, version byte) error {
 	}
 	return nil
 }
-//
-//// todo add description
-//func (a *RevertToPOW) SpecialCheck(txn *types.Transaction,
-//	p *CheckParameters) (elaerr.ELAError, bool) {
-//	// todo special check
-//	return nil, false
-//}
-//
-//// todo add description
-//func (a *RevertToPOW) SecondCheck(txn *types.Transaction,
-//	p *CheckParameters) (elaerr.ELAError, bool) {
-//	// todo special check
-//	return nil, false
-//}

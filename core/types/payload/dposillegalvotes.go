@@ -22,8 +22,6 @@ type VoteEvidence struct {
 }
 
 type DPOSIllegalVotes struct {
-	DefaultChecker
-
 	Evidence        VoteEvidence
 	CompareEvidence VoteEvidence
 
@@ -103,17 +101,3 @@ func (d *DPOSIllegalVotes) GetBlockHeight() uint32 {
 func (d *DPOSIllegalVotes) Type() IllegalDataType {
 	return IllegalVote
 }
-//
-//// todo add description
-//func (a *DPOSIllegalVotes) SpecialCheck(txn *types.Transaction,
-//	p *CheckParameters) (elaerr.ELAError, bool) {
-//	// todo special check
-//	return nil, false
-//}
-//
-//// todo add description
-//func (a *DPOSIllegalVotes) SecondCheck(txn *types.Transaction,
-//	p *CheckParameters) (elaerr.ELAError, bool) {
-//	// todo special check
-//	return nil, false
-//}

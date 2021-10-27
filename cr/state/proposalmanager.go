@@ -8,11 +8,11 @@ package state
 import (
 	"fmt"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/transactions"
 
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/core/contract"
-	"github.com/elastos/Elastos.ELA/core/types"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/crypto"
 	"github.com/elastos/Elastos.ELA/utils"
@@ -595,7 +595,7 @@ func (p *ProposalManager) delProposal(did common.Uint168,
 }
 
 // registerProposal will register proposal state in proposal manager
-func (p *ProposalManager) registerProposal(tx *types.Transaction,
+func (p *ProposalManager) registerProposal(tx *transactions.BaseTransaction,
 	height uint32, currentsSession uint64, history *utils.History) {
 	proposal := tx.Payload.(*payload.CRCProposal)
 	//The number of the proposals of the committee can not more than 128
@@ -710,7 +710,7 @@ func getCIDByPublicKey(publicKey []byte) (*common.Uint168, error) {
 	return ct.ToProgramHash(), nil
 }
 
-func (p *ProposalManager) proposalReview(tx *types.Transaction,
+func (p *ProposalManager) proposalReview(tx *transactions.BaseTransaction,
 	height uint32, history *utils.History) {
 	proposalReview := tx.Payload.(*payload.CRCProposalReview)
 	proposalState := p.getProposal(proposalReview.ProposalHash)
@@ -730,7 +730,7 @@ func (p *ProposalManager) proposalReview(tx *types.Transaction,
 	})
 }
 
-func (p *ProposalManager) proposalWithdraw(tx *types.Transaction,
+func (p *ProposalManager) proposalWithdraw(tx *transactions.BaseTransaction,
 	height uint32, history *utils.History) {
 	withdrawPayload := tx.Payload.(*payload.CRCProposalWithdraw)
 	proposalState := p.getProposal(withdrawPayload.ProposalHash)
@@ -773,7 +773,7 @@ func (p *ProposalManager) proposalWithdraw(tx *types.Transaction,
 	})
 }
 
-func (p *ProposalManager) proposalTracking(tx *types.Transaction,
+func (p *ProposalManager) proposalTracking(tx *transactions.BaseTransaction,
 	height uint32, history *utils.History) (unusedBudget common.Fixed64) {
 	proposalTracking := tx.Payload.(*payload.CRCProposalTracking)
 	proposalState := p.getProposal(proposalTracking.ProposalHash)

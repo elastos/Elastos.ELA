@@ -8,13 +8,14 @@ package state
 import (
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/core/types"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/dpos/p2p/peer"
 )
 
 type Arbitrators interface {
 	Start()
 	CheckDPOSIllegalTx(block *types.Block) error
-	ProcessSpecialTxPayload(p types.Payload, height uint32) error
+	ProcessSpecialTxPayload(p interfaces.Payload, height uint32) error
 	CheckCRCAppropriationTx(block *types.Block) error
 	CheckNextTurnDPOSInfoTx(block *types.Block) error
 	CheckCustomIDResultsTx(block *types.Block) error

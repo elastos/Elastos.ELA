@@ -7,6 +7,7 @@ package wallet
 
 import (
 	"bytes"
+	"github.com/elastos/Elastos.ELA/core/types/transactions"
 	"testing"
 
 	"github.com/elastos/Elastos.ELA/common"
@@ -28,7 +29,7 @@ var (
 
 	prevOp common2.OutPoint
 
-	tx1    = new(types.Transaction)
+	tx1    = new(transactions.BaseTransaction)
 	block1 *types.DposBlock
 )
 
@@ -56,7 +57,7 @@ func TestInitBlock(t *testing.T) {
 	assert.Equal(t, uint32(99), ccp.height)
 	assert.Equal(t, 1, len(ccp.coins))
 
-	tx1 := &types.Transaction{
+	tx1 := &transactions.BaseTransaction{
 		Inputs: []*common2.Input{
 			{
 				Previous: prevOp,
@@ -80,7 +81,7 @@ func TestInitBlock(t *testing.T) {
 			Header: types.Header{
 				Height: 100,
 			},
-			Transactions: []*types.Transaction{
+			Transactions: []*transactions.BaseTransaction{
 				tx1,
 			},
 		},

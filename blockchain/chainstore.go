@@ -10,6 +10,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/transactions"
 	"path/filepath"
 	"sync"
 	"sync/atomic"
@@ -64,7 +65,7 @@ func (c *ChainStore) CleanSmallCrossTransferTx(txHash Uint256) error {
 	return c.levelDB.Delete(key.Bytes())
 }
 
-func (c *ChainStore) SaveSmallCrossTransferTx(tx *Transaction) error {
+func (c *ChainStore) SaveSmallCrossTransferTx(tx *transactions.BaseTransaction) error {
 	buf := new(bytes.Buffer)
 	tx.Serialize(buf)
 	var key bytes.Buffer
@@ -74,13 +75,13 @@ func (c *ChainStore) SaveSmallCrossTransferTx(tx *Transaction) error {
 	return nil
 }
 
-func (c *ChainStore) GetSmallCrossTransferTxs() ([]*Transaction, error) {
+func (c *ChainStore) GetSmallCrossTransferTxs() ([]*transactions.BaseTransaction, error) {
 	Iter := c.levelDB.NewIterator(SMALL_CROSS_TRANSFER_RPEFIX)
-	txs := make([]*Transaction, 0)
+	txs := make([]*transactions.BaseTransaction, 0)
 	for Iter.Next() {
 		val := Iter.Value()
 		r := bytes.NewReader(val)
-		tx := new(Transaction)
+		tx := new(transactions.BaseTransaction)
 		if err := tx.Deserialize(r); err != nil {
 			return nil, err
 		}
@@ -128,7 +129,7 @@ func (c *ChainStore) IsSidechainReturnDepositTxHashDuplicate(sidechainReturnDepo
 	return c.GetFFLDB().IsSideChainReturnDepositExist(&sidechainReturnDepositTxHash)
 }
 
-func (c *ChainStore) IsDoubleSpend(txn *Transaction) bool {
+func (c *ChainStore) IsDoubleSpend(txn *transactions.BaseTransaction) bool {
 	if len(txn.Inputs) == 0 {
 		return false
 	}
@@ -162,7 +163,7 @@ func (c *ChainStore) RollbackBlock(b *Block, node *BlockNode,
 	return err
 }
 
-func (c *ChainStore) GetTransaction(txID Uint256) (*Transaction, uint32, error) {
+func (c *ChainStore) GetTransaction(txID Uint256) (*transactions.BaseTransaction, uint32, error) {
 	return c.fflDB.GetTransaction(txID)
 }
 
@@ -170,7 +171,7 @@ func (c *ChainStore) GetProposalDraftDataByDraftHash(draftHash *Uint256) ([]byte
 	return c.fflDB.GetProposalDraftDataByDraftHash(draftHash)
 }
 
-func (c *ChainStore) GetTxReference(tx *Transaction) (map[*common.Input]*common.Output, error) {
+func (c *ChainStore) GetTxReference(tx *transactions.BaseTransaction) (map[*common.Input]*common.Output, error) {
 	if tx.TxType == common.RegisterAsset {
 		return nil, nil
 	}

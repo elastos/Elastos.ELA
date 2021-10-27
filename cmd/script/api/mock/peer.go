@@ -7,6 +7,7 @@ package mock
 
 import (
 	"fmt"
+	"github.com/elastos/Elastos.ELA/core/types/transactions"
 	"time"
 
 	"github.com/elastos/Elastos.ELA/blockchain"
@@ -51,7 +52,7 @@ func (n *peerMock) DumpRelays(level uint32) string {
 	case 0:
 		for _, v := range n.relayList {
 			if m, ok := v.(*msg.Tx); ok {
-				tx := m.Serializable.(*types.Transaction)
+				tx := m.Serializable.(*transactions.BaseTransaction)
 				result += fmt.Sprintf("[transaction]: type=%s",
 					tx.TxType.Name())
 			} else if m, ok := v.(*msg.Block); ok {

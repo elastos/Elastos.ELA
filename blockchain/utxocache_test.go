@@ -8,11 +8,11 @@ package blockchain
 import (
 	"errors"
 	"fmt"
+	"github.com/elastos/Elastos.ELA/core/types/transactions"
 	"testing"
 
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
-	"github.com/elastos/Elastos.ELA/core/types"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/core/types/outputpayload"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
@@ -26,7 +26,7 @@ var (
 	utxoCache   *UTXOCache
 
 	// refer tx hash: 160da301e49617c037ae9b630919af52b8ac458202cd64558af7e0dcc753e307
-	referTx = &types.Transaction{
+	referTx = &transactions.BaseTransaction{
 		Version:        common2.TxVersion09,
 		TxType:         common2.TransferAsset,
 		PayloadVersion: 0,
@@ -51,7 +51,7 @@ var (
 		LockTime: 5,
 	}
 
-	spendTx = &types.Transaction{
+	spendTx = &transactions.BaseTransaction{
 		Inputs: []*common2.Input{
 			{
 				Previous: common2.OutPoint{
@@ -65,7 +65,7 @@ var (
 )
 
 type UtxoCacheDB struct {
-	transactions map[common.Uint256]*types.Transaction
+	transactions map[common.Uint256]*transactions.BaseTransaction
 }
 
 func init() {
@@ -73,7 +73,7 @@ func init() {
 }
 
 func (s *UtxoCacheDB) GetTransaction(txID common.Uint256) (
-	*types.Transaction, uint32, error) {
+	*transactions.BaseTransaction, uint32, error) {
 	txn, exist := s.transactions[txID]
 	if exist {
 		return txn, 0, nil
@@ -81,7 +81,7 @@ func (s *UtxoCacheDB) GetTransaction(txID common.Uint256) (
 	return nil, 0, errors.New("leveldb: not found")
 }
 
-func (s *UtxoCacheDB) SetTransaction(txn *types.Transaction) {
+func (s *UtxoCacheDB) SetTransaction(txn *transactions.BaseTransaction) {
 	s.transactions[txn.Hash()] = txn
 }
 
@@ -91,7 +91,7 @@ func (s *UtxoCacheDB) RemoveTransaction(txID common.Uint256) {
 
 func NewUtxoCacheDB() *UtxoCacheDB {
 	var db UtxoCacheDB
-	db.transactions = make(map[common.Uint256]*types.Transaction)
+	db.transactions = make(map[common.Uint256]*transactions.BaseTransaction)
 	return &db
 }
 

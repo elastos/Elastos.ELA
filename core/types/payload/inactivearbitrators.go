@@ -16,8 +16,6 @@ import (
 const InactiveArbitratorsVersion byte = 0x00
 
 type InactiveArbitrators struct {
-	DefaultChecker
-
 	Sponsor     []byte
 	Arbitrators [][]byte
 	BlockHeight uint32
@@ -114,17 +112,3 @@ func (i *InactiveArbitrators) Hash() common.Uint256 {
 	}
 	return *i.hash
 }
-//
-//// todo add description
-//func (a *InactiveArbitrators) SpecialCheck(txn *types.Transaction,
-//	p *CheckParameters) (elaerr.ELAError, bool) {
-//	// todo special check
-//	return nil, false
-//}
-//
-//// todo add description
-//func (a *InactiveArbitrators) SecondCheck(txn *types.Transaction,
-//	p *CheckParameters) (elaerr.ELAError, bool) {
-//	// todo special check
-//	return nil, false
-//}

@@ -10,6 +10,8 @@ import (
 	"encoding/hex"
 	"fmt"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
+	"github.com/elastos/Elastos.ELA/core/types/transactions"
 	"io"
 	"math"
 	"sync"
@@ -280,7 +282,7 @@ type State struct {
 	isInElectionPeriod       func() bool
 	getProducerDepositAmount func(programHash common.Uint168) (
 		common.Fixed64, error)
-	getTxReference func(tx *types.Transaction) (
+	getTxReference func(tx *transactions.BaseTransaction) (
 		map[*common2.Input]common2.Output, error)
 	tryUpdateCRMemberInactivity func(did common.Uint168, needReset bool, height uint32)
 	tryRevertCRMemberInactivity func(did common.Uint168, oriState state.MemberState,
@@ -690,7 +692,7 @@ func (s *State) ProducerNodePublicKeyExists(publicKey []byte) bool {
 
 // SpecialTxExists returns if a special tx (typically means illegal and
 // inactive tx) is exists by it's hash
-func (s *State) SpecialTxExists(tx *types.Transaction) bool {
+func (s *State) SpecialTxExists(tx *transactions.BaseTransaction) bool {
 	illegalData, ok := tx.Payload.(payload.DPOSIllegalData)
 	if !ok {
 		log.Error("special tx payload cast failed, tx:", common.ToReversedString(tx.Hash()))
@@ -706,7 +708,7 @@ func (s *State) SpecialTxExists(tx *types.Transaction) bool {
 
 // IsDPOSTransaction returns if a transaction will change the producers and
 // votes state.
-func (s *State) IsDPOSTransaction(tx *types.Transaction) bool {
+func (s *State) IsDPOSTransaction(tx *transactions.BaseTransaction) bool {
 	switch tx.TxType {
 	// Transactions will changes the producers state.
 	case common2.RegisterProducer, common2.UpdateProducer, common2.CancelProducer,
@@ -837,7 +839,7 @@ func (s *State) ProcessVoteStatisticsBlock(block *types.Block) {
 // processTransactions takes the transactions and the height when they have been
 // packed into a block.  Then loop through the transactions to update producers
 // state and votes according to transactions content.
-func (s *State) processTransactions(txs []*types.Transaction, height uint32) {
+func (s *State) processTransactions(txs []*transactions.BaseTransaction, height uint32) {
 
 	for _, tx := range txs {
 		s.processTransaction(tx, height)
@@ -929,7 +931,7 @@ func (s *State) processTransactions(txs []*types.Transaction, height uint32) {
 // processTransaction take a transaction and the height it has been packed into
 // a block, then update producers state and votes according to the transaction
 // content.
-func (s *State) processTransaction(tx *types.Transaction, height uint32) {
+func (s *State) processTransaction(tx *transactions.BaseTransaction, height uint32) {
 	switch tx.TxType {
 	case common2.RegisterProducer:
 		s.registerProducer(tx, height)
@@ -993,7 +995,7 @@ func (s *State) processTransaction(tx *types.Transaction, height uint32) {
 }
 
 // registerProducer handles the register producer transaction.
-func (s *State) registerProducer(tx *types.Transaction, height uint32) {
+func (s *State) registerProducer(tx *transactions.BaseTransaction, height uint32) {
 	info := tx.Payload.(*payload.ProducerInfo)
 	nickname := info.NickName
 	nodeKey := hex.EncodeToString(info.NodePublicKey)
@@ -1108,7 +1110,7 @@ func (s *State) activateProducer(p *payload.ActivateProducer, height uint32) {
 
 // processVotes takes a transaction, if the transaction including any vote
 // inputs or outputs, validate and update producers votes.
-func (s *State) processVotes(tx *types.Transaction, height uint32) {
+func (s *State) processVotes(tx *transactions.BaseTransaction, height uint32) {
 	if tx.Version >= common2.TxVersion09 {
 		// Votes to producers.
 		for i, output := range tx.Outputs {
@@ -1147,7 +1149,7 @@ func (s *State) processVotes(tx *types.Transaction, height uint32) {
 }
 
 // processDeposit takes a transaction output with deposit program hash.
-func (s *State) processDeposit(tx *types.Transaction, height uint32) {
+func (s *State) processDeposit(tx *transactions.BaseTransaction, height uint32) {
 	for i, output := range tx.Outputs {
 		if contract.GetPrefixType(output.ProgramHash) ==
 			contract.PrefixDeposit {
@@ -1205,7 +1207,7 @@ func (s *State) addProducerAssert(output *common2.Output, height uint32) bool {
 }
 
 // processCancelVotes takes a transaction output with vote payload.
-func (s *State) processCancelVotes(tx *types.Transaction, height uint32) {
+func (s *State) processCancelVotes(tx *transactions.BaseTransaction, height uint32) {
 	var exist bool
 	for _, input := range tx.Inputs {
 		referKey := input.ReferKey()
@@ -1310,7 +1312,7 @@ func (s *State) processVoteCancel(output *common2.Output, height uint32) {
 }
 
 // returnDeposit change producer state to ReturnedDeposit
-func (s *State) returnDeposit(tx *types.Transaction, height uint32) {
+func (s *State) returnDeposit(tx *transactions.BaseTransaction, height uint32) {
 	var inputValue common.Fixed64
 	for _, input := range tx.Inputs {
 		inputValue += s.DepositOutputs[input.ReferKey()]
@@ -1357,7 +1359,7 @@ func (s *State) returnDeposit(tx *types.Transaction, height uint32) {
 }
 
 // processNextTurnDPOSInfo change NeedNextTurnDposInfo  status
-func (s *State) processNextTurnDPOSInfo(tx *types.Transaction, height uint32) {
+func (s *State) processNextTurnDPOSInfo(tx *transactions.BaseTransaction, height uint32) {
 	_, ok := tx.Payload.(*payload.NextTurnDPOSInfo)
 	if !ok {
 		return
@@ -1391,7 +1393,7 @@ func (s *State) getNodePublicKeyStr(strOwnerPublicKey string) string {
 	return ""
 }
 
-func (s *State) processCRCouncilMemberClaimNode(tx *types.Transaction, height uint32) {
+func (s *State) processCRCouncilMemberClaimNode(tx *transactions.BaseTransaction, height uint32) {
 	claimNodePayload := tx.Payload.(*payload.CRCouncilMemberClaimNode)
 	strNewNodePublicKey := common.BytesToHexString(claimNodePayload.NodePublicKey)
 
@@ -1415,7 +1417,7 @@ func (s *State) processCRCouncilMemberClaimNode(tx *types.Transaction, height ui
 	})
 }
 
-func (s *State) processRevertToPOW(tx *types.Transaction, height uint32) {
+func (s *State) processRevertToPOW(tx *transactions.BaseTransaction, height uint32) {
 	oriNoProducers := s.NoProducers
 	oriNoClaimDPOSNode := s.NoClaimDPOSNode
 	oriDPOSWorkHeight := s.DPOSWorkHeight
@@ -1442,7 +1444,7 @@ func (s *State) processRevertToPOW(tx *types.Transaction, height uint32) {
 
 // updateVersion record the update period during that inactive arbitrators
 // will not need to pay the penalty
-func (s *State) updateVersion(tx *types.Transaction, height uint32) {
+func (s *State) updateVersion(tx *transactions.BaseTransaction, height uint32) {
 	p, ok := tx.Payload.(*payload.UpdateVersion)
 	if !ok {
 		log.Error("tx payload cast failed, tx:", common.ToReversedString(tx.Hash()))
@@ -1551,7 +1553,7 @@ func (s *State) RemoveSpecialTx(hash common.Uint256) {
 
 // processIllegalEvidence takes the illegal evidence payload and change producer
 // state according to the evidence.
-func (s *State) processIllegalEvidence(payloadData types.Payload,
+func (s *State) processIllegalEvidence(payloadData interfaces.Payload,
 	height uint32) {
 	// Get illegal producers from evidence.
 	var illegalProducers [][]byte
@@ -1699,7 +1701,7 @@ func (s *State) processIllegalEvidence(payloadData types.Payload,
 // ProcessIllegalBlockEvidence takes a illegal block payload and change the
 // producers state immediately.  This is a spacial case that can be handled
 // before it packed into a block.
-func (s *State) ProcessSpecialTxPayload(p types.Payload, height uint32) {
+func (s *State) ProcessSpecialTxPayload(p interfaces.Payload, height uint32) {
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
 

@@ -7,11 +7,11 @@ package bloom
 
 import (
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/transactions"
 	"math"
 	"sync"
 
 	"github.com/elastos/Elastos.ELA/common"
-	"github.com/elastos/Elastos.ELA/core/types"
 	"github.com/elastos/Elastos.ELA/p2p/msg"
 )
 
@@ -250,7 +250,7 @@ func (bf *Filter) AddOutPoint(outpoint *common2.OutPoint) {
 // update flags set via the loaded filter if needed.
 //
 // This function MUST be called with the filter lock held.
-func (bf *Filter) matchTxAndUpdate(txn *types.Transaction) bool {
+func (bf *Filter) matchTxAndUpdate(txn *transactions.BaseTransaction) bool {
 	// Check if the filter matches the hash of the tx.
 	// This is useful for finding transactions when they appear in a block.
 	hash := txn.Hash()
@@ -299,7 +299,7 @@ func (bf *Filter) matchTxAndUpdate(txn *types.Transaction) bool {
 // update flags set via the loaded filter if needed.
 //
 // This function is safe for concurrent access.
-func (bf *Filter) MatchTxAndUpdate(tx *types.Transaction) bool {
+func (bf *Filter) MatchTxAndUpdate(tx *transactions.BaseTransaction) bool {
 	bf.mtx.Lock()
 	match := bf.matchTxAndUpdate(tx)
 	bf.mtx.Unlock()

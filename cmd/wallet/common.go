@@ -13,6 +13,7 @@ import (
 	"errors"
 	"fmt"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/transactions"
 	"io"
 	"os"
 	"strings"
@@ -21,7 +22,6 @@ import (
 	cmdcom "github.com/elastos/Elastos.ELA/cmd/common"
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/core/contract"
-	"github.com/elastos/Elastos.ELA/core/types"
 	"github.com/elastos/Elastos.ELA/crypto"
 	"github.com/elastos/Elastos.ELA/servers"
 	"github.com/elastos/Elastos.ELA/utils/http"
@@ -178,7 +178,7 @@ func getAddressBalance(address string) (common.Fixed64, common.Fixed64, error) {
 	return availableAmount, lockedAmount, nil
 }
 
-func OutputTx(haveSign, needSign int, txn *types.Transaction) error {
+func OutputTx(haveSign, needSign int, txn *transactions.BaseTransaction) error {
 	// Serialise transaction content
 	buf := new(bytes.Buffer)
 	err := txn.Serialize(buf)
@@ -198,7 +198,7 @@ func OutputTx(haveSign, needSign int, txn *types.Transaction) error {
 	fileName := "to_be_signed" // Create transaction file name
 
 	if haveSign == 0 && needSign > 0 {
-		//	Transaction created do nothing
+		//	BaseTransaction created do nothing
 	} else if needSign > haveSign {
 		fileName = fmt.Sprint(fileName, "_", haveSign, "_of_", needSign)
 	} else if needSign == haveSign {
@@ -216,7 +216,7 @@ func OutputTx(haveSign, needSign int, txn *types.Transaction) error {
 		return err
 	}
 
-	var tx types.Transaction
+	var tx transactions.BaseTransaction
 	txBytes, _ := hex.DecodeString(content)
 	if err := tx.Deserialize(bytes.NewReader(txBytes)); err != nil {
 		return err

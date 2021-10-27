@@ -18,8 +18,6 @@ const WithdrawFromSideChainVersionV1 byte = 0x01
 const WithdrawFromSideChainVersionV2 byte = 0x02 // for schnorr
 
 type WithdrawFromSideChain struct {
-	DefaultChecker
-
 	BlockHeight                uint32
 	GenesisBlockAddress        string
 	SideChainTransactionHashes []common.Uint256
@@ -120,17 +118,3 @@ func (t *WithdrawFromSideChain) Deserialize(r io.Reader, version byte) error {
 
 	return nil
 }
-//
-//// todo add description
-//func (a *WithdrawFromSideChain) SpecialCheck(txn *types.Transaction,
-//	p *CheckParameters) (elaerr.ELAError, bool) {
-//	// todo special check
-//	return nil, false
-//}
-//
-//// todo add description
-//func (a *WithdrawFromSideChain) SecondCheck(txn *types.Transaction,
-//	p *CheckParameters) (elaerr.ELAError, bool) {
-//	// todo special check
-//	return nil, false
-//}

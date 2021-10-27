@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/transactions"
 	"testing"
 
 	"github.com/elastos/Elastos.ELA/common"
@@ -125,10 +126,10 @@ func checkResult(t *testing.T, A, B, C, D *CheckPoint) {
 }
 
 func getRegisterProducerTx(ownerPublicKey, nodePublicKey []byte,
-	nickName string) *types.Transaction {
+	nickName string) *transactions.BaseTransaction {
 	pk, _ := crypto.DecodePoint(ownerPublicKey)
 	depositCont, _ := contract.CreateDepositContractByPubKey(pk)
-	return &types.Transaction{
+	return &transactions.BaseTransaction{
 		TxType: common2.RegisterProducer,
 		Payload: &payload.ProducerInfo{
 			OwnerPublicKey: ownerPublicKey,
@@ -145,8 +146,8 @@ func getRegisterProducerTx(ownerPublicKey, nodePublicKey []byte,
 }
 
 func getVoteProducerTx(amount common.Fixed64,
-	candidateVotes []outputpayload.CandidateVotes) *types.Transaction {
-	return &types.Transaction{
+	candidateVotes []outputpayload.CandidateVotes) *transactions.BaseTransaction {
+	return &transactions.BaseTransaction{
 		Version: 0x09,
 		TxType:  common2.TransferAsset,
 		Payload: &payload.TransferAsset{},
@@ -172,8 +173,8 @@ func getVoteProducerTx(amount common.Fixed64,
 }
 
 func getUpdateProducerTx(ownerPublicKey, nodePublicKey []byte,
-	nickName string) *types.Transaction {
-	return &types.Transaction{
+	nickName string) *transactions.BaseTransaction {
+	return &transactions.BaseTransaction{
 		TxType: common2.UpdateProducer,
 		Payload: &payload.ProducerInfo{
 			OwnerPublicKey: ownerPublicKey,
@@ -183,8 +184,8 @@ func getUpdateProducerTx(ownerPublicKey, nodePublicKey []byte,
 	}
 }
 
-func getCancelProducer(publicKey []byte) *types.Transaction {
-	return &types.Transaction{
+func getCancelProducer(publicKey []byte) *transactions.BaseTransaction {
+	return &transactions.BaseTransaction{
 		Version: 0x09,
 		TxType:  common2.CancelProducer,
 		Payload: &payload.ProcessProducer{
@@ -193,11 +194,11 @@ func getCancelProducer(publicKey []byte) *types.Transaction {
 	}
 }
 
-func getReturnProducerDeposit(publicKey []byte, amount common.Fixed64) *types.Transaction {
+func getReturnProducerDeposit(publicKey []byte, amount common.Fixed64) *transactions.BaseTransaction {
 	pk, _ := crypto.DecodePoint(publicKey)
 	code, _ := contract.CreateStandardRedeemScript(pk)
 
-	return &types.Transaction{
+	return &transactions.BaseTransaction{
 		TxType:  common2.ReturnDepositCoin,
 		Payload: &payload.ReturnDepositCoin{},
 		Programs: []*program.Program{
@@ -217,7 +218,7 @@ func TestArbitrators_RollbackRegisterProducer(t *testing.T) {
 		Header: types.Header{
 			Height: currentHeight,
 		},
-		Transactions: []*types.Transaction{
+		Transactions: []*transactions.BaseTransaction{
 			getRegisterProducerTx(abtList[0], abtList[0], "p1"),
 			getRegisterProducerTx(abtList[1], abtList[1], "p2"),
 			getRegisterProducerTx(abtList[2], abtList[2], "p3"),
@@ -284,7 +285,7 @@ func TestArbitrators_RollbackVoteProducer(t *testing.T) {
 		Header: types.Header{
 			Height: currentHeight,
 		},
-		Transactions: []*types.Transaction{
+		Transactions: []*transactions.BaseTransaction{
 			getRegisterProducerTx(abtList[0], abtList[0], "p1"),
 			getRegisterProducerTx(abtList[1], abtList[1], "p2"),
 			getRegisterProducerTx(abtList[2], abtList[2], "p3"),
@@ -311,7 +312,7 @@ func TestArbitrators_RollbackVoteProducer(t *testing.T) {
 	currentHeight++
 	abt.ProcessBlock(&types.Block{
 		Header:       types.Header{Height: currentHeight},
-		Transactions: []*types.Transaction{voteProducerTx}}, nil)
+		Transactions: []*transactions.BaseTransaction{voteProducerTx}}, nil)
 	arbiterStateA := abt.Snapshot()
 	assert.Equal(t, common.Fixed64(5), abt.getProducer(abtList[0]).votes)
 
@@ -319,7 +320,7 @@ func TestArbitrators_RollbackVoteProducer(t *testing.T) {
 	updateProducerTx := getUpdateProducerTx(abtList[1], abtList[1], "node1")
 	abt.ProcessBlock(&types.Block{
 		Header:       types.Header{Height: currentHeight},
-		Transactions: []*types.Transaction{updateProducerTx}}, nil)
+		Transactions: []*transactions.BaseTransaction{updateProducerTx}}, nil)
 	arbiterStateB := abt.Snapshot()
 
 	// rollback
@@ -332,7 +333,7 @@ func TestArbitrators_RollbackVoteProducer(t *testing.T) {
 	currentHeight++
 	abt.ProcessBlock(&types.Block{
 		Header:       types.Header{Height: currentHeight},
-		Transactions: []*types.Transaction{updateProducerTx}}, nil)
+		Transactions: []*transactions.BaseTransaction{updateProducerTx}}, nil)
 	arbiterStateD := abt.Snapshot()
 
 	checkResult(t, arbiterStateA, arbiterStateB, arbiterStateC, arbiterStateD)
@@ -346,7 +347,7 @@ func TestArbitrators_RollbackUpdateProducer(t *testing.T) {
 		Header: types.Header{
 			Height: currentHeight,
 		},
-		Transactions: []*types.Transaction{
+		Transactions: []*transactions.BaseTransaction{
 			getRegisterProducerTx(abtList[0], abtList[0], "p1"),
 			getRegisterProducerTx(abtList[1], abtList[1], "p2"),
 			getRegisterProducerTx(abtList[2], abtList[2], "p3"),
@@ -374,7 +375,7 @@ func TestArbitrators_RollbackUpdateProducer(t *testing.T) {
 	currentHeight++
 	abt.ProcessBlock(&types.Block{
 		Header:       types.Header{Height: currentHeight},
-		Transactions: []*types.Transaction{voteProducerTx}}, nil)
+		Transactions: []*transactions.BaseTransaction{voteProducerTx}}, nil)
 	arbiterStateB := abt.Snapshot()
 	assert.Equal(t, common.Fixed64(5), abt.getProducer(abtList[0]).votes)
 
@@ -389,7 +390,7 @@ func TestArbitrators_RollbackUpdateProducer(t *testing.T) {
 	currentHeight++
 	abt.ProcessBlock(&types.Block{
 		Header:       types.Header{Height: currentHeight},
-		Transactions: []*types.Transaction{voteProducerTx}}, nil)
+		Transactions: []*transactions.BaseTransaction{voteProducerTx}}, nil)
 	arbiterStateD := abt.Snapshot()
 
 	checkResult(t, arbiterStateA, arbiterStateB, arbiterStateC, arbiterStateD)
@@ -403,7 +404,7 @@ func TestArbitrators_RollbackCancelProducer(t *testing.T) {
 		Header: types.Header{
 			Height: currentHeight,
 		},
-		Transactions: []*types.Transaction{
+		Transactions: []*transactions.BaseTransaction{
 			getRegisterProducerTx(abtList[0], abtList[0], "p1"),
 			getRegisterProducerTx(abtList[1], abtList[1], "p2"),
 			getRegisterProducerTx(abtList[2], abtList[2], "p3"),
@@ -432,7 +433,7 @@ func TestArbitrators_RollbackCancelProducer(t *testing.T) {
 	currentHeight++
 	abt.ProcessBlock(&types.Block{
 		Header:       types.Header{Height: currentHeight},
-		Transactions: []*types.Transaction{voteProducerTx}}, nil)
+		Transactions: []*transactions.BaseTransaction{voteProducerTx}}, nil)
 
 	// cancel producer
 	cancelProducerTx := getCancelProducer(abtList[0])
@@ -442,7 +443,7 @@ func TestArbitrators_RollbackCancelProducer(t *testing.T) {
 	currentHeight++
 	abt.ProcessBlock(&types.Block{
 		Header:       types.Header{Height: currentHeight},
-		Transactions: []*types.Transaction{cancelProducerTx}}, nil)
+		Transactions: []*transactions.BaseTransaction{cancelProducerTx}}, nil)
 	arbiterStateB := abt.Snapshot()
 	assert.Equal(t, 3, len(abt.GetActiveProducers()))
 
@@ -457,7 +458,7 @@ func TestArbitrators_RollbackCancelProducer(t *testing.T) {
 	currentHeight++
 	abt.ProcessBlock(&types.Block{
 		Header:       types.Header{Height: currentHeight},
-		Transactions: []*types.Transaction{cancelProducerTx}}, nil)
+		Transactions: []*transactions.BaseTransaction{cancelProducerTx}}, nil)
 	arbiterStateD := abt.Snapshot()
 	assert.Equal(t, 3, len(abt.GetActiveProducers()))
 
@@ -477,7 +478,7 @@ func TestArbitrators_RollbackReturnProducerDeposit(t *testing.T) {
 		Header: types.Header{
 			Height: currentHeight,
 		},
-		Transactions: []*types.Transaction{
+		Transactions: []*transactions.BaseTransaction{
 			register1,
 			register2,
 			register3,
@@ -506,7 +507,7 @@ func TestArbitrators_RollbackReturnProducerDeposit(t *testing.T) {
 	currentHeight++
 	abt.ProcessBlock(&types.Block{
 		Header:       types.Header{Height: currentHeight},
-		Transactions: []*types.Transaction{voteProducerTx}}, nil)
+		Transactions: []*transactions.BaseTransaction{voteProducerTx}}, nil)
 
 	// cancel producer
 	cancelProducerTx := getCancelProducer(abtList[0])
@@ -514,7 +515,7 @@ func TestArbitrators_RollbackReturnProducerDeposit(t *testing.T) {
 	currentHeight++
 	abt.ProcessBlock(&types.Block{
 		Header:       types.Header{Height: currentHeight},
-		Transactions: []*types.Transaction{cancelProducerTx}}, nil)
+		Transactions: []*transactions.BaseTransaction{cancelProducerTx}}, nil)
 	assert.Equal(t, 3, len(abt.GetActiveProducers()))
 
 	// set get producer deposit amount function
@@ -537,7 +538,7 @@ func TestArbitrators_RollbackReturnProducerDeposit(t *testing.T) {
 	currentHeight += abt.chainParams.CRDepositLockupBlocks
 	abt.ProcessBlock(&types.Block{
 		Header:       types.Header{Height: currentHeight},
-		Transactions: []*types.Transaction{cancelProducerTx}}, nil)
+		Transactions: []*transactions.BaseTransaction{cancelProducerTx}}, nil)
 
 	assert.Equal(t, common.Fixed64(0), abt.GetProducer(abtList[0]).depositAmount)
 
@@ -555,7 +556,7 @@ func TestArbitrators_RollbackReturnProducerDeposit(t *testing.T) {
 	currentHeight = abt.chainParams.CRVotingStartHeight
 	abt.ProcessBlock(&types.Block{
 		Header:       types.Header{Height: currentHeight},
-		Transactions: []*types.Transaction{returnDepositTx}}, nil)
+		Transactions: []*transactions.BaseTransaction{returnDepositTx}}, nil)
 	assert.Equal(t, 1, len(abt.GetReturnedDepositProducers()))
 	assert.Equal(t, common.Fixed64(0), abt.GetProducer(abtList[0]).depositAmount)
 	arbiterStateB := abt.Snapshot()
@@ -571,7 +572,7 @@ func TestArbitrators_RollbackReturnProducerDeposit(t *testing.T) {
 	currentHeight++
 	abt.ProcessBlock(&types.Block{
 		Header:       types.Header{Height: currentHeight},
-		Transactions: []*types.Transaction{returnDepositTx}}, nil)
+		Transactions: []*transactions.BaseTransaction{returnDepositTx}}, nil)
 	assert.Equal(t, 1, len(abt.GetReturnedDepositProducers()))
 	arbiterStateD := abt.Snapshot()
 
@@ -586,7 +587,7 @@ func TestArbitrators_RollbackLastBlockOfARound(t *testing.T) {
 		Header: types.Header{
 			Height: currentHeight,
 		},
-		Transactions: []*types.Transaction{
+		Transactions: []*transactions.BaseTransaction{
 			getRegisterProducerTx(abtList[0], abtList[0], "p1"),
 			getRegisterProducerTx(abtList[1], abtList[1], "p2"),
 			getRegisterProducerTx(abtList[2], abtList[2], "p3"),
@@ -615,7 +616,7 @@ func TestArbitrators_RollbackLastBlockOfARound(t *testing.T) {
 	currentHeight++
 	abt.ProcessBlock(&types.Block{
 		Header:       types.Header{Height: currentHeight},
-		Transactions: []*types.Transaction{voteProducerTx}}, nil)
+		Transactions: []*transactions.BaseTransaction{voteProducerTx}}, nil)
 
 	// set general arbiters count
 	abt.chainParams.GeneralArbiters = 2
@@ -699,7 +700,7 @@ func TestArbitrators_NextTurnDposInfoTX(t *testing.T) {
 		Header: types.Header{
 			Height: currentHeight,
 		},
-		Transactions: []*types.Transaction{
+		Transactions: []*transactions.BaseTransaction{
 			getRegisterProducerTx(abtList[0], abtList[0], "p1"),
 			getRegisterProducerTx(abtList[1], abtList[1], "p2"),
 			getRegisterProducerTx(abtList[2], abtList[2], "p3"),
@@ -728,7 +729,7 @@ func TestArbitrators_NextTurnDposInfoTX(t *testing.T) {
 	currentHeight++
 	abt.ProcessBlock(&types.Block{
 		Header:       types.Header{Height: currentHeight},
-		Transactions: []*types.Transaction{voteProducerTx}}, nil)
+		Transactions: []*transactions.BaseTransaction{voteProducerTx}}, nil)
 
 	// set general arbiters count
 	abt.chainParams.GeneralArbiters = 2
@@ -750,7 +751,7 @@ func TestArbitrators_NextTurnDposInfoTX(t *testing.T) {
 	if err2 != nil {
 		fmt.Println("HexStringToBytes err2", err2)
 	}
-	var nextTurnDPOSInfoTx types.Transaction
+	var nextTurnDPOSInfoTx transactions.BaseTransaction
 	reader2 := bytes.NewReader(data)
 	err2 = nextTurnDPOSInfoTx.Deserialize(reader2)
 	if err2 != nil {
@@ -759,7 +760,7 @@ func TestArbitrators_NextTurnDposInfoTX(t *testing.T) {
 
 	abt.ProcessBlock(&types.Block{
 		Header:       types.Header{Height: currentHeight},
-		Transactions: []*types.Transaction{&nextTurnDPOSInfoTx}}, nil)
+		Transactions: []*transactions.BaseTransaction{&nextTurnDPOSInfoTx}}, nil)
 
 	currentHeight++
 	abt.ProcessBlock(&types.Block{
@@ -774,7 +775,7 @@ func TestArbitrators_RollbackRewardBlock(t *testing.T) {
 		Header: types.Header{
 			Height: currentHeight,
 		},
-		Transactions: []*types.Transaction{
+		Transactions: []*transactions.BaseTransaction{
 			getRegisterProducerTx(abtList[0], abtList[0], "p1"),
 			getRegisterProducerTx(abtList[1], abtList[1], "p2"),
 			getRegisterProducerTx(abtList[2], abtList[2], "p3"),
@@ -803,7 +804,7 @@ func TestArbitrators_RollbackRewardBlock(t *testing.T) {
 	currentHeight++
 	abt.ProcessBlock(&types.Block{
 		Header:       types.Header{Height: currentHeight},
-		Transactions: []*types.Transaction{voteProducerTx}}, nil)
+		Transactions: []*transactions.BaseTransaction{voteProducerTx}}, nil)
 
 	// set general arbiters count
 	abt.chainParams.GeneralArbiters = 2
@@ -882,7 +883,7 @@ func TestArbitrators_RollbackMultipleTransactions(t *testing.T) {
 		Header: types.Header{
 			Height: currentHeight,
 		},
-		Transactions: []*types.Transaction{
+		Transactions: []*transactions.BaseTransaction{
 			register1,
 			getRegisterProducerTx(abtList[1], abtList[1], "p2"),
 			getRegisterProducerTx(abtList[2], abtList[2], "p3"),
@@ -911,7 +912,7 @@ func TestArbitrators_RollbackMultipleTransactions(t *testing.T) {
 	currentHeight++
 	abt.ProcessBlock(&types.Block{
 		Header:       types.Header{Height: currentHeight},
-		Transactions: []*types.Transaction{voteProducerTx}}, nil)
+		Transactions: []*transactions.BaseTransaction{voteProducerTx}}, nil)
 
 	// cancel producer
 	cancelProducerTx := getCancelProducer(abtList[0])
@@ -919,7 +920,7 @@ func TestArbitrators_RollbackMultipleTransactions(t *testing.T) {
 	currentHeight++
 	abt.ProcessBlock(&types.Block{
 		Header:       types.Header{Height: currentHeight},
-		Transactions: []*types.Transaction{cancelProducerTx}}, nil)
+		Transactions: []*transactions.BaseTransaction{cancelProducerTx}}, nil)
 	assert.Equal(t, 3, len(abt.GetActiveProducers()))
 
 	// set get producer deposit amount function
@@ -959,7 +960,7 @@ func TestArbitrators_RollbackMultipleTransactions(t *testing.T) {
 	currentHeight = abt.chainParams.CRVotingStartHeight
 	abt.ProcessBlock(&types.Block{
 		Header: types.Header{Height: currentHeight},
-		Transactions: []*types.Transaction{
+		Transactions: []*transactions.BaseTransaction{
 			registerProducerTx2,
 			voteProducerTx2,
 			updateProducerTx2,
@@ -983,7 +984,7 @@ func TestArbitrators_RollbackMultipleTransactions(t *testing.T) {
 	currentHeight++
 	abt.ProcessBlock(&types.Block{
 		Header: types.Header{Height: currentHeight},
-		Transactions: []*types.Transaction{
+		Transactions: []*transactions.BaseTransaction{
 			registerProducerTx2,
 			voteProducerTx2,
 			updateProducerTx2,

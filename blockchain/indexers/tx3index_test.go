@@ -6,6 +6,7 @@
 package indexers
 
 import (
+	"github.com/elastos/Elastos.ELA/core/types/transactions"
 	"testing"
 
 	"github.com/elastos/Elastos.ELA/common"
@@ -21,7 +22,7 @@ import (
 
 var (
 	tx3Hash = common.Uint256{1, 2, 3}
-	tx4     = &types.Transaction{
+	tx4     = &transactions.BaseTransaction{
 		TxType:         common2.WithdrawFromSideChain,
 		PayloadVersion: 0,
 		Payload: &payload.WithdrawFromSideChain{
@@ -35,7 +36,7 @@ var (
 
 	testTx3IndexBlock = &types.Block{
 		Header: types.Header{},
-		Transactions: []*types.Transaction{
+		Transactions: []*transactions.BaseTransaction{
 			tx4,
 		},
 	}

@@ -8,6 +8,7 @@ package types
 import (
 	"bytes"
 	"errors"
+	"github.com/elastos/Elastos.ELA/core/types/transactions"
 	"io"
 
 	"github.com/elastos/Elastos.ELA/common"
@@ -26,7 +27,7 @@ type TxLoc struct {
 
 type Block struct {
 	Header
-	Transactions []*Transaction
+	Transactions []*transactions.BaseTransaction
 }
 
 func (b *Block) Serialize(w io.Writer) error {
@@ -55,7 +56,7 @@ func (b *Block) Deserialize(r io.Reader) error {
 		return errors.New("Block item transactions count deserialize failed.")
 	}
 	for i := uint32(0); i < count; i++ {
-		transaction := new(Transaction)
+		transaction := new(transactions.BaseTransaction)
 		if err := transaction.Deserialize(r); err != nil {
 			return errors.New("Block item transaction deserialize failed, " + err.Error())
 		}
@@ -83,11 +84,11 @@ func (b *Block) DeserializeTxLoc(r *bytes.Buffer) ([]TxLoc, error) {
 
 	// Deserialize each transaction while keeping track of its location
 	// within the byte stream.
-	b.Transactions = make([]*Transaction, 0, txCount)
+	b.Transactions = make([]*transactions.BaseTransaction, 0, txCount)
 	txLocs := make([]TxLoc, txCount)
 	for i := uint32(0); i < txCount; i++ {
 		txLocs[i].TxStart = fullLen - r.Len()
-		tx := Transaction{}
+		tx := transactions.BaseTransaction{}
 		err := tx.Deserialize(r)
 		if err != nil {
 			return nil, err

@@ -9,13 +9,13 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/elastos/Elastos.ELA/core/types/transactions"
 	"os"
 	"strings"
 
 	"github.com/elastos/Elastos.ELA/account"
 	cmdcom "github.com/elastos/Elastos.ELA/cmd/common"
 	"github.com/elastos/Elastos.ELA/common"
-	"github.com/elastos/Elastos.ELA/core/types"
 	"github.com/elastos/Elastos.ELA/crypto"
 	"github.com/elastos/Elastos.ELA/utils/http"
 
@@ -24,7 +24,7 @@ import (
 
 var txCommand = []cli.Command{
 	{
-		Category:    "Transaction",
+		Category:    "BaseTransaction",
 		Name:        "buildtx",
 		Usage:       "Build a transaction",
 		Description: "use --to --amount --fee to create a transaction",
@@ -42,7 +42,7 @@ var txCommand = []cli.Command{
 		Action:      buildTx,
 	},
 	{
-		Category:    "Transaction",
+		Category:    "BaseTransaction",
 		Name:        "signtx",
 		Usage:       "Sign a transaction",
 		Description: "use --file or --hex to specify the transaction file path or content",
@@ -55,7 +55,7 @@ var txCommand = []cli.Command{
 		Action: signTx,
 	},
 	{
-		Category:    "Transaction",
+		Category:    "BaseTransaction",
 		Name:        "sendtx",
 		Usage:       "Send a transaction",
 		Description: "use --file or --hex to specify the transaction file path or content",
@@ -66,7 +66,7 @@ var txCommand = []cli.Command{
 		Action: sendTx,
 	},
 	{
-		Category: "Transaction",
+		Category: "BaseTransaction",
 		Name:     "showtx",
 		Usage:    "Show info of raw transaction",
 		Flags: []cli.Flag{
@@ -213,7 +213,7 @@ func signTx(c *cli.Context) error {
 		return errors.New("decode transaction content failed")
 	}
 
-	var txn types.Transaction
+	var txn transactions.BaseTransaction
 	err = txn.Deserialize(bytes.NewReader(rawData))
 	if err != nil {
 		return errors.New("deserialize transaction failed")
@@ -237,7 +237,7 @@ func signTx(c *cli.Context) error {
 	}
 
 	haveSign, needSign, _ = crypto.GetSignStatus(txn.Programs[0].Code, txn.Programs[0].Parameter)
-	fmt.Println("[", haveSign, "/", needSign, "] Transaction was successfully signed")
+	fmt.Println("[", haveSign, "/", needSign, "] BaseTransaction was successfully signed")
 
 	OutputTx(haveSign, needSign, txnSigned)
 
@@ -279,7 +279,7 @@ func showTx(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	var txn types.Transaction
+	var txn transactions.BaseTransaction
 	if err := txn.Deserialize(bytes.NewReader(txBytes)); err != nil {
 		return err
 	}

@@ -9,6 +9,8 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/transactions"
 	"io/ioutil"
 	"math"
 	"os"
@@ -98,7 +100,7 @@ func (g *DataGen) Generate(height uint32) (err error) {
 }
 
 func (g *DataGen) fastProcess(height uint32) (err error) {
-	var txs []*types.Transaction
+	var txs []*transactions.BaseTransaction
 	if txs, err = g.generateTxs(height); err != nil {
 		return
 	}
@@ -120,7 +122,7 @@ func (g *DataGen) fastProcess(height uint32) (err error) {
 }
 
 func (g *DataGen) normalProcess(height uint32) (err error) {
-	var txs []*types.Transaction
+	var txs []*transactions.BaseTransaction
 	if txs, err = g.generateTxs(height); err != nil {
 		return
 	}
@@ -142,7 +144,7 @@ func (g *DataGen) normalProcess(height uint32) (err error) {
 }
 
 func (g *DataGen) minimalProcess(height uint32) (err error) {
-	var txs []*types.Transaction
+	var txs []*transactions.BaseTransaction
 	if txs, err = g.generateTxs(height); err != nil {
 		return
 	}
@@ -174,7 +176,7 @@ func (g *DataGen) countProcess(counter *TimeCounter, action func()) {
 }
 
 func (g *DataGen) generateTxs(
-	height uint32) (txs []*types.Transaction, err error) {
+	height uint32) (txs []*transactions.BaseTransaction, err error) {
 	if g.pressure {
 		return g.txRepo.GeneratePressureTxs(height, g.pressureTxSize)
 	} else {
@@ -183,7 +185,7 @@ func (g *DataGen) generateTxs(
 }
 
 func (g *DataGen) generateBlock(
-	txs []*types.Transaction) (block *types.Block, err error) {
+	txs []*transactions.BaseTransaction) (block *types.Block, err error) {
 	g.countProcess(g.addToTxPoolCount, func() {
 		for _, v := range txs {
 			if err = g.txPool.AppendToTxPool(v); err != nil {
@@ -273,7 +275,7 @@ func FromTxRepository(dataDir string, interrupt <-chan struct{},
 
 	if initFoundationUTXO {
 		fundTx := chainParams.GenesisBlock.Transactions[0]
-		repo.SetFoundationUTXO(&types.UTXO{
+		repo.SetFoundationUTXO(&common2.UTXO{
 			TxID:  fundTx.Hash(),
 			Index: 0,
 			Value: fundTx.Outputs[0].Value,

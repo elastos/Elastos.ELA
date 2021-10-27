@@ -7,11 +7,11 @@ package pow
 
 import (
 	"github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/transactions"
 	"time"
 
 	"github.com/elastos/Elastos.ELA/common/log"
 	"github.com/elastos/Elastos.ELA/core/contract/program"
-	"github.com/elastos/Elastos.ELA/core/types"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 )
 
@@ -37,7 +37,7 @@ func (pow *Service) ListenForRevert() {
 				Type:          payload.NoBlock,
 				WorkingHeight: pow.chain.BestChain.Height + 1,
 			}
-			tx := &types.Transaction{
+			tx := &transactions.BaseTransaction{
 				Version:        common.TxVersion09,
 				TxType:         common.RevertToPOW,
 				PayloadVersion: payload.RevertToPOWVersion,

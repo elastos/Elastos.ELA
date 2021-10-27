@@ -7,6 +7,7 @@ package manager
 
 import (
 	"bytes"
+	"github.com/elastos/Elastos.ELA/core/types/transactions"
 
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/core/contract/program"
@@ -165,7 +166,7 @@ func (i *IllegalBehaviorMonitor) ProcessIllegalProposal(
 
 func (i *IllegalBehaviorMonitor) sendIllegalProposalTransaction(
 	evidences *payload.DPOSIllegalProposals) {
-	tx := &types.Transaction{
+	tx := &transactions.BaseTransaction{
 		Version:        common2.TxVersion09,
 		TxType:         common2.IllegalProposalEvidence,
 		PayloadVersion: payload.IllegalProposalVersion,
@@ -185,7 +186,7 @@ func (i *IllegalBehaviorMonitor) sendIllegalProposalTransaction(
 
 func (i *IllegalBehaviorMonitor) SendSidechainIllegalEvidenceTransaction(
 	evidence *payload.SidechainIllegalData) {
-	tx := &types.Transaction{
+	tx := &transactions.BaseTransaction{
 		Version:        common2.TxVersion09,
 		TxType:         common2.IllegalSidechainEvidence,
 		PayloadVersion: payload.SidechainIllegalDataVersion,
@@ -205,7 +206,7 @@ func (i *IllegalBehaviorMonitor) SendSidechainIllegalEvidenceTransaction(
 
 func (i *IllegalBehaviorMonitor) sendIllegalVoteTransaction(
 	evidences *payload.DPOSIllegalVotes) {
-	tx := &types.Transaction{
+	tx := &transactions.BaseTransaction{
 		Version:        common2.TxVersion09,
 		TxType:         common2.IllegalVoteEvidence,
 		PayloadVersion: payload.IllegalVoteVersion,

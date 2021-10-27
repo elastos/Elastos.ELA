@@ -7,16 +7,16 @@ package mempool
 
 import (
 	"fmt"
+	"github.com/elastos/Elastos.ELA/core/types/transactions"
 	"io"
 	"sort"
 
 	"github.com/elastos/Elastos.ELA/common"
-	"github.com/elastos/Elastos.ELA/core/types"
 	"github.com/elastos/Elastos.ELA/errors"
 )
 
 type PopBackEvent func(common.Uint256)
-type AppendToTxPoolEvent func(tx *types.Transaction) errors.ELAError
+type AppendToTxPoolEvent func(tx *transactions.BaseTransaction) errors.ELAError
 
 var (
 	addingTxExcluded = errors.SimpleWithMessage(errors.ErrTxPoolFailure,
@@ -38,7 +38,7 @@ type txFeeOrderedList struct {
 	onPopBack PopBackEvent
 }
 
-func (l *txFeeOrderedList) AddTx(tx *types.Transaction) errors.ELAError {
+func (l *txFeeOrderedList) AddTx(tx *transactions.BaseTransaction) errors.ELAError {
 	size := uint32(tx.GetSize())
 	if size <= 0 {
 		return errors.SimpleWithMessage(errors.ErrTxPoolFailure, nil,

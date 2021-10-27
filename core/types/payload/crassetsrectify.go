@@ -12,7 +12,6 @@ import (
 const CRAssetsRectifyVersion byte = 0x00
 
 type CRAssetsRectify struct {
-	DefaultChecker
 }
 
 func (p *CRAssetsRectify) Data(version byte) []byte {

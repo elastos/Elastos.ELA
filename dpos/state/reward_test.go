@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"crypto/rand"
 	"fmt"
+	"github.com/elastos/Elastos.ELA/core/types/transactions"
 	"testing"
 
 	"github.com/elastos/Elastos.ELA/common"
@@ -61,7 +62,7 @@ func TestCommittee_ChangeCommitteeReward(t *testing.T) {
 		Header: types.Header{
 			Height: currentHeight,
 		},
-		Transactions: []*types.Transaction{
+		Transactions: []*transactions.BaseTransaction{
 			registerCRTxn1,
 			registerCRTxn2,
 			registerCRTxn3,
@@ -87,7 +88,7 @@ func TestCommittee_ChangeCommitteeReward(t *testing.T) {
 		Header: types.Header{
 			Height: currentHeight,
 		},
-		Transactions: []*types.Transaction{
+		Transactions: []*transactions.BaseTransaction{
 			voteCRTx,
 		},
 	}, nil)
@@ -121,7 +122,7 @@ func TestCommittee_ChangeCommitteeReward(t *testing.T) {
 
 	// Register 10 producers on one height.
 	for i := 0; i < 20; i++ {
-		txs := make([]*types.Transaction, 10)
+		txs := make([]*transactions.BaseTransaction, 10)
 		for i, p := range producers[i*10 : (i+1)*10] {
 			txs[i] = mockRegisterProducerTx(p)
 		}
@@ -190,7 +191,7 @@ func getCodeByPubKeyStr(publicKey string) []byte {
 	return redeemScript
 }
 
-func getRegisterCRTx(publicKeyStr, privateKeyStr, nickName string) *types.Transaction {
+func getRegisterCRTx(publicKeyStr, privateKeyStr, nickName string) *transactions.BaseTransaction {
 	publicKeyStr1 := publicKeyStr
 	privateKeyStr1 := privateKeyStr
 	publicKey1, _ := common.HexStringToBytes(publicKeyStr1)
@@ -201,7 +202,7 @@ func getRegisterCRTx(publicKeyStr, privateKeyStr, nickName string) *types.Transa
 	did1, _ := getDIDByCode(code1)
 	hash1, _ := contract.PublicKeyToDepositProgramHash(publicKey1)
 
-	txn := new(types.Transaction)
+	txn := new(transactions.BaseTransaction)
 	txn.TxType = common2.RegisterCR
 	txn.Version = common2.TxVersion09
 	crInfoPayload := &payload.CRInfo{
@@ -254,8 +255,8 @@ func getDIDByCode(code []byte) (*common.Uint168, error) {
 }
 
 func getVoteCRTx(amount common.Fixed64,
-	candidateVotes []outputpayload.CandidateVotes) *types.Transaction {
-	return &types.Transaction{
+	candidateVotes []outputpayload.CandidateVotes) *transactions.BaseTransaction {
+	return &transactions.BaseTransaction{
 		Version: 0x09,
 		TxType:  common2.TransferAsset,
 		Outputs: []*common2.Output{

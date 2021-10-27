@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"errors"
 	"github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/transactions"
 	"os"
 	"path/filepath"
 	"sync"
@@ -132,7 +133,7 @@ func (c *ChainStoreFFLDB) Close() error {
 	return c.db.Close()
 }
 
-func ProcessProposalDraftData(dbTx database.Tx, Transactions []*Transaction) (err error) {
+func ProcessProposalDraftData(dbTx database.Tx, Transactions []*transactions.BaseTransaction) (err error) {
 	//var err error
 	for _, tx := range Transactions {
 		switch tx.TxType {
@@ -164,7 +165,7 @@ func ProcessProposalDraftData(dbTx database.Tx, Transactions []*Transaction) (er
 	return err
 }
 
-func RollbackProcessProposalDraftData(dbTx database.Tx, Transactions []*Transaction) (err error) {
+func RollbackProcessProposalDraftData(dbTx database.Tx, Transactions []*transactions.BaseTransaction) (err error) {
 	//var err error
 	for _, tx := range Transactions {
 		switch tx.TxType {
@@ -451,7 +452,7 @@ func (c *ChainStoreFFLDB) GetProposalDraftDataByDraftHash(hash *Uint256) ([]byte
 	return draftData, err
 }
 
-func (c *ChainStoreFFLDB) GetTransaction(txID Uint256) (*Transaction, uint32, error) {
+func (c *ChainStoreFFLDB) GetTransaction(txID Uint256) (*transactions.BaseTransaction, uint32, error) {
 	return c.indexManager.FetchTx(txID)
 }
 
@@ -463,7 +464,7 @@ func (c *ChainStoreFFLDB) GetUnspent(txID Uint256) ([]uint16, error) {
 	return c.indexManager.FetchUnspent(txID)
 }
 
-func (c *ChainStoreFFLDB) GetUTXO(programHash *Uint168) ([]*UTXO, error) {
+func (c *ChainStoreFFLDB) GetUTXO(programHash *Uint168) ([]*common.UTXO, error) {
 	return c.indexManager.FetchUTXO(programHash)
 }
 

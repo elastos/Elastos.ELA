@@ -7,6 +7,7 @@ package wallet
 
 import (
 	"errors"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"os"
 	"path/filepath"
 
@@ -15,7 +16,6 @@ import (
 	"github.com/elastos/Elastos.ELA/common/log"
 	"github.com/elastos/Elastos.ELA/core/checkpoint"
 	"github.com/elastos/Elastos.ELA/core/contract"
-	"github.com/elastos/Elastos.ELA/core/types"
 	"github.com/elastos/Elastos.ELA/crypto"
 	"github.com/elastos/Elastos.ELA/utils"
 )
@@ -117,18 +117,18 @@ func (w *Wallet) ImportAddress(address string, enableUtxoDB bool) error {
 	return w.RescanWallet()
 }
 
-func (w *Wallet) ListUnspent(address string, enableUtxoDB bool) (map[common.Uint256][]*types.UTXO,
+func (w *Wallet) ListUnspent(address string, enableUtxoDB bool) (map[common.Uint256][]*common2.UTXO,
 	error) {
 	coins := w.ListCoins(address)
-	utxos := make([]*types.UTXO, 0)
+	utxos := make([]*common2.UTXO, 0)
 	for op, coin := range coins {
-		utxos = append(utxos, &types.UTXO{
+		utxos = append(utxos, &common2.UTXO{
 			TxID:  op.TxID,
 			Index: op.Index,
 			Value: coin.Output.Value,
 		})
 	}
-	unspent := make(map[common.Uint256][]*types.UTXO, 0)
+	unspent := make(map[common.Uint256][]*common2.UTXO, 0)
 	unspent[*account.SystemAssetID] = utxos
 
 	return unspent, nil

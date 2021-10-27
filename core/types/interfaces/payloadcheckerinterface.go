@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file.
 //
 
-package payload
+package interfaces
 
 import (
 	"github.com/elastos/Elastos.ELA/common"

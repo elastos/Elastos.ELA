@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/transactions"
 	"math"
 	"math/rand"
 	"sort"
@@ -111,7 +112,7 @@ func (pow *Service) GetDefaultTxVersion(height uint32) common2.TransactionVersio
 	return v
 }
 
-func (pow *Service) CreateCoinbaseTx(minerAddr string, height uint32) (*types.Transaction, error) {
+func (pow *Service) CreateCoinbaseTx(minerAddr string, height uint32) (*transactions.BaseTransaction, error) {
 	crRewardAddr := pow.chainParams.Foundation
 	if height >= pow.chainParams.CRCommitteeStartHeight {
 		crRewardAddr = pow.chainParams.CRAssetsAddress
@@ -122,7 +123,7 @@ func (pow *Service) CreateCoinbaseTx(minerAddr string, height uint32) (*types.Tr
 		return nil, err
 	}
 
-	tx := &types.Transaction{
+	tx := &transactions.BaseTransaction{
 		Version:        pow.GetDefaultTxVersion(height),
 		TxType:         common2.CoinBase,
 		PayloadVersion: payload.CoinBaseVersion,
@@ -207,7 +208,7 @@ func (pow *Service) AssignCoinbaseTxRewards(block *types.Block, totalReward comm
 	return nil
 }
 
-func (pow *Service) distributeDPOSReward(coinBaseTx *types.Transaction,
+func (pow *Service) distributeDPOSReward(coinBaseTx *transactions.BaseTransaction,
 	rewards map[common.Uint168]common.Fixed64) (common.Fixed64, error) {
 
 	for ownerHash, reward := range rewards {
@@ -243,7 +244,7 @@ func (pow *Service) GenerateBlock(minerAddr string,
 
 	msgBlock := &types.Block{
 		Header:       header,
-		Transactions: []*types.Transaction{},
+		Transactions: []*transactions.BaseTransaction{},
 	}
 
 	msgBlock.Transactions = append(msgBlock.Transactions, coinBaseTx)
@@ -252,7 +253,7 @@ func (pow *Service) GenerateBlock(minerAddr string,
 	totalTxFee := common.Fixed64(0)
 	txs := pow.txMemPool.GetTxsInPool()
 
-	isHighPriority := func(tx *types.Transaction) bool {
+	isHighPriority := func(tx *transactions.BaseTransaction) bool {
 		if tx.IsIllegalTypeTx() || tx.IsInactiveArbitrators() ||
 			tx.IsSideChainPowTx() || tx.IsUpdateVersion() ||
 			tx.IsActivateProducerTx() || tx.IsCRCAppropriationTx() ||

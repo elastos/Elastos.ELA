@@ -20,8 +20,6 @@ type SidechainIllegalEvidence struct {
 }
 
 type SidechainIllegalData struct {
-	DefaultChecker
-
 	IllegalType         IllegalDataType
 	Height              uint32
 	IllegalSigner       []byte
@@ -174,17 +172,3 @@ func (s *SidechainIllegalData) Hash() common.Uint256 {
 	}
 	return *s.hash
 }
-//
-//// todo add description
-//func (a *SidechainIllegalData) SpecialCheck(txn *types.Transaction,
-//	p *CheckParameters) (elaerr.ELAError, bool) {
-//	// todo special check
-//	return nil, false
-//}
-//
-//// todo add description
-//func (a *SidechainIllegalData) SecondCheck(txn *types.Transaction,
-//	p *CheckParameters) (elaerr.ELAError, bool) {
-//	// todo special check
-//	return nil, false
-//}

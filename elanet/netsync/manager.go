@@ -7,6 +7,7 @@ package netsync
 
 import (
 	"fmt"
+	"github.com/elastos/Elastos.ELA/core/types/transactions"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -73,7 +74,7 @@ type donePeerMsg struct {
 // txMsg packages a bitcoin tx message and the peer it came from together
 // so the block handler has access to that information.
 type txMsg struct {
-	tx    *types.Transaction
+	tx    *transactions.BaseTransaction
 	peer  *peer.Peer
 	reply chan struct{}
 }
@@ -750,7 +751,7 @@ func (sm *SyncManager) handleBlockchainEvents(event *events.Event) {
 	// A transaction has been accepted into the transaction mem pool.  See if it
 	// is a illegal block transaction.
 	case events.ETTransactionAccepted:
-		tx := event.Data.(*types.Transaction)
+		tx := event.Data.(*transactions.BaseTransaction)
 		//if tx.IsIllegalBlockTx() {
 		//	sm.chain.ProcessIllegalBlock(tx.Payload.(*payload.DPOSIllegalBlocks))
 		//}
@@ -855,7 +856,7 @@ func (sm *SyncManager) handleBlockchainEvents(event *events.Event) {
 			}
 		}
 	case events.ETIllegalBlockEvidence:
-		tx, ok := event.Data.(*types.Transaction)
+		tx, ok := event.Data.(*transactions.BaseTransaction)
 		if !ok {
 			log.Warnf("Illegal evidence event is not a tx")
 			break
@@ -866,7 +867,7 @@ func (sm *SyncManager) handleBlockchainEvents(event *events.Event) {
 			break
 		}
 	case events.ETAppendTxToTxPool:
-		tx, ok := event.Data.(*types.Transaction)
+		tx, ok := event.Data.(*transactions.BaseTransaction)
 		if !ok {
 			log.Warnf("ETAppendTxToTxPool event is not a tx")
 			break
@@ -877,7 +878,7 @@ func (sm *SyncManager) handleBlockchainEvents(event *events.Event) {
 			break
 		}
 	case events.ETAppendTxToTxPoolWithoutRelay:
-		tx, ok := event.Data.(*types.Transaction)
+		tx, ok := event.Data.(*transactions.BaseTransaction)
 		if !ok {
 			log.Warnf("ETAppendTxToTxPool event is not a tx")
 			break
@@ -888,7 +889,7 @@ func (sm *SyncManager) handleBlockchainEvents(event *events.Event) {
 			break
 		}
 	case events.ETSmallCrossChainNeedRelay:
-		txs, ok := event.Data.([]*types.Transaction)
+		txs, ok := event.Data.([]*transactions.BaseTransaction)
 		if !ok {
 			log.Error("ETSmallCrossChainNeedRelay event is not a tx list")
 		}
@@ -913,7 +914,7 @@ func (sm *SyncManager) NewPeer(peer *peer.Peer) {
 // QueueTx adds the passed transaction message and peer to the block handling
 // queue. Responds to the done channel argument after the tx message is
 // processed.
-func (sm *SyncManager) QueueTx(tx *types.Transaction, peer *peer.Peer, done chan struct{}) {
+func (sm *SyncManager) QueueTx(tx *transactions.BaseTransaction, peer *peer.Peer, done chan struct{}) {
 	// Don't accept more transactions if we're shutting down.
 	if atomic.LoadInt32(&sm.shutdown) != 0 {
 		done <- struct{}{}

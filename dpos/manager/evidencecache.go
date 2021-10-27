@@ -10,6 +10,7 @@ import (
 	"github.com/elastos/Elastos.ELA/core/types"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
+	"github.com/elastos/Elastos.ELA/core/types/transactions"
 	"github.com/elastos/Elastos.ELA/dpos/log"
 )
 
@@ -70,7 +71,7 @@ func (e *evidenceCache) TryDelete(hash common.Uint256) {
 	}
 }
 
-func (e *evidenceCache) tryGetEvidenceHash(tx *types.Transaction) (common.Uint256, bool) {
+func (e *evidenceCache) tryGetEvidenceHash(tx *transactions.BaseTransaction) (common.Uint256, bool) {
 	var hash common.Uint256
 	result := true
 

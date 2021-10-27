@@ -7,9 +7,9 @@ package mempool
 
 import (
 	"fmt"
+	"github.com/elastos/Elastos.ELA/core/types/transactions"
 
 	"github.com/elastos/Elastos.ELA/common"
-	"github.com/elastos/Elastos.ELA/core/types"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/errors"
 )
@@ -18,7 +18,7 @@ import (
 type keyType byte
 
 // getKeyFunc defines the general function about get key from a tx.
-type getKeyFunc func(*types.Transaction) (interface{}, error)
+type getKeyFunc func(*transactions.BaseTransaction) (interface{}, error)
 
 // keyTypeFuncPair defines a pair about tx type and related getKeyFunc.
 type keyTypeFuncPair struct {
@@ -55,9 +55,9 @@ const (
 type conflictSlot struct {
 	keyType        keyType
 	conflictTypes  map[common2.TxType]getKeyFunc
-	stringSet      map[string]*types.Transaction
-	hashSet        map[common.Uint256]*types.Transaction
-	programHashSet map[common.Uint168]*types.Transaction
+	stringSet      map[string]*transactions.BaseTransaction
+	hashSet        map[common.Uint256]*transactions.BaseTransaction
+	programHashSet map[common.Uint168]*transactions.BaseTransaction
 }
 
 func (s *conflictSlot) Empty() bool {
@@ -77,7 +77,7 @@ func (s *conflictSlot) Contains(key interface{}) (ok bool) {
 	return
 }
 
-func (s *conflictSlot) GetTx(key interface{}) (tx *types.Transaction) {
+func (s *conflictSlot) GetTx(key interface{}) (tx *transactions.BaseTransaction) {
 	switch k := key.(type) {
 	case string:
 		tx = s.stringSet[k]
@@ -89,7 +89,7 @@ func (s *conflictSlot) GetTx(key interface{}) (tx *types.Transaction) {
 	return
 }
 
-func (s *conflictSlot) VerifyTx(tx *types.Transaction) errors.ELAError {
+func (s *conflictSlot) VerifyTx(tx *transactions.BaseTransaction) errors.ELAError {
 	getKey := s.getKeyFromTx(tx)
 	if getKey == nil {
 		return nil
@@ -132,7 +132,7 @@ func (s *conflictSlot) VerifyTx(tx *types.Transaction) errors.ELAError {
 		})
 }
 
-func (s *conflictSlot) AppendTx(tx *types.Transaction) errors.ELAError {
+func (s *conflictSlot) AppendTx(tx *transactions.BaseTransaction) errors.ELAError {
 	getKey := s.getKeyFromTx(tx)
 	if getKey == nil {
 		return nil
@@ -146,7 +146,7 @@ func (s *conflictSlot) AppendTx(tx *types.Transaction) errors.ELAError {
 	return s.appendKey(key, tx)
 }
 
-func (s *conflictSlot) getKeyFromTx(tx *types.Transaction) (getKey getKeyFunc) {
+func (s *conflictSlot) getKeyFromTx(tx *transactions.BaseTransaction) (getKey getKeyFunc) {
 	var exist bool
 	getKey, exist = s.conflictTypes[tx.TxType]
 	if !exist {
@@ -156,7 +156,7 @@ func (s *conflictSlot) getKeyFromTx(tx *types.Transaction) (getKey getKeyFunc) {
 }
 
 func (s *conflictSlot) appendKey(key interface{},
-	tx *types.Transaction) errors.ELAError {
+	tx *transactions.BaseTransaction) errors.ELAError {
 	return s.txProcess(key, s.keyType,
 		func(key string) errors.ELAError {
 			s.stringSet[key] = tx
@@ -171,7 +171,7 @@ func (s *conflictSlot) appendKey(key interface{},
 	)
 }
 
-func (s *conflictSlot) RemoveTx(tx *types.Transaction) errors.ELAError {
+func (s *conflictSlot) RemoveTx(tx *transactions.BaseTransaction) errors.ELAError {
 	getKey := s.getKeyFromTx(tx)
 	if getKey == nil {
 		return nil
@@ -285,8 +285,8 @@ func newConflictSlot(t keyType, conflictTypes ...keyTypeFuncPair) *conflictSlot 
 	return &conflictSlot{
 		keyType:        t,
 		conflictTypes:  ts,
-		stringSet:      map[string]*types.Transaction{},
-		hashSet:        map[common.Uint256]*types.Transaction{},
-		programHashSet: map[common.Uint168]*types.Transaction{},
+		stringSet:      map[string]*transactions.BaseTransaction{},
+		hashSet:        map[common.Uint256]*transactions.BaseTransaction{},
+		programHashSet: map[common.Uint168]*transactions.BaseTransaction{},
 	}
 }

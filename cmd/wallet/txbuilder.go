@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/transactions"
 	"math"
 	"math/rand"
 	"os"
@@ -21,7 +22,6 @@ import (
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/core/contract"
 	pg "github.com/elastos/Elastos.ELA/core/contract/program"
-	"github.com/elastos/Elastos.ELA/core/types"
 	"github.com/elastos/Elastos.ELA/core/types/outputpayload"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 
@@ -101,7 +101,7 @@ func CreateTransaction(c *cli.Context) error {
 		}
 	}
 
-	var txn *types.Transaction
+	var txn *transactions.BaseTransaction
 	txn, err = createTransaction(walletPath, from, *fee, uint32(outputLock),
 		uint32(txLock), outputs...)
 	if err != nil {
@@ -269,7 +269,7 @@ func createVoteOutputs(output *OutputInfo, candidateList []string) ([]*common2.O
 }
 
 func createTransaction(walletPath string, from string, fee common.Fixed64, outputLock uint32,
-	txLock uint32, outputs ...*OutputInfo) (*types.Transaction, error) {
+	txLock uint32, outputs ...*OutputInfo) (*transactions.BaseTransaction, error) {
 	// check output
 	if len(outputs) == 0 {
 		return nil, errors.New("invalid transaction target")
@@ -308,7 +308,7 @@ func createTransaction(walletPath string, from string, fee common.Fixed64, outpu
 		Code:      redeemScript,
 		Parameter: nil,
 	}
-	return &types.Transaction{
+	return &transactions.BaseTransaction{
 		Version:    common2.TxVersion09,
 		TxType:     common2.TransferAsset,
 		Payload:    &payload.TransferAsset{},
@@ -373,7 +373,7 @@ func CreateActivateProducerTransaction(c *cli.Context) error {
 	}
 	apPayload.Signature = signature
 
-	txn := &types.Transaction{
+	txn := &transactions.BaseTransaction{
 		Version:    common2.TxVersion09,
 		TxType:     common2.ActivateProducer,
 		Payload:    apPayload,
@@ -474,7 +474,7 @@ func CreateCRCProposalWithdrawTransaction(c *cli.Context) error {
 	}
 	txOutputs = append(txOutputs, changeOutputs...)
 
-	txn := &types.Transaction{
+	txn := &transactions.BaseTransaction{
 		Version:    common2.TxVersion09,
 		TxType:     common2.CRCProposalWithdraw,
 		Payload:    crcProposalWithdraw,
@@ -559,7 +559,7 @@ func CreateVoteTransaction(c *cli.Context) error {
 		Parameter: nil,
 	}
 
-	txn := &types.Transaction{
+	txn := &transactions.BaseTransaction{
 		Version:    common2.TxVersion09,
 		TxType:     common2.TransferAsset,
 		Payload:    &payload.TransferAsset{},
@@ -622,7 +622,7 @@ func CreateCrossChainTransaction(c *cli.Context) error {
 }
 
 func createCrossChainTransaction(walletPath string, from string, fee common.Fixed64, lockedUntil uint32,
-	crossChainOutputs ...*CrossChainOutput) (*types.Transaction, error) {
+	crossChainOutputs ...*CrossChainOutput) (*transactions.BaseTransaction, error) {
 	// check output
 	if len(crossChainOutputs) == 0 {
 		return nil, errors.New("invalid transaction target")
@@ -677,7 +677,7 @@ func createCrossChainTransaction(walletPath string, from string, fee common.Fixe
 		Parameter: nil,
 	}
 
-	return &types.Transaction{
+	return &transactions.BaseTransaction{
 		Version:    common2.TxVersion09,
 		TxType:     common2.TransferCrossChainAsset,
 		Payload:    payload,

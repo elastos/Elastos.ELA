@@ -7,6 +7,7 @@ package pow
 
 import (
 	"fmt"
+	"github.com/elastos/Elastos.ELA/core/types/transactions"
 	"math"
 	"path/filepath"
 	"testing"
@@ -164,7 +165,7 @@ func TestService_AssignCoinbaseTxRewards(t *testing.T) {
 	arbitratorsChange := dposTotalReward - realReward
 	arbitratorsMock.FinalRoundChange = arbitratorsChange
 
-	tx := &types.Transaction{
+	tx := &transactions.BaseTransaction{
 		Version: common2.TxVersion09,
 		TxType:  common2.CoinBase,
 	}
@@ -176,7 +177,7 @@ func TestService_AssignCoinbaseTxRewards(t *testing.T) {
 		Header: types.Header{
 			Height: config.DefaultParams.PublicDPOSHeight,
 		},
-		Transactions: []*types.Transaction{
+		Transactions: []*transactions.BaseTransaction{
 			tx,
 		},
 	}
@@ -236,7 +237,7 @@ func TestService_AssignCoinbaseTxRewards(t *testing.T) {
 	arbitratorsChange = dposTotalReward - realReward
 	arbitratorsMock.FinalRoundChange = arbitratorsChange
 
-	tx = &types.Transaction{
+	tx = &transactions.BaseTransaction{
 		Version: common2.TxVersion09,
 		TxType:  common2.CoinBase,
 	}
@@ -248,7 +249,7 @@ func TestService_AssignCoinbaseTxRewards(t *testing.T) {
 		Header: types.Header{
 			Height: config.DefaultParams.PublicDPOSHeight,
 		},
-		Transactions: []*types.Transaction{
+		Transactions: []*transactions.BaseTransaction{
 			tx,
 		},
 	}
@@ -290,7 +291,7 @@ func TestService_AssignCoinbaseTxRewards(t *testing.T) {
 	minerReward = common.Fixed64(float64(rewardInCoinbase) * 0.35)
 	dposTotalReward = rewardInCoinbase - foundationReward - minerReward
 
-	tx = &types.Transaction{
+	tx = &transactions.BaseTransaction{
 		Version: 0,
 		TxType:  common2.CoinBase,
 	}
@@ -299,7 +300,7 @@ func TestService_AssignCoinbaseTxRewards(t *testing.T) {
 		{ProgramHash: common.Uint168{}, Value: 0},
 	}
 	block = &types.Block{
-		Transactions: []*types.Transaction{
+		Transactions: []*transactions.BaseTransaction{
 			tx,
 		},
 	}
@@ -316,7 +317,7 @@ func TestService_AssignCoinbaseTxRewards(t *testing.T) {
 	minerReward = common.Fixed64(float64(rewardInCoinbase) * 0.35)
 	dposTotalReward = rewardInCoinbase - foundationRewardNormal - minerReward
 
-	tx = &types.Transaction{
+	tx = &transactions.BaseTransaction{
 		Version: 0,
 		TxType:  common2.CoinBase,
 	}
@@ -325,7 +326,7 @@ func TestService_AssignCoinbaseTxRewards(t *testing.T) {
 		{ProgramHash: common.Uint168{}, Value: 0},
 	}
 	block = &types.Block{
-		Transactions: []*types.Transaction{
+		Transactions: []*transactions.BaseTransaction{
 			tx,
 		},
 	}

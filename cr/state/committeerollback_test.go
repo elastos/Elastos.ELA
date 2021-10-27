@@ -8,6 +8,7 @@ package state
 import (
 	"bytes"
 	"fmt"
+	"github.com/elastos/Elastos.ELA/core/types/transactions"
 	"testing"
 
 	"github.com/elastos/Elastos.ELA/common"
@@ -51,7 +52,7 @@ func getCodeHexStr(publicKey string) string {
 	return codeHexStr
 }
 
-func getRegisterCRTx(publicKeyStr, privateKeyStr, nickName string) *types.Transaction {
+func getRegisterCRTx(publicKeyStr, privateKeyStr, nickName string) *transactions.BaseTransaction {
 	publicKeyStr1 := publicKeyStr
 	privateKeyStr1 := privateKeyStr
 	publicKey1, _ := common.HexStringToBytes(publicKeyStr1)
@@ -62,7 +63,7 @@ func getRegisterCRTx(publicKeyStr, privateKeyStr, nickName string) *types.Transa
 	did1, _ := getDIDByCode(code1)
 	hash1, _ := contract.PublicKeyToDepositProgramHash(publicKey1)
 
-	txn := new(types.Transaction)
+	txn := new(transactions.BaseTransaction)
 	txn.TxType = common2.RegisterCR
 	txn.Version = common2.TxVersion09
 	crInfoPayload := &payload.CRInfo{
@@ -96,9 +97,9 @@ func getRegisterCRTx(publicKeyStr, privateKeyStr, nickName string) *types.Transa
 }
 
 func getUpdateCR(publicKeyStr string, cid common.Uint168,
-	nickname string) *types.Transaction {
+	nickname string) *transactions.BaseTransaction {
 	code := getCodeByPubKeyStr(publicKeyStr)
-	return &types.Transaction{
+	return &transactions.BaseTransaction{
 		TxType: common2.UpdateCR,
 		Payload: &payload.CRInfo{
 			Code:     code,
@@ -108,8 +109,8 @@ func getUpdateCR(publicKeyStr string, cid common.Uint168,
 	}
 }
 
-func getUnregisterCR(cid common.Uint168) *types.Transaction {
-	return &types.Transaction{
+func getUnregisterCR(cid common.Uint168) *transactions.BaseTransaction {
+	return &transactions.BaseTransaction{
 		TxType: common2.UnregisterCR,
 		Payload: &payload.UnregisterCR{
 			CID: cid,
@@ -117,9 +118,9 @@ func getUnregisterCR(cid common.Uint168) *types.Transaction {
 	}
 }
 
-func generateReturnDeposite(publicKeyStr string) *types.Transaction {
+func generateReturnDeposite(publicKeyStr string) *transactions.BaseTransaction {
 	code := getCodeByPubKeyStr(publicKeyStr)
-	return &types.Transaction{
+	return &transactions.BaseTransaction{
 		TxType:  common2.ReturnCRDepositCoin,
 		Payload: &payload.ReturnDepositCoin{},
 		Outputs: []*common2.Output{
@@ -134,8 +135,8 @@ func generateReturnDeposite(publicKeyStr string) *types.Transaction {
 }
 
 func getVoteCRTx(amount common.Fixed64,
-	candidateVotes []outputpayload.CandidateVotes) *types.Transaction {
-	return &types.Transaction{
+	candidateVotes []outputpayload.CandidateVotes) *transactions.BaseTransaction {
+	return &transactions.BaseTransaction{
 		Version: 0x09,
 		TxType:  common2.TransferAsset,
 		Outputs: []*common2.Output{
@@ -168,7 +169,7 @@ func getDID(code []byte) *common.Uint168 {
 }
 
 func getCRCProposalTx(elaAddress string, publicKeyStr, privateKeyStr,
-	crPublicKeyStr, crPrivateKeyStr string) *types.Transaction {
+	crPublicKeyStr, crPrivateKeyStr string) *transactions.BaseTransaction {
 	publicKey1, _ := common.HexStringToBytes(publicKeyStr)
 	privateKey1, _ := common.HexStringToBytes(privateKeyStr)
 
@@ -178,7 +179,7 @@ func getCRCProposalTx(elaAddress string, publicKeyStr, privateKeyStr,
 	recipient, _ := common.Uint168FromAddress(elaAddress)
 
 	draftData := randomBytes(10)
-	txn := new(types.Transaction)
+	txn := new(transactions.BaseTransaction)
 	txn.TxType = common2.CRCProposal
 	txn.Version = common2.TxVersion09
 	crcProposalPayload := &payload.CRCProposal{
@@ -209,11 +210,11 @@ func getCRCProposalTx(elaAddress string, publicKeyStr, privateKeyStr,
 }
 
 func getCRCProposalReviewTx(proposalHash common.Uint256, vote payload.VoteResult,
-	crPublicKeyStr, crPrivateKeyStr string) *types.Transaction {
+	crPublicKeyStr, crPrivateKeyStr string) *transactions.BaseTransaction {
 
 	privateKey1, _ := common.HexStringToBytes(crPrivateKeyStr)
 	code := getCodeByPubKeyStr(crPublicKeyStr)
-	txn := new(types.Transaction)
+	txn := new(transactions.BaseTransaction)
 	txn.TxType = common2.CRCProposalReview
 	txn.Version = common2.TxVersion09
 	crcProposalReviewPayload := &payload.CRCProposalReview{
@@ -240,7 +241,7 @@ func getCRCProposalTrackingTx(
 	proposalHash common.Uint256, stage uint8,
 	ownerpublickeyStr, ownerprivatekeyStr,
 	newownerpublickeyStr, newownerprivatekeyStr,
-	sgPrivateKeyStr string) *types.Transaction {
+	sgPrivateKeyStr string) *transactions.BaseTransaction {
 
 	ownerpublickey, _ := common.HexStringToBytes(ownerpublickeyStr)
 	ownerprivatekey, _ := common.HexStringToBytes(ownerprivatekeyStr)
@@ -252,7 +253,7 @@ func getCRCProposalTrackingTx(
 
 	documentData := randomBytes(10)
 	opinionHash := randomBytes(10)
-	txn := new(types.Transaction)
+	txn := new(transactions.BaseTransaction)
 	txn.TxType = common2.CRCProposalTracking
 	txn.Version = common2.TxVersion09
 	cPayload := &payload.CRCProposalTracking{
@@ -287,7 +288,7 @@ func getCRCProposalTrackingTx(
 
 func getCRCProposalWithdrawTx(proposalHash common.Uint256,
 	OwnerPublicKeyStr, sponsorPrivateKeyStr string, fee common.Fixed64,
-	inputs []*common2.Input, outputs []*common2.Output) *types.Transaction {
+	inputs []*common2.Input, outputs []*common2.Output) *transactions.BaseTransaction {
 
 	OwnerPublicKey, _ := common.HexStringToBytes(OwnerPublicKeyStr)
 	sponsorPrivateKey, _ := common.HexStringToBytes(sponsorPrivateKeyStr)
@@ -302,7 +303,7 @@ func getCRCProposalWithdrawTx(proposalHash common.Uint256,
 	signature, _ := crypto.Sign(sponsorPrivateKey, signBuf.Bytes())
 	crcProposalWithdraw.Signature = signature
 
-	return &types.Transaction{
+	return &transactions.BaseTransaction{
 		Version:    common2.TxVersion09,
 		TxType:     common2.CRCProposalWithdraw,
 		Payload:    crcProposalWithdraw,
@@ -358,7 +359,7 @@ func TestCommittee_RollbackRegisterAndVoteCR(t *testing.T) {
 		Header: types.Header{
 			Height: currentHeight,
 		},
-		Transactions: []*types.Transaction{
+		Transactions: []*transactions.BaseTransaction{
 			registerCRTxn1,
 			registerCRTxn2,
 			registerCRTxn3,
@@ -387,7 +388,7 @@ func TestCommittee_RollbackRegisterAndVoteCR(t *testing.T) {
 		Header: types.Header{
 			Height: currentHeight,
 		},
-		Transactions: []*types.Transaction{
+		Transactions: []*transactions.BaseTransaction{
 			voteCRTx,
 		},
 	}, nil)
@@ -405,7 +406,7 @@ func TestCommittee_RollbackRegisterAndVoteCR(t *testing.T) {
 	currentHeight++
 	committee.ProcessBlock(&types.Block{
 		Header:       types.Header{Height: currentHeight},
-		Transactions: []*types.Transaction{voteCRTx}}, nil)
+		Transactions: []*transactions.BaseTransaction{voteCRTx}}, nil)
 	assert.Equal(t, common.Fixed64(3), committee.GetCandidate(*cid1).votes)
 	keyFrameD := committee.Snapshot()
 
@@ -448,7 +449,7 @@ func TestCommittee_RollbackEndVotingPeriod(t *testing.T) {
 		Header: types.Header{
 			Height: currentHeight,
 		},
-		Transactions: []*types.Transaction{
+		Transactions: []*transactions.BaseTransaction{
 			registerCRTxn1,
 			registerCRTxn2,
 			registerCRTxn3,
@@ -477,7 +478,7 @@ func TestCommittee_RollbackEndVotingPeriod(t *testing.T) {
 		Header: types.Header{
 			Height: currentHeight,
 		},
-		Transactions: []*types.Transaction{
+		Transactions: []*transactions.BaseTransaction{
 			voteCRTx,
 		},
 	}, nil)
@@ -552,7 +553,7 @@ func TestCommittee_RollbackContinueVotingPeriod(t *testing.T) {
 		Header: types.Header{
 			Height: currentHeight,
 		},
-		Transactions: []*types.Transaction{
+		Transactions: []*transactions.BaseTransaction{
 			registerCRTxn1,
 			registerCRTxn2,
 			registerCRTxn3,
@@ -566,7 +567,7 @@ func TestCommittee_RollbackContinueVotingPeriod(t *testing.T) {
 		Header: types.Header{
 			Height: currentHeight,
 		},
-		Transactions: []*types.Transaction{
+		Transactions: []*transactions.BaseTransaction{
 			registerCRTxn1,
 			registerCRTxn2,
 			registerCRTxn3,
@@ -593,7 +594,7 @@ func TestCommittee_RollbackContinueVotingPeriod(t *testing.T) {
 		Header: types.Header{
 			Height: currentHeight,
 		},
-		Transactions: []*types.Transaction{
+		Transactions: []*transactions.BaseTransaction{
 			voteCRTx,
 		},
 	}, nil)
@@ -633,7 +634,7 @@ func TestCommittee_RollbackContinueVotingPeriod(t *testing.T) {
 		Header: types.Header{
 			Height: currentHeight,
 		},
-		Transactions: []*types.Transaction{
+		Transactions: []*transactions.BaseTransaction{
 			registerCRTxn4,
 		},
 	}, nil)
@@ -655,7 +656,7 @@ func TestCommittee_RollbackContinueVotingPeriod(t *testing.T) {
 		Header: types.Header{
 			Height: currentHeight,
 		},
-		Transactions: []*types.Transaction{
+		Transactions: []*transactions.BaseTransaction{
 			voteCRTx2,
 		},
 	}, nil)
@@ -728,7 +729,7 @@ func TestCommittee_RollbackChangeCommittee(t *testing.T) {
 		Header: types.Header{
 			Height: currentHeight,
 		},
-		Transactions: []*types.Transaction{
+		Transactions: []*transactions.BaseTransaction{
 			registerCRTxn1,
 			registerCRTxn2,
 			registerCRTxn3,
@@ -754,7 +755,7 @@ func TestCommittee_RollbackChangeCommittee(t *testing.T) {
 		Header: types.Header{
 			Height: currentHeight,
 		},
-		Transactions: []*types.Transaction{
+		Transactions: []*transactions.BaseTransaction{
 			voteCRTx,
 		},
 	}, nil)
@@ -776,7 +777,7 @@ func TestCommittee_RollbackChangeCommittee(t *testing.T) {
 		Header: types.Header{
 			Height: currentHeight,
 		},
-		Transactions: []*types.Transaction{
+		Transactions: []*transactions.BaseTransaction{
 			registerCRTxn1,
 			registerCRTxn2,
 			registerCRTxn3,
@@ -802,7 +803,7 @@ func TestCommittee_RollbackChangeCommittee(t *testing.T) {
 		Header: types.Header{
 			Height: currentHeight,
 		},
-		Transactions: []*types.Transaction{
+		Transactions: []*transactions.BaseTransaction{
 			voteCRTx2,
 		},
 	}, nil)
@@ -874,7 +875,7 @@ func TestCommittee_RollbackCRCProposal(t *testing.T) {
 		Header: types.Header{
 			Height: currentHeight,
 		},
-		Transactions: []*types.Transaction{
+		Transactions: []*transactions.BaseTransaction{
 			registerCRTxn1,
 			registerCRTxn2,
 			registerCRTxn3,
@@ -900,7 +901,7 @@ func TestCommittee_RollbackCRCProposal(t *testing.T) {
 		Header: types.Header{
 			Height: currentHeight,
 		},
-		Transactions: []*types.Transaction{
+		Transactions: []*transactions.BaseTransaction{
 			voteCRTx,
 		},
 	}, nil)
@@ -921,7 +922,7 @@ func TestCommittee_RollbackCRCProposal(t *testing.T) {
 	currentHeight++
 	committee.ProcessBlock(&types.Block{
 		Header: types.Header{Height: currentHeight},
-		Transactions: []*types.Transaction{
+		Transactions: []*transactions.BaseTransaction{
 			proposalTx,
 		}}, nil)
 	assert.Equal(t, 1, len(committee.GetProposals(Registered)))
@@ -939,7 +940,7 @@ func TestCommittee_RollbackCRCProposal(t *testing.T) {
 	currentHeight++
 	committee.ProcessBlock(&types.Block{
 		Header: types.Header{Height: currentHeight},
-		Transactions: []*types.Transaction{
+		Transactions: []*transactions.BaseTransaction{
 			proposalTx,
 		}}, nil)
 	assert.Equal(t, 1, len(committee.GetProposals(Registered)))
@@ -961,7 +962,7 @@ func TestCommittee_RollbackCRCProposal(t *testing.T) {
 	currentHeight++
 	committee.ProcessBlock(&types.Block{
 		Header: types.Header{Height: currentHeight},
-		Transactions: []*types.Transaction{
+		Transactions: []*transactions.BaseTransaction{
 			proposalReviewTx1,
 			proposalReviewTx2,
 		}}, nil)
@@ -978,7 +979,7 @@ func TestCommittee_RollbackCRCProposal(t *testing.T) {
 	currentHeight++
 	committee.ProcessBlock(&types.Block{
 		Header: types.Header{Height: currentHeight},
-		Transactions: []*types.Transaction{
+		Transactions: []*transactions.BaseTransaction{
 			proposalReviewTx1,
 			proposalReviewTx2,
 		}}, nil)
@@ -1073,7 +1074,7 @@ func TestCommittee_RollbackCRCProposalTracking(t *testing.T) {
 		Header: types.Header{
 			Height: currentHeight,
 		},
-		Transactions: []*types.Transaction{
+		Transactions: []*transactions.BaseTransaction{
 			registerCRTxn1,
 			registerCRTxn2,
 			registerCRTxn3,
@@ -1099,7 +1100,7 @@ func TestCommittee_RollbackCRCProposalTracking(t *testing.T) {
 		Header: types.Header{
 			Height: currentHeight,
 		},
-		Transactions: []*types.Transaction{
+		Transactions: []*transactions.BaseTransaction{
 			voteCRTx,
 		},
 	}, nil)
@@ -1119,7 +1120,7 @@ func TestCommittee_RollbackCRCProposalTracking(t *testing.T) {
 	currentHeight++
 	committee.ProcessBlock(&types.Block{
 		Header: types.Header{Height: currentHeight},
-		Transactions: []*types.Transaction{
+		Transactions: []*transactions.BaseTransaction{
 			proposalTx,
 		}}, nil)
 	assert.Equal(t, 1, len(committee.GetProposals(Registered)))
@@ -1138,7 +1139,7 @@ func TestCommittee_RollbackCRCProposalTracking(t *testing.T) {
 	currentHeight++
 	committee.ProcessBlock(&types.Block{
 		Header: types.Header{Height: currentHeight},
-		Transactions: []*types.Transaction{
+		Transactions: []*transactions.BaseTransaction{
 			proposalReviewTx1,
 			proposalReviewTx2,
 		}}, nil)
@@ -1174,7 +1175,7 @@ func TestCommittee_RollbackCRCProposalTracking(t *testing.T) {
 	currentHeight++
 	committee.ProcessBlock(&types.Block{
 		Header: types.Header{Height: currentHeight},
-		Transactions: []*types.Transaction{
+		Transactions: []*transactions.BaseTransaction{
 			proposalTrackingTx,
 		}}, nil)
 	assert.Equal(t, 2, len(committee.GetProposal(proposalHash).WithdrawableBudgets))
@@ -1191,7 +1192,7 @@ func TestCommittee_RollbackCRCProposalTracking(t *testing.T) {
 	currentHeight++
 	committee.ProcessBlock(&types.Block{
 		Header: types.Header{Height: currentHeight},
-		Transactions: []*types.Transaction{
+		Transactions: []*transactions.BaseTransaction{
 			proposalTrackingTx,
 		}}, nil)
 	assert.Equal(t, 2, len(committee.GetProposal(proposalHash).WithdrawableBudgets))
@@ -1209,7 +1210,7 @@ func TestCommittee_RollbackCRCProposalTracking(t *testing.T) {
 	currentHeight++
 	committee.ProcessBlock(&types.Block{
 		Header: types.Header{Height: currentHeight},
-		Transactions: []*types.Transaction{
+		Transactions: []*transactions.BaseTransaction{
 			proposalTrackingTx2,
 		}}, nil)
 	assert.Equal(t, 3, len(committee.GetProposal(proposalHash).WithdrawableBudgets))
@@ -1226,7 +1227,7 @@ func TestCommittee_RollbackCRCProposalTracking(t *testing.T) {
 	currentHeight++
 	committee.ProcessBlock(&types.Block{
 		Header: types.Header{Height: currentHeight},
-		Transactions: []*types.Transaction{
+		Transactions: []*transactions.BaseTransaction{
 			proposalTrackingTx2,
 		}}, nil)
 	assert.Equal(t, 3, len(committee.GetProposal(proposalHash).WithdrawableBudgets))
@@ -1271,7 +1272,7 @@ func TestCommittee_RollbackCRCProposalWithdraw(t *testing.T) {
 		Header: types.Header{
 			Height: currentHeight,
 		},
-		Transactions: []*types.Transaction{
+		Transactions: []*transactions.BaseTransaction{
 			registerCRTxn1,
 			registerCRTxn2,
 			registerCRTxn3,
@@ -1297,7 +1298,7 @@ func TestCommittee_RollbackCRCProposalWithdraw(t *testing.T) {
 		Header: types.Header{
 			Height: currentHeight,
 		},
-		Transactions: []*types.Transaction{
+		Transactions: []*transactions.BaseTransaction{
 			voteCRTx,
 		},
 	}, nil)
@@ -1317,7 +1318,7 @@ func TestCommittee_RollbackCRCProposalWithdraw(t *testing.T) {
 	currentHeight++
 	committee.ProcessBlock(&types.Block{
 		Header: types.Header{Height: currentHeight},
-		Transactions: []*types.Transaction{
+		Transactions: []*transactions.BaseTransaction{
 			proposalTx,
 		}}, nil)
 	assert.Equal(t, 1, len(committee.GetProposals(Registered)))
@@ -1335,7 +1336,7 @@ func TestCommittee_RollbackCRCProposalWithdraw(t *testing.T) {
 	currentHeight++
 	committee.ProcessBlock(&types.Block{
 		Header: types.Header{Height: currentHeight},
-		Transactions: []*types.Transaction{
+		Transactions: []*transactions.BaseTransaction{
 			proposalReviewTx1,
 			proposalReviewTx2,
 		}}, nil)
@@ -1362,7 +1363,7 @@ func TestCommittee_RollbackCRCProposalWithdraw(t *testing.T) {
 	currentHeight++
 	committee.ProcessBlock(&types.Block{
 		Header: types.Header{Height: currentHeight},
-		Transactions: []*types.Transaction{
+		Transactions: []*transactions.BaseTransaction{
 			withdrawTx,
 		}}, nil)
 	assert.Equal(t, 1, len(committee.GetProposal(proposalHash).WithdrawnBudgets))
@@ -1379,7 +1380,7 @@ func TestCommittee_RollbackCRCProposalWithdraw(t *testing.T) {
 	currentHeight++
 	committee.ProcessBlock(&types.Block{
 		Header: types.Header{Height: currentHeight},
-		Transactions: []*types.Transaction{
+		Transactions: []*transactions.BaseTransaction{
 			withdrawTx,
 		}}, nil)
 	assert.Equal(t, 1, len(committee.GetProposal(proposalHash).WithdrawnBudgets))
@@ -1404,7 +1405,7 @@ func TestCommittee_RollbackCRCProposalWithdraw(t *testing.T) {
 	currentHeight++
 	committee.ProcessBlock(&types.Block{
 		Header: types.Header{Height: currentHeight},
-		Transactions: []*types.Transaction{
+		Transactions: []*transactions.BaseTransaction{
 			proposalTrackingTx,
 		}}, nil)
 	assert.Equal(t, 2, len(committee.GetProposal(proposalHash).WithdrawableBudgets))
@@ -1418,7 +1419,7 @@ func TestCommittee_RollbackCRCProposalWithdraw(t *testing.T) {
 	currentHeight++
 	committee.ProcessBlock(&types.Block{
 		Header: types.Header{Height: currentHeight},
-		Transactions: []*types.Transaction{
+		Transactions: []*transactions.BaseTransaction{
 			proposalTrackingTx2,
 		}}, nil)
 	assert.Equal(t, 3, len(committee.GetProposal(proposalHash).WithdrawableBudgets))
@@ -1432,7 +1433,7 @@ func TestCommittee_RollbackCRCProposalWithdraw(t *testing.T) {
 	currentHeight++
 	committee.ProcessBlock(&types.Block{
 		Header: types.Header{Height: currentHeight},
-		Transactions: []*types.Transaction{
+		Transactions: []*transactions.BaseTransaction{
 			withdrawTx2,
 		}}, nil)
 	assert.Equal(t, 3, len(committee.GetProposal(proposalHash).WithdrawnBudgets))
@@ -1449,7 +1450,7 @@ func TestCommittee_RollbackCRCProposalWithdraw(t *testing.T) {
 	currentHeight++
 	committee.ProcessBlock(&types.Block{
 		Header: types.Header{Height: currentHeight},
-		Transactions: []*types.Transaction{
+		Transactions: []*transactions.BaseTransaction{
 			withdrawTx2,
 		}}, nil)
 	assert.Equal(t, 3, len(committee.GetProposal(proposalHash).WithdrawnBudgets))
@@ -1495,7 +1496,7 @@ func TestCommittee_RollbackTempStartVotingPeriod(t *testing.T) {
 		Header: types.Header{
 			Height: currentHeight,
 		},
-		Transactions: []*types.Transaction{
+		Transactions: []*transactions.BaseTransaction{
 			registerCRTxn1,
 			registerCRTxn2,
 			registerCRTxn3,
@@ -1521,7 +1522,7 @@ func TestCommittee_RollbackTempStartVotingPeriod(t *testing.T) {
 		Header: types.Header{
 			Height: currentHeight,
 		},
-		Transactions: []*types.Transaction{
+		Transactions: []*transactions.BaseTransaction{
 			voteCRTx,
 		},
 	}, nil)
@@ -1545,7 +1546,7 @@ func TestCommittee_RollbackTempStartVotingPeriod(t *testing.T) {
 		Header: types.Header{
 			Height: currentHeight,
 		},
-		Transactions: []*types.Transaction{
+		Transactions: []*transactions.BaseTransaction{
 			registerCRTxn1,
 		},
 	}, nil)
@@ -1569,7 +1570,7 @@ func TestCommittee_RollbackTempStartVotingPeriod(t *testing.T) {
 		Header: types.Header{
 			Height: currentHeight,
 		},
-		Transactions: []*types.Transaction{
+		Transactions: []*transactions.BaseTransaction{
 			voteCRTx2,
 		},
 	}, nil)
@@ -1649,7 +1650,7 @@ func TestCommittee_RollbackCRCAppropriationTx(t *testing.T) {
 		Header: types.Header{
 			Height: currentHeight,
 		},
-		Transactions: []*types.Transaction{
+		Transactions: []*transactions.BaseTransaction{
 			registerCRTxn1,
 			registerCRTxn2,
 			registerCRTxn3,
@@ -1677,7 +1678,7 @@ func TestCommittee_RollbackCRCAppropriationTx(t *testing.T) {
 		Header: types.Header{
 			Height: currentHeight,
 		},
-		Transactions: []*types.Transaction{
+		Transactions: []*transactions.BaseTransaction{
 			voteCRTx,
 		},
 	}, nil)
@@ -1703,7 +1704,7 @@ func TestCommittee_RollbackCRCAppropriationTx(t *testing.T) {
 	currentHeight++
 	committee.ProcessBlock(&types.Block{
 		Header: types.Header{Height: currentHeight},
-		Transactions: []*types.Transaction{
+		Transactions: []*transactions.BaseTransaction{
 			txAppropriate,
 		},
 	}, nil)
@@ -1719,7 +1720,7 @@ func TestCommittee_RollbackCRCAppropriationTx(t *testing.T) {
 	currentHeight++
 	committee.ProcessBlock(&types.Block{
 		Header: types.Header{Height: currentHeight},
-		Transactions: []*types.Transaction{
+		Transactions: []*transactions.BaseTransaction{
 			txAppropriate,
 		},
 	}, nil)
@@ -1743,9 +1744,8 @@ func getAddress(publicKeyHexStr string) (string, error) {
 	return address1Uint168.ToAddress()
 }
 
-func getTransferAssetTx(publicKeyStr string, value common.Fixed64, outPutAddr common.Uint168) *types.
-	Transaction {
-	txn := &types.Transaction{
+func getTransferAssetTx(publicKeyStr string, value common.Fixed64, outPutAddr common.Uint168) *transactions.BaseTransaction {
+	txn := &transactions.BaseTransaction{
 		Version:    common2.TxVersion09,
 		TxType:     common2.TransferAsset,
 		Payload:    &payload.TransferAsset{},
@@ -1770,11 +1770,10 @@ func getTransferAssetTx(publicKeyStr string, value common.Fixed64, outPutAddr co
 	}}
 	return txn
 }
-func getAppropriationTx(value common.Fixed64, outPutAddr common.Uint168) *types.
-	Transaction {
+func getAppropriationTx(value common.Fixed64, outPutAddr common.Uint168) *transactions.BaseTransaction {
 	crcAppropriationPayload := &payload.CRCAppropriation{}
 
-	txn := &types.Transaction{
+	txn := &transactions.BaseTransaction{
 		Version:    common2.TxVersion09,
 		TxType:     common2.CRCAppropriation,
 		Payload:    crcAppropriationPayload,
@@ -1844,7 +1843,7 @@ func TestCommittee_RollbackCRCImpeachmentTx(t *testing.T) {
 		Header: types.Header{
 			Height: currentHeight,
 		},
-		Transactions: []*types.Transaction{
+		Transactions: []*transactions.BaseTransaction{
 			registerCRTxn1,
 			registerCRTxn2,
 			registerCRTxn3,
@@ -1871,7 +1870,7 @@ func TestCommittee_RollbackCRCImpeachmentTx(t *testing.T) {
 		Header: types.Header{
 			Height: currentHeight,
 		},
-		Transactions: []*types.Transaction{
+		Transactions: []*transactions.BaseTransaction{
 			voteCRTx,
 		},
 	}, nil)
@@ -1905,7 +1904,7 @@ func TestCommittee_RollbackCRCImpeachmentTx(t *testing.T) {
 	currentHeight++
 	committee.ProcessBlock(&types.Block{
 		Header: types.Header{Height: currentHeight},
-		Transactions: []*types.Transaction{
+		Transactions: []*transactions.BaseTransaction{
 			impeachmentTx,
 		},
 	}, nil)
@@ -1921,7 +1920,7 @@ func TestCommittee_RollbackCRCImpeachmentTx(t *testing.T) {
 	currentHeight++
 	committee.ProcessBlock(&types.Block{
 		Header: types.Header{Height: currentHeight},
-		Transactions: []*types.Transaction{
+		Transactions: []*transactions.BaseTransaction{
 			impeachmentTx,
 		},
 	}, nil)
@@ -1978,7 +1977,7 @@ func TestCommittee_RollbackCRCImpeachmentAndReelectionTx(t *testing.T) {
 		Header: types.Header{
 			Height: currentHeight,
 		},
-		Transactions: []*types.Transaction{
+		Transactions: []*transactions.BaseTransaction{
 			registerCRTxn1,
 			registerCRTxn2,
 			registerCRTxn3,
@@ -2005,7 +2004,7 @@ func TestCommittee_RollbackCRCImpeachmentAndReelectionTx(t *testing.T) {
 		Header: types.Header{
 			Height: currentHeight,
 		},
-		Transactions: []*types.Transaction{
+		Transactions: []*transactions.BaseTransaction{
 			voteCRTx,
 		},
 	}, nil)
@@ -2046,7 +2045,7 @@ func TestCommittee_RollbackCRCImpeachmentAndReelectionTx(t *testing.T) {
 	currentHeight++
 	committee.ProcessBlock(&types.Block{
 		Header: types.Header{Height: currentHeight},
-		Transactions: []*types.Transaction{
+		Transactions: []*transactions.BaseTransaction{
 			impeachmentTx,
 		},
 	}, nil)
@@ -2065,7 +2064,7 @@ func TestCommittee_RollbackCRCImpeachmentAndReelectionTx(t *testing.T) {
 	currentHeight++
 	committee.ProcessBlock(&types.Block{
 		Header: types.Header{Height: currentHeight},
-		Transactions: []*types.Transaction{
+		Transactions: []*transactions.BaseTransaction{
 			impeachmentTx,
 		},
 	}, nil)
@@ -2081,7 +2080,7 @@ func TestCommittee_RollbackCRCImpeachmentAndReelectionTx(t *testing.T) {
 }
 
 func getCRCImpeachmentTx(publicKeyStr string, did *common.Uint168,
-	value common.Fixed64, outPutAddr common.Uint168) *types.Transaction {
+	value common.Fixed64, outPutAddr common.Uint168) *transactions.BaseTransaction {
 	outputs := []*common2.Output{}
 	outputs = append(outputs, &common2.Output{
 		Type:        common2.OTVote,
@@ -2100,7 +2099,7 @@ func getCRCImpeachmentTx(publicKeyStr string, did *common.Uint168,
 		},
 	})
 
-	txn := &types.Transaction{
+	txn := &transactions.BaseTransaction{
 		Version:    common2.TxVersion09,
 		TxType:     common2.TransferAsset,
 		Payload:    &payload.TransferAsset{},
@@ -2156,7 +2155,7 @@ func TestCommitee_RollbackCRCBlendTx(t *testing.T) {
 		Header: types.Header{
 			Height: currentHeight,
 		},
-		Transactions: []*types.Transaction{
+		Transactions: []*transactions.BaseTransaction{
 			registerCRTxn1,
 			registerCRTxn2,
 			registerCRTxn3,
@@ -2182,7 +2181,7 @@ func TestCommitee_RollbackCRCBlendTx(t *testing.T) {
 		Header: types.Header{
 			Height: currentHeight,
 		},
-		Transactions: []*types.Transaction{
+		Transactions: []*transactions.BaseTransaction{
 			voteCRTx,
 		},
 	}, nil)
@@ -2208,7 +2207,7 @@ func TestCommitee_RollbackCRCBlendTx(t *testing.T) {
 		Header: types.Header{
 			Height: currentHeight,
 		},
-		Transactions: []*types.Transaction{},
+		Transactions: []*transactions.BaseTransaction{},
 	}, nil)
 
 	currentHeight++
@@ -2216,7 +2215,7 @@ func TestCommitee_RollbackCRCBlendTx(t *testing.T) {
 		Header: types.Header{
 			Height: currentHeight,
 		},
-		Transactions: []*types.Transaction{
+		Transactions: []*transactions.BaseTransaction{
 			proposalTxA,
 			proposalTxB,
 			proposalTxC,
@@ -2240,7 +2239,7 @@ func TestCommitee_RollbackCRCBlendTx(t *testing.T) {
 		Header: types.Header{
 			Height: currentHeight,
 		},
-		Transactions: []*types.Transaction{
+		Transactions: []*transactions.BaseTransaction{
 			proposalReviewTxB1,
 			proposalReviewTxB2,
 			proposalReviewTxC1,
@@ -2264,7 +2263,7 @@ func TestCommitee_RollbackCRCBlendTx(t *testing.T) {
 		Header: types.Header{
 			Height: currentHeight,
 		},
-		Transactions: []*types.Transaction{
+		Transactions: []*transactions.BaseTransaction{
 			registerCRTxn1,
 		},
 	}, nil)
@@ -2296,7 +2295,7 @@ func TestCommitee_RollbackCRCBlendTx(t *testing.T) {
 		Header: types.Header{
 			Height: currentHeight,
 		},
-		Transactions: []*types.Transaction{
+		Transactions: []*transactions.BaseTransaction{
 			registerCRTxn2,
 			registerCRTxn3,
 			voteCRTx2,
@@ -2332,7 +2331,7 @@ func TestCommitee_RollbackCRCBlendTx(t *testing.T) {
 		Header: types.Header{
 			Height: currentHeight,
 		},
-		Transactions: []*types.Transaction{
+		Transactions: []*transactions.BaseTransaction{
 			registerCRTxn2,
 			registerCRTxn3,
 			voteCRTx2,
@@ -2392,7 +2391,7 @@ func TestCommitee_RollbackCRCBlendAppropriationTx(t *testing.T) {
 		Header: types.Header{
 			Height: currentHeight,
 		},
-		Transactions: []*types.Transaction{
+		Transactions: []*transactions.BaseTransaction{
 			registerCRTxn1,
 			registerCRTxn2,
 			registerCRTxn3,
@@ -2418,7 +2417,7 @@ func TestCommitee_RollbackCRCBlendAppropriationTx(t *testing.T) {
 		Header: types.Header{
 			Height: currentHeight,
 		},
-		Transactions: []*types.Transaction{
+		Transactions: []*transactions.BaseTransaction{
 			voteCRTx,
 		},
 	}, nil)
@@ -2444,7 +2443,7 @@ func TestCommitee_RollbackCRCBlendAppropriationTx(t *testing.T) {
 		Header: types.Header{
 			Height: currentHeight,
 		},
-		Transactions: []*types.Transaction{},
+		Transactions: []*transactions.BaseTransaction{},
 	}, nil)
 
 	currentHeight++
@@ -2452,7 +2451,7 @@ func TestCommitee_RollbackCRCBlendAppropriationTx(t *testing.T) {
 		Header: types.Header{
 			Height: currentHeight,
 		},
-		Transactions: []*types.Transaction{
+		Transactions: []*transactions.BaseTransaction{
 			proposalTxA,
 			proposalTxB,
 			proposalTxC,
@@ -2476,7 +2475,7 @@ func TestCommitee_RollbackCRCBlendAppropriationTx(t *testing.T) {
 		Header: types.Header{
 			Height: currentHeight,
 		},
-		Transactions: []*types.Transaction{
+		Transactions: []*transactions.BaseTransaction{
 			proposalReviewTxB1,
 			proposalReviewTxB2,
 			proposalReviewTxC1,
@@ -2500,7 +2499,7 @@ func TestCommitee_RollbackCRCBlendAppropriationTx(t *testing.T) {
 		Header: types.Header{
 			Height: currentHeight,
 		},
-		Transactions: []*types.Transaction{
+		Transactions: []*transactions.BaseTransaction{
 			registerCRTxn1,
 		},
 	}, nil)
@@ -2533,7 +2532,7 @@ func TestCommitee_RollbackCRCBlendAppropriationTx(t *testing.T) {
 		Header: types.Header{
 			Height: currentHeight,
 		},
-		Transactions: []*types.Transaction{
+		Transactions: []*transactions.BaseTransaction{
 			registerCRTxn2,
 			registerCRTxn3,
 			voteCRTx2,
@@ -2565,7 +2564,7 @@ func TestCommitee_RollbackCRCBlendAppropriationTx(t *testing.T) {
 		Header: types.Header{
 			Height: currentHeight,
 		},
-		Transactions: []*types.Transaction{
+		Transactions: []*transactions.BaseTransaction{
 			registerCRTxn2,
 			registerCRTxn3,
 			voteCRTx2,
@@ -2586,7 +2585,7 @@ func TestCommitee_RollbackCRCBlendAppropriationTx(t *testing.T) {
 	currentHeight++
 	committee.ProcessBlock(&types.Block{
 		Header: types.Header{Height: currentHeight},
-		Transactions: []*types.Transaction{
+		Transactions: []*transactions.BaseTransaction{
 			txAppropriate,
 			proposalTxD,
 			proposalReviewTxA1,
@@ -2607,7 +2606,7 @@ func TestCommitee_RollbackCRCBlendAppropriationTx(t *testing.T) {
 	currentHeight++
 	committee.ProcessBlock(&types.Block{
 		Header: types.Header{Height: currentHeight},
-		Transactions: []*types.Transaction{
+		Transactions: []*transactions.BaseTransaction{
 			txAppropriate,
 			proposalTxD,
 			proposalReviewTxA1,
@@ -2654,7 +2653,7 @@ func TestCommitee_RollbackCRCBlendTxPropoalVert(t *testing.T) {
 		Header: types.Header{
 			Height: currentHeight,
 		},
-		Transactions: []*types.Transaction{
+		Transactions: []*transactions.BaseTransaction{
 			registerCRTxn1,
 			registerCRTxn2,
 		},
@@ -2679,7 +2678,7 @@ func TestCommitee_RollbackCRCBlendTxPropoalVert(t *testing.T) {
 		Header: types.Header{
 			Height: currentHeight,
 		},
-		Transactions: []*types.Transaction{
+		Transactions: []*transactions.BaseTransaction{
 			voteCRTx,
 		},
 	}, nil)
@@ -2701,7 +2700,7 @@ func TestCommitee_RollbackCRCBlendTxPropoalVert(t *testing.T) {
 		Header: types.Header{
 			Height: currentHeight,
 		},
-		Transactions: []*types.Transaction{},
+		Transactions: []*transactions.BaseTransaction{},
 	}, nil)
 
 	currentHeight++
@@ -2709,7 +2708,7 @@ func TestCommitee_RollbackCRCBlendTxPropoalVert(t *testing.T) {
 		Header: types.Header{
 			Height: currentHeight,
 		},
-		Transactions: []*types.Transaction{
+		Transactions: []*transactions.BaseTransaction{
 			proposalTxB,
 			proposalTxC,
 		},
@@ -2731,7 +2730,7 @@ func TestCommitee_RollbackCRCBlendTxPropoalVert(t *testing.T) {
 		Header: types.Header{
 			Height: currentHeight,
 		},
-		Transactions: []*types.Transaction{
+		Transactions: []*transactions.BaseTransaction{
 			proposalReviewTxB1,
 			proposalReviewTxB2,
 			proposalReviewTxC1,
@@ -2769,7 +2768,7 @@ func TestCommitee_RollbackCRCBlendTxPropoalVert(t *testing.T) {
 		Header: types.Header{
 			Height: currentHeight,
 		},
-		Transactions: []*types.Transaction{
+		Transactions: []*transactions.BaseTransaction{
 			proposalTrackingBTx,
 			proposalTrackingCTx,
 		},
@@ -2790,7 +2789,7 @@ func TestCommitee_RollbackCRCBlendTxPropoalVert(t *testing.T) {
 		Header: types.Header{
 			Height: currentHeight,
 		},
-		Transactions: []*types.Transaction{
+		Transactions: []*transactions.BaseTransaction{
 			proposalTrackingBTxFinal,
 			proposalTrackingCTxFinal,
 		},
@@ -2810,7 +2809,7 @@ func TestCommitee_RollbackCRCBlendTxPropoalVert(t *testing.T) {
 		Header: types.Header{
 			Height: currentHeight,
 		},
-		Transactions: []*types.Transaction{
+		Transactions: []*transactions.BaseTransaction{
 			withdrawBTx,
 			withdrawCTx,
 		},
@@ -2860,7 +2859,7 @@ func TestCommitee_RollbackCRCBlendTxCRVert(t *testing.T) {
 		Header: types.Header{
 			Height: currentHeight,
 		},
-		Transactions: []*types.Transaction{
+		Transactions: []*transactions.BaseTransaction{
 			registerCRTxn1,
 			registerCRTxn2,
 		},
@@ -2878,7 +2877,7 @@ func TestCommitee_RollbackCRCBlendTxCRVert(t *testing.T) {
 		Header: types.Header{
 			Height: currentHeight,
 		},
-		Transactions: []*types.Transaction{
+		Transactions: []*transactions.BaseTransaction{
 			updateCr1,
 			updateCR2,
 		},
@@ -2894,7 +2893,7 @@ func TestCommitee_RollbackCRCBlendTxCRVert(t *testing.T) {
 		Header: types.Header{
 			Height: currentHeight,
 		},
-		Transactions: []*types.Transaction{
+		Transactions: []*transactions.BaseTransaction{
 			unregister1,
 			unregister2,
 		},
@@ -2910,7 +2909,7 @@ func TestCommitee_RollbackCRCBlendTxCRVert(t *testing.T) {
 		Header: types.Header{
 			Height: currentHeight,
 		},
-		Transactions: []*types.Transaction{
+		Transactions: []*transactions.BaseTransaction{
 			returnDepositTx1,
 			returnDepositTx2,
 		},
@@ -2964,7 +2963,7 @@ func TestCommittee_RollbackReview(t *testing.T) {
 		Header: types.Header{
 			Height: currentHeight,
 		},
-		Transactions: []*types.Transaction{
+		Transactions: []*transactions.BaseTransaction{
 			registerCRTxn1,
 			registerCRTxn2,
 			registerCRTxn3,
@@ -2990,7 +2989,7 @@ func TestCommittee_RollbackReview(t *testing.T) {
 		Header: types.Header{
 			Height: currentHeight,
 		},
-		Transactions: []*types.Transaction{
+		Transactions: []*transactions.BaseTransaction{
 			voteCRTx,
 		},
 	}, nil)
@@ -3011,7 +3010,7 @@ func TestCommittee_RollbackReview(t *testing.T) {
 	currentHeight++
 	committee.ProcessBlock(&types.Block{
 		Header: types.Header{Height: currentHeight},
-		Transactions: []*types.Transaction{
+		Transactions: []*transactions.BaseTransaction{
 			proposalTx,
 		}}, nil)
 	assert.Equal(t, 1, len(committee.GetProposals(Registered)))
@@ -3029,7 +3028,7 @@ func TestCommittee_RollbackReview(t *testing.T) {
 	currentHeight++
 	committee.ProcessBlock(&types.Block{
 		Header: types.Header{Height: currentHeight},
-		Transactions: []*types.Transaction{
+		Transactions: []*transactions.BaseTransaction{
 			proposalTx,
 		}}, nil)
 	assert.Equal(t, 1, len(committee.GetProposals(Registered)))
@@ -3050,7 +3049,7 @@ func TestCommittee_RollbackReview(t *testing.T) {
 	currentHeight++
 	committee.ProcessBlock(&types.Block{
 		Header: types.Header{Height: currentHeight},
-		Transactions: []*types.Transaction{
+		Transactions: []*transactions.BaseTransaction{
 			proposalReviewTx1,
 			proposalReviewTx2,
 		}}, nil)
@@ -3067,7 +3066,7 @@ func TestCommittee_RollbackReview(t *testing.T) {
 	currentHeight++
 	committee.ProcessBlock(&types.Block{
 		Header: types.Header{Height: currentHeight},
-		Transactions: []*types.Transaction{
+		Transactions: []*transactions.BaseTransaction{
 			proposalReviewTxReject1,
 			proposalReviewTxReject2,
 		}}, nil)
@@ -3083,7 +3082,7 @@ func TestCommittee_RollbackReview(t *testing.T) {
 	currentHeight++
 	committee.ProcessBlock(&types.Block{
 		Header: types.Header{Height: currentHeight},
-		Transactions: []*types.Transaction{
+		Transactions: []*transactions.BaseTransaction{
 			proposalReviewTxReject1,
 			proposalReviewTxReject2,
 		}}, nil)

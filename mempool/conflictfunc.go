@@ -10,11 +10,11 @@ import (
 	"fmt"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/core/types/outputpayload"
+	"github.com/elastos/Elastos.ELA/core/types/transactions"
 	"strconv"
 
 	"github.com/elastos/Elastos.ELA/blockchain"
 	"github.com/elastos/Elastos.ELA/common"
-	"github.com/elastos/Elastos.ELA/core/types"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/crypto"
 	"github.com/elastos/Elastos.ELA/errors"
@@ -22,7 +22,7 @@ import (
 )
 
 // hashes related functions
-func hashCRCProposalDraftHash(tx *types.Transaction) (interface{}, error) {
+func hashCRCProposalDraftHash(tx *transactions.BaseTransaction) (interface{}, error) {
 	p, ok := tx.Payload.(*payload.CRCProposal)
 	if !ok {
 		return nil, fmt.Errorf(
@@ -31,7 +31,7 @@ func hashCRCProposalDraftHash(tx *types.Transaction) (interface{}, error) {
 	return p.DraftHash, nil
 }
 
-func hashCRCProposalDID(tx *types.Transaction) (interface{}, error) {
+func hashCRCProposalDID(tx *transactions.BaseTransaction) (interface{}, error) {
 	p, ok := tx.Payload.(*payload.CRCProposal)
 	if !ok {
 		return nil, fmt.Errorf(
@@ -40,7 +40,7 @@ func hashCRCProposalDID(tx *types.Transaction) (interface{}, error) {
 	return p.CRCouncilMemberDID, nil
 }
 
-func strArrayCRCProposalCustomID(tx *types.Transaction) (interface{}, error) {
+func strArrayCRCProposalCustomID(tx *transactions.BaseTransaction) (interface{}, error) {
 	p, ok := tx.Payload.(*payload.CRCProposal)
 	if !ok {
 		return nil, fmt.Errorf(
@@ -52,7 +52,7 @@ func strArrayCRCProposalCustomID(tx *types.Transaction) (interface{}, error) {
 	return p.ReceivedCustomIDList, nil
 }
 
-func hashChangeProposalOwnerTargetProposalHash(tx *types.Transaction) (interface{}, error) {
+func hashChangeProposalOwnerTargetProposalHash(tx *transactions.BaseTransaction) (interface{}, error) {
 	p, ok := tx.Payload.(*payload.CRCProposal)
 	if !ok {
 		return nil, fmt.Errorf(
@@ -64,7 +64,7 @@ func hashChangeProposalOwnerTargetProposalHash(tx *types.Transaction) (interface
 	return nil, nil
 }
 
-func hashCloseProposalTargetProposalHash(tx *types.Transaction) (interface{}, error) {
+func hashCloseProposalTargetProposalHash(tx *transactions.BaseTransaction) (interface{}, error) {
 	p, ok := tx.Payload.(*payload.CRCProposal)
 	if !ok {
 		return nil, fmt.Errorf(
@@ -76,7 +76,7 @@ func hashCloseProposalTargetProposalHash(tx *types.Transaction) (interface{}, er
 	return nil, nil
 }
 
-func hashCRCProposalSecretaryGeneralDID(tx *types.Transaction) (interface{}, error) {
+func hashCRCProposalSecretaryGeneralDID(tx *transactions.BaseTransaction) (interface{}, error) {
 	p, ok := tx.Payload.(*payload.CRCProposal)
 	if !ok {
 		return nil, fmt.Errorf(
@@ -88,7 +88,7 @@ func hashCRCProposalSecretaryGeneralDID(tx *types.Transaction) (interface{}, err
 	return nil, nil
 }
 
-func strChangeCustomIDFee(tx *types.Transaction) (interface{}, error) {
+func strChangeCustomIDFee(tx *transactions.BaseTransaction) (interface{}, error) {
 	p, ok := tx.Payload.(*payload.CRCProposal)
 	if !ok {
 		return nil, fmt.Errorf(
@@ -100,7 +100,7 @@ func strChangeCustomIDFee(tx *types.Transaction) (interface{}, error) {
 	return nil, nil
 }
 
-func strReserveCustomID(tx *types.Transaction) (interface{}, error) {
+func strReserveCustomID(tx *transactions.BaseTransaction) (interface{}, error) {
 	p, ok := tx.Payload.(*payload.CRCProposal)
 	if !ok {
 		return nil, fmt.Errorf(
@@ -113,7 +113,7 @@ func strReserveCustomID(tx *types.Transaction) (interface{}, error) {
 }
 
 func hashCRCProposalRegisterSideChainName(
-	tx *types.Transaction) (interface{}, error) {
+	tx *transactions.BaseTransaction) (interface{}, error) {
 	p, ok := tx.Payload.(*payload.CRCProposal)
 	if !ok {
 		return nil, fmt.Errorf(
@@ -127,7 +127,7 @@ func hashCRCProposalRegisterSideChainName(
 }
 
 func hashCRCProposalRegisterSideChainMagicNumber(
-	tx *types.Transaction) (interface{}, error) {
+	tx *transactions.BaseTransaction) (interface{}, error) {
 	p, ok := tx.Payload.(*payload.CRCProposal)
 	if !ok {
 		return nil, fmt.Errorf(
@@ -140,7 +140,7 @@ func hashCRCProposalRegisterSideChainMagicNumber(
 }
 
 func hashCRCProposalRegisterSideChainGenesisHash(
-	tx *types.Transaction) (interface{}, error) {
+	tx *transactions.BaseTransaction) (interface{}, error) {
 	p, ok := tx.Payload.(*payload.CRCProposal)
 	if !ok {
 		return nil, fmt.Errorf(
@@ -153,7 +153,7 @@ func hashCRCProposalRegisterSideChainGenesisHash(
 }
 
 func hashCRCProposalWithdrawProposalHash(
-	tx *types.Transaction) (interface{}, error) {
+	tx *transactions.BaseTransaction) (interface{}, error) {
 	p, ok := tx.Payload.(*payload.CRCProposalWithdraw)
 	if !ok {
 		return nil, fmt.Errorf(
@@ -163,7 +163,7 @@ func hashCRCProposalWithdrawProposalHash(
 }
 
 func hashCRCProposalTrackingProposalHash(
-	tx *types.Transaction) (interface{}, error) {
+	tx *transactions.BaseTransaction) (interface{}, error) {
 	p, ok := tx.Payload.(*payload.CRCProposalTracking)
 	if !ok {
 		return nil, fmt.Errorf(
@@ -172,7 +172,7 @@ func hashCRCProposalTrackingProposalHash(
 	return p.ProposalHash, nil
 }
 
-func hashSpecialTxHash(tx *types.Transaction) (interface{}, error) {
+func hashSpecialTxHash(tx *transactions.BaseTransaction) (interface{}, error) {
 	illegalData, ok := tx.Payload.(payload.DPOSIllegalData)
 	if !ok {
 		return nil, fmt.Errorf(
@@ -181,7 +181,7 @@ func hashSpecialTxHash(tx *types.Transaction) (interface{}, error) {
 	return illegalData.Hash(), nil
 }
 
-func hashNextTurnDPOSInfoTxPayloadHash(tx *types.Transaction) (interface{}, error) {
+func hashNextTurnDPOSInfoTxPayloadHash(tx *transactions.BaseTransaction) (interface{}, error) {
 	payload, ok := tx.Payload.(*payload.NextTurnDPOSInfo)
 	if !ok {
 		return nil, fmt.Errorf(
@@ -190,7 +190,7 @@ func hashNextTurnDPOSInfoTxPayloadHash(tx *types.Transaction) (interface{}, erro
 	return payload.Hash(), nil
 }
 
-func hashCustomIDProposalResultTxPayloadHash(tx *types.Transaction) (interface{}, error) {
+func hashCustomIDProposalResultTxPayloadHash(tx *transactions.BaseTransaction) (interface{}, error) {
 	_, ok := tx.Payload.(*payload.RecordProposalResult)
 	if !ok {
 		return nil, fmt.Errorf(
@@ -200,7 +200,7 @@ func hashCustomIDProposalResultTxPayloadHash(tx *types.Transaction) (interface{}
 }
 
 // strings related functions
-func strCancelProducerOwnerPublicKey(tx *types.Transaction) (interface{},
+func strCancelProducerOwnerPublicKey(tx *transactions.BaseTransaction) (interface{},
 	error) {
 	p, ok := tx.Payload.(*payload.ProcessProducer)
 	if !ok {
@@ -211,7 +211,7 @@ func strCancelProducerOwnerPublicKey(tx *types.Transaction) (interface{},
 	return common.BytesToHexString(p.OwnerPublicKey), nil
 }
 
-func strProducerInfoOwnerPublicKey(tx *types.Transaction) (interface{}, error) {
+func strProducerInfoOwnerPublicKey(tx *transactions.BaseTransaction) (interface{}, error) {
 	p, err := comGetProducerInfo(tx)
 	if err != nil {
 		return nil, err
@@ -219,7 +219,7 @@ func strProducerInfoOwnerPublicKey(tx *types.Transaction) (interface{}, error) {
 	return common.BytesToHexString(p.OwnerPublicKey), nil
 }
 
-func strProducerInfoNodePublicKey(tx *types.Transaction) (interface{}, error) {
+func strProducerInfoNodePublicKey(tx *transactions.BaseTransaction) (interface{}, error) {
 	p, err := comGetProducerInfo(tx)
 	if err != nil {
 		return nil, err
@@ -227,7 +227,7 @@ func strProducerInfoNodePublicKey(tx *types.Transaction) (interface{}, error) {
 	return common.BytesToHexString(p.NodePublicKey), nil
 }
 
-func strCRManagementPublicKey(tx *types.Transaction) (interface{}, error) {
+func strCRManagementPublicKey(tx *transactions.BaseTransaction) (interface{}, error) {
 	p, ok := tx.Payload.(*payload.CRCouncilMemberClaimNode)
 	if !ok {
 		return nil, fmt.Errorf(
@@ -236,7 +236,7 @@ func strCRManagementPublicKey(tx *types.Transaction) (interface{}, error) {
 	return common.BytesToHexString(p.NodePublicKey), nil
 }
 
-func strCRManagementDID(tx *types.Transaction) (interface{}, error) {
+func strCRManagementDID(tx *transactions.BaseTransaction) (interface{}, error) {
 	p, ok := tx.Payload.(*payload.CRCouncilMemberClaimNode)
 	if !ok {
 		return nil, fmt.Errorf(
@@ -245,7 +245,7 @@ func strCRManagementDID(tx *types.Transaction) (interface{}, error) {
 	return p.CRCouncilCommitteeDID, nil
 }
 
-func strProducerInfoNickname(tx *types.Transaction) (interface{}, error) {
+func strProducerInfoNickname(tx *transactions.BaseTransaction) (interface{}, error) {
 	p, err := comGetProducerInfo(tx)
 	if err != nil {
 		return nil, err
@@ -253,7 +253,7 @@ func strProducerInfoNickname(tx *types.Transaction) (interface{}, error) {
 	return p.NickName, nil
 }
 
-func strRegisterCRPublicKey(tx *types.Transaction) (interface{}, error) {
+func strRegisterCRPublicKey(tx *transactions.BaseTransaction) (interface{}, error) {
 	p, err := comGetCRInfo(tx)
 	if err != nil {
 		return nil, err
@@ -272,7 +272,7 @@ func strRegisterCRPublicKey(tx *types.Transaction) (interface{}, error) {
 }
 
 func strActivateProducerNodePublicKey(
-	tx *types.Transaction) (interface{}, error) {
+	tx *transactions.BaseTransaction) (interface{}, error) {
 	p, ok := tx.Payload.(*payload.ActivateProducer)
 	if !ok {
 		return nil, fmt.Errorf(
@@ -281,7 +281,7 @@ func strActivateProducerNodePublicKey(
 	return common.BytesToHexString(p.NodePublicKey), nil
 }
 
-func strCRInfoNickname(tx *types.Transaction) (interface{}, error) {
+func strCRInfoNickname(tx *transactions.BaseTransaction) (interface{}, error) {
 	p, err := comGetCRInfo(tx)
 	if err != nil {
 		return nil, err
@@ -289,11 +289,11 @@ func strCRInfoNickname(tx *types.Transaction) (interface{}, error) {
 	return p.NickName, nil
 }
 
-func strTxProgramCode(tx *types.Transaction) (interface{}, error) {
+func strTxProgramCode(tx *transactions.BaseTransaction) (interface{}, error) {
 	return common.BytesToHexString(tx.Programs[0].Code), nil
 }
 
-func strProposalReviewKey(tx *types.Transaction) (interface{}, error) {
+func strProposalReviewKey(tx *transactions.BaseTransaction) (interface{}, error) {
 	p, ok := tx.Payload.(*payload.CRCProposalReview)
 	if !ok {
 		return nil, fmt.Errorf(
@@ -303,12 +303,12 @@ func strProposalReviewKey(tx *types.Transaction) (interface{}, error) {
 	return p.DID.String() + p.ProposalHash.String(), nil
 }
 
-func strCRCAppropriation(*types.Transaction) (interface{}, error) {
+func strCRCAppropriation(*transactions.BaseTransaction) (interface{}, error) {
 	// const string to ensure only one tx added to the tx pool
 	return "CRC Appropriation", nil
 }
 
-func strSecretaryGeneral(tx *types.Transaction) (interface{}, error) {
+func strSecretaryGeneral(tx *transactions.BaseTransaction) (interface{}, error) {
 	// const string to ensure only one tx added to the tx pool
 	p, ok := tx.Payload.(*payload.CRCProposal)
 	if !ok {
@@ -322,7 +322,7 @@ func strSecretaryGeneral(tx *types.Transaction) (interface{}, error) {
 }
 
 func hashArrayCRCProposalRealWithdrawTransactionHashes(
-	tx *types.Transaction) (interface{}, error) {
+	tx *transactions.BaseTransaction) (interface{}, error) {
 	p, ok := tx.Payload.(*payload.CRCProposalRealWithdraw)
 	if !ok {
 		return nil, fmt.Errorf(
@@ -333,7 +333,7 @@ func hashArrayCRCProposalRealWithdrawTransactionHashes(
 	return p.WithdrawTransactionHashes, nil
 }
 
-func hashRevertToDPOS(tx *types.Transaction) (interface{}, error) {
+func hashRevertToDPOS(tx *transactions.BaseTransaction) (interface{}, error) {
 	_, ok := tx.Payload.(*payload.RevertToDPOS)
 	if !ok {
 		return nil, fmt.Errorf(
@@ -345,7 +345,7 @@ func hashRevertToDPOS(tx *types.Transaction) (interface{}, error) {
 }
 
 // program hashes related functions
-func addrCRInfoCRCID(tx *types.Transaction) (interface{}, error) {
+func addrCRInfoCRCID(tx *transactions.BaseTransaction) (interface{}, error) {
 	p, err := comGetCRInfo(tx)
 	if err != nil {
 		return nil, err
@@ -353,7 +353,7 @@ func addrCRInfoCRCID(tx *types.Transaction) (interface{}, error) {
 	return p.CID, nil
 }
 
-func addrUnregisterCRCID(tx *types.Transaction) (interface{}, error) {
+func addrUnregisterCRCID(tx *transactions.BaseTransaction) (interface{}, error) {
 	p, ok := tx.Payload.(*payload.UnregisterCR)
 	if !ok {
 		return nil, fmt.Errorf(
@@ -364,7 +364,7 @@ func addrUnregisterCRCID(tx *types.Transaction) (interface{}, error) {
 
 // hash array related functions
 func hashArraySidechainTransactionHashes(
-	tx *types.Transaction) (interface{}, error) {
+	tx *transactions.BaseTransaction) (interface{}, error) {
 	if tx.PayloadVersion == payload.WithdrawFromSideChainVersion {
 		p, ok := tx.Payload.(*payload.WithdrawFromSideChain)
 		if !ok {
@@ -409,7 +409,7 @@ func hashArraySidechainTransactionHashes(
 
 // hash array related functions
 func hashArraySidechainReturnDepositTransactionHashes(
-	tx *types.Transaction) (interface{}, error) {
+	tx *transactions.BaseTransaction) (interface{}, error) {
 	arrayHash := make([]common.Uint256, 0)
 	for _, output := range tx.Outputs {
 		if output.Type == common2.OTReturnSideChainDepositCoin {
@@ -427,7 +427,7 @@ func hashArraySidechainReturnDepositTransactionHashes(
 }
 
 // str array related functions
-func strArrayTxReferences(tx *types.Transaction) (interface{}, error) {
+func strArrayTxReferences(tx *transactions.BaseTransaction) (interface{}, error) {
 	reference, err :=
 		blockchain.DefaultLedger.Blockchain.UTXOCache.GetTxReference(tx)
 	if err != nil {
@@ -443,7 +443,7 @@ func strArrayTxReferences(tx *types.Transaction) (interface{}, error) {
 
 // common functions
 
-func comGetProducerInfo(tx *types.Transaction) (*payload.ProducerInfo, error) {
+func comGetProducerInfo(tx *transactions.BaseTransaction) (*payload.ProducerInfo, error) {
 	p, ok := tx.Payload.(*payload.ProducerInfo)
 	if !ok {
 		return nil, fmt.Errorf(
@@ -452,7 +452,7 @@ func comGetProducerInfo(tx *types.Transaction) (*payload.ProducerInfo, error) {
 	return p, nil
 }
 
-func comGetCRInfo(tx *types.Transaction) (*payload.CRInfo, error) {
+func comGetCRInfo(tx *transactions.BaseTransaction) (*payload.CRInfo, error) {
 	p, ok := tx.Payload.(*payload.CRInfo)
 	if !ok {
 		return nil, fmt.Errorf(

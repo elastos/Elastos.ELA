@@ -6,6 +6,7 @@
 package indexers
 
 import (
+	"github.com/elastos/Elastos.ELA/core/types/transactions"
 	"os"
 	"path/filepath"
 	"testing"
@@ -31,7 +32,7 @@ var (
 	unspentIndexReferIndex1 = uint16(1)
 	unspentIndexReferIndex2 = uint16(2)
 	unspentIndexReferIndex3 = uint16(3)
-	unspentIndexCoinbase    = &types.Transaction{
+	unspentIndexCoinbase    = &transactions.BaseTransaction{
 		TxType:  common2.CoinBase,
 		Payload: new(payload.CoinBase),
 		Inputs:  nil,
@@ -44,7 +45,7 @@ var (
 			},
 		},
 	}
-	testUnspentIndexTx1 = &types.Transaction{
+	testUnspentIndexTx1 = &transactions.BaseTransaction{
 		TxType:  common2.TransferAsset,
 		Payload: new(payload.TransferAsset),
 		Inputs: []*common2.Input{
@@ -64,7 +65,7 @@ var (
 			},
 		},
 	}
-	testUnspentIndexTx2 = &types.Transaction{
+	testUnspentIndexTx2 = &transactions.BaseTransaction{
 		TxType:  common2.TransferAsset,
 		Payload: new(payload.TransferAsset),
 		Inputs: []*common2.Input{
@@ -84,7 +85,7 @@ var (
 			},
 		},
 	}
-	testUnspentIndexTx3 = &types.Transaction{
+	testUnspentIndexTx3 = &transactions.BaseTransaction{
 		TxType:  common2.TransferAsset,
 		Payload: new(payload.TransferAsset),
 		Inputs: []*common2.Input{
@@ -106,14 +107,14 @@ var (
 	}
 	unspentIndexBlock = &types.Block{
 		Header: types.Header{},
-		Transactions: []*types.Transaction{
+		Transactions: []*transactions.BaseTransaction{
 			unspentIndexCoinbase,
 			testUnspentIndexTx1,
 			testUnspentIndexTx2,
 			testUnspentIndexTx3,
 		},
 	}
-	testUnspentIndexTx4 = &types.Transaction{
+	testUnspentIndexTx4 = &transactions.BaseTransaction{
 		TxType:  common2.TransferAsset,
 		Payload: new(payload.TransferAsset),
 		Inputs: []*common2.Input{
@@ -136,13 +137,13 @@ var (
 			},
 		},
 	}
-	testUnspentIndexTx5 = &types.Transaction{
+	testUnspentIndexTx5 = &transactions.BaseTransaction{
 		TxType:  common2.TransferAsset,
 		Payload: new(payload.TransferAsset),
 		Inputs:  []*common2.Input{},
 		Outputs: []*common2.Output{},
 	}
-	unspentIndexCoinbase2 = &types.Transaction{
+	unspentIndexCoinbase2 = &transactions.BaseTransaction{
 		TxType:  common2.CoinBase,
 		Payload: new(payload.CoinBase),
 		Inputs:  nil,
@@ -157,7 +158,7 @@ var (
 	}
 	unspentIndexBlock2 = &types.Block{
 		Header: types.Header{},
-		Transactions: []*types.Transaction{
+		Transactions: []*transactions.BaseTransaction{
 			unspentIndexCoinbase2,
 			testUnspentIndexTx4,
 			testUnspentIndexTx5,
@@ -188,10 +189,10 @@ func TestUnspentIndexInit(t *testing.T) {
 		assert.NoError(t, err)
 		err = dbPutUnspentIndexEntry(dbTx, &unspentIndexReferTx3, []uint16{unspentIndexReferIndex3})
 		assert.NoError(t, err)
-		//testUnspentIndex.txCache.setTxn(1, &types.Transaction{
+		//testUnspentIndex.txCache.setTxn(1, &types.BaseTransaction{
 		//	LockTime: 10,
 		//})
-		//testUnspentIndex.txCache.setTxn(1, &types.Transaction{
+		//testUnspentIndex.txCache.setTxn(1, &types.BaseTransaction{
 		//	LockTime: 20,
 		//})
 

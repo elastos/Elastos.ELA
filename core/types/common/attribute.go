@@ -68,13 +68,13 @@ func NewAttribute(u AttributeUsage, d []byte) Attribute {
 
 func (attr *Attribute) Serialize(w io.Writer) error {
 	if err := common.WriteUint8(w, byte(attr.Usage)); err != nil {
-		return errors.New("Transaction attribute Usage serialization error.")
+		return errors.New("BaseTransaction attribute Usage serialization error.")
 	}
 	if !IsValidAttributeType(attr.Usage) {
 		return errors.New("[Attribute error] Serialize Unsupported attribute Description.")
 	}
 	if err := common.WriteVarBytes(w, attr.Data); err != nil {
-		return errors.New("Transaction attribute Data serialization error.")
+		return errors.New("BaseTransaction attribute Data serialization error.")
 	}
 	return nil
 }
@@ -82,7 +82,7 @@ func (attr *Attribute) Serialize(w io.Writer) error {
 func (attr *Attribute) Deserialize(r io.Reader) error {
 	val, err := common.ReadBytes(r, 1)
 	if err != nil {
-		return errors.New("Transaction attribute Usage deserialization error.")
+		return errors.New("BaseTransaction attribute Usage deserialization error.")
 	}
 	attr.Usage = AttributeUsage(val[0])
 	if !IsValidAttributeType(attr.Usage) {
@@ -91,7 +91,7 @@ func (attr *Attribute) Deserialize(r io.Reader) error {
 	attr.Data, err = common.ReadVarBytes(r, common.MaxVarStringLength,
 		"attribute data")
 	if err != nil {
-		return errors.New("Transaction attribute Data deserialization error.")
+		return errors.New("BaseTransaction attribute Data deserialization error.")
 	}
 	return nil
 }

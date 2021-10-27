@@ -6,12 +6,12 @@
 package indexers
 
 import (
+	"github.com/elastos/Elastos.ELA/core/types/transactions"
 	"io"
 	"sync"
 
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
-	"github.com/elastos/Elastos.ELA/core/types"
 )
 
 const (
@@ -24,7 +24,7 @@ const (
 
 type TxInfo struct {
 	blockHeight uint32
-	txn         *types.Transaction
+	txn         *transactions.BaseTransaction
 }
 
 func (t *TxInfo) Serialize(w io.Writer) (err error) {
@@ -40,7 +40,7 @@ func (t *TxInfo) Deserialize(r io.Reader) (err error) {
 	if err != nil {
 		return
 	}
-	var txn types.Transaction
+	var txn transactions.BaseTransaction
 	err = txn.Deserialize(r)
 	if err != nil {
 		return
@@ -93,7 +93,7 @@ func (t *TxCache) Deserialize(r io.Reader) (err error) {
 	return nil
 }
 
-func (t *TxCache) setTxn(height uint32, txn *types.Transaction) {
+func (t *TxCache) setTxn(height uint32, txn *transactions.BaseTransaction) {
 	if t.params.NodeProfileStrategy ==
 		config.MemoryFirst.String() {
 		return

@@ -47,8 +47,6 @@ func (v VoteResult) Name() string {
 }
 
 type CRCProposalReview struct {
-	DefaultChecker
-
 	ProposalHash common.Uint256
 	VoteResult   VoteResult
 	OpinionHash  common.Uint256
@@ -138,17 +136,3 @@ func (a *CRCProposalReview) DeserializeUnsigned(r io.Reader, version byte) error
 	}
 	return nil
 }
-//
-//// todo add description
-//func (a *CRCProposalReview) SpecialCheck(txn *types.Transaction,
-//	p *CheckParameters) (elaerr.ELAError, bool) {
-//	// todo special check
-//	return nil, false
-//}
-//
-//// todo add description
-//func (a *CRCProposalReview) SecondCheck(txn *types.Transaction,
-//	p *CheckParameters) (elaerr.ELAError, bool) {
-//	// todo special check
-//	return nil, false
-//}

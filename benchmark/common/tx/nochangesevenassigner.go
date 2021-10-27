@@ -9,8 +9,8 @@ import (
 	"github.com/elastos/Elastos.ELA/account"
 	"github.com/elastos/Elastos.ELA/benchmark/common/utils"
 	"github.com/elastos/Elastos.ELA/common"
-	"github.com/elastos/Elastos.ELA/core/types"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/transactions"
 )
 
 const (
@@ -19,10 +19,10 @@ const (
 
 type noChangesEvenAssigner struct {
 	account *account.Account
-	utxo    *types.UTXO
+	utxo    *common2.UTXO
 }
 
-func (a *noChangesEvenAssigner) SignAndChange(tx *types.Transaction) error {
+func (a *noChangesEvenAssigner) SignAndChange(tx *transactions.BaseTransaction) error {
 	tx.Inputs = []*common2.Input{
 		{
 			Previous: common2.OutPoint{

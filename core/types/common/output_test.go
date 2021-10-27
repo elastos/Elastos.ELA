@@ -3,14 +3,13 @@
 // license that can be found in the LICENSE file.
 //
 
-package types
+package common
 
 import (
 	"bytes"
 	"testing"
 
 	"github.com/elastos/Elastos.ELA/common"
-	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/core/types/outputpayload"
 )
 
@@ -25,12 +24,12 @@ var (
 
 func TestOutput_Serialize(t *testing.T) {
 	// C0
-	output := common2.Output{
+	output := Output{
 		AssetID:     *assetID,
 		Value:       100000,
 		OutputLock:  0,
 		ProgramHash: *recipient,
-		Type:        common2.OTVote,
+		Type:        OTVote,
 		Payload: &outputpayload.VoteOutput{
 			Version: 0,
 			Contents: []outputpayload.VoteContent{
@@ -45,7 +44,7 @@ func TestOutput_Serialize(t *testing.T) {
 	}
 
 	buf := new(bytes.Buffer)
-	if err := output.Serialize(buf, common2.TxVersion09); err != nil {
+	if err := output.Serialize(buf, TxVersion09); err != nil {
 		t.Error("output serialize failed")
 	}
 
@@ -60,13 +59,13 @@ func TestOutput_Deserialize(t *testing.T) {
 	outputBytes, _ := common.HexStringToBytes(OUTPUTHEX)
 	outputBuf := bytes.NewBuffer(outputBytes)
 
-	var output common2.Output
-	if err := output.Deserialize(outputBuf, common2.TxVersion09); err != nil {
+	var output Output
+	if err := output.Deserialize(outputBuf, TxVersion09); err != nil {
 		t.Error("output deserialize failed")
 	}
 
 	buf := new(bytes.Buffer)
-	if err := output.Serialize(buf, common2.TxVersion09); err != nil {
+	if err := output.Serialize(buf, TxVersion09); err != nil {
 		t.Error("output serialize failed")
 	}
 

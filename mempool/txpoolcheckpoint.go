@@ -7,6 +7,7 @@ package mempool
 
 import (
 	"bytes"
+	"github.com/elastos/Elastos.ELA/core/types/transactions"
 	"io"
 
 	"github.com/elastos/Elastos.ELA/common"
@@ -30,12 +31,12 @@ const (
 
 type txPoolCheckpoint struct {
 	// transaction which have been verified will put into this map
-	txnList map[common.Uint256]*types.Transaction
+	txnList map[common.Uint256]*transactions.BaseTransaction
 	txFees  *txFeeOrderedList
 	txPool  *TxPool
 
 	height              uint32
-	initConflictManager func(map[common.Uint256]*types.Transaction)
+	initConflictManager func(map[common.Uint256]*transactions.BaseTransaction)
 }
 
 func (c *txPoolCheckpoint) OnBlockSaved(block *types.DposBlock) {
@@ -149,7 +150,7 @@ func (c *txPoolCheckpoint) Deserialize(r io.Reader) (err error) {
 	}
 	var hash common.Uint256
 	for i := uint64(0); i < count; i++ {
-		tx := &types.Transaction{}
+		tx := &transactions.BaseTransaction{}
 		if err = hash.Deserialize(r); err != nil {
 			return
 		}
@@ -164,10 +165,10 @@ func (c *txPoolCheckpoint) Deserialize(r io.Reader) (err error) {
 }
 
 func newTxPoolCheckpoint(txPool *TxPool, initConflictManager func(
-	map[common.Uint256]*types.Transaction)) *txPoolCheckpoint {
+	map[common.Uint256]*transactions.BaseTransaction)) *txPoolCheckpoint {
 	return &txPoolCheckpoint{
 		txPool:              txPool,
-		txnList:             map[common.Uint256]*types.Transaction{},
+		txnList:             map[common.Uint256]*transactions.BaseTransaction{},
 		txFees:              newTxFeeOrderedList(txPool.onPopBack, pact.MaxTxPoolSize),
 		height:              0,
 		initConflictManager: initConflictManager,

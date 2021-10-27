@@ -7,6 +7,7 @@ package state
 
 import (
 	"bytes"
+	"github.com/elastos/Elastos.ELA/core/types/transactions"
 	"sort"
 	"testing"
 
@@ -19,15 +20,15 @@ import (
 )
 
 func TestSortTransactions(t *testing.T) {
-	txs := []*types.Transaction{
-		&types.Transaction{TxType: common2.CoinBase},
-		&types.Transaction{TxType: common2.TransferAsset},
-		&types.Transaction{TxType: common2.TransferAsset},
-		&types.Transaction{TxType: common2.CRCProposalTracking},
-		&types.Transaction{TxType: common2.CRCProposalWithdraw},
-		&types.Transaction{TxType: common2.CRCProposalWithdraw},
-		&types.Transaction{TxType: common2.TransferAsset},
-		&types.Transaction{TxType: common2.CRCProposalWithdraw},
+	txs := []*transactions.BaseTransaction{
+		&transactions.BaseTransaction{TxType: common2.CoinBase},
+		&transactions.BaseTransaction{TxType: common2.TransferAsset},
+		&transactions.BaseTransaction{TxType: common2.TransferAsset},
+		&transactions.BaseTransaction{TxType: common2.CRCProposalTracking},
+		&transactions.BaseTransaction{TxType: common2.CRCProposalWithdraw},
+		&transactions.BaseTransaction{TxType: common2.CRCProposalWithdraw},
+		&transactions.BaseTransaction{TxType: common2.TransferAsset},
+		&transactions.BaseTransaction{TxType: common2.CRCProposalWithdraw},
 	}
 
 	sortTransactions(txs[1:])
@@ -242,7 +243,7 @@ func TestCommittee_RollbackTo_SameCommittee_VotingPeriod(t *testing.T) {
 		Header: types.Header{
 			Height: height,
 		},
-		Transactions: []*types.Transaction{
+		Transactions: []*transactions.BaseTransaction{
 			generateRegisterCR(code, cid, nickname),
 		},
 	}, nil)
@@ -257,7 +258,7 @@ func TestCommittee_RollbackTo_SameCommittee_VotingPeriod(t *testing.T) {
 		Header: types.Header{
 			Height: height,
 		},
-		Transactions: []*types.Transaction{
+		Transactions: []*transactions.BaseTransaction{
 			generateUpdateCR(code, cid, nickname2),
 		},
 	}, nil)
@@ -270,7 +271,7 @@ func TestCommittee_RollbackTo_SameCommittee_VotingPeriod(t *testing.T) {
 			Header: types.Header{
 				Height: height,
 			},
-			Transactions: []*types.Transaction{},
+			Transactions: []*transactions.BaseTransaction{},
 		}, nil)
 		height++
 	}
@@ -310,7 +311,7 @@ func TestCommittee_RollbackTo_SameCommittee_BeforeVoting(t *testing.T) {
 			Header: types.Header{
 				Height: height,
 			},
-			Transactions: []*types.Transaction{
+			Transactions: []*transactions.BaseTransaction{
 				generateRegisterCR(code, cid, nickname),
 			},
 		}, nil)

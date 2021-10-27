@@ -11,6 +11,8 @@ import (
 	"errors"
 	"fmt"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
+	"github.com/elastos/Elastos.ELA/core/types/transactions"
 	"math"
 	"math/rand"
 	"sort"
@@ -134,7 +136,7 @@ func (a *arbitrators) GetRevertToPOWBlockHeight() uint32 {
 func (a *arbitrators) RegisterFunction(bestHeight func() uint32,
 	bestBlockHash func() *common.Uint256,
 	getBlockByHeight func(uint32) (*types.Block, error),
-	getTxReference func(tx *types.Transaction) (
+	getTxReference func(tx *transactions.BaseTransaction) (
 		map[*common2.Input]common2.Output, error)) {
 	a.bestHeight = bestHeight
 	a.bestBlockHash = bestBlockHash
@@ -314,7 +316,7 @@ func (a *arbitrators) CheckCustomIDResultsTx(block *types.Block) error {
 	return nil
 }
 
-func (a *arbitrators) ProcessSpecialTxPayload(p types.Payload,
+func (a *arbitrators) ProcessSpecialTxPayload(p interfaces.Payload,
 	height uint32) error {
 	switch obj := p.(type) {
 	case *payload.DPOSIllegalBlocks:
@@ -578,7 +580,7 @@ func (a *arbitrators) createRevertToPOWTransaction(blockHeight uint32) {
 		Type:          revertType,
 		WorkingHeight: blockHeight + 1,
 	}
-	tx := &types.Transaction{
+	tx := &transactions.BaseTransaction{
 		Version:        common2.TxVersion09,
 		TxType:         common2.RevertToPOW,
 		PayloadVersion: payload.RevertToPOWVersion,
@@ -1502,7 +1504,7 @@ func (a *arbitrators) ConvertToArbitersStr(arbiters [][]byte) []string {
 	return arbitersStr
 }
 
-func (a *arbitrators) createNextTurnDPOSInfoTransaction(blockHeight uint32, forceChange bool) *types.Transaction {
+func (a *arbitrators) createNextTurnDPOSInfoTransaction(blockHeight uint32, forceChange bool) *transactions.BaseTransaction {
 	var nextTurnDPOSInfo payload.NextTurnDPOSInfo
 	nextTurnDPOSInfo.CRPublicKeys = make([][]byte, 0)
 	nextTurnDPOSInfo.DPOSPublicKeys = make([][]byte, 0)
@@ -1528,7 +1530,7 @@ func (a *arbitrators) createNextTurnDPOSInfoTransaction(blockHeight uint32, forc
 	log.Debugf("[createNextTurnDPOSInfoTransaction] CRPublicKeys %v, DPOSPublicKeys%v\n",
 		a.ConvertToArbitersStr(nextTurnDPOSInfo.CRPublicKeys), a.ConvertToArbitersStr(nextTurnDPOSInfo.DPOSPublicKeys))
 
-	return &types.Transaction{
+	return &transactions.BaseTransaction{
 		Version:    common2.TxVersion09,
 		TxType:     common2.NextTurnDPOSInfo,
 		Payload:    &nextTurnDPOSInfo,

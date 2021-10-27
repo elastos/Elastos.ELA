@@ -11,6 +11,8 @@ import (
 	"encoding/hex"
 	"fmt"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
+	"github.com/elastos/Elastos.ELA/core/types/transactions"
 	"sort"
 	"strings"
 
@@ -54,7 +56,7 @@ var (
 	emptyHash   = common.Uint168{}
 )
 
-func GetTransactionInfo(tx *Transaction) *TransactionInfo {
+func GetTransactionInfo(tx *transactions.BaseTransaction) *TransactionInfo {
 	inputs := make([]InputInfo, len(tx.Inputs))
 	for i, v := range tx.Inputs {
 		inputs[i].TxID = common.ToReversedString(v.Previous.TxID)
@@ -106,7 +108,7 @@ func GetTransactionInfo(tx *Transaction) *TransactionInfo {
 	}
 }
 
-func GetTransactionContextInfo(header *Header, tx *Transaction) *TransactionContextInfo {
+func GetTransactionContextInfo(header *Header, tx *transactions.BaseTransaction) *TransactionContextInfo {
 	var blockHash string
 	var confirmations uint32
 	var time uint32
@@ -820,7 +822,7 @@ func SendRawTransaction(param Params) map[string]interface{} {
 	if err != nil {
 		return ResponsePack(InvalidParams, "hex string to bytes error")
 	}
-	var txn Transaction
+	var txn transactions.BaseTransaction
 	if err := txn.Deserialize(bytes.NewReader(bys)); err != nil {
 		return ResponsePack(InvalidTransaction, err.Error())
 	}
@@ -1131,7 +1133,7 @@ func GetUTXOsByAmount(param Params) map[string]interface{} {
 	}
 
 	if utxoType == "unused" {
-		var unusedUTXOs []*UTXO
+		var unusedUTXOs []*common2.UTXO
 		usedUTXOs := TxMemPool.GetUsedUTXOs()
 		for _, u := range utxos {
 			outPoint := common2.OutPoint{TxID: u.TxID, Index: u.Index}
@@ -1352,7 +1354,7 @@ func CreateRawTransaction(param Params) map[string]interface{} {
 		txOutputs = append(txOutputs, output)
 	}
 
-	txn := &Transaction{
+	txn := &transactions.BaseTransaction{
 		Version:    common2.TxVersion09,
 		TxType:     common2.TransferAsset,
 		Payload:    &payload.TransferAsset{},
@@ -1413,7 +1415,7 @@ func SignRawTransactionWithKey(param Params) map[string]interface{} {
 	if err != nil {
 		return ResponsePack(InvalidParams, "hex string to bytes error")
 	}
-	var txn Transaction
+	var txn transactions.BaseTransaction
 	if err := txn.Deserialize(bytes.NewReader(txBytes)); err != nil {
 		return ResponsePack(InvalidTransaction, err.Error())
 	}
@@ -1570,7 +1572,7 @@ func GetUnspendOutput(param Params) map[string]interface{} {
 	return ResponsePack(Success, UTXOoutputs)
 }
 
-//Transaction
+//BaseTransaction
 func GetTransactionByHash(param Params) map[string]interface{} {
 	str, ok := param.String("hash")
 	if !ok {
@@ -2630,7 +2632,7 @@ func DecodeRawTransaction(param Params) map[string]interface{} {
 	if err != nil {
 		return ResponsePack(InvalidParams, "invalid raw tx data, "+err.Error())
 	}
-	var txn Transaction
+	var txn transactions.BaseTransaction
 	if err := txn.Deserialize(bytes.NewReader(txBytes)); err != nil {
 		return ResponsePack(InvalidParams, "invalid raw tx data, "+err.Error())
 	}
@@ -2638,7 +2640,7 @@ func DecodeRawTransaction(param Params) map[string]interface{} {
 	return ResponsePack(Success, GetTransactionInfo(&txn))
 }
 
-func getPayloadInfo(p Payload, payloadVersion byte) PayloadInfo {
+func getPayloadInfo(p interfaces.Payload, payloadVersion byte) PayloadInfo {
 	switch object := p.(type) {
 	case *payload.CoinBase:
 		obj := new(CoinbaseInfo)
@@ -3135,7 +3137,7 @@ func getOutputPayloadInfo(op common2.OutputPayload) OutputPayloadInfo {
 	return nil
 }
 
-func VerifyAndSendTx(tx *Transaction) error {
+func VerifyAndSendTx(tx *transactions.BaseTransaction) error {
 	// if transaction is verified unsuccessfully then will not put it into transaction pool
 	if err := TxMemPool.AppendToTxPool(tx); err != nil {
 		log.Warn("[httpjsonrpc] VerifyTransaction failed when AppendToTxnPool. Errcode:", err.Code())

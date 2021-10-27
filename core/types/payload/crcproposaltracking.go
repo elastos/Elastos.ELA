@@ -76,7 +76,6 @@ const (
 )
 
 type CRCProposalTracking struct {
-	DefaultChecker
 
 	// The hash of current tracking proposal.
 	ProposalHash common.Uint256
@@ -265,17 +264,3 @@ func (p *CRCProposalTracking) Deserialize(r io.Reader, version byte) error {
 
 	return nil
 }
-//
-//// todo add description
-//func (a *CRCProposalTracking) SpecialCheck(txn *types.Transaction,
-//	p *CheckParameters) (elaerr.ELAError, bool) {
-//	// todo special check
-//	return nil, false
-//}
-//
-//// todo add description
-//func (a *CRCProposalTracking) SecondCheck(txn *types.Transaction,
-//	p *CheckParameters) (elaerr.ELAError, bool) {
-//	// todo special check
-//	return nil, false
-//}

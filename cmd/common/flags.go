@@ -34,7 +34,7 @@ var (
 		Usage: "public key list of multi signature address, separate public keys with comma `,`",
 	}
 
-	// Transaction flags
+	// BaseTransaction flags
 	TransactionFromFlag = cli.StringFlag{
 		Name:  "from",
 		Usage: "the sender `<address>` of the transaction",

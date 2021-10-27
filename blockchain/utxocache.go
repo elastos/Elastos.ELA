@@ -9,11 +9,11 @@ import (
 	"container/list"
 	"errors"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/transactions"
 	"sync"
 
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
-	"github.com/elastos/Elastos.ELA/core/types"
 )
 
 const (
@@ -25,7 +25,7 @@ var (
 )
 
 type IUTXOCacheStore interface {
-	GetTransaction(txID common.Uint256) (*types.Transaction, uint32, error)
+	GetTransaction(txID common.Uint256) (*transactions.BaseTransaction, uint32, error)
 }
 
 type UTXOCache struct {
@@ -34,7 +34,7 @@ type UTXOCache struct {
 	db        IUTXOCacheStore
 	inputs    *list.List
 	reference map[common2.Input]common2.Output
-	txCache   map[common.Uint256]*types.Transaction
+	txCache   map[common.Uint256]*transactions.BaseTransaction
 }
 
 func (up *UTXOCache) insertReference(input *common2.Input, output *common2.Output) {
@@ -52,7 +52,7 @@ func (up *UTXOCache) insertReference(input *common2.Input, output *common2.Outpu
 	up.reference[*input] = *output
 }
 
-func (up *UTXOCache) GetTxReference(tx *types.Transaction) (map[*common2.Input]common2.Output, error) {
+func (up *UTXOCache) GetTxReference(tx *transactions.BaseTransaction) (map[*common2.Input]common2.Output, error) {
 	up.Lock()
 	defer up.Unlock()
 
@@ -77,14 +77,14 @@ func (up *UTXOCache) GetTxReference(tx *types.Transaction) (map[*common2.Input]c
 	return result, nil
 }
 
-func (up *UTXOCache) GetTransaction(txID common.Uint256) (*types.Transaction, error) {
+func (up *UTXOCache) GetTransaction(txID common.Uint256) (*transactions.BaseTransaction, error) {
 	up.Lock()
 	defer up.Unlock()
 
 	return up.getTransaction(txID)
 }
 
-func (up *UTXOCache) insertTransaction(txID common.Uint256, tx *types.Transaction) {
+func (up *UTXOCache) insertTransaction(txID common.Uint256, tx *transactions.BaseTransaction) {
 	if len(up.txCache) > maxReferenceSize {
 		for k := range up.txCache {
 			delete(up.txCache, k)
@@ -98,7 +98,7 @@ func (up *UTXOCache) insertTransaction(txID common.Uint256, tx *types.Transactio
 	up.txCache[txID] = tx
 }
 
-func (up *UTXOCache) getTransaction(txID common.Uint256) (*types.Transaction, error) {
+func (up *UTXOCache) getTransaction(txID common.Uint256) (*transactions.BaseTransaction, error) {
 	prevTx, exist := up.txCache[txID]
 	if !exist {
 		var err error
@@ -116,7 +116,7 @@ func (up *UTXOCache) CleanTxCache() {
 	up.Lock()
 	defer up.Unlock()
 
-	up.txCache = make(map[common.Uint256]*types.Transaction)
+	up.txCache = make(map[common.Uint256]*transactions.BaseTransaction)
 }
 
 func (up *UTXOCache) CleanCache() {
@@ -125,7 +125,7 @@ func (up *UTXOCache) CleanCache() {
 
 	up.inputs.Init()
 	up.reference = make(map[common2.Input]common2.Output)
-	up.txCache = make(map[common.Uint256]*types.Transaction)
+	up.txCache = make(map[common.Uint256]*transactions.BaseTransaction)
 }
 
 func NewUTXOCache(db IUTXOCacheStore, params *config.Params) *UTXOCache {
@@ -137,6 +137,6 @@ func NewUTXOCache(db IUTXOCacheStore, params *config.Params) *UTXOCache {
 		db:        db,
 		inputs:    list.New(),
 		reference: make(map[common2.Input]common2.Output),
-		txCache:   make(map[common.Uint256]*types.Transaction),
+		txCache:   make(map[common.Uint256]*transactions.BaseTransaction),
 	}
 }

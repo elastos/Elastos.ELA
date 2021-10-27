@@ -9,6 +9,7 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/json"
+	"github.com/elastos/Elastos.ELA/core/types/transactions"
 	"net"
 	"net/http"
 	"strconv"
@@ -301,7 +302,7 @@ func (s *Server) PushResult(action string, v interface{}) {
 			result = servers.GetBlockTransactions(block)
 		}
 	case "sendnewtransaction":
-		if tx, ok := v.(*types.Transaction); ok {
+		if tx, ok := v.(*transactions.BaseTransaction); ok {
 			result = servers.GetTransactionContextInfo(nil, tx)
 		}
 	default:

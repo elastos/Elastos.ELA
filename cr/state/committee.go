@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"errors"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/transactions"
 	"math"
 	"sort"
 	"strconv"
@@ -43,12 +44,12 @@ type Committee struct {
 	getHeight                        func() uint32
 	isCurrent                        func() bool
 	broadcast                        func(msg p2p.Message)
-	appendToTxpool                   func(transaction *types.Transaction) elaerr.ELAError
-	createCRCAppropriationTx         func() (*types.Transaction, common.Fixed64, error)
-	createCRAssetsRectifyTransaction func() (*types.Transaction, error)
+	appendToTxpool                   func(transaction *transactions.BaseTransaction) elaerr.ELAError
+	createCRCAppropriationTx         func() (*transactions.BaseTransaction, common.Fixed64, error)
+	createCRAssetsRectifyTransaction func() (*transactions.BaseTransaction, error)
 	createCRRealWithdrawTransaction  func(withdrawTransactionHashes []common.Uint256,
-		outputs []*common2.OutputInfo) (*types.Transaction, error)
-	getUTXO func(programHash *common.Uint168) ([]*types.UTXO, error)
+		outputs []*common2.OutputInfo) (*transactions.BaseTransaction, error)
+	getUTXO func(programHash *common.Uint168) ([]*common2.UTXO, error)
 }
 
 type CommitteeKeyFrame struct {
@@ -533,7 +534,7 @@ func (c *Committee) createProposalResultTransaction(height uint32) {
 		sort.Slice(c.PartProposalResults, func(i, j int) bool {
 			return c.PartProposalResults[i].ProposalHash.Compare(c.PartProposalResults[j].ProposalHash) < 0
 		})
-		tx := &types.Transaction{
+		tx := &transactions.BaseTransaction{
 			Version: common2.TxVersion09,
 			TxType:  common2.ProposalResult,
 			Payload: &payload.RecordProposalResult{
@@ -880,7 +881,7 @@ func (c *Committee) processCRCAppropriation(height uint32, history *utils.Histor
 	})
 }
 
-func (c *Committee) processCRCRealWithdraw(tx *types.Transaction,
+func (c *Committee) processCRCRealWithdraw(tx *transactions.BaseTransaction,
 	height uint32, history *utils.History) {
 
 	txs := make(map[common.Uint256]common2.OutputInfo)
@@ -897,7 +898,7 @@ func (c *Committee) processCRCRealWithdraw(tx *types.Transaction,
 	})
 }
 
-func (c *Committee) activateProducer(tx *types.Transaction,
+func (c *Committee) activateProducer(tx *transactions.BaseTransaction,
 	height uint32, history *utils.History) {
 	apPayload := tx.Payload.(*payload.ActivateProducer)
 	crMember := c.getMemberByNodePublicKey(apPayload.NodePublicKey)
@@ -914,7 +915,7 @@ func (c *Committee) activateProducer(tx *types.Transaction,
 	}
 }
 
-func (c *Committee) processCRCouncilMemberClaimNode(tx *types.Transaction,
+func (c *Committee) processCRCouncilMemberClaimNode(tx *transactions.BaseTransaction,
 	height uint32, history *utils.History) {
 	claimNodePayload := tx.Payload.(*payload.CRCouncilMemberClaimNode)
 	cr := c.getMember(claimNodePayload.CRCouncilCommitteeDID)
@@ -1437,17 +1438,17 @@ func (c *Committee) GetCandidateByPublicKey(publicKey string) *Candidate {
 }
 
 type CommitteeFuncsConfig struct {
-	GetTxReference func(tx *types.Transaction) (
+	GetTxReference func(tx *transactions.BaseTransaction) (
 		map[*common2.Input]common2.Output, error)
 	GetHeight                        func() uint32
-	CreateCRAppropriationTransaction func() (*types.Transaction, common.Fixed64, error)
-	CreateCRAssetsRectifyTransaction func() (*types.Transaction, error)
+	CreateCRAppropriationTransaction func() (*transactions.BaseTransaction, common.Fixed64, error)
+	CreateCRAssetsRectifyTransaction func() (*transactions.BaseTransaction, error)
 	CreateCRRealWithdrawTransaction  func(withdrawTransactionHashes []common.Uint256,
-		outpus []*common2.OutputInfo) (*types.Transaction, error)
+		outpus []*common2.OutputInfo) (*transactions.BaseTransaction, error)
 	IsCurrent      func() bool
 	Broadcast      func(msg p2p.Message)
-	AppendToTxpool func(transaction *types.Transaction) elaerr.ELAError
-	GetUTXO        func(programHash *common.Uint168) ([]*types.UTXO, error)
+	AppendToTxpool func(transaction *transactions.BaseTransaction) elaerr.ELAError
+	GetUTXO        func(programHash *common.Uint168) ([]*common2.UTXO, error)
 }
 
 func (c *Committee) RegisterFuncitons(cfg *CommitteeFuncsConfig) {

@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/transactions"
 
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
@@ -242,12 +243,12 @@ func (idx *UnspentIndex) DisconnectBlock(dbTx database.Tx, block *types.Block) e
 	return nil
 }
 
-func (idx *UnspentIndex) FetchTx(txID common.Uint256) (*types.Transaction, uint32, error) {
+func (idx *UnspentIndex) FetchTx(txID common.Uint256) (*transactions.BaseTransaction, uint32, error) {
 	if txnInfo := idx.txCache.getTxn(txID); txnInfo != nil {
 		return txnInfo.txn, txnInfo.blockHeight, nil
 	}
 
-	var txn *types.Transaction
+	var txn *transactions.BaseTransaction
 	var height uint32
 	err := idx.db.View(func(dbTx database.Tx) error {
 		var err error

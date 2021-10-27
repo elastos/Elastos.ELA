@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/transactions"
 	"sort"
 
 	"github.com/elastos/Elastos.ELA/blockchain"
@@ -132,7 +133,7 @@ func (bm *BlockPool) CheckConfirmedBlockOnFork(height uint32, block *types.Block
 			return err
 		}
 
-		tx := &types.Transaction{
+		tx := &transactions.BaseTransaction{
 			Version:        common2.TxVersion09,
 			TxType:         common2.IllegalBlockEvidence,
 			PayloadVersion: payload.IllegalBlockVersion,

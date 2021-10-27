@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/elastos/Elastos.ELA/core/types/transactions"
 	"github.com/elastos/Elastos.ELA/elanet/filter/returnsidechaindepositcoinfilter"
 	"github.com/elastos/Elastos.ELA/elanet/filter/upgradefilter"
 	"sync/atomic"
@@ -243,7 +244,7 @@ func (sp *serverPeer) OnTx(_ *peer.Peer, msgTx *msg.Tx) {
 	// Add the transaction to the known inventory for the peer.
 	// Convert the raw MsgTx to a btcutil.Tx which provides some convenience
 	// methods and things such as hash caching.
-	tx := msgTx.Serializable.(*types.Transaction)
+	tx := msgTx.Serializable.(*transactions.BaseTransaction)
 	txId := tx.Hash()
 	iv := msg.NewInvVect(msg.InvTypeTx, &txId)
 	sp.AddKnownInventory(iv)
@@ -782,10 +783,10 @@ func (s *server) handleRelayInvMsg(peers map[svr.IPeer]*serverPeer, rmsg relayMs
 				continue
 			}
 
-			tx, ok := rmsg.data.(*types.Transaction)
+			tx, ok := rmsg.data.(*transactions.BaseTransaction)
 			if !ok {
 				log.Warnf("Underlying data for tx inv "+
-					"relay is not a *core.Transaction: %T",
+					"relay is not a *core.BaseTransaction: %T",
 					rmsg.data)
 				return
 			}
@@ -1061,7 +1062,7 @@ func makeEmptyMessage(cmd string) (p2p.Message, error) {
 		message = &msg.MemPool{}
 
 	case p2p.CmdTx:
-		message = msg.NewTx(&types.Transaction{})
+		message = msg.NewTx(&transactions.BaseTransaction{})
 
 	case p2p.CmdBlock:
 		message = msg.NewBlock(&types.DposBlock{})

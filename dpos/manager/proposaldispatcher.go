@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"errors"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/transactions"
 
 	"github.com/elastos/Elastos.ELA/blockchain"
 	"github.com/elastos/Elastos.ELA/common"
@@ -55,8 +56,8 @@ type ProposalDispatcher struct {
 	firstBadNetworkRecover  bool
 
 	inactiveCountDown           ViewChangesCountDown
-	currentInactiveArbitratorTx *types.Transaction
-	RevertToDPOSTx              *types.Transaction
+	currentInactiveArbitratorTx *transactions.BaseTransaction
+	RevertToDPOSTx              *transactions.BaseTransaction
 
 	signedTxs map[common.Uint256]interface{}
 
@@ -491,7 +492,7 @@ func (p *ProposalDispatcher) OnIllegalBlocksTxReceived(i *payload.DPOSIllegalBlo
 }
 
 func (p *ProposalDispatcher) OnRevertToDPOSTxReceived(id peer.PID,
-	tx *types.Transaction) {
+	tx *transactions.BaseTransaction) {
 	if _, ok := p.signedTxs[tx.Hash()]; ok {
 		return
 	}
@@ -516,7 +517,7 @@ func (p *ProposalDispatcher) OnRevertToDPOSTxReceived(id peer.PID,
 }
 
 func (p *ProposalDispatcher) OnInactiveArbitratorsReceived(id peer.PID,
-	tx *types.Transaction) {
+	tx *transactions.BaseTransaction) {
 	if _, ok := p.signedTxs[tx.Hash()]; ok {
 		log.Warn("[OnInactiveArbitratorsReceived] already processed")
 		return
@@ -833,7 +834,7 @@ func (p *ProposalDispatcher) setProcessingProposal(d *payload.DPOSProposal) (fin
 }
 
 func (p *ProposalDispatcher) CreateRevertToDPOS(RevertToPOWBlockHeight uint32) (
-	*types.Transaction, error) {
+	*transactions.BaseTransaction, error) {
 
 	var err error
 	revertToDPOSPayload := &payload.RevertToDPOS{
@@ -846,7 +847,7 @@ func (p *ProposalDispatcher) CreateRevertToDPOS(RevertToPOWBlockHeight uint32) (
 	}
 
 	programHash := con.ToProgramHash()
-	tx := &types.Transaction{
+	tx := &transactions.BaseTransaction{
 		Version:        common2.TxVersion09,
 		TxType:         common2.RevertToDPOS,
 		PayloadVersion: payload.RevertToDPOSVersion,
@@ -878,7 +879,7 @@ func (p *ProposalDispatcher) CreateRevertToDPOS(RevertToPOWBlockHeight uint32) (
 }
 
 func (p *ProposalDispatcher) CreateInactiveArbitrators() (
-	*types.Transaction, error) {
+	*transactions.BaseTransaction, error) {
 	var err error
 
 	inactivePayload := &payload.InactiveArbitrators{
@@ -905,7 +906,7 @@ func (p *ProposalDispatcher) CreateInactiveArbitrators() (
 	}
 
 	programHash := con.ToProgramHash()
-	tx := &types.Transaction{
+	tx := &transactions.BaseTransaction{
 		Version:        common2.TxVersion09,
 		TxType:         common2.InactiveArbitrators,
 		PayloadVersion: payload.InactiveArbitratorsVersion,

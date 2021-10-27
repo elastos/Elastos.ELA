@@ -61,7 +61,7 @@ func outputTx(L *lua.LState) int {
 		os.Exit(1)
 	}
 	haveSign, needSign, _ := crypto.GetSignStatus(txn.Programs[0].Code, txn.Programs[0].Parameter)
-	fmt.Println("[", haveSign, "/", needSign, "] Transaction was successfully signed")
+	fmt.Println("[", haveSign, "/", needSign, "] BaseTransaction was successfully signed")
 	wallet.OutputTx(haveSign, needSign, txn)
 
 	return 0

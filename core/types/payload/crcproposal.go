@@ -139,8 +139,6 @@ type Budget struct {
 }
 
 type CRCProposal struct {
-	DefaultChecker
-
 	// The type of current CR Council proposal.
 	ProposalType CRCProposalType
 
@@ -1646,7 +1644,7 @@ func (p *CRCProposalInfo) Deserialize(r io.Reader, version byte) error {
 		return errors.New("failed to deserialize Recipient")
 	}
 
-	if p.NewOwnerPublicKey, err = common.ReadVarBytes(r, crypto.NegativeBigLength, "owner"); err != nil{
+	if p.NewOwnerPublicKey, err = common.ReadVarBytes(r, crypto.NegativeBigLength, "owner"); err != nil {
 		return errors.New("failed to deserialize NewOwnerPublicKey")
 	}
 
@@ -1672,18 +1670,3 @@ func (p *CRCProposalInfo) Deserialize(r io.Reader, version byte) error {
 	}
 	return nil
 }
-
-//
-//// todo add description
-//func (a *CRCProposal) SpecialCheck(txn *types.Transaction,
-//	p *CheckParameters) (elaerr.ELAError, bool) {
-//	// todo special check
-//	return nil, false
-//}
-//
-//// todo add description
-//func (a *CRCProposal) SecondCheck(txn *types.Transaction,
-//	p *CheckParameters) (elaerr.ELAError, bool) {
-//	// todo special check
-//	return nil, false
-//}

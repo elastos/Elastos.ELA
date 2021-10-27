@@ -11,8 +11,6 @@ import (
 const NextTurnDPOSInfoVersion byte = 0x00
 
 type NextTurnDPOSInfo struct {
-	DefaultChecker
-
 	WorkingHeight  uint32
 	CRPublicKeys   [][]byte
 	DPOSPublicKeys [][]byte
@@ -121,17 +119,3 @@ func (n *NextTurnDPOSInfo) Hash() common.Uint256 {
 	}
 	return *n.hash
 }
-//
-//// todo add description
-//func (a *NextTurnDPOSInfo) SpecialCheck(txn *types.Transaction,
-//	p *CheckParameters) (elaerr.ELAError, bool) {
-//	// todo special check
-//	return nil, false
-//}
-//
-//// todo add description
-//func (a *NextTurnDPOSInfo) SecondCheck(txn *types.Transaction,
-//	p *CheckParameters) (elaerr.ELAError, bool) {
-//	// todo special check
-//	return nil, false
-//}

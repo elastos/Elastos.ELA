@@ -10,8 +10,6 @@ import (
 const CustomIDResultVersion byte = 0x00
 
 type RecordProposalResult struct {
-	DefaultChecker
-
 	ProposalResults []ProposalResult
 }
 
@@ -101,17 +99,3 @@ func (p *RecordProposalResult) DeserializeUnsigned(r io.Reader, version byte) er
 	}
 	return nil
 }
-//
-//// todo add description
-//func (a *RecordProposalResult) SpecialCheck(txn *types.Transaction,
-//	p *CheckParameters) (elaerr.ELAError, bool) {
-//	// todo special check
-//	return nil, false
-//}
-//
-//// todo add description
-//func (a *RecordProposalResult) SecondCheck(txn *types.Transaction,
-//	p *CheckParameters) (elaerr.ELAError, bool) {
-//	// todo special check
-//	return nil, false
-//}

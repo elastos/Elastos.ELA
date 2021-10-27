@@ -6,6 +6,7 @@
 package indexers
 
 import (
+	"github.com/elastos/Elastos.ELA/core/types/transactions"
 	"testing"
 
 	"github.com/elastos/Elastos.ELA/common"
@@ -30,7 +31,7 @@ var (
 			DepositTransactionHash: returnDepositHash,
 		},
 	}
-	tx5 = &types.Transaction{
+	tx5 = &transactions.BaseTransaction{
 		TxType:         common2.ReturnSideChainDepositCoin,
 		PayloadVersion: 0,
 		Inputs:         []*common2.Input{},
@@ -39,7 +40,7 @@ var (
 
 	testReturnDepositIndexBlock = &types.Block{
 		Header: types.Header{},
-		Transactions: []*types.Transaction{
+		Transactions: []*transactions.BaseTransaction{
 			tx5,
 		},
 	}

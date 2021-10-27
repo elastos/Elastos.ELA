@@ -7,6 +7,7 @@ package state
 
 import (
 	"bytes"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/core/types"
@@ -156,7 +157,7 @@ func (a *ArbitratorsMock) CheckRevertToDPOSTX(block *types.Block) error {
 	panic("implement me")
 }
 
-func (a *ArbitratorsMock) ProcessSpecialTxPayload(p types.Payload, height uint32) error {
+func (a *ArbitratorsMock) ProcessSpecialTxPayload(p interfaces.Payload, height uint32) error {
 	panic("implement me")
 }
 

@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/transactions"
 	"sync"
 
 	"github.com/elastos/Elastos.ELA/blockchain"
@@ -38,7 +39,7 @@ type TxPool struct {
 
 //append transaction to txnpool when check ok, and broadcast the transaction.
 //1.check  2.check with ledger(db) 3.check with pool
-func (mp *TxPool) AppendToTxPool(tx *Transaction) elaerr.ELAError {
+func (mp *TxPool) AppendToTxPool(tx *transactions.BaseTransaction) elaerr.ELAError {
 	mp.Lock()
 	defer mp.Unlock()
 	err := mp.appendToTxPool(tx)
@@ -53,7 +54,7 @@ func (mp *TxPool) AppendToTxPool(tx *Transaction) elaerr.ELAError {
 
 //append transaction to txnpool when check ok.
 //1.check  2.check with ledger(db) 3.check with pool
-func (mp *TxPool) AppendToTxPoolWithoutEvent(tx *Transaction) elaerr.ELAError {
+func (mp *TxPool) AppendToTxPoolWithoutEvent(tx *transactions.BaseTransaction) elaerr.ELAError {
 	mp.Lock()
 	defer mp.Unlock()
 	err := mp.appendToTxPool(tx)
@@ -71,7 +72,7 @@ func (mp *TxPool) removeCRAppropriationConflictTransactions() {
 	}
 }
 
-func (mp *TxPool) appendToTxPool(tx *Transaction) elaerr.ELAError {
+func (mp *TxPool) appendToTxPool(tx *transactions.BaseTransaction) elaerr.ELAError {
 	txHash := tx.Hash()
 
 	// If the transaction is CR appropriation transaction, need to remove
@@ -164,9 +165,9 @@ func (mp *TxPool) HaveTransaction(txId Uint256) bool {
 // GetTxsInPool returns a slice of all transactions in the mp.
 //
 // This function is safe for concurrent access.
-func (mp *TxPool) GetTxsInPool() []*Transaction {
+func (mp *TxPool) GetTxsInPool() []*transactions.BaseTransaction {
 	mp.RLock()
-	txs := make([]*Transaction, 0, len(mp.txnList))
+	txs := make([]*transactions.BaseTransaction, 0, len(mp.txnList))
 	for _, tx := range mp.txnList {
 		txs = append(txs, tx)
 	}
@@ -193,7 +194,7 @@ func (mp *TxPool) CheckAndCleanAllTransactions() {
 
 func (mp *TxPool) BroadcastSmallCrossChainTransactions(bestHeight uint32) {
 	mp.Lock()
-	txs := make([]*Transaction, 0)
+	txs := make([]*transactions.BaseTransaction, 0)
 	for txHash, height := range mp.crossChainHeightList {
 		if bestHeight >= height+broadcastCrossChainTransactionInterval {
 			mp.crossChainHeightList[txHash] = bestHeight
@@ -212,7 +213,7 @@ func (mp *TxPool) BroadcastSmallCrossChainTransactions(bestHeight uint32) {
 	mp.Unlock()
 }
 
-func (mp *TxPool) cleanTransactions(blockTxs []*Transaction) {
+func (mp *TxPool) cleanTransactions(blockTxs []*transactions.BaseTransaction) {
 	txsInPool := len(mp.txnList)
 	deleteCount := 0
 	for _, blockTx := range blockTxs {
@@ -237,7 +238,7 @@ func (mp *TxPool) cleanTransactions(blockTxs []*Transaction) {
 
 		inputUtxos, err := blockchain.DefaultLedger.Blockchain.UTXOCache.GetTxReference(blockTx)
 		if err != nil {
-			log.Infof("Transaction=%s not exist when deleting, %s.",
+			log.Infof("BaseTransaction=%s not exist when deleting, %s.",
 				blockTx.Hash(), err)
 			continue
 		}
@@ -251,7 +252,7 @@ func (mp *TxPool) cleanTransactions(blockTxs []*Transaction) {
 					// it is evidently that two transactions with the same transaction id has exactly the same utxos with each
 					// other. This is a special case of what we've said above.
 					log.Debugf("duplicated transactions detected when adding a new block. "+
-						" Delete transaction in the transaction pool. Transaction id: %s", tx.Hash())
+						" Delete transaction in the transaction pool. BaseTransaction id: %s", tx.Hash())
 				} else {
 					log.Debugf("double spent UTXO inputs detected in transaction pool when adding a new block. "+
 						"Delete transaction in the transaction pool. "+
@@ -279,7 +280,7 @@ func (mp *TxPool) cleanTransactions(blockTxs []*Transaction) {
 		len(blockTxs), txsInPool, deleteCount, len(mp.txnList)))
 }
 
-func (mp *TxPool) cleanCanceledProducerAndCR(txs []*Transaction) error {
+func (mp *TxPool) cleanCanceledProducerAndCR(txs []*transactions.BaseTransaction) error {
 	for _, txn := range txs {
 		if txn.TxType == common.CancelProducer {
 			cpPayload, ok := txn.Payload.(*payload.ProcessProducer)
@@ -413,7 +414,7 @@ func (mp *TxPool) cleanVoteAndUpdateCR(cid Uint168) error {
 }
 
 //get the transaction by hash
-func (mp *TxPool) GetTransaction(hash Uint256) *Transaction {
+func (mp *TxPool) GetTransaction(hash Uint256) *transactions.BaseTransaction {
 	mp.RLock()
 	defer mp.RUnlock()
 	return mp.txnList[hash]
@@ -421,7 +422,7 @@ func (mp *TxPool) GetTransaction(hash Uint256) *Transaction {
 
 //verify transaction with txnpool
 func (mp *TxPool) verifyTransactionWithTxnPool(
-	txn *Transaction) elaerr.ELAError {
+	txn *transactions.BaseTransaction) elaerr.ELAError {
 	if txn.IsSideChainPowTx() {
 		// check and replace the duplicate sidechainpow tx
 		mp.replaceDuplicateSideChainPowTx(txn)
@@ -431,7 +432,7 @@ func (mp *TxPool) verifyTransactionWithTxnPool(
 }
 
 //remove from associated map
-func (mp *TxPool) removeTransaction(tx *Transaction) {
+func (mp *TxPool) removeTransaction(tx *transactions.BaseTransaction) {
 	//1.remove from txnList
 	if _, ok := mp.txnList[tx.Hash()]; ok {
 		mp.doRemoveTransaction(tx)
@@ -451,8 +452,8 @@ func (mp *TxPool) IsDuplicateSidechainReturnDepositTx(sidechainReturnDepositTxHa
 }
 
 // check and replace the duplicate sidechainpow tx
-func (mp *TxPool) replaceDuplicateSideChainPowTx(txn *Transaction) {
-	var replaceList []*Transaction
+func (mp *TxPool) replaceDuplicateSideChainPowTx(txn *transactions.BaseTransaction) {
+	var replaceList []*transactions.BaseTransaction
 
 	for _, v := range mp.txnList {
 		if v.TxType == common.SideChainPow {
@@ -494,17 +495,17 @@ func (mp *TxPool) GetTransactionCount() int {
 	return len(mp.txnList)
 }
 
-func (mp *TxPool) getInputUTXOList(input *common.Input) *Transaction {
+func (mp *TxPool) getInputUTXOList(input *common.Input) *transactions.BaseTransaction {
 	return mp.GetTx(input.ReferKey(), slotTxInputsReferKeys)
 }
 
-func (mp *TxPool) MaybeAcceptTransaction(tx *Transaction) error {
+func (mp *TxPool) MaybeAcceptTransaction(tx *transactions.BaseTransaction) error {
 	mp.Lock()
 	defer mp.Unlock()
 	return mp.appendToTxPool(tx)
 }
 
-func (mp *TxPool) RemoveTransaction(txn *Transaction) {
+func (mp *TxPool) RemoveTransaction(txn *transactions.BaseTransaction) {
 	mp.Lock()
 	txHash := txn.Hash()
 	for i := range txn.Outputs {
@@ -523,7 +524,7 @@ func (mp *TxPool) RemoveTransaction(txn *Transaction) {
 	mp.Unlock()
 }
 
-func (mp *TxPool) dealAddProposalTx(txn *Transaction) {
+func (mp *TxPool) dealAddProposalTx(txn *transactions.BaseTransaction) {
 	proposal, ok := txn.Payload.(*payload.CRCProposal)
 	if !ok {
 		return
@@ -533,7 +534,7 @@ func (mp *TxPool) dealAddProposalTx(txn *Transaction) {
 	}
 }
 
-func (mp *TxPool) dealDelProposalTx(txn *Transaction) {
+func (mp *TxPool) dealDelProposalTx(txn *transactions.BaseTransaction) {
 	proposal, ok := txn.Payload.(*payload.CRCProposal)
 	if !ok {
 		return
@@ -543,7 +544,7 @@ func (mp *TxPool) dealDelProposalTx(txn *Transaction) {
 	}
 }
 
-func (mp *TxPool) doAddTransaction(tx *Transaction) elaerr.ELAError {
+func (mp *TxPool) doAddTransaction(tx *transactions.BaseTransaction) elaerr.ELAError {
 	if err := mp.txFees.AddTx(tx); err != nil {
 		return err
 	}
@@ -554,7 +555,7 @@ func (mp *TxPool) doAddTransaction(tx *Transaction) elaerr.ELAError {
 	return nil
 }
 
-func (mp *TxPool) doRemoveTransaction(tx *Transaction) {
+func (mp *TxPool) doRemoveTransaction(tx *transactions.BaseTransaction) {
 	hash := tx.Hash()
 	txSize := tx.GetSize()
 	feeRate := float64(tx.Fee) / float64(txSize)
@@ -595,7 +596,7 @@ func NewTxPool(params *config.Params) *TxPool {
 		crossChainHeightList: make(map[Uint256]uint32),
 	}
 	rtn.txPoolCheckpoint = newTxPoolCheckpoint(
-		rtn, func(m map[Uint256]*Transaction) {
+		rtn, func(m map[Uint256]*transactions.BaseTransaction) {
 			for _, v := range m {
 				if err := rtn.conflictManager.AppendTx(v); err != nil {
 					return

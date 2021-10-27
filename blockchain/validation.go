@@ -9,12 +9,12 @@ import (
 	"crypto/sha256"
 	"errors"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/transactions"
 	"sort"
 
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/core/contract"
 	. "github.com/elastos/Elastos.ELA/core/contract/program"
-	. "github.com/elastos/Elastos.ELA/core/types"
 	"github.com/elastos/Elastos.ELA/crypto"
 )
 
@@ -69,9 +69,9 @@ func RunPrograms(data []byte, programHashes []common.Uint168, programs []*Progra
 	return nil
 }
 
-func GetTxProgramHashes(tx *Transaction, references map[*common2.Input]common2.Output) ([]common.Uint168, error) {
+func GetTxProgramHashes(tx *transactions.BaseTransaction, references map[*common2.Input]common2.Output) ([]common.Uint168, error) {
 	if tx == nil {
-		return nil, errors.New("[Transaction],GetProgramHashes transaction is nil")
+		return nil, errors.New("[BaseTransaction],GetProgramHashes transaction is nil")
 	}
 	hashes := make([]common.Uint168, 0)
 	uniqueHashes := make([]common.Uint168, 0)
@@ -84,7 +84,7 @@ func GetTxProgramHashes(tx *Transaction, references map[*common2.Input]common2.O
 		if attribute.Usage == common2.Script {
 			dataHash, err := common.Uint168FromBytes(attribute.Data)
 			if err != nil {
-				return nil, errors.New("[Transaction], GetProgramHashes err")
+				return nil, errors.New("[BaseTransaction], GetProgramHashes err")
 			}
 			hashes = append(hashes, *dataHash)
 		}

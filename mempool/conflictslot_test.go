@@ -7,28 +7,27 @@ package mempool
 
 import (
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/transactions"
 	"testing"
 
 	"github.com/elastos/Elastos.ELA/common"
-	"github.com/elastos/Elastos.ELA/core/types"
-
 	"github.com/stretchr/testify/assert"
 )
 
 var (
-	simpleGetString = func(tx *types.Transaction) (interface{}, error) {
+	simpleGetString = func(tx *transactions.BaseTransaction) (interface{}, error) {
 		return "simple string", nil
 	}
-	simpleGetHash = func(tx *types.Transaction) (interface{}, error) {
+	simpleGetHash = func(tx *transactions.BaseTransaction) (interface{}, error) {
 		return common.Uint256{}, nil
 	}
-	simpleGetProgramHash = func(tx *types.Transaction) (interface{}, error) {
+	simpleGetProgramHash = func(tx *transactions.BaseTransaction) (interface{}, error) {
 		return common.Uint168{}, nil
 	}
 )
 
 func TestConflictSlot_AppendTx_keyType_string(t *testing.T) {
-	tx := &types.Transaction{
+	tx := &transactions.BaseTransaction{
 		TxType: common2.TransferAsset,
 	}
 
@@ -51,7 +50,7 @@ func TestConflictSlot_AppendTx_keyType_string(t *testing.T) {
 }
 
 func TestConflictSlot_AppendTx_keyType_hash(t *testing.T) {
-	tx := &types.Transaction{
+	tx := &transactions.BaseTransaction{
 		TxType: common2.TransferAsset,
 	}
 
@@ -74,7 +73,7 @@ func TestConflictSlot_AppendTx_keyType_hash(t *testing.T) {
 }
 
 func TestConflictSlot_AppendTx_keyType_programHash(t *testing.T) {
-	tx := &types.Transaction{
+	tx := &transactions.BaseTransaction{
 		TxType: common2.TransferAsset,
 	}
 
@@ -103,13 +102,13 @@ func TestConflictSlot_VerifyTx(t *testing.T) {
 		keyTypeFuncPair{common2.CRCProposal, simpleGetString})
 
 	// defined a tx that is not supported  by the slot
-	tx1 := &types.Transaction{
+	tx1 := &transactions.BaseTransaction{
 		TxType: common2.CancelProducer,
 	}
-	tx2 := &types.Transaction{
+	tx2 := &transactions.BaseTransaction{
 		TxType: common2.TransferAsset,
 	}
-	tx3 := &types.Transaction{
+	tx3 := &transactions.BaseTransaction{
 		TxType: common2.CRCProposal,
 	}
 
@@ -127,7 +126,7 @@ func TestConflictSlot_VerifyTx(t *testing.T) {
 }
 
 func TestConflictSlot_RemoveTx(t *testing.T) {
-	tx := &types.Transaction{
+	tx := &transactions.BaseTransaction{
 		TxType: common2.TransferAsset,
 	}
 	slot := newConflictSlot(str,

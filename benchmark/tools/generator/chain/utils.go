@@ -6,6 +6,7 @@
 package chain
 
 import (
+	"github.com/elastos/Elastos.ELA/core/types/transactions"
 	"sort"
 	"time"
 
@@ -95,7 +96,7 @@ func newGenesisBlock(ac *account.Account) *types.Block {
 		[]byte{77, 101, 130, 33, 7, 252, 253, 82})
 	genesisTime, _ := time.Parse(time.RFC3339, "2017-12-22T10:00:00Z")
 
-	coinBase := types.Transaction{
+	coinBase := transactions.BaseTransaction{
 		Version:        0,
 		TxType:         common2.CoinBase,
 		PayloadVersion: payload.CoinBaseVersion,
@@ -134,7 +135,7 @@ func newGenesisBlock(ac *account.Account) *types.Block {
 			Nonce:      2083236893,
 			Height:     0,
 		},
-		Transactions: []*types.Transaction{
+		Transactions: []*transactions.BaseTransaction{
 			&coinBase,
 			{
 				TxType:         common2.RegisterAsset,
@@ -157,7 +158,7 @@ func newGenesisBlock(ac *account.Account) *types.Block {
 }
 
 func quickGenerateBlock(pow *pow.Service, prevHash *common.Uint256,
-	txs []*types.Transaction, minerAddr string, params *config.Params,
+	txs []*transactions.BaseTransaction, minerAddr string, params *config.Params,
 	height uint32) (*types.Block, error) {
 	coinBaseTx, err := pow.CreateCoinbaseTx(minerAddr, height)
 	if err != nil {
@@ -176,14 +177,14 @@ func quickGenerateBlock(pow *pow.Service, prevHash *common.Uint256,
 
 	msgBlock := &types.Block{
 		Header:       header,
-		Transactions: []*types.Transaction{},
+		Transactions: []*transactions.BaseTransaction{},
 	}
 
 	msgBlock.Transactions = append(msgBlock.Transactions, coinBaseTx)
 	totalTxsSize := coinBaseTx.GetSize()
 	txCount := 1
 	totalTxFee := common.Fixed64(0)
-	isHighPriority := func(tx *types.Transaction) bool {
+	isHighPriority := func(tx *transactions.BaseTransaction) bool {
 		if tx.IsIllegalTypeTx() || tx.IsInactiveArbitrators() ||
 			tx.IsSideChainPowTx() || tx.IsUpdateVersion() ||
 			tx.IsActivateProducerTx() {

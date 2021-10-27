@@ -15,8 +15,6 @@ import (
 const RecordVersion byte = 0x00
 
 type Record struct {
-	DefaultChecker
-
 	Type    string
 	Content []byte
 }
@@ -53,17 +51,3 @@ func (a *Record) Deserialize(r io.Reader, version byte) error {
 	}
 	return nil
 }
-//
-//// todo add description
-//func (a *Record) SpecialCheck(txn *types.Transaction,
-//	p *CheckParameters) (elaerr.ELAError, bool) {
-//	// todo special check
-//	return nil, false
-//}
-//
-//// todo add description
-//func (a *Record) SecondCheck(txn *types.Transaction,
-//	p *CheckParameters) (elaerr.ELAError, bool) {
-//	// todo special check
-//	return nil, false
-//}

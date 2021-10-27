@@ -7,6 +7,7 @@ package manager
 
 import (
 	"bytes"
+	"github.com/elastos/Elastos.ELA/core/types/transactions"
 	"sort"
 	"time"
 
@@ -84,8 +85,8 @@ type NetworkEventListener interface {
 	OnConfirmReceived(p *payload.Confirm, height uint32)
 	OnIllegalBlocksTxReceived(i *payload.DPOSIllegalBlocks)
 	OnSidechainIllegalEvidenceReceived(s *payload.SidechainIllegalData)
-	OnInactiveArbitratorsReceived(id dpeer.PID, tx *types.Transaction)
-	OnRevertToDPOSTxReceived(id dpeer.PID, tx *types.Transaction)
+	OnInactiveArbitratorsReceived(id dpeer.PID, tx *transactions.BaseTransaction)
+	OnRevertToDPOSTxReceived(id dpeer.PID, tx *transactions.BaseTransaction)
 	OnResponseInactiveArbitratorsReceived(txHash *common.Uint256,
 		Signer []byte, Sign []byte)
 	OnResponseRevertToDPOSTxReceived(txHash *common.Uint256,
@@ -171,7 +172,7 @@ func (d *DPOSManager) Initialize(handler *DPOSHandlerSwitch,
 	d.broadcast = broadcast
 }
 
-func (d *DPOSManager) AppendToTxnPool(txn *types.Transaction) error {
+func (d *DPOSManager) AppendToTxnPool(txn *transactions.BaseTransaction) error {
 	return d.txPool.AppendToTxPool(txn)
 }
 
@@ -606,7 +607,7 @@ func (d *DPOSManager) clearInactiveData(p *payload.InactiveArbitrators) {
 }
 
 func (d *DPOSManager) OnRevertToDPOSTxReceived(id dpeer.PID,
-	tx *types.Transaction) {
+	tx *transactions.BaseTransaction) {
 
 	if !d.isCurrentArbiter() {
 		return
@@ -619,7 +620,7 @@ func (d *DPOSManager) OnRevertToDPOSTxReceived(id dpeer.PID,
 }
 
 func (d *DPOSManager) OnInactiveArbitratorsReceived(id dpeer.PID,
-	tx *types.Transaction) {
+	tx *transactions.BaseTransaction) {
 	if !d.isCRCArbiter() {
 		return
 	}

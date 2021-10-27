@@ -8,6 +8,7 @@ package dpos
 import (
 	"bytes"
 	"fmt"
+	"github.com/elastos/Elastos.ELA/core/types/transactions"
 	"time"
 
 	"github.com/elastos/Elastos.ELA/blockchain"
@@ -311,7 +312,7 @@ func NewArbitrator(account account.Account, cfg Config) (*Arbitrator, error) {
 			a.OnPeersChanged(e.Data.([]peer.PID))
 
 		case events.ETTransactionAccepted:
-			tx := e.Data.(*types.Transaction)
+			tx := e.Data.(*transactions.BaseTransaction)
 			if tx.IsIllegalBlockTx() {
 				a.OnIllegalBlockTxReceived(tx.Payload.(*payload.DPOSIllegalBlocks))
 			} else if tx.IsInactiveArbitrators() {

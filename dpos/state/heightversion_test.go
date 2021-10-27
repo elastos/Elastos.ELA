@@ -7,6 +7,7 @@ package state
 
 import (
 	"bytes"
+	"github.com/elastos/Elastos.ELA/core/types/transactions"
 	"sort"
 	"testing"
 
@@ -85,7 +86,7 @@ func TestArbitrators_GetNormalArbitratorsDesc(t *testing.T) {
 		Header: types.Header{
 			Height: currentHeight,
 		},
-		Transactions: []*types.Transaction{
+		Transactions: []*transactions.BaseTransaction{
 			{
 				TxType: common2.RegisterProducer,
 				Payload: &payload.ProducerInfo{
@@ -122,7 +123,7 @@ func TestArbitrators_GetNormalArbitratorsDesc(t *testing.T) {
 		currentHeight++
 		blockEx := &types.Block{
 			Header:       types.Header{Height: currentHeight},
-			Transactions: []*types.Transaction{},
+			Transactions: []*transactions.BaseTransaction{},
 		}
 		arbiters.ProcessBlock(blockEx, nil)
 	}
@@ -138,7 +139,7 @@ func TestArbitrators_GetNormalArbitratorsDesc(t *testing.T) {
 		Header: types.Header{
 			Height: currentHeight,
 		},
-		Transactions: []*types.Transaction{
+		Transactions: []*transactions.BaseTransaction{
 			{
 				TxType: common2.RegisterProducer,
 				Payload: &payload.ProducerInfo{
@@ -154,7 +155,7 @@ func TestArbitrators_GetNormalArbitratorsDesc(t *testing.T) {
 		currentHeight++
 		blockEx := &types.Block{
 			Header:       types.Header{Height: currentHeight},
-			Transactions: []*types.Transaction{},
+			Transactions: []*transactions.BaseTransaction{},
 		}
 		arbiters.ProcessBlock(blockEx, nil)
 	}

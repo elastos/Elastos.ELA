@@ -22,8 +22,6 @@ const (
 )
 
 type ProcessProducer struct {
-	DefaultChecker
-
 	OwnerPublicKey []byte
 	Signature      []byte
 }
@@ -82,17 +80,3 @@ func (a *ProcessProducer) DeserializeUnsigned(r io.Reader, version byte) error {
 
 	return err
 }
-//
-//// todo add description
-//func (a *ProcessProducer) SpecialCheck(txn *types.Transaction,
-//	p *CheckParameters) (elaerr.ELAError, bool) {
-//	// todo special check
-//	return nil, false
-//}
-//
-//// todo add description
-//func (a *ProcessProducer) SecondCheck(txn *types.Transaction,
-//	p *CheckParameters) (elaerr.ELAError, bool) {
-//	// todo special check
-//	return nil, false
-//}

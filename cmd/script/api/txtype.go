@@ -11,13 +11,14 @@ import (
 	"encoding/json"
 	"fmt"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
+	"github.com/elastos/Elastos.ELA/core/types/transactions"
 	"os"
 
 	cmdcom "github.com/elastos/Elastos.ELA/cmd/common"
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/core/contract"
 	pg "github.com/elastos/Elastos.ELA/core/contract/program"
-	"github.com/elastos/Elastos.ELA/core/types"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/crypto"
 	"github.com/elastos/Elastos.ELA/servers"
@@ -54,7 +55,7 @@ func newTransaction(L *lua.LState) int {
 	ud := L.CheckUserData(4)
 	lockTime := uint32(L.ToInt(5))
 
-	var pload types.Payload
+	var pload interfaces.Payload
 	switch ud.Value.(type) {
 	case *payload.CoinBase:
 		pload, _ = ud.Value.(*payload.CoinBase)
@@ -107,7 +108,7 @@ func newTransaction(L *lua.LState) int {
 		os.Exit(1)
 	}
 
-	txn := &types.Transaction{
+	txn := &transactions.BaseTransaction{
 		Version:        common2.TransactionVersion(version),
 		TxType:         txType,
 		PayloadVersion: payloadVersion,
@@ -138,7 +139,7 @@ func fromFile(L *lua.LState) int {
 		os.Exit(1)
 	}
 
-	var txn types.Transaction
+	var txn transactions.BaseTransaction
 	err = txn.Deserialize(bytes.NewReader(txData))
 	if err != nil {
 		fmt.Println("deserialize transaction failed")
@@ -153,13 +154,13 @@ func fromFile(L *lua.LState) int {
 	return 1
 }
 
-// Checks whether the first lua argument is a *LUserData with *Transaction and returns this *Transaction.
-func checkTransaction(L *lua.LState, idx int) *types.Transaction {
+// Checks whether the first lua argument is a *LUserData with *BaseTransaction and returns this *BaseTransaction.
+func checkTransaction(L *lua.LState, idx int) *transactions.BaseTransaction {
 	ud := L.CheckUserData(idx)
-	if v, ok := ud.Value.(*types.Transaction); ok {
+	if v, ok := ud.Value.(*transactions.BaseTransaction); ok {
 		return v
 	}
-	L.ArgError(1, "Transaction expected")
+	L.ArgError(1, "BaseTransaction expected")
 	return nil
 }
 

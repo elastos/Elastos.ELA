@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"errors"
 	"github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/transactions"
 	"math"
 	"math/big"
 	"strconv"
@@ -237,7 +238,7 @@ func checkDuplicateTx(block *Block) error {
 	return nil
 }
 
-func RecordCRCProposalAmount(usedAmount *Fixed64, txn *Transaction) {
+func RecordCRCProposalAmount(usedAmount *Fixed64, txn *transactions.BaseTransaction) {
 	proposal, ok := txn.Payload.(*payload.CRCProposal)
 	if !ok {
 		return
@@ -360,7 +361,7 @@ func CheckProofOfWork(header *Header, powLimit *big.Int) error {
 	return nil
 }
 
-func IsFinalizedTransaction(msgTx *Transaction, blockHeight uint32) bool {
+func IsFinalizedTransaction(msgTx *transactions.BaseTransaction, blockHeight uint32) bool {
 	// Lock time of zero means the transaction is finalized.
 	lockTime := msgTx.LockTime
 	if lockTime == 0 {
@@ -383,7 +384,7 @@ func IsFinalizedTransaction(msgTx *Transaction, blockHeight uint32) bool {
 	return true
 }
 
-func GetTxFee(tx *Transaction, assetId Uint256, references map[*common.Input]common.Output) Fixed64 {
+func GetTxFee(tx *transactions.BaseTransaction, assetId Uint256, references map[*common.Input]common.Output) Fixed64 {
 	feeMap, err := GetTxFeeMap(tx, references)
 	if err != nil {
 		return 0
@@ -392,7 +393,7 @@ func GetTxFee(tx *Transaction, assetId Uint256, references map[*common.Input]com
 	return feeMap[assetId]
 }
 
-func GetTxFeeMap(tx *Transaction, references map[*common.Input]common.Output) (map[Uint256]Fixed64, error) {
+func GetTxFeeMap(tx *transactions.BaseTransaction, references map[*common.Input]common.Output) (map[Uint256]Fixed64, error) {
 	feeMap := make(map[Uint256]Fixed64)
 	var inputs = make(map[Uint256]Fixed64)
 	var outputs = make(map[Uint256]Fixed64)
@@ -431,7 +432,7 @@ func GetTxFeeMap(tx *Transaction, references map[*common.Input]common.Output) (m
 	return feeMap, nil
 }
 
-func (b *BlockChain) checkCoinbaseTransactionContext(blockHeight uint32, coinbase *Transaction, totalTxFee Fixed64) error {
+func (b *BlockChain) checkCoinbaseTransactionContext(blockHeight uint32, coinbase *transactions.BaseTransaction, totalTxFee Fixed64) error {
 	// main version >= H2
 	if blockHeight >= b.chainParams.PublicDPOSHeight {
 		totalReward := totalTxFee + b.chainParams.GetBlockReward(blockHeight)
@@ -463,7 +464,7 @@ func (b *BlockChain) checkCoinbaseTransactionContext(blockHeight uint32, coinbas
 	return nil
 }
 
-func checkCoinbaseArbitratorsReward(coinbase *Transaction) error {
+func checkCoinbaseArbitratorsReward(coinbase *transactions.BaseTransaction) error {
 	rewards := DefaultLedger.Arbitrators.GetArbitersRoundReward()
 	if len(rewards) != len(coinbase.Outputs)-2 {
 		return errors.New("coinbase output count not match")

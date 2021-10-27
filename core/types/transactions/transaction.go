@@ -3,30 +3,33 @@
 // license that can be found in the LICENSE file.
 //
 
-package types
+package transactions
 
 import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/elastos/Elastos.ELA/core/contract"
-	common2 "github.com/elastos/Elastos.ELA/core/types/common"
-	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"io"
 
 	"github.com/elastos/Elastos.ELA/common"
+	"github.com/elastos/Elastos.ELA/core/contract"
 	pg "github.com/elastos/Elastos.ELA/core/contract/program"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
+	"github.com/elastos/Elastos.ELA/core/types/payload"
 )
 
 const (
 	InvalidTransactionSize = -1
 )
 
-type Transaction struct {
+type BaseTransaction struct {
+	DefaultChecker
+
 	Version        common2.TransactionVersion // New field added in TxVersion09
 	TxType         common2.TxType
 	PayloadVersion byte
-	Payload        Payload
+	Payload        interfaces.Payload
 	Attributes     []*common2.Attribute
 	Inputs         []*common2.Input
 	Outputs        []*common2.Output
@@ -38,8 +41,8 @@ type Transaction struct {
 	txHash *common.Uint256
 }
 
-func (tx *Transaction) String() string {
-	return fmt.Sprint("Transaction: {\n\t",
+func (tx *BaseTransaction) String() string {
+	return fmt.Sprint("BaseTransaction: {\n\t",
 		"Hash: ", tx.hash().String(), "\n\t",
 		"Version: ", tx.Version, "\n\t",
 		"TxType: ", tx.TxType.Name(), "\n\t",
@@ -53,25 +56,25 @@ func (tx *Transaction) String() string {
 		"}\n")
 }
 
-// Serialize the Transaction
-func (tx *Transaction) Serialize(w io.Writer) error {
+// Serialize the BaseTransaction
+func (tx *BaseTransaction) Serialize(w io.Writer) error {
 	if err := tx.SerializeUnsigned(w); err != nil {
-		return errors.New("Transaction txSerializeUnsigned Serialize failed, " + err.Error())
+		return errors.New("BaseTransaction txSerializeUnsigned Serialize failed, " + err.Error())
 	}
-	//Serialize  Transaction's programs
+	//Serialize  BaseTransaction's programs
 	if err := common.WriteVarUint(w, uint64(len(tx.Programs))); err != nil {
-		return errors.New("Transaction program count failed.")
+		return errors.New("BaseTransaction program count failed.")
 	}
 	for _, program := range tx.Programs {
 		if err := program.Serialize(w); err != nil {
-			return errors.New("Transaction Programs Serialize failed, " + err.Error())
+			return errors.New("BaseTransaction Programs Serialize failed, " + err.Error())
 		}
 	}
 	return nil
 }
 
-// Serialize the Transaction data without contracts
-func (tx *Transaction) SerializeUnsigned(w io.Writer) error {
+// Serialize the BaseTransaction data without contracts
+func (tx *BaseTransaction) SerializeUnsigned(w io.Writer) error {
 	// Version
 	if tx.Version >= common2.TxVersion09 {
 		if _, err := w.Write([]byte{byte(tx.Version)}); err != nil {
@@ -88,7 +91,7 @@ func (tx *Transaction) SerializeUnsigned(w io.Writer) error {
 	}
 	// Payload
 	if tx.Payload == nil {
-		return errors.New("Transaction Payload is nil.")
+		return errors.New("BaseTransaction Payload is nil.")
 	}
 	if err := tx.Payload.Serialize(w, tx.PayloadVersion); err != nil {
 		return err
@@ -96,7 +99,7 @@ func (tx *Transaction) SerializeUnsigned(w io.Writer) error {
 
 	//[]*txAttribute
 	if err := common.WriteVarUint(w, uint64(len(tx.Attributes))); err != nil {
-		return errors.New("Transaction item txAttribute length serialization failed.")
+		return errors.New("BaseTransaction item txAttribute length serialization failed.")
 	}
 	for _, attr := range tx.Attributes {
 		if err := attr.Serialize(w); err != nil {
@@ -106,7 +109,7 @@ func (tx *Transaction) SerializeUnsigned(w io.Writer) error {
 
 	//[]*Inputs
 	if err := common.WriteVarUint(w, uint64(len(tx.Inputs))); err != nil {
-		return errors.New("Transaction item Inputs length serialization failed.")
+		return errors.New("BaseTransaction item Inputs length serialization failed.")
 	}
 	for _, utxo := range tx.Inputs {
 		if err := utxo.Serialize(w); err != nil {
@@ -116,7 +119,7 @@ func (tx *Transaction) SerializeUnsigned(w io.Writer) error {
 
 	//[]*Outputs
 	if err := common.WriteVarUint(w, uint64(len(tx.Outputs))); err != nil {
-		return errors.New("Transaction item Outputs length serialization failed.")
+		return errors.New("BaseTransaction item Outputs length serialization failed.")
 	}
 	for _, output := range tx.Outputs {
 		if err := output.Serialize(w, tx.Version); err != nil {
@@ -127,8 +130,8 @@ func (tx *Transaction) SerializeUnsigned(w io.Writer) error {
 	return common.WriteUint32(w, tx.LockTime)
 }
 
-// Deserialize the Transaction
-func (tx *Transaction) Deserialize(r io.Reader) error {
+// Deserialize the BaseTransaction
+func (tx *BaseTransaction) Deserialize(r io.Reader) error {
 	// tx deserialize
 	if err := tx.DeserializeUnsigned(r); err != nil {
 		return errors.New("transaction Deserialize error: " + err.Error())
@@ -149,7 +152,7 @@ func (tx *Transaction) Deserialize(r io.Reader) error {
 	return nil
 }
 
-func (tx *Transaction) DeserializeUnsigned(r io.Reader) error {
+func (tx *BaseTransaction) DeserializeUnsigned(r io.Reader) error {
 	flagByte, err := common.ReadBytes(r, 1)
 	if err != nil {
 		return err
@@ -227,7 +230,7 @@ func (tx *Transaction) DeserializeUnsigned(r io.Reader) error {
 	return nil
 }
 
-func (tx *Transaction) GetSize() int {
+func (tx *BaseTransaction) GetSize() int {
 	buf := new(bytes.Buffer)
 	if err := tx.Serialize(buf); err != nil {
 		return InvalidTransactionSize
@@ -235,13 +238,13 @@ func (tx *Transaction) GetSize() int {
 	return buf.Len()
 }
 
-func (tx *Transaction) hash() common.Uint256 {
+func (tx *BaseTransaction) hash() common.Uint256 {
 	buf := new(bytes.Buffer)
 	tx.SerializeUnsigned(buf)
 	return common.Hash(buf.Bytes())
 }
 
-func (tx *Transaction) Hash() common.Uint256 {
+func (tx *BaseTransaction) Hash() common.Uint256 {
 	if tx.txHash == nil {
 		txHash := tx.hash()
 		tx.txHash = &txHash
@@ -249,31 +252,31 @@ func (tx *Transaction) Hash() common.Uint256 {
 	return *tx.txHash
 }
 
-func (tx *Transaction) IsReturnSideChainDepositCoinTx() bool {
+func (tx *BaseTransaction) IsReturnSideChainDepositCoinTx() bool {
 	return tx.TxType == common2.ReturnSideChainDepositCoin
 }
 
-func (tx *Transaction) ISCRCouncilMemberClaimNode() bool {
+func (tx *BaseTransaction) ISCRCouncilMemberClaimNode() bool {
 	return tx.TxType == common2.CRCouncilMemberClaimNode
 }
 
-func (tx *Transaction) IsCRAssetsRectifyTx() bool {
+func (tx *BaseTransaction) IsCRAssetsRectifyTx() bool {
 	return tx.TxType == common2.CRAssetsRectify
 }
 
-func (tx *Transaction) IsCRCAppropriationTx() bool {
+func (tx *BaseTransaction) IsCRCAppropriationTx() bool {
 	return tx.TxType == common2.CRCAppropriation
 }
 
-func (tx *Transaction) IsNextTurnDPOSInfoTx() bool {
+func (tx *BaseTransaction) IsNextTurnDPOSInfoTx() bool {
 	return tx.TxType == common2.NextTurnDPOSInfo
 }
 
-func (tx *Transaction) IsCustomIDResultTx() bool {
+func (tx *BaseTransaction) IsCustomIDResultTx() bool {
 	return tx.TxType == common2.ProposalResult
 }
 
-func (tx *Transaction) IsCustomIDRelatedTx() bool {
+func (tx *BaseTransaction) IsCustomIDRelatedTx() bool {
 	if tx.IsCRCProposalTx() {
 		p, _ := tx.Payload.(*payload.CRCProposal)
 		return p.ProposalType == payload.ReserveCustomID ||
@@ -286,7 +289,7 @@ func (tx *Transaction) IsCustomIDRelatedTx() bool {
 	return false
 }
 
-func (tx *Transaction) IsSideChainUpgradeTx() bool {
+func (tx *BaseTransaction) IsSideChainUpgradeTx() bool {
 	if tx.IsCRCProposalTx() {
 		p, _ := tx.Payload.(*payload.CRCProposal)
 		return p.ProposalType > payload.MinUpgradeProposalType &&
@@ -295,55 +298,55 @@ func (tx *Transaction) IsSideChainUpgradeTx() bool {
 	return false
 }
 
-func (tx *Transaction) IsCRCProposalRealWithdrawTx() bool {
+func (tx *BaseTransaction) IsCRCProposalRealWithdrawTx() bool {
 	return tx.TxType == common2.CRCProposalRealWithdraw
 }
 
-func (tx *Transaction) IsUpdateCRTx() bool {
+func (tx *BaseTransaction) IsUpdateCRTx() bool {
 	return tx.TxType == common2.UpdateCR
 }
 
-func (tx *Transaction) IsCRCProposalWithdrawTx() bool {
+func (tx *BaseTransaction) IsCRCProposalWithdrawTx() bool {
 	return tx.TxType == common2.CRCProposalWithdraw
 }
 
-func (tx *Transaction) IsCRCProposalReviewTx() bool {
+func (tx *BaseTransaction) IsCRCProposalReviewTx() bool {
 	return tx.TxType == common2.CRCProposalReview
 }
 
-func (tx *Transaction) IsCRCProposalTrackingTx() bool {
+func (tx *BaseTransaction) IsCRCProposalTrackingTx() bool {
 	return tx.TxType == common2.CRCProposalTracking
 }
 
-func (tx *Transaction) IsCRCProposalTx() bool {
+func (tx *BaseTransaction) IsCRCProposalTx() bool {
 	return tx.TxType == common2.CRCProposal
 }
 
-func (tx *Transaction) IsReturnCRDepositCoinTx() bool {
+func (tx *BaseTransaction) IsReturnCRDepositCoinTx() bool {
 	return tx.TxType == common2.ReturnCRDepositCoin
 }
 
-func (tx *Transaction) IsUnregisterCRTx() bool {
+func (tx *BaseTransaction) IsUnregisterCRTx() bool {
 	return tx.TxType == common2.UnregisterCR
 }
 
-func (tx *Transaction) IsRegisterCRTx() bool {
+func (tx *BaseTransaction) IsRegisterCRTx() bool {
 	return tx.TxType == common2.RegisterCR
 }
 
-func (tx *Transaction) IsIllegalTypeTx() bool {
+func (tx *BaseTransaction) IsIllegalTypeTx() bool {
 	return tx.IsIllegalProposalTx() || tx.IsIllegalVoteTx() || tx.IsIllegalBlockTx() || tx.IsSidechainIllegalDataTx()
 }
 
 //special tx is this kind of tx who have no input and output
-func (tx *Transaction) IsSpecialTx() bool {
+func (tx *BaseTransaction) IsSpecialTx() bool {
 	if tx.IsIllegalTypeTx() || tx.IsInactiveArbitrators() || tx.IsNextTurnDPOSInfoTx() {
 		return true
 	}
 	return false
 }
 
-func (tx *Transaction) GetSpecialTxHash() (common.Uint256, error) {
+func (tx *BaseTransaction) GetSpecialTxHash() (common.Uint256, error) {
 	switch tx.TxType {
 	case common2.IllegalProposalEvidence, common2.IllegalVoteEvidence,
 		common2.IllegalBlockEvidence, common2.IllegalSidechainEvidence, common2.InactiveArbitrators:
@@ -362,68 +365,68 @@ func (tx *Transaction) GetSpecialTxHash() (common.Uint256, error) {
 	return common.Uint256{}, errors.New("wrong TxType not special tx")
 }
 
-func (tx *Transaction) IsIllegalProposalTx() bool {
+func (tx *BaseTransaction) IsIllegalProposalTx() bool {
 	return tx.TxType == common2.IllegalProposalEvidence
 }
 
-func (tx *Transaction) IsIllegalVoteTx() bool {
+func (tx *BaseTransaction) IsIllegalVoteTx() bool {
 	return tx.TxType == common2.IllegalVoteEvidence
 }
 
-func (tx *Transaction) IsIllegalBlockTx() bool {
+func (tx *BaseTransaction) IsIllegalBlockTx() bool {
 	return tx.TxType == common2.IllegalBlockEvidence
 }
 
-func (tx *Transaction) IsSidechainIllegalDataTx() bool {
+func (tx *BaseTransaction) IsSidechainIllegalDataTx() bool {
 	return tx.TxType == common2.IllegalSidechainEvidence
 }
 
-func (tx *Transaction) IsInactiveArbitrators() bool {
+func (tx *BaseTransaction) IsInactiveArbitrators() bool {
 	return tx.TxType == common2.InactiveArbitrators
 }
 
-func (tx *Transaction) IsRevertToPOW() bool {
+func (tx *BaseTransaction) IsRevertToPOW() bool {
 	return tx.TxType == common2.RevertToPOW
 }
 
-func (tx *Transaction) IsRevertToDPOS() bool {
+func (tx *BaseTransaction) IsRevertToDPOS() bool {
 	return tx.TxType == common2.RevertToDPOS
 }
 
-func (tx *Transaction) IsUpdateVersion() bool {
+func (tx *BaseTransaction) IsUpdateVersion() bool {
 	return tx.TxType == common2.UpdateVersion
 }
 
-func (tx *Transaction) IsProducerRelatedTx() bool {
+func (tx *BaseTransaction) IsProducerRelatedTx() bool {
 	return tx.TxType == common2.RegisterProducer || tx.TxType == common2.UpdateProducer ||
 		tx.TxType == common2.ActivateProducer || tx.TxType == common2.CancelProducer
 }
 
-func (tx *Transaction) IsUpdateProducerTx() bool {
+func (tx *BaseTransaction) IsUpdateProducerTx() bool {
 	return tx.TxType == common2.UpdateProducer
 }
 
-func (tx *Transaction) IsReturnDepositCoin() bool {
+func (tx *BaseTransaction) IsReturnDepositCoin() bool {
 	return tx.TxType == common2.ReturnDepositCoin
 }
 
-func (tx *Transaction) IsCancelProducerTx() bool {
+func (tx *BaseTransaction) IsCancelProducerTx() bool {
 	return tx.TxType == common2.CancelProducer
 }
 
-func (tx *Transaction) IsActivateProducerTx() bool {
+func (tx *BaseTransaction) IsActivateProducerTx() bool {
 	return tx.TxType == common2.ActivateProducer
 }
 
-func (tx *Transaction) IsRegisterProducerTx() bool {
+func (tx *BaseTransaction) IsRegisterProducerTx() bool {
 	return tx.TxType == common2.RegisterProducer
 }
 
-func (tx *Transaction) IsSideChainPowTx() bool {
+func (tx *BaseTransaction) IsSideChainPowTx() bool {
 	return tx.TxType == common2.SideChainPow
 }
 
-func (tx *Transaction) IsNewSideChainPowTx() bool {
+func (tx *BaseTransaction) IsNewSideChainPowTx() bool {
 	if !tx.IsSideChainPowTx() || len(tx.Inputs) != 0 {
 		return false
 	}
@@ -431,44 +434,31 @@ func (tx *Transaction) IsNewSideChainPowTx() bool {
 	return true
 }
 
-func (tx *Transaction) IsTransferCrossChainAssetTx() bool {
+func (tx *BaseTransaction) IsTransferCrossChainAssetTx() bool {
 	return tx.TxType == common2.TransferCrossChainAsset
 }
 
-func (tx *Transaction) IsWithdrawFromSideChainTx() bool {
+func (tx *BaseTransaction) IsWithdrawFromSideChainTx() bool {
 	return tx.TxType == common2.WithdrawFromSideChain
 }
 
-func (tx *Transaction) IsRechargeToSideChainTx() bool {
+func (tx *BaseTransaction) IsRechargeToSideChainTx() bool {
 	return tx.TxType == common2.RechargeToSideChain
 }
 
-func (tx *Transaction) IsCoinBaseTx() bool {
+func (tx *BaseTransaction) IsCoinBaseTx() bool {
 	return tx.TxType == common2.CoinBase
 }
 
 // SerializeSizeStripped returns the number of bytes it would take to serialize
 // the block, excluding any witness data (if any).
-func (tx *Transaction) SerializeSizeStripped() int {
+func (tx *BaseTransaction) SerializeSizeStripped() int {
 	// todo add cache for size according to btcd
 	return tx.GetSize()
 }
 
-// Payload define the func for loading the payload data
-// base on payload type which have different structure
-type Payload interface {
-	// Get payload data
-	Data(version byte) []byte
-
-	Serialize(w io.Writer, version byte) error
-
-	Deserialize(r io.Reader, version byte) error
-
-	payload.PayloadChecker
-}
-
-func GetPayload(txType common2.TxType) (Payload, error) {
-	var p Payload
+func GetPayload(txType common2.TxType) (interfaces.Payload, error) {
+	var p interfaces.Payload
 	switch txType {
 	case common2.CoinBase:
 		p = new(payload.CoinBase)
@@ -541,12 +531,12 @@ func GetPayload(txType common2.TxType) (Payload, error) {
 	case common2.ReturnSideChainDepositCoin:
 		p = new(payload.ReturnSideChainDepositCoin)
 	default:
-		return nil, errors.New("[Transaction], invalid transaction type.")
+		return nil, errors.New("[BaseTransaction], invalid transaction type.")
 	}
 	return p, nil
 }
 
-func (tx *Transaction) IsSmallTransfer(min common.Fixed64) bool {
+func (tx *BaseTransaction) IsSmallTransfer(min common.Fixed64) bool {
 	var totalCrossAmt common.Fixed64
 	if tx.PayloadVersion == payload.TransferCrossChainVersion {
 		payloadObj, ok := tx.Payload.(*payload.TransferCrossChainAsset)

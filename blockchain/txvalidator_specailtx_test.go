@@ -7,6 +7,7 @@ package blockchain
 
 import (
 	"bytes"
+	"github.com/elastos/Elastos.ELA/core/types/transactions"
 	"math/rand"
 	"path/filepath"
 	"strconv"
@@ -680,7 +681,7 @@ func (s *txValidatorSpecialTxTestSuite) TestCheckInactiveArbitrators() {
 	p := &payload.InactiveArbitrators{
 		Sponsor: randomPublicKey(),
 	}
-	tx := &types.Transaction{
+	tx := &transactions.BaseTransaction{
 		Payload: p,
 		Programs: []*program.Program{
 			{
@@ -759,7 +760,7 @@ func (s *txValidatorSpecialTxTestSuite) TestCheckInactiveArbitrators() {
 }
 
 func (s *txValidatorSpecialTxTestSuite) TestCheckUpdateVersion() {
-	tx := &types.Transaction{
+	tx := &transactions.BaseTransaction{
 		Programs: []*program.Program{
 			{
 				Code:      randomPublicKey(),

@@ -8,8 +8,8 @@ package mempool
 import (
 	"fmt"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/transactions"
 
-	"github.com/elastos/Elastos.ELA/core/types"
 	"github.com/elastos/Elastos.ELA/errors"
 )
 
@@ -56,7 +56,7 @@ type conflictManager struct {
 	conflictSlots []*conflict
 }
 
-func (m *conflictManager) VerifyTx(tx *types.Transaction) errors.ELAError {
+func (m *conflictManager) VerifyTx(tx *transactions.BaseTransaction) errors.ELAError {
 	for _, v := range m.conflictSlots {
 		if err := v.slot.VerifyTx(tx); err != nil {
 			return errors.SimpleWithMessage(errors.ErrTxPoolFailure, err,
@@ -66,7 +66,7 @@ func (m *conflictManager) VerifyTx(tx *types.Transaction) errors.ELAError {
 	return nil
 }
 
-func (m *conflictManager) AppendTx(tx *types.Transaction) errors.ELAError {
+func (m *conflictManager) AppendTx(tx *transactions.BaseTransaction) errors.ELAError {
 	for _, v := range m.conflictSlots {
 		if err := v.slot.AppendTx(tx); err != nil {
 			return errors.SimpleWithMessage(errors.ErrTxPoolFailure, err,
@@ -76,7 +76,7 @@ func (m *conflictManager) AppendTx(tx *types.Transaction) errors.ELAError {
 	return nil
 }
 
-func (m *conflictManager) removeTx(tx *types.Transaction) errors.ELAError {
+func (m *conflictManager) removeTx(tx *transactions.BaseTransaction) errors.ELAError {
 	for _, v := range m.conflictSlots {
 		if err := v.slot.RemoveTx(tx); err != nil {
 			return errors.SimpleWithMessage(errors.ErrTxPoolFailure, err,
@@ -87,7 +87,7 @@ func (m *conflictManager) removeTx(tx *types.Transaction) errors.ELAError {
 }
 
 func (m *conflictManager) GetTx(key interface{},
-	slotName string) *types.Transaction {
+	slotName string) *transactions.BaseTransaction {
 	for _, v := range m.conflictSlots {
 		if v.name == slotName {
 			return v.slot.GetTx(key)

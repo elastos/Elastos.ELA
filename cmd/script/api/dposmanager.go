@@ -8,6 +8,7 @@ package api
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/elastos/Elastos.ELA/core/types/transactions"
 	"strconv"
 	"time"
 
@@ -193,7 +194,7 @@ func dposManagerCheckLastRelay(L *lua.LState) int {
 	result := false
 	switch t {
 	case relayTx:
-		if relayedTx, ok := m.Peer.GetLastRelay().(*types.Transaction); ok {
+		if relayedTx, ok := m.Peer.GetLastRelay().(*transactions.BaseTransaction); ok {
 			if tx := checkTransaction(L, 3); tx != nil {
 				result = tx.Hash().IsEqual(relayedTx.Hash())
 			}

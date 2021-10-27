@@ -12,7 +12,6 @@ import (
 const CRCAppropriationVersion byte = 0x00
 
 type CRCAppropriation struct {
-	DefaultChecker
 }
 
 func (p *CRCAppropriation) Data(version byte) []byte {

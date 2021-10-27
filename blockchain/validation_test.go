@@ -10,6 +10,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
+	"github.com/elastos/Elastos.ELA/core/types/transactions"
 	"math/big"
 	math "math/rand"
 	"sort"
@@ -18,7 +19,6 @@ import (
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/core/contract"
 	"github.com/elastos/Elastos.ELA/core/contract/program"
-	"github.com/elastos/Elastos.ELA/core/types"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/crypto"
@@ -88,7 +88,7 @@ func (a *multiAccount) Sign(data []byte) ([]byte, error) {
 }
 
 func TestCheckCheckSigSignature(t *testing.T) {
-	var tx *types.Transaction
+	var tx *transactions.BaseTransaction
 
 	tx = buildTx()
 	data := getData(tx)
@@ -122,7 +122,7 @@ func TestCheckCheckSigSignature(t *testing.T) {
 }
 
 func TestCheckMultiSigSignature(t *testing.T) {
-	var tx *types.Transaction
+	var tx *transactions.BaseTransaction
 
 	tx = buildTx()
 	data := getData(tx)
@@ -291,7 +291,7 @@ func TestSchnorrRunProgramsOrigin(t *testing.T) {
 		publicKey1, _ := crypto.DecodePoint(pk[:])
 		fmt.Println(publicKey1)
 		//var err error
-		var tx *types.Transaction
+		var tx *transactions.BaseTransaction
 		//var acts []act
 		var hashes []common.Uint168
 		var programs []*program.Program
@@ -525,7 +525,7 @@ func TestAggregateSignatures(t *testing.T) {
 
 func TestSchnorrRunPrograms(t *testing.T) {
 	var err error
-	var tx *types.Transaction
+	var tx *transactions.BaseTransaction
 	var hashes []common.Uint168
 	var programs []*program.Program
 	var acts []act
@@ -566,7 +566,7 @@ func TestSchnorrRunPrograms(t *testing.T) {
 
 func TestRunPrograms(t *testing.T) {
 	var err error
-	var tx *types.Transaction
+	var tx *transactions.BaseTransaction
 	var acts []act
 	var hashes []common.Uint168
 	var programs []*program.Program
@@ -779,8 +779,8 @@ func newMultiAccount(num int, t *testing.T) *multiAccount {
 	return ma
 }
 
-func buildTx() *types.Transaction {
-	tx := new(types.Transaction)
+func buildTx() *transactions.BaseTransaction {
+	tx := new(transactions.BaseTransaction)
 	tx.TxType = common2.TransferAsset
 	tx.Payload = new(payload.TransferAsset)
 	tx.Inputs = randomInputs()
@@ -820,7 +820,7 @@ func randomOutputs() []*common2.Output {
 	return outputs
 }
 
-func getData(tx *types.Transaction) []byte {
+func getData(tx *transactions.BaseTransaction) []byte {
 	buf := new(bytes.Buffer)
 	tx.SerializeUnsigned(buf)
 	return buf.Bytes()

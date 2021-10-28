@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file.
 //
 
-package types
+package common
 
 import (
 	"bytes"
@@ -11,6 +11,10 @@ import (
 
 	"github.com/elastos/Elastos.ELA/auxpow"
 	"github.com/elastos/Elastos.ELA/common"
+)
+
+const (
+	InvalidBlockSize int = -1
 )
 
 type Header struct {

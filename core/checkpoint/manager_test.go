@@ -8,6 +8,7 @@ package checkpoint
 import (
 	"bytes"
 	"errors"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"io"
 	"io/ioutil"
 	"math/rand"
@@ -149,7 +150,7 @@ func TestManager_SaveAndRestore(t *testing.T) {
 	// save nothing
 	manager.onBlockSaved(&types.DposBlock{
 		Block: &types.Block{
-			Header: types.Header{Height: currentHeight},
+			Header: common2.Header{Height: currentHeight},
 		},
 	}, nil, false, false)
 
@@ -157,7 +158,7 @@ func TestManager_SaveAndRestore(t *testing.T) {
 	currentHeight += pt.SavePeriod()
 	manager.onBlockSaved(&types.DposBlock{
 		Block: &types.Block{
-			Header: types.Header{Height: currentHeight},
+			Header: common2.Header{Height: currentHeight},
 		},
 	}, nil, false, false)
 
@@ -165,7 +166,7 @@ func TestManager_SaveAndRestore(t *testing.T) {
 	currentHeight += pt.EffectivePeriod()
 	manager.onBlockSaved(&types.DposBlock{
 		Block: &types.Block{
-			Header: types.Header{Height: currentHeight},
+			Header: common2.Header{Height: currentHeight},
 		},
 	}, nil, false, false)
 
@@ -226,14 +227,14 @@ func TestManager_GetCheckpoint_EnableHistory(t *testing.T) {
 
 	manager.OnBlockSaved(&types.DposBlock{
 		Block: &types.Block{
-			Header: types.Header{Height: currentHeight},
+			Header: common2.Header{Height: currentHeight},
 		},
 	}, nil, false)
 	currentHeight += pt.SavePeriod()
 
 	manager.OnBlockSaved(&types.DposBlock{
 		Block: &types.Block{
-			Header: types.Header{Height: currentHeight},
+			Header: common2.Header{Height: currentHeight},
 		},
 	}, nil, false)
 
@@ -276,7 +277,7 @@ func TestManager_OnRollbackTo(t *testing.T) {
 	currentHeight += pt.SavePeriod()
 	manager.onBlockSaved(&types.DposBlock{
 		Block: &types.Block{
-			Header: types.Header{Height: currentHeight},
+			Header: common2.Header{Height: currentHeight},
 		},
 	}, nil, false, false)
 

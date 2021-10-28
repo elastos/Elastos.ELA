@@ -603,7 +603,7 @@ func (b *BlockChain) ProcessBlock(block *Block, confirm *payload.Confirm) (bool,
 	return b.processBlock(block, confirm)
 }
 
-func (b *BlockChain) GetHeader(hash Uint256) (*Header, error) {
+func (b *BlockChain) GetHeader(hash Uint256) (*common.Header, error) {
 	header, err := b.db.GetFFLDB().GetHeader(hash)
 	if err != nil {
 		return nil, errors.New("[BlockChain], GetHeader failed.")
@@ -947,7 +947,7 @@ func RemoveChildNode(children []*BlockNode, node *BlockNode) []*BlockNode {
 
 }
 
-func (b *BlockChain) LoadBlockNode(blockHeader *Header, hash *Uint256) (*BlockNode, error) {
+func (b *BlockChain) LoadBlockNode(blockHeader *common.Header, hash *Uint256) (*BlockNode, error) {
 
 	// Create the new block node for the block and set the work.
 	node := NewBlockNode(blockHeader, hash)

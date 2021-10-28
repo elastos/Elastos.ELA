@@ -7,26 +7,18 @@ package transactions
 
 import (
 	"errors"
-	"fmt"
+
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
-	elaerr "github.com/elastos/Elastos.ELA/errors"
-
 	"github.com/elastos/Elastos.ELA/core/types/interfaces"
+	elaerr "github.com/elastos/Elastos.ELA/errors"
 )
-
-const (
-	// MaxPayloadDataSize is the maximum allowed length of payload data.
-	MaxPayloadDataSize = 1024 * 1024 // 1MB
-)
-
-const CoinBaseVersion byte = 0x04
 
 type CoinBaseTransaction struct {
 	BaseTransaction
 }
 
 // todo add description
-func (a *CoinBaseTransaction) SpecialCheck(para *interfaces.CheckParameters) (elaerr.ELAError, bool) {
+func (a *CoinBaseTransaction) SpecialCheck(para *interfaces.CheckParameters) (result elaerr.ELAError, end bool) {
 	// todo special check, all check witch used isCoinbase function, need to move here.
 
 	if para.BlockHeight >= para.CRCommitteeStartHeight {
@@ -47,7 +39,6 @@ func (a *CoinBaseTransaction) SpecialCheck(para *interfaces.CheckParameters) (el
 			errors.New("first output address should be foundation address")), true
 	}
 
-	fmt.Println("CoinBase self check")
 	return nil, true
 }
 

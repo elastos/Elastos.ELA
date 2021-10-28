@@ -27,7 +27,7 @@ import (
 // mockBlock creates a block instance by the given height and transactions.
 func mockBlock(height uint32, txs ...*transactions.BaseTransaction) *types.Block {
 	return &types.Block{
-		Header: types.Header{
+		Header: common2.Header{
 			Height: height,
 		},
 		Transactions: txs,
@@ -1324,7 +1324,7 @@ func TestState_ProcessBlock_DepositAndReturnDeposit(t *testing.T) {
 		},
 	}
 	state.ProcessBlock(&types.Block{
-		Header: types.Header{
+		Header: common2.Header{
 			Height: height,
 		},
 		Transactions: []*transactions.BaseTransaction{registerTx},
@@ -1338,7 +1338,7 @@ func TestState_ProcessBlock_DepositAndReturnDeposit(t *testing.T) {
 		return common.Fixed64(100), nil
 	}
 	state.ProcessBlock(&types.Block{
-		Header: types.Header{
+		Header: common2.Header{
 			Height: height,
 		},
 		Transactions: []*transactions.BaseTransaction{},
@@ -1359,7 +1359,7 @@ func TestState_ProcessBlock_DepositAndReturnDeposit(t *testing.T) {
 		},
 	}
 	state.ProcessBlock(&types.Block{
-		Header: types.Header{
+		Header: common2.Header{
 			Height: height,
 		},
 		Transactions: []*transactions.BaseTransaction{tranferTx},
@@ -1370,7 +1370,7 @@ func TestState_ProcessBlock_DepositAndReturnDeposit(t *testing.T) {
 	// cancel candidate
 	for i := 0; i < 4; i++ {
 		state.ProcessBlock(&types.Block{
-			Header: types.Header{
+			Header: common2.Header{
 				Height: height,
 			},
 			Transactions: []*transactions.BaseTransaction{},
@@ -1379,7 +1379,7 @@ func TestState_ProcessBlock_DepositAndReturnDeposit(t *testing.T) {
 	}
 	assert.Equal(t, Active, candidate.state)
 	state.ProcessBlock(&types.Block{
-		Header: types.Header{
+		Header: common2.Header{
 			Height: height,
 		},
 		Transactions: []*transactions.BaseTransaction{
@@ -1394,7 +1394,7 @@ func TestState_ProcessBlock_DepositAndReturnDeposit(t *testing.T) {
 	height++
 	for i := 0; i < 5; i++ {
 		state.ProcessBlock(&types.Block{
-			Header: types.Header{
+			Header: common2.Header{
 				Height: height,
 			},
 			Transactions: []*transactions.BaseTransaction{},

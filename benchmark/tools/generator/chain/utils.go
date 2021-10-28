@@ -126,7 +126,7 @@ func newGenesisBlock(ac *account.Account) *types.Block {
 		config.ELAAssetID})
 
 	return &types.Block{
-		Header: types.Header{
+		Header: common2.Header{
 			Version:    0,
 			Previous:   common.Uint256{},
 			MerkleRoot: merkleRoot,
@@ -165,7 +165,7 @@ func quickGenerateBlock(pow *pow.Service, prevHash *common.Uint256,
 		return nil, err
 	}
 
-	header := types.Header{
+	header := common2.Header{
 		Version:    0,
 		Previous:   *prevHash,
 		MerkleRoot: common.EmptyHash,

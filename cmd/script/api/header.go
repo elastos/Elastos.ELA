@@ -6,13 +6,12 @@
 package api
 
 import (
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"math/rand"
 	"time"
 
-	"github.com/elastos/Elastos.ELA/common/config"
-	"github.com/elastos/Elastos.ELA/core/types"
-
 	"github.com/elastos/Elastos.ELA/common"
+	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/yuin/gopher-lua"
 )
 
@@ -35,7 +34,7 @@ func newHeader(L *lua.LState) int {
 
 	hash, _ := common.Uint256FromHexString(prevBlockHash)
 
-	header := &types.Header{
+	header := &common2.Header{
 		Version:    version,
 		Previous:   *hash,
 		MerkleRoot: common.EmptyHash,
@@ -54,9 +53,9 @@ func newHeader(L *lua.LState) int {
 }
 
 // Checks whether the first lua argument is a *LUserData with *Attribute and returns this *Attribute.
-func checkHeader(L *lua.LState, idx int) *types.Header {
+func checkHeader(L *lua.LState, idx int) *common2.Header {
 	ud := L.CheckUserData(idx)
-	if v, ok := ud.Value.(*types.Header); ok {
+	if v, ok := ud.Value.(*common2.Header); ok {
 		return v
 	}
 	L.ArgError(1, "DPosProposal expected")

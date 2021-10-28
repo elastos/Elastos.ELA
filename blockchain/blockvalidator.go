@@ -338,7 +338,7 @@ func (b *BlockChain) CheckBlockContext(block *Block, prevNode *BlockNode) error 
 	return b.checkTxsContext(block)
 }
 
-func CheckProofOfWork(header *Header, powLimit *big.Int) error {
+func CheckProofOfWork(header *common.Header, powLimit *big.Int) error {
 	// The target difficulty must be larger than zero.
 	target := CompactToBig(header.Bits)
 	if target.Sign() <= 0 {

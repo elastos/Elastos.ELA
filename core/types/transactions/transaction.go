@@ -176,7 +176,7 @@ func (tx *BaseTransaction) DeserializeUnsigned(r io.Reader) error {
 	}
 	tx.PayloadVersion = payloadVersion[0]
 
-	tx.Payload, err = GetPayload(tx.TxType)
+	tx.Payload, err = GetPayload(tx.TxType, tx.PayloadVersion)
 	if err != nil {
 		return err
 	}
@@ -457,7 +457,9 @@ func (tx *BaseTransaction) SerializeSizeStripped() int {
 	return tx.GetSize()
 }
 
-func GetPayload(txType common2.TxType) (interfaces.Payload, error) {
+func GetPayload(txType common2.TxType, payloadVersion byte) (interfaces.Payload, error) {
+	// todo use payloadVersion
+
 	var p interfaces.Payload
 	switch txType {
 	case common2.CoinBase:

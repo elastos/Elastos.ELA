@@ -836,7 +836,7 @@ func GenesisBlock(foundation *common.Uint168) *types.Block {
 		ELAAssetID})
 
 	return &types.Block{
-		Header: types.Header{
+		Header: common2.Header{
 			Version:    0,
 			Previous:   zeroHash,
 			MerkleRoot: merkleRoot,

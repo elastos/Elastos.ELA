@@ -8,13 +8,13 @@ package rollback
 import (
 	"errors"
 	"fmt"
+	"github.com/elastos/Elastos.ELA/core/types/common"
 	"strconv"
 
 	"github.com/elastos/Elastos.ELA/blockchain"
 	cmdcom "github.com/elastos/Elastos.ELA/cmd/common"
 	"github.com/elastos/Elastos.ELA/common/config/settings"
 	"github.com/elastos/Elastos.ELA/common/log"
-	"github.com/elastos/Elastos.ELA/core/types"
 	"github.com/elastos/Elastos.ELA/database"
 
 	"github.com/urfave/cli"
@@ -112,7 +112,7 @@ func rollbackAction(c *cli.Context) error {
 	return nil
 }
 
-func removeBlockNode(fflDB blockchain.IFFLDBChainStore, header *types.Header) error {
+func removeBlockNode(fflDB blockchain.IFFLDBChainStore, header *common.Header) error {
 	return fflDB.Update(func(dbTx database.Tx) error {
 		return blockchain.DBRemoveBlockNode(dbTx, header)
 	})

@@ -70,7 +70,7 @@ type IFFLDBChainStore interface {
 	GetOldBlock(hash Uint256) (*Block, error)
 
 	// Get block header from file db.
-	GetHeader(hash Uint256) (*Header, error)
+	GetHeader(hash Uint256) (*common.Header, error)
 
 	// If already exist in main chain(exist in file db and exist block index),
 	// will return true.

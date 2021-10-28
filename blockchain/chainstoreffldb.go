@@ -370,7 +370,7 @@ func (c *ChainStoreFFLDB) GetBlock(hash Uint256) (*DposBlock, error) {
 	return b, nil
 }
 
-func (c *ChainStoreFFLDB) GetHeader(hash Uint256) (*Header, error) {
+func (c *ChainStoreFFLDB) GetHeader(hash Uint256) (*common.Header, error) {
 	var headerBytes []byte
 	err := c.db.View(func(tx database.Tx) error {
 		var e error
@@ -384,7 +384,7 @@ func (c *ChainStoreFFLDB) GetHeader(hash Uint256) (*Header, error) {
 		return nil, errors.New("[BlockChain], GetHeader failed")
 	}
 
-	var header Header
+	var header common.Header
 	err = header.DeserializeNoAux(bytes.NewReader(headerBytes))
 	if err != nil {
 		return nil, errors.New("[BlockChain], GetHeader deserialize failed")

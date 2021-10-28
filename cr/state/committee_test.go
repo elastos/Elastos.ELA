@@ -58,7 +58,7 @@ func TestCommittee_ProcessBlock(t *testing.T) {
 
 	// < CRCommitteeStartHeight
 	committee.ProcessBlock(&types.Block{
-		Header: types.Header{
+		Header: common2.Header{
 			Height: config.DefaultParams.CRCommitteeStartHeight - 1,
 		},
 	}, nil)
@@ -67,7 +67,7 @@ func TestCommittee_ProcessBlock(t *testing.T) {
 
 	// CRCommitteeStartHeight
 	committee.ProcessBlock(&types.Block{
-		Header: types.Header{
+		Header: common2.Header{
 			Height: config.DefaultParams.CRCommitteeStartHeight,
 		},
 	}, nil)
@@ -91,7 +91,7 @@ func TestCommittee_ProcessBlock(t *testing.T) {
 	}
 	committee.state.StateKeyFrame = *round2
 	committee.ProcessBlock(&types.Block{
-		Header: types.Header{
+		Header: common2.Header{
 			Height: config.DefaultParams.CRCommitteeStartHeight +
 				config.DefaultParams.CRDutyPeriod - 1,
 		},
@@ -109,7 +109,7 @@ func TestCommittee_ProcessBlock(t *testing.T) {
 	committee.LastVotingStartHeight = config.DefaultParams.CRCommitteeStartHeight +
 		config.DefaultParams.CRDutyPeriod - config.DefaultParams.CRVotingPeriod
 	committee.ProcessBlock(&types.Block{
-		Header: types.Header{
+		Header: common2.Header{
 			Height: config.DefaultParams.CRCommitteeStartHeight +
 				config.DefaultParams.CRDutyPeriod,
 		},
@@ -240,7 +240,7 @@ func TestCommittee_RollbackTo_SameCommittee_VotingPeriod(t *testing.T) {
 	height := config.DefaultParams.CRCommitteeStartHeight -
 		config.DefaultParams.CRVotingPeriod
 	committee.ProcessBlock(&types.Block{
-		Header: types.Header{
+		Header: common2.Header{
 			Height: height,
 		},
 		Transactions: []*transactions.BaseTransaction{
@@ -255,7 +255,7 @@ func TestCommittee_RollbackTo_SameCommittee_VotingPeriod(t *testing.T) {
 	// update candidate
 	nickname2 := randomString()
 	committee.ProcessBlock(&types.Block{
-		Header: types.Header{
+		Header: common2.Header{
 			Height: height,
 		},
 		Transactions: []*transactions.BaseTransaction{
@@ -268,7 +268,7 @@ func TestCommittee_RollbackTo_SameCommittee_VotingPeriod(t *testing.T) {
 	// change state of candidate from pending to active
 	for i := 0; i < 4; i++ {
 		committee.ProcessBlock(&types.Block{
-			Header: types.Header{
+			Header: common2.Header{
 				Height: height,
 			},
 			Transactions: []*transactions.BaseTransaction{},
@@ -308,7 +308,7 @@ func TestCommittee_RollbackTo_SameCommittee_BeforeVoting(t *testing.T) {
 		cid := *randomUint168()
 
 		committee.ProcessBlock(&types.Block{
-			Header: types.Header{
+			Header: common2.Header{
 				Height: height,
 			},
 			Transactions: []*transactions.BaseTransaction{

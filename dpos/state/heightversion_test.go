@@ -83,7 +83,7 @@ func TestArbitrators_GetNormalArbitratorsDesc(t *testing.T) {
 
 	currentHeight := uint32(1)
 	block1 := &types.Block{
-		Header: types.Header{
+		Header: common2.Header{
 			Height: currentHeight,
 		},
 		Transactions: []*transactions.BaseTransaction{
@@ -122,7 +122,7 @@ func TestArbitrators_GetNormalArbitratorsDesc(t *testing.T) {
 	for i := uint32(0); i < 6; i++ {
 		currentHeight++
 		blockEx := &types.Block{
-			Header:       types.Header{Height: currentHeight},
+			Header:       common2.Header{Height: currentHeight},
 			Transactions: []*transactions.BaseTransaction{},
 		}
 		arbiters.ProcessBlock(blockEx, nil)
@@ -136,7 +136,7 @@ func TestArbitrators_GetNormalArbitratorsDesc(t *testing.T) {
 
 	currentHeight += 1
 	block2 := &types.Block{
-		Header: types.Header{
+		Header: common2.Header{
 			Height: currentHeight,
 		},
 		Transactions: []*transactions.BaseTransaction{
@@ -154,7 +154,7 @@ func TestArbitrators_GetNormalArbitratorsDesc(t *testing.T) {
 	for i := uint32(0); i < 6; i++ {
 		currentHeight++
 		blockEx := &types.Block{
-			Header:       types.Header{Height: currentHeight},
+			Header:       common2.Header{Height: currentHeight},
 			Transactions: []*transactions.BaseTransaction{},
 		}
 		arbiters.ProcessBlock(blockEx, nil)

@@ -7,6 +7,7 @@ package blockchain
 
 import (
 	"bytes"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/core/types/transactions"
 	"math/rand"
 	"path/filepath"
@@ -19,7 +20,6 @@ import (
 	"github.com/elastos/Elastos.ELA/common/log"
 	"github.com/elastos/Elastos.ELA/core/contract"
 	"github.com/elastos/Elastos.ELA/core/contract/program"
-	"github.com/elastos/Elastos.ELA/core/types"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/crypto"
 	"github.com/elastos/Elastos.ELA/dpos/state"
@@ -848,8 +848,8 @@ func (s *txValidatorSpecialTxTestSuite) createArbitratorsRedeemScript(
 	return result
 }
 
-func randomBlockHeader() *types.Header {
-	return &types.Header{
+func randomBlockHeader() *common2.Header {
+	return &common2.Header{
 		Version:    rand.Uint32(),
 		Previous:   *randomUint256(),
 		MerkleRoot: *randomUint256(),

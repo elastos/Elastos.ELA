@@ -1114,7 +1114,7 @@ func (s *txValidatorTestSuite) TestCheckUpdateProducerTransaction() {
 		Transactions: []*transactions.BaseTransaction{
 			txn,
 		},
-		Header: types.Header{Height: s.CurrentHeight},
+		Header: common2.Header{Height: s.CurrentHeight},
 	}
 	s.Chain.state.ProcessBlock(block, nil)
 
@@ -1129,7 +1129,7 @@ func (s *txValidatorTestSuite) TestCheckUpdateProducerTransaction() {
 	}
 	txn.Payload = updatePayload
 	s.CurrentHeight++
-	block.Header = types.Header{Height: s.CurrentHeight}
+	block.Header = common2.Header{Height: s.CurrentHeight}
 	s.Chain.state.ProcessBlock(block, nil)
 
 	s.EqualError(s.Chain.checkUpdateProducerTransaction(txn), "field NickName has invalid string length")
@@ -2413,7 +2413,7 @@ func (s *txValidatorTestSuite) TestCheckUpdateCRTransaction() {
 			registerCRTxn1,
 			registerCRTxn2,
 		},
-		Header: types.Header{Height: s.CurrentHeight},
+		Header: common2.Header{Height: s.CurrentHeight},
 	}
 	s.Chain.crCommittee.ProcessBlock(block, nil)
 
@@ -2625,7 +2625,7 @@ func (s *txValidatorTestSuite) TestCheckUnregisterCRTransaction() {
 		Transactions: []*transactions.BaseTransaction{
 			registerCRTxn,
 		},
-		Header: types.Header{Height: s.CurrentHeight},
+		Header: common2.Header{Height: s.CurrentHeight},
 	}
 	s.Chain.crCommittee.ProcessBlock(block, nil)
 	//ok
@@ -3463,7 +3463,7 @@ func (s *txValidatorTestSuite) TestCheckReturnDepositCoinTransaction() {
 	publicKey, _ := pk.EncodePoint(true)
 	// register CR
 	s.Chain.state.ProcessBlock(&types.Block{
-		Header: types.Header{
+		Header: common2.Header{
 			Height: s.CurrentHeight,
 		},
 		Transactions: []*transactions.BaseTransaction{
@@ -3490,7 +3490,7 @@ func (s *txValidatorTestSuite) TestCheckReturnDepositCoinTransaction() {
 
 	for i := 0; i < 6; i++ {
 		s.Chain.state.ProcessBlock(&types.Block{
-			Header: types.Header{
+			Header: common2.Header{
 				Height: s.CurrentHeight,
 			},
 			Transactions: []*transactions.BaseTransaction{},
@@ -3524,7 +3524,7 @@ func (s *txValidatorTestSuite) TestCheckReturnDepositCoinTransaction() {
 
 	// cancel CR
 	s.Chain.state.ProcessBlock(&types.Block{
-		Header: types.Header{
+		Header: common2.Header{
 			Height: s.CurrentHeight,
 		},
 		Transactions: []*transactions.BaseTransaction{
@@ -3557,7 +3557,7 @@ func (s *txValidatorTestSuite) TestCheckReturnDepositCoinTransaction() {
 
 	s.CurrentHeight += s.Chain.chainParams.CRDepositLockupBlocks
 	s.Chain.state.ProcessBlock(&types.Block{
-		Header: types.Header{
+		Header: common2.Header{
 			Height: s.CurrentHeight,
 		},
 		Transactions: []*transactions.BaseTransaction{},
@@ -3596,7 +3596,7 @@ func (s *txValidatorTestSuite) TestCheckReturnCRDepositCoinTransaction() {
 	})
 	// register CR
 	s.Chain.crCommittee.ProcessBlock(&types.Block{
-		Header: types.Header{
+		Header: common2.Header{
 			Height: s.CurrentHeight,
 		},
 		Transactions: []*transactions.BaseTransaction{
@@ -3622,7 +3622,7 @@ func (s *txValidatorTestSuite) TestCheckReturnCRDepositCoinTransaction() {
 
 	for i := 0; i < 6; i++ {
 		s.Chain.crCommittee.ProcessBlock(&types.Block{
-			Header: types.Header{
+			Header: common2.Header{
 				Height: s.CurrentHeight,
 			},
 			Transactions: []*transactions.BaseTransaction{},
@@ -3651,7 +3651,7 @@ func (s *txValidatorTestSuite) TestCheckReturnCRDepositCoinTransaction() {
 
 	// unregister CR
 	s.Chain.crCommittee.ProcessBlock(&types.Block{
-		Header: types.Header{
+		Header: common2.Header{
 			Height: s.CurrentHeight,
 		},
 		Transactions: []*transactions.BaseTransaction{
@@ -3673,7 +3673,7 @@ func (s *txValidatorTestSuite) TestCheckReturnCRDepositCoinTransaction() {
 
 	s.CurrentHeight = 2160 + canceledHeight
 	s.Chain.crCommittee.ProcessBlock(&types.Block{
-		Header: types.Header{
+		Header: common2.Header{
 			Height: s.CurrentHeight,
 		},
 		Transactions: []*transactions.BaseTransaction{},
@@ -3703,7 +3703,7 @@ func (s *txValidatorTestSuite) TestCheckReturnCRDepositCoinTransaction() {
 	// return CR deposit coin.
 	rdTx.Programs[0].Code = code
 	s.Chain.crCommittee.ProcessBlock(&types.Block{
-		Header: types.Header{
+		Header: common2.Header{
 			Height: s.CurrentHeight,
 		},
 		Transactions: []*transactions.BaseTransaction{
@@ -3848,7 +3848,7 @@ func (s *txValidatorTestSuite) TestCheckVoteOutputs() {
 			registerCRTxn2,
 			registerCRTxn3,
 		},
-		Header: types.Header{Height: s.CurrentHeight},
+		Header: common2.Header{Height: s.CurrentHeight},
 	}
 	s.Chain.crCommittee.ProcessBlock(block, nil)
 	code1 := getCodeByPubKeyStr(publicKey1)
@@ -4312,7 +4312,7 @@ func (s *txValidatorTestSuite) TestCreateCRCAppropriationTransaction() {
 			txn,
 			txnCoinBase,
 		},
-		Header: types.Header{
+		Header: common2.Header{
 			Height:   1,
 			Previous: s.Chain.chainParams.GenesisBlock.Hash(),
 		},

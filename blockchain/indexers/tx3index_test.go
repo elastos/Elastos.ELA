@@ -35,7 +35,7 @@ var (
 	}
 
 	testTx3IndexBlock = &types.Block{
-		Header: types.Header{},
+		Header: common2.Header{},
 		Transactions: []*transactions.BaseTransaction{
 			tx4,
 		},

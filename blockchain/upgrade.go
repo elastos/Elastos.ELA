@@ -16,10 +16,10 @@ import (
 	"container/list"
 	"errors"
 	"fmt"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/log"
-	"github.com/elastos/Elastos.ELA/core/types"
 	"github.com/elastos/Elastos.ELA/database"
 )
 
@@ -161,7 +161,7 @@ func migrateBlockIndex(db database.DB) error {
 func readBlockTree(v1BlockIdxBucket database.Bucket) (map[common.Uint256]*blockChainContext, error) {
 	blocksMap := make(map[common.Uint256]*blockChainContext)
 	err := v1BlockIdxBucket.ForEach(func(_, blockRow []byte) error {
-		var header types.Header
+		var header common2.Header
 		endOffset := blockHdrOffset + blockHdrNoAuxSize
 		headerBytes := blockRow[blockHdrOffset:endOffset:endOffset]
 		err := header.Deserialize(bytes.NewReader(headerBytes))

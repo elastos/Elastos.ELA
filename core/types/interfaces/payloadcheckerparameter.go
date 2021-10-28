@@ -10,6 +10,12 @@ import (
 )
 
 type CheckParameters struct {
+
+	// for illegal proposal transaction
+	SpecialTxExists func(txHash common.Uint256) bool
+	GetCurrentArbitratorNodePublicKeys func(height uint32) [][]byte
+
+
 	// transaction
 	Transaction Transaction
 

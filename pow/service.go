@@ -232,7 +232,7 @@ func (pow *Service) GenerateBlock(minerAddr string,
 		return nil, err
 	}
 
-	header := types.Header{
+	header := common2.Header{
 		Version:    0,
 		Previous:   *pow.chain.BestChain.Hash,
 		MerkleRoot: common.EmptyHash,

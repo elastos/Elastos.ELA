@@ -132,7 +132,7 @@ var (
 		},
 	}
 	testUtxoIndexBlock = &types.Block{
-		Header: types.Header{
+		Header: common2.Header{
 			Height: 200,
 		},
 		Transactions: []*transactions.BaseTransaction{

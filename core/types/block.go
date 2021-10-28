@@ -8,14 +8,11 @@ package types
 import (
 	"bytes"
 	"errors"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/core/types/transactions"
 	"io"
 
 	"github.com/elastos/Elastos.ELA/common"
-)
-
-const (
-	InvalidBlockSize int = -1
 )
 
 // TxLoc holds locator data for the offset and length of where a transaction is
@@ -26,7 +23,7 @@ type TxLoc struct {
 }
 
 type Block struct {
-	Header
+	common2.Header
 	Transactions []*transactions.BaseTransaction
 }
 
@@ -120,7 +117,7 @@ func (b *Block) TxLoc() ([]TxLoc, error) {
 func (b *Block) GetSize() int {
 	buf := new(bytes.Buffer)
 	if err := b.Serialize(buf); err != nil {
-		return InvalidBlockSize
+		return common2.InvalidBlockSize
 	}
 
 	return buf.Len()

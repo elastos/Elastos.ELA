@@ -108,7 +108,7 @@ func GetTransactionInfo(tx *transactions.BaseTransaction) *TransactionInfo {
 	}
 }
 
-func GetTransactionContextInfo(header *Header, tx *transactions.BaseTransaction) *TransactionContextInfo {
+func GetTransactionContextInfo(header *common2.Header, tx *transactions.BaseTransaction) *TransactionContextInfo {
 	var blockHash string
 	var confirmations uint32
 	var time uint32
@@ -148,7 +148,7 @@ func GetRawTransaction(param Params) map[string]interface{} {
 		return ResponsePack(InvalidTransaction, "")
 	}
 
-	var header *Header
+	var header *common2.Header
 	tx, height, err := Store.GetTransaction(hash)
 	if err != nil {
 		//try to find transaction in transaction pool.

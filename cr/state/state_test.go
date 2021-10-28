@@ -103,7 +103,7 @@ func TestState_ProcessBlock_PendingUpdateThenCancel(t *testing.T) {
 
 	// register CR
 	committee.ProcessBlock(&types.Block{
-		Header: types.Header{
+		Header: common2.Header{
 			Height: currentHeight,
 		},
 		Transactions: []*transactions.BaseTransaction{
@@ -120,7 +120,7 @@ func TestState_ProcessBlock_PendingUpdateThenCancel(t *testing.T) {
 	nickname2 := randomString()
 	currentHeight++
 	committee.ProcessBlock(&types.Block{
-		Header: types.Header{
+		Header: common2.Header{
 			Height: currentHeight,
 		},
 		Transactions: []*transactions.BaseTransaction{
@@ -137,7 +137,7 @@ func TestState_ProcessBlock_PendingUpdateThenCancel(t *testing.T) {
 	//cancel pending CR
 	currentHeight++
 	committee.ProcessBlock(&types.Block{
-		Header: types.Header{
+		Header: common2.Header{
 			Height: currentHeight,
 		},
 		Transactions: []*transactions.BaseTransaction{
@@ -180,7 +180,7 @@ func TestState_ProcessBlock_PendingActiveThenCancel(t *testing.T) {
 
 	// register CR
 	committee.ProcessBlock(&types.Block{
-		Header: types.Header{
+		Header: common2.Header{
 			Height: currentHeight,
 		},
 		Transactions: []*transactions.BaseTransaction{
@@ -197,7 +197,7 @@ func TestState_ProcessBlock_PendingActiveThenCancel(t *testing.T) {
 	// register CR then after 6 block should be active state
 	for i := 0; i < 5; i++ {
 		committee.ProcessBlock(&types.Block{
-			Header: types.Header{
+			Header: common2.Header{
 				Height: currentHeight,
 			},
 			Transactions: []*transactions.BaseTransaction{},
@@ -210,7 +210,7 @@ func TestState_ProcessBlock_PendingActiveThenCancel(t *testing.T) {
 	// update active CR
 	nickname2 := randomString()
 	committee.ProcessBlock(&types.Block{
-		Header: types.Header{
+		Header: common2.Header{
 			Height: currentHeight,
 		},
 		Transactions: []*transactions.BaseTransaction{
@@ -227,7 +227,7 @@ func TestState_ProcessBlock_PendingActiveThenCancel(t *testing.T) {
 
 	// cancel active CR
 	committee.ProcessBlock(&types.Block{
-		Header: types.Header{
+		Header: common2.Header{
 			Height: currentHeight,
 		},
 		Transactions: []*transactions.BaseTransaction{
@@ -272,7 +272,7 @@ func TestState_ProcessBlock_MixedCRProcessing(t *testing.T) {
 		cid := *randomUint168()
 
 		committee.ProcessBlock(&types.Block{
-			Header: types.Header{
+			Header: common2.Header{
 				Height: currentHeight,
 			},
 			Transactions: []*transactions.BaseTransaction{
@@ -289,7 +289,7 @@ func TestState_ProcessBlock_MixedCRProcessing(t *testing.T) {
 
 	for i := 0; i < 5; i++ {
 		committee.ProcessBlock(&types.Block{
-			Header: types.Header{
+			Header: common2.Header{
 				Height: currentHeight,
 			},
 			Transactions: []*transactions.BaseTransaction{},
@@ -335,7 +335,7 @@ func TestState_ProcessBlock_VotingAndCancel(t *testing.T) {
 	// vote for the active candidates
 	voteTx := mockNewVoteTx(activeCIDs)
 	committee.ProcessBlock(&types.Block{
-		Header: types.Header{
+		Header: common2.Header{
 			Height: currentHeight,
 		},
 		Transactions: []*transactions.BaseTransaction{voteTx},
@@ -355,7 +355,7 @@ func TestState_ProcessBlock_VotingAndCancel(t *testing.T) {
 
 	// cancel votes the active candidates
 	committee.ProcessBlock(&types.Block{
-		Header: types.Header{
+		Header: common2.Header{
 			Height: currentHeight,
 		},
 		Transactions: []*transactions.BaseTransaction{
@@ -410,7 +410,7 @@ func TestState_ProcessBlock_DepositAndReturnDeposit(t *testing.T) {
 		},
 	}
 	committee.ProcessBlock(&types.Block{
-		Header: types.Header{
+		Header: common2.Header{
 			Height: currentHeight,
 		},
 		Transactions: []*transactions.BaseTransaction{registerCRTx},
@@ -434,7 +434,7 @@ func TestState_ProcessBlock_DepositAndReturnDeposit(t *testing.T) {
 		},
 	}
 	committee.ProcessBlock(&types.Block{
-		Header: types.Header{
+		Header: common2.Header{
 			Height: currentHeight,
 		},
 		Transactions: []*transactions.BaseTransaction{tranferTx},
@@ -448,7 +448,7 @@ func TestState_ProcessBlock_DepositAndReturnDeposit(t *testing.T) {
 	// cancel candidate
 	for i := 0; i < 4; i++ {
 		committee.ProcessBlock(&types.Block{
-			Header: types.Header{
+			Header: common2.Header{
 				Height: currentHeight,
 			},
 			Transactions: []*transactions.BaseTransaction{},
@@ -457,7 +457,7 @@ func TestState_ProcessBlock_DepositAndReturnDeposit(t *testing.T) {
 	}
 	assert.Equal(t, Active, candidate.state)
 	committee.ProcessBlock(&types.Block{
-		Header: types.Header{
+		Header: common2.Header{
 			Height: currentHeight,
 		},
 		Transactions: []*transactions.BaseTransaction{
@@ -468,7 +468,7 @@ func TestState_ProcessBlock_DepositAndReturnDeposit(t *testing.T) {
 	currentHeight++
 	for i := 0; i < 5; i++ {
 		committee.ProcessBlock(&types.Block{
-			Header: types.Header{
+			Header: common2.Header{
 				Height: currentHeight,
 			},
 			Transactions: []*transactions.BaseTransaction{},
@@ -480,7 +480,7 @@ func TestState_ProcessBlock_DepositAndReturnDeposit(t *testing.T) {
 	// reached the height to return deposit amount.
 	currentHeight = cancelHeight + committee.params.CRDepositLockupBlocks
 	committee.ProcessBlock(&types.Block{
-		Header: types.Header{
+		Header: common2.Header{
 			Height: currentHeight,
 		},
 		Transactions: []*transactions.BaseTransaction{},
@@ -504,7 +504,7 @@ func TestState_ProcessBlock_DepositAndReturnDeposit(t *testing.T) {
 	}
 	currentHeight++
 	committee.ProcessBlock(&types.Block{
-		Header: types.Header{
+		Header: common2.Header{
 			Height: currentHeight,
 		},
 		Transactions: []*transactions.BaseTransaction{rdTx},

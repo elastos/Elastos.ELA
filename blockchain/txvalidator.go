@@ -22,7 +22,6 @@ import (
 	"github.com/elastos/Elastos.ELA/common/log"
 	"github.com/elastos/Elastos.ELA/core/contract"
 	"github.com/elastos/Elastos.ELA/core/contract/program"
-	. "github.com/elastos/Elastos.ELA/core/types"
 	"github.com/elastos/Elastos.ELA/core/types/outputpayload"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	crstate "github.com/elastos/Elastos.ELA/cr/state"
@@ -4235,7 +4234,7 @@ func CheckDPOSIllegalBlocks(d *payload.DPOSIllegalBlocks) error {
 
 	if d.CoinType == payload.ELACoin {
 		var err error
-		var header, compareHeader *Header
+		var header, compareHeader *common2.Header
 		var confirm, compareConfirm *payload.Confirm
 
 		if header, compareHeader, err = checkDPOSElaIllegalBlockHeaders(d); err != nil {
@@ -4307,7 +4306,7 @@ func checkDPOSElaIllegalBlockSigners(
 }
 
 func checkDPOSElaIllegalBlockConfirms(d *payload.DPOSIllegalBlocks,
-	header *Header, compareHeader *Header) (*payload.Confirm,
+	header *common2.Header, compareHeader *common2.Header) (*payload.Confirm,
 	*payload.Confirm, error) {
 
 	confirm := &payload.Confirm{}
@@ -4354,11 +4353,11 @@ func checkDPOSElaIllegalBlockConfirms(d *payload.DPOSIllegalBlocks,
 	return confirm, compareConfirm, nil
 }
 
-func checkDPOSElaIllegalBlockHeaders(d *payload.DPOSIllegalBlocks) (*Header,
-	*Header, error) {
+func checkDPOSElaIllegalBlockHeaders(d *payload.DPOSIllegalBlocks) (*common2.Header,
+	*common2.Header, error) {
 
-	header := &Header{}
-	compareHeader := &Header{}
+	header := &common2.Header{}
+	compareHeader := &common2.Header{}
 
 	data := new(bytes.Buffer)
 	data.Write(d.Evidence.Header)
@@ -4404,7 +4403,7 @@ func checkStringField(rawStr string, field string, allowEmpty bool) error {
 
 func validateProposalEvidence(evidence *payload.ProposalEvidence) error {
 
-	header := &Header{}
+	header := &common2.Header{}
 	buf := new(bytes.Buffer)
 	buf.Write(evidence.BlockHeader)
 

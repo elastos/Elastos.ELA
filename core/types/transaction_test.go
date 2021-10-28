@@ -1012,8 +1012,8 @@ func randomBlockHeaderBytes() []byte {
 	return buf.Bytes()
 }
 
-func randomBlockHeader() *Header {
-	return &Header{
+func randomBlockHeader() *common2.Header {
+	return &common2.Header{
 		Version:    rand.Uint32(),
 		Previous:   *randomUint256(),
 		MerkleRoot: *randomUint256(),

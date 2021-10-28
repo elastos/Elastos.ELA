@@ -78,7 +78,7 @@ func TestInitBlock(t *testing.T) {
 
 	block1 = &types.DposBlock{
 		Block: &types.Block{
-			Header: types.Header{
+			Header: common2.Header{
 				Height: 100,
 			},
 			Transactions: []*transactions.BaseTransaction{

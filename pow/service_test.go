@@ -174,7 +174,7 @@ func TestService_AssignCoinbaseTxRewards(t *testing.T) {
 		{ProgramHash: common.Uint168{}, Value: 0},
 	}
 	block := &types.Block{
-		Header: types.Header{
+		Header: common2.Header{
 			Height: config.DefaultParams.PublicDPOSHeight,
 		},
 		Transactions: []*transactions.BaseTransaction{
@@ -246,7 +246,7 @@ func TestService_AssignCoinbaseTxRewards(t *testing.T) {
 		{ProgramHash: common.Uint168{}, Value: 0},
 	}
 	block = &types.Block{
-		Header: types.Header{
+		Header: common2.Header{
 			Height: config.DefaultParams.PublicDPOSHeight,
 		},
 		Transactions: []*transactions.BaseTransaction{

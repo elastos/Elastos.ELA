@@ -59,7 +59,7 @@ func TestCommittee_ChangeCommitteeReward(t *testing.T) {
 
 	// register cr
 	committee.ProcessBlock(&types.Block{
-		Header: types.Header{
+		Header: common2.Header{
 			Height: currentHeight,
 		},
 		Transactions: []*transactions.BaseTransaction{
@@ -73,7 +73,7 @@ func TestCommittee_ChangeCommitteeReward(t *testing.T) {
 	for i := 0; i < 5; i++ {
 		currentHeight++
 		committee.ProcessBlock(&types.Block{
-			Header: types.Header{
+			Header: common2.Header{
 				Height: currentHeight,
 			},
 		}, nil)
@@ -85,7 +85,7 @@ func TestCommittee_ChangeCommitteeReward(t *testing.T) {
 		{did3.Bytes(), 1}})
 	currentHeight++
 	committee.ProcessBlock(&types.Block{
-		Header: types.Header{
+		Header: common2.Header{
 			Height: currentHeight,
 		},
 		Transactions: []*transactions.BaseTransaction{
@@ -97,7 +97,7 @@ func TestCommittee_ChangeCommitteeReward(t *testing.T) {
 	// end first voting period
 	currentHeight = cfg.CRCommitteeStartHeight
 	committee.ProcessBlock(&types.Block{
-		Header: types.Header{Height: currentHeight}}, nil)
+		Header: common2.Header{Height: currentHeight}}, nil)
 	assert.Equal(t, 2, len(committee.GetAllMembers()))
 
 	var bestHeight uint32

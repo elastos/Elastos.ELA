@@ -1301,8 +1301,14 @@ func (s *State) processDposV2VoteCancel(output *types.Output, height uint32) {
 	subtractByVote := func(producer *Producer, vote common.Fixed64) {
 		s.history.Append(height, func() {
 			producer.dposV2Votes -= vote
+			if producer.dposV2Votes < s.chainParams.DposV2EffectiveVotes {
+				delete(s.DposV2ActiveProducer, hex.EncodeToString(producer.info.OwnerPublicKey))
+			}
 		}, func() {
 			producer.dposV2Votes += vote
+			if producer.dposV2Votes >= s.chainParams.DposV2EffectiveVotes {
+				s.DposV2ActiveProducer[hex.EncodeToString(producer.info.OwnerPublicKey)] = producer
+			}
 		})
 	}
 
@@ -1329,8 +1335,14 @@ func (s *State) processDposV2VoteOutput(output *types.Output, height uint32) {
 	countByVote := func(producer *Producer, vote common.Fixed64) {
 		s.history.Append(height, func() {
 			producer.dposV2Votes += vote
+			if producer.dposV2Votes >= s.chainParams.DposV2EffectiveVotes {
+				s.DposV2ActiveProducer[hex.EncodeToString(producer.info.OwnerPublicKey)] = producer
+			}
 		}, func() {
 			producer.dposV2Votes -= vote
+			if producer.dposV2Votes < s.chainParams.DposV2EffectiveVotes {
+				delete(s.DposV2ActiveProducer, hex.EncodeToString(producer.info.OwnerPublicKey))
+			}
 		})
 	}
 

@@ -1584,6 +1584,7 @@ func (a *arbitrators) getSortedProducersDposV2() []*Producer {
 }
 
 func (a *arbitrators) getSortedProducersWithRandom(height uint32, unclaimedCount int) ([]*Producer, error) {
+	// TODO sorted producer using new sorted by dposV2 votes logic
 	votedProducers := a.getSortedProducers()
 	if height < a.chainParams.NoCRCDPOSNodeHeight {
 		return votedProducers, nil

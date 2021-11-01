@@ -1022,6 +1022,18 @@ func NewSettings() *Settings {
 		ConfigPath:   "ReturnCrossChainCoinStartHeight",
 		ParamName:    "ReturnCrossChainCoinStartHeight"})
 
+	result.Add(&settingItem{
+		Flag:         cmdcom.DposV2StartHeightFlag,
+		DefaultValue: uint32(0),
+		ConfigPath:   "DposV2StartHeight",
+		ParamName:    "DposV2StartHeight"})
+
+	result.Add(&settingItem{
+		Flag:         cmdcom.DposV2EffectiveVotesFlag,
+		DefaultValue: common.Fixed64(0),
+		ConfigPath:   "DposV2EffectiveVotes",
+		ParamName:    "DposV2EffectiveVotes"})
+
 	return result
 }
 

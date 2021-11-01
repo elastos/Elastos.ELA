@@ -788,7 +788,7 @@ type Params struct {
 	DposV2StartHeight uint32
 
 	// DposV2EffectiveVotes defines the votes which producer will become a dposV2 effective node
-	DposV2EffectiveVotes uint32
+	DposV2EffectiveVotes common.Fixed64
 }
 
 // rewardPerBlock calculates the reward for each block by a specified time

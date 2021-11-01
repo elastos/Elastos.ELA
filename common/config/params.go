@@ -255,6 +255,7 @@ var DefaultParams = Params{
 	ProhibitTransferToDIDHeight:        1032840,
 	DIDSideChainAddress:                "XKUh4GLhFJiqAMTF6HyWQrV9pK9HcGUdfJ",
 	DposV2StartHeight:                  2000000,
+	DposV2EffectiveVotes:               160000,
 }
 
 // TestNet returns the network parameters for the test network.
@@ -347,6 +348,7 @@ func (p *Params) TestNet() *Params {
 	copy.ProhibitTransferToDIDHeight = 807000
 	copy.DIDSideChainAddress = "XKUh4GLhFJiqAMTF6HyWQrV9pK9HcGUdfJ"
 	copy.DposV2StartHeight = 2000000
+	copy.DposV2EffectiveVotes = 160000
 
 	return &copy
 }
@@ -442,6 +444,7 @@ func (p *Params) RegNet() *Params {
 	copy.ProhibitTransferToDIDHeight = 730000
 	copy.DIDSideChainAddress = "XKUh4GLhFJiqAMTF6HyWQrV9pK9HcGUdfJ"
 	copy.DposV2StartHeight = 2000000
+	copy.DposV2EffectiveVotes = 160000
 
 	return &copy
 }
@@ -783,6 +786,9 @@ type Params struct {
 
 	// DposV2StartHeight defines the start height of dpos 2.0.
 	DposV2StartHeight uint32
+
+	// DposV2EffectiveVotes defines the votes which producer will become a dposV2 effective node
+	DposV2EffectiveVotes uint32
 }
 
 // rewardPerBlock calculates the reward for each block by a specified time

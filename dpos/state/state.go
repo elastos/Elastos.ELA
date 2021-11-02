@@ -508,6 +508,20 @@ func (s *State) GetVotedProducers() []*Producer {
 	return producers
 }
 
+// GetDposV2ActiveProducers returns all producers that in active state with votes.
+func (s *State) GetDposV2ActiveProducers() []*Producer {
+	s.mtx.RLock()
+	producers := make([]*Producer, 0, len(s.ActivityProducers))
+	for _, producer := range s.ActivityProducers {
+		// limit arbiters can only be producers who have effective dposV2 votes
+		if producer.Votes() > s.chainParams.DposV2EffectiveVotes {
+			producers = append(producers, producer)
+		}
+	}
+	s.mtx.RUnlock()
+	return producers
+}
+
 // GetCanceledProducers returns all producers that in cancel state.
 func (s *State) GetCanceledProducers() []*Producer {
 	s.mtx.RLock()

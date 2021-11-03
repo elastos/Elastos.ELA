@@ -1690,6 +1690,10 @@ func (a *arbitrators) getCandidateIndexAtRandom(height uint32, unclaimedCount, v
 	return rand.Intn(candidatesCount), nil
 }
 
+func (a *arbitrators) isDposV2Active() bool {
+	return len(a.DposV2ActiveProducer) >= a.chainParams.GeneralArbiters*3/2
+}
+
 func (a *arbitrators) updateNextArbitrators(versionHeight, height uint32) error {
 
 	if height >= a.chainParams.CRClaimDPOSNodeStartHeight {
@@ -1716,7 +1720,7 @@ func (a *arbitrators) updateNextArbitrators(versionHeight, height uint32) error 
 
 		count := a.chainParams.GeneralArbiters
 		var votedProducers []*Producer
-		if len(a.DposV2ActiveProducer) > a.chainParams.GeneralArbiters*2/3 {
+		if a.isDposV2Active() {
 			votedProducers, err = a.getRandomDposV2Producers(unclaimed)
 			if err != nil {
 				return err
@@ -1748,7 +1752,7 @@ func (a *arbitrators) updateNextArbitrators(versionHeight, height uint32) error 
 				a.nextCRCArbiters = oriNextCRCArbiters
 			})
 		} else {
-			if len(a.DposV2ActiveProducer) <= a.chainParams.GeneralArbiters*2/3 {
+			if len(a.DposV2ActiveProducer) < a.chainParams.GeneralArbiters*3/2 {
 				if height >= a.chainParams.NoCRCDPOSNodeHeight {
 					count := len(a.chainParams.CRCArbiters) + a.chainParams.GeneralArbiters
 					var newSelected bool
@@ -1848,7 +1852,7 @@ func (a *arbitrators) resetNextArbiterByCRC(versionHeight uint32, height uint32)
 		needReset = true
 	} else if versionHeight >= a.chainParams.ChangeCommitteeNewCRHeight {
 		var votedProducers []*Producer
-		if len(a.DposV2ActiveProducer) > a.chainParams.GeneralArbiters*2/3 {
+		if a.isDposV2Active() {
 			votedProducers = a.State.GetDposV2ActiveProducers()
 		} else {
 			votedProducers = a.State.GetVotedProducers()

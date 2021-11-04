@@ -11,14 +11,12 @@
 package indexers
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
-	"github.com/elastos/Elastos.ELA/core/types/transactions"
-
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/log"
 	"github.com/elastos/Elastos.ELA/core/types"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/database"
 )
 
@@ -297,30 +295,34 @@ func dbRemoveTxIndexEntries(dbTx database.Tx, block *types.Block) error {
 
 // dbFetchTx looks up the passed transaction hash in the transaction index and
 // loads it from the database.
-func dbFetchTx(dbTx database.Tx, hash *common.Uint256) (*transactions.BaseTransaction, *common.Uint256, error) {
-	// Look up the location of the transaction.
-	blockRegion, err := dbFetchTxIndexEntry(dbTx, hash)
-	if err != nil {
-		return nil, &common.EmptyHash, err
-	}
-	if blockRegion == nil {
-		return nil, &common.EmptyHash, fmt.Errorf("transaction %v not found", hash)
-	}
+func dbFetchTx(dbTx database.Tx, hash *common.Uint256) (interfaces.Transaction, *common.Uint256, error) {
 
-	// Load the raw transaction bytes from the database.
-	txBytes, err := dbTx.FetchBlockRegion(blockRegion)
-	if err != nil {
-		return nil, &common.EmptyHash, err
-	}
+	// todo refactor me
+	return nil, nil, nil
 
-	// Deserialize the transaction.
-	var txn transactions.BaseTransaction
-	err = txn.Deserialize(bytes.NewReader(txBytes))
-	if err != nil {
-		return nil, &common.EmptyHash, err
-	}
-
-	return &txn, blockRegion.Hash, nil
+	//// Look up the location of the transaction.
+	//blockRegion, err := dbFetchTxIndexEntry(dbTx, hash)
+	//if err != nil {
+	//	return nil, &common.EmptyHash, err
+	//}
+	//if blockRegion == nil {
+	//	return nil, &common.EmptyHash, fmt.Errorf("transaction %v not found", hash)
+	//}
+	//
+	//// Load the raw transaction bytes from the database.
+	//txBytes, err := dbTx.FetchBlockRegion(blockRegion)
+	//if err != nil {
+	//	return nil, &common.EmptyHash, err
+	//}
+	//
+	//// Deserialize the transaction.
+	//var txn transactions.BaseTransaction
+	//err = txn.Deserialize(bytes.NewReader(txBytes))
+	//if err != nil {
+	//	return nil, &common.EmptyHash, err
+	//}
+	//
+	//return &txn, blockRegion.Hash, nil
 }
 
 // TxIndex implements a transaction by hash index.  That is to say, it supports

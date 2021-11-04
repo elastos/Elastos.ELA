@@ -6,12 +6,39 @@
 package interfaces
 
 import (
-	"github.com/elastos/Elastos.ELA/common"
 	"io"
+
+	"github.com/elastos/Elastos.ELA/common"
+	pg "github.com/elastos/Elastos.ELA/core/contract/program"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 )
 
 type Transaction interface {
 	PayloadChecker
+
+	// get data
+	Version() common2.TransactionVersion
+	TxType() common2.TxType
+	PayloadVersion() byte
+	Payload() Payload
+	Attributes() []*common2.Attribute
+	Inputs() []*common2.Input
+	Outputs() []*common2.Output
+	LockTime() uint32
+	Programs() []*pg.Program
+	Fee() common.Fixed64
+	FeePerKB() common.Fixed64
+
+	// set data
+	SetVersion(version common2.TransactionVersion)
+	SetTxType(txType common2.TxType)
+	SetFee(fee common.Fixed64)
+	SetFeePerKB(feePerKB common.Fixed64)
+	SetAttributes(attributes []*common2.Attribute)
+	SetPayload(payload Payload)
+	SetInputs(inputs []*common2.Input)
+	SetOutputs(outputs []*common2.Output)
+	SetPrograms(programs []*pg.Program)
 
 	String() string
 	Serialize(w io.Writer) error

@@ -14,7 +14,7 @@ import (
 )
 
 type singleInputOutput struct {
-	protoTx *transactions.BaseTransaction
+	protoTx interfaces.Transaction
 }
 
 func (s *singleInputOutput) initialSize() uint64 {
@@ -32,7 +32,7 @@ func newSingleInputOutput() (*singleInputOutput, error) {
 	}, err
 }
 
-func createSingleInputOutputTx() (*transactions.BaseTransaction, error) {
+func createSingleInputOutputTx() (interfaces.Transaction, error) {
 	acc, err := account.NewAccount()
 	if err != nil {
 		return nil, err

@@ -9,8 +9,6 @@ import (
 	"bytes"
 	"encoding/hex"
 	"errors"
-	common2 "github.com/elastos/Elastos.ELA/core/types/common"
-
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/log"
 	"github.com/elastos/Elastos.ELA/core/checkpoint"
@@ -123,35 +121,26 @@ func checkBlockWithConfirmation(block *Block, confirm *payload.Confirm,
 }
 
 func PreProcessSpecialTx(block *Block) error {
-	//illegalBlocks := make([]*payload.DPOSIllegalBlocks, 0)
-	inactivePayloads := make([]*payload.InactiveArbitrators, 0)
-	for _, tx := range block.Transactions {
-		switch tx.TxType {
-		case common2.InactiveArbitrators:
-			if err := CheckInactiveArbitrators(tx); err != nil {
-				return err
-			}
-			if err := checkTransactionSignature(tx, map[*common2.Input]common2.Output{}); err != nil {
-				return err
-			}
 
-			inactivePayloads = append(inactivePayloads,
-				tx.Payload.(*payload.InactiveArbitrators))
-			//case IllegalBlockEvidence:
-			//	p, ok := tx.Payload.(*payload.DPOSIllegalBlocks)
-			//	if !ok {
-			//		return errors.New("invalid payload")
-			//	}
-			//	if err := CheckDPOSIllegalBlocks(p); err != nil {
-			//		return err
-			//	}
-			//
-			//	illegalBlocks = append(illegalBlocks, p)
-		}
-	}
 
-	//if len(illegalBlocks) != 0 {
-	//	for _, v := range illegalBlocks {
+	//inactivePayloads := make([]*payload.InactiveArbitrators, 0)
+	//for _, tx := range block.Transactions {
+	//	switch tx.TxType() {
+	//	case common2.InactiveArbitrators:
+	//		if err := CheckInactiveArbitrators(tx); err != nil {
+	//			return err
+	//		}
+	//		if err := checkTransactionSignature(tx, map[*common2.Input]common2.Output{}); err != nil {
+	//			return err
+	//		}
+	//
+	//		inactivePayloads = append(inactivePayloads,
+	//			tx.Payload().(*payload.InactiveArbitrators))
+	//	}
+	//}
+	//
+	//if len(inactivePayloads) != 0 {
+	//	for _, v := range inactivePayloads {
 	//		if err := DefaultLedger.Arbitrators.ProcessSpecialTxPayload(
 	//			v, block.Height-1); err != nil {
 	//			return errors.New("force change fail when finding an " +
@@ -159,15 +148,6 @@ func PreProcessSpecialTx(block *Block) error {
 	//		}
 	//	}
 	//}
-	if len(inactivePayloads) != 0 {
-		for _, v := range inactivePayloads {
-			if err := DefaultLedger.Arbitrators.ProcessSpecialTxPayload(
-				v, block.Height-1); err != nil {
-				return errors.New("force change fail when finding an " +
-					"inactive arbitrators transaction")
-			}
-		}
-	}
 
 	return nil
 }

@@ -7,6 +7,7 @@ package mempool
 
 import (
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/core/types/transactions"
 	"testing"
 
@@ -15,13 +16,13 @@ import (
 )
 
 var (
-	simpleGetString = func(tx *transactions.BaseTransaction) (interface{}, error) {
+	simpleGetString = func(tx interfaces.Transaction) (interface{}, error) {
 		return "simple string", nil
 	}
-	simpleGetHash = func(tx *transactions.BaseTransaction) (interface{}, error) {
+	simpleGetHash = func(tx interfaces.Transaction) (interface{}, error) {
 		return common.Uint256{}, nil
 	}
-	simpleGetProgramHash = func(tx *transactions.BaseTransaction) (interface{}, error) {
+	simpleGetProgramHash = func(tx interfaces.Transaction) (interface{}, error) {
 		return common.Uint168{}, nil
 	}
 )

@@ -10,9 +10,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	common2 "github.com/elastos/Elastos.ELA/core/types/common"
-	"github.com/elastos/Elastos.ELA/core/types/interfaces"
-	"github.com/elastos/Elastos.ELA/core/types/transactions"
 	"math"
 	"math/rand"
 	"sort"
@@ -22,8 +19,9 @@ import (
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/core/contract"
-	"github.com/elastos/Elastos.ELA/core/contract/program"
 	"github.com/elastos/Elastos.ELA/core/types"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/cr/state"
 	"github.com/elastos/Elastos.ELA/dpos/p2p/peer"
@@ -136,7 +134,7 @@ func (a *arbitrators) GetRevertToPOWBlockHeight() uint32 {
 func (a *arbitrators) RegisterFunction(bestHeight func() uint32,
 	bestBlockHash func() *common.Uint256,
 	getBlockByHeight func(uint32) (*types.Block, error),
-	getTxReference func(tx *transactions.BaseTransaction) (
+	getTxReference func(tx interfaces.Transaction) (
 		map[*common2.Input]common2.Output, error)) {
 	a.bestHeight = bestHeight
 	a.bestBlockHash = bestBlockHash
@@ -200,7 +198,7 @@ func (a *arbitrators) CheckDPOSIllegalTx(block *types.Block) error {
 
 	for _, tx := range block.Transactions {
 		if tx.IsIllegalBlockTx() {
-			foundMap[tx.Payload.(*payload.DPOSIllegalBlocks).Hash()] = true
+			foundMap[tx.Payload().(*payload.DPOSIllegalBlocks).Hash()] = true
 		}
 	}
 
@@ -570,26 +568,30 @@ func (a *arbitrators) IncreaseChainHeight(block *types.Block) {
 }
 
 func (a *arbitrators) createRevertToPOWTransaction(blockHeight uint32) {
-	var revertType payload.RevertType
-	if a.NoClaimDPOSNode {
-		revertType = payload.NoClaimDPOSNode
-	} else {
-		revertType = payload.NoProducers
-	}
-	revertToPOWPayload := payload.RevertToPOW{
-		Type:          revertType,
-		WorkingHeight: blockHeight + 1,
-	}
-	tx := &transactions.BaseTransaction{
-		Version:        common2.TxVersion09,
-		TxType:         common2.RevertToPOW,
-		PayloadVersion: payload.RevertToPOWVersion,
-		Payload:        &revertToPOWPayload,
-		Attributes:     []*common2.Attribute{},
-		Programs:       []*program.Program{},
-		LockTime:       0,
-	}
-	go events.Notify(events.ETAppendTxToTxPoolWithoutRelay, tx)
+
+	// todo refactor me
+	return
+
+	//var revertType payload.RevertType
+	//if a.NoClaimDPOSNode {
+	//	revertType = payload.NoClaimDPOSNode
+	//} else {
+	//	revertType = payload.NoProducers
+	//}
+	//revertToPOWPayload := payload.RevertToPOW{
+	//	Type:          revertType,
+	//	WorkingHeight: blockHeight + 1,
+	//}
+	//tx := &transactions.BaseTransaction{
+	//	Version:        common2.TxVersion09,
+	//	TxType:         common2.RevertToPOW,
+	//	PayloadVersion: payload.RevertToPOWVersion,
+	//	Payload:        &revertToPOWPayload,
+	//	Attributes:     []*common2.Attribute{},
+	//	Programs:       []*program.Program{},
+	//	LockTime:       0,
+	//}
+	//go events.Notify(events.ETAppendTxToTxPoolWithoutRelay, tx)
 }
 
 func (a *arbitrators) revertToPOWAtNextTurn(height uint32) {
@@ -1504,40 +1506,44 @@ func (a *arbitrators) ConvertToArbitersStr(arbiters [][]byte) []string {
 	return arbitersStr
 }
 
-func (a *arbitrators) createNextTurnDPOSInfoTransaction(blockHeight uint32, forceChange bool) *transactions.BaseTransaction {
-	var nextTurnDPOSInfo payload.NextTurnDPOSInfo
-	nextTurnDPOSInfo.CRPublicKeys = make([][]byte, 0)
-	nextTurnDPOSInfo.DPOSPublicKeys = make([][]byte, 0)
-	var workingHeight uint32
-	if forceChange {
-		workingHeight = blockHeight
-	} else {
-		workingHeight = blockHeight + uint32(a.chainParams.GeneralArbiters+len(a.chainParams.CRCArbiters))
-	}
-	nextTurnDPOSInfo.WorkingHeight = workingHeight
-	for _, v := range a.nextArbitrators {
-		if a.isNextCRCArbitrator(v.GetNodePublicKey()) {
-			if abt, ok := v.(*crcArbiter); ok && abt.crMember.MemberState != state.MemberElected {
-				nextTurnDPOSInfo.CRPublicKeys = append(nextTurnDPOSInfo.CRPublicKeys, []byte{})
-			} else {
-				nextTurnDPOSInfo.CRPublicKeys = append(nextTurnDPOSInfo.CRPublicKeys, v.GetNodePublicKey())
-			}
-		} else {
-			nextTurnDPOSInfo.DPOSPublicKeys = append(nextTurnDPOSInfo.DPOSPublicKeys, v.GetNodePublicKey())
-		}
-	}
+func (a *arbitrators) createNextTurnDPOSInfoTransaction(blockHeight uint32, forceChange bool) interfaces.Transaction {
 
-	log.Debugf("[createNextTurnDPOSInfoTransaction] CRPublicKeys %v, DPOSPublicKeys%v\n",
-		a.ConvertToArbitersStr(nextTurnDPOSInfo.CRPublicKeys), a.ConvertToArbitersStr(nextTurnDPOSInfo.DPOSPublicKeys))
+	// todo refactor me
+	return nil
 
-	return &transactions.BaseTransaction{
-		Version:    common2.TxVersion09,
-		TxType:     common2.NextTurnDPOSInfo,
-		Payload:    &nextTurnDPOSInfo,
-		Attributes: []*common2.Attribute{},
-		Programs:   []*program.Program{},
-		LockTime:   0,
-	}
+	//var nextTurnDPOSInfo payload.NextTurnDPOSInfo
+	//nextTurnDPOSInfo.CRPublicKeys = make([][]byte, 0)
+	//nextTurnDPOSInfo.DPOSPublicKeys = make([][]byte, 0)
+	//var workingHeight uint32
+	//if forceChange {
+	//	workingHeight = blockHeight
+	//} else {
+	//	workingHeight = blockHeight + uint32(a.chainParams.GeneralArbiters+len(a.chainParams.CRCArbiters))
+	//}
+	//nextTurnDPOSInfo.WorkingHeight = workingHeight
+	//for _, v := range a.nextArbitrators {
+	//	if a.isNextCRCArbitrator(v.GetNodePublicKey()) {
+	//		if abt, ok := v.(*crcArbiter); ok && abt.crMember.MemberState != state.MemberElected {
+	//			nextTurnDPOSInfo.CRPublicKeys = append(nextTurnDPOSInfo.CRPublicKeys, []byte{})
+	//		} else {
+	//			nextTurnDPOSInfo.CRPublicKeys = append(nextTurnDPOSInfo.CRPublicKeys, v.GetNodePublicKey())
+	//		}
+	//	} else {
+	//		nextTurnDPOSInfo.DPOSPublicKeys = append(nextTurnDPOSInfo.DPOSPublicKeys, v.GetNodePublicKey())
+	//	}
+	//}
+	//
+	//log.Debugf("[createNextTurnDPOSInfoTransaction] CRPublicKeys %v, DPOSPublicKeys%v\n",
+	//	a.ConvertToArbitersStr(nextTurnDPOSInfo.CRPublicKeys), a.ConvertToArbitersStr(nextTurnDPOSInfo.DPOSPublicKeys))
+	//
+	//return &transactions.BaseTransaction{
+	//	Version:    common2.TxVersion09,
+	//	TxType:     common2.NextTurnDPOSInfo,
+	//	Payload:    &nextTurnDPOSInfo,
+	//	Attributes: []*common2.Attribute{},
+	//	Programs:   []*program.Program{},
+	//	LockTime:   0,
+	//}
 }
 
 func (a *arbitrators) updateNextTurnInfo(height uint32, producers []ArbiterMember, unclaimed int) {
@@ -2155,7 +2161,7 @@ func (a *arbitrators) dumpInfo(height uint32) {
 func (a *arbitrators) getBlockDPOSReward(block *types.Block) common.Fixed64 {
 	totalTxFx := common.Fixed64(0)
 	for _, tx := range block.Transactions {
-		totalTxFx += tx.Fee
+		totalTxFx += tx.Fee()
 	}
 
 	return common.Fixed64(math.Ceil(float64(totalTxFx+

@@ -12,13 +12,13 @@ package indexers
 import (
 	"bytes"
 	"fmt"
-	common2 "github.com/elastos/Elastos.ELA/core/types/common"
-	"github.com/elastos/Elastos.ELA/core/types/transactions"
 
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/common/log"
 	"github.com/elastos/Elastos.ELA/core/types"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/database"
 )
 
@@ -474,7 +474,7 @@ func (m *Manager) DisconnectBlock(dbTx database.Tx, block *types.Block) error {
 	return nil
 }
 
-func (m *Manager) FetchTx(txID common.Uint256) (*transactions.BaseTransaction, uint32, error) {
+func (m *Manager) FetchTx(txID common.Uint256) (interfaces.Transaction, uint32, error) {
 	return m.txStore.FetchTx(txID)
 }
 

@@ -6,12 +6,12 @@
 package bloom
 
 import (
-	common2 "github.com/elastos/Elastos.ELA/core/types/common"
-	"github.com/elastos/Elastos.ELA/core/types/transactions"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"math"
 	"sync"
 
 	"github.com/elastos/Elastos.ELA/common"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/p2p/msg"
 )
 
@@ -250,7 +250,7 @@ func (bf *Filter) AddOutPoint(outpoint *common2.OutPoint) {
 // update flags set via the loaded filter if needed.
 //
 // This function MUST be called with the filter lock held.
-func (bf *Filter) matchTxAndUpdate(txn *transactions.BaseTransaction) bool {
+func (bf *Filter) matchTxAndUpdate(txn interfaces.Transaction) bool {
 	// Check if the filter matches the hash of the tx.
 	// This is useful for finding transactions when they appear in a block.
 	hash := txn.Hash()
@@ -258,7 +258,7 @@ func (bf *Filter) matchTxAndUpdate(txn *transactions.BaseTransaction) bool {
 
 	// Check if the filter is a side chain SPV filter
 	if bf.msg.Tweak == math.MaxUint32 {
-		for _, txOut := range txn.Outputs {
+		for _, txOut := range txn.Outputs() {
 			if bf.matches(txOut.ProgramHash[:]) {
 				return true
 			}
@@ -266,7 +266,7 @@ func (bf *Filter) matchTxAndUpdate(txn *transactions.BaseTransaction) bool {
 		return false
 	}
 
-	for i, txOut := range txn.Outputs {
+	for i, txOut := range txn.Outputs() {
 		if !bf.matches(txOut.ProgramHash[:]) {
 			continue
 		}
@@ -284,7 +284,7 @@ func (bf *Filter) matchTxAndUpdate(txn *transactions.BaseTransaction) bool {
 	// public key scripts of its outputs matched.
 
 	// Check if the filter matches any outpoints this tx spends
-	for _, txIn := range txn.Inputs {
+	for _, txIn := range txn.Inputs() {
 		if bf.matchesOutPoint(&txIn.Previous) {
 			return true
 		}
@@ -299,7 +299,7 @@ func (bf *Filter) matchTxAndUpdate(txn *transactions.BaseTransaction) bool {
 // update flags set via the loaded filter if needed.
 //
 // This function is safe for concurrent access.
-func (bf *Filter) MatchTxAndUpdate(tx *transactions.BaseTransaction) bool {
+func (bf *Filter) MatchTxAndUpdate(tx interfaces.Transaction) bool {
 	bf.mtx.Lock()
 	match := bf.matchTxAndUpdate(tx)
 	bf.mtx.Unlock()

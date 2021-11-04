@@ -8,11 +8,12 @@ package types
 import (
 	"bytes"
 	"errors"
-	common2 "github.com/elastos/Elastos.ELA/core/types/common"
-	"github.com/elastos/Elastos.ELA/core/types/transactions"
 	"io"
 
 	"github.com/elastos/Elastos.ELA/common"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
+	"github.com/elastos/Elastos.ELA/core/types/transactions"
 )
 
 // TxLoc holds locator data for the offset and length of where a transaction is
@@ -24,7 +25,7 @@ type TxLoc struct {
 
 type Block struct {
 	common2.Header
-	Transactions []*transactions.BaseTransaction
+	Transactions []interfaces.Transaction
 }
 
 func (b *Block) Serialize(w io.Writer) error {
@@ -81,7 +82,7 @@ func (b *Block) DeserializeTxLoc(r *bytes.Buffer) ([]TxLoc, error) {
 
 	// Deserialize each transaction while keeping track of its location
 	// within the byte stream.
-	b.Transactions = make([]*transactions.BaseTransaction, 0, txCount)
+	b.Transactions = make([]interfaces.Transaction, 0, txCount)
 	txLocs := make([]TxLoc, txCount)
 	for i := uint32(0); i < txCount; i++ {
 		txLocs[i].TxStart = fullLen - r.Len()

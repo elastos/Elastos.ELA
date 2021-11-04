@@ -39,14 +39,14 @@ func (r *TxRepository) SetFoundationUTXO(utxo *common2.UTXO) {
 }
 
 func (r *TxRepository) GeneratePressureTxs(
-	height uint32, size int) (txs []*transactions.BaseTransaction, err error) {
+	height uint32, size int) (txs []interfaces.Transaction, err error) {
 	if height <= r.params.PrepareStartHeight {
 		return
 	}
 
 	totalTxSize := 0
-	var txn *transactions.BaseTransaction
-	txs = make([]*transactions.BaseTransaction, 0)
+	var txn interfaces.Transaction
+	txs = make([]interfaces.Transaction, 0)
 	for {
 		txn, err = r.generateTx()
 		if err != nil {
@@ -66,7 +66,7 @@ func (r *TxRepository) GeneratePressureTxs(
 }
 
 func (r *TxRepository) GenerateTxs(
-	height uint32) (txs []*transactions.BaseTransaction, err error) {
+	height uint32) (txs []interfaces.Transaction, err error) {
 	if height <= r.params.PrepareStartHeight {
 		return
 	}
@@ -74,8 +74,8 @@ func (r *TxRepository) GenerateTxs(
 	refCount := r.calculateRefCount(height)
 
 	// tx consume UTXOs
-	var txn *transactions.BaseTransaction
-	txs = make([]*transactions.BaseTransaction, 0, refCount+1)
+	var txn interfaces.Transaction
+	txs = make([]interfaces.Transaction, 0, refCount+1)
 	for i := uint32(0); i < refCount; i++ {
 		txn, err = r.generateTx()
 		if err != nil {
@@ -248,7 +248,7 @@ func (r *TxRepository) deserializeAccount(
 	return account.NewAccountWithPrivateKey(priBuf)
 }
 
-func (r *TxRepository) updateByAllocateFundTx(allocTx *transactions.BaseTransaction) {
+func (r *TxRepository) updateByAllocateFundTx(allocTx interfaces.Transaction) {
 	r.appendUTXOs(allocTx, len(allocTx.Outputs)-1)
 
 	r.foundationUTXO = common2.UTXO{
@@ -258,13 +258,13 @@ func (r *TxRepository) updateByAllocateFundTx(allocTx *transactions.BaseTransact
 	}
 }
 
-func (r *TxRepository) updateUTXOs(txns []*transactions.BaseTransaction) {
+func (r *TxRepository) updateUTXOs(txns []interfaces.Transaction) {
 	for _, txn := range txns {
 		r.appendUTXOs(txn, 0)
 	}
 }
 
-func (r *TxRepository) appendUTXOs(txn *transactions.BaseTransaction, utxoCount int) {
+func (r *TxRepository) appendUTXOs(txn interfaces.Transaction, utxoCount int) {
 	for i, o := range txn.Outputs {
 		if utxoCount != 0 && i >= utxoCount {
 			break
@@ -285,7 +285,7 @@ func (r *TxRepository) appendUTXOs(txn *transactions.BaseTransaction, utxoCount 
 }
 
 func (r *TxRepository) allocateFromFoundation(inCount uint32) (
-	transaction *transactions.BaseTransaction, err error) {
+	transaction interfaces.Transaction, err error) {
 	accounts := make([]*account.Account, 0, inCount)
 	for i := uint32(0); i < inCount; i++ {
 		ac := r.randomAccount()
@@ -299,7 +299,7 @@ func (r *TxRepository) allocateFromFoundation(inCount uint32) (
 	return
 }
 
-func (r *TxRepository) generateTx() (txn *transactions.BaseTransaction, err error) {
+func (r *TxRepository) generateTx() (txn interfaces.Transaction, err error) {
 	outAccount := r.randomAccount()
 	// todo generate tx by random tx types later
 	generator := tx.NewGenerator(common2.TransferAsset, outAccount)

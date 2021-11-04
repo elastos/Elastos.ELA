@@ -10,6 +10,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/core/types/transactions"
 	"math/big"
 	math "math/rand"
@@ -88,7 +89,7 @@ func (a *multiAccount) Sign(data []byte) ([]byte, error) {
 }
 
 func TestCheckCheckSigSignature(t *testing.T) {
-	var tx *transactions.BaseTransaction
+	var tx interfaces.Transaction
 
 	tx = buildTx()
 	data := getData(tx)
@@ -122,7 +123,7 @@ func TestCheckCheckSigSignature(t *testing.T) {
 }
 
 func TestCheckMultiSigSignature(t *testing.T) {
-	var tx *transactions.BaseTransaction
+	var tx interfaces.Transaction
 
 	tx = buildTx()
 	data := getData(tx)
@@ -291,7 +292,7 @@ func TestSchnorrRunProgramsOrigin(t *testing.T) {
 		publicKey1, _ := crypto.DecodePoint(pk[:])
 		fmt.Println(publicKey1)
 		//var err error
-		var tx *transactions.BaseTransaction
+		var tx interfaces.Transaction
 		//var acts []act
 		var hashes []common.Uint168
 		var programs []*program.Program
@@ -525,7 +526,7 @@ func TestAggregateSignatures(t *testing.T) {
 
 func TestSchnorrRunPrograms(t *testing.T) {
 	var err error
-	var tx *transactions.BaseTransaction
+	var tx interfaces.Transaction
 	var hashes []common.Uint168
 	var programs []*program.Program
 	var acts []act
@@ -566,7 +567,7 @@ func TestSchnorrRunPrograms(t *testing.T) {
 
 func TestRunPrograms(t *testing.T) {
 	var err error
-	var tx *transactions.BaseTransaction
+	var tx interfaces.Transaction
 	var acts []act
 	var hashes []common.Uint168
 	var programs []*program.Program
@@ -779,7 +780,7 @@ func newMultiAccount(num int, t *testing.T) *multiAccount {
 	return ma
 }
 
-func buildTx() *transactions.BaseTransaction {
+func buildTx() interfaces.Transaction {
 	tx := new(transactions.BaseTransaction)
 	tx.TxType = common2.TransferAsset
 	tx.Payload = new(payload.TransferAsset)
@@ -820,7 +821,7 @@ func randomOutputs() []*common2.Output {
 	return outputs
 }
 
-func getData(tx *transactions.BaseTransaction) []byte {
+func getData(tx interfaces.Transaction) []byte {
 	buf := new(bytes.Buffer)
 	tx.SerializeUnsigned(buf)
 	return buf.Bytes()

@@ -136,6 +136,8 @@ func ReadMessage(r net.Conn, magic uint32, timeout time.Duration,
 	}
 
 	// Deserialize message
+	// todo refactor me
+
 	if err := msg.Deserialize(bytes.NewBuffer(payload)); err != nil {
 		return nil, fmt.Errorf("deserialize message %s failed %s", msg.CMD(), err.Error())
 	}

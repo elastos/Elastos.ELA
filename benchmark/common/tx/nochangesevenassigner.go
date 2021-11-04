@@ -22,7 +22,7 @@ type noChangesEvenAssigner struct {
 	utxo    *common2.UTXO
 }
 
-func (a *noChangesEvenAssigner) SignAndChange(tx *transactions.BaseTransaction) error {
+func (a *noChangesEvenAssigner) SignAndChange(tx interfaces.Transaction) error {
 	tx.Inputs = []*common2.Input{
 		{
 			Previous: common2.OutPoint{

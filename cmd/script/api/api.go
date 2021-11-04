@@ -56,11 +56,11 @@ var exports = map[string]lua.LGFunction{
 
 func outputTx(L *lua.LState) int {
 	txn := checkTransaction(L, 1)
-	if len(txn.Programs) == 0 {
+	if len(txn.Programs()) == 0 {
 		fmt.Println("no program found in transaction")
 		os.Exit(1)
 	}
-	haveSign, needSign, _ := crypto.GetSignStatus(txn.Programs[0].Code, txn.Programs[0].Parameter)
+	haveSign, needSign, _ := crypto.GetSignStatus(txn.Programs()[0].Code, txn.Programs()[0].Parameter)
 	fmt.Println("[", haveSign, "/", needSign, "] BaseTransaction was successfully signed")
 	wallet.OutputTx(haveSign, needSign, txn)
 

@@ -94,19 +94,19 @@ func (idx *Tx3Index) Create(dbTx database.Tx) error {
 // This is part of the Indexer interface.
 func (idx *Tx3Index) ConnectBlock(dbTx database.Tx, block *types.Block) error {
 	for _, txn := range block.Transactions {
-		if txn.TxType != common2.WithdrawFromSideChain {
+		if txn.TxType() != common2.WithdrawFromSideChain {
 			continue
 		}
-		if txn.PayloadVersion == payload.WithdrawFromSideChainVersion {
-			witPayload := txn.Payload.(*payload.WithdrawFromSideChain)
+		if txn.PayloadVersion() == payload.WithdrawFromSideChainVersion {
+			witPayload := txn.Payload().(*payload.WithdrawFromSideChain)
 			for _, hash := range witPayload.SideChainTransactionHashes {
 				err := dbPutTx3IndexEntry(dbTx, &hash)
 				if err != nil {
 					return err
 				}
 			}
-		} else if txn.PayloadVersion == payload.WithdrawFromSideChainVersionV1 {
-			for _, output := range txn.Outputs {
+		} else if txn.PayloadVersion() == payload.WithdrawFromSideChainVersionV1 {
+			for _, output := range txn.Outputs() {
 				if output.Type != common2.OTWithdrawFromSideChain {
 					continue
 				}
@@ -131,10 +131,10 @@ func (idx *Tx3Index) ConnectBlock(dbTx database.Tx, block *types.Block) error {
 // This is part of the Indexer interface.
 func (idx *Tx3Index) DisconnectBlock(dbTx database.Tx, block *types.Block) error {
 	for _, txn := range block.Transactions {
-		if txn.TxType != common2.WithdrawFromSideChain {
+		if txn.TxType() != common2.WithdrawFromSideChain {
 			continue
 		}
-		witPayload := txn.Payload.(*payload.WithdrawFromSideChain)
+		witPayload := txn.Payload().(*payload.WithdrawFromSideChain)
 		for _, hash := range witPayload.SideChainTransactionHashes {
 			err := dbRemoveTx3IndexEntry(dbTx, &hash)
 			if err != nil {

@@ -62,8 +62,8 @@ func (bm *BlockPool) AddDposBlock(dposBlock *types.DposBlock) (bool, bool, error
 	if dposBlock.Block.Height >= bm.chainParams.CRCOnlyDPOSHeight {
 		if dposBlock.Block.Height >= bm.chainParams.CRCommitteeStartHeight {
 			if len(dposBlock.Block.Transactions) > 0 &&
-				len(dposBlock.Block.Transactions[0].Outputs) >= 1 &&
-				dposBlock.Block.Transactions[0].Outputs[0].ProgramHash.
+				len(dposBlock.Block.Transactions[0].Outputs()) >= 1 &&
+				dposBlock.Block.Transactions[0].Outputs()[0].ProgramHash.
 					IsEqual(bm.chainParams.DestroyELAAddress) {
 				return bm.Chain.ProcessBlock(dposBlock.Block, dposBlock.Confirm)
 			}

@@ -24,7 +24,7 @@ type fixAmountAssigner struct {
 	utxo    *common2.UTXO
 }
 
-func (a *fixAmountAssigner) SignAndChange(tx *transactions.BaseTransaction) error {
+func (a *fixAmountAssigner) SignAndChange(tx interfaces.Transaction) error {
 	tx.Inputs = []*common2.Input{
 		{
 			Previous: common2.OutPoint{

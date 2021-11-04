@@ -24,7 +24,7 @@ func (a *IllegalProposalTransaction) SpecialCheck(para *interfaces.CheckParamete
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("tx already exists")), true
 	}
 
-	if err := a.CheckDPOSIllegalProposals(a.Payload.(*payload.DPOSIllegalProposals), para); err != nil {
+	if err := a.CheckDPOSIllegalProposals(a.payload.(*payload.DPOSIllegalProposals), para); err != nil {
 		return elaerr.Simple(elaerr.ErrTxPayload, err), true
 	}
 

@@ -8,7 +8,7 @@ package state
 import (
 	"fmt"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
-	"github.com/elastos/Elastos.ELA/core/types/transactions"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
@@ -595,9 +595,9 @@ func (p *ProposalManager) delProposal(did common.Uint168,
 }
 
 // registerProposal will register proposal state in proposal manager
-func (p *ProposalManager) registerProposal(tx *transactions.BaseTransaction,
+func (p *ProposalManager) registerProposal(tx interfaces.Transaction,
 	height uint32, currentsSession uint64, history *utils.History) {
-	proposal := tx.Payload.(*payload.CRCProposal)
+	proposal := tx.Payload().(*payload.CRCProposal)
 	//The number of the proposals of the committee can not more than 128
 	if p.isProposalFull(proposal.CRCouncilMemberDID) {
 		return
@@ -612,9 +612,9 @@ func (p *ProposalManager) registerProposal(tx *transactions.BaseTransaction,
 	}
 	proposalState := &ProposalState{
 		Status:              Registered,
-		Proposal:            proposal.ToProposalInfo(tx.PayloadVersion),
+		Proposal:            proposal.ToProposalInfo(tx.PayloadVersion()),
 		TxHash:              tx.Hash(),
-		TxPayloadVer:        tx.PayloadVersion,
+		TxPayloadVer:        tx.PayloadVersion(),
 		CRVotes:             map[common.Uint168]payload.VoteResult{},
 		VotersRejectAmount:  common.Fixed64(0),
 		RegisterHeight:      height,
@@ -629,10 +629,10 @@ func (p *ProposalManager) registerProposal(tx *transactions.BaseTransaction,
 		Recipient:           proposal.Recipient,
 	}
 	crCouncilMemberDID := proposal.CRCouncilMemberDID
-	hash := proposal.Hash(tx.PayloadVersion)
+	hash := proposal.Hash(tx.PayloadVersion())
 
 	history.Append(height, func() {
-		hash := proposal.Hash(tx.PayloadVersion)
+		hash := proposal.Hash(tx.PayloadVersion())
 		log.Debug("registerProposal hash", hash.String())
 		p.Proposals[hash] = proposalState
 		p.addProposal(crCouncilMemberDID, hash)
@@ -640,9 +640,9 @@ func (p *ProposalManager) registerProposal(tx *transactions.BaseTransaction,
 			p.ProposalSession[currentsSession] = make([]common.Uint256, 0)
 		}
 		p.ProposalSession[currentsSession] =
-			append(p.ProposalSession[currentsSession], proposal.Hash(tx.PayloadVersion))
+			append(p.ProposalSession[currentsSession], proposal.Hash(tx.PayloadVersion()))
 	}, func() {
-		delete(p.Proposals, proposal.Hash(tx.PayloadVersion))
+		delete(p.Proposals, proposal.Hash(tx.PayloadVersion()))
 		p.delProposal(crCouncilMemberDID, hash)
 		if len(p.ProposalSession[currentsSession]) == 1 {
 			delete(p.ProposalSession, currentsSession)
@@ -710,9 +710,9 @@ func getCIDByPublicKey(publicKey []byte) (*common.Uint168, error) {
 	return ct.ToProgramHash(), nil
 }
 
-func (p *ProposalManager) proposalReview(tx *transactions.BaseTransaction,
+func (p *ProposalManager) proposalReview(tx interfaces.Transaction,
 	height uint32, history *utils.History) {
-	proposalReview := tx.Payload.(*payload.CRCProposalReview)
+	proposalReview := tx.Payload().(*payload.CRCProposalReview)
 	proposalState := p.getProposal(proposalReview.ProposalHash)
 	if proposalState == nil {
 		return
@@ -730,9 +730,9 @@ func (p *ProposalManager) proposalReview(tx *transactions.BaseTransaction,
 	})
 }
 
-func (p *ProposalManager) proposalWithdraw(tx *transactions.BaseTransaction,
+func (p *ProposalManager) proposalWithdraw(tx interfaces.Transaction,
 	height uint32, history *utils.History) {
-	withdrawPayload := tx.Payload.(*payload.CRCProposalWithdraw)
+	withdrawPayload := tx.Payload().(*payload.CRCProposalWithdraw)
 	proposalState := p.getProposal(withdrawPayload.ProposalHash)
 	if proposalState == nil {
 		return
@@ -756,7 +756,7 @@ func (p *ProposalManager) proposalWithdraw(tx *transactions.BaseTransaction,
 				proposalState.BudgetsStatus[k] = Withdrawn
 			}
 		}
-		if tx.PayloadVersion == payload.CRCProposalWithdrawVersion01 {
+		if tx.PayloadVersion() == payload.CRCProposalWithdrawVersion01 {
 			p.WithdrawableTxInfo[tx.Hash()] = common2.OutputInfo{
 				Recipient: withdrawPayload.Recipient,
 				Amount:    withdrawPayload.Amount,
@@ -767,15 +767,15 @@ func (p *ProposalManager) proposalWithdraw(tx *transactions.BaseTransaction,
 			delete(proposalState.WithdrawnBudgets, k)
 		}
 		proposalState.BudgetsStatus = oriBudgetsStatus
-		if tx.PayloadVersion == payload.CRCProposalWithdrawVersion01 {
+		if tx.PayloadVersion() == payload.CRCProposalWithdrawVersion01 {
 			delete(p.WithdrawableTxInfo, tx.Hash())
 		}
 	})
 }
 
-func (p *ProposalManager) proposalTracking(tx *transactions.BaseTransaction,
+func (p *ProposalManager) proposalTracking(tx interfaces.Transaction,
 	height uint32, history *utils.History) (unusedBudget common.Fixed64) {
-	proposalTracking := tx.Payload.(*payload.CRCProposalTracking)
+	proposalTracking := tx.Payload().(*payload.CRCProposalTracking)
 	proposalState := p.getProposal(proposalTracking.ProposalHash)
 	if proposalState == nil {
 		return

@@ -8,8 +8,8 @@ package bloom
 import (
 	"bytes"
 	"fmt"
-	"github.com/elastos/Elastos.ELA/core/types/transactions"
 
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/elanet/filter"
 	"github.com/elastos/Elastos.ELA/p2p/msg"
 )
@@ -40,11 +40,11 @@ func (f *TxFilter) Add(filter []byte) error {
 	return nil
 }
 
-func (f *TxFilter) MatchConfirmed(tx *transactions.BaseTransaction) bool {
+func (f *TxFilter) MatchConfirmed(tx interfaces.Transaction) bool {
 	return f.filter.MatchTxAndUpdate(tx)
 }
 
-func (f *TxFilter) MatchUnconfirmed(tx *transactions.BaseTransaction) bool {
+func (f *TxFilter) MatchUnconfirmed(tx interfaces.Transaction) bool {
 	return f.filter.MatchTxAndUpdate(tx)
 }
 

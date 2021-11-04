@@ -16,7 +16,7 @@ import (
 func TestCheckAssetPrecision(t *testing.T) {
 	tx := buildTx()
 	// valid precision
-	for _, output := range tx.Outputs {
+	for _, output := range tx.Outputs() {
 		output.AssetID = config.ELAAssetID
 		output.ProgramHash = common.Uint168{}
 		output.Value = 123456789876
@@ -24,7 +24,7 @@ func TestCheckAssetPrecision(t *testing.T) {
 	err := checkAssetPrecision(tx)
 	assert.NoError(t, err)
 
-	for _, output := range tx.Outputs {
+	for _, output := range tx.Outputs() {
 		output.AssetID = config.ELAAssetID
 		output.ProgramHash = common.Uint168{}
 		output.Value = 0

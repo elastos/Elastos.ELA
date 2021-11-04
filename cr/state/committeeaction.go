@@ -7,12 +7,12 @@ package state
 
 import (
 	"bytes"
-	common2 "github.com/elastos/Elastos.ELA/core/types/common"
-	"github.com/elastos/Elastos.ELA/core/types/transactions"
 	"math"
 	"sort"
 
 	"github.com/elastos/Elastos.ELA/common"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/core/types/outputpayload"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/utils"
@@ -21,8 +21,8 @@ import (
 // processTransactions takes the transactions and the height when they have been
 // packed into a block.  Then loop through the transactions to update CR
 // state and votes according to transactions content.
-func (c *Committee) processTransactions(txs []*transactions.BaseTransaction, height uint32) {
-	sortedTxs := make([]*transactions.BaseTransaction, 0)
+func (c *Committee) processTransactions(txs []interfaces.Transaction, height uint32) {
+	sortedTxs := make([]interfaces.Transaction, 0)
 	if len(txs) < 1 {
 		return
 	}
@@ -61,7 +61,7 @@ func (c *Committee) processTransactions(txs []*transactions.BaseTransaction, hei
 }
 
 // sortTransactions purpose is to process some transaction first.
-func sortTransactions(txs []*transactions.BaseTransaction) {
+func sortTransactions(txs []interfaces.Transaction) {
 	sort.Slice(txs, func(i, j int) bool {
 		if txs[i].IsCRCProposalWithdrawTx() {
 			return true
@@ -73,20 +73,20 @@ func sortTransactions(txs []*transactions.BaseTransaction) {
 // processTransaction take a transaction and the height it has been packed into
 // a block, then update producers state and votes according to the transaction
 // content.
-func (c *Committee) processTransaction(tx *transactions.BaseTransaction, height uint32) {
+func (c *Committee) processTransaction(tx interfaces.Transaction, height uint32) {
 
 	// prioritize cancel votes
 	c.processCancelVotes(tx, height)
 
-	switch tx.TxType {
+	switch tx.TxType() {
 	case common2.RegisterCR:
 		c.state.registerCR(tx, height)
 
 	case common2.UpdateCR:
-		c.state.updateCR(tx.Payload.(*payload.CRInfo), height)
+		c.state.updateCR(tx.Payload().(*payload.CRInfo), height)
 
 	case common2.UnregisterCR:
-		c.state.unregisterCR(tx.Payload.(*payload.UnregisterCR), height)
+		c.state.unregisterCR(tx.Payload().(*payload.UnregisterCR), height)
 
 	case common2.TransferAsset:
 		c.processVotes(tx, height)
@@ -119,14 +119,14 @@ func (c *Committee) processTransaction(tx *transactions.BaseTransaction, height 
 		c.activateProducer(tx, height, c.state.history)
 	}
 
-	if tx.TxType != common2.RegisterCR {
+	if tx.TxType() != common2.RegisterCR {
 		c.state.processDeposit(tx, height)
 	}
 	c.processCRCAddressRelatedTx(tx, height)
 }
 
 // proposalTracking deal with CRC proposal transaction.
-func (c *Committee) proposalTracking(tx *transactions.BaseTransaction, height uint32) {
+func (c *Committee) proposalTracking(tx interfaces.Transaction, height uint32) {
 	unusedBudget := c.manager.proposalTracking(tx, height, c.state.history)
 	c.state.history.Append(height, func() {
 		c.CRCCommitteeUsedAmount -= unusedBudget
@@ -137,9 +137,9 @@ func (c *Committee) proposalTracking(tx *transactions.BaseTransaction, height ui
 
 // processVotes takes a transaction, if the transaction including any vote
 // outputs, validate and update CR votes.
-func (c *Committee) processVotes(tx *transactions.BaseTransaction, height uint32) {
-	if tx.Version >= common2.TxVersion09 {
-		for i, output := range tx.Outputs {
+func (c *Committee) processVotes(tx interfaces.Transaction, height uint32) {
+	if tx.Version() >= common2.TxVersion09 {
+		for i, output := range tx.Outputs() {
 			if output.Type != common2.OTVote {
 				continue
 			}
@@ -191,9 +191,9 @@ func (c *Committee) processVoteOutput(output *common2.Output, height uint32) {
 
 // processCancelVotes takes a transaction, if the transaction takes a previous
 // vote output then try to subtract the vote.
-func (c *Committee) processCancelVotes(tx *transactions.BaseTransaction, height uint32) {
+func (c *Committee) processCancelVotes(tx interfaces.Transaction, height uint32) {
 	var exist bool
-	for _, input := range tx.Inputs {
+	for _, input := range tx.Inputs() {
 		referKey := input.ReferKey()
 		if _, ok := c.state.Votes[referKey]; ok {
 			exist = true
@@ -208,7 +208,7 @@ func (c *Committee) processCancelVotes(tx *transactions.BaseTransaction, height 
 		log.Errorf("get tx reference failed, tx hash:%s", common.ToReversedString(tx.Hash()))
 		return
 	}
-	for _, input := range tx.Inputs {
+	for _, input := range tx.Inputs() {
 		referKey := input.ReferKey()
 		_, ok := c.state.Votes[referKey]
 		if ok {
@@ -287,9 +287,9 @@ func (c *Committee) processCancelImpeachment(height uint32, member []byte,
 
 // processCRCRelatedAmount takes a transaction, if the transaction takes a previous
 // output to CRC related address then try to subtract the vote.
-func (c *Committee) processCRCAddressRelatedTx(tx *transactions.BaseTransaction, height uint32) {
+func (c *Committee) processCRCAddressRelatedTx(tx interfaces.Transaction, height uint32) {
 	if tx.IsCRCProposalTx() {
-		proposal := tx.Payload.(*payload.CRCProposal)
+		proposal := tx.Payload().(*payload.CRCProposal)
 		var budget common.Fixed64
 		for _, b := range proposal.Budgets {
 			budget += b.Amount
@@ -301,7 +301,7 @@ func (c *Committee) processCRCAddressRelatedTx(tx *transactions.BaseTransaction,
 		})
 	}
 
-	for _, input := range tx.Inputs {
+	for _, input := range tx.Inputs() {
 		if amount, ok := c.state.CRCFoundationOutputs[input.Previous.ReferKey()]; ok {
 			c.state.history.Append(height, func() {
 				c.CRAssetsAddressUTXOCount--
@@ -319,7 +319,7 @@ func (c *Committee) processCRCAddressRelatedTx(tx *transactions.BaseTransaction,
 		}
 	}
 
-	for _, output := range tx.Outputs {
+	for _, output := range tx.Outputs() {
 		amount := output.Value
 		if output.ProgramHash.IsEqual(c.params.CRAssetsAddress) {
 			c.state.history.Append(height, func() {

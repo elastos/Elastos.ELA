@@ -65,7 +65,7 @@ var (
 )
 
 type UtxoCacheDB struct {
-	transactions map[common.Uint256]*transactions.BaseTransaction
+	transactions map[common.Uint256]interfaces.Transaction
 }
 
 func init() {
@@ -73,7 +73,7 @@ func init() {
 }
 
 func (s *UtxoCacheDB) GetTransaction(txID common.Uint256) (
-	*transactions.BaseTransaction, uint32, error) {
+	interfaces.Transaction, uint32, error) {
 	txn, exist := s.transactions[txID]
 	if exist {
 		return txn, 0, nil
@@ -81,7 +81,7 @@ func (s *UtxoCacheDB) GetTransaction(txID common.Uint256) (
 	return nil, 0, errors.New("leveldb: not found")
 }
 
-func (s *UtxoCacheDB) SetTransaction(txn *transactions.BaseTransaction) {
+func (s *UtxoCacheDB) SetTransaction(txn interfaces.Transaction) {
 	s.transactions[txn.Hash()] = txn
 }
 
@@ -91,7 +91,7 @@ func (s *UtxoCacheDB) RemoveTransaction(txID common.Uint256) {
 
 func NewUtxoCacheDB() *UtxoCacheDB {
 	var db UtxoCacheDB
-	db.transactions = make(map[common.Uint256]*transactions.BaseTransaction)
+	db.transactions = make(map[common.Uint256]interfaces.Transaction)
 	return &db
 }
 

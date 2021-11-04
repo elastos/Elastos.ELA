@@ -7,12 +7,14 @@ package mock
 
 import (
 	"fmt"
-	"github.com/elastos/Elastos.ELA/core/types/transactions"
+	"io"
 	"time"
 
 	"github.com/elastos/Elastos.ELA/blockchain"
 	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/core/types"
+	"github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/mempool"
 	"github.com/elastos/Elastos.ELA/p2p"
 	"github.com/elastos/Elastos.ELA/p2p/msg"
@@ -29,7 +31,12 @@ type PeerMock interface {
 
 func NewPeerMock(params *config.Params) PeerMock {
 	p := &peerMock{
-		TxPool:    mempool.NewTxPool(params),
+		TxPool: mempool.NewTxPool(params,
+			func(txType common.TxType) (interfaces.Transaction, error) {
+				return nil, nil
+			}, func(r io.Reader) (interfaces.Transaction, error) {
+				return nil, nil
+			}),
 		BlockPool: mempool.NewBlockPool(params),
 		relayList: make([]p2p.Message, 0),
 	}
@@ -52,9 +59,9 @@ func (n *peerMock) DumpRelays(level uint32) string {
 	case 0:
 		for _, v := range n.relayList {
 			if m, ok := v.(*msg.Tx); ok {
-				tx := m.Serializable.(*transactions.BaseTransaction)
+				tx := m.Serializable.(interfaces.Transaction)
 				result += fmt.Sprintf("[transaction]: type=%s",
-					tx.TxType.Name())
+					tx.TxType().Name())
 			} else if m, ok := v.(*msg.Block); ok {
 				block := m.Serializable.(*types.DposBlock)
 				result += fmt.Sprintf("[block confirm]: HasBlock=%t"+

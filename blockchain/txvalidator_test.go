@@ -1111,7 +1111,7 @@ func (s *txValidatorTestSuite) TestCheckUpdateProducerTransaction() {
 		CreateCRAppropriationTransaction: s.Chain.CreateCRCAppropriationTransaction,
 	})
 	block := &types.Block{
-		Transactions: []*transactions.BaseTransaction{
+		Transactions: []interfaces.Transaction{
 			txn,
 		},
 		Header: common2.Header{Height: s.CurrentHeight},
@@ -1446,7 +1446,7 @@ func getCID(code []byte) *common.Uint168 {
 }
 
 func (s *txValidatorTestSuite) getRegisterCRTx(publicKeyStr, privateKeyStr,
-	nickName string, payloadVersion byte, did *common.Uint168) *transactions.BaseTransaction {
+	nickName string, payloadVersion byte, did *common.Uint168) interfaces.Transaction {
 
 	publicKeyStr1 := publicKeyStr
 	privateKeyStr1 := privateKeyStr
@@ -1494,7 +1494,7 @@ func (s *txValidatorTestSuite) getRegisterCRTx(publicKeyStr, privateKeyStr,
 }
 
 func (s *txValidatorTestSuite) getMultiSigRegisterCRTx(
-	publicKeyStrs, privateKeyStrs []string, nickName string) *transactions.BaseTransaction {
+	publicKeyStrs, privateKeyStrs []string, nickName string) interfaces.Transaction {
 
 	var publicKeys []*crypto.PublicKey
 	for _, publicKeyStr := range publicKeyStrs {
@@ -1547,7 +1547,7 @@ func (s *txValidatorTestSuite) getMultiSigRegisterCRTx(
 	return txn
 }
 
-func (s *txValidatorTestSuite) getUpdateCRTx(publicKeyStr, privateKeyStr, nickName string) *transactions.BaseTransaction {
+func (s *txValidatorTestSuite) getUpdateCRTx(publicKeyStr, privateKeyStr, nickName string) interfaces.Transaction {
 
 	publicKeyStr1 := publicKeyStr
 	privateKeyStr1 := privateKeyStr
@@ -1581,7 +1581,7 @@ func (s *txValidatorTestSuite) getUpdateCRTx(publicKeyStr, privateKeyStr, nickNa
 	return txn
 }
 
-func (s *txValidatorTestSuite) getUnregisterCRTx(publicKeyStr, privateKeyStr string) *transactions.BaseTransaction {
+func (s *txValidatorTestSuite) getUnregisterCRTx(publicKeyStr, privateKeyStr string) interfaces.Transaction {
 
 	publicKeyStr1 := publicKeyStr
 	privateKeyStr1 := privateKeyStr
@@ -1638,7 +1638,7 @@ func (s *txValidatorTestSuite) getCRMember(publicKeyStr, privateKeyStr, nickName
 }
 
 func (s *txValidatorTestSuite) getSecretaryGeneralCRCProposalTx(ownerPublicKeyStr, ownerPrivateKeyStr,
-	crPublicKeyStr, crPrivateKeyStr, secretaryPublicKeyStr, secretaryPrivateKeyStr string) *transactions.BaseTransaction {
+	crPublicKeyStr, crPrivateKeyStr, secretaryPublicKeyStr, secretaryPrivateKeyStr string) interfaces.Transaction {
 
 	ownerPublicKey, _ := common.HexStringToBytes(ownerPublicKeyStr)
 	ownerPrivateKey, _ := common.HexStringToBytes(ownerPrivateKeyStr)
@@ -1691,7 +1691,7 @@ func (s *txValidatorTestSuite) getSecretaryGeneralCRCProposalTx(ownerPublicKeySt
 }
 
 func (s *txValidatorTestSuite) getCRCProposalTx(publicKeyStr, privateKeyStr,
-	crPublicKeyStr, crPrivateKeyStr string) *transactions.BaseTransaction {
+	crPublicKeyStr, crPrivateKeyStr string) interfaces.Transaction {
 
 	publicKey1, _ := common.HexStringToBytes(publicKeyStr)
 	privateKey1, _ := common.HexStringToBytes(privateKeyStr)
@@ -1777,7 +1777,7 @@ func (s *txValidatorTestSuite) createSpecificStatusProposal(publicKey1, publicKe
 }
 
 func (s *txValidatorTestSuite) getCRCCloseProposalTxWithHash(publicKeyStr, privateKeyStr,
-	crPublicKeyStr, crPrivateKeyStr string, closeProposalHash common.Uint256) *transactions.BaseTransaction {
+	crPublicKeyStr, crPrivateKeyStr string, closeProposalHash common.Uint256) interfaces.Transaction {
 	draftData := randomBytes(10)
 
 	privateKey1, _ := common.HexStringToBytes(privateKeyStr)
@@ -1820,7 +1820,7 @@ func (s *txValidatorTestSuite) getCRCCloseProposalTxWithHash(publicKeyStr, priva
 }
 
 func (s *txValidatorTestSuite) getCRCRegisterSideChainProposalTx(publicKeyStr, privateKeyStr,
-	crPublicKeyStr, crPrivateKeyStr string) *transactions.BaseTransaction {
+	crPublicKeyStr, crPrivateKeyStr string) interfaces.Transaction {
 
 	normalPrivateKey, _ := common.HexStringToBytes(privateKeyStr)
 	normalPublicKey, _ := common.HexStringToBytes(publicKeyStr)
@@ -1865,7 +1865,7 @@ func (s *txValidatorTestSuite) getCRCRegisterSideChainProposalTx(publicKeyStr, p
 }
 
 func (s *txValidatorTestSuite) getCRCCloseProposalTx(publicKeyStr, privateKeyStr,
-	crPublicKeyStr, crPrivateKeyStr string) *transactions.BaseTransaction {
+	crPublicKeyStr, crPrivateKeyStr string) interfaces.Transaction {
 
 	privateKey1, _ := common.HexStringToBytes(privateKeyStr)
 
@@ -1917,7 +1917,7 @@ func randomName(length int) string {
 }
 
 func (s *txValidatorTestSuite) getCRCReceivedCustomIDProposalTx(publicKeyStr, privateKeyStr,
-	crPublicKeyStr, crPrivateKeyStr string, receivedList []string) *transactions.BaseTransaction {
+	crPublicKeyStr, crPrivateKeyStr string, receivedList []string) interfaces.Transaction {
 
 	privateKey1, _ := common.HexStringToBytes(privateKeyStr)
 	publicKey1, _ := common.HexStringToBytes(publicKeyStr)
@@ -1960,7 +1960,7 @@ func (s *txValidatorTestSuite) getCRCReceivedCustomIDProposalTx(publicKeyStr, pr
 }
 
 func (s *txValidatorTestSuite) getCRCReservedCustomIDProposalTx(publicKeyStr, privateKeyStr,
-	crPublicKeyStr, crPrivateKeyStr string) *transactions.BaseTransaction {
+	crPublicKeyStr, crPrivateKeyStr string) interfaces.Transaction {
 
 	privateKey1, _ := common.HexStringToBytes(privateKeyStr)
 
@@ -2187,7 +2187,7 @@ func (s *txValidatorTestSuite) getCRCProposalTrackingTx(
 	proposalHash common.Uint256, stage uint8,
 	ownerPublicKeyStr, ownerPrivateKeyStr,
 	newownerpublickeyStr, newownerprivatekeyStr,
-	sgPublicKeyStr, sgPrivateKeyStr string) *transactions.BaseTransaction {
+	sgPublicKeyStr, sgPrivateKeyStr string) interfaces.Transaction {
 
 	ownerPublicKey, _ := common.HexStringToBytes(ownerPublicKeyStr)
 	ownerPrivateKey, _ := common.HexStringToBytes(ownerPrivateKeyStr)
@@ -2314,7 +2314,7 @@ func (s *txValidatorTestSuite) TestCheckCRCAppropriationTransaction() {
 }
 
 func (s *txValidatorTestSuite) getCRCAppropriationTx(input *common2.Input,
-	output1 *common2.Output, output2 *common2.Output) *transactions.BaseTransaction {
+	output1 *common2.Output, output2 *common2.Output) interfaces.Transaction {
 	txn := new(transactions.BaseTransaction)
 	txn.TxType = common2.CRCAppropriation
 	txn.Version = common2.TxVersion09
@@ -2327,7 +2327,7 @@ func (s *txValidatorTestSuite) getCRCAppropriationTx(input *common2.Input,
 }
 
 func (s *txValidatorTestSuite) getCRCProposalRealWithdrawTx(input *common2.Input,
-	hashes []common.Uint256, outputs []*common2.Output) *transactions.BaseTransaction {
+	hashes []common.Uint256, outputs []*common2.Output) interfaces.Transaction {
 	txn := new(transactions.BaseTransaction)
 	txn.TxType = common2.CRCProposalRealWithdraw
 	txn.Version = common2.TxVersion09
@@ -2409,7 +2409,7 @@ func (s *txValidatorTestSuite) TestCheckUpdateCRTransaction() {
 		CreateCRAppropriationTransaction: s.Chain.CreateCRCAppropriationTransaction,
 	})
 	block := &types.Block{
-		Transactions: []*transactions.BaseTransaction{
+		Transactions: []interfaces.Transaction{
 			registerCRTxn1,
 			registerCRTxn2,
 		},
@@ -2622,7 +2622,7 @@ func (s *txValidatorTestSuite) TestCheckUnregisterCRTransaction() {
 		CreateCRAppropriationTransaction: s.Chain.CreateCRCAppropriationTransaction,
 	})
 	block := &types.Block{
-		Transactions: []*transactions.BaseTransaction{
+		Transactions: []interfaces.Transaction{
 			registerCRTxn,
 		},
 		Header: common2.Header{Height: s.CurrentHeight},
@@ -2660,7 +2660,7 @@ func (s *txValidatorTestSuite) TestCheckUnregisterCRTransaction() {
 }
 
 func (s *txValidatorTestSuite) getCRCProposalReviewTx(crPublicKeyStr,
-	crPrivateKeyStr string) *transactions.BaseTransaction {
+	crPrivateKeyStr string) interfaces.Transaction {
 
 	privateKey1, _ := common.HexStringToBytes(crPrivateKeyStr)
 	code := getCodeByPubKeyStr(crPublicKeyStr)
@@ -2755,7 +2755,7 @@ func (s *txValidatorTestSuite) TestCheckCRCProposalReviewTransaction() {
 
 func (s *txValidatorTestSuite) getCRCProposalWithdrawTx(crPublicKeyStr,
 	crPrivateKeyStr string, recipient,
-	commitee *common.Uint168, recipAmout, commiteAmout common.Fixed64, payloadVersion byte) *transactions.BaseTransaction {
+	commitee *common.Uint168, recipAmout, commiteAmout common.Fixed64, payloadVersion byte) interfaces.Transaction {
 
 	privateKey1, _ := common.HexStringToBytes(crPrivateKeyStr)
 	pkBytes, _ := common.HexStringToBytes(crPublicKeyStr)
@@ -2978,7 +2978,7 @@ func (s *txValidatorTestSuite) TestCheckCRCProposalWithdrawTransaction() {
 }
 
 func (s *txValidatorTestSuite) getCRChangeProposalOwnerProposalTx(publicKeyStr, privateKeyStr,
-	crPublicKeyStr, crPrivateKeyStr, newOwnerPublicKeyStr string, targetHash common.Uint256) *transactions.BaseTransaction {
+	crPublicKeyStr, crPrivateKeyStr, newOwnerPublicKeyStr string, targetHash common.Uint256) interfaces.Transaction {
 
 	privateKey, _ := common.HexStringToBytes(privateKeyStr)
 	crPrivateKey, _ := common.HexStringToBytes(crPrivateKeyStr)
@@ -3466,7 +3466,7 @@ func (s *txValidatorTestSuite) TestCheckReturnDepositCoinTransaction() {
 		Header: common2.Header{
 			Height: s.CurrentHeight,
 		},
-		Transactions: []*transactions.BaseTransaction{
+		Transactions: []interfaces.Transaction{
 			{
 				TxType: common2.RegisterProducer,
 				Payload: &payload.ProducerInfo{
@@ -3493,7 +3493,7 @@ func (s *txValidatorTestSuite) TestCheckReturnDepositCoinTransaction() {
 			Header: common2.Header{
 				Height: s.CurrentHeight,
 			},
-			Transactions: []*transactions.BaseTransaction{},
+			Transactions: []interfaces.Transaction{},
 		}, nil)
 		s.CurrentHeight++
 	}
@@ -3527,7 +3527,7 @@ func (s *txValidatorTestSuite) TestCheckReturnDepositCoinTransaction() {
 		Header: common2.Header{
 			Height: s.CurrentHeight,
 		},
-		Transactions: []*transactions.BaseTransaction{
+		Transactions: []interfaces.Transaction{
 			{
 				TxType: common2.CancelProducer,
 				Payload: &payload.ProcessProducer{
@@ -3560,7 +3560,7 @@ func (s *txValidatorTestSuite) TestCheckReturnDepositCoinTransaction() {
 		Header: common2.Header{
 			Height: s.CurrentHeight,
 		},
-		Transactions: []*transactions.BaseTransaction{},
+		Transactions: []interfaces.Transaction{},
 	}, nil)
 
 	// check a return deposit coin transaction with wrong output amount.
@@ -3599,7 +3599,7 @@ func (s *txValidatorTestSuite) TestCheckReturnCRDepositCoinTransaction() {
 		Header: common2.Header{
 			Height: s.CurrentHeight,
 		},
-		Transactions: []*transactions.BaseTransaction{
+		Transactions: []interfaces.Transaction{
 			{
 				TxType: common2.RegisterCR,
 				Payload: &payload.CRInfo{
@@ -3625,7 +3625,7 @@ func (s *txValidatorTestSuite) TestCheckReturnCRDepositCoinTransaction() {
 			Header: common2.Header{
 				Height: s.CurrentHeight,
 			},
-			Transactions: []*transactions.BaseTransaction{},
+			Transactions: []interfaces.Transaction{},
 		}, nil)
 		s.CurrentHeight++
 	}
@@ -3654,7 +3654,7 @@ func (s *txValidatorTestSuite) TestCheckReturnCRDepositCoinTransaction() {
 		Header: common2.Header{
 			Height: s.CurrentHeight,
 		},
-		Transactions: []*transactions.BaseTransaction{
+		Transactions: []interfaces.Transaction{
 			{
 				TxType: common2.UnregisterCR,
 				Payload: &payload.UnregisterCR{
@@ -3676,7 +3676,7 @@ func (s *txValidatorTestSuite) TestCheckReturnCRDepositCoinTransaction() {
 		Header: common2.Header{
 			Height: s.CurrentHeight,
 		},
-		Transactions: []*transactions.BaseTransaction{},
+		Transactions: []interfaces.Transaction{},
 	}, nil)
 
 	// check a return cr deposit coin transaction with wrong code in voting period.
@@ -3706,7 +3706,7 @@ func (s *txValidatorTestSuite) TestCheckReturnCRDepositCoinTransaction() {
 		Header: common2.Header{
 			Height: s.CurrentHeight,
 		},
-		Transactions: []*transactions.BaseTransaction{
+		Transactions: []interfaces.Transaction{
 			rdTx,
 		},
 	}, nil)
@@ -3843,7 +3843,7 @@ func (s *txValidatorTestSuite) TestCheckVoteOutputs() {
 		CreateCRAppropriationTransaction: s.Chain.CreateCRCAppropriationTransaction,
 	})
 	block := &types.Block{
-		Transactions: []*transactions.BaseTransaction{
+		Transactions: []interfaces.Transaction{
 			registerCRTxn1,
 			registerCRTxn2,
 			registerCRTxn3,
@@ -4308,7 +4308,7 @@ func (s *txValidatorTestSuite) TestCreateCRCAppropriationTransaction() {
 		LockTime:   0,
 	}
 	block := &types.Block{
-		Transactions: []*transactions.BaseTransaction{
+		Transactions: []interfaces.Transaction{
 			txn,
 			txnCoinBase,
 		},
@@ -4329,7 +4329,7 @@ func TestTxValidatorSuite(t *testing.T) {
 }
 
 func newCoinBaseTransaction(coinBasePayload *payload.CoinBase,
-	currentHeight uint32) *transactions.BaseTransaction {
+	currentHeight uint32) interfaces.Transaction {
 	return &transactions.BaseTransaction{
 		Version:        0,
 		TxType:         common2.CoinBase,
@@ -4350,7 +4350,7 @@ func newCoinBaseTransaction(coinBasePayload *payload.CoinBase,
 	}
 }
 
-func (a *txValidatorTestSuite) createNextTurnDPOSInfoTransaction(crcArbiters, normalDPOSArbiters [][]byte) *transactions.BaseTransaction {
+func (a *txValidatorTestSuite) createNextTurnDPOSInfoTransaction(crcArbiters, normalDPOSArbiters [][]byte) interfaces.Transaction {
 
 	var nextTurnDPOSInfo payload.NextTurnDPOSInfo
 	for _, v := range crcArbiters {

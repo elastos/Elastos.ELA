@@ -8,10 +8,10 @@ package filter
 import (
 	"errors"
 	"fmt"
-	common2 "github.com/elastos/Elastos.ELA/core/types/common"
-	"github.com/elastos/Elastos.ELA/core/types/transactions"
 
 	"github.com/elastos/Elastos.ELA/common"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/p2p/msg"
 )
 
@@ -95,7 +95,7 @@ func (m *mBlock) traverseAndBuild(height, pos uint32) {
 }
 
 // NewMerkleBlock returns a new *MerkleBlock
-func NewMerkleBlock(txs []*transactions.BaseTransaction, filter *Filter) (*msg.MerkleBlock, []uint32) {
+func NewMerkleBlock(txs []interfaces.Transaction, filter *Filter) (*msg.MerkleBlock, []uint32) {
 	NumTx := uint32(len(txs))
 	mBlock := mBlock{
 		NumTx:       NumTx,

@@ -106,7 +106,7 @@ func TestState_ProcessBlock_PendingUpdateThenCancel(t *testing.T) {
 		Header: common2.Header{
 			Height: currentHeight,
 		},
-		Transactions: []*transactions.BaseTransaction{
+		Transactions: []interfaces.Transaction{
 			generateRegisterCR(code, cid, nickname),
 		},
 	}, nil)
@@ -123,7 +123,7 @@ func TestState_ProcessBlock_PendingUpdateThenCancel(t *testing.T) {
 		Header: common2.Header{
 			Height: currentHeight,
 		},
-		Transactions: []*transactions.BaseTransaction{
+		Transactions: []interfaces.Transaction{
 			generateUpdateCR(code, cid, nickname2),
 		},
 	}, nil)
@@ -140,7 +140,7 @@ func TestState_ProcessBlock_PendingUpdateThenCancel(t *testing.T) {
 		Header: common2.Header{
 			Height: currentHeight,
 		},
-		Transactions: []*transactions.BaseTransaction{
+		Transactions: []interfaces.Transaction{
 			generateUnregisterCR(code),
 		},
 	}, nil)
@@ -183,7 +183,7 @@ func TestState_ProcessBlock_PendingActiveThenCancel(t *testing.T) {
 		Header: common2.Header{
 			Height: currentHeight,
 		},
-		Transactions: []*transactions.BaseTransaction{
+		Transactions: []interfaces.Transaction{
 			generateRegisterCR(code, cid, nickname),
 		},
 	}, nil)
@@ -200,7 +200,7 @@ func TestState_ProcessBlock_PendingActiveThenCancel(t *testing.T) {
 			Header: common2.Header{
 				Height: currentHeight,
 			},
-			Transactions: []*transactions.BaseTransaction{},
+			Transactions: []interfaces.Transaction{},
 		}, nil)
 		currentHeight++
 	}
@@ -213,7 +213,7 @@ func TestState_ProcessBlock_PendingActiveThenCancel(t *testing.T) {
 		Header: common2.Header{
 			Height: currentHeight,
 		},
-		Transactions: []*transactions.BaseTransaction{
+		Transactions: []interfaces.Transaction{
 			generateUpdateCR(code, cid, nickname2),
 		},
 	}, nil)
@@ -230,7 +230,7 @@ func TestState_ProcessBlock_PendingActiveThenCancel(t *testing.T) {
 		Header: common2.Header{
 			Height: currentHeight,
 		},
-		Transactions: []*transactions.BaseTransaction{
+		Transactions: []interfaces.Transaction{
 			generateUnregisterCR(code),
 		},
 	}, nil)
@@ -275,7 +275,7 @@ func TestState_ProcessBlock_MixedCRProcessing(t *testing.T) {
 			Header: common2.Header{
 				Height: currentHeight,
 			},
-			Transactions: []*transactions.BaseTransaction{
+			Transactions: []interfaces.Transaction{
 				generateRegisterCR(code, cid, nickname),
 			},
 		}, nil)
@@ -292,7 +292,7 @@ func TestState_ProcessBlock_MixedCRProcessing(t *testing.T) {
 			Header: common2.Header{
 				Height: currentHeight,
 			},
-			Transactions: []*transactions.BaseTransaction{},
+			Transactions: []interfaces.Transaction{},
 		}, nil)
 		currentHeight++
 	}
@@ -327,7 +327,7 @@ func TestState_ProcessBlock_VotingAndCancel(t *testing.T) {
 
 	registerFuncs(committee.state)
 	references := make(map[*common2.Input]common2.Output)
-	committee.state.getTxReference = func(tx *transactions.BaseTransaction) (
+	committee.state.getTxReference = func(tx interfaces.Transaction) (
 		map[*common2.Input]common2.Output, error) {
 		return references, nil
 	}
@@ -338,7 +338,7 @@ func TestState_ProcessBlock_VotingAndCancel(t *testing.T) {
 		Header: common2.Header{
 			Height: currentHeight,
 		},
-		Transactions: []*transactions.BaseTransaction{voteTx},
+		Transactions: []interfaces.Transaction{voteTx},
 	}, nil)
 	currentHeight++
 
@@ -358,7 +358,7 @@ func TestState_ProcessBlock_VotingAndCancel(t *testing.T) {
 		Header: common2.Header{
 			Height: currentHeight,
 		},
-		Transactions: []*transactions.BaseTransaction{
+		Transactions: []interfaces.Transaction{
 			{
 				Inputs: []*common2.Input{input},
 			},
@@ -413,7 +413,7 @@ func TestState_ProcessBlock_DepositAndReturnDeposit(t *testing.T) {
 		Header: common2.Header{
 			Height: currentHeight,
 		},
-		Transactions: []*transactions.BaseTransaction{registerCRTx},
+		Transactions: []interfaces.Transaction{registerCRTx},
 	}, nil)
 	currentHeight++
 	candidate := committee.state.getCandidate(cid)
@@ -437,7 +437,7 @@ func TestState_ProcessBlock_DepositAndReturnDeposit(t *testing.T) {
 		Header: common2.Header{
 			Height: currentHeight,
 		},
-		Transactions: []*transactions.BaseTransaction{tranferTx},
+		Transactions: []interfaces.Transaction{tranferTx},
 	}, nil)
 	currentHeight++
 	assert.Equal(t, common.Fixed64(5000*1e8),
@@ -451,7 +451,7 @@ func TestState_ProcessBlock_DepositAndReturnDeposit(t *testing.T) {
 			Header: common2.Header{
 				Height: currentHeight,
 			},
-			Transactions: []*transactions.BaseTransaction{},
+			Transactions: []interfaces.Transaction{},
 		}, nil)
 		currentHeight++
 	}
@@ -460,7 +460,7 @@ func TestState_ProcessBlock_DepositAndReturnDeposit(t *testing.T) {
 		Header: common2.Header{
 			Height: currentHeight,
 		},
-		Transactions: []*transactions.BaseTransaction{
+		Transactions: []interfaces.Transaction{
 			generateUnregisterCR(code),
 		},
 	}, nil)
@@ -471,7 +471,7 @@ func TestState_ProcessBlock_DepositAndReturnDeposit(t *testing.T) {
 			Header: common2.Header{
 				Height: currentHeight,
 			},
-			Transactions: []*transactions.BaseTransaction{},
+			Transactions: []interfaces.Transaction{},
 		}, nil)
 		currentHeight++
 	}
@@ -483,7 +483,7 @@ func TestState_ProcessBlock_DepositAndReturnDeposit(t *testing.T) {
 		Header: common2.Header{
 			Height: currentHeight,
 		},
-		Transactions: []*transactions.BaseTransaction{},
+		Transactions: []interfaces.Transaction{},
 	}, nil)
 
 	// return deposit
@@ -507,14 +507,14 @@ func TestState_ProcessBlock_DepositAndReturnDeposit(t *testing.T) {
 		Header: common2.Header{
 			Height: currentHeight,
 		},
-		Transactions: []*transactions.BaseTransaction{rdTx},
+		Transactions: []interfaces.Transaction{rdTx},
 	}, nil)
 	committee.state.history.Commit(currentHeight)
 	assert.Equal(t, common.Fixed64(0),
 		committee.state.getDepositAmount(candidate.info.CID))
 }
 
-func mockNewVoteTx(cids [][]byte) *transactions.BaseTransaction {
+func mockNewVoteTx(cids [][]byte) interfaces.Transaction {
 	candidateVotes := make([]outputpayload.CandidateVotes, 0, len(cids))
 	for i, cid := range cids {
 		//code := getCode(common.BytesToHexString(pk))
@@ -542,7 +542,7 @@ func mockNewVoteTx(cids [][]byte) *transactions.BaseTransaction {
 }
 
 func generateRegisterCR(code []byte, cid common.Uint168,
-	nickname string) *transactions.BaseTransaction {
+	nickname string) interfaces.Transaction {
 	return &transactions.BaseTransaction{
 		TxType: common2.RegisterCR,
 		Payload: &payload.CRInfo{
@@ -554,7 +554,7 @@ func generateRegisterCR(code []byte, cid common.Uint168,
 }
 
 func generateUpdateCR(code []byte, cid common.Uint168,
-	nickname string) *transactions.BaseTransaction {
+	nickname string) interfaces.Transaction {
 	return &transactions.BaseTransaction{
 		TxType: common2.UpdateCR,
 		Payload: &payload.CRInfo{
@@ -565,7 +565,7 @@ func generateUpdateCR(code []byte, cid common.Uint168,
 	}
 }
 
-func generateUnregisterCR(code []byte) *transactions.BaseTransaction {
+func generateUnregisterCR(code []byte) interfaces.Transaction {
 	return &transactions.BaseTransaction{
 		TxType: common2.UnregisterCR,
 		Payload: &payload.UnregisterCR{
@@ -579,7 +579,7 @@ func getCID(code []byte) *common.Uint168 {
 	return ct1.ToProgramHash()
 }
 
-func generateReturnCRDeposit(code []byte) *transactions.BaseTransaction {
+func generateReturnCRDeposit(code []byte) interfaces.Transaction {
 	return &transactions.BaseTransaction{
 		TxType:  common2.ReturnCRDepositCoin,
 		Payload: &payload.ReturnDepositCoin{},
@@ -594,7 +594,7 @@ func generateReturnCRDeposit(code []byte) *transactions.BaseTransaction {
 func registerFuncs(state *State) {
 	state.registerFunctions(&FunctionsConfig{
 		GetHistoryMember: func(code []byte) []*CRMember { return nil },
-		GetTxReference: func(tx *transactions.BaseTransaction) (
+		GetTxReference: func(tx interfaces.Transaction) (
 			map[*common2.Input]common2.Output, error) {
 			return make(map[*common2.Input]common2.Output), nil
 		}})

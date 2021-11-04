@@ -81,7 +81,7 @@ func TestInitBlock(t *testing.T) {
 			Header: common2.Header{
 				Height: 100,
 			},
-			Transactions: []*transactions.BaseTransaction{
+			Transactions: []interfaces.Transaction{
 				tx1,
 			},
 		},

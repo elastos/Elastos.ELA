@@ -88,10 +88,10 @@ func (idx *ReturnDepositIndex) Create(dbTx database.Tx) error {
 // This is part of the Indexer interface.
 func (idx *ReturnDepositIndex) ConnectBlock(dbTx database.Tx, block *types.Block) error {
 	for _, txn := range block.Transactions {
-		if txn.TxType != common2.ReturnSideChainDepositCoin {
+		if txn.TxType() != common2.ReturnSideChainDepositCoin {
 			continue
 		}
-		for _, output := range txn.Outputs {
+		for _, output := range txn.Outputs() {
 			if output.Type == common2.OTReturnSideChainDepositCoin {
 				payload, ok := output.Payload.(*outputpayload.ReturnSideChainDeposit)
 				if ok {
@@ -113,10 +113,10 @@ func (idx *ReturnDepositIndex) ConnectBlock(dbTx database.Tx, block *types.Block
 // This is part of the Indexer interface.
 func (idx *ReturnDepositIndex) DisconnectBlock(dbTx database.Tx, block *types.Block) error {
 	for _, txn := range block.Transactions {
-		if txn.TxType != common2.ReturnSideChainDepositCoin {
+		if txn.TxType() != common2.ReturnSideChainDepositCoin {
 			continue
 		}
-		for _, output := range txn.Outputs {
+		for _, output := range txn.Outputs() {
 			if output.Type == common2.OTReturnSideChainDepositCoin {
 				payload, ok := output.Payload.(*outputpayload.ReturnSideChainDeposit)
 				if ok {

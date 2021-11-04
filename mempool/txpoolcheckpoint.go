@@ -7,13 +7,14 @@ package mempool
 
 import (
 	"bytes"
-	"github.com/elastos/Elastos.ELA/core/types/transactions"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"io"
 
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/log"
 	"github.com/elastos/Elastos.ELA/core/checkpoint"
 	"github.com/elastos/Elastos.ELA/core/types"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/elanet/pact"
 )
 
@@ -31,12 +32,14 @@ const (
 
 type txPoolCheckpoint struct {
 	// transaction which have been verified will put into this map
-	txnList map[common.Uint256]*transactions.BaseTransaction
+	txnList map[common.Uint256]interfaces.Transaction
 	txFees  *txFeeOrderedList
 	txPool  *TxPool
 
-	height              uint32
-	initConflictManager func(map[common.Uint256]*transactions.BaseTransaction)
+	height                uint32
+	initConflictManager   func(map[common.Uint256]interfaces.Transaction)
+	getTransaction        func(txType common2.TxType) (interfaces.Transaction, error)
+	getTransactionByBytes func(r io.Reader) (interfaces.Transaction, error)
 }
 
 func (c *txPoolCheckpoint) OnBlockSaved(block *types.DposBlock) {
@@ -63,7 +66,8 @@ func (c *txPoolCheckpoint) Snapshot() checkpoint.ICheckPoint {
 		c.LogError(err)
 		return nil
 	}
-	result := newTxPoolCheckpoint(c.txPool, c.initConflictManager)
+	result := newTxPoolCheckpoint(c.txPool,
+		c.initConflictManager, c.getTransaction, c.getTransactionByBytes)
 	if err := result.Deserialize(&buf); err != nil {
 		c.LogError(err)
 		return nil
@@ -96,7 +100,8 @@ func (c *txPoolCheckpoint) Generator() func(buf []byte) checkpoint.ICheckPoint {
 		stream := bytes.Buffer{}
 		stream.Write(buf)
 
-		result := newTxPoolCheckpoint(c.txPool, c.initConflictManager)
+		result := newTxPoolCheckpoint(c.txPool,
+			c.initConflictManager, c.getTransaction, c.getTransactionByBytes)
 		if err := result.Deserialize(&stream); err != nil {
 			c.LogError(err)
 			return nil
@@ -150,12 +155,16 @@ func (c *txPoolCheckpoint) Deserialize(r io.Reader) (err error) {
 	}
 	var hash common.Uint256
 	for i := uint64(0); i < count; i++ {
-		tx := &transactions.BaseTransaction{}
+
 		if err = hash.Deserialize(r); err != nil {
 			return
 		}
+		tx, err := c.getTransactionByBytes(r)
+		if err != nil {
+			return err
+		}
 		if err = tx.Deserialize(r); err != nil {
-			return
+			return err
 		}
 		c.txPool.appendToTxPool(tx)
 	}
@@ -164,13 +173,17 @@ func (c *txPoolCheckpoint) Deserialize(r io.Reader) (err error) {
 	return c.txFees.Deserialize(r)
 }
 
-func newTxPoolCheckpoint(txPool *TxPool, initConflictManager func(
-	map[common.Uint256]*transactions.BaseTransaction)) *txPoolCheckpoint {
+func newTxPoolCheckpoint(txPool *TxPool,
+	initConflictManager func(map[common.Uint256]interfaces.Transaction),
+	getTransaction func(txType common2.TxType) (interfaces.Transaction, error),
+	getTransactionByBytes func(r io.Reader) (interfaces.Transaction, error)) *txPoolCheckpoint {
 	return &txPoolCheckpoint{
-		txPool:              txPool,
-		txnList:             map[common.Uint256]*transactions.BaseTransaction{},
-		txFees:              newTxFeeOrderedList(txPool.onPopBack, pact.MaxTxPoolSize),
-		height:              0,
-		initConflictManager: initConflictManager,
+		txPool:                txPool,
+		txnList:               map[common.Uint256]interfaces.Transaction{},
+		txFees:                newTxFeeOrderedList(txPool.onPopBack, pact.MaxTxPoolSize),
+		height:                0,
+		initConflictManager:   initConflictManager,
+		getTransaction:        getTransaction,
+		getTransactionByBytes: getTransactionByBytes,
 	}
 }

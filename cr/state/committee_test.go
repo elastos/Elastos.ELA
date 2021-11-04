@@ -20,7 +20,7 @@ import (
 )
 
 func TestSortTransactions(t *testing.T) {
-	txs := []*transactions.BaseTransaction{
+	txs := []interfaces.Transaction{
 		&transactions.BaseTransaction{TxType: common2.CoinBase},
 		&transactions.BaseTransaction{TxType: common2.TransferAsset},
 		&transactions.BaseTransaction{TxType: common2.TransferAsset},
@@ -243,7 +243,7 @@ func TestCommittee_RollbackTo_SameCommittee_VotingPeriod(t *testing.T) {
 		Header: common2.Header{
 			Height: height,
 		},
-		Transactions: []*transactions.BaseTransaction{
+		Transactions: []interfaces.Transaction{
 			generateRegisterCR(code, cid, nickname),
 		},
 	}, nil)
@@ -258,7 +258,7 @@ func TestCommittee_RollbackTo_SameCommittee_VotingPeriod(t *testing.T) {
 		Header: common2.Header{
 			Height: height,
 		},
-		Transactions: []*transactions.BaseTransaction{
+		Transactions: []interfaces.Transaction{
 			generateUpdateCR(code, cid, nickname2),
 		},
 	}, nil)
@@ -271,7 +271,7 @@ func TestCommittee_RollbackTo_SameCommittee_VotingPeriod(t *testing.T) {
 			Header: common2.Header{
 				Height: height,
 			},
-			Transactions: []*transactions.BaseTransaction{},
+			Transactions: []interfaces.Transaction{},
 		}, nil)
 		height++
 	}
@@ -311,7 +311,7 @@ func TestCommittee_RollbackTo_SameCommittee_BeforeVoting(t *testing.T) {
 			Header: common2.Header{
 				Height: height,
 			},
-			Transactions: []*transactions.BaseTransaction{
+			Transactions: []interfaces.Transaction{
 				generateRegisterCR(code, cid, nickname),
 			},
 		}, nil)

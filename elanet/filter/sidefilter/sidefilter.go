@@ -13,7 +13,7 @@ package sidefilter
 
 import (
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
-	"github.com/elastos/Elastos.ELA/core/types/transactions"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/dpos/state"
 	"github.com/elastos/Elastos.ELA/elanet/bloom"
 	"github.com/elastos/Elastos.ELA/elanet/filter"
@@ -41,15 +41,15 @@ func (f *Filter) Add(data []byte) error {
 
 // MatchConfirmed returns if a confirmed (packed into a block) transaction
 // matches the filter.
-func (f *Filter) MatchConfirmed(tx *transactions.BaseTransaction) bool {
+func (f *Filter) MatchConfirmed(tx interfaces.Transaction) bool {
 	return f.TxFilter.MatchConfirmed(tx) || f.state.IsDPOSTransaction(tx) ||
 		tx.IsRevertToPOW() || tx.IsRevertToDPOS()
 }
 
 // MatchUnconfirmed returns if a unconfirmed (not packed into a block yet)
 // transaction matches the filter.
-func (f *Filter) MatchUnconfirmed(tx *transactions.BaseTransaction) bool {
-	switch tx.TxType {
+func (f *Filter) MatchUnconfirmed(tx interfaces.Transaction) bool {
+	switch tx.TxType() {
 	case common2.IllegalProposalEvidence:
 		fallthrough
 	case common2.IllegalVoteEvidence:

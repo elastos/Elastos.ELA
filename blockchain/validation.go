@@ -8,13 +8,14 @@ package blockchain
 import (
 	"crypto/sha256"
 	"errors"
-	common2 "github.com/elastos/Elastos.ELA/core/types/common"
-	"github.com/elastos/Elastos.ELA/core/types/transactions"
+
 	"sort"
 
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/core/contract"
 	. "github.com/elastos/Elastos.ELA/core/contract/program"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/crypto"
 )
 
@@ -69,7 +70,7 @@ func RunPrograms(data []byte, programHashes []common.Uint168, programs []*Progra
 	return nil
 }
 
-func GetTxProgramHashes(tx *transactions.BaseTransaction, references map[*common2.Input]common2.Output) ([]common.Uint168, error) {
+func GetTxProgramHashes(tx interfaces.Transaction, references map[*common2.Input]common2.Output) ([]common.Uint168, error) {
 	if tx == nil {
 		return nil, errors.New("[BaseTransaction],GetProgramHashes transaction is nil")
 	}
@@ -80,7 +81,7 @@ func GetTxProgramHashes(tx *transactions.BaseTransaction, references map[*common
 		programHash := output.ProgramHash
 		hashes = append(hashes, programHash)
 	}
-	for _, attribute := range tx.Attributes {
+	for _, attribute := range tx.Attributes() {
 		if attribute.Usage == common2.Script {
 			dataHash, err := common.Uint168FromBytes(attribute.Data)
 			if err != nil {

@@ -107,7 +107,7 @@ var (
 	}
 	unspentIndexBlock = &types.Block{
 		Header: common2.Header{},
-		Transactions: []*transactions.BaseTransaction{
+		Transactions: []interfaces.Transaction{
 			unspentIndexCoinbase,
 			testUnspentIndexTx1,
 			testUnspentIndexTx2,
@@ -158,7 +158,7 @@ var (
 	}
 	unspentIndexBlock2 = &types.Block{
 		Header: common2.Header{},
-		Transactions: []*transactions.BaseTransaction{
+		Transactions: []interfaces.Transaction{
 			unspentIndexCoinbase2,
 			testUnspentIndexTx4,
 			testUnspentIndexTx5,

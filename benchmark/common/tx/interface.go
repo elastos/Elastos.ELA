@@ -19,11 +19,11 @@ const (
 )
 
 type Generator interface {
-	Generate() *transactions.BaseTransaction
+	Generate() interfaces.Transaction
 }
 
 type Assigner interface {
-	SignAndChange(tx *transactions.BaseTransaction) error
+	SignAndChange(tx interfaces.Transaction) error
 }
 
 func NewGenerator(txType common2.TxType, ac ...*account.Account) Generator {

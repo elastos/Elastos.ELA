@@ -749,12 +749,12 @@ func (s *txValidatorSpecialTxTestSuite) TestCheckInactiveArbitrators() {
 	pkBuf, _ := pk.EncodePoint(true)
 	ar, _ = state.NewOriginArbiter(pkBuf)
 	arbitrators = append(arbitrators, ar)
-	tx.Programs[0].Code = s.createArbitratorsRedeemScript(arbitrators)
+	tx.Programs()[0].Code = s.createArbitratorsRedeemScript(arbitrators)
 	s.EqualError(CheckInactiveArbitrators(tx),
 		"invalid multi sign public key")
 
 	// correct redeem script
-	tx.Programs[0].Code = s.createArbitratorsRedeemScript(
+	tx.Programs()[0].Code = s.createArbitratorsRedeemScript(
 		s.arbitrators.CRCArbitrators)
 	s.NoError(CheckInactiveArbitrators(tx))
 }
@@ -808,12 +808,12 @@ func (s *txValidatorSpecialTxTestSuite) TestCheckUpdateVersion() {
 	pkBuf, _ := pk.EncodePoint(true)
 	ar, _ := state.NewOriginArbiter(pkBuf)
 	arbitrators = append(arbitrators, ar)
-	tx.Programs[0].Code = s.createArbitratorsRedeemScript(arbitrators)
+	tx.Programs()[0].Code = s.createArbitratorsRedeemScript(arbitrators)
 	s.EqualError(s.Chain.checkUpdateVersionTransaction(tx),
 		"invalid multi sign public key")
 
 	// correct redeem script
-	tx.Programs[0].Code = s.createArbitratorsRedeemScript(
+	tx.Programs()[0].Code = s.createArbitratorsRedeemScript(
 		s.arbitrators.CRCArbitrators)
 	s.NoError(s.Chain.checkUpdateVersionTransaction(tx))
 }

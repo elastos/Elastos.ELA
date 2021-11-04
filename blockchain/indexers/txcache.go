@@ -6,12 +6,12 @@
 package indexers
 
 import (
-	"github.com/elastos/Elastos.ELA/core/types/transactions"
 	"io"
 	"sync"
 
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 )
 
 const (
@@ -24,7 +24,7 @@ const (
 
 type TxInfo struct {
 	blockHeight uint32
-	txn         *transactions.BaseTransaction
+	txn         interfaces.Transaction
 }
 
 func (t *TxInfo) Serialize(w io.Writer) (err error) {
@@ -36,16 +36,18 @@ func (t *TxInfo) Serialize(w io.Writer) (err error) {
 }
 
 func (t *TxInfo) Deserialize(r io.Reader) (err error) {
-	t.blockHeight, err = common.ReadUint32(r)
-	if err != nil {
-		return
-	}
-	var txn transactions.BaseTransaction
-	err = txn.Deserialize(r)
-	if err != nil {
-		return
-	}
-	t.txn = &txn
+	// todo refactor me
+
+	//t.blockHeight, err = common.ReadUint32(r)
+	//if err != nil {
+	//	return
+	//}
+	//var txn transactions.BaseTransaction
+	//err = txn.Deserialize(r)
+	//if err != nil {
+	//	return
+	//}
+	//t.txn = &txn
 	return nil
 }
 
@@ -93,13 +95,13 @@ func (t *TxCache) Deserialize(r io.Reader) (err error) {
 	return nil
 }
 
-func (t *TxCache) setTxn(height uint32, txn *transactions.BaseTransaction) {
+func (t *TxCache) setTxn(height uint32, txn interfaces.Transaction) {
 	if t.params.NodeProfileStrategy ==
 		config.MemoryFirst.String() {
 		return
 	}
 
-	if len(txn.Inputs) > MaxCacheInputsCountPerTransaction {
+	if len(txn.Inputs()) > MaxCacheInputsCountPerTransaction {
 		return
 	}
 

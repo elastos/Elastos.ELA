@@ -23,7 +23,7 @@ type transferAssetGenerator struct {
 	account []*account.Account
 }
 
-func (g *transferAssetGenerator) Generate() *transactions.BaseTransaction {
+func (g *transferAssetGenerator) Generate() interfaces.Transaction {
 	txn := &transactions.BaseTransaction{
 		Version:        common2.TxVersion09,
 		TxType:         common2.TransferAsset,

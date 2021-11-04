@@ -137,7 +137,7 @@ func (ccp *CoinsCheckPoint) OnBlockSaved(block *types.DposBlock) {
 
 	for _, tx := range block.Transactions {
 		// remove the spent coins
-		for _, input := range tx.Inputs {
+		for _, input := range tx.Inputs() {
 			_, exist := ccp.coins[input.Previous]
 			if exist {
 				ccp.removeCoin(&input.Previous)
@@ -145,13 +145,13 @@ func (ccp *CoinsCheckPoint) OnBlockSaved(block *types.DposBlock) {
 		}
 
 		// add the new coins
-		for index, output := range tx.Outputs {
+		for index, output := range tx.Outputs() {
 			op := common2.OutPoint{
 				TxID:  tx.Hash(),
 				Index: uint16(index),
 			}
 			ccp.appendCoin(&op, &Coin{
-				TxVersion: tx.Version,
+				TxVersion: tx.Version(),
 				Output:    output,
 				Height:    block.Height,
 			})
@@ -182,7 +182,7 @@ func (ccp *CoinsCheckPoint) OnRollbackTo(height uint32) error {
 		}
 		for _, tx := range block.Transactions {
 			// rollback coins from output
-			for index := range tx.Outputs {
+			for index := range tx.Outputs() {
 				op := common2.OutPoint{
 					TxID:  tx.Hash(),
 					Index: uint16(index),
@@ -202,7 +202,7 @@ func (ccp *CoinsCheckPoint) OnRollbackTo(height uint32) error {
 				_, exist := GetWalletAccount(addr)
 				if exist {
 					ccp.appendCoin(&input.Previous, &Coin{
-						TxVersion: tx.Version,
+						TxVersion: tx.Version(),
 						Output:    output,
 						Height:    i,
 					})

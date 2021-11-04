@@ -7,7 +7,6 @@ package manager
 
 import (
 	"bytes"
-	"github.com/elastos/Elastos.ELA/core/types/transactions"
 	"sort"
 	"time"
 
@@ -15,6 +14,7 @@ import (
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/core/types"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/dpos/dtime"
 	"github.com/elastos/Elastos.ELA/dpos/log"
@@ -85,8 +85,8 @@ type NetworkEventListener interface {
 	OnConfirmReceived(p *payload.Confirm, height uint32)
 	OnIllegalBlocksTxReceived(i *payload.DPOSIllegalBlocks)
 	OnSidechainIllegalEvidenceReceived(s *payload.SidechainIllegalData)
-	OnInactiveArbitratorsReceived(id dpeer.PID, tx *transactions.BaseTransaction)
-	OnRevertToDPOSTxReceived(id dpeer.PID, tx *transactions.BaseTransaction)
+	OnInactiveArbitratorsReceived(id dpeer.PID, tx interfaces.Transaction)
+	OnRevertToDPOSTxReceived(id dpeer.PID, tx interfaces.Transaction)
 	OnResponseInactiveArbitratorsReceived(txHash *common.Uint256,
 		Signer []byte, Sign []byte)
 	OnResponseRevertToDPOSTxReceived(txHash *common.Uint256,
@@ -172,7 +172,7 @@ func (d *DPOSManager) Initialize(handler *DPOSHandlerSwitch,
 	d.broadcast = broadcast
 }
 
-func (d *DPOSManager) AppendToTxnPool(txn *transactions.BaseTransaction) error {
+func (d *DPOSManager) AppendToTxnPool(txn interfaces.Transaction) error {
 	return d.txPool.AppendToTxPool(txn)
 }
 
@@ -501,7 +501,7 @@ func (d *DPOSManager) OnBlockReceived(b *types.Block, confirmed bool) {
 	}
 	for _, tx := range b.Transactions {
 		if tx.IsInactiveArbitrators() {
-			p := tx.Payload.(*payload.InactiveArbitrators)
+			p := tx.Payload().(*payload.InactiveArbitrators)
 			if err := d.arbitrators.ProcessSpecialTxPayload(p,
 				blockchain.DefaultLedger.Blockchain.GetHeight()); err != nil {
 				log.Errorf("process special tx payload err: %s", err.Error())
@@ -607,7 +607,7 @@ func (d *DPOSManager) clearInactiveData(p *payload.InactiveArbitrators) {
 }
 
 func (d *DPOSManager) OnRevertToDPOSTxReceived(id dpeer.PID,
-	tx *transactions.BaseTransaction) {
+	tx interfaces.Transaction) {
 
 	if !d.isCurrentArbiter() {
 		return
@@ -620,7 +620,7 @@ func (d *DPOSManager) OnRevertToDPOSTxReceived(id dpeer.PID,
 }
 
 func (d *DPOSManager) OnInactiveArbitratorsReceived(id dpeer.PID,
-	tx *transactions.BaseTransaction) {
+	tx interfaces.Transaction) {
 	if !d.isCRCArbiter() {
 		return
 	}

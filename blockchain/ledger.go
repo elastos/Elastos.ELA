@@ -7,11 +7,11 @@ package blockchain
 
 import (
 	"errors"
-	"github.com/elastos/Elastos.ELA/core/types/transactions"
 	"strconv"
 
 	. "github.com/elastos/Elastos.ELA/common"
 	. "github.com/elastos/Elastos.ELA/core/types"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	crstate "github.com/elastos/Elastos.ELA/cr/state"
 	"github.com/elastos/Elastos.ELA/dpos/state"
 )
@@ -30,7 +30,7 @@ type Ledger struct {
 }
 
 //check weather the transaction contains the doubleSpend.
-func (l *Ledger) IsDoubleSpend(Tx *transactions.BaseTransaction) bool {
+func (l *Ledger) IsDoubleSpend(Tx interfaces.Transaction) bool {
 	return DefaultLedger.Store.IsDoubleSpend(Tx)
 }
 
@@ -57,7 +57,7 @@ func (l *Ledger) GetBlockWithHash(hash Uint256) (*Block, error) {
 }
 
 //Get transaction with hash.
-func (l *Ledger) GetTransactionWithHash(hash Uint256) (*transactions.BaseTransaction, error) {
+func (l *Ledger) GetTransactionWithHash(hash Uint256) (interfaces.Transaction, error) {
 	tx, _, err := l.Store.GetTransaction(hash)
 	if err != nil {
 		return nil, errors.New("[Ledger],GetTransactionWithHash failed with hash=" + hash.String())

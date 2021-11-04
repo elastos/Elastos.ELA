@@ -9,8 +9,6 @@ import (
 	"bytes"
 	"encoding/hex"
 	"errors"
-	"github.com/elastos/Elastos.ELA/core/types/common"
-	"github.com/elastos/Elastos.ELA/core/types/transactions"
 	"path/filepath"
 	"sync"
 	"sync/atomic"
@@ -20,6 +18,8 @@ import (
 	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/common/log"
 	. "github.com/elastos/Elastos.ELA/core/types"
+	"github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	_ "github.com/elastos/Elastos.ELA/database/ffldb"
 )
@@ -65,7 +65,7 @@ func (c *ChainStore) CleanSmallCrossTransferTx(txHash Uint256) error {
 	return c.levelDB.Delete(key.Bytes())
 }
 
-func (c *ChainStore) SaveSmallCrossTransferTx(tx *transactions.BaseTransaction) error {
+func (c *ChainStore) SaveSmallCrossTransferTx(tx interfaces.Transaction) error {
 	buf := new(bytes.Buffer)
 	tx.Serialize(buf)
 	var key bytes.Buffer
@@ -75,19 +75,23 @@ func (c *ChainStore) SaveSmallCrossTransferTx(tx *transactions.BaseTransaction) 
 	return nil
 }
 
-func (c *ChainStore) GetSmallCrossTransferTxs() ([]*transactions.BaseTransaction, error) {
-	Iter := c.levelDB.NewIterator(SMALL_CROSS_TRANSFER_RPEFIX)
-	txs := make([]*transactions.BaseTransaction, 0)
-	for Iter.Next() {
-		val := Iter.Value()
-		r := bytes.NewReader(val)
-		tx := new(transactions.BaseTransaction)
-		if err := tx.Deserialize(r); err != nil {
-			return nil, err
-		}
-		txs = append(txs, tx)
-	}
-	return txs, nil
+func (c *ChainStore) GetSmallCrossTransferTxs() ([]interfaces.Transaction, error) {
+	// todo refactor me
+	// need to return [][]byte directly
+	return nil, nil
+
+	//Iter := c.levelDB.NewIterator(SMALL_CROSS_TRANSFER_RPEFIX)
+	//txs := make([]interfaces.Transaction, 0)
+	//for Iter.Next() {
+	//	val := Iter.Value()
+	//	r := bytes.NewReader(val)
+	//	tx := new(transactions.BaseTransaction)
+	//	if err := tx.Deserialize(r); err != nil {
+	//		return nil, err
+	//	}
+	//	txs = append(txs, tx)
+	//}
+	//return txs, nil
 }
 
 func (c *ChainStore) GetSmallCrossTransferTx() ([]string, error) {
@@ -129,19 +133,19 @@ func (c *ChainStore) IsSidechainReturnDepositTxHashDuplicate(sidechainReturnDepo
 	return c.GetFFLDB().IsSideChainReturnDepositExist(&sidechainReturnDepositTxHash)
 }
 
-func (c *ChainStore) IsDoubleSpend(txn *transactions.BaseTransaction) bool {
-	if len(txn.Inputs) == 0 {
+func (c *ChainStore) IsDoubleSpend(txn interfaces.Transaction) bool {
+	if len(txn.Inputs()) == 0 {
 		return false
 	}
-	for i := 0; i < len(txn.Inputs); i++ {
-		txID := txn.Inputs[i].Previous.TxID
+	for i := 0; i < len(txn.Inputs()); i++ {
+		txID := txn.Inputs()[i].Previous.TxID
 		unspents, err := c.GetFFLDB().GetUnspent(txID)
 		if err != nil {
 			return true
 		}
 		findFlag := false
 		for k := 0; k < len(unspents); k++ {
-			if unspents[k] == txn.Inputs[i].Previous.Index {
+			if unspents[k] == txn.Inputs()[i].Previous.Index {
 				findFlag = true
 				break
 			}
@@ -163,7 +167,7 @@ func (c *ChainStore) RollbackBlock(b *Block, node *BlockNode,
 	return err
 }
 
-func (c *ChainStore) GetTransaction(txID Uint256) (*transactions.BaseTransaction, uint32, error) {
+func (c *ChainStore) GetTransaction(txID Uint256) (interfaces.Transaction, uint32, error) {
 	return c.fflDB.GetTransaction(txID)
 }
 
@@ -171,15 +175,15 @@ func (c *ChainStore) GetProposalDraftDataByDraftHash(draftHash *Uint256) ([]byte
 	return c.fflDB.GetProposalDraftDataByDraftHash(draftHash)
 }
 
-func (c *ChainStore) GetTxReference(tx *transactions.BaseTransaction) (map[*common.Input]*common.Output, error) {
-	if tx.TxType == common.RegisterAsset {
+func (c *ChainStore) GetTxReference(tx interfaces.Transaction) (map[*common.Input]*common.Output, error) {
+	if tx.TxType() == common.RegisterAsset {
 		return nil, nil
 	}
 	txOutputsCache := make(map[Uint256][]*common.Output)
 	//UTXO input /  Outputs
 	reference := make(map[*common.Input]*common.Output)
 	// Key index，v UTXOInput
-	for _, input := range tx.Inputs {
+	for _, input := range tx.Inputs() {
 		txID := input.Previous.TxID
 		index := input.Previous.Index
 		if outputs, ok := txOutputsCache[txID]; ok {
@@ -190,11 +194,11 @@ func (c *ChainStore) GetTxReference(tx *transactions.BaseTransaction) (map[*comm
 			if err != nil {
 				return nil, errors.New("GetTxReference failed, previous transaction not found")
 			}
-			if int(index) >= len(transaction.Outputs) {
+			if int(index) >= len(transaction.Outputs()) {
 				return nil, errors.New("GetTxReference failed, refIdx out of range.")
 			}
-			reference[input] = transaction.Outputs[index]
-			txOutputsCache[txID] = transaction.Outputs
+			reference[input] = transaction.Outputs()[index]
+			txOutputsCache[txID] = transaction.Outputs()
 		}
 	}
 	return reference, nil

@@ -177,7 +177,7 @@ func TestService_AssignCoinbaseTxRewards(t *testing.T) {
 		Header: common2.Header{
 			Height: config.DefaultParams.PublicDPOSHeight,
 		},
-		Transactions: []*transactions.BaseTransaction{
+		Transactions: []interfaces.Transaction{
 			tx,
 		},
 	}
@@ -249,7 +249,7 @@ func TestService_AssignCoinbaseTxRewards(t *testing.T) {
 		Header: common2.Header{
 			Height: config.DefaultParams.PublicDPOSHeight,
 		},
-		Transactions: []*transactions.BaseTransaction{
+		Transactions: []interfaces.Transaction{
 			tx,
 		},
 	}
@@ -300,7 +300,7 @@ func TestService_AssignCoinbaseTxRewards(t *testing.T) {
 		{ProgramHash: common.Uint168{}, Value: 0},
 	}
 	block = &types.Block{
-		Transactions: []*transactions.BaseTransaction{
+		Transactions: []interfaces.Transaction{
 			tx,
 		},
 	}
@@ -326,7 +326,7 @@ func TestService_AssignCoinbaseTxRewards(t *testing.T) {
 		{ProgramHash: common.Uint168{}, Value: 0},
 	}
 	block = &types.Block{
-		Transactions: []*transactions.BaseTransaction{
+		Transactions: []interfaces.Transaction{
 			tx,
 		},
 	}

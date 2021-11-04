@@ -12,7 +12,7 @@ import (
 	"github.com/elastos/Elastos.ELA/core/types/transactions"
 )
 
-func SignStandardTx(tx *transactions.BaseTransaction, ac *account.Account) (err error) {
+func SignStandardTx(tx interfaces.Transaction, ac *account.Account) (err error) {
 	accounts := map[common.Uint160]*account.Account{}
 	accounts[ac.ProgramHash.ToCodeHash()] = ac
 

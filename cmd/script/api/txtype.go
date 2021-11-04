@@ -10,15 +10,14 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	common2 "github.com/elastos/Elastos.ELA/core/types/common"
-	"github.com/elastos/Elastos.ELA/core/types/interfaces"
-	"github.com/elastos/Elastos.ELA/core/types/transactions"
 	"os"
 
 	cmdcom "github.com/elastos/Elastos.ELA/cmd/common"
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/core/contract"
 	pg "github.com/elastos/Elastos.ELA/core/contract/program"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/crypto"
 	"github.com/elastos/Elastos.ELA/servers"
@@ -49,115 +48,122 @@ func RegisterTransactionType(L *lua.LState) {
 //	Outputs        []*Output
 //	LockTime       uint32
 func newTransaction(L *lua.LState) int {
-	version := L.ToInt(1)
-	txType := common2.TxType(L.ToInt(2))
-	payloadVersion := byte(L.ToInt(3))
-	ud := L.CheckUserData(4)
-	lockTime := uint32(L.ToInt(5))
+	// todo refactor me
+	return 0
 
-	var pload interfaces.Payload
-	switch ud.Value.(type) {
-	case *payload.CoinBase:
-		pload, _ = ud.Value.(*payload.CoinBase)
-	case *payload.RegisterAsset:
-		pload, _ = ud.Value.(*payload.RegisterAsset)
-	case *payload.TransferAsset:
-		pload, _ = ud.Value.(*payload.TransferAsset)
-	case *payload.Record:
-		pload, _ = ud.Value.(*payload.Record)
-	case *payload.ProducerInfo:
-		pload, _ = ud.Value.(*payload.ProducerInfo)
-	case *payload.ProcessProducer:
-		pload, _ = ud.Value.(*payload.ProcessProducer)
-	case *payload.ActivateProducer:
-		pload, _ = ud.Value.(*payload.ActivateProducer)
-	case *payload.ReturnDepositCoin:
-		pload, _ = ud.Value.(*payload.ReturnDepositCoin)
-	case *payload.DPOSIllegalProposals:
-		pload, _ = ud.Value.(*payload.DPOSIllegalProposals)
-	case *payload.DPOSIllegalVotes:
-		pload, _ = ud.Value.(*payload.DPOSIllegalVotes)
-	case *payload.DPOSIllegalBlocks:
-		pload, _ = ud.Value.(*payload.DPOSIllegalBlocks)
-	case *payload.SidechainIllegalData:
-		pload, _ = ud.Value.(*payload.SidechainIllegalData)
-	case *payload.InactiveArbitrators:
-		pload, _ = ud.Value.(*payload.InactiveArbitrators)
-	case *payload.RevertToDPOS:
-		pload, _ = ud.Value.(*payload.RevertToDPOS)
-	case *payload.SideChainPow:
-		pload, _ = ud.Value.(*payload.SideChainPow)
-	case *payload.CRInfo:
-		pload, _ = ud.Value.(*payload.CRInfo)
-	case *payload.UnregisterCR:
-		pload, _ = ud.Value.(*payload.UnregisterCR)
-	case *payload.CRCProposal:
-		pload, _ = ud.Value.(*payload.CRCProposal)
-	case *payload.CRCProposalReview:
-		pload, _ = ud.Value.(*payload.CRCProposalReview)
-	case *payload.CRCProposalTracking:
-		pload, _ = ud.Value.(*payload.CRCProposalTracking)
-	case *payload.CRCProposalWithdraw:
-		pload, _ = ud.Value.(*payload.CRCProposalWithdraw)
-	case *payload.CRCouncilMemberClaimNode:
-		pload, _ = ud.Value.(*payload.CRCouncilMemberClaimNode)
-	case *payload.TransferCrossChainAsset:
-		pload, _ = ud.Value.(*payload.TransferCrossChainAsset)
-	default:
-		fmt.Println("error: undefined payload type")
-		os.Exit(1)
-	}
+	//version := L.ToInt(1)
+	//txType := common2.TxType(L.ToInt(2))
+	//payloadVersion := byte(L.ToInt(3))
+	//ud := L.CheckUserData(4)
+	//lockTime := uint32(L.ToInt(5))
+	//
+	//var pload interfaces.Payload
+	//switch ud.Value.(type) {
+	//case *payload.CoinBase:
+	//	pload, _ = ud.Value.(*payload.CoinBase)
+	//case *payload.RegisterAsset:
+	//	pload, _ = ud.Value.(*payload.RegisterAsset)
+	//case *payload.TransferAsset:
+	//	pload, _ = ud.Value.(*payload.TransferAsset)
+	//case *payload.Record:
+	//	pload, _ = ud.Value.(*payload.Record)
+	//case *payload.ProducerInfo:
+	//	pload, _ = ud.Value.(*payload.ProducerInfo)
+	//case *payload.ProcessProducer:
+	//	pload, _ = ud.Value.(*payload.ProcessProducer)
+	//case *payload.ActivateProducer:
+	//	pload, _ = ud.Value.(*payload.ActivateProducer)
+	//case *payload.ReturnDepositCoin:
+	//	pload, _ = ud.Value.(*payload.ReturnDepositCoin)
+	//case *payload.DPOSIllegalProposals:
+	//	pload, _ = ud.Value.(*payload.DPOSIllegalProposals)
+	//case *payload.DPOSIllegalVotes:
+	//	pload, _ = ud.Value.(*payload.DPOSIllegalVotes)
+	//case *payload.DPOSIllegalBlocks:
+	//	pload, _ = ud.Value.(*payload.DPOSIllegalBlocks)
+	//case *payload.SidechainIllegalData:
+	//	pload, _ = ud.Value.(*payload.SidechainIllegalData)
+	//case *payload.InactiveArbitrators:
+	//	pload, _ = ud.Value.(*payload.InactiveArbitrators)
+	//case *payload.RevertToDPOS:
+	//	pload, _ = ud.Value.(*payload.RevertToDPOS)
+	//case *payload.SideChainPow:
+	//	pload, _ = ud.Value.(*payload.SideChainPow)
+	//case *payload.CRInfo:
+	//	pload, _ = ud.Value.(*payload.CRInfo)
+	//case *payload.UnregisterCR:
+	//	pload, _ = ud.Value.(*payload.UnregisterCR)
+	//case *payload.CRCProposal:
+	//	pload, _ = ud.Value.(*payload.CRCProposal)
+	//case *payload.CRCProposalReview:
+	//	pload, _ = ud.Value.(*payload.CRCProposalReview)
+	//case *payload.CRCProposalTracking:
+	//	pload, _ = ud.Value.(*payload.CRCProposalTracking)
+	//case *payload.CRCProposalWithdraw:
+	//	pload, _ = ud.Value.(*payload.CRCProposalWithdraw)
+	//case *payload.CRCouncilMemberClaimNode:
+	//	pload, _ = ud.Value.(*payload.CRCouncilMemberClaimNode)
+	//case *payload.TransferCrossChainAsset:
+	//	pload, _ = ud.Value.(*payload.TransferCrossChainAsset)
+	//default:
+	//	fmt.Println("error: undefined payload type")
+	//	os.Exit(1)
+	//}
 
-	txn := &transactions.BaseTransaction{
-		Version:        common2.TransactionVersion(version),
-		TxType:         txType,
-		PayloadVersion: payloadVersion,
-		Payload:        pload,
-		Attributes:     []*common2.Attribute{},
-		Inputs:         []*common2.Input{},
-		Outputs:        []*common2.Output{},
-		LockTime:       lockTime,
-	}
-	udn := L.NewUserData()
-	udn.Value = txn
-
-	L.SetMetatable(udn, L.GetTypeMetatable(luaTransactionTypeName))
-	L.Push(udn)
-
-	return 1
+	//txn := &transactions.BaseTransaction{
+	//	Version:        common2.TransactionVersion(version),
+	//	TxType:         txType,
+	//	PayloadVersion: payloadVersion,
+	//	Payload:        pload,
+	//	Attributes:     []*common2.Attribute{},
+	//	Inputs:         []*common2.Input{},
+	//	Outputs:        []*common2.Output{},
+	//	LockTime:       lockTime,
+	//}
+	//udn := L.NewUserData()
+	//udn.Value = txn
+	//
+	//L.SetMetatable(udn, L.GetTypeMetatable(luaTransactionTypeName))
+	//L.Push(udn)
+	//
+	//return 1
 }
 
 func fromFile(L *lua.LState) int {
-	filePath := L.CheckString(1)
-	content, err := cmdcom.ReadFile(filePath)
-	if err != nil {
-		fmt.Println(err)
-	}
-	txData, err := common.HexStringToBytes(content)
-	if err != nil {
-		fmt.Println("decode transaction content failed")
-		os.Exit(1)
-	}
 
-	var txn transactions.BaseTransaction
-	err = txn.Deserialize(bytes.NewReader(txData))
-	if err != nil {
-		fmt.Println("deserialize transaction failed")
-		os.Exit(1)
-	}
+	// todo refactor me
+	return 0
 
-	ud := L.NewUserData()
-	ud.Value = &txn
-	L.SetMetatable(ud, L.GetTypeMetatable(luaTransactionTypeName))
-	L.Push(ud)
-
-	return 1
+	//filePath := L.CheckString(1)
+	//content, err := cmdcom.ReadFile(filePath)
+	//if err != nil {
+	//	fmt.Println(err)
+	//}
+	//txData, err := common.HexStringToBytes(content)
+	//if err != nil {
+	//	fmt.Println("decode transaction content failed")
+	//	os.Exit(1)
+	//}
+	//
+	//var txn transactions.BaseTransaction
+	//err = txn.Deserialize(bytes.NewReader(txData))
+	//if err != nil {
+	//	fmt.Println("deserialize transaction failed")
+	//	os.Exit(1)
+	//}
+	//
+	//ud := L.NewUserData()
+	//ud.Value = &txn
+	//L.SetMetatable(ud, L.GetTypeMetatable(luaTransactionTypeName))
+	//L.Push(ud)
+	//
+	//return 1
 }
 
 // Checks whether the first lua argument is a *LUserData with *BaseTransaction and returns this *BaseTransaction.
-func checkTransaction(L *lua.LState, idx int) *transactions.BaseTransaction {
+func checkTransaction(L *lua.LState, idx int) interfaces.Transaction {
 	ud := L.CheckUserData(idx)
-	if v, ok := ud.Value.(*transactions.BaseTransaction); ok {
+	if v, ok := ud.Value.(interfaces.Transaction); ok {
 		return v
 	}
 	L.ArgError(1, "BaseTransaction expected")
@@ -186,11 +192,11 @@ func signPayload(L *lua.LState) int {
 		cmdcom.PrintErrorAndExit(err.Error())
 	}
 
-	switch txn.TxType {
+	switch txn.TxType() {
 	case common2.RegisterProducer:
 		fallthrough
 	case common2.UpdateProducer:
-		producerInfo, ok := txn.Payload.(*payload.ProducerInfo)
+		producerInfo, ok := txn.Payload().(*payload.ProducerInfo)
 		if !ok {
 			cmdcom.PrintErrorAndExit("invalid producer payload")
 		}
@@ -212,7 +218,7 @@ func signPayload(L *lua.LState) int {
 			cmdcom.PrintErrorAndExit(err.Error())
 		}
 		producerInfo.Signature = rpSig
-		txn.Payload = producerInfo
+		txn.SetPayload(producerInfo)
 	default:
 		cmdcom.PrintErrorAndExit("invalid producer payload")
 	}
@@ -236,7 +242,7 @@ func txGet(L *lua.LState) int {
 func txAppendInput(L *lua.LState) int {
 	p := checkTransaction(L, 1)
 	input := checkInput(L, 2)
-	p.Inputs = append(p.Inputs, input)
+	p.SetInputs(append(p.Inputs(), input))
 
 	return 0
 }
@@ -244,7 +250,7 @@ func txAppendInput(L *lua.LState) int {
 func txAppendAttribute(L *lua.LState) int {
 	p := checkTransaction(L, 1)
 	attr := checkAttribute(L, 2)
-	p.Attributes = append(p.Attributes, attr)
+	p.SetAttributes(append(p.Attributes(), attr))
 
 	return 0
 }
@@ -252,7 +258,7 @@ func txAppendAttribute(L *lua.LState) int {
 func txAppendOutput(L *lua.LState) int {
 	txn := checkTransaction(L, 1)
 	output := checkTxOutput(L, 2)
-	txn.Outputs = append(txn.Outputs, output)
+	txn.SetOutputs(append(txn.Outputs(), output))
 
 	return 0
 }
@@ -280,9 +286,9 @@ func signTx(L *lua.LState) int {
 		Code:      acc.RedeemScript,
 		Parameter: []byte{},
 	}
-	txn.Programs = []*pg.Program{
+	txn.SetPrograms([]*pg.Program{
 		&program,
-	}
+	})
 
 	txn, err = client.Sign(txn)
 	if err != nil {
@@ -308,12 +314,12 @@ func signSchnorrTx(L *lua.LState) int {
 	if err != nil {
 		return -1
 	}
-	txn.Programs = []*pg.Program{
+	txn.SetPrograms([]*pg.Program{
 		&pg.Program{
 			Code:      account.RedeemScript,
 			Parameter: signature[:],
 		},
-	}
+	})
 	if err != nil {
 		fmt.Println("signSchnorrTx error:", err.Error(), txn)
 		os.Exit(1)
@@ -403,7 +409,7 @@ func appendEnough(L *lua.LState) int {
 		os.Exit(1)
 	}
 
-	txn.Inputs = txInputs
+	txn.SetInputs(txInputs)
 	L.Push(lua.LNumber(charge))
 
 	return 1
@@ -412,7 +418,7 @@ func appendEnough(L *lua.LState) int {
 func appendProgram(L *lua.LState) int {
 	txn := checkTransaction(L, 1)
 	program := checkProgram(L, 2)
-	txn.Programs = append(txn.Programs, program)
+	txn.SetPrograms(append(txn.Programs(), program))
 
 	return 0
 }

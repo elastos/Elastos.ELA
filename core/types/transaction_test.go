@@ -822,7 +822,7 @@ func TestTransactionSuite(t *testing.T) {
 	suite.Run(t, new(transactionSuite))
 }
 
-func assertOldVersionTxEqual(oldVersion bool, suite *suite.Suite, first, second *transactions.BaseTransaction, inputNum, outputNum, attrNum, programNum int) {
+func assertOldVersionTxEqual(oldVersion bool, suite *suite.Suite, first, second interfaces.Transaction, inputNum, outputNum, attrNum, programNum int) {
 	if oldVersion {
 		suite.Equal(common2.TxVersionDefault, second.Version)
 	} else {
@@ -868,7 +868,7 @@ func assertOldVersionTxEqual(oldVersion bool, suite *suite.Suite, first, second 
 	}
 }
 
-func randomOldVersionTransaction(oldVersion bool, txType byte, inputNum, outputNum, attrNum, programNum int) *transactions.BaseTransaction {
+func randomOldVersionTransaction(oldVersion bool, txType byte, inputNum, outputNum, attrNum, programNum int) interfaces.Transaction {
 	txn := &transactions.BaseTransaction{
 		Version:        common2.TransactionVersion(txType),
 		TxType:         common2.TxType(txType),

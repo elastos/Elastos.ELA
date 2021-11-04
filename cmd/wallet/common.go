@@ -12,8 +12,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	common2 "github.com/elastos/Elastos.ELA/core/types/common"
-	"github.com/elastos/Elastos.ELA/core/types/transactions"
 	"io"
 	"os"
 	"strings"
@@ -22,6 +20,8 @@ import (
 	cmdcom "github.com/elastos/Elastos.ELA/cmd/common"
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/core/contract"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/crypto"
 	"github.com/elastos/Elastos.ELA/servers"
 	"github.com/elastos/Elastos.ELA/utils/http"
@@ -178,7 +178,7 @@ func getAddressBalance(address string) (common.Fixed64, common.Fixed64, error) {
 	return availableAmount, lockedAmount, nil
 }
 
-func OutputTx(haveSign, needSign int, txn *transactions.BaseTransaction) error {
+func OutputTx(haveSign, needSign int, txn interfaces.Transaction) error {
 	// Serialise transaction content
 	buf := new(bytes.Buffer)
 	err := txn.Serialize(buf)
@@ -216,11 +216,14 @@ func OutputTx(haveSign, needSign int, txn *transactions.BaseTransaction) error {
 		return err
 	}
 
-	var tx transactions.BaseTransaction
-	txBytes, _ := hex.DecodeString(content)
-	if err := tx.Deserialize(bytes.NewReader(txBytes)); err != nil {
-		return err
-	}
+	// todo refactor me
+
+	//
+	//var tx transactions.BaseTransaction
+	//txBytes, _ := hex.DecodeString(content)
+	//if err := tx.Deserialize(bytes.NewReader(txBytes)); err != nil {
+	//	return err
+	//}
 
 	// Print output file to console
 	fmt.Println("File: ", fileName)

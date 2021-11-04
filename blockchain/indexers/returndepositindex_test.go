@@ -40,7 +40,7 @@ var (
 
 	testReturnDepositIndexBlock = &types.Block{
 		Header: common2.Header{},
-		Transactions: []*transactions.BaseTransaction{
+		Transactions: []interfaces.Transaction{
 			tx5,
 		},
 	}

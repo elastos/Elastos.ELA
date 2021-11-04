@@ -9,8 +9,8 @@ import (
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/core/types"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
-	"github.com/elastos/Elastos.ELA/core/types/transactions"
 	"github.com/elastos/Elastos.ELA/dpos/log"
 )
 
@@ -71,25 +71,25 @@ func (e *evidenceCache) TryDelete(hash common.Uint256) {
 	}
 }
 
-func (e *evidenceCache) tryGetEvidenceHash(tx *transactions.BaseTransaction) (common.Uint256, bool) {
+func (e *evidenceCache) tryGetEvidenceHash(tx interfaces.Transaction) (common.Uint256, bool) {
 	var hash common.Uint256
 	result := true
 
-	switch tx.TxType {
+	switch tx.TxType() {
 	case common2.IllegalProposalEvidence:
-		proposalPayload := tx.Payload.(*payload.DPOSIllegalProposals)
+		proposalPayload := tx.Payload().(*payload.DPOSIllegalProposals)
 		hash = proposalPayload.Hash()
 	case common2.IllegalVoteEvidence:
-		votePayload := tx.Payload.(*payload.DPOSIllegalVotes)
+		votePayload := tx.Payload().(*payload.DPOSIllegalVotes)
 		hash = votePayload.Hash()
 	case common2.IllegalBlockEvidence:
-		blockPayload := tx.Payload.(*payload.DPOSIllegalBlocks)
+		blockPayload := tx.Payload().(*payload.DPOSIllegalBlocks)
 		hash = blockPayload.Hash()
 	case common2.IllegalSidechainEvidence:
-		sidechainPayload := tx.Payload.(*payload.SidechainIllegalData)
+		sidechainPayload := tx.Payload().(*payload.SidechainIllegalData)
 		hash = sidechainPayload.Hash()
 	case common2.InactiveArbitrators:
-		inactiveArbitrators := tx.Payload.(*payload.InactiveArbitrators)
+		inactiveArbitrators := tx.Payload().(*payload.InactiveArbitrators)
 		hash = inactiveArbitrators.Hash()
 	default:
 		result = false

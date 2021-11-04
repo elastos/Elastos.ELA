@@ -7,9 +7,9 @@ package filter
 
 import (
 	"fmt"
-	"github.com/elastos/Elastos.ELA/core/types/transactions"
 	"sync"
 
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/p2p/msg"
 )
 
@@ -43,11 +43,11 @@ type TxFilter interface {
 
 	// MatchConfirmed returns if a confirmed (packed into a block) transaction
 	// matches the filter.
-	MatchConfirmed(tx *transactions.BaseTransaction) bool
+	MatchConfirmed(tx interfaces.Transaction) bool
 
 	// MatchUnconfirmed returns if a unconfirmed (not packed into a block yet)
 	// transaction matches the filter.
-	MatchUnconfirmed(tx *transactions.BaseTransaction) bool
+	MatchUnconfirmed(tx interfaces.Transaction) bool
 }
 
 type Filter struct {
@@ -102,14 +102,14 @@ func (f *Filter) Clear() {
 	f.mtx.Unlock()
 }
 
-func (f *Filter) MatchConfirmed(tx *transactions.BaseTransaction) bool {
+func (f *Filter) MatchConfirmed(tx interfaces.Transaction) bool {
 	f.mtx.Lock()
 	match := f.filter.MatchConfirmed(tx)
 	f.mtx.Unlock()
 	return match
 }
 
-func (f *Filter) MatchUnconfirmed(tx *transactions.BaseTransaction) bool {
+func (f *Filter) MatchUnconfirmed(tx interfaces.Transaction) bool {
 	f.mtx.Lock()
 	match := f.filter.MatchUnconfirmed(tx)
 	f.mtx.Unlock()

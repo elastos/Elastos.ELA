@@ -6,6 +6,7 @@
 package chain
 
 import (
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/core/types/transactions"
 	"sort"
 	"time"
@@ -135,7 +136,7 @@ func newGenesisBlock(ac *account.Account) *types.Block {
 			Nonce:      2083236893,
 			Height:     0,
 		},
-		Transactions: []*transactions.BaseTransaction{
+		Transactions: []interfaces.Transaction{
 			&coinBase,
 			{
 				TxType:         common2.RegisterAsset,
@@ -158,7 +159,7 @@ func newGenesisBlock(ac *account.Account) *types.Block {
 }
 
 func quickGenerateBlock(pow *pow.Service, prevHash *common.Uint256,
-	txs []*transactions.BaseTransaction, minerAddr string, params *config.Params,
+	txs []interfaces.Transaction, minerAddr string, params *config.Params,
 	height uint32) (*types.Block, error) {
 	coinBaseTx, err := pow.CreateCoinbaseTx(minerAddr, height)
 	if err != nil {
@@ -177,14 +178,14 @@ func quickGenerateBlock(pow *pow.Service, prevHash *common.Uint256,
 
 	msgBlock := &types.Block{
 		Header:       header,
-		Transactions: []*transactions.BaseTransaction{},
+		Transactions: []interfaces.Transaction{},
 	}
 
 	msgBlock.Transactions = append(msgBlock.Transactions, coinBaseTx)
 	totalTxsSize := coinBaseTx.GetSize()
 	txCount := 1
 	totalTxFee := common.Fixed64(0)
-	isHighPriority := func(tx *transactions.BaseTransaction) bool {
+	isHighPriority := func(tx interfaces.Transaction) bool {
 		if tx.IsIllegalTypeTx() || tx.IsInactiveArbitrators() ||
 			tx.IsSideChainPowTx() || tx.IsUpdateVersion() ||
 			tx.IsActivateProducerTx() {

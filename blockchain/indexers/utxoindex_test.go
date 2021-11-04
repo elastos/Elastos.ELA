@@ -135,7 +135,7 @@ var (
 		Header: common2.Header{
 			Height: 200,
 		},
-		Transactions: []*transactions.BaseTransaction{
+		Transactions: []interfaces.Transaction{
 			testUtxoIndexTx1,
 			testUtxoIndexTx2,
 		},
@@ -147,11 +147,11 @@ var (
 )
 
 type TestTxStore struct {
-	transactions map[common.Uint256]*transactions.BaseTransaction
+	transactions map[common.Uint256]interfaces.Transaction
 	heights      map[common.Uint256]uint32
 }
 
-func (s *TestTxStore) FetchTx(txID common.Uint256) (*transactions.BaseTransaction,
+func (s *TestTxStore) FetchTx(txID common.Uint256) (interfaces.Transaction,
 	uint32, error) {
 	txn, exist := s.transactions[txID]
 	if exist {
@@ -160,7 +160,7 @@ func (s *TestTxStore) FetchTx(txID common.Uint256) (*transactions.BaseTransactio
 	return nil, 0, errors.New("leveldb: not found")
 }
 
-func (s *TestTxStore) SetTx(txn *transactions.BaseTransaction, height uint32) {
+func (s *TestTxStore) SetTx(txn interfaces.Transaction, height uint32) {
 	s.transactions[txn.Hash()] = txn
 	s.heights[txn.Hash()] = height
 }
@@ -171,7 +171,7 @@ func (s *TestTxStore) RemoveTx(txID common.Uint256) {
 
 func NewTestTxStore() *TestTxStore {
 	var db TestTxStore
-	db.transactions = make(map[common.Uint256]*transactions.BaseTransaction)
+	db.transactions = make(map[common.Uint256]interfaces.Transaction)
 	db.heights = make(map[common.Uint256]uint32)
 	return &db
 }

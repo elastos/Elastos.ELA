@@ -6,13 +6,13 @@
 package blockchain
 
 import (
-	"github.com/elastos/Elastos.ELA/core/types/common"
-	"github.com/elastos/Elastos.ELA/core/types/transactions"
 	"time"
 
 	"github.com/elastos/Elastos.ELA/blockchain/indexers"
 	. "github.com/elastos/Elastos.ELA/common"
 	. "github.com/elastos/Elastos.ELA/core/types"
+	"github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/database"
 )
@@ -23,15 +23,15 @@ type IChainStore interface {
 
 	SaveBlock(b *Block, node *BlockNode, confirm *payload.Confirm,
 		medianTimePast time.Time) error
-	IsDoubleSpend(tx *transactions.BaseTransaction) bool
+	IsDoubleSpend(tx interfaces.Transaction) bool
 
 	GetConfirm(hash Uint256) (*payload.Confirm, error)
 
 	RollbackBlock(b *Block, node *BlockNode,
 		confirm *payload.Confirm, medianTimePast time.Time) error
 
-	GetTransaction(txID Uint256) (*transactions.BaseTransaction, uint32, error)
-	GetTxReference(tx *transactions.BaseTransaction) (map[*common.Input]*common.Output, error)
+	GetTransaction(txID Uint256) (interfaces.Transaction, uint32, error)
+	GetTxReference(tx interfaces.Transaction) (map[*common.Input]*common.Output, error)
 
 	SetHeight(height uint32)
 	GetHeight() uint32
@@ -42,8 +42,8 @@ type IChainStore interface {
 
 	GetProposalDraftDataByDraftHash(draftHash *Uint256) ([]byte, error)
 
-	SaveSmallCrossTransferTx(tx *transactions.BaseTransaction) error
-	GetSmallCrossTransferTxs() ([]*transactions.BaseTransaction, error)
+	SaveSmallCrossTransferTx(tx interfaces.Transaction) error
+	GetSmallCrossTransferTxs() ([]interfaces.Transaction, error)
 	GetSmallCrossTransferTx() ([]string, error)
 	CleanSmallCrossTransferTx(txHash Uint256) error
 
@@ -81,7 +81,7 @@ type IFFLDBChainStore interface {
 	IsBlockInStore(hash *Uint256) bool
 
 	// Get a transaction by transaction hash.
-	GetTransaction(txID Uint256) (*transactions.BaseTransaction, uint32, error)
+	GetTransaction(txID Uint256) (interfaces.Transaction, uint32, error)
 
 	// InitIndex use to initialize the index manager.
 	InitIndex(chain indexers.IChain, interrupt <-chan struct{}) error

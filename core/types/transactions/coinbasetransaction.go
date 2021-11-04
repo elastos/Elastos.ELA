@@ -23,18 +23,18 @@ func (a *CoinBaseTransaction) SpecialCheck(para *interfaces.CheckParameters) (re
 
 	if para.BlockHeight >= para.CRCommitteeStartHeight {
 		if para.ConsensusAlgorithm == 0x01 {
-			if !a.Outputs[0].ProgramHash.IsEqual(para.DestroyELAAddress) {
+			if !a.outputs[0].ProgramHash.IsEqual(para.DestroyELAAddress) {
 				return elaerr.Simple(elaerr.ErrTxInvalidOutput,
 					errors.New("first output address should be "+
 						"DestroyAddress in POW consensus algorithm")), true
 			}
 		} else {
-			if !a.Outputs[0].ProgramHash.IsEqual(para.CRAssetsAddress) {
+			if !a.outputs[0].ProgramHash.IsEqual(para.CRAssetsAddress) {
 				return elaerr.Simple(elaerr.ErrTxInvalidOutput,
 					errors.New("first output address should be CR assets address")), true
 			}
 		}
-	} else if !a.Outputs[0].ProgramHash.IsEqual(para.FoundationAddress) {
+	} else if !a.outputs[0].ProgramHash.IsEqual(para.FoundationAddress) {
 		return elaerr.Simple(elaerr.ErrTxInvalidOutput,
 			errors.New("first output address should be foundation address")), true
 	}

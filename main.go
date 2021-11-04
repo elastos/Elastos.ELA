@@ -7,7 +7,11 @@ package main
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
+	"io"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -168,7 +172,7 @@ func startNode(c *cli.Context, st *settings.Settings) {
 	defer chainStore.Close()
 	ledger.Store = chainStore // fixme
 
-	txMemPool := mempool.NewTxPool(st.Params())
+	txMemPool := mempool.NewTxPool(st.Params(), getTransaction, getTransactionByBytes)
 	blockMemPool := mempool.NewBlockPool(st.Params())
 	blockMemPool.Store = chainStore
 
@@ -412,4 +416,46 @@ func printSyncState(bc *blockchain.BlockChain, server elanet.Server) {
 		buf.WriteString("]")
 		statlog.Info(buf.String())
 	}
+}
+
+func getTransaction(txType common2.TxType) (interfaces.Transaction, error) {
+	// todo refactor me
+	switch txType {
+	case common2.CoinBase:
+	case common2.RegisterAsset:
+	default:
+		return nil, errors.New("invalid transaction type")
+	}
+
+	return nil, nil
+}
+
+func getTransactionByBytes(r io.Reader) (interfaces.Transaction, error) {
+	flagByte, err := common.ReadBytes(r, 1)
+	if err != nil {
+		return nil, err
+	}
+
+	var version common2.TransactionVersion
+	var txType common2.TxType
+	if common2.TransactionVersion(flagByte[0]) >= common2.TxVersion09 {
+		version = common2.TransactionVersion(flagByte[0])
+		txTypeBytes, err := common.ReadBytes(r, 1)
+		if err != nil {
+			return nil, err
+		}
+		txType = common2.TxType(txTypeBytes[0])
+	} else {
+		version = common2.TxVersionDefault
+		txType = common2.TxType(flagByte[0])
+	}
+
+	tx, err := getTransaction(txType)
+	if err != nil {
+		return nil, err
+	}
+	tx.SetVersion(version)
+	tx.SetTxType(txType)
+
+	return tx, nil
 }

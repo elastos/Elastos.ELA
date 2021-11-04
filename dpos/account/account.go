@@ -7,8 +7,8 @@ package account
 
 import (
 	"bytes"
-	"github.com/elastos/Elastos.ELA/core/types/transactions"
 
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/account"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/crypto"
@@ -20,7 +20,7 @@ type Account interface {
 	SignProposal(proposal *payload.DPOSProposal) ([]byte, error)
 	SignVote(vote *payload.DPOSProposalVote) ([]byte, error)
 	Sign(data []byte) []byte
-	SignTx(tx *transactions.BaseTransaction) ([]byte, error)
+	SignTx(tx interfaces.Transaction) ([]byte, error)
 	DecryptAddr(cipher []byte) (addr string, err error)
 }
 
@@ -69,7 +69,7 @@ func (a *dAccount) Sign(data []byte) []byte {
 	return sign
 }
 
-func (a *dAccount) SignTx(tx *transactions.BaseTransaction) ([]byte, error) {
+func (a *dAccount) SignTx(tx interfaces.Transaction) ([]byte, error) {
 	buf := new(bytes.Buffer)
 	if err := tx.SerializeUnsigned(buf); err != nil {
 		return nil, err

@@ -86,7 +86,7 @@ func TestArbitrators_GetNormalArbitratorsDesc(t *testing.T) {
 		Header: common2.Header{
 			Height: currentHeight,
 		},
-		Transactions: []*transactions.BaseTransaction{
+		Transactions: []interfaces.Transaction{
 			{
 				TxType: common2.RegisterProducer,
 				Payload: &payload.ProducerInfo{
@@ -123,7 +123,7 @@ func TestArbitrators_GetNormalArbitratorsDesc(t *testing.T) {
 		currentHeight++
 		blockEx := &types.Block{
 			Header:       common2.Header{Height: currentHeight},
-			Transactions: []*transactions.BaseTransaction{},
+			Transactions: []interfaces.Transaction{},
 		}
 		arbiters.ProcessBlock(blockEx, nil)
 	}
@@ -139,7 +139,7 @@ func TestArbitrators_GetNormalArbitratorsDesc(t *testing.T) {
 		Header: common2.Header{
 			Height: currentHeight,
 		},
-		Transactions: []*transactions.BaseTransaction{
+		Transactions: []interfaces.Transaction{
 			{
 				TxType: common2.RegisterProducer,
 				Payload: &payload.ProducerInfo{
@@ -155,7 +155,7 @@ func TestArbitrators_GetNormalArbitratorsDesc(t *testing.T) {
 		currentHeight++
 		blockEx := &types.Block{
 			Header:       common2.Header{Height: currentHeight},
-			Transactions: []*transactions.BaseTransaction{},
+			Transactions: []interfaces.Transaction{},
 		}
 		arbiters.ProcessBlock(blockEx, nil)
 	}

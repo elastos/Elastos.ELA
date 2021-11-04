@@ -10,7 +10,6 @@ import (
 	"crypto/sha256"
 	"errors"
 	"fmt"
-	"github.com/elastos/Elastos.ELA/core/types/transactions"
 	"math/rand"
 	"os"
 	"sort"
@@ -20,6 +19,7 @@ import (
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/core/contract"
 	pg "github.com/elastos/Elastos.ELA/core/contract/program"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/crypto"
 	"github.com/elastos/Elastos.ELA/utils"
 	"github.com/elastos/Elastos.ELA/utils/signal"
@@ -105,9 +105,9 @@ func Open(path string, password []byte) (*Client, error) {
 	return client, nil
 }
 
-func (cl *Client) Sign(txn *transactions.BaseTransaction) (*transactions.BaseTransaction, error) {
+func (cl *Client) Sign(txn interfaces.Transaction) (interfaces.Transaction, error) {
 	var signedPrograms []*pg.Program
-	for _, program := range txn.Programs {
+	for _, program := range txn.Programs() {
 		// Get sign type
 		signType, err := crypto.GetScriptType(program.Code)
 		if err != nil {
@@ -130,7 +130,7 @@ func (cl *Client) Sign(txn *transactions.BaseTransaction) (*transactions.BaseTra
 			signedPrograms = append(signedPrograms, signedProgram)
 		}
 	}
-	txn.Programs = signedPrograms
+	txn.SetPrograms(signedPrograms)
 
 	return txn, nil
 }
@@ -421,7 +421,7 @@ func (cl *Client) HandleInterrupt() {
 	}
 }
 
-func SignBySigner(txn *transactions.BaseTransaction, acc *Account) ([]byte, error) {
+func SignBySigner(txn interfaces.Transaction, acc *Account) ([]byte, error) {
 	buf := new(bytes.Buffer)
 	if err := txn.SerializeUnsigned(buf); err != nil {
 		return nil, err
@@ -433,7 +433,7 @@ func SignBySigner(txn *transactions.BaseTransaction, acc *Account) ([]byte, erro
 	return signature, nil
 }
 
-func SignStandardTransaction(txn *transactions.BaseTransaction, program *pg.Program,
+func SignStandardTransaction(txn interfaces.Transaction, program *pg.Program,
 	accounts map[common.Uint160]*Account) (*pg.Program, error) {
 	code := program.Code
 	acct, ok := accounts[*common.ToCodeHash(code)]
@@ -459,7 +459,7 @@ func SignStandardTransaction(txn *transactions.BaseTransaction, program *pg.Prog
 	return signedProgram, nil
 }
 
-func SignMultiSignTransaction(txn *transactions.BaseTransaction, program *pg.Program,
+func SignMultiSignTransaction(txn interfaces.Transaction, program *pg.Program,
 	accounts map[common.Uint160]*Account) (*pg.Program, error) {
 	code := program.Code
 	param := program.Parameter

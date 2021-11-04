@@ -170,7 +170,7 @@ func (idx *UtxoIndex) ConnectBlock(dbTx database.Tx, block *types.Block) error {
 	utxoMap := make(map[common.Uint168]map[uint32][]*common2.UTXO)
 	for _, txn := range block.Transactions {
 		// output process
-		for i, output := range txn.Outputs {
+		for i, output := range txn.Outputs() {
 			if output.Value == 0 {
 				continue
 			}
@@ -194,12 +194,12 @@ func (idx *UtxoIndex) ConnectBlock(dbTx database.Tx, block *types.Block) error {
 			continue
 		}
 		// inputs process
-		for _, input := range txn.Inputs {
+		for _, input := range txn.Inputs() {
 			referTx, height, err := idx.txStore.FetchTx(input.Previous.TxID)
 			if err != nil {
 				return err
 			}
-			referOutput := referTx.Outputs[input.Previous.Index]
+			referOutput := referTx.Outputs()[input.Previous.Index]
 			// find the spent items and remove it
 			if _, ok := utxoMap[referOutput.ProgramHash]; !ok {
 				utxoMap[referOutput.ProgramHash] = make(map[uint32][]*common2.UTXO)
@@ -246,7 +246,7 @@ func (idx *UtxoIndex) DisconnectBlock(dbTx database.Tx, block *types.Block) erro
 	utxoMap := make(map[common.Uint168]map[uint32][]*common2.UTXO)
 	for _, txn := range block.Transactions {
 		// output process
-		for _, output := range txn.Outputs {
+		for _, output := range txn.Outputs() {
 			if _, ok := utxoMap[output.ProgramHash]; !ok {
 				utxoMap[output.ProgramHash] = make(map[uint32][]*common2.UTXO)
 			}
@@ -257,12 +257,12 @@ func (idx *UtxoIndex) DisconnectBlock(dbTx database.Tx, block *types.Block) erro
 		if txn.IsCoinBaseTx() {
 			continue
 		}
-		for _, input := range txn.Inputs {
+		for _, input := range txn.Inputs() {
 			referTx, height, err := idx.txStore.FetchTx(input.Previous.TxID)
 			if err != nil {
 				return err
 			}
-			referOutput := referTx.Outputs[input.Previous.Index]
+			referOutput := referTx.Outputs()[input.Previous.Index]
 			if referOutput.Value == 0 {
 				continue
 			}

@@ -9,9 +9,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/elastos/Elastos.ELA/core/types/transactions"
-	"github.com/elastos/Elastos.ELA/elanet/filter/returnsidechaindepositcoinfilter"
-	"github.com/elastos/Elastos.ELA/elanet/filter/upgradefilter"
 	"sync/atomic"
 	"time"
 
@@ -19,13 +16,16 @@ import (
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/core/types"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/dpos/state"
 	"github.com/elastos/Elastos.ELA/elanet/bloom"
 	"github.com/elastos/Elastos.ELA/elanet/filter"
 	"github.com/elastos/Elastos.ELA/elanet/filter/customidfilter"
 	"github.com/elastos/Elastos.ELA/elanet/filter/nextturndposfilter"
+	"github.com/elastos/Elastos.ELA/elanet/filter/returnsidechaindepositcoinfilter"
 	"github.com/elastos/Elastos.ELA/elanet/filter/sidefilter"
+	"github.com/elastos/Elastos.ELA/elanet/filter/upgradefilter"
 	"github.com/elastos/Elastos.ELA/elanet/netsync"
 	"github.com/elastos/Elastos.ELA/elanet/pact"
 	"github.com/elastos/Elastos.ELA/elanet/peer"
@@ -244,7 +244,7 @@ func (sp *serverPeer) OnTx(_ *peer.Peer, msgTx *msg.Tx) {
 	// Add the transaction to the known inventory for the peer.
 	// Convert the raw MsgTx to a btcutil.Tx which provides some convenience
 	// methods and things such as hash caching.
-	tx := msgTx.Serializable.(*transactions.BaseTransaction)
+	tx := msgTx.Serializable.(interfaces.Transaction)
 	txId := tx.Hash()
 	iv := msg.NewInvVect(msg.InvTypeTx, &txId)
 	sp.AddKnownInventory(iv)
@@ -783,7 +783,7 @@ func (s *server) handleRelayInvMsg(peers map[svr.IPeer]*serverPeer, rmsg relayMs
 				continue
 			}
 
-			tx, ok := rmsg.data.(*transactions.BaseTransaction)
+			tx, ok := rmsg.data.(interfaces.Transaction)
 			if !ok {
 				log.Warnf("Underlying data for tx inv "+
 					"relay is not a *core.BaseTransaction: %T",
@@ -1062,7 +1062,8 @@ func makeEmptyMessage(cmd string) (p2p.Message, error) {
 		message = &msg.MemPool{}
 
 	case p2p.CmdTx:
-		message = msg.NewTx(&transactions.BaseTransaction{})
+		// todo refactor me
+		//message = msg.NewTx(interfaces.Transaction)
 
 	case p2p.CmdBlock:
 		message = msg.NewBlock(&types.DposBlock{})

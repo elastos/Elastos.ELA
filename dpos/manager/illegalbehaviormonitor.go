@@ -7,16 +7,11 @@ package manager
 
 import (
 	"bytes"
-	"github.com/elastos/Elastos.ELA/core/types/transactions"
-
 	"github.com/elastos/Elastos.ELA/common"
-	"github.com/elastos/Elastos.ELA/core/contract/program"
 	"github.com/elastos/Elastos.ELA/core/types"
-	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/dpos/log"
 	dmsg "github.com/elastos/Elastos.ELA/dpos/p2p/msg"
-	"github.com/elastos/Elastos.ELA/p2p/msg"
 )
 
 const WaitHeightTolerance = uint32(1)
@@ -45,7 +40,7 @@ func (i *IllegalBehaviorMonitor) IsBlockValid(block *types.Block) bool {
 		hasInactiveArbitratorsTx := false
 		for _, tx := range block.Transactions {
 			if tx.IsInactiveArbitrators() &&
-				tx.Payload.(*payload.InactiveArbitrators).Hash().IsEqual(*i.inactiveArbitratorsPayloadHash) {
+				tx.Payload().(*payload.InactiveArbitrators).Hash().IsEqual(*i.inactiveArbitratorsPayloadHash) {
 				hasInactiveArbitratorsTx = true
 			}
 		}
@@ -84,7 +79,7 @@ func (i *IllegalBehaviorMonitor) Reset(changeView bool) {
 func (i *IllegalBehaviorMonitor) CleanByBlock(b *types.Block) {
 	for _, tx := range b.Transactions {
 		if tx.IsIllegalTypeTx() || tx.IsInactiveArbitrators() {
-			hash := tx.Payload.(payload.DPOSIllegalData).Hash()
+			hash := tx.Payload().(payload.DPOSIllegalData).Hash()
 			i.evidenceCache.TryDelete(hash)
 
 			if tx.IsIllegalProposalTx() {
@@ -166,62 +161,74 @@ func (i *IllegalBehaviorMonitor) ProcessIllegalProposal(
 
 func (i *IllegalBehaviorMonitor) sendIllegalProposalTransaction(
 	evidences *payload.DPOSIllegalProposals) {
-	tx := &transactions.BaseTransaction{
-		Version:        common2.TxVersion09,
-		TxType:         common2.IllegalProposalEvidence,
-		PayloadVersion: payload.IllegalProposalVersion,
-		Payload:        evidences,
-		Attributes:     []*common2.Attribute{},
-		LockTime:       0,
-		Programs:       []*program.Program{},
-		Outputs:        []*common2.Output{},
-		Inputs:         []*common2.Input{},
-		Fee:            0,
-	}
 
-	if err := i.manager.AppendToTxnPool(tx); err == nil {
-		i.manager.Broadcast(msg.NewTx(tx))
-	}
+	// todo refactor me
+	return
+
+	//tx := &transactions.BaseTransaction{
+	//	Version:        common2.TxVersion09,
+	//	TxType:         common2.IllegalProposalEvidence,
+	//	PayloadVersion: payload.IllegalProposalVersion,
+	//	Payload:        evidences,
+	//	Attributes:     []*common2.Attribute{},
+	//	LockTime:       0,
+	//	Programs:       []*program.Program{},
+	//	Outputs:        []*common2.Output{},
+	//	Inputs:         []*common2.Input{},
+	//	Fee:            0,
+	//}
+	//
+	//if err := i.manager.AppendToTxnPool(tx); err == nil {
+	//	i.manager.Broadcast(msg.NewTx(tx))
+	//}
 }
 
 func (i *IllegalBehaviorMonitor) SendSidechainIllegalEvidenceTransaction(
 	evidence *payload.SidechainIllegalData) {
-	tx := &transactions.BaseTransaction{
-		Version:        common2.TxVersion09,
-		TxType:         common2.IllegalSidechainEvidence,
-		PayloadVersion: payload.SidechainIllegalDataVersion,
-		Payload:        evidence,
-		Attributes:     []*common2.Attribute{},
-		LockTime:       0,
-		Programs:       []*program.Program{},
-		Outputs:        []*common2.Output{},
-		Inputs:         []*common2.Input{},
-		Fee:            0,
-	}
 
-	if err := i.manager.AppendToTxnPool(tx); err == nil {
-		i.manager.Broadcast(msg.NewTx(tx))
-	}
+	// todo refactor me
+	return
+
+	//tx := &transactions.BaseTransaction{
+	//	Version:        common2.TxVersion09,
+	//	TxType:         common2.IllegalSidechainEvidence,
+	//	PayloadVersion: payload.SidechainIllegalDataVersion,
+	//	Payload:        evidence,
+	//	Attributes:     []*common2.Attribute{},
+	//	LockTime:       0,
+	//	Programs:       []*program.Program{},
+	//	Outputs:        []*common2.Output{},
+	//	Inputs:         []*common2.Input{},
+	//	Fee:            0,
+	//}
+	//
+	//if err := i.manager.AppendToTxnPool(tx); err == nil {
+	//	i.manager.Broadcast(msg.NewTx(tx))
+	//}
 }
 
 func (i *IllegalBehaviorMonitor) sendIllegalVoteTransaction(
 	evidences *payload.DPOSIllegalVotes) {
-	tx := &transactions.BaseTransaction{
-		Version:        common2.TxVersion09,
-		TxType:         common2.IllegalVoteEvidence,
-		PayloadVersion: payload.IllegalVoteVersion,
-		Payload:        evidences,
-		Attributes:     []*common2.Attribute{},
-		LockTime:       0,
-		Programs:       []*program.Program{},
-		Outputs:        []*common2.Output{},
-		Inputs:         []*common2.Input{},
-		Fee:            0,
-	}
 
-	if err := i.manager.AppendToTxnPool(tx); err == nil {
-		i.manager.Broadcast(msg.NewTx(tx))
-	}
+	// todo refactor me
+	return
+
+	//tx := &transactions.BaseTransaction{
+	//	Version:        common2.TxVersion09,
+	//	TxType:         common2.IllegalVoteEvidence,
+	//	PayloadVersion: payload.IllegalVoteVersion,
+	//	Payload:        evidences,
+	//	Attributes:     []*common2.Attribute{},
+	//	LockTime:       0,
+	//	Programs:       []*program.Program{},
+	//	Outputs:        []*common2.Output{},
+	//	Inputs:         []*common2.Input{},
+	//	Fee:            0,
+	//}
+	//
+	//if err := i.manager.AppendToTxnPool(tx); err == nil {
+	//	i.manager.Broadcast(msg.NewTx(tx))
+	//}
 }
 
 func (i *IllegalBehaviorMonitor) ProcessIllegalVote(

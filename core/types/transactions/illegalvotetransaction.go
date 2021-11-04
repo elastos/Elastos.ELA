@@ -25,7 +25,7 @@ func (a *IllegaloteTransaction) SpecialCheck(para *interfaces.CheckParameters) (
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("tx already exists")), true
 	}
 
-	if err := a.CheckDPOSIllegalVotes(a.Payload.(*payload.DPOSIllegalVotes), para); err != nil {
+	if err := a.CheckDPOSIllegalVotes(a.payload.(*payload.DPOSIllegalVotes), para); err != nil {
 		return elaerr.Simple(elaerr.ErrTxPayload, err), true
 	}
 

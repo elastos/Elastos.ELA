@@ -12,7 +12,7 @@
 package returnsidechaindepositcoinfilter
 
 import (
-	"github.com/elastos/Elastos.ELA/core/types/transactions"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/elanet/bloom"
 	"github.com/elastos/Elastos.ELA/elanet/filter"
 )
@@ -38,14 +38,14 @@ func (f *ReturnSidechainDepositCoinFilter) Add(data []byte) error {
 
 // MatchConfirmed returns if a confirmed (packed into a block) transaction
 // matches the filter.
-func (f *ReturnSidechainDepositCoinFilter) MatchConfirmed(tx *transactions.BaseTransaction) bool {
+func (f *ReturnSidechainDepositCoinFilter) MatchConfirmed(tx interfaces.Transaction) bool {
 	return f.TxFilter.MatchConfirmed(tx) || tx.IsNextTurnDPOSInfoTx() ||
 		tx.IsCustomIDRelatedTx() || tx.IsRevertToPOW() || tx.IsRevertToDPOS() || tx.IsReturnSideChainDepositCoinTx()
 }
 
 // MatchUnconfirmed returns if a unconfirmed (not packed into a block yet)
 // transaction matches the filter.
-func (f *ReturnSidechainDepositCoinFilter) MatchUnconfirmed(tx *transactions.BaseTransaction) bool {
+func (f *ReturnSidechainDepositCoinFilter) MatchUnconfirmed(tx interfaces.Transaction) bool {
 	return f.TxFilter.MatchUnconfirmed(tx)
 }
 

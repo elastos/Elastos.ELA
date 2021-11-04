@@ -8,12 +8,12 @@ package dpos
 import (
 	"bytes"
 	"errors"
-	"github.com/elastos/Elastos.ELA/core/types/transactions"
 	"sync"
 
 	"github.com/elastos/Elastos.ELA/blockchain"
 	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/core/types"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/dpos/account"
 	"github.com/elastos/Elastos.ELA/dpos/dtime"
@@ -268,7 +268,7 @@ func (n *network) processMessage(msgItem *messageItem) {
 	case elap2p.CmdTx:
 		msgTx, processed := m.(*elamsg.Tx)
 		if processed {
-			tx, ok := msgTx.Serializable.(*transactions.BaseTransaction)
+			tx, ok := msgTx.Serializable.(interfaces.Transaction)
 			if !ok {
 				return
 			}
@@ -385,7 +385,8 @@ func makeEmptyMessage(cmd string) (message elap2p.Message, err error) {
 	case elap2p.CmdBlock:
 		message = elamsg.NewBlock(&types.Block{})
 	case elap2p.CmdTx:
-		message = elamsg.NewTx(&transactions.BaseTransaction{})
+		// todo refactor me
+		//message = elamsg.NewTx(&transactions.BaseTransaction{})
 	case msg.CmdAcceptVote:
 		message = &msg.Vote{Command: msg.CmdAcceptVote}
 	case msg.CmdReceivedProposal:

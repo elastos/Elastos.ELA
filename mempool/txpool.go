@@ -9,8 +9,8 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/elastos/Elastos.ELA/core/types/common"
-	"github.com/elastos/Elastos.ELA/core/types/transactions"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
+	"io"
 	"sync"
 
 	"github.com/elastos/Elastos.ELA/blockchain"
@@ -18,6 +18,7 @@ import (
 	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/common/log"
 	. "github.com/elastos/Elastos.ELA/core/types"
+	"github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/core/types/outputpayload"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	elaerr "github.com/elastos/Elastos.ELA/errors"
@@ -39,7 +40,7 @@ type TxPool struct {
 
 //append transaction to txnpool when check ok, and broadcast the transaction.
 //1.check  2.check with ledger(db) 3.check with pool
-func (mp *TxPool) AppendToTxPool(tx *transactions.BaseTransaction) elaerr.ELAError {
+func (mp *TxPool) AppendToTxPool(tx interfaces.Transaction) elaerr.ELAError {
 	mp.Lock()
 	defer mp.Unlock()
 	err := mp.appendToTxPool(tx)
@@ -54,7 +55,7 @@ func (mp *TxPool) AppendToTxPool(tx *transactions.BaseTransaction) elaerr.ELAErr
 
 //append transaction to txnpool when check ok.
 //1.check  2.check with ledger(db) 3.check with pool
-func (mp *TxPool) AppendToTxPoolWithoutEvent(tx *transactions.BaseTransaction) elaerr.ELAError {
+func (mp *TxPool) AppendToTxPoolWithoutEvent(tx interfaces.Transaction) elaerr.ELAError {
 	mp.Lock()
 	defer mp.Unlock()
 	err := mp.appendToTxPool(tx)
@@ -72,7 +73,7 @@ func (mp *TxPool) removeCRAppropriationConflictTransactions() {
 	}
 }
 
-func (mp *TxPool) appendToTxPool(tx *transactions.BaseTransaction) elaerr.ELAError {
+func (mp *TxPool) appendToTxPool(tx interfaces.Transaction) elaerr.ELAError {
 	txHash := tx.Hash()
 
 	// If the transaction is CR appropriation transaction, need to remove
@@ -146,7 +147,7 @@ func (mp *TxPool) GetUsedUTXOs() map[string]struct{} {
 	defer mp.RUnlock()
 	usedUTXOs := make(map[string]struct{})
 	for _, v := range mp.txnList {
-		for _, input := range v.Inputs {
+		for _, input := range v.Inputs() {
 			usedUTXOs[input.ReferKey()] = struct{}{}
 		}
 	}
@@ -165,9 +166,9 @@ func (mp *TxPool) HaveTransaction(txId Uint256) bool {
 // GetTxsInPool returns a slice of all transactions in the mp.
 //
 // This function is safe for concurrent access.
-func (mp *TxPool) GetTxsInPool() []*transactions.BaseTransaction {
+func (mp *TxPool) GetTxsInPool() []interfaces.Transaction {
 	mp.RLock()
-	txs := make([]*transactions.BaseTransaction, 0, len(mp.txnList))
+	txs := make([]interfaces.Transaction, 0, len(mp.txnList))
 	for _, tx := range mp.txnList {
 		txs = append(txs, tx)
 	}
@@ -194,7 +195,7 @@ func (mp *TxPool) CheckAndCleanAllTransactions() {
 
 func (mp *TxPool) BroadcastSmallCrossChainTransactions(bestHeight uint32) {
 	mp.Lock()
-	txs := make([]*transactions.BaseTransaction, 0)
+	txs := make([]interfaces.Transaction, 0)
 	for txHash, height := range mp.crossChainHeightList {
 		if bestHeight >= height+broadcastCrossChainTransactionInterval {
 			mp.crossChainHeightList[txHash] = bestHeight
@@ -213,11 +214,11 @@ func (mp *TxPool) BroadcastSmallCrossChainTransactions(bestHeight uint32) {
 	mp.Unlock()
 }
 
-func (mp *TxPool) cleanTransactions(blockTxs []*transactions.BaseTransaction) {
+func (mp *TxPool) cleanTransactions(blockTxs []interfaces.Transaction) {
 	txsInPool := len(mp.txnList)
 	deleteCount := 0
 	for _, blockTx := range blockTxs {
-		if blockTx.TxType == common.CoinBase {
+		if blockTx.TxType() == common.CoinBase {
 			continue
 		}
 
@@ -280,10 +281,10 @@ func (mp *TxPool) cleanTransactions(blockTxs []*transactions.BaseTransaction) {
 		len(blockTxs), txsInPool, deleteCount, len(mp.txnList)))
 }
 
-func (mp *TxPool) cleanCanceledProducerAndCR(txs []*transactions.BaseTransaction) error {
+func (mp *TxPool) cleanCanceledProducerAndCR(txs []interfaces.Transaction) error {
 	for _, txn := range txs {
-		if txn.TxType == common.CancelProducer {
-			cpPayload, ok := txn.Payload.(*payload.ProcessProducer)
+		if txn.TxType() == common.CancelProducer {
+			cpPayload, ok := txn.Payload().(*payload.ProcessProducer)
 			if !ok {
 				return errors.New("invalid cancel producer payload")
 			}
@@ -291,8 +292,8 @@ func (mp *TxPool) cleanCanceledProducerAndCR(txs []*transactions.BaseTransaction
 				log.Error(err)
 			}
 		}
-		if txn.TxType == common.UnregisterCR {
-			crPayload, ok := txn.Payload.(*payload.UnregisterCR)
+		if txn.TxType() == common.UnregisterCR {
+			crPayload, ok := txn.Payload().(*payload.UnregisterCR)
 			if !ok {
 				return errors.New("invalid cancel producer payload")
 			}
@@ -332,9 +333,9 @@ func (mp *TxPool) checkAndCleanAllTransactions() {
 
 func (mp *TxPool) cleanVoteAndUpdateProducer(ownerPublicKey []byte) error {
 	for _, txn := range mp.txnList {
-		if txn.TxType == common.TransferAsset {
+		if txn.TxType() == common.TransferAsset {
 		end:
-			for _, output := range txn.Outputs {
+			for _, output := range txn.Outputs() {
 				if output.Type == common.OTVote {
 					opPayload, ok := output.Payload.(*outputpayload.VoteOutput)
 					if !ok {
@@ -352,8 +353,8 @@ func (mp *TxPool) cleanVoteAndUpdateProducer(ownerPublicKey []byte) error {
 					}
 				}
 			}
-		} else if txn.TxType == common.UpdateProducer {
-			upPayload, ok := txn.Payload.(*payload.ProducerInfo)
+		} else if txn.TxType() == common.UpdateProducer {
+			upPayload, ok := txn.Payload().(*payload.ProducerInfo)
 			if !ok {
 				return errors.New("invalid update producer payload")
 			}
@@ -378,8 +379,8 @@ func (mp *TxPool) cleanVoteAndUpdateProducer(ownerPublicKey []byte) error {
 
 func (mp *TxPool) cleanVoteAndUpdateCR(cid Uint168) error {
 	for _, txn := range mp.txnList {
-		if txn.TxType == common.TransferAsset {
-			for _, output := range txn.Outputs {
+		if txn.TxType() == common.TransferAsset {
+			for _, output := range txn.Outputs() {
 				if output.Type == common.OTVote {
 					opPayload, ok := output.Payload.(*outputpayload.VoteOutput)
 					if !ok {
@@ -396,8 +397,8 @@ func (mp *TxPool) cleanVoteAndUpdateCR(cid Uint168) error {
 					}
 				}
 			}
-		} else if txn.TxType == common.UpdateCR {
-			crPayload, ok := txn.Payload.(*payload.CRInfo)
+		} else if txn.TxType() == common.UpdateCR {
+			crPayload, ok := txn.Payload().(*payload.CRInfo)
 			if !ok {
 				return errors.New("invalid update CR payload")
 			}
@@ -414,7 +415,7 @@ func (mp *TxPool) cleanVoteAndUpdateCR(cid Uint168) error {
 }
 
 //get the transaction by hash
-func (mp *TxPool) GetTransaction(hash Uint256) *transactions.BaseTransaction {
+func (mp *TxPool) GetTransaction(hash Uint256) interfaces.Transaction {
 	mp.RLock()
 	defer mp.RUnlock()
 	return mp.txnList[hash]
@@ -422,7 +423,7 @@ func (mp *TxPool) GetTransaction(hash Uint256) *transactions.BaseTransaction {
 
 //verify transaction with txnpool
 func (mp *TxPool) verifyTransactionWithTxnPool(
-	txn *transactions.BaseTransaction) elaerr.ELAError {
+	txn interfaces.Transaction) elaerr.ELAError {
 	if txn.IsSideChainPowTx() {
 		// check and replace the duplicate sidechainpow tx
 		mp.replaceDuplicateSideChainPowTx(txn)
@@ -432,7 +433,7 @@ func (mp *TxPool) verifyTransactionWithTxnPool(
 }
 
 //remove from associated map
-func (mp *TxPool) removeTransaction(tx *transactions.BaseTransaction) {
+func (mp *TxPool) removeTransaction(tx interfaces.Transaction) {
 	//1.remove from txnList
 	if _, ok := mp.txnList[tx.Hash()]; ok {
 		mp.doRemoveTransaction(tx)
@@ -452,15 +453,15 @@ func (mp *TxPool) IsDuplicateSidechainReturnDepositTx(sidechainReturnDepositTxHa
 }
 
 // check and replace the duplicate sidechainpow tx
-func (mp *TxPool) replaceDuplicateSideChainPowTx(txn *transactions.BaseTransaction) {
-	var replaceList []*transactions.BaseTransaction
+func (mp *TxPool) replaceDuplicateSideChainPowTx(txn interfaces.Transaction) {
+	var replaceList []interfaces.Transaction
 
 	for _, v := range mp.txnList {
-		if v.TxType == common.SideChainPow {
-			oldPayload := v.Payload.Data(payload.SideChainPowVersion)
+		if v.TxType() == common.SideChainPow {
+			oldPayload := v.Payload().Data(payload.SideChainPowVersion)
 			oldGenesisHashData := oldPayload[32:64]
 
-			newPayload := txn.Payload.Data(payload.SideChainPowVersion)
+			newPayload := txn.Payload().Data(payload.SideChainPowVersion)
 			newGenesisHashData := newPayload[32:64]
 
 			if bytes.Equal(oldGenesisHashData, newGenesisHashData) {
@@ -495,20 +496,20 @@ func (mp *TxPool) GetTransactionCount() int {
 	return len(mp.txnList)
 }
 
-func (mp *TxPool) getInputUTXOList(input *common.Input) *transactions.BaseTransaction {
+func (mp *TxPool) getInputUTXOList(input *common.Input) interfaces.Transaction {
 	return mp.GetTx(input.ReferKey(), slotTxInputsReferKeys)
 }
 
-func (mp *TxPool) MaybeAcceptTransaction(tx *transactions.BaseTransaction) error {
+func (mp *TxPool) MaybeAcceptTransaction(tx interfaces.Transaction) error {
 	mp.Lock()
 	defer mp.Unlock()
 	return mp.appendToTxPool(tx)
 }
 
-func (mp *TxPool) RemoveTransaction(txn *transactions.BaseTransaction) {
+func (mp *TxPool) RemoveTransaction(txn interfaces.Transaction) {
 	mp.Lock()
 	txHash := txn.Hash()
-	for i := range txn.Outputs {
+	for i := range txn.Outputs() {
 		input := common.Input{
 			Previous: common.OutPoint{
 				TxID:  txHash,
@@ -524,8 +525,8 @@ func (mp *TxPool) RemoveTransaction(txn *transactions.BaseTransaction) {
 	mp.Unlock()
 }
 
-func (mp *TxPool) dealAddProposalTx(txn *transactions.BaseTransaction) {
-	proposal, ok := txn.Payload.(*payload.CRCProposal)
+func (mp *TxPool) dealAddProposalTx(txn interfaces.Transaction) {
+	proposal, ok := txn.Payload().(*payload.CRCProposal)
 	if !ok {
 		return
 	}
@@ -534,8 +535,8 @@ func (mp *TxPool) dealAddProposalTx(txn *transactions.BaseTransaction) {
 	}
 }
 
-func (mp *TxPool) dealDelProposalTx(txn *transactions.BaseTransaction) {
-	proposal, ok := txn.Payload.(*payload.CRCProposal)
+func (mp *TxPool) dealDelProposalTx(txn interfaces.Transaction) {
+	proposal, ok := txn.Payload().(*payload.CRCProposal)
 	if !ok {
 		return
 	}
@@ -544,7 +545,7 @@ func (mp *TxPool) dealDelProposalTx(txn *transactions.BaseTransaction) {
 	}
 }
 
-func (mp *TxPool) doAddTransaction(tx *transactions.BaseTransaction) elaerr.ELAError {
+func (mp *TxPool) doAddTransaction(tx interfaces.Transaction) elaerr.ELAError {
 	if err := mp.txFees.AddTx(tx); err != nil {
 		return err
 	}
@@ -555,10 +556,10 @@ func (mp *TxPool) doAddTransaction(tx *transactions.BaseTransaction) elaerr.ELAE
 	return nil
 }
 
-func (mp *TxPool) doRemoveTransaction(tx *transactions.BaseTransaction) {
+func (mp *TxPool) doRemoveTransaction(tx interfaces.Transaction) {
 	hash := tx.Hash()
 	txSize := tx.GetSize()
-	feeRate := float64(tx.Fee) / float64(txSize)
+	feeRate := float64(tx.Fee()) / float64(txSize)
 
 	if _, exist := mp.txnList[hash]; exist {
 		delete(mp.txnList, hash)
@@ -588,7 +589,9 @@ func (mp *TxPool) onPopBack(hash Uint256) {
 
 }
 
-func NewTxPool(params *config.Params) *TxPool {
+func NewTxPool(params *config.Params,
+	getTransaction func(txType common.TxType) (interfaces.Transaction, error),
+	getTransactionByBytes func(r io.Reader) (interfaces.Transaction, error)) *TxPool {
 	rtn := &TxPool{
 		conflictManager:      newConflictManager(),
 		chainParams:          params,
@@ -596,13 +599,13 @@ func NewTxPool(params *config.Params) *TxPool {
 		crossChainHeightList: make(map[Uint256]uint32),
 	}
 	rtn.txPoolCheckpoint = newTxPoolCheckpoint(
-		rtn, func(m map[Uint256]*transactions.BaseTransaction) {
+		rtn, func(m map[Uint256]interfaces.Transaction) {
 			for _, v := range m {
 				if err := rtn.conflictManager.AppendTx(v); err != nil {
 					return
 				}
 			}
-		})
+		}, getTransaction, getTransactionByBytes)
 	params.CkpManager.Register(rtn.txPoolCheckpoint)
 	return rtn
 }

@@ -25,7 +25,7 @@ import (
 )
 
 // mockBlock creates a block instance by the given height and transactions.
-func mockBlock(height uint32, txs ...*transactions.BaseTransaction) *types.Block {
+func mockBlock(height uint32, txs ...interfaces.Transaction) *types.Block {
 	return &types.Block{
 		Header: common2.Header{
 			Height: height,
@@ -36,7 +36,7 @@ func mockBlock(height uint32, txs ...*transactions.BaseTransaction) *types.Block
 
 // mockRegisterProducerTx creates a register producer transaction with the given
 // ProducerInfo.
-func mockRegisterProducerTx(info *payload.ProducerInfo) *transactions.BaseTransaction {
+func mockRegisterProducerTx(info *payload.ProducerInfo) interfaces.Transaction {
 	return &transactions.BaseTransaction{
 		TxType:  common2.RegisterProducer,
 		Payload: info,
@@ -45,7 +45,7 @@ func mockRegisterProducerTx(info *payload.ProducerInfo) *transactions.BaseTransa
 
 // mockUpdateProducerTx creates a update producer transaction with the given
 // ProducerInfo.
-func mockUpdateProducerTx(info *payload.ProducerInfo) *transactions.BaseTransaction {
+func mockUpdateProducerTx(info *payload.ProducerInfo) interfaces.Transaction {
 	return &transactions.BaseTransaction{
 		TxType:  common2.UpdateProducer,
 		Payload: info,
@@ -54,7 +54,7 @@ func mockUpdateProducerTx(info *payload.ProducerInfo) *transactions.BaseTransact
 
 // mockCancelProducerTx creates a cancel producer transaction by the producer
 // public key.
-func mockCancelProducerTx(publicKey []byte) *transactions.BaseTransaction {
+func mockCancelProducerTx(publicKey []byte) interfaces.Transaction {
 	return &transactions.BaseTransaction{
 		TxType: common2.CancelProducer,
 		Payload: &payload.ProcessProducer{
@@ -63,7 +63,7 @@ func mockCancelProducerTx(publicKey []byte) *transactions.BaseTransaction {
 	}
 }
 
-func mockActivateProducerTx(publicKey []byte) *transactions.BaseTransaction {
+func mockActivateProducerTx(publicKey []byte) interfaces.Transaction {
 	return &transactions.BaseTransaction{
 		TxType: common2.ActivateProducer,
 		Payload: &payload.ActivateProducer{
@@ -73,7 +73,7 @@ func mockActivateProducerTx(publicKey []byte) *transactions.BaseTransaction {
 }
 
 // mockVoteTx creates a vote transaction with the producers public keys.
-func mockVoteTx(publicKeys [][]byte) *transactions.BaseTransaction {
+func mockVoteTx(publicKeys [][]byte) interfaces.Transaction {
 	candidateVotes := make([]outputpayload.CandidateVotes, 0, len(publicKeys))
 	for _, pk := range publicKeys {
 		candidateVotes = append(candidateVotes,
@@ -97,7 +97,7 @@ func mockVoteTx(publicKeys [][]byte) *transactions.BaseTransaction {
 	}
 }
 
-func mockNewVoteTx(publicKeys [][]byte) *transactions.BaseTransaction {
+func mockNewVoteTx(publicKeys [][]byte) interfaces.Transaction {
 	candidateVotes := make([]outputpayload.CandidateVotes, 0, len(publicKeys))
 	for i, pk := range publicKeys {
 		candidateVotes = append(candidateVotes,
@@ -125,7 +125,7 @@ func mockNewVoteTx(publicKeys [][]byte) *transactions.BaseTransaction {
 
 // mockVoteTx creates a cancel vote transaction with the previous vote
 // transaction.
-func mockCancelVoteTx(tx *transactions.BaseTransaction) *transactions.BaseTransaction {
+func mockCancelVoteTx(tx interfaces.Transaction) interfaces.Transaction {
 	inputs := make([]*common2.Input, len(tx.Outputs))
 	for i := range tx.Outputs {
 		inputs[i] = &common2.Input{
@@ -142,7 +142,7 @@ func mockCancelVoteTx(tx *transactions.BaseTransaction) *transactions.BaseTransa
 
 // mockIllegalBlockTx creates a illegal block transaction with the producer
 // public key.
-func mockIllegalBlockTx(publicKey []byte) *transactions.BaseTransaction {
+func mockIllegalBlockTx(publicKey []byte) interfaces.Transaction {
 	return &transactions.BaseTransaction{
 		TxType: common2.IllegalBlockEvidence,
 		Payload: &payload.DPOSIllegalBlocks{
@@ -158,7 +158,7 @@ func mockIllegalBlockTx(publicKey []byte) *transactions.BaseTransaction {
 
 // mockIllegalBlockTx creates a inactive arbitrators transaction with the
 // producer public key.
-func mockInactiveArbitratorsTx(publicKey []byte) *transactions.BaseTransaction {
+func mockInactiveArbitratorsTx(publicKey []byte) interfaces.Transaction {
 	return &transactions.BaseTransaction{
 		TxType: common2.InactiveArbitrators,
 		Payload: &payload.InactiveArbitrators{
@@ -310,7 +310,7 @@ func TestState_ProcessBlock(t *testing.T) {
 
 	// Register 10 producers on one height.
 	for i := 0; i < 10; i++ {
-		txs := make([]*transactions.BaseTransaction, 10)
+		txs := make([]interfaces.Transaction, 10)
 		for i, p := range producers[i*10 : (i+1)*10] {
 			txs[i] = mockRegisterProducerTx(p)
 		}
@@ -328,7 +328,7 @@ func TestState_ProcessBlock(t *testing.T) {
 	}
 
 	// Update 10 producers.
-	txs := make([]*transactions.BaseTransaction, 10)
+	txs := make([]interfaces.Transaction, 10)
 	for i := range txs {
 		producers[i].NickName = fmt.Sprintf("Updated-%d", i)
 		txs[i] = mockUpdateProducerTx(producers[i])
@@ -342,7 +342,7 @@ func TestState_ProcessBlock(t *testing.T) {
 	}
 
 	// Cancel 10 producers.
-	txs = make([]*transactions.BaseTransaction, 10)
+	txs = make([]interfaces.Transaction, 10)
 	for i := range txs {
 		txs[i] = mockCancelProducerTx(producers[i].OwnerPublicKey)
 	}
@@ -366,7 +366,7 @@ func TestState_ProcessBlock(t *testing.T) {
 	for i, p := range producers[10:20] {
 		publicKeys[i] = p.OwnerPublicKey
 	}
-	txs = make([]*transactions.BaseTransaction, 10)
+	txs = make([]interfaces.Transaction, 10)
 	for i := range txs {
 		txs[i] = mockVoteTx(publicKeys)
 	}
@@ -379,7 +379,7 @@ func TestState_ProcessBlock(t *testing.T) {
 	}
 
 	// Illegal 10 producers.
-	txs = make([]*transactions.BaseTransaction, 10)
+	txs = make([]interfaces.Transaction, 10)
 	for i := range txs {
 		txs[i] = mockIllegalBlockTx(producers[10+i].NodePublicKey)
 	}
@@ -402,7 +402,7 @@ func TestState_ProcessBlock(t *testing.T) {
 	}
 
 	// Mixed transactions 1 register, 2 cancel, 3 updates, 4 votes, 5 illegals.
-	txs = make([]*transactions.BaseTransaction, 15)
+	txs = make([]interfaces.Transaction, 15)
 	info := &payload.ProducerInfo{
 		OwnerPublicKey: randomPublicKey(),
 		NodePublicKey:  make([]byte, 33),
@@ -900,7 +900,7 @@ func TestState_IsDPOSTransaction(t *testing.T) {
 		func() bool { return false },
 		nil, nil, nil,
 		nil, nil)
-	state.getTxReference = func(tx *transactions.BaseTransaction) (
+	state.getTxReference = func(tx interfaces.Transaction) (
 		map[*common2.Input]common2.Output, error) {
 		return references, nil
 	}
@@ -1327,7 +1327,7 @@ func TestState_ProcessBlock_DepositAndReturnDeposit(t *testing.T) {
 		Header: common2.Header{
 			Height: height,
 		},
-		Transactions: []*transactions.BaseTransaction{registerTx},
+		Transactions: []interfaces.Transaction{registerTx},
 	}, nil)
 	height++
 	candidate := state.getProducer(pkBuf)
@@ -1341,7 +1341,7 @@ func TestState_ProcessBlock_DepositAndReturnDeposit(t *testing.T) {
 		Header: common2.Header{
 			Height: height,
 		},
-		Transactions: []*transactions.BaseTransaction{},
+		Transactions: []interfaces.Transaction{},
 	}, nil)
 	height++
 	assert.Equal(t, common.Fixed64(100), candidate.totalAmount)
@@ -1362,7 +1362,7 @@ func TestState_ProcessBlock_DepositAndReturnDeposit(t *testing.T) {
 		Header: common2.Header{
 			Height: height,
 		},
-		Transactions: []*transactions.BaseTransaction{tranferTx},
+		Transactions: []interfaces.Transaction{tranferTx},
 	}, nil)
 	height++
 	assert.Equal(t, common.Fixed64(300), candidate.totalAmount)
@@ -1373,7 +1373,7 @@ func TestState_ProcessBlock_DepositAndReturnDeposit(t *testing.T) {
 			Header: common2.Header{
 				Height: height,
 			},
-			Transactions: []*transactions.BaseTransaction{},
+			Transactions: []interfaces.Transaction{},
 		}, nil)
 		height++
 	}
@@ -1382,7 +1382,7 @@ func TestState_ProcessBlock_DepositAndReturnDeposit(t *testing.T) {
 		Header: common2.Header{
 			Height: height,
 		},
-		Transactions: []*transactions.BaseTransaction{
+		Transactions: []interfaces.Transaction{
 			{
 				TxType: common2.CancelProducer,
 				Payload: &payload.ProcessProducer{
@@ -1397,7 +1397,7 @@ func TestState_ProcessBlock_DepositAndReturnDeposit(t *testing.T) {
 			Header: common2.Header{
 				Height: height,
 			},
-			Transactions: []*transactions.BaseTransaction{},
+			Transactions: []interfaces.Transaction{},
 		}, nil)
 		height++
 	}
@@ -1443,7 +1443,7 @@ func TestState_CountArbitratorsInactivityV1(t *testing.T) {
 
 	// Register 10 producers on one height.
 	for i := 0; i < 10; i++ {
-		txs := make([]*transactions.BaseTransaction, 10)
+		txs := make([]interfaces.Transaction, 10)
 		for i, p := range producers[i*10 : (i+1)*10] {
 			txs[i] = mockRegisterProducerTx(p)
 		}
@@ -1461,7 +1461,7 @@ func TestState_CountArbitratorsInactivityV1(t *testing.T) {
 	}
 
 	// Update 10 producers.
-	txs := make([]*transactions.BaseTransaction, 10)
+	txs := make([]interfaces.Transaction, 10)
 	for i := range txs {
 		producers[i].NickName = fmt.Sprintf("Updated-%d", i)
 		txs[i] = mockUpdateProducerTx(producers[i])
@@ -1475,7 +1475,7 @@ func TestState_CountArbitratorsInactivityV1(t *testing.T) {
 	}
 
 	// Cancel 10 producers.
-	txs = make([]*transactions.BaseTransaction, 10)
+	txs = make([]interfaces.Transaction, 10)
 	for i := range txs {
 		txs[i] = mockCancelProducerTx(producers[i].OwnerPublicKey)
 	}
@@ -1499,7 +1499,7 @@ func TestState_CountArbitratorsInactivityV1(t *testing.T) {
 	for i, p := range producers[10:20] {
 		publicKeys[i] = p.OwnerPublicKey
 	}
-	txs = make([]*transactions.BaseTransaction, 10)
+	txs = make([]interfaces.Transaction, 10)
 	for i := range txs {
 		txs[i] = mockVoteTx(publicKeys)
 	}
@@ -1512,7 +1512,7 @@ func TestState_CountArbitratorsInactivityV1(t *testing.T) {
 	}
 
 	// Illegal 10 producers.
-	txs = make([]*transactions.BaseTransaction, 10)
+	txs = make([]interfaces.Transaction, 10)
 	for i := range txs {
 		txs[i] = mockIllegalBlockTx(producers[10+i].NodePublicKey)
 	}

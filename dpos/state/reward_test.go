@@ -62,7 +62,7 @@ func TestCommittee_ChangeCommitteeReward(t *testing.T) {
 		Header: common2.Header{
 			Height: currentHeight,
 		},
-		Transactions: []*transactions.BaseTransaction{
+		Transactions: []interfaces.Transaction{
 			registerCRTxn1,
 			registerCRTxn2,
 			registerCRTxn3,
@@ -88,7 +88,7 @@ func TestCommittee_ChangeCommitteeReward(t *testing.T) {
 		Header: common2.Header{
 			Height: currentHeight,
 		},
-		Transactions: []*transactions.BaseTransaction{
+		Transactions: []interfaces.Transaction{
 			voteCRTx,
 		},
 	}, nil)
@@ -122,7 +122,7 @@ func TestCommittee_ChangeCommitteeReward(t *testing.T) {
 
 	// Register 10 producers on one height.
 	for i := 0; i < 20; i++ {
-		txs := make([]*transactions.BaseTransaction, 10)
+		txs := make([]interfaces.Transaction, 10)
 		for i, p := range producers[i*10 : (i+1)*10] {
 			txs[i] = mockRegisterProducerTx(p)
 		}
@@ -191,7 +191,7 @@ func getCodeByPubKeyStr(publicKey string) []byte {
 	return redeemScript
 }
 
-func getRegisterCRTx(publicKeyStr, privateKeyStr, nickName string) *transactions.BaseTransaction {
+func getRegisterCRTx(publicKeyStr, privateKeyStr, nickName string) interfaces.Transaction {
 	publicKeyStr1 := publicKeyStr
 	privateKeyStr1 := privateKeyStr
 	publicKey1, _ := common.HexStringToBytes(publicKeyStr1)
@@ -255,7 +255,7 @@ func getDIDByCode(code []byte) (*common.Uint168, error) {
 }
 
 func getVoteCRTx(amount common.Fixed64,
-	candidateVotes []outputpayload.CandidateVotes) *transactions.BaseTransaction {
+	candidateVotes []outputpayload.CandidateVotes) interfaces.Transaction {
 	return &transactions.BaseTransaction{
 		Version: 0x09,
 		TxType:  common2.TransferAsset,

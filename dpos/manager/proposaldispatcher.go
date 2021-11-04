@@ -8,15 +8,13 @@ package manager
 import (
 	"bytes"
 	"errors"
-	common2 "github.com/elastos/Elastos.ELA/core/types/common"
-	"github.com/elastos/Elastos.ELA/core/types/transactions"
 
 	"github.com/elastos/Elastos.ELA/blockchain"
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/core/contract"
-	"github.com/elastos/Elastos.ELA/core/contract/program"
 	"github.com/elastos/Elastos.ELA/core/types"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/crypto"
 	"github.com/elastos/Elastos.ELA/dpos/account"
@@ -56,8 +54,8 @@ type ProposalDispatcher struct {
 	firstBadNetworkRecover  bool
 
 	inactiveCountDown           ViewChangesCountDown
-	currentInactiveArbitratorTx *transactions.BaseTransaction
-	RevertToDPOSTx              *transactions.BaseTransaction
+	currentInactiveArbitratorTx interfaces.Transaction
+	RevertToDPOSTx              interfaces.Transaction
 
 	signedTxs map[common.Uint256]interface{}
 
@@ -492,7 +490,7 @@ func (p *ProposalDispatcher) OnIllegalBlocksTxReceived(i *payload.DPOSIllegalBlo
 }
 
 func (p *ProposalDispatcher) OnRevertToDPOSTxReceived(id peer.PID,
-	tx *transactions.BaseTransaction) {
+	tx interfaces.Transaction) {
 	if _, ok := p.signedTxs[tx.Hash()]; ok {
 		return
 	}
@@ -517,7 +515,7 @@ func (p *ProposalDispatcher) OnRevertToDPOSTxReceived(id peer.PID,
 }
 
 func (p *ProposalDispatcher) OnInactiveArbitratorsReceived(id peer.PID,
-	tx *transactions.BaseTransaction) {
+	tx interfaces.Transaction) {
 	if _, ok := p.signedTxs[tx.Hash()]; ok {
 		log.Warn("[OnInactiveArbitratorsReceived] already processed")
 		return
@@ -531,7 +529,7 @@ func (p *ProposalDispatcher) OnInactiveArbitratorsReceived(id peer.PID,
 		return
 	}
 
-	inactivePayload := tx.Payload.(*payload.InactiveArbitrators)
+	inactivePayload := tx.Payload().(*payload.InactiveArbitrators)
 	if len(inactivePayload.Arbitrators) == 0 {
 		log.Warn("[OnInactiveArbitratorsReceived] received empty payload")
 		return
@@ -606,7 +604,7 @@ func (p *ProposalDispatcher) OnResponseRevertToDPOSTxReceived(
 		return
 	}
 
-	pro := p.RevertToDPOSTx.Programs[0]
+	pro := p.RevertToDPOSTx.Programs()[0]
 	buf := new(bytes.Buffer)
 	buf.Write(pro.Parameter)
 	buf.WriteByte(byte(len(sign)))
@@ -648,7 +646,7 @@ func (p *ProposalDispatcher) OnResponseInactiveArbitratorsReceived(
 		return
 	}
 
-	pro := p.currentInactiveArbitratorTx.Programs[0]
+	pro := p.currentInactiveArbitratorTx.Programs()[0]
 	buf := new(bytes.Buffer)
 	buf.Write(pro.Parameter)
 	buf.WriteByte(byte(len(sign)))
@@ -662,7 +660,7 @@ func (p *ProposalDispatcher) tryEnterDPOSState(signCount int) bool {
 	minSignCount := int(float64(p.cfg.Arbitrators.GetArbitersCount())*
 		state.MajoritySignRatioNumerator/state.MajoritySignRatioDenominator) + 1
 	if signCount >= minSignCount {
-		payload := p.RevertToDPOSTx.Payload.(*payload.RevertToDPOS)
+		payload := p.RevertToDPOSTx.Payload().(*payload.RevertToDPOS)
 		p.cfg.Arbitrators.SetNeedRevertToDPOSTX(true)
 		err := p.cfg.Manager.AppendToTxnPool(p.RevertToDPOSTx)
 		if err != nil {
@@ -681,12 +679,12 @@ func (p *ProposalDispatcher) tryEnterEmergencyState(signCount int) bool {
 	minSignCount := int(float64(len(p.cfg.Arbitrators.GetCRCArbiters()))*
 		state.MajoritySignRatioNumerator/state.MajoritySignRatioDenominator) + 1
 	if signCount >= minSignCount {
-		payload := p.currentInactiveArbitratorTx.Payload.(*payload.InactiveArbitrators)
+		payload := p.currentInactiveArbitratorTx.Payload().(*payload.InactiveArbitrators)
 		p.illegalMonitor.AddEvidence(payload)
 		p.cfg.Manager.AppendToTxnPool(p.currentInactiveArbitratorTx)
 
 		if err := p.cfg.Arbitrators.ProcessSpecialTxPayload(
-			p.currentInactiveArbitratorTx.Payload,
+			p.currentInactiveArbitratorTx.Payload(),
 			blockchain.DefaultLedger.Blockchain.GetHeight()); err != nil {
 			log.Error("[tryEnterEmergencyState] force change arbitrators"+
 				" error: ", err.Error())
@@ -834,107 +832,114 @@ func (p *ProposalDispatcher) setProcessingProposal(d *payload.DPOSProposal) (fin
 }
 
 func (p *ProposalDispatcher) CreateRevertToDPOS(RevertToPOWBlockHeight uint32) (
-	*transactions.BaseTransaction, error) {
+	interfaces.Transaction, error) {
 
-	var err error
-	revertToDPOSPayload := &payload.RevertToDPOS{
-		WorkHeightInterval:     payload.WorkHeightInterval,
-		RevertToPOWBlockHeight: RevertToPOWBlockHeight,
-	}
-	con := contract.Contract{Prefix: contract.PrefixMultiSig}
-	if con.Code, err = p.createRevertToDPOSRedeemScript(); err != nil {
-		return nil, err
-	}
+	// todo refactor me
+	return nil, nil
 
-	programHash := con.ToProgramHash()
-	tx := &transactions.BaseTransaction{
-		Version:        common2.TxVersion09,
-		TxType:         common2.RevertToDPOS,
-		PayloadVersion: payload.RevertToDPOSVersion,
-		Payload:        revertToDPOSPayload,
-		Attributes: []*common2.Attribute{{
-			Usage: common2.Script,
-			Data:  programHash.Bytes(),
-		}},
-		LockTime: 0,
-		Outputs:  []*common2.Output{},
-		Inputs:   []*common2.Input{},
-		Fee:      0,
-	}
-
-	var sign []byte
-	if sign, err = p.cfg.Account.SignTx(tx); err != nil {
-		return nil, err
-	}
-	parameter := append([]byte{byte(len(sign))}, sign...)
-	tx.Programs = []*program.Program{
-		{
-			Code:      con.Code,
-			Parameter: parameter,
-		},
-	}
-
-	p.RevertToDPOSTx = tx
-	return tx, nil
+	//var err error
+	//revertToDPOSPayload := &payload.RevertToDPOS{
+	//	WorkHeightInterval:     payload.WorkHeightInterval,
+	//	RevertToPOWBlockHeight: RevertToPOWBlockHeight,
+	//}
+	//con := contract.Contract{Prefix: contract.PrefixMultiSig}
+	//if con.Code, err = p.createRevertToDPOSRedeemScript(); err != nil {
+	//	return nil, err
+	//}
+	//
+	//programHash := con.ToProgramHash()
+	//tx := &transactions.BaseTransaction{
+	//	Version:        common2.TxVersion09,
+	//	TxType:         common2.RevertToDPOS,
+	//	PayloadVersion: payload.RevertToDPOSVersion,
+	//	Payload:        revertToDPOSPayload,
+	//	Attributes: []*common2.Attribute{{
+	//		Usage: common2.Script,
+	//		Data:  programHash.Bytes(),
+	//	}},
+	//	LockTime: 0,
+	//	Outputs:  []*common2.Output{},
+	//	Inputs:   []*common2.Input{},
+	//	Fee:      0,
+	//}
+	//
+	//var sign []byte
+	//if sign, err = p.cfg.Account.SignTx(tx); err != nil {
+	//	return nil, err
+	//}
+	//parameter := append([]byte{byte(len(sign))}, sign...)
+	//tx.Programs = []*program.Program{
+	//	{
+	//		Code:      con.Code,
+	//		Parameter: parameter,
+	//	},
+	//}
+	//
+	//p.RevertToDPOSTx = tx
+	//return tx, nil
 }
 
 func (p *ProposalDispatcher) CreateInactiveArbitrators() (
-	*transactions.BaseTransaction, error) {
-	var err error
+	interfaces.Transaction, error) {
 
-	inactivePayload := &payload.InactiveArbitrators{
-		Sponsor:     p.cfg.Manager.GetPublicKey(),
-		Arbitrators: [][]byte{},
-		BlockHeight: blockchain.DefaultLedger.Blockchain.GetHeight() + 1,
-	}
-	inactiveArbitrators := p.eventAnalyzer.ParseInactiveArbitrators()
-	for _, v := range inactiveArbitrators {
-		var pk []byte
-		pk, err = common.HexStringToBytes(v)
-		if err != nil {
-			return nil, err
-		}
-		inactivePayload.Arbitrators = append(inactivePayload.Arbitrators, pk)
-	}
-	if len(inactivePayload.Arbitrators) == 0 {
-		return nil, errors.New("found no inactive arbiters")
-	}
+	// todo refactor me
+	return nil, nil
 
-	con := contract.Contract{Prefix: contract.PrefixMultiSig}
-	if con.Code, err = p.createArbitratorsRedeemScript(); err != nil {
-		return nil, err
-	}
-
-	programHash := con.ToProgramHash()
-	tx := &transactions.BaseTransaction{
-		Version:        common2.TxVersion09,
-		TxType:         common2.InactiveArbitrators,
-		PayloadVersion: payload.InactiveArbitratorsVersion,
-		Payload:        inactivePayload,
-		Attributes: []*common2.Attribute{{
-			Usage: common2.Script,
-			Data:  programHash.Bytes(),
-		}},
-		LockTime: 0,
-		Outputs:  []*common2.Output{},
-		Inputs:   []*common2.Input{},
-		Fee:      0,
-	}
-
-	var sign []byte
-	if sign, err = p.cfg.Account.SignTx(tx); err != nil {
-		return nil, err
-	}
-	parameter := append([]byte{byte(len(sign))}, sign...)
-	tx.Programs = []*program.Program{
-		{
-			Code:      con.Code,
-			Parameter: parameter,
-		},
-	}
-
-	p.currentInactiveArbitratorTx = tx
-	return tx, nil
+	//var err error
+	//
+	//inactivePayload := &payload.InactiveArbitrators{
+	//	Sponsor:     p.cfg.Manager.GetPublicKey(),
+	//	Arbitrators: [][]byte{},
+	//	BlockHeight: blockchain.DefaultLedger.Blockchain.GetHeight() + 1,
+	//}
+	//inactiveArbitrators := p.eventAnalyzer.ParseInactiveArbitrators()
+	//for _, v := range inactiveArbitrators {
+	//	var pk []byte
+	//	pk, err = common.HexStringToBytes(v)
+	//	if err != nil {
+	//		return nil, err
+	//	}
+	//	inactivePayload.Arbitrators = append(inactivePayload.Arbitrators, pk)
+	//}
+	//if len(inactivePayload.Arbitrators) == 0 {
+	//	return nil, errors.New("found no inactive arbiters")
+	//}
+	//
+	//con := contract.Contract{Prefix: contract.PrefixMultiSig}
+	//if con.Code, err = p.createArbitratorsRedeemScript(); err != nil {
+	//	return nil, err
+	//}
+	//
+	//programHash := con.ToProgramHash()
+	//tx := &transactions.BaseTransaction{
+	//	Version:        common2.TxVersion09,
+	//	TxType:         common2.InactiveArbitrators,
+	//	PayloadVersion: payload.InactiveArbitratorsVersion,
+	//	Payload:        inactivePayload,
+	//	Attributes: []*common2.Attribute{{
+	//		Usage: common2.Script,
+	//		Data:  programHash.Bytes(),
+	//	}},
+	//	LockTime: 0,
+	//	Outputs:  []*common2.Output{},
+	//	Inputs:   []*common2.Input{},
+	//	Fee:      0,
+	//}
+	//
+	//var sign []byte
+	//if sign, err = p.cfg.Account.SignTx(tx); err != nil {
+	//	return nil, err
+	//}
+	//parameter := append([]byte{byte(len(sign))}, sign...)
+	//tx.Programs = []*program.Program{
+	//	{
+	//		Code:      con.Code,
+	//		Parameter: parameter,
+	//	},
+	//}
+	//
+	//p.currentInactiveArbitratorTx = tx
+	//return tx, nil
 }
 
 func (p *ProposalDispatcher) createRevertToDPOSRedeemScript() ([]byte, error) {

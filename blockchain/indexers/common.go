@@ -16,11 +16,11 @@ package indexers
 import (
 	"encoding/binary"
 	"errors"
-	common2 "github.com/elastos/Elastos.ELA/core/types/common"
-	"github.com/elastos/Elastos.ELA/core/types/transactions"
 
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/core/types"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/database"
 )
 
@@ -61,7 +61,7 @@ type IndexManager interface {
 
 	// FetchTx retrieval a transaction and a block hash where it
 	// located by transaction hash
-	FetchTx(txID common.Uint256) (*transactions.BaseTransaction, uint32, error)
+	FetchTx(txID common.Uint256) (interfaces.Transaction, uint32, error)
 
 	// FetchUnspent retrieval the unspent set of transaction by its hash
 	FetchUnspent(txID common.Uint256) ([]uint16, error)
@@ -106,7 +106,7 @@ type Indexer interface {
 type ITxStore interface {
 	// FetchTx retrieval a transaction and a block hash where it
 	// located by transaction hash
-	FetchTx(txID common.Uint256) (*transactions.BaseTransaction, uint32, error)
+	FetchTx(txID common.Uint256) (interfaces.Transaction, uint32, error)
 }
 
 // AssertError identifies an error that indicates an internal code consistency

@@ -654,6 +654,10 @@ func (a *arbitrators) accumulateReward(block *types.Block) {
 
 func (a *arbitrators) clearingDPOSReward(block *types.Block, historyHeight uint32,
 	smoothClearing bool) (err error) {
+	// inactivate dpos reward sending when dposV2 activated
+	if a.isDposV2Active() {
+		return nil
+	}
 	if block.Height < a.chainParams.PublicDPOSHeight ||
 		block.Height == a.clearingHeight {
 		return nil

@@ -7,11 +7,11 @@ package transactions
 import (
 	"bytes"
 	"errors"
+	"fmt"
+
 	"github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/crypto"
-	"github.com/elastos/Elastos.ELA/dpos/log"
-
 	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	elaerr "github.com/elastos/Elastos.ELA/errors"
 )
@@ -107,7 +107,7 @@ func (a *IllegaloteTransaction) VoteCheckByHeight(vote *payload.DPOSProposalVote
 	}
 
 	if err := a.VoteContextCheckByHeight(vote, height, para); err != nil {
-		log.Warn("[VoteContextCheck] error: ", err.Error())
+		fmt.Println("[VoteContextCheck] error: ", err.Error())
 		return err
 	}
 

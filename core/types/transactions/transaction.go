@@ -176,7 +176,7 @@ func (tx *BaseTransaction) DeserializeUnsigned(r io.Reader) error {
 	}
 	tx.PayloadVersion = payloadVersion[0]
 
-	tx.Payload, err = GetPayload(tx.TxType, tx.PayloadVersion)
+	tx.Payload, err = interfaces.GetPayload(tx.TxType, tx.PayloadVersion)
 	if err != nil {
 		return err
 	}
@@ -455,87 +455,6 @@ func (tx *BaseTransaction) IsCoinBaseTx() bool {
 func (tx *BaseTransaction) SerializeSizeStripped() int {
 	// todo add cache for size according to btcd
 	return tx.GetSize()
-}
-
-func GetPayload(txType common2.TxType, payloadVersion byte) (interfaces.Payload, error) {
-	// todo use payloadVersion
-
-	var p interfaces.Payload
-	switch txType {
-	case common2.CoinBase:
-		p = new(payload.CoinBase)
-	case common2.RegisterAsset:
-		p = new(payload.RegisterAsset)
-	case common2.TransferAsset:
-		p = new(payload.TransferAsset)
-	case common2.Record:
-		p = new(payload.Record)
-	case common2.SideChainPow:
-		p = new(payload.SideChainPow)
-	case common2.WithdrawFromSideChain:
-		p = new(payload.WithdrawFromSideChain)
-	case common2.TransferCrossChainAsset:
-		p = new(payload.TransferCrossChainAsset)
-	case common2.RegisterProducer:
-		p = new(payload.ProducerInfo)
-	case common2.CancelProducer:
-		p = new(payload.ProcessProducer)
-	case common2.UpdateProducer:
-		p = new(payload.ProducerInfo)
-	case common2.ReturnDepositCoin:
-		p = new(payload.ReturnDepositCoin)
-	case common2.ActivateProducer:
-		p = new(payload.ActivateProducer)
-	case common2.IllegalProposalEvidence:
-		p = new(payload.DPOSIllegalProposals)
-	case common2.IllegalVoteEvidence:
-		p = new(payload.DPOSIllegalVotes)
-	case common2.IllegalBlockEvidence:
-		p = new(payload.DPOSIllegalBlocks)
-	case common2.IllegalSidechainEvidence:
-		p = new(payload.SidechainIllegalData)
-	case common2.InactiveArbitrators:
-		p = new(payload.InactiveArbitrators)
-	case common2.RevertToDPOS:
-		p = new(payload.RevertToDPOS)
-	case common2.UpdateVersion:
-		p = new(payload.UpdateVersion)
-	case common2.RegisterCR:
-		p = new(payload.CRInfo)
-	case common2.UpdateCR:
-		p = new(payload.CRInfo)
-	case common2.UnregisterCR:
-		p = new(payload.UnregisterCR)
-	case common2.ReturnCRDepositCoin:
-		p = new(payload.ReturnDepositCoin)
-	case common2.CRCProposal:
-		p = new(payload.CRCProposal)
-	case common2.CRCProposalReview:
-		p = new(payload.CRCProposalReview)
-	case common2.CRCProposalWithdraw:
-		p = new(payload.CRCProposalWithdraw)
-	case common2.CRCProposalTracking:
-		p = new(payload.CRCProposalTracking)
-	case common2.CRCAppropriation:
-		p = new(payload.CRCAppropriation)
-	case common2.CRAssetsRectify:
-		p = new(payload.CRAssetsRectify)
-	case common2.CRCProposalRealWithdraw:
-		p = new(payload.CRCProposalRealWithdraw)
-	case common2.CRCouncilMemberClaimNode:
-		p = new(payload.CRCouncilMemberClaimNode)
-	case common2.NextTurnDPOSInfo:
-		p = new(payload.NextTurnDPOSInfo)
-	case common2.RevertToPOW:
-		p = new(payload.RevertToPOW)
-	case common2.ProposalResult:
-		p = new(payload.RecordProposalResult)
-	case common2.ReturnSideChainDepositCoin:
-		p = new(payload.ReturnSideChainDepositCoin)
-	default:
-		return nil, errors.New("[BaseTransaction], invalid transaction type.")
-	}
-	return p, nil
 }
 
 func (tx *BaseTransaction) IsSmallTransfer(min common.Fixed64) bool {

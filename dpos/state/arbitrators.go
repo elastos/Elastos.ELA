@@ -1557,8 +1557,13 @@ func (a *arbitrators) updateNextTurnInfo(height uint32, producers []ArbiterMembe
 }
 
 func (a *arbitrators) getProducers(count int, height uint32) ([]ArbiterMember, error) {
-	return a.GetNormalArbitratorsDesc(height, count,
-		a.getSortedProducers(), 0)
+	if !a.isDposV2Active() {
+		return a.GetNormalArbitratorsDesc(height, count,
+			a.getSortedProducers(), 0)
+	} else {
+		return a.GetNormalArbitratorsDesc(height, count,
+			a.getSortedProducersDposV2(), 0)
+	}
 }
 
 func (a *arbitrators) getSortedProducers() []*Producer {
@@ -1651,16 +1656,23 @@ func (a *arbitrators) getRandomDposV2Producers(unclaimedCount int) ([]*Producer,
 	newProducers = append(newProducers, votedProducers[0:unclaimedCount]...)
 	normalCount := a.chainParams.GeneralArbiters
 
+	log.Info("### getRandomDposV2Producers ", unclaimedCount, len(votedProducers), normalCount)
 	copyVotedProducers := votedProducers
 	votedProducers = votedProducers[unclaimedCount:]
 	lucyProducers := make(map[string]bool, 0)
 	for i := 0; i < normalCount; i++ {
+		if len(votedProducers) == 0 {
+			log.Warn("left votedProducer is 0")
+		}
 		s := rand.Intn(len(votedProducers))
+		log.Info("### rand.Intn ", s)
 		newProducers = append(newProducers, votedProducers[s])
 		lucyProducers[hex.EncodeToString(votedProducers[s].info.OwnerPublicKey)] = true
-		tmpProducers := votedProducers[s+1:]
-		votedProducers = votedProducers[0:s]
-		votedProducers = append(votedProducers, tmpProducers...)
+		if len(votedProducers) >= 2 {
+			tmpProducers := votedProducers[s+1:]
+			votedProducers = votedProducers[0:s]
+			votedProducers = append(votedProducers, tmpProducers...)
+		}
 	}
 
 	for i := unclaimedCount; i < len(copyVotedProducers); i++ {
@@ -1669,6 +1681,7 @@ func (a *arbitrators) getRandomDposV2Producers(unclaimedCount int) ([]*Producer,
 		}
 	}
 
+	log.Info("### newProducers ", len(newProducers))
 	return newProducers, nil
 }
 
@@ -1866,13 +1879,23 @@ func (a *arbitrators) resetNextArbiterByCRC(versionHeight uint32, height uint32)
 			return unclaimed, errors.New("votedProducers less than CRCArbiters")
 		}
 
-		sort.Slice(votedProducers, func(i, j int) bool {
-			if votedProducers[i].votes == votedProducers[j].votes {
-				return bytes.Compare(votedProducers[i].info.NodePublicKey,
-					votedProducers[j].NodePublicKey()) < 0
-			}
-			return votedProducers[i].Votes() > votedProducers[j].Votes()
-		})
+		if a.isDposV2Active() {
+			sort.Slice(votedProducers, func(i, j int) bool {
+				if votedProducers[i].votes == votedProducers[j].votes {
+					return bytes.Compare(votedProducers[i].info.NodePublicKey,
+						votedProducers[j].NodePublicKey()) < 0
+				}
+				return votedProducers[i].DposV2Votes() > votedProducers[j].DposV2Votes()
+			})
+		} else {
+			sort.Slice(votedProducers, func(i, j int) bool {
+				if votedProducers[i].votes == votedProducers[j].votes {
+					return bytes.Compare(votedProducers[i].info.NodePublicKey,
+						votedProducers[j].NodePublicKey()) < 0
+				}
+				return votedProducers[i].Votes() > votedProducers[j].Votes()
+			})
+		}
 
 		for i := 0; i < len(a.chainParams.CRCArbiters); i++ {
 			producer := votedProducers[i]

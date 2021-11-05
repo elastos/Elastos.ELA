@@ -1582,7 +1582,7 @@ func (a *arbitrators) getSortedProducers() []*Producer {
 func (a *arbitrators) getSortedProducersDposV2() []*Producer {
 	votedProducers := a.State.GetDposV2ActiveProducers()
 	sort.Slice(votedProducers, func(i, j int) bool {
-		if votedProducers[i].votes == votedProducers[j].votes {
+		if votedProducers[i].DposV2Votes() == votedProducers[j].DposV2Votes() {
 			return bytes.Compare(votedProducers[i].info.NodePublicKey,
 				votedProducers[j].NodePublicKey()) < 0
 		}

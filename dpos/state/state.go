@@ -514,7 +514,7 @@ func (s *State) GetDposV2ActiveProducers() []*Producer {
 	producers := make([]*Producer, 0, len(s.ActivityProducers))
 	for _, producer := range s.ActivityProducers {
 		// limit arbiters can only be producers who have effective dposV2 votes
-		if producer.Votes() > s.chainParams.DposV2EffectiveVotes {
+		if producer.DposV2Votes() > s.chainParams.DposV2EffectiveVotes {
 			producers = append(producers, producer)
 		}
 	}

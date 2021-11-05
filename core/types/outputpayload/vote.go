@@ -15,7 +15,8 @@ import (
 )
 
 const (
-	MaxVoteProducersPerTransaction = 36
+	MaxVoteProducersPerTransaction  = 36
+	MaxDposV2ProducerPerTransaction = 100
 )
 
 const (

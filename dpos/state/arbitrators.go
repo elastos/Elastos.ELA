@@ -1557,8 +1557,13 @@ func (a *arbitrators) updateNextTurnInfo(height uint32, producers []ArbiterMembe
 }
 
 func (a *arbitrators) getProducers(count int, height uint32) ([]ArbiterMember, error) {
-	return a.GetNormalArbitratorsDesc(height, count,
-		a.getSortedProducers(), 0)
+	if !a.isDposV2Active() {
+		return a.GetNormalArbitratorsDesc(height, count,
+			a.getSortedProducers(), 0)
+	} else {
+		return a.GetNormalArbitratorsDesc(height, count,
+			a.getSortedProducersDposV2(), 0)
+	}
 }
 
 func (a *arbitrators) getSortedProducers() []*Producer {
@@ -1577,7 +1582,7 @@ func (a *arbitrators) getSortedProducers() []*Producer {
 func (a *arbitrators) getSortedProducersDposV2() []*Producer {
 	votedProducers := a.State.GetDposV2ActiveProducers()
 	sort.Slice(votedProducers, func(i, j int) bool {
-		if votedProducers[i].votes == votedProducers[j].votes {
+		if votedProducers[i].DposV2Votes() == votedProducers[j].DposV2Votes() {
 			return bytes.Compare(votedProducers[i].info.NodePublicKey,
 				votedProducers[j].NodePublicKey()) < 0
 		}
@@ -1644,29 +1649,44 @@ func (a *arbitrators) getSortedProducersWithRandom(height uint32, unclaimedCount
 	return newProducers, nil
 }
 
-func (a *arbitrators) getRandomDposV2Producers(unclaimedCount int) ([]*Producer, error) {
+func (a *arbitrators) getRandomDposV2Producers(height uint32, unclaimedCount int) ([]*Producer, error) {
+	block, _ := a.getBlockByHeight(height - 1)
+	if block == nil {
+		return nil, errors.New("block is not found")
+	}
+	var x = make([]byte, 8)
+	blockHash := block.Hash()
+	copy(x, blockHash[24:])
+	seed, _, ok := readi64(x)
+	if !ok {
+		return nil, errors.New("invalid block hash")
+	}
+	rand.Seed(seed)
 
 	votedProducers := a.getSortedProducersDposV2()
 	newProducers := make([]*Producer, 0, len(votedProducers))
 	newProducers = append(newProducers, votedProducers[0:unclaimedCount]...)
 	normalCount := a.chainParams.GeneralArbiters
 
-	copyVotedProducers := votedProducers
 	votedProducers = votedProducers[unclaimedCount:]
-	lucyProducers := make(map[string]bool, 0)
 	for i := 0; i < normalCount; i++ {
+		if len(votedProducers) == 0 {
+			log.Warn("left votedProducer is 0")
+			break
+		}
 		s := rand.Intn(len(votedProducers))
-		newProducers = append(newProducers, votedProducers[s])
-		lucyProducers[hex.EncodeToString(votedProducers[s].info.OwnerPublicKey)] = true
-		tmpProducers := votedProducers[s+1:]
-		votedProducers = votedProducers[0:s]
-		votedProducers = append(votedProducers, tmpProducers...)
+		if len(votedProducers) == 1 && s == 0 {
+			votedProducers = votedProducers[0:0]
+		} else {
+			newProducers = append(newProducers, votedProducers[s])
+			tmpProducers := votedProducers[s+1:]
+			votedProducers = votedProducers[0:s]
+			votedProducers = append(votedProducers, tmpProducers...)
+		}
 	}
 
-	for i := unclaimedCount; i < len(copyVotedProducers); i++ {
-		if !(lucyProducers[hex.EncodeToString(copyVotedProducers[i].info.OwnerPublicKey)] == true) {
-			newProducers = append(newProducers, copyVotedProducers[i])
-		}
+	for i := unclaimedCount; i < len(votedProducers); i++ {
+		newProducers = append(newProducers, votedProducers[i])
 	}
 
 	return newProducers, nil
@@ -1725,7 +1745,7 @@ func (a *arbitrators) updateNextArbitrators(versionHeight, height uint32) error 
 		count := a.chainParams.GeneralArbiters
 		var votedProducers []*Producer
 		if a.isDposV2Active() {
-			votedProducers, err = a.getRandomDposV2Producers(unclaimed)
+			votedProducers, err = a.getRandomDposV2Producers(height, unclaimed)
 			if err != nil {
 				return err
 			}
@@ -1866,13 +1886,23 @@ func (a *arbitrators) resetNextArbiterByCRC(versionHeight uint32, height uint32)
 			return unclaimed, errors.New("votedProducers less than CRCArbiters")
 		}
 
-		sort.Slice(votedProducers, func(i, j int) bool {
-			if votedProducers[i].votes == votedProducers[j].votes {
-				return bytes.Compare(votedProducers[i].info.NodePublicKey,
-					votedProducers[j].NodePublicKey()) < 0
-			}
-			return votedProducers[i].Votes() > votedProducers[j].Votes()
-		})
+		if a.isDposV2Active() {
+			sort.Slice(votedProducers, func(i, j int) bool {
+				if votedProducers[i].DposV2Votes() == votedProducers[j].DposV2Votes() {
+					return bytes.Compare(votedProducers[i].info.NodePublicKey,
+						votedProducers[j].NodePublicKey()) < 0
+				}
+				return votedProducers[i].DposV2Votes() > votedProducers[j].DposV2Votes()
+			})
+		} else {
+			sort.Slice(votedProducers, func(i, j int) bool {
+				if votedProducers[i].votes == votedProducers[j].votes {
+					return bytes.Compare(votedProducers[i].info.NodePublicKey,
+						votedProducers[j].NodePublicKey()) < 0
+				}
+				return votedProducers[i].Votes() > votedProducers[j].Votes()
+			})
+		}
 
 		for i := 0; i < len(a.chainParams.CRCArbiters); i++ {
 			producer := votedProducers[i]

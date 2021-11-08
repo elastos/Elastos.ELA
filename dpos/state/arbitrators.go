@@ -1662,7 +1662,6 @@ func (a *arbitrators) getRandomDposV2Producers(unclaimedCount int) ([]*Producer,
 		log.Info("### votedProducers", hex.EncodeToString(v.info.OwnerPublicKey))
 	}
 	votedProducers = votedProducers[unclaimedCount:]
-	lucyProducers := make(map[string]bool, 0)
 	for i := 0; i < normalCount; i++ {
 		if len(votedProducers) == 0 {
 			log.Warn("left votedProducer is 0")
@@ -1670,7 +1669,6 @@ func (a *arbitrators) getRandomDposV2Producers(unclaimedCount int) ([]*Producer,
 		s := rand.Intn(len(votedProducers))
 		log.Info("### rand.Intn ", s, len(votedProducers), len(newProducers))
 		newProducers = append(newProducers, votedProducers[s])
-		lucyProducers[hex.EncodeToString(votedProducers[s].info.OwnerPublicKey)] = true
 		log.Info("### producer ", hex.EncodeToString(votedProducers[s].info.OwnerPublicKey))
 		if len(votedProducers) >= 2 {
 			tmpProducers := votedProducers[s+1:]
@@ -1679,15 +1677,15 @@ func (a *arbitrators) getRandomDposV2Producers(unclaimedCount int) ([]*Producer,
 		}
 	}
 
-	for i := unclaimedCount; i < len(copyVotedProducers); i++ {
-		log.Info("compare key ", hex.EncodeToString(copyVotedProducers[i].info.OwnerPublicKey), i)
-		if !(lucyProducers[hex.EncodeToString(copyVotedProducers[i].info.OwnerPublicKey)] == true) {
-			newProducers = append(newProducers, copyVotedProducers[i])
-		}
+	for i := unclaimedCount; i < len(votedProducers); i++ {
+		log.Info("left producer key ", hex.EncodeToString(votedProducers[i].info.OwnerPublicKey), i)
+		newProducers = append(newProducers, votedProducers[i])
 	}
 
 	log.Info("### newProducers ", len(newProducers))
-	log.Infof("### %v", newProducers)
+	for _, v := range newProducers {
+		log.Info("### end", hex.EncodeToString(v.info.OwnerPublicKey))
+	}
 	return newProducers, nil
 }
 

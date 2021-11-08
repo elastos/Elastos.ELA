@@ -1844,7 +1844,7 @@ func (b *BlockChain) checkRegisterProducerTransaction(txn *Transaction) error {
 		}
 	}
 
-	if b.GetHeight() < b.chainParams.DposV2StartHeight && txn.PayloadVersion == payload.ProducerInfoVersion {
+	if txn.PayloadVersion == payload.ProducerInfoVersion {
 		// check duplication of nickname.
 		if b.state.NicknameExists(info.NickName) {
 			return fmt.Errorf("nick name %s already inuse", info.NickName)
@@ -1903,7 +1903,7 @@ func (b *BlockChain) checkRegisterProducerTransaction(txn *Transaction) error {
 		if depositCount != 1 {
 			return errors.New("there must be only one deposit address in outputs")
 		}
-	} else {
+	} else if txn.PayloadVersion == payload.ProducerInfoDposV2Version {
 		if info.StakeUntil < b.chainParams.DposV2StartHeight {
 			return fmt.Errorf("stakeuntil must bigger than DposV2StartHeight")
 		}

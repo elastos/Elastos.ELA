@@ -1656,7 +1656,7 @@ func (a *arbitrators) getRandomDposV2Producers(unclaimedCount int) ([]*Producer,
 	newProducers = append(newProducers, votedProducers[0:unclaimedCount]...)
 	normalCount := a.chainParams.GeneralArbiters
 
-	log.Info("### getRandomDposV2Producers ", unclaimedCount, len(votedProducers), normalCount)
+	log.Info("### getRandomDposV2Producers ", unclaimedCount, len(votedProducers), normalCount, len(newProducers))
 	copyVotedProducers := votedProducers
 	votedProducers = votedProducers[unclaimedCount:]
 	lucyProducers := make(map[string]bool, 0)
@@ -1665,9 +1665,10 @@ func (a *arbitrators) getRandomDposV2Producers(unclaimedCount int) ([]*Producer,
 			log.Warn("left votedProducer is 0")
 		}
 		s := rand.Intn(len(votedProducers))
-		log.Info("### rand.Intn ", s)
+		log.Info("### rand.Intn ", s, len(votedProducers), len(newProducers))
 		newProducers = append(newProducers, votedProducers[s])
 		lucyProducers[hex.EncodeToString(votedProducers[s].info.OwnerPublicKey)] = true
+		log.Info("### producer ", hex.EncodeToString(votedProducers[s].info.OwnerPublicKey))
 		if len(votedProducers) >= 2 {
 			tmpProducers := votedProducers[s+1:]
 			votedProducers = votedProducers[0:s]
@@ -1676,12 +1677,14 @@ func (a *arbitrators) getRandomDposV2Producers(unclaimedCount int) ([]*Producer,
 	}
 
 	for i := unclaimedCount; i < len(copyVotedProducers); i++ {
+		log.Info("compare key ", hex.EncodeToString(copyVotedProducers[i].info.OwnerPublicKey), i)
 		if !(lucyProducers[hex.EncodeToString(copyVotedProducers[i].info.OwnerPublicKey)] == true) {
 			newProducers = append(newProducers, copyVotedProducers[i])
 		}
 	}
 
 	log.Info("### newProducers ", len(newProducers))
+	log.Infof("### %v", newProducers)
 	return newProducers, nil
 }
 
@@ -1881,7 +1884,7 @@ func (a *arbitrators) resetNextArbiterByCRC(versionHeight uint32, height uint32)
 
 		if a.isDposV2Active() {
 			sort.Slice(votedProducers, func(i, j int) bool {
-				if votedProducers[i].votes == votedProducers[j].votes {
+				if votedProducers[i].DposV2Votes() == votedProducers[j].DposV2Votes() {
 					return bytes.Compare(votedProducers[i].info.NodePublicKey,
 						votedProducers[j].NodePublicKey()) < 0
 				}

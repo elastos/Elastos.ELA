@@ -1658,6 +1658,9 @@ func (a *arbitrators) getRandomDposV2Producers(unclaimedCount int) ([]*Producer,
 
 	log.Info("### getRandomDposV2Producers ", unclaimedCount, len(votedProducers), normalCount, len(newProducers))
 	copyVotedProducers := votedProducers
+	for _, v := range copyVotedProducers {
+		log.Info("### votedProducers", hex.EncodeToString(v.info.OwnerPublicKey))
+	}
 	votedProducers = votedProducers[unclaimedCount:]
 	lucyProducers := make(map[string]bool, 0)
 	for i := 0; i < normalCount; i++ {

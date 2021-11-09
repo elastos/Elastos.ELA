@@ -547,10 +547,10 @@ func (b *BlockChain) checkVoteDposV2Content(blockHeight uint32, content outputpa
 	}
 
 	if payloadVersion < outputpayload.VoteDposV2Version {
-		return errors.New("payload VoteDposV2Version not support vote CR")
+		return errors.New("payload VoteDposV2Version not support vote DposV2")
 	}
 	if blockHeight >= b.chainParams.DposV2StartHeight {
-		if len(content.CandidateVotes) > outputpayload.MaxVoteProducersPerTransaction {
+		if len(content.CandidateVotes) > outputpayload.MaxDposV2ProducerPerTransaction {
 			return errors.New("invalid count of DposV2 candidates ")
 		}
 	}

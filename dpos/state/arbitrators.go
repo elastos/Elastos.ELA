@@ -942,6 +942,7 @@ func (a *arbitrators) GetNeedConnectArbiters() []peer.PID {
 }
 
 func (a *arbitrators) getNeedConnectArbiters() []peer.PID {
+	log.Info("### getNeedConnectArbiters ")
 	height := a.history.Height() + 1
 	if height < a.chainParams.CRCOnlyDPOSHeight-a.chainParams.PreConnectOffset {
 		return nil
@@ -956,6 +957,7 @@ func (a *arbitrators) getNeedConnectArbiters() []peer.PID {
 		var pid peer.PID
 		copy(pid[:], p.GetNodePublicKey())
 		pids[common.BytesToHexString(p.GetNodePublicKey())] = pid
+		log.Info("## Pub key ", common.BytesToHexString(p.GetNodePublicKey()))
 	}
 
 	for _, p := range a.nextCRCArbitersMap {
@@ -966,6 +968,7 @@ func (a *arbitrators) getNeedConnectArbiters() []peer.PID {
 		var pid peer.PID
 		copy(pid[:], p.GetNodePublicKey())
 		pids[common.BytesToHexString(p.GetNodePublicKey())] = pid
+		log.Info("## Pub key ", common.BytesToHexString(p.GetNodePublicKey()))
 	}
 
 	if height != a.chainParams.CRCOnlyDPOSHeight-
@@ -974,6 +977,7 @@ func (a *arbitrators) getNeedConnectArbiters() []peer.PID {
 			key := common.BytesToHexString(v.GetNodePublicKey())
 			var pid peer.PID
 			copy(pid[:], v.GetNodePublicKey())
+			log.Info("## Pub key ", common.BytesToHexString(v.GetNodePublicKey()))
 			pids[key] = pid
 		}
 	}
@@ -982,6 +986,7 @@ func (a *arbitrators) getNeedConnectArbiters() []peer.PID {
 		key := common.BytesToHexString(v.GetNodePublicKey())
 		var pid peer.PID
 		copy(pid[:], v.GetNodePublicKey())
+		log.Info("## Pub key ", common.BytesToHexString(v.GetNodePublicKey()))
 		pids[key] = pid
 	}
 

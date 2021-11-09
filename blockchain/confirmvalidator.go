@@ -329,9 +329,11 @@ func IllegalVoteContextCheck(vote *payload.DPOSProposalVote) error {
 }
 
 func VoteContextCheck(vote *payload.DPOSProposalVote) error {
+	log.Info("## VoteContextCheck")
 	arbiters := DefaultLedger.Arbitrators.GetArbitrators()
 	var isArbiter bool
 	for _, a := range arbiters {
+		log.Info("arbiters", hex.EncodeToString(a.NodePublicKey), "signer", hex.EncodeToString(vote.Signer))
 		if !a.IsNormal {
 			continue
 		}

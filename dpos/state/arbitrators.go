@@ -1479,6 +1479,10 @@ func (a *arbitrators) changeCurrentArbitrators(height uint32) error {
 		a.currentCandidates = a.nextCandidates
 		a.CurrentReward = a.NextReward
 		a.dutyIndex = 0
+
+		for _, v := range a.currentArbitrators {
+			log.Info("### changeCurrentArbitrators ", hex.EncodeToString(v.GetNodePublicKey()))
+		}
 	}, func() {
 		a.currentCRCArbitersMap = oriCurrentCRCArbitersMap
 		a.currentArbitrators = oriCurrentArbitrators
@@ -1559,6 +1563,12 @@ func (a *arbitrators) updateNextTurnInfo(height uint32, producers []ArbiterMembe
 		})
 		a.nextCRCArbiters = copyByteList(nextCRCArbiters)
 	}
+
+	log.Info("## updateNextTurnInfo")
+	for _, v := range a.nextArbitrators {
+		log.Info("nextArbiter public key", hex.EncodeToString(v.GetNodePublicKey()))
+	}
+
 }
 
 func (a *arbitrators) getProducers(count int, height uint32) ([]ArbiterMember, error) {
@@ -1858,6 +1868,7 @@ func (a *arbitrators) resetNextArbiterByCRC(versionHeight uint32, height uint32)
 	var needReset bool
 	crcArbiters := map[common.Uint168]ArbiterMember{}
 	if a.crCommittee != nil && a.crCommittee.IsInElectionPeriod() {
+		log.Info("### InElectionPeriod")
 		if versionHeight >= a.chainParams.CRClaimDPOSNodeStartHeight {
 			var err error
 			if versionHeight < a.chainParams.ChangeCommitteeNewCRHeight {
@@ -1877,6 +1888,7 @@ func (a *arbitrators) resetNextArbiterByCRC(versionHeight uint32, height uint32)
 		}
 		needReset = true
 	} else if versionHeight >= a.chainParams.ChangeCommitteeNewCRHeight {
+		log.Info("### >=ChangeCommitteeNewCRHeight")
 		var votedProducers []*Producer
 		if a.isDposV2Active() {
 			votedProducers = a.State.GetDposV2ActiveProducers()
@@ -1918,6 +1930,7 @@ func (a *arbitrators) resetNextArbiterByCRC(versionHeight uint32, height uint32)
 		needReset = true
 
 	} else if versionHeight >= a.chainParams.CRCommitteeStartHeight {
+		log.Info("### >=CRCommitteeStartHeight")
 		for _, pk := range a.chainParams.CRCArbiters {
 			pubKey, err := hex.DecodeString(pk)
 			if err != nil {

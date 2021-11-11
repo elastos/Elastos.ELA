@@ -1715,7 +1715,7 @@ func (a *arbitrators) getCandidateIndexAtRandom(height uint32, unclaimedCount, v
 }
 
 func (a *arbitrators) isDposV2Active() bool {
-	return len(a.DposV2ActiveProducer) >= a.chainParams.GeneralArbiters*3/2
+	return len(a.DposV2EffectedProducers) >= a.chainParams.GeneralArbiters*3/2
 }
 
 func (a *arbitrators) updateNextArbitrators(versionHeight, height uint32) error {
@@ -1776,7 +1776,7 @@ func (a *arbitrators) updateNextArbitrators(versionHeight, height uint32) error 
 				a.nextCRCArbiters = oriNextCRCArbiters
 			})
 		} else {
-			if len(a.DposV2ActiveProducer) < a.chainParams.GeneralArbiters*3/2 {
+			if len(a.DposV2EffectedProducers) < a.chainParams.GeneralArbiters*3/2 {
 				if height >= a.chainParams.NoCRCDPOSNodeHeight {
 					count := len(a.chainParams.CRCArbiters) + a.chainParams.GeneralArbiters
 					var newSelected bool

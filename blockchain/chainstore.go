@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"errors"
+	"github.com/elastos/Elastos.ELA/core/types/functions"
 	"path/filepath"
 	"sync"
 	"sync/atomic"
@@ -76,22 +77,22 @@ func (c *ChainStore) SaveSmallCrossTransferTx(tx interfaces.Transaction) error {
 }
 
 func (c *ChainStore) GetSmallCrossTransferTxs() ([]interfaces.Transaction, error) {
-	// todo refactor me
-	// need to return [][]byte directly
-	return nil, nil
+	Iter := c.levelDB.NewIterator(SMALL_CROSS_TRANSFER_RPEFIX)
+	txs := make([]interfaces.Transaction, 0)
+	for Iter.Next() {
+		val := Iter.Value()
+		r := bytes.NewReader(val)
 
-	//Iter := c.levelDB.NewIterator(SMALL_CROSS_TRANSFER_RPEFIX)
-	//txs := make([]interfaces.Transaction, 0)
-	//for Iter.Next() {
-	//	val := Iter.Value()
-	//	r := bytes.NewReader(val)
-	//	tx := new(transactions.BaseTransaction)
-	//	if err := tx.Deserialize(r); err != nil {
-	//		return nil, err
-	//	}
-	//	txs = append(txs, tx)
-	//}
-	//return txs, nil
+		tx, err := functions.GetTransactionByBytes(r)
+		if err != nil {
+			return nil, err
+		}
+		if err := tx.Deserialize(r); err != nil {
+			return nil, err
+		}
+		txs = append(txs, tx)
+	}
+	return txs, nil
 }
 
 func (c *ChainStore) GetSmallCrossTransferTx() ([]string, error) {

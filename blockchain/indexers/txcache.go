@@ -6,6 +6,7 @@
 package indexers
 
 import (
+	"github.com/elastos/Elastos.ELA/core/types/functions"
 	"io"
 	"sync"
 
@@ -36,18 +37,20 @@ func (t *TxInfo) Serialize(w io.Writer) (err error) {
 }
 
 func (t *TxInfo) Deserialize(r io.Reader) (err error) {
-	// todo refactor me
 
-	//t.blockHeight, err = common.ReadUint32(r)
-	//if err != nil {
-	//	return
-	//}
-	//var txn transactions.BaseTransaction
-	//err = txn.Deserialize(r)
-	//if err != nil {
-	//	return
-	//}
-	//t.txn = &txn
+	t.blockHeight, err = common.ReadUint32(r)
+	if err != nil {
+		return
+	}
+	txn, err := functions.GetTransactionByBytes(r)
+	if err != nil {
+		return err
+	}
+	err = txn.Deserialize(r)
+	if err != nil {
+		return
+	}
+	t.txn = txn
 	return nil
 }
 

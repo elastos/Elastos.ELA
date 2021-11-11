@@ -105,6 +105,11 @@ func (tx *BaseTransaction) SetAttributes(attributes []*common2.Attribute) {
 	tx.attributes = attributes
 }
 
+
+func (tx *BaseTransaction) SetPayloadVersion(payloadVersion byte) {
+	tx.payloadVersion = payloadVersion
+}
+
 func (tx *BaseTransaction) SetPayload(payload interfaces.Payload) {
 	tx.payload = payload
 }
@@ -119,6 +124,10 @@ func (tx *BaseTransaction) SetOutputs(outputs []*common2.Output) {
 
 func (tx *BaseTransaction) SetPrograms(programs []*pg.Program) {
 	tx.programs = programs
+}
+
+func (tx *BaseTransaction) SetLockTime(lockTime uint32) {
+	tx.lockTime = lockTime
 }
 
 func (tx *BaseTransaction) String() string {

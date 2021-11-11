@@ -10,7 +10,9 @@ import (
 	"container/list"
 	"errors"
 	"fmt"
+	"github.com/elastos/Elastos.ELA/core/contract/program"
 	"github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/functions"
 	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"math/big"
 	"os"
@@ -331,36 +333,34 @@ func (b *BlockChain) createTransaction(pd interfaces.Payload, txType common.TxTy
 	fromAddress Uint168, fee Fixed64, lockedUntil uint32,
 	utxos []*common.UTXO, outputs ...*common.OutputInfo) (interfaces.Transaction, error) {
 
-	// todo refactor me
-	return nil, nil
+	// check output
+	if len(outputs) == 0 {
+		return nil, errors.New("invalid transaction target")
+	}
+	// create outputs
+	txOutputs, totalAmount, err := b.createNormalOutputs(outputs, fee,
+		lockedUntil)
+	if err != nil {
+		return nil, err
+	}
+	// create inputs
+	txInputs, changeOutputs, err := b.createInputs(fromAddress, totalAmount, utxos)
+	if err != nil {
+		return nil, err
+	}
+	txOutputs = append(txOutputs, changeOutputs...)
 
-	//// check output
-	//if len(outputs) == 0 {
-	//	return nil, errors.New("invalid transaction target")
-	//}
-	//// create outputs
-	//txOutputs, totalAmount, err := b.createNormalOutputs(outputs, fee,
-	//	lockedUntil)
-	//if err != nil {
-	//	return nil, err
-	//}
-	//// create inputs
-	//txInputs, changeOutputs, err := b.createInputs(fromAddress, totalAmount, utxos)
-	//if err != nil {
-	//	return nil, err
-	//}
-	//txOutputs = append(txOutputs, changeOutputs...)
-
-	//return &transactions.BaseTransaction{
-	//	Version:    common.TxVersion09,
-	//	TxType:     txType,
-	//	Payload:    pd,
-	//	Attributes: []*common.Attribute{},
-	//	Inputs:     txInputs,
-	//	Outputs:    txOutputs,
-	//	Programs:   []*program.Program{},
-	//	LockTime:   0,
-	//}, nil
+	return functions.CreateTransaction(
+		common.TxVersion09,
+		txType,
+		0,
+		pd,
+		[]*common.Attribute{},
+		txInputs,
+		txOutputs,
+		0,
+		[]*program.Program{},
+	), nil
 }
 
 func (b *BlockChain) createNormalOutputs(outputs []*common.OutputInfo, fee Fixed64,

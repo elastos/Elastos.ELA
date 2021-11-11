@@ -6,10 +6,17 @@
 package wallet
 
 import (
+	"bytes"
 	"encoding/hex"
 	"errors"
 	"fmt"
+	cmdcom "github.com/elastos/Elastos.ELA/cmd/common"
+	"github.com/elastos/Elastos.ELA/core/contract"
+	pg "github.com/elastos/Elastos.ELA/core/contract/program"
+	"github.com/elastos/Elastos.ELA/core/types/functions"
+	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"math"
+	"math/rand"
 	"os"
 	"strconv"
 
@@ -265,322 +272,317 @@ func createVoteOutputs(output *OutputInfo, candidateList []string) ([]*common2.O
 func createTransaction(walletPath string, from string, fee common.Fixed64, outputLock uint32,
 	txLock uint32, outputs ...*OutputInfo) (interfaces.Transaction, error) {
 
-	// todo refactor me
-	return nil, nil
+	// check output
+	if len(outputs) == 0 {
+		return nil, errors.New("invalid transaction target")
+	}
 
-	//// check output
-	//if len(outputs) == 0 {
-	//	return nil, errors.New("invalid transaction target")
-	//}
-	//
-	//// get sender in wallet by from address
-	//sender, err := getSender(walletPath, from)
-	//if err != nil {
-	//	return nil, err
-	//}
-	//
-	//// create outputs
-	//txOutputs, totalAmount, err := createNormalOutputs(outputs, fee, outputLock)
-	//if err != nil {
-	//	return nil, err
-	//}
-	//
-	//// create inputs
-	//txInputs, changeOutputs, err := createInputs(sender.Address, totalAmount)
-	//if err != nil {
-	//	return nil, err
-	//}
-	//txOutputs = append(txOutputs, changeOutputs...)
-	//
-	//redeemScript, err := common.HexStringToBytes(sender.RedeemScript)
-	//if err != nil {
-	//	return nil, err
-	//}
-	//// create attributes
-	//txAttr := common2.NewAttribute(common2.Nonce, []byte(strconv.FormatInt(rand.Int63(), 10)))
-	//txAttributes := make([]*common2.Attribute, 0)
-	//txAttributes = append(txAttributes, &txAttr)
-	//
-	//// create program
-	//var txProgram = &pg.Program{
-	//	Code:      redeemScript,
-	//	Parameter: nil,
-	//}
-	//return &transactions.BaseTransaction{
-	//	Version:    common2.TxVersion09,
-	//	TxType:     common2.TransferAsset,
-	//	Payload:    &payload.TransferAsset{},
-	//	Attributes: txAttributes,
-	//	Inputs:     txInputs,
-	//	Outputs:    txOutputs,
-	//	Programs:   []*pg.Program{txProgram},
-	//	LockTime:   txLock,
-	//}, nil
+	// get sender in wallet by from address
+	sender, err := getSender(walletPath, from)
+	if err != nil {
+		return nil, err
+	}
+
+	// create outputs
+	txOutputs, totalAmount, err := createNormalOutputs(outputs, fee, outputLock)
+	if err != nil {
+		return nil, err
+	}
+
+	// create inputs
+	txInputs, changeOutputs, err := createInputs(sender.Address, totalAmount)
+	if err != nil {
+		return nil, err
+	}
+	txOutputs = append(txOutputs, changeOutputs...)
+
+	redeemScript, err := common.HexStringToBytes(sender.RedeemScript)
+	if err != nil {
+		return nil, err
+	}
+	// create attributes
+	txAttr := common2.NewAttribute(common2.Nonce, []byte(strconv.FormatInt(rand.Int63(), 10)))
+	txAttributes := make([]*common2.Attribute, 0)
+	txAttributes = append(txAttributes, &txAttr)
+
+	// create program
+	var txProgram = &pg.Program{
+		Code:      redeemScript,
+		Parameter: nil,
+	}
+
+	return functions.CreateTransaction(
+		common2.TxVersion09,
+		common2.TransferAsset,
+		0,
+		&payload.TransferAsset{},
+		txAttributes,
+		txInputs,
+		txOutputs,
+		txLock,
+		[]*pg.Program{txProgram},
+	), nil
 }
 
 func CreateActivateProducerTransaction(c *cli.Context) error {
-	// todo refactor me
-	return nil
 
-	//walletPath := c.String("wallet")
-	//password, err := cmdcom.GetFlagPassword(c)
-	//if err != nil {
-	//	return err
-	//}
-	//
-	//client, err := account.Open(walletPath, password)
-	//if err != nil {
-	//	return err
-	//}
-	//
-	//var acc *account.Account
-	//var nodePublicKey []byte
-	//
-	//nodePublicKeyStr := c.String("nodepublickey")
-	//if nodePublicKeyStr != "" {
-	//	nodePublicKey, err = common.HexStringToBytes(nodePublicKeyStr)
-	//	if err != nil {
-	//		return err
-	//	}
-	//	codeHash, err := contract.PublicKeyToStandardCodeHash(nodePublicKey)
-	//	if err != nil {
-	//		return err
-	//	}
-	//	acc = client.GetAccountByCodeHash(*codeHash)
-	//	if acc == nil {
-	//		return errors.New("no available account in wallet")
-	//	}
-	//} else {
-	//	acc = client.GetMainAccount()
-	//	if contract.GetPrefixType(acc.ProgramHash) != contract.PrefixStandard {
-	//		return errors.New("main account is not a standard account")
-	//	}
-	//	nodePublicKey, err = acc.PublicKey.EncodePoint(true)
-	//	if err != nil {
-	//		return err
-	//	}
-	//}
-	//
-	//buf := new(bytes.Buffer)
-	//apPayload := &payload.ActivateProducer{
-	//	NodePublicKey: nodePublicKey,
-	//}
-	//if err = apPayload.SerializeUnsigned(buf, payload.ActivateProducerVersion); err != nil {
-	//	return err
-	//}
-	//signature, err := acc.Sign(buf.Bytes())
-	//if err != nil {
-	//	return err
-	//}
-	//apPayload.Signature = signature
-	//
-	//txn := &transactions.BaseTransaction{
-	//	Version:    common2.TxVersion09,
-	//	TxType:     common2.ActivateProducer,
-	//	Payload:    apPayload,
-	//	Attributes: nil,
-	//	Inputs:     nil,
-	//	Outputs:    nil,
-	//	Programs:   []*pg.Program{},
-	//	LockTime:   0,
-	//}
-	//
-	//OutputTx(0, 0, txn)
-	//
-	//return nil
+	walletPath := c.String("wallet")
+	password, err := cmdcom.GetFlagPassword(c)
+	if err != nil {
+		return err
+	}
+
+	client, err := account.Open(walletPath, password)
+	if err != nil {
+		return err
+	}
+
+	var acc *account.Account
+	var nodePublicKey []byte
+
+	nodePublicKeyStr := c.String("nodepublickey")
+	if nodePublicKeyStr != "" {
+		nodePublicKey, err = common.HexStringToBytes(nodePublicKeyStr)
+		if err != nil {
+			return err
+		}
+		codeHash, err := contract.PublicKeyToStandardCodeHash(nodePublicKey)
+		if err != nil {
+			return err
+		}
+		acc = client.GetAccountByCodeHash(*codeHash)
+		if acc == nil {
+			return errors.New("no available account in wallet")
+		}
+	} else {
+		acc = client.GetMainAccount()
+		if contract.GetPrefixType(acc.ProgramHash) != contract.PrefixStandard {
+			return errors.New("main account is not a standard account")
+		}
+		nodePublicKey, err = acc.PublicKey.EncodePoint(true)
+		if err != nil {
+			return err
+		}
+	}
+
+	buf := new(bytes.Buffer)
+	apPayload := &payload.ActivateProducer{
+		NodePublicKey: nodePublicKey,
+	}
+	if err = apPayload.SerializeUnsigned(buf, payload.ActivateProducerVersion); err != nil {
+		return err
+	}
+	signature, err := acc.Sign(buf.Bytes())
+	if err != nil {
+		return err
+	}
+	apPayload.Signature = signature
+
+	txn := functions.CreateTransaction(
+		common2.TxVersion09,
+		common2.ActivateProducer,
+		0,
+		apPayload,
+		nil,
+		nil,
+		nil,
+		0,
+		[]*pg.Program{},
+	)
+
+	OutputTx(0, 0, txn)
+
+	return nil
 }
 
 func CreateCRCProposalWithdrawTransaction(c *cli.Context) error {
 
-	// todo refactor me
-	return nil
+	walletPath := c.String("wallet")
+	if walletPath == "" {
+		return errors.New("use --wallet to specify wallet path")
+	}
+	password, err := cmdcom.GetFlagPassword(c)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("walletPath %s, password %s \n", walletPath, password)
 
-	//walletPath := c.String("wallet")
-	//if walletPath == "" {
-	//	return errors.New("use --wallet to specify wallet path")
-	//}
-	//password, err := cmdcom.GetFlagPassword(c)
-	//if err != nil {
-	//	return err
-	//}
-	//fmt.Printf("walletPath %s, password %s \n", walletPath, password)
-	//
-	//proposalHashStr := c.String("proposalhash")
-	//if proposalHashStr == "" {
-	//	return errors.New("use --proposalhash to specify transfer proposalhash")
-	//}
-	//CRCCommiteeAddr := c.String("crccommiteeaddr")
-	//if CRCCommiteeAddr == "" {
-	//	return errors.New("use --crccommiteeaddr to specify from address")
-	//}
-	//amountStr := c.String("amount")
-	//if amountStr == "" {
-	//	return errors.New("use --amount to specify transfer amount")
-	//}
-	//amount, err := common.StringToFixed64(amountStr)
-	//feeStr := c.String("fee")
-	//if feeStr == "" {
-	//	return errors.New("use --fee to specify transfer fee")
-	//}
-	//fee, err := common.StringToFixed64(feeStr)
-	//
-	//fmt.Printf("proposalhash:%s, fee:%s amout:%s CRCCommiteeAddr:%s\n",
-	//	proposalHashStr, feeStr, amountStr, CRCCommiteeAddr)
-	//*amount -= *fee
-	//
-	//client, err := account.Open(walletPath, password)
-	//if err != nil {
-	//	return err
-	//}
-	//var acc *account.Account
-	//var OwnerPublicKey []byte
-	//
-	//acc = client.GetMainAccount()
-	//if contract.GetPrefixType(acc.ProgramHash) != contract.PrefixStandard {
-	//	return errors.New("main account is not a standard account")
-	//}
-	//OwnerPublicKey, err = acc.PublicKey.EncodePoint(true)
-	//if err != nil {
-	//	return err
-	//}
-	//proposalHash, err2 := common.Uint256FromHexString(proposalHashStr)
-	//if err2 != nil {
-	//	return err2
-	//}
-	//crcProposalWithdraw := &payload.CRCProposalWithdraw{
-	//	ProposalHash:   *proposalHash,
-	//	OwnerPublicKey: OwnerPublicKey,
-	//}
-	//
-	//signBuf := new(bytes.Buffer)
-	//crcProposalWithdraw.SerializeUnsigned(signBuf, payload.CRCProposalWithdrawDefault)
-	//signature, err := acc.Sign(signBuf.Bytes())
-	//if err != nil {
-	//	return err
-	//}
-	//crcProposalWithdraw.Signature = signature
-	//
-	//recipient := c.String("to")
-	//outputs := make([]*OutputInfo, 0)
-	//outpusInfo := &OutputInfo{
-	//	Recipient: recipient,
-	//	Amount:    amount,
-	//}
-	//outputs = append(outputs, outpusInfo)
-	//// create outputs
-	//txOutputs, totalAmount, err := createNormalOutputs(outputs, *fee, uint32(0))
-	//if err != nil {
-	//	return err
-	//}
-	//// create inputs from CRCCommiteeAddr
-	//txInputs, changeOutputs, err := createInputs(CRCCommiteeAddr, totalAmount)
-	//if err != nil {
-	//	return err
-	//}
-	//txOutputs = append(txOutputs, changeOutputs...)
-	//
-	//txn := &transactions.BaseTransaction{
-	//	Version:    common2.TxVersion09,
-	//	TxType:     common2.CRCProposalWithdraw,
-	//	Payload:    crcProposalWithdraw,
-	//	Attributes: []*common2.Attribute{},
-	//	Inputs:     txInputs,
-	//	Outputs:    txOutputs,
-	//	Programs:   []*pg.Program{},
-	//	LockTime:   0,
-	//}
-	//
-	//OutputTx(0, 0, txn)
-	//
-	//return nil
+	proposalHashStr := c.String("proposalhash")
+	if proposalHashStr == "" {
+		return errors.New("use --proposalhash to specify transfer proposalhash")
+	}
+	CRCCommiteeAddr := c.String("crccommiteeaddr")
+	if CRCCommiteeAddr == "" {
+		return errors.New("use --crccommiteeaddr to specify from address")
+	}
+	amountStr := c.String("amount")
+	if amountStr == "" {
+		return errors.New("use --amount to specify transfer amount")
+	}
+	amount, err := common.StringToFixed64(amountStr)
+	feeStr := c.String("fee")
+	if feeStr == "" {
+		return errors.New("use --fee to specify transfer fee")
+	}
+	fee, err := common.StringToFixed64(feeStr)
+
+	fmt.Printf("proposalhash:%s, fee:%s amout:%s CRCCommiteeAddr:%s\n",
+		proposalHashStr, feeStr, amountStr, CRCCommiteeAddr)
+	*amount -= *fee
+
+	client, err := account.Open(walletPath, password)
+	if err != nil {
+		return err
+	}
+	var acc *account.Account
+	var OwnerPublicKey []byte
+
+	acc = client.GetMainAccount()
+	if contract.GetPrefixType(acc.ProgramHash) != contract.PrefixStandard {
+		return errors.New("main account is not a standard account")
+	}
+	OwnerPublicKey, err = acc.PublicKey.EncodePoint(true)
+	if err != nil {
+		return err
+	}
+	proposalHash, err2 := common.Uint256FromHexString(proposalHashStr)
+	if err2 != nil {
+		return err2
+	}
+	crcProposalWithdraw := &payload.CRCProposalWithdraw{
+		ProposalHash:   *proposalHash,
+		OwnerPublicKey: OwnerPublicKey,
+	}
+
+	signBuf := new(bytes.Buffer)
+	crcProposalWithdraw.SerializeUnsigned(signBuf, payload.CRCProposalWithdrawDefault)
+	signature, err := acc.Sign(signBuf.Bytes())
+	if err != nil {
+		return err
+	}
+	crcProposalWithdraw.Signature = signature
+
+	recipient := c.String("to")
+	outputs := make([]*OutputInfo, 0)
+	outpusInfo := &OutputInfo{
+		Recipient: recipient,
+		Amount:    amount,
+	}
+	outputs = append(outputs, outpusInfo)
+	// create outputs
+	txOutputs, totalAmount, err := createNormalOutputs(outputs, *fee, uint32(0))
+	if err != nil {
+		return err
+	}
+	// create inputs from CRCCommiteeAddr
+	txInputs, changeOutputs, err := createInputs(CRCCommiteeAddr, totalAmount)
+	if err != nil {
+		return err
+	}
+	txOutputs = append(txOutputs, changeOutputs...)
+
+	txn := functions.CreateTransaction(
+		common2.TxVersion09,
+		common2.CRCProposalWithdraw,
+		0,
+		crcProposalWithdraw,
+		[]*common2.Attribute{},
+		txInputs,
+		txOutputs,
+		0,
+		[]*pg.Program{},
+	)
+
+	OutputTx(0, 0, txn)
+
+	return nil
 }
 
 func CreateVoteTransaction(c *cli.Context) error {
-	// todo refactor me
-	return nil
 
-	//walletPath := c.String("wallet")
-	//
-	//feeStr := c.String("fee")
-	//if feeStr == "" {
-	//	return errors.New("use --fee to specify transfer fee")
-	//}
-	//fee, err := common.StringToFixed64(feeStr)
-	//if err != nil {
-	//	return errors.New("invalid transaction fee")
-	//}
-	//
-	//// calculate total amount
-	//amountStr := c.String("amount")
-	//if amountStr == "" {
-	//	return errors.New("use --amount to specify transfer amount")
-	//}
-	//amount, err := common.StringToFixed64(amountStr)
-	//if err != nil {
-	//	return errors.New("invalid transaction amount")
-	//}
-	//totalAmount := *fee + *amount
-	//
-	//// get sender from wallet by from address
-	//from := c.String("from")
-	//sender, err := getSender(walletPath, from)
-	//if err != nil {
-	//	return err
-	//}
-	//
-	//// get candidate list from file
-	//candidatePath := c.String("for")
-	//candidateList, err := parseCandidates(candidatePath)
-	//if err != nil {
-	//	return err
-	//}
-	//
-	//// create outputs
-	//txOutputs, err := createVoteOutputs(&OutputInfo{
-	//	Recipient: sender.Address,
-	//	Amount:    amount,
-	//}, candidateList)
-	//if err != nil {
-	//	return err
-	//}
-	//
-	//// create inputs
-	//txInputs, changeOutputs, err := createInputs(sender.Address, totalAmount)
-	//if err != nil {
-	//	return err
-	//}
-	//txOutputs = append(txOutputs, changeOutputs...)
-	//
-	//redeemScript, err := common.HexStringToBytes(sender.RedeemScript)
-	//if err != nil {
-	//	return err
-	//}
-	//
-	//// create attributes
-	//txAttr := common2.NewAttribute(common2.Nonce, []byte(strconv.FormatInt(rand.Int63(), 10)))
-	//txAttributes := make([]*common2.Attribute, 0)
-	//txAttributes = append(txAttributes, &txAttr)
-	//
-	//// create program
-	//var txProgram = &pg.Program{
-	//	Code:      redeemScript,
-	//	Parameter: nil,
-	//}
-	//
-	//txn := &transactions.BaseTransaction{
-	//	Version:    common2.TxVersion09,
-	//	TxType:     common2.TransferAsset,
-	//	Payload:    &payload.TransferAsset{},
-	//	Attributes: txAttributes,
-	//	Inputs:     txInputs,
-	//	Outputs:    txOutputs,
-	//	Programs:   []*pg.Program{txProgram},
-	//	LockTime:   0,
-	//}
-	//
-	//OutputTx(0, 1, txn)
-	//
-	//return nil
+	walletPath := c.String("wallet")
+
+	feeStr := c.String("fee")
+	if feeStr == "" {
+		return errors.New("use --fee to specify transfer fee")
+	}
+	fee, err := common.StringToFixed64(feeStr)
+	if err != nil {
+		return errors.New("invalid transaction fee")
+	}
+
+	// calculate total amount
+	amountStr := c.String("amount")
+	if amountStr == "" {
+		return errors.New("use --amount to specify transfer amount")
+	}
+	amount, err := common.StringToFixed64(amountStr)
+	if err != nil {
+		return errors.New("invalid transaction amount")
+	}
+	totalAmount := *fee + *amount
+
+	// get sender from wallet by from address
+	from := c.String("from")
+	sender, err := getSender(walletPath, from)
+	if err != nil {
+		return err
+	}
+
+	// get candidate list from file
+	candidatePath := c.String("for")
+	candidateList, err := parseCandidates(candidatePath)
+	if err != nil {
+		return err
+	}
+
+	// create outputs
+	txOutputs, err := createVoteOutputs(&OutputInfo{
+		Recipient: sender.Address,
+		Amount:    amount,
+	}, candidateList)
+	if err != nil {
+		return err
+	}
+
+	// create inputs
+	txInputs, changeOutputs, err := createInputs(sender.Address, totalAmount)
+	if err != nil {
+		return err
+	}
+	txOutputs = append(txOutputs, changeOutputs...)
+
+	redeemScript, err := common.HexStringToBytes(sender.RedeemScript)
+	if err != nil {
+		return err
+	}
+
+	// create attributes
+	txAttr := common2.NewAttribute(common2.Nonce, []byte(strconv.FormatInt(rand.Int63(), 10)))
+	txAttributes := make([]*common2.Attribute, 0)
+	txAttributes = append(txAttributes, &txAttr)
+
+	// create program
+	var txProgram = &pg.Program{
+		Code:      redeemScript,
+		Parameter: nil,
+	}
+
+	txn := functions.CreateTransaction(
+		common2.TxVersion09,
+		common2.TransferAsset,
+		0,
+		&payload.TransferAsset{},
+		txAttributes,
+		txInputs,
+		txOutputs,
+		0,
+		[]*pg.Program{txProgram},
+	)
+
+	OutputTx(0, 1, txn)
+
+	return nil
 }
 
 func CreateCrossChainTransaction(c *cli.Context) error {
@@ -632,71 +634,69 @@ func CreateCrossChainTransaction(c *cli.Context) error {
 func createCrossChainTransaction(walletPath string, from string, fee common.Fixed64, lockedUntil uint32,
 	crossChainOutputs ...*CrossChainOutput) (interfaces.Transaction, error) {
 
-	// todo refactor me
-	return nil, nil
+	// check output
+	if len(crossChainOutputs) == 0 {
+		return nil, errors.New("invalid transaction target")
+	}
 
-	//// check output
-	//if len(crossChainOutputs) == 0 {
-	//	return nil, errors.New("invalid transaction target")
-	//}
-	//
-	//outputs := make([]*OutputInfo, 0)
-	//perAccountFee := fee / common.Fixed64(len(crossChainOutputs))
-	//
-	//// create payload
-	//payload := &payload.TransferCrossChainAsset{}
-	//for index, output := range crossChainOutputs {
-	//	payload.CrossChainAddresses = append(payload.CrossChainAddresses, output.CrossChainAddress)
-	//	payload.OutputIndexes = append(payload.OutputIndexes, uint64(index))
-	//	payload.CrossChainAmounts = append(payload.CrossChainAmounts, *output.Amount-perAccountFee)
-	//	outputs = append(outputs, &OutputInfo{
-	//		Recipient: output.Recipient,
-	//		Amount:    output.Amount,
-	//	})
-	//}
-	//
-	//// create outputs
-	//txOutputs, totalAmount, err := createNormalOutputs(outputs, fee, lockedUntil)
-	//if err != nil {
-	//	return nil, err
-	//}
-	//
-	//// get sender in wallet by from address
-	//sender, err := getSender(walletPath, from)
-	//if err != nil {
-	//	return nil, err
-	//}
-	//
-	//// create inputs
-	//txInputs, changeOutputs, err := createInputs(sender.Address, totalAmount)
-	//if err != nil {
-	//	return nil, err
-	//}
-	//txOutputs = append(txOutputs, changeOutputs...)
-	//
-	//redeemScript, err := common.HexStringToBytes(sender.RedeemScript)
-	//if err != nil {
-	//	return nil, err
-	//}
-	//// create attributes
-	//txAttr := common2.NewAttribute(common2.Nonce, []byte(strconv.FormatInt(rand.Int63(), 10)))
-	//txAttributes := make([]*common2.Attribute, 0)
-	//txAttributes = append(txAttributes, &txAttr)
-	//
-	//// create program
-	//var txProgram = &pg.Program{
-	//	Code:      redeemScript,
-	//	Parameter: nil,
-	//}
-	//
-	//return &transactions.BaseTransaction{
-	//	Version:    common2.TxVersion09,
-	//	TxType:     common2.TransferCrossChainAsset,
-	//	Payload:    payload,
-	//	Attributes: txAttributes,
-	//	Inputs:     txInputs,
-	//	Outputs:    txOutputs,
-	//	Programs:   []*pg.Program{txProgram},
-	//	LockTime:   0,
-	//}, nil
+	outputs := make([]*OutputInfo, 0)
+	perAccountFee := fee / common.Fixed64(len(crossChainOutputs))
+
+	// create payload
+	payload := &payload.TransferCrossChainAsset{}
+	for index, output := range crossChainOutputs {
+		payload.CrossChainAddresses = append(payload.CrossChainAddresses, output.CrossChainAddress)
+		payload.OutputIndexes = append(payload.OutputIndexes, uint64(index))
+		payload.CrossChainAmounts = append(payload.CrossChainAmounts, *output.Amount-perAccountFee)
+		outputs = append(outputs, &OutputInfo{
+			Recipient: output.Recipient,
+			Amount:    output.Amount,
+		})
+	}
+
+	// create outputs
+	txOutputs, totalAmount, err := createNormalOutputs(outputs, fee, lockedUntil)
+	if err != nil {
+		return nil, err
+	}
+
+	// get sender in wallet by from address
+	sender, err := getSender(walletPath, from)
+	if err != nil {
+		return nil, err
+	}
+
+	// create inputs
+	txInputs, changeOutputs, err := createInputs(sender.Address, totalAmount)
+	if err != nil {
+		return nil, err
+	}
+	txOutputs = append(txOutputs, changeOutputs...)
+
+	redeemScript, err := common.HexStringToBytes(sender.RedeemScript)
+	if err != nil {
+		return nil, err
+	}
+	// create attributes
+	txAttr := common2.NewAttribute(common2.Nonce, []byte(strconv.FormatInt(rand.Int63(), 10)))
+	txAttributes := make([]*common2.Attribute, 0)
+	txAttributes = append(txAttributes, &txAttr)
+
+	// create program
+	var txProgram = &pg.Program{
+		Code:      redeemScript,
+		Parameter: nil,
+	}
+
+	return functions.CreateTransaction(
+		common2.TxVersion09,
+		common2.TransferCrossChainAsset,
+		0,
+		payload,
+		txAttributes,
+		txInputs,
+		txOutputs,
+		0,
+		[]*pg.Program{txProgram},
+	), nil
 }

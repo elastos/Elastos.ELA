@@ -15,6 +15,8 @@ import (
 	"time"
 
 	"github.com/elastos/Elastos.ELA/common"
+	"github.com/elastos/Elastos.ELA/core/contract/program"
+	"github.com/elastos/Elastos.ELA/core/types/functions"
 	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/core/types"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
@@ -530,39 +532,40 @@ func (c *Committee) changeCommittee(height uint32) bool {
 
 func (c *Committee) createProposalResultTransaction(height uint32) {
 
-	// todo refactor me
-	return
+	if height == c.getHeight() {
+		sort.Slice(c.PartProposalResults, func(i, j int) bool {
+			return c.PartProposalResults[i].ProposalHash.Compare(c.PartProposalResults[j].ProposalHash) < 0
+		})
+		tx := functions.CreateTransaction(
+			common2.TxVersion09,
+			common2.ProposalResult,
+			0,
+			&payload.RecordProposalResult{
+				ProposalResults: c.PartProposalResults,
+			},
+			[]*common2.Attribute{},
+			[]*common2.Input{},
+			[]*common2.Output{},
+			0,
+			[]*program.Program{},
+		)
 
-	//if height == c.getHeight() {
-	//	sort.Slice(c.PartProposalResults, func(i, j int) bool {
-	//		return c.PartProposalResults[i].ProposalHash.Compare(c.PartProposalResults[j].ProposalHash) < 0
-	//	})
-	//	tx := &transactions.BaseTransaction{
-	//		Version: common2.TxVersion09,
-	//		TxType:  common2.ProposalResult,
-	//		Payload: &payload.RecordProposalResult{
-	//			ProposalResults: c.PartProposalResults,
-	//		},
-	//		Attributes: []*common2.Attribute{},
-	//		Programs:   []*program.Program{},
-	//		LockTime:   0,
-	//	}
-	//	log.Info("create record proposal result transaction:", tx.Hash())
-	//	if c.isCurrent != nil && c.broadcast != nil && c.
-	//		appendToTxpool != nil {
-	//		go func() {
-	//			if c.isCurrent() {
-	//				if err := c.appendToTxpool(tx); err == nil {
-	//					c.broadcast(msg.NewTx(tx))
-	//				} else {
-	//					log.Warn("create record proposal result transaction"+
-	//						" append to tx pool err ", err)
-	//				}
-	//			}
-	//		}()
-	//	}
-	//}
-	//return
+		log.Info("create record proposal result transaction:", tx.Hash())
+		if c.isCurrent != nil && c.broadcast != nil && c.
+			appendToTxpool != nil {
+			go func() {
+				if c.isCurrent() {
+					if err := c.appendToTxpool(tx); err == nil {
+						c.broadcast(msg.NewTx(tx))
+					} else {
+						log.Warn("create record proposal result transaction"+
+							" append to tx pool err ", err)
+					}
+				}
+			}()
+		}
+	}
+	return
 }
 
 func (c *Committee) createAppropriationTransaction(height uint32) common.Fixed64 {

@@ -6,9 +6,14 @@
 package pow
 
 import (
+	"encoding/binary"
 	"errors"
 	"fmt"
+	pg "github.com/elastos/Elastos.ELA/core/contract/program"
+	"github.com/elastos/Elastos.ELA/core/types/functions"
+	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"math"
+	"math/rand"
 	"sort"
 	"sync"
 	"time"
@@ -111,61 +116,58 @@ func (pow *Service) GetDefaultTxVersion(height uint32) common2.TransactionVersio
 
 func (pow *Service) CreateCoinbaseTx(minerAddr string, height uint32) (interfaces.Transaction, error) {
 
-	// todo refactor me
-	return nil, nil
+	crRewardAddr := pow.chainParams.Foundation
+	if height >= pow.chainParams.CRCommitteeStartHeight {
+		crRewardAddr = pow.chainParams.CRAssetsAddress
+	}
 
-	//crRewardAddr := pow.chainParams.Foundation
-	//if height >= pow.chainParams.CRCommitteeStartHeight {
-	//	crRewardAddr = pow.chainParams.CRAssetsAddress
-	//}
-	//
-	//minerProgramHash, err := common.Uint168FromAddress(minerAddr)
-	//if err != nil {
-	//	return nil, err
-	//}
-	//
-	//tx := &transactions.BaseTransaction{
-	//	Version:        pow.GetDefaultTxVersion(height),
-	//	TxType:         common2.CoinBase,
-	//	PayloadVersion: payload.CoinBaseVersion,
-	//	Payload: &payload.CoinBase{
-	//		Content: []byte(pow.MinerInfo),
-	//	},
-	//	Inputs: []*common2.Input{
-	//		{
-	//			Previous: common2.OutPoint{
-	//				TxID:  common.EmptyHash,
-	//				Index: math.MaxUint16,
-	//			},
-	//			Sequence: math.MaxUint32,
-	//		},
-	//	},
-	//	Outputs: []*common2.Output{
-	//		{
-	//			AssetID:     config.ELAAssetID,
-	//			Value:       0,
-	//			ProgramHash: crRewardAddr,
-	//			Type:        common2.OTNone,
-	//			Payload:     &outputpayload.DefaultOutput{},
-	//		},
-	//		{
-	//			AssetID:     config.ELAAssetID,
-	//			Value:       0,
-	//			ProgramHash: *minerProgramHash,
-	//			Type:        common2.OTNone,
-	//			Payload:     &outputpayload.DefaultOutput{},
-	//		},
-	//	},
-	//	Attributes: []*common2.Attribute{},
-	//	LockTime:   height,
-	//}
-	//
-	//nonce := make([]byte, 8)
-	//binary.BigEndian.PutUint64(nonce, rand.Uint64())
-	//txAttr := common2.NewAttribute(common2.Nonce, nonce)
-	//tx.Attributes = append(tx.Attributes, &txAttr)
-	//
-	//return tx, nil
+	minerProgramHash, err := common.Uint168FromAddress(minerAddr)
+	if err != nil {
+		return nil, err
+	}
+
+	nonce := make([]byte, 8)
+	binary.BigEndian.PutUint64(nonce, rand.Uint64())
+	txAttr := common2.NewAttribute(common2.Nonce, nonce)
+
+	tx := functions.CreateTransaction(
+		pow.GetDefaultTxVersion(height),
+		common2.CoinBase,
+		payload.CoinBaseVersion,
+		&payload.CoinBase{
+			Content: []byte(pow.MinerInfo),
+		},
+		[]*common2.Attribute{&txAttr},
+		[]*common2.Input{
+			{
+				Previous: common2.OutPoint{
+					TxID:  common.EmptyHash,
+					Index: math.MaxUint16,
+				},
+				Sequence: math.MaxUint32,
+			},
+		},
+		[]*common2.Output{
+			{
+				AssetID:     config.ELAAssetID,
+				Value:       0,
+				ProgramHash: crRewardAddr,
+				Type:        common2.OTNone,
+				Payload:     &outputpayload.DefaultOutput{},
+			},
+			{
+				AssetID:     config.ELAAssetID,
+				Value:       0,
+				ProgramHash: *minerProgramHash,
+				Type:        common2.OTNone,
+				Payload:     &outputpayload.DefaultOutput{},
+			},
+		},
+		height,
+		[]*pg.Program{},
+	)
+
+	return tx, nil
 }
 
 func (pow *Service) AssignCoinbaseTxRewards(block *types.Block, totalReward common.Fixed64) error {

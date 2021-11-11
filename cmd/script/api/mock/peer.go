@@ -7,13 +7,11 @@ package mock
 
 import (
 	"fmt"
-	"io"
 	"time"
 
 	"github.com/elastos/Elastos.ELA/blockchain"
 	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/core/types"
-	"github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/mempool"
 	"github.com/elastos/Elastos.ELA/p2p"
@@ -31,12 +29,7 @@ type PeerMock interface {
 
 func NewPeerMock(params *config.Params) PeerMock {
 	p := &peerMock{
-		TxPool: mempool.NewTxPool(params,
-			func(txType common.TxType) (interfaces.Transaction, error) {
-				return nil, nil
-			}, func(r io.Reader) (interfaces.Transaction, error) {
-				return nil, nil
-			}),
+		TxPool: mempool.NewTxPool(params),
 		BlockPool: mempool.NewBlockPool(params),
 		relayList: make([]p2p.Message, 0),
 	}

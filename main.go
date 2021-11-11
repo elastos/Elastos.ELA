@@ -9,7 +9,9 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	pg "github.com/elastos/Elastos.ELA/core/contract/program"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/functions"
 	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"io"
 	"os"
@@ -133,6 +135,12 @@ func setupNode() *cli.App {
 }
 
 func startNode(c *cli.Context, st *settings.Settings) {
+
+	// Initialize functions
+	functions.GetTransactionByTxType = getTransaction
+	functions.GetTransactionByBytes = getTransactionByBytes
+	functions.CreateTransaction = createTransaction
+
 	// Enable http profiling server if requested.
 	if st.Config().ProfilePort != 0 {
 		go utils.StartPProf(st.Config().ProfilePort)
@@ -172,7 +180,7 @@ func startNode(c *cli.Context, st *settings.Settings) {
 	defer chainStore.Close()
 	ledger.Store = chainStore // fixme
 
-	txMemPool := mempool.NewTxPool(st.Params(), getTransaction, getTransactionByBytes)
+	txMemPool := mempool.NewTxPool(st.Params())
 	blockMemPool := mempool.NewBlockPool(st.Params())
 	blockMemPool.Store = chainStore
 
@@ -458,4 +466,28 @@ func getTransactionByBytes(r io.Reader) (interfaces.Transaction, error) {
 	tx.SetTxType(txType)
 
 	return tx, nil
+}
+
+func createTransaction(
+	version common2.TransactionVersion,
+	txType common2.TxType,
+	payloadVersion byte,
+	payload interfaces.Payload,
+	attributes []*common2.Attribute,
+	inputs []*common2.Input,
+	outputs []*common2.Output,
+	lockTime uint32,
+	programs []*pg.Program,
+) interfaces.Transaction {
+	txn, _ := functions.GetTransactionByTxType(txType)
+	txn.SetVersion(version)
+	txn.SetTxType(txType)
+	txn.SetPayloadVersion(payloadVersion)
+	txn.SetPayload(payload)
+	txn.SetAttributes(attributes)
+	txn.SetInputs(inputs)
+	txn.SetOutputs(outputs)
+	txn.SetLockTime(lockTime)
+	txn.SetPrograms(programs)
+	return txn
 }

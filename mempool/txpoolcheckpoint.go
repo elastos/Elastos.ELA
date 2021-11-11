@@ -7,7 +7,7 @@ package mempool
 
 import (
 	"bytes"
-	common2 "github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/functions"
 	"io"
 
 	"github.com/elastos/Elastos.ELA/common"
@@ -36,10 +36,8 @@ type txPoolCheckpoint struct {
 	txFees  *txFeeOrderedList
 	txPool  *TxPool
 
-	height                uint32
-	initConflictManager   func(map[common.Uint256]interfaces.Transaction)
-	getTransaction        func(txType common2.TxType) (interfaces.Transaction, error)
-	getTransactionByBytes func(r io.Reader) (interfaces.Transaction, error)
+	height              uint32
+	initConflictManager func(map[common.Uint256]interfaces.Transaction)
 }
 
 func (c *txPoolCheckpoint) OnBlockSaved(block *types.DposBlock) {
@@ -66,8 +64,7 @@ func (c *txPoolCheckpoint) Snapshot() checkpoint.ICheckPoint {
 		c.LogError(err)
 		return nil
 	}
-	result := newTxPoolCheckpoint(c.txPool,
-		c.initConflictManager, c.getTransaction, c.getTransactionByBytes)
+	result := newTxPoolCheckpoint(c.txPool, c.initConflictManager)
 	if err := result.Deserialize(&buf); err != nil {
 		c.LogError(err)
 		return nil
@@ -100,8 +97,7 @@ func (c *txPoolCheckpoint) Generator() func(buf []byte) checkpoint.ICheckPoint {
 		stream := bytes.Buffer{}
 		stream.Write(buf)
 
-		result := newTxPoolCheckpoint(c.txPool,
-			c.initConflictManager, c.getTransaction, c.getTransactionByBytes)
+		result := newTxPoolCheckpoint(c.txPool, c.initConflictManager)
 		if err := result.Deserialize(&stream); err != nil {
 			c.LogError(err)
 			return nil
@@ -159,7 +155,7 @@ func (c *txPoolCheckpoint) Deserialize(r io.Reader) (err error) {
 		if err = hash.Deserialize(r); err != nil {
 			return
 		}
-		tx, err := c.getTransactionByBytes(r)
+		tx, err := functions.GetTransactionByBytes(r)
 		if err != nil {
 			return err
 		}
@@ -174,16 +170,12 @@ func (c *txPoolCheckpoint) Deserialize(r io.Reader) (err error) {
 }
 
 func newTxPoolCheckpoint(txPool *TxPool,
-	initConflictManager func(map[common.Uint256]interfaces.Transaction),
-	getTransaction func(txType common2.TxType) (interfaces.Transaction, error),
-	getTransactionByBytes func(r io.Reader) (interfaces.Transaction, error)) *txPoolCheckpoint {
+	initConflictManager func(map[common.Uint256]interfaces.Transaction)) *txPoolCheckpoint {
 	return &txPoolCheckpoint{
-		txPool:                txPool,
-		txnList:               map[common.Uint256]interfaces.Transaction{},
-		txFees:                newTxFeeOrderedList(txPool.onPopBack, pact.MaxTxPoolSize),
-		height:                0,
-		initConflictManager:   initConflictManager,
-		getTransaction:        getTransaction,
-		getTransactionByBytes: getTransactionByBytes,
+		txPool:              txPool,
+		txnList:             map[common.Uint256]interfaces.Transaction{},
+		txFees:              newTxFeeOrderedList(txPool.onPopBack, pact.MaxTxPoolSize),
+		height:              0,
+		initConflictManager: initConflictManager,
 	}
 }

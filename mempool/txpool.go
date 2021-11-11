@@ -9,8 +9,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/elastos/Elastos.ELA/core/types/interfaces"
-	"io"
 	"sync"
 
 	"github.com/elastos/Elastos.ELA/blockchain"
@@ -19,6 +17,7 @@ import (
 	"github.com/elastos/Elastos.ELA/common/log"
 	. "github.com/elastos/Elastos.ELA/core/types"
 	"github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/core/types/outputpayload"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	elaerr "github.com/elastos/Elastos.ELA/errors"
@@ -589,9 +588,7 @@ func (mp *TxPool) onPopBack(hash Uint256) {
 
 }
 
-func NewTxPool(params *config.Params,
-	getTransaction func(txType common.TxType) (interfaces.Transaction, error),
-	getTransactionByBytes func(r io.Reader) (interfaces.Transaction, error)) *TxPool {
+func NewTxPool(params *config.Params) *TxPool {
 	rtn := &TxPool{
 		conflictManager:      newConflictManager(),
 		chainParams:          params,
@@ -605,7 +602,7 @@ func NewTxPool(params *config.Params,
 					return
 				}
 			}
-		}, getTransaction, getTransactionByBytes)
+		})
 	params.CkpManager.Register(rtn.txPoolCheckpoint)
 	return rtn
 }

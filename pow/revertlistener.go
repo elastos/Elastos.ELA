@@ -7,6 +7,12 @@ package pow
 
 import (
 	"time"
+
+	"github.com/elastos/Elastos.ELA/common/log"
+	"github.com/elastos/Elastos.ELA/core/contract/program"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/functions"
+	"github.com/elastos/Elastos.ELA/core/types/payload"
 )
 
 const CheckRevertToPOWInterval = time.Minute
@@ -27,26 +33,27 @@ func (pow *Service) ListenForRevert() {
 				continue
 			}
 
+			revertToPOWPayload := payload.RevertToPOW{
+				Type:          payload.NoBlock,
+				WorkingHeight: pow.chain.BestChain.Height + 1,
+			}
+			tx := functions.CreateTransaction(
+				common2.TxVersion09,
+				common2.RevertToPOW,
+				payload.RevertToPOWVersion,
+				&revertToPOWPayload,
+				[]*common2.Attribute{},
+				[]*common2.Input{},
+				[]*common2.Output{},
+				0,
+				[]*program.Program{},
+			)
 
-			// todo refactor me
-			//revertToPOWPayload := payload.RevertToPOW{
-			//	Type:          payload.NoBlock,
-			//	WorkingHeight: pow.chain.BestChain.Height + 1,
-			//}
-			//tx := &transactions.BaseTransaction{
-			//	Version:        common.TxVersion09,
-			//	TxType:         common.RevertToPOW,
-			//	PayloadVersion: payload.RevertToPOWVersion,
-			//	Payload:        &revertToPOWPayload,
-			//	Attributes:     []*common.Attribute{},
-			//	Programs:       []*program.Program{},
-			//	LockTime:       0,
-			//}
-			//err := pow.txMemPool.AppendToTxPoolWithoutEvent(tx)
-			//if err != nil {
-			//	log.Error("failed to append revertToPOW transaction to " +
-			//		"transaction pool, err:" + err.Error())
-			//}
+			err := pow.txMemPool.AppendToTxPoolWithoutEvent(tx)
+			if err != nil {
+				log.Error("failed to append revertToPOW transaction to " +
+					"transaction pool, err:" + err.Error())
+			}
 		}
 	}()
 }

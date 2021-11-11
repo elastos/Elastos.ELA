@@ -35,10 +35,12 @@ type Transaction interface {
 	SetFee(fee common.Fixed64)
 	SetFeePerKB(feePerKB common.Fixed64)
 	SetAttributes(attributes []*common2.Attribute)
+	SetPayloadVersion(payloadVersion byte)
 	SetPayload(payload Payload)
 	SetInputs(inputs []*common2.Input)
 	SetOutputs(outputs []*common2.Output)
 	SetPrograms(programs []*pg.Program)
+	SetLockTime(lockTime uint32)
 
 	String() string
 	Serialize(w io.Writer) error

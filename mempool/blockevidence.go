@@ -13,8 +13,12 @@ import (
 
 	"github.com/elastos/Elastos.ELA/blockchain"
 	"github.com/elastos/Elastos.ELA/common"
+	"github.com/elastos/Elastos.ELA/core/contract/program"
 	"github.com/elastos/Elastos.ELA/core/types"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/functions"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
+	"github.com/elastos/Elastos.ELA/events"
 )
 
 func (bm *BlockPool) generateBlockEvidence(block *types.Block, confirm *payload.Confirm) (
@@ -129,23 +133,19 @@ func (bm *BlockPool) CheckConfirmedBlockOnFork(height uint32, block *types.Block
 			return err
 		}
 
+		tx := functions.CreateTransaction(
+			common2.TxVersion09,
+			common2.IllegalBlockEvidence,
+			payload.IllegalBlockVersion,
+			illegalBlocks,
+			[]*common2.Attribute{},
+			[]*common2.Input{},
+			[]*common2.Output{},
+			0,
+			[]*program.Program{},
+		)
 
-		// todo refactor me
-
-		//tx := &transactions.BaseTransaction{
-		//	Version:        common2.TxVersion09,
-		//	TxType:         common2.IllegalBlockEvidence,
-		//	PayloadVersion: payload.IllegalBlockVersion,
-		//	Payload:        illegalBlocks,
-		//	Attributes:     []*common2.Attribute{},
-		//	LockTime:       0,
-		//	Programs:       []*program.Program{},
-		//	Outputs:        []*common2.Output{},
-		//	Inputs:         []*common2.Input{},
-		//	Fee:            0,
-		//}
-		//
-		//events.Notify(events.ETIllegalBlockEvidence, tx)
+		events.Notify(events.ETIllegalBlockEvidence, tx)
 
 		return nil
 	}

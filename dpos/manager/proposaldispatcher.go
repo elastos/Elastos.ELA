@@ -8,6 +8,9 @@ package manager
 import (
 	"bytes"
 	"errors"
+	pg "github.com/elastos/Elastos.ELA/core/contract/program"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/functions"
 
 	"github.com/elastos/Elastos.ELA/blockchain"
 	"github.com/elastos/Elastos.ELA/common"
@@ -834,112 +837,107 @@ func (p *ProposalDispatcher) setProcessingProposal(d *payload.DPOSProposal) (fin
 func (p *ProposalDispatcher) CreateRevertToDPOS(RevertToPOWBlockHeight uint32) (
 	interfaces.Transaction, error) {
 
-	// todo refactor me
-	return nil, nil
+	var err error
+	revertToDPOSPayload := &payload.RevertToDPOS{
+		WorkHeightInterval:     payload.WorkHeightInterval,
+		RevertToPOWBlockHeight: RevertToPOWBlockHeight,
+	}
+	con := contract.Contract{Prefix: contract.PrefixMultiSig}
+	if con.Code, err = p.createRevertToDPOSRedeemScript(); err != nil {
+		return nil, err
+	}
 
-	//var err error
-	//revertToDPOSPayload := &payload.RevertToDPOS{
-	//	WorkHeightInterval:     payload.WorkHeightInterval,
-	//	RevertToPOWBlockHeight: RevertToPOWBlockHeight,
-	//}
-	//con := contract.Contract{Prefix: contract.PrefixMultiSig}
-	//if con.Code, err = p.createRevertToDPOSRedeemScript(); err != nil {
-	//	return nil, err
-	//}
-	//
-	//programHash := con.ToProgramHash()
-	//tx := &transactions.BaseTransaction{
-	//	Version:        common2.TxVersion09,
-	//	TxType:         common2.RevertToDPOS,
-	//	PayloadVersion: payload.RevertToDPOSVersion,
-	//	Payload:        revertToDPOSPayload,
-	//	Attributes: []*common2.Attribute{{
-	//		Usage: common2.Script,
-	//		Data:  programHash.Bytes(),
-	//	}},
-	//	LockTime: 0,
-	//	Outputs:  []*common2.Output{},
-	//	Inputs:   []*common2.Input{},
-	//	Fee:      0,
-	//}
-	//
-	//var sign []byte
-	//if sign, err = p.cfg.Account.SignTx(tx); err != nil {
-	//	return nil, err
-	//}
-	//parameter := append([]byte{byte(len(sign))}, sign...)
-	//tx.Programs = []*program.Program{
-	//	{
-	//		Code:      con.Code,
-	//		Parameter: parameter,
-	//	},
-	//}
-	//
-	//p.RevertToDPOSTx = tx
-	//return tx, nil
+	programHash := con.ToProgramHash()
+
+	tx := functions.CreateTransaction(
+		common2.TxVersion09,
+		common2.RevertToDPOS,
+		payload.RevertToDPOSVersion,
+		revertToDPOSPayload,
+		[]*common2.Attribute{{
+			Usage: common2.Script,
+			Data:  programHash.Bytes(),
+		}},
+		[]*common2.Input{},
+		[]*common2.Output{},
+		0,
+		[]*pg.Program{},
+	)
+
+	var sign []byte
+	if sign, err = p.cfg.Account.SignTx(tx); err != nil {
+		return nil, err
+	}
+	parameter := append([]byte{byte(len(sign))}, sign...)
+	tx.SetPrograms([]*pg.Program{
+		{
+			Code:      con.Code,
+			Parameter: parameter,
+		},
+	})
+
+	p.RevertToDPOSTx = tx
+	return tx, nil
 }
 
 func (p *ProposalDispatcher) CreateInactiveArbitrators() (
 	interfaces.Transaction, error) {
 
-	// todo refactor me
-	return nil, nil
+	var err error
 
-	//var err error
-	//
-	//inactivePayload := &payload.InactiveArbitrators{
-	//	Sponsor:     p.cfg.Manager.GetPublicKey(),
-	//	Arbitrators: [][]byte{},
-	//	BlockHeight: blockchain.DefaultLedger.Blockchain.GetHeight() + 1,
-	//}
-	//inactiveArbitrators := p.eventAnalyzer.ParseInactiveArbitrators()
-	//for _, v := range inactiveArbitrators {
-	//	var pk []byte
-	//	pk, err = common.HexStringToBytes(v)
-	//	if err != nil {
-	//		return nil, err
-	//	}
-	//	inactivePayload.Arbitrators = append(inactivePayload.Arbitrators, pk)
-	//}
-	//if len(inactivePayload.Arbitrators) == 0 {
-	//	return nil, errors.New("found no inactive arbiters")
-	//}
-	//
-	//con := contract.Contract{Prefix: contract.PrefixMultiSig}
-	//if con.Code, err = p.createArbitratorsRedeemScript(); err != nil {
-	//	return nil, err
-	//}
-	//
-	//programHash := con.ToProgramHash()
-	//tx := &transactions.BaseTransaction{
-	//	Version:        common2.TxVersion09,
-	//	TxType:         common2.InactiveArbitrators,
-	//	PayloadVersion: payload.InactiveArbitratorsVersion,
-	//	Payload:        inactivePayload,
-	//	Attributes: []*common2.Attribute{{
-	//		Usage: common2.Script,
-	//		Data:  programHash.Bytes(),
-	//	}},
-	//	LockTime: 0,
-	//	Outputs:  []*common2.Output{},
-	//	Inputs:   []*common2.Input{},
-	//	Fee:      0,
-	//}
-	//
-	//var sign []byte
-	//if sign, err = p.cfg.Account.SignTx(tx); err != nil {
-	//	return nil, err
-	//}
-	//parameter := append([]byte{byte(len(sign))}, sign...)
-	//tx.Programs = []*program.Program{
-	//	{
-	//		Code:      con.Code,
-	//		Parameter: parameter,
-	//	},
-	//}
-	//
-	//p.currentInactiveArbitratorTx = tx
-	//return tx, nil
+	inactivePayload := &payload.InactiveArbitrators{
+		Sponsor:     p.cfg.Manager.GetPublicKey(),
+		Arbitrators: [][]byte{},
+		BlockHeight: blockchain.DefaultLedger.Blockchain.GetHeight() + 1,
+	}
+	inactiveArbitrators := p.eventAnalyzer.ParseInactiveArbitrators()
+	for _, v := range inactiveArbitrators {
+		var pk []byte
+		pk, err = common.HexStringToBytes(v)
+		if err != nil {
+			return nil, err
+		}
+		inactivePayload.Arbitrators = append(inactivePayload.Arbitrators, pk)
+	}
+	if len(inactivePayload.Arbitrators) == 0 {
+		return nil, errors.New("found no inactive arbiters")
+	}
+
+	con := contract.Contract{Prefix: contract.PrefixMultiSig}
+	if con.Code, err = p.createArbitratorsRedeemScript(); err != nil {
+		return nil, err
+	}
+
+	programHash := con.ToProgramHash()
+
+	tx := functions.CreateTransaction(
+		common2.TxVersion09,
+		common2.InactiveArbitrators,
+		payload.InactiveArbitratorsVersion,
+		inactivePayload,
+		[]*common2.Attribute{{
+			Usage: common2.Script,
+			Data:  programHash.Bytes(),
+		}},
+		[]*common2.Input{},
+		[]*common2.Output{},
+		0,
+		[]*pg.Program{},
+	)
+	var sign []byte
+	if sign, err = p.cfg.Account.SignTx(tx); err != nil {
+		return nil, err
+	}
+	parameter := append([]byte{byte(len(sign))}, sign...)
+	tx.SetPrograms([]*pg.Program{
+		{
+			Code:      con.Code,
+			Parameter: parameter,
+		},
+	})
+
+	p.currentInactiveArbitratorTx = tx
+	return tx, nil
 }
 
 func (p *ProposalDispatcher) createRevertToDPOSRedeemScript() ([]byte, error) {

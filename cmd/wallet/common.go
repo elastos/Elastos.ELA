@@ -12,6 +12,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/elastos/Elastos.ELA/core/types/functions"
 	"io"
 	"os"
 	"strings"
@@ -216,14 +217,15 @@ func OutputTx(haveSign, needSign int, txn interfaces.Transaction) error {
 		return err
 	}
 
-	// todo refactor me
-
-	//
-	//var tx transactions.BaseTransaction
-	//txBytes, _ := hex.DecodeString(content)
-	//if err := tx.Deserialize(bytes.NewReader(txBytes)); err != nil {
-	//	return err
-	//}
+	txBytes, _ := hex.DecodeString(content)
+	r := bytes.NewReader(txBytes)
+	tx, err := functions.GetTransactionByBytes(r)
+	if err != nil {
+		return err
+	}
+	if err := tx.Deserialize(r); err != nil {
+		return err
+	}
 
 	// Print output file to console
 	fmt.Println("File: ", fileName)

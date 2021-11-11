@@ -6,16 +6,18 @@
 package config
 
 import (
-	common2 "github.com/elastos/Elastos.ELA/core/types/common"
-	"github.com/elastos/Elastos.ELA/core/types/interfaces"
-	"github.com/elastos/Elastos.ELA/core/types/transactions"
 	"math"
 	"math/big"
 	"time"
 
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/core/checkpoint"
+	"github.com/elastos/Elastos.ELA/core/contract/program"
 	"github.com/elastos/Elastos.ELA/core/types"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/functions"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
+	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/crypto"
 )
 
@@ -26,24 +28,25 @@ var (
 	zeroHash = common.Uint256{}
 
 	// elaAsset is the transaction that create and register the ELA coin.
-	elaAsset = transactions.BaseTransaction{
-		// todo refactor me
-		//TxType:         common2.RegisterAsset,
-		//PayloadVersion: 0,
-		//Payload: &payload.RegisterAsset{
-		//	Asset: payload.Asset{
-		//		Name:      "ELA",
-		//		Precision: ELAPrecision,
-		//		AssetType: 0x00,
-		//	},
-		//	Amount:     0 * 100000000,
-		//	Controller: common.Uint168{},
-		//},
-		//Attributes: []*common2.Attribute{},
-		//Inputs:     []*common2.Input{},
-		//Outputs:    []*common2.Output{},
-		//Programs:   []*program.Program{},
-	}
+	elaAsset = functions.CreateTransaction(
+		0,
+		common2.RegisterAsset,
+		0,
+		&payload.RegisterAsset{
+			Asset: payload.Asset{
+				Name:      "ELA",
+				Precision: ELAPrecision,
+				AssetType: 0x00,
+			},
+			Amount:     0 * 100000000,
+			Controller: common.Uint168{},
+		},
+		[]*common2.Attribute{},
+		[]*common2.Input{},
+		[]*common2.Output{},
+		0,
+		[]*program.Program{},
+	)
 
 	// attrNonce represents the nonce attribute used in the genesis coinbase
 	// transaction.
@@ -806,33 +809,32 @@ func (p *Params) newRewardPerBlock(targetTimePerBlock time.Duration, height uint
 // The genesis block goes different because the foundation address in each
 // network is different.
 func GenesisBlock(foundation *common.Uint168) *types.Block {
-	coinBase := transactions.BaseTransaction{
-		// todo refactor me
 
-		//Version:        0,
-		//TxType:         common2.CoinBase,
-		//PayloadVersion: payload.CoinBaseVersion,
-		//Payload:        &payload.CoinBase{},
-		//Attributes:     []*common2.Attribute{&attrNonce},
-		//Inputs: []*common2.Input{
-		//	{
-		//		Previous: common2.OutPoint{
-		//			TxID:  zeroHash,
-		//			Index: 0x0000,
-		//		},
-		//		Sequence: 0x00000000,
-		//	},
-		//},
-		//Outputs: []*common2.Output{
-		//	{
-		//		AssetID:     ELAAssetID,
-		//		Value:       3300 * 10000 * 100000000,
-		//		ProgramHash: *foundation,
-		//	},
-		//},
-		//LockTime: 0,
-		//Programs: []*program.Program{},
-	}
+	coinBase := functions.CreateTransaction(
+		0,
+		common2.CoinBase,
+		payload.CoinBaseVersion,
+		&payload.CoinBase{},
+		[]*common2.Attribute{&attrNonce},
+		[]*common2.Input{
+			{
+				Previous: common2.OutPoint{
+					TxID:  zeroHash,
+					Index: 0x0000,
+				},
+				Sequence: 0x00000000,
+			},
+		},
+		[]*common2.Output{
+			{
+				AssetID:     ELAAssetID,
+				Value:       3300 * 10000 * 100000000,
+				ProgramHash: *foundation,
+			},
+		},
+		0,
+		[]*program.Program{},
+	)
 
 	merkleRoot, _ := crypto.ComputeRoot([]common.Uint256{coinBase.Hash(),
 		ELAAssetID})
@@ -847,7 +849,7 @@ func GenesisBlock(foundation *common.Uint168) *types.Block {
 			Nonce:      2083236893,
 			Height:     0,
 		},
-		Transactions: []interfaces.Transaction{&coinBase, &elaAsset},
+		Transactions: []interfaces.Transaction{coinBase, elaAsset},
 	}
 }
 

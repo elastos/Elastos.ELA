@@ -1055,6 +1055,7 @@ func NewServer(dataDir string, cfg *Config, nodeVersion string) (*server, error)
 	return &s, nil
 }
 
+// todo build message
 func makeEmptyMessage(cmd string) (p2p.Message, error) {
 	var message p2p.Message
 	switch cmd {
@@ -1063,7 +1064,7 @@ func makeEmptyMessage(cmd string) (p2p.Message, error) {
 
 	case p2p.CmdTx:
 		// todo refactor me
-		//message = msg.NewTx(interfaces.Transaction)
+		//message = msg.NewTx(Transaction)
 
 	case p2p.CmdBlock:
 		message = msg.NewBlock(&types.DposBlock{})

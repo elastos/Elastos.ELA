@@ -134,72 +134,64 @@ func (c *ChainStoreFFLDB) Close() error {
 }
 
 func ProcessProposalDraftData(dbTx database.Tx, Transactions []interfaces.Transaction) (err error) {
-	// todo refactor me
-	return nil
-
-	//var err error
-	//for _, tx := range Transactions {
-	//	switch tx.TxType() {
-	//	case common.CRCProposal:
-	//		proposal := tx.Payload().(*payload.CRCProposal)
-	//		err = dbPutProposalDraftData(dbTx, &proposal.DraftHash, proposal.DraftData)
-	//		if err != nil {
-	//			return err
-	//		}
-	//	case common.CRCProposalTracking:
-	//		proposalTracking := tx.Payload().(*payload.CRCProposalTracking)
-	//		err = dbPutProposalDraftData(dbTx, &proposalTracking.SecretaryGeneralOpinionHash,
-	//			proposalTracking.SecretaryGeneralOpinionData)
-	//		if err != nil {
-	//			return err
-	//		}
-	//		err = dbPutProposalDraftData(dbTx, &proposalTracking.MessageHash, proposalTracking.MessageData)
-	//		if err != nil {
-	//			return err
-	//		}
-	//	case common.CRCProposalReview:
-	//		proposalReview := tx.Payload().(*payload.CRCProposalReview)
-	//		err = dbPutProposalDraftData(dbTx, &proposalReview.OpinionHash, proposalReview.OpinionData)
-	//		if err != nil {
-	//			return err
-	//		}
-	//	}
-	//}
-	//return err
+	for _, tx := range Transactions {
+		switch tx.TxType() {
+		case common.CRCProposal:
+			proposal := tx.Payload().(*payload.CRCProposal)
+			err = dbPutProposalDraftData(dbTx, &proposal.DraftHash, proposal.DraftData)
+			if err != nil {
+				return err
+			}
+		case common.CRCProposalTracking:
+			proposalTracking := tx.Payload().(*payload.CRCProposalTracking)
+			err = dbPutProposalDraftData(dbTx, &proposalTracking.SecretaryGeneralOpinionHash,
+				proposalTracking.SecretaryGeneralOpinionData)
+			if err != nil {
+				return err
+			}
+			err = dbPutProposalDraftData(dbTx, &proposalTracking.MessageHash, proposalTracking.MessageData)
+			if err != nil {
+				return err
+			}
+		case common.CRCProposalReview:
+			proposalReview := tx.Payload().(*payload.CRCProposalReview)
+			err = dbPutProposalDraftData(dbTx, &proposalReview.OpinionHash, proposalReview.OpinionData)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return err
 }
 
 func RollbackProcessProposalDraftData(dbTx database.Tx, Transactions []interfaces.Transaction) (err error) {
-	// todo refactor me
-	return nil
-
-	//var err error
-	//for _, tx := range Transactions {
-	//	switch tx.TxType {
-	//	case common.CRCProposal:
-	//		proposal := tx.Payload.(*payload.CRCProposal)
-	//		err = DBRemoveProposalDraftData(dbTx, &proposal.DraftHash)
-	//		if err != nil {
-	//			return err
-	//		}
-	//	case common.CRCProposalTracking:
-	//		proposalTracking := tx.Payload.(*payload.CRCProposalTracking)
-	//		err = DBRemoveProposalDraftData(dbTx, &proposalTracking.SecretaryGeneralOpinionHash)
-	//		if err != nil {
-	//			return err
-	//		}
-	//		err = DBRemoveProposalDraftData(dbTx, &proposalTracking.MessageHash)
-	//		if err != nil {
-	//			return err
-	//		}
-	//	case common.CRCProposalReview:
-	//		proposalReview := tx.Payload.(*payload.CRCProposalReview)
-	//		err = DBRemoveProposalDraftData(dbTx, &proposalReview.OpinionHash)
-	//		if err != nil {
-	//			return err
-	//		}
-	//	}
-	//}
-	//return err
+	for _, tx := range Transactions {
+		switch tx.TxType() {
+		case common.CRCProposal:
+			proposal := tx.Payload().(*payload.CRCProposal)
+			err = DBRemoveProposalDraftData(dbTx, &proposal.DraftHash)
+			if err != nil {
+				return err
+			}
+		case common.CRCProposalTracking:
+			proposalTracking := tx.Payload().(*payload.CRCProposalTracking)
+			err = DBRemoveProposalDraftData(dbTx, &proposalTracking.SecretaryGeneralOpinionHash)
+			if err != nil {
+				return err
+			}
+			err = DBRemoveProposalDraftData(dbTx, &proposalTracking.MessageHash)
+			if err != nil {
+				return err
+			}
+		case common.CRCProposalReview:
+			proposalReview := tx.Payload().(*payload.CRCProposalReview)
+			err = DBRemoveProposalDraftData(dbTx, &proposalReview.OpinionHash)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return err
 }
 
 func (c *ChainStoreFFLDB) SaveBlock(b *Block, node *BlockNode,

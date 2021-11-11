@@ -23,11 +23,12 @@ type StateKeyFrame struct {
 	NodeOwnerKeys            map[string]string // NodePublicKey as key, OwnerPublicKey as value
 	PendingProducers         map[string]*Producer
 	ActivityProducers        map[string]*Producer
+	DposV2ActivityProducers  map[string]*Producer
 	InactiveProducers        map[string]*Producer
 	CanceledProducers        map[string]*Producer
 	IllegalProducers         map[string]*Producer
 	PendingCanceledProducers map[string]*Producer
-	DposV2ActiveProducer     map[string]*Producer
+	DposV2EffectedProducers  map[string]*Producer
 	Votes                    map[string]struct{}
 	DposV2Votes              map[string]struct{}
 	DepositOutputs           map[string]common.Fixed64
@@ -69,11 +70,12 @@ func (s *StateKeyFrame) snapshot() *StateKeyFrame {
 		NodeOwnerKeys:            make(map[string]string),
 		PendingProducers:         make(map[string]*Producer),
 		ActivityProducers:        make(map[string]*Producer),
+		DposV2ActivityProducers:  make(map[string]*Producer),
 		InactiveProducers:        make(map[string]*Producer),
 		CanceledProducers:        make(map[string]*Producer),
 		IllegalProducers:         make(map[string]*Producer),
 		PendingCanceledProducers: make(map[string]*Producer),
-		DposV2ActiveProducer:     make(map[string]*Producer),
+		DposV2EffectedProducers:  make(map[string]*Producer),
 		Votes:                    make(map[string]struct{}),
 		DposV2Votes:              make(map[string]struct{}),
 		DepositOutputs:           make(map[string]common.Fixed64),
@@ -85,11 +87,12 @@ func (s *StateKeyFrame) snapshot() *StateKeyFrame {
 	state.NodeOwnerKeys = copyStringMap(s.NodeOwnerKeys)
 	state.PendingProducers = copyProducerMap(s.PendingProducers)
 	state.ActivityProducers = copyProducerMap(s.ActivityProducers)
+	state.DposV2ActivityProducers = copyProducerMap(s.DposV2ActivityProducers)
 	state.InactiveProducers = copyProducerMap(s.InactiveProducers)
 	state.CanceledProducers = copyProducerMap(s.CanceledProducers)
 	state.IllegalProducers = copyProducerMap(s.IllegalProducers)
 	state.PendingCanceledProducers = copyProducerMap(s.PendingCanceledProducers)
-	state.DposV2ActiveProducer = copyProducerMap(s.DposV2ActiveProducer)
+	state.DposV2EffectedProducers = copyProducerMap(s.DposV2EffectedProducers)
 	state.Votes = copyStringSet(s.Votes)
 	state.DposV2Votes = copyStringSet(s.DposV2Votes)
 	state.DepositOutputs = copyFixed64Map(s.DepositOutputs)
@@ -114,6 +117,10 @@ func (s *StateKeyFrame) Serialize(w io.Writer) (err error) {
 		return
 	}
 
+	if err = s.SerializeProducerMap(s.DposV2ActivityProducers, w); err != nil {
+		return
+	}
+
 	if err = s.SerializeProducerMap(s.InactiveProducers, w); err != nil {
 		return
 	}
@@ -130,7 +137,7 @@ func (s *StateKeyFrame) Serialize(w io.Writer) (err error) {
 		return
 	}
 
-	if err = s.SerializeProducerMap(s.DposV2ActiveProducer, w); err != nil {
+	if err = s.SerializeProducerMap(s.DposV2EffectedProducers, w); err != nil {
 		return
 	}
 
@@ -195,6 +202,10 @@ func (s *StateKeyFrame) Deserialize(r io.Reader) (err error) {
 		return
 	}
 
+	if s.DposV2ActivityProducers, err = s.DeserializeProducerMap(r); err != nil {
+		return
+	}
+
 	if s.InactiveProducers, err = s.DeserializeProducerMap(r); err != nil {
 		return
 	}
@@ -211,7 +222,7 @@ func (s *StateKeyFrame) Deserialize(r io.Reader) (err error) {
 		return
 	}
 
-	if s.DposV2ActiveProducer, err = s.DeserializeProducerMap(r); err != nil {
+	if s.DposV2EffectedProducers, err = s.DeserializeProducerMap(r); err != nil {
 		return
 	}
 
@@ -474,11 +485,12 @@ func NewStateKeyFrame() *StateKeyFrame {
 		NodeOwnerKeys:             make(map[string]string),
 		PendingProducers:          make(map[string]*Producer),
 		ActivityProducers:         make(map[string]*Producer),
+		DposV2ActivityProducers:   make(map[string]*Producer),
 		InactiveProducers:         make(map[string]*Producer),
 		CanceledProducers:         make(map[string]*Producer),
 		IllegalProducers:          make(map[string]*Producer),
 		PendingCanceledProducers:  make(map[string]*Producer),
-		DposV2ActiveProducer:      make(map[string]*Producer),
+		DposV2EffectedProducers:   make(map[string]*Producer),
 		Votes:                     make(map[string]struct{}),
 		DposV2Votes:               make(map[string]struct{}),
 		DepositOutputs:            make(map[string]common.Fixed64),

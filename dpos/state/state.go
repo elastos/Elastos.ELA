@@ -494,6 +494,17 @@ func (s *State) GetActiveProducers() []*Producer {
 	return producers
 }
 
+// GetDposActiveProducers returns all dposv2 producers that in active state.
+func (s *State) GetActivityV2Producers() []*Producer {
+	s.mtx.RLock()
+	producers := make([]*Producer, 0, len(s.DposV2ActivityProducers))
+	for _, producer := range s.DposV2ActivityProducers {
+		producers = append(producers, producer)
+	}
+	s.mtx.RUnlock()
+	return producers
+}
+
 // GetVotedProducers returns all producers that in active state with votes.
 func (s *State) GetVotedProducers() []*Producer {
 	s.mtx.RLock()
@@ -886,11 +897,17 @@ func (s *State) processTransactions(txs []*types.Transaction, height uint32) {
 		s.history.Append(height, func() {
 			producer.state = Active
 			s.ActivityProducers[key] = producer
+			if producer.info.StakeUntil != 0 {
+				s.DposV2ActivityProducers[key] = producer
+			}
 			delete(s.PendingProducers, key)
 		}, func() {
 			producer.state = Pending
 			s.PendingProducers[key] = producer
 			delete(s.ActivityProducers, key)
+			if producer.info.StakeUntil != 0 {
+				delete(s.DposV2ActivityProducers, key)
+			}
 		})
 	}
 
@@ -900,11 +917,17 @@ func (s *State) processTransactions(txs []*types.Transaction, height uint32) {
 		s.history.Append(height, func() {
 			producer.state = Active
 			s.ActivityProducers[key] = producer
+			if producer.info.StakeUntil != 0 {
+				s.DposV2ActivityProducers[key] = producer
+			}
 			delete(s.InactiveProducers, key)
 		}, func() {
 			producer.state = Inactive
 			s.InactiveProducers[key] = producer
 			delete(s.ActivityProducers, key)
+			if producer.info.StakeUntil != 0 {
+				delete(s.DposV2ActivityProducers, key)
+			}
 		})
 	}
 
@@ -914,11 +937,17 @@ func (s *State) processTransactions(txs []*types.Transaction, height uint32) {
 		s.history.Append(height, func() {
 			producer.state = Active
 			s.ActivityProducers[key] = producer
+			if producer.info.StakeUntil != 0 {
+				s.DposV2ActivityProducers[key] = producer
+			}
 			delete(s.IllegalProducers, key)
 		}, func() {
 			producer.state = Illegal
 			s.IllegalProducers[key] = producer
 			delete(s.ActivityProducers, key)
+			if producer.info.StakeUntil != 0 {
+				delete(s.DposV2ActivityProducers, key)
+			}
 		})
 	}
 
@@ -1114,6 +1143,7 @@ func (s *State) cancelProducer(payload *payload.ProcessProducer, height uint32) 
 			s.PendingCanceledProducers[key] = producer
 		case Active:
 			delete(s.ActivityProducers, key)
+			delete(s.DposV2ActivityProducers, key)
 		case Inactive:
 			delete(s.InactiveProducers, key)
 		}
@@ -1128,6 +1158,9 @@ func (s *State) cancelProducer(payload *payload.ProcessProducer, height uint32) 
 			delete(s.PendingCanceledProducers, key)
 		case Active:
 			s.ActivityProducers[key] = producer
+			if producer.info.StakeUntil != 0 {
+				s.DposV2ActivityProducers[key] = producer
+			}
 		case Inactive:
 			s.InactiveProducers[key] = producer
 		}
@@ -1316,12 +1349,12 @@ func (s *State) processDposV2VoteCancel(output *types.Output, height uint32) {
 		s.history.Append(height, func() {
 			producer.dposV2Votes -= vote
 			if producer.dposV2Votes < s.chainParams.DposV2EffectiveVotes {
-				delete(s.DposV2ActiveProducer, hex.EncodeToString(producer.info.OwnerPublicKey))
+				delete(s.DposV2EffectedProducers, hex.EncodeToString(producer.info.OwnerPublicKey))
 			}
 		}, func() {
 			producer.dposV2Votes += vote
 			if producer.dposV2Votes >= s.chainParams.DposV2EffectiveVotes {
-				s.DposV2ActiveProducer[hex.EncodeToString(producer.info.OwnerPublicKey)] = producer
+				s.DposV2EffectedProducers[hex.EncodeToString(producer.info.OwnerPublicKey)] = producer
 			}
 		})
 	}
@@ -1350,12 +1383,12 @@ func (s *State) processDposV2VoteOutput(output *types.Output, height uint32) {
 		s.history.Append(height, func() {
 			producer.dposV2Votes += vote
 			if producer.dposV2Votes >= s.chainParams.DposV2EffectiveVotes {
-				s.DposV2ActiveProducer[hex.EncodeToString(producer.info.OwnerPublicKey)] = producer
+				s.DposV2EffectedProducers[hex.EncodeToString(producer.info.OwnerPublicKey)] = producer
 			}
 		}, func() {
 			producer.dposV2Votes -= vote
 			if producer.dposV2Votes < s.chainParams.DposV2EffectiveVotes {
-				delete(s.DposV2ActiveProducer, hex.EncodeToString(producer.info.OwnerPublicKey))
+				delete(s.DposV2EffectedProducers, hex.EncodeToString(producer.info.OwnerPublicKey))
 			}
 		})
 	}
@@ -1759,12 +1792,18 @@ func (s *State) processIllegalEvidence(payloadData types.Payload,
 					producer.penalty += s.chainParams.IllegalPenalty
 				}
 				delete(s.ActivityProducers, key)
+				if producer.info.StakeUntil != 0 {
+					delete(s.DposV2ActivityProducers, key)
+				}
 				delete(s.Nicknames, producer.info.NickName)
 			}, func() {
 				producer.state = oriState
 				producer.penalty = oriPenalty
 				producer.illegalHeight = oriIllegalHeight
 				s.ActivityProducers[key] = producer
+				if producer.info.StakeUntil != 0 {
+					s.DposV2ActivityProducers[key] = producer
+				}
 				producer.activateRequestHeight = math.MaxUint32
 				delete(s.IllegalProducers, key)
 				s.Nicknames[producer.info.NickName] = struct{}{}
@@ -1868,6 +1907,9 @@ func (s *State) setInactiveProducer(producer *Producer, key string,
 	producer.selected = false
 	s.InactiveProducers[key] = producer
 	delete(s.ActivityProducers, key)
+	if producer.info.StakeUntil != 0 {
+		delete(s.DposV2ActivityProducers, key)
+	}
 
 	if height < s.VersionStartHeight || height >= s.VersionEndHeight {
 		if !emergency {
@@ -1888,6 +1930,9 @@ func (s *State) revertSettingInactiveProducer(producer *Producer, key string,
 	producer.activateRequestHeight = math.MaxUint32
 	producer.state = Active
 	s.ActivityProducers[key] = producer
+	if producer.info.StakeUntil != 0 {
+		s.DposV2ActivityProducers[key] = producer
+	}
 	delete(s.InactiveProducers, key)
 
 	if height < s.VersionStartHeight || height >= s.VersionEndHeight {

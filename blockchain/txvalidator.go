@@ -484,6 +484,8 @@ func (b *BlockChain) checkVoteOutputs(
 					return err
 				}
 			case outputpayload.DposV2:
+				producers := b.state.GetActivityV2Producers()
+				pds = getProducerPublicKeysMap(producers)
 				err := b.checkVoteDposV2Content(blockHeight, content, pds, votePayload.Version, o.Value)
 				if err != nil {
 					return err

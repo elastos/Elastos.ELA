@@ -89,9 +89,9 @@ type Config struct {
 	// OnDonePeer will be invoked when a peer disconnected.
 	OnDonePeer func(IPeer)
 
-	// MakeEmptyMessage will be invoked to creates a message of the appropriate
+	// CreateMessage will be invoked to creates a message of the appropriate
 	// concrete type based on the command.
-	MakeEmptyMessage func(string) (p2p.Message, error)
+	CreateMessage func(hdr p2p.Header, r net.Conn) (p2p.Message, error)
 
 	// BestHeight will be invoked to get current best height.
 	BestHeight func() uint64
@@ -198,7 +198,7 @@ func NewDefaultConfig(
 	seeds, listenAddrs []string,
 	onNewPeer func(IPeer) bool,
 	onDonePeer func(IPeer),
-	makeEmptyMessage func(string) (p2p.Message, error),
+	createMessage func(hdr p2p.Header, r net.Conn) (p2p.Message, error),
 	bestHeight func() uint64, newVersionHeight uint64, nodeVersion string) *Config {
 	return &Config{
 		MagicNumber:      magic,
@@ -219,7 +219,7 @@ func NewDefaultConfig(
 		TargetOutbound:   defaultTargetOutbound,
 		OnNewPeer:        onNewPeer,
 		OnDonePeer:       onDonePeer,
-		MakeEmptyMessage: makeEmptyMessage,
+		CreateMessage:    createMessage,
 		BestHeight:       bestHeight,
 		PingNonce:        bestHeight,
 		PongNonce:        bestHeight,

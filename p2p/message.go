@@ -82,13 +82,13 @@ type Message interface {
 	common.Serializable
 }
 
-// MakeEmptyMessage is a function to make message by the given command.
-type MakeEmptyMessage func(command string) (Message, error)
+// CreateMessage is a function to make message by the given command.
+type CreateMessage func(hdr Header, r net.Conn) (Message, error)
 
 // ReadMessage reads, validates, and parse the Message from r for the
 // provided magic.
 func ReadMessage(r net.Conn, magic uint32, timeout time.Duration,
-	makeEmptyMessage MakeEmptyMessage) (Message, error) {
+	createMessage CreateMessage) (Message, error) {
 	// Set read deadline
 	err := r.SetReadDeadline(time.Now().Add(timeout))
 	if err != nil {
@@ -113,36 +113,7 @@ func ReadMessage(r net.Conn, magic uint32, timeout time.Duration,
 	}
 
 	// Create struct of appropriate message type based on the command.
-	msg, err := makeEmptyMessage(hdr.GetCMD())
-	if err != nil {
-		return nil, err
-	}
-
-	// Check for message length
-	if hdr.Length > msg.MaxLength() {
-		return nil, ErrMsgSizeExceeded
-	}
-
-	// Read payload
-	payload := make([]byte, hdr.Length)
-	_, err = io.ReadFull(r, payload[:])
-	if err != nil {
-		return nil, err
-	}
-
-	// Verify checksum
-	if err := hdr.Verify(payload); err != nil {
-		return nil, ErrInvalidPayload
-	}
-
-	// Deserialize message
-	// todo refactor me
-
-	if err := msg.Deserialize(bytes.NewBuffer(payload)); err != nil {
-		return nil, fmt.Errorf("deserialize message %s failed %s", msg.CMD(), err.Error())
-	}
-
-	return msg, nil
+	return createMessage(hdr, r)
 }
 
 // WriteMessage writes a Message to w including the necessary header

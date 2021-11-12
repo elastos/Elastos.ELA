@@ -196,7 +196,7 @@ func testPeer(t *testing.T, p *peer.Peer, s peerStats) {
 func TestPeerConnection(t *testing.T) {
 	test.SkipShort(t)
 	verack := make(chan struct{})
-	var makeMessage p2p.MakeEmptyMessage = func(cmd string) (p2p.Message, error) {
+	var makeMessage p2p.CreateMessage = func(cmd string) (p2p.Message, error) {
 		switch cmd {
 		case p2p.CmdVerAck:
 			verack <- struct{}{}
@@ -215,7 +215,7 @@ func TestPeerConnection(t *testing.T) {
 		Services:         0,
 		DisableRelayTx:   true,
 		HostToNetAddress: nil,
-		MakeEmptyMessage: makeMessage,
+		CreateMessage:    makeMessage,
 		BestHeight: func() uint64 {
 			return 0
 		},
@@ -233,7 +233,7 @@ func TestPeerConnection(t *testing.T) {
 		Services:         1,
 		DisableRelayTx:   true,
 		HostToNetAddress: nil,
-		MakeEmptyMessage: makeMessage,
+		CreateMessage:    makeMessage,
 		BestHeight: func() uint64 {
 			return 0
 		},
@@ -352,7 +352,7 @@ func TestUnsupportedVersionPeer(t *testing.T) {
 		Services:         0,
 		DisableRelayTx:   true,
 		HostToNetAddress: nil,
-		MakeEmptyMessage: makeEmptyMessage,
+		CreateMessage:    makeEmptyMessage,
 		BestHeight: func() uint64 {
 			return 0
 		},

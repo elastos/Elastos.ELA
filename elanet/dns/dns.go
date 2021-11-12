@@ -12,6 +12,7 @@ package dns
 
 import (
 	"fmt"
+	"net"
 	"time"
 
 	"github.com/elastos/Elastos.ELA/elanet/pact"
@@ -47,8 +48,8 @@ type DNS struct {
 }
 
 // DNS service do not make any message.
-func makeMessage(cmd string) (p2p.Message, error) {
-	return nil, fmt.Errorf("DNS do not handle %s message", cmd)
+func makeMessage(hdr p2p.Header, r net.Conn) (p2p.Message, error) {
+	return nil, fmt.Errorf("DNS do not handle %s message", hdr.GetCMD())
 }
 
 // DNS service do not have a height.

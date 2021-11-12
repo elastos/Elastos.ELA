@@ -59,7 +59,7 @@ func mockRemotePeer(port uint16, pc chan<- *peer.Peer, mc chan<- p2p.Message) er
 	cfg := &peer.Config{
 		Magic:            123123,
 		DefaultPort:      port,
-		MakeEmptyMessage: makeEmptyMessage,
+		CreateMessage:    makeEmptyMessage,
 		BestHeight:       func() uint64 { return 0 },
 		IsSelfConnection: func(net.IP, int, uint64) bool { return false },
 		GetVersionNonce:  func() uint64 { return 0 },
@@ -102,7 +102,7 @@ func mockInboundPeer(addr string, pc chan<- *peer.Peer, mc chan<- p2p.Message) e
 	cfg := &peer.Config{
 		Magic:            123123,
 		DefaultPort:      12345,
-		MakeEmptyMessage: makeEmptyMessage,
+		CreateMessage:    makeEmptyMessage,
 		BestHeight:       func() uint64 { return 0 },
 		IsSelfConnection: func(net.IP, int, uint64) bool { return false },
 		GetVersionNonce:  func() uint64 { return 0 },

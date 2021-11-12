@@ -90,8 +90,8 @@ func (s *seed) newConfig(addrChan chan []*p2p.NetAddress) *peer.Config {
 		DefaultPort:     s.cfg.DefaultPort,
 		Services:        s.cfg.Services,
 		DisableRelayTx:  true,
-		MakeEmptyMessage: func(cmd string) (p2p.Message, error) {
-			return nil, fmt.Errorf("unhandled message %s from DNS", cmd)
+		CreateMessage: func(hdr p2p.Header, r net.Conn) (p2p.Message, error) {
+			return nil, fmt.Errorf("unhandled message %s from DNS", hdr.GetCMD())
 		},
 		BestHeight:       s.cfg.BestHeight,
 		IsSelfConnection: func(net.IP, int, uint64) bool { return false },

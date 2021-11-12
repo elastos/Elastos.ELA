@@ -6,6 +6,7 @@
 package peer
 
 import (
+	"bytes"
 	"container/list"
 	"errors"
 	"fmt"
@@ -107,7 +108,7 @@ type Config struct {
 	Services         uint64
 	DisableRelayTx   bool
 	HostToNetAddress HostToNetAddrFunc
-	MakeEmptyMessage func(cmd string) (p2p.Message, error)
+	CreateMessage    func(hdr p2p.Header, r net.Conn) (p2p.Message, error)
 	BestHeight       func() uint64
 	IsSelfConnection func(ip net.IP, port int, nonce uint64) bool
 	GetVersionNonce  func() uint64
@@ -534,9 +535,34 @@ func (p *Peer) handlePongMsg(pong *msg.Pong) {
 	p.statsMtx.Unlock()
 }
 
-func (p *Peer) makeEmptyMessage(cmd string) (p2p.Message, error) {
+func CheckAndCreateMessage(hdr p2p.Header, message p2p.Message, r net.Conn) (p2p.Message, error) {
+	// Check for message length
+	if hdr.Length > message.MaxLength() {
+		return nil, p2p.ErrMsgSizeExceeded
+	}
+
+	// Read payload
+	payload := make([]byte, hdr.Length)
+	_, err := io.ReadFull(r, payload[:])
+	if err != nil {
+		return nil, err
+	}
+
+	// Verify checksum
+	if err := hdr.Verify(payload); err != nil {
+		return nil, p2p.ErrInvalidPayload
+	}
+
+	if err := message.Deserialize(bytes.NewBuffer(payload)); err != nil {
+		return nil, fmt.Errorf("deserialize message %s failed %s", message.CMD(), err.Error())
+	}
+
+	return message, nil
+}
+
+func (p *Peer) createMessage(hdr p2p.Header, r net.Conn) (p2p.Message, error) {
 	var message p2p.Message
-	switch cmd {
+	switch hdr.GetCMD() {
 	case p2p.CmdVersion:
 		message = &msg.Version{}
 
@@ -556,14 +582,15 @@ func (p *Peer) makeEmptyMessage(cmd string) (p2p.Message, error) {
 		message = &msg.Pong{}
 
 	default:
-		return p.cfg.MakeEmptyMessage(cmd)
+		return p.cfg.CreateMessage(hdr, r)
 	}
-	return message, nil
+
+	return CheckAndCreateMessage(hdr, message, r)
 }
 
 func (p *Peer) readMessage() (p2p.Message, error) {
 	msg, err := p2p.ReadMessage(
-		p.conn, p.cfg.Magic, p2p.ReadMessageTimeOut, p.makeEmptyMessage)
+		p.conn, p.cfg.Magic, p2p.ReadMessageTimeOut, p.createMessage)
 	// Use closures to log expensive operations so they are only run when
 	// the logging level requires it.
 	log.Debugf("%v", newLogClosure(func() string {

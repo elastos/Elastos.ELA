@@ -9,6 +9,9 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/elastos/Elastos.ELA/core/types/functions"
+	peer2 "github.com/elastos/Elastos.ELA/p2p/peer"
+	"net"
 	"sync/atomic"
 	"time"
 
@@ -1015,7 +1018,7 @@ func NewServer(dataDir string, cfg *Config, nodeVersion string) (*server, error)
 	svrCfg := svr.NewDefaultConfig(
 		params.Magic, pver, uint64(services),
 		params.DefaultPort, params.DNSSeeds, params.ListenAddrs,
-		nil, nil, makeEmptyMessage,
+		nil, nil, createMessage,
 		func() uint64 { return uint64(cfg.Chain.GetHeight()) },
 		params.NewP2PProtocolVersionHeight, nodeVersion,
 	)
@@ -1055,16 +1058,18 @@ func NewServer(dataDir string, cfg *Config, nodeVersion string) (*server, error)
 	return &s, nil
 }
 
-// todo build message
-func makeEmptyMessage(cmd string) (p2p.Message, error) {
+func createMessage(hdr p2p.Header, r net.Conn) (p2p.Message, error) {
 	var message p2p.Message
-	switch cmd {
+	switch hdr.GetCMD() {
 	case p2p.CmdMemPool:
 		message = &msg.MemPool{}
 
 	case p2p.CmdTx:
-		// todo refactor me
-		//message = msg.NewTx(Transaction)
+		txn, err := functions.GetTransactionByBytes(r)
+		if err != nil {
+			return nil, err
+		}
+		message = msg.NewTx(txn)
 
 	case p2p.CmdBlock:
 		message = msg.NewBlock(&types.DposBlock{})
@@ -1100,9 +1105,10 @@ func makeEmptyMessage(cmd string) (p2p.Message, error) {
 		message = &msg.DAddr{}
 
 	default:
-		return nil, fmt.Errorf("unhandled command [%s]", cmd)
+		return nil, fmt.Errorf("unhandled command [%s]", hdr.GetCMD())
 	}
-	return message, nil
+
+	return peer2.CheckAndCreateMessage(hdr, message, r)
 }
 
 // nodeFlag returns if a peer contains the full node flag.

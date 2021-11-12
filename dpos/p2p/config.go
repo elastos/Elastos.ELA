@@ -68,9 +68,9 @@ type Config struct {
 	// with the given PID, to get the nonce value within the pong message.
 	PongNonce func(pid peer.PID) uint64
 
-	// MakeEmptyMessage will be invoked to creates a message of the appropriate
+	// CreateMessage will be invoked to creates a message of the appropriate
 	// concrete type based on the command.
-	MakeEmptyMessage func(command string) (p2p.Message, error)
+	CreateMessage func(hdr p2p.Header, r net.Conn) (message p2p.Message, err error)
 
 	// HandleMessage will be invoked to handle the received message from
 	// connected peers.  The peer's public key id will be pass together with

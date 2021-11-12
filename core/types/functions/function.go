@@ -14,7 +14,9 @@ import (
 )
 
 var GetTransactionByTxType func(txType common2.TxType) (interfaces.Transaction, error)
+
 var GetTransactionByBytes func(r io.Reader) (interfaces.Transaction, error)
+
 var CreateTransaction func(
 	version common2.TransactionVersion,
 	txType common2.TxType,

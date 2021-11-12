@@ -160,7 +160,7 @@ func peerConfig(magic uint32, verack chan<- struct{}) *peer.Config {
 			sign, _ := crypto.Sign(priKey, nonce)
 			return sign
 		},
-		MakeEmptyMessage: func(cmd string) (p2p.Message, error) {
+		CreateMessage: func(cmd string) (p2p.Message, error) {
 			return makeEmptyMessage(cmd)
 		},
 		MessageFunc: func(peer *peer.Peer, message p2p.Message) {
@@ -281,7 +281,7 @@ func TestUnsupportedVersionPeer(t *testing.T) {
 			sign, _ := crypto.Sign(priKey, nonce)
 			return sign
 		},
-		MakeEmptyMessage: makeEmptyMessage,
+		CreateMessage: makeEmptyMessage,
 	}
 
 	localConn, remoteConn := pipe(

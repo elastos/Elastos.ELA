@@ -57,9 +57,9 @@ func mockRemotePeer(pid peer.PID, priKey []byte, port uint16,
 			sign, _ := crypto.Sign(priKey, nonce)
 			return sign
 		},
-		PingNonce:        func(pid peer.PID) uint64 { return 0 },
-		PongNonce:        func(pid peer.PID) uint64 { return 0 },
-		MakeEmptyMessage: makeEmptyMessage,
+		PingNonce:     func(pid peer.PID) uint64 { return 0 },
+		PongNonce:     func(pid peer.PID) uint64 { return 0 },
+		CreateMessage: makeEmptyMessage,
 		MessageFunc: func(peer *peer.Peer, m p2p.Message) {
 			switch m := m.(type) {
 			case *msg.VerAck:
@@ -106,9 +106,9 @@ func mockInboundPeer(addr PeerAddr, priKey []byte, pc chan<- *peer.Peer,
 			sign, _ := crypto.Sign(priKey, nonce)
 			return sign
 		},
-		PingNonce:        func(pid peer.PID) uint64 { return 0 },
-		PongNonce:        func(pid peer.PID) uint64 { return 0 },
-		MakeEmptyMessage: makeEmptyMessage,
+		PingNonce:     func(pid peer.PID) uint64 { return 0 },
+		PongNonce:     func(pid peer.PID) uint64 { return 0 },
+		CreateMessage: makeEmptyMessage,
 		MessageFunc: func(peer *peer.Peer, m p2p.Message) {
 			switch m := m.(type) {
 			case *msg.VerAck:
@@ -164,7 +164,7 @@ func TestServerConnections(t *testing.T) {
 				sign, _ := crypto.Sign(priKey, nonce)
 				return sign
 			},
-			MakeEmptyMessage: makeEmptyMessage,
+			CreateMessage: makeEmptyMessage,
 		})
 
 		peerList = append(peerList, pid)
@@ -246,7 +246,7 @@ func TestServer_ConnectPeers(t *testing.T) {
 			sign, _ := crypto.Sign(priKey, nonce)
 			return sign
 		},
-		MakeEmptyMessage: makeEmptyMessage,
+		CreateMessage: makeEmptyMessage,
 	})
 	if !assert.NoError(t, err) {
 		t.FailNow()
@@ -458,7 +458,7 @@ func TestServer_PeersReconnect(t *testing.T) {
 			sign, _ := crypto.Sign(priKey, nonce)
 			return sign
 		},
-		MakeEmptyMessage: makeEmptyMessage,
+		CreateMessage: makeEmptyMessage,
 	})
 	if !assert.NoError(t, err) {
 		t.FailNow()
@@ -517,7 +517,7 @@ func TestServer_BroadcastMessage(t *testing.T) {
 			sign, _ := crypto.Sign(priKey, nonce)
 			return sign
 		},
-		MakeEmptyMessage: makeEmptyMessage,
+		CreateMessage: makeEmptyMessage,
 	})
 	if !assert.NoError(t, err) {
 		t.FailNow()
@@ -614,8 +614,8 @@ func TestServer_DumpPeersInfo(t *testing.T) {
 			sign, _ := crypto.Sign(priKey, nonce)
 			return sign
 		},
-		MaxNodePerHost:   20,
-		MakeEmptyMessage: makeEmptyMessage,
+		MaxNodePerHost: 20,
+		CreateMessage:  makeEmptyMessage,
 	})
 	if !assert.NoError(t, err) {
 		t.FailNow()

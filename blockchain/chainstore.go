@@ -7,8 +7,8 @@ package blockchain
 
 import (
 	"bytes"
-	"encoding/hex"
 	"encoding/binary"
+	"encoding/hex"
 	"errors"
 	"os"
 	"path/filepath"
@@ -573,9 +573,17 @@ func (c *ChainStoreExtend) persistTxHistory(blk *Block) error {
 					address, _ := output.ProgramHash.ToAddress()
 					var valueCross int64
 					if isCrossTx == true && (output.ProgramHash == MINING_ADDR || strings.Index(address, "X") == 0 || address == "4oLvT2") {
-						switch pl := tx.Payload.(type) {
-						case *payload.TransferCrossChainAsset:
-							valueCross = int64(pl.CrossChainAmounts[0])
+						payloadVersion := tx.PayloadVersion
+						if payloadVersion > 0 {
+							switch outputPayload:= output.Payload.(type){
+								case *outputpayload.CrossChainOutput:
+									valueCross = int64(outputPayload.TargetAmount)
+								}
+						} else {
+							switch pl := tx.Payload.(type) {
+							case *payload.TransferCrossChainAsset:
+								valueCross = int64(pl.CrossChainAmounts[0])
+							}
 						}
 					}
 					if valueCross != 0 {

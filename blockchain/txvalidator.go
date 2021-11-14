@@ -404,7 +404,9 @@ func (b *BlockChain) CheckTransactionContext(blockHeight uint32,
 		}
 
 		err := b.checkVoteOutputs(blockHeight, txn.Outputs, references,
-			getProducerPublicKeysMap(producers), getCRCIDsMap(candidates))
+			getProducerPublicKeysMap(producers),
+			getDPoSV2ProducersMap(b.state.GetActivityV2Producers()),
+			getCRCIDsMap(candidates))
 		if err != nil {
 			log.Warn("[CheckVoteOutputs]", err)
 			return nil, elaerr.Simple(elaerr.ErrTxInvalidOutput, err)
@@ -422,6 +424,14 @@ func getProducerPublicKeysMap(producers []*state.Producer) map[string]struct{} {
 	return pds
 }
 
+func getDPoSV2ProducersMap(producers []*state.Producer) map[string]uint32 {
+	pds := make(map[string]uint32)
+	for _, p := range producers {
+		pds[common.BytesToHexString(p.Info().OwnerPublicKey)] = p.Info().StakeUntil
+	}
+	return pds
+}
+
 func getCRCIDsMap(crs []*crstate.Candidate) map[common.Uint168]struct{} {
 	codes := make(map[common.Uint168]struct{})
 	for _, c := range crs {
@@ -432,7 +442,7 @@ func getCRCIDsMap(crs []*crstate.Candidate) map[common.Uint168]struct{} {
 
 func (b *BlockChain) checkVoteOutputs(
 	blockHeight uint32, outputs []*Output, references map[*Input]Output,
-	pds map[string]struct{}, crs map[common.Uint168]struct{}) error {
+	pds map[string]struct{}, pds2 map[string]uint32, crs map[common.Uint168]struct{}) error {
 	programHashes := make(map[common.Uint168]struct{})
 	for _, output := range references {
 		programHashes[output.ProgramHash] = struct{}{}
@@ -484,13 +494,8 @@ func (b *BlockChain) checkVoteOutputs(
 					return err
 				}
 			case outputpayload.DposV2:
-				producers := b.state.GetActivityV2Producers()
-				pds = getProducerPublicKeysMap(producers)
-				log.Infof("### DposV2 pds ")
-				for k, _ := range pds {
-					log.Info(k)
-				}
-				err := b.checkVoteDposV2Content(blockHeight, content, pds, votePayload.Version, o.Value)
+				err := b.checkVoteDposV2Content(o.OutputLock,
+					content, pds2, votePayload.Version, o.Value)
 				if err != nil {
 					return err
 				}
@@ -543,22 +548,27 @@ func (b *BlockChain) checkVoteProducerContent(content outputpayload.VoteContent,
 	return nil
 }
 
-func (b *BlockChain) checkVoteDposV2Content(blockHeight uint32, content outputpayload.VoteContent,
-	pds map[string]struct{}, payloadVersion byte, amount common.Fixed64) error {
+func (b *BlockChain) checkVoteDposV2Content(lockTime uint32, content outputpayload.VoteContent,
+	pds map[string]uint32, payloadVersion byte, amount common.Fixed64) error {
 	for _, cv := range content.CandidateVotes {
-		if _, ok := pds[common.BytesToHexString(cv.Candidate)]; !ok {
+		stakeUntil, ok := pds[common.BytesToHexString(cv.Candidate)]
+		if !ok {
 			return fmt.Errorf("invalid vote output payload "+
 				"producer candidate: %s", common.BytesToHexString(cv.Candidate))
+		}
+
+		if lockTime > stakeUntil {
+			return fmt.Errorf("invalid vote output lockTime "+
+				"producer candidate:%s, lockTime:%d, stakeUntil:%d",
+				common.BytesToHexString(cv.Candidate), lockTime, stakeUntil)
 		}
 	}
 
 	if payloadVersion < outputpayload.VoteDposV2Version {
 		return errors.New("payload VoteDposV2Version not support vote DposV2")
 	}
-	if blockHeight >= b.chainParams.DposV2StartHeight {
-		if len(content.CandidateVotes) > outputpayload.MaxDposV2ProducerPerTransaction {
-			return errors.New("invalid count of DposV2 candidates ")
-		}
+	if len(content.CandidateVotes) > outputpayload.MaxDposV2ProducerPerTransaction {
+		return errors.New("invalid count of DposV2 candidates ")
 	}
 
 	var totalVotes common.Fixed64

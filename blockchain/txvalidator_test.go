@@ -3817,7 +3817,7 @@ func (s *txValidatorTestSuite) TestCheckVoteOutputs() {
 
 	references := make(map[*types.Input]types.Output)
 	outputs := []*types.Output{{Type: types.OTNone}}
-	s.NoError(s.Chain.checkVoteOutputs(0, outputs, references, nil, nil))
+	s.NoError(s.Chain.checkVoteOutputs(0, outputs, references, nil, nil, nil))
 
 	publicKey1 := "02f981e4dae4983a5d284d01609ad735e3242c5672bb2c7bb0018cc36f9ab0c4a5"
 	publicKey2 := "036db5984e709d2e0ec62fd974283e9a18e7b87e8403cc784baf1f61f775926535"
@@ -3889,7 +3889,7 @@ func (s *txValidatorTestSuite) TestCheckVoteOutputs() {
 		},
 	})
 	s.EqualError(s.Chain.checkVoteOutputs(config.DefaultParams.CRVotingStartHeight,
-		outputs1, references, producersMap, crsMap),
+		outputs1, references, producersMap, nil, crsMap),
 		"the output address of vote tx should exist in its input")
 
 	// Check vote output of v0 with crc type and with wrong output program hash
@@ -3910,7 +3910,7 @@ func (s *txValidatorTestSuite) TestCheckVoteOutputs() {
 		},
 	})
 	s.EqualError(s.Chain.checkVoteOutputs(config.DefaultParams.CRVotingStartHeight,
-		outputs2, references, producersMap, crsMap),
+		outputs2, references, producersMap, nil, crsMap),
 		"the output address of vote tx should exist in its input")
 
 	// Check vote output of v1 with wrong output program hash
@@ -3937,7 +3937,7 @@ func (s *txValidatorTestSuite) TestCheckVoteOutputs() {
 		},
 	})
 	s.EqualError(s.Chain.checkVoteOutputs(config.DefaultParams.CRVotingStartHeight,
-		outputs3, references, producersMap, crsMap),
+		outputs3, references, producersMap, nil, crsMap),
 		"the output address of vote tx should exist in its input")
 
 	references[&types.Input{}] = types.Output{
@@ -3962,16 +3962,16 @@ func (s *txValidatorTestSuite) TestCheckVoteOutputs() {
 		},
 	})
 	s.EqualError(s.Chain.checkVoteOutputs(config.DefaultParams.CRVotingStartHeight,
-		outputs4, references, producersMap, crsMap),
+		outputs4, references, producersMap, nil, crsMap),
 		"invalid vote output payload producer candidate: "+publicKey2)
 
 	// Check vote output v0 with correct output program hash
 	s.NoError(s.Chain.checkVoteOutputs(config.DefaultParams.CRVotingStartHeight,
-		outputs1, references, producersMap, crsMap))
+		outputs1, references, producersMap, nil,  crsMap))
 	s.NoError(s.Chain.checkVoteOutputs(config.DefaultParams.CRVotingStartHeight,
-		outputs2, references, producersMap, crsMap))
+		outputs2, references, producersMap, nil, crsMap))
 	s.NoError(s.Chain.checkVoteOutputs(config.DefaultParams.CRVotingStartHeight,
-		outputs3, references, producersMap, crsMap))
+		outputs3, references, producersMap, nil, crsMap))
 
 	// Check vote output of v0 with crc type and invalid candidate
 	outputs5 := []*types.Output{{Type: types.OTNone}}
@@ -3991,7 +3991,7 @@ func (s *txValidatorTestSuite) TestCheckVoteOutputs() {
 		},
 	})
 	s.EqualError(s.Chain.checkVoteOutputs(config.DefaultParams.CRVotingStartHeight,
-		outputs5, references, producersMap, crsMap),
+		outputs5, references, producersMap, nil, crsMap),
 		"payload VoteProducerVersion not support vote CR")
 
 	// Check vote output of v1 with crc type and invalid candidate
@@ -4012,7 +4012,7 @@ func (s *txValidatorTestSuite) TestCheckVoteOutputs() {
 		},
 	})
 	s.EqualError(s.Chain.checkVoteOutputs(config.DefaultParams.CRVotingStartHeight,
-		outputs6, references, producersMap, crsMap),
+		outputs6, references, producersMap, nil, crsMap),
 		"invalid vote output payload CR candidate: "+candidateCID2.String())
 
 	// Check vote output of v0 with invalid candidate
@@ -4039,7 +4039,7 @@ func (s *txValidatorTestSuite) TestCheckVoteOutputs() {
 		},
 	})
 	s.EqualError(s.Chain.checkVoteOutputs(config.DefaultParams.CRVotingStartHeight,
-		outputs7, references, producersMap, crsMap),
+		outputs7, references, producersMap, nil, crsMap),
 		"payload VoteProducerVersion not support vote CR")
 
 	// Check vote output of v1 with delegate type and wrong votes
@@ -4061,7 +4061,7 @@ func (s *txValidatorTestSuite) TestCheckVoteOutputs() {
 		},
 	})
 	s.EqualError(s.Chain.checkVoteOutputs(config.DefaultParams.CRVotingStartHeight,
-		outputs8, references, producersMap, crsMap),
+		outputs8, references, producersMap, nil, crsMap),
 		"votes larger than output amount")
 
 	// Check vote output of v1 with crc type and wrong votes
@@ -4084,7 +4084,7 @@ func (s *txValidatorTestSuite) TestCheckVoteOutputs() {
 		},
 	})
 	s.EqualError(s.Chain.checkVoteOutputs(config.DefaultParams.CRVotingStartHeight,
-		outputs9, references, producersMap, crsMap),
+		outputs9, references, producersMap, nil, crsMap),
 		"total votes larger than output amount")
 
 	// Check vote output of v1 with wrong votes
@@ -4112,7 +4112,7 @@ func (s *txValidatorTestSuite) TestCheckVoteOutputs() {
 		},
 	})
 	s.EqualError(s.Chain.checkVoteOutputs(config.DefaultParams.CRVotingStartHeight,
-		outputs10, references, producersMap, crsMap),
+		outputs10, references, producersMap, nil, crsMap),
 		"votes larger than output amount")
 
 	// Check vote output v1 with correct votes
@@ -4140,7 +4140,7 @@ func (s *txValidatorTestSuite) TestCheckVoteOutputs() {
 		},
 	})
 	s.NoError(s.Chain.checkVoteOutputs(config.DefaultParams.CRVotingStartHeight,
-		outputs11, references, producersMap, crsMap))
+		outputs11, references, producersMap, nil, crsMap))
 
 	// Check vote output of v1 with wrong votes
 	outputs12 := []*types.Output{{Type: types.OTNone}}
@@ -4167,7 +4167,7 @@ func (s *txValidatorTestSuite) TestCheckVoteOutputs() {
 		},
 	})
 	s.NoError(s.Chain.checkVoteOutputs(config.DefaultParams.CRVotingStartHeight,
-		outputs12, references, producersMap, crsMap))
+		outputs12, references, producersMap, nil, crsMap))
 
 	// Check vote output v1 with correct votes
 	proposalHashStr1 := "5df40cc0a4c6791acb5ebe89a96dd4f3fe21c94275589a65357406216a27ae36"
@@ -4192,7 +4192,7 @@ func (s *txValidatorTestSuite) TestCheckVoteOutputs() {
 	s.Chain.crCommittee.GetProposalManager().Proposals[*proposalHash1] =
 		&crstate.ProposalState{Status: 1}
 	s.NoError(s.Chain.checkVoteOutputs(config.DefaultParams.CRVotingStartHeight,
-		outputs13, references, producersMap, crsMap))
+		outputs13, references, producersMap, nil, crsMap))
 
 	// Check vote output of v1 with wrong votes
 	proposalHashStr2 := "9c5ab8998718e0c1c405a719542879dc7553fca05b4e89132ec8d0e88551fcc0"
@@ -4215,7 +4215,7 @@ func (s *txValidatorTestSuite) TestCheckVoteOutputs() {
 		},
 	})
 	s.EqualError(s.Chain.checkVoteOutputs(config.DefaultParams.CRVotingStartHeight,
-		outputs14, references, producersMap, crsMap),
+		outputs14, references, producersMap, nil, crsMap),
 		"invalid CRCProposal: c0fc5185e8d0c82e13894e5ba0fc5375dc79285419a705c4c1e0188799b85a9c")
 }
 

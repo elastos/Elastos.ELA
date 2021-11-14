@@ -30,7 +30,7 @@ type StateKeyFrame struct {
 	PendingCanceledProducers map[string]*Producer
 	DposV2EffectedProducers  map[string]*Producer
 	Votes                    map[string]struct{}
-	DposV2Votes              map[string]struct{}
+	DposV2Votes              map[string]uint32 // key: output value: block height
 	DepositOutputs           map[string]common.Fixed64
 	Nicknames                map[string]struct{}
 	SpecialTxHashes          map[common.Uint256]struct{}
@@ -77,7 +77,7 @@ func (s *StateKeyFrame) snapshot() *StateKeyFrame {
 		PendingCanceledProducers: make(map[string]*Producer),
 		DposV2EffectedProducers:  make(map[string]*Producer),
 		Votes:                    make(map[string]struct{}),
-		DposV2Votes:              make(map[string]struct{}),
+		DposV2Votes:              make(map[string]uint32),
 		DepositOutputs:           make(map[string]common.Fixed64),
 		Nicknames:                make(map[string]struct{}),
 		SpecialTxHashes:          make(map[common.Uint256]struct{}),
@@ -94,7 +94,7 @@ func (s *StateKeyFrame) snapshot() *StateKeyFrame {
 	state.PendingCanceledProducers = copyProducerMap(s.PendingCanceledProducers)
 	state.DposV2EffectedProducers = copyProducerMap(s.DposV2EffectedProducers)
 	state.Votes = copyStringSet(s.Votes)
-	state.DposV2Votes = copyStringSet(s.DposV2Votes)
+	state.DposV2Votes = copyStringHeightMap(s.DposV2Votes)
 	state.DepositOutputs = copyFixed64Map(s.DepositOutputs)
 	state.Nicknames = copyStringSet(s.Nicknames)
 	state.SpecialTxHashes = copyHashSet(s.SpecialTxHashes)
@@ -145,7 +145,7 @@ func (s *StateKeyFrame) Serialize(w io.Writer) (err error) {
 		return
 	}
 
-	if err = s.SerializeStringSet(s.DposV2Votes, w); err != nil {
+	if err = s.SerializeStringHeightMap(s.DposV2Votes, w); err != nil {
 		return
 	}
 
@@ -230,7 +230,7 @@ func (s *StateKeyFrame) Deserialize(r io.Reader) (err error) {
 		return
 	}
 
-	if s.DposV2Votes, err = s.DeserializeStringSet(r); err != nil {
+	if s.DposV2Votes, err = s.DeserializeStringHeightMap(r); err != nil {
 		return
 	}
 
@@ -357,6 +357,24 @@ func (s *StateKeyFrame) SerializeStringSet(vmap map[string]struct{},
 	return
 }
 
+
+func (s *StateKeyFrame) SerializeStringHeightMap(vmap map[string]uint32,
+	w io.Writer) (err error) {
+	if err = common.WriteVarUint(w, uint64(len(vmap))); err != nil {
+		return
+	}
+	for k, v := range vmap {
+		if err = common.WriteVarString(w, k); err != nil {
+			return
+		}
+		if err = common.WriteUint32(w, v); err != nil {
+			return
+		}
+	}
+	return
+}
+
+
 func (s *StateKeyFrame) DeserializeStringSet(
 	r io.Reader) (vmap map[string]struct{}, err error) {
 	var count uint64
@@ -370,6 +388,28 @@ func (s *StateKeyFrame) DeserializeStringSet(
 			return
 		}
 		vmap[k] = struct{}{}
+	}
+	return
+}
+
+
+func (s *StateKeyFrame) DeserializeStringHeightMap(
+	r io.Reader) (vmap map[string]uint32, err error) {
+	var count uint64
+	if count, err = common.ReadVarUint(r, 0); err != nil {
+		return
+	}
+	vmap = make(map[string]uint32)
+	for i := uint64(0); i < count; i++ {
+		var k string
+		if k, err = common.ReadVarString(r); err != nil {
+			return
+		}
+		var v uint32
+		if v, err = common.ReadUint32(r); err != nil {
+			return
+		}
+		vmap[k] = v
 	}
 	return
 }
@@ -492,7 +532,7 @@ func NewStateKeyFrame() *StateKeyFrame {
 		PendingCanceledProducers:  make(map[string]*Producer),
 		DposV2EffectedProducers:   make(map[string]*Producer),
 		Votes:                     make(map[string]struct{}),
-		DposV2Votes:               make(map[string]struct{}),
+		DposV2Votes:               make(map[string]uint32),
 		DepositOutputs:            make(map[string]common.Fixed64),
 		Nicknames:                 make(map[string]struct{}),
 		SpecialTxHashes:           make(map[common.Uint256]struct{}),
@@ -589,6 +629,15 @@ func copyStringSet(src map[string]struct{}) (dst map[string]struct{}) {
 	dst = map[string]struct{}{}
 	for k := range src {
 		dst[k] = struct{}{}
+	}
+	return
+}
+
+func copyStringHeightMap(src map[string]uint32) (dst map[string]uint32) {
+	dst = make(map[string]uint32)
+	for k, v := range src {
+		h := v
+		dst[k] = h
 	}
 	return
 }

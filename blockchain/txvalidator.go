@@ -447,6 +447,10 @@ func (b *BlockChain) checkVoteOutputs(
 	for _, output := range references {
 		programHashes[output.ProgramHash] = struct{}{}
 	}
+
+	var dposV2OutputCount int
+	var dposV2OutputLock uint32
+	var totalDPoSV2OutputVotes common.Fixed64
 	for _, o := range outputs {
 		if o.Type != OTVote && o.Type != OTDposV2Vote {
 			continue
@@ -494,6 +498,9 @@ func (b *BlockChain) checkVoteOutputs(
 					return err
 				}
 			case outputpayload.DposV2:
+				dposV2OutputCount++
+				dposV2OutputLock = o.OutputLock
+				totalDPoSV2OutputVotes += o.Value
 				err := b.checkVoteDposV2Content(o.OutputLock,
 					content, pds2, votePayload.Version, o.Value)
 				if err != nil {
@@ -501,6 +508,56 @@ func (b *BlockChain) checkVoteOutputs(
 				}
 			}
 		}
+	}
+
+	// If inputs contain DPoS v2 votes, need to check:
+	// 1.need to be only one DPoS V2 input
+	// 2.need to be only one DPoS V2 output
+	// 3.outputLock of output need to be bigger than new input
+	// 4.DPoS v2 votes in outputs need to be more than inputs
+	var dposV2InputCount uint32
+	var dposV2InputLock uint32
+	var totalDPoSV2InputVotes common.Fixed64
+	for _, o := range references {
+		votePayload, ok := o.Payload.(*outputpayload.VoteOutput)
+		if !ok {
+			continue
+		}
+
+		var containDPoSV2Votes bool
+		for _, content := range votePayload.Contents {
+			if content.VoteType == outputpayload.DposV2 {
+				containDPoSV2Votes = true
+				break
+			}
+		}
+		if !containDPoSV2Votes {
+			continue
+		}
+
+		dposV2InputCount++
+		dposV2InputLock = o.OutputLock
+		totalDPoSV2InputVotes += o.Value
+	}
+	// need to be only one DPoS V2 input
+	if dposV2InputCount > 1 {
+		return errors.New("need to be only one DPoS V2 input")
+	}
+	// need to be only one DPoS V2 output
+	if dposV2OutputCount > 1 {
+		return errors.New("need to be only one DPoS V2 output")
+	}
+	// outputLock of output need to be bigger than new input
+	if dposV2InputLock > dposV2OutputLock {
+		return errors.New(fmt.Sprintf("invalid DPoS V2 output lock, "+
+			"need to be bigger than input, input lockTime:%d, "+
+			"output lockTime:%d", dposV2InputLock, dposV2OutputLock))
+	}
+	// DPoS v2 votes in outputs need to be more than inputs
+	if totalDPoSV2InputVotes > totalDPoSV2OutputVotes {
+		return errors.New(fmt.Sprintf("invalid DPoS V2 output votes, "+
+			"need to be bigger than input, input votes:%d, "+
+			"output votes:%d", totalDPoSV2InputVotes, totalDPoSV2OutputVotes))
 	}
 
 	return nil

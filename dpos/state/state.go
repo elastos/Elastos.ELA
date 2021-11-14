@@ -1196,7 +1196,7 @@ func (s *State) processVotes(tx *types.Transaction, height uint32) {
 			if p.Version == outputpayload.VoteDposV2Version {
 				op := types.NewOutPoint(tx.Hash(), uint16(i))
 				s.history.Append(height, func() {
-					s.DposV2Votes[op.ReferKey()] = struct{}{}
+					s.DposV2Votes[op.ReferKey()] = height
 				}, func() {
 					delete(s.DposV2Votes, op.ReferKey())
 				})

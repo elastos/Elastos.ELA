@@ -229,9 +229,12 @@ func stateKeyFrameEqual(first *StateKeyFrame, second *StateKeyFrame) bool {
 		}
 	}
 
-	for k := range first.DposV2Votes {
-		_, ok := second.DposV2Votes[k]
+	for k, v1 := range first.DposV2Votes {
+		v2, ok := second.DposV2Votes[k]
 		if !ok {
+			return false
+		}
+		if v1 != v2 {
 			return false
 		}
 	}
@@ -292,7 +295,7 @@ func randomStateKeyFrame() *StateKeyFrame {
 		IllegalProducers:          make(map[string]*Producer),
 		PendingCanceledProducers:  make(map[string]*Producer),
 		Votes:                     make(map[string]struct{}),
-		DposV2Votes:               make(map[string]struct{}),
+		DposV2Votes:               make(map[string]uint32),
 		DepositOutputs:            make(map[string]common.Fixed64),
 		Nicknames:                 make(map[string]struct{}),
 		SpecialTxHashes:           make(map[common.Uint256]struct{}),

@@ -1637,7 +1637,7 @@ func (b *BlockChain) processBlock(block *Block, confirm *payload.Confirm) (bool,
 	log.Debugf("[ProcessBLock] orphan already exist= %v", exists)
 
 	// Perform preliminary sanity checks on the block and its transactions.
-	//err = PowCheckBlockSanity(block, PowLimit, b.TimeSource)
+	//err = PowCheckBlockSanity(block, powLimit, b.TimeSource)
 	err := b.CheckBlockSanity(block)
 	if err != nil {
 		log.Errorf("PowCheckBlockSanity error %s", err.Error())

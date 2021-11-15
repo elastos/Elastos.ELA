@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	pg "github.com/elastos/Elastos.ELA/core/contract/program"
+	transaction2 "github.com/elastos/Elastos.ELA/core/transaction"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/core/types/functions"
 	"github.com/elastos/Elastos.ELA/core/types/interfaces"
@@ -140,6 +141,10 @@ func startNode(c *cli.Context, st *settings.Settings) {
 	functions.GetTransactionByTxType = getTransaction
 	functions.GetTransactionByBytes = getTransactionByBytes
 	functions.CreateTransaction = createTransaction
+	functions.GetTransactionParameters = getTransactionContextParameters
+
+	// Initialize default parameters
+	config.DefaultParams = config.GetDefaultParams()
 
 	// Enable http profiling server if requested.
 	if st.Config().ProfilePort != 0 {
@@ -426,16 +431,20 @@ func printSyncState(bc *blockchain.BlockChain, server elanet.Server) {
 	}
 }
 
-func getTransaction(txType common2.TxType) (interfaces.Transaction, error) {
+func getTransaction(txType common2.TxType) (txn interfaces.Transaction, err error) {
 	// todo refactor me
 	switch txType {
 	case common2.CoinBase:
+		txn = new(transaction2.CoinBaseTransaction)
+		return txn, nil
+
 	case common2.RegisterAsset:
+		txn = new(transaction2.RegisterAssetTransaction)
+		return txn, nil
+
 	default:
 		return nil, errors.New("invalid transaction type")
 	}
-
-	return nil, nil
 }
 
 func getTransactionByBytes(r io.Reader) (interfaces.Transaction, error) {
@@ -479,7 +488,10 @@ func createTransaction(
 	lockTime uint32,
 	programs []*pg.Program,
 ) interfaces.Transaction {
-	txn, _ := functions.GetTransactionByTxType(txType)
+	txn, err := functions.GetTransactionByTxType(txType)
+	if err != nil {
+		fmt.Println(err)
+	}
 	txn.SetVersion(version)
 	txn.SetTxType(txType)
 	txn.SetPayloadVersion(payloadVersion)
@@ -490,4 +502,17 @@ func createTransaction(
 	txn.SetLockTime(lockTime)
 	txn.SetPrograms(programs)
 	return txn
+}
+
+func getTransactionContextParameters(
+	transaction interfaces.Transaction,
+	blockHeight uint32,
+	cfg interface{},
+	bc interface{}) interfaces.Parameters {
+	return &transaction2.TransactionParameters{
+		Transaction: transaction,
+		BlockHeight: blockHeight,
+		Config:      cfg.(*config.Params),
+		BlockChain:  bc.(*blockchain.BlockChain),
+	}
 }

@@ -9,8 +9,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	common2 "github.com/elastos/Elastos.ELA/core/types/common"
-	"github.com/elastos/Elastos.ELA/core/types/transactions"
 	"io/ioutil"
 	"math"
 	"os"
@@ -22,6 +20,8 @@ import (
 	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/common/log"
 	"github.com/elastos/Elastos.ELA/core/types"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/mempool"
 	"github.com/elastos/Elastos.ELA/pow"
 	"github.com/elastos/Elastos.ELA/utils"
@@ -278,7 +278,7 @@ func FromTxRepository(dataDir string, interrupt <-chan struct{},
 		repo.SetFoundationUTXO(&common2.UTXO{
 			TxID:  fundTx.Hash(),
 			Index: 0,
-			Value: fundTx.Outputs[0].Value,
+			Value: fundTx.Outputs()[0].Value,
 		})
 	}
 

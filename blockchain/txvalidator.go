@@ -1209,7 +1209,7 @@ func (b *BlockChain) checkPOWConsensusTransaction(txn *Transaction, references m
 	case RegisterProducer, ActivateProducer, CRCouncilMemberClaimNode:
 		return nil
 	case CRCAppropriation, CRAssetsRectify, CRCProposalRealWithdraw,
-		NextTurnDPOSInfo, RevertToDPOS:
+		NextTurnDPOSInfo, RevertToDPOS, ReturnSideChainDepositCoin, ProposalResult:
 		return nil
 	case TransferAsset:
 		if txn.Version >= TxVersion09 {

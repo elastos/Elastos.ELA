@@ -13,8 +13,6 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
-	"github.com/elastos/Elastos.ELA/core/transaction"
-	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"math"
 	mrand "math/rand"
 	"net"
@@ -28,7 +26,11 @@ import (
 	"github.com/elastos/Elastos.ELA/common/log"
 	"github.com/elastos/Elastos.ELA/core/contract"
 	"github.com/elastos/Elastos.ELA/core/contract/program"
+	"github.com/elastos/Elastos.ELA/core/transaction"
 	"github.com/elastos/Elastos.ELA/core/types"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/functions"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/core/types/outputpayload"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	crstate "github.com/elastos/Elastos.ELA/cr/state"
@@ -113,7 +115,7 @@ func (s *txValidatorTestSuite) TestCheckTxHeightVersion() {
 	blockHeight3 := s.Chain.chainParams.RegisterCRByDIDHeight
 
 	// check height version of registerCR transaction.
-	registerCR := &transaction.BaseTransaction{TxType: common2.RegisterCR}
+	registerCR, _ := functions.GetTransactionByTxType(common2.RegisterCR)
 	err := s.Chain.checkTxHeightVersion(registerCR, blockHeight1)
 	s.EqualError(err, "not support RegisterCR transaction before CRVotingStartHeight")
 	err = s.Chain.checkTxHeightVersion(registerCR, blockHeight2)
@@ -148,10 +150,14 @@ func (s *txValidatorTestSuite) TestCheckTxHeightVersion() {
 	s.NoError(err)
 
 	// check height version of vote CR.
-	voteCR := &transaction.BaseTransaction{
-		Version: 0x09,
-		TxType:  common2.TransferAsset,
-		Outputs: []*common2.Output{
+	voteCR := functions.CreateTransaction(
+		0x09,
+		common2.TransferAsset,
+		0,
+		&payload.TransferAsset{},
+		[]*common2.Attribute{},
+		[]*common2.Input{},
+		[]*common2.Output{
 			{
 				AssetID:     common.Uint256{},
 				Value:       0,
@@ -163,7 +169,9 @@ func (s *txValidatorTestSuite) TestCheckTxHeightVersion() {
 				},
 			},
 		},
-	}
+		0,
+		[]*program.Program{},
+	)
 	err = s.Chain.checkTxHeightVersion(voteCR, blockHeight1)
 	s.EqualError(err, "not support VoteProducerAndCRVersion "+
 		"before CRVotingStartHeight")
@@ -191,12 +199,12 @@ func (s *txValidatorTestSuite) TestCheckTransactionInput() {
 	s.NoError(err)
 
 	// invalid coinbase refer index
-	tx.Inputs[0].Previous.Index = 0
+	tx.Inputs()[0].Previous.Index = 0
 	err = checkTransactionInput(tx)
 	s.EqualError(err, "invalid coinbase input")
 
 	// invalid coinbase refer id
-	tx.Inputs[0].Previous.Index = math.MaxUint16
+	tx.Inputs()[0].Previous.Index = math.MaxUint16
 	rand.Read(tx.Inputs[0].Previous.TxID[:])
 	err = checkTransactionInput(tx)
 	s.EqualError(err, "invalid coinbase input")

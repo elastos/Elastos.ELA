@@ -6,8 +6,8 @@
 package state
 
 import (
+	"github.com/elastos/Elastos.ELA/core/transaction"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
-	"github.com/elastos/Elastos.ELA/core/types/transactions"
 	"testing"
 
 	"github.com/elastos/Elastos.ELA/common"
@@ -395,7 +395,7 @@ func TestState_ProcessBlock_DepositAndReturnDeposit(t *testing.T) {
 	depositCont, _ := contract.CreateDepositContractByPubKey(pk)
 
 	// register CR
-	registerCRTx := &transactions.BaseTransaction{
+	registerCRTx := &transaction.BaseTransaction{
 		TxType: common2.RegisterCR,
 		Payload: &payload.CRInfo{
 			Code:     code,
@@ -423,7 +423,7 @@ func TestState_ProcessBlock_DepositAndReturnDeposit(t *testing.T) {
 		committee.state.getTotalAmount(candidate.info.CID))
 
 	// deposit though normal tx
-	tranferTx := &transactions.BaseTransaction{
+	tranferTx := &transaction.BaseTransaction{
 		TxType:  common2.TransferAsset,
 		Payload: &payload.TransferAsset{},
 		Outputs: []*common2.Output{
@@ -534,7 +534,7 @@ func mockNewVoteTx(cids [][]byte) interfaces.Transaction {
 		},
 	}
 
-	return &transactions.BaseTransaction{
+	return &transaction.BaseTransaction{
 		Version: common2.TxVersion09,
 		TxType:  common2.TransferAsset,
 		Outputs: []*common2.Output{output},
@@ -543,7 +543,7 @@ func mockNewVoteTx(cids [][]byte) interfaces.Transaction {
 
 func generateRegisterCR(code []byte, cid common.Uint168,
 	nickname string) interfaces.Transaction {
-	return &transactions.BaseTransaction{
+	return &transaction.BaseTransaction{
 		TxType: common2.RegisterCR,
 		Payload: &payload.CRInfo{
 			Code:     code,
@@ -555,7 +555,7 @@ func generateRegisterCR(code []byte, cid common.Uint168,
 
 func generateUpdateCR(code []byte, cid common.Uint168,
 	nickname string) interfaces.Transaction {
-	return &transactions.BaseTransaction{
+	return &transaction.BaseTransaction{
 		TxType: common2.UpdateCR,
 		Payload: &payload.CRInfo{
 			Code:     code,
@@ -566,7 +566,7 @@ func generateUpdateCR(code []byte, cid common.Uint168,
 }
 
 func generateUnregisterCR(code []byte) interfaces.Transaction {
-	return &transactions.BaseTransaction{
+	return &transaction.BaseTransaction{
 		TxType: common2.UnregisterCR,
 		Payload: &payload.UnregisterCR{
 			CID: *getCID(code),
@@ -580,7 +580,7 @@ func getCID(code []byte) *common.Uint168 {
 }
 
 func generateReturnCRDeposit(code []byte) interfaces.Transaction {
-	return &transactions.BaseTransaction{
+	return &transaction.BaseTransaction{
 		TxType:  common2.ReturnCRDepositCoin,
 		Payload: &payload.ReturnDepositCoin{},
 		Programs: []*program.Program{

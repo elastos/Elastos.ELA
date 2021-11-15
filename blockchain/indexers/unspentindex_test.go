@@ -6,7 +6,7 @@
 package indexers
 
 import (
-	"github.com/elastos/Elastos.ELA/core/types/transactions"
+	"github.com/elastos/Elastos.ELA/core/transaction"
 	"os"
 	"path/filepath"
 	"testing"
@@ -32,7 +32,7 @@ var (
 	unspentIndexReferIndex1 = uint16(1)
 	unspentIndexReferIndex2 = uint16(2)
 	unspentIndexReferIndex3 = uint16(3)
-	unspentIndexCoinbase    = &transactions.BaseTransaction{
+	unspentIndexCoinbase    = &transaction.BaseTransaction{
 		TxType:  common2.CoinBase,
 		Payload: new(payload.CoinBase),
 		Inputs:  nil,
@@ -45,7 +45,7 @@ var (
 			},
 		},
 	}
-	testUnspentIndexTx1 = &transactions.BaseTransaction{
+	testUnspentIndexTx1 = &transaction.BaseTransaction{
 		TxType:  common2.TransferAsset,
 		Payload: new(payload.TransferAsset),
 		Inputs: []*common2.Input{
@@ -65,7 +65,7 @@ var (
 			},
 		},
 	}
-	testUnspentIndexTx2 = &transactions.BaseTransaction{
+	testUnspentIndexTx2 = &transaction.BaseTransaction{
 		TxType:  common2.TransferAsset,
 		Payload: new(payload.TransferAsset),
 		Inputs: []*common2.Input{
@@ -85,7 +85,7 @@ var (
 			},
 		},
 	}
-	testUnspentIndexTx3 = &transactions.BaseTransaction{
+	testUnspentIndexTx3 = &transaction.BaseTransaction{
 		TxType:  common2.TransferAsset,
 		Payload: new(payload.TransferAsset),
 		Inputs: []*common2.Input{
@@ -114,7 +114,7 @@ var (
 			testUnspentIndexTx3,
 		},
 	}
-	testUnspentIndexTx4 = &transactions.BaseTransaction{
+	testUnspentIndexTx4 = &transaction.BaseTransaction{
 		TxType:  common2.TransferAsset,
 		Payload: new(payload.TransferAsset),
 		Inputs: []*common2.Input{
@@ -137,13 +137,13 @@ var (
 			},
 		},
 	}
-	testUnspentIndexTx5 = &transactions.BaseTransaction{
+	testUnspentIndexTx5 = &transaction.BaseTransaction{
 		TxType:  common2.TransferAsset,
 		Payload: new(payload.TransferAsset),
 		Inputs:  []*common2.Input{},
 		Outputs: []*common2.Output{},
 	}
-	unspentIndexCoinbase2 = &transactions.BaseTransaction{
+	unspentIndexCoinbase2 = &transaction.BaseTransaction{
 		TxType:  common2.CoinBase,
 		Payload: new(payload.CoinBase),
 		Inputs:  nil,

@@ -7,7 +7,7 @@ package state
 
 import (
 	"bytes"
-	"github.com/elastos/Elastos.ELA/core/types/transactions"
+	"github.com/elastos/Elastos.ELA/core/transaction"
 	"sort"
 	"testing"
 
@@ -21,14 +21,14 @@ import (
 
 func TestSortTransactions(t *testing.T) {
 	txs := []interfaces.Transaction{
-		&transactions.BaseTransaction{TxType: common2.CoinBase},
-		&transactions.BaseTransaction{TxType: common2.TransferAsset},
-		&transactions.BaseTransaction{TxType: common2.TransferAsset},
-		&transactions.BaseTransaction{TxType: common2.CRCProposalTracking},
-		&transactions.BaseTransaction{TxType: common2.CRCProposalWithdraw},
-		&transactions.BaseTransaction{TxType: common2.CRCProposalWithdraw},
-		&transactions.BaseTransaction{TxType: common2.TransferAsset},
-		&transactions.BaseTransaction{TxType: common2.CRCProposalWithdraw},
+		&transaction.BaseTransaction{TxType: common2.CoinBase},
+		&transaction.BaseTransaction{TxType: common2.TransferAsset},
+		&transaction.BaseTransaction{TxType: common2.TransferAsset},
+		&transaction.BaseTransaction{TxType: common2.CRCProposalTracking},
+		&transaction.BaseTransaction{TxType: common2.CRCProposalWithdraw},
+		&transaction.BaseTransaction{TxType: common2.CRCProposalWithdraw},
+		&transaction.BaseTransaction{TxType: common2.TransferAsset},
+		&transaction.BaseTransaction{TxType: common2.CRCProposalWithdraw},
 	}
 
 	sortTransactions(txs[1:])

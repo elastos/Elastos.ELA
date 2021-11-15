@@ -12,22 +12,22 @@ import (
 )
 
 type PayloadChecker interface {
-	ContextCheck(p *CheckParameters) (map[*common2.Input]common2.Output, elaerr.ELAError)
+	ContextCheck(p Parameters) (map[*common2.Input]common2.Output, elaerr.ELAError)
 
 	// todo ... add SanityCheck
 }
 
 type BasePayloadChecker interface {
-	CheckTxHeightVersion(p *CheckParameters) error
+	CheckTxHeightVersion() error
 
 	IsTxHashDuplicate(txHash common.Uint256) bool
 
-	GetTxReference(para *CheckParameters) (map[*common2.Input]common2.Output, error)
+	GetTxReference() (map[*common2.Input]common2.Output, error)
 
-	CheckPOWConsensusTransaction(para *CheckParameters, references map[*common2.Input]common2.Output) error
+	CheckPOWConsensusTransaction(references map[*common2.Input]common2.Output) error
 
 	// todo add description
-	SpecialCheck(p *CheckParameters) (error elaerr.ELAError, end bool)
+	SpecialCheck() (error elaerr.ELAError, end bool)
 
 	// todo ... more check
 }

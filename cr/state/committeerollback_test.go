@@ -8,7 +8,7 @@ package state
 import (
 	"bytes"
 	"fmt"
-	"github.com/elastos/Elastos.ELA/core/types/transactions"
+	"github.com/elastos/Elastos.ELA/core/transaction"
 	"testing"
 
 	"github.com/elastos/Elastos.ELA/common"
@@ -63,7 +63,7 @@ func getRegisterCRTx(publicKeyStr, privateKeyStr, nickName string) interfaces.Tr
 	did1, _ := getDIDByCode(code1)
 	hash1, _ := contract.PublicKeyToDepositProgramHash(publicKey1)
 
-	txn := new(transactions.BaseTransaction)
+	txn := new(transaction.BaseTransaction)
 	txn.TxType = common2.RegisterCR
 	txn.Version = common2.TxVersion09
 	crInfoPayload := &payload.CRInfo{
@@ -99,7 +99,7 @@ func getRegisterCRTx(publicKeyStr, privateKeyStr, nickName string) interfaces.Tr
 func getUpdateCR(publicKeyStr string, cid common.Uint168,
 	nickname string) interfaces.Transaction {
 	code := getCodeByPubKeyStr(publicKeyStr)
-	return &transactions.BaseTransaction{
+	return &transaction.BaseTransaction{
 		TxType: common2.UpdateCR,
 		Payload: &payload.CRInfo{
 			Code:     code,
@@ -110,7 +110,7 @@ func getUpdateCR(publicKeyStr string, cid common.Uint168,
 }
 
 func getUnregisterCR(cid common.Uint168) interfaces.Transaction {
-	return &transactions.BaseTransaction{
+	return &transaction.BaseTransaction{
 		TxType: common2.UnregisterCR,
 		Payload: &payload.UnregisterCR{
 			CID: cid,
@@ -120,7 +120,7 @@ func getUnregisterCR(cid common.Uint168) interfaces.Transaction {
 
 func generateReturnDeposite(publicKeyStr string) interfaces.Transaction {
 	code := getCodeByPubKeyStr(publicKeyStr)
-	return &transactions.BaseTransaction{
+	return &transaction.BaseTransaction{
 		TxType:  common2.ReturnCRDepositCoin,
 		Payload: &payload.ReturnDepositCoin{},
 		Outputs: []*common2.Output{
@@ -136,7 +136,7 @@ func generateReturnDeposite(publicKeyStr string) interfaces.Transaction {
 
 func getVoteCRTx(amount common.Fixed64,
 	candidateVotes []outputpayload.CandidateVotes) interfaces.Transaction {
-	return &transactions.BaseTransaction{
+	return &transaction.BaseTransaction{
 		Version: 0x09,
 		TxType:  common2.TransferAsset,
 		Outputs: []*common2.Output{
@@ -179,7 +179,7 @@ func getCRCProposalTx(elaAddress string, publicKeyStr, privateKeyStr,
 	recipient, _ := common.Uint168FromAddress(elaAddress)
 
 	draftData := randomBytes(10)
-	txn := new(transactions.BaseTransaction)
+	txn := new(transaction.BaseTransaction)
 	txn.TxType = common2.CRCProposal
 	txn.Version = common2.TxVersion09
 	crcProposalPayload := &payload.CRCProposal{
@@ -214,7 +214,7 @@ func getCRCProposalReviewTx(proposalHash common.Uint256, vote payload.VoteResult
 
 	privateKey1, _ := common.HexStringToBytes(crPrivateKeyStr)
 	code := getCodeByPubKeyStr(crPublicKeyStr)
-	txn := new(transactions.BaseTransaction)
+	txn := new(transaction.BaseTransaction)
 	txn.TxType = common2.CRCProposalReview
 	txn.Version = common2.TxVersion09
 	crcProposalReviewPayload := &payload.CRCProposalReview{
@@ -253,7 +253,7 @@ func getCRCProposalTrackingTx(
 
 	documentData := randomBytes(10)
 	opinionHash := randomBytes(10)
-	txn := new(transactions.BaseTransaction)
+	txn := new(transaction.BaseTransaction)
 	txn.TxType = common2.CRCProposalTracking
 	txn.Version = common2.TxVersion09
 	cPayload := &payload.CRCProposalTracking{
@@ -303,7 +303,7 @@ func getCRCProposalWithdrawTx(proposalHash common.Uint256,
 	signature, _ := crypto.Sign(sponsorPrivateKey, signBuf.Bytes())
 	crcProposalWithdraw.Signature = signature
 
-	return &transactions.BaseTransaction{
+	return &transaction.BaseTransaction{
 		Version:    common2.TxVersion09,
 		TxType:     common2.CRCProposalWithdraw,
 		Payload:    crcProposalWithdraw,
@@ -1745,7 +1745,7 @@ func getAddress(publicKeyHexStr string) (string, error) {
 }
 
 func getTransferAssetTx(publicKeyStr string, value common.Fixed64, outPutAddr common.Uint168) interfaces.Transaction {
-	txn := &transactions.BaseTransaction{
+	txn := &transaction.BaseTransaction{
 		Version:    common2.TxVersion09,
 		TxType:     common2.TransferAsset,
 		Payload:    &payload.TransferAsset{},
@@ -1773,7 +1773,7 @@ func getTransferAssetTx(publicKeyStr string, value common.Fixed64, outPutAddr co
 func getAppropriationTx(value common.Fixed64, outPutAddr common.Uint168) interfaces.Transaction {
 	crcAppropriationPayload := &payload.CRCAppropriation{}
 
-	txn := &transactions.BaseTransaction{
+	txn := &transaction.BaseTransaction{
 		Version:    common2.TxVersion09,
 		TxType:     common2.CRCAppropriation,
 		Payload:    crcAppropriationPayload,
@@ -2099,7 +2099,7 @@ func getCRCImpeachmentTx(publicKeyStr string, did *common.Uint168,
 		},
 	})
 
-	txn := &transactions.BaseTransaction{
+	txn := &transaction.BaseTransaction{
 		Version:    common2.TxVersion09,
 		TxType:     common2.TransferAsset,
 		Payload:    &payload.TransferAsset{},

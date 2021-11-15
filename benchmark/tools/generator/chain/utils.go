@@ -6,8 +6,8 @@
 package chain
 
 import (
+	"github.com/elastos/Elastos.ELA/core/transaction"
 	"github.com/elastos/Elastos.ELA/core/types/interfaces"
-	"github.com/elastos/Elastos.ELA/core/types/transactions"
 	"sort"
 	"time"
 
@@ -97,7 +97,7 @@ func newGenesisBlock(ac *account.Account) *types.Block {
 		[]byte{77, 101, 130, 33, 7, 252, 253, 82})
 	genesisTime, _ := time.Parse(time.RFC3339, "2017-12-22T10:00:00Z")
 
-	coinBase := transactions.BaseTransaction{
+	coinBase := transaction.BaseTransaction{
 		Version:        0,
 		TxType:         common2.CoinBase,
 		PayloadVersion: payload.CoinBaseVersion,

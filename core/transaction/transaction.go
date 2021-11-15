@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file.
 //
 
-package transactions
+package transaction
 
 import (
 	"bytes"
@@ -38,7 +38,8 @@ type BaseTransaction struct {
 	fee            common.Fixed64
 	feePerKB       common.Fixed64
 
-	txHash *common.Uint256
+	txHash     *common.Uint256
+	parameters *TransactionParameters
 }
 
 func (tx *BaseTransaction) Version() common2.TransactionVersion {
@@ -104,7 +105,6 @@ func (tx *BaseTransaction) SetFeePerKB(feePerKB common.Fixed64) {
 func (tx *BaseTransaction) SetAttributes(attributes []*common2.Attribute) {
 	tx.attributes = attributes
 }
-
 
 func (tx *BaseTransaction) SetPayloadVersion(payloadVersion byte) {
 	tx.payloadVersion = payloadVersion

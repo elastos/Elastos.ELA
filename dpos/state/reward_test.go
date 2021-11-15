@@ -9,7 +9,7 @@ import (
 	"bytes"
 	"crypto/rand"
 	"fmt"
-	"github.com/elastos/Elastos.ELA/core/types/transactions"
+	"github.com/elastos/Elastos.ELA/core/transaction"
 	"testing"
 
 	"github.com/elastos/Elastos.ELA/common"
@@ -202,7 +202,7 @@ func getRegisterCRTx(publicKeyStr, privateKeyStr, nickName string) interfaces.Tr
 	did1, _ := getDIDByCode(code1)
 	hash1, _ := contract.PublicKeyToDepositProgramHash(publicKey1)
 
-	txn := new(transactions.BaseTransaction)
+	txn := new(transaction.BaseTransaction)
 	txn.TxType = common2.RegisterCR
 	txn.Version = common2.TxVersion09
 	crInfoPayload := &payload.CRInfo{
@@ -256,7 +256,7 @@ func getDIDByCode(code []byte) (*common.Uint168, error) {
 
 func getVoteCRTx(amount common.Fixed64,
 	candidateVotes []outputpayload.CandidateVotes) interfaces.Transaction {
-	return &transactions.BaseTransaction{
+	return &transaction.BaseTransaction{
 		Version: 0x09,
 		TxType:  common2.TransferAsset,
 		Outputs: []*common2.Output{

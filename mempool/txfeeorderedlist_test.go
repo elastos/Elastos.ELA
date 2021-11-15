@@ -7,7 +7,7 @@ package mempool
 
 import (
 	"bytes"
-	"github.com/elastos/Elastos.ELA/core/types/transactions"
+	"github.com/elastos/Elastos.ELA/core/transaction"
 	"math/rand"
 	"testing"
 
@@ -24,7 +24,7 @@ func TestTxFeeOrderedList_AddTx(t *testing.T) {
 		firedPopBack = true
 	}
 
-	protoTx := transactions.BaseTransaction{
+	protoTx := transaction.BaseTransaction{
 		TxType:  common2.TransferAsset,
 		Payload: &payload.TransferAsset{},
 		Attributes: []*common2.Attribute{
@@ -92,7 +92,7 @@ func TestTxFeeOrderedList_RemoveTx(t *testing.T) {
 	orderedList := newTxFeeOrderedList(func(common.Uint256) {},
 		pact.MaxTxPoolSize)
 
-	protoTx := transactions.BaseTransaction{
+	protoTx := transaction.BaseTransaction{
 		TxType:  common2.TransferAsset,
 		Payload: &payload.TransferAsset{},
 		Attributes: []*common2.Attribute{

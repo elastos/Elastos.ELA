@@ -8,7 +8,7 @@ package indexers
 import (
 	"errors"
 	"fmt"
-	"github.com/elastos/Elastos.ELA/core/types/transactions"
+	"github.com/elastos/Elastos.ELA/core/transaction"
 	"testing"
 
 	"github.com/elastos/Elastos.ELA/common"
@@ -29,7 +29,7 @@ var (
 	referRecipient2, _ = common.Uint168FromAddress("EKnWs1jyNdhzH65UST8qMo8ZpQrTpXGnLH")
 
 	// refer tx hash: 160da301e49617c037ae9b630919af52b8ac458202cd64558af7e0dcc753e307
-	testUtxoIndexReferTx = &transactions.BaseTransaction{
+	testUtxoIndexReferTx = &transaction.BaseTransaction{
 		Version:        common2.TxVersion09,
 		TxType:         common2.TransferAsset,
 		PayloadVersion: 0,
@@ -73,7 +73,7 @@ var (
 		LockTime: 5,
 	}
 	recipient1, _    = common.Uint168FromAddress("EQr9qjiXGF2y7YMtDCHtHNewZynakbDzF7")
-	testUtxoIndexTx1 = &transactions.BaseTransaction{
+	testUtxoIndexTx1 = &transaction.BaseTransaction{
 		TxType:  common2.CoinBase,
 		Payload: new(payload.CoinBase),
 		Inputs:  nil,
@@ -89,7 +89,7 @@ var (
 		},
 	}
 	recipient2, _    = common.Uint168FromAddress("EWQfnxDhXQ4vHjncuAG5si2zpbKR79CjLp")
-	testUtxoIndexTx2 = &transactions.BaseTransaction{
+	testUtxoIndexTx2 = &transaction.BaseTransaction{
 		TxType:         common2.TransferAsset,
 		PayloadVersion: 0,
 		Payload:        &payload.TransferAsset{},

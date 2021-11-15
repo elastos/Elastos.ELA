@@ -8,8 +8,8 @@ package state
 import (
 	"crypto/rand"
 	"fmt"
+	"github.com/elastos/Elastos.ELA/core/transaction"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
-	"github.com/elastos/Elastos.ELA/core/types/transactions"
 	"testing"
 
 	"github.com/elastos/Elastos.ELA/common"
@@ -37,7 +37,7 @@ func mockBlock(height uint32, txs ...interfaces.Transaction) *types.Block {
 // mockRegisterProducerTx creates a register producer transaction with the given
 // ProducerInfo.
 func mockRegisterProducerTx(info *payload.ProducerInfo) interfaces.Transaction {
-	return &transactions.BaseTransaction{
+	return &transaction.BaseTransaction{
 		TxType:  common2.RegisterProducer,
 		Payload: info,
 	}
@@ -46,7 +46,7 @@ func mockRegisterProducerTx(info *payload.ProducerInfo) interfaces.Transaction {
 // mockUpdateProducerTx creates a update producer transaction with the given
 // ProducerInfo.
 func mockUpdateProducerTx(info *payload.ProducerInfo) interfaces.Transaction {
-	return &transactions.BaseTransaction{
+	return &transaction.BaseTransaction{
 		TxType:  common2.UpdateProducer,
 		Payload: info,
 	}
@@ -55,7 +55,7 @@ func mockUpdateProducerTx(info *payload.ProducerInfo) interfaces.Transaction {
 // mockCancelProducerTx creates a cancel producer transaction by the producer
 // public key.
 func mockCancelProducerTx(publicKey []byte) interfaces.Transaction {
-	return &transactions.BaseTransaction{
+	return &transaction.BaseTransaction{
 		TxType: common2.CancelProducer,
 		Payload: &payload.ProcessProducer{
 			OwnerPublicKey: publicKey,
@@ -64,7 +64,7 @@ func mockCancelProducerTx(publicKey []byte) interfaces.Transaction {
 }
 
 func mockActivateProducerTx(publicKey []byte) interfaces.Transaction {
-	return &transactions.BaseTransaction{
+	return &transaction.BaseTransaction{
 		TxType: common2.ActivateProducer,
 		Payload: &payload.ActivateProducer{
 			NodePublicKey: publicKey,
@@ -90,7 +90,7 @@ func mockVoteTx(publicKeys [][]byte) interfaces.Transaction {
 		},
 	}
 
-	return &transactions.BaseTransaction{
+	return &transaction.BaseTransaction{
 		Version: common2.TxVersion09,
 		TxType:  common2.TransferAsset,
 		Outputs: []*common2.Output{output},
@@ -116,7 +116,7 @@ func mockNewVoteTx(publicKeys [][]byte) interfaces.Transaction {
 		},
 	}
 
-	return &transactions.BaseTransaction{
+	return &transaction.BaseTransaction{
 		Version: common2.TxVersion09,
 		TxType:  common2.TransferAsset,
 		Outputs: []*common2.Output{output},
@@ -133,7 +133,7 @@ func mockCancelVoteTx(tx interfaces.Transaction) interfaces.Transaction {
 		}
 	}
 
-	return &transactions.BaseTransaction{
+	return &transaction.BaseTransaction{
 		Version: common2.TxVersion09,
 		TxType:  common2.TransferAsset,
 		Inputs:  inputs,
@@ -143,7 +143,7 @@ func mockCancelVoteTx(tx interfaces.Transaction) interfaces.Transaction {
 // mockIllegalBlockTx creates a illegal block transaction with the producer
 // public key.
 func mockIllegalBlockTx(publicKey []byte) interfaces.Transaction {
-	return &transactions.BaseTransaction{
+	return &transaction.BaseTransaction{
 		TxType: common2.IllegalBlockEvidence,
 		Payload: &payload.DPOSIllegalBlocks{
 			Evidence: payload.BlockEvidence{
@@ -159,7 +159,7 @@ func mockIllegalBlockTx(publicKey []byte) interfaces.Transaction {
 // mockIllegalBlockTx creates a inactive arbitrators transaction with the
 // producer public key.
 func mockInactiveArbitratorsTx(publicKey []byte) interfaces.Transaction {
-	return &transactions.BaseTransaction{
+	return &transaction.BaseTransaction{
 		TxType: common2.InactiveArbitrators,
 		Payload: &payload.InactiveArbitrators{
 			Arbitrators: [][]byte{publicKey},
@@ -1247,7 +1247,7 @@ func TestState_InactiveProducer_DuringUpdateVersion(t *testing.T) {
 	}
 
 	currentHeight := 11
-	state.ProcessBlock(mockBlock(uint32(currentHeight), &transactions.BaseTransaction{
+	state.ProcessBlock(mockBlock(uint32(currentHeight), &transaction.BaseTransaction{
 		TxType: common2.UpdateVersion,
 		Payload: &payload.UpdateVersion{
 			StartHeight: uint32(currentHeight) + 1,
@@ -1309,7 +1309,7 @@ func TestState_ProcessBlock_DepositAndReturnDeposit(t *testing.T) {
 	depositCont, _ := contract.CreateDepositContractByPubKey(pk)
 
 	// register register cr before CRVotingStartHeight
-	registerTx := &transactions.BaseTransaction{
+	registerTx := &transaction.BaseTransaction{
 		TxType: common2.RegisterProducer,
 		Payload: &payload.ProducerInfo{
 			OwnerPublicKey: pkBuf,
@@ -1348,7 +1348,7 @@ func TestState_ProcessBlock_DepositAndReturnDeposit(t *testing.T) {
 	assert.Equal(t, Pending, candidate.state)
 
 	// deposit though normal tx
-	tranferTx := &transactions.BaseTransaction{
+	tranferTx := &transaction.BaseTransaction{
 		TxType:  common2.TransferAsset,
 		Payload: &payload.TransferAsset{},
 		Outputs: []*common2.Output{
@@ -1404,7 +1404,7 @@ func TestState_ProcessBlock_DepositAndReturnDeposit(t *testing.T) {
 	assert.Equal(t, Canceled, candidate.state)
 
 	// return deposit
-	state.returnDeposit(&transactions.BaseTransaction{
+	state.returnDeposit(&transaction.BaseTransaction{
 		Programs: []*program.Program{
 			{
 				Code: cont.Code,

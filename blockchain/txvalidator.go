@@ -10,6 +10,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/elastos/Elastos.ELA/core/types/functions"
 	"math"
 	"math/big"
 	"sort"
@@ -148,17 +149,19 @@ func (b *BlockChain) CheckTransactionContext(blockHeight uint32,
 	//	return nil, nil
 	//}
 
-	para := &interfaces.CheckParameters{
-		Transaction: tx,
-		// todo 函数指针初始化
+	//para := &interfaces.Parameters{
+	//	Transaction: tx,
+	//	// todo 函数指针初始化
+	//
+	//	BlockHeight:            blockHeight,
+	//	CRCommitteeStartHeight: b.chainParams.CRCommitteeStartHeight,
+	//	ConsensusAlgorithm:     byte(b.state.GetConsensusAlgorithm()),
+	//	DestroyELAAddress:      b.chainParams.DestroyELAAddress,
+	//	CRAssetsAddress:        b.chainParams.CRAssetsAddress,
+	//	FoundationAddress:      b.chainParams.Foundation,
+	//}
 
-		BlockHeight:            blockHeight,
-		CRCommitteeStartHeight: b.chainParams.CRCommitteeStartHeight,
-		ConsensusAlgorithm:     byte(b.state.GetConsensusAlgorithm()),
-		DestroyELAAddress:      b.chainParams.DestroyELAAddress,
-		CRAssetsAddress:        b.chainParams.CRAssetsAddress,
-		FoundationAddress:      b.chainParams.Foundation,
-	}
+	para := functions.GetTransactionParameters(tx, blockHeight, b.chainParams, b)
 
 	references, contextErr := tx.ContextCheck(para)
 	if contextErr != nil {
@@ -174,25 +177,20 @@ func (b *BlockChain) CheckTransactionContext(blockHeight uint32,
 	//	return nil, elaerr.Simple(elaerr.ErrTxUnknownReferredTx, nil)
 	//}
 
-	if err := b.checkPOWConsensusTransaction(txn, references); err != nil {
-		log.Warn("[checkPOWConsensusTransaction],", err)
-		return nil, elaerr.Simple(elaerr.ErrTxValidation, nil)
-	}
+	//if err := b.checkPOWConsensusTransaction(txn, references); err != nil {
+	//	log.Warn("[checkPOWConsensusTransaction],", err)
+	//	return nil, elaerr.Simple(elaerr.ErrTxValidation, nil)
+	//}
 
-	// check double spent transaction
-	if DefaultLedger.IsDoubleSpend(txn) {
-		log.Warn("[CheckTransactionContext] IsDoubleSpend check failed")
-		return nil, elaerr.Simple(elaerr.ErrTxDoubleSpend, nil)
-	}
+	//// check double spent transaction
+	//if DefaultLedger.IsDoubleSpend(txn) {
+	//	log.Warn("[CheckTransactionContext] IsDoubleSpend check failed")
+	//	return nil, elaerr.Simple(elaerr.ErrTxDoubleSpend, nil)
+	//}
 
-	if err := checkTransactionUTXOLock(txn, references); err != nil {
-		log.Warn("[CheckTransactionUTXOLock],", err)
-		return nil, elaerr.Simple(elaerr.ErrTxUTXOLocked, err)
-	}
-
-	//secondErr, end := txn.Payload().SecondCheck(para)
-	//if end {
-	//	return references, secondErr
+	//if err := checkTransactionUTXOLock(txn, references); err != nil {
+	//	log.Warn("[CheckTransactionUTXOLock],", err)
+	//	return nil, elaerr.Simple(elaerr.ErrTxUTXOLocked, err)
 	//}
 
 	switch txn.TxType() {

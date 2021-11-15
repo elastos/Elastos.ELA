@@ -43,7 +43,7 @@ package payload
 //	payload := CoinBase{
 //		DefaultChecker: DefaultChecker{
 //			IsTxHashDuplicateFunction: func(txhash common.Uint256) bool { return false },
-//			GetTxReferenceFunction: func(para *interfaces.CheckParameters) (map[*common2.Input]common2.Output, error) {
+//			GetTxReferenceFunction: func(para interfaces.CheckParameters) (map[*common2.Input]common2.Output, error) {
 //				result := make(map[*common2.Input]common2.Output)
 //				return result, nil
 //			},
@@ -56,7 +56,7 @@ package payload
 //	payload2 := Confirm{
 //		DefaultChecker: DefaultChecker{
 //			IsTxHashDuplicateFunction: func(txhash common.Uint256) bool { return false },
-//			GetTxReferenceFunction: func(para *interfaces.CheckParameters) (map[*common2.Input]common2.Output, error) {
+//			GetTxReferenceFunction: func(para interfaces.CheckParameters) (map[*common2.Input]common2.Output, error) {
 //				result := make(map[*common2.Input]common2.Output)
 //				return result, nil
 //			},

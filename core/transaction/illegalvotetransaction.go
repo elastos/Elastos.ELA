@@ -2,37 +2,42 @@
 // Use of this source code is governed by an MIT
 // license that can be found in the LICENSE file.
 //
-package transactions
+package transaction
 
 import (
 	"bytes"
 	"errors"
 	"fmt"
 
+	"github.com/elastos/Elastos.ELA/blockchain"
 	"github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/crypto"
-	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	elaerr "github.com/elastos/Elastos.ELA/errors"
 )
 
-type IllegaloteTransaction struct {
+type IllegalVoteTransaction struct {
 	BaseTransaction
 }
 
-func (a *IllegaloteTransaction) SpecialCheck(para *interfaces.CheckParameters) (result elaerr.ELAError, end bool) {
-	if para.SpecialTxExists(para.Transaction.Hash()) {
+func (a *IllegalVoteTransaction) SpecialCheck(params interfaces.Parameters) (result elaerr.ELAError, end bool) {
+	para, ok := params.(*TransactionParameters)
+	if !ok {
+		return elaerr.Simple(elaerr.ErrTxDuplicate, errors.New("invalid contextParameters")), true
+	}
+	if para.BlockChain.GetState().SpecialTxExists(para.Transaction) {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("tx already exists")), true
 	}
 
-	if err := a.CheckDPOSIllegalVotes(a.payload.(*payload.DPOSIllegalVotes), para); err != nil {
+	if err := a.CheckDPOSIllegalVotes(a.payload.(*payload.DPOSIllegalVotes)); err != nil {
 		return elaerr.Simple(elaerr.ErrTxPayload, err), true
 	}
 
 	return nil, true
 }
 
-func (a *IllegaloteTransaction) CheckDPOSIllegalVotes(d *payload.DPOSIllegalVotes, para *interfaces.CheckParameters) error {
+func (a *IllegalVoteTransaction) CheckDPOSIllegalVotes(d *payload.DPOSIllegalVotes) error {
 
 	if err := validateVoteEvidence(&d.Evidence); err != nil {
 		return err
@@ -67,22 +72,22 @@ func (a *IllegaloteTransaction) CheckDPOSIllegalVotes(d *payload.DPOSIllegalVote
 	}
 
 	if err := a.ProposalCheckByHeight(&d.Evidence.Proposal,
-		d.GetBlockHeight(), para); err != nil {
+		d.GetBlockHeight()); err != nil {
 		return err
 	}
 
 	if err := a.ProposalCheckByHeight(&d.CompareEvidence.Proposal,
-		d.GetBlockHeight(), para); err != nil {
+		d.GetBlockHeight()); err != nil {
 		return err
 	}
 
 	if err := a.VoteCheckByHeight(&d.Evidence.Vote,
-		d.GetBlockHeight(), para); err != nil {
+		d.GetBlockHeight()); err != nil {
 		return err
 	}
 
 	if err := a.VoteCheckByHeight(&d.CompareEvidence.Vote,
-		d.GetBlockHeight(), para); err != nil {
+		d.GetBlockHeight()); err != nil {
 		return err
 	}
 
@@ -101,12 +106,12 @@ func validateVoteEvidence(evidence *payload.VoteEvidence) error {
 	return nil
 }
 
-func (a *IllegaloteTransaction) VoteCheckByHeight(vote *payload.DPOSProposalVote, height uint32, para *interfaces.CheckParameters) error {
+func (a *IllegalVoteTransaction) VoteCheckByHeight(vote *payload.DPOSProposalVote, height uint32) error {
 	if err := voteSanityCheck(vote); err != nil {
 		return err
 	}
 
-	if err := a.VoteContextCheckByHeight(vote, height, para); err != nil {
+	if err := a.VoteContextCheckByHeight(vote, height); err != nil {
 		fmt.Println("[VoteContextCheck] error: ", err.Error())
 		return err
 	}
@@ -127,15 +132,17 @@ func voteSanityCheck(vote *payload.DPOSProposalVote) error {
 	return nil
 }
 
-func (a *IllegaloteTransaction) VoteContextCheckByHeight(vote *payload.DPOSProposalVote,
-	height uint32, para *interfaces.CheckParameters) error {
+func (a *IllegalVoteTransaction) VoteContextCheckByHeight(
+	vote *payload.DPOSProposalVote, height uint32) error {
 	var isArbiter bool
-	nodePublicKeys := para.GetCurrentArbitratorNodePublicKeys(height)
+	keyFrames := blockchain.DefaultLedger.Arbitrators.GetSnapshot(height)
 out:
-	for _, pk := range nodePublicKeys {
-		if bytes.Equal(pk, vote.Signer) {
-			isArbiter = true
-			break out
+	for _, k := range keyFrames {
+		for _, a := range k.CurrentArbitrators {
+			if bytes.Equal(a.GetNodePublicKey(), vote.Signer) {
+				isArbiter = true
+				break out
+			}
 		}
 	}
 	if !isArbiter {
@@ -145,7 +152,7 @@ out:
 	return nil
 }
 
-func (a *IllegaloteTransaction) validateProposalEvidence(evidence *payload.ProposalEvidence) error {
+func (a *IllegalVoteTransaction) validateProposalEvidence(evidence *payload.ProposalEvidence) error {
 
 	header := &common.Header{}
 	buf := new(bytes.Buffer)
@@ -166,29 +173,30 @@ func (a *IllegaloteTransaction) validateProposalEvidence(evidence *payload.Propo
 	return nil
 }
 
-func (a *IllegaloteTransaction) ProposalCheckByHeight(proposal *payload.DPOSProposal,
-	height uint32, para *interfaces.CheckParameters) error {
+func (a *IllegalVoteTransaction) ProposalCheckByHeight(proposal *payload.DPOSProposal,
+	height uint32) error {
 	if err := a.ProposalSanityCheck(proposal); err != nil {
 		return err
 	}
 
-	if err := a.ProposalContextCheckByHeight(proposal, height, para); err != nil {
+	if err := a.ProposalContextCheckByHeight(proposal, height); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (a *IllegaloteTransaction) ProposalContextCheckByHeight(proposal *payload.DPOSProposal,
-	height uint32, para *interfaces.CheckParameters) error {
+func (a *IllegalVoteTransaction) ProposalContextCheckByHeight(proposal *payload.DPOSProposal,
+	height uint32) error {
 	var isArbiter bool
-	//keyFrames := DefaultLedger.Arbitrators.GetSnapshot(height)
-	nodePublicKeys := para.GetCurrentArbitratorNodePublicKeys(height)
+	keyFrames := blockchain.DefaultLedger.Arbitrators.GetSnapshot(height)
 out:
-	for _, pk := range nodePublicKeys {
-		if bytes.Equal(pk, proposal.Sponsor) {
-			isArbiter = true
-			break out
+	for _, k := range keyFrames {
+		for _, a := range k.CurrentArbitrators {
+			if bytes.Equal(a.GetNodePublicKey(), proposal.Sponsor) {
+				isArbiter = true
+				break out
+			}
 		}
 	}
 	if !isArbiter {
@@ -198,7 +206,7 @@ out:
 	return nil
 }
 
-func (a *IllegaloteTransaction) ProposalSanityCheck(proposal *payload.DPOSProposal) error {
+func (a *IllegalVoteTransaction) ProposalSanityCheck(proposal *payload.DPOSProposal) error {
 	pubKey, err := crypto.DecodePoint(proposal.Sponsor)
 	if err != nil {
 		return err

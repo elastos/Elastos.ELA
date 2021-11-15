@@ -9,8 +9,8 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/elastos/Elastos.ELA/core/transaction"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
-	"github.com/elastos/Elastos.ELA/core/types/transactions"
 	"testing"
 
 	"github.com/elastos/Elastos.ELA/common"
@@ -129,7 +129,7 @@ func getRegisterProducerTx(ownerPublicKey, nodePublicKey []byte,
 	nickName string) interfaces.Transaction {
 	pk, _ := crypto.DecodePoint(ownerPublicKey)
 	depositCont, _ := contract.CreateDepositContractByPubKey(pk)
-	return &transactions.BaseTransaction{
+	return &transaction.BaseTransaction{
 		TxType: common2.RegisterProducer,
 		Payload: &payload.ProducerInfo{
 			OwnerPublicKey: ownerPublicKey,
@@ -147,7 +147,7 @@ func getRegisterProducerTx(ownerPublicKey, nodePublicKey []byte,
 
 func getVoteProducerTx(amount common.Fixed64,
 	candidateVotes []outputpayload.CandidateVotes) interfaces.Transaction {
-	return &transactions.BaseTransaction{
+	return &transaction.BaseTransaction{
 		Version: 0x09,
 		TxType:  common2.TransferAsset,
 		Payload: &payload.TransferAsset{},
@@ -174,7 +174,7 @@ func getVoteProducerTx(amount common.Fixed64,
 
 func getUpdateProducerTx(ownerPublicKey, nodePublicKey []byte,
 	nickName string) interfaces.Transaction {
-	return &transactions.BaseTransaction{
+	return &transaction.BaseTransaction{
 		TxType: common2.UpdateProducer,
 		Payload: &payload.ProducerInfo{
 			OwnerPublicKey: ownerPublicKey,
@@ -185,7 +185,7 @@ func getUpdateProducerTx(ownerPublicKey, nodePublicKey []byte,
 }
 
 func getCancelProducer(publicKey []byte) interfaces.Transaction {
-	return &transactions.BaseTransaction{
+	return &transaction.BaseTransaction{
 		Version: 0x09,
 		TxType:  common2.CancelProducer,
 		Payload: &payload.ProcessProducer{
@@ -198,7 +198,7 @@ func getReturnProducerDeposit(publicKey []byte, amount common.Fixed64) interface
 	pk, _ := crypto.DecodePoint(publicKey)
 	code, _ := contract.CreateStandardRedeemScript(pk)
 
-	return &transactions.BaseTransaction{
+	return &transaction.BaseTransaction{
 		TxType:  common2.ReturnDepositCoin,
 		Payload: &payload.ReturnDepositCoin{},
 		Programs: []*program.Program{
@@ -751,7 +751,7 @@ func TestArbitrators_NextTurnDposInfoTX(t *testing.T) {
 	if err2 != nil {
 		fmt.Println("HexStringToBytes err2", err2)
 	}
-	var nextTurnDPOSInfoTx transactions.BaseTransaction
+	var nextTurnDPOSInfoTx transaction.BaseTransaction
 	reader2 := bytes.NewReader(data)
 	err2 = nextTurnDPOSInfoTx.Deserialize(reader2)
 	if err2 != nil {

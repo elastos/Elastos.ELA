@@ -6,7 +6,7 @@
 package indexers
 
 import (
-	"github.com/elastos/Elastos.ELA/core/types/transactions"
+	"github.com/elastos/Elastos.ELA/core/transaction"
 	"testing"
 
 	"github.com/elastos/Elastos.ELA/common"
@@ -22,7 +22,7 @@ import (
 
 var (
 	tx3Hash = common.Uint256{1, 2, 3}
-	tx4     = &transactions.BaseTransaction{
+	tx4     = &transaction.BaseTransaction{
 		TxType:         common2.WithdrawFromSideChain,
 		PayloadVersion: 0,
 		Payload: &payload.WithdrawFromSideChain{

@@ -6,7 +6,7 @@
 package mempool
 
 import (
-	"github.com/elastos/Elastos.ELA/core/types/transactions"
+	"github.com/elastos/Elastos.ELA/core/transaction"
 	"math/rand"
 	"testing"
 
@@ -20,7 +20,7 @@ const (
 )
 
 func BenchmarkTxFeeOrderedList_AddTx(b *testing.B) {
-	protoTx := transactions.BaseTransaction{
+	protoTx := transaction.BaseTransaction{
 		TxType:  common2.TransferAsset,
 		Payload: &payload.TransferAsset{},
 		Attributes: []*common2.Attribute{
@@ -48,7 +48,7 @@ func BenchmarkTxFeeOrderedList_AddTx(b *testing.B) {
 }
 
 func BenchmarkTxFeeOrderedList_RemoveTx(b *testing.B) {
-	protoTx := transactions.BaseTransaction{
+	protoTx := transaction.BaseTransaction{
 		TxType:  common2.TransferAsset,
 		Payload: &payload.TransferAsset{},
 		Attributes: []*common2.Attribute{
@@ -85,7 +85,7 @@ func BenchmarkTxFeeOrderedList_RemoveTx(b *testing.B) {
 }
 
 func BenchmarkTxFeeOrderedList_EliminateTx(b *testing.B) {
-	protoTx := transactions.BaseTransaction{
+	protoTx := transaction.BaseTransaction{
 		TxType:  common2.TransferAsset,
 		Payload: &payload.TransferAsset{},
 		Attributes: []*common2.Attribute{

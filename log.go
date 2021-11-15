@@ -7,6 +7,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/elastos/Elastos.ELA/core/transaction"
 	"io"
 	"path/filepath"
 	"time"
@@ -186,6 +187,7 @@ func setupLog(c *cli.Context, s *settings.Settings) {
 	elanlog := wrap(logger, elalog.Level(s.Params().PrintLevel))
 	statlog := wrap(logger, elalog.Level(s.Params().PrintLevel))
 	crstatlog := wrap(logger, elalog.Level(s.Params().PrintLevel))
+	txslog := wrap(logger, elalog.Level(s.Params().PrintLevel))
 
 	addrmgr.UseLogger(admrlog)
 	connmgr.UseLogger(cmgrlog)
@@ -195,4 +197,5 @@ func setupLog(c *cli.Context, s *settings.Settings) {
 	elanet.UseLogger(elanlog)
 	state.UseLogger(statlog)
 	crstate.UseLogger(crstatlog)
+	transaction.UseLogger(txslog)
 }

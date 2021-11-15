@@ -7,7 +7,7 @@ package mempool
 
 import (
 	"crypto/rand"
-	"github.com/elastos/Elastos.ELA/core/types/transactions"
+	"github.com/elastos/Elastos.ELA/core/transaction"
 	mrand "math/rand"
 	"testing"
 
@@ -601,7 +601,7 @@ func setSamePreviousTransaction(txs []interfaces.Transaction,
 }
 
 func newPreviousTx(utxoCacheDB *UtxoCacheDB) interfaces.Transaction {
-	prevTx := &transactions.BaseTransaction{
+	prevTx := &transaction.BaseTransaction{
 		TxType:  common2.TransferAsset,
 		Payload: &payload.TransferAsset{},
 		Outputs: []*common2.Output{

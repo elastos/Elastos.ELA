@@ -7,7 +7,7 @@ package pow
 
 import (
 	"fmt"
-	"github.com/elastos/Elastos.ELA/core/types/transactions"
+	"github.com/elastos/Elastos.ELA/core/transaction"
 	"math"
 	"path/filepath"
 	"testing"
@@ -165,7 +165,7 @@ func TestService_AssignCoinbaseTxRewards(t *testing.T) {
 	arbitratorsChange := dposTotalReward - realReward
 	arbitratorsMock.FinalRoundChange = arbitratorsChange
 
-	tx := &transactions.BaseTransaction{
+	tx := &transaction.BaseTransaction{
 		Version: common2.TxVersion09,
 		TxType:  common2.CoinBase,
 	}
@@ -237,7 +237,7 @@ func TestService_AssignCoinbaseTxRewards(t *testing.T) {
 	arbitratorsChange = dposTotalReward - realReward
 	arbitratorsMock.FinalRoundChange = arbitratorsChange
 
-	tx = &transactions.BaseTransaction{
+	tx = &transaction.BaseTransaction{
 		Version: common2.TxVersion09,
 		TxType:  common2.CoinBase,
 	}
@@ -291,7 +291,7 @@ func TestService_AssignCoinbaseTxRewards(t *testing.T) {
 	minerReward = common.Fixed64(float64(rewardInCoinbase) * 0.35)
 	dposTotalReward = rewardInCoinbase - foundationReward - minerReward
 
-	tx = &transactions.BaseTransaction{
+	tx = &transaction.BaseTransaction{
 		Version: 0,
 		TxType:  common2.CoinBase,
 	}
@@ -317,7 +317,7 @@ func TestService_AssignCoinbaseTxRewards(t *testing.T) {
 	minerReward = common.Fixed64(float64(rewardInCoinbase) * 0.35)
 	dposTotalReward = rewardInCoinbase - foundationRewardNormal - minerReward
 
-	tx = &transactions.BaseTransaction{
+	tx = &transaction.BaseTransaction{
 		Version: 0,
 		TxType:  common2.CoinBase,
 	}

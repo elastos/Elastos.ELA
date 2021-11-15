@@ -10,8 +10,8 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
+	"github.com/elastos/Elastos.ELA/core/transaction"
 	"github.com/elastos/Elastos.ELA/core/types/interfaces"
-	"github.com/elastos/Elastos.ELA/core/types/transactions"
 	"math/big"
 	math "math/rand"
 	"sort"
@@ -781,7 +781,7 @@ func newMultiAccount(num int, t *testing.T) *multiAccount {
 }
 
 func buildTx() interfaces.Transaction {
-	tx := new(transactions.BaseTransaction)
+	tx := new(transaction.BaseTransaction)
 	tx.TxType = common2.TransferAsset
 	tx.Payload = new(payload.TransferAsset)
 	tx.Inputs = randomInputs()

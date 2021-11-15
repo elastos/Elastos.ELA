@@ -12,8 +12,8 @@ import (
 
 	"github.com/elastos/Elastos.ELA/common"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/functions"
 	"github.com/elastos/Elastos.ELA/core/types/interfaces"
-	"github.com/elastos/Elastos.ELA/core/types/transactions"
 )
 
 // TxLoc holds locator data for the offset and length of where a transaction is
@@ -45,18 +45,21 @@ func (b *Block) Serialize(w io.Writer) error {
 
 func (b *Block) Deserialize(r io.Reader) error {
 	if err := b.Header.Deserialize(r); err != nil {
-		return errors.New("Block header deserialize failed, " + err.Error())
+		return errors.New("block header deserialize failed, " + err.Error())
 	}
 
 	//Transactions
 	count, err := common.ReadUint32(r)
 	if err != nil {
-		return errors.New("Block item transactions count deserialize failed.")
+		return errors.New("block item transactions count deserialize failed")
 	}
 	for i := uint32(0); i < count; i++ {
-		transaction := new(transactions.BaseTransaction)
+		transaction, err := functions.GetTransactionByBytes(r)
+		if err != nil {
+			return errors.New("invalid transaction")
+		}
 		if err := transaction.Deserialize(r); err != nil {
-			return errors.New("Block item transaction deserialize failed, " + err.Error())
+			return errors.New("block item transaction deserialize failed, " + err.Error())
 		}
 		b.Transactions = append(b.Transactions, transaction)
 	}
@@ -86,12 +89,15 @@ func (b *Block) DeserializeTxLoc(r *bytes.Buffer) ([]TxLoc, error) {
 	txLocs := make([]TxLoc, txCount)
 	for i := uint32(0); i < txCount; i++ {
 		txLocs[i].TxStart = fullLen - r.Len()
-		tx := transactions.BaseTransaction{}
-		err := tx.Deserialize(r)
+		tx, err := functions.GetTransactionByBytes(r)
 		if err != nil {
 			return nil, err
 		}
-		b.Transactions = append(b.Transactions, &tx)
+		err = tx.Deserialize(r)
+		if err != nil {
+			return nil, err
+		}
+		b.Transactions = append(b.Transactions, tx)
 		txLocs[i].TxLen = (fullLen - r.Len()) - txLocs[i].TxStart
 	}
 

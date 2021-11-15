@@ -28,3 +28,9 @@ var CreateTransaction func(
 	lockTime uint32,
 	programs []*pg.Program,
 ) interfaces.Transaction
+
+var GetTransactionParameters func(
+	transaction interfaces.Transaction,
+	blockHeight uint32,
+	config interface{},
+	blockChain interface{}) interfaces.Parameters

@@ -6,9 +6,9 @@
 package mempool
 
 import (
+	"github.com/elastos/Elastos.ELA/core/transaction"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/core/types/interfaces"
-	"github.com/elastos/Elastos.ELA/core/types/transactions"
 	"testing"
 
 	"github.com/elastos/Elastos.ELA/common"
@@ -28,7 +28,7 @@ var (
 )
 
 func TestConflictSlot_AppendTx_keyType_string(t *testing.T) {
-	tx := &transactions.BaseTransaction{
+	tx := &transaction.BaseTransaction{
 		TxType: common2.TransferAsset,
 	}
 
@@ -51,7 +51,7 @@ func TestConflictSlot_AppendTx_keyType_string(t *testing.T) {
 }
 
 func TestConflictSlot_AppendTx_keyType_hash(t *testing.T) {
-	tx := &transactions.BaseTransaction{
+	tx := &transaction.BaseTransaction{
 		TxType: common2.TransferAsset,
 	}
 
@@ -74,7 +74,7 @@ func TestConflictSlot_AppendTx_keyType_hash(t *testing.T) {
 }
 
 func TestConflictSlot_AppendTx_keyType_programHash(t *testing.T) {
-	tx := &transactions.BaseTransaction{
+	tx := &transaction.BaseTransaction{
 		TxType: common2.TransferAsset,
 	}
 
@@ -103,13 +103,13 @@ func TestConflictSlot_VerifyTx(t *testing.T) {
 		keyTypeFuncPair{common2.CRCProposal, simpleGetString})
 
 	// defined a tx that is not supported  by the slot
-	tx1 := &transactions.BaseTransaction{
+	tx1 := &transaction.BaseTransaction{
 		TxType: common2.CancelProducer,
 	}
-	tx2 := &transactions.BaseTransaction{
+	tx2 := &transaction.BaseTransaction{
 		TxType: common2.TransferAsset,
 	}
-	tx3 := &transactions.BaseTransaction{
+	tx3 := &transaction.BaseTransaction{
 		TxType: common2.CRCProposal,
 	}
 
@@ -127,7 +127,7 @@ func TestConflictSlot_VerifyTx(t *testing.T) {
 }
 
 func TestConflictSlot_RemoveTx(t *testing.T) {
-	tx := &transactions.BaseTransaction{
+	tx := &transaction.BaseTransaction{
 		TxType: common2.TransferAsset,
 	}
 	slot := newConflictSlot(str,

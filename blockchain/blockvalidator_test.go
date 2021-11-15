@@ -9,7 +9,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
-	"github.com/elastos/Elastos.ELA/core/types/transactions"
+	"github.com/elastos/Elastos.ELA/core/transaction"
 	"math"
 	"math/rand"
 	"path/filepath"
@@ -165,7 +165,7 @@ func TestCheckCoinbaseArbitratorsReward(t *testing.T) {
 	totalTopProducersReward := dposTotalReward - totalBlockConfirmReward
 	individualBlockConfirmReward := common.Fixed64(math.Floor(totalBlockConfirmReward / float64(5)))
 	rewardPerVote := totalTopProducersReward / float64(totalVotesInRound)
-	tx := &transactions.BaseTransaction{
+	tx := &transaction.BaseTransaction{
 		Version: 0,
 		TxType:  common2.CoinBase,
 	}
@@ -417,7 +417,7 @@ func TestProducerDuplicateTx(t *testing.T) {
 func generateRegisterProducer() interfaces.Transaction {
 	publicKeyStr1 := "03c77af162438d4b7140f8544ad6523b9734cca9c7a62476d54ed5d1bddc7a39c3"
 	publicKey1, _ := common.HexStringToBytes(publicKeyStr1)
-	return &transactions.BaseTransaction{
+	return &transaction.BaseTransaction{
 		TxType: common2.RegisterProducer,
 		Payload: &payload.ProducerInfo{
 			OwnerPublicKey: publicKey1,
@@ -433,7 +433,7 @@ func generateRegisterProducer() interfaces.Transaction {
 func generateUpdateProducer() interfaces.Transaction {
 	publicKeyStr1 := "03c77af162438d4b7140f8544ad6523b9734cca9c7a62476d54ed5d1bddc7a39c3"
 	publicKey1, _ := common.HexStringToBytes(publicKeyStr1)
-	return &transactions.BaseTransaction{
+	return &transaction.BaseTransaction{
 		TxType: common2.UpdateProducer,
 		Payload: &payload.ProducerInfo{
 			OwnerPublicKey: publicKey1,
@@ -449,7 +449,7 @@ func generateUpdateProducer() interfaces.Transaction {
 func generateCancelProducer() interfaces.Transaction {
 	publicKeyStr1 := "03c77af162438d4b7140f8544ad6523b9734cca9c7a62476d54ed5d1bddc7a39c3"
 	publicKey1, _ := common.HexStringToBytes(publicKeyStr1)
-	return &transactions.BaseTransaction{
+	return &transaction.BaseTransaction{
 		TxType: common2.CancelProducer,
 		Payload: &payload.ProcessProducer{
 			OwnerPublicKey: publicKey1,
@@ -459,7 +459,7 @@ func generateCancelProducer() interfaces.Transaction {
 
 func generateRegisterCR(code []byte, cid common.Uint168,
 	nickname string) interfaces.Transaction {
-	return &transactions.BaseTransaction{
+	return &transaction.BaseTransaction{
 		TxType: common2.RegisterCR,
 		Payload: &payload.CRInfo{
 			Code:     code,
@@ -471,7 +471,7 @@ func generateRegisterCR(code []byte, cid common.Uint168,
 
 func generateUpdateCR(code []byte, cid common.Uint168,
 	nickname string) interfaces.Transaction {
-	return &transactions.BaseTransaction{
+	return &transaction.BaseTransaction{
 		TxType: common2.UpdateCR,
 		Payload: &payload.CRInfo{
 			Code:     code,
@@ -482,7 +482,7 @@ func generateUpdateCR(code []byte, cid common.Uint168,
 }
 
 func generateUnregisterCR(code []byte) interfaces.Transaction {
-	return &transactions.BaseTransaction{
+	return &transaction.BaseTransaction{
 		TxType: common2.UnregisterCR,
 		Payload: &payload.UnregisterCR{
 			CID: *getCID(code),

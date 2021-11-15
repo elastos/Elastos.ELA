@@ -9,7 +9,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/elastos/Elastos.ELA/core/types/transactions"
+	"github.com/elastos/Elastos.ELA/core/transaction"
 	"os"
 	"strings"
 
@@ -213,7 +213,7 @@ func signTx(c *cli.Context) error {
 		return errors.New("decode transaction content failed")
 	}
 
-	var txn transactions.BaseTransaction
+	var txn transaction.BaseTransaction
 	err = txn.Deserialize(bytes.NewReader(rawData))
 	if err != nil {
 		return errors.New("deserialize transaction failed")
@@ -279,7 +279,7 @@ func showTx(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	var txn transactions.BaseTransaction
+	var txn transaction.BaseTransaction
 	if err := txn.Deserialize(bytes.NewReader(txBytes)); err != nil {
 		return err
 	}

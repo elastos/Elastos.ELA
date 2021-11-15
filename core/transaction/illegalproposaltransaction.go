@@ -2,16 +2,16 @@
 // Use of this source code is governed by an MIT
 // license that can be found in the LICENSE file.
 //
-package transactions
+package transaction
 
 import (
 	"bytes"
 	"errors"
 
+	"github.com/elastos/Elastos.ELA/blockchain"
 	"github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/crypto"
-	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	elaerr "github.com/elastos/Elastos.ELA/errors"
 )
 
@@ -19,12 +19,18 @@ type IllegalProposalTransaction struct {
 	BaseTransaction
 }
 
-func (a *IllegalProposalTransaction) SpecialCheck(para *interfaces.CheckParameters) (result elaerr.ELAError, end bool) {
-	if para.SpecialTxExists(para.Transaction.Hash()) {
+func (a *IllegalProposalTransaction) SpecialCheck() (result elaerr.ELAError, end bool) {
+	para := a.contextParameters
+	if para.BlockChain.GetState().SpecialTxExists(para.Transaction) {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("tx already exists")), true
 	}
 
-	if err := a.CheckDPOSIllegalProposals(a.payload.(*payload.DPOSIllegalProposals), para); err != nil {
+	py, ok := a.payload.(*payload.DPOSIllegalProposals)
+	if !ok {
+		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid illegal proposal payload")), true
+	}
+
+	if err := a.CheckDPOSIllegalProposals(py); err != nil {
 		return elaerr.Simple(elaerr.ErrTxPayload, err), true
 	}
 
@@ -53,12 +59,12 @@ func validateProposalEvidence(evidence *payload.ProposalEvidence) error {
 }
 
 func (a *IllegalProposalTransaction) ProposalCheckByHeight(proposal *payload.DPOSProposal,
-	height uint32, para *interfaces.CheckParameters) error {
+	height uint32) error {
 	if err := a.ProposalSanityCheck(proposal); err != nil {
 		return err
 	}
 
-	if err := a.ProposalContextCheckByHeight(proposal, height, para); err != nil {
+	if err := a.ProposalContextCheckByHeight(proposal, height); err != nil {
 		return err
 	}
 
@@ -66,15 +72,16 @@ func (a *IllegalProposalTransaction) ProposalCheckByHeight(proposal *payload.DPO
 }
 
 func (a *IllegalProposalTransaction) ProposalContextCheckByHeight(proposal *payload.DPOSProposal,
-	height uint32, para *interfaces.CheckParameters) error {
+	height uint32) error {
 	var isArbiter bool
-	//keyFrames := DefaultLedger.Arbitrators.GetSnapshot(height)
-	nodePublicKeys := para.GetCurrentArbitratorNodePublicKeys(height)
+	keyFrames := blockchain.DefaultLedger.Arbitrators.GetSnapshot(height)
 out:
-	for _, pk := range nodePublicKeys {
-		if bytes.Equal(pk, proposal.Sponsor) {
-			isArbiter = true
-			break out
+	for _, k := range keyFrames {
+		for _, a := range k.CurrentArbitrators {
+			if bytes.Equal(a.GetNodePublicKey(), proposal.Sponsor) {
+				isArbiter = true
+				break out
+			}
 		}
 	}
 	if !isArbiter {
@@ -97,7 +104,7 @@ func (a *IllegalProposalTransaction) ProposalSanityCheck(proposal *payload.DPOSP
 	return nil
 }
 
-func (a *IllegalProposalTransaction) CheckDPOSIllegalProposals(d *payload.DPOSIllegalProposals, para *interfaces.CheckParameters) error {
+func (a *IllegalProposalTransaction) CheckDPOSIllegalProposals(d *payload.DPOSIllegalProposals) error {
 
 	if err := validateProposalEvidence(&d.Evidence); err != nil {
 		return err
@@ -128,12 +135,12 @@ func (a *IllegalProposalTransaction) CheckDPOSIllegalProposals(d *payload.DPOSIl
 		return errors.New("should in same view")
 	}
 
-	if err := a.ProposalCheckByHeight(&d.Evidence.Proposal, d.GetBlockHeight(), para); err != nil {
+	if err := a.ProposalCheckByHeight(&d.Evidence.Proposal, d.GetBlockHeight()); err != nil {
 		return err
 	}
 
 	if err := a.ProposalCheckByHeight(&d.CompareEvidence.Proposal,
-		d.GetBlockHeight(), para); err != nil {
+		d.GetBlockHeight()); err != nil {
 		return err
 	}
 

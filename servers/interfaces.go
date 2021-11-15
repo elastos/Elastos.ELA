@@ -10,9 +10,9 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
+	"github.com/elastos/Elastos.ELA/core/transaction"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/core/types/interfaces"
-	"github.com/elastos/Elastos.ELA/core/types/transactions"
 	"sort"
 	"strings"
 
@@ -822,7 +822,7 @@ func SendRawTransaction(param Params) map[string]interface{} {
 	if err != nil {
 		return ResponsePack(InvalidParams, "hex string to bytes error")
 	}
-	var txn transactions.BaseTransaction
+	var txn transaction.BaseTransaction
 	if err := txn.Deserialize(bytes.NewReader(bys)); err != nil {
 		return ResponsePack(InvalidTransaction, err.Error())
 	}
@@ -1419,7 +1419,7 @@ func SignRawTransactionWithKey(param Params) map[string]interface{} {
 	if err != nil {
 		return ResponsePack(InvalidParams, "hex string to bytes error")
 	}
-	var txn transactions.BaseTransaction
+	var txn transaction.BaseTransaction
 	if err := txn.Deserialize(bytes.NewReader(txBytes)); err != nil {
 		return ResponsePack(InvalidTransaction, err.Error())
 	}
@@ -2636,7 +2636,7 @@ func DecodeRawTransaction(param Params) map[string]interface{} {
 	if err != nil {
 		return ResponsePack(InvalidParams, "invalid raw tx data, "+err.Error())
 	}
-	var txn transactions.BaseTransaction
+	var txn transaction.BaseTransaction
 	if err := txn.Deserialize(bytes.NewReader(txBytes)); err != nil {
 		return ResponsePack(InvalidParams, "invalid raw tx data, "+err.Error())
 	}

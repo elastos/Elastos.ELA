@@ -900,6 +900,7 @@ func (s *State) processTransactions(txs []*types.Transaction, height uint32) {
 			if producer.info.StakeUntil != 0 {
 				s.DposV2ActivityProducers[key] = producer
 			}
+			log.Info("### add dposV2 producer active ", key, producer.info.StakeUntil)
 			delete(s.PendingProducers, key)
 		}, func() {
 			producer.state = Pending
@@ -1144,6 +1145,7 @@ func (s *State) cancelProducer(payload *payload.ProcessProducer, height uint32) 
 		case Active:
 			delete(s.ActivityProducers, key)
 			delete(s.DposV2ActivityProducers, key)
+			log.Info("### delete dposV2 producer active ", key)
 		case Inactive:
 			delete(s.InactiveProducers, key)
 		}

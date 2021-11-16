@@ -99,6 +99,12 @@ func (header *Header) Hash() common.Uint256 {
 	return common.Hash(buf.Bytes())
 }
 
+func (header *Header) HashWithAux() common.Uint256 {
+	buf := new(bytes.Buffer)
+	header.Serialize(buf)
+	return common.Hash(buf.Bytes())
+}
+
 func (header *Header) GetSize() int {
 	buf := new(bytes.Buffer)
 	if err := header.Serialize(buf); err != nil {

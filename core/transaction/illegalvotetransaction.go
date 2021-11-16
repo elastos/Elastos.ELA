@@ -11,7 +11,6 @@ import (
 
 	"github.com/elastos/Elastos.ELA/blockchain"
 	"github.com/elastos/Elastos.ELA/core/types/common"
-	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/crypto"
 	elaerr "github.com/elastos/Elastos.ELA/errors"
@@ -21,12 +20,8 @@ type IllegalVoteTransaction struct {
 	BaseTransaction
 }
 
-func (a *IllegalVoteTransaction) SpecialCheck(params interfaces.Parameters) (result elaerr.ELAError, end bool) {
-	para, ok := params.(*TransactionParameters)
-	if !ok {
-		return elaerr.Simple(elaerr.ErrTxDuplicate, errors.New("invalid contextParameters")), true
-	}
-	if para.BlockChain.GetState().SpecialTxExists(para.Transaction) {
+func (a *IllegalVoteTransaction) SpecialCheck() (result elaerr.ELAError, end bool) {
+	if a.contextParameters.BlockChain.GetState().SpecialTxExists(a) {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("tx already exists")), true
 	}
 

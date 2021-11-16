@@ -20,8 +20,7 @@ type IllegalProposalTransaction struct {
 }
 
 func (a *IllegalProposalTransaction) SpecialCheck() (result elaerr.ELAError, end bool) {
-	para := a.contextParameters
-	if para.BlockChain.GetState().SpecialTxExists(para.Transaction) {
+	if a.contextParameters.BlockChain.GetState().SpecialTxExists(a) {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("tx already exists")), true
 	}
 

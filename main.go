@@ -436,15 +436,30 @@ func getTransaction(txType common2.TxType) (txn interfaces.Transaction, err erro
 	switch txType {
 	case common2.CoinBase:
 		txn = new(transaction2.CoinBaseTransaction)
-		return txn, nil
 
 	case common2.RegisterAsset:
 		txn = new(transaction2.RegisterAssetTransaction)
-		return txn, nil
+
+	case common2.IllegalProposalEvidence:
+		txn = new(transaction2.IllegalProposalTransaction)
+
+	case common2.IllegalVoteEvidence:
+		txn = new(transaction2.IllegalVoteTransaction)
+
+	case common2.IllegalBlockEvidence:
+		txn = new(transaction2.IllegalBlockTransaction)
+
+	case common2.IllegalSidechainEvidence:
+		txn = new(transaction2.IllegalSideChainTransaction)
+
+	case common2.InactiveArbitrators:
+		txn = new(transaction2.InactiveArbitratorsTransaction)
 
 	default:
 		return nil, errors.New("invalid transaction type")
 	}
+
+	return txn, nil
 }
 
 func getTransactionByBytes(r io.Reader) (interfaces.Transaction, error) {

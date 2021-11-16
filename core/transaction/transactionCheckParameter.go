@@ -12,10 +12,8 @@ import (
 )
 
 type TransactionParameters struct {
-	// transaction
 	Transaction interfaces.Transaction
 	BlockHeight uint32
-
-	Config     *config.Params
-	BlockChain *blockchain.BlockChain
+	Config      *config.Params
+	BlockChain  *blockchain.BlockChain
 }

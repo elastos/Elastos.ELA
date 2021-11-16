@@ -68,7 +68,7 @@ func (a *DefaultChecker) ContextCheck(params interfaces.Parameters) (
 		return nil, elaerr.Simple(elaerr.ErrTxDoubleSpend, nil)
 	}
 
-	if err := a.CheckTransactionUTXOLock(references); err != nil {
+	if err := a.CheckTransactionUTXOLock(a.contextParameters.Transaction, references); err != nil {
 		log.Warn("[CheckTransactionUTXOLock],", err)
 		return nil, elaerr.Simple(elaerr.ErrTxUTXOLocked, err)
 	}
@@ -300,8 +300,7 @@ func (a *DefaultChecker) CheckPOWConsensusTransaction(references map[*common2.In
 	return fmt.Errorf("not support transaction %s in POW consensus", txn.TxType().Name())
 }
 
-func (a *DefaultChecker) CheckTransactionUTXOLock(references map[*common2.Input]common2.Output) error {
-	txn := a.contextParameters.Transaction
+func (a *DefaultChecker) CheckTransactionUTXOLock(txn interfaces.Transaction, references map[*common2.Input]common2.Output) error {
 	for input, output := range references {
 
 		if output.OutputLock == 0 {

@@ -194,40 +194,41 @@ func (b *BlockChain) CheckTransactionContext(blockHeight uint32,
 	//}
 
 	switch txn.TxType() {
-	case common2.IllegalProposalEvidence:
-		if err := b.checkIllegalProposalsTransaction(txn); err != nil {
-			log.Warn("[CheckIllegalProposalsTransaction],", err)
-			return nil, elaerr.Simple(elaerr.ErrTxPayload, err)
-		}
-		return references, nil
+	//case common2.IllegalProposalEvidence:
+	//	if err := b.checkIllegalProposalsTransaction(txn); err != nil {
+	//		log.Warn("[CheckIllegalProposalsTransaction],", err)
+	//		return nil, elaerr.Simple(elaerr.ErrTxPayload, err)
+	//	}
+	//	return references, nil
 
-	case common2.IllegalVoteEvidence:
-		if err := b.checkIllegalVotesTransaction(txn); err != nil {
-			log.Warn("[CheckIllegalVotesTransaction],", err)
-			return nil, elaerr.Simple(elaerr.ErrTxPayload, err)
-		}
-		return references, nil
+	//case common2.IllegalVoteEvidence:
+	//	if err := b.checkIllegalVotesTransaction(txn); err != nil {
+	//		log.Warn("[CheckIllegalVotesTransaction],", err)
+	//		return nil, elaerr.Simple(elaerr.ErrTxPayload, err)
+	//	}
+	//	return references, nil
 
-	case common2.IllegalBlockEvidence:
-		if err := b.checkIllegalBlocksTransaction(txn); err != nil {
-			log.Warn("[CheckIllegalBlocksTransaction],", err)
-			return nil, elaerr.Simple(elaerr.ErrTxPayload, err)
-		}
-		return references, nil
+	//case common2.IllegalBlockEvidence:
+	//	if err := b.checkIllegalBlocksTransaction(txn); err != nil {
+	//		log.Warn("[CheckIllegalBlocksTransaction],", err)
+	//		return nil, elaerr.Simple(elaerr.ErrTxPayload, err)
+	//	}
+	//	return references, nil
 
-	case common2.IllegalSidechainEvidence:
-		if err := b.checkSidechainIllegalEvidenceTransaction(txn); err != nil {
-			log.Warn("[CheckSidechainIllegalEvidenceTransaction],", err)
-			return nil, elaerr.Simple(elaerr.ErrTxPayload, err)
-		}
-		return references, nil
+	//case common2.IllegalSidechainEvidence:
+	//	if err := b.checkSidechainIllegalEvidenceTransaction(txn); err != nil {
+	//		log.Warn("[CheckSidechainIllegalEvidenceTransaction],", err)
+	//		return nil, elaerr.Simple(elaerr.ErrTxPayload, err)
+	//	}
+	//	return references, nil
 
-	case common2.InactiveArbitrators:
-		if err := b.checkInactiveArbitratorsTransaction(txn); err != nil {
-			log.Warn("[CheckInactiveArbitrators],", err)
-			return nil, elaerr.Simple(elaerr.ErrTxPayload, err)
-		}
-		return references, nil
+	//case common2.InactiveArbitrators:
+	//	if err := b.checkInactiveArbitratorsTransaction(txn); err != nil {
+	//		log.Warn("[CheckInactiveArbitrators],", err)
+	//		return nil, elaerr.Simple(elaerr.ErrTxPayload, err)
+	//	}
+	//	return references, nil
+
 	case common2.RevertToDPOS:
 		if err := b.checkRevertToDPOSTransaction(blockHeight, txn); err != nil {
 			log.Warn("[checkRevertToDPOSTransaction],", err)

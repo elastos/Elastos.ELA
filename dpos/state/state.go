@@ -1080,7 +1080,7 @@ func (s *State) registerProducer(tx *types.Transaction, height uint32) {
 			depositOutputs[op.ReferKey()] = output.Value
 		}
 	}
-	if tx.PayloadVersion != payload.ProducerInfoDposV2Version || s.getProducer(info.NodePublicKey) == nil {
+	if s.getProducer(info.NodePublicKey) == nil {
 		producer := Producer{
 			info:                         *info,
 			registerHeight:               height,

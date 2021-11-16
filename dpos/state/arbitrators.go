@@ -1655,7 +1655,7 @@ func (a *arbitrators) getRandomDposV2Producers(height uint32, unclaimedCount int
 		return nil, errors.New("block is not found")
 	}
 	var x = make([]byte, 8)
-	blockHash := block.Hash()
+	blockHash := block.HashWithAux()
 	copy(x, blockHash[24:])
 	seed, _, ok := readi64(x)
 	if !ok {

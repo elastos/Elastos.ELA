@@ -1,0 +1,52 @@
+// Copyright (c) 2017-2021 The Elastos Foundation
+// Use of this source code is governed by an MIT
+// license that can be found in the LICENSE file.
+//
+
+package transaction
+
+import (
+	"bytes"
+	"errors"
+
+	"github.com/elastos/Elastos.ELA/blockchain"
+	"github.com/elastos/Elastos.ELA/core/types/payload"
+	crstate "github.com/elastos/Elastos.ELA/cr/state"
+	elaerr "github.com/elastos/Elastos.ELA/errors"
+)
+
+type UnregisterCRTransaction struct {
+	BaseTransaction
+}
+
+func (t *UnregisterCRTransaction) SpecialCheck() (elaerr.ELAError, bool) {
+	info, ok := t.Payload().(*payload.UnregisterCR)
+	if !ok {
+		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid payload")), true
+	}
+
+	if !t.contextParameters.BlockChain.GetCRCommittee().IsInVotingPeriod(t.contextParameters.BlockHeight) {
+		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("should create tx during voting period")), true
+	}
+
+	cr := t.contextParameters.BlockChain.GetCRCommittee().GetCandidate(info.CID)
+	if cr == nil {
+		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("unregister unknown CR")), true
+	}
+	if cr.State() != crstate.Pending && cr.State() != crstate.Active {
+		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("unregister canceled or returned CR")), true
+	}
+
+	signedBuf := new(bytes.Buffer)
+	err := info.SerializeUnsigned(signedBuf, payload.UnregisterCRVersion)
+	if err != nil {
+		return elaerr.Simple(elaerr.ErrTxPayload, err), true
+	}
+
+	err = blockchain.CheckCRTransactionSignature(info.Signature, cr.Info().Code, signedBuf.Bytes())
+	if err != nil {
+		return elaerr.Simple(elaerr.ErrTxPayload, err), true
+	}
+
+	return nil, false
+}

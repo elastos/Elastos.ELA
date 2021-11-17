@@ -431,37 +431,6 @@ func printSyncState(bc *blockchain.BlockChain, server elanet.Server) {
 	}
 }
 
-func getTransaction(txType common2.TxType) (txn interfaces.Transaction, err error) {
-	// todo refactor me
-	switch txType {
-	case common2.CoinBase:
-		txn = new(transaction2.CoinBaseTransaction)
-
-	case common2.RegisterAsset:
-		txn = new(transaction2.RegisterAssetTransaction)
-
-	case common2.IllegalProposalEvidence:
-		txn = new(transaction2.IllegalProposalTransaction)
-
-	case common2.IllegalVoteEvidence:
-		txn = new(transaction2.IllegalVoteTransaction)
-
-	case common2.IllegalBlockEvidence:
-		txn = new(transaction2.IllegalBlockTransaction)
-
-	case common2.IllegalSidechainEvidence:
-		txn = new(transaction2.IllegalSideChainTransaction)
-
-	case common2.InactiveArbitrators:
-		txn = new(transaction2.InactiveArbitratorsTransaction)
-
-	default:
-		return nil, errors.New("invalid transaction type")
-	}
-
-	return txn, nil
-}
-
 func getTransactionByBytes(r io.Reader) (interfaces.Transaction, error) {
 	flagByte, err := common.ReadBytes(r, 1)
 	if err != nil {
@@ -530,4 +499,71 @@ func getTransactionContextParameters(
 		Config:      cfg.(*config.Params),
 		BlockChain:  bc.(*blockchain.BlockChain),
 	}
+}
+
+func getTransaction(txType common2.TxType) (txn interfaces.Transaction, err error) {
+	// todo refactor me
+	switch txType {
+	case common2.CoinBase:
+		txn = new(transaction2.CoinBaseTransaction)
+
+	case common2.RegisterAsset:
+		txn = new(transaction2.RegisterAssetTransaction)
+
+	case common2.IllegalProposalEvidence:
+		txn = new(transaction2.IllegalProposalTransaction)
+
+	case common2.IllegalVoteEvidence:
+		txn = new(transaction2.IllegalVoteTransaction)
+
+	case common2.IllegalBlockEvidence:
+		txn = new(transaction2.IllegalBlockTransaction)
+
+	case common2.IllegalSidechainEvidence:
+		txn = new(transaction2.IllegalSideChainTransaction)
+
+	case common2.InactiveArbitrators:
+		txn = new(transaction2.InactiveArbitratorsTransaction)
+
+	case common2.RevertToDPOS:
+		txn = new(transaction2.RevertToDPOSTransaction)
+
+	case common2.UpdateVersion:
+		txn = new(transaction2.UpdateVersionTransaction)
+
+	case common2.SideChainPow:
+		txn = new(transaction2.SideChainPOWTransaction)
+
+	case common2.RegisterProducer:
+		txn = new(transaction2.RegisterProducerTransaction)
+
+	case common2.UpdateProducer:
+		txn = new(transaction2.UpdateProducerTransaction)
+
+	case common2.CancelProducer:
+		txn = new(transaction2.CancelProducerTransaction)
+
+	case common2.ActivateProducer:
+		txn = new(transaction2.ActivateProducerTransaction)
+
+	case common2.RegisterCR:
+		txn = new(transaction2.RegisterCRTransaction)
+
+	case common2.UpdateCR:
+		txn = new(transaction2.UpdateCRTransaction)
+
+	case common2.UnregisterCR:
+		txn = new(transaction2.UnregisterCRTransaction)
+
+	case common2.NextTurnDPOSInfo:
+		txn = new(transaction2.NextTurnDPOSInfoTransaction)
+
+	case common2.ProposalResult:
+		txn = new(transaction2.ProposalResultTransaction)
+
+	default:
+		return nil, errors.New("invalid transaction type")
+	}
+
+	return txn, nil
 }

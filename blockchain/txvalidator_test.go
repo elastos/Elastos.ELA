@@ -2373,12 +2373,12 @@ func (s *txValidatorTestSuite) TestCrInfoSanityCheck() {
 
 	//test ok
 	rcPayload.Signature = rcSig1
-	err = s.Chain.crInfoSanityCheck(rcPayload, payload.CRInfoVersion)
+	err = CrInfoSanityCheck(rcPayload, payload.CRInfoVersion)
 	s.NoError(err)
 
 	//invalid code
 	rcPayload.Code = []byte{1, 2, 3, 4, 5}
-	err = s.Chain.crInfoSanityCheck(rcPayload, payload.CRInfoVersion)
+	err = CrInfoSanityCheck(rcPayload, payload.CRInfoVersion)
 	s.EqualError(err, "invalid code")
 
 	//todo CHECKMULTISIG

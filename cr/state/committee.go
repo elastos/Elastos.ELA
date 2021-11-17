@@ -165,7 +165,7 @@ func (c *Committee) IsAppropriationNeeded() bool {
 	return c.NeedAppropriation
 }
 
-func (c *Committee) IsCustomIDResultNeeded() bool {
+func (c *Committee) IsProposalResultNeeded() bool {
 	c.mtx.RLock()
 	defer c.mtx.RUnlock()
 	return c.NeedRecordProposalResult

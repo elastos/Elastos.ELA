@@ -403,35 +403,35 @@ func (b *BlockChain) CheckTransactionContext(blockHeight uint32,
 	//	}
 	//}
 
-	if err := b.checkTransactionFee(txn, references); err != nil {
-		log.Warn("[CheckTransactionFee],", err)
-		return nil, elaerr.Simple(elaerr.ErrTxBalance, err)
-	}
+	//if err := b.checkTransactionFee(txn, references); err != nil {
+	//	log.Warn("[CheckTransactionFee],", err)
+	//	return nil, elaerr.Simple(elaerr.ErrTxBalance, err)
+	//}
 
-	if err := checkDestructionAddress(references); err != nil {
-		log.Warn("[CheckDestructionAddress], ", err)
-		return nil, elaerr.Simple(elaerr.ErrTxInvalidInput, err)
-	}
+	//if err := checkDestructionAddress(references); err != nil {
+	//	log.Warn("[CheckDestructionAddress], ", err)
+	//	return nil, elaerr.Simple(elaerr.ErrTxInvalidInput, err)
+	//}
 
-	if err := checkTransactionDepositUTXO(txn, references); err != nil {
-		log.Warn("[CheckTransactionDepositUTXO],", err)
-		return nil, elaerr.Simple(elaerr.ErrTxInvalidInput, err)
-	}
+	//if err := checkTransactionDepositUTXO(txn, references); err != nil {
+	//	log.Warn("[CheckTransactionDepositUTXO],", err)
+	//	return nil, elaerr.Simple(elaerr.ErrTxInvalidInput, err)
+	//}
 
-	if err := checkTransactionDepositOutpus(b, txn); err != nil {
-		log.Warn("[checkTransactionDepositOutpus],", err)
-		return nil, elaerr.Simple(elaerr.ErrTxInvalidInput, err)
-	}
+	//if err := checkTransactionDepositOutpus(b, txn); err != nil {
+	//	log.Warn("[checkTransactionDepositOutpus],", err)
+	//	return nil, elaerr.Simple(elaerr.ErrTxInvalidInput, err)
+	//}
 
-	if err := checkTransactionSignature(txn, references); err != nil {
-		log.Warn("[CheckTransactionSignature],", err)
-		return nil, elaerr.Simple(elaerr.ErrTxSignature, err)
-	}
-
-	if err := b.checkInvalidUTXO(txn); err != nil {
-		log.Warn("[CheckTransactionCoinbaseLock]", err)
-		return nil, elaerr.Simple(elaerr.ErrBlockIneffectiveCoinbase, err)
-	}
+	//if err := checkTransactionSignature(txn, references); err != nil {
+	//	log.Warn("[CheckTransactionSignature],", err)
+	//	return nil, elaerr.Simple(elaerr.ErrTxSignature, err)
+	//}
+	//
+	//if err := b.checkInvalidUTXO(txn); err != nil {
+	//	log.Warn("[CheckTransactionCoinbaseLock]", err)
+	//	return nil, elaerr.Simple(elaerr.ErrBlockIneffectiveCoinbase, err)
+	//}
 
 	if txn.Version() >= common2.TxVersion09 {
 		producers := b.state.GetActiveProducers()

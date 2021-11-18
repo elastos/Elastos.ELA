@@ -6,9 +6,12 @@
 package transaction
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"github.com/elastos/Elastos.ELA/blockchain"
+	"github.com/elastos/Elastos.ELA/common/config"
+	"github.com/elastos/Elastos.ELA/core/contract"
 	"github.com/elastos/Elastos.ELA/core/types/outputpayload"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/dpos/state"
@@ -76,15 +79,149 @@ func (a *DefaultChecker) ContextCheck(params interfaces.Parameters) (
 		return nil, elaerr.Simple(elaerr.ErrTxUTXOLocked, err)
 	}
 
-	// todo add more common check
-	// ...
-
 	firstErr, end := a.SpecialCheck()
 	if end {
 		return nil, firstErr
 	}
 
+	if err := a.checkTransactionFee(a.contextParameters.Transaction, references); err != nil {
+		log.Warn("[CheckTransactionFee],", err)
+		return nil, elaerr.Simple(elaerr.ErrTxBalance, err)
+	}
+
+	if err := checkDestructionAddress(references); err != nil {
+		log.Warn("[CheckDestructionAddress], ", err)
+		return nil, elaerr.Simple(elaerr.ErrTxInvalidInput, err)
+	}
+
+	if err := checkTransactionDepositUTXO(a.contextParameters.Transaction, references); err != nil {
+		log.Warn("[CheckTransactionDepositUTXO],", err)
+		return nil, elaerr.Simple(elaerr.ErrTxInvalidInput, err)
+	}
+
+	if err := checkTransactionDepositOutpus(a.contextParameters.BlockChain, a.contextParameters.Transaction); err != nil {
+		log.Warn("[checkTransactionDepositOutpus],", err)
+		return nil, elaerr.Simple(elaerr.ErrTxInvalidInput, err)
+	}
+
+	if err := checkTransactionSignature(a.contextParameters.Transaction, references); err != nil {
+		log.Warn("[CheckTransactionSignature],", err)
+		return nil, elaerr.Simple(elaerr.ErrTxSignature, err)
+	}
+
+	if err := a.checkInvalidUTXO(a.contextParameters.Transaction); err != nil {
+		log.Warn("[CheckTransactionCoinbaseLock]", err)
+		return nil, elaerr.Simple(elaerr.ErrBlockIneffectiveCoinbase, err)
+	}
+
 	return references, nil
+}
+
+func (a *DefaultChecker) checkInvalidUTXO(txn interfaces.Transaction) error {
+	currentHeight := blockchain.DefaultLedger.Blockchain.GetHeight()
+	for _, input := range txn.Inputs() {
+		referTxn, err := a.contextParameters.BlockChain.UTXOCache.GetTransaction(input.Previous.TxID)
+		if err != nil {
+			return err
+		}
+		if referTxn.IsCoinBaseTx() {
+			if currentHeight-referTxn.LockTime() < a.contextParameters.Config.CoinbaseMaturity {
+				return errors.New("the utxo of coinbase is locking")
+			}
+		} else if referTxn.IsNewSideChainPowTx() {
+			return errors.New("cannot spend the utxo from a new sideChainPow tx")
+		}
+	}
+
+	return nil
+}
+
+func checkTransactionSignature(tx interfaces.Transaction, references map[*common2.Input]common2.Output) error {
+	programHashes, err := blockchain.GetTxProgramHashes(tx, references)
+	if (tx.IsCRCProposalWithdrawTx() && tx.PayloadVersion() == payload.CRCProposalWithdrawDefault) ||
+		tx.IsCRAssetsRectifyTx() || tx.IsCRCProposalRealWithdrawTx() || tx.IsNextTurnDPOSInfoTx() {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+
+	buf := new(bytes.Buffer)
+	tx.SerializeUnsigned(buf)
+
+	// sort the program hashes of owner and programs of the transaction
+	common.SortProgramHashByCodeHash(programHashes)
+	blockchain.SortPrograms(tx.Programs())
+	return blockchain.RunPrograms(buf.Bytes(), programHashes, tx.Programs())
+}
+
+func checkTransactionDepositOutpus(bc *blockchain.BlockChain, txn interfaces.Transaction) error {
+	for _, output := range txn.Outputs() {
+		if contract.GetPrefixType(output.ProgramHash) == contract.PrefixDeposit {
+			if txn.IsRegisterProducerTx() || txn.IsRegisterCRTx() ||
+				txn.IsReturnDepositCoin() || txn.IsReturnCRDepositCoinTx() {
+				continue
+			}
+			if bc.GetState().ExistProducerByDepositHash(output.ProgramHash) {
+				continue
+			}
+			if bc.GetCRCommittee().ExistCandidateByDepositHash(
+				output.ProgramHash) {
+				continue
+			}
+			return errors.New("only the address that CR or Producer" +
+				" registered can have the deposit UTXO")
+		}
+	}
+
+	return nil
+}
+
+func checkTransactionDepositUTXO(txn interfaces.Transaction, references map[*common2.Input]common2.Output) error {
+	for _, output := range references {
+		if contract.GetPrefixType(output.ProgramHash) == contract.PrefixDeposit {
+			if !txn.IsReturnDepositCoin() && !txn.IsReturnCRDepositCoinTx() {
+				return errors.New("only the ReturnDepositCoin and " +
+					"ReturnCRDepositCoin transaction can use the deposit UTXO")
+			}
+		} else {
+			if txn.IsReturnDepositCoin() || txn.IsReturnCRDepositCoinTx() {
+				return errors.New("the ReturnDepositCoin and ReturnCRDepositCoin " +
+					"transaction can only use the deposit UTXO")
+			}
+		}
+	}
+
+	return nil
+}
+
+func checkDestructionAddress(references map[*common2.Input]common2.Output) error {
+	for _, output := range references {
+		if output.ProgramHash == config.DestroyELAAddress {
+			return errors.New("cannot use utxo from the destruction address")
+		}
+	}
+	return nil
+}
+
+func (a *DefaultChecker) checkTransactionFee(tx interfaces.Transaction, references map[*common2.Input]common2.Output) error {
+	fee := getTransactionFee(tx, references)
+	if a.isSmallThanMinTransactionFee(fee) {
+		return fmt.Errorf("transaction fee not enough")
+	}
+	// set Fee and FeePerKB if check has passed
+	tx.SetFee(fee)
+	buf := new(bytes.Buffer)
+	tx.Serialize(buf)
+	tx.SetFeePerKB(fee * 1000 / common.Fixed64(len(buf.Bytes())))
+	return nil
+}
+
+func (a *DefaultChecker) isSmallThanMinTransactionFee(fee common.Fixed64) bool {
+	if fee < a.contextParameters.Config.MinTransactionFee {
+		return true
+	}
+	return false
 }
 
 // validate the type of transaction is allowed or not at current height.

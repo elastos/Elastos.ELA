@@ -491,13 +491,17 @@ func createTransaction(
 func getTransactionContextParameters(
 	transaction interfaces.Transaction,
 	blockHeight uint32,
+	timeStamp uint32,
 	cfg interface{},
-	bc interface{}) interfaces.Parameters {
+	bc interface{},
+	proposalsUsedAmount common.Fixed64) interfaces.Parameters {
 	return &transaction2.TransactionParameters{
-		Transaction: transaction,
-		BlockHeight: blockHeight,
-		Config:      cfg.(*config.Params),
-		BlockChain:  bc.(*blockchain.BlockChain),
+		Transaction:         transaction,
+		BlockHeight:         blockHeight,
+		TimeStamp:           timeStamp,
+		Config:              cfg.(*config.Params),
+		BlockChain:          bc.(*blockchain.BlockChain),
+		ProposalsUsedAmount: proposalsUsedAmount,
 	}
 }
 
@@ -560,6 +564,48 @@ func getTransaction(txType common2.TxType) (txn interfaces.Transaction, err erro
 
 	case common2.ProposalResult:
 		txn = new(transaction2.ProposalResultTransaction)
+
+	case common2.CRCProposal:
+		txn = new(transaction2.CRCProposalTransaction)
+
+	case common2.CRCProposalReview:
+		txn = new(transaction2.CRCProposalReviewTransaction)
+
+	case common2.CRCProposalTracking:
+		txn = new(transaction2.CRCProposalTrackingTransaction)
+
+	case common2.CRCProposalWithdraw:
+		txn = new(transaction2.CRCProposalWithdrawTransaction)
+
+	case common2.WithdrawFromSideChain:
+		txn = new(transaction2.WithdrawFromSideChainTransaction)
+
+	case common2.TransferCrossChainAsset:
+		txn = new(transaction2.TransferCrossChainAssetTransaction)
+
+	case common2.ReturnDepositCoin:
+		txn = new(transaction2.ReturnDepositCoinTransaction)
+
+	case common2.ReturnCRDepositCoin:
+		txn = new(transaction2.ReturnCRDepositCoinTransaction)
+
+	case common2.CRCAppropriation:
+		txn = new(transaction2.CRCAppropriationTransaction)
+
+	case common2.CRCProposalRealWithdraw:
+		txn = new(transaction2.CRCProposalRealWithdrawTransaction)
+
+	case common2.CRAssetsRectify:
+		txn = new(transaction2.CRAssetsRectifyTransaction)
+
+	case common2.CRCouncilMemberClaimNode:
+		txn = new(transaction2.CRCouncilMemberClaimNodeTransaction)
+
+	case common2.RevertToPOW:
+		txn = new(transaction2.RevertToPOWTransaction)
+
+	case common2.ReturnSideChainDepositCoin:
+		txn = new(transaction2.ReturnSideChainDepositCoinTransaction)
 
 	default:
 		return nil, errors.New("invalid transaction type")

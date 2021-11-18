@@ -6,6 +6,7 @@
 package functions
 
 import (
+	"github.com/elastos/Elastos.ELA/common"
 	"io"
 
 	pg "github.com/elastos/Elastos.ELA/core/contract/program"
@@ -32,5 +33,7 @@ var CreateTransaction func(
 var GetTransactionParameters func(
 	transaction interfaces.Transaction,
 	blockHeight uint32,
+	timeStamp uint32,
 	config interface{},
-	blockChain interface{}) interfaces.Parameters
+	blockChain interface{},
+	proposalsUsedAmount common.Fixed64) interfaces.Parameters

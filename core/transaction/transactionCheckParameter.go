@@ -7,13 +7,17 @@ package transaction
 
 import (
 	"github.com/elastos/Elastos.ELA/blockchain"
+	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 )
 
 type TransactionParameters struct {
 	Transaction interfaces.Transaction
-	BlockHeight uint32
-	Config      *config.Params
-	BlockChain  *blockchain.BlockChain
+
+	BlockHeight         uint32
+	TimeStamp           uint32
+	Config              *config.Params
+	BlockChain          *blockchain.BlockChain
+	ProposalsUsedAmount common.Fixed64
 }

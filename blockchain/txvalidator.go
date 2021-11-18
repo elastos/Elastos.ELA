@@ -161,7 +161,8 @@ func (b *BlockChain) CheckTransactionContext(blockHeight uint32,
 	//	FoundationAddress:      b.chainParams.Foundation,
 	//}
 
-	para := functions.GetTransactionParameters(tx, blockHeight, b.chainParams, b)
+	para := functions.GetTransactionParameters(
+		tx, blockHeight, timeStamp, b.chainParams, b, proposalsUsedAmount)
 
 	references, contextErr := tx.ContextCheck(para)
 	if contextErr != nil {
@@ -193,7 +194,7 @@ func (b *BlockChain) CheckTransactionContext(blockHeight uint32,
 	//	return nil, elaerr.Simple(elaerr.ErrTxUTXOLocked, err)
 	//}
 
-	switch txn.TxType() {
+	//switch txn.TxType() {
 	//case common2.IllegalProposalEvidence:
 	//	if err := b.checkIllegalProposalsTransaction(txn); err != nil {
 	//		log.Warn("[CheckIllegalProposalsTransaction],", err)
@@ -259,11 +260,11 @@ func (b *BlockChain) CheckTransactionContext(blockHeight uint32,
 	//	}
 
 	//case common2.NextTurnDPOSInfo:
-		//if err := b.checkNextTurnDPOSInfoTransaction(txn); err != nil {
-		//	log.Warn("[checkNextTurnDPOSInfoTransaction],", err)
-		//	return nil, elaerr.Simple(elaerr.ErrTxPayload, err)
-		//}
-		//return references, nil
+	//if err := b.checkNextTurnDPOSInfoTransaction(txn); err != nil {
+	//	log.Warn("[checkNextTurnDPOSInfoTransaction],", err)
+	//	return nil, elaerr.Simple(elaerr.ErrTxPayload, err)
+	//}
+	//return references, nil
 
 	//case common2.ProposalResult:
 	//	if err := b.checkCustomIDResultTransaction(txn); err != nil {
@@ -309,97 +310,98 @@ func (b *BlockChain) CheckTransactionContext(blockHeight uint32,
 	//		return nil, elaerr.Simple(elaerr.ErrTxPayload, err)
 	//	}
 
-	case common2.CRCProposal:
-		if err := b.checkCRCProposalTransaction(txn, blockHeight, proposalsUsedAmount); err != nil {
-			log.Warn("[checkCRCProposalTransaction],", err)
-			return nil, elaerr.Simple(elaerr.ErrTxPayload, err)
-		}
+	//case common2.CRCProposal:
+	//	if err := b.checkCRCProposalTransaction(txn, blockHeight, proposalsUsedAmount); err != nil {
+	//		log.Warn("[checkCRCProposalTransaction],", err)
+	//		return nil, elaerr.Simple(elaerr.ErrTxPayload, err)
+	//	}
 
-	case common2.CRCProposalReview:
-		if err := b.checkCRCProposalReviewTransaction(txn,
-			blockHeight); err != nil {
-			log.Warn("[checkCRCProposalReviewTransaction],", err)
-			return nil, elaerr.Simple(elaerr.ErrTxPayload, err)
-		}
+	//case common2.CRCProposalReview:
+	//	if err := b.checkCRCProposalReviewTransaction(txn,
+	//		blockHeight); err != nil {
+	//		log.Warn("[checkCRCProposalReviewTransaction],", err)
+	//		return nil, elaerr.Simple(elaerr.ErrTxPayload, err)
+	//	}
 
-	case common2.CRCProposalTracking:
-		if err := b.checkCRCProposalTrackingTransaction(txn,
-			blockHeight); err != nil {
-			log.Warn("[checkCRCProposalTrackingTransaction],", err)
-			return nil, elaerr.Simple(elaerr.ErrTxPayload, err)
-		}
+	//case common2.CRCProposalTracking:
+	//	if err := b.checkCRCProposalTrackingTransaction(txn,
+	//		blockHeight); err != nil {
+	//		log.Warn("[checkCRCProposalTrackingTransaction],", err)
+	//		return nil, elaerr.Simple(elaerr.ErrTxPayload, err)
+	//	}
 
-	case common2.CRCProposalWithdraw:
-		if err := b.checkCRCProposalWithdrawTransaction(txn, references,
-			blockHeight); err != nil {
-			log.Warn("[checkCRCProposalWithdrawTransaction],", err)
-			return nil, elaerr.Simple(elaerr.ErrTxPayload, err)
-		}
+	//case common2.CRCProposalWithdraw:
+	//	if err := b.checkCRCProposalWithdrawTransaction(txn, references,
+	//		blockHeight); err != nil {
+	//		log.Warn("[checkCRCProposalWithdrawTransaction],", err)
+	//		return nil, elaerr.Simple(elaerr.ErrTxPayload, err)
+	//	}
 
-	case common2.WithdrawFromSideChain:
-		if err := b.checkWithdrawFromSideChainTransaction(txn, references,
-			blockHeight); err != nil {
-			log.Warn("[CheckWithdrawFromSideChainTransaction],", err)
-			return nil, elaerr.Simple(elaerr.ErrTxSidechainDuplicate, err)
-		}
+	//case common2.WithdrawFromSideChain:
+	//	if err := b.checkWithdrawFromSideChainTransaction(txn, references,
+	//		blockHeight); err != nil {
+	//		log.Warn("[CheckWithdrawFromSideChainTransaction],", err)
+	//		return nil, elaerr.Simple(elaerr.ErrTxSidechainDuplicate, err)
+	//	}
 
-	case common2.TransferCrossChainAsset:
-		if err := b.checkTransferCrossChainAssetTransaction(txn, references, blockHeight); err != nil {
-			log.Warn("[CheckTransferCrossChainAssetTransaction],", err)
-			return nil, elaerr.Simple(elaerr.ErrTxInvalidOutput, err)
-		}
+	//case common2.TransferCrossChainAsset:
+	//	if err := b.checkTransferCrossChainAssetTransaction(txn, references, blockHeight); err != nil {
+	//		log.Warn("[CheckTransferCrossChainAssetTransaction],", err)
+	//		return nil, elaerr.Simple(elaerr.ErrTxInvalidOutput, err)
+	//	}
 
-	case common2.ReturnDepositCoin:
-		if err := b.checkReturnDepositCoinTransaction(
-			txn, references, b.GetHeight()); err != nil {
-			log.Warn("[CheckReturnDepositCoinTransaction],", err)
-			return nil, elaerr.Simple(elaerr.ErrTxReturnDeposit, err)
-		}
+	//case common2.ReturnDepositCoin:
+	//	if err := b.checkReturnDepositCoinTransaction(
+	//		txn, references, b.GetHeight()); err != nil {
+	//		log.Warn("[CheckReturnDepositCoinTransaction],", err)
+	//		return nil, elaerr.Simple(elaerr.ErrTxReturnDeposit, err)
+	//	}
 
-	case common2.ReturnCRDepositCoin:
-		if err := b.checkReturnCRDepositCoinTransaction(
-			txn, references, b.GetHeight()); err != nil {
-			log.Warn("[CheckReturnDepositCoinTransaction],", err)
-			return nil, elaerr.Simple(elaerr.ErrTxReturnDeposit, err)
-		}
+	//case common2.ReturnCRDepositCoin:
+	//	if err := b.checkReturnCRDepositCoinTransaction(
+	//		txn, references, b.GetHeight()); err != nil {
+	//		log.Warn("[CheckReturnDepositCoinTransaction],", err)
+	//		return nil, elaerr.Simple(elaerr.ErrTxReturnDeposit, err)
+	//	}
 
-	case common2.CRCAppropriation:
-		if err := b.checkCRCAppropriationTransaction(txn, references); err != nil {
-			log.Warn("[checkCRCAppropriationTransaction],", err)
-			return nil, elaerr.Simple(elaerr.ErrTxAppropriation, err)
-		}
-		return references, nil
+	//case common2.CRCAppropriation:
+	//	if err := b.checkCRCAppropriationTransaction(txn, references); err != nil {
+	//		log.Warn("[checkCRCAppropriationTransaction],", err)
+	//		return nil, elaerr.Simple(elaerr.ErrTxAppropriation, err)
+	//	}
+	//	return references, nil
 
-	case common2.CRCProposalRealWithdraw:
-		if err := b.checkCRCProposalRealWithdrawTransaction(txn, references); err != nil {
-			log.Warn("[checkCRCProposalRealWithdrawTransaction],", err)
-			return nil, elaerr.Simple(elaerr.ErrTxRealWithdraw, err)
-		}
+	//case common2.CRCProposalRealWithdraw:
+	//	if err := b.checkCRCProposalRealWithdrawTransaction(txn, references); err != nil {
+	//		log.Warn("[checkCRCProposalRealWithdrawTransaction],", err)
+	//		return nil, elaerr.Simple(elaerr.ErrTxRealWithdraw, err)
+	//	}
 
-	case common2.CRAssetsRectify:
-		if err := b.checkCRAssetsRectifyTransaction(txn, references); err != nil {
-			log.Warn("[checkCRAssetsRectifyTransaction],", err)
-			return nil, elaerr.Simple(elaerr.ErrTxAssetsRectify, err)
-		}
+	//case common2.CRAssetsRectify:
+	//	if err := b.checkCRAssetsRectifyTransaction(txn, references); err != nil {
+	//		log.Warn("[checkCRAssetsRectifyTransaction],", err)
+	//		return nil, elaerr.Simple(elaerr.ErrTxAssetsRectify, err)
+	//	}
 
-	case common2.CRCouncilMemberClaimNode:
-		if err := b.checkCRCouncilMemberClaimNodeTransaction(txn); err != nil {
-			log.Warn("[checkCRCouncilMemberClaimNodeTransaction],", err)
-			return nil, elaerr.Simple(elaerr.ErrTxCRCRClaimNode, err)
-		}
-	case common2.RevertToPOW:
-		if err := b.checkRevertToPOWTransaction(txn, blockHeight, timeStamp); err != nil {
-			log.Warn("[checkRevertToPOWTransaction],", err)
-			return nil, elaerr.Simple(elaerr.ErrTxRevertToPOW, err)
-		}
-		return references, nil
+	//case common2.CRCouncilMemberClaimNode:
+	//	if err := b.checkCRCouncilMemberClaimNodeTransaction(txn); err != nil {
+	//		log.Warn("[checkCRCouncilMemberClaimNodeTransaction],", err)
+	//		return nil, elaerr.Simple(elaerr.ErrTxCRCRClaimNode, err)
+	//	}
 
-	case common2.ReturnSideChainDepositCoin:
-		if err := b.checkReturnSideChainDepositTransaction(txn); err != nil {
-			log.Warn("[checkReturnSideChainDepositTransaction]", err)
-			return nil, elaerr.Simple(elaerr.ErrTxReturnSideChainDeposit, err)
-		}
-	}
+	//case common2.RevertToPOW:
+	//	if err := b.checkRevertToPOWTransaction(txn, blockHeight, timeStamp); err != nil {
+	//		log.Warn("[checkRevertToPOWTransaction],", err)
+	//		return nil, elaerr.Simple(elaerr.ErrTxRevertToPOW, err)
+	//	}
+	//	return references, nil
+
+	//case common2.ReturnSideChainDepositCoin:
+	//	if err := b.checkReturnSideChainDepositTransaction(txn); err != nil {
+	//		log.Warn("[checkReturnSideChainDepositTransaction]", err)
+	//		return nil, elaerr.Simple(elaerr.ErrTxReturnSideChainDeposit, err)
+	//	}
+	//}
 
 	if err := b.checkTransactionFee(txn, references); err != nil {
 		log.Warn("[CheckTransactionFee],", err)

@@ -23,6 +23,8 @@ import (
 type DefaultChecker struct {
 	sanityParameters  *TransactionParameters
 	contextParameters *TransactionParameters
+
+	references map[*common2.Input]common2.Output
 }
 
 func (a *DefaultChecker) SetParameters(params interface{}) elaerr.ELAError {
@@ -56,6 +58,7 @@ func (a *DefaultChecker) ContextCheck(params interfaces.Parameters) (
 		log.Warn("[CheckTransactionContext] get transaction reference failed")
 		return nil, elaerr.Simple(elaerr.ErrTxUnknownReferredTx, nil)
 	}
+	a.references = references
 
 	if err := a.CheckPOWConsensusTransaction(references); err != nil {
 		log.Warn("[checkPOWConsensusTransaction],", err)

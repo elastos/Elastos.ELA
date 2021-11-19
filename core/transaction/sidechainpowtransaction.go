@@ -9,13 +9,42 @@ import (
 	"bytes"
 	"errors"
 	"github.com/elastos/Elastos.ELA/blockchain"
+	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/crypto"
 	elaerr "github.com/elastos/Elastos.ELA/errors"
+	"math"
 )
 
 type SideChainPOWTransaction struct {
 	BaseTransaction
+}
+
+func (t *SideChainPOWTransaction) CheckTransactionInput() error {
+
+	txn := t.sanityParameters.Transaction
+	if t.IsNewSideChainPowTx() {
+		if len(txn.Inputs()) != 0 {
+			return errors.New("no cost transactions must has no input")
+		}
+	} else {
+		if len(txn.Inputs()) <= 0 {
+			return errors.New("transaction has no inputs")
+		}
+		existingTxInputs := make(map[string]struct{})
+		for _, input := range txn.Inputs() {
+			if input.Previous.TxID.IsEqual(common.EmptyHash) && (input.Previous.Index == math.MaxUint16) {
+				return errors.New("invalid transaction input")
+			}
+			if _, exists := existingTxInputs[input.ReferKey()]; exists {
+				return errors.New("duplicated transaction inputs")
+			} else {
+				existingTxInputs[input.ReferKey()] = struct{}{}
+			}
+		}
+	}
+
+	return nil
 }
 
 func (t *SideChainPOWTransaction) IsAllowedInPOWConsensus() bool {
@@ -46,7 +75,7 @@ func (t *SideChainPOWTransaction) SpecialContextCheck() (elaerr.ELAError, bool) 
 
 	err = crypto.Verify(*publicKey, buf.Bytes()[0:68], payloadSideChainPow.Signature)
 	if err != nil {
-		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("Arbitrator is not matched. " + err.Error())), true
+		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("Arbitrator is not matched. "+err.Error())), true
 	}
 
 	if t.IsNewSideChainPowTx() {

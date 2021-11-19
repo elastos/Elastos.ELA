@@ -20,6 +20,13 @@ type IllegalVoteTransaction struct {
 	BaseTransaction
 }
 
+func (t *IllegalVoteTransaction) CheckTransactionInput() error {
+	if len(t.sanityParameters.Transaction.Inputs()) != 0 {
+		return errors.New("no cost transactions must has no input")
+	}
+	return nil
+}
+
 func (t *IllegalVoteTransaction) IsAllowedInPOWConsensus() bool {
 	return true
 }

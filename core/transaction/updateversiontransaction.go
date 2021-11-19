@@ -16,6 +16,13 @@ type UpdateVersionTransaction struct {
 	BaseTransaction
 }
 
+func (t *UpdateVersionTransaction) CheckTransactionInput() error {
+	if len(t.sanityParameters.Transaction.Inputs()) != 0 {
+		return errors.New("no cost transactions must has no input")
+	}
+	return nil
+}
+
 func (t *UpdateVersionTransaction) IsAllowedInPOWConsensus() bool {
 	return false
 }

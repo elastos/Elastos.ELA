@@ -18,10 +18,18 @@ type PayloadChecker interface {
 
 type BasePayloadChecker interface {
 
+	/// SANITY CHECK
+	// rewrite this function to check the transaction size, otherwise the
+	// transaction size if compare with default value: MaxBlockContextSize
+	CheckTransactionSize() error
+	// check transaction inputs
+	CheckTransactionInput() error
+
+	/// CONTEXT CHECK
+	// check height version
 	HeightVersionCheck() error
-
+	// if the transaction should create in POW need to return true
 	IsAllowedInPOWConsensus() bool
-
-	// todo add description
+	// the special context check of transaction
 	SpecialContextCheck() (error elaerr.ELAError, end bool)
 }

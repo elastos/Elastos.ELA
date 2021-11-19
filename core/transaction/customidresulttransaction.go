@@ -17,6 +17,13 @@ type ProposalResultTransaction struct {
 	BaseTransaction
 }
 
+func (t *ProposalResultTransaction) CheckTransactionInput() error {
+	if len(t.sanityParameters.Transaction.Inputs()) != 0 {
+		return errors.New("no cost transactions must has no input")
+	}
+	return nil
+}
+
 func (t *ProposalResultTransaction) IsAllowedInPOWConsensus() bool {
 	return true
 }

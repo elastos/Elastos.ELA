@@ -18,6 +18,13 @@ type RevertToPOWTransaction struct {
 	BaseTransaction
 }
 
+func (t *RevertToPOWTransaction) CheckTransactionInput() error {
+	if len(t.sanityParameters.Transaction.Inputs()) != 0 {
+		return errors.New("no cost transactions must has no input")
+	}
+	return nil
+}
+
 func (t *RevertToPOWTransaction) IsAllowedInPOWConsensus() bool {
 	return true
 }

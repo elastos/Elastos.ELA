@@ -22,6 +22,13 @@ type InactiveArbitratorsTransaction struct {
 	BaseTransaction
 }
 
+func (t *InactiveArbitratorsTransaction) CheckTransactionInput() error {
+	if len( t.sanityParameters.Transaction.Inputs()) != 0 {
+		return errors.New("no cost transactions must has no input")
+	}
+	return nil
+}
+
 func (t *InactiveArbitratorsTransaction) IsAllowedInPOWConsensus() bool {
 	return true
 }

@@ -19,6 +19,13 @@ type IllegalSideChainTransaction struct {
 	BaseTransaction
 }
 
+func (t *IllegalSideChainTransaction) CheckTransactionInput() error {
+	if len( t.sanityParameters.Transaction.Inputs()) != 0 {
+		return errors.New("no cost transactions must has no input")
+	}
+	return nil
+}
+
 func (t *IllegalSideChainTransaction) IsAllowedInPOWConsensus() bool {
 	return true
 }

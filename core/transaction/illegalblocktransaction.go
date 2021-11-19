@@ -16,6 +16,13 @@ type IllegalBlockTransaction struct {
 	BaseTransaction
 }
 
+func (t *IllegalBlockTransaction) CheckTransactionInput() error {
+	if len( t.sanityParameters.Transaction.Inputs()) != 0 {
+		return errors.New("no cost transactions must has no input")
+	}
+	return nil
+}
+
 func (t *IllegalBlockTransaction) IsAllowedInPOWConsensus() bool {
 	return true
 }

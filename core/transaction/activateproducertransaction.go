@@ -22,6 +22,13 @@ type ActivateProducerTransaction struct {
 	BaseTransaction
 }
 
+func (t *ActivateProducerTransaction) CheckTransactionInput() error {
+	if len(t.sanityParameters.Transaction.Inputs()) != 0 {
+		return errors.New("no cost transactions must has no input")
+	}
+	return nil
+}
+
 func (t *ActivateProducerTransaction) IsAllowedInPOWConsensus() bool {
 	return true
 }

@@ -21,6 +21,13 @@ type RevertToDPOSTransaction struct {
 	BaseTransaction
 }
 
+func (t *RevertToDPOSTransaction) CheckTransactionInput() error {
+	if len(t.sanityParameters.Transaction.Inputs()) != 0 {
+		return errors.New("no cost transactions must has no input")
+	}
+	return nil
+}
+
 func (t *RevertToDPOSTransaction) IsAllowedInPOWConsensus() bool {
 	return true
 }

@@ -7,6 +7,8 @@ package transaction
 
 import (
 	"errors"
+	"github.com/elastos/Elastos.ELA/common"
+	"math"
 
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/core/types/interfaces"
@@ -15,6 +17,22 @@ import (
 
 type CoinBaseTransaction struct {
 	BaseTransaction
+}
+
+func (t *CoinBaseTransaction) CheckTransactionInput() error {
+	txn := t.sanityParameters.Transaction
+	if len(txn.Inputs()) != 1 {
+		return errors.New("coinbase must has only one input")
+	}
+	inputHash := txn.Inputs()[0].Previous.TxID
+	inputIndex := txn.Inputs()[0].Previous.Index
+	sequence := txn.Inputs()[0].Sequence
+	if !inputHash.IsEqual(common.EmptyHash) ||
+		inputIndex != math.MaxUint16 || sequence != math.MaxUint32 {
+		return errors.New("invalid coinbase input")
+	}
+
+	return nil
 }
 
 func (t *CoinBaseTransaction) IsAllowedInPOWConsensus() bool {
@@ -46,7 +64,7 @@ func (a *CoinBaseTransaction) SpecialContextCheck() (result elaerr.ELAError, end
 
 func (a *CoinBaseTransaction) ContextCheck(para interfaces.Parameters) (map[*common2.Input]common2.Output, elaerr.ELAError) {
 
-	if err := a.SetParameters(para); err != nil {
+	if err := a.SetContextParameters(para); err != nil {
 		return nil, elaerr.Simple(elaerr.ErrTxDuplicate, errors.New("invalid contextParameters"))
 	}
 

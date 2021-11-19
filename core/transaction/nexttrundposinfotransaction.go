@@ -19,6 +19,13 @@ type NextTurnDPOSInfoTransaction struct {
 	BaseTransaction
 }
 
+func (t *NextTurnDPOSInfoTransaction) CheckTransactionInput() error {
+	if len(t.sanityParameters.Transaction.Inputs()) != 0 {
+		return errors.New("no cost transactions must has no input")
+	}
+	return nil
+}
+
 func (t *NextTurnDPOSInfoTransaction) IsAllowedInPOWConsensus() bool {
 	return true
 }

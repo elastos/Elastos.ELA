@@ -9,7 +9,7 @@ import (
 	"github.com/elastos/Elastos.ELA/account"
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/core/contract/program"
-	"github.com/elastos/Elastos.ELA/core/types/transactions"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 )
 
 func SignStandardTx(tx interfaces.Transaction, ac *account.Account) (err error) {
@@ -24,6 +24,6 @@ func SignStandardTx(tx interfaces.Transaction, ac *account.Account) (err error) 
 		return
 	}
 
-	tx.Programs = []*program.Program{pg}
+	tx.SetPrograms([]*program.Program{pg})
 	return
 }

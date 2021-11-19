@@ -8,7 +8,7 @@ package tx
 import (
 	"github.com/elastos/Elastos.ELA/account"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
-	"github.com/elastos/Elastos.ELA/core/types/transactions"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 )
 
 type AssignerType byte

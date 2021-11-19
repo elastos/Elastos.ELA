@@ -11,8 +11,8 @@ import (
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/core/types/outputpayload"
-	"github.com/elastos/Elastos.ELA/core/types/transactions"
 )
 
 const (
@@ -25,7 +25,7 @@ type fixAmountAssigner struct {
 }
 
 func (a *fixAmountAssigner) SignAndChange(tx interfaces.Transaction) error {
-	tx.Inputs = []*common2.Input{
+	tx.SetInputs([]*common2.Input{
 		{
 			Previous: common2.OutPoint{
 				TxID:  a.utxo.TxID,
@@ -33,20 +33,20 @@ func (a *fixAmountAssigner) SignAndChange(tx interfaces.Transaction) error {
 			},
 			Sequence: 0,
 		},
-	}
+	})
 
-	for _, o := range tx.Outputs {
+	for _, o := range tx.Outputs() {
 		o.Value = defaultAmount
 	}
-	tx.Outputs = append(tx.Outputs, &common2.Output{
+	tx.SetOutputs(append(tx.Outputs(), &common2.Output{
 		AssetID: config.ELAAssetID,
 		Value: a.utxo.Value -
-			defaultAmount*common.Fixed64(len(tx.Outputs)) - defaultFee,
+			defaultAmount*common.Fixed64(len(tx.Outputs())) - defaultFee,
 		OutputLock:  0,
 		ProgramHash: a.account.ProgramHash,
 		Type:        common2.OTNone,
 		Payload:     &outputpayload.DefaultOutput{},
-	})
+	}))
 
 	return utils.SignStandardTx(tx, a.account)
 }

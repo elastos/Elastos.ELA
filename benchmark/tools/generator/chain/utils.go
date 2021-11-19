@@ -6,8 +6,6 @@
 package chain
 
 import (
-	"github.com/elastos/Elastos.ELA/core/transaction"
-	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"sort"
 	"time"
 
@@ -19,6 +17,8 @@ import (
 	"github.com/elastos/Elastos.ELA/core/contract/program"
 	"github.com/elastos/Elastos.ELA/core/types"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/functions"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	crstate "github.com/elastos/Elastos.ELA/cr/state"
 	"github.com/elastos/Elastos.ELA/crypto"
@@ -97,13 +97,13 @@ func newGenesisBlock(ac *account.Account) *types.Block {
 		[]byte{77, 101, 130, 33, 7, 252, 253, 82})
 	genesisTime, _ := time.Parse(time.RFC3339, "2017-12-22T10:00:00Z")
 
-	coinBase := transaction.BaseTransaction{
-		Version:        0,
-		TxType:         common2.CoinBase,
-		PayloadVersion: payload.CoinBaseVersion,
-		Payload:        &payload.CoinBase{},
-		Attributes:     []*common2.Attribute{&attrNonce},
-		Inputs: []*common2.Input{
+	coinBase := functions.CreateTransaction(
+		0,
+		common2.CoinBase,
+		payload.CoinBaseVersion,
+		&payload.CoinBase{},
+		[]*common2.Attribute{&attrNonce},
+		[]*common2.Input{
 			{
 				Previous: common2.OutPoint{
 					TxID:  common.Uint256{},
@@ -112,16 +112,16 @@ func newGenesisBlock(ac *account.Account) *types.Block {
 				Sequence: 0x00000000,
 			},
 		},
-		Outputs: []*common2.Output{
+		[]*common2.Output{
 			{
 				AssetID:     config.ELAAssetID,
 				Value:       3300 * 10000 * 100000000,
 				ProgramHash: ac.ProgramHash,
 			},
 		},
-		LockTime: 0,
-		Programs: []*program.Program{},
-	}
+		0,
+		[]*program.Program{},
+	)
 
 	merkleRoot, _ := crypto.ComputeRoot([]common.Uint256{coinBase.Hash(),
 		config.ELAAssetID})
@@ -137,11 +137,12 @@ func newGenesisBlock(ac *account.Account) *types.Block {
 			Height:     0,
 		},
 		Transactions: []interfaces.Transaction{
-			&coinBase,
-			{
-				TxType:         common2.RegisterAsset,
-				PayloadVersion: 0,
-				Payload: &payload.RegisterAsset{
+			coinBase,
+			functions.CreateTransaction(
+				0,
+				common2.RegisterAsset,
+				0,
+				&payload.RegisterAsset{
 					Asset: payload.Asset{
 						Name:      "ELA",
 						Precision: 0x08,
@@ -150,11 +151,12 @@ func newGenesisBlock(ac *account.Account) *types.Block {
 					Amount:     0 * 100000000,
 					Controller: common.Uint168{},
 				},
-				Attributes: []*common2.Attribute{},
-				Inputs:     []*common2.Input{},
-				Outputs:    []*common2.Output{},
-				Programs:   []*program.Program{},
-			}},
+				[]*common2.Attribute{},
+				[]*common2.Input{},
+				[]*common2.Output{},
+				0,
+				[]*program.Program{},
+			)},
 	}
 }
 
@@ -201,7 +203,7 @@ func quickGenerateBlock(pow *pow.Service, prevHash *common.Uint256,
 		if isHighPriority(txs[j]) {
 			return false
 		}
-		return txs[i].FeePerKB > txs[j].FeePerKB
+		return txs[i].FeePerKB() > txs[j].FeePerKB()
 	})
 
 	for _, tx := range txs {
@@ -215,7 +217,7 @@ func quickGenerateBlock(pow *pow.Service, prevHash *common.Uint256,
 			continue
 		}
 		msgBlock.Transactions = append(msgBlock.Transactions, tx)
-		totalTxFee += tx.Fee
+		totalTxFee += tx.Fee()
 		txCount++
 	}
 

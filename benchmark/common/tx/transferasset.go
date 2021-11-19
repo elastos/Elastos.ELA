@@ -9,8 +9,9 @@ import (
 	"github.com/elastos/Elastos.ELA/account"
 	"github.com/elastos/Elastos.ELA/benchmark/common/utils"
 	"github.com/elastos/Elastos.ELA/common/config"
-	"github.com/elastos/Elastos.ELA/core/transaction"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/functions"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/core/types/outputpayload"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 )
@@ -24,31 +25,31 @@ type transferAssetGenerator struct {
 }
 
 func (g *transferAssetGenerator) Generate() interfaces.Transaction {
-	txn := &transaction.BaseTransaction{
-		Version:        common2.TxVersion09,
-		TxType:         common2.TransferAsset,
-		PayloadVersion: 0,
-		Payload:        &payload.TransferAsset{},
-		Attributes: []*common2.Attribute{
+	txn := functions.CreateTransaction(
+		        common2.TxVersion09,
+		         common2.TransferAsset,
+		 0,
+		        &payload.TransferAsset{},
+		 []*common2.Attribute{
 			{
 				Usage: common2.Nonce,
 				Data:  utils.RandomBytes(nonceByteLength),
 			},
 		},
-		Inputs:   nil,
-		Outputs:  []*common2.Output{},
-		LockTime: 0,
-		Programs: nil,
-	}
+		   nil,
+		  []*common2.Output{},
+		 0,
+		 nil,
+	)
 	for _, v := range g.account {
-		txn.Outputs = append(txn.Outputs, &common2.Output{
+		txn.SetOutputs(append(txn.Outputs(), &common2.Output{
 			AssetID:     config.ELAAssetID,
 			Value:       0, // assign later
 			OutputLock:  0,
 			ProgramHash: v.ProgramHash,
 			Type:        common2.OTNone,
 			Payload:     &outputpayload.DefaultOutput{},
-		})
+		}))
 	}
 
 	return txn

@@ -6,7 +6,7 @@
 package chain
 
 import (
-	"github.com/elastos/Elastos.ELA/core/types/transactions"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"io"
 	"math/rand"
 
@@ -249,12 +249,12 @@ func (r *TxRepository) deserializeAccount(
 }
 
 func (r *TxRepository) updateByAllocateFundTx(allocTx interfaces.Transaction) {
-	r.appendUTXOs(allocTx, len(allocTx.Outputs)-1)
+	r.appendUTXOs(allocTx, len(allocTx.Outputs())-1)
 
 	r.foundationUTXO = common2.UTXO{
 		TxID:  allocTx.Hash(),
-		Index: uint16(len(allocTx.Outputs) - 1),
-		Value: allocTx.Outputs[len(allocTx.Outputs)-1].Value,
+		Index: uint16(len(allocTx.Outputs()) - 1),
+		Value: allocTx.Outputs()[len(allocTx.Outputs())-1].Value,
 	}
 }
 
@@ -265,7 +265,7 @@ func (r *TxRepository) updateUTXOs(txns []interfaces.Transaction) {
 }
 
 func (r *TxRepository) appendUTXOs(txn interfaces.Transaction, utxoCount int) {
-	for i, o := range txn.Outputs {
+	for i, o := range txn.Outputs() {
 		if utxoCount != 0 && i >= utxoCount {
 			break
 		}

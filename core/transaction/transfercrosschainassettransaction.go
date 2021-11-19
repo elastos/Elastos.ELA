@@ -45,7 +45,7 @@ func (t *TransferCrossChainAssetTransaction) HeightVersionCheck() error {
 	return nil
 }
 
-func (t *TransferCrossChainAssetTransaction) SpecialCheck() (elaerr.ELAError, bool) {
+func (t *TransferCrossChainAssetTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
 	var err error
 	if t.PayloadVersion() > payload.TransferCrossChainVersionV1 {
 		err = errors.New("invalid payload version")

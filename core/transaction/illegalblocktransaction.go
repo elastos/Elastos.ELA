@@ -20,7 +20,7 @@ func (t *IllegalBlockTransaction) IsAllowedInPOWConsensus() bool {
 	return true
 }
 
-func (a *IllegalBlockTransaction) SpecialCheck() (elaerr.ELAError, bool) {
+func (a *IllegalBlockTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
 	p, ok := a.Payload().(*payload.DPOSIllegalBlocks)
 	if !ok {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid payload")), true

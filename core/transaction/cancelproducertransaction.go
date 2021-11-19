@@ -24,7 +24,7 @@ func (t *CancelProducerTransaction) IsAllowedInPOWConsensus() bool {
 	return false
 }
 
-func (t *CancelProducerTransaction) SpecialCheck() (elaerr.ELAError, bool) {
+func (t *CancelProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
 	producer, err := t.checkProcessProducer(t)
 	if err != nil {
 		return elaerr.Simple(elaerr.ErrTxPayload, err), true

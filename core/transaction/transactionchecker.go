@@ -84,7 +84,7 @@ func (a *DefaultChecker) ContextCheck(params interfaces.Parameters) (
 		return nil, elaerr.Simple(elaerr.ErrTxUTXOLocked, err)
 	}
 
-	firstErr, end := a.SpecialCheck()
+	firstErr, end := a.SpecialContextCheck()
 	if end {
 		return nil, firstErr
 	}
@@ -264,7 +264,7 @@ func (a *DefaultChecker) CheckTransactionUTXOLock(txn interfaces.Transaction, re
 	return nil
 }
 
-func (a *DefaultChecker) SpecialCheck() (elaerr.ELAError, bool) {
+func (a *DefaultChecker) SpecialContextCheck() (elaerr.ELAError, bool) {
 	fmt.Println("default check")
 	return nil, false
 }

@@ -20,7 +20,7 @@ func (t *UpdateVersionTransaction) IsAllowedInPOWConsensus() bool {
 	return false
 }
 
-func (t *UpdateVersionTransaction) SpecialCheck() (elaerr.ELAError, bool) {
+func (t *UpdateVersionTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
 	payload, ok := t.Payload().(*payload.UpdateVersion)
 	if !ok {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid payload")), true

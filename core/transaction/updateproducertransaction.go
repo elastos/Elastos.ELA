@@ -26,7 +26,7 @@ func (t *UpdateProducerTransaction) IsAllowedInPOWConsensus() bool {
 	return false
 }
 
-func (t *UpdateProducerTransaction) SpecialCheck() (elaerr.ELAError, bool) {
+func (t *UpdateProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
 	info, ok := t.Payload().(*payload.ProducerInfo)
 	if !ok {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid payload")), true

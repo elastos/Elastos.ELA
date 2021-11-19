@@ -36,7 +36,7 @@ func (t *CRCouncilMemberClaimNodeTransaction) HeightVersionCheck() error {
 	return nil
 }
 
-func (t *CRCouncilMemberClaimNodeTransaction) SpecialCheck() (result elaerr.ELAError, end bool) {
+func (t *CRCouncilMemberClaimNodeTransaction) SpecialContextCheck() (result elaerr.ELAError, end bool) {
 	manager, ok := t.Payload().(*payload.CRCouncilMemberClaimNode)
 	if !ok {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid payload")), true

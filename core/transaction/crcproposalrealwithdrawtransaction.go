@@ -34,7 +34,7 @@ func (t *CRCProposalRealWithdrawTransaction) HeightVersionCheck() error {
 	return nil
 }
 
-func (t *CRCProposalRealWithdrawTransaction) SpecialCheck() (result elaerr.ELAError, end bool) {
+func (t *CRCProposalRealWithdrawTransaction) SpecialContextCheck() (result elaerr.ELAError, end bool) {
 	crcRealWithdraw, ok := t.Payload().(*payload.CRCProposalRealWithdraw)
 	if !ok {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid payload")), true

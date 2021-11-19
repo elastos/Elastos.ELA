@@ -33,7 +33,7 @@ func (t *ReturnCRDepositCoinTransaction) HeightVersionCheck() error {
 	return nil
 }
 
-func (t *ReturnCRDepositCoinTransaction) SpecialCheck() (elaerr.ELAError, bool) {
+func (t *ReturnCRDepositCoinTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
 
 	var inputValue common.Fixed64
 	fromAddrMap := make(map[common.Uint168]struct{})

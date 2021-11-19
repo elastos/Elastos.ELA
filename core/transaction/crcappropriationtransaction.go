@@ -32,7 +32,7 @@ func (t *CRCAppropriationTransaction) HeightVersionCheck() error {
 	return nil
 }
 
-func (t *CRCAppropriationTransaction) SpecialCheck() (result elaerr.ELAError, end bool) {
+func (t *CRCAppropriationTransaction) SpecialContextCheck() (result elaerr.ELAError, end bool) {
 	// Check if current session has appropriated.
 	if !t.contextParameters.BlockChain.GetCRCommittee().IsAppropriationNeeded() {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("should have no appropriation transaction")), true

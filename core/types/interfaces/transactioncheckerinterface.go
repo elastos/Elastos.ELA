@@ -13,7 +13,6 @@ import (
 type PayloadChecker interface {
 	ContextCheck(p Parameters) (map[*common2.Input]common2.Output, elaerr.ELAError)
 
-	// todo ... add SanityCheck
 	SanityCheck(p Parameters) elaerr.ELAError
 }
 
@@ -24,5 +23,5 @@ type BasePayloadChecker interface {
 	IsAllowedInPOWConsensus() bool
 
 	// todo add description
-	SpecialCheck() (error elaerr.ELAError, end bool)
+	SpecialContextCheck() (error elaerr.ELAError, end bool)
 }

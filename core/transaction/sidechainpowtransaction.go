@@ -22,7 +22,7 @@ func (t *SideChainPOWTransaction) IsAllowedInPOWConsensus() bool {
 	return false
 }
 
-func (t *SideChainPOWTransaction) SpecialCheck() (elaerr.ELAError, bool) {
+func (t *SideChainPOWTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
 	arbitrator := blockchain.DefaultLedger.Arbitrators.GetOnDutyCrossChainArbitrator()
 	payloadSideChainPow, ok := t.Payload().(*payload.SideChainPow)
 	if !ok {

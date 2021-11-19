@@ -23,7 +23,7 @@ func (t *UpdateCRTransaction) IsAllowedInPOWConsensus() bool {
 	return false
 }
 
-func (t *UpdateCRTransaction) SpecialCheck() (elaerr.ELAError, bool) {
+func (t *UpdateCRTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
 	info, ok := t.Payload().(*payload.CRInfo)
 	if !ok {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid payload")), true

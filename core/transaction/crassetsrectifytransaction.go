@@ -32,7 +32,7 @@ func (t *CRAssetsRectifyTransaction) HeightVersionCheck() error {
 	return nil
 }
 
-func (t *CRAssetsRectifyTransaction) SpecialCheck() (result elaerr.ELAError, end bool) {
+func (t *CRAssetsRectifyTransaction) SpecialContextCheck() (result elaerr.ELAError, end bool) {
 	// Inputs count should be less than or equal to MaxCRAssetsAddressUTXOCount
 	if len(t.Inputs()) > int(t.contextParameters.Config.MaxCRAssetsAddressUTXOCount) {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("inputs count should be less than or " +

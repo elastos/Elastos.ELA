@@ -45,7 +45,7 @@ func (t *CRCProposalReviewTransaction) HeightVersionCheck() error {
 	return nil
 }
 
-func (t *CRCProposalReviewTransaction) SpecialCheck() (result elaerr.ELAError, end bool) {
+func (t *CRCProposalReviewTransaction) SpecialContextCheck() (result elaerr.ELAError, end bool) {
 	crcProposalReview, ok := t.Payload().(*payload.CRCProposalReview)
 	if !ok {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid payload")), true

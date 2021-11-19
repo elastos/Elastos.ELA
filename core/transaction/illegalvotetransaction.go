@@ -24,7 +24,7 @@ func (t *IllegalVoteTransaction) IsAllowedInPOWConsensus() bool {
 	return true
 }
 
-func (a *IllegalVoteTransaction) SpecialCheck() (result elaerr.ELAError, end bool) {
+func (a *IllegalVoteTransaction) SpecialContextCheck() (result elaerr.ELAError, end bool) {
 	if a.contextParameters.BlockChain.GetState().SpecialTxExists(a) {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("tx already exists")), true
 	}

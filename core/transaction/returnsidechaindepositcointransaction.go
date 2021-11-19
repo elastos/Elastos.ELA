@@ -36,7 +36,7 @@ func (t *ReturnSideChainDepositCoinTransaction) HeightVersionCheck() error {
 	return nil
 }
 
-func (t *ReturnSideChainDepositCoinTransaction) SpecialCheck() (result elaerr.ELAError, end bool) {
+func (t *ReturnSideChainDepositCoinTransaction) SpecialContextCheck() (result elaerr.ELAError, end bool) {
 	_, ok := t.Payload().(*payload.ReturnSideChainDepositCoin)
 	if !ok {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid payload")), true

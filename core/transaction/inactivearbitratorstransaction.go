@@ -26,7 +26,7 @@ func (t *InactiveArbitratorsTransaction) IsAllowedInPOWConsensus() bool {
 	return true
 }
 
-func (t *InactiveArbitratorsTransaction) SpecialCheck() (elaerr.ELAError, bool) {
+func (t *InactiveArbitratorsTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
 
 	if t.contextParameters.BlockChain.GetState().SpecialTxExists(t) {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("tx already exists")), true

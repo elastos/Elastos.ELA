@@ -21,7 +21,7 @@ func (t *ProposalResultTransaction) IsAllowedInPOWConsensus() bool {
 	return true
 }
 
-func (t *ProposalResultTransaction) SpecialCheck() (elaerr.ELAError, bool) {
+func (t *ProposalResultTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
 	if !blockchain.DefaultLedger.Committee.IsProposalResultNeeded() {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("should not have proposal result transaction")), true
 	}

@@ -40,7 +40,7 @@ func (t *RegisterCRTransaction) HeightVersionCheck() error {
 	return nil
 }
 
-func (t *RegisterCRTransaction) SpecialCheck() (elaerr.ELAError, bool) {
+func (t *RegisterCRTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
 	info, ok := t.Payload().(*payload.CRInfo)
 	if !ok {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid payload")), true

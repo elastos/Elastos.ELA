@@ -23,7 +23,7 @@ func (t *IllegalSideChainTransaction) IsAllowedInPOWConsensus() bool {
 	return true
 }
 
-func (t *IllegalSideChainTransaction) SpecialCheck() (elaerr.ELAError, bool) {
+func (t *IllegalSideChainTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
 	p, ok := t.Payload().(*payload.SidechainIllegalData)
 	if !ok {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid payload")), true

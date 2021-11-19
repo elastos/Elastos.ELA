@@ -23,7 +23,7 @@ func (t *NextTurnDPOSInfoTransaction) IsAllowedInPOWConsensus() bool {
 	return true
 }
 
-func (t *NextTurnDPOSInfoTransaction) SpecialCheck() (elaerr.ELAError, bool) {
+func (t *NextTurnDPOSInfoTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
 	nextTurnDPOSInfo, ok := t.Payload().(*payload.NextTurnDPOSInfo)
 	if !ok {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid NextTurnDPOSInfo payload")), true

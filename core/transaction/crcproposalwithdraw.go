@@ -50,7 +50,7 @@ func (t *CRCProposalWithdrawTransaction) HeightVersionCheck() error {
 	return nil
 }
 
-func (t *CRCProposalWithdrawTransaction) SpecialCheck() (result elaerr.ELAError, end bool) {
+func (t *CRCProposalWithdrawTransaction) SpecialContextCheck() (result elaerr.ELAError, end bool) {
 
 	if t.PayloadVersion() == payload.CRCProposalWithdrawDefault {
 		for _, output := range t.references {

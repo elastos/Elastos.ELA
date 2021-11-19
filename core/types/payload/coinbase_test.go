@@ -50,7 +50,7 @@ package payload
 //		},
 //	}
 //	payload.ContextCheck(para)
-//	payload.SpecialCheck(para)
+//	payload.SpecialContextCheck(para)
 //
 //	// default check
 //	payload2 := Confirm{
@@ -63,6 +63,6 @@ package payload
 //		},
 //	}
 //	payload2.ContextCheck(para)
-//	payload2.SpecialCheck(para)
+//	payload2.SpecialContextCheck(para)
 //
 //}

@@ -21,7 +21,7 @@ func (t *CoinBaseTransaction) IsAllowedInPOWConsensus() bool {
 	return true
 }
 
-func (a *CoinBaseTransaction) SpecialCheck() (result elaerr.ELAError, end bool) {
+func (a *CoinBaseTransaction) SpecialContextCheck() (result elaerr.ELAError, end bool) {
 	para := a.contextParameters
 	if para.BlockHeight >= para.Config.CRCommitteeStartHeight {
 		if para.BlockChain.GetState().GetConsensusAlgorithm() == 0x01 {
@@ -60,7 +60,7 @@ func (a *CoinBaseTransaction) ContextCheck(para interfaces.Parameters) (map[*com
 		return nil, elaerr.Simple(elaerr.ErrTxDuplicate, nil)
 	}
 
-	firstErr, end := a.SpecialCheck()
+	firstErr, end := a.SpecialContextCheck()
 	if end {
 		return nil, firstErr
 	}

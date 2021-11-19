@@ -34,7 +34,7 @@ func (t *RevertToDPOSTransaction) HeightVersionCheck() error {
 	return nil
 }
 
-func (t *RevertToDPOSTransaction) SpecialCheck() (elaerr.ELAError, bool) {
+func (t *RevertToDPOSTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
 	p, ok := t.Payload().(*payload.RevertToDPOS)
 	if !ok {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid payload.RevertToDPOS")), true

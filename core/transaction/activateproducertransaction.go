@@ -26,7 +26,7 @@ func (t *ActivateProducerTransaction) IsAllowedInPOWConsensus() bool {
 	return true
 }
 
-func (t *ActivateProducerTransaction) SpecialCheck() (elaerr.ELAError, bool) {
+func (t *ActivateProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
 
 	activateProducer, ok := t.Payload().(*payload.ActivateProducer)
 	if !ok {

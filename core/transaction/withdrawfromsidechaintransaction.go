@@ -31,7 +31,7 @@ func (t *WithdrawFromSideChainTransaction) IsAllowedInPOWConsensus() bool {
 	return false
 }
 
-func (t *WithdrawFromSideChainTransaction) SpecialCheck() (elaerr.ELAError, bool) {
+func (t *WithdrawFromSideChainTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
 	var err error
 	if t.PayloadVersion() == payload.WithdrawFromSideChainVersion {
 		err = t.checkWithdrawFromSideChainTransactionV0()

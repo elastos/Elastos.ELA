@@ -31,7 +31,7 @@ func (t *RevertToPOWTransaction) HeightVersionCheck() error {
 	return nil
 }
 
-func (t *RevertToPOWTransaction) SpecialCheck() (result elaerr.ELAError, end bool) {
+func (t *RevertToPOWTransaction) SpecialContextCheck() (result elaerr.ELAError, end bool) {
 	p, ok := t.Payload().(*payload.RevertToPOW)
 	if !ok {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid payload")), true

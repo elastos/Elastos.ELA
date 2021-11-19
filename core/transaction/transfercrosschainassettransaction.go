@@ -21,7 +21,11 @@ type TransferCrossChainAssetTransaction struct {
 	BaseTransaction
 }
 
-func (t *TransferCrossChainAssetTransaction) CheckTxHeightVersion() error {
+func (t *TransferCrossChainAssetTransaction) IsAllowedInPOWConsensus() bool {
+	return false
+}
+
+func (t *TransferCrossChainAssetTransaction) HeightVersionCheck() error {
 	txn := t.contextParameters.Transaction
 	blockHeight := t.contextParameters.BlockHeight
 	chainParams := t.contextParameters.Config

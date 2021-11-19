@@ -19,6 +19,10 @@ type UpdateCRTransaction struct {
 	BaseTransaction
 }
 
+func (t *UpdateCRTransaction) IsAllowedInPOWConsensus() bool {
+	return false
+}
+
 func (t *UpdateCRTransaction) SpecialCheck() (elaerr.ELAError, bool) {
 	info, ok := t.Payload().(*payload.CRInfo)
 	if !ok {

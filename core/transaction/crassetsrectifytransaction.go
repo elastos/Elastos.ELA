@@ -16,7 +16,11 @@ type CRAssetsRectifyTransaction struct {
 	BaseTransaction
 }
 
-func (t *CRAssetsRectifyTransaction) CheckTxHeightVersion() error {
+func (t *CRAssetsRectifyTransaction) IsAllowedInPOWConsensus() bool {
+	return true
+}
+
+func (t *CRAssetsRectifyTransaction) HeightVersionCheck() error {
 	txn := t.contextParameters.Transaction
 	blockHeight := t.contextParameters.BlockHeight
 	chainParams := t.contextParameters.Config

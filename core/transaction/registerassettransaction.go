@@ -8,3 +8,7 @@ package transaction
 type RegisterAssetTransaction struct {
 	BaseTransaction
 }
+
+func (t *RegisterAssetTransaction) IsAllowedInPOWConsensus() bool {
+	return false
+}

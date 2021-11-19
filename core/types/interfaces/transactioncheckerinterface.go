@@ -19,7 +19,7 @@ type PayloadChecker interface {
 
 type BasePayloadChecker interface {
 
-	CheckTxHeightVersion() error
+	HeightVersionCheck() error
 
 	IsAllowedInPOWConsensus() bool
 

@@ -19,6 +19,10 @@ type IllegalSideChainTransaction struct {
 	BaseTransaction
 }
 
+func (t *IllegalSideChainTransaction) IsAllowedInPOWConsensus() bool {
+	return true
+}
+
 func (t *IllegalSideChainTransaction) SpecialCheck() (elaerr.ELAError, bool) {
 	p, ok := t.Payload().(*payload.SidechainIllegalData)
 	if !ok {

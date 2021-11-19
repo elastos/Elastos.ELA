@@ -20,7 +20,11 @@ type ReturnSideChainDepositCoinTransaction struct {
 	BaseTransaction
 }
 
-func (t *ReturnSideChainDepositCoinTransaction) CheckTxHeightVersion() error {
+func (t *ReturnSideChainDepositCoinTransaction) IsAllowedInPOWConsensus() bool {
+	return false
+}
+
+func (t *ReturnSideChainDepositCoinTransaction) HeightVersionCheck() error {
 	txn := t.contextParameters.Transaction
 	blockHeight := t.contextParameters.BlockHeight
 	chainParams := t.contextParameters.Config

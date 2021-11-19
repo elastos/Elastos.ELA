@@ -20,6 +20,10 @@ type CancelProducerTransaction struct {
 	BaseTransaction
 }
 
+func (t *CancelProducerTransaction) IsAllowedInPOWConsensus() bool {
+	return false
+}
+
 func (t *CancelProducerTransaction) SpecialCheck() (elaerr.ELAError, bool) {
 	producer, err := t.checkProcessProducer(t)
 	if err != nil {

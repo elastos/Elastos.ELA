@@ -70,7 +70,7 @@ type BaseChecker struct {
 func (b *BlockChain) CheckTransactionSanity(blockHeight uint32,
 	txn interfaces.Transaction) elaerr.ELAError {
 	if err := b.checkTxHeightVersion(txn, blockHeight); err != nil {
-		log.Warn("[CheckTxHeightVersion],", err)
+		log.Warn("[HeightVersionCheck],", err)
 		return elaerr.Simple(elaerr.ErrTxHeightVersion, err)
 	}
 

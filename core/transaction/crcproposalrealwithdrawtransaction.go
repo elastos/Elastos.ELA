@@ -18,7 +18,11 @@ type CRCProposalRealWithdrawTransaction struct {
 	BaseTransaction
 }
 
-func (t *CRCProposalRealWithdrawTransaction) CheckTxHeightVersion() error {
+func (t *CRCProposalRealWithdrawTransaction) IsAllowedInPOWConsensus() bool {
+	return true
+}
+
+func (t *CRCProposalRealWithdrawTransaction) HeightVersionCheck() error {
 	txn := t.contextParameters.Transaction
 	blockHeight := t.contextParameters.BlockHeight
 	chainParams := t.contextParameters.Config

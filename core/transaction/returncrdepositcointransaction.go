@@ -17,7 +17,11 @@ type ReturnCRDepositCoinTransaction struct {
 	BaseTransaction
 }
 
-func (t *ReturnCRDepositCoinTransaction) CheckTxHeightVersion() error {
+func (t *ReturnCRDepositCoinTransaction) IsAllowedInPOWConsensus() bool {
+	return false
+}
+
+func (t *ReturnCRDepositCoinTransaction) HeightVersionCheck() error {
 	txn := t.contextParameters.Transaction
 	blockHeight := t.contextParameters.BlockHeight
 	chainParams := t.contextParameters.Config

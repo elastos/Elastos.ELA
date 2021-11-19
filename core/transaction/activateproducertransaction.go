@@ -22,6 +22,10 @@ type ActivateProducerTransaction struct {
 	BaseTransaction
 }
 
+func (t *ActivateProducerTransaction) IsAllowedInPOWConsensus() bool {
+	return true
+}
+
 func (t *ActivateProducerTransaction) SpecialCheck() (elaerr.ELAError, bool) {
 
 	activateProducer, ok := t.Payload().(*payload.ActivateProducer)

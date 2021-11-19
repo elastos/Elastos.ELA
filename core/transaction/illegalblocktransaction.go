@@ -16,6 +16,10 @@ type IllegalBlockTransaction struct {
 	BaseTransaction
 }
 
+func (t *IllegalBlockTransaction) IsAllowedInPOWConsensus() bool {
+	return true
+}
+
 func (a *IllegalBlockTransaction) SpecialCheck() (elaerr.ELAError, bool) {
 	p, ok := a.Payload().(*payload.DPOSIllegalBlocks)
 	if !ok {

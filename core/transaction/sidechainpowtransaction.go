@@ -18,6 +18,9 @@ type SideChainPOWTransaction struct {
 	BaseTransaction
 }
 
+func (t *SideChainPOWTransaction) IsAllowedInPOWConsensus() bool {
+	return false
+}
 
 func (t *SideChainPOWTransaction) SpecialCheck() (elaerr.ELAError, bool) {
 	arbitrator := blockchain.DefaultLedger.Arbitrators.GetOnDutyCrossChainArbitrator()

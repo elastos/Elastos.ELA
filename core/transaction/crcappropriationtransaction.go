@@ -16,7 +16,11 @@ type CRCAppropriationTransaction struct {
 	BaseTransaction
 }
 
-func (t *CRCAppropriationTransaction) CheckTxHeightVersion() error {
+func (t *CRCAppropriationTransaction) IsAllowedInPOWConsensus() bool {
+	return true
+}
+
+func (t *CRCAppropriationTransaction) HeightVersionCheck() error {
 	txn := t.contextParameters.Transaction
 	blockHeight := t.contextParameters.BlockHeight
 	chainParams := t.contextParameters.Config

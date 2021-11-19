@@ -24,7 +24,11 @@ type RegisterProducerTransaction struct {
 	BaseTransaction
 }
 
-func (t *RegisterProducerTransaction) CheckTxHeightVersion() error {
+func (t *RegisterProducerTransaction) IsAllowedInPOWConsensus() bool {
+	return true
+}
+
+func (t *RegisterProducerTransaction) HeightVersionCheck() error {
 	txn := t.contextParameters.Transaction
 	blockHeight := t.contextParameters.BlockHeight
 	chainParams := t.contextParameters.Config

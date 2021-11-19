@@ -17,6 +17,10 @@ type ReturnDepositCoinTransaction struct {
 	BaseTransaction
 }
 
+func (t *ReturnDepositCoinTransaction) IsAllowedInPOWConsensus() bool {
+	return false
+}
+
 func (t *ReturnDepositCoinTransaction) SpecialCheck() (elaerr.ELAError, bool) {
 	var inputValue common.Fixed64
 	fromAddrMap := make(map[common.Uint168]struct{})

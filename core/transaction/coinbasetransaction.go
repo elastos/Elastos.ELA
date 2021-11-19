@@ -17,7 +17,10 @@ type CoinBaseTransaction struct {
 	BaseTransaction
 }
 
-// todo add description
+func (t *CoinBaseTransaction) IsAllowedInPOWConsensus() bool {
+	return true
+}
+
 func (a *CoinBaseTransaction) SpecialCheck() (result elaerr.ELAError, end bool) {
 	para := a.contextParameters
 	if para.BlockHeight >= para.Config.CRCommitteeStartHeight {
@@ -47,7 +50,7 @@ func (a *CoinBaseTransaction) ContextCheck(para interfaces.Parameters) (map[*com
 		return nil, elaerr.Simple(elaerr.ErrTxDuplicate, errors.New("invalid contextParameters"))
 	}
 
-	if err := a.CheckTxHeightVersion(); err != nil {
+	if err := a.HeightVersionCheck(); err != nil {
 		return nil, elaerr.Simple(elaerr.ErrTxHeightVersion, nil)
 	}
 

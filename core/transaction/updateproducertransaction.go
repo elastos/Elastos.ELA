@@ -22,6 +22,10 @@ type UpdateProducerTransaction struct {
 	BaseTransaction
 }
 
+func (t *UpdateProducerTransaction) IsAllowedInPOWConsensus() bool {
+	return false
+}
+
 func (t *UpdateProducerTransaction) SpecialCheck() (elaerr.ELAError, bool) {
 	info, ok := t.Payload().(*payload.ProducerInfo)
 	if !ok {

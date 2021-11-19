@@ -19,6 +19,10 @@ type IllegalProposalTransaction struct {
 	BaseTransaction
 }
 
+func (t *IllegalProposalTransaction) IsAllowedInPOWConsensus() bool {
+	return true
+}
+
 func (a *IllegalProposalTransaction) SpecialCheck() (result elaerr.ELAError, end bool) {
 	if a.contextParameters.BlockChain.GetState().SpecialTxExists(a) {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("tx already exists")), true

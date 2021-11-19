@@ -20,7 +20,11 @@ type CRCouncilMemberClaimNodeTransaction struct {
 	BaseTransaction
 }
 
-func (t *CRCouncilMemberClaimNodeTransaction) CheckTxHeightVersion() error {
+func (t *CRCouncilMemberClaimNodeTransaction) IsAllowedInPOWConsensus() bool {
+	return true
+}
+
+func (t *CRCouncilMemberClaimNodeTransaction) HeightVersionCheck() error {
 	txn := t.contextParameters.Transaction
 	blockHeight := t.contextParameters.BlockHeight
 	chainParams := t.contextParameters.Config

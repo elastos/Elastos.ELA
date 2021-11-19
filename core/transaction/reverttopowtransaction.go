@@ -18,7 +18,11 @@ type RevertToPOWTransaction struct {
 	BaseTransaction
 }
 
-func (t *RevertToPOWTransaction) CheckTxHeightVersion() error {
+func (t *RevertToPOWTransaction) IsAllowedInPOWConsensus() bool {
+	return true
+}
+
+func (t *RevertToPOWTransaction) HeightVersionCheck() error {
 	if t.contextParameters.BlockHeight < t.contextParameters.Config.RevertToPOWStartHeight {
 		return errors.New(fmt.Sprintf("not support %s transaction "+
 			"before RevertToPOWStartHeight", t.TxType().Name()))

@@ -12,7 +12,6 @@ import (
 	"github.com/elastos/Elastos.ELA/blockchain"
 	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/core/contract"
-	"github.com/elastos/Elastos.ELA/core/types/outputpayload"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/dpos/state"
 	"math"
@@ -51,7 +50,7 @@ func (a *DefaultChecker) ContextCheck(params interfaces.Parameters) (
 		return nil, elaerr.Simple(elaerr.ErrTxDuplicate, errors.New("invalid contextParameters"))
 	}
 
-	if err := a.CheckTxHeightVersion(); err != nil {
+	if err := a.HeightVersionCheck(); err != nil {
 		return nil, elaerr.Simple(elaerr.ErrTxHeightVersion, nil)
 	}
 
@@ -231,7 +230,7 @@ func (a *DefaultChecker) isSmallThanMinTransactionFee(fee common.Fixed64) bool {
 }
 
 // validate the type of transaction is allowed or not at current height.
-func (a *DefaultChecker) CheckTxHeightVersion() error {
+func (a *DefaultChecker) HeightVersionCheck() error {
 	return nil
 }
 
@@ -245,63 +244,7 @@ func (a *DefaultChecker) GetTxReference(txn interfaces.Transaction) (
 }
 
 func (a *DefaultChecker) IsAllowedInPOWConsensus() bool {
-	txn := a.contextParameters.Transaction
-	b := a.contextParameters.BlockChain
-
-	if b.GetState().GetConsensusAlgorithm() != state.POW {
-		return nil
-	}
-
-	switch txn.TxType() {
-	case common2.RegisterProducer, common2.ActivateProducer, common2.CRCouncilMemberClaimNode:
-		return nil
-	case common2.CRCAppropriation, common2.CRAssetsRectify, common2.CRCProposalRealWithdraw,
-		common2.NextTurnDPOSInfo, common2.RevertToDPOS:
-		return nil
-	case common2.TransferAsset:
-		if txn.Version() >= common2.TxVersion09 {
-			var containVoteOutput bool
-			for _, output := range txn.Outputs() {
-				if output.Type == common2.OTVote {
-					p := output.Payload.(*outputpayload.VoteOutput)
-					for _, vote := range p.Contents {
-						switch vote.VoteType {
-						case outputpayload.Delegate:
-						case outputpayload.CRC:
-							return errors.New("not allow to vote CR in POW consensus")
-						case outputpayload.CRCProposal:
-							return errors.New("not allow to vote CRC proposal in POW consensus")
-						case outputpayload.CRCImpeachment:
-							return errors.New("not allow to vote CRImpeachment in POW consensus")
-						}
-					}
-					containVoteOutput = true
-				}
-			}
-			if !containVoteOutput {
-				return errors.New("not allow to transfer asset in POW consensus")
-			}
-
-			inputProgramHashes := make(map[common.Uint168]struct{})
-			for _, output := range a.references {
-				inputProgramHashes[output.ProgramHash] = struct{}{}
-			}
-			outputProgramHashes := make(map[common.Uint168]struct{})
-			for _, output := range txn.Outputs() {
-				outputProgramHashes[output.ProgramHash] = struct{}{}
-			}
-			for k, _ := range outputProgramHashes {
-				if _, ok := inputProgramHashes[k]; !ok {
-					return errors.New("output program hash is not in inputs")
-				}
-			}
-		} else {
-			return errors.New("not allow to transfer asset in POW consensus")
-		}
-		return nil
-	}
-
-	return fmt.Errorf("not support transaction %s in POW consensus", txn.TxType().Name())
+	return true
 }
 
 func (a *DefaultChecker) CheckTransactionUTXOLock(txn interfaces.Transaction, references map[*common2.Input]common2.Output) error {

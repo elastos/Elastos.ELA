@@ -25,7 +25,11 @@ type CRCProposalTransaction struct {
 	BaseTransaction
 }
 
-func (t *CRCProposalTransaction) CheckTxHeightVersion() error {
+func (t *CRCProposalTransaction) IsAllowedInPOWConsensus() bool {
+	return false
+}
+
+func (t *CRCProposalTransaction) HeightVersionCheck() error {
 	txn := t.contextParameters.Transaction
 	blockHeight := t.contextParameters.BlockHeight
 	chainParams := t.contextParameters.Config

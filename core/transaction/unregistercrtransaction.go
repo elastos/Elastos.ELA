@@ -19,7 +19,11 @@ type UnregisterCRTransaction struct {
 	BaseTransaction
 }
 
-func (t *UnregisterCRTransaction) CheckTxHeightVersion() error {
+func (t *UnregisterCRTransaction) IsAllowedInPOWConsensus() bool {
+	return false
+}
+
+func (t *UnregisterCRTransaction) HeightVersionCheck() error {
 	txn := t.contextParameters.Transaction
 	blockHeight := t.contextParameters.BlockHeight
 	chainParams := t.contextParameters.Config

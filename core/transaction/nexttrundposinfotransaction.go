@@ -13,6 +13,7 @@ import (
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/dpos/state"
 	elaerr "github.com/elastos/Elastos.ELA/errors"
+	"math"
 )
 
 type NextTurnDPOSInfoTransaction struct {
@@ -23,6 +24,19 @@ func (t *NextTurnDPOSInfoTransaction) CheckTransactionInput() error {
 	if len(t.sanityParameters.Transaction.Inputs()) != 0 {
 		return errors.New("no cost transactions must has no input")
 	}
+	return nil
+}
+
+func (t *NextTurnDPOSInfoTransaction) CheckTransactionOutput() error {
+
+	txn := t.sanityParameters.Transaction
+	if len(txn.Outputs()) > math.MaxUint16 {
+		return errors.New("output count should not be greater than 65535(MaxUint16)")
+	}
+	if len(txn.Outputs()) != 0 {
+		return errors.New("no cost transactions should have no output")
+	}
+
 	return nil
 }
 

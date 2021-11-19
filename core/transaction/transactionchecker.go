@@ -186,118 +186,47 @@ func (t *DefaultChecker) CheckTransactionInput() error {
 	return nil
 }
 
-func (t *DefaultChecker) checkTransactionOutput() error {
-	//txn := t.sanityParameters.Transaction
-	//blockHeight := t.sanityParameters.BlockHeight
-	//if len(txn.Outputs()) > math.MaxUint16 {
-	//	return errors.New("output count should not be greater than 65535(MaxUint16)")
-	//}
-	//
-	//if txn.IsCoinBaseTx() {
-	//	if len(txn.Outputs()) < 2 {
-	//		return errors.New("coinbase output is not enough, at least 2")
-	//	}
-	//
-	//	foundationReward := txn.Outputs()[0].Value
-	//	var totalReward = common.Fixed64(0)
-	//	if blockHeight < b.chainParams.PublicDPOSHeight {
-	//		for _, output := range txn.Outputs() {
-	//			if output.AssetID != config.ELAAssetID {
-	//				return errors.New("asset ID in coinbase is invalid")
-	//			}
-	//			totalReward += output.Value
-	//		}
-	//
-	//		if foundationReward < common.Fixed64(float64(totalReward)*0.3) {
-	//			return errors.New("reward to foundation in coinbase < 30%")
-	//		}
-	//	} else {
-	//		// check the ratio of FoundationAddress reward with miner reward
-	//		totalReward = txn.Outputs()[0].Value + txn.Outputs()[1].Value
-	//		if len(txn.Outputs()) == 2 && foundationReward <
-	//			common.Fixed64(float64(totalReward)*0.3/0.65) {
-	//			return errors.New("reward to foundation in coinbase < 30%")
-	//		}
-	//	}
-	//
-	//	return nil
-	//}
-	//
-	//if txn.IsIllegalTypeTx() || txn.IsInactiveArbitrators() ||
-	//	txn.IsUpdateVersion() || txn.IsActivateProducerTx() ||
-	//	txn.IsNextTurnDPOSInfoTx() || txn.IsRevertToPOW() ||
-	//	txn.IsRevertToDPOS() || txn.IsCustomIDResultTx() {
-	//	if len(txn.Outputs()) != 0 {
-	//		return errors.New("no cost transactions should have no output")
-	//	}
-	//
-	//	return nil
-	//}
-	//
-	//if txn.IsCRCAppropriationTx() {
-	//	if len(txn.Outputs()) != 2 {
-	//		return errors.New("new CRCAppropriation tx must have two output")
-	//	}
-	//	if !txn.Outputs()[0].ProgramHash.IsEqual(b.chainParams.CRExpensesAddress) {
-	//		return errors.New("new CRCAppropriation tx must have the first" +
-	//			"output to CR expenses address")
-	//	}
-	//	if !txn.Outputs()[1].ProgramHash.IsEqual(b.chainParams.CRAssetsAddress) {
-	//		return errors.New("new CRCAppropriation tx must have the second" +
-	//			"output to CR assets address")
-	//	}
-	//}
-	//
-	//if txn.IsNewSideChainPowTx() {
-	//	if len(txn.Outputs()) != 1 {
-	//		return errors.New("new sideChainPow tx must have only one output")
-	//	}
-	//	if txn.Outputs()[0].Value != 0 {
-	//		return errors.New("the value of new sideChainPow tx output must be 0")
-	//	}
-	//	if txn.Outputs()[0].Type != common2.OTNone {
-	//		return errors.New("the type of new sideChainPow tx output must be OTNone")
-	//	}
-	//	return nil
-	//}
-	//
-	//if len(txn.Outputs()) < 1 {
-	//	return errors.New("transaction has no outputs")
-	//}
-	//
-	//// check if output address is valid
-	//specialOutputCount := 0
-	//for _, output := range txn.Outputs() {
-	//	if output.AssetID != config.ELAAssetID {
-	//		return errors.New("asset ID in output is invalid")
-	//	}
-	//
-	//	// output value must >= 0
-	//	if output.Value < common.Fixed64(0) {
-	//		return errors.New("Invalide transaction UTXO output.")
-	//	}
-	//
-	//	if err := checkOutputProgramHash(blockHeight, output.ProgramHash); err != nil {
-	//		return err
-	//	}
-	//
-	//	if txn.Version() >= common2.TxVersion09 {
-	//		if output.Type != common2.OTNone {
-	//			specialOutputCount++
-	//		}
-	//		if err := checkOutputPayload(txn.TxType(), output); err != nil {
-	//			return err
-	//		}
-	//	}
-	//}
-	//
-	//if txn.IsReturnSideChainDepositCoinTx() || txn.IsWithdrawFromSideChainTx() {
-	//	return nil
-	//}
-	//
-	//if b.GetHeight() >= b.chainParams.PublicDPOSHeight && specialOutputCount > 1 {
-	//	return errors.New("special output count should less equal than 1")
-	//}
+func (t *DefaultChecker) CheckTransactionOutput() error {
+
+	txn := t.sanityParameters.Transaction
+	blockHeight := t.sanityParameters.BlockHeight
+	// check outputs count
+	if len(txn.Outputs()) > math.MaxUint16 {
+		return errors.New("output count should not be greater than 65535(MaxUint16)")
+	}
+	if len(txn.Outputs()) < 1 {
+		return errors.New("transaction has no outputs")
+	}
+
+	// check if output address is valid
+	specialOutputCount := 0
+	for _, output := range txn.Outputs() {
+		if output.AssetID != config.ELAAssetID {
+			return errors.New("asset ID in output is invalid")
+		}
+
+		// output value must >= 0
+		if output.Value < common.Fixed64(0) {
+			return errors.New("Invalide transaction UTXO output.")
+		}
+
+		if err := checkOutputProgramHash(blockHeight, output.ProgramHash); err != nil {
+			return err
+		}
+
+		if txn.Version() >= common2.TxVersion09 {
+			if output.Type != common2.OTNone {
+				specialOutputCount++
+			}
+			if err := checkOutputPayload(txn.TxType(), output); err != nil {
+				return err
+			}
+		}
+	}
+
+	if blockHeight >= t.contextParameters.Config.PublicDPOSHeight && specialOutputCount > 1 {
+		return errors.New("special output count should less equal than 1")
+	}
 
 	return nil
 }
@@ -656,4 +585,92 @@ func (t *DefaultChecker) checkTransactionFee(tx interfaces.Transaction, referenc
 	tx.Serialize(buf)
 	tx.SetFeePerKB(fee * 1000 / common.Fixed64(len(buf.Bytes())))
 	return nil
+}
+
+func checkOutputProgramHash(height uint32, programHash common.Uint168) error {
+	// main version >= 88812
+	if height >= config.DefaultParams.CheckAddressHeight {
+		var empty = common.Uint168{}
+		if programHash.IsEqual(empty) {
+			return nil
+		}
+		if programHash.IsEqual(config.CRAssetsAddress) {
+			return nil
+		}
+		if programHash.IsEqual(config.CRCExpensesAddress) {
+			return nil
+		}
+
+		prefix := contract.PrefixType(programHash[0])
+		switch prefix {
+		case contract.PrefixStandard:
+		case contract.PrefixMultiSig:
+		case contract.PrefixCrossChain:
+		case contract.PrefixDeposit:
+		default:
+			return errors.New("invalid program hash prefix")
+		}
+
+		addr, err := programHash.ToAddress()
+		if err != nil {
+			return errors.New("invalid program hash")
+		}
+		_, err = common.Uint168FromAddress(addr)
+		if err != nil {
+			return errors.New("invalid program hash")
+		}
+
+		return nil
+	}
+
+	// old version [0, 88812)
+	return nil
+}
+
+func checkOutputPayload(txType common2.TxType, output *common2.Output) error {
+	switch txType {
+	case common2.ReturnSideChainDepositCoin:
+		switch output.Type {
+		case common2.OTNone:
+		case common2.OTReturnSideChainDepositCoin:
+		default:
+			return errors.New("transaction type dose not match the output payload type")
+		}
+	case common2.WithdrawFromSideChain:
+		switch output.Type {
+		case common2.OTNone:
+		case common2.OTWithdrawFromSideChain:
+		default:
+			return errors.New("transaction type dose not match the output payload type")
+		}
+	case common2.TransferCrossChainAsset:
+		// common2.OTCrossChain information can only be placed in TransferCrossChainAsset transaction.
+		switch output.Type {
+		case common2.OTNone:
+		case common2.OTCrossChain:
+		default:
+			return errors.New("transaction type dose not match the output payload type")
+		}
+	case common2.TransferAsset:
+		// common2.OTVote information can only be placed in TransferAsset transaction.
+		switch output.Type {
+		case common2.OTVote:
+			if contract.GetPrefixType(output.ProgramHash) !=
+				contract.PrefixStandard {
+				return errors.New("output address should be standard")
+			}
+		case common2.OTNone:
+		case common2.OTMapping:
+		default:
+			return errors.New("transaction type dose not match the output payload type")
+		}
+	default:
+		switch output.Type {
+		case common2.OTNone:
+		default:
+			return errors.New("transaction type dose not match the output payload type")
+		}
+	}
+
+	return output.Payload.Validate()
 }

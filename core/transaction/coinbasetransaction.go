@@ -8,6 +8,7 @@ package transaction
 import (
 	"errors"
 	"github.com/elastos/Elastos.ELA/common"
+	"github.com/elastos/Elastos.ELA/common/config"
 	"math"
 
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
@@ -20,6 +21,7 @@ type CoinBaseTransaction struct {
 }
 
 func (t *CoinBaseTransaction) CheckTransactionInput() error {
+
 	txn := t.sanityParameters.Transaction
 	if len(txn.Inputs()) != 1 {
 		return errors.New("coinbase must has only one input")
@@ -35,11 +37,51 @@ func (t *CoinBaseTransaction) CheckTransactionInput() error {
 	return nil
 }
 
+func (t *CoinBaseTransaction) CheckTransactionOutput() error {
+
+	txn := t.sanityParameters.Transaction
+	blockHeight := t.sanityParameters.BlockHeight
+	chainParams := t.sanityParameters.Config
+
+	if len(txn.Outputs()) > math.MaxUint16 {
+		return errors.New("output count should not be greater than 65535(MaxUint16)")
+	}
+	if len(txn.Outputs()) < 2 {
+		return errors.New("coinbase output is not enough, at least 2")
+	}
+
+	foundationReward := txn.Outputs()[0].Value
+	var totalReward = common.Fixed64(0)
+	if blockHeight < chainParams.PublicDPOSHeight {
+		for _, output := range txn.Outputs() {
+			if output.AssetID != config.ELAAssetID {
+				return errors.New("asset ID in coinbase is invalid")
+			}
+			totalReward += output.Value
+		}
+
+		if foundationReward < common.Fixed64(float64(totalReward)*0.3) {
+			return errors.New("reward to foundation in coinbase < 30%")
+		}
+	} else {
+		// check the ratio of FoundationAddress reward with miner reward
+		totalReward = txn.Outputs()[0].Value + txn.Outputs()[1].Value
+		if len(txn.Outputs()) == 2 && foundationReward <
+			common.Fixed64(float64(totalReward)*0.3/0.65) {
+			return errors.New("reward to foundation in coinbase < 30%")
+		}
+	}
+
+	return nil
+}
+
 func (t *CoinBaseTransaction) IsAllowedInPOWConsensus() bool {
+
 	return true
 }
 
 func (a *CoinBaseTransaction) SpecialContextCheck() (result elaerr.ELAError, end bool) {
+
 	para := a.contextParameters
 	if para.BlockHeight >= para.Config.CRCommitteeStartHeight {
 		if para.BlockChain.GetState().GetConsensusAlgorithm() == 0x01 {
@@ -78,9 +120,9 @@ func (a *CoinBaseTransaction) ContextCheck(para interfaces.Parameters) (map[*com
 		return nil, elaerr.Simple(elaerr.ErrTxDuplicate, nil)
 	}
 
-	firstErr, end := a.SpecialContextCheck()
+	err, end := a.SpecialContextCheck()
 	if end {
-		return nil, firstErr
+		return nil, err
 	}
 
 	return nil, nil

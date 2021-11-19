@@ -8,6 +8,7 @@ package transaction
 import (
 	"errors"
 	"fmt"
+	"math"
 
 	"github.com/elastos/Elastos.ELA/blockchain"
 	"github.com/elastos/Elastos.ELA/core/contract/program"
@@ -26,6 +27,19 @@ func (t *InactiveArbitratorsTransaction) CheckTransactionInput() error {
 	if len( t.sanityParameters.Transaction.Inputs()) != 0 {
 		return errors.New("no cost transactions must has no input")
 	}
+	return nil
+}
+
+func (t *InactiveArbitratorsTransaction) CheckTransactionOutput() error {
+
+	txn := t.sanityParameters.Transaction
+	if len(txn.Outputs()) > math.MaxUint16 {
+		return errors.New("output count should not be greater than 65535(MaxUint16)")
+	}
+	if len(txn.Outputs()) != 0 {
+		return errors.New("no cost transactions should have no output")
+	}
+
 	return nil
 }
 

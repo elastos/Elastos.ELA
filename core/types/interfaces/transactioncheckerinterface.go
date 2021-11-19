@@ -24,12 +24,14 @@ type BasePayloadChecker interface {
 	CheckTransactionSize() error
 	// check transaction inputs
 	CheckTransactionInput() error
+	// check transaction outputs
+	CheckTransactionOutput() error
 
 	/// CONTEXT CHECK
 	// check height version
 	HeightVersionCheck() error
 	// if the transaction should create in POW need to return true
 	IsAllowedInPOWConsensus() bool
-	// the special context check of transaction
+	// the special context check of transaction, such as check the transaction payload
 	SpecialContextCheck() (error elaerr.ELAError, end bool)
 }

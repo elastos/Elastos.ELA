@@ -8,6 +8,8 @@ package transaction
 import (
 	"errors"
 	"fmt"
+	"github.com/elastos/Elastos.ELA/common/config"
+	"math"
 
 	"github.com/elastos/Elastos.ELA/common"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
@@ -18,6 +20,46 @@ import (
 
 type ReturnSideChainDepositCoinTransaction struct {
 	BaseTransaction
+}
+
+func (t *ReturnSideChainDepositCoinTransaction) CheckTransactionOutput() error {
+	txn := t.sanityParameters.Transaction
+	blockHeight := t.sanityParameters.BlockHeight
+	if len(txn.Outputs()) > math.MaxUint16 {
+		return errors.New("output count should not be greater than 65535(MaxUint16)")
+	}
+
+	if len(txn.Outputs()) < 1 {
+		return errors.New("transaction has no outputs")
+	}
+
+	// check if output address is valid
+	specialOutputCount := 0
+	for _, output := range txn.Outputs() {
+		if output.AssetID != config.ELAAssetID {
+			return errors.New("asset ID in output is invalid")
+		}
+
+		// output value must >= 0
+		if output.Value < common.Fixed64(0) {
+			return errors.New("Invalide transaction UTXO output.")
+		}
+
+		if err := checkOutputProgramHash(blockHeight, output.ProgramHash); err != nil {
+			return err
+		}
+
+		if txn.Version() >= common2.TxVersion09 {
+			if output.Type != common2.OTNone {
+				specialOutputCount++
+			}
+			if err := checkOutputPayload(txn.TxType(), output); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
 }
 
 func (t *ReturnSideChainDepositCoinTransaction) IsAllowedInPOWConsensus() bool {

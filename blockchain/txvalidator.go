@@ -84,10 +84,10 @@ func (b *BlockChain) CheckTransactionSanity(blockHeight uint32,
 	//	return elaerr.Simple(elaerr.ErrTxInvalidInput, err)
 	//}
 
-	if err := b.checkTransactionOutput(txn, blockHeight); err != nil {
-		log.Warn("[CheckTransactionOutput],", err)
-		return elaerr.Simple(elaerr.ErrTxInvalidOutput, err)
-	}
+	//if err := b.checkTransactionOutput(txn, blockHeight); err != nil {
+	//	log.Warn("[CheckTransactionOutput],", err)
+	//	return elaerr.Simple(elaerr.ErrTxInvalidOutput, err)
+	//}
 
 	if err := checkAssetPrecision(txn); err != nil {
 		log.Warn("[CheckAssetPrecesion],", err)

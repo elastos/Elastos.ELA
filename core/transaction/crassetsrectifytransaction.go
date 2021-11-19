@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/elastos/Elastos.ELA/common"
+	"github.com/elastos/Elastos.ELA/core/types/payload"
 	elaerr "github.com/elastos/Elastos.ELA/errors"
 )
 
@@ -24,6 +25,15 @@ func (t *CRAssetsRectifyTransaction) CheckAttributeProgram() error {
 		return errors.New("txs should have no attributes")
 	}
 	return nil
+}
+
+func (t *CRAssetsRectifyTransaction) CheckTransactionPayload() error {
+	switch t.Payload().(type) {
+	case *payload.CRAssetsRectify:
+		return nil
+	}
+
+	return errors.New("invalid payload type")
 }
 
 func (t *CRAssetsRectifyTransaction) IsAllowedInPOWConsensus() bool {
@@ -45,13 +55,13 @@ func (t *CRAssetsRectifyTransaction) HeightVersionCheck() error {
 func (t *CRAssetsRectifyTransaction) SpecialContextCheck() (result elaerr.ELAError, end bool) {
 	// Inputs count should be less than or equal to MaxCRAssetsAddressUTXOCount
 	if len(t.Inputs()) > int(t.contextParameters.Config.MaxCRAssetsAddressUTXOCount) {
-		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("inputs count should be less than or " +
+		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("inputs count should be less than or "+
 			"equal to MaxCRAssetsAddressUTXOCount")), true
 	}
 
 	// Inputs count should be greater than or equal to MinCRAssetsAddressUTXOCount
 	if len(t.Inputs()) < int(t.contextParameters.Config.MinCRAssetsAddressUTXOCount) {
-		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("inputs count should be greater than or " +
+		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("inputs count should be greater than or "+
 			"equal to MinCRAssetsAddressUTXOCount")), true
 	}
 

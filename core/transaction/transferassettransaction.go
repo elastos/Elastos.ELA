@@ -8,6 +8,7 @@ package transaction
 import (
 	"errors"
 	"github.com/elastos/Elastos.ELA/common"
+	"github.com/elastos/Elastos.ELA/core/types/payload"
 
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/core/types/outputpayload"
@@ -15,6 +16,15 @@ import (
 
 type TransferAssetTransaction struct {
 	BaseTransaction
+}
+
+func (t *TransferAssetTransaction) CheckTransactionPayload() error {
+	switch t.Payload().(type) {
+	case *payload.TransferAsset:
+		return nil
+	}
+
+	return errors.New("invalid payload type")
 }
 
 func (t *TransferAssetTransaction) IsAllowedInPOWConsensus() bool {

@@ -19,6 +19,15 @@ type UpdateCRTransaction struct {
 	BaseTransaction
 }
 
+func (t *UpdateCRTransaction) CheckTransactionPayload() error {
+	switch t.Payload().(type) {
+	case *payload.CRInfo:
+		return nil
+	}
+
+	return errors.New("invalid payload type")
+}
+
 func (t *UpdateCRTransaction) IsAllowedInPOWConsensus() bool {
 	return false
 }

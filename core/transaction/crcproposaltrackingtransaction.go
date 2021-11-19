@@ -24,6 +24,15 @@ type CRCProposalTrackingTransaction struct {
 	BaseTransaction
 }
 
+func (t *CRCProposalTrackingTransaction) CheckTransactionPayload() error {
+	switch t.Payload().(type) {
+	case *payload.CRCProposalTracking:
+		return nil
+	}
+
+	return errors.New("invalid payload type")
+}
+
 func (t *CRCProposalTrackingTransaction) IsAllowedInPOWConsensus() bool {
 	return false
 }

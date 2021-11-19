@@ -21,6 +21,15 @@ type TransferCrossChainAssetTransaction struct {
 	BaseTransaction
 }
 
+func (t *TransferCrossChainAssetTransaction) CheckTransactionPayload() error {
+	switch t.Payload().(type) {
+	case *payload.TransferCrossChainAsset:
+		return nil
+	}
+
+	return errors.New("invalid payload type")
+}
+
 func (t *TransferCrossChainAssetTransaction) IsAllowedInPOWConsensus() bool {
 	return false
 }

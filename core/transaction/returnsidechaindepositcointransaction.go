@@ -62,6 +62,15 @@ func (t *ReturnSideChainDepositCoinTransaction) CheckTransactionOutput() error {
 	return nil
 }
 
+func (t *ReturnSideChainDepositCoinTransaction) CheckTransactionPayload() error {
+	switch t.Payload().(type) {
+	case *payload.ReturnSideChainDepositCoin:
+		return nil
+	}
+
+	return errors.New("invalid payload type")
+}
+
 func (t *ReturnSideChainDepositCoinTransaction) IsAllowedInPOWConsensus() bool {
 	return false
 }

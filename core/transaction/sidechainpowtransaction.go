@@ -139,6 +139,15 @@ func (t *SideChainPOWTransaction) CheckAttributeProgram() error {
 	return nil
 }
 
+func (t *SideChainPOWTransaction) CheckTransactionPayload() error {
+	switch t.Payload().(type) {
+	case *payload.SideChainPow:
+		return nil
+	}
+
+	return errors.New("invalid payload type")
+}
+
 func (t *SideChainPOWTransaction) IsAllowedInPOWConsensus() bool {
 	return false
 }

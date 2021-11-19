@@ -47,6 +47,15 @@ func (t *IllegalProposalTransaction) CheckAttributeProgram() error {
 	return nil
 }
 
+func (t *IllegalProposalTransaction) CheckTransactionPayload() error {
+	switch t.Payload().(type) {
+	case *payload.DPOSIllegalProposals:
+		return nil
+	}
+
+	return errors.New("invalid payload type")
+}
+
 func (t *IllegalProposalTransaction) IsAllowedInPOWConsensus() bool {
 	return true
 }

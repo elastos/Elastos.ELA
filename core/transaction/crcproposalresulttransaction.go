@@ -45,6 +45,15 @@ func (t *CRCProposalResultTransaction) CheckAttributeProgram() error {
 	return nil
 }
 
+func (t *CRCProposalResultTransaction) CheckTransactionPayload() error {
+	switch t.Payload().(type) {
+	case *payload.RecordProposalResult:
+		return nil
+	}
+
+	return errors.New("invalid payload type")
+}
+
 func (t *CRCProposalResultTransaction) IsAllowedInPOWConsensus() bool {
 	return true
 }

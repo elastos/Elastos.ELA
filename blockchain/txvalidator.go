@@ -69,47 +69,11 @@ type BaseChecker struct {
 // CheckTransactionSanity verifies received single transaction
 func (b *BlockChain) CheckTransactionSanity(blockHeight uint32,
 	txn interfaces.Transaction) elaerr.ELAError {
-	//if err := b.checkTxHeightVersion(txn, blockHeight); err != nil {
-	//	log.Warn("[HeightVersionCheck],", err)
-	//	return elaerr.Simple(elaerr.ErrTxHeightVersion, err)
-	//}
 
-	//if err := checkTransactionSize(txn); err != nil {
-	//	log.Warn("[CheckTransactionSize],", err)
-	//	return elaerr.Simple(elaerr.ErrTxSize, err)
-	//}
+	para := functions.GetTransactionParameters(
+		txn, blockHeight, 0, b.chainParams, b, 0)
 
-	//if err := checkTransactionInput(txn); err != nil {
-	//	log.Warn("[CheckTransactionInput],", err)
-	//	return elaerr.Simple(elaerr.ErrTxInvalidInput, err)
-	//}
-
-	//if err := b.checkTransactionOutput(txn, blockHeight); err != nil {
-	//	log.Warn("[CheckTransactionOutput],", err)
-	//	return elaerr.Simple(elaerr.ErrTxInvalidOutput, err)
-	//}
-
-	//if err := checkAssetPrecision(txn); err != nil {
-	//	log.Warn("[CheckAssetPrecesion],", err)
-	//	return elaerr.Simple(elaerr.ErrTxAssetPrecision, err)
-	//}
-
-	//if err := b.checkAttributeProgram(txn, blockHeight); err != nil {
-	//	log.Warn("[CheckAttributeProgram],", err)
-	//	return elaerr.Simple(elaerr.ErrTxAttributeProgram, err)
-	//}
-
-	if err := b.checkTransactionPayload(txn); err != nil {
-		log.Warn("[CheckTransactionPayload],", err)
-		return elaerr.Simple(elaerr.ErrTxPayload, err)
-	}
-
-	if err := checkDuplicateSidechainTx(txn); err != nil {
-		log.Warn("[CheckDuplicateSidechainTx],", err)
-		return elaerr.Simple(elaerr.ErrTxSidechainDuplicate, err)
-	}
-
-	return nil
+	return txn.SanityCheck(para)
 }
 
 // CheckTransactionContext verifies a transaction with history transaction in ledger

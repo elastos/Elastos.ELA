@@ -8,6 +8,7 @@ package transaction
 import (
 	"errors"
 	"fmt"
+	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"math"
 
 	"github.com/elastos/Elastos.ELA/common"
@@ -81,6 +82,15 @@ func (t *CRCAppropriationTransaction) CheckAttributeProgram() error {
 		return errors.New("txs should have no attributes")
 	}
 	return nil
+}
+
+func (t *CRCAppropriationTransaction) CheckTransactionPayload() error {
+	switch t.Payload().(type) {
+	case *payload.CRCAppropriation:
+		return nil
+	}
+
+	return errors.New("invalid payload type")
 }
 
 func (t *CRCAppropriationTransaction) IsAllowedInPOWConsensus() bool {

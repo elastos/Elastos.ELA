@@ -48,6 +48,15 @@ func (t *NextTurnDPOSInfoTransaction) CheckAttributeProgram() error {
 	return nil
 }
 
+func (t *NextTurnDPOSInfoTransaction) CheckTransactionPayload() error {
+	switch t.Payload().(type) {
+	case *payload.NextTurnDPOSInfo:
+		return nil
+	}
+
+	return errors.New("invalid payload type")
+}
+
 func (t *NextTurnDPOSInfoTransaction) IsAllowedInPOWConsensus() bool {
 	return true
 }

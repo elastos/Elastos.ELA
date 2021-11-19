@@ -9,6 +9,7 @@ import (
 	"errors"
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
+	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"math"
 
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
@@ -81,6 +82,15 @@ func (t *CoinBaseTransaction) CheckAttributeProgram() error {
 		return errors.New("transaction should have no programs")
 	}
 	return nil
+}
+
+func (t *CoinBaseTransaction) CheckTransactionPayload() error {
+	switch t.Payload().(type) {
+	case *payload.CoinBase:
+		return nil
+	}
+
+	return errors.New("invalid payload type")
 }
 
 func (t *CoinBaseTransaction) IsAllowedInPOWConsensus() bool {

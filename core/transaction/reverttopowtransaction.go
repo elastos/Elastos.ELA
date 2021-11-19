@@ -46,6 +46,15 @@ func (t *RevertToPOWTransaction) CheckAttributeProgram() error {
 	return nil
 }
 
+func (t *RevertToPOWTransaction) CheckTransactionPayload() error {
+	switch t.Payload().(type) {
+	case *payload.RevertToPOW:
+		return nil
+	}
+
+	return errors.New("invalid payload type")
+}
+
 func (t *RevertToPOWTransaction) IsAllowedInPOWConsensus() bool {
 	return true
 }

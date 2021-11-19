@@ -47,6 +47,15 @@ func (t *IllegalBlockTransaction) CheckAttributeProgram() error {
 	return nil
 }
 
+func (t *IllegalBlockTransaction) CheckTransactionPayload() error {
+	switch t.Payload().(type) {
+	case *payload.DPOSIllegalBlocks:
+		return nil
+	}
+
+	return errors.New("invalid payload type")
+}
+
 func (t *IllegalBlockTransaction) IsAllowedInPOWConsensus() bool {
 	return true
 }

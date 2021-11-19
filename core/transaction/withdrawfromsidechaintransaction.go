@@ -69,6 +69,21 @@ func (t *WithdrawFromSideChainTransaction) CheckTransactionOutput() error {
 	return nil
 }
 
+func (t *WithdrawFromSideChainTransaction) CheckTransactionPayload() error {
+	switch pld := t.Payload().(type) {
+	case *payload.WithdrawFromSideChain:
+		existingHashs := make(map[common.Uint256]struct{})
+		for _, hash := range pld.SideChainTransactionHashes {
+			if _, exist := existingHashs[hash]; exist {
+				return errors.New("Duplicate sidechain tx detected in a transaction")
+			}
+			existingHashs[hash] = struct{}{}
+		}
+	}
+
+	return errors.New("invalid payload type")
+}
+
 func (t *WithdrawFromSideChainTransaction) IsAllowedInPOWConsensus() bool {
 	return false
 }

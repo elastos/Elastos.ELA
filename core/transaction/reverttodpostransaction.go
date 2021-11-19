@@ -75,6 +75,15 @@ func (t *RevertToDPOSTransaction) CheckAttributeProgram() error {
 	return nil
 }
 
+func (t *RevertToDPOSTransaction) CheckTransactionPayload() error {
+	switch t.Payload().(type) {
+	case *payload.RevertToDPOS:
+		return nil
+	}
+
+	return errors.New("invalid payload type")
+}
+
 func (t *RevertToDPOSTransaction) IsAllowedInPOWConsensus() bool {
 	return true
 }

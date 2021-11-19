@@ -8,6 +8,7 @@ package transaction
 import (
 	"errors"
 	"fmt"
+	"github.com/elastos/Elastos.ELA/core/types/payload"
 
 	"github.com/elastos/Elastos.ELA/common"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
@@ -47,6 +48,15 @@ func (t *ReturnDepositCoinTransaction) CheckAttributeProgram() error {
 	}
 
 	return nil
+}
+
+func (t *ReturnDepositCoinTransaction) CheckTransactionPayload() error {
+	switch t.Payload().(type) {
+	case *payload.ReturnDepositCoin:
+		return nil
+	}
+
+	return errors.New("invalid payload type")
 }
 
 func (t *ReturnDepositCoinTransaction) IsAllowedInPOWConsensus() bool {

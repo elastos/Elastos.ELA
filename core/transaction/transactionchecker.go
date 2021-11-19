@@ -33,11 +33,12 @@ type DefaultChecker struct {
 }
 
 func (t *DefaultChecker) SanityCheck(params interfaces.Parameters) elaerr.ELAError {
-	if err := t.SetContextParameters(params); err != nil {
-		return elaerr.Simple(elaerr.ErrTxDuplicate, errors.New("invalid contextParameters"))
+	if err := t.SetSanityParameters(params); err != nil {
+		return elaerr.Simple(elaerr.ErrFail, errors.New("invalid sanityParameters"))
 	}
 
 	if err := t.HeightVersionCheck(); err != nil {
+		log.Warn("[HeightVersionCheck],", err)
 		return elaerr.Simple(elaerr.ErrTxHeightVersion, nil)
 	}
 
@@ -263,6 +264,10 @@ func (t *DefaultChecker) CheckAttributeProgram() error {
 		}
 	}
 	return nil
+}
+
+func (t *DefaultChecker) CheckTransactionPayload() error {
+	return errors.New("invalid payload type")
 }
 
 func (t *DefaultChecker) isSmallThanMinTransactionFee(fee common.Fixed64) bool {

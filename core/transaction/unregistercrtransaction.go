@@ -19,6 +19,15 @@ type UnregisterCRTransaction struct {
 	BaseTransaction
 }
 
+func (t *UnregisterCRTransaction) CheckTransactionPayload() error {
+	switch t.Payload().(type) {
+	case *payload.UnregisterCR:
+		return nil
+	}
+
+	return errors.New("invalid payload type")
+}
+
 func (t *UnregisterCRTransaction) IsAllowedInPOWConsensus() bool {
 	return false
 }

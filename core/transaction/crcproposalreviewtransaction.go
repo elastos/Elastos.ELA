@@ -21,6 +21,15 @@ type CRCProposalReviewTransaction struct {
 	BaseTransaction
 }
 
+func (t *CRCProposalReviewTransaction) CheckTransactionPayload() error {
+	switch t.Payload().(type) {
+	case *payload.CRCProposalReview:
+		return nil
+	}
+
+	return errors.New("invalid payload type")
+}
+
 func (t *CRCProposalReviewTransaction) IsAllowedInPOWConsensus() bool {
 	return false
 }

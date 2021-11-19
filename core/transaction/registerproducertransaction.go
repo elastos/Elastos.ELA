@@ -24,6 +24,15 @@ type RegisterProducerTransaction struct {
 	BaseTransaction
 }
 
+func (t *RegisterProducerTransaction) CheckTransactionPayload() error {
+	switch t.Payload().(type) {
+	case *payload.ProducerInfo:
+		return nil
+	}
+
+	return errors.New("invalid payload type")
+}
+
 func (t *RegisterProducerTransaction) IsAllowedInPOWConsensus() bool {
 	return true
 }

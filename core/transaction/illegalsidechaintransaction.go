@@ -21,7 +21,7 @@ type IllegalSideChainTransaction struct {
 }
 
 func (t *IllegalSideChainTransaction) CheckTransactionInput() error {
-	if len( t.sanityParameters.Transaction.Inputs()) != 0 {
+	if len(t.sanityParameters.Transaction.Inputs()) != 0 {
 		return errors.New("no cost transactions must has no input")
 	}
 	return nil
@@ -47,6 +47,10 @@ func (t *IllegalSideChainTransaction) CheckAttributeProgram() error {
 	return nil
 }
 
+func (t *IllegalSideChainTransaction) CheckTransactionPayload() error {
+	// todo add check after illegal side chain payload defained
+	return errors.New("invalid payload type")
+}
 
 func (t *IllegalSideChainTransaction) IsAllowedInPOWConsensus() bool {
 	return true

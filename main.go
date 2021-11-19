@@ -506,13 +506,15 @@ func getTransactionContextParameters(
 }
 
 func getTransaction(txType common2.TxType) (txn interfaces.Transaction, err error) {
-	// todo refactor me
 	switch txType {
 	case common2.CoinBase:
 		txn = new(transaction2.CoinBaseTransaction)
 
 	case common2.RegisterAsset:
 		txn = new(transaction2.RegisterAssetTransaction)
+
+	case common2.TransferAsset:
+		txn = new(transaction2.TransferAssetTransaction)
 
 	case common2.IllegalProposalEvidence:
 		txn = new(transaction2.IllegalProposalTransaction)
@@ -606,6 +608,9 @@ func getTransaction(txType common2.TxType) (txn interfaces.Transaction, err erro
 
 	case common2.ReturnSideChainDepositCoin:
 		txn = new(transaction2.ReturnSideChainDepositCoinTransaction)
+
+	case common2.Record:
+		txn = new(transaction2.RecordTransaction)
 
 	default:
 		return nil, errors.New("invalid transaction type")

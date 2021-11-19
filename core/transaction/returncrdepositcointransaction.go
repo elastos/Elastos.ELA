@@ -47,6 +47,13 @@ func (t *ReturnCRDepositCoinTransaction) CheckAttributeProgram() error {
 	return nil
 }
 
+func (t *ReturnCRDepositCoinTransaction) CheckTransactionPayload() error {
+	if t.Payload() != nil {
+		return errors.New("invalid payload nee to be nil")
+	}
+	return nil
+}
+
 func (t *ReturnCRDepositCoinTransaction) IsAllowedInPOWConsensus() bool {
 	return false
 }

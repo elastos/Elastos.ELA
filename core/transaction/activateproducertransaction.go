@@ -50,6 +50,15 @@ func (t *ActivateProducerTransaction) CheckAttributeProgram() error {
 	return nil
 }
 
+func (t *ActivateProducerTransaction) CheckTransactionPayload() error {
+	switch t.Payload().(type) {
+	case *payload.ActivateProducer:
+		return nil
+	}
+
+	return errors.New("invalid payload type")
+}
+
 func (t *ActivateProducerTransaction) IsAllowedInPOWConsensus() bool {
 	return true
 }

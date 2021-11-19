@@ -77,6 +77,15 @@ func (t *InactiveArbitratorsTransaction) CheckAttributeProgram() error {
 	return nil
 }
 
+func (t *InactiveArbitratorsTransaction) CheckTransactionPayload() error {
+	switch t.Payload().(type) {
+	case *payload.InactiveArbitrators:
+		return nil
+	}
+
+	return errors.New("invalid payload type")
+}
+
 func (t *InactiveArbitratorsTransaction) IsAllowedInPOWConsensus() bool {
 	return true
 }

@@ -22,6 +22,15 @@ type RegisterCRTransaction struct {
 	BaseTransaction
 }
 
+func (t *RegisterCRTransaction) CheckTransactionPayload() error {
+	switch t.Payload().(type) {
+	case *payload.CRInfo:
+		return nil
+	}
+
+	return errors.New("invalid payload type")
+}
+
 func (t *RegisterCRTransaction) IsAllowedInPOWConsensus() bool {
 	return false
 }

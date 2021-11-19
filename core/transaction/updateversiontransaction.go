@@ -72,6 +72,15 @@ func (t *UpdateVersionTransaction) CheckAttributeProgram() error {
 	return nil
 }
 
+func (t *UpdateVersionTransaction) CheckTransactionPayload() error {
+	switch t.Payload().(type) {
+	case *payload.UpdateVersion:
+		return nil
+	}
+
+	return errors.New("invalid payload type")
+}
+
 func (t *UpdateVersionTransaction) IsAllowedInPOWConsensus() bool {
 	return false
 }

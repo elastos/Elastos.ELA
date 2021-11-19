@@ -22,6 +22,15 @@ type UpdateProducerTransaction struct {
 	BaseTransaction
 }
 
+func (t *UpdateProducerTransaction) CheckTransactionPayload() error {
+	switch t.Payload().(type) {
+	case *payload.ProducerInfo:
+		return nil
+	}
+
+	return errors.New("invalid payload type")
+}
+
 func (t *UpdateProducerTransaction) IsAllowedInPOWConsensus() bool {
 	return false
 }
@@ -49,27 +58,27 @@ func (t *UpdateProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bool
 	// check signature
 	publicKey, err := crypto.DecodePoint(info.OwnerPublicKey)
 	if err != nil {
-		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid owner public key in payload")),true
+		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid owner public key in payload")), true
 	}
 	signedBuf := new(bytes.Buffer)
 	err = info.SerializeUnsigned(signedBuf, payload.ProducerInfoVersion)
 	if err != nil {
-		return elaerr.Simple(elaerr.ErrTxPayload, err),true
+		return elaerr.Simple(elaerr.ErrTxPayload, err), true
 	}
 	err = crypto.Verify(*publicKey, signedBuf.Bytes(), info.Signature)
 	if err != nil {
-		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid signature in payload")),true
+		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid signature in payload")), true
 	}
 
 	producer := t.contextParameters.BlockChain.GetState().GetProducer(info.OwnerPublicKey)
 	if producer == nil {
-		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("updating unknown producer")),true
+		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("updating unknown producer")), true
 	}
 
 	// check nickname usage.
 	if producer.Info().NickName != info.NickName &&
 		t.contextParameters.BlockChain.GetState().NicknameExists(info.NickName) {
-		return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("nick name %s already exist", info.NickName)),true
+		return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("nick name %s already exist", info.NickName)), true
 	}
 
 	// check if public keys conflict with cr program code
@@ -77,7 +86,7 @@ func (t *UpdateProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bool
 	nodeCode = append(nodeCode, vm.CHECKSIG)
 	if t.contextParameters.BlockChain.GetCRCommittee().ExistCR(nodeCode) {
 		return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("node public key %s already exist in cr list",
-			common.BytesToHexString(info.NodePublicKey))),true
+			common.BytesToHexString(info.NodePublicKey))), true
 	}
 
 	// check node public key duplication
@@ -88,12 +97,12 @@ func (t *UpdateProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bool
 	if t.contextParameters.BlockChain.GetHeight() < t.contextParameters.Config.PublicDPOSHeight {
 		if t.contextParameters.BlockChain.GetState().ProducerExists(info.NodePublicKey) {
 			return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("producer %s already exist",
-				hex.EncodeToString(info.NodePublicKey))),true
+				hex.EncodeToString(info.NodePublicKey))), true
 		}
 	} else {
 		if t.contextParameters.BlockChain.GetState().ProducerNodePublicKeyExists(info.NodePublicKey) {
 			return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("producer %s already exist",
-				hex.EncodeToString(info.NodePublicKey))),true
+				hex.EncodeToString(info.NodePublicKey))), true
 		}
 	}
 

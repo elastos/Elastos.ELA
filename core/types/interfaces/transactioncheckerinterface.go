@@ -26,6 +26,8 @@ type BasePayloadChecker interface {
 	CheckTransactionInput() error
 	// check transaction outputs
 	CheckTransactionOutput() error
+	// check transaction payload type
+	CheckTransactionPayload() error
 
 	/// CONTEXT CHECK
 	// check height version

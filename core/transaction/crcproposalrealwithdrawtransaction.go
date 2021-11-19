@@ -28,6 +28,15 @@ func (t *CRCProposalRealWithdrawTransaction) CheckAttributeProgram() error {
 	return nil
 }
 
+func (t *CRCProposalRealWithdrawTransaction) CheckTransactionPayload() error {
+	switch t.Payload().(type) {
+	case *payload.CRCProposalRealWithdraw:
+		return nil
+	}
+
+	return errors.New("invalid payload type")
+}
+
 func (t *CRCProposalRealWithdrawTransaction) IsAllowedInPOWConsensus() bool {
 	return true
 }

@@ -20,6 +20,15 @@ type CancelProducerTransaction struct {
 	BaseTransaction
 }
 
+func (t *CancelProducerTransaction) CheckTransactionPayload() error {
+	switch t.Payload().(type) {
+	case *payload.ProcessProducer:
+		return nil
+	}
+
+	return errors.New("invalid payload type")
+}
+
 func (t *CancelProducerTransaction) IsAllowedInPOWConsensus() bool {
 	return false
 }

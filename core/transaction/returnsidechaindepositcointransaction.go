@@ -7,6 +7,8 @@ package transaction
 
 import (
 	"errors"
+	"fmt"
+
 	"github.com/elastos/Elastos.ELA/common"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/core/types/outputpayload"
@@ -16,6 +18,18 @@ import (
 
 type ReturnSideChainDepositCoinTransaction struct {
 	BaseTransaction
+}
+
+func (t *ReturnSideChainDepositCoinTransaction) CheckTxHeightVersion() error {
+	txn := t.contextParameters.Transaction
+	blockHeight := t.contextParameters.BlockHeight
+	chainParams := t.contextParameters.Config
+
+	if blockHeight < chainParams.ReturnCrossChainCoinStartHeight {
+		return errors.New(fmt.Sprintf("not support %s transaction "+
+			"before ReturnCrossChainCoinStartHeight", txn.TxType().Name()))
+	}
+	return nil
 }
 
 func (t *ReturnSideChainDepositCoinTransaction) SpecialCheck() (result elaerr.ELAError, end bool) {
@@ -37,7 +51,7 @@ func (t *ReturnSideChainDepositCoinTransaction) SpecialCheck() (result elaerr.EL
 
 		tx, _, err := t.contextParameters.BlockChain.GetDB().GetTransaction(py.DepositTransactionHash)
 		if err != nil {
-			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid deposit tx:" + py.DepositTransactionHash.String())), true
+			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid deposit tx:"+py.DepositTransactionHash.String())), true
 		}
 		refTx, _, err := t.contextParameters.BlockChain.GetDB().GetTransaction(tx.Inputs()[0].Previous.TxID)
 		if err != nil {
@@ -100,4 +114,3 @@ func (t *ReturnSideChainDepositCoinTransaction) SpecialCheck() (result elaerr.EL
 
 	return nil, false
 }
-

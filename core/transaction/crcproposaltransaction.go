@@ -25,6 +25,51 @@ type CRCProposalTransaction struct {
 	BaseTransaction
 }
 
+func (t *CRCProposalTransaction) CheckTxHeightVersion() error {
+	txn := t.contextParameters.Transaction
+	blockHeight := t.contextParameters.BlockHeight
+	chainParams := t.contextParameters.Config
+
+	if blockHeight < chainParams.CRCProposalDraftDataStartHeight {
+		if txn.PayloadVersion() != payload.CRCProposalVersion {
+			return errors.New("payload version should be CRCProposalVersion")
+		}
+	} else {
+		if txn.PayloadVersion() != payload.CRCProposalVersion01 {
+			return errors.New("should have draft data")
+		}
+	}
+
+	p, ok := txn.Payload().(*payload.CRCProposal)
+	if !ok {
+		return errors.New("not support invalid CRCProposal transaction")
+	}
+	switch p.ProposalType {
+	case payload.ChangeProposalOwner, payload.CloseProposal, payload.SecretaryGeneral:
+		if blockHeight < chainParams.CRCProposalV1Height {
+			return errors.New(fmt.Sprintf("not support %s CRCProposal"+
+				" transactio before CRCProposalV1Height", p.ProposalType.Name()))
+		}
+	case payload.ReserveCustomID, payload.ReceiveCustomID, payload.ChangeCustomIDFee:
+		if blockHeight < chainParams.CustomIDProposalStartHeight {
+			return errors.New(fmt.Sprintf("not support %s CRCProposal"+
+				" transaction before CustomIDProposalStartHeight", p.ProposalType.Name()))
+		}
+	case payload.RegisterSideChain:
+		if blockHeight < chainParams.NewCrossChainStartHeight {
+			return errors.New(fmt.Sprintf("not support %s CRCProposal"+
+				" transaction before NewCrossChainStartHeight", p.ProposalType.Name()))
+		}
+	default:
+		if blockHeight < chainParams.CRCommitteeStartHeight {
+			return errors.New(fmt.Sprintf("not support %s CRCProposal"+
+				" transaction before CRCommitteeStartHeight", p.ProposalType.Name()))
+		}
+	}
+
+	return nil
+}
+
 func (t *CRCProposalTransaction) SpecialCheck() (result elaerr.ELAError, end bool) {
 	proposal, ok := t.Payload().(*payload.CRCProposal)
 	if !ok {

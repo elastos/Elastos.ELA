@@ -7,6 +7,7 @@ package transaction
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/elastos/Elastos.ELA/blockchain"
 	"github.com/elastos/Elastos.ELA/core/contract/program"
@@ -18,6 +19,16 @@ import (
 
 type RevertToDPOSTransaction struct {
 	BaseTransaction
+}
+
+
+func (t *RevertToDPOSTransaction) CheckTxHeightVersion() error {
+	if t.contextParameters.BlockHeight < t.contextParameters.Config.RevertToPOWStartHeight {
+		return errors.New(fmt.Sprintf("not support %s transaction "+
+			"before RevertToPOWStartHeight", t.TxType().Name()))
+	}
+
+	return nil
 }
 
 func (t *RevertToDPOSTransaction) SpecialCheck() (elaerr.ELAError, bool) {

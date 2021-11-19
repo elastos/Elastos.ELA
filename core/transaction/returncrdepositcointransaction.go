@@ -17,6 +17,18 @@ type ReturnCRDepositCoinTransaction struct {
 	BaseTransaction
 }
 
+func (t *ReturnCRDepositCoinTransaction) CheckTxHeightVersion() error {
+	txn := t.contextParameters.Transaction
+	blockHeight := t.contextParameters.BlockHeight
+	chainParams := t.contextParameters.Config
+
+	if blockHeight < chainParams.CRVotingStartHeight {
+		return errors.New(fmt.Sprintf("not support %s transaction "+
+			"before CRVotingStartHeight", txn.TxType().Name()))
+	}
+	return nil
+}
+
 func (t *ReturnCRDepositCoinTransaction) SpecialCheck() (elaerr.ELAError, bool) {
 
 	var inputValue common.Fixed64

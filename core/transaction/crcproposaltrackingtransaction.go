@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"errors"
+	"fmt"
 
 	"github.com/elastos/Elastos.ELA/blockchain"
 	"github.com/elastos/Elastos.ELA/common"
@@ -23,6 +24,25 @@ type CRCProposalTrackingTransaction struct {
 	BaseTransaction
 }
 
+func (t *CRCProposalTrackingTransaction) CheckTxHeightVersion() error {
+	txn := t.contextParameters.Transaction
+	blockHeight := t.contextParameters.BlockHeight
+	chainParams := t.contextParameters.Config
+
+	if blockHeight < chainParams.CRCommitteeStartHeight {
+		return errors.New(fmt.Sprintf("not support %s transaction "+
+			"before CRCommitteeStartHeight", txn.TxType().Name()))
+	} else if blockHeight < chainParams.CRCProposalDraftDataStartHeight {
+		if txn.PayloadVersion() != payload.CRCProposalVersion {
+			return errors.New("payload version should be CRCProposalVersion")
+		}
+	} else {
+		if txn.PayloadVersion() != payload.CRCProposalVersion01 {
+			return errors.New("should have draft data")
+		}
+	}
+	return nil
+}
 
 func (t *CRCProposalTrackingTransaction) SpecialCheck() (result elaerr.ELAError, end bool) {
 	cptPayload, ok := t.Payload().(*payload.CRCProposalTracking)

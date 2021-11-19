@@ -20,6 +20,17 @@ type CRCouncilMemberClaimNodeTransaction struct {
 	BaseTransaction
 }
 
+func (t *CRCouncilMemberClaimNodeTransaction) CheckTxHeightVersion() error {
+	txn := t.contextParameters.Transaction
+	blockHeight := t.contextParameters.BlockHeight
+	chainParams := t.contextParameters.Config
+
+	if blockHeight < chainParams.CRClaimDPOSNodeStartHeight {
+		return errors.New(fmt.Sprintf("not support %s transaction "+
+			"before CRClaimDPOSNodeStartHeight", txn.TxType().Name()))
+	}
+	return nil
+}
 
 func (t *CRCouncilMemberClaimNodeTransaction) SpecialCheck() (result elaerr.ELAError, end bool) {
 	manager, ok := t.Payload().(*payload.CRCouncilMemberClaimNode)

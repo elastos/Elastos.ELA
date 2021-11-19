@@ -40,6 +40,10 @@ func (a *DefaultChecker) SetParameters(params interface{}) elaerr.ELAError {
 
 }
 
+func (a *DefaultChecker) SanityCheck(p interfaces.Parameters) elaerr.ELAError {
+	return nil
+}
+
 func (a *DefaultChecker) ContextCheck(params interfaces.Parameters) (
 	map[*common2.Input]common2.Output, elaerr.ELAError) {
 
@@ -63,9 +67,11 @@ func (a *DefaultChecker) ContextCheck(params interfaces.Parameters) (
 	}
 	a.references = references
 
-	if err := a.CheckPOWConsensusTransaction(references); err != nil {
-		log.Warn("[checkPOWConsensusTransaction],", err)
-		return nil, elaerr.Simple(elaerr.ErrTxValidation, nil)
+	if a.contextParameters.BlockChain.GetState().GetConsensusAlgorithm() == state.POW {
+		if !a.IsAllowedInPOWConsensus() {
+			log.Warnf("[CheckTransactionContext], %s transaction is not allowed in POW", a.contextParameters.Transaction.TxType().Name())
+			return nil, elaerr.Simple(elaerr.ErrTxValidation, nil)
+		}
 	}
 
 	// check double spent transaction
@@ -226,148 +232,6 @@ func (a *DefaultChecker) isSmallThanMinTransactionFee(fee common.Fixed64) bool {
 
 // validate the type of transaction is allowed or not at current height.
 func (a *DefaultChecker) CheckTxHeightVersion() error {
-	txn := a.contextParameters.Transaction
-	blockHeight := a.contextParameters.BlockHeight
-	chainParams := a.contextParameters.Config
-
-	switch txn.TxType() {
-	case common2.RevertToPOW, common2.RevertToDPOS:
-		if blockHeight < chainParams.RevertToPOWStartHeight {
-			return errors.New(fmt.Sprintf("not support %s transaction "+
-				"before RevertToPOWStartHeight", txn.TxType().Name()))
-		}
-
-	case common2.RegisterCR, common2.UpdateCR:
-		if blockHeight < chainParams.CRVotingStartHeight ||
-			(blockHeight < chainParams.RegisterCRByDIDHeight &&
-				txn.PayloadVersion() != payload.CRInfoVersion) {
-			return errors.New(fmt.Sprintf("not support %s transaction "+
-				"before CRVotingStartHeight", txn.TxType().Name()))
-		}
-	case common2.UnregisterCR, common2.ReturnCRDepositCoin:
-		if blockHeight < chainParams.CRVotingStartHeight {
-			return errors.New(fmt.Sprintf("not support %s transaction "+
-				"before CRVotingStartHeight", txn.TxType().Name()))
-		}
-	case common2.CRCProposal:
-		if blockHeight < chainParams.CRCProposalDraftDataStartHeight {
-			if txn.PayloadVersion() != payload.CRCProposalVersion {
-				return errors.New("payload version should be CRCProposalVersion")
-			}
-		} else {
-			if txn.PayloadVersion() != payload.CRCProposalVersion01 {
-				return errors.New("should have draft data")
-			}
-		}
-
-		p, ok := txn.Payload().(*payload.CRCProposal)
-		if !ok {
-			return errors.New("not support invalid CRCProposal transaction")
-		}
-		switch p.ProposalType {
-		case payload.ChangeProposalOwner, payload.CloseProposal, payload.SecretaryGeneral:
-			if blockHeight < chainParams.CRCProposalV1Height {
-				return errors.New(fmt.Sprintf("not support %s CRCProposal"+
-					" transactio before CRCProposalV1Height", p.ProposalType.Name()))
-			}
-		case payload.ReserveCustomID, payload.ReceiveCustomID, payload.ChangeCustomIDFee:
-			if blockHeight < chainParams.CustomIDProposalStartHeight {
-				return errors.New(fmt.Sprintf("not support %s CRCProposal"+
-					" transaction before CustomIDProposalStartHeight", p.ProposalType.Name()))
-			}
-		case payload.RegisterSideChain:
-			if blockHeight < chainParams.NewCrossChainStartHeight {
-				return errors.New(fmt.Sprintf("not support %s CRCProposal"+
-					" transaction before NewCrossChainStartHeight", p.ProposalType.Name()))
-			}
-		default:
-			if blockHeight < chainParams.CRCommitteeStartHeight {
-				return errors.New(fmt.Sprintf("not support %s CRCProposal"+
-					" transaction before CRCommitteeStartHeight", p.ProposalType.Name()))
-			}
-		}
-	case common2.CRCProposalReview, common2.CRCProposalTracking:
-		if blockHeight < chainParams.CRCommitteeStartHeight {
-			return errors.New(fmt.Sprintf("not support %s transaction "+
-				"before CRCommitteeStartHeight", txn.TxType().Name()))
-		} else if blockHeight < chainParams.CRCProposalDraftDataStartHeight {
-			if txn.PayloadVersion() != payload.CRCProposalVersion {
-				return errors.New("payload version should be CRCProposalVersion")
-			}
-		} else {
-			if txn.PayloadVersion() != payload.CRCProposalVersion01 {
-				return errors.New("should have draft data")
-			}
-		}
-
-	case common2.CRCAppropriation:
-		if blockHeight < chainParams.CRCommitteeStartHeight {
-			return errors.New(fmt.Sprintf("not support %s transaction "+
-				"before CRCommitteeStartHeight", txn.TxType().Name()))
-		}
-
-	case common2.CRCProposalWithdraw:
-		if blockHeight < chainParams.CRCommitteeStartHeight {
-			return errors.New(fmt.Sprintf("not support %s transaction "+
-				"before CRCommitteeStartHeight", txn.TxType().Name()))
-		}
-		if txn.PayloadVersion() == payload.CRCProposalWithdrawDefault &&
-			blockHeight >= chainParams.CRCProposalWithdrawPayloadV1Height {
-			return errors.New(fmt.Sprintf("not support %s transaction "+
-				"after CRCProposalWithdrawPayloadV1Height", txn.TxType().Name()))
-		}
-
-		if txn.PayloadVersion() == payload.CRCProposalWithdrawVersion01 &&
-			blockHeight < chainParams.CRCProposalWithdrawPayloadV1Height {
-			return errors.New(fmt.Sprintf("not support %s transaction "+
-				"before CRCProposalWithdrawPayloadV1Height", txn.TxType().Name()))
-		}
-	case common2.CRAssetsRectify, common2.CRCProposalRealWithdraw:
-		if blockHeight < chainParams.CRAssetsRectifyTransactionHeight {
-			return errors.New(fmt.Sprintf("not support %s transaction "+
-				"before CRCProposalWithdrawPayloadV1Height", txn.TxType().Name()))
-		}
-	case common2.CRCouncilMemberClaimNode:
-		if blockHeight < chainParams.CRClaimDPOSNodeStartHeight {
-			return errors.New(fmt.Sprintf("not support %s transaction "+
-				"before CRClaimDPOSNodeStartHeight", txn.TxType().Name()))
-		}
-	case common2.TransferAsset:
-		if blockHeight >= chainParams.CRVotingStartHeight {
-			return nil
-		}
-		if txn.Version() >= common2.TxVersion09 {
-			for _, output := range txn.Outputs() {
-				if output.Type != common2.OTVote {
-					continue
-				}
-				p, _ := output.Payload.(*outputpayload.VoteOutput)
-				if p.Version >= outputpayload.VoteProducerAndCRVersion {
-					return errors.New("not support " +
-						"VoteProducerAndCRVersion before CRVotingStartHeight")
-				}
-			}
-		}
-	case common2.TransferCrossChainAsset:
-		if blockHeight <= chainParams.NewCrossChainStartHeight {
-			if txn.PayloadVersion() != payload.TransferCrossChainVersion {
-				return errors.New("not support " +
-					"TransferCrossChainAsset payload version V1 before NewCrossChainStartHeight")
-			}
-			return nil
-		} else {
-			if txn.PayloadVersion() != payload.TransferCrossChainVersionV1 {
-				return errors.New("not support " +
-					"TransferCrossChainAsset payload version V0 after NewCrossChainStartHeight")
-			}
-		}
-	case common2.ReturnSideChainDepositCoin:
-		if blockHeight < chainParams.ReturnCrossChainCoinStartHeight {
-			return errors.New(fmt.Sprintf("not support %s transaction "+
-				"before ReturnCrossChainCoinStartHeight", txn.TxType().Name()))
-		}
-	}
-
 	return nil
 }
 
@@ -380,7 +244,7 @@ func (a *DefaultChecker) GetTxReference(txn interfaces.Transaction) (
 	return a.contextParameters.BlockChain.UTXOCache.GetTxReference(txn)
 }
 
-func (a *DefaultChecker) CheckPOWConsensusTransaction(references map[*common2.Input]common2.Output) error {
+func (a *DefaultChecker) IsAllowedInPOWConsensus() bool {
 	txn := a.contextParameters.Transaction
 	b := a.contextParameters.BlockChain
 
@@ -419,7 +283,7 @@ func (a *DefaultChecker) CheckPOWConsensusTransaction(references map[*common2.In
 			}
 
 			inputProgramHashes := make(map[common.Uint168]struct{})
-			for _, output := range references {
+			for _, output := range a.references {
 				inputProgramHashes[output.ProgramHash] = struct{}{}
 			}
 			outputProgramHashes := make(map[common.Uint168]struct{})

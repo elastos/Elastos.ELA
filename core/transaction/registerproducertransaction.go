@@ -24,6 +24,20 @@ type RegisterProducerTransaction struct {
 	BaseTransaction
 }
 
+func (t *RegisterProducerTransaction) CheckTxHeightVersion() error {
+	txn := t.contextParameters.Transaction
+	blockHeight := t.contextParameters.BlockHeight
+	chainParams := t.contextParameters.Config
+
+	if blockHeight < chainParams.CRVotingStartHeight ||
+		(blockHeight < chainParams.RegisterCRByDIDHeight &&
+			txn.PayloadVersion() != payload.CRInfoVersion) {
+		return errors.New(fmt.Sprintf("not support %s transaction "+
+			"before CRVotingStartHeight", txn.TxType().Name()))
+	}
+	return nil
+}
+
 func (t *RegisterProducerTransaction) SpecialCheck() (elaerr.ELAError, bool) {
 	info, ok := t.Payload().(*payload.ProducerInfo)
 	if !ok {

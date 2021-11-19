@@ -8,6 +8,7 @@ package transaction
 import (
 	"bytes"
 	"errors"
+	"fmt"
 
 	"github.com/elastos/Elastos.ELA/blockchain"
 	"github.com/elastos/Elastos.ELA/common"
@@ -18,6 +19,26 @@ import (
 
 type CRCProposalReviewTransaction struct {
 	BaseTransaction
+}
+
+func (t *CRCProposalReviewTransaction) CheckTxHeightVersion() error {
+	txn := t.contextParameters.Transaction
+	blockHeight := t.contextParameters.BlockHeight
+	chainParams := t.contextParameters.Config
+
+	if blockHeight < chainParams.CRCommitteeStartHeight {
+		return errors.New(fmt.Sprintf("not support %s transaction "+
+			"before CRCommitteeStartHeight", txn.TxType().Name()))
+	} else if blockHeight < chainParams.CRCProposalDraftDataStartHeight {
+		if txn.PayloadVersion() != payload.CRCProposalVersion {
+			return errors.New("payload version should be CRCProposalVersion")
+		}
+	} else {
+		if txn.PayloadVersion() != payload.CRCProposalVersion01 {
+			return errors.New("should have draft data")
+		}
+	}
+	return nil
 }
 
 func (t *CRCProposalReviewTransaction) SpecialCheck() (result elaerr.ELAError, end bool) {
@@ -58,7 +79,7 @@ func (t *CRCProposalReviewTransaction) SpecialCheck() (result elaerr.ELAError, e
 		}
 		tempDraftHash := common.Hash(crcProposalReview.OpinionData)
 		if !crcProposalReview.OpinionHash.IsEqual(tempDraftHash) {
-			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("the opinion data and opinion hash of" +
+			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("the opinion data and opinion hash of"+
 				" proposal review are inconsistent")), true
 		}
 	}
@@ -76,4 +97,3 @@ func (t *CRCProposalReviewTransaction) SpecialCheck() (result elaerr.ELAError, e
 	}
 	return nil, false
 }
-

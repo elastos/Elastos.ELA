@@ -8,7 +8,7 @@ package transaction
 import (
 	"bytes"
 	"errors"
-
+	"fmt"
 	"github.com/elastos/Elastos.ELA/blockchain"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	crstate "github.com/elastos/Elastos.ELA/cr/state"
@@ -17,6 +17,18 @@ import (
 
 type UnregisterCRTransaction struct {
 	BaseTransaction
+}
+
+func (t *UnregisterCRTransaction) CheckTxHeightVersion() error {
+	txn := t.contextParameters.Transaction
+	blockHeight := t.contextParameters.BlockHeight
+	chainParams := t.contextParameters.Config
+
+	if blockHeight < chainParams.CRVotingStartHeight {
+		return errors.New(fmt.Sprintf("not support %s transaction "+
+			"before CRVotingStartHeight", txn.TxType().Name()))
+	}
+	return nil
 }
 
 func (t *UnregisterCRTransaction) SpecialCheck() (elaerr.ELAError, bool) {

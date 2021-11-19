@@ -7,6 +7,7 @@ package transaction
 
 import (
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/elastos/Elastos.ELA/core/types/payload"
@@ -15,6 +16,15 @@ import (
 
 type RevertToPOWTransaction struct {
 	BaseTransaction
+}
+
+func (t *RevertToPOWTransaction) CheckTxHeightVersion() error {
+	if t.contextParameters.BlockHeight < t.contextParameters.Config.RevertToPOWStartHeight {
+		return errors.New(fmt.Sprintf("not support %s transaction "+
+			"before RevertToPOWStartHeight", t.TxType().Name()))
+	}
+
+	return nil
 }
 
 func (t *RevertToPOWTransaction) SpecialCheck() (result elaerr.ELAError, end bool) {

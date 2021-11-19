@@ -23,6 +23,29 @@ type CRCProposalWithdrawTransaction struct {
 	BaseTransaction
 }
 
+func (t *CRCProposalWithdrawTransaction) CheckTxHeightVersion() error {
+	txn := t.contextParameters.Transaction
+	blockHeight := t.contextParameters.BlockHeight
+	chainParams := t.contextParameters.Config
+
+	if blockHeight < chainParams.CRCommitteeStartHeight {
+		return errors.New(fmt.Sprintf("not support %s transaction "+
+			"before CRCommitteeStartHeight", txn.TxType().Name()))
+	}
+	if txn.PayloadVersion() == payload.CRCProposalWithdrawDefault &&
+		blockHeight >= chainParams.CRCProposalWithdrawPayloadV1Height {
+		return errors.New(fmt.Sprintf("not support %s transaction "+
+			"after CRCProposalWithdrawPayloadV1Height", txn.TxType().Name()))
+	}
+
+	if txn.PayloadVersion() == payload.CRCProposalWithdrawVersion01 &&
+		blockHeight < chainParams.CRCProposalWithdrawPayloadV1Height {
+		return errors.New(fmt.Sprintf("not support %s transaction "+
+			"before CRCProposalWithdrawPayloadV1Height", txn.TxType().Name()))
+	}
+	return nil
+}
+
 func (t *CRCProposalWithdrawTransaction) SpecialCheck() (result elaerr.ELAError, end bool) {
 
 	if t.PayloadVersion() == payload.CRCProposalWithdrawDefault {

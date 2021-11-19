@@ -8,7 +8,6 @@ package transaction
 import (
 	"errors"
 	"fmt"
-
 	"github.com/elastos/Elastos.ELA/common"
 	elaerr "github.com/elastos/Elastos.ELA/errors"
 )
@@ -17,6 +16,17 @@ type CRCAppropriationTransaction struct {
 	BaseTransaction
 }
 
+func (t *CRCAppropriationTransaction) CheckTxHeightVersion() error {
+	txn := t.contextParameters.Transaction
+	blockHeight := t.contextParameters.BlockHeight
+	chainParams := t.contextParameters.Config
+
+	if blockHeight < chainParams.CRCommitteeStartHeight {
+		return errors.New(fmt.Sprintf("not support %s transaction "+
+			"before CRCommitteeStartHeight", txn.TxType().Name()))
+	}
+	return nil
+}
 
 func (t *CRCAppropriationTransaction) SpecialCheck() (result elaerr.ELAError, end bool) {
 	// Check if current session has appropriated.
@@ -57,4 +67,3 @@ func (t *CRCAppropriationTransaction) SpecialCheck() (result elaerr.ELAError, en
 
 	return nil, true
 }
-

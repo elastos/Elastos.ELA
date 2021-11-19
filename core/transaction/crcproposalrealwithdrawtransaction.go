@@ -18,6 +18,18 @@ type CRCProposalRealWithdrawTransaction struct {
 	BaseTransaction
 }
 
+func (t *CRCProposalRealWithdrawTransaction) CheckTxHeightVersion() error {
+	txn := t.contextParameters.Transaction
+	blockHeight := t.contextParameters.BlockHeight
+	chainParams := t.contextParameters.Config
+
+	if blockHeight < chainParams.CRAssetsRectifyTransactionHeight {
+		return errors.New(fmt.Sprintf("not support %s transaction "+
+			"before CRCProposalWithdrawPayloadV1Height", txn.TxType().Name()))
+	}
+	return nil
+}
+
 func (t *CRCProposalRealWithdrawTransaction) SpecialCheck() (result elaerr.ELAError, end bool) {
 	crcRealWithdraw, ok := t.Payload().(*payload.CRCProposalRealWithdraw)
 	if !ok {

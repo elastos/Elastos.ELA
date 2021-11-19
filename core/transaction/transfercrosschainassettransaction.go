@@ -21,6 +21,26 @@ type TransferCrossChainAssetTransaction struct {
 	BaseTransaction
 }
 
+func (t *TransferCrossChainAssetTransaction) CheckTxHeightVersion() error {
+	txn := t.contextParameters.Transaction
+	blockHeight := t.contextParameters.BlockHeight
+	chainParams := t.contextParameters.Config
+
+	if blockHeight <= chainParams.NewCrossChainStartHeight {
+		if txn.PayloadVersion() != payload.TransferCrossChainVersion {
+			return errors.New("not support " +
+				"TransferCrossChainAsset payload version V1 before NewCrossChainStartHeight")
+		}
+		return nil
+	} else {
+		if txn.PayloadVersion() != payload.TransferCrossChainVersionV1 {
+			return errors.New("not support " +
+				"TransferCrossChainAsset payload version V0 after NewCrossChainStartHeight")
+		}
+	}
+	return nil
+}
+
 func (t *TransferCrossChainAssetTransaction) SpecialCheck() (elaerr.ELAError, bool) {
 	var err error
 	if t.PayloadVersion() > payload.TransferCrossChainVersionV1 {

@@ -40,6 +40,14 @@ func (t *IllegalSideChainTransaction) CheckTransactionOutput() error {
 	return nil
 }
 
+func (t *IllegalSideChainTransaction) CheckAttributeProgram() error {
+	if len(t.Programs()) != 0 || len(t.Attributes()) != 0 {
+		return errors.New("zero cost tx should have no attributes and programs")
+	}
+	return nil
+}
+
+
 func (t *IllegalSideChainTransaction) IsAllowedInPOWConsensus() bool {
 	return true
 }

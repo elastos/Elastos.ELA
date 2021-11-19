@@ -16,6 +16,16 @@ type CRAssetsRectifyTransaction struct {
 	BaseTransaction
 }
 
+func (t *CRAssetsRectifyTransaction) CheckAttributeProgram() error {
+	if len(t.Programs()) != 0 {
+		return errors.New("txs should have no programs")
+	}
+	if len(t.Attributes()) != 0 {
+		return errors.New("txs should have no attributes")
+	}
+	return nil
+}
+
 func (t *CRAssetsRectifyTransaction) IsAllowedInPOWConsensus() bool {
 	return true
 }

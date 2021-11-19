@@ -89,15 +89,15 @@ func (b *BlockChain) CheckTransactionSanity(blockHeight uint32,
 	//	return elaerr.Simple(elaerr.ErrTxInvalidOutput, err)
 	//}
 
-	if err := checkAssetPrecision(txn); err != nil {
-		log.Warn("[CheckAssetPrecesion],", err)
-		return elaerr.Simple(elaerr.ErrTxAssetPrecision, err)
-	}
+	//if err := checkAssetPrecision(txn); err != nil {
+	//	log.Warn("[CheckAssetPrecesion],", err)
+	//	return elaerr.Simple(elaerr.ErrTxAssetPrecision, err)
+	//}
 
-	if err := b.checkAttributeProgram(txn, blockHeight); err != nil {
-		log.Warn("[CheckAttributeProgram],", err)
-		return elaerr.Simple(elaerr.ErrTxAttributeProgram, err)
-	}
+	//if err := b.checkAttributeProgram(txn, blockHeight); err != nil {
+	//	log.Warn("[CheckAttributeProgram],", err)
+	//	return elaerr.Simple(elaerr.ErrTxAttributeProgram, err)
+	//}
 
 	if err := b.checkTransactionPayload(txn); err != nil {
 		log.Warn("[CheckTransactionPayload],", err)

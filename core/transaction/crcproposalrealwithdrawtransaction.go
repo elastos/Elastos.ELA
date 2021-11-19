@@ -18,6 +18,16 @@ type CRCProposalRealWithdrawTransaction struct {
 	BaseTransaction
 }
 
+func (t *CRCProposalRealWithdrawTransaction) CheckAttributeProgram() error {
+	if len(t.Programs()) != 0 {
+		return errors.New("txs should have no programs")
+	}
+	if len(t.Attributes()) != 0 {
+		return errors.New("txs should have no attributes")
+	}
+	return nil
+}
+
 func (t *CRCProposalRealWithdrawTransaction) IsAllowedInPOWConsensus() bool {
 	return true
 }

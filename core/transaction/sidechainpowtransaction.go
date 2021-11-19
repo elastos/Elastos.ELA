@@ -8,6 +8,7 @@ package transaction
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"github.com/elastos/Elastos.ELA/blockchain"
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
@@ -100,6 +101,38 @@ func (t *SideChainPOWTransaction) CheckTransactionOutput() error {
 
 		if t.sanityParameters.BlockChain.GetHeight() >= chainParams.PublicDPOSHeight && specialOutputCount > 1 {
 			return errors.New("special output count should less equal than 1")
+		}
+	}
+
+	return nil
+}
+
+func (t *SideChainPOWTransaction) CheckAttributeProgram() error {
+
+	if t.IsNewSideChainPowTx() {
+		if len(t.Programs()) != 0 || len(t.Attributes()) != 0 {
+			return errors.New("sideChainPow transactions should have no attributes and programs")
+		}
+		return nil
+	}
+
+	// Check attributes
+	for _, attr := range t.Attributes() {
+		if !common2.IsValidAttributeType(attr.Usage) {
+			return fmt.Errorf("invalid attribute usage %v", attr.Usage)
+		}
+	}
+
+	// Check programs
+	if len(t.Programs()) == 0 {
+		return fmt.Errorf("no programs found in transaction")
+	}
+	for _, program := range t.Programs() {
+		if program.Code == nil {
+			return fmt.Errorf("invalid program code nil")
+		}
+		if program.Parameter == nil {
+			return fmt.Errorf("invalid program parameter nil")
 		}
 	}
 

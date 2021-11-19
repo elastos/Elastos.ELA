@@ -8,12 +8,13 @@ package transaction
 import (
 	"bytes"
 	"errors"
+	"math"
+
 	"github.com/elastos/Elastos.ELA/blockchain"
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/dpos/state"
 	elaerr "github.com/elastos/Elastos.ELA/errors"
-	"math"
 )
 
 type NextTurnDPOSInfoTransaction struct {
@@ -37,6 +38,13 @@ func (t *NextTurnDPOSInfoTransaction) CheckTransactionOutput() error {
 		return errors.New("no cost transactions should have no output")
 	}
 
+	return nil
+}
+
+func (t *NextTurnDPOSInfoTransaction) CheckAttributeProgram() error {
+	if len(t.Programs()) != 0 || len(t.Attributes()) != 0 {
+		return errors.New("zero cost tx should have no attributes and programs")
+	}
 	return nil
 }
 

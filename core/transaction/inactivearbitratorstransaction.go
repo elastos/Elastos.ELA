@@ -8,6 +8,7 @@ package transaction
 import (
 	"errors"
 	"fmt"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"math"
 
 	"github.com/elastos/Elastos.ELA/blockchain"
@@ -24,7 +25,7 @@ type InactiveArbitratorsTransaction struct {
 }
 
 func (t *InactiveArbitratorsTransaction) CheckTransactionInput() error {
-	if len( t.sanityParameters.Transaction.Inputs()) != 0 {
+	if len(t.sanityParameters.Transaction.Inputs()) != 0 {
 		return errors.New("no cost transactions must has no input")
 	}
 	return nil
@@ -38,6 +39,39 @@ func (t *InactiveArbitratorsTransaction) CheckTransactionOutput() error {
 	}
 	if len(txn.Outputs()) != 0 {
 		return errors.New("no cost transactions should have no output")
+	}
+
+	return nil
+}
+
+func (t *InactiveArbitratorsTransaction) CheckAttributeProgram() error {
+
+	// check programs count and attributes count
+	if len(t.Programs()) != 1 {
+		return errors.New("inactive arbitrators transactions should have one and only one program")
+	}
+	if len(t.Attributes()) != 1 {
+		return errors.New("inactive arbitrators transactions should have one and only one arbitrator")
+	}
+
+	// Check attributes
+	for _, attr := range t.Attributes() {
+		if !common2.IsValidAttributeType(attr.Usage) {
+			return fmt.Errorf("invalid attribute usage %v", attr.Usage)
+		}
+	}
+
+	// Check programs
+	if len(t.Programs()) == 0 {
+		return fmt.Errorf("no programs found in transaction")
+	}
+	for _, program := range t.Programs() {
+		if program.Code == nil {
+			return fmt.Errorf("invalid program code nil")
+		}
+		if program.Parameter == nil {
+			return fmt.Errorf("invalid program parameter nil")
+		}
 	}
 
 	return nil

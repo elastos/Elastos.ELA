@@ -43,6 +43,13 @@ func (t *ActivateProducerTransaction) CheckTransactionOutput() error {
 	return nil
 }
 
+func (t *ActivateProducerTransaction) CheckAttributeProgram() error {
+	if len(t.Programs()) != 0 || len(t.Attributes()) != 0 {
+		return errors.New("zero cost tx should have no attributes and programs")
+	}
+	return nil
+}
+
 func (t *ActivateProducerTransaction) IsAllowedInPOWConsensus() bool {
 	return true
 }

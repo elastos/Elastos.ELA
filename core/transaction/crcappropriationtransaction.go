@@ -73,6 +73,16 @@ func (t *CRCAppropriationTransaction) CheckTransactionOutput() error {
 	return nil
 }
 
+func (t *CRCAppropriationTransaction) CheckAttributeProgram() error {
+	if len(t.Programs()) != 0 {
+		return errors.New("txs should have no programs")
+	}
+	if len(t.Attributes()) != 0 {
+		return errors.New("txs should have no attributes")
+	}
+	return nil
+}
+
 func (t *CRCAppropriationTransaction) IsAllowedInPOWConsensus() bool {
 	return true
 }

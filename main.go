@@ -563,7 +563,7 @@ func getTransaction(txType common2.TxType) (txn interfaces.Transaction, err erro
 		txn = new(transaction2.NextTurnDPOSInfoTransaction)
 
 	case common2.ProposalResult:
-		txn = new(transaction2.ProposalResultTransaction)
+		txn = new(transaction2.CRCProposalResultTransaction)
 
 	case common2.CRCProposal:
 		txn = new(transaction2.CRCProposalTransaction)

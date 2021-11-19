@@ -51,6 +51,16 @@ func (t *DefaultChecker) SanityCheck(params interfaces.Parameters) elaerr.ELAErr
 		return elaerr.Simple(elaerr.ErrTxInvalidInput, err)
 	}
 
+	if err := checkAssetPrecision(t.contextParameters.Transaction); err != nil {
+		log.Warn("[CheckAssetPrecesion],", err)
+		return elaerr.Simple(elaerr.ErrTxAssetPrecision, err)
+	}
+
+	if err := t.CheckAttributeProgram(); err != nil {
+		log.Warn("[CheckAttributeProgram],", err)
+		return elaerr.Simple(elaerr.ErrTxAttributeProgram, err)
+	}
+
 	return nil
 }
 
@@ -228,6 +238,30 @@ func (t *DefaultChecker) CheckTransactionOutput() error {
 		return errors.New("special output count should less equal than 1")
 	}
 
+	return nil
+}
+
+func (t *DefaultChecker) CheckAttributeProgram() error {
+	tx := t.sanityParameters.Transaction
+	// Check attributes
+	for _, attr := range tx.Attributes() {
+		if !common2.IsValidAttributeType(attr.Usage) {
+			return fmt.Errorf("invalid attribute usage %v", attr.Usage)
+		}
+	}
+
+	// Check programs
+	if len(tx.Programs()) == 0 {
+		return fmt.Errorf("no programs found in transaction")
+	}
+	for _, program := range tx.Programs() {
+		if program.Code == nil {
+			return fmt.Errorf("invalid program code nil")
+		}
+		if program.Parameter == nil {
+			return fmt.Errorf("invalid program parameter nil")
+		}
+	}
 	return nil
 }
 
@@ -673,4 +707,17 @@ func checkOutputPayload(txType common2.TxType, output *common2.Output) error {
 	}
 
 	return output.Payload.Validate()
+}
+
+func checkAssetPrecision(txn interfaces.Transaction) error {
+	for _, output := range txn.Outputs() {
+		if !checkAmountPrecise(output.Value, config.ELAPrecision) {
+			return errors.New("the precision of asset is incorrect")
+		}
+	}
+	return nil
+}
+
+func checkAmountPrecise(amount common.Fixed64, precision byte) bool {
+	return amount.IntValue()%int64(math.Pow(10, float64(8-precision))) == 0
 }

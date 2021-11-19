@@ -14,18 +14,18 @@ import (
 	"math"
 )
 
-type ProposalResultTransaction struct {
+type CRCProposalResultTransaction struct {
 	BaseTransaction
 }
 
-func (t *ProposalResultTransaction) CheckTransactionInput() error {
+func (t *CRCProposalResultTransaction) CheckTransactionInput() error {
 	if len(t.sanityParameters.Transaction.Inputs()) != 0 {
 		return errors.New("no cost transactions must has no input")
 	}
 	return nil
 }
 
-func (t *ProposalResultTransaction) CheckTransactionOutput() error {
+func (t *CRCProposalResultTransaction) CheckTransactionOutput() error {
 
 	txn := t.sanityParameters.Transaction
 	if len(txn.Outputs()) > math.MaxUint16 {
@@ -38,11 +38,18 @@ func (t *ProposalResultTransaction) CheckTransactionOutput() error {
 	return nil
 }
 
-func (t *ProposalResultTransaction) IsAllowedInPOWConsensus() bool {
+func (t *CRCProposalResultTransaction) CheckAttributeProgram() error {
+	if len(t.Programs()) != 0 || len(t.Attributes()) != 0 {
+		return errors.New("zero cost tx should have no attributes and programs")
+	}
+	return nil
+}
+
+func (t *CRCProposalResultTransaction) IsAllowedInPOWConsensus() bool {
 	return true
 }
 
-func (t *ProposalResultTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
+func (t *CRCProposalResultTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
 	if !blockchain.DefaultLedger.Committee.IsProposalResultNeeded() {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("should not have proposal result transaction")), true
 	}

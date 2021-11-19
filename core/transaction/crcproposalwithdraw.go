@@ -23,6 +23,39 @@ type CRCProposalWithdrawTransaction struct {
 	BaseTransaction
 }
 
+func (t *CRCProposalWithdrawTransaction) CheckAttributeProgram() error {
+
+	if len(t.Programs()) != 0 && t.sanityParameters.BlockHeight <
+		t.sanityParameters.Config.CRCProposalWithdrawPayloadV1Height {
+		return errors.New("crcproposalwithdraw tx should have no programs")
+	}
+	if t.PayloadVersion() == payload.CRCProposalWithdrawDefault {
+		return nil
+	}
+
+	// Check attributes
+	for _, attr := range t.Attributes() {
+		if !common2.IsValidAttributeType(attr.Usage) {
+			return fmt.Errorf("invalid attribute usage %v", attr.Usage)
+		}
+	}
+
+	// Check programs
+	if len(t.Programs()) == 0 {
+		return fmt.Errorf("no programs found in transaction")
+	}
+	for _, program := range t.Programs() {
+		if program.Code == nil {
+			return fmt.Errorf("invalid program code nil")
+		}
+		if program.Parameter == nil {
+			return fmt.Errorf("invalid program parameter nil")
+		}
+	}
+
+	return nil
+}
+
 func (t *CRCProposalWithdrawTransaction) IsAllowedInPOWConsensus() bool {
 	return false
 }

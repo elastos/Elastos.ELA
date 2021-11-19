@@ -40,6 +40,13 @@ func (t *IllegalProposalTransaction) CheckTransactionOutput() error {
 	return nil
 }
 
+func (t *IllegalProposalTransaction) CheckAttributeProgram() error {
+	if len(t.Programs()) != 0 || len(t.Attributes()) != 0 {
+		return errors.New("zero cost tx should have no attributes and programs")
+	}
+	return nil
+}
+
 func (t *IllegalProposalTransaction) IsAllowedInPOWConsensus() bool {
 	return true
 }

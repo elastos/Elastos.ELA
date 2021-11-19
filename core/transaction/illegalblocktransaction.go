@@ -37,6 +37,16 @@ func (t *IllegalBlockTransaction) CheckTransactionOutput() error {
 	return nil
 }
 
+func (t *IllegalBlockTransaction) CheckAttributeProgram() error {
+	if len(t.Programs()) != 0 {
+		return errors.New("illegal block transactions should have one and only one program")
+	}
+	if len(t.Attributes()) != 0 {
+		return errors.New("illegal block transactions should have no programs")
+	}
+	return nil
+}
+
 func (t *IllegalBlockTransaction) IsAllowedInPOWConsensus() bool {
 	return true
 }

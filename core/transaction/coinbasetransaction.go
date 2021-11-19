@@ -75,6 +75,14 @@ func (t *CoinBaseTransaction) CheckTransactionOutput() error {
 	return nil
 }
 
+func (t *CoinBaseTransaction) CheckAttributeProgram() error {
+	// no need to check attribute and program
+	if len(t.Programs()) != 0 {
+		return errors.New("transaction should have no programs")
+	}
+	return nil
+}
+
 func (t *CoinBaseTransaction) IsAllowedInPOWConsensus() bool {
 
 	return true

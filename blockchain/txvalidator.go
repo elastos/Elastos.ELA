@@ -251,6 +251,13 @@ func (b *BlockChain) CheckTransactionContext(blockHeight uint32,
 		}
 		return references, nil
 
+	case DposV2ClaimReward:
+		if err := b.checkDposV2ClaimRewardTransaction(txn, blockHeight); err != nil {
+			log.Warn("[checkDposV2ClaimRewardTransaction],", err)
+			return nil, elaerr.Simple(elaerr.ErrTxPayload, err)
+		}
+		return references, nil
+
 	case RegisterCR:
 		if err := b.checkRegisterCRTransaction(txn, blockHeight); err != nil {
 			log.Warn("[checkRegisterCRTransaction],", err)
@@ -1169,6 +1176,10 @@ func (b *BlockChain) checkAttributeProgram(tx *Transaction,
 		if len(tx.Programs) != 1 {
 			return errors.New("return CR deposit coin transactions should have one and only one program")
 		}
+	case DposV2ClaimReward:
+		if len(tx.Programs) != 1 {
+			return errors.New("dposV2 claim reward transactions should have one and only one program")
+		}
 	case CRCProposalWithdraw:
 		if len(tx.Programs) != 0 && blockHeight < b.chainParams.CRCProposalWithdrawPayloadV1Height {
 			return errors.New("crcproposalwithdraw tx should have no programs")
@@ -1290,7 +1301,7 @@ func (b *BlockChain) checkPOWConsensusTransaction(txn *Transaction, references m
 	}
 
 	switch txn.TxType {
-	case RegisterProducer, ActivateProducer, CRCouncilMemberClaimNode:
+	case RegisterProducer, ActivateProducer, CRCouncilMemberClaimNode, DposV2ClaimReward:
 		return nil
 	case CRCAppropriation, CRAssetsRectify, CRCProposalRealWithdraw,
 		NextTurnDPOSInfo, RevertToDPOS:
@@ -1419,6 +1430,12 @@ func (b *BlockChain) checkTxHeightVersion(txn *Transaction, blockHeight uint32) 
 		if blockHeight < b.chainParams.CRCommitteeStartHeight {
 			return errors.New(fmt.Sprintf("not support %s transaction "+
 				"before CRCommitteeStartHeight", txn.TxType.Name()))
+		}
+
+	case DposV2ClaimReward:
+		if blockHeight < b.chainParams.DposV2StartHeight {
+			return errors.New(fmt.Sprintf("not support %s transaction "+
+				"before DposV2StartHeight", txn.TxType.Name()))
 		}
 
 	case CRCProposalWithdraw:
@@ -2111,6 +2128,37 @@ func (b *BlockChain) checkCancelProducerTransaction(txn *Transaction) error {
 	if producer.State() == state.Illegal ||
 		producer.State() == state.Canceled {
 		return errors.New("can not cancel this producer")
+	}
+
+	return nil
+}
+
+func (b *BlockChain) checkDposV2ClaimRewardTransaction(txn *Transaction,
+	height uint32) error {
+
+	if height < b.chainParams.DposV2StartHeight {
+		return errors.New("can not claim reward before dposv2startheight")
+	}
+
+	claimReward, ok := txn.Payload.(*payload.DposV2ClaimReward)
+	if !ok {
+		return errors.New("invalid payload for dposV2claimReward")
+	}
+	if len(txn.Inputs) != 0 {
+		return errors.New("inputs must be zero")
+	}
+
+	if len(txn.Outputs) != 0 {
+		return errors.New("outputs must be zero")
+	}
+
+	claimAmount, ok := b.state.DposV2RewardInfo[hex.EncodeToString(txn.Programs[0].Code[1:len(txn.Programs[0].Code)-1])]
+	if !ok {
+		errors.New("no reward to claim for such adress")
+	}
+
+	if claimAmount > claimReward.Amount {
+		return errors.New("claim reward exceeded , max claim reward " + claimAmount.String())
 	}
 
 	return nil

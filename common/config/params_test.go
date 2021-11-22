@@ -39,4 +39,7 @@ func TestFoundation(t *testing.T) {
 
 	address, _ = testNetFoundation.ToAddress()
 	assert.Equal(t, "8ZNizBf4KhhPjeJRGpox6rPcHE5Np6tFx3", address)
+
+	address, _ = DposV2RewardAccumulateAddress.ToAddress()
+	assert.Equal(t, "EfskyVm2oBN31ajkyrNpnPVLyyLPbyRTms", address)
 }

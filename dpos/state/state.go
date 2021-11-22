@@ -1052,6 +1052,9 @@ func (s *State) processTransaction(tx *types.Transaction, height uint32) {
 
 	case types.RevertToDPOS:
 		s.processRevertToDPOS(tx.Payload.(*payload.RevertToDPOS), height)
+
+	case types.DposV2ClaimReward:
+		s.processDposV2ClaimReward(tx, height)
 	}
 
 	if tx.TxType != types.RegisterProducer {
@@ -1653,6 +1656,20 @@ func (s *State) getClaimedCRMembersMap() map[string]*state.CRMember {
 		}
 	}
 	return crMembersMap
+}
+
+func (s *State) processDposV2ClaimReward(tx *types.Transaction, height uint32) {
+	oriDposV2RewardInfo := s.DposV2RewardInfo
+	oriDposV2RewardClaimingInfo := s.DposV2RewardClaimingInfo
+	payload := tx.Payload.(*payload.DposV2ClaimReward)
+	pub := hex.EncodeToString(tx.Programs[0].Code[1 : len(tx.Programs[0].Code)-1])
+	s.history.Append(height, func() {
+		s.DposV2RewardInfo[pub] -= payload.Amount
+		s.DposV2RewardClaimingInfo[pub] += payload.Amount
+	}, func() {
+		s.DposV2RewardInfo = oriDposV2RewardInfo
+		s.DposV2RewardClaimingInfo = oriDposV2RewardClaimingInfo
+	})
 }
 
 func (s *State) processRevertToDPOS(Payload *payload.RevertToDPOS, height uint32) {

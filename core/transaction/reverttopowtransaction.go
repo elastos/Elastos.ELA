@@ -19,8 +19,19 @@ type RevertToPOWTransaction struct {
 	BaseTransaction
 }
 
+func (t *RevertToPOWTransaction) RegisterFunctions() {
+	t.DefaultChecker.CheckTransactionSize = t.checkTransactionSize
+	t.DefaultChecker.CheckTransactionInput = t.CheckTransactionInput
+	t.DefaultChecker.CheckTransactionOutput = t.CheckTransactionOutput
+	t.DefaultChecker.CheckTransactionPayload = t.CheckTransactionPayload
+	t.DefaultChecker.HeightVersionCheck = t.HeightVersionCheck
+	t.DefaultChecker.IsAllowedInPOWConsensus = t.IsAllowedInPOWConsensus
+	t.DefaultChecker.SpecialContextCheck = t.SpecialContextCheck
+	t.DefaultChecker.CheckAttributeProgram = t.CheckAttributeProgram
+}
+
 func (t *RevertToPOWTransaction) CheckTransactionInput() error {
-	if len(t.sanityParameters.Transaction.Inputs()) != 0 {
+	if len(t.parameters.Transaction.Inputs()) != 0 {
 		return errors.New("no cost transactions must has no input")
 	}
 	return nil
@@ -28,7 +39,7 @@ func (t *RevertToPOWTransaction) CheckTransactionInput() error {
 
 func (t *RevertToPOWTransaction) CheckTransactionOutput() error {
 
-	txn := t.sanityParameters.Transaction
+	txn := t.parameters.Transaction
 	if len(txn.Outputs()) > math.MaxUint16 {
 		return errors.New("output count should not be greater than 65535(MaxUint16)")
 	}
@@ -60,7 +71,7 @@ func (t *RevertToPOWTransaction) IsAllowedInPOWConsensus() bool {
 }
 
 func (t *RevertToPOWTransaction) HeightVersionCheck() error {
-	if t.contextParameters.BlockHeight < t.contextParameters.Config.RevertToPOWStartHeight {
+	if t.parameters.BlockHeight < t.parameters.Config.RevertToPOWStartHeight {
 		return errors.New(fmt.Sprintf("not support %s transaction "+
 			"before RevertToPOWStartHeight", t.TxType().Name()))
 	}
@@ -74,16 +85,16 @@ func (t *RevertToPOWTransaction) SpecialContextCheck() (result elaerr.ELAError, 
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid payload")), true
 	}
 
-	if p.WorkingHeight != t.contextParameters.BlockHeight {
+	if p.WorkingHeight != t.parameters.BlockHeight {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid start POW block height")), true
 	}
 
 	switch p.Type {
 	case payload.NoBlock:
-		lastBlockTime := int64(t.contextParameters.BlockChain.BestChain.Timestamp)
-		noBlockTime := t.contextParameters.Config.RevertToPOWNoBlockTime
+		lastBlockTime := int64(t.parameters.BlockChain.BestChain.Timestamp)
+		noBlockTime := t.parameters.Config.RevertToPOWNoBlockTime
 
-		if t.contextParameters.TimeStamp == 0 {
+		if t.parameters.TimeStamp == 0 {
 			// is not in block, check by local time.
 			localTime := t.MedianAdjustedTime().Unix()
 			if localTime-lastBlockTime < noBlockTime {
@@ -91,16 +102,16 @@ func (t *RevertToPOWTransaction) SpecialContextCheck() (result elaerr.ELAError, 
 			}
 		} else {
 			// is in block, check by the time of existed block.
-			if int64(t.contextParameters.TimeStamp)-lastBlockTime < noBlockTime {
+			if int64(t.parameters.TimeStamp)-lastBlockTime < noBlockTime {
 				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid block time")), true
 			}
 		}
 	case payload.NoProducers:
-		if !t.contextParameters.BlockChain.GetState().NoProducers {
+		if !t.parameters.BlockChain.GetState().NoProducers {
 			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("current producers is enough")), true
 		}
 	case payload.NoClaimDPOSNode:
-		if !t.contextParameters.BlockChain.GetState().NoClaimDPOSNode {
+		if !t.parameters.BlockChain.GetState().NoClaimDPOSNode {
 			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("current CR member claimed DPoS node")), true
 		}
 	}
@@ -108,8 +119,8 @@ func (t *RevertToPOWTransaction) SpecialContextCheck() (result elaerr.ELAError, 
 }
 
 func (t *RevertToPOWTransaction) MedianAdjustedTime() time.Time {
-	newTimestamp := t.contextParameters.BlockChain.TimeSource.AdjustedTime()
-	minTimestamp := t.contextParameters.BlockChain.MedianTimePast.Add(time.Second)
+	newTimestamp := t.parameters.BlockChain.TimeSource.AdjustedTime()
+	minTimestamp := t.parameters.BlockChain.MedianTimePast.Add(time.Second)
 
 	if newTimestamp.Before(minTimestamp) {
 		newTimestamp = minTimestamp

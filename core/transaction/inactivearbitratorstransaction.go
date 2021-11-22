@@ -24,8 +24,19 @@ type InactiveArbitratorsTransaction struct {
 	BaseTransaction
 }
 
+func (t *InactiveArbitratorsTransaction) RegisterFunctions() {
+	t.DefaultChecker.CheckTransactionSize = t.checkTransactionSize
+	t.DefaultChecker.CheckTransactionInput = t.CheckTransactionInput
+	t.DefaultChecker.CheckTransactionOutput = t.CheckTransactionOutput
+	t.DefaultChecker.CheckTransactionPayload = t.CheckTransactionPayload
+	t.DefaultChecker.HeightVersionCheck = t.heightVersionCheck
+	t.DefaultChecker.IsAllowedInPOWConsensus = t.IsAllowedInPOWConsensus
+	t.DefaultChecker.SpecialContextCheck = t.SpecialContextCheck
+	t.DefaultChecker.CheckAttributeProgram = t.CheckAttributeProgram
+}
+
 func (t *InactiveArbitratorsTransaction) CheckTransactionInput() error {
-	if len(t.sanityParameters.Transaction.Inputs()) != 0 {
+	if len(t.parameters.Transaction.Inputs()) != 0 {
 		return errors.New("no cost transactions must has no input")
 	}
 	return nil
@@ -33,7 +44,7 @@ func (t *InactiveArbitratorsTransaction) CheckTransactionInput() error {
 
 func (t *InactiveArbitratorsTransaction) CheckTransactionOutput() error {
 
-	txn := t.sanityParameters.Transaction
+	txn := t.parameters.Transaction
 	if len(txn.Outputs()) > math.MaxUint16 {
 		return errors.New("output count should not be greater than 65535(MaxUint16)")
 	}
@@ -92,7 +103,7 @@ func (t *InactiveArbitratorsTransaction) IsAllowedInPOWConsensus() bool {
 
 func (t *InactiveArbitratorsTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
 
-	if t.contextParameters.BlockChain.GetState().SpecialTxExists(t) {
+	if t.parameters.BlockChain.GetState().SpecialTxExists(t) {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("tx already exists")), true
 	}
 

@@ -26,15 +26,44 @@ import (
 )
 
 type DefaultChecker struct {
-	sanityParameters  *TransactionParameters
-	contextParameters *TransactionParameters
+	/// SANITY CHECK
+	CheckTransactionSize func() error
+	// check transaction inputs
+	CheckTransactionInput func() error
+	// check transaction outputs
+	CheckTransactionOutput func() error
+	// check transaction payload type
+	CheckTransactionPayload func() error
+	// check transaction attributes and programs
+	CheckAttributeProgram func() error
 
+	/// CONTEXT CHECK
+	// check height version
+	HeightVersionCheck func() error
+	// if the transaction should create in POW need to return true
+	IsAllowedInPOWConsensus func() bool
+	// the special context check of transaction, such as check the transaction payload
+	SpecialContextCheck func() (error elaerr.ELAError, end bool)
+
+	// config
+	parameters *TransactionParameters
 	references map[*common2.Input]common2.Output
 }
 
+func (t *DefaultChecker) RegisterFunctions() {
+	t.CheckTransactionSize = t.checkTransactionSize
+	t.CheckTransactionInput = t.checkTransactionInput
+	t.CheckTransactionOutput = t.checkTransactionOutput
+	t.CheckTransactionPayload = t.checkTransactionPayload
+	t.HeightVersionCheck = t.heightVersionCheck
+	t.IsAllowedInPOWConsensus = t.isAllowedInPOWConsensus
+	t.SpecialContextCheck = t.specialContextCheck
+	t.CheckAttributeProgram = t.checkAttributeProgram
+}
+
 func (t *DefaultChecker) SanityCheck(params interfaces.Parameters) elaerr.ELAError {
-	if err := t.SetSanityParameters(params); err != nil {
-		return elaerr.Simple(elaerr.ErrFail, errors.New("invalid sanityParameters"))
+	if err := t.SetParameters(params); err != nil {
+		return elaerr.Simple(elaerr.ErrFail, errors.New("invalid parameters"))
 	}
 
 	if err := t.HeightVersionCheck(); err != nil {
@@ -52,7 +81,7 @@ func (t *DefaultChecker) SanityCheck(params interfaces.Parameters) elaerr.ELAErr
 		return elaerr.Simple(elaerr.ErrTxInvalidInput, err)
 	}
 
-	if err := checkAssetPrecision(t.contextParameters.Transaction); err != nil {
+	if err := checkAssetPrecision(t.parameters.Transaction); err != nil {
 		log.Warn("[CheckAssetPrecesion],", err)
 		return elaerr.Simple(elaerr.ErrTxAssetPrecision, err)
 	}
@@ -68,40 +97,40 @@ func (t *DefaultChecker) SanityCheck(params interfaces.Parameters) elaerr.ELAErr
 func (t *DefaultChecker) ContextCheck(params interfaces.Parameters) (
 	map[*common2.Input]common2.Output, elaerr.ELAError) {
 
-	if err := t.SetContextParameters(params); err != nil {
-		return nil, elaerr.Simple(elaerr.ErrTxDuplicate, errors.New("invalid contextParameters"))
+	if err := t.SetParameters(params); err != nil {
+		return nil, elaerr.Simple(elaerr.ErrTxDuplicate, errors.New("invalid parameters"))
 	}
 
 	if err := t.HeightVersionCheck(); err != nil {
 		return nil, elaerr.Simple(elaerr.ErrTxHeightVersion, nil)
 	}
 
-	if exist := t.IsTxHashDuplicate(t.contextParameters.Transaction.Hash()); exist {
+	if exist := t.IsTxHashDuplicate(t.parameters.Transaction.Hash()); exist {
 		log.Warn("[CheckTransactionContext] duplicate transaction check failed.")
 		return nil, elaerr.Simple(elaerr.ErrTxDuplicate, nil)
 	}
 
-	references, err := t.GetTxReference(t.contextParameters.Transaction)
+	references, err := t.GetTxReference(t.parameters.Transaction)
 	if err != nil {
 		log.Warn("[CheckTransactionContext] get transaction reference failed")
 		return nil, elaerr.Simple(elaerr.ErrTxUnknownReferredTx, nil)
 	}
 	t.references = references
 
-	if t.contextParameters.BlockChain.GetState().GetConsensusAlgorithm() == state.POW {
+	if t.parameters.BlockChain.GetState().GetConsensusAlgorithm() == state.POW {
 		if !t.IsAllowedInPOWConsensus() {
-			log.Warnf("[CheckTransactionContext], %s transaction is not allowed in POW", t.contextParameters.Transaction.TxType().Name())
+			log.Warnf("[CheckTransactionContext], %s transaction is not allowed in POW", t.parameters.Transaction.TxType().Name())
 			return nil, elaerr.Simple(elaerr.ErrTxValidation, nil)
 		}
 	}
 
 	// check double spent transaction
-	if blockchain.DefaultLedger.IsDoubleSpend(t.contextParameters.Transaction) {
+	if blockchain.DefaultLedger.IsDoubleSpend(t.parameters.Transaction) {
 		log.Warn("[CheckTransactionContext] IsDoubleSpend check failed")
 		return nil, elaerr.Simple(elaerr.ErrTxDoubleSpend, nil)
 	}
 
-	if err := t.CheckTransactionUTXOLock(t.contextParameters.Transaction, references); err != nil {
+	if err := t.CheckTransactionUTXOLock(t.parameters.Transaction, references); err != nil {
 		log.Warn("[CheckTransactionUTXOLock],", err)
 		return nil, elaerr.Simple(elaerr.ErrTxUTXOLocked, err)
 	}
@@ -111,7 +140,7 @@ func (t *DefaultChecker) ContextCheck(params interfaces.Parameters) (
 		return nil, firstErr
 	}
 
-	if err := t.checkTransactionFee(t.contextParameters.Transaction, references); err != nil {
+	if err := t.checkTransactionFee(t.parameters.Transaction, references); err != nil {
 		log.Warn("[CheckTransactionFee],", err)
 		return nil, elaerr.Simple(elaerr.ErrTxBalance, err)
 	}
@@ -121,22 +150,22 @@ func (t *DefaultChecker) ContextCheck(params interfaces.Parameters) (
 		return nil, elaerr.Simple(elaerr.ErrTxInvalidInput, err)
 	}
 
-	if err := checkTransactionDepositUTXO(t.contextParameters.Transaction, references); err != nil {
+	if err := checkTransactionDepositUTXO(t.parameters.Transaction, references); err != nil {
 		log.Warn("[CheckTransactionDepositUTXO],", err)
 		return nil, elaerr.Simple(elaerr.ErrTxInvalidInput, err)
 	}
 
-	if err := checkTransactionDepositOutputs(t.contextParameters.BlockChain, t.contextParameters.Transaction); err != nil {
+	if err := checkTransactionDepositOutputs(t.parameters.BlockChain, t.parameters.Transaction); err != nil {
 		log.Warn("[checkTransactionDepositOutputs],", err)
 		return nil, elaerr.Simple(elaerr.ErrTxInvalidInput, err)
 	}
 
-	if err := checkTransactionSignature(t.contextParameters.Transaction, references); err != nil {
+	if err := checkTransactionSignature(t.parameters.Transaction, references); err != nil {
 		log.Warn("[checkTransactionSignature],", err)
 		return nil, elaerr.Simple(elaerr.ErrTxSignature, err)
 	}
 
-	if err := t.checkInvalidUTXO(t.contextParameters.Transaction); err != nil {
+	if err := t.checkInvalidUTXO(t.parameters.Transaction); err != nil {
 		log.Warn("[checkInvalidUTXO]", err)
 		return nil, elaerr.Simple(elaerr.ErrBlockIneffectiveCoinbase, err)
 	}
@@ -149,26 +178,17 @@ func (t *DefaultChecker) ContextCheck(params interfaces.Parameters) (
 	return references, nil
 }
 
-func (t *DefaultChecker) SetSanityParameters(params interface{}) elaerr.ELAError {
+func (t *DefaultChecker) SetParameters(params interface{}) elaerr.ELAError {
 	var ok bool
-	if t.sanityParameters, ok = params.(*TransactionParameters); !ok {
-		return elaerr.Simple(elaerr.ErrTxDuplicate, errors.New("invalid sanityParameters"))
+	if t.parameters, ok = params.(*TransactionParameters); !ok {
+		return elaerr.Simple(elaerr.ErrTxDuplicate, errors.New("invalid parameters"))
 	}
 
 	return nil
 }
 
-func (t *DefaultChecker) SetContextParameters(params interface{}) elaerr.ELAError {
-	var ok bool
-	if t.contextParameters, ok = params.(*TransactionParameters); !ok {
-		return elaerr.Simple(elaerr.ErrTxDuplicate, errors.New("invalid contextParameters"))
-	}
-
-	return nil
-}
-
-func (t *DefaultChecker) CheckTransactionSize() error {
-	size := t.sanityParameters.Transaction.GetSize()
+func (t *DefaultChecker) checkTransactionSize() error {
+	size := t.parameters.Transaction.GetSize()
 	if size <= 0 || size > int(pact.MaxBlockContextSize) {
 		return fmt.Errorf("Invalid transaction size: %d bytes", size)
 	}
@@ -177,8 +197,8 @@ func (t *DefaultChecker) CheckTransactionSize() error {
 }
 
 //validate the transaction of duplicate UTXO input
-func (t *DefaultChecker) CheckTransactionInput() error {
-	txn := t.sanityParameters.Transaction
+func (t *DefaultChecker) checkTransactionInput() error {
+	txn := t.parameters.Transaction
 	if len(txn.Inputs()) <= 0 {
 		return errors.New("transaction has no inputs")
 	}
@@ -197,10 +217,10 @@ func (t *DefaultChecker) CheckTransactionInput() error {
 	return nil
 }
 
-func (t *DefaultChecker) CheckTransactionOutput() error {
+func (t *DefaultChecker) checkTransactionOutput() error {
 
-	txn := t.sanityParameters.Transaction
-	blockHeight := t.sanityParameters.BlockHeight
+	txn := t.parameters.Transaction
+	blockHeight := t.parameters.BlockHeight
 	// check outputs count
 	if len(txn.Outputs()) > math.MaxUint16 {
 		return errors.New("output count should not be greater than 65535(MaxUint16)")
@@ -235,15 +255,15 @@ func (t *DefaultChecker) CheckTransactionOutput() error {
 		}
 	}
 
-	if blockHeight >= t.contextParameters.Config.PublicDPOSHeight && specialOutputCount > 1 {
+	if blockHeight >= t.parameters.Config.PublicDPOSHeight && specialOutputCount > 1 {
 		return errors.New("special output count should less equal than 1")
 	}
 
 	return nil
 }
 
-func (t *DefaultChecker) CheckAttributeProgram() error {
-	tx := t.sanityParameters.Transaction
+func (t *DefaultChecker) checkAttributeProgram() error {
+	tx := t.parameters.Transaction
 	// Check attributes
 	for _, attr := range tx.Attributes() {
 		if !common2.IsValidAttributeType(attr.Usage) {
@@ -266,32 +286,32 @@ func (t *DefaultChecker) CheckAttributeProgram() error {
 	return nil
 }
 
-func (t *DefaultChecker) CheckTransactionPayload() error {
+func (t *DefaultChecker) checkTransactionPayload() error {
 	return errors.New("invalid payload type")
 }
 
 func (t *DefaultChecker) isSmallThanMinTransactionFee(fee common.Fixed64) bool {
-	if fee < t.contextParameters.Config.MinTransactionFee {
+	if fee < t.parameters.Config.MinTransactionFee {
 		return true
 	}
 	return false
 }
 
 // validate the type of transaction is allowed or not at current height.
-func (t *DefaultChecker) HeightVersionCheck() error {
+func (t *DefaultChecker) heightVersionCheck() error {
 	return nil
 }
 
 func (t *DefaultChecker) IsTxHashDuplicate(txHash common.Uint256) bool {
-	return t.contextParameters.BlockChain.GetDB().IsTxHashDuplicate(txHash)
+	return t.parameters.BlockChain.GetDB().IsTxHashDuplicate(txHash)
 }
 
 func (t *DefaultChecker) GetTxReference(txn interfaces.Transaction) (
 	map[*common2.Input]common2.Output, error) {
-	return t.contextParameters.BlockChain.UTXOCache.GetTxReference(txn)
+	return t.parameters.BlockChain.UTXOCache.GetTxReference(txn)
 }
 
-func (t *DefaultChecker) IsAllowedInPOWConsensus() bool {
+func (t *DefaultChecker) isAllowedInPOWConsensus() bool {
 	return true
 }
 
@@ -312,21 +332,21 @@ func (t *DefaultChecker) CheckTransactionUTXOLock(txn interfaces.Transaction, re
 	return nil
 }
 
-func (t *DefaultChecker) SpecialContextCheck() (elaerr.ELAError, bool) {
+func (t *DefaultChecker) specialContextCheck() (elaerr.ELAError, bool) {
 	fmt.Println("default check")
 	return nil, false
 }
 
 func (t *DefaultChecker) tryCheckVoteOutputs() error {
 
-	txn := t.contextParameters.Transaction
-	blockHeight := t.contextParameters.BlockHeight
-	state := t.contextParameters.BlockChain.GetState()
-	crCommittee := t.contextParameters.BlockChain.GetCRCommittee()
+	txn := t.parameters.Transaction
+	blockHeight := t.parameters.BlockHeight
+	state := t.parameters.BlockChain.GetState()
+	crCommittee := t.parameters.BlockChain.GetCRCommittee()
 
 	if txn.Version() >= common2.TxVersion09 {
 		producers := state.GetActiveProducers()
-		if blockHeight < t.contextParameters.Config.PublicDPOSHeight {
+		if blockHeight < t.parameters.Config.PublicDPOSHeight {
 			producers = append(producers, state.GetPendingCanceledProducers()...)
 		}
 		var candidates []*crstate.Candidate
@@ -426,7 +446,7 @@ func (t *DefaultChecker) checkCRImpeachmentContent(content outputpayload.VoteCon
 		return errors.New("payload VoteProducerVersion not support vote CRCProposal")
 	}
 
-	crMembersMap := getCRMembersMap(t.contextParameters.BlockChain.GetCRCommittee().GetImpeachableMembers())
+	crMembersMap := getCRMembersMap(t.parameters.BlockChain.GetCRCommittee().GetImpeachableMembers())
 	for _, cv := range content.CandidateVotes {
 		if _, ok := crMembersMap[common.BytesToHexString(cv.Candidate)]; !ok {
 			return errors.New("candidate should be one of the CR members")
@@ -466,14 +486,14 @@ func (t *DefaultChecker) checkVoteCRContent(blockHeight uint32,
 	content outputpayload.VoteContent, crs map[common.Uint168]struct{},
 	payloadVersion byte, amount common.Fixed64) error {
 
-	if !t.contextParameters.BlockChain.GetCRCommittee().IsInVotingPeriod(blockHeight) {
+	if !t.parameters.BlockChain.GetCRCommittee().IsInVotingPeriod(blockHeight) {
 		return errors.New("cr vote tx must during voting period")
 	}
 
 	if payloadVersion < outputpayload.VoteProducerAndCRVersion {
 		return errors.New("payload VoteProducerVersion not support vote CR")
 	}
-	if blockHeight >= t.contextParameters.Config.CheckVoteCRCountHeight {
+	if blockHeight >= t.parameters.Config.CheckVoteCRCountHeight {
 		if len(content.CandidateVotes) > outputpayload.MaxVoteProducersPerTransaction {
 			return errors.New("invalid count of CR candidates ")
 		}
@@ -516,7 +536,7 @@ func (t *DefaultChecker) checkVoteCRCProposalContent(
 		if err != nil {
 			return err
 		}
-		proposal := t.contextParameters.BlockChain.GetCRCommittee().GetProposal(*proposalHash)
+		proposal := t.parameters.BlockChain.GetCRCommittee().GetProposal(*proposalHash)
 		if proposal == nil || proposal.Status != crstate.CRAgreed {
 			return fmt.Errorf("invalid CRCProposal: %s",
 				common.ToReversedString(*proposalHash))
@@ -529,12 +549,12 @@ func (t *DefaultChecker) checkVoteCRCProposalContent(
 func (t *DefaultChecker) checkInvalidUTXO(txn interfaces.Transaction) error {
 	currentHeight := blockchain.DefaultLedger.Blockchain.GetHeight()
 	for _, input := range txn.Inputs() {
-		referTxn, err := t.contextParameters.BlockChain.UTXOCache.GetTransaction(input.Previous.TxID)
+		referTxn, err := t.parameters.BlockChain.UTXOCache.GetTransaction(input.Previous.TxID)
 		if err != nil {
 			return err
 		}
 		if referTxn.IsCoinBaseTx() {
-			if currentHeight-referTxn.LockTime() < t.contextParameters.Config.CoinbaseMaturity {
+			if currentHeight-referTxn.LockTime() < t.parameters.Config.CoinbaseMaturity {
 				return errors.New("the utxo of coinbase is locking")
 			}
 		} else if referTxn.IsNewSideChainPowTx() {

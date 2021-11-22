@@ -19,6 +19,17 @@ type UnregisterCRTransaction struct {
 	BaseTransaction
 }
 
+func (t *UnregisterCRTransaction) RegisterFunctions() {
+	t.DefaultChecker.CheckTransactionSize = t.checkTransactionSize
+	t.DefaultChecker.CheckTransactionInput = t.checkTransactionInput
+	t.DefaultChecker.CheckTransactionOutput = t.checkTransactionOutput
+	t.DefaultChecker.CheckTransactionPayload = t.CheckTransactionPayload
+	t.DefaultChecker.HeightVersionCheck = t.HeightVersionCheck
+	t.DefaultChecker.IsAllowedInPOWConsensus = t.IsAllowedInPOWConsensus
+	t.DefaultChecker.SpecialContextCheck = t.SpecialContextCheck
+	t.DefaultChecker.CheckAttributeProgram = t.checkAttributeProgram
+}
+
 func (t *UnregisterCRTransaction) CheckTransactionPayload() error {
 	switch t.Payload().(type) {
 	case *payload.UnregisterCR:
@@ -33,9 +44,9 @@ func (t *UnregisterCRTransaction) IsAllowedInPOWConsensus() bool {
 }
 
 func (t *UnregisterCRTransaction) HeightVersionCheck() error {
-	txn := t.contextParameters.Transaction
-	blockHeight := t.contextParameters.BlockHeight
-	chainParams := t.contextParameters.Config
+	txn := t.parameters.Transaction
+	blockHeight := t.parameters.BlockHeight
+	chainParams := t.parameters.Config
 
 	if blockHeight < chainParams.CRVotingStartHeight {
 		return errors.New(fmt.Sprintf("not support %s transaction "+
@@ -50,11 +61,11 @@ func (t *UnregisterCRTransaction) SpecialContextCheck() (elaerr.ELAError, bool) 
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid payload")), true
 	}
 
-	if !t.contextParameters.BlockChain.GetCRCommittee().IsInVotingPeriod(t.contextParameters.BlockHeight) {
+	if !t.parameters.BlockChain.GetCRCommittee().IsInVotingPeriod(t.parameters.BlockHeight) {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("should create tx during voting period")), true
 	}
 
-	cr := t.contextParameters.BlockChain.GetCRCommittee().GetCandidate(info.CID)
+	cr := t.parameters.BlockChain.GetCRCommittee().GetCandidate(info.CID)
 	if cr == nil {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("unregister unknown CR")), true
 	}

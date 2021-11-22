@@ -19,9 +19,20 @@ type ReturnDepositCoinTransaction struct {
 	BaseTransaction
 }
 
+func (t *ReturnDepositCoinTransaction) RegisterFunctions() {
+	t.DefaultChecker.CheckTransactionSize = t.checkTransactionSize
+	t.DefaultChecker.CheckTransactionInput = t.checkTransactionInput
+	t.DefaultChecker.CheckTransactionOutput = t.checkTransactionOutput
+	t.DefaultChecker.CheckTransactionPayload = t.CheckTransactionPayload
+	t.DefaultChecker.HeightVersionCheck = t.heightVersionCheck
+	t.DefaultChecker.IsAllowedInPOWConsensus = t.IsAllowedInPOWConsensus
+	t.DefaultChecker.SpecialContextCheck = t.SpecialContextCheck
+	t.DefaultChecker.CheckAttributeProgram = t.CheckAttributeProgram
+}
+
 func (t *ReturnDepositCoinTransaction) CheckAttributeProgram() error {
 
-	if t.sanityParameters.BlockHeight >= t.sanityParameters.Config.CRVotingStartHeight {
+	if t.parameters.BlockHeight >= t.parameters.Config.CRVotingStartHeight {
 		if len(t.Programs()) != 1 {
 			return errors.New("return deposit coin transactions should have one and only one program")
 		}
@@ -92,7 +103,7 @@ func (t *ReturnDepositCoinTransaction) SpecialContextCheck() (elaerr.ELAError, b
 
 	var availableAmount common.Fixed64
 	for _, program := range t.Programs() {
-		p := t.contextParameters.BlockChain.GetState().GetProducer(program.Code[1 : len(program.Code)-1])
+		p := t.parameters.BlockChain.GetState().GetProducer(program.Code[1 : len(program.Code)-1])
 		if p == nil {
 			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("signer must be producer")), true
 		}

@@ -23,9 +23,20 @@ type SideChainPOWTransaction struct {
 	BaseTransaction
 }
 
+func (t *SideChainPOWTransaction) RegisterFunctions() {
+	t.DefaultChecker.CheckTransactionSize = t.checkTransactionSize
+	t.DefaultChecker.CheckTransactionInput = t.CheckTransactionInput
+	t.DefaultChecker.CheckTransactionOutput = t.CheckTransactionOutput
+	t.DefaultChecker.CheckTransactionPayload = t.CheckTransactionPayload
+	t.DefaultChecker.HeightVersionCheck = t.heightVersionCheck
+	t.DefaultChecker.IsAllowedInPOWConsensus = t.IsAllowedInPOWConsensus
+	t.DefaultChecker.SpecialContextCheck = t.SpecialContextCheck
+	t.DefaultChecker.CheckAttributeProgram = t.CheckAttributeProgram
+}
+
 func (t *SideChainPOWTransaction) CheckTransactionInput() error {
 
-	txn := t.sanityParameters.Transaction
+	txn := t.parameters.Transaction
 	if t.IsNewSideChainPowTx() {
 		if len(txn.Inputs()) != 0 {
 			return errors.New("no cost transactions must has no input")
@@ -51,9 +62,9 @@ func (t *SideChainPOWTransaction) CheckTransactionInput() error {
 }
 func (t *SideChainPOWTransaction) CheckTransactionOutput() error {
 
-	txn := t.sanityParameters.Transaction
-	blockHeight := t.sanityParameters.BlockHeight
-	chainParams := t.sanityParameters.Config
+	txn := t.parameters.Transaction
+	blockHeight := t.parameters.BlockHeight
+	chainParams := t.parameters.Config
 	if len(txn.Outputs()) > math.MaxUint16 {
 		return errors.New("output count should not be greater than 65535(MaxUint16)")
 	}
@@ -99,7 +110,7 @@ func (t *SideChainPOWTransaction) CheckTransactionOutput() error {
 			}
 		}
 
-		if t.sanityParameters.BlockChain.GetHeight() >= chainParams.PublicDPOSHeight && specialOutputCount > 1 {
+		if t.parameters.BlockChain.GetHeight() >= chainParams.PublicDPOSHeight && specialOutputCount > 1 {
 			return errors.New("special output count should less equal than 1")
 		}
 	}

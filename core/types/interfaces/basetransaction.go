@@ -92,4 +92,6 @@ type Transaction interface {
 	IsRechargeToSideChainTx() bool
 	IsCoinBaseTx() bool
 	IsSmallTransfer(min common.Fixed64) bool
+
+	RegisterFunctions()
 }

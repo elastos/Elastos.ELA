@@ -21,9 +21,23 @@ type CoinBaseTransaction struct {
 	BaseTransaction
 }
 
-func (t *CoinBaseTransaction) CheckTransactionInput() error {
+func (t *CoinBaseTransaction) RegisterFunctions() {
+	// todo refactor me
+	t.parameters = new(TransactionParameters)
+	log.Info("######### c parameters:", t.parameters)
 
-	txn := t.sanityParameters.Transaction
+	t.DefaultChecker.CheckTransactionSize = t.checkTransactionSize
+	t.DefaultChecker.CheckTransactionInput = t.CheckTransactionInput
+	t.DefaultChecker.CheckTransactionOutput = t.CheckTransactionOutput
+	t.DefaultChecker.CheckTransactionPayload = t.CheckTransactionPayload
+	t.DefaultChecker.HeightVersionCheck = t.heightVersionCheck
+	t.DefaultChecker.IsAllowedInPOWConsensus = t.IsAllowedInPOWConsensus
+	t.DefaultChecker.SpecialContextCheck = t.SpecialContextCheck
+	t.DefaultChecker.CheckAttributeProgram = t.CheckAttributeProgram
+}
+
+func (t *CoinBaseTransaction) CheckTransactionInput() error {
+	txn := t.parameters.Transaction
 	if len(txn.Inputs()) != 1 {
 		return errors.New("coinbase must has only one input")
 	}
@@ -40,9 +54,9 @@ func (t *CoinBaseTransaction) CheckTransactionInput() error {
 
 func (t *CoinBaseTransaction) CheckTransactionOutput() error {
 
-	txn := t.sanityParameters.Transaction
-	blockHeight := t.sanityParameters.BlockHeight
-	chainParams := t.sanityParameters.Config
+	txn := t.parameters.Transaction
+	blockHeight := t.parameters.BlockHeight
+	chainParams := t.parameters.Config
 
 	if len(txn.Outputs()) > math.MaxUint16 {
 		return errors.New("output count should not be greater than 65535(MaxUint16)")
@@ -100,7 +114,7 @@ func (t *CoinBaseTransaction) IsAllowedInPOWConsensus() bool {
 
 func (a *CoinBaseTransaction) SpecialContextCheck() (result elaerr.ELAError, end bool) {
 
-	para := a.contextParameters
+	para := a.parameters
 	if para.BlockHeight >= para.Config.CRCommitteeStartHeight {
 		if para.BlockChain.GetState().GetConsensusAlgorithm() == 0x01 {
 			if !a.outputs[0].ProgramHash.IsEqual(para.Config.DestroyELAAddress) {
@@ -122,10 +136,10 @@ func (a *CoinBaseTransaction) SpecialContextCheck() (result elaerr.ELAError, end
 	return nil, true
 }
 
-func (a *CoinBaseTransaction) ContextCheck(para interfaces.Parameters) (map[*common2.Input]common2.Output, elaerr.ELAError) {
+func (a *CoinBaseTransaction) ContextCheck(paras interfaces.Parameters) (map[*common2.Input]common2.Output, elaerr.ELAError) {
 
-	if err := a.SetContextParameters(para); err != nil {
-		return nil, elaerr.Simple(elaerr.ErrTxDuplicate, errors.New("invalid contextParameters"))
+	if err := a.SetParameters(paras); err != nil {
+		return nil, elaerr.Simple(elaerr.ErrTxDuplicate, errors.New("invalid parameters"))
 	}
 
 	if err := a.HeightVersionCheck(); err != nil {

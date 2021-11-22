@@ -21,6 +21,17 @@ type CRCProposalReviewTransaction struct {
 	BaseTransaction
 }
 
+func (t *CRCProposalReviewTransaction) RegisterFunctions() {
+	t.DefaultChecker.CheckTransactionSize = t.checkTransactionSize
+	t.DefaultChecker.CheckTransactionInput = t.checkTransactionInput
+	t.DefaultChecker.CheckTransactionOutput = t.checkTransactionOutput
+	t.DefaultChecker.CheckTransactionPayload = t.CheckTransactionPayload
+	t.DefaultChecker.HeightVersionCheck = t.HeightVersionCheck
+	t.DefaultChecker.IsAllowedInPOWConsensus = t.IsAllowedInPOWConsensus
+	t.DefaultChecker.SpecialContextCheck = t.SpecialContextCheck
+	t.DefaultChecker.CheckAttributeProgram = t.checkAttributeProgram
+}
+
 func (t *CRCProposalReviewTransaction) CheckTransactionPayload() error {
 	switch t.Payload().(type) {
 	case *payload.CRCProposalReview:
@@ -35,9 +46,9 @@ func (t *CRCProposalReviewTransaction) IsAllowedInPOWConsensus() bool {
 }
 
 func (t *CRCProposalReviewTransaction) HeightVersionCheck() error {
-	txn := t.contextParameters.Transaction
-	blockHeight := t.contextParameters.BlockHeight
-	chainParams := t.contextParameters.Config
+	txn := t.parameters.Transaction
+	blockHeight := t.parameters.BlockHeight
+	chainParams := t.parameters.Config
 
 	if blockHeight < chainParams.CRCommitteeStartHeight {
 		return errors.New(fmt.Sprintf("not support %s transaction "+
@@ -60,7 +71,7 @@ func (t *CRCProposalReviewTransaction) SpecialContextCheck() (result elaerr.ELAE
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid payload")), true
 	}
 	// Check if the proposal exist.
-	proposalState := t.contextParameters.BlockChain.GetCRCommittee().GetProposal(crcProposalReview.ProposalHash)
+	proposalState := t.parameters.BlockChain.GetCRCommittee().GetProposal(crcProposalReview.ProposalHash)
 	if proposalState == nil {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("proposal not exist")), true
 	}
@@ -72,14 +83,14 @@ func (t *CRCProposalReviewTransaction) SpecialContextCheck() (result elaerr.ELAE
 		(crcProposalReview.VoteResult > payload.Abstain) {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("VoteResult should be known")), true
 	}
-	crMember := t.contextParameters.BlockChain.GetCRCommittee().GetMember(crcProposalReview.DID)
+	crMember := t.parameters.BlockChain.GetCRCommittee().GetMember(crcProposalReview.DID)
 	if crMember == nil {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("did correspond crMember not exists")), true
 	}
 	if crMember.MemberState != crstate.MemberElected {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("should be an elected CR members")), true
 	}
-	exist := t.contextParameters.BlockChain.GetCRCommittee().ExistProposal(crcProposalReview.
+	exist := t.parameters.BlockChain.GetCRCommittee().ExistProposal(crcProposalReview.
 		ProposalHash)
 	if !exist {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("ProposalHash must exist")), true

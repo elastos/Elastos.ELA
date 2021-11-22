@@ -21,10 +21,21 @@ type CRCAppropriationTransaction struct {
 	BaseTransaction
 }
 
+func (t *CRCAppropriationTransaction) RegisterFunctions() {
+	t.DefaultChecker.CheckTransactionSize = t.checkTransactionSize
+	t.DefaultChecker.CheckTransactionInput = t.checkTransactionInput
+	t.DefaultChecker.CheckTransactionOutput = t.CheckTransactionOutput
+	t.DefaultChecker.CheckTransactionPayload = t.CheckTransactionPayload
+	t.DefaultChecker.HeightVersionCheck = t.HeightVersionCheck
+	t.DefaultChecker.IsAllowedInPOWConsensus = t.IsAllowedInPOWConsensus
+	t.DefaultChecker.SpecialContextCheck = t.SpecialContextCheck
+	t.DefaultChecker.CheckAttributeProgram = t.CheckAttributeProgram
+}
+
 func (t *CRCAppropriationTransaction) CheckTransactionOutput() error {
-	txn := t.sanityParameters.Transaction
-	blockHeight := t.sanityParameters.BlockHeight
-	chainParams := t.sanityParameters.Config
+	txn := t.parameters.Transaction
+	blockHeight := t.parameters.BlockHeight
+	chainParams := t.parameters.Config
 	if len(txn.Outputs()) > math.MaxUint16 {
 		return errors.New("output count should not be greater than 65535(MaxUint16)")
 	}
@@ -67,7 +78,7 @@ func (t *CRCAppropriationTransaction) CheckTransactionOutput() error {
 		}
 	}
 
-	if t.sanityParameters.BlockChain.GetHeight() >= chainParams.PublicDPOSHeight && specialOutputCount > 1 {
+	if t.parameters.BlockChain.GetHeight() >= chainParams.PublicDPOSHeight && specialOutputCount > 1 {
 		return errors.New("special output count should less equal than 1")
 	}
 
@@ -98,9 +109,9 @@ func (t *CRCAppropriationTransaction) IsAllowedInPOWConsensus() bool {
 }
 
 func (t *CRCAppropriationTransaction) HeightVersionCheck() error {
-	txn := t.contextParameters.Transaction
-	blockHeight := t.contextParameters.BlockHeight
-	chainParams := t.contextParameters.Config
+	txn := t.parameters.Transaction
+	blockHeight := t.parameters.BlockHeight
+	chainParams := t.parameters.Config
 
 	if blockHeight < chainParams.CRCommitteeStartHeight {
 		return errors.New(fmt.Sprintf("not support %s transaction "+
@@ -111,7 +122,7 @@ func (t *CRCAppropriationTransaction) HeightVersionCheck() error {
 
 func (t *CRCAppropriationTransaction) SpecialContextCheck() (result elaerr.ELAError, end bool) {
 	// Check if current session has appropriated.
-	if !t.contextParameters.BlockChain.GetCRCommittee().IsAppropriationNeeded() {
+	if !t.parameters.BlockChain.GetCRCommittee().IsAppropriationNeeded() {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("should have no appropriation transaction")), true
 	}
 
@@ -119,7 +130,7 @@ func (t *CRCAppropriationTransaction) SpecialContextCheck() (result elaerr.ELAEr
 	var totalInput common.Fixed64
 	for _, output := range t.references {
 		totalInput += output.Value
-		if !output.ProgramHash.IsEqual(t.contextParameters.Config.CRAssetsAddress) {
+		if !output.ProgramHash.IsEqual(t.parameters.Config.CRAssetsAddress) {
 			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("input does not from CR assets address")), true
 		}
 	}
@@ -140,7 +151,7 @@ func (t *CRCAppropriationTransaction) SpecialContextCheck() (result elaerr.ELAEr
 	//
 	// Outputs has check in CheckTransactionOutput function:
 	// first one to CRCommitteeAddress, second one to CRAssetsAddress
-	appropriationAmount := t.contextParameters.BlockChain.GetCRCommittee().AppropriationAmount
+	appropriationAmount := t.parameters.BlockChain.GetCRCommittee().AppropriationAmount
 	if appropriationAmount != t.Outputs()[0].Value {
 		return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("invalid appropriation amount %s, need to be %s",
 			t.Outputs()[0].Value, appropriationAmount)), true

@@ -15,6 +15,17 @@ type RecordTransaction struct {
 	BaseTransaction
 }
 
+func (t *RecordTransaction) RegisterFunctions() {
+	t.DefaultChecker.CheckTransactionSize = t.checkTransactionSize
+	t.DefaultChecker.CheckTransactionInput = t.checkTransactionInput
+	t.DefaultChecker.CheckTransactionOutput = t.checkTransactionOutput
+	t.DefaultChecker.CheckTransactionPayload = t.CheckTransactionPayload
+	t.DefaultChecker.HeightVersionCheck = t.heightVersionCheck
+	t.DefaultChecker.IsAllowedInPOWConsensus = t.IsAllowedInPOWConsensus
+	t.DefaultChecker.SpecialContextCheck = t.specialContextCheck
+	t.DefaultChecker.CheckAttributeProgram = t.checkAttributeProgram
+}
+
 func (t *RecordTransaction) CheckTransactionPayload() error {
 	switch t.Payload().(type) {
 	case *payload.Record:

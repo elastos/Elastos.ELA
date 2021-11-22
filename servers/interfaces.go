@@ -10,8 +10,8 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
-	"github.com/elastos/Elastos.ELA/core/transaction"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/functions"
 	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"sort"
 	"strings"
@@ -822,12 +822,17 @@ func SendRawTransaction(param Params) map[string]interface{} {
 	if err != nil {
 		return ResponsePack(InvalidParams, "hex string to bytes error")
 	}
-	var txn transaction.BaseTransaction
-	if err := txn.Deserialize(bytes.NewReader(bys)); err != nil {
+
+	r := bytes.NewReader(bys)
+	txn, err := functions.GetTransactionByBytes(r)
+	if err != nil {
+		return ResponsePack(InvalidTransaction, "invalid transaction")
+	}
+	if err := txn.Deserialize(r); err != nil {
 		return ResponsePack(InvalidTransaction, err.Error())
 	}
 
-	if err := VerifyAndSendTx(&txn); err != nil {
+	if err := VerifyAndSendTx(txn); err != nil {
 		return ResponsePack(InvalidTransaction, err.Error())
 	}
 
@@ -1419,8 +1424,12 @@ func SignRawTransactionWithKey(param Params) map[string]interface{} {
 	if err != nil {
 		return ResponsePack(InvalidParams, "hex string to bytes error")
 	}
-	var txn transaction.BaseTransaction
-	if err := txn.Deserialize(bytes.NewReader(txBytes)); err != nil {
+	r := bytes.NewReader(txBytes)
+	txn, err := functions.GetTransactionByBytes(r)
+	if err != nil {
+		return ResponsePack(InvalidTransaction, "invalid transaction")
+	}
+	if err := txn.Deserialize(r); err != nil {
 		return ResponsePack(InvalidTransaction, err.Error())
 	}
 
@@ -1452,12 +1461,12 @@ func SignRawTransactionWithKey(param Params) map[string]interface{} {
 		return ResponsePack(InvalidTransaction, err.Error())
 	}
 
-	references, err := Chain.UTXOCache.GetTxReference(&txn)
+	references, err := Chain.UTXOCache.GetTxReference(txn)
 	if err != nil {
 		return ResponsePack(InvalidTransaction, err.Error())
 	}
 
-	programHashes, err := blockchain.GetTxProgramHashes(&txn, references)
+	programHashes, err := blockchain.GetTxProgramHashes(txn, references)
 	if err != nil {
 		return ResponsePack(InternalError, err.Error())
 	}
@@ -1480,13 +1489,13 @@ func SignRawTransactionWithKey(param Params) map[string]interface{} {
 
 		prefixType := contract.GetPrefixType(programHash)
 		if prefixType == contract.PrefixStandard {
-			signedProgram, err := account.SignStandardTransaction(&txn, program, accounts)
+			signedProgram, err := account.SignStandardTransaction(txn, program, accounts)
 			if err != nil {
 				return ResponsePack(InternalError, err.Error())
 			}
 			programs[i] = signedProgram
 		} else if prefixType == contract.PrefixMultiSig {
-			signedProgram, err := account.SignMultiSignTransaction(&txn, program, accounts)
+			signedProgram, err := account.SignMultiSignTransaction(txn, program, accounts)
 			if err != nil {
 				return ResponsePack(InternalError, err.Error())
 			}
@@ -2636,12 +2645,16 @@ func DecodeRawTransaction(param Params) map[string]interface{} {
 	if err != nil {
 		return ResponsePack(InvalidParams, "invalid raw tx data, "+err.Error())
 	}
-	var txn transaction.BaseTransaction
-	if err := txn.Deserialize(bytes.NewReader(txBytes)); err != nil {
+	r := bytes.NewReader(txBytes)
+	txn, err := functions.GetTransactionByBytes(r)
+	if err != nil {
+		return ResponsePack(InvalidTransaction, "invalid transaction")
+	}
+	if err := txn.Deserialize(r); err != nil {
 		return ResponsePack(InvalidParams, "invalid raw tx data, "+err.Error())
 	}
 
-	return ResponsePack(Success, GetTransactionInfo(&txn))
+	return ResponsePack(Success, GetTransactionInfo(txn))
 }
 
 func getPayloadInfo(p interfaces.Payload, payloadVersion byte) PayloadInfo {

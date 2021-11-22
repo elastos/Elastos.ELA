@@ -25,6 +25,17 @@ type CRCProposalTransaction struct {
 	BaseTransaction
 }
 
+func (t *CRCProposalTransaction) RegisterFunctions() {
+	t.DefaultChecker.CheckTransactionSize = t.checkTransactionSize
+	t.DefaultChecker.CheckTransactionInput = t.checkTransactionInput
+	t.DefaultChecker.CheckTransactionOutput = t.checkTransactionOutput
+	t.DefaultChecker.CheckTransactionPayload = t.CheckTransactionPayload
+	t.DefaultChecker.HeightVersionCheck = t.HeightVersionCheck
+	t.DefaultChecker.IsAllowedInPOWConsensus = t.IsAllowedInPOWConsensus
+	t.DefaultChecker.SpecialContextCheck = t.SpecialContextCheck
+	t.DefaultChecker.CheckAttributeProgram = t.checkAttributeProgram
+}
+
 func (t *CRCProposalTransaction) CheckTransactionPayload() error {
 	switch t.Payload().(type) {
 	case *payload.CRCProposal:
@@ -39,9 +50,9 @@ func (t *CRCProposalTransaction) IsAllowedInPOWConsensus() bool {
 }
 
 func (t *CRCProposalTransaction) HeightVersionCheck() error {
-	txn := t.contextParameters.Transaction
-	blockHeight := t.contextParameters.BlockHeight
-	chainParams := t.contextParameters.Config
+	txn := t.parameters.Transaction
+	blockHeight := t.parameters.BlockHeight
+	chainParams := t.parameters.Config
 
 	if blockHeight < chainParams.CRCProposalDraftDataStartHeight {
 		if txn.PayloadVersion() != payload.CRCProposalVersion {
@@ -89,15 +100,15 @@ func (t *CRCProposalTransaction) SpecialContextCheck() (result elaerr.ELAError, 
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid payload")), true
 	}
 	// The number of the proposals of the committee can not more than 128
-	if t.contextParameters.BlockChain.GetCRCommittee().IsProposalFull(proposal.CRCouncilMemberDID) {
+	if t.parameters.BlockChain.GetCRCommittee().IsProposalFull(proposal.CRCouncilMemberDID) {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("proposal is full")), true
 	}
 	// Check draft hash of proposal.
-	if t.contextParameters.BlockChain.GetCRCommittee().ExistDraft(proposal.DraftHash) {
+	if t.parameters.BlockChain.GetCRCommittee().ExistDraft(proposal.DraftHash) {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("duplicated draft proposal hash")), true
 	}
 
-	if !t.contextParameters.BlockChain.GetCRCommittee().IsProposalAllowed(t.contextParameters.BlockHeight - 1) {
+	if !t.parameters.BlockChain.GetCRCommittee().IsProposalAllowed(t.parameters.BlockHeight - 1) {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("cr proposal tx must not during voting period")), true
 	}
 	if len(proposal.CategoryData) > blockchain.MaxCategoryDataStringLength {
@@ -123,7 +134,7 @@ func (t *CRCProposalTransaction) SpecialContextCheck() (result elaerr.ELAError, 
 	}
 	//CRCouncilMemberDID must MemberElected cr member
 	// Check CR Council Member DID of proposal.
-	crMember := t.contextParameters.BlockChain.GetCRCommittee().GetMember(proposal.CRCouncilMemberDID)
+	crMember := t.parameters.BlockChain.GetCRCommittee().GetMember(proposal.CRCouncilMemberDID)
 	if crMember == nil {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("CR Council Member should be one of the CR members")), true
 	}
@@ -167,7 +178,7 @@ func (t *CRCProposalTransaction) SpecialContextCheck() (result elaerr.ELAError, 
 			return elaerr.Simple(elaerr.ErrTxPayload, err), true
 		}
 	default:
-		err := t.checkNormalOrELIPProposal(proposal, t.contextParameters.ProposalsUsedAmount, t.PayloadVersion())
+		err := t.checkNormalOrELIPProposal(proposal, t.parameters.ProposalsUsedAmount, t.PayloadVersion())
 		if err != nil {
 			return elaerr.Simple(elaerr.ErrTxPayload, err), true
 		}
@@ -176,7 +187,7 @@ func (t *CRCProposalTransaction) SpecialContextCheck() (result elaerr.ELAError, 
 }
 
 func (t *CRCProposalTransaction) checkChangeProposalOwner(proposal *payload.CRCProposal, PayloadVersion byte) error {
-	proposalState := t.contextParameters.BlockChain.GetCRCommittee().GetProposal(proposal.TargetProposalHash)
+	proposalState := t.parameters.BlockChain.GetCRCommittee().GetProposal(proposal.TargetProposalHash)
 	if proposalState == nil {
 		return errors.New("proposal doesn't exist")
 	}
@@ -197,7 +208,7 @@ func (t *CRCProposalTransaction) checkChangeProposalOwner(proposal *payload.CRCP
 		return errors.New("new owner or recipient must be different from the previous one")
 	}
 
-	crCouncilMember := t.contextParameters.BlockChain.GetCRCommittee().GetMember(proposal.CRCouncilMemberDID)
+	crCouncilMember := t.parameters.BlockChain.GetCRCommittee().GetMember(proposal.CRCouncilMemberDID)
 	if crCouncilMember == nil {
 		return errors.New("CR Council Member should be one of the CR members")
 	}
@@ -264,7 +275,7 @@ func (t *CRCProposalTransaction) checkCloseProposal(proposal *payload.CRCProposa
 	if err != nil {
 		return errors.New("DecodePoint from OwnerPublicKey error")
 	}
-	if ps := t.contextParameters.BlockChain.GetCRCommittee().GetProposal(proposal.TargetProposalHash); ps == nil {
+	if ps := t.parameters.BlockChain.GetCRCommittee().GetProposal(proposal.TargetProposalHash); ps == nil {
 		return errors.New("CloseProposalHash does not exist")
 	} else if ps.Status != crstate.VoterAgreed {
 		return errors.New("CloseProposalHash has to be voterAgreed")
@@ -276,7 +287,7 @@ func (t *CRCProposalTransaction) checkCloseProposal(proposal *payload.CRCProposa
 	if proposal.Recipient != emptyUint168 {
 		return errors.New("CloseProposal recipient must be empty")
 	}
-	crMember := t.contextParameters.BlockChain.GetCRCommittee().GetMember(proposal.CRCouncilMemberDID)
+	crMember := t.parameters.BlockChain.GetCRCommittee().GetMember(proposal.CRCouncilMemberDID)
 	if crMember == nil {
 		return errors.New("CR Council Member should be one of the CR members")
 	}
@@ -329,7 +340,7 @@ func (t *CRCProposalTransaction) checkChangeSecretaryGeneralProposalTx(crcPropos
 	}
 
 	//CRCouncilMemberDID must MemberElected cr member
-	if !t.contextParameters.BlockChain.GetCRCommittee().IsElectedCRMemberByDID(crcProposal.CRCouncilMemberDID) {
+	if !t.parameters.BlockChain.GetCRCommittee().IsElectedCRMemberByDID(crcProposal.CRCouncilMemberDID) {
 		return errors.New("CR Council Member should be one elected CR members")
 	}
 	//verify 3 signature(owner signature , new secretary general, CRCouncilMember)
@@ -344,7 +355,7 @@ func (t *CRCProposalTransaction) checkChangeSecretaryGeneralProposalTx(crcPropos
 		return errors.New("SecretaryGeneral signature check failed")
 	}
 	// Check signature of CR Council Member.
-	crMember := t.contextParameters.BlockChain.GetCRCommittee().GetMember(crcProposal.CRCouncilMemberDID)
+	crMember := t.parameters.BlockChain.GetCRCommittee().GetMember(crcProposal.CRCouncilMemberDID)
 	if crMember == nil {
 		return errors.New("CR Council Member should be one of the CR members")
 	}
@@ -441,7 +452,7 @@ func checkProposalCRCouncilMemberSign(crcProposal *payload.CRCProposal, code []b
 
 func (t *CRCProposalTransaction) checkReservedCustomID(proposal *payload.CRCProposal, PayloadVersion byte) error {
 
-	if t.contextParameters.BlockChain.GetCRCommittee().GetProposalManager().ReservedCustomID {
+	if t.parameters.BlockChain.GetCRCommittee().GetProposalManager().ReservedCustomID {
 		return errors.New("Already have one ReservedCustomID proposal")
 	}
 	_, err := crypto.DecodePoint(proposal.OwnerPublicKey)
@@ -454,7 +465,7 @@ func (t *CRCProposalTransaction) checkReservedCustomID(proposal *payload.CRCProp
 	}
 	customIDMap := make(map[string]struct{})
 	for _, v := range proposal.ReservedCustomIDList {
-		if len(v) == 0 || len(v) > int(t.contextParameters.Config.MaxReservedCustomIDLength) {
+		if len(v) == 0 || len(v) > int(t.parameters.Config.MaxReservedCustomIDLength) {
 			return errors.New("invalid reserved custom id length")
 		}
 		if _, ok := customIDMap[v]; ok {
@@ -465,7 +476,7 @@ func (t *CRCProposalTransaction) checkReservedCustomID(proposal *payload.CRCProp
 		}
 		customIDMap[v] = struct{}{}
 	}
-	crMember := t.contextParameters.BlockChain.GetCRCommittee().GetMember(proposal.CRCouncilMemberDID)
+	crMember := t.parameters.BlockChain.GetCRCommittee().GetMember(proposal.CRCouncilMemberDID)
 	if crMember == nil {
 		return errors.New("CR Council Member should be one of the CR members")
 	}
@@ -477,16 +488,16 @@ func (t *CRCProposalTransaction) checkReceivedCustomID(proposal *payload.CRCProp
 	if err != nil {
 		return errors.New("DecodePoint from OwnerPublicKey error")
 	}
-	reservedCustomIDList := t.contextParameters.BlockChain.GetCRCommittee().GetReservedCustomIDLists()
-	receivedCustomIDList := t.contextParameters.BlockChain.GetCRCommittee().GetReceivedCustomIDLists()
-	pendingReceivedCustomIDMap := t.contextParameters.BlockChain.GetCRCommittee().GetPendingReceivedCustomIDMap()
+	reservedCustomIDList := t.parameters.BlockChain.GetCRCommittee().GetReservedCustomIDLists()
+	receivedCustomIDList := t.parameters.BlockChain.GetCRCommittee().GetReceivedCustomIDLists()
+	pendingReceivedCustomIDMap := t.parameters.BlockChain.GetCRCommittee().GetPendingReceivedCustomIDMap()
 
 	if len(proposal.ReceivedCustomIDList) == 0 {
 		return errors.New("received custom id list is empty")
 	}
 	customIDMap := make(map[string]struct{})
 	for _, v := range proposal.ReceivedCustomIDList {
-		if len(v) == 0 || len(v) > int(t.contextParameters.Config.MaxReservedCustomIDLength) {
+		if len(v) == 0 || len(v) > int(t.parameters.Config.MaxReservedCustomIDLength) {
 			return errors.New("invalid received custom id length")
 		}
 		if _, ok := customIDMap[v]; ok {
@@ -504,7 +515,7 @@ func (t *CRCProposalTransaction) checkReceivedCustomID(proposal *payload.CRCProp
 		customIDMap[v] = struct{}{}
 	}
 
-	crMember := t.contextParameters.BlockChain.GetCRCommittee().GetMember(proposal.CRCouncilMemberDID)
+	crMember := t.parameters.BlockChain.GetCRCommittee().GetMember(proposal.CRCouncilMemberDID)
 	if crMember == nil {
 		return errors.New("CR Council Member should be one of the CR members")
 	}
@@ -522,7 +533,7 @@ func (t *CRCProposalTransaction) checkChangeCustomIDFee(proposal *payload.CRCPro
 	if proposal.EIDEffectiveHeight <= 0 {
 		return errors.New("invalid EID effective height")
 	}
-	crMember := t.contextParameters.BlockChain.GetCRCommittee().GetMember(proposal.CRCouncilMemberDID)
+	crMember := t.parameters.BlockChain.GetCRCommittee().GetMember(proposal.CRCouncilMemberDID)
 	if crMember == nil {
 		return errors.New("CR Council Member should be one of the CR members")
 	}
@@ -539,19 +550,19 @@ func (t *CRCProposalTransaction) checkRegisterSideChainProposal(proposal *payloa
 		return errors.New("SideChainName can not be empty")
 	}
 
-	for _, name := range t.contextParameters.BlockChain.GetCRCommittee().GetProposalManager().RegisteredSideChainNames {
+	for _, name := range t.parameters.BlockChain.GetCRCommittee().GetProposalManager().RegisteredSideChainNames {
 		if name == proposal.SideChainName {
 			return errors.New("SideChainName already registered")
 		}
 	}
 
-	for _, mn := range t.contextParameters.BlockChain.GetCRCommittee().GetProposalManager().RegisteredMagicNumbers {
+	for _, mn := range t.parameters.BlockChain.GetCRCommittee().GetProposalManager().RegisteredMagicNumbers {
 		if mn == proposal.MagicNumber {
 			return errors.New("MagicNumber already registered")
 		}
 	}
 
-	for _, gene := range t.contextParameters.BlockChain.GetCRCommittee().GetProposalManager().RegisteredGenesisHashes {
+	for _, gene := range t.parameters.BlockChain.GetCRCommittee().GetProposalManager().RegisteredGenesisHashes {
 		if gene.IsEqual(proposal.GenesisHash) {
 			return errors.New("Genesis Hash already registered")
 		}
@@ -561,7 +572,7 @@ func (t *CRCProposalTransaction) checkRegisterSideChainProposal(proposal *payloa
 		return errors.New("ExchangeRate should be 1.0")
 	}
 
-	if proposal.EffectiveHeight < t.contextParameters.BlockChain.GetHeight() {
+	if proposal.EffectiveHeight < t.parameters.BlockChain.GetHeight() {
 		return errors.New("EffectiveHeight must be bigger than current height")
 	}
 
@@ -576,7 +587,7 @@ func (t *CRCProposalTransaction) checkRegisterSideChainProposal(proposal *payloa
 	if proposal.Recipient != emptyUint168 {
 		return errors.New("RegisterSideChain recipient must be empty")
 	}
-	crMember := t.contextParameters.BlockChain.GetCRCommittee().GetMember(proposal.CRCouncilMemberDID)
+	crMember := t.parameters.BlockChain.GetCRCommittee().GetMember(proposal.CRCouncilMemberDID)
 	if crMember == nil {
 		return errors.New("CR Council Member should be one of the CR members")
 	}
@@ -645,15 +656,15 @@ func (t *CRCProposalTransaction) checkNormalOrELIPProposal(proposal *payload.CRC
 	if finalPaymentCount != 1 {
 		return errors.New("final payment count invalid")
 	}
-	if amount > (t.contextParameters.BlockChain.GetCRCommittee().CRCCurrentStageAmount-
-		t.contextParameters.BlockChain.GetCRCommittee().CommitteeUsedAmount)*blockchain.CRCProposalBudgetsPercentage/100 {
+	if amount > (t.parameters.BlockChain.GetCRCommittee().CRCCurrentStageAmount-
+		t.parameters.BlockChain.GetCRCommittee().CommitteeUsedAmount)*blockchain.CRCProposalBudgetsPercentage/100 {
 		return errors.New("budgets exceeds 10% of CRC committee balance")
-	} else if amount > t.contextParameters.BlockChain.GetCRCommittee().CRCCurrentStageAmount-
-		t.contextParameters.BlockChain.GetCRCommittee().CRCCommitteeUsedAmount-proposalsUsedAmount {
+	} else if amount > t.parameters.BlockChain.GetCRCommittee().CRCCurrentStageAmount-
+		t.parameters.BlockChain.GetCRCommittee().CRCCommitteeUsedAmount-proposalsUsedAmount {
 		return errors.New(fmt.Sprintf("budgets exceeds the balance of CRC"+
 			" committee, proposal hash:%s, budgets:%s, need <= %s",
-			common.ToReversedString(proposal.Hash(PayloadVersion)), amount, t.contextParameters.BlockChain.GetCRCommittee().CRCCurrentStageAmount-
-				t.contextParameters.BlockChain.GetCRCommittee().CRCCommitteeUsedAmount-proposalsUsedAmount))
+			common.ToReversedString(proposal.Hash(PayloadVersion)), amount, t.parameters.BlockChain.GetCRCommittee().CRCCurrentStageAmount-
+				t.parameters.BlockChain.GetCRCommittee().CRCCommitteeUsedAmount-proposalsUsedAmount))
 	} else if amount < 0 {
 		return errors.New("budgets is invalid")
 	}
@@ -669,6 +680,6 @@ func (t *CRCProposalTransaction) checkNormalOrELIPProposal(proposal *payload.CRC
 	if err != nil {
 		return errors.New("invalid recipient")
 	}
-	crCouncilMember := t.contextParameters.BlockChain.GetCRCommittee().GetMember(proposal.CRCouncilMemberDID)
+	crCouncilMember := t.parameters.BlockChain.GetCRCommittee().GetMember(proposal.CRCouncilMemberDID)
 	return t.checkOwnerAndCRCouncilMemberSign(proposal, crCouncilMember.Info.Code, PayloadVersion)
 }

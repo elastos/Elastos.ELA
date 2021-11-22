@@ -18,8 +18,19 @@ type CRCProposalResultTransaction struct {
 	BaseTransaction
 }
 
+func (t *CRCProposalResultTransaction) RegisterFunctions() {
+	t.DefaultChecker.CheckTransactionSize = t.checkTransactionSize
+	t.DefaultChecker.CheckTransactionInput = t.checkTransactionInput
+	t.DefaultChecker.CheckTransactionOutput = t.checkTransactionOutput
+	t.DefaultChecker.CheckTransactionPayload = t.CheckTransactionPayload
+	t.DefaultChecker.HeightVersionCheck = t.heightVersionCheck
+	t.DefaultChecker.IsAllowedInPOWConsensus = t.IsAllowedInPOWConsensus
+	t.DefaultChecker.SpecialContextCheck = t.SpecialContextCheck
+	t.DefaultChecker.CheckAttributeProgram = t.checkAttributeProgram
+}
+
 func (t *CRCProposalResultTransaction) CheckTransactionInput() error {
-	if len(t.sanityParameters.Transaction.Inputs()) != 0 {
+	if len(t.parameters.Transaction.Inputs()) != 0 {
 		return errors.New("no cost transactions must has no input")
 	}
 	return nil
@@ -27,7 +38,7 @@ func (t *CRCProposalResultTransaction) CheckTransactionInput() error {
 
 func (t *CRCProposalResultTransaction) CheckTransactionOutput() error {
 
-	txn := t.sanityParameters.Transaction
+	txn := t.parameters.Transaction
 	if len(txn.Outputs()) > math.MaxUint16 {
 		return errors.New("output count should not be greater than 65535(MaxUint16)")
 	}

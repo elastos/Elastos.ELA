@@ -20,6 +20,17 @@ type CancelProducerTransaction struct {
 	BaseTransaction
 }
 
+func (t *CancelProducerTransaction) RegisterFunctions() {
+	t.DefaultChecker.CheckTransactionSize = t.checkTransactionSize
+	t.DefaultChecker.CheckTransactionInput = t.checkTransactionInput
+	t.DefaultChecker.CheckTransactionOutput = t.checkTransactionOutput
+	t.DefaultChecker.CheckTransactionPayload = t.CheckTransactionPayload
+	t.DefaultChecker.HeightVersionCheck = t.heightVersionCheck
+	t.DefaultChecker.IsAllowedInPOWConsensus = t.IsAllowedInPOWConsensus
+	t.DefaultChecker.SpecialContextCheck = t.SpecialContextCheck
+	t.DefaultChecker.CheckAttributeProgram = t.CheckAttributeProgram
+}
+
 func (t *CancelProducerTransaction) CheckTransactionPayload() error {
 	switch t.Payload().(type) {
 	case *payload.ProcessProducer:
@@ -68,7 +79,7 @@ func (t *CancelProducerTransaction) checkProcessProducer(txn interfaces.Transact
 		return nil, errors.New("invalid signature in payload")
 	}
 
-	producer := t.contextParameters.BlockChain.GetState().GetProducer(processProducer.OwnerPublicKey)
+	producer := t.parameters.BlockChain.GetState().GetProducer(processProducer.OwnerPublicKey)
 	if producer == nil || !bytes.Equal(producer.OwnerPublicKey(),
 		processProducer.OwnerPublicKey) {
 		return nil, errors.New("getting unknown producer")

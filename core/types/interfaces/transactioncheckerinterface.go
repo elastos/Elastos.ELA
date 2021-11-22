@@ -11,9 +11,9 @@ import (
 )
 
 type PayloadChecker interface {
-	ContextCheck(p Parameters) (map[*common2.Input]common2.Output, elaerr.ELAError)
-
 	SanityCheck(p Parameters) elaerr.ELAError
+
+	ContextCheck(p Parameters) (map[*common2.Input]common2.Output, elaerr.ELAError)
 }
 
 type BasePayloadChecker interface {

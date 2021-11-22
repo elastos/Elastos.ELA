@@ -21,9 +21,20 @@ type TransferAssetTransaction struct {
 	BaseTransaction
 }
 
+func (t *TransferAssetTransaction) RegisterFunctions() {
+	t.DefaultChecker.CheckTransactionSize = t.checkTransactionSize
+	t.DefaultChecker.CheckTransactionInput = t.checkTransactionInput
+	t.DefaultChecker.CheckTransactionOutput = t.CheckTransactionOutput
+	t.DefaultChecker.CheckTransactionPayload = t.CheckTransactionPayload
+	t.DefaultChecker.HeightVersionCheck = t.HeightVersionCheck
+	t.DefaultChecker.IsAllowedInPOWConsensus = t.IsAllowedInPOWConsensus
+	t.DefaultChecker.SpecialContextCheck = t.specialContextCheck
+	t.DefaultChecker.CheckAttributeProgram = t.checkAttributeProgram
+}
+
 func (t *TransferAssetTransaction) CheckTransactionOutput() error {
-	txn := t.sanityParameters.Transaction
-	blockHeight := t.sanityParameters.BlockHeight
+	txn := t.parameters.Transaction
+	blockHeight := t.parameters.BlockHeight
 	if len(txn.Outputs()) > math.MaxUint16 {
 		return errors.New("output count should not be greater than 65535(MaxUint16)")
 	}
@@ -137,9 +148,9 @@ func (t *TransferAssetTransaction) IsAllowedInPOWConsensus() bool {
 }
 
 func (t *TransferAssetTransaction) HeightVersionCheck() error {
-	txn := t.contextParameters.Transaction
-	blockHeight := t.contextParameters.BlockHeight
-	chainParams := t.contextParameters.Config
+	txn := t.parameters.Transaction
+	blockHeight := t.parameters.BlockHeight
+	chainParams := t.parameters.Config
 
 	if blockHeight >= chainParams.CRVotingStartHeight {
 		return nil

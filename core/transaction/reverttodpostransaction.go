@@ -23,8 +23,19 @@ type RevertToDPOSTransaction struct {
 	BaseTransaction
 }
 
+func (t *RevertToDPOSTransaction) RegisterFunctions() {
+	t.DefaultChecker.CheckTransactionSize = t.checkTransactionSize
+	t.DefaultChecker.CheckTransactionInput = t.CheckTransactionInput
+	t.DefaultChecker.CheckTransactionOutput = t.CheckTransactionOutput
+	t.DefaultChecker.CheckTransactionPayload = t.CheckTransactionPayload
+	t.DefaultChecker.HeightVersionCheck = t.HeightVersionCheck
+	t.DefaultChecker.IsAllowedInPOWConsensus = t.IsAllowedInPOWConsensus
+	t.DefaultChecker.SpecialContextCheck = t.SpecialContextCheck
+	t.DefaultChecker.CheckAttributeProgram = t.CheckAttributeProgram
+}
+
 func (t *RevertToDPOSTransaction) CheckTransactionInput() error {
-	if len(t.sanityParameters.Transaction.Inputs()) != 0 {
+	if len(t.parameters.Transaction.Inputs()) != 0 {
 		return errors.New("no cost transactions must has no input")
 	}
 	return nil
@@ -32,7 +43,7 @@ func (t *RevertToDPOSTransaction) CheckTransactionInput() error {
 
 func (t *RevertToDPOSTransaction) CheckTransactionOutput() error {
 
-	txn := t.sanityParameters.Transaction
+	txn := t.parameters.Transaction
 	if len(txn.Outputs()) > math.MaxUint16 {
 		return errors.New("output count should not be greater than 65535(MaxUint16)")
 	}
@@ -89,7 +100,7 @@ func (t *RevertToDPOSTransaction) IsAllowedInPOWConsensus() bool {
 }
 
 func (t *RevertToDPOSTransaction) HeightVersionCheck() error {
-	if t.contextParameters.BlockHeight < t.contextParameters.Config.RevertToPOWStartHeight {
+	if t.parameters.BlockHeight < t.parameters.Config.RevertToPOWStartHeight {
 		return errors.New(fmt.Sprintf("not support %s transaction "+
 			"before RevertToPOWStartHeight", t.TxType().Name()))
 	}
@@ -108,12 +119,12 @@ func (t *RevertToDPOSTransaction) SpecialContextCheck() (elaerr.ELAError, bool) 
 	}
 
 	// check dpos state
-	if t.contextParameters.BlockChain.GetState().GetConsensusAlgorithm() != state.POW {
+	if t.parameters.BlockChain.GetState().GetConsensusAlgorithm() != state.POW {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid GetConsensusAlgorithm() != state.POW")), true
 	}
 
 	// to avoid init DPOSWorkHeight repeatedly
-	if t.contextParameters.BlockChain.GetState().DPOSWorkHeight > t.contextParameters.BlockHeight {
+	if t.parameters.BlockChain.GetState().DPOSWorkHeight > t.parameters.BlockHeight {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("already receieved  revertodpos")), true
 	}
 

@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/elastos/Elastos.ELA/core/transaction"
+	"github.com/elastos/Elastos.ELA/core/types/functions"
 	"os"
 	"strings"
 
@@ -213,8 +214,12 @@ func signTx(c *cli.Context) error {
 		return errors.New("decode transaction content failed")
 	}
 
-	var txn transaction.BaseTransaction
-	err = txn.Deserialize(bytes.NewReader(rawData))
+	r := bytes.NewReader(rawData)
+	txn, err := functions.GetTransactionByBytes(r)
+	if err != nil {
+		return errors.New("invalid transaction")
+	}
+	err = txn.Deserialize(r)
 	if err != nil {
 		return errors.New("deserialize transaction failed")
 	}
@@ -231,7 +236,7 @@ func signTx(c *cli.Context) error {
 		return errors.New("transaction was fully signed, no need more sign")
 	}
 
-	txnSigned, err := client.Sign(&txn)
+	txnSigned, err := client.Sign(txn)
 	if err != nil {
 		return err
 	}

@@ -18,6 +18,17 @@ type ReturnCRDepositCoinTransaction struct {
 	BaseTransaction
 }
 
+func (t *ReturnCRDepositCoinTransaction) RegisterFunctions() {
+	t.DefaultChecker.CheckTransactionSize = t.checkTransactionSize
+	t.DefaultChecker.CheckTransactionInput = t.checkTransactionInput
+	t.DefaultChecker.CheckTransactionOutput = t.checkTransactionOutput
+	t.DefaultChecker.CheckTransactionPayload = t.CheckTransactionPayload
+	t.DefaultChecker.HeightVersionCheck = t.HeightVersionCheck
+	t.DefaultChecker.IsAllowedInPOWConsensus = t.IsAllowedInPOWConsensus
+	t.DefaultChecker.SpecialContextCheck = t.SpecialContextCheck
+	t.DefaultChecker.CheckAttributeProgram = t.CheckAttributeProgram
+}
+
 func (t *ReturnCRDepositCoinTransaction) CheckAttributeProgram() error {
 
 	if len(t.Programs()) != 1 {
@@ -59,9 +70,9 @@ func (t *ReturnCRDepositCoinTransaction) IsAllowedInPOWConsensus() bool {
 }
 
 func (t *ReturnCRDepositCoinTransaction) HeightVersionCheck() error {
-	txn := t.contextParameters.Transaction
-	blockHeight := t.contextParameters.BlockHeight
-	chainParams := t.contextParameters.Config
+	txn := t.parameters.Transaction
+	blockHeight := t.parameters.BlockHeight
+	chainParams := t.parameters.Config
 
 	if blockHeight < chainParams.CRVotingStartHeight {
 		return errors.New(fmt.Sprintf("not support %s transaction "+
@@ -106,11 +117,11 @@ func (t *ReturnCRDepositCoinTransaction) SpecialContextCheck() (elaerr.ELAError,
 			return elaerr.Simple(elaerr.ErrTxPayload, err), true
 		}
 		cid := ct.ToProgramHash()
-		if !t.contextParameters.BlockChain.GetCRCommittee().Exist(*cid) {
+		if !t.parameters.BlockChain.GetCRCommittee().Exist(*cid) {
 			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("signer must be candidate or member")), true
 		}
 
-		availableValue += t.contextParameters.BlockChain.GetCRCommittee().GetAvailableDepositAmount(*cid)
+		availableValue += t.parameters.BlockChain.GetCRCommittee().GetAvailableDepositAmount(*cid)
 	}
 
 	// Check output amount.

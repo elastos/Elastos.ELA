@@ -141,7 +141,7 @@ func startNode(c *cli.Context, st *settings.Settings) {
 	functions.GetTransactionByTxType = getTransaction
 	functions.GetTransactionByBytes = getTransactionByBytes
 	functions.CreateTransaction = createTransaction
-	functions.GetTransactionParameters = getTransactionContextParameters
+	functions.GetTransactionParameters = getTransactionparameters
 
 	// Initialize default parameters
 	config.DefaultParams = config.GetDefaultParams()
@@ -488,7 +488,7 @@ func createTransaction(
 	return txn
 }
 
-func getTransactionContextParameters(
+func getTransactionparameters(
 	transaction interfaces.Transaction,
 	blockHeight uint32,
 	timeStamp uint32,
@@ -616,5 +616,6 @@ func getTransaction(txType common2.TxType) (txn interfaces.Transaction, err erro
 		return nil, errors.New("invalid transaction type")
 	}
 
+	txn.RegisterFunctions()
 	return txn, nil
 }

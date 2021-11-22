@@ -22,9 +22,20 @@ type ReturnSideChainDepositCoinTransaction struct {
 	BaseTransaction
 }
 
+func (t *ReturnSideChainDepositCoinTransaction) RegisterFunctions() {
+	t.DefaultChecker.CheckTransactionSize = t.checkTransactionSize
+	t.DefaultChecker.CheckTransactionInput = t.checkTransactionInput
+	t.DefaultChecker.CheckTransactionOutput = t.CheckTransactionOutput
+	t.DefaultChecker.CheckTransactionPayload = t.CheckTransactionPayload
+	t.DefaultChecker.HeightVersionCheck = t.HeightVersionCheck
+	t.DefaultChecker.IsAllowedInPOWConsensus = t.IsAllowedInPOWConsensus
+	t.DefaultChecker.SpecialContextCheck = t.SpecialContextCheck
+	t.DefaultChecker.CheckAttributeProgram = t.checkAttributeProgram
+}
+
 func (t *ReturnSideChainDepositCoinTransaction) CheckTransactionOutput() error {
-	txn := t.sanityParameters.Transaction
-	blockHeight := t.sanityParameters.BlockHeight
+	txn := t.parameters.Transaction
+	blockHeight := t.parameters.BlockHeight
 	if len(txn.Outputs()) > math.MaxUint16 {
 		return errors.New("output count should not be greater than 65535(MaxUint16)")
 	}
@@ -87,9 +98,9 @@ func (t *ReturnSideChainDepositCoinTransaction) IsAllowedInPOWConsensus() bool {
 }
 
 func (t *ReturnSideChainDepositCoinTransaction) HeightVersionCheck() error {
-	txn := t.contextParameters.Transaction
-	blockHeight := t.contextParameters.BlockHeight
-	chainParams := t.contextParameters.Config
+	txn := t.parameters.Transaction
+	blockHeight := t.parameters.BlockHeight
+	chainParams := t.parameters.Config
 
 	if blockHeight < chainParams.ReturnCrossChainCoinStartHeight {
 		return errors.New(fmt.Sprintf("not support %s transaction "+
@@ -105,7 +116,7 @@ func (t *ReturnSideChainDepositCoinTransaction) SpecialContextCheck() (result el
 	}
 
 	// check outputs
-	fee := t.contextParameters.Config.ReturnDepositCoinFee
+	fee := t.parameters.Config.ReturnDepositCoinFee
 	for _, o := range t.Outputs() {
 		if o.Type != common2.OTReturnSideChainDepositCoin {
 			continue
@@ -115,11 +126,11 @@ func (t *ReturnSideChainDepositCoinTransaction) SpecialContextCheck() (result el
 			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid ReturnSideChainDeposit output payload")), true
 		}
 
-		tx, _, err := t.contextParameters.BlockChain.GetDB().GetTransaction(py.DepositTransactionHash)
+		tx, _, err := t.parameters.BlockChain.GetDB().GetTransaction(py.DepositTransactionHash)
 		if err != nil {
 			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid deposit tx:"+py.DepositTransactionHash.String())), true
 		}
-		refTx, _, err := t.contextParameters.BlockChain.GetDB().GetTransaction(tx.Inputs()[0].Previous.TxID)
+		refTx, _, err := t.parameters.BlockChain.GetDB().GetTransaction(tx.Inputs()[0].Previous.TxID)
 		if err != nil {
 			return elaerr.Simple(elaerr.ErrTxPayload, err), true
 		}

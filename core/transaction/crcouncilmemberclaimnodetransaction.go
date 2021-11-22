@@ -20,6 +20,17 @@ type CRCouncilMemberClaimNodeTransaction struct {
 	BaseTransaction
 }
 
+func (t *CRCouncilMemberClaimNodeTransaction) RegisterFunctions() {
+	t.DefaultChecker.CheckTransactionSize = t.checkTransactionSize
+	t.DefaultChecker.CheckTransactionInput = t.checkTransactionInput
+	t.DefaultChecker.CheckTransactionOutput = t.checkTransactionOutput
+	t.DefaultChecker.CheckTransactionPayload = t.CheckTransactionPayload
+	t.DefaultChecker.HeightVersionCheck = t.heightVersionCheck
+	t.DefaultChecker.IsAllowedInPOWConsensus = t.IsAllowedInPOWConsensus
+	t.DefaultChecker.SpecialContextCheck = t.SpecialContextCheck
+	t.DefaultChecker.CheckAttributeProgram = t.checkAttributeProgram
+}
+
 func (t *CRCouncilMemberClaimNodeTransaction) IsAllowedInPOWConsensus() bool {
 	return true
 }
@@ -34,9 +45,9 @@ func (t *CRCouncilMemberClaimNodeTransaction) CheckTransactionPayload() error {
 }
 
 func (t *CRCouncilMemberClaimNodeTransaction) HeightVersionCheck() error {
-	txn := t.contextParameters.Transaction
-	blockHeight := t.contextParameters.BlockHeight
-	chainParams := t.contextParameters.Config
+	txn := t.parameters.Transaction
+	blockHeight := t.parameters.BlockHeight
+	chainParams := t.parameters.Config
 
 	if blockHeight < chainParams.CRClaimDPOSNodeStartHeight {
 		return errors.New(fmt.Sprintf("not support %s transaction "+
@@ -51,12 +62,12 @@ func (t *CRCouncilMemberClaimNodeTransaction) SpecialContextCheck() (result elae
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid payload")), true
 	}
 
-	if !t.contextParameters.BlockChain.GetCRCommittee().IsInElectionPeriod() {
+	if !t.parameters.BlockChain.GetCRCommittee().IsInElectionPeriod() {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("CRCouncilMemberClaimNode must during election period")), true
 
 	}
 	did := manager.CRCouncilCommitteeDID
-	crMember := t.contextParameters.BlockChain.GetCRCommittee().GetMember(did)
+	crMember := t.parameters.BlockChain.GetCRCommittee().GetMember(did)
 	if crMember == nil {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("the originator must be members")), true
 	}
@@ -77,7 +88,7 @@ func (t *CRCouncilMemberClaimNodeTransaction) SpecialContextCheck() (result elae
 	}
 
 	// check duplication of node.
-	if t.contextParameters.BlockChain.GetState().ProducerNodePublicKeyExists(manager.NodePublicKey) {
+	if t.parameters.BlockChain.GetState().ProducerNodePublicKeyExists(manager.NodePublicKey) {
 		return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("producer already registered")), true
 	}
 

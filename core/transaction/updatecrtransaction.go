@@ -19,6 +19,17 @@ type UpdateCRTransaction struct {
 	BaseTransaction
 }
 
+func (t *UpdateCRTransaction) RegisterFunctions() {
+	t.DefaultChecker.CheckTransactionSize = t.checkTransactionSize
+	t.DefaultChecker.CheckTransactionInput = t.checkTransactionInput
+	t.DefaultChecker.CheckTransactionOutput = t.checkTransactionOutput
+	t.DefaultChecker.CheckTransactionPayload = t.CheckTransactionPayload
+	t.DefaultChecker.HeightVersionCheck = t.heightVersionCheck
+	t.DefaultChecker.IsAllowedInPOWConsensus = t.IsAllowedInPOWConsensus
+	t.DefaultChecker.SpecialContextCheck = t.SpecialContextCheck
+	t.DefaultChecker.CheckAttributeProgram = t.checkAttributeProgram
+}
+
 func (t *UpdateCRTransaction) CheckTransactionPayload() error {
 	switch t.Payload().(type) {
 	case *payload.CRInfo:
@@ -62,7 +73,7 @@ func (t *UpdateCRTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid cid address")), true
 	}
 
-	if t.contextParameters.BlockHeight >=t.contextParameters.Config.RegisterCRByDIDHeight &&
+	if t.parameters.BlockHeight >=t.parameters.Config.RegisterCRByDIDHeight &&
 		t.PayloadVersion() == payload.CRInfoDIDVersion {
 		// get DID program hash
 
@@ -80,11 +91,11 @@ func (t *UpdateCRTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
 	if err := blockchain.CrInfoSanityCheck(info, t.PayloadVersion()); err != nil {
 		return elaerr.Simple(elaerr.ErrTxPayload, err), true
 	}
-	if !t.contextParameters.BlockChain.GetCRCommittee().IsInVotingPeriod(t.contextParameters.BlockHeight) {
+	if !t.parameters.BlockChain.GetCRCommittee().IsInVotingPeriod(t.parameters.BlockHeight) {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("should create tx during voting period")), true
 	}
 
-	cr := t.contextParameters.BlockChain.GetCRCommittee().GetCandidate(info.CID)
+	cr := t.parameters.BlockChain.GetCRCommittee().GetCandidate(info.CID)
 	if cr == nil {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("updating unknown CR")), true
 	}
@@ -94,7 +105,7 @@ func (t *UpdateCRTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
 
 	// check nickname usage.
 	if cr.Info().NickName != info.NickName &&
-		t.contextParameters.BlockChain.GetCRCommittee().ExistCandidateByNickname(info.NickName) {
+		t.parameters.BlockChain.GetCRCommittee().ExistCandidateByNickname(info.NickName) {
 		return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("nick name %s already exist", info.NickName)), true
 	}
 

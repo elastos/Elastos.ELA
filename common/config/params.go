@@ -92,7 +92,13 @@ var (
 
 	// ELAAssetID represents the asset ID of ELA coin.
 	// todo refactor me
-	ELAAssetID = common.Uint256{}
+	ELAAssetID = common.Uint256{
+		0xb0, 0x37, 0xdb, 0x96, 0x4a, 0x23, 0x14,
+		0x58, 0xd2, 0xd6, 0xff, 0xd5, 0xea, 0x18,
+		0x94, 0x4c, 0x4f, 0x90, 0xe6, 0x3d, 0x54,
+		0x7c, 0x5d, 0x3b, 0x98, 0x74, 0xdf, 0x66,
+		0xa4, 0xea, 0xd0, 0xa3,
+	}
 
 	// ELAPrecision represents the precision of ELA coin.
 	ELAPrecision = byte(0x08)
@@ -162,19 +168,19 @@ func GetDefaultParams() Params {
 			"02b95b000f087a97e988c24331bf6769b4a75e4b7d5d2a38105092a3aa841be33b",
 			"02a0aa9eac0e168f3474c2a0d04e50130833905740a5270e8a44d6c6e85cf6d98c",
 		},
-		SecretaryGeneral:         "02712da531804d1c38d159a901313239d2100dfb5b693d71a2f76b15dec3f8fc32",
-		MaxProposalTrackingCount: 128,
-		PowLimit:                 powLimit,
-		PowLimitBits:             0x1f0008ff,
-		TargetTimespan:           24 * time.Hour,  // 24 hours
-		TargetTimePerBlock:       2 * time.Minute, // 2 minute
-		AdjustmentFactor:         4,               // 25% less, 400% more
-		RewardPerBlock:           RewardPerBlock(2 * time.Minute),
-		CoinbaseMaturity:         100,
-		MinTransactionFee:        100,
-		MinCrossChainTxFee:       10000,
-		CheckAddressHeight:       88812,
-		VoteStartHeight:          290000,
+		SecretaryGeneral:            "02712da531804d1c38d159a901313239d2100dfb5b693d71a2f76b15dec3f8fc32",
+		MaxProposalTrackingCount:    128,
+		PowLimit:                    powLimit,
+		PowLimitBits:                0x1f0008ff,
+		TargetTimespan:              24 * time.Hour,  // 24 hours
+		TargetTimePerBlock:          2 * time.Minute, // 2 minute
+		AdjustmentFactor:            4,               // 25% less, 400% more
+		RewardPerBlock:              RewardPerBlock(2 * time.Minute),
+		CoinbaseMaturity:            100,
+		MinTransactionFee:           100,
+		MinCrossChainTxFee:          10000,
+		CheckAddressHeight:          88812,
+		VoteStartHeight:             290000,
 		CRCOnlyDPOSHeight:           343400,
 		PublicDPOSHeight:            402680,
 		EnableActivateIllegalHeight: 439000,

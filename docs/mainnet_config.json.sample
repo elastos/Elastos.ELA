@@ -1,5 +1,6 @@
 {
   "Configuration": {
+    "PrintLevel": 0,
     "PowConfiguration": {
       "PayToAddr": "8VYXVxKKSAxkmRrfmGpQR2Kc66XhG6m3ta",
       "MinerInfo": "ELA",

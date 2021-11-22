@@ -8,7 +8,10 @@ package transaction
 import (
 	"errors"
 	"github.com/elastos/Elastos.ELA/common"
+	"github.com/elastos/Elastos.ELA/common/config"
+	"github.com/elastos/Elastos.ELA/core/contract"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
+	"math"
 
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/core/types/outputpayload"
@@ -16,6 +19,63 @@ import (
 
 type TransferAssetTransaction struct {
 	BaseTransaction
+}
+
+func (t *TransferAssetTransaction) CheckTransactionOutput() error {
+	txn := t.sanityParameters.Transaction
+	blockHeight := t.sanityParameters.BlockHeight
+	if len(txn.Outputs()) > math.MaxUint16 {
+		return errors.New("output count should not be greater than 65535(MaxUint16)")
+	}
+
+	if len(txn.Outputs()) < 1 {
+		return errors.New("transaction has no outputs")
+	}
+
+	// check if output address is valid
+	specialOutputCount := 0
+	for _, output := range txn.Outputs() {
+		if output.AssetID != config.ELAAssetID {
+			return errors.New("asset ID in output is invalid")
+		}
+
+		// output value must >= 0
+		if output.Value < common.Fixed64(0) {
+			return errors.New("invalid transaction UTXO output")
+		}
+
+		if err := checkOutputProgramHash(blockHeight, output.ProgramHash); err != nil {
+			return err
+		}
+
+		if txn.Version() >= common2.TxVersion09 {
+			if output.Type != common2.OTNone {
+				specialOutputCount++
+			}
+			if err := checkTransferAssetOutputPayload(output); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+func checkTransferAssetOutputPayload(output *common2.Output) error {
+	// common2.OTVote information can only be placed in TransferAsset transaction.
+	switch output.Type {
+	case common2.OTVote:
+		if contract.GetPrefixType(output.ProgramHash) !=
+			contract.PrefixStandard {
+			return errors.New("output address should be standard")
+		}
+	case common2.OTNone:
+	case common2.OTMapping:
+	default:
+		return errors.New("transaction type dose not match the output payload type")
+	}
+
+	return output.Payload.Validate()
 }
 
 func (t *TransferAssetTransaction) CheckTransactionPayload() error {

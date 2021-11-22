@@ -218,7 +218,7 @@ func (t *DefaultChecker) CheckTransactionOutput() error {
 
 		// output value must >= 0
 		if output.Value < common.Fixed64(0) {
-			return errors.New("Invalide transaction UTXO output.")
+			return errors.New("invalid transaction UTXO output")
 		}
 
 		if err := checkOutputProgramHash(blockHeight, output.ProgramHash); err != nil {
@@ -229,7 +229,7 @@ func (t *DefaultChecker) CheckTransactionOutput() error {
 			if output.Type != common2.OTNone {
 				specialOutputCount++
 			}
-			if err := checkOutputPayload(txn.TxType(), output); err != nil {
+			if err := checkOutputPayload(output); err != nil {
 				return err
 			}
 		}
@@ -666,49 +666,11 @@ func checkOutputProgramHash(height uint32, programHash common.Uint168) error {
 	return nil
 }
 
-func checkOutputPayload(txType common2.TxType, output *common2.Output) error {
-	switch txType {
-	case common2.ReturnSideChainDepositCoin:
-		switch output.Type {
-		case common2.OTNone:
-		case common2.OTReturnSideChainDepositCoin:
-		default:
-			return errors.New("transaction type dose not match the output payload type")
-		}
-	case common2.WithdrawFromSideChain:
-		switch output.Type {
-		case common2.OTNone:
-		case common2.OTWithdrawFromSideChain:
-		default:
-			return errors.New("transaction type dose not match the output payload type")
-		}
-	case common2.TransferCrossChainAsset:
-		// common2.OTCrossChain information can only be placed in TransferCrossChainAsset transaction.
-		switch output.Type {
-		case common2.OTNone:
-		case common2.OTCrossChain:
-		default:
-			return errors.New("transaction type dose not match the output payload type")
-		}
-	case common2.TransferAsset:
-		// common2.OTVote information can only be placed in TransferAsset transaction.
-		switch output.Type {
-		case common2.OTVote:
-			if contract.GetPrefixType(output.ProgramHash) !=
-				contract.PrefixStandard {
-				return errors.New("output address should be standard")
-			}
-		case common2.OTNone:
-		case common2.OTMapping:
-		default:
-			return errors.New("transaction type dose not match the output payload type")
-		}
+func checkOutputPayload(output *common2.Output) error {
+	switch output.Type {
+	case common2.OTNone:
 	default:
-		switch output.Type {
-		case common2.OTNone:
-		default:
-			return errors.New("transaction type dose not match the output payload type")
-		}
+		return errors.New("transaction type dose not match the output payload type")
 	}
 
 	return output.Payload.Validate()

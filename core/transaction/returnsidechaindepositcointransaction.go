@@ -42,7 +42,7 @@ func (t *ReturnSideChainDepositCoinTransaction) CheckTransactionOutput() error {
 
 		// output value must >= 0
 		if output.Value < common.Fixed64(0) {
-			return errors.New("Invalide transaction UTXO output.")
+			return errors.New("invalid transaction UTXO output")
 		}
 
 		if err := checkOutputProgramHash(blockHeight, output.ProgramHash); err != nil {
@@ -53,13 +53,24 @@ func (t *ReturnSideChainDepositCoinTransaction) CheckTransactionOutput() error {
 			if output.Type != common2.OTNone {
 				specialOutputCount++
 			}
-			if err := checkOutputPayload(txn.TxType(), output); err != nil {
+			if err := checkReturnSideChainDepositOutputPayload(output); err != nil {
 				return err
 			}
 		}
 	}
 
 	return nil
+}
+
+func checkReturnSideChainDepositOutputPayload(output *common2.Output) error {
+	switch output.Type {
+	case common2.OTNone:
+	case common2.OTReturnSideChainDepositCoin:
+	default:
+		return errors.New("transaction type dose not match the output payload type")
+	}
+
+	return output.Payload.Validate()
 }
 
 func (t *ReturnSideChainDepositCoinTransaction) CheckTransactionPayload() error {

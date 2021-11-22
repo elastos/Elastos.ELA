@@ -93,7 +93,7 @@ func (t *SideChainPOWTransaction) CheckTransactionOutput() error {
 				if output.Type != common2.OTNone {
 					specialOutputCount++
 				}
-				if err := checkOutputPayload(txn.TxType(), output); err != nil {
+				if err := checkOutputPayload(output); err != nil {
 					return err
 				}
 			}

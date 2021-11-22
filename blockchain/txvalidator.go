@@ -446,7 +446,7 @@ func (b *BlockChain) checkTransactionOutput(txn interfaces.Transaction,
 
 		// output value must >= 0
 		if output.Value < common.Fixed64(0) {
-			return errors.New("Invalide transaction UTXO output.")
+			return errors.New("invalid transaction UTXO output")
 		}
 
 		if err := checkOutputProgramHash(blockHeight, output.ProgramHash); err != nil {

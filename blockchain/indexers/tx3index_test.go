@@ -6,8 +6,11 @@
 package indexers
 
 import (
-	"github.com/elastos/Elastos.ELA/core/transaction"
 	"testing"
+
+	"github.com/elastos/Elastos.ELA/core/contract/program"
+	"github.com/elastos/Elastos.ELA/core/types/functions"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/log"
@@ -22,17 +25,22 @@ import (
 
 var (
 	tx3Hash = common.Uint256{1, 2, 3}
-	tx4     = &transaction.BaseTransaction{
-		TxType:         common2.WithdrawFromSideChain,
-		PayloadVersion: 0,
-		Payload: &payload.WithdrawFromSideChain{
+
+	tx4 = functions.CreateTransaction(
+		0,
+		common2.WithdrawFromSideChain,
+		0,
+		&payload.WithdrawFromSideChain{
 			SideChainTransactionHashes: []common.Uint256{
 				tx3Hash,
 			},
 		},
-		Inputs:  []*common2.Input{},
-		Outputs: []*common2.Output{},
-	}
+		[]*common2.Attribute{},
+		[]*common2.Input{},
+		[]*common2.Output{},
+		0,
+		[]*program.Program{},
+	)
 
 	testTx3IndexBlock = &types.Block{
 		Header: common2.Header{},

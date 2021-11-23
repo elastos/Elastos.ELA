@@ -26,20 +26,20 @@ type transferAssetGenerator struct {
 
 func (g *transferAssetGenerator) Generate() interfaces.Transaction {
 	txn := functions.CreateTransaction(
-		        common2.TxVersion09,
-		         common2.TransferAsset,
-		 0,
-		        &payload.TransferAsset{},
-		 []*common2.Attribute{
+		common2.TxVersion09,
+		common2.TransferAsset,
+		0,
+		&payload.TransferAsset{},
+		[]*common2.Attribute{
 			{
 				Usage: common2.Nonce,
 				Data:  utils.RandomBytes(nonceByteLength),
 			},
 		},
-		   nil,
-		  []*common2.Output{},
-		 0,
-		 nil,
+		nil,
+		[]*common2.Output{},
+		0,
+		nil,
 	)
 	for _, v := range g.account {
 		txn.SetOutputs(append(txn.Outputs(), &common2.Output{

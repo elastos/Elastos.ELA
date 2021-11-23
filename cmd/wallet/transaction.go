@@ -9,10 +9,13 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/elastos/Elastos.ELA/core/transaction"
-	"github.com/elastos/Elastos.ELA/core/types/functions"
 	"os"
 	"strings"
+
+	"github.com/elastos/Elastos.ELA/core/contract/program"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
+
+	"github.com/elastos/Elastos.ELA/core/types/functions"
 
 	"github.com/elastos/Elastos.ELA/account"
 	cmdcom "github.com/elastos/Elastos.ELA/cmd/common"
@@ -284,7 +287,18 @@ func showTx(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	var txn transaction.BaseTransaction
+	txn := functions.CreateTransaction(
+		common2.TxVersion09,
+		common2.TransferAsset,
+		0,
+		nil,
+		[]*common2.Attribute{},
+		[]*common2.Input{},
+		[]*common2.Output{},
+		0,
+		[]*program.Program{},
+	)
+
 	if err := txn.Deserialize(bytes.NewReader(txBytes)); err != nil {
 		return err
 	}

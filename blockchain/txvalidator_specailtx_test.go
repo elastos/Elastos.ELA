@@ -7,12 +7,13 @@ package blockchain
 
 import (
 	"bytes"
-	"github.com/elastos/Elastos.ELA/core/transaction"
-	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"math/rand"
 	"path/filepath"
 	"strconv"
 	"testing"
+
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/functions"
 
 	"github.com/elastos/Elastos.ELA/auxpow"
 	"github.com/elastos/Elastos.ELA/common"
@@ -681,15 +682,23 @@ func (s *txValidatorSpecialTxTestSuite) TestCheckInactiveArbitrators() {
 	p := &payload.InactiveArbitrators{
 		Sponsor: randomPublicKey(),
 	}
-	tx := &transaction.BaseTransaction{
-		Payload: p,
-		Programs: []*program.Program{
+	tx := functions.CreateTransaction(
+		0,
+		common2.RegisterCR,
+		payload.CRInfoDIDVersion,
+		p,
+		[]*common2.Attribute{},
+		[]*common2.Input{},
+		[]*common2.Output{},
+		0,
+		[]*program.Program{
 			{
 				Code:      randomPublicKey(),
 				Parameter: randomSignature(),
 			},
 		},
-	}
+	)
+
 	s.arbitrators.ActiveProducer = s.arbitrators.CurrentArbitrators
 
 	s.EqualError(CheckInactiveArbitrators(tx),
@@ -760,23 +769,31 @@ func (s *txValidatorSpecialTxTestSuite) TestCheckInactiveArbitrators() {
 }
 
 func (s *txValidatorSpecialTxTestSuite) TestCheckUpdateVersion() {
-	tx := &transaction.BaseTransaction{
-		Programs: []*program.Program{
+	tx := functions.CreateTransaction(
+		0,
+		0,
+		0,
+		nil,
+		[]*common2.Attribute{},
+		[]*common2.Input{},
+		[]*common2.Output{},
+		0,
+		[]*program.Program{
 			{
 				Code:      randomPublicKey(),
 				Parameter: randomSignature(),
 			},
 		},
-	}
+	)
 
 	// set payload of invalid type
-	tx.Payload = &payload.InactiveArbitrators{}
+	tx.SetPayload(&payload.InactiveArbitrators{})
 	s.EqualError(s.Chain.checkUpdateVersionTransaction(tx),
 		"invalid payload")
 
 	// set inactive mode off
 	p := &payload.UpdateVersion{}
-	tx.Payload = p
+	tx.SetPayload(p)
 	s.EqualError(s.Chain.checkUpdateVersionTransaction(tx),
 		"invalid update version height")
 

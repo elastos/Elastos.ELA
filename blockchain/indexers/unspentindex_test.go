@@ -6,10 +6,13 @@
 package indexers
 
 import (
-	"github.com/elastos/Elastos.ELA/core/transaction"
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/elastos/Elastos.ELA/core/contract/program"
+	"github.com/elastos/Elastos.ELA/core/types/functions"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
@@ -32,11 +35,15 @@ var (
 	unspentIndexReferIndex1 = uint16(1)
 	unspentIndexReferIndex2 = uint16(2)
 	unspentIndexReferIndex3 = uint16(3)
-	unspentIndexCoinbase    = &transaction.BaseTransaction{
-		TxType:  common2.CoinBase,
-		Payload: new(payload.CoinBase),
-		Inputs:  nil,
-		Outputs: []*common2.Output{
+
+	unspentIndexCoinbase = functions.CreateTransaction(
+		0,
+		common2.CoinBase,
+		0,
+		new(payload.CoinBase),
+		[]*common2.Attribute{},
+		nil,
+		[]*common2.Output{
 			{
 				Value: 10,
 			},
@@ -44,11 +51,17 @@ var (
 				Value: 20,
 			},
 		},
-	}
-	testUnspentIndexTx1 = &transaction.BaseTransaction{
-		TxType:  common2.TransferAsset,
-		Payload: new(payload.TransferAsset),
-		Inputs: []*common2.Input{
+		0,
+		[]*program.Program{},
+	)
+
+	testUnspentIndexTx1 = functions.CreateTransaction(
+		0,
+		common2.TransferAsset,
+		0,
+		new(payload.TransferAsset),
+		[]*common2.Attribute{},
+		[]*common2.Input{
 			{
 				Previous: common2.OutPoint{
 					TxID:  unspentIndexReferTx1,
@@ -56,7 +69,7 @@ var (
 				},
 			},
 		},
-		Outputs: []*common2.Output{
+		[]*common2.Output{
 			{
 				Value: 30,
 			},
@@ -64,11 +77,17 @@ var (
 				Value: 40,
 			},
 		},
-	}
-	testUnspentIndexTx2 = &transaction.BaseTransaction{
-		TxType:  common2.TransferAsset,
-		Payload: new(payload.TransferAsset),
-		Inputs: []*common2.Input{
+		0,
+		[]*program.Program{},
+	)
+
+	testUnspentIndexTx2 = functions.CreateTransaction(
+		0,
+		common2.TransferAsset,
+		0,
+		new(payload.TransferAsset),
+		[]*common2.Attribute{},
+		[]*common2.Input{
 			{
 				Previous: common2.OutPoint{
 					TxID:  unspentIndexReferTx2,
@@ -76,7 +95,7 @@ var (
 				},
 			},
 		},
-		Outputs: []*common2.Output{
+		[]*common2.Output{
 			{
 				Value: 50,
 			},
@@ -84,11 +103,17 @@ var (
 				Value: 60,
 			},
 		},
-	}
-	testUnspentIndexTx3 = &transaction.BaseTransaction{
-		TxType:  common2.TransferAsset,
-		Payload: new(payload.TransferAsset),
-		Inputs: []*common2.Input{
+		0,
+		[]*program.Program{},
+	)
+
+	testUnspentIndexTx3 = functions.CreateTransaction(
+		0,
+		common2.TransferAsset,
+		payload.CRInfoDIDVersion,
+		new(payload.TransferAsset),
+		[]*common2.Attribute{},
+		[]*common2.Input{
 			{
 				Previous: common2.OutPoint{
 					TxID:  unspentIndexReferTx3,
@@ -96,7 +121,7 @@ var (
 				},
 			},
 		},
-		Outputs: []*common2.Output{
+		[]*common2.Output{
 			{
 				Value: 0,
 			},
@@ -104,7 +129,10 @@ var (
 				Value: 50,
 			},
 		},
-	}
+		0,
+		[]*program.Program{},
+	)
+
 	unspentIndexBlock = &types.Block{
 		Header: common2.Header{},
 		Transactions: []interfaces.Transaction{
@@ -114,10 +142,14 @@ var (
 			testUnspentIndexTx3,
 		},
 	}
-	testUnspentIndexTx4 = &transaction.BaseTransaction{
-		TxType:  common2.TransferAsset,
-		Payload: new(payload.TransferAsset),
-		Inputs: []*common2.Input{
+
+	testUnspentIndexTx4 = functions.CreateTransaction(
+		0,
+		common2.TransferAsset,
+		payload.CRInfoDIDVersion,
+		new(payload.TransferAsset),
+		[]*common2.Attribute{},
+		[]*common2.Input{
 			{
 				Previous: common2.OutPoint{
 					TxID:  testUnspentIndexTx3.Hash(),
@@ -131,23 +163,35 @@ var (
 				},
 			},
 		},
-		Outputs: []*common2.Output{
+		[]*common2.Output{
 			{
 				Value: 40,
 			},
 		},
-	}
-	testUnspentIndexTx5 = &transaction.BaseTransaction{
-		TxType:  common2.TransferAsset,
-		Payload: new(payload.TransferAsset),
-		Inputs:  []*common2.Input{},
-		Outputs: []*common2.Output{},
-	}
-	unspentIndexCoinbase2 = &transaction.BaseTransaction{
-		TxType:  common2.CoinBase,
-		Payload: new(payload.CoinBase),
-		Inputs:  nil,
-		Outputs: []*common2.Output{
+		0,
+		[]*program.Program{},
+	)
+
+	testUnspentIndexTx5 = functions.CreateTransaction(
+		0,
+		common2.TransferAsset,
+		0,
+		new(payload.TransferAsset),
+		[]*common2.Attribute{},
+		[]*common2.Input{},
+		[]*common2.Output{},
+		0,
+		[]*program.Program{},
+	)
+
+	unspentIndexCoinbase2 = functions.CreateTransaction(
+		0,
+		common2.CoinBase,
+		0,
+		new(payload.TransferAsset),
+		[]*common2.Attribute{},
+		nil,
+		[]*common2.Output{
 			{
 				Value: 30,
 			},
@@ -155,7 +199,10 @@ var (
 				Value: 40,
 			},
 		},
-	}
+		0,
+		[]*program.Program{},
+	)
+
 	unspentIndexBlock2 = &types.Block{
 		Header: common2.Header{},
 		Transactions: []interfaces.Transaction{

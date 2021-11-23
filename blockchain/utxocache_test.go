@@ -8,8 +8,11 @@ package blockchain
 import (
 	"errors"
 	"fmt"
-	"github.com/elastos/Elastos.ELA/core/transaction"
 	"testing"
+
+	"github.com/elastos/Elastos.ELA/core/contract/program"
+	"github.com/elastos/Elastos.ELA/core/types/functions"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
@@ -26,13 +29,14 @@ var (
 	utxoCache   *UTXOCache
 
 	// refer tx hash: 160da301e49617c037ae9b630919af52b8ac458202cd64558af7e0dcc753e307
-	referTx = &transaction.BaseTransaction{
-		Version:        common2.TxVersion09,
-		TxType:         common2.TransferAsset,
-		PayloadVersion: 0,
-		Payload:        &payload.TransferAsset{},
-		Attributes:     []*common2.Attribute{},
-		Inputs: []*common2.Input{
+
+	referTx = functions.CreateTransaction(
+		common2.TxVersion09,
+		common2.TransferAsset,
+		0,
+		&payload.TransferAsset{},
+		[]*common2.Attribute{},
+		[]*common2.Input{
 			{
 				Previous: common2.OutPoint{
 					Index: 0,
@@ -41,18 +45,29 @@ var (
 				Sequence: 0,
 			},
 		},
-		Outputs: []*common2.Output{
+		[]*common2.Output{
 			{
 				Value:   100,
 				Type:    common2.OTVote,
 				Payload: &outputpayload.VoteOutput{},
 			},
 		},
-		LockTime: 5,
-	}
+		5,
+		[]*program.Program{
+			{
+				Code:      randomPublicKey(),
+				Parameter: randomSignature(),
+			},
+		},
+	)
 
-	spendTx = &transaction.BaseTransaction{
-		Inputs: []*common2.Input{
+	spendTx = functions.CreateTransaction(
+		0,
+		0,
+		0,
+		nil,
+		[]*common2.Attribute{},
+		[]*common2.Input{
 			{
 				Previous: common2.OutPoint{
 					Index: 0,
@@ -61,7 +76,15 @@ var (
 				Sequence: 0,
 			},
 		},
-	}
+		[]*common2.Output{},
+		0,
+		[]*program.Program{
+			{
+				Code:      randomPublicKey(),
+				Parameter: randomSignature(),
+			},
+		},
+	)
 )
 
 type UtxoCacheDB struct {

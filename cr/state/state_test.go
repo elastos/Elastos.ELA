@@ -6,9 +6,11 @@
 package state
 
 import (
-	"github.com/elastos/Elastos.ELA/core/transaction"
-	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"testing"
+
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/functions"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
@@ -351,18 +353,27 @@ func TestState_ProcessBlock_VotingAndCancel(t *testing.T) {
 	input := &common2.Input{
 		Previous: *common2.NewOutPoint(voteTx.Hash(), uint16(0)),
 	}
-	references[input] = *voteTx.Outputs[0]
+	references[input] = *voteTx.Outputs()[0]
 
 	// cancel votes the active candidates
+	var txn []interfaces.Transaction
+	tx := functions.CreateTransaction(
+		common2.TxVersion09,
+		common2.ActivateProducer,
+		0,
+		nil,
+		[]*common2.Attribute{},
+		[]*common2.Input{input},
+		[]*common2.Output{},
+		0,
+		[]*program.Program{},
+	)
+	txn = append(txn, tx)
 	committee.ProcessBlock(&types.Block{
 		Header: common2.Header{
 			Height: currentHeight,
 		},
-		Transactions: []interfaces.Transaction{
-			{
-				Inputs: []*common2.Input{input},
-			},
-		},
+		Transactions: txn,
 	}, nil)
 
 	for _, v := range activeCIDs {
@@ -395,20 +406,26 @@ func TestState_ProcessBlock_DepositAndReturnDeposit(t *testing.T) {
 	depositCont, _ := contract.CreateDepositContractByPubKey(pk)
 
 	// register CR
-	registerCRTx := &transaction.BaseTransaction{
-		TxType: common2.RegisterCR,
-		Payload: &payload.CRInfo{
+	registerCRTx := functions.CreateTransaction(
+		common2.TxVersion09,
+		common2.RegisterCR,
+		0,
+		&payload.CRInfo{
 			Code:     code,
 			CID:      cid,
 			NickName: randomString(),
 		},
-		Outputs: []*common2.Output{
+		[]*common2.Attribute{},
+		[]*common2.Input{},
+		[]*common2.Output{
 			{
 				ProgramHash: *depositCont.ToProgramHash(),
 				Value:       common.Fixed64(6000 * 1e8),
 			},
 		},
-	}
+		0,
+		[]*program.Program{},
+	)
 	committee.ProcessBlock(&types.Block{
 		Header: common2.Header{
 			Height: currentHeight,
@@ -423,16 +440,23 @@ func TestState_ProcessBlock_DepositAndReturnDeposit(t *testing.T) {
 		committee.state.getTotalAmount(candidate.info.CID))
 
 	// deposit though normal tx
-	tranferTx := &transaction.BaseTransaction{
-		TxType:  common2.TransferAsset,
-		Payload: &payload.TransferAsset{},
-		Outputs: []*common2.Output{
+
+	tranferTx := functions.CreateTransaction(
+		common2.TxVersion09,
+		common2.TransferAsset,
+		0,
+		&payload.TransferAsset{},
+		[]*common2.Attribute{},
+		[]*common2.Input{},
+		[]*common2.Output{
 			{
 				ProgramHash: *depositCont.ToProgramHash(),
 				Value:       common.Fixed64(1000 * 1e8),
 			},
 		},
-	}
+		0,
+		[]*program.Program{},
+	)
 	committee.ProcessBlock(&types.Block{
 		Header: common2.Header{
 			Height: currentHeight,
@@ -488,7 +512,7 @@ func TestState_ProcessBlock_DepositAndReturnDeposit(t *testing.T) {
 
 	// return deposit
 	rdTx := generateReturnCRDeposit(code)
-	rdTx.Inputs = []*common2.Input{
+	rdTx.SetInputs([]*common2.Input{
 		{
 			Previous: common2.OutPoint{
 				TxID:  registerCRTx.Hash(),
@@ -501,7 +525,7 @@ func TestState_ProcessBlock_DepositAndReturnDeposit(t *testing.T) {
 				Index: 0,
 			},
 		},
-	}
+	})
 	currentHeight++
 	committee.ProcessBlock(&types.Block{
 		Header: common2.Header{
@@ -534,44 +558,78 @@ func mockNewVoteTx(cids [][]byte) interfaces.Transaction {
 		},
 	}
 
-	return &transaction.BaseTransaction{
-		Version: common2.TxVersion09,
-		TxType:  common2.TransferAsset,
-		Outputs: []*common2.Output{output},
-	}
+	txn := functions.CreateTransaction(
+		common2.TxVersion09,
+		common2.TransferAsset,
+		0,
+		nil,
+		[]*common2.Attribute{},
+		[]*common2.Input{},
+		[]*common2.Output{output},
+		0,
+		[]*program.Program{},
+	)
+
+	return txn
 }
 
 func generateRegisterCR(code []byte, cid common.Uint168,
 	nickname string) interfaces.Transaction {
-	return &transaction.BaseTransaction{
-		TxType: common2.RegisterCR,
-		Payload: &payload.CRInfo{
+
+	txn := functions.CreateTransaction(
+		common2.TxVersion09,
+		common2.RegisterCR,
+		0,
+		&payload.CRInfo{
 			Code:     code,
 			CID:      cid,
 			NickName: nickname,
 		},
-	}
+		[]*common2.Attribute{},
+		[]*common2.Input{},
+		[]*common2.Output{},
+		0,
+		[]*program.Program{},
+	)
+
+	return txn
 }
 
 func generateUpdateCR(code []byte, cid common.Uint168,
 	nickname string) interfaces.Transaction {
-	return &transaction.BaseTransaction{
-		TxType: common2.UpdateCR,
-		Payload: &payload.CRInfo{
+	txn := functions.CreateTransaction(
+		common2.TxVersion09,
+		common2.UpdateCR,
+		0,
+		&payload.CRInfo{
 			Code:     code,
 			CID:      cid,
 			NickName: nickname,
 		},
-	}
+		[]*common2.Attribute{},
+		[]*common2.Input{},
+		[]*common2.Output{},
+		0,
+		[]*program.Program{},
+	)
+	return txn
 }
 
 func generateUnregisterCR(code []byte) interfaces.Transaction {
-	return &transaction.BaseTransaction{
-		TxType: common2.UnregisterCR,
-		Payload: &payload.UnregisterCR{
+	txn := functions.CreateTransaction(
+		common2.TxVersion09,
+		common2.UnregisterCR,
+		0,
+		&payload.UnregisterCR{
 			CID: *getCID(code),
 		},
-	}
+		[]*common2.Attribute{},
+		[]*common2.Input{},
+		[]*common2.Output{},
+		0,
+		[]*program.Program{},
+	)
+	return txn
 }
 
 func getCID(code []byte) *common.Uint168 {
@@ -580,15 +638,20 @@ func getCID(code []byte) *common.Uint168 {
 }
 
 func generateReturnCRDeposit(code []byte) interfaces.Transaction {
-	return &transaction.BaseTransaction{
-		TxType:  common2.ReturnCRDepositCoin,
-		Payload: &payload.ReturnDepositCoin{},
-		Programs: []*program.Program{
-			&program.Program{
-				Code: code,
-			},
-		},
-	}
+	txn := functions.CreateTransaction(
+		common2.TxVersion09,
+		common2.ReturnCRDepositCoin,
+		0,
+		&payload.ReturnDepositCoin{},
+		[]*common2.Attribute{},
+		[]*common2.Input{},
+		[]*common2.Output{},
+		0,
+		[]*program.Program{{
+			Code: code,
+		}},
+	)
+	return txn
 }
 
 func registerFuncs(state *State) {

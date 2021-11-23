@@ -8,8 +8,11 @@ package indexers
 import (
 	"errors"
 	"fmt"
-	"github.com/elastos/Elastos.ELA/core/transaction"
 	"testing"
+
+	"github.com/elastos/Elastos.ELA/core/contract/program"
+	"github.com/elastos/Elastos.ELA/core/types/functions"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/log"
@@ -29,13 +32,13 @@ var (
 	referRecipient2, _ = common.Uint168FromAddress("EKnWs1jyNdhzH65UST8qMo8ZpQrTpXGnLH")
 
 	// refer tx hash: 160da301e49617c037ae9b630919af52b8ac458202cd64558af7e0dcc753e307
-	testUtxoIndexReferTx = &transaction.BaseTransaction{
-		Version:        common2.TxVersion09,
-		TxType:         common2.TransferAsset,
-		PayloadVersion: 0,
-		Payload:        &payload.TransferAsset{},
-		Attributes:     []*common2.Attribute{},
-		Inputs: []*common2.Input{
+	testUtxoIndexReferTx = functions.CreateTransaction(
+		common2.TxVersion09,
+		common2.TransferAsset,
+		0,
+		&payload.TransferAsset{},
+		[]*common2.Attribute{},
+		[]*common2.Input{
 			{
 				Previous: common2.OutPoint{
 					Index: 0,
@@ -44,7 +47,7 @@ var (
 				Sequence: 0,
 			},
 		},
-		Outputs: []*common2.Output{
+		[]*common2.Output{
 			{
 				Value:       0,
 				Type:        common2.OTNone,
@@ -70,14 +73,18 @@ var (
 				ProgramHash: *referRecipient2,
 			},
 		},
-		LockTime: 5,
-	}
+		5,
+		[]*program.Program{},
+	)
 	recipient1, _    = common.Uint168FromAddress("EQr9qjiXGF2y7YMtDCHtHNewZynakbDzF7")
-	testUtxoIndexTx1 = &transaction.BaseTransaction{
-		TxType:  common2.CoinBase,
-		Payload: new(payload.CoinBase),
-		Inputs:  nil,
-		Outputs: []*common2.Output{
+	testUtxoIndexTx1 = functions.CreateTransaction(
+		0,
+		common2.CoinBase,
+		0,
+		new(payload.CoinBase),
+		[]*common2.Attribute{},
+		nil,
+		[]*common2.Output{
 			{
 				Value:       10,
 				ProgramHash: *recipient1,
@@ -87,13 +94,19 @@ var (
 				ProgramHash: *recipient1,
 			},
 		},
-	}
-	recipient2, _    = common.Uint168FromAddress("EWQfnxDhXQ4vHjncuAG5si2zpbKR79CjLp")
-	testUtxoIndexTx2 = &transaction.BaseTransaction{
-		TxType:         common2.TransferAsset,
-		PayloadVersion: 0,
-		Payload:        &payload.TransferAsset{},
-		Inputs: []*common2.Input{
+		0,
+		[]*program.Program{},
+	)
+
+	recipient2, _ = common.Uint168FromAddress("EWQfnxDhXQ4vHjncuAG5si2zpbKR79CjLp")
+
+	testUtxoIndexTx2 = functions.CreateTransaction(
+		0,
+		common2.TransferAsset,
+		0,
+		&payload.TransferAsset{},
+		[]*common2.Attribute{},
+		[]*common2.Input{
 			{
 				Previous: common2.OutPoint{
 					Index: 0,
@@ -116,7 +129,7 @@ var (
 				Sequence: 0,
 			},
 		},
-		Outputs: []*common2.Output{
+		[]*common2.Output{
 			{
 				Value:       30,
 				ProgramHash: *recipient1,
@@ -130,7 +143,10 @@ var (
 				ProgramHash: *recipient2,
 			},
 		},
-	}
+		0,
+		[]*program.Program{},
+	)
+
 	testUtxoIndexBlock = &types.Block{
 		Header: common2.Header{
 			Height: 200,
@@ -197,7 +213,7 @@ func TestUTXOIndexInit(t *testing.T) {
 		// initialize test utxo
 		utxos1 := make([]*common2.UTXO, 0)
 		utxos2 := make([]*common2.UTXO, 0)
-		for i, output := range testUtxoIndexReferTx.Outputs {
+		for i, output := range testUtxoIndexReferTx.Outputs() {
 			if output.Value == 0 {
 				continue
 			}

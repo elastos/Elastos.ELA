@@ -9,8 +9,10 @@ import (
 	"bytes"
 	"crypto/rand"
 	"fmt"
-	"github.com/elastos/Elastos.ELA/core/transaction"
 	"testing"
+
+	"github.com/elastos/Elastos.ELA/core/types/functions"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
@@ -202,9 +204,18 @@ func getRegisterCRTx(publicKeyStr, privateKeyStr, nickName string) interfaces.Tr
 	did1, _ := getDIDByCode(code1)
 	hash1, _ := contract.PublicKeyToDepositProgramHash(publicKey1)
 
-	txn := new(transaction.BaseTransaction)
-	txn.TxType = common2.RegisterCR
-	txn.Version = common2.TxVersion09
+	txn := functions.CreateTransaction(
+		common2.TxVersion09,
+		common2.RegisterCR,
+		0,
+		nil,
+		[]*common2.Attribute{},
+		[]*common2.Input{},
+		[]*common2.Output{},
+		0,
+		[]*program.Program{},
+	)
+
 	crInfoPayload := &payload.CRInfo{
 		Code:     code1,
 		CID:      *cid1,
@@ -217,21 +228,21 @@ func getRegisterCRTx(publicKeyStr, privateKeyStr, nickName string) interfaces.Tr
 	crInfoPayload.SerializeUnsigned(signBuf, payload.CRInfoVersion)
 	rcSig1, _ := crypto.Sign(privateKey1, signBuf.Bytes())
 	crInfoPayload.Signature = rcSig1
-	txn.Payload = crInfoPayload
+	txn.SetPayload(crInfoPayload)
 
-	txn.Programs = []*program.Program{&program.Program{
+	txn.SetPrograms([]*program.Program{&program.Program{
 		Code:      getCodeByPubKeyStr(publicKeyStr1),
 		Parameter: nil,
-	}}
+	}})
 
-	txn.Outputs = []*common2.Output{&common2.Output{
+	txn.SetOutputs([]*common2.Output{&common2.Output{
 		AssetID:     common.Uint256{},
 		Value:       5000 * 100000000,
 		OutputLock:  0,
 		ProgramHash: *hash1,
 		Type:        0,
 		Payload:     new(outputpayload.DefaultOutput),
-	}}
+	}})
 	return txn
 }
 
@@ -256,10 +267,14 @@ func getDIDByCode(code []byte) (*common.Uint168, error) {
 
 func getVoteCRTx(amount common.Fixed64,
 	candidateVotes []outputpayload.CandidateVotes) interfaces.Transaction {
-	return &transaction.BaseTransaction{
-		Version: 0x09,
-		TxType:  common2.TransferAsset,
-		Outputs: []*common2.Output{
+	tx := functions.CreateTransaction(
+		common2.TxVersion09,
+		common2.TransferAsset,
+		0,
+		nil,
+		[]*common2.Attribute{},
+		[]*common2.Input{},
+		[]*common2.Output{
 			{
 				AssetID:     common.Uint256{},
 				Value:       amount,
@@ -277,5 +292,8 @@ func getVoteCRTx(amount common.Fixed64,
 				},
 			},
 		},
-	}
+		0,
+		[]*program.Program{},
+	)
+	return tx
 }

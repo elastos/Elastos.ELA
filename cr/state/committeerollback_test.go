@@ -8,8 +8,10 @@ package state
 import (
 	"bytes"
 	"fmt"
-	"github.com/elastos/Elastos.ELA/core/transaction"
 	"testing"
+
+	"github.com/elastos/Elastos.ELA/core/types/functions"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
@@ -63,9 +65,18 @@ func getRegisterCRTx(publicKeyStr, privateKeyStr, nickName string) interfaces.Tr
 	did1, _ := getDIDByCode(code1)
 	hash1, _ := contract.PublicKeyToDepositProgramHash(publicKey1)
 
-	txn := new(transaction.BaseTransaction)
-	txn.TxType = common2.RegisterCR
-	txn.Version = common2.TxVersion09
+	txn := functions.CreateTransaction(
+		common2.TxVersion09,
+		common2.RegisterCR,
+		payload.CRInfoDIDVersion,
+		nil,
+		[]*common2.Attribute{},
+		[]*common2.Input{},
+		[]*common2.Output{},
+		0,
+		[]*program.Program{},
+	)
+
 	crInfoPayload := &payload.CRInfo{
 		Code:     code1,
 		CID:      *cid1,
@@ -78,68 +89,95 @@ func getRegisterCRTx(publicKeyStr, privateKeyStr, nickName string) interfaces.Tr
 	crInfoPayload.SerializeUnsigned(signBuf, payload.CRInfoVersion)
 	rcSig1, _ := crypto.Sign(privateKey1, signBuf.Bytes())
 	crInfoPayload.Signature = rcSig1
-	txn.Payload = crInfoPayload
+	txn.SetPayload(crInfoPayload)
 
-	txn.Programs = []*program.Program{&program.Program{
+	txn.SetPrograms([]*program.Program{&program.Program{
 		Code:      getCodeByPubKeyStr(publicKeyStr1),
 		Parameter: nil,
-	}}
+	}})
 
-	txn.Outputs = []*common2.Output{&common2.Output{
+	txn.SetOutputs([]*common2.Output{{
 		AssetID:     common.Uint256{},
 		Value:       5000 * 100000000,
 		OutputLock:  0,
 		ProgramHash: *hash1,
 		Type:        0,
 		Payload:     new(outputpayload.DefaultOutput),
-	}}
+	}})
 	return txn
 }
 
 func getUpdateCR(publicKeyStr string, cid common.Uint168,
 	nickname string) interfaces.Transaction {
 	code := getCodeByPubKeyStr(publicKeyStr)
-	return &transaction.BaseTransaction{
-		TxType: common2.UpdateCR,
-		Payload: &payload.CRInfo{
+	txn := functions.CreateTransaction(
+		common2.TxVersion09,
+		common2.UpdateCR,
+		payload.CRInfoDIDVersion,
+		&payload.CRInfo{
 			Code:     code,
 			CID:      cid,
 			NickName: nickname,
 		},
-	}
+		[]*common2.Attribute{},
+		[]*common2.Input{},
+		[]*common2.Output{},
+		0,
+		[]*program.Program{},
+	)
+
+	return txn
 }
 
 func getUnregisterCR(cid common.Uint168) interfaces.Transaction {
-	return &transaction.BaseTransaction{
-		TxType: common2.UnregisterCR,
-		Payload: &payload.UnregisterCR{
+	txn := functions.CreateTransaction(
+		common2.TxVersion09,
+		common2.UnregisterCR,
+		payload.CRInfoDIDVersion,
+		&payload.UnregisterCR{
 			CID: cid,
 		},
-	}
+		[]*common2.Attribute{},
+		[]*common2.Input{},
+		[]*common2.Output{},
+		0,
+		[]*program.Program{},
+	)
+	return txn
 }
 
 func generateReturnDeposite(publicKeyStr string) interfaces.Transaction {
 	code := getCodeByPubKeyStr(publicKeyStr)
-	return &transaction.BaseTransaction{
-		TxType:  common2.ReturnCRDepositCoin,
-		Payload: &payload.ReturnDepositCoin{},
-		Outputs: []*common2.Output{
+	txn := functions.CreateTransaction(
+		common2.TxVersion09,
+		common2.ReturnCRDepositCoin,
+		payload.CRInfoDIDVersion,
+		&payload.ReturnDepositCoin{},
+		[]*common2.Attribute{},
+		[]*common2.Input{},
+		[]*common2.Output{
 			{Value: 4999 * 100000000},
 		},
-		Programs: []*program.Program{
+		0,
+		[]*program.Program{
 			&program.Program{
 				Code: code,
 			},
 		},
-	}
+	)
+	return txn
 }
 
 func getVoteCRTx(amount common.Fixed64,
 	candidateVotes []outputpayload.CandidateVotes) interfaces.Transaction {
-	return &transaction.BaseTransaction{
-		Version: 0x09,
-		TxType:  common2.TransferAsset,
-		Outputs: []*common2.Output{
+	txn := functions.CreateTransaction(
+		common2.TxVersion09,
+		common2.TransferAsset,
+		payload.CRInfoDIDVersion,
+		nil,
+		[]*common2.Attribute{},
+		[]*common2.Input{},
+		[]*common2.Output{
 			{
 				AssetID:     common.Uint256{},
 				Value:       amount,
@@ -157,7 +195,10 @@ func getVoteCRTx(amount common.Fixed64,
 				},
 			},
 		},
-	}
+		0,
+		[]*program.Program{},
+	)
+	return txn
 }
 
 func getDID(code []byte) *common.Uint168 {
@@ -179,9 +220,7 @@ func getCRCProposalTx(elaAddress string, publicKeyStr, privateKeyStr,
 	recipient, _ := common.Uint168FromAddress(elaAddress)
 
 	draftData := randomBytes(10)
-	txn := new(transaction.BaseTransaction)
-	txn.TxType = common2.CRCProposal
-	txn.Version = common2.TxVersion09
+
 	crcProposalPayload := &payload.CRCProposal{
 		ProposalType:       payload.Normal,
 		OwnerPublicKey:     publicKey1,
@@ -196,16 +235,28 @@ func getCRCProposalTx(elaAddress string, publicKeyStr, privateKeyStr,
 	sig, _ := crypto.Sign(privateKey1, signBuf.Bytes())
 	crcProposalPayload.Signature = sig
 
+	txn := functions.CreateTransaction(
+		common2.TxVersion09,
+		common2.CRCProposal,
+		payload.CRInfoDIDVersion,
+		crcProposalPayload,
+		[]*common2.Attribute{},
+		[]*common2.Input{},
+		[]*common2.Output{},
+		0,
+		[]*program.Program{},
+	)
+
 	common.WriteVarBytes(signBuf, sig)
 	crcProposalPayload.CRCouncilMemberDID.Serialize(signBuf)
 	crSig, _ := crypto.Sign(privateKey2, signBuf.Bytes())
 	crcProposalPayload.CRCouncilMemberSignature = crSig
 
-	txn.Payload = crcProposalPayload
-	txn.Programs = []*program.Program{&program.Program{
+	txn.SetPayload(crcProposalPayload)
+	txn.SetPrograms([]*program.Program{&program.Program{
 		Code:      getCodeByPubKeyStr(publicKeyStr),
 		Parameter: nil,
-	}}
+	}})
 	return txn
 }
 
@@ -214,9 +265,7 @@ func getCRCProposalReviewTx(proposalHash common.Uint256, vote payload.VoteResult
 
 	privateKey1, _ := common.HexStringToBytes(crPrivateKeyStr)
 	code := getCodeByPubKeyStr(crPublicKeyStr)
-	txn := new(transaction.BaseTransaction)
-	txn.TxType = common2.CRCProposalReview
-	txn.Version = common2.TxVersion09
+
 	crcProposalReviewPayload := &payload.CRCProposalReview{
 		ProposalHash: proposalHash,
 		VoteResult:   vote,
@@ -228,11 +277,23 @@ func getCRCProposalReviewTx(proposalHash common.Uint256, vote payload.VoteResult
 	sig, _ := crypto.Sign(privateKey1, signBuf.Bytes())
 	crcProposalReviewPayload.Signature = sig
 
-	txn.Payload = crcProposalReviewPayload
-	txn.Programs = []*program.Program{&program.Program{
+	txn := functions.CreateTransaction(
+		common2.TxVersion09,
+		common2.CRCProposalReview,
+		payload.CRInfoDIDVersion,
+		crcProposalReviewPayload,
+		[]*common2.Attribute{},
+		[]*common2.Input{},
+		[]*common2.Output{},
+		0,
+		[]*program.Program{},
+	)
+
+	txn.SetPayload(crcProposalReviewPayload)
+	txn.SetPrograms([]*program.Program{&program.Program{
 		Code:      getCodeByPubKeyStr(crPublicKeyStr),
 		Parameter: nil,
-	}}
+	}})
 	return txn
 }
 
@@ -253,9 +314,7 @@ func getCRCProposalTrackingTx(
 
 	documentData := randomBytes(10)
 	opinionHash := randomBytes(10)
-	txn := new(transaction.BaseTransaction)
-	txn.TxType = common2.CRCProposalTracking
-	txn.Version = common2.TxVersion09
+
 	cPayload := &payload.CRCProposalTracking{
 		ProposalTrackingType:        trackingType,
 		ProposalHash:                proposalHash,
@@ -265,6 +324,18 @@ func getCRCProposalTrackingTx(
 		NewOwnerPublicKey:           newownerpublickey,
 		SecretaryGeneralOpinionHash: common.Hash(opinionHash),
 	}
+
+	txn := functions.CreateTransaction(
+		common2.TxVersion09,
+		common2.CRCProposalTracking,
+		payload.CRInfoDIDVersion,
+		cPayload,
+		[]*common2.Attribute{},
+		[]*common2.Input{},
+		[]*common2.Output{},
+		0,
+		[]*program.Program{},
+	)
 
 	signBuf := new(bytes.Buffer)
 	cPayload.SerializeUnsigned(signBuf, payload.CRCProposalTrackingVersion)
@@ -282,7 +353,7 @@ func getCRCProposalTrackingTx(
 	crSig, _ := crypto.Sign(sgPrivateKey, signBuf.Bytes())
 	cPayload.SecretaryGeneralSignature = crSig
 
-	txn.Payload = cPayload
+	txn.SetPayload(cPayload)
 	return txn
 }
 
@@ -303,16 +374,19 @@ func getCRCProposalWithdrawTx(proposalHash common.Uint256,
 	signature, _ := crypto.Sign(sponsorPrivateKey, signBuf.Bytes())
 	crcProposalWithdraw.Signature = signature
 
-	return &transaction.BaseTransaction{
-		Version:    common2.TxVersion09,
-		TxType:     common2.CRCProposalWithdraw,
-		Payload:    crcProposalWithdraw,
-		Attributes: []*common2.Attribute{},
-		Inputs:     inputs,
-		Outputs:    outputs,
-		Programs:   []*program.Program{},
-		LockTime:   0,
-	}
+	txn := functions.CreateTransaction(
+		common2.TxVersion09,
+		common2.CRCProposalWithdraw,
+		payload.CRInfoDIDVersion,
+		crcProposalWithdraw,
+		[]*common2.Attribute{},
+		inputs,
+		outputs,
+		0,
+		[]*program.Program{},
+	)
+
+	return txn
 }
 
 func committeeKeyFrameEqual(first, second *CommitteeKeyFrame) bool {
@@ -918,7 +992,7 @@ func TestCommittee_RollbackCRCProposal(t *testing.T) {
 	elaAddress := "EZaqDYAPFsjynGpvHwbuiiiL4dEiHtX4gD"
 	proposalTx := getCRCProposalTx(elaAddress, publicKeyStr1, privateKeyStr1,
 		publicKeyStr2, privateKeyStr2)
-	proposalHash := proposalTx.Payload.(*payload.CRCProposal).Hash(payload.CRCProposalVersion01)
+	proposalHash := proposalTx.Payload().(*payload.CRCProposal).Hash(payload.CRCProposalVersion01)
 	currentHeight++
 	committee.ProcessBlock(&types.Block{
 		Header: common2.Header{Height: currentHeight},
@@ -1116,7 +1190,7 @@ func TestCommittee_RollbackCRCProposalTracking(t *testing.T) {
 	elaAddress := "EZaqDYAPFsjynGpvHwbuiiiL4dEiHtX4gD"
 	proposalTx := getCRCProposalTx(elaAddress, publicKeyStr1, privateKeyStr1,
 		publicKeyStr2, privateKeyStr2)
-	proposalHash := proposalTx.Payload.(*payload.CRCProposal).Hash(payload.CRCProposalVersion01)
+	proposalHash := proposalTx.Payload().(*payload.CRCProposal).Hash(payload.CRCProposalVersion01)
 	currentHeight++
 	committee.ProcessBlock(&types.Block{
 		Header: common2.Header{Height: currentHeight},
@@ -1314,7 +1388,7 @@ func TestCommittee_RollbackCRCProposalWithdraw(t *testing.T) {
 	elaAddress := "EZaqDYAPFsjynGpvHwbuiiiL4dEiHtX4gD"
 	proposalTx := getCRCProposalTx(elaAddress, publicKeyStr1, privateKeyStr1,
 		publicKeyStr2, privateKeyStr2)
-	proposalHash := proposalTx.Payload.(*payload.CRCProposal).Hash(payload.CRCProposalVersion01)
+	proposalHash := proposalTx.Payload().(*payload.CRCProposal).Hash(payload.CRCProposalVersion01)
 	currentHeight++
 	committee.ProcessBlock(&types.Block{
 		Header: common2.Header{Height: currentHeight},
@@ -1745,51 +1819,56 @@ func getAddress(publicKeyHexStr string) (string, error) {
 }
 
 func getTransferAssetTx(publicKeyStr string, value common.Fixed64, outPutAddr common.Uint168) interfaces.Transaction {
-	txn := &transaction.BaseTransaction{
-		Version:    common2.TxVersion09,
-		TxType:     common2.TransferAsset,
-		Payload:    &payload.TransferAsset{},
-		Attributes: nil,
-		Inputs:     nil,
-		Programs:   nil,
-		LockTime:   0,
-	}
+	txn := functions.CreateTransaction(
+		common2.TxVersion09,
+		common2.TransferAsset,
+		0,
+		&payload.TransferAsset{},
+		[]*common2.Attribute{},
+		[]*common2.Input{},
+		[]*common2.Output{},
+		0,
+		[]*program.Program{},
+	)
 
-	txn.Programs = []*program.Program{&program.Program{
+	txn.SetPrograms([]*program.Program{&program.Program{
 		Code:      getCodeByPubKeyStr(publicKeyStr),
 		Parameter: nil,
-	}}
+	}})
 
-	txn.Outputs = []*common2.Output{&common2.Output{
+	txn.SetOutputs([]*common2.Output{&common2.Output{
 		AssetID:     common.Uint256{},
 		Value:       value,
 		OutputLock:  0,
 		ProgramHash: outPutAddr,
 		Type:        0,
 		Payload:     new(outputpayload.DefaultOutput),
-	}}
+	}})
 	return txn
 }
 func getAppropriationTx(value common.Fixed64, outPutAddr common.Uint168) interfaces.Transaction {
 	crcAppropriationPayload := &payload.CRCAppropriation{}
 
-	txn := &transaction.BaseTransaction{
-		Version:    common2.TxVersion09,
-		TxType:     common2.CRCAppropriation,
-		Payload:    crcAppropriationPayload,
-		Attributes: []*common2.Attribute{},
-		Inputs:     nil,
-		Programs:   []*program.Program{},
-		LockTime:   0,
-	}
-	txn.Outputs = []*common2.Output{&common2.Output{
+	txn := functions.CreateTransaction(
+		common2.TxVersion09,
+		common2.CRCAppropriation,
+		0,
+		crcAppropriationPayload,
+		[]*common2.Attribute{},
+		[]*common2.Input{},
+		[]*common2.Output{},
+		0,
+		[]*program.Program{},
+	)
+
+	txn.SetOutputs([]*common2.Output{{
 		AssetID:     common.Uint256{},
 		Value:       value,
 		OutputLock:  0,
 		ProgramHash: outPutAddr,
 		Type:        0,
 		Payload:     new(outputpayload.DefaultOutput),
-	}}
+	}})
 	return txn
 }
 
@@ -2099,21 +2178,22 @@ func getCRCImpeachmentTx(publicKeyStr string, did *common.Uint168,
 		},
 	})
 
-	txn := &transaction.BaseTransaction{
-		Version:    common2.TxVersion09,
-		TxType:     common2.TransferAsset,
-		Payload:    &payload.TransferAsset{},
-		Attributes: nil,
-		Inputs:     nil,
-		Outputs:    outputs,
-		Programs:   nil,
-		LockTime:   0,
-	}
+	txn := functions.CreateTransaction(
+		common2.TxVersion09,
+		common2.TransferAsset,
+		0,
+		&payload.TransferAsset{},
+		[]*common2.Attribute{},
+		[]*common2.Input{},
+		outputs,
+		0,
+		[]*program.Program{},
+	)
 
-	txn.Programs = []*program.Program{&program.Program{
+	txn.SetPrograms([]*program.Program{&program.Program{
 		Code:      getCodeByPubKeyStr(publicKeyStr),
 		Parameter: nil,
-	}}
+	}})
 	return txn
 }
 
@@ -2190,14 +2270,14 @@ func TestCommitee_RollbackCRCBlendTx(t *testing.T) {
 	elaAddress := "EZaqDYAPFsjynGpvHwbuiiiL4dEiHtX4gD"
 	proposalTxA := getCRCProposalTx(elaAddress, publicKeyStr1, privateKeyStr1,
 		publicKeyStr2, privateKeyStr2)
-	proposalAHash := proposalTxA.Payload.(*payload.CRCProposal).Hash(payload.CRCProposalVersion01)
+	proposalAHash := proposalTxA.Payload().(*payload.CRCProposal).Hash(payload.CRCProposalVersion01)
 
 	proposalTxB := getCRCProposalTx(elaAddress, publicKeyStr1, privateKeyStr1,
 		publicKeyStr2, privateKeyStr2)
-	proposalBHash := proposalTxB.Payload.(*payload.CRCProposal).Hash(payload.CRCProposalVersion01)
+	proposalBHash := proposalTxB.Payload().(*payload.CRCProposal).Hash(payload.CRCProposalVersion01)
 	proposalTxC := getCRCProposalTx(elaAddress, publicKeyStr1, privateKeyStr1,
 		publicKeyStr2, privateKeyStr2)
-	proposalCHash := proposalTxC.Payload.(*payload.CRCProposal).Hash(payload.CRCProposalVersion01)
+	proposalCHash := proposalTxC.Payload().(*payload.CRCProposal).Hash(payload.CRCProposalVersion01)
 	proposalTxD := getCRCProposalTx(elaAddress, publicKeyStr1, privateKeyStr1,
 		publicKeyStr2, privateKeyStr2)
 
@@ -2426,14 +2506,14 @@ func TestCommitee_RollbackCRCBlendAppropriationTx(t *testing.T) {
 	elaAddress := "EZaqDYAPFsjynGpvHwbuiiiL4dEiHtX4gD"
 	proposalTxA := getCRCProposalTx(elaAddress, publicKeyStr1, privateKeyStr1,
 		publicKeyStr2, privateKeyStr2)
-	proposalAHash := proposalTxA.Payload.(*payload.CRCProposal).Hash(payload.CRCProposalVersion01)
+	proposalAHash := proposalTxA.Payload().(*payload.CRCProposal).Hash(payload.CRCProposalVersion01)
 
 	proposalTxB := getCRCProposalTx(elaAddress, publicKeyStr1, privateKeyStr1,
 		publicKeyStr2, privateKeyStr2)
-	proposalBHash := proposalTxB.Payload.(*payload.CRCProposal).Hash(payload.CRCProposalVersion01)
+	proposalBHash := proposalTxB.Payload().(*payload.CRCProposal).Hash(payload.CRCProposalVersion01)
 	proposalTxC := getCRCProposalTx(elaAddress, publicKeyStr1, privateKeyStr1,
 		publicKeyStr2, privateKeyStr2)
-	proposalCHash := proposalTxC.Payload.(*payload.CRCProposal).Hash(payload.CRCProposalVersion01)
+	proposalCHash := proposalTxC.Payload().(*payload.CRCProposal).Hash(payload.CRCProposalVersion01)
 	proposalTxD := getCRCProposalTx(elaAddress, publicKeyStr1, privateKeyStr1,
 		publicKeyStr2, privateKeyStr2)
 
@@ -2689,11 +2769,11 @@ func TestCommitee_RollbackCRCBlendTxPropoalVert(t *testing.T) {
 
 	proposalTxB := getCRCProposalTx(elaAddress, publicKeyStr1, privateKeyStr1,
 		publicKeyStr2, privateKeyStr2)
-	proposalBHash := proposalTxB.Payload.(*payload.CRCProposal).Hash(payload.CRCProposalVersion01)
+	proposalBHash := proposalTxB.Payload().(*payload.CRCProposal).Hash(payload.CRCProposalVersion01)
 
 	proposalTxC := getCRCProposalTx(elaAddress, publicKeyStr1, privateKeyStr1,
 		publicKeyStr2, privateKeyStr2)
-	proposalCHash := proposalTxC.Payload.(*payload.CRCProposal).Hash(payload.CRCProposalVersion01)
+	proposalCHash := proposalTxC.Payload().(*payload.CRCProposal).Hash(payload.CRCProposalVersion01)
 
 	currentHeight = cfg.CRCommitteeStartHeight
 	committee.ProcessBlock(&types.Block{
@@ -3006,7 +3086,7 @@ func TestCommittee_RollbackReview(t *testing.T) {
 	elaAddress := "EZaqDYAPFsjynGpvHwbuiiiL4dEiHtX4gD"
 	proposalTx := getCRCProposalTx(elaAddress, publicKeyStr1, privateKeyStr1,
 		publicKeyStr2, privateKeyStr2)
-	proposalHash := proposalTx.Payload.(*payload.CRCProposal).Hash(payload.CRCProposalVersion01)
+	proposalHash := proposalTx.Payload().(*payload.CRCProposal).Hash(payload.CRCProposalVersion01)
 	currentHeight++
 	committee.ProcessBlock(&types.Block{
 		Header: common2.Header{Height: currentHeight},

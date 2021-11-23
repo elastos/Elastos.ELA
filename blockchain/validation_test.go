@@ -10,12 +10,13 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
-	"github.com/elastos/Elastos.ELA/core/transaction"
-	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"math/big"
 	math "math/rand"
 	"sort"
 	"testing"
+
+	"github.com/elastos/Elastos.ELA/core/types/functions"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/core/contract"
@@ -781,11 +782,22 @@ func newMultiAccount(num int, t *testing.T) *multiAccount {
 }
 
 func buildTx() interfaces.Transaction {
-	tx := new(transaction.BaseTransaction)
-	tx.TxType = common2.TransferAsset
-	tx.Payload = new(payload.TransferAsset)
-	tx.Inputs = randomInputs()
-	tx.Outputs = randomOutputs()
+	tx := functions.CreateTransaction(
+		0,
+		common2.TransferAsset,
+		0,
+		new(payload.TransferAsset),
+		[]*common2.Attribute{},
+		randomInputs(),
+		randomOutputs(),
+		0,
+		[]*program.Program{
+			{
+				Code:      randomPublicKey(),
+				Parameter: randomSignature(),
+			},
+		},
+	)
 	return tx
 }
 

@@ -7,9 +7,12 @@ package state
 
 import (
 	"bytes"
-	"github.com/elastos/Elastos.ELA/core/transaction"
 	"sort"
 	"testing"
+
+	"github.com/elastos/Elastos.ELA/core/contract/program"
+	"github.com/elastos/Elastos.ELA/core/types/functions"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
@@ -20,26 +23,34 @@ import (
 )
 
 func TestSortTransactions(t *testing.T) {
-	txs := []interfaces.Transaction{
-		&transaction.BaseTransaction{TxType: common2.CoinBase},
-		&transaction.BaseTransaction{TxType: common2.TransferAsset},
-		&transaction.BaseTransaction{TxType: common2.TransferAsset},
-		&transaction.BaseTransaction{TxType: common2.CRCProposalTracking},
-		&transaction.BaseTransaction{TxType: common2.CRCProposalWithdraw},
-		&transaction.BaseTransaction{TxType: common2.CRCProposalWithdraw},
-		&transaction.BaseTransaction{TxType: common2.TransferAsset},
-		&transaction.BaseTransaction{TxType: common2.CRCProposalWithdraw},
+	types := []common2.TxType{common2.CoinBase, common2.TransferAsset, common2.TransferAsset,
+		common2.CRCProposalTracking, common2.CRCProposalWithdraw, common2.CRCProposalWithdraw,
+		common2.TransferAsset, common2.CRCProposalWithdraw,
+	}
+	var txs []interfaces.Transaction
+	for _, t := range types {
+		txs = append(txs, functions.CreateTransaction(
+			common2.TxVersion09,
+			t,
+			0,
+			nil,
+			[]*common2.Attribute{},
+			[]*common2.Input{},
+			[]*common2.Output{},
+			0,
+			[]*program.Program{},
+		))
 	}
 
 	sortTransactions(txs[1:])
-	assert.Equal(t, txs[0].TxType.Name(), "CoinBase")
-	assert.Equal(t, txs[1].TxType.Name(), "CRCProposalWithdraw")
-	assert.Equal(t, txs[2].TxType.Name(), "CRCProposalWithdraw")
-	assert.Equal(t, txs[3].TxType.Name(), "CRCProposalWithdraw")
-	assert.Equal(t, txs[4].TxType.Name(), "TransferAsset")
-	assert.Equal(t, txs[5].TxType.Name(), "TransferAsset")
-	assert.Equal(t, txs[6].TxType.Name(), "CRCProposalTracking")
-	assert.Equal(t, txs[7].TxType.Name(), "TransferAsset")
+	assert.Equal(t, txs[0].TxType().Name(), "CoinBase")
+	assert.Equal(t, txs[1].TxType().Name(), "CRCProposalWithdraw")
+	assert.Equal(t, txs[2].TxType().Name(), "CRCProposalWithdraw")
+	assert.Equal(t, txs[3].TxType().Name(), "CRCProposalWithdraw")
+	assert.Equal(t, txs[4].TxType().Name(), "TransferAsset")
+	assert.Equal(t, txs[5].TxType().Name(), "TransferAsset")
+	assert.Equal(t, txs[6].TxType().Name(), "CRCProposalTracking")
+	assert.Equal(t, txs[7].TxType().Name(), "TransferAsset")
 }
 
 func TestNewCRCommittee(t *testing.T) {

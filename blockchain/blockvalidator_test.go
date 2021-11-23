@@ -9,11 +9,14 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
-	"github.com/elastos/Elastos.ELA/core/transaction"
 	"math"
 	"math/rand"
 	"path/filepath"
 	"testing"
+
+	"github.com/elastos/Elastos.ELA/core/contract/program"
+	"github.com/elastos/Elastos.ELA/core/types/functions"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
@@ -165,26 +168,40 @@ func TestCheckCoinbaseArbitratorsReward(t *testing.T) {
 	totalTopProducersReward := dposTotalReward - totalBlockConfirmReward
 	individualBlockConfirmReward := common.Fixed64(math.Floor(totalBlockConfirmReward / float64(5)))
 	rewardPerVote := totalTopProducersReward / float64(totalVotesInRound)
-	tx := &transaction.BaseTransaction{
-		Version: 0,
-		TxType:  common2.CoinBase,
-	}
-	tx.Outputs = []*common2.Output{
+
+	tx := functions.CreateTransaction(
+		0,
+		common2.CoinBase,
+		0,
+		nil,
+		[]*common2.Attribute{},
+		[]*common2.Input{},
+		[]*common2.Output{},
+		0,
+		[]*program.Program{
+			{
+				Code:      randomPublicKey(),
+				Parameter: randomSignature(),
+			},
+		},
+	)
+
+	tx.SetOutputs([]*common2.Output{
 		{ProgramHash: FoundationAddress, Value: common.Fixed64(float64(rewardInCoinbase) * 0.30)},
 		{ProgramHash: common.Uint168{}, Value: common.Fixed64(float64(rewardInCoinbase) * 0.35)},
-	}
+	})
 
 	for _, v := range arbitratorHashes {
 		vote := ownerVotes[*v]
 		individualProducerReward := common.Fixed64(rewardPerVote * float64(vote))
 		arbitratorsMock.ArbitersRoundReward[*v] = individualBlockConfirmReward + individualProducerReward
-		tx.Outputs = append(tx.Outputs, &common2.Output{ProgramHash: *v, Value: individualBlockConfirmReward + individualProducerReward})
+		tx.SetOutputs(append(tx.Outputs(), &common2.Output{ProgramHash: *v, Value: individualBlockConfirmReward + individualProducerReward}))
 	}
 	for _, v := range candidateHashes {
 		vote := ownerVotes[*v]
 		individualProducerReward := common.Fixed64(rewardPerVote * float64(vote))
 		arbitratorsMock.ArbitersRoundReward[*v] = individualProducerReward
-		tx.Outputs = append(tx.Outputs, &common2.Output{ProgramHash: *v, Value: individualProducerReward})
+		tx.SetOutputs(append(tx.Outputs(), &common2.Output{ProgramHash: *v, Value: individualProducerReward}))
 	}
 	assert.NoError(t, checkCoinbaseArbitratorsReward(tx))
 
@@ -417,9 +434,11 @@ func TestProducerDuplicateTx(t *testing.T) {
 func generateRegisterProducer() interfaces.Transaction {
 	publicKeyStr1 := "03c77af162438d4b7140f8544ad6523b9734cca9c7a62476d54ed5d1bddc7a39c3"
 	publicKey1, _ := common.HexStringToBytes(publicKeyStr1)
-	return &transaction.BaseTransaction{
-		TxType: common2.RegisterProducer,
-		Payload: &payload.ProducerInfo{
+	tx := functions.CreateTransaction(
+		0,
+		common2.RegisterProducer,
+		0,
+		&payload.ProducerInfo{
 			OwnerPublicKey: publicKey1,
 			NodePublicKey:  publicKey1,
 			NickName:       "nickname 1",
@@ -427,15 +446,23 @@ func generateRegisterProducer() interfaces.Transaction {
 			Location:       1,
 			NetAddress:     "127.0.0.1:20338",
 		},
-	}
+		[]*common2.Attribute{},
+		[]*common2.Input{},
+		[]*common2.Output{},
+		0,
+		[]*program.Program{},
+	)
+	return tx
 }
 
 func generateUpdateProducer() interfaces.Transaction {
 	publicKeyStr1 := "03c77af162438d4b7140f8544ad6523b9734cca9c7a62476d54ed5d1bddc7a39c3"
 	publicKey1, _ := common.HexStringToBytes(publicKeyStr1)
-	return &transaction.BaseTransaction{
-		TxType: common2.UpdateProducer,
-		Payload: &payload.ProducerInfo{
+	tx := functions.CreateTransaction(
+		0,
+		common2.UpdateProducer,
+		0,
+		&payload.ProducerInfo{
 			OwnerPublicKey: publicKey1,
 			NodePublicKey:  publicKey1,
 			NickName:       "nickname 1",
@@ -443,51 +470,92 @@ func generateUpdateProducer() interfaces.Transaction {
 			Location:       1,
 			NetAddress:     "127.0.0.1:20338",
 		},
-	}
+		[]*common2.Attribute{},
+		[]*common2.Input{},
+		[]*common2.Output{},
+		0,
+		[]*program.Program{},
+	)
+	return tx
 }
 
 func generateCancelProducer() interfaces.Transaction {
 	publicKeyStr1 := "03c77af162438d4b7140f8544ad6523b9734cca9c7a62476d54ed5d1bddc7a39c3"
 	publicKey1, _ := common.HexStringToBytes(publicKeyStr1)
-	return &transaction.BaseTransaction{
-		TxType: common2.CancelProducer,
-		Payload: &payload.ProcessProducer{
+	tx := functions.CreateTransaction(
+		0,
+		common2.CancelProducer,
+		0,
+		&payload.ProcessProducer{
 			OwnerPublicKey: publicKey1,
 		},
-	}
+		[]*common2.Attribute{},
+		[]*common2.Input{},
+		[]*common2.Output{},
+		0,
+		[]*program.Program{},
+	)
+	return tx
 }
 
 func generateRegisterCR(code []byte, cid common.Uint168,
 	nickname string) interfaces.Transaction {
-	return &transaction.BaseTransaction{
-		TxType: common2.RegisterCR,
-		Payload: &payload.CRInfo{
+
+	tx := functions.CreateTransaction(
+		0,
+		common2.RegisterProducer,
+		0,
+		&payload.CRInfo{
 			Code:     code,
 			CID:      cid,
 			NickName: nickname,
 		},
-	}
+		[]*common2.Attribute{},
+		[]*common2.Input{},
+		[]*common2.Output{},
+		0,
+		[]*program.Program{},
+	)
+	return tx
 }
 
 func generateUpdateCR(code []byte, cid common.Uint168,
 	nickname string) interfaces.Transaction {
-	return &transaction.BaseTransaction{
-		TxType: common2.UpdateCR,
-		Payload: &payload.CRInfo{
+
+	tx := functions.CreateTransaction(
+		0,
+		common2.UpdateCR,
+		0,
+		&payload.CRInfo{
 			Code:     code,
 			CID:      cid,
 			NickName: nickname,
 		},
-	}
+		[]*common2.Attribute{},
+		[]*common2.Input{},
+		[]*common2.Output{},
+		0,
+		[]*program.Program{},
+	)
+	return tx
 }
 
 func generateUnregisterCR(code []byte) interfaces.Transaction {
-	return &transaction.BaseTransaction{
-		TxType: common2.UnregisterCR,
-		Payload: &payload.UnregisterCR{
+
+	tx := functions.CreateTransaction(
+		0,
+		common2.UnregisterCR,
+		0,
+		&payload.UnregisterCR{
 			CID: *getCID(code),
 		},
-	}
+		[]*common2.Attribute{},
+		[]*common2.Input{},
+		[]*common2.Output{},
+		0,
+		[]*program.Program{},
+	)
+	return tx
 }
 
 func randomString() string {

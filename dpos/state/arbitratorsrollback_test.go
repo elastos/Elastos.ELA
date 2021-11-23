@@ -9,9 +9,12 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"testing"
+
 	"github.com/elastos/Elastos.ELA/core/transaction"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
-	"testing"
+	"github.com/elastos/Elastos.ELA/core/types/functions"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
@@ -129,30 +132,41 @@ func getRegisterProducerTx(ownerPublicKey, nodePublicKey []byte,
 	nickName string) interfaces.Transaction {
 	pk, _ := crypto.DecodePoint(ownerPublicKey)
 	depositCont, _ := contract.CreateDepositContractByPubKey(pk)
-	return &transaction.BaseTransaction{
-		TxType: common2.RegisterProducer,
-		Payload: &payload.ProducerInfo{
+	txn := functions.CreateTransaction(
+		common2.TxVersion09,
+		common2.RegisterProducer,
+		0,
+		&payload.ProducerInfo{
 			OwnerPublicKey: ownerPublicKey,
 			NodePublicKey:  nodePublicKey,
 			NickName:       nickName,
 		},
-		Outputs: []*common2.Output{
+		[]*common2.Attribute{},
+		[]*common2.Input{},
+		[]*common2.Output{
 			{
 				ProgramHash: *depositCont.ToProgramHash(),
 				Value:       common.Fixed64(5000 * 1e8),
 			},
 		},
-	}
+		0,
+		[]*program.Program{},
+	)
+	return txn
 }
 
 func getVoteProducerTx(amount common.Fixed64,
 	candidateVotes []outputpayload.CandidateVotes) interfaces.Transaction {
-	return &transaction.BaseTransaction{
-		Version: 0x09,
-		TxType:  common2.TransferAsset,
-		Payload: &payload.TransferAsset{},
-		Outputs: []*common2.Output{
-			&common2.Output{
+
+	txn := functions.CreateTransaction(
+		common2.TxVersion09,
+		common2.TransferAsset,
+		0,
+		&payload.TransferAsset{},
+		[]*common2.Attribute{},
+		[]*common2.Input{},
+		[]*common2.Output{
+			{
 				AssetID:     common.Uint256{},
 				Value:       amount,
 				OutputLock:  0,
@@ -160,54 +174,78 @@ func getVoteProducerTx(amount common.Fixed64,
 				Type:        common2.OTVote,
 				Payload: &outputpayload.VoteOutput{
 					Version: outputpayload.VoteProducerAndCRVersion,
-					Contents: []outputpayload.VoteContent{
-						outputpayload.VoteContent{
-							VoteType:       outputpayload.Delegate,
-							CandidateVotes: candidateVotes,
-						},
+					Contents: []outputpayload.VoteContent{{
+						VoteType:       outputpayload.Delegate,
+						CandidateVotes: candidateVotes,
+					},
 					},
 				},
 			},
 		},
-	}
+		0,
+		[]*program.Program{},
+	)
+
+	return txn
 }
 
 func getUpdateProducerTx(ownerPublicKey, nodePublicKey []byte,
 	nickName string) interfaces.Transaction {
-	return &transaction.BaseTransaction{
-		TxType: common2.UpdateProducer,
-		Payload: &payload.ProducerInfo{
+	txn := functions.CreateTransaction(
+		common2.TxVersion09,
+		common2.UpdateProducer,
+		0,
+		&payload.ProducerInfo{
 			OwnerPublicKey: ownerPublicKey,
 			NodePublicKey:  nodePublicKey,
 			NickName:       nickName,
 		},
-	}
+		[]*common2.Attribute{},
+		[]*common2.Input{},
+		[]*common2.Output{},
+		0,
+		[]*program.Program{},
+	)
+
+	return txn
 }
 
 func getCancelProducer(publicKey []byte) interfaces.Transaction {
-	return &transaction.BaseTransaction{
-		Version: 0x09,
-		TxType:  common2.CancelProducer,
-		Payload: &payload.ProcessProducer{
+	txn := functions.CreateTransaction(
+		common2.TxVersion09,
+		common2.CancelProducer,
+		0,
+		&payload.ProcessProducer{
 			OwnerPublicKey: publicKey,
 		},
-	}
+		[]*common2.Attribute{},
+		[]*common2.Input{},
+		[]*common2.Output{},
+		0,
+		[]*program.Program{},
+	)
+	return txn
 }
 
 func getReturnProducerDeposit(publicKey []byte, amount common.Fixed64) interfaces.Transaction {
 	pk, _ := crypto.DecodePoint(publicKey)
 	code, _ := contract.CreateStandardRedeemScript(pk)
-
-	return &transaction.BaseTransaction{
-		TxType:  common2.ReturnDepositCoin,
-		Payload: &payload.ReturnDepositCoin{},
-		Programs: []*program.Program{
-			{Code: code},
-		},
-		Outputs: []*common2.Output{
+	txn := functions.CreateTransaction(
+		common2.TxVersion09,
+		common2.ReturnDepositCoin,
+		0,
+		&payload.ReturnDepositCoin{},
+		[]*common2.Attribute{},
+		[]*common2.Input{},
+		[]*common2.Output{
 			{Value: amount},
 		},
-	}
+		0,
+		[]*program.Program{
+			{Code: code},
+		},
+	)
+	return txn
 }
 
 func TestArbitrators_RollbackRegisterProducer(t *testing.T) {
@@ -544,12 +582,12 @@ func TestArbitrators_RollbackReturnProducerDeposit(t *testing.T) {
 
 	// return deposit
 	returnDepositTx := getReturnProducerDeposit(abtList[0], 4999*1e8)
-	returnDepositTx.Inputs = []*common2.Input{&common2.Input{
+	returnDepositTx.SetInputs([]*common2.Input{{
 		Previous: common2.OutPoint{
 			TxID:  register1.Hash(),
 			Index: 0,
 		},
-	}}
+	}})
 	arbiterStateA := abt.Snapshot()
 
 	// process
@@ -946,12 +984,12 @@ func TestArbitrators_RollbackMultipleTransactions(t *testing.T) {
 	updateProducerTx2 := getUpdateProducerTx(abtList[1], abtList[1], "node1")
 	cancelProducerTx2 := getCancelProducer(abtList[2])
 	returnDepositTx2 := getReturnProducerDeposit(abtList[0], 4999*1e8)
-	returnDepositTx2.Inputs = []*common2.Input{&common2.Input{
+	returnDepositTx2.SetInputs([]*common2.Input{{
 		Previous: common2.OutPoint{
 			TxID:  register1.Hash(),
 			Index: 0,
 		},
-	}}
+	}})
 	assert.Equal(t, common.Fixed64(5000*1e8), abt.GetProducer(abtList[0]).depositAmount)
 
 	arbiterStateA := abt.Snapshot()

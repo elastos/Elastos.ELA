@@ -6,9 +6,11 @@
 package mempool
 
 import (
-	"github.com/elastos/Elastos.ELA/core/transaction"
 	"math/rand"
 	"testing"
+
+	"github.com/elastos/Elastos.ELA/core/contract/program"
+	"github.com/elastos/Elastos.ELA/core/types/functions"
 
 	"github.com/elastos/Elastos.ELA/common"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
@@ -20,44 +22,59 @@ const (
 )
 
 func BenchmarkTxFeeOrderedList_AddTx(b *testing.B) {
-	protoTx := transaction.BaseTransaction{
-		TxType:  common2.TransferAsset,
-		Payload: &payload.TransferAsset{},
-		Attributes: []*common2.Attribute{
+	protoTx := functions.CreateTransaction(
+		common2.TxVersion09,
+		common2.TransferAsset,
+		0,
+		&payload.TransferAsset{},
+		[]*common2.Attribute{
 			{
 				Usage: common2.Nonce,
 				Data:  randomNonceData(),
 			},
 		},
-	}
+		[]*common2.Input{},
+		[]*common2.Output{},
+		0,
+		[]*program.Program{},
+	)
+
 	txSize := protoTx.GetSize()
 	orderedList := newTxFeeOrderedList(func(common.Uint256) {},
 		uint64(txSize*txCount))
 
 	for i := 0; i < txCount; i++ {
 		tx := protoTx
-		tx.Attributes = []*common2.Attribute{
+		tx.SetAttributes([]*common2.Attribute{
 			{
 				Usage: common2.Nonce,
 				Data:  randomNonceData(),
 			},
-		}
-		tx.Fee = common.Fixed64(rand.Int63n(1000))
-		orderedList.AddTx(&tx)
+		})
+		tx.SetFee(common.Fixed64(rand.Int63n(1000)))
+		orderedList.AddTx(tx)
 	}
 }
 
 func BenchmarkTxFeeOrderedList_RemoveTx(b *testing.B) {
-	protoTx := transaction.BaseTransaction{
-		TxType:  common2.TransferAsset,
-		Payload: &payload.TransferAsset{},
-		Attributes: []*common2.Attribute{
+
+	protoTx := functions.CreateTransaction(
+		common2.TxVersion09,
+		common2.TransferAsset,
+		0,
+		&payload.TransferAsset{},
+		[]*common2.Attribute{
 			{
 				Usage: common2.Nonce,
 				Data:  randomNonceData(),
 			},
 		},
-	}
+		[]*common2.Input{},
+		[]*common2.Output{},
+		0,
+		[]*program.Program{},
+	)
+
 	txSize := protoTx.GetSize()
 	orderedList := newTxFeeOrderedList(func(common.Uint256) {},
 		uint64(txSize*txCount))
@@ -65,16 +82,16 @@ func BenchmarkTxFeeOrderedList_RemoveTx(b *testing.B) {
 	hashMap := make(map[common.Uint256]float64)
 	for i := 0; i < txCount; i++ {
 		tx := protoTx
-		tx.Attributes = []*common2.Attribute{
+		tx.SetAttributes([]*common2.Attribute{
 			{
 				Usage: common2.Nonce,
 				Data:  randomNonceData(),
 			},
-		}
-		tx.Fee = common.Fixed64(rand.Int63n(1000))
-		orderedList.AddTx(&tx)
+		})
+		tx.SetFee(common.Fixed64(rand.Int63n(1000)))
+		orderedList.AddTx(tx)
 
-		hashMap[tx.Hash()] = float64(tx.Fee) / float64(txSize)
+		hashMap[tx.Hash()] = float64(tx.Fee()) / float64(txSize)
 	}
 
 	b.ResetTimer()
@@ -85,16 +102,24 @@ func BenchmarkTxFeeOrderedList_RemoveTx(b *testing.B) {
 }
 
 func BenchmarkTxFeeOrderedList_EliminateTx(b *testing.B) {
-	protoTx := transaction.BaseTransaction{
-		TxType:  common2.TransferAsset,
-		Payload: &payload.TransferAsset{},
-		Attributes: []*common2.Attribute{
+
+	protoTx := functions.CreateTransaction(
+		common2.TxVersion09,
+		common2.TransferAsset,
+		0,
+		&payload.TransferAsset{},
+		[]*common2.Attribute{
 			{
 				Usage: common2.Nonce,
 				Data:  randomNonceData(),
 			},
 		},
-	}
+		[]*common2.Input{},
+		[]*common2.Output{},
+		0,
+		[]*program.Program{},
+	)
+
 	txSize := protoTx.GetSize()
 	// size set 10000 means about 40000-30000 times eliminating action
 	orderedList := newTxFeeOrderedList(func(common.Uint256) {},
@@ -102,13 +127,13 @@ func BenchmarkTxFeeOrderedList_EliminateTx(b *testing.B) {
 
 	for i := 0; i < txCount; i++ {
 		tx := protoTx
-		tx.Attributes = []*common2.Attribute{
+		tx.SetAttributes([]*common2.Attribute{
 			{
 				Usage: common2.Nonce,
 				Data:  randomNonceData(),
 			},
-		}
-		tx.Fee = common.Fixed64(rand.Int63n(1000))
-		orderedList.AddTx(&tx)
+		})
+		tx.SetFee(common.Fixed64(rand.Int63n(1000)))
+		orderedList.AddTx(tx)
 	}
 }

@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/elastos/Elastos.ELA/blockchain"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	crstate "github.com/elastos/Elastos.ELA/cr/state"
 	"github.com/elastos/Elastos.ELA/crypto"
@@ -31,11 +32,11 @@ func (t *CRCouncilMemberClaimNodeTransaction) RegisterFunctions() {
 	t.DefaultChecker.CheckAttributeProgram = t.checkAttributeProgram
 }
 
-func (t *CRCouncilMemberClaimNodeTransaction) IsAllowedInPOWConsensus() bool {
+func (t *CRCouncilMemberClaimNodeTransaction) IsAllowedInPOWConsensus(params *TransactionParameters, references map[*common2.Input]common2.Output) bool {
 	return true
 }
 
-func (t *CRCouncilMemberClaimNodeTransaction) CheckTransactionPayload() error {
+func (t *CRCouncilMemberClaimNodeTransaction) CheckTransactionPayload(params *TransactionParameters) error {
 	switch t.Payload().(type) {
 	case *payload.CRCouncilMemberClaimNode:
 		return nil
@@ -44,10 +45,10 @@ func (t *CRCouncilMemberClaimNodeTransaction) CheckTransactionPayload() error {
 	return errors.New("invalid payload type")
 }
 
-func (t *CRCouncilMemberClaimNodeTransaction) HeightVersionCheck() error {
-	txn := t.parameters.Transaction
-	blockHeight := t.parameters.BlockHeight
-	chainParams := t.parameters.Config
+func (t *CRCouncilMemberClaimNodeTransaction) HeightVersionCheck(params *TransactionParameters) error {
+	txn := params.Transaction
+	blockHeight := params.BlockHeight
+	chainParams := params.Config
 
 	if blockHeight < chainParams.CRClaimDPOSNodeStartHeight {
 		return errors.New(fmt.Sprintf("not support %s transaction "+
@@ -56,18 +57,18 @@ func (t *CRCouncilMemberClaimNodeTransaction) HeightVersionCheck() error {
 	return nil
 }
 
-func (t *CRCouncilMemberClaimNodeTransaction) SpecialContextCheck() (result elaerr.ELAError, end bool) {
+func (t *CRCouncilMemberClaimNodeTransaction) SpecialContextCheck(params *TransactionParameters, references map[*common2.Input]common2.Output) (result elaerr.ELAError, end bool) {
 	manager, ok := t.Payload().(*payload.CRCouncilMemberClaimNode)
 	if !ok {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid payload")), true
 	}
 
-	if !t.parameters.BlockChain.GetCRCommittee().IsInElectionPeriod() {
+	if !params.BlockChain.GetCRCommittee().IsInElectionPeriod() {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("CRCouncilMemberClaimNode must during election period")), true
 
 	}
 	did := manager.CRCouncilCommitteeDID
-	crMember := t.parameters.BlockChain.GetCRCommittee().GetMember(did)
+	crMember := params.BlockChain.GetCRCommittee().GetMember(did)
 	if crMember == nil {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("the originator must be members")), true
 	}
@@ -88,7 +89,7 @@ func (t *CRCouncilMemberClaimNodeTransaction) SpecialContextCheck() (result elae
 	}
 
 	// check duplication of node.
-	if t.parameters.BlockChain.GetState().ProducerNodePublicKeyExists(manager.NodePublicKey) {
+	if params.BlockChain.GetState().ProducerNodePublicKeyExists(manager.NodePublicKey) {
 		return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("producer already registered")), true
 	}
 

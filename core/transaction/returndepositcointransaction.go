@@ -30,9 +30,9 @@ func (t *ReturnDepositCoinTransaction) RegisterFunctions() {
 	t.DefaultChecker.CheckAttributeProgram = t.CheckAttributeProgram
 }
 
-func (t *ReturnDepositCoinTransaction) CheckAttributeProgram() error {
+func (t *ReturnDepositCoinTransaction) CheckAttributeProgram(params *TransactionParameters) error {
 
-	if t.parameters.BlockHeight >= t.parameters.Config.CRVotingStartHeight {
+	if params.BlockHeight >= params.Config.CRVotingStartHeight {
 		if len(t.Programs()) != 1 {
 			return errors.New("return deposit coin transactions should have one and only one program")
 		}
@@ -61,7 +61,7 @@ func (t *ReturnDepositCoinTransaction) CheckAttributeProgram() error {
 	return nil
 }
 
-func (t *ReturnDepositCoinTransaction) CheckTransactionPayload() error {
+func (t *ReturnDepositCoinTransaction) CheckTransactionPayload(params *TransactionParameters) error {
 	switch t.Payload().(type) {
 	case *payload.ReturnDepositCoin:
 		return nil
@@ -70,11 +70,11 @@ func (t *ReturnDepositCoinTransaction) CheckTransactionPayload() error {
 	return errors.New("invalid payload type")
 }
 
-func (t *ReturnDepositCoinTransaction) IsAllowedInPOWConsensus() bool {
+func (t *ReturnDepositCoinTransaction) IsAllowedInPOWConsensus(params *TransactionParameters, references map[*common2.Input]common2.Output) bool {
 	return false
 }
 
-func (t *ReturnDepositCoinTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
+func (t *ReturnDepositCoinTransaction) SpecialContextCheck(params *TransactionParameters, references map[*common2.Input]common2.Output) (elaerr.ELAError, bool) {
 	var inputValue common.Fixed64
 	fromAddrMap := make(map[common.Uint168]struct{})
 	for _, output := range t.references {
@@ -103,7 +103,7 @@ func (t *ReturnDepositCoinTransaction) SpecialContextCheck() (elaerr.ELAError, b
 
 	var availableAmount common.Fixed64
 	for _, program := range t.Programs() {
-		p := t.parameters.BlockChain.GetState().GetProducer(program.Code[1 : len(program.Code)-1])
+		p := params.BlockChain.GetState().GetProducer(program.Code[1 : len(program.Code)-1])
 		if p == nil {
 			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("signer must be producer")), true
 		}

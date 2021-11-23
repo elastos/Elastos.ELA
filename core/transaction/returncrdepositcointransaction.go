@@ -29,7 +29,7 @@ func (t *ReturnCRDepositCoinTransaction) RegisterFunctions() {
 	t.DefaultChecker.CheckAttributeProgram = t.CheckAttributeProgram
 }
 
-func (t *ReturnCRDepositCoinTransaction) CheckAttributeProgram() error {
+func (t *ReturnCRDepositCoinTransaction) CheckAttributeProgram(params *TransactionParameters) error {
 
 	if len(t.Programs()) != 1 {
 		return errors.New("return CR deposit coin transactions should have one and only one program")
@@ -58,21 +58,21 @@ func (t *ReturnCRDepositCoinTransaction) CheckAttributeProgram() error {
 	return nil
 }
 
-func (t *ReturnCRDepositCoinTransaction) CheckTransactionPayload() error {
+func (t *ReturnCRDepositCoinTransaction) CheckTransactionPayload(params *TransactionParameters) error {
 	if t.Payload() != nil {
 		return errors.New("invalid payload nee to be nil")
 	}
 	return nil
 }
 
-func (t *ReturnCRDepositCoinTransaction) IsAllowedInPOWConsensus() bool {
+func (t *ReturnCRDepositCoinTransaction) IsAllowedInPOWConsensus(params *TransactionParameters, references map[*common2.Input]common2.Output) bool {
 	return false
 }
 
-func (t *ReturnCRDepositCoinTransaction) HeightVersionCheck() error {
-	txn := t.parameters.Transaction
-	blockHeight := t.parameters.BlockHeight
-	chainParams := t.parameters.Config
+func (t *ReturnCRDepositCoinTransaction) HeightVersionCheck(params *TransactionParameters) error {
+	txn := params.Transaction
+	blockHeight := params.BlockHeight
+	chainParams := params.Config
 
 	if blockHeight < chainParams.CRVotingStartHeight {
 		return errors.New(fmt.Sprintf("not support %s transaction "+
@@ -81,7 +81,7 @@ func (t *ReturnCRDepositCoinTransaction) HeightVersionCheck() error {
 	return nil
 }
 
-func (t *ReturnCRDepositCoinTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
+func (t *ReturnCRDepositCoinTransaction) SpecialContextCheck(params *TransactionParameters, references map[*common2.Input]common2.Output) (elaerr.ELAError, bool) {
 
 	var inputValue common.Fixed64
 	fromAddrMap := make(map[common.Uint168]struct{})
@@ -117,11 +117,11 @@ func (t *ReturnCRDepositCoinTransaction) SpecialContextCheck() (elaerr.ELAError,
 			return elaerr.Simple(elaerr.ErrTxPayload, err), true
 		}
 		cid := ct.ToProgramHash()
-		if !t.parameters.BlockChain.GetCRCommittee().Exist(*cid) {
+		if !params.BlockChain.GetCRCommittee().Exist(*cid) {
 			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("signer must be candidate or member")), true
 		}
 
-		availableValue += t.parameters.BlockChain.GetCRCommittee().GetAvailableDepositAmount(*cid)
+		availableValue += params.BlockChain.GetCRCommittee().GetAvailableDepositAmount(*cid)
 	}
 
 	// Check output amount.

@@ -32,10 +32,10 @@ func (t *CRCAppropriationTransaction) RegisterFunctions() {
 	t.DefaultChecker.CheckAttributeProgram = t.CheckAttributeProgram
 }
 
-func (t *CRCAppropriationTransaction) CheckTransactionOutput() error {
-	txn := t.parameters.Transaction
-	blockHeight := t.parameters.BlockHeight
-	chainParams := t.parameters.Config
+func (t *CRCAppropriationTransaction)  CheckTransactionOutput(params *TransactionParameters) error {
+	txn := params.Transaction
+	blockHeight := params.BlockHeight
+	chainParams := params.Config
 	if len(txn.Outputs()) > math.MaxUint16 {
 		return errors.New("output count should not be greater than 65535(MaxUint16)")
 	}
@@ -78,14 +78,14 @@ func (t *CRCAppropriationTransaction) CheckTransactionOutput() error {
 		}
 	}
 
-	if t.parameters.BlockChain.GetHeight() >= chainParams.PublicDPOSHeight && specialOutputCount > 1 {
+	if params.BlockChain.GetHeight() >= chainParams.PublicDPOSHeight && specialOutputCount > 1 {
 		return errors.New("special output count should less equal than 1")
 	}
 
 	return nil
 }
 
-func (t *CRCAppropriationTransaction) CheckAttributeProgram() error {
+func (t *CRCAppropriationTransaction) CheckAttributeProgram(params *TransactionParameters) error {
 	if len(t.Programs()) != 0 {
 		return errors.New("txs should have no programs")
 	}
@@ -95,7 +95,7 @@ func (t *CRCAppropriationTransaction) CheckAttributeProgram() error {
 	return nil
 }
 
-func (t *CRCAppropriationTransaction) CheckTransactionPayload() error {
+func (t *CRCAppropriationTransaction) CheckTransactionPayload(params *TransactionParameters) error {
 	switch t.Payload().(type) {
 	case *payload.CRCAppropriation:
 		return nil
@@ -104,14 +104,14 @@ func (t *CRCAppropriationTransaction) CheckTransactionPayload() error {
 	return errors.New("invalid payload type")
 }
 
-func (t *CRCAppropriationTransaction) IsAllowedInPOWConsensus() bool {
+func (t *CRCAppropriationTransaction) IsAllowedInPOWConsensus(params *TransactionParameters, references map[*common2.Input]common2.Output) bool {
 	return true
 }
 
-func (t *CRCAppropriationTransaction) HeightVersionCheck() error {
-	txn := t.parameters.Transaction
-	blockHeight := t.parameters.BlockHeight
-	chainParams := t.parameters.Config
+func (t *CRCAppropriationTransaction) HeightVersionCheck(params *TransactionParameters) error {
+	txn := params.Transaction
+	blockHeight := params.BlockHeight
+	chainParams := params.Config
 
 	if blockHeight < chainParams.CRCommitteeStartHeight {
 		return errors.New(fmt.Sprintf("not support %s transaction "+
@@ -120,9 +120,9 @@ func (t *CRCAppropriationTransaction) HeightVersionCheck() error {
 	return nil
 }
 
-func (t *CRCAppropriationTransaction) SpecialContextCheck() (result elaerr.ELAError, end bool) {
+func (t *CRCAppropriationTransaction) SpecialContextCheck(params *TransactionParameters, references map[*common2.Input]common2.Output) (result elaerr.ELAError, end bool) {
 	// Check if current session has appropriated.
-	if !t.parameters.BlockChain.GetCRCommittee().IsAppropriationNeeded() {
+	if !params.BlockChain.GetCRCommittee().IsAppropriationNeeded() {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("should have no appropriation transaction")), true
 	}
 
@@ -130,7 +130,7 @@ func (t *CRCAppropriationTransaction) SpecialContextCheck() (result elaerr.ELAEr
 	var totalInput common.Fixed64
 	for _, output := range t.references {
 		totalInput += output.Value
-		if !output.ProgramHash.IsEqual(t.parameters.Config.CRAssetsAddress) {
+		if !output.ProgramHash.IsEqual(params.Config.CRAssetsAddress) {
 			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("input does not from CR assets address")), true
 		}
 	}
@@ -151,7 +151,7 @@ func (t *CRCAppropriationTransaction) SpecialContextCheck() (result elaerr.ELAEr
 	//
 	// Outputs has check in CheckTransactionOutput function:
 	// first one to CRCommitteeAddress, second one to CRAssetsAddress
-	appropriationAmount := t.parameters.BlockChain.GetCRCommittee().AppropriationAmount
+	appropriationAmount := params.BlockChain.GetCRCommittee().AppropriationAmount
 	if appropriationAmount != t.Outputs()[0].Value {
 		return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("invalid appropriation amount %s, need to be %s",
 			t.Outputs()[0].Value, appropriationAmount)), true

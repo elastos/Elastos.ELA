@@ -32,9 +32,9 @@ func (t *TransferAssetTransaction) RegisterFunctions() {
 	t.DefaultChecker.CheckAttributeProgram = t.checkAttributeProgram
 }
 
-func (t *TransferAssetTransaction) CheckTransactionOutput() error {
-	txn := t.parameters.Transaction
-	blockHeight := t.parameters.BlockHeight
+func (t *TransferAssetTransaction)  CheckTransactionOutput(params *TransactionParameters) error {
+	txn := params.Transaction
+	blockHeight := params.BlockHeight
 	if len(txn.Outputs()) > math.MaxUint16 {
 		return errors.New("output count should not be greater than 65535(MaxUint16)")
 	}
@@ -89,7 +89,7 @@ func checkTransferAssetOutputPayload(output *common2.Output) error {
 	return output.Payload.Validate()
 }
 
-func (t *TransferAssetTransaction) CheckTransactionPayload() error {
+func (t *TransferAssetTransaction) CheckTransactionPayload(params *TransactionParameters) error {
 	switch t.Payload().(type) {
 	case *payload.TransferAsset:
 		return nil
@@ -98,7 +98,7 @@ func (t *TransferAssetTransaction) CheckTransactionPayload() error {
 	return errors.New("invalid payload type")
 }
 
-func (t *TransferAssetTransaction) IsAllowedInPOWConsensus() bool {
+func (t *TransferAssetTransaction) IsAllowedInPOWConsensus(params *TransactionParameters, references map[*common2.Input]common2.Output) bool {
 	if t.Version() >= common2.TxVersion09 {
 		var containVoteOutput bool
 		for _, output := range t.Outputs() {
@@ -147,10 +147,10 @@ func (t *TransferAssetTransaction) IsAllowedInPOWConsensus() bool {
 	return true
 }
 
-func (t *TransferAssetTransaction) HeightVersionCheck() error {
-	txn := t.parameters.Transaction
-	blockHeight := t.parameters.BlockHeight
-	chainParams := t.parameters.Config
+func (t *TransferAssetTransaction) HeightVersionCheck(params *TransactionParameters) error {
+	txn := params.Transaction
+	blockHeight := params.BlockHeight
+	chainParams := params.Config
 
 	if blockHeight >= chainParams.CRVotingStartHeight {
 		return nil

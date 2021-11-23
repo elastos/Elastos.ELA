@@ -34,9 +34,9 @@ func (t *SideChainPOWTransaction) RegisterFunctions() {
 	t.DefaultChecker.CheckAttributeProgram = t.CheckAttributeProgram
 }
 
-func (t *SideChainPOWTransaction) CheckTransactionInput() error {
+func (t *SideChainPOWTransaction) CheckTransactionInput(params *TransactionParameters) error {
 
-	txn := t.parameters.Transaction
+	txn := params.Transaction
 	if t.IsNewSideChainPowTx() {
 		if len(txn.Inputs()) != 0 {
 			return errors.New("no cost transactions must has no input")
@@ -60,11 +60,11 @@ func (t *SideChainPOWTransaction) CheckTransactionInput() error {
 
 	return nil
 }
-func (t *SideChainPOWTransaction) CheckTransactionOutput() error {
+func (t *SideChainPOWTransaction)  CheckTransactionOutput(params *TransactionParameters) error {
 
-	txn := t.parameters.Transaction
-	blockHeight := t.parameters.BlockHeight
-	chainParams := t.parameters.Config
+	txn := params.Transaction
+	blockHeight := params.BlockHeight
+	chainParams := params.Config
 	if len(txn.Outputs()) > math.MaxUint16 {
 		return errors.New("output count should not be greater than 65535(MaxUint16)")
 	}
@@ -110,7 +110,7 @@ func (t *SideChainPOWTransaction) CheckTransactionOutput() error {
 			}
 		}
 
-		if t.parameters.BlockChain.GetHeight() >= chainParams.PublicDPOSHeight && specialOutputCount > 1 {
+		if params.BlockChain.GetHeight() >= chainParams.PublicDPOSHeight && specialOutputCount > 1 {
 			return errors.New("special output count should less equal than 1")
 		}
 	}
@@ -118,7 +118,7 @@ func (t *SideChainPOWTransaction) CheckTransactionOutput() error {
 	return nil
 }
 
-func (t *SideChainPOWTransaction) CheckAttributeProgram() error {
+func (t *SideChainPOWTransaction) CheckAttributeProgram(params *TransactionParameters) error {
 
 	if t.IsNewSideChainPowTx() {
 		if len(t.Programs()) != 0 || len(t.Attributes()) != 0 {
@@ -150,7 +150,7 @@ func (t *SideChainPOWTransaction) CheckAttributeProgram() error {
 	return nil
 }
 
-func (t *SideChainPOWTransaction) CheckTransactionPayload() error {
+func (t *SideChainPOWTransaction) CheckTransactionPayload(params *TransactionParameters) error {
 	switch t.Payload().(type) {
 	case *payload.SideChainPow:
 		return nil
@@ -159,11 +159,11 @@ func (t *SideChainPOWTransaction) CheckTransactionPayload() error {
 	return errors.New("invalid payload type")
 }
 
-func (t *SideChainPOWTransaction) IsAllowedInPOWConsensus() bool {
+func (t *SideChainPOWTransaction) IsAllowedInPOWConsensus(params *TransactionParameters, references map[*common2.Input]common2.Output) bool {
 	return false
 }
 
-func (t *SideChainPOWTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
+func (t *SideChainPOWTransaction) SpecialContextCheck(params *TransactionParameters, references map[*common2.Input]common2.Output) (elaerr.ELAError, bool) {
 	arbitrator := blockchain.DefaultLedger.Arbitrators.GetOnDutyCrossChainArbitrator()
 	payloadSideChainPow, ok := t.Payload().(*payload.SideChainPow)
 	if !ok {

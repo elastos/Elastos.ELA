@@ -30,16 +30,16 @@ func (t *UpdateVersionTransaction) RegisterFunctions() {
 	t.DefaultChecker.CheckAttributeProgram = t.CheckAttributeProgram
 }
 
-func (t *UpdateVersionTransaction) CheckTransactionInput() error {
-	if len(t.parameters.Transaction.Inputs()) != 0 {
+func (t *UpdateVersionTransaction) CheckTransactionInput(params *TransactionParameters) error {
+	if len(params.Transaction.Inputs()) != 0 {
 		return errors.New("no cost transactions must has no input")
 	}
 	return nil
 }
 
-func (t *UpdateVersionTransaction) CheckTransactionOutput() error {
+func (t *UpdateVersionTransaction) CheckTransactionOutput(params *TransactionParameters) error {
 
-	txn := t.parameters.Transaction
+	txn := params.Transaction
 	if len(txn.Outputs()) > math.MaxUint16 {
 		return errors.New("output count should not be greater than 65535(MaxUint16)")
 	}
@@ -50,7 +50,7 @@ func (t *UpdateVersionTransaction) CheckTransactionOutput() error {
 	return nil
 }
 
-func (t *UpdateVersionTransaction) CheckAttributeProgram() error {
+func (t *UpdateVersionTransaction) CheckAttributeProgram(params *TransactionParameters) error {
 
 	// check programs count and attributes count
 	if len(t.Programs()) != 1 {
@@ -83,7 +83,7 @@ func (t *UpdateVersionTransaction) CheckAttributeProgram() error {
 	return nil
 }
 
-func (t *UpdateVersionTransaction) CheckTransactionPayload() error {
+func (t *UpdateVersionTransaction) CheckTransactionPayload(params *TransactionParameters) error {
 	switch t.Payload().(type) {
 	case *payload.UpdateVersion:
 		return nil
@@ -92,20 +92,24 @@ func (t *UpdateVersionTransaction) CheckTransactionPayload() error {
 	return errors.New("invalid payload type")
 }
 
-func (t *UpdateVersionTransaction) IsAllowedInPOWConsensus() bool {
+func (t *UpdateVersionTransaction) IsAllowedInPOWConsensus(params *TransactionParameters, references map[*common2.Input]common2.Output) bool {
 	return false
 }
 
-func (t *UpdateVersionTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
+func (t *UpdateVersionTransaction) SpecialContextCheck(params *TransactionParameters, references map[*common2.Input]common2.Output) (elaerr.ELAError, bool) {
 	payload, ok := t.Payload().(*payload.UpdateVersion)
 	if !ok {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid payload")), true
 	}
 
 	if payload.EndHeight <= payload.StartHeight ||
-		payload.StartHeight < t.parameters.BlockChain.GetHeight() {
+		payload.StartHeight < params.BlockChain.GetHeight() {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid update version height")), true
 	}
 
-	return elaerr.Simple(elaerr.ErrTxPayload, checkCRCArbitratorsSignatures(t.Programs()[0])), true
+	if err := checkCRCArbitratorsSignatures(t.Programs()[0]); err != nil {
+		return elaerr.Simple(elaerr.ErrTxPayload, err), true
+	}
+
+	return nil, true
 }

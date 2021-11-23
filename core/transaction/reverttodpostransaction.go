@@ -34,16 +34,16 @@ func (t *RevertToDPOSTransaction) RegisterFunctions() {
 	t.DefaultChecker.CheckAttributeProgram = t.CheckAttributeProgram
 }
 
-func (t *RevertToDPOSTransaction) CheckTransactionInput() error {
-	if len(t.parameters.Transaction.Inputs()) != 0 {
+func (t *RevertToDPOSTransaction) CheckTransactionInput(params *TransactionParameters) error {
+	if len(params.Transaction.Inputs()) != 0 {
 		return errors.New("no cost transactions must has no input")
 	}
 	return nil
 }
 
-func (t *RevertToDPOSTransaction) CheckTransactionOutput() error {
+func (t *RevertToDPOSTransaction) CheckTransactionOutput(params *TransactionParameters) error {
 
-	txn := t.parameters.Transaction
+	txn := params.Transaction
 	if len(txn.Outputs()) > math.MaxUint16 {
 		return errors.New("output count should not be greater than 65535(MaxUint16)")
 	}
@@ -53,7 +53,7 @@ func (t *RevertToDPOSTransaction) CheckTransactionOutput() error {
 
 	return nil
 }
-func (t *RevertToDPOSTransaction) CheckAttributeProgram() error {
+func (t *RevertToDPOSTransaction) CheckAttributeProgram(params *TransactionParameters) error {
 
 	// check programs count and attributes count
 	if len(t.Programs()) != 1 {
@@ -86,7 +86,7 @@ func (t *RevertToDPOSTransaction) CheckAttributeProgram() error {
 	return nil
 }
 
-func (t *RevertToDPOSTransaction) CheckTransactionPayload() error {
+func (t *RevertToDPOSTransaction) CheckTransactionPayload(params *TransactionParameters) error {
 	switch t.Payload().(type) {
 	case *payload.RevertToDPOS:
 		return nil
@@ -95,12 +95,12 @@ func (t *RevertToDPOSTransaction) CheckTransactionPayload() error {
 	return errors.New("invalid payload type")
 }
 
-func (t *RevertToDPOSTransaction) IsAllowedInPOWConsensus() bool {
+func (t *RevertToDPOSTransaction) IsAllowedInPOWConsensus(params *TransactionParameters, references map[*common2.Input]common2.Output) bool {
 	return true
 }
 
-func (t *RevertToDPOSTransaction) HeightVersionCheck() error {
-	if t.parameters.BlockHeight < t.parameters.Config.RevertToPOWStartHeight {
+func (t *RevertToDPOSTransaction) HeightVersionCheck(params *TransactionParameters) error {
+	if params.BlockHeight < params.Config.RevertToPOWStartHeight {
 		return errors.New(fmt.Sprintf("not support %s transaction "+
 			"before RevertToPOWStartHeight", t.TxType().Name()))
 	}
@@ -108,7 +108,7 @@ func (t *RevertToDPOSTransaction) HeightVersionCheck() error {
 	return nil
 }
 
-func (t *RevertToDPOSTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
+func (t *RevertToDPOSTransaction) SpecialContextCheck(params *TransactionParameters, references map[*common2.Input]common2.Output) (elaerr.ELAError, bool) {
 	p, ok := t.Payload().(*payload.RevertToDPOS)
 	if !ok {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid payload.RevertToDPOS")), true
@@ -119,16 +119,20 @@ func (t *RevertToDPOSTransaction) SpecialContextCheck() (elaerr.ELAError, bool) 
 	}
 
 	// check dpos state
-	if t.parameters.BlockChain.GetState().GetConsensusAlgorithm() != state.POW {
+	if params.BlockChain.GetState().GetConsensusAlgorithm() != state.POW {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid GetConsensusAlgorithm() != state.POW")), true
 	}
 
 	// to avoid init DPOSWorkHeight repeatedly
-	if t.parameters.BlockChain.GetState().DPOSWorkHeight > t.parameters.BlockHeight {
+	if params.BlockChain.GetState().DPOSWorkHeight > params.BlockHeight {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("already receieved  revertodpos")), true
 	}
 
-	return elaerr.Simple(elaerr.ErrTxPayload, checkArbitratorsSignatures(t.Programs()[0])), true
+	if err := checkArbitratorsSignatures(t.Programs()[0]); err != nil {
+		return elaerr.Simple(elaerr.ErrTxPayload, err), true
+	}
+
+	return nil, true
 }
 
 func checkArbitratorsSignatures(program *program.Program) error {

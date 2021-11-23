@@ -34,9 +34,9 @@ func (t *TransferCrossChainAssetTransaction) RegisterFunctions() {
 	t.DefaultChecker.CheckAttributeProgram = t.checkAttributeProgram
 }
 
-func (t *TransferCrossChainAssetTransaction) CheckTransactionOutput() error {
-	txn := t.parameters.Transaction
-	blockHeight := t.parameters.BlockHeight
+func (t *TransferCrossChainAssetTransaction)  CheckTransactionOutput(params *TransactionParameters) error {
+	txn := params.Transaction
+	blockHeight := params.BlockHeight
 	if len(txn.Outputs()) > math.MaxUint16 {
 		return errors.New("output count should not be greater than 65535(MaxUint16)")
 	}
@@ -86,7 +86,7 @@ func checkTransferCrossChainAssetOutputPayload(output *common2.Output) error {
 	return output.Payload.Validate()
 }
 
-func (t *TransferCrossChainAssetTransaction) CheckTransactionPayload() error {
+func (t *TransferCrossChainAssetTransaction) CheckTransactionPayload(params *TransactionParameters) error {
 	switch t.Payload().(type) {
 	case *payload.TransferCrossChainAsset:
 		return nil
@@ -95,14 +95,14 @@ func (t *TransferCrossChainAssetTransaction) CheckTransactionPayload() error {
 	return errors.New("invalid payload type")
 }
 
-func (t *TransferCrossChainAssetTransaction) IsAllowedInPOWConsensus() bool {
+func (t *TransferCrossChainAssetTransaction) IsAllowedInPOWConsensus(params *TransactionParameters, references map[*common2.Input]common2.Output) bool {
 	return false
 }
 
-func (t *TransferCrossChainAssetTransaction) HeightVersionCheck() error {
-	txn := t.parameters.Transaction
-	blockHeight := t.parameters.BlockHeight
-	chainParams := t.parameters.Config
+func (t *TransferCrossChainAssetTransaction) HeightVersionCheck(params *TransactionParameters) error {
+	txn := params.Transaction
+	blockHeight := params.BlockHeight
+	chainParams := params.Config
 
 	if blockHeight <= chainParams.NewCrossChainStartHeight {
 		if txn.PayloadVersion() != payload.TransferCrossChainVersion {
@@ -119,14 +119,14 @@ func (t *TransferCrossChainAssetTransaction) HeightVersionCheck() error {
 	return nil
 }
 
-func (t *TransferCrossChainAssetTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
+func (t *TransferCrossChainAssetTransaction) SpecialContextCheck(params *TransactionParameters, references map[*common2.Input]common2.Output) (elaerr.ELAError, bool) {
 	var err error
 	if t.PayloadVersion() > payload.TransferCrossChainVersionV1 {
 		err = errors.New("invalid payload version")
 	} else if t.PayloadVersion() == payload.TransferCrossChainVersionV1 {
-		err = t.checkTransferCrossChainAssetTransactionV1()
+		err = t.checkTransferCrossChainAssetTransactionV1(params)
 	} else {
-		err = t.checkTransferCrossChainAssetTransactionV0()
+		err = t.checkTransferCrossChainAssetTransactionV0(params)
 	}
 
 	if err != nil {
@@ -136,7 +136,7 @@ func (t *TransferCrossChainAssetTransaction) SpecialContextCheck() (elaerr.ELAEr
 	return nil, false
 }
 
-func (t *TransferCrossChainAssetTransaction) checkTransferCrossChainAssetTransactionV1() error {
+func (t *TransferCrossChainAssetTransaction) checkTransferCrossChainAssetTransactionV1(params *TransactionParameters) error {
 	if t.Version() < common2.TxVersion09 {
 		return errors.New("invalid transaction version")
 	}
@@ -146,12 +146,12 @@ func (t *TransferCrossChainAssetTransaction) checkTransferCrossChainAssetTransac
 		switch output.Type {
 		case common2.OTNone:
 		case common2.OTCrossChain:
-			if t.parameters.BlockHeight >= t.parameters.Config.ProhibitTransferToDIDHeight {
+			if params.BlockHeight >= params.Config.ProhibitTransferToDIDHeight {
 				address, err := output.ProgramHash.ToAddress()
 				if err != nil {
 					return err
 				}
-				if address == t.parameters.Config.DIDSideChainAddress {
+				if address == params.Config.DIDSideChainAddress {
 					return errors.New("no more DIDSideChain tx ")
 
 				}
@@ -165,7 +165,7 @@ func (t *TransferCrossChainAssetTransaction) checkTransferCrossChainAssetTransac
 				return errors.New("invalid cross chain output payload")
 			}
 
-			if output.Value < t.parameters.Config.MinCrossChainTxFee+p.TargetAmount {
+			if output.Value < params.Config.MinCrossChainTxFee+p.TargetAmount {
 				return errors.New("invalid cross chain output amount")
 			}
 
@@ -181,7 +181,7 @@ func (t *TransferCrossChainAssetTransaction) checkTransferCrossChainAssetTransac
 	return nil
 }
 
-func (t *TransferCrossChainAssetTransaction) checkTransferCrossChainAssetTransactionV0() error {
+func (t *TransferCrossChainAssetTransaction) checkTransferCrossChainAssetTransactionV0(params *TransactionParameters) error {
 	payloadObj, ok := t.Payload().(*payload.TransferCrossChainAsset)
 	if !ok {
 		return errors.New("Invalid transfer cross chain asset payload type")
@@ -220,7 +220,7 @@ func (t *TransferCrossChainAssetTransaction) checkTransferCrossChainAssetTransac
 	//check cross chain amount in payload
 	for i := 0; i < len(payloadObj.CrossChainAmounts); i++ {
 		if payloadObj.CrossChainAmounts[i] < 0 || payloadObj.CrossChainAmounts[i] >
-			t.Outputs()[payloadObj.OutputIndexes[i]].Value-t.parameters.Config.MinCrossChainTxFee {
+			t.Outputs()[payloadObj.OutputIndexes[i]].Value-params.Config.MinCrossChainTxFee {
 			return errors.New("Invalid transaction cross chain amount")
 		}
 	}
@@ -236,7 +236,7 @@ func (t *TransferCrossChainAssetTransaction) checkTransferCrossChainAssetTransac
 		totalOutput += output.Value
 	}
 
-	if totalInput-totalOutput < t.parameters.Config.MinCrossChainTxFee {
+	if totalInput-totalOutput < params.Config.MinCrossChainTxFee {
 		return errors.New("Invalid transaction fee")
 	}
 	return nil

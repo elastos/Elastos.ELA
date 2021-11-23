@@ -6,6 +6,7 @@
 package config
 
 import (
+	"github.com/elastos/Elastos.ELA/common/log"
 	"math"
 	"math/big"
 	"time"
@@ -869,6 +870,7 @@ func GenesisBlock(foundation *common.Uint168) *types.Block {
 func (p *Params) GetBlockReward(height uint32) (rewardPerBlock common.Fixed64) {
 	if height < p.NewELAIssuanceHeight {
 		rewardPerBlock = p.RewardPerBlock
+		log.Info("################# rewardPerBlock:", rewardPerBlock)
 	} else {
 		rewardPerBlock = p.newRewardPerBlock(2*time.Minute, height)
 	}

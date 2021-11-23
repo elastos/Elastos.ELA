@@ -70,6 +70,7 @@ type BaseChecker struct {
 func (b *BlockChain) CheckTransactionSanity(blockHeight uint32,
 	txn interfaces.Transaction) elaerr.ELAError {
 
+
 	para := functions.GetTransactionParameters(
 		txn, blockHeight, 0, b.chainParams, b, 0)
 
@@ -86,6 +87,7 @@ func (b *BlockChain) CheckTransactionContext(blockHeight uint32,
 
 	references, contextErr := tx.ContextCheck(para)
 	if contextErr != nil {
+		log.Info("###### err:", contextErr, "txType:", tx.TxType())
 		return nil, contextErr
 	}
 	return references, nil

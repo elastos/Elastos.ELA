@@ -12,6 +12,7 @@ import (
 
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/core/contract"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	crstate "github.com/elastos/Elastos.ELA/cr/state"
 	"github.com/elastos/Elastos.ELA/crypto"
@@ -34,16 +35,16 @@ func (t *ActivateProducerTransaction) RegisterFunctions() {
 	t.DefaultChecker.CheckAttributeProgram = t.CheckAttributeProgram
 }
 
-func (t *ActivateProducerTransaction) CheckTransactionInput() error {
-	if len(t.parameters.Transaction.Inputs()) != 0 {
+func (t *ActivateProducerTransaction) CheckTransactionInput(params *TransactionParameters) error {
+	if len(params.Transaction.Inputs()) != 0 {
 		return errors.New("no cost transactions must has no input")
 	}
 	return nil
 }
 
-func (t *ActivateProducerTransaction) CheckTransactionOutput() error {
+func (t *ActivateProducerTransaction) CheckTransactionOutput(params *TransactionParameters) error {
 
-	txn := t.parameters.Transaction
+	txn := params.Transaction
 	if len(txn.Outputs()) > math.MaxUint16 {
 		return errors.New("output count should not be greater than 65535(MaxUint16)")
 	}
@@ -54,14 +55,14 @@ func (t *ActivateProducerTransaction) CheckTransactionOutput() error {
 	return nil
 }
 
-func (t *ActivateProducerTransaction) CheckAttributeProgram() error {
+func (t *ActivateProducerTransaction) CheckAttributeProgram(params *TransactionParameters) error {
 	if len(t.Programs()) != 0 || len(t.Attributes()) != 0 {
 		return errors.New("zero cost tx should have no attributes and programs")
 	}
 	return nil
 }
 
-func (t *ActivateProducerTransaction) CheckTransactionPayload() error {
+func (t *ActivateProducerTransaction) CheckTransactionPayload(params *TransactionParameters) error {
 	switch t.Payload().(type) {
 	case *payload.ActivateProducer:
 		return nil
@@ -70,11 +71,11 @@ func (t *ActivateProducerTransaction) CheckTransactionPayload() error {
 	return errors.New("invalid payload type")
 }
 
-func (t *ActivateProducerTransaction) IsAllowedInPOWConsensus() bool {
+func (t *ActivateProducerTransaction) IsAllowedInPOWConsensus(params *TransactionParameters, references map[*common2.Input]common2.Output) bool {
 	return true
 }
 
-func (t *ActivateProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
+func (t *ActivateProducerTransaction) SpecialContextCheck(params *TransactionParameters, references map[*common2.Input]common2.Output) (elaerr.ELAError, bool) {
 
 	activateProducer, ok := t.Payload().(*payload.ActivateProducer)
 	if !ok {
@@ -86,34 +87,34 @@ func (t *ActivateProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bo
 		return elaerr.Simple(elaerr.ErrTxPayload, err), true
 	}
 
-	if t.parameters.BlockChain.GetCRCommittee().IsInElectionPeriod() {
-		crMember := t.parameters.BlockChain.GetCRCommittee().GetMemberByNodePublicKey(activateProducer.NodePublicKey)
+	if params.BlockChain.GetCRCommittee().IsInElectionPeriod() {
+		crMember := params.BlockChain.GetCRCommittee().GetMemberByNodePublicKey(activateProducer.NodePublicKey)
 		if crMember != nil && (crMember.MemberState == crstate.MemberInactive ||
 			crMember.MemberState == crstate.MemberIllegal) {
-			if t.parameters.BlockHeight < t.parameters.Config.EnableActivateIllegalHeight &&
+			if params.BlockHeight < params.Config.EnableActivateIllegalHeight &&
 				crMember.MemberState == crstate.MemberIllegal {
 				return elaerr.Simple(elaerr.ErrTxPayload, errors.New(
 					"activate MemberIllegal CR is not allowed before EnableActivateIllegalHeight")), true
 			}
-			if t.parameters.BlockChain.GetCRCommittee().GetAvailableDepositAmount(crMember.Info.CID) < 0 {
+			if params.BlockChain.GetCRCommittee().GetAvailableDepositAmount(crMember.Info.CID) < 0 {
 				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("balance of CR is not enough ")), true
 			}
 			return nil, true
 		}
 	}
 
-	producer := t.parameters.BlockChain.GetState().GetProducer(activateProducer.NodePublicKey)
+	producer := params.BlockChain.GetState().GetProducer(activateProducer.NodePublicKey)
 	if producer == nil || !bytes.Equal(producer.NodePublicKey(),
 		activateProducer.NodePublicKey) {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("getting unknown producer")), true
 	}
 
-	if t.parameters.BlockHeight < t.parameters.Config.EnableActivateIllegalHeight {
+	if params.BlockHeight < params.Config.EnableActivateIllegalHeight {
 		if producer.State() != state.Inactive {
 			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("can not activate this producer")), true
 		}
 	} else {
-		if t.parameters.BlockHeight < t.parameters.Config.ChangeCommitteeNewCRHeight {
+		if params.BlockHeight < params.Config.ChangeCommitteeNewCRHeight {
 			if producer.State() != state.Active &&
 				producer.State() != state.Inactive &&
 				producer.State() != state.Illegal {
@@ -128,20 +129,20 @@ func (t *ActivateProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bo
 
 	}
 
-	if t.parameters.BlockHeight > producer.ActivateRequestHeight() &&
-		t.parameters.BlockHeight-producer.ActivateRequestHeight() <= state.ActivateDuration {
+	if params.BlockHeight > producer.ActivateRequestHeight() &&
+		params.BlockHeight-producer.ActivateRequestHeight() <= state.ActivateDuration {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("can only activate once during inactive state")), true
 	}
 
 	depositAmount := common.Fixed64(0)
-	if t.parameters.BlockHeight < t.parameters.Config.CRVotingStartHeight {
+	if params.BlockHeight < params.Config.CRVotingStartHeight {
 		programHash, err := contract.PublicKeyToDepositProgramHash(
 			producer.OwnerPublicKey())
 		if err != nil {
 			return elaerr.Simple(elaerr.ErrTxPayload, err), true
 		}
 
-		utxos, err := t.parameters.BlockChain.GetDB().GetFFLDB().GetUTXO(programHash)
+		utxos, err := params.BlockChain.GetDB().GetFFLDB().GetUTXO(programHash)
 		if err != nil {
 			return elaerr.Simple(elaerr.ErrTxPayload, err), true
 		}

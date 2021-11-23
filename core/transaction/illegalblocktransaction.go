@@ -6,6 +6,7 @@ package transaction
 
 import (
 	"errors"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"math"
 
 	"github.com/elastos/Elastos.ELA/blockchain"
@@ -28,16 +29,16 @@ func (t *IllegalBlockTransaction) RegisterFunctions() {
 	t.DefaultChecker.CheckAttributeProgram = t.CheckAttributeProgram
 }
 
-func (t *IllegalBlockTransaction) CheckTransactionInput() error {
-	if len(t.parameters.Transaction.Inputs()) != 0 {
+func (t *IllegalBlockTransaction) CheckTransactionInput(params *TransactionParameters) error {
+	if len(params.Transaction.Inputs()) != 0 {
 		return errors.New("no cost transactions must has no input")
 	}
 	return nil
 }
 
-func (t *IllegalBlockTransaction) CheckTransactionOutput() error {
+func (t *IllegalBlockTransaction) CheckTransactionOutput(params *TransactionParameters) error {
 
-	txn := t.parameters.Transaction
+	txn := params.Transaction
 	if len(txn.Outputs()) > math.MaxUint16 {
 		return errors.New("output count should not be greater than 65535(MaxUint16)")
 	}
@@ -48,7 +49,7 @@ func (t *IllegalBlockTransaction) CheckTransactionOutput() error {
 	return nil
 }
 
-func (t *IllegalBlockTransaction) CheckAttributeProgram() error {
+func (t *IllegalBlockTransaction) CheckAttributeProgram(params *TransactionParameters) error {
 	if len(t.Programs()) != 0 {
 		return errors.New("illegal block transactions should have one and only one program")
 	}
@@ -58,7 +59,7 @@ func (t *IllegalBlockTransaction) CheckAttributeProgram() error {
 	return nil
 }
 
-func (t *IllegalBlockTransaction) CheckTransactionPayload() error {
+func (t *IllegalBlockTransaction) CheckTransactionPayload(params *TransactionParameters) error {
 	switch t.Payload().(type) {
 	case *payload.DPOSIllegalBlocks:
 		return nil
@@ -67,19 +68,23 @@ func (t *IllegalBlockTransaction) CheckTransactionPayload() error {
 	return errors.New("invalid payload type")
 }
 
-func (t *IllegalBlockTransaction) IsAllowedInPOWConsensus() bool {
+func (t *IllegalBlockTransaction) IsAllowedInPOWConsensus(params *TransactionParameters, references map[*common2.Input]common2.Output) bool {
 	return true
 }
 
-func (a *IllegalBlockTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
-	p, ok := a.Payload().(*payload.DPOSIllegalBlocks)
+func (t *IllegalBlockTransaction) SpecialContextCheck(params *TransactionParameters, references map[*common2.Input]common2.Output) (elaerr.ELAError, bool) {
+	p, ok := t.Payload().(*payload.DPOSIllegalBlocks)
 	if !ok {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid payload")), true
 	}
 
-	if a.parameters.BlockChain.GetState().SpecialTxExists(a) {
+	if t.parameters.BlockChain.GetState().SpecialTxExists(t) {
 		return elaerr.Simple(elaerr.ErrTxDuplicate, errors.New("tx already exists")), true
 	}
 
-	return elaerr.Simple(elaerr.ErrTxDuplicate, blockchain.CheckDPOSIllegalBlocks(p)), true
+	if err := blockchain.CheckDPOSIllegalBlocks(p); err != nil {
+		return elaerr.Simple(elaerr.ErrTxPayload, err), true
+	}
+
+	return nil, true
 }

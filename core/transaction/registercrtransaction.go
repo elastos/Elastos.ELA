@@ -8,6 +8,7 @@ package transaction
 import (
 	"errors"
 	"fmt"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 
 	"github.com/elastos/Elastos.ELA/blockchain"
 	"github.com/elastos/Elastos.ELA/common"
@@ -33,7 +34,7 @@ func (t *RegisterCRTransaction) RegisterFunctions() {
 	t.DefaultChecker.CheckAttributeProgram = t.checkAttributeProgram
 }
 
-func (t *RegisterCRTransaction) CheckTransactionPayload() error {
+func (t *RegisterCRTransaction) CheckTransactionPayload(params *TransactionParameters) error {
 	switch t.Payload().(type) {
 	case *payload.CRInfo:
 		return nil
@@ -42,14 +43,14 @@ func (t *RegisterCRTransaction) CheckTransactionPayload() error {
 	return errors.New("invalid payload type")
 }
 
-func (t *RegisterCRTransaction) IsAllowedInPOWConsensus() bool {
+func (t *RegisterCRTransaction) IsAllowedInPOWConsensus(params *TransactionParameters, references map[*common2.Input]common2.Output) bool {
 	return false
 }
 
-func (t *RegisterCRTransaction) HeightVersionCheck() error {
-	txn := t.parameters.Transaction
-	blockHeight := t.parameters.BlockHeight
-	chainParams := t.parameters.Config
+func (t *RegisterCRTransaction) HeightVersionCheck(params *TransactionParameters) error {
+	txn := params.Transaction
+	blockHeight := params.BlockHeight
+	chainParams := params.Config
 
 	if blockHeight < chainParams.CRVotingStartHeight ||
 		(blockHeight < chainParams.RegisterCRByDIDHeight &&
@@ -60,7 +61,7 @@ func (t *RegisterCRTransaction) HeightVersionCheck() error {
 	return nil
 }
 
-func (t *RegisterCRTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
+func (t *RegisterCRTransaction) SpecialContextCheck(params *TransactionParameters, references map[*common2.Input]common2.Output) (elaerr.ELAError, bool) {
 	info, ok := t.Payload().(*payload.CRInfo)
 	if !ok {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid payload")), true
@@ -75,15 +76,15 @@ func (t *RegisterCRTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
 		return elaerr.Simple(elaerr.ErrTxPayload, err), true
 	}
 
-	if !t.parameters.BlockChain.GetCRCommittee().IsInVotingPeriod(t.parameters.BlockHeight) {
+	if !params.BlockChain.GetCRCommittee().IsInVotingPeriod(params.BlockHeight) {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("should create tx during voting period")), true
 	}
 
-	if t.parameters.BlockChain.GetCRCommittee().ExistCandidateByNickname(info.NickName) {
+	if params.BlockChain.GetCRCommittee().ExistCandidateByNickname(info.NickName) {
 		return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("nick name %s already inuse", info.NickName)), true
 	}
 
-	cr := t.parameters.BlockChain.GetCRCommittee().GetCandidate(info.CID)
+	cr := params.BlockChain.GetCRCommittee().GetCandidate(info.CID)
 	if cr != nil {
 		return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("cid %s already exist", info.CID)), true
 	}
@@ -98,7 +99,7 @@ func (t *RegisterCRTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
 	// check if program code conflict with producer public keys
 	if info.Code[len(info.Code)-1] == vm.CHECKSIG {
 		pk := info.Code[1 : len(info.Code)-1]
-		if t.parameters.BlockChain.GetState().ProducerExists(pk) {
+		if params.BlockChain.GetState().ProducerExists(pk) {
 			return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("public key %s already inuse in producer list",
 				common.BytesToHexString(info.Code[1:len(info.Code)-1]))), true
 		}
@@ -113,7 +114,7 @@ func (t *RegisterCRTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid cid address")), true
 	}
 
-	if t.parameters.BlockHeight >= t.parameters.Config.RegisterCRByDIDHeight &&
+	if params.BlockHeight >= params.Config.RegisterCRByDIDHeight &&
 		t.PayloadVersion() == payload.CRInfoDIDVersion {
 		// get DID program hash
 

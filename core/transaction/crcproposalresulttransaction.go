@@ -9,6 +9,7 @@ import (
 	"errors"
 	"github.com/elastos/Elastos.ELA/blockchain"
 	"github.com/elastos/Elastos.ELA/common"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	elaerr "github.com/elastos/Elastos.ELA/errors"
 	"math"
@@ -29,16 +30,16 @@ func (t *CRCProposalResultTransaction) RegisterFunctions() {
 	t.DefaultChecker.CheckAttributeProgram = t.checkAttributeProgram
 }
 
-func (t *CRCProposalResultTransaction) CheckTransactionInput() error {
-	if len(t.parameters.Transaction.Inputs()) != 0 {
+func (t *CRCProposalResultTransaction) CheckTransactionInput(params *TransactionParameters) error {
+	if len(params.Transaction.Inputs()) != 0 {
 		return errors.New("no cost transactions must has no input")
 	}
 	return nil
 }
 
-func (t *CRCProposalResultTransaction) CheckTransactionOutput() error {
+func (t *CRCProposalResultTransaction)  CheckTransactionOutput(params *TransactionParameters) error {
 
-	txn := t.parameters.Transaction
+	txn := params.Transaction
 	if len(txn.Outputs()) > math.MaxUint16 {
 		return errors.New("output count should not be greater than 65535(MaxUint16)")
 	}
@@ -49,14 +50,14 @@ func (t *CRCProposalResultTransaction) CheckTransactionOutput() error {
 	return nil
 }
 
-func (t *CRCProposalResultTransaction) CheckAttributeProgram() error {
+func (t *CRCProposalResultTransaction) CheckAttributeProgram(params *TransactionParameters) error {
 	if len(t.Programs()) != 0 || len(t.Attributes()) != 0 {
 		return errors.New("zero cost tx should have no attributes and programs")
 	}
 	return nil
 }
 
-func (t *CRCProposalResultTransaction) CheckTransactionPayload() error {
+func (t *CRCProposalResultTransaction) CheckTransactionPayload(params *TransactionParameters) error {
 	switch t.Payload().(type) {
 	case *payload.RecordProposalResult:
 		return nil
@@ -65,11 +66,11 @@ func (t *CRCProposalResultTransaction) CheckTransactionPayload() error {
 	return errors.New("invalid payload type")
 }
 
-func (t *CRCProposalResultTransaction) IsAllowedInPOWConsensus() bool {
+func (t *CRCProposalResultTransaction) IsAllowedInPOWConsensus(params *TransactionParameters, references map[*common2.Input]common2.Output) bool {
 	return true
 }
 
-func (t *CRCProposalResultTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
+func (t *CRCProposalResultTransaction) SpecialContextCheck(params *TransactionParameters, references map[*common2.Input]common2.Output) (elaerr.ELAError, bool) {
 	if !blockchain.DefaultLedger.Committee.IsProposalResultNeeded() {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("should not have proposal result transaction")), true
 	}

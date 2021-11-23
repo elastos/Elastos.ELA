@@ -31,16 +31,16 @@ func (t *IllegalProposalTransaction) RegisterFunctions() {
 	t.DefaultChecker.CheckAttributeProgram = t.CheckAttributeProgram
 }
 
-func (t *IllegalProposalTransaction) CheckTransactionInput() error {
-	if len( t.parameters.Transaction.Inputs()) != 0 {
+func (t *IllegalProposalTransaction) CheckTransactionInput(params *TransactionParameters) error {
+	if len(params.Transaction.Inputs()) != 0 {
 		return errors.New("no cost transactions must has no input")
 	}
 	return nil
 }
 
-func (t *IllegalProposalTransaction) CheckTransactionOutput() error {
+func (t *IllegalProposalTransaction) CheckTransactionOutput(params *TransactionParameters) error {
 
-	txn := t.parameters.Transaction
+	txn := params.Transaction
 	if len(txn.Outputs()) > math.MaxUint16 {
 		return errors.New("output count should not be greater than 65535(MaxUint16)")
 	}
@@ -51,14 +51,14 @@ func (t *IllegalProposalTransaction) CheckTransactionOutput() error {
 	return nil
 }
 
-func (t *IllegalProposalTransaction) CheckAttributeProgram() error {
+func (t *IllegalProposalTransaction) CheckAttributeProgram(params *TransactionParameters) error {
 	if len(t.Programs()) != 0 || len(t.Attributes()) != 0 {
 		return errors.New("zero cost tx should have no attributes and programs")
 	}
 	return nil
 }
 
-func (t *IllegalProposalTransaction) CheckTransactionPayload() error {
+func (t *IllegalProposalTransaction) CheckTransactionPayload(params *TransactionParameters) error {
 	switch t.Payload().(type) {
 	case *payload.DPOSIllegalProposals:
 		return nil
@@ -67,21 +67,21 @@ func (t *IllegalProposalTransaction) CheckTransactionPayload() error {
 	return errors.New("invalid payload type")
 }
 
-func (t *IllegalProposalTransaction) IsAllowedInPOWConsensus() bool {
+func (t *IllegalProposalTransaction) IsAllowedInPOWConsensus(params *TransactionParameters, references map[*common.Input]common.Output) bool {
 	return true
 }
 
-func (a *IllegalProposalTransaction) SpecialContextCheck() (result elaerr.ELAError, end bool) {
-	if a.parameters.BlockChain.GetState().SpecialTxExists(a) {
+func (t *IllegalProposalTransaction) SpecialContextCheck(params *TransactionParameters, references map[*common.Input]common.Output) (result elaerr.ELAError, end bool) {
+	if params.BlockChain.GetState().SpecialTxExists(t) {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("tx already exists")), true
 	}
 
-	py, ok := a.payload.(*payload.DPOSIllegalProposals)
+	py, ok := t.payload.(*payload.DPOSIllegalProposals)
 	if !ok {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid illegal proposal payload")), true
 	}
 
-	if err := a.CheckDPOSIllegalProposals(py); err != nil {
+	if err := t.CheckDPOSIllegalProposals(py); err != nil {
 		return elaerr.Simple(elaerr.ErrTxPayload, err), true
 	}
 
@@ -109,20 +109,20 @@ func validateProposalEvidence(evidence *payload.ProposalEvidence) error {
 	return nil
 }
 
-func (a *IllegalProposalTransaction) ProposalCheckByHeight(proposal *payload.DPOSProposal,
+func (t *IllegalProposalTransaction) ProposalCheckByHeight(proposal *payload.DPOSProposal,
 	height uint32) error {
-	if err := a.ProposalSanityCheck(proposal); err != nil {
+	if err := t.ProposalSanityCheck(proposal); err != nil {
 		return err
 	}
 
-	if err := a.ProposalContextCheckByHeight(proposal, height); err != nil {
+	if err := t.ProposalContextCheckByHeight(proposal, height); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (a *IllegalProposalTransaction) ProposalContextCheckByHeight(proposal *payload.DPOSProposal,
+func (t *IllegalProposalTransaction) ProposalContextCheckByHeight(proposal *payload.DPOSProposal,
 	height uint32) error {
 	var isArbiter bool
 	keyFrames := blockchain.DefaultLedger.Arbitrators.GetSnapshot(height)
@@ -142,7 +142,7 @@ out:
 	return nil
 }
 
-func (a *IllegalProposalTransaction) ProposalSanityCheck(proposal *payload.DPOSProposal) error {
+func (t *IllegalProposalTransaction) ProposalSanityCheck(proposal *payload.DPOSProposal) error {
 	pubKey, err := crypto.DecodePoint(proposal.Sponsor)
 	if err != nil {
 		return err
@@ -155,7 +155,7 @@ func (a *IllegalProposalTransaction) ProposalSanityCheck(proposal *payload.DPOSP
 	return nil
 }
 
-func (a *IllegalProposalTransaction) CheckDPOSIllegalProposals(d *payload.DPOSIllegalProposals) error {
+func (t *IllegalProposalTransaction) CheckDPOSIllegalProposals(d *payload.DPOSIllegalProposals) error {
 
 	if err := validateProposalEvidence(&d.Evidence); err != nil {
 		return err
@@ -186,11 +186,11 @@ func (a *IllegalProposalTransaction) CheckDPOSIllegalProposals(d *payload.DPOSIl
 		return errors.New("should in same view")
 	}
 
-	if err := a.ProposalCheckByHeight(&d.Evidence.Proposal, d.GetBlockHeight()); err != nil {
+	if err := t.ProposalCheckByHeight(&d.Evidence.Proposal, d.GetBlockHeight()); err != nil {
 		return err
 	}
 
-	if err := a.ProposalCheckByHeight(&d.CompareEvidence.Proposal,
+	if err := t.ProposalCheckByHeight(&d.CompareEvidence.Proposal,
 		d.GetBlockHeight()); err != nil {
 		return err
 	}

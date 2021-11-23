@@ -32,16 +32,16 @@ func (t *IllegalVoteTransaction) RegisterFunctions() {
 	t.DefaultChecker.CheckAttributeProgram = t.CheckAttributeProgram
 }
 
-func (t *IllegalVoteTransaction) CheckTransactionInput() error {
-	if len(t.parameters.Transaction.Inputs()) != 0 {
+func (t *IllegalVoteTransaction) CheckTransactionInput(params *TransactionParameters) error {
+	if len(params.Transaction.Inputs()) != 0 {
 		return errors.New("no cost transactions must has no input")
 	}
 	return nil
 }
 
-func (t *IllegalVoteTransaction) CheckTransactionOutput() error {
+func (t *IllegalVoteTransaction) CheckTransactionOutput(params *TransactionParameters) error {
 
-	txn := t.parameters.Transaction
+	txn := params.Transaction
 	if len(txn.Outputs()) > math.MaxUint16 {
 		return errors.New("output count should not be greater than 65535(MaxUint16)")
 	}
@@ -52,14 +52,14 @@ func (t *IllegalVoteTransaction) CheckTransactionOutput() error {
 	return nil
 }
 
-func (t *IllegalVoteTransaction) CheckAttributeProgram() error {
+func (t *IllegalVoteTransaction) CheckAttributeProgram(params *TransactionParameters) error {
 	if len(t.Programs()) != 0 || len(t.Attributes()) != 0 {
 		return errors.New("zero cost tx should have no attributes and programs")
 	}
 	return nil
 }
 
-func (t *IllegalVoteTransaction) CheckTransactionPayload() error {
+func (t *IllegalVoteTransaction) CheckTransactionPayload(params *TransactionParameters) error {
 	switch t.Payload().(type) {
 	case *payload.DPOSIllegalVotes:
 		return nil
@@ -68,23 +68,23 @@ func (t *IllegalVoteTransaction) CheckTransactionPayload() error {
 	return errors.New("invalid payload type")
 }
 
-func (t *IllegalVoteTransaction) IsAllowedInPOWConsensus() bool {
+func (t *IllegalVoteTransaction) IsAllowedInPOWConsensus(params *TransactionParameters, references map[*common.Input]common.Output) bool {
 	return true
 }
 
-func (a *IllegalVoteTransaction) SpecialContextCheck() (result elaerr.ELAError, end bool) {
-	if a.parameters.BlockChain.GetState().SpecialTxExists(a) {
+func (t *IllegalVoteTransaction) SpecialContextCheck(params *TransactionParameters, references map[*common.Input]common.Output) (result elaerr.ELAError, end bool) {
+	if params.BlockChain.GetState().SpecialTxExists(t) {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("tx already exists")), true
 	}
 
-	if err := a.CheckDPOSIllegalVotes(a.payload.(*payload.DPOSIllegalVotes)); err != nil {
+	if err := t.CheckDPOSIllegalVotes(t.payload.(*payload.DPOSIllegalVotes)); err != nil {
 		return elaerr.Simple(elaerr.ErrTxPayload, err), true
 	}
 
 	return nil, true
 }
 
-func (a *IllegalVoteTransaction) CheckDPOSIllegalVotes(d *payload.DPOSIllegalVotes) error {
+func (t *IllegalVoteTransaction) CheckDPOSIllegalVotes(d *payload.DPOSIllegalVotes) error {
 
 	if err := validateVoteEvidence(&d.Evidence); err != nil {
 		return err
@@ -118,22 +118,22 @@ func (a *IllegalVoteTransaction) CheckDPOSIllegalVotes(d *payload.DPOSIllegalVot
 		return errors.New("should in same view")
 	}
 
-	if err := a.ProposalCheckByHeight(&d.Evidence.Proposal,
+	if err := t.ProposalCheckByHeight(&d.Evidence.Proposal,
 		d.GetBlockHeight()); err != nil {
 		return err
 	}
 
-	if err := a.ProposalCheckByHeight(&d.CompareEvidence.Proposal,
+	if err := t.ProposalCheckByHeight(&d.CompareEvidence.Proposal,
 		d.GetBlockHeight()); err != nil {
 		return err
 	}
 
-	if err := a.VoteCheckByHeight(&d.Evidence.Vote,
+	if err := t.VoteCheckByHeight(&d.Evidence.Vote,
 		d.GetBlockHeight()); err != nil {
 		return err
 	}
 
-	if err := a.VoteCheckByHeight(&d.CompareEvidence.Vote,
+	if err := t.VoteCheckByHeight(&d.CompareEvidence.Vote,
 		d.GetBlockHeight()); err != nil {
 		return err
 	}
@@ -153,12 +153,12 @@ func validateVoteEvidence(evidence *payload.VoteEvidence) error {
 	return nil
 }
 
-func (a *IllegalVoteTransaction) VoteCheckByHeight(vote *payload.DPOSProposalVote, height uint32) error {
+func (t *IllegalVoteTransaction) VoteCheckByHeight(vote *payload.DPOSProposalVote, height uint32) error {
 	if err := voteSanityCheck(vote); err != nil {
 		return err
 	}
 
-	if err := a.VoteContextCheckByHeight(vote, height); err != nil {
+	if err := t.VoteContextCheckByHeight(vote, height); err != nil {
 		fmt.Println("[VoteContextCheck] error: ", err.Error())
 		return err
 	}
@@ -179,7 +179,7 @@ func voteSanityCheck(vote *payload.DPOSProposalVote) error {
 	return nil
 }
 
-func (a *IllegalVoteTransaction) VoteContextCheckByHeight(
+func (t *IllegalVoteTransaction) VoteContextCheckByHeight(
 	vote *payload.DPOSProposalVote, height uint32) error {
 	var isArbiter bool
 	keyFrames := blockchain.DefaultLedger.Arbitrators.GetSnapshot(height)
@@ -199,7 +199,7 @@ out:
 	return nil
 }
 
-func (a *IllegalVoteTransaction) validateProposalEvidence(evidence *payload.ProposalEvidence) error {
+func (t *IllegalVoteTransaction) validateProposalEvidence(evidence *payload.ProposalEvidence) error {
 
 	header := &common.Header{}
 	buf := new(bytes.Buffer)
@@ -220,20 +220,20 @@ func (a *IllegalVoteTransaction) validateProposalEvidence(evidence *payload.Prop
 	return nil
 }
 
-func (a *IllegalVoteTransaction) ProposalCheckByHeight(proposal *payload.DPOSProposal,
+func (t *IllegalVoteTransaction) ProposalCheckByHeight(proposal *payload.DPOSProposal,
 	height uint32) error {
-	if err := a.ProposalSanityCheck(proposal); err != nil {
+	if err := t.ProposalSanityCheck(proposal); err != nil {
 		return err
 	}
 
-	if err := a.ProposalContextCheckByHeight(proposal, height); err != nil {
+	if err := t.ProposalContextCheckByHeight(proposal, height); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (a *IllegalVoteTransaction) ProposalContextCheckByHeight(proposal *payload.DPOSProposal,
+func (t *IllegalVoteTransaction) ProposalContextCheckByHeight(proposal *payload.DPOSProposal,
 	height uint32) error {
 	var isArbiter bool
 	keyFrames := blockchain.DefaultLedger.Arbitrators.GetSnapshot(height)
@@ -253,7 +253,7 @@ out:
 	return nil
 }
 
-func (a *IllegalVoteTransaction) ProposalSanityCheck(proposal *payload.DPOSProposal) error {
+func (t *IllegalVoteTransaction) ProposalSanityCheck(proposal *payload.DPOSProposal) error {
 	pubKey, err := crypto.DecodePoint(proposal.Sponsor)
 	if err != nil {
 		return err

@@ -104,6 +104,7 @@ func (b *BlockChain) CheckBlockSanity(block *Block) error {
 
 		// Check for transaction sanity
 		if err := b.CheckTransactionSanity(block.Height, txn); err != nil {
+			log.Warn("######## CheckTransactionSanity failed :", err, "txType:", txn.TxType())
 			return elaerr.SimpleWithMessage(elaerr.ErrBlockValidation, err,
 				"CheckTransactionSanity failed when verifiy block")
 		}
@@ -440,6 +441,9 @@ func (b *BlockChain) checkCoinbaseTransactionContext(blockHeight uint32, coinbas
 		if totalReward-rewardDPOSArbiter+DefaultLedger.Arbitrators.
 			GetFinalRoundChange() != coinbase.Outputs()[0].Value+
 			coinbase.Outputs()[1].Value {
+
+				log.Info("####### totalReward:", totalReward, "rewardDPOSArbiter:", rewardDPOSArbiter, "FinalRoundChange:", DefaultLedger.Arbitrators.
+					GetFinalRoundChange(), "coinbase.Outputs()[0].Value:", coinbase.Outputs()[0].Value, "coinbase.Outputs()[1].Value:", coinbase.Outputs()[1].Value)
 			return errors.New("reward amount in coinbase not correct")
 		}
 

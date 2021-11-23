@@ -1870,6 +1870,29 @@ type RPCCRProposalStateInfo struct {
 	ProposalState RPCProposalState `json:"proposalstate"`
 }
 
+type RPCDposV2RewardInfo struct {
+	Claimable common.Fixed64
+	Claiming  common.Fixed64
+	Claimed   common.Fixed64
+}
+
+func DposV2RewardInfo(param Params) map[string]interface{} {
+	addr, ok := param.String("address")
+	if ok {
+		claimable := Chain.GetState().DposV2RewardInfo[addr]
+		claiming := Chain.GetState().DposV2RewardClaimingInfo[addr]
+		claimed := Chain.GetState().DposV2RewardClaimedInfo[addr]
+		result := RPCDposV2RewardInfo{
+			Claimable: claimable,
+			Claiming:  claiming,
+			Claimed:   claimed,
+		}
+		return ResponsePack(Success, result)
+	} else {
+		return ResponsePack(InvalidParams, "need a string parameter named address")
+	}
+}
+
 func ListProducers(param Params) map[string]interface{} {
 	start, _ := param.Int("start")
 	limit, ok := param.Int("limit")

@@ -51,6 +51,11 @@ var (
 		Name:  "amount",
 		Usage: "the transfer `<amount>` of the transaction",
 	}
+	TransactionClaimAmountFlag = cli.Int64Flag{
+		Name:  "claimamount",
+		Usage: "the amount to claim of dposv2 reward",
+		Value: 0,
+	}
 	TransactionFeeFlag = cli.StringFlag{
 		Name:  "fee",
 		Usage: "the transfer `<fee>` of the transaction",

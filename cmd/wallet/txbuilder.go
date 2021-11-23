@@ -319,6 +319,48 @@ func createTransaction(walletPath string, from string, fee common.Fixed64, outpu
 	}, nil
 }
 
+func CreateDposV2ClaimRewardTransaction(c *cli.Context) error {
+	amount := c.Int64("claimamount")
+	if amount == 0 {
+		return errors.New("must specify claimamount flag")
+	}
+	walletPath := c.String("wallet")
+	mainAccount, err := account.GetWalletMainAccountData(walletPath)
+	if err != nil {
+		return err
+	}
+
+	redeemScript, err := common.HexStringToBytes(mainAccount.RedeemScript)
+	if err != nil {
+		return err
+	}
+
+	// create program
+	var txProgram = &pg.Program{
+		Code:      redeemScript,
+		Parameter: nil,
+	}
+
+	apPayload := &payload.DposV2ClaimReward{
+		Amount: common.Fixed64(amount),
+	}
+
+	txn := &types.Transaction{
+		Version:    types.TxVersion09,
+		TxType:     types.DposV2ClaimReward,
+		Payload:    apPayload,
+		Attributes: nil,
+		Inputs:     nil,
+		Outputs:    nil,
+		Programs:   []*pg.Program{txProgram},
+		LockTime:   0,
+	}
+
+	OutputTx(0, 1, txn)
+
+	return nil
+}
+
 func CreateActivateProducerTransaction(c *cli.Context) error {
 	walletPath := c.String("wallet")
 	password, err := cmdcom.GetFlagPassword(c)

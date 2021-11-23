@@ -116,6 +116,21 @@ var buildTxCommand = []cli.Command{
 		},
 	},
 	{
+		Name:  "dposv2claimreward",
+		Usage: "Build a tx to claim dposV2 reward",
+		Flags: []cli.Flag{
+			cmdcom.TransactionClaimAmountFlag,
+			cmdcom.AccountWalletFlag,
+		},
+		Action: func(c *cli.Context) error {
+			if err := CreateDposV2ClaimRewardTransaction(c); err != nil {
+				fmt.Println("error:", err)
+				os.Exit(1)
+			}
+			return nil
+		},
+	},
+	{
 		Name:  "vote",
 		Usage: "Build a tx to vote for candidates using ELA",
 		Flags: []cli.Flag{

@@ -549,6 +549,9 @@ func (s *StateKeyFrame) DeserializeProducerMap(
 }
 
 func NewStateKeyFrame() *StateKeyFrame {
+	// test
+	info := make(map[string]common.Fixed64)
+	info["EdTyQguX2rJKje5cwwbXyaLoPVFvzf41s6"] = 10000000000
 	return &StateKeyFrame{
 		NodeOwnerKeys:             make(map[string]string),
 		PendingProducers:          make(map[string]*Producer),
@@ -562,7 +565,7 @@ func NewStateKeyFrame() *StateKeyFrame {
 		Votes:                     make(map[string]struct{}),
 		DposV2Votes:               make(map[string]uint32),
 		DepositOutputs:            make(map[string]common.Fixed64),
-		DposV2RewardInfo:          make(map[string]common.Fixed64),
+		DposV2RewardInfo:          info,
 		DposV2RewardClaimingInfo:  make(map[string]common.Fixed64),
 		DposV2RewardClaimedInfo:   make(map[string]common.Fixed64),
 		Nicknames:                 make(map[string]struct{}),

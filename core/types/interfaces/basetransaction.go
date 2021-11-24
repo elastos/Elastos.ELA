@@ -14,7 +14,7 @@ import (
 )
 
 type Transaction interface {
-	PayloadChecker
+	TransactionChecker
 
 	// get data
 	Version() common2.TransactionVersion
@@ -92,6 +92,4 @@ type Transaction interface {
 	IsRechargeToSideChainTx() bool
 	IsCoinBaseTx() bool
 	IsSmallTransfer(min common.Fixed64) bool
-
-	RegisterFunctions()
 }

@@ -29,31 +29,19 @@ type WithdrawFromSideChainTransaction struct {
 	BaseTransaction
 }
 
-func (t *WithdrawFromSideChainTransaction) RegisterFunctions() {
-	t.DefaultChecker.CheckTransactionSize = t.checkTransactionSize
-	t.DefaultChecker.CheckTransactionInput = t.checkTransactionInput
-	t.DefaultChecker.CheckTransactionOutput = t.CheckTransactionOutput
-	t.DefaultChecker.CheckTransactionPayload = t.CheckTransactionPayload
-	t.DefaultChecker.HeightVersionCheck = t.heightVersionCheck
-	t.DefaultChecker.IsAllowedInPOWConsensus = t.IsAllowedInPOWConsensus
-	t.DefaultChecker.SpecialContextCheck = t.SpecialContextCheck
-	t.DefaultChecker.CheckAttributeProgram = t.checkAttributeProgram
-}
-
-func (t *WithdrawFromSideChainTransaction)  CheckTransactionOutput(params *TransactionParameters) error {
-	txn := params.Transaction
-	blockHeight := params.BlockHeight
-	if len(txn.Outputs()) > math.MaxUint16 {
+func (t *WithdrawFromSideChainTransaction)  CheckTransactionOutput() error {
+	blockHeight := t.parameters.BlockHeight
+	if len(t.Outputs()) > math.MaxUint16 {
 		return errors.New("output count should not be greater than 65535(MaxUint16)")
 	}
 
-	if len(txn.Outputs()) < 1 {
+	if len(t.Outputs()) < 1 {
 		return errors.New("transaction has no outputs")
 	}
 
 	// check if output address is valid
 	specialOutputCount := 0
-	for _, output := range txn.Outputs() {
+	for _, output := range t.Outputs() {
 		if output.AssetID != config.ELAAssetID {
 			return errors.New("asset ID in output is invalid")
 		}
@@ -67,7 +55,7 @@ func (t *WithdrawFromSideChainTransaction)  CheckTransactionOutput(params *Trans
 			return err
 		}
 
-		if txn.Version() >= common2.TxVersion09 {
+		if t.Version() >= common2.TxVersion09 {
 			if output.Type != common2.OTNone {
 				specialOutputCount++
 			}
@@ -91,7 +79,7 @@ func checkWithdrawFromSideChainOutputPayload(output *common2.Output) error {
 	return output.Payload.Validate()
 }
 
-func (t *WithdrawFromSideChainTransaction) CheckTransactionPayload(params *TransactionParameters) error {
+func (t *WithdrawFromSideChainTransaction) CheckTransactionPayload() error {
 	switch pld := t.Payload().(type) {
 	case *payload.WithdrawFromSideChain:
 		existingHashs := make(map[common.Uint256]struct{})
@@ -106,18 +94,18 @@ func (t *WithdrawFromSideChainTransaction) CheckTransactionPayload(params *Trans
 	return errors.New("invalid payload type")
 }
 
-func (t *WithdrawFromSideChainTransaction) IsAllowedInPOWConsensus(params *TransactionParameters, references map[*common2.Input]common2.Output) bool {
+func (t *WithdrawFromSideChainTransaction) IsAllowedInPOWConsensus() bool {
 	return false
 }
 
-func (t *WithdrawFromSideChainTransaction) SpecialContextCheck(params *TransactionParameters, references map[*common2.Input]common2.Output) (elaerr.ELAError, bool) {
+func (t *WithdrawFromSideChainTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
 	var err error
 	if t.PayloadVersion() == payload.WithdrawFromSideChainVersion {
-		err = t.checkWithdrawFromSideChainTransactionV0(params)
+		err = t.checkWithdrawFromSideChainTransactionV0()
 	} else if t.PayloadVersion() == payload.WithdrawFromSideChainVersionV1 {
-		err = t.checkWithdrawFromSideChainTransactionV1(params)
+		err = t.checkWithdrawFromSideChainTransactionV1()
 	} else if t.PayloadVersion() == payload.WithdrawFromSideChainVersionV2 {
-		err = t.checkWithdrawFromSideChainTransactionV2(params)
+		err = t.checkWithdrawFromSideChainTransactionV2()
 	}
 
 	if err != nil {
@@ -127,7 +115,7 @@ func (t *WithdrawFromSideChainTransaction) SpecialContextCheck(params *Transacti
 	return nil, false
 }
 
-func (t *WithdrawFromSideChainTransaction) checkWithdrawFromSideChainTransactionV0(params *TransactionParameters) error {
+func (t *WithdrawFromSideChainTransaction) checkWithdrawFromSideChainTransactionV0() error {
 	witPayload, ok := t.Payload().(*payload.WithdrawFromSideChain)
 	if !ok {
 		return errors.New("Invalid withdraw from side chain payload type")
@@ -144,22 +132,22 @@ func (t *WithdrawFromSideChainTransaction) checkWithdrawFromSideChainTransaction
 		}
 	}
 
-	height := params.BlockHeight
+	height := t.parameters.BlockHeight
 	for _, p := range t.Programs() {
 		publicKeys, m, n, err := crypto.ParseCrossChainScriptV1(p.Code)
 		if err != nil {
 			return err
 		}
 
-		if height >= params.Config.CRClaimDPOSNodeStartHeight {
+		if height >= t.parameters.Config.CRClaimDPOSNodeStartHeight {
 			var arbiters []*state.ArbiterInfo
 			var minCount uint32
-			if height >= params.Config.DPOSNodeCrossChainHeight {
+			if height >= t.parameters.Config.DPOSNodeCrossChainHeight {
 				arbiters = blockchain.DefaultLedger.Arbitrators.GetArbitrators()
-				minCount = uint32(params.Config.GeneralArbiters) + 1
+				minCount = uint32(t.parameters.Config.GeneralArbiters) + 1
 			} else {
 				arbiters = blockchain.DefaultLedger.Arbitrators.GetCRCArbiters()
-				minCount = params.Config.CRAgreementCount
+				minCount = t.parameters.Config.CRAgreementCount
 			}
 			var arbitersCount int
 			for _, c := range arbiters {
@@ -221,7 +209,7 @@ func checkCrossChainArbitrators(publicKeys [][]byte) error {
 	return nil
 }
 
-func (t *WithdrawFromSideChainTransaction) checkWithdrawFromSideChainTransactionV1(params *TransactionParameters) error {
+func (t *WithdrawFromSideChainTransaction) checkWithdrawFromSideChainTransactionV1() error {
 	for _, output := range t.Outputs() {
 		if output.Type != common2.OTWithdrawFromSideChain {
 			continue
@@ -241,7 +229,7 @@ func (t *WithdrawFromSideChainTransaction) checkWithdrawFromSideChainTransaction
 		}
 	}
 
-	height := params.BlockHeight
+	height := t.parameters.BlockHeight
 	for _, p := range t.Programs() {
 		publicKeys, m, n, err := crypto.ParseCrossChainScriptV1(p.Code)
 		if err != nil {
@@ -249,12 +237,12 @@ func (t *WithdrawFromSideChainTransaction) checkWithdrawFromSideChainTransaction
 		}
 		var arbiters []*state.ArbiterInfo
 		var minCount uint32
-		if height >= params.Config.DPOSNodeCrossChainHeight {
+		if height >= t.parameters.Config.DPOSNodeCrossChainHeight {
 			arbiters = blockchain.DefaultLedger.Arbitrators.GetArbitrators()
-			minCount = uint32(params.Config.GeneralArbiters) + 1
+			minCount = uint32(t.parameters.Config.GeneralArbiters) + 1
 		} else {
 			arbiters = blockchain.DefaultLedger.Arbitrators.GetCRCArbiters()
-			minCount = params.Config.CRAgreementCount
+			minCount = t.parameters.Config.CRAgreementCount
 		}
 		var arbitersCount int
 		for _, c := range arbiters {
@@ -277,13 +265,13 @@ func (t *WithdrawFromSideChainTransaction) checkWithdrawFromSideChainTransaction
 	return nil
 }
 
-func (t *WithdrawFromSideChainTransaction) checkWithdrawFromSideChainTransactionV2(params *TransactionParameters, ) error {
+func (t *WithdrawFromSideChainTransaction) checkWithdrawFromSideChainTransactionV2() error {
 	pld, ok := t.Payload().(*payload.WithdrawFromSideChain)
 	if !ok {
 		return errors.New("Invalid withdraw from side chain payload type")
 	}
 
-	if len(pld.Signers) < (int(params.Config.CRMemberCount)*2/3 + 1) {
+	if len(pld.Signers) < (int(t.parameters.Config.CRMemberCount)*2/3 + 1) {
 		return errors.New("Signers number must be bigger than 2/3+1 CRMemberCount")
 	}
 
@@ -300,7 +288,7 @@ func (t *WithdrawFromSideChainTransaction) checkWithdrawFromSideChainTransaction
 	return nil
 }
 
-func checkSchnorrWithdrawFromSidechain(txn interfaces.Transaction, pld *payload.WithdrawFromSideChain) error {
+func checkSchnorrWithdrawFromSidechain(t interfaces.Transaction, pld *payload.WithdrawFromSideChain) error {
 	var pxArr []*big.Int
 	var pyArr []*big.Int
 	for _, index := range pld.Signers {
@@ -323,7 +311,7 @@ func checkSchnorrWithdrawFromSidechain(txn interfaces.Transaction, pld *payload.
 	if err != nil {
 		return errors.New("CreateSchnorrMultiSigRedeemScript error")
 	}
-	for _, program := range txn.Programs() {
+	for _, program := range t.Programs() {
 		if contract.IsSchnorr(program.Code) {
 			if hex.EncodeToString(program.Code) != hex.EncodeToString(redeemScript) {
 				return errors.New("WithdrawFromSideChain invalid , signers can not match")

@@ -8,7 +8,6 @@ package transaction
 import (
 	"bytes"
 	"errors"
-	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 
 	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
@@ -21,18 +20,7 @@ type CancelProducerTransaction struct {
 	BaseTransaction
 }
 
-func (t *CancelProducerTransaction) RegisterFunctions() {
-	t.DefaultChecker.CheckTransactionSize = t.checkTransactionSize
-	t.DefaultChecker.CheckTransactionInput = t.checkTransactionInput
-	t.DefaultChecker.CheckTransactionOutput = t.checkTransactionOutput
-	t.DefaultChecker.CheckTransactionPayload = t.CheckTransactionPayload
-	t.DefaultChecker.HeightVersionCheck = t.heightVersionCheck
-	t.DefaultChecker.IsAllowedInPOWConsensus = t.IsAllowedInPOWConsensus
-	t.DefaultChecker.SpecialContextCheck = t.SpecialContextCheck
-	t.DefaultChecker.CheckAttributeProgram = t.checkAttributeProgram
-}
-
-func (t *CancelProducerTransaction) CheckTransactionPayload(params *TransactionParameters) error {
+func (t *CancelProducerTransaction) CheckTransactionPayload() error {
 	switch t.Payload().(type) {
 	case *payload.ProcessProducer:
 		return nil
@@ -41,12 +29,12 @@ func (t *CancelProducerTransaction) CheckTransactionPayload(params *TransactionP
 	return errors.New("invalid payload type")
 }
 
-func (t *CancelProducerTransaction) IsAllowedInPOWConsensus(params *TransactionParameters, references map[*common2.Input]common2.Output) bool {
+func (t *CancelProducerTransaction) IsAllowedInPOWConsensus() bool {
 	return false
 }
 
-func (t *CancelProducerTransaction) SpecialContextCheck(params *TransactionParameters, references map[*common2.Input]common2.Output) (elaerr.ELAError, bool) {
-	producer, err := t.checkProcessProducer(params, t)
+func (t *CancelProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
+	producer, err := t.checkProcessProducer(t.parameters, t)
 	if err != nil {
 		return elaerr.Simple(elaerr.ErrTxPayload, err), true
 	}
@@ -80,7 +68,7 @@ func (t *CancelProducerTransaction) checkProcessProducer(params *TransactionPara
 		return nil, errors.New("invalid signature in payload")
 	}
 
-	producer := params.BlockChain.GetState().GetProducer(processProducer.OwnerPublicKey)
+	producer := t.parameters.BlockChain.GetState().GetProducer(processProducer.OwnerPublicKey)
 	if producer == nil || !bytes.Equal(producer.OwnerPublicKey(),
 		processProducer.OwnerPublicKey) {
 		return nil, errors.New("getting unknown producer")

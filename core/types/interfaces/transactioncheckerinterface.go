@@ -10,13 +10,15 @@ import (
 	elaerr "github.com/elastos/Elastos.ELA/errors"
 )
 
-type PayloadChecker interface {
+type TransactionChecker interface {
+	BaseTransactionChecker
+
 	SanityCheck(p Parameters) elaerr.ELAError
 
 	ContextCheck(p Parameters) (map[*common2.Input]common2.Output, elaerr.ELAError)
 }
 
-type BasePayloadChecker interface {
+type BaseTransactionChecker interface {
 
 	/// SANITY CHECK
 	// rewrite this function to check the transaction size, otherwise the
@@ -28,6 +30,8 @@ type BasePayloadChecker interface {
 	CheckTransactionOutput() error
 	// check transaction payload type
 	CheckTransactionPayload() error
+	// check transaction attributes and programs
+	CheckAttributeProgram() error
 
 	/// CONTEXT CHECK
 	// check height version

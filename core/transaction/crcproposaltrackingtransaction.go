@@ -10,7 +10,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 
 	"github.com/elastos/Elastos.ELA/blockchain"
 	"github.com/elastos/Elastos.ELA/common"
@@ -25,18 +24,7 @@ type CRCProposalTrackingTransaction struct {
 	BaseTransaction
 }
 
-func (t *CRCProposalTrackingTransaction) RegisterFunctions() {
-	t.DefaultChecker.CheckTransactionSize = t.checkTransactionSize
-	t.DefaultChecker.CheckTransactionInput = t.checkTransactionInput
-	t.DefaultChecker.CheckTransactionOutput = t.checkTransactionOutput
-	t.DefaultChecker.CheckTransactionPayload = t.CheckTransactionPayload
-	t.DefaultChecker.HeightVersionCheck = t.HeightVersionCheck
-	t.DefaultChecker.IsAllowedInPOWConsensus = t.IsAllowedInPOWConsensus
-	t.DefaultChecker.SpecialContextCheck = t.SpecialContextCheck
-	t.DefaultChecker.CheckAttributeProgram = t.checkAttributeProgram
-}
-
-func (t *CRCProposalTrackingTransaction) CheckTransactionPayload(params *TransactionParameters) error {
+func (t *CRCProposalTrackingTransaction) CheckTransactionPayload() error {
 	switch t.Payload().(type) {
 	case *payload.CRCProposalTracking:
 		return nil
@@ -45,38 +33,37 @@ func (t *CRCProposalTrackingTransaction) CheckTransactionPayload(params *Transac
 	return errors.New("invalid payload type")
 }
 
-func (t *CRCProposalTrackingTransaction) IsAllowedInPOWConsensus(params *TransactionParameters, references map[*common2.Input]common2.Output) bool {
+func (t *CRCProposalTrackingTransaction) IsAllowedInPOWConsensus() bool {
 	return false
 }
 
-func (t *CRCProposalTrackingTransaction) HeightVersionCheck(params *TransactionParameters) error {
-	txn := params.Transaction
-	blockHeight := params.BlockHeight
-	chainParams := params.Config
+func (t *CRCProposalTrackingTransaction) HeightVersionCheck() error {
+	blockHeight := t.parameters.BlockHeight
+	chainParams := t.parameters.Config
 
 	if blockHeight < chainParams.CRCommitteeStartHeight {
 		return errors.New(fmt.Sprintf("not support %s transaction "+
-			"before CRCommitteeStartHeight", txn.TxType().Name()))
+			"before CRCommitteeStartHeight", t.TxType().Name()))
 	} else if blockHeight < chainParams.CRCProposalDraftDataStartHeight {
-		if txn.PayloadVersion() != payload.CRCProposalVersion {
+		if t.PayloadVersion() != payload.CRCProposalVersion {
 			return errors.New("payload version should be CRCProposalVersion")
 		}
 	} else {
-		if txn.PayloadVersion() != payload.CRCProposalVersion01 {
+		if t.PayloadVersion() != payload.CRCProposalVersion01 {
 			return errors.New("should have draft data")
 		}
 	}
 	return nil
 }
 
-func (t *CRCProposalTrackingTransaction) SpecialContextCheck(params *TransactionParameters, references map[*common2.Input]common2.Output) (result elaerr.ELAError, end bool) {
+func (t *CRCProposalTrackingTransaction) SpecialContextCheck() (result elaerr.ELAError, end bool) {
 	cptPayload, ok := t.Payload().(*payload.CRCProposalTracking)
 	if !ok {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid payload")), true
 	}
 
 	// Check if proposal exist.
-	proposalState := params.BlockChain.GetCRCommittee().GetProposal(cptPayload.ProposalHash)
+	proposalState := t.parameters.BlockChain.GetCRCommittee().GetProposal(cptPayload.ProposalHash)
 	if proposalState == nil {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("proposal not exist")), true
 	}
@@ -84,7 +71,7 @@ func (t *CRCProposalTrackingTransaction) SpecialContextCheck(params *Transaction
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("proposal status is not VoterAgreed")), true
 	}
 	// Check proposal tracking count.
-	if proposalState.TrackingCount >= params.Config.MaxProposalTrackingCount {
+	if proposalState.TrackingCount >= t.parameters.Config.MaxProposalTrackingCount {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("reached max tracking count")), true
 	}
 
@@ -111,37 +98,37 @@ func (t *CRCProposalTrackingTransaction) SpecialContextCheck(params *Transaction
 	switch cptPayload.ProposalTrackingType {
 	case payload.Common:
 		err := t.checkCRCProposalCommonTracking(
-			params, cptPayload, proposalState, t.PayloadVersion())
+			t.parameters, cptPayload, proposalState, t.PayloadVersion())
 		if err != nil {
 			return elaerr.Simple(elaerr.ErrTxPayload, err), true
 		}
 	case payload.Progress:
 		err := t.checkCRCProposalProgressTracking(
-			params, cptPayload, proposalState, t.PayloadVersion())
+			t.parameters, cptPayload, proposalState, t.PayloadVersion())
 		if err != nil {
 			return elaerr.Simple(elaerr.ErrTxPayload, err), true
 		}
 	case payload.Rejected:
 		err := t.checkCRCProposalRejectedTracking(
-			params, cptPayload, proposalState, params.BlockHeight, t.PayloadVersion())
+			t.parameters, cptPayload, proposalState, t.parameters.BlockHeight, t.PayloadVersion())
 		if err != nil {
 			return elaerr.Simple(elaerr.ErrTxPayload, err), true
 		}
 	case payload.Terminated:
 		err := t.checkCRCProposalTerminatedTracking(
-			params, cptPayload, proposalState, t.PayloadVersion())
+			t.parameters, cptPayload, proposalState, t.PayloadVersion())
 		if err != nil {
 			return elaerr.Simple(elaerr.ErrTxPayload, err), true
 		}
 	case payload.ChangeOwner:
 		err := t.checkCRCProposalOwnerTracking(
-			params, cptPayload, proposalState, t.PayloadVersion())
+			t.parameters, cptPayload, proposalState, t.PayloadVersion())
 		if err != nil {
 			return elaerr.Simple(elaerr.ErrTxPayload, err), true
 		}
 	case payload.Finalized:
 		err := t.checkCRCProposalFinalizedTracking(
-			params, cptPayload, proposalState, t.PayloadVersion())
+			t.parameters, cptPayload, proposalState, t.PayloadVersion())
 		if err != nil {
 			return elaerr.Simple(elaerr.ErrTxPayload, err), true
 		}
@@ -161,7 +148,7 @@ func (t *CRCProposalTrackingTransaction) checkCRCProposalCommonTracking(
 	}
 
 	// Check signature.
-	return t.normalCheckCRCProposalTrackingSignature(params, cptPayload, pState, payloadVersion)
+	return t.normalCheckCRCProposalTrackingSignature(t.parameters, cptPayload, pState, payloadVersion)
 }
 
 
@@ -195,7 +182,7 @@ func (t *CRCProposalTrackingTransaction) normalCheckCRCProposalTrackingSignature
 	}
 
 	// Check secretary general signature。
-	return t.checkSecretaryGeneralSignature(params, cptPayload, pState, signedBuf, payloadVersion)
+	return t.checkSecretaryGeneralSignature(t.parameters, cptPayload, pState, signedBuf, payloadVersion)
 }
 
 func checkProposalOwnerSignature(
@@ -224,7 +211,7 @@ func (t *CRCProposalTrackingTransaction) checkSecretaryGeneralSignature(
 	params *TransactionParameters, cptPayload *payload.CRCProposalTracking, pState *crstate.ProposalState,
 	signedBuf *bytes.Buffer, payloadVersion byte) error {
 	var sgContract *contract.Contract
-	publicKeyBytes, err := hex.DecodeString(params.BlockChain.GetCRCommittee().GetProposalManager().SecretaryGeneralPublicKey)
+	publicKeyBytes, err := hex.DecodeString(t.parameters.BlockChain.GetCRCommittee().GetProposalManager().SecretaryGeneralPublicKey)
 	if err != nil {
 		return errors.New("invalid secretary general public key")
 	}
@@ -295,15 +282,15 @@ func (t *CRCProposalTrackingTransaction) checkCRCProposalProgressTracking(
 	}
 
 	// Check signature.
-	return t.normalCheckCRCProposalTrackingSignature(params, cptPayload, pState, payloadVersion)
+	return t.normalCheckCRCProposalTrackingSignature(t.parameters, cptPayload, pState, payloadVersion)
 }
 
 
 func (t *CRCProposalTrackingTransaction) checkCRCProposalRejectedTracking(
 	params *TransactionParameters, cptPayload *payload.CRCProposalTracking, pState *crstate.ProposalState,
 	blockHeight uint32, payloadVersion byte) error {
-	if blockHeight < params.Config.CRCProposalWithdrawPayloadV1Height {
-		return t.checkCRCProposalProgressTracking(params, cptPayload, pState, payloadVersion)
+	if blockHeight < t.parameters.Config.CRCProposalWithdrawPayloadV1Height {
+		return t.checkCRCProposalProgressTracking(t.parameters, cptPayload, pState, payloadVersion)
 	}
 	// Check stage of proposal
 	if int(cptPayload.Stage) >= len(pState.Proposal.Budgets) {
@@ -314,7 +301,7 @@ func (t *CRCProposalTrackingTransaction) checkCRCProposalRejectedTracking(
 	}
 
 	// Check signature.
-	return t.normalCheckCRCProposalTrackingSignature(params, cptPayload, pState, payloadVersion)
+	return t.normalCheckCRCProposalTrackingSignature(t.parameters, cptPayload, pState, payloadVersion)
 }
 
 func (t *CRCProposalTrackingTransaction) checkCRCProposalTerminatedTracking(
@@ -326,7 +313,7 @@ func (t *CRCProposalTrackingTransaction) checkCRCProposalTerminatedTracking(
 	}
 
 	// Check signature.
-	return t.normalCheckCRCProposalTrackingSignature(params, cptPayload, pState, payloadVersion)
+	return t.normalCheckCRCProposalTrackingSignature(t.parameters, cptPayload, pState, payloadVersion)
 }
 
 func (t *CRCProposalTrackingTransaction) checkCRCProposalOwnerTracking(
@@ -343,7 +330,7 @@ func (t *CRCProposalTrackingTransaction) checkCRCProposalOwnerTracking(
 	}
 
 	// Check signature.
-	return t.checkCRCProposalTrackingSignature(params, cptPayload, pState, payloadVersion)
+	return t.checkCRCProposalTrackingSignature(t.parameters, cptPayload, pState, payloadVersion)
 }
 
 func (t *CRCProposalTrackingTransaction) checkCRCProposalTrackingSignature(
@@ -366,7 +353,7 @@ func (t *CRCProposalTrackingTransaction) checkCRCProposalTrackingSignature(
 	}
 
 	// Check secretary general signature。
-	return t.checkSecretaryGeneralSignature(params, cptPayload, pState, signedBuf, payloadVersion)
+	return t.checkSecretaryGeneralSignature(t.parameters, cptPayload, pState, signedBuf, payloadVersion)
 }
 
 func (t *CRCProposalTrackingTransaction) checkCRCProposalFinalizedTracking(
@@ -385,5 +372,5 @@ func (t *CRCProposalTrackingTransaction) checkCRCProposalFinalizedTracking(
 	}
 
 	// Check signature.
-	return t.normalCheckCRCProposalTrackingSignature(params, cptPayload, pState, payloadVersion)
+	return t.normalCheckCRCProposalTrackingSignature(t.parameters, cptPayload, pState, payloadVersion)
 }

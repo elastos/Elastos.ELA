@@ -7,8 +7,6 @@ package transaction
 
 import (
 	"errors"
-	common2 "github.com/elastos/Elastos.ELA/core/types/common"
-
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 )
 
@@ -16,18 +14,7 @@ type RecordTransaction struct {
 	BaseTransaction
 }
 
-func (t *RecordTransaction) RegisterFunctions() {
-	t.DefaultChecker.CheckTransactionSize = t.checkTransactionSize
-	t.DefaultChecker.CheckTransactionInput = t.checkTransactionInput
-	t.DefaultChecker.CheckTransactionOutput = t.checkTransactionOutput
-	t.DefaultChecker.CheckTransactionPayload = t.CheckTransactionPayload
-	t.DefaultChecker.HeightVersionCheck = t.heightVersionCheck
-	t.DefaultChecker.IsAllowedInPOWConsensus = t.IsAllowedInPOWConsensus
-	t.DefaultChecker.SpecialContextCheck = t.specialContextCheck
-	t.DefaultChecker.CheckAttributeProgram = t.checkAttributeProgram
-}
-
-func (t *RecordTransaction) CheckTransactionPayload(params *TransactionParameters) error {
+func (t *RecordTransaction) CheckTransactionPayload() error {
 	switch t.Payload().(type) {
 	case *payload.Record:
 		return nil
@@ -36,6 +23,6 @@ func (t *RecordTransaction) CheckTransactionPayload(params *TransactionParameter
 	return errors.New("invalid payload type")
 }
 
-func (t *RecordTransaction) IsAllowedInPOWConsensus(params *TransactionParameters, references map[*common2.Input]common2.Output) bool {
+func (t *RecordTransaction) IsAllowedInPOWConsensus() bool {
 	return false
 }

@@ -13,7 +13,6 @@ import (
 	"github.com/elastos/Elastos.ELA/blockchain"
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/core/contract"
-	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	crstate "github.com/elastos/Elastos.ELA/cr/state"
 	"github.com/elastos/Elastos.ELA/crypto"
@@ -25,18 +24,7 @@ type RegisterProducerTransaction struct {
 	BaseTransaction
 }
 
-func (t *RegisterProducerTransaction) RegisterFunctions() {
-	t.DefaultChecker.CheckTransactionSize = t.checkTransactionSize
-	t.DefaultChecker.CheckTransactionInput = t.checkTransactionInput
-	t.DefaultChecker.CheckTransactionOutput = t.checkTransactionOutput
-	t.DefaultChecker.CheckTransactionPayload = t.CheckTransactionPayload
-	t.DefaultChecker.HeightVersionCheck = t.heightVersionCheck
-	t.DefaultChecker.IsAllowedInPOWConsensus = t.IsAllowedInPOWConsensus
-	t.DefaultChecker.SpecialContextCheck = t.SpecialContextCheck
-	t.DefaultChecker.CheckAttributeProgram = t.checkAttributeProgram
-}
-
-func (t *RegisterProducerTransaction) CheckTransactionPayload(params *TransactionParameters) error {
+func (t *RegisterProducerTransaction) CheckTransactionPayload() error {
 	switch t.Payload().(type) {
 	case *payload.ProducerInfo:
 		return nil
@@ -45,11 +33,11 @@ func (t *RegisterProducerTransaction) CheckTransactionPayload(params *Transactio
 	return errors.New("invalid payload type")
 }
 
-func (t *RegisterProducerTransaction) IsAllowedInPOWConsensus(params *TransactionParameters, references map[*common2.Input]common2.Output) bool {
+func (t *RegisterProducerTransaction) IsAllowedInPOWConsensus() bool {
 	return true
 }
 
-func (t *RegisterProducerTransaction) SpecialContextCheck(params *TransactionParameters, references map[*common2.Input]common2.Output) (elaerr.ELAError, bool) {
+func (t *RegisterProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
 	info, ok := t.Payload().(*payload.ProducerInfo)
 	if !ok {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid payload")), true
@@ -64,48 +52,48 @@ func (t *RegisterProducerTransaction) SpecialContextCheck(params *TransactionPar
 		return elaerr.Simple(elaerr.ErrTxPayload, err), true
 	}
 
-	if params.BlockChain.GetHeight() < params.Config.PublicDPOSHeight {
+	if t.parameters.BlockChain.GetHeight() < t.parameters.Config.PublicDPOSHeight {
 		// check duplication of node.
-		if params.BlockChain.GetState().ProducerExists(info.NodePublicKey) {
+		if t.parameters.BlockChain.GetState().ProducerExists(info.NodePublicKey) {
 			return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("producer already registered")), true
 		}
 
 		// check duplication of owner.
-		if params.BlockChain.GetState().ProducerExists(info.OwnerPublicKey) {
+		if t.parameters.BlockChain.GetState().ProducerExists(info.OwnerPublicKey) {
 			return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("producer owner already registered")), true
 		}
 	} else {
 		// check duplication of node.
-		if params.BlockChain.GetState().ProducerNodePublicKeyExists(info.NodePublicKey) {
+		if t.parameters.BlockChain.GetState().ProducerNodePublicKeyExists(info.NodePublicKey) {
 			return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("producer already registered")), true
 		}
 
 		// check duplication of owner.
-		if params.BlockChain.GetState().ProducerOwnerPublicKeyExists(info.OwnerPublicKey) {
+		if t.parameters.BlockChain.GetState().ProducerOwnerPublicKeyExists(info.OwnerPublicKey) {
 			return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("producer owner already registered")), true
 		}
 	}
 
 	// check duplication of nickname.
-	if params.BlockChain.GetState().NicknameExists(info.NickName) {
+	if t.parameters.BlockChain.GetState().NicknameExists(info.NickName) {
 		return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("nick name %s already inuse", info.NickName)), true
 	}
 
 	// check if public keys conflict with cr program code
 	ownerCode := append([]byte{byte(crypto.COMPRESSEDLEN)}, info.OwnerPublicKey...)
 	ownerCode = append(ownerCode, vm.CHECKSIG)
-	if params.BlockChain.GetCRCommittee().ExistCR(ownerCode) {
+	if t.parameters.BlockChain.GetCRCommittee().ExistCR(ownerCode) {
 		return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("owner public key %s already exist in cr list",
 			common.BytesToHexString(info.OwnerPublicKey))), true
 	}
 	nodeCode := append([]byte{byte(crypto.COMPRESSEDLEN)}, info.NodePublicKey...)
 	nodeCode = append(nodeCode, vm.CHECKSIG)
-	if params.BlockChain.GetCRCommittee().ExistCR(nodeCode) {
+	if t.parameters.BlockChain.GetCRCommittee().ExistCR(nodeCode) {
 		return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("node public key %s already exist in cr list",
 			common.BytesToHexString(info.NodePublicKey))), true
 	}
 
-	if err := t.additionalProducerInfoCheck(params, info); err != nil {
+	if err := t.additionalProducerInfoCheck(t.parameters, info); err != nil {
 		return elaerr.Simple(elaerr.ErrTxPayload, err), true
 	}
 
@@ -158,7 +146,7 @@ func checkStringField(rawStr string, field string, allowEmpty bool) error {
 }
 
 func (t *RegisterProducerTransaction) additionalProducerInfoCheck(params *TransactionParameters, info *payload.ProducerInfo) error {
-	if params.BlockChain.GetHeight() >= params.Config.PublicDPOSHeight {
+	if t.parameters.BlockChain.GetHeight() >= t.parameters.Config.PublicDPOSHeight {
 		_, err := crypto.DecodePoint(info.NodePublicKey)
 		if err != nil {
 			return errors.New("invalid node public key in payload")

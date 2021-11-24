@@ -8,9 +8,9 @@ package transaction
 import (
 	"errors"
 	"fmt"
-	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"math"
 
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/blockchain"
 	"github.com/elastos/Elastos.ELA/core/contract/program"
 	"github.com/elastos/Elastos.ELA/core/types/interfaces"
@@ -24,38 +24,26 @@ type InactiveArbitratorsTransaction struct {
 	BaseTransaction
 }
 
-func (t *InactiveArbitratorsTransaction) RegisterFunctions() {
-	t.DefaultChecker.CheckTransactionSize = t.checkTransactionSize
-	t.DefaultChecker.CheckTransactionInput = t.CheckTransactionInput
-	t.DefaultChecker.CheckTransactionOutput = t.CheckTransactionOutput
-	t.DefaultChecker.CheckTransactionPayload = t.CheckTransactionPayload
-	t.DefaultChecker.HeightVersionCheck = t.heightVersionCheck
-	t.DefaultChecker.IsAllowedInPOWConsensus = t.IsAllowedInPOWConsensus
-	t.DefaultChecker.SpecialContextCheck = t.SpecialContextCheck
-	t.DefaultChecker.CheckAttributeProgram = t.CheckAttributeProgram
-}
-
-func (t *InactiveArbitratorsTransaction) CheckTransactionInput(params *TransactionParameters) error {
-	if len(params.Transaction.Inputs()) != 0 {
+func (t *InactiveArbitratorsTransaction) CheckTransactionInput() error {
+	if len(t.Inputs()) != 0 {
 		return errors.New("no cost transactions must has no input")
 	}
 	return nil
 }
 
-func (t *InactiveArbitratorsTransaction)  CheckTransactionOutput(params *TransactionParameters) error {
+func (t *InactiveArbitratorsTransaction)  CheckTransactionOutput() error {
 
-	txn := params.Transaction
-	if len(txn.Outputs()) > math.MaxUint16 {
+	if len(t.Outputs()) > math.MaxUint16 {
 		return errors.New("output count should not be greater than 65535(MaxUint16)")
 	}
-	if len(txn.Outputs()) != 0 {
+	if len(t.Outputs()) != 0 {
 		return errors.New("no cost transactions should have no output")
 	}
 
 	return nil
 }
 
-func (t *InactiveArbitratorsTransaction) CheckAttributeProgram(params *TransactionParameters) error {
+func (t *InactiveArbitratorsTransaction) CheckAttributeProgram() error {
 
 	// check programs count and attributes count
 	if len(t.Programs()) != 1 {
@@ -88,7 +76,7 @@ func (t *InactiveArbitratorsTransaction) CheckAttributeProgram(params *Transacti
 	return nil
 }
 
-func (t *InactiveArbitratorsTransaction) CheckTransactionPayload(params *TransactionParameters) error {
+func (t *InactiveArbitratorsTransaction) CheckTransactionPayload() error {
 	switch t.Payload().(type) {
 	case *payload.InactiveArbitrators:
 		return nil
@@ -97,13 +85,13 @@ func (t *InactiveArbitratorsTransaction) CheckTransactionPayload(params *Transac
 	return errors.New("invalid payload type")
 }
 
-func (t *InactiveArbitratorsTransaction) IsAllowedInPOWConsensus(params *TransactionParameters, references map[*common2.Input]common2.Output) bool {
+func (t *InactiveArbitratorsTransaction) IsAllowedInPOWConsensus() bool {
 	return true
 }
 
-func (t *InactiveArbitratorsTransaction) SpecialContextCheck(params *TransactionParameters, references map[*common2.Input]common2.Output) (elaerr.ELAError, bool) {
+func (t *InactiveArbitratorsTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
 
-	if params.BlockChain.GetState().SpecialTxExists(t) {
+	if t.parameters.BlockChain.GetState().SpecialTxExists(t) {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("tx already exists")), true
 	}
 
@@ -114,8 +102,8 @@ func (t *InactiveArbitratorsTransaction) SpecialContextCheck(params *Transaction
 	return nil, true
 }
 
-func CheckInactiveArbitrators(txn interfaces.Transaction) error {
-	p, ok := txn.Payload().(*payload.InactiveArbitrators)
+func CheckInactiveArbitrators(t interfaces.Transaction) error {
+	p, ok := t.Payload().(*payload.InactiveArbitrators)
 	if !ok {
 		return errors.New("invalid payload")
 	}
@@ -135,7 +123,7 @@ func CheckInactiveArbitrators(txn interfaces.Transaction) error {
 		}
 	}
 
-	if err := checkCRCArbitratorsSignatures(txn.Programs()[0]); err != nil {
+	if err := checkCRCArbitratorsSignatures(t.Programs()[0]); err != nil {
 		return err
 	}
 

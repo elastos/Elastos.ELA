@@ -6,7 +6,6 @@ package transaction
 
 import (
 	"errors"
-	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"math"
 
 	"github.com/elastos/Elastos.ELA/blockchain"
@@ -18,38 +17,26 @@ type IllegalBlockTransaction struct {
 	BaseTransaction
 }
 
-func (t *IllegalBlockTransaction) RegisterFunctions() {
-	t.DefaultChecker.CheckTransactionSize = t.checkTransactionSize
-	t.DefaultChecker.CheckTransactionInput = t.CheckTransactionInput
-	t.DefaultChecker.CheckTransactionOutput = t.CheckTransactionOutput
-	t.DefaultChecker.CheckTransactionPayload = t.CheckTransactionPayload
-	t.DefaultChecker.HeightVersionCheck = t.heightVersionCheck
-	t.DefaultChecker.IsAllowedInPOWConsensus = t.IsAllowedInPOWConsensus
-	t.DefaultChecker.SpecialContextCheck = t.SpecialContextCheck
-	t.DefaultChecker.CheckAttributeProgram = t.CheckAttributeProgram
-}
-
-func (t *IllegalBlockTransaction) CheckTransactionInput(params *TransactionParameters) error {
-	if len(params.Transaction.Inputs()) != 0 {
+func (t *IllegalBlockTransaction) CheckTransactionInput() error {
+	if len(t.Inputs()) != 0 {
 		return errors.New("no cost transactions must has no input")
 	}
 	return nil
 }
 
-func (t *IllegalBlockTransaction) CheckTransactionOutput(params *TransactionParameters) error {
+func (t *IllegalBlockTransaction) CheckTransactionOutput() error {
 
-	txn := params.Transaction
-	if len(txn.Outputs()) > math.MaxUint16 {
+	if len(t.Outputs()) > math.MaxUint16 {
 		return errors.New("output count should not be greater than 65535(MaxUint16)")
 	}
-	if len(txn.Outputs()) != 0 {
+	if len(t.Outputs()) != 0 {
 		return errors.New("no cost transactions should have no output")
 	}
 
 	return nil
 }
 
-func (t *IllegalBlockTransaction) CheckAttributeProgram(params *TransactionParameters) error {
+func (t *IllegalBlockTransaction) CheckAttributeProgram() error {
 	if len(t.Programs()) != 0 {
 		return errors.New("illegal block transactions should have one and only one program")
 	}
@@ -59,7 +46,7 @@ func (t *IllegalBlockTransaction) CheckAttributeProgram(params *TransactionParam
 	return nil
 }
 
-func (t *IllegalBlockTransaction) CheckTransactionPayload(params *TransactionParameters) error {
+func (t *IllegalBlockTransaction) CheckTransactionPayload() error {
 	switch t.Payload().(type) {
 	case *payload.DPOSIllegalBlocks:
 		return nil
@@ -68,11 +55,11 @@ func (t *IllegalBlockTransaction) CheckTransactionPayload(params *TransactionPar
 	return errors.New("invalid payload type")
 }
 
-func (t *IllegalBlockTransaction) IsAllowedInPOWConsensus(params *TransactionParameters, references map[*common2.Input]common2.Output) bool {
+func (t *IllegalBlockTransaction) IsAllowedInPOWConsensus() bool {
 	return true
 }
 
-func (t *IllegalBlockTransaction) SpecialContextCheck(params *TransactionParameters, references map[*common2.Input]common2.Output) (elaerr.ELAError, bool) {
+func (t *IllegalBlockTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
 	p, ok := t.Payload().(*payload.DPOSIllegalBlocks)
 	if !ok {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid payload")), true

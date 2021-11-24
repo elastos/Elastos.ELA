@@ -8,9 +8,9 @@ package transaction
 import (
 	"errors"
 	"fmt"
-	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"math"
 
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	elaerr "github.com/elastos/Elastos.ELA/errors"
 )
@@ -19,38 +19,26 @@ type UpdateVersionTransaction struct {
 	BaseTransaction
 }
 
-func (t *UpdateVersionTransaction) RegisterFunctions() {
-	t.DefaultChecker.CheckTransactionSize = t.checkTransactionSize
-	t.DefaultChecker.CheckTransactionInput = t.CheckTransactionInput
-	t.DefaultChecker.CheckTransactionOutput = t.CheckTransactionOutput
-	t.DefaultChecker.CheckTransactionPayload = t.CheckTransactionPayload
-	t.DefaultChecker.HeightVersionCheck = t.heightVersionCheck
-	t.DefaultChecker.IsAllowedInPOWConsensus = t.IsAllowedInPOWConsensus
-	t.DefaultChecker.SpecialContextCheck = t.SpecialContextCheck
-	t.DefaultChecker.CheckAttributeProgram = t.CheckAttributeProgram
-}
-
-func (t *UpdateVersionTransaction) CheckTransactionInput(params *TransactionParameters) error {
-	if len(params.Transaction.Inputs()) != 0 {
+func (t *UpdateVersionTransaction) CheckTransactionInput() error {
+	if len(t.Inputs()) != 0 {
 		return errors.New("no cost transactions must has no input")
 	}
 	return nil
 }
 
-func (t *UpdateVersionTransaction) CheckTransactionOutput(params *TransactionParameters) error {
+func (t *UpdateVersionTransaction) CheckTransactionOutput() error {
 
-	txn := params.Transaction
-	if len(txn.Outputs()) > math.MaxUint16 {
+	if len(t.Outputs()) > math.MaxUint16 {
 		return errors.New("output count should not be greater than 65535(MaxUint16)")
 	}
-	if len(txn.Outputs()) != 0 {
+	if len(t.Outputs()) != 0 {
 		return errors.New("no cost transactions should have no output")
 	}
 
 	return nil
 }
 
-func (t *UpdateVersionTransaction) CheckAttributeProgram(params *TransactionParameters) error {
+func (t *UpdateVersionTransaction) CheckAttributeProgram() error {
 
 	// check programs count and attributes count
 	if len(t.Programs()) != 1 {
@@ -83,7 +71,7 @@ func (t *UpdateVersionTransaction) CheckAttributeProgram(params *TransactionPara
 	return nil
 }
 
-func (t *UpdateVersionTransaction) CheckTransactionPayload(params *TransactionParameters) error {
+func (t *UpdateVersionTransaction) CheckTransactionPayload() error {
 	switch t.Payload().(type) {
 	case *payload.UpdateVersion:
 		return nil
@@ -92,18 +80,18 @@ func (t *UpdateVersionTransaction) CheckTransactionPayload(params *TransactionPa
 	return errors.New("invalid payload type")
 }
 
-func (t *UpdateVersionTransaction) IsAllowedInPOWConsensus(params *TransactionParameters, references map[*common2.Input]common2.Output) bool {
+func (t *UpdateVersionTransaction) IsAllowedInPOWConsensus() bool {
 	return false
 }
 
-func (t *UpdateVersionTransaction) SpecialContextCheck(params *TransactionParameters, references map[*common2.Input]common2.Output) (elaerr.ELAError, bool) {
+func (t *UpdateVersionTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
 	payload, ok := t.Payload().(*payload.UpdateVersion)
 	if !ok {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid payload")), true
 	}
 
 	if payload.EndHeight <= payload.StartHeight ||
-		payload.StartHeight < params.BlockChain.GetHeight() {
+		payload.StartHeight < t.parameters.BlockChain.GetHeight() {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid update version height")), true
 	}
 

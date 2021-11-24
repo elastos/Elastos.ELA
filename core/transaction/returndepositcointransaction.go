@@ -8,10 +8,10 @@ package transaction
 import (
 	"errors"
 	"fmt"
-	"github.com/elastos/Elastos.ELA/core/types/payload"
 
 	"github.com/elastos/Elastos.ELA/common"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/payload"
 	elaerr "github.com/elastos/Elastos.ELA/errors"
 )
 
@@ -19,20 +19,9 @@ type ReturnDepositCoinTransaction struct {
 	BaseTransaction
 }
 
-func (t *ReturnDepositCoinTransaction) RegisterFunctions() {
-	t.DefaultChecker.CheckTransactionSize = t.checkTransactionSize
-	t.DefaultChecker.CheckTransactionInput = t.checkTransactionInput
-	t.DefaultChecker.CheckTransactionOutput = t.checkTransactionOutput
-	t.DefaultChecker.CheckTransactionPayload = t.CheckTransactionPayload
-	t.DefaultChecker.HeightVersionCheck = t.heightVersionCheck
-	t.DefaultChecker.IsAllowedInPOWConsensus = t.IsAllowedInPOWConsensus
-	t.DefaultChecker.SpecialContextCheck = t.SpecialContextCheck
-	t.DefaultChecker.CheckAttributeProgram = t.CheckAttributeProgram
-}
+func (t *ReturnDepositCoinTransaction) CheckAttributeProgram() error {
 
-func (t *ReturnDepositCoinTransaction) CheckAttributeProgram(params *TransactionParameters) error {
-
-	if params.BlockHeight >= params.Config.CRVotingStartHeight {
+	if t.parameters.BlockHeight >= t.parameters.Config.CRVotingStartHeight {
 		if len(t.Programs()) != 1 {
 			return errors.New("return deposit coin transactions should have one and only one program")
 		}
@@ -61,7 +50,7 @@ func (t *ReturnDepositCoinTransaction) CheckAttributeProgram(params *Transaction
 	return nil
 }
 
-func (t *ReturnDepositCoinTransaction) CheckTransactionPayload(params *TransactionParameters) error {
+func (t *ReturnDepositCoinTransaction) CheckTransactionPayload() error {
 	switch t.Payload().(type) {
 	case *payload.ReturnDepositCoin:
 		return nil
@@ -70,11 +59,11 @@ func (t *ReturnDepositCoinTransaction) CheckTransactionPayload(params *Transacti
 	return errors.New("invalid payload type")
 }
 
-func (t *ReturnDepositCoinTransaction) IsAllowedInPOWConsensus(params *TransactionParameters, references map[*common2.Input]common2.Output) bool {
+func (t *ReturnDepositCoinTransaction) IsAllowedInPOWConsensus() bool {
 	return false
 }
 
-func (t *ReturnDepositCoinTransaction) SpecialContextCheck(params *TransactionParameters, references map[*common2.Input]common2.Output) (elaerr.ELAError, bool) {
+func (t *ReturnDepositCoinTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
 	var inputValue common.Fixed64
 	fromAddrMap := make(map[common.Uint168]struct{})
 	for _, output := range t.references {
@@ -103,7 +92,7 @@ func (t *ReturnDepositCoinTransaction) SpecialContextCheck(params *TransactionPa
 
 	var availableAmount common.Fixed64
 	for _, program := range t.Programs() {
-		p := params.BlockChain.GetState().GetProducer(program.Code[1 : len(program.Code)-1])
+		p := t.parameters.BlockChain.GetState().GetProducer(program.Code[1 : len(program.Code)-1])
 		if p == nil {
 			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("signer must be producer")), true
 		}

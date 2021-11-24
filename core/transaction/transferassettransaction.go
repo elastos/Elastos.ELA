@@ -7,45 +7,33 @@ package transaction
 
 import (
 	"errors"
+	"math"
+
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/core/contract"
-	"github.com/elastos/Elastos.ELA/core/types/payload"
-	"math"
-
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/core/types/outputpayload"
+	"github.com/elastos/Elastos.ELA/core/types/payload"
 )
 
 type TransferAssetTransaction struct {
 	BaseTransaction
 }
 
-func (t *TransferAssetTransaction) RegisterFunctions() {
-	t.DefaultChecker.CheckTransactionSize = t.checkTransactionSize
-	t.DefaultChecker.CheckTransactionInput = t.checkTransactionInput
-	t.DefaultChecker.CheckTransactionOutput = t.CheckTransactionOutput
-	t.DefaultChecker.CheckTransactionPayload = t.CheckTransactionPayload
-	t.DefaultChecker.HeightVersionCheck = t.HeightVersionCheck
-	t.DefaultChecker.IsAllowedInPOWConsensus = t.IsAllowedInPOWConsensus
-	t.DefaultChecker.SpecialContextCheck = t.specialContextCheck
-	t.DefaultChecker.CheckAttributeProgram = t.checkAttributeProgram
-}
-
-func (t *TransferAssetTransaction)  CheckTransactionOutput(params *TransactionParameters) error {
-	txn := params.Transaction
-	blockHeight := params.BlockHeight
-	if len(txn.Outputs()) > math.MaxUint16 {
+func (t *TransferAssetTransaction) CheckTransactionOutput() error {
+	blockHeight := t.parameters.BlockHeight
+	if len(t.Outputs()) > math.MaxUint16 {
 		return errors.New("output count should not be greater than 65535(MaxUint16)")
 	}
 
-	if len(txn.Outputs()) < 1 {
+	if len(t.Outputs()) < 1 {
 		return errors.New("transaction has no outputs")
 	}
 
 	// check if output address is valid
 	specialOutputCount := 0
-	for _, output := range txn.Outputs() {
+	for _, output := range t.Outputs() {
 		if output.AssetID != config.ELAAssetID {
 			return errors.New("asset ID in output is invalid")
 		}
@@ -59,7 +47,7 @@ func (t *TransferAssetTransaction)  CheckTransactionOutput(params *TransactionPa
 			return err
 		}
 
-		if txn.Version() >= common2.TxVersion09 {
+		if t.Version() >= common2.TxVersion09 {
 			if output.Type != common2.OTNone {
 				specialOutputCount++
 			}
@@ -89,7 +77,7 @@ func checkTransferAssetOutputPayload(output *common2.Output) error {
 	return output.Payload.Validate()
 }
 
-func (t *TransferAssetTransaction) CheckTransactionPayload(params *TransactionParameters) error {
+func (t *TransferAssetTransaction) CheckTransactionPayload() error {
 	switch t.Payload().(type) {
 	case *payload.TransferAsset:
 		return nil
@@ -98,7 +86,7 @@ func (t *TransferAssetTransaction) CheckTransactionPayload(params *TransactionPa
 	return errors.New("invalid payload type")
 }
 
-func (t *TransferAssetTransaction) IsAllowedInPOWConsensus(params *TransactionParameters, references map[*common2.Input]common2.Output) bool {
+func (t *TransferAssetTransaction) IsAllowedInPOWConsensus() bool {
 	if t.Version() >= common2.TxVersion09 {
 		var containVoteOutput bool
 		for _, output := range t.Outputs() {
@@ -147,16 +135,15 @@ func (t *TransferAssetTransaction) IsAllowedInPOWConsensus(params *TransactionPa
 	return true
 }
 
-func (t *TransferAssetTransaction) HeightVersionCheck(params *TransactionParameters) error {
-	txn := params.Transaction
-	blockHeight := params.BlockHeight
-	chainParams := params.Config
+func (t *TransferAssetTransaction) HeightVersionCheck() error {
+	blockHeight := t.parameters.BlockHeight
+	chainParams := t.parameters.Config
 
 	if blockHeight >= chainParams.CRVotingStartHeight {
 		return nil
 	}
-	if txn.Version() >= common2.TxVersion09 {
-		for _, output := range txn.Outputs() {
+	if t.Version() >= common2.TxVersion09 {
+		for _, output := range t.Outputs() {
 			if output.Type != common2.OTVote {
 				continue
 			}

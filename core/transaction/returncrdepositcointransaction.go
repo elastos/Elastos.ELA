@@ -8,6 +8,7 @@ package transaction
 import (
 	"errors"
 	"fmt"
+
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/core/contract"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
@@ -18,18 +19,7 @@ type ReturnCRDepositCoinTransaction struct {
 	BaseTransaction
 }
 
-func (t *ReturnCRDepositCoinTransaction) RegisterFunctions() {
-	t.DefaultChecker.CheckTransactionSize = t.checkTransactionSize
-	t.DefaultChecker.CheckTransactionInput = t.checkTransactionInput
-	t.DefaultChecker.CheckTransactionOutput = t.checkTransactionOutput
-	t.DefaultChecker.CheckTransactionPayload = t.CheckTransactionPayload
-	t.DefaultChecker.HeightVersionCheck = t.HeightVersionCheck
-	t.DefaultChecker.IsAllowedInPOWConsensus = t.IsAllowedInPOWConsensus
-	t.DefaultChecker.SpecialContextCheck = t.SpecialContextCheck
-	t.DefaultChecker.CheckAttributeProgram = t.CheckAttributeProgram
-}
-
-func (t *ReturnCRDepositCoinTransaction) CheckAttributeProgram(params *TransactionParameters) error {
+func (t *ReturnCRDepositCoinTransaction) CheckAttributeProgram() error {
 
 	if len(t.Programs()) != 1 {
 		return errors.New("return CR deposit coin transactions should have one and only one program")
@@ -58,30 +48,29 @@ func (t *ReturnCRDepositCoinTransaction) CheckAttributeProgram(params *Transacti
 	return nil
 }
 
-func (t *ReturnCRDepositCoinTransaction) CheckTransactionPayload(params *TransactionParameters) error {
+func (t *ReturnCRDepositCoinTransaction) CheckTransactionPayload() error {
 	if t.Payload() != nil {
 		return errors.New("invalid payload nee to be nil")
 	}
 	return nil
 }
 
-func (t *ReturnCRDepositCoinTransaction) IsAllowedInPOWConsensus(params *TransactionParameters, references map[*common2.Input]common2.Output) bool {
+func (t *ReturnCRDepositCoinTransaction) IsAllowedInPOWConsensus() bool {
 	return false
 }
 
-func (t *ReturnCRDepositCoinTransaction) HeightVersionCheck(params *TransactionParameters) error {
-	txn := params.Transaction
-	blockHeight := params.BlockHeight
-	chainParams := params.Config
+func (t *ReturnCRDepositCoinTransaction) HeightVersionCheck() error {
+	blockHeight := t.parameters.BlockHeight
+	chainParams := t.parameters.Config
 
 	if blockHeight < chainParams.CRVotingStartHeight {
 		return errors.New(fmt.Sprintf("not support %s transaction "+
-			"before CRVotingStartHeight", txn.TxType().Name()))
+			"before CRVotingStartHeight", t.TxType().Name()))
 	}
 	return nil
 }
 
-func (t *ReturnCRDepositCoinTransaction) SpecialContextCheck(params *TransactionParameters, references map[*common2.Input]common2.Output) (elaerr.ELAError, bool) {
+func (t *ReturnCRDepositCoinTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
 
 	var inputValue common.Fixed64
 	fromAddrMap := make(map[common.Uint168]struct{})
@@ -117,11 +106,11 @@ func (t *ReturnCRDepositCoinTransaction) SpecialContextCheck(params *Transaction
 			return elaerr.Simple(elaerr.ErrTxPayload, err), true
 		}
 		cid := ct.ToProgramHash()
-		if !params.BlockChain.GetCRCommittee().Exist(*cid) {
+		if !t.parameters.BlockChain.GetCRCommittee().Exist(*cid) {
 			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("signer must be candidate or member")), true
 		}
 
-		availableValue += params.BlockChain.GetCRCommittee().GetAvailableDepositAmount(*cid)
+		availableValue += t.parameters.BlockChain.GetCRCommittee().GetAvailableDepositAmount(*cid)
 	}
 
 	// Check output amount.

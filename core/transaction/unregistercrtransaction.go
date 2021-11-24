@@ -9,8 +9,8 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+
 	"github.com/elastos/Elastos.ELA/blockchain"
-	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	crstate "github.com/elastos/Elastos.ELA/cr/state"
 	elaerr "github.com/elastos/Elastos.ELA/errors"
@@ -20,18 +20,7 @@ type UnregisterCRTransaction struct {
 	BaseTransaction
 }
 
-func (t *UnregisterCRTransaction) RegisterFunctions() {
-	t.DefaultChecker.CheckTransactionSize = t.checkTransactionSize
-	t.DefaultChecker.CheckTransactionInput = t.checkTransactionInput
-	t.DefaultChecker.CheckTransactionOutput = t.checkTransactionOutput
-	t.DefaultChecker.CheckTransactionPayload = t.CheckTransactionPayload
-	t.DefaultChecker.HeightVersionCheck = t.HeightVersionCheck
-	t.DefaultChecker.IsAllowedInPOWConsensus = t.IsAllowedInPOWConsensus
-	t.DefaultChecker.SpecialContextCheck = t.SpecialContextCheck
-	t.DefaultChecker.CheckAttributeProgram = t.checkAttributeProgram
-}
-
-func (t *UnregisterCRTransaction) CheckTransactionPayload(params *TransactionParameters) error {
+func (t *UnregisterCRTransaction) CheckTransactionPayload() error {
 	switch t.Payload().(type) {
 	case *payload.UnregisterCR:
 		return nil
@@ -40,33 +29,32 @@ func (t *UnregisterCRTransaction) CheckTransactionPayload(params *TransactionPar
 	return errors.New("invalid payload type")
 }
 
-func (t *UnregisterCRTransaction) IsAllowedInPOWConsensus(params *TransactionParameters, references map[*common2.Input]common2.Output) bool {
+func (t *UnregisterCRTransaction) IsAllowedInPOWConsensus() bool {
 	return false
 }
 
-func (t *UnregisterCRTransaction) HeightVersionCheck(params *TransactionParameters) error {
-	txn := params.Transaction
-	blockHeight := params.BlockHeight
-	chainParams := params.Config
+func (t *UnregisterCRTransaction) HeightVersionCheck() error {
+	blockHeight := t.parameters.BlockHeight
+	chainParams := t.parameters.Config
 
 	if blockHeight < chainParams.CRVotingStartHeight {
 		return errors.New(fmt.Sprintf("not support %s transaction "+
-			"before CRVotingStartHeight", txn.TxType().Name()))
+			"before CRVotingStartHeight", t.TxType().Name()))
 	}
 	return nil
 }
 
-func (t *UnregisterCRTransaction) SpecialContextCheck(params *TransactionParameters, references map[*common2.Input]common2.Output) (elaerr.ELAError, bool) {
+func (t *UnregisterCRTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
 	info, ok := t.Payload().(*payload.UnregisterCR)
 	if !ok {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid payload")), true
 	}
 
-	if !params.BlockChain.GetCRCommittee().IsInVotingPeriod(params.BlockHeight) {
+	if !t.parameters.BlockChain.GetCRCommittee().IsInVotingPeriod(t.parameters.BlockHeight) {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("should create tx during voting period")), true
 	}
 
-	cr := params.BlockChain.GetCRCommittee().GetCandidate(info.CID)
+	cr := t.parameters.BlockChain.GetCRCommittee().GetCandidate(info.CID)
 	if cr == nil {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("unregister unknown CR")), true
 	}

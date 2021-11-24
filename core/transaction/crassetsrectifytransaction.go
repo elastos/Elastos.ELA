@@ -8,8 +8,8 @@ package transaction
 import (
 	"errors"
 	"fmt"
+
 	"github.com/elastos/Elastos.ELA/common"
-	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	elaerr "github.com/elastos/Elastos.ELA/errors"
 )
@@ -18,18 +18,7 @@ type CRAssetsRectifyTransaction struct {
 	BaseTransaction
 }
 
-func (t *CRAssetsRectifyTransaction) RegisterFunctions() {
-	t.DefaultChecker.CheckTransactionSize = t.checkTransactionSize
-	t.DefaultChecker.CheckTransactionInput = t.checkTransactionInput
-	t.DefaultChecker.CheckTransactionOutput = t.checkTransactionOutput
-	t.DefaultChecker.CheckTransactionPayload = t.CheckTransactionPayload
-	t.DefaultChecker.CheckAttributeProgram = t.CheckAttributeProgram
-	t.DefaultChecker.HeightVersionCheck = t.HeightVersionCheck
-	t.DefaultChecker.IsAllowedInPOWConsensus = t.IsAllowedInPOWConsensus
-	t.DefaultChecker.SpecialContextCheck = t.SpecialContextCheck
-}
-
-func (t *CRAssetsRectifyTransaction) CheckAttributeProgram(params *TransactionParameters) error {
+func (t *CRAssetsRectifyTransaction) CheckAttributeProgram() error {
 	if len(t.Programs()) != 0 {
 		return errors.New("txs should have no programs")
 	}
@@ -39,7 +28,7 @@ func (t *CRAssetsRectifyTransaction) CheckAttributeProgram(params *TransactionPa
 	return nil
 }
 
-func (t *CRAssetsRectifyTransaction) CheckTransactionPayload(params *TransactionParameters) error {
+func (t *CRAssetsRectifyTransaction) CheckTransactionPayload() error {
 	switch t.Payload().(type) {
 	case *payload.CRAssetsRectify:
 		return nil
@@ -48,31 +37,30 @@ func (t *CRAssetsRectifyTransaction) CheckTransactionPayload(params *Transaction
 	return errors.New("invalid payload type")
 }
 
-func (t *CRAssetsRectifyTransaction) IsAllowedInPOWConsensus(params *TransactionParameters, references map[*common2.Input]common2.Output) bool {
+func (t *CRAssetsRectifyTransaction) IsAllowedInPOWConsensus() bool {
 	return true
 }
 
-func (t *CRAssetsRectifyTransaction) HeightVersionCheck(params *TransactionParameters) error {
-	txn := params.Transaction
-	blockHeight := params.BlockHeight
-	chainParams := params.Config
+func (t *CRAssetsRectifyTransaction) HeightVersionCheck() error {
+	blockHeight := t.parameters.BlockHeight
+	chainParams := t.parameters.Config
 
 	if blockHeight < chainParams.CRAssetsRectifyTransactionHeight {
 		return errors.New(fmt.Sprintf("not support %s transaction "+
-			"before CRCProposalWithdrawPayloadV1Height", txn.TxType().Name()))
+			"before CRCProposalWithdrawPayloadV1Height", t.TxType().Name()))
 	}
 	return nil
 }
 
-func (t *CRAssetsRectifyTransaction) SpecialContextCheck(params *TransactionParameters, references map[*common2.Input]common2.Output) (result elaerr.ELAError, end bool) {
+func (t *CRAssetsRectifyTransaction) SpecialContextCheck() (result elaerr.ELAError, end bool) {
 	// Inputs count should be less than or equal to MaxCRAssetsAddressUTXOCount
-	if len(t.Inputs()) > int(params.Config.MaxCRAssetsAddressUTXOCount) {
+	if len(t.Inputs()) > int(t.parameters.Config.MaxCRAssetsAddressUTXOCount) {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("inputs count should be less than or "+
 			"equal to MaxCRAssetsAddressUTXOCount")), true
 	}
 
 	// Inputs count should be greater than or equal to MinCRAssetsAddressUTXOCount
-	if len(t.Inputs()) < int(params.Config.MinCRAssetsAddressUTXOCount) {
+	if len(t.Inputs()) < int(t.parameters.Config.MinCRAssetsAddressUTXOCount) {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("inputs count should be greater than or "+
 			"equal to MinCRAssetsAddressUTXOCount")), true
 	}
@@ -81,7 +69,7 @@ func (t *CRAssetsRectifyTransaction) SpecialContextCheck(params *TransactionPara
 	var totalInput common.Fixed64
 	for _, output := range t.references {
 		totalInput += output.Value
-		if !output.ProgramHash.IsEqual(params.Config.CRAssetsAddress) {
+		if !output.ProgramHash.IsEqual(t.parameters.Config.CRAssetsAddress) {
 			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("input does not from CRAssetsAddress")), true
 		}
 	}
@@ -92,15 +80,15 @@ func (t *CRAssetsRectifyTransaction) SpecialContextCheck(params *TransactionPara
 	}
 
 	// common2.Output should translate to CR assets address only
-	if !t.Outputs()[0].ProgramHash.IsEqual(params.Config.CRAssetsAddress) {
+	if !t.Outputs()[0].ProgramHash.IsEqual(t.parameters.Config.CRAssetsAddress) {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("output does not to CRAssetsAddress")), true
 	}
 
 	// Inputs amount need equal to outputs amount
 	totalOutput := t.Outputs()[0].Value
-	if totalInput != totalOutput+params.Config.RectifyTxFee {
+	if totalInput != totalOutput+t.parameters.Config.RectifyTxFee {
 		return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("inputs minus outputs does not match with %d sela fee , "+
-			"inputs:%s outputs:%s", params.Config.RectifyTxFee, totalInput, totalOutput)), true
+			"inputs:%s outputs:%s", t.parameters.Config.RectifyTxFee, totalInput, totalOutput)), true
 	}
 
 	return nil, false

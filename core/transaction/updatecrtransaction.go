@@ -8,9 +8,9 @@ package transaction
 import (
 	"errors"
 	"fmt"
+
 	"github.com/elastos/Elastos.ELA/blockchain"
 	"github.com/elastos/Elastos.ELA/core/contract"
-	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	crstate "github.com/elastos/Elastos.ELA/cr/state"
 	elaerr "github.com/elastos/Elastos.ELA/errors"
@@ -20,18 +20,7 @@ type UpdateCRTransaction struct {
 	BaseTransaction
 }
 
-func (t *UpdateCRTransaction) RegisterFunctions() {
-	t.DefaultChecker.CheckTransactionSize = t.checkTransactionSize
-	t.DefaultChecker.CheckTransactionInput = t.checkTransactionInput
-	t.DefaultChecker.CheckTransactionOutput = t.checkTransactionOutput
-	t.DefaultChecker.CheckTransactionPayload = t.CheckTransactionPayload
-	t.DefaultChecker.HeightVersionCheck = t.heightVersionCheck
-	t.DefaultChecker.IsAllowedInPOWConsensus = t.IsAllowedInPOWConsensus
-	t.DefaultChecker.SpecialContextCheck = t.SpecialContextCheck
-	t.DefaultChecker.CheckAttributeProgram = t.checkAttributeProgram
-}
-
-func (t *UpdateCRTransaction) CheckTransactionPayload(params *TransactionParameters) error {
+func (t *UpdateCRTransaction) CheckTransactionPayload() error {
 	switch t.Payload().(type) {
 	case *payload.CRInfo:
 		return nil
@@ -40,11 +29,11 @@ func (t *UpdateCRTransaction) CheckTransactionPayload(params *TransactionParamet
 	return errors.New("invalid payload type")
 }
 
-func (t *UpdateCRTransaction) IsAllowedInPOWConsensus(params *TransactionParameters, references map[*common2.Input]common2.Output) bool {
+func (t *UpdateCRTransaction) IsAllowedInPOWConsensus() bool {
 	return false
 }
 
-func (t *UpdateCRTransaction) SpecialContextCheck(params *TransactionParameters, references map[*common2.Input]common2.Output) (elaerr.ELAError, bool) {
+func (t *UpdateCRTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
 	info, ok := t.Payload().(*payload.CRInfo)
 	if !ok {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid payload")), true
@@ -74,7 +63,7 @@ func (t *UpdateCRTransaction) SpecialContextCheck(params *TransactionParameters,
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid cid address")), true
 	}
 
-	if params.BlockHeight >=params.Config.RegisterCRByDIDHeight &&
+	if t.parameters.BlockHeight >=t.parameters.Config.RegisterCRByDIDHeight &&
 		t.PayloadVersion() == payload.CRInfoDIDVersion {
 		// get DID program hash
 
@@ -92,11 +81,11 @@ func (t *UpdateCRTransaction) SpecialContextCheck(params *TransactionParameters,
 	if err := blockchain.CrInfoSanityCheck(info, t.PayloadVersion()); err != nil {
 		return elaerr.Simple(elaerr.ErrTxPayload, err), true
 	}
-	if !params.BlockChain.GetCRCommittee().IsInVotingPeriod(params.BlockHeight) {
+	if !t.parameters.BlockChain.GetCRCommittee().IsInVotingPeriod(t.parameters.BlockHeight) {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("should create tx during voting period")), true
 	}
 
-	cr := params.BlockChain.GetCRCommittee().GetCandidate(info.CID)
+	cr := t.parameters.BlockChain.GetCRCommittee().GetCandidate(info.CID)
 	if cr == nil {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("updating unknown CR")), true
 	}
@@ -106,7 +95,7 @@ func (t *UpdateCRTransaction) SpecialContextCheck(params *TransactionParameters,
 
 	// check nickname usage.
 	if cr.Info().NickName != info.NickName &&
-		params.BlockChain.GetCRCommittee().ExistCandidateByNickname(info.NickName) {
+		t.parameters.BlockChain.GetCRCommittee().ExistCandidateByNickname(info.NickName) {
 		return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("nick name %s already exist", info.NickName)), true
 	}
 

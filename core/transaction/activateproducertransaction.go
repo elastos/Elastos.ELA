@@ -12,7 +12,6 @@ import (
 
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/core/contract"
-	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	crstate "github.com/elastos/Elastos.ELA/cr/state"
 	"github.com/elastos/Elastos.ELA/crypto"
@@ -24,45 +23,33 @@ type ActivateProducerTransaction struct {
 	BaseTransaction
 }
 
-func (t *ActivateProducerTransaction) RegisterFunctions() {
-	t.DefaultChecker.CheckTransactionSize = t.checkTransactionSize
-	t.DefaultChecker.CheckTransactionInput = t.CheckTransactionInput
-	t.DefaultChecker.CheckTransactionOutput = t.CheckTransactionOutput
-	t.DefaultChecker.CheckTransactionPayload = t.CheckTransactionPayload
-	t.DefaultChecker.HeightVersionCheck = t.heightVersionCheck
-	t.DefaultChecker.IsAllowedInPOWConsensus = t.IsAllowedInPOWConsensus
-	t.DefaultChecker.SpecialContextCheck = t.SpecialContextCheck
-	t.DefaultChecker.CheckAttributeProgram = t.CheckAttributeProgram
-}
-
-func (t *ActivateProducerTransaction) CheckTransactionInput(params *TransactionParameters) error {
-	if len(params.Transaction.Inputs()) != 0 {
+func (t *ActivateProducerTransaction) CheckTransactionInput() error {
+	if len(t.Inputs()) != 0 {
 		return errors.New("no cost transactions must has no input")
 	}
 	return nil
 }
 
-func (t *ActivateProducerTransaction) CheckTransactionOutput(params *TransactionParameters) error {
+func (t *ActivateProducerTransaction) CheckTransactionOutput() error {
 
-	txn := params.Transaction
-	if len(txn.Outputs()) > math.MaxUint16 {
+	if len(t.Outputs()) > math.MaxUint16 {
 		return errors.New("output count should not be greater than 65535(MaxUint16)")
 	}
-	if len(txn.Outputs()) != 0 {
+	if len(t.Outputs()) != 0 {
 		return errors.New("no cost transactions should have no output")
 	}
 
 	return nil
 }
 
-func (t *ActivateProducerTransaction) CheckAttributeProgram(params *TransactionParameters) error {
+func (t *ActivateProducerTransaction) CheckAttributeProgram() error {
 	if len(t.Programs()) != 0 || len(t.Attributes()) != 0 {
 		return errors.New("zero cost tx should have no attributes and programs")
 	}
 	return nil
 }
 
-func (t *ActivateProducerTransaction) CheckTransactionPayload(params *TransactionParameters) error {
+func (t *ActivateProducerTransaction) CheckTransactionPayload() error {
 	switch t.Payload().(type) {
 	case *payload.ActivateProducer:
 		return nil
@@ -71,11 +58,11 @@ func (t *ActivateProducerTransaction) CheckTransactionPayload(params *Transactio
 	return errors.New("invalid payload type")
 }
 
-func (t *ActivateProducerTransaction) IsAllowedInPOWConsensus(params *TransactionParameters, references map[*common2.Input]common2.Output) bool {
+func (t *ActivateProducerTransaction) IsAllowedInPOWConsensus() bool {
 	return true
 }
 
-func (t *ActivateProducerTransaction) SpecialContextCheck(params *TransactionParameters, references map[*common2.Input]common2.Output) (elaerr.ELAError, bool) {
+func (t *ActivateProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
 
 	activateProducer, ok := t.Payload().(*payload.ActivateProducer)
 	if !ok {
@@ -87,34 +74,34 @@ func (t *ActivateProducerTransaction) SpecialContextCheck(params *TransactionPar
 		return elaerr.Simple(elaerr.ErrTxPayload, err), true
 	}
 
-	if params.BlockChain.GetCRCommittee().IsInElectionPeriod() {
-		crMember := params.BlockChain.GetCRCommittee().GetMemberByNodePublicKey(activateProducer.NodePublicKey)
+	if t.parameters.BlockChain.GetCRCommittee().IsInElectionPeriod() {
+		crMember := t.parameters.BlockChain.GetCRCommittee().GetMemberByNodePublicKey(activateProducer.NodePublicKey)
 		if crMember != nil && (crMember.MemberState == crstate.MemberInactive ||
 			crMember.MemberState == crstate.MemberIllegal) {
-			if params.BlockHeight < params.Config.EnableActivateIllegalHeight &&
+			if t.parameters.BlockHeight < t.parameters.Config.EnableActivateIllegalHeight &&
 				crMember.MemberState == crstate.MemberIllegal {
 				return elaerr.Simple(elaerr.ErrTxPayload, errors.New(
 					"activate MemberIllegal CR is not allowed before EnableActivateIllegalHeight")), true
 			}
-			if params.BlockChain.GetCRCommittee().GetAvailableDepositAmount(crMember.Info.CID) < 0 {
+			if t.parameters.BlockChain.GetCRCommittee().GetAvailableDepositAmount(crMember.Info.CID) < 0 {
 				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("balance of CR is not enough ")), true
 			}
 			return nil, true
 		}
 	}
 
-	producer := params.BlockChain.GetState().GetProducer(activateProducer.NodePublicKey)
+	producer := t.parameters.BlockChain.GetState().GetProducer(activateProducer.NodePublicKey)
 	if producer == nil || !bytes.Equal(producer.NodePublicKey(),
 		activateProducer.NodePublicKey) {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("getting unknown producer")), true
 	}
 
-	if params.BlockHeight < params.Config.EnableActivateIllegalHeight {
+	if t.parameters.BlockHeight < t.parameters.Config.EnableActivateIllegalHeight {
 		if producer.State() != state.Inactive {
 			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("can not activate this producer")), true
 		}
 	} else {
-		if params.BlockHeight < params.Config.ChangeCommitteeNewCRHeight {
+		if t.parameters.BlockHeight < t.parameters.Config.ChangeCommitteeNewCRHeight {
 			if producer.State() != state.Active &&
 				producer.State() != state.Inactive &&
 				producer.State() != state.Illegal {
@@ -129,20 +116,20 @@ func (t *ActivateProducerTransaction) SpecialContextCheck(params *TransactionPar
 
 	}
 
-	if params.BlockHeight > producer.ActivateRequestHeight() &&
-		params.BlockHeight-producer.ActivateRequestHeight() <= state.ActivateDuration {
+	if t.parameters.BlockHeight > producer.ActivateRequestHeight() &&
+		t.parameters.BlockHeight-producer.ActivateRequestHeight() <= state.ActivateDuration {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("can only activate once during inactive state")), true
 	}
 
 	depositAmount := common.Fixed64(0)
-	if params.BlockHeight < params.Config.CRVotingStartHeight {
+	if t.parameters.BlockHeight < t.parameters.Config.CRVotingStartHeight {
 		programHash, err := contract.PublicKeyToDepositProgramHash(
 			producer.OwnerPublicKey())
 		if err != nil {
 			return elaerr.Simple(elaerr.ErrTxPayload, err), true
 		}
 
-		utxos, err := params.BlockChain.GetDB().GetFFLDB().GetUTXO(programHash)
+		utxos, err := t.parameters.BlockChain.GetDB().GetFFLDB().GetUTXO(programHash)
 		if err != nil {
 			return elaerr.Simple(elaerr.ErrTxPayload, err), true
 		}

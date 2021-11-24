@@ -38,8 +38,7 @@ type BaseTransaction struct {
 	fee            common.Fixed64
 	feePerKB       common.Fixed64
 
-	txHash     *common.Uint256
-	parameters *TransactionParameters
+	txHash *common.Uint256
 }
 
 func (tx *BaseTransaction) Version() common2.TransactionVersion {

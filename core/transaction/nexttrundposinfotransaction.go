@@ -8,7 +8,6 @@ package transaction
 import (
 	"bytes"
 	"errors"
-	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"math"
 
 	"github.com/elastos/Elastos.ELA/blockchain"
@@ -22,45 +21,33 @@ type NextTurnDPOSInfoTransaction struct {
 	BaseTransaction
 }
 
-func (t *NextTurnDPOSInfoTransaction) RegisterFunctions() {
-	t.DefaultChecker.CheckTransactionSize = t.checkTransactionSize
-	t.DefaultChecker.CheckTransactionInput = t.CheckTransactionInput
-	t.DefaultChecker.CheckTransactionOutput = t.CheckTransactionOutput
-	t.DefaultChecker.CheckTransactionPayload = t.CheckTransactionPayload
-	t.DefaultChecker.HeightVersionCheck = t.heightVersionCheck
-	t.DefaultChecker.IsAllowedInPOWConsensus = t.IsAllowedInPOWConsensus
-	t.DefaultChecker.SpecialContextCheck = t.SpecialContextCheck
-	t.DefaultChecker.CheckAttributeProgram = t.CheckAttributeProgram
-}
-
-func (t *NextTurnDPOSInfoTransaction) CheckTransactionInput(params *TransactionParameters) error {
-	if len(params.Transaction.Inputs()) != 0 {
+func (t *NextTurnDPOSInfoTransaction) CheckTransactionInput() error {
+	if len(t.Inputs()) != 0 {
 		return errors.New("no cost transactions must has no input")
 	}
 	return nil
 }
 
-func (t *NextTurnDPOSInfoTransaction)  CheckTransactionOutput(params *TransactionParameters) error {
+func (t *NextTurnDPOSInfoTransaction)  CheckTransactionOutput() error {
 
-	txn := params.Transaction
-	if len(txn.Outputs()) > math.MaxUint16 {
+	if len(t.Outputs()) > math.MaxUint16 {
 		return errors.New("output count should not be greater than 65535(MaxUint16)")
 	}
-	if len(txn.Outputs()) != 0 {
+	if len(t.Outputs()) != 0 {
 		return errors.New("no cost transactions should have no output")
 	}
 
 	return nil
 }
 
-func (t *NextTurnDPOSInfoTransaction) CheckAttributeProgram(params *TransactionParameters) error {
+func (t *NextTurnDPOSInfoTransaction) CheckAttributeProgram() error {
 	if len(t.Programs()) != 0 || len(t.Attributes()) != 0 {
 		return errors.New("zero cost tx should have no attributes and programs")
 	}
 	return nil
 }
 
-func (t *NextTurnDPOSInfoTransaction) CheckTransactionPayload(params *TransactionParameters) error {
+func (t *NextTurnDPOSInfoTransaction) CheckTransactionPayload() error {
 	switch t.Payload().(type) {
 	case *payload.NextTurnDPOSInfo:
 		return nil
@@ -69,11 +56,11 @@ func (t *NextTurnDPOSInfoTransaction) CheckTransactionPayload(params *Transactio
 	return errors.New("invalid payload type")
 }
 
-func (t *NextTurnDPOSInfoTransaction) IsAllowedInPOWConsensus(params *TransactionParameters, references map[*common2.Input]common2.Output) bool {
+func (t *NextTurnDPOSInfoTransaction) IsAllowedInPOWConsensus() bool {
 	return true
 }
 
-func (t *NextTurnDPOSInfoTransaction) SpecialContextCheck(params *TransactionParameters, references map[*common2.Input]common2.Output) (elaerr.ELAError, bool) {
+func (t *NextTurnDPOSInfoTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
 	nextTurnDPOSInfo, ok := t.Payload().(*payload.NextTurnDPOSInfo)
 	if !ok {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid NextTurnDPOSInfo payload")), true

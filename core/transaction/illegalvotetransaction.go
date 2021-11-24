@@ -21,45 +21,33 @@ type IllegalVoteTransaction struct {
 	BaseTransaction
 }
 
-func (t *IllegalVoteTransaction) RegisterFunctions() {
-	t.DefaultChecker.CheckTransactionSize = t.checkTransactionSize
-	t.DefaultChecker.CheckTransactionInput = t.CheckTransactionInput
-	t.DefaultChecker.CheckTransactionOutput = t.CheckTransactionOutput
-	t.DefaultChecker.CheckTransactionPayload = t.CheckTransactionPayload
-	t.DefaultChecker.HeightVersionCheck = t.heightVersionCheck
-	t.DefaultChecker.IsAllowedInPOWConsensus = t.IsAllowedInPOWConsensus
-	t.DefaultChecker.SpecialContextCheck = t.SpecialContextCheck
-	t.DefaultChecker.CheckAttributeProgram = t.CheckAttributeProgram
-}
-
-func (t *IllegalVoteTransaction) CheckTransactionInput(params *TransactionParameters) error {
-	if len(params.Transaction.Inputs()) != 0 {
+func (t *IllegalVoteTransaction) CheckTransactionInput() error {
+	if len(t.Inputs()) != 0 {
 		return errors.New("no cost transactions must has no input")
 	}
 	return nil
 }
 
-func (t *IllegalVoteTransaction) CheckTransactionOutput(params *TransactionParameters) error {
+func (t *IllegalVoteTransaction) CheckTransactionOutput() error {
 
-	txn := params.Transaction
-	if len(txn.Outputs()) > math.MaxUint16 {
+	if len(t.Outputs()) > math.MaxUint16 {
 		return errors.New("output count should not be greater than 65535(MaxUint16)")
 	}
-	if len(txn.Outputs()) != 0 {
+	if len(t.Outputs()) != 0 {
 		return errors.New("no cost transactions should have no output")
 	}
 
 	return nil
 }
 
-func (t *IllegalVoteTransaction) CheckAttributeProgram(params *TransactionParameters) error {
+func (t *IllegalVoteTransaction) CheckAttributeProgram() error {
 	if len(t.Programs()) != 0 || len(t.Attributes()) != 0 {
 		return errors.New("zero cost tx should have no attributes and programs")
 	}
 	return nil
 }
 
-func (t *IllegalVoteTransaction) CheckTransactionPayload(params *TransactionParameters) error {
+func (t *IllegalVoteTransaction) CheckTransactionPayload() error {
 	switch t.Payload().(type) {
 	case *payload.DPOSIllegalVotes:
 		return nil
@@ -68,12 +56,12 @@ func (t *IllegalVoteTransaction) CheckTransactionPayload(params *TransactionPara
 	return errors.New("invalid payload type")
 }
 
-func (t *IllegalVoteTransaction) IsAllowedInPOWConsensus(params *TransactionParameters, references map[*common.Input]common.Output) bool {
+func (t *IllegalVoteTransaction) IsAllowedInPOWConsensus() bool {
 	return true
 }
 
-func (t *IllegalVoteTransaction) SpecialContextCheck(params *TransactionParameters, references map[*common.Input]common.Output) (result elaerr.ELAError, end bool) {
-	if params.BlockChain.GetState().SpecialTxExists(t) {
+func (t *IllegalVoteTransaction) SpecialContextCheck() (result elaerr.ELAError, end bool) {
+	if t.parameters.BlockChain.GetState().SpecialTxExists(t) {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("tx already exists")), true
 	}
 

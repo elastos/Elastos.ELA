@@ -26,39 +26,9 @@ import (
 )
 
 type DefaultChecker struct {
-	/// SANITY CHECK
-	CheckTransactionSize func(params *TransactionParameters) error
-	// check transaction inputs
-	CheckTransactionInput func(params *TransactionParameters) error
-	// check transaction outputs
-	CheckTransactionOutput func(params *TransactionParameters) error
-	// check transaction payload type
-	CheckTransactionPayload func(params *TransactionParameters) error
-	// check transaction attributes and programs
-	CheckAttributeProgram func(params *TransactionParameters) error
-
-	/// CONTEXT CHECK
-	// check height version
-	HeightVersionCheck func(params *TransactionParameters) error
-	// if the transaction should create in POW need to return true
-	IsAllowedInPOWConsensus func(params *TransactionParameters, references map[*common2.Input]common2.Output) bool
-	// the special context check of transaction, such as check the transaction payload
-	SpecialContextCheck func(params *TransactionParameters, references map[*common2.Input]common2.Output) (error elaerr.ELAError, end bool)
-
 	// config
 	parameters *TransactionParameters
 	references map[*common2.Input]common2.Output
-}
-
-func (t *DefaultChecker) RegisterFunctions() {
-	t.CheckTransactionSize = t.checkTransactionSize
-	t.CheckTransactionInput = t.checkTransactionInput
-	t.CheckTransactionOutput = t.checkTransactionOutput
-	t.CheckTransactionPayload = t.checkTransactionPayload
-	t.CheckAttributeProgram = t.checkAttributeProgram
-	t.HeightVersionCheck = t.heightVersionCheck
-	t.IsAllowedInPOWConsensus = t.isAllowedInPOWConsensus
-	t.SpecialContextCheck = t.specialContextCheck
 }
 
 func (t *DefaultChecker) SanityCheck(params interfaces.Parameters) elaerr.ELAError {
@@ -66,17 +36,17 @@ func (t *DefaultChecker) SanityCheck(params interfaces.Parameters) elaerr.ELAErr
 		return elaerr.Simple(elaerr.ErrFail, errors.New("invalid parameters"))
 	}
 
-	if err := t.HeightVersionCheck(t.parameters); err != nil {
+	if err := t.HeightVersionCheck(); err != nil {
 		log.Warn("[HeightVersionCheck],", err)
 		return elaerr.Simple(elaerr.ErrTxHeightVersion, nil)
 	}
 
-	if err := t.CheckTransactionSize(t.parameters); err != nil {
+	if err := t.CheckTransactionSize(); err != nil {
 		log.Warn("[CheckTransactionSize],", err)
 		return elaerr.Simple(elaerr.ErrTxSize, err)
 	}
 
-	if err := t.CheckTransactionInput(t.parameters); err != nil {
+	if err := t.CheckTransactionInput(); err != nil {
 		log.Warn("[CheckTransactionInput],", err)
 		return elaerr.Simple(elaerr.ErrTxInvalidInput, err)
 	}
@@ -86,7 +56,7 @@ func (t *DefaultChecker) SanityCheck(params interfaces.Parameters) elaerr.ELAErr
 		return elaerr.Simple(elaerr.ErrTxAssetPrecision, err)
 	}
 
-	if err := t.CheckAttributeProgram(t.parameters); err != nil {
+	if err := t.CheckAttributeProgram(); err != nil {
 		log.Warn("[CheckAttributeProgram],", err)
 		return elaerr.Simple(elaerr.ErrTxAttributeProgram, err)
 	}
@@ -102,7 +72,7 @@ func (t *DefaultChecker) ContextCheck(params interfaces.Parameters) (
 		return nil, elaerr.Simple(elaerr.ErrTxDuplicate, errors.New("invalid parameters"))
 	}
 
-	if err := t.HeightVersionCheck(t.parameters); err != nil {
+	if err := t.HeightVersionCheck(); err != nil {
 		log.Warn("[CheckTransactionContext] height version check failed.")
 		return nil, elaerr.Simple(elaerr.ErrTxHeightVersion, nil)
 	}
@@ -120,7 +90,7 @@ func (t *DefaultChecker) ContextCheck(params interfaces.Parameters) (
 	t.references = references
 
 	if t.parameters.BlockChain.GetState().GetConsensusAlgorithm() == state.POW {
-		if !t.IsAllowedInPOWConsensus(t.parameters, references) {
+		if !t.IsAllowedInPOWConsensus() {
 			log.Warnf("[CheckTransactionContext], %s transaction is not allowed in POW", t.parameters.Transaction.TxType().Name())
 			return nil, elaerr.Simple(elaerr.ErrTxValidation, nil)
 		}
@@ -137,7 +107,7 @@ func (t *DefaultChecker) ContextCheck(params interfaces.Parameters) (
 		return nil, elaerr.Simple(elaerr.ErrTxUTXOLocked, err)
 	}
 
-	cerr, end := t.SpecialContextCheck(t.parameters, references)
+	cerr, end := t.SpecialContextCheck()
 	if end {
 		return nil, cerr
 	}
@@ -189,8 +159,8 @@ func (t *DefaultChecker) SetParameters(params interface{}) elaerr.ELAError {
 	return nil
 }
 
-func (t *DefaultChecker) checkTransactionSize(params *TransactionParameters) error {
-	size := params.Transaction.GetSize()
+func (t *DefaultChecker) CheckTransactionSize() error {
+	size := t.parameters.Transaction.GetSize()
 	if size <= 0 || size > int(pact.MaxBlockContextSize) {
 		return fmt.Errorf("Invalid transaction size: %d bytes", size)
 	}
@@ -199,8 +169,8 @@ func (t *DefaultChecker) checkTransactionSize(params *TransactionParameters) err
 }
 
 //validate the transaction of duplicate UTXO input
-func (t *DefaultChecker) checkTransactionInput(params *TransactionParameters) error {
-	txn := params.Transaction
+func (t *DefaultChecker) CheckTransactionInput() error {
+	txn := t.parameters.Transaction
 	if len(txn.Inputs()) <= 0 {
 		return errors.New("transaction has no inputs")
 	}
@@ -219,10 +189,10 @@ func (t *DefaultChecker) checkTransactionInput(params *TransactionParameters) er
 	return nil
 }
 
-func (t *DefaultChecker) checkTransactionOutput(params *TransactionParameters) error {
+func (t *DefaultChecker) CheckTransactionOutput() error {
 
-	txn := params.Transaction
-	blockHeight := params.BlockHeight
+	txn := t.parameters.Transaction
+	blockHeight := t.parameters.BlockHeight
 	// check outputs count
 	if len(txn.Outputs()) > math.MaxUint16 {
 		return errors.New("output count should not be greater than 65535(MaxUint16)")
@@ -257,15 +227,15 @@ func (t *DefaultChecker) checkTransactionOutput(params *TransactionParameters) e
 		}
 	}
 
-	if blockHeight >= params.Config.PublicDPOSHeight && specialOutputCount > 1 {
+	if blockHeight >= t.parameters.Config.PublicDPOSHeight && specialOutputCount > 1 {
 		return errors.New("special output count should less equal than 1")
 	}
 
 	return nil
 }
 
-func (t *DefaultChecker) checkAttributeProgram(params *TransactionParameters) error {
-	tx := params.Transaction
+func (t *DefaultChecker) CheckAttributeProgram() error {
+	tx := t.parameters.Transaction
 	// Check attributes
 	for _, attr := range tx.Attributes() {
 		if !common2.IsValidAttributeType(attr.Usage) {
@@ -288,7 +258,7 @@ func (t *DefaultChecker) checkAttributeProgram(params *TransactionParameters) er
 	return nil
 }
 
-func (t *DefaultChecker) checkTransactionPayload(params *TransactionParameters) error {
+func (t *DefaultChecker) CheckTransactionPayload() error {
 	return errors.New("invalid payload type")
 }
 
@@ -300,7 +270,7 @@ func (t *DefaultChecker) isSmallThanMinTransactionFee(fee common.Fixed64) bool {
 }
 
 // validate the type of transaction is allowed or not at current height.
-func (t *DefaultChecker) heightVersionCheck(params *TransactionParameters) error {
+func (t *DefaultChecker) HeightVersionCheck() error {
 	return nil
 }
 
@@ -313,7 +283,7 @@ func (t *DefaultChecker) GetTxReference(txn interfaces.Transaction) (
 	return t.parameters.BlockChain.UTXOCache.GetTxReference(txn)
 }
 
-func (t *DefaultChecker) isAllowedInPOWConsensus(params *TransactionParameters, references map[*common2.Input]common2.Output) bool {
+func (t *DefaultChecker) IsAllowedInPOWConsensus() bool {
 	return true
 }
 
@@ -334,8 +304,7 @@ func (t *DefaultChecker) CheckTransactionUTXOLock(txn interfaces.Transaction, re
 	return nil
 }
 
-func (t *DefaultChecker) specialContextCheck(params *TransactionParameters,
-	references map[*common2.Input]common2.Output) (elaerr.ELAError, bool) {
+func (t *DefaultChecker) SpecialContextCheck() (elaerr.ELAError, bool) {
 	return nil, false
 }
 

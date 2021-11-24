@@ -8,7 +8,6 @@ package transaction
 import (
 	"errors"
 	"fmt"
-	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
@@ -19,18 +18,7 @@ type CRCProposalRealWithdrawTransaction struct {
 	BaseTransaction
 }
 
-func (t *CRCProposalRealWithdrawTransaction) RegisterFunctions() {
-	t.DefaultChecker.CheckTransactionSize = t.checkTransactionSize
-	t.DefaultChecker.CheckTransactionInput = t.checkTransactionInput
-	t.DefaultChecker.CheckTransactionOutput = t.checkTransactionOutput
-	t.DefaultChecker.CheckTransactionPayload = t.CheckTransactionPayload
-	t.DefaultChecker.HeightVersionCheck = t.heightVersionCheck
-	t.DefaultChecker.IsAllowedInPOWConsensus = t.IsAllowedInPOWConsensus
-	t.DefaultChecker.SpecialContextCheck = t.SpecialContextCheck
-	t.DefaultChecker.CheckAttributeProgram = t.checkAttributeProgram
-}
-
-func (t *CRCProposalRealWithdrawTransaction) CheckAttributeProgram(params *TransactionParameters) error {
+func (t *CRCProposalRealWithdrawTransaction) CheckAttributeProgram() error {
 	if len(t.Programs()) != 0 {
 		return errors.New("txs should have no programs")
 	}
@@ -40,7 +28,7 @@ func (t *CRCProposalRealWithdrawTransaction) CheckAttributeProgram(params *Trans
 	return nil
 }
 
-func (t *CRCProposalRealWithdrawTransaction) CheckTransactionPayload(params *TransactionParameters) error {
+func (t *CRCProposalRealWithdrawTransaction) CheckTransactionPayload() error {
 	switch t.Payload().(type) {
 	case *payload.CRCProposalRealWithdraw:
 		return nil
@@ -49,23 +37,22 @@ func (t *CRCProposalRealWithdrawTransaction) CheckTransactionPayload(params *Tra
 	return errors.New("invalid payload type")
 }
 
-func (t *CRCProposalRealWithdrawTransaction) IsAllowedInPOWConsensus(params *TransactionParameters, references map[*common2.Input]common2.Output) bool {
+func (t *CRCProposalRealWithdrawTransaction) IsAllowedInPOWConsensus() bool {
 	return true
 }
 
-func (t *CRCProposalRealWithdrawTransaction) HeightVersionCheck(params *TransactionParameters) error {
-	txn := params.Transaction
-	blockHeight := params.BlockHeight
-	chainParams := params.Config
+func (t *CRCProposalRealWithdrawTransaction) HeightVersionCheck() error {
+	blockHeight := t.parameters.BlockHeight
+	chainParams := t.parameters.Config
 
 	if blockHeight < chainParams.CRAssetsRectifyTransactionHeight {
 		return errors.New(fmt.Sprintf("not support %s transaction "+
-			"before CRCProposalWithdrawPayloadV1Height", txn.TxType().Name()))
+			"before CRCProposalWithdrawPayloadV1Height", t.TxType().Name()))
 	}
 	return nil
 }
 
-func (t *CRCProposalRealWithdrawTransaction) SpecialContextCheck(params *TransactionParameters, references map[*common2.Input]common2.Output) (result elaerr.ELAError, end bool) {
+func (t *CRCProposalRealWithdrawTransaction) SpecialContextCheck() (result elaerr.ELAError, end bool) {
 	crcRealWithdraw, ok := t.Payload().(*payload.CRCProposalRealWithdraw)
 	if !ok {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid payload")), true
@@ -79,13 +66,13 @@ func (t *CRCProposalRealWithdrawTransaction) SpecialContextCheck(params *Transac
 	// if need change, the last output is only allowed to CRExpensesAddress.
 	if txsCount != len(t.Outputs()) {
 		toProgramHash := t.Outputs()[len(t.Outputs())-1].ProgramHash
-		if !toProgramHash.IsEqual(params.Config.CRExpensesAddress) {
+		if !toProgramHash.IsEqual(t.parameters.Config.CRExpensesAddress) {
 			return elaerr.Simple(elaerr.ErrTxPayload, errors.New(fmt.Sprintf("last output is invalid"))), true
 		}
 	}
 
 	// check other outputs, need to match with WithdrawTransactionHashes
-	txs := params.BlockChain.GetCRCommittee().GetRealWithdrawTransactions()
+	txs := t.parameters.BlockChain.GetCRCommittee().GetRealWithdrawTransactions()
 	txsMap := make(map[common.Uint256]struct{})
 	for i, hash := range crcRealWithdraw.WithdrawTransactionHashes {
 		txInfo, ok := txs[hash]
@@ -96,10 +83,10 @@ func (t *CRCProposalRealWithdrawTransaction) SpecialContextCheck(params *Transac
 		if !output.ProgramHash.IsEqual(txInfo.Recipient) {
 			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid real withdraw output address")), true
 		}
-		if output.Value != txInfo.Amount-params.Config.RealWithdrawSingleFee {
+		if output.Value != txInfo.Amount-t.parameters.Config.RealWithdrawSingleFee {
 			return elaerr.Simple(elaerr.ErrTxPayload, errors.New(fmt.Sprintf("invalid real withdraw output "+
 				"amount:%s, need to be:%s",
-				output.Value, txInfo.Amount-params.Config.RealWithdrawSingleFee))), true
+				output.Value, txInfo.Amount-t.parameters.Config.RealWithdrawSingleFee))), true
 		}
 		if _, ok := txsMap[hash]; ok {
 			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("duplicated real withdraw transactions hash")), true
@@ -116,10 +103,10 @@ func (t *CRCProposalRealWithdrawTransaction) SpecialContextCheck(params *Transac
 	for _, o := range t.Outputs() {
 		outputAmount += o.Value
 	}
-	if inputAmount-outputAmount != params.Config.RealWithdrawSingleFee*common.Fixed64(txsCount) {
+	if inputAmount-outputAmount != t.parameters.Config.RealWithdrawSingleFee*common.Fixed64(txsCount) {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New(fmt.Sprintf("invalid real withdraw transaction"+
 			" fee:%s, need to be:%s, txsCount:%d", inputAmount-outputAmount,
-			params.Config.RealWithdrawSingleFee*common.Fixed64(txsCount), txsCount))), true
+			t.parameters.Config.RealWithdrawSingleFee*common.Fixed64(txsCount), txsCount))), true
 	}
 
 	return nil, false

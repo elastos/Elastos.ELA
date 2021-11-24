@@ -8,11 +8,11 @@ package transaction
 import (
 	"errors"
 	"fmt"
-	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"math"
 
 	"github.com/elastos/Elastos.ELA/blockchain"
 	"github.com/elastos/Elastos.ELA/core/contract/program"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/crypto"
 	"github.com/elastos/Elastos.ELA/dpos/state"
@@ -23,37 +23,25 @@ type RevertToDPOSTransaction struct {
 	BaseTransaction
 }
 
-func (t *RevertToDPOSTransaction) RegisterFunctions() {
-	t.DefaultChecker.CheckTransactionSize = t.checkTransactionSize
-	t.DefaultChecker.CheckTransactionInput = t.CheckTransactionInput
-	t.DefaultChecker.CheckTransactionOutput = t.CheckTransactionOutput
-	t.DefaultChecker.CheckTransactionPayload = t.CheckTransactionPayload
-	t.DefaultChecker.HeightVersionCheck = t.HeightVersionCheck
-	t.DefaultChecker.IsAllowedInPOWConsensus = t.IsAllowedInPOWConsensus
-	t.DefaultChecker.SpecialContextCheck = t.SpecialContextCheck
-	t.DefaultChecker.CheckAttributeProgram = t.CheckAttributeProgram
-}
-
-func (t *RevertToDPOSTransaction) CheckTransactionInput(params *TransactionParameters) error {
-	if len(params.Transaction.Inputs()) != 0 {
+func (t *RevertToDPOSTransaction) CheckTransactionInput() error {
+	if len(t.Inputs()) != 0 {
 		return errors.New("no cost transactions must has no input")
 	}
 	return nil
 }
 
-func (t *RevertToDPOSTransaction) CheckTransactionOutput(params *TransactionParameters) error {
+func (t *RevertToDPOSTransaction) CheckTransactionOutput() error {
 
-	txn := params.Transaction
-	if len(txn.Outputs()) > math.MaxUint16 {
+	if len(t.Outputs()) > math.MaxUint16 {
 		return errors.New("output count should not be greater than 65535(MaxUint16)")
 	}
-	if len(txn.Outputs()) != 0 {
+	if len(t.Outputs()) != 0 {
 		return errors.New("no cost transactions should have no output")
 	}
 
 	return nil
 }
-func (t *RevertToDPOSTransaction) CheckAttributeProgram(params *TransactionParameters) error {
+func (t *RevertToDPOSTransaction) CheckAttributeProgram() error {
 
 	// check programs count and attributes count
 	if len(t.Programs()) != 1 {
@@ -86,7 +74,7 @@ func (t *RevertToDPOSTransaction) CheckAttributeProgram(params *TransactionParam
 	return nil
 }
 
-func (t *RevertToDPOSTransaction) CheckTransactionPayload(params *TransactionParameters) error {
+func (t *RevertToDPOSTransaction) CheckTransactionPayload() error {
 	switch t.Payload().(type) {
 	case *payload.RevertToDPOS:
 		return nil
@@ -95,12 +83,12 @@ func (t *RevertToDPOSTransaction) CheckTransactionPayload(params *TransactionPar
 	return errors.New("invalid payload type")
 }
 
-func (t *RevertToDPOSTransaction) IsAllowedInPOWConsensus(params *TransactionParameters, references map[*common2.Input]common2.Output) bool {
+func (t *RevertToDPOSTransaction) IsAllowedInPOWConsensus() bool {
 	return true
 }
 
-func (t *RevertToDPOSTransaction) HeightVersionCheck(params *TransactionParameters) error {
-	if params.BlockHeight < params.Config.RevertToPOWStartHeight {
+func (t *RevertToDPOSTransaction) HeightVersionCheck() error {
+	if t.parameters.BlockHeight < t.parameters.Config.RevertToPOWStartHeight {
 		return errors.New(fmt.Sprintf("not support %s transaction "+
 			"before RevertToPOWStartHeight", t.TxType().Name()))
 	}
@@ -108,7 +96,7 @@ func (t *RevertToDPOSTransaction) HeightVersionCheck(params *TransactionParamete
 	return nil
 }
 
-func (t *RevertToDPOSTransaction) SpecialContextCheck(params *TransactionParameters, references map[*common2.Input]common2.Output) (elaerr.ELAError, bool) {
+func (t *RevertToDPOSTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
 	p, ok := t.Payload().(*payload.RevertToDPOS)
 	if !ok {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid payload.RevertToDPOS")), true
@@ -119,12 +107,12 @@ func (t *RevertToDPOSTransaction) SpecialContextCheck(params *TransactionParamet
 	}
 
 	// check dpos state
-	if params.BlockChain.GetState().GetConsensusAlgorithm() != state.POW {
+	if t.parameters.BlockChain.GetState().GetConsensusAlgorithm() != state.POW {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid GetConsensusAlgorithm() != state.POW")), true
 	}
 
 	// to avoid init DPOSWorkHeight repeatedly
-	if params.BlockChain.GetState().DPOSWorkHeight > params.BlockHeight {
+	if t.parameters.BlockChain.GetState().DPOSWorkHeight > t.parameters.BlockHeight {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("already receieved  revertodpos")), true
 	}
 

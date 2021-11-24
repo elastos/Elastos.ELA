@@ -21,25 +21,13 @@ type CoinBaseTransaction struct {
 	BaseTransaction
 }
 
-func (t *CoinBaseTransaction) RegisterFunctions() {
-	t.DefaultChecker.CheckTransactionSize = t.checkTransactionSize
-	t.DefaultChecker.CheckTransactionInput = t.CheckTransactionInput
-	t.DefaultChecker.CheckTransactionOutput = t.CheckTransactionOutput
-	t.DefaultChecker.CheckTransactionPayload = t.CheckTransactionPayload
-	t.DefaultChecker.HeightVersionCheck = t.heightVersionCheck
-	t.DefaultChecker.IsAllowedInPOWConsensus = t.IsAllowedInPOWConsensus
-	t.DefaultChecker.SpecialContextCheck = t.SpecialContextCheck
-	t.DefaultChecker.CheckAttributeProgram = t.CheckAttributeProgram
-}
-
-func (t *CoinBaseTransaction) CheckTransactionInput(params *TransactionParameters) error {
-	txn := params.Transaction
-	if len(txn.Inputs()) != 1 {
+func (t *CoinBaseTransaction) CheckTransactionInput() error {
+	if len(t.Inputs()) != 1 {
 		return errors.New("coinbase must has only one input")
 	}
-	inputHash := txn.Inputs()[0].Previous.TxID
-	inputIndex := txn.Inputs()[0].Previous.Index
-	sequence := txn.Inputs()[0].Sequence
+	inputHash := t.Inputs()[0].Previous.TxID
+	inputIndex := t.Inputs()[0].Previous.Index
+	sequence := t.Inputs()[0].Sequence
 	if !inputHash.IsEqual(common.EmptyHash) ||
 		inputIndex != math.MaxUint16 || sequence != math.MaxUint32 {
 		return errors.New("invalid coinbase input")
@@ -48,23 +36,22 @@ func (t *CoinBaseTransaction) CheckTransactionInput(params *TransactionParameter
 	return nil
 }
 
-func (t *CoinBaseTransaction) CheckTransactionOutput(params *TransactionParameters) error {
+func (t *CoinBaseTransaction) CheckTransactionOutput() error {
 
-	txn := params.Transaction
-	blockHeight := params.BlockHeight
-	chainParams := params.Config
+	blockHeight := t.parameters.BlockHeight
+	chainParams := t.parameters.Config
 
-	if len(txn.Outputs()) > math.MaxUint16 {
+	if len(t.Outputs()) > math.MaxUint16 {
 		return errors.New("output count should not be greater than 65535(MaxUint16)")
 	}
-	if len(txn.Outputs()) < 2 {
+	if len(t.Outputs()) < 2 {
 		return errors.New("coinbase output is not enough, at least 2")
 	}
 
-	foundationReward := txn.Outputs()[0].Value
+	foundationReward := t.Outputs()[0].Value
 	var totalReward = common.Fixed64(0)
 	if blockHeight < chainParams.PublicDPOSHeight {
-		for _, output := range txn.Outputs() {
+		for _, output := range t.Outputs() {
 			if output.AssetID != config.ELAAssetID {
 				return errors.New("asset ID in coinbase is invalid")
 			}
@@ -76,8 +63,8 @@ func (t *CoinBaseTransaction) CheckTransactionOutput(params *TransactionParamete
 		}
 	} else {
 		// check the ratio of FoundationAddress reward with miner reward
-		totalReward = txn.Outputs()[0].Value + txn.Outputs()[1].Value
-		if len(txn.Outputs()) == 2 && foundationReward <
+		totalReward = t.Outputs()[0].Value + t.Outputs()[1].Value
+		if len(t.Outputs()) == 2 && foundationReward <
 			common.Fixed64(float64(totalReward)*0.3/0.65) {
 			return errors.New("reward to foundation in coinbase < 30%")
 		}
@@ -86,7 +73,7 @@ func (t *CoinBaseTransaction) CheckTransactionOutput(params *TransactionParamete
 	return nil
 }
 
-func (t *CoinBaseTransaction) CheckAttributeProgram(params *TransactionParameters) error {
+func (t *CoinBaseTransaction) CheckAttributeProgram() error {
 	// no need to check attribute and program
 	if len(t.Programs()) != 0 {
 		return errors.New("transaction should have no programs")
@@ -94,7 +81,7 @@ func (t *CoinBaseTransaction) CheckAttributeProgram(params *TransactionParameter
 	return nil
 }
 
-func (t *CoinBaseTransaction) CheckTransactionPayload(params *TransactionParameters) error {
+func (t *CoinBaseTransaction) CheckTransactionPayload() error {
 	switch t.Payload().(type) {
 	case *payload.CoinBase:
 		return nil
@@ -103,12 +90,12 @@ func (t *CoinBaseTransaction) CheckTransactionPayload(params *TransactionParamet
 	return errors.New("invalid payload type")
 }
 
-func (t *CoinBaseTransaction) IsAllowedInPOWConsensus(params *TransactionParameters, references map[*common2.Input]common2.Output) bool {
+func (t *CoinBaseTransaction) IsAllowedInPOWConsensus() bool {
 
 	return true
 }
 
-func (a *CoinBaseTransaction) SpecialContextCheck(params *TransactionParameters, references map[*common2.Input]common2.Output) (result elaerr.ELAError, end bool) {
+func (a *CoinBaseTransaction) SpecialContextCheck() (result elaerr.ELAError, end bool) {
 
 	para := a.parameters
 	if para.BlockHeight >= para.Config.CRCommitteeStartHeight {
@@ -139,7 +126,7 @@ func (a *CoinBaseTransaction) ContextCheck(paras interfaces.Parameters) (map[*co
 		return nil, elaerr.Simple(elaerr.ErrTxDuplicate, errors.New("invalid parameters"))
 	}
 
-	if err := a.HeightVersionCheck(nil); err != nil {
+	if err := a.HeightVersionCheck(); err != nil {
 		log.Warn("[CheckTransactionContext] height version check failed.")
 		return nil, elaerr.Simple(elaerr.ErrTxHeightVersion, nil)
 	}
@@ -150,7 +137,7 @@ func (a *CoinBaseTransaction) ContextCheck(paras interfaces.Parameters) (map[*co
 		return nil, elaerr.Simple(elaerr.ErrTxDuplicate, nil)
 	}
 
-	err, end := a.SpecialContextCheck(nil, nil)
+	err, end := a.SpecialContextCheck()
 	if end {
 		log.Warn("[CheckTransactionContext] SpecialContextCheck failed:", err)
 		return nil, err

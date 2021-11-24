@@ -7,8 +7,6 @@ package transaction
 
 import (
 	"errors"
-	common2 "github.com/elastos/Elastos.ELA/core/types/common"
-
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 )
 
@@ -16,22 +14,11 @@ type RegisterAssetTransaction struct {
 	BaseTransaction
 }
 
-func (t *RegisterAssetTransaction) RegisterFunctions() {
-	t.DefaultChecker.CheckTransactionSize = t.checkTransactionSize
-	t.DefaultChecker.CheckTransactionInput = t.checkTransactionInput
-	t.DefaultChecker.CheckTransactionOutput = t.checkTransactionOutput
-	t.DefaultChecker.CheckTransactionPayload = t.CheckTransactionPayload
-	t.DefaultChecker.HeightVersionCheck = t.heightVersionCheck
-	t.DefaultChecker.IsAllowedInPOWConsensus = t.IsAllowedInPOWConsensus
-	t.DefaultChecker.SpecialContextCheck = t.specialContextCheck
-	t.DefaultChecker.CheckAttributeProgram = t.checkAttributeProgram
-}
-
-func (t *RegisterAssetTransaction) IsAllowedInPOWConsensus(params *TransactionParameters, references map[*common2.Input]common2.Output) bool {
+func (t *RegisterAssetTransaction) IsAllowedInPOWConsensus() bool {
 	return false
 }
 
-func (t *RegisterAssetTransaction) CheckTransactionPayload(params *TransactionParameters) error {
+func (t *RegisterAssetTransaction) CheckTransactionPayload() error {
 	switch pld := t.Payload().(type) {
 	case *payload.RegisterAsset:
 		if pld.Asset.Precision < payload.MinPrecision || pld.Asset.Precision > payload.MaxPrecision {

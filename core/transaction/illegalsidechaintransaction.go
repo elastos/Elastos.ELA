@@ -7,7 +7,6 @@ package transaction
 
 import (
 	"errors"
-	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"math"
 
 	"github.com/elastos/Elastos.ELA/blockchain"
@@ -21,60 +20,48 @@ type IllegalSideChainTransaction struct {
 	BaseTransaction
 }
 
-func (t *IllegalSideChainTransaction) RegisterFunctions() {
-	t.DefaultChecker.CheckTransactionSize = t.checkTransactionSize
-	t.DefaultChecker.CheckTransactionInput = t.CheckTransactionInput
-	t.DefaultChecker.CheckTransactionOutput = t.CheckTransactionOutput
-	t.DefaultChecker.CheckTransactionPayload = t.CheckTransactionPayload
-	t.DefaultChecker.HeightVersionCheck = t.heightVersionCheck
-	t.DefaultChecker.IsAllowedInPOWConsensus = t.IsAllowedInPOWConsensus
-	t.DefaultChecker.SpecialContextCheck = t.SpecialContextCheck
-	t.DefaultChecker.CheckAttributeProgram = t.CheckAttributeProgram
-}
-
-func (t *IllegalSideChainTransaction) CheckTransactionInput(params *TransactionParameters) error {
-	if len(params.Transaction.Inputs()) != 0 {
+func (t *IllegalSideChainTransaction) CheckTransactionInput() error {
+	if len(t.Inputs()) != 0 {
 		return errors.New("no cost transactions must has no input")
 	}
 	return nil
 }
 
-func (t *IllegalSideChainTransaction) CheckTransactionOutput(params *TransactionParameters) error {
+func (t *IllegalSideChainTransaction) CheckTransactionOutput() error {
 
-	txn := params.Transaction
-	if len(txn.Outputs()) > math.MaxUint16 {
+	if len(t.Outputs()) > math.MaxUint16 {
 		return errors.New("output count should not be greater than 65535(MaxUint16)")
 	}
-	if len(txn.Outputs()) != 0 {
+	if len(t.Outputs()) != 0 {
 		return errors.New("no cost transactions should have no output")
 	}
 
 	return nil
 }
 
-func (t *IllegalSideChainTransaction) CheckAttributeProgram(params *TransactionParameters) error {
+func (t *IllegalSideChainTransaction) CheckAttributeProgram() error {
 	if len(t.Programs()) != 0 || len(t.Attributes()) != 0 {
 		return errors.New("zero cost tx should have no attributes and programs")
 	}
 	return nil
 }
 
-func (t *IllegalSideChainTransaction) CheckTransactionPayload(params *TransactionParameters) error {
+func (t *IllegalSideChainTransaction) CheckTransactionPayload() error {
 	// todo add check after illegal side chain payload defained
 	return errors.New("invalid payload type")
 }
 
-func (t *IllegalSideChainTransaction) IsAllowedInPOWConsensus(params *TransactionParameters, references map[*common2.Input]common2.Output) bool {
+func (t *IllegalSideChainTransaction) IsAllowedInPOWConsensus() bool {
 	return true
 }
 
-func (t *IllegalSideChainTransaction) SpecialContextCheck(params *TransactionParameters, references map[*common2.Input]common2.Output) (elaerr.ELAError, bool) {
+func (t *IllegalSideChainTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
 	p, ok := t.Payload().(*payload.SidechainIllegalData)
 	if !ok {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid payload")), true
 	}
 
-	if params.BlockChain.GetState().SpecialTxExists(t) {
+	if t.parameters.BlockChain.GetState().SpecialTxExists(t) {
 		return elaerr.Simple(elaerr.ErrTxDuplicate, errors.New("tx already exists")), true
 	}
 

@@ -342,7 +342,11 @@ func (b *BlockChain) CheckTransactionContext(blockHeight uint32,
 			log.Warn("[checkCRCProposalRealWithdrawTransaction],", err)
 			return nil, elaerr.Simple(elaerr.ErrTxRealWithdraw, err)
 		}
-
+	case DposV2ClaimRewardRealWithdraw:
+		if err := b.checkDposV2ClaimRewardRealWithdrawTransaction(txn, references); err != nil {
+			log.Warn("[checkDposV2ClaimRewardRealWithdrawTransaction],", err)
+			return nil, elaerr.Simple(elaerr.ErrTxRealWithdraw, err)
+		}
 	case CRAssetsRectify:
 		if err := b.checkCRAssetsRectifyTransaction(txn, references); err != nil {
 			log.Warn("[checkCRAssetsRectifyTransaction],", err)
@@ -1159,7 +1163,7 @@ func (b *BlockChain) checkAttributeProgram(tx *Transaction,
 			}
 			return nil
 		}
-	case CRCAppropriation, CRAssetsRectify, CRCProposalRealWithdraw:
+	case CRCAppropriation, CRAssetsRectify, CRCProposalRealWithdraw, DposV2ClaimRewardRealWithdraw:
 		if len(tx.Programs) != 0 {
 			return errors.New("txs should have no programs")
 		}
@@ -1276,6 +1280,7 @@ func checkTransactionPayload(txn *Transaction) error {
 	case *payload.RecordProposalResult:
 	case *payload.ReturnSideChainDepositCoin:
 	case *payload.DposV2ClaimReward:
+	case *payload.DposV2ClaimRewardRealWithdraw:
 	default:
 		return errors.New("[txValidator],invalidate transaction payload type.")
 	}
@@ -1305,7 +1310,7 @@ func (b *BlockChain) checkPOWConsensusTransaction(txn *Transaction, references m
 	switch txn.TxType {
 	case RegisterProducer, ActivateProducer, CRCouncilMemberClaimNode, DposV2ClaimReward:
 		return nil
-	case CRCAppropriation, CRAssetsRectify, CRCProposalRealWithdraw,
+	case CRCAppropriation, CRAssetsRectify, CRCProposalRealWithdraw, DposV2ClaimRewardRealWithdraw,
 		NextTurnDPOSInfo, RevertToDPOS:
 		return nil
 	case TransferAsset:
@@ -1434,7 +1439,7 @@ func (b *BlockChain) checkTxHeightVersion(txn *Transaction, blockHeight uint32) 
 				"before CRCommitteeStartHeight", txn.TxType.Name()))
 		}
 
-	case DposV2ClaimReward:
+	case DposV2ClaimReward, DposV2ClaimRewardRealWithdraw:
 		if blockHeight < b.chainParams.DposV2StartHeight {
 			return errors.New(fmt.Sprintf("not support %s transaction "+
 				"before DposV2StartHeight", txn.TxType.Name()))
@@ -2801,6 +2806,59 @@ func (b *BlockChain) checkCRCAppropriationTransaction(txn *Transaction,
 	if appropriationAmount != txn.Outputs[0].Value {
 		return fmt.Errorf("invalid appropriation amount %s, need to be %s",
 			txn.Outputs[0].Value, appropriationAmount)
+	}
+
+	return nil
+}
+
+func (b *BlockChain) checkDposV2ClaimRewardRealWithdrawTransaction(txn *Transaction,
+	references map[*Input]Output) error {
+	dposV2RealWithdraw, ok := txn.Payload.(*payload.DposV2ClaimRewardRealWithdraw)
+	if !ok {
+		return errors.New("invalid payload")
+	}
+	txsCount := len(dposV2RealWithdraw.WithdrawTransactionHashes)
+	// check WithdrawTransactionHashes count and output count
+	if txsCount != len(txn.Outputs) {
+		return errors.New("invalid real withdraw transaction hashes count")
+	}
+
+	// check other outputs, need to match with WithdrawTransactionHashes
+	txs := b.state.GetRealWithdrawTransactions()
+	txsMap := make(map[common.Uint256]struct{})
+	for i, hash := range dposV2RealWithdraw.WithdrawTransactionHashes {
+		txInfo, ok := txs[hash]
+		if !ok {
+			return errors.New("invalid withdraw transaction hash")
+		}
+		output := txn.Outputs[i]
+		if !output.ProgramHash.IsEqual(txInfo.Recipient) {
+			return errors.New("invalid real withdraw output address")
+		}
+		if output.Value != txInfo.Amount-b.chainParams.RealWithdrawSingleFee {
+			return errors.New(fmt.Sprintf("invalid real withdraw output "+
+				"amount:%s, need to be:%s",
+				output.Value, txInfo.Amount-b.chainParams.RealWithdrawSingleFee))
+		}
+		if _, ok := txsMap[hash]; ok {
+			return errors.New("duplicated real withdraw transactions hash")
+		}
+		txsMap[hash] = struct{}{}
+	}
+
+	// check transaction fee
+	var inputAmount common.Fixed64
+	for _, v := range references {
+		inputAmount += v.Value
+	}
+	var outputAmount common.Fixed64
+	for _, o := range txn.Outputs {
+		outputAmount += o.Value
+	}
+	if inputAmount-outputAmount != b.chainParams.RealWithdrawSingleFee*common.Fixed64(txsCount) {
+		return errors.New(fmt.Sprintf("invalid real withdraw transaction"+
+			" fee:%s, need to be:%s, txsCount:%d", inputAmount-outputAmount,
+			b.chainParams.RealWithdrawSingleFee*common.Fixed64(txsCount), txsCount))
 	}
 
 	return nil

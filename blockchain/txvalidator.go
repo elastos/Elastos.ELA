@@ -766,7 +766,8 @@ func checkTransactionInput(txn *Transaction) error {
 	if txn.IsIllegalTypeTx() || txn.IsInactiveArbitrators() ||
 		txn.IsNewSideChainPowTx() || txn.IsUpdateVersion() ||
 		txn.IsActivateProducerTx() || txn.IsNextTurnDPOSInfoTx() ||
-		txn.IsRevertToPOW() || txn.IsRevertToDPOS() || txn.IsCustomIDResultTx() {
+		txn.IsRevertToPOW() || txn.IsRevertToDPOS() || txn.IsCustomIDResultTx() ||
+		txn.IsDposV2ClaimRewardTx() {
 		if len(txn.Inputs) != 0 {
 			return errors.New("no cost transactions must has no input")
 		}
@@ -843,7 +844,7 @@ func (b *BlockChain) checkTransactionOutput(txn *Transaction,
 	if txn.IsIllegalTypeTx() || txn.IsInactiveArbitrators() ||
 		txn.IsUpdateVersion() || txn.IsActivateProducerTx() ||
 		txn.IsNextTurnDPOSInfoTx() || txn.IsRevertToPOW() ||
-		txn.IsRevertToDPOS() || txn.IsCustomIDResultTx() {
+		txn.IsRevertToDPOS() || txn.IsCustomIDResultTx() || txn.IsDposV2ClaimRewardTx() {
 		if len(txn.Outputs) != 0 {
 			return errors.New("no cost transactions should have no output")
 		}

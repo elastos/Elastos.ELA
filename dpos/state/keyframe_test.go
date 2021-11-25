@@ -147,6 +147,7 @@ func stateKeyFrameEqual(first *StateKeyFrame, second *StateKeyFrame) bool {
 		len(first.DposV2RewardInfo) != len(second.DposV2RewardInfo) ||
 		len(first.DposV2RewardClaimingInfo) != len(second.DposV2RewardClaimingInfo) ||
 		len(first.DposV2RewardClaimedInfo) != len(second.DposV2RewardClaimedInfo) ||
+		len(first.WithdrawableTxInfo) != len(second.WithdrawableTxInfo) ||
 		len(first.Nicknames) != len(second.Nicknames) ||
 		len(first.SpecialTxHashes) != len(second.SpecialTxHashes) ||
 		len(first.PreBlockArbiters) != len(second.PreBlockArbiters) ||
@@ -266,6 +267,19 @@ func stateKeyFrameEqual(first *StateKeyFrame, second *StateKeyFrame) bool {
 	for k := range first.DposV2RewardClaimedInfo {
 		_, ok := second.DposV2RewardClaimedInfo[k]
 		if !ok {
+			return false
+		}
+	}
+
+	for k, vf := range first.WithdrawableTxInfo {
+		vs, ok := second.WithdrawableTxInfo[k]
+		if !ok {
+			return false
+		}
+		if vf.Amount != vs.Amount {
+			return false
+		}
+		if vf.Recipient != vs.Recipient {
 			return false
 		}
 	}

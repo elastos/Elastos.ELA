@@ -306,6 +306,13 @@ type State struct {
 	history     *utils.History
 }
 
+func (c *State) GetRealWithdrawTransactions() map[common.Uint256]types.OutputInfo {
+	c.mtx.RLock()
+	defer c.mtx.RUnlock()
+
+	return c.StateKeyFrame.WithdrawableTxInfo
+}
+
 // getProducerKey returns the producer's owner public key string, whether the
 // given public key is the producer's node public key or owner public key.
 func (s *State) getProducerKey(publicKey []byte) string {
@@ -1055,6 +1062,9 @@ func (s *State) processTransaction(tx *types.Transaction, height uint32) {
 
 	case types.DposV2ClaimReward:
 		s.processDposV2ClaimReward(tx, height)
+
+	case types.DposV2ClaimRewardRealWithdraw:
+		s.processDposV2ClaimRewardRealWithdraw(tx, height)
 	}
 
 	if tx.TxType != types.RegisterProducer {
@@ -1669,9 +1679,31 @@ func (s *State) processDposV2ClaimReward(tx *types.Transaction, height uint32) {
 	s.history.Append(height, func() {
 		s.DposV2RewardInfo[addr] -= payload.Amount
 		s.DposV2RewardClaimingInfo[addr] += payload.Amount
+		receipt, _ := contract.PublicKeyToStandardProgramHash(tx.Programs[0].Code[1 : len(tx.Programs[0].Code)-1])
+		s.WithdrawableTxInfo[tx.Hash()] = types.OutputInfo{
+			Recipient: *receipt,
+			Amount:    payload.Amount,
+		}
 	}, func() {
 		s.DposV2RewardInfo = oriDposV2RewardInfo
 		s.DposV2RewardClaimingInfo = oriDposV2RewardClaimingInfo
+		delete(s.WithdrawableTxInfo, tx.Hash())
+	})
+}
+
+func (s *State) processDposV2ClaimRewardRealWithdraw(tx *types.Transaction, height uint32) {
+	txs := make(map[common.Uint256]types.OutputInfo)
+	for k, v := range s.StateKeyFrame.WithdrawableTxInfo {
+		txs[k] = v
+	}
+	withdrawPayload := tx.Payload.(*payload.DposV2ClaimRewardRealWithdraw)
+
+	s.history.Append(height, func() {
+		for _, hash := range withdrawPayload.WithdrawTransactionHashes {
+			delete(s.StateKeyFrame.WithdrawableTxInfo, hash)
+		}
+	}, func() {
+		s.StateKeyFrame.WithdrawableTxInfo = txs
 	})
 }
 

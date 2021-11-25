@@ -6,6 +6,7 @@
 package state
 
 import (
+	"github.com/elastos/Elastos.ELA/core/types"
 	"io"
 
 	"github.com/elastos/Elastos.ELA/common"
@@ -39,6 +40,8 @@ type StateKeyFrame struct {
 	SpecialTxHashes          map[common.Uint256]struct{}
 	PreBlockArbiters         map[string]struct{}
 	ProducerDepositMap       map[common.Uint168]struct{}
+	// dposV2Withdraw info
+	WithdrawableTxInfo map[common.Uint256]types.OutputInfo
 
 	EmergencyInactiveArbiters map[string]struct{}
 	LastRandomCandidateOwner  string
@@ -85,6 +88,7 @@ func (s *StateKeyFrame) snapshot() *StateKeyFrame {
 		DposV2RewardInfo:         make(map[string]common.Fixed64),
 		DposV2RewardClaimingInfo: make(map[string]common.Fixed64),
 		DposV2RewardClaimedInfo:  make(map[string]common.Fixed64),
+		WithdrawableTxInfo:       make(map[common.Uint256]types.OutputInfo),
 		Nicknames:                make(map[string]struct{}),
 		SpecialTxHashes:          make(map[common.Uint256]struct{}),
 		PreBlockArbiters:         make(map[string]struct{}),
@@ -105,6 +109,7 @@ func (s *StateKeyFrame) snapshot() *StateKeyFrame {
 	state.DposV2RewardInfo = copyFixed64Map(s.DposV2RewardInfo)
 	state.DposV2RewardClaimingInfo = copyFixed64Map(s.DposV2RewardClaimingInfo)
 	state.DposV2RewardClaimedInfo = copyFixed64Map(s.DposV2RewardClaimedInfo)
+	state.WithdrawableTxInfo = copyWithdrawableTransactionsMap(s.WithdrawableTxInfo)
 	state.Nicknames = copyStringSet(s.Nicknames)
 	state.SpecialTxHashes = copyHashSet(s.SpecialTxHashes)
 	state.PreBlockArbiters = copyStringSet(s.PreBlockArbiters)
@@ -169,6 +174,10 @@ func (s *StateKeyFrame) Serialize(w io.Writer) (err error) {
 		return
 	}
 	if err = s.SerializeFixed64Map(s.DposV2RewardClaimedInfo, w); err != nil {
+		return
+	}
+
+	if err = s.serializeWithdrawableTransactionsMap(s.WithdrawableTxInfo, w); err != nil {
 		return
 	}
 
@@ -269,6 +278,10 @@ func (s *StateKeyFrame) Deserialize(r io.Reader) (err error) {
 		return
 	}
 
+	if s.WithdrawableTxInfo, err = s.deserializeWithdrawableTransactionsMap(r); err != nil {
+		return
+	}
+
 	if s.Nicknames, err = s.DeserializeStringSet(r); err != nil {
 		return
 	}
@@ -348,6 +361,42 @@ func (s *StateKeyFrame) SerializeFixed64Map(vmap map[string]common.Fixed64,
 			return
 		}
 		if err = v.Serialize(w); err != nil {
+			return
+		}
+	}
+	return
+}
+
+func (p *StateKeyFrame) serializeWithdrawableTransactionsMap(
+	proposalWithdrableTx map[common.Uint256]types.OutputInfo, w io.Writer) (err error) {
+	if err = common.WriteVarUint(w, uint64(len(proposalWithdrableTx))); err != nil {
+		return
+	}
+	for k, v := range proposalWithdrableTx {
+		if err = k.Serialize(w); err != nil {
+			return
+		}
+		if err = v.Serialize(w); err != nil {
+			return
+		}
+	}
+	return
+}
+
+func (p *StateKeyFrame) deserializeWithdrawableTransactionsMap(r io.Reader) (
+	withdrawableTxsMap map[common.Uint256]types.OutputInfo, err error) {
+	var count uint64
+	if count, err = common.ReadVarUint(r, 0); err != nil {
+		return
+	}
+	withdrawableTxsMap = make(map[common.Uint256]types.OutputInfo)
+	for i := uint64(0); i < count; i++ {
+		var hash common.Uint256
+		if err = hash.Deserialize(r); err != nil {
+			return
+		}
+		var withdrawInfo types.OutputInfo
+		if err = withdrawInfo.Deserialize(r); err != nil {
 			return
 		}
 	}
@@ -568,6 +617,7 @@ func NewStateKeyFrame() *StateKeyFrame {
 		DposV2RewardInfo:          info,
 		DposV2RewardClaimingInfo:  make(map[string]common.Fixed64),
 		DposV2RewardClaimedInfo:   make(map[string]common.Fixed64),
+		WithdrawableTxInfo:        make(map[common.Uint256]types.OutputInfo),
 		Nicknames:                 make(map[string]struct{}),
 		SpecialTxHashes:           make(map[common.Uint256]struct{}),
 		PreBlockArbiters:          make(map[string]struct{}),
@@ -655,6 +705,17 @@ func copyFixed64Map(src map[string]common.Fixed64) (dst map[string]common.Fixed6
 	for k, v := range src {
 		p := v
 		dst[k] = p
+	}
+	return
+}
+
+func copyWithdrawableTransactionsMap(src map[common.Uint256]types.OutputInfo) (dst map[common.Uint256]types.OutputInfo) {
+	dst = map[common.Uint256]types.OutputInfo{}
+	for k, v := range src {
+		dst[k] = types.OutputInfo{
+			Recipient: v.Recipient,
+			Amount:    v.Amount,
+		}
 	}
 	return
 }

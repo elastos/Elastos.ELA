@@ -69,8 +69,9 @@ const (
 	RevertToPOW  TxType = 0x41
 	RevertToDPOS TxType = 0x42
 
-	ReturnSideChainDepositCoin TxType = 0x51
-	DposV2ClaimReward          TxType = 0x52
+	ReturnSideChainDepositCoin    TxType = 0x51
+	DposV2ClaimReward             TxType = 0x52
+	DposV2ClaimRewardRealWithdraw TxType = 0x53
 )
 
 func (self TxType) Name() string {
@@ -151,6 +152,8 @@ func (self TxType) Name() string {
 		return "ReturnSideChainDepositCoin"
 	case DposV2ClaimReward:
 		return "DposV2ClaimReward"
+	case DposV2ClaimRewardRealWithdraw:
+		return "DposV2ClaimRewardRealWithdraw"
 	default:
 		return "Unknown"
 	}
@@ -440,6 +443,10 @@ func (tx *Transaction) IsCRCProposalRealWithdrawTx() bool {
 	return tx.TxType == CRCProposalRealWithdraw
 }
 
+func (tx *Transaction) IsDposV2ClaimRewardRealWithdraw() bool {
+	return tx.TxType == DposV2ClaimRewardRealWithdraw
+}
+
 func (tx *Transaction) IsUpdateCRTx() bool {
 	return tx.TxType == UpdateCR
 }
@@ -667,6 +674,8 @@ func GetPayload(txType TxType) (Payload, error) {
 		p = new(payload.CRCProposalWithdraw)
 	case DposV2ClaimReward:
 		p = new(payload.DposV2ClaimReward)
+	case DposV2ClaimRewardRealWithdraw:
+		p = new(payload.DposV2ClaimRewardRealWithdraw)
 	case CRCProposalTracking:
 		p = new(payload.CRCProposalTracking)
 	case CRCAppropriation:

@@ -320,6 +320,18 @@ func strSecretaryGeneral(tx *types.Transaction) (interface{}, error) {
 	return nil, nil
 }
 
+func hashArrayDposV2ClaimRewardRealWithdrawTransactionHashes(
+	tx *types.Transaction) (interface{}, error) {
+	p, ok := tx.Payload.(*payload.DposV2ClaimRewardRealWithdraw)
+	if !ok {
+		return nil, fmt.Errorf(
+			"real proposal withdraw transaction cast failed, tx: %s",
+			tx.Hash())
+	}
+
+	return p.WithdrawTransactionHashes, nil
+}
+
 func hashArrayCRCProposalRealWithdrawTransactionHashes(
 	tx *types.Transaction) (interface{}, error) {
 	p, ok := tx.Payload.(*payload.CRCProposalRealWithdraw)

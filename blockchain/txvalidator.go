@@ -1275,6 +1275,7 @@ func checkTransactionPayload(txn *Transaction) error {
 	case *payload.RevertToDPOS:
 	case *payload.RecordProposalResult:
 	case *payload.ReturnSideChainDepositCoin:
+	case *payload.DposV2ClaimReward:
 	default:
 		return errors.New("[txValidator],invalidate transaction payload type.")
 	}

@@ -1663,9 +1663,12 @@ func (s *State) processDposV2ClaimReward(tx *types.Transaction, height uint32) {
 	oriDposV2RewardClaimingInfo := s.DposV2RewardClaimingInfo
 	payload := tx.Payload.(*payload.DposV2ClaimReward)
 	pub := hex.EncodeToString(tx.Programs[0].Code[1 : len(tx.Programs[0].Code)-1])
+	pkBytes, _ := common.HexStringToBytes(pub)
+	u168, _ := contract.PublicKeyToStandardProgramHash(pkBytes)
+	addr, _ := u168.ToAddress()
 	s.history.Append(height, func() {
-		s.DposV2RewardInfo[pub] -= payload.Amount
-		s.DposV2RewardClaimingInfo[pub] += payload.Amount
+		s.DposV2RewardInfo[addr] -= payload.Amount
+		s.DposV2RewardClaimingInfo[addr] += payload.Amount
 	}, func() {
 		s.DposV2RewardInfo = oriDposV2RewardInfo
 		s.DposV2RewardClaimingInfo = oriDposV2RewardClaimingInfo

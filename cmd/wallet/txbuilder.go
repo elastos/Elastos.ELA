@@ -325,6 +325,18 @@ func CreateDposV2ClaimRewardTransaction(c *cli.Context) error {
 		return errors.New("must specify claimamount flag")
 	}
 	walletPath := c.String("wallet")
+	password, err := cmdcom.GetFlagPassword(c)
+	if err != nil {
+		return err
+	}
+	client, err := account.Open(walletPath, password)
+	if err != nil {
+		return err
+	}
+	acc := client.GetMainAccount()
+	if contract.GetPrefixType(acc.ProgramHash) != contract.PrefixStandard {
+		return errors.New("main account is not a standard account")
+	}
 	mainAccount, err := account.GetWalletMainAccountData(walletPath)
 	if err != nil {
 		return err
@@ -341,9 +353,19 @@ func CreateDposV2ClaimRewardTransaction(c *cli.Context) error {
 		Parameter: nil,
 	}
 
+	buf := new(bytes.Buffer)
 	apPayload := &payload.DposV2ClaimReward{
 		Amount: common.Fixed64(amount),
 	}
+
+	if err = apPayload.SerializeUnsigned(buf, payload.ActivateProducerVersion); err != nil {
+		return err
+	}
+	signature, err := acc.Sign(buf.Bytes())
+	if err != nil {
+		return err
+	}
+	apPayload.Signature = signature
 
 	txn := &types.Transaction{
 		Version:    types.TxVersion09,

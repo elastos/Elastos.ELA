@@ -2103,6 +2103,25 @@ func (b *BlockChain) checkProcessProducer(txn *Transaction) (
 	return producer, nil
 }
 
+func (b *BlockChain) checkClaimRewardSignature(pub []byte, claimReward *payload.DposV2ClaimReward) error {
+
+	// check signature
+	publicKey, err := DecodePoint(pub)
+	if err != nil {
+		return errors.New("invalid public key in payload")
+	}
+	signedBuf := new(bytes.Buffer)
+	err = claimReward.SerializeUnsigned(signedBuf, payload.DposV2ClaimRewardVersion)
+	if err != nil {
+		return err
+	}
+	err = Verify(*publicKey, signedBuf.Bytes(), claimReward.Signature)
+	if err != nil {
+		return errors.New("invalid signature in payload")
+	}
+	return nil
+}
+
 func (b *BlockChain) checkActivateProducerSignature(activateProducer *payload.ActivateProducer) error {
 	// check signature
 	publicKey, err := DecodePoint(activateProducer.NodePublicKey)
@@ -2154,15 +2173,28 @@ func (b *BlockChain) checkDposV2ClaimRewardTransaction(txn *Transaction,
 		return errors.New("outputs must be zero")
 	}
 
-	claimAmount, ok := b.state.DposV2RewardInfo[hex.EncodeToString(txn.Programs[0].Code[1:len(txn.Programs[0].Code)-1])]
+	pub := txn.Programs[0].Code[1 : len(txn.Programs[0].Code)-1]
+	u168, err := contract.PublicKeyToStandardProgramHash(pub)
+	if err != nil {
+		return err
+	}
+	addr, err := u168.ToAddress()
+	if err != nil {
+		return err
+	}
+	claimAmount, ok := b.state.DposV2RewardInfo[addr]
 	if !ok {
-		errors.New("no reward to claim for such adress")
+		return errors.New("no reward to claim for such adress")
 	}
 
-	if claimAmount > claimReward.Amount {
+	if claimAmount < claimReward.Amount {
 		return errors.New("claim reward exceeded , max claim reward " + claimAmount.String())
 	}
 
+	err = b.checkClaimRewardSignature(pub, claimReward)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 

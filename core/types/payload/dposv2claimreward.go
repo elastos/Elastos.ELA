@@ -8,6 +8,7 @@ package payload
 import (
 	"bytes"
 	"errors"
+	"github.com/elastos/Elastos.ELA/crypto"
 	"io"
 
 	"github.com/elastos/Elastos.ELA/common"
@@ -18,7 +19,8 @@ const (
 )
 
 type DposV2ClaimReward struct {
-	Amount common.Fixed64
+	Amount    common.Fixed64
+	Signature []byte
 }
 
 func (a *DposV2ClaimReward) Data(version byte) []byte {
@@ -33,6 +35,10 @@ func (a *DposV2ClaimReward) Serialize(w io.Writer, version byte) error {
 	err := a.SerializeUnsigned(w, version)
 	if err != nil {
 		return err
+	}
+	err = common.WriteVarBytes(w, a.Signature)
+	if err != nil {
+		return errors.New("[DposV2ClaimReward], signature serialize failed")
 	}
 	return nil
 }
@@ -50,6 +56,10 @@ func (a *DposV2ClaimReward) Deserialize(r io.Reader, version byte) error {
 	err := a.DeserializeUnsigned(r, version)
 	if err != nil {
 		return err
+	}
+	a.Signature, err = common.ReadVarBytes(r, crypto.SignatureLength, "signature")
+	if err != nil {
+		return errors.New("[DposV2ClaimReward], signature deserialize failed")
 	}
 	return nil
 }

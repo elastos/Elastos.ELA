@@ -1034,6 +1034,34 @@ func NewSettings() *Settings {
 		ConfigPath:   "DposV2EffectiveVotes",
 		ParamName:    "DposV2EffectiveVotes"})
 
+	result.Add(&settingItem{
+		Flag:         cmdcom.DposV2RewardAccumulateAddressFlag,
+		DefaultValue: "",
+		ConfigSetter: func(path string, params *config.Params,
+			conf *config.Configuration) error {
+			DposV2RewardAccumulateAddress, err := common.Uint168FromAddress(conf.DPoSConfiguration.DposV2RewardAccumulateAddress)
+			if err != nil {
+				return errors.New("invalid CR expenses address")
+			}
+			params.DposV2RewardAccumulateAddress = *DposV2RewardAccumulateAddress
+			return nil
+		},
+		CliSetter: func(i interface{}, params *config.Params,
+			conf *config.Configuration) error {
+			value, ok := i.(string)
+			if !ok {
+				return errors.New("unknown foundation address type")
+			}
+			DposV2RewardAccumulateAddress, err := common.Uint168FromAddress(value)
+			if err != nil {
+				return errors.New("invalid CR expenses address")
+			}
+			params.DposV2RewardAccumulateAddress = *DposV2RewardAccumulateAddress
+			return nil
+		},
+		ConfigPath: "DPoSConfiguration.DposV2RewardAccumulateAddress",
+		ParamName:  "DposV2RewardAccumulateAddress"})
+
 	return result
 }
 

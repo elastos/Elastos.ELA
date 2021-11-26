@@ -263,6 +263,7 @@ var DefaultParams = Params{
 	DIDSideChainAddress:                "XKUh4GLhFJiqAMTF6HyWQrV9pK9HcGUdfJ",
 	DposV2StartHeight:                  2000000,
 	DposV2EffectiveVotes:               160000,
+	DposV2RewardAccumulateAddress:      DposV2RewardAccumulateAddress,
 }
 
 // TestNet returns the network parameters for the test network.
@@ -356,6 +357,7 @@ func (p *Params) TestNet() *Params {
 	copy.DIDSideChainAddress = "XKUh4GLhFJiqAMTF6HyWQrV9pK9HcGUdfJ"
 	copy.DposV2StartHeight = 2000000
 	copy.DposV2EffectiveVotes = 160000
+	copy.DposV2RewardAccumulateAddress = DposV2RewardAccumulateAddress
 
 	return &copy
 }
@@ -452,6 +454,7 @@ func (p *Params) RegNet() *Params {
 	copy.DIDSideChainAddress = "XKUh4GLhFJiqAMTF6HyWQrV9pK9HcGUdfJ"
 	copy.DposV2StartHeight = 2000000
 	copy.DposV2EffectiveVotes = 160000
+	copy.DposV2RewardAccumulateAddress = DposV2RewardAccumulateAddress
 
 	return &copy
 }
@@ -796,6 +799,9 @@ type Params struct {
 
 	// DposV2EffectiveVotes defines the votes which producer will become a dposV2 effective node
 	DposV2EffectiveVotes common.Fixed64
+
+	// DposV2RewardAccumulateAddress defines the dposv2 reward accumulating address
+	DposV2RewardAccumulateAddress common.Uint168
 }
 
 // rewardPerBlock calculates the reward for each block by a specified time

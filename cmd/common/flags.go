@@ -529,6 +529,11 @@ var (
 		Name:  "dposv2effectivevotes",
 		Usage: "defines the minimum votes to active a DposV2 producer",
 	}
+
+	DposV2RewardAccumulateAddressFlag = cli.StringFlag{
+		Name:  "dposv2rewardaccumulateaddress",
+		Usage: "defines dposv2 reward accumulate address",
+	}
 )
 
 // MoveRPCFlags finds the rpc argument and moves it to the front

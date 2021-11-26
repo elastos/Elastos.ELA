@@ -9,6 +9,9 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	elaerr "github.com/elastos/Elastos.ELA/errors"
+	"github.com/elastos/Elastos.ELA/p2p"
+	"github.com/elastos/Elastos.ELA/p2p/msg"
 	"io"
 	"math"
 	"sync"
@@ -304,6 +307,13 @@ type State struct {
 	chainParams *config.Params
 	mtx         sync.RWMutex
 	history     *utils.History
+
+	getHeight                           func() uint32
+	isCurrent                           func() bool
+	broadcast                           func(msg p2p.Message)
+	appendToTxpool                      func(transaction *types.Transaction) elaerr.ELAError
+	createDposV2RealWithdrawTransaction func(withdrawTransactionHashes []common.Uint256,
+		outputs []*types.OutputInfo) (*types.Transaction, error)
 }
 
 func (c *State) GetRealWithdrawTransactions() map[common.Uint256]types.OutputInfo {
@@ -831,8 +841,63 @@ func (s *State) ProcessBlock(block *types.Block, confirm *payload.Confirm) {
 		}
 	}
 
+	if block.Height >= s.chainParams.DposV2StartHeight &&
+		len(s.WithdrawableTxInfo) != 0 {
+		s.createDposV2ClaimRewardRealWithdrawTransaction(block.Height)
+	}
+
 	// Commit changes here if no errors found.
 	s.history.Commit(block.Height)
+}
+
+func (s *State) createDposV2ClaimRewardRealWithdrawTransaction(height uint32) {
+	if s.createDposV2RealWithdrawTransaction != nil && height == s.getHeight() {
+		withdrawTransactionHahses := make([]common.Uint256, 0)
+		ouputs := make([]*types.OutputInfo, 0)
+		for k, v := range s.WithdrawableTxInfo {
+			withdrawTransactionHahses = append(withdrawTransactionHahses, k)
+			outputInfo := v
+			ouputs = append(ouputs, &outputInfo)
+		}
+		tx, err := s.createDposV2RealWithdrawTransaction(withdrawTransactionHahses, ouputs)
+		if err != nil {
+			log.Error("create dposv2 real withdraw tx failed:", err.Error())
+			return
+		}
+
+		log.Info("create dposv2 real withdraw transaction:", tx.Hash())
+		if s.isCurrent != nil && s.broadcast != nil && s.
+			appendToTxpool != nil {
+			go func() {
+				if s.isCurrent() {
+					if err := s.appendToTxpool(tx); err == nil {
+						s.broadcast(msg.NewTx(tx))
+					} else {
+						log.Warn("create dposv2 real withdraw transaction "+
+							"append to tx pool err ", err)
+					}
+				}
+			}()
+		}
+	}
+	return
+}
+
+type StateFuncsConfig struct {
+	GetHeight                           func() uint32
+	CreateDposV2RealWithdrawTransaction func(withdrawTransactionHashes []common.Uint256,
+		outpus []*types.OutputInfo) (*types.Transaction, error)
+	IsCurrent      func() bool
+	Broadcast      func(msg p2p.Message)
+	AppendToTxpool func(transaction *types.Transaction) elaerr.ELAError
+}
+
+func (c *State) RegisterFuncitons(cfg *StateFuncsConfig) {
+	c.createDposV2RealWithdrawTransaction = cfg.CreateDposV2RealWithdrawTransaction
+	c.isCurrent = cfg.IsCurrent
+	c.broadcast = cfg.Broadcast
+	c.appendToTxpool = cfg.AppendToTxpool
+	c.getHeight = cfg.GetHeight
 }
 
 func (s *State) tryRevertToPOWByStateOfCRMember(height uint32) {
@@ -1696,14 +1761,22 @@ func (s *State) processDposV2ClaimRewardRealWithdraw(tx *types.Transaction, heig
 	for k, v := range s.StateKeyFrame.WithdrawableTxInfo {
 		txs[k] = v
 	}
+	oriClaimingInfo := s.DposV2RewardClaimingInfo
+	oriClaimedInfo := s.DposV2RewardClaimedInfo
 	withdrawPayload := tx.Payload.(*payload.DposV2ClaimRewardRealWithdraw)
 
 	s.history.Append(height, func() {
 		for _, hash := range withdrawPayload.WithdrawTransactionHashes {
+			info := s.StateKeyFrame.WithdrawableTxInfo[hash]
+			addr, _ := info.Recipient.ToAddress()
+			s.DposV2RewardClaimingInfo[addr] -= info.Amount
+			s.DposV2RewardClaimedInfo[addr] += info.Amount
 			delete(s.StateKeyFrame.WithdrawableTxInfo, hash)
 		}
 	}, func() {
 		s.StateKeyFrame.WithdrawableTxInfo = txs
+		s.DposV2RewardClaimingInfo = oriClaimingInfo
+		s.DposV2RewardClaimedInfo = oriClaimedInfo
 	})
 }
 

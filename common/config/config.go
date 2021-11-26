@@ -114,6 +114,7 @@ type DPoSConfiguration struct {
 	RevertToPOWNoBlockTime        int64          `json:"RevertToPOWNoBlockTime"`
 	StopConfirmBlockTime          int64          `json:"StopConfirmBlockTime"`
 	RevertToPOWStartHeight        uint32         `json:"RevertToPOWStartHeight"`
+	DposV2RewardAccumulateAddress string         `json:"DposV2RewardAccumulateAddress"`
 }
 
 type CRConfiguration struct {

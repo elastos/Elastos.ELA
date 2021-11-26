@@ -475,6 +475,31 @@ func (b *BlockChain) CreateCRCAppropriationTransaction() (*Transaction, Fixed64,
 	return tx, lockedAmount, nil
 }
 
+func (b *BlockChain) CreateDposV2RealWithdrawTransaction(
+	withdrawTransactionHashes []Uint256, outputs []*OutputInfo) (*Transaction, error) {
+	utxos, _, err := b.getUTXOsFromAddress(b.chainParams.DposV2RewardAccumulateAddress)
+	if err != nil {
+		return nil, err
+	}
+
+	wPayload := &payload.DposV2ClaimRewardRealWithdraw{
+		WithdrawTransactionHashes: withdrawTransactionHashes,
+	}
+
+	for _, v := range outputs {
+		v.Amount -= b.chainParams.RealWithdrawSingleFee
+	}
+
+	txFee := b.chainParams.RealWithdrawSingleFee * Fixed64(len(withdrawTransactionHashes))
+	var tx *Transaction
+	tx, err = b.createTransaction(wPayload, DposV2ClaimRewardRealWithdraw,
+		b.chainParams.DposV2RewardAccumulateAddress, txFee, uint32(0), utxos, outputs...)
+	if err != nil {
+		return nil, err
+	}
+	return tx, nil
+}
+
 func (b *BlockChain) CreateCRRealWithdrawTransaction(
 	withdrawTransactionHashes []Uint256, outputs []*OutputInfo) (*Transaction, error) {
 	utxos, _, err := b.getUTXOsFromAddress(b.chainParams.CRExpensesAddress)

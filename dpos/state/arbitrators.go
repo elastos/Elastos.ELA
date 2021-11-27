@@ -660,6 +660,10 @@ func (a *arbitrators) accumulateReward(block *types.Block) {
 
 func (a *arbitrators) clearingDPOSReward(block *types.Block, historyHeight uint32,
 	smoothClearing bool) (err error) {
+	// inactivate dpos reward sending when dposV2 activated
+	if a.isDposV2Active() {
+		return nil
+	}
 	if block.Height < a.chainParams.PublicDPOSHeight ||
 		block.Height == a.clearingHeight {
 		return nil
@@ -1563,8 +1567,13 @@ func (a *arbitrators) updateNextTurnInfo(height uint32, producers []ArbiterMembe
 }
 
 func (a *arbitrators) getProducers(count int, height uint32) ([]ArbiterMember, error) {
-	return a.GetNormalArbitratorsDesc(height, count,
-		a.getSortedProducers(), 0)
+	if !a.isDposV2Active() {
+		return a.GetNormalArbitratorsDesc(height, count,
+			a.getSortedProducers(), 0)
+	} else {
+		return a.GetNormalArbitratorsDesc(height, count,
+			a.getSortedProducersDposV2(), 0)
+	}
 }
 
 func (a *arbitrators) getSortedProducers() []*Producer {
@@ -1580,7 +1589,21 @@ func (a *arbitrators) getSortedProducers() []*Producer {
 	return votedProducers
 }
 
+func (a *arbitrators) getSortedProducersDposV2() []*Producer {
+	votedProducers := a.State.GetDposV2ActiveProducers()
+	sort.Slice(votedProducers, func(i, j int) bool {
+		if votedProducers[i].DposV2Votes() == votedProducers[j].DposV2Votes() {
+			return bytes.Compare(votedProducers[i].info.NodePublicKey,
+				votedProducers[j].NodePublicKey()) < 0
+		}
+		return votedProducers[i].DposV2Votes() > votedProducers[j].DposV2Votes()
+	})
+
+	return votedProducers
+}
+
 func (a *arbitrators) getSortedProducersWithRandom(height uint32, unclaimedCount int) ([]*Producer, error) {
+
 	votedProducers := a.getSortedProducers()
 	if height < a.chainParams.NoCRCDPOSNodeHeight {
 		return votedProducers, nil
@@ -1636,6 +1659,49 @@ func (a *arbitrators) getSortedProducersWithRandom(height uint32, unclaimedCount
 	return newProducers, nil
 }
 
+func (a *arbitrators) getRandomDposV2Producers(height uint32, unclaimedCount int) ([]*Producer, error) {
+	block, _ := a.getBlockByHeight(height - 1)
+	if block == nil {
+		return nil, errors.New("block is not found")
+	}
+	var x = make([]byte, 8)
+	blockHash := block.Hash()
+	copy(x, blockHash[24:])
+	seed, _, ok := readi64(x)
+	if !ok {
+		return nil, errors.New("invalid block hash")
+	}
+	rand.Seed(seed)
+
+	votedProducers := a.getSortedProducersDposV2()
+	newProducers := make([]*Producer, 0, len(votedProducers))
+	newProducers = append(newProducers, votedProducers[0:unclaimedCount]...)
+	normalCount := a.chainParams.GeneralArbiters
+
+	votedProducers = votedProducers[unclaimedCount:]
+	for i := 0; i < normalCount; i++ {
+		if len(votedProducers) == 0 {
+			log.Warn("left votedProducer is 0")
+			break
+		}
+		s := rand.Intn(len(votedProducers))
+		if len(votedProducers) == 1 && s == 0 {
+			votedProducers = votedProducers[0:0]
+		} else {
+			newProducers = append(newProducers, votedProducers[s])
+			tmpProducers := votedProducers[s+1:]
+			votedProducers = votedProducers[0:s]
+			votedProducers = append(votedProducers, tmpProducers...)
+		}
+	}
+
+	for i := unclaimedCount; i < len(votedProducers); i++ {
+		newProducers = append(newProducers, votedProducers[i])
+	}
+
+	return newProducers, nil
+}
+
 func (a *arbitrators) getCandidateIndexAtRandom(height uint32, unclaimedCount, votedProducersCount int) (int, error) {
 	block, _ := a.getBlockByHeight(height - 1)
 	if block == nil {
@@ -1656,6 +1722,10 @@ func (a *arbitrators) getCandidateIndexAtRandom(height uint32, unclaimedCount, v
 	}
 	candidatesCount := minInt(count, a.chainParams.CandidateArbiters+1)
 	return rand.Intn(candidatesCount), nil
+}
+
+func (a *arbitrators) isDposV2Active() bool {
+	return len(a.DposV2EffectedProducers) >= a.chainParams.GeneralArbiters*3/2
 }
 
 func (a *arbitrators) updateNextArbitrators(versionHeight, height uint32) error {
@@ -1683,9 +1753,17 @@ func (a *arbitrators) updateNextArbitrators(versionHeight, height uint32) error 
 	if !a.IsInactiveMode() && !a.IsUnderstaffedMode() {
 
 		count := a.chainParams.GeneralArbiters
-		votedProducers, err := a.getSortedProducersWithRandom(height, unclaimed)
-		if err != nil {
-			return err
+		var votedProducers []*Producer
+		if a.isDposV2Active() {
+			votedProducers, err = a.getRandomDposV2Producers(height, unclaimed)
+			if err != nil {
+				return err
+			}
+		} else {
+			votedProducers, err = a.getSortedProducersWithRandom(height, unclaimed)
+			if err != nil {
+				return err
+			}
 		}
 		producers, err := a.GetNormalArbitratorsDesc(versionHeight, count,
 			votedProducers, unclaimed)
@@ -1708,37 +1786,39 @@ func (a *arbitrators) updateNextArbitrators(versionHeight, height uint32) error 
 				a.nextCRCArbiters = oriNextCRCArbiters
 			})
 		} else {
-			if height >= a.chainParams.NoCRCDPOSNodeHeight {
-				count := len(a.chainParams.CRCArbiters) + a.chainParams.GeneralArbiters
-				var newSelected bool
-				for _, p := range votedProducers {
-					producer := p
-					ownerPK := common.BytesToHexString(producer.info.OwnerPublicKey)
-					if ownerPK == a.LastRandomCandidateOwner &&
-						height-a.LastRandomCandidateHeight == uint32(count) {
-						newSelected = true
-					}
-				}
-				if newSelected {
+			if len(a.DposV2EffectedProducers) < a.chainParams.GeneralArbiters*3/2 {
+				if height >= a.chainParams.NoCRCDPOSNodeHeight {
+					count := len(a.chainParams.CRCArbiters) + a.chainParams.GeneralArbiters
+					var newSelected bool
 					for _, p := range votedProducers {
 						producer := p
-						if producer.selected {
-							a.history.Append(height, func() {
-								producer.selected = false
-							}, func() {
-								producer.selected = true
-							})
-						}
 						ownerPK := common.BytesToHexString(producer.info.OwnerPublicKey)
-						oriRandomInactiveCount := producer.randomCandidateInactiveCount
-						if ownerPK == a.LastRandomCandidateOwner {
-							a.history.Append(height, func() {
-								producer.selected = true
-								producer.randomCandidateInactiveCount = 0
-							}, func() {
-								producer.selected = false
-								producer.randomCandidateInactiveCount = oriRandomInactiveCount
-							})
+						if ownerPK == a.LastRandomCandidateOwner &&
+							height-a.LastRandomCandidateHeight == uint32(count) {
+							newSelected = true
+						}
+					}
+					if newSelected {
+						for _, p := range votedProducers {
+							producer := p
+							if producer.selected {
+								a.history.Append(height, func() {
+									producer.selected = false
+								}, func() {
+									producer.selected = true
+								})
+							}
+							ownerPK := common.BytesToHexString(producer.info.OwnerPublicKey)
+							oriRandomInactiveCount := producer.randomCandidateInactiveCount
+							if ownerPK == a.LastRandomCandidateOwner {
+								a.history.Append(height, func() {
+									producer.selected = true
+									producer.randomCandidateInactiveCount = 0
+								}, func() {
+									producer.selected = false
+									producer.randomCandidateInactiveCount = oriRandomInactiveCount
+								})
+							}
 						}
 					}
 				}
@@ -1805,19 +1885,34 @@ func (a *arbitrators) resetNextArbiterByCRC(versionHeight uint32, height uint32)
 		}
 		needReset = true
 	} else if versionHeight >= a.chainParams.ChangeCommitteeNewCRHeight {
-		votedProducers := a.State.GetVotedProducers()
+		var votedProducers []*Producer
+		if a.isDposV2Active() {
+			votedProducers = a.State.GetDposV2ActiveProducers()
+		} else {
+			votedProducers = a.State.GetVotedProducers()
+		}
 
 		if len(votedProducers) < len(a.chainParams.CRCArbiters) {
 			return unclaimed, errors.New("votedProducers less than CRCArbiters")
 		}
 
-		sort.Slice(votedProducers, func(i, j int) bool {
-			if votedProducers[i].votes == votedProducers[j].votes {
-				return bytes.Compare(votedProducers[i].info.NodePublicKey,
-					votedProducers[j].NodePublicKey()) < 0
-			}
-			return votedProducers[i].Votes() > votedProducers[j].Votes()
-		})
+		if a.isDposV2Active() {
+			sort.Slice(votedProducers, func(i, j int) bool {
+				if votedProducers[i].DposV2Votes() == votedProducers[j].DposV2Votes() {
+					return bytes.Compare(votedProducers[i].info.NodePublicKey,
+						votedProducers[j].NodePublicKey()) < 0
+				}
+				return votedProducers[i].DposV2Votes() > votedProducers[j].DposV2Votes()
+			})
+		} else {
+			sort.Slice(votedProducers, func(i, j int) bool {
+				if votedProducers[i].votes == votedProducers[j].votes {
+					return bytes.Compare(votedProducers[i].info.NodePublicKey,
+						votedProducers[j].NodePublicKey()) < 0
+				}
+				return votedProducers[i].Votes() > votedProducers[j].Votes()
+			})
+		}
 
 		for i := 0; i < len(a.chainParams.CRCArbiters); i++ {
 			producer := votedProducers[i]

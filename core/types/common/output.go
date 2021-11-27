@@ -35,6 +35,9 @@ const (
 
 	// OTReturnSideChainDepositCoin indicates the output payload is return side chain deposit coin.
 	OTReturnSideChainDepositCoin
+
+	//OTDposV2Vote indicates the output payload is a dposV2 vote.
+	OTDposV2Vote
 )
 
 type OutputPayload interface {
@@ -151,6 +154,8 @@ func getOutputPayload(outputType OutputType) (OutputPayload, error) {
 		op = new(outputpayload.Withdraw)
 	case OTReturnSideChainDepositCoin:
 		op = new(outputpayload.ReturnSideChainDeposit)
+	case OTDposV2Vote:
+		op = new(outputpayload.VoteOutput)
 	default:
 		return nil, errors.New("invalid transaction output type")
 	}

@@ -82,6 +82,7 @@ type Producer struct {
 	illegalHeight                uint32
 	penalty                      common.Fixed64
 	votes                        common.Fixed64
+	dposV2Votes                  common.Fixed64
 	depositAmount                common.Fixed64
 	totalAmount                  common.Fixed64
 	depositHash                  common.Uint168
@@ -115,6 +116,11 @@ func (p *Producer) CancelHeight() uint32 {
 // Votes returns the votes of the producer.
 func (p *Producer) Votes() common.Fixed64 {
 	return p.votes
+}
+
+// DposV2Votes returns the votes of the dposV2.
+func (p *Producer) DposV2Votes() common.Fixed64 {
+	return p.dposV2Votes
 }
 
 func (p *Producer) NodePublicKey() []byte {
@@ -190,6 +196,10 @@ func (p *Producer) Serialize(w io.Writer) error {
 		return err
 	}
 
+	if err := p.dposV2Votes.Serialize(w); err != nil {
+		return err
+	}
+
 	if err := p.depositAmount.Serialize(w); err != nil {
 		return err
 	}
@@ -242,6 +252,10 @@ func (p *Producer) Deserialize(r io.Reader) (err error) {
 	}
 
 	if err := p.votes.Deserialize(r); err != nil {
+		return err
+	}
+
+	if err := p.dposV2Votes.Deserialize(r); err != nil {
 		return err
 	}
 
@@ -482,6 +496,17 @@ func (s *State) GetActiveProducers() []*Producer {
 	return producers
 }
 
+// GetDposActiveProducers returns all dposv2 producers that in active state.
+func (s *State) GetActivityV2Producers() []*Producer {
+	s.mtx.RLock()
+	producers := make([]*Producer, 0, len(s.DposV2ActivityProducers))
+	for _, producer := range s.DposV2ActivityProducers {
+		producers = append(producers, producer)
+	}
+	s.mtx.RUnlock()
+	return producers
+}
+
 // GetVotedProducers returns all producers that in active state with votes.
 func (s *State) GetVotedProducers() []*Producer {
 	s.mtx.RLock()
@@ -489,6 +514,20 @@ func (s *State) GetVotedProducers() []*Producer {
 	for _, producer := range s.ActivityProducers {
 		// limit arbiters can only be producers who have votes
 		if producer.Votes() > 0 {
+			producers = append(producers, producer)
+		}
+	}
+	s.mtx.RUnlock()
+	return producers
+}
+
+// GetDposV2ActiveProducers returns all producers that in active state with votes.
+func (s *State) GetDposV2ActiveProducers() []*Producer {
+	s.mtx.RLock()
+	producers := make([]*Producer, 0, len(s.ActivityProducers))
+	for _, producer := range s.ActivityProducers {
+		// limit arbiters can only be producers who have effective dposV2 votes
+		if producer.DposV2Votes() > s.chainParams.DposV2EffectiveVotes {
 			producers = append(producers, producer)
 		}
 	}
@@ -733,6 +772,9 @@ func (s *State) IsDPOSTransaction(tx interfaces.Transaction) bool {
 						if content.VoteType == outputpayload.Delegate {
 							return true
 						}
+						if content.VoteType == outputpayload.DposV2 {
+							return true
+						}
 					}
 				}
 			}
@@ -744,6 +786,14 @@ func (s *State) IsDPOSTransaction(tx interfaces.Transaction) bool {
 	// Cancel votes.
 	for _, input := range tx.Inputs() {
 		_, ok := s.Votes[input.ReferKey()]
+		if ok {
+			return true
+		}
+	}
+
+	// Cancel dpos v2 votes.
+	for _, input := range tx.Inputs() {
+		_, ok := s.DposV2Votes[input.ReferKey()]
 		if ok {
 			return true
 		}
@@ -849,11 +899,18 @@ func (s *State) processTransactions(txs []interfaces.Transaction, height uint32)
 		s.history.Append(height, func() {
 			producer.state = Active
 			s.ActivityProducers[key] = producer
+			if producer.info.StakeUntil != 0 {
+				s.DposV2ActivityProducers[key] = producer
+			}
+			log.Info("### add dposV2 producer active ", key, producer.info.StakeUntil)
 			delete(s.PendingProducers, key)
 		}, func() {
 			producer.state = Pending
 			s.PendingProducers[key] = producer
 			delete(s.ActivityProducers, key)
+			if producer.info.StakeUntil != 0 {
+				delete(s.DposV2ActivityProducers, key)
+			}
 		})
 	}
 
@@ -863,11 +920,17 @@ func (s *State) processTransactions(txs []interfaces.Transaction, height uint32)
 		s.history.Append(height, func() {
 			producer.state = Active
 			s.ActivityProducers[key] = producer
+			if producer.info.StakeUntil != 0 {
+				s.DposV2ActivityProducers[key] = producer
+			}
 			delete(s.InactiveProducers, key)
 		}, func() {
 			producer.state = Inactive
 			s.InactiveProducers[key] = producer
 			delete(s.ActivityProducers, key)
+			if producer.info.StakeUntil != 0 {
+				delete(s.DposV2ActivityProducers, key)
+			}
 		})
 	}
 
@@ -877,11 +940,17 @@ func (s *State) processTransactions(txs []interfaces.Transaction, height uint32)
 		s.history.Append(height, func() {
 			producer.state = Active
 			s.ActivityProducers[key] = producer
+			if producer.info.StakeUntil != 0 {
+				s.DposV2ActivityProducers[key] = producer
+			}
 			delete(s.IllegalProducers, key)
 		}, func() {
 			producer.state = Illegal
 			s.IllegalProducers[key] = producer
 			delete(s.ActivityProducers, key)
+			if producer.info.StakeUntil != 0 {
+				delete(s.DposV2ActivityProducers, key)
+			}
 		})
 	}
 
@@ -1013,38 +1082,42 @@ func (s *State) registerProducer(tx interfaces.Transaction, height uint32) {
 			depositOutputs[op.ReferKey()] = output.Value
 		}
 	}
+	if tx.PayloadVersion() != payload.ProducerInfoDposV2Version || s.getProducer(info.NodePublicKey) == nil {
+		producer := Producer{
+			info:                         *info,
+			registerHeight:               height,
+			votes:                        0,
+			dposV2Votes:                  0,
+			inactiveSince:                0,
+			inactiveCount:                0,
+			randomCandidateInactiveCount: 0,
+			penalty:                      common.Fixed64(0),
+			activateRequestHeight:        math.MaxUint32,
+			depositAmount:                state.MinDepositAmount,
+			totalAmount:                  amount,
+			depositHash:                  *programHash,
+		}
 
-	producer := Producer{
-		info:                         *info,
-		registerHeight:               height,
-		votes:                        0,
-		inactiveSince:                0,
-		inactiveCount:                0,
-		randomCandidateInactiveCount: 0,
-		penalty:                      common.Fixed64(0),
-		activateRequestHeight:        math.MaxUint32,
-		depositAmount:                state.MinDepositAmount,
-		totalAmount:                  amount,
-		depositHash:                  *programHash,
+		s.history.Append(height, func() {
+			s.Nicknames[nickname] = struct{}{}
+			s.NodeOwnerKeys[nodeKey] = ownerKey
+			s.PendingProducers[ownerKey] = &producer
+			s.ProducerDepositMap[*programHash] = struct{}{}
+			for k, v := range depositOutputs {
+				s.DepositOutputs[k] = v
+			}
+		}, func() {
+			delete(s.Nicknames, nickname)
+			delete(s.NodeOwnerKeys, nodeKey)
+			delete(s.PendingProducers, ownerKey)
+			delete(s.ProducerDepositMap, *programHash)
+			for k := range depositOutputs {
+				delete(s.DepositOutputs, k)
+			}
+		})
+	} else {
+		s.updateProducer(info, height)
 	}
-
-	s.history.Append(height, func() {
-		s.Nicknames[nickname] = struct{}{}
-		s.NodeOwnerKeys[nodeKey] = ownerKey
-		s.PendingProducers[ownerKey] = &producer
-		s.ProducerDepositMap[*programHash] = struct{}{}
-		for k, v := range depositOutputs {
-			s.DepositOutputs[k] = v
-		}
-	}, func() {
-		delete(s.Nicknames, nickname)
-		delete(s.NodeOwnerKeys, nodeKey)
-		delete(s.PendingProducers, ownerKey)
-		delete(s.ProducerDepositMap, *programHash)
-		for k := range depositOutputs {
-			delete(s.DepositOutputs, k)
-		}
-	})
 }
 
 // updateProducer handles the update producer transaction.
@@ -1073,6 +1146,7 @@ func (s *State) cancelProducer(payload *payload.ProcessProducer, height uint32) 
 			s.PendingCanceledProducers[key] = producer
 		case Active:
 			delete(s.ActivityProducers, key)
+			delete(s.DposV2ActivityProducers, key)
 		case Inactive:
 			delete(s.InactiveProducers, key)
 		}
@@ -1087,6 +1161,9 @@ func (s *State) cancelProducer(payload *payload.ProcessProducer, height uint32) 
 			delete(s.PendingCanceledProducers, key)
 		case Active:
 			s.ActivityProducers[key] = producer
+			if producer.info.StakeUntil != 0 {
+				s.DposV2ActivityProducers[key] = producer
+			}
 		case Inactive:
 			s.InactiveProducers[key] = producer
 		}
@@ -1113,11 +1190,19 @@ func (s *State) processVotes(tx interfaces.Transaction, height uint32) {
 	if tx.Version() >= common2.TxVersion09 {
 		// Votes to producers.
 		for i, output := range tx.Outputs() {
-			if output.Type != common2.OTVote {
+			if output.Type != common2.OTVote && output.Type != common2.OTDposV2Vote {
 				continue
 			}
 			p, _ := output.Payload.(*outputpayload.VoteOutput)
-			if p.Version == outputpayload.VoteProducerVersion {
+			if p.Version == outputpayload.VoteDposV2Version {
+				op := common2.NewOutPoint(tx.Hash(), uint16(i))
+				s.history.Append(height, func() {
+					s.DposV2Votes[op.ReferKey()] = height
+				}, func() {
+					delete(s.DposV2Votes, op.ReferKey())
+				})
+				s.processDposV2VoteOutput(output, height)
+			} else if p.Version == outputpayload.VoteProducerVersion {
 				op := common2.NewOutPoint(tx.Hash(), uint16(i))
 				s.history.Append(height, func() {
 					s.Votes[op.ReferKey()] = struct{}{}
@@ -1229,6 +1314,102 @@ func (s *State) processCancelVotes(tx interfaces.Transaction, height uint32) {
 		if ok {
 			out := references[input]
 			s.processVoteCancel(&out, height)
+		}
+	}
+}
+
+// processCancelVotes takes a transaction output with vote payload.
+func (s *State) processCancelDposV2Votes(tx interfaces.Transaction, height uint32) {
+	var exist bool
+	for _, input := range tx.Inputs() {
+		referKey := input.ReferKey()
+		if _, ok := s.DposV2Votes[referKey]; ok {
+			exist = true
+		}
+	}
+	if !exist {
+		return
+	}
+
+	references, err := s.getTxReference(tx)
+	if err != nil {
+		log.Errorf("get tx reference failed, tx hash:%s", common.ToReversedString(tx.Hash()))
+		return
+	}
+	for _, input := range tx.Inputs() {
+		referKey := input.ReferKey()
+		_, ok := s.DposV2Votes[referKey]
+		if ok {
+			out := references[input]
+			s.processDposV2VoteCancel(&out, height)
+		}
+	}
+}
+
+// processVoteCancel takes a previous vote output and decrease producers votes.
+func (s *State) processDposV2VoteCancel(output *common2.Output, height uint32) {
+	subtractByVote := func(producer *Producer, vote common.Fixed64) {
+		s.history.Append(height, func() {
+			producer.dposV2Votes -= vote
+			if producer.dposV2Votes < s.chainParams.DposV2EffectiveVotes {
+				delete(s.DposV2EffectedProducers, hex.EncodeToString(producer.info.OwnerPublicKey))
+			}
+		}, func() {
+			producer.dposV2Votes += vote
+			if producer.dposV2Votes >= s.chainParams.DposV2EffectiveVotes {
+				s.DposV2EffectedProducers[hex.EncodeToString(producer.info.OwnerPublicKey)] = producer
+			}
+		})
+	}
+
+	p := output.Payload.(*outputpayload.VoteOutput)
+	for _, vote := range p.Contents {
+		for _, cv := range vote.CandidateVotes {
+			producer := s.getProducer(cv.Candidate)
+			if producer == nil {
+				continue
+			}
+			switch vote.VoteType {
+			case outputpayload.DposV2:
+				if p.Version == outputpayload.VoteDposV2Version {
+					v := cv.Votes
+					subtractByVote(producer, v)
+				}
+			}
+		}
+	}
+}
+
+// processDposV2VoteOutput takes a transaction output with vote payload.
+func (s *State) processDposV2VoteOutput(output *common2.Output, height uint32) {
+	countByVote := func(producer *Producer, vote common.Fixed64) {
+		s.history.Append(height, func() {
+			producer.dposV2Votes += vote
+			if producer.dposV2Votes >= s.chainParams.DposV2EffectiveVotes {
+				s.DposV2EffectedProducers[hex.EncodeToString(producer.info.OwnerPublicKey)] = producer
+			}
+		}, func() {
+			producer.dposV2Votes -= vote
+			if producer.dposV2Votes < s.chainParams.DposV2EffectiveVotes {
+				delete(s.DposV2EffectedProducers, hex.EncodeToString(producer.info.OwnerPublicKey))
+			}
+		})
+	}
+
+	p := output.Payload.(*outputpayload.VoteOutput)
+	for _, vote := range p.Contents {
+		for _, cv := range vote.CandidateVotes {
+			producer := s.getProducer(cv.Candidate)
+			if producer == nil {
+				continue
+			}
+			switch vote.VoteType {
+			case outputpayload.DposV2:
+				if p.Version == outputpayload.VoteDposV2Version {
+					v := cv.Votes
+					countByVote(producer, v)
+				}
+			}
 		}
 	}
 }
@@ -1614,12 +1795,18 @@ func (s *State) processIllegalEvidence(payloadData interfaces.Payload,
 					producer.penalty += s.chainParams.IllegalPenalty
 				}
 				delete(s.ActivityProducers, key)
+				if producer.info.StakeUntil != 0 {
+					delete(s.DposV2ActivityProducers, key)
+				}
 				delete(s.Nicknames, producer.info.NickName)
 			}, func() {
 				producer.state = oriState
 				producer.penalty = oriPenalty
 				producer.illegalHeight = oriIllegalHeight
 				s.ActivityProducers[key] = producer
+				if producer.info.StakeUntil != 0 {
+					s.DposV2ActivityProducers[key] = producer
+				}
 				producer.activateRequestHeight = math.MaxUint32
 				delete(s.IllegalProducers, key)
 				s.Nicknames[producer.info.NickName] = struct{}{}
@@ -1723,6 +1910,9 @@ func (s *State) setInactiveProducer(producer *Producer, key string,
 	producer.selected = false
 	s.InactiveProducers[key] = producer
 	delete(s.ActivityProducers, key)
+	if producer.info.StakeUntil != 0 {
+		delete(s.DposV2ActivityProducers, key)
+	}
 
 	if height < s.VersionStartHeight || height >= s.VersionEndHeight {
 		if !emergency {
@@ -1743,6 +1933,9 @@ func (s *State) revertSettingInactiveProducer(producer *Producer, key string,
 	producer.activateRequestHeight = math.MaxUint32
 	producer.state = Active
 	s.ActivityProducers[key] = producer
+	if producer.info.StakeUntil != 0 {
+		s.DposV2ActivityProducers[key] = producer
+	}
 	delete(s.InactiveProducers, key)
 
 	if height < s.VersionStartHeight || height >= s.VersionEndHeight {

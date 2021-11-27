@@ -271,6 +271,7 @@ func RegisterDataType(L *lua.LState) int {
 	RegisterDposManagerType(L)
 	RegisterArbitratorsType(L)
 	RegisterRegisterProducerType(L)
+	RegisterRegisterV2ProducerType(L)
 	RegisterUpdateProducerType(L)
 	RegisterCancelProducerType(L)
 	RegisterActivateProducerType(L)

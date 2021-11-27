@@ -1682,8 +1682,10 @@ type RPCProducerInfo struct {
 	Nickname       string `json:"nickname"`
 	Url            string `json:"url"`
 	Location       uint64 `json:"location"`
+	StakeUntil     uint32 `json:"stakeuntil"`
 	Active         bool   `json:"active"`
 	Votes          string `json:"votes"`
+	DposV2Votes    string `json:"dposv2votes"`
 	State          string `json:"state"`
 	RegisterHeight uint32 `json:"registerheight"`
 	CancelHeight   uint32 `json:"cancelheight"`
@@ -1932,8 +1934,10 @@ func ListProducers(param Params) map[string]interface{} {
 			Nickname:       p.Info().NickName,
 			Url:            p.Info().Url,
 			Location:       p.Info().Location,
+			StakeUntil:     p.Info().StakeUntil,
 			Active:         p.State() == state.Active,
 			Votes:          p.Votes().String(),
+			DposV2Votes:    p.DposV2Votes().String(),
 			State:          p.State().String(),
 			RegisterHeight: p.RegisterHeight(),
 			CancelHeight:   p.CancelHeight(),
@@ -3109,6 +3113,14 @@ func getOutputPayloadInfo(op common2.OutputPayload) OutputPayloadInfo {
 			contentInfo.VoteType = content.VoteType
 			switch contentInfo.VoteType {
 			case outputpayload.Delegate:
+				for _, cv := range content.CandidateVotes {
+					contentInfo.CandidatesInfo = append(contentInfo.CandidatesInfo,
+						CandidateVotes{
+							Candidate: common.BytesToHexString(cv.Candidate),
+							Votes:     cv.Votes.String(),
+						})
+				}
+			case outputpayload.DposV2:
 				for _, cv := range content.CandidateVotes {
 					contentInfo.CandidatesInfo = append(contentInfo.CandidatesInfo,
 						CandidateVotes{

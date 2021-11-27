@@ -400,14 +400,14 @@ func (p *ProposalManager) dealProposal(proposalState *ProposalState, unusedAmoun
 	case payload.ReserveCustomID:
 		oriReservedCustomIDLists := p.ReservedCustomIDLists
 		p.history.Append(height, func() {
-			p.ReservedCustomIDLists = append(p.ReservedCustomIDLists, proposalState.Proposal.ReservedCustomIDList)
+			p.ReservedCustomIDLists = append(p.ReservedCustomIDLists, proposalState.Proposal.ReservedCustomIDList...)
 		}, func() {
 			p.ReservedCustomIDLists = oriReservedCustomIDLists
 		})
 	case payload.ReceiveCustomID:
 		oriReceivedCustomIDLists := p.ReceivedCustomIDLists
 		p.history.Append(height, func() {
-			p.ReceivedCustomIDLists = append(p.ReceivedCustomIDLists, proposalState.Proposal.ReceivedCustomIDList)
+			p.ReceivedCustomIDLists = append(p.ReceivedCustomIDLists, proposalState.Proposal.ReceivedCustomIDList...)
 		}, func() {
 			p.ReceivedCustomIDLists = oriReceivedCustomIDLists
 		})

@@ -327,7 +327,9 @@ func (t *DefaultChecker) tryCheckVoteOutputs() error {
 			candidates = []*crstate.Candidate{}
 		}
 		err := t.checkVoteOutputs(blockHeight, txn.Outputs(), t.references,
-			getProducerPublicKeysMap(producers), getCRCIDsMap(candidates))
+			getProducerPublicKeysMap(producers),
+			getDPoSV2ProducersMap(t.parameters.BlockChain.GetState().GetActivityV2Producers()),
+			getCRCIDsMap(candidates))
 		if err != nil {
 			return err
 		}
@@ -339,6 +341,14 @@ func getProducerPublicKeysMap(producers []*state.Producer) map[string]struct{} {
 	pds := make(map[string]struct{})
 	for _, p := range producers {
 		pds[common.BytesToHexString(p.Info().OwnerPublicKey)] = struct{}{}
+	}
+	return pds
+}
+
+func getDPoSV2ProducersMap(producers []*state.Producer) map[string]uint32 {
+	pds := make(map[string]uint32)
+	for _, p := range producers {
+		pds[common.BytesToHexString(p.Info().OwnerPublicKey)] = p.Info().StakeUntil
 	}
 	return pds
 }
@@ -361,7 +371,7 @@ func getCRMembersMap(members []*crstate.CRMember) map[string]struct{} {
 
 func (t *DefaultChecker) checkVoteOutputs(
 	blockHeight uint32, outputs []*common2.Output, references map[*common2.Input]common2.Output,
-	pds map[string]struct{}, crs map[common.Uint168]struct{}) error {
+	pds map[string]struct{},  pds2 map[string]uint32, crs map[common.Uint168]struct{}) error {
 	programHashes := make(map[common.Uint168]struct{})
 	for _, output := range references {
 		programHashes[output.ProgramHash] = struct{}{}

@@ -514,6 +514,16 @@ var (
 		Name:  "returncrosschaincoinstartheight",
 		Usage: "defines the start height to support ReturnCrossChainDepositCoin transaction",
 	}
+
+	DposV2StartHeightFlag = cli.StringFlag{
+		Name:  "dposv2startheight",
+		Usage: "defines the start height to support DposV2 transaction",
+	}
+
+	DposV2EffectiveVotesFlag = cli.StringFlag{
+		Name:  "dposv2effectivevotes",
+		Usage: "defines the minimum votes to active a DposV2 producer",
+	}
 )
 
 // MoveRPCFlags finds the rpc argument and moves it to the front

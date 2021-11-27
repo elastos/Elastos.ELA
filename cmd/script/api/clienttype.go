@@ -9,6 +9,8 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/elastos/Elastos.ELA/common"
+	"github.com/elastos/Elastos.ELA/core/contract"
 
 	"github.com/elastos/Elastos.ELA/account"
 
@@ -60,6 +62,7 @@ func checkClient(L *lua.LState, idx int) (*account.Client, error) {
 var clientMethods = map[string]lua.LGFunction{
 	"get":           clientGet,
 	"get_address":   getWalletAddr,
+	"get_s_address": getSWalletAddr,
 	"get_publickey": getWalletPubkey,
 }
 
@@ -72,6 +75,21 @@ func clientGet(L *lua.LState) int {
 	fmt.Println(p)
 
 	return 0
+}
+func getSWalletAddr(L *lua.LState) int {
+	wallet, err := checkClient(L, 1)
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+	acc := wallet.GetMainAccount()
+	codeHash := acc.ProgramHash.ToCodeHash()
+	depositHash := common.Uint168FromCodeHash(byte(contract.PrefixDposV2), codeHash)
+	sAddress, err := depositHash.ToAddress()
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+	L.Push(lua.LString(sAddress))
+	return 1
 }
 
 func getWalletAddr(L *lua.LState) int {

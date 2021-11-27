@@ -89,40 +89,37 @@ func (b *BlockChain) CheckTransactionContext(blockHeight uint32,
 	if contextErr != nil {
 		return nil, contextErr
 	}
+
 	return references, nil
-}
-
-func getProducerPublicKeysMap(producers []*state.Producer) map[string]struct{} {
-	pds := make(map[string]struct{})
-	for _, p := range producers {
-		pds[common.BytesToHexString(p.Info().OwnerPublicKey)] = struct{}{}
-	}
-	return pds
-}
-
-func getCRCIDsMap(crs []*crstate.Candidate) map[common.Uint168]struct{} {
-	codes := make(map[common.Uint168]struct{})
-	for _, c := range crs {
-		codes[c.Info().CID] = struct{}{}
-	}
-	return codes
 }
 
 func (b *BlockChain) checkVoteOutputs(
 	blockHeight uint32, outputs []*common2.Output, references map[*common2.Input]common2.Output,
-	pds map[string]struct{}, crs map[common.Uint168]struct{}) error {
+	pds map[string]struct{}, pds2 map[string]uint32, crs map[common.Uint168]struct{}) error {
 	programHashes := make(map[common.Uint168]struct{})
 	for _, output := range references {
 		programHashes[output.ProgramHash] = struct{}{}
 	}
+
+	var dposV2OutputCount int
+	var dposV2OutputLock uint32
+	var totalDPoSV2OutputVotes common.Fixed64
 	for _, o := range outputs {
-		if o.Type != common2.OTVote {
+		if o.Type != common2.OTVote && o.Type != common2.OTDposV2Vote {
 			continue
 		}
-		if _, ok := programHashes[o.ProgramHash]; !ok {
+		var checkProhash common.Uint168
+		if o.Type == common2.OTDposV2Vote {
+			checkProhash = common.Uint168FromCodeHash(byte(contract.PrefixStandard), o.ProgramHash.ToCodeHash())
+		} else {
+			checkProhash = o.ProgramHash
+		}
+
+		if _, ok := programHashes[checkProhash]; !ok {
 			return errors.New("the output address of vote tx " +
 				"should exist in its input")
 		}
+
 		votePayload, ok := o.Payload.(*outputpayload.VoteOutput)
 		if !ok {
 			return errors.New("invalid vote output payload")
@@ -153,8 +150,67 @@ func (b *BlockChain) checkVoteOutputs(
 				if err != nil {
 					return err
 				}
+			case outputpayload.DposV2:
+				dposV2OutputCount++
+				dposV2OutputLock = o.OutputLock
+				totalDPoSV2OutputVotes += o.Value
+				err := b.checkVoteDposV2Content(o.OutputLock,
+					content, pds2, votePayload.Version, o.Value)
+				if err != nil {
+					return err
+				}
 			}
 		}
+	}
+
+	// If inputs contain DPoS v2 votes, need to check:
+	// 1.need to be only one DPoS V2 input
+	// 2.need to be only one DPoS V2 output
+	// 3.outputLock of output need to be bigger than new input
+	// 4.DPoS v2 votes in outputs need to be more than inputs
+	var dposV2InputCount uint32
+	var dposV2InputLock uint32
+	var totalDPoSV2InputVotes common.Fixed64
+	for _, o := range references {
+		votePayload, ok := o.Payload.(*outputpayload.VoteOutput)
+		if !ok {
+			continue
+		}
+
+		var containDPoSV2Votes bool
+		for _, content := range votePayload.Contents {
+			if content.VoteType == outputpayload.DposV2 {
+				containDPoSV2Votes = true
+				break
+			}
+		}
+		if !containDPoSV2Votes {
+			continue
+		}
+
+		dposV2InputCount++
+		dposV2InputLock = o.OutputLock
+		totalDPoSV2InputVotes += o.Value
+	}
+	// need to be only one DPoS V2 input
+	if dposV2InputCount > 1 {
+		return errors.New("need to be only one DPoS V2 input")
+	}
+	// need to be only one DPoS V2 output
+	if dposV2OutputCount > 1 {
+		return errors.New("need to be only one DPoS V2 output")
+	}
+	// outputLock of output need to be bigger than new input
+	if dposV2InputLock > dposV2OutputLock {
+		return errors.New(fmt.Sprintf("invalid DPoS V2 output lock, "+
+			"need to be bigger than input, input lockTime:%d, "+
+			"output lockTime:%d", dposV2InputLock, dposV2OutputLock))
+	}
+	// DPoS v2 votes in outputs need to be more than inputs
+	if totalDPoSV2InputVotes > totalDPoSV2OutputVotes {
+		return errors.New(fmt.Sprintf("invalid DPoS V2 output votes, "+
+			"need to be bigger than input, input votes:%d, "+
+			"output votes:%d", totalDPoSV2InputVotes, totalDPoSV2OutputVotes))
 	}
 
 	return nil
@@ -197,6 +253,40 @@ func (b *BlockChain) checkVoteProducerContent(content outputpayload.VoteContent,
 				return errors.New("votes larger than output amount")
 			}
 		}
+	}
+
+	return nil
+}
+
+func (b *BlockChain) checkVoteDposV2Content(lockTime uint32, content outputpayload.VoteContent,
+	pds map[string]uint32, payloadVersion byte, amount common.Fixed64) error {
+	for _, cv := range content.CandidateVotes {
+		stakeUntil, ok := pds[common.BytesToHexString(cv.Candidate)]
+		if !ok {
+			return fmt.Errorf("invalid vote output payload "+
+				"producer candidate: %s", common.BytesToHexString(cv.Candidate))
+		}
+
+		if lockTime > stakeUntil {
+			return fmt.Errorf("invalid vote output lockTime "+
+				"producer candidate:%s, lockTime:%d, stakeUntil:%d",
+				common.BytesToHexString(cv.Candidate), lockTime, stakeUntil)
+		}
+	}
+
+	if payloadVersion < outputpayload.VoteDposV2Version {
+		return errors.New("payload VoteDposV2Version not support vote DposV2")
+	}
+	if len(content.CandidateVotes) > outputpayload.MaxDposV2ProducerPerTransaction {
+		return errors.New("invalid count of DposV2 candidates ")
+	}
+
+	var totalVotes common.Fixed64
+	for _, cv := range content.CandidateVotes {
+		totalVotes += cv.Votes
+	}
+	if totalVotes > amount {
+		return errors.New("total votes larger than output amount")
 	}
 
 	return nil
@@ -549,6 +639,11 @@ func checkOutputPayload(txType common2.TxType, output *common2.Output) error {
 			}
 		case common2.OTNone:
 		case common2.OTMapping:
+		case common2.OTDposV2Vote:
+			if contract.GetPrefixType(output.ProgramHash) !=
+				contract.PrefixDposV2 {
+				return errors.New("output address should be dposV2")
+			}
 		default:
 			return errors.New("transaction type dose not match the output payload type")
 		}
@@ -903,6 +998,8 @@ func (b *BlockChain) checkPOWConsensusTransaction(txn interfaces.Transaction, re
 							return errors.New("not allow to vote CRC proposal in POW consensus")
 						case outputpayload.CRCImpeachment:
 							return errors.New("not allow to vote CRImpeachment in POW consensus")
+						case outputpayload.DposV2:
+							return errors.New("not allow to vote Dpos V2 in POW consensus")
 						}
 					}
 					containVoteOutput = true
@@ -1039,7 +1136,7 @@ func (b *BlockChain) checkTxHeightVersion(txn interfaces.Transaction, blockHeigh
 				"before CRClaimDPOSNodeStartHeight", txn.TxType().Name()))
 		}
 	case common2.TransferAsset:
-		if blockHeight >= b.chainParams.CRVotingStartHeight {
+		if blockHeight >= b.chainParams.DposV2StartHeight {
 			return nil
 		}
 		if txn.Version() >= common2.TxVersion09 {
@@ -1048,9 +1145,13 @@ func (b *BlockChain) checkTxHeightVersion(txn interfaces.Transaction, blockHeigh
 					continue
 				}
 				p, _ := output.Payload.(*outputpayload.VoteOutput)
-				if p.Version >= outputpayload.VoteProducerAndCRVersion {
+				if blockHeight < b.chainParams.CRVotingStartHeight && p.Version == outputpayload.VoteProducerAndCRVersion {
 					return errors.New("not support " +
 						"VoteProducerAndCRVersion before CRVotingStartHeight")
+				}
+				if p.Version == outputpayload.VoteDposV2Version {
+					return errors.New("not support " +
+						"VoteDposV2Version before DposV2StartHeight")
 				}
 			}
 		}
@@ -1517,74 +1618,151 @@ func (b *BlockChain) checkRegisterProducerTransaction(txn interfaces.Transaction
 			return fmt.Errorf("producer owner already registered")
 		}
 	} else {
-		// check duplication of node.
-		if b.state.ProducerNodePublicKeyExists(info.NodePublicKey) {
-			return fmt.Errorf("producer already registered")
+		if b.GetHeight() < b.chainParams.DposV2StartHeight && txn.PayloadVersion() == payload.ProducerInfoVersion {
+			// check duplication of node.
+			if b.state.ProducerNodePublicKeyExists(info.NodePublicKey) {
+				return fmt.Errorf("producer already registered")
+			}
+
+			// check duplication of owner.
+			if b.state.ProducerOwnerPublicKeyExists(info.OwnerPublicKey) {
+				return fmt.Errorf("producer owner already registered")
+			}
 		}
+	}
+
+	if txn.PayloadVersion() == payload.ProducerInfoVersion {
+		// check duplication of nickname.
+		if b.state.NicknameExists(info.NickName) {
+			return fmt.Errorf("nick name %s already inuse", info.NickName)
+		}
+
+		// check if public keys conflict with cr program code
+		ownerCode := append([]byte{byte(COMPRESSEDLEN)}, info.OwnerPublicKey...)
+		ownerCode = append(ownerCode, vm.CHECKSIG)
+		if b.crCommittee.ExistCR(ownerCode) {
+			return fmt.Errorf("owner public key %s already exist in cr list",
+				common.BytesToHexString(info.OwnerPublicKey))
+		}
+		nodeCode := append([]byte{byte(COMPRESSEDLEN)}, info.NodePublicKey...)
+		nodeCode = append(nodeCode, vm.CHECKSIG)
+		if b.crCommittee.ExistCR(nodeCode) {
+			return fmt.Errorf("node public key %s already exist in cr list",
+				common.BytesToHexString(info.NodePublicKey))
+		}
+
+		if err := b.additionalProducerInfoCheck(info); err != nil {
+			return err
+		}
+
+		// check signature
+		publicKey, err := DecodePoint(info.OwnerPublicKey)
+		if err != nil {
+			return errors.New("invalid owner public key in payload")
+		}
+		signedBuf := new(bytes.Buffer)
+		err = info.SerializeUnsigned(signedBuf, payload.ProducerInfoVersion)
+		if err != nil {
+			return err
+		}
+		err = Verify(*publicKey, signedBuf.Bytes(), info.Signature)
+		if err != nil {
+			return errors.New("invalid signature in payload")
+		}
+
+		// check deposit coin
+		hash, err := contract.PublicKeyToDepositProgramHash(info.OwnerPublicKey)
+		if err != nil {
+			return errors.New("invalid public key")
+		}
+		var depositCount int
+		for _, output := range txn.Outputs() {
+			if contract.GetPrefixType(output.ProgramHash) == contract.PrefixDeposit {
+				depositCount++
+				if !output.ProgramHash.IsEqual(*hash) {
+					return errors.New("deposit address does not match the public key in payload")
+				}
+				if output.Value < crstate.MinDepositAmount {
+					return errors.New("producer deposit amount is insufficient")
+				}
+			}
+		}
+		if depositCount != 1 {
+			return errors.New("there must be only one deposit address in outputs")
+		}
+	} else if txn.PayloadVersion() == payload.ProducerInfoDposV2Version {
+		if info.StakeUntil < b.chainParams.DposV2StartHeight {
+			return fmt.Errorf("stakeuntil must bigger than DposV2StartHeight")
+		}
+
+		// check duplication of node.
+		nodeKeyExist := b.state.ProducerNodePublicKeyExists(info.NodePublicKey)
 
 		// check duplication of owner.
-		if b.state.ProducerOwnerPublicKeyExists(info.OwnerPublicKey) {
-			return fmt.Errorf("producer owner already registered")
+		ownerKeyExist := b.state.ProducerOwnerPublicKeyExists(info.OwnerPublicKey)
+
+		// check duplication of nickname.
+		nickNameExist := b.state.NicknameExists(info.NickName)
+
+		if nodeKeyExist != ownerKeyExist || ownerKeyExist != nickNameExist {
+			return fmt.Errorf("NodePublicKey %v OwnerPublicKey %v NickName %v", nodeKeyExist, ownerKeyExist, nickNameExist)
 		}
-	}
 
-	// check duplication of nickname.
-	if b.state.NicknameExists(info.NickName) {
-		return fmt.Errorf("nick name %s already inuse", info.NickName)
-	}
-
-	// check if public keys conflict with cr program code
-	ownerCode := append([]byte{byte(COMPRESSEDLEN)}, info.OwnerPublicKey...)
-	ownerCode = append(ownerCode, vm.CHECKSIG)
-	if b.crCommittee.ExistCR(ownerCode) {
-		return fmt.Errorf("owner public key %s already exist in cr list",
-			common.BytesToHexString(info.OwnerPublicKey))
-	}
-	nodeCode := append([]byte{byte(COMPRESSEDLEN)}, info.NodePublicKey...)
-	nodeCode = append(nodeCode, vm.CHECKSIG)
-	if b.crCommittee.ExistCR(nodeCode) {
-		return fmt.Errorf("node public key %s already exist in cr list",
-			common.BytesToHexString(info.NodePublicKey))
-	}
-
-	if err := b.additionalProducerInfoCheck(info); err != nil {
-		return err
-	}
-
-	// check signature
-	publicKey, err := DecodePoint(info.OwnerPublicKey)
-	if err != nil {
-		return errors.New("invalid owner public key in payload")
-	}
-	signedBuf := new(bytes.Buffer)
-	err = info.SerializeUnsigned(signedBuf, payload.ProducerInfoVersion)
-	if err != nil {
-		return err
-	}
-	err = Verify(*publicKey, signedBuf.Bytes(), info.Signature)
-	if err != nil {
-		return errors.New("invalid signature in payload")
-	}
-
-	// check deposit coin
-	hash, err := contract.PublicKeyToDepositProgramHash(info.OwnerPublicKey)
-	if err != nil {
-		return errors.New("invalid public key")
-	}
-	var depositCount int
-	for _, output := range txn.Outputs() {
-		if contract.GetPrefixType(output.ProgramHash) == contract.PrefixDeposit {
-			depositCount++
-			if !output.ProgramHash.IsEqual(*hash) {
-				return errors.New("deposit address does not match the public key in payload")
+		if !nodeKeyExist {
+			// check if public keys conflict with cr program code
+			ownerCode := append([]byte{byte(COMPRESSEDLEN)}, info.OwnerPublicKey...)
+			ownerCode = append(ownerCode, vm.CHECKSIG)
+			if b.crCommittee.ExistCR(ownerCode) {
+				return fmt.Errorf("owner public key %s already exist in cr list",
+					common.BytesToHexString(info.OwnerPublicKey))
 			}
-			if output.Value < crstate.MinDepositAmount {
-				return errors.New("producer deposit amount is insufficient")
+			nodeCode := append([]byte{byte(COMPRESSEDLEN)}, info.NodePublicKey...)
+			nodeCode = append(nodeCode, vm.CHECKSIG)
+			if b.crCommittee.ExistCR(nodeCode) {
+				return fmt.Errorf("node public key %s already exist in cr list",
+					common.BytesToHexString(info.NodePublicKey))
+			}
+
+			if err := b.additionalProducerInfoCheck(info); err != nil {
+				return err
+			}
+
+			// check signature
+			publicKey, err := DecodePoint(info.OwnerPublicKey)
+			if err != nil {
+				return errors.New("invalid owner public key in payload")
+			}
+			signedBuf := new(bytes.Buffer)
+			err = info.SerializeUnsigned(signedBuf, payload.ProducerInfoVersion)
+			if err != nil {
+				return err
+			}
+			err = Verify(*publicKey, signedBuf.Bytes(), info.Signature)
+			if err != nil {
+				return errors.New("invalid signature in payload")
+			}
+
+			// check deposit coin
+			hash, err := contract.PublicKeyToDepositProgramHash(info.OwnerPublicKey)
+			if err != nil {
+				return errors.New("invalid public key")
+			}
+			var depositCount int
+			for _, output := range txn.Outputs() {
+				if contract.GetPrefixType(output.ProgramHash) == contract.PrefixDeposit {
+					depositCount++
+					if !output.ProgramHash.IsEqual(*hash) {
+						return errors.New("deposit address does not match the public key in payload")
+					}
+					if output.Value < crstate.MinDepositAmount {
+						return errors.New("producer deposit amount is insufficient")
+					}
+				}
+			}
+			if depositCount != 1 {
+				return errors.New("there must be only one deposit address in outputs")
 			}
 		}
-	}
-	if depositCount != 1 {
-		return errors.New("there must be only one deposit address in outputs")
 	}
 
 	return nil

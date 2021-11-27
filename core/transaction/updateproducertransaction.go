@@ -52,7 +52,7 @@ func (t *UpdateProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bool
 		return elaerr.Simple(elaerr.ErrTxPayload, err), true
 	}
 
-	if err := t.additionalProducerInfoCheck(t.parameters, info); err != nil {
+	if err := t.additionalProducerInfoCheck(info); err != nil {
 		return elaerr.Simple(elaerr.ErrTxPayload, err), true
 	}
 
@@ -92,7 +92,7 @@ func (t *UpdateProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bool
 
 	// check node public key duplication
 	if bytes.Equal(info.NodePublicKey, producer.Info().NodePublicKey) {
-		return nil, true
+		return nil, false
 	}
 
 	if t.parameters.BlockChain.GetHeight() < t.parameters.Config.PublicDPOSHeight {
@@ -110,7 +110,7 @@ func (t *UpdateProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bool
 	return nil, false
 }
 
-func (t *UpdateProducerTransaction) additionalProducerInfoCheck(params *TransactionParameters, info *payload.ProducerInfo) error {
+func (t *UpdateProducerTransaction) additionalProducerInfoCheck(info *payload.ProducerInfo) error {
 	if t.parameters.BlockChain.GetHeight() >= t.parameters.Config.PublicDPOSHeight {
 		_, err := crypto.DecodePoint(info.NodePublicKey)
 		if err != nil {

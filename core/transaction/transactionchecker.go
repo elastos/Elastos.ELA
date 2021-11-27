@@ -36,17 +36,17 @@ func (t *DefaultChecker) SanityCheck(params interfaces.Parameters) elaerr.ELAErr
 		return elaerr.Simple(elaerr.ErrFail, errors.New("invalid parameters"))
 	}
 
-	if err := t.HeightVersionCheck(); err != nil {
+	if err := t.parameters.Transaction.HeightVersionCheck(); err != nil {
 		log.Warn("[HeightVersionCheck],", err)
 		return elaerr.Simple(elaerr.ErrTxHeightVersion, nil)
 	}
 
-	if err := t.CheckTransactionSize(); err != nil {
+	if err := t.parameters.Transaction.CheckTransactionSize(); err != nil {
 		log.Warn("[CheckTransactionSize],", err)
 		return elaerr.Simple(elaerr.ErrTxSize, err)
 	}
 
-	if err := t.CheckTransactionInput(); err != nil {
+	if err := t.parameters.Transaction.CheckTransactionInput(); err != nil {
 		log.Warn("[CheckTransactionInput],", err)
 		return elaerr.Simple(elaerr.ErrTxInvalidInput, err)
 	}
@@ -56,7 +56,7 @@ func (t *DefaultChecker) SanityCheck(params interfaces.Parameters) elaerr.ELAErr
 		return elaerr.Simple(elaerr.ErrTxAssetPrecision, err)
 	}
 
-	if err := t.CheckAttributeProgram(); err != nil {
+	if err := t.parameters.Transaction.CheckAttributeProgram(); err != nil {
 		log.Warn("[CheckAttributeProgram],", err)
 		return elaerr.Simple(elaerr.ErrTxAttributeProgram, err)
 	}
@@ -72,7 +72,7 @@ func (t *DefaultChecker) ContextCheck(params interfaces.Parameters) (
 		return nil, elaerr.Simple(elaerr.ErrTxDuplicate, errors.New("invalid parameters"))
 	}
 
-	if err := t.HeightVersionCheck(); err != nil {
+	if err := t.parameters.Transaction.HeightVersionCheck(); err != nil {
 		log.Warn("[CheckTransactionContext] height version check failed.")
 		return nil, elaerr.Simple(elaerr.ErrTxHeightVersion, nil)
 	}
@@ -90,7 +90,7 @@ func (t *DefaultChecker) ContextCheck(params interfaces.Parameters) (
 	t.references = references
 
 	if t.parameters.BlockChain.GetState().GetConsensusAlgorithm() == state.POW {
-		if !t.IsAllowedInPOWConsensus() {
+		if !t.parameters.Transaction.IsAllowedInPOWConsensus() {
 			log.Warnf("[CheckTransactionContext], %s transaction is not allowed in POW", t.parameters.Transaction.TxType().Name())
 			return nil, elaerr.Simple(elaerr.ErrTxValidation, nil)
 		}
@@ -107,9 +107,9 @@ func (t *DefaultChecker) ContextCheck(params interfaces.Parameters) (
 		return nil, elaerr.Simple(elaerr.ErrTxUTXOLocked, err)
 	}
 
-	cerr, end := t.SpecialContextCheck()
+	cerr, end := t.parameters.Transaction.SpecialContextCheck()
 	if end {
-		return nil, cerr
+		return references, cerr
 	}
 
 	if err := t.checkTransactionFee(t.parameters.Transaction, references); err != nil {

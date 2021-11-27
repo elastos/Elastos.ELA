@@ -87,7 +87,6 @@ func (b *BlockChain) CheckTransactionContext(blockHeight uint32,
 
 	references, contextErr := tx.ContextCheck(para)
 	if contextErr != nil {
-		log.Info("###### err:", contextErr, "txType:", tx.TxType())
 		return nil, contextErr
 	}
 	return references, nil

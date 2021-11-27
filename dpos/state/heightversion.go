@@ -80,7 +80,7 @@ func (a *arbitrators) getNextOnDutyArbitratorV0(height,
 }
 
 func (a *arbitrators) distributeWithNormalArbitratorsV0(
-	reward common.Fixed64) (map[common.Uint168]common.Fixed64, common.Fixed64, error) {
+	height uint32, reward common.Fixed64) (map[common.Uint168]common.Fixed64, common.Fixed64, error) {
 	if len(a.currentArbitrators) == 0 {
 		return nil, 0, errors.New("not found arbiters when distributeWithNormalArbitratorsV0")
 	}

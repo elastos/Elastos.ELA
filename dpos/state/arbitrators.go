@@ -709,7 +709,7 @@ func (a *arbitrators) distributeDPOSReward(height uint32,
 	} else if height >= a.chainParams.CRCommitteeStartHeight+2*uint32(len(a.currentArbitrators)) {
 		roundReward, realDPOSReward, err = a.distributeWithNormalArbitratorsV1(height, reward)
 	} else {
-		roundReward, realDPOSReward, err = a.distributeWithNormalArbitratorsV0(reward)
+		roundReward, realDPOSReward, err = a.distributeWithNormalArbitratorsV0(height, reward)
 	}
 
 	if err != nil {

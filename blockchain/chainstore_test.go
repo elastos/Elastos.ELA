@@ -6,6 +6,7 @@
 package blockchain
 
 import (
+	"github.com/elastos/Elastos.ELA/test/unit"
 	"testing"
 
 	"github.com/elastos/Elastos.ELA/common"
@@ -14,7 +15,7 @@ import (
 )
 
 func TestCheckAssetPrecision(t *testing.T) {
-	tx := buildTx()
+	tx := unit.buildTx()
 	// valid precision
 	for _, output := range tx.Outputs() {
 		output.AssetID = config.ELAAssetID

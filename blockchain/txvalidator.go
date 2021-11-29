@@ -93,7 +93,7 @@ func (b *BlockChain) CheckTransactionContext(blockHeight uint32,
 	return references, nil
 }
 
-func (b *BlockChain) checkVoteOutputs(
+func (b *BlockChain) CheckVoteOutputs(
 	blockHeight uint32, outputs []*common2.Output, references map[*common2.Input]common2.Output,
 	pds map[string]struct{}, pds2 map[string]uint32, crs map[common.Uint168]struct{}) error {
 	programHashes := make(map[common.Uint168]struct{})
@@ -364,7 +364,7 @@ func getCRMembersMap(members []*crstate.CRMember) map[string]struct{} {
 	return crMaps
 }
 
-func checkDestructionAddress(references map[*common2.Input]common2.Output) error {
+func CheckDestructionAddress(references map[*common2.Input]common2.Output) error {
 	for _, output := range references {
 		if output.ProgramHash == config.DestroyELAAddress {
 			return errors.New("cannot use utxo from the destruction address")
@@ -393,7 +393,7 @@ func (b *BlockChain) checkInvalidUTXO(txn interfaces.Transaction) error {
 }
 
 //validate the transaction of duplicate UTXO input
-func checkTransactionInput(txn interfaces.Transaction) error {
+func CheckTransactionInput(txn interfaces.Transaction) error {
 	if txn.IsCoinBaseTx() {
 		if len(txn.Inputs()) != 1 {
 			return errors.New("coinbase must has only one input")
@@ -450,7 +450,7 @@ func (b *BlockChain) checkCRCProposalWithdrawOutput(txn interfaces.Transaction) 
 	return nil
 }
 
-func (b *BlockChain) checkTransactionOutput(txn interfaces.Transaction,
+func (b *BlockChain) CheckTransactionOutput(txn interfaces.Transaction,
 	blockHeight uint32) error {
 	if len(txn.Outputs()) > math.MaxUint16 {
 		return errors.New("output count should not be greater than 65535(MaxUint16)")
@@ -540,7 +540,7 @@ func (b *BlockChain) checkTransactionOutput(txn interfaces.Transaction,
 			return errors.New("invalid transaction UTXO output")
 		}
 
-		if err := checkOutputProgramHash(blockHeight, output.ProgramHash); err != nil {
+		if err := CheckOutputProgramHash(blockHeight, output.ProgramHash); err != nil {
 			return err
 		}
 
@@ -548,7 +548,7 @@ func (b *BlockChain) checkTransactionOutput(txn interfaces.Transaction,
 			if output.Type != common2.OTNone {
 				specialOutputCount++
 			}
-			if err := checkOutputPayload(txn.TxType(), output); err != nil {
+			if err := CheckOutputPayload(txn.TxType(), output); err != nil {
 				return err
 			}
 		}
@@ -565,7 +565,7 @@ func (b *BlockChain) checkTransactionOutput(txn interfaces.Transaction,
 	return nil
 }
 
-func checkOutputProgramHash(height uint32, programHash common.Uint168) error {
+func CheckOutputProgramHash(height uint32, programHash common.Uint168) error {
 	// main version >= 88812
 	if height >= config.DefaultParams.CheckAddressHeight {
 		var empty = common.Uint168{}
@@ -605,7 +605,7 @@ func checkOutputProgramHash(height uint32, programHash common.Uint168) error {
 	return nil
 }
 
-func checkOutputPayload(txType common2.TxType, output *common2.Output) error {
+func CheckOutputPayload(txType common2.TxType, output *common2.Output) error {
 	switch txType {
 	case common2.ReturnSideChainDepositCoin:
 		switch output.Type {
@@ -675,7 +675,7 @@ func checkTransactionUTXOLock(txn interfaces.Transaction, references map[*common
 	return nil
 }
 
-func checkTransactionDepositUTXO(txn interfaces.Transaction, references map[*common2.Input]common2.Output) error {
+func CheckTransactionDepositUTXO(txn interfaces.Transaction, references map[*common2.Input]common2.Output) error {
 	for _, output := range references {
 		if contract.GetPrefixType(output.ProgramHash) == contract.PrefixDeposit {
 			if !txn.IsReturnDepositCoin() && !txn.IsReturnCRDepositCoinTx() {
@@ -715,7 +715,7 @@ func checkTransactionDepositOutpus(bc *BlockChain, txn interfaces.Transaction) e
 	return nil
 }
 
-func checkTransactionSize(txn interfaces.Transaction) error {
+func CheckTransactionSize(txn interfaces.Transaction) error {
 	size := txn.GetSize()
 	if size <= 0 || size > int(pact.MaxBlockContextSize) {
 		return fmt.Errorf("Invalid transaction size: %d bytes", size)
@@ -726,7 +726,7 @@ func checkTransactionSize(txn interfaces.Transaction) error {
 
 func checkAssetPrecision(txn interfaces.Transaction) error {
 	for _, output := range txn.Outputs() {
-		if !checkAmountPrecise(output.Value, config.ELAPrecision) {
+		if !CheckAmountPrecise(output.Value, config.ELAPrecision) {
 			return errors.New("the precision of asset is incorrect")
 		}
 	}
@@ -754,7 +754,7 @@ func (b *BlockChain) isSmallThanMinTransactionFee(fee common.Fixed64) bool {
 	return false
 }
 
-func (b *BlockChain) checkTransactionFee(tx interfaces.Transaction, references map[*common2.Input]common2.Output) error {
+func (b *BlockChain) CheckTransactionFee(tx interfaces.Transaction, references map[*common2.Input]common2.Output) error {
 	fee := b.getTransactionFee(tx, references)
 	if b.isSmallThanMinTransactionFee(fee) {
 		return fmt.Errorf("transaction fee not enough")
@@ -767,7 +767,7 @@ func (b *BlockChain) checkTransactionFee(tx interfaces.Transaction, references m
 	return nil
 }
 
-func (b *BlockChain) checkAttributeProgram(tx interfaces.Transaction,
+func (b *BlockChain) CheckAttributeProgram(tx interfaces.Transaction,
 	blockHeight uint32) error {
 	switch tx.TxType() {
 	case common2.CoinBase:
@@ -873,17 +873,17 @@ func checkTransactionSignature(tx interfaces.Transaction, references map[*common
 	return RunPrograms(buf.Bytes(), programHashes, tx.Programs())
 }
 
-func checkAmountPrecise(amount common.Fixed64, precision byte) bool {
+func CheckAmountPrecise(amount common.Fixed64, precision byte) bool {
 	return amount.IntValue()%int64(math.Pow(10, float64(8-precision))) == 0
 }
 
-func (b *BlockChain) checkTransactionPayload(txn interfaces.Transaction) error {
+func (b *BlockChain) CheckTransactionPayload(txn interfaces.Transaction) error {
 	switch pld := txn.Payload().(type) {
 	case *payload.RegisterAsset:
 		if pld.Asset.Precision < payload.MinPrecision || pld.Asset.Precision > payload.MaxPrecision {
 			return errors.New("Invalide asset Precision.")
 		}
-		if !checkAmountPrecise(pld.Amount, pld.Asset.Precision) {
+		if !CheckAmountPrecise(pld.Amount, pld.Asset.Precision) {
 			return errors.New("Invalide asset value,out of precise.")
 		}
 	case *payload.TransferAsset:
@@ -958,7 +958,7 @@ func checkSchnorrWithdrawFromSidechain(txn interfaces.Transaction, pld *payload.
 }
 
 // validate the transaction of duplicate sidechain transaction
-func checkDuplicateSidechainTx(txn interfaces.Transaction) error {
+func CheckDuplicateSidechainTx(txn interfaces.Transaction) error {
 	if txn.IsWithdrawFromSideChainTx() {
 		witPayload := txn.Payload().(*payload.WithdrawFromSideChain)
 		existingHashs := make(map[common.Uint256]struct{})
@@ -1032,7 +1032,7 @@ func (b *BlockChain) checkPOWConsensusTransaction(txn interfaces.Transaction, re
 }
 
 // validate the type of transaction is allowed or not at current height.
-func (b *BlockChain) checkTxHeightVersion(txn interfaces.Transaction, blockHeight uint32) error {
+func (b *BlockChain) CheckTxHeightVersion(txn interfaces.Transaction, blockHeight uint32) error {
 	switch txn.TxType() {
 	case common2.RevertToPOW, common2.RevertToDPOS:
 		if blockHeight < b.chainParams.RevertToPOWStartHeight {
@@ -1592,18 +1592,18 @@ func (b *BlockChain) checkNextTurnDPOSInfoTransaction(txn interfaces.Transaction
 	return nil
 }
 
-func (b *BlockChain) checkRegisterProducerTransaction(txn interfaces.Transaction) error {
+func (b *BlockChain) CheckRegisterProducerTransaction(txn interfaces.Transaction) error {
 	info, ok := txn.Payload().(*payload.ProducerInfo)
 	if !ok {
 		return errors.New("invalid payload")
 	}
 
-	if err := checkStringField(info.NickName, "NickName", false); err != nil {
+	if err := CheckStringField(info.NickName, "NickName", false); err != nil {
 		return err
 	}
 
 	// check url
-	if err := checkStringField(info.Url, "Url", true); err != nil {
+	if err := CheckStringField(info.Url, "Url", true); err != nil {
 		return err
 	}
 
@@ -1816,7 +1816,7 @@ func (b *BlockChain) checkActivateProducerSignature(activateProducer *payload.Ac
 	return nil
 }
 
-func (b *BlockChain) checkCancelProducerTransaction(txn interfaces.Transaction) error {
+func (b *BlockChain) CheckCancelProducerTransaction(txn interfaces.Transaction) error {
 	producer, err := b.checkProcessProducer(txn)
 	if err != nil {
 		return err
@@ -1830,7 +1830,7 @@ func (b *BlockChain) checkCancelProducerTransaction(txn interfaces.Transaction) 
 	return nil
 }
 
-func (b *BlockChain) checkActivateProducerTransaction(txn interfaces.Transaction,
+func (b *BlockChain) CheckActivateProducerTransaction(txn interfaces.Transaction,
 	height uint32) error {
 
 	activateProducer, ok := txn.Payload().(*payload.ActivateProducer)
@@ -1915,19 +1915,19 @@ func (b *BlockChain) checkActivateProducerTransaction(txn interfaces.Transaction
 	return nil
 }
 
-func (b *BlockChain) checkUpdateProducerTransaction(txn interfaces.Transaction) error {
+func (b *BlockChain) CheckUpdateProducerTransaction(txn interfaces.Transaction) error {
 	info, ok := txn.Payload().(*payload.ProducerInfo)
 	if !ok {
 		return errors.New("invalid payload")
 	}
 
 	// check nick name
-	if err := checkStringField(info.NickName, "NickName", false); err != nil {
+	if err := CheckStringField(info.NickName, "NickName", false); err != nil {
 		return err
 	}
 
 	// check url
-	if err := checkStringField(info.Url, "Url", true); err != nil {
+	if err := CheckStringField(info.Url, "Url", true); err != nil {
 		return err
 	}
 
@@ -1989,7 +1989,7 @@ func (b *BlockChain) checkUpdateProducerTransaction(txn interfaces.Transaction) 
 	return nil
 }
 
-func getDIDFromCode(code []byte) (*common.Uint168, error) {
+func GetDIDFromCode(code []byte) (*common.Uint168, error) {
 	newCode := make([]byte, len(code))
 	copy(newCode, code)
 	didCode := append(newCode[:len(newCode)-1], common.DID)
@@ -2001,19 +2001,19 @@ func getDIDFromCode(code []byte) (*common.Uint168, error) {
 	}
 }
 
-func (b *BlockChain) checkRegisterCRTransaction(txn interfaces.Transaction,
+func (b *BlockChain) CheckRegisterCRTransaction(txn interfaces.Transaction,
 	blockHeight uint32) error {
 	info, ok := txn.Payload().(*payload.CRInfo)
 	if !ok {
 		return errors.New("invalid payload")
 	}
 
-	if err := checkStringField(info.NickName, "NickName", false); err != nil {
+	if err := CheckStringField(info.NickName, "NickName", false); err != nil {
 		return err
 	}
 
 	// check url
-	if err := checkStringField(info.Url, "Url", true); err != nil {
+	if err := CheckStringField(info.Url, "Url", true); err != nil {
 		return err
 	}
 
@@ -2059,7 +2059,7 @@ func (b *BlockChain) checkRegisterCRTransaction(txn interfaces.Transaction,
 		txn.PayloadVersion() == payload.CRInfoDIDVersion {
 		// get DID program hash
 
-		programHash, err = getDIDFromCode(info.Code)
+		programHash, err = GetDIDFromCode(info.Code)
 		if err != nil {
 			return errors.New("invalid info.Code")
 		}
@@ -2101,19 +2101,19 @@ func (b *BlockChain) checkRegisterCRTransaction(txn interfaces.Transaction,
 	return nil
 }
 
-func (b *BlockChain) checkUpdateCRTransaction(txn interfaces.Transaction,
+func (b *BlockChain) CheckUpdateCRTransaction(txn interfaces.Transaction,
 	blockHeight uint32) error {
 	info, ok := txn.Payload().(*payload.CRInfo)
 	if !ok {
 		return errors.New("invalid payload")
 	}
 
-	if err := checkStringField(info.NickName, "NickName", false); err != nil {
+	if err := CheckStringField(info.NickName, "NickName", false); err != nil {
 		return err
 	}
 
 	// check url
-	if err := checkStringField(info.Url, "Url", true); err != nil {
+	if err := CheckStringField(info.Url, "Url", true); err != nil {
 		return err
 	}
 
@@ -2136,7 +2136,7 @@ func (b *BlockChain) checkUpdateCRTransaction(txn interfaces.Transaction,
 		txn.PayloadVersion() == payload.CRInfoDIDVersion {
 		// get DID program hash
 
-		programHash, err = getDIDFromCode(info.Code)
+		programHash, err = GetDIDFromCode(info.Code)
 		if err != nil {
 			return errors.New("invalid info.Code")
 		}
@@ -2171,7 +2171,7 @@ func (b *BlockChain) checkUpdateCRTransaction(txn interfaces.Transaction,
 	return nil
 }
 
-func (b *BlockChain) checkCRCProposalReviewTransaction(txn interfaces.Transaction,
+func (b *BlockChain) CheckCRCProposalReviewTransaction(txn interfaces.Transaction,
 	blockHeight uint32) error {
 	crcProposalReview, ok := txn.Payload().(*payload.CRCProposalReview)
 	if !ok {
@@ -2237,15 +2237,15 @@ func getCode(publicKey []byte) ([]byte, error) {
 	}
 }
 
-func getDiDFromPublicKey(publicKey []byte) (*common.Uint168, error) {
+func GetDiDFromPublicKey(publicKey []byte) (*common.Uint168, error) {
 	if code, err := getCode(publicKey); err != nil {
 		return nil, err
 	} else {
-		return getDIDFromCode(code)
+		return GetDIDFromCode(code)
 	}
 }
 
-func (b *BlockChain) checkCRCProposalWithdrawTransaction(txn interfaces.Transaction,
+func (b *BlockChain) CheckCRCProposalWithdrawTransaction(txn interfaces.Transaction,
 	references map[*common2.Input]common2.Output, blockHeight uint32) error {
 
 	if txn.PayloadVersion() == payload.CRCProposalWithdrawDefault {
@@ -2331,7 +2331,7 @@ func (b *BlockChain) checkCRCProposalWithdrawTransaction(txn interfaces.Transact
 	return CheckCRTransactionSignature(withdrawPayload.Signature, code, signedBuf.Bytes())
 }
 
-func (b *BlockChain) checkCRCProposalTrackingTransaction(txn interfaces.Transaction,
+func (b *BlockChain) CheckCRCProposalTrackingTransaction(txn interfaces.Transaction,
 	blockHeight uint32) error {
 	cptPayload, ok := txn.Payload().(*payload.CRCProposalTracking)
 	if !ok {
@@ -2397,7 +2397,7 @@ func (b *BlockChain) checkCRCProposalTrackingTransaction(txn interfaces.Transact
 	return result
 }
 
-func (b *BlockChain) checkCRCAppropriationTransaction(txn interfaces.Transaction,
+func (b *BlockChain) CheckCRCAppropriationTransaction(txn interfaces.Transaction,
 	references map[*common2.Input]common2.Output) error {
 	// Check if current session has appropriated.
 	if !b.crCommittee.IsAppropriationNeeded() {
@@ -2438,7 +2438,7 @@ func (b *BlockChain) checkCRCAppropriationTransaction(txn interfaces.Transaction
 	return nil
 }
 
-func (b *BlockChain) checkCRCProposalRealWithdrawTransaction(txn interfaces.Transaction,
+func (b *BlockChain) CheckCRCProposalRealWithdrawTransaction(txn interfaces.Transaction,
 	references map[*common2.Input]common2.Output) error {
 	crcRealWithdraw, ok := txn.Payload().(*payload.CRCProposalRealWithdraw)
 	if !ok {
@@ -2953,7 +2953,7 @@ func (b *BlockChain) checkSecretaryGeneralSignature(
 	return nil
 }
 
-func (b *BlockChain) checkUnRegisterCRTransaction(txn interfaces.Transaction,
+func (b *BlockChain) CheckUnRegisterCRTransaction(txn interfaces.Transaction,
 	blockHeight uint32) error {
 	info, ok := txn.Payload().(*payload.UnregisterCR)
 	if !ok {
@@ -2989,7 +2989,7 @@ func (b *BlockChain) isPublicKeyDIDMatch(pubKey []byte, did *common.Uint168) boo
 	}
 	//get DID
 	var didGenerated *common.Uint168
-	if didGenerated, err = getDIDFromCode(code); err != nil {
+	if didGenerated, err = GetDIDFromCode(code); err != nil {
 		return false
 	}
 	if !did.IsEqual(*didGenerated) {
@@ -3465,7 +3465,7 @@ func (b *BlockChain) checkNormalOrELIPProposal(proposal *payload.CRCProposal, pr
 	return b.checkOwnerAndCRCouncilMemberSign(proposal, crCouncilMember.Info.Code, PayloadVersion)
 }
 
-func (b *BlockChain) checkCRCProposalTransaction(txn interfaces.Transaction,
+func (b *BlockChain) CheckCRCProposalTransaction(txn interfaces.Transaction,
 	blockHeight uint32, proposalsUsedAmount common.Fixed64) error {
 	proposal, ok := txn.Payload().(*payload.CRCProposal)
 	if !ok {
@@ -3558,7 +3558,7 @@ func CheckCRTransactionSignature(signature []byte, code []byte, data []byte) err
 	}
 	if signType == vm.CHECKSIG {
 		// check code and signature
-		if err := checkStandardSignature(program.Program{
+		if err := CheckStandardSignature(program.Program{
 			Code:      code,
 			Parameter: getParameterBySignature(signature),
 		}, data); err != nil {
@@ -3568,7 +3568,7 @@ func CheckCRTransactionSignature(signature []byte, code []byte, data []byte) err
 		return errors.New("CR not support multi sign code")
 
 		// check code and signature
-		if err := checkMultiSigSignatures(program.Program{
+		if err := CheckMultiSigSignatures(program.Program{
 			Code:      code,
 			Parameter: signature,
 		}, data); err != nil {
@@ -3609,7 +3609,7 @@ func (b *BlockChain) additionalProducerInfoCheck(
 	return nil
 }
 
-func (b *BlockChain) checkReturnDepositCoinTransaction(txn interfaces.Transaction,
+func (b *BlockChain) CheckReturnDepositCoinTransaction(txn interfaces.Transaction,
 	references map[*common2.Input]common2.Output, currentHeight uint32) error {
 
 	var inputValue common.Fixed64
@@ -3655,7 +3655,7 @@ func (b *BlockChain) checkReturnDepositCoinTransaction(txn interfaces.Transactio
 	return nil
 }
 
-func (b *BlockChain) checkReturnCRDepositCoinTransaction(txn interfaces.Transaction,
+func (b *BlockChain) CheckReturnCRDepositCoinTransaction(txn interfaces.Transaction,
 	references map[*common2.Input]common2.Output, currentHeight uint32) error {
 
 	var inputValue common.Fixed64
@@ -4208,7 +4208,7 @@ func getConfirmSigners(
 	return result
 }
 
-func checkStringField(rawStr string, field string, allowEmpty bool) error {
+func CheckStringField(rawStr string, field string, allowEmpty bool) error {
 	if (!allowEmpty && len(rawStr) == 0) || len(rawStr) > MaxStringLength {
 		return fmt.Errorf("field %s has invalid string length", field)
 	}

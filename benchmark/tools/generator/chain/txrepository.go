@@ -6,13 +6,14 @@
 package chain
 
 import (
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"io"
 	"math/rand"
 
 	"github.com/elastos/Elastos.ELA/account"
 	"github.com/elastos/Elastos.ELA/benchmark/common/tx"
 	"github.com/elastos/Elastos.ELA/common"
-	"github.com/elastos/Elastos.ELA/core/types"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/crypto"
 )
 
@@ -20,9 +21,9 @@ type TxRepository struct {
 	params         *GenerationParams
 	accountKeys    []common.Uint168
 	accounts       map[common.Uint168]*account.Account
-	utxos          map[common.Uint168][]types.UTXO
+	utxos          map[common.Uint168][]common2.UTXO
 	foundation     *account.Account
-	foundationUTXO types.UTXO
+	foundationUTXO common2.UTXO
 }
 
 func (r *TxRepository) Params() *GenerationParams {
@@ -33,19 +34,19 @@ func (r *TxRepository) GetFoundationAccount() *account.Account {
 	return r.foundation
 }
 
-func (r *TxRepository) SetFoundationUTXO(utxo *types.UTXO) {
+func (r *TxRepository) SetFoundationUTXO(utxo *common2.UTXO) {
 	r.foundationUTXO = *utxo
 }
 
 func (r *TxRepository) GeneratePressureTxs(
-	height uint32, size int) (txs []*types.Transaction, err error) {
+	height uint32, size int) (txs []interfaces.Transaction, err error) {
 	if height <= r.params.PrepareStartHeight {
 		return
 	}
 
 	totalTxSize := 0
-	var txn *types.Transaction
-	txs = make([]*types.Transaction, 0)
+	var txn interfaces.Transaction
+	txs = make([]interfaces.Transaction, 0)
 	for {
 		txn, err = r.generateTx()
 		if err != nil {
@@ -65,7 +66,7 @@ func (r *TxRepository) GeneratePressureTxs(
 }
 
 func (r *TxRepository) GenerateTxs(
-	height uint32) (txs []*types.Transaction, err error) {
+	height uint32) (txs []interfaces.Transaction, err error) {
 	if height <= r.params.PrepareStartHeight {
 		return
 	}
@@ -73,8 +74,8 @@ func (r *TxRepository) GenerateTxs(
 	refCount := r.calculateRefCount(height)
 
 	// tx consume UTXOs
-	var txn *types.Transaction
-	txs = make([]*types.Transaction, 0, refCount+1)
+	var txn interfaces.Transaction
+	txs = make([]interfaces.Transaction, 0, refCount+1)
 	for i := uint32(0); i < refCount; i++ {
 		txn, err = r.generateTx()
 		if err != nil {
@@ -208,9 +209,9 @@ func (r *TxRepository) Deserialize(reader io.Reader) (err error) {
 	if length, err = common.ReadVarUint(reader, 0); err != nil {
 		return
 	}
-	var utxo types.UTXO
+	var utxo common2.UTXO
 	var utxoCount uint64
-	r.utxos = make(map[common.Uint168][]types.UTXO, length)
+	r.utxos = make(map[common.Uint168][]common2.UTXO, length)
 	for i := uint64(0); i < length; i++ {
 		if err = key.Deserialize(reader); err != nil {
 			return
@@ -219,7 +220,7 @@ func (r *TxRepository) Deserialize(reader io.Reader) (err error) {
 		if utxoCount, err = common.ReadVarUint(reader, 0); err != nil {
 			return
 		}
-		utxos := make([]types.UTXO, 0, utxoCount)
+		utxos := make([]common2.UTXO, 0, utxoCount)
 		for j := uint64(0); j < utxoCount; j++ {
 			if err = utxo.Deserialize(reader); err != nil {
 				return
@@ -247,30 +248,30 @@ func (r *TxRepository) deserializeAccount(
 	return account.NewAccountWithPrivateKey(priBuf)
 }
 
-func (r *TxRepository) updateByAllocateFundTx(allocTx *types.Transaction) {
-	r.appendUTXOs(allocTx, len(allocTx.Outputs)-1)
+func (r *TxRepository) updateByAllocateFundTx(allocTx interfaces.Transaction) {
+	r.appendUTXOs(allocTx, len(allocTx.Outputs())-1)
 
-	r.foundationUTXO = types.UTXO{
+	r.foundationUTXO = common2.UTXO{
 		TxID:  allocTx.Hash(),
-		Index: uint16(len(allocTx.Outputs) - 1),
-		Value: allocTx.Outputs[len(allocTx.Outputs)-1].Value,
+		Index: uint16(len(allocTx.Outputs()) - 1),
+		Value: allocTx.Outputs()[len(allocTx.Outputs())-1].Value,
 	}
 }
 
-func (r *TxRepository) updateUTXOs(txns []*types.Transaction) {
+func (r *TxRepository) updateUTXOs(txns []interfaces.Transaction) {
 	for _, txn := range txns {
 		r.appendUTXOs(txn, 0)
 	}
 }
 
-func (r *TxRepository) appendUTXOs(txn *types.Transaction, utxoCount int) {
-	for i, o := range txn.Outputs {
+func (r *TxRepository) appendUTXOs(txn interfaces.Transaction, utxoCount int) {
+	for i, o := range txn.Outputs() {
 		if utxoCount != 0 && i >= utxoCount {
 			break
 		}
 
 		addr := o.ProgramHash
-		utxo := types.UTXO{
+		utxo := common2.UTXO{
 			TxID:  txn.Hash(),
 			Index: uint16(i),
 			Value: o.Value,
@@ -278,19 +279,19 @@ func (r *TxRepository) appendUTXOs(txn *types.Transaction, utxoCount int) {
 		if _, ok := r.utxos[addr]; ok {
 			r.utxos[addr] = append(r.utxos[addr], utxo)
 		} else {
-			r.utxos[addr] = []types.UTXO{utxo}
+			r.utxos[addr] = []common2.UTXO{utxo}
 		}
 	}
 }
 
 func (r *TxRepository) allocateFromFoundation(inCount uint32) (
-	transaction *types.Transaction, err error) {
+	transaction interfaces.Transaction, err error) {
 	accounts := make([]*account.Account, 0, inCount)
 	for i := uint32(0); i < inCount; i++ {
 		ac := r.randomAccount()
 		accounts = append(accounts, ac)
 	}
-	generator := tx.NewGenerator(types.TransferAsset, accounts...)
+	generator := tx.NewGenerator(common2.TransferAsset, accounts...)
 	transaction = generator.Generate()
 
 	assigner := tx.NewAssigner(tx.FixAmount, r.foundation, &r.foundationUTXO)
@@ -298,10 +299,10 @@ func (r *TxRepository) allocateFromFoundation(inCount uint32) (
 	return
 }
 
-func (r *TxRepository) generateTx() (txn *types.Transaction, err error) {
+func (r *TxRepository) generateTx() (txn interfaces.Transaction, err error) {
 	outAccount := r.randomAccount()
 	// todo generate tx by random tx types later
-	generator := tx.NewGenerator(types.TransferAsset, outAccount)
+	generator := tx.NewGenerator(common2.TransferAsset, outAccount)
 	txn = generator.Generate()
 
 	inAccount := r.randomAccount()
@@ -316,7 +317,7 @@ func (r *TxRepository) randomAccount() *account.Account {
 	return r.accounts[r.accountKeys[index]]
 }
 
-func (r *TxRepository) consumeRandomUTXO(ac *account.Account) types.UTXO {
+func (r *TxRepository) consumeRandomUTXO(ac *account.Account) common2.UTXO {
 	utxos := r.utxos[ac.ProgramHash]
 	index := rand.Int63n(int64(len(utxos)))
 	result := utxos[index]
@@ -334,7 +335,7 @@ func NewTxRepository(params *GenerationParams) (result *TxRepository,
 		params:      params,
 		accountKeys: []common.Uint168{},
 		accounts:    map[common.Uint168]*account.Account{},
-		utxos:       map[common.Uint168][]types.UTXO{},
+		utxos:       map[common.Uint168][]common2.UTXO{},
 	}
 
 	var ac *account.Account

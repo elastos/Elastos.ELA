@@ -9,8 +9,9 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/elastos/Elastos.ELA/elanet/filter/returnsidechaindepositcoinfilter"
-	"github.com/elastos/Elastos.ELA/elanet/filter/upgradefilter"
+	"github.com/elastos/Elastos.ELA/core/types/functions"
+	peer2 "github.com/elastos/Elastos.ELA/p2p/peer"
+	"net"
 	"sync/atomic"
 	"time"
 
@@ -18,13 +19,16 @@ import (
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/core/types"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/dpos/state"
 	"github.com/elastos/Elastos.ELA/elanet/bloom"
 	"github.com/elastos/Elastos.ELA/elanet/filter"
 	"github.com/elastos/Elastos.ELA/elanet/filter/customidfilter"
 	"github.com/elastos/Elastos.ELA/elanet/filter/nextturndposfilter"
+	"github.com/elastos/Elastos.ELA/elanet/filter/returnsidechaindepositcoinfilter"
 	"github.com/elastos/Elastos.ELA/elanet/filter/sidefilter"
+	"github.com/elastos/Elastos.ELA/elanet/filter/upgradefilter"
 	"github.com/elastos/Elastos.ELA/elanet/netsync"
 	"github.com/elastos/Elastos.ELA/elanet/pact"
 	"github.com/elastos/Elastos.ELA/elanet/peer"
@@ -243,7 +247,7 @@ func (sp *serverPeer) OnTx(_ *peer.Peer, msgTx *msg.Tx) {
 	// Add the transaction to the known inventory for the peer.
 	// Convert the raw MsgTx to a btcutil.Tx which provides some convenience
 	// methods and things such as hash caching.
-	tx := msgTx.Serializable.(*types.Transaction)
+	tx := msgTx.Serializable.(interfaces.Transaction)
 	txId := tx.Hash()
 	iv := msg.NewInvVect(msg.InvTypeTx, &txId)
 	sp.AddKnownInventory(iv)
@@ -782,10 +786,10 @@ func (s *server) handleRelayInvMsg(peers map[svr.IPeer]*serverPeer, rmsg relayMs
 				continue
 			}
 
-			tx, ok := rmsg.data.(*types.Transaction)
+			tx, ok := rmsg.data.(interfaces.Transaction)
 			if !ok {
 				log.Warnf("Underlying data for tx inv "+
-					"relay is not a *core.Transaction: %T",
+					"relay is not a *core.BaseTransaction: %T",
 					rmsg.data)
 				return
 			}
@@ -1014,7 +1018,7 @@ func NewServer(dataDir string, cfg *Config, nodeVersion string) (*server, error)
 	svrCfg := svr.NewDefaultConfig(
 		params.Magic, pver, uint64(services),
 		params.DefaultPort, params.DNSSeeds, params.ListenAddrs,
-		nil, nil, makeEmptyMessage,
+		nil, nil, createMessage,
 		func() uint64 { return uint64(cfg.Chain.GetHeight()) },
 		params.NewP2PProtocolVersionHeight, nodeVersion,
 	)
@@ -1054,14 +1058,18 @@ func NewServer(dataDir string, cfg *Config, nodeVersion string) (*server, error)
 	return &s, nil
 }
 
-func makeEmptyMessage(cmd string) (p2p.Message, error) {
+func createMessage(hdr p2p.Header, r net.Conn) (p2p.Message, error) {
 	var message p2p.Message
-	switch cmd {
+	switch hdr.GetCMD() {
 	case p2p.CmdMemPool:
 		message = &msg.MemPool{}
 
 	case p2p.CmdTx:
-		message = msg.NewTx(&types.Transaction{})
+		txn, err := functions.GetTransactionByBytes(r)
+		if err != nil {
+			return nil, err
+		}
+		message = msg.NewTx(txn)
 
 	case p2p.CmdBlock:
 		message = msg.NewBlock(&types.DposBlock{})
@@ -1097,9 +1105,10 @@ func makeEmptyMessage(cmd string) (p2p.Message, error) {
 		message = &msg.DAddr{}
 
 	default:
-		return nil, fmt.Errorf("unhandled command [%s]", cmd)
+		return nil, fmt.Errorf("unhandled command [%s]", hdr.GetCMD())
 	}
-	return message, nil
+
+	return peer2.CheckAndCreateMessage(hdr, message, r)
 }
 
 // nodeFlag returns if a peer contains the full node flag.

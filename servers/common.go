@@ -7,7 +7,7 @@ package servers
 
 import (
 	"github.com/elastos/Elastos.ELA/common"
-	. "github.com/elastos/Elastos.ELA/core/types"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/core/types/outputpayload"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 )
@@ -15,7 +15,7 @@ import (
 const TlsPort = 443
 
 type AttributeInfo struct {
-	Usage AttributeUsage `json:"usage"`
+	Usage common2.AttributeUsage `json:"usage"`
 	Data  string         `json:"data"`
 }
 
@@ -80,19 +80,19 @@ type ProgramInfo struct {
 }
 
 type TransactionInfo struct {
-	TxID           string             `json:"txid"`
-	Hash           string             `json:"hash"`
-	Size           uint32             `json:"size"`
-	VSize          uint32             `json:"vsize"`
-	Version        TransactionVersion `json:"version"`
-	TxType         TxType             `json:"type"`
-	PayloadVersion byte               `json:"payloadversion"`
-	Payload        PayloadInfo        `json:"payload"`
-	Attributes     []AttributeInfo    `json:"attributes"`
-	Inputs         []InputInfo        `json:"vin"`
-	Outputs        []RpcOutputInfo    `json:"vout"`
-	LockTime       uint32             `json:"locktime"`
-	Programs       []ProgramInfo      `json:"programs"`
+	TxID           string                     `json:"txid"`
+	Hash           string                     `json:"hash"`
+	Size           uint32                     `json:"size"`
+	VSize          uint32                     `json:"vsize"`
+	Version        common2.TransactionVersion `json:"version"`
+	TxType         common2.TxType             `json:"type"`
+	PayloadVersion byte                       `json:"payloadversion"`
+	Payload        PayloadInfo                `json:"payload"`
+	Attributes     []AttributeInfo            `json:"attributes"`
+	Inputs         []InputInfo                `json:"vin"`
+	Outputs        []RpcOutputInfo            `json:"vout"`
+	LockTime       uint32                     `json:"locktime"`
+	Programs       []ProgramInfo              `json:"programs"`
 }
 
 type TransactionContextInfo struct {

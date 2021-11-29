@@ -6,6 +6,7 @@
 package types
 
 import (
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"io"
 
 	"github.com/elastos/Elastos.ELA/common"
@@ -14,7 +15,7 @@ import (
 
 // DPOSHeader represents a POW header + DPOS confirm
 type DPOSHeader struct {
-	Header
+	common2.Header
 	HaveConfirm bool
 	payload.Confirm
 }

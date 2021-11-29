@@ -17,6 +17,8 @@ import (
 	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/common/log"
 	"github.com/elastos/Elastos.ELA/core/types"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/database"
 )
 
@@ -472,7 +474,7 @@ func (m *Manager) DisconnectBlock(dbTx database.Tx, block *types.Block) error {
 	return nil
 }
 
-func (m *Manager) FetchTx(txID common.Uint256) (*types.Transaction, uint32, error) {
+func (m *Manager) FetchTx(txID common.Uint256) (interfaces.Transaction, uint32, error) {
 	return m.txStore.FetchTx(txID)
 }
 
@@ -490,8 +492,8 @@ func (m *Manager) FetchUnspent(txID common.Uint256) ([]uint16, error) {
 	return indexes, nil
 }
 
-func (m *Manager) FetchUTXO(programHash *common.Uint168) ([]*types.UTXO, error) {
-	var utxos []*types.UTXO
+func (m *Manager) FetchUTXO(programHash *common.Uint168) ([]*common2.UTXO, error) {
+	var utxos []*common2.UTXO
 	err := m.db.View(func(dbTx database.Tx) error {
 		var err error
 		utxos, err = dbFetchUtxoIndexEntry(dbTx, programHash)

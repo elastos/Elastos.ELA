@@ -9,6 +9,8 @@ import (
 	"errors"
 	"fmt"
 
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/core/types"
@@ -136,16 +138,16 @@ func (idx *UnspentIndex) ConnectBlock(dbTx database.Tx, block *types.Block) erro
 	idx.txCache.trim()
 
 	for _, txn := range block.Transactions {
-		if txn.TxType == types.RegisterAsset {
+		if txn.TxType() == common2.RegisterAsset {
 			continue
 		}
 		txnHash := txn.Hash()
 		idx.txCache.setTxn(block.Height, txn)
-		for index := range txn.Outputs {
+		for index := range txn.Outputs() {
 			unspents[txnHash] = append(unspents[txnHash], uint16(index))
 		}
 		if !txn.IsCoinBaseTx() {
-			for index, input := range txn.Inputs {
+			for index, input := range txn.Inputs() {
 				referTxnHash := input.Previous.TxID
 				if _, ok := unspents[referTxnHash]; !ok {
 					unspentValue, err := dbFetchUnspentIndexEntry(dbTx, &referTxnHash)
@@ -157,7 +159,7 @@ func (idx *UnspentIndex) ConnectBlock(dbTx database.Tx, block *types.Block) erro
 
 				unspentLen := len(unspents[referTxnHash])
 				for k, outputIndex := range unspents[referTxnHash] {
-					if outputIndex == uint16(txn.Inputs[index].Previous.Index) {
+					if outputIndex == uint16(txn.Inputs()[index].Previous.Index) {
 						unspents[referTxnHash][k] = unspents[referTxnHash][unspentLen-1]
 						unspents[referTxnHash] = unspents[referTxnHash][:unspentLen-1]
 						break
@@ -193,20 +195,20 @@ func (idx *UnspentIndex) ConnectBlock(dbTx database.Tx, block *types.Block) erro
 func (idx *UnspentIndex) DisconnectBlock(dbTx database.Tx, block *types.Block) error {
 	unspents := make(map[common.Uint256][]uint16)
 	for _, txn := range block.Transactions {
-		if txn.TxType == types.RegisterAsset {
+		if txn.TxType() == common2.RegisterAsset {
 			continue
 		}
 		// remove all utxos created by this transaction
 		txnHash := txn.Hash()
 		idx.txCache.deleteTxn(txnHash)
-		if len(txn.Outputs) != 0 {
+		if len(txn.Outputs()) != 0 {
 			err := dbRemoveUnspentIndexEntry(dbTx, &txnHash)
 			if err != nil {
 				return err
 			}
 		}
 		if !txn.IsCoinBaseTx() {
-			for _, input := range txn.Inputs {
+			for _, input := range txn.Inputs() {
 				referTxnHash := input.Previous.TxID
 				referTxnOutIndex := input.Previous.Index
 				if _, ok := unspents[referTxnHash]; !ok {
@@ -241,12 +243,12 @@ func (idx *UnspentIndex) DisconnectBlock(dbTx database.Tx, block *types.Block) e
 	return nil
 }
 
-func (idx *UnspentIndex) FetchTx(txID common.Uint256) (*types.Transaction, uint32, error) {
+func (idx *UnspentIndex) FetchTx(txID common.Uint256) (interfaces.Transaction, uint32, error) {
 	if txnInfo := idx.txCache.getTxn(txID); txnInfo != nil {
 		return txnInfo.txn, txnInfo.blockHeight, nil
 	}
 
-	var txn *types.Transaction
+	var txn interfaces.Transaction
 	var height uint32
 	err := idx.db.View(func(dbTx database.Tx) error {
 		var err error

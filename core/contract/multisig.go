@@ -105,3 +105,30 @@ func CreateMultiSigContractByCode(code []byte) (*Contract, error) {
 		Prefix: PrefixMultiSig,
 	}, nil
 }
+
+func CreateSchnorrMultiSigRedeemScript(pubkey *crypto.PublicKey) ([]byte, error) {
+	if pubkey == nil {
+		return nil, errors.New("public keys is nil")
+	}
+	sb := pg.NewProgramBuilder()
+	temp, err := pubkey.EncodePoint(true)
+	if err != nil {
+		return nil, errors.New("[Contract],CreateMultiSigContract failed.")
+	}
+	sb.PushData(temp)
+
+	sb.AddOp(vm.SCHNORR)
+	return sb.ToArray(), nil
+}
+
+func CreateSchnorrMultiSigContract(pubkeys *crypto.PublicKey) (*Contract, error) {
+	redeemScript, err := CreateSchnorrMultiSigRedeemScript(pubkeys)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Contract{
+		Code:   redeemScript,
+		Prefix: PrefixStandard,
+	}, nil
+}

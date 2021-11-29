@@ -44,14 +44,14 @@ func mockPeer(p *peer.Peer) *ep.Peer {
 	})
 }
 
-func makeEmptyMessage(cmd string) (m p2p.Message, e error) {
-	switch cmd {
+func createMessage(hdr p2p.Header, r net.Conn) (m p2p.Message, err error) {
+	switch hdr.GetCMD() {
 	case p2p.CmdReject:
 		m = &msg.Reject{}
 	case p2p.CmdGetData:
 		m = &msg.GetData{}
 	}
-	return m, nil
+	return peer.CheckAndCreateMessage(hdr, m, r)
 }
 
 func mockRemotePeer(port uint16, pc chan<- *peer.Peer, mc chan<- p2p.Message) error {
@@ -59,7 +59,7 @@ func mockRemotePeer(port uint16, pc chan<- *peer.Peer, mc chan<- p2p.Message) er
 	cfg := &peer.Config{
 		Magic:            123123,
 		DefaultPort:      port,
-		MakeEmptyMessage: makeEmptyMessage,
+		CreateMessage:    createMessage,
 		BestHeight:       func() uint64 { return 0 },
 		IsSelfConnection: func(net.IP, int, uint64) bool { return false },
 		GetVersionNonce:  func() uint64 { return 0 },
@@ -102,7 +102,7 @@ func mockInboundPeer(addr string, pc chan<- *peer.Peer, mc chan<- p2p.Message) e
 	cfg := &peer.Config{
 		Magic:            123123,
 		DefaultPort:      12345,
-		MakeEmptyMessage: makeEmptyMessage,
+		CreateMessage:    createMessage,
 		BestHeight:       func() uint64 { return 0 },
 		IsSelfConnection: func(net.IP, int, uint64) bool { return false },
 		GetVersionNonce:  func() uint64 { return 0 },

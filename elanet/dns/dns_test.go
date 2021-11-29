@@ -45,7 +45,7 @@ func mockInboundPeer(port int, pc chan *peer.Peer,
 		Services:         1,
 		DefaultPort:      uint16(port),
 		BestHeight:       bestHeight,
-		MakeEmptyMessage: makeMessage,
+		CreateMessage:    makeMessage,
 		GetVersionNonce:  getNonce,
 		IsSelfConnection: haveNonce,
 		MessageFunc: func(peer *peer.Peer, m p2p.Message) {

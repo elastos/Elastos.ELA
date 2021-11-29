@@ -5,9 +5,12 @@
 
 package payload
 
-import "io"
+import (
+	"io"
+)
 
-type TransferAsset struct{}
+type TransferAsset struct{
+}
 
 func (a *TransferAsset) Data(version byte) []byte {
 	//TODO: implement TransferAsset.Data()

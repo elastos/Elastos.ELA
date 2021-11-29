@@ -11,6 +11,8 @@ import (
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/core/contract/program"
 	"github.com/elastos/Elastos.ELA/core/types"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/functions"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/dpos/log"
 	dmsg "github.com/elastos/Elastos.ELA/dpos/p2p/msg"
@@ -43,7 +45,7 @@ func (i *IllegalBehaviorMonitor) IsBlockValid(block *types.Block) bool {
 		hasInactiveArbitratorsTx := false
 		for _, tx := range block.Transactions {
 			if tx.IsInactiveArbitrators() &&
-				tx.Payload.(*payload.InactiveArbitrators).Hash().IsEqual(*i.inactiveArbitratorsPayloadHash) {
+				tx.Payload().(*payload.InactiveArbitrators).Hash().IsEqual(*i.inactiveArbitratorsPayloadHash) {
 				hasInactiveArbitratorsTx = true
 			}
 		}
@@ -82,7 +84,7 @@ func (i *IllegalBehaviorMonitor) Reset(changeView bool) {
 func (i *IllegalBehaviorMonitor) CleanByBlock(b *types.Block) {
 	for _, tx := range b.Transactions {
 		if tx.IsIllegalTypeTx() || tx.IsInactiveArbitrators() {
-			hash := tx.Payload.(payload.DPOSIllegalData).Hash()
+			hash := tx.Payload().(payload.DPOSIllegalData).Hash()
 			i.evidenceCache.TryDelete(hash)
 
 			if tx.IsIllegalProposalTx() {
@@ -164,18 +166,18 @@ func (i *IllegalBehaviorMonitor) ProcessIllegalProposal(
 
 func (i *IllegalBehaviorMonitor) sendIllegalProposalTransaction(
 	evidences *payload.DPOSIllegalProposals) {
-	tx := &types.Transaction{
-		Version:        types.TxVersion09,
-		TxType:         types.IllegalProposalEvidence,
-		PayloadVersion: payload.IllegalProposalVersion,
-		Payload:        evidences,
-		Attributes:     []*types.Attribute{},
-		LockTime:       0,
-		Programs:       []*program.Program{},
-		Outputs:        []*types.Output{},
-		Inputs:         []*types.Input{},
-		Fee:            0,
-	}
+
+	tx := functions.CreateTransaction(
+		common2.TxVersion09,
+		common2.IllegalProposalEvidence,
+		payload.IllegalProposalVersion,
+		evidences,
+		[]*common2.Attribute{},
+		[]*common2.Input{},
+		[]*common2.Output{},
+		0,
+		[]*program.Program{},
+	)
 
 	if err := i.manager.AppendToTxnPool(tx); err == nil {
 		i.manager.Broadcast(msg.NewTx(tx))
@@ -184,19 +186,18 @@ func (i *IllegalBehaviorMonitor) sendIllegalProposalTransaction(
 
 func (i *IllegalBehaviorMonitor) SendSidechainIllegalEvidenceTransaction(
 	evidence *payload.SidechainIllegalData) {
-	tx := &types.Transaction{
-		Version:        types.TxVersion09,
-		TxType:         types.IllegalSidechainEvidence,
-		PayloadVersion: payload.SidechainIllegalDataVersion,
-		Payload:        evidence,
-		Attributes:     []*types.Attribute{},
-		LockTime:       0,
-		Programs:       []*program.Program{},
-		Outputs:        []*types.Output{},
-		Inputs:         []*types.Input{},
-		Fee:            0,
-	}
 
+	tx := functions.CreateTransaction(
+		common2.TxVersion09,
+		common2.IllegalSidechainEvidence,
+		payload.SidechainIllegalDataVersion,
+		evidence,
+		[]*common2.Attribute{},
+		[]*common2.Input{},
+		[]*common2.Output{},
+		0,
+		[]*program.Program{},
+	)
 	if err := i.manager.AppendToTxnPool(tx); err == nil {
 		i.manager.Broadcast(msg.NewTx(tx))
 	}
@@ -204,18 +205,18 @@ func (i *IllegalBehaviorMonitor) SendSidechainIllegalEvidenceTransaction(
 
 func (i *IllegalBehaviorMonitor) sendIllegalVoteTransaction(
 	evidences *payload.DPOSIllegalVotes) {
-	tx := &types.Transaction{
-		Version:        types.TxVersion09,
-		TxType:         types.IllegalVoteEvidence,
-		PayloadVersion: payload.IllegalVoteVersion,
-		Payload:        evidences,
-		Attributes:     []*types.Attribute{},
-		LockTime:       0,
-		Programs:       []*program.Program{},
-		Outputs:        []*types.Output{},
-		Inputs:         []*types.Input{},
-		Fee:            0,
-	}
+
+	tx := functions.CreateTransaction(
+		common2.TxVersion09,
+		common2.IllegalVoteEvidence,
+		payload.IllegalVoteVersion,
+		evidences,
+		[]*common2.Attribute{},
+		[]*common2.Input{},
+		[]*common2.Output{},
+		0,
+		[]*program.Program{},
+	)
 
 	if err := i.manager.AppendToTxnPool(tx); err == nil {
 		i.manager.Broadcast(msg.NewTx(tx))

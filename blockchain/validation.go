@@ -8,12 +8,14 @@ package blockchain
 import (
 	"crypto/sha256"
 	"errors"
+
 	"sort"
 
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/core/contract"
 	. "github.com/elastos/Elastos.ELA/core/contract/program"
-	. "github.com/elastos/Elastos.ELA/core/types"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/crypto"
 )
 
@@ -42,10 +44,20 @@ func RunPrograms(data []byte, programHashes []common.Uint168, programs []*Progra
 		}
 
 		if prefixType == contract.PrefixStandard || prefixType == contract.PrefixDeposit {
-			if err := checkStandardSignature(*program, data); err != nil {
-				return err
+			if contract.IsSchnorr(program.Code) {
+				if len(data) != 32 {
+					return errors.New("schnorr verify data must be 32 bytes")
+				}
+				var bytes32 [32]byte
+				copy(bytes32[:], data[:])
+				if ok, err := checkSchnorrSignatures(*program, bytes32); !ok {
+					return errors.New("check schnorr signature failed:" + err.Error())
+				}
+			} else {
+				if err := checkStandardSignature(*program, data); err != nil {
+					return err
+				}
 			}
-
 		} else if prefixType == contract.PrefixMultiSig {
 			if err := checkMultiSigSignatures(*program, data); err != nil {
 				return err
@@ -58,9 +70,9 @@ func RunPrograms(data []byte, programHashes []common.Uint168, programs []*Progra
 	return nil
 }
 
-func GetTxProgramHashes(tx *Transaction, references map[*Input]Output) ([]common.Uint168, error) {
+func GetTxProgramHashes(tx interfaces.Transaction, references map[*common2.Input]common2.Output) ([]common.Uint168, error) {
 	if tx == nil {
-		return nil, errors.New("[Transaction],GetProgramHashes transaction is nil")
+		return nil, errors.New("[BaseTransaction],GetProgramHashes transaction is nil")
 	}
 	hashes := make([]common.Uint168, 0)
 	uniqueHashes := make([]common.Uint168, 0)
@@ -69,11 +81,11 @@ func GetTxProgramHashes(tx *Transaction, references map[*Input]Output) ([]common
 		programHash := output.ProgramHash
 		hashes = append(hashes, programHash)
 	}
-	for _, attribute := range tx.Attributes {
-		if attribute.Usage == Script {
+	for _, attribute := range tx.Attributes() {
+		if attribute.Usage == common2.Script {
 			dataHash, err := common.Uint168FromBytes(attribute.Data)
 			if err != nil {
-				return nil, errors.New("[Transaction], GetProgramHashes err")
+				return nil, errors.New("[BaseTransaction], GetProgramHashes err")
 			}
 			hashes = append(hashes, *dataHash)
 		}
@@ -118,6 +130,16 @@ func checkMultiSigSignatures(program Program, data []byte) error {
 	}
 
 	return verifyMultisigSignatures(m, n, publicKeys, program.Parameter, data)
+}
+
+func checkSchnorrSignatures(program Program, data [32]byte) (bool, error) {
+	publicKey := [33]byte{}
+	copy(publicKey[:], program.Code[1:len(program.Code)-1])
+
+	signature := [64]byte{}
+	copy(signature[:], program.Parameter[:64])
+
+	return crypto.SchnorrVerify(publicKey, data, signature)
 }
 
 func checkCrossChainSignatures(program Program, data []byte) error {

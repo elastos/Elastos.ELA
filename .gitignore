@@ -22,3 +22,6 @@ keystore
 *.out
 *.test
 benchmark/process/run-to-height
+ela
+ela-cli
+ela-dns

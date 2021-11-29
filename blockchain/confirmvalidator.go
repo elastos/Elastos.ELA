@@ -9,11 +9,11 @@ import (
 	"bytes"
 	"encoding/hex"
 	"errors"
-
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/log"
 	"github.com/elastos/Elastos.ELA/core/checkpoint"
 	. "github.com/elastos/Elastos.ELA/core/types"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/crypto"
 )
@@ -122,20 +122,20 @@ func checkBlockWithConfirmation(block *Block, confirm *payload.Confirm,
 }
 
 func PreProcessSpecialTx(block *Block) error {
-	//illegalBlocks := make([]*payload.DPOSIllegalBlocks, 0)
+
 	inactivePayloads := make([]*payload.InactiveArbitrators, 0)
 	for _, tx := range block.Transactions {
-		switch tx.TxType {
-		case InactiveArbitrators:
+		switch tx.TxType() {
+		case common2.InactiveArbitrators:
 			if err := CheckInactiveArbitrators(tx); err != nil {
 				return err
 			}
-			if err := checkTransactionSignature(tx, map[*Input]Output{}); err != nil {
+			if err := checkTransactionSignature(tx, map[*common2.Input]common2.Output{}); err != nil {
 				return err
 			}
 
 			inactivePayloads = append(inactivePayloads,
-				tx.Payload.(*payload.InactiveArbitrators))
+				tx.Payload().(*payload.InactiveArbitrators))
 			//case IllegalBlockEvidence:
 			//	p, ok := tx.Payload.(*payload.DPOSIllegalBlocks)
 			//	if !ok {

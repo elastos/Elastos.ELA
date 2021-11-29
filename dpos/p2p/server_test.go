@@ -7,6 +7,7 @@ package p2p
 
 import (
 	"fmt"
+	peer2 "github.com/elastos/Elastos.ELA/p2p/peer"
 	"io"
 	"math/rand"
 	"net"
@@ -57,9 +58,9 @@ func mockRemotePeer(pid peer.PID, priKey []byte, port uint16,
 			sign, _ := crypto.Sign(priKey, nonce)
 			return sign
 		},
-		PingNonce:        func(pid peer.PID) uint64 { return 0 },
-		PongNonce:        func(pid peer.PID) uint64 { return 0 },
-		MakeEmptyMessage: makeEmptyMessage,
+		PingNonce:     func(pid peer.PID) uint64 { return 0 },
+		PongNonce:     func(pid peer.PID) uint64 { return 0 },
+		CreateMessage: createMessage,
 		MessageFunc: func(peer *peer.Peer, m p2p.Message) {
 			switch m := m.(type) {
 			case *msg.VerAck:
@@ -106,9 +107,9 @@ func mockInboundPeer(addr PeerAddr, priKey []byte, pc chan<- *peer.Peer,
 			sign, _ := crypto.Sign(priKey, nonce)
 			return sign
 		},
-		PingNonce:        func(pid peer.PID) uint64 { return 0 },
-		PongNonce:        func(pid peer.PID) uint64 { return 0 },
-		MakeEmptyMessage: makeEmptyMessage,
+		PingNonce:     func(pid peer.PID) uint64 { return 0 },
+		PongNonce:     func(pid peer.PID) uint64 { return 0 },
+		CreateMessage: createMessage,
 		MessageFunc: func(peer *peer.Peer, m p2p.Message) {
 			switch m := m.(type) {
 			case *msg.VerAck:
@@ -164,7 +165,7 @@ func TestServerConnections(t *testing.T) {
 				sign, _ := crypto.Sign(priKey, nonce)
 				return sign
 			},
-			MakeEmptyMessage: makeEmptyMessage,
+			CreateMessage: createMessage,
 		})
 
 		peerList = append(peerList, pid)
@@ -246,7 +247,7 @@ func TestServer_ConnectPeers(t *testing.T) {
 			sign, _ := crypto.Sign(priKey, nonce)
 			return sign
 		},
-		MakeEmptyMessage: makeEmptyMessage,
+		CreateMessage: createMessage,
 	})
 	if !assert.NoError(t, err) {
 		t.FailNow()
@@ -458,7 +459,7 @@ func TestServer_PeersReconnect(t *testing.T) {
 			sign, _ := crypto.Sign(priKey, nonce)
 			return sign
 		},
-		MakeEmptyMessage: makeEmptyMessage,
+		CreateMessage: createMessage,
 	})
 	if !assert.NoError(t, err) {
 		t.FailNow()
@@ -517,7 +518,7 @@ func TestServer_BroadcastMessage(t *testing.T) {
 			sign, _ := crypto.Sign(priKey, nonce)
 			return sign
 		},
-		MakeEmptyMessage: makeEmptyMessage,
+		CreateMessage: createMessage,
 	})
 	if !assert.NoError(t, err) {
 		t.FailNow()
@@ -614,8 +615,8 @@ func TestServer_DumpPeersInfo(t *testing.T) {
 			sign, _ := crypto.Sign(priKey, nonce)
 			return sign
 		},
-		MaxNodePerHost:   20,
-		MakeEmptyMessage: makeEmptyMessage,
+		MaxNodePerHost: 20,
+		CreateMessage:  createMessage,
 	})
 	if !assert.NoError(t, err) {
 		t.FailNow()
@@ -710,12 +711,12 @@ func TestServer_DumpPeersInfo(t *testing.T) {
 	}
 }
 
-func makeEmptyMessage(cmd string) (m p2p.Message, e error) {
-	switch cmd {
+func createMessage(hdr p2p.Header, r net.Conn) (m p2p.Message, err error) {
+	switch hdr.GetCMD() {
 	case p2p.CmdReject:
 		m = &msg.Reject{}
 	case "message":
 		m = &message{}
 	}
-	return m, nil
+	return peer2.CheckAndCreateMessage(hdr, m, r)
 }

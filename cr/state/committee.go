@@ -15,9 +15,12 @@ import (
 	"time"
 
 	"github.com/elastos/Elastos.ELA/common"
-	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/core/contract/program"
+	"github.com/elastos/Elastos.ELA/core/types/functions"
+	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/core/types"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	elaerr "github.com/elastos/Elastos.ELA/errors"
 	"github.com/elastos/Elastos.ELA/events"
@@ -42,12 +45,12 @@ type Committee struct {
 	getHeight                        func() uint32
 	isCurrent                        func() bool
 	broadcast                        func(msg p2p.Message)
-	appendToTxpool                   func(transaction *types.Transaction) elaerr.ELAError
-	createCRCAppropriationTx         func() (*types.Transaction, common.Fixed64, error)
-	createCRAssetsRectifyTransaction func() (*types.Transaction, error)
+	appendToTxpool                   func(transaction interfaces.Transaction) elaerr.ELAError
+	createCRCAppropriationTx         func() (interfaces.Transaction, common.Fixed64, error)
+	createCRAssetsRectifyTransaction func() (interfaces.Transaction, error)
 	createCRRealWithdrawTransaction  func(withdrawTransactionHashes []common.Uint256,
-		outputs []*types.OutputInfo) (*types.Transaction, error)
-	getUTXO func(programHash *common.Uint168) ([]*types.UTXO, error)
+		outputs []*common2.OutputInfo) (interfaces.Transaction, error)
+	getUTXO func(programHash *common.Uint168) ([]*common2.UTXO, error)
 }
 
 type CommitteeKeyFrame struct {
@@ -162,7 +165,7 @@ func (c *Committee) IsAppropriationNeeded() bool {
 	return c.NeedAppropriation
 }
 
-func (c *Committee) IsCustomIDResultNeeded() bool {
+func (c *Committee) IsProposalResultNeeded() bool {
 	c.mtx.RLock()
 	defer c.mtx.RUnlock()
 	return c.NeedRecordProposalResult
@@ -528,20 +531,25 @@ func (c *Committee) changeCommittee(height uint32) bool {
 }
 
 func (c *Committee) createProposalResultTransaction(height uint32) {
+
 	if height == c.getHeight() {
 		sort.Slice(c.PartProposalResults, func(i, j int) bool {
 			return c.PartProposalResults[i].ProposalHash.Compare(c.PartProposalResults[j].ProposalHash) < 0
 		})
-		tx := &types.Transaction{
-			Version: types.TxVersion09,
-			TxType:  types.ProposalResult,
-			Payload: &payload.RecordProposalResult{
+		tx := functions.CreateTransaction(
+			common2.TxVersion09,
+			common2.ProposalResult,
+			0,
+			&payload.RecordProposalResult{
 				ProposalResults: c.PartProposalResults,
 			},
-			Attributes: []*types.Attribute{},
-			Programs:   []*program.Program{},
-			LockTime:   0,
-		}
+			[]*common2.Attribute{},
+			[]*common2.Input{},
+			[]*common2.Output{},
+			0,
+			[]*program.Program{},
+		)
+
 		log.Info("create record proposal result transaction:", tx.Hash())
 		if c.isCurrent != nil && c.broadcast != nil && c.
 			appendToTxpool != nil {
@@ -624,7 +632,7 @@ func (c *Committee) createRectifyCRAssetsTransaction(height uint32) {
 func (c *Committee) createRealWithdrawTransaction(height uint32) {
 	if c.createCRRealWithdrawTransaction != nil && height == c.getHeight() {
 		withdrawTransactionHahses := make([]common.Uint256, 0)
-		ouputs := make([]*types.OutputInfo, 0)
+		ouputs := make([]*common2.OutputInfo, 0)
 		for k, v := range c.manager.WithdrawableTxInfo {
 			withdrawTransactionHahses = append(withdrawTransactionHahses, k)
 			outputInfo := v
@@ -738,9 +746,9 @@ func (c *Committee) recordCurrentStageAmount(height uint32, lockedAmount common.
 
 func (c *Committee) recordCRCRelatedAddressOutputs(block *types.Block) {
 	for _, tx := range block.Transactions {
-		for i, output := range tx.Outputs {
+		for i, output := range tx.Outputs() {
 			if output.ProgramHash.IsEqual(c.params.CRAssetsAddress) {
-				key := types.NewOutPoint(tx.Hash(), uint16(i)).ReferKey()
+				key := common2.NewOutPoint(tx.Hash(), uint16(i)).ReferKey()
 				value := output.Value
 				c.firstHistory.Append(block.Height, func() {
 					c.state.CRCFoundationOutputs[key] = value
@@ -748,7 +756,7 @@ func (c *Committee) recordCRCRelatedAddressOutputs(block *types.Block) {
 					delete(c.state.CRCFoundationOutputs, key)
 				})
 			} else if output.ProgramHash.IsEqual(c.params.CRExpensesAddress) {
-				key := types.NewOutPoint(tx.Hash(), uint16(i)).ReferKey()
+				key := common2.NewOutPoint(tx.Hash(), uint16(i)).ReferKey()
 				value := output.Value
 				c.firstHistory.Append(block.Height, func() {
 					c.state.CRCCommitteeOutputs[key] = value
@@ -879,14 +887,14 @@ func (c *Committee) processCRCAppropriation(height uint32, history *utils.Histor
 	})
 }
 
-func (c *Committee) processCRCRealWithdraw(tx *types.Transaction,
+func (c *Committee) processCRCRealWithdraw(tx interfaces.Transaction,
 	height uint32, history *utils.History) {
 
-	txs := make(map[common.Uint256]types.OutputInfo)
+	txs := make(map[common.Uint256]common2.OutputInfo)
 	for k, v := range c.manager.WithdrawableTxInfo {
 		txs[k] = v
 	}
-	withdrawPayload := tx.Payload.(*payload.CRCProposalRealWithdraw)
+	withdrawPayload := tx.Payload().(*payload.CRCProposalRealWithdraw)
 	history.Append(height, func() {
 		for _, hash := range withdrawPayload.WithdrawTransactionHashes {
 			delete(c.manager.WithdrawableTxInfo, hash)
@@ -896,9 +904,9 @@ func (c *Committee) processCRCRealWithdraw(tx *types.Transaction,
 	})
 }
 
-func (c *Committee) activateProducer(tx *types.Transaction,
+func (c *Committee) activateProducer(tx interfaces.Transaction,
 	height uint32, history *utils.History) {
-	apPayload := tx.Payload.(*payload.ActivateProducer)
+	apPayload := tx.Payload().(*payload.ActivateProducer)
 	crMember := c.getMemberByNodePublicKey(apPayload.NodePublicKey)
 	if crMember != nil && (crMember.MemberState == MemberInactive ||
 		crMember.MemberState == MemberIllegal) {
@@ -913,9 +921,9 @@ func (c *Committee) activateProducer(tx *types.Transaction,
 	}
 }
 
-func (c *Committee) processCRCouncilMemberClaimNode(tx *types.Transaction,
+func (c *Committee) processCRCouncilMemberClaimNode(tx interfaces.Transaction,
 	height uint32, history *utils.History) {
-	claimNodePayload := tx.Payload.(*payload.CRCouncilMemberClaimNode)
+	claimNodePayload := tx.Payload().(*payload.CRCouncilMemberClaimNode)
 	cr := c.getMember(claimNodePayload.CRCouncilCommitteeDID)
 	if cr == nil {
 		return
@@ -1400,7 +1408,7 @@ func (c *Committee) GetProposalByDraftHash(draftHash common.Uint256) *ProposalSt
 	return c.manager.getProposalByDraftHash(draftHash)
 }
 
-func (c *Committee) GetRealWithdrawTransactions() map[common.Uint256]types.OutputInfo {
+func (c *Committee) GetRealWithdrawTransactions() map[common.Uint256]common2.OutputInfo {
 	c.mtx.RLock()
 	defer c.mtx.RUnlock()
 
@@ -1436,17 +1444,17 @@ func (c *Committee) GetCandidateByPublicKey(publicKey string) *Candidate {
 }
 
 type CommitteeFuncsConfig struct {
-	GetTxReference func(tx *types.Transaction) (
-		map[*types.Input]types.Output, error)
+	GetTxReference func(tx interfaces.Transaction) (
+		map[*common2.Input]common2.Output, error)
 	GetHeight                        func() uint32
-	CreateCRAppropriationTransaction func() (*types.Transaction, common.Fixed64, error)
-	CreateCRAssetsRectifyTransaction func() (*types.Transaction, error)
+	CreateCRAppropriationTransaction func() (interfaces.Transaction, common.Fixed64, error)
+	CreateCRAssetsRectifyTransaction func() (interfaces.Transaction, error)
 	CreateCRRealWithdrawTransaction  func(withdrawTransactionHashes []common.Uint256,
-		outpus []*types.OutputInfo) (*types.Transaction, error)
+		outpus []*common2.OutputInfo) (interfaces.Transaction, error)
 	IsCurrent      func() bool
 	Broadcast      func(msg p2p.Message)
-	AppendToTxpool func(transaction *types.Transaction) elaerr.ELAError
-	GetUTXO        func(programHash *common.Uint168) ([]*types.UTXO, error)
+	AppendToTxpool func(transaction interfaces.Transaction) elaerr.ELAError
+	GetUTXO        func(programHash *common.Uint168) ([]*common2.UTXO, error)
 }
 
 func (c *Committee) RegisterFuncitons(cfg *CommitteeFuncsConfig) {

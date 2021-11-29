@@ -10,7 +10,8 @@ import (
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/core/contract"
-	"github.com/elastos/Elastos.ELA/core/types"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/core/types/outputpayload"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/utils"
@@ -35,8 +36,8 @@ type State struct {
 	manager *ProposalManager
 
 	getHistoryMember func(code []byte) []*CRMember
-	getTxReference   func(tx *types.Transaction) (
-		map[*types.Input]types.Output, error)
+	getTxReference   func(tx interfaces.Transaction) (
+		map[*common2.Input]common2.Output, error)
 
 	params  *config.Params
 	history *utils.History
@@ -49,8 +50,8 @@ func (s *State) SetManager(manager *ProposalManager) {
 
 type FunctionsConfig struct {
 	GetHistoryMember func(code []byte) []*CRMember
-	GetTxReference   func(tx *types.Transaction) (
-		map[*types.Input]types.Output, error)
+	GetTxReference   func(tx interfaces.Transaction) (
+		map[*common2.Input]common2.Output, error)
 }
 
 func (s *State) UpdateCRInactivePenalty(cid common.Uint168) {
@@ -195,18 +196,18 @@ func (s *State) existCandidateByNickname(nickname string) bool {
 }
 
 // IsCRTransaction returns if a transaction will change the CR and votes state.
-func (s *State) IsCRTransaction(tx *types.Transaction) bool {
-	switch tx.TxType {
+func (s *State) IsCRTransaction(tx interfaces.Transaction) bool {
+	switch tx.TxType() {
 	// Transactions will changes the producers state.
-	case types.RegisterCR, types.UpdateCR,
-		types.UnregisterCR, types.ReturnCRDepositCoin:
+	case common2.RegisterCR, common2.UpdateCR,
+		common2.UnregisterCR, common2.ReturnCRDepositCoin:
 		return true
 
 	// Transactions will change the producer votes state.
-	case types.TransferAsset:
-		if tx.Version >= types.TxVersion09 {
-			for _, output := range tx.Outputs {
-				if output.Type != types.OTVote {
+	case common2.TransferAsset:
+		if tx.Version() >= common2.TxVersion09 {
+			for _, output := range tx.Outputs() {
+				if output.Type != common2.OTVote {
 					continue
 				}
 				p, _ := output.Payload.(*outputpayload.VoteOutput)
@@ -223,7 +224,7 @@ func (s *State) IsCRTransaction(tx *types.Transaction) bool {
 	}
 
 	// Cancel votes.
-	for _, input := range tx.Inputs {
+	for _, input := range tx.Inputs() {
 		_, ok := s.Votes[input.ReferKey()]
 		if ok {
 			return true
@@ -240,8 +241,8 @@ func (s *State) rollbackTo(height uint32) error {
 }
 
 // registerCR handles the register CR transaction.
-func (s *State) registerCR(tx *types.Transaction, height uint32) {
-	info := tx.Payload.(*payload.CRInfo)
+func (s *State) registerCR(tx interfaces.Transaction, height uint32) {
+	info := tx.Payload().(*payload.CRInfo)
 	nickname := info.NickName
 	code := common.BytesToHexString(info.Code)
 
@@ -255,10 +256,10 @@ func (s *State) registerCR(tx *types.Transaction, height uint32) {
 	}
 
 	amount := common.Fixed64(0)
-	for i, output := range tx.Outputs {
+	for i, output := range tx.Outputs() {
 		if output.ProgramHash.IsEqual(candidate.depositHash) {
 			amount += output.Value
-			op := types.NewOutPoint(tx.Hash(), uint16(i))
+			op := common2.NewOutPoint(tx.Hash(), uint16(i))
 			s.DepositOutputs[op.ReferKey()] = output.Value
 		}
 	}
@@ -334,11 +335,11 @@ func (s *State) updateCandidateInfo(origin *payload.CRInfo, update *payload.CRIn
 }
 
 // processDeposit takes a transaction output with deposit program hash.
-func (s *State) processDeposit(tx *types.Transaction, height uint32) {
-	for i, output := range tx.Outputs {
+func (s *State) processDeposit(tx interfaces.Transaction, height uint32) {
+	for i, output := range tx.Outputs() {
 		if contract.GetPrefixType(output.ProgramHash) == contract.PrefixDeposit {
 			if s.addCRCRelatedAssert(output, height) {
-				op := types.NewOutPoint(tx.Hash(), uint16(i))
+				op := common2.NewOutPoint(tx.Hash(), uint16(i))
 				s.DepositOutputs[op.ReferKey()] = output.Value
 			}
 		}
@@ -346,9 +347,9 @@ func (s *State) processDeposit(tx *types.Transaction, height uint32) {
 }
 
 // returnDeposit change producer state to ReturnedDeposit
-func (s *State) returnDeposit(tx *types.Transaction, height uint32) {
+func (s *State) returnDeposit(tx interfaces.Transaction, height uint32) {
 	var inputValue common.Fixed64
-	for _, input := range tx.Inputs {
+	for _, input := range tx.Inputs() {
 		inputValue += s.DepositOutputs[input.ReferKey()]
 	}
 
@@ -376,12 +377,12 @@ func (s *State) returnDeposit(tx *types.Transaction, height uint32) {
 		})
 	}
 
-	for _, program := range tx.Programs {
+	for _, program := range tx.Programs() {
 		cid, _ := getCIDByCode(program.Code)
 
 		if candidate := s.getCandidate(*cid); candidate != nil {
 			var changeValue common.Fixed64
-			for _, o := range tx.Outputs {
+			for _, o := range tx.Outputs() {
 				if candidate.depositHash.IsEqual(o.ProgramHash) {
 					changeValue += o.Value
 				}
@@ -415,7 +416,7 @@ func (s *State) returnDeposit(tx *types.Transaction, height uint32) {
 
 // addCRCRelatedAssert will plus deposit amount for CRC referenced in
 // program hash of transaction output.
-func (s *State) addCRCRelatedAssert(output *types.Output, height uint32) bool {
+func (s *State) addCRCRelatedAssert(output *common2.Output, height uint32) bool {
 	if cid, ok := s.getCIDByDepositHash(output.ProgramHash); ok {
 		s.history.Append(height, func() {
 			s.depositInfo[cid].TotalAmount += output.Value

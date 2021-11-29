@@ -20,7 +20,6 @@ const (
 )
 
 type CRCProposalWithdraw struct {
-
 	// Hash of the proposal to withdrawal ela.
 	ProposalHash common.Uint256
 

@@ -59,7 +59,7 @@ var ErrMap = map[ServerErrCode]string{
 	InvalidToken:                "Verify token error",
 	InvalidTransaction:          "Invalid transaction",
 	InvalidAsset:                "Invalid asset",
-	UnknownTransaction:          "Unknown Transaction",
+	UnknownTransaction:          "Unknown BaseTransaction",
 	UnknownAsset:                "Unknown asset",
 	UnknownBlock:                "Unknown Block",
 	UnknownConfirm:              "Unknown Confirm",

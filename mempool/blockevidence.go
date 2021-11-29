@@ -15,6 +15,8 @@ import (
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/core/contract/program"
 	"github.com/elastos/Elastos.ELA/core/types"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/functions"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/events"
 )
@@ -131,18 +133,17 @@ func (bm *BlockPool) CheckConfirmedBlockOnFork(height uint32, block *types.Block
 			return err
 		}
 
-		tx := &types.Transaction{
-			Version:        types.TxVersion09,
-			TxType:         types.IllegalBlockEvidence,
-			PayloadVersion: payload.IllegalBlockVersion,
-			Payload:        illegalBlocks,
-			Attributes:     []*types.Attribute{},
-			LockTime:       0,
-			Programs:       []*program.Program{},
-			Outputs:        []*types.Output{},
-			Inputs:         []*types.Input{},
-			Fee:            0,
-		}
+		tx := functions.CreateTransaction(
+			common2.TxVersion09,
+			common2.IllegalBlockEvidence,
+			payload.IllegalBlockVersion,
+			illegalBlocks,
+			[]*common2.Attribute{},
+			[]*common2.Input{},
+			[]*common2.Output{},
+			0,
+			[]*program.Program{},
+		)
 
 		events.Notify(events.ETIllegalBlockEvidence, tx)
 

@@ -9,12 +9,12 @@ import (
 	"bytes"
 	crand "crypto/rand"
 	"encoding/binary"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"math/rand"
 	"testing"
 	"time"
 
 	"github.com/elastos/Elastos.ELA/common"
-	"github.com/elastos/Elastos.ELA/core/types"
 	"github.com/elastos/Elastos.ELA/core/types/outputpayload"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 
@@ -521,7 +521,7 @@ func randomProposalKeyframe() *ProposalKeyFrame {
 			*randomUint168(): randomProposalHashSet(),
 		},
 		ProposalSession:           make(map[uint64][]common.Uint256, size),
-		WithdrawableTxInfo:        make(map[common.Uint256]types.OutputInfo, size),
+		WithdrawableTxInfo:        make(map[common.Uint256]common2.OutputInfo, size),
 		SecretaryGeneralPublicKey: randomString(),
 	}
 
@@ -627,20 +627,20 @@ func randomBool() bool {
 	return rand.Intn(2) == 0
 }
 
-func randomOutputInfo() *types.OutputInfo {
-	return &types.OutputInfo{
+func randomOutputInfo() *common2.OutputInfo {
+	return &common2.OutputInfo{
 		Recipient: *randomUint168(),
 		Amount:    randomFix64(),
 	}
 }
 
-func randomOutputs() *types.Output {
-	return &types.Output{
+func randomOutputs() *common2.Output {
+	return &common2.Output{
 		AssetID:     *randomUint256(),
 		Value:       common.Fixed64(rand.Int63()),
 		OutputLock:  0,
 		ProgramHash: *randomUint168(),
-		Type:        types.OTVote,
+		Type:        common2.OTVote,
 		Payload: &outputpayload.VoteOutput{
 			Version: outputpayload.VoteProducerAndCRVersion,
 			Contents: []outputpayload.VoteContent{

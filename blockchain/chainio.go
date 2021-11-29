@@ -15,6 +15,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"math/big"
 	"time"
 
@@ -526,10 +527,10 @@ func (b *BlockChain) initChainState() error {
 
 // DeserializeBlockRow parses a value in the block index bucket into a block
 // header and block Status bitfield.
-func DeserializeBlockRow(blockRow []byte) (*types.Header, blockStatus, error) {
+func DeserializeBlockRow(blockRow []byte) (*common2.Header, blockStatus, error) {
 	buffer := bytes.NewReader(blockRow)
 
-	var header types.Header
+	var header common2.Header
 	err := header.DeserializeNoAux(buffer)
 	if err != nil {
 		return nil, statusNone, err
@@ -545,7 +546,7 @@ func DeserializeBlockRow(blockRow []byte) (*types.Header, blockStatus, error) {
 
 // DBStoreBlockNode stores the block header to the block index bucket.
 // This overwrites the current entry if there exists one.
-func DBStoreBlockNode(dbTx database.Tx, header *types.Header,
+func DBStoreBlockNode(dbTx database.Tx, header *common2.Header,
 	status blockStatus) error {
 	// Serialize block data to be stored.
 	w := bytes.NewBuffer(make([]byte, 0, blockHdrNoAuxSize))
@@ -568,7 +569,7 @@ func DBStoreBlockNode(dbTx database.Tx, header *types.Header,
 
 // DBRemoveBlockNode stores the block header to the block index bucket.
 // This overwrites the current entry if there exists one.
-func DBRemoveBlockNode(dbTx database.Tx, header *types.Header) error {
+func DBRemoveBlockNode(dbTx database.Tx, header *common2.Header) error {
 	// Write block header data to block index bucket.
 	blockHash := header.Hash()
 	blockIndexBucket := dbTx.Metadata().Bucket(blockIndexBucketName)

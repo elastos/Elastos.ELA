@@ -20,6 +20,8 @@ import (
 	cmdcom "github.com/elastos/Elastos.ELA/cmd/common"
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
+	transaction2 "github.com/elastos/Elastos.ELA/core/transaction"
+	"github.com/elastos/Elastos.ELA/core/types/functions"
 	"github.com/elastos/Elastos.ELA/elanet/pact"
 	"github.com/elastos/Elastos.ELA/utils/elalog"
 	"github.com/elastos/Elastos.ELA/utils/gpath"
@@ -218,6 +220,15 @@ func (s *Settings) Add(item *settingItem) {
 }
 
 func (s *Settings) initNetSetting() (err error) {
+	// Initialize functions
+	functions.GetTransactionByTxType = transaction2.GetTransaction
+	functions.GetTransactionByBytes = transaction2.GetTransactionByBytes
+	functions.CreateTransaction = transaction2.CreateTransaction
+	functions.GetTransactionParameters = transaction2.GetTransactionparameters
+
+	// Initialize default parameters
+	config.DefaultParams = config.GetDefaultParams()
+
 	var testNet, regTest bool
 	switch strings.ToLower(s.conf.ActiveNet) {
 	case "testnet", "test":

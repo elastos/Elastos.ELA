@@ -15,6 +15,7 @@ import (
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/core/types"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/elanet/pact"
 	"github.com/elastos/Elastos.ELA/elanet/peer"
 	"github.com/elastos/Elastos.ELA/errors"
@@ -73,7 +74,7 @@ type donePeerMsg struct {
 // txMsg packages a bitcoin tx message and the peer it came from together
 // so the block handler has access to that information.
 type txMsg struct {
-	tx    *types.Transaction
+	tx    interfaces.Transaction
 	peer  *peer.Peer
 	reply chan struct{}
 }
@@ -196,7 +197,6 @@ func (sm *SyncManager) startSync() {
 		sm.syncPeer = bestPeer
 		sm.syncHeight = bestPeer.Height()
 		sm.syncStartTime = time.Now()
-		log.Info("########### PushGetBlocksMsg 3:", locator)
 		bestPeer.PushGetBlocksMsg(locator, &zeroHash)
 	} else {
 		log.Warnf("No sync peer candidates available")
@@ -450,7 +450,7 @@ func (sm *SyncManager) handleBlockMsg(bmsg *blockMsg) {
 				sm.syncHeight = bmsg.block.Block.Height
 				sm.syncStartTime = time.Now()
 				log.Debug("Syncing blocks locator:", locator)
-				log.Info("###### PushGetBlocksMsgSyncing blocks locator:", locator, "height:", bmsg.block.Height)
+				log.Info("PushGetBlocksMsgSyncing blocks locator:", locator, "height:", bmsg.block.Height)
 				peer.PushGetBlocksMsg(locator, orphanRoot)
 			}
 		}
@@ -598,7 +598,7 @@ func (sm *SyncManager) handleInvMsg(imsg *invMsg) {
 					sm.syncStartTime = time.Now()
 				}
 				if sm.syncPeer == peer {
-					log.Info("########### PushGetBlocksMsg 1:", locator)
+					log.Info("PushGetBlocksMsg 1:", locator)
 					peer.PushGetBlocksMsg(locator, orphanRoot)
 				}
 				continue
@@ -661,7 +661,7 @@ func (sm *SyncManager) handleInvMsg(imsg *invMsg) {
 	// maxBlockLocators = 500
 	if len(gdmsg.InvList) == 500 {
 		locator := sm.chain.GetOrphanBlockLocator(invVects)
-		log.Info("########### PushGetBlocksMsg 2:", locator, "count:", len(gdmsg.InvList))
+		log.Info("PushGetBlocksMsg 2:", locator, "count:", len(gdmsg.InvList))
 		if err := peer.PushGetBlocksMsg(locator, &zeroHash); err != nil {
 			log.Info("PushGetBlocksMsg error:", err)
 		}
@@ -750,7 +750,7 @@ func (sm *SyncManager) handleBlockchainEvents(event *events.Event) {
 	// A transaction has been accepted into the transaction mem pool.  See if it
 	// is a illegal block transaction.
 	case events.ETTransactionAccepted:
-		tx := event.Data.(*types.Transaction)
+		tx := event.Data.(interfaces.Transaction)
 		//if tx.IsIllegalBlockTx() {
 		//	sm.chain.ProcessIllegalBlock(tx.Payload.(*payload.DPOSIllegalBlocks))
 		//}
@@ -855,7 +855,7 @@ func (sm *SyncManager) handleBlockchainEvents(event *events.Event) {
 			}
 		}
 	case events.ETIllegalBlockEvidence:
-		tx, ok := event.Data.(*types.Transaction)
+		tx, ok := event.Data.(interfaces.Transaction)
 		if !ok {
 			log.Warnf("Illegal evidence event is not a tx")
 			break
@@ -866,7 +866,7 @@ func (sm *SyncManager) handleBlockchainEvents(event *events.Event) {
 			break
 		}
 	case events.ETAppendTxToTxPool:
-		tx, ok := event.Data.(*types.Transaction)
+		tx, ok := event.Data.(interfaces.Transaction)
 		if !ok {
 			log.Warnf("ETAppendTxToTxPool event is not a tx")
 			break
@@ -877,7 +877,7 @@ func (sm *SyncManager) handleBlockchainEvents(event *events.Event) {
 			break
 		}
 	case events.ETAppendTxToTxPoolWithoutRelay:
-		tx, ok := event.Data.(*types.Transaction)
+		tx, ok := event.Data.(interfaces.Transaction)
 		if !ok {
 			log.Warnf("ETAppendTxToTxPool event is not a tx")
 			break
@@ -888,7 +888,7 @@ func (sm *SyncManager) handleBlockchainEvents(event *events.Event) {
 			break
 		}
 	case events.ETSmallCrossChainNeedRelay:
-		txs, ok := event.Data.([]*types.Transaction)
+		txs, ok := event.Data.([]interfaces.Transaction)
 		if !ok {
 			log.Error("ETSmallCrossChainNeedRelay event is not a tx list")
 		}
@@ -913,7 +913,7 @@ func (sm *SyncManager) NewPeer(peer *peer.Peer) {
 // QueueTx adds the passed transaction message and peer to the block handling
 // queue. Responds to the done channel argument after the tx message is
 // processed.
-func (sm *SyncManager) QueueTx(tx *types.Transaction, peer *peer.Peer, done chan struct{}) {
+func (sm *SyncManager) QueueTx(tx interfaces.Transaction, peer *peer.Peer, done chan struct{}) {
 	// Don't accept more transactions if we're shutting down.
 	if atomic.LoadInt32(&sm.shutdown) != 0 {
 		done <- struct{}{}

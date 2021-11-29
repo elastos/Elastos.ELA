@@ -7,11 +7,11 @@ package state
 
 import (
 	"bytes"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"math/rand"
 	"testing"
 
 	"github.com/elastos/Elastos.ELA/common"
-	"github.com/elastos/Elastos.ELA/core/types"
 	"github.com/elastos/Elastos.ELA/core/types/outputpayload"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 
@@ -374,13 +374,13 @@ func randomRewardData() *RewardData {
 	return result
 }
 
-func randomVotes() *types.Output {
-	return &types.Output{
+func randomVotes() *common2.Output {
+	return &common2.Output{
 		AssetID:     *randomHash(),
 		Value:       common.Fixed64(rand.Uint64()),
 		OutputLock:  rand.Uint32(),
 		ProgramHash: *randomProgramHash(),
-		Type:        types.OTVote,
+		Type:        common2.OTVote,
 		Payload: &outputpayload.VoteOutput{
 			Version: byte(rand.Uint32()),
 			Contents: []outputpayload.VoteContent{

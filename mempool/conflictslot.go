@@ -8,8 +8,9 @@ package mempool
 import (
 	"fmt"
 
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/common"
-	"github.com/elastos/Elastos.ELA/core/types"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/errors"
 )
 
@@ -17,16 +18,16 @@ import (
 type keyType byte
 
 // getKeyFunc defines the general function about get key from a tx.
-type getKeyFunc func(*types.Transaction) (interface{}, error)
+type getKeyFunc func(interfaces.Transaction) (interface{}, error)
 
 // keyTypeFuncPair defines a pair about tx type and related getKeyFunc.
 type keyTypeFuncPair struct {
-	Type types.TxType
+	Type common2.TxType
 	Func getKeyFunc
 }
 
 // self-defined tx type indicates all types of txs.
-const allType types.TxType = 0xff
+const allType common2.TxType = 0xff
 
 const (
 	// str keyType will treat key as type of string.
@@ -53,10 +54,10 @@ const (
 //	generate key by which to detect the conflict.
 type conflictSlot struct {
 	keyType        keyType
-	conflictTypes  map[types.TxType]getKeyFunc
-	stringSet      map[string]*types.Transaction
-	hashSet        map[common.Uint256]*types.Transaction
-	programHashSet map[common.Uint168]*types.Transaction
+	conflictTypes  map[common2.TxType]getKeyFunc
+	stringSet      map[string]interfaces.Transaction
+	hashSet        map[common.Uint256]interfaces.Transaction
+	programHashSet map[common.Uint168]interfaces.Transaction
 }
 
 func (s *conflictSlot) Empty() bool {
@@ -76,7 +77,7 @@ func (s *conflictSlot) Contains(key interface{}) (ok bool) {
 	return
 }
 
-func (s *conflictSlot) GetTx(key interface{}) (tx *types.Transaction) {
+func (s *conflictSlot) GetTx(key interface{}) (tx interfaces.Transaction) {
 	switch k := key.(type) {
 	case string:
 		tx = s.stringSet[k]
@@ -88,7 +89,7 @@ func (s *conflictSlot) GetTx(key interface{}) (tx *types.Transaction) {
 	return
 }
 
-func (s *conflictSlot) VerifyTx(tx *types.Transaction) errors.ELAError {
+func (s *conflictSlot) VerifyTx(tx interfaces.Transaction) errors.ELAError {
 	getKey := s.getKeyFromTx(tx)
 	if getKey == nil {
 		return nil
@@ -131,7 +132,7 @@ func (s *conflictSlot) VerifyTx(tx *types.Transaction) errors.ELAError {
 		})
 }
 
-func (s *conflictSlot) AppendTx(tx *types.Transaction) errors.ELAError {
+func (s *conflictSlot) AppendTx(tx interfaces.Transaction) errors.ELAError {
 	getKey := s.getKeyFromTx(tx)
 	if getKey == nil {
 		return nil
@@ -145,9 +146,9 @@ func (s *conflictSlot) AppendTx(tx *types.Transaction) errors.ELAError {
 	return s.appendKey(key, tx)
 }
 
-func (s *conflictSlot) getKeyFromTx(tx *types.Transaction) (getKey getKeyFunc) {
+func (s *conflictSlot) getKeyFromTx(tx interfaces.Transaction) (getKey getKeyFunc) {
 	var exist bool
-	getKey, exist = s.conflictTypes[tx.TxType]
+	getKey, exist = s.conflictTypes[tx.TxType()]
 	if !exist {
 		getKey = s.conflictTypes[allType]
 	}
@@ -155,7 +156,7 @@ func (s *conflictSlot) getKeyFromTx(tx *types.Transaction) (getKey getKeyFunc) {
 }
 
 func (s *conflictSlot) appendKey(key interface{},
-	tx *types.Transaction) errors.ELAError {
+	tx interfaces.Transaction) errors.ELAError {
 	return s.txProcess(key, s.keyType,
 		func(key string) errors.ELAError {
 			s.stringSet[key] = tx
@@ -170,7 +171,7 @@ func (s *conflictSlot) appendKey(key interface{},
 	)
 }
 
-func (s *conflictSlot) RemoveTx(tx *types.Transaction) errors.ELAError {
+func (s *conflictSlot) RemoveTx(tx interfaces.Transaction) errors.ELAError {
 	getKey := s.getKeyFromTx(tx)
 	if getKey == nil {
 		return nil
@@ -276,7 +277,7 @@ func (s *conflictSlot) txProcess(key interface{}, t keyType,
 }
 
 func newConflictSlot(t keyType, conflictTypes ...keyTypeFuncPair) *conflictSlot {
-	ts := make(map[types.TxType]getKeyFunc)
+	ts := make(map[common2.TxType]getKeyFunc)
 	for _, v := range conflictTypes {
 		ts[v.Type] = v.Func
 	}
@@ -284,8 +285,8 @@ func newConflictSlot(t keyType, conflictTypes ...keyTypeFuncPair) *conflictSlot 
 	return &conflictSlot{
 		keyType:        t,
 		conflictTypes:  ts,
-		stringSet:      map[string]*types.Transaction{},
-		hashSet:        map[common.Uint256]*types.Transaction{},
-		programHashSet: map[common.Uint168]*types.Transaction{},
+		stringSet:      map[string]interfaces.Transaction{},
+		hashSet:        map[common.Uint256]interfaces.Transaction{},
+		programHashSet: map[common.Uint168]interfaces.Transaction{},
 	}
 }

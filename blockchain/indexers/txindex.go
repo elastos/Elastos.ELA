@@ -14,10 +14,11 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/log"
 	"github.com/elastos/Elastos.ELA/core/types"
+	"github.com/elastos/Elastos.ELA/core/types/functions"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/database"
 )
 
@@ -296,7 +297,8 @@ func dbRemoveTxIndexEntries(dbTx database.Tx, block *types.Block) error {
 
 // dbFetchTx looks up the passed transaction hash in the transaction index and
 // loads it from the database.
-func dbFetchTx(dbTx database.Tx, hash *common.Uint256) (*types.Transaction, *common.Uint256, error) {
+func dbFetchTx(dbTx database.Tx, hash *common.Uint256) (interfaces.Transaction, *common.Uint256, error) {
+
 	// Look up the location of the transaction.
 	blockRegion, err := dbFetchTxIndexEntry(dbTx, hash)
 	if err != nil {
@@ -313,13 +315,17 @@ func dbFetchTx(dbTx database.Tx, hash *common.Uint256) (*types.Transaction, *com
 	}
 
 	// Deserialize the transaction.
-	var txn types.Transaction
-	err = txn.Deserialize(bytes.NewReader(txBytes))
+	r := bytes.NewReader(txBytes)
+	txn, err := functions.GetTransactionByBytes(r)
+	if err != nil {
+		return nil, &common.EmptyHash, err
+	}
+	err = txn.Deserialize(r)
 	if err != nil {
 		return nil, &common.EmptyHash, err
 	}
 
-	return &txn, blockRegion.Hash, nil
+	return txn, blockRegion.Hash, nil
 }
 
 // TxIndex implements a transaction by hash index.  That is to say, it supports

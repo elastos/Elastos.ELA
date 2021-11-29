@@ -9,7 +9,8 @@ import (
 	"github.com/elastos/Elastos.ELA/account"
 	"github.com/elastos/Elastos.ELA/benchmark/common/utils"
 	"github.com/elastos/Elastos.ELA/common"
-	"github.com/elastos/Elastos.ELA/core/types"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 )
 
 const (
@@ -18,29 +19,29 @@ const (
 
 type noChangesEvenAssigner struct {
 	account *account.Account
-	utxo    *types.UTXO
+	utxo    *common2.UTXO
 }
 
-func (a *noChangesEvenAssigner) SignAndChange(tx *types.Transaction) error {
-	tx.Inputs = []*types.Input{
+func (a *noChangesEvenAssigner) SignAndChange(tx interfaces.Transaction) error {
+	tx.SetInputs([]*common2.Input{
 		{
-			Previous: types.OutPoint{
+			Previous: common2.OutPoint{
 				TxID:  a.utxo.TxID,
 				Index: a.utxo.Index,
 			},
 			Sequence: 0,
 		},
-	}
+	})
 
 	sum := common.Fixed64(0)
-	average := (a.utxo.Value - defaultFee) / common.Fixed64(len(tx.Outputs))
-	for _, o := range tx.Outputs {
+	average := (a.utxo.Value - defaultFee) / common.Fixed64(len(tx.Outputs()))
+	for _, o := range tx.Outputs() {
 		o.Value = average
 		sum += average
 	}
 
-	if len(tx.Outputs) > 0 {
-		tx.Outputs[0].Value += a.utxo.Value - defaultFee - sum
+	if len(tx.Outputs()) > 0 {
+		tx.Outputs()[0].Value += a.utxo.Value - defaultFee - sum
 	}
 
 	return utils.SignStandardTx(tx, a.account)

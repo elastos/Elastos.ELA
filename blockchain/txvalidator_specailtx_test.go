@@ -12,13 +12,15 @@ import (
 	"strconv"
 	"testing"
 
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/functions"
+
 	"github.com/elastos/Elastos.ELA/auxpow"
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/common/log"
 	"github.com/elastos/Elastos.ELA/core/contract"
 	"github.com/elastos/Elastos.ELA/core/contract/program"
-	"github.com/elastos/Elastos.ELA/core/types"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/crypto"
 	"github.com/elastos/Elastos.ELA/dpos/state"
@@ -680,15 +682,23 @@ func (s *txValidatorSpecialTxTestSuite) TestCheckInactiveArbitrators() {
 	p := &payload.InactiveArbitrators{
 		Sponsor: randomPublicKey(),
 	}
-	tx := &types.Transaction{
-		Payload: p,
-		Programs: []*program.Program{
+	tx := functions.CreateTransaction(
+		0,
+		common2.RegisterCR,
+		payload.CRInfoDIDVersion,
+		p,
+		[]*common2.Attribute{},
+		[]*common2.Input{},
+		[]*common2.Output{},
+		0,
+		[]*program.Program{
 			{
 				Code:      randomPublicKey(),
 				Parameter: randomSignature(),
 			},
 		},
-	}
+	)
+
 	s.arbitrators.ActiveProducer = s.arbitrators.CurrentArbitrators
 
 	s.EqualError(CheckInactiveArbitrators(tx),
@@ -748,34 +758,42 @@ func (s *txValidatorSpecialTxTestSuite) TestCheckInactiveArbitrators() {
 	pkBuf, _ := pk.EncodePoint(true)
 	ar, _ = state.NewOriginArbiter(pkBuf)
 	arbitrators = append(arbitrators, ar)
-	tx.Programs[0].Code = s.createArbitratorsRedeemScript(arbitrators)
+	tx.Programs()[0].Code = s.createArbitratorsRedeemScript(arbitrators)
 	s.EqualError(CheckInactiveArbitrators(tx),
 		"invalid multi sign public key")
 
 	// correct redeem script
-	tx.Programs[0].Code = s.createArbitratorsRedeemScript(
+	tx.Programs()[0].Code = s.createArbitratorsRedeemScript(
 		s.arbitrators.CRCArbitrators)
 	s.NoError(CheckInactiveArbitrators(tx))
 }
 
 func (s *txValidatorSpecialTxTestSuite) TestCheckUpdateVersion() {
-	tx := &types.Transaction{
-		Programs: []*program.Program{
+	tx := functions.CreateTransaction(
+		0,
+		0,
+		0,
+		nil,
+		[]*common2.Attribute{},
+		[]*common2.Input{},
+		[]*common2.Output{},
+		0,
+		[]*program.Program{
 			{
 				Code:      randomPublicKey(),
 				Parameter: randomSignature(),
 			},
 		},
-	}
+	)
 
 	// set payload of invalid type
-	tx.Payload = &payload.InactiveArbitrators{}
+	tx.SetPayload(&payload.InactiveArbitrators{})
 	s.EqualError(s.Chain.checkUpdateVersionTransaction(tx),
 		"invalid payload")
 
 	// set inactive mode off
 	p := &payload.UpdateVersion{}
-	tx.Payload = p
+	tx.SetPayload(p)
 	s.EqualError(s.Chain.checkUpdateVersionTransaction(tx),
 		"invalid update version height")
 
@@ -807,12 +825,12 @@ func (s *txValidatorSpecialTxTestSuite) TestCheckUpdateVersion() {
 	pkBuf, _ := pk.EncodePoint(true)
 	ar, _ := state.NewOriginArbiter(pkBuf)
 	arbitrators = append(arbitrators, ar)
-	tx.Programs[0].Code = s.createArbitratorsRedeemScript(arbitrators)
+	tx.Programs()[0].Code = s.createArbitratorsRedeemScript(arbitrators)
 	s.EqualError(s.Chain.checkUpdateVersionTransaction(tx),
 		"invalid multi sign public key")
 
 	// correct redeem script
-	tx.Programs[0].Code = s.createArbitratorsRedeemScript(
+	tx.Programs()[0].Code = s.createArbitratorsRedeemScript(
 		s.arbitrators.CRCArbitrators)
 	s.NoError(s.Chain.checkUpdateVersionTransaction(tx))
 }
@@ -847,8 +865,8 @@ func (s *txValidatorSpecialTxTestSuite) createArbitratorsRedeemScript(
 	return result
 }
 
-func randomBlockHeader() *types.Header {
-	return &types.Header{
+func randomBlockHeader() *common2.Header {
+	return &common2.Header{
 		Version:    rand.Uint32(),
 		Previous:   *randomUint256(),
 		MerkleRoot: *randomUint256(),

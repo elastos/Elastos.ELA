@@ -13,6 +13,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/elastos/Elastos.ELA/p2p/peer"
 	"io"
 	"net"
 	"strconv"
@@ -84,16 +85,16 @@ type MessageFunc func(peer *Peer, msg p2p.Message)
 
 // Config is a descriptor which specifies the peer instance configuration.
 type Config struct {
-	PID              PID
-	Target           [16]byte
-	Magic            uint32
-	Port             uint16
-	PingInterval     time.Duration
-	Sign             func(data []byte) []byte
-	PingNonce        func(pid PID) uint64
-	PongNonce        func(pid PID) uint64
-	MakeEmptyMessage func(cmd string) (p2p.Message, error)
-	MessageFunc      MessageFunc
+	PID           PID
+	Target        [16]byte
+	Magic         uint32
+	Port          uint16
+	PingInterval  time.Duration
+	Sign          func(data []byte) []byte
+	PingNonce     func(pid PID) uint64
+	PongNonce     func(pid PID) uint64
+	CreateMessage func(hdr p2p.Header, r net.Conn) (message p2p.Message, err error)
+	MessageFunc   MessageFunc
 }
 
 // newNetAddress attempts to extract the IP address and port from the passed
@@ -350,9 +351,9 @@ func (p *Peer) handlePongMsg(pong *msg.Pong) {
 	p.statsMtx.Unlock()
 }
 
-func (p *Peer) makeEmptyMessage(cmd string) (p2p.Message, error) {
+func (p *Peer) createMessage(hdr p2p.Header, r net.Conn) (p2p.Message, error) {
 	var message p2p.Message
-	switch cmd {
+	switch hdr.GetCMD() {
 	case msg.CmdVersion:
 		message = &msg.Version{}
 
@@ -369,14 +370,15 @@ func (p *Peer) makeEmptyMessage(cmd string) (p2p.Message, error) {
 		message = &msg.Pong{}
 
 	default:
-		return p.cfg.MakeEmptyMessage(cmd)
+		return p.cfg.CreateMessage(hdr, r)
 	}
-	return message, nil
+
+	return peer.CheckAndCreateMessage(hdr, message, r)
 }
 
 func (p *Peer) readMessage() (p2p.Message, error) {
 	msg, err := p2p.ReadMessage(
-		p.conn, p.cfg.Magic, p2p.ReadMessageTimeOut, p.makeEmptyMessage)
+		p.conn, p.cfg.Magic, p2p.ReadMessageTimeOut, p.createMessage)
 	// Use closures to log expensive operations so they are only run when
 	// the logging level requires it.
 	log.Debugf("%v", newLogClosure(func() string {

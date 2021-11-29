@@ -8,6 +8,7 @@ package hub
 import (
 	"crypto/rand"
 	"fmt"
+	"github.com/elastos/Elastos.ELA/p2p/peer"
 	"net"
 	"strconv"
 	"testing"
@@ -64,11 +65,11 @@ func sendVersion(conn net.Conn, magic int, pid, target [33]byte, port int) error
 
 func readVersion(conn net.Conn, magic int, pid, target [33]byte, port int) error {
 	m, err := p2p.ReadMessage(conn, uint32(magic), p2p.ReadMessageTimeOut,
-		func(cmd string) (m p2p.Message, e error) {
-			if cmd != msg.CmdVersion {
+		func(hdr p2p.Header, r net.Conn) (m p2p.Message, err error) {
+			if hdr.GetCMD() != msg.CmdVersion {
 				return nil, fmt.Errorf("not a version message")
 			}
-			return &msg.Version{}, nil
+			return peer.CheckAndCreateMessage(hdr, &msg.Version{}, r)
 		})
 	if err != nil {
 		return err

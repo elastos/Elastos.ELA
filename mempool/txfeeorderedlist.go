@@ -11,12 +11,12 @@ import (
 	"sort"
 
 	"github.com/elastos/Elastos.ELA/common"
-	"github.com/elastos/Elastos.ELA/core/types"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/errors"
 )
 
 type PopBackEvent func(common.Uint256)
-type AppendToTxPoolEvent func(tx *types.Transaction) errors.ELAError
+type AppendToTxPoolEvent func(tx interfaces.Transaction) errors.ELAError
 
 var (
 	addingTxExcluded = errors.SimpleWithMessage(errors.ErrTxPoolFailure,
@@ -38,14 +38,14 @@ type txFeeOrderedList struct {
 	onPopBack PopBackEvent
 }
 
-func (l *txFeeOrderedList) AddTx(tx *types.Transaction) errors.ELAError {
+func (l *txFeeOrderedList) AddTx(tx interfaces.Transaction) errors.ELAError {
 	size := uint32(tx.GetSize())
 	if size <= 0 {
 		return errors.SimpleWithMessage(errors.ErrTxPoolFailure, nil,
 			fmt.Sprintf("tx %s got illegal size", common.ToReversedString(tx.Hash())))
 	}
 
-	feeRate := float64(tx.Fee) / float64(size)
+	feeRate := float64(tx.Fee()) / float64(size)
 	overSize := l.OverSize(uint64(size))
 
 	if overSize && len(l.list) > 0 &&

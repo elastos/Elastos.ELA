@@ -9,11 +9,12 @@ import (
 	"github.com/elastos/Elastos.ELA/account"
 	"github.com/elastos/Elastos.ELA/benchmark/common/tx"
 	"github.com/elastos/Elastos.ELA/common"
-	"github.com/elastos/Elastos.ELA/core/types"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 )
 
 type singleInputOutput struct {
-	protoTx *types.Transaction
+	protoTx interfaces.Transaction
 }
 
 func (s *singleInputOutput) initialSize() uint64 {
@@ -31,16 +32,16 @@ func newSingleInputOutput() (*singleInputOutput, error) {
 	}, err
 }
 
-func createSingleInputOutputTx() (*types.Transaction, error) {
+func createSingleInputOutputTx() (interfaces.Transaction, error) {
 	acc, err := account.NewAccount()
 	if err != nil {
 		return nil, err
 	}
 
-	generator := tx.NewGenerator(types.TransferAsset, acc)
+	generator := tx.NewGenerator(common2.TransferAsset, acc)
 	txn := generator.Generate()
 
-	utxo := types.UTXO{
+	utxo := common2.UTXO{
 		TxID:  common.Uint256{},
 		Index: 0,
 		Value: 100000000,

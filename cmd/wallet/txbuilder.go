@@ -10,19 +10,21 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	cmdcom "github.com/elastos/Elastos.ELA/cmd/common"
+	"github.com/elastos/Elastos.ELA/core/contract"
+	pg "github.com/elastos/Elastos.ELA/core/contract/program"
+	"github.com/elastos/Elastos.ELA/core/types/functions"
+	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"math"
 	"math/rand"
 	"os"
 	"strconv"
 
 	"github.com/elastos/Elastos.ELA/account"
-	cmdcom "github.com/elastos/Elastos.ELA/cmd/common"
 	"github.com/elastos/Elastos.ELA/common"
-	"github.com/elastos/Elastos.ELA/core/contract"
-	pg "github.com/elastos/Elastos.ELA/core/contract/program"
-	"github.com/elastos/Elastos.ELA/core/types"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/core/types/outputpayload"
-	"github.com/elastos/Elastos.ELA/core/types/payload"
 
 	"github.com/urfave/cli"
 )
@@ -100,7 +102,7 @@ func CreateTransaction(c *cli.Context) error {
 		}
 	}
 
-	var txn *types.Transaction
+	var txn interfaces.Transaction
 	txn, err = createTransaction(walletPath, from, *fee, uint32(outputLock),
 		uint32(txLock), outputs...)
 	if err != nil {
@@ -141,15 +143,15 @@ func getSender(walletPath string, from string) (*account.AccountData, error) {
 	return sender, nil
 }
 
-func createInputs(fromAddr string, totalAmount common.Fixed64) ([]*types.Input,
-	[]*types.Output, error) {
+func createInputs(fromAddr string, totalAmount common.Fixed64) ([]*common2.Input,
+	[]*common2.Output, error) {
 	UTXOs, err := getUTXOsByAmount(fromAddr, totalAmount)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	var txInputs []*types.Input
-	var changeOutputs []*types.Output
+	var txInputs []*common2.Input
+	var changeOutputs []*common2.Output
 	for _, utxo := range UTXOs {
 		txIDReverse, _ := hex.DecodeString(utxo.TxID)
 		txID, _ := common.Uint256FromBytes(common.BytesReverse(txIDReverse))
@@ -157,8 +159,8 @@ func createInputs(fromAddr string, totalAmount common.Fixed64) ([]*types.Input,
 		if utxo.OutputLock > 0 {
 			sequence = math.MaxUint32 - 1
 		}
-		input := &types.Input{
-			Previous: types.OutPoint{
+		input := &common2.Input{
+			Previous: common2.OutPoint{
 				TxID:  *txID,
 				Index: uint16(utxo.VOut),
 			},
@@ -179,12 +181,12 @@ func createInputs(fromAddr string, totalAmount common.Fixed64) ([]*types.Input,
 			totalAmount = 0
 			break
 		} else if *amount > totalAmount {
-			change := &types.Output{
+			change := &common2.Output{
 				AssetID:     *account.SystemAssetID,
 				Value:       *amount - totalAmount,
 				OutputLock:  uint32(0),
 				ProgramHash: *programHash,
-				Type:        types.OTNone,
+				Type:        common2.OTNone,
 				Payload:     &outputpayload.DefaultOutput{},
 			}
 			changeOutputs = append(changeOutputs, change)
@@ -199,9 +201,9 @@ func createInputs(fromAddr string, totalAmount common.Fixed64) ([]*types.Input,
 	return txInputs, changeOutputs, nil
 }
 
-func createNormalOutputs(outputs []*OutputInfo, fee common.Fixed64, lockedUntil uint32) ([]*types.Output, common.Fixed64, error) {
+func createNormalOutputs(outputs []*OutputInfo, fee common.Fixed64, lockedUntil uint32) ([]*common2.Output, common.Fixed64, error) {
 	var totalAmount = common.Fixed64(0) // The total amount will be spend
-	var txOutputs []*types.Output       // The outputs in transaction
+	var txOutputs []*common2.Output     // The outputs in transaction
 	totalAmount += fee                  // Add transaction fee
 
 	for _, output := range outputs {
@@ -210,12 +212,12 @@ func createNormalOutputs(outputs []*OutputInfo, fee common.Fixed64, lockedUntil 
 			return nil, 0, errors.New(fmt.Sprint("invalid receiver address: ", output.Recipient, ", error: ", err))
 		}
 
-		txOutput := &types.Output{
+		txOutput := &common2.Output{
 			AssetID:     *account.SystemAssetID,
 			ProgramHash: *recipient,
 			Value:       *output.Amount,
 			OutputLock:  lockedUntil,
-			Type:        types.OTNone,
+			Type:        common2.OTNone,
 			Payload:     &outputpayload.DefaultOutput{},
 		}
 		totalAmount += *output.Amount
@@ -225,8 +227,8 @@ func createNormalOutputs(outputs []*OutputInfo, fee common.Fixed64, lockedUntil 
 	return txOutputs, totalAmount, nil
 }
 
-func createVoteOutputs(output *OutputInfo, candidateList []string) ([]*types.Output, error) {
-	var txOutputs []*types.Output
+func createVoteOutputs(output *OutputInfo, candidateList []string) ([]*common2.Output, error) {
+	var txOutputs []*common2.Output
 	recipient, err := common.Uint168FromAddress(output.Recipient)
 	if err != nil {
 		return nil, errors.New(fmt.Sprint("invalid receiver address: ", output.Recipient, ", error: ", err))
@@ -254,12 +256,12 @@ func createVoteOutputs(output *OutputInfo, candidateList []string) ([]*types.Out
 		},
 	}
 
-	txOutput := &types.Output{
+	txOutput := &common2.Output{
 		AssetID:     *account.SystemAssetID,
 		ProgramHash: *recipient,
 		Value:       *output.Amount,
 		OutputLock:  0,
-		Type:        types.OTVote,
+		Type:        common2.OTVote,
 		Payload:     &voteOutput,
 	}
 	txOutputs = append(txOutputs, txOutput)
@@ -268,7 +270,8 @@ func createVoteOutputs(output *OutputInfo, candidateList []string) ([]*types.Out
 }
 
 func createTransaction(walletPath string, from string, fee common.Fixed64, outputLock uint32,
-	txLock uint32, outputs ...*OutputInfo) (*types.Transaction, error) {
+	txLock uint32, outputs ...*OutputInfo) (interfaces.Transaction, error) {
+
 	// check output
 	if len(outputs) == 0 {
 		return nil, errors.New("invalid transaction target")
@@ -298,8 +301,8 @@ func createTransaction(walletPath string, from string, fee common.Fixed64, outpu
 		return nil, err
 	}
 	// create attributes
-	txAttr := types.NewAttribute(types.Nonce, []byte(strconv.FormatInt(rand.Int63(), 10)))
-	txAttributes := make([]*types.Attribute, 0)
+	txAttr := common2.NewAttribute(common2.Nonce, []byte(strconv.FormatInt(rand.Int63(), 10)))
+	txAttributes := make([]*common2.Attribute, 0)
 	txAttributes = append(txAttributes, &txAttr)
 
 	// create program
@@ -307,19 +310,22 @@ func createTransaction(walletPath string, from string, fee common.Fixed64, outpu
 		Code:      redeemScript,
 		Parameter: nil,
 	}
-	return &types.Transaction{
-		Version:    types.TxVersion09,
-		TxType:     types.TransferAsset,
-		Payload:    &payload.TransferAsset{},
-		Attributes: txAttributes,
-		Inputs:     txInputs,
-		Outputs:    txOutputs,
-		Programs:   []*pg.Program{txProgram},
-		LockTime:   txLock,
-	}, nil
+
+	return functions.CreateTransaction(
+		common2.TxVersion09,
+		common2.TransferAsset,
+		0,
+		&payload.TransferAsset{},
+		txAttributes,
+		txInputs,
+		txOutputs,
+		txLock,
+		[]*pg.Program{txProgram},
+	), nil
 }
 
 func CreateActivateProducerTransaction(c *cli.Context) error {
+
 	walletPath := c.String("wallet")
 	password, err := cmdcom.GetFlagPassword(c)
 	if err != nil {
@@ -372,16 +378,17 @@ func CreateActivateProducerTransaction(c *cli.Context) error {
 	}
 	apPayload.Signature = signature
 
-	txn := &types.Transaction{
-		Version:    types.TxVersion09,
-		TxType:     types.ActivateProducer,
-		Payload:    apPayload,
-		Attributes: nil,
-		Inputs:     nil,
-		Outputs:    nil,
-		Programs:   []*pg.Program{},
-		LockTime:   0,
-	}
+	txn := functions.CreateTransaction(
+		common2.TxVersion09,
+		common2.ActivateProducer,
+		0,
+		apPayload,
+		nil,
+		nil,
+		nil,
+		0,
+		[]*pg.Program{},
+	)
 
 	OutputTx(0, 0, txn)
 
@@ -389,6 +396,7 @@ func CreateActivateProducerTransaction(c *cli.Context) error {
 }
 
 func CreateCRCProposalWithdrawTransaction(c *cli.Context) error {
+
 	walletPath := c.String("wallet")
 	if walletPath == "" {
 		return errors.New("use --wallet to specify wallet path")
@@ -473,16 +481,17 @@ func CreateCRCProposalWithdrawTransaction(c *cli.Context) error {
 	}
 	txOutputs = append(txOutputs, changeOutputs...)
 
-	txn := &types.Transaction{
-		Version:    types.TxVersion09,
-		TxType:     types.CRCProposalWithdraw,
-		Payload:    crcProposalWithdraw,
-		Attributes: []*types.Attribute{},
-		Inputs:     txInputs,
-		Outputs:    txOutputs,
-		Programs:   []*pg.Program{},
-		LockTime:   0,
-	}
+	txn := functions.CreateTransaction(
+		common2.TxVersion09,
+		common2.CRCProposalWithdraw,
+		0,
+		crcProposalWithdraw,
+		[]*common2.Attribute{},
+		txInputs,
+		txOutputs,
+		0,
+		[]*pg.Program{},
+	)
 
 	OutputTx(0, 0, txn)
 
@@ -490,6 +499,7 @@ func CreateCRCProposalWithdrawTransaction(c *cli.Context) error {
 }
 
 func CreateVoteTransaction(c *cli.Context) error {
+
 	walletPath := c.String("wallet")
 
 	feeStr := c.String("fee")
@@ -548,8 +558,8 @@ func CreateVoteTransaction(c *cli.Context) error {
 	}
 
 	// create attributes
-	txAttr := types.NewAttribute(types.Nonce, []byte(strconv.FormatInt(rand.Int63(), 10)))
-	txAttributes := make([]*types.Attribute, 0)
+	txAttr := common2.NewAttribute(common2.Nonce, []byte(strconv.FormatInt(rand.Int63(), 10)))
+	txAttributes := make([]*common2.Attribute, 0)
 	txAttributes = append(txAttributes, &txAttr)
 
 	// create program
@@ -558,16 +568,17 @@ func CreateVoteTransaction(c *cli.Context) error {
 		Parameter: nil,
 	}
 
-	txn := &types.Transaction{
-		Version:    types.TxVersion09,
-		TxType:     types.TransferAsset,
-		Payload:    &payload.TransferAsset{},
-		Attributes: txAttributes,
-		Inputs:     txInputs,
-		Outputs:    txOutputs,
-		Programs:   []*pg.Program{txProgram},
-		LockTime:   0,
-	}
+	txn := functions.CreateTransaction(
+		common2.TxVersion09,
+		common2.TransferAsset,
+		0,
+		&payload.TransferAsset{},
+		txAttributes,
+		txInputs,
+		txOutputs,
+		0,
+		[]*pg.Program{txProgram},
+	)
 
 	OutputTx(0, 1, txn)
 
@@ -621,7 +632,8 @@ func CreateCrossChainTransaction(c *cli.Context) error {
 }
 
 func createCrossChainTransaction(walletPath string, from string, fee common.Fixed64, lockedUntil uint32,
-	crossChainOutputs ...*CrossChainOutput) (*types.Transaction, error) {
+	crossChainOutputs ...*CrossChainOutput) (interfaces.Transaction, error) {
+
 	// check output
 	if len(crossChainOutputs) == 0 {
 		return nil, errors.New("invalid transaction target")
@@ -666,8 +678,8 @@ func createCrossChainTransaction(walletPath string, from string, fee common.Fixe
 		return nil, err
 	}
 	// create attributes
-	txAttr := types.NewAttribute(types.Nonce, []byte(strconv.FormatInt(rand.Int63(), 10)))
-	txAttributes := make([]*types.Attribute, 0)
+	txAttr := common2.NewAttribute(common2.Nonce, []byte(strconv.FormatInt(rand.Int63(), 10)))
+	txAttributes := make([]*common2.Attribute, 0)
 	txAttributes = append(txAttributes, &txAttr)
 
 	// create program
@@ -676,14 +688,15 @@ func createCrossChainTransaction(walletPath string, from string, fee common.Fixe
 		Parameter: nil,
 	}
 
-	return &types.Transaction{
-		Version:    types.TxVersion09,
-		TxType:     types.TransferCrossChainAsset,
-		Payload:    payload,
-		Attributes: txAttributes,
-		Inputs:     txInputs,
-		Outputs:    txOutputs,
-		Programs:   []*pg.Program{txProgram},
-		LockTime:   0,
-	}, nil
+	return functions.CreateTransaction(
+		common2.TxVersion09,
+		common2.TransferCrossChainAsset,
+		0,
+		payload,
+		txAttributes,
+		txInputs,
+		txOutputs,
+		0,
+		[]*pg.Program{txProgram},
+	), nil
 }

@@ -150,7 +150,7 @@ func convertErr(desc string, ldbErr error) database.Error {
 	case ldbErr == leveldb.ErrClosed:
 		code = database.ErrDbNotOpen
 
-	// Transaction errors.
+	// BaseTransaction errors.
 	case ldbErr == leveldb.ErrSnapshotReleased:
 		code = database.ErrTxClosed
 	case ldbErr == leveldb.ErrIterReleased:

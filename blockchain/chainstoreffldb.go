@@ -18,6 +18,8 @@ import (
 	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/common/log"
 	. "github.com/elastos/Elastos.ELA/core/types"
+	"github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/database"
 
@@ -131,18 +133,17 @@ func (c *ChainStoreFFLDB) Close() error {
 	return c.db.Close()
 }
 
-func ProcessProposalDraftData(dbTx database.Tx, Transactions []*Transaction) (err error) {
-	//var err error
+func ProcessProposalDraftData(dbTx database.Tx, Transactions []interfaces.Transaction) (err error) {
 	for _, tx := range Transactions {
-		switch tx.TxType {
-		case CRCProposal:
-			proposal := tx.Payload.(*payload.CRCProposal)
+		switch tx.TxType() {
+		case common.CRCProposal:
+			proposal := tx.Payload().(*payload.CRCProposal)
 			err = dbPutProposalDraftData(dbTx, &proposal.DraftHash, proposal.DraftData)
 			if err != nil {
 				return err
 			}
-		case CRCProposalTracking:
-			proposalTracking := tx.Payload.(*payload.CRCProposalTracking)
+		case common.CRCProposalTracking:
+			proposalTracking := tx.Payload().(*payload.CRCProposalTracking)
 			err = dbPutProposalDraftData(dbTx, &proposalTracking.SecretaryGeneralOpinionHash,
 				proposalTracking.SecretaryGeneralOpinionData)
 			if err != nil {
@@ -152,8 +153,8 @@ func ProcessProposalDraftData(dbTx database.Tx, Transactions []*Transaction) (er
 			if err != nil {
 				return err
 			}
-		case CRCProposalReview:
-			proposalReview := tx.Payload.(*payload.CRCProposalReview)
+		case common.CRCProposalReview:
+			proposalReview := tx.Payload().(*payload.CRCProposalReview)
 			err = dbPutProposalDraftData(dbTx, &proposalReview.OpinionHash, proposalReview.OpinionData)
 			if err != nil {
 				return err
@@ -163,18 +164,17 @@ func ProcessProposalDraftData(dbTx database.Tx, Transactions []*Transaction) (er
 	return err
 }
 
-func RollbackProcessProposalDraftData(dbTx database.Tx, Transactions []*Transaction) (err error) {
-	//var err error
+func RollbackProcessProposalDraftData(dbTx database.Tx, Transactions []interfaces.Transaction) (err error) {
 	for _, tx := range Transactions {
-		switch tx.TxType {
-		case CRCProposal:
-			proposal := tx.Payload.(*payload.CRCProposal)
+		switch tx.TxType() {
+		case common.CRCProposal:
+			proposal := tx.Payload().(*payload.CRCProposal)
 			err = DBRemoveProposalDraftData(dbTx, &proposal.DraftHash)
 			if err != nil {
 				return err
 			}
-		case CRCProposalTracking:
-			proposalTracking := tx.Payload.(*payload.CRCProposalTracking)
+		case common.CRCProposalTracking:
+			proposalTracking := tx.Payload().(*payload.CRCProposalTracking)
 			err = DBRemoveProposalDraftData(dbTx, &proposalTracking.SecretaryGeneralOpinionHash)
 			if err != nil {
 				return err
@@ -183,8 +183,8 @@ func RollbackProcessProposalDraftData(dbTx database.Tx, Transactions []*Transact
 			if err != nil {
 				return err
 			}
-		case CRCProposalReview:
-			proposalReview := tx.Payload.(*payload.CRCProposalReview)
+		case common.CRCProposalReview:
+			proposalReview := tx.Payload().(*payload.CRCProposalReview)
 			err = DBRemoveProposalDraftData(dbTx, &proposalReview.OpinionHash)
 			if err != nil {
 				return err
@@ -368,7 +368,7 @@ func (c *ChainStoreFFLDB) GetBlock(hash Uint256) (*DposBlock, error) {
 	return b, nil
 }
 
-func (c *ChainStoreFFLDB) GetHeader(hash Uint256) (*Header, error) {
+func (c *ChainStoreFFLDB) GetHeader(hash Uint256) (*common.Header, error) {
 	var headerBytes []byte
 	err := c.db.View(func(tx database.Tx) error {
 		var e error
@@ -382,7 +382,7 @@ func (c *ChainStoreFFLDB) GetHeader(hash Uint256) (*Header, error) {
 		return nil, errors.New("[BlockChain], GetHeader failed")
 	}
 
-	var header Header
+	var header common.Header
 	err = header.DeserializeNoAux(bytes.NewReader(headerBytes))
 	if err != nil {
 		return nil, errors.New("[BlockChain], GetHeader deserialize failed")
@@ -450,7 +450,7 @@ func (c *ChainStoreFFLDB) GetProposalDraftDataByDraftHash(hash *Uint256) ([]byte
 	return draftData, err
 }
 
-func (c *ChainStoreFFLDB) GetTransaction(txID Uint256) (*Transaction, uint32, error) {
+func (c *ChainStoreFFLDB) GetTransaction(txID Uint256) (interfaces.Transaction, uint32, error) {
 	return c.indexManager.FetchTx(txID)
 }
 
@@ -462,7 +462,7 @@ func (c *ChainStoreFFLDB) GetUnspent(txID Uint256) ([]uint16, error) {
 	return c.indexManager.FetchUnspent(txID)
 }
 
-func (c *ChainStoreFFLDB) GetUTXO(programHash *Uint168) ([]*UTXO, error) {
+func (c *ChainStoreFFLDB) GetUTXO(programHash *Uint168) ([]*common.UTXO, error) {
 	return c.indexManager.FetchUTXO(programHash)
 }
 

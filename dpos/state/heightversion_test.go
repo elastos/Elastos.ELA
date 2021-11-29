@@ -10,9 +10,14 @@ import (
 	"sort"
 	"testing"
 
+	"github.com/elastos/Elastos.ELA/core/contract/program"
+	"github.com/elastos/Elastos.ELA/core/types/functions"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
+
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/core/types"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/stretchr/testify/assert"
 )
@@ -78,50 +83,38 @@ func TestArbitrators_GetNormalArbitratorsDescV0(t *testing.T) {
 }
 
 func TestArbitrators_GetNormalArbitratorsDesc(t *testing.T) {
+	var txs []interfaces.Transaction
+	for i := 0; i < 4; i++ {
+		txs = append(txs, functions.CreateTransaction(
+			common2.TxVersion09,
+			common2.RegisterProducer,
+			0,
+			&payload.ProducerInfo{
+				OwnerPublicKey: arbitratorList[i],
+				NodePublicKey:  arbitratorList[i],
+			},
+			[]*common2.Attribute{},
+			[]*common2.Input{},
+			[]*common2.Output{},
+			0,
+			[]*program.Program{},
+		))
+	}
 
 	currentHeight := uint32(1)
 	block1 := &types.Block{
-		Header: types.Header{
+		Header: common2.Header{
 			Height: currentHeight,
 		},
-		Transactions: []*types.Transaction{
-			{
-				TxType: types.RegisterProducer,
-				Payload: &payload.ProducerInfo{
-					OwnerPublicKey: arbitratorList[0],
-					NodePublicKey:  arbitratorList[0],
-				},
-			},
-			{
-				TxType: types.RegisterProducer,
-				Payload: &payload.ProducerInfo{
-					OwnerPublicKey: arbitratorList[1],
-					NodePublicKey:  arbitratorList[1],
-				},
-			},
-			{
-				TxType: types.RegisterProducer,
-				Payload: &payload.ProducerInfo{
-					OwnerPublicKey: arbitratorList[2],
-					NodePublicKey:  arbitratorList[2],
-				},
-			},
-			{
-				TxType: types.RegisterProducer,
-				Payload: &payload.ProducerInfo{
-					OwnerPublicKey: arbitratorList[3],
-					NodePublicKey:  arbitratorList[3],
-				},
-			},
-		},
+		Transactions: txs,
 	}
 	arbiters.ProcessBlock(block1, nil)
 
 	for i := uint32(0); i < 6; i++ {
 		currentHeight++
 		blockEx := &types.Block{
-			Header:       types.Header{Height: currentHeight},
-			Transactions: []*types.Transaction{},
+			Header:       common2.Header{Height: currentHeight},
+			Transactions: []interfaces.Transaction{},
 		}
 		arbiters.ProcessBlock(blockEx, nil)
 	}
@@ -133,27 +126,35 @@ func TestArbitrators_GetNormalArbitratorsDesc(t *testing.T) {
 	assert.Error(t, err, "arbitrators count does not match config value")
 
 	currentHeight += 1
+	var txs2 []interfaces.Transaction
+	txn := functions.CreateTransaction(
+		common2.TxVersion09,
+		common2.RegisterProducer,
+		0,
+		&payload.ProducerInfo{
+			OwnerPublicKey: arbitratorList[4],
+			NodePublicKey:  arbitratorList[4],
+		},
+		[]*common2.Attribute{},
+		[]*common2.Input{},
+		[]*common2.Output{},
+		0,
+		[]*program.Program{},
+	)
+	txs2 = append(txs2, txn)
 	block2 := &types.Block{
-		Header: types.Header{
+		Header: common2.Header{
 			Height: currentHeight,
 		},
-		Transactions: []*types.Transaction{
-			{
-				TxType: types.RegisterProducer,
-				Payload: &payload.ProducerInfo{
-					OwnerPublicKey: arbitratorList[4],
-					NodePublicKey:  arbitratorList[4],
-				},
-			},
-		},
+		Transactions: txs2,
 	}
 	arbiters.ProcessBlock(block2, nil)
 
 	for i := uint32(0); i < 6; i++ {
 		currentHeight++
 		blockEx := &types.Block{
-			Header:       types.Header{Height: currentHeight},
-			Transactions: []*types.Transaction{},
+			Header:       common2.Header{Height: currentHeight},
+			Transactions: []interfaces.Transaction{},
 		}
 		arbiters.ProcessBlock(blockEx, nil)
 	}

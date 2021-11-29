@@ -16,6 +16,7 @@ import (
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/core/types"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/crypto"
 	"github.com/elastos/Elastos.ELA/dpos/account"
@@ -193,7 +194,7 @@ func dposManagerCheckLastRelay(L *lua.LState) int {
 	result := false
 	switch t {
 	case relayTx:
-		if relayedTx, ok := m.Peer.GetLastRelay().(*types.Transaction); ok {
+		if relayedTx, ok := m.Peer.GetLastRelay().(interfaces.Transaction); ok {
 			if tx := checkTransaction(L, 3); tx != nil {
 				result = tx.Hash().IsEqual(relayedTx.Hash())
 			}

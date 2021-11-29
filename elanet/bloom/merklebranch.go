@@ -8,9 +8,9 @@ package bloom
 import (
 	"errors"
 	"fmt"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 
 	"github.com/elastos/Elastos.ELA/common"
-	"github.com/elastos/Elastos.ELA/core/types"
 	"github.com/elastos/Elastos.ELA/p2p/msg"
 )
 
@@ -21,7 +21,7 @@ type MerkleBranch struct {
 
 func GetTxMerkleBranch(msg msg.MerkleBlock, txID *common.Uint256) (*MerkleBranch, error) {
 	mNodes := &merkleNodes{
-		root:     msg.Header.(*types.Header).MerkleRoot,
+		root:     msg.Header.(*common2.Header).MerkleRoot,
 		numTxs:   msg.Transactions,
 		allNodes: make(map[uint32]merkleNode),
 	}

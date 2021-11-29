@@ -6,10 +6,10 @@
 package log
 
 import (
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"time"
 
 	"github.com/elastos/Elastos.ELA/common"
-	"github.com/elastos/Elastos.ELA/core/types"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 )
 
@@ -41,7 +41,7 @@ type ConsensusEvent struct {
 	StartTime time.Time
 	EndTime   time.Time
 	Height    uint32
-	RawData   *types.Header
+	RawData   *common2.Header
 }
 
 type EventListener interface {

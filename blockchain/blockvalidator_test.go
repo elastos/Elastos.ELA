@@ -14,11 +14,16 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/elastos/Elastos.ELA/core/contract/program"
+	"github.com/elastos/Elastos.ELA/core/types/functions"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
+
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/common/log"
 	"github.com/elastos/Elastos.ELA/core/contract"
 	"github.com/elastos/Elastos.ELA/core/types"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/crypto"
 	"github.com/elastos/Elastos.ELA/dpos/state"
@@ -52,15 +57,15 @@ func init() {
 
 func TestCheckBlockSanity(t *testing.T) {
 	log.NewDefault(test.NodeLogPath, 0, 0, 0)
-	params := &config.DefaultParams
+	params := config.GetDefaultParams()
 	FoundationAddress = params.Foundation
-	chainStore, err := NewChainStore(filepath.Join(test.DataPath, "sanity"), params)
+	chainStore, err := NewChainStore(filepath.Join(test.DataPath, "sanity"), &params)
 	if err != nil {
 		t.Error(err.Error())
 	}
 	defer chainStore.Close()
 
-	chain, _ := New(chainStore, params, state.NewState(params,
+	chain, _ := New(chainStore, &params, state.NewState(&params,
 		nil, nil, nil, nil,
 		nil, nil, nil,
 		nil), nil)
@@ -163,26 +168,40 @@ func TestCheckCoinbaseArbitratorsReward(t *testing.T) {
 	totalTopProducersReward := dposTotalReward - totalBlockConfirmReward
 	individualBlockConfirmReward := common.Fixed64(math.Floor(totalBlockConfirmReward / float64(5)))
 	rewardPerVote := totalTopProducersReward / float64(totalVotesInRound)
-	tx := &types.Transaction{
-		Version: 0,
-		TxType:  types.CoinBase,
-	}
-	tx.Outputs = []*types.Output{
+
+	tx := functions.CreateTransaction(
+		0,
+		common2.CoinBase,
+		0,
+		nil,
+		[]*common2.Attribute{},
+		[]*common2.Input{},
+		[]*common2.Output{},
+		0,
+		[]*program.Program{
+			{
+				Code:      randomPublicKey(),
+				Parameter: randomSignature(),
+			},
+		},
+	)
+
+	tx.SetOutputs([]*common2.Output{
 		{ProgramHash: FoundationAddress, Value: common.Fixed64(float64(rewardInCoinbase) * 0.30)},
 		{ProgramHash: common.Uint168{}, Value: common.Fixed64(float64(rewardInCoinbase) * 0.35)},
-	}
+	})
 
 	for _, v := range arbitratorHashes {
 		vote := ownerVotes[*v]
 		individualProducerReward := common.Fixed64(rewardPerVote * float64(vote))
 		arbitratorsMock.ArbitersRoundReward[*v] = individualBlockConfirmReward + individualProducerReward
-		tx.Outputs = append(tx.Outputs, &types.Output{ProgramHash: *v, Value: individualBlockConfirmReward + individualProducerReward})
+		tx.SetOutputs(append(tx.Outputs(), &common2.Output{ProgramHash: *v, Value: individualBlockConfirmReward + individualProducerReward}))
 	}
 	for _, v := range candidateHashes {
 		vote := ownerVotes[*v]
 		individualProducerReward := common.Fixed64(rewardPerVote * float64(vote))
 		arbitratorsMock.ArbitersRoundReward[*v] = individualProducerReward
-		tx.Outputs = append(tx.Outputs, &types.Output{ProgramHash: *v, Value: individualProducerReward})
+		tx.SetOutputs(append(tx.Outputs(), &common2.Output{ProgramHash: *v, Value: individualProducerReward}))
 	}
 	assert.NoError(t, checkCoinbaseArbitratorsReward(tx))
 
@@ -193,13 +212,13 @@ func TestCRDuplicateTx(t *testing.T) {
 	publicKeyStr1 := "03c77af162438d4b7140f8544ad6523b9734cca9c7a62476d54ed5d1bddc7a39c3"
 	code := getValideCode(publicKeyStr1)
 	nickname := randomString()
-	cidPointer := getValideCID(publicKeyStr1)
+	cidPointer := getValidCID(publicKeyStr1)
 	cid := *cidPointer
 
 	TestRegisterCR := func(t *testing.T) {
 		OneRegisterCRTest := func() {
 			var block types.Block
-			block.Transactions = make([]*types.Transaction, 0)
+			block.Transactions = make([]interfaces.Transaction, 0)
 			registerCRTxPointer := generateRegisterCR(code, cid, nickname)
 			block.Transactions = append(block.Transactions, registerCRTxPointer)
 			err := checkDuplicateTx(&block)
@@ -209,7 +228,7 @@ func TestCRDuplicateTx(t *testing.T) {
 
 		TwoRegisterCRTest := func() {
 			var block types.Block
-			block.Transactions = make([]*types.Transaction, 0)
+			block.Transactions = make([]interfaces.Transaction, 0)
 			registerCRTxPointer := generateRegisterCR(code, cid, nickname)
 			block.Transactions = append(block.Transactions, registerCRTxPointer)
 			block.Transactions = append(block.Transactions, registerCRTxPointer)
@@ -223,7 +242,7 @@ func TestCRDuplicateTx(t *testing.T) {
 	TestUpdateCR := func(t *testing.T) {
 		OneUpdateCRTest := func(t *testing.T) {
 			var block types.Block
-			block.Transactions = make([]*types.Transaction, 0)
+			block.Transactions = make([]interfaces.Transaction, 0)
 			updateCRPointer := generateUpdateCR(code, cid, nickname)
 			block.Transactions = append(block.Transactions, updateCRPointer)
 			err := checkDuplicateTx(&block)
@@ -233,7 +252,7 @@ func TestCRDuplicateTx(t *testing.T) {
 
 		TwoUpdateCRTest := func(t *testing.T) {
 			var block types.Block
-			block.Transactions = make([]*types.Transaction, 0)
+			block.Transactions = make([]interfaces.Transaction, 0)
 			updateCRPointer := generateUpdateCR(code, cid, nickname)
 			block.Transactions = append(block.Transactions, updateCRPointer)
 			block.Transactions = append(block.Transactions, updateCRPointer)
@@ -247,7 +266,7 @@ func TestCRDuplicateTx(t *testing.T) {
 	TestUnregisterCR := func(t *testing.T) {
 		OneUnregisterCR := func(t *testing.T) {
 			var block types.Block
-			block.Transactions = make([]*types.Transaction, 0)
+			block.Transactions = make([]interfaces.Transaction, 0)
 			unregisterCRPointer := generateUnregisterCR(code)
 			block.Transactions = append(block.Transactions, unregisterCRPointer)
 			err := checkDuplicateTx(&block)
@@ -257,7 +276,7 @@ func TestCRDuplicateTx(t *testing.T) {
 
 		TwoUnregisterCR := func(t *testing.T) {
 			var block types.Block
-			block.Transactions = make([]*types.Transaction, 0)
+			block.Transactions = make([]interfaces.Transaction, 0)
 			unregisterCRPointer := generateUnregisterCR(code)
 			block.Transactions = append(block.Transactions, unregisterCRPointer)
 			block.Transactions = append(block.Transactions, unregisterCRPointer)
@@ -270,7 +289,7 @@ func TestCRDuplicateTx(t *testing.T) {
 
 	OneRegisterOneUpdate := func(t *testing.T) {
 		var block types.Block
-		block.Transactions = make([]*types.Transaction, 0)
+		block.Transactions = make([]interfaces.Transaction, 0)
 		registerCRTxPointer := generateRegisterCR(code, cid, nickname)
 		updateCRPointer := generateUpdateCR(code, cid, nickname)
 		block.Transactions = append(block.Transactions, registerCRTxPointer)
@@ -282,7 +301,7 @@ func TestCRDuplicateTx(t *testing.T) {
 
 	OneRegisterOneUnregister := func(t *testing.T) {
 		var block types.Block
-		block.Transactions = make([]*types.Transaction, 0)
+		block.Transactions = make([]interfaces.Transaction, 0)
 		registerCRTxPointer := generateRegisterCR(code, cid, nickname)
 		unregisterCRPointer := generateUnregisterCR(code)
 		block.Transactions = append(block.Transactions, registerCRTxPointer)
@@ -293,7 +312,7 @@ func TestCRDuplicateTx(t *testing.T) {
 	OneRegisterOneUnregister(t)
 	OneUpdateOneUnregister := func(t *testing.T) {
 		var block types.Block
-		block.Transactions = make([]*types.Transaction, 0)
+		block.Transactions = make([]interfaces.Transaction, 0)
 		updateCRPointer := generateUpdateCR(code, cid, nickname)
 		unregisterCRPointer := generateUnregisterCR(code)
 		block.Transactions = append(block.Transactions, updateCRPointer)
@@ -309,7 +328,7 @@ func TestProducerDuplicateTx(t *testing.T) {
 	TestRegisterProducer := func(t *testing.T) {
 		OneRegisterProducerTest := func() {
 			var block types.Block
-			block.Transactions = make([]*types.Transaction, 0)
+			block.Transactions = make([]interfaces.Transaction, 0)
 			registerProducerTxPointer := generateRegisterProducer()
 			block.Transactions = append(block.Transactions, registerProducerTxPointer)
 			err := checkDuplicateTx(&block)
@@ -319,7 +338,7 @@ func TestProducerDuplicateTx(t *testing.T) {
 
 		TwoRegisterProducerTest := func() {
 			var block types.Block
-			block.Transactions = make([]*types.Transaction, 0)
+			block.Transactions = make([]interfaces.Transaction, 0)
 			registerProducerTxPointer := generateRegisterProducer()
 			block.Transactions = append(block.Transactions, registerProducerTxPointer)
 			block.Transactions = append(block.Transactions, registerProducerTxPointer)
@@ -332,7 +351,7 @@ func TestProducerDuplicateTx(t *testing.T) {
 	TestUpdateProducer := func(t *testing.T) {
 		OneUpdateProducerTest := func() {
 			var block types.Block
-			block.Transactions = make([]*types.Transaction, 0)
+			block.Transactions = make([]interfaces.Transaction, 0)
 			updateProducerTxPointer := generateUpdateProducer()
 			block.Transactions = append(block.Transactions, updateProducerTxPointer)
 			err := checkDuplicateTx(&block)
@@ -342,7 +361,7 @@ func TestProducerDuplicateTx(t *testing.T) {
 
 		TwoUpdateProducerTest := func() {
 			var block types.Block
-			block.Transactions = make([]*types.Transaction, 0)
+			block.Transactions = make([]interfaces.Transaction, 0)
 			updateProducerTxPointer := generateUpdateProducer()
 			block.Transactions = append(block.Transactions, updateProducerTxPointer)
 			block.Transactions = append(block.Transactions, updateProducerTxPointer)
@@ -355,7 +374,7 @@ func TestProducerDuplicateTx(t *testing.T) {
 	TestCancelProducer := func(t *testing.T) {
 		OneCancelProducerTest := func() {
 			var block types.Block
-			block.Transactions = make([]*types.Transaction, 0)
+			block.Transactions = make([]interfaces.Transaction, 0)
 			cancelProducerTxPointer := generateCancelProducer()
 			block.Transactions = append(block.Transactions, cancelProducerTxPointer)
 			err := checkDuplicateTx(&block)
@@ -365,7 +384,7 @@ func TestProducerDuplicateTx(t *testing.T) {
 
 		TwoCancelProducerTest := func() {
 			var block types.Block
-			block.Transactions = make([]*types.Transaction, 0)
+			block.Transactions = make([]interfaces.Transaction, 0)
 			cancelProducerTxPointer := generateCancelProducer()
 			block.Transactions = append(block.Transactions, cancelProducerTxPointer)
 			block.Transactions = append(block.Transactions, cancelProducerTxPointer)
@@ -378,7 +397,7 @@ func TestProducerDuplicateTx(t *testing.T) {
 
 	OneRegisterOneUpdate := func(t *testing.T) {
 		var block types.Block
-		block.Transactions = make([]*types.Transaction, 0)
+		block.Transactions = make([]interfaces.Transaction, 0)
 		registerProducerTxPointer := generateRegisterProducer()
 		updateProducerTxPointer := generateUpdateProducer()
 		block.Transactions = append(block.Transactions, registerProducerTxPointer)
@@ -390,7 +409,7 @@ func TestProducerDuplicateTx(t *testing.T) {
 
 	OneRegisterOneCancel := func(t *testing.T) {
 		var block types.Block
-		block.Transactions = make([]*types.Transaction, 0)
+		block.Transactions = make([]interfaces.Transaction, 0)
 		registerProducerTxPointer := generateRegisterProducer()
 		cancelProducerTxPointer := generateCancelProducer()
 		block.Transactions = append(block.Transactions, registerProducerTxPointer)
@@ -401,7 +420,7 @@ func TestProducerDuplicateTx(t *testing.T) {
 	OneRegisterOneCancel(t)
 	OneUpdateOneCancel := func(t *testing.T) {
 		var block types.Block
-		block.Transactions = make([]*types.Transaction, 0)
+		block.Transactions = make([]interfaces.Transaction, 0)
 		updateProducerTxPointer := generateUpdateProducer()
 		cancelProducerTxPointer := generateCancelProducer()
 		block.Transactions = append(block.Transactions, updateProducerTxPointer)
@@ -412,12 +431,14 @@ func TestProducerDuplicateTx(t *testing.T) {
 	OneUpdateOneCancel(t)
 }
 
-func generateRegisterProducer() *types.Transaction {
+func generateRegisterProducer() interfaces.Transaction {
 	publicKeyStr1 := "03c77af162438d4b7140f8544ad6523b9734cca9c7a62476d54ed5d1bddc7a39c3"
 	publicKey1, _ := common.HexStringToBytes(publicKeyStr1)
-	return &types.Transaction{
-		TxType: types.RegisterProducer,
-		Payload: &payload.ProducerInfo{
+	tx := functions.CreateTransaction(
+		0,
+		common2.RegisterProducer,
+		0,
+		&payload.ProducerInfo{
 			OwnerPublicKey: publicKey1,
 			NodePublicKey:  publicKey1,
 			NickName:       "nickname 1",
@@ -425,15 +446,23 @@ func generateRegisterProducer() *types.Transaction {
 			Location:       1,
 			NetAddress:     "127.0.0.1:20338",
 		},
-	}
+		[]*common2.Attribute{},
+		[]*common2.Input{},
+		[]*common2.Output{},
+		0,
+		[]*program.Program{},
+	)
+	return tx
 }
 
-func generateUpdateProducer() *types.Transaction {
+func generateUpdateProducer() interfaces.Transaction {
 	publicKeyStr1 := "03c77af162438d4b7140f8544ad6523b9734cca9c7a62476d54ed5d1bddc7a39c3"
 	publicKey1, _ := common.HexStringToBytes(publicKeyStr1)
-	return &types.Transaction{
-		TxType: types.UpdateProducer,
-		Payload: &payload.ProducerInfo{
+	tx := functions.CreateTransaction(
+		0,
+		common2.UpdateProducer,
+		0,
+		&payload.ProducerInfo{
 			OwnerPublicKey: publicKey1,
 			NodePublicKey:  publicKey1,
 			NickName:       "nickname 1",
@@ -441,51 +470,92 @@ func generateUpdateProducer() *types.Transaction {
 			Location:       1,
 			NetAddress:     "127.0.0.1:20338",
 		},
-	}
+		[]*common2.Attribute{},
+		[]*common2.Input{},
+		[]*common2.Output{},
+		0,
+		[]*program.Program{},
+	)
+	return tx
 }
 
-func generateCancelProducer() *types.Transaction {
+func generateCancelProducer() interfaces.Transaction {
 	publicKeyStr1 := "03c77af162438d4b7140f8544ad6523b9734cca9c7a62476d54ed5d1bddc7a39c3"
 	publicKey1, _ := common.HexStringToBytes(publicKeyStr1)
-	return &types.Transaction{
-		TxType: types.CancelProducer,
-		Payload: &payload.ProcessProducer{
+	tx := functions.CreateTransaction(
+		0,
+		common2.CancelProducer,
+		0,
+		&payload.ProcessProducer{
 			OwnerPublicKey: publicKey1,
 		},
-	}
+		[]*common2.Attribute{},
+		[]*common2.Input{},
+		[]*common2.Output{},
+		0,
+		[]*program.Program{},
+	)
+	return tx
 }
 
 func generateRegisterCR(code []byte, cid common.Uint168,
-	nickname string) *types.Transaction {
-	return &types.Transaction{
-		TxType: types.RegisterCR,
-		Payload: &payload.CRInfo{
+	nickname string) interfaces.Transaction {
+
+	tx := functions.CreateTransaction(
+		0,
+		common2.RegisterProducer,
+		0,
+		&payload.CRInfo{
 			Code:     code,
 			CID:      cid,
 			NickName: nickname,
 		},
-	}
+		[]*common2.Attribute{},
+		[]*common2.Input{},
+		[]*common2.Output{},
+		0,
+		[]*program.Program{},
+	)
+	return tx
 }
 
 func generateUpdateCR(code []byte, cid common.Uint168,
-	nickname string) *types.Transaction {
-	return &types.Transaction{
-		TxType: types.UpdateCR,
-		Payload: &payload.CRInfo{
+	nickname string) interfaces.Transaction {
+
+	tx := functions.CreateTransaction(
+		0,
+		common2.UpdateCR,
+		0,
+		&payload.CRInfo{
 			Code:     code,
 			CID:      cid,
 			NickName: nickname,
 		},
-	}
+		[]*common2.Attribute{},
+		[]*common2.Input{},
+		[]*common2.Output{},
+		0,
+		[]*program.Program{},
+	)
+	return tx
 }
 
-func generateUnregisterCR(code []byte) *types.Transaction {
-	return &types.Transaction{
-		TxType: types.UnregisterCR,
-		Payload: &payload.UnregisterCR{
+func generateUnregisterCR(code []byte) interfaces.Transaction {
+
+	tx := functions.CreateTransaction(
+		0,
+		common2.UnregisterCR,
+		0,
+		&payload.UnregisterCR{
 			CID: *getCID(code),
 		},
-	}
+		[]*common2.Attribute{},
+		[]*common2.Input{},
+		[]*common2.Output{},
+		0,
+		[]*program.Program{},
+	)
+	return tx
 }
 
 func randomString() string {
@@ -515,7 +585,12 @@ func getValideCode(publicKeyStr string) []byte {
 	return ct1.Code
 }
 
-func getValideCID(publicKeyStr string) *common.Uint168 {
+func getValidCID(publicKeyStr string) *common.Uint168 {
 	code := getValideCode(publicKeyStr)
 	return getCID(code)
+}
+
+func getCID(code []byte) *common.Uint168 {
+	ct1, _ := contract.CreateCRIDContractByCode(code)
+	return ct1.ToProgramHash()
 }

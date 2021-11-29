@@ -7,8 +7,8 @@ package api
 
 import (
 	"bytes"
+	"github.com/elastos/Elastos.ELA/core/types/common"
 
-	"github.com/elastos/Elastos.ELA/core/types"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 
 	"github.com/yuin/gopher-lua"
@@ -90,7 +90,7 @@ func illegalVotesSetContent(L *lua.LState) int {
 }
 
 func generateVoteEvidence(p *payload.DPOSProposal,
-	v *payload.DPOSProposalVote, h *types.Header) *payload.VoteEvidence {
+	v *payload.DPOSProposalVote, h *common.Header) *payload.VoteEvidence {
 
 	buf := new(bytes.Buffer)
 	h.Serialize(buf)

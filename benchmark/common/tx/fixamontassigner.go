@@ -10,7 +10,8 @@ import (
 	"github.com/elastos/Elastos.ELA/benchmark/common/utils"
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
-	"github.com/elastos/Elastos.ELA/core/types"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/core/types/outputpayload"
 )
 
@@ -20,32 +21,32 @@ const (
 
 type fixAmountAssigner struct {
 	account *account.Account
-	utxo    *types.UTXO
+	utxo    *common2.UTXO
 }
 
-func (a *fixAmountAssigner) SignAndChange(tx *types.Transaction) error {
-	tx.Inputs = []*types.Input{
+func (a *fixAmountAssigner) SignAndChange(tx interfaces.Transaction) error {
+	tx.SetInputs([]*common2.Input{
 		{
-			Previous: types.OutPoint{
+			Previous: common2.OutPoint{
 				TxID:  a.utxo.TxID,
 				Index: a.utxo.Index,
 			},
 			Sequence: 0,
 		},
-	}
+	})
 
-	for _, o := range tx.Outputs {
+	for _, o := range tx.Outputs() {
 		o.Value = defaultAmount
 	}
-	tx.Outputs = append(tx.Outputs, &types.Output{
+	tx.SetOutputs(append(tx.Outputs(), &common2.Output{
 		AssetID: config.ELAAssetID,
 		Value: a.utxo.Value -
-			defaultAmount*common.Fixed64(len(tx.Outputs)) - defaultFee,
+			defaultAmount*common.Fixed64(len(tx.Outputs())) - defaultFee,
 		OutputLock:  0,
 		ProgramHash: a.account.ProgramHash,
-		Type:        types.OTNone,
+		Type:        common2.OTNone,
 		Payload:     &outputpayload.DefaultOutput{},
-	})
+	}))
 
 	return utils.SignStandardTx(tx, a.account)
 }

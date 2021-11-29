@@ -11,11 +11,15 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/elastos/Elastos.ELA/core/types/functions"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
+
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/core/contract"
 	"github.com/elastos/Elastos.ELA/core/contract/program"
 	"github.com/elastos/Elastos.ELA/core/types"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/core/types/outputpayload"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/cr/state"
@@ -57,10 +61,10 @@ func TestCommittee_ChangeCommitteeReward(t *testing.T) {
 
 	// register cr
 	committee.ProcessBlock(&types.Block{
-		Header: types.Header{
+		Header: common2.Header{
 			Height: currentHeight,
 		},
-		Transactions: []*types.Transaction{
+		Transactions: []interfaces.Transaction{
 			registerCRTxn1,
 			registerCRTxn2,
 			registerCRTxn3,
@@ -71,7 +75,7 @@ func TestCommittee_ChangeCommitteeReward(t *testing.T) {
 	for i := 0; i < 5; i++ {
 		currentHeight++
 		committee.ProcessBlock(&types.Block{
-			Header: types.Header{
+			Header: common2.Header{
 				Height: currentHeight,
 			},
 		}, nil)
@@ -83,10 +87,10 @@ func TestCommittee_ChangeCommitteeReward(t *testing.T) {
 		{did3.Bytes(), 1}})
 	currentHeight++
 	committee.ProcessBlock(&types.Block{
-		Header: types.Header{
+		Header: common2.Header{
 			Height: currentHeight,
 		},
-		Transactions: []*types.Transaction{
+		Transactions: []interfaces.Transaction{
 			voteCRTx,
 		},
 	}, nil)
@@ -95,7 +99,7 @@ func TestCommittee_ChangeCommitteeReward(t *testing.T) {
 	// end first voting period
 	currentHeight = cfg.CRCommitteeStartHeight
 	committee.ProcessBlock(&types.Block{
-		Header: types.Header{Height: currentHeight}}, nil)
+		Header: common2.Header{Height: currentHeight}}, nil)
 	assert.Equal(t, 2, len(committee.GetAllMembers()))
 
 	var bestHeight uint32
@@ -120,7 +124,7 @@ func TestCommittee_ChangeCommitteeReward(t *testing.T) {
 
 	// Register 10 producers on one height.
 	for i := 0; i < 20; i++ {
-		txs := make([]*types.Transaction, 10)
+		txs := make([]interfaces.Transaction, 10)
 		for i, p := range producers[i*10 : (i+1)*10] {
 			txs[i] = mockRegisterProducerTx(p)
 		}
@@ -189,7 +193,7 @@ func getCodeByPubKeyStr(publicKey string) []byte {
 	return redeemScript
 }
 
-func getRegisterCRTx(publicKeyStr, privateKeyStr, nickName string) *types.Transaction {
+func getRegisterCRTx(publicKeyStr, privateKeyStr, nickName string) interfaces.Transaction {
 	publicKeyStr1 := publicKeyStr
 	privateKeyStr1 := privateKeyStr
 	publicKey1, _ := common.HexStringToBytes(publicKeyStr1)
@@ -200,9 +204,18 @@ func getRegisterCRTx(publicKeyStr, privateKeyStr, nickName string) *types.Transa
 	did1, _ := getDIDByCode(code1)
 	hash1, _ := contract.PublicKeyToDepositProgramHash(publicKey1)
 
-	txn := new(types.Transaction)
-	txn.TxType = types.RegisterCR
-	txn.Version = types.TxVersion09
+	txn := functions.CreateTransaction(
+		common2.TxVersion09,
+		common2.RegisterCR,
+		0,
+		nil,
+		[]*common2.Attribute{},
+		[]*common2.Input{},
+		[]*common2.Output{},
+		0,
+		[]*program.Program{},
+	)
+
 	crInfoPayload := &payload.CRInfo{
 		Code:     code1,
 		CID:      *cid1,
@@ -215,21 +228,21 @@ func getRegisterCRTx(publicKeyStr, privateKeyStr, nickName string) *types.Transa
 	crInfoPayload.SerializeUnsigned(signBuf, payload.CRInfoVersion)
 	rcSig1, _ := crypto.Sign(privateKey1, signBuf.Bytes())
 	crInfoPayload.Signature = rcSig1
-	txn.Payload = crInfoPayload
+	txn.SetPayload(crInfoPayload)
 
-	txn.Programs = []*program.Program{&program.Program{
+	txn.SetPrograms([]*program.Program{&program.Program{
 		Code:      getCodeByPubKeyStr(publicKeyStr1),
 		Parameter: nil,
-	}}
+	}})
 
-	txn.Outputs = []*types.Output{&types.Output{
+	txn.SetOutputs([]*common2.Output{&common2.Output{
 		AssetID:     common.Uint256{},
 		Value:       5000 * 100000000,
 		OutputLock:  0,
 		ProgramHash: *hash1,
 		Type:        0,
 		Payload:     new(outputpayload.DefaultOutput),
-	}}
+	}})
 	return txn
 }
 
@@ -253,17 +266,21 @@ func getDIDByCode(code []byte) (*common.Uint168, error) {
 }
 
 func getVoteCRTx(amount common.Fixed64,
-	candidateVotes []outputpayload.CandidateVotes) *types.Transaction {
-	return &types.Transaction{
-		Version: 0x09,
-		TxType:  types.TransferAsset,
-		Outputs: []*types.Output{
+	candidateVotes []outputpayload.CandidateVotes) interfaces.Transaction {
+	tx := functions.CreateTransaction(
+		common2.TxVersion09,
+		common2.TransferAsset,
+		0,
+		nil,
+		[]*common2.Attribute{},
+		[]*common2.Input{},
+		[]*common2.Output{
 			{
 				AssetID:     common.Uint256{},
 				Value:       amount,
 				OutputLock:  0,
 				ProgramHash: common.Uint168{123},
-				Type:        types.OTVote,
+				Type:        common2.OTVote,
 				Payload: &outputpayload.VoteOutput{
 					Version: outputpayload.VoteProducerAndCRVersion,
 					Contents: []outputpayload.VoteContent{
@@ -275,5 +292,8 @@ func getVoteCRTx(amount common.Fixed64,
 				},
 			},
 		},
-	}
+		0,
+		[]*program.Program{},
+	)
+	return tx
 }

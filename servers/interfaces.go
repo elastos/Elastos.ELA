@@ -10,6 +10,9 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/functions"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"sort"
 	"strings"
 
@@ -53,16 +56,16 @@ var (
 	emptyHash   = common.Uint168{}
 )
 
-func GetTransactionInfo(tx *Transaction) *TransactionInfo {
-	inputs := make([]InputInfo, len(tx.Inputs))
-	for i, v := range tx.Inputs {
+func GetTransactionInfo(tx interfaces.Transaction) *TransactionInfo {
+	inputs := make([]InputInfo, len(tx.Inputs()))
+	for i, v := range tx.Inputs() {
 		inputs[i].TxID = common.ToReversedString(v.Previous.TxID)
 		inputs[i].VOut = v.Previous.Index
 		inputs[i].Sequence = v.Sequence
 	}
 
-	outputs := make([]RpcOutputInfo, len(tx.Outputs))
-	for i, v := range tx.Outputs {
+	outputs := make([]RpcOutputInfo, len(tx.Outputs()))
+	for i, v := range tx.Outputs() {
 		outputs[i].Value = v.Value.String()
 		outputs[i].Index = uint32(i)
 		address, _ := v.ProgramHash.ToAddress()
@@ -73,14 +76,14 @@ func GetTransactionInfo(tx *Transaction) *TransactionInfo {
 		outputs[i].OutputPayload = getOutputPayloadInfo(v.Payload)
 	}
 
-	attributes := make([]AttributeInfo, len(tx.Attributes))
-	for i, v := range tx.Attributes {
+	attributes := make([]AttributeInfo, len(tx.Attributes()))
+	for i, v := range tx.Attributes() {
 		attributes[i].Usage = v.Usage
 		attributes[i].Data = common.BytesToHexString(v.Data)
 	}
 
-	programs := make([]ProgramInfo, len(tx.Programs))
-	for i, v := range tx.Programs {
+	programs := make([]ProgramInfo, len(tx.Programs()))
+	for i, v := range tx.Programs() {
 		programs[i].Code = common.BytesToHexString(v.Code)
 		programs[i].Parameter = common.BytesToHexString(v.Parameter)
 	}
@@ -93,19 +96,19 @@ func GetTransactionInfo(tx *Transaction) *TransactionInfo {
 		Hash:           txHashStr,
 		Size:           size,
 		VSize:          size,
-		Version:        tx.Version,
-		TxType:         tx.TxType,
-		PayloadVersion: tx.PayloadVersion,
-		Payload:        getPayloadInfo(tx.Payload, tx.PayloadVersion),
+		Version:        tx.Version(),
+		TxType:         tx.TxType(),
+		PayloadVersion: tx.PayloadVersion(),
+		Payload:        getPayloadInfo(tx.Payload(), tx.PayloadVersion()),
 		Attributes:     attributes,
 		Inputs:         inputs,
 		Outputs:        outputs,
-		LockTime:       tx.LockTime,
+		LockTime:       tx.LockTime(),
 		Programs:       programs,
 	}
 }
 
-func GetTransactionContextInfo(header *Header, tx *Transaction) *TransactionContextInfo {
+func GetTransactionContextInfo(header *common2.Header, tx interfaces.Transaction) *TransactionContextInfo {
 	var blockHash string
 	var confirmations uint32
 	var time uint32
@@ -128,7 +131,7 @@ func GetTransactionContextInfo(header *Header, tx *Transaction) *TransactionCont
 	}
 }
 
-// Input JSON string examples for getblock method as following:
+// common2.Input JSON string examples for getblock method as following:
 func GetRawTransaction(param Params) map[string]interface{} {
 	str, ok := param.String("txid")
 	if !ok {
@@ -145,7 +148,7 @@ func GetRawTransaction(param Params) map[string]interface{} {
 		return ResponsePack(InvalidTransaction, "")
 	}
 
-	var header *Header
+	var header *common2.Header
 	tx, height, err := Store.GetTransaction(hash)
 	if err != nil {
 		//try to find transaction in transaction pool.
@@ -265,7 +268,7 @@ func CreateAuxBlock(param Params) map[string]interface{} {
 	SendToAux := AuxBlock{
 		ChainID:           aux.AuxPowChainID,
 		Height:            Chain.GetHeight(),
-		CoinBaseValue:     block.Transactions[0].Outputs[1].Value,
+		CoinBaseValue:     block.Transactions[0].Outputs()[1].Value,
 		Bits:              fmt.Sprintf("%x", block.Header.Bits),
 		Hash:              block.Hash().String(),
 		PreviousBlockHash: Chain.GetCurrentBlockHash().String(),
@@ -683,7 +686,7 @@ func GetBlockInfo(block *Block, verbose bool) BlockInfo {
 		PreviousBlockHash: common.ToReversedString(block.Header.Previous),
 		NextBlockHash:     common.ToReversedString(nextBlockHash),
 		AuxPow:            common.BytesToHexString(auxPow.Bytes()),
-		MinerInfo:         string(block.Transactions[0].Payload.(*payload.CoinBase).Content[:]),
+		MinerInfo:         string(block.Transactions[0].Payload().(*payload.CoinBase).Content[:]),
 	}
 }
 
@@ -819,12 +822,17 @@ func SendRawTransaction(param Params) map[string]interface{} {
 	if err != nil {
 		return ResponsePack(InvalidParams, "hex string to bytes error")
 	}
-	var txn Transaction
-	if err := txn.Deserialize(bytes.NewReader(bys)); err != nil {
+
+	r := bytes.NewReader(bys)
+	txn, err := functions.GetTransactionByBytes(r)
+	if err != nil {
+		return ResponsePack(InvalidTransaction, "invalid transaction")
+	}
+	if err := txn.Deserialize(r); err != nil {
 		return ResponsePack(InvalidTransaction, err.Error())
 	}
 
-	if err := VerifyAndSendTx(&txn); err != nil {
+	if err := VerifyAndSendTx(txn); err != nil {
 		return ResponsePack(InvalidTransaction, err.Error())
 	}
 
@@ -1130,10 +1138,10 @@ func GetUTXOsByAmount(param Params) map[string]interface{} {
 	}
 
 	if utxoType == "unused" {
-		var unusedUTXOs []*UTXO
+		var unusedUTXOs []*common2.UTXO
 		usedUTXOs := TxMemPool.GetUsedUTXOs()
 		for _, u := range utxos {
-			outPoint := OutPoint{TxID: u.TxID, Index: u.Index}
+			outPoint := common2.OutPoint{TxID: u.TxID, Index: u.Index}
 			referKey := outPoint.ReferKey()
 			if _, ok := usedUTXOs[referKey]; !ok {
 				unusedUTXOs = append(unusedUTXOs, u)
@@ -1152,26 +1160,26 @@ func GetUTXOsByAmount(param Params) map[string]interface{} {
 			return ResponsePack(InternalError, "unknown transaction "+
 				utxo.TxID.String()+" from persisted utxo")
 		}
-		if utxoType == "vote" && (tx.Version < TxVersion09 ||
-			tx.Version >= TxVersion09 && tx.Outputs[utxo.Index].Type != OTVote) {
+		if utxoType == "vote" && (tx.Version() < common2.TxVersion09 ||
+			tx.Version() >= common2.TxVersion09 && tx.Outputs()[utxo.Index].Type != common2.OTVote) {
 			continue
 		}
-		if utxoType == "normal" && tx.Version >= TxVersion09 &&
-			tx.Outputs[utxo.Index].Type == OTVote {
+		if utxoType == "normal" && tx.Version() >= common2.TxVersion09 &&
+			tx.Outputs()[utxo.Index].Type == common2.OTVote {
 			continue
 		}
-		if tx.TxType == CoinBase && bestHeight-height < config.DefaultParams.CoinbaseMaturity {
+		if tx.TxType() == common2.CoinBase && bestHeight-height < config.DefaultParams.CoinbaseMaturity {
 			continue
 		}
 		totalAmount += utxo.Value
 		result = append(result, UTXOInfo{
-			TxType:        byte(tx.TxType),
+			TxType:        byte(tx.TxType()),
 			TxID:          common.ToReversedString(utxo.TxID),
 			AssetID:       common.ToReversedString(config.ELAAssetID),
 			VOut:          utxo.Index,
 			Amount:        utxo.Value.String(),
 			Address:       address,
-			OutputLock:    tx.Outputs[utxo.Index].OutputLock,
+			OutputLock:    tx.Outputs()[utxo.Index].OutputLock,
 			Confirmations: bestHeight - height + 1,
 		})
 	}
@@ -1202,7 +1210,7 @@ func GetAmountByInputs(param Params) map[string]interface{} {
 
 	amount := common.Fixed64(0)
 	for i := uint64(0); i < count; i++ {
-		input := new(Input)
+		input := new(common2.Input)
 		if err := input.Deserialize(r); err != nil {
 			return ResponsePack(InvalidParams, "invalid inputs")
 		}
@@ -1211,7 +1219,7 @@ func GetAmountByInputs(param Params) map[string]interface{} {
 			return ResponsePack(InternalError, "unknown transaction "+
 				input.Previous.TxID.String()+" from persisted utxo")
 		}
-		amount += tx.Outputs[input.Previous.Index].Value
+		amount += tx.Outputs()[input.Previous.Index].Value
 	}
 
 	return ResponsePack(Success, amount.String())
@@ -1253,24 +1261,24 @@ func ListUnspent(param Params) map[string]interface{} {
 				return ResponsePack(InternalError,
 					"unknown transaction "+utxo.TxID.String()+" from persisted utxo")
 			}
-			if utxoType == "vote" && (tx.Version < TxVersion09 ||
-				tx.Version >= TxVersion09 && tx.Outputs[utxo.Index].Type != OTVote) {
+			if utxoType == "vote" && (tx.Version() < common2.TxVersion09 ||
+				tx.Version() >= common2.TxVersion09 && tx.Outputs()[utxo.Index].Type != common2.OTVote) {
 				continue
 			}
-			if utxoType == "normal" && tx.Version >= TxVersion09 && tx.Outputs[utxo.Index].Type == OTVote {
+			if utxoType == "normal" && tx.Version() >= common2.TxVersion09 && tx.Outputs()[utxo.Index].Type == common2.OTVote {
 				continue
 			}
 			if utxo.Value == 0 {
 				continue
 			}
 			result = append(result, UTXOInfo{
-				TxType:        byte(tx.TxType),
+				TxType:        byte(tx.TxType()),
 				TxID:          common.ToReversedString(utxo.TxID),
 				AssetID:       common.ToReversedString(config.ELAAssetID),
 				VOut:          utxo.Index,
 				Amount:        utxo.Value.String(),
 				Address:       address,
-				OutputLock:    tx.Outputs[utxo.Index].OutputLock,
+				OutputLock:    tx.Outputs()[utxo.Index].OutputLock,
 				Confirmations: bestHeight - height + 1,
 			})
 		}
@@ -1279,96 +1287,100 @@ func ListUnspent(param Params) map[string]interface{} {
 }
 
 func CreateRawTransaction(param Params) map[string]interface{} {
-	if rtn := checkRPCServiceLevel(config.WalletPermitted); rtn != nil {
-		return rtn
-	}
 
-	inputsParam, ok := param.String("inputs")
-	if !ok {
-		return ResponsePack(InvalidParams, "need a parameter named inputs")
-	}
-	outputsParam, ok := param.String("outputs")
-	if !ok {
-		return ResponsePack(InvalidParams, "need a parameter named outputs")
-	}
-	locktime, ok := param.Uint("locktime")
-	if !ok {
-		return ResponsePack(InvalidParams, "need a parameter named locktime")
-	}
+	//todo refactor me
+	return nil
 
-	inputs := make([]string, 0)
-	gjson.Parse(inputsParam).ForEach(func(key, value gjson.Result) bool {
-		inputs = append(inputs, value.String())
-		return true
-	})
-
-	outputs := make([]string, 0)
-	gjson.Parse(outputsParam).ForEach(func(key, value gjson.Result) bool {
-		outputs = append(outputs, value.String())
-		return true
-	})
-
-	txInputs := make([]*Input, 0)
-	for _, v := range inputs {
-		txIDStr := gjson.Get(v, "txid").String()
-		txIDBytes, err := common.HexStringToBytes(txIDStr)
-		if err != nil {
-			return ResponsePack(InvalidParams, "invalid txid when convert to bytes")
-		}
-		txID, err := common.Uint256FromBytes(common.BytesReverse(txIDBytes))
-		if err != nil {
-			return ResponsePack(InvalidParams, "invalid txid in inputs param")
-		}
-		input := &Input{
-			Previous: OutPoint{
-				TxID:  *txID,
-				Index: uint16(gjson.Get(v, "vout").Int()),
-			},
-		}
-		txInputs = append(txInputs, input)
-	}
-
-	txOutputs := make([]*Output, 0)
-	for _, v := range outputs {
-		amount := gjson.Get(v, "amount").String()
-		value, err := common.StringToFixed64(amount)
-		if err != nil {
-			return ResponsePack(InvalidParams, "invalid amount in inputs param")
-		}
-		address := gjson.Get(v, "address").String()
-		programHash, err := common.Uint168FromAddress(address)
-		if err != nil {
-			return ResponsePack(InvalidParams, "invalid address in outputs param")
-		}
-		output := &Output{
-			AssetID:     *account.SystemAssetID,
-			Value:       *value,
-			OutputLock:  0,
-			ProgramHash: *programHash,
-			Type:        OTNone,
-			Payload:     &outputpayload.DefaultOutput{},
-		}
-		txOutputs = append(txOutputs, output)
-	}
-
-	txn := &Transaction{
-		Version:    TxVersion09,
-		TxType:     TransferAsset,
-		Payload:    &payload.TransferAsset{},
-		Attributes: []*Attribute{},
-		Inputs:     txInputs,
-		Outputs:    txOutputs,
-		Programs:   []*pg.Program{},
-		LockTime:   locktime,
-	}
-
-	buf := new(bytes.Buffer)
-	err := txn.Serialize(buf)
-	if err != nil {
-		return ResponsePack(InternalError, "txn serialize failed")
-	}
-
-	return ResponsePack(Success, common.BytesToHexString(buf.Bytes()))
+	//if rtn := checkRPCServiceLevel(config.WalletPermitted); rtn != nil {
+	//	return rtn
+	//}
+	//
+	//inputsParam, ok := param.String("inputs")
+	//if !ok {
+	//	return ResponsePack(InvalidParams, "need a parameter named inputs")
+	//}
+	//outputsParam, ok := param.String("outputs")
+	//if !ok {
+	//	return ResponsePack(InvalidParams, "need a parameter named outputs")
+	//}
+	//locktime, ok := param.Uint("locktime")
+	//if !ok {
+	//	return ResponsePack(InvalidParams, "need a parameter named locktime")
+	//}
+	//
+	//inputs := make([]string, 0)
+	//gjson.Parse(inputsParam).ForEach(func(key, value gjson.Result) bool {
+	//	inputs = append(inputs, value.String())
+	//	return true
+	//})
+	//
+	//outputs := make([]string, 0)
+	//gjson.Parse(outputsParam).ForEach(func(key, value gjson.Result) bool {
+	//	outputs = append(outputs, value.String())
+	//	return true
+	//})
+	//
+	//txInputs := make([]*common2.Input, 0)
+	//for _, v := range inputs {
+	//	txIDStr := gjson.Get(v, "txid").String()
+	//	txIDBytes, err := common.HexStringToBytes(txIDStr)
+	//	if err != nil {
+	//		return ResponsePack(InvalidParams, "invalid txid when convert to bytes")
+	//	}
+	//	txID, err := common.Uint256FromBytes(common.BytesReverse(txIDBytes))
+	//	if err != nil {
+	//		return ResponsePack(InvalidParams, "invalid txid in inputs param")
+	//	}
+	//	input := &common2.Input{
+	//		Previous: common2.OutPoint{
+	//			TxID:  *txID,
+	//			Index: uint16(gjson.Get(v, "vout").Int()),
+	//		},
+	//	}
+	//	txInputs = append(txInputs, input)
+	//}
+	//
+	//txOutputs := make([]*common2.Output, 0)
+	//for _, v := range outputs {
+	//	amount := gjson.Get(v, "amount").String()
+	//	value, err := common.StringToFixed64(amount)
+	//	if err != nil {
+	//		return ResponsePack(InvalidParams, "invalid amount in inputs param")
+	//	}
+	//	address := gjson.Get(v, "address").String()
+	//	programHash, err := common.Uint168FromAddress(address)
+	//	if err != nil {
+	//		return ResponsePack(InvalidParams, "invalid address in outputs param")
+	//	}
+	//	output := &common2.Output{
+	//		AssetID:     *account.SystemAssetID,
+	//		Value:       *value,
+	//		OutputLock:  0,
+	//		ProgramHash: *programHash,
+	//		Type:        common2.OTNone,
+	//		Payload:     &outputpayload.DefaultOutput{},
+	//	}
+	//	txOutputs = append(txOutputs, output)
+	//}
+	//
+	//txn := &transactions.BaseTransaction{
+	//	Version:    common2.TxVersion09,
+	//	TxType:     common2.TransferAsset,
+	//	Payload:    &payload.TransferAsset{},
+	//	Attributes: []*common2.Attribute{},
+	//	Inputs:     txInputs,
+	//	Outputs:    txOutputs,
+	//	Programs:   []*pg.Program{},
+	//	LockTime:   locktime,
+	//}
+	//
+	//buf := new(bytes.Buffer)
+	//err := txn.Serialize(buf)
+	//if err != nil {
+	//	return ResponsePack(InternalError, "txn serialize failed")
+	//}
+	//
+	//return ResponsePack(Success, common.BytesToHexString(buf.Bytes()))
 }
 
 func SignRawTransactionWithKey(param Params) map[string]interface{} {
@@ -1412,8 +1424,12 @@ func SignRawTransactionWithKey(param Params) map[string]interface{} {
 	if err != nil {
 		return ResponsePack(InvalidParams, "hex string to bytes error")
 	}
-	var txn Transaction
-	if err := txn.Deserialize(bytes.NewReader(txBytes)); err != nil {
+	r := bytes.NewReader(txBytes)
+	txn, err := functions.GetTransactionByBytes(r)
+	if err != nil {
+		return ResponsePack(InvalidTransaction, "invalid transaction")
+	}
+	if err := txn.Deserialize(r); err != nil {
 		return ResponsePack(InvalidTransaction, err.Error())
 	}
 
@@ -1424,8 +1440,8 @@ func SignRawTransactionWithKey(param Params) map[string]interface{} {
 	})
 
 	programs := make([]*pg.Program, 0)
-	if len(txn.Programs) > 0 {
-		programs = txn.Programs
+	if len(txn.Programs()) > 0 {
+		programs = txn.Programs()
 	} else {
 		for _, codeStr := range codes {
 			code, err := common.HexStringToBytes(codeStr)
@@ -1445,12 +1461,12 @@ func SignRawTransactionWithKey(param Params) map[string]interface{} {
 		return ResponsePack(InvalidTransaction, err.Error())
 	}
 
-	references, err := Chain.UTXOCache.GetTxReference(&txn)
+	references, err := Chain.UTXOCache.GetTxReference(txn)
 	if err != nil {
 		return ResponsePack(InvalidTransaction, err.Error())
 	}
 
-	programHashes, err := blockchain.GetTxProgramHashes(&txn, references)
+	programHashes, err := blockchain.GetTxProgramHashes(txn, references)
 	if err != nil {
 		return ResponsePack(InternalError, err.Error())
 	}
@@ -1473,13 +1489,13 @@ func SignRawTransactionWithKey(param Params) map[string]interface{} {
 
 		prefixType := contract.GetPrefixType(programHash)
 		if prefixType == contract.PrefixStandard {
-			signedProgram, err := account.SignStandardTransaction(&txn, program, accounts)
+			signedProgram, err := account.SignStandardTransaction(txn, program, accounts)
 			if err != nil {
 				return ResponsePack(InternalError, err.Error())
 			}
 			programs[i] = signedProgram
 		} else if prefixType == contract.PrefixMultiSig {
-			signedProgram, err := account.SignMultiSignTransaction(&txn, program, accounts)
+			signedProgram, err := account.SignMultiSignTransaction(txn, program, accounts)
 			if err != nil {
 				return ResponsePack(InternalError, err.Error())
 			}
@@ -1488,7 +1504,7 @@ func SignRawTransactionWithKey(param Params) map[string]interface{} {
 			return ResponsePack(InternalError, "invalid program hash type")
 		}
 	}
-	txn.Programs = programs
+	txn.SetPrograms(programs)
 
 	result := new(bytes.Buffer)
 	if err := txn.Serialize(result); err != nil {
@@ -1569,7 +1585,7 @@ func GetUnspendOutput(param Params) map[string]interface{} {
 	return ResponsePack(Success, UTXOoutputs)
 }
 
-//Transaction
+//BaseTransaction
 func GetTransactionByHash(param Params) map[string]interface{} {
 	str, ok := param.String("hash")
 	if !ok {
@@ -2476,7 +2492,7 @@ func VoteStatus(param Params) map[string]interface{} {
 		if err != nil {
 			return ResponsePack(InternalError, "unknown transaction "+utxo.TxID.String()+" from persisted utxo")
 		}
-		if tx.Outputs[utxo.Index].Type == OTVote {
+		if tx.Outputs()[utxo.Index].Type == common2.OTVote {
 			voting += utxo.Value
 		}
 		total += utxo.Value
@@ -2484,17 +2500,17 @@ func VoteStatus(param Params) map[string]interface{} {
 
 	pending := false
 	for _, t := range TxMemPool.GetTxsInPool() {
-		for _, i := range t.Inputs {
+		for _, i := range t.Inputs() {
 			tx, _, err := Store.GetTransaction(i.Previous.TxID)
 			if err != nil {
 				return ResponsePack(InternalError, "unknown transaction "+i.Previous.TxID.String()+" from persisted utxo")
 			}
-			if tx.Outputs[i.Previous.Index].ProgramHash.IsEqual(*programHash) {
+			if tx.Outputs()[i.Previous.Index].ProgramHash.IsEqual(*programHash) {
 				pending = true
 			}
 		}
-		for _, o := range t.Outputs {
-			if o.Type == OTVote && o.ProgramHash.IsEqual(*programHash) {
+		for _, o := range t.Outputs() {
+			if o.Type == common2.OTVote && o.ProgramHash.IsEqual(*programHash) {
 				pending = true
 			}
 		}
@@ -2633,15 +2649,19 @@ func DecodeRawTransaction(param Params) map[string]interface{} {
 	if err != nil {
 		return ResponsePack(InvalidParams, "invalid raw tx data, "+err.Error())
 	}
-	var txn Transaction
-	if err := txn.Deserialize(bytes.NewReader(txBytes)); err != nil {
+	r := bytes.NewReader(txBytes)
+	txn, err := functions.GetTransactionByBytes(r)
+	if err != nil {
+		return ResponsePack(InvalidTransaction, "invalid transaction")
+	}
+	if err := txn.Deserialize(r); err != nil {
 		return ResponsePack(InvalidParams, "invalid raw tx data, "+err.Error())
 	}
 
-	return ResponsePack(Success, GetTransactionInfo(&txn))
+	return ResponsePack(Success, GetTransactionInfo(txn))
 }
 
-func getPayloadInfo(p Payload, payloadVersion byte) PayloadInfo {
+func getPayloadInfo(p interfaces.Payload, payloadVersion byte) PayloadInfo {
 	switch object := p.(type) {
 	case *payload.CoinBase:
 		obj := new(CoinbaseInfo)
@@ -3060,7 +3080,7 @@ func getPayloadInfo(p Payload, payloadVersion byte) PayloadInfo {
 	return nil
 }
 
-func getOutputPayloadInfo(op OutputPayload) OutputPayloadInfo {
+func getOutputPayloadInfo(op common2.OutputPayload) OutputPayloadInfo {
 	switch object := op.(type) {
 	case *outputpayload.CrossChainOutput:
 		obj := new(CrossChainOutputInfo)
@@ -3146,7 +3166,7 @@ func getOutputPayloadInfo(op OutputPayload) OutputPayloadInfo {
 	return nil
 }
 
-func VerifyAndSendTx(tx *Transaction) error {
+func VerifyAndSendTx(tx interfaces.Transaction) error {
 	// if transaction is verified unsuccessfully then will not put it into transaction pool
 	if err := TxMemPool.AppendToTxPool(tx); err != nil {
 		log.Warn("[httpjsonrpc] VerifyTransaction failed when AppendToTxnPool. Errcode:", err.Code())

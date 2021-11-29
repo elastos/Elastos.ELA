@@ -11,7 +11,8 @@ import (
 	"sort"
 
 	"github.com/elastos/Elastos.ELA/common"
-	"github.com/elastos/Elastos.ELA/core/types"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/core/types/outputpayload"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/utils"
@@ -20,8 +21,8 @@ import (
 // processTransactions takes the transactions and the height when they have been
 // packed into a block.  Then loop through the transactions to update CR
 // state and votes according to transactions content.
-func (c *Committee) processTransactions(txs []*types.Transaction, height uint32) {
-	sortedTxs := make([]*types.Transaction, 0)
+func (c *Committee) processTransactions(txs []interfaces.Transaction, height uint32) {
+	sortedTxs := make([]interfaces.Transaction, 0)
 	if len(txs) < 1 {
 		return
 	}
@@ -60,7 +61,7 @@ func (c *Committee) processTransactions(txs []*types.Transaction, height uint32)
 }
 
 // sortTransactions purpose is to process some transaction first.
-func sortTransactions(txs []*types.Transaction) {
+func sortTransactions(txs []interfaces.Transaction) {
 	sort.Slice(txs, func(i, j int) bool {
 		if txs[i].IsCRCProposalWithdrawTx() {
 			return true
@@ -72,60 +73,60 @@ func sortTransactions(txs []*types.Transaction) {
 // processTransaction take a transaction and the height it has been packed into
 // a block, then update producers state and votes according to the transaction
 // content.
-func (c *Committee) processTransaction(tx *types.Transaction, height uint32) {
+func (c *Committee) processTransaction(tx interfaces.Transaction, height uint32) {
 
 	// prioritize cancel votes
 	c.processCancelVotes(tx, height)
 
-	switch tx.TxType {
-	case types.RegisterCR:
+	switch tx.TxType() {
+	case common2.RegisterCR:
 		c.state.registerCR(tx, height)
 
-	case types.UpdateCR:
-		c.state.updateCR(tx.Payload.(*payload.CRInfo), height)
+	case common2.UpdateCR:
+		c.state.updateCR(tx.Payload().(*payload.CRInfo), height)
 
-	case types.UnregisterCR:
-		c.state.unregisterCR(tx.Payload.(*payload.UnregisterCR), height)
+	case common2.UnregisterCR:
+		c.state.unregisterCR(tx.Payload().(*payload.UnregisterCR), height)
 
-	case types.TransferAsset:
+	case common2.TransferAsset:
 		c.processVotes(tx, height)
 
-	case types.ReturnCRDepositCoin:
+	case common2.ReturnCRDepositCoin:
 		c.state.returnDeposit(tx, height)
 
-	case types.CRCProposal:
+	case common2.CRCProposal:
 		c.manager.registerProposal(tx, height, c.state.CurrentSession, c.state.history)
 
-	case types.CRCProposalReview:
+	case common2.CRCProposalReview:
 		c.manager.proposalReview(tx, height, c.state.history)
 
-	case types.CRCProposalTracking:
+	case common2.CRCProposalTracking:
 		c.proposalTracking(tx, height)
 
-	case types.CRCProposalWithdraw:
+	case common2.CRCProposalWithdraw:
 		c.manager.proposalWithdraw(tx, height, c.state.history)
 
-	case types.CRCAppropriation:
+	case common2.CRCAppropriation:
 		c.processCRCAppropriation(height, c.state.history)
 
-	case types.CRCProposalRealWithdraw:
+	case common2.CRCProposalRealWithdraw:
 		c.processCRCRealWithdraw(tx, height, c.state.history)
 
-	case types.CRCouncilMemberClaimNode:
+	case common2.CRCouncilMemberClaimNode:
 		c.processCRCouncilMemberClaimNode(tx, height, c.state.history)
 
-	case types.ActivateProducer:
+	case common2.ActivateProducer:
 		c.activateProducer(tx, height, c.state.history)
 	}
 
-	if tx.TxType != types.RegisterCR {
+	if tx.TxType() != common2.RegisterCR {
 		c.state.processDeposit(tx, height)
 	}
 	c.processCRCAddressRelatedTx(tx, height)
 }
 
 // proposalTracking deal with CRC proposal transaction.
-func (c *Committee) proposalTracking(tx *types.Transaction, height uint32) {
+func (c *Committee) proposalTracking(tx interfaces.Transaction, height uint32) {
 	unusedBudget := c.manager.proposalTracking(tx, height, c.state.history)
 	c.state.history.Append(height, func() {
 		c.CRCCommitteeUsedAmount -= unusedBudget
@@ -136,10 +137,10 @@ func (c *Committee) proposalTracking(tx *types.Transaction, height uint32) {
 
 // processVotes takes a transaction, if the transaction including any vote
 // outputs, validate and update CR votes.
-func (c *Committee) processVotes(tx *types.Transaction, height uint32) {
-	if tx.Version >= types.TxVersion09 {
-		for i, output := range tx.Outputs {
-			if output.Type != types.OTVote {
+func (c *Committee) processVotes(tx interfaces.Transaction, height uint32) {
+	if tx.Version() >= common2.TxVersion09 {
+		for i, output := range tx.Outputs() {
+			if output.Type != common2.OTVote {
 				continue
 			}
 			p, _ := output.Payload.(*outputpayload.VoteOutput)
@@ -157,7 +158,7 @@ func (c *Committee) processVotes(tx *types.Transaction, height uint32) {
 				}
 			}
 			if exist {
-				op := types.NewOutPoint(tx.Hash(), uint16(i))
+				op := common2.NewOutPoint(tx.Hash(), uint16(i))
 				c.state.history.Append(height, func() {
 					c.state.Votes[op.ReferKey()] = struct{}{}
 				}, func() {
@@ -170,7 +171,7 @@ func (c *Committee) processVotes(tx *types.Transaction, height uint32) {
 }
 
 // processVoteOutput takes a transaction output with vote payload.
-func (c *Committee) processVoteOutput(output *types.Output, height uint32) {
+func (c *Committee) processVoteOutput(output *common2.Output, height uint32) {
 	p := output.Payload.(*outputpayload.VoteOutput)
 	for _, vote := range p.Contents {
 		for _, cv := range vote.CandidateVotes {
@@ -190,9 +191,9 @@ func (c *Committee) processVoteOutput(output *types.Output, height uint32) {
 
 // processCancelVotes takes a transaction, if the transaction takes a previous
 // vote output then try to subtract the vote.
-func (c *Committee) processCancelVotes(tx *types.Transaction, height uint32) {
+func (c *Committee) processCancelVotes(tx interfaces.Transaction, height uint32) {
 	var exist bool
-	for _, input := range tx.Inputs {
+	for _, input := range tx.Inputs() {
 		referKey := input.ReferKey()
 		if _, ok := c.state.Votes[referKey]; ok {
 			exist = true
@@ -207,7 +208,7 @@ func (c *Committee) processCancelVotes(tx *types.Transaction, height uint32) {
 		log.Errorf("get tx reference failed, tx hash:%s", common.ToReversedString(tx.Hash()))
 		return
 	}
-	for _, input := range tx.Inputs {
+	for _, input := range tx.Inputs() {
 		referKey := input.ReferKey()
 		_, ok := c.state.Votes[referKey]
 		if ok {
@@ -218,7 +219,7 @@ func (c *Committee) processCancelVotes(tx *types.Transaction, height uint32) {
 }
 
 // processVoteCancel takes a previous vote output and decrease CR votes.
-func (c *Committee) processVoteCancel(output *types.Output, height uint32) {
+func (c *Committee) processVoteCancel(output *common2.Output, height uint32) {
 	p := output.Payload.(*outputpayload.VoteOutput)
 	for _, vote := range p.Contents {
 		for _, cv := range vote.CandidateVotes {
@@ -286,9 +287,9 @@ func (c *Committee) processCancelImpeachment(height uint32, member []byte,
 
 // processCRCRelatedAmount takes a transaction, if the transaction takes a previous
 // output to CRC related address then try to subtract the vote.
-func (c *Committee) processCRCAddressRelatedTx(tx *types.Transaction, height uint32) {
+func (c *Committee) processCRCAddressRelatedTx(tx interfaces.Transaction, height uint32) {
 	if tx.IsCRCProposalTx() {
-		proposal := tx.Payload.(*payload.CRCProposal)
+		proposal := tx.Payload().(*payload.CRCProposal)
 		var budget common.Fixed64
 		for _, b := range proposal.Budgets {
 			budget += b.Amount
@@ -300,7 +301,7 @@ func (c *Committee) processCRCAddressRelatedTx(tx *types.Transaction, height uin
 		})
 	}
 
-	for _, input := range tx.Inputs {
+	for _, input := range tx.Inputs() {
 		if amount, ok := c.state.CRCFoundationOutputs[input.Previous.ReferKey()]; ok {
 			c.state.history.Append(height, func() {
 				c.CRAssetsAddressUTXOCount--
@@ -318,7 +319,7 @@ func (c *Committee) processCRCAddressRelatedTx(tx *types.Transaction, height uin
 		}
 	}
 
-	for _, output := range tx.Outputs {
+	for _, output := range tx.Outputs() {
 		amount := output.Value
 		if output.ProgramHash.IsEqual(c.params.CRAssetsAddress) {
 			c.state.history.Append(height, func() {

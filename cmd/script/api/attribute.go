@@ -8,8 +8,7 @@ package api
 import (
 	"encoding/hex"
 	"fmt"
-
-	"github.com/elastos/Elastos.ELA/core/types"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 
 	"github.com/yuin/gopher-lua"
 )
@@ -31,8 +30,8 @@ func newAttribute(L *lua.LState) int {
 	dataStr := L.ToString(2)
 	data, _ := hex.DecodeString(dataStr)
 
-	txAttr := &types.Attribute{
-		Usage: types.AttributeUsage(usage),
+	txAttr := &common2.Attribute{
+		Usage: common2.AttributeUsage(usage),
 		Data:  data,
 	}
 	ud := L.NewUserData()
@@ -44,9 +43,9 @@ func newAttribute(L *lua.LState) int {
 }
 
 // Checks whether the first lua argument is a *LUserData with *Attribute and returns this *Attribute.
-func checkAttribute(L *lua.LState, idx int) *types.Attribute {
+func checkAttribute(L *lua.LState, idx int) *common2.Attribute {
 	ud := L.CheckUserData(idx)
-	if v, ok := ud.Value.(*types.Attribute); ok {
+	if v, ok := ud.Value.(*common2.Attribute); ok {
 		return v
 	}
 	L.ArgError(1, "Attribute expected")

@@ -9,14 +9,14 @@ import (
 	"io"
 
 	"github.com/elastos/Elastos.ELA/common"
-	"github.com/elastos/Elastos.ELA/core/types"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 )
 
 // CoinOwnership as a key for OwnedCoins map to represents the ownership
 // between OutPoint and owner.
 type CoinOwnership struct {
 	owner string
-	op    types.OutPoint
+	op    common2.OutPoint
 }
 
 func (co *CoinOwnership) Serialize(w io.Writer) error {
@@ -39,13 +39,13 @@ func (co *CoinOwnership) Deserialize(r io.Reader) error {
 
 // CoinLinkedItem as a value for OwnedCoins map to be a linked list item.
 type CoinLinkedItem struct {
-	prev *types.OutPoint
-	next *types.OutPoint
+	prev *common2.OutPoint
+	next *common2.OutPoint
 }
 
 func (cl *CoinLinkedItem) Serialize(w io.Writer) error {
 	if cl.prev == nil {
-		prev := types.OutPoint{}
+		prev := common2.OutPoint{}
 		if err := prev.Serialize(w); err != nil {
 			return err
 		}
@@ -55,7 +55,7 @@ func (cl *CoinLinkedItem) Serialize(w io.Writer) error {
 		}
 	}
 	if cl.next == nil {
-		next := types.OutPoint{}
+		next := common2.OutPoint{}
 		if err := next.Serialize(w); err != nil {
 			return err
 		}
@@ -69,8 +69,8 @@ func (cl *CoinLinkedItem) Serialize(w io.Writer) error {
 }
 
 func (cl *CoinLinkedItem) Deserialize(r io.Reader) error {
-	var zeroOP types.OutPoint
-	var prev types.OutPoint
+	var zeroOP common2.OutPoint
+	var prev common2.OutPoint
 	if err := prev.Deserialize(r); err != nil {
 		return err
 	}
@@ -79,7 +79,7 @@ func (cl *CoinLinkedItem) Deserialize(r io.Reader) error {
 	} else {
 		cl.prev = &prev
 	}
-	var next types.OutPoint
+	var next common2.OutPoint
 	if err := next.Deserialize(r); err != nil {
 		return err
 	}
@@ -131,16 +131,16 @@ func (oc OwnedCoins) Deserialize(r io.Reader) error {
 	return nil
 }
 
-func (oc OwnedCoins) read(owner string, op *types.OutPoint) CoinLinkedItem {
+func (oc OwnedCoins) read(owner string, op *common2.OutPoint) CoinLinkedItem {
 	if op == nil {
-		op = &types.OutPoint{}
+		op = &common2.OutPoint{}
 	}
 	return oc[CoinOwnership{owner, *op}]
 }
 
-func (oc OwnedCoins) write(owner string, op *types.OutPoint, item CoinLinkedItem) {
+func (oc OwnedCoins) write(owner string, op *common2.OutPoint, item CoinLinkedItem) {
 	if op == nil {
-		op = &types.OutPoint{}
+		op = &common2.OutPoint{}
 	}
 	oc[CoinOwnership{owner, *op}] = item
 }
@@ -153,7 +153,7 @@ func (oc OwnedCoins) writeHead(owner string, item CoinLinkedItem) {
 	oc.write(owner, nil, item)
 }
 
-func (oc OwnedCoins) append(owner string, op *types.OutPoint) {
+func (oc OwnedCoins) append(owner string, op *common2.OutPoint) {
 	if op == nil {
 		return
 	}
@@ -182,7 +182,7 @@ func (oc OwnedCoins) append(owner string, op *types.OutPoint) {
 	oc.write(owner, op, item)
 }
 
-func (oc OwnedCoins) remove(owner string, op *types.OutPoint) {
+func (oc OwnedCoins) remove(owner string, op *common2.OutPoint) {
 	if op == nil {
 		return
 	}
@@ -207,8 +207,8 @@ func (oc OwnedCoins) remove(owner string, op *types.OutPoint) {
 	delete(oc, CoinOwnership{owner, *op})
 }
 
-func (oc OwnedCoins) list(owner string) []*types.OutPoint {
-	resultOp := make([]*types.OutPoint, 0)
+func (oc OwnedCoins) list(owner string) []*common2.OutPoint {
+	resultOp := make([]*common2.OutPoint, 0)
 	itemHead := oc.readHead(owner)
 	op := itemHead.next
 	for {

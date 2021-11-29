@@ -524,14 +524,14 @@ func (s *server) pongNonce(pid peer.PID) uint64 {
 // newPeerConfig returns the configuration for the given serverPeer.
 func newPeerConfig(sp *serverPeer) *peer.Config {
 	return &peer.Config{
-		PID:              sp.server.cfg.PID,
-		Magic:            sp.server.cfg.MagicNumber,
-		Port:             sp.server.cfg.DefaultPort,
-		PingInterval:     sp.server.cfg.PingInterval,
-		Sign:             sp.server.cfg.Sign,
-		PingNonce:        sp.server.pingNonce,
-		PongNonce:        sp.server.pongNonce,
-		MakeEmptyMessage: sp.server.cfg.MakeEmptyMessage,
+		PID:           sp.server.cfg.PID,
+		Magic:         sp.server.cfg.MagicNumber,
+		Port:          sp.server.cfg.DefaultPort,
+		PingInterval:  sp.server.cfg.PingInterval,
+		Sign:          sp.server.cfg.Sign,
+		PingNonce:     sp.server.pingNonce,
+		PongNonce:     sp.server.pongNonce,
+		CreateMessage: sp.server.cfg.CreateMessage,
 		MessageFunc: func(peer *peer.Peer, m p2p.Message) {
 			switch m := m.(type) {
 			case *msg.Version:

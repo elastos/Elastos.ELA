@@ -7,10 +7,10 @@ package state
 
 import (
 	"bytes"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"io"
 
 	"github.com/elastos/Elastos.ELA/common"
-	"github.com/elastos/Elastos.ELA/core/types"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/crypto"
 	"github.com/elastos/Elastos.ELA/utils"
@@ -237,7 +237,7 @@ type ProposalKeyFrame struct {
 	ProposalHashes  map[common.Uint168]ProposalHashSet
 	ProposalSession map[uint64][]common.Uint256
 	// proposalWithdraw info
-	WithdrawableTxInfo map[common.Uint256]types.OutputInfo
+	WithdrawableTxInfo map[common.Uint256]common2.OutputInfo
 	// publicKey of SecretaryGeneral
 	SecretaryGeneralPublicKey string
 	// reserved custom id list
@@ -1392,7 +1392,7 @@ func (p *ProposalKeyFrame) serializeProposalSessionMap(
 }
 
 func (p *ProposalKeyFrame) serializeWithdrawableTransactionsMap(
-	proposalWithdrableTx map[common.Uint256]types.OutputInfo, w io.Writer) (err error) {
+	proposalWithdrableTx map[common.Uint256]common2.OutputInfo, w io.Writer) (err error) {
 	if err = common.WriteVarUint(w, uint64(len(proposalWithdrableTx))); err != nil {
 		return
 	}
@@ -1606,18 +1606,18 @@ func (p *ProposalKeyFrame) deserializeProposalSessionMap(r io.Reader) (
 }
 
 func (p *ProposalKeyFrame) deserializeWithdrawableTransactionsMap(r io.Reader) (
-	withdrawableTxsMap map[common.Uint256]types.OutputInfo, err error) {
+	withdrawableTxsMap map[common.Uint256]common2.OutputInfo, err error) {
 	var count uint64
 	if count, err = common.ReadVarUint(r, 0); err != nil {
 		return
 	}
-	withdrawableTxsMap = make(map[common.Uint256]types.OutputInfo)
+	withdrawableTxsMap = make(map[common.Uint256]common2.OutputInfo)
 	for i := uint64(0); i < count; i++ {
 		var hash common.Uint256
 		if err = hash.Deserialize(r); err != nil {
 			return
 		}
-		var withdrawInfo types.OutputInfo
+		var withdrawInfo common2.OutputInfo
 		if err = withdrawInfo.Deserialize(r); err != nil {
 			return
 		}
@@ -1641,7 +1641,7 @@ func NewProposalKeyFrame() *ProposalKeyFrame {
 		Proposals:                      make(map[common.Uint256]*ProposalState),
 		ProposalHashes:                 make(map[common.Uint168]ProposalHashSet),
 		ProposalSession:                make(map[uint64][]common.Uint256),
-		WithdrawableTxInfo:             make(map[common.Uint256]types.OutputInfo),
+		WithdrawableTxInfo:             make(map[common.Uint256]common2.OutputInfo),
 		PendingReceivedCustomIDMap:     make(map[string]struct{}),
 		RegisteredSideChainPayloadInfo: make(map[uint32]map[common.Uint256]payload.SideChainInfo),
 		RegisteredSideChainNames:       []string{"ID"},

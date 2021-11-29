@@ -104,7 +104,7 @@ func (n EventType) String() string {
 // 	- ETBlockAccepted:     *types.Block
 // 	- ETBlockConnected:    *types.Block
 // 	- ETBlockDisconnected: *types.Block
-// 	- ETTransactionAccepted: *types.Transaction
+// 	- ETTransactionAccepted: *types.BaseTransaction
 type Event struct {
 	Type EventType
 	Data interface{}

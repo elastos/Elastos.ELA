@@ -12,10 +12,14 @@ import (
 	"os"
 	"strings"
 
+	"github.com/elastos/Elastos.ELA/core/contract/program"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
+
+	"github.com/elastos/Elastos.ELA/core/types/functions"
+
 	"github.com/elastos/Elastos.ELA/account"
 	cmdcom "github.com/elastos/Elastos.ELA/cmd/common"
 	"github.com/elastos/Elastos.ELA/common"
-	"github.com/elastos/Elastos.ELA/core/types"
 	"github.com/elastos/Elastos.ELA/crypto"
 	"github.com/elastos/Elastos.ELA/utils/http"
 
@@ -24,7 +28,7 @@ import (
 
 var txCommand = []cli.Command{
 	{
-		Category:    "Transaction",
+		Category:    "BaseTransaction",
 		Name:        "buildtx",
 		Usage:       "Build a transaction",
 		Description: "use --to --amount --fee to create a transaction",
@@ -42,7 +46,7 @@ var txCommand = []cli.Command{
 		Action:      buildTx,
 	},
 	{
-		Category:    "Transaction",
+		Category:    "BaseTransaction",
 		Name:        "signtx",
 		Usage:       "Sign a transaction",
 		Description: "use --file or --hex to specify the transaction file path or content",
@@ -55,7 +59,7 @@ var txCommand = []cli.Command{
 		Action: signTx,
 	},
 	{
-		Category:    "Transaction",
+		Category:    "BaseTransaction",
 		Name:        "sendtx",
 		Usage:       "Send a transaction",
 		Description: "use --file or --hex to specify the transaction file path or content",
@@ -66,7 +70,7 @@ var txCommand = []cli.Command{
 		Action: sendTx,
 	},
 	{
-		Category: "Transaction",
+		Category: "BaseTransaction",
 		Name:     "showtx",
 		Usage:    "Show info of raw transaction",
 		Flags: []cli.Flag{
@@ -213,17 +217,21 @@ func signTx(c *cli.Context) error {
 		return errors.New("decode transaction content failed")
 	}
 
-	var txn types.Transaction
-	err = txn.Deserialize(bytes.NewReader(rawData))
+	r := bytes.NewReader(rawData)
+	txn, err := functions.GetTransactionByBytes(r)
+	if err != nil {
+		return errors.New("invalid transaction")
+	}
+	err = txn.Deserialize(r)
 	if err != nil {
 		return errors.New("deserialize transaction failed")
 	}
 
-	if len(txn.Programs) == 0 {
+	if len(txn.Programs()) == 0 {
 		return errors.New("no program found in transaction")
 	}
 
-	haveSign, needSign, err := crypto.GetSignStatus(txn.Programs[0].Code, txn.Programs[0].Parameter)
+	haveSign, needSign, err := crypto.GetSignStatus(txn.Programs()[0].Code, txn.Programs()[0].Parameter)
 	if err != nil {
 		return err
 	}
@@ -231,13 +239,13 @@ func signTx(c *cli.Context) error {
 		return errors.New("transaction was fully signed, no need more sign")
 	}
 
-	txnSigned, err := client.Sign(&txn)
+	txnSigned, err := client.Sign(txn)
 	if err != nil {
 		return err
 	}
 
-	haveSign, needSign, _ = crypto.GetSignStatus(txn.Programs[0].Code, txn.Programs[0].Parameter)
-	fmt.Println("[", haveSign, "/", needSign, "] Transaction was successfully signed")
+	haveSign, needSign, _ = crypto.GetSignStatus(txn.Programs()[0].Code, txn.Programs()[0].Parameter)
+	fmt.Println("[", haveSign, "/", needSign, "] BaseTransaction was successfully signed")
 
 	OutputTx(haveSign, needSign, txnSigned)
 
@@ -279,7 +287,18 @@ func showTx(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	var txn types.Transaction
+	txn := functions.CreateTransaction(
+		common2.TxVersion09,
+		common2.TransferAsset,
+		0,
+		nil,
+		[]*common2.Attribute{},
+		[]*common2.Input{},
+		[]*common2.Output{},
+		0,
+		[]*program.Program{},
+	)
+
 	if err := txn.Deserialize(bytes.NewReader(txBytes)); err != nil {
 		return err
 	}

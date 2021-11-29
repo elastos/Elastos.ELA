@@ -153,7 +153,7 @@ func NewCommand() *cli.Command {
 				Usage: "Get raw transaction by transaction hash",
 				Action: func(c *cli.Context) error {
 					if c.NArg() < 1 {
-						cmdcom.PrintErrorMsg("Missing argument. Transaction hash expected.")
+						cmdcom.PrintErrorMsg("Missing argument. BaseTransaction hash expected.")
 						cli.ShowCommandHelpAndExit(c, "getrawtransaction", 1)
 					}
 					param := c.Args().First()

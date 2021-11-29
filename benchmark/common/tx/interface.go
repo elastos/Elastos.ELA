@@ -7,7 +7,8 @@ package tx
 
 import (
 	"github.com/elastos/Elastos.ELA/account"
-	"github.com/elastos/Elastos.ELA/core/types"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 )
 
 type AssignerType byte
@@ -18,16 +19,16 @@ const (
 )
 
 type Generator interface {
-	Generate() *types.Transaction
+	Generate() interfaces.Transaction
 }
 
 type Assigner interface {
-	SignAndChange(tx *types.Transaction) error
+	SignAndChange(tx interfaces.Transaction) error
 }
 
-func NewGenerator(txType types.TxType, ac ...*account.Account) Generator {
+func NewGenerator(txType common2.TxType, ac ...*account.Account) Generator {
 	switch txType {
-	case types.TransferAsset:
+	case common2.TransferAsset:
 		return &transferAssetGenerator{account: ac}
 	default:
 		return nil
@@ -35,7 +36,7 @@ func NewGenerator(txType types.TxType, ac ...*account.Account) Generator {
 }
 
 func NewAssigner(assignerType AssignerType, ac *account.Account,
-	utxo *types.UTXO) Assigner {
+	utxo *common2.UTXO) Assigner {
 	switch assignerType {
 	case NoChanges:
 		return &noChangesEvenAssigner{account: ac, utxo: utxo}

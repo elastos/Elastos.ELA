@@ -136,7 +136,7 @@ func updateDposRewards(b *types.Block) {
 	for _, tx := range b.Transactions {
 		reference, _ := blockchain.DefaultLedger.Blockchain.UTXOCache.GetTxReference(tx)
 		fee := blockchain.GetTxFee(tx, config.ELAAssetID, reference)
-		if fee != tx.Fee {
+		if fee != tx.Fee() {
 			continue
 		}
 		totalTxFee += fee

@@ -21,6 +21,9 @@ import (
 	"github.com/elastos/Elastos.ELA/core/contract"
 	"github.com/elastos/Elastos.ELA/core/contract/program"
 	"github.com/elastos/Elastos.ELA/core/types"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/functions"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/cr/state"
 	"github.com/elastos/Elastos.ELA/dpos/p2p/peer"
@@ -133,8 +136,8 @@ func (a *arbitrators) GetRevertToPOWBlockHeight() uint32 {
 func (a *arbitrators) RegisterFunction(bestHeight func() uint32,
 	bestBlockHash func() *common.Uint256,
 	getBlockByHeight func(uint32) (*types.Block, error),
-	getTxReference func(tx *types.Transaction) (
-		map[*types.Input]types.Output, error)) {
+	getTxReference func(tx interfaces.Transaction) (
+		map[*common2.Input]common2.Output, error)) {
 	a.bestHeight = bestHeight
 	a.bestBlockHash = bestBlockHash
 	a.getBlockByHeight = getBlockByHeight
@@ -197,7 +200,7 @@ func (a *arbitrators) CheckDPOSIllegalTx(block *types.Block) error {
 
 	for _, tx := range block.Transactions {
 		if tx.IsIllegalBlockTx() {
-			foundMap[tx.Payload.(*payload.DPOSIllegalBlocks).Hash()] = true
+			foundMap[tx.Payload().(*payload.DPOSIllegalBlocks).Hash()] = true
 		}
 	}
 
@@ -313,7 +316,7 @@ func (a *arbitrators) CheckCustomIDResultsTx(block *types.Block) error {
 	return nil
 }
 
-func (a *arbitrators) ProcessSpecialTxPayload(p types.Payload,
+func (a *arbitrators) ProcessSpecialTxPayload(p interfaces.Payload,
 	height uint32) error {
 	switch obj := p.(type) {
 	case *payload.DPOSIllegalBlocks:
@@ -567,6 +570,7 @@ func (a *arbitrators) IncreaseChainHeight(block *types.Block) {
 }
 
 func (a *arbitrators) createRevertToPOWTransaction(blockHeight uint32) {
+
 	var revertType payload.RevertType
 	if a.NoClaimDPOSNode {
 		revertType = payload.NoClaimDPOSNode
@@ -577,15 +581,17 @@ func (a *arbitrators) createRevertToPOWTransaction(blockHeight uint32) {
 		Type:          revertType,
 		WorkingHeight: blockHeight + 1,
 	}
-	tx := &types.Transaction{
-		Version:        types.TxVersion09,
-		TxType:         types.RevertToPOW,
-		PayloadVersion: payload.RevertToPOWVersion,
-		Payload:        &revertToPOWPayload,
-		Attributes:     []*types.Attribute{},
-		Programs:       []*program.Program{},
-		LockTime:       0,
-	}
+	tx := functions.CreateTransaction(
+		common2.TxVersion09,
+		common2.RevertToPOW,
+		payload.RevertToPOWVersion,
+		&revertToPOWPayload,
+		[]*common2.Attribute{},
+		[]*common2.Input{},
+		[]*common2.Output{},
+		0,
+		[]*program.Program{},
+	)
 	go events.Notify(events.ETAppendTxToTxPoolWithoutRelay, tx)
 }
 
@@ -707,7 +713,7 @@ func (a *arbitrators) distributeDPOSReward(height uint32,
 	} else if height >= a.chainParams.CRCommitteeStartHeight+2*uint32(len(a.currentArbitrators)) {
 		roundReward, realDPOSReward, err = a.distributeWithNormalArbitratorsV1(height, reward)
 	} else {
-		roundReward, realDPOSReward, err = a.distributeWithNormalArbitratorsV0(reward)
+		roundReward, realDPOSReward, err = a.distributeWithNormalArbitratorsV0(height, reward)
 	}
 
 	if err != nil {
@@ -1505,7 +1511,8 @@ func (a *arbitrators) ConvertToArbitersStr(arbiters [][]byte) []string {
 	return arbitersStr
 }
 
-func (a *arbitrators) createNextTurnDPOSInfoTransaction(blockHeight uint32, forceChange bool) *types.Transaction {
+func (a *arbitrators) createNextTurnDPOSInfoTransaction(blockHeight uint32, forceChange bool) interfaces.Transaction {
+
 	var nextTurnDPOSInfo payload.NextTurnDPOSInfo
 	nextTurnDPOSInfo.CRPublicKeys = make([][]byte, 0)
 	nextTurnDPOSInfo.DPOSPublicKeys = make([][]byte, 0)
@@ -1531,14 +1538,17 @@ func (a *arbitrators) createNextTurnDPOSInfoTransaction(blockHeight uint32, forc
 	log.Debugf("[createNextTurnDPOSInfoTransaction] CRPublicKeys %v, DPOSPublicKeys%v\n",
 		a.ConvertToArbitersStr(nextTurnDPOSInfo.CRPublicKeys), a.ConvertToArbitersStr(nextTurnDPOSInfo.DPOSPublicKeys))
 
-	return &types.Transaction{
-		Version:    types.TxVersion09,
-		TxType:     types.NextTurnDPOSInfo,
-		Payload:    &nextTurnDPOSInfo,
-		Attributes: []*types.Attribute{},
-		Programs:   []*program.Program{},
-		LockTime:   0,
-	}
+	return functions.CreateTransaction(
+		common2.TxVersion09,
+		common2.NextTurnDPOSInfo,
+		0,
+		&nextTurnDPOSInfo,
+		[]*common2.Attribute{},
+		[]*common2.Input{},
+		[]*common2.Output{},
+		0,
+		[]*program.Program{},
+	)
 }
 
 func (a *arbitrators) updateNextTurnInfo(height uint32, producers []ArbiterMember, unclaimed int) {
@@ -2247,7 +2257,7 @@ func (a *arbitrators) dumpInfo(height uint32) {
 func (a *arbitrators) getBlockDPOSReward(block *types.Block) common.Fixed64 {
 	totalTxFx := common.Fixed64(0)
 	for _, tx := range block.Transactions {
-		totalTxFx += tx.Fee
+		totalTxFx += tx.Fee()
 	}
 
 	return common.Fixed64(math.Ceil(float64(totalTxFx+

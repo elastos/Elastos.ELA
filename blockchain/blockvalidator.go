@@ -120,7 +120,7 @@ func (b *BlockChain) CheckBlockSanity(block *Block) error {
 		// Append transaction to list
 		txIDs = append(txIDs, txID)
 	}
-	if err := checkDuplicateTx(block); err != nil {
+	if err := CheckDuplicateTx(block); err != nil {
 		return err
 	}
 	calcTransactionsRoot, err := crypto.ComputeRoot(txIDs)
@@ -134,7 +134,7 @@ func (b *BlockChain) CheckBlockSanity(block *Block) error {
 	return nil
 }
 
-func checkDuplicateTx(block *Block) error {
+func CheckDuplicateTx(block *Block) error {
 	existingSideTxs := make(map[Uint256]struct{})
 	existingProducer := make(map[string]struct{})
 	existingProducerNode := make(map[string]struct{})
@@ -444,7 +444,7 @@ func (b *BlockChain) checkCoinbaseTransactionContext(blockHeight uint32, coinbas
 			return errors.New("reward amount in coinbase not correct")
 		}
 
-		if err := checkCoinbaseArbitratorsReward(coinbase); err != nil {
+		if err := CheckCoinbaseArbitratorsReward(coinbase); err != nil {
 			return err
 		}
 	} else { // old version [0, H2)
@@ -465,7 +465,7 @@ func (b *BlockChain) checkCoinbaseTransactionContext(blockHeight uint32, coinbas
 	return nil
 }
 
-func checkCoinbaseArbitratorsReward(coinbase interfaces.Transaction) error {
+func CheckCoinbaseArbitratorsReward(coinbase interfaces.Transaction) error {
 	rewards := DefaultLedger.Arbitrators.GetArbitersRoundReward()
 	if len(rewards) != len(coinbase.Outputs())-2 {
 		return errors.New("coinbase output count not match")

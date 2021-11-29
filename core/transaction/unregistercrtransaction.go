@@ -58,7 +58,7 @@ func (t *UnregisterCRTransaction) SpecialContextCheck() (elaerr.ELAError, bool) 
 	if cr == nil {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("unregister unknown CR")), true
 	}
-	if cr.State() != crstate.Pending && cr.State() != crstate.Active {
+	if cr.State != crstate.Pending && cr.State != crstate.Active {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("unregister canceled or returned CR")), true
 	}
 
@@ -68,7 +68,7 @@ func (t *UnregisterCRTransaction) SpecialContextCheck() (elaerr.ELAError, bool) 
 		return elaerr.Simple(elaerr.ErrTxPayload, err), true
 	}
 
-	err = blockchain.CheckCRTransactionSignature(info.Signature, cr.Info().Code, signedBuf.Bytes())
+	err = blockchain.CheckCRTransactionSignature(info.Signature, cr.Info.Code, signedBuf.Bytes())
 	if err != nil {
 		return elaerr.Simple(elaerr.ErrTxPayload, err), true
 	}

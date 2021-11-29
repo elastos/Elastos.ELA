@@ -316,7 +316,7 @@ func (p *ProposalManager) terminatedProposal(proposalState *ProposalState,
 	})
 }
 
-// transferRegisteredState will transfer the Registered state by CR agreement
+// transferRegisteredState will transfer the Registered State by CR agreement
 // count.
 func (p *ProposalManager) transferRegisteredState(proposalState *ProposalState,
 	height uint32) (status ProposalStatus) {
@@ -427,7 +427,7 @@ func (p *ProposalManager) dealProposal(proposalState *ProposalState, unusedAmoun
 	}
 }
 
-// transferCRAgreedState will transfer CRAgreed state by votes' reject amount.
+// transferCRAgreedState will transfer CRAgreed State by Votes' reject amount.
 func (p *ProposalManager) transferCRAgreedState(proposalState *ProposalState,
 	height uint32, circulation common.Fixed64) (status ProposalStatus) {
 	if proposalState.VotersRejectAmount >= common.Fixed64(float64(circulation)*
@@ -493,7 +493,7 @@ func isSpecialProposal(proposalType payload.CRCProposalType) bool {
 	}
 }
 
-// shouldEndCRCVote returns if current height should end CRC vote about
+// shouldEndCRCVote returns if current Height should end CRC vote about
 // 	the specified proposal.
 func (p *ProposalManager) shouldEndCRCVote(RegisterHeight uint32,
 	height uint32) bool {
@@ -550,7 +550,7 @@ func (p *ProposalManager) removeRegisterSideChainInfo(proposalState *ProposalSta
 	}
 }
 
-// shouldEndPublicVote returns if current height should end public vote
+// shouldEndPublicVote returns if current Height should end public vote
 // about the specified proposal.
 func (p *ProposalManager) shouldEndPublicVote(VoteStartHeight uint32,
 	height uint32) bool {
@@ -594,7 +594,7 @@ func (p *ProposalManager) delProposal(did common.Uint168,
 	}
 }
 
-// registerProposal will register proposal state in proposal manager
+// registerProposal will register proposal State in proposal manager
 func (p *ProposalManager) registerProposal(tx interfaces.Transaction,
 	height uint32, currentsSession uint64, history *utils.History) {
 	proposal := tx.Payload().(*payload.CRCProposal)
@@ -683,7 +683,7 @@ func getCIDByCode(code []byte) (*common.Uint168, error) {
 	return ct1.ToProgramHash(), err
 }
 
-func getDIDByCode(code []byte) (*common.Uint168, error) {
+func GetDIDByCode(code []byte) (*common.Uint168, error) {
 	didCode := make([]byte, len(code))
 	copy(didCode, code)
 	didCode = append(didCode[:len(code)-1], common.DID)

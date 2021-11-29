@@ -6,6 +6,7 @@
 package state
 
 import (
+	"github.com/elastos/Elastos.ELA/test/unit"
 	"testing"
 
 	"github.com/elastos/Elastos.ELA/common/config"
@@ -16,15 +17,15 @@ import (
 func TestProposalManager_Queries(t *testing.T) {
 	manager := NewProposalManager(&config.DefaultParams)
 
-	proposalKey := randomUint256()
-	proposalState := randomProposalState()
+	proposalKey := unit.randomUint256()
+	proposalState := unit.randomProposalState()
 	manager.Proposals[*proposalKey] = proposalState
 
 	assert.True(t, manager.existProposal(*proposalKey))
-	assert.False(t, manager.existProposal(*randomUint256()))
+	assert.False(t, manager.existProposal(*unit.randomUint256()))
 
 	assert.True(t, manager.existDraft(proposalState.Proposal.DraftHash))
-	assert.False(t, manager.existDraft(*randomUint256()))
+	assert.False(t, manager.existDraft(*unit.randomUint256()))
 
 	assert.Equal(t, proposalState, manager.getProposal(*proposalKey))
 }

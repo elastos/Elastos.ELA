@@ -3,16 +3,17 @@
 // license that can be found in the LICENSE file.
 //
 
-package state
+package unit
 
 import (
 	"bytes"
 	"crypto/rand"
-	"github.com/elastos/Elastos.ELA/core/contract"
 	rand2 "math/rand"
 	"testing"
 
+	"github.com/elastos/Elastos.ELA/cr/state"
 	"github.com/elastos/Elastos.ELA/common"
+	"github.com/elastos/Elastos.ELA/core/contract"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/crypto"
 
@@ -25,21 +26,21 @@ func TestCandidate_Deserialize(t *testing.T) {
 	buf := new(bytes.Buffer)
 	candidate1.Serialize(buf)
 
-	candidate2 := &Candidate{}
+	candidate2 := &state.Candidate{}
 	candidate2.Deserialize(buf)
 
 	assert.True(t, candidateEqual(candidate1, candidate2))
 }
 
-func candidateEqual(first *Candidate, second *Candidate) bool {
-	return crInfoEqual(&first.info, &second.info) &&
-		first.state == second.state && first.votes == second.votes &&
-		first.registerHeight == second.registerHeight &&
-		first.cancelHeight == second.cancelHeight &&
-		first.depositHash.IsEqual(second.depositHash)
+func candidateEqual(first *state.Candidate, second *state.Candidate) bool {
+	return crInfoEqual(&first.Info, &second.Info) &&
+		first.State == second.State && first.Votes == second.Votes &&
+		first.RegisterHeight == second.RegisterHeight &&
+		first.CancelHeight == second.CancelHeight &&
+		first.DepositHash.IsEqual(second.DepositHash)
 }
 
-func depositInfoEqual(first *DepositInfo, second *DepositInfo) bool {
+func depositInfoEqual(first *state.DepositInfo, second *state.DepositInfo) bool {
 	return first.DepositAmount == second.DepositAmount &&
 		first.Penalty == second.Penalty &&
 		first.TotalAmount == second.TotalAmount
@@ -76,35 +77,15 @@ func getDID(code []byte) *common.Uint168 {
 	return ct1.ToProgramHash()
 }
 
-func randomCandidate() *Candidate {
-	return &Candidate{
-		info:           *randomCRInfo(),
-		state:          CandidateState(rand2.Uint32()),
-		votes:          common.Fixed64(rand2.Int63()),
-		registerHeight: rand2.Uint32(),
-		cancelHeight:   rand2.Uint32(),
-		depositHash:    *randomUint168(),
+func randomCandidate() *state.Candidate {
+	return &state.Candidate{
+		Info:           *randomCRInfo(),
+		State:          state.CandidateState(rand2.Uint32()),
+		Votes:          common.Fixed64(rand2.Int63()),
+		RegisterHeight: rand2.Uint32(),
+		CancelHeight:   rand2.Uint32(),
+		DepositHash:    *randomUint168(),
 	}
-}
-
-func randomString() string {
-	a := make([]byte, 20)
-	rand.Read(a)
-	return common.BytesToHexString(a)
-}
-
-func randomBytes(len int) []byte {
-	a := make([]byte, len)
-	rand.Read(a)
-	return a
-}
-
-func randomUint168() *common.Uint168 {
-	randBytes := make([]byte, 21)
-	rand.Read(randBytes)
-	result, _ := common.Uint168FromBytes(randBytes)
-
-	return result
 }
 
 func randomUint256() *common.Uint256 {

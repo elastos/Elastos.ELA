@@ -18,9 +18,9 @@ import (
 	"github.com/elastos/Elastos.ELA/utils"
 )
 
-// processTransactions takes the transactions and the height when they have been
+// processTransactions takes the transactions and the Height when they have been
 // packed into a block.  Then loop through the transactions to update CR
-// state and votes according to transactions content.
+// State and Votes according to transactions content.
 func (c *Committee) processTransactions(txs []interfaces.Transaction, height uint32) {
 	sortedTxs := make([]interfaces.Transaction, 0)
 	if len(txs) < 1 {
@@ -29,7 +29,7 @@ func (c *Committee) processTransactions(txs []interfaces.Transaction, height uin
 	for _, tx := range txs {
 		sortedTxs = append(sortedTxs, tx)
 	}
-	sortTransactions(sortedTxs[1:])
+	SortTransactions(sortedTxs[1:])
 	for _, tx := range sortedTxs {
 		c.processTransaction(tx, height)
 	}
@@ -60,8 +60,8 @@ func (c *Committee) processTransactions(txs []interfaces.Transaction, height uin
 	}
 }
 
-// sortTransactions purpose is to process some transaction first.
-func sortTransactions(txs []interfaces.Transaction) {
+// SortTransactions purpose is to process some transaction first.
+func SortTransactions(txs []interfaces.Transaction) {
 	sort.Slice(txs, func(i, j int) bool {
 		if txs[i].IsCRCProposalWithdrawTx() {
 			return true
@@ -70,12 +70,12 @@ func sortTransactions(txs []interfaces.Transaction) {
 	})
 }
 
-// processTransaction take a transaction and the height it has been packed into
-// a block, then update producers state and votes according to the transaction
+// processTransaction take a transaction and the Height it has been packed into
+// a block, then update producers State and Votes according to the transaction
 // content.
 func (c *Committee) processTransaction(tx interfaces.Transaction, height uint32) {
 
-	// prioritize cancel votes
+	// prioritize cancel Votes
 	c.processCancelVotes(tx, height)
 
 	switch tx.TxType() {
@@ -136,7 +136,7 @@ func (c *Committee) proposalTracking(tx interfaces.Transaction, height uint32) {
 }
 
 // processVotes takes a transaction, if the transaction including any vote
-// outputs, validate and update CR votes.
+// outputs, validate and update CR Votes.
 func (c *Committee) processVotes(tx interfaces.Transaction, height uint32) {
 	if tx.Version() >= common2.TxVersion09 {
 		for i, output := range tx.Outputs() {
@@ -218,7 +218,7 @@ func (c *Committee) processCancelVotes(tx interfaces.Transaction, height uint32)
 	}
 }
 
-// processVoteCancel takes a previous vote output and decrease CR votes.
+// processVoteCancel takes a previous vote output and decrease CR Votes.
 func (c *Committee) processVoteCancel(output *common2.Output, height uint32) {
 	p := output.Payload.(*outputpayload.VoteOutput)
 	for _, vote := range p.Contents {
@@ -235,9 +235,9 @@ func (c *Committee) processVoteCancel(output *common2.Output, height uint32) {
 				}
 				v := cv.Votes
 				c.state.history.Append(height, func() {
-					candidate.votes -= v
+					candidate.Votes -= v
 				}, func() {
-					candidate.votes += v
+					candidate.Votes += v
 				})
 
 			case outputpayload.CRCProposal:

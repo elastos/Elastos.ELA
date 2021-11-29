@@ -89,12 +89,12 @@ func (t *UpdateCRTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
 	if cr == nil {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("updating unknown CR")), true
 	}
-	if cr.State() != crstate.Pending && cr.State() != crstate.Active {
+	if cr.State != crstate.Pending && cr.State != crstate.Active {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("updating canceled or returned CR")), true
 	}
 
 	// check nickname usage.
-	if cr.Info().NickName != info.NickName &&
+	if cr.Info.NickName != info.NickName &&
 		t.parameters.BlockChain.GetCRCommittee().ExistCandidateByNickname(info.NickName) {
 		return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("nick name %s already exist", info.NickName)), true
 	}

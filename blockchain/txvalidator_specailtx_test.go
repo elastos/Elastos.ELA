@@ -7,6 +7,7 @@ package blockchain
 
 import (
 	"bytes"
+	"github.com/elastos/Elastos.ELA/test/unit"
 	"math/rand"
 	"path/filepath"
 	"strconv"
@@ -621,7 +622,7 @@ func (s *txValidatorSpecialTxTestSuite) TestCheckSidechainIllegalEvidence() {
 	s.EqualError(CheckSidechainIllegalEvidence(illegalData),
 		"the encodeData cann't be nil")
 
-	illegalData.IllegalSigner = randomBytes(33)
+	illegalData.IllegalSigner = unit.randomBytes(33)
 	//s.EqualError(CheckSidechainIllegalEvidence(illegalData),
 	//	"the encodeData format is error")
 

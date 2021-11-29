@@ -75,7 +75,7 @@ func (c *Committee) ExistCR(programCode []byte) bool {
 		return true
 	}
 
-	did, err := getDIDByCode(programCode)
+	did, err := GetDIDByCode(programCode)
 	if err != nil {
 		return false
 	}
@@ -303,17 +303,17 @@ func (c *Committee) getMemberByNodePublicKey(nodePK []byte) *CRMember {
 	return nil
 }
 
-// update Candidates state in voting period
+// update Candidates State in voting period
 func (c *Committee) updateVotingCandidatesState(height uint32) {
 	if c.isInVotingPeriod(height) {
 		// Check if any pending candidates has got 6 confirms, set them to activate.
 		activateCandidateFromPending :=
 			func(key common.Uint168, candidate *Candidate) {
 				c.state.history.Append(height, func() {
-					candidate.state = Active
+					candidate.State = Active
 					c.state.Candidates[key] = candidate
 				}, func() {
-					candidate.state = Pending
+					candidate.State = Pending
 					c.state.Candidates[key] = candidate
 				})
 			}
@@ -322,8 +322,8 @@ func (c *Committee) updateVotingCandidatesState(height uint32) {
 
 		if len(pendingCandidates) > 0 {
 			for _, candidate := range pendingCandidates {
-				if height-candidate.registerHeight+1 >= ActivateDuration {
-					activateCandidateFromPending(candidate.info.CID, candidate)
+				if height-candidate.RegisterHeight+1 >= ActivateDuration {
+					activateCandidateFromPending(candidate.Info.CID, candidate)
 				}
 			}
 		}
@@ -333,18 +333,18 @@ func (c *Committee) updateVotingCandidatesState(height uint32) {
 // update Candidates deposit coin
 func (c *Committee) updateCandidatesDepositCoin(height uint32) {
 	updateDepositCoin := func(key common.Uint168, candidate *Candidate) {
-		oriDepositAmount := c.state.depositInfo[key].DepositAmount
+		oriDepositAmount := c.state.DepositInfo[key].DepositAmount
 		c.state.history.Append(height, func() {
-			c.state.depositInfo[key].DepositAmount -= MinDepositAmount
+			c.state.DepositInfo[key].DepositAmount -= MinDepositAmount
 		}, func() {
-			c.state.depositInfo[key].DepositAmount = oriDepositAmount
+			c.state.DepositInfo[key].DepositAmount = oriDepositAmount
 		})
 	}
 
 	canceledCandidates := c.state.getCandidates(Canceled)
 	for _, candidate := range canceledCandidates {
-		if height-candidate.CancelHeight() == c.params.CRDepositLockupBlocks {
-			updateDepositCoin(candidate.info.CID, candidate)
+		if height-candidate.CancelHeight == c.params.CRDepositLockupBlocks {
+			updateDepositCoin(candidate.Info.CID, candidate)
 		}
 	}
 }
@@ -359,7 +359,7 @@ func (c *Committee) ProcessBlock(block *types.Block, confirm *payload.Confirm) {
 	// Get UTXOs of CR assets address and committee address.
 	c.recordCRCRelatedAddressOutputs(block)
 
-	// If reached the voting start height, record the last voting start height.
+	// If reached the voting start Height, record the last voting start Height.
 	c.recordLastVotingStartHeight(block.Height)
 
 	c.processTransactions(block.Transactions, block.Height)
@@ -492,18 +492,18 @@ func (c *Committee) updateCRMembers(
 }
 
 func (c *Committee) transferCRMemberState(crMember *CRMember, height uint32) {
-	oriPenalty := c.state.depositInfo[crMember.Info.CID].Penalty
-	oriDepositAmount := c.state.depositInfo[crMember.Info.CID].DepositAmount
+	oriPenalty := c.state.DepositInfo[crMember.Info.CID].Penalty
+	oriDepositAmount := c.state.DepositInfo[crMember.Info.CID].DepositAmount
 	oriMemberState := crMember.MemberState
 	penalty := c.getMemberPenalty(height, crMember, true)
 	c.lastHistory.Append(height, func() {
 		crMember.MemberState = MemberImpeached
-		c.state.depositInfo[crMember.Info.CID].Penalty = penalty
-		c.state.depositInfo[crMember.Info.CID].DepositAmount -= MinDepositAmount
+		c.state.DepositInfo[crMember.Info.CID].Penalty = penalty
+		c.state.DepositInfo[crMember.Info.CID].DepositAmount -= MinDepositAmount
 	}, func() {
 		crMember.MemberState = oriMemberState
-		c.state.depositInfo[crMember.Info.CID].Penalty = oriPenalty
-		c.state.depositInfo[crMember.Info.CID].DepositAmount = oriDepositAmount
+		c.state.DepositInfo[crMember.Info.CID].Penalty = oriPenalty
+		c.state.DepositInfo[crMember.Info.CID].DepositAmount = oriDepositAmount
 	})
 	return
 }
@@ -785,7 +785,7 @@ func (c *Committee) recordLastVotingStartHeight(height uint32) {
 	if c.isInVotingPeriod(height) {
 		return
 	}
-	// Update last voting start height one block ahead.
+	// Update last voting start Height one block ahead.
 	if height == c.LastCommitteeHeight+c.params.CRDutyPeriod-
 		c.params.CRVotingPeriod-1 {
 		lastVotingStartHeight := c.LastVotingStartHeight
@@ -842,18 +842,18 @@ func (c *Committee) tryStartVotingPeriod(height uint32) (inElection bool) {
 }
 
 func (c *Committee) terminateCRMember(crMember *CRMember, height uint32) {
-	oriPenalty := c.state.depositInfo[crMember.Info.CID].Penalty
-	oriDepositAmount := c.state.depositInfo[crMember.Info.CID].DepositAmount
+	oriPenalty := c.state.DepositInfo[crMember.Info.CID].Penalty
+	oriDepositAmount := c.state.DepositInfo[crMember.Info.CID].DepositAmount
 	oriMemberState := crMember.MemberState
 	penalty := c.getMemberPenalty(height, crMember, false)
 	c.lastHistory.Append(height, func() {
 		crMember.MemberState = MemberTerminated
-		c.state.depositInfo[crMember.Info.CID].Penalty = penalty
-		c.state.depositInfo[crMember.Info.CID].DepositAmount -= MinDepositAmount
+		c.state.DepositInfo[crMember.Info.CID].Penalty = penalty
+		c.state.DepositInfo[crMember.Info.CID].DepositAmount -= MinDepositAmount
 	}, func() {
 		crMember.MemberState = oriMemberState
-		c.state.depositInfo[crMember.Info.CID].Penalty = oriPenalty
-		c.state.depositInfo[crMember.Info.CID].DepositAmount = oriDepositAmount
+		c.state.DepositInfo[crMember.Info.CID].Penalty = oriPenalty
+		c.state.DepositInfo[crMember.Info.CID].DepositAmount = oriDepositAmount
 	})
 }
 
@@ -1002,7 +1002,7 @@ func (c *Committee) RollbackTo(height uint32) error {
 			log.Debug("manager rollback err:", err)
 		}
 		if err := c.state.rollbackTo(i); err != nil {
-			log.Debug("state rollback err:", err)
+			log.Debug("State rollback err:", err)
 		}
 		if err := c.firstHistory.RollbackTo(i); err != nil {
 			log.Debug("committee first history rollback err:", err)
@@ -1079,7 +1079,7 @@ func (c *Committee) changeCommitteeMembers(height uint32) error {
 			c.InElectionPeriod = oriInElectionPeriod
 			c.LastVotingStartHeight = oriLastVotingStartHeight
 		})
-		return errors.New("candidates count less than required count height" + strconv.Itoa(int(height)))
+		return errors.New("candidates count less than required count Height" + strconv.Itoa(int(height)))
 	}
 	// Process current members.
 	newMembers := c.processCurrentMembersHistory(height, candidates)
@@ -1128,7 +1128,7 @@ func (c *Committee) processCurrentMembersHistory(height uint32,
 
 	newMembers := make(map[common.Uint168]*CRMember, c.params.CRMemberCount)
 	for i := 0; i < int(c.params.CRMemberCount); i++ {
-		newMembers[activeCandidates[i].info.DID] =
+		newMembers[activeCandidates[i].Info.DID] =
 			c.generateMember(activeCandidates[i])
 	}
 
@@ -1156,15 +1156,15 @@ func (c *Committee) processCurrentMembersDepositInfo(height uint32) {
 				member.MemberState != MemberIllegal {
 				continue
 			}
-			oriPenalty := c.state.depositInfo[m.Info.CID].Penalty
-			oriDepositAmount := c.state.depositInfo[m.Info.CID].DepositAmount
+			oriPenalty := c.state.DepositInfo[m.Info.CID].Penalty
+			oriDepositAmount := c.state.DepositInfo[m.Info.CID].DepositAmount
 			penalty := c.getMemberPenalty(height, &member, false)
 			c.lastHistory.Append(height, func() {
-				c.state.depositInfo[member.Info.CID].Penalty = penalty
-				c.state.depositInfo[member.Info.CID].DepositAmount -= MinDepositAmount
+				c.state.DepositInfo[member.Info.CID].Penalty = penalty
+				c.state.DepositInfo[member.Info.CID].DepositAmount -= MinDepositAmount
 			}, func() {
-				c.state.depositInfo[member.Info.CID].Penalty = oriPenalty
-				c.state.depositInfo[member.Info.CID].DepositAmount = oriDepositAmount
+				c.state.DepositInfo[member.Info.CID].Penalty = oriPenalty
+				c.state.DepositInfo[member.Info.CID].DepositAmount = oriDepositAmount
 			})
 		}
 	}
@@ -1179,7 +1179,7 @@ func (c *Committee) processCurrentCandidates(height uint32,
 	}
 	membersMap := make(map[common.Uint168]struct{})
 	for _, c := range activeCandidates {
-		membersMap[c.info.DID] = struct{}{}
+		membersMap[c.Info.DID] = struct{}{}
 	}
 	for k, v := range c.state.Candidates {
 		if _, ok := membersMap[k]; !ok {
@@ -1192,22 +1192,22 @@ func (c *Committee) processCurrentCandidates(height uint32,
 	for _, candidate := range oriCandidate {
 		ca := *candidate
 		// if candidate changed to member, no need to update deposit coin again.
-		if _, ok := newMembers[ca.info.DID]; ok {
+		if _, ok := newMembers[ca.Info.DID]; ok {
 			continue
 		}
 		// if canceled enough blocks, no need to update deposit coin again.
-		if ca.state == Canceled && height-ca.CancelHeight() >= c.params.CRDepositLockupBlocks {
+		if ca.State == Canceled && height-ca.CancelHeight >= c.params.CRDepositLockupBlocks {
 			continue
 		}
 		// if CR deposit coin is returned, no need to update deposit coin again.
-		if ca.state == Returned {
+		if ca.State == Returned {
 			continue
 		}
-		oriDepositAmount := c.state.depositInfo[ca.info.CID].DepositAmount
+		oriDepositAmount := c.state.DepositInfo[ca.Info.CID].DepositAmount
 		c.lastHistory.Append(height, func() {
-			c.state.depositInfo[ca.info.CID].DepositAmount -= MinDepositAmount
+			c.state.DepositInfo[ca.Info.CID].DepositAmount -= MinDepositAmount
 		}, func() {
-			c.state.depositInfo[ca.info.CID].DepositAmount = oriDepositAmount
+			c.state.DepositInfo[ca.Info.CID].DepositAmount = oriDepositAmount
 		})
 	}
 	c.lastHistory.Append(height, func() {
@@ -1221,9 +1221,9 @@ func (c *Committee) processCurrentCandidates(height uint32,
 
 func (c *Committee) generateMember(candidate *Candidate) *CRMember {
 	return &CRMember{
-		Info:                  candidate.info,
+		Info:                  candidate.Info,
 		ImpeachmentVotes:      0,
-		DepositHash:           candidate.depositHash,
+		DepositHash:           candidate.DepositHash,
 		MemberState:           MemberElected,
 		ActivateRequestHeight: math.MaxUint32,
 	}
@@ -1260,11 +1260,11 @@ func (c *Committee) getMemberPenalty(height uint32, member *CRMember, impeached 
 	}
 
 	// Calculate the final penalty.
-	penalty := c.state.depositInfo[member.Info.CID].Penalty
+	penalty := c.state.DepositInfo[member.Info.CID].Penalty
 	currentPenalty := common.Fixed64(float64(MinDepositAmount) * (1 - electionRate*voteRate))
 	finalPenalty := penalty + currentPenalty
 
-	log.Infof("height %d member %s, not election and not vote proposal"+
+	log.Infof("Height %d member %s, not election and not vote proposal"+
 		" penalty: %s, old penalty: %s, final penalty: %s",
 		height, member.Info.NickName, currentPenalty, penalty, finalPenalty)
 	log.Info("electionRate:", electionRate, "voteRate:", voteRate,
@@ -1277,10 +1277,10 @@ func (c *Committee) getMemberPenalty(height uint32, member *CRMember, impeached 
 
 func (c *Committee) generateCandidate(height uint32, member *CRMember) *Candidate {
 	return &Candidate{
-		info:         member.Info,
-		state:        Canceled,
-		cancelHeight: height,
-		depositHash:  member.DepositHash,
+		Info:         member.Info,
+		State:        Canceled,
+		CancelHeight: height,
+		DepositHash:  member.DepositHash,
 	}
 }
 
@@ -1288,19 +1288,19 @@ func (c *Committee) getActiveAndExistDIDCRCandidatesDesc() []*Candidate {
 	emptyDID := common.Uint168{}
 	candidates := c.state.getCandidateFromMap(c.state.Candidates,
 		func(candidate *Candidate) bool {
-			if candidate.info.DID.IsEqual(emptyDID) {
+			if candidate.Info.DID.IsEqual(emptyDID) {
 				return false
 			}
-			return candidate.state == Active
+			return candidate.State == Active
 		})
 
 	sort.Slice(candidates, func(i, j int) bool {
-		if candidates[i].votes == candidates[j].votes {
-			iCRInfo := candidates[i].Info()
-			jCRInfo := candidates[j].Info()
+		if candidates[i].Votes == candidates[j].Votes {
+			iCRInfo := candidates[i].Info
+			jCRInfo := candidates[j].Info
 			return iCRInfo.GetCodeHash().Compare(jCRInfo.GetCodeHash()) < 0
 		}
-		return candidates[i].votes > candidates[j].votes
+		return candidates[i].Votes > candidates[j].Votes
 	})
 	return candidates
 }
@@ -1494,7 +1494,7 @@ func (c *Committee) TryUpdateCRMemberInactivity(did common.Uint168,
 
 		if height-crMember.InactiveCountingHeight >= c.params.MaxInactiveRounds {
 			crMember.MemberState = MemberInactive
-			log.Info("at height", height, crMember.Info.NickName,
+			log.Info("at Height", height, crMember.Info.NickName,
 				"changed to inactive", "InactiveCountingHeight:", crMember.InactiveCountingHeight,
 				"MaxInactiveRounds:", c.params.MaxInactiveRounds)
 			crMember.InactiveCountingHeight = 0
@@ -1508,7 +1508,7 @@ func (c *Committee) TryUpdateCRMemberInactivity(did common.Uint168,
 		crMember.InactiveCount++
 		if crMember.InactiveCount >= c.params.MaxInactiveRounds &&
 			crMember.MemberState == MemberElected {
-			log.Info("at height", height, crMember.Info.NickName,
+			log.Info("at Height", height, crMember.Info.NickName,
 				"changed to inactive", "InactiveCount:", crMember.InactiveCount,
 				"MaxInactiveRounds:", c.params.MaxInactiveRounds)
 			crMember.MemberState = MemberInactive

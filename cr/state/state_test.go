@@ -6,6 +6,7 @@
 package state
 
 import (
+	"github.com/elastos/Elastos.ELA/test/unit"
 	"testing"
 
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
@@ -24,7 +25,7 @@ import (
 )
 
 func TestState_GetCandidatesRelated(t *testing.T) {
-	keyFrame := *randomStateKeyFrame(5, true)
+	keyFrame := *unit.randomStateKeyFrame(5, true)
 	state := State{
 		StateKeyFrame: keyFrame,
 	}
@@ -32,10 +33,10 @@ func TestState_GetCandidatesRelated(t *testing.T) {
 	// get single candidate
 	for k, v := range keyFrame.Candidates {
 		v2 := state.getCandidate(k)
-		assert.True(t, candidateEqual(v, v2))
+		assert.True(t, unit.candidateEqual(v, v2))
 
 		v3 := state.getCandidate(v.info.CID)
-		assert.True(t, candidateEqual(v, v3))
+		assert.True(t, unit.candidateEqual(v, v3))
 	}
 
 	// get candidates
@@ -56,7 +57,7 @@ func TestState_GetCandidatesRelated(t *testing.T) {
 }
 
 func TestState_ExistCandidateRelated(t *testing.T) {
-	keyFrame := *randomStateKeyFrame(5, true)
+	keyFrame := *unit.randomStateKeyFrame(5, true)
 	state := State{
 		StateKeyFrame: keyFrame,
 	}
@@ -95,7 +96,7 @@ func TestState_ProcessBlock_PendingUpdateThenCancel(t *testing.T) {
 	publicKeyStr1 := "03c77af162438d4b7140f8544ad6523b9734cca9c7a62476d54ed5d1bddc7a39c3"
 	code := getCode(publicKeyStr1)
 	cid := *getCID(code)
-	nickname := randomString()
+	nickname := unit.randomString()
 
 	assert.False(t, committee.state.existCandidate(code))
 	assert.False(t, committee.state.ExistCandidateByCID(cid))
@@ -116,10 +117,10 @@ func TestState_ProcessBlock_PendingUpdateThenCancel(t *testing.T) {
 	assert.True(t, committee.state.ExistCandidateByCID(cid))
 	assert.True(t, committee.state.existCandidateByNickname(nickname))
 	candidate := committee.state.getCandidate(cid)
-	assert.Equal(t, Pending, candidate.state)
+	assert.Equal(t, Pending, candidate.State)
 
 	// update pending CR
-	nickname2 := randomString()
+	nickname2 := unit.randomString()
 	currentHeight++
 	committee.ProcessBlock(&types.Block{
 		Header: common2.Header{
@@ -134,7 +135,7 @@ func TestState_ProcessBlock_PendingUpdateThenCancel(t *testing.T) {
 	assert.False(t, committee.state.existCandidateByNickname(nickname))
 	assert.True(t, committee.state.existCandidateByNickname(nickname2))
 	candidate = committee.state.getCandidate(cid)
-	assert.Equal(t, Pending, candidate.state)
+	assert.Equal(t, Pending, candidate.State)
 
 	//cancel pending CR
 	currentHeight++
@@ -151,7 +152,7 @@ func TestState_ProcessBlock_PendingUpdateThenCancel(t *testing.T) {
 	assert.False(t, committee.state.existCandidateByNickname(nickname))
 	assert.False(t, committee.state.existCandidateByNickname(nickname2))
 	candidate = committee.state.getCandidate(cid)
-	assert.Equal(t, Canceled, candidate.state)
+	assert.Equal(t, Canceled, candidate.State)
 	assert.Equal(t, 0, len(committee.state.getCandidates(Pending)))
 	assert.Equal(t, 1, len(committee.state.getCandidates(Canceled)))
 }
@@ -169,7 +170,7 @@ func TestState_ProcessBlock_PendingActiveThenCancel(t *testing.T) {
 			return []*common2.UTXO{}, nil
 		},
 	})
-	nickname := randomString()
+	nickname := unit.randomString()
 	publicKeyStr1 := "03c77af162438d4b7140f8544ad6523b9734cca9c7a62476d54ed5d1bddc7a39c3"
 	code := getCode(publicKeyStr1)
 	cid := *getCID(code)
@@ -194,9 +195,9 @@ func TestState_ProcessBlock_PendingActiveThenCancel(t *testing.T) {
 	assert.True(t, committee.state.ExistCandidateByCID(cid))
 	assert.True(t, committee.state.existCandidateByNickname(nickname))
 	candidate := committee.state.getCandidate(cid)
-	assert.Equal(t, Pending, candidate.state)
+	assert.Equal(t, Pending, candidate.State)
 
-	// register CR then after 6 block should be active state
+	// register CR then after 6 block should be active State
 	for i := 0; i < 5; i++ {
 		committee.ProcessBlock(&types.Block{
 			Header: common2.Header{
@@ -207,10 +208,10 @@ func TestState_ProcessBlock_PendingActiveThenCancel(t *testing.T) {
 		currentHeight++
 	}
 	candidate = committee.state.getCandidate(cid)
-	assert.Equal(t, Active, candidate.state)
+	assert.Equal(t, Active, candidate.State)
 
 	// update active CR
-	nickname2 := randomString()
+	nickname2 := unit.randomString()
 	committee.ProcessBlock(&types.Block{
 		Header: common2.Header{
 			Height: currentHeight,
@@ -225,7 +226,7 @@ func TestState_ProcessBlock_PendingActiveThenCancel(t *testing.T) {
 	assert.False(t, committee.state.existCandidateByNickname(nickname))
 	assert.True(t, committee.state.existCandidateByNickname(nickname2))
 	candidate = committee.state.getCandidate(cid)
-	assert.Equal(t, Active, candidate.state)
+	assert.Equal(t, Active, candidate.State)
 
 	// cancel active CR
 	committee.ProcessBlock(&types.Block{
@@ -241,7 +242,7 @@ func TestState_ProcessBlock_PendingActiveThenCancel(t *testing.T) {
 	assert.False(t, committee.state.existCandidateByNickname(nickname))
 	assert.False(t, committee.state.existCandidateByNickname(nickname2))
 	candidate = committee.state.getCandidate(cid)
-	assert.Equal(t, Canceled, candidate.state)
+	assert.Equal(t, Canceled, candidate.State)
 	assert.Equal(t, 0, len(committee.state.getCandidates(Pending)))
 	assert.Equal(t, 1, len(committee.state.getCandidates(Canceled)))
 }
@@ -251,7 +252,7 @@ func TestState_ProcessBlock_MixedCRProcessing(t *testing.T) {
 	cfg.CRVotingStartHeight = 0
 	currentHeight := uint32(1)
 	committee := NewCommittee(cfg)
-	committee.state.StateKeyFrame = *randomStateKeyFrame(5, true)
+	committee.state.StateKeyFrame = *unit.randomStateKeyFrame(5, true)
 	committee.RegisterFuncitons(&CommitteeFuncsConfig{
 		GetHeight: func() uint32 {
 			return currentHeight
@@ -269,9 +270,9 @@ func TestState_ProcessBlock_MixedCRProcessing(t *testing.T) {
 	assert.Equal(t, 2, len(committee.state.getCandidates(Returned)))
 
 	for i := 0; i < 10; i++ {
-		code := randomBytes(34)
-		nickname := randomString()
-		cid := *randomUint168()
+		code := unit.randomBytes(34)
+		nickname := unit.randomString()
+		cid := *unit.randomUint168()
 
 		committee.ProcessBlock(&types.Block{
 			Header: common2.Header{
@@ -309,7 +310,7 @@ func TestState_ProcessBlock_VotingAndCancel(t *testing.T) {
 	cfg := &config.DefaultParams
 	cfg.CRVotingStartHeight = 0
 	currentHeight := uint32(1)
-	keyframe := randomStateKeyFrame(5, true)
+	keyframe := unit.randomStateKeyFrame(5, true)
 	committee := NewCommittee(cfg)
 	committee.state.StateKeyFrame = *keyframe
 	committee.RegisterFuncitons(&CommitteeFuncsConfig{
@@ -347,7 +348,7 @@ func TestState_ProcessBlock_VotingAndCancel(t *testing.T) {
 	for i, v := range activeCIDs {
 		did, _ := common.Uint168FromBytes(v)
 		candidate := committee.state.getCandidate(*did)
-		assert.Equal(t, common.Fixed64((i+1)*10), candidate.votes)
+		assert.Equal(t, common.Fixed64((i+1)*10), candidate.Votes)
 	}
 
 	input := &common2.Input{
@@ -355,7 +356,7 @@ func TestState_ProcessBlock_VotingAndCancel(t *testing.T) {
 	}
 	references[input] = *voteTx.Outputs()[0]
 
-	// cancel votes the active candidates
+	// cancel Votes the active candidates
 	var txn []interfaces.Transaction
 	tx := functions.CreateTransaction(
 		common2.TxVersion09,
@@ -379,7 +380,7 @@ func TestState_ProcessBlock_VotingAndCancel(t *testing.T) {
 	for _, v := range activeCIDs {
 		did, _ := common.Uint168FromBytes(v)
 		candidate := committee.state.getCandidate(*did)
-		assert.Equal(t, common.Fixed64(0), candidate.votes)
+		assert.Equal(t, common.Fixed64(0), candidate.Votes)
 	}
 }
 
@@ -413,7 +414,7 @@ func TestState_ProcessBlock_DepositAndReturnDeposit(t *testing.T) {
 		&payload.CRInfo{
 			Code:     code,
 			CID:      cid,
-			NickName: randomString(),
+			NickName: unit.randomString(),
 		},
 		[]*common2.Attribute{},
 		[]*common2.Input{},
@@ -435,9 +436,9 @@ func TestState_ProcessBlock_DepositAndReturnDeposit(t *testing.T) {
 	currentHeight++
 	candidate := committee.state.getCandidate(cid)
 	assert.Equal(t, common.Fixed64(5000*1e8),
-		committee.state.getDepositAmount(candidate.info.CID))
+		committee.state.getDepositAmount(candidate.Info.CID))
 	assert.Equal(t, common.Fixed64(6000*1e8),
-		committee.state.getTotalAmount(candidate.info.CID))
+		committee.state.getTotalAmount(candidate.Info.CID))
 
 	// deposit though normal tx
 
@@ -465,9 +466,9 @@ func TestState_ProcessBlock_DepositAndReturnDeposit(t *testing.T) {
 	}, nil)
 	currentHeight++
 	assert.Equal(t, common.Fixed64(5000*1e8),
-		committee.state.getDepositAmount(candidate.info.CID))
+		committee.state.getDepositAmount(candidate.Info.CID))
 	assert.Equal(t, common.Fixed64(7000*1e8),
-		committee.state.getTotalAmount(candidate.info.CID))
+		committee.state.getTotalAmount(candidate.Info.CID))
 
 	// cancel candidate
 	for i := 0; i < 4; i++ {
@@ -479,7 +480,7 @@ func TestState_ProcessBlock_DepositAndReturnDeposit(t *testing.T) {
 		}, nil)
 		currentHeight++
 	}
-	assert.Equal(t, Active, candidate.state)
+	assert.Equal(t, Active, candidate.State)
 	committee.ProcessBlock(&types.Block{
 		Header: common2.Header{
 			Height: currentHeight,
@@ -499,9 +500,9 @@ func TestState_ProcessBlock_DepositAndReturnDeposit(t *testing.T) {
 		}, nil)
 		currentHeight++
 	}
-	assert.Equal(t, Canceled, candidate.state)
+	assert.Equal(t, Canceled, candidate.State)
 
-	// reached the height to return deposit amount.
+	// reached the Height to return deposit amount.
 	currentHeight = cancelHeight + committee.params.CRDepositLockupBlocks
 	committee.ProcessBlock(&types.Block{
 		Header: common2.Header{
@@ -535,7 +536,7 @@ func TestState_ProcessBlock_DepositAndReturnDeposit(t *testing.T) {
 	}, nil)
 	committee.state.history.Commit(currentHeight)
 	assert.Equal(t, common.Fixed64(0),
-		committee.state.getDepositAmount(candidate.info.CID))
+		committee.state.getDepositAmount(candidate.Info.CID))
 }
 
 func mockNewVoteTx(cids [][]byte) interfaces.Transaction {

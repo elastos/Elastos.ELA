@@ -3,18 +3,19 @@
 // license that can be found in the LICENSE file.
 //
 
-package state
+package unit
 
 import (
 	"bytes"
 	crand "crypto/rand"
 	"encoding/binary"
-	common2 "github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/cr/state"
 	"math/rand"
 	"testing"
 	"time"
 
 	"github.com/elastos/Elastos.ELA/common"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/core/types/outputpayload"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 
@@ -27,7 +28,7 @@ func TestKeyFrame_Deserialize(t *testing.T) {
 	buf := new(bytes.Buffer)
 	frame.Serialize(buf)
 
-	frame2 := &KeyFrame{}
+	frame2 := &state.KeyFrame{}
 	frame2.Deserialize(buf)
 
 	assert.True(t, keyframeEqual(frame, frame2))
@@ -45,7 +46,7 @@ func TestStateKeyFrame_Deserialize(t *testing.T) {
 	buf := new(bytes.Buffer)
 	frame.Serialize(buf)
 
-	frame2 := &StateKeyFrame{}
+	frame2 := &state.StateKeyFrame{}
 	frame2.Deserialize(buf)
 
 	assert.True(t, stateKeyframeEqual(frame, frame2))
@@ -63,7 +64,7 @@ func TestProposalKeyFrame_Deserialize(t *testing.T) {
 	buf := new(bytes.Buffer)
 	frame.Serialize(buf)
 
-	frame2 := &ProposalKeyFrame{}
+	frame2 := &state.ProposalKeyFrame{}
 	frame2.Deserialize(buf)
 
 	assert.True(t, proposalKeyFrameEqual(frame, frame2))
@@ -81,24 +82,24 @@ func TestCheckPoint_Deserialize(t *testing.T) {
 	buf := new(bytes.Buffer)
 	assert.NoError(t, originCheckPoint.Serialize(buf))
 
-	cmpData := &Checkpoint{}
+	cmpData := &state.Checkpoint{}
 	assert.NoError(t, cmpData.Deserialize(buf))
 
 	assert.True(t, checkPointsEqual(originCheckPoint, cmpData))
 }
 
-func generateCheckPoint(height uint32) *Checkpoint {
-	result := &Checkpoint{
+func generateCheckPoint(height uint32) *state.Checkpoint {
+	result := &state.Checkpoint{
 		KeyFrame:         *randomKeyFrame(5, rand.Uint32()),
 		StateKeyFrame:    *randomStateKeyFrame(5, true),
 		ProposalKeyFrame: *randomProposalKeyframe(),
-		height:           height,
+		Height:           height,
 	}
 	return result
 }
 
-func checkPointsEqual(first *Checkpoint, second *Checkpoint) bool {
-	if first.height != second.height {
+func checkPointsEqual(first *state.Checkpoint, second *state.Checkpoint) bool {
+	if first.Height != second.Height {
 		return false
 	}
 	return keyframeEqual(&first.KeyFrame, &second.KeyFrame) &&
@@ -106,7 +107,7 @@ func checkPointsEqual(first *Checkpoint, second *Checkpoint) bool {
 		proposalKeyFrameEqual(&first.ProposalKeyFrame, &second.ProposalKeyFrame)
 }
 
-func stateKeyframeEqual(first *StateKeyFrame, second *StateKeyFrame) bool {
+func stateKeyframeEqual(first *state.StateKeyFrame, second *state.StateKeyFrame) bool {
 	if first.CurrentSession != second.CurrentSession ||
 		len(first.Candidates) != len(second.Candidates) ||
 		len(first.HistoryCandidates) != len(second.HistoryCandidates) ||
@@ -117,7 +118,7 @@ func stateKeyframeEqual(first *StateKeyFrame, second *StateKeyFrame) bool {
 		len(first.CRCCommitteeOutputs) != len(second.CRCCommitteeOutputs) ||
 		len(first.Nicknames) != len(second.Nicknames) ||
 		len(first.Votes) != len(second.Votes) ||
-		len(first.depositInfo) != len(second.depositInfo) {
+		len(first.DepositInfo) != len(second.DepositInfo) {
 		return false
 	}
 
@@ -130,7 +131,7 @@ func stateKeyframeEqual(first *StateKeyFrame, second *StateKeyFrame) bool {
 		amountMapEqual(first.CRCCommitteeOutputs, second.CRCCommitteeOutputs) &&
 		stringMapEqual(first.Nicknames, second.Nicknames) &&
 		stringMapEqual(first.Votes, second.Votes) &&
-		depositInfoMapEqual(first.depositInfo, second.depositInfo)
+		depositInfoMapEqual(first.DepositInfo, second.DepositInfo)
 
 }
 
@@ -197,8 +198,8 @@ func amountMapEqual(first map[string]common.Fixed64,
 	return true
 }
 
-func candidatesMapEqual(first map[common.Uint168]*Candidate,
-	second map[common.Uint168]*Candidate) bool {
+func candidatesMapEqual(first map[common.Uint168]*state.Candidate,
+	second map[common.Uint168]*state.Candidate) bool {
 	if len(first) != len(second) {
 		return false
 	}
@@ -215,8 +216,9 @@ func candidatesMapEqual(first map[common.Uint168]*Candidate,
 	return true
 }
 
-func depositInfoMapEqual(first map[common.Uint168]*DepositInfo,
-	second map[common.Uint168]*DepositInfo) bool {
+
+func depositInfoMapEqual(first map[common.Uint168]*state.DepositInfo,
+	second map[common.Uint168]*state.DepositInfo) bool {
 	if len(first) != len(second) {
 		return false
 	}
@@ -233,8 +235,8 @@ func depositInfoMapEqual(first map[common.Uint168]*DepositInfo,
 	return true
 }
 
-func candidatesHistoryMapEqual(first map[uint64]map[common.Uint168]*Candidate,
-	second map[uint64]map[common.Uint168]*Candidate) bool {
+func candidatesHistoryMapEqual(first map[uint64]map[common.Uint168]*state.Candidate,
+	second map[uint64]map[common.Uint168]*state.Candidate) bool {
 	if len(first) != len(second) {
 		return false
 	}
@@ -246,7 +248,7 @@ func candidatesHistoryMapEqual(first map[uint64]map[common.Uint168]*Candidate,
 	return true
 }
 
-func keyframeEqual(first *KeyFrame, second *KeyFrame) bool {
+func keyframeEqual(first *state.KeyFrame, second *state.KeyFrame) bool {
 	if first.LastCommitteeHeight != second.LastCommitteeHeight ||
 		first.LastVotingStartHeight != second.LastVotingStartHeight ||
 		first.InElectionPeriod != second.InElectionPeriod ||
@@ -275,8 +277,8 @@ func keyframeEqual(first *KeyFrame, second *KeyFrame) bool {
 	return true
 }
 
-func membersEuqal(first map[common.Uint168]*CRMember,
-	second map[common.Uint168]*CRMember) bool {
+func membersEuqal(first map[common.Uint168]*state.CRMember,
+	second map[common.Uint168]*state.CRMember) bool {
 	for k, v := range first {
 		if !crMemberEqual(v, second[k]) {
 			return false
@@ -285,10 +287,10 @@ func membersEuqal(first map[common.Uint168]*CRMember,
 	return true
 }
 
-func randomKeyFrame(size int, commitHeight uint32) *KeyFrame {
-	frame := &KeyFrame{
-		Members:                  make(map[common.Uint168]*CRMember, size),
-		HistoryMembers:           make(map[uint64]map[common.Uint168]*CRMember, 0),
+func randomKeyFrame(size int, commitHeight uint32) *state.KeyFrame {
+	frame := &state.KeyFrame{
+		Members:                  make(map[common.Uint168]*state.CRMember, size),
+		HistoryMembers:           make(map[uint64]map[common.Uint168]*state.CRMember, 0),
 		PartProposalResults:      make([]payload.ProposalResult, size, size),
 		LastCommitteeHeight:      commitHeight,
 		LastVotingStartHeight:    rand.Uint32(),
@@ -312,7 +314,7 @@ func randomKeyFrame(size int, commitHeight uint32) *KeyFrame {
 
 	for i := 0; i < size; i++ {
 		session := uint64(i)
-		frame.HistoryMembers[session] = make(map[common.Uint168]*CRMember)
+		frame.HistoryMembers[session] = make(map[common.Uint168]*state.CRMember)
 		for j := 0; j <= i; j++ {
 			m := randomCRMember()
 			frame.HistoryMembers[session][m.Info.DID] = m
@@ -326,7 +328,7 @@ func randomKeyFrame(size int, commitHeight uint32) *KeyFrame {
 	return frame
 }
 
-func crMemberEqual(first *CRMember, second *CRMember) bool {
+func crMemberEqual(first *state.CRMember, second *state.CRMember) bool {
 	return crInfoEqual(&first.Info, &second.Info) &&
 		first.ImpeachmentVotes == second.ImpeachmentVotes
 }
@@ -340,80 +342,80 @@ func randomProposalResult() payload.ProposalResult {
 
 }
 
-func randomCRMember() *CRMember {
-	return &CRMember{
+func randomCRMember() *state.CRMember {
+	return &state.CRMember{
 		Info:             *randomCRInfo(),
 		ImpeachmentVotes: common.Fixed64(rand.Uint64()),
 	}
 }
 
-func randomStateKeyFrame(size int, hasPending bool) *StateKeyFrame {
-	frame := NewStateKeyFrame()
+func randomStateKeyFrame(size int, hasPending bool) *state.StateKeyFrame {
+	frame := state.NewStateKeyFrame()
 	for i := 0; i < size; i++ {
-		frame.DepositOutputs[randomString()] = randomFix64()
-		frame.CRCFoundationOutputs[randomString()] = randomFix64()
-		frame.CRCCommitteeOutputs[randomString()] = randomFix64()
-		hash := randomUint168()
+		frame.DepositOutputs[state.randomString()] = randomFix64()
+		frame.CRCFoundationOutputs[state.randomString()] = randomFix64()
+		frame.CRCCommitteeOutputs[state.randomString()] = randomFix64()
+		hash := state.randomUint168()
 		frame.DepositHashCIDMap[*hash] = *hash
 	}
 
 	if hasPending {
 		for i := 0; i < size; i++ {
-			candidate := randomCandidate()
-			candidate.state = Pending
+			candidate := state.randomCandidate()
+			candidate.state = state.Pending
 			nickname := candidate.Info().NickName
 			code := candidate.Info().Code
 			cid := candidate.Info().CID
 			frame.CodeCIDMap[common.BytesToHexString(code)] = cid
 			frame.Candidates[cid] = candidate
 			frame.Nicknames[nickname] = struct{}{}
-			frame.depositInfo[cid] = &DepositInfo{
+			frame.DepositInfo[cid] = &state.DepositInfo{
 				DepositAmount: 5000 * 1e8,
 				TotalAmount:   5000 * 1e8,
 			}
 		}
 	}
 	for i := 0; i < size; i++ {
-		candidate := randomCandidate()
-		candidate.state = Active
+		candidate := state.randomCandidate()
+		candidate.state = state.Active
 		code := candidate.info.Code
 		cid := candidate.info.CID
 		nickname := candidate.info.NickName
 		frame.CodeCIDMap[common.BytesToHexString(code)] = cid
 		frame.Candidates[cid] = candidate
 		frame.Nicknames[nickname] = struct{}{}
-		frame.depositInfo[cid] = &DepositInfo{
+		frame.DepositInfo[cid] = &state.DepositInfo{
 			DepositAmount: 5000 * 1e8,
 			TotalAmount:   5000 * 1e8,
 		}
 	}
 	for i := 0; i < size; i++ {
-		candidate := randomCandidate()
+		candidate := state.randomCandidate()
 		cid := candidate.info.CID
 
 		nickname := candidate.info.NickName
 		code := candidate.info.Code
 		if i%2 == 0 {
-			candidate.state = Canceled
+			candidate.state = state.Canceled
 		} else {
-			candidate.state = Returned
+			candidate.state = state.Returned
 		}
 		frame.CodeCIDMap[common.BytesToHexString(code)] = cid
 		frame.Candidates[cid] = candidate
 		frame.Nicknames[nickname] = struct{}{}
-		frame.depositInfo[cid] = &DepositInfo{
+		frame.DepositInfo[cid] = &state.DepositInfo{
 			DepositAmount: 5000 * 1e8,
 			TotalAmount:   5000 * 1e8,
 		}
 	}
-	frame.HistoryCandidates[1] = make(map[common.Uint168]*Candidate)
+	frame.HistoryCandidates[1] = make(map[common.Uint168]*state.Candidate)
 	for i := 0; i < size; i++ {
-		candidate := randomCandidate()
-		frame.depositInfo[candidate.info.DID] = &DepositInfo{}
+		candidate := state.randomCandidate()
+		frame.DepositInfo[candidate.info.DID] = &state.DepositInfo{}
 		frame.HistoryCandidates[1][candidate.info.DID] = candidate
 	}
 	for i := 0; i < size; i++ {
-		frame.Votes[randomString()] = struct{}{}
+		frame.Votes[state.randomString()] = struct{}{}
 	}
 	return frame
 }
@@ -440,7 +442,7 @@ func proposalSessionEqual(first, second map[uint64][]common.Uint256) bool {
 	return true
 }
 
-func proposalHashEqual(first, second map[common.Uint168]ProposalHashSet) bool {
+func proposalHashEqual(first, second map[common.Uint168]state.ProposalHashSet) bool {
 	if len(first) != len(second) {
 		return false
 	}
@@ -457,7 +459,7 @@ func proposalHashEqual(first, second map[common.Uint168]ProposalHashSet) bool {
 	return true
 }
 
-func proposalKeyFrameEqual(first, second *ProposalKeyFrame) bool {
+func proposalKeyFrameEqual(first, second *state.ProposalKeyFrame) bool {
 	if len(first.Proposals) != len(second.Proposals) {
 		return false
 	}
@@ -506,40 +508,40 @@ func proposalKeyFrameEqual(first, second *ProposalKeyFrame) bool {
 	return proposalHashEqual(first.ProposalHashes, second.ProposalHashes)
 }
 
-func randomProposalKeyframe() *ProposalKeyFrame {
+func randomProposalKeyframe() *state.ProposalKeyFrame {
 	size := uint64(5)
 
-	proposalKeyFrame := &ProposalKeyFrame{Proposals: map[common.Uint256]*ProposalState{
-		*randomUint256(): randomProposalState(),
-		*randomUint256(): randomProposalState(),
-		*randomUint256(): randomProposalState(),
-		*randomUint256(): randomProposalState(),
-		*randomUint256(): randomProposalState(),
+	proposalKeyFrame := &state.ProposalKeyFrame{Proposals: map[common.Uint256]*state.ProposalState{
+		*state.randomUint256(): randomProposalState(),
+		*state.randomUint256(): randomProposalState(),
+		*state.randomUint256(): randomProposalState(),
+		*state.randomUint256(): randomProposalState(),
+		*state.randomUint256(): randomProposalState(),
 	},
-		ProposalHashes: map[common.Uint168]ProposalHashSet{
-			*randomUint168(): randomProposalHashSet(),
-			*randomUint168(): randomProposalHashSet(),
+		ProposalHashes: map[common.Uint168]state.ProposalHashSet{
+			*state.randomUint168(): randomProposalHashSet(),
+			*state.randomUint168(): randomProposalHashSet(),
 		},
 		ProposalSession:           make(map[uint64][]common.Uint256, size),
 		WithdrawableTxInfo:        make(map[common.Uint256]common2.OutputInfo, size),
-		SecretaryGeneralPublicKey: randomString(),
+		SecretaryGeneralPublicKey: state.randomString(),
 	}
 
 	for i := uint64(0); i < size; i++ {
 		proposalKeyFrame.ProposalSession[i] = make([]common.Uint256, size)
 		for j := 0; j <= rand.Intn(j+1); j++ {
-			proposalKeyFrame.ProposalSession[i] = append(proposalKeyFrame.ProposalSession[i], *randomUint256())
+			proposalKeyFrame.ProposalSession[i] = append(proposalKeyFrame.ProposalSession[i], *state.randomUint256())
 		}
 	}
 	for i := uint64(0); i < size; i++ {
-		hash := randomUint256()
+		hash := state.randomUint256()
 		proposalKeyFrame.WithdrawableTxInfo[*hash] = *randomOutputInfo()
 	}
 	var reserverCustomIDs []string
 	for i := uint64(0); i < size; i++ {
 		reserverCustomIDs = []string{}
 		for j := uint64(0); j < i; j++ {
-			reserverCustomIDs = append(reserverCustomIDs, randomString())
+			reserverCustomIDs = append(reserverCustomIDs, state.randomString())
 		}
 		proposalKeyFrame.ReservedCustomIDLists = append(proposalKeyFrame.ReservedCustomIDLists, reserverCustomIDs...)
 	}
@@ -548,37 +550,37 @@ func randomProposalKeyframe() *ProposalKeyFrame {
 	for i := uint64(0); i < size; i++ {
 		receivedCustomIDs = []string{}
 		for j := uint64(0); j < i; j++ {
-			receivedCustomIDs = append(receivedCustomIDs, randomString())
+			receivedCustomIDs = append(receivedCustomIDs, state.randomString())
 		}
 		proposalKeyFrame.ReceivedCustomIDLists = append(proposalKeyFrame.ReceivedCustomIDLists, receivedCustomIDs...)
 	}
 	return proposalKeyFrame
 }
 
-func randomProposalState() *ProposalState {
+func randomProposalState() *state.ProposalState {
 	pld := randomCRCProposal()
-	return &ProposalState{
-		Status:             ProposalStatus(rand.Int31n(7)),
+	return &state.ProposalState{
+		Status:             state.ProposalStatus(rand.Int31n(7)),
 		Proposal:           pld.ToProposalInfo(0),
-		TxHash:             *randomUint256(),
+		TxHash:             *state.randomUint256(),
 		RegisterHeight:     rand.Uint32(),
 		VoteStartHeight:    rand.Uint32(),
 		VotersRejectAmount: common.Fixed64(rand.Int63()),
 		CRVotes: map[common.Uint168]payload.VoteResult{
-			*randomUint168(): payload.VoteResult(rand.Int31n(3)),
-			*randomUint168(): payload.VoteResult(rand.Int31n(3)),
-			*randomUint168(): payload.VoteResult(rand.Int31n(3)),
-			*randomUint168(): payload.VoteResult(rand.Int31n(3)),
-			*randomUint168(): payload.VoteResult(rand.Int31n(3)),
+			*state.randomUint168(): payload.VoteResult(rand.Int31n(3)),
+			*state.randomUint168(): payload.VoteResult(rand.Int31n(3)),
+			*state.randomUint168(): payload.VoteResult(rand.Int31n(3)),
+			*state.randomUint168(): payload.VoteResult(rand.Int31n(3)),
+			*state.randomUint168(): payload.VoteResult(rand.Int31n(3)),
 		},
 	}
 }
 
-func randomProposalHashSet() ProposalHashSet {
-	proposalHashSet := NewProposalHashSet()
+func randomProposalHashSet() state.ProposalHashSet {
+	proposalHashSet := state.NewProposalHashSet()
 	count := rand.Int() % 128
 	for i := 0; i < count; i++ {
-		proposalHashSet.Add(*randomUint256())
+		proposalHashSet.Add(*state.randomUint256())
 	}
 
 	return proposalHashSet
@@ -587,12 +589,12 @@ func randomProposalHashSet() ProposalHashSet {
 func randomCRCProposal() *payload.CRCProposal {
 	return &payload.CRCProposal{
 		ProposalType:             payload.CRCProposalType(rand.Int31n(6)),
-		OwnerPublicKey:           randomBytes(33),
-		CRCouncilMemberDID:       *randomUint168(),
-		DraftHash:                *randomUint256(),
+		OwnerPublicKey:           state.randomBytes(33),
+		CRCouncilMemberDID:       *state.randomUint168(),
+		DraftHash:                *state.randomUint256(),
 		Budgets:                  createBudgets(5),
-		Signature:                randomBytes(64),
-		CRCouncilMemberSignature: randomBytes(64),
+		Signature:                state.randomBytes(64),
+		CRCouncilMemberSignature: state.randomBytes(64),
 	}
 }
 
@@ -629,17 +631,17 @@ func randomBool() bool {
 
 func randomOutputInfo() *common2.OutputInfo {
 	return &common2.OutputInfo{
-		Recipient: *randomUint168(),
+		Recipient: *state.randomUint168(),
 		Amount:    randomFix64(),
 	}
 }
 
 func randomOutputs() *common2.Output {
 	return &common2.Output{
-		AssetID:     *randomUint256(),
+		AssetID:     *state.randomUint256(),
 		Value:       common.Fixed64(rand.Int63()),
 		OutputLock:  0,
-		ProgramHash: *randomUint168(),
+		ProgramHash: *state.randomUint168(),
 		Type:        common2.OTVote,
 		Payload: &outputpayload.VoteOutput{
 			Version: outputpayload.VoteProducerAndCRVersion,
@@ -648,7 +650,7 @@ func randomOutputs() *common2.Output {
 					VoteType: outputpayload.CRC,
 					CandidateVotes: []outputpayload.CandidateVotes{
 						{
-							Candidate: randomBytes(34),
+							Candidate: state.randomBytes(34),
 							Votes:     common.Fixed64(rand.Int63()),
 						},
 					},

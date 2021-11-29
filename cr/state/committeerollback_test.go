@@ -62,7 +62,7 @@ package state
 //
 //	code1 := getCodeByPubKeyStr(publicKeyStr1)
 //	cid1, _ := getCIDByCode(code1)
-//	did1, _ := getDIDByCode(code1)
+//	did1, _ := GetDIDByCode(code1)
 //	hash1, _ := contract.PublicKeyToDepositProgramHash(publicKey1)
 //
 //	txn := functions.CreateTransaction(
@@ -466,14 +466,14 @@ package state
 //			voteCRTx,
 //		},
 //	}, nil)
-//	assert.Equal(t, common.Fixed64(3), committee.GetCandidate(*cid1).votes)
+//	assert.Equal(t, common.Fixed64(3), committee.GetCandidate(*cid1).Votes)
 //	keyFrameB := committee.Snapshot()
 //
 //	// rollback
 //	currentHeight--
 //	err := committee.RollbackTo(currentHeight)
 //	assert.NoError(t, err)
-//	assert.Equal(t, common.Fixed64(0), committee.GetCandidate(*cid1).votes)
+//	assert.Equal(t, common.Fixed64(0), committee.GetCandidate(*cid1).Votes)
 //	keyFrameC := committee.Snapshot()
 //
 //	// reprocess
@@ -481,7 +481,7 @@ package state
 //	committee.ProcessBlock(&types.Block{
 //		Header:       common2.Header{Height: currentHeight},
 //		Transactions: []interfaces.Transaction{voteCRTx}}, nil)
-//	assert.Equal(t, common.Fixed64(3), committee.GetCandidate(*cid1).votes)
+//	assert.Equal(t, common.Fixed64(3), committee.GetCandidate(*cid1).Votes)
 //	keyFrameD := committee.Snapshot()
 //
 //	checkResult(t, keyFrameA, keyFrameB, keyFrameC, keyFrameD)
@@ -735,7 +735,7 @@ package state
 //		},
 //	}, nil)
 //
-//	// set current height to one block before ending voting period
+//	// set current Height to one block before ending voting period
 //	currentHeight = cfg.CRCommitteeStartHeight - 1 + cfg.CRVotingPeriod
 //	committee.ProcessBlock(&types.Block{
 //		Header: common2.Header{Height: currentHeight}}, nil)
@@ -833,7 +833,7 @@ package state
 //			voteCRTx,
 //		},
 //	}, nil)
-//	assert.Equal(t, common.Fixed64(3), committee.GetCandidate(*did1).votes)
+//	assert.Equal(t, common.Fixed64(3), committee.GetCandidate(*did1).Votes)
 //
 //	// end first voting period into election
 //	//did1 did2 is cr did3 is candidate
@@ -881,7 +881,7 @@ package state
 //			voteCRTx2,
 //		},
 //	}, nil)
-//	assert.Equal(t, common.Fixed64(1), committee.GetCandidate(*did1).votes)
+//	assert.Equal(t, common.Fixed64(1), committee.GetCandidate(*did1).Votes)
 //	keyFrameA := committee.Snapshot()
 //
 //	// end second voting period
@@ -898,7 +898,7 @@ package state
 //	currentHeight--
 //	err := committee.RollbackTo(currentHeight)
 //	assert.NoError(t, err)
-//	assert.Equal(t, common.Fixed64(1), committee.GetCandidate(*did1).votes)
+//	assert.Equal(t, common.Fixed64(1), committee.GetCandidate(*did1).Votes)
 //	keyFrameC := committee.Snapshot()
 //
 //	// reprocess
@@ -979,7 +979,7 @@ package state
 //			voteCRTx,
 //		},
 //	}, nil)
-//	assert.Equal(t, common.Fixed64(3), committee.GetCandidate(*did1).votes)
+//	assert.Equal(t, common.Fixed64(3), committee.GetCandidate(*did1).Votes)
 //
 //	// end first voting period
 //	currentHeight = cfg.CRCommitteeStartHeight
@@ -1178,7 +1178,7 @@ package state
 //			voteCRTx,
 //		},
 //	}, nil)
-//	assert.Equal(t, common.Fixed64(3), committee.GetCandidate(*did1).votes)
+//	assert.Equal(t, common.Fixed64(3), committee.GetCandidate(*did1).Votes)
 //
 //	// end first voting period
 //	currentHeight = cfg.CRCommitteeStartHeight
@@ -1376,7 +1376,7 @@ package state
 //			voteCRTx,
 //		},
 //	}, nil)
-//	assert.Equal(t, common.Fixed64(3), committee.GetCandidate(*did1).votes)
+//	assert.Equal(t, common.Fixed64(3), committee.GetCandidate(*did1).Votes)
 //
 //	// end first voting period
 //	currentHeight = cfg.CRCommitteeStartHeight
@@ -1600,7 +1600,7 @@ package state
 //			voteCRTx,
 //		},
 //	}, nil)
-//	assert.Equal(t, common.Fixed64(3), committee.GetCandidate(*did1).votes)
+//	assert.Equal(t, common.Fixed64(3), committee.GetCandidate(*did1).Votes)
 //
 //	// end first voting period
 //	currentHeight = cfg.CRCommitteeStartHeight
@@ -1648,7 +1648,7 @@ package state
 //			voteCRTx2,
 //		},
 //	}, nil)
-//	assert.Equal(t, common.Fixed64(1), committee.GetCandidate(*did1).votes)
+//	assert.Equal(t, common.Fixed64(1), committee.GetCandidate(*did1).Votes)
 //	keyFrameA := committee.Snapshot()
 //
 //	// end second voting period
@@ -1968,8 +1968,8 @@ package state
 //		Header: common2.Header{Height: currentHeight}}, nil)
 //	assert.Equal(t, 2, len(committee.GetAllMembers()))
 //	assert.Equal(t, 0, len(committee.GetAllCandidates()))
-//	committee.state.depositInfo = make(map[common.Uint168]*DepositInfo)
-//	committee.state.depositInfo[*did1] = &DepositInfo{
+//	committee.State.DepositInfo = make(map[common.Uint168]*DepositInfo)
+//	committee.State.DepositInfo[*did1] = &DepositInfo{
 //		DepositAmount: 5000 * 1e8,
 //		TotalAmount:   5000 * 1e8,
 //		Penalty:       12,
@@ -2102,13 +2102,13 @@ package state
 //		Header: common2.Header{Height: currentHeight}}, nil)
 //	assert.Equal(t, 2, len(committee.GetAllMembers()))
 //	assert.Equal(t, 0, len(committee.GetAllCandidates()))
-//	committee.state.depositInfo = make(map[common.Uint168]*DepositInfo)
-//	committee.state.depositInfo[*did1] = &DepositInfo{
+//	committee.State.DepositInfo = make(map[common.Uint168]*DepositInfo)
+//	committee.State.DepositInfo[*did1] = &DepositInfo{
 //		DepositAmount: 5000 * 1e8,
 //		TotalAmount:   5000 * 1e8,
 //		Penalty:       12,
 //	}
-//	committee.state.depositInfo[*did2] = &DepositInfo{
+//	committee.State.DepositInfo[*did2] = &DepositInfo{
 //		DepositAmount: 5000 * 1e8,
 //		TotalAmount:   5000 * 1e8,
 //		Penalty:       12,
@@ -2265,7 +2265,7 @@ package state
 //			voteCRTx,
 //		},
 //	}, nil)
-//	assert.Equal(t, common.Fixed64(3), committee.GetCandidate(*did1).votes)
+//	assert.Equal(t, common.Fixed64(3), committee.GetCandidate(*did1).Votes)
 //
 //	elaAddress := "EZaqDYAPFsjynGpvHwbuiiiL4dEiHtX4gD"
 //	proposalTxA := getCRCProposalTx(elaAddress, publicKeyStr1, privateKeyStr1,
@@ -2389,7 +2389,7 @@ package state
 //	}, nil)
 //	assert.Equal(t, 3, len(committee.GetCandidates(Pending)))
 //	assert.Equal(t, 0, len(committee.GetCandidates(Active)))
-//	assert.Equal(t, common.Fixed64(1), committee.GetCandidate(*did1).votes)
+//	assert.Equal(t, common.Fixed64(1), committee.GetCandidate(*did1).Votes)
 //	assert.Equal(t, 1, len(committee.GetProposals(Aborted)))
 //	assert.Equal(t, 2, len(committee.GetProposal(proposalBHash).
 //		WithdrawableBudgets))
@@ -2403,7 +2403,7 @@ package state
 //	currentHeight--
 //	err := committee.RollbackTo(currentHeight)
 //	assert.NoError(t, err)
-//	//assert.Equal(t, common.Fixed64(1), committee.GetCandidate(*did1).votes)
+//	//assert.Equal(t, common.Fixed64(1), committee.GetCandidate(*did1).Votes)
 //	keyFrameC := committee.Snapshot()
 //
 //	currentHeight++
@@ -2501,7 +2501,7 @@ package state
 //			voteCRTx,
 //		},
 //	}, nil)
-//	assert.Equal(t, common.Fixed64(3), committee.GetCandidate(*did1).votes)
+//	assert.Equal(t, common.Fixed64(3), committee.GetCandidate(*did1).Votes)
 //
 //	elaAddress := "EZaqDYAPFsjynGpvHwbuiiiL4dEiHtX4gD"
 //	proposalTxA := getCRCProposalTx(elaAddress, publicKeyStr1, privateKeyStr1,
@@ -2626,7 +2626,7 @@ package state
 //	}, nil)
 //	assert.Equal(t, 3, len(committee.GetCandidates(Pending)))
 //	assert.Equal(t, 0, len(committee.GetCandidates(Active)))
-//	assert.Equal(t, common.Fixed64(1), committee.GetCandidate(*did1).votes)
+//	assert.Equal(t, common.Fixed64(1), committee.GetCandidate(*did1).Votes)
 //	assert.Equal(t, 1, len(committee.GetProposals(Aborted)))
 //	assert.Equal(t, 2, len(committee.GetProposal(proposalBHash).
 //		WithdrawableBudgets))
@@ -2762,7 +2762,7 @@ package state
 //			voteCRTx,
 //		},
 //	}, nil)
-//	assert.Equal(t, common.Fixed64(3), committee.GetCandidate(*did1).votes)
+//	assert.Equal(t, common.Fixed64(3), committee.GetCandidate(*did1).Votes)
 //
 //	//proposal tx
 //	elaAddress := "EZaqDYAPFsjynGpvHwbuiiiL4dEiHtX4gD"
@@ -2925,7 +2925,7 @@ package state
 //
 //	// new committee
 //	committee := NewCommittee(&config.DefaultParams)
-//	registerFuncs(committee.state)
+//	registerFuncs(committee.State)
 //
 //	// set count of CR member
 //	cfg := &config.DefaultParams
@@ -2978,8 +2978,8 @@ package state
 //			unregister2,
 //		},
 //	}, nil)
-//	assert.Equal(t, Canceled, committee.GetCandidate(*cid1).state)
-//	assert.Equal(t, Canceled, committee.GetCandidate(*cid2).state)
+//	assert.Equal(t, Canceled, committee.GetCandidate(*cid1).State)
+//	assert.Equal(t, Canceled, committee.GetCandidate(*cid2).State)
 //
 //	returnDepositTx1 := generateReturnDeposite(publicKeyStr1)
 //	returnDepositTx2 := generateReturnDeposite(publicKeyStr2)
@@ -2995,8 +2995,8 @@ package state
 //		},
 //	}, nil)
 //
-//	assert.Equal(t, Returned, committee.GetCandidate(*cid1).state)
-//	assert.Equal(t, Returned, committee.GetCandidate(*cid2).state)
+//	assert.Equal(t, Returned, committee.GetCandidate(*cid1).State)
+//	assert.Equal(t, Returned, committee.GetCandidate(*cid2).State)
 //
 //	// rollback
 //	currentHeight = cfg.CRVotingStartHeight
@@ -3073,7 +3073,7 @@ package state
 //			voteCRTx,
 //		},
 //	}, nil)
-//	assert.Equal(t, common.Fixed64(3), committee.GetCandidate(*did1).votes)
+//	assert.Equal(t, common.Fixed64(3), committee.GetCandidate(*did1).Votes)
 //
 //	// end first voting period
 //	currentHeight = cfg.CRCommitteeStartHeight

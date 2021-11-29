@@ -8,28 +8,35 @@ package unit
 import (
 	"bytes"
 	"crypto/rand"
-	"encoding/binary"
 	"encoding/hex"
 	"fmt"
-	"github.com/elastos/Elastos.ELA/blockchain"
 	"math/big"
 	math "math/rand"
 	"sort"
 	"testing"
-	"time"
 
-	"github.com/elastos/Elastos.ELA/core/types/functions"
-	"github.com/elastos/Elastos.ELA/core/types/interfaces"
-
+	"github.com/elastos/Elastos.ELA/blockchain"
 	"github.com/elastos/Elastos.ELA/common"
+	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/core/contract"
 	"github.com/elastos/Elastos.ELA/core/contract/program"
+	transaction2 "github.com/elastos/Elastos.ELA/core/transaction"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/functions"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/crypto"
 
 	"github.com/stretchr/testify/assert"
 )
+
+func init() {
+	functions.GetTransactionByTxType = transaction2.GetTransaction
+	functions.GetTransactionByBytes = transaction2.GetTransactionByBytes
+	functions.CreateTransaction = transaction2.CreateTransaction
+	functions.GetTransactionParameters = transaction2.GetTransactionparameters
+	config.DefaultParams = config.GetDefaultParams()
+}
 
 type act interface {
 	RedeemScript() []byte
@@ -955,4 +962,3 @@ func randomSignature() []byte {
 
 	return randBytes
 }
-

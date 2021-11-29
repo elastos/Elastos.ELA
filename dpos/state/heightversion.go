@@ -13,9 +13,9 @@ import (
 )
 
 // 0 - H1
-func (a *arbitrators) getNormalArbitratorsDescV0() ([]ArbiterMember, error) {
+func (a *Arbiters) getNormalArbitratorsDescV0() ([]ArbiterMember, error) {
 	arbitersByte := make([]ArbiterMember, 0)
-	for _, arbiter := range a.State.chainParams.OriginArbiters {
+	for _, arbiter := range a.State.ChainParams.OriginArbiters {
 		arbiterByte, err := common.HexStringToBytes(arbiter)
 		if err != nil {
 			return nil, err
@@ -37,7 +37,7 @@ func minInt(a, b int) int {
 	return b
 }
 
-func readi64(src []byte) (int64, []byte, bool) {
+func Readi64(src []byte) (int64, []byte, bool) {
 	if len(src) < 8 {
 		return 0, src, false
 	}
@@ -48,7 +48,7 @@ func readi64(src []byte) (int64, []byte, bool) {
 }
 
 // H2 - H3
-func (a *arbitrators) getNormalArbitratorsDescV2(arbitratorsCount int,
+func (a *Arbiters) getNormalArbitratorsDescV2(arbitratorsCount int,
 	producers []*Producer, start int) ([]ArbiterMember, error) {
 	if len(producers) < arbitratorsCount {
 		return nil, ErrInsufficientProducer
@@ -66,12 +66,12 @@ func (a *arbitrators) getNormalArbitratorsDescV2(arbitratorsCount int,
 }
 
 // H1 - H2
-func (a *arbitrators) getNormalArbitratorsDescV1() ([]ArbiterMember, error) {
+func (a *Arbiters) getNormalArbitratorsDescV1() ([]ArbiterMember, error) {
 	return nil, nil
 }
 
 // 0 - H1
-func (a *arbitrators) getNextOnDutyArbitratorV0(height,
+func (a *Arbiters) getNextOnDutyArbitratorV0(height,
 	offset uint32) ArbiterMember {
 	arbitrators, _ := a.getNormalArbitratorsDescV0()
 	index := (height - 1 + offset) % uint32(len(arbitrators))
@@ -79,9 +79,9 @@ func (a *arbitrators) getNextOnDutyArbitratorV0(height,
 	return arbiter
 }
 
-func (a *arbitrators) distributeWithNormalArbitratorsV0(
+func (a *Arbiters) distributeWithNormalArbitratorsV0(
 	height uint32, reward common.Fixed64) (map[common.Uint168]common.Fixed64, common.Fixed64, error) {
-	if len(a.currentArbitrators) == 0 {
+	if len(a.CurrentArbitrators) == 0 {
 		return nil, 0, errors.New("not found arbiters when distributeWithNormalArbitratorsV0")
 	}
 
@@ -89,32 +89,32 @@ func (a *arbitrators) distributeWithNormalArbitratorsV0(
 	totalBlockConfirmReward := float64(reward) * 0.25
 	totalTopProducersReward := float64(reward) - totalBlockConfirmReward
 	individualBlockConfirmReward := common.Fixed64(
-		math.Floor(totalBlockConfirmReward / float64(len(a.currentArbitrators))))
+		math.Floor(totalBlockConfirmReward / float64(len(a.CurrentArbitrators))))
 	totalVotesInRound := a.CurrentReward.TotalVotesInRound
-	if len(a.chainParams.CRCArbiters) == len(a.currentArbitrators) {
-		roundReward[a.chainParams.CRCAddress] = reward
+	if len(a.ChainParams.CRCArbiters) == len(a.CurrentArbitrators) {
+		roundReward[a.ChainParams.CRCAddress] = reward
 		return roundReward, reward, nil
 	}
 	rewardPerVote := totalTopProducersReward / float64(totalVotesInRound)
 
-	roundReward[a.chainParams.CRCAddress] = 0
+	roundReward[a.ChainParams.CRCAddress] = 0
 	realDPOSReward := common.Fixed64(0)
-	for _, arbiter := range a.currentArbitrators {
+	for _, arbiter := range a.CurrentArbitrators {
 		ownerHash := arbiter.GetOwnerProgramHash()
 		votes := a.CurrentReward.OwnerVotesInRound[ownerHash]
 		individualProducerReward := common.Fixed64(math.Floor(float64(
 			votes) * rewardPerVote))
 		r := individualBlockConfirmReward + individualProducerReward
-		if _, ok := a.currentCRCArbitersMap[ownerHash]; ok {
+		if _, ok := a.CurrentCRCArbitersMap[ownerHash]; ok {
 			r = individualBlockConfirmReward
-			roundReward[a.chainParams.CRCAddress] += r
+			roundReward[a.ChainParams.CRCAddress] += r
 		} else {
 			roundReward[ownerHash] = r
 		}
 
 		realDPOSReward += r
 	}
-	for _, candidate := range a.currentCandidates {
+	for _, candidate := range a.CurrentCandidates {
 		ownerHash := candidate.GetOwnerProgramHash()
 		votes := a.CurrentReward.OwnerVotesInRound[ownerHash]
 		individualProducerReward := common.Fixed64(math.Floor(float64(

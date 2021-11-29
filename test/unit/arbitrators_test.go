@@ -3,11 +3,12 @@
 // license that can be found in the LICENSE file.
 //
 
-package state
+package unit
 
 import (
 	"bytes"
 	"encoding/hex"
+	state2 "github.com/elastos/Elastos.ELA/dpos/state"
 	"math/rand"
 	"strconv"
 	"testing"
@@ -27,7 +28,7 @@ func Test_RandomIndex(t *testing.T) {
 	blockHashStr := "303fdce09b22cdb99bf29cec7358bcc518c059d189a729103a7900ebfe356746"
 	blockHash, _ := common.Uint256FromHexString(blockHashStr)
 	copy(x, blockHash[24:])
-	seed, _, _ := readi64(x)
+	seed, _, _ := state2.Readi64(x)
 	oriSeed := seed
 
 	var first []int
@@ -98,7 +99,7 @@ func TestArbitrators_GetSnapshot(t *testing.T) {
 	var bestHeight uint32
 
 	params := config.GetDefaultParams()
-	arbitrators, _ := NewArbitrators(&params,
+	arbitrators, _ := state2.NewArbitrators(&params,
 		nil, nil, nil,
 		nil, nil, nil)
 	arbitrators.RegisterFunction(func() uint32 { return bestHeight },
@@ -112,13 +113,13 @@ func TestArbitrators_GetSnapshot(t *testing.T) {
 	firstSnapshotPk := randomFakePK()
 	secondSnapshotHeight := uint32(20)
 	secondSnapshotPk := randomFakePK()
-	ar, _ := NewOriginArbiter(firstSnapshotPk)
-	arbitrators.currentArbitrators = []ArbiterMember{ar}
+	ar, _ := state2.NewOriginArbiter(firstSnapshotPk)
+	arbitrators.CurrentArbitrators = []state2.ArbiterMember{ar}
 
 	// take the first snapshot
-	arbitrators.snapshot(firstSnapshotHeight)
-	ar, _ = NewOriginArbiter(secondSnapshotPk)
-	arbitrators.currentArbitrators = []ArbiterMember{ar}
+	arbitrators.SnapshotByHeight(firstSnapshotHeight)
+	ar, _ = state2.NewOriginArbiter(secondSnapshotPk)
+	arbitrators.CurrentArbitrators = []state2.ArbiterMember{ar}
 
 	// height1
 	frames := arbitrators.GetSnapshot(firstSnapshotHeight)
@@ -128,7 +129,7 @@ func TestArbitrators_GetSnapshot(t *testing.T) {
 
 	// < height1
 	frames = arbitrators.GetSnapshot(firstSnapshotHeight - 1)
-	assert.Equal(t, []*CheckPoint{}, frames)
+	assert.Equal(t, []*state2.CheckPoint{}, frames)
 
 	// > height1
 	frames = arbitrators.GetSnapshot(firstSnapshotHeight + 1)
@@ -161,9 +162,9 @@ func TestArbitrators_GetSnapshot(t *testing.T) {
 		frames[0].CurrentArbitrators[0].GetNodePublicKey()))
 
 	// take the second snapshot
-	arbitrators.snapshot(secondSnapshotHeight)
-	ar, _ = NewOriginArbiter(randomFakePK())
-	arbitrators.currentArbitrators = []ArbiterMember{ar}
+	arbitrators.SnapshotByHeight(secondSnapshotHeight)
+	ar, _ = state2.NewOriginArbiter(randomFakePK())
+	arbitrators.CurrentArbitrators = []state2.ArbiterMember{ar}
 
 	// height1
 	frames = arbitrators.GetSnapshot(firstSnapshotHeight)
@@ -173,7 +174,7 @@ func TestArbitrators_GetSnapshot(t *testing.T) {
 
 	// < height1
 	frames = arbitrators.GetSnapshot(firstSnapshotHeight - 1)
-	assert.Equal(t, []*CheckPoint{}, frames)
+	assert.Equal(t, []*state2.CheckPoint{}, frames)
 
 	// > height1
 	frames = arbitrators.GetSnapshot(firstSnapshotHeight + 1)
@@ -202,20 +203,20 @@ func TestArbitrators_GetSnapshot(t *testing.T) {
 	// > bestHeight
 	frames = arbitrators.GetSnapshot(bestHeight + 1)
 	assert.Equal(t, 1, len(frames))
-	assert.True(t, bytes.Equal(arbitrators.currentArbitrators[0].
+	assert.True(t, bytes.Equal(arbitrators.CurrentArbitrators[0].
 		GetNodePublicKey(), frames[0].CurrentArbitrators[0].GetNodePublicKey()))
 
 	// take snapshot more than MaxSnapshotLength
 	loopSnapshotHeight := bestHeight
 	bestHeight += 50
-	for i := loopSnapshotHeight; i < loopSnapshotHeight+MaxSnapshotLength; i++ {
-		arbitrators.snapshot(i)
+	for i := loopSnapshotHeight; i < loopSnapshotHeight+state2.MaxSnapshotLength; i++ {
+		arbitrators.SnapshotByHeight(i)
 	}
-	assert.Equal(t, MaxSnapshotLength, len(arbitrators.snapshots))
-	assert.Equal(t, MaxSnapshotLength, len(arbitrators.snapshotKeysDesc))
-	_, exist := arbitrators.snapshots[firstSnapshotHeight]
+	assert.Equal(t, state2.MaxSnapshotLength, len(arbitrators.Snapshots))
+	assert.Equal(t, state2.MaxSnapshotLength, len(arbitrators.SnapshotKeysDesc))
+	_, exist := arbitrators.Snapshots[firstSnapshotHeight]
 	assert.False(t, exist)
-	_, exist = arbitrators.snapshots[secondSnapshotHeight]
+	_, exist = arbitrators.Snapshots[secondSnapshotHeight]
 	assert.False(t, exist)
 }
 
@@ -228,41 +229,41 @@ func randomFakePK() []byte {
 func TestArbitrators_UsingProducerAsArbiter(t *testing.T) {
 	var bestHeight uint32 = 0
 	param := config.GetDefaultParams()
-	a, _ := NewArbitrators(&param,
+	a, _ := state2.NewArbitrators(&param,
 		nil, nil, nil, nil,
 		nil, nil)
-	a.State = NewState(&param, nil, nil, nil,
+	a.State = state2.NewState(&param, nil, nil, nil,
 		nil, nil, nil,
 		nil, nil)
-	a.crCommittee = state.NewCommittee(&param)
-	a.crCommittee.InElectionPeriod = true
+	a.CRCommittee = state.NewCommittee(&param)
+	a.CRCommittee.InElectionPeriod = true
 	a.RegisterFunction(func() uint32 { return bestHeight },
 		func() *common.Uint256 { return &common.Uint256{} },
 		nil, nil)
 	fakeActiveProducer(a)
 	claimedCR, mem3 := fakeCRMembers(a)
-	a.chainParams.PublicDPOSHeight = 3
-	a.chainParams.CRClaimDPOSNodeStartHeight = 5
-	a.chainParams.ChangeCommitteeNewCRHeight = 7
-	a.updateNextArbitrators(8, 8)
-	a.history.Commit(8)
-	a.changeCurrentArbitrators(9)
-	a.history.Commit(9)
-	assert.Equal(t, 36, len(a.currentArbitrators), "current arbiter num should be 36")
-	assert.True(t, existInCurrentArbiters(claimedCR, a.currentArbitrators))
-	assert.Equal(t, 50-10-24, len(a.currentCandidates), "candidate num should be 16")
+	a.ChainParams.PublicDPOSHeight = 3
+	a.ChainParams.CRClaimDPOSNodeStartHeight = 5
+	a.ChainParams.ChangeCommitteeNewCRHeight = 7
+	a.UpdateNextArbitrators(8, 8)
+	a.History.Commit(8)
+	a.ChangeCurrentArbitrators(9)
+	a.History.Commit(9)
+	assert.Equal(t, 36, len(a.CurrentArbitrators), "current arbiter num should be 36")
+	assert.True(t, existInCurrentArbiters(claimedCR, a.CurrentArbitrators))
+	assert.Equal(t, 50-10-24, len(a.CurrentCandidates), "candidate num should be 16")
 
 	// set member to inactive to check if crc arbiter is used as dpos public key
 	mem3.MemberState = state.MemberInactive
-	a.updateNextArbitrators(10, 10)
-	a.history.Commit(10)
-	a.changeCurrentArbitrators(11)
-	a.history.Commit(11)
+	a.UpdateNextArbitrators(10, 10)
+	a.History.Commit(10)
+	a.ChangeCurrentArbitrators(11)
+	a.History.Commit(11)
 	hash, _ := contract.PublicKeyToStandardProgramHash(mem3.Info.Code[1 : len(mem3.Info.Code)-1])
-	mem3DposPubKey := a.currentCRCArbitersMap[*hash].GetNodePublicKey()
-	assert.Equal(t, 36, len(a.currentArbitrators), "current arbiter num should be 36")
-	assert.True(t, existInOriginalArbiters([][]byte{mem3DposPubKey}, a.chainParams.CRCArbiters))
-	assert.Equal(t, 50-9-24, len(a.currentCandidates), "candidate num should be 17")
+	mem3DposPubKey := a.CurrentCRCArbitersMap[*hash].GetNodePublicKey()
+	assert.Equal(t, 36, len(a.CurrentArbitrators), "current arbiter num should be 36")
+	assert.True(t, existInOriginalArbiters([][]byte{mem3DposPubKey}, a.ChainParams.CRCArbiters))
+	assert.Equal(t, 50-9-24, len(a.CurrentCandidates), "candidate num should be 17")
 }
 
 func existInOriginalArbiters(keys [][]byte, crcArbiters []string) bool {
@@ -276,7 +277,7 @@ func existInOriginalArbiters(keys [][]byte, crcArbiters []string) bool {
 	return false
 }
 
-func existInCurrentArbiters(keys [][]byte, src []ArbiterMember) bool {
+func existInCurrentArbiters(keys [][]byte, src []state2.ArbiterMember) bool {
 	for _, k := range keys {
 		for _, a := range src {
 			if bytes.Equal(a.GetNodePublicKey(), k) {
@@ -287,17 +288,17 @@ func existInCurrentArbiters(keys [][]byte, src []ArbiterMember) bool {
 	return false
 }
 
-func fakeActiveProducer(a *arbitrators) {
+func fakeActiveProducer(a *state2.Arbiters) {
 	// 50 producer
 	for i := 0; i < 50; i++ {
 		a.State.ActivityProducers[randomString()] = randomProducer()
 	}
 }
 
-func fakeCRMembers(a *arbitrators) (claimedCR [][]byte, toBeUsedMember *state.CRMember) {
+func fakeCRMembers(a *state2.Arbiters) (claimedCR [][]byte, toBeUsedMember *state.CRMember) {
 	claimedCR1 := randomPublicKey()
 	did1 := *randomUint168()
-	a.crCommittee.Members[did1] = &state.CRMember{
+	a.CRCommittee.Members[did1] = &state.CRMember{
 		Info: payload.CRInfo{
 			Code:     getCode(randomPublicKey()),
 			DID:      did1,
@@ -308,7 +309,7 @@ func fakeCRMembers(a *arbitrators) (claimedCR [][]byte, toBeUsedMember *state.CR
 
 	claimedCR2 := randomPublicKey()
 	did2 := *randomUint168()
-	a.crCommittee.Members[did2] = &state.CRMember{
+	a.CRCommittee.Members[did2] = &state.CRMember{
 		Info: payload.CRInfo{
 			Code:     getCode(randomPublicKey()),
 			DID:      did2,
@@ -325,11 +326,11 @@ func fakeCRMembers(a *arbitrators) (claimedCR [][]byte, toBeUsedMember *state.CR
 			NickName: "CR3",
 		},
 	}
-	a.crCommittee.Members[did3] = mem3
+	a.CRCommittee.Members[did3] = mem3
 
 	for i := 4; i <= 12; i++ {
 		did := *randomUint168()
-		a.crCommittee.Members[did] = &state.CRMember{
+		a.CRCommittee.Members[did] = &state.CRMember{
 			Info: payload.CRInfo{
 				Code:     getCode(randomPublicKey()),
 				DID:      did,

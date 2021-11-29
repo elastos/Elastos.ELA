@@ -159,6 +159,46 @@ func (p *Producer) AvailableAmount() common.Fixed64 {
 	return p.totalAmount - p.depositAmount - p.penalty
 }
 
+func (p *Producer) SetInfo(i payload.ProducerInfo) {
+	p.info = i
+}
+
+func (p *Producer) SetState(s ProducerState) {
+	p.state = s
+}
+
+func (p *Producer) SetRegisterHeight(h uint32) {
+	p.registerHeight = h
+}
+
+func (p *Producer) SetCancelHeight(h uint32) {
+	p.cancelHeight = h
+}
+
+func (p *Producer) SetInactiveSince(h uint32) {
+	p.inactiveSince = h
+}
+
+func (p *Producer) SetActivateRequestHeight(h uint32) {
+	p.activateRequestHeight = h
+}
+
+func (p *Producer) SetIllegalHeight(h uint32) {
+	p.illegalHeight = h
+}
+
+func (p *Producer) SetPenalty(v common.Fixed64) {
+	p.penalty = v
+}
+
+func (p *Producer) SetVotes(v common.Fixed64) {
+	p.votes = v
+}
+
+func (p *Producer) SetDposV2Votes(v common.Fixed64) {
+	p.dposV2Votes = v
+}
+
 func (p *Producer) Serialize(w io.Writer) error {
 	if err := p.info.Serialize(w, payload.ProducerInfoVersion); err != nil {
 		return err
@@ -276,7 +316,7 @@ func (p *Producer) Deserialize(r io.Reader) (err error) {
 }
 
 const (
-	// maxHistoryCapacity indicates the maximum capacity of change history.
+	// maxHistoryCapacity indicates the maximum capacity of change History.
 	maxHistoryCapacity = 720
 
 	// ActivateDuration is about how long we should activate from pending or
@@ -303,9 +343,9 @@ type State struct {
 	tryUpdateCRMemberIllegal func(did common.Uint168, height uint32)
 	tryRevertCRMemberIllegal func(did common.Uint168, oriState state.MemberState, height uint32)
 
-	chainParams *config.Params
+	ChainParams *config.Params
 	mtx         sync.RWMutex
-	history     *utils.History
+	History     *utils.History
 }
 
 // getProducerKey returns the producer's owner public key string, whether the
@@ -413,7 +453,7 @@ func (s *State) GetAllProducersPublicKey() []string {
 	for nodePK, _ := range s.NodeOwnerKeys {
 		nodePublicKeys = append(nodePublicKeys, nodePK)
 	}
-	for _, nodePK := range s.chainParams.CRCArbiters {
+	for _, nodePK := range s.ChainParams.CRCArbiters {
 		nodePublicKeys = append(nodePublicKeys, nodePK)
 	}
 	return nodePublicKeys
@@ -527,7 +567,7 @@ func (s *State) GetDposV2ActiveProducers() []*Producer {
 	producers := make([]*Producer, 0, len(s.ActivityProducers))
 	for _, producer := range s.ActivityProducers {
 		// limit arbiters can only be producers who have effective dposV2 votes
-		if producer.DposV2Votes() > s.chainParams.DposV2EffectiveVotes {
+		if producer.DposV2Votes() > s.ChainParams.DposV2EffectiveVotes {
 			producers = append(producers, producer)
 		}
 	}
@@ -676,7 +716,7 @@ func (s *State) IsAbleToRecoverFromInactiveMode() bool {
 // IsAbleToRecoverFromInactiveMode returns if there are enough active arbiters
 func (s *State) IsAbleToRecoverFromUnderstaffedState() bool {
 	s.mtx.RLock()
-	result := len(s.ActivityProducers) >= s.chainParams.GeneralArbiters
+	result := len(s.ActivityProducers) >= s.ChainParams.GeneralArbiters
 	s.mtx.RUnlock()
 	return result
 }
@@ -817,9 +857,9 @@ func (s *State) ProcessBlock(block *types.Block, confirm *payload.Confirm) {
 	s.tryUpdateLastIrreversibleHeight(block.Height)
 
 	if confirm != nil {
-		if block.Height >= s.chainParams.ChangeCommitteeNewCRHeight {
+		if block.Height >= s.ChainParams.ChangeCommitteeNewCRHeight {
 			s.countArbitratorsInactivityV2(block.Height, confirm)
-		} else if block.Height >= s.chainParams.CRClaimDPOSNodeStartHeight {
+		} else if block.Height >= s.ChainParams.CRClaimDPOSNodeStartHeight {
 			s.countArbitratorsInactivityV1(block.Height, confirm)
 		} else {
 			s.countArbitratorsInactivityV0(block.Height, confirm)
@@ -827,7 +867,7 @@ func (s *State) ProcessBlock(block *types.Block, confirm *payload.Confirm) {
 	}
 
 	// Commit changes here if no errors found.
-	s.history.Commit(block.Height)
+	s.History.Commit(block.Height)
 }
 
 func (s *State) tryRevertToPOWByStateOfCRMember(height uint32) {
@@ -840,7 +880,7 @@ func (s *State) tryRevertToPOWByStateOfCRMember(height uint32) {
 			return
 		}
 	}
-	s.history.Append(height, func() {
+	s.History.Append(height, func() {
 		s.NoClaimDPOSNode = true
 	}, func() {
 		s.NoClaimDPOSNode = false
@@ -852,7 +892,7 @@ func (s *State) tryRevertToPOWByStateOfCRMember(height uint32) {
 // record timestamp of last block
 func (s *State) recordLastBlockTime(block *types.Block) {
 	oriLastBlockTime := s.LastBlockTimestamp
-	s.history.Append(block.Height, func() {
+	s.History.Append(block.Height, func() {
 		s.LastBlockTimestamp = block.Timestamp
 	}, func() {
 		s.LastBlockTimestamp = oriLastBlockTime
@@ -863,7 +903,7 @@ func (s *State) recordLastBlockTime(block *types.Block) {
 func (s *State) updateProducersDepositCoin(height uint32) {
 	updateDepositCoin := func(producer *Producer) {
 		oriDepositAmount := producer.depositAmount
-		s.history.Append(height, func() {
+		s.History.Append(height, func() {
 			producer.depositAmount -= state.MinDepositAmount
 		}, func() {
 			producer.depositAmount = oriDepositAmount
@@ -872,7 +912,7 @@ func (s *State) updateProducersDepositCoin(height uint32) {
 
 	canceledProducers := s.getCanceledProducers()
 	for _, producer := range canceledProducers {
-		if height-producer.CancelHeight() == s.chainParams.CRDepositLockupBlocks {
+		if height-producer.CancelHeight() == s.ChainParams.CRDepositLockupBlocks {
 			updateDepositCoin(producer)
 		}
 	}
@@ -880,7 +920,7 @@ func (s *State) updateProducersDepositCoin(height uint32) {
 
 // ProcessVoteStatisticsBlock deal with block with vote statistics error.
 func (s *State) ProcessVoteStatisticsBlock(block *types.Block) {
-	if block.Height == s.chainParams.VoteStatisticsHeight {
+	if block.Height == s.ChainParams.VoteStatisticsHeight {
 		s.processTransactions(block.Transactions, block.Height)
 	}
 }
@@ -896,7 +936,7 @@ func (s *State) processTransactions(txs []interfaces.Transaction, height uint32)
 
 	// Check if any pending producers has got 6 confirms, set them to activate.
 	activateProducerFromPending := func(key string, producer *Producer) {
-		s.history.Append(height, func() {
+		s.History.Append(height, func() {
 			producer.state = Active
 			s.ActivityProducers[key] = producer
 			if producer.info.StakeUntil != 0 {
@@ -917,7 +957,7 @@ func (s *State) processTransactions(txs []interfaces.Transaction, height uint32)
 	// Check if any pending inactive producers has got 6 confirms,
 	// then set them to activate.
 	activateProducerFromInactive := func(key string, producer *Producer) {
-		s.history.Append(height, func() {
+		s.History.Append(height, func() {
 			producer.state = Active
 			s.ActivityProducers[key] = producer
 			if producer.info.StakeUntil != 0 {
@@ -937,7 +977,7 @@ func (s *State) processTransactions(txs []interfaces.Transaction, height uint32)
 	// Check if any pending illegal producers has got 6 confirms,
 	// then set them to activate.
 	activateProducerFromIllegal := func(key string, producer *Producer) {
-		s.history.Append(height, func() {
+		s.History.Append(height, func() {
 			producer.state = Active
 			s.ActivityProducers[key] = producer
 			if producer.info.StakeUntil != 0 {
@@ -970,7 +1010,7 @@ func (s *State) processTransactions(txs []interfaces.Transaction, height uint32)
 		}
 	}
 
-	if height >= s.chainParams.EnableActivateIllegalHeight &&
+	if height >= s.ChainParams.EnableActivateIllegalHeight &&
 		len(s.IllegalProducers) > 0 {
 		for key, producer := range s.IllegalProducers {
 			if height > producer.activateRequestHeight &&
@@ -982,7 +1022,7 @@ func (s *State) processTransactions(txs []interfaces.Transaction, height uint32)
 
 	// Check if any pending producers has got 6 confirms, set them to activate.
 	revertToDPOS := func() {
-		s.history.Append(height, func() {
+		s.History.Append(height, func() {
 			s.ConsensusAlgorithm = DPOS
 		}, func() {
 			s.ConsensusAlgorithm = POW
@@ -1098,7 +1138,7 @@ func (s *State) registerProducer(tx interfaces.Transaction, height uint32) {
 			depositHash:                  *programHash,
 		}
 
-		s.history.Append(height, func() {
+		s.History.Append(height, func() {
 			s.Nicknames[nickname] = struct{}{}
 			s.NodeOwnerKeys[nodeKey] = ownerKey
 			s.PendingProducers[ownerKey] = &producer
@@ -1124,7 +1164,7 @@ func (s *State) registerProducer(tx interfaces.Transaction, height uint32) {
 func (s *State) updateProducer(info *payload.ProducerInfo, height uint32) {
 	producer := s.getProducer(info.OwnerPublicKey)
 	producerInfo := producer.info
-	s.history.Append(height, func() {
+	s.History.Append(height, func() {
 		s.updateProducerInfo(&producerInfo, info)
 	}, func() {
 		s.updateProducerInfo(info, &producerInfo)
@@ -1136,7 +1176,7 @@ func (s *State) cancelProducer(payload *payload.ProcessProducer, height uint32) 
 	key := hex.EncodeToString(payload.OwnerPublicKey)
 	producer := s.getProducer(payload.OwnerPublicKey)
 	oriState := producer.state
-	s.history.Append(height, func() {
+	s.History.Append(height, func() {
 		producer.state = Canceled
 		producer.cancelHeight = height
 		s.CanceledProducers[key] = producer
@@ -1177,7 +1217,7 @@ func (s *State) activateProducer(p *payload.ActivateProducer, height uint32) {
 	if producer == nil {
 		return
 	}
-	s.history.Append(height, func() {
+	s.History.Append(height, func() {
 		producer.activateRequestHeight = height
 	}, func() {
 		producer.activateRequestHeight = math.MaxUint32
@@ -1196,7 +1236,7 @@ func (s *State) processVotes(tx interfaces.Transaction, height uint32) {
 			p, _ := output.Payload.(*outputpayload.VoteOutput)
 			if p.Version == outputpayload.VoteDposV2Version {
 				op := common2.NewOutPoint(tx.Hash(), uint16(i))
-				s.history.Append(height, func() {
+				s.History.Append(height, func() {
 					s.DposV2Votes[op.ReferKey()] = height
 				}, func() {
 					delete(s.DposV2Votes, op.ReferKey())
@@ -1204,7 +1244,7 @@ func (s *State) processVotes(tx interfaces.Transaction, height uint32) {
 				s.processDposV2VoteOutput(output, height)
 			} else if p.Version == outputpayload.VoteProducerVersion {
 				op := common2.NewOutPoint(tx.Hash(), uint16(i))
-				s.history.Append(height, func() {
+				s.History.Append(height, func() {
 					s.Votes[op.ReferKey()] = struct{}{}
 				}, func() {
 					delete(s.Votes, op.ReferKey())
@@ -1220,7 +1260,7 @@ func (s *State) processVotes(tx interfaces.Transaction, height uint32) {
 				}
 				if exist {
 					op := common2.NewOutPoint(tx.Hash(), uint16(i))
-					s.history.Append(height, func() {
+					s.History.Append(height, func() {
 						s.Votes[op.ReferKey()] = struct{}{}
 					}, func() {
 						delete(s.Votes, op.ReferKey())
@@ -1280,7 +1320,7 @@ func (s *State) getProducerByDepositHash(hash common.Uint168) *Producer {
 // program hash of transaction output.
 func (s *State) addProducerAssert(output *common2.Output, height uint32) bool {
 	if producer := s.getProducerByDepositHash(output.ProgramHash); producer != nil {
-		s.history.Append(height, func() {
+		s.History.Append(height, func() {
 			producer.totalAmount += output.Value
 		}, func() {
 			producer.totalAmount -= output.Value
@@ -1349,14 +1389,14 @@ func (s *State) processCancelDposV2Votes(tx interfaces.Transaction, height uint3
 // processVoteCancel takes a previous vote output and decrease producers votes.
 func (s *State) processDposV2VoteCancel(output *common2.Output, height uint32) {
 	subtractByVote := func(producer *Producer, vote common.Fixed64) {
-		s.history.Append(height, func() {
+		s.History.Append(height, func() {
 			producer.dposV2Votes -= vote
-			if producer.dposV2Votes < s.chainParams.DposV2EffectiveVotes {
+			if producer.dposV2Votes < s.ChainParams.DposV2EffectiveVotes {
 				delete(s.DposV2EffectedProducers, hex.EncodeToString(producer.info.OwnerPublicKey))
 			}
 		}, func() {
 			producer.dposV2Votes += vote
-			if producer.dposV2Votes >= s.chainParams.DposV2EffectiveVotes {
+			if producer.dposV2Votes >= s.ChainParams.DposV2EffectiveVotes {
 				s.DposV2EffectedProducers[hex.EncodeToString(producer.info.OwnerPublicKey)] = producer
 			}
 		})
@@ -1383,14 +1423,14 @@ func (s *State) processDposV2VoteCancel(output *common2.Output, height uint32) {
 // processDposV2VoteOutput takes a transaction output with vote payload.
 func (s *State) processDposV2VoteOutput(output *common2.Output, height uint32) {
 	countByVote := func(producer *Producer, vote common.Fixed64) {
-		s.history.Append(height, func() {
+		s.History.Append(height, func() {
 			producer.dposV2Votes += vote
-			if producer.dposV2Votes >= s.chainParams.DposV2EffectiveVotes {
+			if producer.dposV2Votes >= s.ChainParams.DposV2EffectiveVotes {
 				s.DposV2EffectedProducers[hex.EncodeToString(producer.info.OwnerPublicKey)] = producer
 			}
 		}, func() {
 			producer.dposV2Votes -= vote
-			if producer.dposV2Votes < s.chainParams.DposV2EffectiveVotes {
+			if producer.dposV2Votes < s.ChainParams.DposV2EffectiveVotes {
 				delete(s.DposV2EffectedProducers, hex.EncodeToString(producer.info.OwnerPublicKey))
 			}
 		})
@@ -1417,7 +1457,7 @@ func (s *State) processDposV2VoteOutput(output *common2.Output, height uint32) {
 // processVoteOutput takes a transaction output with vote payload.
 func (s *State) processVoteOutput(output *common2.Output, height uint32) {
 	countByGross := func(producer *Producer) {
-		s.history.Append(height, func() {
+		s.History.Append(height, func() {
 			producer.votes += output.Value
 		}, func() {
 			producer.votes -= output.Value
@@ -1425,7 +1465,7 @@ func (s *State) processVoteOutput(output *common2.Output, height uint32) {
 	}
 
 	countByVote := func(producer *Producer, vote common.Fixed64) {
-		s.history.Append(height, func() {
+		s.History.Append(height, func() {
 			producer.votes += vote
 		}, func() {
 			producer.votes -= vote
@@ -1456,7 +1496,7 @@ func (s *State) processVoteOutput(output *common2.Output, height uint32) {
 // processVoteCancel takes a previous vote output and decrease producers votes.
 func (s *State) processVoteCancel(output *common2.Output, height uint32) {
 	subtractByGross := func(producer *Producer) {
-		s.history.Append(height, func() {
+		s.History.Append(height, func() {
 			producer.votes -= output.Value
 		}, func() {
 			producer.votes += output.Value
@@ -1464,7 +1504,7 @@ func (s *State) processVoteCancel(output *common2.Output, height uint32) {
 	}
 
 	subtractByVote := func(producer *Producer, vote common.Fixed64) {
-		s.history.Append(height, func() {
+		s.History.Append(height, func() {
 			producer.votes -= vote
 		}, func() {
 			producer.votes += vote
@@ -1520,11 +1560,11 @@ func (s *State) returnDeposit(tx interfaces.Transaction, height uint32) {
 			}
 
 			returnAction := func(producer *Producer) {
-				s.history.Append(height, func() {
+				s.History.Append(height, func() {
 					producer.totalAmount -= inputValue
 					if producer.state == Canceled &&
 						producer.totalAmount+changeValue-producer.penalty <=
-							s.chainParams.MinTransactionFee {
+							s.ChainParams.MinTransactionFee {
 						producer.state = Returned
 					}
 				}, func() {
@@ -1546,7 +1586,7 @@ func (s *State) processNextTurnDPOSInfo(tx interfaces.Transaction, height uint32
 	}
 	log.Warnf("processNextTurnDPOSInfo tx: %s, %d", common.ToReversedString(tx.Hash()), height)
 	oriNeedNextTurnDposInfo := s.NeedNextTurnDPOSInfo
-	s.history.Append(height, func() {
+	s.History.Append(height, func() {
 		s.NeedNextTurnDPOSInfo = false
 	}, func() {
 		s.NeedNextTurnDPOSInfo = oriNeedNextTurnDposInfo
@@ -1584,7 +1624,7 @@ func (s *State) processCRCouncilMemberClaimNode(tx interfaces.Transaction, heigh
 	strOwnerPubkey := common.BytesToHexString(ownerPublicKey)
 	strOldNodePublicKey := s.getNodePublicKeyStr(strOwnerPubkey)
 
-	s.history.Append(height, func() {
+	s.History.Append(height, func() {
 		s.NodeOwnerKeys[strNewNodePublicKey] = strOwnerPubkey
 		if strOldNodePublicKey != "" {
 			delete(s.NodeOwnerKeys, strOldNodePublicKey)
@@ -1602,7 +1642,7 @@ func (s *State) processRevertToPOW(tx interfaces.Transaction, height uint32) {
 	oriNoClaimDPOSNode := s.NoClaimDPOSNode
 	oriDPOSWorkHeight := s.DPOSWorkHeight
 	oriRevertToPOWBlockHeight := s.RevertToPOWBlockHeight
-	s.history.Append(height, func() {
+	s.History.Append(height, func() {
 		s.ConsensusAlgorithm = POW
 		s.NoProducers = false
 		s.NoClaimDPOSNode = false
@@ -1622,7 +1662,7 @@ func (s *State) processRevertToPOW(tx interfaces.Transaction, height uint32) {
 		"revert type:%s", height, pld.Type.String())
 }
 
-// updateVersion record the update period during that inactive arbitrators
+// updateVersion record the update period during that inactive Arbiters
 // will not need to pay the penalty
 func (s *State) updateVersion(tx interfaces.Transaction, height uint32) {
 	p, ok := tx.Payload().(*payload.UpdateVersion)
@@ -1633,7 +1673,7 @@ func (s *State) updateVersion(tx interfaces.Transaction, height uint32) {
 
 	oriVersionStartHeight := s.VersionStartHeight
 	oriVersionEndHeight := s.VersionEndHeight
-	s.history.Append(height, func() {
+	s.History.Append(height, func() {
 		s.VersionStartHeight = p.StartHeight
 		s.VersionEndHeight = p.EndHeight
 	}, func() {
@@ -1659,7 +1699,7 @@ func (s *State) getClaimedCRMembersMap() map[string]*state.CRMember {
 func (s *State) processRevertToDPOS(Payload *payload.RevertToDPOS, height uint32) {
 	oriWorkHeight := s.DPOSWorkHeight
 	oriNeedRevertToDPOSTX := s.NeedRevertToDPOSTX
-	s.history.Append(height, func() {
+	s.History.Append(height, func() {
 		s.DPOSWorkHeight = height + Payload.WorkHeightInterval
 		s.NeedRevertToDPOSTX = false
 	}, func() {
@@ -1683,12 +1723,12 @@ func (s *State) getClaimedCRMemberDPOSPublicKeyMap() map[string]*state.CRMember 
 }
 
 // processEmergencyInactiveArbitrators change producer state according to
-// emergency inactive arbitrators
+// emergency inactive Arbiters
 func (s *State) processEmergencyInactiveArbitrators(
 	inactivePayload *payload.InactiveArbitrators, height uint32) {
 
 	addEmergencyInactiveArbitrator := func(key string, producer *Producer) {
-		s.history.Append(height, func() {
+		s.History.Append(height, func() {
 			s.setInactiveProducer(producer, key, height, true)
 			s.EmergencyInactiveArbiters[key] = struct{}{}
 		}, func() {
@@ -1717,7 +1757,7 @@ func (s *State) processEmergencyInactiveArbitrators(
 
 // recordSpecialTx record hash of a special tx
 func (s *State) recordSpecialTx(hash common.Uint256, height uint32) {
-	s.history.Append(height, func() {
+	s.History.Append(height, func() {
 		s.SpecialTxHashes[hash] = struct{}{}
 	}, func() {
 		delete(s.SpecialTxHashes, hash)
@@ -1772,7 +1812,7 @@ func (s *State) processIllegalEvidence(payloadData interfaces.Payload,
 				continue
 			}
 			oriState := cr.MemberState
-			s.history.Append(height, func() {
+			s.History.Append(height, func() {
 				s.tryUpdateCRMemberIllegal(cr.Info.DID, height)
 			}, func() {
 				s.tryRevertCRMemberIllegal(cr.Info.DID, oriState, height)
@@ -1786,13 +1826,13 @@ func (s *State) processIllegalEvidence(payloadData interfaces.Payload,
 			oriPenalty := producer.penalty
 			oriState := producer.state
 			oriIllegalHeight := producer.illegalHeight
-			s.history.Append(height, func() {
+			s.History.Append(height, func() {
 				producer.state = Illegal
 				producer.illegalHeight = height
 				s.IllegalProducers[key] = producer
 				producer.activateRequestHeight = math.MaxUint32
-				if height >= s.chainParams.ChangeCommitteeNewCRHeight {
-					producer.penalty += s.chainParams.IllegalPenalty
+				if height >= s.ChainParams.ChangeCommitteeNewCRHeight {
+					producer.penalty += s.ChainParams.IllegalPenalty
 				}
 				delete(s.ActivityProducers, key)
 				if producer.info.StakeUntil != 0 {
@@ -1818,13 +1858,13 @@ func (s *State) processIllegalEvidence(payloadData interfaces.Payload,
 			oriPenalty := producer.penalty
 			oriState := producer.state
 			oriIllegalHeight := producer.illegalHeight
-			s.history.Append(height, func() {
+			s.History.Append(height, func() {
 				producer.state = Illegal
 				producer.illegalHeight = height
 				s.IllegalProducers[key] = producer
 				producer.activateRequestHeight = math.MaxUint32
-				if height >= s.chainParams.ChangeCommitteeNewCRHeight {
-					producer.penalty += s.chainParams.IllegalPenalty
+				if height >= s.ChainParams.ChangeCommitteeNewCRHeight {
+					producer.penalty += s.ChainParams.IllegalPenalty
 				}
 				delete(s.InactiveProducers, key)
 				delete(s.Nicknames, producer.info.NickName)
@@ -1843,11 +1883,11 @@ func (s *State) processIllegalEvidence(payloadData interfaces.Payload,
 		if producer, ok := s.IllegalProducers[key]; ok {
 			oriPenalty := producer.penalty
 			oriIllegalHeight := producer.illegalHeight
-			s.history.Append(height, func() {
+			s.History.Append(height, func() {
 				producer.illegalHeight = height
 				producer.activateRequestHeight = math.MaxUint32
-				if height >= s.chainParams.ChangeCommitteeNewCRHeight {
-					producer.penalty += s.chainParams.IllegalPenalty
+				if height >= s.ChainParams.ChangeCommitteeNewCRHeight {
+					producer.penalty += s.ChainParams.IllegalPenalty
 				}
 				delete(s.Nicknames, producer.info.NickName)
 			}, func() {
@@ -1862,12 +1902,12 @@ func (s *State) processIllegalEvidence(payloadData interfaces.Payload,
 		if producer, ok := s.CanceledProducers[key]; ok {
 			oriPenalty := producer.penalty
 			oriState := producer.state
-			s.history.Append(height, func() {
+			s.History.Append(height, func() {
 				producer.state = Illegal
 				producer.illegalHeight = height
 				s.IllegalProducers[key] = producer
-				if height >= s.chainParams.ChangeCommitteeNewCRHeight {
-					producer.penalty += s.chainParams.IllegalPenalty
+				if height >= s.ChainParams.ChangeCommitteeNewCRHeight {
+					producer.penalty += s.ChainParams.IllegalPenalty
 				}
 				delete(s.CanceledProducers, key)
 				delete(s.Nicknames, producer.info.NickName)
@@ -1898,7 +1938,7 @@ func (s *State) ProcessSpecialTxPayload(p interfaces.Payload, height uint32) {
 	}
 
 	// Commit changes here if no errors found.
-	s.history.Commit(height)
+	s.History.Commit(height)
 }
 
 // setInactiveProducer set active producer to inactive state
@@ -1916,11 +1956,11 @@ func (s *State) setInactiveProducer(producer *Producer, key string,
 
 	if height < s.VersionStartHeight || height >= s.VersionEndHeight {
 		if !emergency {
-			if height >= s.chainParams.ChangeCommitteeNewCRHeight {
-				producer.penalty += s.chainParams.InactivePenalty
+			if height >= s.ChainParams.ChangeCommitteeNewCRHeight {
+				producer.penalty += s.ChainParams.InactivePenalty
 			}
 		} else {
-			producer.penalty += s.chainParams.EmergencyInactivePenalty
+			producer.penalty += s.ChainParams.EmergencyInactivePenalty
 
 		}
 	}
@@ -1939,9 +1979,9 @@ func (s *State) revertSettingInactiveProducer(producer *Producer, key string,
 	delete(s.InactiveProducers, key)
 
 	if height < s.VersionStartHeight || height >= s.VersionEndHeight {
-		penalty := s.chainParams.InactivePenalty
+		penalty := s.ChainParams.InactivePenalty
 		if emergency {
-			penalty = s.chainParams.EmergencyInactivePenalty
+			penalty = s.ChainParams.EmergencyInactivePenalty
 		}
 
 		if producer.penalty < penalty {
@@ -1952,16 +1992,16 @@ func (s *State) revertSettingInactiveProducer(producer *Producer, key string,
 	}
 }
 
-// countArbitratorsInactivity count arbitrators inactive rounds, and change to
+// countArbitratorsInactivity count Arbiters inactive rounds, and change to
 // inactive if more than "MaxInactiveRounds"
 func (s *State) countArbitratorsInactivityV2(height uint32,
 	confirm *payload.Confirm) {
-	// check inactive arbitrators after producers has participated in
-	if height < s.chainParams.PublicDPOSHeight {
+	// check inactive Arbiters after producers has participated in
+	if height < s.ChainParams.PublicDPOSHeight {
 		return
 	}
 
-	isDPOSAsCR := height > s.chainParams.ChangeCommitteeNewCRHeight
+	isDPOSAsCR := height > s.ChainParams.ChangeCommitteeNewCRHeight
 
 	// changingArbiters indicates the arbiters that should reset inactive
 	// counting state. With the value of true means the producer is on duty or
@@ -2010,7 +2050,7 @@ func (s *State) countArbitratorsInactivityV2(height uint32,
 					}
 					oriLastUpdateInactiveHeight := producer.lastUpdateInactiveHeight
 					oriSelected := producer.selected
-					s.history.Append(height, func() {
+					s.History.Append(height, func() {
 						s.tryUpdateInactivityV2(key, producer, needReset, height)
 					}, func() {
 						s.tryRevertInactivity(key, producer, needReset, height,
@@ -2019,7 +2059,7 @@ func (s *State) countArbitratorsInactivityV2(height uint32,
 				} else {
 					oriState := cr.MemberState
 					oriInactiveCount := cr.InactiveCount
-					s.history.Append(height, func() {
+					s.History.Append(height, func() {
 						s.tryUpdateCRMemberInactivity(cr.Info.DID, needReset, height)
 					}, func() {
 						s.tryRevertCRMemberInactivity(cr.Info.DID, oriState, oriInactiveCount, height)
@@ -2042,7 +2082,7 @@ func (s *State) countArbitratorsInactivityV2(height uint32,
 		}
 		oriLastUpdateInactiveHeight := producer.lastUpdateInactiveHeight
 		oriSelected := producer.selected
-		s.history.Append(height, func() {
+		s.History.Append(height, func() {
 			s.tryUpdateInactivityV2(key, producer, needReset, height)
 		}, func() {
 			s.tryRevertInactivity(key, producer, needReset, height,
@@ -2051,12 +2091,12 @@ func (s *State) countArbitratorsInactivityV2(height uint32,
 	}
 }
 
-// countArbitratorsInactivity count arbitrators inactive rounds, and change to
+// countArbitratorsInactivity count Arbiters inactive rounds, and change to
 // inactive if more than "MaxInactiveRounds"
 func (s *State) countArbitratorsInactivityV1(height uint32,
 	confirm *payload.Confirm) {
-	// check inactive arbitrators after producers has participated in
-	if height < s.chainParams.PublicDPOSHeight {
+	// check inactive Arbiters after producers has participated in
+	if height < s.ChainParams.PublicDPOSHeight {
 		return
 	}
 	// changingArbiters indicates the arbiters that should reset inactive
@@ -2086,7 +2126,7 @@ func (s *State) countArbitratorsInactivityV1(height uint32,
 				}
 				oriState := cr.MemberState
 				oriInactiveCount := cr.InactiveCountingHeight
-				s.history.Append(height, func() {
+				s.History.Append(height, func() {
 					s.tryUpdateCRMemberInactivity(cr.Info.DID, needReset, height)
 				}, func() {
 					s.tryRevertCRMemberInactivity(cr.Info.DID, oriState, oriInactiveCount, height)
@@ -2104,7 +2144,7 @@ func (s *State) countArbitratorsInactivityV1(height uint32,
 		oriInactiveCount := producer.inactiveCount
 		oriLastUpdateInactiveHeight := producer.lastUpdateInactiveHeight
 		oriSelected := producer.selected
-		s.history.Append(height, func() {
+		s.History.Append(height, func() {
 			s.tryUpdateInactivity(key, producer, needReset, height)
 		}, func() {
 			s.tryRevertInactivity(key, producer, needReset, height,
@@ -2113,12 +2153,12 @@ func (s *State) countArbitratorsInactivityV1(height uint32,
 	}
 }
 
-// countArbitratorsInactivity count arbitrators inactive rounds, and change to
+// countArbitratorsInactivity count Arbiters inactive rounds, and change to
 // inactive if more than "MaxInactiveRounds"
 func (s *State) countArbitratorsInactivityV0(height uint32,
 	confirm *payload.Confirm) {
-	// check inactive arbitrators after producers has participated in
-	if height < s.chainParams.PublicDPOSHeight {
+	// check inactive Arbiters after producers has participated in
+	if height < s.ChainParams.PublicDPOSHeight {
 		return
 	}
 
@@ -2159,7 +2199,7 @@ func (s *State) countArbitratorsInactivityV0(height uint32,
 		}
 		oriLastUpdateInactiveHeight := producer.lastUpdateInactiveHeight
 		oriSelected := producer.selected
-		s.history.Append(height, func() {
+		s.History.Append(height, func() {
 			s.tryUpdateInactivity(key, producer, needReset, height)
 		}, func() {
 			s.tryRevertInactivity(key, producer, needReset, height,
@@ -2188,12 +2228,12 @@ func (s *State) tryUpdateInactivityV2(key string, producer *Producer,
 
 	if producer.selected {
 		producer.randomCandidateInactiveCount++
-		if producer.randomCandidateInactiveCount >= s.chainParams.MaxInactiveRoundsOfRandomNode {
+		if producer.randomCandidateInactiveCount >= s.ChainParams.MaxInactiveRoundsOfRandomNode {
 			s.setInactiveProducer(producer, key, height, false)
 		}
 	} else {
 		producer.inactiveCount++
-		if producer.inactiveCount >= s.chainParams.MaxInactiveRounds {
+		if producer.inactiveCount >= s.ChainParams.MaxInactiveRounds {
 			s.setInactiveProducer(producer, key, height, false)
 			producer.inactiveCount = 0
 		}
@@ -2212,7 +2252,7 @@ func (s *State) tryUpdateInactivity(key string, producer *Producer,
 		producer.inactiveCountingHeight = height
 	}
 
-	if height-producer.inactiveCountingHeight >= s.chainParams.MaxInactiveRounds {
+	if height-producer.inactiveCountingHeight >= s.ChainParams.MaxInactiveRounds {
 		s.setInactiveProducer(producer, key, height, false)
 		producer.inactiveCountingHeight = 0
 	}
@@ -2242,29 +2282,29 @@ func (s *State) tryRevertInactivity(key string, producer *Producer,
 func (s *State) RollbackSeekTo(height uint32) {
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
-	s.history.RollbackSeekTo(height)
+	s.History.RollbackSeekTo(height)
 }
 
 // RollbackTo restores the database state to the given height, if no enough
-// history to rollback to return error.
+// History to rollback to return error.
 func (s *State) RollbackTo(height uint32) error {
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
-	return s.history.RollbackTo(height)
+	return s.History.RollbackTo(height)
 }
 
-// GetHistory returns a history state instance storing the producers and votes
+// GetHistory returns a History state instance storing the producers and votes
 // on the historical height.
 func (s *State) GetHistory(height uint32) (*StateKeyFrame, error) {
 	s.mtx.RLock()
 	defer s.mtx.RUnlock()
 
 	// Seek to state to target height.
-	if err := s.history.SeekTo(height); err != nil {
+	if err := s.History.SeekTo(height); err != nil {
 		return nil, err
 	}
 
-	// Take a snapshot of the history.
+	// Take a SnapshotByHeight of the History.
 	return s.snapshot(), nil
 }
 
@@ -2275,7 +2315,7 @@ func (s *State) GetLastIrreversibleHeight() uint32 {
 }
 
 func (s *State) tryUpdateLastIrreversibleHeight(height uint32) {
-	if height < s.chainParams.RevertToPOWStartHeight {
+	if height < s.ChainParams.RevertToPOWStartHeight {
 		return
 	}
 
@@ -2283,7 +2323,7 @@ func (s *State) tryUpdateLastIrreversibleHeight(height uint32) {
 	oriDPOSStartHeight := s.DPOSStartHeight
 	//init LastIrreversibleHeight
 	if s.LastIrreversibleHeight == 0 {
-		s.history.Append(height, func() {
+		s.History.Append(height, func() {
 			s.LastIrreversibleHeight = height - IrreversibleHeight
 			s.DPOSStartHeight = s.LastIrreversibleHeight
 			log.Debugf("[tryUpdateLastIrreversibleHeight] init LastIrreversibleHeight %d, DPOSStartHeight",
@@ -2298,7 +2338,7 @@ func (s *State) tryUpdateLastIrreversibleHeight(height uint32) {
 	} else if s.ConsensusAlgorithm == DPOS {
 		//from pow to dpow
 		if s.DPOSWorkHeight != 0 && height == s.DPOSWorkHeight+1 {
-			s.history.Append(height, func() {
+			s.History.Append(height, func() {
 				s.DPOSStartHeight = height
 				log.Debugf("[tryUpdateLastIrreversibleHeight] from pow to dpow  DPOSStartHeight",
 					s.DPOSStartHeight)
@@ -2309,7 +2349,7 @@ func (s *State) tryUpdateLastIrreversibleHeight(height uint32) {
 			})
 		}
 		if height-s.DPOSStartHeight >= IrreversibleHeight {
-			s.history.Append(height, func() {
+			s.History.Append(height, func() {
 				s.DPOSStartHeight++
 				s.LastIrreversibleHeight = s.DPOSStartHeight
 				log.Debugf("[tryUpdateLastIrreversibleHeight] LastIrreversibleHeight %d, DPOSStartHeight %d",
@@ -2329,13 +2369,13 @@ func (s *State) IsIrreversible(curBlockHeight uint32, detachNodesLen int) bool {
 	s.mtx.RLock()
 	defer s.mtx.RUnlock()
 
-	if curBlockHeight <= s.chainParams.CRCOnlyDPOSHeight {
+	if curBlockHeight <= s.ChainParams.CRCOnlyDPOSHeight {
 		return false
 	}
 	if curBlockHeight-uint32(detachNodesLen)-1 <= s.LastIrreversibleHeight {
 		return true
 	}
-	if curBlockHeight >= s.chainParams.RevertToPOWStartHeight {
+	if curBlockHeight >= s.ChainParams.RevertToPOWStartHeight {
 		if s.ConsensusAlgorithm == DPOS {
 			if detachNodesLen > IrreversibleHeight {
 				return true
@@ -2374,12 +2414,12 @@ func NewState(chainParams *config.Params, getArbiters func() []*ArbiterInfo,
 	tryUpdateCRMemberIllegal func(did common.Uint168, height uint32),
 	tryRevertCRMemberIllegal func(did common.Uint168, oriState state.MemberState, height uint32)) *State {
 	state := State{
-		chainParams:                 chainParams,
+		ChainParams:                 chainParams,
 		getArbiters:                 getArbiters,
 		getCRMembers:                getCRMembers,
 		isInElectionPeriod:          isInElectionPeriod,
 		getProducerDepositAmount:    getProducerDepositAmount,
-		history:                     utils.NewHistory(maxHistoryCapacity),
+		History:                     utils.NewHistory(maxHistoryCapacity),
 		StateKeyFrame:               NewStateKeyFrame(),
 		tryUpdateCRMemberInactivity: tryUpdateCRMemberInactivity,
 		tryRevertCRMemberInactivity: tryRevertCRMemberInactivityfunc,

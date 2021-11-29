@@ -9,18 +9,28 @@ import (
 	"bytes"
 	crand "crypto/rand"
 	"encoding/binary"
-	"github.com/elastos/Elastos.ELA/cr/state"
 	"math/rand"
 	"testing"
 	"time"
 
 	"github.com/elastos/Elastos.ELA/common"
+	"github.com/elastos/Elastos.ELA/common/config"
+	transaction2 "github.com/elastos/Elastos.ELA/core/transaction"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
-	"github.com/elastos/Elastos.ELA/core/types/outputpayload"
+	"github.com/elastos/Elastos.ELA/core/types/functions"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
+	"github.com/elastos/Elastos.ELA/cr/state"
 
 	"github.com/stretchr/testify/assert"
 )
+
+func init() {
+	functions.GetTransactionByTxType = transaction2.GetTransaction
+	functions.GetTransactionByBytes = transaction2.GetTransactionByBytes
+	functions.CreateTransaction = transaction2.CreateTransaction
+	functions.GetTransactionParameters = transaction2.GetTransactionparameters
+	config.DefaultParams = config.GetDefaultParams()
+}
 
 func TestKeyFrame_Deserialize(t *testing.T) {
 	frame := randomKeyFrame(5, rand.Uint32())
@@ -216,7 +226,6 @@ func candidatesMapEqual(first map[common.Uint168]*state.Candidate,
 	return true
 }
 
-
 func depositInfoMapEqual(first map[common.Uint168]*state.DepositInfo,
 	second map[common.Uint168]*state.DepositInfo) bool {
 	if len(first) != len(second) {
@@ -352,20 +361,20 @@ func randomCRMember() *state.CRMember {
 func randomStateKeyFrame(size int, hasPending bool) *state.StateKeyFrame {
 	frame := state.NewStateKeyFrame()
 	for i := 0; i < size; i++ {
-		frame.DepositOutputs[state.randomString()] = randomFix64()
-		frame.CRCFoundationOutputs[state.randomString()] = randomFix64()
-		frame.CRCCommitteeOutputs[state.randomString()] = randomFix64()
-		hash := state.randomUint168()
+		frame.DepositOutputs[randomString()] = randomFix64()
+		frame.CRCFoundationOutputs[randomString()] = randomFix64()
+		frame.CRCCommitteeOutputs[randomString()] = randomFix64()
+		hash := randomUint168()
 		frame.DepositHashCIDMap[*hash] = *hash
 	}
 
 	if hasPending {
 		for i := 0; i < size; i++ {
-			candidate := state.randomCandidate()
-			candidate.state = state.Pending
-			nickname := candidate.Info().NickName
-			code := candidate.Info().Code
-			cid := candidate.Info().CID
+			candidate := randomCandidate()
+			candidate.State = state.Pending
+			nickname := candidate.Info.NickName
+			code := candidate.Info.Code
+			cid := candidate.Info.CID
 			frame.CodeCIDMap[common.BytesToHexString(code)] = cid
 			frame.Candidates[cid] = candidate
 			frame.Nicknames[nickname] = struct{}{}
@@ -376,11 +385,11 @@ func randomStateKeyFrame(size int, hasPending bool) *state.StateKeyFrame {
 		}
 	}
 	for i := 0; i < size; i++ {
-		candidate := state.randomCandidate()
-		candidate.state = state.Active
-		code := candidate.info.Code
-		cid := candidate.info.CID
-		nickname := candidate.info.NickName
+		candidate := randomCandidate()
+		candidate.State = state.Active
+		code := candidate.Info.Code
+		cid := candidate.Info.CID
+		nickname := candidate.Info.NickName
 		frame.CodeCIDMap[common.BytesToHexString(code)] = cid
 		frame.Candidates[cid] = candidate
 		frame.Nicknames[nickname] = struct{}{}
@@ -390,15 +399,15 @@ func randomStateKeyFrame(size int, hasPending bool) *state.StateKeyFrame {
 		}
 	}
 	for i := 0; i < size; i++ {
-		candidate := state.randomCandidate()
-		cid := candidate.info.CID
+		candidate := randomCandidate()
+		cid := candidate.Info.CID
 
-		nickname := candidate.info.NickName
-		code := candidate.info.Code
+		nickname := candidate.Info.NickName
+		code := candidate.Info.Code
 		if i%2 == 0 {
-			candidate.state = state.Canceled
+			candidate.State = state.Canceled
 		} else {
-			candidate.state = state.Returned
+			candidate.State = state.Returned
 		}
 		frame.CodeCIDMap[common.BytesToHexString(code)] = cid
 		frame.Candidates[cid] = candidate
@@ -410,12 +419,12 @@ func randomStateKeyFrame(size int, hasPending bool) *state.StateKeyFrame {
 	}
 	frame.HistoryCandidates[1] = make(map[common.Uint168]*state.Candidate)
 	for i := 0; i < size; i++ {
-		candidate := state.randomCandidate()
-		frame.DepositInfo[candidate.info.DID] = &state.DepositInfo{}
-		frame.HistoryCandidates[1][candidate.info.DID] = candidate
+		candidate := randomCandidate()
+		frame.DepositInfo[candidate.Info.DID] = &state.DepositInfo{}
+		frame.HistoryCandidates[1][candidate.Info.DID] = candidate
 	}
 	for i := 0; i < size; i++ {
-		frame.Votes[state.randomString()] = struct{}{}
+		frame.Votes[randomString()] = struct{}{}
 	}
 	return frame
 }
@@ -512,36 +521,36 @@ func randomProposalKeyframe() *state.ProposalKeyFrame {
 	size := uint64(5)
 
 	proposalKeyFrame := &state.ProposalKeyFrame{Proposals: map[common.Uint256]*state.ProposalState{
-		*state.randomUint256(): randomProposalState(),
-		*state.randomUint256(): randomProposalState(),
-		*state.randomUint256(): randomProposalState(),
-		*state.randomUint256(): randomProposalState(),
-		*state.randomUint256(): randomProposalState(),
+		*randomUint256(): randomProposalState(),
+		*randomUint256(): randomProposalState(),
+		*randomUint256(): randomProposalState(),
+		*randomUint256(): randomProposalState(),
+		*randomUint256(): randomProposalState(),
 	},
 		ProposalHashes: map[common.Uint168]state.ProposalHashSet{
-			*state.randomUint168(): randomProposalHashSet(),
-			*state.randomUint168(): randomProposalHashSet(),
+			*randomUint168(): randomProposalHashSet(),
+			*randomUint168(): randomProposalHashSet(),
 		},
 		ProposalSession:           make(map[uint64][]common.Uint256, size),
 		WithdrawableTxInfo:        make(map[common.Uint256]common2.OutputInfo, size),
-		SecretaryGeneralPublicKey: state.randomString(),
+		SecretaryGeneralPublicKey: randomString(),
 	}
 
 	for i := uint64(0); i < size; i++ {
 		proposalKeyFrame.ProposalSession[i] = make([]common.Uint256, size)
 		for j := 0; j <= rand.Intn(j+1); j++ {
-			proposalKeyFrame.ProposalSession[i] = append(proposalKeyFrame.ProposalSession[i], *state.randomUint256())
+			proposalKeyFrame.ProposalSession[i] = append(proposalKeyFrame.ProposalSession[i], *randomUint256())
 		}
 	}
 	for i := uint64(0); i < size; i++ {
-		hash := state.randomUint256()
+		hash := randomUint256()
 		proposalKeyFrame.WithdrawableTxInfo[*hash] = *randomOutputInfo()
 	}
 	var reserverCustomIDs []string
 	for i := uint64(0); i < size; i++ {
 		reserverCustomIDs = []string{}
 		for j := uint64(0); j < i; j++ {
-			reserverCustomIDs = append(reserverCustomIDs, state.randomString())
+			reserverCustomIDs = append(reserverCustomIDs, randomString())
 		}
 		proposalKeyFrame.ReservedCustomIDLists = append(proposalKeyFrame.ReservedCustomIDLists, reserverCustomIDs...)
 	}
@@ -550,7 +559,7 @@ func randomProposalKeyframe() *state.ProposalKeyFrame {
 	for i := uint64(0); i < size; i++ {
 		receivedCustomIDs = []string{}
 		for j := uint64(0); j < i; j++ {
-			receivedCustomIDs = append(receivedCustomIDs, state.randomString())
+			receivedCustomIDs = append(receivedCustomIDs, randomString())
 		}
 		proposalKeyFrame.ReceivedCustomIDLists = append(proposalKeyFrame.ReceivedCustomIDLists, receivedCustomIDs...)
 	}
@@ -562,16 +571,16 @@ func randomProposalState() *state.ProposalState {
 	return &state.ProposalState{
 		Status:             state.ProposalStatus(rand.Int31n(7)),
 		Proposal:           pld.ToProposalInfo(0),
-		TxHash:             *state.randomUint256(),
+		TxHash:             *randomUint256(),
 		RegisterHeight:     rand.Uint32(),
 		VoteStartHeight:    rand.Uint32(),
 		VotersRejectAmount: common.Fixed64(rand.Int63()),
 		CRVotes: map[common.Uint168]payload.VoteResult{
-			*state.randomUint168(): payload.VoteResult(rand.Int31n(3)),
-			*state.randomUint168(): payload.VoteResult(rand.Int31n(3)),
-			*state.randomUint168(): payload.VoteResult(rand.Int31n(3)),
-			*state.randomUint168(): payload.VoteResult(rand.Int31n(3)),
-			*state.randomUint168(): payload.VoteResult(rand.Int31n(3)),
+			*randomUint168(): payload.VoteResult(rand.Int31n(3)),
+			*randomUint168(): payload.VoteResult(rand.Int31n(3)),
+			*randomUint168(): payload.VoteResult(rand.Int31n(3)),
+			*randomUint168(): payload.VoteResult(rand.Int31n(3)),
+			*randomUint168(): payload.VoteResult(rand.Int31n(3)),
 		},
 	}
 }
@@ -580,7 +589,7 @@ func randomProposalHashSet() state.ProposalHashSet {
 	proposalHashSet := state.NewProposalHashSet()
 	count := rand.Int() % 128
 	for i := 0; i < count; i++ {
-		proposalHashSet.Add(*state.randomUint256())
+		proposalHashSet.Add(*randomUint256())
 	}
 
 	return proposalHashSet
@@ -589,12 +598,12 @@ func randomProposalHashSet() state.ProposalHashSet {
 func randomCRCProposal() *payload.CRCProposal {
 	return &payload.CRCProposal{
 		ProposalType:             payload.CRCProposalType(rand.Int31n(6)),
-		OwnerPublicKey:           state.randomBytes(33),
-		CRCouncilMemberDID:       *state.randomUint168(),
-		DraftHash:                *state.randomUint256(),
+		OwnerPublicKey:           randomBytes(33),
+		CRCouncilMemberDID:       *randomUint168(),
+		DraftHash:                *randomUint256(),
 		Budgets:                  createBudgets(5),
-		Signature:                state.randomBytes(64),
-		CRCouncilMemberSignature: state.randomBytes(64),
+		Signature:                randomBytes(64),
+		CRCouncilMemberSignature: randomBytes(64),
 	}
 }
 
@@ -631,31 +640,7 @@ func randomBool() bool {
 
 func randomOutputInfo() *common2.OutputInfo {
 	return &common2.OutputInfo{
-		Recipient: *state.randomUint168(),
+		Recipient: *randomUint168(),
 		Amount:    randomFix64(),
-	}
-}
-
-func randomOutputs() *common2.Output {
-	return &common2.Output{
-		AssetID:     *state.randomUint256(),
-		Value:       common.Fixed64(rand.Int63()),
-		OutputLock:  0,
-		ProgramHash: *state.randomUint168(),
-		Type:        common2.OTVote,
-		Payload: &outputpayload.VoteOutput{
-			Version: outputpayload.VoteProducerAndCRVersion,
-			Contents: []outputpayload.VoteContent{
-				{
-					VoteType: outputpayload.CRC,
-					CandidateVotes: []outputpayload.CandidateVotes{
-						{
-							Candidate: state.randomBytes(34),
-							Votes:     common.Fixed64(rand.Int63()),
-						},
-					},
-				},
-			},
-		},
 	}
 }

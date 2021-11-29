@@ -9,20 +9,29 @@ import (
 	"testing"
 
 	"github.com/elastos/Elastos.ELA/blockchain/indexers"
-	"github.com/elastos/Elastos.ELA/core/contract/program"
-	"github.com/elastos/Elastos.ELA/core/types/functions"
-	"github.com/elastos/Elastos.ELA/core/types/interfaces"
-
 	"github.com/elastos/Elastos.ELA/common"
+	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/common/log"
+	"github.com/elastos/Elastos.ELA/core/contract/program"
+	transaction2 "github.com/elastos/Elastos.ELA/core/transaction"
 	"github.com/elastos/Elastos.ELA/core/types"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/functions"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/core/types/outputpayload"
 	"github.com/elastos/Elastos.ELA/database"
 	"github.com/elastos/Elastos.ELA/utils/test"
 
 	"github.com/stretchr/testify/assert"
 )
+
+func init() {
+	functions.GetTransactionByTxType = transaction2.GetTransaction
+	functions.GetTransactionByBytes = transaction2.GetTransactionByBytes
+	functions.CreateTransaction = transaction2.CreateTransaction
+	functions.GetTransactionParameters = transaction2.GetTransactionparameters
+	config.DefaultParams = config.GetDefaultParams()
+}
 
 var (
 	returnDepositHash = common.Uint256{1, 2, 3}

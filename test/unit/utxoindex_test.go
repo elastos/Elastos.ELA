@@ -10,7 +10,9 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/core/contract/program"
+	"github.com/elastos/Elastos.ELA/core/transaction"
 	"github.com/elastos/Elastos.ELA/core/types/functions"
 	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 
@@ -31,8 +33,27 @@ var (
 	referHeight        = uint32(100)
 	referRecipient1, _ = common.Uint168FromAddress("EJMzC16Eorq9CuFCGtyMrq4Jmgw9jYCHQR")
 	referRecipient2, _ = common.Uint168FromAddress("EKnWs1jyNdhzH65UST8qMo8ZpQrTpXGnLH")
+	recipient1, _      = common.Uint168FromAddress("EQr9qjiXGF2y7YMtDCHtHNewZynakbDzF7")
+	recipient2, _      = common.Uint168FromAddress("EWQfnxDhXQ4vHjncuAG5si2zpbKR79CjLp")
 
 	// refer tx hash: 160da301e49617c037ae9b630919af52b8ac458202cd64558af7e0dcc753e307
+	testUtxoIndexReferTx interfaces.Transaction
+	testUtxoIndexTx1     interfaces.Transaction
+	testUtxoIndexTx2     interfaces.Transaction
+	testUtxoIndexBlock   *types.Block
+
+	testUtxoIndex *indexers.UtxoIndex
+	utxoIndexDB   database.DB
+	testTxStore   *TestTxStore
+)
+
+func init() {
+	functions.GetTransactionByTxType = transaction.GetTransaction
+	functions.GetTransactionByBytes = transaction.GetTransactionByBytes
+	functions.CreateTransaction = transaction.CreateTransaction
+	functions.GetTransactionParameters = transaction.GetTransactionparameters
+	config.DefaultParams = config.GetDefaultParams()
+
 	testUtxoIndexReferTx = functions.CreateTransaction(
 		common2.TxVersion09,
 		common2.TransferAsset,
@@ -77,7 +98,7 @@ var (
 		5,
 		[]*program.Program{},
 	)
-	recipient1, _    = common.Uint168FromAddress("EQr9qjiXGF2y7YMtDCHtHNewZynakbDzF7")
+
 	testUtxoIndexTx1 = functions.CreateTransaction(
 		0,
 		common2.CoinBase,
@@ -98,8 +119,6 @@ var (
 		0,
 		[]*program.Program{},
 	)
-
-	recipient2, _ = common.Uint168FromAddress("EWQfnxDhXQ4vHjncuAG5si2zpbKR79CjLp")
 
 	testUtxoIndexTx2 = functions.CreateTransaction(
 		0,
@@ -157,11 +176,7 @@ var (
 			testUtxoIndexTx2,
 		},
 	}
-
-	testUtxoIndex *indexers.UtxoIndex
-	utxoIndexDB   database.DB
-	testTxStore   *TestTxStore
-)
+}
 
 type TestTxStore struct {
 	transactions map[common.Uint256]interfaces.Transaction

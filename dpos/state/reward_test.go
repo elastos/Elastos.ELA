@@ -54,7 +54,7 @@ func TestCommittee_ChangeCommitteeReward(t *testing.T) {
 	cfg := &config.DefaultParams
 	cfg.CRCArbiters = cfg.CRCArbiters[0:2]
 	cfg.CRMemberCount = 2
-	abt.chainParams.GeneralArbiters = 24
+	abt.ChainParams.GeneralArbiters = 24
 
 	// avoid getting UTXOs from database
 	currentHeight := cfg.CRVotingStartHeight
@@ -94,7 +94,7 @@ func TestCommittee_ChangeCommitteeReward(t *testing.T) {
 			voteCRTx,
 		},
 	}, nil)
-	assert.Equal(t, common.Fixed64(3), committee.GetCandidate(*did1).Votes())
+	assert.Equal(t, common.Fixed64(3), committee.GetCandidate(*did1).Votes)
 
 	// end first voting period
 	currentHeight = cfg.CRCommitteeStartHeight
@@ -108,7 +108,7 @@ func TestCommittee_ChangeCommitteeReward(t *testing.T) {
 	arbitrators.RegisterFunction(func() uint32 { return bestHeight },
 		func() *common.Uint256 { return &common.Uint256{} },
 		nil, nil)
-	arbitrators.chainParams.NoCRCDPOSNodeHeight = 2000000
+	arbitrators.ChainParams.NoCRCDPOSNodeHeight = 2000000
 
 	// Create 200 producers info.
 	producers := make([]*payload.ProducerInfo, 200)
@@ -155,9 +155,9 @@ func TestCommittee_ChangeCommitteeReward(t *testing.T) {
 		}
 	}
 
-	arbitrators.ProcessBlock(mockBlock(arbitrators.chainParams.PublicDPOSHeight-
-		arbitrators.chainParams.PreConnectOffset-1), nil)
-	arbitrators.ProcessBlock(mockBlock(arbitrators.chainParams.PublicDPOSHeight-1), nil)
+	arbitrators.ProcessBlock(mockBlock(arbitrators.ChainParams.PublicDPOSHeight-
+		arbitrators.ChainParams.PreConnectOffset-1), nil)
+	arbitrators.ProcessBlock(mockBlock(arbitrators.ChainParams.PublicDPOSHeight-1), nil)
 
 	arbitrators.dutyIndex = 25
 	arbitrators.ProcessBlock(mockBlock(1000000+72), nil)

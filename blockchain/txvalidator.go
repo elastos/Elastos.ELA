@@ -420,7 +420,7 @@ func CheckTransactionInput(txn interfaces.Transaction) error {
 	}
 
 	if len(txn.Inputs()) <= 0 {
-		return errors.New("transaction has no Inputs")
+		return errors.New("transaction has no inputs")
 	}
 	existingTxInputs := make(map[string]struct{})
 	for _, input := range txn.Inputs() {
@@ -428,7 +428,7 @@ func CheckTransactionInput(txn interfaces.Transaction) error {
 			return errors.New("invalid transaction input")
 		}
 		if _, exists := existingTxInputs[input.ReferKey()]; exists {
-			return errors.New("duplicated transaction Inputs")
+			return errors.New("duplicated transaction inputs")
 		} else {
 			existingTxInputs[input.ReferKey()] = struct{}{}
 		}
@@ -2419,8 +2419,8 @@ func (b *BlockChain) CheckCRCAppropriationTransaction(txn interfaces.Transaction
 		totalOutput += output.Value
 	}
 	if totalInput != totalOutput {
-		return fmt.Errorf("Inputs does not equal to outputs amount, "+
-			"Inputs:%s outputs:%s", totalInput, totalOutput)
+		return fmt.Errorf("inputs does not equal to outputs amount, "+
+			"inputs:%s outputs:%s", totalInput, totalOutput)
 	}
 
 	// Check output amount to CRExpensesAddress:
@@ -2535,8 +2535,8 @@ func (b *BlockChain) checkCRAssetsRectifyTransaction(txn interfaces.Transaction,
 	// Inputs amount need equal to outputs amount
 	totalOutput := txn.Outputs()[0].Value
 	if totalInput != totalOutput+b.chainParams.RectifyTxFee {
-		return fmt.Errorf("Inputs minus outputs does not match with %d sela fee , "+
-			"Inputs:%s outputs:%s", b.chainParams.RectifyTxFee, totalInput, totalOutput)
+		return fmt.Errorf("inputs minus outputs does not match with %d sela fee , "+
+			"inputs:%s outputs:%s", b.chainParams.RectifyTxFee, totalInput, totalOutput)
 	}
 
 	return nil

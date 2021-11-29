@@ -8,6 +8,7 @@ package state
 import (
 	"crypto/rand"
 	"fmt"
+	"github.com/elastos/Elastos.ELA/test/unit"
 	"testing"
 
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
@@ -222,7 +223,7 @@ func mockIllegalBlockTx(publicKey []byte) interfaces.Transaction {
 	return tx
 }
 
-// mockIllegalBlockTx creates a inactive arbitrators transaction with the
+// mockIllegalBlockTx creates a inactive Arbiters transaction with the
 // producer public key.
 func mockInactiveArbitratorsTx(publicKey []byte) interfaces.Transaction {
 	tx := functions.CreateTransaction(
@@ -766,9 +767,9 @@ func TestState_GetHistory(t *testing.T) {
 	// At this point, we have 1 canceled, 1 pending, 7 active, 1 illegal and 8 in total producers.
 
 	//_, err := state.GetHistory(0)
-	//limitHeight := state.history.Height() - uint32(len(state.history.Changes()))
+	//limitHeight := state.History.Height() - uint32(len(state.History.Changes()))
 	//if !assert.EqualError(t, err, fmt.Sprintf("seek to %d overflow"+
-	//	" history capacity, at most seek to %d", 0, limitHeight)) {
+	//	" History capacity, at most seek to %d", 0, limitHeight)) {
 	//	t.FailNow()
 	//}
 
@@ -1040,8 +1041,8 @@ func TestState_InactiveProducer_Normal(t *testing.T) {
 		func() bool { return false },
 		nil, nil, nil,
 		nil, nil)
-	state.chainParams.InactivePenalty = 50
-	state.chainParams.ChangeCommitteeNewCRHeight = 1
+	state.ChainParams.InactivePenalty = 50
+	state.ChainParams.ChangeCommitteeNewCRHeight = 1
 
 	// Create 10 producers info.
 	producers := make([]*payload.ProducerInfo, 10)
@@ -1071,7 +1072,7 @@ func TestState_InactiveProducer_Normal(t *testing.T) {
 		t.FailNow()
 	}
 
-	// arbitrators should set inactive after continuous three blocks
+	// Arbiters should set inactive after continuous three blocks
 	ar1, _ := NewOriginArbiter(producers[0].NodePublicKey)
 	ar2, _ := NewOriginArbiter(producers[1].NodePublicKey)
 	ar3, _ := NewOriginArbiter(producers[2].NodePublicKey)
@@ -1107,7 +1108,7 @@ func TestState_InactiveProducer_Normal(t *testing.T) {
 	// check penalty
 	inactiveProducer := state.GetProducer(producers[0].NodePublicKey)
 	if !assert.Equal(t, inactiveProducer.Penalty(),
-		state.chainParams.InactivePenalty) {
+		state.ChainParams.InactivePenalty) {
 		t.FailNow()
 	}
 }
@@ -1147,7 +1148,7 @@ func TestState_InactiveProducer_FailNoContinuous(t *testing.T) {
 		t.FailNow()
 	}
 
-	// arbitrators should set inactive after continuous three blocks
+	// Arbiters should set inactive after continuous three blocks
 	ar1, _ := NewOriginArbiter(producers[0].NodePublicKey)
 	ar2, _ := NewOriginArbiter(producers[1].NodePublicKey)
 	ar3, _ := NewOriginArbiter(producers[2].NodePublicKey)
@@ -1197,7 +1198,7 @@ func TestState_InactiveProducer_RecoverFromInactiveState(t *testing.T) {
 		func() bool { return false },
 		nil, nil, nil,
 		nil, nil)
-	state.chainParams.ChangeCommitteeNewCRHeight = 1
+	state.ChainParams.ChangeCommitteeNewCRHeight = 1
 	// Create 10 producers info.
 	producers := make([]*payload.ProducerInfo, 10)
 	for i, p := range producers {
@@ -1226,7 +1227,7 @@ func TestState_InactiveProducer_RecoverFromInactiveState(t *testing.T) {
 		t.FailNow()
 	}
 
-	// arbitrators should set inactive after continuous three blocks
+	// Arbiters should set inactive after continuous three blocks
 	ar1, _ := NewOriginArbiter(producers[0].NodePublicKey)
 	ar2, _ := NewOriginArbiter(producers[1].NodePublicKey)
 	ar3, _ := NewOriginArbiter(producers[2].NodePublicKey)
@@ -1262,7 +1263,7 @@ func TestState_InactiveProducer_RecoverFromInactiveState(t *testing.T) {
 	// check penalty
 	inactiveProducer := state.GetProducer(producers[0].NodePublicKey)
 	if !assert.Equal(t, inactiveProducer.Penalty(),
-		state.chainParams.InactivePenalty) {
+		state.ChainParams.InactivePenalty) {
 		t.FailNow()
 	}
 
@@ -1291,7 +1292,7 @@ func TestState_InactiveProducer_DuringUpdateVersion(t *testing.T) {
 		func() bool { return false },
 		nil, nil, nil,
 		nil, nil)
-	state.chainParams.InactivePenalty = 50
+	state.ChainParams.InactivePenalty = 50
 
 	// Create 10 producers info.
 	producers := make([]*payload.ProducerInfo, 10)
@@ -1340,7 +1341,7 @@ func TestState_InactiveProducer_DuringUpdateVersion(t *testing.T) {
 
 	state.ProcessBlock(mockBlock(uint32(currentHeight), tx), nil)
 
-	// arbitrators should set inactive after continuous three blocks
+	// Arbiters should set inactive after continuous three blocks
 	ar1, _ := NewOriginArbiter(producers[0].NodePublicKey)
 	ar2, _ := NewOriginArbiter(producers[1].NodePublicKey)
 	ar3, _ := NewOriginArbiter(producers[2].NodePublicKey)
@@ -1401,7 +1402,7 @@ func TestState_ProcessBlock_DepositAndReturnDeposit(t *testing.T) {
 		&payload.ProducerInfo{
 			OwnerPublicKey: pkBuf,
 			NodePublicKey:  pkBuf,
-			NickName:       randomString(),
+			NickName:       unit.randomString(),
 		},
 		[]*common2.Attribute{},
 		[]*common2.Input{},
@@ -1537,7 +1538,7 @@ func TestState_ProcessBlock_DepositAndReturnDeposit(t *testing.T) {
 	)
 
 	state.returnDeposit(tx, height)
-	state.history.Commit(height)
+	state.History.Commit(height)
 	assert.Equal(t, common.Fixed64(100), candidate.totalAmount)
 }
 
@@ -1657,7 +1658,7 @@ func TestState_CountArbitratorsInactivityV1(t *testing.T) {
 	state.getArbiters = func() []*ArbiterInfo {
 		result := make([]*ArbiterInfo, 0)
 		for i, p := range pds {
-			if i >= len(state.chainParams.CRCArbiters)+state.chainParams.GeneralArbiters {
+			if i >= len(state.ChainParams.CRCArbiters)+state.ChainParams.GeneralArbiters {
 				break
 			}
 			result = append(result, &ArbiterInfo{
@@ -1680,7 +1681,7 @@ func TestState_CountArbitratorsInactivityV1(t *testing.T) {
 		if p.selected {
 			nodePublcKey = pds[0].NodePublicKey()
 		}
-		height := state.chainParams.ChangeCommitteeNewCRHeight + 1 + uint32(i)
+		height := state.ChainParams.ChangeCommitteeNewCRHeight + 1 + uint32(i)
 		state.countArbitratorsInactivityV1(
 			height,
 			&payload.Confirm{
@@ -1688,7 +1689,7 @@ func TestState_CountArbitratorsInactivityV1(t *testing.T) {
 					Sponsor: nodePublcKey,
 				},
 			})
-		state.history.Commit(height)
+		state.History.Commit(height)
 	}
 
 	// check the status of random DPOS node.

@@ -7,6 +7,7 @@ package state
 
 import (
 	"bytes"
+	"github.com/elastos/Elastos.ELA/test/unit"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -26,7 +27,7 @@ func TestArbiterMemberInterfaceDeserialize(t *testing.T) {
 	assert.True(t, origin1.ownerHash.IsEqual(origin2.ownerHash))
 
 	// DPoS
-	ar1, _ = NewDPoSArbiter(randomProducer())
+	ar1, _ = NewDPoSArbiter(unit.randomProducer())
 	buf = new(bytes.Buffer)
 	SerializeArbiterMember(ar1, buf)
 	ar2, _ = ArbiterMemberFromReader(buf)
@@ -34,11 +35,11 @@ func TestArbiterMemberInterfaceDeserialize(t *testing.T) {
 	dpos1 := ar1.(*dposArbiter)
 	dpos2 := ar2.(*dposArbiter)
 	assert.Equal(t, ar1.GetType(), ar2.GetType())
-	assert.True(t, producerEqual(&dpos1.producer, &dpos2.producer))
+	assert.True(t, unit.producerEqual(&dpos1.producer, &dpos2.producer))
 	assert.True(t, dpos1.ownerHash.IsEqual(dpos2.ownerHash))
 
 	// CROrigin
-	ar1, _ = NewDPoSArbiter(randomProducer())
+	ar1, _ = NewDPoSArbiter(unit.randomProducer())
 	buf = new(bytes.Buffer)
 	SerializeArbiterMember(ar1, buf)
 	ar2, _ = ArbiterMemberFromReader(buf)
@@ -46,6 +47,6 @@ func TestArbiterMemberInterfaceDeserialize(t *testing.T) {
 	crOrigin1 := ar1.(*dposArbiter)
 	crOrigin2 := ar2.(*dposArbiter)
 	assert.Equal(t, ar1.GetType(), ar2.GetType())
-	assert.True(t, producerEqual(&crOrigin1.producer, &crOrigin2.producer))
+	assert.True(t, unit.producerEqual(&crOrigin1.producer, &crOrigin2.producer))
 	assert.True(t, crOrigin1.ownerHash.IsEqual(crOrigin2.ownerHash))
 }

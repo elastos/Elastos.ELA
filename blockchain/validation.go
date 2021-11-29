@@ -54,12 +54,12 @@ func RunPrograms(data []byte, programHashes []common.Uint168, programs []*Progra
 					return errors.New("check schnorr signature failed:" + err.Error())
 				}
 			} else {
-				if err := checkStandardSignature(*program, data); err != nil {
+				if err := CheckStandardSignature(*program, data); err != nil {
 					return err
 				}
 			}
 		} else if prefixType == contract.PrefixMultiSig {
-			if err := checkMultiSigSignatures(*program, data); err != nil {
+			if err := CheckMultiSigSignatures(*program, data); err != nil {
 				return err
 			}
 		} else {
@@ -102,7 +102,7 @@ func GetTxProgramHashes(tx interfaces.Transaction, references map[*common2.Input
 	return uniqueHashes, nil
 }
 
-func checkStandardSignature(program Program, data []byte) error {
+func CheckStandardSignature(program Program, data []byte) error {
 	if len(program.Parameter) != crypto.SignatureScriptLength {
 		return errors.New("invalid signature length")
 	}
@@ -115,7 +115,7 @@ func checkStandardSignature(program Program, data []byte) error {
 	return crypto.Verify(*publicKey, data, program.Parameter[1:])
 }
 
-func checkMultiSigSignatures(program Program, data []byte) error {
+func CheckMultiSigSignatures(program Program, data []byte) error {
 	code := program.Code
 	// Get N parameter
 	n := int(code[len(code)-2]) - crypto.PUSH1 + 1
@@ -200,14 +200,14 @@ func verifyMultisigSignatures(m, n int, publicKeys [][]byte, signatures, data []
 }
 
 func SortPrograms(programs []*Program) {
-	sort.Sort(byHash(programs))
+	sort.Sort(ByHash(programs))
 }
 
-type byHash []*Program
+type ByHash []*Program
 
-func (p byHash) Len() int      { return len(p) }
-func (p byHash) Swap(i, j int) { p[i], p[j] = p[j], p[i] }
-func (p byHash) Less(i, j int) bool {
+func (p ByHash) Len() int      { return len(p) }
+func (p ByHash) Swap(i, j int) { p[i], p[j] = p[j], p[i] }
+func (p ByHash) Less(i, j int) bool {
 	hashi := common.ToCodeHash(p[i].Code)
 	hashj := common.ToCodeHash(p[j].Code)
 	return hashi.Compare(*hashj) < 0

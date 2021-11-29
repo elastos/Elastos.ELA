@@ -128,6 +128,10 @@ func (b *BlockChain) GetDB() IChainStore {
 	return b.db
 }
 
+func (b *BlockChain) GetParams() *config.Params {
+	return b.chainParams
+}
+
 func (b *BlockChain) Init(interrupt <-chan struct{}) error {
 	if err := b.db.GetFFLDB().InitIndex(b, interrupt); err != nil {
 		return err
@@ -570,8 +574,15 @@ func CalculateTxsFee(block *Block) {
 func (b *BlockChain) GetState() *state.State {
 	return b.state
 }
+func (b *BlockChain) SetState(s *state.State) {
+	b.state = s
+}
+
 func (b *BlockChain) GetCRCommittee() *crstate.Committee {
 	return b.crCommittee
+}
+func (b *BlockChain) SetCRCommittee(c *crstate.Committee) {
+	b.crCommittee = c
 }
 
 func (b *BlockChain) GetBestBlockHash() *Uint256 {

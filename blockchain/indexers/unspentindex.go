@@ -18,16 +18,16 @@ import (
 )
 
 const (
-	// unspentIndexName is the human-readable name for the index.
-	unspentIndexName = "unspent index"
+	// UnspentIndexName is the human-readable name for the index.
+	UnspentIndexName = "unspent index"
 )
 
 var (
-	// unspentIndexKey is the key of the unspent index and the db bucket used
+	// UnspentIndexKey is the key of the unspent index and the DB bucket used
 	// to house it.
-	unspentIndexKey = []byte("unspentbyhashidx")
+	UnspentIndexKey = []byte("unspentbyhashidx")
 
-	// hashIndexBucketName is the name of the db bucket used to house to the
+	// hashIndexBucketName is the name of the DB bucket used to house to the
 	// block hash -> block height index.
 	hashIndexBucketName = []byte("hashidx")
 )
@@ -41,10 +41,10 @@ func toByteArray(source []uint16) []byte {
 	return dst
 }
 
-// dbPutUnspentIndexEntry uses an existing database transaction to update the
+// DBPutUnspentIndexEntry uses an existing database transaction to update the
 // index of unspent output.
-func dbPutUnspentIndexEntry(dbTx database.Tx, txHash *common.Uint256, outputIndexes []uint16) error {
-	unspentIndex := dbTx.Metadata().Bucket(unspentIndexKey)
+func DBPutUnspentIndexEntry(dbTx database.Tx, txHash *common.Uint256, outputIndexes []uint16) error {
+	unspentIndex := dbTx.Metadata().Bucket(UnspentIndexKey)
 	return unspentIndex.Put(txHash[:], toByteArray(outputIndexes))
 }
 
@@ -62,12 +62,12 @@ func getUint16Array(source []byte) ([]uint16, error) {
 	return dst, nil
 }
 
-// dbFetchUnspentIndexEntry uses an existing database transaction to fetch its
+// DBFetchUnspentIndexEntry uses an existing database transaction to fetch its
 // index of unspent output. When there is no entry for the provided hash, nil
 // will be returned for the both the index and the error.
-func dbFetchUnspentIndexEntry(dbTx database.Tx, txHash *common.Uint256) ([]uint16, error) {
+func DBFetchUnspentIndexEntry(dbTx database.Tx, txHash *common.Uint256) ([]uint16, error) {
 	// Load the record from the database and return now if it doesn't exist.
-	unspentIndex := dbTx.Metadata().Bucket(unspentIndexKey)
+	unspentIndex := dbTx.Metadata().Bucket(UnspentIndexKey)
 	serializedData := unspentIndex.Get(txHash[:])
 	if len(serializedData) == 0 {
 		return nil, nil
@@ -78,7 +78,7 @@ func dbFetchUnspentIndexEntry(dbTx database.Tx, txHash *common.Uint256) ([]uint1
 
 // dbRemoveUnspentIndexEntry removes an unspent item by the given hash.
 func dbRemoveUnspentIndexEntry(dbTx database.Tx, txHash *common.Uint256) error {
-	unspentIndex := dbTx.Metadata().Bucket(unspentIndexKey)
+	unspentIndex := dbTx.Metadata().Bucket(UnspentIndexKey)
 	serializedData := unspentIndex.Get(txHash[:])
 	if len(serializedData) == 0 {
 		return fmt.Errorf("can't remove non-existent unspent item by %s "+
@@ -91,8 +91,8 @@ func dbRemoveUnspentIndexEntry(dbTx database.Tx, txHash *common.Uint256) error {
 // UnspentIndex implements a unspent set by tx hash index. That is to say,
 // it supports querying all unspent index by their tx hash.
 type UnspentIndex struct {
-	db      database.DB
-	txCache *TxCache
+	DB      database.DB
+	TxCache *TxCache
 }
 
 // Init initializes the hash-based unspent index. This is part of the Indexer
@@ -105,14 +105,14 @@ func (idx *UnspentIndex) Init() error {
 //
 // This is part of the Indexer interface.
 func (idx *UnspentIndex) Key() []byte {
-	return unspentIndexKey
+	return UnspentIndexKey
 }
 
 // Name returns the human-readable name of the index.
 //
 // This is part of the Indexer interface.
 func (idx *UnspentIndex) Name() string {
-	return unspentIndexName
+	return UnspentIndexName
 }
 
 // Create is invoked when the indexer manager determines the index needs
@@ -122,7 +122,7 @@ func (idx *UnspentIndex) Name() string {
 // This is part of the Indexer interface.
 func (idx *UnspentIndex) Create(dbTx database.Tx) error {
 	meta := dbTx.Metadata()
-	_, err := meta.CreateBucket(unspentIndexKey)
+	_, err := meta.CreateBucket(UnspentIndexKey)
 	return err
 }
 
@@ -135,14 +135,14 @@ func (idx *UnspentIndex) ConnectBlock(dbTx database.Tx, block *types.Block) erro
 	unspents := make(map[common.Uint256][]uint16)
 	// Trim the cache before connect block so the extra txns can be stored at least
 	// one block.
-	idx.txCache.trim()
+	idx.TxCache.trim()
 
 	for _, txn := range block.Transactions {
 		if txn.TxType() == common2.RegisterAsset {
 			continue
 		}
 		txnHash := txn.Hash()
-		idx.txCache.setTxn(block.Height, txn)
+		idx.TxCache.setTxn(block.Height, txn)
 		for index := range txn.Outputs() {
 			unspents[txnHash] = append(unspents[txnHash], uint16(index))
 		}
@@ -150,7 +150,7 @@ func (idx *UnspentIndex) ConnectBlock(dbTx database.Tx, block *types.Block) erro
 			for index, input := range txn.Inputs() {
 				referTxnHash := input.Previous.TxID
 				if _, ok := unspents[referTxnHash]; !ok {
-					unspentValue, err := dbFetchUnspentIndexEntry(dbTx, &referTxnHash)
+					unspentValue, err := DBFetchUnspentIndexEntry(dbTx, &referTxnHash)
 					if err != nil {
 						return err
 					}
@@ -171,13 +171,13 @@ func (idx *UnspentIndex) ConnectBlock(dbTx database.Tx, block *types.Block) erro
 
 	for txHash, value := range unspents {
 		if len(value) == 0 {
-			idx.txCache.deleteTxn(txHash)
+			idx.TxCache.deleteTxn(txHash)
 			err := dbRemoveUnspentIndexEntry(dbTx, &txHash)
 			if err != nil {
 				return err
 			}
 		} else {
-			err := dbPutUnspentIndexEntry(dbTx, &txHash, value)
+			err := DBPutUnspentIndexEntry(dbTx, &txHash, value)
 			if err != nil {
 				return err
 			}
@@ -200,7 +200,7 @@ func (idx *UnspentIndex) DisconnectBlock(dbTx database.Tx, block *types.Block) e
 		}
 		// remove all utxos created by this transaction
 		txnHash := txn.Hash()
-		idx.txCache.deleteTxn(txnHash)
+		idx.TxCache.deleteTxn(txnHash)
 		if len(txn.Outputs()) != 0 {
 			err := dbRemoveUnspentIndexEntry(dbTx, &txnHash)
 			if err != nil {
@@ -212,7 +212,7 @@ func (idx *UnspentIndex) DisconnectBlock(dbTx database.Tx, block *types.Block) e
 				referTxnHash := input.Previous.TxID
 				referTxnOutIndex := input.Previous.Index
 				if _, ok := unspents[referTxnHash]; !ok {
-					unspentValue, err := dbFetchUnspentIndexEntry(dbTx, &referTxnHash)
+					unspentValue, err := DBFetchUnspentIndexEntry(dbTx, &referTxnHash)
 					if err != nil {
 						return err
 					}
@@ -227,13 +227,13 @@ func (idx *UnspentIndex) DisconnectBlock(dbTx database.Tx, block *types.Block) e
 
 	for txHash, value := range unspents {
 		if len(value) == 0 {
-			idx.txCache.deleteTxn(txHash)
+			idx.TxCache.deleteTxn(txHash)
 			err := dbRemoveUnspentIndexEntry(dbTx, &txHash)
 			if err != nil {
 				return err
 			}
 		} else {
-			err := dbPutUnspentIndexEntry(dbTx, &txHash, value)
+			err := DBPutUnspentIndexEntry(dbTx, &txHash, value)
 			if err != nil {
 				return err
 			}
@@ -244,13 +244,13 @@ func (idx *UnspentIndex) DisconnectBlock(dbTx database.Tx, block *types.Block) e
 }
 
 func (idx *UnspentIndex) FetchTx(txID common.Uint256) (interfaces.Transaction, uint32, error) {
-	if txnInfo := idx.txCache.getTxn(txID); txnInfo != nil {
-		return txnInfo.txn, txnInfo.blockHeight, nil
+	if txnInfo := idx.TxCache.GetTxn(txID); txnInfo != nil {
+		return txnInfo.Txn, txnInfo.BlockHeight, nil
 	}
 
 	var txn interfaces.Transaction
 	var height uint32
-	err := idx.db.View(func(dbTx database.Tx) error {
+	err := idx.DB.View(func(dbTx database.Tx) error {
 		var err error
 		var blockHash *common.Uint256
 		txn, blockHash, err = dbFetchTx(dbTx, &txID)
@@ -289,8 +289,8 @@ func dbFetchHeightByHash(dbTx database.Tx, hash *common.Uint256) (uint32, error)
 // seamlessly maintained along with the chain.
 func NewUnspentIndex(db database.DB, params *config.Params) *UnspentIndex {
 	unspentIndex := &UnspentIndex{
-		db:      db,
-		txCache: NewTxCache(params),
+		DB:      db,
+		TxCache: NewTxCache(params),
 	}
 	//if params.NodeProfileStrategy !=
 	//	config.MemoryFirst.String() {

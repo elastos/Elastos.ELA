@@ -80,14 +80,14 @@ package indexers
 //func TestTx3Index_ConnectBlock(t *testing.T) {
 //	initIndexBlock()
 //	_ = tx3IndexDB.Update(func(dbTx database.Tx) error {
-//		// tx3 should not in db
+//		// tx3 should not in DB
 //		assert.Equal(t, false, dbFetchTx3IndexEntry(dbTx, &tx3Hash))
 //
 //		// connect the block
 //		err := testTx3Index.ConnectBlock(dbTx, testTx3IndexBlock)
 //		assert.NoError(t, err)
 //
-//		// tx3 should be stored in db
+//		// tx3 should be stored in DB
 //		assert.Equal(t, true, dbFetchTx3IndexEntry(dbTx, &tx3Hash))
 //
 //		return err
@@ -97,14 +97,14 @@ package indexers
 //func TestTx3Index_Disconnect(t *testing.T) {
 //	initIndexBlock()
 //	_ = tx3IndexDB.Update(func(dbTx database.Tx) error {
-//		// tx3 should be stored in db
+//		// tx3 should be stored in DB
 //		assert.Equal(t, true, dbFetchTx3IndexEntry(dbTx, &tx3Hash))
 //
 //		// disconnect the block
 //		err := testTx3Index.DisconnectBlock(dbTx, testTx3IndexBlock)
 //		assert.NoError(t, err)
 //
-//		// tx3 should be removed from db
+//		// tx3 should be removed from DB
 //		assert.Equal(t, false, dbFetchTx3IndexEntry(dbTx, &tx3Hash))
 //
 //		return nil

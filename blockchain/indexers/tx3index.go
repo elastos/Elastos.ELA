@@ -21,7 +21,7 @@ const (
 )
 
 var (
-	// tx3IndexKey is the key of the tx3 index and the db bucket used
+	// tx3IndexKey is the key of the tx3 index and the DB bucket used
 	// to house it.
 	tx3IndexKey = []byte("tx3hash")
 

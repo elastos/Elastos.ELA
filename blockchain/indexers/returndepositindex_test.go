@@ -85,14 +85,14 @@ package indexers
 //func TestReturnDepositIndex_ConnectBlock(t *testing.T) {
 //	initReturnDepositIndexBlock()
 //	_ = returnDepositIndexDB.Update(func(dbTx database.Tx) error {
-//		// returnDeposit should not in db
+//		// returnDeposit should not in DB
 //		assert.Equal(t, false, dbFetchReturnDepositIndexEntry(dbTx, &returnDepositHash))
 //
 //		// connect the block
 //		err := testReturnDepositIndex.ConnectBlock(dbTx, testReturnDepositIndexBlock)
 //		assert.NoError(t, err)
 //
-//		// returnDeposit should be stored in db
+//		// returnDeposit should be stored in DB
 //		assert.Equal(t, true, dbFetchReturnDepositIndexEntry(dbTx, &returnDepositHash))
 //
 //		return err
@@ -102,14 +102,14 @@ package indexers
 //func TestReturnDepositIndex_Disconnect(t *testing.T) {
 //	initReturnDepositIndexBlock()
 //	_ = returnDepositIndexDB.Update(func(dbTx database.Tx) error {
-//		// returnDeposit should be stored in db
+//		// returnDeposit should be stored in DB
 //		assert.Equal(t, true, dbFetchReturnDepositIndexEntry(dbTx, &returnDepositHash))
 //
 //		// disconnect the block
 //		err := testReturnDepositIndex.DisconnectBlock(dbTx, testReturnDepositIndexBlock)
 //		assert.NoError(t, err)
 //
-//		// returnDeposit should be removed from db
+//		// returnDeposit should be removed from DB
 //		assert.Equal(t, false, dbFetchReturnDepositIndexEntry(dbTx, &returnDepositHash))
 //
 //		return nil

@@ -32,15 +32,15 @@ const (
 )
 
 var (
-	// txIndexKey is the key of the transaction index and the db bucket used
+	// txIndexKey is the key of the transaction index and the DB bucket used
 	// to house it.
 	txIndexKey = []byte("txbyhashidx")
 
-	// idByHashIndexBucketName is the name of the db bucket used to house
+	// idByHashIndexBucketName is the name of the DB bucket used to house
 	// the block id -> block hash index.
 	idByHashIndexBucketName = []byte("idbyhashidx")
 
-	// hashByIDIndexBucketName is the name of the db bucket used to house
+	// hashByIDIndexBucketName is the name of the DB bucket used to house
 	// the block hash -> block id index.
 	hashByIDIndexBucketName = []byte("hashbyididx")
 

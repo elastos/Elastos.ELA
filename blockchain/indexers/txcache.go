@@ -24,21 +24,21 @@ const (
 )
 
 type TxInfo struct {
-	blockHeight uint32
-	txn         interfaces.Transaction
+	BlockHeight uint32
+	Txn         interfaces.Transaction
 }
 
 func (t *TxInfo) Serialize(w io.Writer) (err error) {
-	err = common.WriteUint32(w, t.blockHeight)
+	err = common.WriteUint32(w, t.BlockHeight)
 	if err != nil {
 		return
 	}
-	return t.txn.Serialize(w)
+	return t.Txn.Serialize(w)
 }
 
 func (t *TxInfo) Deserialize(r io.Reader) (err error) {
 
-	t.blockHeight, err = common.ReadUint32(r)
+	t.BlockHeight, err = common.ReadUint32(r)
 	if err != nil {
 		return
 	}
@@ -50,7 +50,7 @@ func (t *TxInfo) Deserialize(r io.Reader) (err error) {
 	if err != nil {
 		return
 	}
-	t.txn = txn
+	t.Txn = txn
 	return nil
 }
 
@@ -92,7 +92,7 @@ func (t *TxCache) Deserialize(r io.Reader) (err error) {
 		if err != nil {
 			return err
 		}
-		t.setTxn(txInfo.blockHeight, txInfo.txn)
+		t.setTxn(txInfo.BlockHeight, txInfo.Txn)
 	}
 
 	return nil
@@ -111,8 +111,8 @@ func (t *TxCache) setTxn(height uint32, txn interfaces.Transaction) {
 	t.Lock()
 	defer t.Unlock()
 	t.txns[txn.Hash()] = &TxInfo{
-		blockHeight: height,
-		txn:         txn,
+		BlockHeight: height,
+		Txn:         txn,
 	}
 }
 
@@ -127,7 +127,7 @@ func (t *TxCache) deleteTxn(hash common.Uint256) {
 	delete(t.txns, hash)
 }
 
-func (t *TxCache) getTxn(hash common.Uint256) *TxInfo {
+func (t *TxCache) GetTxn(hash common.Uint256) *TxInfo {
 	t.RLock()
 	defer t.RUnlock()
 

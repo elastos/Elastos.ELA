@@ -519,7 +519,7 @@ func (m *Manager) IsTx3Exist(txHash *common.Uint256) bool {
 func (m *Manager) IsSideChainReturnDepositExist(txHash *common.Uint256) bool {
 	exist := false
 	_ = m.db.View(func(dbTx database.Tx) error {
-		exist = dbFetchReturnDepositIndexEntry(dbTx, txHash)
+		exist = DBFetchReturnDepositIndexEntry(dbTx, txHash)
 		return nil
 	})
 

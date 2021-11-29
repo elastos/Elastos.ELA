@@ -101,7 +101,7 @@ func (s *BudgetStatus) Name() string {
 	return "Unknown"
 }
 
-// CRMember defines CR committee member related info.
+// CRMember defines CR committee member related Info.
 type CRMember struct {
 	Info                   payload.CRInfo
 	ImpeachmentVotes       common.Fixed64
@@ -115,7 +115,7 @@ type CRMember struct {
 	InactiveCountingHeight uint32
 }
 
-// StateKeyFrame holds necessary state about CR committee.
+// StateKeyFrame holds necessary State about CR committee.
 type KeyFrame struct {
 	Members                  map[common.Uint168]*CRMember
 	HistoryMembers           map[uint64]map[common.Uint168]*CRMember
@@ -143,13 +143,13 @@ type DepositInfo struct {
 	TotalAmount   common.Fixed64
 }
 
-// StateKeyFrame holds necessary state about CR state.
+// StateKeyFrame holds necessary State about CR State.
 type StateKeyFrame struct {
 	CodeCIDMap           map[string]common.Uint168
 	DepositHashCIDMap    map[common.Uint168]common.Uint168
 	Candidates           map[common.Uint168]*Candidate
 	HistoryCandidates    map[uint64]map[common.Uint168]*Candidate
-	depositInfo          map[common.Uint168]*DepositInfo
+	DepositInfo          map[common.Uint168]*DepositInfo
 	CurrentSession       uint64
 	Nicknames            map[string]struct{}
 	Votes                map[string]struct{}
@@ -158,7 +158,7 @@ type StateKeyFrame struct {
 	CRCCommitteeOutputs  map[string]common.Fixed64
 }
 
-// ProposalState defines necessary state about an CR proposals.
+// ProposalState defines necessary State about an CR proposals.
 type ProposalState struct {
 	Status             ProposalStatus
 	Proposal           payload.CRCProposalInfo
@@ -230,13 +230,13 @@ type ProposalsMap map[common.Uint256]*ProposalState
 type ReviewDraftDataMap map[common.Uint256][]byte
 type TrackingDraftDataMap map[common.Uint256][]byte
 
-// ProposalKeyFrame holds all runtime state about CR proposals.
+// ProposalKeyFrame holds all runtime State about CR proposals.
 type ProposalKeyFrame struct {
 	// key is did value is proposalhash set
 	Proposals       ProposalsMap
 	ProposalHashes  map[common.Uint168]ProposalHashSet
 	ProposalSession map[uint64][]common.Uint256
-	// proposalWithdraw info
+	// proposalWithdraw Info
 	WithdrawableTxInfo map[common.Uint256]common2.OutputInfo
 	// publicKey of SecretaryGeneral
 	SecretaryGeneralPublicKey string
@@ -252,7 +252,7 @@ type ProposalKeyFrame struct {
 	// genesis hashes
 	RegisteredGenesisHashes []common.Uint256
 
-	// store register info with the approved height
+	// store register Info with the approved Height
 	RegisteredSideChainPayloadInfo map[uint32]map[common.Uint256]payload.SideChainInfo
 
 	//reserve CustomID
@@ -604,7 +604,7 @@ func (kf *StateKeyFrame) Serialize(w io.Writer) (err error) {
 		return
 	}
 
-	if err = kf.serializeDepositInfoMap(w, kf.depositInfo); err != nil {
+	if err = kf.serializeDepositInfoMap(w, kf.DepositInfo); err != nil {
 		return
 	}
 
@@ -648,7 +648,7 @@ func (kf *StateKeyFrame) Deserialize(r io.Reader) (err error) {
 		return
 	}
 
-	if kf.depositInfo, err = kf.deserializeDepositInfoMap(r); err != nil {
+	if kf.DepositInfo, err = kf.deserializeDepositInfoMap(r); err != nil {
 		return
 	}
 
@@ -917,7 +917,7 @@ func (kf *StateKeyFrame) Snapshot() *StateKeyFrame {
 	state.DepositHashCIDMap = copyHashIDMap(kf.DepositHashCIDMap)
 	state.Candidates = copyCandidateMap(kf.Candidates)
 	state.HistoryCandidates = copyHistoryCandidateMap(kf.HistoryCandidates)
-	state.depositInfo = copyDepositInfoMap(kf.depositInfo)
+	state.DepositInfo = copyDepositInfoMap(kf.DepositInfo)
 	state.CurrentSession = kf.CurrentSession
 	state.Nicknames = utils.CopyStringSet(kf.Nicknames)
 	state.Votes = utils.CopyStringSet(kf.Votes)
@@ -1656,7 +1656,7 @@ func NewStateKeyFrame() *StateKeyFrame {
 		DepositHashCIDMap:    make(map[common.Uint168]common.Uint168),
 		Candidates:           make(map[common.Uint168]*Candidate),
 		HistoryCandidates:    make(map[uint64]map[common.Uint168]*Candidate),
-		depositInfo:          make(map[common.Uint168]*DepositInfo),
+		DepositInfo:          make(map[common.Uint168]*DepositInfo),
 		CurrentSession:       0,
 		Nicknames:            make(map[string]struct{}),
 		Votes:                make(map[string]struct{}),

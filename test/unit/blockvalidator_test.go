@@ -3,12 +3,13 @@
 // license that can be found in the LICENSE file.
 //
 
-package blockchain
+package unit
 
 import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"github.com/elastos/Elastos.ELA/blockchain"
 	"math"
 	"math/rand"
 	"path/filepath"
@@ -58,20 +59,20 @@ func init() {
 func TestCheckBlockSanity(t *testing.T) {
 	log.NewDefault(test.NodeLogPath, 0, 0, 0)
 	params := config.GetDefaultParams()
-	FoundationAddress = params.Foundation
-	chainStore, err := NewChainStore(filepath.Join(test.DataPath, "sanity"), &params)
+	blockchain.FoundationAddress = params.Foundation
+	chainStore, err := blockchain.NewChainStore(filepath.Join(test.DataPath, "sanity"), &params)
 	if err != nil {
 		t.Error(err.Error())
 	}
 	defer chainStore.Close()
 
-	chain, _ := New(chainStore, &params, state.NewState(&params,
+	chain, _ := blockchain.New(chainStore, &params, state.NewState(&params,
 		nil, nil, nil, nil,
 		nil, nil, nil,
 		nil), nil)
 	//chain.Init(nil)
-	if DefaultLedger == nil {
-		DefaultLedger = &Ledger{
+	if blockchain.DefaultLedger == nil {
+		blockchain.DefaultLedger = &blockchain.Ledger{
 			Blockchain: chain,
 			Store:      chainStore,
 		}
@@ -81,7 +82,7 @@ func TestCheckBlockSanity(t *testing.T) {
 		t.Error(err.Error())
 	}
 
-	timeSource := NewMedianTime()
+	timeSource := blockchain.NewMedianTime()
 	blockData, err := hex.DecodeString(TestBlockHex)
 	if err != nil {
 		t.Errorf("Decode block hex error %s", err.Error())
@@ -147,7 +148,7 @@ func TestCheckCoinbaseArbitratorsReward(t *testing.T) {
 		totalVotesInRound += vote
 	}
 
-	originLedger := DefaultLedger
+	originLedger := blockchain.DefaultLedger
 	arbitratorsMock := &state.ArbitratorsMock{
 		CurrentArbitrators:          arbitrators,
 		CurrentCandidates:           candidates,
@@ -157,10 +158,10 @@ func TestCheckCoinbaseArbitratorsReward(t *testing.T) {
 		TotalVotesInRound:           common.Fixed64(totalVotesInRound),
 		ArbitersRoundReward:         map[common.Uint168]common.Fixed64{},
 	}
-	DefaultLedger = &Ledger{
+	blockchain.DefaultLedger = &blockchain.Ledger{
 		Arbitrators: arbitratorsMock,
 	}
-	DefaultLedger.Arbitrators = arbitratorsMock
+	blockchain.DefaultLedger.Arbitrators = arbitratorsMock
 
 	rewardInCoinbase := common.Fixed64(1000)
 	dposTotalReward := float64(rewardInCoinbase) * 0.35
@@ -187,7 +188,7 @@ func TestCheckCoinbaseArbitratorsReward(t *testing.T) {
 	)
 
 	tx.SetOutputs([]*common2.Output{
-		{ProgramHash: FoundationAddress, Value: common.Fixed64(float64(rewardInCoinbase) * 0.30)},
+		{ProgramHash: blockchain.FoundationAddress, Value: common.Fixed64(float64(rewardInCoinbase) * 0.30)},
 		{ProgramHash: common.Uint168{}, Value: common.Fixed64(float64(rewardInCoinbase) * 0.35)},
 	})
 
@@ -203,9 +204,9 @@ func TestCheckCoinbaseArbitratorsReward(t *testing.T) {
 		arbitratorsMock.ArbitersRoundReward[*v] = individualProducerReward
 		tx.SetOutputs(append(tx.Outputs(), &common2.Output{ProgramHash: *v, Value: individualProducerReward}))
 	}
-	assert.NoError(t, checkCoinbaseArbitratorsReward(tx))
+	assert.NoError(t, blockchain.CheckCoinbaseArbitratorsReward(tx))
 
-	DefaultLedger = originLedger
+	blockchain.DefaultLedger = originLedger
 }
 
 func TestCRDuplicateTx(t *testing.T) {
@@ -221,7 +222,7 @@ func TestCRDuplicateTx(t *testing.T) {
 			block.Transactions = make([]interfaces.Transaction, 0)
 			registerCRTxPointer := generateRegisterCR(code, cid, nickname)
 			block.Transactions = append(block.Transactions, registerCRTxPointer)
-			err := checkDuplicateTx(&block)
+			err := blockchain.CheckDuplicateTx(&block)
 			assert.NoError(t, err)
 		}
 		OneRegisterCRTest()
@@ -232,7 +233,7 @@ func TestCRDuplicateTx(t *testing.T) {
 			registerCRTxPointer := generateRegisterCR(code, cid, nickname)
 			block.Transactions = append(block.Transactions, registerCRTxPointer)
 			block.Transactions = append(block.Transactions, registerCRTxPointer)
-			err := checkDuplicateTx(&block)
+			err := blockchain.CheckDuplicateTx(&block)
 			assert.Error(t, err, "[PowCheckBlockSanity] block contains duplicate CR")
 		}
 		TwoRegisterCRTest()
@@ -245,7 +246,7 @@ func TestCRDuplicateTx(t *testing.T) {
 			block.Transactions = make([]interfaces.Transaction, 0)
 			updateCRPointer := generateUpdateCR(code, cid, nickname)
 			block.Transactions = append(block.Transactions, updateCRPointer)
-			err := checkDuplicateTx(&block)
+			err := blockchain.CheckDuplicateTx(&block)
 			assert.NoError(t, err)
 		}
 		OneUpdateCRTest(t)
@@ -256,7 +257,7 @@ func TestCRDuplicateTx(t *testing.T) {
 			updateCRPointer := generateUpdateCR(code, cid, nickname)
 			block.Transactions = append(block.Transactions, updateCRPointer)
 			block.Transactions = append(block.Transactions, updateCRPointer)
-			err := checkDuplicateTx(&block)
+			err := blockchain.CheckDuplicateTx(&block)
 			assert.Error(t, err, "[PowCheckBlockSanity] block contains duplicate CR")
 		}
 		TwoUpdateCRTest(t)
@@ -269,7 +270,7 @@ func TestCRDuplicateTx(t *testing.T) {
 			block.Transactions = make([]interfaces.Transaction, 0)
 			unregisterCRPointer := generateUnregisterCR(code)
 			block.Transactions = append(block.Transactions, unregisterCRPointer)
-			err := checkDuplicateTx(&block)
+			err := blockchain.CheckDuplicateTx(&block)
 			assert.NoError(t, err)
 		}
 		OneUnregisterCR(t)
@@ -280,7 +281,7 @@ func TestCRDuplicateTx(t *testing.T) {
 			unregisterCRPointer := generateUnregisterCR(code)
 			block.Transactions = append(block.Transactions, unregisterCRPointer)
 			block.Transactions = append(block.Transactions, unregisterCRPointer)
-			err := checkDuplicateTx(&block)
+			err := blockchain.CheckDuplicateTx(&block)
 			assert.Error(t, err, "[PowCheckBlockSanity] block contains duplicate CR")
 		}
 		TwoUnregisterCR(t)
@@ -294,7 +295,7 @@ func TestCRDuplicateTx(t *testing.T) {
 		updateCRPointer := generateUpdateCR(code, cid, nickname)
 		block.Transactions = append(block.Transactions, registerCRTxPointer)
 		block.Transactions = append(block.Transactions, updateCRPointer)
-		err := checkDuplicateTx(&block)
+		err := blockchain.CheckDuplicateTx(&block)
 		assert.Error(t, err, "[PowCheckBlockSanity] block contains duplicate CR")
 	}
 	OneRegisterOneUpdate(t)
@@ -306,7 +307,7 @@ func TestCRDuplicateTx(t *testing.T) {
 		unregisterCRPointer := generateUnregisterCR(code)
 		block.Transactions = append(block.Transactions, registerCRTxPointer)
 		block.Transactions = append(block.Transactions, unregisterCRPointer)
-		err := checkDuplicateTx(&block)
+		err := blockchain.CheckDuplicateTx(&block)
 		assert.Error(t, err, "[PowCheckBlockSanity] block contains duplicate CR")
 	}
 	OneRegisterOneUnregister(t)
@@ -317,7 +318,7 @@ func TestCRDuplicateTx(t *testing.T) {
 		unregisterCRPointer := generateUnregisterCR(code)
 		block.Transactions = append(block.Transactions, updateCRPointer)
 		block.Transactions = append(block.Transactions, unregisterCRPointer)
-		err := checkDuplicateTx(&block)
+		err := blockchain.CheckDuplicateTx(&block)
 		assert.Error(t, err, "[PowCheckBlockSanity] block contains duplicate CR")
 	}
 	OneUpdateOneUnregister(t)
@@ -331,7 +332,7 @@ func TestProducerDuplicateTx(t *testing.T) {
 			block.Transactions = make([]interfaces.Transaction, 0)
 			registerProducerTxPointer := generateRegisterProducer()
 			block.Transactions = append(block.Transactions, registerProducerTxPointer)
-			err := checkDuplicateTx(&block)
+			err := blockchain.CheckDuplicateTx(&block)
 			assert.NoError(t, err)
 		}
 		OneRegisterProducerTest()
@@ -342,7 +343,7 @@ func TestProducerDuplicateTx(t *testing.T) {
 			registerProducerTxPointer := generateRegisterProducer()
 			block.Transactions = append(block.Transactions, registerProducerTxPointer)
 			block.Transactions = append(block.Transactions, registerProducerTxPointer)
-			err := checkDuplicateTx(&block)
+			err := blockchain.CheckDuplicateTx(&block)
 			assert.Error(t, err, "[PowCheckBlockSanity] block contains duplicate CR")
 		}
 		TwoRegisterProducerTest()
@@ -354,7 +355,7 @@ func TestProducerDuplicateTx(t *testing.T) {
 			block.Transactions = make([]interfaces.Transaction, 0)
 			updateProducerTxPointer := generateUpdateProducer()
 			block.Transactions = append(block.Transactions, updateProducerTxPointer)
-			err := checkDuplicateTx(&block)
+			err := blockchain.CheckDuplicateTx(&block)
 			assert.NoError(t, err)
 		}
 		OneUpdateProducerTest()
@@ -365,7 +366,7 @@ func TestProducerDuplicateTx(t *testing.T) {
 			updateProducerTxPointer := generateUpdateProducer()
 			block.Transactions = append(block.Transactions, updateProducerTxPointer)
 			block.Transactions = append(block.Transactions, updateProducerTxPointer)
-			err := checkDuplicateTx(&block)
+			err := blockchain.CheckDuplicateTx(&block)
 			assert.Error(t, err, "[PowCheckBlockSanity] block contains duplicate CR")
 		}
 		TwoUpdateProducerTest()
@@ -377,7 +378,7 @@ func TestProducerDuplicateTx(t *testing.T) {
 			block.Transactions = make([]interfaces.Transaction, 0)
 			cancelProducerTxPointer := generateCancelProducer()
 			block.Transactions = append(block.Transactions, cancelProducerTxPointer)
-			err := checkDuplicateTx(&block)
+			err := blockchain.CheckDuplicateTx(&block)
 			assert.NoError(t, err)
 		}
 		OneCancelProducerTest()
@@ -388,7 +389,7 @@ func TestProducerDuplicateTx(t *testing.T) {
 			cancelProducerTxPointer := generateCancelProducer()
 			block.Transactions = append(block.Transactions, cancelProducerTxPointer)
 			block.Transactions = append(block.Transactions, cancelProducerTxPointer)
-			err := checkDuplicateTx(&block)
+			err := blockchain.CheckDuplicateTx(&block)
 			assert.Error(t, err, "[PowCheckBlockSanity] block contains duplicate CR")
 		}
 		TwoCancelProducerTest()
@@ -402,7 +403,7 @@ func TestProducerDuplicateTx(t *testing.T) {
 		updateProducerTxPointer := generateUpdateProducer()
 		block.Transactions = append(block.Transactions, registerProducerTxPointer)
 		block.Transactions = append(block.Transactions, updateProducerTxPointer)
-		err := checkDuplicateTx(&block)
+		err := blockchain.CheckDuplicateTx(&block)
 		assert.Error(t, err, "[PowCheckBlockSanity] block contains duplicate CR")
 	}
 	OneRegisterOneUpdate(t)
@@ -414,7 +415,7 @@ func TestProducerDuplicateTx(t *testing.T) {
 		cancelProducerTxPointer := generateCancelProducer()
 		block.Transactions = append(block.Transactions, registerProducerTxPointer)
 		block.Transactions = append(block.Transactions, cancelProducerTxPointer)
-		err := checkDuplicateTx(&block)
+		err := blockchain.CheckDuplicateTx(&block)
 		assert.Error(t, err, "[PowCheckBlockSanity] block contains duplicate CR")
 	}
 	OneRegisterOneCancel(t)
@@ -425,7 +426,7 @@ func TestProducerDuplicateTx(t *testing.T) {
 		cancelProducerTxPointer := generateCancelProducer()
 		block.Transactions = append(block.Transactions, updateProducerTxPointer)
 		block.Transactions = append(block.Transactions, cancelProducerTxPointer)
-		err := checkDuplicateTx(&block)
+		err := blockchain.CheckDuplicateTx(&block)
 		assert.Error(t, err, "[PowCheckBlockSanity] block contains duplicate CR")
 	}
 	OneUpdateOneCancel(t)

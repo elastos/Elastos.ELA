@@ -2047,34 +2047,34 @@ func ListCRCandidates(param Params) map[string]interface{} {
 		candidates = append(candidates, crCommittee.GetCandidates(crstate.Active)...)
 	}
 	sort.Slice(candidates, func(i, j int) bool {
-		if candidates[i].Votes() == candidates[j].Votes() {
-			iCRInfo := candidates[i].Info()
-			jCRInfo := candidates[j].Info()
+		if candidates[i].Votes == candidates[j].Votes {
+			iCRInfo := candidates[i].Info
+			jCRInfo := candidates[j].Info
 			return iCRInfo.GetCodeHash().Compare(jCRInfo.GetCodeHash()) < 0
 		}
-		return candidates[i].Votes() > candidates[j].Votes()
+		return candidates[i].Votes > candidates[j].Votes
 	})
 
 	var candidateInfoSlice []RPCCRCandidateInfo
 	var totalVotes common.Fixed64
 	for i, c := range candidates {
-		totalVotes += c.Votes()
-		cidAddress, _ := c.Info().CID.ToAddress()
+		totalVotes += c.Votes
+		cidAddress, _ := c.Info.CID.ToAddress()
 		var didAddress string
-		if !c.Info().DID.IsEqual(emptyHash) {
-			didAddress, _ = c.Info().DID.ToAddress()
+		if !c.Info.DID.IsEqual(emptyHash) {
+			didAddress, _ = c.Info.DID.ToAddress()
 		}
 		candidateInfo := RPCCRCandidateInfo{
-			Code:           hex.EncodeToString(c.Info().Code),
+			Code:           hex.EncodeToString(c.Info.Code),
 			CID:            cidAddress,
 			DID:            didAddress,
-			NickName:       c.Info().NickName,
-			Url:            c.Info().Url,
-			Location:       c.Info().Location,
-			State:          c.State().String(),
-			Votes:          c.Votes().String(),
-			RegisterHeight: c.RegisterHeight(),
-			CancelHeight:   c.CancelHeight(),
+			NickName:       c.Info.NickName,
+			Url:            c.Info.Url,
+			Location:       c.Info.Location,
+			State:          c.State.String(),
+			Votes:          c.Votes.String(),
+			RegisterHeight: c.RegisterHeight,
+			CancelHeight:   c.CancelHeight,
 			Index:          uint64(i),
 		}
 		candidateInfoSlice = append(candidateInfoSlice, candidateInfo)

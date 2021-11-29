@@ -9,17 +9,8 @@ import (
 	"bytes"
 	"crypto/elliptic"
 	"crypto/rand"
-	crand "crypto/rand"
-	"encoding/binary"
 	"encoding/hex"
 	"fmt"
-	"math"
-	mrand "math/rand"
-	"net"
-	"path/filepath"
-	"strings"
-	"testing"
-
 	elaact "github.com/elastos/Elastos.ELA/account"
 	"github.com/elastos/Elastos.ELA/blockchain"
 	"github.com/elastos/Elastos.ELA/common"
@@ -38,6 +29,12 @@ import (
 	"github.com/elastos/Elastos.ELA/crypto"
 	"github.com/elastos/Elastos.ELA/dpos/state"
 	"github.com/elastos/Elastos.ELA/utils/test"
+	"math"
+	mrand "math/rand"
+	"net"
+	"path/filepath"
+	"strings"
+	"testing"
 
 	"github.com/stretchr/testify/suite"
 )
@@ -1566,11 +1563,6 @@ func getDepositAddress(publicKeyStr string) (*common.Uint168, error) {
 	return hash, nil
 }
 
-func getCID(code []byte) *common.Uint168 {
-	ct1, _ := contract.CreateCRIDContractByCode(code)
-	return ct1.ToProgramHash()
-}
-
 func (s *txValidatorTestSuite) getRegisterCRTx(publicKeyStr, privateKeyStr,
 	nickName string, payloadVersion byte, did *common.Uint168) interfaces.Transaction {
 
@@ -2237,12 +2229,6 @@ func createBudgets(n int) []payload.Budget {
 		budgets = append(budgets, *budget)
 	}
 	return budgets
-}
-
-func randomFix64() common.Fixed64 {
-	var randNum int64
-	binary.Read(crand.Reader, binary.BigEndian, &randNum)
-	return common.Fixed64(randNum)
 }
 
 func (s *txValidatorTestSuite) TestCheckCRCProposalTrackingTransaction() {

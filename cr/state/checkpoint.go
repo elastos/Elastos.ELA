@@ -22,7 +22,7 @@ const (
 	// checkpointExtension defines checkpoint file extension of DPoS checkpoint.
 	checkpointExtension = ".ccp"
 
-	// checkpointHeight defines interval height between two neighbor check
+	// checkpointHeight defines interval Height between two neighbor check
 	// points.
 	checkpointHeight = uint32(720)
 
@@ -35,7 +35,7 @@ type Checkpoint struct {
 	KeyFrame
 	StateKeyFrame
 	ProposalKeyFrame
-	height    uint32
+	Height    uint32
 	committee *Committee
 }
 
@@ -98,11 +98,11 @@ func (c *Checkpoint) Snapshot() checkpoint.ICheckPoint {
 }
 
 func (c *Checkpoint) GetHeight() uint32 {
-	return c.height
+	return c.Height
 }
 
 func (c *Checkpoint) SetHeight(height uint32) {
-	c.height = height
+	c.Height = height
 }
 
 func (c *Checkpoint) SavePeriod() uint32 {
@@ -148,7 +148,7 @@ func (c *Checkpoint) StartHeight() uint32 {
 }
 
 func (c *Checkpoint) Serialize(w io.Writer) (err error) {
-	if err = common.WriteUint32(w, c.height); err != nil {
+	if err = common.WriteUint32(w, c.Height); err != nil {
 		return
 	}
 
@@ -162,7 +162,7 @@ func (c *Checkpoint) Serialize(w io.Writer) (err error) {
 }
 
 func (c *Checkpoint) Deserialize(r io.Reader) (err error) {
-	if c.height, err = common.ReadUint32(r); err != nil {
+	if c.Height, err = common.ReadUint32(r); err != nil {
 		return
 	}
 
@@ -185,7 +185,7 @@ func (c *Checkpoint) initFromCommittee(committee *Committee) {
 
 func NewCheckpoint(committee *Committee) *Checkpoint {
 	cp := &Checkpoint{
-		height:    uint32(0),
+		Height:    uint32(0),
 		committee: committee,
 	}
 	cp.initFromCommittee(committee)

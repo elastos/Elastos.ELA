@@ -46,40 +46,40 @@ func (ps CandidateState) String() string {
 
 // Candidate defines information about CR candidates during the CR vote period
 type Candidate struct {
-	info           payload.CRInfo
-	state          CandidateState
-	votes          common.Fixed64
-	registerHeight uint32
-	cancelHeight   uint32
-	depositHash    common.Uint168
+	Info           payload.CRInfo
+	State          CandidateState
+	Votes          common.Fixed64
+	RegisterHeight uint32
+	CancelHeight   uint32
+	DepositHash    common.Uint168
 }
 
 func (c *Candidate) Serialize(w io.Writer) (err error) {
-	if err = c.info.SerializeUnsigned(w, payload.CRInfoDIDVersion); err != nil {
+	if err = c.Info.SerializeUnsigned(w, payload.CRInfoDIDVersion); err != nil {
 		return
 	}
 
-	if err = common.WriteUint8(w, uint8(c.state)); err != nil {
+	if err = common.WriteUint8(w, uint8(c.State)); err != nil {
 		return
 	}
 
-	if err = common.WriteUint64(w, uint64(c.votes)); err != nil {
+	if err = common.WriteUint64(w, uint64(c.Votes)); err != nil {
 		return
 	}
 
-	if err = common.WriteUint32(w, c.registerHeight); err != nil {
+	if err = common.WriteUint32(w, c.RegisterHeight); err != nil {
 		return
 	}
 
-	if err = common.WriteUint32(w, c.cancelHeight); err != nil {
+	if err = common.WriteUint32(w, c.CancelHeight); err != nil {
 		return
 	}
 
-	return c.depositHash.Serialize(w)
+	return c.DepositHash.Serialize(w)
 }
 
 func (c *Candidate) Deserialize(r io.Reader) (err error) {
-	if err = c.info.DeserializeUnsigned(r, payload.CRInfoDIDVersion); err != nil {
+	if err = c.Info.DeserializeUnsigned(r, payload.CRInfoDIDVersion); err != nil {
 		return
 	}
 
@@ -87,44 +87,19 @@ func (c *Candidate) Deserialize(r io.Reader) (err error) {
 	if state, err = common.ReadUint8(r); err != nil {
 		return
 	}
-	c.state = CandidateState(state)
+	c.State = CandidateState(state)
 
 	var votes uint64
 	if votes, err = common.ReadUint64(r); err != nil {
 		return
 	}
-	c.votes = common.Fixed64(votes)
+	c.Votes = common.Fixed64(votes)
 
-	if c.registerHeight, err = common.ReadUint32(r); err != nil {
+	if c.RegisterHeight, err = common.ReadUint32(r); err != nil {
 		return
 	}
 
-	c.cancelHeight, err = common.ReadUint32(r)
+	c.CancelHeight, err = common.ReadUint32(r)
 
-	return c.depositHash.Deserialize(r)
-}
-
-// Info returns a copy of the origin registered CR info.
-func (c *Candidate) Info() payload.CRInfo {
-	return c.info
-}
-
-// State returns the CR's state, can be pending, active, canceled or returned.
-func (c *Candidate) State() CandidateState {
-	return c.state
-}
-
-// Votes returns the votes of the CR.
-func (c *Candidate) Votes() common.Fixed64 {
-	return c.votes
-}
-
-// RegisterHeight returns the height when the CR was registered.
-func (c *Candidate) RegisterHeight() uint32 {
-	return c.registerHeight
-}
-
-// RegisterHeight returns the height when the CR was unregistered.
-func (c *Candidate) CancelHeight() uint32 {
-	return c.cancelHeight
+	return c.DepositHash.Deserialize(r)
 }

@@ -8,6 +8,7 @@ package unit
 import (
 	"bytes"
 	"crypto/rand"
+	"encoding/binary"
 	"encoding/hex"
 	"fmt"
 	"github.com/elastos/Elastos.ELA/blockchain"
@@ -15,6 +16,7 @@ import (
 	math "math/rand"
 	"sort"
 	"testing"
+	"time"
 
 	"github.com/elastos/Elastos.ELA/core/types/functions"
 	"github.com/elastos/Elastos.ELA/core/types/interfaces"
@@ -947,12 +949,6 @@ func decodePrivateKey(d string, t *testing.T) *big.Int {
 	return privKey
 }
 
-func randomPublicKey() []byte {
-	_, pub, _ := crypto.GenerateKeyPair()
-	result, _ := pub.EncodePoint(true)
-	return result
-}
-
 func randomSignature() []byte {
 	randBytes := make([]byte, 64)
 	rand.Read(randBytes)
@@ -960,29 +956,3 @@ func randomSignature() []byte {
 	return randBytes
 }
 
-func randomString() string {
-	a := make([]byte, 20)
-	rand.Read(a)
-	return common.BytesToHexString(a)
-}
-
-func randomBytes(len int) []byte {
-	a := make([]byte, len)
-	rand.Read(a)
-	return a
-}
-func randomUint168() *common.Uint168 {
-	randBytes := make([]byte, 21)
-	rand.Read(randBytes)
-	result, _ := common.Uint168FromBytes(randBytes)
-
-	return result
-}
-
-func randomUint256() *common.Uint256 {
-	randBytes := make([]byte, 32)
-	rand.Read(randBytes)
-
-	result, _ := common.Uint256FromBytes(randBytes)
-	return result
-}

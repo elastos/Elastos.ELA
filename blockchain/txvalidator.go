@@ -2158,12 +2158,12 @@ func (b *BlockChain) CheckUpdateCRTransaction(txn interfaces.Transaction,
 	if cr == nil {
 		return errors.New("updating unknown CR")
 	}
-	if cr.State() != crstate.Pending && cr.State() != crstate.Active {
+	if cr.State != crstate.Pending && cr.State != crstate.Active {
 		return errors.New("updating canceled or returned CR")
 	}
 
 	// check nickname usage.
-	if cr.Info().NickName != info.NickName &&
+	if cr.Info.NickName != info.NickName &&
 		b.crCommittee.ExistCandidateByNickname(info.NickName) {
 		return fmt.Errorf("nick name %s already exist", info.NickName)
 	}
@@ -2968,7 +2968,7 @@ func (b *BlockChain) CheckUnRegisterCRTransaction(txn interfaces.Transaction,
 	if cr == nil {
 		return errors.New("unregister unknown CR")
 	}
-	if cr.State() != crstate.Pending && cr.State() != crstate.Active {
+	if cr.State != crstate.Pending && cr.State != crstate.Active {
 		return errors.New("unregister canceled or returned CR")
 	}
 
@@ -2977,7 +2977,7 @@ func (b *BlockChain) CheckUnRegisterCRTransaction(txn interfaces.Transaction,
 	if err != nil {
 		return err
 	}
-	return CheckCRTransactionSignature(info.Signature, cr.Info().Code, signedBuf.Bytes())
+	return CheckCRTransactionSignature(info.Signature, cr.Info.Code, signedBuf.Bytes())
 }
 
 func (b *BlockChain) isPublicKeyDIDMatch(pubKey []byte, did *common.Uint168) bool {

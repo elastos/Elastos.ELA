@@ -10,15 +10,22 @@ import (
 	"math/rand"
 	"testing"
 
-	"github.com/elastos/Elastos.ELA/core/contract/program"
-	"github.com/elastos/Elastos.ELA/core/types/functions"
-
 	"github.com/elastos/Elastos.ELA/common"
+	"github.com/elastos/Elastos.ELA/core/contract/program"
+	transaction2 "github.com/elastos/Elastos.ELA/core/transaction"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/functions"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/elanet/pact"
 	"github.com/stretchr/testify/assert"
 )
+
+func init() {
+	functions.GetTransactionByTxType = transaction2.GetTransaction
+	functions.GetTransactionByBytes = transaction2.GetTransactionByBytes
+	functions.CreateTransaction = transaction2.CreateTransaction
+	functions.GetTransactionParameters = transaction2.GetTransactionparameters
+}
 
 func TestTxFeeOrderedList_AddTx(t *testing.T) {
 	firedPopBack := false
@@ -27,7 +34,7 @@ func TestTxFeeOrderedList_AddTx(t *testing.T) {
 	}
 
 	protoTx := functions.CreateTransaction(
-		common2.TxVersion09,
+		0,
 		common2.TransferAsset,
 		0,
 		&payload.TransferAsset{},
@@ -46,6 +53,7 @@ func TestTxFeeOrderedList_AddTx(t *testing.T) {
 	orderedList := newTxFeeOrderedList(onPopBack, uint64(protoTxSize*10))
 	for i := 0; i < 10; i++ {
 		tx := protoTx
+		protoTx.SetFee(100)
 		tx.SetFee(tx.Fee() - common.Fixed64(rand.Int63n(100)))
 		tx.SetAttributes([]*common2.Attribute{
 			{
@@ -98,26 +106,26 @@ func TestTxFeeOrderedList_RemoveTx(t *testing.T) {
 	orderedList := newTxFeeOrderedList(func(common.Uint256) {},
 		pact.MaxTxPoolSize)
 
-	protoTx := functions.CreateTransaction(
-		common2.TxVersion09,
-		common2.TransferAsset,
-		0,
-		&payload.TransferAsset{},
-		[]*common2.Attribute{
-			{
-				Usage: common2.Nonce,
-				Data:  randomNonceData(),
-			},
-		},
-		[]*common2.Input{},
-		[]*common2.Output{},
-		0,
-		[]*program.Program{},
-	)
-
-	txSize := protoTx.GetSize()
 	hashMap := make(map[common.Uint256]float64)
+	var txSize int
 	for i := 0; i < 100; i++ {
+		protoTx := functions.CreateTransaction(
+			0,
+			common2.TransferAsset,
+			0,
+			&payload.TransferAsset{},
+			[]*common2.Attribute{
+				{
+					Usage: common2.Nonce,
+					Data:  randomNonceData(),
+				},
+			},
+			[]*common2.Input{},
+			[]*common2.Output{},
+			0,
+			[]*program.Program{},
+		)
+		txSize = protoTx.GetSize()
 		tx := protoTx
 		tx.SetAttributes([]*common2.Attribute{
 			{

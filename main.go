@@ -129,7 +129,7 @@ func setupNode() *cli.App {
 }
 
 func startNode(c *cli.Context, st *settings.Settings) {
-	// Enable http profiling server if requested.
+	// Enable http profiling netServer if requested.
 	if st.Config().ProfilePort != 0 {
 		go utils.StartPProf(st.Config().ProfilePort)
 	}
@@ -238,7 +238,7 @@ func startNode(c *cli.Context, st *settings.Settings) {
 	}
 
 	route := routes.New(routesCfg)
-	server, err := elanet.NewServer(dataDir, &elanet.Config{
+	netServer, err := elanet.NewServer(dataDir, &elanet.Config{
 		Chain:          chain,
 		ChainParams:    st.Params(),
 		PermanentPeers: st.Params().PermanentPeers,
@@ -249,9 +249,9 @@ func startNode(c *cli.Context, st *settings.Settings) {
 	if err != nil {
 		printErrorAndExit(err)
 	}
-	routesCfg.IsCurrent = server.IsCurrent
-	routesCfg.RelayAddr = server.RelayInventory
-	blockMemPool.IsCurrent = server.IsCurrent
+	routesCfg.IsCurrent = netServer.IsCurrent
+	routesCfg.RelayAddr = netServer.RelayInventory
+	blockMemPool.IsCurrent = netServer.IsCurrent
 
 	committee.RegisterFuncitons(&crstate.CommitteeFuncsConfig{
 		GetTxReference:                   chain.UTXOCache.GetTxReference,
@@ -260,9 +260,9 @@ func startNode(c *cli.Context, st *settings.Settings) {
 		CreateCRAppropriationTransaction: chain.CreateCRCAppropriationTransaction,
 		CreateCRAssetsRectifyTransaction: chain.CreateCRAssetsRectifyTransaction,
 		CreateCRRealWithdrawTransaction:  chain.CreateCRRealWithdrawTransaction,
-		IsCurrent:                        server.IsCurrent,
+		IsCurrent:                        netServer.IsCurrent,
 		Broadcast: func(msg p2p.Message) {
-			server.BroadcastMessage(msg)
+			netServer.BroadcastMessage(msg)
 		},
 		AppendToTxpool: txMemPool.AppendToTxPool,
 	})
@@ -276,11 +276,11 @@ func startNode(c *cli.Context, st *settings.Settings) {
 			Chain:          chain,
 			ChainParams:    st.Params(),
 			Arbitrators:    arbiters,
-			Server:         server,
+			Server:         netServer,
 			TxMemPool:      txMemPool,
 			BlockMemPool:   blockMemPool,
 			Broadcast: func(msg p2p.Message) {
-				server.BroadcastMessage(msg)
+				netServer.BroadcastMessage(msg)
 			},
 			AnnounceAddr: route.AnnounceAddr,
 		})
@@ -299,7 +299,7 @@ func startNode(c *cli.Context, st *settings.Settings) {
 	servers.Chain = chain
 	servers.Store = chainStore
 	servers.TxMemPool = txMemPool
-	servers.Server = server
+	servers.Server = netServer
 	servers.Arbiters = arbiters
 	servers.Pow = pow.NewService(&pow.Config{
 		PayToAddr:   st.Config().PowConfiguration.PayToAddr,
@@ -310,7 +310,7 @@ func startNode(c *cli.Context, st *settings.Settings) {
 		BlkMemPool:  blockMemPool,
 		BroadcastBlock: func(block *types.Block) {
 			hash := block.Hash()
-			server.RelayInventory(msg.NewInvVect(msg.InvTypeBlock, &hash), block)
+			netServer.RelayInventory(msg.NewInvVect(msg.InvTypeBlock, &hash), block)
 		},
 		Arbitrators: arbiters,
 	})
@@ -332,8 +332,8 @@ func startNode(c *cli.Context, st *settings.Settings) {
 	}
 
 	log.Info("Start the P2P networks")
-	server.Start()
-	defer server.Stop()
+	netServer.Start()
+	defer netServer.Stop()
 
 	log.Info("Start services")
 	if st.Config().EnableRPC {
@@ -349,9 +349,9 @@ func startNode(c *cli.Context, st *settings.Settings) {
 		go httpnodeinfo.StartServer()
 	}
 
-	go printSyncState(chain, server)
+	go printSyncState(chain, netServer)
 
-	waitForSyncFinish(server, interrupt.C)
+	waitForSyncFinish(netServer, interrupt.C)
 	if interrupt.Interrupted() {
 		return
 	}

@@ -27,7 +27,7 @@ const (
 	// points.
 	CheckPointInterval = uint32(720)
 
-	// checkpointEffectiveHeight defines the minimal height arbitrators obj
+	// checkpointEffectiveHeight defines the minimal height Arbiters obj
 	// should scan to recover effective state.
 	checkpointEffectiveHeight = uint32(7)
 )
@@ -47,22 +47,22 @@ type CheckPoint struct {
 	NextCRCArbitersMap    map[common.Uint168]ArbiterMember
 	NextCRCArbiters       []ArbiterMember
 
-	crcChangedHeight           uint32
+	CRCChangedHeight           uint32
 	accumulativeReward         common.Fixed64
 	finalRoundChange           common.Fixed64
 	clearingHeight             uint32
 	arbitersRoundReward        map[common.Uint168]common.Fixed64
 	illegalBlocksPayloadHashes map[common.Uint256]interface{}
 
-	forceChanged bool
+	ForceChanged bool
 
-	arbitrators *arbitrators
+	arbitrators *Arbiters
 }
 
 func (c *CheckPoint) StartHeight() uint32 {
-	return uint32(math.Min(float64(c.arbitrators.chainParams.VoteStartHeight),
-		float64(c.arbitrators.chainParams.CRCOnlyDPOSHeight-
-			c.arbitrators.chainParams.PreConnectOffset)))
+	return uint32(math.Min(float64(c.arbitrators.ChainParams.VoteStartHeight),
+		float64(c.arbitrators.ChainParams.CRCOnlyDPOSHeight-
+			c.arbitrators.ChainParams.PreConnectOffset)))
 }
 
 func (c *CheckPoint) OnBlockSaved(block *types.DposBlock) {
@@ -78,8 +78,8 @@ func (c *CheckPoint) OnRollbackSeekTo(height uint32) {
 
 func (c *CheckPoint) OnRollbackTo(height uint32) error {
 	if height < c.StartHeight() {
-		ar := &arbitrators{}
-		if err := ar.initArbitrators(c.arbitrators.chainParams); err != nil {
+		ar := &Arbiters{}
+		if err := ar.initArbitrators(c.arbitrators.ChainParams); err != nil {
 			return err
 		}
 		c.initFromArbitrators(ar)
@@ -201,7 +201,7 @@ func (c *CheckPoint) Serialize(w io.Writer) (err error) {
 		return
 	}
 
-	if err = common.WriteUint32(w, c.crcChangedHeight); err != nil {
+	if err = common.WriteUint32(w, c.CRCChangedHeight); err != nil {
 		return
 	}
 
@@ -225,7 +225,7 @@ func (c *CheckPoint) Serialize(w io.Writer) (err error) {
 		return
 	}
 
-	if err = common.WriteElements(w, c.forceChanged); err != nil {
+	if err = common.WriteElements(w, c.ForceChanged); err != nil {
 		return
 	}
 	return c.StateKeyFrame.Serialize(w)
@@ -328,7 +328,7 @@ func (c *CheckPoint) Deserialize(r io.Reader) (err error) {
 		return
 	}
 
-	if c.crcChangedHeight, err = common.ReadUint32(r); err != nil {
+	if c.CRCChangedHeight, err = common.ReadUint32(r); err != nil {
 		return
 	}
 
@@ -352,7 +352,7 @@ func (c *CheckPoint) Deserialize(r io.Reader) (err error) {
 	if err != nil {
 		return
 	}
-	if err = common.ReadElement(r, &c.forceChanged); err != nil {
+	if err = common.ReadElement(r, &c.ForceChanged); err != nil {
 		return
 	}
 	return c.StateKeyFrame.Deserialize(r)
@@ -468,13 +468,13 @@ func (c *CheckPoint) readArbiters(r io.Reader) ([]ArbiterMember, error) {
 	return arbiters, nil
 }
 
-func (c *CheckPoint) initFromArbitrators(ar *arbitrators) {
-	c.CurrentCandidates = ar.currentCandidates
+func (c *CheckPoint) initFromArbitrators(ar *Arbiters) {
+	c.CurrentCandidates = ar.CurrentCandidates
 	c.NextArbitrators = ar.nextArbitrators
 	c.NextCandidates = ar.nextCandidates
 	c.CurrentReward = ar.CurrentReward
 	c.NextReward = ar.NextReward
-	c.CurrentArbitrators = ar.currentArbitrators
+	c.CurrentArbitrators = ar.CurrentArbitrators
 	c.StateKeyFrame = *ar.State.StateKeyFrame
 	c.DutyIndex = ar.dutyIndex
 	c.accumulativeReward = ar.accumulativeReward
@@ -482,15 +482,15 @@ func (c *CheckPoint) initFromArbitrators(ar *arbitrators) {
 	c.clearingHeight = ar.clearingHeight
 	c.arbitersRoundReward = ar.arbitersRoundReward
 	c.illegalBlocksPayloadHashes = ar.illegalBlocksPayloadHashes
-	c.crcChangedHeight = ar.crcChangedHeight
-	c.CurrentCRCArbitersMap = ar.currentCRCArbitersMap
+	c.CRCChangedHeight = ar.crcChangedHeight
+	c.CurrentCRCArbitersMap = ar.CurrentCRCArbitersMap
 	c.NextCRCArbitersMap = ar.nextCRCArbitersMap
 	c.NextCRCArbiters = ar.nextCRCArbiters
-	c.forceChanged = ar.forceChanged
+	c.ForceChanged = ar.forceChanged
 
 }
 
-func NewCheckpoint(ar *arbitrators) *CheckPoint {
+func NewCheckpoint(ar *Arbiters) *CheckPoint {
 	cp := &CheckPoint{
 		arbitrators: ar,
 	}

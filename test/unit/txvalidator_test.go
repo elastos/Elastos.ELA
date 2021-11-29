@@ -11,6 +11,13 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
+	"math"
+	mrand "math/rand"
+	"net"
+	"path/filepath"
+	"strings"
+	"testing"
+
 	elaact "github.com/elastos/Elastos.ELA/account"
 	"github.com/elastos/Elastos.ELA/blockchain"
 	"github.com/elastos/Elastos.ELA/common"
@@ -29,12 +36,6 @@ import (
 	"github.com/elastos/Elastos.ELA/crypto"
 	"github.com/elastos/Elastos.ELA/dpos/state"
 	"github.com/elastos/Elastos.ELA/utils/test"
-	"math"
-	mrand "math/rand"
-	"net"
-	"path/filepath"
-	"strings"
-	"testing"
 
 	"github.com/stretchr/testify/suite"
 )
@@ -51,6 +52,11 @@ type txValidatorTestSuite struct {
 }
 
 func init() {
+	functions.GetTransactionByTxType = transaction.GetTransaction
+	functions.GetTransactionByBytes = transaction.GetTransactionByBytes
+	functions.CreateTransaction = transaction.CreateTransaction
+	functions.GetTransactionParameters = transaction.GetTransactionparameters
+	config.DefaultParams = config.GetDefaultParams()
 	testing.Init()
 }
 
@@ -2211,26 +2217,6 @@ func (s *txValidatorTestSuite) getCRCReservedCustomIDProposalTx(publicKeyStr, pr
 	return txn
 }
 
-func createBudgets(n int) []payload.Budget {
-	budgets := make([]payload.Budget, 0)
-	for i := 0; i < n; i++ {
-		var budgetType = payload.NormalPayment
-		if i == 0 {
-			budgetType = payload.Imprest
-		}
-		if i == n-1 {
-			budgetType = payload.FinalPayment
-		}
-		budget := &payload.Budget{
-			Stage:  byte(i),
-			Type:   budgetType,
-			Amount: common.Fixed64((i + 1) * 1e8),
-		}
-		budgets = append(budgets, *budget)
-	}
-	return budgets
-}
-
 func (s *txValidatorTestSuite) TestCheckCRCProposalTrackingTransaction() {
 	publicKeyStr1 := "02f981e4dae4983a5d284d01609ad735e3242c5672bb2c7bb0018cc36f9ab0c4a5"
 	privateKeyStr1 := "15e0947580575a9b6729570bed6360a890f84a07dc837922fe92275feec837d4"
@@ -3285,19 +3271,8 @@ func (s *txValidatorTestSuite) TestGenrateTxFromRawTxStr() {
 		return
 
 	}
-	tx := functions.CreateTransaction(
-		common2.TxVersion09,
-		common2.TransferAsset,
-		0,
-		nil,
-		[]*common2.Attribute{},
-		[]*common2.Input{},
-		[]*common2.Output{},
-		0,
-		[]*program.Program{},
-	)
-
 	reader := bytes.NewReader(data)
+	tx, _ := functions.GetTransactionByBytes(reader)
 	err2 := tx.Deserialize(reader)
 	if err2 != nil {
 		fmt.Println("err2", err2)
@@ -3331,8 +3306,11 @@ func (s *txValidatorTestSuite) TestGenerateRawTransactionStr() {
 	if err2 != nil {
 		fmt.Println("HexStringToBytes err2", err2)
 	}
-	var txn2 transaction.BaseTransaction
 	reader2 := bytes.NewReader(data)
+	txn2, err3 := functions.GetTransactionByBytes(reader2)
+	if err3 != nil {
+		s.Assert()
+	}
 	err2 = txn2.Deserialize(reader2)
 	if err2 != nil {
 		fmt.Println("txn2.Deserialize err2", err2)
@@ -3676,8 +3654,6 @@ func (s *txValidatorTestSuite) TestCheckStringField() {
 func (s *txValidatorTestSuite) TestCheckTransactionDepositUTXO() {
 	references := make(map[*common2.Input]common2.Output)
 	input := &common2.Input{}
-	var txn transaction.BaseTransaction
-
 	// Use the deposit UTXO in a TransferAsset transaction
 	depositHash, _ := common.Uint168FromAddress("DVgnDnVfPVuPa2y2E4JitaWjWgRGJDuyrD")
 	depositOutput := common2.Output{
@@ -3685,14 +3661,14 @@ func (s *txValidatorTestSuite) TestCheckTransactionDepositUTXO() {
 	}
 	references[input] = depositOutput
 
-	txn.SetTxType(common2.TransferAsset)
-	err := blockchain.CheckTransactionDepositUTXO(&txn, references)
+	txn, _ := transaction.GetTransaction(common2.TransferAsset)
+	err := blockchain.CheckTransactionDepositUTXO(txn, references)
 	s.EqualError(err, "only the ReturnDepositCoin and "+
 		"ReturnCRDepositCoin transaction can use the deposit UTXO")
 
 	// Use the deposit UTXO in a ReturnDepositCoin transaction
-	txn.SetTxType(common2.ReturnDepositCoin)
-	err = blockchain.CheckTransactionDepositUTXO(&txn, references)
+	txn, _ = transaction.GetTransaction(common2.ReturnDepositCoin)
+	err = blockchain.CheckTransactionDepositUTXO(txn, references)
 	s.NoError(err)
 
 	// Use the standard UTXO in a ReturnDepositCoin transaction
@@ -3701,20 +3677,20 @@ func (s *txValidatorTestSuite) TestCheckTransactionDepositUTXO() {
 		ProgramHash: *normalHash,
 	}
 	references[input] = normalOutput
-	txn.SetTxType(common2.ReturnDepositCoin)
-	err = blockchain.CheckTransactionDepositUTXO(&txn, references)
+	txn, _ = transaction.GetTransaction(common2.ReturnDepositCoin)
+	err = blockchain.CheckTransactionDepositUTXO(txn, references)
 	s.EqualError(err, "the ReturnDepositCoin and ReturnCRDepositCoin "+
 		"transaction can only use the deposit UTXO")
 
 	// Use the deposit UTXO in a ReturnDepositCoin transaction
 	references[input] = depositOutput
-	txn.SetTxType(common2.ReturnCRDepositCoin)
-	err = blockchain.CheckTransactionDepositUTXO(&txn, references)
+	txn, _ = transaction.GetTransaction(common2.ReturnCRDepositCoin)
+	err = blockchain.CheckTransactionDepositUTXO(txn, references)
 	s.NoError(err)
 
 	references[input] = normalOutput
-	txn.SetTxType(common2.ReturnCRDepositCoin)
-	err = blockchain.CheckTransactionDepositUTXO(&txn, references)
+	txn, _ = transaction.GetTransaction(common2.ReturnCRDepositCoin)
+	err = blockchain.CheckTransactionDepositUTXO(txn, references)
 	s.EqualError(err, "the ReturnDepositCoin and ReturnCRDepositCoin "+
 		"transaction can only use the deposit UTXO")
 }
@@ -3889,7 +3865,7 @@ func (s *txValidatorTestSuite) TestCheckReturnCRDepositCoinTransaction() {
 		CreateCRAppropriationTransaction: s.Chain.CreateCRCAppropriationTransaction,
 	})
 	// register CR
-	payload := &payload.CRInfo{
+	p := &payload.CRInfo{
 		Code:     code,
 		CID:      *cid,
 		NickName: randomString(),
@@ -3904,7 +3880,7 @@ func (s *txValidatorTestSuite) TestCheckReturnCRDepositCoinTransaction() {
 		0,
 		common2.RegisterCR,
 		0,
-		payload,
+		p,
 		[]*common2.Attribute{},
 		[]*common2.Input{},
 		outputs,
@@ -3919,7 +3895,7 @@ func (s *txValidatorTestSuite) TestCheckReturnCRDepositCoinTransaction() {
 	}, nil)
 	s.CurrentHeight++
 	candidate := s.Chain.GetCRCommittee().GetCandidate(*cid)
-	s.True(candidate.State() == crstate.Pending, "register CR failed")
+	s.True(candidate.State == crstate.Pending, "register CR failed")
 
 	for i := 0; i < 6; i++ {
 		s.Chain.GetCRCommittee().ProcessBlock(&types.Block{
@@ -3930,7 +3906,7 @@ func (s *txValidatorTestSuite) TestCheckReturnCRDepositCoinTransaction() {
 		}, nil)
 		s.CurrentHeight++
 	}
-	s.True(candidate.State() == crstate.Active, "active CR failed")
+	s.True(candidate.State == crstate.Active, "active CR failed")
 
 	references := make(map[*common2.Input]common2.Output)
 	references[&common2.Input{}] = common2.Output{
@@ -3942,7 +3918,7 @@ func (s *txValidatorTestSuite) TestCheckReturnCRDepositCoinTransaction() {
 		0,
 		common2.ReturnCRDepositCoin,
 		0,
-		payload,
+		p,
 		[]*common2.Attribute{},
 		[]*common2.Input{},
 		[]*common2.Output{
@@ -3957,14 +3933,32 @@ func (s *txValidatorTestSuite) TestCheckReturnCRDepositCoinTransaction() {
 	canceledHeight := uint32(8)
 
 	// unregister CR
+	cancelPayload := &payload.UnregisterCR{
+		CID: *getCID(code),
+	}
+	canceltx := functions.CreateTransaction(
+		0,
+		common2.UnregisterCR,
+		0,
+		cancelPayload,
+		[]*common2.Attribute{},
+		[]*common2.Input{},
+		[]*common2.Output{
+			{Value: 4999 * 100000000},
+		},
+		0,
+		[]*program.Program{
+			{Code: code},
+		},
+	)
 	s.Chain.GetCRCommittee().ProcessBlock(&types.Block{
 		Header: common2.Header{
 			Height: s.CurrentHeight,
 		},
-		Transactions: []interfaces.Transaction{rdTx},
+		Transactions: []interfaces.Transaction{canceltx},
 	}, nil)
 	s.CurrentHeight++
-	s.True(candidate.State() == crstate.Canceled, "canceled CR failed")
+	s.True(candidate.State == crstate.Canceled, "canceled CR failed")
 
 	publicKey2 := "030a26f8b4ab0ea219eb461d1e454ce5f0bd0d289a6a64ffc0743dab7bd5be0be9"
 	pubKeyBytes2, _ := common.HexStringToBytes(publicKey2)

@@ -10,6 +10,7 @@ import (
 	mrand "math/rand"
 	"testing"
 
+	transaction2 "github.com/elastos/Elastos.ELA/core/transaction"
 	"github.com/elastos/Elastos.ELA/core/types/functions"
 	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 
@@ -24,12 +25,19 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func init() {
+	functions.GetTransactionByTxType = transaction2.GetTransaction
+	functions.GetTransactionByBytes = transaction2.GetTransactionByBytes
+	functions.CreateTransaction = transaction2.CreateTransaction
+	functions.GetTransactionParameters = transaction2.GetTransactionparameters
+}
+
 func TestConflictManager_DPoS_OwnerPublicKey(t *testing.T) {
 	conflictTestProc(func(db *UtxoCacheDB) {
 		pk := randomPublicKey()
 
 		tx1 := functions.CreateTransaction(
-			common2.TxVersion09,
+			0,
 			common2.RegisterProducer,
 			0,
 			&payload.ProducerInfo{
@@ -45,7 +53,7 @@ func TestConflictManager_DPoS_OwnerPublicKey(t *testing.T) {
 		)
 
 		tx2 := functions.CreateTransaction(
-			common2.TxVersion09,
+			0,
 			common2.UpdateProducer,
 			0,
 			&payload.ProducerInfo{
@@ -61,7 +69,7 @@ func TestConflictManager_DPoS_OwnerPublicKey(t *testing.T) {
 		)
 
 		tx3 := functions.CreateTransaction(
-			common2.TxVersion09,
+			0,
 			common2.CancelProducer,
 			0,
 			&payload.ProcessProducer{
@@ -75,7 +83,7 @@ func TestConflictManager_DPoS_OwnerPublicKey(t *testing.T) {
 		)
 
 		tx4 := functions.CreateTransaction(
-			common2.TxVersion09,
+			0,
 			common2.RegisterCR,
 			0,
 			&payload.CRInfo{
@@ -98,7 +106,7 @@ func TestConflictManager_DPoS_NodePublicKey(t *testing.T) {
 		pk := randomPublicKey()
 
 		tx1 := functions.CreateTransaction(
-			common2.TxVersion09,
+			0,
 			common2.RegisterProducer,
 			0,
 			&payload.ProducerInfo{
@@ -114,7 +122,7 @@ func TestConflictManager_DPoS_NodePublicKey(t *testing.T) {
 		)
 
 		tx2 := functions.CreateTransaction(
-			common2.TxVersion09,
+			0,
 			common2.UpdateProducer,
 			0,
 			&payload.ProducerInfo{
@@ -130,7 +138,7 @@ func TestConflictManager_DPoS_NodePublicKey(t *testing.T) {
 		)
 
 		tx3 := functions.CreateTransaction(
-			common2.TxVersion09,
+			0,
 			common2.ActivateProducer,
 			0,
 			&payload.ActivateProducer{
@@ -144,7 +152,7 @@ func TestConflictManager_DPoS_NodePublicKey(t *testing.T) {
 		)
 
 		tx4 := functions.CreateTransaction(
-			common2.TxVersion09,
+			0,
 			common2.RegisterCR,
 			0,
 			&payload.CRInfo{
@@ -167,7 +175,7 @@ func TestConflictManager_DPoS_Nickname(t *testing.T) {
 	conflictTestProc(func(db *UtxoCacheDB) {
 		name := randomNickname()
 		tx1 := functions.CreateTransaction(
-			common2.TxVersion09,
+			0,
 			common2.RegisterProducer,
 			0,
 			&payload.ProducerInfo{
@@ -183,7 +191,7 @@ func TestConflictManager_DPoS_Nickname(t *testing.T) {
 		)
 
 		tx2 := functions.CreateTransaction(
-			common2.TxVersion09,
+			0,
 			common2.UpdateProducer,
 			0,
 			&payload.ProducerInfo{
@@ -209,7 +217,7 @@ func TestConflictManager_CR_DID(t *testing.T) {
 		cid := *randomProgramHash()
 
 		tx1 := functions.CreateTransaction(
-			common2.TxVersion09,
+			0,
 			common2.RegisterCR,
 			0,
 			&payload.CRInfo{
@@ -225,7 +233,7 @@ func TestConflictManager_CR_DID(t *testing.T) {
 		)
 
 		tx2 := functions.CreateTransaction(
-			common2.TxVersion09,
+			0,
 			common2.UpdateCR,
 			0,
 			&payload.CRInfo{
@@ -241,7 +249,7 @@ func TestConflictManager_CR_DID(t *testing.T) {
 		)
 
 		tx3 := functions.CreateTransaction(
-			common2.TxVersion09,
+			0,
 			common2.UnregisterCR,
 			0,
 			&payload.UnregisterCR{
@@ -265,7 +273,7 @@ func TestConflictManager_CR_Nickname(t *testing.T) {
 		name := randomNickname()
 
 		tx1 := functions.CreateTransaction(
-			common2.TxVersion09,
+			0,
 			common2.RegisterCR,
 			0,
 			&payload.CRInfo{
@@ -281,7 +289,7 @@ func TestConflictManager_CR_Nickname(t *testing.T) {
 		)
 
 		tx2 := functions.CreateTransaction(
-			common2.TxVersion09,
+			0,
 			common2.UpdateCR,
 			0,
 			&payload.CRInfo{
@@ -307,7 +315,7 @@ func TestConflictManager_ProgramCode(t *testing.T) {
 		code := redeemScriptFromPk(randomPublicKey())
 
 		tx1 := functions.CreateTransaction(
-			common2.TxVersion09,
+			0,
 			common2.ReturnDepositCoin,
 			0,
 			&payload.ReturnDepositCoin{},
@@ -323,7 +331,7 @@ func TestConflictManager_ProgramCode(t *testing.T) {
 		)
 
 		tx2 := functions.CreateTransaction(
-			common2.TxVersion09,
+			0,
 			common2.ReturnCRDepositCoin,
 			0,
 			&payload.ReturnDepositCoin{},
@@ -348,7 +356,7 @@ func TestConflictManager_CR_DraftHash(t *testing.T) {
 	conflictTestProc(func(db *UtxoCacheDB) {
 		hash := *randomHash()
 		tx1 := functions.CreateTransaction(
-			common2.TxVersion09,
+			0,
 			common2.CRCProposal,
 			0,
 			&payload.CRCProposal{
@@ -363,7 +371,7 @@ func TestConflictManager_CR_DraftHash(t *testing.T) {
 		)
 
 		tx2 := functions.CreateTransaction(
-			common2.TxVersion09,
+			0,
 			common2.CRCProposal,
 			0,
 			&payload.CRCProposal{
@@ -386,7 +394,7 @@ func TestConflictManager_CR_SponsorDID(t *testing.T) {
 	did := *randomProgramHash()
 	conflictTestProc(func(db *UtxoCacheDB) {
 		tx1 := functions.CreateTransaction(
-			common2.TxVersion09,
+			0,
 			common2.CRCProposal,
 			0,
 			&payload.CRCProposal{
@@ -401,7 +409,7 @@ func TestConflictManager_CR_SponsorDID(t *testing.T) {
 		)
 
 		tx2 := functions.CreateTransaction(
-			common2.TxVersion09,
+			0,
 			common2.CRCProposal,
 			0,
 			&payload.CRCProposal{
@@ -425,7 +433,7 @@ func TestConflictManager_CR_ProposalHash(t *testing.T) {
 	conflictTestProc(func(db *UtxoCacheDB) {
 		hash := *randomHash()
 		tx1 := functions.CreateTransaction(
-			common2.TxVersion09,
+			0,
 			common2.CRCProposalWithdraw,
 			0,
 			&payload.CRCProposalWithdraw{
@@ -447,7 +455,7 @@ func TestConflictManager_CR_ProposalTrackHash(t *testing.T) {
 	conflictTestProc(func(db *UtxoCacheDB) {
 		hash := *randomHash()
 		tx := functions.CreateTransaction(
-			common2.TxVersion09,
+			0,
 			common2.CRCProposalTracking,
 			0,
 			&payload.CRCProposalTracking{
@@ -471,7 +479,7 @@ func TestConflictManager_CR_ProposalReviewKey(t *testing.T) {
 		did := *randomProgramHash()
 
 		tx1 := functions.CreateTransaction(
-			common2.TxVersion09,
+			0,
 			common2.CRCProposalReview,
 			0,
 			&payload.CRCProposalReview{
@@ -493,7 +501,7 @@ func TestConflictManager_CR_ProposalReviewKey(t *testing.T) {
 func TestConflictManager_CR_AppropriationKey(t *testing.T) {
 	conflictTestProc(func(db *UtxoCacheDB) {
 		tx1 := functions.CreateTransaction(
-			common2.TxVersion09,
+			0,
 			common2.CRCAppropriation,
 			0,
 			&payload.CRCAppropriation{},
@@ -512,7 +520,7 @@ func TestConflictManager_CR_AppropriationKey(t *testing.T) {
 func TestConflictManager_SpecialTxHashes(t *testing.T) {
 	conflictTestProc(func(db *UtxoCacheDB) {
 		tx1 := functions.CreateTransaction(
-			common2.TxVersion09,
+			0,
 			common2.IllegalProposalEvidence,
 			0,
 			&payload.DPOSIllegalProposals{
@@ -537,7 +545,7 @@ func TestConflictManager_SpecialTxHashes(t *testing.T) {
 	conflictTestProc(func(db *UtxoCacheDB) {
 
 		tx1 := functions.CreateTransaction(
-			common2.TxVersion09,
+			0,
 			common2.IllegalVoteEvidence,
 			0,
 			&payload.DPOSIllegalVotes{
@@ -565,7 +573,7 @@ func TestConflictManager_SpecialTxHashes(t *testing.T) {
 
 	conflictTestProc(func(db *UtxoCacheDB) {
 		tx := functions.CreateTransaction(
-			common2.TxVersion09,
+			0,
 			common2.IllegalBlockEvidence,
 			0,
 			&payload.DPOSIllegalBlocks{
@@ -589,7 +597,7 @@ func TestConflictManager_SpecialTxHashes(t *testing.T) {
 
 	conflictTestProc(func(db *UtxoCacheDB) {
 		tx := functions.CreateTransaction(
-			common2.TxVersion09,
+			0,
 			common2.IllegalSidechainEvidence,
 			0,
 			&payload.SidechainIllegalData{
@@ -613,7 +621,7 @@ func TestConflictManager_SpecialTxHashes(t *testing.T) {
 
 	conflictTestProc(func(db *UtxoCacheDB) {
 		tx := functions.CreateTransaction(
-			common2.TxVersion09,
+			0,
 			common2.InactiveArbitrators,
 			0,
 			&payload.InactiveArbitrators{
@@ -641,7 +649,7 @@ func TestConflictManager_Sidechain_TxHashes(t *testing.T) {
 		hash := *randomHash()
 
 		tx1 := functions.CreateTransaction(
-			common2.TxVersion09,
+			0,
 			common2.WithdrawFromSideChain,
 			0,
 			&payload.WithdrawFromSideChain{
@@ -659,7 +667,7 @@ func TestConflictManager_Sidechain_TxHashes(t *testing.T) {
 		)
 
 		tx2 := functions.CreateTransaction(
-			common2.TxVersion09,
+			0,
 			common2.WithdrawFromSideChain,
 			0,
 			&payload.WithdrawFromSideChain{
@@ -685,7 +693,7 @@ func TestConflictManager_Sidechain_TxHashes(t *testing.T) {
 func TestConflictManager_InputInferKeys(t *testing.T) {
 	conflictTestProc(func(db *UtxoCacheDB) {
 		tx1 := functions.CreateTransaction(
-			common2.TxVersion09,
+			0,
 			common2.RegisterProducer,
 			0,
 			&payload.ProducerInfo{
@@ -701,7 +709,7 @@ func TestConflictManager_InputInferKeys(t *testing.T) {
 		)
 
 		tx2 := functions.CreateTransaction(
-			common2.TxVersion09,
+			0,
 			common2.UpdateProducer,
 			0,
 			&payload.ProducerInfo{
@@ -717,7 +725,7 @@ func TestConflictManager_InputInferKeys(t *testing.T) {
 		)
 
 		tx3 := functions.CreateTransaction(
-			common2.TxVersion09,
+			0,
 			common2.CancelProducer,
 			0,
 			&payload.ProcessProducer{
@@ -731,7 +739,7 @@ func TestConflictManager_InputInferKeys(t *testing.T) {
 		)
 
 		tx4 := functions.CreateTransaction(
-			common2.TxVersion09,
+			0,
 			common2.RegisterCR,
 			0,
 			&payload.CRInfo{
@@ -746,7 +754,7 @@ func TestConflictManager_InputInferKeys(t *testing.T) {
 			[]*program.Program{},
 		)
 		tx5 := functions.CreateTransaction(
-			common2.TxVersion09,
+			0,
 			common2.UpdateCR,
 			0,
 			&payload.CRInfo{
@@ -761,7 +769,7 @@ func TestConflictManager_InputInferKeys(t *testing.T) {
 			[]*program.Program{},
 		)
 		tx6 := functions.CreateTransaction(
-			common2.TxVersion09,
+			0,
 			common2.UnregisterCR,
 			0,
 			&payload.UnregisterCR{
@@ -774,7 +782,7 @@ func TestConflictManager_InputInferKeys(t *testing.T) {
 			[]*program.Program{},
 		)
 		tx7 := functions.CreateTransaction(
-			common2.TxVersion09,
+			0,
 			common2.ReturnDepositCoin,
 			0,
 			&payload.ReturnDepositCoin{},
@@ -789,7 +797,7 @@ func TestConflictManager_InputInferKeys(t *testing.T) {
 			},
 		)
 		tx8 := functions.CreateTransaction(
-			common2.TxVersion09,
+			0,
 			common2.ReturnCRDepositCoin,
 			0,
 			&payload.ReturnDepositCoin{},
@@ -805,7 +813,7 @@ func TestConflictManager_InputInferKeys(t *testing.T) {
 		)
 
 		tx9 := functions.CreateTransaction(
-			common2.TxVersion09,
+			0,
 			common2.CRCProposal,
 			0,
 			&payload.CRCProposal{
@@ -819,7 +827,7 @@ func TestConflictManager_InputInferKeys(t *testing.T) {
 		)
 
 		tx10 := functions.CreateTransaction(
-			common2.TxVersion09,
+			0,
 			common2.CRCProposalWithdraw,
 			0,
 			&payload.CRCProposalWithdraw{
@@ -833,7 +841,7 @@ func TestConflictManager_InputInferKeys(t *testing.T) {
 		)
 
 		tx11 := functions.CreateTransaction(
-			common2.TxVersion09,
+			0,
 			common2.CRCProposalTracking,
 			0,
 			&payload.CRCProposalTracking{
@@ -847,7 +855,7 @@ func TestConflictManager_InputInferKeys(t *testing.T) {
 		)
 
 		tx12 := functions.CreateTransaction(
-			common2.TxVersion09,
+			0,
 			common2.CRCProposalReview,
 			0,
 			&payload.CRCProposalReview{
@@ -861,7 +869,7 @@ func TestConflictManager_InputInferKeys(t *testing.T) {
 			[]*program.Program{},
 		)
 		tx13 := functions.CreateTransaction(
-			common2.TxVersion09,
+			0,
 			common2.CRCAppropriation,
 			0,
 			&payload.CRCAppropriation{},
@@ -872,7 +880,7 @@ func TestConflictManager_InputInferKeys(t *testing.T) {
 			[]*program.Program{},
 		)
 		tx14 := functions.CreateTransaction(
-			common2.TxVersion09,
+			0,
 			common2.WithdrawFromSideChain,
 			0,
 			&payload.WithdrawFromSideChain{
@@ -940,7 +948,7 @@ func setSamePreviousTransaction(txs []interfaces.Transaction,
 
 func newPreviousTx(utxoCacheDB *UtxoCacheDB) interfaces.Transaction {
 	prevTx := functions.CreateTransaction(
-		common2.TxVersion09,
+		0,
 		common2.TransferAsset,
 		0,
 		&payload.TransferAsset{},

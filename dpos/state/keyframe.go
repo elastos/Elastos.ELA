@@ -64,7 +64,7 @@ type RewardData struct {
 	TotalVotesInRound common.Fixed64
 }
 
-// snapshot takes a snapshot of current state and returns the copy.
+// SnapshotByHeight takes a SnapshotByHeight of current state and returns the copy.
 func (s *StateKeyFrame) snapshot() *StateKeyFrame {
 	state := StateKeyFrame{
 		NodeOwnerKeys:            make(map[string]string),

@@ -203,5 +203,6 @@ func GetTransaction(txType common2.TxType) (txn interfaces.Transaction, err erro
 		return nil, errors.New("invalid transaction type")
 	}
 
+	txn.SetTxType(txType)
 	return txn, nil
 }

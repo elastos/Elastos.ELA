@@ -12,19 +12,27 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/elastos/Elastos.ELA/core/transaction"
-	"github.com/elastos/Elastos.ELA/core/types/functions"
-	"github.com/elastos/Elastos.ELA/core/types/interfaces"
-
 	"github.com/elastos/Elastos.ELA/auxpow"
 	"github.com/elastos/Elastos.ELA/common"
+	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/core/contract/program"
+	"github.com/elastos/Elastos.ELA/core/transaction"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/functions"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/core/types/outputpayload"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 
 	"github.com/stretchr/testify/suite"
 )
+
+func init() {
+	functions.GetTransactionByTxType = transaction.GetTransaction
+	functions.GetTransactionByBytes = transaction.GetTransactionByBytes
+	functions.CreateTransaction = transaction.CreateTransaction
+	functions.GetTransactionParameters = transaction.GetTransactionparameters
+	config.DefaultParams = config.GetDefaultParams()
+}
 
 type transactionSuite struct {
 	suite.Suite
@@ -50,17 +58,11 @@ func (s *transactionSuite) TestCoinbaseTransaction_SerializeDeserialize() {
 
 	serializedData := new(bytes.Buffer)
 	txn.Serialize(serializedData)
-	txn2 := functions.CreateTransaction(
-		common2.TxVersion09,
-		common2.CoinBase,
-		0,
-		nil,
-		[]*common2.Attribute{},
-		[]*common2.Input{},
-		[]*common2.Output{},
-		0,
-		[]*program.Program{},
-	)
+
+	txn2, err := functions.GetTransactionByBytes(serializedData)
+	if err != nil {
+		s.Assert()
+	}
 	txn2.Deserialize(serializedData)
 
 	assertOldVersionTxEqual(true, &s.Suite, txn, txn2, s.InputNum, s.OutputNum, s.AttrNum, s.ProgramNum)
@@ -85,17 +87,10 @@ func (s *transactionSuite) TestRegisterAssetTransaction_SerializeDeserialize() {
 	serializedData := new(bytes.Buffer)
 	txn.Serialize(serializedData)
 
-	txn2 := functions.CreateTransaction(
-		common2.TxVersion09,
-		common2.RegisterAsset,
-		0,
-		nil,
-		[]*common2.Attribute{},
-		[]*common2.Input{},
-		[]*common2.Output{},
-		0,
-		[]*program.Program{},
-	)
+	txn2, err := functions.GetTransactionByBytes(serializedData)
+	if err != nil {
+		s.Assert()
+	}
 	txn2.Deserialize(serializedData)
 
 	assertOldVersionTxEqual(true, &s.Suite, txn, txn2, s.InputNum, s.OutputNum, s.AttrNum, s.ProgramNum)
@@ -118,17 +113,10 @@ func (s *transactionSuite) TestTransferAssert_SerializeDeserialize() {
 
 	serializedData := new(bytes.Buffer)
 	txn.Serialize(serializedData)
-	txn2 := functions.CreateTransaction(
-		common2.TxVersion09,
-		common2.TransferAsset,
-		0,
-		nil,
-		[]*common2.Attribute{},
-		[]*common2.Input{},
-		[]*common2.Output{},
-		0,
-		[]*program.Program{},
-	)
+	txn2, err := functions.GetTransactionByBytes(serializedData)
+	if err != nil {
+		s.Assert()
+	}
 	txn2.Deserialize(serializedData)
 
 	assertOldVersionTxEqual(true, &s.Suite, txn, txn2, s.InputNum, s.OutputNum, s.AttrNum, s.ProgramNum)
@@ -144,17 +132,10 @@ func (s *transactionSuite) TestRecord_SerializeDeserialize() {
 	serializedData := new(bytes.Buffer)
 	txn.Serialize(serializedData)
 
-	txn2 := functions.CreateTransaction(
-		common2.TxVersion09,
-		common2.Record,
-		0,
-		nil,
-		[]*common2.Attribute{},
-		[]*common2.Input{},
-		[]*common2.Output{},
-		0,
-		[]*program.Program{},
-	)
+	txn2, err := functions.GetTransactionByBytes(serializedData)
+	if err != nil {
+		s.Assert()
+	}
 	txn2.Deserialize(serializedData)
 
 	assertOldVersionTxEqual(true, &s.Suite, txn, txn2, s.InputNum, s.OutputNum, s.AttrNum, s.ProgramNum)
@@ -178,17 +159,10 @@ func (s *transactionSuite) TestSideChainPow_SerializeDeserialize() {
 	serializedData := new(bytes.Buffer)
 	txn.Serialize(serializedData)
 
-	txn2 := functions.CreateTransaction(
-		common2.TxVersion09,
-		common2.SideChainPow,
-		0,
-		nil,
-		[]*common2.Attribute{},
-		[]*common2.Input{},
-		[]*common2.Output{},
-		0,
-		[]*program.Program{},
-	)
+	txn2, err := functions.GetTransactionByBytes(serializedData)
+	if err != nil {
+		s.Assert()
+	}
 	txn2.Deserialize(serializedData)
 
 	assertOldVersionTxEqual(true, &s.Suite, txn, txn2, s.InputNum, s.OutputNum, s.AttrNum, s.ProgramNum)
@@ -216,8 +190,12 @@ func (s *transactionSuite) TestWithdrawFromSideChain_SerializeDeserialize() {
 	serializedData := new(bytes.Buffer)
 	txn.Serialize(serializedData)
 
-	txn2 := &transaction.BaseTransaction{}
-	txn2.Deserialize(serializedData)
+	r := bytes.NewReader(serializedData.Bytes())
+	txn2, err := functions.GetTransactionByBytes(r)
+	if err != nil {
+		s.Assert()
+	}
+	txn2.Deserialize(r)
 
 	assertOldVersionTxEqual(true, &s.Suite, txn, txn2, s.InputNum, s.OutputNum, s.AttrNum, s.ProgramNum)
 
@@ -252,8 +230,12 @@ func (s *transactionSuite) TestTransferCrossChainAsset_SerializeDeserialize() {
 	serializedData := new(bytes.Buffer)
 	txn.Serialize(serializedData)
 
-	txn2 := &transaction.BaseTransaction{}
-	txn2.Deserialize(serializedData)
+	r := bytes.NewReader(serializedData.Bytes())
+	txn2, err := functions.GetTransactionByBytes(r)
+	if err != nil {
+		s.Assert()
+	}
+	txn2.Deserialize(r)
 
 	assertOldVersionTxEqual(true, &s.Suite, txn, txn2, s.InputNum, s.OutputNum, s.AttrNum, s.ProgramNum)
 
@@ -289,8 +271,12 @@ func (s *transactionSuite) TestRegisterProducer_SerializeDeserialize() {
 	serializedData := new(bytes.Buffer)
 	txn.Serialize(serializedData)
 
-	txn2 := &transaction.BaseTransaction{}
-	txn2.Deserialize(serializedData)
+	r := bytes.NewReader(serializedData.Bytes())
+	txn2, err := functions.GetTransactionByBytes(r)
+	if err != nil {
+		s.Assert()
+	}
+	txn2.Deserialize(r)
 
 	assertOldVersionTxEqual(false, &s.Suite, txn, txn2, s.InputNum, s.OutputNum, s.AttrNum, s.ProgramNum)
 
@@ -315,8 +301,12 @@ func (s *transactionSuite) TestCancelProducer_SerializeDeserialize() {
 	serializedData := new(bytes.Buffer)
 	txn.Serialize(serializedData)
 
-	txn2 := &transaction.BaseTransaction{}
-	txn2.Deserialize(serializedData)
+	r := bytes.NewReader(serializedData.Bytes())
+	txn2, err := functions.GetTransactionByBytes(r)
+	if err != nil {
+		s.Assert()
+	}
+	txn2.Deserialize(r)
 
 	assertOldVersionTxEqual(false, &s.Suite, txn, txn2, s.InputNum,
 		s.OutputNum, s.AttrNum, s.ProgramNum)
@@ -339,8 +329,12 @@ func (s *transactionSuite) TestActivateProducer_SerializeDeserialize() {
 	serializedData := new(bytes.Buffer)
 	txn.Serialize(serializedData)
 
-	txn2 := &transaction.BaseTransaction{}
-	txn2.Deserialize(serializedData)
+	r := bytes.NewReader(serializedData.Bytes())
+	txn2, err := functions.GetTransactionByBytes(r)
+	if err != nil {
+		s.Assert()
+	}
+	txn2.Deserialize(r)
 
 	assertOldVersionTxEqual(false, &s.Suite, txn, txn2, s.InputNum,
 		s.OutputNum, s.AttrNum, s.ProgramNum)
@@ -365,8 +359,12 @@ func (s *transactionSuite) TestUpdateProducer_SerializeDeserialize() {
 	serializedData := new(bytes.Buffer)
 	txn.Serialize(serializedData)
 
-	txn2 := &transaction.BaseTransaction{}
-	txn2.Deserialize(serializedData)
+	r := bytes.NewReader(serializedData.Bytes())
+	txn2, err := functions.GetTransactionByBytes(r)
+	if err != nil {
+		s.Assert()
+	}
+	txn2.Deserialize(r)
 
 	assertOldVersionTxEqual(false, &s.Suite, txn, txn2, s.InputNum, s.OutputNum, s.AttrNum, s.ProgramNum)
 
@@ -387,8 +385,12 @@ func (s *transactionSuite) TestReturnDepositCoin_SerializeDeserialize() {
 	serializedData := new(bytes.Buffer)
 	txn.Serialize(serializedData)
 
-	txn2 := &transaction.BaseTransaction{}
-	txn2.Deserialize(serializedData)
+	r := bytes.NewReader(serializedData.Bytes())
+	txn2, err := functions.GetTransactionByBytes(r)
+	if err != nil {
+		s.Assert()
+	}
+	txn2.Deserialize(r)
 
 	assertOldVersionTxEqual(false, &s.Suite, txn, txn2, s.InputNum, s.OutputNum, s.AttrNum, s.ProgramNum)
 }
@@ -427,8 +429,12 @@ func (s *transactionSuite) TestIllegalProposalEvidence_SerializeDeserialize() {
 	serializedData := new(bytes.Buffer)
 	txn.Serialize(serializedData)
 
-	txn2 := &transaction.BaseTransaction{}
-	txn2.Deserialize(serializedData)
+	r := bytes.NewReader(serializedData.Bytes())
+	txn2, err := functions.GetTransactionByBytes(r)
+	if err != nil {
+		s.Assert()
+	}
+	txn2.Deserialize(r)
 
 	assertOldVersionTxEqual(false, &s.Suite, txn, txn2, s.InputNum, s.OutputNum, s.AttrNum, s.ProgramNum)
 
@@ -480,8 +486,12 @@ func (s *transactionSuite) TestIllegalVoteEvidence_SerializeDeserialize() {
 	serializedData := new(bytes.Buffer)
 	txn.Serialize(serializedData)
 
-	txn2 := &transaction.BaseTransaction{}
-	txn2.Deserialize(serializedData)
+	r := bytes.NewReader(serializedData.Bytes())
+	txn2, err := functions.GetTransactionByBytes(r)
+	if err != nil {
+		s.Assert()
+	}
+	txn2.Deserialize(r)
 
 	assertOldVersionTxEqual(false, &s.Suite, txn, txn2, s.InputNum, s.OutputNum, s.AttrNum, s.ProgramNum)
 
@@ -515,8 +525,12 @@ func (s *transactionSuite) TestIllegalBlockEvidence_SerializeDeserialize() {
 	serializedData := new(bytes.Buffer)
 	txn.Serialize(serializedData)
 
-	txn2 := &transaction.BaseTransaction{}
-	txn2.Deserialize(serializedData)
+	r := bytes.NewReader(serializedData.Bytes())
+	txn2, err := functions.GetTransactionByBytes(r)
+	if err != nil {
+		s.Assert()
+	}
+	txn2.Deserialize(r)
 
 	assertOldVersionTxEqual(false, &s.Suite, txn, txn2, s.InputNum, s.OutputNum, s.AttrNum, s.ProgramNum)
 
@@ -547,8 +561,12 @@ func (s *transactionSuite) TestSidechainIllegalData_SerializeDeserialize() {
 	serializedData := new(bytes.Buffer)
 	txn.Serialize(serializedData)
 
-	txn2 := &transaction.BaseTransaction{}
-	txn2.Deserialize(serializedData)
+	r := bytes.NewReader(serializedData.Bytes())
+	txn2, err := functions.GetTransactionByBytes(r)
+	if err != nil {
+		s.Assert()
+	}
+	txn2.Deserialize(r)
 
 	assertOldVersionTxEqual(false, &s.Suite, txn, txn2, s.InputNum, s.OutputNum, s.AttrNum, s.ProgramNum)
 
@@ -581,8 +599,12 @@ func (s *transactionSuite) TestInactiveArbitrators_SerializeDeserialize() {
 	serializedData := new(bytes.Buffer)
 	txn.Serialize(serializedData)
 
-	txn2 := &transaction.BaseTransaction{}
-	txn2.Deserialize(serializedData)
+	r := bytes.NewReader(serializedData.Bytes())
+	txn2, err := functions.GetTransactionByBytes(r)
+	if err != nil {
+		s.Assert()
+	}
+	txn2.Deserialize(r)
 
 	assertOldVersionTxEqual(false, &s.Suite, txn, txn2, s.InputNum, s.OutputNum, s.AttrNum, s.ProgramNum)
 
@@ -852,8 +874,12 @@ func (s *transactionSuite) TestTransaction_SpecificSample() {
 	updateProducerByteStr := "090b0021034f3a7d2f33ac7f4e30876080d359ce5f314c9eabddbaaca637676377f655e16c2103c77af162438d4b7140f8544ad6523b9734cca9c7a62476d54ed5d1bddc7a39c309656c615f74657374310d656c615f74657374312e6f726754b60100000000000931302e31302e302e3240920d8e769640b8494cfdf7c5581982c329485c8d3083db7d3079de104dc0dc650d8592a5e1d70f5c24f72b3f29b0625dc6348e375b13c3c48992d398d9f5d9ac000146f1d8002115ce89423ab29f26ede6ef1b813642cbf3c4c15b919b41d6d9f7760100ffffffff01b037db964a231458d2d6ffd5ea18944c4f90e63d547c5d3b9874df66a4ead0a300d414000000000000000000210d4109bf00e6d782db40ab183491c03cf4d6a37a00000000000141408fc0c3de6198c3ec4e9ab8a7748208d79a554c9d1ef84edec23c444495b651deb7a8796ac49e31f1d2598207d216c05496b35d7f75a22c55272223995781bb402321034f3a7d2f33ac7f4e30876080d359ce5f314c9eabddbaaca637676377f655e16cac"
 	updateProducerByte, _ := common.HexStringToBytes(updateProducerByteStr)
 	byteReader.Write(updateProducerByte)
-	txn := &transaction.BaseTransaction{}
-	s.NoError(txn.Deserialize(byteReader))
+	r := bytes.NewReader(byteReader.Bytes())
+	txn, err := functions.GetTransactionByBytes(r)
+	if err != nil {
+		s.Assert()
+	}
+	s.NoError(txn.Deserialize(r))
 }
 
 func TestTransactionSuite(t *testing.T) {
@@ -862,13 +888,13 @@ func TestTransactionSuite(t *testing.T) {
 
 func assertOldVersionTxEqual(oldVersion bool, suite *suite.Suite, first, second interfaces.Transaction, inputNum, outputNum, attrNum, programNum int) {
 	if oldVersion {
-		suite.Equal(common2.TxVersionDefault, second.Version)
+		suite.Equal(common2.TxVersionDefault, second.Version())
 	} else {
-		suite.Equal(first.Version, second.Version)
+		suite.Equal(first.Version(), second.Version())
 	}
-	suite.Equal(first.TxType, second.TxType)
-	suite.Equal(first.PayloadVersion, second.PayloadVersion)
-	suite.Equal(first.LockTime, second.LockTime)
+	suite.Equal(first.TxType(), second.TxType())
+	suite.Equal(first.PayloadVersion(), second.PayloadVersion())
+	suite.Equal(first.LockTime(), second.LockTime())
 
 	suite.Equal(inputNum, len(first.Inputs()))
 	suite.Equal(inputNum, len(second.Inputs()))

@@ -12,6 +12,7 @@ import (
 
 	"github.com/elastos/Elastos.ELA/blockchain"
 	"github.com/elastos/Elastos.ELA/core/contract/program"
+	"github.com/elastos/Elastos.ELA/core/transaction"
 	"github.com/elastos/Elastos.ELA/core/types/functions"
 	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 
@@ -30,6 +31,16 @@ var (
 	utxoCache   *blockchain.UTXOCache
 
 	// refer tx hash: 160da301e49617c037ae9b630919af52b8ac458202cd64558af7e0dcc753e307
+	referTx interfaces.Transaction
+	spendTx interfaces.Transaction
+)
+
+func init() {
+	functions.GetTransactionByTxType = transaction.GetTransaction
+	functions.GetTransactionByBytes = transaction.GetTransactionByBytes
+	functions.CreateTransaction = transaction.CreateTransaction
+	functions.GetTransactionParameters = transaction.GetTransactionparameters
+	config.DefaultParams = config.GetDefaultParams()
 
 	referTx = functions.CreateTransaction(
 		common2.TxVersion09,
@@ -86,7 +97,7 @@ var (
 			},
 		},
 	)
-)
+}
 
 type UtxoCacheDB struct {
 	transactions map[common.Uint256]interfaces.Transaction

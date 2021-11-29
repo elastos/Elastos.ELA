@@ -509,7 +509,7 @@ func (m *Manager) FetchUTXO(programHash *common.Uint168) ([]*common2.UTXO, error
 func (m *Manager) IsTx3Exist(txHash *common.Uint256) bool {
 	exist := false
 	_ = m.db.View(func(dbTx database.Tx) error {
-		exist = dbFetchTx3IndexEntry(dbTx, txHash)
+		exist = DBFetchTx3IndexEntry(dbTx, txHash)
 		return nil
 	})
 

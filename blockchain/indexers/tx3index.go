@@ -16,21 +16,21 @@ import (
 )
 
 const (
-	// tx3IndexName is the human-readable name for the index.
-	tx3IndexName = "tx3 index"
+	// Tx3IndexName is the human-readable name for the index.
+	Tx3IndexName = "tx3 index"
 )
 
 var (
-	// tx3IndexKey is the key of the tx3 index and the DB bucket used
+	// Tx3IndexKey is the key of the tx3 index and the DB bucket used
 	// to house it.
-	tx3IndexKey = []byte("tx3hash")
+	Tx3IndexKey = []byte("tx3hash")
 
 	// tx3IndexValue is placeholder for tx3 index
 	tx3IndexValue = []byte{1}
 )
 
-func dbFetchTx3IndexEntry(dbTx database.Tx, txHash *common.Uint256) bool {
-	hashIndex := dbTx.Metadata().Bucket(tx3IndexKey)
+func DBFetchTx3IndexEntry(dbTx database.Tx, txHash *common.Uint256) bool {
+	hashIndex := dbTx.Metadata().Bucket(Tx3IndexKey)
 	value := hashIndex.Get(txHash[:])
 	if bytes.Equal(value, tx3IndexValue) {
 		return true
@@ -39,14 +39,14 @@ func dbFetchTx3IndexEntry(dbTx database.Tx, txHash *common.Uint256) bool {
 }
 
 func dbPutTx3IndexEntry(dbTx database.Tx, txHash *common.Uint256) error {
-	tx3Index := dbTx.Metadata().Bucket(tx3IndexKey)
+	tx3Index := dbTx.Metadata().Bucket(Tx3IndexKey)
 	return tx3Index.Put(txHash[:], tx3IndexValue)
 }
 
 // dbRemoveTxIndexEntry uses an existing database transaction to remove the most
 // recent tx3 entry for the given hash.
 func dbRemoveTx3IndexEntry(dbTx database.Tx, txHash *common.Uint256) error {
-	tx3Index := dbTx.Metadata().Bucket(tx3IndexKey)
+	tx3Index := dbTx.Metadata().Bucket(Tx3IndexKey)
 
 	return tx3Index.Delete(txHash[:])
 }
@@ -66,14 +66,14 @@ func (idx *Tx3Index) Init() error {
 //
 // This is part of the Indexer interface.
 func (idx *Tx3Index) Key() []byte {
-	return tx3IndexKey
+	return Tx3IndexKey
 }
 
 // Name returns the human-readable name of the index.
 //
 // This is part of the Indexer interface.
 func (idx *Tx3Index) Name() string {
-	return tx3IndexName
+	return Tx3IndexName
 }
 
 // Create is invoked when the indexer manager determines the index needs
@@ -83,7 +83,7 @@ func (idx *Tx3Index) Name() string {
 // This is part of the Indexer interface.
 func (idx *Tx3Index) Create(dbTx database.Tx) error {
 	meta := dbTx.Metadata()
-	_, err := meta.CreateBucket(tx3IndexKey)
+	_, err := meta.CreateBucket(Tx3IndexKey)
 	return err
 }
 

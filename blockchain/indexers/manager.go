@@ -23,7 +23,7 @@ import (
 )
 
 var (
-	// indexTipsBucketName is the name of the db bucket used to house the
+	// indexTipsBucketName is the name of the DB bucket used to house the
 	// current tip of each index.
 	indexTipsBucketName = []byte("idxtips")
 )
@@ -482,7 +482,7 @@ func (m *Manager) FetchUnspent(txID common.Uint256) ([]uint16, error) {
 	var indexes []uint16
 	err := m.db.View(func(dbTx database.Tx) error {
 		var err error
-		indexes, err = dbFetchUnspentIndexEntry(dbTx, &txID)
+		indexes, err = DBFetchUnspentIndexEntry(dbTx, &txID)
 		return err
 	})
 	if err != nil {

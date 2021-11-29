@@ -170,16 +170,16 @@ package indexers
 //
 //func (s *TestTxStore) FetchTx(txID common.Uint256) (interfaces.Transaction,
 //	uint32, error) {
-//	txn, exist := s.transactions[txID]
+//	Txn, exist := s.transactions[txID]
 //	if exist {
-//		return txn, s.heights[txID], nil
+//		return Txn, s.heights[txID], nil
 //	}
 //	return nil, 0, errors.New("leveldb: not found")
 //}
 //
-//func (s *TestTxStore) SetTx(txn interfaces.Transaction, height uint32) {
-//	s.transactions[txn.Hash()] = txn
-//	s.heights[txn.Hash()] = height
+//func (s *TestTxStore) SetTx(Txn interfaces.Transaction, height uint32) {
+//	s.transactions[Txn.Hash()] = Txn
+//	s.heights[Txn.Hash()] = height
 //}
 //
 //func (s *TestTxStore) RemoveTx(txID common.Uint256) {
@@ -187,10 +187,10 @@ package indexers
 //}
 //
 //func NewTestTxStore() *TestTxStore {
-//	var db TestTxStore
-//	db.transactions = make(map[common.Uint256]interfaces.Transaction)
-//	db.heights = make(map[common.Uint256]uint32)
-//	return &db
+//	var DB TestTxStore
+//	DB.transactions = make(map[common.Uint256]interfaces.Transaction)
+//	DB.heights = make(map[common.Uint256]uint32)
+//	return &DB
 //}
 //
 //func TestUTXOIndexInit(t *testing.T) {
@@ -279,7 +279,7 @@ package indexers
 //	})
 //
 //	_ = utxoIndexDB.View(func(dbTx database.Tx) error {
-//		// input items should be removed from db
+//		// input items should be removed from DB
 //		inputUtxo1, err := dbFetchUtxoIndexEntry(dbTx, referRecipient1)
 //		assert.NoError(t, err)
 //		assert.Equal(t, []*common2.UTXO{}, inputUtxo1)
@@ -293,7 +293,7 @@ package indexers
 //			},
 //		}, inputUtxo2)
 //
-//		// output items should be added in db
+//		// output items should be added in DB
 //		outputUtxo1, err := dbFetchUtxoIndexEntry(dbTx, recipient1)
 //		assert.NoError(t, err)
 //		assert.Equal(t, []*common2.UTXO{
@@ -332,7 +332,7 @@ package indexers
 //		err := testUtxoIndex.DisconnectBlock(dbTx, testUtxoIndexBlock)
 //		assert.NoError(t, err)
 //
-//		// input items should be added to db
+//		// input items should be added to DB
 //		utxos1, err := dbFetchUtxoIndexEntry(dbTx, referRecipient1)
 //		assert.NoError(t, err)
 //		assert.Equal(t, []*common2.UTXO{
@@ -357,7 +357,7 @@ package indexers
 //			},
 //		}, utxos2)
 //
-//		// output items should be removed from db
+//		// output items should be removed from DB
 //		outputUtxo1, err := dbFetchUtxoIndexEntry(dbTx, recipient1)
 //		assert.NoError(t, err)
 //		assert.Equal(t, []*common2.UTXO{}, outputUtxo1)

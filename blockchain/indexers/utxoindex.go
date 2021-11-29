@@ -19,7 +19,7 @@ const (
 )
 
 var (
-	// utxoIndexKey is the key of the utxo index and the db bucket used
+	// utxoIndexKey is the key of the utxo index and the DB bucket used
 	// to house it.
 	utxoIndexKey = []byte("utxobyhashidx")
 )

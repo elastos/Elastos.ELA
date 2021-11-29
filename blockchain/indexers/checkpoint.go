@@ -16,17 +16,17 @@ import (
 )
 
 const (
-	// checkpointKey defines key of unspent txn checkpoint.
+	// checkpointKey defines key of unspent Txn checkpoint.
 	checkpointKey = "utx"
 
-	// checkpointExtension defines checkpoint file extension of unspent txn checkpoint.
+	// checkpointExtension defines checkpoint file extension of unspent Txn checkpoint.
 	checkpointExtension = ".txcp"
 
 	// checkpointHeight defines interval height between two neighbor check points.
 	checkpointHeight = uint32(2160)
 )
 
-// Checkpoint hold all unspent txn cache to recover from scratch.
+// Checkpoint hold all unspent Txn cache to recover from scratch.
 type Checkpoint struct {
 	height  uint32
 	txCache *TxCache
@@ -118,7 +118,7 @@ func (c *Checkpoint) Deserialize(r io.Reader) (err error) {
 func NewCheckpoint(unspentIndex *UnspentIndex) *Checkpoint {
 	cp := &Checkpoint{
 		height:  uint32(0),
-		txCache: unspentIndex.txCache,
+		txCache: unspentIndex.TxCache,
 	}
 
 	return cp

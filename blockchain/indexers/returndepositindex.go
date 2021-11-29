@@ -15,7 +15,7 @@ const (
 )
 
 var (
-	// returnDepositIndexKey is the key of the returnDeposit index and the db bucket used
+	// returnDepositIndexKey is the key of the returnDeposit index and the DB bucket used
 	// to house it.
 	returnDepositIndexKey = []byte("returnDeposithash")
 

@@ -47,39 +47,39 @@ const (
 )
 
 var (
-	// blockIndexBucketName is the name of the db bucket used to house to the
+	// blockIndexBucketName is the name of the DB bucket used to house to the
 	// block headers and contextual information.
 	blockIndexBucketName = []byte("blockheaderidx")
 
-	// hashIndexBucketName is the name of the db bucket used to house to the
+	// hashIndexBucketName is the name of the DB bucket used to house to the
 	// block hash -> block height index.
 	hashIndexBucketName = []byte("hashidx")
 
-	// heightIndexBucketName is the name of the db bucket used to house to
+	// heightIndexBucketName is the name of the DB bucket used to house to
 	// the block height -> block hash index.
 	heightIndexBucketName = []byte("heightidx")
 
-	// chainStateKeyName is the name of the db key used to store the best
+	// chainStateKeyName is the name of the DB key used to store the best
 	// chain state.
 	chainStateKeyName = []byte("chainstate")
 
-	// spendJournalVersionKeyName is the name of the db key used to store
+	// spendJournalVersionKeyName is the name of the DB key used to store
 	// the version of the spend journal currently in the database.
 	spendJournalVersionKeyName = []byte("spendjournalversion")
 
-	// spendJournalBucketName is the name of the db bucket used to house
+	// spendJournalBucketName is the name of the DB bucket used to house
 	// transactions outputs that are spent in each block.
 	spendJournalBucketName = []byte("spendjournal")
 
-	// utxoSetVersionKeyName is the name of the db key used to store the
+	// utxoSetVersionKeyName is the name of the DB key used to store the
 	// version of the utxo set currently in the database.
 	utxoSetVersionKeyName = []byte("utxosetversion")
 
-	// utxoSetBucketName is the name of the db bucket used to house the
+	// utxoSetBucketName is the name of the DB bucket used to house the
 	// unspent transaction output set.
 	utxoSetBucketName = []byte("utxosetv2")
 
-	// proposalDraftDataBucketName is the name of the db bucket used to house the
+	// proposalDraftDataBucketName is the name of the DB bucket used to house the
 	// proposal releated draft data and draft hash.
 	proposalDraftDataBucketName = []byte("proposaldraftdata")
 
@@ -405,7 +405,7 @@ func (b *BlockChain) createChainState() error {
 }
 
 // initChainState attempts to load and initialize the chain state from the
-// database.  When the db does not yet contain any chain state, both it and the
+// database.  When the DB does not yet contain any chain state, both it and the
 // chain state are initialized to the genesis block.
 func (b *BlockChain) initChainState() error {
 	// Determine the state of the chain database. We may need to initialize
@@ -427,7 +427,7 @@ func (b *BlockChain) initChainState() error {
 	}
 
 	if !hasBlockIndex {
-		//err = migrateBlockIndex(b.db.GetFFLDB())
+		//err = migrateBlockIndex(b.DB.GetFFLDB())
 		//if err != nil {
 		//	return initialized, nil
 		//}

@@ -108,7 +108,7 @@ func (b *BlockChain) CheckBlockSanity(block *Block) error {
 				"CheckTransactionSanity failed when verifiy block")
 		}
 
-		// Check for duplicate UTXO inputs in a block
+		// Check for duplicate UTXO Inputs in a block
 		for _, input := range txn.Inputs() {
 			referKey := input.ReferKey()
 			if _, exists := existingTxInputs[referKey]; exists {
@@ -375,7 +375,7 @@ func IsFinalizedTransaction(msgTx interfaces.Transaction, blockHeight uint32) bo
 
 	// At this point, the transaction's lock time hasn't occurred yet, but
 	// the transaction might still be finalized if the sequence number
-	// for all transaction inputs is maxed out.
+	// for all transaction Inputs is maxed out.
 	for _, txIn := range msgTx.Inputs() {
 		if txIn.Sequence != math.MaxUint16 {
 			return false

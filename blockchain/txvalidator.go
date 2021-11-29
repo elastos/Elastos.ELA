@@ -163,11 +163,11 @@ func (b *BlockChain) CheckVoteOutputs(
 		}
 	}
 
-	// If inputs contain DPoS v2 votes, need to check:
+	// If Inputs contain DPoS v2 votes, need to check:
 	// 1.need to be only one DPoS V2 input
 	// 2.need to be only one DPoS V2 output
 	// 3.outputLock of output need to be bigger than new input
-	// 4.DPoS v2 votes in outputs need to be more than inputs
+	// 4.DPoS v2 votes in outputs need to be more than Inputs
 	var dposV2InputCount uint32
 	var dposV2InputLock uint32
 	var totalDPoSV2InputVotes common.Fixed64
@@ -206,7 +206,7 @@ func (b *BlockChain) CheckVoteOutputs(
 			"need to be bigger than input, input lockTime:%d, "+
 			"output lockTime:%d", dposV2InputLock, dposV2OutputLock))
 	}
-	// DPoS v2 votes in outputs need to be more than inputs
+	// DPoS v2 votes in outputs need to be more than Inputs
 	if totalDPoSV2InputVotes > totalDPoSV2OutputVotes {
 		return errors.New(fmt.Sprintf("invalid DPoS V2 output votes, "+
 			"need to be bigger than input, input votes:%d, "+
@@ -420,7 +420,7 @@ func CheckTransactionInput(txn interfaces.Transaction) error {
 	}
 
 	if len(txn.Inputs()) <= 0 {
-		return errors.New("transaction has no inputs")
+		return errors.New("transaction has no Inputs")
 	}
 	existingTxInputs := make(map[string]struct{})
 	for _, input := range txn.Inputs() {
@@ -428,7 +428,7 @@ func CheckTransactionInput(txn interfaces.Transaction) error {
 			return errors.New("invalid transaction input")
 		}
 		if _, exists := existingTxInputs[input.ReferKey()]; exists {
-			return errors.New("duplicated transaction inputs")
+			return errors.New("duplicated transaction Inputs")
 		} else {
 			existingTxInputs[input.ReferKey()] = struct{}{}
 		}
@@ -1019,7 +1019,7 @@ func (b *BlockChain) checkPOWConsensusTransaction(txn interfaces.Transaction, re
 			}
 			for k, _ := range outputProgramHashes {
 				if _, ok := inputProgramHashes[k]; !ok {
-					return errors.New("output program hash is not in inputs")
+					return errors.New("output program hash is not in Inputs")
 				}
 			}
 		} else {
@@ -1236,7 +1236,7 @@ func (b *BlockChain) checkWithdrawFromSideChainTransactionV1(txn interfaces.Tran
 
 	for _, output := range references {
 		if bytes.Compare(output.ProgramHash[0:1], []byte{byte(contract.PrefixCrossChain)}) != 0 {
-			return errors.New("Invalid transaction inputs address, without \"X\" at beginning")
+			return errors.New("Invalid transaction Inputs address, without \"X\" at beginning")
 		}
 	}
 
@@ -1288,7 +1288,7 @@ func (b *BlockChain) checkWithdrawFromSideChainTransactionV0(txn interfaces.Tran
 
 	for _, output := range references {
 		if bytes.Compare(output.ProgramHash[0:1], []byte{byte(contract.PrefixCrossChain)}) != 0 {
-			return errors.New("Invalid transaction inputs address, without \"X\" at beginning")
+			return errors.New("Invalid transaction Inputs address, without \"X\" at beginning")
 		}
 	}
 
@@ -1347,7 +1347,7 @@ func (b *BlockChain) checkWithdrawFromSideChainTransactionV2(txn interfaces.Tran
 
 	for _, output := range references {
 		if bytes.Compare(output.ProgramHash[0:1], []byte{byte(contract.PrefixCrossChain)}) != 0 {
-			return errors.New("Invalid transaction inputs address, without \"X\" at beginning")
+			return errors.New("Invalid transaction Inputs address, without \"X\" at beginning")
 		}
 	}
 
@@ -2419,8 +2419,8 @@ func (b *BlockChain) CheckCRCAppropriationTransaction(txn interfaces.Transaction
 		totalOutput += output.Value
 	}
 	if totalInput != totalOutput {
-		return fmt.Errorf("inputs does not equal to outputs amount, "+
-			"inputs:%s outputs:%s", totalInput, totalOutput)
+		return fmt.Errorf("Inputs does not equal to outputs amount, "+
+			"Inputs:%s outputs:%s", totalInput, totalOutput)
 	}
 
 	// Check output amount to CRExpensesAddress:
@@ -2503,13 +2503,13 @@ func (b *BlockChain) checkCRAssetsRectifyTransaction(txn interfaces.Transaction,
 	references map[*common2.Input]common2.Output) error {
 	// Inputs count should be less than or equal to MaxCRAssetsAddressUTXOCount
 	if len(txn.Inputs()) > int(b.chainParams.MaxCRAssetsAddressUTXOCount) {
-		return errors.New("inputs count should be less than or " +
+		return errors.New("Inputs count should be less than or " +
 			"equal to MaxCRAssetsAddressUTXOCount")
 	}
 
 	// Inputs count should be greater than or equal to MinCRAssetsAddressUTXOCount
 	if len(txn.Inputs()) < int(b.chainParams.MinCRAssetsAddressUTXOCount) {
-		return errors.New("inputs count should be greater than or " +
+		return errors.New("Inputs count should be greater than or " +
 			"equal to MinCRAssetsAddressUTXOCount")
 	}
 
@@ -2535,8 +2535,8 @@ func (b *BlockChain) checkCRAssetsRectifyTransaction(txn interfaces.Transaction,
 	// Inputs amount need equal to outputs amount
 	totalOutput := txn.Outputs()[0].Value
 	if totalInput != totalOutput+b.chainParams.RectifyTxFee {
-		return fmt.Errorf("inputs minus outputs does not match with %d sela fee , "+
-			"inputs:%s outputs:%s", b.chainParams.RectifyTxFee, totalInput, totalOutput)
+		return fmt.Errorf("Inputs minus outputs does not match with %d sela fee , "+
+			"Inputs:%s outputs:%s", b.chainParams.RectifyTxFee, totalInput, totalOutput)
 	}
 
 	return nil

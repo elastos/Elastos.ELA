@@ -496,7 +496,7 @@ func (m *Manager) FetchUTXO(programHash *common.Uint168) ([]*common2.UTXO, error
 	var utxos []*common2.UTXO
 	err := m.db.View(func(dbTx database.Tx) error {
 		var err error
-		utxos, err = dbFetchUtxoIndexEntry(dbTx, programHash)
+		utxos, err = DBFetchUtxoIndexEntry(dbTx, programHash)
 		return err
 	})
 	if err != nil {

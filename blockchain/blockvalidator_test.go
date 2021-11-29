@@ -57,15 +57,15 @@ func init() {
 
 func TestCheckBlockSanity(t *testing.T) {
 	log.NewDefault(test.NodeLogPath, 0, 0, 0)
-	params := &config.DefaultParams
+	params := config.GetDefaultParams()
 	FoundationAddress = params.Foundation
-	chainStore, err := NewChainStore(filepath.Join(test.DataPath, "sanity"), params)
+	chainStore, err := NewChainStore(filepath.Join(test.DataPath, "sanity"), &params)
 	if err != nil {
 		t.Error(err.Error())
 	}
 	defer chainStore.Close()
 
-	chain, _ := New(chainStore, params, state.NewState(params,
+	chain, _ := New(chainStore, &params, state.NewState(&params,
 		nil, nil, nil, nil,
 		nil, nil, nil,
 		nil), nil)
@@ -212,7 +212,7 @@ func TestCRDuplicateTx(t *testing.T) {
 	publicKeyStr1 := "03c77af162438d4b7140f8544ad6523b9734cca9c7a62476d54ed5d1bddc7a39c3"
 	code := getValideCode(publicKeyStr1)
 	nickname := randomString()
-	cidPointer := getValideCID(publicKeyStr1)
+	cidPointer := getValidCID(publicKeyStr1)
 	cid := *cidPointer
 
 	TestRegisterCR := func(t *testing.T) {
@@ -585,7 +585,12 @@ func getValideCode(publicKeyStr string) []byte {
 	return ct1.Code
 }
 
-func getValideCID(publicKeyStr string) *common.Uint168 {
+func getValidCID(publicKeyStr string) *common.Uint168 {
 	code := getValideCode(publicKeyStr)
 	return getCID(code)
+}
+
+func getCID(code []byte) *common.Uint168 {
+	ct1, _ := contract.CreateCRIDContractByCode(code)
+	return ct1.ToProgramHash()
 }

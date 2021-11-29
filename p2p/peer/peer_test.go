@@ -26,17 +26,17 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func makeEmptyMessage(cmd string) (message p2p.Message, err error) {
-	switch cmd {
+func createMessage(hdr p2p.Header, r net.Conn) (message p2p.Message, err error) {
+	switch hdr.GetCMD() {
 	case p2p.CmdVersion:
 		message = new(msg.Version)
 	case p2p.CmdVerAck:
 		message = new(msg.VerAck)
 	default:
-		err = fmt.Errorf("unknown message type %s", cmd)
+		err = fmt.Errorf("unknown message type %s", hdr.GetCMD())
 	}
 
-	return message, err
+	return peer.CheckAndCreateMessage(hdr, message, r)
 }
 
 // conn mocks a network connection by implementing the net.Conn interface.  It
@@ -196,12 +196,12 @@ func testPeer(t *testing.T, p *peer.Peer, s peerStats) {
 func TestPeerConnection(t *testing.T) {
 	test.SkipShort(t)
 	verack := make(chan struct{})
-	var makeMessage p2p.CreateMessage = func(cmd string) (p2p.Message, error) {
-		switch cmd {
+	var makeMessage p2p.CreateMessage = func(hdr p2p.Header, r net.Conn) (p2p.Message, error) {
+		switch hdr.GetCMD() {
 		case p2p.CmdVerAck:
 			verack <- struct{}{}
 		}
-		return makeEmptyMessage(cmd)
+		return createMessage(hdr, r)
 	}
 	var messageFunc peer.MessageFunc = func(peer *peer.Peer, message p2p.Message) {
 		switch message.(type) {
@@ -352,7 +352,7 @@ func TestUnsupportedVersionPeer(t *testing.T) {
 		Services:         0,
 		DisableRelayTx:   true,
 		HostToNetAddress: nil,
-		CreateMessage:    makeEmptyMessage,
+		CreateMessage:    createMessage,
 		BestHeight: func() uint64 {
 			return 0
 		},
@@ -383,7 +383,7 @@ func TestUnsupportedVersionPeer(t *testing.T) {
 				remoteConn,
 				peerCfg.Magic,
 				p2p.ReadMessageTimeOut,
-				makeEmptyMessage,
+				createMessage,
 			)
 			if err == io.EOF {
 				close(outboundMessages)

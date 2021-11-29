@@ -7,12 +7,15 @@ package wallet
 
 import (
 	"bytes"
-	"github.com/elastos/Elastos.ELA/core/transaction"
 	"testing"
 
 	"github.com/elastos/Elastos.ELA/common"
+	"github.com/elastos/Elastos.ELA/core/types/functions"
+	pg "github.com/elastos/Elastos.ELA/core/contract/program"
+	"github.com/elastos/Elastos.ELA/core/transaction"
 	"github.com/elastos/Elastos.ELA/core/types"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -32,6 +35,13 @@ var (
 	tx1    = new(transaction.BaseTransaction)
 	block1 *types.DposBlock
 )
+
+func init() {
+	functions.GetTransactionByTxType = transaction.GetTransaction
+	functions.GetTransactionByBytes = transaction.GetTransactionByBytes
+	functions.CreateTransaction = transaction.CreateTransaction
+	functions.GetTransactionParameters = transaction.GetTransactionparameters
+}
 
 func TestInitBlock(t *testing.T) {
 	var err error
@@ -57,14 +67,19 @@ func TestInitBlock(t *testing.T) {
 	assert.Equal(t, uint32(99), ccp.height)
 	assert.Equal(t, 1, len(ccp.coins))
 
-	tx1 := &transaction.BaseTransaction{
-		Inputs: []*common2.Input{
+	tx1 := transaction.CreateTransaction(
+		0,
+		0,
+		0,
+		nil,
+		[]*common2.Attribute{},
+		[]*common2.Input{
 			{
 				Previous: prevOp,
 				Sequence: 0,
 			},
 		},
-		Outputs: []*common2.Output{
+		[]*common2.Output{
 			{
 				ProgramHash: *recipient,
 				Value:       common.Fixed64(50),
@@ -74,7 +89,9 @@ func TestInitBlock(t *testing.T) {
 				Value:       common.Fixed64(1),
 			},
 		},
-	}
+		0,
+		[]*pg.Program{},
+	)
 
 	block1 = &types.DposBlock{
 		Block: &types.Block{

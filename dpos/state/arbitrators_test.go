@@ -97,7 +97,8 @@ func TestArbitrators_GetSortedProducers(t *testing.T) {
 func TestArbitrators_GetSnapshot(t *testing.T) {
 	var bestHeight uint32
 
-	arbitrators, _ := NewArbitrators(&config.DefaultParams,
+	params := config.GetDefaultParams()
+	arbitrators, _ := NewArbitrators(&params,
 		nil, nil, nil,
 		nil, nil, nil)
 	arbitrators.RegisterFunction(func() uint32 { return bestHeight },
@@ -226,7 +227,7 @@ func randomFakePK() []byte {
 
 func TestArbitrators_UsingProducerAsArbiter(t *testing.T) {
 	var bestHeight uint32 = 0
-	var param = config.DefaultParams
+	param := config.GetDefaultParams()
 	a, _ := NewArbitrators(&param,
 		nil, nil, nil, nil,
 		nil, nil)

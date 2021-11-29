@@ -7,6 +7,7 @@ package pow
 
 import (
 	"fmt"
+	transaction2 "github.com/elastos/Elastos.ELA/core/transaction"
 	"math"
 	"path/filepath"
 	"testing"
@@ -36,7 +37,16 @@ var originLedger *blockchain.Ledger
 func TestService_Init(t *testing.T) {
 	log.NewDefault(test.NodeLogPath, 0, 0, 0)
 
+	// Initialize functions
+	functions.GetTransactionByTxType = transaction2.GetTransaction
+	functions.GetTransactionByBytes = transaction2.GetTransactionByBytes
+	functions.CreateTransaction = transaction2.CreateTransaction
+	functions.GetTransactionParameters = transaction2.GetTransactionparameters
+
+	// Initialize default parameters
+	config.DefaultParams = config.GetDefaultParams()
 	params := &config.DefaultParams
+
 	chainStore, err := blockchain.NewChainStore(filepath.Join(test.DataPath, "service"), params)
 	if err != nil {
 		t.Error(err)

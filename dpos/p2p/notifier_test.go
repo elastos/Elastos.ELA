@@ -44,7 +44,7 @@ func TestNotifier(t *testing.T) {
 			sign, _ := crypto.Sign(priKey, nonce)
 			return sign
 		},
-		CreateMessage: makeEmptyMessage,
+		CreateMessage: createMessage,
 		StateNotifier: notifier,
 	})
 	if !assert.NoError(t, err) {

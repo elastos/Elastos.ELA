@@ -8,6 +8,7 @@ package state
 import (
 	"bytes"
 	"crypto/rand"
+	"github.com/elastos/Elastos.ELA/core/contract"
 	rand2 "math/rand"
 	"testing"
 
@@ -65,6 +66,14 @@ func randomCRInfo() *payload.CRInfo {
 		Url:      randomString(),
 		Location: rand2.Uint64(),
 	}
+}
+
+func getDID(code []byte) *common.Uint168 {
+	didCode := make([]byte, len(code))
+	copy(didCode, code)
+	didCode = append(didCode[:len(code)-1], common.DID)
+	ct1, _ := contract.CreateCRIDContractByCode(didCode)
+	return ct1.ToProgramHash()
 }
 
 func randomCandidate() *Candidate {

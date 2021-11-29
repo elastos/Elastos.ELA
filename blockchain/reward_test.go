@@ -74,3 +74,9 @@ func calculateReward(voters []voterInfo) map[common.Uint168]common.Fixed64 {
 
 	return rewards
 }
+
+func randomFix64() common.Fixed64 {
+	var randNum int64
+	binary.Read(rand.Reader, binary.BigEndian, &randNum)
+	return common.Fixed64(randNum)
+}

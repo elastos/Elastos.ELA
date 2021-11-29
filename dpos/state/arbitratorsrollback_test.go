@@ -11,7 +11,6 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/elastos/Elastos.ELA/core/transaction"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/core/types/functions"
 	"github.com/elastos/Elastos.ELA/core/types/interfaces"
@@ -789,8 +788,11 @@ func TestArbitrators_NextTurnDposInfoTX(t *testing.T) {
 	if err2 != nil {
 		fmt.Println("HexStringToBytes err2", err2)
 	}
-	var nextTurnDPOSInfoTx transaction.BaseTransaction
 	reader2 := bytes.NewReader(data)
+	nextTurnDPOSInfoTx, err := functions.GetTransactionByBytes(reader2)
+	if err != nil {
+		fmt.Println("invalid txn2")
+	}
 	err2 = nextTurnDPOSInfoTx.Deserialize(reader2)
 	if err2 != nil {
 		fmt.Println("txn2.Deserialize err2", err2)
@@ -798,7 +800,7 @@ func TestArbitrators_NextTurnDposInfoTX(t *testing.T) {
 
 	abt.ProcessBlock(&types.Block{
 		Header:       common2.Header{Height: currentHeight},
-		Transactions: []interfaces.Transaction{&nextTurnDPOSInfoTx}}, nil)
+		Transactions: []interfaces.Transaction{nextTurnDPOSInfoTx}}, nil)
 
 	currentHeight++
 	abt.ProcessBlock(&types.Block{

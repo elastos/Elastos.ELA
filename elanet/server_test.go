@@ -37,11 +37,12 @@ func mockPeer() svr.IPeer {
 // TestHandlePeerMsg tests the adding/removing peer messages.
 func TestHandlePeerMsg(t *testing.T) {
 	peers := make(map[svr.IPeer]*serverPeer)
-	params := &config.DefaultParams
+
+	params := config.GetDefaultParams()
 	s := &server{
 		syncManager: netsync.New(&netsync.Config{MaxPeers: 2}),
 		routes:      routes.New(&routes.Config{}),
-		chainParams: params,
+		chainParams: &params,
 	}
 
 	// New peers should be added.

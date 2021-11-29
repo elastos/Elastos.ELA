@@ -10,6 +10,7 @@ import (
 	"crypto/rand"
 	"errors"
 	"fmt"
+	peer2 "github.com/elastos/Elastos.ELA/p2p/peer"
 	"io"
 	"net"
 	"testing"
@@ -23,17 +24,17 @@ import (
 	pmsg "github.com/elastos/Elastos.ELA/p2p/msg"
 )
 
-func makeEmptyMessage(cmd string) (message p2p.Message, err error) {
-	switch cmd {
+func createMessage(hdr p2p.Header, r net.Conn) (message p2p.Message, err error) {
+	switch hdr.GetCMD() {
 	case msg.CmdVersion:
 		message = &msg.Version{}
 	case msg.CmdVerAck:
 		message = &msg.VerAck{}
 	default:
-		err = fmt.Errorf("unknown message type %s", cmd)
+		err = fmt.Errorf("unknown message type %s", hdr.GetCMD())
 	}
 
-	return message, err
+	return peer2.CheckAndCreateMessage(hdr, message, r)
 }
 
 // conn mocks a network connection by implementing the net.Conn interface.  It
@@ -160,8 +161,8 @@ func peerConfig(magic uint32, verack chan<- struct{}) *peer.Config {
 			sign, _ := crypto.Sign(priKey, nonce)
 			return sign
 		},
-		CreateMessage: func(cmd string) (p2p.Message, error) {
-			return makeEmptyMessage(cmd)
+		CreateMessage: func(hdr p2p.Header, r net.Conn) (message p2p.Message, err error) {
+			return createMessage(hdr, r)
 		},
 		MessageFunc: func(peer *peer.Peer, message p2p.Message) {
 			switch message.(type) {
@@ -281,7 +282,7 @@ func TestUnsupportedVersionPeer(t *testing.T) {
 			sign, _ := crypto.Sign(priKey, nonce)
 			return sign
 		},
-		CreateMessage: makeEmptyMessage,
+		CreateMessage: createMessage,
 	}
 
 	localConn, remoteConn := pipe(
@@ -303,7 +304,7 @@ func TestUnsupportedVersionPeer(t *testing.T) {
 				remoteConn,
 				peerCfg.Magic,
 				p2p.ReadMessageTimeOut,
-				makeEmptyMessage,
+				createMessage,
 			)
 			if err == io.EOF {
 				close(outboundMessages)

@@ -11,7 +11,6 @@ import (
 	"testing"
 
 	"github.com/elastos/Elastos.ELA/core/types/functions"
-
 	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 
 	"github.com/elastos/Elastos.ELA/blockchain"

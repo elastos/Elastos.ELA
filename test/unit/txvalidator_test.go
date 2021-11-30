@@ -52,12 +52,13 @@ type txValidatorTestSuite struct {
 }
 
 func init() {
+	testing.Init()
+
 	functions.GetTransactionByTxType = transaction.GetTransaction
 	functions.GetTransactionByBytes = transaction.GetTransactionByBytes
 	functions.CreateTransaction = transaction.CreateTransaction
 	functions.GetTransactionParameters = transaction.GetTransactionparameters
 	config.DefaultParams = config.GetDefaultParams()
-	testing.Init()
 }
 
 func (s *txValidatorTestSuite) SetupSuite() {
@@ -1366,8 +1367,9 @@ func (s *txValidatorTestSuite) TestCheckActivateProducerTransaction() {
 }
 
 func (s *txValidatorTestSuite) TestCheckRegisterCRTransaction() {
-	// Generate a register CR transaction
+	config.DefaultParams = config.GetDefaultParams()
 
+	// Generate a register CR transaction
 	publicKeyStr1 := "03c77af162438d4b7140f8544ad6523b9734cca9c7a62476d54ed5d1bddc7a39c3"
 	privateKeyStr1 := "7638c2a799d93185279a4a6ae84a5b76bd89e41fa9f465d9ae9b2120533983a1"
 	publicKeyStr2 := "036db5984e709d2e0ec62fd974283e9a18e7b87e8403cc784baf1f61f775926535"

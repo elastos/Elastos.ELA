@@ -801,12 +801,7 @@ func buildTx() interfaces.Transaction {
 		randomInputs(),
 		randomOutputs(),
 		0,
-		[]*program.Program{
-			{
-				Code:      randomPublicKey(),
-				Parameter: randomSignature(),
-			},
-		},
+		[]*program.Program{},
 	)
 	return tx
 }

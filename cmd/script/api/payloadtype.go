@@ -2004,14 +2004,6 @@ func newCRCCloseProposalHash(L *lua.LState) int {
 	return 1
 }
 
-func getCodeHexStr(publicKey string) string {
-	pkBytes, _ := common.HexStringToBytes(publicKey)
-	pk, _ := crypto.DecodePoint(pkBytes)
-	redeemScript, _ := contract.CreateStandardRedeemScript(pk)
-	codeHexStr := common.BytesToHexString(redeemScript)
-	return codeHexStr
-}
-
 // Checks whether the first lua argument is a *LUserData with *CRInfo and
 // returns this *CRInfo.
 func checkCRCProposal(L *lua.LState, idx int) *payload.CRCProposal {

@@ -7,7 +7,6 @@ package state
 
 import (
 	"bytes"
-	"github.com/elastos/Elastos.ELA/test/unit"
 	"math/rand"
 	"testing"
 
@@ -56,12 +55,23 @@ func randomCRMember() *state.CRMember {
 
 func randomCRInfo() *payload.CRInfo {
 	return &payload.CRInfo{
-		Code:     unit.randomBytes(34),
+		Code:     randomBytes(34),
 		CID:      *randomUint168(),
-		NickName: unit.randomString(),
-		Url:      unit.randomString(),
+		NickName: randomString(),
+		Url:      randomString(),
 		Location: rand.Uint64(),
 	}
+}
+func randomString() string {
+	a := make([]byte, 20)
+	rand.Read(a)
+	return common.BytesToHexString(a)
+}
+
+func randomBytes(len int) []byte {
+	a := make([]byte, len)
+	rand.Read(a)
+	return a
 }
 
 func randomUint168() *common.Uint168 {

@@ -724,7 +724,7 @@ func CheckTransactionSize(txn interfaces.Transaction) error {
 	return nil
 }
 
-func checkAssetPrecision(txn interfaces.Transaction) error {
+func CheckAssetPrecision(txn interfaces.Transaction) error {
 	for _, output := range txn.Outputs() {
 		if !CheckAmountPrecise(output.Value, config.ELAPrecision) {
 			return errors.New("the precision of asset is incorrect")
@@ -3785,7 +3785,7 @@ func (b *BlockChain) checkRevertToDPOSTransaction(
 	return CheckRevertToDPOSTransaction(txn)
 }
 
-func (b *BlockChain) checkUpdateVersionTransaction(txn interfaces.Transaction) error {
+func (b *BlockChain) CheckUpdateVersionTransaction(txn interfaces.Transaction) error {
 	payload, ok := txn.Payload().(*payload.UpdateVersion)
 	if !ok {
 		return errors.New("invalid payload")
@@ -3938,11 +3938,11 @@ func checkCRCArbitratorsSignatures(program *program.Program) error {
 
 func CheckDPOSIllegalProposals(d *payload.DPOSIllegalProposals) error {
 
-	if err := validateProposalEvidence(&d.Evidence); err != nil {
+	if err := ValidateProposalEvidence(&d.Evidence); err != nil {
 		return err
 	}
 
-	if err := validateProposalEvidence(&d.CompareEvidence); err != nil {
+	if err := ValidateProposalEvidence(&d.CompareEvidence); err != nil {
 		return err
 	}
 
@@ -3981,11 +3981,11 @@ func CheckDPOSIllegalProposals(d *payload.DPOSIllegalProposals) error {
 
 func CheckDPOSIllegalVotes(d *payload.DPOSIllegalVotes) error {
 
-	if err := validateVoteEvidence(&d.Evidence); err != nil {
+	if err := ValidateVoteEvidence(&d.Evidence); err != nil {
 		return err
 	}
 
-	if err := validateVoteEvidence(&d.CompareEvidence); err != nil {
+	if err := ValidateVoteEvidence(&d.CompareEvidence); err != nil {
 		return err
 	}
 
@@ -4216,7 +4216,7 @@ func CheckStringField(rawStr string, field string, allowEmpty bool) error {
 	return nil
 }
 
-func validateProposalEvidence(evidence *payload.ProposalEvidence) error {
+func ValidateProposalEvidence(evidence *payload.ProposalEvidence) error {
 
 	header := &common2.Header{}
 	buf := new(bytes.Buffer)
@@ -4237,8 +4237,8 @@ func validateProposalEvidence(evidence *payload.ProposalEvidence) error {
 	return nil
 }
 
-func validateVoteEvidence(evidence *payload.VoteEvidence) error {
-	if err := validateProposalEvidence(&evidence.ProposalEvidence); err != nil {
+func ValidateVoteEvidence(evidence *payload.VoteEvidence) error {
+	if err := ValidateProposalEvidence(&evidence.ProposalEvidence); err != nil {
 		return err
 	}
 

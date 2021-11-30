@@ -76,7 +76,7 @@ type Arbiters struct {
 
 	mtx       sync.Mutex
 	started   bool
-	dutyIndex int
+	DutyIndex int
 
 	CurrentReward RewardData
 	NextReward    RewardData
@@ -141,7 +141,7 @@ func (a *Arbiters) RegisterFunction(bestHeight func() uint32,
 	a.bestHeight = bestHeight
 	a.bestBlockHash = bestBlockHash
 	a.getBlockByHeight = getBlockByHeight
-	a.getTxReference = getTxReference
+	a.GetTxReference = getTxReference
 }
 
 func (a *Arbiters) IsNeedNextTurnDPOSInfo() bool {
@@ -157,7 +157,7 @@ func (a *Arbiters) RecoverFromCheckPoints(point *CheckPoint) {
 }
 
 func (a *Arbiters) recoverFromCheckPoints(point *CheckPoint) {
-	a.dutyIndex = point.DutyIndex
+	a.DutyIndex = point.DutyIndex
 	a.CurrentArbitrators = point.CurrentArbitrators
 	a.CurrentCandidates = point.CurrentCandidates
 	a.nextArbitrators = point.NextArbitrators
@@ -165,11 +165,11 @@ func (a *Arbiters) recoverFromCheckPoints(point *CheckPoint) {
 	a.CurrentReward = point.CurrentReward
 	a.NextReward = point.NextReward
 	a.StateKeyFrame = &point.StateKeyFrame
-	a.accumulativeReward = point.accumulativeReward
-	a.finalRoundChange = point.finalRoundChange
-	a.clearingHeight = point.clearingHeight
-	a.arbitersRoundReward = point.arbitersRoundReward
-	a.illegalBlocksPayloadHashes = point.illegalBlocksPayloadHashes
+	a.accumulativeReward = point.AccumulativeReward
+	a.finalRoundChange = point.FinalRoundChange
+	a.clearingHeight = point.ClearingHeight
+	a.arbitersRoundReward = point.ArbitersRoundReward
+	a.illegalBlocksPayloadHashes = point.IllegalBlocksPayloadHashes
 
 	a.crcChangedHeight = point.CRCChangedHeight
 	a.CurrentCRCArbitersMap = point.CurrentCRCArbitersMap
@@ -359,13 +359,13 @@ func (a *Arbiters) GetDutyIndexByHeight(height uint32) (index int) {
 		if len(a.CurrentArbitrators) == 0 {
 			index = 0
 		} else {
-			index = a.dutyIndex % len(a.CurrentArbitrators)
+			index = a.DutyIndex % len(a.CurrentArbitrators)
 		}
 	} else if height >= a.ChainParams.CRClaimDPOSNodeStartHeight {
 		if len(a.CurrentCRCArbitersMap) == 0 {
 			index = 0
 		} else {
-			index = a.dutyIndex % len(a.CurrentCRCArbitersMap)
+			index = a.DutyIndex % len(a.CurrentCRCArbitersMap)
 		}
 	} else if height >= a.ChainParams.CRCOnlyDPOSHeight-1 {
 		if len(a.CurrentCRCArbitersMap) == 0 {
@@ -386,7 +386,7 @@ func (a *Arbiters) GetDutyIndexByHeight(height uint32) (index int) {
 
 func (a *Arbiters) GetDutyIndex() int {
 	a.mtx.Lock()
-	index := a.dutyIndex
+	index := a.DutyIndex
 	a.mtx.Unlock()
 
 	return index
@@ -621,11 +621,11 @@ func (a *Arbiters) revertToPOWAtNextTurn(height uint32) {
 
 func (a *Arbiters) accumulateReward(block *types.Block) {
 	if block.Height < a.ChainParams.PublicDPOSHeight {
-		oriDutyIndex := a.dutyIndex
+		oriDutyIndex := a.DutyIndex
 		a.History.Append(block.Height, func() {
-			a.dutyIndex = oriDutyIndex + 1
+			a.DutyIndex = oriDutyIndex + 1
 		}, func() {
-			a.dutyIndex = oriDutyIndex
+			a.DutyIndex = oriDutyIndex
 		})
 		return
 	}
@@ -641,19 +641,19 @@ func (a *Arbiters) accumulateReward(block *types.Block) {
 	oriArbitersRoundReward := a.arbitersRoundReward
 	oriFinalRoundChange := a.finalRoundChange
 	oriForceChanged := a.forceChanged
-	oriDutyIndex := a.dutyIndex
+	oriDutyIndex := a.DutyIndex
 	a.History.Append(block.Height, func() {
 		a.accumulativeReward = accumulative
 		a.arbitersRoundReward = nil
 		a.finalRoundChange = 0
 		a.forceChanged = false
-		a.dutyIndex = oriDutyIndex + 1
+		a.DutyIndex = oriDutyIndex + 1
 	}, func() {
 		a.accumulativeReward = oriAccumulativeReward
 		a.arbitersRoundReward = oriArbitersRoundReward
 		a.finalRoundChange = oriFinalRoundChange
 		a.forceChanged = oriForceChanged
-		a.dutyIndex = oriDutyIndex
+		a.DutyIndex = oriDutyIndex
 	})
 
 }
@@ -1299,7 +1299,7 @@ func (a *Arbiters) GetOnDutyCrossChainArbitrator() []byte {
 			return bytes.Compare(crcArbiters[i].NodePublicKey,
 				crcArbiters[j].NodePublicKey) < 0
 		})
-		index := a.dutyIndex % len(a.CurrentCRCArbitersMap)
+		index := a.DutyIndex % len(a.CurrentCRCArbitersMap)
 		if crcArbiters[index].IsNormal {
 			arbiter = crcArbiters[index].NodePublicKey
 		} else {
@@ -1308,8 +1308,8 @@ func (a *Arbiters) GetOnDutyCrossChainArbitrator() []byte {
 		a.mtx.Unlock()
 	} else {
 		a.mtx.Lock()
-		if len(a.CurrentArbitrators) != 0 && a.CurrentArbitrators[a.dutyIndex].IsNormal() {
-			arbiter = a.CurrentArbitrators[a.dutyIndex].GetNodePublicKey()
+		if len(a.CurrentArbitrators) != 0 && a.CurrentArbitrators[a.DutyIndex].IsNormal() {
+			arbiter = a.CurrentArbitrators[a.DutyIndex].GetNodePublicKey()
 		} else {
 			arbiter = nil
 		}
@@ -1352,7 +1352,7 @@ func (a *Arbiters) getNextOnDutyArbitratorV(height, offset uint32) ArbiterMember
 		if len(arbitrators) == 0 {
 			return nil
 		}
-		index := (a.dutyIndex + int(offset)) % len(arbitrators)
+		index := (a.DutyIndex + int(offset)) % len(arbitrators)
 		arbiter := arbitrators[index]
 
 		return arbiter
@@ -1425,12 +1425,12 @@ func (a *Arbiters) getChangeType(height uint32) (ChangeType, uint32) {
 
 	// main version >= H2
 	if height > a.ChainParams.PublicDPOSHeight &&
-		a.dutyIndex == len(a.CurrentArbitrators)-1 {
+		a.DutyIndex == len(a.CurrentArbitrators)-1 {
 		return normalChange, height
 	}
 
 	if height > a.ChainParams.RevertToPOWStartHeight &&
-		a.dutyIndex == len(a.ChainParams.CRCArbiters)+a.ChainParams.GeneralArbiters-1 {
+		a.DutyIndex == len(a.ChainParams.CRCArbiters)+a.ChainParams.GeneralArbiters-1 {
 		return normalChange, height
 	}
 
@@ -1444,7 +1444,7 @@ func (a *Arbiters) cleanArbitrators(height uint32) {
 	oriNextCRCArbitersMap := copyCRCArbitersMap(a.nextCRCArbitersMap)
 	oriNextArbitrators := a.nextArbitrators
 	oriNextCandidates := a.nextCandidates
-	oriDutyIndex := a.dutyIndex
+	oriDutyIndex := a.DutyIndex
 	a.History.Append(height, func() {
 		a.CurrentCRCArbitersMap = make(map[common.Uint168]ArbiterMember)
 		a.CurrentArbitrators = make([]ArbiterMember, 0)
@@ -1452,7 +1452,7 @@ func (a *Arbiters) cleanArbitrators(height uint32) {
 		a.nextCRCArbitersMap = make(map[common.Uint168]ArbiterMember)
 		a.nextArbitrators = make([]ArbiterMember, 0)
 		a.nextCandidates = make([]ArbiterMember, 0)
-		a.dutyIndex = 0
+		a.DutyIndex = 0
 	}, func() {
 		a.CurrentCRCArbitersMap = oriCurrentCRCArbitersMap
 		a.CurrentArbitrators = oriCurrentArbitrators
@@ -1460,7 +1460,7 @@ func (a *Arbiters) cleanArbitrators(height uint32) {
 		a.nextCRCArbitersMap = oriNextCRCArbitersMap
 		a.nextArbitrators = oriNextArbitrators
 		a.nextCandidates = oriNextCandidates
-		a.dutyIndex = oriDutyIndex
+		a.DutyIndex = oriDutyIndex
 	})
 }
 
@@ -1469,7 +1469,7 @@ func (a *Arbiters) ChangeCurrentArbitrators(height uint32) error {
 	oriCurrentArbitrators := a.CurrentArbitrators
 	oriCurrentCandidates := a.CurrentCandidates
 	oriCurrentReward := a.CurrentReward
-	oriDutyIndex := a.dutyIndex
+	oriDutyIndex := a.DutyIndex
 	a.History.Append(height, func() {
 		sort.Slice(a.nextArbitrators, func(i, j int) bool {
 			return bytes.Compare(a.nextArbitrators[i].GetNodePublicKey(),
@@ -1479,13 +1479,13 @@ func (a *Arbiters) ChangeCurrentArbitrators(height uint32) error {
 		a.CurrentArbitrators = a.nextArbitrators
 		a.CurrentCandidates = a.nextCandidates
 		a.CurrentReward = a.NextReward
-		a.dutyIndex = 0
+		a.DutyIndex = 0
 	}, func() {
 		a.CurrentCRCArbitersMap = oriCurrentCRCArbitersMap
 		a.CurrentArbitrators = oriCurrentArbitrators
 		a.CurrentCandidates = oriCurrentCandidates
 		a.CurrentReward = oriCurrentReward
-		a.dutyIndex = oriDutyIndex
+		a.DutyIndex = oriDutyIndex
 	})
 	return nil
 }
@@ -2244,7 +2244,7 @@ func (a *Arbiters) dumpInfo(height uint32) {
 	crParams := make([]interface{}, 0)
 	if len(a.CurrentArbitrators) != 0 {
 		crInfo, crParams = getArbitersInfoWithOnduty("CURRENT ARBITERS",
-			a.CurrentArbitrators, a.dutyIndex, a.getOnDutyArbitrator())
+			a.CurrentArbitrators, a.DutyIndex, a.getOnDutyArbitrator())
 	} else {
 		crInfo, crParams = getArbitersInfoWithoutOnduty("CURRENT ARBITERS", a.CurrentArbitrators)
 	}
@@ -2267,7 +2267,7 @@ func (a *Arbiters) getBlockDPOSReward(block *types.Block) common.Fixed64 {
 func (a *Arbiters) newCheckPoint(height uint32) *CheckPoint {
 	point := &CheckPoint{
 		Height:                     height,
-		DutyIndex:                  a.dutyIndex,
+		DutyIndex:                  a.DutyIndex,
 		CurrentCandidates:          make([]ArbiterMember, 0),
 		NextArbitrators:            make([]ArbiterMember, 0),
 		NextCandidates:             make([]ArbiterMember, 0),
@@ -2277,12 +2277,12 @@ func (a *Arbiters) newCheckPoint(height uint32) *CheckPoint {
 		NextCRCArbitersMap:         make(map[common.Uint168]ArbiterMember),
 		NextCRCArbiters:            make([]ArbiterMember, 0),
 		CRCChangedHeight:           a.crcChangedHeight,
-		accumulativeReward:         a.accumulativeReward,
-		finalRoundChange:           a.finalRoundChange,
-		clearingHeight:             a.clearingHeight,
+		AccumulativeReward:         a.accumulativeReward,
+		FinalRoundChange:           a.finalRoundChange,
+		ClearingHeight:             a.clearingHeight,
 		ForceChanged:               a.forceChanged,
-		arbitersRoundReward:        make(map[common.Uint168]common.Fixed64),
-		illegalBlocksPayloadHashes: make(map[common.Uint256]interface{}),
+		ArbitersRoundReward:        make(map[common.Uint168]common.Fixed64),
+		IllegalBlocksPayloadHashes: make(map[common.Uint256]interface{}),
 		CurrentArbitrators:         a.CurrentArbitrators,
 		StateKeyFrame:              *a.State.snapshot(),
 	}
@@ -2297,10 +2297,10 @@ func (a *Arbiters) newCheckPoint(height uint32) *CheckPoint {
 	point.NextCRCArbiters = copyByteList(a.nextCRCArbiters)
 
 	for k, v := range a.arbitersRoundReward {
-		point.arbitersRoundReward[k] = v
+		point.ArbitersRoundReward[k] = v
 	}
 	for k := range a.illegalBlocksPayloadHashes {
-		point.illegalBlocksPayloadHashes[k] = nil
+		point.IllegalBlocksPayloadHashes[k] = nil
 	}
 
 	return point

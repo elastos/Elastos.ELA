@@ -3,29 +3,35 @@
 // license that can be found in the LICENSE file.
 //
 
-package state
+package unit
 
 import (
-	"bytes"
 	"crypto/rand"
 	"fmt"
 	"testing"
 
-	"github.com/elastos/Elastos.ELA/core/types/functions"
-	"github.com/elastos/Elastos.ELA/core/types/interfaces"
-
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
-	"github.com/elastos/Elastos.ELA/core/contract"
-	"github.com/elastos/Elastos.ELA/core/contract/program"
+	"github.com/elastos/Elastos.ELA/core/transaction"
 	"github.com/elastos/Elastos.ELA/core/types"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/functions"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/core/types/outputpayload"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/cr/state"
-	"github.com/elastos/Elastos.ELA/crypto"
+	state2 "github.com/elastos/Elastos.ELA/dpos/state"
 	"github.com/stretchr/testify/assert"
 )
+
+func init() {
+	testing.Init()
+
+	functions.GetTransactionByTxType = transaction.GetTransaction
+	functions.GetTransactionByBytes = transaction.GetTransactionByBytes
+	functions.CreateTransaction = transaction.CreateTransaction
+	functions.GetTransactionParameters = transaction.GetTransactionparameters
+}
 
 func TestCommittee_ChangeCommitteeReward(t *testing.T) {
 	publicKeyStr1 := "02f981e4dae4983a5d284d01609ad735e3242c5672bb2c7bb0018cc36f9ab0c4a5"
@@ -47,14 +53,15 @@ func TestCommittee_ChangeCommitteeReward(t *testing.T) {
 	registerCRTxn2 := getRegisterCRTx(publicKeyStr2, privateKeyStr2, nickName2)
 	registerCRTxn3 := getRegisterCRTx(publicKeyStr3, privateKeyStr3, nickName3)
 
-	// new committee
-	committee := state.NewCommittee(&config.DefaultParams)
-
 	// set count of CR member
+	config.DefaultParams = config.GetDefaultParams()
 	cfg := &config.DefaultParams
 	cfg.CRCArbiters = cfg.CRCArbiters[0:2]
 	cfg.CRMemberCount = 2
-	abt.ChainParams.GeneralArbiters = 24
+	cfg.GeneralArbiters = 24
+
+	// new committee
+	committee := state.NewCommittee(&config.DefaultParams)
 
 	// avoid getting UTXOs from database
 	currentHeight := cfg.CRVotingStartHeight
@@ -103,7 +110,7 @@ func TestCommittee_ChangeCommitteeReward(t *testing.T) {
 	assert.Equal(t, 2, len(committee.GetAllMembers()))
 
 	var bestHeight uint32
-	arbitrators, _ := NewArbitrators(&config.DefaultParams,
+	arbitrators, _ := state2.NewArbitrators(&config.DefaultParams,
 		committee, nil, nil, nil, nil, nil)
 	arbitrators.RegisterFunction(func() uint32 { return bestHeight },
 		func() *common.Uint256 { return &common.Uint256{} },
@@ -159,7 +166,7 @@ func TestCommittee_ChangeCommitteeReward(t *testing.T) {
 		arbitrators.ChainParams.PreConnectOffset-1), nil)
 	arbitrators.ProcessBlock(mockBlock(arbitrators.ChainParams.PublicDPOSHeight-1), nil)
 
-	arbitrators.dutyIndex = 25
+	arbitrators.DutyIndex = 25
 	arbitrators.ProcessBlock(mockBlock(1000000+72), nil)
 
 	lastVote := common.Fixed64(0)
@@ -171,129 +178,4 @@ func TestCommittee_ChangeCommitteeReward(t *testing.T) {
 	}
 	assert.Equal(t, 98, len(arbitrators.NextReward.OwnerVotesInRound),
 		"invalid reward count")
-}
-
-func getCIDByPublicKeyStr(publicKey string) *common.Uint168 {
-	code1 := getCodeByPubKeyStr(publicKey)
-	ct1, _ := contract.CreateCRIDContractByCode(code1)
-	return ct1.ToProgramHash()
-}
-
-func getDIDByPublicKey(publicKey string) *common.Uint168 {
-	code1 := getCodeByPubKeyStr(publicKey)
-
-	ct1, _ := contract.CreateCRIDContractByCode(code1)
-	return ct1.ToProgramHash()
-}
-
-func getCodeByPubKeyStr(publicKey string) []byte {
-	pkBytes, _ := common.HexStringToBytes(publicKey)
-	pk, _ := crypto.DecodePoint(pkBytes)
-	redeemScript, _ := contract.CreateStandardRedeemScript(pk)
-	return redeemScript
-}
-
-func getRegisterCRTx(publicKeyStr, privateKeyStr, nickName string) interfaces.Transaction {
-	publicKeyStr1 := publicKeyStr
-	privateKeyStr1 := privateKeyStr
-	publicKey1, _ := common.HexStringToBytes(publicKeyStr1)
-	privateKey1, _ := common.HexStringToBytes(privateKeyStr1)
-
-	code1 := getCodeByPubKeyStr(publicKeyStr1)
-	cid1, _ := getCIDByCode(code1)
-	did1, _ := getDIDByCode(code1)
-	hash1, _ := contract.PublicKeyToDepositProgramHash(publicKey1)
-
-	txn := functions.CreateTransaction(
-		common2.TxVersion09,
-		common2.RegisterCR,
-		0,
-		nil,
-		[]*common2.Attribute{},
-		[]*common2.Input{},
-		[]*common2.Output{},
-		0,
-		[]*program.Program{},
-	)
-
-	crInfoPayload := &payload.CRInfo{
-		Code:     code1,
-		CID:      *cid1,
-		DID:      *did1,
-		NickName: nickName,
-		Url:      "http://www.elastos_test.com",
-		Location: 1,
-	}
-	signBuf := new(bytes.Buffer)
-	crInfoPayload.SerializeUnsigned(signBuf, payload.CRInfoVersion)
-	rcSig1, _ := crypto.Sign(privateKey1, signBuf.Bytes())
-	crInfoPayload.Signature = rcSig1
-	txn.SetPayload(crInfoPayload)
-
-	txn.SetPrograms([]*program.Program{&program.Program{
-		Code:      getCodeByPubKeyStr(publicKeyStr1),
-		Parameter: nil,
-	}})
-
-	txn.SetOutputs([]*common2.Output{&common2.Output{
-		AssetID:     common.Uint256{},
-		Value:       5000 * 100000000,
-		OutputLock:  0,
-		ProgramHash: *hash1,
-		Type:        0,
-		Payload:     new(outputpayload.DefaultOutput),
-	}})
-	return txn
-}
-
-func getCIDByCode(code []byte) (*common.Uint168, error) {
-	ct1, err := contract.CreateCRIDContractByCode(code)
-	if err != nil {
-		return nil, err
-	}
-	return ct1.ToProgramHash(), err
-}
-
-func getDIDByCode(code []byte) (*common.Uint168, error) {
-	didCode := make([]byte, len(code))
-	copy(didCode, code)
-	didCode = append(didCode[:len(code)-1], common.DID)
-	ct1, err := contract.CreateCRIDContractByCode(didCode)
-	if err != nil {
-		return nil, err
-	}
-	return ct1.ToProgramHash(), err
-}
-
-func getVoteCRTx(amount common.Fixed64,
-	candidateVotes []outputpayload.CandidateVotes) interfaces.Transaction {
-	tx := functions.CreateTransaction(
-		common2.TxVersion09,
-		common2.TransferAsset,
-		0,
-		nil,
-		[]*common2.Attribute{},
-		[]*common2.Input{},
-		[]*common2.Output{
-			{
-				AssetID:     common.Uint256{},
-				Value:       amount,
-				OutputLock:  0,
-				ProgramHash: common.Uint168{123},
-				Type:        common2.OTVote,
-				Payload: &outputpayload.VoteOutput{
-					Version: outputpayload.VoteProducerAndCRVersion,
-					Contents: []outputpayload.VoteContent{
-						outputpayload.VoteContent{
-							VoteType:       outputpayload.CRC,
-							CandidateVotes: candidateVotes,
-						},
-					},
-				},
-			},
-		},
-		0,
-		[]*program.Program{},
-	)
-	return tx
 }

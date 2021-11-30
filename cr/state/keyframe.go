@@ -1677,7 +1677,7 @@ func copyCandidateMap(src map[common.Uint168]*Candidate) (
 	return
 }
 
-// copyHistoryCandidateMap copy the CR history map's key and value, and return
+// copyHistoryCandidateMap copy the CR History map's key and value, and return
 // the dst map.
 func copyHistoryCandidateMap(src map[uint64]map[common.Uint168]*Candidate) (
 	dst map[uint64]map[common.Uint168]*Candidate) {

@@ -159,6 +159,10 @@ func (p *Producer) AvailableAmount() common.Fixed64 {
 	return p.totalAmount - p.depositAmount - p.penalty
 }
 
+func (p *Producer) Selected() bool {
+	return p.selected
+}
+
 func (p *Producer) SetInfo(i payload.ProducerInfo) {
 	p.info = i
 }
@@ -197,6 +201,10 @@ func (p *Producer) SetVotes(v common.Fixed64) {
 
 func (p *Producer) SetDposV2Votes(v common.Fixed64) {
 	p.dposV2Votes = v
+}
+
+func (p *Producer) SetSelected(s bool) {
+	p.selected = s
 }
 
 func (p *Producer) Serialize(w io.Writer) error {
@@ -329,13 +337,13 @@ const (
 type State struct {
 	*StateKeyFrame
 
-	// getArbiters defines methods about get current arbiters
-	getArbiters              func() []*ArbiterInfo
+	// GetArbiters defines methods about get current arbiters
+	GetArbiters              func() []*ArbiterInfo
 	getCRMembers             func() []*state.CRMember
 	isInElectionPeriod       func() bool
-	getProducerDepositAmount func(programHash common.Uint168) (
+	GetProducerDepositAmount func(programHash common.Uint168) (
 		common.Fixed64, error)
-	getTxReference func(tx interfaces.Transaction) (
+	GetTxReference func(tx interfaces.Transaction) (
 		map[*common2.Input]common2.Output, error)
 	tryUpdateCRMemberInactivity func(did common.Uint168, needReset bool, height uint32)
 	tryRevertCRMemberInactivity func(did common.Uint168, oriState state.MemberState,
@@ -1343,7 +1351,7 @@ func (s *State) processCancelVotes(tx interfaces.Transaction, height uint32) {
 		return
 	}
 
-	references, err := s.getTxReference(tx)
+	references, err := s.GetTxReference(tx)
 	if err != nil {
 		log.Errorf("get tx reference failed, tx hash:%s", common.ToReversedString(tx.Hash()))
 		return
@@ -1371,7 +1379,7 @@ func (s *State) processCancelDposV2Votes(tx interfaces.Transaction, height uint3
 		return
 	}
 
-	references, err := s.getTxReference(tx)
+	references, err := s.GetTxReference(tx)
 	if err != nil {
 		log.Errorf("get tx reference failed, tx hash:%s", common.ToReversedString(tx.Hash()))
 		return
@@ -1529,6 +1537,14 @@ func (s *State) processVoteCancel(output *common2.Output, height uint32) {
 			}
 		}
 	}
+}
+
+// ReturnDeposit change producer state to ReturnedDeposit with lock
+func (s *State) ReturnDeposit(tx interfaces.Transaction, height uint32) {
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
+
+	s.returnDeposit(tx, height)
 }
 
 // returnDeposit change producer state to ReturnedDeposit
@@ -2008,7 +2024,7 @@ func (s *State) countArbitratorsInactivityV2(height uint32,
 	// is not current arbiter any more, or just becoming current arbiter; and
 	// false means producer is arbiter in both heights and not on duty.
 	changingArbiters := make(map[string]bool)
-	for _, a := range s.getArbiters() {
+	for _, a := range s.GetArbiters() {
 		if isDPOSAsCR {
 			if !a.IsNormal {
 				continue
@@ -2091,6 +2107,15 @@ func (s *State) countArbitratorsInactivityV2(height uint32,
 	}
 }
 
+// CountArbitratorsInactivityV1 count Arbiters inactive rounds, and change to
+// inactive if more than "MaxInactiveRounds" with lock
+func (s *State) CountArbitratorsInactivityV1(height uint32,
+	confirm *payload.Confirm) {
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
+	s.countArbitratorsInactivityV1(height, confirm)
+}
+
 // countArbitratorsInactivity count Arbiters inactive rounds, and change to
 // inactive if more than "MaxInactiveRounds"
 func (s *State) countArbitratorsInactivityV1(height uint32,
@@ -2104,7 +2129,7 @@ func (s *State) countArbitratorsInactivityV1(height uint32,
 	// is not current arbiter any more, or just becoming current arbiter; and
 	// false means producer is arbiter in both heights and not on duty.
 	changingArbiters := make(map[string]bool)
-	for _, a := range s.getArbiters() {
+	for _, a := range s.GetArbiters() {
 		if !a.IsNormal || (a.IsCRMember && !a.ClaimedDPOSNode) {
 			continue
 		}
@@ -2171,7 +2196,7 @@ func (s *State) countArbitratorsInactivityV0(height uint32,
 		changingArbiters[k] = true
 	}
 	s.PreBlockArbiters = make(map[string]struct{})
-	for _, a := range s.getArbiters() {
+	for _, a := range s.GetArbiters() {
 		key := s.getProducerKey(a.NodePublicKey)
 		s.PreBlockArbiters[key] = struct{}{}
 		if _, exist := changingArbiters[key]; exist {
@@ -2415,10 +2440,10 @@ func NewState(chainParams *config.Params, getArbiters func() []*ArbiterInfo,
 	tryRevertCRMemberIllegal func(did common.Uint168, oriState state.MemberState, height uint32)) *State {
 	state := State{
 		ChainParams:                 chainParams,
-		getArbiters:                 getArbiters,
+		GetArbiters:                 getArbiters,
 		getCRMembers:                getCRMembers,
 		isInElectionPeriod:          isInElectionPeriod,
-		getProducerDepositAmount:    getProducerDepositAmount,
+		GetProducerDepositAmount:    getProducerDepositAmount,
 		History:                     utils.NewHistory(maxHistoryCapacity),
 		StateKeyFrame:               NewStateKeyFrame(),
 		tryUpdateCRMemberInactivity: tryUpdateCRMemberInactivity,

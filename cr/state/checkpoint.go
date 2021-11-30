@@ -50,8 +50,8 @@ func (c *Checkpoint) OnRollbackTo(height uint32) error {
 	keyFrame := NewKeyFrame()
 	if height < c.StartHeight() {
 		committee := &Committee{
-			state:                NewState(c.committee.params),
-			params:               c.committee.params,
+			state:                NewState(c.committee.Params),
+			Params:               c.committee.Params,
 			KeyFrame:             *keyFrame,
 			firstHistory:         utils.NewHistory(maxHistoryCapacity),
 			lastHistory:          utils.NewHistory(maxHistoryCapacity),
@@ -59,7 +59,7 @@ func (c *Checkpoint) OnRollbackTo(height uint32) error {
 		}
 		c.initFromCommittee(committee)
 		c.committee.Recover(c)
-		c.committee.state.registerFunctions(&FunctionsConfig{
+		c.committee.state.RegisterFunctions(&FunctionsConfig{
 			GetHistoryMember: committee.getHistoryMember,
 		})
 		return nil
@@ -72,7 +72,7 @@ func (c *Checkpoint) OnRollbackSeekTo(height uint32) {
 	c.committee.lastHistory.RollbackSeekTo(height)
 	c.committee.appropriationHistory.RollbackSeekTo(height)
 	c.committee.manager.history.RollbackSeekTo(height)
-	c.committee.state.history.RollbackSeekTo(height)
+	c.committee.state.History.RollbackSeekTo(height)
 	c.committee.state.manager.history.RollbackSeekTo(height)
 }
 
@@ -144,7 +144,7 @@ func (c *Checkpoint) OnInit() {
 }
 
 func (c *Checkpoint) StartHeight() uint32 {
-	return c.committee.params.CRVotingStartHeight
+	return c.committee.Params.CRVotingStartHeight
 }
 
 func (c *Checkpoint) Serialize(w io.Writer) (err error) {

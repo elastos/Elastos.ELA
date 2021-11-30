@@ -9,7 +9,6 @@ import (
 	"crypto/rand"
 	"encoding/binary"
 	"fmt"
-	"github.com/elastos/Elastos.ELA/test/unit"
 	"math"
 	"testing"
 	"time"
@@ -41,10 +40,18 @@ func prepareData() []voterInfo {
 
 func randomVoterInfo() voterInfo {
 	return voterInfo{
-		Address:  *unit.randomUint168(),
+		Address:  *randomUint168(),
 		Votes:    randomFix64(),
 		LockTime: randomUint32(),
 	}
+}
+
+func randomUint168() *common.Uint168 {
+	randBytes := make([]byte, 21)
+	rand.Read(randBytes)
+	result, _ := common.Uint168FromBytes(randBytes)
+
+	return result
 }
 
 func randomUint32() uint32 {

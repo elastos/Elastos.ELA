@@ -39,7 +39,7 @@ func (c *Committee) processTransactions(txs []interfaces.Transaction, height uin
 	activateCRMemberFromInactive := func(cr *CRMember) {
 		oriState := cr.MemberState
 		oriActivateRequestHeight := cr.ActivateRequestHeight
-		c.state.history.Append(height, func() {
+		c.state.History.Append(height, func() {
 			cr.MemberState = MemberElected
 			cr.ActivateRequestHeight = math.MaxUint32
 		}, func() {
@@ -95,28 +95,28 @@ func (c *Committee) processTransaction(tx interfaces.Transaction, height uint32)
 		c.state.returnDeposit(tx, height)
 
 	case common2.CRCProposal:
-		c.manager.registerProposal(tx, height, c.state.CurrentSession, c.state.history)
+		c.manager.registerProposal(tx, height, c.state.CurrentSession, c.state.History)
 
 	case common2.CRCProposalReview:
-		c.manager.proposalReview(tx, height, c.state.history)
+		c.manager.proposalReview(tx, height, c.state.History)
 
 	case common2.CRCProposalTracking:
 		c.proposalTracking(tx, height)
 
 	case common2.CRCProposalWithdraw:
-		c.manager.proposalWithdraw(tx, height, c.state.history)
+		c.manager.proposalWithdraw(tx, height, c.state.History)
 
 	case common2.CRCAppropriation:
-		c.processCRCAppropriation(height, c.state.history)
+		c.processCRCAppropriation(height, c.state.History)
 
 	case common2.CRCProposalRealWithdraw:
-		c.processCRCRealWithdraw(tx, height, c.state.history)
+		c.processCRCRealWithdraw(tx, height, c.state.History)
 
 	case common2.CRCouncilMemberClaimNode:
-		c.processCRCouncilMemberClaimNode(tx, height, c.state.history)
+		c.processCRCouncilMemberClaimNode(tx, height, c.state.History)
 
 	case common2.ActivateProducer:
-		c.activateProducer(tx, height, c.state.history)
+		c.activateProducer(tx, height, c.state.History)
 	}
 
 	if tx.TxType() != common2.RegisterCR {
@@ -127,8 +127,8 @@ func (c *Committee) processTransaction(tx interfaces.Transaction, height uint32)
 
 // proposalTracking deal with CRC proposal transaction.
 func (c *Committee) proposalTracking(tx interfaces.Transaction, height uint32) {
-	unusedBudget := c.manager.proposalTracking(tx, height, c.state.history)
-	c.state.history.Append(height, func() {
+	unusedBudget := c.manager.proposalTracking(tx, height, c.state.History)
+	c.state.History.Append(height, func() {
 		c.CRCCommitteeUsedAmount -= unusedBudget
 	}, func() {
 		c.CRCCommitteeUsedAmount += unusedBudget
@@ -159,7 +159,7 @@ func (c *Committee) processVotes(tx interfaces.Transaction, height uint32) {
 			}
 			if exist {
 				op := common2.NewOutPoint(tx.Hash(), uint16(i))
-				c.state.history.Append(height, func() {
+				c.state.History.Append(height, func() {
 					c.state.Votes[op.ReferKey()] = struct{}{}
 				}, func() {
 					delete(c.state.Votes, op.ReferKey())
@@ -183,7 +183,7 @@ func (c *Committee) processVoteOutput(output *common2.Output, height uint32) {
 				c.state.processVoteCRCProposal(height, cv)
 
 			case outputpayload.CRCImpeachment:
-				c.processImpeachment(height, cv.Candidate, cv.Votes, c.state.history)
+				c.processImpeachment(height, cv.Candidate, cv.Votes, c.state.History)
 			}
 		}
 	}
@@ -203,7 +203,7 @@ func (c *Committee) processCancelVotes(tx interfaces.Transaction, height uint32)
 		return
 	}
 
-	references, err := c.state.getTxReference(tx)
+	references, err := c.state.GetTxReference(tx)
 	if err != nil {
 		log.Errorf("get tx reference failed, tx hash:%s", common.ToReversedString(tx.Hash()))
 		return
@@ -229,12 +229,12 @@ func (c *Committee) processVoteCancel(output *common2.Output, height uint32) {
 				if err != nil {
 					continue
 				}
-				candidate := c.state.getCandidate(*cid)
+				candidate := c.state.GetCandidate(*cid)
 				if candidate == nil {
 					continue
 				}
 				v := cv.Votes
-				c.state.history.Append(height, func() {
+				c.state.History.Append(height, func() {
 					candidate.Votes -= v
 				}, func() {
 					candidate.Votes += v
@@ -250,14 +250,14 @@ func (c *Committee) processVoteCancel(output *common2.Output, height uint32) {
 					continue
 				}
 				v := cv.Votes
-				c.state.history.Append(height, func() {
+				c.state.History.Append(height, func() {
 					proposalState.VotersRejectAmount -= v
 				}, func() {
 					proposalState.VotersRejectAmount += v
 				})
 
 			case outputpayload.CRCImpeachment:
-				c.processCancelImpeachment(height, cv.Candidate, cv.Votes, c.state.history)
+				c.processCancelImpeachment(height, cv.Candidate, cv.Votes, c.state.History)
 			}
 		}
 	}
@@ -294,7 +294,7 @@ func (c *Committee) processCRCAddressRelatedTx(tx interfaces.Transaction, height
 		for _, b := range proposal.Budgets {
 			budget += b.Amount
 		}
-		c.state.history.Append(height, func() {
+		c.state.History.Append(height, func() {
 			c.CRCCommitteeUsedAmount += budget
 		}, func() {
 			c.CRCCommitteeUsedAmount -= budget
@@ -303,7 +303,7 @@ func (c *Committee) processCRCAddressRelatedTx(tx interfaces.Transaction, height
 
 	for _, input := range tx.Inputs() {
 		if amount, ok := c.state.CRCFoundationOutputs[input.Previous.ReferKey()]; ok {
-			c.state.history.Append(height, func() {
+			c.state.History.Append(height, func() {
 				c.CRAssetsAddressUTXOCount--
 				c.CRCFoundationBalance -= amount
 			}, func() {
@@ -311,7 +311,7 @@ func (c *Committee) processCRCAddressRelatedTx(tx interfaces.Transaction, height
 				c.CRCFoundationBalance += amount
 			})
 		} else if amount, ok := c.state.CRCCommitteeOutputs[input.Previous.ReferKey()]; ok {
-			c.state.history.Append(height, func() {
+			c.state.History.Append(height, func() {
 				c.CRCCommitteeBalance -= amount
 			}, func() {
 				c.CRCCommitteeBalance += amount
@@ -321,22 +321,22 @@ func (c *Committee) processCRCAddressRelatedTx(tx interfaces.Transaction, height
 
 	for _, output := range tx.Outputs() {
 		amount := output.Value
-		if output.ProgramHash.IsEqual(c.params.CRAssetsAddress) {
-			c.state.history.Append(height, func() {
+		if output.ProgramHash.IsEqual(c.Params.CRAssetsAddress) {
+			c.state.History.Append(height, func() {
 				c.CRAssetsAddressUTXOCount++
 				c.CRCFoundationBalance += amount
 			}, func() {
 				c.CRAssetsAddressUTXOCount--
 				c.CRCFoundationBalance -= amount
 			})
-		} else if output.ProgramHash.IsEqual(c.params.CRExpensesAddress) {
-			c.state.history.Append(height, func() {
+		} else if output.ProgramHash.IsEqual(c.Params.CRExpensesAddress) {
+			c.state.History.Append(height, func() {
 				c.CRCCommitteeBalance += amount
 			}, func() {
 				c.CRCCommitteeBalance -= amount
 			})
-		} else if output.ProgramHash.IsEqual(c.params.DestroyELAAddress) {
-			c.state.history.Append(height, func() {
+		} else if output.ProgramHash.IsEqual(c.Params.DestroyELAAddress) {
+			c.state.History.Append(height, func() {
 				c.DestroyedAmount += amount
 			}, func() {
 				c.DestroyedAmount -= amount

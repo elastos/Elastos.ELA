@@ -3,29 +3,39 @@
 // license that can be found in the LICENSE file.
 //
 
-package state
+package unit
 
 import (
 	"crypto/rand"
 	"fmt"
-	"github.com/elastos/Elastos.ELA/test/unit"
 	"testing"
-
-	common2 "github.com/elastos/Elastos.ELA/core/types/common"
-	"github.com/elastos/Elastos.ELA/core/types/functions"
-	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/core/contract"
 	"github.com/elastos/Elastos.ELA/core/contract/program"
+	"github.com/elastos/Elastos.ELA/core/transaction"
 	"github.com/elastos/Elastos.ELA/core/types"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/functions"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/core/types/outputpayload"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/crypto"
+	state2 "github.com/elastos/Elastos.ELA/dpos/state"
 
 	"github.com/stretchr/testify/assert"
 )
+
+func init() {
+	testing.Init()
+
+	functions.GetTransactionByTxType = transaction.GetTransaction
+	functions.GetTransactionByBytes = transaction.GetTransactionByBytes
+	functions.CreateTransaction = transaction.CreateTransaction
+	functions.GetTransactionParameters = transaction.GetTransactionparameters
+	config.DefaultParams = config.GetDefaultParams()
+}
 
 // mockBlock creates a block instance by the given height and transactions.
 func mockBlock(height uint32, txs ...interfaces.Transaction) *types.Block {
@@ -140,7 +150,7 @@ func mockVoteTx(publicKeys [][]byte) interfaces.Transaction {
 	return tx
 }
 
-func mockNewVoteTx(publicKeys [][]byte) interfaces.Transaction {
+func mockNewDPoSVoteTx(publicKeys [][]byte) interfaces.Transaction {
 	candidateVotes := make([]outputpayload.CandidateVotes, 0, len(publicKeys))
 	for i, pk := range publicKeys {
 		candidateVotes = append(candidateVotes,
@@ -227,7 +237,7 @@ func mockIllegalBlockTx(publicKey []byte) interfaces.Transaction {
 // producer public key.
 func mockInactiveArbitratorsTx(publicKey []byte) interfaces.Transaction {
 	tx := functions.CreateTransaction(
-		common2.TxVersion09,
+		0,
 		common2.InactiveArbitrators,
 		0,
 		&payload.InactiveArbitrators{
@@ -243,14 +253,9 @@ func mockInactiveArbitratorsTx(publicKey []byte) interfaces.Transaction {
 	return tx
 }
 
-func randomPublicKey() []byte {
-	_, pub, _ := crypto.GenerateKeyPair()
-	result, _ := pub.EncodePoint(true)
-	return result
-}
-
 func TestState_ProcessTransaction(t *testing.T) {
-	state := NewState(&config.DefaultParams, nil, nil,
+	params := config.GetDefaultParams()
+	state := state2.NewState(&params, nil, nil,
 		func() bool { return false },
 		nil, nil, nil,
 		nil, nil)
@@ -290,11 +295,11 @@ func TestState_ProcessTransaction(t *testing.T) {
 	producers[0].NodePublicKey = nodePublicKey
 	tx := mockUpdateProducerTx(producers[0])
 	state.ProcessBlock(mockBlock(11, tx), nil)
-	p := state.getProducer(producers[0].NodePublicKey)
+	p := state.GetProducer(producers[0].NodePublicKey)
 	if !assert.NotNil(t, p) {
 		t.FailNow()
 	}
-	if !assert.Equal(t, "Updated", p.info.NickName) {
+	if !assert.Equal(t, "Updated", p.Info().NickName) {
 		t.FailNow()
 	}
 
@@ -327,20 +332,20 @@ func TestState_ProcessTransaction(t *testing.T) {
 	for i, p := range producers[5:10] {
 		publicKeys2[i] = p.OwnerPublicKey
 	}
-	tx2 := mockNewVoteTx(publicKeys2)
+	tx2 := mockNewDPoSVoteTx(publicKeys2)
 
 	state.ProcessBlock(mockBlock(13, tx, tx2), nil)
 
 	for _, pk := range publicKeys {
-		p := state.getProducer(pk)
-		if !assert.Equal(t, common.Fixed64(100), p.votes) {
+		p := state.GetProducer(pk)
+		if !assert.Equal(t, common.Fixed64(100), p.Votes()) {
 			t.FailNow()
 		}
 	}
 
 	for i, pk := range publicKeys2 {
-		p := state.getProducer(pk)
-		if !assert.Equal(t, common.Fixed64((i+1)*10), p.votes) {
+		p := state.GetProducer(pk)
+		if !assert.Equal(t, common.Fixed64((i+1)*10), p.Votes()) {
 			t.FailNow()
 		}
 	}
@@ -367,7 +372,7 @@ func TestState_ProcessTransaction(t *testing.T) {
 }
 
 func TestState_ProcessBlock(t *testing.T) {
-	state := NewState(&config.DefaultParams, nil, nil,
+	state := state2.NewState(&config.DefaultParams, nil, nil,
 		func() bool { return false },
 		nil, nil, nil,
 		nil, nil)
@@ -411,8 +416,8 @@ func TestState_ProcessBlock(t *testing.T) {
 	}
 	state.ProcessBlock(mockBlock(11, txs...), nil)
 	for i := range txs {
-		p := state.getProducer(producers[i].NodePublicKey)
-		if !assert.Equal(t, fmt.Sprintf("Updated-%d", i), p.info.NickName) {
+		p := state.GetProducer(producers[i].NodePublicKey)
+		if !assert.Equal(t, fmt.Sprintf("Updated-%d", i), p.Info().NickName) {
 			t.FailNow()
 		}
 	}
@@ -448,8 +453,8 @@ func TestState_ProcessBlock(t *testing.T) {
 	}
 	state.ProcessBlock(mockBlock(13, txs...), nil)
 	for _, pk := range publicKeys {
-		p := state.getProducer(pk)
-		if !assert.Equal(t, common.Fixed64(1000), p.votes) {
+		p := state.GetProducer(pk)
+		if !assert.Equal(t, common.Fixed64(1000), p.Votes()) {
 			t.FailNow()
 		}
 	}
@@ -529,15 +534,15 @@ func TestState_ProcessBlock(t *testing.T) {
 		t.FailNow()
 	}
 	for _, pk := range publicKeys {
-		p := state.getProducer(pk)
-		if !assert.Equal(t, common.Fixed64(400), p.votes) {
+		p := state.GetProducer(pk)
+		if !assert.Equal(t, common.Fixed64(400), p.Votes()) {
 			t.FailNow()
 		}
 	}
 }
 
 func TestState_ProcessIllegalBlockEvidence(t *testing.T) {
-	state := NewState(&config.DefaultParams, nil, nil,
+	state := state2.NewState(&config.DefaultParams, nil, nil,
 		func() bool { return false },
 		nil, nil, nil,
 		nil, nil)
@@ -593,7 +598,7 @@ func TestState_ProcessIllegalBlockEvidence(t *testing.T) {
 }
 
 func TestState_ProcessEmergencyInactiveArbitrators(t *testing.T) {
-	state := NewState(&config.DefaultParams, nil, nil,
+	state := state2.NewState(&config.DefaultParams, nil, nil,
 		func() bool { return false },
 		nil, nil, nil,
 		nil, nil)
@@ -652,7 +657,7 @@ func TestState_ProcessEmergencyInactiveArbitrators(t *testing.T) {
 }
 
 func TestState_Rollback(t *testing.T) {
-	state := NewState(&config.DefaultParams, nil, nil,
+	state := state2.NewState(&config.DefaultParams, nil, nil,
 		func() bool { return false },
 		nil, nil, nil,
 		nil, nil)
@@ -703,7 +708,7 @@ func TestState_Rollback(t *testing.T) {
 }
 
 func TestState_GetHistory(t *testing.T) {
-	state := NewState(&config.DefaultParams, nil, nil,
+	state := state2.NewState(&config.DefaultParams, nil, nil,
 		func() bool { return false },
 		nil, nil, nil,
 		nil, nil)
@@ -734,11 +739,11 @@ func TestState_GetHistory(t *testing.T) {
 	producers[0].NodePublicKey = nodePublicKey
 	tx := mockUpdateProducerTx(producers[0])
 	state.ProcessBlock(mockBlock(11, tx), nil)
-	p := state.getProducer(producers[0].NodePublicKey)
+	p := state.GetProducer(producers[0].NodePublicKey)
 	if !assert.NotNil(t, p) {
 		t.FailNow()
 	}
-	if !assert.Equal(t, "Updated", p.info.NickName) {
+	if !assert.Equal(t, "Updated", p.Info().NickName) {
 		t.FailNow()
 	}
 
@@ -755,8 +760,8 @@ func TestState_GetHistory(t *testing.T) {
 	tx = mockVoteTx(publicKeys)
 	state.ProcessBlock(mockBlock(13, tx), nil)
 	for _, pk := range publicKeys {
-		p := state.getProducer(pk)
-		if !assert.Equal(t, common.Fixed64(100), p.votes) {
+		p := state.GetProducer(pk)
+		if !assert.Equal(t, common.Fixed64(100), p.Votes()) {
 			t.FailNow()
 		}
 	}
@@ -852,7 +857,7 @@ func TestState_GetHistory(t *testing.T) {
 }
 
 func TestState_NicknameExists(t *testing.T) {
-	state := NewState(&config.DefaultParams, nil, nil,
+	state := state2.NewState(&config.DefaultParams, nil, nil,
 		func() bool { return false },
 		nil, nil, nil,
 		nil, nil)
@@ -889,11 +894,11 @@ func TestState_NicknameExists(t *testing.T) {
 	producers[0].NodePublicKey = nodePublicKey
 	tx := mockUpdateProducerTx(producers[0])
 	state.ProcessBlock(mockBlock(11, tx), nil)
-	p := state.getProducer(producers[0].NodePublicKey)
+	p := state.GetProducer(producers[0].NodePublicKey)
 	if !assert.NotNil(t, p) {
 		t.FailNow()
 	}
-	if !assert.Equal(t, "Updated", p.info.NickName) {
+	if !assert.Equal(t, "Updated", p.Info().NickName) {
 		t.FailNow()
 	}
 
@@ -917,7 +922,7 @@ func TestState_NicknameExists(t *testing.T) {
 }
 
 func TestState_ProducerExists(t *testing.T) {
-	state := NewState(&config.DefaultParams, nil, nil,
+	state := state2.NewState(&config.DefaultParams, nil, nil,
 		func() bool { return false },
 		nil, nil, nil,
 		nil, nil)
@@ -972,11 +977,11 @@ func TestState_ProducerExists(t *testing.T) {
 
 func TestState_IsDPOSTransaction(t *testing.T) {
 	references := make(map[*common2.Input]common2.Output)
-	state := NewState(&config.DefaultParams, nil, nil,
+	state := state2.NewState(&config.DefaultParams, nil, nil,
 		func() bool { return false },
 		nil, nil, nil,
 		nil, nil)
-	state.getTxReference = func(tx interfaces.Transaction) (
+	state.GetTxReference = func(tx interfaces.Transaction) (
 		map[*common2.Input]common2.Output, error) {
 		return references, nil
 	}
@@ -1012,8 +1017,8 @@ func TestState_IsDPOSTransaction(t *testing.T) {
 		t.FailNow()
 	}
 	state.ProcessBlock(mockBlock(10, tx), nil)
-	p := state.getProducer(producer.NodePublicKey)
-	if !assert.Equal(t, common.Fixed64(100), p.votes) {
+	p := state.GetProducer(producer.NodePublicKey)
+	if !assert.Equal(t, common.Fixed64(100), p.Votes()) {
 		t.FailNow()
 	}
 	tx2 := mockCancelVoteTx(tx)
@@ -1024,8 +1029,8 @@ func TestState_IsDPOSTransaction(t *testing.T) {
 		references[input] = *tx.Outputs()[i]
 	}
 	state.ProcessBlock(mockBlock(11, tx2), nil)
-	p = state.getProducer(producer.OwnerPublicKey)
-	if !assert.Equal(t, common.Fixed64(0), p.votes) {
+	p = state.GetProducer(producer.OwnerPublicKey)
+	if !assert.Equal(t, common.Fixed64(0), p.Votes()) {
 		t.FailNow()
 	}
 
@@ -1036,8 +1041,8 @@ func TestState_IsDPOSTransaction(t *testing.T) {
 }
 
 func TestState_InactiveProducer_Normal(t *testing.T) {
-	arbitrators := &ArbitratorsMock{}
-	state := NewState(&config.DefaultParams, arbitrators.GetArbitrators, nil,
+	arbitrators := &state2.ArbitratorsMock{}
+	state := state2.NewState(&config.DefaultParams, arbitrators.GetArbitrators, nil,
 		func() bool { return false },
 		nil, nil, nil,
 		nil, nil)
@@ -1073,12 +1078,12 @@ func TestState_InactiveProducer_Normal(t *testing.T) {
 	}
 
 	// Arbiters should set inactive after continuous three blocks
-	ar1, _ := NewOriginArbiter(producers[0].NodePublicKey)
-	ar2, _ := NewOriginArbiter(producers[1].NodePublicKey)
-	ar3, _ := NewOriginArbiter(producers[2].NodePublicKey)
-	ar4, _ := NewOriginArbiter(producers[3].NodePublicKey)
-	ar5, _ := NewOriginArbiter(producers[4].NodePublicKey)
-	arbitrators.CurrentArbitrators = []ArbiterMember{
+	ar1, _ := state2.NewOriginArbiter(producers[0].NodePublicKey)
+	ar2, _ := state2.NewOriginArbiter(producers[1].NodePublicKey)
+	ar3, _ := state2.NewOriginArbiter(producers[2].NodePublicKey)
+	ar4, _ := state2.NewOriginArbiter(producers[3].NodePublicKey)
+	ar5, _ := state2.NewOriginArbiter(producers[4].NodePublicKey)
+	arbitrators.CurrentArbitrators = []state2.ArbiterMember{
 		ar1, ar2, ar3, ar4, ar5,
 	}
 
@@ -1101,7 +1106,7 @@ func TestState_InactiveProducer_Normal(t *testing.T) {
 
 	// only producer[0] will be inactive
 	if !assert.Equal(t, 1, len(state.GetInactiveProducers())) ||
-		!assert.True(t, state.isInactiveProducer(producers[0].NodePublicKey)) {
+		!assert.True(t, state.IsInactiveProducer(producers[0].NodePublicKey)) {
 		t.FailNow()
 	}
 
@@ -1114,8 +1119,8 @@ func TestState_InactiveProducer_Normal(t *testing.T) {
 }
 
 func TestState_InactiveProducer_FailNoContinuous(t *testing.T) {
-	arbitrators := &ArbitratorsMock{}
-	state := NewState(&config.DefaultParams, arbitrators.GetArbitrators, nil,
+	arbitrators := &state2.ArbitratorsMock{}
+	state := state2.NewState(&config.DefaultParams, arbitrators.GetArbitrators, nil,
 		func() bool { return false },
 		nil, nil, nil,
 		nil, nil)
@@ -1149,12 +1154,12 @@ func TestState_InactiveProducer_FailNoContinuous(t *testing.T) {
 	}
 
 	// Arbiters should set inactive after continuous three blocks
-	ar1, _ := NewOriginArbiter(producers[0].NodePublicKey)
-	ar2, _ := NewOriginArbiter(producers[1].NodePublicKey)
-	ar3, _ := NewOriginArbiter(producers[2].NodePublicKey)
-	ar4, _ := NewOriginArbiter(producers[3].NodePublicKey)
-	ar5, _ := NewOriginArbiter(producers[4].NodePublicKey)
-	arbitrators.CurrentArbitrators = []ArbiterMember{
+	ar1, _ := state2.NewOriginArbiter(producers[0].NodePublicKey)
+	ar2, _ := state2.NewOriginArbiter(producers[1].NodePublicKey)
+	ar3, _ := state2.NewOriginArbiter(producers[2].NodePublicKey)
+	ar4, _ := state2.NewOriginArbiter(producers[3].NodePublicKey)
+	ar5, _ := state2.NewOriginArbiter(producers[4].NodePublicKey)
+	arbitrators.CurrentArbitrators = []state2.ArbiterMember{
 		ar1, ar2, ar3, ar4, ar5,
 	}
 
@@ -1193,8 +1198,8 @@ func TestState_InactiveProducer_FailNoContinuous(t *testing.T) {
 }
 
 func TestState_InactiveProducer_RecoverFromInactiveState(t *testing.T) {
-	arbitrators := &ArbitratorsMock{}
-	state := NewState(&config.DefaultParams, arbitrators.GetArbitrators, nil,
+	arbitrators := &state2.ArbitratorsMock{}
+	state := state2.NewState(&config.DefaultParams, arbitrators.GetArbitrators, nil,
 		func() bool { return false },
 		nil, nil, nil,
 		nil, nil)
@@ -1228,12 +1233,12 @@ func TestState_InactiveProducer_RecoverFromInactiveState(t *testing.T) {
 	}
 
 	// Arbiters should set inactive after continuous three blocks
-	ar1, _ := NewOriginArbiter(producers[0].NodePublicKey)
-	ar2, _ := NewOriginArbiter(producers[1].NodePublicKey)
-	ar3, _ := NewOriginArbiter(producers[2].NodePublicKey)
-	ar4, _ := NewOriginArbiter(producers[3].NodePublicKey)
-	ar5, _ := NewOriginArbiter(producers[4].NodePublicKey)
-	arbitrators.CurrentArbitrators = []ArbiterMember{
+	ar1, _ := state2.NewOriginArbiter(producers[0].NodePublicKey)
+	ar2, _ := state2.NewOriginArbiter(producers[1].NodePublicKey)
+	ar3, _ := state2.NewOriginArbiter(producers[2].NodePublicKey)
+	ar4, _ := state2.NewOriginArbiter(producers[3].NodePublicKey)
+	ar5, _ := state2.NewOriginArbiter(producers[4].NodePublicKey)
+	arbitrators.CurrentArbitrators = []state2.ArbiterMember{
 		ar1, ar2, ar3, ar4, ar5,
 	}
 
@@ -1256,7 +1261,7 @@ func TestState_InactiveProducer_RecoverFromInactiveState(t *testing.T) {
 
 	// only producer[0] will be inactive
 	if !assert.Equal(t, 1, len(state.GetInactiveProducers())) ||
-		!assert.True(t, state.isInactiveProducer(producers[0].NodePublicKey)) {
+		!assert.True(t, state.IsInactiveProducer(producers[0].NodePublicKey)) {
 		t.FailNow()
 	}
 
@@ -1287,8 +1292,8 @@ func TestState_InactiveProducer_RecoverFromInactiveState(t *testing.T) {
 }
 
 func TestState_InactiveProducer_DuringUpdateVersion(t *testing.T) {
-	arbitrators := &ArbitratorsMock{}
-	state := NewState(&config.DefaultParams, arbitrators.GetArbitrators, nil,
+	arbitrators := &state2.ArbitratorsMock{}
+	state := state2.NewState(&config.DefaultParams, arbitrators.GetArbitrators, nil,
 		func() bool { return false },
 		nil, nil, nil,
 		nil, nil)
@@ -1325,7 +1330,7 @@ func TestState_InactiveProducer_DuringUpdateVersion(t *testing.T) {
 	currentHeight := 11
 
 	tx := functions.CreateTransaction(
-		common2.TxVersion09,
+		0,
 		common2.UpdateVersion,
 		0,
 		&payload.UpdateVersion{
@@ -1342,12 +1347,12 @@ func TestState_InactiveProducer_DuringUpdateVersion(t *testing.T) {
 	state.ProcessBlock(mockBlock(uint32(currentHeight), tx), nil)
 
 	// Arbiters should set inactive after continuous three blocks
-	ar1, _ := NewOriginArbiter(producers[0].NodePublicKey)
-	ar2, _ := NewOriginArbiter(producers[1].NodePublicKey)
-	ar3, _ := NewOriginArbiter(producers[2].NodePublicKey)
-	ar4, _ := NewOriginArbiter(producers[3].NodePublicKey)
-	ar5, _ := NewOriginArbiter(producers[4].NodePublicKey)
-	arbitrators.CurrentArbitrators = []ArbiterMember{
+	ar1, _ := state2.NewOriginArbiter(producers[0].NodePublicKey)
+	ar2, _ := state2.NewOriginArbiter(producers[1].NodePublicKey)
+	ar3, _ := state2.NewOriginArbiter(producers[2].NodePublicKey)
+	ar4, _ := state2.NewOriginArbiter(producers[3].NodePublicKey)
+	ar5, _ := state2.NewOriginArbiter(producers[4].NodePublicKey)
+	arbitrators.CurrentArbitrators = []state2.ArbiterMember{
 		ar1, ar2, ar3, ar4, ar5,
 	}
 
@@ -1370,7 +1375,7 @@ func TestState_InactiveProducer_DuringUpdateVersion(t *testing.T) {
 
 	// only producer[0] will be inactive
 	if !assert.Equal(t, 1, len(state.GetInactiveProducers())) ||
-		!assert.True(t, state.isInactiveProducer(producers[0].NodePublicKey)) {
+		!assert.True(t, state.IsInactiveProducer(producers[0].NodePublicKey)) {
 		t.FailNow()
 	}
 
@@ -1381,9 +1386,9 @@ func TestState_InactiveProducer_DuringUpdateVersion(t *testing.T) {
 	}
 }
 
-func TestState_ProcessBlock_DepositAndReturnDeposit(t *testing.T) {
-	arbitrators := &ArbitratorsMock{}
-	state := NewState(&config.DefaultParams, arbitrators.GetArbitrators, nil,
+func TestDPoSState_ProcessBlock_DepositAndReturnDeposit(t *testing.T) {
+	arbitrators := &state2.ArbitratorsMock{}
+	state := state2.NewState(&config.DefaultParams, arbitrators.GetArbitrators, nil,
 		func() bool { return false },
 		nil, nil, nil,
 		nil, nil)
@@ -1396,13 +1401,13 @@ func TestState_ProcessBlock_DepositAndReturnDeposit(t *testing.T) {
 
 	// register register cr before CRVotingStartHeight
 	registerTx := functions.CreateTransaction(
-		common2.TxVersion09,
+		0,
 		common2.RegisterProducer,
 		0,
 		&payload.ProducerInfo{
 			OwnerPublicKey: pkBuf,
 			NodePublicKey:  pkBuf,
-			NickName:       unit.randomString(),
+			NickName:       randomString(),
 		},
 		[]*common2.Attribute{},
 		[]*common2.Input{},
@@ -1423,10 +1428,10 @@ func TestState_ProcessBlock_DepositAndReturnDeposit(t *testing.T) {
 		Transactions: []interfaces.Transaction{registerTx},
 	}, nil)
 	height++
-	candidate := state.getProducer(pkBuf)
-	assert.Equal(t, common.Fixed64(100), candidate.totalAmount)
+	candidate := state.GetProducer(pkBuf)
+	assert.Equal(t, common.Fixed64(100), candidate.TotalAmount())
 
-	state.getProducerDepositAmount = func(p common.Uint168) (
+	state.GetProducerDepositAmount = func(p common.Uint168) (
 		fixed64 common.Fixed64, e error) {
 		return common.Fixed64(100), nil
 	}
@@ -1437,12 +1442,12 @@ func TestState_ProcessBlock_DepositAndReturnDeposit(t *testing.T) {
 		Transactions: []interfaces.Transaction{},
 	}, nil)
 	height++
-	assert.Equal(t, common.Fixed64(100), candidate.totalAmount)
-	assert.Equal(t, Pending, candidate.state)
+	assert.Equal(t, common.Fixed64(100), candidate.TotalAmount())
+	assert.Equal(t, state2.Pending, candidate.State())
 
 	// deposit though normal tx
 	tranferTx := functions.CreateTransaction(
-		common2.TxVersion09,
+		0,
 		common2.TransferAsset,
 		0,
 		&payload.TransferAsset{},
@@ -1465,7 +1470,7 @@ func TestState_ProcessBlock_DepositAndReturnDeposit(t *testing.T) {
 		Transactions: []interfaces.Transaction{tranferTx},
 	}, nil)
 	height++
-	assert.Equal(t, common.Fixed64(300), candidate.totalAmount)
+	assert.Equal(t, common.Fixed64(300), candidate.TotalAmount())
 
 	// cancel candidate
 	for i := 0; i < 4; i++ {
@@ -1477,11 +1482,11 @@ func TestState_ProcessBlock_DepositAndReturnDeposit(t *testing.T) {
 		}, nil)
 		height++
 	}
-	assert.Equal(t, Active, candidate.state)
+	assert.Equal(t, state2.Active, candidate.State())
 
 	var txs []interfaces.Transaction
 	tx := functions.CreateTransaction(
-		common2.TxVersion09,
+		0,
 		common2.CancelProducer,
 		0,
 		&payload.ProcessProducer{
@@ -1511,12 +1516,12 @@ func TestState_ProcessBlock_DepositAndReturnDeposit(t *testing.T) {
 		}, nil)
 		height++
 	}
-	assert.Equal(t, Canceled, candidate.state)
+	assert.Equal(t, state2.Canceled, candidate.State())
 
 	// return deposit
 	tx = functions.CreateTransaction(
-		common2.TxVersion09,
 		0,
+		common2.TransferAsset,
 		0,
 		nil,
 		[]*common2.Attribute{},
@@ -1537,13 +1542,13 @@ func TestState_ProcessBlock_DepositAndReturnDeposit(t *testing.T) {
 		},
 	)
 
-	state.returnDeposit(tx, height)
+	state.ReturnDeposit(tx, height)
 	state.History.Commit(height)
-	assert.Equal(t, common.Fixed64(100), candidate.totalAmount)
+	assert.Equal(t, common.Fixed64(100), candidate.TotalAmount())
 }
 
 func TestState_CountArbitratorsInactivityV1(t *testing.T) {
-	state := NewState(&config.DefaultParams, nil, nil,
+	state := state2.NewState(&config.DefaultParams, nil, nil,
 		func() bool { return false },
 		nil, nil, nil,
 		nil, nil)
@@ -1587,8 +1592,8 @@ func TestState_CountArbitratorsInactivityV1(t *testing.T) {
 	}
 	state.ProcessBlock(mockBlock(11, txs...), nil)
 	for i := range txs {
-		p := state.getProducer(producers[i].NodePublicKey)
-		if !assert.Equal(t, fmt.Sprintf("Updated-%d", i), p.info.NickName) {
+		p := state.GetProducer(producers[i].NodePublicKey)
+		if !assert.Equal(t, fmt.Sprintf("Updated-%d", i), p.Info().NickName) {
 			t.FailNow()
 		}
 	}
@@ -1624,8 +1629,8 @@ func TestState_CountArbitratorsInactivityV1(t *testing.T) {
 	}
 	state.ProcessBlock(mockBlock(13, txs...), nil)
 	for _, pk := range publicKeys {
-		p := state.getProducer(pk)
-		if !assert.Equal(t, common.Fixed64(1000), p.votes) {
+		p := state.GetProducer(pk)
+		if !assert.Equal(t, common.Fixed64(1000), p.Votes()) {
 			t.FailNow()
 		}
 	}
@@ -1655,13 +1660,13 @@ func TestState_CountArbitratorsInactivityV1(t *testing.T) {
 
 	pds := state.GetActiveProducers()
 	// register getArbiters function
-	state.getArbiters = func() []*ArbiterInfo {
-		result := make([]*ArbiterInfo, 0)
+	state.GetArbiters = func() []*state2.ArbiterInfo {
+		result := make([]*state2.ArbiterInfo, 0)
 		for i, p := range pds {
 			if i >= len(state.ChainParams.CRCArbiters)+state.ChainParams.GeneralArbiters {
 				break
 			}
-			result = append(result, &ArbiterInfo{
+			result = append(result, &state2.ArbiterInfo{
 				NodePublicKey: p.NodePublicKey(),
 				IsNormal:      true,
 			})
@@ -1670,7 +1675,7 @@ func TestState_CountArbitratorsInactivityV1(t *testing.T) {
 	}
 
 	// set the random DPOS node.
-	pds[len(pds)-1].selected = true
+	pds[len(pds)-1].SetSelected(true)
 	config.DefaultParams.MaxInactiveRounds = 36
 	config.DefaultParams.MaxInactiveRoundsOfRandomNode = 10
 
@@ -1678,11 +1683,11 @@ func TestState_CountArbitratorsInactivityV1(t *testing.T) {
 	for i := 0; i < 10*36; i++ {
 		p := pds[i%36]
 		nodePublcKey := p.NodePublicKey()
-		if p.selected {
+		if p.Selected() {
 			nodePublcKey = pds[0].NodePublicKey()
 		}
 		height := state.ChainParams.ChangeCommitteeNewCRHeight + 1 + uint32(i)
-		state.countArbitratorsInactivityV1(
+		state.CountArbitratorsInactivityV1(
 			height,
 			&payload.Confirm{
 				Proposal: payload.DPOSProposal{
@@ -1697,10 +1702,10 @@ func TestState_CountArbitratorsInactivityV1(t *testing.T) {
 		if i >= 36 {
 			break
 		}
-		if p.selected {
-			assert.Equal(t, Inactive, p.state)
+		if p.Selected() {
+			assert.Equal(t, state2.Inactive, p.State())
 		} else {
-			assert.Equal(t, Active, p.state)
+			assert.Equal(t, state2.Active, p.State())
 		}
 	}
 }

@@ -3,33 +3,41 @@
 // license that can be found in the LICENSE file.
 //
 
-package state
+package unit
 
 import (
-	"bytes"
 	"errors"
-	"fmt"
-	"github.com/elastos/Elastos.ELA/test/unit"
 	"testing"
-
-	common2 "github.com/elastos/Elastos.ELA/core/types/common"
-	"github.com/elastos/Elastos.ELA/core/types/functions"
-	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/core/contract"
 	"github.com/elastos/Elastos.ELA/core/contract/program"
+	"github.com/elastos/Elastos.ELA/core/transaction"
 	"github.com/elastos/Elastos.ELA/core/types"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/functions"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/core/types/outputpayload"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/crypto"
+	"github.com/elastos/Elastos.ELA/dpos/state"
 
 	"github.com/stretchr/testify/assert"
 )
 
-var abt *Arbiters
+var abt *state.Arbiters
 var abtList [][]byte
+
+func init() {
+	testing.Init()
+
+	functions.GetTransactionByTxType = transaction.GetTransaction
+	functions.GetTransactionByBytes = transaction.GetTransactionByBytes
+	functions.CreateTransaction = transaction.CreateTransaction
+	functions.GetTransactionParameters = transaction.GetTransactionparameters
+	config.DefaultParams = config.GetDefaultParams()
+}
 
 func initArbiters() {
 	arbitratorsStr := []string{
@@ -53,41 +61,41 @@ func initArbiters() {
 	}
 	bestHeight := uint32(0)
 
-	abt, _ = NewArbitrators(activeNetParams, nil, nil,
+	abt, _ = state.NewArbitrators(activeNetParams, nil, nil,
 		nil, nil, nil, nil)
 	abt.RegisterFunction(func() uint32 { return bestHeight },
 		func() *common.Uint256 { return &common.Uint256{} },
 		nil, nil)
-	abt.State = NewState(activeNetParams, nil, nil,
+	abt.State = state.NewState(activeNetParams, nil, nil,
 		func() bool { return false },
 		nil, nil, nil,
 		nil, nil)
 }
 
-func checkPointEqual(first, second *CheckPoint) bool {
-	if !unit.stateKeyFrameEqual(&first.StateKeyFrame, &second.StateKeyFrame) {
+func checkPointEqual(first, second *state.CheckPoint) bool {
+	if !stateKeyFrameEqual(&first.StateKeyFrame, &second.StateKeyFrame) {
 		return false
 	}
 
 	if first.Height != second.Height || first.DutyIndex != second.DutyIndex ||
 		first.CRCChangedHeight != second.CRCChangedHeight ||
-		first.accumulativeReward != second.accumulativeReward ||
-		first.finalRoundChange != second.finalRoundChange ||
-		first.clearingHeight != second.clearingHeight ||
+		first.AccumulativeReward != second.AccumulativeReward ||
+		first.FinalRoundChange != second.FinalRoundChange ||
+		first.ClearingHeight != second.ClearingHeight ||
 		len(first.NextCRCArbitersMap) != len(second.NextCRCArbitersMap) ||
-		len(first.arbitersRoundReward) != len(second.arbitersRoundReward) ||
-		len(first.illegalBlocksPayloadHashes) !=
-			len(second.illegalBlocksPayloadHashes) {
+		len(first.ArbitersRoundReward) != len(second.ArbitersRoundReward) ||
+		len(first.IllegalBlocksPayloadHashes) !=
+			len(second.IllegalBlocksPayloadHashes) {
 		return false
 	}
 
 	//	rewardEqual
-	if !unit.arrayEqual(first.CurrentArbitrators, second.CurrentArbitrators) ||
-		!unit.arrayEqual(first.NextArbitrators, second.NextArbitrators) ||
-		!unit.arrayEqual(first.CurrentCandidates, second.CurrentCandidates) ||
-		!unit.arrayEqual(first.NextCandidates, second.NextCandidates) ||
-		!unit.rewardEqual(&first.CurrentReward, &second.CurrentReward) ||
-		!unit.rewardEqual(&first.NextReward, &second.NextReward) {
+	if !arrayEqual(first.CurrentArbitrators, second.CurrentArbitrators) ||
+		!arrayEqual(first.NextArbitrators, second.NextArbitrators) ||
+		!arrayEqual(first.CurrentCandidates, second.CurrentCandidates) ||
+		!arrayEqual(first.NextCandidates, second.NextCandidates) ||
+		!rewardEqual(&first.CurrentReward, &second.CurrentReward) ||
+		!rewardEqual(&first.NextReward, &second.NextReward) {
 		return false
 	}
 
@@ -96,13 +104,13 @@ func checkPointEqual(first, second *CheckPoint) bool {
 		if !ok {
 			return false
 		}
-		if !unit.arbiterMemberEqual(v, a) {
+		if !arbiterMemberEqual(v, a) {
 			return false
 		}
 	}
 
-	for k, v := range first.arbitersRoundReward {
-		a, ok := second.arbitersRoundReward[k]
+	for k, v := range first.ArbitersRoundReward {
+		a, ok := second.ArbitersRoundReward[k]
 		if !ok {
 			return false
 		}
@@ -111,8 +119,8 @@ func checkPointEqual(first, second *CheckPoint) bool {
 		}
 	}
 
-	for k, _ := range first.illegalBlocksPayloadHashes {
-		_, ok := second.illegalBlocksPayloadHashes[k]
+	for k, _ := range first.IllegalBlocksPayloadHashes {
+		_, ok := second.IllegalBlocksPayloadHashes[k]
 		if !ok {
 			return false
 		}
@@ -121,7 +129,7 @@ func checkPointEqual(first, second *CheckPoint) bool {
 	return true
 }
 
-func checkResult(t *testing.T, A, B, C, D *CheckPoint) {
+func checkArbiterResult(t *testing.T, A, B, C, D *state.CheckPoint) {
 	assert.Equal(t, true, checkPointEqual(A, C))
 	assert.Equal(t, false, checkPointEqual(A, B))
 	assert.Equal(t, true, checkPointEqual(B, D))
@@ -133,7 +141,7 @@ func getRegisterProducerTx(ownerPublicKey, nodePublicKey []byte,
 	pk, _ := crypto.DecodePoint(ownerPublicKey)
 	depositCont, _ := contract.CreateDepositContractByPubKey(pk)
 	txn := functions.CreateTransaction(
-		common2.TxVersion09,
+		0,
 		common2.RegisterProducer,
 		0,
 		&payload.ProducerInfo{
@@ -192,7 +200,7 @@ func getVoteProducerTx(amount common.Fixed64,
 func getUpdateProducerTx(ownerPublicKey, nodePublicKey []byte,
 	nickName string) interfaces.Transaction {
 	txn := functions.CreateTransaction(
-		common2.TxVersion09,
+		0,
 		common2.UpdateProducer,
 		0,
 		&payload.ProducerInfo{
@@ -231,7 +239,7 @@ func getReturnProducerDeposit(publicKey []byte, amount common.Fixed64) interface
 	pk, _ := crypto.DecodePoint(publicKey)
 	code, _ := contract.CreateStandardRedeemScript(pk)
 	txn := functions.CreateTransaction(
-		common2.TxVersion09,
+		0,
 		common2.ReturnDepositCoin,
 		0,
 		&payload.ReturnDepositCoin{},
@@ -282,7 +290,7 @@ func TestArbitrators_RollbackRegisterProducer(t *testing.T) {
 	abt.ProcessBlock(block1, nil)
 	arbiterStateD := abt.Snapshot()
 
-	checkResult(t, arbiterStateA, arbiterStateB, arbiterStateC, arbiterStateD)
+	checkArbiterResult(t, arbiterStateA, arbiterStateB, arbiterStateC, arbiterStateD)
 
 	for i := uint32(0); i < 4; i++ {
 		currentHeight++
@@ -312,7 +320,7 @@ func TestArbitrators_RollbackRegisterProducer(t *testing.T) {
 	abt.ProcessBlock(blockEx, nil)
 	arbiterStateD2 := abt.Snapshot()
 
-	checkResult(t, arbiterStateA2, arbiterStateB2, arbiterStateC2, arbiterStateD2)
+	checkArbiterResult(t, arbiterStateA2, arbiterStateB2, arbiterStateC2, arbiterStateD2)
 }
 
 func TestArbitrators_RollbackVoteProducer(t *testing.T) {
@@ -352,7 +360,7 @@ func TestArbitrators_RollbackVoteProducer(t *testing.T) {
 		Header:       common2.Header{Height: currentHeight},
 		Transactions: []interfaces.Transaction{voteProducerTx}}, nil)
 	arbiterStateA := abt.Snapshot()
-	assert.Equal(t, common.Fixed64(5), abt.getProducer(abtList[0]).votes)
+	assert.Equal(t, common.Fixed64(5), abt.GetProducer(abtList[0]).Votes())
 
 	currentHeight++
 	updateProducerTx := getUpdateProducerTx(abtList[1], abtList[1], "node1")
@@ -374,7 +382,7 @@ func TestArbitrators_RollbackVoteProducer(t *testing.T) {
 		Transactions: []interfaces.Transaction{updateProducerTx}}, nil)
 	arbiterStateD := abt.Snapshot()
 
-	checkResult(t, arbiterStateA, arbiterStateB, arbiterStateC, arbiterStateD)
+	checkArbiterResult(t, arbiterStateA, arbiterStateB, arbiterStateC, arbiterStateD)
 }
 
 func TestArbitrators_RollbackUpdateProducer(t *testing.T) {
@@ -415,14 +423,14 @@ func TestArbitrators_RollbackUpdateProducer(t *testing.T) {
 		Header:       common2.Header{Height: currentHeight},
 		Transactions: []interfaces.Transaction{voteProducerTx}}, nil)
 	arbiterStateB := abt.Snapshot()
-	assert.Equal(t, common.Fixed64(5), abt.getProducer(abtList[0]).votes)
+	assert.Equal(t, common.Fixed64(5), abt.GetProducer(abtList[0]).Votes())
 
 	// rollback
 	currentHeight--
 	err := abt.RollbackTo(currentHeight)
 	assert.NoError(t, err)
 	arbiterStateC := abt.Snapshot()
-	assert.Equal(t, common.Fixed64(0), abt.getProducer(abtList[0]).votes)
+	assert.Equal(t, common.Fixed64(0), abt.GetProducer(abtList[0]).Votes())
 
 	// reprocess
 	currentHeight++
@@ -431,7 +439,7 @@ func TestArbitrators_RollbackUpdateProducer(t *testing.T) {
 		Transactions: []interfaces.Transaction{voteProducerTx}}, nil)
 	arbiterStateD := abt.Snapshot()
 
-	checkResult(t, arbiterStateA, arbiterStateB, arbiterStateC, arbiterStateD)
+	checkArbiterResult(t, arbiterStateA, arbiterStateB, arbiterStateC, arbiterStateD)
 }
 
 func TestArbitrators_RollbackCancelProducer(t *testing.T) {
@@ -500,7 +508,7 @@ func TestArbitrators_RollbackCancelProducer(t *testing.T) {
 	arbiterStateD := abt.Snapshot()
 	assert.Equal(t, 3, len(abt.GetActiveProducers()))
 
-	checkResult(t, arbiterStateA, arbiterStateB, arbiterStateC, arbiterStateD)
+	checkArbiterResult(t, arbiterStateA, arbiterStateB, arbiterStateC, arbiterStateD)
 }
 
 func TestArbitrators_RollbackReturnProducerDeposit(t *testing.T) {
@@ -557,28 +565,28 @@ func TestArbitrators_RollbackReturnProducerDeposit(t *testing.T) {
 	assert.Equal(t, 3, len(abt.GetActiveProducers()))
 
 	// set get producer deposit amount function
-	abt.getProducerDepositAmount = func(programHash common.Uint168) (
+	abt.GetProducerDepositAmount = func(programHash common.Uint168) (
 		fixed64 common.Fixed64, err error) {
-		producers := abt.getAllProducers()
+		producers := abt.GetAllProducers()
 		for _, v := range producers {
 			hash, _ := contract.PublicKeyToDepositProgramHash(
-				v.info.OwnerPublicKey)
+				v.Info().OwnerPublicKey)
 			if hash.IsEqual(programHash) {
-				return v.depositAmount, nil
+				return v.DepositAmount(), nil
 			}
 		}
 
 		return common.Fixed64(0), errors.New("not found producer")
 	}
 
-	assert.Equal(t, common.Fixed64(5000*1e8), abt.GetProducer(abtList[0]).depositAmount)
+	assert.Equal(t, common.Fixed64(5000*1e8), abt.GetProducer(abtList[0]).DepositAmount())
 
 	currentHeight += abt.ChainParams.CRDepositLockupBlocks
 	abt.ProcessBlock(&types.Block{
 		Header:       common2.Header{Height: currentHeight},
 		Transactions: []interfaces.Transaction{cancelProducerTx}}, nil)
 
-	assert.Equal(t, common.Fixed64(0), abt.GetProducer(abtList[0]).depositAmount)
+	assert.Equal(t, common.Fixed64(0), abt.GetProducer(abtList[0]).DepositAmount())
 
 	// return deposit
 	returnDepositTx := getReturnProducerDeposit(abtList[0], 4999*1e8)
@@ -596,7 +604,7 @@ func TestArbitrators_RollbackReturnProducerDeposit(t *testing.T) {
 		Header:       common2.Header{Height: currentHeight},
 		Transactions: []interfaces.Transaction{returnDepositTx}}, nil)
 	assert.Equal(t, 1, len(abt.GetReturnedDepositProducers()))
-	assert.Equal(t, common.Fixed64(0), abt.GetProducer(abtList[0]).depositAmount)
+	assert.Equal(t, common.Fixed64(0), abt.GetProducer(abtList[0]).DepositAmount())
 	arbiterStateB := abt.Snapshot()
 
 	// rollback
@@ -614,7 +622,7 @@ func TestArbitrators_RollbackReturnProducerDeposit(t *testing.T) {
 	assert.Equal(t, 1, len(abt.GetReturnedDepositProducers()))
 	arbiterStateD := abt.Snapshot()
 
-	checkResult(t, arbiterStateA, arbiterStateB, arbiterStateC, arbiterStateD)
+	checkArbiterResult(t, arbiterStateA, arbiterStateB, arbiterStateC, arbiterStateD)
 }
 
 func TestArbitrators_RollbackLastBlockOfARound(t *testing.T) {
@@ -679,7 +687,7 @@ func TestArbitrators_RollbackLastBlockOfARound(t *testing.T) {
 		Header: common2.Header{Height: currentHeight}}, nil)
 	arbiterStateD := abt.Snapshot()
 
-	checkResult(t, arbiterStateA, arbiterStateB, arbiterStateC, arbiterStateD)
+	checkArbiterResult(t, arbiterStateA, arbiterStateB, arbiterStateC, arbiterStateD)
 
 	// process
 	arbiterStateA2 := abt.Snapshot()
@@ -700,7 +708,7 @@ func TestArbitrators_RollbackLastBlockOfARound(t *testing.T) {
 		Header: common2.Header{Height: currentHeight}}, nil)
 	arbiterStateD2 := abt.Snapshot()
 
-	checkResult(t, arbiterStateA2, arbiterStateB2, arbiterStateC2, arbiterStateD2)
+	checkArbiterResult(t, arbiterStateA2, arbiterStateB2, arbiterStateC2, arbiterStateD2)
 
 	for i := 0; i < 3; i++ {
 		currentHeight++
@@ -727,12 +735,12 @@ func TestArbitrators_RollbackLastBlockOfARound(t *testing.T) {
 		Header: common2.Header{Height: currentHeight}}, nil)
 	arbiterStateD3 := abt.Snapshot()
 
-	checkResult(t, arbiterStateA3, arbiterStateB3, arbiterStateC3, arbiterStateD3)
+	checkArbiterResult(t, arbiterStateA3, arbiterStateB3, arbiterStateC3, arbiterStateD3)
 }
 
 func TestArbitrators_NextTurnDposInfoTX(t *testing.T) {
 	initArbiters()
-
+	abt.ChainParams = &config.DefaultParams
 	currentHeight := abt.ChainParams.VoteStartHeight
 	block1 := &types.Block{
 		Header: common2.Header{
@@ -782,30 +790,33 @@ func TestArbitrators_NextTurnDposInfoTX(t *testing.T) {
 		Header: common2.Header{Height: currentHeight}}, nil)
 	//arbiterStateB := abt.Snapshot()
 
-	rawTxStr := "091400022103e435ccd6073813917c2d841a0815d21301ec3286bc1412bb5b099178c68a10b621038a1829b4b2bee784a99b" +
-		"ebabbfecfec53f33dadeeeff21b460f8b4fc7c2ca7710221023a133480176214f88848c6eaa684a54b316849df2b8570b57f3a917f19" +
-		"bbc77a21030a26f8b4ab0ea219eb461d1e454ce5f0bd0d289a6a64ffc0743dab7bd5be0be90000000000000000"
-	data, err2 := common.HexStringToBytes(rawTxStr)
-	if err2 != nil {
-		fmt.Println("HexStringToBytes err2", err2)
-	}
-	reader2 := bytes.NewReader(data)
-	nextTurnDPOSInfoTx, err := functions.GetTransactionByBytes(reader2)
-	if err != nil {
-		fmt.Println("invalid txn2")
-	}
-	err2 = nextTurnDPOSInfoTx.Deserialize(reader2)
-	if err2 != nil {
-		fmt.Println("txn2.Deserialize err2", err2)
-	}
-
-	abt.ProcessBlock(&types.Block{
-		Header:       common2.Header{Height: currentHeight},
-		Transactions: []interfaces.Transaction{nextTurnDPOSInfoTx}}, nil)
-
-	currentHeight++
-	abt.ProcessBlock(&types.Block{
-		Header: common2.Header{Height: currentHeight}}, nil)
+	//rawTxStr := "091400022103e435ccd6073813917c2d841a0815d21301ec3286bc1412bb5b099178c68a10b621038a1829b4b2bee784a99b" +
+	//	"ebabbfecfec53f33dadeeeff21b460f8b4fc7c2ca7710221023a133480176214f88848c6eaa684a54b316849df2b8570b57f3a917f19" +
+	//	"bbc77a21030a26f8b4ab0ea219eb461d1e454ce5f0bd0d289a6a64ffc0743dab7bd5be0be90000000000000000"
+	//data, err2 := common.HexStringToBytes(rawTxStr)
+	//if err2 != nil {
+	//	fmt.Println("HexStringToBytes err2", err2)
+	//	t.Fail()
+	//}
+	//reader2 := bytes.NewReader(data)
+	//nextTurnDPOSInfoTx, err := functions.GetTransactionByBytes(reader2)
+	//if err != nil {
+	//	fmt.Println("invalid txn2")
+	//	t.Fail()
+	//}
+	//err2 = nextTurnDPOSInfoTx.Deserialize(reader2)
+	//if err2 != nil {
+	//	fmt.Println("txn2.Deserialize err2", err2)
+	//	t.Fail()
+	//}
+	//
+	//abt.ProcessBlock(&types.Block{
+	//	Header:       common2.Header{Height: currentHeight},
+	//	Transactions: []interfaces.Transaction{nextTurnDPOSInfoTx}}, nil)
+	//
+	//currentHeight++
+	//abt.ProcessBlock(&types.Block{
+	//	Header: common2.Header{Height: currentHeight}}, nil)
 }
 
 func TestArbitrators_RollbackRewardBlock(t *testing.T) {
@@ -885,7 +896,7 @@ func TestArbitrators_RollbackRewardBlock(t *testing.T) {
 		Header: common2.Header{Height: currentHeight}}, nil)
 	arbiterStateD := abt.Snapshot()
 
-	checkResult(t, arbiterStateA, arbiterStateB, arbiterStateC, arbiterStateD)
+	checkArbiterResult(t, arbiterStateA, arbiterStateB, arbiterStateC, arbiterStateD)
 
 	for i := 0; i < 3; i++ {
 		currentHeight++
@@ -912,7 +923,7 @@ func TestArbitrators_RollbackRewardBlock(t *testing.T) {
 		Header: common2.Header{Height: currentHeight}}, nil)
 	arbiterStateD2 := abt.Snapshot()
 
-	checkResult(t, arbiterStateA2, arbiterStateB2, arbiterStateC2, arbiterStateD2)
+	checkArbiterResult(t, arbiterStateA2, arbiterStateB2, arbiterStateC2, arbiterStateD2)
 }
 
 func TestArbitrators_RollbackMultipleTransactions(t *testing.T) {
@@ -965,14 +976,14 @@ func TestArbitrators_RollbackMultipleTransactions(t *testing.T) {
 	assert.Equal(t, 3, len(abt.GetActiveProducers()))
 
 	// set get producer deposit amount function
-	abt.getProducerDepositAmount = func(programHash common.Uint168) (
+	abt.GetProducerDepositAmount = func(programHash common.Uint168) (
 		fixed64 common.Fixed64, err error) {
-		producers := abt.getAllProducers()
+		producers := abt.GetAllProducers()
 		for _, v := range producers {
 			hash, _ := contract.PublicKeyToDepositProgramHash(
-				v.info.OwnerPublicKey)
+				v.Info().OwnerPublicKey)
 			if hash.IsEqual(programHash) {
-				return v.depositAmount, nil
+				return v.DepositAmount(), nil
 			}
 		}
 
@@ -993,7 +1004,7 @@ func TestArbitrators_RollbackMultipleTransactions(t *testing.T) {
 			Index: 0,
 		},
 	}})
-	assert.Equal(t, common.Fixed64(5000*1e8), abt.GetProducer(abtList[0]).depositAmount)
+	assert.Equal(t, common.Fixed64(5000*1e8), abt.GetProducer(abtList[0]).DepositAmount())
 
 	arbiterStateA := abt.Snapshot()
 
@@ -1010,7 +1021,7 @@ func TestArbitrators_RollbackMultipleTransactions(t *testing.T) {
 		}}, nil)
 	assert.Equal(t, 2, len(abt.GetActiveProducers()))
 	assert.Equal(t, 1, len(abt.GetReturnedDepositProducers()))
-	assert.Equal(t, common.Fixed64(0), abt.GetProducer(abtList[0]).totalAmount)
+	assert.Equal(t, common.Fixed64(0), abt.GetProducer(abtList[0]).TotalAmount())
 	arbiterStateB := abt.Snapshot()
 
 	// rollback
@@ -1035,5 +1046,5 @@ func TestArbitrators_RollbackMultipleTransactions(t *testing.T) {
 	assert.Equal(t, 1, len(abt.GetReturnedDepositProducers()))
 	arbiterStateD := abt.Snapshot()
 
-	checkResult(t, arbiterStateA, arbiterStateB, arbiterStateC, arbiterStateD)
+	checkArbiterResult(t, arbiterStateA, arbiterStateB, arbiterStateC, arbiterStateD)
 }

@@ -3,25 +3,23 @@
 // license that can be found in the LICENSE file.
 //
 
-package blockchain
+package unit
 
 import (
 	"bytes"
-	"github.com/elastos/Elastos.ELA/test/unit"
 	"math/rand"
 	"path/filepath"
-	"strconv"
 	"testing"
 
-	common2 "github.com/elastos/Elastos.ELA/core/types/common"
-	"github.com/elastos/Elastos.ELA/core/types/functions"
-
-	"github.com/elastos/Elastos.ELA/auxpow"
+	"github.com/elastos/Elastos.ELA/blockchain"
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/common/log"
 	"github.com/elastos/Elastos.ELA/core/contract"
 	"github.com/elastos/Elastos.ELA/core/contract/program"
+	"github.com/elastos/Elastos.ELA/core/transaction"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/functions"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/crypto"
 	"github.com/elastos/Elastos.ELA/dpos/state"
@@ -30,13 +28,21 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
+func init() {
+	functions.GetTransactionByTxType = transaction.GetTransaction
+	functions.GetTransactionByBytes = transaction.GetTransactionByBytes
+	functions.CreateTransaction = transaction.CreateTransaction
+	functions.GetTransactionParameters = transaction.GetTransactionparameters
+	config.DefaultParams = config.GetDefaultParams()
+}
+
 type txValidatorSpecialTxTestSuite struct {
 	suite.Suite
 
-	originalLedger     *Ledger
+	originalLedger     *blockchain.Ledger
 	arbitrators        *state.ArbitratorsMock
 	arbitratorsPriKeys [][]byte
-	Chain              *BlockChain
+	Chain              *blockchain.BlockChain
 }
 
 func init() {
@@ -82,11 +88,11 @@ func (s *txValidatorSpecialTxTestSuite) SetupSuite() {
 		s.arbitratorsPriKeys = append(s.arbitratorsPriKeys, a)
 	}
 
-	chainStore, err := NewChainStore(filepath.Join(test.DataPath, "special"), &config.DefaultParams)
+	chainStore, err := blockchain.NewChainStore(filepath.Join(test.DataPath, "special"), &config.DefaultParams)
 	if err != nil {
 		s.Error(err)
 	}
-	s.Chain, err = New(chainStore, &config.DefaultParams,
+	s.Chain, err = blockchain.New(chainStore, &config.DefaultParams,
 		state.NewState(&config.DefaultParams, nil, nil, nil,
 			nil, nil,
 			nil, nil, nil), nil)
@@ -94,13 +100,13 @@ func (s *txValidatorSpecialTxTestSuite) SetupSuite() {
 		s.Error(err)
 	}
 
-	s.originalLedger = DefaultLedger
-	DefaultLedger = &Ledger{Arbitrators: s.arbitrators}
+	s.originalLedger = blockchain.DefaultLedger
+	blockchain.DefaultLedger = &blockchain.Ledger{Arbitrators: s.arbitrators}
 }
 
 func (s *txValidatorSpecialTxTestSuite) TearDownSuite() {
-	s.Chain.db.Close()
-	DefaultLedger = s.originalLedger
+	s.Chain.GetDB().Close()
+	blockchain.DefaultLedger = s.originalLedger
 }
 
 func (s *txValidatorSpecialTxTestSuite) TestValidateProposalEvidence() {
@@ -113,15 +119,15 @@ func (s *txValidatorSpecialTxTestSuite) TestValidateProposalEvidence() {
 		Proposal:    payload.DPOSProposal{},
 	}
 
-	s.EqualError(validateProposalEvidence(evidence),
+	s.EqualError(blockchain.ValidateProposalEvidence(evidence),
 		"evidence height and block height should match")
 
 	evidence.BlockHeight = header.Height
-	s.EqualError(validateProposalEvidence(evidence),
+	s.EqualError(blockchain.ValidateProposalEvidence(evidence),
 		"proposal hash and block should match")
 
 	evidence.Proposal.BlockHash = header.Hash()
-	s.NoError(validateProposalEvidence(evidence))
+	s.NoError(blockchain.ValidateProposalEvidence(evidence))
 
 	// let proposal sanity and context check pass
 	evidence.Proposal.Sponsor =
@@ -129,7 +135,7 @@ func (s *txValidatorSpecialTxTestSuite) TestValidateProposalEvidence() {
 	evidence.Proposal.ViewOffset = rand.Uint32()
 	evidence.Proposal.Sign, _ = crypto.Sign(s.arbitratorsPriKeys[0],
 		evidence.Proposal.Data())
-	s.NoError(validateProposalEvidence(evidence))
+	s.NoError(blockchain.ValidateProposalEvidence(evidence))
 }
 
 func (s *txValidatorSpecialTxTestSuite) TestCheckDPOSIllegalProposals() {
@@ -147,13 +153,13 @@ func (s *txValidatorSpecialTxTestSuite) TestCheckDPOSIllegalProposals() {
 	}
 	evidence.Proposal.Sign, _ = crypto.Sign(s.arbitratorsPriKeys[0],
 		evidence.Proposal.Data())
-	s.NoError(validateProposalEvidence(evidence))
+	s.NoError(blockchain.ValidateProposalEvidence(evidence))
 
 	illegalProposals := &payload.DPOSIllegalProposals{
 		Evidence:        *evidence,
 		CompareEvidence: *evidence,
 	}
-	s.EqualError(CheckDPOSIllegalProposals(illegalProposals),
+	s.EqualError(blockchain.CheckDPOSIllegalProposals(illegalProposals),
 		"proposals can not be same")
 
 	header2 := randomBlockHeader()
@@ -172,7 +178,7 @@ func (s *txValidatorSpecialTxTestSuite) TestCheckDPOSIllegalProposals() {
 	cmpEvidence.Proposal.Sign, _ = crypto.Sign(
 		s.arbitratorsPriKeys[0], cmpEvidence.Proposal.Data())
 	illegalProposals.CompareEvidence = *cmpEvidence
-	s.EqualError(CheckDPOSIllegalProposals(illegalProposals),
+	s.EqualError(blockchain.CheckDPOSIllegalProposals(illegalProposals),
 		"should be in same height")
 
 	header2.Height = header.Height
@@ -192,7 +198,7 @@ func (s *txValidatorSpecialTxTestSuite) TestCheckDPOSIllegalProposals() {
 		illegalProposals.Evidence = *cmpEvidence
 		illegalProposals.CompareEvidence = *evidence
 	}
-	s.EqualError(CheckDPOSIllegalProposals(illegalProposals),
+	s.EqualError(blockchain.CheckDPOSIllegalProposals(illegalProposals),
 		"evidence order error")
 
 	if asc {
@@ -202,7 +208,7 @@ func (s *txValidatorSpecialTxTestSuite) TestCheckDPOSIllegalProposals() {
 		illegalProposals.Evidence = *cmpEvidence
 		illegalProposals.CompareEvidence = *evidence
 	}
-	s.EqualError(CheckDPOSIllegalProposals(illegalProposals),
+	s.EqualError(blockchain.CheckDPOSIllegalProposals(illegalProposals),
 		"should in same view")
 
 	cmpEvidence.Proposal.ViewOffset = evidence.Proposal.ViewOffset
@@ -215,7 +221,7 @@ func (s *txValidatorSpecialTxTestSuite) TestCheckDPOSIllegalProposals() {
 		illegalProposals.Evidence = *cmpEvidence
 		illegalProposals.CompareEvidence = *evidence
 	}
-	s.NoError(CheckDPOSIllegalProposals(illegalProposals))
+	s.NoError(blockchain.CheckDPOSIllegalProposals(illegalProposals))
 }
 
 func (s *txValidatorSpecialTxTestSuite) TestValidateVoteEvidence() {
@@ -237,18 +243,18 @@ func (s *txValidatorSpecialTxTestSuite) TestValidateVoteEvidence() {
 	evidence.Proposal.Sign, _ = crypto.Sign(s.arbitratorsPriKeys[0],
 		evidence.Proposal.Data())
 
-	s.EqualError(validateVoteEvidence(evidence),
+	s.EqualError(blockchain.ValidateVoteEvidence(evidence),
 		"vote and proposal should match")
 
 	evidence.Vote.ProposalHash = evidence.Proposal.Hash()
-	s.NoError(validateVoteEvidence(evidence), "vote verify error")
+	s.NoError(blockchain.ValidateVoteEvidence(evidence), "vote verify error")
 
 	evidence.Vote.Signer =
 		s.arbitrators.CurrentArbitrators[1].GetNodePublicKey()
 	evidence.Vote.Accept = true
 	evidence.Vote.Sign, _ = crypto.Sign(s.arbitratorsPriKeys[1],
 		evidence.Vote.Data())
-	s.NoError(validateVoteEvidence(evidence))
+	s.NoError(blockchain.ValidateVoteEvidence(evidence))
 }
 
 func (s *txValidatorSpecialTxTestSuite) TestCheckDPOSIllegalVotes_SameProposal() {
@@ -280,7 +286,7 @@ func (s *txValidatorSpecialTxTestSuite) TestCheckDPOSIllegalVotes_SameProposal()
 		Evidence:        *evidence,
 		CompareEvidence: *evidence,
 	}
-	s.EqualError(CheckDPOSIllegalVotes(illegalVotes),
+	s.EqualError(blockchain.CheckDPOSIllegalVotes(illegalVotes),
 		"votes can not be same")
 
 	//create compare evidence with the same proposal
@@ -303,7 +309,7 @@ func (s *txValidatorSpecialTxTestSuite) TestCheckDPOSIllegalVotes_SameProposal()
 		illegalVotes.Evidence = *evidence
 		illegalVotes.CompareEvidence = *cmpEvidence
 	}
-	s.EqualError(CheckDPOSIllegalVotes(illegalVotes),
+	s.EqualError(blockchain.CheckDPOSIllegalVotes(illegalVotes),
 		"evidence order error")
 
 	if asc {
@@ -313,7 +319,7 @@ func (s *txValidatorSpecialTxTestSuite) TestCheckDPOSIllegalVotes_SameProposal()
 		illegalVotes.Evidence = *cmpEvidence
 		illegalVotes.CompareEvidence = *evidence
 	}
-	s.NoError(CheckDPOSIllegalVotes(illegalVotes))
+	s.NoError(blockchain.CheckDPOSIllegalVotes(illegalVotes))
 }
 
 func (s *txValidatorSpecialTxTestSuite) TestCheckDPOSIllegalVotes_DiffProposal() {
@@ -365,7 +371,7 @@ func (s *txValidatorSpecialTxTestSuite) TestCheckDPOSIllegalVotes_DiffProposal()
 		Evidence:        *evidence,
 		CompareEvidence: *cmpEvidence,
 	}
-	s.EqualError(CheckDPOSIllegalVotes(illegalVotes),
+	s.EqualError(blockchain.CheckDPOSIllegalVotes(illegalVotes),
 		"should be in same height")
 
 	header2.Height = header.Height
@@ -385,7 +391,7 @@ func (s *txValidatorSpecialTxTestSuite) TestCheckDPOSIllegalVotes_DiffProposal()
 		illegalVotes.Evidence = *cmpEvidence
 		illegalVotes.CompareEvidence = *evidence
 	}
-	s.EqualError(CheckDPOSIllegalVotes(illegalVotes),
+	s.EqualError(blockchain.CheckDPOSIllegalVotes(illegalVotes),
 		"should be same sponsor")
 
 	// set different view offset
@@ -401,7 +407,7 @@ func (s *txValidatorSpecialTxTestSuite) TestCheckDPOSIllegalVotes_DiffProposal()
 		illegalVotes.Evidence = *cmpEvidence
 		illegalVotes.CompareEvidence = *evidence
 	}
-	s.EqualError(CheckDPOSIllegalVotes(illegalVotes),
+	s.EqualError(blockchain.CheckDPOSIllegalVotes(illegalVotes),
 		"should in same view")
 
 	// let check method pass
@@ -415,7 +421,7 @@ func (s *txValidatorSpecialTxTestSuite) TestCheckDPOSIllegalVotes_DiffProposal()
 		illegalVotes.Evidence = *cmpEvidence
 		illegalVotes.CompareEvidence = *evidence
 	}
-	s.NoError(CheckDPOSIllegalVotes(illegalVotes))
+	s.NoError(blockchain.CheckDPOSIllegalVotes(illegalVotes))
 }
 
 func (s *txValidatorSpecialTxTestSuite) TestCheckDPOSIllegalBlocks() {
@@ -434,7 +440,7 @@ func (s *txValidatorSpecialTxTestSuite) TestCheckDPOSIllegalBlocks() {
 		Evidence:        *evidence,
 		CompareEvidence: *evidence,
 	}
-	s.EqualError(CheckDPOSIllegalBlocks(illegalBlocks),
+	s.EqualError(blockchain.CheckDPOSIllegalBlocks(illegalBlocks),
 		"blocks can not be same")
 
 	header2 := randomBlockHeader()
@@ -454,7 +460,7 @@ func (s *txValidatorSpecialTxTestSuite) TestCheckDPOSIllegalBlocks() {
 		illegalBlocks.Evidence = *evidence
 		illegalBlocks.CompareEvidence = *cmpEvidence
 	}
-	s.EqualError(CheckDPOSIllegalBlocks(illegalBlocks),
+	s.EqualError(blockchain.CheckDPOSIllegalBlocks(illegalBlocks),
 		"evidence order error")
 
 	illegalBlocks.CoinType = payload.CoinType(1) //
@@ -465,16 +471,16 @@ func (s *txValidatorSpecialTxTestSuite) TestCheckDPOSIllegalBlocks() {
 		illegalBlocks.Evidence = *cmpEvidence
 		illegalBlocks.CompareEvidence = *evidence
 	}
-	s.EqualError(CheckDPOSIllegalBlocks(illegalBlocks),
+	s.EqualError(blockchain.CheckDPOSIllegalBlocks(illegalBlocks),
 		"unknown coin type")
 
 	illegalBlocks.CoinType = payload.ELACoin
-	s.EqualError(CheckDPOSIllegalBlocks(illegalBlocks),
+	s.EqualError(blockchain.CheckDPOSIllegalBlocks(illegalBlocks),
 		"block header height should be same")
 
 	// compare evidence height is different from illegal block height
 	illegalBlocks.BlockHeight = header.Height
-	s.EqualError(CheckDPOSIllegalBlocks(illegalBlocks),
+	s.EqualError(blockchain.CheckDPOSIllegalBlocks(illegalBlocks),
 		"block header height should be same")
 
 	header2.Height = header.Height
@@ -490,7 +496,7 @@ func (s *txValidatorSpecialTxTestSuite) TestCheckDPOSIllegalBlocks() {
 		illegalBlocks.Evidence = *cmpEvidence
 		illegalBlocks.CompareEvidence = *evidence
 	}
-	s.EqualError(CheckDPOSIllegalBlocks(illegalBlocks),
+	s.EqualError(blockchain.CheckDPOSIllegalBlocks(illegalBlocks),
 		"EOF")
 
 	// fill confirms of evidences
@@ -517,7 +523,7 @@ func (s *txValidatorSpecialTxTestSuite) TestCheckDPOSIllegalBlocks() {
 		cmpConfirm.Proposal.Data())
 	s.updateIllegaBlocks(confirm, evidence, cmpConfirm, cmpEvidence, asc,
 		illegalBlocks)
-	s.EqualError(CheckDPOSIllegalBlocks(illegalBlocks),
+	s.EqualError(blockchain.CheckDPOSIllegalBlocks(illegalBlocks),
 		"[IllegalConfirmContextCheck] signers less than majority count")
 
 	// fill votes of confirms
@@ -541,7 +547,7 @@ func (s *txValidatorSpecialTxTestSuite) TestCheckDPOSIllegalBlocks() {
 	}
 	s.updateIllegaBlocks(confirm, evidence, cmpConfirm, cmpEvidence, asc,
 		illegalBlocks)
-	s.EqualError(CheckDPOSIllegalBlocks(illegalBlocks),
+	s.EqualError(blockchain.CheckDPOSIllegalBlocks(illegalBlocks),
 		"confirm view offset should be same")
 
 	// correct view offset
@@ -564,7 +570,7 @@ func (s *txValidatorSpecialTxTestSuite) TestCheckDPOSIllegalBlocks() {
 	}
 	s.updateIllegaBlocks(confirm, evidence, cmpConfirm, cmpEvidence, asc,
 		illegalBlocks)
-	s.EqualError(CheckDPOSIllegalBlocks(illegalBlocks),
+	s.EqualError(blockchain.CheckDPOSIllegalBlocks(illegalBlocks),
 		"block and related confirm do not match")
 
 	// correct block hash corresponding to header hash
@@ -587,7 +593,7 @@ func (s *txValidatorSpecialTxTestSuite) TestCheckDPOSIllegalBlocks() {
 	}
 	s.updateIllegaBlocks(confirm, evidence, cmpConfirm, cmpEvidence, asc,
 		illegalBlocks)
-	s.EqualError(CheckDPOSIllegalBlocks(illegalBlocks),
+	s.EqualError(blockchain.CheckDPOSIllegalBlocks(illegalBlocks),
 		"signers count it not match the count of confirm votes")
 
 	// fill the same signers to evidences
@@ -597,7 +603,7 @@ func (s *txValidatorSpecialTxTestSuite) TestCheckDPOSIllegalBlocks() {
 	}
 	s.updateIllegaBlocks(confirm, evidence, cmpConfirm, cmpEvidence, asc,
 		illegalBlocks)
-	s.EqualError(CheckDPOSIllegalBlocks(illegalBlocks),
+	s.EqualError(blockchain.CheckDPOSIllegalBlocks(illegalBlocks),
 		"signers and confirm votes do not match")
 
 	// correct signers of compare evidence
@@ -608,35 +614,35 @@ func (s *txValidatorSpecialTxTestSuite) TestCheckDPOSIllegalBlocks() {
 	cmpEvidence.Signers = signers
 	s.updateIllegaBlocks(confirm, evidence, cmpConfirm, cmpEvidence, asc,
 		illegalBlocks)
-	s.NoError(CheckDPOSIllegalBlocks(illegalBlocks))
+	s.NoError(blockchain.CheckDPOSIllegalBlocks(illegalBlocks))
 }
 
 func (s *txValidatorSpecialTxTestSuite) TestCheckSidechainIllegalEvidence() {
 	illegalData := &payload.SidechainIllegalData{
 		IllegalType: payload.IllegalBlock, // set illegal type
 	}
-	s.EqualError(CheckSidechainIllegalEvidence(illegalData),
+	s.EqualError(blockchain.CheckSidechainIllegalEvidence(illegalData),
 		"invalid type")
 
 	illegalData.IllegalType = payload.SidechainIllegalProposal
-	s.EqualError(CheckSidechainIllegalEvidence(illegalData),
+	s.EqualError(blockchain.CheckSidechainIllegalEvidence(illegalData),
 		"the encodeData cann't be nil")
 
-	illegalData.IllegalSigner = unit.randomBytes(33)
+	illegalData.IllegalSigner = randomBytes(33)
 	//s.EqualError(CheckSidechainIllegalEvidence(illegalData),
 	//	"the encodeData format is error")
 
 	_, pk, _ := crypto.GenerateKeyPair()
 	illegalData.IllegalSigner, _ = pk.EncodePoint(true)
-	s.EqualError(CheckSidechainIllegalEvidence(illegalData),
+	s.EqualError(blockchain.CheckSidechainIllegalEvidence(illegalData),
 		"illegal signer is not one of current arbitrators")
 
 	illegalData.IllegalSigner = s.arbitrators.CurrentArbitrators[0].GetNodePublicKey()
-	s.EqualError(CheckSidechainIllegalEvidence(illegalData),
+	s.EqualError(blockchain.CheckSidechainIllegalEvidence(illegalData),
 		"[Uint168FromAddress] error, len != 34")
 
 	illegalData.GenesisBlockAddress = "8VYXVxKKSAxkmRrfmGpQR2Kc66XhG6m3ta"
-	s.EqualError(CheckSidechainIllegalEvidence(illegalData),
+	s.EqualError(blockchain.CheckSidechainIllegalEvidence(illegalData),
 		"insufficient signs count")
 
 	for i := 0; i < 4; i++ {
@@ -644,7 +650,7 @@ func (s *txValidatorSpecialTxTestSuite) TestCheckSidechainIllegalEvidence() {
 			illegalData.Data(payload.SidechainIllegalDataVersion))
 		illegalData.Signs = append(illegalData.Signs, s)
 	}
-	s.EqualError(CheckSidechainIllegalEvidence(illegalData),
+	s.EqualError(blockchain.CheckSidechainIllegalEvidence(illegalData),
 		"evidence order error")
 
 	// same data hash will emit order error
@@ -654,7 +660,7 @@ func (s *txValidatorSpecialTxTestSuite) TestCheckSidechainIllegalEvidence() {
 	cmpEvidence.DataHash = evidence.DataHash
 	illegalData.Evidence = *evidence
 	illegalData.CompareEvidence = *cmpEvidence
-	s.EqualError(CheckSidechainIllegalEvidence(illegalData),
+	s.EqualError(blockchain.CheckSidechainIllegalEvidence(illegalData),
 		"evidence order error")
 
 	cmpEvidence.DataHash = *randomUint256()
@@ -666,7 +672,7 @@ func (s *txValidatorSpecialTxTestSuite) TestCheckSidechainIllegalEvidence() {
 		illegalData.Evidence = *evidence
 		illegalData.CompareEvidence = *cmpEvidence
 	}
-	s.EqualError(CheckSidechainIllegalEvidence(illegalData),
+	s.EqualError(blockchain.CheckSidechainIllegalEvidence(illegalData),
 		"evidence order error")
 
 	if asc {
@@ -676,7 +682,7 @@ func (s *txValidatorSpecialTxTestSuite) TestCheckSidechainIllegalEvidence() {
 		illegalData.Evidence = *cmpEvidence
 		illegalData.CompareEvidence = *evidence
 	}
-	s.NoError(CheckSidechainIllegalEvidence(illegalData))
+	s.NoError(blockchain.CheckSidechainIllegalEvidence(illegalData))
 }
 
 func (s *txValidatorSpecialTxTestSuite) TestCheckInactiveArbitrators() {
@@ -702,7 +708,7 @@ func (s *txValidatorSpecialTxTestSuite) TestCheckInactiveArbitrators() {
 
 	s.arbitrators.ActiveProducer = s.arbitrators.CurrentArbitrators
 
-	s.EqualError(CheckInactiveArbitrators(tx),
+	s.EqualError(blockchain.CheckInactiveArbitrators(tx),
 		"sponsor is not belong to arbitrators")
 
 	// correct sponsor
@@ -716,7 +722,7 @@ func (s *txValidatorSpecialTxTestSuite) TestCheckInactiveArbitrators() {
 	// correct number of Arbitrators
 	p.Arbitrators = make([][]byte, 0)
 	p.Arbitrators = append(p.Arbitrators, randomPublicKey())
-	s.EqualError(CheckInactiveArbitrators(tx),
+	s.EqualError(blockchain.CheckInactiveArbitrators(tx),
 		"inactive arbitrator is not belong to arbitrators")
 
 	// correct "Arbitrators" to be current arbitrators
@@ -725,7 +731,7 @@ func (s *txValidatorSpecialTxTestSuite) TestCheckInactiveArbitrators() {
 		p.Arbitrators = append(p.Arbitrators,
 			s.arbitrators.CurrentArbitrators[i].GetNodePublicKey())
 	}
-	s.EqualError(CheckInactiveArbitrators(tx),
+	s.EqualError(blockchain.CheckInactiveArbitrators(tx),
 		"invalid multi sign script code")
 
 	// let "Arbitrators" has CRC arbitrators
@@ -734,7 +740,7 @@ func (s *txValidatorSpecialTxTestSuite) TestCheckInactiveArbitrators() {
 		ar,
 		s.arbitrators.CurrentArbitrators[4],
 	}
-	s.EqualError(CheckInactiveArbitrators(tx),
+	s.EqualError(blockchain.CheckInactiveArbitrators(tx),
 		"inactive arbiters should not include CRC")
 
 	// set invalid redeem script
@@ -760,13 +766,13 @@ func (s *txValidatorSpecialTxTestSuite) TestCheckInactiveArbitrators() {
 	ar, _ = state.NewOriginArbiter(pkBuf)
 	arbitrators = append(arbitrators, ar)
 	tx.Programs()[0].Code = s.createArbitratorsRedeemScript(arbitrators)
-	s.EqualError(CheckInactiveArbitrators(tx),
+	s.EqualError(blockchain.CheckInactiveArbitrators(tx),
 		"invalid multi sign public key")
 
 	// correct redeem script
 	tx.Programs()[0].Code = s.createArbitratorsRedeemScript(
 		s.arbitrators.CRCArbitrators)
-	s.NoError(CheckInactiveArbitrators(tx))
+	s.NoError(blockchain.CheckInactiveArbitrators(tx))
 }
 
 func (s *txValidatorSpecialTxTestSuite) TestCheckUpdateVersion() {
@@ -789,19 +795,19 @@ func (s *txValidatorSpecialTxTestSuite) TestCheckUpdateVersion() {
 
 	// set payload of invalid type
 	tx.SetPayload(&payload.InactiveArbitrators{})
-	s.EqualError(s.Chain.checkUpdateVersionTransaction(tx),
+	s.EqualError(s.Chain.CheckUpdateVersionTransaction(tx),
 		"invalid payload")
 
 	// set inactive mode off
 	p := &payload.UpdateVersion{}
 	tx.SetPayload(p)
-	s.EqualError(s.Chain.checkUpdateVersionTransaction(tx),
+	s.EqualError(s.Chain.CheckUpdateVersionTransaction(tx),
 		"invalid update version height")
 
 	// let EndHeight less than StartHeight
 	p.StartHeight = 10
 	p.EndHeight = p.StartHeight - 5
-	s.EqualError(s.Chain.checkUpdateVersionTransaction(tx),
+	s.EqualError(s.Chain.CheckUpdateVersionTransaction(tx),
 		"invalid update version height")
 
 	// set invalid redeem script
@@ -827,13 +833,13 @@ func (s *txValidatorSpecialTxTestSuite) TestCheckUpdateVersion() {
 	ar, _ := state.NewOriginArbiter(pkBuf)
 	arbitrators = append(arbitrators, ar)
 	tx.Programs()[0].Code = s.createArbitratorsRedeemScript(arbitrators)
-	s.EqualError(s.Chain.checkUpdateVersionTransaction(tx),
+	s.EqualError(s.Chain.CheckUpdateVersionTransaction(tx),
 		"invalid multi sign public key")
 
 	// correct redeem script
 	tx.Programs()[0].Code = s.createArbitratorsRedeemScript(
 		s.arbitrators.CRCArbitrators)
-	s.NoError(s.Chain.checkUpdateVersionTransaction(tx))
+	s.NoError(s.Chain.CheckUpdateVersionTransaction(tx))
 }
 
 func TestTxValidatorSpecialTxSuite(t *testing.T) {
@@ -864,71 +870,6 @@ func (s *txValidatorSpecialTxTestSuite) createArbitratorsRedeemScript(
 	minSignCount := arbitratorsCount * 2 / 3
 	result, _ := contract.CreateMultiSigRedeemScript(minSignCount+1, pks)
 	return result
-}
-
-func randomBlockHeader() *common2.Header {
-	return &common2.Header{
-		Version:    rand.Uint32(),
-		Previous:   *randomUint256(),
-		MerkleRoot: *randomUint256(),
-		Timestamp:  rand.Uint32(),
-		Bits:       rand.Uint32(),
-		Nonce:      rand.Uint32(),
-		Height:     rand.Uint32(),
-		AuxPow: auxpow.AuxPow{
-			AuxMerkleBranch: []common.Uint256{
-				*randomUint256(),
-				*randomUint256(),
-			},
-			AuxMerkleIndex: rand.Int(),
-			ParCoinbaseTx: auxpow.BtcTx{
-				Version: rand.Int31(),
-				TxIn: []*auxpow.BtcTxIn{
-					{
-						PreviousOutPoint: auxpow.BtcOutPoint{
-							Hash:  *randomUint256(),
-							Index: rand.Uint32(),
-						},
-						SignatureScript: []byte(strconv.FormatUint(rand.Uint64(), 10)),
-						Sequence:        rand.Uint32(),
-					},
-					{
-						PreviousOutPoint: auxpow.BtcOutPoint{
-							Hash:  *randomUint256(),
-							Index: rand.Uint32(),
-						},
-						SignatureScript: []byte(strconv.FormatUint(rand.Uint64(), 10)),
-						Sequence:        rand.Uint32(),
-					},
-				},
-				TxOut: []*auxpow.BtcTxOut{
-					{
-						Value:    rand.Int63(),
-						PkScript: []byte(strconv.FormatUint(rand.Uint64(), 10)),
-					},
-					{
-						Value:    rand.Int63(),
-						PkScript: []byte(strconv.FormatUint(rand.Uint64(), 10)),
-					},
-				},
-				LockTime: rand.Uint32(),
-			},
-			ParCoinBaseMerkle: []common.Uint256{
-				*randomUint256(),
-				*randomUint256(),
-			},
-			ParMerkleIndex: rand.Int(),
-			ParBlockHeader: auxpow.BtcHeader{
-				Version:    rand.Uint32(),
-				Previous:   *randomUint256(),
-				MerkleRoot: *randomUint256(),
-				Timestamp:  rand.Uint32(),
-				Bits:       rand.Uint32(),
-				Nonce:      rand.Uint32(),
-			},
-			ParentHash: *randomUint256(),
-		},
-	}
 }
 
 func (s *txValidatorSpecialTxTestSuite) updateIllegaBlocks(

@@ -70,6 +70,13 @@ func (a *Arbiters) getNormalArbitratorsDescV1() ([]ArbiterMember, error) {
 	return nil, nil
 }
 
+func (a *Arbiters) GetNextOnDutyArbitratorV0(height,
+	offset uint32) ArbiterMember {
+	a.mtx.Lock()
+	defer a.mtx.Unlock()
+	return a.getNextOnDutyArbitratorV0(height, offset)
+}
+
 // 0 - H1
 func (a *Arbiters) getNextOnDutyArbitratorV0(height,
 	offset uint32) ArbiterMember {

@@ -675,7 +675,7 @@ func (p *ProposalManager) registerProposal(tx interfaces.Transaction,
 	}
 }
 
-func getCIDByCode(code []byte) (*common.Uint168, error) {
+func GetCIDByCode(code []byte) (*common.Uint168, error) {
 	ct1, err := contract.CreateCRIDContractByCode(code)
 	if err != nil {
 		return nil, err

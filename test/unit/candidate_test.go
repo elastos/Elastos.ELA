@@ -30,6 +30,7 @@ func init() {
 	functions.GetTransactionParameters = transaction2.GetTransactionparameters
 	config.DefaultParams = config.GetDefaultParams()
 }
+
 func TestCandidate_Deserialize(t *testing.T) {
 	candidate1 := randomCandidate()
 

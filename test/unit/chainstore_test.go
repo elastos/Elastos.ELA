@@ -3,26 +3,38 @@
 // license that can be found in the LICENSE file.
 //
 
-package blockchain
+package unit
 
 import (
-	"github.com/elastos/Elastos.ELA/test/unit"
 	"testing"
 
+	"github.com/elastos/Elastos.ELA/blockchain"
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
+	"github.com/elastos/Elastos.ELA/core/transaction"
+	"github.com/elastos/Elastos.ELA/core/types/functions"
 	"github.com/stretchr/testify/assert"
 )
 
+func init() {
+	testing.Init()
+
+	functions.GetTransactionByTxType = transaction.GetTransaction
+	functions.GetTransactionByBytes = transaction.GetTransactionByBytes
+	functions.CreateTransaction = transaction.CreateTransaction
+	functions.GetTransactionParameters = transaction.GetTransactionparameters
+	config.DefaultParams = config.GetDefaultParams()
+}
+
 func TestCheckAssetPrecision(t *testing.T) {
-	tx := unit.buildTx()
+	tx := buildTx()
 	// valid precision
 	for _, output := range tx.Outputs() {
 		output.AssetID = config.ELAAssetID
 		output.ProgramHash = common.Uint168{}
 		output.Value = 123456789876
 	}
-	err := checkAssetPrecision(tx)
+	err := blockchain.CheckAssetPrecision(tx)
 	assert.NoError(t, err)
 
 	for _, output := range tx.Outputs() {
@@ -30,6 +42,6 @@ func TestCheckAssetPrecision(t *testing.T) {
 		output.ProgramHash = common.Uint168{}
 		output.Value = 0
 	}
-	err = checkAssetPrecision(tx)
+	err = blockchain.CheckAssetPrecision(tx)
 	assert.NoError(t, err)
 }

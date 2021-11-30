@@ -521,6 +521,10 @@ func (tx *BaseTransaction) IsCoinBaseTx() bool {
 	return tx.txType == common2.CoinBase
 }
 
+func (tx *BaseTransaction) IsDposV2ClaimRewardTx() bool {
+	return tx.txType == common2.DposV2ClaimReward
+}
+
 // SerializeSizeStripped returns the number of bytes it would take to serialize
 // the block, excluding any witness data (if any).
 func (tx *BaseTransaction) SerializeSizeStripped() int {

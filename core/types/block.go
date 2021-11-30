@@ -134,6 +134,10 @@ func (b *Block) Hash() common.Uint256 {
 	return b.Header.Hash()
 }
 
+func (b *Block) HashWithAux() common.Uint256 {
+	return b.Header.HashWithAux()
+}
+
 // SerializeSizeStripped returns the number of bytes it would take to serialize
 // the block, excluding any witness data (if any).
 func (b *Block) SerializeSizeStripped() int {

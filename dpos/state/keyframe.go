@@ -6,6 +6,7 @@
 package state
 
 import (
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"io"
 
 	"github.com/elastos/Elastos.ELA/common"
@@ -32,10 +33,15 @@ type StateKeyFrame struct {
 	Votes                    map[string]struct{}
 	DposV2Votes              map[string]uint32 // key: output value: block height
 	DepositOutputs           map[string]common.Fixed64
+	DposV2RewardInfo         map[string]common.Fixed64
+	DposV2RewardClaimingInfo map[string]common.Fixed64
+	DposV2RewardClaimedInfo  map[string]common.Fixed64
 	Nicknames                map[string]struct{}
 	SpecialTxHashes          map[common.Uint256]struct{}
 	PreBlockArbiters         map[string]struct{}
 	ProducerDepositMap       map[common.Uint168]struct{}
+	// dposV2Withdraw info
+	WithdrawableTxInfo map[common.Uint256]common2.OutputInfo
 
 	EmergencyInactiveArbiters map[string]struct{}
 	LastRandomCandidateOwner  string
@@ -79,6 +85,10 @@ func (s *StateKeyFrame) snapshot() *StateKeyFrame {
 		Votes:                    make(map[string]struct{}),
 		DposV2Votes:              make(map[string]uint32),
 		DepositOutputs:           make(map[string]common.Fixed64),
+		DposV2RewardInfo:         make(map[string]common.Fixed64),
+		DposV2RewardClaimingInfo: make(map[string]common.Fixed64),
+		DposV2RewardClaimedInfo:  make(map[string]common.Fixed64),
+		WithdrawableTxInfo:       make(map[common.Uint256]common2.OutputInfo),
 		Nicknames:                make(map[string]struct{}),
 		SpecialTxHashes:          make(map[common.Uint256]struct{}),
 		PreBlockArbiters:         make(map[string]struct{}),
@@ -96,6 +106,10 @@ func (s *StateKeyFrame) snapshot() *StateKeyFrame {
 	state.Votes = copyStringSet(s.Votes)
 	state.DposV2Votes = copyStringHeightMap(s.DposV2Votes)
 	state.DepositOutputs = copyFixed64Map(s.DepositOutputs)
+	state.DposV2RewardInfo = copyFixed64Map(s.DposV2RewardInfo)
+	state.DposV2RewardClaimingInfo = copyFixed64Map(s.DposV2RewardClaimingInfo)
+	state.DposV2RewardClaimedInfo = copyFixed64Map(s.DposV2RewardClaimedInfo)
+	state.WithdrawableTxInfo = copyWithdrawableTransactionsMap(s.WithdrawableTxInfo)
 	state.Nicknames = copyStringSet(s.Nicknames)
 	state.SpecialTxHashes = copyHashSet(s.SpecialTxHashes)
 	state.PreBlockArbiters = copyStringSet(s.PreBlockArbiters)
@@ -150,6 +164,20 @@ func (s *StateKeyFrame) Serialize(w io.Writer) (err error) {
 	}
 
 	if err = s.SerializeFixed64Map(s.DepositOutputs, w); err != nil {
+		return
+	}
+
+	if err = s.SerializeFixed64Map(s.DposV2RewardInfo, w); err != nil {
+		return
+	}
+	if err = s.SerializeFixed64Map(s.DposV2RewardClaimingInfo, w); err != nil {
+		return
+	}
+	if err = s.SerializeFixed64Map(s.DposV2RewardClaimedInfo, w); err != nil {
+		return
+	}
+
+	if err = s.serializeWithdrawableTransactionsMap(s.WithdrawableTxInfo, w); err != nil {
 		return
 	}
 
@@ -238,6 +266,22 @@ func (s *StateKeyFrame) Deserialize(r io.Reader) (err error) {
 		return
 	}
 
+	if s.DposV2RewardInfo, err = s.DeserializeFixed64Map(r); err != nil {
+		return
+	}
+
+	if s.DposV2RewardClaimingInfo, err = s.DeserializeFixed64Map(r); err != nil {
+		return
+	}
+
+	if s.DposV2RewardClaimedInfo, err = s.DeserializeFixed64Map(r); err != nil {
+		return
+	}
+
+	if s.WithdrawableTxInfo, err = s.deserializeWithdrawableTransactionsMap(r); err != nil {
+		return
+	}
+
 	if s.Nicknames, err = s.DeserializeStringSet(r); err != nil {
 		return
 	}
@@ -323,6 +367,42 @@ func (s *StateKeyFrame) SerializeFixed64Map(vmap map[string]common.Fixed64,
 	return
 }
 
+func (p *StateKeyFrame) serializeWithdrawableTransactionsMap(
+	proposalWithdrableTx map[common.Uint256]common2.OutputInfo, w io.Writer) (err error) {
+	if err = common.WriteVarUint(w, uint64(len(proposalWithdrableTx))); err != nil {
+		return
+	}
+	for k, v := range proposalWithdrableTx {
+		if err = k.Serialize(w); err != nil {
+			return
+		}
+		if err = v.Serialize(w); err != nil {
+			return
+		}
+	}
+	return
+}
+
+func (p *StateKeyFrame) deserializeWithdrawableTransactionsMap(r io.Reader) (
+	withdrawableTxsMap map[common.Uint256]common2.OutputInfo, err error) {
+	var count uint64
+	if count, err = common.ReadVarUint(r, 0); err != nil {
+		return
+	}
+	withdrawableTxsMap = make(map[common.Uint256]common2.OutputInfo)
+	for i := uint64(0); i < count; i++ {
+		var hash common.Uint256
+		if err = hash.Deserialize(r); err != nil {
+			return
+		}
+		var withdrawInfo common2.OutputInfo
+		if err = withdrawInfo.Deserialize(r); err != nil {
+			return
+		}
+	}
+	return
+}
+
 func (s *StateKeyFrame) DeserializeFixed64Map(
 	r io.Reader) (vmap map[string]common.Fixed64, err error) {
 	var count uint64
@@ -357,7 +437,6 @@ func (s *StateKeyFrame) SerializeStringSet(vmap map[string]struct{},
 	return
 }
 
-
 func (s *StateKeyFrame) SerializeStringHeightMap(vmap map[string]uint32,
 	w io.Writer) (err error) {
 	if err = common.WriteVarUint(w, uint64(len(vmap))); err != nil {
@@ -373,7 +452,6 @@ func (s *StateKeyFrame) SerializeStringHeightMap(vmap map[string]uint32,
 	}
 	return
 }
-
 
 func (s *StateKeyFrame) DeserializeStringSet(
 	r io.Reader) (vmap map[string]struct{}, err error) {
@@ -391,7 +469,6 @@ func (s *StateKeyFrame) DeserializeStringSet(
 	}
 	return
 }
-
 
 func (s *StateKeyFrame) DeserializeStringHeightMap(
 	r io.Reader) (vmap map[string]uint32, err error) {
@@ -521,6 +598,9 @@ func (s *StateKeyFrame) DeserializeProducerMap(
 }
 
 func NewStateKeyFrame() *StateKeyFrame {
+	// test
+	info := make(map[string]common.Fixed64)
+	info["EdTyQguX2rJKje5cwwbXyaLoPVFvzf41s6"] = 10000000000
 	return &StateKeyFrame{
 		NodeOwnerKeys:             make(map[string]string),
 		PendingProducers:          make(map[string]*Producer),
@@ -534,6 +614,10 @@ func NewStateKeyFrame() *StateKeyFrame {
 		Votes:                     make(map[string]struct{}),
 		DposV2Votes:               make(map[string]uint32),
 		DepositOutputs:            make(map[string]common.Fixed64),
+		DposV2RewardInfo:          info,
+		DposV2RewardClaimingInfo:  make(map[string]common.Fixed64),
+		DposV2RewardClaimedInfo:   make(map[string]common.Fixed64),
+		WithdrawableTxInfo:        make(map[common.Uint256]common2.OutputInfo),
 		Nicknames:                 make(map[string]struct{}),
 		SpecialTxHashes:           make(map[common.Uint256]struct{}),
 		PreBlockArbiters:          make(map[string]struct{}),
@@ -621,6 +705,17 @@ func copyFixed64Map(src map[string]common.Fixed64) (dst map[string]common.Fixed6
 	for k, v := range src {
 		p := v
 		dst[k] = p
+	}
+	return
+}
+
+func copyWithdrawableTransactionsMap(src map[common.Uint256]common2.OutputInfo) (dst map[common.Uint256]common2.OutputInfo) {
+	dst = map[common.Uint256]common2.OutputInfo{}
+	for k, v := range src {
+		dst[k] = common2.OutputInfo{
+			Recipient: v.Recipient,
+			Amount:    v.Amount,
+		}
 	}
 	return
 }

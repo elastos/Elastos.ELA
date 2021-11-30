@@ -324,6 +324,70 @@ func createTransaction(walletPath string, from string, fee common.Fixed64, outpu
 	), nil
 }
 
+func CreateDposV2ClaimRewardTransaction(c *cli.Context) error {
+	amount := c.Int64("claimamount")
+	if amount == 0 {
+		return errors.New("must specify claimamount flag")
+	}
+	walletPath := c.String("wallet")
+	password, err := cmdcom.GetFlagPassword(c)
+	if err != nil {
+		return err
+	}
+	client, err := account.Open(walletPath, password)
+	if err != nil {
+		return err
+	}
+	acc := client.GetMainAccount()
+	if contract.GetPrefixType(acc.ProgramHash) != contract.PrefixStandard {
+		return errors.New("main account is not a standard account")
+	}
+	mainAccount, err := account.GetWalletMainAccountData(walletPath)
+	if err != nil {
+		return err
+	}
+
+	redeemScript, err := common.HexStringToBytes(mainAccount.RedeemScript)
+	if err != nil {
+		return err
+	}
+
+	// create program
+	var txProgram = &pg.Program{
+		Code:      redeemScript,
+		Parameter: nil,
+	}
+
+	buf := new(bytes.Buffer)
+	apPayload := &payload.DposV2ClaimReward{
+		Amount: common.Fixed64(amount),
+	}
+
+	if err = apPayload.SerializeUnsigned(buf, payload.ActivateProducerVersion); err != nil {
+		return err
+	}
+	signature, err := acc.Sign(buf.Bytes())
+	if err != nil {
+		return err
+	}
+	apPayload.Signature = signature
+
+	txn := functions.CreateTransaction(
+		common2.TxVersion09,
+		common2.DposV2ClaimReward,
+		0,
+		apPayload,
+		nil,
+		nil,
+		nil,
+		0,
+		[]*pg.Program{txProgram})
+
+	OutputTx(0, 1, txn)
+
+	return nil
+}
+
 func CreateActivateProducerTransaction(c *cli.Context) error {
 
 	walletPath := c.String("wallet")

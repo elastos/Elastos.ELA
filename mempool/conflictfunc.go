@@ -12,8 +12,8 @@ import (
 
 	"github.com/elastos/Elastos.ELA/blockchain"
 	"github.com/elastos/Elastos.ELA/common"
-	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/core/types/outputpayload"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/crypto"
@@ -319,6 +319,18 @@ func strSecretaryGeneral(tx interfaces.Transaction) (interface{}, error) {
 		return "Secretary General", nil
 	}
 	return nil, nil
+}
+
+func hashArrayDposV2ClaimRewardRealWithdrawTransactionHashes(
+	tx interfaces.Transaction) (interface{}, error) {
+	p, ok := tx.Payload().(*payload.DposV2ClaimRewardRealWithdraw)
+	if !ok {
+		return nil, fmt.Errorf(
+			"real proposal withdraw transaction cast failed, tx: %s",
+			tx.Hash())
+	}
+
+	return p.WithdrawTransactionHashes, nil
 }
 
 func hashArrayCRCProposalRealWithdrawTransactionHashes(

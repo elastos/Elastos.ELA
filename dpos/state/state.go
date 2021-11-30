@@ -11,6 +11,9 @@ import (
 	"fmt"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/core/types/interfaces"
+	elaerr "github.com/elastos/Elastos.ELA/errors"
+	"github.com/elastos/Elastos.ELA/p2p"
+	"github.com/elastos/Elastos.ELA/p2p/msg"
 	"io"
 	"math"
 	"sync"
@@ -306,6 +309,20 @@ type State struct {
 	chainParams *config.Params
 	mtx         sync.RWMutex
 	history     *utils.History
+
+	getHeight                           func() uint32
+	isCurrent                           func() bool
+	broadcast                           func(msg p2p.Message)
+	appendToTxpool                      func(transaction interfaces.Transaction) elaerr.ELAError
+	createDposV2RealWithdrawTransaction func(withdrawTransactionHashes []common.Uint256,
+		outputs []*common2.OutputInfo) (interfaces.Transaction, error)
+}
+
+func (c *State) GetRealWithdrawTransactions() map[common.Uint256]common2.OutputInfo {
+	c.mtx.RLock()
+	defer c.mtx.RUnlock()
+
+	return c.StateKeyFrame.WithdrawableTxInfo
 }
 
 // getProducerKey returns the producer's owner public key string, whether the
@@ -826,8 +843,63 @@ func (s *State) ProcessBlock(block *types.Block, confirm *payload.Confirm) {
 		}
 	}
 
+	if block.Height >= s.chainParams.DposV2StartHeight &&
+		len(s.WithdrawableTxInfo) != 0 {
+		s.createDposV2ClaimRewardRealWithdrawTransaction(block.Height)
+	}
+
 	// Commit changes here if no errors found.
 	s.history.Commit(block.Height)
+}
+
+func (s *State) createDposV2ClaimRewardRealWithdrawTransaction(height uint32) {
+	if s.createDposV2RealWithdrawTransaction != nil && height == s.getHeight() {
+		withdrawTransactionHahses := make([]common.Uint256, 0)
+		ouputs := make([]*common2.OutputInfo, 0)
+		for k, v := range s.WithdrawableTxInfo {
+			withdrawTransactionHahses = append(withdrawTransactionHahses, k)
+			outputInfo := v
+			ouputs = append(ouputs, &outputInfo)
+		}
+		tx, err := s.createDposV2RealWithdrawTransaction(withdrawTransactionHahses, ouputs)
+		if err != nil {
+			log.Error("create dposv2 real withdraw tx failed:", err.Error())
+			return
+		}
+
+		log.Info("create dposv2 real withdraw transaction:", tx.Hash())
+		if s.isCurrent != nil && s.broadcast != nil && s.
+			appendToTxpool != nil {
+			go func() {
+				if s.isCurrent() {
+					if err := s.appendToTxpool(tx); err == nil {
+						s.broadcast(msg.NewTx(tx))
+					} else {
+						log.Warn("create dposv2 real withdraw transaction "+
+							"append to tx pool err ", err)
+					}
+				}
+			}()
+		}
+	}
+	return
+}
+
+type StateFuncsConfig struct {
+	GetHeight                           func() uint32
+	CreateDposV2RealWithdrawTransaction func(withdrawTransactionHashes []common.Uint256,
+		outpus []*common2.OutputInfo) (interfaces.Transaction, error)
+	IsCurrent      func() bool
+	Broadcast      func(msg p2p.Message)
+	AppendToTxpool func(transaction interfaces.Transaction) elaerr.ELAError
+}
+
+func (c *State) RegisterFuncitons(cfg *StateFuncsConfig) {
+	c.createDposV2RealWithdrawTransaction = cfg.CreateDposV2RealWithdrawTransaction
+	c.isCurrent = cfg.IsCurrent
+	c.broadcast = cfg.Broadcast
+	c.appendToTxpool = cfg.AppendToTxpool
+	c.getHeight = cfg.GetHeight
 }
 
 func (s *State) tryRevertToPOWByStateOfCRMember(height uint32) {
@@ -1054,6 +1126,12 @@ func (s *State) processTransaction(tx interfaces.Transaction, height uint32) {
 
 	case common2.RevertToDPOS:
 		s.processRevertToDPOS(tx.Payload().(*payload.RevertToDPOS), height)
+
+	case common2.DposV2ClaimReward:
+		s.processDposV2ClaimReward(tx, height)
+
+	case common2.DposV2ClaimRewardRealWithdraw:
+		s.processDposV2ClaimRewardRealWithdraw(tx, height)
 	}
 
 	if tx.TxType() != common2.RegisterProducer {
@@ -1082,7 +1160,7 @@ func (s *State) registerProducer(tx interfaces.Transaction, height uint32) {
 			depositOutputs[op.ReferKey()] = output.Value
 		}
 	}
-	if tx.PayloadVersion() != payload.ProducerInfoDposV2Version || s.getProducer(info.NodePublicKey) == nil {
+	if s.getProducer(info.NodePublicKey) == nil {
 		producer := Producer{
 			info:                         *info,
 			registerHeight:               height,
@@ -1654,6 +1732,53 @@ func (s *State) getClaimedCRMembersMap() map[string]*state.CRMember {
 		}
 	}
 	return crMembersMap
+}
+
+func (s *State) processDposV2ClaimReward(tx interfaces.Transaction, height uint32) {
+	oriDposV2RewardInfo := s.DposV2RewardInfo
+	oriDposV2RewardClaimingInfo := s.DposV2RewardClaimingInfo
+	payload := tx.Payload().(*payload.DposV2ClaimReward)
+	pub := hex.EncodeToString(tx.Programs()[0].Code[1 : len(tx.Programs()[0].Code)-1])
+	pkBytes, _ := common.HexStringToBytes(pub)
+	u168, _ := contract.PublicKeyToStandardProgramHash(pkBytes)
+	addr, _ := u168.ToAddress()
+	s.history.Append(height, func() {
+		s.DposV2RewardInfo[addr] -= payload.Amount
+		s.DposV2RewardClaimingInfo[addr] += payload.Amount
+		receipt, _ := contract.PublicKeyToStandardProgramHash(tx.Programs()[0].Code[1 : len(tx.Programs()[0].Code)-1])
+		s.WithdrawableTxInfo[tx.Hash()] = common2.OutputInfo{
+			Recipient: *receipt,
+			Amount:    payload.Amount,
+		}
+	}, func() {
+		s.DposV2RewardInfo = oriDposV2RewardInfo
+		s.DposV2RewardClaimingInfo = oriDposV2RewardClaimingInfo
+		delete(s.WithdrawableTxInfo, tx.Hash())
+	})
+}
+
+func (s *State) processDposV2ClaimRewardRealWithdraw(tx interfaces.Transaction, height uint32) {
+	txs := make(map[common.Uint256]common2.OutputInfo)
+	for k, v := range s.StateKeyFrame.WithdrawableTxInfo {
+		txs[k] = v
+	}
+	oriClaimingInfo := s.DposV2RewardClaimingInfo
+	oriClaimedInfo := s.DposV2RewardClaimedInfo
+	withdrawPayload := tx.Payload().(*payload.DposV2ClaimRewardRealWithdraw)
+
+	s.history.Append(height, func() {
+		for _, hash := range withdrawPayload.WithdrawTransactionHashes {
+			info := s.StateKeyFrame.WithdrawableTxInfo[hash]
+			addr, _ := info.Recipient.ToAddress()
+			s.DposV2RewardClaimingInfo[addr] -= info.Amount
+			s.DposV2RewardClaimedInfo[addr] += info.Amount
+			delete(s.StateKeyFrame.WithdrawableTxInfo, hash)
+		}
+	}, func() {
+		s.StateKeyFrame.WithdrawableTxInfo = txs
+		s.DposV2RewardClaimingInfo = oriClaimingInfo
+		s.DposV2RewardClaimedInfo = oriClaimedInfo
+	})
 }
 
 func (s *State) processRevertToDPOS(Payload *payload.RevertToDPOS, height uint32) {

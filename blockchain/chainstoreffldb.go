@@ -98,7 +98,7 @@ func LoadBlockDB(dataPath string, dbName string) (database.DB, error) {
 			return nil, err
 		}
 
-		// Create the db if it does not exist.
+		// Create the DB if it does not exist.
 		err = os.MkdirAll(dataPath, 0700)
 		if err != nil {
 			return nil, err

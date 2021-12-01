@@ -46,6 +46,14 @@ func randomVoterInfo() voterInfo {
 	}
 }
 
+func randomUint168() *common.Uint168 {
+	randBytes := make([]byte, 21)
+	rand.Read(randBytes)
+	result, _ := common.Uint168FromBytes(randBytes)
+
+	return result
+}
+
 func randomUint32() uint32 {
 	var randNum uint32
 	binary.Read(rand.Reader, binary.BigEndian, &randNum)

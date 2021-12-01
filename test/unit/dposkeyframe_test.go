@@ -3,20 +3,34 @@
 // license that can be found in the LICENSE file.
 //
 
-package state
+package unit
 
 import (
 	"bytes"
-	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"math/rand"
 	"testing"
 
 	"github.com/elastos/Elastos.ELA/common"
+	"github.com/elastos/Elastos.ELA/common/config"
+	"github.com/elastos/Elastos.ELA/core/transaction"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/functions"
 	"github.com/elastos/Elastos.ELA/core/types/outputpayload"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
+	"github.com/elastos/Elastos.ELA/dpos/state"
 
 	"github.com/stretchr/testify/assert"
 )
+
+func init() {
+	testing.Init()
+
+	functions.GetTransactionByTxType = transaction.GetTransaction
+	functions.GetTransactionByBytes = transaction.GetTransactionByBytes
+	functions.CreateTransaction = transaction.CreateTransaction
+	functions.GetTransactionParameters = transaction.GetTransactionparameters
+	config.DefaultParams = config.GetDefaultParams()
+}
 
 func TestRewardData_Deserialize(t *testing.T) {
 	originData := randomRewardData()
@@ -24,43 +38,43 @@ func TestRewardData_Deserialize(t *testing.T) {
 	buf := new(bytes.Buffer)
 	assert.NoError(t, originData.Serialize(buf))
 
-	cmpData := NewRewardData()
+	cmpData := state.NewRewardData()
 	assert.NoError(t, cmpData.Deserialize(buf))
 
 	assert.True(t, rewardEqual(originData, cmpData))
 }
 
-func TestStateKeyFrame_Deserialize(t *testing.T) {
-	originFrame := randomStateKeyFrame()
+func TestDPOSStateKeyFrame_Deserialize(t *testing.T) {
+	originFrame := randomDPOSStateKeyFrame()
 
 	buf := new(bytes.Buffer)
 	assert.NoError(t, originFrame.Serialize(buf))
 
-	cmpData := &StateKeyFrame{}
+	cmpData := &state.StateKeyFrame{}
 	assert.NoError(t, cmpData.Deserialize(buf))
 
 	assert.True(t, stateKeyFrameEqual(originFrame, cmpData))
 }
 
-func TestCheckPoint_Deserialize(t *testing.T) {
-	originCheckPoint := generateCheckPoint(rand.Uint32())
+func TestDPOSCheckPoint_Deserialize(t *testing.T) {
+	originCheckPoint := generateDPOSCheckPoint(rand.Uint32())
 
 	buf := new(bytes.Buffer)
 	assert.NoError(t, originCheckPoint.Serialize(buf))
 
-	cmpData := &CheckPoint{}
+	cmpData := &state.CheckPoint{}
 	assert.NoError(t, cmpData.Deserialize(buf))
 
-	assert.True(t, checkPointsEqual(originCheckPoint, cmpData))
+	assert.True(t, dposCheckPointsEqual(originCheckPoint, cmpData))
 }
 
-func checkPointsEqual(first *CheckPoint, second *CheckPoint) bool {
+func dposCheckPointsEqual(first *state.CheckPoint, second *state.CheckPoint) bool {
 	if first.Height != second.Height || first.DutyIndex != second.DutyIndex ||
 		first.CurrentReward.TotalVotesInRound !=
 			second.CurrentReward.TotalVotesInRound ||
 		second.NextReward.TotalVotesInRound !=
 			second.NextReward.TotalVotesInRound ||
-		first.forceChanged != second.forceChanged {
+		first.ForceChanged != second.ForceChanged {
 		return false
 	}
 
@@ -86,41 +100,41 @@ func checkPointsEqual(first *CheckPoint, second *CheckPoint) bool {
 			second.NextReward.OwnerVotesInRound)
 }
 
-func generateCheckPoint(height uint32) *CheckPoint {
-	result := &CheckPoint{
+func generateDPOSCheckPoint(height uint32) *state.CheckPoint {
+	result := &state.CheckPoint{
 		Height:                height,
 		DutyIndex:             int(rand.Uint32()),
-		NextArbitrators:       []ArbiterMember{},
-		NextCandidates:        []ArbiterMember{},
-		CurrentCandidates:     []ArbiterMember{},
-		CurrentArbitrators:    []ArbiterMember{},
-		CurrentReward:         *NewRewardData(),
-		NextReward:            *NewRewardData(),
-		CurrentCRCArbitersMap: make(map[common.Uint168]ArbiterMember),
-		NextCRCArbitersMap:    make(map[common.Uint168]ArbiterMember),
-		NextCRCArbiters:       make([]ArbiterMember, 0),
-		crcChangedHeight:      123,
-		forceChanged:          true,
-		StateKeyFrame:         *randomStateKeyFrame(),
+		NextArbitrators:       []state.ArbiterMember{},
+		NextCandidates:        []state.ArbiterMember{},
+		CurrentCandidates:     []state.ArbiterMember{},
+		CurrentArbitrators:    []state.ArbiterMember{},
+		CurrentReward:         *state.NewRewardData(),
+		NextReward:            *state.NewRewardData(),
+		CurrentCRCArbitersMap: make(map[common.Uint168]state.ArbiterMember),
+		NextCRCArbitersMap:    make(map[common.Uint168]state.ArbiterMember),
+		NextCRCArbiters:       make([]state.ArbiterMember, 0),
+		CRCChangedHeight:      123,
+		ForceChanged:          true,
+		StateKeyFrame:         *randomDPOSStateKeyFrame(),
 	}
 	result.CurrentReward.TotalVotesInRound = common.Fixed64(rand.Uint64())
 	result.NextReward.TotalVotesInRound = common.Fixed64(rand.Uint64())
 
 	for i := 0; i < 5; i++ {
-		ar, _ := NewOriginArbiter(randomFakePK())
+		ar, _ := state.NewOriginArbiter(randomFakePK())
 		result.CurrentArbitrators = append(result.CurrentArbitrators, ar)
-		ar, _ = NewOriginArbiter(randomFakePK())
+		ar, _ = state.NewOriginArbiter(randomFakePK())
 		result.CurrentCandidates = append(result.CurrentCandidates, ar)
-		ar, _ = NewOriginArbiter(randomFakePK())
+		ar, _ = state.NewOriginArbiter(randomFakePK())
 		result.NextArbitrators = append(result.NextArbitrators, ar)
-		ar, _ = NewOriginArbiter(randomFakePK())
+		ar, _ = state.NewOriginArbiter(randomFakePK())
 		result.NextCandidates = append(result.NextCandidates, ar)
 
-		ar, _ = NewOriginArbiter(randomFakePK())
+		ar, _ = state.NewOriginArbiter(randomFakePK())
 		result.NextCRCArbiters = append(result.NextCRCArbiters, ar)
-		ar, _ = NewOriginArbiter(randomFakePK())
+		ar, _ = state.NewOriginArbiter(randomFakePK())
 		result.CurrentCRCArbitersMap[ar.GetOwnerProgramHash()] = ar
-		ar, _ = NewOriginArbiter(randomFakePK())
+		ar, _ = state.NewOriginArbiter(randomFakePK())
 		result.NextCRCArbitersMap[ar.GetOwnerProgramHash()] = ar
 
 		result.CurrentReward.OwnerVotesInRound[*randomProgramHash()] =
@@ -133,7 +147,7 @@ func generateCheckPoint(height uint32) *CheckPoint {
 	return result
 }
 
-func stateKeyFrameEqual(first *StateKeyFrame, second *StateKeyFrame) bool {
+func stateKeyFrameEqual(first *state.StateKeyFrame, second *state.StateKeyFrame) bool {
 	if len(first.NodeOwnerKeys) != len(second.NodeOwnerKeys) ||
 		len(first.PendingProducers) != len(second.PendingProducers) ||
 		len(first.ActivityProducers) != len(second.ActivityProducers) ||
@@ -323,15 +337,15 @@ func stateKeyFrameEqual(first *StateKeyFrame, second *StateKeyFrame) bool {
 		first.VersionEndHeight == second.VersionEndHeight
 }
 
-func randomStateKeyFrame() *StateKeyFrame {
-	result := &StateKeyFrame{
+func randomDPOSStateKeyFrame() *state.StateKeyFrame {
+	result := &state.StateKeyFrame{
 		NodeOwnerKeys:             make(map[string]string),
-		PendingProducers:          make(map[string]*Producer),
-		ActivityProducers:         make(map[string]*Producer),
-		InactiveProducers:         make(map[string]*Producer),
-		CanceledProducers:         make(map[string]*Producer),
-		IllegalProducers:          make(map[string]*Producer),
-		PendingCanceledProducers:  make(map[string]*Producer),
+		PendingProducers:          make(map[string]*state.Producer),
+		ActivityProducers:         make(map[string]*state.Producer),
+		InactiveProducers:         make(map[string]*state.Producer),
+		CanceledProducers:         make(map[string]*state.Producer),
+		IllegalProducers:          make(map[string]*state.Producer),
+		PendingCanceledProducers:  make(map[string]*state.Producer),
 		Votes:                     make(map[string]struct{}),
 		DposV2Votes:               make(map[string]uint32),
 		DepositOutputs:            make(map[string]common.Fixed64),
@@ -369,20 +383,22 @@ func randomStateKeyFrame() *StateKeyFrame {
 	return result
 }
 
-func producerEqual(first *Producer, second *Producer) bool {
-	if first.state != second.state ||
-		first.registerHeight != second.registerHeight ||
-		first.cancelHeight != second.cancelHeight ||
-		first.inactiveSince != second.inactiveSince ||
-		first.activateRequestHeight != second.activateRequestHeight ||
-		first.illegalHeight != second.illegalHeight ||
-		first.penalty != second.penalty ||
-		first.votes != second.votes ||
-		first.dposV2Votes != second.dposV2Votes {
+func producerEqual(first *state.Producer, second *state.Producer) bool {
+	if first.State() != second.State() ||
+		first.RegisterHeight() != second.RegisterHeight() ||
+		first.CancelHeight() != second.CancelHeight() ||
+		first.InactiveSince() != second.InactiveSince() ||
+		first.ActivateRequestHeight() != second.ActivateRequestHeight() ||
+		first.IllegalHeight() != second.IllegalHeight() ||
+		first.Penalty() != second.Penalty() ||
+		first.Votes() != second.Votes() ||
+		first.DposV2Votes() != second.DposV2Votes() {
 		return false
 	}
 
-	return producerInfoEqual(&first.info, &second.info)
+	info1 := first.Info()
+	info2 := second.Info()
+	return producerInfoEqual(&info1, &info2)
 }
 
 func producerInfoEqual(first *payload.ProducerInfo,
@@ -399,7 +415,7 @@ func producerInfoEqual(first *payload.ProducerInfo,
 		bytes.Equal(first.Signature, second.Signature)
 }
 
-func rewardEqual(first *RewardData, second *RewardData) bool {
+func rewardEqual(first *state.RewardData, second *state.RewardData) bool {
 	if first.TotalVotesInRound != second.TotalVotesInRound {
 		return false
 	}
@@ -407,8 +423,8 @@ func rewardEqual(first *RewardData, second *RewardData) bool {
 	return votesMapEqual(first.OwnerVotesInRound, second.OwnerVotesInRound)
 }
 
-func randomRewardData() *RewardData {
-	result := NewRewardData()
+func randomRewardData() *state.RewardData {
+	result := state.NewRewardData()
 
 	for i := 0; i < 5; i++ {
 		result.OwnerVotesInRound[*randomProgramHash()] =
@@ -453,39 +469,28 @@ func randomProgramHash() *common.Uint168 {
 	return hash
 }
 
-func randomString() string {
-	a := make([]byte, 20)
-	rand.Read(a)
-	return common.BytesToHexString(a)
-}
+func randomProducer() *state.Producer {
+	p := &state.Producer{}
+	p.SetInfo(payload.ProducerInfo{
+		OwnerPublicKey: randomFakePK(),
+		NodePublicKey:  randomFakePK(),
+		NickName:       randomString(),
+		Url:            randomString(),
+		Location:       rand.Uint64(),
+		NetAddress:     randomString(),
+		Signature:      randomBytes(64),
+	})
+	p.SetState(state.ProducerState(rand.Uint32()))
+	p.SetRegisterHeight(rand.Uint32())
+	p.SetCancelHeight(rand.Uint32())
+	p.SetInactiveSince(rand.Uint32())
+	p.SetActivateRequestHeight(rand.Uint32())
+	p.SetIllegalHeight(rand.Uint32())
+	p.SetPenalty(common.Fixed64(rand.Uint64()))
+	p.SetVotes(common.Fixed64(rand.Intn(10000) + 1))
+	p.SetDposV2Votes(common.Fixed64(rand.Intn(10000) + 1))
 
-func randomBytes(len int) []byte {
-	a := make([]byte, len)
-	rand.Read(a)
-	return a
-}
-
-func randomProducer() *Producer {
-	return &Producer{
-		info: payload.ProducerInfo{
-			OwnerPublicKey: randomFakePK(),
-			NodePublicKey:  randomFakePK(),
-			NickName:       randomString(),
-			Url:            randomString(),
-			Location:       rand.Uint64(),
-			NetAddress:     randomString(),
-			Signature:      randomBytes(64),
-		},
-		state:                 ProducerState(rand.Uint32()),
-		registerHeight:        rand.Uint32(),
-		cancelHeight:          rand.Uint32(),
-		inactiveSince:         rand.Uint32(),
-		activateRequestHeight: rand.Uint32(),
-		illegalHeight:         rand.Uint32(),
-		penalty:               common.Fixed64(rand.Uint64()),
-		votes:                 common.Fixed64(rand.Intn(10000) + 1),
-		dposV2Votes:           common.Fixed64(rand.Intn(10000) + 1),
-	}
+	return p
 }
 
 func hashesEqual(first []*common.Uint168, second []*common.Uint168) bool {
@@ -522,7 +527,7 @@ func votesMapEqual(first map[common.Uint168]common.Fixed64,
 	return true
 }
 
-func arrayEqual(first []ArbiterMember, second []ArbiterMember) bool {
+func arrayEqual(first []state.ArbiterMember, second []state.ArbiterMember) bool {
 	if len(first) != len(second) {
 		return false
 	}
@@ -542,7 +547,7 @@ func arrayEqual(first []ArbiterMember, second []ArbiterMember) bool {
 	return true
 }
 
-func arbiterMemberEqual(first ArbiterMember, second ArbiterMember) bool {
+func arbiterMemberEqual(first state.ArbiterMember, second state.ArbiterMember) bool {
 	if bytes.Equal(first.GetNodePublicKey(), second.GetNodePublicKey()) &&
 		bytes.Equal(first.GetOwnerPublicKey(), second.GetOwnerPublicKey()) &&
 		first.GetType() == second.GetType() &&
@@ -554,8 +559,8 @@ func arbiterMemberEqual(first ArbiterMember, second ArbiterMember) bool {
 }
 
 //	NextCRCArbitersMap    map[common.Uint168]ArbiterMember
-func arbitersMapEqual(first map[common.Uint168]ArbiterMember,
-	second map[common.Uint168]ArbiterMember) bool {
+func arbitersMapEqual(first map[common.Uint168]state.ArbiterMember,
+	second map[common.Uint168]state.ArbiterMember) bool {
 	if len(first) != len(second) {
 		return false
 	}

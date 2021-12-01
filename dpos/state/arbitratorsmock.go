@@ -43,7 +43,7 @@ func NewArbitratorsMock(arbitersByte []ArbiterMember, changeCount,
 	}
 }
 
-//mock object of arbitrators
+//mock object of Arbiters
 type ArbitratorsMock struct {
 	CurrentArbitrators          []ArbiterMember
 	CRCArbitrators              []ArbiterMember

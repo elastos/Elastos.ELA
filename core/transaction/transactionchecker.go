@@ -356,7 +356,7 @@ func getDPoSV2ProducersMap(producers []*state.Producer) map[string]uint32 {
 func getCRCIDsMap(crs []*crstate.Candidate) map[common.Uint168]struct{} {
 	codes := make(map[common.Uint168]struct{})
 	for _, c := range crs {
-		codes[c.Info().CID] = struct{}{}
+		codes[c.Info.CID] = struct{}{}
 	}
 	return codes
 }

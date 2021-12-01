@@ -10,10 +10,6 @@ import (
 	"container/list"
 	"errors"
 	"fmt"
-	"github.com/elastos/Elastos.ELA/core/contract/program"
-	"github.com/elastos/Elastos.ELA/core/types/common"
-	"github.com/elastos/Elastos.ELA/core/types/functions"
-	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"math/big"
 	"os"
 	"path/filepath"
@@ -25,7 +21,11 @@ import (
 	. "github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/common/log"
+	"github.com/elastos/Elastos.ELA/core/contract/program"
 	. "github.com/elastos/Elastos.ELA/core/types"
+	"github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/functions"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/core/types/outputpayload"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	crstate "github.com/elastos/Elastos.ELA/cr/state"
@@ -114,7 +114,7 @@ func New(db IChainStore, chainParams *config.Params, state *state.State,
 		TimeSource:          NewMedianTime(),
 	}
 
-	// Initialize the chain state from the passed database.  When the db
+	// Initialize the chain state from the passed database.  When the DB
 	// does not yet contain any chain state, both it and the chain state
 	// will be initialized to contain only the genesis block.
 	if err := chain.initChainState(); err != nil {
@@ -126,6 +126,10 @@ func New(db IChainStore, chainParams *config.Params, state *state.State,
 
 func (b *BlockChain) GetDB() IChainStore {
 	return b.db
+}
+
+func (b *BlockChain) GetParams() *config.Params {
+	return b.chainParams
 }
 
 func (b *BlockChain) Init(interrupt <-chan struct{}) error {
@@ -244,7 +248,7 @@ func (b *BlockChain) MigrateOldDB(
 		if err != nil {
 			err = fmt.Errorf("process block failed, %s", err)
 		} else {
-			log.Info("Migrating the old db finished, then delete the old db files.")
+			log.Info("Migrating the old DB finished, then delete the old DB files.")
 
 			// Delete the old database files include "chain", "blocks_ffldb" and "dpos".
 			oldFFLDB.Close()
@@ -343,7 +347,7 @@ func (b *BlockChain) createTransaction(pd interfaces.Payload, txType common.TxTy
 	if err != nil {
 		return nil, err
 	}
-	// create inputs
+	// create Inputs
 	txInputs, changeOutputs, err := b.createInputs(fromAddress, totalAmount, utxos)
 	if err != nil {
 		return nil, err
@@ -571,7 +575,7 @@ func CalculateTxsFee(block *Block) {
 		}
 		references, err := DefaultLedger.Blockchain.UTXOCache.GetTxReference(tx)
 		if err != nil {
-			log.Error("get transaction reference failed")
+			log.Error("get transaction Reference failed")
 			return
 		}
 		var outputValue Fixed64
@@ -595,8 +599,15 @@ func CalculateTxsFee(block *Block) {
 func (b *BlockChain) GetState() *state.State {
 	return b.state
 }
+func (b *BlockChain) SetState(s *state.State) {
+	b.state = s
+}
+
 func (b *BlockChain) GetCRCommittee() *crstate.Committee {
 	return b.crCommittee
+}
+func (b *BlockChain) SetCRCommittee(c *crstate.Committee) {
+	b.crCommittee = c
 }
 
 func (b *BlockChain) GetBestBlockHash() *Uint256 {
@@ -1086,7 +1097,7 @@ func (b *BlockChain) removeBlockNode(node *BlockNode) error {
 	}
 	node.Children = nil
 
-	// Remove the reference from the dependency index.
+	// Remove the Reference from the dependency index.
 	prevHash := node.ParentHash
 	if children, ok := b.DepNodes[*prevHash]; ok {
 		// Find the node amongst the children of the

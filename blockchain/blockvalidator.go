@@ -108,7 +108,7 @@ func (b *BlockChain) CheckBlockSanity(block *Block) error {
 				"CheckTransactionSanity failed when verifiy block")
 		}
 
-		// Check for duplicate UTXO inputs in a block
+		// Check for duplicate UTXO Inputs in a block
 		for _, input := range txn.Inputs() {
 			referKey := input.ReferKey()
 			if _, exists := existingTxInputs[referKey]; exists {
@@ -120,7 +120,7 @@ func (b *BlockChain) CheckBlockSanity(block *Block) error {
 		// Append transaction to list
 		txIDs = append(txIDs, txID)
 	}
-	if err := checkDuplicateTx(block); err != nil {
+	if err := CheckDuplicateTx(block); err != nil {
 		return err
 	}
 	calcTransactionsRoot, err := crypto.ComputeRoot(txIDs)
@@ -134,7 +134,7 @@ func (b *BlockChain) CheckBlockSanity(block *Block) error {
 	return nil
 }
 
-func checkDuplicateTx(block *Block) error {
+func CheckDuplicateTx(block *Block) error {
 	existingSideTxs := make(map[Uint256]struct{})
 	existingProducer := make(map[string]struct{})
 	existingProducerNode := make(map[string]struct{})
@@ -375,7 +375,7 @@ func IsFinalizedTransaction(msgTx interfaces.Transaction, blockHeight uint32) bo
 
 	// At this point, the transaction's lock time hasn't occurred yet, but
 	// the transaction might still be finalized if the sequence number
-	// for all transaction inputs is maxed out.
+	// for all transaction Inputs is maxed out.
 	for _, txIn := range msgTx.Inputs() {
 		if txIn.Sequence != math.MaxUint16 {
 			return false
@@ -444,7 +444,7 @@ func (b *BlockChain) checkCoinbaseTransactionContext(blockHeight uint32, coinbas
 			return errors.New("reward amount in coinbase not correct")
 		}
 
-		if err := checkCoinbaseArbitratorsReward(coinbase); err != nil {
+		if err := CheckCoinbaseArbitratorsReward(coinbase); err != nil {
 			return err
 		}
 	} else { // old version [0, H2)
@@ -465,7 +465,7 @@ func (b *BlockChain) checkCoinbaseTransactionContext(blockHeight uint32, coinbas
 	return nil
 }
 
-func checkCoinbaseArbitratorsReward(coinbase interfaces.Transaction) error {
+func CheckCoinbaseArbitratorsReward(coinbase interfaces.Transaction) error {
 	rewards := DefaultLedger.Arbitrators.GetArbitersRoundReward()
 	if len(rewards) != len(coinbase.Outputs())-2 {
 		return errors.New("coinbase output count not match")

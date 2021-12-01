@@ -23,7 +23,7 @@ import (
 )
 
 var (
-	// indexTipsBucketName is the name of the db bucket used to house the
+	// indexTipsBucketName is the name of the DB bucket used to house the
 	// current tip of each index.
 	indexTipsBucketName = []byte("idxtips")
 )
@@ -482,7 +482,7 @@ func (m *Manager) FetchUnspent(txID common.Uint256) ([]uint16, error) {
 	var indexes []uint16
 	err := m.db.View(func(dbTx database.Tx) error {
 		var err error
-		indexes, err = dbFetchUnspentIndexEntry(dbTx, &txID)
+		indexes, err = DBFetchUnspentIndexEntry(dbTx, &txID)
 		return err
 	})
 	if err != nil {
@@ -496,7 +496,7 @@ func (m *Manager) FetchUTXO(programHash *common.Uint168) ([]*common2.UTXO, error
 	var utxos []*common2.UTXO
 	err := m.db.View(func(dbTx database.Tx) error {
 		var err error
-		utxos, err = dbFetchUtxoIndexEntry(dbTx, programHash)
+		utxos, err = DBFetchUtxoIndexEntry(dbTx, programHash)
 		return err
 	})
 	if err != nil {
@@ -509,7 +509,7 @@ func (m *Manager) FetchUTXO(programHash *common.Uint168) ([]*common2.UTXO, error
 func (m *Manager) IsTx3Exist(txHash *common.Uint256) bool {
 	exist := false
 	_ = m.db.View(func(dbTx database.Tx) error {
-		exist = dbFetchTx3IndexEntry(dbTx, txHash)
+		exist = DBFetchTx3IndexEntry(dbTx, txHash)
 		return nil
 	})
 
@@ -519,7 +519,7 @@ func (m *Manager) IsTx3Exist(txHash *common.Uint256) bool {
 func (m *Manager) IsSideChainReturnDepositExist(txHash *common.Uint256) bool {
 	exist := false
 	_ = m.db.View(func(dbTx database.Tx) error {
-		exist = dbFetchReturnDepositIndexEntry(dbTx, txHash)
+		exist = DBFetchReturnDepositIndexEntry(dbTx, txHash)
 		return nil
 	})
 

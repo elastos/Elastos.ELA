@@ -42,3 +42,9 @@ func TestOriginArbiter_Clone(t *testing.T) {
 	a2.key[0] = 10 // should only change data of a2
 	assert.False(t, bytes.Equal(a1.key, a2.key))
 }
+
+func randomPublicKey() []byte {
+	_, pub, _ := crypto.GenerateKeyPair()
+	result, _ := pub.EncodePoint(true)
+	return result
+}

@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file.
 //
 
-package blockchain
+package unit
 
 import (
 	"bytes"
@@ -15,18 +15,28 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/elastos/Elastos.ELA/core/types/functions"
-	"github.com/elastos/Elastos.ELA/core/types/interfaces"
-
+	"github.com/elastos/Elastos.ELA/blockchain"
 	"github.com/elastos/Elastos.ELA/common"
+	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/core/contract"
 	"github.com/elastos/Elastos.ELA/core/contract/program"
+	transaction2 "github.com/elastos/Elastos.ELA/core/transaction"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/functions"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/crypto"
 
 	"github.com/stretchr/testify/assert"
 )
+
+func init() {
+	functions.GetTransactionByTxType = transaction2.GetTransaction
+	functions.GetTransactionByBytes = transaction2.GetTransactionByBytes
+	functions.CreateTransaction = transaction2.CreateTransaction
+	functions.GetTransactionParameters = transaction2.GetTransactionparameters
+	config.DefaultParams = config.GetDefaultParams()
+}
 
 type act interface {
 	RedeemScript() []byte
@@ -101,24 +111,24 @@ func TestCheckCheckSigSignature(t *testing.T) {
 	}
 
 	// Normal
-	err = checkStandardSignature(program.Program{Code: act.redeemScript, Parameter: signature}, data)
+	err = blockchain.CheckStandardSignature(program.Program{Code: act.redeemScript, Parameter: signature}, data)
 	assert.NoError(t, err, "[CheckChecksigSignature] failed, %v", err)
 
 	// invalid signature length
 	var fakeSignature = make([]byte, crypto.SignatureScriptLength-math.Intn(64)-1)
 	rand.Read(fakeSignature)
-	err = checkStandardSignature(program.Program{Code: act.redeemScript, Parameter: fakeSignature}, data)
+	err = blockchain.CheckStandardSignature(program.Program{Code: act.redeemScript, Parameter: fakeSignature}, data)
 	assert.Error(t, err, "[CheckChecksigSignature] with invalid signature length")
 	assert.Equal(t, "invalid signature length", err.Error())
 
 	// invalid signature content
 	fakeSignature = make([]byte, crypto.SignatureScriptLength)
-	err = checkStandardSignature(program.Program{Code: act.redeemScript, Parameter: fakeSignature}, data)
+	err = blockchain.CheckStandardSignature(program.Program{Code: act.redeemScript, Parameter: fakeSignature}, data)
 	assert.Error(t, err, "[CheckChecksigSignature] with invalid signature content")
 	assert.Equal(t, "[Validation], Verify failed.", err.Error())
 
 	// invalid data content
-	err = checkStandardSignature(program.Program{Code: act.redeemScript, Parameter: fakeSignature}, nil)
+	err = blockchain.CheckStandardSignature(program.Program{Code: act.redeemScript, Parameter: fakeSignature}, nil)
 	assert.Error(t, err, "[CheckChecksigSignature] with invalid data content")
 	assert.Equal(t, "[Validation], Verify failed.", err.Error())
 }
@@ -134,21 +144,21 @@ func TestCheckMultiSigSignature(t *testing.T) {
 	assert.NoError(t, err, "Generate signature failed, error %v", err)
 
 	// Normal
-	err = checkMultiSigSignatures(program.Program{Code: act.redeemScript, Parameter: signature}, data)
+	err = blockchain.CheckMultiSigSignatures(program.Program{Code: act.redeemScript, Parameter: signature}, data)
 	assert.NoError(t, err, "[CheckMultisigSignature] failed, %v", err)
 
 	// invalid redeem script M < 1
 	fakeCode := make([]byte, len(act.redeemScript))
 	copy(fakeCode, act.redeemScript)
 	fakeCode[0] = fakeCode[0] - fakeCode[0] + crypto.PUSH1 - 1
-	err = checkMultiSigSignatures(program.Program{Code: fakeCode, Parameter: signature}, data)
+	err = blockchain.CheckMultiSigSignatures(program.Program{Code: fakeCode, Parameter: signature}, data)
 	assert.Error(t, err, "[CheckMultisigSignature] code with M < 1 passed")
 	assert.Equal(t, "invalid multi sign script code", err.Error())
 
 	// invalid redeem script M > N
 	copy(fakeCode, act.redeemScript)
 	fakeCode[0] = fakeCode[len(fakeCode)-2] - crypto.PUSH1 + 2
-	err = checkMultiSigSignatures(program.Program{Code: fakeCode, Parameter: signature}, data)
+	err = blockchain.CheckMultiSigSignatures(program.Program{Code: fakeCode, Parameter: signature}, data)
 	assert.Error(t, err, "[CheckMultisigSignature] code with M > N passed")
 	assert.Equal(t, "invalid multi sign script code", err.Error())
 
@@ -157,7 +167,7 @@ func TestCheckMultiSigSignature(t *testing.T) {
 	for len(fakeCode) >= crypto.MinMultiSignCodeLength {
 		fakeCode = append(fakeCode[:1], fakeCode[crypto.PublicKeyScriptLength:]...)
 	}
-	err = checkMultiSigSignatures(program.Program{Code: fakeCode, Parameter: signature}, data)
+	err = blockchain.CheckMultiSigSignatures(program.Program{Code: fakeCode, Parameter: signature}, data)
 	assert.Error(t, err, "[CheckMultisigSignature] invalid length code passed")
 	assert.Equal(t, "not a valid multi sign transaction code, length not enough", err.Error())
 
@@ -165,7 +175,7 @@ func TestCheckMultiSigSignature(t *testing.T) {
 	fakeCode = make([]byte, len(act.redeemScript))
 	copy(fakeCode, act.redeemScript)
 	fakeCode[len(fakeCode)-2] = fakeCode[len(fakeCode)-2] + 1
-	err = checkMultiSigSignatures(program.Program{Code: fakeCode, Parameter: signature}, data)
+	err = blockchain.CheckMultiSigSignatures(program.Program{Code: fakeCode, Parameter: signature}, data)
 	assert.Error(t, err, "[CheckMultisigSignature] invalid redeem script N not equal to public keys count")
 	assert.Equal(t, "invalid multi sign public key script count", err.Error())
 
@@ -173,29 +183,29 @@ func TestCheckMultiSigSignature(t *testing.T) {
 	fakeCode = make([]byte, len(act.redeemScript))
 	copy(fakeCode, act.redeemScript)
 	fakeCode[2] = 0x01
-	err = checkMultiSigSignatures(program.Program{Code: fakeCode, Parameter: signature}, data)
+	err = blockchain.CheckMultiSigSignatures(program.Program{Code: fakeCode, Parameter: signature}, data)
 	assert.Error(t, err, "[CheckMultisigSignature] invalid redeem script wrong public key")
 	assert.Equal(t, "the encodeData format is error", err.Error())
 
 	// invalid signature length not match
-	err = checkMultiSigSignatures(program.Program{Code: fakeCode, Parameter: signature[1+math.Intn(64):]}, data)
+	err = blockchain.CheckMultiSigSignatures(program.Program{Code: fakeCode, Parameter: signature[1+math.Intn(64):]}, data)
 	assert.Error(t, err, "[CheckMultisigSignature] invalid signature length not match")
 	assert.Equal(t, "invalid multi sign signatures, length not match", err.Error())
 
 	// invalid signature not enough
 	cut := len(signature)/crypto.SignatureScriptLength - int(act.redeemScript[0]-crypto.PUSH1)
-	err = checkMultiSigSignatures(program.Program{Code: act.redeemScript, Parameter: signature[65*cut:]}, data)
+	err = blockchain.CheckMultiSigSignatures(program.Program{Code: act.redeemScript, Parameter: signature[65*cut:]}, data)
 	assert.Error(t, err, "[CheckMultisigSignature] invalid signature not enough")
 	assert.Equal(t, "invalid signatures, not enough signatures", err.Error())
 
 	// invalid signature too many
-	err = checkMultiSigSignatures(program.Program{Code: act.redeemScript,
+	err = blockchain.CheckMultiSigSignatures(program.Program{Code: act.redeemScript,
 		Parameter: append(signature[:65], signature...)}, data)
 	assert.Error(t, err, "[CheckMultisigSignature] invalid signature too many")
 	assert.Equal(t, "invalid signatures, too many signatures", err.Error())
 
 	// invalid signature duplicate
-	err = checkMultiSigSignatures(program.Program{Code: act.redeemScript,
+	err = blockchain.CheckMultiSigSignatures(program.Program{Code: act.redeemScript,
 		Parameter: append(signature[:65], signature[:len(signature)-65]...)}, data)
 	assert.Error(t, err, "[CheckMultisigSignature] invalid signature duplicate")
 	assert.Equal(t, "duplicated signatures", err.Error())
@@ -203,7 +213,7 @@ func TestCheckMultiSigSignature(t *testing.T) {
 	// invalid signature fake signature
 	signature, err = newMultiAccount(math.Intn(2)+3, t).Sign(data)
 	assert.NoError(t, err, "Generate signature failed, error %v", err)
-	err = checkMultiSigSignatures(program.Program{Code: act.redeemScript, Parameter: signature}, data)
+	err = blockchain.CheckMultiSigSignatures(program.Program{Code: act.redeemScript, Parameter: signature}, data)
 	assert.Error(t, err, "[CheckMultisigSignature] invalid signature fake signature")
 }
 
@@ -320,7 +330,7 @@ func TestSchnorrRunProgramsOrigin(t *testing.T) {
 		programHash := c.ToProgramHash()
 		hashes = append(hashes, *programHash)
 		programs = append(programs, &program.Program{Code: redeemscript, Parameter: sig[:]})
-		err = RunPrograms(msg[:], hashes[0:1], programs)
+		err = blockchain.RunPrograms(msg[:], hashes[0:1], programs)
 		assert.NoError(t, err, "[RunProgram] passed with 1 checksig program")
 
 	})
@@ -556,7 +566,7 @@ func TestSchnorrRunPrograms(t *testing.T) {
 	init(schnorrAccountNum)
 
 	for index := 0; index < schnorrAccountNum; index++ {
-		err = RunPrograms(msg[:], hashes[index:index+1], programs[index:index+1])
+		err = blockchain.RunPrograms(msg[:], hashes[index:index+1], programs[index:index+1])
 		if err != nil {
 			fmt.Printf("AggregateSignatures index %d fail err %s \n", index, err.Error())
 		} else {
@@ -608,7 +618,7 @@ func TestRunPrograms(t *testing.T) {
 			break
 		}
 	}
-	err = RunPrograms(data, hashes[index:index+1], programs[index:index+1])
+	err = blockchain.RunPrograms(data, hashes[index:index+1], programs[index:index+1])
 	assert.NoError(t, err, "[RunProgram] passed with 1 checksig program")
 
 	// 1 loop multisig
@@ -619,25 +629,25 @@ func TestRunPrograms(t *testing.T) {
 			break
 		}
 	}
-	err = RunPrograms(data, hashes[index:index+1], programs[index:index+1])
+	err = blockchain.RunPrograms(data, hashes[index:index+1], programs[index:index+1])
 	assert.NoError(t, err, "[RunProgram] passed with 1 multisig program")
 
 	// multiple programs
-	err = RunPrograms(data, hashes, programs)
+	err = blockchain.RunPrograms(data, hashes, programs)
 	assert.NoError(t, err, "[RunProgram] passed with multiple programs")
 
 	// hashes count not equal to programs count
 	init()
 	removeIndex := math.Intn(num)
 	hashes = append(hashes[:removeIndex], hashes[removeIndex+1:]...)
-	err = RunPrograms(data, hashes, programs)
+	err = blockchain.RunPrograms(data, hashes, programs)
 	assert.Error(t, err, "[RunProgram] passed with unmathed hashes")
 	assert.Equal(t, "the number of data hashes is different with number of programs", err.Error())
 
 	// With no programs
 	init()
 	programs = []*program.Program{}
-	err = RunPrograms(data, hashes, programs)
+	err = blockchain.RunPrograms(data, hashes, programs)
 	assert.Error(t, err, "[RunProgram] passed with no programs")
 	assert.Equal(t, "the number of data hashes is different with number of programs", err.Error())
 
@@ -646,15 +656,15 @@ func TestRunPrograms(t *testing.T) {
 	for i := 0; i < num; i++ {
 		rand.Read(hashes[math.Intn(num)][:])
 	}
-	err = RunPrograms(data, hashes, programs)
+	err = blockchain.RunPrograms(data, hashes, programs)
 	assert.Error(t, err, "[RunProgram] passed with unmathed hashes")
 	assert.Equal(t, "the data hashes is different with corresponding program code", err.Error())
 
 	// With disordered hashes
 	init()
 	common.SortProgramHashByCodeHash(hashes)
-	sort.Sort(sort.Reverse(byHash(programs)))
-	err = RunPrograms(data, hashes, programs)
+	sort.Sort(sort.Reverse(blockchain.ByHash(programs)))
+	err = blockchain.RunPrograms(data, hashes, programs)
 	assert.Error(t, err, "[RunProgram] passed with disordered hashes")
 	assert.Equal(t, "the data hashes is different with corresponding program code", err.Error())
 
@@ -663,7 +673,7 @@ func TestRunPrograms(t *testing.T) {
 	for i := 0; i < num; i++ {
 		programs[math.Intn(num)].Code = nil
 	}
-	err = RunPrograms(data, hashes, programs)
+	err = blockchain.RunPrograms(data, hashes, programs)
 	assert.Error(t, err, "[RunProgram] passed with random no code")
 	assert.Equal(t, "the data hashes is different with corresponding program code", err.Error())
 
@@ -673,7 +683,7 @@ func TestRunPrograms(t *testing.T) {
 		index := math.Intn(num)
 		programs[index].Parameter = nil
 	}
-	err = RunPrograms(data, hashes, programs)
+	err = blockchain.RunPrograms(data, hashes, programs)
 	assert.Error(t, err, "[RunProgram] passed with random no parameter")
 }
 
@@ -791,12 +801,7 @@ func buildTx() interfaces.Transaction {
 		randomInputs(),
 		randomOutputs(),
 		0,
-		[]*program.Program{
-			{
-				Code:      randomPublicKey(),
-				Parameter: randomSignature(),
-			},
-		},
+		[]*program.Program{},
 	)
 	return tx
 }
@@ -869,7 +874,7 @@ func TestSortPrograms(t *testing.T) {
 		p.Code = getInvalidCode()
 		programs = append(programs, p)
 	}
-	SortPrograms(programs)
+	blockchain.SortPrograms(programs)
 
 	count := 100
 	hashes := make([]common.Uint168, 0, count)
@@ -903,7 +908,7 @@ func TestSortPrograms(t *testing.T) {
 		}
 
 		common.SortProgramHashByCodeHash(hashes)
-		SortPrograms(programs)
+		blockchain.SortPrograms(programs)
 
 		//fixme
 		//for i, hash := range hashes {
@@ -944,4 +949,11 @@ func decodePrivateKey(d string, t *testing.T) *big.Int {
 		t.Fatalf("Unexpected error from new(big.Int).SetString(%s, 16)", d)
 	}
 	return privKey
+}
+
+func randomSignature() []byte {
+	randBytes := make([]byte, 64)
+	rand.Read(randBytes)
+
+	return randBytes
 }

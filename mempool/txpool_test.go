@@ -14,12 +14,6 @@ import (
 	"os"
 	"testing"
 
-	"github.com/elastos/Elastos.ELA/core/types/interfaces"
-
-	"github.com/elastos/Elastos.ELA/core/types/functions"
-
-	common2 "github.com/elastos/Elastos.ELA/core/types/common"
-
 	"github.com/elastos/Elastos.ELA/auxpow"
 	"github.com/elastos/Elastos.ELA/blockchain"
 	"github.com/elastos/Elastos.ELA/common"
@@ -27,7 +21,11 @@ import (
 	"github.com/elastos/Elastos.ELA/common/log"
 	"github.com/elastos/Elastos.ELA/core/contract"
 	"github.com/elastos/Elastos.ELA/core/contract/program"
+	transaction2 "github.com/elastos/Elastos.ELA/core/transaction"
 	"github.com/elastos/Elastos.ELA/core/types"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/functions"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/crypto"
 	dplog "github.com/elastos/Elastos.ELA/dpos/log"
@@ -43,6 +41,14 @@ var (
 	initialLedger *blockchain.Ledger
 	utxoCacheDB   = NewUtxoCacheDB()
 )
+
+func init() {
+	functions.GetTransactionByTxType = transaction2.GetTransaction
+	functions.GetTransactionByBytes = transaction2.GetTransactionByBytes
+	functions.CreateTransaction = transaction2.CreateTransaction
+	functions.GetTransactionParameters = transaction2.GetTransactionparameters
+	config.DefaultParams = config.GetDefaultParams()
+}
 
 type UtxoCacheDB struct {
 	transactions map[common.Uint256]interfaces.Transaction
@@ -128,7 +134,7 @@ func TestTxPool_VerifyDuplicateSidechainTx(t *testing.T) {
 	// 1. Generate a withdraw transaction
 
 	txn1 := functions.CreateTransaction(
-		common2.TxVersion09,
+		0,
 		common2.WithdrawFromSideChain,
 		0,
 		nil,
@@ -152,7 +158,7 @@ func TestTxPool_VerifyDuplicateSidechainTx(t *testing.T) {
 
 	// 3. Generate a withdraw transaction with duplicate sidechain Tx which already in the pool
 	txn2 := functions.CreateTransaction(
-		common2.TxVersion09,
+		0,
 		common2.WithdrawFromSideChain,
 		0,
 		nil,
@@ -179,7 +185,7 @@ func TestTxPool_VerifyDuplicateCRTx(t *testing.T) {
 	// 1. Generate a register CR transaction
 
 	tx1 := functions.CreateTransaction(
-		common2.TxVersion09,
+		0,
 		common2.TransferAsset,
 		0,
 		&payload.TransferAsset{},
@@ -203,7 +209,7 @@ func TestTxPool_VerifyDuplicateCRTx(t *testing.T) {
 	})
 
 	tx2 := functions.CreateTransaction(
-		common2.TxVersion09,
+		0,
 		common2.TransferAsset,
 		0,
 		&payload.TransferAsset{},
@@ -508,7 +514,7 @@ func TestTxPool_CleanSidechainTx(t *testing.T) {
 
 	// 1. Generate some withdraw transactions
 	txn1 := functions.CreateTransaction(
-		common2.TxVersion09,
+		0,
 		common2.WithdrawFromSideChain,
 		0,
 		&payload.WithdrawFromSideChain{
@@ -527,7 +533,7 @@ func TestTxPool_CleanSidechainTx(t *testing.T) {
 	)
 
 	txn2 := functions.CreateTransaction(
-		common2.TxVersion09,
+		0,
 		common2.WithdrawFromSideChain,
 		0,
 		&payload.WithdrawFromSideChain{
@@ -545,7 +551,7 @@ func TestTxPool_CleanSidechainTx(t *testing.T) {
 	)
 
 	txn3 := functions.CreateTransaction(
-		common2.TxVersion09,
+		0,
 		common2.WithdrawFromSideChain,
 		0,
 		&payload.WithdrawFromSideChain{
@@ -596,7 +602,7 @@ func TestTxPool_ReplaceDuplicateSideChainPowTx(t *testing.T) {
 	rand.Read(sideGenesisHash[:])
 
 	txn1 := functions.CreateTransaction(
-		common2.TxVersion09,
+		0,
 		common2.SideChainPow,
 		0,
 		&payload.SideChainPow{
@@ -614,7 +620,7 @@ func TestTxPool_ReplaceDuplicateSideChainPowTx(t *testing.T) {
 	txPool.txnList[txn1.Hash()] = txn1
 
 	txn2 := functions.CreateTransaction(
-		common2.TxVersion09,
+		0,
 		common2.SideChainPow,
 		0,
 		&payload.SideChainPow{
@@ -648,7 +654,7 @@ func TestTxPool_IsDuplicateSidechainTx(t *testing.T) {
 
 	// 1. Generate a withdraw transaction
 	txn1 := functions.CreateTransaction(
-		common2.TxVersion09,
+		0,
 		common2.WithdrawFromSideChain,
 		0,
 		&payload.WithdrawFromSideChain{
@@ -677,17 +683,6 @@ func TestTxPool_IsDuplicateSidechainTx(t *testing.T) {
 }
 
 func TestTxPool_AppendToTxnPool(t *testing.T) {
-	tx := functions.CreateTransaction(
-		common2.TxVersion09,
-		common2.TransferAsset,
-		0,
-		nil,
-		[]*common2.Attribute{},
-		[]*common2.Input{},
-		[]*common2.Output{},
-		0,
-		[]*program.Program{},
-	)
 	txBytes, _ := hex.DecodeString("000403454c41010008803e6306563b26de010" +
 		"000000000000000000000000000000000000000000000000000000000000000ffff" +
 		"ffffffff02b037db964a231458d2d6ffd5ea18944c4f90e63d547c5d3b9874df66a" +
@@ -695,7 +690,9 @@ func TestTxPool_AppendToTxnPool(t *testing.T) {
 		"eb11ceb037db964a231458d2d6ffd5ea18944c4f90e63d547c5d3b9874df66a4ead" +
 		"0a3c1d258040000000000000000129e9cf1c5f336fcf3a6c954444ed482c5d916e5" +
 		"06dd00000000")
-	tx.Deserialize(bytes.NewReader(txBytes))
+	r := bytes.NewReader(txBytes)
+	tx, _ := transaction2.GetTransactionByBytes(r)
+	tx.Deserialize(r)
 	errCode := txPool.AppendToTxPool(tx)
 	assert.Equal(t, errCode.Code(), elaerr.ErrBlockIneffectiveCoinbase)
 }
@@ -714,7 +711,7 @@ func TestTxPool_CleanSubmittedTransactions(t *testing.T) {
 	/* check double spend but not duplicate txs */
 	//two mock transactions, they are double-spent to each other.
 	tx1Prev := functions.CreateTransaction(
-		common2.TxVersion09,
+		0,
 		common2.TransferAsset,
 		0,
 		&payload.TransferAsset{},
@@ -739,7 +736,7 @@ func TestTxPool_CleanSubmittedTransactions(t *testing.T) {
 	}
 	utxoCacheDB.PutTransaction(tx1Prev)
 	tx1 := functions.CreateTransaction(
-		common2.TxVersion09,
+		0,
 		common2.TransferAsset,
 		0,
 		&payload.TransferAsset{},
@@ -764,7 +761,7 @@ func TestTxPool_CleanSubmittedTransactions(t *testing.T) {
 	tx1.SetInputs([]*common2.Input{input})
 
 	tx2 := functions.CreateTransaction(
-		common2.TxVersion09,
+		0,
 		common2.TransferAsset,
 		0,
 		&payload.TransferAsset{},
@@ -845,7 +842,7 @@ func TestTxPool_CleanSubmittedTransactions(t *testing.T) {
 	txPool = NewTxPool(&config.DefaultParams)
 	//two mock transactions again, they have some identical sidechain hashes
 	tx3Prev := functions.CreateTransaction(
-		common2.TxVersion09,
+		0,
 		common2.TransferAsset,
 		0,
 		&payload.TransferAsset{},
@@ -864,7 +861,7 @@ func TestTxPool_CleanSubmittedTransactions(t *testing.T) {
 
 	utxoCacheDB.PutTransaction(tx3Prev)
 	tx3 := functions.CreateTransaction(
-		common2.TxVersion09,
+		0,
 		common2.WithdrawFromSideChain,
 		0,
 		&payload.WithdrawFromSideChain{
@@ -886,7 +883,7 @@ func TestTxPool_CleanSubmittedTransactions(t *testing.T) {
 	)
 
 	tx4Prev := functions.CreateTransaction(
-		common2.TxVersion09,
+		0,
 		common2.TransferAsset,
 		0,
 		&payload.TransferAsset{},
@@ -905,7 +902,7 @@ func TestTxPool_CleanSubmittedTransactions(t *testing.T) {
 	utxoCacheDB.PutTransaction(tx4Prev)
 
 	tx4 := functions.CreateTransaction(
-		common2.TxVersion09,
+		0,
 		common2.WithdrawFromSideChain,
 		0,
 		&payload.WithdrawFromSideChain{
@@ -933,7 +930,7 @@ func TestTxPool_CleanSubmittedTransactions(t *testing.T) {
 	)
 
 	tx5Prev := functions.CreateTransaction(
-		common2.TxVersion09,
+		0,
 		common2.TransferAsset,
 		0,
 		&payload.TransferAsset{},
@@ -952,7 +949,7 @@ func TestTxPool_CleanSubmittedTransactions(t *testing.T) {
 
 	utxoCacheDB.PutTransaction(tx5Prev)
 	tx5 := functions.CreateTransaction(
-		common2.TxVersion09,
+		0,
 		common2.WithdrawFromSideChain,
 		0,
 		&payload.WithdrawFromSideChain{
@@ -976,7 +973,7 @@ func TestTxPool_CleanSubmittedTransactions(t *testing.T) {
 	})
 
 	tx6Prev := functions.CreateTransaction(
-		common2.TxVersion09,
+		0,
 		common2.TransferAsset,
 		0,
 		&payload.TransferAsset{},
@@ -995,7 +992,7 @@ func TestTxPool_CleanSubmittedTransactions(t *testing.T) {
 	utxoCacheDB.PutTransaction(tx6Prev)
 
 	tx6 := functions.CreateTransaction(
-		common2.TxVersion09,
+		0,
 		common2.WithdrawFromSideChain,
 		0,
 		&payload.WithdrawFromSideChain{

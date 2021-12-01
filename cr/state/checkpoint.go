@@ -22,7 +22,7 @@ const (
 	// checkpointExtension defines checkpoint file extension of DPoS checkpoint.
 	checkpointExtension = ".ccp"
 
-	// checkpointHeight defines interval height between two neighbor check
+	// checkpointHeight defines interval Height between two neighbor check
 	// points.
 	checkpointHeight = uint32(720)
 
@@ -35,7 +35,7 @@ type Checkpoint struct {
 	KeyFrame
 	StateKeyFrame
 	ProposalKeyFrame
-	height    uint32
+	Height    uint32
 	committee *Committee
 }
 
@@ -50,8 +50,8 @@ func (c *Checkpoint) OnRollbackTo(height uint32) error {
 	keyFrame := NewKeyFrame()
 	if height < c.StartHeight() {
 		committee := &Committee{
-			state:                NewState(c.committee.params),
-			params:               c.committee.params,
+			state:                NewState(c.committee.Params),
+			Params:               c.committee.Params,
 			KeyFrame:             *keyFrame,
 			firstHistory:         utils.NewHistory(maxHistoryCapacity),
 			lastHistory:          utils.NewHistory(maxHistoryCapacity),
@@ -59,7 +59,7 @@ func (c *Checkpoint) OnRollbackTo(height uint32) error {
 		}
 		c.initFromCommittee(committee)
 		c.committee.Recover(c)
-		c.committee.state.registerFunctions(&FunctionsConfig{
+		c.committee.state.RegisterFunctions(&FunctionsConfig{
 			GetHistoryMember: committee.getHistoryMember,
 		})
 		return nil
@@ -72,7 +72,7 @@ func (c *Checkpoint) OnRollbackSeekTo(height uint32) {
 	c.committee.lastHistory.RollbackSeekTo(height)
 	c.committee.appropriationHistory.RollbackSeekTo(height)
 	c.committee.manager.history.RollbackSeekTo(height)
-	c.committee.state.history.RollbackSeekTo(height)
+	c.committee.state.History.RollbackSeekTo(height)
 	c.committee.state.manager.history.RollbackSeekTo(height)
 }
 
@@ -98,11 +98,11 @@ func (c *Checkpoint) Snapshot() checkpoint.ICheckPoint {
 }
 
 func (c *Checkpoint) GetHeight() uint32 {
-	return c.height
+	return c.Height
 }
 
 func (c *Checkpoint) SetHeight(height uint32) {
-	c.height = height
+	c.Height = height
 }
 
 func (c *Checkpoint) SavePeriod() uint32 {
@@ -144,11 +144,11 @@ func (c *Checkpoint) OnInit() {
 }
 
 func (c *Checkpoint) StartHeight() uint32 {
-	return c.committee.params.CRVotingStartHeight
+	return c.committee.Params.CRVotingStartHeight
 }
 
 func (c *Checkpoint) Serialize(w io.Writer) (err error) {
-	if err = common.WriteUint32(w, c.height); err != nil {
+	if err = common.WriteUint32(w, c.Height); err != nil {
 		return
 	}
 
@@ -162,7 +162,7 @@ func (c *Checkpoint) Serialize(w io.Writer) (err error) {
 }
 
 func (c *Checkpoint) Deserialize(r io.Reader) (err error) {
-	if c.height, err = common.ReadUint32(r); err != nil {
+	if c.Height, err = common.ReadUint32(r); err != nil {
 		return
 	}
 
@@ -185,7 +185,7 @@ func (c *Checkpoint) initFromCommittee(committee *Committee) {
 
 func NewCheckpoint(committee *Committee) *Checkpoint {
 	cp := &Checkpoint{
-		height:    uint32(0),
+		Height:    uint32(0),
 		committee: committee,
 	}
 	cp.initFromCommittee(committee)

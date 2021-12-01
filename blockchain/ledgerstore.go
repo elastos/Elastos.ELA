@@ -55,7 +55,7 @@ type IChainStore interface {
 type IFFLDBChainStore interface {
 	database.DB
 
-	// SaveBlock will write block into file db.
+	// SaveBlock will write block into file DB.
 	SaveBlock(b *Block, node *BlockNode, confirm *payload.Confirm,
 		medianTimePast time.Time) error
 
@@ -63,20 +63,20 @@ type IFFLDBChainStore interface {
 	RollbackBlock(b *Block, node *BlockNode,
 		confirm *payload.Confirm, medianTimePast time.Time) error
 
-	// Get block from file db.
+	// Get block from file DB.
 	GetBlock(hash Uint256) (*DposBlock, error)
 
-	// Get block from file db.
+	// Get block from file DB.
 	GetOldBlock(hash Uint256) (*Block, error)
 
-	// Get block header from file db.
+	// Get block header from file DB.
 	GetHeader(hash Uint256) (*common.Header, error)
 
-	// If already exist in main chain(exist in file db and exist block index),
+	// If already exist in main chain(exist in file DB and exist block index),
 	// will return true.
 	BlockExists(hash *Uint256) (bool, uint32, error)
 
-	// If already exist in file db (rollback will not remove from file db), will
+	// If already exist in file DB (rollback will not remove from file DB), will
 	// return true.
 	IsBlockInStore(hash *Uint256) bool
 
@@ -92,10 +92,10 @@ type IFFLDBChainStore interface {
 	// Get utxo by program hash.
 	GetUTXO(programHash *Uint168) ([]*common.UTXO, error)
 
-	// IsTx3Exist use to find if tx3 exist in db.
+	// IsTx3Exist use to find if tx3 exist in DB.
 	IsTx3Exist(txHash *Uint256) bool
 
-	// IsSideChainReturnDepositExist use to find if return deposit exist in db.
+	// IsSideChainReturnDepositExist use to find if return deposit exist in DB.
 	IsSideChainReturnDepositExist(txHash *Uint256) bool
 
 	// Get proposal draft data by draft hash.

@@ -69,10 +69,10 @@ type IndexManager interface {
 	// FetchUTXO retrieval the utxo set of a account address
 	FetchUTXO(programHash *common.Uint168) ([]*common2.UTXO, error)
 
-	// IsTx3Exist use to find if tx3 exist in db
+	// IsTx3Exist use to find if tx3 exist in DB
 	IsTx3Exist(txHash *common.Uint256) bool
 
-	// IsSideChainReturnDepositExist use to find if return deposit exist in db
+	// IsSideChainReturnDepositExist use to find if return deposit exist in DB
 	IsSideChainReturnDepositExist(txHash *common.Uint256) bool
 }
 

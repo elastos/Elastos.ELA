@@ -21,17 +21,17 @@ $ uname -srm
 Darwin 18.7.0 x86_64
 ```
 
-Use [Homebrew](https://brew.sh/) to install Golang 1.13.
+Use [Homebrew](https://brew.sh/) to install Golang 1.17.3
 
 ```bash
-$ brew install go@1.13
+$ brew install go@1.17
 ```
 
 Check the golang version. Make sure they are the following version number or above.
 
 ```bash
 $ go version
-go version go1.13.15 darwin/amd64
+go version go1.17.3 darwin/amd64
 ```
 
 ### 2. Ubuntu Prerequisites

@@ -1,6 +1,6 @@
 module github.com/elastos/Elastos.ELA
 
-go 1.13
+go 1.17.3
 
 require (
 	github.com/btcsuite/btcd v0.22.0-beta

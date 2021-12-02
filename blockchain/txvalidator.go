@@ -633,8 +633,8 @@ func CheckOutputPayload(txType common2.TxType, output *common2.Output) error {
 		// common2.OTVote information can only be placed in TransferAsset transaction.
 		switch output.Type {
 		case common2.OTVote:
-			if contract.GetPrefixType(output.ProgramHash) !=
-				contract.PrefixStandard {
+			prefix := contract.GetPrefixType(output.ProgramHash)
+			if prefix != contract.PrefixStandard && prefix != contract.PrefixMultiSig {
 				return errors.New("output address should be standard")
 			}
 		case common2.OTNone:

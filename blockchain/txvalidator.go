@@ -2582,8 +2582,16 @@ func (b *BlockChain) checkDposV2ClaimRewardRealWithdrawTransaction(txn interface
 	}
 	txsCount := len(dposV2RealWithdraw.WithdrawTransactionHashes)
 	// check WithdrawTransactionHashes count and output count
-	if txsCount != len(txn.Outputs()) {
+	if txsCount != len(txn.Outputs()) && txsCount != len(txn.Outputs())-1 {
 		return errors.New("invalid real withdraw transaction hashes count")
+	}
+
+	// if need change, the last output is only allowed to DposV2RewardAccumulateAddress.
+	if txsCount != len(txn.Outputs()) {
+		toProgramHash := txn.Outputs()[len(txn.Outputs())-1].ProgramHash
+		if !toProgramHash.IsEqual(b.chainParams.DposV2RewardAccumulateAddress) {
+			return errors.New(fmt.Sprintf("last output is invalid"))
+		}
 	}
 
 	// check other outputs, need to match with WithdrawTransactionHashes

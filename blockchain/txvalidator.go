@@ -411,7 +411,8 @@ func CheckTransactionInput(txn interfaces.Transaction) error {
 	if txn.IsIllegalTypeTx() || txn.IsInactiveArbitrators() ||
 		txn.IsNewSideChainPowTx() || txn.IsUpdateVersion() ||
 		txn.IsActivateProducerTx() || txn.IsNextTurnDPOSInfoTx() ||
-		txn.IsRevertToPOW() || txn.IsRevertToDPOS() || txn.IsCustomIDResultTx() {
+		txn.IsRevertToPOW() || txn.IsRevertToDPOS() || txn.IsCustomIDResultTx() ||
+		txn.IsDposV2ClaimRewardTx() {
 		if len(txn.Inputs()) != 0 {
 			return errors.New("no cost transactions must has no input")
 		}
@@ -488,7 +489,7 @@ func (b *BlockChain) CheckTransactionOutput(txn interfaces.Transaction,
 	if txn.IsIllegalTypeTx() || txn.IsInactiveArbitrators() ||
 		txn.IsUpdateVersion() || txn.IsActivateProducerTx() ||
 		txn.IsNextTurnDPOSInfoTx() || txn.IsRevertToPOW() ||
-		txn.IsRevertToDPOS() || txn.IsCustomIDResultTx() {
+		txn.IsRevertToDPOS() || txn.IsCustomIDResultTx() || txn.IsDposV2ClaimRewardTx() {
 		if len(txn.Outputs()) != 0 {
 			return errors.New("no cost transactions should have no output")
 		}
@@ -803,7 +804,7 @@ func (b *BlockChain) CheckAttributeProgram(tx interfaces.Transaction,
 			}
 			return nil
 		}
-	case common2.CRCAppropriation, common2.CRAssetsRectify, common2.CRCProposalRealWithdraw:
+	case common2.CRCAppropriation, common2.CRAssetsRectify, common2.CRCProposalRealWithdraw, common2.DposV2ClaimRewardRealWithdraw:
 		if len(tx.Programs()) != 0 {
 			return errors.New("txs should have no programs")
 		}
@@ -824,6 +825,10 @@ func (b *BlockChain) CheckAttributeProgram(tx interfaces.Transaction,
 	case common2.CRCProposalWithdraw:
 		if len(tx.Programs()) != 0 && blockHeight < b.chainParams.CRCProposalWithdrawPayloadV1Height {
 			return errors.New("crcproposalwithdraw tx should have no programs")
+		}
+	case common2.DposV2ClaimReward:
+		if len(tx.Programs()) != 1 {
+			return errors.New("dposV2 claim reward transactions should have one and only one program")
 		}
 
 		if tx.PayloadVersion() == payload.CRCProposalWithdrawDefault {
@@ -915,6 +920,8 @@ func (b *BlockChain) CheckTransactionPayload(txn interfaces.Transaction) error {
 	case *payload.RevertToDPOS:
 	case *payload.RecordProposalResult:
 	case *payload.ReturnSideChainDepositCoin:
+	case *payload.DposV2ClaimReward:
+	case *payload.DposV2ClaimRewardRealWithdraw:
 	default:
 		return errors.New("[txValidator],invalidate transaction payload type.")
 	}
@@ -977,9 +984,9 @@ func (b *BlockChain) checkPOWConsensusTransaction(txn interfaces.Transaction, re
 	}
 
 	switch txn.TxType() {
-	case common2.RegisterProducer, common2.ActivateProducer, common2.CRCouncilMemberClaimNode:
+	case common2.RegisterProducer, common2.ActivateProducer, common2.CRCouncilMemberClaimNode, common2.DposV2ClaimReward:
 		return nil
-	case common2.CRCAppropriation, common2.CRAssetsRectify, common2.CRCProposalRealWithdraw,
+	case common2.CRCAppropriation, common2.CRAssetsRectify, common2.CRCProposalRealWithdraw, common2.DposV2ClaimRewardRealWithdraw,
 		common2.NextTurnDPOSInfo, common2.RevertToDPOS:
 		return nil
 	case common2.TransferAsset:
@@ -1123,6 +1130,11 @@ func (b *BlockChain) CheckTxHeightVersion(txn interfaces.Transaction, blockHeigh
 			blockHeight < b.chainParams.CRCProposalWithdrawPayloadV1Height {
 			return errors.New(fmt.Sprintf("not support %s transaction "+
 				"before CRCProposalWithdrawPayloadV1Height", txn.TxType().Name()))
+		}
+	case common2.DposV2ClaimReward, common2.DposV2ClaimRewardRealWithdraw:
+		if blockHeight < b.chainParams.DposV2StartHeight {
+			return errors.New(fmt.Sprintf("not support %s transaction "+
+				"before DposV2StartHeight", txn.TxType().Name()))
 		}
 	case common2.CRAssetsRectify, common2.CRCProposalRealWithdraw:
 		if blockHeight < b.chainParams.CRAssetsRectifyTransactionHeight {
@@ -1797,6 +1809,25 @@ func (b *BlockChain) checkProcessProducer(txn interfaces.Transaction) (
 	return producer, nil
 }
 
+func (b *BlockChain) checkClaimRewardSignature(pub []byte, claimReward *payload.DposV2ClaimReward) error {
+
+	// check signature
+	publicKey, err := DecodePoint(pub)
+	if err != nil {
+		return errors.New("invalid public key in payload")
+	}
+	signedBuf := new(bytes.Buffer)
+	err = claimReward.SerializeUnsigned(signedBuf, payload.DposV2ClaimRewardVersion)
+	if err != nil {
+		return err
+	}
+	err = Verify(*publicKey, signedBuf.Bytes(), claimReward.Signature)
+	if err != nil {
+		return errors.New("invalid signature in payload")
+	}
+	return nil
+}
+
 func (b *BlockChain) checkActivateProducerSignature(activateProducer *payload.ActivateProducer) error {
 	// check signature
 	publicKey, err := DecodePoint(activateProducer.NodePublicKey)
@@ -1826,6 +1857,50 @@ func (b *BlockChain) CheckCancelProducerTransaction(txn interfaces.Transaction) 
 		return errors.New("can not cancel this producer")
 	}
 
+	return nil
+}
+
+func (b *BlockChain) checkDposV2ClaimRewardTransaction(txn interfaces.Transaction,
+	height uint32) error {
+
+	if height < b.chainParams.DposV2StartHeight {
+		return errors.New("can not claim reward before dposv2startheight")
+	}
+
+	claimReward, ok := txn.Payload().(*payload.DposV2ClaimReward)
+	if !ok {
+		return errors.New("invalid payload for dposV2claimReward")
+	}
+	if len(txn.Inputs()) != 0 {
+		return errors.New("inputs must be zero")
+	}
+
+	if len(txn.Outputs()) != 0 {
+		return errors.New("outputs must be zero")
+	}
+
+	pub := txn.Programs()[0].Code[1 : len(txn.Programs()[0].Code)-1]
+	u168, err := contract.PublicKeyToStandardProgramHash(pub)
+	if err != nil {
+		return err
+	}
+	addr, err := u168.ToAddress()
+	if err != nil {
+		return err
+	}
+	claimAmount, ok := b.state.DposV2RewardInfo[addr]
+	if !ok {
+		return errors.New("no reward to claim for such adress")
+	}
+
+	if claimAmount < claimReward.Amount {
+		return errors.New("claim reward exceeded , max claim reward " + claimAmount.String())
+	}
+
+	err = b.checkClaimRewardSignature(pub, claimReward)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -2440,6 +2515,7 @@ func (b *BlockChain) CheckCRCAppropriationTransaction(txn interfaces.Transaction
 func (b *BlockChain) CheckCRCProposalRealWithdrawTransaction(txn interfaces.Transaction,
 	references map[*common2.Input]common2.Output) error {
 	crcRealWithdraw, ok := txn.Payload().(*payload.CRCProposalRealWithdraw)
+
 	if !ok {
 		return errors.New("invalid payload")
 	}
@@ -2461,6 +2537,67 @@ func (b *BlockChain) CheckCRCProposalRealWithdrawTransaction(txn interfaces.Tran
 	txs := b.crCommittee.GetRealWithdrawTransactions()
 	txsMap := make(map[common.Uint256]struct{})
 	for i, hash := range crcRealWithdraw.WithdrawTransactionHashes {
+		txInfo, ok := txs[hash]
+		if !ok {
+			return errors.New("invalid withdraw transaction hash")
+		}
+		output := txn.Outputs()[i]
+		if !output.ProgramHash.IsEqual(txInfo.Recipient) {
+			return errors.New("invalid real withdraw output address")
+		}
+		if output.Value != txInfo.Amount-b.chainParams.RealWithdrawSingleFee {
+			return errors.New(fmt.Sprintf("invalid real withdraw output "+
+				"amount:%s, need to be:%s",
+				output.Value, txInfo.Amount-b.chainParams.RealWithdrawSingleFee))
+		}
+		if _, ok := txsMap[hash]; ok {
+			return errors.New("duplicated real withdraw transactions hash")
+		}
+		txsMap[hash] = struct{}{}
+	}
+
+	// check transaction fee
+	var inputAmount common.Fixed64
+	for _, v := range references {
+		inputAmount += v.Value
+	}
+	var outputAmount common.Fixed64
+	for _, o := range txn.Outputs() {
+		outputAmount += o.Value
+	}
+	if inputAmount-outputAmount != b.chainParams.RealWithdrawSingleFee*common.Fixed64(txsCount) {
+		return errors.New(fmt.Sprintf("invalid real withdraw transaction"+
+			" fee:%s, need to be:%s, txsCount:%d", inputAmount-outputAmount,
+			b.chainParams.RealWithdrawSingleFee*common.Fixed64(txsCount), txsCount))
+	}
+
+	return nil
+}
+
+func (b *BlockChain) checkDposV2ClaimRewardRealWithdrawTransaction(txn interfaces.Transaction,
+	references map[*common2.Input]common2.Output) error {
+	dposV2RealWithdraw, ok := txn.Payload().(*payload.DposV2ClaimRewardRealWithdraw)
+	if !ok {
+		return errors.New("invalid payload")
+	}
+	txsCount := len(dposV2RealWithdraw.WithdrawTransactionHashes)
+	// check WithdrawTransactionHashes count and output count
+	if txsCount != len(txn.Outputs()) && txsCount != len(txn.Outputs())-1 {
+		return errors.New("invalid real withdraw transaction hashes count")
+	}
+
+	// if need change, the last output is only allowed to DposV2RewardAccumulateAddress.
+	if txsCount != len(txn.Outputs()) {
+		toProgramHash := txn.Outputs()[len(txn.Outputs())-1].ProgramHash
+		if !toProgramHash.IsEqual(b.chainParams.DposV2RewardAccumulateAddress) {
+			return errors.New(fmt.Sprintf("last output is invalid"))
+		}
+	}
+
+	// check other outputs, need to match with WithdrawTransactionHashes
+	txs := b.state.GetRealWithdrawTransactions()
+	txsMap := make(map[common.Uint256]struct{})
+	for i, hash := range dposV2RealWithdraw.WithdrawTransactionHashes {
 		txInfo, ok := txs[hash]
 		if !ok {
 			return errors.New("invalid withdraw transaction hash")

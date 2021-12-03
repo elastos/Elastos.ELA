@@ -253,6 +253,16 @@ func startNode(c *cli.Context, st *settings.Settings) {
 	routesCfg.RelayAddr = netServer.RelayInventory
 	blockMemPool.IsCurrent = netServer.IsCurrent
 
+	arbiters.State.RegisterFuncitons(&state.StateFuncsConfig{
+		GetHeight: chainStore.GetHeight,
+		IsCurrent: netServer.IsCurrent,
+		Broadcast: func(msg p2p.Message) {
+			netServer.BroadcastMessage(msg)
+		},
+		AppendToTxpool:                      txMemPool.AppendToTxPool,
+		CreateDposV2RealWithdrawTransaction: chain.CreateDposV2RealWithdrawTransaction,
+	})
+
 	committee.RegisterFuncitons(&crstate.CommitteeFuncsConfig{
 		GetTxReference:                   chain.UTXOCache.GetTxReference,
 		GetUTXO:                          chainStore.GetFFLDB().GetUTXO,

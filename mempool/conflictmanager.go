@@ -31,6 +31,7 @@ const (
 	slotCRCProposalRegisterSideChainGenesisHash = "CRCProposalRegisterSideChainGenesisHash"
 	slotCRCAppropriationKey                     = "CRCAppropriationKey"
 	slotCRCProposalRealWithdrawKey              = "CRCProposalRealWithdrawKey"
+	slotDposV2ClaimRewardRealWithdrawKey        = "DposV2ClaimRewardRealWithdrawKey"
 	slotCloseProposalTargetProposalHash         = "CloseProposalTargetProposalHash"
 	slotChangeProposalOwnerTargetProposalHash   = "ChangeProposalOwnerTargetProposalHash"
 	slotChangeCustomIDFee                       = "ChangeCustomIDFee"
@@ -411,6 +412,15 @@ func newConflictManager() conflictManager {
 					keyTypeFuncPair{
 						Type: common2.CRCProposalRealWithdraw,
 						Func: hashArrayCRCProposalRealWithdrawTransactionHashes,
+					},
+				),
+			},
+			{
+				name: slotDposV2ClaimRewardRealWithdrawKey,
+				slot: newConflictSlot(hashArray,
+					keyTypeFuncPair{
+						Type: common2.DposV2ClaimRewardRealWithdraw,
+						Func: hashArrayDposV2ClaimRewardRealWithdrawTransactionHashes,
 					},
 				),
 			},

@@ -371,7 +371,7 @@ func getCRMembersMap(members []*crstate.CRMember) map[string]struct{} {
 
 func (t *DefaultChecker) checkVoteOutputs(
 	blockHeight uint32, outputs []*common2.Output, references map[*common2.Input]common2.Output,
-	pds map[string]struct{},  pds2 map[string]uint32, crs map[common.Uint168]struct{}) error {
+	pds map[string]struct{}, pds2 map[string]uint32, crs map[common.Uint168]struct{}) error {
 	programHashes := make(map[common.Uint168]struct{})
 	for _, output := range references {
 		programHashes[output.ProgramHash] = struct{}{}
@@ -549,7 +549,7 @@ func (t *DefaultChecker) checkInvalidUTXO(txn interfaces.Transaction) error {
 func checkTransactionSignature(tx interfaces.Transaction, references map[*common2.Input]common2.Output) error {
 	programHashes, err := blockchain.GetTxProgramHashes(tx, references)
 	if (tx.IsCRCProposalWithdrawTx() && tx.PayloadVersion() == payload.CRCProposalWithdrawDefault) ||
-		tx.IsCRAssetsRectifyTx() || tx.IsCRCProposalRealWithdrawTx() || tx.IsNextTurnDPOSInfoTx() {
+		tx.IsCRAssetsRectifyTx() || tx.IsCRCProposalRealWithdrawTx() || tx.IsNextTurnDPOSInfoTx() || tx.IsDposV2ClaimRewardRealWithdraw() {
 		return nil
 	}
 	if err != nil {

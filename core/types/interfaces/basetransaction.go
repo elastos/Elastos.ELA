@@ -92,4 +92,6 @@ type Transaction interface {
 	IsRechargeToSideChainTx() bool
 	IsCoinBaseTx() bool
 	IsSmallTransfer(min common.Fixed64) bool
+	IsDposV2ClaimRewardTx() bool
+	IsDposV2ClaimRewardRealWithdraw() bool
 }

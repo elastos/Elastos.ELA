@@ -158,6 +158,10 @@ func stateKeyFrameEqual(first *state.StateKeyFrame, second *state.StateKeyFrame)
 		len(first.Votes) != len(second.Votes) ||
 		len(first.DposV2Votes) != len(second.DposV2Votes) ||
 		len(first.DepositOutputs) != len(second.DepositOutputs) ||
+		len(first.DposV2RewardInfo) != len(second.DposV2RewardInfo) ||
+		len(first.DposV2RewardClaimingInfo) != len(second.DposV2RewardClaimingInfo) ||
+		len(first.DposV2RewardClaimedInfo) != len(second.DposV2RewardClaimedInfo) ||
+		len(first.WithdrawableTxInfo) != len(second.WithdrawableTxInfo) ||
 		len(first.Nicknames) != len(second.Nicknames) ||
 		len(first.SpecialTxHashes) != len(second.SpecialTxHashes) ||
 		len(first.PreBlockArbiters) != len(second.PreBlockArbiters) ||
@@ -260,6 +264,40 @@ func stateKeyFrameEqual(first *state.StateKeyFrame, second *state.StateKeyFrame)
 		}
 	}
 
+	for k := range first.DposV2RewardInfo {
+		_, ok := second.DposV2RewardInfo[k]
+		if !ok {
+			return false
+		}
+	}
+
+	for k := range first.DposV2RewardClaimingInfo {
+		_, ok := second.DposV2RewardClaimingInfo[k]
+		if !ok {
+			return false
+		}
+	}
+
+	for k := range first.DposV2RewardClaimedInfo {
+		_, ok := second.DposV2RewardClaimedInfo[k]
+		if !ok {
+			return false
+		}
+	}
+
+	for k, vf := range first.WithdrawableTxInfo {
+		vs, ok := second.WithdrawableTxInfo[k]
+		if !ok {
+			return false
+		}
+		if vf.Amount != vs.Amount {
+			return false
+		}
+		if vf.Recipient != vs.Recipient {
+			return false
+		}
+	}
+
 	for k := range first.Nicknames {
 		_, ok := second.Nicknames[k]
 		if !ok {
@@ -311,6 +349,9 @@ func randomDPOSStateKeyFrame() *state.StateKeyFrame {
 		Votes:                     make(map[string]struct{}),
 		DposV2Votes:               make(map[string]uint32),
 		DepositOutputs:            make(map[string]common.Fixed64),
+		DposV2RewardInfo:          make(map[string]common.Fixed64),
+		DposV2RewardClaimingInfo:  make(map[string]common.Fixed64),
+		DposV2RewardClaimedInfo:   make(map[string]common.Fixed64),
 		Nicknames:                 make(map[string]struct{}),
 		SpecialTxHashes:           make(map[common.Uint256]struct{}),
 		PreBlockArbiters:          make(map[string]struct{}),
@@ -330,6 +371,9 @@ func randomDPOSStateKeyFrame() *state.StateKeyFrame {
 		result.PendingCanceledProducers[randomString()] = randomProducer()
 		result.Votes[randomString()] = struct{}{}
 		result.DepositOutputs[randomString()] = common.Fixed64(rand.Uint64())
+		result.DposV2RewardInfo[randomString()] = common.Fixed64(rand.Uint64())
+		result.DposV2RewardClaimingInfo[randomString()] = common.Fixed64(rand.Uint64())
+		result.DposV2RewardClaimedInfo[randomString()] = common.Fixed64(rand.Uint64())
 		result.Nicknames[randomString()] = struct{}{}
 		result.SpecialTxHashes[*randomHash()] = struct{}{}
 		result.PreBlockArbiters[randomString()] = struct{}{}

@@ -6,7 +6,9 @@
 package state
 
 import (
+	"encoding/hex"
 	"errors"
+	"github.com/elastos/Elastos.ELA/core/contract"
 	"math"
 
 	"github.com/elastos/Elastos.ELA/common"
@@ -45,6 +47,30 @@ func Readi64(src []byte) (int64, []byte, bool) {
 		int64(src[3])<<24 | int64(src[4])<<32 | int64(src[5])<<40 |
 		int64(src[6])<<48 | int64(src[7])<<56
 	return i64, src[8:], true
+}
+
+func (a *Arbiters) getDposV2NormalArbitratorsDescV2(arbitratorsCount int,
+	producers []string) ([]ArbiterMember, error) {
+	if len(producers) < arbitratorsCount {
+		return nil, ErrInsufficientProducer
+	}
+
+	result := make([]ArbiterMember, 0)
+	for i := 0; i < arbitratorsCount && i < len(producers); i++ {
+		ownkey, _ := hex.DecodeString(producers[i])
+		hash, _ := contract.PublicKeyToStandardProgramHash(ownkey)
+		crc, exist := a.nextCRCArbitersMap[*hash]
+		if exist {
+			result = append(result, crc)
+		} else {
+			ar, err := NewDPoSArbiter(a.getProducer(ownkey))
+			if err != nil {
+				return nil, err
+			}
+			result = append(result, ar)
+		}
+	}
+	return result, nil
 }
 
 // H2 - H3

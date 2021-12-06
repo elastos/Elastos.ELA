@@ -20,6 +20,9 @@ type TransactionChecker interface {
 
 type BaseTransactionChecker interface {
 
+	// check height version
+	HeightVersionCheck() error
+
 	/// SANITY CHECK
 	// rewrite this function to check the transaction size, otherwise the
 	// transaction size if compare with default value: MaxBlockContextSize
@@ -34,8 +37,6 @@ type BaseTransactionChecker interface {
 	CheckAttributeProgram() error
 
 	/// CONTEXT CHECK
-	// check height version
-	HeightVersionCheck() error
 	// if the transaction should create in POW need to return true
 	IsAllowedInPOWConsensus() bool
 	// the special context check of transaction, such as check the transaction payload

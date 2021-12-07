@@ -312,13 +312,13 @@ func (t *DefaultChecker) tryCheckVoteOutputs() error {
 
 	txn := t.parameters.Transaction
 	blockHeight := t.parameters.BlockHeight
-	state := t.parameters.BlockChain.GetState()
+	dposState := t.parameters.BlockChain.GetState()
 	crCommittee := t.parameters.BlockChain.GetCRCommittee()
 
 	if txn.Version() >= common2.TxVersion09 {
-		producers := state.GetActiveProducers()
+		producers := dposState.GetActiveProducers()
 		if blockHeight < t.parameters.Config.PublicDPOSHeight {
-			producers = append(producers, state.GetPendingCanceledProducers()...)
+			producers = append(producers, dposState.GetPendingCanceledProducers()...)
 		}
 		var candidates []*crstate.Candidate
 		if crCommittee.IsInVotingPeriod(blockHeight) {
@@ -334,6 +334,11 @@ func (t *DefaultChecker) tryCheckVoteOutputs() error {
 			return err
 		}
 	}
+
+	if txn.TxType() == common2.Voting {
+
+	}
+
 	return nil
 }
 

@@ -7,22 +7,17 @@ package payload
 
 import (
 	"bytes"
-	"github.com/elastos/Elastos.ELA/core/types/outputpayload"
 	"io"
 
-	"github.com/elastos/Elastos.ELA/common"
+	"github.com/elastos/Elastos.ELA/core/types/outputpayload"
 )
 
-type VotingInfo struct {
-	VoteType outputpayload.VoteType
-	outputpayload.CandidateVotes
-}
-
 type Voting struct {
-	ExchangeValue common.Fixed64
+	Vote outputpayload.VoteOutput
 }
 
 func (p *Voting) Data(version byte) []byte {
+
 	buf := new(bytes.Buffer)
 	if err := p.Serialize(buf, version); err != nil {
 		return []byte{0}
@@ -32,7 +27,7 @@ func (p *Voting) Data(version byte) []byte {
 }
 
 func (p *Voting) Serialize(w io.Writer, version byte) error {
-	if err := p.ExchangeValue.Serialize(w); err != nil {
+	if err := p.Vote.Serialize(w); err != nil {
 		return err
 	}
 
@@ -40,7 +35,7 @@ func (p *Voting) Serialize(w io.Writer, version byte) error {
 }
 
 func (p *Voting) Deserialize(r io.Reader, version byte) error {
-	if err := p.ExchangeValue.Deserialize(r); err != nil {
+	if err := p.Vote.Deserialize(r); err != nil {
 		return err
 	}
 

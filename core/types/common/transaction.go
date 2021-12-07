@@ -60,13 +60,13 @@ const (
 	RevertToPOW  TxType = 0x41
 	RevertToDPOS TxType = 0x42
 
-	ReturnSideChainDepositCoin    TxType = 0x51
-
+	ReturnSideChainDepositCoin TxType = 0x51
 
 	// DPoS2.0
 	DposV2ClaimReward             TxType = 0x60
 	DposV2ClaimRewardRealWithdraw TxType = 0x61
-	ExchangeVotes   TxType = 0x62
+	ExchangeVotes                 TxType = 0x62
+	Voting                        TxType = 0x63
 )
 
 func (self TxType) Name() string {

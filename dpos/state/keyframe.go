@@ -31,7 +31,8 @@ type StateKeyFrame struct {
 	PendingCanceledProducers map[string]*Producer
 	DposV2EffectedProducers  map[string]*Producer
 	Votes                    map[string]struct{}
-	DposV2Votes              map[string]uint32 // key: output value: block height
+	DposV2VoteRights         map[common.Uint168]common.Fixed64 // key: stake address value: amount
+	DposV2Votes              map[string]uint32                 // key: stake address value: votes information
 	DepositOutputs           map[string]common.Fixed64
 	DposV2RewardInfo         map[string]common.Fixed64
 	DposV2RewardClaimingInfo map[string]common.Fixed64
@@ -84,6 +85,7 @@ func (s *StateKeyFrame) snapshot() *StateKeyFrame {
 		DposV2EffectedProducers:  make(map[string]*Producer),
 		Votes:                    make(map[string]struct{}),
 		DposV2Votes:              make(map[string]uint32),
+		DposV2VoteRights:         make(map[common.Uint168]common.Fixed64),
 		DepositOutputs:           make(map[string]common.Fixed64),
 		DposV2RewardInfo:         make(map[string]common.Fixed64),
 		DposV2RewardClaimingInfo: make(map[string]common.Fixed64),
@@ -105,6 +107,7 @@ func (s *StateKeyFrame) snapshot() *StateKeyFrame {
 	state.DposV2EffectedProducers = copyProducerMap(s.DposV2EffectedProducers)
 	state.Votes = copyStringSet(s.Votes)
 	state.DposV2Votes = copyStringHeightMap(s.DposV2Votes)
+	state.DposV2VoteRights = copyProgramHashAmountSet(s.DposV2VoteRights)
 	state.DepositOutputs = copyFixed64Map(s.DepositOutputs)
 	state.DposV2RewardInfo = copyFixed64Map(s.DposV2RewardInfo)
 	state.DposV2RewardClaimingInfo = copyFixed64Map(s.DposV2RewardClaimingInfo)
@@ -160,6 +163,10 @@ func (s *StateKeyFrame) Serialize(w io.Writer) (err error) {
 	}
 
 	if err = s.SerializeStringHeightMap(s.DposV2Votes, w); err != nil {
+		return
+	}
+
+	if err = s.SerializeProgramHashAmountMap(s.DposV2VoteRights, w); err != nil {
 		return
 	}
 
@@ -259,6 +266,10 @@ func (s *StateKeyFrame) Deserialize(r io.Reader) (err error) {
 	}
 
 	if s.DposV2Votes, err = s.DeserializeStringHeightMap(r); err != nil {
+		return
+	}
+
+	if s.DposV2VoteRights, err = s.DeserializeProgramHashAmountMap(r); err != nil {
 		return
 	}
 
@@ -453,6 +464,22 @@ func (s *StateKeyFrame) SerializeStringHeightMap(vmap map[string]uint32,
 	return
 }
 
+func (s *StateKeyFrame) SerializeProgramHashAmountMap(vmap map[common.Uint168]common.Fixed64,
+	w io.Writer) (err error) {
+	if err = common.WriteVarUint(w, uint64(len(vmap))); err != nil {
+		return
+	}
+	for k, v := range vmap {
+		if err = k.Serialize(w); err != nil {
+			return
+		}
+		if err = v.Serialize(w); err != nil {
+			return
+		}
+	}
+	return
+}
+
 func (s *StateKeyFrame) DeserializeStringSet(
 	r io.Reader) (vmap map[string]struct{}, err error) {
 	var count uint64
@@ -484,6 +511,27 @@ func (s *StateKeyFrame) DeserializeStringHeightMap(
 		}
 		var v uint32
 		if v, err = common.ReadUint32(r); err != nil {
+			return
+		}
+		vmap[k] = v
+	}
+	return
+}
+
+func (s *StateKeyFrame) DeserializeProgramHashAmountMap(
+	r io.Reader) (vmap map[common.Uint168]common.Fixed64, err error) {
+	var count uint64
+	if count, err = common.ReadVarUint(r, 0); err != nil {
+		return
+	}
+	vmap = make(map[common.Uint168]common.Fixed64)
+	for i := uint64(0); i < count; i++ {
+		var k common.Uint168
+		if err = k.Deserialize(r); err != nil {
+			return
+		}
+		var v common.Fixed64
+		if err = v.Deserialize(r); err != nil {
 			return
 		}
 		vmap[k] = v
@@ -751,6 +799,16 @@ func copyDIDSet(src map[common.Uint168]struct{}) (
 	dst = map[common.Uint168]struct{}{}
 	for k := range src {
 		dst[k] = struct{}{}
+	}
+	return
+}
+
+func copyProgramHashAmountSet(src map[common.Uint168]common.Fixed64) (
+	dst map[common.Uint168]common.Fixed64) {
+	dst = map[common.Uint168]common.Fixed64{}
+	for k, v := range src {
+		a := v
+		dst[k] = a
 	}
 	return
 }

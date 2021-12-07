@@ -1136,6 +1136,8 @@ func (s *State) processTransaction(tx interfaces.Transaction, height uint32) {
 	case common2.TransferAsset:
 		s.processVotes(tx, height)
 
+	case common2.ExchangeVotes:
+
 	case common2.IllegalProposalEvidence, common2.IllegalVoteEvidence,
 		common2.IllegalBlockEvidence, common2.IllegalSidechainEvidence:
 		s.processIllegalEvidence(tx.Payload(), height)
@@ -1356,6 +1358,17 @@ func (s *State) processVotes(tx interfaces.Transaction, height uint32) {
 			}
 		}
 	}
+}
+
+// processNewVotes takes a transaction, if the transaction including any votes
+// validate and update producers votes.
+func (s *State) processExchangeVotes(tx interfaces.Transaction, height uint32) {
+	pld := tx.Payload().(*payload.ExchangeVotes)
+	s.History.Append(height, func() {
+		s.DposV2VoteRights[tx.Outputs()[0].ProgramHash] += pld.ExchangeValue
+	}, func() {
+		s.DposV2VoteRights[tx.Outputs()[0].ProgramHash] -= pld.ExchangeValue
+	})
 }
 
 // processDeposit takes a transaction output with deposit program hash.

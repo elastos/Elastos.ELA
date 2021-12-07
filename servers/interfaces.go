@@ -2769,6 +2769,7 @@ func getPayloadInfo(p Payload, payloadVersion byte) PayloadInfo {
 			obj.ProposalType = object.ProposalType.Name()
 			obj.CategoryData = object.CategoryData
 			obj.OwnerPublicKey = common.BytesToHexString(object.OwnerPublicKey)
+			obj.DraftData = common.BytesToHexString(object.DraftData)
 			obj.DraftHash = common.ToReversedString(object.DraftHash)
 			obj.Budgets = budgets
 			addr, _ := object.Recipient.ToAddress()
@@ -2785,6 +2786,7 @@ func getPayloadInfo(p Payload, payloadVersion byte) PayloadInfo {
 			obj.ProposalType = object.ProposalType.Name()
 			obj.CategoryData = object.CategoryData
 			obj.OwnerPublicKey = common.BytesToHexString(object.OwnerPublicKey)
+			obj.DraftData = common.BytesToHexString(object.DraftData)
 			obj.DraftHash = common.ToReversedString(object.DraftHash)
 			obj.TargetProposalHash = common.ToReversedString(object.TargetProposalHash)
 			addr, _ := object.NewRecipient.ToAddress()
@@ -2803,6 +2805,7 @@ func getPayloadInfo(p Payload, payloadVersion byte) PayloadInfo {
 			obj.ProposalType = object.ProposalType.Name()
 			obj.CategoryData = object.CategoryData
 			obj.OwnerPublicKey = common.BytesToHexString(object.OwnerPublicKey)
+			obj.DraftData = common.BytesToHexString(object.DraftData)
 			obj.DraftHash = common.ToReversedString(object.DraftHash)
 			obj.TargetProposalHash = common.ToReversedString(object.TargetProposalHash)
 			obj.Signature = common.BytesToHexString(object.Signature)
@@ -2817,6 +2820,7 @@ func getPayloadInfo(p Payload, payloadVersion byte) PayloadInfo {
 			obj.ProposalType = object.ProposalType.Name()
 			obj.CategoryData = object.CategoryData
 			obj.OwnerPublicKey = common.BytesToHexString(object.OwnerPublicKey)
+			obj.DraftData = common.BytesToHexString(object.DraftData)
 			obj.DraftHash = common.ToReversedString(object.DraftHash)
 			obj.ReservedCustomIDList = object.ReservedCustomIDList
 			obj.Signature = common.BytesToHexString(object.Signature)
@@ -2831,6 +2835,7 @@ func getPayloadInfo(p Payload, payloadVersion byte) PayloadInfo {
 			obj.ProposalType = object.ProposalType.Name()
 			obj.CategoryData = object.CategoryData
 			obj.OwnerPublicKey = common.BytesToHexString(object.OwnerPublicKey)
+			obj.DraftData = common.BytesToHexString(object.DraftData)
 			obj.DraftHash = common.ToReversedString(object.DraftHash)
 			obj.ReceiveCustomIDList = object.ReceivedCustomIDList
 			obj.ReceiverDID, _ = object.ReceiverDID.ToAddress()
@@ -2846,6 +2851,7 @@ func getPayloadInfo(p Payload, payloadVersion byte) PayloadInfo {
 			obj.ProposalType = object.ProposalType.Name()
 			obj.CategoryData = object.CategoryData
 			obj.OwnerPublicKey = common.BytesToHexString(object.OwnerPublicKey)
+			obj.DraftData = common.BytesToHexString(object.DraftData)
 			obj.DraftHash = common.ToReversedString(object.DraftHash)
 			obj.FeeRate = int64(object.RateOfCustomIDFee)
 			obj.EIDEffectiveHeight = object.EIDEffectiveHeight
@@ -2861,6 +2867,7 @@ func getPayloadInfo(p Payload, payloadVersion byte) PayloadInfo {
 			obj.ProposalType = object.ProposalType.Name()
 			obj.CategoryData = object.CategoryData
 			obj.OwnerPublicKey = common.BytesToHexString(object.OwnerPublicKey)
+			obj.DraftData = common.BytesToHexString(object.DraftData)
 			obj.DraftHash = common.ToReversedString(object.DraftHash)
 			obj.SecretaryGeneralPublicKey = common.BytesToHexString(object.SecretaryGeneralPublicKey)
 			sgDID, _ := object.SecretaryGeneralDID.ToAddress()
@@ -2877,6 +2884,7 @@ func getPayloadInfo(p Payload, payloadVersion byte) PayloadInfo {
 			obj.ProposalType = object.ProposalType.Name()
 			obj.CategoryData = object.CategoryData
 			obj.OwnerPublicKey = common.BytesToHexString(object.OwnerPublicKey)
+			obj.DraftData = common.BytesToHexString(object.DraftData)
 			obj.DraftHash = common.ToReversedString(object.DraftHash)
 			obj.SideChainName = object.SideChainName
 			obj.MagicNumber = object.MagicNumber

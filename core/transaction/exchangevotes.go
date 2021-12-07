@@ -103,26 +103,33 @@ func (t *ExchangeVotesTransaction) IsAllowedInPOWConsensus() bool {
 	return true
 }
 
-func (a *ExchangeVotesTransaction) SpecialContextCheck() (result elaerr.ELAError, end bool) {
+func (t *ExchangeVotesTransaction) SpecialContextCheck() (result elaerr.ELAError, end bool) {
 
-	// 1.first output address need to be the same with input
-	// 2.first output value need to be equal to payload amount
+	// 1.first output address need to be the stake address from code
+	// 2.inputs should from one address only
+	// 3.stake output value need to be equal to payload amount
 	// outputs count has been checked in sanity check
-	programHash := a.Outputs()[0].ProgramHash
+	outputProgramHash := t.Outputs()[0].ProgramHash
+	code := t.Programs()[0].Code
+	ct, err := contract.CreateStakeContractByCode(code)
+	if err != nil {
+		return elaerr.Simple(elaerr.ErrTxInvalidOutput, err), true
+	}
+	stakeProgramHash := ct.ToProgramHash()
+	if !stakeProgramHash.IsEqual(outputProgramHash) {
+		return elaerr.Simple(elaerr.ErrTxInvalidOutput, errors.New("code not match output program hsh")), true
+	}
+
 	inputsAddr := make(map[common.Uint168]struct{})
-	for _, o := range a.references {
+	for _, o := range t.references {
 		inputsAddr[o.ProgramHash] = struct{}{}
 	}
 	if len(inputsAddr) != 1 {
 		return elaerr.Simple(elaerr.ErrTxInvalidOutput,
 			errors.New("has different input address")), true
 	}
-	if _, ok := inputsAddr[programHash]; !ok {
-		return elaerr.Simple(elaerr.ErrTxInvalidOutput,
-			errors.New("input address need to be same as output address")), true
-	}
 
-	if a.Outputs()[0].Value != a.Payload().(*payload.ExchangeVotes).ExchangeValue {
+	if t.Outputs()[0].Value != t.Payload().(*payload.ExchangeVotes).ExchangeValue {
 		return elaerr.Simple(elaerr.ErrTxInvalidOutput,
 			errors.New("payload value is not equal to output value")), true
 	}

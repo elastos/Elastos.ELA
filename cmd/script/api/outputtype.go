@@ -400,7 +400,7 @@ func checkVoteContent(L *lua.LState, idx int) *outputpayload.VoteContent {
 	if v, ok := ud.Value.(*outputpayload.VoteContent); ok {
 		return v
 	}
-	L.ArgError(1, "VoteContent expected")
+	L.ArgError(1, "Vote expected")
 	return nil
 }
 

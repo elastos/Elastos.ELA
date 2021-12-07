@@ -92,7 +92,7 @@ func (cv *CandidateVotes) String() string {
 		"Candidates: ", cv.Votes, "}\n\t\t\t\t")
 }
 
-// VoteContent defines the vote type and vote information of candidates.
+// Vote defines the vote type and vote information of candidates.
 type VoteContent struct {
 	VoteType       VoteType
 	CandidateVotes []CandidateVotes
@@ -248,5 +248,5 @@ func (o *VoteOutput) Validate() error {
 func (o VoteOutput) String() string {
 	return fmt.Sprint("Vote: {\n\t\t\t",
 		"Version: ", o.Version, "\n\t\t\t",
-		"Contents: ", o.Contents, "\n\t\t\t}")
+		"Vote: ", o.Contents, "\n\t\t\t}")
 }

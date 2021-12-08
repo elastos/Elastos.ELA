@@ -137,26 +137,34 @@ func ProcessProposalDraftData(dbTx database.Tx, Transactions []*Transaction) (er
 		switch tx.TxType {
 		case CRCProposal:
 			proposal := tx.Payload.(*payload.CRCProposal)
-			err = dbPutProposalDraftData(dbTx, &proposal.DraftHash, proposal.DraftData)
-			if err != nil {
-				return err
+			if len(proposal.DraftData) != 0 {
+				err = dbPutProposalDraftData(dbTx, &proposal.DraftHash, proposal.DraftData)
+				if err != nil {
+					return err
+				}
 			}
 		case CRCProposalTracking:
 			proposalTracking := tx.Payload.(*payload.CRCProposalTracking)
-			err = dbPutProposalDraftData(dbTx, &proposalTracking.SecretaryGeneralOpinionHash,
+			if len(proposalTracking.SecretaryGeneralOpinionData) != 0 {
+				err = dbPutProposalDraftData(dbTx, &proposalTracking.SecretaryGeneralOpinionHash,
 				proposalTracking.SecretaryGeneralOpinionData)
-			if err != nil {
-				return err
+				if err != nil {
+					return err
+				}
 			}
-			err = dbPutProposalDraftData(dbTx, &proposalTracking.MessageHash, proposalTracking.MessageData)
-			if err != nil {
-				return err
+			if len(proposalTracking.MessageData) != 0 {
+				err = dbPutProposalDraftData(dbTx, &proposalTracking.MessageHash, proposalTracking.MessageData)
+				if err != nil {
+					return err
+				}
 			}
 		case CRCProposalReview:
 			proposalReview := tx.Payload.(*payload.CRCProposalReview)
-			err = dbPutProposalDraftData(dbTx, &proposalReview.OpinionHash, proposalReview.OpinionData)
-			if err != nil {
-				return err
+			if len(proposalReview.OpinionData) != 0 {
+				err = dbPutProposalDraftData(dbTx, &proposalReview.OpinionHash, proposalReview.OpinionData)
+				if err != nil {
+					return err
+				}
 			}
 		}
 	}
@@ -231,8 +239,9 @@ func (c *ChainStoreFFLDB) SaveBlock(b *Block, node *BlockNode,
 			return err
 		}
 
-		if b.Height >= c.params.ChangeCommitteeNewCRHeight {
-			ProcessProposalDraftData(dbTx, b.Transactions)
+		err = ProcessProposalDraftData(dbTx, b.Transactions)
+		if err != nil {
+			return err
 		}
 
 		// Allow the index manager to call each of the currently active

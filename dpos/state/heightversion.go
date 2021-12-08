@@ -50,7 +50,7 @@ func Readi64(src []byte) (int64, []byte, bool) {
 }
 
 func (a *Arbiters) getDposV2NormalArbitratorsDescV2(arbitratorsCount int,
-	producers []string) ([]ArbiterMember, error) {
+	producers []string, choosingArbiters map[common.Uint168]ArbiterMember) ([]ArbiterMember, error) {
 	if len(producers) < arbitratorsCount {
 		return nil, ErrInsufficientProducer
 	}
@@ -59,7 +59,7 @@ func (a *Arbiters) getDposV2NormalArbitratorsDescV2(arbitratorsCount int,
 	for i := 0; i < arbitratorsCount && i < len(producers); i++ {
 		ownkey, _ := hex.DecodeString(producers[i])
 		hash, _ := contract.PublicKeyToStandardProgramHash(ownkey)
-		crc, exist := a.nextCRCArbitersMap[*hash]
+		crc, exist := choosingArbiters[*hash]
 		if exist {
 			result = append(result, crc)
 		} else {

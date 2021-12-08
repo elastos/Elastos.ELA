@@ -344,7 +344,7 @@ func registerParams(c *cli.Context, L *lua.LState) {
 	}
 
 	getEffectiveHeight := func(L *lua.LState) int {
-		L.Push(lua.LString(effectiveHeight))
+		L.Push(lua.LString(string(rune(effectiveHeight))))
 		return 1
 	}
 

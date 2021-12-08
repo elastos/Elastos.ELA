@@ -8,7 +8,6 @@ package dpos
 import (
 	"bytes"
 	"errors"
-	"github.com/elastos/Elastos.ELA/core/types/functions"
 	peer2 "github.com/elastos/Elastos.ELA/p2p/peer"
 	"net"
 	"sync"
@@ -389,11 +388,7 @@ func createMessage(hdr elap2p.Header, r net.Conn) (message elap2p.Message, err e
 		message = elamsg.NewBlock(&types.Block{})
 
 	case elap2p.CmdTx:
-		txn, err := functions.GetTransactionByBytes(r)
-		if err != nil {
-			return nil, err
-		}
-		message = elamsg.NewTx(txn)
+		return peer2.CheckAndCreateTxMessage(hdr, r)
 
 	case msg.CmdAcceptVote:
 		message = &msg.Vote{Command: msg.CmdAcceptVote}

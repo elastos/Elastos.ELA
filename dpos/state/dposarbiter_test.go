@@ -197,46 +197,6 @@ func stateKeyFrameEqual(first *StateKeyFrame, second *StateKeyFrame) bool {
 		first.VersionEndHeight == second.VersionEndHeight
 }
 
-func randomDPOSStateKeyFrame() *StateKeyFrame {
-	result := &StateKeyFrame{
-		NodeOwnerKeys:             make(map[string]string),
-		PendingProducers:          make(map[string]*Producer),
-		ActivityProducers:         make(map[string]*Producer),
-		InactiveProducers:         make(map[string]*Producer),
-		CanceledProducers:         make(map[string]*Producer),
-		IllegalProducers:          make(map[string]*Producer),
-		PendingCanceledProducers:  make(map[string]*Producer),
-		Votes:                     make(map[string]struct{}),
-		DposV2Votes:               make(map[string]uint32),
-		DepositOutputs:            make(map[string]common.Fixed64),
-		Nicknames:                 make(map[string]struct{}),
-		SpecialTxHashes:           make(map[common.Uint256]struct{}),
-		PreBlockArbiters:          make(map[string]struct{}),
-		ProducerDepositMap:        make(map[common.Uint168]struct{}),
-		EmergencyInactiveArbiters: make(map[string]struct{}),
-		VersionStartHeight:        rand.Uint32(),
-		VersionEndHeight:          rand.Uint32(),
-	}
-
-	for i := 0; i < 5; i++ {
-		result.NodeOwnerKeys[randomString()] = randomString()
-		result.PendingProducers[randomString()] = randomProducer()
-		result.ActivityProducers[randomString()] = randomProducer()
-		result.InactiveProducers[randomString()] = randomProducer()
-		result.CanceledProducers[randomString()] = randomProducer()
-		result.IllegalProducers[randomString()] = randomProducer()
-		result.PendingCanceledProducers[randomString()] = randomProducer()
-		result.Votes[randomString()] = struct{}{}
-		result.DepositOutputs[randomString()] = common.Fixed64(rand.Uint64())
-		result.Nicknames[randomString()] = struct{}{}
-		result.SpecialTxHashes[*randomHash()] = struct{}{}
-		result.PreBlockArbiters[randomString()] = struct{}{}
-		result.ProducerDepositMap[*randomProgramHash()] = struct{}{}
-		result.EmergencyInactiveArbiters[randomString()] = struct{}{}
-	}
-	return result
-}
-
 func producerEqual(first *Producer, second *Producer) bool {
 	if first.State() != second.State() ||
 		first.RegisterHeight() != second.RegisterHeight() ||

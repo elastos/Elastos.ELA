@@ -70,7 +70,7 @@ var headerMethods = map[string]lua.LGFunction{
 func headerHeight(L *lua.LState) int {
 	h := checkHeader(L, 1)
 
-	L.Push(lua.LString(h.Height))
+	L.Push(lua.LString(string(rune(h.Height))))
 	return 1
 }
 

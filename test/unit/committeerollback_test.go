@@ -602,7 +602,6 @@ func TestCommittee_RollbackContinueVotingPeriod(t *testing.T) {
 	// set count of CR member
 	params := config.GetDefaultParams()
 	cfg := &params
-	fmt.Println("################### cfg.CRCArbiters:", cfg.CRCArbiters)
 	cfg.CRCArbiters = cfg.CRCArbiters[0:4]
 	cfg.CRMemberCount = 4
 

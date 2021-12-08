@@ -837,9 +837,6 @@ func (s *State) IsDPOSTransaction(tx interfaces.Transaction) bool {
 						if content.VoteType == outputpayload.Delegate {
 							return true
 						}
-						if content.VoteType == outputpayload.DposV2 {
-							return true
-						}
 					}
 				}
 			}
@@ -851,14 +848,6 @@ func (s *State) IsDPOSTransaction(tx interfaces.Transaction) bool {
 	// Cancel votes.
 	for _, input := range tx.Inputs() {
 		_, ok := s.Votes[input.ReferKey()]
-		if ok {
-			return true
-		}
-	}
-
-	// Cancel dpos v2 votes.
-	for _, input := range tx.Inputs() {
-		_, ok := s.DposV2Votes[input.ReferKey()]
 		if ok {
 			return true
 		}
@@ -1022,7 +1011,6 @@ func (s *State) processTransactions(txs []interfaces.Transaction, height uint32)
 			if producer.info.StakeUntil != 0 {
 				s.DposV2ActivityProducers[key] = producer
 			}
-			log.Info("### add dposV2 producer active ", key, producer.info.StakeUntil)
 			delete(s.PendingProducers, key)
 		}, func() {
 			producer.state = Pending
@@ -1137,6 +1125,10 @@ func (s *State) processTransaction(tx interfaces.Transaction, height uint32) {
 		s.processVotes(tx, height)
 
 	case common2.ExchangeVotes:
+		s.processExchangeVotes(tx, height)
+
+	case common2.Voting:
+		s.processVoting(tx, height)
 
 	case common2.IllegalProposalEvidence, common2.IllegalVoteEvidence,
 		common2.IllegalBlockEvidence, common2.IllegalSidechainEvidence:
@@ -1322,15 +1314,7 @@ func (s *State) processVotes(tx interfaces.Transaction, height uint32) {
 				continue
 			}
 			p, _ := output.Payload.(*outputpayload.VoteOutput)
-			if p.Version == outputpayload.VoteDposV2Version {
-				op := common2.NewOutPoint(tx.Hash(), uint16(i))
-				s.History.Append(height, func() {
-					s.DposV2Votes[op.ReferKey()] = height
-				}, func() {
-					delete(s.DposV2Votes, op.ReferKey())
-				})
-				s.processDposV2VoteOutput(output, height)
-			} else if p.Version == outputpayload.VoteProducerVersion {
+			if p.Version == outputpayload.VoteProducerVersion {
 				op := common2.NewOutPoint(tx.Hash(), uint16(i))
 				s.History.Append(height, func() {
 					s.Votes[op.ReferKey()] = struct{}{}
@@ -1369,6 +1353,71 @@ func (s *State) processExchangeVotes(tx interfaces.Transaction, height uint32) {
 	}, func() {
 		s.DposV2VoteRights[tx.Outputs()[0].ProgramHash] -= pld.ExchangeValue
 	})
+}
+
+// processNewVotes takes a transaction, if the transaction including any votes
+// validate and update producers votes.
+func (s *State) processVoting(tx interfaces.Transaction, height uint32) {
+	pld := tx.Payload().(*payload.Voting)
+
+	for _, content := range pld.Vote.Contents {
+		switch content.VoteType {
+		case outputpayload.Delegate:
+			var maxVotes common.Fixed64
+			for _, vote := range content.CandidateVotes {
+				if maxVotes < vote.Votes {
+					maxVotes = vote.Votes
+				}
+			}
+			s.History.Append(height, func() {
+				s.DposVotes[tx.Outputs()[0].ProgramHash] += maxVotes
+			}, func() {
+				s.DposVotes[tx.Outputs()[0].ProgramHash] -= maxVotes
+			})
+		case outputpayload.CRC:
+			var totalVotes common.Fixed64
+			for _, vote := range content.CandidateVotes {
+				totalVotes += vote.Votes
+			}
+			s.History.Append(height, func() {
+				s.CRVotes[tx.Outputs()[0].ProgramHash] += totalVotes
+			}, func() {
+				s.CRVotes[tx.Outputs()[0].ProgramHash] -= totalVotes
+			})
+		case outputpayload.CRCProposal:
+			var maxVotes common.Fixed64
+			for _, vote := range content.CandidateVotes {
+				if maxVotes < vote.Votes {
+					maxVotes = vote.Votes
+				}
+			}
+			s.History.Append(height, func() {
+				s.CRVotes[tx.Outputs()[0].ProgramHash] += maxVotes
+			}, func() {
+				s.CRVotes[tx.Outputs()[0].ProgramHash] -= maxVotes
+			})
+		case outputpayload.CRCImpeachment:
+			var totalVotes common.Fixed64
+			for _, vote := range content.CandidateVotes {
+				totalVotes += vote.Votes
+			}
+			s.History.Append(height, func() {
+				s.CRImpeachmentVotes[tx.Outputs()[0].ProgramHash] += totalVotes
+			}, func() {
+				s.CRImpeachmentVotes[tx.Outputs()[0].ProgramHash] -= totalVotes
+			})
+		case outputpayload.DposV2:
+			var totalVotes common.Fixed64
+			for _, vote := range content.CandidateVotes {
+				totalVotes += vote.Votes
+			}
+			s.History.Append(height, func() {
+				s.DposV2Votes[tx.Outputs()[0].ProgramHash] += totalVotes
+			}, func() {
+				s.DposV2Votes[tx.Outputs()[0].ProgramHash] -= totalVotes
+			})
+		}
+	}
 }
 
 // processDeposit takes a transaction output with deposit program hash.
@@ -1453,102 +1502,6 @@ func (s *State) processCancelVotes(tx interfaces.Transaction, height uint32) {
 		if ok {
 			out := references[input]
 			s.processVoteCancel(&out, height)
-		}
-	}
-}
-
-// processCancelVotes takes a transaction output with vote payload.
-func (s *State) processCancelDposV2Votes(tx interfaces.Transaction, height uint32) {
-	var exist bool
-	for _, input := range tx.Inputs() {
-		referKey := input.ReferKey()
-		if _, ok := s.DposV2Votes[referKey]; ok {
-			exist = true
-		}
-	}
-	if !exist {
-		return
-	}
-
-	references, err := s.GetTxReference(tx)
-	if err != nil {
-		log.Errorf("get tx reference failed, tx hash:%s", common.ToReversedString(tx.Hash()))
-		return
-	}
-	for _, input := range tx.Inputs() {
-		referKey := input.ReferKey()
-		_, ok := s.DposV2Votes[referKey]
-		if ok {
-			out := references[input]
-			s.processDposV2VoteCancel(&out, height)
-		}
-	}
-}
-
-// processVoteCancel takes a previous vote output and decrease producers votes.
-func (s *State) processDposV2VoteCancel(output *common2.Output, height uint32) {
-	subtractByVote := func(producer *Producer, vote common.Fixed64) {
-		s.History.Append(height, func() {
-			producer.dposV2Votes -= vote
-			if producer.dposV2Votes < s.ChainParams.DposV2EffectiveVotes {
-				delete(s.DposV2EffectedProducers, hex.EncodeToString(producer.info.OwnerPublicKey))
-			}
-		}, func() {
-			producer.dposV2Votes += vote
-			if producer.dposV2Votes >= s.ChainParams.DposV2EffectiveVotes {
-				s.DposV2EffectedProducers[hex.EncodeToString(producer.info.OwnerPublicKey)] = producer
-			}
-		})
-	}
-
-	p := output.Payload.(*outputpayload.VoteOutput)
-	for _, vote := range p.Contents {
-		for _, cv := range vote.CandidateVotes {
-			producer := s.getProducer(cv.Candidate)
-			if producer == nil {
-				continue
-			}
-			switch vote.VoteType {
-			case outputpayload.DposV2:
-				if p.Version == outputpayload.VoteDposV2Version {
-					v := cv.Votes
-					subtractByVote(producer, v)
-				}
-			}
-		}
-	}
-}
-
-// processDposV2VoteOutput takes a transaction output with vote payload.
-func (s *State) processDposV2VoteOutput(output *common2.Output, height uint32) {
-	countByVote := func(producer *Producer, vote common.Fixed64) {
-		s.History.Append(height, func() {
-			producer.dposV2Votes += vote
-			if producer.dposV2Votes >= s.ChainParams.DposV2EffectiveVotes {
-				s.DposV2EffectedProducers[hex.EncodeToString(producer.info.OwnerPublicKey)] = producer
-			}
-		}, func() {
-			producer.dposV2Votes -= vote
-			if producer.dposV2Votes < s.ChainParams.DposV2EffectiveVotes {
-				delete(s.DposV2EffectedProducers, hex.EncodeToString(producer.info.OwnerPublicKey))
-			}
-		})
-	}
-
-	p := output.Payload.(*outputpayload.VoteOutput)
-	for _, vote := range p.Contents {
-		for _, cv := range vote.CandidateVotes {
-			producer := s.getProducer(cv.Candidate)
-			if producer == nil {
-				continue
-			}
-			switch vote.VoteType {
-			case outputpayload.DposV2:
-				if p.Version == outputpayload.VoteDposV2Version {
-					v := cv.Votes
-					countByVote(producer, v)
-				}
-			}
 		}
 	}
 }

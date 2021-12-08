@@ -71,5 +71,5 @@ func (header *Header) Deserialize(buf []byte) error {
 }
 
 func (header *Header) GetCMD() string {
-	return string(bytes.TrimRight(header.CMD[:], string(0)))
+	return string(bytes.TrimRight(header.CMD[:], string(rune(0))))
 }

@@ -31,8 +31,14 @@ type StateKeyFrame struct {
 	PendingCanceledProducers map[string]*Producer
 	DposV2EffectedProducers  map[string]*Producer
 	Votes                    map[string]struct{}
-	DposV2VoteRights         map[common.Uint168]common.Fixed64 // key: stake address value: amount
-	DposV2Votes              map[string]uint32                 // key: stake address value: votes information
+
+	DposV2VoteRights   map[common.Uint168]common.Fixed64 // key: stake address value: amount
+	DposVotes          map[common.Uint168]common.Fixed64 // key: stake address value: amount
+	DposV2Votes        map[common.Uint168]common.Fixed64 // key: stake address value: amount
+	CRVotes            map[common.Uint168]common.Fixed64 // key: stake address value: amount
+	CRImpeachmentVotes map[common.Uint168]common.Fixed64 // key: stake address value: amount
+	CRCProposalVotes   map[common.Uint168]common.Fixed64 // key: stake address value: amount
+
 	DepositOutputs           map[string]common.Fixed64
 	DposV2RewardInfo         map[string]common.Fixed64
 	DposV2RewardClaimingInfo map[string]common.Fixed64
@@ -84,8 +90,14 @@ func (s *StateKeyFrame) snapshot() *StateKeyFrame {
 		PendingCanceledProducers: make(map[string]*Producer),
 		DposV2EffectedProducers:  make(map[string]*Producer),
 		Votes:                    make(map[string]struct{}),
-		DposV2Votes:              make(map[string]uint32),
-		DposV2VoteRights:         make(map[common.Uint168]common.Fixed64),
+
+		DposV2VoteRights:   make(map[common.Uint168]common.Fixed64),
+		DposVotes:          make(map[common.Uint168]common.Fixed64),
+		DposV2Votes:        make(map[common.Uint168]common.Fixed64),
+		CRVotes:            make(map[common.Uint168]common.Fixed64),
+		CRImpeachmentVotes: make(map[common.Uint168]common.Fixed64),
+		CRCProposalVotes:   make(map[common.Uint168]common.Fixed64),
+
 		DepositOutputs:           make(map[string]common.Fixed64),
 		DposV2RewardInfo:         make(map[string]common.Fixed64),
 		DposV2RewardClaimingInfo: make(map[string]common.Fixed64),
@@ -106,8 +118,14 @@ func (s *StateKeyFrame) snapshot() *StateKeyFrame {
 	state.PendingCanceledProducers = copyProducerMap(s.PendingCanceledProducers)
 	state.DposV2EffectedProducers = copyProducerMap(s.DposV2EffectedProducers)
 	state.Votes = copyStringSet(s.Votes)
-	state.DposV2Votes = copyStringHeightMap(s.DposV2Votes)
+
 	state.DposV2VoteRights = copyProgramHashAmountSet(s.DposV2VoteRights)
+	state.DposVotes = copyProgramHashAmountSet(s.DposVotes)
+	state.DposV2Votes = copyProgramHashAmountSet(s.DposV2Votes)
+	state.CRVotes = copyProgramHashAmountSet(s.CRVotes)
+	state.CRImpeachmentVotes = copyProgramHashAmountSet(s.CRImpeachmentVotes)
+	state.CRCProposalVotes = copyProgramHashAmountSet(s.CRCProposalVotes)
+
 	state.DepositOutputs = copyFixed64Map(s.DepositOutputs)
 	state.DposV2RewardInfo = copyFixed64Map(s.DposV2RewardInfo)
 	state.DposV2RewardClaimingInfo = copyFixed64Map(s.DposV2RewardClaimingInfo)
@@ -162,11 +180,22 @@ func (s *StateKeyFrame) Serialize(w io.Writer) (err error) {
 		return
 	}
 
-	if err = s.SerializeStringHeightMap(s.DposV2Votes, w); err != nil {
+	if err = s.SerializeProgramHashAmountMap(s.DposV2VoteRights, w); err != nil {
 		return
 	}
-
-	if err = s.SerializeProgramHashAmountMap(s.DposV2VoteRights, w); err != nil {
+	if err = s.SerializeProgramHashAmountMap(s.DposVotes, w); err != nil {
+		return
+	}
+	if err = s.SerializeProgramHashAmountMap(s.DposV2Votes, w); err != nil {
+		return
+	}
+	if err = s.SerializeProgramHashAmountMap(s.CRVotes, w); err != nil {
+		return
+	}
+	if err = s.SerializeProgramHashAmountMap(s.CRImpeachmentVotes, w); err != nil {
+		return
+	}
+	if err = s.SerializeProgramHashAmountMap(s.CRCProposalVotes, w); err != nil {
 		return
 	}
 
@@ -265,11 +294,22 @@ func (s *StateKeyFrame) Deserialize(r io.Reader) (err error) {
 		return
 	}
 
-	if s.DposV2Votes, err = s.DeserializeStringHeightMap(r); err != nil {
+	if s.DposV2VoteRights, err = s.DeserializeProgramHashAmountMap(r); err != nil {
 		return
 	}
-
-	if s.DposV2VoteRights, err = s.DeserializeProgramHashAmountMap(r); err != nil {
+	if s.DposVotes, err = s.DeserializeProgramHashAmountMap(r); err != nil {
+		return
+	}
+	if s.DposV2Votes, err = s.DeserializeProgramHashAmountMap(r); err != nil {
+		return
+	}
+	if s.CRVotes, err = s.DeserializeProgramHashAmountMap(r); err != nil {
+		return
+	}
+	if s.CRImpeachmentVotes, err = s.DeserializeProgramHashAmountMap(r); err != nil {
+		return
+	}
+	if s.CRCProposalVotes, err = s.DeserializeProgramHashAmountMap(r); err != nil {
 		return
 	}
 
@@ -660,7 +700,12 @@ func NewStateKeyFrame() *StateKeyFrame {
 		PendingCanceledProducers:  make(map[string]*Producer),
 		DposV2EffectedProducers:   make(map[string]*Producer),
 		Votes:                     make(map[string]struct{}),
-		DposV2Votes:               make(map[string]uint32),
+		DposV2VoteRights:          make(map[common.Uint168]common.Fixed64),
+		DposVotes:                 make(map[common.Uint168]common.Fixed64),
+		DposV2Votes:               make(map[common.Uint168]common.Fixed64),
+		CRVotes:                   make(map[common.Uint168]common.Fixed64),
+		CRImpeachmentVotes:        make(map[common.Uint168]common.Fixed64),
+		CRCProposalVotes:          make(map[common.Uint168]common.Fixed64),
 		DepositOutputs:            make(map[string]common.Fixed64),
 		DposV2RewardInfo:          info,
 		DposV2RewardClaimingInfo:  make(map[string]common.Fixed64),

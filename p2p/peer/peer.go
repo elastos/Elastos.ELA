@@ -10,6 +10,7 @@ import (
 	"container/list"
 	"errors"
 	"fmt"
+	"github.com/elastos/Elastos.ELA/core/types/functions"
 	"io"
 	"math/rand"
 	"net"
@@ -533,6 +534,38 @@ func (p *Peer) handlePongMsg(pong *msg.Pong) {
 	p.lastPingMicros = time.Since(p.lastPingTime).Nanoseconds()
 	p.lastPingMicros /= 1000 // convert to usec.
 	p.statsMtx.Unlock()
+}
+
+func CheckAndCreateTxMessage(hdr p2p.Header, r net.Conn) (p2p.Message, error) {
+	// Check for message length
+	var txMessage msg.Tx
+	if hdr.Length > txMessage.MaxLength() {
+		return nil, p2p.ErrMsgSizeExceeded
+	}
+
+	// Read payload
+	payload := make([]byte, hdr.Length)
+	_, err := io.ReadFull(r, payload[:])
+	if err != nil {
+		return nil, err
+	}
+
+	// Verify checksum
+	if err := hdr.Verify(payload); err != nil {
+		return nil, p2p.ErrInvalidPayload
+	}
+
+	reader := bytes.NewReader(payload)
+	txn, err := functions.GetTransactionByBytes(reader)
+	if err != nil {
+		return nil, err
+	}
+	if err := txn.Deserialize(reader); err != nil {
+		return nil, fmt.Errorf("deserialize message %s failed %s", txMessage.CMD(), err.Error())
+	}
+	message := msg.NewTx(txn)
+
+	return message, nil
 }
 
 func CheckAndCreateMessage(hdr p2p.Header, message p2p.Message, r net.Conn) (p2p.Message, error) {

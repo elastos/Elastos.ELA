@@ -9,7 +9,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/elastos/Elastos.ELA/core/types/functions"
 	peer2 "github.com/elastos/Elastos.ELA/p2p/peer"
 	"net"
 	"sync/atomic"
@@ -1065,11 +1064,7 @@ func createMessage(hdr p2p.Header, r net.Conn) (p2p.Message, error) {
 		message = &msg.MemPool{}
 
 	case p2p.CmdTx:
-		txn, err := functions.GetTransactionByBytes(r)
-		if err != nil {
-			return nil, err
-		}
-		message = msg.NewTx(txn)
+		return peer2.CheckAndCreateTxMessage(hdr, r)
 
 	case p2p.CmdBlock:
 		message = msg.NewBlock(&types.DposBlock{})

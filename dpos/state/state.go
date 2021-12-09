@@ -1360,11 +1360,11 @@ func (s *State) processExchangeVotes(tx interfaces.Transaction, height uint32) {
 func (s *State) processVoting(tx interfaces.Transaction, height uint32) {
 	pld := tx.Payload().(*payload.Voting)
 
-	for _, content := range pld.Vote.Contents {
+	for _, content := range pld.Contents {
 		switch content.VoteType {
 		case outputpayload.Delegate:
 			var maxVotes common.Fixed64
-			for _, vote := range content.CandidateVotes {
+			for _, vote := range content.VotesInfo {
 				if maxVotes < vote.Votes {
 					maxVotes = vote.Votes
 				}
@@ -1376,7 +1376,7 @@ func (s *State) processVoting(tx interfaces.Transaction, height uint32) {
 			})
 		case outputpayload.CRC:
 			var totalVotes common.Fixed64
-			for _, vote := range content.CandidateVotes {
+			for _, vote := range content.VotesInfo {
 				totalVotes += vote.Votes
 			}
 			s.History.Append(height, func() {
@@ -1386,7 +1386,7 @@ func (s *State) processVoting(tx interfaces.Transaction, height uint32) {
 			})
 		case outputpayload.CRCProposal:
 			var maxVotes common.Fixed64
-			for _, vote := range content.CandidateVotes {
+			for _, vote := range content.VotesInfo {
 				if maxVotes < vote.Votes {
 					maxVotes = vote.Votes
 				}
@@ -1398,7 +1398,7 @@ func (s *State) processVoting(tx interfaces.Transaction, height uint32) {
 			})
 		case outputpayload.CRCImpeachment:
 			var totalVotes common.Fixed64
-			for _, vote := range content.CandidateVotes {
+			for _, vote := range content.VotesInfo {
 				totalVotes += vote.Votes
 			}
 			s.History.Append(height, func() {
@@ -1408,7 +1408,7 @@ func (s *State) processVoting(tx interfaces.Transaction, height uint32) {
 			})
 		case outputpayload.DposV2:
 			var totalVotes common.Fixed64
-			for _, vote := range content.CandidateVotes {
+			for _, vote := range content.VotesInfo {
 				totalVotes += vote.Votes
 			}
 			s.History.Append(height, func() {

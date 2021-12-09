@@ -36,7 +36,7 @@ func (t *VotingTransaction) HeightVersionCheck() error {
 func (t *VotingTransaction) CheckTransactionPayload() error {
 	switch t.Payload().(type) {
 	case *payload.Voting:
-		return t.Payload().(*payload.Voting).Vote.Validate()
+		return t.Payload().(*payload.Voting).Validate()
 
 	}
 
@@ -68,7 +68,7 @@ func (t *VotingTransaction) CheckAttributeProgram() error {
 func (t *VotingTransaction) IsAllowedInPOWConsensus() bool {
 	pld := t.Payload().(*payload.Voting)
 
-	for _, vote := range pld.Vote.Contents {
+	for _, vote := range pld.Contents {
 		switch vote.VoteType {
 		case outputpayload.Delegate:
 		case outputpayload.CRC:
@@ -155,7 +155,7 @@ func (t *VotingTransaction) SpecialContextCheck() (result elaerr.ELAError, end b
 	}
 	crs := getCRCIDsMap(candidates)
 
-	for _, content := range pld.Vote.Contents {
+	for _, content := range pld.Contents {
 		switch content.VoteType {
 		case outputpayload.Delegate:
 			err := t.checkVoteProducerContent(
@@ -193,16 +193,19 @@ func (t *VotingTransaction) SpecialContextCheck() (result elaerr.ELAError, end b
 	return nil, false
 }
 
-func (t *VotingTransaction) checkVoteProducerContent(content outputpayload.VoteContent,
+func (t *VotingTransaction) checkVoteProducerContent(content payload.VotesContent,
 	pds map[string]struct{}, amount common.Fixed64, voteRights common.Fixed64) error {
-	for _, cv := range content.CandidateVotes {
+	for _, cv := range content.VotesInfo {
 		if _, ok := pds[common.BytesToHexString(cv.Candidate)]; !ok {
 			return fmt.Errorf("invalid vote output payload "+
 				"producer candidate: %s", common.BytesToHexString(cv.Candidate))
 		}
 	}
 	var maxVotes common.Fixed64
-	for _, cv := range content.CandidateVotes {
+	for _, cv := range content.VotesInfo {
+		if cv.LockTime != 0 {
+			return errors.New("votes lock time need to be zero")
+		}
 		if cv.Votes > amount {
 			return errors.New("votes larger than output amount")
 		}
@@ -218,7 +221,7 @@ func (t *VotingTransaction) checkVoteProducerContent(content outputpayload.VoteC
 }
 
 func (t *VotingTransaction) checkVoteCRContent(blockHeight uint32,
-	content outputpayload.VoteContent, crs map[common.Uint168]struct{},
+	content payload.VotesContent, crs map[common.Uint168]struct{},
 	amount common.Fixed64, voteRights common.Fixed64) error {
 
 	if !t.parameters.BlockChain.GetCRCommittee().IsInVotingPeriod(blockHeight) {
@@ -226,11 +229,15 @@ func (t *VotingTransaction) checkVoteCRContent(blockHeight uint32,
 	}
 
 	if blockHeight >= t.parameters.Config.CheckVoteCRCountHeight {
-		if len(content.CandidateVotes) > outputpayload.MaxVoteProducersPerTransaction {
+		if len(content.VotesInfo) > outputpayload.MaxVoteProducersPerTransaction {
 			return errors.New("invalid count of CR candidates ")
 		}
 	}
-	for _, cv := range content.CandidateVotes {
+	var totalVotes common.Fixed64
+	for _, cv := range content.VotesInfo {
+		if cv.LockTime != 0 {
+			return errors.New("votes lock time need to be zero")
+		}
 		cid, err := common.Uint168FromBytes(cv.Candidate)
 		if err != nil {
 			return fmt.Errorf("invalid vote output payload " +
@@ -240,9 +247,6 @@ func (t *VotingTransaction) checkVoteCRContent(blockHeight uint32,
 			return fmt.Errorf("invalid vote output payload "+
 				"CR candidate: %s", cid.String())
 		}
-	}
-	var totalVotes common.Fixed64
-	for _, cv := range content.CandidateVotes {
 		totalVotes += cv.Votes
 	}
 	if totalVotes > amount {
@@ -256,10 +260,13 @@ func (t *VotingTransaction) checkVoteCRContent(blockHeight uint32,
 }
 
 func (t *VotingTransaction) checkVoteCRCProposalContent(
-	content outputpayload.VoteContent, amount common.Fixed64,
+	content payload.VotesContent, amount common.Fixed64,
 	voteRights common.Fixed64) error {
 	var maxVotes common.Fixed64
-	for _, cv := range content.CandidateVotes {
+	for _, cv := range content.VotesInfo {
+		if cv.LockTime != 0 {
+			return errors.New("votes lock time need to be zero")
+		}
 		if cv.Votes > amount {
 			return errors.New("votes larger than output amount")
 		}
@@ -284,19 +291,20 @@ func (t *VotingTransaction) checkVoteCRCProposalContent(
 	return nil
 }
 
-func (t *VotingTransaction) checkCRImpeachmentContent(content outputpayload.VoteContent,
+func (t *VotingTransaction) checkCRImpeachmentContent(content payload.VotesContent,
 	amount common.Fixed64, voteRights common.Fixed64) error {
 	crMembersMap := getCRMembersMap(t.parameters.BlockChain.GetCRCommittee().GetImpeachableMembers())
-	for _, cv := range content.CandidateVotes {
+	var totalVotes common.Fixed64
+	for _, cv := range content.VotesInfo {
+		if cv.LockTime != 0 {
+			return errors.New("votes lock time need to be zero")
+		}
 		if _, ok := crMembersMap[common.BytesToHexString(cv.Candidate)]; !ok {
 			return errors.New("candidate should be one of the CR members")
 		}
-	}
-
-	var totalVotes common.Fixed64
-	for _, cv := range content.CandidateVotes {
 		totalVotes += cv.Votes
 	}
+
 	if totalVotes > amount {
 		return errors.New("total votes larger than output amount")
 	}
@@ -307,14 +315,18 @@ func (t *VotingTransaction) checkCRImpeachmentContent(content outputpayload.Vote
 	return nil
 }
 
-func (t *VotingTransaction) checkDPoSV2Content(content outputpayload.VoteContent,
+func (t *VotingTransaction) checkDPoSV2Content(content payload.VotesContent,
 	pds map[string]uint32, outputValue common.Fixed64, voteRights common.Fixed64) error {
 	// totalVotes should be more than output value
 	var totalVotes common.Fixed64
-	for _, cv := range content.CandidateVotes {
-		if _, ok := pds[common.BytesToHexString(cv.Candidate)]; !ok {
+	for _, cv := range content.VotesInfo {
+		lockUntil, ok := pds[common.BytesToHexString(cv.Candidate)]
+		if !ok {
 			return fmt.Errorf("invalid vote output payload "+
 				"producer candidate: %s", common.BytesToHexString(cv.Candidate))
+		}
+		if cv.LockTime > lockUntil || cv.LockTime == 0 {
+			return errors.New("votes lock time need to be zero")
 		}
 		totalVotes += cv.Votes
 	}

@@ -8,15 +8,17 @@ package transaction
 import (
 	"errors"
 	"fmt"
-	"github.com/elastos/Elastos.ELA/core/contract"
-	"github.com/elastos/Elastos.ELA/core/types/outputpayload"
-	crstate "github.com/elastos/Elastos.ELA/cr/state"
 
 	"github.com/elastos/Elastos.ELA/common"
+	"github.com/elastos/Elastos.ELA/core/contract"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/outputpayload"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
+	crstate "github.com/elastos/Elastos.ELA/cr/state"
 	elaerr "github.com/elastos/Elastos.ELA/errors"
 )
+
+var MinVotesLockTime uint32 = 7200
 
 type VotingTransaction struct {
 	BaseTransaction
@@ -325,8 +327,8 @@ func (t *VotingTransaction) checkDPoSV2Content(content payload.VotesContent,
 			return fmt.Errorf("invalid vote output payload "+
 				"producer candidate: %s", common.BytesToHexString(cv.Candidate))
 		}
-		if cv.LockTime > lockUntil || cv.LockTime == 0 {
-			return errors.New("votes lock time need to be zero")
+		if cv.LockTime > lockUntil || cv.LockTime-t.parameters.BlockHeight < MinVotesLockTime {
+			return errors.New("invalid DPoS 2.0 votes lock time")
 		}
 		totalVotes += cv.Votes
 	}

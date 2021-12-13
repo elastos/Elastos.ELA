@@ -91,6 +91,9 @@ func (c *Committee) processTransaction(tx interfaces.Transaction, height uint32)
 	case common2.TransferAsset:
 		c.processVotes(tx, height)
 
+	case common2.Voting:
+		c.processVoting(tx, height)
+
 	case common2.ReturnCRDepositCoin:
 		c.state.returnDeposit(tx, height)
 
@@ -137,6 +140,27 @@ func (c *Committee) proposalTracking(tx interfaces.Transaction, height uint32) {
 
 // processVotes takes a transaction, if the transaction including any vote
 // outputs, validate and update CR Votes.
+func (c *Committee) processVoting(tx interfaces.Transaction, height uint32) {
+
+	pld := tx.Payload().(*payload.Voting)
+	for _, content := range pld.Contents {
+		for _, v := range content.VotesInfo {
+			switch content.VoteType {
+			case outputpayload.CRC:
+				c.state.processVoteCRC(height, v.Candidate, v.Votes)
+
+			case outputpayload.CRCProposal:
+				c.state.processVoteCRCProposal(height, v.Candidate, v.Votes)
+
+			case outputpayload.CRCImpeachment:
+				c.processImpeachment(height, v.Candidate, v.Votes, c.state.History)
+			}
+		}
+	}
+}
+
+// processVotes takes a transaction, if the transaction including any vote
+// outputs, validate and update CR Votes.
 func (c *Committee) processVotes(tx interfaces.Transaction, height uint32) {
 	if tx.Version() >= common2.TxVersion09 {
 		for i, output := range tx.Outputs() {
@@ -177,10 +201,10 @@ func (c *Committee) processVoteOutput(output *common2.Output, height uint32) {
 		for _, cv := range vote.CandidateVotes {
 			switch vote.VoteType {
 			case outputpayload.CRC:
-				c.state.processVoteCRC(height, cv)
+				c.state.processVoteCRC(height, cv.Candidate, cv.Votes)
 
 			case outputpayload.CRCProposal:
-				c.state.processVoteCRCProposal(height, cv)
+				c.state.processVoteCRCProposal(height, cv.Candidate, cv.Votes)
 
 			case outputpayload.CRCImpeachment:
 				c.processImpeachment(height, cv.Candidate, cv.Votes, c.state.History)

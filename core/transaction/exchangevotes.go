@@ -58,8 +58,8 @@ func (t *ExchangeVotesTransaction) CheckTransactionOutput() error {
 	}
 
 	if len(t.Outputs()) == 2 {
-		if contract.GetPrefixType(t.Outputs()[0].ProgramHash) != contract.PrefixStandard &&
-			contract.GetPrefixType(t.Outputs()[0].ProgramHash) != contract.PrefixMultiSig {
+		if contract.GetPrefixType(t.Outputs()[1].ProgramHash) != contract.PrefixStandard &&
+			contract.GetPrefixType(t.Outputs()[1].ProgramHash) != contract.PrefixMultiSig {
 			return errors.New("second output address need to be Standard or MultiSig")
 		}
 	}

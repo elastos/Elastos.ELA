@@ -394,6 +394,18 @@ func (s *State) getProducer(publicKey []byte) *Producer {
 	return s.getProducerByOwnerPublicKey(key)
 }
 
+// getDPoSV2Producer returns a DPoSV2 producer with the producer's node public
+// key or it's owner public key, if no matches return nil.
+func (s *State) getDPoSV2Producer(publicKey []byte) *Producer {
+	key := s.getProducerKey(publicKey)
+	produer := s.getProducerByOwnerPublicKey(key)
+	if produer.info.StakeUntil == 0 {
+		return nil
+	}
+
+	return produer
+}
+
 // getProducer returns a producer with the producer's owner public key,
 // if no matches return nil.
 func (s *State) getProducerByOwnerPublicKey(key string) *Producer {
@@ -1358,8 +1370,8 @@ func (s *State) processExchangeVotes(tx interfaces.Transaction, height uint32) {
 // processNewVotes takes a transaction, if the transaction including any votes
 // validate and update producers votes.
 func (s *State) processVoting(tx interfaces.Transaction, height uint32) {
-	pld := tx.Payload().(*payload.Voting)
 
+	pld := tx.Payload().(*payload.Voting)
 	for _, content := range pld.Contents {
 		switch content.VoteType {
 		case outputpayload.Delegate:
@@ -1374,6 +1386,19 @@ func (s *State) processVoting(tx interfaces.Transaction, height uint32) {
 			}, func() {
 				s.DposVotes[tx.Outputs()[0].ProgramHash] -= maxVotes
 			})
+
+			for _, v := range content.VotesInfo {
+				producer := s.getProducer(v.Candidate)
+				if producer == nil {
+					continue
+				}
+				s.History.Append(height, func() {
+					producer.votes += v.Votes
+				}, func() {
+					producer.votes -= v.Votes
+				})
+			}
+
 		case outputpayload.CRC:
 			var totalVotes common.Fixed64
 			for _, vote := range content.VotesInfo {
@@ -1416,6 +1441,18 @@ func (s *State) processVoting(tx interfaces.Transaction, height uint32) {
 			}, func() {
 				s.DposV2Votes[tx.Outputs()[0].ProgramHash] -= totalVotes
 			})
+
+			for _, v := range content.VotesInfo {
+				producer := s.getDPoSV2Producer(v.Candidate)
+				if producer == nil {
+					continue
+				}
+				s.History.Append(height, func() {
+					producer.dposV2Votes += v.Votes
+				}, func() {
+					producer.dposV2Votes -= v.Votes
+				})
+			}
 		}
 	}
 }

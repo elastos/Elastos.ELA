@@ -436,27 +436,26 @@ func (s *State) getCIDByDepositHash(hash common.Uint168) (common.Uint168, bool) 
 }
 
 // processVoteCRC record candidate Votes.
-func (s *State) processVoteCRC(height uint32, cv outputpayload.CandidateVotes) {
-	cid, err := common.Uint168FromBytes(cv.Candidate)
+func (s *State) processVoteCRC(height uint32, candidate []byte, votes common.Fixed64) {
+	cid, err := common.Uint168FromBytes(candidate)
 	if err != nil {
 		return
 	}
-	candidate := s.GetCandidate(*cid)
+	c := s.GetCandidate(*cid)
 	if candidate == nil {
 		return
 	}
-	v := cv.Votes
 	s.History.Append(height, func() {
-		candidate.Votes += v
+		c.Votes += votes
 	}, func() {
-		candidate.Votes -= v
+		c.Votes -= votes
 	})
 }
 
 // processVoteCRCProposal record proposal reject Votes.
 func (s *State) processVoteCRCProposal(height uint32,
-	cv outputpayload.CandidateVotes) {
-	proposalHash, err := common.Uint256FromBytes(cv.Candidate)
+	candidate []byte, votes common.Fixed64) {
+	proposalHash, err := common.Uint256FromBytes(candidate)
 	if err != nil {
 		return
 	}
@@ -464,11 +463,10 @@ func (s *State) processVoteCRCProposal(height uint32,
 	if proposalState == nil || proposalState.Status != CRAgreed {
 		return
 	}
-	v := cv.Votes
 	s.History.Append(height, func() {
-		proposalState.VotersRejectAmount += v
+		proposalState.VotersRejectAmount += votes
 	}, func() {
-		proposalState.VotersRejectAmount -= v
+		proposalState.VotersRejectAmount -= votes
 	})
 }
 

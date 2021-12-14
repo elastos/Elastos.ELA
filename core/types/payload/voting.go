@@ -9,11 +9,11 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/elastos/Elastos.ELA/common"
-	"github.com/elastos/Elastos.ELA/crypto"
 	"io"
 
+	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/core/types/outputpayload"
+	"github.com/elastos/Elastos.ELA/crypto"
 )
 
 type Voting struct {

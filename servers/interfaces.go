@@ -2917,6 +2917,7 @@ func getPayloadInfo(p Payload, payloadVersion byte) PayloadInfo {
 		obj := new(CRCProposalReviewInfo)
 		obj.ProposalHash = common.ToReversedString(object.ProposalHash)
 		obj.VoteResult = object.VoteResult.Name()
+		obj.OpinionData = common.BytesToHexString(object.OpinionData)
 		obj.OpinionHash = common.ToReversedString(object.OpinionHash)
 		did, _ := object.DID.ToAddress()
 		obj.DID = did
@@ -2926,12 +2927,14 @@ func getPayloadInfo(p Payload, payloadVersion byte) PayloadInfo {
 		obj := new(CRCProposalTrackingInfo)
 		obj.ProposalTrackingType = object.ProposalTrackingType.Name()
 		obj.ProposalHash = common.ToReversedString(object.ProposalHash)
+		obj.MessageData = common.BytesToHexString(object.MessageData)
 		obj.MessageHash = common.ToReversedString(object.MessageHash)
 		obj.Stage = object.Stage
 		obj.OwnerPublicKey = common.BytesToHexString(object.OwnerPublicKey)
 		obj.NewOwnerPublicKey = common.BytesToHexString(object.NewOwnerPublicKey)
 		obj.OwnerSignature = common.BytesToHexString(object.OwnerSignature)
 		obj.NewOwnerPublicKey = common.BytesToHexString(object.NewOwnerPublicKey)
+		obj.SecretaryGeneralOpinionData = common.BytesToHexString(object.SecretaryGeneralOpinionData)
 		obj.SecretaryGeneralOpinionHash = common.ToReversedString(object.SecretaryGeneralOpinionHash)
 		obj.SecretaryGeneralSignature = common.BytesToHexString(object.SecretaryGeneralSignature)
 		obj.NewOwnerSignature = common.BytesToHexString(object.NewOwnerSignature)

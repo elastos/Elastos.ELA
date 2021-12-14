@@ -34,28 +34,28 @@ func Test_RandomIndex(t *testing.T) {
 	var first []int
 	for i := 0; i < 100; i++ {
 		seed++
-		rand.Seed(seed)
-		first = append(first, rand.Intn(100))
+		r := rand.New(rand.NewSource(seed))
+		first = append(first, r.Intn(100))
 	}
 
 	var second []int
 	seed = oriSeed
 	for i := 0; i < 100; i++ {
 		seed++
-		rand.Seed(seed)
-		second = append(second, rand.Intn(100))
+		r := rand.New(rand.NewSource(seed))
+		second = append(second, r.Intn(100))
 	}
 
 	var third []int
-	rand.Seed(oriSeed)
+	r := rand.New(rand.NewSource(oriSeed))
 	for i := 0; i < 100; i++ {
-		third = append(third, rand.Intn(100))
+		third = append(third, r.Intn(100))
 	}
 
 	var fourth []int
-	rand.Seed(oriSeed)
+	r = rand.New(rand.NewSource(oriSeed))
 	for i := 0; i < 100; i++ {
-		fourth = append(fourth, rand.Intn(100))
+		fourth = append(fourth, r.Intn(100))
 	}
 
 	assert.Equal(t, first, second, "invalid random: seed++")

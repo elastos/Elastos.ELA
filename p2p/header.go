@@ -8,8 +8,10 @@ package p2p
 import (
 	"bytes"
 	"encoding/binary"
+	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/elastos/Elastos.ELA/common/log"
 
 	"github.com/elastos/Elastos.ELA/common"
 )
@@ -43,6 +45,8 @@ func (header *Header) Verify(buf []byte) error {
 	sum := common.Sha256D(buf)
 	checksum := sum[:ChecksumSize]
 	if !bytes.Equal(header.Checksum[:], checksum) {
+		log.Warn("Header verify error,", hex.EncodeToString(header.Checksum[:]),
+			hex.EncodeToString(checksum), hex.EncodeToString(buf), hex.EncodeToString(header.CMD[:]))
 		return fmt.Errorf("unmatched body checksum")
 	}
 

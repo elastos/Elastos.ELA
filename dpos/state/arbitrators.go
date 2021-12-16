@@ -103,7 +103,8 @@ type Arbiters struct {
 	Snapshots        map[uint32][]*CheckPoint
 	SnapshotKeysDesc []uint32
 
-	forceChanged bool
+	forceChanged       bool
+	dposV2ActiveHeight uint32
 
 	History *utils.History
 }
@@ -176,11 +177,12 @@ func (a *Arbiters) recoverFromCheckPoints(point *CheckPoint) {
 	a.nextCRCArbitersMap = point.NextCRCArbitersMap
 	a.nextCRCArbiters = point.NextCRCArbiters
 	a.forceChanged = point.ForceChanged
+	a.dposV2ActiveHeight = point.DposV2ActiveHeight
 }
 
 func (a *Arbiters) ProcessBlock(block *types.Block, confirm *payload.Confirm) {
 	a.State.ProcessBlock(block, confirm)
-	a.IncreaseChainHeight(block)
+	a.IncreaseChainHeight(block, confirm)
 }
 
 func (a *Arbiters) CheckDPOSIllegalTx(block *types.Block) error {
@@ -490,7 +492,7 @@ func (a *Arbiters) notifyNextTurnDPOSInfoTx(blockHeight, versionHeight uint32, f
 	return
 }
 
-func (a *Arbiters) IncreaseChainHeight(block *types.Block) {
+func (a *Arbiters) IncreaseChainHeight(block *types.Block, confirm *payload.Confirm) {
 	var notify = true
 	var snapshotVotes = true
 	a.mtx.Lock()
@@ -532,7 +534,7 @@ func (a *Arbiters) IncreaseChainHeight(block *types.Block) {
 					"error: %s， revert to POW mode", block.Height, err))
 			}
 		case none:
-			a.accumulateReward(block)
+			a.accumulateReward(block, confirm)
 			notify = false
 			snapshotVotes = false
 		}
@@ -619,7 +621,7 @@ func (a *Arbiters) revertToPOWAtNextTurn(height uint32) {
 	})
 }
 
-func (a *Arbiters) accumulateReward(block *types.Block) {
+func (a *Arbiters) accumulateReward(block *types.Block, confirm *payload.Confirm) {
 	if block.Height < a.ChainParams.PublicDPOSHeight {
 		oriDutyIndex := a.DutyIndex
 		a.History.Append(block.Height, func() {
@@ -632,36 +634,59 @@ func (a *Arbiters) accumulateReward(block *types.Block) {
 
 	var accumulative common.Fixed64
 	accumulative = a.accumulativeReward
+	var dposReward common.Fixed64
 	if block.Height < a.ChainParams.CRVotingStartHeight || !a.forceChanged {
-		dposReward := a.getBlockDPOSReward(block)
+		dposReward = a.getBlockDPOSReward(block)
 		accumulative += dposReward
 	}
 
-	oriAccumulativeReward := a.accumulativeReward
-	oriArbitersRoundReward := a.arbitersRoundReward
-	oriFinalRoundChange := a.finalRoundChange
-	oriForceChanged := a.forceChanged
-	oriDutyIndex := a.DutyIndex
-	a.History.Append(block.Height, func() {
-		a.accumulativeReward = accumulative
-		a.arbitersRoundReward = nil
-		a.finalRoundChange = 0
-		a.forceChanged = false
-		a.DutyIndex = oriDutyIndex + 1
-	}, func() {
-		a.accumulativeReward = oriAccumulativeReward
-		a.arbitersRoundReward = oriArbitersRoundReward
-		a.finalRoundChange = oriFinalRoundChange
-		a.forceChanged = oriForceChanged
-		a.DutyIndex = oriDutyIndex
-	})
-
+	if a.isDposV2Active() && block.Height >= a.dposV2ActiveHeight+a.ChainParams.CRMemberCount+uint32(a.ChainParams.GeneralArbiters) {
+		pkBytes, _ := common.HexStringToBytes(hex.EncodeToString(confirm.Proposal.Sponsor))
+		u168, _ := contract.PublicKeyToStandardProgramHash(pkBytes)
+		addr, _ := u168.ToAddress()
+		oriDutyIndex := a.DutyIndex
+		oriForceChanged := a.forceChanged
+		oriDposV2RewardInfo := a.DposV2RewardInfo
+		a.History.Append(block.Height, func() {
+			if _, ok := a.CurrentCRCArbitersMap[*u168]; ok { // crc
+				a.DposV2RewardInfo[addr] += dposReward
+			} else { // non crc
+				a.DposV2RewardInfo[addr] += dposReward / 4
+				//TODO voters reward to be added
+			}
+			a.forceChanged = false
+			a.DutyIndex = oriDutyIndex + 1
+		}, func() {
+			a.DposV2RewardInfo = oriDposV2RewardInfo
+			a.forceChanged = oriForceChanged
+			a.DutyIndex = oriDutyIndex
+		})
+	} else {
+		oriAccumulativeReward := a.accumulativeReward
+		oriArbitersRoundReward := a.arbitersRoundReward
+		oriFinalRoundChange := a.finalRoundChange
+		oriForceChanged := a.forceChanged
+		oriDutyIndex := a.DutyIndex
+		a.History.Append(block.Height, func() {
+			a.accumulativeReward = accumulative
+			a.arbitersRoundReward = nil
+			a.finalRoundChange = 0
+			a.forceChanged = false
+			a.DutyIndex = oriDutyIndex + 1
+		}, func() {
+			a.accumulativeReward = oriAccumulativeReward
+			a.arbitersRoundReward = oriArbitersRoundReward
+			a.finalRoundChange = oriFinalRoundChange
+			a.forceChanged = oriForceChanged
+			a.DutyIndex = oriDutyIndex
+		})
+	}
 }
 
 func (a *Arbiters) clearingDPOSReward(block *types.Block, historyHeight uint32,
 	smoothClearing bool) (err error) {
 	// inactivate dpos reward sending when dposV2 activated
-	if a.isDposV2Active() {
+	if a.isDposV2Active() && historyHeight >= a.dposV2ActiveHeight+a.ChainParams.CRMemberCount+uint32(a.ChainParams.GeneralArbiters) {
 		return nil
 	}
 	if block.Height < a.ChainParams.PublicDPOSHeight ||
@@ -1758,6 +1783,10 @@ func (a *Arbiters) UpdateNextArbitrators(versionHeight, height uint32) error {
 	} else {
 		a.TryLeaveUnderStaffed(a.IsAbleToRecoverFromUnderstaffedState)
 	}
+	if a.dposV2ActiveHeight == 0 && a.isDposV2Active() {
+		a.dposV2ActiveHeight = height
+	}
+
 	unclaimed, choosingArbiters, err := a.resetNextArbiterByCRC(versionHeight, height)
 	if err != nil {
 		return err
@@ -2344,6 +2373,7 @@ func (a *Arbiters) newCheckPoint(height uint32) *CheckPoint {
 		FinalRoundChange:           a.finalRoundChange,
 		ClearingHeight:             a.clearingHeight,
 		ForceChanged:               a.forceChanged,
+		DposV2ActiveHeight:         a.dposV2ActiveHeight,
 		ArbitersRoundReward:        make(map[common.Uint168]common.Fixed64),
 		IllegalBlocksPayloadHashes: make(map[common.Uint256]interface{}),
 		CurrentArbitrators:         a.CurrentArbitrators,
@@ -2540,7 +2570,8 @@ func NewArbitrators(chainParams *config.Params, committee *state.Committee,
 			understaffedSince: 0,
 			state:             DSNormal,
 		},
-		History: utils.NewHistory(maxHistoryCapacity),
+		History:            utils.NewHistory(maxHistoryCapacity),
+		dposV2ActiveHeight: 0,
 	}
 	if err := a.initArbitrators(chainParams); err != nil {
 		return nil, err

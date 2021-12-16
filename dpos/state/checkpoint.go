@@ -54,7 +54,8 @@ type CheckPoint struct {
 	ArbitersRoundReward        map[common.Uint168]common.Fixed64
 	IllegalBlocksPayloadHashes map[common.Uint256]interface{}
 
-	ForceChanged bool
+	ForceChanged       bool
+	DposV2ActiveHeight uint32
 
 	arbitrators *Arbiters
 }
@@ -487,6 +488,7 @@ func (c *CheckPoint) initFromArbitrators(ar *Arbiters) {
 	c.NextCRCArbitersMap = ar.nextCRCArbitersMap
 	c.NextCRCArbiters = ar.nextCRCArbiters
 	c.ForceChanged = ar.forceChanged
+	c.DposV2ActiveHeight = ar.dposV2ActiveHeight
 
 }
 

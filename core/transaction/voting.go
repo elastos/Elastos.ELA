@@ -6,6 +6,7 @@
 package transaction
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 
@@ -107,7 +108,6 @@ func (t *VotingTransaction) SpecialContextCheck() (result elaerr.ELAError, end b
 
 	// 1.check if the signer has vote rights and check if votes enough
 	// 2.check different type of votes, enough? candidate exist?
-	pld := t.Payload().(*payload.Voting)
 	outputValue := t.Outputs()[0].Value
 	blockHeight := t.parameters.BlockHeight
 	crCommittee := t.parameters.BlockChain.GetCRCommittee()
@@ -157,39 +157,63 @@ func (t *VotingTransaction) SpecialContextCheck() (result elaerr.ELAError, end b
 	}
 	crs := getCRCIDsMap(candidates)
 
-	for _, content := range pld.Contents {
-		switch content.VoteType {
-		case outputpayload.Delegate:
-			err := t.checkVoteProducerContent(
-				content, pds, outputValue, totalVotes-usedDPoSVoteRights)
-			if err != nil {
-				return elaerr.Simple(elaerr.ErrTxInvalidOutput, err), true
-			}
-		case outputpayload.CRC:
-			err := t.checkVoteCRContent(blockHeight,
-				content, crs, outputValue, totalVotes-usedCRVoteRights)
-			if err != nil {
-				return elaerr.Simple(elaerr.ErrTxInvalidOutput, err), true
-			}
-		case outputpayload.CRCProposal:
-			err := t.checkVoteCRCProposalContent(
-				content, outputValue, totalVotes-usedCRCProposalVoteRights)
-			if err != nil {
-				return elaerr.Simple(elaerr.ErrTxInvalidOutput, err), true
-			}
-		case outputpayload.CRCImpeachment:
-			err := t.checkCRImpeachmentContent(
-				content, outputValue, totalVotes-usedCRImpeachmentVoteRights)
-			if err != nil {
-				return elaerr.Simple(elaerr.ErrTxInvalidOutput, err), true
-			}
-		case outputpayload.DposV2:
-			// todo check lock time!
-			err := t.checkDPoSV2Content(content, pds2, outputValue, totalVotes-usedDPoSV2VoteRights)
-			if err != nil {
-				return elaerr.Simple(elaerr.ErrTxInvalidOutput, err), true
+	pld := t.Payload().(*payload.Voting)
+	switch t.PayloadVersion() {
+	case payload.VoteVersion:
+		for _, content := range pld.Contents {
+			switch content.VoteType {
+			case outputpayload.Delegate:
+				err := t.checkVoteProducerContent(
+					content, pds, outputValue, totalVotes-usedDPoSVoteRights)
+				if err != nil {
+					return elaerr.Simple(elaerr.ErrTxPayload, err), true
+				}
+			case outputpayload.CRC:
+				err := t.checkVoteCRContent(blockHeight,
+					content, crs, outputValue, totalVotes-usedCRVoteRights)
+				if err != nil {
+					return elaerr.Simple(elaerr.ErrTxPayload, err), true
+				}
+			case outputpayload.CRCProposal:
+				err := t.checkVoteCRCProposalContent(
+					content, outputValue, totalVotes-usedCRCProposalVoteRights)
+				if err != nil {
+					return elaerr.Simple(elaerr.ErrTxPayload, err), true
+				}
+			case outputpayload.CRCImpeachment:
+				err := t.checkCRImpeachmentContent(
+					content, outputValue, totalVotes-usedCRImpeachmentVoteRights)
+				if err != nil {
+					return elaerr.Simple(elaerr.ErrTxPayload, err), true
+				}
+			case outputpayload.DposV2:
+				err := t.checkDPoSV2Content(content, pds2, outputValue, totalVotes-usedDPoSV2VoteRights)
+				if err != nil {
+					return elaerr.Simple(elaerr.ErrTxPayload, err), true
+				}
 			}
 		}
+	case payload.RenewalVoteVersion:
+		for _, content := range pld.RenewalContents {
+			vote, ok := state.NewVotesInfo[content.ReferKey]
+			if !ok {
+				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid refer key")), true
+			}
+			if vote.VoteType != outputpayload.DposV2 {
+				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid vote type")), true
+			}
+			if vote.BlockHeight < content.VotesInfo.LockTime {
+				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid lock time")), true
+			}
+			if vote.Info.Votes != content.VotesInfo.Votes {
+				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("votes not equal")), true
+			}
+			if !bytes.Equal(vote.Info.Candidate, content.VotesInfo.Candidate) {
+				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("candidate should be the same one")), true
+			}
+		}
+	default:
+		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid payload version")), true
 	}
 
 	return nil, false

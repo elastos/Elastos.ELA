@@ -76,16 +76,20 @@ func (ps ProducerState) String() string {
 // Producer holds a producer's info.  It provides read only methods to access
 // producer's info.
 type Producer struct {
-	info                         payload.ProducerInfo
-	state                        ProducerState
-	registerHeight               uint32
-	cancelHeight                 uint32
-	inactiveSince                uint32
-	activateRequestHeight        uint32
-	illegalHeight                uint32
-	penalty                      common.Fixed64
-	votes                        common.Fixed64
-	dposV2Votes                  common.Fixed64
+	info                  payload.ProducerInfo
+	state                 ProducerState
+	registerHeight        uint32
+	cancelHeight          uint32
+	inactiveSince         uint32
+	activateRequestHeight uint32
+	illegalHeight         uint32
+	penalty               common.Fixed64
+	votes                 common.Fixed64
+	dposV2Votes           common.Fixed64
+
+	// the detail information of DPoSV2 votes
+	detailDPoSV2Votes map[common.Uint168]map[common.Uint256]payload.DetailVoteInfo
+
 	depositAmount                common.Fixed64
 	totalAmount                  common.Fixed64
 	depositHash                  common.Uint168
@@ -250,6 +254,9 @@ func (p *Producer) Serialize(w io.Writer) error {
 	if err := p.dposV2Votes.Serialize(w); err != nil {
 		return err
 	}
+	if err := serializeDetailVoteInfoMap(p.detailDPoSV2Votes, w); err != nil {
+		return err
+	}
 
 	if err := p.depositAmount.Serialize(w); err != nil {
 		return err
@@ -265,6 +272,33 @@ func (p *Producer) Serialize(w io.Writer) error {
 
 	return common.WriteElements(w, p.selected, p.randomCandidateInactiveCount,
 		p.inactiveCountingHeight, p.lastUpdateInactiveHeight, p.inactiveCount)
+}
+
+func serializeDetailVoteInfoMap(
+	vmap map[common.Uint168]map[common.Uint256]payload.DetailVoteInfo,
+	w io.Writer) (err error) {
+
+	if err := common.WriteVarUint(w, uint64(len(vmap))); err != nil {
+		return err
+	}
+	for k, v := range vmap {
+		if err := k.Serialize(w); err != nil {
+			return err
+		}
+		if err := common.WriteVarUint(w, uint64(len(v))); err != nil {
+			return err
+		}
+		for k2, v2 := range v {
+			if err := k2.Serialize(w); err != nil {
+				return err
+			}
+			if err := v2.Serialize(w); err != nil {
+				return err
+			}
+		}
+	}
+
+	return
 }
 
 func (p *Producer) Deserialize(r io.Reader) (err error) {
@@ -298,32 +332,75 @@ func (p *Producer) Deserialize(r io.Reader) (err error) {
 		return
 	}
 
-	if err := p.penalty.Deserialize(r); err != nil {
-		return err
+	if err = p.penalty.Deserialize(r); err != nil {
+		return
 	}
 
-	if err := p.votes.Deserialize(r); err != nil {
-		return err
+	if err = p.votes.Deserialize(r); err != nil {
+		return
 	}
 
-	if err := p.dposV2Votes.Deserialize(r); err != nil {
-		return err
+	if err = p.dposV2Votes.Deserialize(r); err != nil {
+		return
 	}
 
-	if err := p.depositAmount.Deserialize(r); err != nil {
+	voteInfoMap, err := deserializeDetailVoteInfoMap(r)
+	if err != nil {
 		return err
 	}
+	p.detailDPoSV2Votes = voteInfoMap
 
-	if err := p.totalAmount.Deserialize(r); err != nil {
-		return err
+	if err = p.depositAmount.Deserialize(r); err != nil {
+		return
 	}
 
-	if err := p.depositHash.Deserialize(r); err != nil {
-		return err
+	if err = p.totalAmount.Deserialize(r); err != nil {
+		return
+	}
+
+	if err = p.depositHash.Deserialize(r); err != nil {
+		return
 	}
 
 	return common.ReadElements(r, &p.selected, &p.randomCandidateInactiveCount,
 		&p.inactiveCountingHeight, &p.lastUpdateInactiveHeight, &p.inactiveCount)
+}
+
+func deserializeDetailVoteInfoMap(
+	r io.Reader) (vmap map[common.Uint168]map[common.Uint256]payload.DetailVoteInfo, err error) {
+	var count uint64
+	if count, err = common.ReadVarUint(r, 0); err != nil {
+		return
+	}
+	vmap = make(map[common.Uint168]map[common.Uint256]payload.DetailVoteInfo)
+	for i := uint64(0); i < count; i++ {
+		var k common.Uint168
+		if err = k.Deserialize(r); err != nil {
+			return
+		}
+
+		var count2 uint64
+		if count2, err = common.ReadVarUint(r, 0); err != nil {
+			return
+		}
+		vmap2 := make(map[common.Uint256]payload.DetailVoteInfo)
+		for j := uint64(0); j < count2; j++ {
+			var k2 common.Uint256
+			if err = k2.Deserialize(r); err != nil {
+				return
+			}
+
+			var v2 payload.DetailVoteInfo
+			if err = v2.Deserialize(r); err != nil {
+				return
+			}
+
+			vmap2[k2] = v2
+		}
+
+		vmap[k] = vmap2
+	}
+	return
 }
 
 const (
@@ -1381,6 +1458,11 @@ func (s *State) processVoting(tx interfaces.Transaction, height uint32) {
 
 func (s *State) processVotingContent(tx interfaces.Transaction, height uint32) {
 
+	// get stake address(program hash)
+	code := tx.Programs()[0].Code
+	ct, _ := contract.CreateStakeContractByCode(code)
+	stakeAddress := ct.ToProgramHash()
+
 	pld := tx.Payload().(*payload.Voting)
 	for _, content := range pld.Contents {
 
@@ -1410,9 +1492,9 @@ func (s *State) processVotingContent(tx interfaces.Transaction, height uint32) {
 				}
 			}
 			s.History.Append(height, func() {
-				s.DposVotes[tx.Outputs()[0].ProgramHash] += maxVotes
+				s.DposVotes[*stakeAddress] += maxVotes
 			}, func() {
-				s.DposVotes[tx.Outputs()[0].ProgramHash] -= maxVotes
+				s.DposVotes[*stakeAddress] -= maxVotes
 			})
 
 			for _, v := range content.VotesInfo {
@@ -1433,9 +1515,9 @@ func (s *State) processVotingContent(tx interfaces.Transaction, height uint32) {
 				totalVotes += vote.Votes
 			}
 			s.History.Append(height, func() {
-				s.CRVotes[tx.Outputs()[0].ProgramHash] += totalVotes
+				s.CRVotes[*stakeAddress] += totalVotes
 			}, func() {
-				s.CRVotes[tx.Outputs()[0].ProgramHash] -= totalVotes
+				s.CRVotes[*stakeAddress] -= totalVotes
 			})
 		case outputpayload.CRCProposal:
 			var maxVotes common.Fixed64
@@ -1445,9 +1527,9 @@ func (s *State) processVotingContent(tx interfaces.Transaction, height uint32) {
 				}
 			}
 			s.History.Append(height, func() {
-				s.CRVotes[tx.Outputs()[0].ProgramHash] += maxVotes
+				s.CRVotes[*stakeAddress] += maxVotes
 			}, func() {
-				s.CRVotes[tx.Outputs()[0].ProgramHash] -= maxVotes
+				s.CRVotes[*stakeAddress] -= maxVotes
 			})
 		case outputpayload.CRCImpeachment:
 			var totalVotes common.Fixed64
@@ -1455,9 +1537,9 @@ func (s *State) processVotingContent(tx interfaces.Transaction, height uint32) {
 				totalVotes += vote.Votes
 			}
 			s.History.Append(height, func() {
-				s.CRImpeachmentVotes[tx.Outputs()[0].ProgramHash] += totalVotes
+				s.CRImpeachmentVotes[*stakeAddress] += totalVotes
 			}, func() {
-				s.CRImpeachmentVotes[tx.Outputs()[0].ProgramHash] -= totalVotes
+				s.CRImpeachmentVotes[*stakeAddress] -= totalVotes
 			})
 		case outputpayload.DposV2:
 			var totalVotes common.Fixed64
@@ -1465,9 +1547,9 @@ func (s *State) processVotingContent(tx interfaces.Transaction, height uint32) {
 				totalVotes += vote.Votes
 			}
 			s.History.Append(height, func() {
-				s.DposV2Votes[tx.Outputs()[0].ProgramHash] += totalVotes
+				s.DposV2Votes[*stakeAddress] += totalVotes
 			}, func() {
-				s.DposV2Votes[tx.Outputs()[0].ProgramHash] -= totalVotes
+				s.DposV2Votes[*stakeAddress] -= totalVotes
 			})
 
 			for _, v := range content.VotesInfo {
@@ -1475,10 +1557,22 @@ func (s *State) processVotingContent(tx interfaces.Transaction, height uint32) {
 				if producer == nil {
 					continue
 				}
+				voteInfo := v
+				dvi := payload.DetailVoteInfo{
+					BlockHeight:    height,
+					PayloadVersion: tx.PayloadVersion(),
+					VoteType:       content.VoteType,
+					Info:           voteInfo,
+				}
 				s.History.Append(height, func() {
-					producer.dposV2Votes += v.Votes
+					if _, ok := producer.detailDPoSV2Votes[*stakeAddress]; !ok {
+						producer.detailDPoSV2Votes[*stakeAddress] = make(map[common.Uint256]payload.DetailVoteInfo)
+					}
+					producer.detailDPoSV2Votes[*stakeAddress][dvi.ReferKey()] = dvi
+					producer.dposV2Votes += voteInfo.Votes
 				}, func() {
-					producer.dposV2Votes -= v.Votes
+					delete(producer.detailDPoSV2Votes[*stakeAddress], dvi.ReferKey())
+					producer.dposV2Votes -= voteInfo.Votes
 				})
 			}
 		}
@@ -1486,10 +1580,21 @@ func (s *State) processVotingContent(tx interfaces.Transaction, height uint32) {
 }
 
 func (s *State) processRenewalVotingContent(tx interfaces.Transaction, height uint32) {
+	// get stake address
+	code := tx.Programs()[0].Code
+	ct, _ := contract.CreateStakeContractByCode(code)
+	stakeAddress := ct.ToProgramHash()
 
 	pld := tx.Payload().(*payload.Voting)
 	for _, content := range pld.RenewalContents {
+
 		voteInfo, _ := s.NewVotesInfo[content.ReferKey]
+
+		// get producer and update the votes
+		producer := s.getDPoSV2Producer(voteInfo.Info.Candidate)
+		if producer == nil {
+			continue
+		}
 
 		// record all new votes information
 		detailVoteInfo := payload.DetailVoteInfo{
@@ -1501,8 +1606,16 @@ func (s *State) processRenewalVotingContent(tx interfaces.Transaction, height ui
 
 		referKey := detailVoteInfo.ReferKey()
 		s.History.Append(height, func() {
+			producer.detailDPoSV2Votes[*stakeAddress][referKey] = detailVoteInfo
+			delete(producer.detailDPoSV2Votes[*stakeAddress], content.ReferKey)
+
+			delete(s.NewVotesInfo, content.ReferKey)
 			s.NewVotesInfo[referKey] = detailVoteInfo
 		}, func() {
+			producer.detailDPoSV2Votes[*stakeAddress][content.ReferKey] = voteInfo
+			delete(producer.detailDPoSV2Votes[*stakeAddress], referKey)
+
+			s.NewVotesInfo[content.ReferKey] = voteInfo
 			delete(s.NewVotesInfo, referKey)
 		})
 	}

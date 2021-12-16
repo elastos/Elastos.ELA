@@ -195,9 +195,10 @@ func (t *VotingTransaction) SpecialContextCheck() (result elaerr.ELAError, end b
 		}
 	case payload.RenewalVoteVersion:
 		for _, content := range pld.RenewalContents {
-			vote, ok := state.NewVotesInfo[content.ReferKey]
-			if !ok {
-				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid refer key")), true
+			producer := state.GetProducer(content.VotesInfo.Candidate)
+			vote, err := producer.GetDetailDPoSV2Votes(*stakeProgramHash, content.ReferKey)
+			if err != nil {
+				return elaerr.Simple(elaerr.ErrTxPayload, err), true
 			}
 			if vote.VoteType != outputpayload.DposV2 {
 				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid vote type")), true

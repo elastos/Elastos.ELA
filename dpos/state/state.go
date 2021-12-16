@@ -8,12 +8,8 @@ package state
 import (
 	"bytes"
 	"encoding/hex"
+	"errors"
 	"fmt"
-	common2 "github.com/elastos/Elastos.ELA/core/types/common"
-	"github.com/elastos/Elastos.ELA/core/types/interfaces"
-	elaerr "github.com/elastos/Elastos.ELA/errors"
-	"github.com/elastos/Elastos.ELA/p2p"
-	"github.com/elastos/Elastos.ELA/p2p/msg"
 	"io"
 	"math"
 	"sync"
@@ -22,10 +18,15 @@ import (
 	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/core/contract"
 	"github.com/elastos/Elastos.ELA/core/types"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/core/types/outputpayload"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/cr/state"
+	elaerr "github.com/elastos/Elastos.ELA/errors"
 	"github.com/elastos/Elastos.ELA/events"
+	"github.com/elastos/Elastos.ELA/p2p"
+	"github.com/elastos/Elastos.ELA/p2p/msg"
 	"github.com/elastos/Elastos.ELA/utils"
 )
 
@@ -168,6 +169,19 @@ func (p *Producer) AvailableAmount() common.Fixed64 {
 
 func (p *Producer) Selected() bool {
 	return p.selected
+}
+
+func (p *Producer) GetDetailDPoSV2Votes(stakeAddress common.Uint168, referKey common.Uint256) (payload.DetailVoteInfo, error) {
+	votes, ok := p.detailDPoSV2Votes[stakeAddress]
+	if !ok {
+		return payload.DetailVoteInfo{}, errors.New("stake address not found in producer")
+	}
+	vote, ok := votes[referKey]
+	if !ok {
+		return payload.DetailVoteInfo{}, errors.New("referKey not found in producer")
+	}
+
+	return vote, nil
 }
 
 func (p *Producer) SetInfo(i payload.ProducerInfo) {
@@ -1466,23 +1480,6 @@ func (s *State) processVotingContent(tx interfaces.Transaction, height uint32) {
 	pld := tx.Payload().(*payload.Voting)
 	for _, content := range pld.Contents {
 
-		// record all votes information
-		for _, vote := range content.VotesInfo {
-			detailVoteInfo := payload.DetailVoteInfo{
-				BlockHeight:    height,
-				PayloadVersion: tx.PayloadVersion(),
-				VoteType:       content.VoteType,
-				Info:           vote,
-			}
-
-			referKey := detailVoteInfo.ReferKey()
-			s.History.Append(height, func() {
-				s.NewVotesInfo[referKey] = detailVoteInfo
-			}, func() {
-				delete(s.NewVotesInfo, referKey)
-			})
-		}
-
 		switch content.VoteType {
 		case outputpayload.Delegate:
 			var maxVotes common.Fixed64
@@ -1587,14 +1584,12 @@ func (s *State) processRenewalVotingContent(tx interfaces.Transaction, height ui
 
 	pld := tx.Payload().(*payload.Voting)
 	for _, content := range pld.RenewalContents {
-
-		voteInfo, _ := s.NewVotesInfo[content.ReferKey]
-
 		// get producer and update the votes
-		producer := s.getDPoSV2Producer(voteInfo.Info.Candidate)
+		producer := s.getDPoSV2Producer(content.VotesInfo.Candidate)
 		if producer == nil {
 			continue
 		}
+		voteInfo, _ := producer.GetDetailDPoSV2Votes(*stakeAddress, content.ReferKey)
 
 		// record all new votes information
 		detailVoteInfo := payload.DetailVoteInfo{
@@ -1608,15 +1603,9 @@ func (s *State) processRenewalVotingContent(tx interfaces.Transaction, height ui
 		s.History.Append(height, func() {
 			producer.detailDPoSV2Votes[*stakeAddress][referKey] = detailVoteInfo
 			delete(producer.detailDPoSV2Votes[*stakeAddress], content.ReferKey)
-
-			delete(s.NewVotesInfo, content.ReferKey)
-			s.NewVotesInfo[referKey] = detailVoteInfo
 		}, func() {
 			producer.detailDPoSV2Votes[*stakeAddress][content.ReferKey] = voteInfo
 			delete(producer.detailDPoSV2Votes[*stakeAddress], referKey)
-
-			s.NewVotesInfo[content.ReferKey] = voteInfo
-			delete(s.NewVotesInfo, referKey)
 		})
 	}
 }

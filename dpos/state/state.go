@@ -1373,6 +1373,24 @@ func (s *State) processVoting(tx interfaces.Transaction, height uint32) {
 
 	pld := tx.Payload().(*payload.Voting)
 	for _, content := range pld.Contents {
+
+		// record all votes information
+		for _, vote := range content.VotesInfo {
+			detailVoteInfo := payload.DetailVoteInfo{
+				BlockHeight:    height,
+				PayloadVersion: tx.PayloadVersion(),
+				VoteType:       content.VoteType,
+				Info:           vote,
+			}
+
+			referKey := detailVoteInfo.ReferKey()
+			s.History.Append(height, func() {
+				s.NewVotesInfo[referKey] = detailVoteInfo
+			}, func() {
+				delete(s.NewVotesInfo, referKey)
+			})
+		}
+
 		switch content.VoteType {
 		case outputpayload.Delegate:
 			var maxVotes common.Fixed64

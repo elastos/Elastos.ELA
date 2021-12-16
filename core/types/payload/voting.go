@@ -109,53 +109,62 @@ type VotesWithLockTime struct {
 	LockTime  uint32
 }
 
-func (vi *VotesWithLockTime) Serialize(w io.Writer, version byte) error {
+func (v *VotesWithLockTime) Serialize(w io.Writer, version byte) error {
 
-	if err := common.WriteVarBytes(w, vi.Candidate); err != nil {
+	if err := common.WriteVarBytes(w, v.Candidate); err != nil {
 		return err
 	}
-	if err := vi.Votes.Serialize(w); err != nil {
+	if err := v.Votes.Serialize(w); err != nil {
 		return err
 	}
-	if err := common.WriteUint32(w, vi.LockTime); err != nil {
+	if err := common.WriteUint32(w, v.LockTime); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (vi *VotesWithLockTime) Deserialize(r io.Reader, version byte) error {
+func (v *VotesWithLockTime) Deserialize(r io.Reader, version byte) error {
 
 	candidate, err := common.ReadVarBytes(
 		r, crypto.MaxMultiSignCodeLength, "candidate votes")
 	if err != nil {
 		return err
 	}
-	vi.Candidate = candidate
+	v.Candidate = candidate
 
-	if err := vi.Votes.Deserialize(r); err != nil {
+	if err := v.Votes.Deserialize(r); err != nil {
 		return err
 	}
-	if vi.LockTime, err = common.ReadUint32(r); err != nil {
+	if v.LockTime, err = common.ReadUint32(r); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (vi *VotesWithLockTime) String() string {
+func (v *VotesWithLockTime) String() string {
 	return fmt.Sprint("Content: {"+
-		"\n\t\t\t\t", "Candidate: ", common.BytesToHexString(vi.Candidate),
-		"\n\t\t\t\t", "Votes: ", vi.Votes,
-		"\n\t\t\t\t", "LockTime: ", vi.LockTime,
+		"\n\t\t\t\t", "Candidate: ", common.BytesToHexString(v.Candidate),
+		"\n\t\t\t\t", "Votes: ", v.Votes,
+		"\n\t\t\t\t", "LockTime: ", v.LockTime,
 		"}\n\t\t\t\t")
 }
 
+//
 // VotesContent defines the vote type and vote information of candidates.
 type VotesContent struct {
 	VoteType  outputpayload.VoteType
 	VotesInfo []VotesWithLockTime
 }
+
+//type VotesContent struct {
+//	Votes []VotesContent2
+//}
+//type VotesContent2 struct {
+//	ReferKey  common.Uint256
+//	VotesInfo VotesWithLockTime
+//}
 
 func (vc *VotesContent) Serialize(w io.Writer, version byte) error {
 	if _, err := w.Write([]byte{byte(vc.VoteType)}); err != nil {
@@ -211,4 +220,71 @@ func (vc VotesContent) String() string {
 	return fmt.Sprint("Content: {\n\t\t\t\t",
 		"VoteType: ", vc.VoteType, "\n\t\t\t\t",
 		"CandidateVotes: ", vc.VotesInfo, "}\n\t\t\t\t")
+}
+
+type DetailVoteInfo struct {
+	BlockHeight    uint32
+	PayloadVersion byte
+	VoteType       outputpayload.VoteType
+	Info           VotesWithLockTime
+}
+
+func (v *DetailVoteInfo) bytes() []byte {
+	buf := new(bytes.Buffer)
+	common.WriteUint32(buf, v.BlockHeight)
+	common.WriteUint8(buf, v.PayloadVersion)
+	common.WriteUint8(buf, uint8(v.VoteType))
+	v.Info.Serialize(buf, v.PayloadVersion)
+	return buf.Bytes()
+}
+
+func (v *DetailVoteInfo) ReferKey() common.Uint256 {
+	return common.Hash(v.bytes())
+}
+
+func (v *DetailVoteInfo) Serialize(w io.Writer) error {
+
+	if err := common.WriteUint32(w, v.BlockHeight); err != nil {
+		return err
+	}
+
+	if err := common.WriteUint8(w, v.PayloadVersion); err != nil {
+		return err
+	}
+
+	if err := common.WriteUint8(w, uint8(v.VoteType)); err != nil {
+		return err
+	}
+
+	if err := v.Info.Serialize(w, v.PayloadVersion); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (v *DetailVoteInfo) Deserialize(r io.Reader) error {
+	height, err := common.ReadUint32(r)
+	if err != nil {
+		return err
+	}
+	v.BlockHeight = height
+
+	payloadVersion, err := common.ReadUint8(r)
+	if err != nil {
+		return err
+	}
+	v.PayloadVersion = payloadVersion
+
+	voteType, err := common.ReadUint8(r)
+	if err != nil {
+		return err
+	}
+	v.VoteType = outputpayload.VoteType(voteType)
+
+	if err := v.Info.Deserialize(r, v.PayloadVersion); err != nil {
+		return err
+	}
+
+	return nil
 }

@@ -16,8 +16,12 @@ import (
 	"github.com/elastos/Elastos.ELA/crypto"
 )
 
+const VoteVersion byte = 0x00
+const RenewalVoteVersion byte = 0x01
+
 type Voting struct {
-	Contents []VotesContent
+	Contents        []VotesContent
+	RenewalContents []RenewalVotesContent
 }
 
 func (p *Voting) Data(version byte) []byte {
@@ -32,12 +36,24 @@ func (p *Voting) Data(version byte) []byte {
 
 func (p *Voting) Serialize(w io.Writer, version byte) error {
 
-	if err := common.WriteVarUint(w, uint64(len(p.Contents))); err != nil {
-		return err
-	}
-	for _, content := range p.Contents {
-		if err := content.Serialize(w, version); err != nil {
+	switch version {
+	case VoteVersion:
+		if err := common.WriteVarUint(w, uint64(len(p.Contents))); err != nil {
 			return err
+		}
+		for _, content := range p.Contents {
+			if err := content.Serialize(w, version); err != nil {
+				return err
+			}
+		}
+	case RenewalVoteVersion:
+		if err := common.WriteVarUint(w, uint64(len(p.RenewalContents))); err != nil {
+			return err
+		}
+		for _, content := range p.Contents {
+			if err := content.Serialize(w, version); err != nil {
+				return err
+			}
 		}
 	}
 
@@ -158,14 +174,6 @@ type VotesContent struct {
 	VotesInfo []VotesWithLockTime
 }
 
-//type VotesContent struct {
-//	Votes []VotesContent2
-//}
-//type VotesContent2 struct {
-//	ReferKey  common.Uint256
-//	VotesInfo VotesWithLockTime
-//}
-
 func (vc *VotesContent) Serialize(w io.Writer, version byte) error {
 	if _, err := w.Write([]byte{byte(vc.VoteType)}); err != nil {
 		return err
@@ -220,6 +228,41 @@ func (vc VotesContent) String() string {
 	return fmt.Sprint("Content: {\n\t\t\t\t",
 		"VoteType: ", vc.VoteType, "\n\t\t\t\t",
 		"CandidateVotes: ", vc.VotesInfo, "}\n\t\t\t\t")
+}
+
+type RenewalVotesContent struct {
+	ReferKey  common.Uint256
+	VotesInfo VotesWithLockTime
+}
+
+func (vc *RenewalVotesContent) Serialize(w io.Writer, version byte) error {
+
+	if err := vc.ReferKey.Serialize(w); err != nil {
+		return err
+	}
+	if err := vc.VotesInfo.Serialize(w, version); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (vc *RenewalVotesContent) Deserialize(r io.Reader, version byte) error {
+
+	if err := vc.ReferKey.Deserialize(r); err != nil {
+		return err
+	}
+	if err := vc.VotesInfo.Deserialize(r, version); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (vc RenewalVotesContent) String() string {
+	return fmt.Sprint("Content: {\n\t\t\t\t",
+		"ReferKey: ", vc.ReferKey, "\n\t\t\t\t",
+		"VotesInfo: ", vc.VotesInfo, "}\n\t\t\t\t")
 }
 
 type DetailVoteInfo struct {

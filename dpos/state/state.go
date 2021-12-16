@@ -1371,6 +1371,16 @@ func (s *State) processExchangeVotes(tx interfaces.Transaction, height uint32) {
 // validate and update producers votes.
 func (s *State) processVoting(tx interfaces.Transaction, height uint32) {
 
+	switch tx.PayloadVersion() {
+	case payload.VoteVersion:
+		s.processVotingContent(tx, height)
+	case payload.RenewalVoteVersion:
+		s.processRenewalVotingContent(tx, height)
+	}
+}
+
+func (s *State) processVotingContent(tx interfaces.Transaction, height uint32) {
+
 	pld := tx.Payload().(*payload.Voting)
 	for _, content := range pld.Contents {
 
@@ -1472,6 +1482,29 @@ func (s *State) processVoting(tx interfaces.Transaction, height uint32) {
 				})
 			}
 		}
+	}
+}
+
+func (s *State) processRenewalVotingContent(tx interfaces.Transaction, height uint32) {
+
+	pld := tx.Payload().(*payload.Voting)
+	for _, content := range pld.RenewalContents {
+		voteInfo, _ := s.NewVotesInfo[content.ReferKey]
+
+		// record all new votes information
+		detailVoteInfo := payload.DetailVoteInfo{
+			BlockHeight:    voteInfo.BlockHeight,
+			PayloadVersion: voteInfo.PayloadVersion,
+			VoteType:       outputpayload.DposV2,
+			Info:           content.VotesInfo,
+		}
+
+		referKey := detailVoteInfo.ReferKey()
+		s.History.Append(height, func() {
+			s.NewVotesInfo[referKey] = detailVoteInfo
+		}, func() {
+			delete(s.NewVotesInfo, referKey)
+		})
 	}
 }
 

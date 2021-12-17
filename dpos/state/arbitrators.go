@@ -652,7 +652,23 @@ func (a *Arbiters) accumulateReward(block *types.Block, confirm *payload.Confirm
 				a.DposV2RewardInfo[addr] += dposReward
 			} else { // non crc
 				a.DposV2RewardInfo[addr] += dposReward / 4
-				//TODO voters reward to be added
+				producer := a.getProducer(pkBytes)
+				var totalShare common.Fixed64
+				shareDetail := make(map[common.Uint168]common.Fixed64)
+				for sVoteAddr, sVoteDetail := range producer.detailDPoSV2Votes {
+					for _, info := range sVoteDetail {
+						// TODO share logic need to be changed with locktime factor
+						totalShare += info.Info.Votes
+						shareDetail[sVoteAddr] += info.Info.Votes
+					}
+				}
+				for sVoteAddr, share := range shareDetail {
+					b := sVoteAddr.Bytes()
+					b[0] = byte(contract.PrefixStandard)
+					standardUint168, _ := common.Uint168FromBytes(b)
+					addr, _ := standardUint168.ToAddress()
+					a.DposV2RewardInfo[addr] = dposReward * 3 / 4 * share / totalShare
+				}
 			}
 			a.forceChanged = false
 			a.DutyIndex = oriDutyIndex + 1

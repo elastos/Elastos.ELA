@@ -1479,7 +1479,6 @@ func (s *State) processVotingContent(tx interfaces.Transaction, height uint32) {
 
 	pld := tx.Payload().(*payload.Voting)
 	for _, content := range pld.Contents {
-
 		switch content.VoteType {
 		case outputpayload.Delegate:
 			var maxVotes common.Fixed64
@@ -1503,6 +1502,23 @@ func (s *State) processVotingContent(tx interfaces.Transaction, height uint32) {
 					producer.votes += v.Votes
 				}, func() {
 					producer.votes -= v.Votes
+				})
+			}
+
+			// record DPoS v1 votes information
+			for _, vote := range content.VotesInfo {
+				detailVoteInfo := payload.DetailVoteInfo{
+					BlockHeight:    height,
+					PayloadVersion: tx.PayloadVersion(),
+					VoteType:       content.VoteType,
+					Info:           vote,
+				}
+
+				referKey := detailVoteInfo.ReferKey()
+				s.History.Append(height, func() {
+					s.DetailDPoSV1Votes[referKey] = detailVoteInfo
+				}, func() {
+					delete(s.DetailDPoSV1Votes, referKey)
 				})
 			}
 

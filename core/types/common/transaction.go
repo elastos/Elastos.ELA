@@ -67,6 +67,7 @@ const (
 	DposV2ClaimRewardRealWithdraw TxType = 0x61
 	ExchangeVotes                 TxType = 0x62
 	Voting                        TxType = 0x63
+	CancelVotes                   TxType = 0x64
 )
 
 func (self TxType) Name() string {

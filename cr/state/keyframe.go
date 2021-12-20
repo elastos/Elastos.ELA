@@ -117,10 +117,11 @@ type CRMember struct {
 
 // StateKeyFrame holds necessary State about CR committee.
 type KeyFrame struct {
-	Members             map[common.Uint168]*CRMember
-	HistoryMembers      map[uint64]map[common.Uint168]*CRMember
-	PartProposalResults []payload.ProposalResult
-	DetailCRVotes       map[common.Uint256]payload.DetailVoteInfo // key: hash of DetailVoteInfo
+	Members                  map[common.Uint168]*CRMember
+	HistoryMembers           map[uint64]map[common.Uint168]*CRMember
+	PartProposalResults      []payload.ProposalResult
+	DetailCRVotes            map[common.Uint256]payload.DetailVoteInfo // key: hash of DetailVoteInfo
+	DetailCRImpeachmentVotes map[common.Uint256]payload.DetailVoteInfo // key: hash of DetailVoteInfo
 
 	LastCommitteeHeight      uint32
 	LastVotingStartHeight    uint32
@@ -365,6 +366,10 @@ func (kf *KeyFrame) Serialize(w io.Writer) (err error) {
 		return
 	}
 
+	if err = serializeDetailVoteInfoMap(w, kf.DetailCRImpeachmentVotes); err != nil {
+		return
+	}
+
 	return common.WriteElements(w, kf.LastCommitteeHeight,
 		kf.LastVotingStartHeight, kf.InElectionPeriod, kf.NeedAppropriation,
 		kf.NeedRecordProposalResult, kf.CRCFoundationBalance,
@@ -387,6 +392,10 @@ func (kf *KeyFrame) Deserialize(r io.Reader) (err error) {
 	}
 
 	if kf.DetailCRVotes, err = deserializeDetailVoteInfoMap(r); err != nil {
+		return
+	}
+
+	if kf.DetailCRImpeachmentVotes, err = deserializeDetailVoteInfoMap(r); err != nil {
 		return
 	}
 

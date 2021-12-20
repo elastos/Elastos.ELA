@@ -117,9 +117,11 @@ type CRMember struct {
 
 // StateKeyFrame holds necessary State about CR committee.
 type KeyFrame struct {
-	Members                  map[common.Uint168]*CRMember
-	HistoryMembers           map[uint64]map[common.Uint168]*CRMember
-	PartProposalResults      []payload.ProposalResult
+	Members             map[common.Uint168]*CRMember
+	HistoryMembers      map[uint64]map[common.Uint168]*CRMember
+	PartProposalResults []payload.ProposalResult
+	DetailCRVotes       map[common.Uint256]payload.DetailVoteInfo // key: hash of DetailVoteInfo
+
 	LastCommitteeHeight      uint32
 	LastVotingStartHeight    uint32
 	InElectionPeriod         bool
@@ -356,6 +358,10 @@ func (kf *KeyFrame) Serialize(w io.Writer) (err error) {
 		return
 	}
 
+	if err = serializeDetailVoteInfoMap(w, kf.DetailCRVotes); err != nil {
+		return
+	}
+
 	return common.WriteElements(w, kf.LastCommitteeHeight,
 		kf.LastVotingStartHeight, kf.InElectionPeriod, kf.NeedAppropriation,
 		kf.NeedRecordProposalResult, kf.CRCFoundationBalance,
@@ -376,12 +382,17 @@ func (kf *KeyFrame) Deserialize(r io.Reader) (err error) {
 	if kf.PartProposalResults, err = kf.deserializeProposalResultList(r); err != nil {
 		return
 	}
+	
+	if kf.DetailCRVotes, err = deserializeDetailVoteInfoMap(r); err != nil {
+		return
+	}
 
 	err = common.ReadElements(r, &kf.LastCommitteeHeight,
 		&kf.LastVotingStartHeight, &kf.InElectionPeriod, &kf.NeedAppropriation,
 		&kf.NeedRecordProposalResult, &kf.CRCFoundationBalance, &kf.CRCCommitteeBalance,
 		&kf.CRCCommitteeUsedAmount, &kf.CRCCurrentStageAmount, &kf.DestroyedAmount, &kf.CirculationAmount,
 		&kf.AppropriationAmount, &kf.CommitteeUsedAmount, &kf.CRAssetsAddressUTXOCount)
+
 	return
 }
 
@@ -442,6 +453,41 @@ func (kf *KeyFrame) serializeProposalResultList(w io.Writer,
 		if err = a.Serialize(w, payload.CustomIDResultVersion); err != nil {
 			return err
 		}
+	}
+	return
+}
+func serializeDetailVoteInfoMap(w io.Writer, vmap map[common.Uint256]payload.DetailVoteInfo) (err error) {
+	if err = common.WriteVarUint(w, uint64(len(vmap))); err != nil {
+		return
+	}
+	for k, v := range vmap {
+		if err = k.Serialize(w); err != nil {
+			return
+		}
+		if err = v.Serialize(w); err != nil {
+			return
+		}
+	}
+	return
+}
+
+func deserializeDetailVoteInfoMap(
+	r io.Reader) (vmap map[common.Uint256]payload.DetailVoteInfo, err error) {
+	var count uint64
+	if count, err = common.ReadVarUint(r, 0); err != nil {
+		return
+	}
+	vmap = make(map[common.Uint256]payload.DetailVoteInfo)
+	for i := uint64(0); i < count; i++ {
+		var k common.Uint256
+		if err = k.Deserialize(r); err != nil {
+			return
+		}
+		var v payload.DetailVoteInfo
+		if err = v.Deserialize(r); err != nil {
+			return
+		}
+		vmap[k] = v
 	}
 	return
 }

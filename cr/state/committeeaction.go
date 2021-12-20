@@ -144,15 +144,35 @@ func (c *Committee) processVoting(tx interfaces.Transaction, height uint32) {
 
 	pld := tx.Payload().(*payload.Voting)
 	for _, content := range pld.Contents {
-		for _, v := range content.VotesInfo {
-			switch content.VoteType {
-			case outputpayload.CRC:
+		switch content.VoteType {
+		case outputpayload.CRC:
+			for _, v := range content.VotesInfo {
+				votes := v
+				// record CRC votes information
+				detailVoteInfo := payload.DetailVoteInfo{
+					BlockHeight:    height,
+					PayloadVersion: tx.PayloadVersion(),
+					VoteType:       content.VoteType,
+					Info:           votes,
+				}
+
+				referKey := detailVoteInfo.ReferKey()
+				c.state.History.Append(height, func() {
+					c.DetailCRVotes[referKey] = detailVoteInfo
+				}, func() {
+					delete(c.DetailCRVotes, referKey)
+				})
+
 				c.state.processVoteCRC(height, v.Candidate, v.Votes)
+			}
 
-			case outputpayload.CRCProposal:
+		case outputpayload.CRCProposal:
+			for _, v := range content.VotesInfo {
 				c.state.processVoteCRCProposal(height, v.Candidate, v.Votes)
+			}
 
-			case outputpayload.CRCImpeachment:
+		case outputpayload.CRCImpeachment:
+			for _, v := range content.VotesInfo {
 				c.processImpeachment(height, v.Candidate, v.Votes, c.state.History)
 			}
 		}

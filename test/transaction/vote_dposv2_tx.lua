@@ -87,18 +87,13 @@ if vote_candidates_num == vote_candidate_votes_num then
     local ta = voting.new(vote_type, vote_candidates, vote_candidate_votes, locktime)
 
     -- transaction: version, tx_type, payload_version, payload, locktime
-    local tx = transaction.new(9, 0x02, 0, ta, 0)
+    local tx = transaction.new(9, 0x63, 0, ta, 0)
 
     -- input: from, amount + fee
     local charge = tx:appendenough(addr, (amount + fee) * 100000000)
     print("charge", charge)
 
-    -- outputpayload
-    local vote_output = voteoutput.new(2, { vote_content })
-    print("vote_output", vote_output:get())
-
     local default_output = defaultoutput.new()
-
     -- output: asset_id, value, recipient, output_paload_type, output_paload
     local charge_output = output.new(asset_id, charge, addr, 0, default_output)
     local amount_output = output.new(asset_id, amount * 100000000, saddr, 6, default_output)

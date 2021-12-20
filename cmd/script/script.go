@@ -83,10 +83,6 @@ func registerParams(c *cli.Context, L *lua.LState) {
 	effectiveHeight := c.Uint("effectiveheight")
 	resourcePath := c.String("resourcepath")
 
-
-	locktime := c.Int64("locktime")
-
-
 	getWallet := func(L *lua.LState) int {
 		L.Push(lua.LString(wallet))
 		return 1

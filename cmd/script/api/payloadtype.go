@@ -52,6 +52,51 @@ const (
 	luaVotingName        = "voting"
 )
 
+func RegisterExchangeVotesType(L *lua.LState) {
+	mt := L.NewTypeMetatable(luaExchangeVotesName)
+	L.SetGlobal("exchangevotes", mt)
+	L.SetField(mt, "new", L.NewFunction(newExchangeVotes))
+	// methods
+	L.SetField(mt, "__index", L.SetFuncs(L.NewTable(), exchangeVotesMethods))
+}
+
+// Constructor
+func newExchangeVotes(L *lua.LState) int {
+	amount := L.ToInt(1)
+	cb := &payload.ExchangeVotes{
+		ExchangeValue: common.Fixed64(amount),
+	}
+	ud := L.NewUserData()
+	ud.Value = cb
+	L.SetMetatable(ud, L.GetTypeMetatable(luaCoinBaseTypeName))
+	L.Push(ud)
+
+	return 1
+}
+
+// Checks whether the first lua argument is a *LUserData with *ExchangeVotes and
+// returns this *ExchangeVotes.
+func checkExchangeVotes(L *lua.LState, idx int) *payload.Voting {
+	ud := L.CheckUserData(idx)
+	if v, ok := ud.Value.(*payload.Voting); ok {
+		return v
+	}
+	L.ArgError(1, "Exchange votes expected")
+	return nil
+}
+
+var exchangeVotesMethods = map[string]lua.LGFunction{
+	"get": exchangeVotesGet,
+}
+
+// Getter and setter for the Person#Name
+func exchangeVotesGet(L *lua.LState) int {
+	p := checkExchangeVotes(L, 1)
+	fmt.Println(p)
+
+	return 0
+}
+
 func RegisterVotingType(L *lua.LState) {
 	mt := L.NewTypeMetatable(luaVotingName)
 	L.SetGlobal("voting", mt)

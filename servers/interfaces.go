@@ -1287,100 +1287,97 @@ func ListUnspent(param Params) map[string]interface{} {
 }
 
 func CreateRawTransaction(param Params) map[string]interface{} {
+	if rtn := checkRPCServiceLevel(config.WalletPermitted); rtn != nil {
+		return rtn
+	}
 
-	//todo refactor me
-	return nil
+	inputsParam, ok := param.String("inputs")
+	if !ok {
+		return ResponsePack(InvalidParams, "need a parameter named inputs")
+	}
+	outputsParam, ok := param.String("outputs")
+	if !ok {
+		return ResponsePack(InvalidParams, "need a parameter named outputs")
+	}
+	locktime, ok := param.Uint("locktime")
+	if !ok {
+		return ResponsePack(InvalidParams, "need a parameter named locktime")
+	}
 
-	//if rtn := checkRPCServiceLevel(config.WalletPermitted); rtn != nil {
-	//	return rtn
-	//}
-	//
-	//inputsParam, ok := param.String("inputs")
-	//if !ok {
-	//	return ResponsePack(InvalidParams, "need a parameter named inputs")
-	//}
-	//outputsParam, ok := param.String("outputs")
-	//if !ok {
-	//	return ResponsePack(InvalidParams, "need a parameter named outputs")
-	//}
-	//locktime, ok := param.Uint("locktime")
-	//if !ok {
-	//	return ResponsePack(InvalidParams, "need a parameter named locktime")
-	//}
-	//
-	//inputs := make([]string, 0)
-	//gjson.Parse(inputsParam).ForEach(func(key, value gjson.Result) bool {
-	//	inputs = append(inputs, value.String())
-	//	return true
-	//})
-	//
-	//outputs := make([]string, 0)
-	//gjson.Parse(outputsParam).ForEach(func(key, value gjson.Result) bool {
-	//	outputs = append(outputs, value.String())
-	//	return true
-	//})
-	//
-	//txInputs := make([]*common2.Input, 0)
-	//for _, v := range inputs {
-	//	txIDStr := gjson.Get(v, "txid").String()
-	//	txIDBytes, err := common.HexStringToBytes(txIDStr)
-	//	if err != nil {
-	//		return ResponsePack(InvalidParams, "invalid txid when convert to bytes")
-	//	}
-	//	txID, err := common.Uint256FromBytes(common.BytesReverse(txIDBytes))
-	//	if err != nil {
-	//		return ResponsePack(InvalidParams, "invalid txid in inputs param")
-	//	}
-	//	input := &common2.Input{
-	//		Previous: common2.OutPoint{
-	//			TxID:  *txID,
-	//			Index: uint16(gjson.Get(v, "vout").Int()),
-	//		},
-	//	}
-	//	txInputs = append(txInputs, input)
-	//}
-	//
-	//txOutputs := make([]*common2.Output, 0)
-	//for _, v := range outputs {
-	//	amount := gjson.Get(v, "amount").String()
-	//	value, err := common.StringToFixed64(amount)
-	//	if err != nil {
-	//		return ResponsePack(InvalidParams, "invalid amount in inputs param")
-	//	}
-	//	address := gjson.Get(v, "address").String()
-	//	programHash, err := common.Uint168FromAddress(address)
-	//	if err != nil {
-	//		return ResponsePack(InvalidParams, "invalid address in outputs param")
-	//	}
-	//	output := &common2.Output{
-	//		AssetID:     *account.SystemAssetID,
-	//		Value:       *value,
-	//		OutputLock:  0,
-	//		ProgramHash: *programHash,
-	//		Type:        common2.OTNone,
-	//		Payload:     &outputpayload.DefaultOutput{},
-	//	}
-	//	txOutputs = append(txOutputs, output)
-	//}
-	//
-	//txn := &transactions.BaseTransaction{
-	//	Version:    common2.TxVersion09,
-	//	TxType:     common2.TransferAsset,
-	//	Payload:    &payload.TransferAsset{},
-	//	Attributes: []*common2.Attribute{},
-	//	Inputs:     txInputs,
-	//	Outputs:    txOutputs,
-	//	Programs:   []*pg.Program{},
-	//	LockTime:   locktime,
-	//}
-	//
-	//buf := new(bytes.Buffer)
-	//err := txn.Serialize(buf)
-	//if err != nil {
-	//	return ResponsePack(InternalError, "txn serialize failed")
-	//}
-	//
-	//return ResponsePack(Success, common.BytesToHexString(buf.Bytes()))
+	inputs := make([]string, 0)
+	gjson.Parse(inputsParam).ForEach(func(key, value gjson.Result) bool {
+		inputs = append(inputs, value.String())
+		return true
+	})
+
+	outputs := make([]string, 0)
+	gjson.Parse(outputsParam).ForEach(func(key, value gjson.Result) bool {
+		outputs = append(outputs, value.String())
+		return true
+	})
+
+	txInputs := make([]*common2.Input, 0)
+	for _, v := range inputs {
+		txIDStr := gjson.Get(v, "txid").String()
+		txIDBytes, err := common.HexStringToBytes(txIDStr)
+		if err != nil {
+			return ResponsePack(InvalidParams, "invalid txid when convert to bytes")
+		}
+		txID, err := common.Uint256FromBytes(common.BytesReverse(txIDBytes))
+		if err != nil {
+			return ResponsePack(InvalidParams, "invalid txid in inputs param")
+		}
+		input := &common2.Input{
+			Previous: common2.OutPoint{
+				TxID:  *txID,
+				Index: uint16(gjson.Get(v, "vout").Int()),
+			},
+		}
+		txInputs = append(txInputs, input)
+	}
+
+	txOutputs := make([]*common2.Output, 0)
+	for _, v := range outputs {
+		amount := gjson.Get(v, "amount").String()
+		value, err := common.StringToFixed64(amount)
+		if err != nil {
+			return ResponsePack(InvalidParams, "invalid amount in inputs param")
+		}
+		address := gjson.Get(v, "address").String()
+		programHash, err := common.Uint168FromAddress(address)
+		if err != nil {
+			return ResponsePack(InvalidParams, "invalid address in outputs param")
+		}
+		output := &common2.Output{
+			AssetID:     *account.SystemAssetID,
+			Value:       *value,
+			OutputLock:  0,
+			ProgramHash: *programHash,
+			Type:        common2.OTNone,
+			Payload:     &outputpayload.DefaultOutput{},
+		}
+		txOutputs = append(txOutputs, output)
+	}
+
+	txn := functions.CreateTransaction(
+		common2.TxVersion09,
+		common2.TransferAsset,
+		0,
+		&payload.TransferAsset{},
+		[]*common2.Attribute{},
+		txInputs,
+		txOutputs,
+		locktime,
+		[]*pg.Program{},
+	)
+
+	buf := new(bytes.Buffer)
+	err := txn.Serialize(buf)
+	if err != nil {
+		return ResponsePack(InternalError, "txn serialize failed")
+	}
+
+	return ResponsePack(Success, common.BytesToHexString(buf.Bytes()))
 }
 
 func SignRawTransactionWithKey(param Params) map[string]interface{} {

@@ -9,7 +9,9 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"github.com/elastos/Elastos.ELA/core/types/outputpayload"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/elastos/Elastos.ELA/common"
@@ -24,7 +26,7 @@ const (
 	luaTransferAssetTypeName                = "transferasset"
 	luaTransferCrossChainAssetTypeName      = "transfercrosschainasset"
 	luaRegisterProducerName                 = "registerproducer"
-	luaRegisterV2ProducerName       		= "registerv2producer"
+	luaRegisterV2ProducerName               = "registerv2producer"
 	luaUpdateProducerName                   = "updateproducer"
 	luaCancelProducerName                   = "cancelproducer"
 	luaActivateProducerName                 = "activateproducer"
@@ -44,7 +46,99 @@ const (
 	luaCRCProposalWithdrawName              = "crcproposalwithdraw"
 	luaCRCouncilMemberClaimNodeName         = "crcouncilmemebrclaimnode"
 	luaCRCRegisterSideChainProposalHashName = "crcproposalregistersidechain"
+
+	// dpos2.0
+	luaExchangeVotesName = "exchangevotes"
+	luaVotingName        = "voting"
 )
+
+func RegisterVotingType(L *lua.LState) {
+	mt := L.NewTypeMetatable(luaVotingName)
+	L.SetGlobal("voting", mt)
+	L.SetField(mt, "new", L.NewFunction(newVoting))
+	// methods
+	L.SetField(mt, "__index", L.SetFuncs(L.NewTable(), votingMethods))
+}
+
+// Constructor
+func newVoting(L *lua.LState) int {
+	voteType := L.ToInt(1)
+	candidatesTable := L.ToTable(2)
+	candidateVotesTable := L.ToTable(3)
+	lockUntil := L.ToInt(4)
+
+	candidates := make([][]byte, 0)
+	votes := make([]common.Fixed64, 0)
+	candidatesTable.ForEach(func(i, value lua.LValue) {
+		publicKey := lua.LVAsString(value)
+		publicKey = strings.Replace(publicKey, "{", "", 1)
+		publicKey = strings.Replace(publicKey, "}", "", 1)
+		pk, err := common.HexStringToBytes(publicKey)
+		if err != nil {
+			fmt.Println("invalid public key")
+			os.Exit(1)
+		}
+		candidates = append(candidates, pk)
+	})
+	candidateVotesTable.ForEach(func(i, value lua.LValue) {
+		voteStr := lua.LVAsString(value)
+		voteStr = strings.Replace(voteStr, "{", "", 1)
+		voteStr = strings.Replace(voteStr, "}", "", 1)
+		vote, err := strconv.ParseFloat(voteStr, 64)
+		if err != nil {
+			fmt.Println("invalid votes")
+			os.Exit(1)
+		}
+		votes = append(votes, common.Fixed64(int64(vote*1e8)))
+	})
+
+	candidateVotes := make([]payload.VotesWithLockTime, 0, len(candidates))
+	for i := 0; i < len(candidates); i++ {
+		candidateVotes = append(candidateVotes, payload.VotesWithLockTime{
+			Candidate: candidates[i],
+			Votes:     votes[i],
+			LockTime:  uint32(lockUntil),
+		})
+	}
+
+	voteContent := payload.VotesContent{
+		VoteType:  outputpayload.VoteType(voteType),
+		VotesInfo: candidateVotes,
+	}
+
+	cb := &payload.Voting{
+		Contents: []payload.VotesContent{voteContent},
+	}
+	ud := L.NewUserData()
+	ud.Value = cb
+	L.SetMetatable(ud, L.GetTypeMetatable(luaCoinBaseTypeName))
+	L.Push(ud)
+
+	return 1
+}
+
+// Checks whether the first lua argument is a *LUserData with *Voting and
+// returns this *Voting.
+func checkVoting(L *lua.LState, idx int) *payload.Voting {
+	ud := L.CheckUserData(idx)
+	if v, ok := ud.Value.(*payload.Voting); ok {
+		return v
+	}
+	L.ArgError(1, "Voting expected")
+	return nil
+}
+
+var votingMethods = map[string]lua.LGFunction{
+	"get": votingGet,
+}
+
+// Getter and setter for the Person#Name
+func votingGet(L *lua.LState) int {
+	p := checkVoting(L, 1)
+	fmt.Println(p)
+
+	return 0
+}
 
 func RegisterCoinBaseType(L *lua.LState) {
 	mt := L.NewTypeMetatable(luaCoinBaseTypeName)

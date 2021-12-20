@@ -41,6 +41,7 @@ local amount = getAmount()
 local fee = getFee()
 local vote_candidates = getCandidates()
 local vote_candidate_votes = getCandidateVotes()
+local locktime = getStakeUntil()
 
 if amount == 0 then
     amount = 0.2
@@ -80,20 +81,17 @@ for i, v in pairs(vote_candidate_votes) do
 end
 print("-----------------------")
 
--- payload
-local ta = transferasset.new()
-
--- transaction: version, tx_type, payload_version, payload, locktime
-local tx = transaction.new(9, 0x02, 0, ta, 0)
-
--- input: from, amount + fee
-local charge = tx:appendenough(addr, (amount + fee) * 100000000)
-print("charge", charge)
-
 if vote_candidates_num == vote_candidate_votes_num then
--- votecontent: vote_type, vote_candidates, vote_candidate_votes
-    local vote_content = votecontent.newdposv2(vote_type, vote_candidates, vote_candidate_votes)
-    print("vote_content", vote_content:get())
+
+    -- payload
+    local ta = voting.new(vote_type, vote_candidates, vote_candidate_votes, locktime)
+
+    -- transaction: version, tx_type, payload_version, payload, locktime
+    local tx = transaction.new(9, 0x02, 0, ta, 0)
+
+    -- input: from, amount + fee
+    local charge = tx:appendenough(addr, (amount + fee) * 100000000)
+    print("charge", charge)
 
     -- outputpayload
     local vote_output = voteoutput.new(2, { vote_content })
@@ -103,7 +101,7 @@ if vote_candidates_num == vote_candidate_votes_num then
 
     -- output: asset_id, value, recipient, output_paload_type, output_paload
     local charge_output = output.new(asset_id, charge, addr, 0, default_output)
-    local amount_output = output.new(asset_id, amount * 100000000, saddr, 6, vote_output)
+    local amount_output = output.new(asset_id, amount * 100000000, saddr, 6, default_output)
     -- print("txoutput", charge_output:get())
     -- print("txoutput", amount_output:get())
     tx:appendtxout(charge_output)

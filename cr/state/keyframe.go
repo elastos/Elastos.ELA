@@ -257,8 +257,11 @@ type ProposalKeyFrame struct {
 	// store register Info with the approved Height
 	RegisteredSideChainPayloadInfo map[uint32]map[common.Uint256]payload.SideChainInfo
 
-	//reserve CustomID
+	// reserve CustomID
 	ReservedCustomID bool
+
+	// detailed CRC proposal votes information
+	DetailCRCProposalVotes map[common.Uint256]payload.DetailVoteInfo // key: hash of DetailVoteInfo
 }
 
 func NewProposalMap() ProposalsMap {
@@ -382,7 +385,7 @@ func (kf *KeyFrame) Deserialize(r io.Reader) (err error) {
 	if kf.PartProposalResults, err = kf.deserializeProposalResultList(r); err != nil {
 		return
 	}
-	
+
 	if kf.DetailCRVotes, err = deserializeDetailVoteInfoMap(r); err != nil {
 		return
 	}
@@ -1276,6 +1279,11 @@ func (p *ProposalKeyFrame) Serialize(w io.Writer) (err error) {
 	if err = common.WriteElements(w, p.ReservedCustomID); err != nil {
 		return
 	}
+
+	if err = serializeDetailVoteInfoMap(w, p.DetailCRCProposalVotes); err != nil {
+		return err
+	}
+
 	return
 }
 
@@ -1561,6 +1569,11 @@ func (p *ProposalKeyFrame) Deserialize(r io.Reader) (err error) {
 	if err = common.ReadElements(r, &p.ReservedCustomID); err != nil {
 		return
 	}
+
+	if p.DetailCRCProposalVotes, err = deserializeDetailVoteInfoMap(r); err != nil {
+		return
+	}
+
 	return
 }
 

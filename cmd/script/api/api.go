@@ -295,5 +295,8 @@ func RegisterDataType(L *lua.LState) int {
 	RegisterCRCProposalTrackingType(L)
 	RegisterCRCouncilMemberClaimNodeType(L)
 	RegisterCRCRegisterSideChainProposalHashType(L)
+
+	// DPoS 2.0
+	RegisterVotingType(L)
 	return 0
 }

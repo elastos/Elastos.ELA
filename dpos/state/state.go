@@ -1567,9 +1567,15 @@ func (s *State) processVotingContent(tx interfaces.Transaction, height uint32) {
 					}
 					producer.detailDPoSV2Votes[*stakeAddress][dvi.ReferKey()] = dvi
 					producer.dposV2Votes += voteInfo.Votes
+					if producer.dposV2Votes >= s.ChainParams.DposV2EffectiveVotes {
+						s.DposV2EffectedProducers[hex.EncodeToString(producer.OwnerPublicKey())] = producer
+					}
 				}, func() {
 					delete(producer.detailDPoSV2Votes[*stakeAddress], dvi.ReferKey())
 					producer.dposV2Votes -= voteInfo.Votes
+					if producer.dposV2Votes < s.ChainParams.DposV2EffectiveVotes {
+						delete(s.DposV2EffectedProducers, hex.EncodeToString(producer.OwnerPublicKey()))
+					}
 				})
 			}
 		}

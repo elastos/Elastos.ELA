@@ -13,6 +13,7 @@ import (
 	"math"
 	"math/rand"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 
@@ -657,9 +658,11 @@ func (a *Arbiters) accumulateReward(block *types.Block, confirm *payload.Confirm
 				shareDetail := make(map[common.Uint168]common.Fixed64)
 				for sVoteAddr, sVoteDetail := range producer.detailDPoSV2Votes {
 					for _, info := range sVoteDetail {
-						// TODO share logic need to be changed with locktime factor
-						totalShare += info.Info.Votes
-						shareDetail[sVoteAddr] += info.Info.Votes
+						weightS := strconv.FormatFloat(math.Log10(float64(info.Info.LockTime-info.BlockHeight)/7200*10), 'f', 2, 64)
+						weightF, _ := strconv.ParseFloat(weightS, 64)
+						share := common.Fixed64(float64(info.Info.Votes) * weightF)
+						totalShare += share
+						shareDetail[sVoteAddr] += share
 					}
 				}
 				for sVoteAddr, share := range shareDetail {

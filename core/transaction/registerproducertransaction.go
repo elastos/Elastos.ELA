@@ -106,7 +106,7 @@ func (t *RegisterProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bo
 			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid owner public key in payload")), true
 		}
 		signedBuf := new(bytes.Buffer)
-		err = info.SerializeUnsigned(signedBuf, payload.ProducerInfoVersion)
+		err = info.SerializeUnsigned(signedBuf, t.payloadVersion)
 		if err != nil {
 			return elaerr.Simple(elaerr.ErrTxPayload, err), true
 		}
@@ -179,7 +179,7 @@ func (t *RegisterProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bo
 				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid owner public key in payload")), true
 			}
 			signedBuf := new(bytes.Buffer)
-			err = info.SerializeUnsigned(signedBuf, payload.ProducerInfoVersion)
+			err = info.SerializeUnsigned(signedBuf, t.payloadVersion)
 			if err != nil {
 				return elaerr.Simple(elaerr.ErrTxPayload, err), true
 			}

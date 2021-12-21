@@ -78,7 +78,7 @@ var (
 	}
 	TransactionNodePublicKeyFlag = cli.StringFlag{
 		Name:  "nodepublickey",
-		Usage: "the node public key of an arbitrator which have been inactivated",
+		Usage: "the node public key of an arbitrator which have been inactivated (default: same as owner public key)",
 	}
 	TransactionForFlag = cli.StringFlag{
 		Name:  "for",
@@ -87,6 +87,26 @@ var (
 	TransactionSAddressFlag = cli.StringFlag{
 		Name:  "saddress",
 		Usage: "the locked `<address>` on main chain represents one side chain",
+	}
+	TransactionNickNameFlag = cli.StringFlag{
+		Name: "nickname",
+		Usage: "the nick name of producer or cr council member",
+	}
+	TransactionUrlFlag = cli.StringFlag{
+		Name: "url",
+		Usage: "the url of producer or cr council member",
+	}
+	TransactionLocationFlag = cli.Uint64Flag{
+		Name: "location",
+		Usage: "localtion code of producer or cr council member",
+	}
+	TransactionNetAddressFlag = cli.StringFlag{
+		Name: "netaddress",
+		Usage: "ip address of producer",
+	}
+	TransactionStakeUntilFlag = cli.UintFlag{
+		Name: "stakeuntil",
+		Usage: "stake until this block height",
 	}
 
 	// RPC flags

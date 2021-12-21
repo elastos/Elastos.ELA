@@ -104,7 +104,7 @@ func CreateTransaction(c *cli.Context) error {
 
 	var txn interfaces.Transaction
 	txn, err = createTransaction(walletPath, from, *fee, uint32(outputLock),
-		uint32(txLock), outputs...)
+		uint32(txLock), common2.TransferAsset, 0, &payload.TransferAsset{}, outputs...)
 	if err != nil {
 		return errors.New("create transaction failed: " + err.Error())
 	}
@@ -269,8 +269,9 @@ func createVoteOutputs(output *OutputInfo, candidateList []string) ([]*common2.O
 	return txOutputs, nil
 }
 
-func createTransaction(walletPath string, from string, fee common.Fixed64, outputLock uint32,
-	txLock uint32, outputs ...*OutputInfo) (interfaces.Transaction, error) {
+func createTransaction(walletPath string, from string, fee common.Fixed64, outputLock uint32, txLock uint32,
+	txType common2.TxType, payloadVersion byte, payload interfaces.Payload,
+	outputs ...*OutputInfo) (interfaces.Transaction, error) {
 
 	// check output
 	if len(outputs) == 0 {
@@ -313,9 +314,9 @@ func createTransaction(walletPath string, from string, fee common.Fixed64, outpu
 
 	return functions.CreateTransaction(
 		common2.TxVersion09,
-		common2.TransferAsset,
-		0,
-		&payload.TransferAsset{},
+		txType,
+		payloadVersion,
+		payload,
 		txAttributes,
 		txInputs,
 		txOutputs,

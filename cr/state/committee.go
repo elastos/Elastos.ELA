@@ -15,11 +15,11 @@ import (
 	"time"
 
 	"github.com/elastos/Elastos.ELA/common"
-	"github.com/elastos/Elastos.ELA/core/contract/program"
-	"github.com/elastos/Elastos.ELA/core/types/functions"
 	"github.com/elastos/Elastos.ELA/common/config"
+	"github.com/elastos/Elastos.ELA/core/contract/program"
 	"github.com/elastos/Elastos.ELA/core/types"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/functions"
 	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	elaerr "github.com/elastos/Elastos.ELA/errors"
@@ -67,6 +67,36 @@ func (c *Committee) GetState() *State {
 // Deprecated: just for testing
 func (c *Committee) GetProposalManager() *ProposalManager {
 	return c.manager
+}
+
+func (c *Committee) GetDetailedCRVotes(referKey common.Uint256) (
+	pl payload.DetailedVoteInfo, err error) {
+	vote, ok := c.DetailedCRVotes[referKey]
+	if !ok {
+		err = errors.New("refer key not found in DetailedCRVotes")
+	}
+	pl = vote
+	return
+}
+
+func (c *Committee) GetDetailedCRImpeachmentVotes(referKey common.Uint256) (
+	pl payload.DetailedVoteInfo, err error) {
+	vote, ok := c.DetailedCRImpeachmentVotes[referKey]
+	if !ok {
+		err = errors.New("refer key not found in DetailedCRImpeachmentVotes")
+	}
+	pl = vote
+	return
+}
+
+func (c *Committee) GetDetailedCRCProposalVotes(referKey common.Uint256) (
+	pl payload.DetailedVoteInfo, err error) {
+	vote, ok := c.manager.DetailedCRCProposalVotes[referKey]
+	if !ok {
+		err = errors.New("refer key not found in DetailedCRCProposalVotes")
+	}
+	pl = vote
+	return
 }
 
 func (c *Committee) ExistCR(programCode []byte) bool {

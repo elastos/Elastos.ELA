@@ -11,6 +11,7 @@ import (
 	"sort"
 
 	"github.com/elastos/Elastos.ELA/common"
+	"github.com/elastos/Elastos.ELA/core/contract"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/core/types/outputpayload"
@@ -141,6 +142,9 @@ func (c *Committee) proposalTracking(tx interfaces.Transaction, height uint32) {
 // processVotes takes a transaction, if the transaction including any vote
 // outputs, validate and update CR Votes.
 func (c *Committee) processVoting(tx interfaces.Transaction, height uint32) {
+	// get stake address(program hash)
+	ct, _ := contract.CreateStakeContractByCode(tx.Programs()[0].Code)
+	stakeAddress := ct.ToProgramHash()
 
 	pld := tx.Payload().(*payload.Voting)
 	for _, content := range pld.Contents {
@@ -150,11 +154,12 @@ func (c *Committee) processVoting(tx interfaces.Transaction, height uint32) {
 				votes := v
 				// record CRC votes information
 				detailVoteInfo := payload.DetailedVoteInfo{
-					TransactionHash: tx.Hash(),
-					BlockHeight:    height,
-					PayloadVersion: tx.PayloadVersion(),
-					VoteType:       content.VoteType,
-					Info:           votes,
+					StakeProgramHash: *stakeAddress,
+					TransactionHash:  tx.Hash(),
+					BlockHeight:      height,
+					PayloadVersion:   tx.PayloadVersion(),
+					VoteType:         content.VoteType,
+					Info:             votes,
 				}
 
 				referKey := detailVoteInfo.ReferKey()
@@ -172,11 +177,12 @@ func (c *Committee) processVoting(tx interfaces.Transaction, height uint32) {
 				votes := v
 				// record CRC proposal votes information
 				detailVoteInfo := payload.DetailedVoteInfo{
-					TransactionHash: tx.Hash(),
-					BlockHeight:    height,
-					PayloadVersion: tx.PayloadVersion(),
-					VoteType:       content.VoteType,
-					Info:           votes,
+					StakeProgramHash: *stakeAddress,
+					TransactionHash:  tx.Hash(),
+					BlockHeight:      height,
+					PayloadVersion:   tx.PayloadVersion(),
+					VoteType:         content.VoteType,
+					Info:             votes,
 				}
 
 				referKey := detailVoteInfo.ReferKey()
@@ -194,11 +200,12 @@ func (c *Committee) processVoting(tx interfaces.Transaction, height uint32) {
 				votes := v
 				// record CRC impeachment votes information
 				detailVoteInfo := payload.DetailedVoteInfo{
-					TransactionHash: tx.Hash(),
-					BlockHeight:    height,
-					PayloadVersion: tx.PayloadVersion(),
-					VoteType:       content.VoteType,
-					Info:           votes,
+					StakeProgramHash: *stakeAddress,
+					TransactionHash:  tx.Hash(),
+					BlockHeight:      height,
+					PayloadVersion:   tx.PayloadVersion(),
+					VoteType:         content.VoteType,
+					Info:             votes,
 				}
 
 				referKey := detailVoteInfo.ReferKey()

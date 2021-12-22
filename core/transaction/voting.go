@@ -196,7 +196,7 @@ func (t *VotingTransaction) SpecialContextCheck() (result elaerr.ELAError, end b
 	case payload.RenewalVoteVersion:
 		for _, content := range pld.RenewalContents {
 			producer := state.GetProducer(content.VotesInfo.Candidate)
-			vote, err := producer.GetDetailDPoSV2Votes(*stakeProgramHash, content.ReferKey)
+			vote, err := producer.GetDetailedDPoSV2Votes(*stakeProgramHash, content.ReferKey)
 			if err != nil {
 				return elaerr.Simple(elaerr.ErrTxPayload, err), true
 			}

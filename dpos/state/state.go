@@ -171,17 +171,19 @@ func (p *Producer) Selected() bool {
 	return p.selected
 }
 
-func (p *Producer) GetDetailDPoSV2Votes(stakeAddress common.Uint168, referKey common.Uint256) (payload.DetailedVoteInfo, error) {
+func (p *Producer) GetDetailedDPoSV2Votes(stakeAddress common.Uint168,
+	referKey common.Uint256) (pl payload.DetailedVoteInfo, err error) {
 	votes, ok := p.detailedDPoSV2Votes[stakeAddress]
 	if !ok {
-		return payload.DetailedVoteInfo{}, errors.New("stake address not found in producer")
+		err = errors.New("stake address not found in producer")
 	}
 	vote, ok := votes[referKey]
 	if !ok {
-		return payload.DetailedVoteInfo{}, errors.New("referKey not found in producer")
+		err = errors.New("referKey not found in producer")
 	}
+	pl = vote
 
-	return vote, nil
+	return
 }
 
 func (p *Producer) SetInfo(i payload.ProducerInfo) {
@@ -455,6 +457,16 @@ type State struct {
 	appendToTxpool                      func(transaction interfaces.Transaction) elaerr.ELAError
 	createDposV2RealWithdrawTransaction func(withdrawTransactionHashes []common.Uint256,
 		outputs []*common2.OutputInfo) (interfaces.Transaction, error)
+}
+
+func (c *State) GetDetailedDPoSV1Votes(referKey common.Uint256) (
+	pl payload.DetailedVoteInfo, err error) {
+	vote, ok := c.DetailDPoSV1Votes[referKey]
+	if !ok {
+		err = errors.New("refer key not found in DetailDPoSV1Votes")
+	}
+	pl = vote
+	return
 }
 
 func (c *State) GetRealWithdrawTransactions() map[common.Uint256]common2.OutputInfo {
@@ -1508,11 +1520,12 @@ func (s *State) processVotingContent(tx interfaces.Transaction, height uint32) {
 			// record DPoS v1 votes information
 			for _, vote := range content.VotesInfo {
 				detailVoteInfo := payload.DetailedVoteInfo{
-					TransactionHash: tx.Hash(),
-					BlockHeight:     height,
-					PayloadVersion:  tx.PayloadVersion(),
-					VoteType:        content.VoteType,
-					Info:            vote,
+					StakeProgramHash: *stakeAddress,
+					TransactionHash:  tx.Hash(),
+					BlockHeight:      height,
+					PayloadVersion:   tx.PayloadVersion(),
+					VoteType:         content.VoteType,
+					Info:             vote,
 				}
 
 				referKey := detailVoteInfo.ReferKey()
@@ -1573,11 +1586,12 @@ func (s *State) processVotingContent(tx interfaces.Transaction, height uint32) {
 				}
 				voteInfo := v
 				dvi := payload.DetailedVoteInfo{
-					TransactionHash: tx.Hash(),
-					BlockHeight:     height,
-					PayloadVersion:  tx.PayloadVersion(),
-					VoteType:        content.VoteType,
-					Info:            voteInfo,
+					StakeProgramHash: *stakeAddress,
+					TransactionHash:  tx.Hash(),
+					BlockHeight:      height,
+					PayloadVersion:   tx.PayloadVersion(),
+					VoteType:         content.VoteType,
+					Info:             voteInfo,
 				}
 				s.History.Append(height, func() {
 					if _, ok := producer.detailedDPoSV2Votes[*stakeAddress]; !ok {
@@ -1613,15 +1627,16 @@ func (s *State) processRenewalVotingContent(tx interfaces.Transaction, height ui
 		if producer == nil {
 			continue
 		}
-		voteInfo, _ := producer.GetDetailDPoSV2Votes(*stakeAddress, content.ReferKey)
+		voteInfo, _ := producer.GetDetailedDPoSV2Votes(*stakeAddress, content.ReferKey)
 
 		// record all new votes information
 		detailVoteInfo := payload.DetailedVoteInfo{
-			TransactionHash: tx.Hash(),
-			BlockHeight:    voteInfo.BlockHeight,
-			PayloadVersion: voteInfo.PayloadVersion,
-			VoteType:       outputpayload.DposV2,
-			Info:           content.VotesInfo,
+			StakeProgramHash: *stakeAddress,
+			TransactionHash:  tx.Hash(),
+			BlockHeight:      voteInfo.BlockHeight,
+			PayloadVersion:   voteInfo.PayloadVersion,
+			VoteType:         outputpayload.DposV2,
+			Info:             content.VotesInfo,
 		}
 
 		referKey := detailVoteInfo.ReferKey()

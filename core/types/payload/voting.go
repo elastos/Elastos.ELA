@@ -266,11 +266,12 @@ func (vc RenewalVotesContent) String() string {
 }
 
 type DetailedVoteInfo struct {
-	TransactionHash common.Uint256
-	BlockHeight     uint32
-	PayloadVersion  byte
-	VoteType        outputpayload.VoteType
-	Info            VotesWithLockTime
+	StakeProgramHash common.Uint168
+	TransactionHash  common.Uint256
+	BlockHeight      uint32
+	PayloadVersion   byte
+	VoteType         outputpayload.VoteType
+	Info             VotesWithLockTime
 }
 
 func (v *DetailedVoteInfo) bytes() []byte {

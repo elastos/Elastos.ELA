@@ -89,7 +89,7 @@ type Producer struct {
 	dposV2Votes           common.Fixed64
 
 	// the detail information of DPoSV2 votes
-	detailDPoSV2Votes map[common.Uint168]map[common.Uint256]payload.DetailVoteInfo
+	detailedDPoSV2Votes map[common.Uint168]map[common.Uint256]payload.DetailedVoteInfo
 
 	depositAmount                common.Fixed64
 	totalAmount                  common.Fixed64
@@ -171,14 +171,14 @@ func (p *Producer) Selected() bool {
 	return p.selected
 }
 
-func (p *Producer) GetDetailDPoSV2Votes(stakeAddress common.Uint168, referKey common.Uint256) (payload.DetailVoteInfo, error) {
-	votes, ok := p.detailDPoSV2Votes[stakeAddress]
+func (p *Producer) GetDetailDPoSV2Votes(stakeAddress common.Uint168, referKey common.Uint256) (payload.DetailedVoteInfo, error) {
+	votes, ok := p.detailedDPoSV2Votes[stakeAddress]
 	if !ok {
-		return payload.DetailVoteInfo{}, errors.New("stake address not found in producer")
+		return payload.DetailedVoteInfo{}, errors.New("stake address not found in producer")
 	}
 	vote, ok := votes[referKey]
 	if !ok {
-		return payload.DetailVoteInfo{}, errors.New("referKey not found in producer")
+		return payload.DetailedVoteInfo{}, errors.New("referKey not found in producer")
 	}
 
 	return vote, nil
@@ -268,7 +268,7 @@ func (p *Producer) Serialize(w io.Writer) error {
 	if err := p.dposV2Votes.Serialize(w); err != nil {
 		return err
 	}
-	if err := serializeDetailVoteInfoMap(p.detailDPoSV2Votes, w); err != nil {
+	if err := serializeDetailVoteInfoMap(p.detailedDPoSV2Votes, w); err != nil {
 		return err
 	}
 
@@ -289,7 +289,7 @@ func (p *Producer) Serialize(w io.Writer) error {
 }
 
 func serializeDetailVoteInfoMap(
-	vmap map[common.Uint168]map[common.Uint256]payload.DetailVoteInfo,
+	vmap map[common.Uint168]map[common.Uint256]payload.DetailedVoteInfo,
 	w io.Writer) (err error) {
 
 	if err := common.WriteVarUint(w, uint64(len(vmap))); err != nil {
@@ -362,7 +362,7 @@ func (p *Producer) Deserialize(r io.Reader) (err error) {
 	if err != nil {
 		return err
 	}
-	p.detailDPoSV2Votes = voteInfoMap
+	p.detailedDPoSV2Votes = voteInfoMap
 
 	if err = p.depositAmount.Deserialize(r); err != nil {
 		return
@@ -381,12 +381,12 @@ func (p *Producer) Deserialize(r io.Reader) (err error) {
 }
 
 func deserializeDetailVoteInfoMap(
-	r io.Reader) (vmap map[common.Uint168]map[common.Uint256]payload.DetailVoteInfo, err error) {
+	r io.Reader) (vmap map[common.Uint168]map[common.Uint256]payload.DetailedVoteInfo, err error) {
 	var count uint64
 	if count, err = common.ReadVarUint(r, 0); err != nil {
 		return
 	}
-	vmap = make(map[common.Uint168]map[common.Uint256]payload.DetailVoteInfo)
+	vmap = make(map[common.Uint168]map[common.Uint256]payload.DetailedVoteInfo)
 	for i := uint64(0); i < count; i++ {
 		var k common.Uint168
 		if err = k.Deserialize(r); err != nil {
@@ -397,14 +397,14 @@ func deserializeDetailVoteInfoMap(
 		if count2, err = common.ReadVarUint(r, 0); err != nil {
 			return
 		}
-		vmap2 := make(map[common.Uint256]payload.DetailVoteInfo)
+		vmap2 := make(map[common.Uint256]payload.DetailedVoteInfo)
 		for j := uint64(0); j < count2; j++ {
 			var k2 common.Uint256
 			if err = k2.Deserialize(r); err != nil {
 				return
 			}
 
-			var v2 payload.DetailVoteInfo
+			var v2 payload.DetailedVoteInfo
 			if err = v2.Deserialize(r); err != nil {
 				return
 			}
@@ -1507,11 +1507,12 @@ func (s *State) processVotingContent(tx interfaces.Transaction, height uint32) {
 
 			// record DPoS v1 votes information
 			for _, vote := range content.VotesInfo {
-				detailVoteInfo := payload.DetailVoteInfo{
-					BlockHeight:    height,
-					PayloadVersion: tx.PayloadVersion(),
-					VoteType:       content.VoteType,
-					Info:           vote,
+				detailVoteInfo := payload.DetailedVoteInfo{
+					TransactionHash: tx.Hash(),
+					BlockHeight:     height,
+					PayloadVersion:  tx.PayloadVersion(),
+					VoteType:        content.VoteType,
+					Info:            vote,
 				}
 
 				referKey := detailVoteInfo.ReferKey()
@@ -1571,23 +1572,24 @@ func (s *State) processVotingContent(tx interfaces.Transaction, height uint32) {
 					continue
 				}
 				voteInfo := v
-				dvi := payload.DetailVoteInfo{
-					BlockHeight:    height,
-					PayloadVersion: tx.PayloadVersion(),
-					VoteType:       content.VoteType,
-					Info:           voteInfo,
+				dvi := payload.DetailedVoteInfo{
+					TransactionHash: tx.Hash(),
+					BlockHeight:     height,
+					PayloadVersion:  tx.PayloadVersion(),
+					VoteType:        content.VoteType,
+					Info:            voteInfo,
 				}
 				s.History.Append(height, func() {
-					if _, ok := producer.detailDPoSV2Votes[*stakeAddress]; !ok {
-						producer.detailDPoSV2Votes[*stakeAddress] = make(map[common.Uint256]payload.DetailVoteInfo)
+					if _, ok := producer.detailedDPoSV2Votes[*stakeAddress]; !ok {
+						producer.detailedDPoSV2Votes[*stakeAddress] = make(map[common.Uint256]payload.DetailedVoteInfo)
 					}
-					producer.detailDPoSV2Votes[*stakeAddress][dvi.ReferKey()] = dvi
+					producer.detailedDPoSV2Votes[*stakeAddress][dvi.ReferKey()] = dvi
 					producer.dposV2Votes += voteInfo.Votes
 					if producer.dposV2Votes >= s.ChainParams.DposV2EffectiveVotes {
 						s.DposV2EffectedProducers[hex.EncodeToString(producer.OwnerPublicKey())] = producer
 					}
 				}, func() {
-					delete(producer.detailDPoSV2Votes[*stakeAddress], dvi.ReferKey())
+					delete(producer.detailedDPoSV2Votes[*stakeAddress], dvi.ReferKey())
 					producer.dposV2Votes -= voteInfo.Votes
 					if producer.dposV2Votes < s.ChainParams.DposV2EffectiveVotes {
 						delete(s.DposV2EffectedProducers, hex.EncodeToString(producer.OwnerPublicKey()))
@@ -1614,7 +1616,8 @@ func (s *State) processRenewalVotingContent(tx interfaces.Transaction, height ui
 		voteInfo, _ := producer.GetDetailDPoSV2Votes(*stakeAddress, content.ReferKey)
 
 		// record all new votes information
-		detailVoteInfo := payload.DetailVoteInfo{
+		detailVoteInfo := payload.DetailedVoteInfo{
+			TransactionHash: tx.Hash(),
 			BlockHeight:    voteInfo.BlockHeight,
 			PayloadVersion: voteInfo.PayloadVersion,
 			VoteType:       outputpayload.DposV2,
@@ -1623,11 +1626,11 @@ func (s *State) processRenewalVotingContent(tx interfaces.Transaction, height ui
 
 		referKey := detailVoteInfo.ReferKey()
 		s.History.Append(height, func() {
-			producer.detailDPoSV2Votes[*stakeAddress][referKey] = detailVoteInfo
-			delete(producer.detailDPoSV2Votes[*stakeAddress], content.ReferKey)
+			producer.detailedDPoSV2Votes[*stakeAddress][referKey] = detailVoteInfo
+			delete(producer.detailedDPoSV2Votes[*stakeAddress], content.ReferKey)
 		}, func() {
-			producer.detailDPoSV2Votes[*stakeAddress][content.ReferKey] = voteInfo
-			delete(producer.detailDPoSV2Votes[*stakeAddress], referKey)
+			producer.detailedDPoSV2Votes[*stakeAddress][content.ReferKey] = voteInfo
+			delete(producer.detailedDPoSV2Votes[*stakeAddress], referKey)
 		})
 	}
 }

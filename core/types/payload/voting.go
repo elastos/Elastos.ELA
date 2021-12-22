@@ -265,27 +265,31 @@ func (vc RenewalVotesContent) String() string {
 		"VotesInfo: ", vc.VotesInfo, "}\n\t\t\t\t")
 }
 
-type DetailVoteInfo struct {
-	BlockHeight    uint32
-	PayloadVersion byte
-	VoteType       outputpayload.VoteType
-	Info           VotesWithLockTime
+type DetailedVoteInfo struct {
+	TransactionHash common.Uint256
+	BlockHeight     uint32
+	PayloadVersion  byte
+	VoteType        outputpayload.VoteType
+	Info            VotesWithLockTime
 }
 
-func (v *DetailVoteInfo) bytes() []byte {
+func (v *DetailedVoteInfo) bytes() []byte {
 	buf := new(bytes.Buffer)
-	common.WriteUint32(buf, v.BlockHeight)
-	common.WriteUint8(buf, v.PayloadVersion)
+	v.TransactionHash.Serialize(buf)
 	common.WriteUint8(buf, uint8(v.VoteType))
 	v.Info.Serialize(buf, v.PayloadVersion)
 	return buf.Bytes()
 }
 
-func (v *DetailVoteInfo) ReferKey() common.Uint256 {
+func (v *DetailedVoteInfo) ReferKey() common.Uint256 {
 	return common.Hash(v.bytes())
 }
 
-func (v *DetailVoteInfo) Serialize(w io.Writer) error {
+func (v *DetailedVoteInfo) Serialize(w io.Writer) error {
+
+	if err := v.TransactionHash.Serialize(w); err != nil {
+		return err
+	}
 
 	if err := common.WriteUint32(w, v.BlockHeight); err != nil {
 		return err
@@ -306,7 +310,13 @@ func (v *DetailVoteInfo) Serialize(w io.Writer) error {
 	return nil
 }
 
-func (v *DetailVoteInfo) Deserialize(r io.Reader) error {
+func (v *DetailedVoteInfo) Deserialize(r io.Reader) error {
+
+	err := v.TransactionHash.Deserialize(r)
+	if err != nil {
+		return err
+	}
+
 	height, err := common.ReadUint32(r)
 	if err != nil {
 		return err

@@ -33,13 +33,13 @@ type StateKeyFrame struct {
 	DposV2EffectedProducers  map[string]*Producer
 	Votes                    map[string]struct{}
 
-	DetailDPoSV1Votes  map[common.Uint256]payload.DetailVoteInfo // key: hash of DetailVoteInfo
-	DposV2VoteRights   map[common.Uint168]common.Fixed64         // key: stake address value: amount
-	DposVotes          map[common.Uint168]common.Fixed64         // key: stake address value: amount
-	DposV2Votes        map[common.Uint168]common.Fixed64         // key: stake address value: amount
-	CRVotes            map[common.Uint168]common.Fixed64         // key: stake address value: amount
-	CRImpeachmentVotes map[common.Uint168]common.Fixed64         // key: stake address value: amount
-	CRCProposalVotes   map[common.Uint168]common.Fixed64         // key: stake address value: amount
+	DetailDPoSV1Votes  map[common.Uint256]payload.DetailedVoteInfo // key: hash of DetailedVoteInfo
+	DposV2VoteRights   map[common.Uint168]common.Fixed64           // key: stake address value: amount
+	DposVotes          map[common.Uint168]common.Fixed64           // key: stake address value: amount
+	DposV2Votes        map[common.Uint168]common.Fixed64           // key: stake address value: amount
+	CRVotes            map[common.Uint168]common.Fixed64           // key: stake address value: amount
+	CRImpeachmentVotes map[common.Uint168]common.Fixed64           // key: stake address value: amount
+	CRCProposalVotes   map[common.Uint168]common.Fixed64           // key: stake address value: amount
 
 	DepositOutputs           map[string]common.Fixed64
 	DposV2RewardInfo         map[string]common.Fixed64
@@ -498,7 +498,7 @@ func (s *StateKeyFrame) SerializeStringSet(vmap map[string]struct{},
 	return
 }
 
-func (s *StateKeyFrame) SerializeDetailVoteInfoMap(vmap map[common.Uint256]payload.DetailVoteInfo,
+func (s *StateKeyFrame) SerializeDetailVoteInfoMap(vmap map[common.Uint256]payload.DetailedVoteInfo,
 	w io.Writer) (err error) {
 	if err = common.WriteVarUint(w, uint64(len(vmap))); err != nil {
 		return
@@ -515,18 +515,18 @@ func (s *StateKeyFrame) SerializeDetailVoteInfoMap(vmap map[common.Uint256]paylo
 }
 
 func (s *StateKeyFrame) DeserializeDetailVoteInfoMap(
-	r io.Reader) (vmap map[common.Uint256]payload.DetailVoteInfo, err error) {
+	r io.Reader) (vmap map[common.Uint256]payload.DetailedVoteInfo, err error) {
 	var count uint64
 	if count, err = common.ReadVarUint(r, 0); err != nil {
 		return
 	}
-	vmap = make(map[common.Uint256]payload.DetailVoteInfo)
+	vmap = make(map[common.Uint256]payload.DetailedVoteInfo)
 	for i := uint64(0); i < count; i++ {
 		var k common.Uint256
 		if err = k.Deserialize(r); err != nil {
 			return
 		}
-		var v payload.DetailVoteInfo
+		var v payload.DetailedVoteInfo
 		if err = v.Deserialize(r); err != nil {
 			return
 		}

@@ -181,6 +181,7 @@ var buildTxCommand = []cli.Command{
 		},
 	},
 	registerproducer,
+	unregisterproducer,
 }
 
 func getTransactionHex(c *cli.Context) (string, error) {

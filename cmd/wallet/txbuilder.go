@@ -224,6 +224,10 @@ func createNormalOutputs(outputs []*OutputInfo, fee common.Fixed64, lockedUntil 
 		txOutputs = append(txOutputs, txOutput)
 	}
 
+	if totalAmount <= 0 {
+		return nil, 0, errors.New("outputs total amount plus fee should not be less than or equal to 0")
+	}
+
 	return txOutputs, totalAmount, nil
 }
 
@@ -272,11 +276,6 @@ func createVoteOutputs(output *OutputInfo, candidateList []string) ([]*common2.O
 func createTransaction(walletPath string, from string, fee common.Fixed64, outputLock uint32, txLock uint32,
 	txType common2.TxType, payloadVersion byte, payload interfaces.Payload,
 	outputs ...*OutputInfo) (interfaces.Transaction, error) {
-
-	// check output
-	if len(outputs) == 0 {
-		return nil, errors.New("invalid transaction target")
-	}
 
 	// get sender in wallet by from address
 	sender, err := getSender(walletPath, from)

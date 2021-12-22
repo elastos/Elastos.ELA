@@ -149,7 +149,8 @@ func (c *Committee) processVoting(tx interfaces.Transaction, height uint32) {
 			for _, v := range content.VotesInfo {
 				votes := v
 				// record CRC votes information
-				detailVoteInfo := payload.DetailVoteInfo{
+				detailVoteInfo := payload.DetailedVoteInfo{
+					TransactionHash: tx.Hash(),
 					BlockHeight:    height,
 					PayloadVersion: tx.PayloadVersion(),
 					VoteType:       content.VoteType,
@@ -158,9 +159,9 @@ func (c *Committee) processVoting(tx interfaces.Transaction, height uint32) {
 
 				referKey := detailVoteInfo.ReferKey()
 				c.state.History.Append(height, func() {
-					c.DetailCRVotes[referKey] = detailVoteInfo
+					c.DetailedCRVotes[referKey] = detailVoteInfo
 				}, func() {
-					delete(c.DetailCRVotes, referKey)
+					delete(c.DetailedCRVotes, referKey)
 				})
 
 				c.state.processVoteCRC(height, v.Candidate, v.Votes)
@@ -170,7 +171,8 @@ func (c *Committee) processVoting(tx interfaces.Transaction, height uint32) {
 			for _, v := range content.VotesInfo {
 				votes := v
 				// record CRC proposal votes information
-				detailVoteInfo := payload.DetailVoteInfo{
+				detailVoteInfo := payload.DetailedVoteInfo{
+					TransactionHash: tx.Hash(),
 					BlockHeight:    height,
 					PayloadVersion: tx.PayloadVersion(),
 					VoteType:       content.VoteType,
@@ -179,9 +181,9 @@ func (c *Committee) processVoting(tx interfaces.Transaction, height uint32) {
 
 				referKey := detailVoteInfo.ReferKey()
 				c.state.History.Append(height, func() {
-					c.manager.DetailCRCProposalVotes[referKey] = detailVoteInfo
+					c.manager.DetailedCRCProposalVotes[referKey] = detailVoteInfo
 				}, func() {
-					delete(c.manager.DetailCRCProposalVotes, referKey)
+					delete(c.manager.DetailedCRCProposalVotes, referKey)
 				})
 
 				c.state.processVoteCRCProposal(height, v.Candidate, v.Votes)
@@ -191,7 +193,8 @@ func (c *Committee) processVoting(tx interfaces.Transaction, height uint32) {
 			for _, v := range content.VotesInfo {
 				votes := v
 				// record CRC impeachment votes information
-				detailVoteInfo := payload.DetailVoteInfo{
+				detailVoteInfo := payload.DetailedVoteInfo{
+					TransactionHash: tx.Hash(),
 					BlockHeight:    height,
 					PayloadVersion: tx.PayloadVersion(),
 					VoteType:       content.VoteType,
@@ -200,9 +203,9 @@ func (c *Committee) processVoting(tx interfaces.Transaction, height uint32) {
 
 				referKey := detailVoteInfo.ReferKey()
 				c.state.History.Append(height, func() {
-					c.DetailCRImpeachmentVotes[referKey] = detailVoteInfo
+					c.DetailedCRImpeachmentVotes[referKey] = detailVoteInfo
 				}, func() {
-					delete(c.DetailCRImpeachmentVotes, referKey)
+					delete(c.DetailedCRImpeachmentVotes, referKey)
 				})
 
 				c.processImpeachment(height, v.Candidate, v.Votes, c.state.History)

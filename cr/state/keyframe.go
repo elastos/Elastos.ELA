@@ -117,11 +117,11 @@ type CRMember struct {
 
 // StateKeyFrame holds necessary State about CR committee.
 type KeyFrame struct {
-	Members                  map[common.Uint168]*CRMember
-	HistoryMembers           map[uint64]map[common.Uint168]*CRMember
-	PartProposalResults      []payload.ProposalResult
-	DetailCRVotes            map[common.Uint256]payload.DetailVoteInfo // key: hash of DetailVoteInfo
-	DetailCRImpeachmentVotes map[common.Uint256]payload.DetailVoteInfo // key: hash of DetailVoteInfo
+	Members                    map[common.Uint168]*CRMember
+	HistoryMembers             map[uint64]map[common.Uint168]*CRMember
+	PartProposalResults        []payload.ProposalResult
+	DetailedCRVotes            map[common.Uint256]payload.DetailedVoteInfo // key: hash of DetailedVoteInfo
+	DetailedCRImpeachmentVotes map[common.Uint256]payload.DetailedVoteInfo // key: hash of DetailedVoteInfo
 
 	LastCommitteeHeight      uint32
 	LastVotingStartHeight    uint32
@@ -262,7 +262,7 @@ type ProposalKeyFrame struct {
 	ReservedCustomID bool
 
 	// detailed CRC proposal votes information
-	DetailCRCProposalVotes map[common.Uint256]payload.DetailVoteInfo // key: hash of DetailVoteInfo
+	DetailedCRCProposalVotes map[common.Uint256]payload.DetailedVoteInfo // key: hash of DetailedVoteInfo
 }
 
 func NewProposalMap() ProposalsMap {
@@ -362,11 +362,11 @@ func (kf *KeyFrame) Serialize(w io.Writer) (err error) {
 		return
 	}
 
-	if err = serializeDetailVoteInfoMap(w, kf.DetailCRVotes); err != nil {
+	if err = serializeDetailVoteInfoMap(w, kf.DetailedCRVotes); err != nil {
 		return
 	}
 
-	if err = serializeDetailVoteInfoMap(w, kf.DetailCRImpeachmentVotes); err != nil {
+	if err = serializeDetailVoteInfoMap(w, kf.DetailedCRImpeachmentVotes); err != nil {
 		return
 	}
 
@@ -391,11 +391,11 @@ func (kf *KeyFrame) Deserialize(r io.Reader) (err error) {
 		return
 	}
 
-	if kf.DetailCRVotes, err = deserializeDetailVoteInfoMap(r); err != nil {
+	if kf.DetailedCRVotes, err = deserializeDetailVoteInfoMap(r); err != nil {
 		return
 	}
 
-	if kf.DetailCRImpeachmentVotes, err = deserializeDetailVoteInfoMap(r); err != nil {
+	if kf.DetailedCRImpeachmentVotes, err = deserializeDetailVoteInfoMap(r); err != nil {
 		return
 	}
 
@@ -468,7 +468,7 @@ func (kf *KeyFrame) serializeProposalResultList(w io.Writer,
 	}
 	return
 }
-func serializeDetailVoteInfoMap(w io.Writer, vmap map[common.Uint256]payload.DetailVoteInfo) (err error) {
+func serializeDetailVoteInfoMap(w io.Writer, vmap map[common.Uint256]payload.DetailedVoteInfo) (err error) {
 	if err = common.WriteVarUint(w, uint64(len(vmap))); err != nil {
 		return
 	}
@@ -484,18 +484,18 @@ func serializeDetailVoteInfoMap(w io.Writer, vmap map[common.Uint256]payload.Det
 }
 
 func deserializeDetailVoteInfoMap(
-	r io.Reader) (vmap map[common.Uint256]payload.DetailVoteInfo, err error) {
+	r io.Reader) (vmap map[common.Uint256]payload.DetailedVoteInfo, err error) {
 	var count uint64
 	if count, err = common.ReadVarUint(r, 0); err != nil {
 		return
 	}
-	vmap = make(map[common.Uint256]payload.DetailVoteInfo)
+	vmap = make(map[common.Uint256]payload.DetailedVoteInfo)
 	for i := uint64(0); i < count; i++ {
 		var k common.Uint256
 		if err = k.Deserialize(r); err != nil {
 			return
 		}
-		var v payload.DetailVoteInfo
+		var v payload.DetailedVoteInfo
 		if err = v.Deserialize(r); err != nil {
 			return
 		}
@@ -1289,7 +1289,7 @@ func (p *ProposalKeyFrame) Serialize(w io.Writer) (err error) {
 		return
 	}
 
-	if err = serializeDetailVoteInfoMap(w, p.DetailCRCProposalVotes); err != nil {
+	if err = serializeDetailVoteInfoMap(w, p.DetailedCRCProposalVotes); err != nil {
 		return err
 	}
 
@@ -1579,7 +1579,7 @@ func (p *ProposalKeyFrame) Deserialize(r io.Reader) (err error) {
 		return
 	}
 
-	if p.DetailCRCProposalVotes, err = deserializeDetailVoteInfoMap(r); err != nil {
+	if p.DetailedCRCProposalVotes, err = deserializeDetailVoteInfoMap(r); err != nil {
 		return
 	}
 

@@ -14,9 +14,7 @@ import (
 
 	"github.com/elastos/Elastos.ELA/core/contract/program"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
-
 	"github.com/elastos/Elastos.ELA/core/types/functions"
-
 	"github.com/elastos/Elastos.ELA/account"
 	cmdcom "github.com/elastos/Elastos.ELA/cmd/common"
 	"github.com/elastos/Elastos.ELA/common"
@@ -28,7 +26,7 @@ import (
 
 var txCommand = []cli.Command{
 	{
-		Category:    "BaseTransaction",
+		Category:    "Transaction",
 		Name:        "buildtx",
 		Usage:       "Build a transaction",
 		Description: "use --to --amount --fee to create a transaction",
@@ -46,7 +44,7 @@ var txCommand = []cli.Command{
 		Action:      buildTx,
 	},
 	{
-		Category:    "BaseTransaction",
+		Category:    "Transaction",
 		Name:        "signtx",
 		Usage:       "Sign a transaction",
 		Description: "use --file or --hex to specify the transaction file path or content",
@@ -59,7 +57,7 @@ var txCommand = []cli.Command{
 		Action: signTx,
 	},
 	{
-		Category:    "BaseTransaction",
+		Category:    "Transaction",
 		Name:        "sendtx",
 		Usage:       "Send a transaction",
 		Description: "use --file or --hex to specify the transaction file path or content",
@@ -70,7 +68,7 @@ var txCommand = []cli.Command{
 		Action: sendTx,
 	},
 	{
-		Category: "BaseTransaction",
+		Category: "Transaction",
 		Name:     "showtx",
 		Usage:    "Show info of raw transaction",
 		Flags: []cli.Flag{
@@ -82,107 +80,14 @@ var txCommand = []cli.Command{
 }
 
 var buildTxCommand = []cli.Command{
-	{
-		Name:  "withdraw",
-		Usage: "Build a tx to withdraw crc proposal",
-		Flags: []cli.Flag{
-			cmdcom.AccountWalletFlag,
-			cmdcom.AccountPasswordFlag,
-			cmdcom.CRCProposalHashFlag,
-			cmdcom.CRCProposalStageFlag,
-			cmdcom.TransactionAmountFlag,
-			cmdcom.TransactionFeeFlag,
-			cmdcom.CRCCommiteeAddrFlag,
-			cmdcom.TransactionToFlag,
-		},
-		Action: func(c *cli.Context) error {
-			if err := CreateCRCProposalWithdrawTransaction(c); err != nil {
-				fmt.Println("error:", err)
-				os.Exit(1)
-			}
-			return nil
-		},
-	},
-	{
-		Name:  "activate",
-		Usage: "Build a tx to activate producer which have been inactivated",
-		Flags: []cli.Flag{
-			cmdcom.TransactionNodePublicKeyFlag,
-			cmdcom.AccountWalletFlag,
-			cmdcom.AccountPasswordFlag,
-		},
-		Action: func(c *cli.Context) error {
-			if err := CreateActivateProducerTransaction(c); err != nil {
-				fmt.Println("error:", err)
-				os.Exit(1)
-			}
-			return nil
-		},
-	},
-	{
-		Name:  "dposv2claimreward",
-		Usage: "Build a tx to claim dposV2 reward",
-		Flags: []cli.Flag{
-			cmdcom.TransactionClaimAmountFlag,
-			cmdcom.AccountWalletFlag,
-		},
-		Action: func(c *cli.Context) error {
-			if err := CreateDposV2ClaimRewardTransaction(c); err != nil {
-				fmt.Println("error:", err)
-				os.Exit(1)
-			}
-			return nil
-		},
-	},
-	{
-		Name:  "vote",
-		Usage: "Build a tx to vote for candidates using ELA",
-		Flags: []cli.Flag{
-			cmdcom.TransactionForFlag,
-			cmdcom.TransactionAmountFlag,
-			cmdcom.TransactionFromFlag,
-			cmdcom.TransactionFeeFlag,
-			cmdcom.AccountWalletFlag,
-			cmdcom.AccountPasswordFlag,
-		},
-		Action: func(c *cli.Context) error {
-			if c.NumFlags() == 0 {
-				cli.ShowSubcommandHelp(c)
-				return nil
-			}
-			if err := CreateVoteTransaction(c); err != nil {
-				fmt.Println("error:", err)
-				os.Exit(1)
-			}
-			return nil
-		},
-	},
-	{
-		Name:  "crosschain",
-		Usage: "Build a cross chain tx",
-		Flags: []cli.Flag{
-			cmdcom.TransactionSAddressFlag,
-			cmdcom.TransactionAmountFlag,
-			cmdcom.TransactionFromFlag,
-			cmdcom.TransactionToFlag,
-			cmdcom.TransactionFeeFlag,
-			cmdcom.AccountWalletFlag,
-		},
-		Action: func(c *cli.Context) error {
-			if c.NumFlags() == 0 {
-				cli.ShowSubcommandHelp(c)
-				return nil
-			}
-			if err := CreateCrossChainTransaction(c); err != nil {
-				fmt.Println("error:", err)
-				os.Exit(1)
-			}
-			return nil
-		},
-	},
+	proposalwithdraw,
+	dpossv2claimreward,
+	vote,
+	crosschain,
 	registerproducer,
 	unregisterproducer,
 	updateproducer,
+	activateproducer,
 }
 
 func getTransactionHex(c *cli.Context) (string, error) {

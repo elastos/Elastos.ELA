@@ -90,16 +90,14 @@ if vote_candidates_num == vote_candidate_votes_num then
     local tx = transaction.new(9, 0x63, 0, ta, 0)
 
     -- input: from, amount + fee
-    local charge = tx:appendenough(addr, (amount + fee) * 100000000)
+    local charge = tx:appendenough(addr,fee * 100000000)
     print("charge", charge)
 
     local default_output = defaultoutput.new()
     -- output: asset_id, value, recipient, output_paload_type, output_paload
     local charge_output = output.new(asset_id, charge, addr, 0, default_output)
-    local amount_output = output.new(asset_id, amount * 100000000, saddr, 0, default_output)
     -- print("txoutput", charge_output:get())
     -- print("txoutput", amount_output:get())
-    tx:appendtxout(amount_output)
     tx:appendtxout(charge_output)
 
     print(tx:get())

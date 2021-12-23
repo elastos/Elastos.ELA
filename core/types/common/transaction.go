@@ -146,6 +146,12 @@ func (self TxType) Name() string {
 		return "RevertToDPOS"
 	case ReturnSideChainDepositCoin:
 		return "ReturnSideChainDepositCoin"
+	case ExchangeVotes:
+		return "ExchangeVotes"
+	case Voting:
+		return "Voting"
+	case CancelVotes:
+		return "CancelVotes"
 	default:
 		return "Unknown"
 	}

@@ -3123,6 +3123,10 @@ func getPayloadInfo(p interfaces.Payload, payloadVersion byte) PayloadInfo {
 			})
 		}
 		return obj
+
+	case *payload.ExchangeVotes:
+		obj := new(ExchangeVoteInfo)
+		obj.ExchangeValue = object.ExchangeValue.String()
 	}
 	return nil
 }

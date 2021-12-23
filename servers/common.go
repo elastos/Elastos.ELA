@@ -543,3 +543,7 @@ type RenewalVotesContent struct {
 	ReferKey  string            `json:"referkey"`
 	VotesInfo VotesWithLockTime `json:"votesinfo"`
 }
+
+type ExchangeVoteInfo struct {
+	ExchangeValue string `json:"exchangevalue"`
+}

@@ -199,6 +199,15 @@ func GetTransaction(txType common2.TxType) (txn interfaces.Transaction, err erro
 	case common2.Record:
 		txn = new(RecordTransaction)
 
+	case common2.ExchangeVotes:
+		txn = new(ExchangeVotesTransaction)
+
+	case common2.Voting:
+		txn = new(VotingTransaction)
+
+	case common2.CancelVotes:
+		txn = new(CancelVotesTransaction)
+
 	default:
 		return nil, errors.New("invalid transaction type")
 	}

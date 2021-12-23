@@ -88,6 +88,10 @@ func GetPayload(txType common.TxType, payloadVersion byte) (Payload, error) {
 		p = new(payload.ReturnSideChainDepositCoin)
 	case common.ExchangeVotes:
 		p = new(payload.ExchangeVotes)
+	case common.Voting:
+		p = new(payload.Voting)
+	case common.CancelVotes:
+		p = new(payload.CancelVote)
 	default:
 		return nil, errors.New("[BaseTransaction], invalid transaction type.")
 	}

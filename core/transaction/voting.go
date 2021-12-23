@@ -128,26 +128,11 @@ func (t *VotingTransaction) SpecialContextCheck() (result elaerr.ELAError, end b
 	if !exist {
 		return elaerr.Simple(elaerr.ErrTxInvalidOutput, errors.New("has no vote rights")), true
 	}
-	usedDPoSVoteRights, exist := state.DposVotes[*stakeProgramHash]
-	if !exist {
-		return elaerr.Simple(elaerr.ErrTxInvalidOutput, errors.New("has no DPoS vote rights")), true
-	}
-	usedDPoSV2VoteRights, exist := state.DposV2Votes[*stakeProgramHash]
-	if !exist {
-		return elaerr.Simple(elaerr.ErrTxInvalidOutput, errors.New("has no DPoS v2 vote rights")), true
-	}
-	usedCRVoteRights, exist := state.CRVotes[*stakeProgramHash]
-	if !exist {
-		return elaerr.Simple(elaerr.ErrTxInvalidOutput, errors.New("has no CR vote rights")), true
-	}
-	usedCRCProposalVoteRights, exist := state.CRCProposalVotes[*stakeProgramHash]
-	if !exist {
-		return elaerr.Simple(elaerr.ErrTxInvalidOutput, errors.New("has no CRCProposal vote rights")), true
-	}
-	usedCRImpeachmentVoteRights, exist := state.CRImpeachmentVotes[*stakeProgramHash]
-	if !exist {
-		return elaerr.Simple(elaerr.ErrTxInvalidOutput, errors.New("has no CRImpeachment vote rights")), true
-	}
+	usedDPoSVoteRights, _ := state.DposVotes[*stakeProgramHash]
+	usedDPoSV2VoteRights, _ := state.DposV2Votes[*stakeProgramHash]
+	usedCRVoteRights, _ := state.CRVotes[*stakeProgramHash]
+	usedCRCProposalVoteRights, _ := state.CRCProposalVotes[*stakeProgramHash]
+	usedCRImpeachmentVoteRights, _ := state.CRImpeachmentVotes[*stakeProgramHash]
 
 	var candidates []*crstate.Candidate
 	if crCommittee.IsInVotingPeriod(blockHeight) {

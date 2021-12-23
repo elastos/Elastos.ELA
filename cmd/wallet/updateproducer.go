@@ -10,13 +10,12 @@ import (
 	"github.com/urfave/cli"
 )
 
-var registerproducer = cli.Command {
-	Name:  "registerproducer",
-	Usage: "Build a tx to register producer",
+var updateproducer = cli.Command {
+	Name:  "updateproducer",
+	Usage: "Build a tx to update producer",
 	Flags: []cli.Flag{
 		cmdcom.AccountWalletFlag,
 		cmdcom.AccountPasswordFlag,
-		cmdcom.TransactionAmountFlag,
 		cmdcom.TransactionFeeFlag,
 		cmdcom.TransactionNodePublicKeyFlag,
 		cmdcom.TransactionNickNameFlag,
@@ -26,7 +25,7 @@ var registerproducer = cli.Command {
 		cmdcom.TransactionStakeUntilFlag,
 	},
 	Action: func(c *cli.Context) error {
-		if err := createRegisterProducerTransaction(c); err != nil {
+		if err := createUpdateProducerTransaction(c); err != nil {
 			fmt.Println("error:", err)
 			os.Exit(1)
 		}
@@ -34,6 +33,6 @@ var registerproducer = cli.Command {
 	},
 }
 
-func createRegisterProducerTransaction(c *cli.Context) error {
-	return createProducerInfoCommonTransaction(c, common2.RegisterProducer, true)
+func createUpdateProducerTransaction(c *cli.Context) error {
+	return createProducerInfoCommonTransaction(c, common2.UpdateProducer, false)
 }

@@ -538,6 +538,7 @@ func (s *State) updateProducerInfo(origin *payload.ProducerInfo, update *payload
 	// compare and update node nickname.
 	if origin.NickName != update.NickName {
 		delete(s.Nicknames, origin.NickName)
+		log.Info("######### update nickname ", origin.NickName, " to ", update.NickName)
 		s.Nicknames[update.NickName] = struct{}{}
 	}
 
@@ -2175,7 +2176,6 @@ func (s *State) processIllegalEvidence(payloadData interfaces.Payload,
 				if producer.info.StakeUntil != 0 {
 					delete(s.DposV2ActivityProducers, key)
 				}
-				delete(s.Nicknames, producer.info.NickName)
 			}, func() {
 				producer.state = oriState
 				producer.penalty = oriPenalty
@@ -2186,7 +2186,6 @@ func (s *State) processIllegalEvidence(payloadData interfaces.Payload,
 				}
 				producer.activateRequestHeight = math.MaxUint32
 				delete(s.IllegalProducers, key)
-				s.Nicknames[producer.info.NickName] = struct{}{}
 			})
 			continue
 		}
@@ -2204,7 +2203,6 @@ func (s *State) processIllegalEvidence(payloadData interfaces.Payload,
 					producer.penalty += s.ChainParams.IllegalPenalty
 				}
 				delete(s.InactiveProducers, key)
-				delete(s.Nicknames, producer.info.NickName)
 			}, func() {
 				producer.state = oriState
 				producer.penalty = oriPenalty
@@ -2212,7 +2210,6 @@ func (s *State) processIllegalEvidence(payloadData interfaces.Payload,
 				s.InactiveProducers[key] = producer
 				producer.activateRequestHeight = math.MaxUint32
 				delete(s.IllegalProducers, key)
-				s.Nicknames[producer.info.NickName] = struct{}{}
 			})
 			continue
 		}
@@ -2226,12 +2223,10 @@ func (s *State) processIllegalEvidence(payloadData interfaces.Payload,
 				if height >= s.ChainParams.ChangeCommitteeNewCRHeight {
 					producer.penalty += s.ChainParams.IllegalPenalty
 				}
-				delete(s.Nicknames, producer.info.NickName)
 			}, func() {
 				producer.penalty = oriPenalty
 				producer.illegalHeight = oriIllegalHeight
 				producer.activateRequestHeight = math.MaxUint32
-				s.Nicknames[producer.info.NickName] = struct{}{}
 			})
 			continue
 		}
@@ -2247,14 +2242,12 @@ func (s *State) processIllegalEvidence(payloadData interfaces.Payload,
 					producer.penalty += s.ChainParams.IllegalPenalty
 				}
 				delete(s.CanceledProducers, key)
-				delete(s.Nicknames, producer.info.NickName)
 			}, func() {
 				producer.state = oriState
 				producer.illegalHeight = 0
 				producer.penalty = oriPenalty
 				s.CanceledProducers[key] = producer
 				delete(s.IllegalProducers, key)
-				s.Nicknames[producer.info.NickName] = struct{}{}
 			})
 			continue
 		}

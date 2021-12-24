@@ -552,6 +552,12 @@ func (s *State) updateProducerInfo(origin *payload.ProducerInfo, update *payload
 	}
 
 	producer.info = *update
+
+	// todo refactor me: how to rollback?
+	if update.StakeUntil != 0 {
+		ownerKey := hex.EncodeToString(update.OwnerPublicKey)
+		s.DposV2ActivityProducers[ownerKey] = producer
+	}
 }
 
 func (s *State) ExistProducerByDepositHash(programHash common.Uint168) bool {

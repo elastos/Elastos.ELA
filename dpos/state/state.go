@@ -1601,6 +1601,9 @@ func (s *State) processVotingContent(tx interfaces.Transaction, height uint32) {
 					Info:             voteInfo,
 				}
 				s.History.Append(height, func() {
+					if producer.detailedDPoSV2Votes == nil {
+						producer.detailedDPoSV2Votes = make(map[common.Uint168]map[common.Uint256]payload.DetailedVoteInfo)
+					}
 					if _, ok := producer.detailedDPoSV2Votes[*stakeAddress]; !ok {
 						producer.detailedDPoSV2Votes[*stakeAddress] = make(map[common.Uint256]payload.DetailedVoteInfo)
 					}

@@ -1961,6 +1961,7 @@ func (a *Arbiters) resetNextArbiterByCRC(versionHeight uint32, height uint32) (i
 	} else if versionHeight >= a.ChainParams.ChangeCommitteeNewCRHeight {
 		var votedProducers []*Producer
 		if a.isDposV2Active() {
+			log.Info("change to DPoS 2.0 at height:", height)
 			votedProducers = a.State.GetDposV2ActiveProducers()
 		} else {
 			votedProducers = a.State.GetVotedProducers()

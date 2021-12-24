@@ -108,7 +108,6 @@ func (t *VotingTransaction) SpecialContextCheck() (result elaerr.ELAError, end b
 
 	// 1.check if the signer has vote rights and check if votes enough
 	// 2.check different type of votes, enough? candidate exist?
-	outputValue := t.Outputs()[0].Value
 	blockHeight := t.parameters.BlockHeight
 	crCommittee := t.parameters.BlockChain.GetCRCommittee()
 	producers := t.parameters.BlockChain.GetState().GetActiveProducers()
@@ -149,30 +148,30 @@ func (t *VotingTransaction) SpecialContextCheck() (result elaerr.ELAError, end b
 			switch content.VoteType {
 			case outputpayload.Delegate:
 				err := t.checkVoteProducerContent(
-					content, pds, outputValue, totalVotes-usedDPoSVoteRights)
+					content, pds, totalVotes-usedDPoSVoteRights)
 				if err != nil {
 					return elaerr.Simple(elaerr.ErrTxPayload, err), true
 				}
 			case outputpayload.CRC:
 				err := t.checkVoteCRContent(blockHeight,
-					content, crs, outputValue, totalVotes-usedCRVoteRights)
+					content, crs, totalVotes-usedCRVoteRights)
 				if err != nil {
 					return elaerr.Simple(elaerr.ErrTxPayload, err), true
 				}
 			case outputpayload.CRCProposal:
 				err := t.checkVoteCRCProposalContent(
-					content, outputValue, totalVotes-usedCRCProposalVoteRights)
+					content, totalVotes-usedCRCProposalVoteRights)
 				if err != nil {
 					return elaerr.Simple(elaerr.ErrTxPayload, err), true
 				}
 			case outputpayload.CRCImpeachment:
 				err := t.checkCRImpeachmentContent(
-					content, outputValue, totalVotes-usedCRImpeachmentVoteRights)
+					content, totalVotes-usedCRImpeachmentVoteRights)
 				if err != nil {
 					return elaerr.Simple(elaerr.ErrTxPayload, err), true
 				}
 			case outputpayload.DposV2:
-				err := t.checkDPoSV2Content(content, pds2, outputValue, totalVotes-usedDPoSV2VoteRights)
+				err := t.checkDPoSV2Content(content, pds2, totalVotes-usedDPoSV2VoteRights)
 				if err != nil {
 					return elaerr.Simple(elaerr.ErrTxPayload, err), true
 				}
@@ -206,7 +205,7 @@ func (t *VotingTransaction) SpecialContextCheck() (result elaerr.ELAError, end b
 }
 
 func (t *VotingTransaction) checkVoteProducerContent(content payload.VotesContent,
-	pds map[string]struct{}, amount common.Fixed64, voteRights common.Fixed64) error {
+	pds map[string]struct{}, voteRights common.Fixed64) error {
 	for _, cv := range content.VotesInfo {
 		if _, ok := pds[common.BytesToHexString(cv.Candidate)]; !ok {
 			return fmt.Errorf("invalid vote output payload "+
@@ -217,9 +216,6 @@ func (t *VotingTransaction) checkVoteProducerContent(content payload.VotesConten
 	for _, cv := range content.VotesInfo {
 		if cv.LockTime != 0 {
 			return errors.New("votes lock time need to be zero")
-		}
-		if cv.Votes > amount {
-			return errors.New("votes larger than output amount")
 		}
 		if maxVotes < cv.Votes {
 			maxVotes = cv.Votes
@@ -234,7 +230,7 @@ func (t *VotingTransaction) checkVoteProducerContent(content payload.VotesConten
 
 func (t *VotingTransaction) checkVoteCRContent(blockHeight uint32,
 	content payload.VotesContent, crs map[common.Uint168]struct{},
-	amount common.Fixed64, voteRights common.Fixed64) error {
+	voteRights common.Fixed64) error {
 
 	if !t.parameters.BlockChain.GetCRCommittee().IsInVotingPeriod(blockHeight) {
 		return errors.New("cr vote tx must during voting period")
@@ -261,9 +257,6 @@ func (t *VotingTransaction) checkVoteCRContent(blockHeight uint32,
 		}
 		totalVotes += cv.Votes
 	}
-	if totalVotes > amount {
-		return errors.New("total votes larger than output amount")
-	}
 	if totalVotes > voteRights {
 		return errors.New("CR vote rights not enough")
 	}
@@ -272,15 +265,11 @@ func (t *VotingTransaction) checkVoteCRContent(blockHeight uint32,
 }
 
 func (t *VotingTransaction) checkVoteCRCProposalContent(
-	content payload.VotesContent, amount common.Fixed64,
-	voteRights common.Fixed64) error {
+	content payload.VotesContent, voteRights common.Fixed64) error {
 	var maxVotes common.Fixed64
 	for _, cv := range content.VotesInfo {
 		if cv.LockTime != 0 {
 			return errors.New("votes lock time need to be zero")
-		}
-		if cv.Votes > amount {
-			return errors.New("votes larger than output amount")
 		}
 		if maxVotes < cv.Votes {
 			maxVotes = cv.Votes
@@ -303,8 +292,8 @@ func (t *VotingTransaction) checkVoteCRCProposalContent(
 	return nil
 }
 
-func (t *VotingTransaction) checkCRImpeachmentContent(content payload.VotesContent,
-	amount common.Fixed64, voteRights common.Fixed64) error {
+func (t *VotingTransaction) checkCRImpeachmentContent(
+	content payload.VotesContent, voteRights common.Fixed64) error {
 	crMembersMap := getCRMembersMap(t.parameters.BlockChain.GetCRCommittee().GetImpeachableMembers())
 	var totalVotes common.Fixed64
 	for _, cv := range content.VotesInfo {
@@ -317,9 +306,6 @@ func (t *VotingTransaction) checkCRImpeachmentContent(content payload.VotesConte
 		totalVotes += cv.Votes
 	}
 
-	if totalVotes > amount {
-		return errors.New("total votes larger than output amount")
-	}
 	if totalVotes > voteRights {
 		return errors.New("CRImpeachment vote rights not enough")
 	}
@@ -328,7 +314,7 @@ func (t *VotingTransaction) checkCRImpeachmentContent(content payload.VotesConte
 }
 
 func (t *VotingTransaction) checkDPoSV2Content(content payload.VotesContent,
-	pds map[string]uint32, outputValue common.Fixed64, voteRights common.Fixed64) error {
+	pds map[string]uint32, voteRights common.Fixed64) error {
 	// totalVotes should be more than output value
 	var totalVotes common.Fixed64
 	for _, cv := range content.VotesInfo {
@@ -341,9 +327,6 @@ func (t *VotingTransaction) checkDPoSV2Content(content payload.VotesContent,
 			return errors.New("invalid DPoS 2.0 votes lock time")
 		}
 		totalVotes += cv.Votes
-	}
-	if totalVotes > outputValue {
-		return errors.New("votes larger than output amount")
 	}
 	if totalVotes > voteRights {
 		return errors.New("DPoSV2 vote rights not enough")

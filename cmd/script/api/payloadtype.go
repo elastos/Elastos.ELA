@@ -532,7 +532,7 @@ func newRegisterV2Producer(L *lua.LState) int {
 
 	if needSign {
 		rpSignBuf := new(bytes.Buffer)
-		err = registerProducer.SerializeUnsigned(rpSignBuf, payload.ProducerInfoVersion)
+		err = registerProducer.SerializeUnsigned(rpSignBuf, payload.ProducerInfoDposV2Version)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)

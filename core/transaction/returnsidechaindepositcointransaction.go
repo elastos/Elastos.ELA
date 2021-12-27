@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"math"
 
+	"github.com/elastos/Elastos.ELA/blockchain"
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
@@ -111,6 +112,10 @@ func (t *ReturnSideChainDepositCoinTransaction) SpecialContextCheck() (result el
 		py, ok := o.Payload.(*outputpayload.ReturnSideChainDeposit)
 		if !ok {
 			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid ReturnSideChainDeposit output payload")), true
+		}
+
+		if exist := blockchain.DefaultLedger.Store.IsSidechainReturnDepositTxHashDuplicate(py.DepositTransactionHash); exist {
+			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("duplicated ReturnSideChainDeposit transaction hash")), true
 		}
 
 		tx, _, err := t.parameters.BlockChain.GetDB().GetTransaction(py.DepositTransactionHash)

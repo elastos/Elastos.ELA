@@ -538,7 +538,6 @@ func (s *State) updateProducerInfo(origin *payload.ProducerInfo, update *payload
 	// compare and update node nickname.
 	if origin.NickName != update.NickName {
 		delete(s.Nicknames, origin.NickName)
-		log.Info("######### update nickname ", origin.NickName, " to ", update.NickName)
 		s.Nicknames[update.NickName] = struct{}{}
 	}
 

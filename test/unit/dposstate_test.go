@@ -914,9 +914,10 @@ func TestState_NicknameExists(t *testing.T) {
 	}
 
 	// Make producer-3 illegal, see if nickname change to unused.
+	// Note: illegal is allowed to be activated now, so no need to remove nickname
 	tx = mockIllegalBlockTx(producers[2].NodePublicKey)
 	state.ProcessSpecialTxPayload(tx.Payload(), 13)
-	if !assert.Equal(t, false, state.NicknameExists("Producer-3")) {
+	if !assert.Equal(t, true, state.NicknameExists("Producer-3")) {
 		t.FailNow()
 	}
 }

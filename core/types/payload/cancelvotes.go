@@ -12,11 +12,11 @@ import (
 	"github.com/elastos/Elastos.ELA/common"
 )
 
-type CancelVote struct {
+type CancelVotes struct {
 	ReferKeys []common.Uint256
 }
 
-func (p *CancelVote) Data(version byte) []byte {
+func (p *CancelVotes) Data(version byte) []byte {
 
 	buf := new(bytes.Buffer)
 	if err := p.Serialize(buf, version); err != nil {
@@ -26,7 +26,7 @@ func (p *CancelVote) Data(version byte) []byte {
 	return buf.Bytes()
 }
 
-func (p *CancelVote) Serialize(w io.Writer, version byte) error {
+func (p *CancelVotes) Serialize(w io.Writer, version byte) error {
 
 	if err := common.WriteVarUint(w, uint64(len(p.ReferKeys))); err != nil {
 		return err
@@ -40,7 +40,7 @@ func (p *CancelVote) Serialize(w io.Writer, version byte) error {
 	return nil
 }
 
-func (p *CancelVote) Deserialize(r io.Reader, version byte) error {
+func (p *CancelVotes) Deserialize(r io.Reader, version byte) error {
 
 	keysCount, err := common.ReadVarUint(r, 0)
 	if err != nil {

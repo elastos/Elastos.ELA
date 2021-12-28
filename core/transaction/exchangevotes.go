@@ -125,11 +125,11 @@ func (t *ExchangeVotesTransaction) SpecialContextCheck() (result elaerr.ELAError
 		inputsAddr[o.ProgramHash] = struct{}{}
 	}
 	if len(inputsAddr) != 1 {
-		return elaerr.Simple(elaerr.ErrTxInvalidOutput,
+		return elaerr.Simple(elaerr.ErrTxInvalidInput,
 			errors.New("has different input address")), true
 	}
 
-	if t.Outputs()[0].Value != t.Payload().(*payload.ExchangeVotes).ExchangeValue {
+	if t.Outputs()[0].Value != t.Payload().(*payload.ExchangeVotes).Value {
 		return elaerr.Simple(elaerr.ErrTxInvalidOutput,
 			errors.New("payload value is not equal to output value")), true
 	}

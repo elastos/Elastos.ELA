@@ -1470,9 +1470,9 @@ func (s *State) processVotes(tx interfaces.Transaction, height uint32) {
 func (s *State) processExchangeVotes(tx interfaces.Transaction, height uint32) {
 	pld := tx.Payload().(*payload.ExchangeVotes)
 	s.History.Append(height, func() {
-		s.DposV2VoteRights[tx.Outputs()[0].ProgramHash] += pld.ExchangeValue
+		s.DposV2VoteRights[tx.Outputs()[0].ProgramHash] += pld.Value
 	}, func() {
-		s.DposV2VoteRights[tx.Outputs()[0].ProgramHash] -= pld.ExchangeValue
+		s.DposV2VoteRights[tx.Outputs()[0].ProgramHash] -= pld.Value
 	})
 }
 

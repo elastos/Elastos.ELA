@@ -64,7 +64,7 @@ func RegisterExchangeVotesType(L *lua.LState) {
 func newExchangeVotes(L *lua.LState) int {
 	amount := L.ToInt(1)
 	cb := &payload.ExchangeVotes{
-		ExchangeValue: common.Fixed64(amount),
+		Value: common.Fixed64(amount),
 	}
 	ud := L.NewUserData()
 	ud.Value = cb

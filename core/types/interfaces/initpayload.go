@@ -91,7 +91,7 @@ func GetPayload(txType common.TxType, payloadVersion byte) (Payload, error) {
 	case common.Voting:
 		p = new(payload.Voting)
 	case common.CancelVotes:
-		p = new(payload.CancelVote)
+		p = new(payload.CancelVotes)
 	default:
 		return nil, errors.New("[BaseTransaction], invalid transaction type.")
 	}

@@ -33,7 +33,7 @@ func (t *CancelVotesTransaction) HeightVersionCheck() error {
 
 func (t *CancelVotesTransaction) CheckTransactionPayload() error {
 	switch t.Payload().(type) {
-	case *payload.CancelVote:
+	case *payload.CancelVotes:
 		return nil
 	}
 
@@ -70,7 +70,7 @@ func (t *CancelVotesTransaction) SpecialContextCheck() (result elaerr.ELAError, 
 
 	state := t.parameters.BlockChain.GetState()
 	committee := t.parameters.BlockChain.GetCRCommittee()
-	pld := t.Payload().(*payload.CancelVote)
+	pld := t.Payload().(*payload.CancelVotes)
 	var vote payload.DetailedVoteInfo
 	for _, referKey := range pld.ReferKeys {
 		var err error

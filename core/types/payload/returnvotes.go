@@ -12,11 +12,11 @@ import (
 	"github.com/elastos/Elastos.ELA/common"
 )
 
-type ExchangeVotes struct {
+type ReturnVotes struct {
 	Value common.Fixed64
 }
 
-func (p *ExchangeVotes) Data(version byte) []byte {
+func (p *ReturnVotes) Data(version byte) []byte {
 	buf := new(bytes.Buffer)
 	if err := p.Serialize(buf, version); err != nil {
 		return []byte{0}
@@ -25,7 +25,7 @@ func (p *ExchangeVotes) Data(version byte) []byte {
 	return buf.Bytes()
 }
 
-func (p *ExchangeVotes) Serialize(w io.Writer, version byte) error {
+func (p *ReturnVotes) Serialize(w io.Writer, version byte) error {
 	if err := p.Value.Serialize(w); err != nil {
 		return err
 	}
@@ -33,7 +33,7 @@ func (p *ExchangeVotes) Serialize(w io.Writer, version byte) error {
 	return nil
 }
 
-func (p *ExchangeVotes) Deserialize(r io.Reader, version byte) error {
+func (p *ReturnVotes) Deserialize(r io.Reader, version byte) error {
 	if err := p.Value.Deserialize(r); err != nil {
 		return err
 	}

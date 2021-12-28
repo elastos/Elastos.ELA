@@ -33,6 +33,7 @@ type StateKeyFrame struct {
 	DposV2EffectedProducers  map[string]*Producer
 	Votes                    map[string]struct{}
 
+	// dpos 2.0
 	DetailDPoSV1Votes  map[common.Uint256]payload.DetailedVoteInfo // key: hash of DetailedVoteInfo
 	DposV2VoteRights   map[common.Uint168]common.Fixed64           // key: stake address value: amount
 	DposVotes          map[common.Uint168]common.Fixed64           // key: stake address value: amount

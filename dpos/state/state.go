@@ -89,6 +89,8 @@ type Producer struct {
 	dposV2Votes           common.Fixed64
 
 	// the detail information of DPoSV2 votes
+	//Uint168 key is  sVoteAddr
+	//Uint256 key is DetailedVoteInfo's hash
 	detailedDPoSV2Votes map[common.Uint168]map[common.Uint256]payload.DetailedVoteInfo
 
 	depositAmount                common.Fixed64

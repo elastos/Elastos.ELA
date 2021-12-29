@@ -171,6 +171,27 @@ func (pow *Service) CreateCoinbaseTx(minerAddr string, height uint32) (interface
 }
 
 func (pow *Service) AssignCoinbaseTxRewards(block *types.Block, totalReward common.Fixed64) error {
+
+	if pow.arbiters.IsDopsV2Run(block.Height) {
+		rewardCyberRepublic := common.Fixed64(math.Ceil(float64(totalReward) * 0.3))
+		rewardDposArbiter := common.Fixed64(math.Ceil(float64(totalReward) * 0.35))
+		rewardMergeMiner := common.Fixed64(totalReward) - rewardCyberRepublic - rewardDposArbiter
+		dposReward := pow.chain.GetBlockDPOSReward(block)
+		block.Transactions[0].Outputs()[0].Value = rewardCyberRepublic
+		block.Transactions[0].Outputs()[1].Value = rewardMergeMiner
+		if dposReward > common.Fixed64(0) {
+			block.Transactions[0].SetOutputs(append(block.Transactions[0].Outputs(), &common2.Output{
+				AssetID:     config.ELAAssetID,
+				Value:       dposReward,
+				ProgramHash: pow.chainParams.DposV2RewardAccumulateAddress,
+			}))
+		}
+
+		if pow.arbiters.IsInPOWMode() {
+			block.Transactions[0].Outputs()[0].ProgramHash = pow.chainParams.DestroyELAAddress
+		}
+		return nil
+	}
 	// main version >= H2
 	if block.Height >= pow.chainParams.PublicDPOSHeight {
 		rewardCyberRepublic := common.Fixed64(math.Ceil(float64(totalReward) * 0.3))

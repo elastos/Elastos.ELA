@@ -52,6 +52,7 @@ type Arbitrators interface {
 	IsActiveProducer(pk []byte) bool
 	IsDisabledProducer(pk []byte) bool
 	IsNeedNextTurnDPOSInfo() bool
+	IsDopsV2Run(blockHeight uint32) bool
 
 	GetOnDutyArbitrator() []byte
 	GetNextOnDutyArbitrator(offset uint32) []byte

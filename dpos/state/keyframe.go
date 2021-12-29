@@ -41,7 +41,8 @@ type StateKeyFrame struct {
 	CRImpeachmentVotes map[common.Uint168]common.Fixed64           // key: stake address value: amount
 	CRCProposalVotes   map[common.Uint168]common.Fixed64           // key: stake address value: amount
 
-	DepositOutputs           map[string]common.Fixed64
+	DepositOutputs map[string]common.Fixed64
+	//key is addr str value is dposReward
 	DposV2RewardInfo         map[string]common.Fixed64
 	DposV2RewardClaimingInfo map[string]common.Fixed64
 	DposV2RewardClaimedInfo  map[string]common.Fixed64
@@ -733,9 +734,7 @@ func (s *StateKeyFrame) DeserializeProducerMap(
 }
 
 func NewStateKeyFrame() *StateKeyFrame {
-	// test
 	info := make(map[string]common.Fixed64)
-	info["EdTyQguX2rJKje5cwwbXyaLoPVFvzf41s6"] = 10000000000
 	return &StateKeyFrame{
 		NodeOwnerKeys:             make(map[string]string),
 		PendingProducers:          make(map[string]*Producer),

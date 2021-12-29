@@ -16,6 +16,7 @@ import (
 	"net"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 
 	elaact "github.com/elastos/Elastos.ELA/account"
@@ -35,6 +36,7 @@ import (
 	crstate "github.com/elastos/Elastos.ELA/cr/state"
 	"github.com/elastos/Elastos.ELA/crypto"
 	"github.com/elastos/Elastos.ELA/dpos/state"
+	"github.com/elastos/Elastos.ELA/utils"
 	"github.com/elastos/Elastos.ELA/utils/test"
 
 	"github.com/stretchr/testify/suite"
@@ -4684,6 +4686,153 @@ func (s *txValidatorTestSuite) TestHostPort() {
 			host = seed
 		}
 		s.True(payload.SeedRegexp.MatchString(host), seed+" not correct")
+	}
+}
+
+func (s *txValidatorTestSuite) TestArbitersAccumulateReward() {
+	tx := functions.CreateTransaction(
+		common2.TxVersion09,
+		common2.CoinBase,
+		0,
+		nil,
+		[]*common2.Attribute{},
+		[]*common2.Input{},
+		[]*common2.Output{},
+		0,
+		[]*program.Program{},
+	)
+
+	tx.SetOutputs([]*common2.Output{
+		{ProgramHash: blockchain.FoundationAddress, Value: 0},
+		{ProgramHash: common.Uint168{}, Value: 100},
+	})
+	ownerPubKeyStr := "0306e3deefee78e0e25f88e98f1f3290ccea98f08dd3a890616755f1a066c4b9b8"
+	nodePubKeyStr := "0250c5019a00f8bb4fd59bb6d613c70a39bb3026b87cfa247fd26f59fd04987855"
+
+	nodePubKey, err := hex.DecodeString(ownerPubKeyStr)
+	if err != nil {
+		fmt.Println("err", err)
+	}
+
+	type fields struct {
+		State                      *state.State
+		ChainParams                *config.Params
+		CRCommittee                *crstate.Committee
+		bestHeight                 func() uint32
+		bestBlockHash              func() *common.Uint256
+		getBlockByHeight           func(uint32) (*types.Block, error)
+		mtx                        sync.Mutex
+		started                    bool
+		DutyIndex                  int
+		CurrentReward              state.RewardData
+		NextReward                 state.RewardData
+		CurrentArbitrators         []state.ArbiterMember
+		CurrentCandidates          []state.ArbiterMember
+		nextArbitrators            []state.ArbiterMember
+		nextCandidates             []state.ArbiterMember
+		CurrentCRCArbitersMap      map[common.Uint168]state.ArbiterMember
+		nextCRCArbitersMap         map[common.Uint168]state.ArbiterMember
+		nextCRCArbiters            []state.ArbiterMember
+		crcChangedHeight           uint32
+		accumulativeReward         common.Fixed64
+		finalRoundChange           common.Fixed64
+		clearingHeight             uint32
+		arbitersRoundReward        map[common.Uint168]common.Fixed64
+		illegalBlocksPayloadHashes map[common.Uint256]interface{}
+		Snapshots                  map[uint32][]*state.CheckPoint
+		SnapshotKeysDesc           []uint32
+		forceChanged               bool
+		dposV2ActiveHeight         uint32
+		dposV2EffectedProducers    map[string]*state.Producer
+		History                    *utils.History
+	}
+	type args struct {
+		block   *types.Block
+		confirm *payload.Confirm
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		args   args
+	}{
+		// TODO: Add test cases.
+		{
+			"Normal",
+			fields{
+				ChainParams: &config.Params{
+					PublicDPOSHeight:      1,
+					CRVotingStartHeight:   1,
+					NewELAIssuanceHeight:  1,
+					HalvingRewardHeight:   1,
+					HalvingRewardInterval: 1,
+					CRMemberCount:         6,
+					GeneralArbiters:       12,
+				},
+				dposV2ActiveHeight:      1,
+				dposV2EffectedProducers: make(map[string]*state.Producer),
+				forceChanged:            false,
+				History:                 utils.NewHistory(10),
+			},
+			args{
+				block: &types.Block{
+					Header: common2.Header{
+						Height: 20,
+					},
+					Transactions: []interfaces.Transaction{
+						tx,
+					},
+				},
+				confirm: &payload.Confirm{
+					Proposal: payload.DPOSProposal{
+						Sponsor: nodePubKey,
+					},
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		s.T().Run(tt.name, func(t *testing.T) {
+			a := &state.Arbiters{
+				//State:                      tt.fields.State,
+				ChainParams: tt.fields.ChainParams,
+				CRCommittee: tt.fields.CRCommittee,
+				//bestHeight:                 tt.fields.bestHeight,
+				//bestBlockHash:              tt.fields.bestBlockHash,
+				//getBlockByHeight:           tt.fields.getBlockByHeight,
+				//mtx:                        tt.fields.mtx,
+				//started:                    tt.fields.started,
+				DutyIndex:             tt.fields.DutyIndex,
+				CurrentReward:         tt.fields.CurrentReward,
+				NextReward:            tt.fields.NextReward,
+				CurrentArbitrators:    tt.fields.CurrentArbitrators,
+				CurrentCandidates:     tt.fields.CurrentCandidates,
+				CurrentCRCArbitersMap: tt.fields.CurrentCRCArbitersMap,
+				Snapshots:             tt.fields.Snapshots,
+				SnapshotKeysDesc:      tt.fields.SnapshotKeysDesc,
+				State: &state.State{
+					StateKeyFrame: &state.StateKeyFrame{
+						DposV2EffectedProducers: tt.fields.dposV2EffectedProducers,
+						NodeOwnerKeys:           make(map[string]string),
+						DposV2RewardInfo:        make(map[string]common.Fixed64),
+						ActivityProducers:       make(map[string]*state.Producer),
+					},
+				},
+				History: tt.fields.History,
+			}
+
+			a.State.NodeOwnerKeys[nodePubKeyStr] = ownerPubKeyStr
+			//should be more than a.ChainParams.GeneralArbiters*3/2
+			for i := 0; i < 20; i++ {
+				a.State.DposV2EffectedProducers[randomString()] = nil
+			}
+			a.State.ActivityProducers[ownerPubKeyStr] = &state.Producer{}
+			//CurrentCRCArbitersMap
+			a.AccumulateReward(tt.args.block, tt.args.confirm)
+			a.History.Commit(tt.args.block.Height)
+			if a.State.DposV2RewardInfo["ET54cpnGG4JHeRatvPij6hGV6zN18eVSSj"] != 25 {
+				t.Errorf("DposV2RewardInfo() addr %v, want %v", "ET54cpnGG4JHeRatvPij6hGV6zN18eVSSj", 25)
+			}
+		})
 	}
 }
 

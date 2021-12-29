@@ -436,8 +436,11 @@ func (a *Arbiters) forceChange(height uint32) error {
 	}
 	a.SnapshotByHeight(height)
 
-	if err := a.clearingDPOSReward(block, height, false); err != nil {
-		return err
+	if !a.isDopsV2Run(block.Height) {
+		if err := a.clearingDPOSReward(block, block.Height, false); err != nil {
+			panic(fmt.Sprintf("normal change fail when clear DPOS reward: "+
+				" transaction, height: %d, error: %s", block.Height, err))
+		}
 	}
 
 	if err := a.UpdateNextArbitrators(height+1, height); err != nil {
@@ -525,9 +528,13 @@ func (a *Arbiters) IncreaseChainHeight(block *types.Block, confirm *payload.Conf
 					"error: %s, revert to POW mode", block.Height, err))
 			}
 		case normalChange:
-			if err := a.clearingDPOSReward(block, block.Height, true); err != nil {
-				panic(fmt.Sprintf("normal change fail when clear DPOS reward: "+
-					" transaction, height: %d, error: %s", block.Height, err))
+			if a.isDopsV2Run(block.Height) {
+				a.accumulateReward(block, confirm)
+			} else {
+				if err := a.clearingDPOSReward(block, block.Height, true); err != nil {
+					panic(fmt.Sprintf("normal change fail when clear DPOS reward: "+
+						" transaction, height: %d, error: %s", block.Height, err))
+				}
 			}
 			if err := a.normalChange(block.Height); err != nil {
 				a.revertToPOWAtNextTurn(block.Height)
@@ -621,6 +628,32 @@ func (a *Arbiters) revertToPOWAtNextTurn(height uint32) {
 		a.NoProducers = oriNoProducers
 	})
 }
+func (a *Arbiters) AccumulateReward(block *types.Block, confirm *payload.Confirm) {
+	a.mtx.Lock()
+	defer a.mtx.Unlock()
+	a.accumulateReward(block, confirm)
+}
+
+//is alreday dposv2. when we are here we need new reward.
+func (a *Arbiters) IsDopsV2Run(blockHeight uint32) bool {
+	a.mtx.Lock()
+	defer a.mtx.Unlock()
+	return a.isDopsV2Run(blockHeight)
+}
+
+//is alreday dposv2. when we are here we need new reward.
+func (a *Arbiters) isDopsV2Run(blockHeight uint32) bool {
+	log.Errorf("isDopsV2Run blockHeight %d, dposV2ActiveHeight %d CRMemberCount%d GeneralArbiters%d", blockHeight, a.dposV2ActiveHeight,
+		a.ChainParams.CRMemberCount, a.ChainParams.GeneralArbiters)
+	if a.isDposV2Active() && blockHeight >= a.dposV2ActiveHeight+a.ChainParams.CRMemberCount+uint32(a.ChainParams.GeneralArbiters) {
+		log.Error("isDopsV2Run is dpos v2 ")
+
+		return true
+	}
+	log.Error("isDopsV2Run not dpos v2 ")
+
+	return false
+}
 
 func (a *Arbiters) accumulateReward(block *types.Block, confirm *payload.Confirm) {
 	if block.Height < a.ChainParams.PublicDPOSHeight {
@@ -641,19 +674,26 @@ func (a *Arbiters) accumulateReward(block *types.Block, confirm *payload.Confirm
 		accumulative += dposReward
 	}
 
-	if a.isDposV2Active() && block.Height >= a.dposV2ActiveHeight+a.ChainParams.CRMemberCount+uint32(a.ChainParams.GeneralArbiters) {
-		pkBytes, _ := common.HexStringToBytes(hex.EncodeToString(confirm.Proposal.Sponsor))
-		u168, _ := contract.PublicKeyToStandardProgramHash(pkBytes)
-		addr, _ := u168.ToAddress()
+	if a.isDopsV2Run(block.Height) {
+		log.Debugf("accumulateReward dposReward %v", dposReward)
+		ownerPubKeyStr := a.getProducerKey(confirm.Proposal.Sponsor)
+		ownerPubKeyBytes, _ := hex.DecodeString(ownerPubKeyStr)
+		ownerProgramHash, _ := contract.PublicKeyToStandardProgramHash(ownerPubKeyBytes)
+		ownerAddr, _ := ownerProgramHash.ToAddress()
+
 		oriDutyIndex := a.DutyIndex
 		oriForceChanged := a.forceChanged
 		oriDposV2RewardInfo := a.DposV2RewardInfo
 		a.History.Append(block.Height, func() {
-			if _, ok := a.CurrentCRCArbitersMap[*u168]; ok { // crc
-				a.DposV2RewardInfo[addr] += dposReward
+			if _, ok := a.CurrentCRCArbitersMap[*ownerProgramHash]; ok { // crc
+				a.DposV2RewardInfo[ownerAddr] += dposReward
 			} else { // non crc
-				a.DposV2RewardInfo[addr] += dposReward / 4
-				producer := a.getProducer(pkBytes)
+				a.DposV2RewardInfo[ownerAddr] += dposReward / 4
+				producer := a.getProducer(confirm.Proposal.Sponsor)
+				if producer == nil {
+					log.Error("accumulateReward Sponsor not exist ", hex.EncodeToString(confirm.Proposal.Sponsor))
+					return
+				}
 				var totalShare common.Fixed64
 				shareDetail := make(map[common.Uint168]common.Fixed64)
 				for sVoteAddr, sVoteDetail := range producer.detailedDPoSV2Votes {
@@ -704,10 +744,6 @@ func (a *Arbiters) accumulateReward(block *types.Block, confirm *payload.Confirm
 
 func (a *Arbiters) clearingDPOSReward(block *types.Block, historyHeight uint32,
 	smoothClearing bool) (err error) {
-	// inactivate dpos reward sending when dposV2 activated
-	if a.isDposV2Active() && historyHeight >= a.dposV2ActiveHeight+a.ChainParams.CRMemberCount+uint32(a.ChainParams.GeneralArbiters) {
-		return nil
-	}
 	if block.Height < a.ChainParams.PublicDPOSHeight ||
 		block.Height == a.clearingHeight {
 		return nil
@@ -790,12 +826,16 @@ func (a *Arbiters) distributeWithNormalArbitratorsV3(height uint32, reward commo
 	individualBlockConfirmReward := common.Fixed64(
 		math.Floor(totalBlockConfirmReward / float64(arbitersCount)))
 	totalVotesInRound := a.CurrentReward.TotalVotesInRound
+	log.Debugf("distributeWithNormalArbitratorsV3 TotalVotesInRound %f", a.CurrentReward.TotalVotesInRound)
+
 	if a.ConsensusAlgorithm == POW || len(a.CurrentArbitrators) == 0 ||
 		len(a.ChainParams.CRCArbiters) == len(a.CurrentArbitrators) {
 		// if no normal DPOS node, need to destroy reward.
 		roundReward[a.ChainParams.DestroyELAAddress] = reward
 		return roundReward, reward, nil
 	}
+	log.Debugf("totalTopProducersReward totalTopProducersReward %f", totalTopProducersReward)
+
 	rewardPerVote := totalTopProducersReward / float64(totalVotesInRound)
 
 	realDPOSReward := common.Fixed64(0)
@@ -805,6 +845,7 @@ func (a *Arbiters) distributeWithNormalArbitratorsV3(height uint32, reward commo
 		var r common.Fixed64
 		if arbiter.GetType() == CRC {
 			r = individualBlockConfirmReward
+			log.Debugf("1233 r =individualBlockConfirmReward %s", individualBlockConfirmReward.String())
 			m, ok := arbiter.(*crcArbiter)
 			if !ok || m.crMember.MemberState != state.MemberElected {
 				rewardHash = a.ChainParams.DestroyELAAddress
@@ -824,6 +865,8 @@ func (a *Arbiters) distributeWithNormalArbitratorsV3(height uint32, reward commo
 					votes) * rewardPerVote))
 				r = individualBlockConfirmReward + individualCRCProducerReward
 				rewardHash = *programHash
+				log.Debugf("000 rewardHash%s  individualCRCProducerReward %s individualBlockConfirmReward %s votes %s", rewardHash.String(),
+					individualCRCProducerReward.String(), individualBlockConfirmReward.String(), votes.String())
 			} else {
 				pk := arbiter.GetOwnerPublicKey()
 				programHash, err := contract.PublicKeyToStandardProgramHash(pk)
@@ -838,9 +881,13 @@ func (a *Arbiters) distributeWithNormalArbitratorsV3(height uint32, reward commo
 			individualProducerReward := common.Fixed64(math.Floor(float64(
 				votes) * rewardPerVote))
 			r = individualBlockConfirmReward + individualProducerReward
+			log.Debugf("111 ownerHash%s  individualProducerReward %s individualBlockConfirmReward %s rewardPerVote %f", ownerHash.String(),
+				individualProducerReward.String(), individualBlockConfirmReward.String(), rewardPerVote)
 		}
 		roundReward[rewardHash] += r
 		realDPOSReward += r
+		log.Debugf("distributeWithNormalArbitratorsV3 rewardHash%s  r %s realDPOSReward %s", rewardHash.String(),
+			r.String(), realDPOSReward.String())
 	}
 	for _, candidate := range a.CurrentCandidates {
 		ownerHash := candidate.GetOwnerProgramHash()
@@ -848,7 +895,8 @@ func (a *Arbiters) distributeWithNormalArbitratorsV3(height uint32, reward commo
 		individualProducerReward := common.Fixed64(math.Floor(float64(
 			votes) * rewardPerVote))
 		roundReward[ownerHash] = individualProducerReward
-
+		log.Debugf("distributeWithNormalArbitratorsV3 ownerHash%s  individualProducerReward %s realDPOSReward %s",
+			ownerHash.String(), individualProducerReward.String(), realDPOSReward.String())
 		realDPOSReward += individualProducerReward
 	}
 	// Abnormal CR`s reward need to be destroyed.
@@ -1782,6 +1830,8 @@ func (a *Arbiters) getCandidateIndexAtRandom(height uint32, unclaimedCount, vote
 }
 
 func (a *Arbiters) isDposV2Active() bool {
+	log.Errorf("isDposV2Active len(a.DposV2EffectedProducers) %d  GeneralArbiters %d", len(a.DposV2EffectedProducers),
+		a.ChainParams.GeneralArbiters)
 	return len(a.DposV2EffectedProducers) >= a.ChainParams.GeneralArbiters*3/2
 }
 
@@ -2272,6 +2322,7 @@ func (a *Arbiters) GetNormalArbitratorsDesc(height uint32,
 }
 
 func (a *Arbiters) snapshotVotesStates(height uint32) error {
+	log.Debugf("snapshotVotesStates height %d begin", height)
 	var nextReward RewardData
 	recordVotes := func(nodePublicKey []byte) error {
 		producer := a.GetProducer(nodePublicKey)
@@ -2307,6 +2358,8 @@ func (a *Arbiters) snapshotVotesStates(height uint32) error {
 			}
 		}
 	}
+	log.Debugf("snapshotVotesStates len(a.nextCandidates) %d", len(a.nextCandidates))
+	log.Debugf("snapshotVotesStates a.nextCandidates %v", a.nextCandidates)
 
 	for _, ar := range a.nextCandidates {
 		if a.isNextCRCArbitrator(ar.GetNodePublicKey()) {
@@ -2323,6 +2376,8 @@ func (a *Arbiters) snapshotVotesStates(height uint32) error {
 		nextReward.OwnerVotesInRound[*programHash] = producer.Votes()
 		nextReward.TotalVotesInRound += producer.Votes()
 	}
+	log.Debugf("snapshotVotesStates a.NextReward %v", a.NextReward)
+	log.Debugf("snapshotVotesStates a.TotalVotesInRound %f", a.NextReward.TotalVotesInRound)
 
 	oriNextReward := a.NextReward
 	a.History.Append(height, func() {

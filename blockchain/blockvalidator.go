@@ -266,9 +266,9 @@ func (b *BlockChain) checkTxsContext(block *Block) error {
 			RecordCRCProposalAmount(&proposalsUsedAmount, block.Transactions[i])
 		}
 	}
-
+	dposReward := b.GetBlockDPOSReward(block)
 	err := b.checkCoinbaseTransactionContext(block.Height,
-		block.Transactions[0], totalTxFee)
+		block.Transactions[0], totalTxFee, dposReward)
 	if err != nil {
 		buf := new(bytes.Buffer)
 		if block.Height < b.chainParams.CheckRewardHeight {
@@ -432,7 +432,38 @@ func GetTxFeeMap(tx interfaces.Transaction, references map[*common.Input]common.
 	return feeMap, nil
 }
 
-func (b *BlockChain) checkCoinbaseTransactionContext(blockHeight uint32, coinbase interfaces.Transaction, totalTxFee Fixed64) error {
+func (b *BlockChain) GetBlockDPOSReward(block *Block) Fixed64 {
+	totalTxFx := Fixed64(0)
+	for _, tx := range block.Transactions {
+		totalTxFx += tx.Fee()
+	}
+	return Fixed64(math.Ceil(float64(totalTxFx+
+		b.chainParams.GetBlockReward(block.Height)) * 0.35))
+}
+
+func (b *BlockChain) checkCoinbaseTransactionContext(blockHeight uint32, coinbase interfaces.Transaction, totalTxFee, dposReward Fixed64) error {
+	log.Debugf("checkCoinbaseTransactionContext  blockHeight:%d", blockHeight)
+	if DefaultLedger.Arbitrators.IsDopsV2Run(blockHeight) {
+		log.Debugf("checkCoinbaseTransactionContext IsDopsV2Run blockHeight:%d", blockHeight)
+		totalReward := totalTxFee + b.chainParams.GetBlockReward(blockHeight)
+		rewardCyberRepublic := Fixed64(math.Ceil(float64(totalReward) * 0.3))
+		rewardDposArbiter := Fixed64(math.Ceil(float64(totalReward) * 0.35))
+		rewardMergeMiner := Fixed64(totalReward) - rewardCyberRepublic - rewardDposArbiter
+		if coinbase.Outputs()[0].Value != rewardCyberRepublic {
+			return errors.New("rewardCyberRepublic not correct")
+		}
+		if coinbase.Outputs()[1].Value != rewardMergeMiner {
+			return errors.New("rewardMergeMiner not correct")
+		}
+		if len(coinbase.Outputs()) != 3 {
+			return errors.New("coinbase only can have 3 outputs at the most when it is dposv2")
+		}
+
+		if coinbase.Outputs()[2].Value != dposReward {
+			return errors.New("last bock dposReward not correct")
+
+		}
+	}
 	// main version >= H2
 	if blockHeight >= b.chainParams.PublicDPOSHeight {
 		totalReward := totalTxFee + b.chainParams.GetBlockReward(blockHeight)

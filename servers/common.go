@@ -16,7 +16,7 @@ const TlsPort = 443
 
 type AttributeInfo struct {
 	Usage common2.AttributeUsage `json:"usage"`
-	Data  string         `json:"data"`
+	Data  string                 `json:"data"`
 }
 
 type InputInfo struct {
@@ -521,4 +521,25 @@ type RsInfo struct {
 	TxHash          string         `json:"txhash"`
 	Height          uint32         `json:"height"`
 	EffectiveHeight uint32         `json:"effectiveheight"`
+}
+
+type Voting struct {
+	Contents        []VotesContent        `json:"contents"`
+	RenewalContents []RenewalVotesContent `json:"renewalcontents"`
+}
+
+type VotesContent struct {
+	VoteType  byte                `json:"votetype"`
+	VotesInfo []VotesWithLockTime `json:"votesinfo"`
+}
+
+type VotesWithLockTime struct {
+	Candidate string `json:"candidate"`
+	Votes     string `json:"votes"`
+	LockTime  uint32 `json:"locktime"`
+}
+
+type RenewalVotesContent struct {
+	ReferKey  string            `json:"referkey"`
+	VotesInfo VotesWithLockTime `json:"votesinfo"`
 }

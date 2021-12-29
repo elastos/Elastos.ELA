@@ -172,6 +172,27 @@ func (t *RegisterProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bo
 			if err := t.additionalProducerInfoCheck(info); err != nil {
 				return elaerr.Simple(elaerr.ErrTxPayload, err), true
 			}
+
+			// check deposit coin
+			hash, err := contract.PublicKeyToDepositProgramHash(info.OwnerPublicKey)
+			if err != nil {
+				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid public key")), true
+			}
+			var depositCount int
+			for _, output := range t.Outputs() {
+				if contract.GetPrefixType(output.ProgramHash) == contract.PrefixDeposit {
+					depositCount++
+					if !output.ProgramHash.IsEqual(*hash) {
+						return elaerr.Simple(elaerr.ErrTxPayload, errors.New("deposit address does not match the public key in payload")), true
+					}
+					if output.Value < crstate.MinDepositAmount {
+						return elaerr.Simple(elaerr.ErrTxPayload, errors.New("producer deposit amount is insufficient")), true
+					}
+				}
+			}
+			if depositCount != 1 {
+				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("there must be only one deposit address in outputs")), true
+			}
 		}
 
 		// check signature
@@ -187,27 +208,6 @@ func (t *RegisterProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bo
 		err = crypto.Verify(*publicKey, signedBuf.Bytes(), info.Signature)
 		if err != nil {
 			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid signature in payload")), true
-		}
-
-		// check deposit coin
-		hash, err := contract.PublicKeyToDepositProgramHash(info.OwnerPublicKey)
-		if err != nil {
-			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid public key")), true
-		}
-		var depositCount int
-		for _, output := range t.Outputs() {
-			if contract.GetPrefixType(output.ProgramHash) == contract.PrefixDeposit {
-				depositCount++
-				if !output.ProgramHash.IsEqual(*hash) {
-					return elaerr.Simple(elaerr.ErrTxPayload, errors.New("deposit address does not match the public key in payload")), true
-				}
-				if output.Value < crstate.MinDepositAmount {
-					return elaerr.Simple(elaerr.ErrTxPayload, errors.New("producer deposit amount is insufficient")), true
-				}
-			}
-		}
-		if depositCount != 1 {
-			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("there must be only one deposit address in outputs")), true
 		}
 	}
 

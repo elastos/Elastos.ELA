@@ -3096,6 +3096,33 @@ func getPayloadInfo(p interfaces.Payload, payloadVersion byte) PayloadInfo {
 			Hash:         common.ToReversedString(object.CompareEvidence.BlockHash()),
 		}
 		return obj
+	case *payload.Voting:
+		obj := new(Voting)
+		for _, rc := range object.RenewalContents {
+			obj.RenewalContents = append(obj.RenewalContents, RenewalVotesContent{
+				ReferKey: common.ToReversedString(rc.ReferKey),
+				VotesInfo: VotesWithLockTime{
+					Candidate: common.BytesToHexString(rc.VotesInfo.Candidate),
+					Votes:     rc.VotesInfo.Votes.String(),
+					LockTime:  rc.VotesInfo.LockTime,
+				},
+			})
+		}
+		for _, rc := range object.Contents {
+			var votesinfo []VotesWithLockTime
+			for _, detail := range rc.VotesInfo {
+				votesinfo = append(votesinfo, VotesWithLockTime{
+					Candidate: common.BytesToHexString(detail.Candidate),
+					Votes:     detail.Votes.String(),
+					LockTime:  detail.LockTime,
+				})
+			}
+			obj.Contents = append(obj.Contents, VotesContent{
+				VoteType:  byte(rc.VoteType),
+				VotesInfo: votesinfo,
+			})
+		}
+		return obj
 	}
 	return nil
 }

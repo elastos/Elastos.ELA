@@ -514,6 +514,11 @@ var (
 		Name:  "returncrosschaincoinstartheight",
 		Usage: "defines the start height to support ReturnCrossChainDepositCoin transaction",
 	}
+
+	SchnorrStartHeightFlag = cli.StringFlag{
+		Name:  "schnorrstartheight",
+		Usage: "defines the start height to support schnorr transaction",
+	}
 )
 
 // MoveRPCFlags finds the rpc argument and moves it to the front

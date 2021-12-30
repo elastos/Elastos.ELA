@@ -87,6 +87,7 @@ type Configuration struct {
 	ReturnDepositCoinFee            common.Fixed64    `json:"ReturnDepositCoinFee"`
 	NewCrossChainStartHeight        uint32            `json:"NewCrossChainStartHeight"`
 	ReturnCrossChainCoinStartHeight uint32            `json:"ReturnCrossChainCoinStartHeight"`
+	SchnorrStartHeight              uint32            `json:"SchnorrStartHeight"`
 }
 
 // DPoSConfiguration defines the DPoS consensus parameters.

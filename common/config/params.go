@@ -254,6 +254,7 @@ var DefaultParams = Params{
 	ReturnCrossChainCoinStartHeight:    1032840,
 	ProhibitTransferToDIDHeight:        1032840,
 	DIDSideChainAddress:                "XKUh4GLhFJiqAMTF6HyWQrV9pK9HcGUdfJ",
+	SchnorrStartHeight:                 2000000, // todo fix me
 }
 
 // TestNet returns the network parameters for the test network.
@@ -345,6 +346,7 @@ func (p *Params) TestNet() *Params {
 	copy.CRCProposalDraftDataStartHeight = 807000
 	copy.ProhibitTransferToDIDHeight = 807000
 	copy.DIDSideChainAddress = "XKUh4GLhFJiqAMTF6HyWQrV9pK9HcGUdfJ"
+	copy.SchnorrStartHeight = 2000000 // todo fix me
 
 	return &copy
 }
@@ -439,6 +441,7 @@ func (p *Params) RegNet() *Params {
 	copy.CRCProposalDraftDataStartHeight = 730000
 	copy.ProhibitTransferToDIDHeight = 730000
 	copy.DIDSideChainAddress = "XKUh4GLhFJiqAMTF6HyWQrV9pK9HcGUdfJ"
+	copy.SchnorrStartHeight = 2000000 // todo fix me
 
 	return &copy
 }
@@ -774,9 +777,12 @@ type Params struct {
 	// ReturnDepositCoinFee indicates the fee the
 	ReturnDepositCoinFee common.Fixed64
 
-	// ReturnCrossChainCoinStartHeight indeicates the start height of
+	// ReturnCrossChainCoinStartHeight indicates the start height of
 	// ReturnCroossChainDepositCoin transaction
 	ReturnCrossChainCoinStartHeight uint32
+
+	// SchnorrStartHeight indicates the start height of schnorr
+	SchnorrStartHeight uint32
 }
 
 // rewardPerBlock calculates the reward for each block by a specified time

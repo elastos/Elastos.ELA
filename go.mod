@@ -13,7 +13,8 @@ require (
 	github.com/syndtr/goleveldb v1.0.0
 	github.com/tidwall/gjson v1.8.1
 	github.com/urfave/cli v1.22.5
-	github.com/yuin/gopher-lua v0.0.0-20210529063254-f4c35e4016d9
-	golang.org/x/crypto v0.0.0-20210711020723-a769d52b0f97
+	github.com/yuin/gopher-lua v0.0.0-20190514113301-1cd887cd7036
+	golang.org/x/crypto v0.0.0-20200510223506-06a226fb4e37
+	golang.org/x/sys v0.0.0-20191228213918-04cbcbbfeed8 // indirect
 	gopkg.in/cheggaaa/pb.v1 v1.0.28
 )

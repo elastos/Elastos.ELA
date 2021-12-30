@@ -1072,6 +1072,11 @@ func (b *BlockChain) checkAttributeProgram(tx *Transaction,
 		return fmt.Errorf("no programs found in transaction")
 	}
 	for _, program := range tx.Programs {
+
+		if blockHeight < b.chainParams.SchnorrStartHeight && contract.IsSchnorr(program.Code) {
+			return fmt.Errorf("invalid program code with schnorr before SchnorrStartHeight")
+		}
+
 		if program.Code == nil {
 			return fmt.Errorf("invalid program code nil")
 		}

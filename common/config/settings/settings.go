@@ -1022,6 +1022,12 @@ func NewSettings() *Settings {
 		ConfigPath:   "ReturnCrossChainCoinStartHeight",
 		ParamName:    "ReturnCrossChainCoinStartHeight"})
 
+	result.Add(&settingItem{
+		Flag:         cmdcom.SchnorrStartHeightFlag,
+		DefaultValue: uint32(0),
+		ConfigPath:   "SchnorrStartHeight",
+		ParamName:    "SchnorrStartHeight"})
+
 	return result
 }
 

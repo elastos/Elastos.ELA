@@ -85,9 +85,10 @@ var buildTxCommand = []cli.Command{
 	vote,
 	crosschain,
 	registerproducer,
-	unregisterproducer,
 	updateproducer,
 	activateproducer,
+	unregisterproducer,
+	returndeposit,
 }
 
 func getTransactionHex(c *cli.Context) (string, error) {

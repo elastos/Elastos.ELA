@@ -59,12 +59,12 @@ func (t *DposV2ClaimRewardRealWithdrawTransaction) SpecialContextCheck() (result
 	}
 	txsCount := len(dposv2RealWithdraw.WithdrawTransactionHashes)
 	// check WithdrawTransactionHashes count and output count
-	if txsCount != len(t.Outputs()) {
+	if txsCount != len(t.Outputs()) && txsCount != len(t.Outputs())-1 {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid real withdraw transaction hashes count")), true
 	}
 
 	// check other outputs, need to match with WithdrawTransactionHashes
-	txs := t.parameters.BlockChain.GetCRCommittee().GetRealWithdrawTransactions()
+	txs := t.parameters.BlockChain.GetState().GetRealWithdrawTransactions()
 	txsMap := make(map[common.Uint256]struct{})
 	for i, hash := range dposv2RealWithdraw.WithdrawTransactionHashes {
 		txInfo, ok := txs[hash]

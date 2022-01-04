@@ -171,7 +171,6 @@ func (pow *Service) CreateCoinbaseTx(minerAddr string, height uint32) (interface
 }
 
 func (pow *Service) AssignCoinbaseTxRewards(block *types.Block, totalReward common.Fixed64) error {
-
 	if pow.arbiters.IsDopsV2Run(block.Height) {
 		rewardCyberRepublic := common.Fixed64(math.Ceil(float64(totalReward) * 0.3))
 		rewardDposArbiter := common.Fixed64(math.Ceil(float64(totalReward) * 0.35))
@@ -180,13 +179,14 @@ func (pow *Service) AssignCoinbaseTxRewards(block *types.Block, totalReward comm
 		block.Transactions[0].Outputs()[0].Value = rewardCyberRepublic
 		block.Transactions[0].Outputs()[1].Value = rewardMergeMiner
 		if dposReward > common.Fixed64(0) {
-			block.Transactions[0].SetOutputs(append(block.Transactions[0].Outputs(), &common2.Output{
+			output := append(block.Transactions[0].Outputs(), &common2.Output{
 				AssetID:     config.ELAAssetID,
 				Value:       dposReward,
 				ProgramHash: pow.chainParams.DposV2RewardAccumulateAddress,
-			}))
+				Payload:     &outputpayload.DefaultOutput{},
+			})
+			block.Transactions[0].SetOutputs(output)
 		}
-
 		if pow.arbiters.IsInPOWMode() {
 			block.Transactions[0].Outputs()[0].ProgramHash = pow.chainParams.DestroyELAAddress
 		}
@@ -255,7 +255,6 @@ func (pow *Service) GenerateBlock(minerAddr string,
 	if err != nil {
 		return nil, err
 	}
-
 	header := common2.Header{
 		Version:    0,
 		Previous:   *pow.chain.BestChain.Hash,
@@ -327,18 +326,16 @@ func (pow *Service) GenerateBlock(minerAddr string,
 	}
 	totalReward := totalTxFee + pow.chainParams.GetBlockReward(nextBlockHeight)
 	pow.AssignCoinbaseTxRewards(msgBlock, totalReward)
-
 	txHash := make([]common.Uint256, 0, len(msgBlock.Transactions))
 	for _, tx := range msgBlock.Transactions {
 		txHash = append(txHash, tx.Hash())
 	}
-	txRoot, _ := crypto.ComputeRoot(txHash)
+	txRoot, err := crypto.ComputeRoot(txHash)
+	if err != nil {
+		log.Error(err.Error())
+	}
 	msgBlock.Header.MerkleRoot = txRoot
-
 	msgBlock.Header.Bits, err = pow.chain.CalcNextRequiredDifficulty(bestChain, time.Now())
-	log.Infof("block height %d with difficulty: %d",
-		msgBlock.Height, msgBlock.Header.Bits)
-
 	return msgBlock, err
 }
 

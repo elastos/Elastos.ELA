@@ -356,6 +356,7 @@ func (p *Params) TestNet() *Params {
 	copy.DposV2EffectiveVotes = 160000
 	copy.DposV2RewardAccumulateAddress = DposV2RewardAccumulateAddress
 	copy.StakeAddress = "" // todo complete me
+	copy.RealWithdrawSingleFee = 10000
 
 	return &copy
 }
@@ -454,6 +455,7 @@ func (p *Params) RegNet() *Params {
 	copy.DposV2EffectiveVotes = 160000
 	copy.DposV2RewardAccumulateAddress = DposV2RewardAccumulateAddress
 	copy.StakeAddress = "" // todo complete me
+	copy.RealWithdrawSingleFee = 10000
 
 	return &copy
 }

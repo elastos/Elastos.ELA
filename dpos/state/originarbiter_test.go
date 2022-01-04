@@ -54,3 +54,4 @@ func randomPublicKey() []byte {
 	result, _ := pub.EncodePoint(true)
 	return result
 }
+

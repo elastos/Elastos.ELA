@@ -83,6 +83,9 @@ func registerParams(c *cli.Context, L *lua.LState) {
 	effectiveHeight := c.Uint("effectiveheight")
 	resourcePath := c.String("resourcepath")
 
+	// dposv2
+	referKey := c.String("referkey")
+
 	getWallet := func(L *lua.LState) int {
 		L.Push(lua.LString(wallet))
 		return 1
@@ -353,6 +356,11 @@ func registerParams(c *cli.Context, L *lua.LState) {
 		return 1
 	}
 
+	getReferKey := func(L *lua.LState) int {
+		L.Push(lua.LString(referKey))
+		return 1
+	}
+
 	L.Register("getWallet", getWallet)
 	L.Register("getPassword", getPassword)
 	L.Register("getDepositAddr", getDepositAddr)
@@ -417,6 +425,8 @@ func registerParams(c *cli.Context, L *lua.LState) {
 	L.Register("getExchangeRate", getExchangeRate)
 	L.Register("getEffectiveHeight", getEffectiveHeight)
 	L.Register("getResourcePath", getResourcePath)
+
+	L.Register("getReferKey", getReferKey)
 }
 
 func scriptAction(c *cli.Context) error {
@@ -709,6 +719,10 @@ func NewCommand() *cli.Command {
 			cli.StringFlag{
 				Name:  "genesisblockdifficulty",
 				Usage: "set genesis block difficulty ",
+			},
+			cli.StringFlag{
+				Name:  "referkey",
+				Usage: "set refer key of related votes",
 			},
 		},
 		Action: scriptAction,

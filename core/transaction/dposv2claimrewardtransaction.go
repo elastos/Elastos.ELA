@@ -73,42 +73,46 @@ func (t *DposV2ClaimRewardTransaction) IsAllowedInPOWConsensus() bool {
 
 func (t *DposV2ClaimRewardTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
 	if t.parameters.BlockHeight < t.parameters.Config.DposV2StartHeight {
-		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("can not claim reward before dposv2startheight")), false
+		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("can not claim reward before dposv2startheight")), true
 	}
 
 	claimReward, ok := t.Payload().(*payload.DposV2ClaimReward)
 	if !ok {
-		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid payload for dposV2claimReward")), false
+		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid payload for dposV2claimReward")), true
 	}
 	if len(t.Inputs()) != 0 {
-		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("inputs must be zero")), false
+		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("inputs must be zero")), true
 	}
 
 	if len(t.Outputs()) != 0 {
-		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("outputs must be zero")), false
+		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("outputs must be zero")), true
 	}
 
 	pub := t.Programs()[0].Code[1 : len(t.Programs()[0].Code)-1]
 	u168, err := contract.PublicKeyToStandardProgramHash(pub)
 	if err != nil {
-		return elaerr.Simple(elaerr.ErrTxPayload, err), false
+		return elaerr.Simple(elaerr.ErrTxPayload, err), true
 	}
 	addr, err := u168.ToAddress()
 	if err != nil {
-		return elaerr.Simple(elaerr.ErrTxPayload, err), false
+		return elaerr.Simple(elaerr.ErrTxPayload, err), true
 	}
 	claimAmount, ok := t.parameters.BlockChain.GetState().DposV2RewardInfo[addr]
 	if !ok {
-		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("no reward to claim for such adress")), false
+		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("no reward to claim for such adress")), true
 	}
 
 	if claimAmount < claimReward.Amount {
-		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("claim reward exceeded , max claim reward "+claimAmount.String())), false
+		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("claim reward exceeded , max claim reward "+claimAmount.String())), true
+	}
+
+	if claimReward.Amount < t.parameters.Config.RealWithdrawSingleFee {
+		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("claim reward is less than RealWithdrawSingleFee")), true
 	}
 
 	err = t.checkClaimRewardSignature(pub, claimReward)
 	if err != nil {
-		return elaerr.Simple(elaerr.ErrTxPayload, err), false
+		return elaerr.Simple(elaerr.ErrTxPayload, err), true
 	}
 	return nil, true
 }

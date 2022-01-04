@@ -463,6 +463,7 @@ func (b *BlockChain) checkCoinbaseTransactionContext(blockHeight uint32, coinbas
 			return errors.New("last bock dposReward not correct")
 
 		}
+		return nil
 	}
 	// main version >= H2
 	if blockHeight >= b.chainParams.PublicDPOSHeight {

@@ -61,13 +61,13 @@ func (t *ReturnVotesTransaction) CheckTransactionOutput() error {
 		}
 	}
 
-	if contract.GetPrefixType(t.Outputs()[1].ProgramHash) != contract.PrefixStandard &&
-		contract.GetPrefixType(t.Outputs()[1].ProgramHash) != contract.PrefixMultiSig {
+	if contract.GetPrefixType(t.Outputs()[0].ProgramHash) != contract.PrefixStandard &&
+		contract.GetPrefixType(t.Outputs()[0].ProgramHash) != contract.PrefixMultiSig {
 		return errors.New("first output address need to be Standard or MultiSig address")
 	}
 
 	if len(t.Outputs()) == 2 {
-		if contract.GetPrefixType(t.Outputs()[0].ProgramHash) != contract.PrefixDposV2 {
+		if contract.GetPrefixType(t.Outputs()[1].ProgramHash) != contract.PrefixDposV2 {
 			return errors.New("second output address need to be stake address")
 		}
 	}
@@ -126,7 +126,7 @@ func (t *ReturnVotesTransaction) SpecialContextCheck() (result elaerr.ELAError, 
 		pl.Value > voteRights-usedDposV2VoteRights ||
 		pl.Value > voteRights-usedCRVoteRights ||
 		pl.Value > voteRights-usedCRImpeachmentVoteRights ||
-		pl.Value > usedCRCProposalVoteRights {
+		pl.Value > voteRights-usedCRCProposalVoteRights {
 		return elaerr.Simple(elaerr.ErrTxPayload,
 			errors.New("vote rights not enough")), true
 	}

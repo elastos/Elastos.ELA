@@ -211,6 +211,12 @@ func GetTransaction(txType common2.TxType) (txn interfaces.Transaction, err erro
 	case common2.ReturnVotes:
 		txn = new(ReturnVotesTransaction)
 
+	case common2.DposV2ClaimReward:
+		txn = new(DposV2ClaimRewardTransaction)
+
+	case common2.DposV2ClaimRewardRealWithdraw:
+		txn = new(DposV2ClaimRewardRealWithdrawTransaction)
+
 	default:
 		return nil, errors.New("invalid transaction type")
 	}

@@ -1884,9 +1884,10 @@ type RPCCRProposalStateInfo struct {
 }
 
 type RPCDposV2RewardInfo struct {
-	Claimable common.Fixed64
-	Claiming  common.Fixed64
-	Claimed   common.Fixed64
+	Address   string         `json:"address"`
+	Claimable common.Fixed64 `json:"claimable"`
+	Claiming  common.Fixed64 `json:"claiming"`
+	Claimed   common.Fixed64 `json:"claimed"`
 }
 
 func DposV2RewardInfo(param Params) map[string]interface{} {
@@ -1896,13 +1897,24 @@ func DposV2RewardInfo(param Params) map[string]interface{} {
 		claiming := Chain.GetState().DposV2RewardClaimingInfo[addr]
 		claimed := Chain.GetState().DposV2RewardClaimedInfo[addr]
 		result := RPCDposV2RewardInfo{
+			Address:   addr,
 			Claimable: claimable,
 			Claiming:  claiming,
 			Claimed:   claimed,
 		}
 		return ResponsePack(Success, result)
 	} else {
-		return ResponsePack(InvalidParams, "need a string parameter named address")
+		var result []RPCDposV2RewardInfo
+		for addr, value := range Chain.GetState().DposV2RewardInfo {
+			result = append(result, RPCDposV2RewardInfo{
+				Address:   addr,
+				Claimable: value,
+				Claiming:  Chain.GetState().DposV2RewardClaimingInfo[addr],
+				Claimed:   Chain.GetState().DposV2RewardClaimedInfo[addr],
+			})
+		}
+
+		return ResponsePack(Success, result)
 	}
 }
 

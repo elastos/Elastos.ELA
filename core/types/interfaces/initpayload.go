@@ -92,6 +92,10 @@ func GetPayload(txType common.TxType, payloadVersion byte) (Payload, error) {
 		p = new(payload.Voting)
 	case common.CancelVotes:
 		p = new(payload.CancelVotes)
+	case common.DposV2ClaimReward:
+		p = new(payload.DposV2ClaimReward)
+	case common.DposV2ClaimRewardRealWithdraw:
+		p = new(payload.DposV2ClaimRewardRealWithdraw)
 	default:
 		return nil, errors.New("[BaseTransaction], invalid transaction type.")
 	}

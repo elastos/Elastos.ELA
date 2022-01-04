@@ -50,6 +50,8 @@ const (
 	// dpos2.0
 	luaExchangeVotesName = "exchangevotes"
 	luaVotingName        = "voting"
+	luaCancelVotesName   = "cancelVotes"
+	luaReturnVotesName   = "returnvotes"
 )
 
 func RegisterExchangeVotesType(L *lua.LState) {
@@ -60,12 +62,59 @@ func RegisterExchangeVotesType(L *lua.LState) {
 	L.SetField(mt, "__index", L.SetFuncs(L.NewTable(), exchangeVotesMethods))
 }
 
+func RegisterReturnVotesType(L *lua.LState) {
+	mt := L.NewTypeMetatable(luaReturnVotesName)
+	L.SetGlobal("returnvotes", mt)
+	L.SetField(mt, "new", L.NewFunction(newReturnVotes))
+	// methods
+	L.SetField(mt, "__index", L.SetFuncs(L.NewTable(), exchangeVotesMethods))
+}
+
+func RegisterCancelVotes(L *lua.LState) {
+	mt := L.NewTypeMetatable(luaCancelVotesName)
+	L.SetGlobal("cancelvotes", mt)
+	L.SetField(mt, "new", L.NewFunction(newCancelVotes))
+	// methods
+	L.SetField(mt, "__index", L.SetFuncs(L.NewTable(), cancelVotesMethods))
+}
+
 // Constructor
 func newExchangeVotes(L *lua.LState) int {
 	cb := &payload.ExchangeVotes{}
 	ud := L.NewUserData()
 	ud.Value = cb
 	L.SetMetatable(ud, L.GetTypeMetatable(luaExchangeVotesName))
+	L.Push(ud)
+
+	return 1
+}
+
+func newReturnVotes(L *lua.LState) int {
+	amount := L.ToInt(1)
+	cb := &payload.ReturnVotes{
+		Value: common.Fixed64(amount),
+	}
+	ud := L.NewUserData()
+	ud.Value = cb
+	L.SetMetatable(ud, L.GetTypeMetatable(luaCoinBaseTypeName))
+	L.Push(ud)
+
+	return 1
+}
+
+func newCancelVotes(L *lua.LState) int {
+	referKey := L.ToString(1)
+	referKey256, err := common.Uint256FromHexString(referKey)
+	if err != nil {
+		fmt.Println(err.Error())
+		os.Exit(-1)
+	}
+	cb := &payload.CancelVotes{
+		ReferKeys: []common.Uint256{*referKey256},
+	}
+	ud := L.NewUserData()
+	ud.Value = cb
+	L.SetMetatable(ud, L.GetTypeMetatable(luaCancelVotesName))
 	L.Push(ud)
 
 	return 1
@@ -82,13 +131,53 @@ func checkExchangeVotes(L *lua.LState, idx int) *payload.Voting {
 	return nil
 }
 
+func checkReturnVotes(L *lua.LState, idx int) *payload.ReturnVotes {
+	ud := L.CheckUserData(idx)
+	if v, ok := ud.Value.(*payload.ReturnVotes); ok {
+		return v
+	}
+	L.ArgError(1, "Exchange votes expected")
+	return nil
+}
+
+func checkCancelVotes(L *lua.LState, idx int) *payload.CancelVotes {
+	ud := L.CheckUserData(idx)
+	if v, ok := ud.Value.(*payload.CancelVotes); ok {
+		return v
+	}
+	L.ArgError(1, "Cancel votes expected")
+	return nil
+}
+
 var exchangeVotesMethods = map[string]lua.LGFunction{
 	"get": exchangeVotesGet,
+}
+
+var returnVotesMethods = map[string]lua.LGFunction{
+	"get": returnVotesGet,
+}
+
+var cancelVotesMethods = map[string]lua.LGFunction{
+	"get": cancelVotesGet,
 }
 
 // Getter and setter for the Person#Name
 func exchangeVotesGet(L *lua.LState) int {
 	p := checkExchangeVotes(L, 1)
+	fmt.Println(p)
+
+	return 0
+}
+
+func returnVotesGet(L *lua.LState) int {
+	p := checkReturnVotes(L, 1)
+	fmt.Println(p)
+
+	return 0
+}
+
+func cancelVotesGet(L *lua.LState) int {
+	p := checkCancelVotes(L, 1)
 	fmt.Println(p)
 
 	return 0

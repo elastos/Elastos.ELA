@@ -298,6 +298,9 @@ func RegisterDataType(L *lua.LState) int {
 
 	// DPoS 2.0
 	RegisterExchangeVotesType(L)
+	RegisterExchangeVotesOutputType(L)
 	RegisterVotingType(L)
+	RegisterCancelVotes(L)
+	RegisterReturnVotesType(L)
 	return 0
 }

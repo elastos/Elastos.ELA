@@ -95,7 +95,6 @@ func (t *CRCProposalTransaction) SpecialContextCheck() (result elaerr.ELAError, 
 	if t.parameters.BlockChain.GetCRCommittee().ExistDraft(proposal.DraftHash) {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("duplicated draft proposal hash")), true
 	}
-
 	if !t.parameters.BlockChain.GetCRCommittee().IsProposalAllowed(t.parameters.BlockHeight - 1) {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("cr proposal tx must not during voting period")), true
 	}
@@ -112,7 +111,6 @@ func (t *CRCProposalTransaction) SpecialContextCheck() (result elaerr.ELAError, 
 			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("the  draft data and draft hash of proposal are  inconsistent\n \n  ")), true
 		}
 	}
-
 	if len(proposal.Budgets) > blockchain.MaxBudgetsCount {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("budgets exceeded the maximum limit")), true
 	}

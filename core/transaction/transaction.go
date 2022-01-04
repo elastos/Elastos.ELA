@@ -207,7 +207,7 @@ func (tx *BaseTransaction) SerializeUnsigned(w io.Writer) error {
 
 	//[]*Outputs
 	if err := common.WriteVarUint(w, uint64(len(tx.outputs))); err != nil {
-		return errors.New("BaseTransaction item Outputs length serialization failed.")
+		return errors.New("BaseTransaction item Outputs length serialization failed." + err.Error())
 	}
 	for _, output := range tx.outputs {
 		if err := output.Serialize(w, tx.version); err != nil {

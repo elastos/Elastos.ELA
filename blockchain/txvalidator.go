@@ -2624,6 +2624,9 @@ func (b *BlockChain) checkDposV2ClaimRewardRealWithdrawTransaction(txn interface
 	}
 	var outputAmount common.Fixed64
 	for _, o := range txn.Outputs() {
+		if o.Value < 0 {
+			return errors.New("output amount is less than 0")
+		}
 		outputAmount += o.Value
 	}
 	if inputAmount-outputAmount != b.chainParams.RealWithdrawSingleFee*common.Fixed64(txsCount) {

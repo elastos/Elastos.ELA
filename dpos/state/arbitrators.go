@@ -125,8 +125,11 @@ func (a *Arbiters) SetNeedRevertToDPOSTX(need bool) {
 func (a *Arbiters) IsInPOWMode() bool {
 	a.mtx.Lock()
 	defer a.mtx.Unlock()
-	return a.ConsensusAlgorithm == POW
+	return a.isInPOWMode()
+}
 
+func (a *Arbiters) isInPOWMode() bool {
+	return a.ConsensusAlgorithm == POW
 }
 
 func (a *Arbiters) GetRevertToPOWBlockHeight() uint32 {
@@ -680,7 +683,6 @@ func (a *Arbiters) accumulateReward(block *types.Block, confirm *payload.Confirm
 		ownerPubKeyBytes, _ := hex.DecodeString(ownerPubKeyStr)
 		ownerProgramHash, _ := contract.PublicKeyToStandardProgramHash(ownerPubKeyBytes)
 		ownerAddr, _ := ownerProgramHash.ToAddress()
-
 		oriDutyIndex := a.DutyIndex
 		oriForceChanged := a.forceChanged
 		oriDposV2RewardInfo := a.DposV2RewardInfo
@@ -710,7 +712,7 @@ func (a *Arbiters) accumulateReward(block *types.Block, confirm *payload.Confirm
 					b[0] = byte(contract.PrefixStandard)
 					standardUint168, _ := common.Uint168FromBytes(b)
 					addr, _ := standardUint168.ToAddress()
-					a.DposV2RewardInfo[addr] = dposReward * 3 / 4 * share / totalShare
+					a.DposV2RewardInfo[addr] += dposReward * 3 / 4 * share / totalShare
 				}
 			}
 			a.forceChanged = false

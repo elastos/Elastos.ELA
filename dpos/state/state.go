@@ -1253,6 +1253,9 @@ func (s *State) processTransaction(tx interfaces.Transaction, height uint32) {
 	case common2.Voting:
 		s.processVoting(tx, height)
 
+	case common2.CancelVotes:
+		s.processCancelVoting(tx, height)
+
 	case common2.IllegalProposalEvidence, common2.IllegalVoteEvidence,
 		common2.IllegalBlockEvidence, common2.IllegalSidechainEvidence:
 		s.processIllegalEvidence(tx.Payload(), height)
@@ -1491,6 +1494,90 @@ func (s *State) processVoting(tx interfaces.Transaction, height uint32) {
 	}
 }
 
+func (s *State) processCancelVoting(tx interfaces.Transaction, height uint32) {
+	// get stake address(program hash)
+	code := tx.Programs()[0].Code
+	ct, _ := contract.CreateStakeContractByCode(code)
+	stakeAddress := ct.ToProgramHash()
+
+	pld := tx.Payload().(*payload.CancelVotes)
+	for _, key := range pld.ReferKeys {
+		detailVoteInfo := s.DetailDPoSV1Votes[key]
+		switch detailVoteInfo.VoteType {
+		case outputpayload.Delegate:
+			s.History.Append(height, func() {
+				s.DposVotes[*stakeAddress] -= detailVoteInfo.Info.Votes
+			}, func() {
+				s.DposVotes[*stakeAddress] += detailVoteInfo.Info.Votes
+			})
+
+			producer := s.getProducer(detailVoteInfo.Info.Candidate)
+			if producer == nil {
+				continue
+			}
+			s.History.Append(height, func() {
+				producer.votes -= detailVoteInfo.Info.Votes
+			}, func() {
+				producer.votes += detailVoteInfo.Info.Votes
+			})
+
+			s.History.Append(height, func() {
+				delete(s.DetailDPoSV1Votes, key)
+			}, func() {
+				s.DetailDPoSV1Votes[key] = detailVoteInfo
+			})
+		case outputpayload.CRC:
+			s.History.Append(height, func() {
+				s.CRVotes[*stakeAddress] -= detailVoteInfo.Info.Votes
+			}, func() {
+				s.CRVotes[*stakeAddress] += detailVoteInfo.Info.Votes
+			})
+		case outputpayload.CRCProposal:
+			s.History.Append(height, func() {
+				s.CRCProposalVotes[*stakeAddress] -= detailVoteInfo.Info.Votes
+			}, func() {
+				s.CRCProposalVotes[*stakeAddress] += detailVoteInfo.Info.Votes
+			})
+		case outputpayload.CRCImpeachment:
+			s.History.Append(height, func() {
+				s.CRImpeachmentVotes[*stakeAddress] -= detailVoteInfo.Info.Votes
+			}, func() {
+				s.CRImpeachmentVotes[*stakeAddress] += detailVoteInfo.Info.Votes
+			})
+		case outputpayload.DposV2:
+			s.History.Append(height, func() {
+				s.DposV2Votes[*stakeAddress] -= detailVoteInfo.Info.Votes
+			}, func() {
+				s.DposV2Votes[*stakeAddress] += detailVoteInfo.Info.Votes
+			})
+
+			producer := s.getDPoSV2Producer(detailVoteInfo.Info.Candidate)
+			if producer == nil {
+				continue
+			}
+			s.History.Append(height, func() {
+				delete(producer.detailedDPoSV2Votes[*stakeAddress], key)
+				producer.dposV2Votes -= detailVoteInfo.Info.Votes
+				if producer.dposV2Votes < s.ChainParams.DposV2EffectiveVotes {
+					delete(s.DposV2EffectedProducers, hex.EncodeToString(producer.OwnerPublicKey()))
+				}
+			}, func() {
+				if producer.detailedDPoSV2Votes == nil {
+					producer.detailedDPoSV2Votes = make(map[common.Uint168]map[common.Uint256]payload.DetailedVoteInfo)
+				}
+				if _, ok := producer.detailedDPoSV2Votes[*stakeAddress]; !ok {
+					producer.detailedDPoSV2Votes[*stakeAddress] = make(map[common.Uint256]payload.DetailedVoteInfo)
+				}
+				producer.detailedDPoSV2Votes[*stakeAddress][key] = detailVoteInfo
+				producer.dposV2Votes += detailVoteInfo.Info.Votes
+				if producer.dposV2Votes >= s.ChainParams.DposV2EffectiveVotes {
+					s.DposV2EffectedProducers[hex.EncodeToString(producer.OwnerPublicKey())] = producer
+				}
+			})
+		}
+	}
+}
+
 func (s *State) processVotingContent(tx interfaces.Transaction, height uint32) {
 
 	// get stake address(program hash)
@@ -1563,9 +1650,9 @@ func (s *State) processVotingContent(tx interfaces.Transaction, height uint32) {
 				}
 			}
 			s.History.Append(height, func() {
-				s.CRVotes[*stakeAddress] += maxVotes
+				s.CRCProposalVotes[*stakeAddress] += maxVotes
 			}, func() {
-				s.CRVotes[*stakeAddress] -= maxVotes
+				s.CRCProposalVotes[*stakeAddress] -= maxVotes
 			})
 		case outputpayload.CRCImpeachment:
 			var totalVotes common.Fixed64

@@ -494,9 +494,10 @@ Get the balance of an address
 
 #### Parameter 
 
-| name    | type   | description |
-| ------- | ------ | ----------- |
-| address | string | address     |
+| name      | type   | description                                                       |
+| --------- | ------ | ----------------------------------------------------------------- |
+| address   | string | address                                                           |
+| spendable | bool   | optional, the default value is false, whether to return spendable |
 
 #### Example
 
@@ -505,7 +506,7 @@ Request:
 ```json
 {
   "method": "getreceivedbyaddress",
-  "params":{"address": "8VYXVxKKSAxkmRrfmGpQR2Kc66XhG6m3ta"}
+  "params":{"address": "8VYXVxKKSAxkmRrfmGpQR2Kc66XhG6m3ta","spendable": false}
 }
 ```
 
@@ -526,10 +527,11 @@ List all utxo of given addresses
 
 #### Parameter 
 
-| name      | type          | description   |
-| --------- | ------------- | ------------- |
-| addresses | array[string] | addresses     |
-| utxotype  | string        | the utxo type |
+| name      | type          | description                                                       |
+| --------- | ------------- | ----------------------------------------------------------------- |
+| addresses | array[string] | addresses                                                         |
+| utxotype  | string        | the utxo type                                                     |
+| spendable | bool          | optional, the default value is false, whether to return spendable |
 
 if not set utxotype will use "mixed" as default value
 if set utxotype to "mixed" or not set will get all utxos ignore the type
@@ -543,7 +545,7 @@ Request:
 ```json
 {
   "method":"listunspent",
-  "params":{"addresses": ["8ZNizBf4KhhPjeJRGpox6rPcHE5Np6tFx3", "EeEkSiRMZqg5rd9a2yPaWnvdPcikFtsrjE"]}
+  "params":{"addresses": ["8ZNizBf4KhhPjeJRGpox6rPcHE5Np6tFx3", "EeEkSiRMZqg5rd9a2yPaWnvdPcikFtsrjE"],"spendable": false}
 }
 ```
 

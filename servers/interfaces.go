@@ -1075,6 +1075,11 @@ func GetReceivedByAddress(param Params) map[string]interface{} {
 	if !ok {
 		return ResponsePack(InvalidParams, "need a parameter named address")
 	}
+	spendable := false
+	if s, ok := param.Bool("spendable"); ok {
+		spendable = s
+	}
+	bestHeight := Chain.GetHeight()
 	programHash, err := common.Uint168FromAddress(address)
 	if err != nil {
 		return ResponsePack(InvalidParams, "invalid address, "+err.Error())
@@ -1085,6 +1090,16 @@ func GetReceivedByAddress(param Params) map[string]interface{} {
 	}
 	var balance common.Fixed64 = 0
 	for _, u := range utxos {
+		tx, height, err := Store.GetTransaction(u.TxID)
+		if err != nil {
+			return ResponsePack(InternalError, "unknown transaction "+
+				u.TxID.String()+" from persisted utxo")
+		}
+		if spendable  && tx.IsCoinBaseTx() {
+			if bestHeight - height < ChainParams.CoinbaseMaturity {
+				continue
+			}
+		}
 		balance = balance + u.Value
 	}
 

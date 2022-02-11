@@ -259,6 +259,7 @@ func GetDefaultParams() Params {
 		DposV2StartHeight:                  2000000,
 		DposV2EffectiveVotes:               160000,
 		DposV2RewardAccumulateAddress:      DposV2RewardAccumulateAddress,
+		StakeAddress:                       "", // todo complete me
 	}
 }
 
@@ -354,6 +355,7 @@ func (p *Params) TestNet() *Params {
 	copy.DposV2StartHeight = 2000000
 	copy.DposV2EffectiveVotes = 160000
 	copy.DposV2RewardAccumulateAddress = DposV2RewardAccumulateAddress
+	copy.StakeAddress = "" // todo complete me
 
 	return &copy
 }
@@ -451,6 +453,7 @@ func (p *Params) RegNet() *Params {
 	copy.DposV2StartHeight = 2000000
 	copy.DposV2EffectiveVotes = 160000
 	copy.DposV2RewardAccumulateAddress = DposV2RewardAccumulateAddress
+	copy.StakeAddress = "" // todo complete me
 
 	return &copy
 }
@@ -798,6 +801,8 @@ type Params struct {
 
 	// DposV2RewardAccumulateAddress defines the dposv2 reward accumulating address
 	DposV2RewardAccumulateAddress common.Uint168
+
+	StakeAddress string
 }
 
 // RewardPerBlock calculates the reward for each block by a specified time

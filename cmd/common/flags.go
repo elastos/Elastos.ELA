@@ -554,6 +554,12 @@ var (
 		Name:  "dposv2rewardaccumulateaddress",
 		Usage: "defines dposv2 reward accumulate address",
 	}
+
+
+	StakeAddressFlag = cli.StringFlag{
+		Name:  "stakeaddress",
+		Usage: "defines the stake address of DPoS v2 votes",
+	}
 )
 
 // MoveRPCFlags finds the rpc argument and moves it to the front

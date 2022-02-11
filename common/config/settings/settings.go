@@ -1046,6 +1046,12 @@ func NewSettings() *Settings {
 		ParamName:    "DposV2EffectiveVotes"})
 
 	result.Add(&settingItem{
+		Flag:         cmdcom.StakeAddressFlag,
+		DefaultValue: common.Fixed64(0),
+		ConfigPath:   "StakeAddress",
+		ParamName:    "StakeAddress"})
+
+	result.Add(&settingItem{
 		Flag:         cmdcom.DposV2RewardAccumulateAddressFlag,
 		DefaultValue: "",
 		ConfigSetter: func(path string, params *config.Params,

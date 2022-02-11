@@ -89,6 +89,8 @@ type Configuration struct {
 	ReturnCrossChainCoinStartHeight uint32            `json:"ReturnCrossChainCoinStartHeight"`
 	DposV2StartHeight               uint32            `json:"DposV2StartHeight"`
 	DposV2EffectiveVotes            common.Fixed64    `json:"DposV2EffectiveVotes"`
+
+	StakeAddress string `json:"StakeAddress"`
 }
 
 // DPoSConfiguration defines the DPoS consensus parameters.

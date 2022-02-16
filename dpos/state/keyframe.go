@@ -35,12 +35,12 @@ type StateKeyFrame struct {
 
 	// dpos 2.0
 	DetailDPoSV1Votes  map[common.Uint256]payload.DetailedVoteInfo // key: hash of DetailedVoteInfo
-	DposV2VoteRights   map[common.Uint168]common.Fixed64           // key: stake address value: amount
-	DposVotes          map[common.Uint168]common.Fixed64           // key: stake address value: amount
-	DposV2Votes        map[common.Uint168]common.Fixed64           // key: stake address value: amount
-	CRVotes            map[common.Uint168]common.Fixed64           // key: stake address value: amount
-	CRImpeachmentVotes map[common.Uint168]common.Fixed64           // key: stake address value: amount
-	CRCProposalVotes   map[common.Uint168]common.Fixed64           // key: stake address value: amount
+	DposV2VoteRights   map[common.Uint168]common.Fixed64           // key: address value: amount
+	DposVotes          map[common.Uint168]common.Fixed64           // key: address value: amount
+	DposV2Votes        map[common.Uint168]common.Fixed64           // key: address value: amount
+	CRVotes            map[common.Uint168]common.Fixed64           // key: address value: amount
+	CRImpeachmentVotes map[common.Uint168]common.Fixed64           // key: address value: amount
+	CRCProposalVotes   map[common.Uint168]common.Fixed64           // key: address value: amount
 
 	DepositOutputs map[string]common.Fixed64
 	//key is addr str value is dposReward

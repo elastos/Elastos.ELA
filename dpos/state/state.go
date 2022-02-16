@@ -1470,11 +1470,12 @@ func (s *State) processVotes(tx interfaces.Transaction, height uint32) {
 // processNewVotes takes a transaction, if the transaction including any votes
 // validate and update producers votes.
 func (s *State) processExchangeVotes(tx interfaces.Transaction, height uint32) {
-	pld := tx.Payload().(*payload.ExchangeVotes)
+	ot := tx.Outputs()[0]
+	pld := tx.Outputs()[0].Payload.(*outputpayload.ExchangeVoteOutput)
 	s.History.Append(height, func() {
-		s.DposV2VoteRights[tx.Outputs()[0].ProgramHash] += pld.Value
+		s.DposV2VoteRights[pld.StakeAddress] += ot.Value
 	}, func() {
-		s.DposV2VoteRights[tx.Outputs()[0].ProgramHash] -= pld.Value
+		s.DposV2VoteRights[pld.StakeAddress] -= ot.Value
 	})
 }
 

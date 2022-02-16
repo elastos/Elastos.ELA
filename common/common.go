@@ -50,6 +50,10 @@ func BytesReverse(u []byte) []byte {
 	return u
 }
 
+func GetPublicKeyFromCode(code []byte) []byte {
+	return code[1 : len(code)-1]
+}
+
 func BytesToHexString(data []byte) string {
 	return hex.EncodeToString(data)
 }

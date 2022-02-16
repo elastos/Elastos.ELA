@@ -62,13 +62,10 @@ func RegisterExchangeVotesType(L *lua.LState) {
 
 // Constructor
 func newExchangeVotes(L *lua.LState) int {
-	amount := L.ToInt(1)
-	cb := &payload.ExchangeVotes{
-		Value: common.Fixed64(amount),
-	}
+	cb := &payload.ExchangeVotes{}
 	ud := L.NewUserData()
 	ud.Value = cb
-	L.SetMetatable(ud, L.GetTypeMetatable(luaCoinBaseTypeName))
+	L.SetMetatable(ud, L.GetTypeMetatable(luaExchangeVotesName))
 	L.Push(ud)
 
 	return 1

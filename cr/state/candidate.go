@@ -44,7 +44,7 @@ func (ps CandidateState) String() string {
 	return fmt.Sprintf("CandidateState-%d", ps)
 }
 
-// Candidate defines information about CR candidates during the CR vote period
+// StakeAddress defines information about CR candidates during the CR vote period
 type Candidate struct {
 	Info           payload.CRInfo
 	State          CandidateState

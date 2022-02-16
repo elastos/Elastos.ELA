@@ -135,6 +135,13 @@ func (t *ReturnVotesTransaction) SpecialContextCheck() (result elaerr.ELAError, 
 	inputsStakeAddr := make(map[common.Uint168]struct{})
 	inputsStakeAmount := common.Fixed64(0)
 	for _, o := range t.references {
+		addr, err := o.ProgramHash.ToAddress()
+		if err != nil {
+			continue
+		}
+		if addr != t.parameters.Config.StakeAddress {
+			continue
+		}
 		if contract.GetPrefixType(o.ProgramHash) != contract.PrefixDposV2 {
 			continue
 		}

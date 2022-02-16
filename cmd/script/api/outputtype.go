@@ -78,6 +78,13 @@ func newTxOutput(L *lua.LState) int {
 			log.Debug("error cross chain payload")
 		}
 		outputPayload = payload
+
+	case *outputpayload.ExchangeVoteOutput:
+		payload, ok := outputPayloadData.Value.(*outputpayload.ExchangeVoteOutput)
+		if !ok {
+			log.Debug("error exchange vote payload")
+		}
+		outputPayload = payload
 	}
 
 	output := &common2.Output{

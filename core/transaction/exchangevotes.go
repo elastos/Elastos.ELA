@@ -8,6 +8,7 @@ package transaction
 import (
 	"errors"
 	"fmt"
+	"github.com/elastos/Elastos.ELA/core/types/outputpayload"
 
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
@@ -53,10 +54,31 @@ func (t *ExchangeVotesTransaction) CheckTransactionOutput() error {
 		}
 	}
 
-	if contract.GetPrefixType(t.Outputs()[0].ProgramHash) != contract.PrefixDposV2 {
-		return errors.New("first output address need to be DPoSV2")
+	// check output payload
+	if t.outputs[0].Type != common2.OTExchangeVotes {
+		return errors.New("invalid output type")
+	}
+	p := t.outputs[0].Payload
+	if p == nil {
+		return errors.New("invalid output payload")
+	}
+	if _, ok := p.(*outputpayload.ExchangeVoteOutput); !ok {
+		return errors.New("invalid exchange vote output payload")
+	}
+	if err := p.Validate(); err != nil {
+		return err
 	}
 
+	// check output address, need to be stake address
+	addr, err := t.outputs[0].ProgramHash.ToAddress()
+	if err != nil {
+		return errors.New("invalid first output address")
+	}
+	if addr != t.parameters.Config.StakeAddress {
+		return errors.New("first output address need to be stake address")
+	}
+
+	// check the second output
 	if len(t.Outputs()) == 2 {
 		if contract.GetPrefixType(t.Outputs()[1].ProgramHash) != contract.PrefixStandard &&
 			contract.GetPrefixType(t.Outputs()[1].ProgramHash) != contract.PrefixMultiSig {
@@ -127,11 +149,6 @@ func (t *ExchangeVotesTransaction) SpecialContextCheck() (result elaerr.ELAError
 	if len(inputsAddr) != 1 {
 		return elaerr.Simple(elaerr.ErrTxInvalidInput,
 			errors.New("has different input address")), true
-	}
-
-	if t.Outputs()[0].Value != t.Payload().(*payload.ExchangeVotes).Value {
-		return elaerr.Simple(elaerr.ErrTxInvalidOutput,
-			errors.New("payload value is not equal to output value")), true
 	}
 
 	return nil, false

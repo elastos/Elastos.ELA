@@ -211,7 +211,7 @@ func (sm *SyncManager) isSyncCandidate(peer *peer.Peer) bool {
 		return false
 	}
 
-	// Candidate if all checks passed.
+	// StakeAddress if all checks passed.
 	return true
 }
 

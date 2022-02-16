@@ -8,12 +8,9 @@ package payload
 import (
 	"bytes"
 	"io"
-
-	"github.com/elastos/Elastos.ELA/common"
 )
 
 type ExchangeVotes struct {
-	Value common.Fixed64
 }
 
 func (p *ExchangeVotes) Data(version byte) []byte {
@@ -26,17 +23,9 @@ func (p *ExchangeVotes) Data(version byte) []byte {
 }
 
 func (p *ExchangeVotes) Serialize(w io.Writer, version byte) error {
-	if err := p.Value.Serialize(w); err != nil {
-		return err
-	}
-
 	return nil
 }
 
 func (p *ExchangeVotes) Deserialize(r io.Reader, version byte) error {
-	if err := p.Value.Deserialize(r); err != nil {
-		return err
-	}
-
 	return nil
 }

@@ -545,5 +545,4 @@ type RenewalVotesContent struct {
 }
 
 type ExchangeVoteInfo struct {
-	ExchangeValue string `json:"exchangevalue"`
 }

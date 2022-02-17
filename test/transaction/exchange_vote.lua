@@ -52,7 +52,7 @@ print("fee:", fee)
 
 
 -- payload
-local ta = exchangevotes.new(amount * 100000000)
+local ta = exchangevotes.new()
 
 -- transaction: version, tx_type, payload_version, payload, locktime
 local tx = transaction.new(9, 0x62, 0, ta, 0)
@@ -62,9 +62,14 @@ local charge = tx:appendenough(addr, (amount + fee) * 100000000)
 print("charge", charge)
 
 local default_output = defaultoutput.new()
+
+-- outputpayload
+local vote_output = exchangevotesoutput.new(0, saddr, amount * 100000000)
+print("vote_output", vote_output:get())
+
 -- output: asset_id, value, recipient, output_paload_type, output_paload
 local charge_output = output.new(asset_id, charge, addr, 0, default_output)
-local amount_output = output.new(asset_id, amount * 100000000, saddr, 0, default_output)
+local amount_output = output.new(asset_id, amount * 100000000, saddr, 7, vote_output)
 -- print("txoutput", charge_output:get())
 -- print("txoutput", amount_output:get())
 tx:appendtxout(amount_output)

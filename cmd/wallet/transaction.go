@@ -12,12 +12,12 @@ import (
 	"os"
 	"strings"
 
-	"github.com/elastos/Elastos.ELA/core/contract/program"
-	common2 "github.com/elastos/Elastos.ELA/core/types/common"
-	"github.com/elastos/Elastos.ELA/core/types/functions"
 	"github.com/elastos/Elastos.ELA/account"
 	cmdcom "github.com/elastos/Elastos.ELA/cmd/common"
 	"github.com/elastos/Elastos.ELA/common"
+	"github.com/elastos/Elastos.ELA/core/contract/program"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/functions"
 	"github.com/elastos/Elastos.ELA/crypto"
 	"github.com/elastos/Elastos.ELA/utils/http"
 
@@ -84,11 +84,15 @@ var buildTxCommand = []cli.Command{
 	dpossv2claimreward,
 	vote,
 	crosschain,
+	// producer
 	registerproducer,
 	updateproducer,
 	activateproducer,
 	unregisterproducer,
 	returndeposit,
+	// crc
+	registercr,
+	updatecr,
 }
 
 func getTransactionHex(c *cli.Context) (string, error) {

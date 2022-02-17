@@ -162,7 +162,7 @@ func createInputs(fromAddr string, totalAmount common.Fixed64) ([]*common2.Input
 		input := &common2.Input{
 			Previous: common2.OutPoint{
 				TxID:  *txID,
-				Index: uint16(utxo.VOut),
+				Index: utxo.VOut,
 			},
 			Sequence: uint32(sequence),
 		}
@@ -329,18 +329,6 @@ func createProducerInfoCommonTransaction(c *cli.Context, txType common2.TxType, 
 	var amount *common.Fixed64
 	var err error
 
-	if needOutputAmount {
-		name = cmdcom.TransactionAmountFlag.Name
-		amountStr := c.String(name)
-		if amountStr == "" {
-			return errors.New(fmt.Sprintf("use --%s to specify transfer amount", name))
-		}
-		amount, err = common.StringToFixed64(amountStr)
-		if err != nil {
-			return errors.New("invalid transaction amount")
-		}
-	}
-
 	name = cmdcom.TransactionFeeFlag.Name
 	feeStr := c.String(name)
 	if feeStr == "" {
@@ -350,7 +338,6 @@ func createProducerInfoCommonTransaction(c *cli.Context, txType common2.TxType, 
 	if err != nil {
 		return errors.New("invalid transaction fee")
 	}
-
 
 	name = strings.Split(cmdcom.AccountWalletFlag.Name, ",")[0]
 	walletPath := c.String(name)
@@ -376,12 +363,22 @@ func createProducerInfoCommonTransaction(c *cli.Context, txType common2.TxType, 
 
 	outputs := make([]*OutputInfo, 0)
 	if needOutputAmount {
+		name = cmdcom.TransactionAmountFlag.Name
+		amountStr := c.String(name)
+		if amountStr == "" {
+			return errors.New(fmt.Sprintf("use --%s to specify transfer amount", name))
+		}
+		amount, err = common.StringToFixed64(amountStr)
+		if err != nil {
+			return errors.New("invalid transaction amount")
+		}
+
 		programHash, err := contract.PublicKeyToDepositProgramHash(ownerPublicKey)
-		if (err != nil) {
+		if err != nil {
 			return err
 		}
 		to, err := programHash.ToAddress()
-		if (err != nil) {
+		if err != nil {
 			return err
 		}
 		outputs = []*OutputInfo{{to, amount}}
@@ -466,6 +463,125 @@ func createProducerInfoCommonTransaction(c *cli.Context, txType common2.TxType, 
 		payload.ProducerInfoDposV2Version, p, outputs...)
 	if err != nil {
 		return errors.New("create transaction failed: " + err.Error())
+	}
+
+	OutputTx(0, 1, txn)
+
+	return nil
+}
+
+func createCRInfoCommonTransaction(c *cli.Context, txType common2.TxType, needOutputAmount bool) error {
+	var name string
+	var amount *common.Fixed64
+	var err error
+
+	name = cmdcom.TransactionFeeFlag.Name
+	feeStr := c.String(name)
+	if feeStr == "" {
+		return errors.New(fmt.Sprintf("use --%s to specify transfer fee", name))
+	}
+	fee, err := common.StringToFixed64(feeStr)
+	if err != nil {
+		return errors.New("invalid transaction fee")
+	}
+
+	name = strings.Split(cmdcom.AccountWalletFlag.Name, ",")[0]
+	walletPath := c.String(name)
+	if walletPath == "" {
+		return errors.New(fmt.Sprintf("use --%s to specify wallet path", name))
+	}
+	password, err := cmdcom.GetFlagPassword(c)
+	if err != nil {
+		return err
+	}
+
+	var acc *account.Account
+	client, err := account.Open(walletPath, password)
+	if err != nil {
+		return err
+	}
+	acc = client.GetMainAccount()
+
+	outputs := make([]*OutputInfo, 0)
+	if needOutputAmount {
+		name = cmdcom.TransactionAmountFlag.Name
+		amountStr := c.String(name)
+		if amountStr == "" {
+			return errors.New(fmt.Sprintf("use --%s to specify transfer amount", name))
+		}
+		amount, err = common.StringToFixed64(amountStr)
+		if err != nil {
+			return errors.New("invalid transaction amount")
+		}
+
+		ct, err := contract.CreateDepositContractByPubKey(acc.PublicKey)
+		if err != nil {
+			return err
+		}
+		to, err := ct.ToProgramHash().ToAddress()
+		if err != nil {
+			return err
+		}
+		outputs = []*OutputInfo{{to, amount}}
+	}
+
+	code, err := contract.CreateStandardRedeemScript(acc.PublicKey)
+	if err != nil {
+		return errors.New("create standard redeem script failed: " + err.Error())
+	}
+
+	newCode := make([]byte, len(code))
+	copy(newCode, code)
+	didCode := append(newCode[:len(newCode)-1], common.DID)
+	ctDID, err := contract.CreateCRIDContractByCode(didCode)
+	if err != nil {
+		return err
+	}
+
+	ctCID, err := contract.CreateCRIDContractByCode(code)
+	if err != nil {
+		return err
+	}
+
+	name = cmdcom.TransactionNickNameFlag.Name
+	nickName := c.String(name)
+	if nickName == "" {
+		return errors.New(fmt.Sprintf("use --%s to specify nick name", name))
+	}
+
+	name = cmdcom.TransactionUrlFlag.Name
+	url := c.String(name)
+	if url == "" {
+		return errors.New(fmt.Sprintf("use --%s to specify url", name))
+	}
+	locationCode := c.Uint64(cmdcom.TransactionLocationFlag.Name)
+
+	p := &payload.CRInfo{
+		Code:      code,
+		CID:       *ctCID.ToProgramHash(),
+		DID:       *ctDID.ToProgramHash(),
+		NickName:  nickName,
+		Url:       url,
+		Location:  locationCode,
+		Signature: nil,
+	}
+
+	rpSignBuf := new(bytes.Buffer)
+	err = p.SerializeUnsigned(rpSignBuf, payload.CRInfoDIDVersion)
+	if err != nil {
+		return err
+	}
+
+	rpSig, err := acc.Sign(rpSignBuf.Bytes())
+	if err != nil {
+		return err
+	}
+	p.Signature = rpSig
+
+	var txn interfaces.Transaction
+	txn, err = createTransaction(walletPath, "", *fee, 0, 0, txType, payload.CRInfoDIDVersion, p, outputs...)
+	if err != nil {
+		return errors.New("create tx failed: " + err.Error())
 	}
 
 	OutputTx(0, 1, txn)

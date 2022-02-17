@@ -1471,7 +1471,7 @@ func (s *State) processVotes(tx interfaces.Transaction, height uint32) {
 // validate and update producers votes.
 func (s *State) processExchangeVotes(tx interfaces.Transaction, height uint32) {
 	ot := tx.Outputs()[0]
-	pld := tx.Outputs()[0].Payload.(*outputpayload.ExchangeVoteOutput)
+	pld := ot.Payload.(*outputpayload.ExchangeVoteOutput)
 	s.History.Append(height, func() {
 		s.DposV2VoteRights[pld.StakeAddress] += ot.Value
 	}, func() {

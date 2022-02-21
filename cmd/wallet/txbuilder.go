@@ -588,3 +588,62 @@ func createCRInfoCommonTransaction(c *cli.Context, txType common2.TxType, needOu
 
 	return nil
 }
+
+func createReturnDepositCommonTransaction(c *cli.Context, txType common2.TxType) error {
+	var name string
+	var err error
+
+	name = cmdcom.TransactionFeeFlag.Name
+	feeStr := c.String(name)
+	if feeStr == "" {
+		return errors.New(fmt.Sprintf("use --%s to specify transfer fee", name))
+	}
+	fee, err := common.StringToFixed64(feeStr)
+	if err != nil {
+		return errors.New("invalid transaction fee")
+	}
+
+	name = strings.Split(cmdcom.AccountWalletFlag.Name, ",")[0]
+	walletPath := c.String(name)
+	if walletPath == "" {
+		return errors.New(fmt.Sprintf("use --%s to specify wallet path", name))
+	}
+	password, err := cmdcom.GetFlagPassword(c)
+	if err != nil {
+		return err
+	}
+
+	var acc *account.Account
+	client, err := account.Open(walletPath, password)
+	if err != nil {
+		return err
+	}
+	acc = client.GetMainAccount()
+
+	name = cmdcom.TransactionAmountFlag.Name
+	amountStr := c.String(name)
+	if amountStr == "" {
+		return errors.New(fmt.Sprintf("use --%s to specify transfer amount", name))
+	}
+	amount, err := common.StringToFixed64(amountStr)
+	if err != nil {
+		return errors.New("invalid transaction amount")
+	}
+	*amount -= *fee
+
+	outputs := make([]*OutputInfo, 0)
+	outputs = []*OutputInfo{{acc.Address, amount}}
+
+	p := &payload.ReturnDepositCoin{}
+
+	var txn interfaces.Transaction
+	txn, err = createTransaction(walletPath, "", *fee, 0, 0,
+		txType, payload.ReturnDepositCoinVersion, p, outputs...)
+	if err != nil {
+		return errors.New("create transaction failed: " + err.Error())
+	}
+
+	OutputTx(0, 1, txn)
+
+	return nil
+}

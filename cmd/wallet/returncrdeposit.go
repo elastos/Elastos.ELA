@@ -10,9 +10,9 @@ import (
 	"github.com/urfave/cli"
 )
 
-var returndeposit = cli.Command{
-	Name:  "returndeposit",
-	Usage: "Build a tx to return deposit coin of producer",
+var returncrdeposit = cli.Command{
+	Name:  "returncrdeposit",
+	Usage: "Build a tx to return deposit coin of CR",
 	Flags: []cli.Flag{
 		cmdcom.AccountWalletFlag,
 		cmdcom.AccountPasswordFlag,
@@ -20,7 +20,7 @@ var returndeposit = cli.Command{
 		cmdcom.TransactionFeeFlag,
 	},
 	Action: func(c *cli.Context) error {
-		if err := createReturnProducerDepositTransaction(c); err != nil {
+		if err := createReturnCRDepositTransaction(c); err != nil {
 			fmt.Println("error:", err)
 			os.Exit(1)
 		}
@@ -28,6 +28,6 @@ var returndeposit = cli.Command{
 	},
 }
 
-func createReturnProducerDepositTransaction(c *cli.Context) error {
-	return createReturnDepositCommonTransaction(c, common2.ReturnDepositCoin)
+func createReturnCRDepositTransaction(c *cli.Context) error {
+	return createReturnDepositCommonTransaction(c, common2.ReturnCRDepositCoin)
 }

@@ -69,6 +69,7 @@ const (
 	Voting                        TxType = 0x63
 	CancelVotes                   TxType = 0x64
 	ReturnVotes                   TxType = 0x65
+	ReturnVotesRealWithdraw       TxType = 0x66
 )
 
 func (self TxType) Name() string {
@@ -155,6 +156,8 @@ func (self TxType) Name() string {
 		return "CancelVotes"
 	case ReturnVotes:
 		return "ReturnVotes"
+	case ReturnVotesRealWithdraw:
+		return "ReturnVotesRealWithdraw"
 	default:
 		return "Unknown"
 	}

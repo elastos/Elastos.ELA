@@ -67,7 +67,12 @@ func (t *ReturnVotesTransaction) CheckTransactionOutput() error {
 	}
 
 	if len(t.Outputs()) == 2 {
-		if contract.GetPrefixType(t.Outputs()[1].ProgramHash) != contract.PrefixDposV2 {
+		// check output address, need to be stake address
+		addr, err := t.outputs[1].ProgramHash.ToAddress()
+		if err != nil {
+			return errors.New("invalid  output address")
+		}
+		if addr != t.parameters.Config.StakeAddress {
 			return errors.New("second output address need to be stake address")
 		}
 	}

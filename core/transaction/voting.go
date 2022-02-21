@@ -83,6 +83,9 @@ func (t *VotingTransaction) IsAllowedInPOWConsensus() bool {
 		case outputpayload.CRCImpeachment:
 			log.Warn("not allow to vote CRImpeachment in POW consensus")
 			return false
+		case outputpayload.DposV2:
+			log.Warn("not allow to vote DposV2 in POW consensus")
+			return false
 		}
 	}
 

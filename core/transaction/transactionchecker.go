@@ -554,7 +554,8 @@ func (t *DefaultChecker) checkInvalidUTXO(txn interfaces.Transaction) error {
 func checkTransactionSignature(tx interfaces.Transaction, references map[*common2.Input]common2.Output) error {
 	programHashes, err := blockchain.GetTxProgramHashes(tx, references)
 	if (tx.IsCRCProposalWithdrawTx() && tx.PayloadVersion() == payload.CRCProposalWithdrawDefault) ||
-		tx.IsCRAssetsRectifyTx() || tx.IsCRCProposalRealWithdrawTx() || tx.IsNextTurnDPOSInfoTx() || tx.IsDposV2ClaimRewardRealWithdraw() {
+		tx.IsCRAssetsRectifyTx() || tx.IsCRCProposalRealWithdrawTx() || tx.IsNextTurnDPOSInfoTx() ||
+		tx.IsDposV2ClaimRewardRealWithdraw() || tx.IsReturnVotesRealWithdrawTX() {
 		return nil
 	}
 	if err != nil {

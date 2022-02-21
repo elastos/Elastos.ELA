@@ -259,8 +259,9 @@ func startNode(c *cli.Context, st *settings.Settings) {
 		Broadcast: func(msg p2p.Message) {
 			netServer.BroadcastMessage(msg)
 		},
-		AppendToTxpool:                      txMemPool.AppendToTxPool,
-		CreateDposV2RealWithdrawTransaction: chain.CreateDposV2RealWithdrawTransaction,
+		AppendToTxpool:                           txMemPool.AppendToTxPool,
+		CreateDposV2RealWithdrawTransaction:      chain.CreateDposV2RealWithdrawTransaction,
+		CreateReturnVotesRealWithdrawTransaction: chain.CreateReturnVotesRealWithdrawTransaction,
 	})
 
 	committee.RegisterFuncitons(&crstate.CommitteeFuncsConfig{

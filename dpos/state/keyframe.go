@@ -53,6 +53,8 @@ type StateKeyFrame struct {
 	ProducerDepositMap       map[common.Uint168]struct{}
 	// dposV2Withdraw info
 	WithdrawableTxInfo map[common.Uint256]common2.OutputInfo
+	//votes  withdraw
+	VotesWithdrawableTxInfo map[common.Uint256]common2.OutputInfo
 
 	EmergencyInactiveArbiters map[string]struct{}
 	LastRandomCandidateOwner  string
@@ -107,6 +109,7 @@ func (s *StateKeyFrame) snapshot() *StateKeyFrame {
 		DposV2RewardClaimingInfo: make(map[string]common.Fixed64),
 		DposV2RewardClaimedInfo:  make(map[string]common.Fixed64),
 		WithdrawableTxInfo:       make(map[common.Uint256]common2.OutputInfo),
+		VotesWithdrawableTxInfo:  make(map[common.Uint256]common2.OutputInfo),
 		Nicknames:                make(map[string]struct{}),
 		SpecialTxHashes:          make(map[common.Uint256]struct{}),
 		PreBlockArbiters:         make(map[string]struct{}),
@@ -135,6 +138,8 @@ func (s *StateKeyFrame) snapshot() *StateKeyFrame {
 	state.DposV2RewardClaimingInfo = copyFixed64Map(s.DposV2RewardClaimingInfo)
 	state.DposV2RewardClaimedInfo = copyFixed64Map(s.DposV2RewardClaimedInfo)
 	state.WithdrawableTxInfo = copyWithdrawableTransactionsMap(s.WithdrawableTxInfo)
+	state.VotesWithdrawableTxInfo = copyWithdrawableTransactionsMap(s.VotesWithdrawableTxInfo)
+
 	state.Nicknames = copyStringSet(s.Nicknames)
 	state.SpecialTxHashes = copyHashSet(s.SpecialTxHashes)
 	state.PreBlockArbiters = copyStringSet(s.PreBlockArbiters)
@@ -224,7 +229,9 @@ func (s *StateKeyFrame) Serialize(w io.Writer) (err error) {
 	if err = s.serializeWithdrawableTransactionsMap(s.WithdrawableTxInfo, w); err != nil {
 		return
 	}
-
+	if err = s.serializeWithdrawableTransactionsMap(s.VotesWithdrawableTxInfo, w); err != nil {
+		return
+	}
 	if err = s.SerializeStringSet(s.Nicknames, w); err != nil {
 		return
 	}
@@ -344,7 +351,9 @@ func (s *StateKeyFrame) Deserialize(r io.Reader) (err error) {
 	if s.WithdrawableTxInfo, err = s.deserializeWithdrawableTransactionsMap(r); err != nil {
 		return
 	}
-
+	if s.VotesWithdrawableTxInfo, err = s.deserializeWithdrawableTransactionsMap(r); err != nil {
+		return
+	}
 	if s.Nicknames, err = s.DeserializeStringSet(r); err != nil {
 		return
 	}
@@ -758,6 +767,7 @@ func NewStateKeyFrame() *StateKeyFrame {
 		DposV2RewardClaimingInfo:  make(map[string]common.Fixed64),
 		DposV2RewardClaimedInfo:   make(map[string]common.Fixed64),
 		WithdrawableTxInfo:        make(map[common.Uint256]common2.OutputInfo),
+		VotesWithdrawableTxInfo:   make(map[common.Uint256]common2.OutputInfo),
 		Nicknames:                 make(map[string]struct{}),
 		SpecialTxHashes:           make(map[common.Uint256]struct{}),
 		PreBlockArbiters:          make(map[string]struct{}),

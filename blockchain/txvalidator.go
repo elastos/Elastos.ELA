@@ -804,7 +804,8 @@ func (b *BlockChain) CheckAttributeProgram(tx interfaces.Transaction,
 			}
 			return nil
 		}
-	case common2.CRCAppropriation, common2.CRAssetsRectify, common2.CRCProposalRealWithdraw, common2.DposV2ClaimRewardRealWithdraw:
+	case common2.CRCAppropriation, common2.CRAssetsRectify, common2.CRCProposalRealWithdraw,
+		common2.DposV2ClaimRewardRealWithdraw, common2.ReturnVotesRealWithdraw:
 		if len(tx.Programs()) != 0 {
 			return errors.New("txs should have no programs")
 		}
@@ -922,6 +923,7 @@ func (b *BlockChain) CheckTransactionPayload(txn interfaces.Transaction) error {
 	case *payload.ReturnSideChainDepositCoin:
 	case *payload.DposV2ClaimReward:
 	case *payload.DposV2ClaimRewardRealWithdraw:
+	case *payload.ReturnVotesRealWithdrawPayload:
 	default:
 		return errors.New("[txValidator],invalidate transaction payload type.")
 	}
@@ -987,7 +989,7 @@ func (b *BlockChain) checkPOWConsensusTransaction(txn interfaces.Transaction, re
 	case common2.RegisterProducer, common2.ActivateProducer, common2.CRCouncilMemberClaimNode, common2.DposV2ClaimReward:
 		return nil
 	case common2.CRCAppropriation, common2.CRAssetsRectify, common2.CRCProposalRealWithdraw, common2.DposV2ClaimRewardRealWithdraw,
-		common2.NextTurnDPOSInfo, common2.RevertToDPOS:
+		common2.NextTurnDPOSInfo, common2.RevertToDPOS, common2.ReturnVotesRealWithdraw:
 		return nil
 	case common2.TransferAsset:
 		if txn.Version() >= common2.TxVersion09 {
@@ -1131,7 +1133,7 @@ func (b *BlockChain) CheckTxHeightVersion(txn interfaces.Transaction, blockHeigh
 			return errors.New(fmt.Sprintf("not support %s transaction "+
 				"before CRCProposalWithdrawPayloadV1Height", txn.TxType().Name()))
 		}
-	case common2.DposV2ClaimReward, common2.DposV2ClaimRewardRealWithdraw:
+	case common2.DposV2ClaimReward, common2.DposV2ClaimRewardRealWithdraw, common2.ReturnVotesRealWithdraw:
 		if blockHeight < b.chainParams.DposV2StartHeight {
 			return errors.New(fmt.Sprintf("not support %s transaction "+
 				"before DposV2StartHeight", txn.TxType().Name()))

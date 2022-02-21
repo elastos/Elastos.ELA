@@ -321,6 +321,18 @@ func strSecretaryGeneral(tx interfaces.Transaction) (interface{}, error) {
 	return nil, nil
 }
 
+func strReturnVotesRealWithdrawTX(
+	tx interfaces.Transaction) (interface{}, error) {
+	_, ok := tx.Payload().(*payload.ReturnVotesRealWithdrawPayload)
+	if !ok {
+		return nil, fmt.Errorf(
+			"ReturnVotesRealWithdrawPayload cast failed, tx: %s",
+			tx.Hash())
+	}
+
+	return "ReturnVotesRealWithdraw", nil
+}
+
 func hashArrayDposV2ClaimRewardRealWithdrawTransactionHashes(
 	tx interfaces.Transaction) (interface{}, error) {
 	p, ok := tx.Payload().(*payload.DposV2ClaimRewardRealWithdraw)

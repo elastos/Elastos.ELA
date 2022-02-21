@@ -121,7 +121,7 @@ type KeyFrame struct {
 	HistoryMembers             map[uint64]map[common.Uint168]*CRMember
 	PartProposalResults        []payload.ProposalResult
 	DetailedCRVotes            map[common.Uint256]payload.DetailedVoteInfo // key: hash of DetailedVoteInfo
-	DetailedCRImpeachmentVotes map[common.Uint256]payload.DetailedVoteInfo // key: hash of DetailedVoteInfo
+	DetailedCRImpeachmentVotes map[common.Uint256]payload.DetailedVoteInfo // key: hash of DetailedCRImpeachmentVotes
 
 	LastCommitteeHeight      uint32
 	LastVotingStartHeight    uint32
@@ -262,7 +262,7 @@ type ProposalKeyFrame struct {
 	ReservedCustomID bool
 
 	// detailed CRC proposal votes information
-	DetailedCRCProposalVotes map[common.Uint256]payload.DetailedVoteInfo // key: hash of DetailedVoteInfo
+	DetailedCRCProposalVotes map[common.Uint256]payload.DetailedVoteInfo // key: hash of DetailedCRCProposalVotes
 }
 
 func NewProposalMap() ProposalsMap {

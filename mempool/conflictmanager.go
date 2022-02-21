@@ -45,6 +45,7 @@ const (
 	slotCRCouncilMemberDID                      = "CRCouncilMemberDID"
 	slotCRCSecretaryGeneral                     = "CRCSecretaryGeneral"
 	slotRevertToDPOSHash                        = "RevertToDPOSHash"
+	slotReturnVotesRealWithdraw                 = "ReturnVotesRealWithdraw"
 )
 
 type conflict struct {
@@ -421,6 +422,16 @@ func newConflictManager() conflictManager {
 					keyTypeFuncPair{
 						Type: common2.DposV2ClaimRewardRealWithdraw,
 						Func: hashArrayDposV2ClaimRewardRealWithdrawTransactionHashes,
+					},
+				),
+			},
+			// ReturnVotesRealWithdraw key
+			{
+				name: slotReturnVotesRealWithdraw,
+				slot: newConflictSlot(str,
+					keyTypeFuncPair{
+						Type: common2.ReturnVotesRealWithdraw,
+						Func: strReturnVotesRealWithdrawTX,
 					},
 				),
 			},

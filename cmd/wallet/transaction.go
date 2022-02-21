@@ -93,6 +93,7 @@ var buildTxCommand = []cli.Command{
 	// crc
 	registercr,
 	updatecr,
+	unregistercr,
 }
 
 func getTransactionHex(c *cli.Context) (string, error) {

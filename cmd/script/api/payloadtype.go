@@ -67,7 +67,7 @@ func RegisterReturnVotesType(L *lua.LState) {
 	L.SetGlobal("returnvotes", mt)
 	L.SetField(mt, "new", L.NewFunction(newReturnVotes))
 	// methods
-	L.SetField(mt, "__index", L.SetFuncs(L.NewTable(), exchangeVotesMethods))
+	L.SetField(mt, "__index", L.SetFuncs(L.NewTable(), returnVotesMethods))
 }
 
 func RegisterCancelVotes(L *lua.LState) {

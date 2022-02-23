@@ -99,6 +99,14 @@ func (c *Committee) GetDetailedCRCProposalVotes(referKey common.Uint256) (
 	return
 }
 
+func (c *Committee) GetAllCRCProposalVotes() (pl []payload.DetailedVoteInfo, referKeys []string, err error) {
+	for referKey, info := range c.manager.DetailedCRCProposalVotes {
+		pl = append(pl, info)
+		referKeys = append(referKeys, referKey.String())
+	}
+	return
+}
+
 func (c *Committee) ExistCR(programCode []byte) bool {
 	existCandidate := c.state.ExistCandidate(programCode)
 	if existCandidate {

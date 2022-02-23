@@ -261,7 +261,7 @@ func startNode(c *cli.Context, st *settings.Settings) {
 		},
 		AppendToTxpool:                           txMemPool.AppendToTxPool,
 		CreateDposV2RealWithdrawTransaction:      chain.CreateDposV2RealWithdrawTransaction,
-		CreateReturnVotesRealWithdrawTransaction: chain.CreateReturnVotesRealWithdrawTransaction,
+		CreateUnstakeRealWithdrawTransaction: chain.CreateUnstakeRealWithdrawTransaction,
 	})
 
 	committee.RegisterFuncitons(&crstate.CommitteeFuncsConfig{

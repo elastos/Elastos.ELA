@@ -68,8 +68,8 @@ const (
 	Stake                 TxType = 0x62
 	Voting                        TxType = 0x63
 	CancelVotes                   TxType = 0x64
-	ReturnVotes                   TxType = 0x65
-	ReturnVotesRealWithdraw       TxType = 0x66
+	Unstake                   TxType = 0x65
+	UnstakeRealWithdraw       TxType = 0x66
 )
 
 func (self TxType) Name() string {
@@ -154,10 +154,10 @@ func (self TxType) Name() string {
 		return "Voting"
 	case CancelVotes:
 		return "CancelVotes"
-	case ReturnVotes:
-		return "ReturnVotes"
-	case ReturnVotesRealWithdraw:
-		return "ReturnVotesRealWithdraw"
+	case Unstake:
+		return "Unstake"
+	case UnstakeRealWithdraw:
+		return "UnstakeRealWithdraw"
 	default:
 		return "Unknown"
 	}

@@ -321,16 +321,16 @@ func strSecretaryGeneral(tx interfaces.Transaction) (interface{}, error) {
 	return nil, nil
 }
 
-func strReturnVotesRealWithdrawTX(
+func strUnstakeRealWithdrawTX(
 	tx interfaces.Transaction) (interface{}, error) {
-	_, ok := tx.Payload().(*payload.ReturnVotesRealWithdrawPayload)
+	_, ok := tx.Payload().(*payload.UnstakeRealWithdrawPayload)
 	if !ok {
 		return nil, fmt.Errorf(
-			"ReturnVotesRealWithdrawPayload cast failed, tx: %s",
+			"UnstakeRealWithdrawPayload cast failed, tx: %s",
 			tx.Hash())
 	}
 
-	return "ReturnVotesRealWithdraw", nil
+	return "UnstakeRealWithdraw", nil
 }
 
 func hashArrayDposV2ClaimRewardRealWithdrawTransactionHashes(

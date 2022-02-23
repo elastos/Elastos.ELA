@@ -14,11 +14,11 @@ import (
 	elaerr "github.com/elastos/Elastos.ELA/errors"
 )
 
-type ReturnVotesRealWithdrawTransaction struct {
+type UnstakeRealWithdrawTransaction struct {
 	BaseTransaction
 }
 
-func (t *ReturnVotesRealWithdrawTransaction) CheckAttributeProgram() error {
+func (t *UnstakeRealWithdrawTransaction) CheckAttributeProgram() error {
 	if len(t.Programs()) != 0 {
 		return errors.New("txs should have no programs")
 	}
@@ -28,20 +28,20 @@ func (t *ReturnVotesRealWithdrawTransaction) CheckAttributeProgram() error {
 	return nil
 }
 
-func (t *ReturnVotesRealWithdrawTransaction) CheckTransactionPayload() error {
+func (t *UnstakeRealWithdrawTransaction) CheckTransactionPayload() error {
 	switch t.Payload().(type) {
-	case *payload.ReturnVotesRealWithdrawPayload:
+	case *payload.UnstakeRealWithdrawPayload:
 		return nil
 	}
 
 	return errors.New("invalid payload type")
 }
 
-func (t *ReturnVotesRealWithdrawTransaction) IsAllowedInPOWConsensus() bool {
+func (t *UnstakeRealWithdrawTransaction) IsAllowedInPOWConsensus() bool {
 	return true
 }
 
-func (t *ReturnVotesRealWithdrawTransaction) HeightVersionCheck() error {
+func (t *UnstakeRealWithdrawTransaction) HeightVersionCheck() error {
 	blockHeight := t.parameters.BlockHeight
 	chainParams := t.parameters.Config
 
@@ -52,21 +52,21 @@ func (t *ReturnVotesRealWithdrawTransaction) HeightVersionCheck() error {
 	return nil
 }
 
-func (t *ReturnVotesRealWithdrawTransaction) SpecialContextCheck() (result elaerr.ELAError, end bool) {
-	returnVotesRealWithdraw, ok := t.Payload().(*payload.ReturnVotesRealWithdrawPayload)
+func (t *UnstakeRealWithdrawTransaction) SpecialContextCheck() (result elaerr.ELAError, end bool) {
+	unstakeRealWithdraw, ok := t.Payload().(*payload.UnstakeRealWithdrawPayload)
 	if !ok {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid payload")), true
 	}
-	txsCount := len(returnVotesRealWithdraw.ReturnVotesRealWithdraw)
-	// check ReturnVotesRealWithdraw count and output count
+	txsCount := len(unstakeRealWithdraw.UnstakeRealWithdraw)
+	// check UnstakeRealWithdraw count and output count
 	if txsCount != len(t.Outputs()) && txsCount != len(t.Outputs())-1 {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid real Votes withdraw transaction hashes count")), true
 	}
 
-	// check other outputs, need to match with ReturnVotesRealWithdraw
+	// check other outputs, need to match with UnstakeRealWithdraw
 	txs := t.parameters.BlockChain.GetState().GetVotesWithdrawableTxInfo()
 	txsMap := make(map[common.Uint256]struct{})
-	for i, retVoteWithdraw := range returnVotesRealWithdraw.ReturnVotesRealWithdraw {
+	for i, retVoteWithdraw := range unstakeRealWithdraw.UnstakeRealWithdraw {
 		txInfo, ok := txs[retVoteWithdraw.RetVotesTXHash]
 		if !ok {
 			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid Votes withdraw transaction hash")), true

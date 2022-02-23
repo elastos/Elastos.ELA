@@ -529,8 +529,8 @@ func (tx *BaseTransaction) IsDposV2ClaimRewardRealWithdraw() bool {
 	return tx.txType == common2.DposV2ClaimRewardRealWithdraw
 }
 
-func (tx *BaseTransaction) IsReturnVotesRealWithdrawTX() bool {
-	return tx.txType == common2.ReturnVotesRealWithdraw
+func (tx *BaseTransaction) IsUnstakeRealWithdrawTX() bool {
+	return tx.txType == common2.UnstakeRealWithdraw
 }
 
 // SerializeSizeStripped returns the number of bytes it would take to serialize

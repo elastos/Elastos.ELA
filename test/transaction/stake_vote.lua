@@ -52,7 +52,7 @@ print("fee:", fee)
 
 
 -- payload
-local ta = exchangevotes.new()
+local ta = stake.new()
 
 -- transaction: version, tx_type, payload_version, payload, locktime
 local tx = transaction.new(9, 0x62, 0, ta, 0)
@@ -64,7 +64,7 @@ print("charge", charge)
 local default_output = defaultoutput.new()
 
 -- outputpayload
-local vote_output = exchangevotesoutput.new(0, saddr, amount * 100000000)
+local vote_output = stakeoutput.new(0, saddr, amount * 100000000)
 print("vote_output", vote_output:get())
 
 -- output: asset_id, value, recipient, output_paload_type, output_paload

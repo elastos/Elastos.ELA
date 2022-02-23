@@ -544,5 +544,5 @@ type RenewalVotesContent struct {
 	VotesInfo VotesWithLockTime `json:"votesinfo"`
 }
 
-type ExchangeVoteInfo struct {
+type StakeInfo struct {
 }

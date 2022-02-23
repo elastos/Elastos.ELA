@@ -3136,8 +3136,8 @@ func getPayloadInfo(p interfaces.Payload, payloadVersion byte) PayloadInfo {
 		}
 		return obj
 
-	case *payload.ExchangeVotes:
-		obj := new(ExchangeVoteInfo)
+	case *payload.Stake:
+		obj := new(StakeInfo)
 		return obj
 	}
 	return nil

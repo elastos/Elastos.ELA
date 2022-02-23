@@ -25,7 +25,7 @@ import (
 const (
 	luaOutputTypeName              = "output"
 	luaVoteOutputTypeName          = "voteoutput"
-	luaExchangeVotesOutputTypeName = "exchangevotesoutput"
+	luaStakeOutputTypeName = "stakeoutput"
 	luaNewCrossChainOutputTypeName = "crosschainoutput"
 	luaDefaultOutputTypeName       = "defaultoutput"
 	luaVoteContentTypeName         = "votecontent"
@@ -80,8 +80,8 @@ func newTxOutput(L *lua.LState) int {
 		}
 		outputPayload = payload
 
-	case *outputpayload.ExchangeVoteOutput:
-		payload, ok := outputPayloadData.Value.(*outputpayload.ExchangeVoteOutput)
+	case *outputpayload.StakeOutput:
+		payload, ok := outputPayloadData.Value.(*outputpayload.StakeOutput)
 		if !ok {
 			log.Debug("error exchange vote payload")
 		}
@@ -227,16 +227,16 @@ func voteOutputGet(L *lua.LState) int {
 }
 
 // OTVote Output Payload
-func RegisterExchangeVotesOutputType(L *lua.LState) {
-	mt := L.NewTypeMetatable(luaExchangeVotesOutputTypeName)
-	L.SetGlobal("exchangevotesoutput", mt)
+func RegisterStakeOutputType(L *lua.LState) {
+	mt := L.NewTypeMetatable(luaStakeOutputTypeName)
+	L.SetGlobal("stakeoutput", mt)
 	// static attributes
-	L.SetField(mt, "new", L.NewFunction(newExchangeVotesOutput))
+	L.SetField(mt, "new", L.NewFunction(newStakeOutput))
 	// methods
-	L.SetField(mt, "__index", L.SetFuncs(L.NewTable(), newExchangeVotesOutputMethods))
+	L.SetField(mt, "__index", L.SetFuncs(L.NewTable(), newStakeOutputMethods))
 }
 
-func newExchangeVotesOutput(L *lua.LState) int {
+func newStakeOutput(L *lua.LState) int {
 	version := L.ToInt(1)
 	address := L.ToString(2)
 	value := L.ToInt(3)
@@ -247,34 +247,34 @@ func newExchangeVotesOutput(L *lua.LState) int {
 		os.Exit(1)
 	}
 
-	voteOutput := &outputpayload.ExchangeVoteOutput{
+	voteOutput := &outputpayload.StakeOutput{
 		Version:      byte(version),
 		StakeAddress: *programHash,
 		Votes:        common.Fixed64(value),
 	}
 	ud := L.NewUserData()
 	ud.Value = voteOutput
-	L.SetMetatable(ud, L.GetTypeMetatable(luaExchangeVotesOutputTypeName))
+	L.SetMetatable(ud, L.GetTypeMetatable(luaStakeOutputTypeName))
 	L.Push(ud)
 
 	return 1
 }
 
-func checkExchangeVotesOutput(L *lua.LState, idx int) *outputpayload.ExchangeVoteOutput {
+func checkStakeOutput(L *lua.LState, idx int) *outputpayload.StakeOutput {
 	ud := L.CheckUserData(idx)
-	if v, ok := ud.Value.(*outputpayload.ExchangeVoteOutput); ok {
+	if v, ok := ud.Value.(*outputpayload.StakeOutput); ok {
 		return v
 	}
-	L.ArgError(1, "ExchangeVoteOutput expected")
+	L.ArgError(1, "StakeOutput expected")
 	return nil
 }
 
-var newExchangeVotesOutputMethods = map[string]lua.LGFunction{
-	"get": exchangeVotesOutputGet,
+var newStakeOutputMethods = map[string]lua.LGFunction{
+	"get": stakeOutputGet,
 }
 
-func exchangeVotesOutputGet(L *lua.LState) int {
-	p := checkExchangeVotesOutput(L, 1)
+func stakeOutputGet(L *lua.LState) int {
+	p := checkStakeOutput(L, 1)
 	fmt.Println(p)
 
 	return 0

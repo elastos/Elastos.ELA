@@ -10,10 +10,10 @@ import (
 	"io"
 )
 
-type ExchangeVotes struct {
+type Stake struct {
 }
 
-func (p *ExchangeVotes) Data(version byte) []byte {
+func (p *Stake) Data(version byte) []byte {
 	buf := new(bytes.Buffer)
 	if err := p.Serialize(buf, version); err != nil {
 		return []byte{0}
@@ -22,10 +22,10 @@ func (p *ExchangeVotes) Data(version byte) []byte {
 	return buf.Bytes()
 }
 
-func (p *ExchangeVotes) Serialize(w io.Writer, version byte) error {
+func (p *Stake) Serialize(w io.Writer, version byte) error {
 	return nil
 }
 
-func (p *ExchangeVotes) Deserialize(r io.Reader, version byte) error {
+func (p *Stake) Deserialize(r io.Reader, version byte) error {
 	return nil
 }

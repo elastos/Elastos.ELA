@@ -48,18 +48,18 @@ const (
 	luaCRCRegisterSideChainProposalHashName = "crcproposalregistersidechain"
 
 	// dpos2.0
-	luaExchangeVotesName = "exchangevotes"
+	luaStakeName = "stake"
 	luaVotingName        = "voting"
 	luaCancelVotesName   = "cancelVotes"
 	luaReturnVotesName   = "returnvotes"
 )
 
-func RegisterExchangeVotesType(L *lua.LState) {
-	mt := L.NewTypeMetatable(luaExchangeVotesName)
-	L.SetGlobal("exchangevotes", mt)
-	L.SetField(mt, "new", L.NewFunction(newExchangeVotes))
+func RegisterStakeType(L *lua.LState) {
+	mt := L.NewTypeMetatable(luaStakeName)
+	L.SetGlobal("stake", mt)
+	L.SetField(mt, "new", L.NewFunction(newStake))
 	// methods
-	L.SetField(mt, "__index", L.SetFuncs(L.NewTable(), exchangeVotesMethods))
+	L.SetField(mt, "__index", L.SetFuncs(L.NewTable(), stakeMethods))
 }
 
 func RegisterReturnVotesType(L *lua.LState) {
@@ -79,11 +79,11 @@ func RegisterCancelVotes(L *lua.LState) {
 }
 
 // Constructor
-func newExchangeVotes(L *lua.LState) int {
-	cb := &payload.ExchangeVotes{}
+func newStake(L *lua.LState) int {
+	cb := &payload.Stake{}
 	ud := L.NewUserData()
 	ud.Value = cb
-	L.SetMetatable(ud, L.GetTypeMetatable(luaExchangeVotesName))
+	L.SetMetatable(ud, L.GetTypeMetatable(luaStakeName))
 	L.Push(ud)
 
 	return 1
@@ -120,9 +120,9 @@ func newCancelVotes(L *lua.LState) int {
 	return 1
 }
 
-// Checks whether the first lua argument is a *LUserData with *ExchangeVotes and
-// returns this *ExchangeVotes.
-func checkExchangeVotes(L *lua.LState, idx int) *payload.Voting {
+// Checks whether the first lua argument is a *LUserData with *Stake and
+// returns this *Stake.
+func checkStake(L *lua.LState, idx int) *payload.Voting {
 	ud := L.CheckUserData(idx)
 	if v, ok := ud.Value.(*payload.Voting); ok {
 		return v
@@ -149,8 +149,8 @@ func checkCancelVotes(L *lua.LState, idx int) *payload.CancelVotes {
 	return nil
 }
 
-var exchangeVotesMethods = map[string]lua.LGFunction{
-	"get": exchangeVotesGet,
+var stakeMethods = map[string]lua.LGFunction{
+	"get": stakeGet,
 }
 
 var returnVotesMethods = map[string]lua.LGFunction{
@@ -162,8 +162,8 @@ var cancelVotesMethods = map[string]lua.LGFunction{
 }
 
 // Getter and setter for the Person#Name
-func exchangeVotesGet(L *lua.LState) int {
-	p := checkExchangeVotes(L, 1)
+func stakeGet(L *lua.LState) int {
+	p := checkStake(L, 1)
 	fmt.Println(p)
 
 	return 0

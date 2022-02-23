@@ -16,11 +16,11 @@ import (
 	elaerr "github.com/elastos/Elastos.ELA/errors"
 )
 
-type ReturnVotesTransaction struct {
+type UnstakeTransaction struct {
 	BaseTransaction
 }
 
-func (t *ReturnVotesTransaction) HeightVersionCheck() error {
+func (t *UnstakeTransaction) HeightVersionCheck() error {
 	blockHeight := t.parameters.BlockHeight
 	chainParams := t.parameters.Config
 
@@ -31,16 +31,16 @@ func (t *ReturnVotesTransaction) HeightVersionCheck() error {
 	return nil
 }
 
-func (t *ReturnVotesTransaction) CheckTransactionPayload() error {
+func (t *UnstakeTransaction) CheckTransactionPayload() error {
 	switch t.Payload().(type) {
-	case *payload.ReturnVotes:
+	case *payload.Unstake:
 		return nil
 	}
 
 	return errors.New("invalid payload type")
 }
 
-func (t *ReturnVotesTransaction) CheckTransactionOutput() error {
+func (t *UnstakeTransaction) CheckTransactionOutput() error {
 	if len(t.Outputs()) > 2 {
 		return errors.New("output count should not be greater than 2")
 	}
@@ -80,7 +80,7 @@ func (t *ReturnVotesTransaction) CheckTransactionOutput() error {
 	return nil
 }
 
-func (t *ReturnVotesTransaction) CheckAttributeProgram() error {
+func (t *UnstakeTransaction) CheckAttributeProgram() error {
 	// Check attributes
 	for _, attr := range t.Attributes() {
 		if !common2.IsValidAttributeType(attr.Usage) {
@@ -102,11 +102,11 @@ func (t *ReturnVotesTransaction) CheckAttributeProgram() error {
 	return nil
 }
 
-func (t *ReturnVotesTransaction) IsAllowedInPOWConsensus() bool {
+func (t *UnstakeTransaction) IsAllowedInPOWConsensus() bool {
 	return false
 }
 
-func (t *ReturnVotesTransaction) SpecialContextCheck() (result elaerr.ELAError, end bool) {
+func (t *UnstakeTransaction) SpecialContextCheck() (result elaerr.ELAError, end bool) {
 
 	// 1.check if unused vote rights enough
 	// 2.return value if payload need to be equal to outputs
@@ -126,7 +126,7 @@ func (t *ReturnVotesTransaction) SpecialContextCheck() (result elaerr.ELAError, 
 	usedCRImpeachmentVoteRights := state.CRImpeachmentVotes[*stakeProgramHash]
 	usedCRCProposalVoteRights := state.CRCProposalVotes[*stakeProgramHash]
 
-	pl := t.Payload().(*payload.ReturnVotes)
+	pl := t.Payload().(*payload.Unstake)
 	if pl.Value > voteRights-usedDposVoteRights ||
 		pl.Value > voteRights-usedDposV2VoteRights ||
 		pl.Value > voteRights-usedCRVoteRights ||

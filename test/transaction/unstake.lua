@@ -52,7 +52,7 @@ print("fee:", fee)
 
 
 -- payload
-local ta = returnvotes.new(amount * 100000000)
+local ta = unstake.new(amount * 100000000)
 
 -- transaction: version, tx_type, payload_version, payload, locktime
 local tx = transaction.new(9, 0x65, 0, ta, 0)

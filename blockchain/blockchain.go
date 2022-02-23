@@ -509,39 +509,39 @@ func (b *BlockChain) CreateDposV2RealWithdrawTransaction(
 	return tx, nil
 }
 
-func (b *BlockChain) CreateReturnVotesRealWithdrawTransaction(
-	ReturnVotesRealWithdrawHash []Uint256, outputs []*common.OutputInfo) (interfaces.Transaction, error) {
+func (b *BlockChain) CreateUnstakeRealWithdrawTransaction(
+	UnstakeRealWithdrawHash []Uint256, outputs []*common.OutputInfo) (interfaces.Transaction, error) {
 	stakeAddr, err := Uint168FromAddress(b.chainParams.StakeAddress)
 	if err != nil {
-		log.Error("CreateReturnVotesRealWithdrawTransaction StakeAddress to hash error")
-		return nil, errors.New("CreateReturnVotesRealWithdrawTransaction StakeAddress to hash error")
+		log.Error("CreateUnstakeRealWithdrawTransaction StakeAddress to hash error")
+		return nil, errors.New("CreateUnstakeRealWithdrawTransaction StakeAddress to hash error")
 	}
 
 	utxos, _, err := b.getUTXOsFromAddress(*stakeAddr)
 	if err != nil {
 		return nil, err
 	}
-	var returnVotesRealWithdraw []payload.ReturnVoteRealWidhdraw
+	var unstakeRealWithdraw []payload.UnstakeRealWidhdraw
 	for i, output := range outputs {
-		withdraw := payload.ReturnVoteRealWidhdraw{
-			RetVotesTXHash: ReturnVotesRealWithdrawHash[i],
+		withdraw := payload.UnstakeRealWidhdraw{
+			RetVotesTXHash: UnstakeRealWithdrawHash[i],
 			StakeAddress:   output.Recipient,
 			Value:          output.Amount,
 		}
-		returnVotesRealWithdraw = append(returnVotesRealWithdraw, withdraw)
+		unstakeRealWithdraw = append(unstakeRealWithdraw, withdraw)
 	}
 
-	wPayload := &payload.ReturnVotesRealWithdrawPayload{
-		ReturnVotesRealWithdraw: returnVotesRealWithdraw,
+	wPayload := &payload.UnstakeRealWithdrawPayload{
+		UnstakeRealWithdraw: unstakeRealWithdraw,
 	}
 
 	for _, v := range outputs {
 		v.Amount -= b.chainParams.RealWithdrawSingleFee
 	}
 	//todo fee
-	txFee := b.chainParams.RealWithdrawSingleFee * Fixed64(len(ReturnVotesRealWithdrawHash))
+	txFee := b.chainParams.RealWithdrawSingleFee * Fixed64(len(UnstakeRealWithdrawHash))
 	var tx interfaces.Transaction
-	tx, err = b.createTransaction(wPayload, common.ReturnVotesRealWithdraw,
+	tx, err = b.createTransaction(wPayload, common.UnstakeRealWithdraw,
 		*stakeAddr, txFee, uint32(0), utxos, outputs...)
 	if err != nil {
 		return nil, err

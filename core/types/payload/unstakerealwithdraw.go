@@ -7,15 +7,15 @@ import (
 	"github.com/elastos/Elastos.ELA/common"
 )
 
-const ReturnVotesRealWithdrawPayloadVersion byte = 0x00
+const UnstakeRealWithdrawPayloadVersion byte = 0x00
 
-type ReturnVoteRealWidhdraw struct {
+type UnstakeRealWidhdraw struct {
 	RetVotesTXHash common.Uint256
 	StakeAddress   common.Uint168
 	Value          common.Fixed64
 }
 
-func (p *ReturnVoteRealWidhdraw) Serialize(w io.Writer) error {
+func (p *UnstakeRealWidhdraw) Serialize(w io.Writer) error {
 	if err := p.RetVotesTXHash.Serialize(w); err != nil {
 		return err
 	}
@@ -29,7 +29,7 @@ func (p *ReturnVoteRealWidhdraw) Serialize(w io.Writer) error {
 	return nil
 }
 
-func (p *ReturnVoteRealWidhdraw) Deserialize(r io.Reader) error {
+func (p *UnstakeRealWidhdraw) Deserialize(r io.Reader) error {
 	if err := p.RetVotesTXHash.Deserialize(r); err != nil {
 		return err
 	}
@@ -45,11 +45,11 @@ func (p *ReturnVoteRealWidhdraw) Deserialize(r io.Reader) error {
 	return nil
 }
 
-type ReturnVotesRealWithdrawPayload struct {
-	ReturnVotesRealWithdraw []ReturnVoteRealWidhdraw
+type UnstakeRealWithdrawPayload struct {
+	UnstakeRealWithdraw []UnstakeRealWidhdraw
 }
 
-func (p *ReturnVotesRealWithdrawPayload) Data(version byte) []byte {
+func (p *UnstakeRealWithdrawPayload) Data(version byte) []byte {
 	buf := new(bytes.Buffer)
 	if err := p.Serialize(buf, version); err != nil {
 		return []byte{0}
@@ -57,13 +57,13 @@ func (p *ReturnVotesRealWithdrawPayload) Data(version byte) []byte {
 	return buf.Bytes()
 }
 
-func (p *ReturnVotesRealWithdrawPayload) Serialize(w io.Writer, version byte) error {
+func (p *UnstakeRealWithdrawPayload) Serialize(w io.Writer, version byte) error {
 
-	if err := common.WriteUint64(w, uint64(len(p.ReturnVotesRealWithdraw))); err != nil {
+	if err := common.WriteUint64(w, uint64(len(p.UnstakeRealWithdraw))); err != nil {
 		return err
 	}
 
-	for _, returnVote := range p.ReturnVotesRealWithdraw {
+	for _, returnVote := range p.UnstakeRealWithdraw {
 		if err := returnVote.Serialize(w); err != nil {
 			return err
 		}
@@ -71,16 +71,16 @@ func (p *ReturnVotesRealWithdrawPayload) Serialize(w io.Writer, version byte) er
 	return nil
 }
 
-func (p *ReturnVotesRealWithdrawPayload) Deserialize(r io.Reader, version byte) error {
+func (p *UnstakeRealWithdrawPayload) Deserialize(r io.Reader, version byte) error {
 
 	count, err := common.ReadUint64(r)
 	if err != nil {
 		return err
 	}
-	p.ReturnVotesRealWithdraw = make([]ReturnVoteRealWidhdraw, count)
+	p.UnstakeRealWithdraw = make([]UnstakeRealWidhdraw, count)
 
 	for i := uint64(0); i < count; i++ {
-		err := p.ReturnVotesRealWithdraw[i].Deserialize(r)
+		err := p.UnstakeRealWithdraw[i].Deserialize(r)
 		if err != nil {
 			return err
 		}

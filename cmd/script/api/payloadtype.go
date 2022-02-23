@@ -51,7 +51,7 @@ const (
 	luaStakeName = "stake"
 	luaVotingName        = "voting"
 	luaCancelVotesName   = "cancelVotes"
-	luaReturnVotesName   = "returnvotes"
+	luaUnstakeName   = "unstake"
 )
 
 func RegisterStakeType(L *lua.LState) {
@@ -62,12 +62,12 @@ func RegisterStakeType(L *lua.LState) {
 	L.SetField(mt, "__index", L.SetFuncs(L.NewTable(), stakeMethods))
 }
 
-func RegisterReturnVotesType(L *lua.LState) {
-	mt := L.NewTypeMetatable(luaReturnVotesName)
-	L.SetGlobal("returnvotes", mt)
-	L.SetField(mt, "new", L.NewFunction(newReturnVotes))
+func RegisterUnstakeType(L *lua.LState) {
+	mt := L.NewTypeMetatable(luaUnstakeName)
+	L.SetGlobal("unstake", mt)
+	L.SetField(mt, "new", L.NewFunction(newUnstake))
 	// methods
-	L.SetField(mt, "__index", L.SetFuncs(L.NewTable(), returnVotesMethods))
+	L.SetField(mt, "__index", L.SetFuncs(L.NewTable(), unstakeMethods))
 }
 
 func RegisterCancelVotes(L *lua.LState) {
@@ -89,9 +89,9 @@ func newStake(L *lua.LState) int {
 	return 1
 }
 
-func newReturnVotes(L *lua.LState) int {
+func newUnstake(L *lua.LState) int {
 	amount := L.ToInt(1)
-	cb := &payload.ReturnVotes{
+	cb := &payload.Unstake{
 		Value: common.Fixed64(amount),
 	}
 	ud := L.NewUserData()
@@ -131,9 +131,9 @@ func checkStake(L *lua.LState, idx int) *payload.Voting {
 	return nil
 }
 
-func checkReturnVotes(L *lua.LState, idx int) *payload.ReturnVotes {
+func checkUnstake(L *lua.LState, idx int) *payload.Unstake {
 	ud := L.CheckUserData(idx)
-	if v, ok := ud.Value.(*payload.ReturnVotes); ok {
+	if v, ok := ud.Value.(*payload.Unstake); ok {
 		return v
 	}
 	L.ArgError(1, "Exchange votes expected")
@@ -153,8 +153,8 @@ var stakeMethods = map[string]lua.LGFunction{
 	"get": stakeGet,
 }
 
-var returnVotesMethods = map[string]lua.LGFunction{
-	"get": returnVotesGet,
+var unstakeMethods = map[string]lua.LGFunction{
+	"get": unstakeGet,
 }
 
 var cancelVotesMethods = map[string]lua.LGFunction{
@@ -169,8 +169,8 @@ func stakeGet(L *lua.LState) int {
 	return 0
 }
 
-func returnVotesGet(L *lua.LState) int {
-	p := checkReturnVotes(L, 1)
+func unstakeGet(L *lua.LState) int {
+	p := checkUnstake(L, 1)
 	fmt.Println(p)
 
 	return 0

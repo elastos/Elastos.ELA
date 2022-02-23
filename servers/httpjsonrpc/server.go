@@ -115,6 +115,9 @@ func StartRPCServer() {
 	mainMux["getcrdepositcoin"] = GetCRDepositCoin
 	mainMux["getarbitersinfo"] = GetArbitersInfo
 
+	// dposv2
+	mainMux["getdetailedcrcproposalvotes"] = GetDetailedCRCProposalVotes
+
 	var handler http.Handler
 	rpcServeMux := http.NewServeMux()
 	if config.Parameters.EnableCORS {

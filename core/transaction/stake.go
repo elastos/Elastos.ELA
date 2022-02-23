@@ -18,11 +18,11 @@ import (
 	elaerr "github.com/elastos/Elastos.ELA/errors"
 )
 
-type ExchangeVotesTransaction struct {
+type StakeTransaction struct {
 	BaseTransaction
 }
 
-func (t *ExchangeVotesTransaction) HeightVersionCheck() error {
+func (t *StakeTransaction) HeightVersionCheck() error {
 	blockHeight := t.parameters.BlockHeight
 	chainParams := t.parameters.Config
 
@@ -33,7 +33,7 @@ func (t *ExchangeVotesTransaction) HeightVersionCheck() error {
 	return nil
 }
 
-func (t *ExchangeVotesTransaction) CheckTransactionOutput() error {
+func (t *StakeTransaction) CheckTransactionOutput() error {
 	if len(t.Outputs()) > 2 {
 		return errors.New("output count should not be greater than 2")
 	}
@@ -55,14 +55,14 @@ func (t *ExchangeVotesTransaction) CheckTransactionOutput() error {
 	}
 
 	// check output payload
-	if t.outputs[0].Type != common2.OTExchangeVotes {
+	if t.outputs[0].Type != common2.OTStake {
 		return errors.New("invalid output type")
 	}
 	p := t.outputs[0].Payload
 	if p == nil {
 		return errors.New("invalid output payload")
 	}
-	if _, ok := p.(*outputpayload.ExchangeVoteOutput); !ok {
+	if _, ok := p.(*outputpayload.StakeOutput); !ok {
 		return errors.New("invalid exchange vote output payload")
 	}
 	if err := p.Validate(); err != nil {
@@ -89,16 +89,16 @@ func (t *ExchangeVotesTransaction) CheckTransactionOutput() error {
 	return nil
 }
 
-func (t *ExchangeVotesTransaction) CheckTransactionPayload() error {
+func (t *StakeTransaction) CheckTransactionPayload() error {
 	switch t.Payload().(type) {
-	case *payload.ExchangeVotes:
+	case *payload.Stake:
 		return nil
 	}
 
 	return errors.New("invalid payload type")
 }
 
-func (t *ExchangeVotesTransaction) CheckAttributeProgram() error {
+func (t *StakeTransaction) CheckAttributeProgram() error {
 	// Check attributes
 	for _, attr := range t.Attributes() {
 		if !common2.IsValidAttributeType(attr.Usage) {
@@ -120,11 +120,11 @@ func (t *ExchangeVotesTransaction) CheckAttributeProgram() error {
 	return nil
 }
 
-func (t *ExchangeVotesTransaction) IsAllowedInPOWConsensus() bool {
+func (t *StakeTransaction) IsAllowedInPOWConsensus() bool {
 
 	return true
 }
 
-func (t *ExchangeVotesTransaction) SpecialContextCheck() (result elaerr.ELAError, end bool) {
+func (t *StakeTransaction) SpecialContextCheck() (result elaerr.ELAError, end bool) {
 	return nil, false
 }

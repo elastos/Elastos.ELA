@@ -65,7 +65,7 @@ const (
 	// DPoS2.0
 	DposV2ClaimReward             TxType = 0x60
 	DposV2ClaimRewardRealWithdraw TxType = 0x61
-	ExchangeVotes                 TxType = 0x62
+	Stake                 TxType = 0x62
 	Voting                        TxType = 0x63
 	CancelVotes                   TxType = 0x64
 	ReturnVotes                   TxType = 0x65
@@ -148,8 +148,8 @@ func (self TxType) Name() string {
 		return "RevertToDPOS"
 	case ReturnSideChainDepositCoin:
 		return "ReturnSideChainDepositCoin"
-	case ExchangeVotes:
-		return "ExchangeVotes"
+	case Stake:
+		return "Stake"
 	case Voting:
 		return "Voting"
 	case CancelVotes:

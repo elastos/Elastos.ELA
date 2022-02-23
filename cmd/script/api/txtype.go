@@ -103,8 +103,8 @@ func newTransaction(L *lua.LState) int {
 		pload, _ = ud.Value.(*payload.CRCouncilMemberClaimNode)
 	case *payload.TransferCrossChainAsset:
 		pload, _ = ud.Value.(*payload.TransferCrossChainAsset)
-	case *payload.ExchangeVotes:
-		pload, _ = ud.Value.(*payload.ExchangeVotes)
+	case *payload.Stake:
+		pload, _ = ud.Value.(*payload.Stake)
 	case *payload.Voting:
 		pload, _ = ud.Value.(*payload.Voting)
 	case *payload.CancelVotes:

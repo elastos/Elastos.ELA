@@ -1360,8 +1360,8 @@ func (s *State) processTransaction(tx interfaces.Transaction, height uint32) {
 	case common2.TransferAsset:
 		s.processVotes(tx, height)
 
-	case common2.ExchangeVotes:
-		s.processExchangeVotes(tx, height)
+	case common2.Stake:
+		s.processStake(tx, height)
 
 	case common2.Voting:
 		s.processVoting(tx, height)
@@ -1591,9 +1591,9 @@ func (s *State) processVotes(tx interfaces.Transaction, height uint32) {
 
 // processNewVotes takes a transaction, if the transaction including any votes
 // validate and update producers votes.
-func (s *State) processExchangeVotes(tx interfaces.Transaction, height uint32) {
+func (s *State) processStake(tx interfaces.Transaction, height uint32) {
 	ot := tx.Outputs()[0]
-	pld := ot.Payload.(*outputpayload.ExchangeVoteOutput)
+	pld := ot.Payload.(*outputpayload.StakeOutput)
 	s.History.Append(height, func() {
 		s.DposV2VoteRights[pld.StakeAddress] += ot.Value
 	}, func() {

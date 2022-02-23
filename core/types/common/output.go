@@ -39,8 +39,8 @@ const (
 	//OTDposV2Vote indicates the output payload is a dposV2 vote.
 	OTDposV2Vote
 
-	// OTExchangeVotes indicates the output payload is a exchange votes payload
-	OTExchangeVotes
+	// OTStake indicates the output payload is a exchange votes payload
+	OTStake
 )
 
 type OutputPayload interface {
@@ -159,8 +159,8 @@ func getOutputPayload(outputType OutputType) (OutputPayload, error) {
 		op = new(outputpayload.ReturnSideChainDeposit)
 	case OTDposV2Vote:
 		op = new(outputpayload.VoteOutput)
-	case OTExchangeVotes:
-		op = new(outputpayload.ExchangeVoteOutput)
+	case OTStake:
+		op = new(outputpayload.StakeOutput)
 	default:
 		return nil, errors.New("invalid transaction output type")
 	}

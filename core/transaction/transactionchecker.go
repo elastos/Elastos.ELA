@@ -51,6 +51,11 @@ func (t *DefaultChecker) SanityCheck(params interfaces.Parameters) elaerr.ELAErr
 		return elaerr.Simple(elaerr.ErrTxInvalidInput, err)
 	}
 
+	if err := t.parameters.Transaction.CheckTransactionOutput(); err != nil {
+		log.Warn("[CheckTransactionOutput],", err)
+		return elaerr.Simple(elaerr.ErrTxInvalidOutput, err)
+	}
+
 	if err := checkAssetPrecision(t.parameters.Transaction); err != nil {
 		log.Warn("[CheckAssetPrecesion],", err)
 		return elaerr.Simple(elaerr.ErrTxAssetPrecision, err)
@@ -59,6 +64,16 @@ func (t *DefaultChecker) SanityCheck(params interfaces.Parameters) elaerr.ELAErr
 	if err := t.parameters.Transaction.CheckAttributeProgram(); err != nil {
 		log.Warn("[CheckAttributeProgram],", err)
 		return elaerr.Simple(elaerr.ErrTxAttributeProgram, err)
+	}
+
+	if err := t.parameters.Transaction.CheckTransactionPayload(); err != nil {
+		log.Warn("[CheckTransactionPayload],", err)
+		return elaerr.Simple(elaerr.ErrTxPayload, err)
+	}
+
+	if err := blockchain.CheckDuplicateSidechainTx(t.parameters.Transaction); err != nil {
+		log.Warn("[CheckDuplicateSidechainTx],", err)
+		return elaerr.Simple(elaerr.ErrTxSidechainDuplicate, err)
 	}
 
 	return nil

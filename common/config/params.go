@@ -257,7 +257,7 @@ func GetDefaultParams() Params {
 		ProhibitTransferToDIDHeight:        1032840,
 		DIDSideChainAddress:                "XKUh4GLhFJiqAMTF6HyWQrV9pK9HcGUdfJ",
 		DposV2StartHeight:                  2000000,
-		DposV2EffectiveVotes:               160000,
+		DposV2EffectiveVotes:               80000,
 		DposV2RewardAccumulateAddress:      DposV2RewardAccumulateAddress,
 		StakeAddress:                       "",     // todo complete me
 		DPoSV2MinVotesLockTime:             7200,   // todo complete me
@@ -355,7 +355,7 @@ func (p *Params) TestNet() *Params {
 	copy.ProhibitTransferToDIDHeight = 807000
 	copy.DIDSideChainAddress = "XKUh4GLhFJiqAMTF6HyWQrV9pK9HcGUdfJ"
 	copy.DposV2StartHeight = 2000000
-	copy.DposV2EffectiveVotes = 160000
+	copy.DposV2EffectiveVotes = 80000
 	copy.DposV2RewardAccumulateAddress = DposV2RewardAccumulateAddress
 	copy.StakeAddress = ""               // todo complete me
 	copy.DPoSV2MinVotesLockTime = 7200   // todo complete me
@@ -456,7 +456,7 @@ func (p *Params) RegNet() *Params {
 	copy.ProhibitTransferToDIDHeight = 730000
 	copy.DIDSideChainAddress = "XKUh4GLhFJiqAMTF6HyWQrV9pK9HcGUdfJ"
 	copy.DposV2StartHeight = 2000000
-	copy.DposV2EffectiveVotes = 160000
+	copy.DposV2EffectiveVotes = 80000
 	copy.DposV2RewardAccumulateAddress = DposV2RewardAccumulateAddress
 	copy.StakeAddress = ""               // todo complete me
 	copy.DPoSV2MinVotesLockTime = 7200   // todo complete me

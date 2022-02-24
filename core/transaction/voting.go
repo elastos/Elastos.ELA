@@ -327,6 +327,7 @@ func (t *VotingTransaction) checkDPoSV2Content(content payload.VotesContent,
 				"producer candidate: %s", common.BytesToHexString(cv.Candidate))
 		}
 		if cv.LockTime > lockUntil || cv.LockTime-t.parameters.BlockHeight < MinVotesLockTime {
+
 			return errors.New("invalid DPoS 2.0 votes lock time")
 		}
 		totalVotes += cv.Votes

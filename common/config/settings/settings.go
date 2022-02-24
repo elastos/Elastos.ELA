@@ -792,6 +792,18 @@ func NewSettings() *Settings {
 		ConfigPath:   "DPoSConfiguration.EmergencyInactivePenalty",
 		ParamName:    "EmergencyInactivePenalty"})
 
+	result.Add(&settingItem{
+		Flag:         cmdcom.DPoSV2MinVotesLockTimeFlag,
+		DefaultValue: uint32(0),
+		ConfigPath:   "DPoSConfiguration.DPoSV2MinVotesLockTime",
+		ParamName:    "DPoSV2MinVotesLockTime"})
+
+	result.Add(&settingItem{
+		Flag:         cmdcom.DPoSV2MaxVotesLockTimeFlag,
+		DefaultValue: uint32(0),
+		ConfigPath:   "DPoSConfiguration.DPoSV2MaxVotesLockTime",
+		ParamName:    "DPoSV2MaxVotesLockTime"})
+
 	// CR configurations
 
 	result.Add(&settingItem{

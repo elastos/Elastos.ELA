@@ -19,8 +19,6 @@ import (
 	elaerr "github.com/elastos/Elastos.ELA/errors"
 )
 
-var MinVotesLockTime uint32 = 7200
-
 type VotingTransaction struct {
 	BaseTransaction
 }
@@ -326,7 +324,11 @@ func (t *VotingTransaction) checkDPoSV2Content(content payload.VotesContent,
 			return fmt.Errorf("invalid vote output payload "+
 				"producer candidate: %s", common.BytesToHexString(cv.Candidate))
 		}
-		if cv.LockTime > lockUntil || cv.LockTime-t.parameters.BlockHeight < MinVotesLockTime {
+
+		locakTime := cv.LockTime - t.parameters.BlockHeight
+		if cv.LockTime > lockUntil ||
+			locakTime < t.parameters.Config.DPoSV2MinVotesLockTime ||
+			locakTime > t.parameters.Config.DPoSV2MaxVotesLockTime {
 
 			return errors.New("invalid DPoS 2.0 votes lock time")
 		}

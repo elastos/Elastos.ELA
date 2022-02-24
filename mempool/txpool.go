@@ -102,7 +102,7 @@ func (mp *TxPool) appendToTxPool(tx interfaces.Transaction) elaerr.ELAError {
 	if _, errCode := chain.CheckTransactionContext(
 		bestHeight+1, tx, mp.proposalsUsedAmount, 0); errCode != nil {
 		log.Warnf("[TxPool CheckTransactionContext] failed, hash: %s, err: %s", tx.Hash(),
-			errCode.InnerError().Error())
+			errCode)
 		return errCode
 	}
 	//verify transaction by pool with lock

@@ -259,7 +259,9 @@ func GetDefaultParams() Params {
 		DposV2StartHeight:                  2000000,
 		DposV2EffectiveVotes:               160000,
 		DposV2RewardAccumulateAddress:      DposV2RewardAccumulateAddress,
-		StakeAddress:                       "", // todo complete me
+		StakeAddress:                       "",     // todo complete me
+		DPoSV2MinVotesLockTime:             7200,   // todo complete me
+		DPoSV2MaxVotesLockTime:             720000, // todo complete me
 	}
 }
 
@@ -355,7 +357,9 @@ func (p *Params) TestNet() *Params {
 	copy.DposV2StartHeight = 2000000
 	copy.DposV2EffectiveVotes = 160000
 	copy.DposV2RewardAccumulateAddress = DposV2RewardAccumulateAddress
-	copy.StakeAddress = "" // todo complete me
+	copy.StakeAddress = ""               // todo complete me
+	copy.DPoSV2MinVotesLockTime = 7200   // todo complete me
+	copy.DPoSV2MaxVotesLockTime = 720000 // todo complete me
 	copy.RealWithdrawSingleFee = 10000
 
 	return &copy
@@ -454,7 +458,9 @@ func (p *Params) RegNet() *Params {
 	copy.DposV2StartHeight = 2000000
 	copy.DposV2EffectiveVotes = 160000
 	copy.DposV2RewardAccumulateAddress = DposV2RewardAccumulateAddress
-	copy.StakeAddress = "" // todo complete me
+	copy.StakeAddress = ""               // todo complete me
+	copy.DPoSV2MinVotesLockTime = 7200   // todo complete me
+	copy.DPoSV2MaxVotesLockTime = 720000 // todo complete me
 	copy.RealWithdrawSingleFee = 10000
 
 	return &copy
@@ -804,7 +810,14 @@ type Params struct {
 	// DposV2RewardAccumulateAddress defines the dposv2 reward accumulating address
 	DposV2RewardAccumulateAddress common.Uint168
 
+	// Stake address of votes
 	StakeAddress string
+
+	// minimum lock time of DPoS V2 votes
+	DPoSV2MinVotesLockTime uint32
+
+	// max lock time of DPoS V2 votes
+	DPoSV2MaxVotesLockTime uint32
 }
 
 // RewardPerBlock calculates the reward for each block by a specified time

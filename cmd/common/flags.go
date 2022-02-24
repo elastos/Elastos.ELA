@@ -89,23 +89,23 @@ var (
 		Usage: "the locked `<address>` on main chain represents one side chain",
 	}
 	TransactionNickNameFlag = cli.StringFlag{
-		Name: "nickname",
+		Name:  "nickname",
 		Usage: "the nick name of producer or cr council member",
 	}
 	TransactionUrlFlag = cli.StringFlag{
-		Name: "url",
+		Name:  "url",
 		Usage: "the url of producer or cr council member",
 	}
 	TransactionLocationFlag = cli.Uint64Flag{
-		Name: "location",
+		Name:  "location",
 		Usage: "localtion code of producer or cr council member",
 	}
 	TransactionNetAddressFlag = cli.StringFlag{
-		Name: "netaddress",
+		Name:  "netaddress",
 		Usage: "ip address of producer",
 	}
 	TransactionStakeUntilFlag = cli.UintFlag{
-		Name: "stakeuntil",
+		Name:  "stakeuntil",
 		Usage: "stake until this block height",
 	}
 
@@ -348,6 +348,14 @@ var (
 		Name:  "emergencyinactivepenalty",
 		Usage: "defines penalty of emergency inactive",
 	}
+	DPoSV2MinVotesLockTimeFlag = cli.StringFlag{
+		Name:  "dposv2minvoteslocktime",
+		Usage: "minimum lock time of DPoS V2 votes",
+	}
+	DPoSV2MaxVotesLockTimeFlag = cli.StringFlag{
+		Name:  "dposv2maxvoteslocktime",
+		Usage: "max lock time of DPoS V2 votes",
+	}
 	CRMemberCountFlag = cli.StringFlag{
 		Name:  "crmembercount",
 		Usage: "defines the number of CR committee members",
@@ -554,7 +562,6 @@ var (
 		Name:  "dposv2rewardaccumulateaddress",
 		Usage: "defines dposv2 reward accumulate address",
 	}
-
 
 	StakeAddressFlag = cli.StringFlag{
 		Name:  "stakeaddress",

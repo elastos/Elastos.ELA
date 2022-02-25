@@ -1048,14 +1048,14 @@ func NewSettings() *Settings {
 	result.Add(&settingItem{
 		Flag:         cmdcom.DposV2StartHeightFlag,
 		DefaultValue: uint32(0),
-		ConfigPath:   "DposV2StartHeight",
-		ParamName:    "DposV2StartHeight"})
+		ConfigPath:   "DPoSV2StartHeight",
+		ParamName:    "DPoSV2StartHeight"})
 
 	result.Add(&settingItem{
 		Flag:         cmdcom.DposV2EffectiveVotesFlag,
 		DefaultValue: common.Fixed64(0),
-		ConfigPath:   "DposV2EffectiveVotes",
-		ParamName:    "DposV2EffectiveVotes"})
+		ConfigPath:   "DPoSV2EffectiveVotes",
+		ParamName:    "DPoSV2EffectiveVotes"})
 
 	result.Add(&settingItem{
 		Flag:         cmdcom.StakeAddressFlag,
@@ -1068,11 +1068,11 @@ func NewSettings() *Settings {
 		DefaultValue: "",
 		ConfigSetter: func(path string, params *config.Params,
 			conf *config.Configuration) error {
-			DposV2RewardAccumulateAddress, err := common.Uint168FromAddress(conf.DPoSConfiguration.DposV2RewardAccumulateAddress)
+			DposV2RewardAccumulateAddress, err := common.Uint168FromAddress(conf.DPoSConfiguration.DPoSV2RewardAccumulateAddress)
 			if err != nil {
 				return errors.New("invalid CR expenses address")
 			}
-			params.DposV2RewardAccumulateAddress = *DposV2RewardAccumulateAddress
+			params.DPoSV2RewardAccumulateAddress = *DposV2RewardAccumulateAddress
 			return nil
 		},
 		CliSetter: func(i interface{}, params *config.Params,
@@ -1085,11 +1085,11 @@ func NewSettings() *Settings {
 			if err != nil {
 				return errors.New("invalid CR expenses address")
 			}
-			params.DposV2RewardAccumulateAddress = *DposV2RewardAccumulateAddress
+			params.DPoSV2RewardAccumulateAddress = *DposV2RewardAccumulateAddress
 			return nil
 		},
-		ConfigPath: "DPoSConfiguration.DposV2RewardAccumulateAddress",
-		ParamName:  "DposV2RewardAccumulateAddress"})
+		ConfigPath: "DPoSConfiguration.DPoSV2RewardAccumulateAddress",
+		ParamName:  "DPoSV2RewardAccumulateAddress"})
 
 	return result
 }

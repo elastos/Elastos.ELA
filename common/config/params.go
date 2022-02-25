@@ -256,9 +256,9 @@ func GetDefaultParams() Params {
 		ReturnCrossChainCoinStartHeight:    1032840,
 		ProhibitTransferToDIDHeight:        1032840,
 		DIDSideChainAddress:                "XKUh4GLhFJiqAMTF6HyWQrV9pK9HcGUdfJ",
-		DposV2StartHeight:                  2000000,
-		DposV2EffectiveVotes:               80000,
-		DposV2RewardAccumulateAddress:      DposV2RewardAccumulateAddress,
+		DPoSV2StartHeight:                  2000000,
+		DPoSV2EffectiveVotes:               80000,
+		DPoSV2RewardAccumulateAddress:      DposV2RewardAccumulateAddress,
 		StakeAddress:                       "",     // todo complete me
 		DPoSV2MinVotesLockTime:             7200,   // todo complete me
 		DPoSV2MaxVotesLockTime:             720000, // todo complete me
@@ -354,9 +354,9 @@ func (p *Params) TestNet() *Params {
 	copy.CRCProposalDraftDataStartHeight = 807000
 	copy.ProhibitTransferToDIDHeight = 807000
 	copy.DIDSideChainAddress = "XKUh4GLhFJiqAMTF6HyWQrV9pK9HcGUdfJ"
-	copy.DposV2StartHeight = 2000000
-	copy.DposV2EffectiveVotes = 80000
-	copy.DposV2RewardAccumulateAddress = DposV2RewardAccumulateAddress
+	copy.DPoSV2StartHeight = 2000000
+	copy.DPoSV2EffectiveVotes = 80000
+	copy.DPoSV2RewardAccumulateAddress = DposV2RewardAccumulateAddress
 	copy.StakeAddress = ""               // todo complete me
 	copy.DPoSV2MinVotesLockTime = 7200   // todo complete me
 	copy.DPoSV2MaxVotesLockTime = 720000 // todo complete me
@@ -455,9 +455,9 @@ func (p *Params) RegNet() *Params {
 	copy.CRCProposalDraftDataStartHeight = 730000
 	copy.ProhibitTransferToDIDHeight = 730000
 	copy.DIDSideChainAddress = "XKUh4GLhFJiqAMTF6HyWQrV9pK9HcGUdfJ"
-	copy.DposV2StartHeight = 2000000
-	copy.DposV2EffectiveVotes = 80000
-	copy.DposV2RewardAccumulateAddress = DposV2RewardAccumulateAddress
+	copy.DPoSV2StartHeight = 2000000
+	copy.DPoSV2EffectiveVotes = 80000
+	copy.DPoSV2RewardAccumulateAddress = DposV2RewardAccumulateAddress
 	copy.StakeAddress = ""               // todo complete me
 	copy.DPoSV2MinVotesLockTime = 7200   // todo complete me
 	copy.DPoSV2MaxVotesLockTime = 720000 // todo complete me
@@ -801,14 +801,14 @@ type Params struct {
 	// ReturnCroossChainDepositCoin transaction
 	ReturnCrossChainCoinStartHeight uint32
 
-	// DposV2StartHeight defines the start height of dpos 2.0.
-	DposV2StartHeight uint32
+	// DPoSV2StartHeight defines the start height of dpos 2.0.
+	DPoSV2StartHeight uint32
 
-	// DposV2EffectiveVotes defines the votes which producer will become a dposV2 effective node
-	DposV2EffectiveVotes common.Fixed64
+	// DPoSV2EffectiveVotes defines the votes which producer will become a dposV2 effective node
+	DPoSV2EffectiveVotes common.Fixed64
 
-	// DposV2RewardAccumulateAddress defines the dposv2 reward accumulating address
-	DposV2RewardAccumulateAddress common.Uint168
+	// DPoSV2RewardAccumulateAddress defines the dposv2 reward accumulating address
+	DPoSV2RewardAccumulateAddress common.Uint168
 
 	// Stake address of votes
 	StakeAddress string

@@ -1134,9 +1134,9 @@ func (b *BlockChain) CheckTxHeightVersion(txn interfaces.Transaction, blockHeigh
 				"before CRCProposalWithdrawPayloadV1Height", txn.TxType().Name()))
 		}
 	case common2.DposV2ClaimReward, common2.DposV2ClaimRewardRealWithdraw, common2.UnstakeRealWithdraw:
-		if blockHeight < b.chainParams.DposV2StartHeight {
+		if blockHeight < b.chainParams.DPoSV2StartHeight {
 			return errors.New(fmt.Sprintf("not support %s transaction "+
-				"before DposV2StartHeight", txn.TxType().Name()))
+				"before DPoSV2StartHeight", txn.TxType().Name()))
 		}
 	case common2.CRAssetsRectify, common2.CRCProposalRealWithdraw:
 		if blockHeight < b.chainParams.CRAssetsRectifyTransactionHeight {
@@ -1149,7 +1149,7 @@ func (b *BlockChain) CheckTxHeightVersion(txn interfaces.Transaction, blockHeigh
 				"before CRClaimDPOSNodeStartHeight", txn.TxType().Name()))
 		}
 	case common2.TransferAsset:
-		if blockHeight >= b.chainParams.DposV2StartHeight {
+		if blockHeight >= b.chainParams.DPoSV2StartHeight {
 			return nil
 		}
 		if txn.Version() >= common2.TxVersion09 {
@@ -1164,7 +1164,7 @@ func (b *BlockChain) CheckTxHeightVersion(txn interfaces.Transaction, blockHeigh
 				}
 				if p.Version == outputpayload.VoteDposV2Version {
 					return errors.New("not support " +
-						"VoteDposV2Version before DposV2StartHeight")
+						"VoteDposV2Version before DPoSV2StartHeight")
 				}
 			}
 		}
@@ -1631,7 +1631,7 @@ func (b *BlockChain) CheckRegisterProducerTransaction(txn interfaces.Transaction
 			return fmt.Errorf("producer owner already registered")
 		}
 	} else {
-		if b.GetHeight() < b.chainParams.DposV2StartHeight && txn.PayloadVersion() == payload.ProducerInfoVersion {
+		if b.GetHeight() < b.chainParams.DPoSV2StartHeight && txn.PayloadVersion() == payload.ProducerInfoVersion {
 			// check duplication of node.
 			if b.state.ProducerNodePublicKeyExists(info.NodePublicKey) {
 				return fmt.Errorf("producer already registered")
@@ -1704,8 +1704,8 @@ func (b *BlockChain) CheckRegisterProducerTransaction(txn interfaces.Transaction
 			return errors.New("there must be only one deposit address in outputs")
 		}
 	} else if txn.PayloadVersion() == payload.ProducerInfoDposV2Version {
-		if info.StakeUntil < b.chainParams.DposV2StartHeight {
-			return fmt.Errorf("stakeuntil must bigger than DposV2StartHeight")
+		if info.StakeUntil < b.chainParams.DPoSV2StartHeight {
+			return fmt.Errorf("stakeuntil must bigger than DPoSV2StartHeight")
 		}
 
 		// check duplication of node.
@@ -1865,7 +1865,7 @@ func (b *BlockChain) CheckCancelProducerTransaction(txn interfaces.Transaction) 
 func (b *BlockChain) checkDposV2ClaimRewardTransaction(txn interfaces.Transaction,
 	height uint32) error {
 
-	if height < b.chainParams.DposV2StartHeight {
+	if height < b.chainParams.DPoSV2StartHeight {
 		return errors.New("can not claim reward before dposv2startheight")
 	}
 
@@ -2588,10 +2588,10 @@ func (b *BlockChain) checkDposV2ClaimRewardRealWithdrawTransaction(txn interface
 		return errors.New("invalid real withdraw transaction hashes count")
 	}
 
-	// if need change, the last output is only allowed to DposV2RewardAccumulateAddress.
+	// if need change, the last output is only allowed to DPoSV2RewardAccumulateAddress.
 	if txsCount != len(txn.Outputs()) {
 		toProgramHash := txn.Outputs()[len(txn.Outputs())-1].ProgramHash
-		if !toProgramHash.IsEqual(b.chainParams.DposV2RewardAccumulateAddress) {
+		if !toProgramHash.IsEqual(b.chainParams.DPoSV2RewardAccumulateAddress) {
 			return errors.New(fmt.Sprintf("last output is invalid"))
 		}
 	}

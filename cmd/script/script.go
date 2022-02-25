@@ -85,6 +85,7 @@ func registerParams(c *cli.Context, L *lua.LState) {
 
 	// dposv2
 	referKey := c.String("referkey")
+	voteType := c.Uint("votetype")
 
 	getWallet := func(L *lua.LState) int {
 		L.Push(lua.LString(wallet))
@@ -361,6 +362,11 @@ func registerParams(c *cli.Context, L *lua.LState) {
 		return 1
 	}
 
+	getVoteType := func(L *lua.LState) int {
+		L.Push(lua.LNumber(voteType))
+		return 1
+	}
+
 	L.Register("getWallet", getWallet)
 	L.Register("getPassword", getPassword)
 	L.Register("getDepositAddr", getDepositAddr)
@@ -427,6 +433,7 @@ func registerParams(c *cli.Context, L *lua.LState) {
 	L.Register("getResourcePath", getResourcePath)
 
 	L.Register("getReferKey", getReferKey)
+	L.Register("getVoteType", getVoteType)
 }
 
 func scriptAction(c *cli.Context) error {
@@ -723,6 +730,10 @@ func NewCommand() *cli.Command {
 			cli.StringFlag{
 				Name:  "referkey",
 				Usage: "set refer key of related votes",
+			},
+			cli.Int64Flag{
+				Name:  "votetype",
+				Usage: "set vote type of related votes",
 			},
 		},
 		Action: scriptAction,

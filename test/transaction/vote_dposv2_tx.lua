@@ -36,7 +36,7 @@ local asset_id = m.get_asset_id()
 --local vote_candidates = {'21039d419986f5c2bf6f2a6f59f0b6e111735b66570fb22107a038bca3e1005d1920ac'}
 --local vote_candidate_votes = {'0.1'}
 
-local vote_type = 4
+local vote_type = getVoteType()
 local amount = getAmount()
 local fee = getFee()
 local vote_candidates = getCandidates()
@@ -61,6 +61,7 @@ if next(vote_candidate_votes) == nil then
     return
 end
 
+print("votetype:",vote_type)
 print("amount:", amount)
 print("fee:", fee)
 print("vote_candidates:", vote_candidates)

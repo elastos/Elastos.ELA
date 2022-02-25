@@ -1623,6 +1623,7 @@ func (s *State) processCancelVoting(tx interfaces.Transaction, height uint32) {
 	for _, k := range pld.ReferKeys {
 		key := k
 		detailVoteInfo := s.DetailDPoSV1Votes[key]
+		log.Warn("#### key %s %v ",key.String(),detailVoteInfo.VoteType, detailVoteInfo)
 		switch detailVoteInfo.VoteType {
 		case outputpayload.Delegate:
 			s.History.Append(height, func() {

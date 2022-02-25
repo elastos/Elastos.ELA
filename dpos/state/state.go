@@ -2177,12 +2177,15 @@ func (s *State) getClaimedCRMembersMap() map[string]*state.CRMember {
 
 func (s *State) processUnstake(tx interfaces.Transaction, height uint32) {
 	payload := tx.Payload().(*payload.Unstake)
-	receipt, _ := contract.PublicKeyToStandardProgramHash(tx.Programs()[0].Code[1 : len(tx.Programs()[0].Code)-1])
-
+	// check if unused vote rights enough
+	code := payload.Code
+	//1. get stake address
+	ct, _ := contract.CreateStakeContractByCode(code)
+	receipt := ct.ToProgramHash()
 	s.History.Append(height, func() {
 		s.DposV2VoteRights[*receipt] -= payload.Value
 		s.VotesWithdrawableTxInfo[tx.Hash()] = common2.OutputInfo{
-			Recipient: *receipt,
+			Recipient: payload.ToAddr,
 			Amount:    payload.Value,
 		}
 	}, func() {

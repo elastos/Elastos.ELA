@@ -6,13 +6,14 @@
 package transaction
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
-	"github.com/elastos/Elastos.ELA/common"
-	"github.com/elastos/Elastos.ELA/common/config"
+
 	"github.com/elastos/Elastos.ELA/core/contract"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
+	"github.com/elastos/Elastos.ELA/crypto"
 	elaerr "github.com/elastos/Elastos.ELA/errors"
 )
 
@@ -38,46 +39,6 @@ func (t *UnstakeTransaction) CheckTransactionPayload() error {
 	}
 
 	return errors.New("invalid payload type")
-}
-
-func (t *UnstakeTransaction) CheckTransactionOutput() error {
-	if len(t.Outputs()) > 2 {
-		return errors.New("output count should not be greater than 2")
-	}
-
-	if len(t.Outputs()) < 1 {
-		return errors.New("transaction has no outputs")
-	}
-
-	// check if output address is valid
-	for _, output := range t.Outputs() {
-		if output.AssetID != config.ELAAssetID {
-			return errors.New("asset ID in output is invalid")
-		}
-
-		// output value must >= 0
-		if output.Value < common.Fixed64(0) {
-			return errors.New("invalid transaction UTXO output")
-		}
-	}
-
-	if contract.GetPrefixType(t.Outputs()[0].ProgramHash) != contract.PrefixStandard &&
-		contract.GetPrefixType(t.Outputs()[0].ProgramHash) != contract.PrefixMultiSig {
-		return errors.New("first output address need to be Standard or MultiSig address")
-	}
-
-	if len(t.Outputs()) == 2 {
-		// check output address, need to be stake address
-		addr, err := t.outputs[1].ProgramHash.ToAddress()
-		if err != nil {
-			return errors.New("invalid  output address")
-		}
-		if addr != t.parameters.Config.StakeAddress {
-			return errors.New("second output address need to be stake address")
-		}
-	}
-
-	return nil
 }
 
 func (t *UnstakeTransaction) CheckAttributeProgram() error {
@@ -110,9 +71,13 @@ func (t *UnstakeTransaction) SpecialContextCheck() (result elaerr.ELAError, end 
 
 	// 1.check if unused vote rights enough
 	// 2.return value if payload need to be equal to outputs
-
+	pl, ok := t.Payload().(*payload.Unstake)
+	if !ok {
+		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid payload")), true
+	}
 	// check if unused vote rights enough
-	code := t.Programs()[0].Code
+	code := pl.Code
+	//1. get stake address
 	ct, err := contract.CreateStakeContractByCode(code)
 	if err != nil {
 		return elaerr.Simple(elaerr.ErrTxInvalidOutput, err), true
@@ -126,7 +91,6 @@ func (t *UnstakeTransaction) SpecialContextCheck() (result elaerr.ELAError, end 
 	usedCRImpeachmentVoteRights := state.CRImpeachmentVotes[*stakeProgramHash]
 	usedCRCProposalVoteRights := state.CRCProposalVotes[*stakeProgramHash]
 
-	pl := t.Payload().(*payload.Unstake)
 	if pl.Value > voteRights-usedDposVoteRights ||
 		pl.Value > voteRights-usedDposV2VoteRights ||
 		pl.Value > voteRights-usedCRVoteRights ||
@@ -135,41 +99,30 @@ func (t *UnstakeTransaction) SpecialContextCheck() (result elaerr.ELAError, end 
 		return elaerr.Simple(elaerr.ErrTxPayload,
 			errors.New("vote rights not enough")), true
 	}
-
-	// return value if payload need to be equal to outputs
-	inputsStakeAddr := make(map[common.Uint168]struct{})
-	inputsStakeAmount := common.Fixed64(0)
-	for _, o := range t.references {
-		addr, err := o.ProgramHash.ToAddress()
-		if err != nil {
-			continue
-		}
-		if addr != t.parameters.Config.StakeAddress {
-			continue
-		}
-		if contract.GetPrefixType(o.ProgramHash) != contract.PrefixDposV2 {
-			continue
-		}
-		inputsStakeAddr[o.ProgramHash] = struct{}{}
-		inputsStakeAmount += o.Value
+	//check pl.Code signature
+	err = t.checkUnstakeSignature(pl)
+	if err != nil {
+		return elaerr.Simple(elaerr.ErrTxPayload, err), true
 	}
-	if len(inputsStakeAddr) != 1 {
-		return elaerr.Simple(elaerr.ErrTxInvalidInput,
-			errors.New("has different input address")), true
-	}
-
-	var stakeAmount common.Fixed64
-	if len(t.Outputs()) == 1 {
-		// if have no change, need to use inputs amount
-		stakeAmount = inputsStakeAmount
-	} else {
-		// if have change, need to use inputs amount - change amount
-		stakeAmount = inputsStakeAmount - t.outputs[1].Value
-	}
-	if stakeAmount != pl.Value {
-		return elaerr.Simple(elaerr.ErrTxInvalidOutput,
-			errors.New("payload value is not equal to output value")), true
-	}
-
 	return nil, false
+}
+
+// check signature
+func (t *UnstakeTransaction) checkUnstakeSignature(unstakePayload *payload.Unstake) error {
+
+	pub := unstakePayload.Code[1 : len(unstakePayload.Code)-1]
+	publicKey, err := crypto.DecodePoint(pub)
+	if err != nil {
+		return errors.New("invalid public key in payload")
+	}
+	signedBuf := new(bytes.Buffer)
+	err = unstakePayload.SerializeUnsigned(signedBuf, payload.UnstakeVersion)
+	if err != nil {
+		return err
+	}
+	err = crypto.Verify(*publicKey, signedBuf.Bytes(), unstakePayload.Signature)
+	if err != nil {
+		return errors.New("invalid signature in unstakePayload")
+	}
+	return nil
 }

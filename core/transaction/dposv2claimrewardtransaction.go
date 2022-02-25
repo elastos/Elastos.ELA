@@ -10,34 +10,13 @@ import (
 	"errors"
 	"fmt"
 	"github.com/elastos/Elastos.ELA/core/contract"
-	"github.com/elastos/Elastos.ELA/crypto"
-	"math"
-
 	"github.com/elastos/Elastos.ELA/core/types/payload"
+	"github.com/elastos/Elastos.ELA/crypto"
 	elaerr "github.com/elastos/Elastos.ELA/errors"
 )
 
 type DposV2ClaimRewardTransaction struct {
 	BaseTransaction
-}
-
-func (t *DposV2ClaimRewardTransaction) CheckTransactionInput() error {
-	if len(t.Inputs()) != 0 {
-		return errors.New("no cost transactions must has no input")
-	}
-	return nil
-}
-
-func (t *DposV2ClaimRewardTransaction) CheckTransactionOutput() error {
-
-	if len(t.Outputs()) > math.MaxUint16 {
-		return errors.New("output count should not be greater than 65535(MaxUint16)")
-	}
-	if len(t.Outputs()) != 0 {
-		return errors.New("no cost transactions should have no output")
-	}
-
-	return nil
 }
 
 func (t *DposV2ClaimRewardTransaction) HeightVersionCheck() error {
@@ -68,7 +47,7 @@ func (t *DposV2ClaimRewardTransaction) CheckTransactionPayload() error {
 }
 
 func (t *DposV2ClaimRewardTransaction) IsAllowedInPOWConsensus() bool {
-	return true
+	return false
 }
 
 func (t *DposV2ClaimRewardTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
@@ -79,13 +58,6 @@ func (t *DposV2ClaimRewardTransaction) SpecialContextCheck() (elaerr.ELAError, b
 	claimReward, ok := t.Payload().(*payload.DposV2ClaimReward)
 	if !ok {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid payload for dposV2claimReward")), true
-	}
-	if len(t.Inputs()) != 0 {
-		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("inputs must be zero")), true
-	}
-
-	if len(t.Outputs()) != 0 {
-		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("outputs must be zero")), true
 	}
 
 	pub := t.Programs()[0].Code[1 : len(t.Programs()[0].Code)-1]

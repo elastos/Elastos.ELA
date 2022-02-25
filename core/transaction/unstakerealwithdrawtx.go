@@ -8,7 +8,6 @@ package transaction
 import (
 	"errors"
 	"fmt"
-
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	elaerr "github.com/elastos/Elastos.ELA/errors"

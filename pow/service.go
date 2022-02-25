@@ -182,7 +182,7 @@ func (pow *Service) AssignCoinbaseTxRewards(block *types.Block, totalReward comm
 			output := append(block.Transactions[0].Outputs(), &common2.Output{
 				AssetID:     config.ELAAssetID,
 				Value:       dposReward,
-				ProgramHash: pow.chainParams.DposV2RewardAccumulateAddress,
+				ProgramHash: pow.chainParams.DPoSV2RewardAccumulateAddress,
 				Payload:     &outputpayload.DefaultOutput{},
 			})
 			block.Transactions[0].SetOutputs(output)

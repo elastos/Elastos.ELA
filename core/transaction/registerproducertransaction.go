@@ -62,7 +62,7 @@ func (t *RegisterProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bo
 		if t.parameters.BlockChain.GetState().ProducerExists(info.OwnerPublicKey) {
 			return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("producer owner already registered")), true
 		}
-	} else if t.parameters.BlockChain.GetHeight() < t.parameters.Config.DposV2StartHeight &&
+	} else if t.parameters.BlockChain.GetHeight() < t.parameters.Config.DPoSV2StartHeight &&
 		t.PayloadVersion() == payload.ProducerInfoVersion {
 
 		// check duplication of node.
@@ -137,8 +137,8 @@ func (t *RegisterProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bo
 			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("there must be only one deposit address in outputs")), true
 		}
 	} else if t.PayloadVersion() == payload.ProducerInfoDposV2Version {
-		if info.StakeUntil < t.parameters.Config.DposV2StartHeight {
-			return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("stakeuntil must bigger than DposV2StartHeight")), true
+		if info.StakeUntil < t.parameters.Config.DPoSV2StartHeight {
+			return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("stakeuntil must bigger than DPoSV2StartHeight")), true
 		}
 
 		// check duplication of node.

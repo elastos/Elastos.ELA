@@ -63,7 +63,7 @@ func (t *UpdateCRTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid cid address")), true
 	}
 
-	if t.parameters.BlockHeight >=t.parameters.Config.RegisterCRByDIDHeight &&
+	if t.parameters.BlockHeight >= t.parameters.Config.RegisterCRByDIDHeight &&
 		t.PayloadVersion() == payload.CRInfoDIDVersion {
 		// get DID program hash
 

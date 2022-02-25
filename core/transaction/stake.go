@@ -26,9 +26,9 @@ func (t *StakeTransaction) HeightVersionCheck() error {
 	blockHeight := t.parameters.BlockHeight
 	chainParams := t.parameters.Config
 
-	if blockHeight < chainParams.DposV2StartHeight {
+	if blockHeight < chainParams.DPoSV2StartHeight {
 		return errors.New(fmt.Sprintf("not support %s transaction "+
-			"before DposV2StartHeight", t.TxType().Name()))
+			"before DPoSV2StartHeight", t.TxType().Name()))
 	}
 	return nil
 }

@@ -159,6 +159,9 @@ type StateKeyFrame struct {
 	DepositOutputs       map[string]common.Fixed64
 	CRCFoundationOutputs map[string]common.Fixed64
 	CRCCommitteeOutputs  map[string]common.Fixed64
+	CRVotes              map[common.Uint168]common.Fixed64 // key: address value: amount
+	CRImpeachmentVotes   map[common.Uint168]common.Fixed64 // key: address value: amount
+	CRCProposalVotes     map[common.Uint168]common.Fixed64 // key: address value: amount
 }
 
 // ProposalState defines necessary State about an CR proposals.
@@ -644,6 +647,21 @@ func (d *DepositInfo) Deserialize(r io.Reader) (err error) {
 
 	return
 }
+func (kf *StateKeyFrame) SerializeProgramHashAmountMap(vmap map[common.Uint168]common.Fixed64,
+	w io.Writer) (err error) {
+	if err = common.WriteVarUint(w, uint64(len(vmap))); err != nil {
+		return
+	}
+	for k, v := range vmap {
+		if err = k.Serialize(w); err != nil {
+			return
+		}
+		if err = v.Serialize(w); err != nil {
+			return
+		}
+	}
+	return
+}
 
 func (kf *StateKeyFrame) Serialize(w io.Writer) (err error) {
 	if err = kf.serializeCodeAddressMap(w, kf.CodeCIDMap); err != nil {
@@ -686,7 +704,42 @@ func (kf *StateKeyFrame) Serialize(w io.Writer) (err error) {
 		return
 	}
 
-	return kf.SerializeFixed64Map(w, kf.CRCCommitteeOutputs)
+	if err = kf.SerializeFixed64Map(w, kf.CRCCommitteeOutputs); err != nil {
+		return
+	}
+
+	if err = kf.SerializeProgramHashAmountMap(kf.CRVotes, w); err != nil {
+		return
+	}
+	if err = kf.SerializeProgramHashAmountMap(kf.CRImpeachmentVotes, w); err != nil {
+		return
+	}
+	if err = kf.SerializeProgramHashAmountMap(kf.CRCProposalVotes, w); err != nil {
+		return
+	}
+
+	return
+}
+
+func (kf *StateKeyFrame) DeserializeProgramHashAmountMap(
+	r io.Reader) (vmap map[common.Uint168]common.Fixed64, err error) {
+	var count uint64
+	if count, err = common.ReadVarUint(r, 0); err != nil {
+		return
+	}
+	vmap = make(map[common.Uint168]common.Fixed64)
+	for i := uint64(0); i < count; i++ {
+		var k common.Uint168
+		if err = k.Deserialize(r); err != nil {
+			return
+		}
+		var v common.Fixed64
+		if err = v.Deserialize(r); err != nil {
+			return
+		}
+		vmap[k] = v
+	}
+	return
 }
 
 func (kf *StateKeyFrame) Deserialize(r io.Reader) (err error) {
@@ -733,6 +786,17 @@ func (kf *StateKeyFrame) Deserialize(r io.Reader) (err error) {
 	if kf.CRCCommitteeOutputs, err = kf.DeserializeFixed64Map(r); err != nil {
 		return
 	}
+
+	if kf.CRVotes, err = kf.DeserializeProgramHashAmountMap(r); err != nil {
+		return
+	}
+	if kf.CRImpeachmentVotes, err = kf.DeserializeProgramHashAmountMap(r); err != nil {
+		return
+	}
+	if kf.CRCProposalVotes, err = kf.DeserializeProgramHashAmountMap(r); err != nil {
+		return
+	}
+
 	return
 }
 
@@ -982,8 +1046,21 @@ func (kf *StateKeyFrame) Snapshot() *StateKeyFrame {
 	state.DepositOutputs = copyFixed64Map(kf.DepositOutputs)
 	state.CRCFoundationOutputs = copyFixed64Map(kf.CRCFoundationOutputs)
 	state.CRCCommitteeOutputs = copyFixed64Map(kf.CRCCommitteeOutputs)
+	state.CRVotes = copyProgramHashAmountSet(kf.CRVotes)
+	state.CRImpeachmentVotes = copyProgramHashAmountSet(kf.CRImpeachmentVotes)
+	state.CRCProposalVotes = copyProgramHashAmountSet(kf.CRCProposalVotes)
 
 	return state
+}
+
+func copyProgramHashAmountSet(src map[common.Uint168]common.Fixed64) (
+	dst map[common.Uint168]common.Fixed64) {
+	dst = map[common.Uint168]common.Fixed64{}
+	for k, v := range src {
+		a := v
+		dst[k] = a
+	}
+	return
 }
 
 func (p *ProposalState) Serialize(w io.Writer) (err error) {
@@ -1731,6 +1808,9 @@ func NewStateKeyFrame() *StateKeyFrame {
 		DepositOutputs:       make(map[string]common.Fixed64),
 		CRCFoundationOutputs: make(map[string]common.Fixed64),
 		CRCCommitteeOutputs:  make(map[string]common.Fixed64),
+		CRVotes:              make(map[common.Uint168]common.Fixed64),
+		CRImpeachmentVotes:   make(map[common.Uint168]common.Fixed64),
+		CRCProposalVotes:     make(map[common.Uint168]common.Fixed64),
 	}
 }
 

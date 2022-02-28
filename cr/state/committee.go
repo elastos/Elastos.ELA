@@ -920,6 +920,28 @@ func (c *Committee) processImpeachment(height uint32, member []byte,
 	return
 }
 
+func (c *Committee) processCancelImpeachmentV2(height uint32, member []byte,
+	votes common.Fixed64, history *utils.History) {
+	var crMember *CRMember
+	for _, v := range c.Members {
+		if bytes.Equal(v.Info.CID.Bytes(), member) &&
+			(v.MemberState == MemberElected ||
+				v.MemberState == MemberInactive || v.MemberState == MemberIllegal) {
+			crMember = v
+			break
+		}
+	}
+	if crMember == nil {
+		return
+	}
+	history.Append(height, func() {
+		crMember.ImpeachmentVotes -= votes
+	}, func() {
+		crMember.ImpeachmentVotes += votes
+	})
+	return
+}
+
 func (c *Committee) processCRCAppropriation(height uint32, history *utils.History) {
 	history.Append(height, func() {
 		c.NeedAppropriation = false

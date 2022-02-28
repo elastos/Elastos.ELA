@@ -459,6 +459,41 @@ func (s *State) processVoteCRC(height uint32, candidate []byte, votes common.Fix
 	})
 }
 
+// processVoteCRC record candidate Votes.
+func (s *State) processCancelVoteCRC(height uint32, candidate []byte, votes common.Fixed64) {
+	cid, err := common.Uint168FromBytes(candidate)
+	if err != nil {
+		return
+	}
+	c := s.GetCandidate(*cid)
+	if candidate == nil {
+		return
+	}
+	s.History.Append(height, func() {
+		c.Votes -= votes
+	}, func() {
+		c.Votes += votes
+	})
+}
+
+// processVoteCRCProposal record proposal reject Votes.
+func (s *State) processCancelVoteCRCProposal(height uint32,
+	candidate []byte, votes common.Fixed64) {
+	proposalHash, err := common.Uint256FromBytes(candidate)
+	if err != nil {
+		return
+	}
+	proposalState := s.manager.getProposal(*proposalHash)
+	if proposalState == nil || proposalState.Status != CRAgreed {
+		return
+	}
+	s.History.Append(height, func() {
+		proposalState.VotersRejectAmount -= votes
+	}, func() {
+		proposalState.VotersRejectAmount += votes
+	})
+}
+
 // processVoteCRCProposal record proposal reject Votes.
 func (s *State) processVoteCRCProposal(height uint32,
 	candidate []byte, votes common.Fixed64) {

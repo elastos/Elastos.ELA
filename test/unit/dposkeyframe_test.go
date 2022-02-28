@@ -350,9 +350,6 @@ func randomDPOSStateKeyFrame() *state.StateKeyFrame {
 		DposV2VoteRights:          make(map[common.Uint168]common.Fixed64),
 		DposVotes:                 make(map[common.Uint168]common.Fixed64),
 		DposV2Votes:               make(map[common.Uint168]common.Fixed64),
-		CRVotes:                   make(map[common.Uint168]common.Fixed64),
-		CRImpeachmentVotes:        make(map[common.Uint168]common.Fixed64),
-		CRCProposalVotes:          make(map[common.Uint168]common.Fixed64),
 		DepositOutputs:            make(map[string]common.Fixed64),
 		DposV2RewardInfo:          make(map[string]common.Fixed64),
 		DposV2RewardClaimingInfo:  make(map[string]common.Fixed64),
@@ -378,9 +375,6 @@ func randomDPOSStateKeyFrame() *state.StateKeyFrame {
 		result.DposV2VoteRights[*randomUint168()] = randomFix64()
 		result.DposVotes[*randomUint168()] = randomFix64()
 		result.DposV2Votes[*randomUint168()] = randomFix64()
-		result.CRVotes[*randomUint168()] = randomFix64()
-		result.CRImpeachmentVotes[*randomUint168()] = randomFix64()
-		result.CRCProposalVotes[*randomUint168()] = randomFix64()
 		result.DepositOutputs[randomString()] = common.Fixed64(rand.Uint64())
 		result.DposV2RewardInfo[randomString()] = common.Fixed64(rand.Uint64())
 		result.DposV2RewardClaimingInfo[randomString()] = common.Fixed64(rand.Uint64())

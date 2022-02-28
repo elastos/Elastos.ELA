@@ -123,6 +123,7 @@ func (t *VotingTransaction) SpecialContextCheck() (result elaerr.ELAError, end b
 	}
 	stakeProgramHash := ct.ToProgramHash()
 	state := t.parameters.BlockChain.GetState()
+	commitee := t.parameters.BlockChain.GetCRCommittee()
 	voteRights := state.DposV2VoteRights
 	totalVotes, exist := voteRights[*stakeProgramHash]
 	if !exist {
@@ -130,9 +131,10 @@ func (t *VotingTransaction) SpecialContextCheck() (result elaerr.ELAError, end b
 	}
 	usedDPoSVoteRights, _ := state.DposVotes[*stakeProgramHash]
 	usedDPoSV2VoteRights, _ := state.DposV2Votes[*stakeProgramHash]
-	usedCRVoteRights, _ := state.CRVotes[*stakeProgramHash]
-	usedCRCProposalVoteRights, _ := state.CRCProposalVotes[*stakeProgramHash]
-	usedCRImpeachmentVoteRights, _ := state.CRImpeachmentVotes[*stakeProgramHash]
+	cs := commitee.GetState()
+	usedCRVoteRights, _ := cs.CRVotes[*stakeProgramHash]
+	usedCRCProposalVoteRights, _ := cs.CRCProposalVotes[*stakeProgramHash]
+	usedCRImpeachmentVoteRights, _ := cs.CRImpeachmentVotes[*stakeProgramHash]
 
 	var candidates []*crstate.Candidate
 	if crCommittee.IsInVotingPeriod(blockHeight) {

@@ -21,6 +21,9 @@ const (
 	// MinDepositAmount is the minimum deposit as a producer.
 	MinDepositAmount = 5000 * 100000000
 
+	// MinDPoSV2DepositAmount is the minimum deposit as a DPoS 2.0 producer.
+	MinDPoSV2DepositAmount = 2000 * 100000000
+
 	// maxHistoryCapacity indicates the maximum capacity of change History.
 	maxHistoryCapacity = 720
 

@@ -169,6 +169,10 @@ func (p *Producer) AvailableAmount() common.Fixed64 {
 	return p.totalAmount - p.depositAmount - p.penalty
 }
 
+func (p *Producer) GetDPoSV2AvailableAmount(depositAmount common.Fixed64) common.Fixed64 {
+	return p.totalAmount - depositAmount - p.penalty
+}
+
 func (p *Producer) Selected() bool {
 	return p.selected
 }
@@ -1448,6 +1452,7 @@ func (s *State) registerProducer(tx interfaces.Transaction, height uint32) {
 		}
 	}
 	if s.getProducer(info.NodePublicKey) == nil {
+
 		producer := Producer{
 			info:                         *info,
 			registerHeight:               height,

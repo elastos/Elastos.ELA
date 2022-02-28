@@ -185,13 +185,23 @@ func (t *RegisterProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bo
 					if !output.ProgramHash.IsEqual(*hash) {
 						return elaerr.Simple(elaerr.ErrTxPayload, errors.New("deposit address does not match the public key in payload")), true
 					}
-					if output.Value < crstate.MinDepositAmount {
+					if output.Value < crstate.MinDPoSV2DepositAmount {
 						return elaerr.Simple(elaerr.ErrTxPayload, errors.New("producer deposit amount is insufficient")), true
 					}
 				}
 			}
 			if depositCount != 1 {
 				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("there must be only one deposit address in outputs")), true
+			}
+		} else {
+			// check available deposit amount
+			pr := t.parameters.BlockChain.GetState().GetProducer(info.OwnerPublicKey)
+			if pr == nil {
+				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("producer not exist")), true
+			}
+			availableAmount := pr.GetDPoSV2AvailableAmount(crstate.MinDPoSV2DepositAmount)
+			if availableAmount < 0 {
+				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("available deposit amount is not enough")), true
 			}
 		}
 

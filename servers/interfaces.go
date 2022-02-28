@@ -1872,11 +1872,12 @@ type RegisterSideChainInfo struct {
 }
 
 type RPCRegisterSideChainProposal struct {
-	ProposalType   string                `json:"proposaltype"`
-	CategoryData   string                `json:"categorydata"`
-	OwnerPublicKey string                `json:"ownerpublickey"`
-	DraftHash      string                `json:"drafthash"`
-	SideChainInfo  RegisterSideChainInfo `json:"sidechaininfo"`
+	ProposalType       string                `json:"proposaltype"`
+	CategoryData       string                `json:"categorydata"`
+	OwnerPublicKey     string                `json:"ownerpublickey"`
+	DraftHash          string                `json:"drafthash"`
+	SideChainInfo      RegisterSideChainInfo `json:"sidechaininfo"`
+	CRCouncilMemberDID string                `json:"crcouncilmemberdid"`
 }
 
 type RPCCRProposalStateInfo struct {
@@ -2360,6 +2361,7 @@ func GetCRProposalState(param Params) map[string]interface{} {
 			return ResponsePack(InternalError, "invalidate Recipient")
 		}
 		rpcProposalState.Proposal = rpcProposal
+
 	case payload.SecretaryGeneral:
 		var rpcProposal RPCSecretaryGeneralProposal
 		rpcProposal.ProposalType = proposalState.Proposal.ProposalType.Name()
@@ -2372,8 +2374,8 @@ func GetCRProposalState(param Params) map[string]interface{} {
 		rpcProposal.SecretaryGeneralDID = sgDID
 		cmDID, _ := proposalState.Proposal.CRCouncilMemberDID.ToAddress()
 		rpcProposal.CRCouncilMemberDID = cmDID
-
 		rpcProposalState.Proposal = rpcProposal
+
 	case payload.ChangeProposalOwner:
 		var rpcProposal RPCChangeProposalOwnerProposal
 		rpcProposal.ProposalType = proposalState.Proposal.ProposalType.Name()
@@ -2389,8 +2391,8 @@ func GetCRProposalState(param Params) map[string]interface{} {
 		rpcProposal.NewOwnerPublicKey = common.BytesToHexString(proposalState.Proposal.NewOwnerPublicKey)
 		did, _ := proposalState.Proposal.CRCouncilMemberDID.ToAddress()
 		rpcProposal.CRCouncilMemberDID = did
-
 		rpcProposalState.Proposal = rpcProposal
+
 	case payload.CloseProposal:
 		var rpcProposal RPCCloseProposal
 		rpcProposal.ProposalType = proposalState.Proposal.ProposalType.Name()
@@ -2400,8 +2402,8 @@ func GetCRProposalState(param Params) map[string]interface{} {
 		rpcProposal.TargetProposalHash = common.ToReversedString(proposalState.Proposal.TargetProposalHash)
 		did, _ := proposalState.Proposal.CRCouncilMemberDID.ToAddress()
 		rpcProposal.CRCouncilMemberDID = did
-
 		rpcProposalState.Proposal = rpcProposal
+
 	case payload.ReserveCustomID:
 		var rpcProposal RPCReservedCustomIDProposal
 		rpcProposal.ProposalType = proposalState.Proposal.ProposalType.Name()
@@ -2411,8 +2413,8 @@ func GetCRProposalState(param Params) map[string]interface{} {
 		rpcProposal.ReservedCustomIDList = proposalState.Proposal.ReservedCustomIDList
 		did, _ := proposalState.Proposal.CRCouncilMemberDID.ToAddress()
 		rpcProposal.CRCouncilMemberDID = did
-
 		rpcProposalState.Proposal = rpcProposal
+
 	case payload.ReceiveCustomID:
 		var rpcProposal RPCReceiveCustomIDProposal
 		rpcProposal.ProposalType = proposalState.Proposal.ProposalType.Name()
@@ -2423,8 +2425,8 @@ func GetCRProposalState(param Params) map[string]interface{} {
 		rpcProposal.ReceiverDID, _ = proposalState.Proposal.ReceiverDID.ToAddress()
 		did, _ := proposalState.Proposal.CRCouncilMemberDID.ToAddress()
 		rpcProposal.CRCouncilMemberDID = did
-
 		rpcProposalState.Proposal = rpcProposal
+
 	case payload.ChangeCustomIDFee:
 		var rpcProposal RPCChangeCustomIDFeeProposal
 		rpcProposal.ProposalType = proposalState.Proposal.ProposalType.Name()
@@ -2435,7 +2437,6 @@ func GetCRProposalState(param Params) map[string]interface{} {
 		rpcProposal.EIDEffectiveHeight = proposalState.Proposal.EIDEffectiveHeight
 		did, _ := proposalState.Proposal.CRCouncilMemberDID.ToAddress()
 		rpcProposal.CRCouncilMemberDID = did
-
 		rpcProposalState.Proposal = rpcProposal
 
 	case payload.RegisterSideChain:
@@ -2451,7 +2452,8 @@ func GetCRProposalState(param Params) map[string]interface{} {
 		rpcProposal.SideChainInfo.ExchangeRate = proposalState.Proposal.ExchangeRate.String()
 		rpcProposal.SideChainInfo.EffectiveHeight = proposalState.Proposal.EffectiveHeight
 		rpcProposal.SideChainInfo.ResourcePath = proposalState.Proposal.ResourcePath
-
+		did, _ := proposalState.Proposal.CRCouncilMemberDID.ToAddress()
+		rpcProposal.CRCouncilMemberDID = did
 		rpcProposalState.Proposal = rpcProposal
 	}
 
@@ -2919,6 +2921,7 @@ func getPayloadInfo(p interfaces.Payload, payloadVersion byte) PayloadInfo {
 			obj.CRCouncilMemberSignature = common.BytesToHexString(object.CRCouncilMemberSignature)
 			obj.Hash = common.ToReversedString(object.Hash(payloadVersion))
 			return obj
+
 		case payload.RegisterSideChain:
 			obj := new(CRCRegisterSideChainProposalInfo)
 			obj.ProposalType = object.ProposalType.Name()
@@ -2961,6 +2964,7 @@ func getPayloadInfo(p interfaces.Payload, payloadVersion byte) PayloadInfo {
 		obj.DID = did
 		obj.Sign = common.BytesToHexString(object.Signature)
 		return obj
+
 	case *payload.CRCProposalTracking:
 		obj := new(CRCProposalTrackingInfo)
 		obj.ProposalTrackingType = object.ProposalTrackingType.Name()
@@ -2975,6 +2979,7 @@ func getPayloadInfo(p interfaces.Payload, payloadVersion byte) PayloadInfo {
 		obj.SecretaryGeneralSignature = common.BytesToHexString(object.SecretaryGeneralSignature)
 		obj.NewOwnerSignature = common.BytesToHexString(object.NewOwnerSignature)
 		return obj
+
 	case *payload.CRCProposalWithdraw:
 		obj := new(CRCProposalWithdrawInfo)
 		obj.ProposalHash = common.ToReversedString(object.ProposalHash)
@@ -2988,12 +2993,14 @@ func getPayloadInfo(p interfaces.Payload, payloadVersion byte) PayloadInfo {
 		}
 		obj.Signature = common.BytesToHexString(object.Signature)
 		return obj
+
 	case *payload.CRCouncilMemberClaimNode:
 		obj := new(CRCouncilMemberClaimNodeInfo)
 		obj.NodePublicKey = common.BytesToHexString(object.NodePublicKey)
 		obj.CRCouncilMemberDID, _ = object.CRCouncilCommitteeDID.ToAddress()
 		obj.CRCouncilMemberSignature = common.BytesToHexString(object.CRCouncilCommitteeSignature)
 		return obj
+
 	case *payload.NextTurnDPOSInfo:
 		obj := new(NextTurnDPOSPayloadInfo)
 		crPublicKeysString := make([]string, 0)
@@ -3008,6 +3015,7 @@ func getPayloadInfo(p interfaces.Payload, payloadVersion byte) PayloadInfo {
 		obj.CRPublickeys = crPublicKeysString
 		obj.DPOSPublicKeys = dposPublicKeysString
 		return obj
+
 	case *payload.CRCProposalRealWithdraw:
 		obj := new(CRCProposalRealWithdrawInfo)
 		obj.WithdrawTransactionHashes = make([]string, 0)
@@ -3016,6 +3024,7 @@ func getPayloadInfo(p interfaces.Payload, payloadVersion byte) PayloadInfo {
 				append(obj.WithdrawTransactionHashes, common.ToReversedString(hash))
 		}
 		return obj
+
 	case *payload.DPOSIllegalProposals:
 		obj := new(DPOSIllegalProposalsInfo)
 		obj.Hash = common.ToReversedString(object.Hash())
@@ -3040,6 +3049,7 @@ func getPayloadInfo(p interfaces.Payload, payloadVersion byte) PayloadInfo {
 			BlockHeight: object.CompareEvidence.BlockHeight,
 		}
 		return obj
+
 	case *payload.DPOSIllegalVotes:
 		obj := new(DPOSIllegalVotesInfo)
 		obj.Hash = common.ToReversedString(object.Hash())
@@ -3082,6 +3092,7 @@ func getPayloadInfo(p interfaces.Payload, payloadVersion byte) PayloadInfo {
 			},
 		}
 		return obj
+
 	case *payload.DPOSIllegalBlocks:
 		obj := new(DPOSIllegalBlocksInfo)
 		obj.Hash = common.ToReversedString(object.Hash())
@@ -3108,6 +3119,7 @@ func getPayloadInfo(p interfaces.Payload, payloadVersion byte) PayloadInfo {
 			Hash:         common.ToReversedString(object.CompareEvidence.BlockHash()),
 		}
 		return obj
+
 	case *payload.Voting:
 		obj := new(Voting)
 		for _, rc := range object.RenewalContents {
@@ -3139,6 +3151,7 @@ func getPayloadInfo(p interfaces.Payload, payloadVersion byte) PayloadInfo {
 	case *payload.Stake:
 		obj := new(StakeInfo)
 		return obj
+
 	}
 	return nil
 }

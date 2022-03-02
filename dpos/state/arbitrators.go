@@ -1832,8 +1832,6 @@ func (a *Arbiters) getCandidateIndexAtRandom(height uint32, unclaimedCount, vote
 }
 
 func (a *Arbiters) isDposV2Active() bool {
-	log.Errorf("isDposV2Active len(a.DposV2EffectedProducers) %d  GeneralArbiters %d", len(a.DposV2EffectedProducers),
-		a.ChainParams.GeneralArbiters)
 	return len(a.DposV2EffectedProducers) >= a.ChainParams.GeneralArbiters*3/2
 }
 

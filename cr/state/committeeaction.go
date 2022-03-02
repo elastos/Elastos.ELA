@@ -150,7 +150,6 @@ func (c *Committee) processCancelVoting(tx interfaces.Transaction, height uint32
 	for _, k := range pld.ReferKeys {
 		key := k
 		detailVoteInfo, ok := c.DetailedCRVotes[key]
-		log.Warn("#### 1key %s %v ", key.String(), detailVoteInfo.VoteType, detailVoteInfo)
 		if ok && detailVoteInfo.VoteType == outputpayload.CRC {
 			c.state.History.Append(height, func() {
 				delete(c.DetailedCRVotes, key)
@@ -168,7 +167,6 @@ func (c *Committee) processCancelVoting(tx interfaces.Transaction, height uint32
 		}
 
 		detailVoteInfo, ok = c.manager.DetailedCRCProposalVotes[key]
-		log.Warn("#### 1key %s %v ", key.String(), detailVoteInfo.VoteType, detailVoteInfo)
 		if ok && detailVoteInfo.VoteType == outputpayload.CRCProposal {
 			c.state.History.Append(height, func() {
 				delete(c.manager.DetailedCRCProposalVotes, key)
@@ -186,7 +184,6 @@ func (c *Committee) processCancelVoting(tx interfaces.Transaction, height uint32
 		}
 
 		detailVoteInfo, ok = c.DetailedCRImpeachmentVotes[key]
-		log.Warn("#### 1key %s %v ", key.String(), detailVoteInfo.VoteType, detailVoteInfo)
 		if ok && detailVoteInfo.VoteType == outputpayload.CRCImpeachment {
 			c.state.History.Append(height, func() {
 				delete(c.DetailedCRImpeachmentVotes, key)

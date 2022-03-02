@@ -97,9 +97,10 @@ func (s *StateKeyFrame) snapshot() *StateKeyFrame {
 		DposV2EffectedProducers:  make(map[string]*Producer),
 		Votes:                    make(map[string]struct{}),
 
-		DposV2VoteRights: make(map[common.Uint168]common.Fixed64),
-		DposVotes:        make(map[common.Uint168]common.Fixed64),
-		DposV2Votes:      make(map[common.Uint168]common.Fixed64),
+		DetailDPoSV1Votes: make(map[common.Uint256]payload.DetailedVoteInfo),
+		DposV2VoteRights:  make(map[common.Uint168]common.Fixed64),
+		DposVotes:         make(map[common.Uint168]common.Fixed64),
+		DposV2Votes:       make(map[common.Uint168]common.Fixed64),
 
 		DepositOutputs:           make(map[string]common.Fixed64),
 		DposV2RewardInfo:         make(map[string]common.Fixed64),
@@ -123,6 +124,7 @@ func (s *StateKeyFrame) snapshot() *StateKeyFrame {
 	state.DposV2EffectedProducers = copyProducerMap(s.DposV2EffectedProducers)
 	state.Votes = copyStringSet(s.Votes)
 
+	state.DetailDPoSV1Votes = copyReferKeyInfoMap(s.DetailDPoSV1Votes)
 	state.DposV2VoteRights = copyProgramHashAmountSet(s.DposV2VoteRights)
 	state.DposVotes = copyProgramHashAmountSet(s.DposVotes)
 	state.DposV2Votes = copyProgramHashAmountSet(s.DposV2Votes)
@@ -731,6 +733,7 @@ func NewStateKeyFrame() *StateKeyFrame {
 		PendingCanceledProducers:  make(map[string]*Producer),
 		DposV2EffectedProducers:   make(map[string]*Producer),
 		Votes:                     make(map[string]struct{}),
+		DetailDPoSV1Votes:         make(map[common.Uint256]payload.DetailedVoteInfo),
 		DposV2VoteRights:          make(map[common.Uint168]common.Fixed64),
 		DposVotes:                 make(map[common.Uint168]common.Fixed64),
 		DposV2Votes:               make(map[common.Uint168]common.Fixed64),
@@ -883,6 +886,26 @@ func copyProgramHashAmountSet(src map[common.Uint168]common.Fixed64) (
 	for k, v := range src {
 		a := v
 		dst[k] = a
+	}
+	return
+}
+
+func copyReferKeyInfoMap(src map[common.Uint256]payload.DetailedVoteInfo) (dst map[common.Uint256]payload.DetailedVoteInfo) {
+	dst = map[common.Uint256]payload.DetailedVoteInfo{}
+	for k, v := range src {
+		a := v
+		dst[k] = payload.DetailedVoteInfo{
+			StakeProgramHash: a.StakeProgramHash,
+			TransactionHash:  a.TransactionHash,
+			BlockHeight:      a.BlockHeight,
+			PayloadVersion:   a.PayloadVersion,
+			VoteType:         a.VoteType,
+			Info: payload.VotesWithLockTime{
+				a.Info.Candidate,
+				a.Info.Votes,
+				a.Info.LockTime,
+			},
+		}
 	}
 	return
 }

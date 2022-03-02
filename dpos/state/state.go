@@ -1640,7 +1640,6 @@ func (s *State) processCancelVoting(tx interfaces.Transaction, height uint32) {
 	for _, k := range pld.ReferKeys {
 		key := k
 		detailVoteInfo, ok := s.DetailDPoSV1Votes[key]
-		log.Warn("#### key %s %v ", key.String(), detailVoteInfo.VoteType, detailVoteInfo)
 		if ok && detailVoteInfo.VoteType == outputpayload.Delegate {
 			s.History.Append(height, func() {
 				s.DposVotes[*stakeAddress] -= detailVoteInfo.Info.Votes

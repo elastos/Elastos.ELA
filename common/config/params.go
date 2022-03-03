@@ -200,7 +200,7 @@ func GetDefaultParams() Params {
 		ToleranceDuration:           5 * time.Second,
 		MaxInactiveRounds:           720 * 2,
 		InactivePenalty:             0, //there will be no penalty in this version
-		IllegalPenalty:              0, //there will be no penalty in this version
+		IllegalPenalty:              200,
 		EmergencyInactivePenalty:    0, //there will be no penalty in this version
 		GeneralArbiters:             24,
 		CandidateArbiters:           72,
@@ -335,7 +335,7 @@ func (p *Params) TestNet() *Params {
 	copy.ChangeCommitteeNewCRHeight = 815060
 	copy.CustomIDProposalStartHeight = 815060
 	copy.InactivePenalty = 0
-	copy.IllegalPenalty = 0
+	copy.IllegalPenalty = 200
 	copy.NoCRCDPOSNodeHeight = 815060
 	copy.RandomCandidatePeriod = 36 * 10
 	copy.MaxInactiveRoundsOfRandomNode = 36 * 8
@@ -435,7 +435,7 @@ func (p *Params) RegNet() *Params {
 	copy.MaxCRAssetsAddressUTXOCount = 1440
 	copy.ChangeCommitteeNewCRHeight = 706240
 	copy.CustomIDProposalStartHeight = 706240
-	copy.IllegalPenalty = 0
+	copy.IllegalPenalty = 200
 	copy.InactivePenalty = 0
 	copy.NoCRCDPOSNodeHeight = 706240
 	copy.RandomCandidatePeriod = 36 * 10

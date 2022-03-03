@@ -54,7 +54,7 @@ type FunctionsConfig struct {
 		map[*common2.Input]common2.Output, error)
 }
 
-func (s *State) UpdateCRInactivePenalty(cid common.Uint168) {
+func (s *State) UpdateCRInactivePenalty(cid common.Uint168, height uint32) {
 	depositInfo, ok := s.DepositInfo[cid]
 	if !ok {
 		return
@@ -62,7 +62,7 @@ func (s *State) UpdateCRInactivePenalty(cid common.Uint168) {
 	depositInfo.Penalty += s.params.InactivePenalty
 }
 
-func (s *State) RevertUpdateCRInactivePenalty(cid common.Uint168) {
+func (s *State) RevertUpdateCRInactivePenalty(cid common.Uint168, height uint32) {
 	depositInfo, ok := s.DepositInfo[cid]
 	if !ok {
 		return
@@ -75,25 +75,32 @@ func (s *State) RevertUpdateCRInactivePenalty(cid common.Uint168) {
 	}
 }
 
-func (s *State) UpdateCRIllegalPenalty(cid common.Uint168) {
+func (s *State) UpdateCRIllegalPenalty(cid common.Uint168, height uint32) {
 	depositInfo, ok := s.DepositInfo[cid]
 	if !ok {
 		return
 	}
-	depositInfo.Penalty += s.params.IllegalPenalty
+	var illegalPenalty = s.params.IllegalPenalty
+	//no penalty before DPoSV2StartHeight
+	if height < s.params.DPoSV2StartHeight {
+		illegalPenalty = 0
+	}
+	depositInfo.Penalty += illegalPenalty
 }
 
-func (s *State) RevertUpdateCRIllegalPenalty(cid common.Uint168) {
+func (s *State) RevertUpdateCRIllegalPenalty(cid common.Uint168, height uint32) {
 	depositInfo, ok := s.DepositInfo[cid]
 	if !ok {
 		return
 	}
-	var penalty = s.params.IllegalPenalty
-	oriPenalty := depositInfo.Penalty
-	if depositInfo.Penalty < penalty {
+	var illegalPenalty = s.params.IllegalPenalty
+	if height < s.params.DPoSV2StartHeight {
+		illegalPenalty = 0
+	}
+	if depositInfo.Penalty < illegalPenalty {
 		depositInfo.Penalty = common.Fixed64(0)
 	} else {
-		depositInfo.Penalty = oriPenalty
+		depositInfo.Penalty -= illegalPenalty
 	}
 }
 

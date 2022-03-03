@@ -2365,6 +2365,12 @@ func (s *State) processIllegalEvidence(payloadData interfaces.Payload,
 	}
 
 	crMembersMap := s.getClaimedCRMemberDPOSPublicKeyMap()
+
+	var illegalPenalty = s.ChainParams.IllegalPenalty
+	if height < s.ChainParams.DPoSV2StartHeight {
+		illegalPenalty = 0
+	}
+
 	// Set illegal producers to FoundBad state
 	for _, pk := range illegalProducers {
 		if cr, ok := crMembersMap[hex.EncodeToString(pk)]; ok {
@@ -2392,7 +2398,7 @@ func (s *State) processIllegalEvidence(payloadData interfaces.Payload,
 				s.IllegalProducers[key] = producer
 				producer.activateRequestHeight = math.MaxUint32
 				if height >= s.ChainParams.ChangeCommitteeNewCRHeight {
-					producer.penalty += s.ChainParams.IllegalPenalty
+					producer.penalty += illegalPenalty
 				}
 				delete(s.ActivityProducers, key)
 				if producer.info.StakeUntil != 0 {
@@ -2422,7 +2428,7 @@ func (s *State) processIllegalEvidence(payloadData interfaces.Payload,
 				s.IllegalProducers[key] = producer
 				producer.activateRequestHeight = math.MaxUint32
 				if height >= s.ChainParams.ChangeCommitteeNewCRHeight {
-					producer.penalty += s.ChainParams.IllegalPenalty
+					producer.penalty += illegalPenalty
 				}
 				delete(s.InactiveProducers, key)
 			}, func() {
@@ -2443,7 +2449,7 @@ func (s *State) processIllegalEvidence(payloadData interfaces.Payload,
 				producer.illegalHeight = height
 				producer.activateRequestHeight = math.MaxUint32
 				if height >= s.ChainParams.ChangeCommitteeNewCRHeight {
-					producer.penalty += s.ChainParams.IllegalPenalty
+					producer.penalty += illegalPenalty
 				}
 			}, func() {
 				producer.penalty = oriPenalty
@@ -2461,7 +2467,7 @@ func (s *State) processIllegalEvidence(payloadData interfaces.Payload,
 				producer.illegalHeight = height
 				s.IllegalProducers[key] = producer
 				if height >= s.ChainParams.ChangeCommitteeNewCRHeight {
-					producer.penalty += s.ChainParams.IllegalPenalty
+					producer.penalty += illegalPenalty
 				}
 				delete(s.CanceledProducers, key)
 			}, func() {
@@ -2506,10 +2512,11 @@ func (s *State) setInactiveProducer(producer *Producer, key string,
 		delete(s.DposV2ActivityProducers, key)
 	}
 
+	var penalty = s.ChainParams.InactivePenalty
 	if height < s.VersionStartHeight || height >= s.VersionEndHeight {
 		if !emergency {
 			if height >= s.ChainParams.ChangeCommitteeNewCRHeight {
-				producer.penalty += s.ChainParams.InactivePenalty
+				producer.penalty += penalty
 			}
 		} else {
 			producer.penalty += s.ChainParams.EmergencyInactivePenalty
@@ -2530,8 +2537,8 @@ func (s *State) revertSettingInactiveProducer(producer *Producer, key string,
 	}
 	delete(s.InactiveProducers, key)
 
+	var penalty = s.ChainParams.InactivePenalty
 	if height < s.VersionStartHeight || height >= s.VersionEndHeight {
-		penalty := s.ChainParams.InactivePenalty
 		if emergency {
 			penalty = s.ChainParams.EmergencyInactivePenalty
 		}

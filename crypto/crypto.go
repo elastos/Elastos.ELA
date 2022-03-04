@@ -66,6 +66,48 @@ func GenerateSubKeyPair(index int, chainCode, parentPrivateKey []byte) ([]byte, 
 	return digest, &publicKey, nil
 }
 
+func SignDigest(priKey []byte, digest []byte) ([]byte, error) {
+	privateKey := new(ecdsa.PrivateKey)
+	privateKey.Curve = DefaultCurve
+	privateKey.D = big.NewInt(0)
+	privateKey.D.SetBytes(priKey)
+
+	r, s, err := ecdsa.Sign(rand.Reader, privateKey, digest)
+	if err != nil {
+		return nil, err
+	}
+
+	signature := make([]byte, SignatureLength)
+
+	lenR := len(r.Bytes())
+	lenS := len(s.Bytes())
+	copy(signature[SignerLength-lenR:], r.Bytes())
+	copy(signature[SignatureLength-lenS:], s.Bytes())
+	return signature, nil
+}
+
+func VerifyDigest(pubkey PublicKey, digest []byte, signature []byte) error {
+	len := len(signature)
+	if len != SignatureLength {
+		fmt.Printf("Unknown signature length %d\n", len)
+		return errors.New("Unknown signature length")
+	}
+
+	r := new(big.Int).SetBytes(signature[:len/2])
+	s := new(big.Int).SetBytes(signature[len/2:])
+
+	pub := ecdsa.PublicKey{}
+	pub.Curve = DefaultCurve
+	pub.X = pubkey.X
+	pub.Y = pubkey.Y
+
+	if !ecdsa.Verify(&pub, digest, r, s) {
+		return errors.New("[Validation], Verify failed.")
+	}
+
+	return nil
+}
+
 func Sign(priKey []byte, data []byte) ([]byte, error) {
 
 	digest := sha256.Sum256(data)

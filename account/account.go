@@ -161,6 +161,10 @@ func (ac *Account) Sign(data []byte) ([]byte, error) {
 	return crypto.Sign(ac.PrivateKey, data)
 }
 
+func (ac *Account) SignDigest(digest []byte) ([]byte, error) {
+	return crypto.SignDigest(ac.PrivateKey, digest)
+}
+
 // Convert account to JSON string
 
 func (ac *Account) ToJson() (string, error) {

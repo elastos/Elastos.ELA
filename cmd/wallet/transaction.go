@@ -57,6 +57,29 @@ var txCommand = []cli.Command{
 		Action: signTx,
 	},
 	{
+		Category: "Transaction",
+		Name:     "signdigest",
+		Usage:    "sign digest",
+		Flags: []cli.Flag{
+			cmdcom.AccountWalletFlag,
+			cmdcom.AccountPasswordFlag,
+			cmdcom.TransactionDigestFlag,
+		},
+		Action: signDigest,
+	},
+	{
+		Category: "Transaction",
+		Name:     "verifydigest",
+		Usage:    "verify digest",
+		Flags: []cli.Flag{
+			cmdcom.AccountWalletFlag,
+			cmdcom.AccountPasswordFlag,
+			cmdcom.TransactionDigestFlag,
+			cmdcom.TransactionOwnerSignatureFlag,
+		},
+		Action: verifyDigest,
+	},
+	{
 		Category:    "Transaction",
 		Name:        "sendtx",
 		Usage:       "Send a transaction",
@@ -180,6 +203,85 @@ func signTx(c *cli.Context) error {
 	fmt.Println("[", haveSign, "/", needSign, "] BaseTransaction was successfully signed")
 
 	OutputTx(haveSign, needSign, txnSigned)
+
+	return nil
+}
+
+func signDigest(c *cli.Context) error {
+	var name string
+
+	name = strings.Split(cmdcom.AccountWalletFlag.Name, ",")[0]
+	walletPath := c.String(name)
+	if walletPath == "" {
+		return errors.New(fmt.Sprintf("use --%s to specify wallet path", name))
+	}
+	password, err := cmdcom.GetFlagPassword(c)
+	if err != nil {
+		return err
+	}
+
+	sDigest := c.String(cmdcom.TransactionDigestFlag.Name)
+	digest, err := common.Uint256FromReversedHexString(sDigest)
+	if err != nil {
+		return errors.New("invalid digest: " + err.Error())
+	}
+
+	var acc *account.Account
+	client, err := account.Open(walletPath, password)
+	if err != nil {
+		return err
+	}
+
+	acc = client.GetMainAccount()
+
+	sign, err := acc.SignDigest(digest.Bytes())
+	if err != nil {
+		return errors.New("sign failed: " + err.Error())
+	}
+
+	fmt.Println("Signature: ", common.BytesToHexString(sign))
+	return nil
+}
+
+func verifyDigest(c *cli.Context) error {
+	var name string
+
+	name = strings.Split(cmdcom.AccountWalletFlag.Name, ",")[0]
+	walletPath := c.String(name)
+	if walletPath == "" {
+		return errors.New(fmt.Sprintf("use --%s to specify wallet path", name))
+	}
+	password, err := cmdcom.GetFlagPassword(c)
+	if err != nil {
+		return err
+	}
+
+	sDigest := c.String(cmdcom.TransactionDigestFlag.Name)
+	digest, err := common.Uint256FromReversedHexString(sDigest)
+	if err != nil {
+		return errors.New("invalid digest: " + err.Error())
+	}
+
+	sSign := c.String(cmdcom.TransactionSignatureFlag.Name)
+	sign, err := common.HexStringToBytes(sSign)
+	if err != nil {
+		return errors.New("invalid signature: " + err.Error())
+	}
+
+	var acc *account.Account
+	client, err := account.Open(walletPath, password)
+	if err != nil {
+		return err
+	}
+
+	acc = client.GetMainAccount()
+
+	err = crypto.VerifyDigest(*acc.PublicKey, digest.Bytes(), sign)
+	if err != nil {
+		fmt.Println("verify digest: false")
+	} else {
+		fmt.Println("verify digest: true")
+	}
 
 	return nil
 }

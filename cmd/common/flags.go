@@ -34,7 +34,7 @@ var (
 		Usage: "public key list of multi signature address, separate public keys with comma `,`",
 	}
 
-	// BaseTransaction flags
+	// Transaction flags
 	TransactionFromFlag = cli.StringFlag{
 		Name:  "from",
 		Usage: "the sender `<address>` of the transaction",
@@ -172,6 +172,10 @@ var (
 		Name:  "secretarydid",
 		Usage: "proposal secretary did",
 	}
+	TransactionSignatureFlag = cli.StringFlag{
+		Name:  "signature",
+		Usage: "signature hex-string",
+	}
 	TransactionOwnerSignatureFlag = cli.StringFlag{
 		Name:  "ownersignature",
 		Usage: "proposal owner signature",
@@ -240,6 +244,11 @@ var (
 		Name:  "secretarygeneralsignature",
 		Usage: "secretary general signature",
 	}
+	TransactionDigestFlag = cli.StringFlag{
+		Name:  "digest",
+		Usage: "digest hex-string",
+	}
+
 	// RPC flags
 	RPCUserFlag = cli.StringFlag{
 		Name:  "rpcuser",

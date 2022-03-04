@@ -94,6 +94,7 @@ type Producer struct {
 	detailedDPoSV2Votes map[common.Uint168]map[common.Uint256]payload.DetailedVoteInfo
 
 	depositAmount                common.Fixed64
+	dposV2DepositAmount          common.Fixed64
 	totalAmount                  common.Fixed64
 	depositHash                  common.Uint168
 	selected                     bool
@@ -161,6 +162,10 @@ func (p *Producer) DepositAmount() common.Fixed64 {
 	return p.depositAmount
 }
 
+func (p *Producer) DPoSV2DepositAmount() common.Fixed64 {
+	return p.dposV2DepositAmount
+}
+
 func (p *Producer) TotalAmount() common.Fixed64 {
 	return p.totalAmount
 }
@@ -169,8 +174,8 @@ func (p *Producer) AvailableAmount() common.Fixed64 {
 	return p.totalAmount - p.depositAmount - p.penalty
 }
 
-func (p *Producer) GetDPoSV2AvailableAmount(depositAmount common.Fixed64) common.Fixed64 {
-	return p.totalAmount - depositAmount - p.penalty
+func (p *Producer) GetDPoSV2AvailableAmount() common.Fixed64 {
+	return p.totalAmount - state.MinDPoSV2DepositAmount - p.penalty
 }
 
 func (p *Producer) Selected() bool {
@@ -1453,6 +1458,13 @@ func (s *State) registerProducer(tx interfaces.Transaction, height uint32) {
 	}
 	if s.getProducer(info.NodePublicKey) == nil {
 
+		depositAmount := common.Fixed64(0)
+		if s.DPoSV2Started && info.StakeUntil != 0 {
+			depositAmount = state.MinDPoSV2DepositAmount
+		} else {
+			depositAmount = state.MinDepositAmount
+		}
+
 		producer := Producer{
 			info:                         *info,
 			registerHeight:               height,
@@ -1463,7 +1475,7 @@ func (s *State) registerProducer(tx interfaces.Transaction, height uint32) {
 			randomCandidateInactiveCount: 0,
 			penalty:                      common.Fixed64(0),
 			activateRequestHeight:        math.MaxUint32,
-			depositAmount:                state.MinDepositAmount,
+			depositAmount:                depositAmount,
 			totalAmount:                  amount,
 			depositHash:                  *programHash,
 		}

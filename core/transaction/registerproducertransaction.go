@@ -199,7 +199,7 @@ func (t *RegisterProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bo
 			if pr == nil {
 				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("producer not exist")), true
 			}
-			availableAmount := pr.GetDPoSV2AvailableAmount(crstate.MinDPoSV2DepositAmount)
+			availableAmount := pr.GetDPoSV2AvailableAmount()
 			if availableAmount < 0 {
 				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("available deposit amount is not enough")), true
 			}

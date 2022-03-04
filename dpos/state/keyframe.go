@@ -75,6 +75,9 @@ type StateKeyFrame struct {
 	//record the height our consensus chang from pow into dpos.
 	//when it is dpos and before RevertToPOWStartHeight  DPOSStartHeight is height - IrreversibleHeight
 	DPOSStartHeight uint32
+
+	// todo: instead me with real DPoSV2Started
+	DPoSV2Started bool
 }
 
 // RewardData defines variables to calculate reward of a round

@@ -96,7 +96,11 @@ func (t *ReturnDepositCoinTransaction) SpecialContextCheck() (elaerr.ELAError, b
 		if p == nil {
 			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("signer must be producer")), true
 		}
-		availableAmount += p.AvailableAmount()
+		if t.parameters.BlockChain.GetState().DPoSV2Started && p.Info().StakeUntil != 0 {
+			availableAmount += p.GetDPoSV2AvailableAmount()
+		} else {
+			availableAmount += p.AvailableAmount()
+		}
 	}
 
 	if inputValue-changeValue > availableAmount ||

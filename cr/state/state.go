@@ -78,28 +78,21 @@ func (s *State) RevertUpdateCRInactivePenalty(cid common.Uint168, height uint32)
 	}
 }
 
-func (s *State) UpdateCRIllegalPenalty(cid common.Uint168, height uint32) {
+func (s *State) UpdateCRIllegalPenalty(cid common.Uint168, height uint32, illegalPenalty common.Fixed64) {
 	depositInfo, ok := s.DepositInfo[cid]
 	if !ok {
 		return
 	}
-	var illegalPenalty = s.params.IllegalPenalty
-	//no penalty before DPoSV2StartHeight
-	if height < s.params.DPoSV2StartHeight {
-		illegalPenalty = 0
-	}
+
 	depositInfo.Penalty += illegalPenalty
 }
 
-func (s *State) RevertUpdateCRIllegalPenalty(cid common.Uint168, height uint32) {
+func (s *State) RevertUpdateCRIllegalPenalty(cid common.Uint168, height uint32, illegalPenalty common.Fixed64) {
 	depositInfo, ok := s.DepositInfo[cid]
 	if !ok {
 		return
 	}
-	var illegalPenalty = s.params.IllegalPenalty
-	if height < s.params.DPoSV2StartHeight {
-		illegalPenalty = 0
-	}
+
 	if depositInfo.Penalty < illegalPenalty {
 		depositInfo.Penalty = common.Fixed64(0)
 	} else {

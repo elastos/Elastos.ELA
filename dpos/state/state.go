@@ -455,8 +455,8 @@ type State struct {
 	tryUpdateCRMemberInactivity func(did common.Uint168, needReset bool, height uint32)
 	tryRevertCRMemberInactivity func(did common.Uint168, oriState state.MemberState,
 		oriInactiveCountingHeight uint32, height uint32)
-	tryUpdateCRMemberIllegal func(did common.Uint168, height uint32)
-	tryRevertCRMemberIllegal func(did common.Uint168, oriState state.MemberState, height uint32)
+	tryUpdateCRMemberIllegal func(did common.Uint168, height uint32, illegalPenalty common.Fixed64)
+	tryRevertCRMemberIllegal func(did common.Uint168, oriState state.MemberState, height uint32, illegalPenalty common.Fixed64)
 
 	ChainParams *config.Params
 	mtx         sync.RWMutex
@@ -472,9 +472,27 @@ type State struct {
 		outputs []*common2.OutputInfo) (interfaces.Transaction, error)
 }
 
-func (c *State) GetDetailedDPoSV1Votes(referKey common.Uint256) (
+func (s *State) DPoSV2Started() bool {
+	s.mtx.RLock()
+	defer s.mtx.RUnlock()
+	return s.dposV2Started()
+}
+
+func (s *State) dposV2Started() bool {
+	return s.DposV2ActiveHeight != 0
+}
+
+func (s *State) isDposV2Active() bool {
+	log.Errorf("isDposV2Active len(a.DposV2EffectedProducers) %d  GeneralArbiters %d", len(s.DposV2EffectedProducers),
+		s.ChainParams.GeneralArbiters)
+	return len(s.DposV2EffectedProducers) >= s.ChainParams.GeneralArbiters*3/2
+}
+
+func (s *State) GetDetailedDPoSV1Votes(referKey common.Uint256) (
 	pl payload.DetailedVoteInfo, err error) {
-	vote, ok := c.DetailDPoSV1Votes[referKey]
+	s.mtx.RLock()
+	defer s.mtx.RUnlock()
+	vote, ok := s.DetailDPoSV1Votes[referKey]
 	if !ok {
 		err = errors.New("refer key not found in DetailDPoSV1Votes")
 	}
@@ -482,18 +500,18 @@ func (c *State) GetDetailedDPoSV1Votes(referKey common.Uint256) (
 	return
 }
 
-func (c *State) GetRealWithdrawTransactions() map[common.Uint256]common2.OutputInfo {
-	c.mtx.RLock()
-	defer c.mtx.RUnlock()
+func (s *State) GetRealWithdrawTransactions() map[common.Uint256]common2.OutputInfo {
+	s.mtx.RLock()
+	defer s.mtx.RUnlock()
 
-	return c.StateKeyFrame.WithdrawableTxInfo
+	return s.StateKeyFrame.WithdrawableTxInfo
 }
 
-func (c *State) GetVotesWithdrawableTxInfo() map[common.Uint256]common2.OutputInfo {
-	c.mtx.RLock()
-	defer c.mtx.RUnlock()
+func (s *State) GetVotesWithdrawableTxInfo() map[common.Uint256]common2.OutputInfo {
+	s.mtx.RLock()
+	defer s.mtx.RUnlock()
 
-	return c.StateKeyFrame.VotesWithdrawableTxInfo
+	return s.StateKeyFrame.VotesWithdrawableTxInfo
 }
 
 // getProducerKey returns the producer's owner public key string, whether the
@@ -1459,7 +1477,7 @@ func (s *State) registerProducer(tx interfaces.Transaction, height uint32) {
 	if s.getProducer(info.NodePublicKey) == nil {
 
 		depositAmount := common.Fixed64(0)
-		if s.DPoSV2Started && info.StakeUntil != 0 {
+		if s.dposV2Started() && info.StakeUntil != 0 {
 			depositAmount = state.MinDPoSV2DepositAmount
 		} else {
 			depositAmount = state.MinDepositAmount
@@ -2332,7 +2350,7 @@ func (s *State) processIllegalEvidence(payloadData interfaces.Payload,
 	crMembersMap := s.getClaimedCRMemberDPOSPublicKeyMap()
 
 	var illegalPenalty = s.ChainParams.IllegalPenalty
-	if height < s.ChainParams.DPoSV2StartHeight {
+	if height < s.DposV2ActiveHeight {
 		illegalPenalty = 0
 	}
 
@@ -2344,9 +2362,9 @@ func (s *State) processIllegalEvidence(payloadData interfaces.Payload,
 			}
 			oriState := cr.MemberState
 			s.History.Append(height, func() {
-				s.tryUpdateCRMemberIllegal(cr.Info.DID, height)
+				s.tryUpdateCRMemberIllegal(cr.Info.DID, height, illegalPenalty)
 			}, func() {
-				s.tryRevertCRMemberIllegal(cr.Info.DID, oriState, height)
+				s.tryRevertCRMemberIllegal(cr.Info.DID, oriState, height, illegalPenalty)
 			})
 		}
 		key, ok := s.NodeOwnerKeys[hex.EncodeToString(pk)]
@@ -2944,8 +2962,9 @@ func NewState(chainParams *config.Params, getArbiters func() []*ArbiterInfo,
 	getProducerDepositAmount func(common.Uint168) (common.Fixed64, error),
 	tryUpdateCRMemberInactivity func(did common.Uint168, needReset bool, height uint32),
 	tryRevertCRMemberInactivityfunc func(did common.Uint168, oriState state.MemberState, oriInactiveCount uint32, height uint32),
-	tryUpdateCRMemberIllegal func(did common.Uint168, height uint32),
-	tryRevertCRMemberIllegal func(did common.Uint168, oriState state.MemberState, height uint32)) *State {
+	tryUpdateCRMemberIllegal func(did common.Uint168, height uint32, illegalPenalty common.Fixed64),
+	tryRevertCRMemberIllegal func(did common.Uint168, oriState state.MemberState, height uint32,
+		illegalPenalty common.Fixed64)) *State {
 	state := State{
 		ChainParams:                 chainParams,
 		GetArbiters:                 getArbiters,

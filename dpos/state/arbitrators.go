@@ -104,8 +104,7 @@ type Arbiters struct {
 	Snapshots        map[uint32][]*CheckPoint
 	SnapshotKeysDesc []uint32
 
-	forceChanged       bool
-	dposV2ActiveHeight uint32
+	forceChanged bool
 
 	History *utils.History
 }
@@ -181,7 +180,6 @@ func (a *Arbiters) recoverFromCheckPoints(point *CheckPoint) {
 	a.nextCRCArbitersMap = point.NextCRCArbitersMap
 	a.nextCRCArbiters = point.NextCRCArbiters
 	a.forceChanged = point.ForceChanged
-	a.dposV2ActiveHeight = point.DposV2ActiveHeight
 }
 
 func (a *Arbiters) ProcessBlock(block *types.Block, confirm *payload.Confirm) {
@@ -646,9 +644,9 @@ func (a *Arbiters) IsDopsV2Run(blockHeight uint32) bool {
 
 //is alreday dposv2. when we are here we need new reward.
 func (a *Arbiters) isDopsV2Run(blockHeight uint32) bool {
-	log.Errorf("isDopsV2Run blockHeight %d, dposV2ActiveHeight %d CRMemberCount%d GeneralArbiters%d", blockHeight, a.dposV2ActiveHeight,
+	log.Errorf("isDopsV2Run blockHeight %d, DposV2ActiveHeight %d CRMemberCount%d GeneralArbiters%d", blockHeight, a.DposV2ActiveHeight,
 		a.ChainParams.CRMemberCount, a.ChainParams.GeneralArbiters)
-	if a.isDposV2Active() && blockHeight >= a.dposV2ActiveHeight+a.ChainParams.CRMemberCount+uint32(a.ChainParams.GeneralArbiters) {
+	if a.isDposV2Active() && blockHeight >= a.DposV2ActiveHeight+a.ChainParams.CRMemberCount+uint32(a.ChainParams.GeneralArbiters) {
 		log.Error("isDopsV2Run is dpos v2 ")
 
 		return true
@@ -1835,6 +1833,7 @@ func (a *Arbiters) isDposV2Active() bool {
 	return len(a.DposV2EffectedProducers) >= a.ChainParams.GeneralArbiters*3/2
 }
 
+
 func (a *Arbiters) UpdateNextArbitrators(versionHeight, height uint32) error {
 
 	if height >= a.ChainParams.CRClaimDPOSNodeStartHeight {
@@ -1852,8 +1851,14 @@ func (a *Arbiters) UpdateNextArbitrators(versionHeight, height uint32) error {
 	} else {
 		a.TryLeaveUnderStaffed(a.IsAbleToRecoverFromUnderstaffedState)
 	}
-	if a.dposV2ActiveHeight == 0 && a.isDposV2Active() {
-		a.dposV2ActiveHeight = height
+
+	if a.DposV2ActiveHeight == 0 && a.isDposV2Active() {
+		oriHeight := height
+		a.History.Append(height, func() {
+			a.DposV2ActiveHeight = height
+		}, func() {
+			a.DposV2ActiveHeight = oriHeight
+		})
 	}
 
 	unclaimed, choosingArbiters, err := a.resetNextArbiterByCRC(versionHeight, height)
@@ -2448,7 +2453,6 @@ func (a *Arbiters) newCheckPoint(height uint32) *CheckPoint {
 		FinalRoundChange:           a.finalRoundChange,
 		ClearingHeight:             a.clearingHeight,
 		ForceChanged:               a.forceChanged,
-		DposV2ActiveHeight:         a.dposV2ActiveHeight,
 		ArbitersRoundReward:        make(map[common.Uint168]common.Fixed64),
 		IllegalBlocksPayloadHashes: make(map[common.Uint256]interface{}),
 		CurrentArbitrators:         a.CurrentArbitrators,
@@ -2625,8 +2629,8 @@ func NewArbitrators(chainParams *config.Params, committee *state.Committee,
 	getProducerDepositAmount func(common.Uint168) (common.Fixed64, error),
 	tryUpdateCRMemberInactivity func(did common.Uint168, needReset bool, height uint32),
 	tryRevertCRMemberInactivityfunc func(did common.Uint168, oriState state.MemberState, oriInactiveCount uint32, height uint32),
-	tryUpdateCRMemberIllegal func(did common.Uint168, height uint32),
-	tryRevertCRMemberIllegal func(did common.Uint168, oriState state.MemberState, height uint32)) (
+	tryUpdateCRMemberIllegal func(did common.Uint168, height uint32, illegalPenalty common.Fixed64),
+	tryRevertCRMemberIllegal func(did common.Uint168, oriState state.MemberState, height uint32, illegalPenalty common.Fixed64)) (
 	*Arbiters, error) {
 	a := &Arbiters{
 		ChainParams:                chainParams,
@@ -2645,8 +2649,7 @@ func NewArbitrators(chainParams *config.Params, committee *state.Committee,
 			understaffedSince: 0,
 			state:             DSNormal,
 		},
-		History:            utils.NewHistory(maxHistoryCapacity),
-		dposV2ActiveHeight: 0,
+		History: utils.NewHistory(maxHistoryCapacity),
 	}
 	if err := a.initArbitrators(chainParams); err != nil {
 		return nil, err

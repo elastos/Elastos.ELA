@@ -71,6 +71,8 @@ func (c *Committee) GetProposalManager() *ProposalManager {
 
 func (c *Committee) GetDetailedCRVotes(referKey common.Uint256) (
 	pl payload.DetailedVoteInfo, err error) {
+	c.mtx.RLock()
+	defer c.mtx.RUnlock()
 	vote, ok := c.DetailedCRVotes[referKey]
 	if !ok {
 		err = errors.New("refer key not found in DetailedCRVotes")
@@ -81,6 +83,8 @@ func (c *Committee) GetDetailedCRVotes(referKey common.Uint256) (
 
 func (c *Committee) GetDetailedCRImpeachmentVotes(referKey common.Uint256) (
 	pl payload.DetailedVoteInfo, err error) {
+	c.mtx.RLock()
+	defer c.mtx.RUnlock()
 	vote, ok := c.DetailedCRImpeachmentVotes[referKey]
 	if !ok {
 		err = errors.New("refer key not found in DetailedCRImpeachmentVotes")
@@ -91,6 +95,8 @@ func (c *Committee) GetDetailedCRImpeachmentVotes(referKey common.Uint256) (
 
 func (c *Committee) GetDetailedCRCProposalVotes(referKey common.Uint256) (
 	pl payload.DetailedVoteInfo, err error) {
+	c.mtx.RLock()
+	defer c.mtx.RUnlock()
 	vote, ok := c.manager.DetailedCRCProposalVotes[referKey]
 	if !ok {
 		err = errors.New("refer key not found in DetailedCRCProposalVotes")
@@ -108,6 +114,8 @@ func (c *Committee) GetAllCRCProposalVotes() (pl []payload.DetailedVoteInfo, ref
 }
 
 func (c *Committee) ExistCR(programCode []byte) bool {
+	c.mtx.RLock()
+	defer c.mtx.RUnlock()
 	existCandidate := c.state.ExistCandidate(programCode)
 	if existCandidate {
 		return true
@@ -1608,7 +1616,7 @@ func (c *Committee) TryRevertCRMemberInactivity(did common.Uint168,
 
 }
 
-func (c *Committee) TryUpdateCRMemberIllegal(did common.Uint168, height uint32) {
+func (c *Committee) TryUpdateCRMemberIllegal(did common.Uint168, height uint32, illegalPenalty common.Fixed64) {
 	c.mtx.RLock()
 	defer c.mtx.RUnlock()
 	crMember := c.getMember(did)
@@ -1617,13 +1625,13 @@ func (c *Committee) TryUpdateCRMemberIllegal(did common.Uint168, height uint32) 
 		return
 	}
 	if height >= c.Params.ChangeCommitteeNewCRHeight {
-		c.state.UpdateCRIllegalPenalty(crMember.Info.CID, height)
+		c.state.UpdateCRIllegalPenalty(crMember.Info.CID, height, illegalPenalty)
 	}
 	crMember.MemberState = MemberIllegal
 
 }
 
-func (c *Committee) TryRevertCRMemberIllegal(did common.Uint168, oriState MemberState, height uint32) {
+func (c *Committee) TryRevertCRMemberIllegal(did common.Uint168, oriState MemberState, height uint32, illegalPenalty common.Fixed64) {
 	c.mtx.RLock()
 	defer c.mtx.RUnlock()
 	crMember := c.getMember(did)
@@ -1633,7 +1641,7 @@ func (c *Committee) TryRevertCRMemberIllegal(did common.Uint168, oriState Member
 	}
 	crMember.MemberState = oriState
 	if height >= c.Params.ChangeCommitteeNewCRHeight {
-		c.state.RevertUpdateCRIllegalPenalty(crMember.Info.CID, height)
+		c.state.RevertUpdateCRIllegalPenalty(crMember.Info.CID, height, illegalPenalty)
 	}
 }
 

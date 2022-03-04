@@ -4742,7 +4742,7 @@ func (s *txValidatorTestSuite) TestArbitersAccumulateReward() {
 		Snapshots                  map[uint32][]*state.CheckPoint
 		SnapshotKeysDesc           []uint32
 		forceChanged               bool
-		dposV2ActiveHeight         uint32
+		DposV2ActiveHeight         uint32
 		dposV2EffectedProducers    map[string]*state.Producer
 		History                    *utils.History
 	}
@@ -4768,7 +4768,7 @@ func (s *txValidatorTestSuite) TestArbitersAccumulateReward() {
 					CRMemberCount:         6,
 					GeneralArbiters:       12,
 				},
-				dposV2ActiveHeight:      1,
+				DposV2ActiveHeight:      1,
 				dposV2EffectedProducers: make(map[string]*state.Producer),
 				forceChanged:            false,
 				History:                 utils.NewHistory(10),
@@ -4815,7 +4815,9 @@ func (s *txValidatorTestSuite) TestArbitersAccumulateReward() {
 						NodeOwnerKeys:           make(map[string]string),
 						DposV2RewardInfo:        make(map[string]common.Fixed64),
 						ActivityProducers:       make(map[string]*state.Producer),
+						DposV2ActiveHeight:      tt.fields.DposV2ActiveHeight,
 					},
+					ChainParams: tt.fields.ChainParams,
 				},
 				History: tt.fields.History,
 			}

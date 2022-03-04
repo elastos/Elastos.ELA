@@ -47,7 +47,7 @@ func payloadProposalCRCouncilMemberUnsigned(c *cli.Context) error {
 		return errors.New("[CRCProposal], ProposalType deserialize failed")
 	}
 
-	err = p.DeserializeUnSigned(bytes.NewBuffer(pBuf), payload.CRCProposalVersion01)
+	err = p.DeserializeUnSigned(r, payload.CRCProposalVersion01)
 	if err != nil {
 		return errors.New("payload deserialize error: " + err.Error())
 	}
@@ -578,6 +578,7 @@ func createProposalTrackingTransaction(c *cli.Context) error {
 		return errors.New("failed to deserialize SecretaryGeneralOpinionData")
 	}
 
+	// process args
 	sSecretaryGeneralSign := c.String(cmdcom.TransactionSecretaryGeneralSignatureFlag.Name)
 	sgSign, err := common.HexStringToBytes(sSecretaryGeneralSign)
 	if err != nil {
@@ -675,7 +676,7 @@ func payloadProposalSecretaryGeneralElectionCRCouncilMemberUnsigned(c *cli.Conte
 	}
 	p.Signature = ownerSign
 
-	sSign = c.String(cmdcom.TransactionSecretarySignatureFlag.Name)
+	sSign = c.String(cmdcom.TransactionSecretaryGeneralSignatureFlag.Name)
 	secretarySign, err := common.HexStringToBytes(sSign)
 	if err != nil {
 		return errors.New("invalid crcouncil member signature: " + err.Error())
@@ -1301,7 +1302,7 @@ var proposalNormalOwnerPayload = cli.Command{
 }
 
 var proposalNormalCRCouncilMemberPayload = cli.Command{
-	Name:  "crcouncilmemberpayload",
+	Name:  "crcmemberpayload",
 	Usage: "Generate CR council member unsigned payload",
 	Flags: []cli.Flag{
 		cmdcom.TransactionPayloadFlag,
@@ -1441,7 +1442,7 @@ var proposalTracking = cli.Command{
 		cmdcom.AccountWalletFlag,
 		cmdcom.TransactionFeeFlag,
 		cmdcom.TransactionPayloadFlag,
-		cmdcom.TransactionCRCouncilMemberSignatureFlag,
+		cmdcom.TransactionSecretaryGeneralSignatureFlag,
 	},
 	Subcommands: []cli.Command{
 		proposalTrackingOwnerPayload,
@@ -1478,12 +1479,12 @@ var proposalSecretaryGeneralElectionUnsignedPayload = cli.Command{
 }
 
 var proposalSecretaryGeneralElectionCRCouncilMemberPayload = cli.Command{
-	Name:  "crcouncilmemberpayload",
+	Name:  "crcmemberpayload",
 	Usage: "crcouncil member unsigned payload",
 	Flags: []cli.Flag{
 		cmdcom.TransactionPayloadFlag,
 		cmdcom.TransactionOwnerSignatureFlag,
-		cmdcom.TransactionSecretarySignatureFlag,
+		cmdcom.TransactionSecretaryGeneralSignatureFlag,
 		cmdcom.TransactionCRCouncilMemberDIDFlag,
 	},
 	Action: func(c *cli.Context) error {
@@ -1539,7 +1540,7 @@ var proposalChangeOwnerUnsignedPayload = cli.Command{
 }
 
 var proposalChangeOwnerCRCouncilMemberUnsignedPayload = cli.Command{
-	Name:  "crcouncilmemberpayload",
+	Name:  "crcmemberpayload",
 	Usage: "crcouncil member payload",
 	Flags: []cli.Flag{
 		cmdcom.TransactionPayloadFlag,
@@ -1598,7 +1599,7 @@ var proposalTerminateOwnerUnsignedPayload = cli.Command{
 }
 
 var proposalTerminateCRCouncilMemberUnsignedPayload = cli.Command{
-	Name:  "crcouncilmemberpayload",
+	Name:  "crcmemberpayload",
 	Usage: "crcouncil member unsigned payload",
 	Flags: []cli.Flag{
 		cmdcom.TransactionPayloadFlag,
@@ -1656,7 +1657,7 @@ var proposalReserverCustomIDOwnerUnsignedPayload = cli.Command{
 }
 
 var proposalReserverCustomIDCRCouncilMemberUnsignedPayload = cli.Command{
-	Name:  "crcouncilmemberpayload",
+	Name:  "crcmemberpayload",
 	Usage: "crcouncil member unsigned payload",
 	Flags: []cli.Flag{
 		cmdcom.TransactionPayloadFlag,
@@ -1715,7 +1716,7 @@ var proposalReceiveCustomIDOwnerUnsignedPayload = cli.Command{
 }
 
 var proposalReceiveCustomIDCRCouncilMemberUnsignedPayload = cli.Command{
-	Name:  "crcouncilmemberpayload",
+	Name:  "crcmemberpayload",
 	Usage: "crcouncil member unsigned payload",
 	Flags: []cli.Flag{
 		cmdcom.TransactionPayloadFlag,
@@ -1773,7 +1774,7 @@ var proposalChangeCustomIDFeeOwnerUnsignedPayload = cli.Command{
 }
 
 var proposalChangeCustomIDFeeCRCouncilMemberUnsignedPayload = cli.Command{
-	Name:  "crcouncilmemberpayload",
+	Name:  "crcmemberpayload",
 	Usage: "crcouncil member unsigned payload",
 	Flags: []cli.Flag{
 		cmdcom.TransactionPayloadFlag,
@@ -1831,7 +1832,7 @@ var proposalRegisterSidechainOwnerUnsignedPayload = cli.Command{
 }
 
 var proposalRegisterSidechainCRCouncilMemberUnsignedPayload = cli.Command{
-	Name:  "crcouncilmemberpayload",
+	Name:  "crcmemberpayload",
 	Usage: "crcouncil member unsigned payload",
 	Flags: []cli.Flag{
 		cmdcom.TransactionPayloadFlag,

@@ -75,7 +75,7 @@ var txCommand = []cli.Command{
 			cmdcom.AccountWalletFlag,
 			cmdcom.AccountPasswordFlag,
 			cmdcom.TransactionDigestFlag,
-			cmdcom.TransactionOwnerSignatureFlag,
+			cmdcom.TransactionSignatureFlag,
 		},
 		Action: verifyDigest,
 	},

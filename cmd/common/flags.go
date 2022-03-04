@@ -126,7 +126,7 @@ var (
 	}
 	TransactionBudgetsFlag = cli.StringFlag{
 		Name:  "budgets",
-		Usage: "proposal budgets, eg: --budgets type1,stage1,amount1|type2,stage2,amount2",
+		Usage: "proposal budgets, eg: --budgets \"type1,stage1,amount1|type2,stage2,amount2\"",
 	}
 	TransactionRecipientFlag = cli.StringFlag{
 		Name:  "recipient",
@@ -138,11 +138,11 @@ var (
 	}
 	TransactionReservedCustomIDListFlag = cli.StringFlag{
 		Name:  "reservedcustomidlist",
-		Usage: "proposal reserved custom id list, eg: --reservedcustomidlist id1|id2|id3",
+		Usage: "proposal reserved custom id list, eg: --reservedcustomidlist \"id1|id2|id3\"",
 	}
 	TransactionReceivedCustomIDListFlag = cli.StringFlag{
 		Name:  "receivedcustomidlist",
-		Usage: "proposal received custom id list, eg: --receivedcustomidlist id1|id2|id3",
+		Usage: "proposal received custom id list, eg: --receivedcustomidlist \"id1|id2|id3\"",
 	}
 	TransactionReceiverDIDFlag = cli.StringFlag{
 		Name:  "receiverdid",
@@ -150,7 +150,7 @@ var (
 	}
 	TransactionCustomIDFeeRateInfoFlag = cli.StringFlag{
 		Name:  "customidfeerate",
-		Usage: "proposal custom id fee rate info, eg: --customidfeerate rate|height",
+		Usage: "proposal custom id fee rate info, eg: --customidfeerate \"rate|height\"",
 	}
 	TransactionNewRecipientFlag = cli.StringFlag{
 		Name:  "newrecipient",
@@ -184,10 +184,6 @@ var (
 		Name:  "newownersignature",
 		Usage: "proposal new owner signature",
 	}
-	TransactionSecretarySignatureFlag = cli.StringFlag{
-		Name:  "secretarysignature",
-		Usage: "proposal secretary signature",
-	}
 	TransactionCRCouncilMemberDIDFlag = cli.StringFlag{
 		Name:  "crcmemberdid",
 		Usage: "proposal cr council member did",
@@ -198,7 +194,7 @@ var (
 	}
 	TransactionRegisterSideChainFlag = cli.StringFlag{
 		Name:  "sidechaininfo",
-		Usage: "proposal register side chain info, eg: --sidechaininfo name|magic|genesisHash|exchangeRate|effectiveHeight|resourcePath",
+		Usage: "proposal register side chain info, eg: --sidechaininfo \"name|magic|genesisHash|exchangeRate|effectiveHeight|resourcePath\"",
 	}
 	TransactionProposalHashFlag = cli.StringFlag{
 		Name:  "proposalhash",

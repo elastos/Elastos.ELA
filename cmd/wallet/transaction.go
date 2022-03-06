@@ -103,7 +103,6 @@ var txCommand = []cli.Command{
 }
 
 var buildTxCommand = []cli.Command{
-	proposalwithdraw,
 	dpossv2claimreward,
 	vote,
 	crosschain,

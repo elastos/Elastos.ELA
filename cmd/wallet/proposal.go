@@ -1281,6 +1281,100 @@ func createProposalRegisterSidechainTransaction(c *cli.Context) error {
 	return createProposalTransactionCommon(c)
 }
 
+func payloadProposalWithdraw(c *cli.Context) error {
+	sProposalHash := c.String(cmdcom.TransactionProposalHashFlag.Name)
+	proposalHash, err := common.Uint256FromReversedHexString(sProposalHash)
+	if err != nil {
+		return errors.New("invalid proposal hash")
+	}
+
+	sPubKey := c.String(cmdcom.TransactionOwnerPublicKeyFlag.Name)
+	ownerPublicKey, err := common.HexStringToBytes(sPubKey)
+	if err != nil {
+		return errors.New("invalid owner pub key: " + err.Error())
+	}
+
+	sRecipient := c.String(cmdcom.TransactionRecipientFlag.Name)
+	recipient, err := common.Uint168FromAddress(sRecipient)
+	if err != nil {
+		return errors.New("invalid recipient address: " + err.Error())
+	}
+
+	sAmount := c.String(cmdcom.TransactionAmountFlag.Name)
+	amount, err := common.StringToFixed64(sAmount)
+	if err != nil {
+		return errors.New("parse budget amount error: " + err.Error())
+	}
+
+	p := payload.CRCProposalWithdraw{
+		ProposalHash:   *proposalHash,
+		OwnerPublicKey: ownerPublicKey,
+		Recipient:      *recipient,
+		Amount:         *amount,
+	}
+
+	w := new(bytes.Buffer)
+	if err := p.SerializeUnsigned(w, payload.CRCProposalWithdrawVersion01); err != nil {
+		return errors.New("serialize payload err: " + err.Error())
+	}
+
+	return outputPayloadAndDigest(w.Bytes())
+}
+
+func createProposalWithdrawTransaction(c *cli.Context) error {
+	var name string
+
+	name = cmdcom.TransactionFeeFlag.Name
+	feeStr := c.String(name)
+	if feeStr == "" {
+		return errors.New(fmt.Sprintf("use --%s to specify transfer fee", name))
+	}
+	fee, err := common.StringToFixed64(feeStr)
+	if err != nil {
+		return errors.New("invalid transaction fee")
+	}
+
+	name = strings.Split(cmdcom.AccountWalletFlag.Name, ",")[0]
+	walletPath := c.String(name)
+	if walletPath == "" {
+		return errors.New(fmt.Sprintf("use --%s to specify wallet path", name))
+	}
+
+	name = cmdcom.TransactionPayloadFlag.Name
+	sPayload := c.String(name)
+	pBuf, err := common.HexStringToBytes(sPayload)
+	if err != nil {
+		return errors.New("payload hexstring to bytes error: " + err.Error())
+	}
+
+	p := &payload.CRCProposalWithdraw{}
+	r := bytes.NewBuffer(pBuf)
+
+	if err := p.DeserializeUnsigned(r, payload.CRCProposalWithdrawVersion01); err != nil {
+		return err
+	}
+
+	sSignature := c.String(cmdcom.TransactionSignatureFlag.Name)
+	signature, err := common.HexStringToBytes(sSignature)
+	if err != nil {
+		return errors.New("crc member sign hex string to bytes error :" + err.Error())
+	}
+
+	p.Signature = signature
+
+	var txn interfaces.Transaction
+	outputs := make([]*OutputInfo, 0)
+	txn, err = createTransaction(walletPath, "", *fee, 0, 0, common2.CRCProposalWithdraw,
+		payload.CRCProposalWithdrawVersion01, p, outputs...)
+	if err != nil {
+		return errors.New("create transaction failed: " + err.Error())
+	}
+
+	OutputTx(0, 1, txn)
+
+	return nil
+}
+
 var proposalNormalOwnerPayload = cli.Command{
 	Name:  "ownerpayload",
 	Usage: "Generate owner unsigned payload",
@@ -1870,6 +1964,45 @@ var proposalRegisterSidechain = cli.Command{
 	},
 }
 
+var proposalWithdrawPayload = cli.Command{
+	Name:  "ownerpayload",
+	Usage: "owner unsigned payload",
+	Flags: []cli.Flag{
+		cmdcom.TransactionProposalHashFlag,
+		cmdcom.TransactionOwnerPublicKeyFlag,
+		cmdcom.TransactionRecipientFlag,
+		cmdcom.TransactionAmountFlag,
+	},
+	Action: func(c *cli.Context) error {
+		if err := payloadProposalWithdraw(c); err != nil {
+			fmt.Println("error: ", err)
+			os.Exit(1)
+		}
+		return nil
+	},
+}
+
+var proposalWithdraw = cli.Command{
+	Name:  "withdraw",
+	Usage: "proposal withdraw",
+	Flags: []cli.Flag{
+		cmdcom.AccountWalletFlag,
+		cmdcom.TransactionFeeFlag,
+		cmdcom.TransactionPayloadFlag,
+		cmdcom.TransactionSignatureFlag,
+	},
+	Subcommands: []cli.Command{
+		proposalWithdrawPayload,
+	},
+	Action: func(c *cli.Context) error {
+		if err := createProposalWithdrawTransaction(c); err != nil {
+			fmt.Println("error: ", err)
+			os.Exit(1)
+		}
+		return nil
+	},
+}
+
 var proposal = cli.Command{
 	Name:  "proposal",
 	Usage: "Build a proposal tx",
@@ -1885,6 +2018,7 @@ var proposal = cli.Command{
 		proposalReceiveCustomID,
 		proposalChangeCustomIDFee,
 		proposalRegisterSidechain,
+		proposalWithdraw,
 	},
 	Action: func(c *cli.Context) error {
 		cli.ShowSubcommandHelp(c)

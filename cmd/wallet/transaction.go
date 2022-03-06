@@ -106,18 +106,8 @@ var buildTxCommand = []cli.Command{
 	dpossv2claimreward,
 	vote,
 	crosschain,
-	// producer
-	registerproducer,
-	updateproducer,
-	activateproducer,
-	unregisterproducer,
-	returndeposit,
-	// crc
-	registercr,
-	updatecr,
-	unregistercr,
-	returncrdeposit,
-	// proposal
+	producer,
+	crc,
 	proposal,
 }
 

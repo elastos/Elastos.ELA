@@ -12,6 +12,7 @@ import (
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/core/contract"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/payload"
 	elaerr "github.com/elastos/Elastos.ELA/errors"
 )
 
@@ -49,10 +50,12 @@ func (t *ReturnCRDepositCoinTransaction) CheckAttributeProgram() error {
 }
 
 func (t *ReturnCRDepositCoinTransaction) CheckTransactionPayload() error {
-	if t.Payload() != nil {
-		return errors.New("invalid payload nee to be nil")
+	switch t.Payload().(type) {
+	case *payload.ReturnDepositCoin:
+		return nil
 	}
-	return nil
+
+	return errors.New("invalid payload type")
 }
 
 func (t *ReturnCRDepositCoinTransaction) IsAllowedInPOWConsensus() bool {

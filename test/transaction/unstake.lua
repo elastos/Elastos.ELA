@@ -66,7 +66,7 @@ print("charge", charge)
 local default_output = defaultoutput.new()
 -- output: asset_id, value, recipient, output_paload_type, output_paload
 local charge_output = output.new(asset_id, charge, addr, 0, default_output)
-local amount_output = output.new(asset_id, amount * 100000000, saddr, 0, default_output)
+local amount_output = output.new(asset_id, amount * 100000000, recipient, 0, default_output)
 -- print("txoutput", charge_output:get())
 -- print("txoutput", amount_output:get())
 tx:appendtxout(amount_output)

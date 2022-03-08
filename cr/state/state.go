@@ -177,6 +177,12 @@ func (s *State) ExistCandidate(programCode []byte) bool {
 	return ok
 }
 
+// ExistCandidate judges if there is a candidate with specified program code.
+func (s *State) existCandidate(programCode []byte) bool {
+	_, ok := s.CodeCIDMap[common.BytesToHexString(programCode)]
+	return ok
+}
+
 // ExistCandidateByCID judges if there is a candidate with specified cid.
 func (s *State) ExistCandidateByCID(cid common.Uint168) (ok bool) {
 	if _, ok = s.Candidates[cid]; ok {

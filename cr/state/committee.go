@@ -116,7 +116,7 @@ func (c *Committee) GetAllCRCProposalVotes() (pl []payload.DetailedVoteInfo, ref
 func (c *Committee) ExistCR(programCode []byte) bool {
 	c.mtx.RLock()
 	defer c.mtx.RUnlock()
-	existCandidate := c.state.ExistCandidate(programCode)
+	existCandidate := c.state.existCandidate(programCode)
 	if existCandidate {
 		return true
 	}
@@ -126,7 +126,7 @@ func (c *Committee) ExistCR(programCode []byte) bool {
 		return false
 	}
 
-	return c.IsCRMemberByDID(*did)
+	return c.isCRMemberByDID(*did)
 }
 
 func (c *Committee) IsCRMember(programCode []byte) bool {
@@ -150,9 +150,9 @@ func (c *Committee) IsElectedCRMemberByDID(did common.Uint168) bool {
 	}
 	return false
 }
-func (c *Committee) IsCRMemberByDID(did common.Uint168) bool {
-	c.mtx.RLock()
-	defer c.mtx.RUnlock()
+
+func (c *Committee) isCRMemberByDID(did common.Uint168) bool {
+
 	for _, v := range c.Members {
 		if v.Info.DID.IsEqual(did) {
 			return true
@@ -160,6 +160,13 @@ func (c *Committee) IsCRMemberByDID(did common.Uint168) bool {
 	}
 	return false
 }
+
+func (c *Committee) IsCRMemberByDID(did common.Uint168) bool {
+	c.mtx.RLock()
+	defer c.mtx.RUnlock()
+	return c.isCRMemberByDID(did)
+}
+
 func (c *Committee) IsInVotingPeriod(height uint32) bool {
 	c.mtx.RLock()
 	defer c.mtx.RUnlock()

@@ -37,19 +37,13 @@ local asset_id = m.get_asset_id()
 --local vote_candidate_votes = {'0.1'}
 
 local recipient = getToAddr()
-local amount = getAmount()
 local fee = getFee()
 print("toAddr", recipient)
-
-if amount == 0 then
-    amount = 0.2
-end
 
 if fee == 0 then
     fee = 0.1
 end
 
-print("amount:", amount)
 print("fee:", fee)
 
 
@@ -60,13 +54,12 @@ local ta = unstake.new(pubkey,  recipient, amount * 100000000, wallet)
 local tx = transaction.new(9, 0x65, 0, ta, 0)
 
 -- input: from, amount + fee
-local charge = tx:appendenough(addr, (amount + fee) * 100000000)
+local charge = tx:appendenough(addr, fee * 100000000)
 print("charge", charge)
 
 local default_output = defaultoutput.new()
 -- output: asset_id, value, recipient, output_paload_type, output_paload
 local charge_output = output.new(asset_id, charge, addr, 0, default_output)
-local amount_output = output.new(asset_id, amount * 100000000, recipient, 0, default_output)
 -- print("txoutput", charge_output:get())
 -- print("txoutput", amount_output:get())
 tx:appendtxout(amount_output)

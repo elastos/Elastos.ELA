@@ -37,13 +37,19 @@ local asset_id = m.get_asset_id()
 --local vote_candidate_votes = {'0.1'}
 
 local recipient = getToAddr()
+local amount = getAmount()
 local fee = getFee()
 print("toAddr", recipient)
+
+if amount == 0 then
+    amount = 0.2
+end
 
 if fee == 0 then
     fee = 0.1
 end
 
+print("amount:", amount)
 print("fee:", fee)
 
 
@@ -62,7 +68,6 @@ local default_output = defaultoutput.new()
 local charge_output = output.new(asset_id, charge, addr, 0, default_output)
 -- print("txoutput", charge_output:get())
 -- print("txoutput", amount_output:get())
-tx:appendtxout(amount_output)
 tx:appendtxout(charge_output)
 
 print(tx:get())

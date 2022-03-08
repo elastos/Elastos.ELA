@@ -48,10 +48,10 @@ const (
 	luaCRCRegisterSideChainProposalHashName = "crcproposalregistersidechain"
 
 	// dpos2.0
-	luaStakeName = "stake"
-	luaVotingName        = "voting"
-	luaCancelVotesName   = "cancelVotes"
-	luaUnstakeName   = "unstake"
+	luaStakeName       = "stake"
+	luaVotingName      = "voting"
+	luaCancelVotesName = "cancelVotes"
+	luaUnstakeName     = "unstake"
 )
 
 func RegisterStakeType(L *lua.LState) {
@@ -90,12 +90,56 @@ func newStake(L *lua.LState) int {
 }
 
 func newUnstake(L *lua.LState) int {
-	amount := L.ToInt(1)
-	cb := &payload.Unstake{
-		Value: common.Fixed64(amount),
+	publicKeyStr := L.ToString(1)
+	toAddr := L.ToString(2)
+	amount := L.ToInt(3)
+	client, err := checkClient(L, 4)
+
+	addr, err := common.Uint168FromAddress(toAddr)
+	if err != nil {
+		fmt.Println("invalid unstake toAddr")
+		os.Exit(1)
 	}
+
+	publicKey, err := common.HexStringToBytes(publicKeyStr)
+	if err != nil {
+		fmt.Println("wrong producer public key")
+		os.Exit(1)
+	}
+
+	code, err := getCode(publicKey)
+	if err != nil {
+		fmt.Println("wrong producer public key")
+		os.Exit(1)
+	}
+	unstakePayload := &payload.Unstake{
+		ToAddr: *addr,
+		Code:   code,
+		Value:  common.Fixed64(amount),
+	}
+
+	codeHash, err := contract.PublicKeyToStandardCodeHash(publicKey)
+	acc := client.GetAccountByCodeHash(*codeHash)
+	if acc == nil {
+		fmt.Println("no available account in wallet")
+		os.Exit(1)
+	}
+
+	buf := new(bytes.Buffer)
+	if err := unstakePayload.SerializeUnsigned(buf, 0); err != nil {
+		fmt.Println("invalid unstake payload")
+		os.Exit(1)
+	}
+
+	rpSig, err := crypto.Sign(acc.PrivKey(), buf.Bytes())
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+	unstakePayload.Signature = rpSig
+
 	ud := L.NewUserData()
-	ud.Value = cb
+	ud.Value = unstakePayload
 	L.SetMetatable(ud, L.GetTypeMetatable(luaCoinBaseTypeName))
 	L.Push(ud)
 

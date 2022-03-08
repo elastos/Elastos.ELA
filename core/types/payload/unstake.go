@@ -48,8 +48,6 @@ func (p *Unstake) Serialize(w io.Writer, version byte) error {
 		return errors.New("[Unstake], signature serialize failed")
 	}
 	return nil
-
-	return nil
 }
 
 func (p *Unstake) SerializeUnsigned(w io.Writer, version byte) error {

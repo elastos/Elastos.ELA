@@ -36,8 +36,10 @@ local asset_id = m.get_asset_id()
 --local vote_candidates = {'21039d419986f5c2bf6f2a6f59f0b6e111735b66570fb22107a038bca3e1005d1920ac'}
 --local vote_candidate_votes = {'0.1'}
 
+local recipient = getToAddr()
 local amount = getAmount()
 local fee = getFee()
+print("toAddr", recipient)
 
 if amount == 0 then
     amount = 0.2
@@ -52,7 +54,7 @@ print("fee:", fee)
 
 
 -- payload
-local ta = unstake.new(amount * 100000000)
+local ta = unstake.new(pubkey,  recipient, amount * 100000000, wallet)
 
 -- transaction: version, tx_type, payload_version, payload, locktime
 local tx = transaction.new(9, 0x65, 0, ta, 0)

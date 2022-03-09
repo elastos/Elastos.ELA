@@ -123,6 +123,9 @@ func (t *DefaultChecker) ContextCheck(params interfaces.Parameters) (
 	}
 
 	cerr, end := t.parameters.Transaction.SpecialContextCheck()
+	if cerr != nil {
+		log.Warn("[SpecialContextCheck],", cerr.InnerError())
+	}
 	if end {
 		return references, cerr
 	}

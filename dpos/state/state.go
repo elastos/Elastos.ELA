@@ -1477,7 +1477,7 @@ func (s *State) registerProducer(tx interfaces.Transaction, height uint32) {
 	if s.getProducer(info.NodePublicKey) == nil {
 
 		depositAmount := common.Fixed64(0)
-		if s.dposV2Started() && info.StakeUntil != 0 {
+		if info.StakeUntil != 0 {
 			depositAmount = state.MinDPoSV2DepositAmount
 		} else {
 			depositAmount = state.MinDepositAmount

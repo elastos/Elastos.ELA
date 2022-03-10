@@ -326,12 +326,12 @@ func (t *VotingTransaction) checkDPoSV2Content(content payload.VotesContent,
 			return fmt.Errorf("invalid vote output payload "+
 				"producer candidate: %s", common.BytesToHexString(cv.Candidate))
 		}
-
-		lockTime := cv.LockTime - t.parameters.BlockHeight
-		if cv.LockTime <= t.parameters.BlockHeight ||
-			cv.LockTime > lockUntil ||
-			lockTime < t.parameters.Config.DPoSV2MinVotesLockTime ||
-			lockTime > t.parameters.Config.DPoSV2MaxVotesLockTime {
+		log.Warn("### %v %v %v %v %v", cv.LockTime,t.parameters.BlockHeight, lockUntil,
+			t.parameters.Config.DPoSV2MinVotesLockTime, t.parameters.Config.DPoSV2MaxVotesLockTime)
+		locakTime := cv.LockTime - t.parameters.BlockHeight
+		if cv.LockTime > lockUntil ||
+			locakTime < t.parameters.Config.DPoSV2MinVotesLockTime ||
+			locakTime > t.parameters.Config.DPoSV2MaxVotesLockTime {
 
 			return errors.New("invalid DPoS 2.0 votes lock time")
 		}

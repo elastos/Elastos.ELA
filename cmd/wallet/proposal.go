@@ -237,7 +237,7 @@ func createNormalProposalTransaction(c *cli.Context) error {
 	return createProposalTransactionCommon(c)
 }
 
-func payloadProposalReviewOwnerUnsigned(c *cli.Context) error {
+func payloadProposalReviewCRCouncilMemberUnsigned(c *cli.Context) error {
 	sProposalHash := c.String(cmdcom.TransactionProposalHashFlag.Name)
 	proposalHash, err := common.Uint256FromReversedHexString(sProposalHash)
 	if err != nil {
@@ -1434,9 +1434,9 @@ var proposalNormal = cli.Command{
 	},
 }
 
-var proposalReviewOwnerPayload = cli.Command{
-	Name:  "ownerpayload",
-	Usage: "owner unsigned payload",
+var proposalReviewCRCouncilMemberPayload = cli.Command{
+	Name:  "crcmemberpayload",
+	Usage: "Generate CR council member unsigned payload",
 	Flags: []cli.Flag{
 		cmdcom.TransactionProposalHashFlag,
 		cmdcom.TransactionVoteResultFlag,
@@ -1445,7 +1445,7 @@ var proposalReviewOwnerPayload = cli.Command{
 		cmdcom.TransactionDIDFlag,
 	},
 	Action: func(c *cli.Context) error {
-		if err := payloadProposalReviewOwnerUnsigned(c); err != nil {
+		if err := payloadProposalReviewCRCouncilMemberUnsigned(c); err != nil {
 			fmt.Println("error:", err)
 			os.Exit(1)
 		}
@@ -1463,7 +1463,7 @@ var proposalReview = cli.Command{
 		cmdcom.TransactionOwnerSignatureFlag,
 	},
 	Subcommands: []cli.Command{
-		proposalReviewOwnerPayload,
+		proposalReviewCRCouncilMemberPayload,
 	},
 	Action: func(c *cli.Context) error {
 		if err := createProposalReviewTransaction(c); err != nil {

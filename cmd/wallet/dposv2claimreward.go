@@ -2,8 +2,8 @@ package wallet
 
 import (
 	"bytes"
-	"fmt"
 	"errors"
+	"fmt"
 	"os"
 
 	"github.com/elastos/Elastos.ELA/account"
@@ -23,6 +23,7 @@ var dpossv2claimreward = cli.Command{
 	Usage: "Build a tx to claim dposV2 reward",
 	Flags: []cli.Flag{
 		cmdcom.TransactionClaimAmountFlag,
+		cmdcom.TransactionFeeFlag,
 		cmdcom.AccountWalletFlag,
 	},
 	Action: func(c *cli.Context) error {
@@ -40,6 +41,21 @@ func CreateDposV2ClaimRewardTransaction(c *cli.Context) error {
 		return errors.New("must specify claimamount flag")
 	}
 	walletPath := c.String("wallet")
+
+	feeStr := c.String("fee")
+	if feeStr == "" {
+		return errors.New("use --fee to specify transfer fee")
+	}
+	fee, err := common.StringToFixed64(feeStr)
+	if err != nil {
+		return errors.New("invalid transaction fee")
+	}
+
+	zero, err := common.StringToFixed64("0")
+	if err != nil {
+		return errors.New("invalid zero")
+	}
+
 	password, err := cmdcom.GetFlagPassword(c)
 	if err != nil {
 		return err
@@ -56,6 +72,23 @@ func CreateDposV2ClaimRewardTransaction(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
+
+	outputs := make([]*OutputInfo, 0)
+	outputs = append(outputs, &OutputInfo{
+		Recipient: mainAccount.Address,
+		Amount:    zero,
+	})
+
+	txOutputs, _, err := createNormalOutputs(outputs, *fee, 0)
+	if err != nil {
+		return err
+	}
+
+	txInputs, changeOutputs, err := createInputs(mainAccount.Address, *fee)
+	if err != nil {
+		return err
+	}
+	txOutputs = append(txOutputs, changeOutputs...)
 
 	redeemScript, err := common.HexStringToBytes(mainAccount.RedeemScript)
 	if err != nil {
@@ -88,8 +121,8 @@ func CreateDposV2ClaimRewardTransaction(c *cli.Context) error {
 		0,
 		apPayload,
 		nil,
-		nil,
-		nil,
+		txInputs,
+		txOutputs,
 		0,
 		[]*pg.Program{txProgram})
 

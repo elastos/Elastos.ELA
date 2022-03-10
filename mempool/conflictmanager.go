@@ -7,6 +7,7 @@ package mempool
 
 import (
 	"fmt"
+	"github.com/elastos/Elastos.ELA/common/log"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 
@@ -45,7 +46,7 @@ const (
 	slotCRCouncilMemberDID                      = "CRCouncilMemberDID"
 	slotCRCSecretaryGeneral                     = "CRCSecretaryGeneral"
 	slotRevertToDPOSHash                        = "RevertToDPOSHash"
-	slotUnstakeRealWithdraw                 = "UnstakeRealWithdraw"
+	slotUnstakeRealWithdraw                     = "UnstakeRealWithdraw"
 )
 
 type conflict struct {
@@ -71,6 +72,7 @@ func (m *conflictManager) VerifyTx(tx interfaces.Transaction) errors.ELAError {
 func (m *conflictManager) AppendTx(tx interfaces.Transaction) errors.ELAError {
 	for _, v := range m.conflictSlots {
 		if err := v.slot.AppendTx(tx); err != nil {
+			log.Warn("#### error tx ", err.Error())
 			return errors.SimpleWithMessage(errors.ErrTxPoolFailure, err,
 				fmt.Sprintf("slot %s append tx error", v.name))
 		}

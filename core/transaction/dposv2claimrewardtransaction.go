@@ -86,7 +86,7 @@ func (t *DposV2ClaimRewardTransaction) SpecialContextCheck() (elaerr.ELAError, b
 	if err != nil {
 		return elaerr.Simple(elaerr.ErrTxPayload, err), true
 	}
-	return nil, true
+	return nil, false
 }
 
 func (t *DposV2ClaimRewardTransaction) checkClaimRewardSignature(pub []byte, claimReward *payload.DposV2ClaimReward) error {

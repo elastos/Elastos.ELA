@@ -182,7 +182,7 @@ func GetDefaultParams() Params {
 		TargetTimePerBlock:          2 * time.Minute, // 2 minute
 		AdjustmentFactor:            4,               // 25% less, 400% more
 		RewardPerBlock:              RewardPerBlock(2 * time.Minute),
-		CoinbaseMaturity:            100,
+		CoinbaseMaturity:            2,
 		MinTransactionFee:           100,
 		MinCrossChainTxFee:          10000,
 		CheckAddressHeight:          88812,

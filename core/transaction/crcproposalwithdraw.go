@@ -198,6 +198,6 @@ func getTransactionFee(tx interfaces.Transaction,
 	for _, output := range references {
 		inputValue += output.Value
 	}
-
+	log.Warn("### getTransactionFee ", outputValue, inputValue)
 	return inputValue - outputValue
 }

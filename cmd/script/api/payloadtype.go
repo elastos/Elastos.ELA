@@ -50,6 +50,7 @@ const (
 	// dpos2.0
 	luaStakeName       = "stake"
 	luaVotingName      = "voting"
+	luaRenewVotingName = "renewvoting"
 	luaCancelVotesName = "cancelVotes"
 	luaUnstakeName     = "unstake"
 )
@@ -235,6 +236,14 @@ func RegisterVotingType(L *lua.LState) {
 	L.SetField(mt, "__index", L.SetFuncs(L.NewTable(), votingMethods))
 }
 
+func RegisterRenewVotingType(L *lua.LState) {
+	mt := L.NewTypeMetatable(luaRenewVotingName)
+	L.SetGlobal("renewvoting", mt)
+	L.SetField(mt, "new", L.NewFunction(newRenewVoting))
+	// methods
+	L.SetField(mt, "__index", L.SetFuncs(L.NewTable(), renewVotingMethods))
+}
+
 // Constructor
 func newVoting(L *lua.LState) int {
 	voteType := L.ToInt(1)
@@ -292,9 +301,81 @@ func newVoting(L *lua.LState) int {
 	return 1
 }
 
+// Constructor
+func newRenewVoting(L *lua.LState) int {
+	//voteType := L.ToInt(1)
+	candidatesTable := L.ToTable(2)
+	candidateVotesTable := L.ToTable(3)
+	lockUntil := L.ToInt(4)
+	referkey := L.ToString(5)
+
+	candidates := make([][]byte, 0)
+	votes := make([]common.Fixed64, 0)
+	candidatesTable.ForEach(func(i, value lua.LValue) {
+		publicKey := lua.LVAsString(value)
+		publicKey = strings.Replace(publicKey, "{", "", 1)
+		publicKey = strings.Replace(publicKey, "}", "", 1)
+		pk, err := common.HexStringToBytes(publicKey)
+		if err != nil {
+			fmt.Println("invalid public key")
+			os.Exit(1)
+		}
+		candidates = append(candidates, pk)
+	})
+	candidateVotesTable.ForEach(func(i, value lua.LValue) {
+		voteStr := lua.LVAsString(value)
+		voteStr = strings.Replace(voteStr, "{", "", 1)
+		voteStr = strings.Replace(voteStr, "}", "", 1)
+		vote, err := strconv.ParseFloat(voteStr, 64)
+		if err != nil {
+			fmt.Println("invalid votes")
+			os.Exit(1)
+		}
+		votes = append(votes, common.Fixed64(int64(vote*1e8)))
+	})
+	referKey256, err := common.Uint256FromHexString(referkey)
+	if err != nil {
+		fmt.Println("convert uint256 error")
+		os.Exit(1)
+	}
+
+	voteContent := make([]payload.RenewalVotesContent, 0, len(candidates))
+	for i := 0; i < len(candidates); i++ {
+		voteContent = append(voteContent, payload.RenewalVotesContent{
+			*referKey256,
+			payload.VotesWithLockTime{
+				Candidate: candidates[i],
+				Votes:     votes[i],
+				LockTime:  uint32(lockUntil),
+			},
+		})
+	}
+
+	cb := &payload.Voting{
+		RenewalContents: voteContent,
+	}
+	ud := L.NewUserData()
+	ud.Value = cb
+	L.SetMetatable(ud, L.GetTypeMetatable(luaCoinBaseTypeName))
+	L.Push(ud)
+
+	return 1
+}
+
 // Checks whether the first lua argument is a *LUserData with *Voting and
 // returns this *Voting.
 func checkVoting(L *lua.LState, idx int) *payload.Voting {
+	ud := L.CheckUserData(idx)
+	if v, ok := ud.Value.(*payload.Voting); ok {
+		return v
+	}
+	L.ArgError(1, "Voting expected")
+	return nil
+}
+
+// Checks whether the first lua argument is a *LUserData with *Voting and
+// returns this *Voting.
+func checkRenewVoting(L *lua.LState, idx int) *payload.Voting {
 	ud := L.CheckUserData(idx)
 	if v, ok := ud.Value.(*payload.Voting); ok {
 		return v
@@ -307,9 +388,21 @@ var votingMethods = map[string]lua.LGFunction{
 	"get": votingGet,
 }
 
+var renewVotingMethods = map[string]lua.LGFunction{
+	"get": renewVotingGet,
+}
+
 // Getter and setter for the Person#Name
 func votingGet(L *lua.LState) int {
 	p := checkVoting(L, 1)
+	fmt.Println(p)
+
+	return 0
+}
+
+// Getter and setter for the Person#Name
+func renewVotingGet(L *lua.LState) int {
+	p := checkRenewVoting(L, 1)
 	fmt.Println(p)
 
 	return 0

@@ -117,6 +117,7 @@ func StartRPCServer() {
 
 	// dposv2
 	mainMux["getdetailedcrcproposalvotes"] = GetDetailedCRCProposalVotes
+	mainMux["getalldetaileddposv2votes"] = GetAllDetailedDPoSV2Votes
 
 	var handler http.Handler
 	rpcServeMux := http.NewServeMux()

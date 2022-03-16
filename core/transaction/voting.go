@@ -183,6 +183,9 @@ func (t *VotingTransaction) SpecialContextCheck() (result elaerr.ELAError, end b
 	case payload.RenewalVoteVersion:
 		for _, content := range pld.RenewalContents {
 			producer := state.GetProducer(content.VotesInfo.Candidate)
+			if producer == nil {
+				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("producer can not found")), true
+			}
 			vote, err := producer.GetDetailedDPoSV2Votes(*stakeProgramHash, content.ReferKey)
 			if err != nil {
 				return elaerr.Simple(elaerr.ErrTxPayload, err), true
@@ -190,7 +193,7 @@ func (t *VotingTransaction) SpecialContextCheck() (result elaerr.ELAError, end b
 			if vote.VoteType != outputpayload.DposV2 {
 				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid vote type")), true
 			}
-			if vote.BlockHeight < content.VotesInfo.LockTime {
+			if vote.BlockHeight > content.VotesInfo.LockTime {
 				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid lock time")), true
 			}
 			if vote.Info.Votes != content.VotesInfo.Votes {
@@ -326,10 +329,8 @@ func (t *VotingTransaction) checkDPoSV2Content(content payload.VotesContent,
 			return fmt.Errorf("invalid vote output payload "+
 				"producer candidate: %s", common.BytesToHexString(cv.Candidate))
 		}
-		log.Warn("### %v %v %v %v %v", cv.LockTime,t.parameters.BlockHeight, lockUntil,
-			t.parameters.Config.DPoSV2MinVotesLockTime, t.parameters.Config.DPoSV2MaxVotesLockTime)
 		locakTime := cv.LockTime - t.parameters.BlockHeight
-		if cv.LockTime > lockUntil ||
+		if cv.LockTime <= t.parameters.BlockHeight || cv.LockTime > lockUntil ||
 			locakTime < t.parameters.Config.DPoSV2MinVotesLockTime ||
 			locakTime > t.parameters.Config.DPoSV2MaxVotesLockTime {
 

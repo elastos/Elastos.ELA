@@ -125,7 +125,6 @@ func (t *DefaultChecker) ContextCheck(params interfaces.Parameters) (
 	cerr, end := t.parameters.Transaction.SpecialContextCheck()
 	if cerr != nil {
 		log.Warn("[SpecialContextCheck],", cerr.InnerError())
-		log.Warn("###### %s %s ", cerr.Error() , cerr.InnerError().Error())
 	}
 	if end {
 		return references, cerr
@@ -641,7 +640,6 @@ func checkDestructionAddress(references map[*common2.Input]common2.Output) error
 
 func (t *DefaultChecker) checkTransactionFee(tx interfaces.Transaction, references map[*common2.Input]common2.Output) error {
 	fee := getTransactionFee(tx, references)
-	log.Warn("#### fee ", fee)
 	if t.isSmallThanMinTransactionFee(fee) {
 		return fmt.Errorf("transaction fee not enough")
 	}

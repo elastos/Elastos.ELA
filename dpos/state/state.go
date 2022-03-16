@@ -1643,7 +1643,6 @@ func (s *State) processStake(tx interfaces.Transaction, height uint32) {
 // processNewVotes takes a transaction, if the transaction including any votes
 // validate and update producers votes.
 func (s *State) processVoting(tx interfaces.Transaction, height uint32) {
-
 	switch tx.PayloadVersion() {
 	case payload.VoteVersion:
 		s.processVotingContent(tx, height)
@@ -1801,6 +1800,7 @@ func (s *State) processRenewalVotingContent(tx interfaces.Transaction, height ui
 		// get producer and update the votes
 		producer := s.getDPoSV2Producer(content.VotesInfo.Candidate)
 		if producer == nil {
+			log.Info("can not find producer ", hex.EncodeToString(content.VotesInfo.Candidate))
 			continue
 		}
 		voteInfo, _ := producer.GetDetailedDPoSV2Votes(*stakeAddress, content.ReferKey)
@@ -1823,6 +1823,7 @@ func (s *State) processRenewalVotingContent(tx interfaces.Transaction, height ui
 			producer.detailedDPoSV2Votes[*stakeAddress][content.ReferKey] = voteInfo
 			delete(producer.detailedDPoSV2Votes[*stakeAddress], referKey)
 		})
+
 	}
 }
 

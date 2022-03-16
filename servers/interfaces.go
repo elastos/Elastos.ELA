@@ -892,7 +892,6 @@ func SendRawTransaction(param Params) map[string]interface{} {
 	if !ok {
 		return ResponsePack(InvalidParams, "need a string parameter named data")
 	}
-
 	bys, err := common.HexStringToBytes(str)
 	if err != nil {
 		return ResponsePack(InvalidParams, "hex string to bytes error")

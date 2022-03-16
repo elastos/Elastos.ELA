@@ -82,10 +82,10 @@ print("-----------------------")
 if vote_candidates_num == vote_candidate_votes_num then
 
     -- payload
-    local ta = renewvoting.new(vote_type, vote_candidates, vote_candidate_votes, locktime, refekey)
+    local ta = renewvoting.new(vote_type, vote_candidates, vote_candidate_votes, locktime, referkey)
 
     -- transaction: version, tx_type, payload_version, payload, locktime
-    local tx = transaction.new(9, 0x63, 0, ta, 0)
+    local tx = transaction.new(9, 0x63, 0x01, ta, 0)
 
     -- input: from, amount + fee
     local charge = tx:appendenough(addr,fee * 100000000)

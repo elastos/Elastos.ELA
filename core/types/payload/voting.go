@@ -36,11 +36,12 @@ func (p *Voting) Data(version byte) []byte {
 
 func (p *Voting) Serialize(w io.Writer, version byte) error {
 
+	if err := common.WriteVarUint(w, uint64(len(p.Contents))); err != nil {
+		return err
+	}
+
 	switch version {
 	case VoteVersion:
-		if err := common.WriteVarUint(w, uint64(len(p.Contents))); err != nil {
-			return err
-		}
 		for _, content := range p.Contents {
 			if err := content.Serialize(w, version); err != nil {
 				return err

@@ -19,7 +19,6 @@ const StakeOutputVersion byte = 0x00
 type StakeOutput struct {
 	Version      byte
 	StakeAddress common.Uint168
-	Votes        common.Fixed64
 }
 
 func (ev *StakeOutput) Data() []byte {
@@ -31,9 +30,6 @@ func (ev *StakeOutput) Serialize(w io.Writer) error {
 		return err
 	}
 	if err := ev.StakeAddress.Serialize(w); err != nil {
-		return err
-	}
-	if err := ev.Votes.Serialize(w); err != nil {
 		return err
 	}
 
@@ -49,18 +45,13 @@ func (ev *StakeOutput) Deserialize(r io.Reader) error {
 	if err := ev.StakeAddress.Deserialize(r); err != nil {
 		return err
 	}
-	if err := ev.Votes.Deserialize(r); err != nil {
-		return err
-	}
 
 	return nil
 }
 
-
 func (ev *StakeOutput) GetVersion() byte {
 	return ev.Version
 }
-
 
 func (ev *StakeOutput) Validate() error {
 	if ev == nil {
@@ -76,6 +67,5 @@ func (ev *StakeOutput) Validate() error {
 func (ev *StakeOutput) String() string {
 	addr, _ := ev.StakeAddress.ToAddress()
 	return fmt.Sprint("{\n\t\t\t\t",
-		"StakeAddress: ", addr, "\n\t\t\t\t",
-		"Votes: ", ev.Votes, "}\n\t\t\t\t")
+		"StakeAddress: ", addr, "\n\t\t\t\t")
 }

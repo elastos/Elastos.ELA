@@ -464,6 +464,47 @@ func GetArbiterPeersInfo(params Params) map[string]interface{} {
 	return ResponsePack(Success, result)
 }
 
+func GetAllDetailedDPoSV2Votes(params Params) map[string]interface{} {
+	type detailedVoteInfo struct {
+		Producer_owner_key string            `json:"producerownerkey"`
+		Producer_node_key  string            `json:"producernodekey"`
+		ReferKey           string            `json:"referkey"`
+		StakeProgramHash   string            `json:"stakeprogramhash"`
+		TransactionHash    string            `json:"transactionhash"`
+		BlockHeight        uint32            `json:"blockheight"`
+		PayloadVersion     byte              `json:"payloadversion"`
+		VoteType           byte              `json:"votetype"`
+		Info               VotesWithLockTime `json:"info"`
+	}
+	var result []*detailedVoteInfo
+	ps := Chain.GetState().GetAllProducers()
+	for _, p := range ps {
+		dposv2Votes := p.GetAllDetailedDPoSV2Votes()
+		if len(dposv2Votes) == 0 {
+			continue
+		}
+		for _, v := range dposv2Votes {
+			for k1, v1 := range v {
+				result = append(result, &detailedVoteInfo{
+					Producer_owner_key: hex.EncodeToString(p.OwnerPublicKey()),
+					Producer_node_key:  hex.EncodeToString(p.NodePublicKey()),
+					ReferKey:           k1.String(),
+					StakeProgramHash:   v1.StakeProgramHash.String(),
+					TransactionHash:    v1.TransactionHash.String(),
+					BlockHeight:        v1.BlockHeight,
+					PayloadVersion:     v1.PayloadVersion,
+					Info: VotesWithLockTime{
+						Candidate: hex.EncodeToString(v1.Info.Candidate),
+						Votes:     v1.Info.Votes.String(),
+						LockTime:  v1.Info.LockTime,
+					},
+				})
+			}
+		}
+	}
+	return ResponsePack(Success, result)
+}
+
 func GetDetailedCRCProposalVotes(params Params) map[string]interface{} {
 	type detailedVoteInfo struct {
 		ReferKey         string            `json:"referkey"`

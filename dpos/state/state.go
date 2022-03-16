@@ -197,6 +197,10 @@ func (p *Producer) GetDetailedDPoSV2Votes(stakeAddress common.Uint168,
 	return
 }
 
+func (p *Producer) GetAllDetailedDPoSV2Votes() map[common.Uint168]map[common.Uint256]payload.DetailedVoteInfo {
+	return p.detailedDPoSV2Votes
+}
+
 func (p *Producer) SetInfo(i payload.ProducerInfo) {
 	p.info = i
 }

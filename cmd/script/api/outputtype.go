@@ -239,7 +239,6 @@ func RegisterStakeOutputType(L *lua.LState) {
 func newStakeOutput(L *lua.LState) int {
 	version := L.ToInt(1)
 	address := L.ToString(2)
-	value := L.ToInt(3)
 
 	programHash, err := common.Uint168FromAddress(address)
 	if err != nil {
@@ -250,7 +249,6 @@ func newStakeOutput(L *lua.LState) int {
 	voteOutput := &outputpayload.StakeOutput{
 		Version:      byte(version),
 		StakeAddress: *programHash,
-		Votes:        common.Fixed64(value),
 	}
 	ud := L.NewUserData()
 	ud.Value = voteOutput

@@ -64,7 +64,7 @@ print("charge", charge)
 local default_output = defaultoutput.new()
 
 -- outputpayload
-local vote_output = stakeoutput.new(0, saddr, amount * 100000000)
+local vote_output = stakeoutput.new(0, saddr)
 print("vote_output", vote_output:get())
 
 -- output: asset_id, value, recipient, output_paload_type, output_paload

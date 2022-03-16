@@ -295,7 +295,7 @@ func newVoting(L *lua.LState) int {
 	}
 	ud := L.NewUserData()
 	ud.Value = cb
-	L.SetMetatable(ud, L.GetTypeMetatable(luaCoinBaseTypeName))
+	L.SetMetatable(ud, L.GetTypeMetatable(luaVotingName))
 	L.Push(ud)
 
 	return 1
@@ -308,7 +308,7 @@ func newRenewVoting(L *lua.LState) int {
 	candidateVotesTable := L.ToTable(3)
 	lockUntil := L.ToInt(4)
 	referkey := L.ToString(5)
-
+	referkey = strings.TrimLeft(referkey, " ")
 	candidates := make([][]byte, 0)
 	votes := make([]common.Fixed64, 0)
 	candidatesTable.ForEach(func(i, value lua.LValue) {
@@ -317,7 +317,6 @@ func newRenewVoting(L *lua.LState) int {
 		publicKey = strings.Replace(publicKey, "}", "", 1)
 		pk, err := common.HexStringToBytes(publicKey)
 		if err != nil {
-			fmt.Println("invalid public key")
 			os.Exit(1)
 		}
 		candidates = append(candidates, pk)
@@ -335,6 +334,7 @@ func newRenewVoting(L *lua.LState) int {
 	})
 	referKey256, err := common.Uint256FromHexString(referkey)
 	if err != nil {
+		fmt.Println("###" + referkey)
 		fmt.Println("convert uint256 error")
 		os.Exit(1)
 	}
@@ -356,7 +356,7 @@ func newRenewVoting(L *lua.LState) int {
 	}
 	ud := L.NewUserData()
 	ud.Value = cb
-	L.SetMetatable(ud, L.GetTypeMetatable(luaCoinBaseTypeName))
+	L.SetMetatable(ud, L.GetTypeMetatable(luaVotingName))
 	L.Push(ud)
 
 	return 1

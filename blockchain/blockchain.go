@@ -419,11 +419,9 @@ func (b *BlockChain) getUTXOsFromAddress(address Uint168) ([]*common.UTXO, Fixed
 
 func (b *BlockChain) createInputs(fromAddress Uint168,
 	totalAmount Fixed64, utxos []*common.UTXO) ([]*common.Input, []*common.Output, error) {
-	log.Warnf("### totalAmount %s ", totalAmount.String())
 	var txInputs []*common.Input
 	var changeOutputs []*common.Output
 	for _, utxo := range utxos {
-		log.Warnf("#### utxo %s , txid %s " , utxo.Value.String(), utxo.TxID.String())
 		input := &common.Input{
 			Previous: common.OutPoint{
 				TxID:  utxo.TxID,
@@ -452,7 +450,6 @@ func (b *BlockChain) createInputs(fromAddress Uint168,
 			break
 		}
 	}
-	log.Warn("### left amt ", totalAmount)
 	if totalAmount > 0 {
 		return nil, nil, errors.New("[Committee], Available token is not enough")
 	}
@@ -489,8 +486,6 @@ func (b *BlockChain) CreateCRCAppropriationTransaction() (interfaces.Transaction
 
 func (b *BlockChain) CreateDposV2RealWithdrawTransaction(
 	withdrawTransactionHashes []Uint256, outputs []*common.OutputInfo) (interfaces.Transaction, error) {
-	tmpAddr , _ := b.chainParams.DPoSV2RewardAccumulateAddress.ToAddress()
-	log.Info("### address ",  tmpAddr)
 	utxos, _, err := b.getUTXOsFromAddress(b.chainParams.DPoSV2RewardAccumulateAddress)
 	if err != nil {
 		return nil, err

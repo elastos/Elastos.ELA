@@ -50,7 +50,7 @@ func (p *Voting) Serialize(w io.Writer, version byte) error {
 		if err := common.WriteVarUint(w, uint64(len(p.RenewalContents))); err != nil {
 			return err
 		}
-		for _, content := range p.Contents {
+		for _, content := range p.RenewalContents {
 			if err := content.Serialize(w, version); err != nil {
 				return err
 			}

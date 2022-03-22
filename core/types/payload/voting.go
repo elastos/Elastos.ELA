@@ -119,6 +119,18 @@ func (p *Voting) Validate() error {
 		}
 	}
 
+	referKeyMap := make(map[string]struct{})
+	for _, content := range p.RenewalContents {
+		if _, exists := referKeyMap[content.ReferKey.String()]; exists {
+			return errors.New("duplicate refer key")
+		}
+		referKeyMap[content.ReferKey.String()] = struct{}{}
+
+		if content.VotesInfo.Candidate == nil {
+			return errors.New("invalid renewal candidate")
+		}
+	}
+
 	return nil
 }
 

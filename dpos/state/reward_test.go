@@ -165,7 +165,7 @@ func TestCommittee_ChangeCommitteeReward(t *testing.T) {
 		}
 		lastVote = v
 	}
-	assert.Equal(t, 98, len(arbitrators.NextReward.OwnerVotesInRound),
+	assert.Equal(t, 96, len(arbitrators.NextReward.OwnerVotesInRound),
 		"invalid reward count")
 }
 

@@ -981,6 +981,12 @@ func NewSettings() *Settings {
 		ParamName:    "DPOSNodeCrossChainHeight"})
 
 	result.Add(&settingItem{
+		Flag:         cmdcom.CRDPoSNodeHotFixHeightFlag,
+		DefaultValue: uint32(0),
+		ConfigPath:   "DPoSConfiguration.CRDPoSNodeHotFixHeight",
+		ParamName:    "CRDPoSNodeHotFixHeight"})
+
+	result.Add(&settingItem{
 		Flag:         cmdcom.HalvingRewardHeightFlag,
 		DefaultValue: uint32(0),
 		ConfigPath:   "HalvingRewardHeight",

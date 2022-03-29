@@ -112,6 +112,7 @@ type DPoSConfiguration struct {
 	RevertToPOWNoBlockTime        int64          `json:"RevertToPOWNoBlockTime"`
 	StopConfirmBlockTime          int64          `json:"StopConfirmBlockTime"`
 	RevertToPOWStartHeight        uint32         `json:"RevertToPOWStartHeight"`
+	CRDPoSNodeHotFixHeight        uint32         `json:"CRDPoSNodeHotFixHeight"`
 }
 
 type CRConfiguration struct {

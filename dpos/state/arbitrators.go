@@ -1895,27 +1895,41 @@ func (a *arbitrators) getCRCArbitersV2(height uint32) (map[common.Uint168]Arbite
 	sort.Slice(unclaimedArbiterKeys, func(i, j int) bool {
 		return strings.Compare(unclaimedArbiterKeys[i], unclaimedArbiterKeys[j]) < 0
 	})
-	//producers, err := a.getProducers(int(a.chainParams.CRMemberCount), height)
-	//if err != nil {
-	//	return nil, 0, err
-	//}
+	producers, err := a.getProducers(int(a.chainParams.CRMemberCount), height)
+	if err != nil {
+		return nil, 0, err
+	}
 	var unclaimedCount int
 	crcArbiters := map[common.Uint168]ArbiterMember{}
 	claimHeight := a.chainParams.CRClaimDPOSNodeStartHeight
 	for _, cr := range crMembers {
 		var pk []byte
 		if len(cr.DPOSPublicKey) == 0 {
-			//if cr.MemberState != state.MemberElected {
-			var err error
-			pk, err = common.HexStringToBytes(unclaimedArbiterKeys[0])
-			if err != nil {
-				return nil, 0, err
+			if height >= a.chainParams.CRDPoSNodeHotFixHeight {
+				//if cr.MemberState != state.MemberElected {
+				var err error
+				pk, err = common.HexStringToBytes(unclaimedArbiterKeys[0])
+				if err != nil {
+					return nil, 0, err
+				}
+				unclaimedArbiterKeys = unclaimedArbiterKeys[1:]
+				//} else {
+				//	pk = producers[unclaimedCount].GetNodePublicKey()
+				//	unclaimedCount++
+				//}
+			} else {
+				if cr.MemberState != state.MemberElected {
+					var err error
+					pk, err = common.HexStringToBytes(unclaimedArbiterKeys[0])
+					if err != nil {
+						return nil, 0, err
+					}
+					unclaimedArbiterKeys = unclaimedArbiterKeys[1:]
+				} else {
+					pk = producers[unclaimedCount].GetNodePublicKey()
+					unclaimedCount++
+				}
 			}
-			unclaimedArbiterKeys = unclaimedArbiterKeys[1:]
-			//} else {
-			//	pk = producers[unclaimedCount].GetNodePublicKey()
-			//	unclaimedCount++
-			//}
 		} else {
 			pk = cr.DPOSPublicKey
 		}

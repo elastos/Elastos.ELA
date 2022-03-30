@@ -60,7 +60,7 @@ func (t *ReturnDepositCoinTransaction) CheckTransactionPayload() error {
 }
 
 func (t *ReturnDepositCoinTransaction) IsAllowedInPOWConsensus() bool {
-	return false
+	return true
 }
 
 func (t *ReturnDepositCoinTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {

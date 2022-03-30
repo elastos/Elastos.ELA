@@ -703,6 +703,11 @@ var (
 		Name:  "stakeaddress",
 		Usage: "defines the stake address of DPoS v2 votes",
 	}
+
+	SchnorrStartHeightFlag = cli.StringFlag{
+		Name:  "schnorrstartheight",
+		Usage: "defines the start height to support schnorr transaction",
+	}
 )
 
 // MoveRPCFlags finds the rpc argument and moves it to the front

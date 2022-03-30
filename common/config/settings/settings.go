@@ -1091,6 +1091,12 @@ func NewSettings() *Settings {
 		ConfigPath: "DPoSConfiguration.DPoSV2RewardAccumulateAddress",
 		ParamName:  "DPoSV2RewardAccumulateAddress"})
 
+	result.Add(&settingItem{
+		Flag:         cmdcom.SchnorrStartHeightFlag,
+		DefaultValue: uint32(0),
+		ConfigPath:   "SchnorrStartHeight",
+		ParamName:    "SchnorrStartHeight"})
+
 	return result
 }
 

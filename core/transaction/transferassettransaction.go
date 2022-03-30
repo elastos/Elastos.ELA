@@ -70,11 +70,11 @@ func checkTransferAssetOutputPayload(output *common2.Output) error {
 		}
 	case common2.OTNone:
 	case common2.OTMapping:
-	case common2.OTDposV2Vote:
-		if contract.GetPrefixType(output.ProgramHash) !=
-			contract.PrefixDposV2 {
-			return errors.New("output address should be dposV2")
-		}
+	//case common2.OTDposV2Vote:
+	//	if contract.GetPrefixType(output.ProgramHash) !=
+	//		contract.PrefixDposV2 {
+	//		return errors.New("output address should be dposV2")
+	//	}
 	default:
 		return errors.New("transaction type dose not match the output payload type")
 	}

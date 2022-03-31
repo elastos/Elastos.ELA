@@ -188,6 +188,7 @@ var transactionMethods = map[string]lua.LGFunction{
 	"appendattr":    txAppendAttribute,
 	"get":           txGet,
 	"sign":          signTx,
+	"multisign":     multiSignTx,
 	"signschnorr":   signSchnorrTx,
 	"hash":          txHash,
 	"serialize":     serialize,
@@ -283,6 +284,44 @@ func txHash(L *lua.LState) int {
 	L.Push(lua.LString(hex.EncodeToString(hash)))
 
 	return 1
+}
+
+func multiSignTx(L *lua.LState) int {
+	txn := checkTransaction(L, 1)
+	client, err := checkClient(L, 2)
+	m := L.ToInt64(3)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
+	pks := make([]*crypto.PublicKey, 0)
+	accs := client.GetAccounts()
+	for _, acc := range accs {
+		pks = append(pks, acc.PublicKey)
+	}
+
+	multiCode, err := contract.CreateMultiSigRedeemScript(int(m), pks)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
+	program := pg.Program{
+		Code:      multiCode,
+		Parameter: []byte{},
+	}
+	txn.SetPrograms([]*pg.Program{
+		&program,
+	})
+
+	txn, err = client.MultiSign(int(m), txn)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
+	return 0
 }
 
 func signTx(L *lua.LState) int {

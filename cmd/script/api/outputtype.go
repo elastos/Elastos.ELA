@@ -25,7 +25,7 @@ import (
 const (
 	luaOutputTypeName              = "output"
 	luaVoteOutputTypeName          = "voteoutput"
-	luaStakeOutputTypeName = "stakeoutput"
+	luaStakeOutputTypeName         = "stakeoutput"
 	luaNewCrossChainOutputTypeName = "crosschainoutput"
 	luaDefaultOutputTypeName       = "defaultoutput"
 	luaVoteContentTypeName         = "votecontent"

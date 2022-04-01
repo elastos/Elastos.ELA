@@ -531,12 +531,6 @@ func SignMultiSignTransaction(txn interfaces.Transaction, program *pg.Program,
 		Code:      code,
 		Parameter: parameter,
 	}
-	address, err := common.ToProgramHash(byte(contract.PrefixMultiSig), code).ToAddress()
-	if err != nil {
-		return  nil, err
-	}
-
-	fmt.Println("####### address:", address)
 
 	return signedProgram, nil
 }
@@ -575,7 +569,7 @@ func SignMultiSignTransactionByM(m int, txn interfaces.Transaction, program *pg.
 		if err != nil {
 			return nil, err
 		}
-		if signerIndex ==  m  {
+		if signerIndex == m {
 			break
 		}
 	}
@@ -585,7 +579,12 @@ func SignMultiSignTransactionByM(m int, txn interfaces.Transaction, program *pg.
 		Parameter: param,
 	}
 
+	address, err := common.ToProgramHash(byte(contract.PrefixMultiSig), code).ToAddress()
+	if err != nil {
+		return nil, err
+	}
 
+	fmt.Print("####### address:", address)
 
 	return signedProgram, nil
 }

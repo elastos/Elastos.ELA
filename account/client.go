@@ -531,6 +531,12 @@ func SignMultiSignTransaction(txn interfaces.Transaction, program *pg.Program,
 		Code:      code,
 		Parameter: parameter,
 	}
+	address, err := common.ToProgramHash(byte(contract.PrefixMultiSig), code).ToAddress()
+	if err != nil {
+		return  nil, err
+	}
+
+	fmt.Println("####### address:", address)
 
 	return signedProgram, nil
 }
@@ -578,6 +584,8 @@ func SignMultiSignTransactionByM(m int, txn interfaces.Transaction, program *pg.
 		Code:      code,
 		Parameter: param,
 	}
+
+
 
 	return signedProgram, nil
 }

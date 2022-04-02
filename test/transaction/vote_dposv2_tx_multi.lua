@@ -15,10 +15,13 @@ if password == "" then
     password = "123"
 end
 
+local wallet = client.new(keystore, password, false)
+
 -- account
-local addr = wallet:get_address()
+local addr = "8R7hnR9N6ujEYhuHRNwPjagbceXxdyPXQu"
+-- wallet:get_address()
 local pubkey = wallet:get_publickey()
-local saddr = wallet:get_s_address()
+local saddr = wallet:get_s_multi_address(2)
 
 print("addr", addr)
 print("saddr", saddr)

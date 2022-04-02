@@ -130,25 +130,25 @@ func GetSignStatus(code, param []byte) (haveSign, needSign int, err error) {
 
 func AppendSignature(signerIndex int, signature, data, code, param []byte) ([]byte, error) {
 	// Check if singer already signed
-	if param != nil {
-		publicKeys, err := ParseMultisigScript(code)
-		if err != nil {
-			return nil, err
-		}
-		for i := 0; i < len(param); i += SignatureScriptLength {
-			// Remove length byte
-			sign := param[i : i+SignatureScriptLength][1:]
-			publicKey := publicKeys[signerIndex][1:]
-			pubKey, err := DecodePoint(publicKey)
-			if err != nil {
-				return nil, err
-			}
-			err = Verify(*pubKey, data, sign)
-			if err == nil {
-				return nil, errors.New("signer already signed")
-			}
-		}
-	}
+	//if param != nil {
+	//	publicKeys, err := ParseMultisigScript(code)
+	//	if err != nil {
+	//		return nil, err
+	//	}
+	//	for i := 0; i < len(param); i += SignatureScriptLength {
+	//		// Remove length byte
+	//		sign := param[i : i+SignatureScriptLength][1:]
+	//		publicKey := publicKeys[signerIndex][1:]
+	//		pubKey, err := DecodePoint(publicKey)
+	//		if err != nil {
+	//			return nil, err
+	//		}
+	//		err = Verify(*pubKey, data, sign)
+	//		if err == nil {
+	//			return nil, errors.New("signer already signed")
+	//		}
+	//	}
+	//}
 
 	// Append new signature
 	param = append(param, byte(len(signature)))

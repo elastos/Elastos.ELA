@@ -2928,12 +2928,13 @@ func (s *State) IsIrreversible(curBlockHeight uint32, detachNodesLen int) bool {
 	if curBlockHeight <= s.ChainParams.CRCOnlyDPOSHeight {
 		return false
 	}
-	if curBlockHeight-uint32(detachNodesLen)-1 <= s.LastIrreversibleHeight {
+
+	if curBlockHeight-uint32(detachNodesLen) <= s.LastIrreversibleHeight {
 		return true
 	}
 	if curBlockHeight >= s.ChainParams.RevertToPOWStartHeight {
 		if s.ConsensusAlgorithm == DPOS {
-			if detachNodesLen > IrreversibleHeight {
+			if detachNodesLen >= IrreversibleHeight {
 				return true
 			}
 		}

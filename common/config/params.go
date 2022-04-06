@@ -262,6 +262,7 @@ func GetDefaultParams() Params {
 		StakeAddress:                       "",     // todo complete me
 		DPoSV2MinVotesLockTime:             7200,   // todo complete me
 		DPoSV2MaxVotesLockTime:             720000, // todo complete me
+		SchnorrStartHeight:                 2000000, // todo complete me
 	}
 }
 
@@ -361,6 +362,7 @@ func (p *Params) TestNet() *Params {
 	copy.DPoSV2MinVotesLockTime = 7200   // todo complete me
 	copy.DPoSV2MaxVotesLockTime = 720000 // todo complete me
 	copy.RealWithdrawSingleFee = 10000
+	copy.SchnorrStartHeight = 2000000 // todo complete me
 
 	return &copy
 }
@@ -462,6 +464,7 @@ func (p *Params) RegNet() *Params {
 	copy.DPoSV2MinVotesLockTime = 7200   // todo complete me
 	copy.DPoSV2MaxVotesLockTime = 720000 // todo complete me
 	copy.RealWithdrawSingleFee = 10000
+	copy.SchnorrStartHeight = 2000000 // todo fix me
 
 	return &copy
 }
@@ -797,7 +800,7 @@ type Params struct {
 	// ReturnDepositCoinFee indicates the fee the
 	ReturnDepositCoinFee common.Fixed64
 
-	// ReturnCrossChainCoinStartHeight indeicates the start height of
+	// ReturnCrossChainCoinStartHeight indicates the start height of
 	// ReturnCroossChainDepositCoin transaction
 	ReturnCrossChainCoinStartHeight uint32
 
@@ -818,6 +821,9 @@ type Params struct {
 
 	// max lock time of DPoS V2 votes
 	DPoSV2MaxVotesLockTime uint32
+
+	// SchnorrStartHeight indicates the start height of schnorr
+	SchnorrStartHeight uint32
 }
 
 // RewardPerBlock calculates the reward for each block by a specified time

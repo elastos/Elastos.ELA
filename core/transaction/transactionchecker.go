@@ -272,6 +272,10 @@ func (t *DefaultChecker) CheckAttributeProgram() error {
 		if program.Parameter == nil {
 			return fmt.Errorf("invalid program parameter nil")
 		}
+
+		if t.parameters.BlockHeight < t.parameters.Config.SchnorrStartHeight && contract.IsSchnorr(program.Code) {
+			return fmt.Errorf("invalid program code with schnorr before SchnorrStartHeight")
+		}
 	}
 	return nil
 }

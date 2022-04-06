@@ -849,6 +849,11 @@ func (b *BlockChain) CheckAttributeProgram(tx interfaces.Transaction,
 		return fmt.Errorf("no programs found in transaction")
 	}
 	for _, program := range tx.Programs() {
+
+		if blockHeight < b.chainParams.SchnorrStartHeight && contract.IsSchnorr(program.Code) {
+			return fmt.Errorf("invalid program code with schnorr before SchnorrStartHeight")
+		}
+
 		if program.Code == nil {
 			return fmt.Errorf("invalid program code nil")
 		}
@@ -988,8 +993,10 @@ func (b *BlockChain) checkPOWConsensusTransaction(txn interfaces.Transaction, re
 	switch txn.TxType() {
 	case common2.RegisterProducer, common2.ActivateProducer, common2.CRCouncilMemberClaimNode, common2.DposV2ClaimReward:
 		return nil
-	case common2.CRCAppropriation, common2.CRAssetsRectify, common2.CRCProposalRealWithdraw, common2.DposV2ClaimRewardRealWithdraw,
-		common2.NextTurnDPOSInfo, common2.RevertToDPOS, common2.UnstakeRealWithdraw:
+	case common2.CRCAppropriation, common2.CRAssetsRectify,
+		common2.CRCProposalRealWithdraw, common2.DposV2ClaimRewardRealWithdraw,
+		common2.NextTurnDPOSInfo, common2.RevertToDPOS, common2.UnstakeRealWithdraw,
+		common2.ReturnSideChainDepositCoin, common2.ProposalResult:
 		return nil
 	case common2.TransferAsset:
 		if txn.Version() >= common2.TxVersion09 {

@@ -10,10 +10,10 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/elastos/Elastos.ELA/blockchain"
 	"github.com/elastos/Elastos.ELA/core/contract"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
-	"github.com/elastos/Elastos.ELA/crypto"
 	elaerr "github.com/elastos/Elastos.ELA/errors"
 )
 
@@ -112,19 +112,11 @@ func (t *UnstakeTransaction) SpecialContextCheck() (result elaerr.ELAError, end 
 // check signature
 func (t *UnstakeTransaction) checkUnstakeSignature(unstakePayload *payload.Unstake) error {
 
-	pub := unstakePayload.Code[1 : len(unstakePayload.Code)-1]
-	publicKey, err := crypto.DecodePoint(pub)
-	if err != nil {
-		return errors.New("invalid public key in payload")
-	}
 	signedBuf := new(bytes.Buffer)
-	err = unstakePayload.SerializeUnsigned(signedBuf, payload.UnstakeVersion)
+	err := unstakePayload.SerializeUnsigned(signedBuf, payload.UnstakeVersion)
 	if err != nil {
 		return err
 	}
-	err = crypto.Verify(*publicKey, signedBuf.Bytes(), unstakePayload.Signature)
-	if err != nil {
-		return errors.New("invalid signature in unstakePayload")
-	}
-	return nil
+
+	return blockchain.CheckCRTransactionSignature(unstakePayload.Signature, unstakePayload.Code, signedBuf.Bytes())
 }

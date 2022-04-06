@@ -1095,8 +1095,8 @@ func GetReceivedByAddress(param Params) map[string]interface{} {
 			return ResponsePack(InternalError, "unknown transaction "+
 				u.TxID.String()+" from persisted utxo")
 		}
-		if spendable  && tx.IsCoinBaseTx() {
-			if bestHeight - height < ChainParams.CoinbaseMaturity {
+		if spendable && tx.IsCoinBaseTx() {
+			if bestHeight-height < ChainParams.CoinbaseMaturity {
 				continue
 			}
 		}
@@ -1279,8 +1279,8 @@ func ListUnspent(param Params) map[string]interface{} {
 			if utxoType == "normal" && tx.Version >= TxVersion09 && tx.Outputs[utxo.Index].Type == OTVote {
 				continue
 			}
-			if spendable  && tx.IsCoinBaseTx() {
-				if bestHeight - height < ChainParams.CoinbaseMaturity {
+			if spendable && tx.IsCoinBaseTx() {
+				if bestHeight-height < ChainParams.CoinbaseMaturity {
 					continue
 				}
 			}
@@ -2220,7 +2220,7 @@ func ListCRProposalBaseState(param Params) map[string]interface{} {
 	}
 	sort.Slice(rpcProposalBaseStates, func(i, j int) bool {
 		return rpcProposalBaseStates[i].
-			ProposalHash < rpcProposalBaseStates[j].ProposalHash
+			RegisterHeight < rpcProposalBaseStates[j].RegisterHeight
 	})
 
 	for k := range rpcProposalBaseStates {

@@ -584,7 +584,7 @@ func SignMultiSignTransactionByM(m int, txn interfaces.Transaction, program *pg.
 		return nil, err
 	}
 
-	fmt.Print("####### address:", address)
+	fmt.Print("multi address:", address)
 
 	return signedProgram, nil
 }

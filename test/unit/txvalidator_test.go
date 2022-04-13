@@ -36,6 +36,7 @@ import (
 	crstate "github.com/elastos/Elastos.ELA/cr/state"
 	"github.com/elastos/Elastos.ELA/crypto"
 	"github.com/elastos/Elastos.ELA/dpos/state"
+	"github.com/elastos/Elastos.ELA/errors"
 	"github.com/elastos/Elastos.ELA/utils"
 	"github.com/elastos/Elastos.ELA/utils/test"
 
@@ -836,6 +837,123 @@ func (s *txValidatorTestSuite) TestCheckRegisterProducerTransaction() {
 	s.EqualError(err, "there must be only one deposit address in outputs")
 }
 
+func (s *txValidatorTestSuite) TestCheckRegisterDposV2ProducerTransaction() {
+	publicKeyStr1 := "02ca89a5fe6213da1b51046733529a84f0265abac59005f6c16f62330d20f02aeb"
+	publicKey1, _ := common.HexStringToBytes(publicKeyStr1)
+	privateKeyStr1 := "7a50d2b036d64fcb3d344cee429f61c4a3285a934c45582b26e8c9227bc1f33a"
+	privateKey1, _ := common.HexStringToBytes(privateKeyStr1)
+	publicKeyStr2 := "027c4f35081821da858f5c7197bac5e33e77e5af4a3551285f8a8da0a59bd37c45"
+	publicKey2, _ := common.HexStringToBytes(publicKeyStr2)
+	errPublicKeyStr := "02b611f07341d5ddce51b5c4366aca7b889cfe0993bd63fd4"
+	errPublicKey, _ := common.HexStringToBytes(errPublicKeyStr)
+
+	rpPayload := &payload.ProducerInfo{
+		OwnerPublicKey: publicKey1,
+		NodePublicKey:  publicKey1,
+		NickName:       "nickname 1",
+		Url:            "http://www.elastos_test.com",
+		Location:       1,
+		NetAddress:     "127.0.0.1:20338",
+		StakeUntil:     100000,
+	}
+	rpSignBuf := new(bytes.Buffer)
+	err := rpPayload.SerializeUnsigned(rpSignBuf, payload.ProducerInfoDposV2Version)
+	s.NoError(err)
+	rpSig, err := crypto.Sign(privateKey1, rpSignBuf.Bytes())
+	s.NoError(err)
+	rpPayload.Signature = rpSig
+
+	txn := functions.CreateTransaction(
+		0,
+		common2.RegisterProducer,
+		1,
+		rpPayload,
+		[]*common2.Attribute{},
+		[]*common2.Input{},
+		[]*common2.Output{},
+		0,
+		[]*program.Program{{
+			Code:      getCodeByPubKeyStr(publicKeyStr1),
+			Parameter: nil,
+		}},
+	)
+
+	publicKeyDeposit1, _ := contract.PublicKeyToDepositProgramHash(publicKey1)
+	txn.SetOutputs([]*common2.Output{{
+		AssetID:     common.Uint256{},
+		Value:       5000 * 100000000,
+		OutputLock:  0,
+		ProgramHash: *publicKeyDeposit1,
+	}})
+	tx := txn.(*transaction.RegisterProducerTransaction)
+	param := s.Chain.GetParams()
+	param.DPoSV2StartHeight = 10
+	param.PublicDPOSHeight = 5
+	s.Chain.Nodes = []*blockchain.BlockNode{
+		{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {},
+	}
+	tx.DefaultChecker.SetParameters(&transaction.TransactionParameters{
+		BlockChain: s.Chain,
+		Config:     s.Chain.GetParams(),
+	})
+
+	err, _ = tx.SpecialContextCheck()
+	s.NoError(err)
+
+	// Give an invalid owner public key in payload
+	txn.Payload().(*payload.ProducerInfo).OwnerPublicKey = errPublicKey
+	err, _ = tx.SpecialContextCheck()
+	s.EqualError(err.(errors.ELAError).InnerError(), "invalid public key")
+
+	// check version when height is not higher than dposv2 height
+	s.Chain.Nodes = []*blockchain.BlockNode{
+		{}, {}, {}, {},
+	}
+	param.PublicDPOSHeight = 1
+	txn.Payload().(*payload.ProducerInfo).OwnerPublicKey = publicKey1
+	err, _ = tx.SpecialContextCheck()
+	s.EqualError(err.(errors.ELAError).InnerError(), "can not register dposv2 before dposv2 start height")
+
+	// Invalidates public key in payload
+	txn.Payload().(*payload.ProducerInfo).OwnerPublicKey = publicKey2
+	txn.Payload().(*payload.ProducerInfo).NodePublicKey = publicKey2
+	param.PublicDPOSHeight = 5
+	s.Chain.Nodes = []*blockchain.BlockNode{
+		{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {},
+	}
+	err, _ = tx.SpecialContextCheck()
+	s.EqualError(err.(errors.ELAError).InnerError(), "deposit address does not match the public key in payload")
+
+	// Give a insufficient deposit coin
+	txn.Payload().(*payload.ProducerInfo).OwnerPublicKey = publicKey1
+	txn.Payload().(*payload.ProducerInfo).NodePublicKey = publicKey1
+	txn.SetOutputs([]*common2.Output{{
+		AssetID:     common.Uint256{},
+		Value:       1000,
+		OutputLock:  0,
+		ProgramHash: *publicKeyDeposit1,
+	}})
+	err, _ = tx.SpecialContextCheck()
+	s.EqualError(err.(errors.ELAError).InnerError(), "producer deposit amount is insufficient")
+
+	// Multi deposit addresses
+	txn.SetOutputs([]*common2.Output{
+		{
+			AssetID:     common.Uint256{},
+			Value:       5000 * 100000000,
+			OutputLock:  0,
+			ProgramHash: *publicKeyDeposit1,
+		},
+		{
+			AssetID:     common.Uint256{},
+			Value:       5000 * 100000000,
+			OutputLock:  0,
+			ProgramHash: *publicKeyDeposit1,
+		}})
+	err, _ = tx.SpecialContextCheck()
+	s.EqualError(err.(errors.ELAError).InnerError(), "there must be only one deposit address in outputs")
+}
+
 func getCodeByPubKeyStr(publicKey string) []byte {
 	pkBytes, _ := common.HexStringToBytes(publicKey)
 	pk, _ := crypto.DecodePoint(pkBytes)
@@ -848,6 +966,152 @@ func getCodeHexStr(publicKey string) string {
 	redeemScript, _ := contract.CreateStandardRedeemScript(pk)
 	codeHexStr := common.BytesToHexString(redeemScript)
 	return codeHexStr
+}
+
+func (s *txValidatorTestSuite) TestCheckDposV2VoteProducerOutput() {
+	// 1. Generate a vote output v0
+	publicKeyStr1 := "02b611f07341d5ddce51b5c4366aca7b889cfe0993bd63fd47e944507292ea08dd"
+	publicKey1, _ := common.HexStringToBytes(publicKeyStr1)
+	referKey := randomUint256()
+	outputs1 := []*payload.Voting{
+		{
+			Contents: []payload.VotesContent{
+				{
+					VoteType: outputpayload.DposV2,
+					VotesInfo: []payload.VotesWithLockTime{
+						{
+							Candidate: publicKey1,
+							Votes:     10000,
+							LockTime:  100000,
+						},
+					},
+				},
+			},
+			RenewalContents: []payload.RenewalVotesContent{},
+		},
+		{
+			Contents: []payload.VotesContent{
+				{
+					VoteType: outputpayload.DposV2,
+					VotesInfo: []payload.VotesWithLockTime{
+						{
+							Candidate: publicKey1,
+							Votes:     10000,
+							LockTime:  100000,
+						},
+					},
+				},
+				{
+					VoteType: outputpayload.DposV2,
+					VotesInfo: []payload.VotesWithLockTime{
+						{
+							Candidate: publicKey1,
+							Votes:     10000,
+							LockTime:  100000,
+						},
+					},
+				},
+			},
+			RenewalContents: []payload.RenewalVotesContent{},
+		},
+		{
+			Contents: []payload.VotesContent{
+				{
+					VoteType: 0x05,
+					VotesInfo: []payload.VotesWithLockTime{
+						{
+							Candidate: publicKey1,
+							Votes:     10000,
+							LockTime:  100000,
+						},
+					},
+				},
+			},
+			RenewalContents: []payload.RenewalVotesContent{},
+		},
+		{
+			Contents: []payload.VotesContent{
+				{
+					VoteType: outputpayload.DposV2,
+					VotesInfo: []payload.VotesWithLockTime{
+						{
+							Candidate: publicKey1,
+							Votes:     10000,
+							LockTime:  100000,
+						},
+						{
+							Candidate: publicKey1,
+							Votes:     10000,
+							LockTime:  100000,
+						},
+					},
+				},
+			},
+			RenewalContents: []payload.RenewalVotesContent{},
+		},
+		{
+			Contents: []payload.VotesContent{
+				{
+					VoteType: outputpayload.DposV2,
+					VotesInfo: []payload.VotesWithLockTime{
+						{
+							Candidate: publicKey1,
+							Votes:     -100,
+							LockTime:  100000,
+						},
+					},
+				},
+			},
+			RenewalContents: []payload.RenewalVotesContent{},
+		},
+		{
+			Contents: []payload.VotesContent{
+				{
+					VoteType: outputpayload.DposV2,
+					VotesInfo: []payload.VotesWithLockTime{
+						{
+							Candidate: publicKey1,
+							Votes:     10000,
+							LockTime:  100000,
+						},
+					},
+				},
+			},
+			RenewalContents: []payload.RenewalVotesContent{
+				{
+					ReferKey: *referKey,
+					VotesInfo: payload.VotesWithLockTime{
+						Candidate: publicKey1,
+						Votes:     10000,
+						LockTime:  100000,
+					},
+				},
+				{
+					ReferKey: *referKey,
+					VotesInfo: payload.VotesWithLockTime{
+						Candidate: publicKey1,
+						Votes:     10000,
+						LockTime:  100000,
+					},
+				},
+			},
+		},
+	}
+
+	// 2. Check output payload v0
+	err := outputs1[0].Validate()
+	s.NoError(err)
+	err = outputs1[1].Validate()
+	s.EqualError(err, "duplicate vote type")
+	err = outputs1[2].Validate()
+	s.EqualError(err, "invalid vote type")
+	err = outputs1[3].Validate()
+	s.EqualError(err, "duplicate candidate")
+	err = outputs1[4].Validate()
+	s.EqualError(err, "invalid candidate votes")
+	err = outputs1[5].Validate()
+	s.EqualError(err, "duplicate refer key")
+
 }
 
 func (s *txValidatorTestSuite) TestCheckVoteProducerOutput() {

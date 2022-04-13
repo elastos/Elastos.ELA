@@ -259,9 +259,9 @@ func GetDefaultParams() Params {
 		DPoSV2StartHeight:                  2000000,
 		DPoSV2EffectiveVotes:               80000,
 		DPoSV2RewardAccumulateAddress:      DposV2RewardAccumulateAddress,
-		StakeAddress:                       "",     // todo complete me
-		DPoSV2MinVotesLockTime:             7200,   // todo complete me
-		DPoSV2MaxVotesLockTime:             720000, // todo complete me
+		StakeAddress:                       "",      // todo complete me
+		DPoSV2MinVotesLockTime:             7200,    // todo complete me
+		DPoSV2MaxVotesLockTime:             720000,  // todo complete me
 		SchnorrStartHeight:                 2000000, // todo complete me
 	}
 }
@@ -675,6 +675,10 @@ type Params struct {
 	// CRDutyPeriod defines the duration of a normal duty period which
 	// measured by block height
 	CRDutyPeriod uint32
+
+	// CRClaimPeriod defines the duration of CR claim DPoS node period which
+	// measured by block height
+	CRClaimPeriod uint32
 
 	// DepositLockupBlocks indicates how many blocks need to wait when cancel
 	// producer or CRC was triggered, and can submit return deposit coin request

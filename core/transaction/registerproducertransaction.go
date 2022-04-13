@@ -74,6 +74,9 @@ func (t *RegisterProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bo
 		if t.parameters.BlockChain.GetState().ProducerOwnerPublicKeyExists(info.OwnerPublicKey) {
 			return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("producer owner already registered")), true
 		}
+	} else if t.parameters.BlockChain.GetHeight() < t.parameters.Config.DPoSV2StartHeight &&
+		t.PayloadVersion() == payload.ProducerInfoDposV2Version {
+		return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("can not register dposv2 before dposv2 start height")), true
 	}
 
 	if t.PayloadVersion() == payload.ProducerInfoVersion {

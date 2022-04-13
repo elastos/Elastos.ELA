@@ -118,6 +118,7 @@ type CRMember struct {
 // StateKeyFrame holds necessary State about CR committee.
 type KeyFrame struct {
 	Members                    map[common.Uint168]*CRMember
+	NextMembers                map[common.Uint168]*CRMember
 	HistoryMembers             map[uint64]map[common.Uint168]*CRMember
 	PartProposalResults        []payload.ProposalResult
 	DetailedCRVotes            map[common.Uint256]payload.DetailedVoteInfo // key: hash of DetailedVoteInfo
@@ -356,7 +357,9 @@ func (kf *KeyFrame) Serialize(w io.Writer) (err error) {
 	if err = kf.serializeMembersMap(w, kf.Members); err != nil {
 		return
 	}
-
+	if err = kf.serializeMembersMap(w, kf.NextMembers); err != nil {
+		return
+	}
 	if err = kf.serializeHistoryMembersMap(w, kf.HistoryMembers); err != nil {
 		return
 	}
@@ -383,6 +386,10 @@ func (kf *KeyFrame) Serialize(w io.Writer) (err error) {
 
 func (kf *KeyFrame) Deserialize(r io.Reader) (err error) {
 	if kf.Members, err = kf.deserializeMembersMap(r); err != nil {
+		return
+	}
+
+	if kf.NextMembers, err = kf.deserializeMembersMap(r); err != nil {
 		return
 	}
 
@@ -611,6 +618,7 @@ func (kf *KeyFrame) Snapshot() *KeyFrame {
 func NewKeyFrame() *KeyFrame {
 	return &KeyFrame{
 		Members:             make(map[common.Uint168]*CRMember, 0),
+		NextMembers:         make(map[common.Uint168]*CRMember, 0),
 		HistoryMembers:      make(map[uint64]map[common.Uint168]*CRMember, 0),
 		LastCommitteeHeight: 0,
 	}

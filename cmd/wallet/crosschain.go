@@ -1,19 +1,21 @@
 package wallet
 
 import (
-	"fmt"
 	"errors"
-	pg "github.com/elastos/Elastos.ELA/core/contract/program"
-	common2 "github.com/elastos/Elastos.ELA/core/types/common"
-	"github.com/elastos/Elastos.ELA/core/types/functions"
-	"github.com/elastos/Elastos.ELA/core/types/interfaces"
-	"github.com/elastos/Elastos.ELA/core/types/payload"
+	"fmt"
 	"math/rand"
 	"os"
 	"strconv"
 
+	"github.com/elastos/Elastos.ELA/account"
 	cmdcom "github.com/elastos/Elastos.ELA/cmd/common"
 	"github.com/elastos/Elastos.ELA/common"
+	pg "github.com/elastos/Elastos.ELA/core/contract/program"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/functions"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
+	"github.com/elastos/Elastos.ELA/core/types/outputpayload"
+	"github.com/elastos/Elastos.ELA/core/types/payload"
 
 	"github.com/urfave/cli"
 )
@@ -96,25 +98,32 @@ func createCrossChainTransaction(walletPath string, from string, fee common.Fixe
 		return nil, errors.New("invalid transaction target")
 	}
 
-	outputs := make([]*OutputInfo, 0)
-	perAccountFee := fee / common.Fixed64(len(crossChainOutputs))
-
-	// create payload
-	payload := &payload.TransferCrossChainAsset{}
-	for index, output := range crossChainOutputs {
-		payload.CrossChainAddresses = append(payload.CrossChainAddresses, output.CrossChainAddress)
-		payload.OutputIndexes = append(payload.OutputIndexes, uint64(index))
-		payload.CrossChainAmounts = append(payload.CrossChainAmounts, *output.Amount-perAccountFee)
-		outputs = append(outputs, &OutputInfo{
-			Recipient: output.Recipient,
-			Amount:    output.Amount,
-		})
-	}
+	var txOutputs []*common2.Output     // The outputs in transaction
+	var totalAmount = common.Fixed64(0) // The total amount will be spend
 
 	// create outputs
-	txOutputs, totalAmount, err := createNormalOutputs(outputs, fee, lockedUntil)
-	if err != nil {
-		return nil, err
+	totalAmount += fee
+	for _, o := range crossChainOutputs {
+		recipient, err := common.Uint168FromAddress(o.Recipient)
+		if err != nil {
+			return nil, errors.New(fmt.Sprint("invalid receiver address: ", o.Recipient, ", error: ", err))
+		}
+
+		txOutput := &common2.Output{
+			AssetID:     *account.SystemAssetID,
+			ProgramHash: *recipient,
+			Value:       *o.Amount + 10000,
+			OutputLock:  lockedUntil,
+			Type:        common2.OTCrossChain,
+			Payload: &outputpayload.CrossChainOutput{
+				Version:       outputpayload.CrossChainOutputVersion,
+				TargetAddress: o.CrossChainAddress,
+				TargetAmount:  *o.Amount,
+				TargetData:    []byte{},
+			},
+		}
+		totalAmount += txOutput.Value
+		txOutputs = append(txOutputs, txOutput)
 	}
 
 	// get sender in wallet by from address
@@ -148,8 +157,8 @@ func createCrossChainTransaction(walletPath string, from string, fee common.Fixe
 	return functions.CreateTransaction(
 		common2.TxVersion09,
 		common2.TransferCrossChainAsset,
-		0,
-		payload,
+		payload.TransferCrossChainVersionV1,
+		&payload.TransferCrossChainAsset{},
 		txAttributes,
 		txInputs,
 		txOutputs,

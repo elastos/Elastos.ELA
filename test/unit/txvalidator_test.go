@@ -954,6 +954,239 @@ func (s *txValidatorTestSuite) TestCheckRegisterDposV2ProducerTransaction() {
 	s.EqualError(err.(errors.ELAError).InnerError(), "there must be only one deposit address in outputs")
 }
 
+func (s *txValidatorTestSuite) TestCheckStakeTransaction() {
+	stakeAddress := "ETAXSN3kc3N3npEeUzMn4bipwUS3ejooiy"
+	stakeAddress_uint168, _ := common.Uint168FromAddress(stakeAddress)
+	rpPayload := &outputpayload.StakeOutput{
+		Version:      0,
+		StakeAddress: *stakeAddress_uint168,
+	}
+	txn := functions.CreateTransaction(
+		0,
+		common2.Stake,
+		1,
+		nil,
+		[]*common2.Attribute{},
+		[]*common2.Input{},
+		[]*common2.Output{
+			{
+				AssetID:     common.Uint256{},
+				Value:       100000000,
+				OutputLock:  0,
+				ProgramHash: *stakeAddress_uint168,
+				Payload:     rpPayload,
+			},
+			{
+				AssetID:     common.Uint256{},
+				Value:       100000000,
+				OutputLock:  0,
+				ProgramHash: *stakeAddress_uint168,
+				Payload:     rpPayload,
+			},
+			{
+				AssetID:     common.Uint256{},
+				Value:       100000000,
+				OutputLock:  0,
+				ProgramHash: *stakeAddress_uint168,
+				Payload:     rpPayload,
+			},
+		},
+		0,
+		[]*program.Program{{
+			Code:      nil,
+			Parameter: nil,
+		}},
+	)
+	err := txn.CheckTransactionOutput()
+	s.EqualError(err, "output count should not be greater than 2")
+
+	txn = functions.CreateTransaction(
+		0,
+		common2.Stake,
+		1,
+		nil,
+		[]*common2.Attribute{},
+		[]*common2.Input{},
+		[]*common2.Output{},
+		0,
+		[]*program.Program{{
+			Code:      nil,
+			Parameter: nil,
+		}},
+	)
+	err = txn.CheckTransactionOutput()
+	s.EqualError(err, "transaction has no outputs")
+
+	txn = functions.CreateTransaction(
+		0,
+		common2.Stake,
+		1,
+		nil,
+		[]*common2.Attribute{},
+		[]*common2.Input{},
+		[]*common2.Output{
+			{
+				AssetID:     common.Uint256{},
+				Value:       100000000,
+				OutputLock:  0,
+				ProgramHash: *stakeAddress_uint168,
+				Payload:     rpPayload,
+			},
+		},
+		0,
+		[]*program.Program{{
+			Code:      nil,
+			Parameter: nil,
+		}},
+	)
+	err = txn.CheckTransactionOutput()
+	s.EqualError(err, "asset ID in output is invalid")
+
+	txn = functions.CreateTransaction(
+		0,
+		common2.Stake,
+		1,
+		nil,
+		[]*common2.Attribute{},
+		[]*common2.Input{},
+		[]*common2.Output{
+			{
+				AssetID:     config.ELAAssetID,
+				Value:       -1,
+				OutputLock:  0,
+				ProgramHash: *stakeAddress_uint168,
+				Payload:     rpPayload,
+			},
+		},
+		0,
+		[]*program.Program{{
+			Code:      nil,
+			Parameter: nil,
+		}},
+	)
+	err = txn.CheckTransactionOutput()
+	s.EqualError(err, "invalid transaction UTXO output")
+
+	txn = functions.CreateTransaction(
+		0,
+		common2.Stake,
+		1,
+		nil,
+		[]*common2.Attribute{},
+		[]*common2.Input{},
+		[]*common2.Output{
+			{
+				AssetID:     config.ELAAssetID,
+				Value:       100000000,
+				OutputLock:  0,
+				ProgramHash: *stakeAddress_uint168,
+				Payload:     rpPayload,
+			},
+		},
+		0,
+		[]*program.Program{{
+			Code:      nil,
+			Parameter: nil,
+		}},
+	)
+	err = txn.CheckTransactionOutput()
+	s.EqualError(err, "invalid output type")
+
+	rpPayload.Version = 1
+	txn = functions.CreateTransaction(
+		0,
+		common2.Stake,
+		1,
+		nil,
+		[]*common2.Attribute{},
+		[]*common2.Input{},
+		[]*common2.Output{
+			{
+				AssetID:     config.ELAAssetID,
+				Value:       100000000,
+				OutputLock:  0,
+				ProgramHash: *stakeAddress_uint168,
+				Payload:     rpPayload,
+				Type:        common2.OTStake,
+			},
+		},
+		0,
+		[]*program.Program{{
+			Code:      nil,
+			Parameter: nil,
+		}},
+	)
+	err = txn.CheckTransactionOutput()
+	s.EqualError(err, "invalid exchange vote version")
+
+	rpPayload.Version = 0
+	txn = functions.CreateTransaction(
+		0,
+		common2.Stake,
+		1,
+		nil,
+		[]*common2.Attribute{},
+		[]*common2.Input{},
+		[]*common2.Output{
+			{
+				AssetID:     config.ELAAssetID,
+				Value:       100000000,
+				OutputLock:  0,
+				ProgramHash: *stakeAddress_uint168,
+				Payload:     rpPayload,
+				Type:        common2.OTStake,
+			},
+		},
+		0,
+		[]*program.Program{{
+			Code:      nil,
+			Parameter: nil,
+		}},
+	)
+	param := s.Chain.GetParams()
+	param.StakeAddress = "xxx"
+	tx := txn.(*transaction.StakeTransaction)
+	tx.DefaultChecker.SetParameters(&transaction.TransactionParameters{
+		BlockChain: s.Chain,
+		Config:     s.Chain.GetParams(),
+	})
+	err = txn.CheckTransactionOutput()
+	s.EqualError(err, "first output address need to be stake address")
+
+	txn = functions.CreateTransaction(
+		0,
+		common2.Stake,
+		1,
+		nil,
+		[]*common2.Attribute{},
+		[]*common2.Input{},
+		[]*common2.Output{
+			{
+				AssetID:     config.ELAAssetID,
+				Value:       100000000,
+				OutputLock:  0,
+				ProgramHash: *stakeAddress_uint168,
+				Payload:     rpPayload,
+				Type:        common2.OTStake,
+			},
+		},
+		0,
+		[]*program.Program{{
+			Code:      nil,
+			Parameter: nil,
+		}},
+	)
+	param = s.Chain.GetParams()
+	param.StakeAddress = stakeAddress
+	tx = txn.(*transaction.StakeTransaction)
+	tx.DefaultChecker.SetParameters(&transaction.TransactionParameters{
+		BlockChain: s.Chain,
+		Config:     s.Chain.GetParams(),
+	})
+	err = txn.CheckTransactionOutput()
+	s.NoError(err)
+}
+
 func getCodeByPubKeyStr(publicKey string) []byte {
 	pkBytes, _ := common.HexStringToBytes(publicKey)
 	pk, _ := crypto.DecodePoint(pkBytes)

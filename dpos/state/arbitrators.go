@@ -644,11 +644,10 @@ func (a *Arbiters) IsDopsV2Run(blockHeight uint32) bool {
 
 //is alreday dposv2. when we are here we need new reward.
 func (a *Arbiters) isDopsV2Run(blockHeight uint32) bool {
-	log.Errorf("isDopsV2Run blockHeight %d, DposV2ActiveHeight %d CRMemberCount%d GeneralArbiters%d", blockHeight, a.DposV2ActiveHeight,
+	log.Infof("isDopsV2Run blockHeight %d, DposV2ActiveHeight %d CRMemberCount%d GeneralArbiters%d", blockHeight, a.DposV2ActiveHeight,
 		a.ChainParams.CRMemberCount, a.ChainParams.GeneralArbiters)
 	if a.isDposV2Active() && blockHeight >= a.DposV2ActiveHeight+a.ChainParams.CRMemberCount+uint32(a.ChainParams.GeneralArbiters) {
-		log.Error("isDopsV2Run is dpos v2 ")
-
+		log.Info("isDopsV2Run is dpos v2 ")
 		return true
 	}
 	log.Error("isDopsV2Run not dpos v2 ")
@@ -1832,7 +1831,6 @@ func (a *Arbiters) getCandidateIndexAtRandom(height uint32, unclaimedCount, vote
 func (a *Arbiters) isDposV2Active() bool {
 	return len(a.DposV2EffectedProducers) >= a.ChainParams.GeneralArbiters*3/2
 }
-
 
 func (a *Arbiters) UpdateNextArbitrators(versionHeight, height uint32) error {
 

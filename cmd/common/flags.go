@@ -604,6 +604,11 @@ var (
 		Usage: "defines the proposal draft data start height",
 	}
 
+	CRClaimPeriodFlag = cli.StringFlag{
+		Name:  "crclaimperiod",
+		Usage: "defines the duration of CR claim DPoS node",
+	}
+
 	CustomIDProposalStartHeight = cli.StringFlag{
 		Name:  "CustomIDProposalStartHeight",
 		Usage: "defines the height to allow custom ID related transaction",

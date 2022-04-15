@@ -968,6 +968,14 @@ func NewSettings() *Settings {
 		ParamName:    "CRCProposalDraftDataStartHeight"})
 
 	result.Add(&settingItem{
+		Flag:         cmdcom.CRClaimPeriodFlag,
+		DefaultValue: uint32(0),
+		ConfigPath:   "CRConfiguration.CRClaimPeriod",
+		ParamName:    "CRClaimPeriod"})
+
+
+
+	result.Add(&settingItem{
 		Flag:         cmdcom.CustomIDProposalStartHeight,
 		DefaultValue: uint32(0),
 		ConfigPath:   "CustomIDProposalStartHeight",

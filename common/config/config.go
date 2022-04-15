@@ -152,6 +152,7 @@ type CRConfiguration struct {
 	NewP2PProtocolVersionHeight        uint64         `json:"NewP2PProtocolVersionHeight"`
 	ChangeCommitteeNewCRHeight         uint32         `json:"ChangeCommitteeNewCRHeight"`
 	CRCProposalDraftDataStartHeight    uint32         `json:"CRCProposalDraftDataStartHeight"`
+	CRClaimPeriod                      uint32         `json:"CRClaimPeriod"`
 }
 
 type RPCServiceLevel byte

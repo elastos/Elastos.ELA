@@ -74,6 +74,8 @@ If clone works successfully, you should see folder structure like Elastos.ELA/Ma
 Build the node.
 ```bash
 $ cd Elastos.ELA
+$ go get .
+$ go mod tidy
 $ make
 ```
 

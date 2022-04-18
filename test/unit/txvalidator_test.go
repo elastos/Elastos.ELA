@@ -3932,6 +3932,86 @@ func (s *txValidatorTestSuite) TestCheckStakeTransaction() {
 
 }
 
+func (s *txValidatorTestSuite) TestCheckUnStakeTransaction() {
+	s.CurrentHeight = 1
+	_, pk, _ := crypto.GenerateKeyPair()
+	//publicKey, _ := pk.EncodePoint(true)
+	cont, _ := contract.CreateStandardContract(pk)
+	code := cont.Code
+	ct, _ := contract.CreateStakeContractByCode(code)
+	stakeAddress := ct.ToProgramHash()
+	pl := &payload.Unstake{}
+	attribute := []*common2.Attribute{}
+
+	tx1 := functions.CreateTransaction(
+		0,
+		common2.TransferAsset,
+		0,
+		&payload.TransferAsset{},
+		[]*common2.Attribute{},
+		[]*common2.Input{},
+		[]*common2.Output{},
+		0,
+		[]*program.Program{},
+	)
+	tx1.SetOutputs([]*common2.Output{
+		&common2.Output{
+			AssetID:     config.ELAAssetID,
+			Value:       1000,
+			ProgramHash: blockchain.FoundationAddress,
+		},
+	})
+	input := &common2.Input{
+		Previous: common2.OutPoint{
+			TxID:  tx1.Hash(),
+			Index: 0,
+		},
+		Sequence: 0,
+	}
+	outputs := []*common2.Output{
+		{
+			AssetID:     config.ELAAssetID,
+			ProgramHash: *cont.ToProgramHash(),
+			Type:        common2.OTNone,
+			Value:       common.Fixed64(1000 * 1e8),
+		},
+	}
+	programs := []*program.Program{{
+		Code:      code,
+		Parameter: nil,
+	}}
+	txn := functions.CreateTransaction(
+		9,
+		common2.Unstake,
+		0,
+		pl,
+		attribute,
+		[]*common2.Input{input},
+		outputs,
+		0,
+		programs,
+	)
+
+	bc := s.Chain
+	config := bc.GetParams()
+	config.StakeAddress, _ = stakeAddress.ToAddress()
+	tx := txn.(*transaction.UnstakeTransaction)
+	tx.DefaultChecker.SetParameters(&transaction.TransactionParameters{
+		BlockChain: bc,
+		Config:     config,
+	})
+
+	err := txn.CheckTransactionPayload()
+	s.NoError(err)
+
+	err2, _ := txn.SpecialContextCheck()
+	s.EqualError(err2, "transaction validate error: output invalid")
+
+	err3 := txn.CheckTransactionPayload()
+	s.NoError(err3)
+
+}
+
 func (s *txValidatorTestSuite) TestCheckReturnCRDepositCoinTransaction() {
 	s.CurrentHeight = 1
 	_, pk, _ := crypto.GenerateKeyPair()

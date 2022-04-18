@@ -3850,6 +3850,88 @@ func (s *txValidatorTestSuite) TestCheckReturnDepositCoinTransaction() {
 	s.NoError(err)
 }
 
+func (s *txValidatorTestSuite) TestCheckStakeTransaction() {
+	s.CurrentHeight = 1
+	_, pk, _ := crypto.GenerateKeyPair()
+	//publicKey, _ := pk.EncodePoint(true)
+	cont, _ := contract.CreateStandardContract(pk)
+	code := cont.Code
+	ct, _ := contract.CreateStakeContractByCode(code)
+	stakeAddress := ct.ToProgramHash()
+	ps := &payload.Stake{}
+	attribute := []*common2.Attribute{}
+
+	tx1 := functions.CreateTransaction(
+		0,
+		common2.TransferAsset,
+		0,
+		&payload.TransferAsset{},
+		[]*common2.Attribute{},
+		[]*common2.Input{},
+		[]*common2.Output{},
+		0,
+		[]*program.Program{},
+	)
+	tx1.SetOutputs([]*common2.Output{
+		&common2.Output{
+			AssetID:     config.ELAAssetID,
+			Value:       2000,
+			ProgramHash: blockchain.FoundationAddress,
+		},
+	})
+	input := &common2.Input{
+		Previous: common2.OutPoint{
+			TxID:  tx1.Hash(),
+			Index: 0,
+		},
+		Sequence: 0,
+	}
+	outputs := []*common2.Output{
+		{
+			AssetID:     config.ELAAssetID,
+			ProgramHash: *stakeAddress,
+			Type:        common2.OTStake,
+			Value:       common.Fixed64(1000 * 1e8),
+			Payload: &outputpayload.StakeOutput{
+				StakeAddress: *stakeAddress,
+			},
+		}, {
+			AssetID:     config.ELAAssetID,
+			ProgramHash: *cont.ToProgramHash(),
+			Type:        common2.OTNone,
+			Value:       common.Fixed64(1000 * 1e8),
+		},
+	}
+	programs := []*program.Program{{
+		Code:      code,
+		Parameter: nil,
+	}}
+	txn := functions.CreateTransaction(
+		0,
+		common2.Stake,
+		1,
+		ps,
+		attribute,
+		[]*common2.Input{input},
+		outputs,
+		0,
+		programs,
+	)
+
+	bc := s.Chain
+	config := bc.GetParams()
+	config.StakeAddress, _ = stakeAddress.ToAddress()
+	tx := txn.(*transaction.StakeTransaction)
+	tx.DefaultChecker.SetParameters(&transaction.TransactionParameters{
+		BlockChain: bc,
+		Config:     config,
+	})
+
+	err := txn.CheckTransactionOutput()
+	s.NoError(err)
+
+}
+
 func (s *txValidatorTestSuite) TestCheckReturnCRDepositCoinTransaction() {
 	s.CurrentHeight = 1
 	_, pk, _ := crypto.GenerateKeyPair()

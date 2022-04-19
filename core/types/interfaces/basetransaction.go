@@ -15,6 +15,7 @@ import (
 
 type Transaction interface {
 	TransactionChecker
+	TransactionProcessor
 
 	// get data
 	Version() common2.TransactionVersion

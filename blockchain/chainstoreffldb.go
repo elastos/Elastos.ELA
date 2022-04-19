@@ -133,37 +133,6 @@ func (c *ChainStoreFFLDB) Close() error {
 	return c.db.Close()
 }
 
-func ProcessProposalDraftData(dbTx database.Tx, Transactions []interfaces.Transaction) (err error) {
-	for _, tx := range Transactions {
-		switch tx.TxType() {
-		case common.CRCProposal:
-			proposal := tx.Payload().(*payload.CRCProposal)
-			err = dbPutProposalDraftData(dbTx, &proposal.DraftHash, proposal.DraftData)
-			if err != nil {
-				return err
-			}
-		case common.CRCProposalTracking:
-			proposalTracking := tx.Payload().(*payload.CRCProposalTracking)
-			err = dbPutProposalDraftData(dbTx, &proposalTracking.SecretaryGeneralOpinionHash,
-				proposalTracking.SecretaryGeneralOpinionData)
-			if err != nil {
-				return err
-			}
-			err = dbPutProposalDraftData(dbTx, &proposalTracking.MessageHash, proposalTracking.MessageData)
-			if err != nil {
-				return err
-			}
-		case common.CRCProposalReview:
-			proposalReview := tx.Payload().(*payload.CRCProposalReview)
-			err = dbPutProposalDraftData(dbTx, &proposalReview.OpinionHash, proposalReview.OpinionData)
-			if err != nil {
-				return err
-			}
-		}
-	}
-	return err
-}
-
 func RollbackProcessProposalDraftData(dbTx database.Tx, Transactions []interfaces.Transaction) (err error) {
 	for _, tx := range Transactions {
 		switch tx.TxType() {
@@ -195,7 +164,7 @@ func RollbackProcessProposalDraftData(dbTx database.Tx, Transactions []interface
 }
 
 func (c *ChainStoreFFLDB) SaveBlock(b *Block, node *BlockNode,
-	confirm *payload.Confirm, medianTimePast time.Time) error {
+	confirm *payload.Confirm, medianTimePast time.Time, ps []database.TXProcessor) error {
 
 	err := c.db.Update(func(dbTx database.Tx) error {
 		return dbStoreBlock(dbTx, &DposBlock{
@@ -231,8 +200,11 @@ func (c *ChainStoreFFLDB) SaveBlock(b *Block, node *BlockNode,
 			return err
 		}
 
-		if b.Height >= c.params.ChangeCommitteeNewCRHeight {
-			ProcessProposalDraftData(dbTx, b.Transactions)
+		for _, processor := range ps {
+			err = processor(dbTx)
+			if err != nil {
+				return err
+			}
 		}
 
 		// Allow the index manager to call each of the currently active

@@ -201,14 +201,14 @@ func (b *BlockChain) MigrateOldDB(
 			if start >= params.CRCOnlyDPOSHeight {
 				confirm, err = b.db.GetConfirm(hash)
 				if err != nil {
-					done <- fmt.Errorf("GetConfirm err: %s", err)
+					done <- fmt.Errorf("get confirm err: %s", err)
 					break
 				}
 			}
 
 			node, err := b.LoadBlockNode(&block.Header, &hash)
 			if err != nil {
-				done <- fmt.Errorf("LoadBlockNode err: %s", err)
+				done <- fmt.Errorf("load block node err: %s", err)
 				break
 			}
 			b.SetTip(node)
@@ -216,20 +216,25 @@ func (b *BlockChain) MigrateOldDB(
 			b.index.SetFlags(&block.Header, statusDataStored)
 			err = b.index.flushToDB()
 			if err != nil {
-				done <- fmt.Errorf("flushToDB err: %s", err)
+				done <- fmt.Errorf("flusht to DB err: %s", err)
 				break
 			}
 
-			err = b.db.GetFFLDB().SaveBlock(block, node, confirm, CalcPastMedianTime(node))
+			ps, err := GetProcessorsFromBlock(block)
 			if err != nil {
-				done <- fmt.Errorf("SaveBlock err: %s", err)
+				done <- fmt.Errorf("get processors err: %s", err)
+				break
+			}
+			err = b.db.GetFFLDB().SaveBlock(block, node, confirm, CalcPastMedianTime(node), ps)
+			if err != nil {
+				done <- fmt.Errorf("save block err: %s", err)
 				break
 			}
 
 			b.index.SetFlags(&block.Header, statusDataStored|statusValid)
 			err = b.index.flushToDB()
 			if err != nil {
-				done <- fmt.Errorf("flushToDB err: %s", err)
+				done <- fmt.Errorf("flush to DB err: %s", err)
 				break
 			}
 

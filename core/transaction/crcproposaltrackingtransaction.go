@@ -10,6 +10,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/elastos/Elastos.ELA/database"
 
 	"github.com/elastos/Elastos.ELA/blockchain"
 	"github.com/elastos/Elastos.ELA/common"
@@ -82,7 +83,7 @@ func (t *CRCProposalTrackingTransaction) SpecialContextCheck() (result elaerr.EL
 		}
 		tempMessageHash := common.Hash(cptPayload.MessageData)
 		if !cptPayload.MessageHash.IsEqual(tempMessageHash) {
-			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("the message data and message hash of" +
+			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("the message data and message hash of"+
 				" proposal tracking are inconsistent")), true
 		}
 		if len(cptPayload.SecretaryGeneralOpinionData) >= payload.MaxSecretaryGeneralOpinionDataSize {
@@ -90,7 +91,7 @@ func (t *CRCProposalTrackingTransaction) SpecialContextCheck() (result elaerr.EL
 		}
 		tempOpinionHash := common.Hash(cptPayload.SecretaryGeneralOpinionData)
 		if !cptPayload.SecretaryGeneralOpinionHash.IsEqual(tempOpinionHash) {
-			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("the opinion data and opinion hash of" +
+			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("the opinion data and opinion hash of"+
 				" proposal tracking are inconsistent")), true
 		}
 	}
@@ -150,7 +151,6 @@ func (t *CRCProposalTrackingTransaction) checkCRCProposalCommonTracking(
 	// Check signature.
 	return t.normalCheckCRCProposalTrackingSignature(t.parameters, cptPayload, pState, payloadVersion)
 }
-
 
 func (t *CRCProposalTrackingTransaction) normalCheckCRCProposalTrackingSignature(
 	params *TransactionParameters, cptPayload *payload.CRCProposalTracking, pState *crstate.ProposalState,
@@ -285,7 +285,6 @@ func (t *CRCProposalTrackingTransaction) checkCRCProposalProgressTracking(
 	return t.normalCheckCRCProposalTrackingSignature(t.parameters, cptPayload, pState, payloadVersion)
 }
 
-
 func (t *CRCProposalTrackingTransaction) checkCRCProposalRejectedTracking(
 	params *TransactionParameters, cptPayload *payload.CRCProposalTracking, pState *crstate.ProposalState,
 	blockHeight uint32, payloadVersion byte) error {
@@ -373,4 +372,20 @@ func (t *CRCProposalTrackingTransaction) checkCRCProposalFinalizedTracking(
 
 	// Check signature.
 	return t.normalCheckCRCProposalTrackingSignature(t.parameters, cptPayload, pState, payloadVersion)
+}
+
+func (t *CRCProposalTrackingTransaction) Process() (database.TXProcessor, elaerr.ELAError) {
+	proposalTracking := t.Payload().(*payload.CRCProposalTracking)
+
+	return func(tx database.Tx) error {
+		err := blockchain.DBPutData(tx, proposalDraftDataBucketName,
+			proposalTracking.SecretaryGeneralOpinionHash[:],
+			proposalTracking.SecretaryGeneralOpinionData)
+		if err != nil {
+			return err
+		}
+
+		return blockchain.DBPutData(tx, proposalDraftDataBucketName,
+			proposalTracking.MessageHash[:], proposalTracking.MessageData)
+	}, nil
 }

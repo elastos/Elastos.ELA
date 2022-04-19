@@ -317,7 +317,7 @@ func (sm *SyncManager) handleTxMsg(tmsg *txMsg) {
 	delete(state.requestedTxns, txHash)
 	delete(sm.requestedTxns, txHash)
 
-	// Process the transaction to include validation, insertion in the
+	// GetProcessor the transaction to include validation, insertion in the
 	// memory pool, orphan handling, etc.
 	err := sm.txMemPool.AppendToTxPool(tmsg.tx)
 	if err != nil {
@@ -413,7 +413,7 @@ func (sm *SyncManager) handleBlockMsg(bmsg *blockMsg) {
 		}
 	}
 
-	// Process the block to include validation, best chain selection, orphan
+	// GetProcessor the block to include validation, best chain selection, orphan
 	// handling, etc.
 	log.Debugf("Receive block %s at height %d", blockHash,
 		bmsg.block.Block.Height)

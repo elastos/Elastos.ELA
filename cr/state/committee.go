@@ -1430,10 +1430,10 @@ func (c *Committee) changeCommitteeMembers(height uint32) error {
 		})
 		return errors.New("candidates count less than required count Height" + strconv.Itoa(int(height)))
 	}
-	// Process current members.
+	// GetProcessor current members.
 	newMembers := c.processCurrentMembersHistory(height, candidates)
 
-	// Process current candidates.
+	// GetProcessor current candidates.
 	c.processCurrentCandidates(height, candidates, newMembers)
 
 	oriLastCommitteeHeight := c.LastCommitteeHeight

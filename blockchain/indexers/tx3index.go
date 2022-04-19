@@ -135,6 +135,7 @@ func (idx *Tx3Index) ConnectBlock(dbTx database.Tx, block *types.Block) error {
 			}
 		}
 	}
+
 	return nil
 }
 

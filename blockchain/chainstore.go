@@ -9,7 +9,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"errors"
-	"github.com/elastos/Elastos.ELA/core/types/functions"
+	"github.com/elastos/Elastos.ELA/database"
 	"path/filepath"
 	"sync"
 	"sync/atomic"
@@ -20,6 +20,7 @@ import (
 	"github.com/elastos/Elastos.ELA/common/log"
 	. "github.com/elastos/Elastos.ELA/core/types"
 	"github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/functions"
 	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	_ "github.com/elastos/Elastos.ELA/database/ffldb"
@@ -215,12 +216,30 @@ func (c *ChainStore) rollback(b *Block, node *BlockNode,
 	return nil
 }
 
+func GetProcessorsFromBlock(b *Block) ([]database.TXProcessor, error) {
+	ps := make([]database.TXProcessor, 0)
+	for _, t := range b.Transactions {
+		processor, err := t.GetProcessor()
+		if err != nil {
+			return nil, err
+		}
+		if  processor != nil {
+			ps = append(ps, processor)
+		}
+	}
+	return ps, nil
+}
+
 func (c *ChainStore) persist(b *Block, node *BlockNode,
 	confirm *payload.Confirm, medianTimePast time.Time) error {
 	c.persistMutex.Lock()
 	defer c.persistMutex.Unlock()
 
-	if err := c.fflDB.SaveBlock(b, node, confirm, medianTimePast); err != nil {
+	ps, err := GetProcessorsFromBlock(b)
+	if err != nil {
+		return err
+	}
+	if err := c.fflDB.SaveBlock(b, node, confirm, medianTimePast, ps); err != nil {
 		return err
 	}
 	return nil

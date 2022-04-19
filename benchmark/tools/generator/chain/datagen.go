@@ -205,8 +205,13 @@ func (g *DataGen) generateBlock(
 func (g *DataGen) storeData(block *types.Block) error {
 	blockHash := block.Hash()
 	newNode := blockchain.NewBlockNode(&block.Header, &blockHash)
+
+	ps, err := blockchain.GetProcessorsFromBlock(block)
+	if err != nil {
+		return err
+	}
 	if err := g.chain.GetDB().GetFFLDB().SaveBlock(block, newNode,
-		nil, time.Unix(int64(block.Timestamp), 0)); err != nil {
+		nil, time.Unix(int64(block.Timestamp), 0), ps); err != nil {
 		return err
 	}
 

@@ -57,7 +57,7 @@ type IFFLDBChainStore interface {
 
 	// SaveBlock will write block into file DB.
 	SaveBlock(b *Block, node *BlockNode, confirm *payload.Confirm,
-		medianTimePast time.Time) error
+		medianTimePast time.Time, ps []database.TXProcessor) error
 
 	// RollbackBlock only remove block state and block index.
 	RollbackBlock(b *Block, node *BlockNode,

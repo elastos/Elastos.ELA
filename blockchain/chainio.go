@@ -14,6 +14,7 @@ package blockchain
 import (
 	"bytes"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"math/big"
@@ -233,7 +234,16 @@ func dbStoreBlock(dbTx database.Tx, block *types.DposBlock) error {
 	if hasBlock {
 		return nil
 	}
-	return dbTx.StoreBlock(block)
+
+	buf := new(bytes.Buffer)
+	err = block.Serialize(buf)
+	if err != nil {
+		str := fmt.Sprintf("failed to get serialized bytes for block %s",
+			blockHash)
+		return errors.New(str)
+	}
+
+	return dbTx.StoreBlock(blockHash, buf.Bytes())
 }
 
 // -----------------------------------------------------------------------------
@@ -281,6 +291,15 @@ func dbPutProposalDraftData(dbTx database.Tx, hash *common.Uint256, draftData []
 	// Add the block height to hash mapping to the index.
 	draftDataBucket := meta.Bucket(proposalDraftDataBucketName)
 	return draftDataBucket.Put(hash[:], draftData)
+}
+
+// dbPutData store data to ffldb.
+func DBPutData(dbTx database.Tx, name []byte, key []byte, value []byte) error {
+	// Add the block hash to height mapping to the index.
+	meta := dbTx.Metadata()
+	// Add the block height to hash mapping to the index.
+	dataBucket := meta.Bucket(name)
+	return dataBucket.Put(key, value)
 }
 
 // dbFetchProposalDraftData get the proposal draft data by draft hash.

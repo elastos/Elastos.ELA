@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/elastos/Elastos.ELA/database"
 
 	"github.com/elastos/Elastos.ELA/blockchain"
 	"github.com/elastos/Elastos.ELA/common"
@@ -108,4 +109,12 @@ func (t *CRCProposalReviewTransaction) SpecialContextCheck() (result elaerr.ELAE
 		return elaerr.Simple(elaerr.ErrTxPayload, err), true
 	}
 	return nil, false
+}
+
+func (t *CRCProposalReviewTransaction) Process() (database.TXProcessor, elaerr.ELAError) {
+	proposalReview := t.Payload().(*payload.CRCProposalReview)
+	return func(tx database.Tx) error {
+		return blockchain.DBPutData(tx, proposalDraftDataBucketName,
+			proposalReview.OpinionHash[:], proposalReview.OpinionData)
+	}, nil
 }

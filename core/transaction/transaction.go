@@ -25,6 +25,7 @@ const (
 
 type BaseTransaction struct {
 	DefaultChecker
+	DefaultProcessor
 
 	version        common2.TransactionVersion // New field added in TxVersion09
 	txType         common2.TxType

@@ -12,7 +12,6 @@ package database
 
 import (
 	"github.com/elastos/Elastos.ELA/common"
-	"github.com/elastos/Elastos.ELA/core/types"
 )
 
 // Cursor represents a cursor over key/value pairs and nested buckets of a
@@ -206,6 +205,8 @@ type BlockRegion struct {
 	Len    uint32
 }
 
+type TXProcessor func(tx Tx) error
+
 // Tx represents a database transaction.  It can either by read-only or
 // read-write.  The transaction provides a metadata bucket against which all
 // read and writes occur.
@@ -230,7 +231,7 @@ type Tx interface {
 	//   - ErrTxClosed if the transaction has already been closed
 	//
 	// Other errors are possible depending on the implementation.
-	StoreBlock(block *types.DposBlock) error
+	StoreBlock(blockHash common.Uint256, data []byte) error
 
 	// HasBlock returns whether or not a block with the given hash exists
 	// in the database.

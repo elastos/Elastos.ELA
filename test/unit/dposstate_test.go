@@ -583,7 +583,7 @@ func TestState_ProcessIllegalBlockEvidence(t *testing.T) {
 		t.FailNow()
 	}
 
-	// Process next height, state will rollback illegal producer.
+	// GetProcessor next height, state will rollback illegal producer.
 	state.ProcessBlock(mockBlock(11), nil)
 	// At this point, we have 4 pending, 6 active and 10 in total producers.
 	if !assert.Equal(t, 4, len(state.GetPendingProducers())) {
@@ -642,7 +642,7 @@ func TestState_ProcessEmergencyInactiveArbitrators(t *testing.T) {
 		t.FailNow()
 	}
 
-	// Process next height, state will rollback illegal producer.
+	// GetProcessor next height, state will rollback illegal producer.
 	state.ProcessBlock(mockBlock(11), nil)
 	// At this point, we have 4 pending, 6 active and 10 in total producers.
 	if !assert.Equal(t, 4, len(state.GetPendingProducers())) {
@@ -835,7 +835,7 @@ func TestState_GetHistory(t *testing.T) {
 		t.FailNow()
 	}
 
-	// Process a new height see if state go to best height.
+	// GetProcessor a new height see if state go to best height.
 	state.ProcessBlock(mockBlock(15, tx), nil)
 	// At this point, we have 1 canceled, 0 pending, 8 active, 1 illegal and 8 in total producers.
 	if !assert.Equal(t, 1, len(state.GetCanceledProducers())) {

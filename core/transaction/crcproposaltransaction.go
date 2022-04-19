@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/elastos/Elastos.ELA/database"
 	"sort"
 
 	"github.com/elastos/Elastos.ELA/blockchain"
@@ -668,4 +669,12 @@ func (t *CRCProposalTransaction) checkNormalOrELIPProposal(params *TransactionPa
 	}
 	crCouncilMember := t.parameters.BlockChain.GetCRCommittee().GetMember(proposal.CRCouncilMemberDID)
 	return t.checkOwnerAndCRCouncilMemberSign(proposal, crCouncilMember.Info.Code, PayloadVersion)
+}
+
+func (t *CRCProposalTransaction) Process() (database.TXProcessor, elaerr.ELAError) {
+	proposal := t.Payload().(*payload.CRCProposal)
+	return func(tx database.Tx) error {
+		return blockchain.DBPutData(tx, proposalDraftDataBucketName,
+			proposal.DraftHash[:], proposal.DraftData)
+	}, nil
 }

@@ -16,13 +16,13 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"math/big"
 	"time"
 
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/log"
 	"github.com/elastos/Elastos.ELA/core/types"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/database"
 )
 
@@ -79,10 +79,6 @@ var (
 	// utxoSetBucketName is the name of the DB bucket used to house the
 	// unspent transaction output set.
 	utxoSetBucketName = []byte("utxosetv2")
-
-	// proposalDraftDataBucketName is the name of the DB bucket used to house the
-	// proposal releated draft data and draft hash.
-	proposalDraftDataBucketName = []byte("proposaldraftdata")
 
 	// byteOrder is the preferred byte order used for serializing numeric
 	// fields for storage in the database.
@@ -284,16 +280,20 @@ func dbPutBlockIndex(dbTx database.Tx, hash *common.Uint256, height uint32) erro
 	return heightIndex.Put(serializedHeight[:], hash[:])
 }
 
-// dbPutProposalDraftData store the CR council member proposal related draft data.
-func dbPutProposalDraftData(dbTx database.Tx, hash *common.Uint256, draftData []byte) error {
-	// Add the block hash to height mapping to the index.
+// TryCreateBucket try to create new bucket by bucket name
+func TryCreateBucket(dbTx database.Tx, name []byte) error {
 	meta := dbTx.Metadata()
-	// Add the block height to hash mapping to the index.
-	draftDataBucket := meta.Bucket(proposalDraftDataBucketName)
-	return draftDataBucket.Put(hash[:], draftData)
+	if b := meta.Bucket(name); b == nil {
+		_, err := meta.CreateBucket(name)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
-// dbPutData store data to ffldb.
+// DBPutData store data to ffldb.
 func DBPutData(dbTx database.Tx, name []byte, key []byte, value []byte) error {
 	// Add the block hash to height mapping to the index.
 	meta := dbTx.Metadata()
@@ -305,7 +305,7 @@ func DBPutData(dbTx database.Tx, name []byte, key []byte, value []byte) error {
 // dbFetchProposalDraftData get the proposal draft data by draft hash.
 func dbFetchProposalDraftData(dbTx database.Tx, hash *common.Uint256) ([]byte, error) {
 	meta := dbTx.Metadata()
-	draftDataBucket := meta.Bucket(proposalDraftDataBucketName)
+	draftDataBucket := meta.Bucket(common.ProposalDraftDataBucketName)
 	draftData := draftDataBucket.Get(hash[:])
 	if draftData == nil {
 		return nil, fmt.Errorf("draft data %s is not found", hash)
@@ -314,14 +314,13 @@ func dbFetchProposalDraftData(dbTx database.Tx, hash *common.Uint256) ([]byte, e
 	return draftData, nil
 }
 
-// DBRemoveBlockIndex uses an existing database transaction remove block index
-// entries from the hash to height and height to hash mappings for the provided
-// values.
-func DBRemoveProposalDraftData(dbTx database.Tx, hash *common.Uint256) error {
+// DBRemoveData uses an existing database transaction remove data
+// from the bucket name and key.
+func DBRemoveData(dbTx database.Tx, bucketName, key []byte) error {
 	// Remove the block hash to height mapping.
 	meta := dbTx.Metadata()
-	draftDataBucket := meta.Bucket(proposalDraftDataBucketName)
-	return draftDataBucket.Delete(hash[:])
+	draftDataBucket := meta.Bucket(bucketName)
+	return draftDataBucket.Delete(key)
 }
 
 // createChainState initializes both the database and the chain state to the
@@ -392,12 +391,6 @@ func (b *BlockChain) createChainState() error {
 			return err
 		}
 
-		// Create the bucket that houses proposal related draft data
-		_, err = meta.CreateBucket(proposalDraftDataBucketName)
-		if err != nil {
-			return err
-		}
-
 		// Save the genesis block to the block index database.
 		err = DBStoreBlockNode(dbTx, header, node.Status)
 		if err != nil {
@@ -452,22 +445,6 @@ func (b *BlockChain) initChainState() error {
 		//}
 		//return initialized, errors.New("initChainState failed")
 		return nil
-	}
-
-	// try create other bucket
-	err = b.db.GetFFLDB().Update(func(dbTx database.Tx) error {
-		// Create the bucket that houses proposal related draft data
-		meta := dbTx.Metadata()
-		if b := meta.Bucket(proposalDraftDataBucketName); b == nil {
-			_, err = meta.CreateBucket(proposalDraftDataBucketName)
-			if err != nil {
-				return err
-			}
-		}
-		return nil
-	})
-	if err != nil {
-		return err
 	}
 
 	// Attempt to load the chain state from the database.

@@ -206,7 +206,7 @@ func (g *DataGen) storeData(block *types.Block) error {
 	blockHash := block.Hash()
 	newNode := blockchain.NewBlockNode(&block.Header, &blockHash)
 
-	ps, err := blockchain.GetProcessorsFromBlock(block)
+	ps, err := blockchain.GetSaveProcessorsFromBlock(block)
 	if err != nil {
 		return err
 	}

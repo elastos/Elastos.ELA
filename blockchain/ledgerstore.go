@@ -60,8 +60,8 @@ type IFFLDBChainStore interface {
 		medianTimePast time.Time, ps []database.TXProcessor) error
 
 	// RollbackBlock only remove block state and block index.
-	RollbackBlock(b *Block, node *BlockNode,
-		confirm *payload.Confirm, medianTimePast time.Time) error
+	RollbackBlock(b *Block, node *BlockNode, confirm *payload.Confirm,
+		medianTimePast time.Time, ps []database.TXProcessor) error
 
 	// Get block from file DB.
 	GetBlock(hash Uint256) (*DposBlock, error)

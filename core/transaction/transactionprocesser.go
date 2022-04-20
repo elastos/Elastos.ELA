@@ -13,8 +13,10 @@ import (
 type DefaultProcessor struct {
 }
 
-func (t *DefaultProcessor) GetProcessor() (database.TXProcessor, elaerr.ELAError) {
+func (t *DefaultProcessor) GetSaveProcessor() (database.TXProcessor, elaerr.ELAError) {
+	return nil, nil
+}
 
-	// todo process transaction
+func (t *DefaultProcessor) GetRollbackProcessor() (database.TXProcessor, elaerr.ELAError) {
 	return nil, nil
 }

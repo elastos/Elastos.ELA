@@ -133,36 +133,6 @@ func (c *ChainStoreFFLDB) Close() error {
 	return c.db.Close()
 }
 
-func RollbackProcessProposalDraftData(dbTx database.Tx, Transactions []interfaces.Transaction) (err error) {
-	for _, tx := range Transactions {
-		switch tx.TxType() {
-		case common.CRCProposal:
-			proposal := tx.Payload().(*payload.CRCProposal)
-			err = DBRemoveProposalDraftData(dbTx, &proposal.DraftHash)
-			if err != nil {
-				return err
-			}
-		case common.CRCProposalTracking:
-			proposalTracking := tx.Payload().(*payload.CRCProposalTracking)
-			err = DBRemoveProposalDraftData(dbTx, &proposalTracking.SecretaryGeneralOpinionHash)
-			if err != nil {
-				return err
-			}
-			err = DBRemoveProposalDraftData(dbTx, &proposalTracking.MessageHash)
-			if err != nil {
-				return err
-			}
-		case common.CRCProposalReview:
-			proposalReview := tx.Payload().(*payload.CRCProposalReview)
-			err = DBRemoveProposalDraftData(dbTx, &proposalReview.OpinionHash)
-			if err != nil {
-				return err
-			}
-		}
-	}
-	return err
-}
-
 func (c *ChainStoreFFLDB) SaveBlock(b *Block, node *BlockNode,
 	confirm *payload.Confirm, medianTimePast time.Time, ps []database.TXProcessor) error {
 
@@ -224,7 +194,7 @@ func (c *ChainStoreFFLDB) SaveBlock(b *Block, node *BlockNode,
 }
 
 func (c *ChainStoreFFLDB) RollbackBlock(b *Block, node *BlockNode,
-	confirm *payload.Confirm, medianTimePast time.Time) error {
+	confirm *payload.Confirm, medianTimePast time.Time, ps []database.TXProcessor) error {
 	// Load the previous block since some details for it are needed below.
 	prevNode := node.Parent
 	var prevBlock *Block
@@ -259,8 +229,8 @@ func (c *ChainStoreFFLDB) RollbackBlock(b *Block, node *BlockNode,
 			return err
 		}
 
-		if b.Height >= c.params.ChangeCommitteeNewCRHeight {
-			err = RollbackProcessProposalDraftData(dbTx, b.Transactions)
+		for _, processor := range ps {
+			err = processor(dbTx)
 			if err != nil {
 				return err
 			}

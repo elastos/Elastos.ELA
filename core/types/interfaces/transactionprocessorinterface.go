@@ -11,5 +11,7 @@ import (
 )
 
 type TransactionProcessor interface {
-	GetProcessor() (database.TXProcessor, elaerr.ELAError)
+	GetSaveProcessor() (database.TXProcessor, elaerr.ELAError)
+	GetRollbackProcessor() (database.TXProcessor, elaerr.ELAError)
+	//GetCreateProcessor() (database.TXProcessor, elaerr.ELAError)
 }

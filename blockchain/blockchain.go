@@ -220,7 +220,7 @@ func (b *BlockChain) MigrateOldDB(
 				break
 			}
 
-			ps, err := GetProcessorsFromBlock(block)
+			ps, err := GetSaveProcessorsFromBlock(block)
 			if err != nil {
 				done <- fmt.Errorf("get processors err: %s", err)
 				break

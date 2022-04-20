@@ -374,18 +374,36 @@ func (t *CRCProposalTrackingTransaction) checkCRCProposalFinalizedTracking(
 	return t.normalCheckCRCProposalTrackingSignature(t.parameters, cptPayload, pState, payloadVersion)
 }
 
-func (t *CRCProposalTrackingTransaction) Process() (database.TXProcessor, elaerr.ELAError) {
+func (t *CRCProposalTrackingTransaction) GetSaveProcessor() (database.TXProcessor, elaerr.ELAError) {
 	proposalTracking := t.Payload().(*payload.CRCProposalTracking)
 
-	return func(tx database.Tx) error {
-		err := blockchain.DBPutData(tx, proposalDraftDataBucketName,
+	return func(dbTx database.Tx) error {
+		err := blockchain.TryCreateBucket(dbTx, common.ProposalDraftDataBucketName)
+		if err != nil {
+			return err
+		}
+
+		err = blockchain.DBPutData(dbTx, common.ProposalDraftDataBucketName,
 			proposalTracking.SecretaryGeneralOpinionHash[:],
 			proposalTracking.SecretaryGeneralOpinionData)
 		if err != nil {
 			return err
 		}
 
-		return blockchain.DBPutData(tx, proposalDraftDataBucketName,
+		return blockchain.DBPutData(dbTx, common.ProposalDraftDataBucketName,
 			proposalTracking.MessageHash[:], proposalTracking.MessageData)
+	}, nil
+}
+
+func (t *CRCProposalTrackingTransaction) GetRollbackProcessor() (database.TXProcessor, elaerr.ELAError) {
+	proposalTracking := t.Payload().(*payload.CRCProposalTracking)
+	return func(dbTx database.Tx) error {
+		err := blockchain.DBRemoveData(dbTx, common.ProposalDraftDataBucketName,
+			proposalTracking.SecretaryGeneralOpinionHash[:])
+		if err != nil {
+			return err
+		}
+		return blockchain.DBRemoveData(dbTx, common.ProposalDraftDataBucketName,
+			proposalTracking.MessageHash[:])
 	}, nil
 }

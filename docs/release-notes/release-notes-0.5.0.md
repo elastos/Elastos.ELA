@@ -1,6 +1,6 @@
 Elastos.ELA version 0.5.0 is now available from:
 
-  <https://download.elastos.org/elastos-ela/elastos-ela-v0.5.0/>
+  <https://download.elastos.io/elastos-ela/elastos-ela-v0.5.0/>
 
 This is a new major version release, support CR proposal. 
 

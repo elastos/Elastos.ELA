@@ -1,6 +1,6 @@
 Elastos.ELA version 0.8.2 is now available from:
 
-  <https://download.elastos.org/elastos-ela/elastos-ela-v0.8.2/>
+  <https://download.elastos.io/elastos-ela/elastos-ela-v0.8.2/>
 
 This is a new major version release.
 

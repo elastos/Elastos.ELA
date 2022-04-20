@@ -1,6 +1,6 @@
 Elastos.ELA version 0.3.5 is now available from:
 
-  <https://download.elastos.org/elastos-ela/elastos-ela-0.3.5/>
+  <https://download.elastos.io/elastos-ela/elastos-ela-0.3.5/>
 
 This release provides a minor bug fix for 0.3.4.
 

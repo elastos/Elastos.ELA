@@ -119,6 +119,7 @@ type CRMember struct {
 type KeyFrame struct {
 	Members                    map[common.Uint168]*CRMember
 	NextMembers                map[common.Uint168]*CRMember
+	ClaimedDposKeys            map[uint32][]string
 	HistoryMembers             map[uint64]map[common.Uint168]*CRMember
 	PartProposalResults        []payload.ProposalResult
 	DetailedCRVotes            map[common.Uint256]payload.DetailedVoteInfo // key: hash of DetailedVoteInfo
@@ -360,6 +361,9 @@ func (kf *KeyFrame) Serialize(w io.Writer) (err error) {
 	if err = kf.serializeMembersMap(w, kf.NextMembers); err != nil {
 		return
 	}
+	if err = kf.serializeClaimedKeysMap(w, kf.ClaimedDposKeys); err != nil {
+		return
+	}
 	if err = kf.serializeHistoryMembersMap(w, kf.HistoryMembers); err != nil {
 		return
 	}
@@ -390,6 +394,10 @@ func (kf *KeyFrame) Deserialize(r io.Reader) (err error) {
 	}
 
 	if kf.NextMembers, err = kf.deserializeMembersMap(r); err != nil {
+		return
+	}
+
+	if kf.ClaimedDposKeys, err = kf.deserializeClaimedKeysMap(r); err != nil {
 		return
 	}
 
@@ -431,6 +439,62 @@ func (kf *KeyFrame) serializeMembersMap(w io.Writer,
 		if err = v.Serialize(w); err != nil {
 			return
 		}
+	}
+	return
+}
+
+func (kf *KeyFrame) serializeClaimedKeysMap(w io.Writer,
+	mmap map[uint32][]string) (err error) {
+	if err = common.WriteVarUint(w, uint64(len(mmap))); err != nil {
+		return
+	}
+	for k, v := range mmap {
+		if err = common.WriteUint32(w, k); err != nil {
+			return
+		}
+		if err = common.WriteVarUint(w, uint64(len(v))); err != nil {
+			return
+		}
+		for i := 0; i < len(v); i++ {
+			err = common.WriteVarString(w, v[i])
+			if err != nil {
+				return
+			}
+		}
+	}
+	return
+}
+
+func (kf *KeyFrame) deserializeClaimedKeysMap(
+	r io.Reader) (mmap map[uint32][]string, err error) {
+	var count uint64
+	if count, err = common.ReadVarUint(r, 0); err != nil {
+		return
+	}
+	mmap = make(map[uint32][]string)
+	for i := uint64(0); i < count; i++ {
+		var k uint32
+		if k, err = common.ReadUint32(r); err != nil {
+			return
+		}
+		var kids uint64
+		if kids, err = common.ReadVarUint(r, 0); err != nil {
+			return
+		}
+		var value []string
+		for z := uint64(0); z < kids ; z++  {
+			var candidate string
+			if candidate, err = common.ReadVarString(r); err != nil {
+				return
+			}
+			if mmap[k] == nil {
+				value = make([]string, 0)
+			} else {
+				value = mmap[k]
+			}
+			value = append(value, candidate)
+		}
+		mmap[k] = value
 	}
 	return
 }
@@ -619,6 +683,7 @@ func NewKeyFrame() *KeyFrame {
 	return &KeyFrame{
 		Members:             make(map[common.Uint168]*CRMember, 0),
 		NextMembers:         make(map[common.Uint168]*CRMember, 0),
+		ClaimedDposKeys:     make(map[uint32][]string, 0),
 		HistoryMembers:      make(map[uint64]map[common.Uint168]*CRMember, 0),
 		LastCommitteeHeight: 0,
 	}

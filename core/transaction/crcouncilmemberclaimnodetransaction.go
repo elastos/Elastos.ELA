@@ -7,6 +7,7 @@ package transaction
 
 import (
 	"bytes"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"github.com/elastos/Elastos.ELA/blockchain"
@@ -76,8 +77,12 @@ func (t *CRCouncilMemberClaimNodeTransaction) SpecialContextCheck() (result elae
 	}
 
 	// check duplication of node.
-	if t.parameters.BlockChain.GetState().ProducerNodePublicKeyExists(manager.NodePublicKey) {
-		return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("producer already registered")), true
+	comm := t.parameters.BlockChain.GetCRCommittee()
+	claimedKeys := comm.ClaimedDposKeys[comm.LastVotingStartHeight]
+	for _, key := range claimedKeys {
+		if hex.EncodeToString(manager.NodePublicKey) == key {
+			return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("producer already registered")), true
+		}
 	}
 
 	err = checkCRCouncilMemberClaimNodeSignature(manager, crMember.Info.Code)

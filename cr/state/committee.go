@@ -7,6 +7,7 @@ package state
 
 import (
 	"bytes"
+	"encoding/hex"
 	"errors"
 	"math"
 	"sort"
@@ -341,6 +342,15 @@ func (c *Committee) getMember(did common.Uint168) *CRMember {
 	return nil
 }
 
+func (c *Committee) getNextMember(did common.Uint168) *CRMember {
+	for _, m := range c.NextMembers {
+		if m.Info.DID.IsEqual(did) {
+			return m
+		}
+	}
+	return nil
+}
+
 func (c *Committee) GetMemberByNodePublicKey(nodePK []byte) *CRMember {
 	c.mtx.RLock()
 	defer c.mtx.RUnlock()
@@ -428,6 +438,7 @@ func (c *Committee) ProcessBlock(block *types.Block, confirm *payload.Confirm) {
 
 	if block.Height >= c.Params.DPoSV2StartHeight {
 		if c.shouldEndVoting(block.Height) {
+			log.Info("### ending voting")
 			c.endVoting(block.Height)
 		}
 	}
@@ -854,10 +865,12 @@ func (c *Committee) updateCirculationAmount(history *utils.History, height uint3
 
 func (c *Committee) recordLastVotingStartHeight(height uint32) {
 	if c.isInVotingPeriod(height) {
+		log.Info("### recordLastVotingStartHeight ", "in voting period")
 		return
 	}
 	// Update last voting start Height one block ahead.
 	if height == c.getNextVotingStartHeight(height) {
+		log.Info("### recordLastVotingStartHeight update lastvotingstartheight", height)
 		lastVotingStartHeight := c.LastVotingStartHeight
 		c.state.History.Append(height, func() {
 			c.LastVotingStartHeight = height + 1
@@ -865,14 +878,17 @@ func (c *Committee) recordLastVotingStartHeight(height uint32) {
 			c.LastVotingStartHeight = lastVotingStartHeight
 		})
 	}
+	log.Info("##### last voting start height", c.LastVotingStartHeight)
 }
 
 func (c *Committee) getNextVotingStartHeight(height uint32) uint32 {
 	if height >= c.Params.DPoSV2StartHeight {
+		log.Info("### getNextVotingStartHeight", c.LastCommitteeHeight, c.Params.CRDutyPeriod,
+			c.Params.CRVotingPeriod, c.Params.CRClaimPeriod)
 		return c.LastCommitteeHeight + c.Params.CRDutyPeriod -
 			c.Params.CRVotingPeriod - c.Params.CRClaimPeriod - 1
 	}
-
+	log.Info("###before startv2", c.LastCommitteeHeight, c.Params.CRDutyPeriod, c.Params.CRVotingPeriod-1)
 	return c.LastCommitteeHeight + c.Params.CRDutyPeriod -
 		c.Params.CRVotingPeriod - 1
 }
@@ -895,6 +911,7 @@ func (c *Committee) tryStartVotingPeriod(height uint32) (inElection bool) {
 		c.Params.CRMemberCount-c.Params.CRAgreementCount {
 		lastVotingStartHeight := c.LastVotingStartHeight
 		inElectionPeriod := c.InElectionPeriod
+		log.Info("### tryStartVotingPeriod update last voting start height", height)
 		c.lastHistory.Append(height, func() {
 			c.InElectionPeriod = false
 			if c.LastVotingStartHeight == 0 {
@@ -1026,24 +1043,38 @@ func (c *Committee) activateProducer(tx interfaces.Transaction,
 func (c *Committee) processCRCouncilMemberClaimNode(tx interfaces.Transaction,
 	height uint32, history *utils.History) {
 	claimNodePayload := tx.Payload().(*payload.CRCouncilMemberClaimNode)
-	cr := c.getMember(claimNodePayload.CRCouncilCommitteeDID)
-	if cr == nil {
-		return
+	var cr *CRMember
+	if height >= c.Params.DPoSV2StartHeight {
+		cr = c.getNextMember(claimNodePayload.CRCouncilCommitteeDID)
+		if cr == nil {
+			return
+		}
+	} else {
+		cr = c.getMember(claimNodePayload.CRCouncilCommitteeDID)
+		if cr == nil {
+			return
+		}
 	}
 	oriPublicKey := cr.DPOSPublicKey
 	oriMemberState := cr.MemberState
 	oriInactiveCount := cr.InactiveCount
+	oriClaimDposKeys := c.ClaimedDposKeys[c.LastVotingStartHeight]
 	history.Append(height, func() {
 		cr.DPOSPublicKey = claimNodePayload.NodePublicKey
 		if cr.MemberState == MemberInactive {
 			cr.MemberState = MemberElected
 			cr.InactiveCount = 0
 		}
+		if height >= c.Params.DPoSV2StartHeight {
+			c.ClaimedDposKeys[c.LastVotingStartHeight] = append(c.ClaimedDposKeys[c.LastVotingStartHeight], hex.EncodeToString(cr.DPOSPublicKey))
+		}
 	}, func() {
 		cr.DPOSPublicKey = oriPublicKey
 		cr.MemberState = oriMemberState
 		cr.InactiveCount = oriInactiveCount
-
+		if height >= c.Params.DPoSV2StartHeight {
+			c.ClaimedDposKeys[c.LastVotingStartHeight] = oriClaimDposKeys
+		}
 	})
 }
 
@@ -1124,6 +1155,7 @@ func (c *Committee) Recover(checkpoint *Checkpoint) {
 }
 
 func (c *Committee) shouldEndVoting(height uint32) bool {
+	log.Info("### shouldEndVoting", height, c.LastVotingStartHeight, c.Params.CRVotingPeriod)
 	return height == c.LastVotingStartHeight+c.Params.CRVotingPeriod
 }
 
@@ -1175,10 +1207,12 @@ func (c *Committee) isInVotingPeriod(height uint32) bool {
 }
 
 func (c *Committee) updateNextCommitteeMembers(height uint32) error {
+	log.Info("### updateNextCommitteeMembers")
 	candidates := c.getActiveAndExistDIDCRCandidatesDesc()
 	oriInElectionPeriod := c.InElectionPeriod
 	oriLastVotingStartHeight := c.LastVotingStartHeight
 	if uint32(len(candidates)) < c.Params.CRMemberCount {
+		log.Info("### updateNextCommitteeMembers update last voting startheight", height)
 		c.lastHistory.Append(height, func() {
 			c.InElectionPeriod = false
 			c.LastVotingStartHeight = height
@@ -1224,6 +1258,7 @@ func (c *Committee) changeCommitteeMembers(height uint32) error {
 	candidates := c.getActiveAndExistDIDCRCandidatesDesc()
 	oriInElectionPeriod := c.InElectionPeriod
 	oriLastVotingStartHeight := c.LastVotingStartHeight
+	log.Info("### changeCommitteeMembers update LastVotingStartHeight to", height)
 	if uint32(len(candidates)) < c.Params.CRMemberCount {
 		c.lastHistory.Append(height, func() {
 			c.InElectionPeriod = false
@@ -1256,19 +1291,24 @@ func (c *Committee) changeCommitteeMembers(height uint32) error {
 
 func (c *Committee) processNextMembers(height uint32,
 	activeCandidates []*Candidate) map[common.Uint168]*CRMember {
-
+	log.Info("### processNextMembers", c.Params.CRMemberCount)
 	newMembers := make(map[common.Uint168]*CRMember, c.Params.CRMemberCount)
 	for i := 0; i < int(c.Params.CRMemberCount); i++ {
 		newMembers[activeCandidates[i].Info.DID] =
 			c.generateMember(activeCandidates[i])
 	}
-
+	for _, v := range newMembers {
+		log.Info("#### resprocessNextMembers1 , next member ", v.Info.NickName, hex.EncodeToString(v.Info.Code))
+	}
 	oriMembers := copyMembersMap(c.NextMembers)
 	c.lastHistory.Append(height, func() {
 		c.NextMembers = newMembers
 	}, func() {
 		c.NextMembers = oriMembers
 	})
+	for _, v := range c.NextMembers {
+		log.Info("#### resprocessNextMembers2 , next member ", v.Info.NickName, hex.EncodeToString(v.Info.Code))
+	}
 	return newMembers
 }
 
@@ -1295,7 +1335,12 @@ func (c *Committee) resetNextMembers(height uint32) {
 			})
 		}
 	}
-
+	for _, v := range c.Members {
+		log.Info("#### reset next member, current member ", v.Info.NickName, hex.EncodeToString(v.Info.Code))
+	}
+	for _, v := range c.NextMembers {
+		log.Info("#### reset next member, next member ", v.Info.NickName, hex.EncodeToString(v.Info.Code))
+	}
 	newMembers := copyMembersMap(c.NextMembers)
 	oriNicknames := utils.CopyStringSet(c.state.Nicknames)
 	oriVotes := utils.CopyStringSet(c.state.Votes)

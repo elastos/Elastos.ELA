@@ -671,10 +671,22 @@ func (t *CRCProposalTransaction) checkNormalOrELIPProposal(params *TransactionPa
 	return t.checkOwnerAndCRCouncilMemberSign(proposal, crCouncilMember.Info.Code, PayloadVersion)
 }
 
-func (t *CRCProposalTransaction) Process() (database.TXProcessor, elaerr.ELAError) {
+func (t *CRCProposalTransaction) GetSaveProcessor() (database.TXProcessor, elaerr.ELAError) {
 	proposal := t.Payload().(*payload.CRCProposal)
-	return func(tx database.Tx) error {
-		return blockchain.DBPutData(tx, proposalDraftDataBucketName,
+	return func(dbTx database.Tx) error {
+		err := blockchain.TryCreateBucket(dbTx, common.ProposalDraftDataBucketName)
+		if err != nil {
+			return err
+		}
+
+		return blockchain.DBPutData(dbTx, common.ProposalDraftDataBucketName,
 			proposal.DraftHash[:], proposal.DraftData)
+	}, nil
+}
+
+func (t *CRCProposalTransaction) GetRollbackProcessor() (database.TXProcessor, elaerr.ELAError) {
+	proposal := t.Payload().(*payload.CRCProposal)
+	return func(dbTx database.Tx) error {
+		return blockchain.DBRemoveData(dbTx, common.ProposalDraftDataBucketName, proposal.DraftHash[:])
 	}, nil
 }

@@ -111,10 +111,22 @@ func (t *CRCProposalReviewTransaction) SpecialContextCheck() (result elaerr.ELAE
 	return nil, false
 }
 
-func (t *CRCProposalReviewTransaction) Process() (database.TXProcessor, elaerr.ELAError) {
+func (t *CRCProposalReviewTransaction) GetSaveProcessor() (database.TXProcessor, elaerr.ELAError) {
 	proposalReview := t.Payload().(*payload.CRCProposalReview)
-	return func(tx database.Tx) error {
-		return blockchain.DBPutData(tx, proposalDraftDataBucketName,
+	return func(dbTx database.Tx) error {
+		err := blockchain.TryCreateBucket(dbTx, common.ProposalDraftDataBucketName)
+		if err != nil {
+			return err
+		}
+
+		return blockchain.DBPutData(dbTx, common.ProposalDraftDataBucketName,
 			proposalReview.OpinionHash[:], proposalReview.OpinionData)
+	}, nil
+}
+
+func (t *CRCProposalReviewTransaction) GetRollbackProcessor() (database.TXProcessor, elaerr.ELAError) {
+	proposalReview := t.Payload().(*payload.CRCProposalReview)
+	return func(dbTx database.Tx) error {
+		return blockchain.DBRemoveData(dbTx, common.ProposalDraftDataBucketName, proposalReview.OpinionHash[:])
 	}, nil
 }

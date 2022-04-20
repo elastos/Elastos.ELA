@@ -208,7 +208,12 @@ func (c *ChainStore) GetTxReference(tx interfaces.Transaction) (map[*common.Inpu
 
 func (c *ChainStore) rollback(b *Block, node *BlockNode,
 	confirm *payload.Confirm, medianTimePast time.Time) error {
-	if err := c.fflDB.RollbackBlock(b, node, confirm, medianTimePast); err != nil {
+
+	ps, err := GetRollbackProcessorsFromBlock(b)
+	if err != nil {
+		return err
+	}
+	if err := c.fflDB.RollbackBlock(b, node, confirm, medianTimePast, ps); err != nil {
 		return err
 	}
 	atomic.StoreUint32(&c.currentBlockHeight, b.Height-1)
@@ -216,14 +221,28 @@ func (c *ChainStore) rollback(b *Block, node *BlockNode,
 	return nil
 }
 
-func GetProcessorsFromBlock(b *Block) ([]database.TXProcessor, error) {
+func GetSaveProcessorsFromBlock(b *Block) ([]database.TXProcessor, error) {
 	ps := make([]database.TXProcessor, 0)
 	for _, t := range b.Transactions {
-		processor, err := t.GetProcessor()
+		processor, err := t.GetSaveProcessor()
 		if err != nil {
 			return nil, err
 		}
-		if  processor != nil {
+		if processor != nil {
+			ps = append(ps, processor)
+		}
+	}
+	return ps, nil
+}
+
+func GetRollbackProcessorsFromBlock(b *Block) ([]database.TXProcessor, error) {
+	ps := make([]database.TXProcessor, 0)
+	for _, t := range b.Transactions {
+		processor, err := t.GetRollbackProcessor()
+		if err != nil {
+			return nil, err
+		}
+		if processor != nil {
 			ps = append(ps, processor)
 		}
 	}
@@ -235,7 +254,7 @@ func (c *ChainStore) persist(b *Block, node *BlockNode,
 	c.persistMutex.Lock()
 	defer c.persistMutex.Unlock()
 
-	ps, err := GetProcessorsFromBlock(b)
+	ps, err := GetSaveProcessorsFromBlock(b)
 	if err != nil {
 		return err
 	}

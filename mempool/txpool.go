@@ -95,20 +95,20 @@ func (mp *TxPool) appendToTxPool(tx interfaces.Transaction) elaerr.ELAError {
 		return elaerr.Simple(elaerr.ErrBlockIneffectiveCoinbase, nil)
 	}
 
-	if errCode := chain.CheckTransactionSanity(bestHeight+1, tx); errCode != nil {
+	if err := chain.CheckTransactionSanity(bestHeight+1, tx); err != nil {
 		log.Warn("[TxPool CheckTransactionSanity] failed", tx.Hash())
-		return errCode
+		return err
 	}
-	if _, errCode := chain.CheckTransactionContext(
-		bestHeight+1, tx, mp.proposalsUsedAmount, 0); errCode != nil {
+	if _, err := chain.CheckTransactionContext(
+		bestHeight+1, tx, mp.proposalsUsedAmount, 0); err != nil {
 		log.Warnf("[TxPool CheckTransactionContext] failed, hash: %s, err: %s", tx.Hash(),
-			errCode)
-		return errCode
+			err)
+		return err
 	}
 	//verify transaction by pool with lock
-	if errCode := mp.verifyTransactionWithTxnPool(tx); errCode != nil {
+	if err := mp.verifyTransactionWithTxnPool(tx); err != nil {
 		log.Warn("[TxPool verifyTransactionWithTxnPool] failed", tx.Hash())
-		return errCode
+		return err
 	}
 
 	size := tx.GetSize()
@@ -116,9 +116,9 @@ func (mp *TxPool) appendToTxPool(tx interfaces.Transaction) elaerr.ELAError {
 		log.Warn("TxPool check transactions size failed", tx.Hash())
 		return elaerr.Simple(elaerr.ErrTxPoolOverCapacity, nil)
 	}
-	if errCode := mp.AppendTx(tx); errCode != nil {
+	if err := mp.AppendTx(tx); err != nil {
 		log.Warn("[TxPool verifyTransactionWithTxnPool] failed", tx.Hash())
-		return errCode
+		return err
 	}
 	// Add the transaction to mem pool
 	if err := mp.doAddTransaction(tx); err != nil {

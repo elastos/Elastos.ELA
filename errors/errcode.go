@@ -95,7 +95,11 @@ type SimpleErr struct {
 
 func (e *SimpleErr) Error() string {
 	if len(e.message) == 0 {
-		return fmt.Sprintf("%s", ErrMap[e.code])
+		if e.inner != nil {
+			return fmt.Sprintf("%s:%s", ErrMap[e.code], e.inner.Error())
+		} else {
+			return fmt.Sprintf("%s", ErrMap[e.code])
+		}
 	} else {
 		return e.message
 	}

@@ -38,7 +38,7 @@ func (t *DefaultChecker) SanityCheck(params interfaces.Parameters) elaerr.ELAErr
 
 	if err := t.parameters.Transaction.HeightVersionCheck(); err != nil {
 		log.Warn("[HeightVersionCheck],", err)
-		return elaerr.Simple(elaerr.ErrTxHeightVersion, nil)
+		return elaerr.Simple(elaerr.ErrTxHeightVersion, err)
 	}
 
 	if err := t.parameters.Transaction.CheckTransactionSize(); err != nil {

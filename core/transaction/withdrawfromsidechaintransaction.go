@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"errors"
+	"github.com/elastos/Elastos.ELA/database"
 	"math"
 	"math/big"
 
@@ -325,4 +326,88 @@ func checkSchnorrWithdrawFromSidechain(t interfaces.Transaction, pld *payload.Wi
 		}
 	}
 	return nil
+}
+
+func (t *WithdrawFromSideChainTransaction) GetSaveProcessor() (database.TXProcessor, elaerr.ELAError) {
+
+	witPayload := t.Payload().(*payload.WithdrawFromSideChain)
+	if t.PayloadVersion() == payload.WithdrawFromSideChainVersion {
+		return func(dbTx database.Tx) error {
+			err := blockchain.TryCreateBucket(dbTx, common.Tx3IndexBucketName)
+			if err != nil {
+				return err
+			}
+			for _, hash := range witPayload.SideChainTransactionHashes {
+				err = blockchain.DBPutData(dbTx, common.Tx3IndexBucketName,
+					hash[:], common.Tx3IndexValue)
+				if err != nil {
+					return err
+				}
+			}
+
+			return nil
+		}, nil
+	} else if t.PayloadVersion() == payload.WithdrawFromSideChainVersionV1 {
+		return func(dbTx database.Tx) error {
+			err := blockchain.TryCreateBucket(dbTx, common.Tx3IndexBucketName)
+			if err != nil {
+				return err
+			}
+			for _, output := range t.Outputs() {
+				if output.Type != common2.OTWithdrawFromSideChain {
+					continue
+				}
+				witPayload, ok := output.Payload.(*outputpayload.Withdraw)
+				if !ok {
+					continue
+				}
+				err = blockchain.DBPutData(dbTx, common.Tx3IndexBucketName,
+					witPayload.SideChainTransactionHash[:], common.Tx3IndexValue)
+				if err != nil {
+					return err
+				}
+			}
+
+			return nil
+		}, nil
+	}
+
+	return nil, nil
+}
+
+func (t *WithdrawFromSideChainTransaction) GetRollbackProcessor() (database.TXProcessor, elaerr.ELAError) {
+
+	witPayload := t.Payload().(*payload.WithdrawFromSideChain)
+	if t.PayloadVersion() == payload.WithdrawFromSideChainVersion {
+		return func(dbTx database.Tx) error {
+			for _, hash := range witPayload.SideChainTransactionHashes {
+				err := blockchain.DBRemoveData(dbTx, common.Tx3IndexBucketName, hash[:])
+				if err != nil {
+					return err
+				}
+			}
+
+			return nil
+		}, nil
+	} else if t.PayloadVersion() == payload.WithdrawFromSideChainVersionV1 {
+		return func(dbTx database.Tx) error {
+			for _, output := range t.Outputs() {
+				if output.Type != common2.OTWithdrawFromSideChain {
+					continue
+				}
+				witPayload, ok := output.Payload.(*outputpayload.Withdraw)
+				if !ok {
+					continue
+				}
+				err := blockchain.DBRemoveData(dbTx, common.Tx3IndexBucketName, witPayload.SideChainTransactionHash[:])
+				if err != nil {
+					return err
+				}
+			}
+
+			return nil
+		}, nil
+	}
+
+	return nil, nil
 }

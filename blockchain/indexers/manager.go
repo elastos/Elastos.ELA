@@ -506,16 +506,6 @@ func (m *Manager) FetchUTXO(programHash *common.Uint168) ([]*common2.UTXO, error
 	return utxos, nil
 }
 
-func (m *Manager) IsTx3Exist(txHash *common.Uint256) bool {
-	exist := false
-	_ = m.db.View(func(dbTx database.Tx) error {
-		exist = DBFetchTx3IndexEntry(dbTx, txHash)
-		return nil
-	})
-
-	return exist
-}
-
 func (m *Manager) IsSideChainReturnDepositExist(txHash *common.Uint256) bool {
 	exist := false
 	_ = m.db.View(func(dbTx database.Tx) error {
@@ -534,10 +524,9 @@ func NewManager(db database.DB, params *config.Params) *Manager {
 	txIndex := NewTxIndex(db)
 	unspentIndex := NewUnspentIndex(db, params)
 	utxoIndex := NewUtxoIndex(db, unspentIndex)
-	tx3Index := NewTx3Index(db)
 	returnDepositIndex := NewReturnDepositIndex(db)
 	var enabledIndexes []Indexer
-	enabledIndexes = append(enabledIndexes, txIndex, unspentIndex, utxoIndex, tx3Index, returnDepositIndex)
+	enabledIndexes = append(enabledIndexes, txIndex, unspentIndex, utxoIndex, returnDepositIndex)
 	return &Manager{
 		db:             db,
 		enabledIndexes: enabledIndexes,

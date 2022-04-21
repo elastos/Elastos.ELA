@@ -408,8 +408,23 @@ func (c *ChainStoreFFLDB) GetUTXO(programHash *Uint168) ([]*common.UTXO, error) 
 	return c.indexManager.FetchUTXO(programHash)
 }
 
+func DBFetchTx3IndexEntry(dbTx database.Tx, txHash *Uint256) bool {
+	hashIndex := dbTx.Metadata().Bucket(Tx3IndexBucketName)
+	value := hashIndex.Get(txHash[:])
+	if bytes.Equal(value, Tx3IndexValue) {
+		return true
+	}
+	return false
+}
+
 func (c *ChainStoreFFLDB) IsTx3Exist(txHash *Uint256) bool {
-	return c.indexManager.IsTx3Exist(txHash)
+	exist := false
+	_ = c.db.View(func(dbTx database.Tx) error {
+		exist = DBFetchTx3IndexEntry(dbTx, txHash)
+		return nil
+	})
+
+	return exist
 }
 
 func (c *ChainStoreFFLDB) IsSideChainReturnDepositExist(txHash *Uint256) bool {

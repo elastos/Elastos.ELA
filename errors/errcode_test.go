@@ -21,7 +21,7 @@ func TestSimple(t *testing.T) {
 	innerErr := errors.New("inner error")
 	err = Simple(ErrFail, innerErr)
 	assert.Equal(t, ErrFail, err.Code())
-	assert.Equal(t, ErrMap[ErrFail], err.Error())
+	assert.Equal(t, ErrMap[ErrFail]+":"+innerErr.Error(), err.Error())
 	assert.Equal(t, innerErr, err.InnerError())
 }
 

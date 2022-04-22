@@ -29,7 +29,7 @@ type WithdrawFromSideChainTransaction struct {
 	BaseTransaction
 }
 
-func (t *WithdrawFromSideChainTransaction)  CheckTransactionOutput() error {
+func (t *WithdrawFromSideChainTransaction) CheckTransactionOutput() error {
 	blockHeight := t.parameters.BlockHeight
 	if len(t.Outputs()) > math.MaxUint16 {
 		return errors.New("output count should not be greater than 65535(MaxUint16)")
@@ -89,6 +89,8 @@ func (t *WithdrawFromSideChainTransaction) CheckTransactionPayload() error {
 			}
 			existingHashs[hash] = struct{}{}
 		}
+
+		return nil
 	}
 
 	return errors.New("invalid payload type")

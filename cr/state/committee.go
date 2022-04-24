@@ -591,6 +591,7 @@ func (c *Committee) endVoting(height uint32) bool {
 }
 
 func (c *Committee) changeCommittee(height uint32) bool {
+	log.Info("Change committee")
 	if c.shouldCleanHistory(height) {
 		oriHistoryMembers := copyHistoryMembersMap(c.HistoryMembers)
 		oriHistoryCandidates := copyHistoryCandidateMap(c.state.HistoryCandidates)
@@ -1172,11 +1173,17 @@ func (c *Committee) shouldChangeCommittee(height uint32) bool {
 		return height == c.LastCommitteeHeight+c.Params.CRDutyPeriod
 	}
 
+	if height >= c.Params.DPoSV2StartHeight {
+		return height == c.LastVotingStartHeight+c.Params.CRVotingPeriod+c.Params.CRClaimPeriod
+	}
+
 	return height == c.LastVotingStartHeight+c.Params.CRVotingPeriod
 }
 
 func (c *Committee) shouldCleanHistory(height uint32) bool {
 	if height >= c.Params.DPoSV2StartHeight {
+		log.Info("### shouldCleanHistory ", c.LastVotingStartHeight, c.LastCommitteeHeight,
+			c.Params.CRDutyPeriod, c.Params.CRVotingPeriod, c.Params.CRClaimPeriod)
 		return c.LastVotingStartHeight == c.LastCommitteeHeight+
 			c.Params.CRDutyPeriod-c.Params.CRVotingPeriod-c.Params.CRClaimPeriod
 	}
@@ -1188,6 +1195,10 @@ func (c *Committee) shouldCleanHistory(height uint32) bool {
 func (c *Committee) isInVotingPeriod(height uint32) bool {
 	//todo consider emergency election later
 	inVotingPeriod := func(committeeUpdateHeight uint32) bool {
+		if height >= c.Params.DPoSV2StartHeight {
+			return height >= committeeUpdateHeight-c.Params.CRVotingPeriod-c.Params.CRClaimPeriod &&
+				height < committeeUpdateHeight
+		}
 		return height >= committeeUpdateHeight-c.Params.CRVotingPeriod &&
 			height < committeeUpdateHeight
 	}

@@ -4347,7 +4347,7 @@ func (s *txValidatorTestSuite) TestCheckReturnDepositCoinTransaction() {
 	s.NoError(err)
 }
 
-func (s *txValidatorTestSuite) TestCheckStakeTransaction() {
+func (s *txValidatorTestSuite) TestCheckStakeTransaction2() {
 	s.CurrentHeight = 1
 	_, pk, _ := crypto.GenerateKeyPair()
 	//publicKey, _ := pk.EncodePoint(true)

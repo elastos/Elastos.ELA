@@ -56,7 +56,12 @@ func (t *CRCouncilMemberClaimNodeTransaction) SpecialContextCheck() (result elae
 
 	}
 	did := manager.CRCouncilCommitteeDID
-	crMember := t.parameters.BlockChain.GetCRCommittee().GetMember(did)
+	var crMember *crstate.CRMember
+	if t.parameters.BlockHeight >= t.parameters.Config.DPoSV2StartHeight {
+		crMember = t.parameters.BlockChain.GetCRCommittee().GetNextMember(did)
+	} else {
+		crMember = t.parameters.BlockChain.GetCRCommittee().GetMember(did)
+	}
 	if crMember == nil {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("the originator must be members")), true
 	}

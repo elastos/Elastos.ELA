@@ -73,8 +73,8 @@ type StateKeyFrame struct {
 	//when it is dpos and before RevertToPOWStartHeight  DPOSStartHeight is height - IrreversibleHeight
 	DPOSStartHeight uint32
 
-	//dposv2 effect height
-	DposV2ActiveHeight uint32
+	// DPoS V2 effective height
+	DPoSV2ActiveHeight uint32
 }
 
 // RewardData defines variables to calculate reward of a round
@@ -142,7 +142,7 @@ func (s *StateKeyFrame) snapshot() *StateKeyFrame {
 	state.ProducerDepositMap = copyDIDSet(s.ProducerDepositMap)
 
 	//todo add DPOSStartHeight and so on
-	state.DposV2ActiveHeight = s.DposV2ActiveHeight
+	state.DPoSV2ActiveHeight = s.DPoSV2ActiveHeight
 
 	return &state
 }
@@ -252,7 +252,7 @@ func (s *StateKeyFrame) Serialize(w io.Writer) (err error) {
 		s.LastBlockTimestamp, s.NeedRevertToDPOSTX,
 		s.NeedNextTurnDPOSInfo, s.NoProducers, s.NoClaimDPOSNode,
 		s.RevertToPOWBlockHeight, s.LastIrreversibleHeight,
-		s.DPOSStartHeight, s.DposV2ActiveHeight); err != nil {
+		s.DPOSStartHeight, s.DPoSV2ActiveHeight); err != nil {
 		return err
 	}
 
@@ -365,7 +365,7 @@ func (s *StateKeyFrame) Deserialize(r io.Reader) (err error) {
 		&s.LastBlockTimestamp, &s.NeedRevertToDPOSTX,
 		&s.NeedNextTurnDPOSInfo, &s.NoProducers, &s.NoClaimDPOSNode,
 		&s.RevertToPOWBlockHeight, &s.LastIrreversibleHeight,
-		&s.DPOSStartHeight, &s.DposV2ActiveHeight); err != nil {
+		&s.DPOSStartHeight, &s.DPoSV2ActiveHeight); err != nil {
 		return err
 	}
 
@@ -754,7 +754,7 @@ func NewStateKeyFrame() *StateKeyFrame {
 		ProducerDepositMap:        make(map[common.Uint168]struct{}),
 		VersionStartHeight:        0,
 		VersionEndHeight:          0,
-		DposV2ActiveHeight:        0,
+		DPoSV2ActiveHeight:        0,
 	}
 }
 

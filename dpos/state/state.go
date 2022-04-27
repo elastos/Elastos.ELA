@@ -483,7 +483,7 @@ func (s *State) DPoSV2Started() bool {
 }
 
 func (s *State) dposV2Started() bool {
-	return s.DposV2ActiveHeight != 0
+	return s.DPoSV2ActiveHeight != 0
 }
 
 func (s *State) isDposV2Active() bool {
@@ -2355,7 +2355,7 @@ func (s *State) processIllegalEvidence(payloadData interfaces.Payload,
 	crMembersMap := s.getClaimedCRMemberDPOSPublicKeyMap()
 
 	var illegalPenalty = s.ChainParams.IllegalPenalty
-	if height < s.DposV2ActiveHeight {
+	if height < s.DPoSV2ActiveHeight {
 		illegalPenalty = 0
 	}
 

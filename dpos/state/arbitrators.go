@@ -437,7 +437,7 @@ func (a *Arbiters) forceChange(height uint32) error {
 	}
 	a.SnapshotByHeight(height)
 
-	if !a.isDopsV2Run(block.Height) {
+	if !a.isDPoSV2Run(block.Height) {
 		if err := a.clearingDPOSReward(block, block.Height, false); err != nil {
 			panic(fmt.Sprintf("normal change fail when clear DPOS reward: "+
 				" transaction, height: %d, error: %s", block.Height, err))
@@ -529,7 +529,7 @@ func (a *Arbiters) IncreaseChainHeight(block *types.Block, confirm *payload.Conf
 					"error: %s, revert to POW mode", block.Height, err))
 			}
 		case normalChange:
-			if a.isDopsV2Run(block.Height) {
+			if a.isDPoSV2Run(block.Height) {
 				a.accumulateReward(block, confirm)
 			} else {
 				if err := a.clearingDPOSReward(block, block.Height, true); err != nil {
@@ -635,24 +635,16 @@ func (a *Arbiters) AccumulateReward(block *types.Block, confirm *payload.Confirm
 	a.accumulateReward(block, confirm)
 }
 
-//is alreday dposv2. when we are here we need new reward.
-func (a *Arbiters) IsDopsV2Run(blockHeight uint32) bool {
+// is already DPoS V2. when we are here we need new reward.
+func (a *Arbiters) IsDPoSV2Run(blockHeight uint32) bool {
 	a.mtx.Lock()
 	defer a.mtx.Unlock()
-	return a.isDopsV2Run(blockHeight)
+	return a.isDPoSV2Run(blockHeight)
 }
 
-//is alreday dposv2. when we are here we need new reward.
-func (a *Arbiters) isDopsV2Run(blockHeight uint32) bool {
-	log.Infof("isDopsV2Run blockHeight %d, DposV2ActiveHeight %d CRMemberCount%d GeneralArbiters%d", blockHeight, a.DposV2ActiveHeight,
-		a.ChainParams.CRMemberCount, a.ChainParams.GeneralArbiters)
-	if a.isDposV2Active() && blockHeight >= a.DposV2ActiveHeight+a.ChainParams.CRMemberCount+uint32(a.ChainParams.GeneralArbiters) {
-		log.Info("isDopsV2Run is dpos v2 ")
-		return true
-	}
-	log.Error("isDopsV2Run not dpos v2 ")
-
-	return false
+// is already DPoS V2. when we are here we need new reward.
+func (a *Arbiters) isDPoSV2Run(blockHeight uint32) bool {
+	return a.DPoSV2ActiveHeight != 0 && blockHeight >= a.DPoSV2ActiveHeight
 }
 
 func (a *Arbiters) accumulateReward(block *types.Block, confirm *payload.Confirm) {
@@ -674,7 +666,7 @@ func (a *Arbiters) accumulateReward(block *types.Block, confirm *payload.Confirm
 		accumulative += dposReward
 	}
 
-	if a.isDopsV2Run(block.Height) {
+	if a.isDPoSV2Run(block.Height) {
 		log.Debugf("accumulateReward dposReward %v", dposReward)
 		ownerPubKeyStr := a.getProducerKey(confirm.Proposal.Sponsor)
 		ownerPubKeyBytes, _ := hex.DecodeString(ownerPubKeyStr)
@@ -1850,12 +1842,12 @@ func (a *Arbiters) UpdateNextArbitrators(versionHeight, height uint32) error {
 		a.TryLeaveUnderStaffed(a.IsAbleToRecoverFromUnderstaffedState)
 	}
 
-	if a.DposV2ActiveHeight == 0 && a.isDposV2Active() {
+	if a.DPoSV2ActiveHeight == 0 && a.isDposV2Active() {
 		oriHeight := height
 		a.History.Append(height, func() {
-			a.DposV2ActiveHeight = height
+			a.DPoSV2ActiveHeight = height + a.ChainParams.CRMemberCount + uint32(a.ChainParams.GeneralArbiters)
 		}, func() {
-			a.DposV2ActiveHeight = oriHeight
+			a.DPoSV2ActiveHeight = oriHeight
 		})
 	}
 

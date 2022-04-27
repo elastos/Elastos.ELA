@@ -334,7 +334,7 @@ func stateKeyFrameEqual(first *state.StateKeyFrame, second *state.StateKeyFrame)
 	}
 
 	return first.VersionStartHeight == second.VersionStartHeight &&
-		first.VersionEndHeight == second.VersionEndHeight && first.DposV2ActiveHeight == second.DposV2ActiveHeight
+		first.VersionEndHeight == second.VersionEndHeight && first.DPoSV2ActiveHeight == second.DPoSV2ActiveHeight
 }
 
 func randomDPOSStateKeyFrame() *state.StateKeyFrame {
@@ -361,7 +361,7 @@ func randomDPOSStateKeyFrame() *state.StateKeyFrame {
 		EmergencyInactiveArbiters: make(map[string]struct{}),
 		VersionStartHeight:        rand.Uint32(),
 		VersionEndHeight:          rand.Uint32(),
-		DposV2ActiveHeight:        rand.Uint32(),
+		DPoSV2ActiveHeight:        rand.Uint32(),
 	}
 
 	for i := 0; i < 5; i++ {

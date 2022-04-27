@@ -5546,7 +5546,7 @@ func (s *txValidatorTestSuite) TestArbitersAccumulateReward() {
 						NodeOwnerKeys:           make(map[string]string),
 						DposV2RewardInfo:        make(map[string]common.Fixed64),
 						ActivityProducers:       make(map[string]*state.Producer),
-						DposV2ActiveHeight:      tt.fields.DposV2ActiveHeight,
+						DPoSV2ActiveHeight:      tt.fields.DposV2ActiveHeight,
 					},
 					ChainParams: tt.fields.ChainParams,
 				},

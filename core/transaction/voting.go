@@ -150,6 +150,11 @@ func (t *VotingTransaction) SpecialContextCheck() (result elaerr.ELAError, end b
 		for _, content := range pld.Contents {
 			switch content.VoteType {
 			case outputpayload.Delegate:
+				if blockHeight > state.DPoSV2ActiveHeight {
+					return elaerr.Simple(elaerr.ErrTxPayload,
+						errors.New("delegate votes is not allowed in DPoS V2")), true
+				}
+
 				err := t.checkVoteProducerContent(
 					content, pds, totalVotes-usedDPoSVoteRights)
 				if err != nil {

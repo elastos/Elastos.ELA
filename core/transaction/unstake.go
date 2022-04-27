@@ -93,14 +93,25 @@ func (t *UnstakeTransaction) SpecialContextCheck() (result elaerr.ELAError, end 
 	usedCRImpeachmentVoteRights := cs.CRImpeachmentVotes[*stakeProgramHash]
 	usedCRCProposalVoteRights := cs.CRCProposalVotes[*stakeProgramHash]
 
-	if pl.Value > voteRights-usedDposVoteRights ||
-		pl.Value > voteRights-usedDposV2VoteRights ||
-		pl.Value > voteRights-usedCRVoteRights ||
-		pl.Value > voteRights-usedCRImpeachmentVoteRights ||
-		pl.Value > voteRights-usedCRCProposalVoteRights {
-		return elaerr.Simple(elaerr.ErrTxPayload,
-			errors.New("vote rights not enough")), true
+	if t.parameters.BlockHeight > state.DPoSV2ActiveHeight {
+		if pl.Value > voteRights-usedDposV2VoteRights ||
+			pl.Value > voteRights-usedCRVoteRights ||
+			pl.Value > voteRights-usedCRImpeachmentVoteRights ||
+			pl.Value > voteRights-usedCRCProposalVoteRights {
+			return elaerr.Simple(elaerr.ErrTxPayload,
+				errors.New("vote rights not enough")), true
+		}
+	} else {
+		if pl.Value > voteRights-usedDposVoteRights ||
+			pl.Value > voteRights-usedDposV2VoteRights ||
+			pl.Value > voteRights-usedCRVoteRights ||
+			pl.Value > voteRights-usedCRImpeachmentVoteRights ||
+			pl.Value > voteRights-usedCRCProposalVoteRights {
+			return elaerr.Simple(elaerr.ErrTxPayload,
+				errors.New("vote rights not enough")), true
+		}
 	}
+
 	//check pl.Code signature
 	err = t.checkUnstakeSignature(pl)
 	if err != nil {

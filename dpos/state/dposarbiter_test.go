@@ -194,7 +194,7 @@ func stateKeyFrameEqual(first *StateKeyFrame, second *StateKeyFrame) bool {
 	}
 
 	return first.VersionStartHeight == second.VersionStartHeight &&
-		first.VersionEndHeight == second.VersionEndHeight && first.DposV2ActiveHeight == second.DposV2ActiveHeight
+		first.VersionEndHeight == second.VersionEndHeight && first.DPoSV2ActiveHeight == second.DPoSV2ActiveHeight
 }
 
 func producerEqual(first *Producer, second *Producer) bool {

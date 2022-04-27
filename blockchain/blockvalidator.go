@@ -443,8 +443,8 @@ func (b *BlockChain) GetBlockDPOSReward(block *Block) Fixed64 {
 
 func (b *BlockChain) checkCoinbaseTransactionContext(blockHeight uint32, coinbase interfaces.Transaction, totalTxFee, dposReward Fixed64) error {
 	log.Debugf("checkCoinbaseTransactionContext  blockHeight:%d", blockHeight)
-	if DefaultLedger.Arbitrators.IsDopsV2Run(blockHeight) {
-		log.Debugf("checkCoinbaseTransactionContext IsDopsV2Run blockHeight:%d", blockHeight)
+	if DefaultLedger.Arbitrators.IsDPoSV2Run(blockHeight) {
+		log.Debugf("checkCoinbaseTransactionContext IsDPoSV2Run blockHeight:%d", blockHeight)
 		totalReward := totalTxFee + b.chainParams.GetBlockReward(blockHeight)
 		rewardCyberRepublic := Fixed64(math.Ceil(float64(totalReward) * 0.3))
 		rewardDposArbiter := Fixed64(math.Ceil(float64(totalReward) * 0.35))

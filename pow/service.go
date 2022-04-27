@@ -171,7 +171,7 @@ func (pow *Service) CreateCoinbaseTx(minerAddr string, height uint32) (interface
 }
 
 func (pow *Service) AssignCoinbaseTxRewards(block *types.Block, totalReward common.Fixed64) error {
-	if pow.arbiters.IsDopsV2Run(block.Height) {
+	if pow.arbiters.IsDPoSV2Run(block.Height) {
 		rewardCyberRepublic := common.Fixed64(math.Ceil(float64(totalReward) * 0.3))
 		rewardDposArbiter := common.Fixed64(math.Ceil(float64(totalReward) * 0.35))
 		rewardMergeMiner := common.Fixed64(totalReward) - rewardCyberRepublic - rewardDposArbiter

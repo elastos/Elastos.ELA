@@ -306,6 +306,9 @@ func DBPutData(dbTx database.Tx, name []byte, key []byte, value []byte) error {
 func dbFetchProposalDraftData(dbTx database.Tx, hash *common.Uint256) ([]byte, error) {
 	meta := dbTx.Metadata()
 	draftDataBucket := meta.Bucket(common.ProposalDraftDataBucketName)
+	if draftDataBucket == nil {
+		return nil, errors.New("no bucket")
+	}
 	draftData := draftDataBucket.Get(hash[:])
 	if draftData == nil {
 		return nil, fmt.Errorf("draft data %s is not found", hash)

@@ -410,6 +410,9 @@ func (c *ChainStoreFFLDB) GetUTXO(programHash *Uint168) ([]*common.UTXO, error) 
 
 func DBFetchTx3IndexEntry(dbTx database.Tx, txHash *Uint256) bool {
 	hashIndex := dbTx.Metadata().Bucket(Tx3IndexBucketName)
+	if hashIndex == nil {
+		return false
+	}
 	value := hashIndex.Get(txHash[:])
 	if bytes.Equal(value, Tx3IndexValue) {
 		return true

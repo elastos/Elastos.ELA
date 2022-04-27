@@ -52,7 +52,9 @@ func (t *RegisterProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bo
 		return elaerr.Simple(elaerr.ErrTxPayload, err), true
 	}
 
-	if t.parameters.BlockChain.GetHeight() < t.parameters.Config.PublicDPOSHeight {
+	height := t.parameters.BlockChain.GetHeight()
+	state := t.parameters.BlockChain.GetState()
+	if height < t.parameters.Config.PublicDPOSHeight {
 		// check duplication of node.
 		if t.parameters.BlockChain.GetState().ProducerExists(info.NodePublicKey) {
 			return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("producer already registered")), true
@@ -62,21 +64,25 @@ func (t *RegisterProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bo
 		if t.parameters.BlockChain.GetState().ProducerExists(info.OwnerPublicKey) {
 			return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("producer owner already registered")), true
 		}
-	} else if t.parameters.BlockChain.GetHeight() < t.parameters.Config.DPoSV2StartHeight &&
-		t.PayloadVersion() == payload.ProducerInfoVersion {
+	} else if height < t.parameters.Config.DPoSV2StartHeight {
+		switch t.payloadVersion {
+		case payload.ProducerInfoVersion:
+			// check duplication of node.
+			if t.parameters.BlockChain.GetState().ProducerNodePublicKeyExists(info.NodePublicKey) {
+				return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("producer already registered")), true
+			}
 
-		// check duplication of node.
-		if t.parameters.BlockChain.GetState().ProducerNodePublicKeyExists(info.NodePublicKey) {
-			return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("producer already registered")), true
+			// check duplication of owner.
+			if t.parameters.BlockChain.GetState().ProducerOwnerPublicKeyExists(info.OwnerPublicKey) {
+				return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("producer owner already registered")), true
+			}
+		case payload.ProducerInfoDposV2Version:
+			return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("can not register dposv2 before dposv2 start height")), true
 		}
-
-		// check duplication of owner.
-		if t.parameters.BlockChain.GetState().ProducerOwnerPublicKeyExists(info.OwnerPublicKey) {
-			return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("producer owner already registered")), true
+	} else if height > state.DPoSV2ActiveHeight {
+		if t.payloadVersion == payload.ProducerInfoVersion {
+			return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("can not register dposv1 after dposv2 active height")), true
 		}
-	} else if t.parameters.BlockChain.GetHeight() < t.parameters.Config.DPoSV2StartHeight &&
-		t.PayloadVersion() == payload.ProducerInfoDposV2Version {
-		return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("can not register dposv2 before dposv2 start height")), true
 	}
 
 	if t.PayloadVersion() == payload.ProducerInfoVersion {

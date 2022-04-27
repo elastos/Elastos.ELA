@@ -96,7 +96,7 @@ func (t *CancelVotesTransaction) SpecialContextCheck() (result elaerr.ELAError, 
 		}
 		// 5.should not be DPoS V2 votes, because DPoS V2 will be canceled when
 		// block height reached the stakeUntil height
-		if t.parameters.BlockHeight <= state.DPoSV2ActiveHeight {
+		if t.parameters.BlockHeight > state.DPoSV2ActiveHeight {
 			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("vote type "+
 				"need to be CR CRImpeachment or CRCProposal")), true
 		}

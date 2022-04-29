@@ -159,59 +159,47 @@ func (t *RegisterProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bo
 		// check duplication of nickname.
 		nickNameExist := t.parameters.BlockChain.GetState().NicknameExists(info.NickName)
 
-		if nodeKeyExist != ownerKeyExist || ownerKeyExist != nickNameExist {
+		if nodeKeyExist || ownerKeyExist || nickNameExist {
 			return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("NodePublicKey %v OwnerPublicKey %v NickName %v", nodeKeyExist, ownerKeyExist, nickNameExist)), true
 		}
 
-		if !nodeKeyExist {
-			// check if public keys conflict with cr program code
-			ownerCode := append([]byte{byte(crypto.COMPRESSEDLEN)}, info.OwnerPublicKey...)
-			ownerCode = append(ownerCode, vm.CHECKSIG)
-			if t.parameters.BlockChain.GetCRCommittee().ExistCR(ownerCode) {
-				return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("owner public key %s already exist in cr list",
-					common.BytesToHexString(info.OwnerPublicKey))), true
-			}
-			nodeCode := append([]byte{byte(crypto.COMPRESSEDLEN)}, info.NodePublicKey...)
-			nodeCode = append(nodeCode, vm.CHECKSIG)
-			if t.parameters.BlockChain.GetCRCommittee().ExistCR(nodeCode) {
-				return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("node public key %s already exist in cr list",
-					common.BytesToHexString(info.NodePublicKey))), true
-			}
+		// check if public keys conflict with cr program code
+		ownerCode := append([]byte{byte(crypto.COMPRESSEDLEN)}, info.OwnerPublicKey...)
+		ownerCode = append(ownerCode, vm.CHECKSIG)
+		if t.parameters.BlockChain.GetCRCommittee().ExistCR(ownerCode) {
+			return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("owner public key %s already exist in cr list",
+				common.BytesToHexString(info.OwnerPublicKey))), true
+		}
+		nodeCode := append([]byte{byte(crypto.COMPRESSEDLEN)}, info.NodePublicKey...)
+		nodeCode = append(nodeCode, vm.CHECKSIG)
+		if t.parameters.BlockChain.GetCRCommittee().ExistCR(nodeCode) {
+			return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("node public key %s already exist in cr list",
+				common.BytesToHexString(info.NodePublicKey))), true
+		}
 
-			if err := t.additionalProducerInfoCheck(info); err != nil {
-				return elaerr.Simple(elaerr.ErrTxPayload, err), true
-			}
+		if err := t.additionalProducerInfoCheck(info); err != nil {
+			return elaerr.Simple(elaerr.ErrTxPayload, err), true
+		}
 
-			// check deposit coin
-			hash, err := contract.PublicKeyToDepositProgramHash(info.OwnerPublicKey)
-			if err != nil {
-				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid public key")), true
-			}
-			var depositCount int
-			for _, output := range t.Outputs() {
-				if contract.GetPrefixType(output.ProgramHash) == contract.PrefixDeposit {
-					depositCount++
-					if !output.ProgramHash.IsEqual(*hash) {
-						return elaerr.Simple(elaerr.ErrTxPayload, errors.New("deposit address does not match the public key in payload")), true
-					}
-					if output.Value < crstate.MinDPoSV2DepositAmount {
-						return elaerr.Simple(elaerr.ErrTxPayload, errors.New("producer deposit amount is insufficient")), true
-					}
+		// check deposit coin
+		hash, err := contract.PublicKeyToDepositProgramHash(info.OwnerPublicKey)
+		if err != nil {
+			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid public key")), true
+		}
+		var depositCount int
+		for _, output := range t.Outputs() {
+			if contract.GetPrefixType(output.ProgramHash) == contract.PrefixDeposit {
+				depositCount++
+				if !output.ProgramHash.IsEqual(*hash) {
+					return elaerr.Simple(elaerr.ErrTxPayload, errors.New("deposit address does not match the public key in payload")), true
+				}
+				if output.Value < crstate.MinDPoSV2DepositAmount {
+					return elaerr.Simple(elaerr.ErrTxPayload, errors.New("producer deposit amount is insufficient")), true
 				}
 			}
-			if depositCount != 1 {
-				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("there must be only one deposit address in outputs")), true
-			}
-		} else {
-			// check available deposit amount
-			pr := t.parameters.BlockChain.GetState().GetProducer(info.OwnerPublicKey)
-			if pr == nil {
-				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("producer not exist")), true
-			}
-			availableAmount := pr.GetDPoSV2AvailableAmount(t.parameters.BlockHeight)
-			if availableAmount < 0 {
-				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("available deposit amount is not enough")), true
-			}
+		}
+		if depositCount != 1 {
+			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("there must be only one deposit address in outputs")), true
 		}
 
 		// check signature

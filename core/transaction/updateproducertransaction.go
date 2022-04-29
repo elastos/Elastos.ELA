@@ -62,7 +62,7 @@ func (t *UpdateProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bool
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid owner public key in payload")), true
 	}
 	signedBuf := new(bytes.Buffer)
-	err = info.SerializeUnsigned(signedBuf, payload.ProducerInfoVersion)
+	err = info.SerializeUnsigned(signedBuf, t.payloadVersion)
 	if err != nil {
 		return elaerr.Simple(elaerr.ErrTxPayload, err), true
 	}
@@ -74,6 +74,12 @@ func (t *UpdateProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bool
 	producer := t.parameters.BlockChain.GetState().GetProducer(info.OwnerPublicKey)
 	if producer == nil {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("updating unknown producer")), true
+	}
+
+	if producer.Info().StakeUntil != 0 {
+		if info.StakeUntil < producer.Info().StakeUntil {
+			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("stake time is smaller than before")), true
+		}
 	}
 
 	// check nickname usage.

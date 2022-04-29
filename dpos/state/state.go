@@ -598,10 +598,11 @@ func (s *State) updateProducerInfo(origin *payload.ProducerInfo, update *payload
 
 	producer.info = *update
 
-	// todo refactor me: how to rollback?
 	if update.StakeUntil != 0 {
-		ownerKey := hex.EncodeToString(update.OwnerPublicKey)
-		s.DposV2ActivityProducers[ownerKey] = producer
+		oldOwnerKey := hex.EncodeToString(origin.OwnerPublicKey)
+		newOwnerKey := hex.EncodeToString(update.OwnerPublicKey)
+		delete(s.DposV2ActivityProducers, oldOwnerKey)
+		s.DposV2ActivityProducers[newOwnerKey] = producer
 	}
 }
 
@@ -1482,50 +1483,46 @@ func (s *State) registerProducer(tx interfaces.Transaction, height uint32) {
 			depositOutputs[op.ReferKey()] = output.Value
 		}
 	}
-	if s.getProducer(info.NodePublicKey) == nil {
 
-		depositAmount := common.Fixed64(0)
-		if info.StakeUntil != 0 {
-			depositAmount = state.MinDPoSV2DepositAmount
-		} else {
-			depositAmount = state.MinDepositAmount
-		}
-
-		producer := Producer{
-			info:                         *info,
-			registerHeight:               height,
-			votes:                        0,
-			dposV2Votes:                  0,
-			inactiveSince:                0,
-			inactiveCount:                0,
-			randomCandidateInactiveCount: 0,
-			penalty:                      common.Fixed64(0),
-			activateRequestHeight:        math.MaxUint32,
-			depositAmount:                depositAmount,
-			totalAmount:                  amount,
-			depositHash:                  *programHash,
-		}
-
-		s.History.Append(height, func() {
-			s.Nicknames[nickname] = struct{}{}
-			s.NodeOwnerKeys[nodeKey] = ownerKey
-			s.PendingProducers[ownerKey] = &producer
-			s.ProducerDepositMap[*programHash] = struct{}{}
-			for k, v := range depositOutputs {
-				s.DepositOutputs[k] = v
-			}
-		}, func() {
-			delete(s.Nicknames, nickname)
-			delete(s.NodeOwnerKeys, nodeKey)
-			delete(s.PendingProducers, ownerKey)
-			delete(s.ProducerDepositMap, *programHash)
-			for k := range depositOutputs {
-				delete(s.DepositOutputs, k)
-			}
-		})
+	depositAmount := common.Fixed64(0)
+	if info.StakeUntil != 0 {
+		depositAmount = state.MinDPoSV2DepositAmount
 	} else {
-		s.updateProducer(info, height)
+		depositAmount = state.MinDepositAmount
 	}
+
+	producer := Producer{
+		info:                         *info,
+		registerHeight:               height,
+		votes:                        0,
+		dposV2Votes:                  0,
+		inactiveSince:                0,
+		inactiveCount:                0,
+		randomCandidateInactiveCount: 0,
+		penalty:                      common.Fixed64(0),
+		activateRequestHeight:        math.MaxUint32,
+		depositAmount:                depositAmount,
+		totalAmount:                  amount,
+		depositHash:                  *programHash,
+	}
+
+	s.History.Append(height, func() {
+		s.Nicknames[nickname] = struct{}{}
+		s.NodeOwnerKeys[nodeKey] = ownerKey
+		s.PendingProducers[ownerKey] = &producer
+		s.ProducerDepositMap[*programHash] = struct{}{}
+		for k, v := range depositOutputs {
+			s.DepositOutputs[k] = v
+		}
+	}, func() {
+		delete(s.Nicknames, nickname)
+		delete(s.NodeOwnerKeys, nodeKey)
+		delete(s.PendingProducers, ownerKey)
+		delete(s.ProducerDepositMap, *programHash)
+		for k := range depositOutputs {
+			delete(s.DepositOutputs, k)
+		}
+	})
 }
 
 // updateProducer handles the update producer transaction.

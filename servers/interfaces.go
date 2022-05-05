@@ -2818,6 +2818,7 @@ func getPayloadInfo(p interfaces.Payload, payloadVersion byte) PayloadInfo {
 		obj.Url = object.Url
 		obj.Location = object.Location
 		obj.NetAddress = object.NetAddress
+		obj.StakeUntil = object.StakeUntil
 		obj.Signature = common.BytesToHexString(object.Signature)
 		return obj
 	case *payload.ProcessProducer:

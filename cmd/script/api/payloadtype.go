@@ -558,8 +558,10 @@ func newUpdateProducer(L *lua.LState) int {
 	url := L.ToString(4)
 	location := L.ToInt64(5)
 	address := L.ToString(6)
+	stakeuntil := L.ToInt64(7)
+	fmt.Println("stakeuntil2: " + strconv.Itoa(int(stakeuntil)))
 	needSign := true
-	client, err := checkClient(L, 7)
+	client, err := checkClient(L, 8)
 	if err != nil {
 		needSign = false
 	}
@@ -581,11 +583,16 @@ func newUpdateProducer(L *lua.LState) int {
 		Url:            url,
 		Location:       uint64(location),
 		NetAddress:     address,
+		StakeUntil:     uint32(stakeuntil),
 	}
 
 	if needSign {
 		upSignBuf := new(bytes.Buffer)
-		err = updateProducer.SerializeUnsigned(upSignBuf, payload.ProducerInfoVersion)
+		version := payload.ProducerInfoVersion
+		if stakeuntil != 0 {
+			version = payload.ProducerInfoDposV2Version
+		}
+		err = updateProducer.SerializeUnsigned(upSignBuf, version)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
@@ -597,6 +604,8 @@ func newUpdateProducer(L *lua.LState) int {
 			fmt.Println("no available account in wallet")
 			os.Exit(1)
 		}
+		p, _ := acc.PubKey().EncodePoint(true)
+		fmt.Printf("version1 %v %s %s", version, hex.EncodeToString(ownerPublicKey), hex.EncodeToString(p))
 		rpSig, err := crypto.Sign(acc.PrivKey(), upSignBuf.Bytes())
 		if err != nil {
 			fmt.Println(err)

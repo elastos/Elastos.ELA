@@ -61,8 +61,6 @@ func (t *UpdateProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bool
 	if err != nil {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid owner public key in payload")), true
 	}
-	p, _ := publicKey.EncodePoint(true)
-	log.Info("###SpecialContextCheck %s %d, version %d", hex.EncodeToString(p), info.StakeUntil, t.payloadVersion)
 	signedBuf := new(bytes.Buffer)
 	err = info.SerializeUnsigned(signedBuf, t.payloadVersion)
 	if err != nil {
@@ -81,6 +79,10 @@ func (t *UpdateProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bool
 	if producer.Info().StakeUntil != 0 {
 		if info.StakeUntil < producer.Info().StakeUntil {
 			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("stake time is smaller than before")), true
+		}
+
+		if t.parameters.BlockHeight > producer.Info().StakeUntil {
+			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("v2 producer already expired")), true
 		}
 	}
 

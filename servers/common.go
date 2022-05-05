@@ -210,6 +210,7 @@ type ProducerInfo struct {
 	Url            string `json:"url"`
 	Location       uint64 `json:"location"`
 	NetAddress     string `json:"netaddress"`
+	StakeUntil     uint32 `json:"stakeuntil"`
 	Signature      string `json:"signature"`
 }
 

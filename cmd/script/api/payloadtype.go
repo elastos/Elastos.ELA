@@ -559,7 +559,6 @@ func newUpdateProducer(L *lua.LState) int {
 	location := L.ToInt64(5)
 	address := L.ToString(6)
 	stakeuntil := L.ToInt64(7)
-	fmt.Println("stakeuntil2: " + strconv.Itoa(int(stakeuntil)))
 	needSign := true
 	client, err := checkClient(L, 8)
 	if err != nil {
@@ -604,8 +603,6 @@ func newUpdateProducer(L *lua.LState) int {
 			fmt.Println("no available account in wallet")
 			os.Exit(1)
 		}
-		p, _ := acc.PubKey().EncodePoint(true)
-		fmt.Printf("version1 %v %s %s", version, hex.EncodeToString(ownerPublicKey), hex.EncodeToString(p))
 		rpSig, err := crypto.Sign(acc.PrivKey(), upSignBuf.Bytes())
 		if err != nil {
 			fmt.Println(err)

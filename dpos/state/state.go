@@ -94,7 +94,6 @@ type Producer struct {
 	detailedDPoSV2Votes map[common.Uint168]map[common.Uint256]payload.DetailedVoteInfo
 
 	depositAmount                common.Fixed64
-	dposV2DepositAmount          common.Fixed64
 	totalAmount                  common.Fixed64
 	depositHash                  common.Uint168
 	selected                     bool
@@ -163,7 +162,7 @@ func (p *Producer) DepositAmount() common.Fixed64 {
 }
 
 func (p *Producer) DPoSV2DepositAmount() common.Fixed64 {
-	return p.dposV2DepositAmount
+	return state.MinDPoSV2DepositAmount
 }
 
 func (p *Producer) TotalAmount() common.Fixed64 {

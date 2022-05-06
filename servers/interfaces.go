@@ -2658,10 +2658,19 @@ func GetDepositCoin(param Params) map[string]interface{} {
 		Deposit   string `json:"deposit"`
 		Assets    string `json:"assets"`
 	}
+	height := Chain.GetHeight()
+
+	depositAmount := common.Fixed64(0)
+	if height < Chain.GetState().DPoSV2ActiveHeight {
+		depositAmount = producer.DepositAmount()
+	} else {
+		depositAmount = producer.DPoSV2DepositAmount()
+	}
+
 	return ResponsePack(Success, &depositCoin{
 		Available: producer.AvailableAmount().String(),
 		Deducted:  producer.Penalty().String(),
-		Deposit:   producer.DepositAmount().String(),
+		Deposit:   depositAmount.String(),
 		Assets:    producer.TotalAmount().String(),
 	})
 }

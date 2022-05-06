@@ -52,78 +52,63 @@ func (t *RegisterProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bo
 		return elaerr.Simple(elaerr.ErrTxPayload, err), true
 	}
 
+	// check duplication of node.
+	if t.parameters.BlockChain.GetState().ProducerNodePublicKeyExists(info.NodePublicKey) {
+		return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("producer already registered")), true
+	}
+
+	// check duplication of owner.
+	if t.parameters.BlockChain.GetState().ProducerOwnerPublicKeyExists(info.OwnerPublicKey) {
+		return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("producer owner already registered")), true
+	}
+
+	// check duplication of nickname.
+	if t.parameters.BlockChain.GetState().NicknameExists(info.NickName) {
+		return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("nick name %s already inuse", info.NickName)), true
+	}
+
+	// check if public keys conflict with cr program code
+	ownerCode := append([]byte{byte(crypto.COMPRESSEDLEN)}, info.OwnerPublicKey...)
+	ownerCode = append(ownerCode, vm.CHECKSIG)
+	if t.parameters.BlockChain.GetCRCommittee().ExistCR(ownerCode) {
+		return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("owner public key %s already exist in cr list",
+			common.BytesToHexString(info.OwnerPublicKey))), true
+	}
+	nodeCode := append([]byte{byte(crypto.COMPRESSEDLEN)}, info.NodePublicKey...)
+	nodeCode = append(nodeCode, vm.CHECKSIG)
+	if t.parameters.BlockChain.GetCRCommittee().ExistCR(nodeCode) {
+		return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("node public key %s already exist in cr list",
+			common.BytesToHexString(info.NodePublicKey))), true
+	}
+
+	if err := t.additionalProducerInfoCheck(info); err != nil {
+		return elaerr.Simple(elaerr.ErrTxPayload, err), true
+	}
+
+	// check signature
+	publicKey, err := crypto.DecodePoint(info.OwnerPublicKey)
+	if err != nil {
+		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid owner public key in payload")), true
+	}
+	signedBuf := new(bytes.Buffer)
+	err = info.SerializeUnsigned(signedBuf, t.payloadVersion)
+	if err != nil {
+		return elaerr.Simple(elaerr.ErrTxPayload, err), true
+	}
+	err = crypto.Verify(*publicKey, signedBuf.Bytes(), info.Signature)
+	if err != nil {
+		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid signature in payload")), true
+	}
+
 	height := t.parameters.BlockChain.GetHeight()
 	state := t.parameters.BlockChain.GetState()
-	if height < t.parameters.Config.PublicDPOSHeight {
-		// check duplication of node.
-		if t.parameters.BlockChain.GetState().ProducerExists(info.NodePublicKey) {
-			return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("producer already registered")), true
-		}
-
-		// check duplication of owner.
-		if t.parameters.BlockChain.GetState().ProducerExists(info.OwnerPublicKey) {
-			return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("producer owner already registered")), true
-		}
-	} else if height < t.parameters.Config.DPoSV2StartHeight {
-		switch t.payloadVersion {
-		case payload.ProducerInfoVersion:
-			// check duplication of node.
-			if t.parameters.BlockChain.GetState().ProducerNodePublicKeyExists(info.NodePublicKey) {
-				return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("producer already registered")), true
-			}
-
-			// check duplication of owner.
-			if t.parameters.BlockChain.GetState().ProducerOwnerPublicKeyExists(info.OwnerPublicKey) {
-				return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("producer owner already registered")), true
-			}
-		case payload.ProducerInfoDposV2Version:
-			return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("can not register dposv2 before dposv2 start height")), true
-		}
-	} else if height > state.DPoSV2ActiveHeight {
-		if t.payloadVersion == payload.ProducerInfoVersion {
-			return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("can not register dposv1 after dposv2 active height")), true
-		}
+	if height < t.parameters.Config.DPoSV2StartHeight && t.payloadVersion == payload.ProducerInfoDposV2Version {
+		return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("can not register dposv2 before dposv2 start height")), true
+	} else if height > state.DPoSV2ActiveHeight && t.payloadVersion == payload.ProducerInfoVersion {
+		return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("can not register dposv1 after dposv2 active height")), true
 	}
 
 	if t.PayloadVersion() == payload.ProducerInfoVersion {
-		// check duplication of nickname.
-		if t.parameters.BlockChain.GetState().NicknameExists(info.NickName) {
-			return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("nick name %s already inuse", info.NickName)), true
-		}
-
-		// check if public keys conflict with cr program code
-		ownerCode := append([]byte{byte(crypto.COMPRESSEDLEN)}, info.OwnerPublicKey...)
-		ownerCode = append(ownerCode, vm.CHECKSIG)
-		if t.parameters.BlockChain.GetCRCommittee().ExistCR(ownerCode) {
-			return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("owner public key %s already exist in cr list",
-				common.BytesToHexString(info.OwnerPublicKey))), true
-		}
-		nodeCode := append([]byte{byte(crypto.COMPRESSEDLEN)}, info.NodePublicKey...)
-		nodeCode = append(nodeCode, vm.CHECKSIG)
-		if t.parameters.BlockChain.GetCRCommittee().ExistCR(nodeCode) {
-			return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("node public key %s already exist in cr list",
-				common.BytesToHexString(info.NodePublicKey))), true
-		}
-
-		if err := t.additionalProducerInfoCheck(info); err != nil {
-			return elaerr.Simple(elaerr.ErrTxPayload, err), true
-		}
-
-		// check signature
-		publicKey, err := crypto.DecodePoint(info.OwnerPublicKey)
-		if err != nil {
-			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid owner public key in payload")), true
-		}
-		signedBuf := new(bytes.Buffer)
-		err = info.SerializeUnsigned(signedBuf, t.payloadVersion)
-		if err != nil {
-			return elaerr.Simple(elaerr.ErrTxPayload, err), true
-		}
-		err = crypto.Verify(*publicKey, signedBuf.Bytes(), info.Signature)
-		if err != nil {
-			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid signature in payload")), true
-		}
-
 		// check deposit coin
 		hash, err := contract.PublicKeyToDepositProgramHash(info.OwnerPublicKey)
 		if err != nil {
@@ -150,37 +135,6 @@ func (t *RegisterProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bo
 			return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("stakeuntil must bigger than DPoSV2StartHeight")), true
 		}
 
-		// check duplication of node.
-		nodeKeyExist := t.parameters.BlockChain.GetState().ProducerNodePublicKeyExists(info.NodePublicKey)
-
-		// check duplication of owner.
-		ownerKeyExist := t.parameters.BlockChain.GetState().ProducerOwnerPublicKeyExists(info.OwnerPublicKey)
-
-		// check duplication of nickname.
-		nickNameExist := t.parameters.BlockChain.GetState().NicknameExists(info.NickName)
-
-		if nodeKeyExist || ownerKeyExist || nickNameExist {
-			return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("NodePublicKey %v OwnerPublicKey %v NickName %v", nodeKeyExist, ownerKeyExist, nickNameExist)), true
-		}
-
-		// check if public keys conflict with cr program code
-		ownerCode := append([]byte{byte(crypto.COMPRESSEDLEN)}, info.OwnerPublicKey...)
-		ownerCode = append(ownerCode, vm.CHECKSIG)
-		if t.parameters.BlockChain.GetCRCommittee().ExistCR(ownerCode) {
-			return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("owner public key %s already exist in cr list",
-				common.BytesToHexString(info.OwnerPublicKey))), true
-		}
-		nodeCode := append([]byte{byte(crypto.COMPRESSEDLEN)}, info.NodePublicKey...)
-		nodeCode = append(nodeCode, vm.CHECKSIG)
-		if t.parameters.BlockChain.GetCRCommittee().ExistCR(nodeCode) {
-			return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("node public key %s already exist in cr list",
-				common.BytesToHexString(info.NodePublicKey))), true
-		}
-
-		if err := t.additionalProducerInfoCheck(info); err != nil {
-			return elaerr.Simple(elaerr.ErrTxPayload, err), true
-		}
-
 		// check deposit coin
 		hash, err := contract.PublicKeyToDepositProgramHash(info.OwnerPublicKey)
 		if err != nil {
@@ -200,21 +154,6 @@ func (t *RegisterProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bo
 		}
 		if depositCount != 1 {
 			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("there must be only one deposit address in outputs")), true
-		}
-
-		// check signature
-		publicKey, err := crypto.DecodePoint(info.OwnerPublicKey)
-		if err != nil {
-			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid owner public key in payload")), true
-		}
-		signedBuf := new(bytes.Buffer)
-		err = info.SerializeUnsigned(signedBuf, t.payloadVersion)
-		if err != nil {
-			return elaerr.Simple(elaerr.ErrTxPayload, err), true
-		}
-		err = crypto.Verify(*publicKey, signedBuf.Bytes(), info.Signature)
-		if err != nil {
-			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid signature in payload")), true
 		}
 	}
 

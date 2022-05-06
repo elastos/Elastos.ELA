@@ -903,7 +903,7 @@ func (s *txValidatorTestSuite) TestCheckRegisterDposV2ProducerTransaction() {
 	// Give an invalid owner public key in payload
 	txn.Payload().(*payload.ProducerInfo).OwnerPublicKey = errPublicKey
 	err, _ = tx.SpecialContextCheck()
-	s.EqualError(err.(errors.ELAError).InnerError(), "invalid public key")
+	s.EqualError(err.(errors.ELAError).InnerError(), "invalid owner public key in payload")
 
 	// check version when height is not higher than dposv2 height
 	s.Chain.Nodes = []*blockchain.BlockNode{
@@ -922,7 +922,7 @@ func (s *txValidatorTestSuite) TestCheckRegisterDposV2ProducerTransaction() {
 		{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {},
 	}
 	err, _ = tx.SpecialContextCheck()
-	s.EqualError(err.(errors.ELAError).InnerError(), "deposit address does not match the public key in payload")
+	s.EqualError(err.(errors.ELAError).InnerError(), "invalid signature in payload")
 
 	// Give a insufficient deposit coin
 	txn.Payload().(*payload.ProducerInfo).OwnerPublicKey = publicKey1

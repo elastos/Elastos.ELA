@@ -48,8 +48,8 @@ func (t *StakeTransaction) CheckTransactionOutput() error {
 			return errors.New("asset ID in output is invalid")
 		}
 
-		// output value must >= 0
-		if output.Value < common.Fixed64(0) {
+		// output value must > 0
+		if output.Value <= common.Fixed64(0) {
 			return errors.New("invalid transaction UTXO output")
 		}
 	}

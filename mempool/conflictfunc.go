@@ -284,7 +284,7 @@ func strVoting(tx interfaces.Transaction) (interface{}, error) {
 		return nil, fmt.Errorf("invlid voint code, tx:%s", tx.Hash())
 	}
 	stakeProgramHash := ct.ToProgramHash()
-	return stakeProgramHash, nil
+	return *stakeProgramHash, nil
 }
 
 func strCancelVotes(tx interfaces.Transaction) (interface{}, error) {
@@ -301,7 +301,7 @@ func strCancelVotes(tx interfaces.Transaction) (interface{}, error) {
 		return nil, fmt.Errorf("invlid cancel votes code, tx:%s", tx.Hash())
 	}
 	stakeProgramHash := ct.ToProgramHash()
-	return stakeProgramHash, nil
+	return *stakeProgramHash, nil
 }
 
 func strUnstake(tx interfaces.Transaction) (interface{}, error) {
@@ -316,7 +316,7 @@ func strUnstake(tx interfaces.Transaction) (interface{}, error) {
 		return nil, fmt.Errorf("invlid unstake code, tx:%s", tx.Hash())
 	}
 	stakeProgramHash := ct.ToProgramHash()
-	return stakeProgramHash, nil
+	return *stakeProgramHash, nil
 }
 
 func strRegisterCRPublicKey(tx interfaces.Transaction) (interface{}, error) {

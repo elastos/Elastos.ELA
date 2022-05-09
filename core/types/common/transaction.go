@@ -65,11 +65,11 @@ const (
 	// DPoS2.0
 	DposV2ClaimReward             TxType = 0x60
 	DposV2ClaimRewardRealWithdraw TxType = 0x61
-	Stake                 TxType = 0x62
+	Stake                         TxType = 0x62
 	Voting                        TxType = 0x63
 	CancelVotes                   TxType = 0x64
-	Unstake                   TxType = 0x65
-	UnstakeRealWithdraw       TxType = 0x66
+	Unstake                       TxType = 0x65
+	UnstakeRealWithdraw           TxType = 0x66
 )
 
 func (self TxType) Name() string {

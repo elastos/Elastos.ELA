@@ -12,6 +12,7 @@ import (
 
 	"github.com/elastos/Elastos.ELA/blockchain"
 	"github.com/elastos/Elastos.ELA/common"
+	"github.com/elastos/Elastos.ELA/core/contract"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/core/types/outputpayload"
@@ -251,6 +252,71 @@ func strProducerInfoNickname(tx interfaces.Transaction) (interface{}, error) {
 		return nil, err
 	}
 	return p.NickName, nil
+}
+
+func strStake(tx interfaces.Transaction) (interface{}, error) {
+	if len(tx.Outputs()) < 1 {
+		return nil, fmt.Errorf("invlid unstake outputs count, tx:%s", tx.Hash())
+	}
+	p := tx.Outputs()[0].Payload
+	if p == nil {
+		return nil, fmt.Errorf("invlid unstake outputs payload, tx:%s", tx.Hash())
+	}
+	pld, ok := p.(*outputpayload.StakeOutput)
+	if !ok {
+		return nil, fmt.Errorf("invlid unstake output payload, tx:%s", tx.Hash())
+	}
+
+	return pld.StakeAddress, nil
+}
+
+func strVoting(tx interfaces.Transaction) (interface{}, error) {
+	_, ok := tx.Payload().(*payload.Voting)
+	if !ok {
+		return nil, fmt.Errorf("invlid voting payload, tx:%s", tx.Hash())
+	}
+	if len(tx.Programs()) < 1 {
+		return nil, fmt.Errorf("invalid voting programs count, tx:%s", tx.Hash())
+	}
+	code := tx.Programs()[0].Code
+	ct, err := contract.CreateStakeContractByCode(code)
+	if err != nil {
+		return nil, fmt.Errorf("invlid voint code, tx:%s", tx.Hash())
+	}
+	stakeProgramHash := ct.ToProgramHash()
+	return stakeProgramHash, nil
+}
+
+func strCancelVotes(tx interfaces.Transaction) (interface{}, error) {
+	_, ok := tx.Payload().(*payload.CancelVotes)
+	if !ok {
+		return nil, fmt.Errorf("invlid cancel votes payload, tx:%s", tx.Hash())
+	}
+	if len(tx.Programs()) < 1 {
+		return nil, fmt.Errorf("invalid cancel votes programs count, tx:%s", tx.Hash())
+	}
+	code := tx.Programs()[0].Code
+	ct, err := contract.CreateStakeContractByCode(code)
+	if err != nil {
+		return nil, fmt.Errorf("invlid cancel votes code, tx:%s", tx.Hash())
+	}
+	stakeProgramHash := ct.ToProgramHash()
+	return stakeProgramHash, nil
+}
+
+func strUnstake(tx interfaces.Transaction) (interface{}, error) {
+	pld, ok := tx.Payload().(*payload.Unstake)
+	if !ok {
+		return nil, fmt.Errorf("invlid unstake payload, tx:%s", tx.Hash())
+	}
+
+	code := pld.Code
+	ct, err := contract.CreateStakeContractByCode(code)
+	if err != nil {
+		return nil, fmt.Errorf("invlid unstake code, tx:%s", tx.Hash())
+	}
+	stakeProgramHash := ct.ToProgramHash()
+	return stakeProgramHash, nil
 }
 
 func strRegisterCRPublicKey(tx interfaces.Transaction) (interface{}, error) {

@@ -973,8 +973,6 @@ func NewSettings() *Settings {
 		ConfigPath:   "CRConfiguration.CRClaimPeriod",
 		ParamName:    "CRClaimPeriod"})
 
-
-
 	result.Add(&settingItem{
 		Flag:         cmdcom.CustomIDProposalStartHeight,
 		DefaultValue: uint32(0),
@@ -1110,6 +1108,12 @@ func NewSettings() *Settings {
 		DefaultValue: uint32(0),
 		ConfigPath:   "SchnorrStartHeight",
 		ParamName:    "SchnorrStartHeight"})
+
+	result.Add(&settingItem{
+		Flag:         cmdcom.CrArbitrationMonitorHeightFlag,
+		DefaultValue: uint32(0),
+		ConfigPath:   "CrArbitrationMonitorHeight",
+		ParamName:    "CrArbitrationMonitorHeight"})
 
 	return result
 }

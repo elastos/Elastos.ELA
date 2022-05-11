@@ -718,6 +718,11 @@ var (
 		Name:  "crdposnodehotfixheight",
 		Usage: "CRDPoSNodeHotFixHeight indicates the hot fix start height of CR DPoS node",
 	}
+
+	CrArbitrationMonitorHeightFlag = cli.StringFlag{
+		Name:  "crarbitrationmonitorheight",
+		Usage: "defines the start height to monitor cr cross chain transaction",
+	}
 )
 
 // MoveRPCFlags finds the rpc argument and moves it to the front

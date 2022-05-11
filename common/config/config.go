@@ -92,6 +92,7 @@ type Configuration struct {
 	StakeAddress                    string            `json:"StakeAddress"`
 	SchnorrStartHeight              uint32            `json:"SchnorrStartHeight"`
 	CrArbitrationMonitorHeight      uint32            `json:"CrArbitrationMonitorHeight"`
+	CrArbitrationNotFoundBreach     uint32            `json:"CrArbitrationNotFoundBreach"`
 }
 
 // DPoSConfiguration defines the DPoS consensus parameters.

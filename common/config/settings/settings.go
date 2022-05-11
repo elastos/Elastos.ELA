@@ -1115,6 +1115,12 @@ func NewSettings() *Settings {
 		ConfigPath:   "CrArbitrationMonitorHeight",
 		ParamName:    "CrArbitrationMonitorHeight"})
 
+	result.Add(&settingItem{
+		Flag:         cmdcom.CrArbitrationNotFoundBreachFlag,
+		DefaultValue: uint32(0),
+		ConfigPath:   "CrArbitrationNotFoundBreach",
+		ParamName:    "CrArbitrationNotFoundBreach"})
+
 	return result
 }
 

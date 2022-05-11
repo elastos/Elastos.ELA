@@ -723,6 +723,11 @@ var (
 		Name:  "crarbitrationmonitorheight",
 		Usage: "defines the start height to monitor cr cross chain transaction",
 	}
+
+	CrArbitrationNotFoundBreachFlag = cli.StringFlag{
+		Name:  "crarbitrationnotfoundbreach",
+		Usage: "defines the breach of cr cross chain arbitration",
+	}
 )
 
 // MoveRPCFlags finds the rpc argument and moves it to the front

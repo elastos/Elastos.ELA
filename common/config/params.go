@@ -265,6 +265,7 @@ func GetDefaultParams() Params {
 		SchnorrStartHeight:                 2000000, // todo complete me
 		CRDPoSNodeHotFixHeight:             0,
 		CrArbitrationMonitorHeight:         2000000, // todo complete me
+		CrArbitrationNotFoundBreach:        100,     // todo complete me
 	}
 }
 
@@ -367,6 +368,7 @@ func (p *Params) TestNet() *Params {
 	copy.SchnorrStartHeight = 2000000 // todo complete me
 	copy.CRDPoSNodeHotFixHeight = 0
 	copy.CrArbitrationMonitorHeight = 2000000 // todo complete me
+	copy.CrArbitrationNotFoundBreach = 10     // todo complete me
 
 	return &copy
 }
@@ -471,6 +473,7 @@ func (p *Params) RegNet() *Params {
 	copy.SchnorrStartHeight = 2000000 // todo fix me
 	copy.CRDPoSNodeHotFixHeight = 0
 	copy.CrArbitrationMonitorHeight = 2000000 // todo complete me
+	copy.CrArbitrationNotFoundBreach = 10     // todo complete me
 
 	return &copy
 }
@@ -840,6 +843,9 @@ type Params struct {
 
 	// CrArbitrationMonitorHeight indicates the monitor height of cr cross chain arbitration
 	CrArbitrationMonitorHeight uint32
+
+	// CrArbitrationNotFoundBreach indicates the breach value of cr cross chain arbitration
+	CrArbitrationNotFoundBreach uint32
 }
 
 // RewardPerBlock calculates the reward for each block by a specified time

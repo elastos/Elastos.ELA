@@ -1031,6 +1031,13 @@ func (c *Committee) processCRCRealWithdraw(tx interfaces.Transaction,
 	})
 }
 
+func (c *Committee) processsWithdrawFromSideChain(tx interfaces.Transaction,
+	height uint32, history *utils.History) {
+	//apPayload := tx.Payload().(*payload.WithdrawFromSideChain)
+	//apPayload.Signers
+	//TODO get withdraw from sidechain signer change state
+}
+
 func (c *Committee) activateProducer(tx interfaces.Transaction,
 	height uint32, history *utils.History) {
 	apPayload := tx.Payload().(*payload.ActivateProducer)

@@ -223,15 +223,16 @@ func (t *VotingTransaction) checkVoteProducerContent(content payload.VotesConten
 				"producer candidate: %s", common.BytesToHexString(cv.Candidate))
 		}
 	}
-	var totalVotes common.Fixed64
+	var maxVotes common.Fixed64
 	for _, cv := range content.VotesInfo {
 		if cv.LockTime != 0 {
 			return errors.New("votes lock time need to be zero")
 		}
-		totalVotes += cv.Votes
+		if maxVotes < cv.Votes {
+			maxVotes = cv.Votes
+		}
 	}
-
-	if totalVotes > voteRights {
+	if maxVotes > voteRights {
 		return errors.New("DPoS vote rights not enough")
 	}
 
@@ -276,10 +277,13 @@ func (t *VotingTransaction) checkVoteCRContent(blockHeight uint32,
 
 func (t *VotingTransaction) checkVoteCRCProposalContent(
 	content payload.VotesContent, voteRights common.Fixed64) error {
-	var totalVotes common.Fixed64
+	var maxVotes common.Fixed64
 	for _, cv := range content.VotesInfo {
 		if cv.LockTime != 0 {
 			return errors.New("votes lock time need to be zero")
+		}
+		if maxVotes < cv.Votes {
+			maxVotes = cv.Votes
 		}
 		proposalHash, err := common.Uint256FromBytes(cv.Candidate)
 		if err != nil {
@@ -290,10 +294,9 @@ func (t *VotingTransaction) checkVoteCRCProposalContent(
 			return fmt.Errorf("invalid CRCProposal: %s",
 				common.ToReversedString(*proposalHash))
 		}
-		totalVotes += cv.Votes
 	}
 
-	if totalVotes > voteRights {
+	if maxVotes > voteRights {
 		return errors.New("CRCProposal vote rights not enough")
 	}
 

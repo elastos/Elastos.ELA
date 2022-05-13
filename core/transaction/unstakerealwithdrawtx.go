@@ -59,7 +59,7 @@ func (t *UnstakeRealWithdrawTransaction) SpecialContextCheck() (result elaerr.EL
 	txsCount := len(unstakeRealWithdraw.UnstakeRealWithdraw)
 	// check UnstakeRealWithdraw count and output count
 	if txsCount != len(t.Outputs()) && txsCount != len(t.Outputs())-1 {
-		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid real Votes withdraw transaction hashes count")), true
+		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid real unstake transaction outputs count")), true
 	}
 
 	// check other outputs, need to match with UnstakeRealWithdraw
@@ -68,19 +68,19 @@ func (t *UnstakeRealWithdrawTransaction) SpecialContextCheck() (result elaerr.EL
 	for i, retVoteWithdraw := range unstakeRealWithdraw.UnstakeRealWithdraw {
 		txInfo, ok := txs[retVoteWithdraw.RetVotesTXHash]
 		if !ok {
-			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid Votes withdraw transaction hash")), true
+			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid unstake transaction hash")), true
 		}
 		output := t.Outputs()[i]
 		if !output.ProgramHash.IsEqual(txInfo.Recipient) {
-			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid real Votes withdraw output address")), true
+			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid real unstake output address")), true
 		}
 		if output.Value != txInfo.Amount-t.parameters.Config.RealWithdrawSingleFee {
-			return elaerr.Simple(elaerr.ErrTxPayload, errors.New(fmt.Sprintf("invalid real Votes withdraw output "+
+			return elaerr.Simple(elaerr.ErrTxPayload, errors.New(fmt.Sprintf("invalid real unstake output "+
 				"amount:%s, need to be:%s",
 				output.Value, txInfo.Amount-t.parameters.Config.RealWithdrawSingleFee))), true
 		}
 		if _, ok := txsMap[retVoteWithdraw.RetVotesTXHash]; ok {
-			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("duplicated real  Votes withdraw transactions hash")), true
+			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("duplicated real unstake transactions hash")), true
 		}
 		txsMap[retVoteWithdraw.RetVotesTXHash] = struct{}{}
 	}
@@ -95,7 +95,7 @@ func (t *UnstakeRealWithdrawTransaction) SpecialContextCheck() (result elaerr.EL
 		outputAmount += o.Value
 	}
 	if inputAmount-outputAmount != t.parameters.Config.RealWithdrawSingleFee*common.Fixed64(txsCount) {
-		return elaerr.Simple(elaerr.ErrTxPayload, errors.New(fmt.Sprintf("invalid real Votes withdraw transaction"+
+		return elaerr.Simple(elaerr.ErrTxPayload, errors.New(fmt.Sprintf("invalid real unstaketransaction"+
 			" fee:%s, need to be:%s, txsCount:%d", inputAmount-outputAmount,
 			t.parameters.Config.RealWithdrawSingleFee*common.Fixed64(txsCount), txsCount))), true
 	}

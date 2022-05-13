@@ -1091,11 +1091,11 @@ func (s *State) createRealUnstakeTransaction(height uint32) {
 		}
 		tx, err := s.createUnstakeRealWithdrawTransaction(retVoteswithdrawTxHashes, ouputs)
 		if err != nil {
-			log.Error("create Return Votes Real Withdraw tx failed:", err.Error())
+			log.Error("create real unstake tx failed:", err.Error())
 			return
 		}
 
-		log.Info("create Return Votes Real Withdraw transaction:", tx.Hash())
+		log.Info("create real unstake transaction:", tx.Hash())
 		if s.isCurrent != nil && s.broadcast != nil && s.
 			appendToTxpool != nil {
 			go func() {
@@ -1103,7 +1103,7 @@ func (s *State) createRealUnstakeTransaction(height uint32) {
 					if err := s.appendToTxpool(tx); err == nil {
 						s.broadcast(msg.NewTx(tx))
 					} else {
-						log.Warn("create Return Votes Real Withdraw tx "+
+						log.Warn("create real unstake tx "+
 							"append to tx pool err ", err)
 					}
 				}

@@ -52,7 +52,8 @@ type Committee struct {
 	createCRAssetsRectifyTransaction func() (interfaces.Transaction, error)
 	createCRRealWithdrawTransaction  func(withdrawTransactionHashes []common.Uint256,
 		outputs []*common2.OutputInfo) (interfaces.Transaction, error)
-	getUTXO func(programHash *common.Uint168) ([]*common2.UTXO, error)
+	getUTXO            func(programHash *common.Uint168) ([]*common2.UTXO, error)
+	getCurrentArbiters func() [][]byte
 }
 
 type CommitteeKeyFrame struct {
@@ -1034,68 +1035,70 @@ func (c *Committee) processCRCRealWithdraw(tx interfaces.Transaction,
 
 func (c *Committee) processsWithdrawFromSideChain(tx interfaces.Transaction,
 	height uint32, history *utils.History) {
-	//apPayload := tx.Payload().(*payload.WithdrawFromSideChain)
-	// 以前旧的多签，shnor的多签。payload version 0x01的 数字对应currentarbiter列表的.
-	// 之前的code里面有publickey。
-	// apPayload.Signers
 	reachTop := false
 	if c.CurrentWithdrawFromSideChainIndex == c.Params.CrArbitrationNotFoundBreach {
 		reachTop = true
 		c.CurrentWithdrawFromSideChainIndex = 0
 	}
 
+	// TODO consider history
+	electedMembers := c.GetElectedMembers()
+	electedMemTempUse := make(map[string]*CRMember)
+	electedMemAll := make(map[string]*CRMember)
+	for _, elected := range electedMembers {
+		electedMemTempUse[hex.EncodeToString(elected.DPOSPublicKey)] = elected
+		electedMemAll[hex.EncodeToString(elected.DPOSPublicKey)] = elected
+	}
+	var publicKeys [][]byte
 	if tx.PayloadVersion() == payload.WithdrawFromSideChainVersionV2 {
-		// TODO: get current arbiters from dpos arbiter
-		//arbiters := blockchain.DefaultLedger.Arbitrators.GetCRCArbiters()
-		//println(arbiters)
+		allPulicKeys := c.getCurrentArbiters()
+		payload := tx.Payload().(*payload.WithdrawFromSideChain)
+		for _, index := range payload.Signers {
+			publicKeys = append(publicKeys, allPulicKeys[index])
+		}
 	} else {
-		// TODO consider history
-		electedMembers := c.GetElectedMembers()
-		electedMemTempUse := make(map[string]*CRMember)
-		electedMemAll := make(map[string]*CRMember)
-		for _, elected := range electedMembers {
-			electedMemTempUse[hex.EncodeToString(elected.DPOSPublicKey)] = elected
-			electedMemAll[hex.EncodeToString(elected.DPOSPublicKey)] = elected
-		}
 		for _, p := range tx.Programs() {
-			publicKeys, _, _, _ := crypto.ParseCrossChainScriptV1(p.Code)
-			for _, pub := range publicKeys {
-				pubStr := hex.EncodeToString(pub)
-				if electedMemTempUse[pubStr] != nil {
-					delete(electedMemTempUse, pubStr)
-				}
-				if exist, i := isArbiterEixst(pubStr, c.CurrentUnsignedWithdrawFromSideChainKeys); exist {
-					var newCurrentUnsignedWithdrawFromSideChainKeys []string
-					newCurrentUnsignedWithdrawFromSideChainKeys = append(c.CurrentUnsignedWithdrawFromSideChainKeys[0:i], c.CurrentUnsignedWithdrawFromSideChainKeys[i+1:]...)
-					c.CurrentUnsignedWithdrawFromSideChainKeys = newCurrentUnsignedWithdrawFromSideChainKeys
-				}
+			publicKeys, _, _, _ = crypto.ParseCrossChainScriptV1(p.Code)
+			if len(publicKeys) != 0 {
+				break
 			}
 		}
-		if len(electedMemTempUse) > 0 {
-			for k, _ := range electedMemTempUse {
-				if exist, _ := isArbiterEixst(k, c.CurrentUnsignedWithdrawFromSideChainKeys); !exist {
-					c.CurrentUnsignedWithdrawFromSideChainKeys = append(c.CurrentUnsignedWithdrawFromSideChainKeys, k)
-				}
+	}
+	for _, pub := range publicKeys {
+		pubStr := hex.EncodeToString(pub)
+		if electedMemTempUse[pubStr] != nil {
+			delete(electedMemTempUse, pubStr)
+		}
+		if exist, i := isArbiterEixst(pubStr, c.CurrentUnsignedWithdrawFromSideChainKeys); exist {
+			var newCurrentUnsignedWithdrawFromSideChainKeys []string
+			newCurrentUnsignedWithdrawFromSideChainKeys = append(c.CurrentUnsignedWithdrawFromSideChainKeys[0:i], c.CurrentUnsignedWithdrawFromSideChainKeys[i+1:]...)
+			c.CurrentUnsignedWithdrawFromSideChainKeys = newCurrentUnsignedWithdrawFromSideChainKeys
+		}
+	}
+	if len(electedMemTempUse) > 0 {
+		for k, _ := range electedMemTempUse {
+			if exist, _ := isArbiterEixst(k, c.CurrentUnsignedWithdrawFromSideChainKeys); !exist {
+				c.CurrentUnsignedWithdrawFromSideChainKeys = append(c.CurrentUnsignedWithdrawFromSideChainKeys, k)
 			}
 		}
+	}
 
-		if reachTop {
-			if len(c.CurrentUnsignedWithdrawFromSideChainKeys) > 0 {
-				for _, v := range c.CurrentUnsignedWithdrawFromSideChainKeys {
-					m := electedMemAll[v]
-					if m.MemberState == MemberElected {
-						history.Append(height, func() {
-							m.MemberState = MemberInactive
-							if height >= c.Params.ChangeCommitteeNewCRHeight {
-								c.state.UpdateCRInactivePenalty(m.Info.CID, height)
-							}
-						}, func() {
-							m.MemberState = MemberElected
-							if height >= c.Params.ChangeCommitteeNewCRHeight {
-								c.state.RevertUpdateCRInactivePenalty(m.Info.CID, height)
-							}
-						})
-					}
+	if reachTop {
+		if len(c.CurrentUnsignedWithdrawFromSideChainKeys) > 0 {
+			for _, v := range c.CurrentUnsignedWithdrawFromSideChainKeys {
+				m := electedMemAll[v]
+				if m.MemberState == MemberElected {
+					history.Append(height, func() {
+						m.MemberState = MemberInactive
+						if height >= c.Params.ChangeCommitteeNewCRHeight {
+							c.state.UpdateCRInactivePenalty(m.Info.CID, height)
+						}
+					}, func() {
+						m.MemberState = MemberElected
+						if height >= c.Params.ChangeCommitteeNewCRHeight {
+							c.state.RevertUpdateCRInactivePenalty(m.Info.CID, height)
+						}
+					})
 				}
 			}
 		}
@@ -1814,10 +1817,11 @@ type CommitteeFuncsConfig struct {
 	CreateCRAssetsRectifyTransaction func() (interfaces.Transaction, error)
 	CreateCRRealWithdrawTransaction  func(withdrawTransactionHashes []common.Uint256,
 		outpus []*common2.OutputInfo) (interfaces.Transaction, error)
-	IsCurrent      func() bool
-	Broadcast      func(msg p2p.Message)
-	AppendToTxpool func(transaction interfaces.Transaction) elaerr.ELAError
-	GetUTXO        func(programHash *common.Uint168) ([]*common2.UTXO, error)
+	IsCurrent          func() bool
+	Broadcast          func(msg p2p.Message)
+	AppendToTxpool     func(transaction interfaces.Transaction) elaerr.ELAError
+	GetUTXO            func(programHash *common.Uint168) ([]*common2.UTXO, error)
+	GetCurrentArbiters func() [][]byte
 }
 
 func (c *Committee) RegisterFuncitons(cfg *CommitteeFuncsConfig) {
@@ -1833,6 +1837,7 @@ func (c *Committee) RegisterFuncitons(cfg *CommitteeFuncsConfig) {
 	})
 	c.getUTXO = cfg.GetUTXO
 	c.GetHeight = cfg.GetHeight
+	c.getCurrentArbiters = cfg.GetCurrentArbiters
 }
 
 func (c *Committee) TryUpdateCRMemberInactivity(did common.Uint168,

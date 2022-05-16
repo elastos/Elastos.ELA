@@ -644,7 +644,7 @@ func (a *Arbiters) IsDPoSV2Run(blockHeight uint32) bool {
 
 // is already DPoS V2. when we are here we need new reward.
 func (a *Arbiters) isDPoSV2Run(blockHeight uint32) bool {
-	return a.DPoSV2ActiveHeight != 0 && blockHeight >= a.DPoSV2ActiveHeight
+	return blockHeight >= a.DPoSV2ActiveHeight
 }
 
 func (a *Arbiters) accumulateReward(block *types.Block, confirm *payload.Confirm) {
@@ -1842,7 +1842,7 @@ func (a *Arbiters) UpdateNextArbitrators(versionHeight, height uint32) error {
 		a.TryLeaveUnderStaffed(a.IsAbleToRecoverFromUnderstaffedState)
 	}
 
-	if a.DPoSV2ActiveHeight == 0 && a.isDposV2Active() {
+	if a.DPoSV2ActiveHeight == math.MaxUint32 && a.isDposV2Active() {
 		oriHeight := height
 		a.History.Append(height, func() {
 			a.DPoSV2ActiveHeight = height + a.ChainParams.CRMemberCount + uint32(a.ChainParams.GeneralArbiters)

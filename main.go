@@ -259,23 +259,9 @@ func startNode(c *cli.Context, st *settings.Settings) {
 		Broadcast: func(msg p2p.Message) {
 			netServer.BroadcastMessage(msg)
 		},
-		AppendToTxpool:                           txMemPool.AppendToTxPool,
-		CreateDposV2RealWithdrawTransaction:      chain.CreateDposV2RealWithdrawTransaction,
+		AppendToTxpool:                       txMemPool.AppendToTxPool,
+		CreateDposV2RealWithdrawTransaction:  chain.CreateDposV2RealWithdrawTransaction,
 		CreateUnstakeRealWithdrawTransaction: chain.CreateUnstakeRealWithdrawTransaction,
-	})
-
-	committee.RegisterFuncitons(&crstate.CommitteeFuncsConfig{
-		GetTxReference:                   chain.UTXOCache.GetTxReference,
-		GetUTXO:                          chainStore.GetFFLDB().GetUTXO,
-		GetHeight:                        chainStore.GetHeight,
-		CreateCRAppropriationTransaction: chain.CreateCRCAppropriationTransaction,
-		CreateCRAssetsRectifyTransaction: chain.CreateCRAssetsRectifyTransaction,
-		CreateCRRealWithdrawTransaction:  chain.CreateCRRealWithdrawTransaction,
-		IsCurrent:                        netServer.IsCurrent,
-		Broadcast: func(msg p2p.Message) {
-			netServer.BroadcastMessage(msg)
-		},
-		AppendToTxpool: txMemPool.AppendToTxPool,
 	})
 
 	var arbitrator *dpos.Arbitrator
@@ -303,6 +289,21 @@ func startNode(c *cli.Context, st *settings.Settings) {
 		arbitrator.Start()
 		defer arbitrator.Stop()
 	}
+
+	committee.RegisterFuncitons(&crstate.CommitteeFuncsConfig{
+		GetTxReference:                   chain.UTXOCache.GetTxReference,
+		GetUTXO:                          chainStore.GetFFLDB().GetUTXO,
+		GetHeight:                        chainStore.GetHeight,
+		CreateCRAppropriationTransaction: chain.CreateCRCAppropriationTransaction,
+		CreateCRAssetsRectifyTransaction: chain.CreateCRAssetsRectifyTransaction,
+		CreateCRRealWithdrawTransaction:  chain.CreateCRRealWithdrawTransaction,
+		IsCurrent:                        netServer.IsCurrent,
+		Broadcast: func(msg p2p.Message) {
+			netServer.BroadcastMessage(msg)
+		},
+		AppendToTxpool:     txMemPool.AppendToTxPool,
+		GetCurrentArbiters: arbitrator.GetCurrentArbitratorKeys,
+	})
 
 	servers.Compile = Version
 	servers.Config = st.Config()

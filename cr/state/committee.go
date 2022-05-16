@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"errors"
+	"github.com/elastos/Elastos.ELA/crypto"
 	"math"
 	"sort"
 	"strconv"
@@ -1034,8 +1035,81 @@ func (c *Committee) processCRCRealWithdraw(tx interfaces.Transaction,
 func (c *Committee) processsWithdrawFromSideChain(tx interfaces.Transaction,
 	height uint32, history *utils.History) {
 	//apPayload := tx.Payload().(*payload.WithdrawFromSideChain)
-	//apPayload.Signers
-	//TODO get withdraw from sidechain signer change state
+	// 以前旧的多签，shnor的多签。payload version 0x01的 数字对应currentarbiter列表的.
+	// 之前的code里面有publickey。
+	// apPayload.Signers
+	reachTop := false
+	if c.CurrentWithdrawFromSideChainIndex == c.Params.CrArbitrationNotFoundBreach {
+		reachTop = true
+		c.CurrentWithdrawFromSideChainIndex = 0
+	}
+
+	if tx.PayloadVersion() == payload.WithdrawFromSideChainVersionV2 {
+		// TODO: get current arbiters from dpos arbiter
+		//arbiters := blockchain.DefaultLedger.Arbitrators.GetCRCArbiters()
+		//println(arbiters)
+	} else {
+		// TODO consider history
+		electedMembers := c.GetElectedMembers()
+		electedMemTempUse := make(map[string]*CRMember)
+		electedMemAll := make(map[string]*CRMember)
+		for _, elected := range electedMembers {
+			electedMemTempUse[hex.EncodeToString(elected.DPOSPublicKey)] = elected
+			electedMemAll[hex.EncodeToString(elected.DPOSPublicKey)] = elected
+		}
+		for _, p := range tx.Programs() {
+			publicKeys, _, _, _ := crypto.ParseCrossChainScriptV1(p.Code)
+			for _, pub := range publicKeys {
+				pubStr := hex.EncodeToString(pub)
+				if electedMemTempUse[pubStr] != nil {
+					delete(electedMemTempUse, pubStr)
+				}
+				if exist, i := isArbiterEixst(pubStr, c.CurrentUnsignedWithdrawFromSideChainKeys); exist {
+					var newCurrentUnsignedWithdrawFromSideChainKeys []string
+					newCurrentUnsignedWithdrawFromSideChainKeys = append(c.CurrentUnsignedWithdrawFromSideChainKeys[0:i], c.CurrentUnsignedWithdrawFromSideChainKeys[i+1:]...)
+					c.CurrentUnsignedWithdrawFromSideChainKeys = newCurrentUnsignedWithdrawFromSideChainKeys
+				}
+			}
+		}
+		if len(electedMemTempUse) > 0 {
+			for k, _ := range electedMemTempUse {
+				if exist, _ := isArbiterEixst(k, c.CurrentUnsignedWithdrawFromSideChainKeys); !exist {
+					c.CurrentUnsignedWithdrawFromSideChainKeys = append(c.CurrentUnsignedWithdrawFromSideChainKeys, k)
+				}
+			}
+		}
+
+		if reachTop {
+			if len(c.CurrentUnsignedWithdrawFromSideChainKeys) > 0 {
+				for _, v := range c.CurrentUnsignedWithdrawFromSideChainKeys {
+					m := electedMemAll[v]
+					if m.MemberState == MemberElected {
+						history.Append(height, func() {
+							m.MemberState = MemberInactive
+							if height >= c.Params.ChangeCommitteeNewCRHeight {
+								c.state.UpdateCRInactivePenalty(m.Info.CID, height)
+							}
+						}, func() {
+							m.MemberState = MemberElected
+							if height >= c.Params.ChangeCommitteeNewCRHeight {
+								c.state.RevertUpdateCRInactivePenalty(m.Info.CID, height)
+							}
+						})
+					}
+				}
+			}
+		}
+	}
+
+}
+
+func isArbiterEixst(cmpK string, keys []string) (bool, int) {
+	for i, v := range keys {
+		if cmpK == v {
+			return true, i
+		}
+	}
+	return false, -1
 }
 
 func (c *Committee) activateProducer(tx interfaces.Transaction,

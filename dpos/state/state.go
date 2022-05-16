@@ -486,7 +486,7 @@ func (s *State) DPoSV2Started() bool {
 }
 
 func (s *State) dposV2Started() bool {
-	return s.DPoSV2ActiveHeight != 0
+	return s.DPoSV2ActiveHeight != math.MaxUint32
 }
 
 func (s *State) isDposV2Active() bool {

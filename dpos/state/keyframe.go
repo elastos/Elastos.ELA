@@ -7,6 +7,7 @@ package state
 
 import (
 	"io"
+	"math"
 
 	"github.com/elastos/Elastos.ELA/common"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
@@ -754,7 +755,7 @@ func NewStateKeyFrame() *StateKeyFrame {
 		ProducerDepositMap:        make(map[common.Uint168]struct{}),
 		VersionStartHeight:        0,
 		VersionEndHeight:          0,
-		DPoSV2ActiveHeight:        0,
+		DPoSV2ActiveHeight:        math.MaxUint32,
 	}
 }
 

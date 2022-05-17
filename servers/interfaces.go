@@ -10,9 +10,6 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
-	common2 "github.com/elastos/Elastos.ELA/core/types/common"
-	"github.com/elastos/Elastos.ELA/core/types/functions"
-	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"sort"
 	"strings"
 
@@ -25,6 +22,9 @@ import (
 	"github.com/elastos/Elastos.ELA/core/contract"
 	pg "github.com/elastos/Elastos.ELA/core/contract/program"
 	. "github.com/elastos/Elastos.ELA/core/types"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/functions"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/core/types/outputpayload"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	crstate "github.com/elastos/Elastos.ELA/cr/state"
@@ -3219,8 +3219,17 @@ func getPayloadInfo(p interfaces.Payload, payloadVersion byte) PayloadInfo {
 		for _, rc := range object.Contents {
 			var votesinfo []VotesWithLockTime
 			for _, detail := range rc.VotesInfo {
+				var candidate string
+				switch rc.VoteType {
+				case outputpayload.CRC, outputpayload.CRCImpeachment:
+					c, _ := common.Uint168FromBytes(detail.Candidate)
+					candidate, _ = c.ToAddress()
+				default:
+					candidate = common.BytesToHexString(detail.Candidate)
+				}
+
 				votesinfo = append(votesinfo, VotesWithLockTime{
-					Candidate: common.BytesToHexString(detail.Candidate),
+					Candidate: candidate,
 					Votes:     detail.Votes.String(),
 					LockTime:  detail.LockTime,
 				})

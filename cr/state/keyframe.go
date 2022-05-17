@@ -142,8 +142,8 @@ type KeyFrame struct {
 
 	CRAssetsAddressUTXOCount uint32
 
-	CurrentWithdrawFromSideChainIndex        uint32
-	CurrentUnsignedWithdrawFromSideChainKeys []string
+	CurrentWithdrawFromSideChainIndex      uint32
+	CurrentSignedWithdrawFromSideChainKeys []string
 }
 
 type DepositInfo struct {
@@ -387,16 +387,19 @@ func (kf *KeyFrame) Serialize(w io.Writer) (err error) {
 		return
 	}
 
-	if err = serializeUnsignedWithdrawFromSideChainKeys(w, kf.CurrentUnsignedWithdrawFromSideChainKeys); err != nil {
-		return
-	}
-
-	return common.WriteElements(w, kf.LastCommitteeHeight,
+	if err = common.WriteElements(w, kf.LastCommitteeHeight,
 		kf.LastVotingStartHeight, kf.InElectionPeriod, kf.NeedAppropriation,
 		kf.NeedRecordProposalResult, kf.CRCFoundationBalance,
 		kf.CRCCommitteeBalance, kf.CRCCommitteeUsedAmount, kf.CRCCurrentStageAmount,
 		kf.DestroyedAmount, kf.CirculationAmount, kf.AppropriationAmount,
-		kf.CommitteeUsedAmount, kf.CRAssetsAddressUTXOCount, kf.CurrentWithdrawFromSideChainIndex)
+		kf.CommitteeUsedAmount, kf.CRAssetsAddressUTXOCount, kf.CurrentWithdrawFromSideChainIndex); err != nil {
+		return
+	}
+
+	if err = serializeUnsignedWithdrawFromSideChainKeys(w, kf.CurrentSignedWithdrawFromSideChainKeys); err != nil {
+		return
+	}
+	return
 }
 
 func (kf *KeyFrame) Deserialize(r io.Reader) (err error) {
@@ -432,16 +435,17 @@ func (kf *KeyFrame) Deserialize(r io.Reader) (err error) {
 		return
 	}
 
-	if kf.CurrentUnsignedWithdrawFromSideChainKeys, err = deserializeUnsignedWithdrawFromSideChainKeys(r); err != nil {
-		return
-	}
-
-	err = common.ReadElements(r, &kf.LastCommitteeHeight,
+	if err = common.ReadElements(r, &kf.LastCommitteeHeight,
 		&kf.LastVotingStartHeight, &kf.InElectionPeriod, &kf.NeedAppropriation,
 		&kf.NeedRecordProposalResult, &kf.CRCFoundationBalance, &kf.CRCCommitteeBalance,
 		&kf.CRCCommitteeUsedAmount, &kf.CRCCurrentStageAmount, &kf.DestroyedAmount, &kf.CirculationAmount,
-		&kf.AppropriationAmount, &kf.CommitteeUsedAmount, &kf.CRAssetsAddressUTXOCount, &kf.CurrentWithdrawFromSideChainIndex)
+		&kf.AppropriationAmount, &kf.CommitteeUsedAmount, &kf.CRAssetsAddressUTXOCount, &kf.CurrentWithdrawFromSideChainIndex); err != nil {
+		return
+	}
 
+	if kf.CurrentSignedWithdrawFromSideChainKeys, err = deserializeUnsignedWithdrawFromSideChainKeys(r); err != nil {
+		return
+	}
 	return
 }
 
@@ -762,7 +766,7 @@ func (kf *KeyFrame) Snapshot() *KeyFrame {
 	frame.HistoryMembers = copyHistoryMembersMap(kf.HistoryMembers)
 	frame.CRAssetsAddressUTXOCount = kf.CRAssetsAddressUTXOCount
 	frame.CurrentWithdrawFromSideChainIndex = kf.CurrentWithdrawFromSideChainIndex
-	frame.CurrentUnsignedWithdrawFromSideChainKeys = copyUnsidedWithdrawFromSideChainKeys(kf.CurrentUnsignedWithdrawFromSideChainKeys)
+	frame.CurrentSignedWithdrawFromSideChainKeys = copyUnsidedWithdrawFromSideChainKeys(kf.CurrentSignedWithdrawFromSideChainKeys)
 	return frame
 }
 

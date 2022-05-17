@@ -71,7 +71,7 @@ func (t *VotingTransaction) IsAllowedInPOWConsensus() bool {
 
 	for _, vote := range pld.Contents {
 		switch vote.VoteType {
-		case outputpayload.Delegate:
+		case outputpayload.Delegate, outputpayload.DposV2:
 		case outputpayload.CRC:
 			log.Warn("not allow to vote CR in POW consensus")
 			return false
@@ -81,8 +81,8 @@ func (t *VotingTransaction) IsAllowedInPOWConsensus() bool {
 		case outputpayload.CRCImpeachment:
 			log.Warn("not allow to vote CRImpeachment in POW consensus")
 			return false
-		case outputpayload.DposV2:
-			log.Warn("not allow to vote DposV2 in POW consensus")
+		default:
+			log.Warn("unknown vote type")
 			return false
 		}
 	}

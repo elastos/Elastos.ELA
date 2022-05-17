@@ -7,6 +7,7 @@ package state
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"encoding/hex"
 	"errors"
 	"github.com/elastos/Elastos.ELA/crypto"
@@ -1033,61 +1034,122 @@ func (c *Committee) processCRCRealWithdraw(tx interfaces.Transaction,
 	})
 }
 
+func getCrossChainSignedPubKeys(program program.Program, data []byte) ([][]byte, error) {
+	code := program.Code
+	// Get N parameter
+	n := int(code[len(code)-2]) - crypto.PUSH1 + 1
+	// Get M parameter
+	m := int(code[0]) - crypto.PUSH1 + 1
+	publicKeys, err := crypto.ParseCrossChainScript(code)
+	if err != nil {
+		return nil, err
+	}
+
+	return getSignedPubKeys(m, n, publicKeys, program.Parameter, data)
+}
+
+func getSignedPubKeys(m, n int, publicKeys [][]byte, signatures, data []byte) ([][]byte, error) {
+	if len(publicKeys) != n {
+		return nil, errors.New("invalid multi sign public key script count")
+	}
+	if len(signatures)%crypto.SignatureScriptLength != 0 {
+		return nil, errors.New("invalid multi sign signatures, length not match")
+	}
+	if len(signatures)/crypto.SignatureScriptLength < m {
+		return nil, errors.New("invalid signatures, not enough signatures")
+	}
+	if len(signatures)/crypto.SignatureScriptLength > n {
+		return nil, errors.New("invalid signatures, too many signatures")
+	}
+
+	var verified = make(map[common.Uint256]struct{})
+	var retKeys [][]byte
+	for i := 0; i < len(signatures); i += crypto.SignatureScriptLength {
+		// Remove length byte
+		sign := signatures[i : i+crypto.SignatureScriptLength][1:]
+		// Match public key with signature
+		for _, publicKey := range publicKeys {
+			pubKey, err := crypto.DecodePoint(publicKey[1:])
+			if err != nil {
+				return nil, err
+			}
+			err = crypto.Verify(*pubKey, data, sign)
+			if err == nil {
+				hash := sha256.Sum256(publicKey)
+				if _, ok := verified[hash]; ok {
+					return nil, errors.New("duplicated signatures")
+				}
+				verified[hash] = struct{}{}
+				retKeys = append(retKeys, publicKey[1:])
+				break // back to public keys loop
+			}
+		}
+	}
+	// Check signatures count
+	if len(verified) < m {
+		return nil, errors.New("matched signatures not enough")
+	}
+
+	return retKeys, nil
+}
+
 func (c *Committee) processsWithdrawFromSideChain(tx interfaces.Transaction,
 	height uint32, history *utils.History) {
+	log.Info("### processsWithdrawFromSideChain", c.CurrentWithdrawFromSideChainIndex, c.Params.CrArbitrationNotFoundBreach)
 	reachTop := false
 	if c.CurrentWithdrawFromSideChainIndex == c.Params.CrArbitrationNotFoundBreach {
 		reachTop = true
 		c.CurrentWithdrawFromSideChainIndex = 0
+	} else {
+		c.CurrentWithdrawFromSideChainIndex += 1
 	}
-
+	log.Info("###  CurrentSignedWithdrawFromSideChainKeys %v", c.CurrentSignedWithdrawFromSideChainKeys)
 	// TODO consider history
-	electedMembers := c.GetElectedMembers()
-	electedMemTempUse := make(map[string]*CRMember)
+	electedMembers := getElectedCRMembers(c.Members)
 	electedMemAll := make(map[string]*CRMember)
 	for _, elected := range electedMembers {
-		electedMemTempUse[hex.EncodeToString(elected.DPOSPublicKey)] = elected
 		electedMemAll[hex.EncodeToString(elected.DPOSPublicKey)] = elected
 	}
+	log.Infof(" ### 111 electedMembers %v", electedMembers)
 	var publicKeys [][]byte
 	if tx.PayloadVersion() == payload.WithdrawFromSideChainVersionV2 {
 		allPulicKeys := c.getCurrentArbiters()
-		payload := tx.Payload().(*payload.WithdrawFromSideChain)
-		for _, index := range payload.Signers {
+		pld := tx.Payload().(*payload.WithdrawFromSideChain)
+		for _, index := range pld.Signers {
 			publicKeys = append(publicKeys, allPulicKeys[index])
 		}
 	} else {
+		buf := new(bytes.Buffer)
+		tx.SerializeUnsigned(buf)
+		data := buf.Bytes()
+		var err error
 		for _, p := range tx.Programs() {
-			publicKeys, _, _, _ = crypto.ParseCrossChainScriptV1(p.Code)
+			publicKeys, err = getCrossChainSignedPubKeys(*p, data)
+			if err != nil {
+				log.Warn("processsWithdrawFromSideChain err", err.Error())
+				return
+			}
 			if len(publicKeys) != 0 {
 				break
 			}
 		}
+		log.Infof("### 222 %v", publicKeys)
 	}
 	for _, pub := range publicKeys {
 		pubStr := hex.EncodeToString(pub)
-		if electedMemTempUse[pubStr] != nil {
-			delete(electedMemTempUse, pubStr)
-		}
-		if exist, i := isArbiterEixst(pubStr, c.CurrentUnsignedWithdrawFromSideChainKeys); exist {
-			var newCurrentUnsignedWithdrawFromSideChainKeys []string
-			newCurrentUnsignedWithdrawFromSideChainKeys = append(c.CurrentUnsignedWithdrawFromSideChainKeys[0:i], c.CurrentUnsignedWithdrawFromSideChainKeys[i+1:]...)
-			c.CurrentUnsignedWithdrawFromSideChainKeys = newCurrentUnsignedWithdrawFromSideChainKeys
-		}
-	}
-	if len(electedMemTempUse) > 0 {
-		for k, _ := range electedMemTempUse {
-			if exist, _ := isArbiterEixst(k, c.CurrentUnsignedWithdrawFromSideChainKeys); !exist {
-				c.CurrentUnsignedWithdrawFromSideChainKeys = append(c.CurrentUnsignedWithdrawFromSideChainKeys, k)
-			}
+		log.Info("current pubStr ", pubStr)
+		if !isArbiterEixst(pubStr, c.CurrentSignedWithdrawFromSideChainKeys) {
+			log.Info("### isArbiterEixst")
+			c.CurrentSignedWithdrawFromSideChainKeys = append(c.CurrentSignedWithdrawFromSideChainKeys, pubStr)
 		}
 	}
 
 	if reachTop {
-		if len(c.CurrentUnsignedWithdrawFromSideChainKeys) > 0 {
-			for _, v := range c.CurrentUnsignedWithdrawFromSideChainKeys {
-				m := electedMemAll[v]
-				if m.MemberState == MemberElected {
+		log.Info("reach top")
+		for k, m := range electedMemAll {
+			log.Info("### reach top", k)
+			if !isArbiterEixst(k, c.CurrentSignedWithdrawFromSideChainKeys) {
+				if m != nil && m.MemberState == MemberElected {
 					history.Append(height, func() {
 						m.MemberState = MemberInactive
 						if height >= c.Params.ChangeCommitteeNewCRHeight {
@@ -1106,13 +1168,13 @@ func (c *Committee) processsWithdrawFromSideChain(tx interfaces.Transaction,
 
 }
 
-func isArbiterEixst(cmpK string, keys []string) (bool, int) {
-	for i, v := range keys {
+func isArbiterEixst(cmpK string, keys []string) bool {
+	for _, v := range keys {
 		if cmpK == v {
-			return true, i
+			return true
 		}
 	}
-	return false, -1
+	return false
 }
 
 func (c *Committee) activateProducer(tx interfaces.Transaction,

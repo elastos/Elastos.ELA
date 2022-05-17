@@ -126,7 +126,10 @@ func (c *Committee) processTransaction(tx interfaces.Transaction, height uint32)
 		c.activateProducer(tx, height, c.state.History)
 
 	case common2.WithdrawFromSideChain:
-		c.processsWithdrawFromSideChain(tx, height, c.state.History)
+		log.Info("#### CrArbitrationMonitorHeight", c.Params.CrArbitrationMonitorHeight, height)
+		if height > c.Params.CrArbitrationMonitorHeight {
+			c.processsWithdrawFromSideChain(tx, height, c.state.History)
+		}
 	}
 
 	if tx.TxType() != common2.RegisterCR {

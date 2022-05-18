@@ -1732,6 +1732,10 @@ func (s *State) processVotingContent(tx interfaces.Transaction, height uint32) {
 					VoteType:         content.VoteType,
 					Info:             vote,
 				}
+				ad, _ := stakeAddress.ToAddress()
+				log.Info("##### voting referkey:", detailVoteInfo.ReferKey(),
+					"stake address:", ad, "txHash:", tx.Hash(), "payloadVersion:", tx.PayloadVersion(),
+					"voteType:", content.VoteType, "voteInfo:", vote, "height:", height)
 
 				referKey := detailVoteInfo.ReferKey()
 				s.History.Append(height, func() {

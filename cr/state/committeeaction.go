@@ -226,6 +226,10 @@ func (c *Committee) processVoting(tx interfaces.Transaction, height uint32) {
 					VoteType:         content.VoteType,
 					Info:             votes,
 				}
+				ad, _ := stakeAddress.ToAddress()
+				log.Info("##### voting referkey:", detailVoteInfo.ReferKey(),
+					"stake address:", ad, "txHash:", tx.Hash(), "payloadVersion:", tx.PayloadVersion(),
+					"voteType:", content.VoteType, "voteInfo:", votes, "height:", height)
 
 				referKey := detailVoteInfo.ReferKey()
 				c.state.History.Append(height, func() {
@@ -259,6 +263,10 @@ func (c *Committee) processVoting(tx interfaces.Transaction, height uint32) {
 					VoteType:         content.VoteType,
 					Info:             votes,
 				}
+				ad, _ := stakeAddress.ToAddress()
+				log.Info("##### voting referkey:", detailVoteInfo.ReferKey(),
+					"stake address:", ad, "txHash:", tx.Hash(), "payloadVersion:", tx.PayloadVersion(),
+					"voteType:", content.VoteType, "voteInfo:", votes, "height:", height)
 
 				referKey := detailVoteInfo.ReferKey()
 				c.state.History.Append(height, func() {
@@ -289,6 +297,10 @@ func (c *Committee) processVoting(tx interfaces.Transaction, height uint32) {
 					VoteType:         content.VoteType,
 					Info:             votes,
 				}
+				ad, _ := stakeAddress.ToAddress()
+				log.Info("##### voting referkey:", detailVoteInfo.ReferKey(),
+					"stake address:", ad, "txHash:", tx.Hash(), "payloadVersion:", tx.PayloadVersion(),
+					"voteType:", content.VoteType, "voteInfo:", votes, "height:", height)
 
 				referKey := detailVoteInfo.ReferKey()
 				c.state.History.Append(height, func() {

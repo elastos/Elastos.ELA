@@ -580,6 +580,7 @@ func checkTransactionSignature(tx interfaces.Transaction, references map[*common
 		tx.IsDposV2ClaimRewardRealWithdraw() || tx.IsUnstakeRealWithdrawTX() {
 		return nil
 	}
+
 	if err != nil {
 		return err
 	}

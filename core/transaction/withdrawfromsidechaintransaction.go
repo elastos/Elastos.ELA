@@ -293,21 +293,26 @@ func (t *WithdrawFromSideChainTransaction) checkWithdrawFromSideChainTransaction
 func checkSchnorrWithdrawFromSidechain(t interfaces.Transaction, pld *payload.WithdrawFromSideChain) error {
 	var pxArr []*big.Int
 	var pyArr []*big.Int
+	log.Infof("###checkSchnorrWithdrawFromSidechain %v", len(pld.Signers))
+	arbiters := blockchain.DefaultLedger.Arbitrators.GetCrossChainArbiters()
 	for _, index := range pld.Signers {
-		arbiters := blockchain.DefaultLedger.Arbitrators.GetCrossChainArbiters()
+		log.Infof("###index pub %v %v", index, hex.EncodeToString(arbiters[index].NodePublicKey))
 		px, py := crypto.Unmarshal(crypto.Curve, arbiters[index].NodePublicKey)
 		pxArr = append(pxArr, px)
 		pyArr = append(pyArr, py)
 	}
-	Px, Py := crypto.Curve.Add(pxArr[0], pyArr[0], pxArr[1], pyArr[1])
-	for i := 2; i < len(pxArr); i++ {
+	Px, Py := new(big.Int), new(big.Int)
+	log.Info("len(pxArr)", len(pxArr))
+	for i := 0; i < len(pxArr); i++ {
 		Px, Py = crypto.Curve.Add(Px, Py, pxArr[i], pyArr[i])
 	}
-	var sumPublicKey []byte
-	copy(sumPublicKey, crypto.Marshal(crypto.Curve, Px, Py))
+	log.Info("Px %v, Py %v %v", Px.Bytes(), Py.Bytes(), Px.String(), Py.String())
+	sumPublicKey := crypto.Marshal(crypto.Curve, Px, Py)
+	log.Infof("### sumPublicKey %v", sumPublicKey, len(sumPublicKey))
 	publicKey, err := crypto.DecodePoint(sumPublicKey)
 	if err != nil {
-		return errors.New("Invalid schnorr public key")
+		log.Info("error ", err.Error())
+		return errors.New("Invalid schnorr public key" + err.Error())
 	}
 	redeemScript, err := contract.CreateSchnorrMultiSigRedeemScript(publicKey)
 	if err != nil {
@@ -322,5 +327,6 @@ func checkSchnorrWithdrawFromSidechain(t interfaces.Transaction, pld *payload.Wi
 			return errors.New("Invalid schnorr program code")
 		}
 	}
+	log.Info("### done checkSchnorrWithdrawFromSidechain ")
 	return nil
 }

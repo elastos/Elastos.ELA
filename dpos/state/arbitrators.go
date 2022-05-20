@@ -689,9 +689,9 @@ func (a *Arbiters) accumulateReward(block *types.Block, confirm *payload.Confirm
 				shareDetail := make(map[common.Uint168]common.Fixed64)
 				for sVoteAddr, sVoteDetail := range producer.detailedDPoSV2Votes {
 					for _, info := range sVoteDetail {
-						weightS := strconv.FormatFloat(math.Log10(float64(info.Info.LockTime-info.BlockHeight)/7200*10), 'f', 2, 64)
+						weightS := strconv.FormatFloat(math.Log10(float64(info.Info[0].LockTime-info.BlockHeight)/7200*10), 'f', 2, 64)
 						weightF, _ := strconv.ParseFloat(weightS, 64)
-						share := common.Fixed64(float64(info.Info.Votes) * weightF)
+						share := common.Fixed64(float64(info.Info[0].Votes) * weightF)
 						totalShare += share
 						shareDetail[sVoteAddr] += share
 					}

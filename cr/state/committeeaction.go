@@ -157,13 +157,15 @@ func (c *Committee) processCancelVoting(tx interfaces.Transaction, height uint32
 				c.DetailedCRVotes[key] = detailVoteInfo
 			})
 
-			c.state.processCancelVoteCRC(height, detailVoteInfo.Info.Candidate, detailVoteInfo.Info.Votes)
-
-			c.state.History.Append(height, func() {
-				c.state.CRVotes[*stakeAddress] -= detailVoteInfo.Info.Votes
-			}, func() {
-				c.state.CRVotes[*stakeAddress] += detailVoteInfo.Info.Votes
-			})
+			for _, i := range detailVoteInfo.Info {
+				info := i
+				c.state.processCancelVoteCRC(height, info.Candidate, info.Votes)
+				c.state.History.Append(height, func() {
+					c.state.CRVotes[*stakeAddress] -= info.Votes
+				}, func() {
+					c.state.CRVotes[*stakeAddress] += info.Votes
+				})
+			}
 		}
 
 		detailVoteInfo, ok = c.manager.DetailedCRCProposalVotes[key]
@@ -174,12 +176,19 @@ func (c *Committee) processCancelVoting(tx interfaces.Transaction, height uint32
 				c.manager.DetailedCRCProposalVotes[key] = detailVoteInfo
 			})
 
-			c.state.processCancelVoteCRCProposal(height, detailVoteInfo.Info.Candidate, detailVoteInfo.Info.Votes)
+			var maxVotes common.Fixed64
+			for _, i := range detailVoteInfo.Info {
+				info := i
+				if i.Votes > maxVotes {
+					maxVotes = i.Votes
+				}
+				c.state.processCancelVoteCRCProposal(height, info.Candidate, info.Votes)
+			}
 
 			c.state.History.Append(height, func() {
-				c.state.CRCProposalVotes[*stakeAddress] -= detailVoteInfo.Info.Votes
+				c.state.CRCProposalVotes[*stakeAddress] -= maxVotes
 			}, func() {
-				c.state.CRCProposalVotes[*stakeAddress] += detailVoteInfo.Info.Votes
+				c.state.CRCProposalVotes[*stakeAddress] += maxVotes
 			})
 		}
 
@@ -190,14 +199,16 @@ func (c *Committee) processCancelVoting(tx interfaces.Transaction, height uint32
 			}, func() {
 				c.DetailedCRImpeachmentVotes[key] = detailVoteInfo
 			})
+			for _, i := range detailVoteInfo.Info {
+				info := i
+				c.processImpeachment(height, info.Candidate, info.Votes, c.state.History)
 
-			c.processImpeachment(height, detailVoteInfo.Info.Candidate, detailVoteInfo.Info.Votes, c.state.History)
-
-			c.state.History.Append(height, func() {
-				c.state.CRImpeachmentVotes[*stakeAddress] -= detailVoteInfo.Info.Votes
-			}, func() {
-				c.state.CRImpeachmentVotes[*stakeAddress] += detailVoteInfo.Info.Votes
-			})
+				c.state.History.Append(height, func() {
+					c.state.CRImpeachmentVotes[*stakeAddress] -= info.Votes
+				}, func() {
+					c.state.CRImpeachmentVotes[*stakeAddress] += info.Votes
+				})
+			}
 		}
 	}
 }
@@ -224,7 +235,7 @@ func (c *Committee) processVoting(tx interfaces.Transaction, height uint32) {
 					BlockHeight:      height,
 					PayloadVersion:   tx.PayloadVersion(),
 					VoteType:         content.VoteType,
-					Info:             votes,
+					Info:             []payload.VotesWithLockTime{votes},
 				}
 				ad, _ := stakeAddress.ToAddress()
 				log.Info("##### voting referkey:", detailVoteInfo.ReferKey(),
@@ -248,32 +259,33 @@ func (c *Committee) processVoting(tx interfaces.Transaction, height uint32) {
 			})
 
 		case outputpayload.CRCProposal:
+			// record CRC proposal votes information
+			detailVoteInfo := payload.DetailedVoteInfo{
+				StakeProgramHash: *stakeAddress,
+				TransactionHash:  tx.Hash(),
+				BlockHeight:      height,
+				PayloadVersion:   tx.PayloadVersion(),
+				VoteType:         content.VoteType,
+				Info:             content.VotesInfo,
+			}
+			ad, _ := stakeAddress.ToAddress()
+			log.Info("##### voting referkey:", detailVoteInfo.ReferKey(),
+				"stake address:", ad, "txHash:", tx.Hash(), "payloadVersion:", tx.PayloadVersion(),
+				"voteType:", content.VoteType, "voteInfo:", content.VotesInfo, "height:", height)
+
+			referKey := detailVoteInfo.ReferKey()
+			c.state.History.Append(height, func() {
+				c.manager.DetailedCRCProposalVotes[referKey] = detailVoteInfo
+			}, func() {
+				delete(c.manager.DetailedCRCProposalVotes, referKey)
+			})
+
 			var maxVotes common.Fixed64
 			for _, v := range content.VotesInfo {
 				votes := v
 				if maxVotes < votes.Votes {
 					maxVotes = votes.Votes
 				}
-				// record CRC proposal votes information
-				detailVoteInfo := payload.DetailedVoteInfo{
-					StakeProgramHash: *stakeAddress,
-					TransactionHash:  tx.Hash(),
-					BlockHeight:      height,
-					PayloadVersion:   tx.PayloadVersion(),
-					VoteType:         content.VoteType,
-					Info:             votes,
-				}
-				ad, _ := stakeAddress.ToAddress()
-				log.Info("##### voting referkey:", detailVoteInfo.ReferKey(),
-					"stake address:", ad, "txHash:", tx.Hash(), "payloadVersion:", tx.PayloadVersion(),
-					"voteType:", content.VoteType, "voteInfo:", votes, "height:", height)
-
-				referKey := detailVoteInfo.ReferKey()
-				c.state.History.Append(height, func() {
-					c.manager.DetailedCRCProposalVotes[referKey] = detailVoteInfo
-				}, func() {
-					delete(c.manager.DetailedCRCProposalVotes, referKey)
-				})
 
 				c.state.processVoteCRCProposal(height, v.Candidate, v.Votes)
 			}
@@ -295,7 +307,7 @@ func (c *Committee) processVoting(tx interfaces.Transaction, height uint32) {
 					BlockHeight:      height,
 					PayloadVersion:   tx.PayloadVersion(),
 					VoteType:         content.VoteType,
-					Info:             votes,
+					Info:             []payload.VotesWithLockTime{votes},
 				}
 				ad, _ := stakeAddress.ToAddress()
 				log.Info("##### voting referkey:", detailVoteInfo.ReferKey(),

@@ -494,9 +494,9 @@ func GetAllDetailedDPoSV2Votes(params Params) map[string]interface{} {
 					BlockHeight:        v1.BlockHeight,
 					PayloadVersion:     v1.PayloadVersion,
 					Info: VotesWithLockTime{
-						Candidate: hex.EncodeToString(v1.Info.Candidate),
-						Votes:     v1.Info.Votes.String(),
-						LockTime:  v1.Info.LockTime,
+						Candidate: hex.EncodeToString(v1.Info[0].Candidate),
+						Votes:     v1.Info[0].Votes.String(),
+						LockTime:  v1.Info[0].LockTime,
 					},
 				})
 			}
@@ -530,9 +530,9 @@ func GetDetailedCRCProposalVotes(params Params) map[string]interface{} {
 			PayloadVersion:   info[i].PayloadVersion,
 			VoteType:         byte(info[i].VoteType),
 			Info: VotesWithLockTime{
-				Candidate: hex.EncodeToString(info[i].Info.Candidate),
-				Votes:     info[i].Info.Votes.String(),
-				LockTime:  info[i].Info.LockTime,
+				Candidate: hex.EncodeToString(info[i].Info[0].Candidate),
+				Votes:     info[i].Info[0].Votes.String(),
+				LockTime:  info[i].Info[0].LockTime,
 			},
 		})
 	}

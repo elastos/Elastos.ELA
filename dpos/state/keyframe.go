@@ -906,11 +906,7 @@ func copyReferKeyInfoMap(src map[common.Uint256]payload.DetailedVoteInfo) (dst m
 			BlockHeight:      a.BlockHeight,
 			PayloadVersion:   a.PayloadVersion,
 			VoteType:         a.VoteType,
-			Info: payload.VotesWithLockTime{
-				a.Info.Candidate,
-				a.Info.Votes,
-				a.Info.LockTime,
-			},
+			Info:             a.Info,
 		}
 	}
 	return

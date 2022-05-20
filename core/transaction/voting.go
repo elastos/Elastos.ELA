@@ -201,10 +201,10 @@ func (t *VotingTransaction) SpecialContextCheck() (result elaerr.ELAError, end b
 			if vote.BlockHeight > content.VotesInfo.LockTime {
 				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid lock time")), true
 			}
-			if vote.Info.Votes != content.VotesInfo.Votes {
+			if len(vote.Info) != 1 || vote.Info[0].Votes != content.VotesInfo.Votes {
 				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("votes not equal")), true
 			}
-			if !bytes.Equal(vote.Info.Candidate, content.VotesInfo.Candidate) {
+			if !bytes.Equal(vote.Info[0].Candidate, content.VotesInfo.Candidate) {
 				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("candidate should be the same one")), true
 			}
 		}

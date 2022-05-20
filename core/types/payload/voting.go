@@ -100,8 +100,11 @@ func (p *Voting) Validate() error {
 			len(content.VotesInfo) > outputpayload.MaxVoteProducersPerTransaction) {
 			return errors.New("invalid public key count")
 		}
-		if content.VoteType != outputpayload.Delegate && content.VoteType != outputpayload.CRC &&
-			content.VoteType != outputpayload.CRCProposal && content.VoteType != outputpayload.CRCImpeachment && content.VoteType != outputpayload.DposV2 {
+		if content.VoteType != outputpayload.Delegate &&
+			content.VoteType != outputpayload.CRC &&
+			content.VoteType != outputpayload.CRCProposal &&
+			content.VoteType != outputpayload.CRCImpeachment &&
+			content.VoteType != outputpayload.DposV2 {
 			return errors.New("invalid vote type")
 		}
 
@@ -292,14 +295,17 @@ type DetailedVoteInfo struct {
 	BlockHeight      uint32
 	PayloadVersion   byte
 	VoteType         outputpayload.VoteType
-	Info             VotesWithLockTime
+	Info             []VotesWithLockTime
 }
 
 func (v *DetailedVoteInfo) bytes() []byte {
 	buf := new(bytes.Buffer)
 	v.TransactionHash.Serialize(buf)
 	common.WriteUint8(buf, uint8(v.VoteType))
-	v.Info.Serialize(buf, v.PayloadVersion)
+	common.WriteVarUint(buf, uint64(len(v.Info)))
+	for _, i := range v.Info {
+		i.Serialize(buf, v.PayloadVersion)
+	}
 	return buf.Bytes()
 }
 
@@ -325,8 +331,13 @@ func (v *DetailedVoteInfo) Serialize(w io.Writer) error {
 		return err
 	}
 
-	if err := v.Info.Serialize(w, v.PayloadVersion); err != nil {
+	if err := common.WriteVarUint(w, uint64(len(v.Info))); err != nil {
 		return err
+	}
+	for _, i := range v.Info {
+		if err := i.Serialize(w, v.PayloadVersion); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -357,8 +368,17 @@ func (v *DetailedVoteInfo) Deserialize(r io.Reader) error {
 	}
 	v.VoteType = outputpayload.VoteType(voteType)
 
-	if err := v.Info.Deserialize(r, v.PayloadVersion); err != nil {
+	count, err := common.ReadVarUint(r, 0)
+	if err != nil {
 		return err
+	}
+	v.Info = make([]VotesWithLockTime, count)
+	for i := uint64(0); i < count; i++ {
+		var info VotesWithLockTime
+		if err := info.Deserialize(r, v.PayloadVersion); err != nil {
+			return err
+		}
+		v.Info[i] = info
 	}
 
 	return nil

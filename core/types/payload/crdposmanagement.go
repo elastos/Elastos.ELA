@@ -9,7 +9,8 @@ import (
 	"github.com/elastos/Elastos.ELA/crypto"
 )
 
-const CRManagementVersion byte = 0x00
+const CurrentCRClaimDPoSNodeVersion byte = 0x00
+const NextCRClaimDPoSNodeVersion byte = 0x01
 
 type CRCouncilMemberClaimNode struct {
 	NodePublicKey               []byte

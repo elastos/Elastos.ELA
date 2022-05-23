@@ -2859,7 +2859,7 @@ func (b *BlockChain) checkCRCouncilMemberClaimNodeTransaction(txn interfaces.Tra
 func (b *BlockChain) checkCRCouncilMemberClaimNodeSignature(
 	managementPayload *payload.CRCouncilMemberClaimNode, code []byte) error {
 	signBuf := new(bytes.Buffer)
-	managementPayload.SerializeUnsigned(signBuf, payload.CRManagementVersion)
+	managementPayload.SerializeUnsigned(signBuf, payload.CurrentCRClaimDPoSNodeVersion)
 	if err := CheckCRTransactionSignature(managementPayload.CRCouncilCommitteeSignature, code,
 		signBuf.Bytes()); err != nil {
 		return errors.New("CR signature check failed")

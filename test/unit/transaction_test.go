@@ -715,11 +715,11 @@ func (s *transactionSuite) TestCRCProposal_Deserialize() {
 func (s *transactionSuite) TestCRCouncilMemberClaimNode_SerializeDeserialize() {
 	crClaimNodePayload1 := createClaimNodePayload()
 	buf := new(bytes.Buffer)
-	crClaimNodePayload1.Serialize(buf, payload.CRManagementVersion)
+	crClaimNodePayload1.Serialize(buf, payload.CurrentCRClaimDPoSNodeVersion)
 	fmt.Printf("crClaimNodePayload1: %v\n", crClaimNodePayload1)
 
 	crClaimNodePayload2 := &payload.CRCouncilMemberClaimNode{}
-	crClaimNodePayload2.Deserialize(buf, payload.CRManagementVersion)
+	crClaimNodePayload2.Deserialize(buf, payload.CurrentCRClaimDPoSNodeVersion)
 	fmt.Printf("crClaimNodePayload2: %v\n", crClaimNodePayload2)
 
 	s.True(crClaimNodeEqual(crClaimNodePayload1, crClaimNodePayload2))

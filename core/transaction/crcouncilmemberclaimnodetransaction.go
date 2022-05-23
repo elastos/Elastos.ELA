@@ -10,6 +10,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+
 	"github.com/elastos/Elastos.ELA/blockchain"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	crstate "github.com/elastos/Elastos.ELA/cr/state"
@@ -58,7 +59,12 @@ func (t *CRCouncilMemberClaimNodeTransaction) SpecialContextCheck() (result elae
 	did := manager.CRCouncilCommitteeDID
 	var crMember *crstate.CRMember
 	if t.parameters.BlockHeight >= t.parameters.Config.DPoSV2StartHeight {
-		crMember = t.parameters.BlockChain.GetCRCommittee().GetNextMember(did)
+		switch t.payloadVersion {
+		case payload.CurrentCRClaimDPoSNodeVersion:
+			crMember = t.parameters.BlockChain.GetCRCommittee().GetMember(did)
+		case payload.NextCRClaimDPoSNodeVersion:
+			crMember = t.parameters.BlockChain.GetCRCommittee().GetNextMember(did)
+		}
 	} else {
 		crMember = t.parameters.BlockChain.GetCRCommittee().GetMember(did)
 	}
@@ -101,7 +107,7 @@ func (t *CRCouncilMemberClaimNodeTransaction) SpecialContextCheck() (result elae
 func checkCRCouncilMemberClaimNodeSignature(
 	managementPayload *payload.CRCouncilMemberClaimNode, code []byte) error {
 	signBuf := new(bytes.Buffer)
-	managementPayload.SerializeUnsigned(signBuf, payload.CRManagementVersion)
+	managementPayload.SerializeUnsigned(signBuf, payload.CurrentCRClaimDPoSNodeVersion)
 	if err := blockchain.CheckCRTransactionSignature(managementPayload.CRCouncilCommitteeSignature, code,
 		signBuf.Bytes()); err != nil {
 		return errors.New("CR signature check failed")

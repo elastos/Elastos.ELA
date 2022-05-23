@@ -2739,7 +2739,7 @@ func newCRCouncilMemberClaimNode(L *lua.LState) int {
 
 	if needSign {
 		signBuf := new(bytes.Buffer)
-		err = crCouncilMemberClaimNode.SerializeUnsigned(signBuf, payload.CRManagementVersion)
+		err = crCouncilMemberClaimNode.SerializeUnsigned(signBuf, payload.CurrentCRClaimDPoSNodeVersion)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)

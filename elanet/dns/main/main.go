@@ -57,9 +57,6 @@ var (
 )
 
 func main() {
-	// Print help message on startup.
-	fmt.Println(help)
-
 	interrupt := signal.NewInterrupt()
 
 	// Resolve the parameters if have.
@@ -68,12 +65,17 @@ func main() {
 	var port uint
 	var debug bool
 	var newversionheight uint
+	v := versionFlag{}
 	flag.StringVar(&net, "net", "main", "specify a active net for the DNS service")
 	flag.UintVar(&magic, "magic", 0, "specify a magic number for the DNS service")
 	flag.UintVar(&port, "port", 0, "specify a port number for the DNS service")
 	flag.BoolVar(&debug, "debug", false, "turn on debug log")
 	flag.UintVar(&newversionheight, "newversionheight", 0, "specify a new version message height for the DNS service")
+	flag.Var(&v, "v", "print version and exit")
 	flag.Parse()
+
+	// Print help message on startup.
+	fmt.Println(help)
 
 	// Use the specified active net parameters.
 	switch strings.ToLower(net) {
@@ -129,4 +131,15 @@ func main() {
 
 	<-interrupt.C
 	dnsService.Stop()
+}
+
+type versionFlag struct{}
+
+func (versionFlag) IsBoolFlag() bool  { return true }
+func (versionFlag) Get() interface{}  { return nil }
+func (r *versionFlag) String() string { return Version }
+func (r *versionFlag) Set(s string) error {
+	println("ela-dns version", Version)
+	os.Exit(0)
+	return nil
 }

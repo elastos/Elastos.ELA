@@ -780,7 +780,7 @@ func NewKeyFrame() *KeyFrame {
 		DetailedCRVotes:            make(map[common.Uint256]payload.DetailedVoteInfo, 0),
 		DetailedCRImpeachmentVotes: make(map[common.Uint256]payload.DetailedVoteInfo, 0),
 		LastCommitteeHeight:        0,
-		CurrentUnsignedWithdrawFromSideChainKeys: make([]string, 0),
+		CurrentSignedWithdrawFromSideChainKeys: make([]string, 0),
 	}
 }
 

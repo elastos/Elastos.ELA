@@ -9,7 +9,6 @@ import (
 	"crypto/elliptic"
 	"crypto/rand"
 	"errors"
-	"github.com/elastos/Elastos.ELA/common/log"
 	"math/big"
 )
 
@@ -240,16 +239,13 @@ func deCompress(yTilde int, xValue []byte, curve *elliptic.CurveParams) (*Public
 
 func DecodePoint(encodeData []byte) (*PublicKey, error) {
 	if len(encodeData) == 0 {
-		log.Info("Hey here ?")
 		return nil, errors.New("the encodeData cann't be nil")
 	}
 	expectedLength := (DefaultParams.P.BitLen() + 7) / 8
 
 	switch encodeData[0] {
 	case 0x02, 0x03: //compressed
-		log.Info("Hey here ?111112")
 		if len(encodeData) != expectedLength+1 {
-			log.Info("Hey here ?11")
 			return nil, errors.New("the encodeData format is error")
 		}
 
@@ -258,9 +254,7 @@ func DecodePoint(encodeData []byte) (*PublicKey, error) {
 			DefaultParams)
 
 	case 0x04, 0x06, 0x07: //uncompressed
-		log.Info("Hey here ?11111232")
 		if len(encodeData) != NOCOMPRESSEDLEN {
-			log.Info("Hey here ?111111")
 			return nil, errors.New("the encodeData format is error")
 		}
 		pubKeyX := new(big.Int).SetBytes(encodeData[FLAGLEN : FLAGLEN+XORYVALUELEN])
@@ -268,7 +262,6 @@ func DecodePoint(encodeData []byte) (*PublicKey, error) {
 		return &PublicKey{pubKeyX, pubKeyY}, nil
 
 	default:
-		log.Info("Hey here ?111")
 		return nil, errors.New("the encodeData format is error")
 	}
 }

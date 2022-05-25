@@ -302,7 +302,7 @@ func startNode(c *cli.Context, st *settings.Settings) {
 			netServer.BroadcastMessage(msg)
 		},
 		AppendToTxpool:     txMemPool.AppendToTxPool,
-		GetCurrentArbiters: arbitrator.GetCurrentArbitratorKeys,
+		GetCurrentArbiters: arbiters.GetCurrentArbitratorKeys,
 	})
 
 	servers.Compile = Version

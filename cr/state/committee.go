@@ -1095,7 +1095,7 @@ func getSignedPubKeys(m, n int, publicKeys [][]byte, signatures, data []byte) ([
 
 func (c *Committee) processsWithdrawFromSideChain(tx interfaces.Transaction,
 	height uint32, history *utils.History) {
-	log.Info("### processsWithdrawFromSideChain", c.CurrentWithdrawFromSideChainIndex, c.Params.CrArbitrationNotFoundBreach)
+	log.Infof("currentWithdrawFromSideChainIndex is %d, CrArbitrationNotFoundBreach is %d", c.CurrentWithdrawFromSideChainIndex, c.Params.CrArbitrationNotFoundBreach)
 	reachTop := false
 	if c.CurrentWithdrawFromSideChainIndex == c.Params.CrArbitrationNotFoundBreach {
 		reachTop = true
@@ -1103,20 +1103,16 @@ func (c *Committee) processsWithdrawFromSideChain(tx interfaces.Transaction,
 	} else {
 		c.CurrentWithdrawFromSideChainIndex += 1
 	}
-	log.Info("###  CurrentSignedWithdrawFromSideChainKeys %v", c.CurrentSignedWithdrawFromSideChainKeys)
-	// TODO consider history
+	log.Infof("CurrentSignedWithdrawFromSideChainKeys %v", c.CurrentSignedWithdrawFromSideChainKeys)
 	electedMembers := getOriginElectedCRMembers(c.Members)
 	electedMemAll := make(map[string]*CRMember)
 	for _, elected := range electedMembers {
 		electedMemAll[hex.EncodeToString(elected.DPOSPublicKey)] = elected
 	}
-	log.Infof(" ### 111 electedMembers %v", electedMembers)
 	var publicKeys [][]byte
 	if tx.PayloadVersion() == payload.WithdrawFromSideChainVersionV2 {
-		log.Info("### sdfadfs")
 		allPulicKeys := c.getCurrentArbiters()
 		pld := tx.Payload().(*payload.WithdrawFromSideChain)
-		log.Infof("### here feature sch %v %v", allPulicKeys,pld.Signers)
 		for _, index := range pld.Signers {
 			publicKeys = append(publicKeys, allPulicKeys[index])
 		}
@@ -1128,20 +1124,16 @@ func (c *Committee) processsWithdrawFromSideChain(tx interfaces.Transaction,
 		for _, p := range tx.Programs() {
 			publicKeys, err = getCrossChainSignedPubKeys(*p, data)
 			if err != nil {
-				log.Warn("processsWithdrawFromSideChain err", err.Error())
 				return
 			}
 			if len(publicKeys) != 0 {
 				break
 			}
 		}
-		log.Infof("### 222 %v", publicKeys)
 	}
 	for _, pub := range publicKeys {
 		pubStr := hex.EncodeToString(pub)
-		log.Info("current pubStr ", pubStr)
 		if !isArbiterEixst(pubStr, c.CurrentSignedWithdrawFromSideChainKeys) {
-			log.Info("### isArbiterEixst")
 			c.CurrentSignedWithdrawFromSideChainKeys = append(c.CurrentSignedWithdrawFromSideChainKeys, pubStr)
 		}
 	}
@@ -1149,20 +1141,20 @@ func (c *Committee) processsWithdrawFromSideChain(tx interfaces.Transaction,
 	if reachTop {
 		log.Info("reach top")
 		for k, m := range electedMemAll {
-			log.Info("### reach top", k)
-			if !isArbiterEixst(k, c.CurrentSignedWithdrawFromSideChainKeys) {
-				log.Info("### hello ", k)
-				if m != nil && m.MemberState == MemberElected {
+			tmp := k
+			tmpMem := m
+			if !isArbiterEixst(tmp, c.CurrentSignedWithdrawFromSideChainKeys) {
+				if tmpMem != nil && tmpMem.MemberState == MemberElected {
 					history.Append(height, func() {
-						log.Info("### set to inactive ", k)
-						m.MemberState = MemberInactive
+						tmpMem.MemberState = MemberInactive
+						log.Info("Set to inactive", tmpMem.Info.NickName)
 						if height >= c.Params.ChangeCommitteeNewCRHeight {
-							c.state.UpdateCRInactivePenalty(m.Info.CID, height)
+							c.state.UpdateCRInactivePenalty(tmpMem.Info.CID, height)
 						}
 					}, func() {
-						m.MemberState = MemberElected
+						tmpMem.MemberState = MemberElected
 						if height >= c.Params.ChangeCommitteeNewCRHeight {
-							c.state.RevertUpdateCRInactivePenalty(m.Info.CID, height)
+							c.state.RevertUpdateCRInactivePenalty(tmpMem.Info.CID, height)
 						}
 					})
 				}

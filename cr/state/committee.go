@@ -70,47 +70,8 @@ func (c *Committee) GetProposalManager() *ProposalManager {
 	return c.manager
 }
 
-func (c *Committee) GetDetailedCRVotes(referKey common.Uint256) (
-	pl payload.DetailedVoteInfo, err error) {
-	c.mtx.RLock()
-	defer c.mtx.RUnlock()
-	vote, ok := c.DetailedCRVotes[referKey]
-	if !ok {
-		err = errors.New("refer key not found in DetailedCRVotes")
-	}
-	pl = vote
-	return
-}
-
-func (c *Committee) GetDetailedCRImpeachmentVotes(referKey common.Uint256) (
-	pl payload.DetailedVoteInfo, err error) {
-	c.mtx.RLock()
-	defer c.mtx.RUnlock()
-	vote, ok := c.DetailedCRImpeachmentVotes[referKey]
-	if !ok {
-		err = errors.New("refer key not found in DetailedCRImpeachmentVotes")
-	}
-	pl = vote
-	return
-}
-
-func (c *Committee) GetDetailedCRCProposalVotes(referKey common.Uint256) (
-	pl payload.DetailedVoteInfo, err error) {
-	c.mtx.RLock()
-	defer c.mtx.RUnlock()
-	vote, ok := c.manager.DetailedCRCProposalVotes[referKey]
-	if !ok {
-		err = errors.New("refer key not found in DetailedCRCProposalVotes")
-	}
-	pl = vote
-	return
-}
-
 func (c *Committee) GetAllCRCProposalVotes() (pl []payload.DetailedVoteInfo, referKeys []string, err error) {
-	for referKey, info := range c.manager.DetailedCRCProposalVotes {
-		pl = append(pl, info)
-		referKeys = append(referKeys, referKey.String())
-	}
+	// todo complete me
 	return
 }
 

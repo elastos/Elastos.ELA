@@ -54,7 +54,7 @@ func stateKeyFrameEqual(first *StateKeyFrame, second *StateKeyFrame) bool {
 		len(first.IllegalProducers) != len(second.IllegalProducers) ||
 		len(first.PendingCanceledProducers) != len(second.PendingCanceledProducers) ||
 		len(first.Votes) != len(second.Votes) ||
-		len(first.DposV2Votes) != len(second.DposV2Votes) ||
+		len(first.UsedDposV2Votes) != len(second.UsedDposV2Votes) ||
 		len(first.DepositOutputs) != len(second.DepositOutputs) ||
 		len(first.Nicknames) != len(second.Nicknames) ||
 		len(first.SpecialTxHashes) != len(second.SpecialTxHashes) ||
@@ -141,8 +141,8 @@ func stateKeyFrameEqual(first *StateKeyFrame, second *StateKeyFrame) bool {
 		}
 	}
 
-	for k, v1 := range first.DposV2Votes {
-		v2, ok := second.DposV2Votes[k]
+	for k, v1 := range first.UsedDposV2Votes {
+		v2, ok := second.UsedDposV2Votes[k]
 		if !ok {
 			return false
 		}

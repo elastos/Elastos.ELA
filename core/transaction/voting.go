@@ -6,12 +6,10 @@
 package transaction
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 
 	"github.com/elastos/Elastos.ELA/common"
-	"github.com/elastos/Elastos.ELA/core/contract"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/core/types/outputpayload"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
@@ -107,110 +105,111 @@ func (t *VotingTransaction) IsAllowedInPOWConsensus() bool {
 
 func (t *VotingTransaction) SpecialContextCheck() (result elaerr.ELAError, end bool) {
 
-	// 1.check if the signer has vote rights and check if votes enough
-	// 2.check different type of votes, enough? candidate exist?
-	blockHeight := t.parameters.BlockHeight
-	crCommittee := t.parameters.BlockChain.GetCRCommittee()
-	producers := t.parameters.BlockChain.GetState().GetActiveProducers()
-	pds := getProducerPublicKeysMap(producers)
-	pds2 := getDPoSV2ProducersMap(t.parameters.BlockChain.GetState().GetActivityV2Producers())
-
-	// vote rights should be more than vote rights used in payload
-	code := t.Programs()[0].Code
-	ct, err := contract.CreateStakeContractByCode(code)
-	if err != nil {
-		return elaerr.Simple(elaerr.ErrTxInvalidOutput, err), true
-	}
-	stakeProgramHash := ct.ToProgramHash()
-	state := t.parameters.BlockChain.GetState()
-	commitee := t.parameters.BlockChain.GetCRCommittee()
-	voteRights := state.DposV2VoteRights
-	totalVotes, exist := voteRights[*stakeProgramHash]
-	if !exist {
-		return elaerr.Simple(elaerr.ErrTxInvalidOutput, errors.New("has no vote rights")), true
-	}
-	usedDPoSVoteRights, _ := state.DposVotes[*stakeProgramHash]
-	usedDPoSV2VoteRights, _ := state.DposV2Votes[*stakeProgramHash]
-	cs := commitee.GetState()
-	usedCRVoteRights, _ := cs.CRVotes[*stakeProgramHash]
-	usedCRCProposalVoteRights, _ := cs.CRCProposalVotes[*stakeProgramHash]
-	usedCRImpeachmentVoteRights, _ := cs.CRImpeachmentVotes[*stakeProgramHash]
-
-	var candidates []*crstate.Candidate
-	if crCommittee.IsInVotingPeriod(blockHeight) {
-		candidates = crCommittee.GetCandidates(crstate.Active)
-	} else {
-		candidates = []*crstate.Candidate{}
-	}
-	crs := getCRCIDsMap(candidates)
-
-	pld := t.Payload().(*payload.Voting)
-	switch t.PayloadVersion() {
-	case payload.VoteVersion:
-		for _, content := range pld.Contents {
-			switch content.VoteType {
-			case outputpayload.Delegate:
-				if blockHeight > state.DPoSV2ActiveHeight {
-					return elaerr.Simple(elaerr.ErrTxPayload,
-						errors.New("delegate votes is not allowed in DPoS V2")), true
-				}
-
-				err := t.checkVoteProducerContent(
-					content, pds, totalVotes-usedDPoSVoteRights)
-				if err != nil {
-					return elaerr.Simple(elaerr.ErrTxPayload, err), true
-				}
-			case outputpayload.CRC:
-				err := t.checkVoteCRContent(blockHeight,
-					content, crs, totalVotes-usedCRVoteRights)
-				if err != nil {
-					return elaerr.Simple(elaerr.ErrTxPayload, err), true
-				}
-			case outputpayload.CRCProposal:
-				err := t.checkVoteCRCProposalContent(
-					content, totalVotes-usedCRCProposalVoteRights)
-				if err != nil {
-					return elaerr.Simple(elaerr.ErrTxPayload, err), true
-				}
-			case outputpayload.CRCImpeachment:
-				err := t.checkCRImpeachmentContent(
-					content, totalVotes-usedCRImpeachmentVoteRights)
-				if err != nil {
-					return elaerr.Simple(elaerr.ErrTxPayload, err), true
-				}
-			case outputpayload.DposV2:
-				err := t.checkDPoSV2Content(content, pds2, totalVotes-usedDPoSV2VoteRights)
-				if err != nil {
-					return elaerr.Simple(elaerr.ErrTxPayload, err), true
-				}
-			}
-		}
-	case payload.RenewalVoteVersion:
-		for _, content := range pld.RenewalContents {
-			producer := state.GetProducer(content.VotesInfo.Candidate)
-			if producer == nil {
-				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("producer can not found")), true
-			}
-			vote, err := producer.GetDetailedDPoSV2Votes(*stakeProgramHash, content.ReferKey)
-			if err != nil {
-				return elaerr.Simple(elaerr.ErrTxPayload, err), true
-			}
-			if vote.VoteType != outputpayload.DposV2 {
-				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid vote type")), true
-			}
-			if vote.BlockHeight > content.VotesInfo.LockTime {
-				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid lock time")), true
-			}
-			if len(vote.Info) != 1 || vote.Info[0].Votes != content.VotesInfo.Votes {
-				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("votes not equal")), true
-			}
-			if !bytes.Equal(vote.Info[0].Candidate, content.VotesInfo.Candidate) {
-				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("candidate should be the same one")), true
-			}
-		}
-	default:
-		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid payload version")), true
-	}
+	// todo complete me
+	//// 1.check if the signer has vote rights and check if votes enough
+	//// 2.check different type of votes, enough? candidate exist?
+	//blockHeight := t.parameters.BlockHeight
+	//crCommittee := t.parameters.BlockChain.GetCRCommittee()
+	//producers := t.parameters.BlockChain.GetState().GetActiveProducers()
+	//pds := getProducerPublicKeysMap(producers)
+	//pds2 := getDPoSV2ProducersMap(t.parameters.BlockChain.GetState().GetActivityV2Producers())
+	//
+	//// vote rights should be more than vote rights used in payload
+	//code := t.Programs()[0].Code
+	//ct, err := contract.CreateStakeContractByCode(code)
+	//if err != nil {
+	//	return elaerr.Simple(elaerr.ErrTxInvalidOutput, err), true
+	//}
+	//stakeProgramHash := ct.ToProgramHash()
+	//state := t.parameters.BlockChain.GetState()
+	//commitee := t.parameters.BlockChain.GetCRCommittee()
+	//voteRights := state.DposV2VoteRights
+	//totalVotes, exist := voteRights[*stakeProgramHash]
+	//if !exist {
+	//	return elaerr.Simple(elaerr.ErrTxInvalidOutput, errors.New("has no vote rights")), true
+	//}
+	//usedDPoSVoteRights, _ := state.UsedDposVotes[*stakeProgramHash]
+	//usedDPoSV2VoteRights, _ := state.UsedDposV2Votes[*stakeProgramHash]
+	//cs := commitee.GetState()
+	//usedCRVoteRights, _ := cs.UsedCRVotes[*stakeProgramHash]
+	//usedCRCProposalVoteRights, _ := cs.UsedCRCProposalVotes[*stakeProgramHash]
+	//usedCRImpeachmentVoteRights, _ := cs.UsdedCRImpeachmentVotes[*stakeProgramHash]
+	//
+	//var candidates []*crstate.Candidate
+	//if crCommittee.IsInVotingPeriod(blockHeight) {
+	//	candidates = crCommittee.GetCandidates(crstate.Active)
+	//} else {
+	//	candidates = []*crstate.Candidate{}
+	//}
+	//crs := getCRCIDsMap(candidates)
+	//
+	//pld := t.Payload().(*payload.Voting)
+	//switch t.PayloadVersion() {
+	//case payload.VoteVersion:
+	//	for _, content := range pld.Contents {
+	//		switch content.VoteType {
+	//		case outputpayload.Delegate:
+	//			if blockHeight > state.DPoSV2ActiveHeight {
+	//				return elaerr.Simple(elaerr.ErrTxPayload,
+	//					errors.New("delegate votes is not allowed in DPoS V2")), true
+	//			}
+	//
+	//			err := t.checkVoteProducerContent(
+	//				content, pds, totalVotes-usedDPoSVoteRights)
+	//			if err != nil {
+	//				return elaerr.Simple(elaerr.ErrTxPayload, err), true
+	//			}
+	//		case outputpayload.CRC:
+	//			err := t.checkVoteCRContent(blockHeight,
+	//				content, crs, totalVotes-usedCRVoteRights)
+	//			if err != nil {
+	//				return elaerr.Simple(elaerr.ErrTxPayload, err), true
+	//			}
+	//		case outputpayload.CRCProposal:
+	//			err := t.checkVoteCRCProposalContent(
+	//				content, totalVotes-usedCRCProposalVoteRights)
+	//			if err != nil {
+	//				return elaerr.Simple(elaerr.ErrTxPayload, err), true
+	//			}
+	//		case outputpayload.CRCImpeachment:
+	//			err := t.checkCRImpeachmentContent(
+	//				content, totalVotes-usedCRImpeachmentVoteRights)
+	//			if err != nil {
+	//				return elaerr.Simple(elaerr.ErrTxPayload, err), true
+	//			}
+	//		case outputpayload.DposV2:
+	//			err := t.checkDPoSV2Content(content, pds2, totalVotes-usedDPoSV2VoteRights)
+	//			if err != nil {
+	//				return elaerr.Simple(elaerr.ErrTxPayload, err), true
+	//			}
+	//		}
+	//	}
+	//case payload.RenewalVoteVersion:
+	//	for _, content := range pld.RenewalContents {
+	//		producer := state.GetProducer(content.VotesInfo.Candidate)
+	//		if producer == nil {
+	//			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("producer can not found")), true
+	//		}
+	//		vote, err := producer.GetDetailedDPoSV2Votes(*stakeProgramHash, content.ReferKey)
+	//		if err != nil {
+	//			return elaerr.Simple(elaerr.ErrTxPayload, err), true
+	//		}
+	//		if vote.VoteType != outputpayload.DposV2 {
+	//			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid vote type")), true
+	//		}
+	//		if vote.BlockHeight > content.VotesInfo.LockTime {
+	//			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid lock time")), true
+	//		}
+	//		if len(vote.Info) != 1 || vote.Info[0].Votes != content.VotesInfo.Votes {
+	//			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("votes not equal")), true
+	//		}
+	//		if !bytes.Equal(vote.Info[0].Candidate, content.VotesInfo.Candidate) {
+	//			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("candidate should be the same one")), true
+	//		}
+	//	}
+	//default:
+	//	return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid payload version")), true
+	//}
 
 	return nil, false
 }

@@ -156,7 +156,7 @@ func stateKeyFrameEqual(first *state.StateKeyFrame, second *state.StateKeyFrame)
 		len(first.IllegalProducers) != len(second.IllegalProducers) ||
 		len(first.PendingCanceledProducers) != len(second.PendingCanceledProducers) ||
 		len(first.Votes) != len(second.Votes) ||
-		len(first.DposV2Votes) != len(second.DposV2Votes) ||
+		len(first.UsedDposV2Votes) != len(second.UsedDposV2Votes) ||
 		len(first.DepositOutputs) != len(second.DepositOutputs) ||
 		len(first.DposV2RewardInfo) != len(second.DposV2RewardInfo) ||
 		len(first.DposV2RewardClaimingInfo) != len(second.DposV2RewardClaimingInfo) ||
@@ -247,8 +247,8 @@ func stateKeyFrameEqual(first *state.StateKeyFrame, second *state.StateKeyFrame)
 		}
 	}
 
-	for k, v1 := range first.DposV2Votes {
-		v2, ok := second.DposV2Votes[k]
+	for k, v1 := range first.UsedDposV2Votes {
+		v2, ok := second.UsedDposV2Votes[k]
 		if !ok {
 			return false
 		}
@@ -348,8 +348,8 @@ func randomDPOSStateKeyFrame() *state.StateKeyFrame {
 		PendingCanceledProducers:  make(map[string]*state.Producer),
 		Votes:                     make(map[string]struct{}),
 		DposV2VoteRights:          make(map[common.Uint168]common.Fixed64),
-		DposVotes:                 make(map[common.Uint168]common.Fixed64),
-		DposV2Votes:               make(map[common.Uint168]common.Fixed64),
+		UsedDposVotes:             make(map[common.Uint168][]payload.VotesWithLockTime),
+		UsedDposV2Votes:           make(map[common.Uint168]common.Fixed64),
 		DepositOutputs:            make(map[string]common.Fixed64),
 		DposV2RewardInfo:          make(map[string]common.Fixed64),
 		DposV2RewardClaimingInfo:  make(map[string]common.Fixed64),
@@ -374,8 +374,14 @@ func randomDPOSStateKeyFrame() *state.StateKeyFrame {
 		result.PendingCanceledProducers[randomString()] = randomProducer()
 		result.Votes[randomString()] = struct{}{}
 		result.DposV2VoteRights[*randomUint168()] = randomFix64()
-		result.DposVotes[*randomUint168()] = randomFix64()
-		result.DposV2Votes[*randomUint168()] = randomFix64()
+		result.UsedDposVotes[*randomUint168()] = []payload.VotesWithLockTime{
+			{
+				Candidate: randomPublicKey(),
+				Votes:     randomFix64(),
+				LockTime:  0,
+			},
+		}
+		result.UsedDposV2Votes[*randomUint168()] = randomFix64()
 		result.DepositOutputs[randomString()] = common.Fixed64(rand.Uint64())
 		result.DposV2RewardInfo[randomString()] = common.Fixed64(rand.Uint64())
 		result.DposV2RewardClaimingInfo[randomString()] = common.Fixed64(rand.Uint64())

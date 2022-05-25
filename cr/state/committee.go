@@ -1044,9 +1044,17 @@ func (c *Committee) processCRCouncilMemberClaimNode(tx interfaces.Transaction,
 	claimNodePayload := tx.Payload().(*payload.CRCouncilMemberClaimNode)
 	var cr *CRMember
 	if height >= c.Params.DPoSV2StartHeight {
-		cr = c.getNextMember(claimNodePayload.CRCouncilCommitteeDID)
-		if cr == nil {
-			return
+		switch tx.PayloadVersion() {
+		case payload.CurrentCRClaimDPoSNodeVersion:
+			cr = c.getMember(claimNodePayload.CRCouncilCommitteeDID)
+			if cr == nil {
+				return
+			}
+		case payload.NextCRClaimDPoSNodeVersion:
+			cr = c.getNextMember(claimNodePayload.CRCouncilCommitteeDID)
+			if cr == nil {
+				return
+			}
 		}
 	} else {
 		cr = c.getMember(claimNodePayload.CRCouncilCommitteeDID)

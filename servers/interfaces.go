@@ -3330,6 +3330,12 @@ func getOutputPayloadInfo(op common2.OutputPayload) OutputPayloadInfo {
 			obj.Contents = append(obj.Contents, contentInfo)
 		}
 		return obj
+	case *outputpayload.StakeOutput:
+		addr, _ := object.StakeAddress.ToAddress()
+		obj := new(StakeOutputInfo)
+		obj.Version = object.Version
+		obj.StakeAddress = addr
+		return obj
 	}
 
 	return nil

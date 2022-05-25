@@ -59,6 +59,11 @@ type ReturnSideChainDepositInfo struct {
 	DepositTransactionHash string `json:"DepositTransactionHash"`
 }
 
+type StakeOutputInfo struct {
+	Version      byte   `json:"Version"`
+	StakeAddress string `json:"StakeAddress"`
+}
+
 type CandidateVotes struct {
 	Candidate string `json:"candidate"`
 	Votes     string `json:"votes"`

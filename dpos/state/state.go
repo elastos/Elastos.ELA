@@ -128,7 +128,7 @@ func (p *Producer) Votes() common.Fixed64 {
 	return p.votes
 }
 
-// DposV2Votes returns the votes of the dposV2.
+// UsedDposV2Votes returns the votes of the dposV2.
 func (p *Producer) DposV2Votes() common.Fixed64 {
 	return p.dposV2Votes
 }
@@ -493,18 +493,6 @@ func (s *State) isDposV2Active() bool {
 	log.Errorf("isDposV2Active len(a.DposV2EffectedProducers) %d  GeneralArbiters %d", len(s.DposV2EffectedProducers),
 		s.ChainParams.GeneralArbiters)
 	return len(s.DposV2EffectedProducers) >= s.ChainParams.GeneralArbiters*3/2
-}
-
-func (s *State) GetDetailedDPoSV1Votes(referKey common.Uint256) (
-	pl payload.DetailedVoteInfo, err error) {
-	s.mtx.RLock()
-	defer s.mtx.RUnlock()
-	vote, ok := s.DetailDPoSV1Votes[referKey]
-	if !ok {
-		err = errors.New("refer key not found in DetailDPoSV1Votes")
-	}
-	pl = vote
-	return
 }
 
 func (s *State) GetRealWithdrawTransactions() map[common.Uint256]common2.OutputInfo {
@@ -1274,9 +1262,9 @@ func (s *State) processTransactions(txs []interfaces.Transaction, height uint32)
 		for _, i := range detailVoteInfo.Info {
 			info := i
 			s.History.Append(height, func() {
-				s.DposV2Votes[*stakeAddress] -= info.Votes
+				s.UsedDposV2Votes[*stakeAddress] -= info.Votes
 			}, func() {
-				s.DposV2Votes[*stakeAddress] += info.Votes
+				s.UsedDposV2Votes[*stakeAddress] += info.Votes
 			})
 
 			s.History.Append(height, func() {
@@ -1651,6 +1639,7 @@ func (s *State) processVoting(tx interfaces.Transaction, height uint32) {
 		s.processRenewalVotingContent(tx, height)
 	}
 }
+
 //
 //func (s *State) processCancelVoting(tx interfaces.Transaction, height uint32) {
 //	// get stake address(program hash)
@@ -1682,9 +1671,9 @@ func (s *State) processVoting(tx interfaces.Transaction, height uint32) {
 //			}
 //
 //			s.History.Append(height, func() {
-//				s.DposVotes[*stakeAddress] -= maxVotes
+//				s.UsedDposVotes[*stakeAddress] -= maxVotes
 //			}, func() {
-//				s.DposVotes[*stakeAddress] += maxVotes
+//				s.UsedDposVotes[*stakeAddress] += maxVotes
 //			})
 //
 //			s.History.Append(height, func() {
@@ -1713,10 +1702,12 @@ func (s *State) processVotingContent(tx interfaces.Transaction, height uint32) {
 					maxVotes = vote.Votes
 				}
 			}
+
+			oriUsedDPoSVotes := s.UsedDposVotes[*stakeAddress]
 			s.History.Append(height, func() {
-				s.DposVotes[*stakeAddress] += maxVotes
+				s.UsedDposVotes[*stakeAddress] = content.VotesInfo
 			}, func() {
-				s.DposVotes[*stakeAddress] -= maxVotes
+				s.UsedDposVotes[*stakeAddress] = oriUsedDPoSVotes
 			})
 
 			for _, v := range content.VotesInfo {
@@ -1731,36 +1722,15 @@ func (s *State) processVotingContent(tx interfaces.Transaction, height uint32) {
 				})
 			}
 
-			// record DPoS v1 votes information
-			detailVoteInfo := payload.DetailedVoteInfo{
-				StakeProgramHash: *stakeAddress,
-				TransactionHash:  tx.Hash(),
-				BlockHeight:      height,
-				PayloadVersion:   tx.PayloadVersion(),
-				VoteType:         content.VoteType,
-				Info:             content.VotesInfo,
-			}
-			ad, _ := stakeAddress.ToAddress()
-			log.Info("##### voting referkey:", detailVoteInfo.ReferKey(),
-				"stake address:", ad, "txHash:", tx.Hash(), "payloadVersion:", tx.PayloadVersion(),
-				"voteType:", content.VoteType, "voteInfo:", content.VotesInfo, "height:", height)
-
-			referKey := detailVoteInfo.ReferKey()
-			s.History.Append(height, func() {
-				s.DetailDPoSV1Votes[referKey] = detailVoteInfo
-			}, func() {
-				delete(s.DetailDPoSV1Votes, referKey)
-			})
-
 		case outputpayload.DposV2:
 			var totalVotes common.Fixed64
 			for _, vote := range content.VotesInfo {
 				totalVotes += vote.Votes
 			}
 			s.History.Append(height, func() {
-				s.DposV2Votes[*stakeAddress] += totalVotes
+				s.UsedDposV2Votes[*stakeAddress] += totalVotes
 			}, func() {
-				s.DposV2Votes[*stakeAddress] -= totalVotes
+				s.UsedDposV2Votes[*stakeAddress] -= totalVotes
 			})
 
 			for _, v := range content.VotesInfo {

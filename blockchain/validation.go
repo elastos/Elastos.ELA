@@ -8,7 +8,6 @@ package blockchain
 import (
 	"crypto/sha256"
 	"errors"
-	"github.com/elastos/Elastos.ELA/common/log"
 
 	"sort"
 
@@ -31,7 +30,6 @@ func RunPrograms(data []byte, programHashes []common.Uint168, programs []*Progra
 
 		// TODO: this implementation will be deprecated
 		if prefixType == contract.PrefixCrossChain {
-			log.Info("### 12233111")
 			if contract.IsSchnorr(program.Code) {
 				if ok, err := checkSchnorrSignatures(*program, common.Sha256D(data[:])); !ok {
 					return errors.New("check schnorr signature failed:" + err.Error())
@@ -52,7 +50,6 @@ func RunPrograms(data []byte, programHashes []common.Uint168, programs []*Progra
 		}
 
 		if prefixType == contract.PrefixStandard || prefixType == contract.PrefixDeposit {
-			log.Infof("### 1111 %v", program.Code)
 			if contract.IsSchnorr(program.Code) {
 				if ok, err := checkSchnorrSignatures(*program, common.Sha256D(data[:])); !ok {
 					return errors.New("check schnorr signature failed:" + err.Error())
@@ -63,7 +60,6 @@ func RunPrograms(data []byte, programHashes []common.Uint168, programs []*Progra
 				}
 			}
 		} else if prefixType == contract.PrefixMultiSig {
-			log.Info("### 1222")
 			if err := CheckMultiSigSignatures(*program, data); err != nil {
 				return err
 			}

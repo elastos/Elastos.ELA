@@ -1104,6 +1104,14 @@ func (a *Arbiters) GetArbitrators() []*ArbiterInfo {
 	return result
 }
 
+func (a *Arbiters) GetCurrentArbitratorKeys() [][]byte {
+	var ret [][]byte
+	for _, info := range a.getArbitrators() {
+		ret = append(ret, info.NodePublicKey)
+	}
+	return ret
+}
+
 func (a *Arbiters) getArbitrators() []*ArbiterInfo {
 	result := make([]*ArbiterInfo, 0, len(a.CurrentArbitrators))
 	for _, v := range a.CurrentArbitrators {

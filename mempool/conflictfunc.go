@@ -287,23 +287,6 @@ func strVoting(tx interfaces.Transaction) (interface{}, error) {
 	return *stakeProgramHash, nil
 }
 
-func strCancelVotes(tx interfaces.Transaction) (interface{}, error) {
-	_, ok := tx.Payload().(*payload.CancelVotes)
-	if !ok {
-		return nil, fmt.Errorf("invlid cancel votes payload, tx:%s", tx.Hash())
-	}
-	if len(tx.Programs()) < 1 {
-		return nil, fmt.Errorf("invalid cancel votes programs count, tx:%s", tx.Hash())
-	}
-	code := tx.Programs()[0].Code
-	ct, err := contract.CreateStakeContractByCode(code)
-	if err != nil {
-		return nil, fmt.Errorf("invlid cancel votes code, tx:%s", tx.Hash())
-	}
-	stakeProgramHash := ct.ToProgramHash()
-	return *stakeProgramHash, nil
-}
-
 func strUnstake(tx interfaces.Transaction) (interface{}, error) {
 	pld, ok := tx.Payload().(*payload.Unstake)
 	if !ok {

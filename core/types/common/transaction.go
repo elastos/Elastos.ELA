@@ -67,9 +67,8 @@ const (
 	DposV2ClaimRewardRealWithdraw TxType = 0x61
 	Stake                         TxType = 0x62
 	Voting                        TxType = 0x63
-	CancelVotes                   TxType = 0x64
-	Unstake                       TxType = 0x65
-	UnstakeRealWithdraw           TxType = 0x66
+	Unstake                       TxType = 0x64
+	UnstakeRealWithdraw           TxType = 0x65
 )
 
 func (self TxType) Name() string {
@@ -152,8 +151,6 @@ func (self TxType) Name() string {
 		return "Stake"
 	case Voting:
 		return "Voting"
-	case CancelVotes:
-		return "CancelVotes"
 	case Unstake:
 		return "Unstake"
 	case UnstakeRealWithdraw:

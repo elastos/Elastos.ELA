@@ -301,7 +301,6 @@ func RegisterDataType(L *lua.LState) int {
 	RegisterStakeOutputType(L)
 	RegisterVotingType(L)
 	RegisterRenewVotingType(L)
-	RegisterCancelVotes(L)
 	RegisterUnstakeType(L)
 	return 0
 }

@@ -71,14 +71,6 @@ func RegisterUnstakeType(L *lua.LState) {
 	L.SetField(mt, "__index", L.SetFuncs(L.NewTable(), unstakeMethods))
 }
 
-func RegisterCancelVotes(L *lua.LState) {
-	mt := L.NewTypeMetatable(luaCancelVotesName)
-	L.SetGlobal("cancelvotes", mt)
-	L.SetField(mt, "new", L.NewFunction(newCancelVotes))
-	// methods
-	L.SetField(mt, "__index", L.SetFuncs(L.NewTable(), cancelVotesMethods))
-}
-
 // Constructor
 func newStake(L *lua.LState) int {
 	cb := &payload.Stake{}
@@ -147,24 +139,6 @@ func newUnstake(L *lua.LState) int {
 	return 1
 }
 
-func newCancelVotes(L *lua.LState) int {
-	referKey := L.ToString(1)
-	referKey256, err := common.Uint256FromHexString(referKey)
-	if err != nil {
-		fmt.Println(err.Error())
-		os.Exit(-1)
-	}
-	cb := &payload.CancelVotes{
-		ReferKeys: []common.Uint256{*referKey256},
-	}
-	ud := L.NewUserData()
-	ud.Value = cb
-	L.SetMetatable(ud, L.GetTypeMetatable(luaCancelVotesName))
-	L.Push(ud)
-
-	return 1
-}
-
 // Checks whether the first lua argument is a *LUserData with *Stake and
 // returns this *Stake.
 func checkStake(L *lua.LState, idx int) *payload.Voting {
@@ -185,25 +159,12 @@ func checkUnstake(L *lua.LState, idx int) *payload.Unstake {
 	return nil
 }
 
-func checkCancelVotes(L *lua.LState, idx int) *payload.CancelVotes {
-	ud := L.CheckUserData(idx)
-	if v, ok := ud.Value.(*payload.CancelVotes); ok {
-		return v
-	}
-	L.ArgError(1, "Cancel votes expected")
-	return nil
-}
-
 var stakeMethods = map[string]lua.LGFunction{
 	"get": stakeGet,
 }
 
 var unstakeMethods = map[string]lua.LGFunction{
 	"get": unstakeGet,
-}
-
-var cancelVotesMethods = map[string]lua.LGFunction{
-	"get": cancelVotesGet,
 }
 
 // Getter and setter for the Person#Name
@@ -216,13 +177,6 @@ func stakeGet(L *lua.LState) int {
 
 func unstakeGet(L *lua.LState) int {
 	p := checkUnstake(L, 1)
-	fmt.Println(p)
-
-	return 0
-}
-
-func cancelVotesGet(L *lua.LState) int {
-	p := checkCancelVotes(L, 1)
 	fmt.Println(p)
 
 	return 0

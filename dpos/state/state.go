@@ -1405,9 +1405,6 @@ func (s *State) processTransaction(tx interfaces.Transaction, height uint32) {
 	case common2.Voting:
 		s.processVoting(tx, height)
 
-	case common2.CancelVotes:
-		s.processCancelVoting(tx, height)
-
 	case common2.IllegalProposalEvidence, common2.IllegalVoteEvidence,
 		common2.IllegalBlockEvidence, common2.IllegalSidechainEvidence:
 		s.processIllegalEvidence(tx.Payload(), height)
@@ -1654,50 +1651,50 @@ func (s *State) processVoting(tx interfaces.Transaction, height uint32) {
 		s.processRenewalVotingContent(tx, height)
 	}
 }
-
-func (s *State) processCancelVoting(tx interfaces.Transaction, height uint32) {
-	// get stake address(program hash)
-	code := tx.Programs()[0].Code
-	ct, _ := contract.CreateStakeContractByCode(code)
-	stakeAddress := ct.ToProgramHash()
-
-	pld := tx.Payload().(*payload.CancelVotes)
-	for _, k := range pld.ReferKeys {
-		key := k
-		detailVoteInfo, ok := s.DetailDPoSV1Votes[key]
-		if ok && detailVoteInfo.VoteType == outputpayload.Delegate {
-			var maxVotes common.Fixed64
-			for _, i := range detailVoteInfo.Info {
-				info := i
-				if info.Votes > maxVotes {
-					maxVotes = info.Votes
-				}
-
-				producer := s.getProducer(info.Candidate)
-				if producer == nil {
-					continue
-				}
-				s.History.Append(height, func() {
-					producer.votes -= info.Votes
-				}, func() {
-					producer.votes += info.Votes
-				})
-			}
-
-			s.History.Append(height, func() {
-				s.DposVotes[*stakeAddress] -= maxVotes
-			}, func() {
-				s.DposVotes[*stakeAddress] += maxVotes
-			})
-
-			s.History.Append(height, func() {
-				delete(s.DetailDPoSV1Votes, key)
-			}, func() {
-				s.DetailDPoSV1Votes[key] = detailVoteInfo
-			})
-		}
-	}
-}
+//
+//func (s *State) processCancelVoting(tx interfaces.Transaction, height uint32) {
+//	// get stake address(program hash)
+//	code := tx.Programs()[0].Code
+//	ct, _ := contract.CreateStakeContractByCode(code)
+//	stakeAddress := ct.ToProgramHash()
+//
+//	pld := tx.Payload().(*payload.CancelVotes)
+//	for _, k := range pld.ReferKeys {
+//		key := k
+//		detailVoteInfo, ok := s.DetailDPoSV1Votes[key]
+//		if ok && detailVoteInfo.VoteType == outputpayload.Delegate {
+//			var maxVotes common.Fixed64
+//			for _, i := range detailVoteInfo.Info {
+//				info := i
+//				if info.Votes > maxVotes {
+//					maxVotes = info.Votes
+//				}
+//
+//				producer := s.getProducer(info.Candidate)
+//				if producer == nil {
+//					continue
+//				}
+//				s.History.Append(height, func() {
+//					producer.votes -= info.Votes
+//				}, func() {
+//					producer.votes += info.Votes
+//				})
+//			}
+//
+//			s.History.Append(height, func() {
+//				s.DposVotes[*stakeAddress] -= maxVotes
+//			}, func() {
+//				s.DposVotes[*stakeAddress] += maxVotes
+//			})
+//
+//			s.History.Append(height, func() {
+//				delete(s.DetailDPoSV1Votes, key)
+//			}, func() {
+//				s.DetailDPoSV1Votes[key] = detailVoteInfo
+//			})
+//		}
+//	}
+//}
 
 func (s *State) processVotingContent(tx interfaces.Transaction, height uint32) {
 

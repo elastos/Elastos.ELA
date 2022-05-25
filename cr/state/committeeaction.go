@@ -95,9 +95,6 @@ func (c *Committee) processTransaction(tx interfaces.Transaction, height uint32)
 	case common2.Voting:
 		c.processVoting(tx, height)
 
-	case common2.CancelVotes:
-		c.processCancelVoting(tx, height)
-
 	case common2.ReturnCRDepositCoin:
 		c.state.returnDeposit(tx, height)
 
@@ -142,76 +139,77 @@ func (c *Committee) proposalTracking(tx interfaces.Transaction, height uint32) {
 	})
 }
 
-func (c *Committee) processCancelVoting(tx interfaces.Transaction, height uint32) {
-	code := tx.Programs()[0].Code
-	ct, _ := contract.CreateStakeContractByCode(code)
-	stakeAddress := ct.ToProgramHash()
-	pld := tx.Payload().(*payload.CancelVotes)
-	for _, k := range pld.ReferKeys {
-		key := k
-		detailVoteInfo, ok := c.DetailedCRVotes[key]
-		if ok && detailVoteInfo.VoteType == outputpayload.CRC {
-			c.state.History.Append(height, func() {
-				delete(c.DetailedCRVotes, key)
-			}, func() {
-				c.DetailedCRVotes[key] = detailVoteInfo
-			})
-
-			for _, i := range detailVoteInfo.Info {
-				info := i
-				c.state.processCancelVoteCRC(height, info.Candidate, info.Votes)
-				c.state.History.Append(height, func() {
-					c.state.CRVotes[*stakeAddress] -= info.Votes
-				}, func() {
-					c.state.CRVotes[*stakeAddress] += info.Votes
-				})
-			}
-		}
-
-		detailVoteInfo, ok = c.manager.DetailedCRCProposalVotes[key]
-		if ok && detailVoteInfo.VoteType == outputpayload.CRCProposal {
-			c.state.History.Append(height, func() {
-				delete(c.manager.DetailedCRCProposalVotes, key)
-			}, func() {
-				c.manager.DetailedCRCProposalVotes[key] = detailVoteInfo
-			})
-
-			var maxVotes common.Fixed64
-			for _, i := range detailVoteInfo.Info {
-				info := i
-				if i.Votes > maxVotes {
-					maxVotes = i.Votes
-				}
-				c.state.processCancelVoteCRCProposal(height, info.Candidate, info.Votes)
-			}
-
-			c.state.History.Append(height, func() {
-				c.state.CRCProposalVotes[*stakeAddress] -= maxVotes
-			}, func() {
-				c.state.CRCProposalVotes[*stakeAddress] += maxVotes
-			})
-		}
-
-		detailVoteInfo, ok = c.DetailedCRImpeachmentVotes[key]
-		if ok && detailVoteInfo.VoteType == outputpayload.CRCImpeachment {
-			c.state.History.Append(height, func() {
-				delete(c.DetailedCRImpeachmentVotes, key)
-			}, func() {
-				c.DetailedCRImpeachmentVotes[key] = detailVoteInfo
-			})
-			for _, i := range detailVoteInfo.Info {
-				info := i
-				c.processImpeachment(height, info.Candidate, info.Votes, c.state.History)
-
-				c.state.History.Append(height, func() {
-					c.state.CRImpeachmentVotes[*stakeAddress] -= info.Votes
-				}, func() {
-					c.state.CRImpeachmentVotes[*stakeAddress] += info.Votes
-				})
-			}
-		}
-	}
-}
+//
+//func (c *Committee) processCancelVoting(tx interfaces.Transaction, height uint32) {
+//	code := tx.Programs()[0].Code
+//	ct, _ := contract.CreateStakeContractByCode(code)
+//	stakeAddress := ct.ToProgramHash()
+//	pld := tx.Payload().(*payload.CancelVotes)
+//	for _, k := range pld.ReferKeys {
+//		key := k
+//		detailVoteInfo, ok := c.DetailedCRVotes[key]
+//		if ok && detailVoteInfo.VoteType == outputpayload.CRC {
+//			c.state.History.Append(height, func() {
+//				delete(c.DetailedCRVotes, key)
+//			}, func() {
+//				c.DetailedCRVotes[key] = detailVoteInfo
+//			})
+//
+//			for _, i := range detailVoteInfo.Info {
+//				info := i
+//				c.state.processCancelVoteCRC(height, info.Candidate, info.Votes)
+//				c.state.History.Append(height, func() {
+//					c.state.CRVotes[*stakeAddress] -= info.Votes
+//				}, func() {
+//					c.state.CRVotes[*stakeAddress] += info.Votes
+//				})
+//			}
+//		}
+//
+//		detailVoteInfo, ok = c.manager.DetailedCRCProposalVotes[key]
+//		if ok && detailVoteInfo.VoteType == outputpayload.CRCProposal {
+//			c.state.History.Append(height, func() {
+//				delete(c.manager.DetailedCRCProposalVotes, key)
+//			}, func() {
+//				c.manager.DetailedCRCProposalVotes[key] = detailVoteInfo
+//			})
+//
+//			var maxVotes common.Fixed64
+//			for _, i := range detailVoteInfo.Info {
+//				info := i
+//				if i.Votes > maxVotes {
+//					maxVotes = i.Votes
+//				}
+//				c.state.processCancelVoteCRCProposal(height, info.Candidate, info.Votes)
+//			}
+//
+//			c.state.History.Append(height, func() {
+//				c.state.CRCProposalVotes[*stakeAddress] -= maxVotes
+//			}, func() {
+//				c.state.CRCProposalVotes[*stakeAddress] += maxVotes
+//			})
+//		}
+//
+//		detailVoteInfo, ok = c.DetailedCRImpeachmentVotes[key]
+//		if ok && detailVoteInfo.VoteType == outputpayload.CRCImpeachment {
+//			c.state.History.Append(height, func() {
+//				delete(c.DetailedCRImpeachmentVotes, key)
+//			}, func() {
+//				c.DetailedCRImpeachmentVotes[key] = detailVoteInfo
+//			})
+//			for _, i := range detailVoteInfo.Info {
+//				info := i
+//				c.processImpeachment(height, info.Candidate, info.Votes, c.state.History)
+//
+//				c.state.History.Append(height, func() {
+//					c.state.CRImpeachmentVotes[*stakeAddress] -= info.Votes
+//				}, func() {
+//					c.state.CRImpeachmentVotes[*stakeAddress] += info.Votes
+//				})
+//			}
+//		}
+//	}
+//}
 
 // processVotes takes a transaction, if the transaction including any vote
 // outputs, validate and update CR Votes.

@@ -107,8 +107,6 @@ func newTransaction(L *lua.LState) int {
 		pload, _ = ud.Value.(*payload.Stake)
 	case *payload.Voting:
 		pload, _ = ud.Value.(*payload.Voting)
-	case *payload.CancelVotes:
-		pload, _ = ud.Value.(*payload.CancelVotes)
 	case *payload.Unstake:
 		pload, _ = ud.Value.(*payload.Unstake)
 	default:

@@ -134,7 +134,9 @@ func (t *RegisterProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bo
 		if info.StakeUntil < t.parameters.Config.DPoSV2StartHeight {
 			return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("stakeuntil must bigger than DPoSV2StartHeight")), true
 		}
-
+		if t.parameters.BlockHeight+t.parameters.Config.DPoSV2MinVotesLockTime >= info.StakeUntil {
+			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("v2 producer StakeUntil less than DPoSV2MinVotesLockTime")), true
+		}
 		// check deposit coin
 		hash, err := contract.PublicKeyToDepositProgramHash(info.OwnerPublicKey)
 		if err != nil {

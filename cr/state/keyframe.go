@@ -482,7 +482,7 @@ func (kf *KeyFrame) deserializeClaimedKeysMap(
 			return
 		}
 		var value []string
-		for z := uint64(0); z < kids ; z++  {
+		for z := uint64(0); z < kids; z++ {
 			var candidate string
 			if candidate, err = common.ReadVarString(r); err != nil {
 				return
@@ -681,11 +681,13 @@ func (kf *KeyFrame) Snapshot() *KeyFrame {
 
 func NewKeyFrame() *KeyFrame {
 	return &KeyFrame{
-		Members:             make(map[common.Uint168]*CRMember, 0),
-		NextMembers:         make(map[common.Uint168]*CRMember, 0),
-		ClaimedDposKeys:     make(map[uint32][]string, 0),
-		HistoryMembers:      make(map[uint64]map[common.Uint168]*CRMember, 0),
-		LastCommitteeHeight: 0,
+		Members:                    make(map[common.Uint168]*CRMember, 0),
+		NextMembers:                make(map[common.Uint168]*CRMember, 0),
+		ClaimedDposKeys:            make(map[uint32][]string, 0),
+		HistoryMembers:             make(map[uint64]map[common.Uint168]*CRMember, 0),
+		DetailedCRVotes:            make(map[common.Uint256]payload.DetailedVoteInfo, 0),
+		DetailedCRImpeachmentVotes: make(map[common.Uint256]payload.DetailedVoteInfo, 0),
+		LastCommitteeHeight:        0,
 	}
 }
 

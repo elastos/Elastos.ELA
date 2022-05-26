@@ -1050,11 +1050,29 @@ func (c *Committee) processCRCouncilMemberClaimNode(tx interfaces.Transaction,
 			if cr == nil {
 				return
 			}
+			oriClaimDPoSKeys := copyClaimedDPoSKeysMap(c.ClaimedDPoSKeys)
+			history.Append(height, func() {
+				c.ClaimedDPoSKeys[hex.EncodeToString(claimNodePayload.NodePublicKey)] = struct{}{}
+				if len(cr.DPOSPublicKey) != 0 {
+					delete(c.ClaimedDPoSKeys, hex.EncodeToString(cr.DPOSPublicKey))
+				}
+			}, func() {
+				c.ClaimedDPoSKeys = oriClaimDPoSKeys
+			})
 		case payload.NextCRClaimDPoSNodeVersion:
 			cr = c.getNextMember(claimNodePayload.CRCouncilCommitteeDID)
 			if cr == nil {
 				return
 			}
+			oriNextClaimDPoSKeys := copyClaimedDPoSKeysMap(c.NextClaimedDPoSKeys)
+			history.Append(height, func() {
+				c.NextClaimedDPoSKeys[hex.EncodeToString(claimNodePayload.NodePublicKey)] = struct{}{}
+				if len(cr.DPOSPublicKey) != 0 {
+					delete(c.ClaimedDPoSKeys, hex.EncodeToString(cr.DPOSPublicKey))
+				}
+			}, func() {
+				c.NextClaimedDPoSKeys = oriNextClaimDPoSKeys
+			})
 		}
 	} else {
 		cr = c.getMember(claimNodePayload.CRCouncilCommitteeDID)
@@ -1065,23 +1083,16 @@ func (c *Committee) processCRCouncilMemberClaimNode(tx interfaces.Transaction,
 	oriPublicKey := cr.DPOSPublicKey
 	oriMemberState := cr.MemberState
 	oriInactiveCount := cr.InactiveCount
-	oriClaimDposKeys := c.ClaimedDposKeys[c.LastVotingStartHeight]
 	history.Append(height, func() {
 		cr.DPOSPublicKey = claimNodePayload.NodePublicKey
 		if cr.MemberState == MemberInactive {
 			cr.MemberState = MemberElected
 			cr.InactiveCount = 0
 		}
-		if height >= c.Params.DPoSV2StartHeight {
-			c.ClaimedDposKeys[c.LastVotingStartHeight] = append(c.ClaimedDposKeys[c.LastVotingStartHeight], hex.EncodeToString(cr.DPOSPublicKey))
-		}
 	}, func() {
 		cr.DPOSPublicKey = oriPublicKey
 		cr.MemberState = oriMemberState
 		cr.InactiveCount = oriInactiveCount
-		if height >= c.Params.DPoSV2StartHeight {
-			c.ClaimedDposKeys[c.LastVotingStartHeight] = oriClaimDposKeys
-		}
 	})
 }
 
@@ -1342,14 +1353,20 @@ func (c *Committee) resetNextMembers(height uint32) {
 	newMembers := copyMembersMap(c.NextMembers)
 	oriNicknames := utils.CopyStringSet(c.state.Nicknames)
 	oriVotes := utils.CopyStringSet(c.state.Votes)
+	oriClaimedDPoSKyes := copyClaimedDPoSKeysMap(c.ClaimedDPoSKeys)
+	oriNextClaimedDPoSKyes := copyClaimedDPoSKeysMap(c.NextClaimedDPoSKeys)
 	c.lastHistory.Append(height, func() {
 		c.Members = newMembers
 		c.state.Nicknames = map[string]struct{}{}
 		c.state.Votes = map[string]struct{}{}
+		c.ClaimedDPoSKeys = c.NextClaimedDPoSKeys
+		c.NextClaimedDPoSKeys = make(map[string]struct{})
 	}, func() {
 		c.Members = oriMembers
 		c.state.Nicknames = oriNicknames
 		c.state.Votes = oriVotes
+		c.ClaimedDPoSKeys = oriClaimedDPoSKyes
+		c.NextClaimedDPoSKeys = oriNextClaimedDPoSKyes
 	})
 
 	return

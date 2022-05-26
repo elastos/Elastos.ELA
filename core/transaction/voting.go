@@ -161,6 +161,9 @@ func (t *VotingTransaction) SpecialContextCheck() (result elaerr.ELAError, end b
 					return elaerr.Simple(elaerr.ErrTxPayload, err), true
 				}
 			case outputpayload.CRC:
+				if !t.parameters.BlockChain.GetCRCommittee().IsInVotingPeriod(t.parameters.BlockHeight) {
+					return elaerr.Simple(elaerr.ErrTxPayload, errors.New("should vote CR during voting period")), true
+				}
 				err := t.checkVoteCRContent(blockHeight,
 					content, crs, totalVotes-usedCRVoteRights)
 				if err != nil {

@@ -1211,7 +1211,7 @@ func (c *Committee) isInVotingPeriod(height uint32) bool {
 	inVotingPeriod := func(committeeUpdateHeight uint32) bool {
 		if height >= c.Params.DPoSV2StartHeight {
 			return height >= committeeUpdateHeight-c.Params.CRVotingPeriod-c.Params.CRClaimPeriod &&
-				height < committeeUpdateHeight
+				height < committeeUpdateHeight-c.Params.CRClaimPeriod
 		}
 		return height >= committeeUpdateHeight-c.Params.CRVotingPeriod &&
 			height < committeeUpdateHeight

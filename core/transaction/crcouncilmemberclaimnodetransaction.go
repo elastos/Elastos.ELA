@@ -58,12 +58,19 @@ func (t *CRCouncilMemberClaimNodeTransaction) SpecialContextCheck() (result elae
 	}
 	did := manager.CRCouncilCommitteeDID
 	var crMember *crstate.CRMember
+	comm := t.parameters.BlockChain.GetCRCommittee()
 	if t.parameters.BlockHeight >= t.parameters.Config.DPoSV2StartHeight {
 		switch t.payloadVersion {
 		case payload.CurrentCRClaimDPoSNodeVersion:
 			crMember = t.parameters.BlockChain.GetCRCommittee().GetMember(did)
+			if _, ok := comm.ClaimedDPoSKeys[hex.EncodeToString(manager.NodePublicKey)]; ok {
+				return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("producer already registered")), true
+			}
 		case payload.NextCRClaimDPoSNodeVersion:
 			crMember = t.parameters.BlockChain.GetCRCommittee().GetNextMember(did)
+			if _, ok := comm.NextClaimedDPoSKeys[hex.EncodeToString(manager.NodePublicKey)]; ok {
+				return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("producer already registered")), true
+			}
 		}
 	} else {
 		crMember = t.parameters.BlockChain.GetCRCommittee().GetMember(did)
@@ -85,15 +92,6 @@ func (t *CRCouncilMemberClaimNodeTransaction) SpecialContextCheck() (result elae
 	_, err := crypto.DecodePoint(manager.NodePublicKey)
 	if err != nil {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid operating public key")), true
-	}
-
-	// check duplication of node.
-	comm := t.parameters.BlockChain.GetCRCommittee()
-	claimedKeys := comm.ClaimedDposKeys[comm.LastVotingStartHeight]
-	for _, key := range claimedKeys {
-		if hex.EncodeToString(manager.NodePublicKey) == key {
-			return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("producer already registered")), true
-		}
 	}
 
 	err = checkCRCouncilMemberClaimNodeSignature(manager, crMember.Info.Code)

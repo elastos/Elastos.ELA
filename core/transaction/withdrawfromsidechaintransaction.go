@@ -101,6 +101,9 @@ func (t *WithdrawFromSideChainTransaction) IsAllowedInPOWConsensus() bool {
 }
 
 func (t *WithdrawFromSideChainTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
+	if t.parameters.BlockHeight > t.parameters.Config.SchnorrStartHeight && t.PayloadVersion() != payload.WithdrawFromSideChainVersionV2 {
+		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("only support schnorr type of  withdraw from sidechain transaction")), true
+	}
 	var err error
 	if t.PayloadVersion() == payload.WithdrawFromSideChainVersion {
 		err = t.checkWithdrawFromSideChainTransactionV0()

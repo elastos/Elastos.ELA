@@ -131,9 +131,6 @@ func (t *RegisterProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bo
 			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("there must be only one deposit address in outputs")), true
 		}
 	} else if t.PayloadVersion() == payload.ProducerInfoDposV2Version {
-		if info.StakeUntil < t.parameters.Config.DPoSV2StartHeight {
-			return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("stakeuntil must bigger than DPoSV2StartHeight")), true
-		}
 		if t.parameters.BlockHeight+t.parameters.Config.DPoSV2MinVotesLockTime >= info.StakeUntil {
 			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("v2 producer StakeUntil less than DPoSV2MinVotesLockTime")), true
 		}

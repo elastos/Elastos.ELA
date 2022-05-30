@@ -1068,7 +1068,7 @@ func (c *Committee) processCRCouncilMemberClaimNode(tx interfaces.Transaction,
 			history.Append(height, func() {
 				c.NextClaimedDPoSKeys[hex.EncodeToString(claimNodePayload.NodePublicKey)] = struct{}{}
 				if len(cr.DPOSPublicKey) != 0 {
-					delete(c.ClaimedDPoSKeys, hex.EncodeToString(cr.DPOSPublicKey))
+					delete(c.NextClaimedDPoSKeys, hex.EncodeToString(cr.DPOSPublicKey))
 				}
 			}, func() {
 				c.NextClaimedDPoSKeys = oriNextClaimDPoSKeys

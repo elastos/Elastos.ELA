@@ -119,6 +119,20 @@ func (idx *Tx3Index) ConnectBlock(dbTx database.Tx, block *types.Block) error {
 					return err
 				}
 			}
+		} else if txn.PayloadVersion() == payload.WithdrawFromSideChainVersionV2 {
+			for _, output := range txn.Outputs() {
+				if output.Type != common2.OTWithdrawFromSideChain {
+					continue
+				}
+				witPayload, ok := output.Payload.(*outputpayload.Withdraw)
+				if !ok {
+					continue
+				}
+				err := dbPutTx3IndexEntry(dbTx, &witPayload.SideChainTransactionHash)
+				if err != nil {
+					return err
+				}
+			}
 		}
 	}
 	return nil

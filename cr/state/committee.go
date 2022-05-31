@@ -513,6 +513,15 @@ func (c *Committee) checkAndSetMemberToInactive(history *utils.History, height u
 }
 
 func (c *Committee) updateCRInactiveStatus(history *utils.History, height uint32) {
+	if height > c.Params.DPoSV2StartHeight {
+		if height < c.LastVotingStartHeight+c.Params.CRVotingPeriod+c.Params.CRClaimPeriod {
+			return
+		}
+
+		c.checkAndSetMemberToInactive(history, height)
+		return
+	}
+
 	if c.state.CurrentSession == 0 {
 		return
 	} else if c.state.CurrentSession == 1 {

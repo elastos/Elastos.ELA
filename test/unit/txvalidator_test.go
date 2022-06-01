@@ -955,7 +955,7 @@ func (s *txValidatorTestSuite) TestCheckRegisterDposV2ProducerTransaction() {
 }
 
 func (s *txValidatorTestSuite) TestCheckStakeTransaction() {
-	stakeAddress := "ETAXSN3kc3N3npEeUzMn4bipwUS3ejooiy"
+	stakeAddress := "Sdp4gnD6v2Z7RpCgqBYDBtc7YRpbeFh9ad"
 	stakeAddress_uint168, _ := common.Uint168FromAddress(stakeAddress)
 	rpPayload := &outputpayload.StakeOutput{
 		Version:      0,

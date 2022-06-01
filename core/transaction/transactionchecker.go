@@ -675,7 +675,7 @@ func checkOutputProgramHash(height uint32, programHash common.Uint168) error {
 		case contract.PrefixMultiSig:
 		case contract.PrefixCrossChain:
 		case contract.PrefixDeposit:
-		case contract.PrefixDposV2:
+		case contract.PrefixDPoSV2:
 		default:
 			return errors.New("invalid program hash prefix")
 		}

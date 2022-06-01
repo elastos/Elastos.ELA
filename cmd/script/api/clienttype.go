@@ -85,7 +85,7 @@ func getSWalletAddr(L *lua.LState) int {
 	}
 	acc := wallet.GetMainAccount()
 	codeHash := acc.ProgramHash.ToCodeHash()
-	depositHash := common.Uint168FromCodeHash(byte(contract.PrefixDposV2), codeHash)
+	depositHash := common.Uint168FromCodeHash(byte(contract.PrefixDPoSV2), codeHash)
 	sAddress, err := depositHash.ToAddress()
 	if err != nil {
 		fmt.Println(err.Error())

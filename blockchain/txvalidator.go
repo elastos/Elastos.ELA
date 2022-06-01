@@ -641,7 +641,7 @@ func CheckOutputPayload(txType common2.TxType, output *common2.Output) error {
 		case common2.OTMapping:
 		case common2.OTDposV2Vote:
 			if contract.GetPrefixType(output.ProgramHash) !=
-				contract.PrefixDposV2 {
+				contract.PrefixDPoSV2 {
 				return errors.New("output address should be dposV2")
 			}
 		default:

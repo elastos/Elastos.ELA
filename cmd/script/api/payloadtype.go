@@ -1371,7 +1371,7 @@ func getIDProgramHash(code []byte) *common.Uint168 {
 func getDposV2ProgramHash(code []byte) *common.Uint168 {
 	ct := &contract.Contract{
 		Code:   code,
-		Prefix: contract.PrefixDposV2,
+		Prefix: contract.PrefixDPoSV2,
 	}
 	return ct.ToProgramHash()
 }

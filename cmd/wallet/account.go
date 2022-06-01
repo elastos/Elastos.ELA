@@ -392,7 +392,7 @@ func generateDposV2Address(c *cli.Context) error {
 	}
 
 	codeHash := programHash.ToCodeHash()
-	depositHash := common.Uint168FromCodeHash(byte(contract.PrefixDposV2), codeHash)
+	depositHash := common.Uint168FromCodeHash(byte(contract.PrefixDPoSV2), codeHash)
 	address, err := depositHash.ToAddress()
 	if err != nil {
 		return err

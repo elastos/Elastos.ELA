@@ -8,6 +8,7 @@ package outputpayload
 import (
 	"errors"
 	"fmt"
+	"github.com/elastos/Elastos.ELA/core/contract"
 	"io"
 
 	"github.com/elastos/Elastos.ELA/common"
@@ -61,6 +62,9 @@ func (ev *StakeOutput) Validate() error {
 		return errors.New("invalid exchange vote version")
 	}
 
+	if contract.GetPrefixType(ev.StakeAddress) != contract.PrefixDPoSV2 {
+		return errors.New("second output address need to be Standard or MultiSig")
+	}
 	return nil
 }
 

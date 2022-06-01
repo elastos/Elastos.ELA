@@ -263,6 +263,7 @@ func GetDefaultParams() Params {
 		DPoSV2MinVotesLockTime:             7200,    // todo complete me
 		DPoSV2MaxVotesLockTime:             720000,  // todo complete me
 		SchnorrStartHeight:                 2000000, // todo complete me
+		CRDPoSNodeHotFixHeight:             0,
 	}
 }
 
@@ -363,6 +364,7 @@ func (p *Params) TestNet() *Params {
 	copy.DPoSV2MaxVotesLockTime = 720000 // todo complete me
 	copy.RealWithdrawSingleFee = 10000
 	copy.SchnorrStartHeight = 2000000 // todo complete me
+	copy.CRDPoSNodeHotFixHeight = 0
 
 	return &copy
 }
@@ -465,6 +467,7 @@ func (p *Params) RegNet() *Params {
 	copy.DPoSV2MaxVotesLockTime = 720000 // todo complete me
 	copy.RealWithdrawSingleFee = 10000
 	copy.SchnorrStartHeight = 2000000 // todo fix me
+	copy.CRDPoSNodeHotFixHeight = 0
 
 	return &copy
 }
@@ -828,6 +831,9 @@ type Params struct {
 
 	// SchnorrStartHeight indicates the start height of schnorr
 	SchnorrStartHeight uint32
+
+	// CRDPoSNodeHotFixHeight indicates the hot fix start height of CR DPoS node
+	CRDPoSNodeHotFixHeight uint32
 }
 
 // RewardPerBlock calculates the reward for each block by a specified time

@@ -713,6 +713,11 @@ var (
 		Name:  "schnorrstartheight",
 		Usage: "defines the start height to support schnorr transaction",
 	}
+
+	CRDPoSNodeHotFixHeightFlag = cli.StringFlag{
+		Name:  "crdposnodehotfixheight",
+		Usage: "CRDPoSNodeHotFixHeight indicates the hot fix start height of CR DPoS node",
+	}
 )
 
 // MoveRPCFlags finds the rpc argument and moves it to the front

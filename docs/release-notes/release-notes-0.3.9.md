@@ -1,6 +1,6 @@
 Elastos.ELA version 0.3.9 is now available from:
 
-  <https://download.elastos.org/elastos-ela/elastos-ela-v0.3.9/>
+  <https://download.elastos.io/elastos-ela/elastos-ela-v0.3.9/>
 
 This is a new minor version release, fix rollback failed error, compatible with release_v0.3.8 version.
 

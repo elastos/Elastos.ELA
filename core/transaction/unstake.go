@@ -87,7 +87,7 @@ func (t *UnstakeTransaction) SpecialContextCheck() (result elaerr.ELAError, end 
 	//state := t.parameters.BlockChain.GetState()
 	//commitee := t.parameters.BlockChain.GetCRCommittee()
 	//voteRights := state.DposV2VoteRights[*stakeProgramHash]
-	//usedDposVoteRights := state.UsedDposVotes[*stakeProgramHash]
+	//usedDposVoteRights := state.UsedDPoSVotes[*stakeProgramHash]
 	//usedDposV2VoteRights := state.UsedDposV2Votes[*stakeProgramHash]
 	//cs := commitee.GetState()
 	//usedCRVoteRights := cs.UsedCRVotes[*stakeProgramHash]

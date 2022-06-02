@@ -148,6 +148,13 @@ func (t *VotingTransaction) SpecialContextCheck() (result elaerr.ELAError, end b
 	switch t.PayloadVersion() {
 	case payload.VoteVersion:
 		for _, content := range pld.Contents {
+			for _, vi := range content.VotesInfo {
+				if vi.Votes <= 0 {
+					return elaerr.Simple(elaerr.ErrTxPayload,
+						errors.New("invalid votes, need to be bigger than zero")), true
+				}
+			}
+
 			switch content.VoteType {
 			case outputpayload.Delegate:
 				if blockHeight > state.DPoSV2ActiveHeight {

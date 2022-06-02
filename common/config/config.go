@@ -119,6 +119,7 @@ type DPoSConfiguration struct {
 	DPoSV2RewardAccumulateAddress string         `json:"DPoSV2RewardAccumulateAddress"`
 	DPoSV2MinVotesLockTime        uint32         `json:"DPoSV2MinVotesLockTime"`
 	DPoSV2MaxVotesLockTime        uint32         `json:"DPoSV2MaxVotesLockTime"`
+	CRDPoSNodeHotFixHeight        uint32         `json:"CRDPoSNodeHotFixHeight"`
 }
 
 type CRConfiguration struct {

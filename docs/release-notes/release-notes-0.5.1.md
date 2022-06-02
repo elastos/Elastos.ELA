@@ -1,6 +1,6 @@
 Elastos.ELA version 0.5.1 is now available from:
 
-  <https://download.elastos.org/elastos-ela/elastos-ela-v0.5.1/>
+  <https://download.elastos.io/elastos-ela/elastos-ela-v0.5.1/>
 
 This is a new minor version release, check and clean transactions in transaction pool after the status has changed. 
 

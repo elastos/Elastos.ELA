@@ -1,6 +1,6 @@
 Elastos.ELA version 0.4.1 is now available from:
 
-  <https://download.elastos.org/elastos-ela/elastos-ela-v0.4.1/>
+  <https://download.elastos.io/elastos-ela/elastos-ela-v0.4.1/>
 
 This is a new minor version release, fix some nodes out of sync. 
 

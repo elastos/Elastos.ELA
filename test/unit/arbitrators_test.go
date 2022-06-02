@@ -225,46 +225,46 @@ func randomFakePK() []byte {
 	result, _ := pub.EncodePoint(true)
 	return result
 }
-
-func TestArbitrators_UsingProducerAsArbiter(t *testing.T) {
-	var bestHeight uint32 = 0
-	param := config.GetDefaultParams()
-	a, _ := state2.NewArbitrators(&param,
-		nil, nil, nil, nil,
-		nil, nil)
-	a.State = state2.NewState(&param, nil, nil, nil,
-		nil, nil, nil,
-		nil, nil)
-	a.CRCommittee = state.NewCommittee(&param)
-	a.CRCommittee.InElectionPeriod = true
-	a.RegisterFunction(func() uint32 { return bestHeight },
-		func() *common.Uint256 { return &common.Uint256{} },
-		nil, nil)
-	fakeActiveProducer(a)
-	claimedCR, mem3 := fakeCRMembers(a)
-	a.ChainParams.PublicDPOSHeight = 3
-	a.ChainParams.CRClaimDPOSNodeStartHeight = 5
-	a.ChainParams.ChangeCommitteeNewCRHeight = 7
-	a.UpdateNextArbitrators(8, 8)
-	a.History.Commit(8)
-	a.ChangeCurrentArbitrators(9)
-	a.History.Commit(9)
-	assert.Equal(t, 36, len(a.CurrentArbitrators), "current arbiter num should be 36")
-	assert.True(t, existInCurrentArbiters(claimedCR, a.CurrentArbitrators))
-	assert.Equal(t, 50-10-24, len(a.CurrentCandidates), "candidate num should be 16")
-
-	// set member to inactive to check if crc arbiter is used as dpos public key
-	mem3.MemberState = state.MemberInactive
-	a.UpdateNextArbitrators(10, 10)
-	a.History.Commit(10)
-	a.ChangeCurrentArbitrators(11)
-	a.History.Commit(11)
-	hash, _ := contract.PublicKeyToStandardProgramHash(mem3.Info.Code[1 : len(mem3.Info.Code)-1])
-	mem3DposPubKey := a.CurrentCRCArbitersMap[*hash].GetNodePublicKey()
-	assert.Equal(t, 36, len(a.CurrentArbitrators), "current arbiter num should be 36")
-	assert.True(t, existInOriginalArbiters([][]byte{mem3DposPubKey}, a.ChainParams.CRCArbiters))
-	assert.Equal(t, 50-9-24, len(a.CurrentCandidates), "candidate num should be 17")
-}
+//
+//func TestArbitrators_UsingProducerAsArbiter(t *testing.T) {
+//	var bestHeight uint32 = 0
+//	param := config.GetDefaultParams()
+//	a, _ := state2.NewArbitrators(&param,
+//		nil, nil, nil, nil,
+//		nil, nil)
+//	a.State = state2.NewState(&param, nil, nil, nil,
+//		nil, nil, nil,
+//		nil, nil)
+//	a.CRCommittee = state.NewCommittee(&param)
+//	a.CRCommittee.InElectionPeriod = true
+//	a.RegisterFunction(func() uint32 { return bestHeight },
+//		func() *common.Uint256 { return &common.Uint256{} },
+//		nil, nil)
+//	fakeActiveProducer(a)
+//	claimedCR, mem3 := fakeCRMembers(a)
+//	a.ChainParams.PublicDPOSHeight = 3
+//	a.ChainParams.CRClaimDPOSNodeStartHeight = 5
+//	a.ChainParams.ChangeCommitteeNewCRHeight = 7
+//	a.UpdateNextArbitrators(8, 8)
+//	a.History.Commit(8)
+//	a.ChangeCurrentArbitrators(9)
+//	a.History.Commit(9)
+//	assert.Equal(t, 36, len(a.CurrentArbitrators), "current arbiter num should be 36")
+//	assert.True(t, existInCurrentArbiters(claimedCR, a.CurrentArbitrators))
+//	assert.Equal(t, 50-10-24, len(a.CurrentCandidates), "candidate num should be 16")
+//
+//	// set member to inactive to check if crc arbiter is used as dpos public key
+//	mem3.MemberState = state.MemberInactive
+//	a.UpdateNextArbitrators(10, 10)
+//	a.History.Commit(10)
+//	a.ChangeCurrentArbitrators(11)
+//	a.History.Commit(11)
+//	hash, _ := contract.PublicKeyToStandardProgramHash(mem3.Info.Code[1 : len(mem3.Info.Code)-1])
+//	mem3DposPubKey := a.CurrentCRCArbitersMap[*hash].GetNodePublicKey()
+//	assert.Equal(t, 36, len(a.CurrentArbitrators), "current arbiter num should be 36")
+//	assert.True(t, existInOriginalArbiters([][]byte{mem3DposPubKey}, a.ChainParams.CRCArbiters))
+//	assert.Equal(t, 50-9-24, len(a.CurrentCandidates), "candidate num should be 17")
+//}
 
 func existInOriginalArbiters(keys [][]byte, crcArbiters []string) bool {
 	for _, k := range keys {

@@ -1,6 +1,6 @@
 Elastos.ELA version 0.6.0 is now available from:
 
-  <https://download.elastos.org/elastos-ela/elastos-ela-v0.6.0/>
+  <https://download.elastos.io/elastos-ela/elastos-ela-v0.6.0/>
 
 This is a new major version release, New proposals are supported and cr can claim 
 their own node and run cr node on their own server. 

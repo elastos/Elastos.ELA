@@ -1,6 +1,6 @@
 Elastos.ELA version 0.4.0 is now available from:
 
-  <https://download.elastos.org/elastos-ela/elastos-ela-v0.4.0/>
+  <https://download.elastos.io/elastos-ela/elastos-ela-v0.4.0/>
 
 This is a new major version release, include a CR transaction，UTXO cache optimization.
 

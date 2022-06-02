@@ -1110,16 +1110,16 @@ func NewSettings() *Settings {
 		ParamName:    "SchnorrStartHeight"})
 
 	result.Add(&settingItem{
-		Flag:         cmdcom.CrArbitrationMonitorHeightFlag,
+		Flag:         cmdcom.CrossChainMonitorStartHeightFlag,
 		DefaultValue: uint32(0),
-		ConfigPath:   "CrArbitrationMonitorHeight",
-		ParamName:    "CrArbitrationMonitorHeight"})
+		ConfigPath:   "CrossChainMonitorStartHeight",
+		ParamName:    "CrossChainMonitorStartHeight"})
 
 	result.Add(&settingItem{
-		Flag:         cmdcom.CrArbitrationNotFoundBreachFlag,
+		Flag:         cmdcom.CrossChainMonitorIntervalFlag,
 		DefaultValue: uint32(0),
-		ConfigPath:   "CrArbitrationNotFoundBreach",
-		ParamName:    "CrArbitrationNotFoundBreach"})
+		ConfigPath:   "CrossChainMonitorInterval",
+		ParamName:    "CrossChainMonitorInterval"})
 
 	return result
 }

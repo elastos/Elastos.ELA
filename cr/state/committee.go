@@ -10,7 +10,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
-	"github.com/elastos/Elastos.ELA/crypto"
+
 	"math"
 	"sort"
 	"strconv"
@@ -25,6 +25,7 @@ import (
 	"github.com/elastos/Elastos.ELA/core/types/functions"
 	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
+	"github.com/elastos/Elastos.ELA/crypto"
 	elaerr "github.com/elastos/Elastos.ELA/errors"
 	"github.com/elastos/Elastos.ELA/events"
 	"github.com/elastos/Elastos.ELA/p2p"
@@ -1095,9 +1096,9 @@ func getSignedPubKeys(m, n int, publicKeys [][]byte, signatures, data []byte) ([
 
 func (c *Committee) processsWithdrawFromSideChain(tx interfaces.Transaction,
 	height uint32, history *utils.History) {
-	log.Infof("currentWithdrawFromSideChainIndex is %d, CrArbitrationNotFoundBreach is %d", c.CurrentWithdrawFromSideChainIndex, c.Params.CrArbitrationNotFoundBreach)
+	log.Infof("currentWithdrawFromSideChainIndex is %d, CrossChainMonitorInterval is %d", c.CurrentWithdrawFromSideChainIndex, c.Params.CrossChainMonitorInterval)
 	reachTop := false
-	if c.CurrentWithdrawFromSideChainIndex == c.Params.CrArbitrationNotFoundBreach {
+	if c.CurrentWithdrawFromSideChainIndex == c.Params.CrossChainMonitorInterval {
 		reachTop = true
 		c.CurrentWithdrawFromSideChainIndex = 0
 	} else {

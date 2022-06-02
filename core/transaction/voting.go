@@ -128,7 +128,7 @@ func (t *VotingTransaction) SpecialContextCheck() (result elaerr.ELAError, end b
 	//if !exist {
 	//	return elaerr.Simple(elaerr.ErrTxInvalidOutput, errors.New("has no vote rights")), true
 	//}
-	//usedDPoSVoteRights, _ := state.UsedDposVotes[*stakeProgramHash]
+	//usedDPoSVoteRights, _ := state.UsedDPoSVotes[*stakeProgramHash]
 	//usedDPoSV2VoteRights, _ := state.UsedDposV2Votes[*stakeProgramHash]
 	//cs := commitee.GetState()
 	//usedCRVoteRights, _ := cs.UsedCRVotes[*stakeProgramHash]

@@ -665,6 +665,22 @@ func (s *State) GetAllProducers() []*Producer {
 	return s.getAllProducers()
 }
 
+func (s *State) GetDetailedDPoSV2Votes(stakeProgramHash *common.Uint168) []payload.DetailedVoteInfo {
+	s.mtx.RLock()
+	defer s.mtx.RUnlock()
+	var result []payload.DetailedVoteInfo
+	ps := s.getAllProducers()
+	for _, p := range ps {
+		if len(p.detailedDPoSV2Votes[*stakeProgramHash]) == 0 {
+			continue
+		}
+		for _, detailedVoteInfo := range p.detailedDPoSV2Votes[*stakeProgramHash] {
+			result = append(result, detailedVoteInfo)
+		}
+	}
+	return result
+}
+
 func (s *State) getAllProducers() []*Producer {
 	producers := make([]*Producer, 0, len(s.PendingProducers)+
 		len(s.ActivityProducers))
@@ -1671,9 +1687,9 @@ func (s *State) processVoting(tx interfaces.Transaction, height uint32) {
 //			}
 //
 //			s.History.Append(height, func() {
-//				s.UsedDposVotes[*stakeAddress] -= maxVotes
+//				s.UsedDPoSVotes[*stakeAddress] -= maxVotes
 //			}, func() {
-//				s.UsedDposVotes[*stakeAddress] += maxVotes
+//				s.UsedDPoSVotes[*stakeAddress] += maxVotes
 //			})
 //
 //			s.History.Append(height, func() {
@@ -1762,7 +1778,7 @@ func (s *State) processVotingContent(tx interfaces.Transaction, height uint32) {
 				}, func() {
 					delete(producer.detailedDPoSV2Votes[*stakeAddress], dvi.ReferKey())
 					producer.dposV2Votes -= voteInfo.Votes
-					if producer.dposV2Votes < s.ChainParams.DPoSV2EffectiveVotes {
+					if producer.dposV2Votes >= s.ChainParams.DPoSV2EffectiveVotes {
 						delete(s.DposV2EffectedProducers, hex.EncodeToString(producer.OwnerPublicKey()))
 					}
 				})
@@ -1802,8 +1818,8 @@ func (s *State) processRenewalVotingContent(tx interfaces.Transaction, height ui
 			producer.detailedDPoSV2Votes[*stakeAddress][referKey] = detailVoteInfo
 			delete(producer.detailedDPoSV2Votes[*stakeAddress], content.ReferKey)
 		}, func() {
-			producer.detailedDPoSV2Votes[*stakeAddress][content.ReferKey] = voteInfo
 			delete(producer.detailedDPoSV2Votes[*stakeAddress], referKey)
+			producer.detailedDPoSV2Votes[*stakeAddress][content.ReferKey] = voteInfo
 		})
 
 	}

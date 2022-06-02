@@ -75,6 +75,12 @@ func (t *UnstakeTransaction) SpecialContextCheck() (result elaerr.ELAError, end 
 	if !ok {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid payload")), true
 	}
+
+	// check value
+	if pl.Value <= 0 {
+		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid unstake value")), true
+	}
+
 	// check if unused vote rights enough
 	code := pl.Code
 	//1. get stake address

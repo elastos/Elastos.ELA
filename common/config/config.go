@@ -91,8 +91,8 @@ type Configuration struct {
 	DPoSV2EffectiveVotes            common.Fixed64    `json:"DPoSV2EffectiveVotes"`
 	StakeAddress                    string            `json:"StakeAddress"`
 	SchnorrStartHeight              uint32            `json:"SchnorrStartHeight"`
-	CrArbitrationMonitorHeight      uint32            `json:"CrArbitrationMonitorHeight"`
-	CrArbitrationNotFoundBreach     uint32            `json:"CrArbitrationNotFoundBreach"`
+	CrossChainMonitorStartHeight    uint32            `json:"CrossChainMonitorStartHeight"`
+	CrossChainMonitorInterval       uint32            `json:"CrossChainMonitorInterval"`
 }
 
 // DPoSConfiguration defines the DPoS consensus parameters.

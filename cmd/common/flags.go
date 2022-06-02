@@ -719,14 +719,14 @@ var (
 		Usage: "CRDPoSNodeHotFixHeight indicates the hot fix start height of CR DPoS node",
 	}
 
-	CrArbitrationMonitorHeightFlag = cli.StringFlag{
-		Name:  "crarbitrationmonitorheight",
+	CrossChainMonitorStartHeightFlag = cli.StringFlag{
+		Name:  "crosschainmonitorstartheight",
 		Usage: "defines the start height to monitor cr cross chain transaction",
 	}
 
-	CrArbitrationNotFoundBreachFlag = cli.StringFlag{
-		Name:  "crarbitrationnotfoundbreach",
-		Usage: "defines the breach of cr cross chain arbitration",
+	CrossChainMonitorIntervalFlag = cli.StringFlag{
+		Name:  "crosschainmonitorinterval",
+		Usage: "defines the interval cross chain arbitration",
 	}
 )
 

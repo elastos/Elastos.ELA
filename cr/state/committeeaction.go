@@ -126,7 +126,7 @@ func (c *Committee) processTransaction(tx interfaces.Transaction, height uint32)
 		c.activateProducer(tx, height, c.state.History)
 
 	case common2.WithdrawFromSideChain:
-		if height > c.Params.CrArbitrationMonitorHeight {
+		if height > c.Params.CrossChainMonitorStartHeight {
 			c.processsWithdrawFromSideChain(tx, height, c.state.History)
 		}
 	}

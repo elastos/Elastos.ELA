@@ -1366,12 +1366,14 @@ func (c *Committee) resetNextMembers(height uint32) {
 	oriNextClaimedDPoSKyes := copyClaimedDPoSKeysMap(c.NextClaimedDPoSKeys)
 	c.lastHistory.Append(height, func() {
 		c.Members = newMembers
+		c.NextMembers = make(map[common.Uint168]*CRMember)
 		c.state.Nicknames = map[string]struct{}{}
 		c.state.Votes = map[string]struct{}{}
 		c.ClaimedDPoSKeys = c.NextClaimedDPoSKeys
 		c.NextClaimedDPoSKeys = make(map[string]struct{})
 	}, func() {
 		c.Members = oriMembers
+		c.NextMembers = newMembers
 		c.state.Nicknames = oriNicknames
 		c.state.Votes = oriVotes
 		c.ClaimedDPoSKeys = oriClaimedDPoSKyes

@@ -4437,7 +4437,9 @@ func (s *txValidatorTestSuite) TestCheckUnStakeTransaction() {
 	code := cont.Code
 	ct, _ := contract.CreateStakeContractByCode(code)
 	stakeAddress := ct.ToProgramHash()
-	pl := &payload.Unstake{}
+	pl := &payload.Unstake{
+		Value: 100,
+	}
 	attribute := []*common2.Attribute{}
 
 	tx1 := functions.CreateTransaction(

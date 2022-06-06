@@ -506,7 +506,7 @@ func GetAllDetailedDPoSV2Votes(params Params) map[string]interface{} {
 	return ResponsePack(Success, result)
 }
 
-func GetVotesRight(params Params) map[string]interface{} {
+func GetVoteRights(params Params) map[string]interface{} {
 	addresses, ok := params.ArrayString("addresses")
 	if !ok {
 		return ResponsePack(InvalidParams, "need addresses in an array!")
@@ -560,6 +560,7 @@ func GetVotesRight(params Params) map[string]interface{} {
 	}
 	return ResponsePack(Success, result)
 }
+
 func GetUsedVoteRight(voteType outputpayload.VoteType, stakeProgramHash *common.Uint168) (common.Fixed64, error) {
 
 	state := Chain.GetState()
@@ -604,40 +605,6 @@ func GetUsedVoteRight(voteType outputpayload.VoteType, stakeProgramHash *common.
 		return 0, errors.New("unsupport vote type")
 	}
 	return usedDposVote, nil
-}
-
-func GetDetailedCRCProposalVotes(params Params) map[string]interface{} {
-	type detailedVoteInfo struct {
-		ReferKey         string                `json:"referkey"`
-		StakeProgramHash string                `json:"stakeprogramhash"`
-		TransactionHash  string                `json:"transactionhash"`
-		BlockHeight      uint32                `json:"blockheight"`
-		PayloadVersion   byte                  `json:"payloadversion"`
-		VoteType         byte                  `json:"votetype"`
-		Info             VotesWithLockTimeInfo `json:"info"`
-	}
-
-	info, keys, err := Chain.GetCRCommittee().GetAllCRCProposalVotes()
-	if err != nil {
-		return ResponsePack(InternalError, "GetDetailedCRCProposalVotes failed "+err.Error())
-	}
-	var result []*detailedVoteInfo
-	for i := 0; i < len(info); i++ {
-		result = append(result, &detailedVoteInfo{
-			ReferKey:         keys[i],
-			StakeProgramHash: info[i].StakeProgramHash.String(),
-			TransactionHash:  info[i].TransactionHash.String(),
-			BlockHeight:      info[i].BlockHeight,
-			PayloadVersion:   info[i].PayloadVersion,
-			VoteType:         byte(info[i].VoteType),
-			Info: VotesWithLockTimeInfo{
-				Candidate: hex.EncodeToString(info[i].Info[0].Candidate),
-				Votes:     info[i].Info[0].Votes.String(),
-				LockTime:  info[i].Info[0].LockTime,
-			},
-		})
-	}
-	return ResponsePack(Success, result)
 }
 
 func GetArbitersInfo(params Params) map[string]interface{} {

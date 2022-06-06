@@ -3244,7 +3244,46 @@ func getPayloadInfo(p interfaces.Payload, payloadVersion byte) PayloadInfo {
 	case *payload.Stake:
 		obj := new(StakeInfo)
 		return obj
-
+	case *payload.Unstake:
+		address, _ := object.ToAddr.ToAddress()
+		obj := &UnstakeInfo{
+			ToAddr: address,
+			// code
+			Code: common.BytesToHexString(object.Code),
+			//unstake value
+			Value: object.Value.String(),
+			//signature
+			Signature: common.BytesToHexString(object.Signature),
+		}
+		return obj
+	case *payload.UnstakeRealWithdrawPayload:
+		obj := &UnstakeRealWithdrawsInfo{
+			Widhdraws: make([]Widhdraw, 0),
+		}
+		for _, withdraw := range object.UnstakeRealWithdraw {
+			address, _ := withdraw.StakeAddress.ToAddress()
+			tempWithdraw := Widhdraw{
+				RetVotesTXHash: common.ToReversedString(withdraw.RetVotesTXHash),
+				StakeAddress:   address,
+				Value:          withdraw.Value.String(),
+			}
+			obj.Widhdraws = append(obj.Widhdraws, tempWithdraw)
+		}
+		return obj
+	case *payload.DposV2ClaimReward:
+		obj := &DposV2ClaimRewardInfo{
+			Amount:    object.Amount.String(),
+			Signature: common.BytesToHexString(object.Signature),
+		}
+		return obj
+	case *payload.DposV2ClaimRewardRealWithdraw:
+		obj := &DposV2ClaimRewardRealWithdrawInfo{
+			WithdrawTransactionHashes: make([]string, 0),
+		}
+		for _, txHash := range object.WithdrawTransactionHashes {
+			obj.WithdrawTransactionHashes = append(obj.WithdrawTransactionHashes, common.ToReversedString(txHash))
+		}
+		return obj
 	}
 	return nil
 }

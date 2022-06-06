@@ -552,3 +552,33 @@ type RenewalVotesContent struct {
 
 type StakeInfo struct {
 }
+
+type UnstakeInfo struct {
+	//target or to address
+	ToAddr string `json:"toaddr"`
+	// code
+	Code string `json:"code"`
+	//unstake value
+	Value string `json:"value"`
+	//signature
+	Signature string `json:"signature"`
+}
+
+type Widhdraw struct {
+	RetVotesTXHash string `json:"retvotestxhash"`
+	StakeAddress   string `json:"stakeaddress"`
+	Value          string `json:"value"`
+}
+type UnstakeRealWithdrawsInfo struct {
+	Widhdraws []Widhdraw `json:"widhdraws"`
+}
+
+type DposV2ClaimRewardInfo struct {
+	Amount    string `json:"amount"`
+	Signature string `json:"signature"`
+}
+
+type DposV2ClaimRewardRealWithdrawInfo struct {
+	// Hash of the proposal to withdrawal ela.
+	WithdrawTransactionHashes []string `json:"withdrawtransactionhashes"`
+}

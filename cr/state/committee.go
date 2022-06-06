@@ -70,11 +70,6 @@ func (c *Committee) GetProposalManager() *ProposalManager {
 	return c.manager
 }
 
-func (c *Committee) GetAllCRCProposalVotes() (pl []payload.DetailedVoteInfo, referKeys []string, err error) {
-	// todo complete me
-	return
-}
-
 func (c *Committee) ExistCR(programCode []byte) bool {
 	c.mtx.RLock()
 	defer c.mtx.RUnlock()

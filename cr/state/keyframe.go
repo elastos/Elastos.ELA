@@ -1116,6 +1116,36 @@ func (kf *StateKeyFrame) Snapshot() *StateKeyFrame {
 	return state
 }
 
+func (kf *StateKeyFrame) GetUsedCRVoteRights(stakeProgramHash *common.Uint168) common.Fixed64 {
+	usedCRVotes, _ := kf.UsedCRVotes[*stakeProgramHash]
+	var result common.Fixed64
+	for _, v := range usedCRVotes {
+		result += v.Votes
+	}
+
+	return result
+}
+
+func (kf *StateKeyFrame) GetUsedCRImpeachmentVoteRights(stakeProgramHash *common.Uint168) common.Fixed64 {
+	usedCRImpeachmentVotes, _ := kf.UsdedCRImpeachmentVotes[*stakeProgramHash]
+	var result common.Fixed64
+	for _, v := range usedCRImpeachmentVotes {
+		result += v.Votes
+	}
+
+	return result
+}
+
+func (kf *StateKeyFrame) GetUsedCRCProposalVoteRights(stakeProgramHash *common.Uint168) common.Fixed64 {
+	usedCRCProposalVotes, _ := kf.UsedCRCProposalVotes[*stakeProgramHash]
+	var result common.Fixed64
+	for _, v := range usedCRCProposalVotes {
+		result += v.Votes
+	}
+
+	return result
+}
+
 func copyProgramHashVotesInfoSet(src map[common.Uint168][]payload.VotesWithLockTime) (
 	dst map[common.Uint168][]payload.VotesWithLockTime) {
 	dst = map[common.Uint168][]payload.VotesWithLockTime{}

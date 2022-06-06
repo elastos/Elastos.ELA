@@ -11,6 +11,7 @@ import (
 	"fmt"
 
 	"github.com/elastos/Elastos.ELA/blockchain"
+	"github.com/elastos/Elastos.ELA/core/contract"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	elaerr "github.com/elastos/Elastos.ELA/errors"
@@ -67,58 +68,56 @@ func (t *UnstakeTransaction) IsAllowedInPOWConsensus() bool {
 }
 
 func (t *UnstakeTransaction) SpecialContextCheck() (result elaerr.ELAError, end bool) {
-	return nil, true
-	// todo complete me
-	//
-	//// 1.check if unused vote rights enough
-	//// 2.return value if payload need to be equal to outputs
-	//pl, ok := t.Payload().(*payload.Unstake)
-	//if !ok {
-	//	return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid payload")), true
-	//}
-	//// check if unused vote rights enough
-	//code := pl.Code
-	////1. get stake address
-	//ct, err := contract.CreateStakeContractByCode(code)
-	//if err != nil {
-	//	return elaerr.Simple(elaerr.ErrTxInvalidOutput, err), true
-	//}
-	//stakeProgramHash := ct.ToProgramHash()
-	//state := t.parameters.BlockChain.GetState()
-	//commitee := t.parameters.BlockChain.GetCRCommittee()
-	//voteRights := state.DposV2VoteRights[*stakeProgramHash]
-	//usedDposVoteRights := state.UsedDPoSVotes[*stakeProgramHash]
-	//usedDposV2VoteRights := state.UsedDposV2Votes[*stakeProgramHash]
-	//cs := commitee.GetState()
-	//usedCRVoteRights := cs.UsedCRVotes[*stakeProgramHash]
-	//usedCRImpeachmentVoteRights := cs.UsdedCRImpeachmentVotes[*stakeProgramHash]
-	//usedCRCProposalVoteRights := cs.UsedCRCProposalVotes[*stakeProgramHash]
-	//
-	//if t.parameters.BlockHeight > state.DPoSV2ActiveHeight {
-	//	if pl.Value > voteRights-usedDposV2VoteRights ||
-	//		pl.Value > voteRights-usedCRVoteRights ||
-	//		pl.Value > voteRights-usedCRImpeachmentVoteRights ||
-	//		pl.Value > voteRights-usedCRCProposalVoteRights {
-	//		return elaerr.Simple(elaerr.ErrTxPayload,
-	//			errors.New("vote rights not enough")), true
-	//	}
-	//} else {
-	//	if pl.Value > voteRights-usedDposVoteRights ||
-	//		pl.Value > voteRights-usedDposV2VoteRights ||
-	//		pl.Value > voteRights-usedCRVoteRights ||
-	//		pl.Value > voteRights-usedCRImpeachmentVoteRights ||
-	//		pl.Value > voteRights-usedCRCProposalVoteRights {
-	//		return elaerr.Simple(elaerr.ErrTxPayload,
-	//			errors.New("vote rights not enough")), true
-	//	}
-	//}
-	//
-	////check pl.Code signature
-	//err = t.checkUnstakeSignature(pl)
-	//if err != nil {
-	//	return elaerr.Simple(elaerr.ErrTxPayload, err), true
-	//}
-	//return nil, false
+
+	// 1.check if unused vote rights enough
+	// 2.return value if payload need to be equal to outputs
+	pl, ok := t.Payload().(*payload.Unstake)
+	if !ok {
+		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid payload")), true
+	}
+	// check if unused vote rights enough
+	code := pl.Code
+	//1. get stake address
+	ct, err := contract.CreateStakeContractByCode(code)
+	if err != nil {
+		return elaerr.Simple(elaerr.ErrTxInvalidOutput, err), true
+	}
+	stakeProgramHash := ct.ToProgramHash()
+	state := t.parameters.BlockChain.GetState()
+	commitee := t.parameters.BlockChain.GetCRCommittee()
+	voteRights := state.DposV2VoteRights[*stakeProgramHash]
+	usedDposVoteRights := state.GetUsedDPoSVoteRights(stakeProgramHash)
+	usedDposV2VoteRights := state.UsedDposV2Votes[*stakeProgramHash]
+	cs := commitee.GetState()
+	usedCRVoteRights := cs.GetUsedCRVoteRights(stakeProgramHash)
+	usedCRImpeachmentVoteRights := cs.GetUsedCRImpeachmentVoteRights(stakeProgramHash)
+	usedCRCProposalVoteRights := cs.GetUsedCRCProposalVoteRights(stakeProgramHash)
+
+	if t.parameters.BlockHeight > state.DPoSV2ActiveHeight {
+		if pl.Value > voteRights-usedDposV2VoteRights ||
+			pl.Value > voteRights-usedCRVoteRights ||
+			pl.Value > voteRights-usedCRImpeachmentVoteRights ||
+			pl.Value > voteRights-usedCRCProposalVoteRights {
+			return elaerr.Simple(elaerr.ErrTxPayload,
+				errors.New("vote rights not enough")), true
+		}
+	} else {
+		if pl.Value > voteRights-usedDposVoteRights ||
+			pl.Value > voteRights-usedDposV2VoteRights ||
+			pl.Value > voteRights-usedCRVoteRights ||
+			pl.Value > voteRights-usedCRImpeachmentVoteRights ||
+			pl.Value > voteRights-usedCRCProposalVoteRights {
+			return elaerr.Simple(elaerr.ErrTxPayload,
+				errors.New("vote rights not enough")), true
+		}
+	}
+
+	//check pl.Code signature
+	err = t.checkUnstakeSignature(pl)
+	if err != nil {
+		return elaerr.Simple(elaerr.ErrTxPayload, err), true
+	}
+	return nil, false
 }
 
 // check signature

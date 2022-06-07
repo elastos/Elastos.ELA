@@ -222,6 +222,11 @@ func (c *Committee) processVoting(tx interfaces.Transaction, height uint32) {
 	for _, content := range pld.Contents {
 		switch content.VoteType {
 		case outputpayload.CRC:
+			if votes, ok := c.state.UsedCRVotes[*stakeAddress]; ok {
+				for _, v := range votes {
+					c.state.processCancelVoteCRC(height, v.Candidate, v.Votes)
+				}
+			}
 			for _, v := range content.VotesInfo {
 				c.state.processVoteCRC(height, v.Candidate, v.Votes)
 			}
@@ -234,6 +239,11 @@ func (c *Committee) processVoting(tx interfaces.Transaction, height uint32) {
 			})
 
 		case outputpayload.CRCProposal:
+			if votes, ok := c.state.UsedCRCProposalVotes[*stakeAddress]; ok {
+				for _, v := range votes {
+					c.state.processCancelVoteCRCProposal(height, v.Candidate, v.Votes)
+				}
+			}
 			for _, v := range content.VotesInfo {
 				c.state.processVoteCRCProposal(height, v.Candidate, v.Votes)
 			}
@@ -245,6 +255,11 @@ func (c *Committee) processVoting(tx interfaces.Transaction, height uint32) {
 			})
 
 		case outputpayload.CRCImpeachment:
+			if votes, ok := c.state.UsdedCRImpeachmentVotes[*stakeAddress]; ok {
+				for _, v := range votes {
+					c.processCancelImpeachmentV2(height, v.Candidate, v.Votes, c.state.History)
+				}
+			}
 			for _, v := range content.VotesInfo {
 				c.processImpeachment(height, v.Candidate, v.Votes, c.state.History)
 			}

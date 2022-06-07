@@ -582,3 +582,12 @@ type DposV2ClaimRewardRealWithdrawInfo struct {
 	// Hash of the proposal to withdrawal ela.
 	WithdrawTransactionHashes []string `json:"withdrawtransactionhashes"`
 }
+
+type DetailedVoteInfo struct {
+	StakeProgramHash string
+	TransactionHash  string
+	BlockHeight      uint32
+	PayloadVersion   byte
+	VoteType         uint32
+	Info             []VotesWithLockTimeInfo
+}

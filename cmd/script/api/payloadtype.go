@@ -204,13 +204,15 @@ func newVoting(L *lua.LState) int {
 	candidatesTable := L.ToTable(2)
 	candidateVotesTable := L.ToTable(3)
 	lockUntil := L.ToInt(4)
-
 	candidates := make([][]byte, 0)
 	votes := make([]common.Fixed64, 0)
 	candidatesTable.ForEach(func(i, value lua.LValue) {
 		publicKey := lua.LVAsString(value)
 		publicKey = strings.Replace(publicKey, "{", "", 1)
 		publicKey = strings.Replace(publicKey, "}", "", 1)
+		if publicKey == "" {
+			return
+		}
 		pk, err := common.HexStringToBytes(publicKey)
 		if err != nil {
 			fmt.Println("invalid public key")
@@ -222,6 +224,9 @@ func newVoting(L *lua.LState) int {
 		voteStr := lua.LVAsString(value)
 		voteStr = strings.Replace(voteStr, "{", "", 1)
 		voteStr = strings.Replace(voteStr, "}", "", 1)
+		if voteStr == "" {
+			return
+		}
 		vote, err := strconv.ParseFloat(voteStr, 64)
 		if err != nil {
 			fmt.Println("invalid votes")

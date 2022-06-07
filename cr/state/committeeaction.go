@@ -227,7 +227,6 @@ func (c *Committee) processVoting(tx interfaces.Transaction, height uint32) {
 	for _, content := range pld.Contents {
 		switch content.VoteType {
 		case outputpayload.CRC:
-			log.Infof("### voting crc %v %v ", stakeAddress.String(),c.state.UsedCRVotes[*stakeAddress])
 			if votes, ok := c.state.UsedCRVotes[*stakeAddress]; ok {
 				for _, v := range votes {
 					c.state.processCancelVoteCRC(height, v.Candidate, v.Votes)
@@ -239,7 +238,6 @@ func (c *Committee) processVoting(tx interfaces.Transaction, height uint32) {
 			oriUsedCRVotes := c.state.UsedCRVotes[*stakeAddress]
 			c.state.History.Append(height, func() {
 				c.state.UsedCRVotes[*stakeAddress] = content.VotesInfo
-				log.Infof("### voting crc %v %v ", content.VotesInfo,c.state.UsedCRVotes[*stakeAddress])
 			}, func() {
 				c.state.UsedCRVotes[*stakeAddress] = oriUsedCRVotes
 			})

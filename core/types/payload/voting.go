@@ -96,8 +96,9 @@ func (p *Voting) Validate() error {
 			return errors.New("duplicate vote type")
 		}
 		typeMap[content.VoteType] = struct{}{}
-		if len(content.VotesInfo) == 0 || (content.VoteType == outputpayload.Delegate &&
-			len(content.VotesInfo) > outputpayload.MaxVoteProducersPerTransaction) {
+		if (content.VoteType == outputpayload.Delegate &&
+			len(content.VotesInfo) > outputpayload.MaxVoteProducersPerTransaction) ||
+			(len(content.VotesInfo) == 0 && content.VoteType == outputpayload.DposV2) {
 			return errors.New("invalid public key count")
 		}
 		if content.VoteType != outputpayload.Delegate &&

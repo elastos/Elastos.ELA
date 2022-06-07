@@ -534,7 +534,7 @@ func GetVoteRights(params Params) map[string]interface{} {
 			return ResponsePack(InvalidParams, "invalid address")
 		}
 		codeHash := programhash.ToCodeHash()
-		stakeProgramHash := common.Uint168FromCodeHash(byte(contract.PrefixDposV2), codeHash)
+		stakeProgramHash := common.Uint168FromCodeHash(byte(contract.PrefixDPoSV2), codeHash)
 		voteRights := state.DposV2VoteRights
 		//get totalVotes
 		totalVotesRight := voteRights[stakeProgramHash]

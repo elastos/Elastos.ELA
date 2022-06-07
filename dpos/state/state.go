@@ -1726,6 +1726,18 @@ func (s *State) processVotingContent(tx interfaces.Transaction, height uint32) {
 				s.UsedDposVotes[*stakeAddress] = oriUsedDPoSVotes
 			})
 
+			for _, v := range oriUsedDPoSVotes {
+				producer := s.getProducer(v.Candidate)
+				if producer == nil {
+					continue
+				}
+				s.History.Append(height, func() {
+					producer.votes -= v.Votes
+				}, func() {
+					producer.votes += v.Votes
+				})
+			}
+
 			for _, v := range content.VotesInfo {
 				producer := s.getProducer(v.Candidate)
 				if producer == nil {

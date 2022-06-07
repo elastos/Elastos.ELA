@@ -126,7 +126,7 @@ func (t *UpdateProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bool
 				hex.EncodeToString(info.NodePublicKey))), true
 		}
 	} else {
-		if t.parameters.BlockChain.GetState().ProducerNodePublicKeyExists(info.NodePublicKey) {
+		if t.parameters.BlockChain.GetState().ProducerOrCRNodePublicKeyExists(info.NodePublicKey) {
 			return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("producer %s already exist",
 				hex.EncodeToString(info.NodePublicKey))), true
 		}

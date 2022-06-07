@@ -66,9 +66,17 @@ func (t *CRCouncilMemberClaimNodeTransaction) SpecialContextCheck() (result elae
 			if _, ok := comm.ClaimedDPoSKeys[hex.EncodeToString(manager.NodePublicKey)]; ok {
 				return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("producer already registered")), true
 			}
+			// check duplication of node.
+			if t.parameters.BlockChain.GetState().ProducerAndCurrentCRNodePublicKeyExists(manager.NodePublicKey) {
+				return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("producer already registered")), true
+			}
 		case payload.NextCRClaimDPoSNodeVersion:
 			crMember = t.parameters.BlockChain.GetCRCommittee().GetNextMember(did)
 			if _, ok := comm.NextClaimedDPoSKeys[hex.EncodeToString(manager.NodePublicKey)]; ok {
+				return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("producer already registered")), true
+			}
+			// check duplication of node.
+			if t.parameters.BlockChain.GetState().ProducerAndNextCRNodePublicKeyExists(manager.NodePublicKey) {
 				return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("producer already registered")), true
 			}
 		}

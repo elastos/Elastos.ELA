@@ -1640,7 +1640,7 @@ func (b *BlockChain) CheckRegisterProducerTransaction(txn interfaces.Transaction
 	} else {
 		if b.GetHeight() < b.chainParams.DPoSV2StartHeight && txn.PayloadVersion() == payload.ProducerInfoVersion {
 			// check duplication of node.
-			if b.state.ProducerNodePublicKeyExists(info.NodePublicKey) {
+			if b.state.ProducerOrCRNodePublicKeyExists(info.NodePublicKey) {
 				return fmt.Errorf("producer already registered")
 			}
 
@@ -1716,7 +1716,7 @@ func (b *BlockChain) CheckRegisterProducerTransaction(txn interfaces.Transaction
 		}
 
 		// check duplication of node.
-		nodeKeyExist := b.state.ProducerNodePublicKeyExists(info.NodePublicKey)
+		nodeKeyExist := b.state.ProducerOrCRNodePublicKeyExists(info.NodePublicKey)
 
 		// check duplication of owner.
 		ownerKeyExist := b.state.ProducerOwnerPublicKeyExists(info.OwnerPublicKey)
@@ -2063,7 +2063,7 @@ func (b *BlockChain) CheckUpdateProducerTransaction(txn interfaces.Transaction) 
 				hex.EncodeToString(info.NodePublicKey))
 		}
 	} else {
-		if b.state.ProducerNodePublicKeyExists(info.NodePublicKey) {
+		if b.state.ProducerOrCRNodePublicKeyExists(info.NodePublicKey) {
 			return fmt.Errorf("producer %s already exist",
 				hex.EncodeToString(info.NodePublicKey))
 		}
@@ -2844,7 +2844,7 @@ func (b *BlockChain) checkCRCouncilMemberClaimNodeTransaction(txn interfaces.Tra
 	}
 
 	// check duplication of node.
-	if b.state.ProducerNodePublicKeyExists(manager.NodePublicKey) {
+	if b.state.ProducerOrCRNodePublicKeyExists(manager.NodePublicKey) {
 		return fmt.Errorf("producer already registered")
 	}
 

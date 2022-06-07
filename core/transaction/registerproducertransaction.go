@@ -53,7 +53,7 @@ func (t *RegisterProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bo
 	}
 
 	// check duplication of node.
-	if t.parameters.BlockChain.GetState().ProducerNodePublicKeyExists(info.NodePublicKey) {
+	if t.parameters.BlockChain.GetState().ProducerOrCRNodePublicKeyExists(info.NodePublicKey) {
 		return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("producer already registered")), true
 	}
 

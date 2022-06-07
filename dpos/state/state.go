@@ -532,6 +532,14 @@ func (s *State) getProducerKey(publicKey []byte) string {
 		return owner
 	}
 
+	if owner, ok := s.CurrentCRNodeOwnerKeys[key]; ok {
+		return owner
+	}
+
+	if owner, ok := s.NextCRNodeOwnerKeys[key]; ok {
+		return owner
+	}
+
 	return key
 }
 
@@ -662,6 +670,12 @@ func (s *State) GetAllProducersPublicKey() []string {
 	defer s.mtx.RUnlock()
 	var nodePublicKeys []string
 	for nodePK, _ := range s.NodeOwnerKeys {
+		nodePublicKeys = append(nodePublicKeys, nodePK)
+	}
+	for nodePK, _ := range s.CurrentCRNodeOwnerKeys {
+		nodePublicKeys = append(nodePublicKeys, nodePK)
+	}
+	for nodePK, _ := range s.NextCRNodeOwnerKeys {
 		nodePublicKeys = append(nodePublicKeys, nodePK)
 	}
 	for _, nodePK := range s.ChainParams.CRCArbiters {
@@ -970,12 +984,45 @@ func (s *State) ProducerOwnerPublicKeyExists(publicKey []byte) bool {
 	return producer != nil
 }
 
-// ProducerExists returns if a producer is exists by it's node public key.
-func (s *State) ProducerNodePublicKeyExists(publicKey []byte) bool {
+// ProducerOrCRNodePublicKeyExists returns if a producer is exists by it's node public key.
+func (s *State) ProducerOrCRNodePublicKeyExists(publicKey []byte) bool {
 	s.mtx.RLock()
+	defer s.mtx.RUnlock()
 	key := hex.EncodeToString(publicKey)
-	_, ok := s.NodeOwnerKeys[key]
-	s.mtx.RUnlock()
+	if _, ok := s.NodeOwnerKeys[key]; ok {
+		return ok
+	}
+	if _, ok := s.CurrentCRNodeOwnerKeys[key]; ok {
+		return ok
+	}
+	_, ok := s.NextCRNodeOwnerKeys[key]
+
+	return ok
+}
+
+// NextCRNodePublicKeyExists returns if a CR producer is exists by it's node public key.
+func (s *State) ProducerAndCurrentCRNodePublicKeyExists(publicKey []byte) bool {
+	s.mtx.RLock()
+	defer s.mtx.RUnlock()
+	key := hex.EncodeToString(publicKey)
+	if _, ok := s.NodeOwnerKeys[key]; ok {
+		return ok
+	}
+	_, ok := s.CurrentCRNodeOwnerKeys[key]
+
+	return ok
+}
+
+// ProducerOrCRNodePublicKeyExists returns if a producer is exists by it's node public key.
+func (s *State) ProducerAndNextCRNodePublicKeyExists(publicKey []byte) bool {
+	s.mtx.RLock()
+	defer s.mtx.RUnlock()
+	key := hex.EncodeToString(publicKey)
+	if _, ok := s.NodeOwnerKeys[key]; ok {
+		return ok
+	}
+	_, ok := s.NextCRNodeOwnerKeys[key]
+
 	return ok
 }
 
@@ -2086,8 +2133,17 @@ func (s *State) getCRMembersOwnerPublicKey(CRCommitteeDID common.Uint168) []byte
 	return nil
 }
 
-func (s *State) getNodePublicKeyStr(strOwnerPublicKey string) string {
-	for nodePubKey, nodeOwnerPubKey := range s.NodeOwnerKeys {
+func (s *State) getCurrentCRNodePublicKeyStr(strOwnerPublicKey string) string {
+	for nodePubKey, nodeOwnerPubKey := range s.CurrentCRNodeOwnerKeys {
+		if strOwnerPublicKey == nodeOwnerPubKey {
+			return nodePubKey
+		}
+	}
+	return ""
+}
+
+func (s *State) getNextCRNodePublicKeyStr(strOwnerPublicKey string) string {
+	for nodePubKey, nodeOwnerPubKey := range s.NextCRNodeOwnerKeys {
 		if strOwnerPublicKey == nodeOwnerPubKey {
 			return nodePubKey
 		}
@@ -2104,19 +2160,35 @@ func (s *State) processCRCouncilMemberClaimNode(tx interfaces.Transaction, heigh
 		return
 	}
 	strOwnerPubkey := common.BytesToHexString(ownerPublicKey)
-	strOldNodePublicKey := s.getNodePublicKeyStr(strOwnerPubkey)
 
-	s.History.Append(height, func() {
-		s.NodeOwnerKeys[strNewNodePublicKey] = strOwnerPubkey
-		if strOldNodePublicKey != "" {
-			delete(s.NodeOwnerKeys, strOldNodePublicKey)
-		}
-	}, func() {
-		delete(s.NodeOwnerKeys, strNewNodePublicKey)
-		if strOldNodePublicKey != "" {
-			s.NodeOwnerKeys[strOldNodePublicKey] = strOwnerPubkey
-		}
-	})
+	switch tx.PayloadVersion() {
+	case payload.CurrentCRClaimDPoSNodeVersion:
+		strOldNodePublicKey := s.getCurrentCRNodePublicKeyStr(strOwnerPubkey)
+		s.History.Append(height, func() {
+			s.CurrentCRNodeOwnerKeys[strNewNodePublicKey] = strOwnerPubkey
+			if strOldNodePublicKey != "" {
+				delete(s.CurrentCRNodeOwnerKeys, strOldNodePublicKey)
+			}
+		}, func() {
+			delete(s.CurrentCRNodeOwnerKeys, strNewNodePublicKey)
+			if strOldNodePublicKey != "" {
+				s.CurrentCRNodeOwnerKeys[strOldNodePublicKey] = strOwnerPubkey
+			}
+		})
+	case payload.NextCRClaimDPoSNodeVersion:
+		strOldNodePublicKey := s.getNextCRNodePublicKeyStr(strOwnerPubkey)
+		s.History.Append(height, func() {
+			s.NextCRNodeOwnerKeys[strNewNodePublicKey] = strOwnerPubkey
+			if strOldNodePublicKey != "" {
+				delete(s.NextCRNodeOwnerKeys, strOldNodePublicKey)
+			}
+		}, func() {
+			delete(s.NextCRNodeOwnerKeys, strNewNodePublicKey)
+			if strOldNodePublicKey != "" {
+				s.NextCRNodeOwnerKeys[strOldNodePublicKey] = strOwnerPubkey
+			}
+		})
+	}
 }
 
 func (s *State) processRevertToPOW(tx interfaces.Transaction, height uint32) {
@@ -2972,6 +3044,8 @@ func (s *State) handleEvents(event *events.Event) {
 				delete(s.NodeOwnerKeys, nodePubKey)
 			}
 		}
+		s.CurrentCRNodeOwnerKeys = s.NextCRNodeOwnerKeys
+		s.NextCRNodeOwnerKeys = make(map[string]string)
 		s.mtx.Unlock()
 	}
 }

@@ -512,11 +512,11 @@ func GetVoteRights(params Params) map[string]interface{} {
 		return ResponsePack(InvalidParams, "need addresses in an array!")
 	}
 	type usedVoteRightDetailInfo struct {
-		UsedDPoSV2Votes         []payload.DetailedVoteInfo  `json:"useddposv2votes"`
-		UsedDPoSVotes           []payload.VotesWithLockTime `json:"useddposvotes"`
-		UsedCRVotes             []payload.VotesWithLockTime `json:"usedcrvotes"`
-		UsdedCRImpeachmentVotes []payload.VotesWithLockTime `json:"usdedcrimpeachmentvotes"`
-		UsedCRCProposalVotes    []payload.VotesWithLockTime `json:"usedcrcproposalvotes"`
+		UsedDPoSV2Votes         []DetailedVoteInfo      `json:"useddposv2votes"`
+		UsedDPoSVotes           []VotesWithLockTimeInfo `json:"useddposvotes"`
+		UsedCRVotes             []VotesWithLockTimeInfo `json:"usedcrvotes"`
+		UsdedCRImpeachmentVotes []VotesWithLockTimeInfo `json:"usdedcrimpeachmentvotes"`
+		UsedCRCProposalVotes    []VotesWithLockTimeInfo `json:"usedcrcproposalvotes"`
 	}
 
 	type detailedVoteRight struct {
@@ -525,44 +525,106 @@ func GetVoteRights(params Params) map[string]interface{} {
 		UsedVotesInfo   usedVoteRightDetailInfo `json:"usedvotesinfo"`
 		RemainVoteRight []common.Fixed64        `json:"remainvoteright"` //index is same to VoteType
 	}
-
 	var result []*detailedVoteRight
 	state := Chain.GetState()
 	crstate := Chain.GetCRCommittee().GetState()
-
 	for _, address := range addresses {
-		voteRights := state.DposV2VoteRights
-		stakeProgramHash, err := common.Uint168FromAddress(address)
+		programhash, err := common.Uint168FromAddress(address)
 		if err != nil {
 			return ResponsePack(InvalidParams, "invalid address")
 		}
+		codeHash := programhash.ToCodeHash()
+		stakeProgramHash := common.Uint168FromCodeHash(byte(contract.PrefixDposV2), codeHash)
+		voteRights := state.DposV2VoteRights
 		//get totalVotes
-		totalVotesRight := voteRights[*stakeProgramHash]
+		totalVotesRight := voteRights[stakeProgramHash]
 		vote := &detailedVoteRight{
 			Address:         address,
 			TotalVotesRight: totalVotesRight,
 			UsedVotesInfo: usedVoteRightDetailInfo{
-				UsedDPoSVotes:           state.UsedDposVotes[*stakeProgramHash],
-				UsedCRVotes:             crstate.UsedCRVotes[*stakeProgramHash],
-				UsdedCRImpeachmentVotes: crstate.UsdedCRImpeachmentVotes[*stakeProgramHash],
-				UsedCRCProposalVotes:    crstate.UsedCRCProposalVotes[*stakeProgramHash], // key: stake program hash
+				UsedDPoSVotes:           []VotesWithLockTimeInfo{},
+				UsedCRVotes:             []VotesWithLockTimeInfo{},
+				UsdedCRImpeachmentVotes: []VotesWithLockTimeInfo{},
+				UsedCRCProposalVotes:    []VotesWithLockTimeInfo{},
 			},
+			RemainVoteRight: make([]common.Fixed64, 5),
 		}
-		//fill detailedDPoSV2Votes
-		vote.UsedVotesInfo.UsedDPoSV2Votes = state.GetDetailedDPoSV2Votes(stakeProgramHash)
+		// dposv1
+		if udv := state.UsedDposVotes[stakeProgramHash]; udv != nil {
+			for _, v := range udv {
+				vote.UsedVotesInfo.UsedDPoSVotes = append(vote.UsedVotesInfo.UsedDPoSVotes, VotesWithLockTimeInfo{
+					Candidate: hex.EncodeToString(v.Candidate),
+					Votes:     v.Votes.String(),
+					LockTime:  v.LockTime,
+				})
+			}
+		}
+		// cr
+		if ucv := crstate.UsedCRVotes[stakeProgramHash]; ucv != nil {
+			for _, v := range ucv {
+				vote.UsedVotesInfo.UsedCRVotes = append(vote.UsedVotesInfo.UsedCRVotes, VotesWithLockTimeInfo{
+					Candidate: hex.EncodeToString(v.Candidate),
+					Votes:     v.Votes.String(),
+					LockTime:  v.LockTime,
+				})
+			}
+		}
+		// cr im
+		if uciv := crstate.UsdedCRImpeachmentVotes[stakeProgramHash]; uciv != nil {
+			for _, v := range uciv {
+				vote.UsedVotesInfo.UsdedCRImpeachmentVotes = append(vote.UsedVotesInfo.UsdedCRImpeachmentVotes, VotesWithLockTimeInfo{
+					Candidate: hex.EncodeToString(v.Candidate),
+					Votes:     v.Votes.String(),
+					LockTime:  v.LockTime,
+				})
+			}
+		}
+
+		// cr prop
+		if ucpv := crstate.UsedCRCProposalVotes[stakeProgramHash]; ucpv != nil {
+			for _, v := range ucpv {
+				vote.UsedVotesInfo.UsedCRCProposalVotes = append(vote.UsedVotesInfo.UsedCRCProposalVotes, VotesWithLockTimeInfo{
+					Candidate: hex.EncodeToString(v.Candidate),
+					Votes:     v.Votes.String(),
+					LockTime:  v.LockTime,
+				})
+			}
+		}
+
+		// dposv2
+		if dpv2 := state.GetDetailedDPoSV2Votes(&stakeProgramHash); dpv2 != nil {
+			for i, v := range dpv2 {
+				vote.UsedVotesInfo.UsedDPoSV2Votes = append(vote.UsedVotesInfo.UsedDPoSV2Votes, DetailedVoteInfo{
+					StakeProgramHash: v.StakeProgramHash.String(),
+					TransactionHash:  v.TransactionHash.String(),
+					BlockHeight:      v.BlockHeight,
+					PayloadVersion:   v.PayloadVersion,
+					VoteType:         uint32(v.VoteType),
+				})
+
+				if v.Info != nil {
+					for _, v := range v.Info {
+						vote.UsedVotesInfo.UsedDPoSV2Votes[i].Info = append(vote.UsedVotesInfo.UsedDPoSV2Votes[i].Info, VotesWithLockTimeInfo{
+							Candidate: hex.EncodeToString(v.Candidate),
+							Votes:     v.Votes.String(),
+							LockTime:  v.LockTime,
+						})
+					}
+				}
+			}
+		}
+
 		//fill RemainVoteRight
 		for i := outputpayload.Delegate; i <= outputpayload.DposV2; i++ {
-			usedVoteRight, _ := GetUsedVoteRight(i, stakeProgramHash)
+			usedVoteRight, _ := GetUsedVoteRight(i, &stakeProgramHash)
 			vote.RemainVoteRight[i] = totalVotesRight - usedVoteRight
 		}
 		result = append(result, vote)
-
 	}
 	return ResponsePack(Success, result)
 }
 
 func GetUsedVoteRight(voteType outputpayload.VoteType, stakeProgramHash *common.Uint168) (common.Fixed64, error) {
-
 	state := Chain.GetState()
 	crstate := Chain.GetCRCommittee().GetState()
 	usedDposVote := common.Fixed64(0)

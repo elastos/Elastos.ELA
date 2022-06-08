@@ -448,7 +448,7 @@ func (c *Committee) ProcessBlock(block *types.Block, confirm *payload.Confirm) {
 
 	if block.Height >= c.Params.DPoSV2StartHeight {
 		if c.shouldEndVoting(block.Height) {
-			c.endVoting(block.Height)
+			c.tryEndVoting(block.Height)
 		}
 	}
 	needChg := false
@@ -599,7 +599,7 @@ func (c *Committee) transferCRMemberState(crMember *CRMember, height uint32) {
 	return
 }
 
-func (c *Committee) endVoting(height uint32) bool {
+func (c *Committee) tryEndVoting(height uint32) bool {
 	if err := c.updateNextCommitteeMembers(height); err != nil {
 		log.Warn("[ProcessBlock] end voting period error: ", err)
 		return false
@@ -1380,8 +1380,8 @@ func (c *Committee) isInVotingPeriod(height uint32) bool {
 	//todo consider emergency election later
 	inVotingPeriod := func(committeeUpdateHeight uint32) bool {
 		if height >= c.Params.DPoSV2StartHeight {
-			return height >= committeeUpdateHeight-c.Params.CRVotingPeriod-c.Params.CRClaimPeriod &&
-				height < committeeUpdateHeight-c.Params.CRClaimPeriod
+			return height >= c.LastVotingStartHeight &&
+				height < c.LastVotingStartHeight+c.Params.CRVotingPeriod
 		}
 		return height >= committeeUpdateHeight-c.Params.CRVotingPeriod &&
 			height < committeeUpdateHeight
@@ -1402,23 +1402,23 @@ func (c *Committee) isInVotingPeriod(height uint32) bool {
 }
 
 func (c *Committee) updateNextCommitteeMembers(height uint32) error {
+
+	// if candidates is not enough, need to restart voting period and no need to
+	// end election period.
 	candidates := c.getActiveAndExistDIDCRCandidatesDesc()
-	oriInElectionPeriod := c.InElectionPeriod
 	oriLastVotingStartHeight := c.LastVotingStartHeight
 	if uint32(len(candidates)) < c.Params.CRMemberCount {
 		c.lastHistory.Append(height, func() {
-			c.InElectionPeriod = false
 			c.LastVotingStartHeight = height
 		}, func() {
-			c.InElectionPeriod = oriInElectionPeriod
 			c.LastVotingStartHeight = oriLastVotingStartHeight
 		})
 		return errors.New("candidates count less than required count Height" + strconv.Itoa(int(height)))
 	}
-	// Process current members.
+	// process current members.
 	newMembers := c.processNextMembers(height, candidates)
 
-	// Process current candidates.
+	// process current candidates.
 	c.processCurrentCandidates(height, candidates, newMembers)
 
 	return nil
@@ -1430,7 +1430,19 @@ func (c *Committee) changeCommitteeMembers(height uint32) error {
 	}
 
 	if height >= c.Params.DPoSV2StartHeight {
-		// Process current members.
+
+		// if no next CR members, need to change InElectionPeriod to false
+		if len(c.NextMembers) == 0 {
+			oriInElectionPeriod := c.InElectionPeriod
+			c.lastHistory.Append(height, func() {
+				c.InElectionPeriod = false
+			}, func() {
+				c.InElectionPeriod = oriInElectionPeriod
+			})
+			return errors.New("have no next CR members")
+		}
+
+		// process current members.
 		c.resetNextMembers(height)
 
 		oriInElectionPeriod := c.InElectionPeriod

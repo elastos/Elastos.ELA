@@ -3366,6 +3366,7 @@ func (s *txValidatorTestSuite) TestCheckUnregisterCRTransaction() {
 
 	//not in vote Period lower upper c.params.CRCommitteeStartHeight
 	s.Chain.GetCRCommittee().InElectionPeriod = true
+	config.DefaultParams.DPoSV2StartHeight = 2000000
 	err = s.Chain.CheckUnRegisterCRTransaction(txn, config.DefaultParams.CRCommitteeStartHeight+1)
 	s.EqualError(err, "should create tx during voting period")
 
@@ -3889,6 +3890,7 @@ func (s *txValidatorTestSuite) TestCheckSecretaryGeneralProposalTransaction() {
 	s.NoError(err)
 
 	//ChangeSecretaryGeneralProposal tx must InElectionPeriod and not during voting period
+	config.DefaultParams.DPoSV2StartHeight = 2000000
 	s.Chain.GetCRCommittee().LastCommitteeHeight = config.DefaultParams.CRCommitteeStartHeight
 	tenureHeight = config.DefaultParams.CRCommitteeStartHeight + config.DefaultParams.CRDutyPeriod -
 		config.DefaultParams.CRVotingPeriod + 1

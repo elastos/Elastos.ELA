@@ -1316,7 +1316,8 @@ func (c *Committee) shouldChangeCommittee(height uint32) bool {
 	}
 
 	if height >= c.Params.DPoSV2StartHeight {
-		return height == c.LastVotingStartHeight+c.Params.CRVotingPeriod+c.Params.CRClaimPeriod
+		return height == c.LastCommitteeHeight+c.Params.CRDutyPeriod ||
+			height == c.LastVotingStartHeight+c.Params.CRVotingPeriod+c.Params.CRClaimPeriod
 	}
 
 	return height == c.LastVotingStartHeight+c.Params.CRVotingPeriod

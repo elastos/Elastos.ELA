@@ -129,12 +129,12 @@ func (t *VotingTransaction) SpecialContextCheck() (result elaerr.ELAError, end b
 	if !exist {
 		return elaerr.Simple(elaerr.ErrTxInvalidOutput, errors.New("has no vote rights")), true
 	}
-	usedDPoSVoteRights, _ := state.DposVotes[*stakeProgramHash]
-	usedDPoSV2VoteRights, _ := state.DposV2Votes[*stakeProgramHash]
+	usedDPoSVoteRights := state.GetUsedDPoSVoteRights(stakeProgramHash)
+	usedDPoSV2VoteRights, _ := state.UsedDposV2Votes[*stakeProgramHash]
 	cs := commitee.GetState()
-	usedCRVoteRights, _ := cs.CRVotes[*stakeProgramHash]
-	usedCRCProposalVoteRights, _ := cs.CRCProposalVotes[*stakeProgramHash]
-	usedCRImpeachmentVoteRights, _ := cs.CRImpeachmentVotes[*stakeProgramHash]
+	usedCRVoteRights := cs.GetUsedCRVoteRights(stakeProgramHash)
+	usedCRCProposalVoteRights := cs.GetUsedCRCProposalVoteRights(stakeProgramHash)
+	usedCRImpeachmentVoteRights := cs.GetUsedCRImpeachmentVoteRights(stakeProgramHash)
 
 	var candidates []*crstate.Candidate
 	if crCommittee.IsInVotingPeriod(blockHeight) {
@@ -227,6 +227,11 @@ func (t *VotingTransaction) SpecialContextCheck() (result elaerr.ELAError, end b
 
 func (t *VotingTransaction) checkVoteProducerContent(content payload.VotesContent,
 	pds map[string]struct{}, voteRights common.Fixed64) error {
+
+	if len(content.VotesInfo) > outputpayload.MaxVoteProducersPerTransaction {
+		return errors.New("votes count bigger than MaxVoteProducersPerTransaction")
+	}
+
 	for _, cv := range content.VotesInfo {
 		if _, ok := pds[common.BytesToHexString(cv.Candidate)]; !ok {
 			return fmt.Errorf("invalid vote output payload "+
@@ -257,11 +262,6 @@ func (t *VotingTransaction) checkVoteCRContent(blockHeight uint32,
 		return errors.New("cr vote tx must during voting period")
 	}
 
-	if blockHeight >= t.parameters.Config.CheckVoteCRCountHeight {
-		if len(content.VotesInfo) > outputpayload.MaxVoteProducersPerTransaction {
-			return errors.New("invalid count of CR candidates ")
-		}
-	}
 	var totalVotes common.Fixed64
 	for _, cv := range content.VotesInfo {
 		if cv.LockTime != 0 {

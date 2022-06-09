@@ -529,25 +529,25 @@ type RsInfo struct {
 	EffectiveHeight uint32         `json:"effectiveheight"`
 }
 
-type Voting struct {
-	Contents        []VotesContent        `json:"contents"`
-	RenewalContents []RenewalVotesContent `json:"renewalcontents"`
+type VotingInfo struct {
+	Contents        []VotesContentInfo        `json:"contents"`
+	RenewalContents []RenewalVotesContentInfo `json:"renewalcontents"`
 }
 
-type VotesContent struct {
-	VoteType  byte                `json:"votetype"`
-	VotesInfo []VotesWithLockTime `json:"votesinfo"`
+type VotesContentInfo struct {
+	VoteType  byte                    `json:"votetype"`
+	VotesInfo []VotesWithLockTimeInfo `json:"votesinfo"`
 }
 
-type VotesWithLockTime struct {
+type VotesWithLockTimeInfo struct {
 	Candidate string `json:"candidate"`
 	Votes     string `json:"votes"`
 	LockTime  uint32 `json:"locktime"`
 }
 
-type RenewalVotesContent struct {
-	ReferKey  string            `json:"referkey"`
-	VotesInfo VotesWithLockTime `json:"votesinfo"`
+type RenewalVotesContentInfo struct {
+	ReferKey  string                `json:"referkey"`
+	VotesInfo VotesWithLockTimeInfo `json:"votesinfo"`
 }
 
 type StakeInfo struct {

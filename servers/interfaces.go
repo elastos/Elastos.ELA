@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"sort"
 	"strings"
@@ -466,15 +467,15 @@ func GetArbiterPeersInfo(params Params) map[string]interface{} {
 
 func GetAllDetailedDPoSV2Votes(params Params) map[string]interface{} {
 	type detailedVoteInfo struct {
-		Producer_owner_key string            `json:"producerownerkey"`
-		Producer_node_key  string            `json:"producernodekey"`
-		ReferKey           string            `json:"referkey"`
-		StakeProgramHash   string            `json:"stakeprogramhash"`
-		TransactionHash    string            `json:"transactionhash"`
-		BlockHeight        uint32            `json:"blockheight"`
-		PayloadVersion     byte              `json:"payloadversion"`
-		VoteType           byte              `json:"votetype"`
-		Info               VotesWithLockTime `json:"info"`
+		Producer_owner_key string                `json:"producerownerkey"`
+		Producer_node_key  string                `json:"producernodekey"`
+		ReferKey           string                `json:"referkey"`
+		StakeProgramHash   string                `json:"stakeprogramhash"`
+		TransactionHash    string                `json:"transactionhash"`
+		BlockHeight        uint32                `json:"blockheight"`
+		PayloadVersion     byte                  `json:"payloadversion"`
+		VoteType           byte                  `json:"votetype"`
+		Info               VotesWithLockTimeInfo `json:"info"`
 	}
 	var result []*detailedVoteInfo
 	ps := Chain.GetState().GetAllProducers()
@@ -493,7 +494,7 @@ func GetAllDetailedDPoSV2Votes(params Params) map[string]interface{} {
 					TransactionHash:    v1.TransactionHash.String(),
 					BlockHeight:        v1.BlockHeight,
 					PayloadVersion:     v1.PayloadVersion,
-					Info: VotesWithLockTime{
+					Info: VotesWithLockTimeInfo{
 						Candidate: hex.EncodeToString(v1.Info[0].Candidate),
 						Votes:     v1.Info[0].Votes.String(),
 						LockTime:  v1.Info[0].LockTime,
@@ -505,38 +506,105 @@ func GetAllDetailedDPoSV2Votes(params Params) map[string]interface{} {
 	return ResponsePack(Success, result)
 }
 
-func GetDetailedCRCProposalVotes(params Params) map[string]interface{} {
-	type detailedVoteInfo struct {
-		ReferKey         string            `json:"referkey"`
-		StakeProgramHash string            `json:"stakeprogramhash"`
-		TransactionHash  string            `json:"transactionhash"`
-		BlockHeight      uint32            `json:"blockheight"`
-		PayloadVersion   byte              `json:"payloadversion"`
-		VoteType         byte              `json:"votetype"`
-		Info             VotesWithLockTime `json:"info"`
+func GetVoteRights(params Params) map[string]interface{} {
+	addresses, ok := params.ArrayString("addresses")
+	if !ok {
+		return ResponsePack(InvalidParams, "need addresses in an array!")
+	}
+	type usedVoteRightDetailInfo struct {
+		UsedDPoSV2Votes         []payload.DetailedVoteInfo  `json:"useddposv2votes"`
+		UsedDPoSVotes           []payload.VotesWithLockTime `json:"useddposvotes"`
+		UsedCRVotes             []payload.VotesWithLockTime `json:"usedcrvotes"`
+		UsdedCRImpeachmentVotes []payload.VotesWithLockTime `json:"usdedcrimpeachmentvotes"`
+		UsedCRCProposalVotes    []payload.VotesWithLockTime `json:"usedcrcproposalvotes"`
 	}
 
-	info, keys, err := Chain.GetCRCommittee().GetAllCRCProposalVotes()
-	if err != nil {
-		return ResponsePack(InternalError, "GetDetailedCRCProposalVotes failed "+err.Error())
+	type detailedVoteRight struct {
+		Address         string                  `json:"address"`
+		TotalVotesRight common.Fixed64          `json:"totalvotesright"`
+		UsedVotesInfo   usedVoteRightDetailInfo `json:"usedvotesinfo"`
+		RemainVoteRight []common.Fixed64        `json:"remainvoteright"` //index is same to VoteType
 	}
-	var result []*detailedVoteInfo
-	for i := 0; i < len(info); i++ {
-		result = append(result, &detailedVoteInfo{
-			ReferKey:         keys[i],
-			StakeProgramHash: info[i].StakeProgramHash.String(),
-			TransactionHash:  info[i].TransactionHash.String(),
-			BlockHeight:      info[i].BlockHeight,
-			PayloadVersion:   info[i].PayloadVersion,
-			VoteType:         byte(info[i].VoteType),
-			Info: VotesWithLockTime{
-				Candidate: hex.EncodeToString(info[i].Info[0].Candidate),
-				Votes:     info[i].Info[0].Votes.String(),
-				LockTime:  info[i].Info[0].LockTime,
+
+	var result []*detailedVoteRight
+	state := Chain.GetState()
+	crstate := Chain.GetCRCommittee().GetState()
+
+	for _, address := range addresses {
+		voteRights := state.DposV2VoteRights
+		stakeProgramHash, err := common.Uint168FromAddress(address)
+		if err != nil {
+			return ResponsePack(InvalidParams, "invalid address")
+		}
+		//get totalVotes
+		totalVotesRight := voteRights[*stakeProgramHash]
+		vote := &detailedVoteRight{
+			Address:         address,
+			TotalVotesRight: totalVotesRight,
+			UsedVotesInfo: usedVoteRightDetailInfo{
+				UsedDPoSVotes:           state.UsedDposVotes[*stakeProgramHash],
+				UsedCRVotes:             crstate.UsedCRVotes[*stakeProgramHash],
+				UsdedCRImpeachmentVotes: crstate.UsdedCRImpeachmentVotes[*stakeProgramHash],
+				UsedCRCProposalVotes:    crstate.UsedCRCProposalVotes[*stakeProgramHash], // key: stake program hash
 			},
-		})
+		}
+		//fill detailedDPoSV2Votes
+		vote.UsedVotesInfo.UsedDPoSV2Votes = state.GetDetailedDPoSV2Votes(stakeProgramHash)
+		//fill RemainVoteRight
+		for i := outputpayload.Delegate; i <= outputpayload.DposV2; i++ {
+			usedVoteRight, _ := GetUsedVoteRight(i, stakeProgramHash)
+			vote.RemainVoteRight[i] = totalVotesRight - usedVoteRight
+		}
+		result = append(result, vote)
+
 	}
 	return ResponsePack(Success, result)
+}
+
+func GetUsedVoteRight(voteType outputpayload.VoteType, stakeProgramHash *common.Uint168) (common.Fixed64, error) {
+
+	state := Chain.GetState()
+	crstate := Chain.GetCRCommittee().GetState()
+	usedDposVote := common.Fixed64(0)
+	switch voteType {
+	case outputpayload.Delegate:
+		if dposVotes, ok := state.UsedDposVotes[*stakeProgramHash]; !ok {
+			usedDposVote = 0
+		} else {
+			for _, votesInfo := range dposVotes {
+				usedDposVote += votesInfo.Votes
+			}
+		}
+	case outputpayload.CRC:
+		if usedCRVoteRights, ok := crstate.UsedCRVotes[*stakeProgramHash]; !ok {
+			usedDposVote = 0
+		} else {
+			for _, votesInfo := range usedCRVoteRights {
+				usedDposVote += votesInfo.Votes
+			}
+		}
+	case outputpayload.CRCProposal:
+		if usedCRCProposalVoteRights, ok := crstate.UsedCRCProposalVotes[*stakeProgramHash]; !ok {
+			usedDposVote = 0
+		} else {
+			for _, votesInfo := range usedCRCProposalVoteRights {
+				usedDposVote += votesInfo.Votes
+			}
+		}
+	case outputpayload.CRCImpeachment:
+		if usedCRImpeachmentVoteRights, ok := crstate.UsdedCRImpeachmentVotes[*stakeProgramHash]; !ok {
+			usedDposVote = 0
+		} else {
+			for _, votesInfo := range usedCRImpeachmentVoteRights {
+				usedDposVote += votesInfo.Votes
+			}
+		}
+	case outputpayload.DposV2:
+		usedDposVote = state.UsedDposV2Votes[*stakeProgramHash]
+	default:
+		return 0, errors.New("unsupport vote type")
+	}
+	return usedDposVote, nil
 }
 
 func GetArbitersInfo(params Params) map[string]interface{} {
@@ -3205,11 +3273,11 @@ func getPayloadInfo(p interfaces.Payload, payloadVersion byte) PayloadInfo {
 		return obj
 
 	case *payload.Voting:
-		obj := new(Voting)
+		obj := new(VotingInfo)
 		for _, rc := range object.RenewalContents {
-			obj.RenewalContents = append(obj.RenewalContents, RenewalVotesContent{
+			obj.RenewalContents = append(obj.RenewalContents, RenewalVotesContentInfo{
 				ReferKey: common.ToReversedString(rc.ReferKey),
-				VotesInfo: VotesWithLockTime{
+				VotesInfo: VotesWithLockTimeInfo{
 					Candidate: common.BytesToHexString(rc.VotesInfo.Candidate),
 					Votes:     rc.VotesInfo.Votes.String(),
 					LockTime:  rc.VotesInfo.LockTime,
@@ -3217,7 +3285,7 @@ func getPayloadInfo(p interfaces.Payload, payloadVersion byte) PayloadInfo {
 			})
 		}
 		for _, rc := range object.Contents {
-			var votesinfo []VotesWithLockTime
+			var votesinfo []VotesWithLockTimeInfo
 			for _, detail := range rc.VotesInfo {
 				var candidate string
 				switch rc.VoteType {
@@ -3228,13 +3296,13 @@ func getPayloadInfo(p interfaces.Payload, payloadVersion byte) PayloadInfo {
 					candidate = common.BytesToHexString(detail.Candidate)
 				}
 
-				votesinfo = append(votesinfo, VotesWithLockTime{
+				votesinfo = append(votesinfo, VotesWithLockTimeInfo{
 					Candidate: candidate,
 					Votes:     detail.Votes.String(),
 					LockTime:  detail.LockTime,
 				})
 			}
-			obj.Contents = append(obj.Contents, VotesContent{
+			obj.Contents = append(obj.Contents, VotesContentInfo{
 				VoteType:  byte(rc.VoteType),
 				VotesInfo: votesinfo,
 			})

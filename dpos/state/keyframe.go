@@ -37,10 +37,9 @@ type StateKeyFrame struct {
 	Votes                    map[string]struct{}
 
 	// dpos 2.0
-	DetailDPoSV1Votes map[common.Uint256]payload.DetailedVoteInfo // key: hash of DetailedVoteInfo
-	DposV2VoteRights  map[common.Uint168]common.Fixed64           // key: address value: amount
-	DposVotes         map[common.Uint168]common.Fixed64           // key: address value: amount
-	DposV2Votes       map[common.Uint168]common.Fixed64           // key: address value: amount
+	DposV2VoteRights map[common.Uint168]common.Fixed64              // key: address value: amount
+	UsedDposVotes    map[common.Uint168][]payload.VotesWithLockTime // key: address value: amount
+	UsedDposV2Votes  map[common.Uint168]common.Fixed64              // key: address value: amount
 
 	DepositOutputs map[string]common.Fixed64
 	//key is addr str value is dposReward
@@ -102,10 +101,9 @@ func (s *StateKeyFrame) snapshot() *StateKeyFrame {
 		DposV2EffectedProducers:  make(map[string]*Producer),
 		Votes:                    make(map[string]struct{}),
 
-		DetailDPoSV1Votes: make(map[common.Uint256]payload.DetailedVoteInfo),
-		DposV2VoteRights:  make(map[common.Uint168]common.Fixed64),
-		DposVotes:         make(map[common.Uint168]common.Fixed64),
-		DposV2Votes:       make(map[common.Uint168]common.Fixed64),
+		DposV2VoteRights: make(map[common.Uint168]common.Fixed64),
+		UsedDposVotes:    make(map[common.Uint168][]payload.VotesWithLockTime),
+		UsedDposV2Votes:  make(map[common.Uint168]common.Fixed64),
 
 		DepositOutputs:           make(map[string]common.Fixed64),
 		DposV2RewardInfo:         make(map[string]common.Fixed64),
@@ -131,10 +129,9 @@ func (s *StateKeyFrame) snapshot() *StateKeyFrame {
 	state.DposV2EffectedProducers = copyProducerMap(s.DposV2EffectedProducers)
 	state.Votes = copyStringSet(s.Votes)
 
-	state.DetailDPoSV1Votes = copyReferKeyInfoMap(s.DetailDPoSV1Votes)
 	state.DposV2VoteRights = copyProgramHashAmountSet(s.DposV2VoteRights)
-	state.DposVotes = copyProgramHashAmountSet(s.DposVotes)
-	state.DposV2Votes = copyProgramHashAmountSet(s.DposV2Votes)
+	state.UsedDposVotes = copyProgramHashVotesInfoSet(s.UsedDposVotes)
+	state.UsedDposV2Votes = copyProgramHashAmountSet(s.UsedDposV2Votes)
 
 	state.DepositOutputs = copyFixed64Map(s.DepositOutputs)
 	state.DposV2RewardInfo = copyFixed64Map(s.DposV2RewardInfo)
@@ -204,17 +201,13 @@ func (s *StateKeyFrame) Serialize(w io.Writer) (err error) {
 		return
 	}
 
-	if err = s.SerializeDetailVoteInfoMap(s.DetailDPoSV1Votes, w); err != nil {
-		return err
-	}
-
 	if err = s.SerializeProgramHashAmountMap(s.DposV2VoteRights, w); err != nil {
 		return
 	}
-	if err = s.SerializeProgramHashAmountMap(s.DposVotes, w); err != nil {
+	if err = s.SerializeProgramHashVotesInfoMap(s.UsedDposVotes, w); err != nil {
 		return
 	}
-	if err = s.SerializeProgramHashAmountMap(s.DposV2Votes, w); err != nil {
+	if err = s.SerializeProgramHashAmountMap(s.UsedDposV2Votes, w); err != nil {
 		return
 	}
 
@@ -323,17 +316,13 @@ func (s *StateKeyFrame) Deserialize(r io.Reader) (err error) {
 		return
 	}
 
-	if s.DetailDPoSV1Votes, err = s.DeserializeDetailVoteInfoMap(r); err != nil {
-		return
-	}
-
 	if s.DposV2VoteRights, err = s.DeserializeProgramHashAmountMap(r); err != nil {
 		return
 	}
-	if s.DposVotes, err = s.DeserializeProgramHashAmountMap(r); err != nil {
+	if s.UsedDposVotes, err = s.DeserializeProgramHashInfoMap(r); err != nil {
 		return
 	}
-	if s.DposV2Votes, err = s.DeserializeProgramHashAmountMap(r); err != nil {
+	if s.UsedDposV2Votes, err = s.DeserializeProgramHashAmountMap(r); err != nil {
 		return
 	}
 	if s.DepositOutputs, err = s.DeserializeFixed64Map(r); err != nil {
@@ -582,6 +571,23 @@ func (s *StateKeyFrame) SerializeProgramHashAmountMap(vmap map[common.Uint168]co
 	return
 }
 
+func (s *StateKeyFrame) SerializeProgramHashVotesInfoMap(vmap map[common.Uint168][]payload.VotesWithLockTime,
+	w io.Writer) (err error) {
+	if err = common.WriteVarUint(w, uint64(len(vmap))); err != nil {
+		return
+	}
+	for k, v := range vmap {
+		if err = k.Serialize(w); err != nil {
+			return
+		}
+		common.WriteVarUint(w, uint64(len(v)))
+		for _, votes := range v {
+			votes.Serialize(w, 0)
+		}
+	}
+	return
+}
+
 func (s *StateKeyFrame) DeserializeStringSet(
 	r io.Reader) (vmap map[string]struct{}, err error) {
 	var count uint64
@@ -637,6 +643,36 @@ func (s *StateKeyFrame) DeserializeProgramHashAmountMap(
 			return
 		}
 		vmap[k] = v
+	}
+	return
+}
+
+func (s *StateKeyFrame) DeserializeProgramHashInfoMap(
+	r io.Reader) (vmap map[common.Uint168][]payload.VotesWithLockTime, err error) {
+	var count uint64
+	if count, err = common.ReadVarUint(r, 0); err != nil {
+		return
+	}
+	vmap = make(map[common.Uint168][]payload.VotesWithLockTime)
+	for i := uint64(0); i < count; i++ {
+		var k common.Uint168
+		if err = k.Deserialize(r); err != nil {
+			return
+		}
+		var votesCount uint64
+		if votesCount, err = common.ReadVarUint(r, 0); err != nil {
+			return
+		}
+		votesInfo := make([]payload.VotesWithLockTime, 0)
+		for i := uint64(0); i < votesCount; i++ {
+			var v payload.VotesWithLockTime
+			if err = v.Deserialize(r, 0); err != nil {
+				return
+			}
+			votesInfo = append(votesInfo, v)
+		}
+
+		vmap[k] = votesInfo
 	}
 	return
 }
@@ -747,6 +783,16 @@ func (s *StateKeyFrame) DeserializeProducerMap(
 	return
 }
 
+func (kf *StateKeyFrame) GetUsedDPoSVoteRights(stakeProgramHash *common.Uint168) common.Fixed64 {
+	usedDPoSVotes, _ := kf.UsedDposVotes[*stakeProgramHash]
+	var result common.Fixed64
+	for _, v := range usedDPoSVotes {
+		result += v.Votes
+	}
+
+	return result
+}
+
 func NewStateKeyFrame() *StateKeyFrame {
 	info := make(map[string]common.Fixed64)
 	return &StateKeyFrame{
@@ -762,10 +808,9 @@ func NewStateKeyFrame() *StateKeyFrame {
 		PendingCanceledProducers:  make(map[string]*Producer),
 		DposV2EffectedProducers:   make(map[string]*Producer),
 		Votes:                     make(map[string]struct{}),
-		DetailDPoSV1Votes:         make(map[common.Uint256]payload.DetailedVoteInfo),
 		DposV2VoteRights:          make(map[common.Uint168]common.Fixed64),
-		DposVotes:                 make(map[common.Uint168]common.Fixed64),
-		DposV2Votes:               make(map[common.Uint168]common.Fixed64),
+		UsedDposVotes:             make(map[common.Uint168][]payload.VotesWithLockTime),
+		UsedDposV2Votes:           make(map[common.Uint168]common.Fixed64),
 		DepositOutputs:            make(map[string]common.Fixed64),
 		DposV2RewardInfo:          info,
 		DposV2RewardClaimingInfo:  make(map[string]common.Fixed64),
@@ -909,10 +954,18 @@ func copyDIDSet(src map[common.Uint168]struct{}) (
 	}
 	return
 }
-
 func copyProgramHashAmountSet(src map[common.Uint168]common.Fixed64) (
 	dst map[common.Uint168]common.Fixed64) {
 	dst = map[common.Uint168]common.Fixed64{}
+	for k, v := range src {
+		a := v
+		dst[k] = a
+	}
+	return
+}
+func copyProgramHashVotesInfoSet(src map[common.Uint168][]payload.VotesWithLockTime) (
+	dst map[common.Uint168][]payload.VotesWithLockTime) {
+	dst = map[common.Uint168][]payload.VotesWithLockTime{}
 	for k, v := range src {
 		a := v
 		dst[k] = a

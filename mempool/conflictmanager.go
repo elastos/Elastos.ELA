@@ -439,10 +439,6 @@ func newConflictManager() conflictManager {
 						Func: strVoting,
 					},
 					keyTypeFuncPair{
-						Type: common2.CancelVotes,
-						Func: strCancelVotes,
-					},
-					keyTypeFuncPair{
 						Type: common2.Unstake,
 						Func: strUnstake,
 					},

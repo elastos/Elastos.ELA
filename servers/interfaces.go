@@ -3257,17 +3257,17 @@ func getPayloadInfo(p interfaces.Payload, payloadVersion byte) PayloadInfo {
 		}
 		return obj
 	case *payload.UnstakeRealWithdrawPayload:
-		obj := &UnstakeRealWithdrawsInfo{
-			Widhdraws: make([]Widhdraw, 0),
+		obj := &RealUnstakesInfo{
+			RealUnstakes: make([]RealUnstakeInfo, 0),
 		}
 		for _, withdraw := range object.UnstakeRealWithdraw {
 			address, _ := withdraw.StakeAddress.ToAddress()
-			tempWithdraw := Widhdraw{
-				RetVotesTXHash: common.ToReversedString(withdraw.RetVotesTXHash),
-				StakeAddress:   address,
-				Value:          withdraw.Value.String(),
+			realUnstakeInfo := RealUnstakeInfo{
+				UnStaketXHash: common.ToReversedString(withdraw.UnStakeTXHash),
+				StakeAddress:  address,
+				Value:         withdraw.Value.String(),
 			}
-			obj.Widhdraws = append(obj.Widhdraws, tempWithdraw)
+			obj.RealUnstakes = append(obj.RealUnstakes, realUnstakeInfo)
 		}
 		return obj
 	case *payload.DposV2ClaimReward:

@@ -65,8 +65,8 @@ func (t *UnstakeRealWithdrawTransaction) SpecialContextCheck() (result elaerr.EL
 	// check other outputs, need to match with UnstakeRealWithdraw
 	txs := t.parameters.BlockChain.GetState().GetVotesWithdrawableTxInfo()
 	txsMap := make(map[common.Uint256]struct{})
-	for i, retVoteWithdraw := range unstakeRealWithdraw.UnstakeRealWithdraw {
-		txInfo, ok := txs[retVoteWithdraw.RetVotesTXHash]
+	for i, realUnstake := range unstakeRealWithdraw.UnstakeRealWithdraw {
+		txInfo, ok := txs[realUnstake.UnStakeTXHash]
 		if !ok {
 			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid unstake transaction hash")), true
 		}
@@ -79,10 +79,10 @@ func (t *UnstakeRealWithdrawTransaction) SpecialContextCheck() (result elaerr.EL
 				"amount:%s, need to be:%s",
 				output.Value, txInfo.Amount-t.parameters.Config.RealWithdrawSingleFee))), true
 		}
-		if _, ok := txsMap[retVoteWithdraw.RetVotesTXHash]; ok {
+		if _, ok := txsMap[realUnstake.UnStakeTXHash]; ok {
 			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("duplicated real unstake transactions hash")), true
 		}
-		txsMap[retVoteWithdraw.RetVotesTXHash] = struct{}{}
+		txsMap[realUnstake.UnStakeTXHash] = struct{}{}
 	}
 
 	// check transaction fee

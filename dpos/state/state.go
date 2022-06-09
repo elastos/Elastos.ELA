@@ -2299,8 +2299,8 @@ func (s *State) processRetVotesRewardRealWithdraw(tx interfaces.Transaction, hei
 	}
 	withdrawPayload := tx.Payload().(*payload.UnstakeRealWithdrawPayload)
 	s.History.Append(height, func() {
-		for _, retVotesRealWithdraw := range withdrawPayload.UnstakeRealWithdraw {
-			delete(s.StateKeyFrame.VotesWithdrawableTxInfo, retVotesRealWithdraw.RetVotesTXHash)
+		for _, realUnstake := range withdrawPayload.UnstakeRealWithdraw {
+			delete(s.StateKeyFrame.VotesWithdrawableTxInfo, realUnstake.UnStakeTXHash)
 		}
 	}, func() {
 		s.StateKeyFrame.VotesWithdrawableTxInfo = txs

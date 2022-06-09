@@ -121,6 +121,11 @@ func (c *Committee) processTransaction(tx interfaces.Transaction, height uint32)
 
 	case common2.ActivateProducer:
 		c.activateProducer(tx, height, c.state.History)
+
+	case common2.WithdrawFromSideChain:
+		if height > c.Params.CrossChainMonitorStartHeight {
+			c.processsWithdrawFromSideChain(tx, height, c.state.History)
+		}
 	}
 
 	if tx.TxType() != common2.RegisterCR {

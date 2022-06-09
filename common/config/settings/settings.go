@@ -973,8 +973,6 @@ func NewSettings() *Settings {
 		ConfigPath:   "CRConfiguration.CRClaimPeriod",
 		ParamName:    "CRClaimPeriod"})
 
-
-
 	result.Add(&settingItem{
 		Flag:         cmdcom.CustomIDProposalStartHeight,
 		DefaultValue: uint32(0),
@@ -1010,6 +1008,12 @@ func NewSettings() *Settings {
 		DefaultValue: uint32(0),
 		ConfigPath:   "DPoSConfiguration.DPOSNodeCrossChainHeight",
 		ParamName:    "DPOSNodeCrossChainHeight"})
+
+	result.Add(&settingItem{
+		Flag:         cmdcom.CRDPoSNodeHotFixHeightFlag,
+		DefaultValue: uint32(0),
+		ConfigPath:   "DPoSConfiguration.CRDPoSNodeHotFixHeight",
+		ParamName:    "CRDPoSNodeHotFixHeight"})
 
 	result.Add(&settingItem{
 		Flag:         cmdcom.HalvingRewardHeightFlag,
@@ -1104,6 +1108,18 @@ func NewSettings() *Settings {
 		DefaultValue: uint32(0),
 		ConfigPath:   "SchnorrStartHeight",
 		ParamName:    "SchnorrStartHeight"})
+
+	result.Add(&settingItem{
+		Flag:         cmdcom.CrossChainMonitorStartHeightFlag,
+		DefaultValue: uint32(0),
+		ConfigPath:   "CrossChainMonitorStartHeight",
+		ParamName:    "CrossChainMonitorStartHeight"})
+
+	result.Add(&settingItem{
+		Flag:         cmdcom.CrossChainMonitorIntervalFlag,
+		DefaultValue: uint32(0),
+		ConfigPath:   "CrossChainMonitorInterval",
+		ParamName:    "CrossChainMonitorInterval"})
 
 	return result
 }

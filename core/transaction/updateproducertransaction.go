@@ -15,6 +15,7 @@ import (
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/crypto"
+	"github.com/elastos/Elastos.ELA/dpos/state"
 	elaerr "github.com/elastos/Elastos.ELA/errors"
 	"github.com/elastos/Elastos.ELA/vm"
 )
@@ -75,14 +76,28 @@ func (t *UpdateProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bool
 	if producer == nil {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("updating unknown producer")), true
 	}
-
+	//if producer is already dposv2
 	if producer.Info().StakeUntil != 0 {
 		if info.StakeUntil < producer.Info().StakeUntil {
 			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("stake time is smaller than before")), true
+		} else if info.StakeUntil > producer.Info().StakeUntil {
+			//new StakeUntil must bigger than BlockHeight
+			if t.parameters.BlockHeight >= info.StakeUntil {
+				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("v2 producer StakeUntil less than BlockHeight")), true
+			}
 		}
 
-		if t.parameters.BlockHeight > producer.Info().StakeUntil {
-			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("v2 producer already expired")), true
+	} else {
+		//if producer is   dposv1
+		//if this producer want to be dposv2
+		if info.StakeUntil != 0 {
+			//Only active producer can update from dposv1 to dposv2
+			if producer.State() != state.Active {
+				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("only active producer can update from dposv1 to dposv2")), true
+			}
+			if t.parameters.BlockHeight+t.parameters.Config.DPoSV2MinVotesLockTime >= info.StakeUntil {
+				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("v2 producer StakeUntil less than BlockHeight")), true
+			}
 		}
 	}
 
@@ -111,7 +126,7 @@ func (t *UpdateProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bool
 				hex.EncodeToString(info.NodePublicKey))), true
 		}
 	} else {
-		if t.parameters.BlockChain.GetState().ProducerNodePublicKeyExists(info.NodePublicKey) {
+		if t.parameters.BlockChain.GetState().ProducerOrCRNodePublicKeyExists(info.NodePublicKey) {
 			return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("producer %s already exist",
 				hex.EncodeToString(info.NodePublicKey))), true
 		}

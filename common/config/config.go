@@ -91,6 +91,8 @@ type Configuration struct {
 	DPoSV2EffectiveVotes            common.Fixed64    `json:"DPoSV2EffectiveVotes"`
 	StakeAddress                    string            `json:"StakeAddress"`
 	SchnorrStartHeight              uint32            `json:"SchnorrStartHeight"`
+	CrossChainMonitorStartHeight    uint32            `json:"CrossChainMonitorStartHeight"`
+	CrossChainMonitorInterval       uint32            `json:"CrossChainMonitorInterval"`
 }
 
 // DPoSConfiguration defines the DPoS consensus parameters.
@@ -119,6 +121,7 @@ type DPoSConfiguration struct {
 	DPoSV2RewardAccumulateAddress string         `json:"DPoSV2RewardAccumulateAddress"`
 	DPoSV2MinVotesLockTime        uint32         `json:"DPoSV2MinVotesLockTime"`
 	DPoSV2MaxVotesLockTime        uint32         `json:"DPoSV2MaxVotesLockTime"`
+	CRDPoSNodeHotFixHeight        uint32         `json:"CRDPoSNodeHotFixHeight"`
 }
 
 type CRConfiguration struct {

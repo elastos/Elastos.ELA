@@ -641,7 +641,7 @@ func CheckOutputPayload(txType common2.TxType, output *common2.Output) error {
 		case common2.OTMapping:
 		case common2.OTDposV2Vote:
 			if contract.GetPrefixType(output.ProgramHash) !=
-				contract.PrefixDposV2 {
+				contract.PrefixDPoSV2 {
 				return errors.New("output address should be dposV2")
 			}
 		default:
@@ -938,21 +938,21 @@ func (b *BlockChain) CheckTransactionPayload(txn interfaces.Transaction) error {
 func checkSchnorrWithdrawFromSidechain(txn interfaces.Transaction, pld *payload.WithdrawFromSideChain) error {
 	var pxArr []*big.Int
 	var pyArr []*big.Int
+	arbiters := DefaultLedger.Arbitrators.GetCrossChainArbiters()
+
 	for _, index := range pld.Signers {
-		arbiters := DefaultLedger.Arbitrators.GetCrossChainArbiters()
 		px, py := crypto.Unmarshal(crypto.Curve, arbiters[index].NodePublicKey)
 		pxArr = append(pxArr, px)
 		pyArr = append(pyArr, py)
 	}
-	Px, Py := crypto.Curve.Add(pxArr[0], pyArr[0], pxArr[1], pyArr[1])
-	for i := 2; i < len(pxArr); i++ {
+	Px, Py := new(big.Int), new(big.Int)
+	for i := 0; i < len(pxArr); i++ {
 		Px, Py = crypto.Curve.Add(Px, Py, pxArr[i], pyArr[i])
 	}
-	var sumPublicKey []byte
-	copy(sumPublicKey, crypto.Marshal(crypto.Curve, Px, Py))
+	sumPublicKey := crypto.Marshal(crypto.Curve, Px, Py)
 	publicKey, err := crypto.DecodePoint(sumPublicKey)
 	if err != nil {
-		return errors.New("Invalid schnorr public key")
+		return errors.New("Invalid schnorr public key" + err.Error())
 	}
 	redeemScript, err := contract.CreateSchnorrMultiSigRedeemScript(publicKey)
 	if err != nil {
@@ -1640,7 +1640,7 @@ func (b *BlockChain) CheckRegisterProducerTransaction(txn interfaces.Transaction
 	} else {
 		if b.GetHeight() < b.chainParams.DPoSV2StartHeight && txn.PayloadVersion() == payload.ProducerInfoVersion {
 			// check duplication of node.
-			if b.state.ProducerNodePublicKeyExists(info.NodePublicKey) {
+			if b.state.ProducerOrCRNodePublicKeyExists(info.NodePublicKey) {
 				return fmt.Errorf("producer already registered")
 			}
 
@@ -1716,7 +1716,7 @@ func (b *BlockChain) CheckRegisterProducerTransaction(txn interfaces.Transaction
 		}
 
 		// check duplication of node.
-		nodeKeyExist := b.state.ProducerNodePublicKeyExists(info.NodePublicKey)
+		nodeKeyExist := b.state.ProducerOrCRNodePublicKeyExists(info.NodePublicKey)
 
 		// check duplication of owner.
 		ownerKeyExist := b.state.ProducerOwnerPublicKeyExists(info.OwnerPublicKey)
@@ -2063,7 +2063,7 @@ func (b *BlockChain) CheckUpdateProducerTransaction(txn interfaces.Transaction) 
 				hex.EncodeToString(info.NodePublicKey))
 		}
 	} else {
-		if b.state.ProducerNodePublicKeyExists(info.NodePublicKey) {
+		if b.state.ProducerOrCRNodePublicKeyExists(info.NodePublicKey) {
 			return fmt.Errorf("producer %s already exist",
 				hex.EncodeToString(info.NodePublicKey))
 		}
@@ -2844,7 +2844,7 @@ func (b *BlockChain) checkCRCouncilMemberClaimNodeTransaction(txn interfaces.Tra
 	}
 
 	// check duplication of node.
-	if b.state.ProducerNodePublicKeyExists(manager.NodePublicKey) {
+	if b.state.ProducerOrCRNodePublicKeyExists(manager.NodePublicKey) {
 		return fmt.Errorf("producer already registered")
 	}
 

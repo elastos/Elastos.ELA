@@ -713,6 +713,21 @@ var (
 		Name:  "schnorrstartheight",
 		Usage: "defines the start height to support schnorr transaction",
 	}
+
+	CRDPoSNodeHotFixHeightFlag = cli.StringFlag{
+		Name:  "crdposnodehotfixheight",
+		Usage: "CRDPoSNodeHotFixHeight indicates the hot fix start height of CR DPoS node",
+	}
+
+	CrossChainMonitorStartHeightFlag = cli.StringFlag{
+		Name:  "crosschainmonitorstartheight",
+		Usage: "defines the start height to monitor cr cross chain transaction",
+	}
+
+	CrossChainMonitorIntervalFlag = cli.StringFlag{
+		Name:  "crosschainmonitorinterval",
+		Usage: "defines the interval cross chain arbitration",
+	}
 )
 
 // MoveRPCFlags finds the rpc argument and moves it to the front

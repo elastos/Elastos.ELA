@@ -7,6 +7,7 @@ package state
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"encoding/hex"
 	"errors"
 	"math"
@@ -23,6 +24,7 @@ import (
 	"github.com/elastos/Elastos.ELA/core/types/functions"
 	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
+	"github.com/elastos/Elastos.ELA/crypto"
 	elaerr "github.com/elastos/Elastos.ELA/errors"
 	"github.com/elastos/Elastos.ELA/events"
 	"github.com/elastos/Elastos.ELA/p2p"
@@ -51,7 +53,8 @@ type Committee struct {
 	createCRAssetsRectifyTransaction func() (interfaces.Transaction, error)
 	createCRRealWithdrawTransaction  func(withdrawTransactionHashes []common.Uint256,
 		outputs []*common2.OutputInfo) (interfaces.Transaction, error)
-	getUTXO func(programHash *common.Uint168) ([]*common2.UTXO, error)
+	getUTXO            func(programHash *common.Uint168) ([]*common2.UTXO, error)
+	getCurrentArbiters func() [][]byte
 }
 
 type CommitteeKeyFrame struct {
@@ -469,6 +472,15 @@ func (c *Committee) checkAndSetMemberToInactive(history *utils.History, height u
 }
 
 func (c *Committee) updateCRInactiveStatus(history *utils.History, height uint32) {
+	if height > c.Params.DPoSV2StartHeight {
+		if height < c.LastVotingStartHeight+c.Params.CRVotingPeriod+c.Params.CRClaimPeriod {
+			return
+		}
+
+		c.checkAndSetMemberToInactive(history, height)
+		return
+	}
+
 	if c.state.CurrentSession == 0 {
 		return
 	} else if c.state.CurrentSession == 1 {
@@ -978,6 +990,164 @@ func (c *Committee) processCRCRealWithdraw(tx interfaces.Transaction,
 	})
 }
 
+func getCrossChainSignedPubKeys(program program.Program, data []byte) ([][]byte, error) {
+	code := program.Code
+	// Get N parameter
+	n := int(code[len(code)-2]) - crypto.PUSH1 + 1
+	// Get M parameter
+	m := int(code[0]) - crypto.PUSH1 + 1
+	publicKeys, err := crypto.ParseCrossChainScript(code)
+	if err != nil {
+		return nil, err
+	}
+
+	return getSignedPubKeys(m, n, publicKeys, program.Parameter, data)
+}
+
+func getSignedPubKeys(m, n int, publicKeys [][]byte, signatures, data []byte) ([][]byte, error) {
+	if len(publicKeys) != n {
+		return nil, errors.New("invalid multi sign public key script count")
+	}
+	if len(signatures)%crypto.SignatureScriptLength != 0 {
+		return nil, errors.New("invalid multi sign signatures, length not match")
+	}
+	if len(signatures)/crypto.SignatureScriptLength < m {
+		return nil, errors.New("invalid signatures, not enough signatures")
+	}
+	if len(signatures)/crypto.SignatureScriptLength > n {
+		return nil, errors.New("invalid signatures, too many signatures")
+	}
+
+	var verified = make(map[common.Uint256]struct{})
+	var retKeys [][]byte
+	for i := 0; i < len(signatures); i += crypto.SignatureScriptLength {
+		// Remove length byte
+		sign := signatures[i : i+crypto.SignatureScriptLength][1:]
+		// Match public key with signature
+		for _, publicKey := range publicKeys {
+			pubKey, err := crypto.DecodePoint(publicKey[1:])
+			if err != nil {
+				return nil, err
+			}
+			err = crypto.Verify(*pubKey, data, sign)
+			if err == nil {
+				hash := sha256.Sum256(publicKey)
+				if _, ok := verified[hash]; ok {
+					return nil, errors.New("duplicated signatures")
+				}
+				verified[hash] = struct{}{}
+				retKeys = append(retKeys, publicKey[1:])
+				break // back to public keys loop
+			}
+		}
+	}
+	// Check signatures count
+	if len(verified) < m {
+		return nil, errors.New("matched signatures not enough")
+	}
+
+	return retKeys, nil
+}
+
+func (c *Committee) processsWithdrawFromSideChain(tx interfaces.Transaction,
+	height uint32, history *utils.History) {
+	log.Infof("currentWithdrawFromSideChainIndex is %d, CrossChainMonitorInterval is %d", c.CurrentWithdrawFromSideChainIndex, c.Params.CrossChainMonitorInterval)
+
+	originCurrentWithdrawFromSideChainIndex := c.CurrentWithdrawFromSideChainIndex
+	originCurrentSignedWithdrawFromSideChainKeys := c.CurrentSignedWithdrawFromSideChainKeys
+	tmpCurrentWithdrawFromSideChainIndex := c.CurrentWithdrawFromSideChainIndex
+	tmpCurrentSignedWithdrawFromSideChainKeys := c.CurrentSignedWithdrawFromSideChainKeys
+	reachTop := false
+	if tmpCurrentWithdrawFromSideChainIndex == c.Params.CrossChainMonitorInterval {
+		reachTop = true
+		tmpCurrentWithdrawFromSideChainIndex = 0
+	} else {
+		tmpCurrentWithdrawFromSideChainIndex += 1
+	}
+	log.Infof("CurrentSignedWithdrawFromSideChainKeys %v", tmpCurrentSignedWithdrawFromSideChainKeys)
+	electedMembers := getOriginElectedCRMembers(c.Members)
+	electedMemAll := make(map[string]*CRMember)
+	for _, elected := range electedMembers {
+		electedMemAll[hex.EncodeToString(elected.DPOSPublicKey)] = elected
+	}
+	var publicKeys [][]byte
+	if tx.PayloadVersion() == payload.WithdrawFromSideChainVersionV2 {
+		allPulicKeys := c.getCurrentArbiters()
+		pld := tx.Payload().(*payload.WithdrawFromSideChain)
+		for _, index := range pld.Signers {
+			publicKeys = append(publicKeys, allPulicKeys[index])
+		}
+	} else {
+		buf := new(bytes.Buffer)
+		tx.SerializeUnsigned(buf)
+		data := buf.Bytes()
+		var err error
+		for _, p := range tx.Programs() {
+			publicKeys, err = getCrossChainSignedPubKeys(*p, data)
+			if err != nil {
+				return
+			}
+			if len(publicKeys) != 0 {
+				break
+			}
+		}
+	}
+	for _, pub := range publicKeys {
+		pubStr := hex.EncodeToString(pub)
+		if !isArbiterEixst(pubStr, tmpCurrentSignedWithdrawFromSideChainKeys) {
+			tmpCurrentSignedWithdrawFromSideChainKeys = append(tmpCurrentSignedWithdrawFromSideChainKeys, pubStr)
+		}
+	}
+
+	if reachTop {
+		log.Info("reach top")
+		for k, m := range electedMemAll {
+			tmp := k
+			tmpMem := m
+			if !isArbiterEixst(tmp, tmpCurrentSignedWithdrawFromSideChainKeys) {
+				if tmpMem != nil && tmpMem.MemberState == MemberElected {
+					history.Append(height, func() {
+						tmpMem.MemberState = MemberInactive
+						log.Info("Set to inactive", tmpMem.Info.NickName)
+						if height >= c.Params.ChangeCommitteeNewCRHeight {
+							c.state.UpdateCRInactivePenalty(tmpMem.Info.CID, height)
+						}
+					}, func() {
+						tmpMem.MemberState = MemberElected
+						if height >= c.Params.ChangeCommitteeNewCRHeight {
+							c.state.RevertUpdateCRInactivePenalty(tmpMem.Info.CID, height)
+						}
+					})
+				}
+			}
+		}
+		history.Append(height, func() {
+			c.CurrentSignedWithdrawFromSideChainKeys = make([]string, 0)
+			c.CurrentWithdrawFromSideChainIndex = tmpCurrentWithdrawFromSideChainIndex
+		}, func() {
+			c.CurrentSignedWithdrawFromSideChainKeys = originCurrentSignedWithdrawFromSideChainKeys
+			c.CurrentWithdrawFromSideChainIndex = originCurrentWithdrawFromSideChainIndex
+		})
+	} else {
+		history.Append(height, func() {
+			c.CurrentSignedWithdrawFromSideChainKeys = tmpCurrentSignedWithdrawFromSideChainKeys
+			c.CurrentWithdrawFromSideChainIndex = tmpCurrentWithdrawFromSideChainIndex
+		}, func() {
+			c.CurrentSignedWithdrawFromSideChainKeys = originCurrentSignedWithdrawFromSideChainKeys
+			c.CurrentWithdrawFromSideChainIndex = originCurrentWithdrawFromSideChainIndex
+		})
+	}
+}
+
+func isArbiterEixst(cmpK string, keys []string) bool {
+	for _, v := range keys {
+		if cmpK == v {
+			return true
+		}
+	}
+	return false
+}
+
 func (c *Committee) activateProducer(tx interfaces.Transaction,
 	height uint32, history *utils.History) {
 	apPayload := tx.Payload().(*payload.ActivateProducer)
@@ -1006,11 +1176,29 @@ func (c *Committee) processCRCouncilMemberClaimNode(tx interfaces.Transaction,
 			if cr == nil {
 				return
 			}
+			oriClaimDPoSKeys := copyClaimedDPoSKeysMap(c.ClaimedDPoSKeys)
+			history.Append(height, func() {
+				c.ClaimedDPoSKeys[hex.EncodeToString(claimNodePayload.NodePublicKey)] = struct{}{}
+				if len(cr.DPOSPublicKey) != 0 {
+					delete(c.ClaimedDPoSKeys, hex.EncodeToString(cr.DPOSPublicKey))
+				}
+			}, func() {
+				c.ClaimedDPoSKeys = oriClaimDPoSKeys
+			})
 		case payload.NextCRClaimDPoSNodeVersion:
 			cr = c.getNextMember(claimNodePayload.CRCouncilCommitteeDID)
 			if cr == nil {
 				return
 			}
+			oriNextClaimDPoSKeys := copyClaimedDPoSKeysMap(c.NextClaimedDPoSKeys)
+			history.Append(height, func() {
+				c.NextClaimedDPoSKeys[hex.EncodeToString(claimNodePayload.NodePublicKey)] = struct{}{}
+				if len(cr.DPOSPublicKey) != 0 {
+					delete(c.NextClaimedDPoSKeys, hex.EncodeToString(cr.DPOSPublicKey))
+				}
+			}, func() {
+				c.NextClaimedDPoSKeys = oriNextClaimDPoSKeys
+			})
 		}
 	} else {
 		cr = c.getMember(claimNodePayload.CRCouncilCommitteeDID)
@@ -1021,23 +1209,16 @@ func (c *Committee) processCRCouncilMemberClaimNode(tx interfaces.Transaction,
 	oriPublicKey := cr.DPOSPublicKey
 	oriMemberState := cr.MemberState
 	oriInactiveCount := cr.InactiveCount
-	oriClaimDposKeys := c.ClaimedDposKeys[c.LastVotingStartHeight]
 	history.Append(height, func() {
 		cr.DPOSPublicKey = claimNodePayload.NodePublicKey
 		if cr.MemberState == MemberInactive {
 			cr.MemberState = MemberElected
 			cr.InactiveCount = 0
 		}
-		if height >= c.Params.DPoSV2StartHeight {
-			c.ClaimedDposKeys[c.LastVotingStartHeight] = append(c.ClaimedDposKeys[c.LastVotingStartHeight], hex.EncodeToString(cr.DPOSPublicKey))
-		}
 	}, func() {
 		cr.DPOSPublicKey = oriPublicKey
 		cr.MemberState = oriMemberState
 		cr.InactiveCount = oriInactiveCount
-		if height >= c.Params.DPoSV2StartHeight {
-			c.ClaimedDposKeys[c.LastVotingStartHeight] = oriClaimDposKeys
-		}
 	})
 }
 
@@ -1156,7 +1337,7 @@ func (c *Committee) isInVotingPeriod(height uint32) bool {
 	inVotingPeriod := func(committeeUpdateHeight uint32) bool {
 		if height >= c.Params.DPoSV2StartHeight {
 			return height >= committeeUpdateHeight-c.Params.CRVotingPeriod-c.Params.CRClaimPeriod &&
-				height < committeeUpdateHeight
+				height < committeeUpdateHeight-c.Params.CRClaimPeriod
 		}
 		return height >= committeeUpdateHeight-c.Params.CRVotingPeriod &&
 			height < committeeUpdateHeight
@@ -1298,14 +1479,22 @@ func (c *Committee) resetNextMembers(height uint32) {
 	newMembers := copyMembersMap(c.NextMembers)
 	oriNicknames := utils.CopyStringSet(c.state.Nicknames)
 	oriVotes := utils.CopyStringSet(c.state.Votes)
+	oriClaimedDPoSKyes := copyClaimedDPoSKeysMap(c.ClaimedDPoSKeys)
+	oriNextClaimedDPoSKyes := copyClaimedDPoSKeysMap(c.NextClaimedDPoSKeys)
 	c.lastHistory.Append(height, func() {
 		c.Members = newMembers
+		c.NextMembers = make(map[common.Uint168]*CRMember)
 		c.state.Nicknames = map[string]struct{}{}
 		c.state.Votes = map[string]struct{}{}
+		c.ClaimedDPoSKeys = c.NextClaimedDPoSKeys
+		c.NextClaimedDPoSKeys = make(map[string]struct{})
 	}, func() {
 		c.Members = oriMembers
+		c.NextMembers = newMembers
 		c.state.Nicknames = oriNicknames
 		c.state.Votes = oriVotes
+		c.ClaimedDPoSKeys = oriClaimedDPoSKyes
+		c.NextClaimedDPoSKeys = oriNextClaimedDPoSKyes
 	})
 
 	return
@@ -1661,10 +1850,11 @@ type CommitteeFuncsConfig struct {
 	CreateCRAssetsRectifyTransaction func() (interfaces.Transaction, error)
 	CreateCRRealWithdrawTransaction  func(withdrawTransactionHashes []common.Uint256,
 		outpus []*common2.OutputInfo) (interfaces.Transaction, error)
-	IsCurrent      func() bool
-	Broadcast      func(msg p2p.Message)
-	AppendToTxpool func(transaction interfaces.Transaction) elaerr.ELAError
-	GetUTXO        func(programHash *common.Uint168) ([]*common2.UTXO, error)
+	IsCurrent          func() bool
+	Broadcast          func(msg p2p.Message)
+	AppendToTxpool     func(transaction interfaces.Transaction) elaerr.ELAError
+	GetUTXO            func(programHash *common.Uint168) ([]*common2.UTXO, error)
+	GetCurrentArbiters func() [][]byte
 }
 
 func (c *Committee) RegisterFuncitons(cfg *CommitteeFuncsConfig) {
@@ -1680,6 +1870,7 @@ func (c *Committee) RegisterFuncitons(cfg *CommitteeFuncsConfig) {
 	})
 	c.getUTXO = cfg.GetUTXO
 	c.GetHeight = cfg.GetHeight
+	c.getCurrentArbiters = cfg.GetCurrentArbiters
 }
 
 func (c *Committee) TryUpdateCRMemberInactivity(did common.Uint168,

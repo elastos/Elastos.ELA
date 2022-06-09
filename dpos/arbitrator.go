@@ -100,6 +100,14 @@ func (a *Arbitrator) GetCurrentArbitrators() []*state.ArbiterInfo {
 	return a.dposManager.GetArbitrators().GetArbitrators()
 }
 
+func (a *Arbitrator) GetCurrentArbitratorKeys() [][]byte {
+	var ret [][]byte
+	for _, info := range a.dposManager.GetArbitrators().GetArbitrators() {
+		ret = append(ret, info.NodePublicKey)
+	}
+	return ret
+}
+
 func (a *Arbitrator) GetNextArbitrators() []*state.ArbiterInfo {
 	return a.dposManager.GetArbitrators().GetNextArbitrators()
 }

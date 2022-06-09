@@ -23,6 +23,6 @@ func CreateStakeContractByCode(code []byte) (*Contract, error) {
 	}
 	return &Contract{
 		Code:   code,
-		Prefix: PrefixDposV2,
+		Prefix: PrefixDPoSV2,
 	}, nil
 }

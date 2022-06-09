@@ -263,6 +263,9 @@ func GetDefaultParams() Params {
 		DPoSV2MinVotesLockTime:             7200,    // todo complete me
 		DPoSV2MaxVotesLockTime:             720000,  // todo complete me
 		SchnorrStartHeight:                 2000000, // todo complete me
+		CRDPoSNodeHotFixHeight:             0,
+		CrossChainMonitorStartHeight:       2000000, // todo complete me
+		CrossChainMonitorInterval:          100,     // todo complete me
 	}
 }
 
@@ -363,6 +366,9 @@ func (p *Params) TestNet() *Params {
 	copy.DPoSV2MaxVotesLockTime = 720000 // todo complete me
 	copy.RealWithdrawSingleFee = 10000
 	copy.SchnorrStartHeight = 2000000 // todo complete me
+	copy.CRDPoSNodeHotFixHeight = 0
+	copy.CrossChainMonitorStartHeight = 2000000 // todo complete me
+	copy.CrossChainMonitorInterval = 10         // todo complete me
 
 	return &copy
 }
@@ -465,6 +471,9 @@ func (p *Params) RegNet() *Params {
 	copy.DPoSV2MaxVotesLockTime = 720000 // todo complete me
 	copy.RealWithdrawSingleFee = 10000
 	copy.SchnorrStartHeight = 2000000 // todo fix me
+	copy.CRDPoSNodeHotFixHeight = 0
+	copy.CrossChainMonitorStartHeight = 2000000 // todo complete me
+	copy.CrossChainMonitorInterval = 10         // todo complete me
 
 	return &copy
 }
@@ -828,6 +837,15 @@ type Params struct {
 
 	// SchnorrStartHeight indicates the start height of schnorr
 	SchnorrStartHeight uint32
+
+	// CRDPoSNodeHotFixHeight indicates the hot fix start height of CR DPoS node
+	CRDPoSNodeHotFixHeight uint32
+
+	// CrossChainMonitorStartHeight indicates the monitor height of cr cross chain arbitration
+	CrossChainMonitorStartHeight uint32
+
+	// CrossChainMonitorInterval indicates the interval value of cr cross chain arbitration
+	CrossChainMonitorInterval uint32
 }
 
 // RewardPerBlock calculates the reward for each block by a specified time

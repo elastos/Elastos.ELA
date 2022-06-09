@@ -1,6 +1,6 @@
 Elastos.ELA version 0.3.6 is now available from:
 
-  <https://download.elastos.org/elastos-ela/elastos-ela-v0.3.6/>
+  <https://download.elastos.io/elastos-ela/elastos-ela-v0.3.6/>
 
 This release fix an error that DPOS node can not confirm block.
 

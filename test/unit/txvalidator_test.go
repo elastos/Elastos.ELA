@@ -955,7 +955,7 @@ func (s *txValidatorTestSuite) TestCheckRegisterDposV2ProducerTransaction() {
 }
 
 func (s *txValidatorTestSuite) TestCheckStakeTransaction() {
-	stakeAddress := "ETAXSN3kc3N3npEeUzMn4bipwUS3ejooiy"
+	stakeAddress := "Sdp4gnD6v2Z7RpCgqBYDBtc7YRpbeFh9ad"
 	stakeAddress_uint168, _ := common.Uint168FromAddress(stakeAddress)
 	rpPayload := &outputpayload.StakeOutput{
 		Version:      0,
@@ -4437,7 +4437,9 @@ func (s *txValidatorTestSuite) TestCheckUnStakeTransaction() {
 	code := cont.Code
 	ct, _ := contract.CreateStakeContractByCode(code)
 	stakeAddress := ct.ToProgramHash()
-	pl := &payload.Unstake{}
+	pl := &payload.Unstake{
+		Value: 100,
+	}
 	attribute := []*common2.Attribute{}
 
 	tx1 := functions.CreateTransaction(

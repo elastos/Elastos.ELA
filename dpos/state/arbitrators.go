@@ -1104,6 +1104,14 @@ func (a *Arbiters) GetArbitrators() []*ArbiterInfo {
 	return result
 }
 
+func (a *Arbiters) GetCurrentArbitratorKeys() [][]byte {
+	var ret [][]byte
+	for _, info := range a.getArbitrators() {
+		ret = append(ret, info.NodePublicKey)
+	}
+	return ret
+}
+
 func (a *Arbiters) getArbitrators() []*ArbiterInfo {
 	result := make([]*ArbiterInfo, 0, len(a.CurrentArbitrators))
 	for _, v := range a.CurrentArbitrators {
@@ -1408,7 +1416,11 @@ func (a *Arbiters) GetCrossChainArbiters() []*ArbiterInfo {
 		return a.GetArbitrators()
 	}
 	if bestHeight < a.ChainParams.DPOSNodeCrossChainHeight {
-		return a.GetCRCArbiters()
+		crcArbiters := a.GetCRCArbiters()
+		sort.Slice(crcArbiters, func(i, j int) bool {
+			return bytes.Compare(crcArbiters[i].NodePublicKey, crcArbiters[j].NodePublicKey) < 0
+		})
+		return crcArbiters
 	}
 
 	return a.GetArbitrators()
@@ -2136,16 +2148,30 @@ func (a *Arbiters) getCRCArbitersV2(height uint32) (map[common.Uint168]ArbiterMe
 	for _, cr := range crMembers {
 		var pk []byte
 		if len(cr.DPOSPublicKey) == 0 {
-			if cr.MemberState != state.MemberElected {
+			if height >= a.ChainParams.CRDPoSNodeHotFixHeight {
+				//if cr.MemberState != state.MemberElected {
 				var err error
 				pk, err = common.HexStringToBytes(unclaimedArbiterKeys[0])
 				if err != nil {
 					return nil, 0, err
 				}
 				unclaimedArbiterKeys = unclaimedArbiterKeys[1:]
+				//} else {
+				//	pk = producers[unclaimedCount].GetNodePublicKey()
+				//	unclaimedCount++
+				//}
 			} else {
-				pk = producers[unclaimedCount].GetNodePublicKey()
-				unclaimedCount++
+				if cr.MemberState != state.MemberElected {
+					var err error
+					pk, err = common.HexStringToBytes(unclaimedArbiterKeys[0])
+					if err != nil {
+						return nil, 0, err
+					}
+					unclaimedArbiterKeys = unclaimedArbiterKeys[1:]
+				} else {
+					pk = producers[unclaimedCount].GetNodePublicKey()
+					unclaimedCount++
+				}
 			}
 		} else {
 			pk = cr.DPOSPublicKey
@@ -2343,12 +2369,12 @@ func (a *Arbiters) snapshotVotesStates(height uint32) error {
 				continue
 			}
 			if err := recordVotes(ar.GetNodePublicKey()); err != nil {
-				return err
+				continue
 			}
 		} else {
 			if !a.isNextCRCArbitrator(ar.GetNodePublicKey()) {
 				if err := recordVotes(ar.GetNodePublicKey()); err != nil {
-					return err
+					continue
 				}
 			}
 		}

@@ -1,8 +1,8 @@
-Elastos.ELA version 0.4.3 is now available from:
+Elastos.ELA version 0.8.3 is now available from:
 
-  <https://download.elastos.io/elastos-ela/elastos-ela-v0.4.3/>
+  <https://download.elastos.io/elastos-ela/elastos-ela-v0.8.3/>
 
-This is a new minor version release, including bugfixes. 
+This is a new major version release.
 
 Please report bugs using the issue tracker at GitHub:
 
@@ -11,8 +11,8 @@ Please report bugs using the issue tracker at GitHub:
 How to Upgrade
 ==============
 
-If you are running version release_v0.4.2 and before, you should shut it down and wait until
- it has completely closed, then just copy over `ela` (on Linux).
+If you are running version release_v0.8.2 and before, you should shut it down and wait until
+ it has completely closed, then just copy over `ela`(on Linux).
 
 However, as usual, config, keystore and chaindata files are compatible.
 
@@ -32,11 +32,11 @@ distribution provides binaries for the x86_64 platform.
 Notable changes
 ===============
 
-Fixed an issue that block message size validation does not match block size validation, which could cause some node is not synchronized.
+Temporary modifications to ensure the stability of side chain and cross-chain.
 
-0.4.3 change log
+0.8.3 change log
 =================
 
-Detailed release notes follow
-
-- #1476 Separate blocks size check to header and context checks
+### Fix bug
+- #1903 compatible with test network data
+- #1901 resolve cross-chain and side chain over-dependence on DPoS nodes

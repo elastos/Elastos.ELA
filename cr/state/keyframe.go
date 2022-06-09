@@ -119,7 +119,8 @@ type CRMember struct {
 type KeyFrame struct {
 	Members             map[common.Uint168]*CRMember
 	NextMembers         map[common.Uint168]*CRMember
-	ClaimedDposKeys     map[uint32][]string
+	ClaimedDPoSKeys     map[string]struct{}
+	NextClaimedDPoSKeys map[string]struct{}
 	HistoryMembers      map[uint64]map[common.Uint168]*CRMember
 	PartProposalResults []payload.ProposalResult
 
@@ -138,6 +139,9 @@ type KeyFrame struct {
 	CommitteeUsedAmount      common.Fixed64
 
 	CRAssetsAddressUTXOCount uint32
+
+	CurrentWithdrawFromSideChainIndex      uint32
+	CurrentSignedWithdrawFromSideChainKeys []string
 }
 
 type DepositInfo struct {
@@ -356,7 +360,10 @@ func (kf *KeyFrame) Serialize(w io.Writer) (err error) {
 	if err = kf.serializeMembersMap(w, kf.NextMembers); err != nil {
 		return
 	}
-	if err = kf.serializeClaimedKeysMap(w, kf.ClaimedDposKeys); err != nil {
+	if err = kf.serializeClaimedDPoSKeysMap(w, kf.ClaimedDPoSKeys); err != nil {
+		return
+	}
+	if err = kf.serializeClaimedDPoSKeysMap(w, kf.NextClaimedDPoSKeys); err != nil {
 		return
 	}
 	if err = kf.serializeHistoryMembersMap(w, kf.HistoryMembers); err != nil {
@@ -367,12 +374,17 @@ func (kf *KeyFrame) Serialize(w io.Writer) (err error) {
 		return
 	}
 
+	if err = serializeUnsignedWithdrawFromSideChainKeys(w, kf.CurrentSignedWithdrawFromSideChainKeys); err != nil {
+		return
+	}
 	return common.WriteElements(w, kf.LastCommitteeHeight,
 		kf.LastVotingStartHeight, kf.InElectionPeriod, kf.NeedAppropriation,
 		kf.NeedRecordProposalResult, kf.CRCFoundationBalance,
 		kf.CRCCommitteeBalance, kf.CRCCommitteeUsedAmount, kf.CRCCurrentStageAmount,
 		kf.DestroyedAmount, kf.CirculationAmount, kf.AppropriationAmount,
-		kf.CommitteeUsedAmount, kf.CRAssetsAddressUTXOCount)
+		kf.CommitteeUsedAmount, kf.CRAssetsAddressUTXOCount, kf.CurrentWithdrawFromSideChainIndex)
+
+	return
 }
 
 func (kf *KeyFrame) Deserialize(r io.Reader) (err error) {
@@ -384,7 +396,11 @@ func (kf *KeyFrame) Deserialize(r io.Reader) (err error) {
 		return
 	}
 
-	if kf.ClaimedDposKeys, err = kf.deserializeClaimedKeysMap(r); err != nil {
+	if kf.ClaimedDPoSKeys, err = kf.deserializeClaimedDPoSKeysMap(r); err != nil {
+		return
+	}
+
+	if kf.NextClaimedDPoSKeys, err = kf.deserializeClaimedDPoSKeysMap(r); err != nil {
 		return
 	}
 
@@ -396,13 +412,15 @@ func (kf *KeyFrame) Deserialize(r io.Reader) (err error) {
 		return
 	}
 
-	err = common.ReadElements(r, &kf.LastCommitteeHeight,
+	if kf.CurrentSignedWithdrawFromSideChainKeys, err = deserializeUnsignedWithdrawFromSideChainKeys(r); err != nil {
+		return
+	}
+
+	return common.ReadElements(r, &kf.LastCommitteeHeight,
 		&kf.LastVotingStartHeight, &kf.InElectionPeriod, &kf.NeedAppropriation,
 		&kf.NeedRecordProposalResult, &kf.CRCFoundationBalance, &kf.CRCCommitteeBalance,
 		&kf.CRCCommitteeUsedAmount, &kf.CRCCurrentStageAmount, &kf.DestroyedAmount, &kf.CirculationAmount,
-		&kf.AppropriationAmount, &kf.CommitteeUsedAmount, &kf.CRAssetsAddressUTXOCount)
-
-	return
+		&kf.AppropriationAmount, &kf.CommitteeUsedAmount, &kf.CRAssetsAddressUTXOCount, &kf.CurrentWithdrawFromSideChainIndex)
 }
 
 func (kf *KeyFrame) serializeMembersMap(w io.Writer,
@@ -418,6 +436,45 @@ func (kf *KeyFrame) serializeMembersMap(w io.Writer,
 		if err = v.Serialize(w); err != nil {
 			return
 		}
+	}
+	return
+}
+
+func (kf *KeyFrame) serializeClaimedDPoSKeysMap(w io.Writer,
+	mmap map[string]struct{}) (err error) {
+	if err = common.WriteVarUint(w, uint64(len(mmap))); err != nil {
+		return
+	}
+	for k, _ := range mmap {
+		if err = common.WriteVarString(w, k); err != nil {
+			return
+		}
+	}
+	return
+}
+
+func (kf *KeyFrame) deserializeClaimedDPoSKeysMap(
+	r io.Reader) (mmap map[string]struct{}, err error) {
+	var count uint64
+	if count, err = common.ReadVarUint(r, 0); err != nil {
+		return
+	}
+	mmap = make(map[string]struct{})
+	for i := uint64(0); i < count; i++ {
+		var candidate string
+		if candidate, err = common.ReadVarString(r); err != nil {
+			return
+		}
+		mmap[candidate] = struct{}{}
+	}
+	return
+}
+
+func copyClaimedDPoSKeysMap(src map[string]struct{}) (
+	dst map[string]struct{}) {
+	dst = make(map[string]struct{})
+	for k, _ := range src {
+		dst[k] = struct{}{}
 	}
 	return
 }
@@ -532,6 +589,33 @@ func serializeDetailVoteInfoMap(w io.Writer, vmap map[common.Uint256]payload.Det
 		if err = v.Serialize(w); err != nil {
 			return
 		}
+	}
+	return
+}
+
+func serializeUnsignedWithdrawFromSideChainKeys(w io.Writer, src []string) (err error) {
+	if err = common.WriteVarUint(w, uint64(len(src))); err != nil {
+		return
+	}
+	for _, v := range src {
+		if err = common.WriteVarString(w, v); err != nil {
+			return
+		}
+	}
+	return
+}
+
+func deserializeUnsignedWithdrawFromSideChainKeys(r io.Reader) (ret []string, err error) {
+	var count uint64
+	if count, err = common.ReadVarUint(r, 0); err != nil {
+		return
+	}
+	for i := uint64(0); i < count; i++ {
+		var v string
+		if v, err = common.ReadVarString(r); err != nil {
+			return
+		}
+		ret = append(ret, v)
 	}
 	return
 }
@@ -655,16 +739,20 @@ func (kf *KeyFrame) Snapshot() *KeyFrame {
 	frame.Members = copyMembersMap(kf.Members)
 	frame.HistoryMembers = copyHistoryMembersMap(kf.HistoryMembers)
 	frame.CRAssetsAddressUTXOCount = kf.CRAssetsAddressUTXOCount
+	frame.CurrentWithdrawFromSideChainIndex = kf.CurrentWithdrawFromSideChainIndex
+	frame.CurrentSignedWithdrawFromSideChainKeys = copyUnsidedWithdrawFromSideChainKeys(kf.CurrentSignedWithdrawFromSideChainKeys)
 	return frame
 }
 
 func NewKeyFrame() *KeyFrame {
 	return &KeyFrame{
-		Members:             make(map[common.Uint168]*CRMember, 0),
-		NextMembers:         make(map[common.Uint168]*CRMember, 0),
-		ClaimedDposKeys:     make(map[uint32][]string, 0),
-		HistoryMembers:      make(map[uint64]map[common.Uint168]*CRMember, 0),
-		LastCommitteeHeight: 0,
+		Members:                                make(map[common.Uint168]*CRMember, 0),
+		NextMembers:                            make(map[common.Uint168]*CRMember, 0),
+		ClaimedDPoSKeys:                        make(map[string]struct{}, 0),
+		NextClaimedDPoSKeys:                    make(map[string]struct{}, 0),
+		HistoryMembers:                         make(map[uint64]map[common.Uint168]*CRMember, 0),
+		LastCommitteeHeight:                    0,
+		CurrentSignedWithdrawFromSideChainKeys: make([]string, 0),
 	}
 }
 
@@ -2010,6 +2098,17 @@ func getElectedCRMembers(src map[common.Uint168]*CRMember) []*CRMember {
 	return dst
 }
 
+func getOriginElectedCRMembers(src map[common.Uint168]*CRMember) []*CRMember {
+	dst := make([]*CRMember, 0)
+	for _, v := range src {
+		if v.MemberState == MemberElected {
+			m := v
+			dst = append(dst, m)
+		}
+	}
+	return dst
+}
+
 func getImpeachableCRMembers(src map[common.Uint168]*CRMember) []*CRMember {
 	dst := make([]*CRMember, 0)
 	for _, v := range src {
@@ -2040,6 +2139,13 @@ func copyHistoryMembersMap(src map[uint64]map[common.Uint168]*CRMember) (
 	dst = map[uint64]map[common.Uint168]*CRMember{}
 	for k, v := range src {
 		dst[k] = copyMembersMap(v)
+	}
+	return
+}
+
+func copyUnsidedWithdrawFromSideChainKeys(src []string) (dst []string) {
+	for _, v := range src {
+		dst = append(dst, v)
 	}
 	return
 }

@@ -580,6 +580,7 @@ func checkTransactionSignature(tx interfaces.Transaction, references map[*common
 		tx.IsDposV2ClaimRewardRealWithdraw() || tx.IsUnstakeRealWithdrawTX() {
 		return nil
 	}
+
 	if err != nil {
 		return err
 	}
@@ -675,7 +676,7 @@ func checkOutputProgramHash(height uint32, programHash common.Uint168) error {
 		case contract.PrefixMultiSig:
 		case contract.PrefixCrossChain:
 		case contract.PrefixDeposit:
-		case contract.PrefixDposV2:
+		case contract.PrefixDPoSV2:
 		default:
 			return errors.New("invalid program hash prefix")
 		}

@@ -101,6 +101,9 @@ func (t *WithdrawFromSideChainTransaction) IsAllowedInPOWConsensus() bool {
 }
 
 func (t *WithdrawFromSideChainTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
+	if t.parameters.BlockHeight > t.parameters.Config.SchnorrStartHeight && t.PayloadVersion() != payload.WithdrawFromSideChainVersionV2 {
+		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("only support schnorr type of  withdraw from sidechain transaction")), true
+	}
 	var err error
 	if t.PayloadVersion() == payload.WithdrawFromSideChainVersion {
 		err = t.checkWithdrawFromSideChainTransactionV0()
@@ -293,21 +296,20 @@ func (t *WithdrawFromSideChainTransaction) checkWithdrawFromSideChainTransaction
 func checkSchnorrWithdrawFromSidechain(t interfaces.Transaction, pld *payload.WithdrawFromSideChain) error {
 	var pxArr []*big.Int
 	var pyArr []*big.Int
+	arbiters := blockchain.DefaultLedger.Arbitrators.GetCrossChainArbiters()
 	for _, index := range pld.Signers {
-		arbiters := blockchain.DefaultLedger.Arbitrators.GetCrossChainArbiters()
 		px, py := crypto.Unmarshal(crypto.Curve, arbiters[index].NodePublicKey)
 		pxArr = append(pxArr, px)
 		pyArr = append(pyArr, py)
 	}
-	Px, Py := crypto.Curve.Add(pxArr[0], pyArr[0], pxArr[1], pyArr[1])
-	for i := 2; i < len(pxArr); i++ {
+	Px, Py := new(big.Int), new(big.Int)
+	for i := 0; i < len(pxArr); i++ {
 		Px, Py = crypto.Curve.Add(Px, Py, pxArr[i], pyArr[i])
 	}
-	var sumPublicKey []byte
-	copy(sumPublicKey, crypto.Marshal(crypto.Curve, Px, Py))
+	sumPublicKey := crypto.Marshal(crypto.Curve, Px, Py)
 	publicKey, err := crypto.DecodePoint(sumPublicKey)
 	if err != nil {
-		return errors.New("Invalid schnorr public key")
+		return errors.New("Invalid schnorr public key" + err.Error())
 	}
 	redeemScript, err := contract.CreateSchnorrMultiSigRedeemScript(publicKey)
 	if err != nil {

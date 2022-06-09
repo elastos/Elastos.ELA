@@ -148,6 +148,13 @@ func (t *VotingTransaction) SpecialContextCheck() (result elaerr.ELAError, end b
 	switch t.PayloadVersion() {
 	case payload.VoteVersion:
 		for _, content := range pld.Contents {
+			for _, vi := range content.VotesInfo {
+				if vi.Votes <= 0 {
+					return elaerr.Simple(elaerr.ErrTxPayload,
+						errors.New("invalid votes, need to be bigger than zero")), true
+				}
+			}
+
 			switch content.VoteType {
 			case outputpayload.Delegate:
 				if blockHeight > state.DPoSV2ActiveHeight {
@@ -161,6 +168,9 @@ func (t *VotingTransaction) SpecialContextCheck() (result elaerr.ELAError, end b
 					return elaerr.Simple(elaerr.ErrTxPayload, err), true
 				}
 			case outputpayload.CRC:
+				if !t.parameters.BlockChain.GetCRCommittee().IsInVotingPeriod(t.parameters.BlockHeight) {
+					return elaerr.Simple(elaerr.ErrTxPayload, errors.New("should vote CR during voting period")), true
+				}
 				err := t.checkVoteCRContent(blockHeight,
 					content, crs, totalVotes-usedCRVoteRights)
 				if err != nil {

@@ -24,6 +24,8 @@ const (
 // StateKeyFrame holds necessary state about State
 type StateKeyFrame struct {
 	NodeOwnerKeys            map[string]string // NodePublicKey as key, OwnerPublicKey as value
+	CurrentCRNodeOwnerKeys   map[string]string // NodePublicKey as key, OwnerPublicKey as value
+	NextCRNodeOwnerKeys      map[string]string // NodePublicKey as key, OwnerPublicKey as value
 	PendingProducers         map[string]*Producer
 	ActivityProducers        map[string]*Producer
 	DposV2ActivityProducers  map[string]*Producer
@@ -87,6 +89,8 @@ type RewardData struct {
 func (s *StateKeyFrame) snapshot() *StateKeyFrame {
 	state := StateKeyFrame{
 		NodeOwnerKeys:            make(map[string]string),
+		CurrentCRNodeOwnerKeys:   make(map[string]string),
+		NextCRNodeOwnerKeys:      make(map[string]string),
 		PendingProducers:         make(map[string]*Producer),
 		ActivityProducers:        make(map[string]*Producer),
 		DposV2ActivityProducers:  make(map[string]*Producer),
@@ -113,6 +117,8 @@ func (s *StateKeyFrame) snapshot() *StateKeyFrame {
 		ProducerDepositMap:       make(map[common.Uint168]struct{}),
 	}
 	state.NodeOwnerKeys = copyStringMap(s.NodeOwnerKeys)
+	state.CurrentCRNodeOwnerKeys = copyStringMap(s.CurrentCRNodeOwnerKeys)
+	state.NextCRNodeOwnerKeys = copyStringMap(s.NextCRNodeOwnerKeys)
 	state.PendingProducers = copyProducerMap(s.PendingProducers)
 	state.ActivityProducers = copyProducerMap(s.ActivityProducers)
 	state.DposV2ActivityProducers = copyProducerMap(s.DposV2ActivityProducers)
@@ -148,6 +154,14 @@ func (s *StateKeyFrame) snapshot() *StateKeyFrame {
 func (s *StateKeyFrame) Serialize(w io.Writer) (err error) {
 
 	if err = s.SerializeStringMap(s.NodeOwnerKeys, w); err != nil {
+		return
+	}
+
+	if err = s.SerializeStringMap(s.CurrentCRNodeOwnerKeys, w); err != nil {
+		return
+	}
+
+	if err = s.SerializeStringMap(s.NextCRNodeOwnerKeys, w); err != nil {
 		return
 	}
 
@@ -255,6 +269,14 @@ func (s *StateKeyFrame) Serialize(w io.Writer) (err error) {
 
 func (s *StateKeyFrame) Deserialize(r io.Reader) (err error) {
 	if s.NodeOwnerKeys, err = s.DeserializeStringMap(r); err != nil {
+		return
+	}
+
+	if s.CurrentCRNodeOwnerKeys, err = s.DeserializeStringMap(r); err != nil {
+		return
+	}
+
+	if s.NextCRNodeOwnerKeys, err = s.DeserializeStringMap(r); err != nil {
 		return
 	}
 
@@ -775,6 +797,8 @@ func NewStateKeyFrame() *StateKeyFrame {
 	info := make(map[string]common.Fixed64)
 	return &StateKeyFrame{
 		NodeOwnerKeys:             make(map[string]string),
+		CurrentCRNodeOwnerKeys:    make(map[string]string),
+		NextCRNodeOwnerKeys:       make(map[string]string),
 		PendingProducers:          make(map[string]*Producer),
 		ActivityProducers:         make(map[string]*Producer),
 		DposV2ActivityProducers:   make(map[string]*Producer),

@@ -926,7 +926,7 @@ func (b *BlockChain) CheckTransactionPayload(txn interfaces.Transaction) error {
 	case *payload.RevertToDPOS:
 	case *payload.RecordProposalResult:
 	case *payload.ReturnSideChainDepositCoin:
-	case *payload.DposV2ClaimReward:
+	case *payload.DPoSV2ClaimReward:
 	case *payload.DposV2ClaimRewardRealWithdraw:
 	case *payload.UnstakeRealWithdrawPayload:
 	default:
@@ -1818,7 +1818,7 @@ func (b *BlockChain) checkProcessProducer(txn interfaces.Transaction) (
 	return producer, nil
 }
 
-func (b *BlockChain) checkClaimRewardSignature(pub []byte, claimReward *payload.DposV2ClaimReward) error {
+func (b *BlockChain) checkClaimRewardSignature(pub []byte, claimReward *payload.DPoSV2ClaimReward) error {
 
 	// check signature
 	publicKey, err := DecodePoint(pub)
@@ -1876,7 +1876,7 @@ func (b *BlockChain) checkDposV2ClaimRewardTransaction(txn interfaces.Transactio
 		return errors.New("can not claim reward before dposv2startheight")
 	}
 
-	claimReward, ok := txn.Payload().(*payload.DposV2ClaimReward)
+	claimReward, ok := txn.Payload().(*payload.DPoSV2ClaimReward)
 	if !ok {
 		return errors.New("invalid payload for dposV2claimReward")
 	}

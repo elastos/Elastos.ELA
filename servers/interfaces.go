@@ -3400,7 +3400,7 @@ func getPayloadInfo(p interfaces.Payload, payloadVersion byte) PayloadInfo {
 			obj.RealUnstakes = append(obj.RealUnstakes, realUnstakeInfo)
 		}
 		return obj
-	case *payload.DposV2ClaimReward:
+	case *payload.DPoSV2ClaimReward:
 		obj := &DposV2ClaimRewardInfo{
 			Amount:    object.Amount.String(),
 			Signature: common.BytesToHexString(object.Signature),

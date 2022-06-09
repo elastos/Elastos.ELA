@@ -102,7 +102,7 @@ func CreateDposV2ClaimRewardTransaction(c *cli.Context) error {
 	}
 
 	buf := new(bytes.Buffer)
-	apPayload := &payload.DposV2ClaimReward{
+	apPayload := &payload.DPoSV2ClaimReward{
 		Amount: common.Fixed64(amount),
 	}
 

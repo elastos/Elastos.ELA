@@ -2267,7 +2267,7 @@ func (s *State) processUnstake(tx interfaces.Transaction, height uint32) {
 func (s *State) processDposV2ClaimReward(tx interfaces.Transaction, height uint32) {
 	oriDposV2RewardInfo := s.DposV2RewardInfo
 	oriDposV2RewardClaimingInfo := s.DposV2RewardClaimingInfo
-	payload := tx.Payload().(*payload.DposV2ClaimReward)
+	payload := tx.Payload().(*payload.DPoSV2ClaimReward)
 	pub := hex.EncodeToString(tx.Programs()[0].Code[1 : len(tx.Programs()[0].Code)-1])
 	pkBytes, _ := common.HexStringToBytes(pub)
 	u168, _ := contract.PublicKeyToStandardProgramHash(pkBytes)

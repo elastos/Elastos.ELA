@@ -5292,7 +5292,7 @@ func (s *txValidatorTestSuite) TestCreateCRCAppropriationTransaction() {
 
 func (s *txValidatorTestSuite) TestCreateCRClaimDposV2Transaction() {
 	buf := new(bytes.Buffer)
-	apPayload := &payload.DposV2ClaimReward{
+	apPayload := &payload.DPoSV2ClaimReward{
 		Amount: common.Fixed64(100000000),
 	}
 	publicKeyStr1 := "02ca89a5fe6213da1b51046733529a84f0265abac59005f6c16f62330d20f02aeb"
@@ -5321,7 +5321,7 @@ func (s *txValidatorTestSuite) TestCreateCRClaimDposV2Transaction() {
 		[]*common2.Output{},
 		0,
 		[]*program.Program{txProgram})
-	tx := txn.(*transaction.DposV2ClaimRewardTransaction)
+	tx := txn.(*transaction.DPoSV2ClaimRewardTransaction)
 	tx.DefaultChecker.SetParameters(&transaction.TransactionParameters{
 		BlockChain: s.Chain,
 		Config:     s.Chain.GetParams(),
@@ -5567,8 +5567,8 @@ func (s *txValidatorTestSuite) TestArbitersAccumulateReward() {
 			//CurrentCRCArbitersMap
 			a.AccumulateReward(tt.args.block, tt.args.confirm)
 			a.History.Commit(tt.args.block.Height)
-			if a.State.DposV2RewardInfo["ET54cpnGG4JHeRatvPij6hGV6zN18eVSSj"] != 25 {
-				t.Errorf("DposV2RewardInfo() addr %v, want %v", "ET54cpnGG4JHeRatvPij6hGV6zN18eVSSj", 25)
+			if a.State.DposV2RewardInfo["ET54cpnGG4JHeRatvPij6hGV6zN18eVSSj"] != 102 {
+				t.Errorf("DposV2RewardInfo() addr %v, want %v", "ET54cpnGG4JHeRatvPij6hGV6zN18eVSSj", 102)
 			}
 		})
 	}

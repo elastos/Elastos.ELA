@@ -212,7 +212,7 @@ func GetTransaction(txType common2.TxType) (txn interfaces.Transaction, err erro
 		txn = new(UnstakeRealWithdrawTransaction)
 
 	case common2.DposV2ClaimReward:
-		txn = new(DposV2ClaimRewardTransaction)
+		txn = new(DPoSV2ClaimRewardTransaction)
 
 	case common2.DposV2ClaimRewardRealWithdraw:
 		txn = new(DposV2ClaimRewardRealWithdrawTransaction)

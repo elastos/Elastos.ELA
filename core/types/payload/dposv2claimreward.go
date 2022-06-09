@@ -18,12 +18,12 @@ const (
 	DposV2ClaimRewardVersion byte = 0x00
 )
 
-type DposV2ClaimReward struct {
+type DPoSV2ClaimReward struct {
 	Amount    common.Fixed64
 	Signature []byte
 }
 
-func (a *DposV2ClaimReward) Data(version byte) []byte {
+func (a *DPoSV2ClaimReward) Data(version byte) []byte {
 	buf := new(bytes.Buffer)
 	if err := a.Serialize(buf, version); err != nil {
 		return []byte{0}
@@ -31,43 +31,43 @@ func (a *DposV2ClaimReward) Data(version byte) []byte {
 	return buf.Bytes()
 }
 
-func (a *DposV2ClaimReward) Serialize(w io.Writer, version byte) error {
+func (a *DPoSV2ClaimReward) Serialize(w io.Writer, version byte) error {
 	err := a.SerializeUnsigned(w, version)
 	if err != nil {
 		return err
 	}
 	err = common.WriteVarBytes(w, a.Signature)
 	if err != nil {
-		return errors.New("[DposV2ClaimReward], signature serialize failed")
+		return errors.New("[DPoSV2ClaimReward], signature serialize failed")
 	}
 	return nil
 }
 
-func (a *DposV2ClaimReward) SerializeUnsigned(w io.Writer, version byte) error {
+func (a *DPoSV2ClaimReward) SerializeUnsigned(w io.Writer, version byte) error {
 	err := a.Amount.Serialize(w)
 	if err != nil {
-		return errors.New("[DposV2ClaimReward], write amount failed")
+		return errors.New("[DPoSV2ClaimReward], write amount failed")
 	}
 
 	return nil
 }
 
-func (a *DposV2ClaimReward) Deserialize(r io.Reader, version byte) error {
+func (a *DPoSV2ClaimReward) Deserialize(r io.Reader, version byte) error {
 	err := a.DeserializeUnsigned(r, version)
 	if err != nil {
 		return err
 	}
 	a.Signature, err = common.ReadVarBytes(r, crypto.SignatureLength, "signature")
 	if err != nil {
-		return errors.New("[DposV2ClaimReward], signature deserialize failed")
+		return errors.New("[DPoSV2ClaimReward], signature deserialize failed")
 	}
 	return nil
 }
 
-func (a *DposV2ClaimReward) DeserializeUnsigned(r io.Reader, version byte) error {
+func (a *DPoSV2ClaimReward) DeserializeUnsigned(r io.Reader, version byte) error {
 	err := a.Amount.Deserialize(r)
 	if err != nil {
-		return errors.New("[DposV2ClaimReward], read amount failed")
+		return errors.New("[DPoSV2ClaimReward], read amount failed")
 	}
 
 	return err

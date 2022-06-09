@@ -15,11 +15,11 @@ import (
 	elaerr "github.com/elastos/Elastos.ELA/errors"
 )
 
-type DposV2ClaimRewardTransaction struct {
+type DPoSV2ClaimRewardTransaction struct {
 	BaseTransaction
 }
 
-func (t *DposV2ClaimRewardTransaction) HeightVersionCheck() error {
+func (t *DPoSV2ClaimRewardTransaction) HeightVersionCheck() error {
 	blockHeight := t.parameters.BlockHeight
 	chainParams := t.parameters.Config
 
@@ -30,32 +30,32 @@ func (t *DposV2ClaimRewardTransaction) HeightVersionCheck() error {
 	return nil
 }
 
-func (t *DposV2ClaimRewardTransaction) CheckAttributeProgram() error {
+func (t *DPoSV2ClaimRewardTransaction) CheckAttributeProgram() error {
 	if len(t.Programs()) != 1 {
 		return errors.New("dposV2 claim reward transactions should have one and only one program")
 	}
 	return nil
 }
 
-func (t *DposV2ClaimRewardTransaction) CheckTransactionPayload() error {
+func (t *DPoSV2ClaimRewardTransaction) CheckTransactionPayload() error {
 	switch t.Payload().(type) {
-	case *payload.DposV2ClaimReward:
+	case *payload.DPoSV2ClaimReward:
 		return nil
 	}
 
 	return errors.New("invalid payload type")
 }
 
-func (t *DposV2ClaimRewardTransaction) IsAllowedInPOWConsensus() bool {
+func (t *DPoSV2ClaimRewardTransaction) IsAllowedInPOWConsensus() bool {
 	return false
 }
 
-func (t *DposV2ClaimRewardTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
+func (t *DPoSV2ClaimRewardTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
 	if t.parameters.BlockHeight < t.parameters.Config.DPoSV2StartHeight {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("can not claim reward before dposv2startheight")), true
 	}
 
-	claimReward, ok := t.Payload().(*payload.DposV2ClaimReward)
+	claimReward, ok := t.Payload().(*payload.DPoSV2ClaimReward)
 	if !ok {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid payload for dposV2claimReward")), true
 	}
@@ -89,7 +89,7 @@ func (t *DposV2ClaimRewardTransaction) SpecialContextCheck() (elaerr.ELAError, b
 	return nil, false
 }
 
-func (t *DposV2ClaimRewardTransaction) checkClaimRewardSignature(pub []byte, claimReward *payload.DposV2ClaimReward) error {
+func (t *DPoSV2ClaimRewardTransaction) checkClaimRewardSignature(pub []byte, claimReward *payload.DPoSV2ClaimReward) error {
 
 	// check signature
 	publicKey, err := crypto.DecodePoint(pub)

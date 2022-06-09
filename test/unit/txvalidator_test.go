@@ -4431,7 +4431,7 @@ func (s *txValidatorTestSuite) TestCheckStakeTransaction2() {
 
 }
 
-func (s *txValidatorTestSuite) TestCheckUnStakeTransaction() {
+func (s *txValidatorTestSuite) TestCheckUnstakeTransaction() {
 	s.CurrentHeight = 1
 	_, pk, _ := crypto.GenerateKeyPair()
 	//publicKey, _ := pk.EncodePoint(true)

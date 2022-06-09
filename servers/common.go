@@ -565,7 +565,7 @@ type UnstakeInfo struct {
 }
 
 type RealUnstakeInfo struct {
-	UnStaketXHash string `json:"unstaketxhash"`
+	UnstaketXHash string `json:"unstaketxhash"`
 	StakeAddress  string `json:"stakeaddress"`
 	Value         string `json:"value"`
 }

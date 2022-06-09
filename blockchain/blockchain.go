@@ -510,7 +510,7 @@ func (b *BlockChain) CreateDposV2RealWithdrawTransaction(
 }
 
 func (b *BlockChain) CreateUnstakeRealWithdrawTransaction(
-	unStakeTXHashes []Uint256, outputs []*common.OutputInfo) (interfaces.Transaction, error) {
+	unstakeTXHashes []Uint256, outputs []*common.OutputInfo) (interfaces.Transaction, error) {
 	stakeAddr, err := Uint168FromAddress(b.chainParams.StakeAddress)
 	if err != nil {
 		log.Error("CreateUnstakeRealWithdrawTransaction StakeAddress to hash error")
@@ -524,7 +524,7 @@ func (b *BlockChain) CreateUnstakeRealWithdrawTransaction(
 	var unstakeRealWithdraw []payload.UnstakeRealWidhdraw
 	for i, output := range outputs {
 		withdraw := payload.UnstakeRealWidhdraw{
-			UnStakeTXHash: unStakeTXHashes[i],
+			UnstakeTXHash: unstakeTXHashes[i],
 			StakeAddress:  output.Recipient,
 			Value:         output.Amount,
 		}
@@ -539,7 +539,7 @@ func (b *BlockChain) CreateUnstakeRealWithdrawTransaction(
 		v.Amount -= b.chainParams.RealWithdrawSingleFee
 	}
 	//todo fee
-	txFee := b.chainParams.RealWithdrawSingleFee * Fixed64(len(unStakeTXHashes))
+	txFee := b.chainParams.RealWithdrawSingleFee * Fixed64(len(unstakeTXHashes))
 	var tx interfaces.Transaction
 	tx, err = b.createTransaction(wPayload, common.UnstakeRealWithdraw,
 		*stakeAddr, txFee, uint32(0), utxos, outputs...)

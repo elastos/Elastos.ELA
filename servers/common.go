@@ -564,13 +564,13 @@ type UnstakeInfo struct {
 	Signature string `json:"signature"`
 }
 
-type Widhdraw struct {
-	RetVotesTXHash string `json:"retvotestxhash"`
-	StakeAddress   string `json:"stakeaddress"`
-	Value          string `json:"value"`
+type RealUnstakeInfo struct {
+	UnStaketXHash string `json:"unstaketxhash"`
+	StakeAddress  string `json:"stakeaddress"`
+	Value         string `json:"value"`
 }
-type UnstakeRealWithdrawsInfo struct {
-	Widhdraws []Widhdraw `json:"widhdraws"`
+type RealUnstakesInfo struct {
+	RealUnstakes []RealUnstakeInfo `json:"realunstakes"`
 }
 
 type DposV2ClaimRewardInfo struct {

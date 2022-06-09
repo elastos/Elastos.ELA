@@ -10,13 +10,13 @@ import (
 const UnstakeRealWithdrawPayloadVersion byte = 0x00
 
 type UnstakeRealWidhdraw struct {
-	RetVotesTXHash common.Uint256
-	StakeAddress   common.Uint168
-	Value          common.Fixed64
+	UnStakeTXHash common.Uint256
+	StakeAddress  common.Uint168
+	Value         common.Fixed64
 }
 
 func (p *UnstakeRealWidhdraw) Serialize(w io.Writer) error {
-	if err := p.RetVotesTXHash.Serialize(w); err != nil {
+	if err := p.UnStakeTXHash.Serialize(w); err != nil {
 		return err
 	}
 	if err := p.StakeAddress.Serialize(w); err != nil {
@@ -30,7 +30,7 @@ func (p *UnstakeRealWidhdraw) Serialize(w io.Writer) error {
 }
 
 func (p *UnstakeRealWidhdraw) Deserialize(r io.Reader) error {
-	if err := p.RetVotesTXHash.Deserialize(r); err != nil {
+	if err := p.UnStakeTXHash.Deserialize(r); err != nil {
 		return err
 	}
 

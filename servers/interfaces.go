@@ -467,15 +467,15 @@ func GetArbiterPeersInfo(params Params) map[string]interface{} {
 
 func GetAllDetailedDPoSV2Votes(params Params) map[string]interface{} {
 	type detailedVoteInfo struct {
-		Producer_owner_key string                `json:"producerownerkey"`
-		Producer_node_key  string                `json:"producernodekey"`
-		ReferKey           string                `json:"referkey"`
-		StakeProgramHash   string                `json:"stakeprogramhash"`
-		TransactionHash    string                `json:"transactionhash"`
-		BlockHeight        uint32                `json:"blockheight"`
-		PayloadVersion     byte                  `json:"payloadversion"`
-		VoteType           byte                  `json:"votetype"`
-		Info               VotesWithLockTimeInfo `json:"info"`
+		ProducerOwnerKey string                `json:"producerownerkey"`
+		ProducerNodeKey  string                `json:"producernodekey"`
+		ReferKey         string                `json:"referkey"`
+		StakeProgramHash string                `json:"stakeprogramhash"`
+		TransactionHash  string                `json:"transactionhash"`
+		BlockHeight      uint32                `json:"blockheight"`
+		PayloadVersion   byte                  `json:"payloadversion"`
+		VoteType         byte                  `json:"votetype"`
+		Info             VotesWithLockTimeInfo `json:"info"`
 	}
 	var result []*detailedVoteInfo
 	ps := Chain.GetState().GetAllProducers()
@@ -487,13 +487,13 @@ func GetAllDetailedDPoSV2Votes(params Params) map[string]interface{} {
 		for _, v := range dposv2Votes {
 			for k1, v1 := range v {
 				result = append(result, &detailedVoteInfo{
-					Producer_owner_key: hex.EncodeToString(p.OwnerPublicKey()),
-					Producer_node_key:  hex.EncodeToString(p.NodePublicKey()),
-					ReferKey:           k1.String(),
-					StakeProgramHash:   v1.StakeProgramHash.String(),
-					TransactionHash:    v1.TransactionHash.String(),
-					BlockHeight:        v1.BlockHeight,
-					PayloadVersion:     v1.PayloadVersion,
+					ProducerOwnerKey: hex.EncodeToString(p.OwnerPublicKey()),
+					ProducerNodeKey:  hex.EncodeToString(p.NodePublicKey()),
+					ReferKey:         k1.String(),
+					StakeProgramHash: v1.StakeProgramHash.String(),
+					TransactionHash:  v1.TransactionHash.String(),
+					BlockHeight:      v1.BlockHeight,
+					PayloadVersion:   v1.PayloadVersion,
 					Info: VotesWithLockTimeInfo{
 						Candidate: hex.EncodeToString(v1.Info[0].Candidate),
 						Votes:     v1.Info[0].Votes.String(),
@@ -3393,7 +3393,7 @@ func getPayloadInfo(p interfaces.Payload, payloadVersion byte) PayloadInfo {
 		for _, withdraw := range object.UnstakeRealWithdraw {
 			address, _ := withdraw.StakeAddress.ToAddress()
 			realUnstakeInfo := RealUnstakeInfo{
-				UnStaketXHash: common.ToReversedString(withdraw.UnStakeTXHash),
+				UnstaketXHash: common.ToReversedString(withdraw.UnstakeTXHash),
 				StakeAddress:  address,
 				Value:         withdraw.Value.String(),
 			}

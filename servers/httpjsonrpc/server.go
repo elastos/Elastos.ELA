@@ -101,7 +101,6 @@ func StartRPCServer() {
 	mainMux["listproducers"] = ListProducers
 	mainMux["producerstatus"] = ProducerStatus
 	mainMux["votestatus"] = VoteStatus
-	mainMux["dposv2rewardinfo"] = DposV2RewardInfo
 
 	// for cross-chain arbiter
 	mainMux["submitsidechainillegaldata"] = SubmitSidechainIllegalData
@@ -118,6 +117,7 @@ func StartRPCServer() {
 	// dposv2
 	mainMux["getalldetaileddposv2votes"] = GetAllDetailedDPoSV2Votes
 	mainMux["getvoterights"] = GetVoteRights
+	mainMux["dposv2rewardinfo"] = DposV2RewardInfo
 
 	var handler http.Handler
 	rpcServeMux := http.NewServeMux()

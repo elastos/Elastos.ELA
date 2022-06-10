@@ -173,6 +173,10 @@ func (p *Producer) AvailableAmount() common.Fixed64 {
 	return p.totalAmount - p.depositAmount - p.penalty
 }
 
+func (p *Producer) StakeUntil() uint32 {
+	return p.info.StakeUntil
+}
+
 func (p *Producer) GetDPoSV2AvailableAmount(height uint32) common.Fixed64 {
 	if height > p.info.StakeUntil {
 		return p.totalAmount - p.penalty

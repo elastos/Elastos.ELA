@@ -367,7 +367,9 @@ func (t *DefaultChecker) tryCheckVoteOutputs() error {
 func getProducerPublicKeysMap(producers []*state.Producer) map[string]struct{} {
 	pds := make(map[string]struct{})
 	for _, p := range producers {
-		pds[common.BytesToHexString(p.Info().OwnerPublicKey)] = struct{}{}
+		if p.StakeUntil() == 0 {
+			pds[common.BytesToHexString(p.Info().OwnerPublicKey)] = struct{}{}
+		}
 	}
 	return pds
 }

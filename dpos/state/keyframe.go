@@ -28,7 +28,6 @@ type StateKeyFrame struct {
 	NextCRNodeOwnerKeys      map[string]string // NodePublicKey as key, OwnerPublicKey as value
 	PendingProducers         map[string]*Producer
 	ActivityProducers        map[string]*Producer
-	DposV2ActivityProducers  map[string]*Producer
 	InactiveProducers        map[string]*Producer
 	CanceledProducers        map[string]*Producer
 	IllegalProducers         map[string]*Producer
@@ -93,7 +92,6 @@ func (s *StateKeyFrame) snapshot() *StateKeyFrame {
 		NextCRNodeOwnerKeys:      make(map[string]string),
 		PendingProducers:         make(map[string]*Producer),
 		ActivityProducers:        make(map[string]*Producer),
-		DposV2ActivityProducers:  make(map[string]*Producer),
 		InactiveProducers:        make(map[string]*Producer),
 		CanceledProducers:        make(map[string]*Producer),
 		IllegalProducers:         make(map[string]*Producer),
@@ -121,7 +119,6 @@ func (s *StateKeyFrame) snapshot() *StateKeyFrame {
 	state.NextCRNodeOwnerKeys = copyStringMap(s.NextCRNodeOwnerKeys)
 	state.PendingProducers = copyProducerMap(s.PendingProducers)
 	state.ActivityProducers = copyProducerMap(s.ActivityProducers)
-	state.DposV2ActivityProducers = copyProducerMap(s.DposV2ActivityProducers)
 	state.InactiveProducers = copyProducerMap(s.InactiveProducers)
 	state.CanceledProducers = copyProducerMap(s.CanceledProducers)
 	state.IllegalProducers = copyProducerMap(s.IllegalProducers)
@@ -170,10 +167,6 @@ func (s *StateKeyFrame) Serialize(w io.Writer) (err error) {
 	}
 
 	if err = s.SerializeProducerMap(s.ActivityProducers, w); err != nil {
-		return
-	}
-
-	if err = s.SerializeProducerMap(s.DposV2ActivityProducers, w); err != nil {
 		return
 	}
 
@@ -285,10 +278,6 @@ func (s *StateKeyFrame) Deserialize(r io.Reader) (err error) {
 	}
 
 	if s.ActivityProducers, err = s.DeserializeProducerMap(r); err != nil {
-		return
-	}
-
-	if s.DposV2ActivityProducers, err = s.DeserializeProducerMap(r); err != nil {
 		return
 	}
 
@@ -796,22 +785,21 @@ func (kf *StateKeyFrame) GetUsedDPoSVoteRights(stakeProgramHash *common.Uint168)
 func NewStateKeyFrame() *StateKeyFrame {
 	info := make(map[string]common.Fixed64)
 	return &StateKeyFrame{
-		NodeOwnerKeys:             make(map[string]string),
-		CurrentCRNodeOwnerKeys:    make(map[string]string),
-		NextCRNodeOwnerKeys:       make(map[string]string),
-		PendingProducers:          make(map[string]*Producer),
-		ActivityProducers:         make(map[string]*Producer),
-		DposV2ActivityProducers:   make(map[string]*Producer),
-		InactiveProducers:         make(map[string]*Producer),
-		CanceledProducers:         make(map[string]*Producer),
-		IllegalProducers:          make(map[string]*Producer),
-		PendingCanceledProducers:  make(map[string]*Producer),
-		DposV2EffectedProducers:   make(map[string]*Producer),
-		Votes:                     make(map[string]struct{}),
-		DposV2VoteRights:          make(map[common.Uint168]common.Fixed64),
-		UsedDposVotes:             make(map[common.Uint168][]payload.VotesWithLockTime),
-		UsedDposV2Votes:           make(map[common.Uint168]common.Fixed64),
-		DepositOutputs:            make(map[string]common.Fixed64),
+		NodeOwnerKeys:            make(map[string]string),
+		CurrentCRNodeOwnerKeys:   make(map[string]string),
+		NextCRNodeOwnerKeys:      make(map[string]string),
+		PendingProducers:         make(map[string]*Producer),
+		ActivityProducers:        make(map[string]*Producer),
+		InactiveProducers:        make(map[string]*Producer),
+		CanceledProducers:        make(map[string]*Producer),
+		IllegalProducers:         make(map[string]*Producer),
+		PendingCanceledProducers: make(map[string]*Producer),
+		DposV2EffectedProducers:  make(map[string]*Producer),
+		Votes:                    make(map[string]struct{}),
+		DposV2VoteRights:         make(map[common.Uint168]common.Fixed64),
+		UsedDposVotes:            make(map[common.Uint168][]payload.VotesWithLockTime),
+		UsedDposV2Votes:          make(map[common.Uint168]common.Fixed64),
+		DepositOutputs:           make(map[string]common.Fixed64),
 		DposV2RewardInfo:          info,
 		DposV2RewardClaimingInfo:  make(map[string]common.Fixed64),
 		DposV2RewardClaimedInfo:   make(map[string]common.Fixed64),

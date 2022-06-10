@@ -338,7 +338,7 @@ func (t *DefaultChecker) tryCheckVoteOutputs() error {
 	crCommittee := t.parameters.BlockChain.GetCRCommittee()
 
 	if txn.Version() >= common2.TxVersion09 {
-		producers := dposState.GetActiveProducers()
+		producers := dposState.GetActiveV1Producers()
 		if blockHeight < t.parameters.Config.PublicDPOSHeight {
 			producers = append(producers, dposState.GetPendingCanceledProducers()...)
 		}

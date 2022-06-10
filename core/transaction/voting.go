@@ -111,7 +111,7 @@ func (t *VotingTransaction) SpecialContextCheck() (result elaerr.ELAError, end b
 	// 2.check different type of votes, enough? candidate exist?
 	blockHeight := t.parameters.BlockHeight
 	crCommittee := t.parameters.BlockChain.GetCRCommittee()
-	producers := t.parameters.BlockChain.GetState().GetActiveProducers()
+	producers := t.parameters.BlockChain.GetState().GetActiveV1Producers()
 	pds := getProducerPublicKeysMap(producers)
 	pds2 := getDPoSV2ProducersMap(t.parameters.BlockChain.GetState().GetActivityV2Producers())
 

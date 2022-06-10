@@ -290,6 +290,10 @@ func (p *Producer) Serialize(w io.Writer) error {
 		return err
 	}
 
+	if err := common.WriteUint8(w, uint8(p.identity)); err != nil {
+		return err
+	}
+
 	if err := common.WriteUint32(w, p.registerHeight); err != nil {
 		return err
 	}
@@ -378,6 +382,12 @@ func (p *Producer) Deserialize(r io.Reader) (err error) {
 		return
 	}
 	p.state = ProducerState(state)
+
+	var identity uint8
+	if identity, err = common.ReadUint8(r); err != nil {
+		return
+	}
+	p.identity = ProducerIdentity(identity)
 
 	if p.registerHeight, err = common.ReadUint32(r); err != nil {
 		return
@@ -625,13 +635,6 @@ func (s *State) updateProducerInfo(origin *payload.ProducerInfo, update *payload
 	}
 
 	producer.info = *update
-
-	if update.StakeUntil != 0 {
-		oldOwnerKey := hex.EncodeToString(origin.OwnerPublicKey)
-		newOwnerKey := hex.EncodeToString(update.OwnerPublicKey)
-		delete(s.DposV2ActivityProducers, oldOwnerKey)
-		s.DposV2ActivityProducers[newOwnerKey] = producer
-	}
 }
 
 func (s *State) ExistProducerByDepositHash(programHash common.Uint168) bool {
@@ -798,11 +801,28 @@ func (s *State) GetActiveProducers() []*Producer {
 	return producers
 }
 
-// GetDposActiveProducers returns all dposv2 producers that in active state.
+// GetActiveProducers returns all producers that in active state.
+func (s *State) GetActiveV1Producers() []*Producer {
+	s.mtx.RLock()
+	producers := make([]*Producer, 0, len(s.ActivityProducers))
+	for _, producer := range s.ActivityProducers {
+		if producer.identity != DPoSV1 && producer.identity != DPoSV1V2 {
+			continue
+		}
+		producers = append(producers, producer)
+	}
+	s.mtx.RUnlock()
+	return producers
+}
+
+// GetActivityV2Producers returns all DPoS V2 producers that in active state.
 func (s *State) GetActivityV2Producers() []*Producer {
 	s.mtx.RLock()
-	producers := make([]*Producer, 0, len(s.DposV2ActivityProducers))
-	for _, producer := range s.DposV2ActivityProducers {
+	producers := make([]*Producer, 0, len(s.ActivityProducers))
+	for _, producer := range s.ActivityProducers {
+		if producer.identity != DPoSV2 && producer.identity != DPoSV1V2 {
+			continue
+		}
 		producers = append(producers, producer)
 	}
 	s.mtx.RUnlock()
@@ -1319,17 +1339,11 @@ func (s *State) processTransactions(txs []interfaces.Transaction, height uint32)
 		s.History.Append(height, func() {
 			producer.state = Active
 			s.ActivityProducers[key] = producer
-			if producer.info.StakeUntil != 0 {
-				s.DposV2ActivityProducers[key] = producer
-			}
 			delete(s.PendingProducers, key)
 		}, func() {
 			producer.state = Pending
 			s.PendingProducers[key] = producer
 			delete(s.ActivityProducers, key)
-			if producer.info.StakeUntil != 0 {
-				delete(s.DposV2ActivityProducers, key)
-			}
 		})
 	}
 
@@ -1339,17 +1353,11 @@ func (s *State) processTransactions(txs []interfaces.Transaction, height uint32)
 		s.History.Append(height, func() {
 			producer.state = Active
 			s.ActivityProducers[key] = producer
-			if producer.info.StakeUntil != 0 {
-				s.DposV2ActivityProducers[key] = producer
-			}
 			delete(s.InactiveProducers, key)
 		}, func() {
 			producer.state = Inactive
 			s.InactiveProducers[key] = producer
 			delete(s.ActivityProducers, key)
-			if producer.info.StakeUntil != 0 {
-				delete(s.DposV2ActivityProducers, key)
-			}
 		})
 	}
 
@@ -1391,17 +1399,11 @@ func (s *State) processTransactions(txs []interfaces.Transaction, height uint32)
 		s.History.Append(height, func() {
 			producer.state = Active
 			s.ActivityProducers[key] = producer
-			if producer.info.StakeUntil != 0 {
-				s.DposV2ActivityProducers[key] = producer
-			}
 			delete(s.IllegalProducers, key)
 		}, func() {
 			producer.state = Illegal
 			s.IllegalProducers[key] = producer
 			delete(s.ActivityProducers, key)
-			if producer.info.StakeUntil != 0 {
-				delete(s.DposV2ActivityProducers, key)
-			}
 		})
 	}
 
@@ -1654,7 +1656,6 @@ func (s *State) cancelProducer(payload *payload.ProcessProducer, height uint32) 
 			s.PendingCanceledProducers[key] = producer
 		case Active:
 			delete(s.ActivityProducers, key)
-			delete(s.DposV2ActivityProducers, key)
 		case Inactive:
 			delete(s.InactiveProducers, key)
 		}
@@ -1669,9 +1670,6 @@ func (s *State) cancelProducer(payload *payload.ProcessProducer, height uint32) 
 			delete(s.PendingCanceledProducers, key)
 		case Active:
 			s.ActivityProducers[key] = producer
-			if producer.info.StakeUntil != 0 {
-				s.DposV2ActivityProducers[key] = producer
-			}
 		case Inactive:
 			s.InactiveProducers[key] = producer
 		}
@@ -2523,17 +2521,11 @@ func (s *State) processIllegalEvidence(payloadData interfaces.Payload,
 					producer.penalty += illegalPenalty
 				}
 				delete(s.ActivityProducers, key)
-				if producer.info.StakeUntil != 0 {
-					delete(s.DposV2ActivityProducers, key)
-				}
 			}, func() {
 				producer.state = oriState
 				producer.penalty = oriPenalty
 				producer.illegalHeight = oriIllegalHeight
 				s.ActivityProducers[key] = producer
-				if producer.info.StakeUntil != 0 {
-					s.DposV2ActivityProducers[key] = producer
-				}
 				producer.activateRequestHeight = math.MaxUint32
 				delete(s.IllegalProducers, key)
 			})
@@ -2630,9 +2622,6 @@ func (s *State) setInactiveProducer(producer *Producer, key string,
 	producer.selected = false
 	s.InactiveProducers[key] = producer
 	delete(s.ActivityProducers, key)
-	if producer.info.StakeUntil != 0 {
-		delete(s.DposV2ActivityProducers, key)
-	}
 
 	var penalty = s.ChainParams.InactivePenalty
 	if height < s.VersionStartHeight || height >= s.VersionEndHeight {
@@ -2654,9 +2643,6 @@ func (s *State) revertSettingInactiveProducer(producer *Producer, key string,
 	producer.activateRequestHeight = math.MaxUint32
 	producer.state = Active
 	s.ActivityProducers[key] = producer
-	if producer.info.StakeUntil != 0 {
-		s.DposV2ActivityProducers[key] = producer
-	}
 	delete(s.InactiveProducers, key)
 
 	var penalty = s.ChainParams.InactivePenalty

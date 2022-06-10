@@ -1888,6 +1888,7 @@ type RPCProducerInfo struct {
 	Votes          string `json:"votes"`
 	DposV2Votes    string `json:"dposv2votes"`
 	State          string `json:"state"`
+	Identity       string `json:"identity"`
 	RegisterHeight uint32 `json:"registerheight"`
 	CancelHeight   uint32 `json:"cancelheight"`
 	InactiveHeight uint32 `json:"inactiveheight"`
@@ -2176,6 +2177,7 @@ func ListProducers(param Params) map[string]interface{} {
 			Votes:          p.Votes().String(),
 			DposV2Votes:    p.DposV2Votes().String(),
 			State:          p.State().String(),
+			Identity:       p.Identity().String(),
 			RegisterHeight: p.RegisterHeight(),
 			CancelHeight:   p.CancelHeight(),
 			InactiveHeight: p.InactiveSince(),

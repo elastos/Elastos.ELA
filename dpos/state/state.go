@@ -74,11 +74,39 @@ func (ps ProducerState) String() string {
 	return fmt.Sprintf("ProducerState-%d", ps)
 }
 
+// ProducerIdentity represents the identity of a producer.
+type ProducerIdentity byte
+
+const (
+	// DPoSV1 indicates the DPoS node is DPoS 1.0 node
+	DPoSV1 ProducerIdentity = iota
+
+	// DPoSV2 indicates the DPoS node is DPoS 2.0 node
+	DPoSV2
+
+	// DPoSV2 indicates the DPoS node is DPoS 1.0 & DPoS 2.0 node
+	DPoSV1V2
+)
+
+// producerIdentityStrings is a array of producer identity back to their constant
+// names for pretty printing.
+var producerIdentityStrings = []string{"Pending", "Active", "Inactive",
+	"Canceled", "Illegal", "Returned"}
+
+func (pi ProducerIdentity) String() string {
+	if int(pi) < len(producerIdentityStrings) {
+		return producerIdentityStrings[pi]
+	}
+
+	return fmt.Sprintf("ProducerState-%d", pi)
+}
+
 // Producer holds a producer's info.  It provides read only methods to access
 // producer's info.
 type Producer struct {
 	info                  payload.ProducerInfo
 	state                 ProducerState
+	identity              ProducerIdentity
 	registerHeight        uint32
 	cancelHeight          uint32
 	inactiveSince         uint32
@@ -111,6 +139,11 @@ func (p *Producer) Info() payload.ProducerInfo {
 // State returns the producer's state, can be pending, active or canceled.
 func (p *Producer) State() ProducerState {
 	return p.state
+}
+
+// State returns the producer's identity, can be DPoSV1, DPoSV2 or DPoSV1V2.
+func (p *Producer) Identity() ProducerIdentity {
+	return p.identity
 }
 
 // RegisterHeight returns the height when the producer was registered.
@@ -1536,14 +1569,18 @@ func (s *State) registerProducer(tx interfaces.Transaction, height uint32) {
 	}
 
 	depositAmount := common.Fixed64(0)
+	var identity ProducerIdentity
 	if info.StakeUntil != 0 {
 		depositAmount = state.MinDPoSV2DepositAmount
+		identity = DPoSV2
 	} else {
 		depositAmount = state.MinDepositAmount
+		identity = DPoSV1
 	}
 
 	producer := Producer{
 		info:                         *info,
+		identity:                     identity,
 		registerHeight:               height,
 		votes:                        0,
 		dposV2Votes:                  0,
@@ -1579,11 +1616,26 @@ func (s *State) registerProducer(tx interfaces.Transaction, height uint32) {
 // updateProducer handles the update producer transaction.
 func (s *State) updateProducer(info *payload.ProducerInfo, height uint32) {
 	producer := s.getProducer(info.OwnerPublicKey)
+	originProducerIdentity := producer.identity
 	producerInfo := producer.info
 	s.History.Append(height, func() {
 		s.updateProducerInfo(&producerInfo, info)
+
+		// update identity
+		if info.StakeUntil != 0 {
+			switch producer.identity {
+			case DPoSV1:
+				producer.identity = DPoSV1V2
+			case DPoSV2, DPoSV1V2:
+				// do nothing
+			}
+		}
+
 	}, func() {
 		s.updateProducerInfo(info, &producerInfo)
+
+		// rollback identity
+		producer.identity = originProducerIdentity
 	})
 }
 

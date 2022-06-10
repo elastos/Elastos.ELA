@@ -357,10 +357,6 @@ func (t *DefaultChecker) tryCheckVoteOutputs() error {
 		}
 	}
 
-	if txn.TxType() == common2.Voting {
-
-	}
-
 	return nil
 }
 

@@ -90,8 +90,9 @@ func (c *Committee) processTransaction(tx interfaces.Transaction, height uint32)
 		c.state.unregisterCR(tx.Payload().(*payload.UnregisterCR), height)
 
 	case common2.TransferAsset:
-		c.processVotes(tx, height)
-
+		if height < c.Params.DPoSV2StartHeight {
+			c.processVotes(tx, height)
+		}
 	case common2.Voting:
 		c.processVoting(tx, height)
 

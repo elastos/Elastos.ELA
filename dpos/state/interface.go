@@ -67,6 +67,7 @@ type Arbitrators interface {
 	GetArbitersMajorityCount() int
 	HasArbitersMajorityCount(num int) bool
 	HasArbitersMinorityCount(num int) bool
+	GetDPoSV2ActiveHeight() uint32
 
 	GetSnapshot(height uint32) []*CheckPoint
 	DumpInfo(height uint32)

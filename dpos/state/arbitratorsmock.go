@@ -76,6 +76,10 @@ func (a *ArbitratorsMock) IsDPoSV2Run(blockHeight uint32) bool {
 	return false
 }
 
+func (a *ArbitratorsMock) GetDPoSV2ActiveHeight() uint32 {
+	return 2000000
+}
+
 func (a *ArbitratorsMock) IsInPOWMode() bool {
 	return false
 }

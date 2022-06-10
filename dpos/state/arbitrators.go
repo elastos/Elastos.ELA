@@ -538,7 +538,14 @@ func (a *Arbiters) IncreaseChainHeight(block *types.Block, confirm *payload.Conf
 			}
 		case normalChange:
 			if a.isDPoSV2Run(block.Height) {
-				a.accumulateReward(block, confirm)
+				if block.Height == a.DPoSV2ActiveHeight {
+					if err := a.clearingDPOSReward(block, block.Height, true); err != nil {
+						panic(fmt.Sprintf("normal change fail when clear DPOS reward: "+
+							" transaction, height: %d, error: %s", block.Height, err))
+					}
+				} else {
+					a.accumulateReward(block, confirm)
+				}
 			} else {
 				if err := a.clearingDPOSReward(block, block.Height, true); err != nil {
 					panic(fmt.Sprintf("normal change fail when clear DPOS reward: "+
@@ -648,6 +655,12 @@ func (a *Arbiters) IsDPoSV2Run(blockHeight uint32) bool {
 	a.mtx.Lock()
 	defer a.mtx.Unlock()
 	return a.isDPoSV2Run(blockHeight)
+}
+
+func (a *Arbiters) GetDPoSV2ActiveHeight() uint32 {
+	a.mtx.Lock()
+	defer a.mtx.Unlock()
+	return a.DPoSV2ActiveHeight
 }
 
 // is already DPoS V2. when we are here we need new reward.
@@ -1723,7 +1736,7 @@ func (a *Arbiters) updateNextTurnInfo(height uint32, producers []ArbiterMember, 
 }
 
 func (a *Arbiters) getProducers(count int, height uint32) ([]ArbiterMember, error) {
-	if !a.isDposV2Active() {
+	if !a.isDPoSV2Run(height) {
 		return a.GetNormalArbitratorsDesc(height, count,
 			a.getSortedProducers(), 0)
 	} else {

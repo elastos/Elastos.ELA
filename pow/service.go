@@ -171,7 +171,8 @@ func (pow *Service) CreateCoinbaseTx(minerAddr string, height uint32) (interface
 }
 
 func (pow *Service) AssignCoinbaseTxRewards(block *types.Block, totalReward common.Fixed64) error {
-	if block.Height > pow.arbiters.GetDPoSV2ActiveHeight()+1 {
+	activeHeight := pow.arbiters.GetDPoSV2ActiveHeight()
+	if activeHeight != math.MaxUint32 && block.Height > activeHeight+1 {
 		rewardCyberRepublic := common.Fixed64(math.Ceil(float64(totalReward) * 0.3))
 		rewardDposArbiter := common.Fixed64(math.Ceil(float64(totalReward) * 0.35))
 		rewardMergeMiner := common.Fixed64(totalReward) - rewardCyberRepublic - rewardDposArbiter
@@ -192,6 +193,7 @@ func (pow *Service) AssignCoinbaseTxRewards(block *types.Block, totalReward comm
 		}
 		return nil
 	}
+
 	// main version >= H2
 	if block.Height >= pow.chainParams.PublicDPOSHeight {
 		rewardCyberRepublic := common.Fixed64(math.Ceil(float64(totalReward) * 0.3))

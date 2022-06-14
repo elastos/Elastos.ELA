@@ -77,7 +77,20 @@ func (t *UpdateProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bool
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("updating unknown producer")), true
 	}
 	//if producer is already dposv2
-	if producer.Info().StakeUntil != 0 {
+	switch producer.Identity() {
+	case state.DPoSV1:
+		//if this producer want to be dposv2
+		if info.StakeUntil != 0 {
+			//Only active producer can update from dposv1 to dposv2
+			if producer.State() != state.Active {
+				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("only active producer can update from dposv1 to dposv2")), true
+			}
+			if t.parameters.BlockHeight+t.parameters.Config.DPoSV2MinVotesLockTime >= info.StakeUntil {
+				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("v2 producer StakeUntil less than BlockHeight")), true
+			}
+		}
+
+	case state.DPoSV2:
 		if info.StakeUntil < producer.Info().StakeUntil {
 			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("stake time is smaller than before")), true
 		} else if info.StakeUntil > producer.Info().StakeUntil {
@@ -87,15 +100,17 @@ func (t *UpdateProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bool
 			}
 		}
 
-	} else {
-		//if producer is   dposv1
-		//if this producer want to be dposv2
-		if info.StakeUntil != 0 {
-			//Only active producer can update from dposv1 to dposv2
-			if producer.State() != state.Active {
-				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("only active producer can update from dposv1 to dposv2")), true
-			}
-			if t.parameters.BlockHeight+t.parameters.Config.DPoSV2MinVotesLockTime >= info.StakeUntil {
+		// height > stakeUntil: can't change stakeUntil anymore.
+		if t.parameters.BlockHeight > producer.Info().StakeUntil {
+			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("DPoS 2.0 node has expired")), true
+		}
+
+	case state.DPoSV1V2:
+		if info.StakeUntil < producer.Info().StakeUntil {
+			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("stake time is smaller than before")), true
+		} else if info.StakeUntil > producer.Info().StakeUntil {
+			//new StakeUntil must bigger than BlockHeight
+			if t.parameters.BlockHeight >= info.StakeUntil {
 				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("v2 producer StakeUntil less than BlockHeight")), true
 			}
 		}

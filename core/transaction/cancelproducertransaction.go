@@ -38,10 +38,12 @@ func (t *CancelProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bool
 	if err != nil {
 		return elaerr.Simple(elaerr.ErrTxPayload, err), true
 	}
-	if producer.Info().StakeUntil != 0 {
-		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("can not cancel dposv2 producer")), true
 
+	height := t.parameters.BlockHeight
+	if producer.Info().StakeUntil != 0 && height <= producer.Info().StakeUntil{
+		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("can not cancel dposv2 producer")), true
 	}
+
 	if producer.State() == state.Illegal ||
 		producer.State() == state.Canceled {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("can not cancel this producer")), true

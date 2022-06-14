@@ -90,15 +90,14 @@ const (
 
 // producerIdentityStrings is a array of producer identity back to their constant
 // names for pretty printing.
-var producerIdentityStrings = []string{"Pending", "Active", "Inactive",
-	"Canceled", "Illegal", "Returned"}
+var producerIdentityStrings = []string{"DPoSV1", "DPoSV2", "DPoSV1V2"}
 
 func (pi ProducerIdentity) String() string {
 	if int(pi) < len(producerIdentityStrings) {
 		return producerIdentityStrings[pi]
 	}
 
-	return fmt.Sprintf("ProducerState-%d", pi)
+	return fmt.Sprintf("ProducerIdentity-%d", pi)
 }
 
 // Producer holds a producer's info.  It provides read only methods to access
@@ -195,6 +194,9 @@ func (p *Producer) DepositAmount() common.Fixed64 {
 }
 
 func (p *Producer) DPoSV2DepositAmount() common.Fixed64 {
+	if p.identity == DPoSV1 {
+		return 0
+	}
 	return state.MinDPoSV2DepositAmount
 }
 

@@ -441,17 +441,20 @@ func GetArbiterPeersInfo(params Params) map[string]interface{} {
 	type peerInfo struct {
 		OwnerPublicKey string `json:"ownerpublickey"`
 		NodePublicKey  string `json:"nodepublickey"`
-		IP             string `json:"ip"`
+		IP             string `json:"ip,omitempty"`
 		ConnState      string `json:"connstate"`
 	}
 
 	peers := Arbiter.GetArbiterPeersInfo()
-
+	ip := config.Parameters.ShowPeersIp
 	result := make([]peerInfo, 0)
 	for _, p := range peers {
 		producer := Arbiters.GetConnectedProducer(p.PID[:])
 		if producer == nil {
 			continue
+		}
+		if !ip {
+			p.Addr = ""
 		}
 		result = append(result, peerInfo{
 			OwnerPublicKey: common.BytesToHexString(

@@ -93,6 +93,7 @@ type Configuration struct {
 	SchnorrStartHeight              uint32            `json:"SchnorrStartHeight"`
 	CrossChainMonitorStartHeight    uint32            `json:"CrossChainMonitorStartHeight"`
 	CrossChainMonitorInterval       uint32            `json:"CrossChainMonitorInterval"`
+	ShowPeersIp                     bool              `json:"ShowPeersIp"`
 }
 
 // DPoSConfiguration defines the DPoS consensus parameters.

@@ -10,8 +10,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-
-	"github.com/elastos/Elastos.ELA/blockchain"
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/crypto"
@@ -76,6 +74,7 @@ func (t *UpdateProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bool
 	if producer == nil {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("updating unknown producer")), true
 	}
+
 	//if producer is already dposv2
 	switch producer.Identity() {
 	case state.DPoSV1:
@@ -157,12 +156,28 @@ func (t *UpdateProducerTransaction) additionalProducerInfoCheck(info *payload.Pr
 			return errors.New("invalid node public key in payload")
 		}
 
-		if blockchain.DefaultLedger.Arbitrators.IsCRCArbitrator(info.NodePublicKey) {
-			return errors.New("node public key can't equal with CRC")
+		for _, m := range t.parameters.BlockChain.GetCRCommittee().Members {
+			if bytes.Equal(m.DPOSPublicKey, info.NodePublicKey) {
+				return errors.New("node public key can't equal with current CR Node PK")
+			}
+			if bytes.Equal(m.Info.Code[1:len(m.Info.Code)-1], info.NodePublicKey) {
+				return errors.New("node public key can't equal with current CR Owner PK")
+			}
 		}
 
-		if blockchain.DefaultLedger.Arbitrators.IsCRCArbitrator(info.OwnerPublicKey) {
-			return errors.New("owner public key can't equal with CRC")
+		for _, m := range t.parameters.BlockChain.GetCRCommittee().NextMembers {
+			if bytes.Equal(m.DPOSPublicKey, info.NodePublicKey) {
+				return errors.New("node public key can't equal with next CR Node PK")
+			}
+			if bytes.Equal(m.Info.Code[1:len(m.Info.Code)-1], info.NodePublicKey) {
+				return errors.New("node public key can't equal with current CR Owner PK")
+			}
+		}
+
+		for _, p := range t.parameters.Config.CRCArbiters {
+			if p == common.BytesToHexString(info.NodePublicKey) {
+				return errors.New("node public key can't equal with CR Arbiters")
+			}
 		}
 	}
 	return nil

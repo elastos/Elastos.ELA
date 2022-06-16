@@ -75,15 +75,15 @@ func (t *UpdateProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bool
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("updating unknown producer")), true
 	}
 
+	if producer.State() != state.Active {
+		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("only active producer can update producer")), true
+	}
+
 	//if producer is already dposv2
 	switch producer.Identity() {
 	case state.DPoSV1:
 		//if this producer want to be dposv2
 		if info.StakeUntil != 0 {
-			//Only active producer can update from dposv1 to dposv2
-			if producer.State() != state.Active {
-				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("only active producer can update from dposv1 to dposv2")), true
-			}
 			if t.parameters.BlockHeight+t.parameters.Config.DPoSV2MinVotesLockTime >= info.StakeUntil {
 				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("v2 producer StakeUntil less than BlockHeight")), true
 			}

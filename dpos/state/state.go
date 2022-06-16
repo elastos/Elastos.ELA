@@ -128,6 +128,8 @@ type Producer struct {
 	inactiveCountingHeight       uint32
 	lastUpdateInactiveHeight     uint32
 	inactiveCount                uint32
+	inactiveCountV2              uint32
+	workedInRound                bool
 }
 
 // Info returns a copy of the origin registered producer info.
@@ -344,7 +346,7 @@ func (p *Producer) Serialize(w io.Writer) error {
 	}
 
 	return common.WriteElements(w, p.selected, p.randomCandidateInactiveCount,
-		p.inactiveCountingHeight, p.lastUpdateInactiveHeight, p.inactiveCount)
+		p.inactiveCountingHeight, p.lastUpdateInactiveHeight, p.inactiveCount, p.inactiveCountV2, p.workedInRound)
 }
 
 func serializeDetailVoteInfoMap(
@@ -442,7 +444,7 @@ func (p *Producer) Deserialize(r io.Reader) (err error) {
 	}
 
 	return common.ReadElements(r, &p.selected, &p.randomCandidateInactiveCount,
-		&p.inactiveCountingHeight, &p.lastUpdateInactiveHeight, &p.inactiveCount)
+		&p.inactiveCountingHeight, &p.lastUpdateInactiveHeight, &p.inactiveCount, &p.inactiveCountV2, &p.workedInRound)
 }
 
 func deserializeDetailVoteInfoMap(
@@ -1150,7 +1152,7 @@ func (s *State) IsDPOSTransaction(tx interfaces.Transaction) bool {
 
 // ProcessBlock takes a block and it's confirm to update producers state and
 // votes accordingly.
-func (s *State) ProcessBlock(block *types.Block, confirm *payload.Confirm) {
+func (s *State) ProcessBlock(block *types.Block, confirm *payload.Confirm, isDposV2Run bool, dutyIndex int) {
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
 
@@ -1163,7 +1165,9 @@ func (s *State) ProcessBlock(block *types.Block, confirm *payload.Confirm) {
 	s.tryUpdateLastIrreversibleHeight(block.Height)
 
 	if confirm != nil {
-		if block.Height >= s.ChainParams.ChangeCommitteeNewCRHeight {
+		if isDposV2Run {
+			s.countArbitratorsInactivityV3(block.Height, confirm, dutyIndex)
+		} else if block.Height >= s.ChainParams.ChangeCommitteeNewCRHeight {
 			s.countArbitratorsInactivityV2(block.Height, confirm)
 		} else if block.Height >= s.ChainParams.CRClaimDPOSNodeStartHeight {
 			s.countArbitratorsInactivityV1(block.Height, confirm)
@@ -1590,6 +1594,7 @@ func (s *State) registerProducer(tx interfaces.Transaction, height uint32) {
 		dposV2Votes:                  0,
 		inactiveSince:                0,
 		inactiveCount:                0,
+		inactiveCountV2:              0,
 		randomCandidateInactiveCount: 0,
 		penalty:                      common.Fixed64(0),
 		activateRequestHeight:        math.MaxUint32,
@@ -2662,6 +2667,130 @@ func (s *State) revertSettingInactiveProducer(producer *Producer, key string,
 		} else {
 			producer.penalty -= penalty
 		}
+	}
+}
+
+// countArbitratorsInactivity count Arbiters inactive rounds, and change to
+// inactive if more than "MaxInactiveRounds"
+func (s *State) countArbitratorsInactivityV3(height uint32,
+	confirm *payload.Confirm, dutyIndex int) {
+	// check inactive Arbiters after producers has participated in
+	if height < s.ChainParams.DPoSV2StartHeight {
+		return
+	}
+
+	lastPosition := dutyIndex == s.ChainParams.GeneralArbiters+len(s.ChainParams.CRCArbiters)-1
+
+	isDPOSAsCR := height > s.ChainParams.ChangeCommitteeNewCRHeight
+
+	// changingArbiters indicates the arbiters that should reset inactive
+	// counting state. With the value of true means the producer is on duty or
+	// is not current arbiter any more, or just becoming current arbiter; and
+	// false means producer is arbiter in both heights and not on duty.
+	changingArbiters := make(map[string]bool)
+	for _, a := range s.GetArbiters() {
+		var key string
+		if isDPOSAsCR {
+			if !a.IsNormal {
+				continue
+			}
+			key = s.getProducerKey(a.NodePublicKey)
+			changingArbiters[key] = false
+		} else {
+			if !a.IsNormal || (a.IsCRMember && !a.ClaimedDPOSNode) {
+				continue
+			}
+			key = s.getProducerKey(a.NodePublicKey)
+			changingArbiters[key] = false
+		}
+	}
+	currSponsor := s.getProducerKey(confirm.Proposal.Sponsor)
+	changingArbiters[currSponsor] = true
+	for _, vote := range confirm.Votes {
+		if _, ok := changingArbiters[s.getProducerKey(vote.Signer)]; ok {
+			changingArbiters[s.getProducerKey(vote.Signer)] = true
+		}
+	}
+	crMembersMap := s.getClaimedCRMembersMap()
+	// CRC producers are not in the ActivityProducers,
+	// so they will not be inactive
+	for k, v := range changingArbiters {
+		needReset := v // avoiding pass iterator to closure
+
+		if s.isInElectionPeriod != nil && s.isInElectionPeriod() {
+			if cr, ok := crMembersMap[k]; ok {
+				if cr.MemberState != state.MemberElected {
+					continue
+				}
+				key := k // avoiding pass iterator to closure
+				producer, ok := s.ActivityProducers[key]
+				if !ok {
+					continue
+				}
+				workedInRound := producer.workedInRound
+				// if it's the last position and not working in Round then we should add inactiveCountV2++
+				s.updateInactiveCountV2(lastPosition, needReset, workedInRound, producer, height, key)
+
+				if needReset && workedInRound != true {
+					s.History.Append(height, func() {
+						producer.workedInRound = true
+					}, func() {
+						producer.workedInRound = false
+					})
+				}
+
+				continue
+			}
+		}
+
+		key := k // avoiding pass iterator to closure
+		producer, ok := s.ActivityProducers[key]
+		if !ok {
+			continue
+		}
+		workedInRound := producer.workedInRound
+		// if it's the last position and not working in Round then we should add inactiveCountV2++
+		s.updateInactiveCountV2(lastPosition, needReset, workedInRound, producer, height, key)
+
+		if needReset && producer.workedInRound != true {
+			s.History.Append(height, func() {
+				producer.workedInRound = true
+			}, func() {
+				producer.workedInRound = false
+			})
+		}
+	}
+
+	if lastPosition {
+		ps := s.getAllProducers()
+		for _, p := range ps {
+			cp := p
+			// reset workedInRound value
+			s.History.Append(height, func() {
+				cp.workedInRound = false
+			}, func() {
+				cp.workedInRound = true
+			})
+		}
+	}
+}
+
+func (s *State) updateInactiveCountV2(lastPosition, needReset, workedInRound bool, producer *Producer, height uint32, key string) {
+	// if it's the last position and not working in Round then we should add inactiveCountV2++
+	if lastPosition && !needReset && !workedInRound {
+		originInactiveCountV2 := producer.inactiveCountV2
+		s.History.Append(height, func() {
+			producer.inactiveCountV2 += 1
+			if producer.inactiveCountV2 >= 3 {
+				s.setInactiveProducer(producer, key, height, false)
+				producer.inactiveCountV2 = 0
+			}
+		}, func() {
+			producer.inactiveCountV2 = originInactiveCountV2
+			if producer.state == Inactive {
+				s.revertSettingInactiveProducer(producer, key, height, false)
+			}
+		})
 	}
 }
 

@@ -183,7 +183,7 @@ func (a *Arbiters) recoverFromCheckPoints(point *CheckPoint) {
 }
 
 func (a *Arbiters) ProcessBlock(block *types.Block, confirm *payload.Confirm) {
-	a.State.ProcessBlock(block, confirm)
+	a.State.ProcessBlock(block, confirm, a.IsDPoSV2Run(block.Height), a.DutyIndex)
 	a.IncreaseChainHeight(block, confirm)
 }
 
@@ -1715,7 +1715,6 @@ func (a *Arbiters) createNextTurnDPOSInfoTransactionV1(blockHeight uint32, force
 			nextTurnDPOSInfo.CRPublicKeys = append(nextTurnDPOSInfo.CRPublicKeys, []byte{})
 		}
 	}
-
 	for _, v := range a.nextArbitrators {
 		if a.isNextCRCArbitrator(v.GetNodePublicKey()) {
 			if abt, ok := v.(*crcArbiter); ok && abt.crMember.MemberState != state.MemberElected {
@@ -2046,6 +2045,7 @@ func (a *Arbiters) UpdateNextArbitrators(versionHeight, height uint32) error {
 					}
 				}
 			}
+
 			oriNextArbitrators := a.nextArbitrators
 			oriNextCRCArbiters := a.nextCRCArbiters
 			a.History.Append(height, func() {

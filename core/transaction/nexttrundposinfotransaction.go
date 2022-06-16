@@ -84,7 +84,6 @@ func (t *NextTurnDPOSInfoTransaction) SpecialContextCheck() (elaerr.ELAError, bo
 		if !isNextArbitratorsSame(nextTurnDPOSInfo, nextArbitrators) {
 			log.Warnf("[checkNextTurnDPOSInfoTransaction] CRPublicKeys %v, DPOSPublicKeys%v\n",
 				convertToArbitersStr(nextTurnDPOSInfo.CRPublicKeys), convertToArbitersStr(nextTurnDPOSInfo.DPOSPublicKeys))
-
 			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("checkNextTurnDPOSInfoTransaction nextTurnDPOSInfo was wrong")), true
 		}
 	}

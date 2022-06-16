@@ -274,7 +274,7 @@ func TestState_ProcessTransaction(t *testing.T) {
 	// Register each producer on one height.
 	for i, p := range producers {
 		tx := mockRegisterProducerTx(p)
-		state.ProcessBlock(mockBlock(uint32(i+1), tx), nil)
+		state.ProcessBlock(mockBlock(uint32(i+1), tx), nil, false, 0)
 	}
 
 	// At this point, we have 5 pending, 5 active and 10 in total producers.
@@ -294,7 +294,7 @@ func TestState_ProcessTransaction(t *testing.T) {
 	rand.Read(nodePublicKey)
 	producers[0].NodePublicKey = nodePublicKey
 	tx := mockUpdateProducerTx(producers[0])
-	state.ProcessBlock(mockBlock(11, tx), nil)
+	state.ProcessBlock(mockBlock(11, tx), nil, false, 0)
 	p := state.GetProducer(producers[0].NodePublicKey)
 	if !assert.NotNil(t, p) {
 		t.FailNow()
@@ -305,7 +305,7 @@ func TestState_ProcessTransaction(t *testing.T) {
 
 	// Test cancel producer.
 	tx = mockCancelProducerTx(producers[0].OwnerPublicKey)
-	state.ProcessBlock(mockBlock(12, tx), nil)
+	state.ProcessBlock(mockBlock(12, tx), nil, false, 0)
 	// at this point, we have 1 canceled, 3 pending, 6 active and 9 in total producers.
 	if !assert.Equal(t, 1, len(state.GetCanceledProducers())) {
 		t.FailNow()
@@ -334,7 +334,7 @@ func TestState_ProcessTransaction(t *testing.T) {
 	}
 	tx2 := mockNewDPoSVoteTx(publicKeys2)
 
-	state.ProcessBlock(mockBlock(13, tx, tx2), nil)
+	state.ProcessBlock(mockBlock(13, tx, tx2), nil, false, 0)
 
 	for _, pk := range publicKeys {
 		p := state.GetProducer(pk)
@@ -352,7 +352,7 @@ func TestState_ProcessTransaction(t *testing.T) {
 
 	// Test illegal producer.
 	tx = mockIllegalBlockTx(producers[1].NodePublicKey)
-	state.ProcessBlock(mockBlock(14, tx), nil)
+	state.ProcessBlock(mockBlock(14, tx), nil, false, 0)
 	// at this point, we have 1 canceled, 1 pending, 7 active, 1 illegal and 8 in total producers.
 	if !assert.Equal(t, 1, len(state.GetCanceledProducers())) {
 		t.FailNow()
@@ -395,7 +395,7 @@ func TestState_ProcessBlock(t *testing.T) {
 		for i, p := range producers[i*10 : (i+1)*10] {
 			txs[i] = mockRegisterProducerTx(p)
 		}
-		state.ProcessBlock(mockBlock(uint32(i+1), txs...), nil)
+		state.ProcessBlock(mockBlock(uint32(i+1), txs...), nil, false, 0)
 	}
 	// at this point, we have 50 pending, 50 active and 100 in total producers.
 	if !assert.Equal(t, 50, len(state.GetPendingProducers())) {
@@ -414,7 +414,7 @@ func TestState_ProcessBlock(t *testing.T) {
 		producers[i].NickName = fmt.Sprintf("Updated-%d", i)
 		txs[i] = mockUpdateProducerTx(producers[i])
 	}
-	state.ProcessBlock(mockBlock(11, txs...), nil)
+	state.ProcessBlock(mockBlock(11, txs...), nil, false, 0)
 	for i := range txs {
 		p := state.GetProducer(producers[i].NodePublicKey)
 		if !assert.Equal(t, fmt.Sprintf("Updated-%d", i), p.Info().NickName) {
@@ -427,7 +427,7 @@ func TestState_ProcessBlock(t *testing.T) {
 	for i := range txs {
 		txs[i] = mockCancelProducerTx(producers[i].OwnerPublicKey)
 	}
-	state.ProcessBlock(mockBlock(12, txs...), nil)
+	state.ProcessBlock(mockBlock(12, txs...), nil, false, 0)
 	// at this point, we have 10 canceled, 30 pending, 60 active and 90 in total producers.
 	if !assert.Equal(t, 10, len(state.GetCanceledProducers())) {
 		t.FailNow()
@@ -451,7 +451,7 @@ func TestState_ProcessBlock(t *testing.T) {
 	for i := range txs {
 		txs[i] = mockVoteTx(publicKeys)
 	}
-	state.ProcessBlock(mockBlock(13, txs...), nil)
+	state.ProcessBlock(mockBlock(13, txs...), nil, false, 0)
 	for _, pk := range publicKeys {
 		p := state.GetProducer(pk)
 		if !assert.Equal(t, common.Fixed64(1000), p.Votes()) {
@@ -464,7 +464,7 @@ func TestState_ProcessBlock(t *testing.T) {
 	for i := range txs {
 		txs[i] = mockIllegalBlockTx(producers[10+i].NodePublicKey)
 	}
-	state.ProcessBlock(mockBlock(14, txs...), nil)
+	state.ProcessBlock(mockBlock(14, txs...), nil, false, 0)
 	// at this point, we have 10 canceled, 10 pending, 70 active, 10 illegal and 80 in total producers.
 	if !assert.Equal(t, 10, len(state.GetCanceledProducers())) {
 		t.FailNow()
@@ -511,7 +511,7 @@ func TestState_ProcessBlock(t *testing.T) {
 	for i := 0; i < 5; i++ {
 		txs[10+i] = mockIllegalBlockTx(producers[50+i].NodePublicKey)
 	}
-	state.ProcessBlock(mockBlock(15, txs...), nil)
+	state.ProcessBlock(mockBlock(15, txs...), nil, false, 0)
 	// at this point, we have 12 canceled, 1 pending, 73 active, 15 illegal and 74 in total producers.
 	// 10+2
 	if !assert.Equal(t, 12, len(state.GetCanceledProducers())) {
@@ -562,7 +562,7 @@ func TestState_ProcessIllegalBlockEvidence(t *testing.T) {
 	// Register each producer on one height.
 	for i, p := range producers {
 		tx := mockRegisterProducerTx(p)
-		state.ProcessBlock(mockBlock(uint32(i+1), tx), nil)
+		state.ProcessBlock(mockBlock(uint32(i+1), tx), nil, false, 0)
 	}
 	// At this point, we have 5 pending, 5 active and 10 in total producers.
 
@@ -584,7 +584,7 @@ func TestState_ProcessIllegalBlockEvidence(t *testing.T) {
 	}
 
 	// GetProcessor next height, state will rollback illegal producer.
-	state.ProcessBlock(mockBlock(11), nil)
+	state.ProcessBlock(mockBlock(11), nil, false, 0)
 	// At this point, we have 4 pending, 6 active and 10 in total producers.
 	if !assert.Equal(t, 4, len(state.GetPendingProducers())) {
 		t.FailNow()
@@ -618,7 +618,7 @@ func TestState_ProcessEmergencyInactiveArbitrators(t *testing.T) {
 	// Register each producer on one height.
 	for i, p := range producers {
 		tx := mockRegisterProducerTx(p)
-		state.ProcessBlock(mockBlock(uint32(i+1), tx), nil)
+		state.ProcessBlock(mockBlock(uint32(i+1), tx), nil, false, 0)
 	}
 	// At this point, we have 5 pending, 5 active and 10 in total producers.
 
@@ -643,7 +643,7 @@ func TestState_ProcessEmergencyInactiveArbitrators(t *testing.T) {
 	}
 
 	// GetProcessor next height, state will rollback illegal producer.
-	state.ProcessBlock(mockBlock(11), nil)
+	state.ProcessBlock(mockBlock(11), nil, false, 0)
 	// At this point, we have 4 pending, 6 active and 10 in total producers.
 	if !assert.Equal(t, 4, len(state.GetPendingProducers())) {
 		t.FailNow()
@@ -677,7 +677,7 @@ func TestState_Rollback(t *testing.T) {
 	// Register each producer on one height.
 	for i, p := range producers {
 		tx := mockRegisterProducerTx(p)
-		state.ProcessBlock(mockBlock(uint32(i+1), tx), nil)
+		state.ProcessBlock(mockBlock(uint32(i+1), tx), nil, false, 0)
 	}
 	// At this point, we have 5 pending, 5 active and 10 in total producers.
 	if !assert.Equal(t, 5, len(state.GetPendingProducers())) {
@@ -728,7 +728,7 @@ func TestState_GetHistory(t *testing.T) {
 	// Register each producer on one height.
 	for i, p := range producers {
 		tx := mockRegisterProducerTx(p)
-		state.ProcessBlock(mockBlock(uint32(i+1), tx), nil)
+		state.ProcessBlock(mockBlock(uint32(i+1), tx), nil, false, 0)
 	}
 	// At this point, we have 5 pending, 5 active and 10 in total producers.
 
@@ -738,7 +738,7 @@ func TestState_GetHistory(t *testing.T) {
 	rand.Read(nodePublicKey)
 	producers[0].NodePublicKey = nodePublicKey
 	tx := mockUpdateProducerTx(producers[0])
-	state.ProcessBlock(mockBlock(11, tx), nil)
+	state.ProcessBlock(mockBlock(11, tx), nil, false, 0)
 	p := state.GetProducer(producers[0].NodePublicKey)
 	if !assert.NotNil(t, p) {
 		t.FailNow()
@@ -749,7 +749,7 @@ func TestState_GetHistory(t *testing.T) {
 
 	// Test cancel producer.
 	tx = mockCancelProducerTx(producers[0].OwnerPublicKey)
-	state.ProcessBlock(mockBlock(12, tx), nil)
+	state.ProcessBlock(mockBlock(12, tx), nil, false, 0)
 	// At this point, we have 1 canceled, 3 pending, 6 active and 9 in total producers.
 
 	// Test vote producer.
@@ -758,7 +758,7 @@ func TestState_GetHistory(t *testing.T) {
 		publicKeys[i] = p.OwnerPublicKey
 	}
 	tx = mockVoteTx(publicKeys)
-	state.ProcessBlock(mockBlock(13, tx), nil)
+	state.ProcessBlock(mockBlock(13, tx), nil, false, 0)
 	for _, pk := range publicKeys {
 		p := state.GetProducer(pk)
 		if !assert.Equal(t, common.Fixed64(100), p.Votes()) {
@@ -768,7 +768,7 @@ func TestState_GetHistory(t *testing.T) {
 
 	// Test illegal producer.
 	tx = mockIllegalBlockTx(producers[1].NodePublicKey)
-	state.ProcessBlock(mockBlock(14, tx), nil)
+	state.ProcessBlock(mockBlock(14, tx), nil, false, 0)
 	// At this point, we have 1 canceled, 1 pending, 7 active, 1 illegal and 8 in total producers.
 
 	//_, err := state.GetHistory(0)
@@ -836,7 +836,7 @@ func TestState_GetHistory(t *testing.T) {
 	}
 
 	// GetProcessor a new height see if state go to best height.
-	state.ProcessBlock(mockBlock(15, tx), nil)
+	state.ProcessBlock(mockBlock(15, tx), nil, false, 0)
 	// At this point, we have 1 canceled, 0 pending, 8 active, 1 illegal and 8 in total producers.
 	if !assert.Equal(t, 1, len(state.GetCanceledProducers())) {
 		t.FailNow()
@@ -877,7 +877,7 @@ func TestState_NicknameExists(t *testing.T) {
 	// Register each producer on one height.
 	for i, p := range producers {
 		tx := mockRegisterProducerTx(p)
-		state.ProcessBlock(mockBlock(uint32(i+1), tx), nil)
+		state.ProcessBlock(mockBlock(uint32(i+1), tx), nil, false, 0)
 	}
 
 	for i := range producers {
@@ -893,7 +893,7 @@ func TestState_NicknameExists(t *testing.T) {
 	rand.Read(nodePublicKey)
 	producers[0].NodePublicKey = nodePublicKey
 	tx := mockUpdateProducerTx(producers[0])
-	state.ProcessBlock(mockBlock(11, tx), nil)
+	state.ProcessBlock(mockBlock(11, tx), nil, false, 0)
 	p := state.GetProducer(producers[0].NodePublicKey)
 	if !assert.NotNil(t, p) {
 		t.FailNow()
@@ -908,7 +908,7 @@ func TestState_NicknameExists(t *testing.T) {
 
 	// Cancel producer-2, see if nickname change to unused.
 	tx = mockCancelProducerTx(producers[1].OwnerPublicKey)
-	state.ProcessBlock(mockBlock(12, tx), nil)
+	state.ProcessBlock(mockBlock(12, tx), nil, false, 0)
 	if !assert.Equal(t, false, state.NicknameExists("Producer-2")) {
 		t.FailNow()
 	}
@@ -943,7 +943,7 @@ func TestState_ProducerExists(t *testing.T) {
 	// Register each producer on one height.
 	for i, p := range producers {
 		tx := mockRegisterProducerTx(p)
-		state.ProcessBlock(mockBlock(uint32(i+1), tx), nil)
+		state.ProcessBlock(mockBlock(uint32(i+1), tx), nil, false, 0)
 	}
 
 	for _, p := range producers {
@@ -960,7 +960,7 @@ func TestState_ProducerExists(t *testing.T) {
 	producers[0].NodePublicKey = make([]byte, 33)
 	rand.Read(producers[0].NodePublicKey)
 	tx := mockUpdateProducerTx(producers[0])
-	state.ProcessBlock(mockBlock(11, tx), nil)
+	state.ProcessBlock(mockBlock(11, tx), nil, false, 0)
 	if !assert.Equal(t, true, state.ProducerExists(producers[0].NodePublicKey)) {
 		t.FailNow()
 	}
@@ -970,7 +970,7 @@ func TestState_ProducerExists(t *testing.T) {
 
 	// Canceled producer also existed.
 	tx = mockCancelProducerTx(producers[0].OwnerPublicKey)
-	state.ProcessBlock(mockBlock(12, tx), nil)
+	state.ProcessBlock(mockBlock(12, tx), nil, false, 0)
 	if !assert.Equal(t, true, state.ProducerExists(producers[0].OwnerPublicKey)) {
 		t.FailNow()
 	}
@@ -998,9 +998,9 @@ func TestState_IsDPOSTransaction(t *testing.T) {
 	if !assert.Equal(t, true, state.IsDPOSTransaction(tx)) {
 		t.FailNow()
 	}
-	state.ProcessBlock(mockBlock(1, tx), nil)
+	state.ProcessBlock(mockBlock(1, tx), nil, false, 0)
 	for i := uint32(2); i < 10; i++ {
-		state.ProcessBlock(mockBlock(i), nil)
+		state.ProcessBlock(mockBlock(i), nil, false, 0)
 	}
 
 	tx = mockUpdateProducerTx(producer)
@@ -1017,7 +1017,7 @@ func TestState_IsDPOSTransaction(t *testing.T) {
 	if !assert.Equal(t, true, state.IsDPOSTransaction(tx)) {
 		t.FailNow()
 	}
-	state.ProcessBlock(mockBlock(10, tx), nil)
+	state.ProcessBlock(mockBlock(10, tx), nil, false, 0)
 	p := state.GetProducer(producer.NodePublicKey)
 	if !assert.Equal(t, common.Fixed64(100), p.Votes()) {
 		t.FailNow()
@@ -1029,7 +1029,7 @@ func TestState_IsDPOSTransaction(t *testing.T) {
 	for i, input := range tx2.Inputs() {
 		references[input] = *tx.Outputs()[i]
 	}
-	state.ProcessBlock(mockBlock(11, tx2), nil)
+	state.ProcessBlock(mockBlock(11, tx2), nil, false, 0)
 	p = state.GetProducer(producer.OwnerPublicKey)
 	if !assert.Equal(t, common.Fixed64(0), p.Votes()) {
 		t.FailNow()
@@ -1064,7 +1064,7 @@ func TestState_InactiveProducer_Normal(t *testing.T) {
 	// Register each producer on one height.
 	for i, p := range producers {
 		tx := mockRegisterProducerTx(p)
-		state.ProcessBlock(mockBlock(uint32(i+1), tx), nil)
+		state.ProcessBlock(mockBlock(uint32(i+1), tx), nil, false, 0)
 	}
 
 	// At this point, we have 5 pending, 5 active and 10 in total producers.
@@ -1100,7 +1100,7 @@ func TestState_InactiveProducer_Normal(t *testing.T) {
 					Proposal: payload.DPOSProposal{
 						Sponsor: producers[arIndex].NodePublicKey,
 					},
-				})
+				}, false, 0)
 			currentHeight++
 		}
 	}
@@ -1140,7 +1140,7 @@ func TestState_InactiveProducer_FailNoContinuous(t *testing.T) {
 	// Register each producer on one height.
 	for i, p := range producers {
 		tx := mockRegisterProducerTx(p)
-		state.ProcessBlock(mockBlock(uint32(i+1), tx), nil)
+		state.ProcessBlock(mockBlock(uint32(i+1), tx), nil, false, 0)
 	}
 
 	// At this point, we have 5 pending, 5 active and 10 in total producers.
@@ -1179,14 +1179,14 @@ func TestState_InactiveProducer_FailNoContinuous(t *testing.T) {
 						Proposal: payload.DPOSProposal{
 							Sponsor: producers[0].NodePublicKey,
 						},
-					})
+					}, false, 0)
 			} else {
 				state.ProcessBlock(mockBlock(uint32(currentHeight)),
 					&payload.Confirm{
 						Proposal: payload.DPOSProposal{
 							Sponsor: producers[arIndex].NodePublicKey,
 						},
-					})
+					}, false, 0)
 			}
 			currentHeight++
 		}
@@ -1220,7 +1220,7 @@ func TestState_InactiveProducer_RecoverFromInactiveState(t *testing.T) {
 	// Register each producer on one height.
 	for i, p := range producers {
 		tx := mockRegisterProducerTx(p)
-		state.ProcessBlock(mockBlock(uint32(i+1), tx), nil)
+		state.ProcessBlock(mockBlock(uint32(i+1), tx), nil, false, 0)
 	}
 
 	// At this point, we have 5 pending, 5 active and 10 in total producers.
@@ -1256,7 +1256,7 @@ func TestState_InactiveProducer_RecoverFromInactiveState(t *testing.T) {
 					Proposal: payload.DPOSProposal{
 						Sponsor: producers[arIndex].NodePublicKey,
 					},
-				})
+				}, false, 0)
 			currentHeight++
 		}
 	}
@@ -1276,18 +1276,18 @@ func TestState_InactiveProducer_RecoverFromInactiveState(t *testing.T) {
 
 	// request for activating
 	state.ProcessBlock(mockBlock(uint32(currentHeight),
-		mockActivateProducerTx(producers[0].OwnerPublicKey)), nil)
+		mockActivateProducerTx(producers[0].OwnerPublicKey)), nil, false, 0)
 	currentHeight++
 
 	// producer[0] will not be active util 6 blocks later
 	for i := 0; i < 4; i++ {
-		state.ProcessBlock(mockBlock(uint32(currentHeight)), nil)
+		state.ProcessBlock(mockBlock(uint32(currentHeight)), nil, false, 0)
 		if !assert.Equal(t, 1, len(state.GetInactiveProducers())) {
 			t.FailNow()
 		}
 		currentHeight++
 	}
-	state.ProcessBlock(mockBlock(uint32(currentHeight)), nil)
+	state.ProcessBlock(mockBlock(uint32(currentHeight)), nil, false, 0)
 	if !assert.Equal(t, 0, len(state.GetInactiveProducers())) {
 		t.FailNow()
 	}
@@ -1315,7 +1315,7 @@ func TestState_InactiveProducer_DuringUpdateVersion(t *testing.T) {
 	// Register each producer on one height.
 	for i, p := range producers {
 		tx := mockRegisterProducerTx(p)
-		state.ProcessBlock(mockBlock(uint32(i+1), tx), nil)
+		state.ProcessBlock(mockBlock(uint32(i+1), tx), nil, false, 0)
 	}
 
 	// At this point, we have 5 pending, 5 active and 10 in total producers.
@@ -1346,7 +1346,7 @@ func TestState_InactiveProducer_DuringUpdateVersion(t *testing.T) {
 		[]*program.Program{},
 	)
 
-	state.ProcessBlock(mockBlock(uint32(currentHeight), tx), nil)
+	state.ProcessBlock(mockBlock(uint32(currentHeight), tx), nil, false, 0)
 
 	// Arbiters should set inactive after continuous three blocks
 	ar1, _ := state2.NewOriginArbiter(producers[0].NodePublicKey)
@@ -1370,7 +1370,7 @@ func TestState_InactiveProducer_DuringUpdateVersion(t *testing.T) {
 					Proposal: payload.DPOSProposal{
 						Sponsor: producers[arIndex].NodePublicKey,
 					},
-				})
+				}, false, 0)
 			currentHeight++
 		}
 	}
@@ -1428,7 +1428,7 @@ func TestDPoSState_ProcessBlock_DepositAndReturnDeposit(t *testing.T) {
 			Height: height,
 		},
 		Transactions: []interfaces.Transaction{registerTx},
-	}, nil)
+	}, nil, false, 0)
 	height++
 	candidate := state.GetProducer(pkBuf)
 	assert.Equal(t, common.Fixed64(100), candidate.TotalAmount())
@@ -1442,7 +1442,7 @@ func TestDPoSState_ProcessBlock_DepositAndReturnDeposit(t *testing.T) {
 			Height: height,
 		},
 		Transactions: []interfaces.Transaction{},
-	}, nil)
+	}, nil, false, 0)
 	height++
 	assert.Equal(t, common.Fixed64(100), candidate.TotalAmount())
 	assert.Equal(t, state2.Pending, candidate.State())
@@ -1470,7 +1470,7 @@ func TestDPoSState_ProcessBlock_DepositAndReturnDeposit(t *testing.T) {
 			Height: height,
 		},
 		Transactions: []interfaces.Transaction{tranferTx},
-	}, nil)
+	}, nil, false, 0)
 	height++
 	assert.Equal(t, common.Fixed64(300), candidate.TotalAmount())
 
@@ -1481,7 +1481,7 @@ func TestDPoSState_ProcessBlock_DepositAndReturnDeposit(t *testing.T) {
 				Height: height,
 			},
 			Transactions: []interfaces.Transaction{},
-		}, nil)
+		}, nil, false, 0)
 		height++
 	}
 	assert.Equal(t, state2.Active, candidate.State())
@@ -1507,7 +1507,7 @@ func TestDPoSState_ProcessBlock_DepositAndReturnDeposit(t *testing.T) {
 			Height: height,
 		},
 		Transactions: txs,
-	}, nil)
+	}, nil, false, 0)
 	height++
 	for i := 0; i < 5; i++ {
 		state.ProcessBlock(&types.Block{
@@ -1515,7 +1515,7 @@ func TestDPoSState_ProcessBlock_DepositAndReturnDeposit(t *testing.T) {
 				Height: height,
 			},
 			Transactions: []interfaces.Transaction{},
-		}, nil)
+		}, nil, false, 0)
 		height++
 	}
 	assert.Equal(t, state2.Canceled, candidate.State())
@@ -1573,7 +1573,7 @@ func TestState_CountArbitratorsInactivityV1(t *testing.T) {
 		for i, p := range producers[i*10 : (i+1)*10] {
 			txs[i] = mockRegisterProducerTx(p)
 		}
-		state.ProcessBlock(mockBlock(uint32(i+1), txs...), nil)
+		state.ProcessBlock(mockBlock(uint32(i+1), txs...), nil, false, 0)
 	}
 	// at this point, we have 50 pending, 50 active and 100 in total producers.
 	if !assert.Equal(t, 50, len(state.GetPendingProducers())) {
@@ -1592,7 +1592,7 @@ func TestState_CountArbitratorsInactivityV1(t *testing.T) {
 		producers[i].NickName = fmt.Sprintf("Updated-%d", i)
 		txs[i] = mockUpdateProducerTx(producers[i])
 	}
-	state.ProcessBlock(mockBlock(11, txs...), nil)
+	state.ProcessBlock(mockBlock(11, txs...), nil, false, 0)
 	for i := range txs {
 		p := state.GetProducer(producers[i].NodePublicKey)
 		if !assert.Equal(t, fmt.Sprintf("Updated-%d", i), p.Info().NickName) {
@@ -1605,7 +1605,7 @@ func TestState_CountArbitratorsInactivityV1(t *testing.T) {
 	for i := range txs {
 		txs[i] = mockCancelProducerTx(producers[i].OwnerPublicKey)
 	}
-	state.ProcessBlock(mockBlock(12, txs...), nil)
+	state.ProcessBlock(mockBlock(12, txs...), nil, false, 0)
 	// at this point, we have 10 canceled, 30 pending, 60 active and 90 in total producers.
 	if !assert.Equal(t, 10, len(state.GetCanceledProducers())) {
 		t.FailNow()
@@ -1629,7 +1629,7 @@ func TestState_CountArbitratorsInactivityV1(t *testing.T) {
 	for i := range txs {
 		txs[i] = mockVoteTx(publicKeys)
 	}
-	state.ProcessBlock(mockBlock(13, txs...), nil)
+	state.ProcessBlock(mockBlock(13, txs...), nil, false, 0)
 	for _, pk := range publicKeys {
 		p := state.GetProducer(pk)
 		if !assert.Equal(t, common.Fixed64(1000), p.Votes()) {
@@ -1642,7 +1642,7 @@ func TestState_CountArbitratorsInactivityV1(t *testing.T) {
 	for i := range txs {
 		txs[i] = mockIllegalBlockTx(producers[10+i].NodePublicKey)
 	}
-	state.ProcessBlock(mockBlock(14, txs...), nil)
+	state.ProcessBlock(mockBlock(14, txs...), nil, false, 0)
 	// at this point, we have 10 canceled, 10 pending, 70 active, 10 illegal and 80 in total producers.
 	if !assert.Equal(t, 10, len(state.GetCanceledProducers())) {
 		t.FailNow()

@@ -1720,9 +1720,9 @@ func (a *Arbiters) createNextTurnDPOSInfoTransactionV1(blockHeight uint32, force
 	for _, v := range a.nextArbitrators {
 		if a.isNextCRCArbitrator(v.GetNodePublicKey()) {
 			if abt, ok := v.(*crcArbiter); ok && abt.crMember.MemberState != state.MemberElected {
-				nextTurnDPOSInfo.DPOSPublicKeys = append(nextTurnDPOSInfo.CRPublicKeys, []byte{})
+				nextTurnDPOSInfo.DPOSPublicKeys = append(nextTurnDPOSInfo.DPOSPublicKeys, []byte{})
 			} else {
-				nextTurnDPOSInfo.DPOSPublicKeys = append(nextTurnDPOSInfo.CRPublicKeys, v.GetNodePublicKey())
+				nextTurnDPOSInfo.DPOSPublicKeys = append(nextTurnDPOSInfo.DPOSPublicKeys, v.GetNodePublicKey())
 			}
 		} else {
 			nextTurnDPOSInfo.DPOSPublicKeys = append(nextTurnDPOSInfo.DPOSPublicKeys, v.GetNodePublicKey())

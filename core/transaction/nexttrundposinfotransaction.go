@@ -28,7 +28,7 @@ func (t *NextTurnDPOSInfoTransaction) CheckTransactionInput() error {
 	return nil
 }
 
-func (t *NextTurnDPOSInfoTransaction)  CheckTransactionOutput() error {
+func (t *NextTurnDPOSInfoTransaction) CheckTransactionOutput() error {
 
 	if len(t.Outputs()) > math.MaxUint16 {
 		return errors.New("output count should not be greater than 65535(MaxUint16)")
@@ -71,12 +71,21 @@ func (t *NextTurnDPOSInfoTransaction) SpecialContextCheck() (elaerr.ELAError, bo
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("should not have next turn dpos info transaction")), true
 	}
 	nextArbitrators := blockchain.DefaultLedger.Arbitrators.GetNextArbitrators()
+	nextCRCArbitrators := blockchain.DefaultLedger.Arbitrators.GetNextCRCArbiters()
 
-	if !isNextArbitratorsSame(nextTurnDPOSInfo, nextArbitrators) {
-		log.Warnf("[checkNextTurnDPOSInfoTransaction] CRPublicKeys %v, DPOSPublicKeys%v\n",
-			convertToArbitersStr(nextTurnDPOSInfo.CRPublicKeys), convertToArbitersStr(nextTurnDPOSInfo.DPOSPublicKeys))
+	if blockchain.DefaultLedger.Arbitrators.IsDPoSV2Run(t.parameters.BlockHeight) {
+		if !isNextArbitratorsSameV1(nextTurnDPOSInfo, nextArbitrators, nextCRCArbitrators) {
+			log.Warnf("[checkNextTurnDPOSInfoTransaction] CRPublicKeys %v, DPOSPublicKeys%v\n",
+				convertToArbitersStr(nextTurnDPOSInfo.CRPublicKeys), convertToArbitersStr(nextTurnDPOSInfo.DPOSPublicKeys))
+			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("checkNextTurnDPOSInfoTransaction nextTurnDPOSInfo was wrong")), true
+		}
+	} else {
+		if !isNextArbitratorsSame(nextTurnDPOSInfo, nextArbitrators) {
+			log.Warnf("[checkNextTurnDPOSInfoTransaction] CRPublicKeys %v, DPOSPublicKeys%v\n",
+				convertToArbitersStr(nextTurnDPOSInfo.CRPublicKeys), convertToArbitersStr(nextTurnDPOSInfo.DPOSPublicKeys))
 
-		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("checkNextTurnDPOSInfoTransaction nextTurnDPOSInfo was wrong")), true
+			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("checkNextTurnDPOSInfoTransaction nextTurnDPOSInfo was wrong")), true
+		}
 	}
 	return nil, true
 }
@@ -114,6 +123,31 @@ func isNextArbitratorsSame(nextTurnDPOSInfo *payload.NextTurnDPOSInfo,
 			} else {
 				return false
 			}
+		}
+	}
+	return true
+}
+
+func isNextArbitratorsSameV1(nextTurnDPOSInfo *payload.NextTurnDPOSInfo,
+	nextArbitrators []*state.ArbiterInfo, nextCRCArbitrators [][]byte) bool {
+	if len(nextTurnDPOSInfo.DPOSPublicKeys) != len(nextArbitrators) {
+		log.Warn("[IsNextArbitratorsSame] nexArbitrators len ", len(nextArbitrators))
+		return false
+	}
+
+	for i, v := range nextArbitrators {
+		if bytes.Equal(v.NodePublicKey, nextTurnDPOSInfo.DPOSPublicKeys[i]) {
+		} else {
+			return false
+		}
+	}
+
+	for i, v := range nextCRCArbitrators {
+		if bytes.Equal(v, nextTurnDPOSInfo.CRPublicKeys[i]) ||
+			(bytes.Equal([]byte{}, nextTurnDPOSInfo.CRPublicKeys[i]) &&
+				!blockchain.DefaultLedger.Arbitrators.IsMemberElectedNextCRCArbitrator(v)) {
+		} else {
+			return false
 		}
 	}
 	return true

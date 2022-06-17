@@ -71,6 +71,11 @@ func (a *AddrManager) savePeers() {
 	a.mtx.Lock()
 	defer a.mtx.Unlock()
 
+	dir := filepath.Dir(a.peersFile)
+	_, err := os.Stat(dir)
+	if os.IsNotExist(err) {
+		os.MkdirAll(dir, os.ModePerm)
+	}
 	w, err := os.OpenFile(a.peersFile, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
 	if err != nil {
 		log.Errorf("Error opening file %s: %v", a.peersFile, err)

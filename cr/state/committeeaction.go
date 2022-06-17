@@ -224,7 +224,8 @@ func (c *Committee) processVoting(tx interfaces.Transaction, height uint32) {
 	stakeAddress := ct.ToProgramHash()
 
 	pld := tx.Payload().(*payload.Voting)
-	for _, content := range pld.Contents {
+	for _, ct := range pld.Contents {
+		content := ct
 		switch content.VoteType {
 		case outputpayload.CRC:
 			if votes, ok := c.state.UsedCRVotes[*stakeAddress]; ok {

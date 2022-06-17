@@ -1808,7 +1808,8 @@ func (s *State) processVotingContent(tx interfaces.Transaction, height uint32) {
 	stakeAddress := ct.ToProgramHash()
 
 	pld := tx.Payload().(*payload.Voting)
-	for _, content := range pld.Contents {
+	for _, cont := range pld.Contents {
+		content := cont
 		switch content.VoteType {
 		case outputpayload.Delegate:
 			var maxVotes common.Fixed64
@@ -1826,26 +1827,28 @@ func (s *State) processVotingContent(tx interfaces.Transaction, height uint32) {
 			})
 
 			for _, v := range oriUsedDPoSVotes {
+				vt := v
 				producer := s.getProducer(v.Candidate)
 				if producer == nil {
 					continue
 				}
 				s.History.Append(height, func() {
-					producer.votes -= v.Votes
+					producer.votes -= vt.Votes
 				}, func() {
-					producer.votes += v.Votes
+					producer.votes += vt.Votes
 				})
 			}
 
 			for _, v := range content.VotesInfo {
+				vt := v
 				producer := s.getProducer(v.Candidate)
 				if producer == nil {
 					continue
 				}
 				s.History.Append(height, func() {
-					producer.votes += v.Votes
+					producer.votes += vt.Votes
 				}, func() {
-					producer.votes -= v.Votes
+					producer.votes -= vt.Votes
 				})
 			}
 
@@ -1905,7 +1908,8 @@ func (s *State) processRenewalVotingContent(tx interfaces.Transaction, height ui
 	stakeAddress := ct.ToProgramHash()
 
 	pld := tx.Payload().(*payload.Voting)
-	for _, content := range pld.RenewalContents {
+	for _, cont := range pld.RenewalContents {
+		content := cont
 		// get producer and update the votes
 		producer := s.getDPoSV2Producer(content.VotesInfo.Candidate)
 		if producer == nil {

@@ -58,8 +58,7 @@ func (p *UnstakeRealWithdrawPayload) Data(version byte) []byte {
 }
 
 func (p *UnstakeRealWithdrawPayload) Serialize(w io.Writer, version byte) error {
-
-	if err := common.WriteUint64(w, uint64(len(p.UnstakeRealWithdraw))); err != nil {
+	if err := common.WriteVarUint(w, uint64(len(p.UnstakeRealWithdraw))); err != nil {
 		return err
 	}
 
@@ -72,8 +71,7 @@ func (p *UnstakeRealWithdrawPayload) Serialize(w io.Writer, version byte) error 
 }
 
 func (p *UnstakeRealWithdrawPayload) Deserialize(r io.Reader, version byte) error {
-
-	count, err := common.ReadUint64(r)
+	count, err := common.ReadVarUint(r, 0)
 	if err != nil {
 		return err
 	}

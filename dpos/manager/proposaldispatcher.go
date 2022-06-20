@@ -8,15 +8,15 @@ package manager
 import (
 	"bytes"
 	"errors"
-	pg "github.com/elastos/Elastos.ELA/core/contract/program"
-	common2 "github.com/elastos/Elastos.ELA/core/types/common"
-	"github.com/elastos/Elastos.ELA/core/types/functions"
 
 	"github.com/elastos/Elastos.ELA/blockchain"
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/core/contract"
+	pg "github.com/elastos/Elastos.ELA/core/contract/program"
 	"github.com/elastos/Elastos.ELA/core/types"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/functions"
 	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/crypto"
@@ -64,6 +64,8 @@ type ProposalDispatcher struct {
 
 	eventAnalyzer  *eventAnalyzer
 	illegalMonitor *IllegalBehaviorMonitor
+
+	resetViewRequests map[string]struct{} // sponsors
 }
 
 func (p *ProposalDispatcher) RequestAbnormalRecovering() {
@@ -396,6 +398,18 @@ func (p *ProposalDispatcher) FinishConsensus(height uint32, blockHash common.Uin
 		p.cfg.EventMonitor.OnConsensusFinished(&c)
 		p.cfg.Consensus.SetReady()
 		p.CleanProposals(false)
+		p.resetViewRequests = make(map[string]struct{}, 0)
+	}
+}
+
+func (p *ProposalDispatcher) resetConsensus() {
+	log.Info("[resetConsensus] start")
+	defer log.Info("[resetConsensus] end")
+
+	if p.cfg.Consensus.IsRunning() {
+		log.Info("[resetConsensus] reset view")
+		p.cfg.Consensus.SetReady()
+		p.CleanProposals(false)
 	}
 }
 
@@ -614,6 +628,39 @@ func (p *ProposalDispatcher) OnResponseRevertToDPOSTxReceived(
 	buf.Write(sign)
 	pro.Parameter = buf.Bytes()
 	p.tryEnterDPOSState(len(pro.Parameter) / crypto.SignatureScriptLength)
+}
+
+func (p *ProposalDispatcher) OnResponseResetViewReceived(msg *dmsg.ResetView) {
+	signer := msg.Sponsor
+	sign := msg.Sign
+
+	if p.resetViewRequests == nil {
+		p.resetViewRequests = make(map[string]struct{}, 0)
+	}
+
+	data := new(bytes.Buffer)
+	if err := msg.SerializeUnsigned(
+		data); err != nil {
+		return
+	}
+
+	pk, err := crypto.DecodePoint(signer)
+	if err != nil {
+		return
+	}
+
+	if err := crypto.Verify(*pk, data.Bytes(), sign); err != nil {
+		log.Errorf("invalid message signature:", *msg)
+		return
+	}
+
+	p.resetViewRequests[common.BytesToHexString(signer)] = struct{}{}
+
+	if len(p.resetViewRequests) >= p.cfg.Arbitrators.GetArbitersMajorityCount() {
+		// do reset
+		p.resetConsensus()
+		p.resetViewRequests = make(map[string]struct{}, 0)
+	}
 }
 
 func (p *ProposalDispatcher) OnResponseInactiveArbitratorsReceived(

@@ -393,14 +393,35 @@ func (d *DPOSManager) recoverAbnormalState() bool {
 		return false
 	}
 
+	minCount := d.GetArbitrators().GetArbitersMajorityCount()
 	if arbiters := d.arbitrators.GetArbitrators(); len(arbiters) != 0 {
-		if peers := d.network.GetActivePeers(); len(peers) == 0 {
-			log.Error("[recoverAbnormalState] can not find active peer")
+		if peers := d.network.GetActivePeers(); len(peers) < minCount {
+			log.Error("[recoverAbnormalState] can not find enough active peer")
 			return false
 		}
 		d.recoverStarted = true
 		d.handler.RequestAbnormalRecovering()
+
+		startTime := time.Now()
 		go func() {
+			for {
+				var count int
+				for _, v := range d.statusMap {
+					count += len(v)
+				}
+				if count > minCount {
+					d.network.RecoverTimeout()
+					break
+				}
+
+				if time.Now().Sub(startTime) > time.Second*3 {
+					d.network.RecoverTimeout()
+					break
+				}
+
+				time.Sleep(time.Millisecond * 100)
+			}
+
 			<-time.NewTicker(time.Second * 2).C
 			d.network.RecoverTimeout()
 		}()

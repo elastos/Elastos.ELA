@@ -291,7 +291,7 @@ func NewArbitrator(account account.Account, cfg Config) (*Arbitrator, error) {
 		})
 	dposHandlerSwitch.Initialize(proposalDispatcher, consensus)
 
-	dposManager.Initialize(dposHandlerSwitch, proposalDispatcher, consensus,
+	dposManager.Initialize(account, dposHandlerSwitch, proposalDispatcher, consensus,
 		network, illegalMonitor, cfg.BlockMemPool, cfg.TxMemPool, cfg.Broadcast)
 	network.Initialize(manager.DPOSNetworkConfig{
 		ProposalDispatcher: proposalDispatcher,

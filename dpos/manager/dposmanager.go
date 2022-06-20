@@ -16,6 +16,7 @@ import (
 	"github.com/elastos/Elastos.ELA/core/types"
 	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
+	account2 "github.com/elastos/Elastos.ELA/dpos/account"
 	"github.com/elastos/Elastos.ELA/dpos/dtime"
 	"github.com/elastos/Elastos.ELA/dpos/log"
 	dp2p "github.com/elastos/Elastos.ELA/dpos/p2p"
@@ -32,6 +33,9 @@ const (
 	// maxRequestedBlocks is the maximum number of requested block
 	// hashes to store in memory.
 	maxRequestedBlocks = msg.MaxInvPerMsg
+
+	// maxViewOffset is the maximum offset of consensus view.
+	maxViewOffset = 100
 )
 
 type DPOSNetworkConfig struct {
@@ -80,6 +84,7 @@ type NetworkEventListener interface {
 	OnBadNetwork()
 	OnRecover()
 	OnRecoverTimeout()
+	OnResponseResetViewReceived(msg *dmsg.ResetView)
 
 	OnBlockReceived(b *types.Block, confirmed bool)
 	OnConfirmReceived(p *payload.Confirm, height uint32)
@@ -110,6 +115,8 @@ type DPOSManagerConfig struct {
 type DPOSManager struct {
 	publicKey  []byte
 	blockCache *ConsensusBlockCache
+
+	acc account2.Account
 
 	handler        *DPOSHandlerSwitch
 	network        DPOSNetwork
@@ -157,10 +164,11 @@ func NewManager(cfg DPOSManagerConfig) *DPOSManager {
 	return m
 }
 
-func (d *DPOSManager) Initialize(handler *DPOSHandlerSwitch,
+func (d *DPOSManager) Initialize(acc account2.Account, handler *DPOSHandlerSwitch,
 	dispatcher *ProposalDispatcher, consensus *Consensus, network DPOSNetwork,
 	illegalMonitor *IllegalBehaviorMonitor, blockPool *mempool.BlockPool,
 	txPool *mempool.TxPool, broadcast func(message p2p.Message)) {
+	d.acc = acc
 	d.handler = handler
 	d.dispatcher = dispatcher
 	d.consensus = consensus
@@ -496,6 +504,22 @@ func (d *DPOSManager) OnChangeView() {
 	if d.consensus.TryChangeView() {
 		log.Info("[TryChangeView] succeed")
 	}
+
+	if d.consensus.viewOffset >= maxViewOffset {
+		m := &dmsg.ResetView{
+			Sponsor: d.GetPublicKey(),
+		}
+		buf := new(bytes.Buffer)
+		err := m.SerializeUnsigned(buf)
+		if err != nil {
+			log.Error("failed to serialize ResetView message")
+			return
+		}
+
+		m.Sign = d.acc.Sign(buf.Bytes())
+		log.Info("[TryChangeView] ResetView message created, broadcast it")
+		d.network.BroadcastMessage(m)
+	}
 }
 
 func (d *DPOSManager) OnBlockReceived(b *types.Block, confirmed bool) {
@@ -673,6 +697,15 @@ func (d *DPOSManager) OnResponseRevertToDPOSTxReceived(
 	}
 	d.dispatcher.OnResponseRevertToDPOSTxReceived(txHash, signers, signs)
 
+}
+
+func (d *DPOSManager) OnResponseResetViewReceived(msg *dmsg.ResetView) {
+
+	if !d.isCurrentArbiter() {
+		return
+	}
+
+	d.dispatcher.OnResponseResetViewReceived(msg)
 }
 
 func (d *DPOSManager) OnRequestProposal(id dpeer.PID, hash common.Uint256) {

@@ -8,7 +8,6 @@ package dpos
 import (
 	"bytes"
 	"errors"
-	peer2 "github.com/elastos/Elastos.ELA/p2p/peer"
 	"net"
 	"sync"
 
@@ -27,6 +26,7 @@ import (
 	"github.com/elastos/Elastos.ELA/mempool"
 	elap2p "github.com/elastos/Elastos.ELA/p2p"
 	elamsg "github.com/elastos/Elastos.ELA/p2p/msg"
+	peer2 "github.com/elastos/Elastos.ELA/p2p/peer"
 )
 
 const dataPathDPoS = "elastos/data/dpos"
@@ -292,6 +292,12 @@ func (n *network) processMessage(msgItem *messageItem) {
 		if processed {
 			n.listener.OnResponseRevertToDPOSTxReceived(
 				&msgResponse.TxHash, msgResponse.Signer, msgResponse.Sign)
+		}
+	case msg.CmdResetConsensusView:
+		msgResponse, processed := m.(*msg.ResetView)
+
+		if processed {
+			n.listener.OnResponseResetViewReceived(msgResponse)
 		}
 	}
 }

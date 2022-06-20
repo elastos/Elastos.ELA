@@ -34,6 +34,7 @@ const (
 	CmdSidechainIllegalData        = "side_ill"
 	CmdResponseInactiveArbitrators = "ina_ars"
 	CmdResponseRevertToDPOS        = "rev_to_dpos"
+	CmdResetConsensusView          = "reset_view"
 )
 
 func GetMessageHash(msg p2p.Message) common.Uint256 {

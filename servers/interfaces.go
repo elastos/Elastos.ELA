@@ -2099,6 +2099,12 @@ type RPCDposV2RewardInfo struct {
 	Claimed   common.Fixed64 `json:"claimed"`
 }
 
+type RPCDPosV2Info struct {
+	ConsensusAlgorithm string `json:"consensusalgorithm"`
+	Height             uint32 `json:"height"`
+	DPoSV2ActiveHeight uint32 `json:"dposv2activeheight"`
+}
+
 func DposV2RewardInfo(param Params) map[string]interface{} {
 	addr, ok := param.String("address")
 	if ok {
@@ -2125,6 +2131,15 @@ func DposV2RewardInfo(param Params) map[string]interface{} {
 
 		return ResponsePack(Success, result)
 	}
+}
+
+func GetDPosV2Info(param Params) map[string]interface{} {
+	result := &RPCDPosV2Info{
+		ConsensusAlgorithm: Chain.GetState().GetConsensusAlgorithm().String(),
+		Height:             Store.GetHeight(),
+		DPoSV2ActiveHeight: Chain.GetState().DPoSV2ActiveHeight,
+	}
+	return ResponsePack(Success, result)
 }
 
 func ListProducers(param Params) map[string]interface{} {

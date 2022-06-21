@@ -785,12 +785,14 @@ func (s *StateKeyFrame) DeserializeProducerMap(
 
 func (kf *StateKeyFrame) GetUsedDPoSVoteRights(stakeProgramHash *common.Uint168) common.Fixed64 {
 	usedDPoSVotes, _ := kf.UsedDposVotes[*stakeProgramHash]
-	var result common.Fixed64
+	var maxVotes common.Fixed64
 	for _, v := range usedDPoSVotes {
-		result += v.Votes
+		if v.Votes > maxVotes {
+			maxVotes = v.Votes
+		}
 	}
 
-	return result
+	return maxVotes
 }
 
 func NewStateKeyFrame() *StateKeyFrame {

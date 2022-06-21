@@ -1226,12 +1226,14 @@ func (kf *StateKeyFrame) GetUsedCRImpeachmentVoteRights(stakeProgramHash *common
 
 func (kf *StateKeyFrame) GetUsedCRCProposalVoteRights(stakeProgramHash *common.Uint168) common.Fixed64 {
 	usedCRCProposalVotes, _ := kf.UsedCRCProposalVotes[*stakeProgramHash]
-	var result common.Fixed64
+	var maxVotes common.Fixed64
 	for _, v := range usedCRCProposalVotes {
-		result += v.Votes
+		if v.Votes > maxVotes {
+			maxVotes = v.Votes
+		}
 	}
 
-	return result
+	return maxVotes
 }
 
 func copyProgramHashVotesInfoSet(src map[common.Uint168][]payload.VotesWithLockTime) (

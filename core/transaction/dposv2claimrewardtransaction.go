@@ -71,7 +71,7 @@ func (t *DPoSV2ClaimRewardTransaction) SpecialContextCheck() (elaerr.ELAError, b
 	}
 	claimAmount, ok := t.parameters.BlockChain.GetState().DposV2RewardInfo[addr]
 	if !ok {
-		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("no reward to claim for such adress")), true
+		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("no reward to claim for such address")), true
 	}
 
 	if claimAmount < claimReward.Amount {

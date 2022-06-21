@@ -1559,6 +1559,13 @@ func (a *Arbiters) HasArbitersMinorityCount(num int) bool {
 	return num >= count-a.GetArbitersMajorityCount()
 }
 
+func (a *Arbiters) HasArbitersHalfMinorityCount(num int) bool {
+	a.mtx.Lock()
+	count := len(a.CurrentArbitrators)
+	a.mtx.Unlock()
+	return num >= (count-a.GetArbitersMajorityCount())/2
+}
+
 func (a *Arbiters) getChangeType(height uint32) (ChangeType, uint32) {
 
 	// special change points:

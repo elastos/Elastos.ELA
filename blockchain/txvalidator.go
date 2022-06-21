@@ -1899,7 +1899,7 @@ func (b *BlockChain) checkDposV2ClaimRewardTransaction(txn interfaces.Transactio
 	}
 	claimAmount, ok := b.state.DposV2RewardInfo[addr]
 	if !ok {
-		return errors.New("no reward to claim for such adress")
+		return errors.New("no reward to claim for such address")
 	}
 
 	if claimAmount < claimReward.Amount {

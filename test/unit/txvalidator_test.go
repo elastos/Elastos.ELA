@@ -5338,7 +5338,7 @@ func (s *txValidatorTestSuite) TestCreateCRClaimDposV2Transaction() {
 		BlockHeight: 100,
 	})
 	err, _ = tx.SpecialContextCheck()
-	s.EqualError(err.(errors.ELAError).InnerError(), "no reward to claim for such adress")
+	s.EqualError(err.(errors.ELAError).InnerError(), "no reward to claim for such address")
 
 	bc := s.Chain
 	bc.GetState().DposV2RewardInfo["ERyUmNH51roR9qfru37Kqkaok2NghR7L5U"] = 100

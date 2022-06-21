@@ -415,56 +415,57 @@ func (p *ProposalDispatcher) resetConsensus() {
 
 func (p *ProposalDispatcher) CollectConsensusStatus(status *dmsg.ConsensusStatus) error {
 	status.AcceptVotes = make([]payload.DPOSProposalVote, 0, len(p.acceptVotes))
-	for _, v := range p.acceptVotes {
-		status.AcceptVotes = append(status.AcceptVotes, *v)
-	}
+	//for _, v := range p.acceptVotes {
+	//	status.AcceptVotes = append(status.AcceptVotes, *v)
+	//}
 
 	status.RejectedVotes = make([]payload.DPOSProposalVote, 0, len(p.rejectedVotes))
-	for _, v := range p.rejectedVotes {
-		status.RejectedVotes = append(status.RejectedVotes, *v)
-	}
+	//for _, v := range p.rejectedVotes {
+	//	status.RejectedVotes = append(status.RejectedVotes, *v)
+	//}
 
 	status.PendingProposals = make([]payload.DPOSProposal, 0, len(p.pendingProposals))
-	for _, v := range p.pendingProposals {
-		status.PendingProposals = append(status.PendingProposals, *v)
-	}
+	//for _, v := range p.pendingProposals {
+	//	status.PendingProposals = append(status.PendingProposals, *v)
+	//}
 
 	status.PendingVotes = make([]payload.DPOSProposalVote, 0, len(p.pendingVotes))
-	for _, v := range p.pendingVotes {
-		status.PendingVotes = append(status.PendingVotes, *v)
-	}
+	//for _, v := range p.pendingVotes {
+	//	status.PendingVotes = append(status.PendingVotes, *v)
+	//}
 
 	return nil
 }
 
 func (p *ProposalDispatcher) RecoverFromConsensusStatus(status *dmsg.ConsensusStatus) error {
 	p.acceptVotes = make(map[common.Uint256]*payload.DPOSProposalVote)
-	for _, v := range status.AcceptVotes {
-		vote := v
-		p.acceptVotes[v.Hash()] = &vote
-	}
+	//for _, v := range status.AcceptVotes {
+	//	vote := v
+	//	p.acceptVotes[v.Hash()] = &vote
+	//}
 
 	p.rejectedVotes = make(map[common.Uint256]*payload.DPOSProposalVote)
-	for _, v := range status.RejectedVotes {
-		vote := v
-		p.rejectedVotes[v.Hash()] = &vote
-	}
+	//for _, v := range status.RejectedVotes {
+	//	vote := v
+	//	p.rejectedVotes[v.Hash()] = &vote
+	//}
 
 	p.pendingProposals = make(map[common.Uint256]*payload.DPOSProposal)
-	for _, v := range status.PendingProposals {
-		vote := v
-		p.pendingProposals[v.Hash()] = &vote
-	}
+	//for _, v := range status.PendingProposals {
+	//	vote := v
+	//	p.pendingProposals[v.Hash()] = &vote
+	//}
 
 	p.pendingVotes = make(map[common.Uint256]*payload.DPOSProposalVote)
-	for _, v := range status.PendingVotes {
-		vote := v
-		p.pendingVotes[v.Hash()] = &vote
-	}
+	//for _, v := range status.PendingVotes {
+	//	vote := v
+	//	p.pendingVotes[v.Hash()] = &vote
+	//}
 
 	if status.ConsensusStatus == consensusReady {
 		p.processingBlock = nil
 	}
+
 	return nil
 }
 

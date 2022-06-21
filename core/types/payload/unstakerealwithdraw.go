@@ -75,13 +75,14 @@ func (p *UnstakeRealWithdrawPayload) Deserialize(r io.Reader, version byte) erro
 	if err != nil {
 		return err
 	}
-	p.UnstakeRealWithdraw = make([]UnstakeRealWidhdraw, count)
 
 	for i := uint64(0); i < count; i++ {
-		err := p.UnstakeRealWithdraw[i].Deserialize(r)
+		var withDraw UnstakeRealWidhdraw
+		err := withDraw.Deserialize(r)
 		if err != nil {
 			return err
 		}
+		p.UnstakeRealWithdraw = append(p.UnstakeRealWithdraw, withDraw)
 	}
 
 	return nil

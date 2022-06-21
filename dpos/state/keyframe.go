@@ -6,6 +6,7 @@
 package state
 
 import (
+	"fmt"
 	"io"
 	"math"
 
@@ -20,6 +21,16 @@ const (
 	DPOS ConsesusAlgorithm = 0x00
 	POW  ConsesusAlgorithm = 0x01
 )
+
+var consesusAlgorithmStrings = []string{"DPOS", "POW"}
+
+func (consesus ConsesusAlgorithm) String() string {
+	if int(consesus) < len(consesusAlgorithmStrings) {
+		return consesusAlgorithmStrings[consesus]
+	}
+
+	return fmt.Sprintf("ConsesusAlgorithm-%d", consesus)
+}
 
 // StateKeyFrame holds necessary state about State
 type StateKeyFrame struct {
@@ -785,21 +796,21 @@ func (kf *StateKeyFrame) GetUsedDPoSVoteRights(stakeProgramHash *common.Uint168)
 func NewStateKeyFrame() *StateKeyFrame {
 	info := make(map[string]common.Fixed64)
 	return &StateKeyFrame{
-		NodeOwnerKeys:            make(map[string]string),
-		CurrentCRNodeOwnerKeys:   make(map[string]string),
-		NextCRNodeOwnerKeys:      make(map[string]string),
-		PendingProducers:         make(map[string]*Producer),
-		ActivityProducers:        make(map[string]*Producer),
-		InactiveProducers:        make(map[string]*Producer),
-		CanceledProducers:        make(map[string]*Producer),
-		IllegalProducers:         make(map[string]*Producer),
-		PendingCanceledProducers: make(map[string]*Producer),
-		DposV2EffectedProducers:  make(map[string]*Producer),
-		Votes:                    make(map[string]struct{}),
-		DposV2VoteRights:         make(map[common.Uint168]common.Fixed64),
-		UsedDposVotes:            make(map[common.Uint168][]payload.VotesWithLockTime),
-		UsedDposV2Votes:          make(map[common.Uint168]common.Fixed64),
-		DepositOutputs:           make(map[string]common.Fixed64),
+		NodeOwnerKeys:             make(map[string]string),
+		CurrentCRNodeOwnerKeys:    make(map[string]string),
+		NextCRNodeOwnerKeys:       make(map[string]string),
+		PendingProducers:          make(map[string]*Producer),
+		ActivityProducers:         make(map[string]*Producer),
+		InactiveProducers:         make(map[string]*Producer),
+		CanceledProducers:         make(map[string]*Producer),
+		IllegalProducers:          make(map[string]*Producer),
+		PendingCanceledProducers:  make(map[string]*Producer),
+		DposV2EffectedProducers:   make(map[string]*Producer),
+		Votes:                     make(map[string]struct{}),
+		DposV2VoteRights:          make(map[common.Uint168]common.Fixed64),
+		UsedDposVotes:             make(map[common.Uint168][]payload.VotesWithLockTime),
+		UsedDposV2Votes:           make(map[common.Uint168]common.Fixed64),
+		DepositOutputs:            make(map[string]common.Fixed64),
 		DposV2RewardInfo:          info,
 		DposV2RewardClaimingInfo:  make(map[string]common.Fixed64),
 		DposV2RewardClaimedInfo:   make(map[string]common.Fixed64),

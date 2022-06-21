@@ -562,32 +562,37 @@ func GetVoteRights(params Params) map[string]interface{} {
 				})
 			}
 		}
-		// cr
+		// crc
 		if ucv := crstate.UsedCRVotes[stakeProgramHash]; ucv != nil {
 			for _, v := range ucv {
+				c, _ := common.Uint168FromBytes(v.Candidate)
+				candidate, _ := c.ToAddress()
 				vote.UsedVotesInfo.UsedCRVotes = append(vote.UsedVotesInfo.UsedCRVotes, VotesWithLockTimeInfo{
-					Candidate: hex.EncodeToString(v.Candidate),
+					Candidate: candidate,
 					Votes:     v.Votes.String(),
 					LockTime:  v.LockTime,
 				})
 			}
 		}
-		// cr im
+		// cr Impeachment
 		if uciv := crstate.UsdedCRImpeachmentVotes[stakeProgramHash]; uciv != nil {
 			for _, v := range uciv {
+				c, _ := common.Uint168FromBytes(v.Candidate)
+				candidate, _ := c.ToAddress()
 				vote.UsedVotesInfo.UsdedCRImpeachmentVotes = append(vote.UsedVotesInfo.UsdedCRImpeachmentVotes, VotesWithLockTimeInfo{
-					Candidate: hex.EncodeToString(v.Candidate),
+					Candidate: candidate,
 					Votes:     v.Votes.String(),
 					LockTime:  v.LockTime,
 				})
 			}
 		}
 
-		// cr prop
+		// cr Proposal
 		if ucpv := crstate.UsedCRCProposalVotes[stakeProgramHash]; ucpv != nil {
 			for _, v := range ucpv {
+				proposalHash, _ := common.Uint256FromBytes(v.Candidate)
 				vote.UsedVotesInfo.UsedCRCProposalVotes = append(vote.UsedVotesInfo.UsedCRCProposalVotes, VotesWithLockTimeInfo{
-					Candidate: hex.EncodeToString(v.Candidate),
+					Candidate: common.ToReversedString(*proposalHash),
 					Votes:     v.Votes.String(),
 					LockTime:  v.LockTime,
 				})
@@ -597,9 +602,10 @@ func GetVoteRights(params Params) map[string]interface{} {
 		// dposv2
 		if dpv2 := state.GetDetailedDPoSV2Votes(&stakeProgramHash); dpv2 != nil {
 			for i, v := range dpv2 {
+				address, _ := v.StakeProgramHash.ToAddress()
 				vote.UsedVotesInfo.UsedDPoSV2Votes = append(vote.UsedVotesInfo.UsedDPoSV2Votes, DetailedVoteInfo{
-					StakeProgramHash: v.StakeProgramHash.String(),
-					TransactionHash:  v.TransactionHash.String(),
+					StakeProgramHash: address,
+					TransactionHash:  common.ToReversedString(v.TransactionHash),
 					BlockHeight:      v.BlockHeight,
 					PayloadVersion:   v.PayloadVersion,
 					VoteType:         uint32(v.VoteType),
@@ -620,7 +626,8 @@ func GetVoteRights(params Params) map[string]interface{} {
 		//fill RemainVoteRight
 		for i := outputpayload.Delegate; i <= outputpayload.DposV2; i++ {
 			usedVoteRight, _ := GetUsedVoteRight(i, &stakeProgramHash)
-			vote.RemainVoteRight[i] = totalVotesRight - usedVoteRight
+			remainRoteRight := totalVotesRight - usedVoteRight
+			vote.RemainVoteRight[i] = remainRoteRight
 		}
 		result = append(result, vote)
 	}
@@ -636,8 +643,12 @@ func GetUsedVoteRight(voteType outputpayload.VoteType, stakeProgramHash *common.
 		if dposVotes, ok := state.UsedDposVotes[*stakeProgramHash]; !ok {
 			usedDposVote = 0
 		} else {
+			maxVotes := common.Fixed64(0)
 			for _, votesInfo := range dposVotes {
-				usedDposVote += votesInfo.Votes
+				if votesInfo.Votes > maxVotes {
+					maxVotes = votesInfo.Votes
+				}
+				usedDposVote = maxVotes
 			}
 		}
 	case outputpayload.CRC:
@@ -652,9 +663,13 @@ func GetUsedVoteRight(voteType outputpayload.VoteType, stakeProgramHash *common.
 		if usedCRCProposalVoteRights, ok := crstate.UsedCRCProposalVotes[*stakeProgramHash]; !ok {
 			usedDposVote = 0
 		} else {
+			maxVotes := common.Fixed64(0)
 			for _, votesInfo := range usedCRCProposalVoteRights {
-				usedDposVote += votesInfo.Votes
+				if votesInfo.Votes > maxVotes {
+					maxVotes = votesInfo.Votes
+				}
 			}
+			usedDposVote = maxVotes
 		}
 	case outputpayload.CRCImpeachment:
 		if usedCRImpeachmentVoteRights, ok := crstate.UsdedCRImpeachmentVotes[*stakeProgramHash]; !ok {

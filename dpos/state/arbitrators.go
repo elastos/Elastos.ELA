@@ -492,8 +492,7 @@ func (a *Arbiters) normalChange(height uint32) error {
 }
 
 func (a *Arbiters) notifyNextTurnDPOSInfoTx(blockHeight, versionHeight uint32, forceChange bool) {
-
-	if blockHeight >= a.DPoSV2ActiveHeight {
+	if blockHeight+uint32(a.ChainParams.GeneralArbiters+len(a.ChainParams.CRCArbiters)) >= a.DPoSV2ActiveHeight {
 		nextTurnDPOSInfoTx := a.createNextTurnDPOSInfoTransactionV1(blockHeight, forceChange)
 		go events.Notify(events.ETAppendTxToTxPool, nextTurnDPOSInfoTx)
 

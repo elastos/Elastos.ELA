@@ -72,8 +72,9 @@ func (t *NextTurnDPOSInfoTransaction) SpecialContextCheck() (elaerr.ELAError, bo
 	}
 	nextArbitrators := blockchain.DefaultLedger.Arbitrators.GetNextArbitrators()
 	nextCRCArbitrators := blockchain.DefaultLedger.Arbitrators.GetNextCRCArbiters()
-
-	if blockchain.DefaultLedger.Arbitrators.IsDPoSV2Run(t.parameters.BlockHeight) {
+	conf := t.parameters.Config
+	if t.parameters.BlockHeight+uint32(conf.GeneralArbiters+len(conf.CRCArbiters)) >=
+		blockchain.DefaultLedger.Arbitrators.GetDPoSV2ActiveHeight() {
 		if !isNextArbitratorsSameV1(nextTurnDPOSInfo, nextArbitrators, nextCRCArbitrators) {
 			log.Warnf("[checkNextTurnDPOSInfoTransaction] CRPublicKeys %v, DPOSPublicKeys%v\n",
 				convertToArbitersStr(nextTurnDPOSInfo.CRPublicKeys), convertToArbitersStr(nextTurnDPOSInfo.DPOSPublicKeys))

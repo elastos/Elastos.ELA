@@ -35,7 +35,7 @@ func newBlockChain(path string, params *config.Params,
 	committee := crstate.NewCommittee(params)
 	arbiters, err := state.NewArbitrators(
 		params, committee, nil, nil,
-		nil, nil, nil)
+		nil, nil, nil, nil, nil)
 
 	chainStore, err := blockchain.NewChainStore(path, params)
 	if err != nil {

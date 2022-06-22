@@ -194,7 +194,10 @@ func startNode(c *cli.Context, st *settings.Settings) {
 		committee.TryUpdateCRMemberInactivity,
 		committee.TryRevertCRMemberInactivity,
 		committee.TryUpdateCRMemberIllegal,
-		committee.TryRevertCRMemberIllegal)
+		committee.TryRevertCRMemberIllegal,
+		committee.UpdateCRInactivePenalty,
+		committee.RevertUpdateCRInactivePenalty,
+	)
 	if err != nil {
 		printErrorAndExit(err)
 	}

@@ -101,7 +101,7 @@ func TestArbitrators_GetSnapshot(t *testing.T) {
 	params := config.GetDefaultParams()
 	arbitrators, _ := state2.NewArbitrators(&params,
 		nil, nil, nil,
-		nil, nil, nil)
+		nil, nil, nil, nil, nil)
 	arbitrators.RegisterFunction(func() uint32 { return bestHeight },
 		func() *common.Uint256 { return &common.Uint256{} },
 		nil, nil)
@@ -225,6 +225,7 @@ func randomFakePK() []byte {
 	result, _ := pub.EncodePoint(true)
 	return result
 }
+
 //
 //func TestArbitrators_UsingProducerAsArbiter(t *testing.T) {
 //	var bestHeight uint32 = 0

@@ -258,7 +258,7 @@ func TestState_ProcessTransaction(t *testing.T) {
 	state := state2.NewState(&params, nil, nil,
 		func() bool { return false },
 		nil, nil, nil,
-		nil, nil)
+		nil, nil, nil, nil)
 	// Create 10 producers info.
 	producers := make([]*payload.ProducerInfo, 10)
 	for i, p := range producers {
@@ -375,7 +375,7 @@ func TestState_ProcessBlock(t *testing.T) {
 	state := state2.NewState(&config.DefaultParams, nil, nil,
 		func() bool { return false },
 		nil, nil, nil,
-		nil, nil)
+		nil, nil, nil, nil)
 
 	// Create 100 producers info.
 	producers := make([]*payload.ProducerInfo, 100)
@@ -545,7 +545,7 @@ func TestState_ProcessIllegalBlockEvidence(t *testing.T) {
 	state := state2.NewState(&config.DefaultParams, nil, nil,
 		func() bool { return false },
 		nil, nil, nil,
-		nil, nil)
+		nil, nil, nil, nil)
 
 	// Create 10 producers info.
 	producers := make([]*payload.ProducerInfo, 10)
@@ -601,7 +601,7 @@ func TestState_ProcessEmergencyInactiveArbitrators(t *testing.T) {
 	state := state2.NewState(&config.DefaultParams, nil, nil,
 		func() bool { return false },
 		nil, nil, nil,
-		nil, nil)
+		nil, nil, nil, nil)
 
 	// Create 10 producers info.
 	producers := make([]*payload.ProducerInfo, 10)
@@ -660,7 +660,7 @@ func TestState_Rollback(t *testing.T) {
 	state := state2.NewState(&config.DefaultParams, nil, nil,
 		func() bool { return false },
 		nil, nil, nil,
-		nil, nil)
+		nil, nil, nil, nil)
 
 	// Create 10 producers info.
 	producers := make([]*payload.ProducerInfo, 10)
@@ -711,7 +711,7 @@ func TestState_GetHistory(t *testing.T) {
 	state := state2.NewState(&config.DefaultParams, nil, nil,
 		func() bool { return false },
 		nil, nil, nil,
-		nil, nil)
+		nil, nil, nil, nil)
 
 	// Create 10 producers info.
 	producers := make([]*payload.ProducerInfo, 10)
@@ -860,7 +860,7 @@ func TestState_NicknameExists(t *testing.T) {
 	state := state2.NewState(&config.DefaultParams, nil, nil,
 		func() bool { return false },
 		nil, nil, nil,
-		nil, nil)
+		nil, nil, nil, nil)
 
 	// Create 10 producers info.
 	producers := make([]*payload.ProducerInfo, 10)
@@ -926,7 +926,7 @@ func TestState_ProducerExists(t *testing.T) {
 	state := state2.NewState(&config.DefaultParams, nil, nil,
 		func() bool { return false },
 		nil, nil, nil,
-		nil, nil)
+		nil, nil, nil, nil)
 
 	// Create 10 producers info.
 	producers := make([]*payload.ProducerInfo, 10)
@@ -981,7 +981,7 @@ func TestState_IsDPOSTransaction(t *testing.T) {
 	state := state2.NewState(&config.DefaultParams, nil, nil,
 		func() bool { return false },
 		nil, nil, nil,
-		nil, nil)
+		nil, nil, nil, nil)
 	state.GetTxReference = func(tx interfaces.Transaction) (
 		map[*common2.Input]common2.Output, error) {
 		return references, nil
@@ -1046,7 +1046,7 @@ func TestState_InactiveProducer_Normal(t *testing.T) {
 	state := state2.NewState(&config.DefaultParams, arbitrators.GetArbitrators, nil,
 		func() bool { return false },
 		nil, nil, nil,
-		nil, nil)
+		nil, nil, nil, nil)
 	state.ChainParams.InactivePenalty = 50
 	state.ChainParams.ChangeCommitteeNewCRHeight = 1
 	state.ChainParams.DPoSV2StartHeight = 1
@@ -1124,7 +1124,7 @@ func TestState_InactiveProducer_FailNoContinuous(t *testing.T) {
 	state := state2.NewState(&config.DefaultParams, arbitrators.GetArbitrators, nil,
 		func() bool { return false },
 		nil, nil, nil,
-		nil, nil)
+		nil, nil, nil, nil)
 
 	// Create 10 producers info.
 	producers := make([]*payload.ProducerInfo, 10)
@@ -1203,7 +1203,7 @@ func TestState_InactiveProducer_RecoverFromInactiveState(t *testing.T) {
 	state := state2.NewState(&config.DefaultParams, arbitrators.GetArbitrators, nil,
 		func() bool { return false },
 		nil, nil, nil,
-		nil, nil)
+		nil, nil, nil, nil)
 	state.ChainParams.ChangeCommitteeNewCRHeight = 1
 	state.ChainParams.DPoSV2StartHeight = 1
 	// Create 10 producers info.
@@ -1298,7 +1298,7 @@ func TestState_InactiveProducer_DuringUpdateVersion(t *testing.T) {
 	state := state2.NewState(&config.DefaultParams, arbitrators.GetArbitrators, nil,
 		func() bool { return false },
 		nil, nil, nil,
-		nil, nil)
+		nil, nil, nil, nil)
 	state.ChainParams.InactivePenalty = 50
 
 	// Create 10 producers info.
@@ -1393,7 +1393,7 @@ func TestDPoSState_ProcessBlock_DepositAndReturnDeposit(t *testing.T) {
 	state := state2.NewState(&config.DefaultParams, arbitrators.GetArbitrators, nil,
 		func() bool { return false },
 		nil, nil, nil,
-		nil, nil)
+		nil, nil, nil, nil)
 	height := config.DefaultParams.CRVotingStartHeight - 1
 
 	_, pk, _ := crypto.GenerateKeyPair()
@@ -1553,7 +1553,7 @@ func TestState_CountArbitratorsInactivityV1(t *testing.T) {
 	state := state2.NewState(&config.DefaultParams, nil, nil,
 		func() bool { return false },
 		nil, nil, nil,
-		nil, nil)
+		nil, nil, nil, nil)
 
 	// Create 100 producers info.
 	producers := make([]*payload.ProducerInfo, 100)

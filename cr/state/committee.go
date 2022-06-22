@@ -213,6 +213,30 @@ func (c *Committee) GetAllMembers() []*CRMember {
 	return result
 }
 
+// get CRMember ordered by owner public key
+func (c *Committee) GetCRMember(key string) *CRMember {
+	c.mtx.RLock()
+	defer c.mtx.RUnlock()
+
+	result := getCRMembers(c.Members)
+
+	for _, cr := range result {
+		if hex.EncodeToString(cr.Info.Code[1:len(cr.Info.Code)-1]) == key {
+			return cr
+		}
+	}
+
+	result = getCRMembers(c.NextMembers)
+
+	for _, cr := range result {
+		if hex.EncodeToString(cr.Info.Code[1:len(cr.Info.Code)-1]) == key {
+			return cr
+		}
+	}
+
+	return nil
+}
+
 // copy all CRMembers ordered by CID
 func (c *Committee) GetAllMembersCopy() []*CRMember {
 	c.mtx.RLock()
@@ -1932,6 +1956,18 @@ func (c *Committee) TryUpdateCRMemberInactivity(did common.Uint168,
 			crMember.InactiveCount = 0
 		}
 	}
+}
+
+func (c *Committee) UpdateCRInactivePenalty(cid common.Uint168, height uint32) {
+	c.mtx.RLock()
+	defer c.mtx.RUnlock()
+	c.state.UpdateCRInactivePenalty(cid, height)
+}
+
+func (c *Committee) RevertUpdateCRInactivePenalty(cid common.Uint168, height uint32) {
+	c.mtx.RLock()
+	defer c.mtx.RUnlock()
+	c.state.RevertUpdateCRInactivePenalty(cid, height)
 }
 
 func (c *Committee) TryRevertCRMemberInactivity(did common.Uint168,

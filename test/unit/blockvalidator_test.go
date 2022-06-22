@@ -74,7 +74,7 @@ func TestCheckBlockSanity(t *testing.T) {
 	chain, _ := blockchain.New(chainStore, &params, state.NewState(&params,
 		nil, nil, nil, nil,
 		nil, nil, nil,
-		nil), nil)
+		nil, nil, nil), nil)
 	//chain.Init(nil)
 	if blockchain.DefaultLedger == nil {
 		blockchain.DefaultLedger = &blockchain.Ledger{

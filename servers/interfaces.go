@@ -3385,7 +3385,7 @@ func getPayloadInfo(p interfaces.Payload, payloadVersion byte) PayloadInfo {
 			})
 		}
 		for _, rc := range object.Contents {
-			var votesinfo []VotesWithLockTimeInfo
+			votesinfo := make([]VotesWithLockTimeInfo, 0)
 			for _, detail := range rc.VotesInfo {
 				var candidate string
 				switch rc.VoteType {

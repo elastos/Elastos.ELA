@@ -123,18 +123,13 @@ func (t *VotingTransaction) SpecialContextCheck() (result elaerr.ELAError, end b
 	}
 	stakeProgramHash := ct.ToProgramHash()
 	state := t.parameters.BlockChain.GetState()
-	commitee := t.parameters.BlockChain.GetCRCommittee()
+	//commitee := t.parameters.BlockChain.GetCRCommittee()
 	voteRights := state.DposV2VoteRights
 	totalVotes, exist := voteRights[*stakeProgramHash]
 	if !exist {
 		return elaerr.Simple(elaerr.ErrTxInvalidOutput, errors.New("has no vote rights")), true
 	}
-	usedDPoSVoteRights := state.GetUsedDPoSVoteRights(stakeProgramHash)
 	usedDPoSV2VoteRights, _ := state.UsedDposV2Votes[*stakeProgramHash]
-	cs := commitee.GetState()
-	usedCRVoteRights := cs.GetUsedCRVoteRights(stakeProgramHash)
-	usedCRCProposalVoteRights := cs.GetUsedCRCProposalVoteRights(stakeProgramHash)
-	usedCRImpeachmentVoteRights := cs.GetUsedCRImpeachmentVoteRights(stakeProgramHash)
 
 	var candidates []*crstate.Candidate
 	if crCommittee.IsInVotingPeriod(blockHeight) {
@@ -163,7 +158,7 @@ func (t *VotingTransaction) SpecialContextCheck() (result elaerr.ELAError, end b
 				}
 
 				err := t.checkVoteProducerContent(
-					content, pds, totalVotes-usedDPoSVoteRights)
+					content, pds, totalVotes)
 				if err != nil {
 					return elaerr.Simple(elaerr.ErrTxPayload, err), true
 				}
@@ -172,19 +167,19 @@ func (t *VotingTransaction) SpecialContextCheck() (result elaerr.ELAError, end b
 					return elaerr.Simple(elaerr.ErrTxPayload, errors.New("should vote CR during voting period")), true
 				}
 				err := t.checkVoteCRContent(blockHeight,
-					content, crs, totalVotes-usedCRVoteRights)
+					content, crs, totalVotes)
 				if err != nil {
 					return elaerr.Simple(elaerr.ErrTxPayload, err), true
 				}
 			case outputpayload.CRCProposal:
 				err := t.checkVoteCRCProposalContent(
-					content, totalVotes-usedCRCProposalVoteRights)
+					content, totalVotes)
 				if err != nil {
 					return elaerr.Simple(elaerr.ErrTxPayload, err), true
 				}
 			case outputpayload.CRCImpeachment:
 				err := t.checkCRImpeachmentContent(
-					content, totalVotes-usedCRImpeachmentVoteRights)
+					content, totalVotes)
 				if err != nil {
 					return elaerr.Simple(elaerr.ErrTxPayload, err), true
 				}

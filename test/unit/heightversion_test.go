@@ -63,7 +63,7 @@ func TestHeightVersionInit(t *testing.T) {
 
 	arbiters, err = state.NewArbitrators(activeNetParams,
 		nil, nil, nil, nil,
-		nil, nil)
+		nil, nil, nil, nil)
 	assert.NoError(t, err)
 	arbiters.RegisterFunction(func() uint32 { return bestHeight },
 		func() *common.Uint256 { return &common.Uint256{} },
@@ -71,7 +71,7 @@ func TestHeightVersionInit(t *testing.T) {
 	arbiters.State = state.NewState(activeNetParams, nil, nil,
 		func() bool { return false },
 		nil, nil, nil,
-		nil, nil)
+		nil, nil, nil, nil)
 
 }
 

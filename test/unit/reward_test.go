@@ -111,7 +111,7 @@ func TestCommittee_ChangeCommitteeReward(t *testing.T) {
 
 	var bestHeight uint32
 	arbitrators, _ := state2.NewArbitrators(&config.DefaultParams,
-		committee, nil, nil, nil, nil, nil)
+		committee, nil, nil, nil, nil, nil, nil, nil)
 	arbitrators.RegisterFunction(func() uint32 { return bestHeight },
 		func() *common.Uint256 { return &common.Uint256{} },
 		nil, nil)

@@ -499,10 +499,13 @@ type State struct {
 	*StateKeyFrame
 
 	// GetArbiters defines methods about get current arbiters
-	GetArbiters              func() []*ArbiterInfo
-	getCRMembers             func() []*state.CRMember
-	isInElectionPeriod       func() bool
-	GetProducerDepositAmount func(programHash common.Uint168) (
+	GetArbiters                   func() []*ArbiterInfo
+	getCRMembers                  func() []*state.CRMember
+	getCRMember                   func(key string) *state.CRMember
+	updateCRInactivePenalty       func(cid common.Uint168, height uint32)
+	revertUpdateCRInactivePenalty func(cid common.Uint168, height uint32)
+	isInElectionPeriod            func() bool
+	GetProducerDepositAmount      func(programHash common.Uint168) (
 		common.Fixed64, error)
 	GetTxReference func(tx interfaces.Transaction) (
 		map[*common2.Input]common2.Output, error)
@@ -2723,23 +2726,19 @@ func (s *State) countArbitratorsInactivityV3(height uint32,
 					continue
 				}
 				key := k // avoiding pass iterator to closure
-				producer, ok := s.ActivityProducers[key]
+				_, ok = s.ActivityProducers[key]
 				if !ok {
-					continue
+					mem := cr
+					workedInRound := mem.WorkedInRound
+					s.updateCRMemberInactiveCountV2(lastPosition, needReset, workedInRound, mem, height, key)
+					if needReset && workedInRound != true {
+						s.History.Append(height, func() {
+							mem.WorkedInRound = true
+						}, func() {
+							mem.WorkedInRound = false
+						})
+					}
 				}
-				workedInRound := producer.workedInRound
-				// if it's the last position and not working in Round then we should add inactiveCountV2++
-				s.updateInactiveCountV2(lastPosition, needReset, workedInRound, producer, height, key)
-
-				if needReset && workedInRound != true {
-					s.History.Append(height, func() {
-						producer.workedInRound = true
-					}, func() {
-						producer.workedInRound = false
-					})
-				}
-
-				continue
 			}
 		}
 
@@ -2772,6 +2771,42 @@ func (s *State) countArbitratorsInactivityV3(height uint32,
 				cp.workedInRound = true
 			})
 		}
+
+		ms := s.getCRMembers()
+		for _, m := range ms {
+			cm := m
+			// reset workedInRound value
+			s.History.Append(height, func() {
+				cm.WorkedInRound = false
+			}, func() {
+				cm.WorkedInRound = true
+			})
+		}
+	}
+}
+
+func (s *State) updateCRMemberInactiveCountV2(lastPosition, needReset, workedInRound bool, member *state.CRMember, height uint32, key string) {
+	// if it's the last position and not working in Round then we should add inactiveCountV2++
+	if lastPosition && !needReset && !workedInRound {
+		originInactiveCountV2 := member.InactiveCountV2
+		s.History.Append(height, func() {
+			member.InactiveCountV2 += 1
+			if member.InactiveCountV2 >= 3 {
+				member.MemberState = state.MemberInactive
+				if height >= s.ChainParams.ChangeCommitteeNewCRHeight {
+					s.updateCRInactivePenalty(member.Info.CID, height)
+				}
+				member.InactiveCountV2 = 0
+			}
+		}, func() {
+			member.InactiveCountV2 = originInactiveCountV2
+			if member.MemberState == state.MemberInactive {
+				member.MemberState = state.MemberElected
+				if height >= s.ChainParams.ChangeCommitteeNewCRHeight {
+					s.revertUpdateCRInactivePenalty(member.Info.CID, height)
+				}
+			}
+		})
 	}
 }
 
@@ -3227,19 +3262,23 @@ func NewState(chainParams *config.Params, getArbiters func() []*ArbiterInfo,
 	tryRevertCRMemberInactivityfunc func(did common.Uint168, oriState state.MemberState, oriInactiveCount uint32, height uint32),
 	tryUpdateCRMemberIllegal func(did common.Uint168, height uint32, illegalPenalty common.Fixed64),
 	tryRevertCRMemberIllegal func(did common.Uint168, oriState state.MemberState, height uint32,
-		illegalPenalty common.Fixed64)) *State {
+		illegalPenalty common.Fixed64),
+	updateCRInactivePenalty func(cid common.Uint168, height uint32),
+	revertUpdateCRInactivePenalty func(cid common.Uint168, height uint32)) *State {
 	state := State{
-		ChainParams:                 chainParams,
-		GetArbiters:                 getArbiters,
-		getCRMembers:                getCRMembers,
-		isInElectionPeriod:          isInElectionPeriod,
-		GetProducerDepositAmount:    getProducerDepositAmount,
-		History:                     utils.NewHistory(maxHistoryCapacity),
-		StateKeyFrame:               NewStateKeyFrame(),
-		tryUpdateCRMemberInactivity: tryUpdateCRMemberInactivity,
-		tryRevertCRMemberInactivity: tryRevertCRMemberInactivityfunc,
-		tryUpdateCRMemberIllegal:    tryUpdateCRMemberIllegal,
-		tryRevertCRMemberIllegal:    tryRevertCRMemberIllegal,
+		ChainParams:                   chainParams,
+		GetArbiters:                   getArbiters,
+		getCRMembers:                  getCRMembers,
+		isInElectionPeriod:            isInElectionPeriod,
+		GetProducerDepositAmount:      getProducerDepositAmount,
+		History:                       utils.NewHistory(maxHistoryCapacity),
+		StateKeyFrame:                 NewStateKeyFrame(),
+		tryUpdateCRMemberInactivity:   tryUpdateCRMemberInactivity,
+		tryRevertCRMemberInactivity:   tryRevertCRMemberInactivityfunc,
+		tryUpdateCRMemberIllegal:      tryUpdateCRMemberIllegal,
+		tryRevertCRMemberIllegal:      tryRevertCRMemberIllegal,
+		updateCRInactivePenalty:       updateCRInactivePenalty,
+		revertUpdateCRInactivePenalty: revertUpdateCRInactivePenalty,
 	}
 	events.Subscribe(state.handleEvents)
 	return &state

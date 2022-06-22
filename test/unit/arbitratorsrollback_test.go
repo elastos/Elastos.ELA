@@ -62,14 +62,14 @@ func initArbiters() {
 	bestHeight := uint32(0)
 
 	abt, _ = state.NewArbitrators(activeNetParams, nil, nil,
-		nil, nil, nil, nil)
+		nil, nil, nil, nil, nil, nil)
 	abt.RegisterFunction(func() uint32 { return bestHeight },
 		func() *common.Uint256 { return &common.Uint256{} },
 		nil, nil)
 	abt.State = state.NewState(activeNetParams, nil, nil,
 		func() bool { return false },
 		nil, nil, nil,
-		nil, nil)
+		nil, nil, nil, nil)
 }
 
 func checkPointEqual(first, second *state.CheckPoint) bool {

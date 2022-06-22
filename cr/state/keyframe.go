@@ -113,6 +113,8 @@ type CRMember struct {
 	PenaltyBlockCount      uint32
 	InactiveCount          uint32
 	InactiveCountingHeight uint32
+	InactiveCountV2        uint32
+	WorkedInRound          bool
 }
 
 // StateKeyFrame holds necessary State about CR committee.
@@ -308,7 +310,13 @@ func (c *CRMember) Serialize(w io.Writer) (err error) {
 	if err = common.WriteUint32(w, c.InactiveCount); err != nil {
 		return
 	}
-	return common.WriteUint32(w, c.InactiveCountingHeight)
+	if err = common.WriteUint32(w, c.InactiveCountingHeight); err != nil {
+		return
+	}
+	if err = common.WriteUint32(w, c.InactiveCountV2); err != nil {
+		return
+	}
+	return common.WriteElement(w, c.WorkedInRound)
 }
 
 func (c *CRMember) Deserialize(r io.Reader) (err error) {
@@ -350,7 +358,11 @@ func (c *CRMember) Deserialize(r io.Reader) (err error) {
 	if c.InactiveCountingHeight, err = common.ReadUint32(r); err != nil {
 		return
 	}
-	return
+	if c.InactiveCountV2, err = common.ReadUint32(r); err != nil {
+		return
+	}
+
+	return common.ReadElement(r, &c.WorkedInRound)
 }
 
 func (kf *KeyFrame) Serialize(w io.Writer) (err error) {

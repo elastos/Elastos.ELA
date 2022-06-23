@@ -89,14 +89,14 @@ func (t *ReturnDepositCoinTransaction) SpecialContextCheck() (elaerr.ELAError, b
 			outputValue += output.Value
 		}
 	}
-
+	state := t.parameters.BlockChain.GetState()
 	var availableAmount common.Fixed64
 	for _, program := range t.Programs() {
-		p := t.parameters.BlockChain.GetState().GetProducer(program.Code[1 : len(program.Code)-1])
+		p := state.GetProducer(program.Code[1 : len(program.Code)-1])
 		if p == nil {
 			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("signer must be producer")), true
 		}
-		if t.parameters.BlockChain.GetState().DPoSV2Started() && p.Info().StakeUntil != 0 {
+		if t.parameters.BlockHeight >= state.DPoSV2ActiveHeight && p.Info().StakeUntil != 0 {
 			availableAmount += p.GetDPoSV2AvailableAmount(t.parameters.BlockHeight)
 		} else {
 			availableAmount += p.AvailableAmount()

@@ -705,7 +705,7 @@ func (a *Arbiters) getDPoSV2Rewards(dposReward common.Fixed64, sponsor []byte) (
 			b[0] = byte(contract.PrefixStandard)
 			standardUint168, _ := common.Uint168FromBytes(b)
 			addr, _ := standardUint168.ToAddress()
-			rewards[addr] += votesReward * share / totalShare
+			rewards[addr] += common.Fixed64(float64(share) / float64(totalShare) * float64(votesReward))
 		}
 
 		var totalUsedVotesReward common.Fixed64

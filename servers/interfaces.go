@@ -2135,7 +2135,8 @@ func DposV2RewardInfo(param Params) map[string]interface{} {
 		return ResponsePack(Success, result)
 	} else {
 		var result []RPCDposV2RewardInfo
-		for addr, value := range Chain.GetState().DposV2RewardInfo {
+		dposV2RewardInfo := Chain.GetState().DposV2RewardInfo
+		for addr, value := range dposV2RewardInfo {
 			result = append(result, RPCDposV2RewardInfo{
 				Address:   addr,
 				Claimable: value,

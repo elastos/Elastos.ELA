@@ -348,6 +348,9 @@ func (t *DefaultChecker) tryCheckVoteOutputs() error {
 		} else {
 			candidates = []*crstate.Candidate{}
 		}
+		if blockHeight >= dposState.DPoSV2ActiveHeight {
+			return errors.New("Can not send utxo vote tx when we are in dposv2")
+		}
 		err := t.checkVoteOutputs(blockHeight, txn.Outputs(), t.references,
 			getProducerPublicKeysMap(producers),
 			getDPoSV2ProducersMap(t.parameters.BlockChain.GetState().GetActivityV2Producers()),

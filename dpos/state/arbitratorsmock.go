@@ -342,6 +342,14 @@ func (a *ArbitratorsMock) GetNextCRCArbiters() [][]byte {
 	return result
 }
 
+func (a *ArbitratorsMock) GetAllNextCRCArbiters() [][]byte {
+	result := make([][]byte, 0, len(a.NextCRCArbitrators))
+	for _, v := range a.NextCRCArbitrators {
+		result = append(result, v.GetNodePublicKey())
+	}
+	return result
+}
+
 func (a *ArbitratorsMock) GetDutyChangedCount() int {
 	return a.DutyChangedCount
 }

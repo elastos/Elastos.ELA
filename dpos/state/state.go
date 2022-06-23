@@ -2799,13 +2799,20 @@ func (s *State) updateCRMemberInactiveCountV2(lastPosition, needReset, workedInR
 				member.InactiveCountV2 = 0
 			}
 		}, func() {
-			member.InactiveCountV2 = originInactiveCountV2
-			if member.MemberState == state.MemberInactive {
+			if member.MemberState == state.MemberInactive && member.InactiveCountV2 >= 3 {
 				member.MemberState = state.MemberElected
 				if height >= s.ChainParams.ChangeCommitteeNewCRHeight {
 					s.revertUpdateCRInactivePenalty(member.Info.CID, height)
 				}
 			}
+			member.InactiveCountV2 = originInactiveCountV2
+		})
+	} else if lastPosition && (needReset == true || workedInRound) {
+		originInactiveCountV2 := member.InactiveCountV2
+		s.History.Append(height, func() {
+			member.InactiveCountV2 = 0
+		}, func() {
+			member.InactiveCountV2 = originInactiveCountV2
 		})
 	}
 }
@@ -2821,10 +2828,17 @@ func (s *State) updateInactiveCountV2(lastPosition, needReset, workedInRound boo
 				producer.inactiveCountV2 = 0
 			}
 		}, func() {
-			producer.inactiveCountV2 = originInactiveCountV2
-			if producer.state == Inactive {
+			if producer.state == Inactive && producer.inactiveCountV2 >= 3 {
 				s.revertSettingInactiveProducer(producer, key, height, false)
 			}
+			producer.inactiveCountV2 = originInactiveCountV2
+		})
+	} else if lastPosition && (needReset == true || workedInRound) {
+		originInactiveCountV2 := producer.inactiveCountV2
+		s.History.Append(height, func() {
+			producer.inactiveCountV2 = 0
+		}, func() {
+			producer.inactiveCountV2 = originInactiveCountV2
 		})
 	}
 }

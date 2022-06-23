@@ -71,7 +71,7 @@ func (t *NextTurnDPOSInfoTransaction) SpecialContextCheck() (elaerr.ELAError, bo
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("should not have next turn dpos info transaction")), true
 	}
 	nextArbitrators := blockchain.DefaultLedger.Arbitrators.GetNextArbitrators()
-	nextCRCArbitrators := blockchain.DefaultLedger.Arbitrators.GetNextCRCArbiters()
+	nextCRCArbitrators := blockchain.DefaultLedger.Arbitrators.GetAllNextCRCArbiters()
 	conf := t.parameters.Config
 	if t.parameters.BlockHeight+uint32(conf.GeneralArbiters+len(conf.CRCArbiters)) >=
 		blockchain.DefaultLedger.Arbitrators.GetDPoSV2ActiveHeight() {

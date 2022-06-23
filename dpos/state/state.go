@@ -197,7 +197,7 @@ func (p *Producer) DepositAmount() common.Fixed64 {
 
 func (p *Producer) DPoSV2DepositAmount() common.Fixed64 {
 	if p.identity == DPoSV1 {
-		return 0
+		return p.depositAmount
 	}
 	return state.MinDPoSV2DepositAmount
 }
@@ -1318,6 +1318,47 @@ func (s *State) updateProducersDepositCoin(height uint32) {
 			producer.depositAmount = oriDepositAmount
 		})
 	}
+	updateDepositCoinAndState := func(producer *Producer) {
+		oriDepositAmount := producer.depositAmount
+		oriState := producer.state
+		key := hex.EncodeToString(producer.OwnerPublicKey())
+
+		s.History.Append(height, func() {
+			producer.depositAmount -= state.MinDepositAmount
+			producer.state = Canceled
+			s.CanceledProducers[key] = producer
+			switch oriState {
+			case Pending:
+				delete(s.PendingProducers, key)
+				s.PendingCanceledProducers[key] = producer
+			case Active:
+				delete(s.ActivityProducers, key)
+			case Inactive:
+				delete(s.InactiveProducers, key)
+			case Illegal:
+				delete(s.IllegalProducers, key)
+			}
+			delete(s.Nicknames, producer.info.NickName)
+		}, func() {
+			producer.depositAmount = oriDepositAmount
+			producer.state = oriState
+			delete(s.CanceledProducers, producer.info.NickName)
+			switch oriState {
+			case Pending:
+				s.PendingProducers[key] = producer
+				delete(s.PendingCanceledProducers, key)
+			case Active:
+				s.ActivityProducers[key] = producer
+			case Inactive:
+				s.InactiveProducers[key] = producer
+			case Illegal:
+				s.IllegalProducers[key] = producer
+
+			}
+			s.Nicknames[producer.info.NickName] = struct{}{}
+
+		})
+	}
 
 	canceledProducers := s.getCanceledProducers()
 	for _, producer := range canceledProducers {
@@ -1325,6 +1366,18 @@ func (s *State) updateProducersDepositCoin(height uint32) {
 			updateDepositCoin(producer)
 		}
 	}
+
+	//when we are in DPoSV2ActiveHeight update dpos 1.0 producer DepositCoin and State
+	if height == s.DPoSV2ActiveHeight {
+		//todo  here use all state producer  do we need deal inactive or illegal producer?
+		ps := s.getAllProducers()
+		for _, producer := range ps {
+			if producer.identity == DPoSV1 && producer.state != Returned && producer.state != Canceled {
+				updateDepositCoinAndState(producer)
+			}
+		}
+	}
+
 }
 
 // ProcessVoteStatisticsBlock deal with block with vote statistics error.

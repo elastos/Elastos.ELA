@@ -136,7 +136,9 @@ func isNextArbitratorsSameV1(nextTurnDPOSInfo *payload.NextTurnDPOSInfo,
 	}
 
 	for i, v := range nextArbitrators {
-		if bytes.Equal(v.NodePublicKey, nextTurnDPOSInfo.DPOSPublicKeys[i]) {
+		if bytes.Equal(v.NodePublicKey, nextTurnDPOSInfo.DPOSPublicKeys[i]) ||
+			(bytes.Equal([]byte{}, nextTurnDPOSInfo.DPOSPublicKeys[i]) &&
+				!blockchain.DefaultLedger.Arbitrators.IsMemberElectedNextCRCArbitrator(v.NodePublicKey)) {
 		} else {
 			return false
 		}

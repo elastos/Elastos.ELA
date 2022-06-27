@@ -348,13 +348,14 @@ func (t *DefaultChecker) tryCheckVoteOutputs() error {
 		} else {
 			candidates = []*crstate.Candidate{}
 		}
+		dposv2Run := false
 		if blockHeight >= dposState.DPoSV2ActiveHeight {
-			return errors.New("Can not send utxo vote tx when we are in dposv2")
+			dposv2Run = true
 		}
 		err := t.checkVoteOutputs(blockHeight, txn.Outputs(), t.references,
 			getProducerPublicKeysMap(producers),
 			getDPoSV2ProducersMap(t.parameters.BlockChain.GetState().GetActivityV2Producers()),
-			getCRCIDsMap(candidates))
+			getCRCIDsMap(candidates), dposv2Run)
 		if err != nil {
 			return err
 		}
@@ -397,7 +398,7 @@ func getCRMembersMap(members []*crstate.CRMember) map[string]struct{} {
 
 func (t *DefaultChecker) checkVoteOutputs(
 	blockHeight uint32, outputs []*common2.Output, references map[*common2.Input]common2.Output,
-	pds map[string]struct{}, pds2 map[string]uint32, crs map[common.Uint168]struct{}) error {
+	pds map[string]struct{}, pds2 map[string]uint32, crs map[common.Uint168]struct{}, dposv2Run bool) error {
 	programHashes := make(map[common.Uint168]struct{})
 	for _, output := range references {
 		programHashes[output.ProgramHash] = struct{}{}
@@ -405,6 +406,9 @@ func (t *DefaultChecker) checkVoteOutputs(
 	for _, o := range outputs {
 		if o.Type != common2.OTVote {
 			continue
+		}
+		if dposv2Run {
+			return errors.New("Can not send utxo vote tx when we are in dposv2")
 		}
 		if _, ok := programHashes[o.ProgramHash]; !ok {
 			return errors.New("the output address of vote tx " +

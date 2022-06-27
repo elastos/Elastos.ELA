@@ -139,10 +139,18 @@ func (t *UpdateProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bool
 				hex.EncodeToString(info.NodePublicKey))), true
 		}
 	} else {
+		// here only check  if NodePublicKey is others' NodePublicKey
 		if t.parameters.BlockChain.GetState().ProducerOrCRNodePublicKeyExists(info.NodePublicKey) {
 			return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("producer %s already exist",
 				hex.EncodeToString(info.NodePublicKey))), true
 		}
+
+		//check if NodePublicKey is others' ownerpublickey
+		if t.parameters.BlockChain.GetState().ProducerOwnerPublicKeyExists(info.NodePublicKey) {
+			return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("NodePublicKey can not be other producer's ownerPublicKey %s",
+				hex.EncodeToString(info.NodePublicKey))), true
+		}
+
 	}
 
 	return nil, false

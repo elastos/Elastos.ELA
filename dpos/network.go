@@ -441,6 +441,9 @@ func createMessage(hdr elap2p.Header, r net.Conn) (message elap2p.Message, err e
 	case msg.CmdResponseRevertToDPOS:
 		message = &msg.ResponseRevertToDPOS{}
 
+	case msg.CmdResetConsensusView:
+		message = &msg.ResetView{}
+
 	default:
 		return nil, errors.New("Received unsupported message, CMD " + hdr.GetCMD())
 	}

@@ -443,6 +443,7 @@ func GetArbiterPeersInfo(params Params) map[string]interface{} {
 		NodePublicKey  string `json:"nodepublickey"`
 		IP             string `json:"ip,omitempty"`
 		ConnState      string `json:"connstate"`
+		NodeVersion    string `json:"nodeversion"`
 	}
 
 	peers := Arbiter.GetArbiterPeersInfo()
@@ -461,8 +462,9 @@ func GetArbiterPeersInfo(params Params) map[string]interface{} {
 				producer.GetOwnerPublicKey()),
 			NodePublicKey: common.BytesToHexString(
 				producer.GetNodePublicKey()),
-			IP:        p.Addr,
-			ConnState: p.State.String(),
+			IP:          p.Addr,
+			ConnState:   p.State.String(),
+			NodeVersion: p.NodeVersion,
 		})
 	}
 	return ResponsePack(Success, result)

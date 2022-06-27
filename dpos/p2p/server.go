@@ -460,9 +460,10 @@ func (s *server) handleQuery(state *peerState, querymsg interface{}) {
 		peers := make(map[peer.PID]*PeerInfo)
 		for _, sp := range state.outboundPeers {
 			peers[sp.PID()] = &PeerInfo{
-				PID:   sp.PID(),
-				Addr:  sp.Addr(),
-				State: CSOutboundOnly,
+				PID:         sp.PID(),
+				Addr:        sp.Addr(),
+				State:       CSOutboundOnly,
+				NodeVersion: sp.NodeVersion,
 			}
 		}
 		for _, sp := range state.inboundPeers {
@@ -471,9 +472,10 @@ func (s *server) handleQuery(state *peerState, querymsg interface{}) {
 				continue
 			}
 			peers[sp.PID()] = &PeerInfo{
-				PID:   sp.PID(),
-				Addr:  sp.Addr(),
-				State: CSInboundOnly,
+				PID:         sp.PID(),
+				Addr:        sp.Addr(),
+				State:       CSInboundOnly,
+				NodeVersion: sp.NodeVersion,
 			}
 		}
 		for pid := range state.connectPeers {
@@ -542,6 +544,10 @@ func newPeerConfig(sp *serverPeer) *peer.Config {
 
 			}
 		},
+		BestHeight:        sp.server.cfg.BestHeight,
+		DPoSV2StartHeight: sp.server.cfg.DPoSV2StartHeight,
+		ProtocolVersion:   sp.server.cfg.ProtocolVersion,
+		NodeVersion:       sp.server.cfg.NodeVersion,
 	}
 }
 

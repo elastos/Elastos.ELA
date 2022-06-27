@@ -75,6 +75,9 @@ type PeerInfo struct {
 
 	// State is the peer's connection state.
 	State ConnState
+
+	//NodeVersion
+	NodeVersion string
 }
 
 // StateNotifier notifies the server peer state changes.

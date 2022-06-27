@@ -95,6 +95,11 @@ type Config struct {
 	PongNonce     func(pid PID) uint64
 	CreateMessage func(hdr p2p.Header, r net.Conn) (message p2p.Message, err error)
 	MessageFunc   MessageFunc
+
+	BestHeight        func() uint64
+	DPoSV2StartHeight uint32
+	ProtocolVersion   uint32
+	NodeVersion       string
 }
 
 // newNetAddress attempts to extract the IP address and port from the passed
@@ -143,12 +148,13 @@ type Peer struct {
 	inbound bool
 	msgFns  []MessageFunc
 
-	flagsMtx sync.Mutex // protects the peer flags below
-	id       uint64
-	na       *p2p.NetAddress
-	pk       *crypto.PublicKey
-	pid      PID
-
+	flagsMtx    sync.Mutex // protects the peer flags below
+	id          uint64
+	na          *p2p.NetAddress
+	pk          *crypto.PublicKey
+	pid         PID
+	version     uint32 // negotiated protocol version
+	NodeVersion string // protocol node version advertised by remote
 	// These fields keep track of statistics for the peer and are protected
 	// by the statsMtx mutex.
 	statsMtx       sync.RWMutex
@@ -762,6 +768,8 @@ func (p *Peer) readRemoteVersionMsg() ([]byte, error) {
 	p.flagsMtx.Lock()
 	p.pk = pk
 	p.pid = verMsg.PID
+	p.version = verMsg.Version
+	p.NodeVersion = verMsg.NodeVersion
 	p.flagsMtx.Unlock()
 
 	p.handleMessage(p, verMsg)
@@ -797,9 +805,19 @@ func (p *Peer) writeLocalVersionMsg() ([]byte, error) {
 	var nonce [16]byte
 	rand.Read(nonce[:])
 
-	// Version message.
-	localVerMsg := msg.NewVersion(p.cfg.PID, p.cfg.Target, nonce, p.cfg.Port)
+	var nodeVersion string
+	var version uint32
+	bestHeight := uint64(0)
+	if p.cfg.BestHeight != nil {
+		bestHeight = p.cfg.BestHeight()
+	}
 
+	if bestHeight >= uint64(p.cfg.DPoSV2StartHeight) {
+		nodeVersion = p.cfg.NodeVersion
+		version = p.cfg.ProtocolVersion
+	}
+	// Version message.
+	localVerMsg := msg.NewVersion(version, p.cfg.PID, p.cfg.Target, nonce, p.cfg.Port, nodeVersion)
 	return nonce[:], p.writeMessage(localVerMsg)
 }
 

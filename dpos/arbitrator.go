@@ -32,15 +32,18 @@ import (
 const DumpPeersInfoInterval = 10 * time.Minute
 
 type Config struct {
-	EnableEventLog bool
-	Chain          *blockchain.BlockChain
-	Arbitrators    state.Arbitrators
-	Server         elanet.Server
-	TxMemPool      *mempool.TxPool
-	BlockMemPool   *mempool.BlockPool
-	ChainParams    *config.Params
-	Broadcast      func(msg p2p.Message)
-	AnnounceAddr   func()
+	EnableEventLog  bool
+	Chain           *blockchain.BlockChain
+	Arbitrators     state.Arbitrators
+	Server          elanet.Server
+	TxMemPool       *mempool.TxPool
+	BlockMemPool    *mempool.BlockPool
+	ChainParams     *config.Params
+	Broadcast       func(msg p2p.Message)
+	AnnounceAddr    func()
+	BestHeight      func() uint64
+	ProtocolVersion uint32
+	NodeVersion     string
 }
 
 type Arbitrator struct {
@@ -250,10 +253,13 @@ func NewArbitrator(account account.Account, cfg Config) (*Arbitrator, error) {
 	})
 
 	network, err := NewDposNetwork(NetworkConfig{
-		ChainParams: cfg.ChainParams,
-		Account:     account,
-		MedianTime:  medianTime,
-		Listener:    dposManager,
+		ChainParams:     cfg.ChainParams,
+		Account:         account,
+		MedianTime:      medianTime,
+		Listener:        dposManager,
+		BestHeight:      cfg.BestHeight,
+		ProtocolVersion: cfg.ProtocolVersion,
+		NodeVersion:     cfg.NodeVersion,
 	})
 	if err != nil {
 		log.Error("Init p2p network error")

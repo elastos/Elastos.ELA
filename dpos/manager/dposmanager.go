@@ -519,10 +519,17 @@ func (d *DPOSManager) OnChangeView() {
 		m.Sign = d.acc.Sign(buf.Bytes())
 		log.Info("[TryChangeView] ResetView message created, broadcast it")
 		d.network.BroadcastMessage(m)
+
+		// record self
+		if d.dispatcher.resetViewRequests == nil {
+			d.dispatcher.resetViewRequests = make(map[string]struct{}, 0)
+		}
+		d.dispatcher.resetViewRequests[common.BytesToHexString(m.Sponsor)] = struct{}{}
 	}
 }
 
 func (d *DPOSManager) OnBlockReceived(b *types.Block, confirmed bool) {
+	log.Info("[OnBlockReceived] start hash %s IsCurrent %t", b.Hash().String(), d.server.IsCurrent())
 	defer log.Info("[OnBlockReceived] end")
 	isCurArbiter := d.isCurrentArbiter()
 

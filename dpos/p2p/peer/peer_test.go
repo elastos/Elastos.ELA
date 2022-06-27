@@ -333,7 +333,7 @@ func TestUnsupportedVersionPeer(t *testing.T) {
 	rand.Read(nonce[:])
 	rand.Read(target[:])
 	// Remote peer writes version message advertising invalid protocol version 1
-	invalidVersionMsg := msg.NewVersion(peerCfg.PID, target, nonce, 8333)
+	invalidVersionMsg := msg.NewVersion(0, peerCfg.PID, target, nonce, 8333, "")
 
 	err = p2p.WriteMessage(
 		remoteConn,

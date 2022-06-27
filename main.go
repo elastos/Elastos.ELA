@@ -28,6 +28,7 @@ import (
 	dlog "github.com/elastos/Elastos.ELA/dpos/log"
 	"github.com/elastos/Elastos.ELA/dpos/state"
 	"github.com/elastos/Elastos.ELA/elanet"
+	"github.com/elastos/Elastos.ELA/elanet/pact"
 	"github.com/elastos/Elastos.ELA/elanet/routes"
 	"github.com/elastos/Elastos.ELA/mempool"
 	"github.com/elastos/Elastos.ELA/p2p"
@@ -271,6 +272,8 @@ func startNode(c *cli.Context, st *settings.Settings) {
 	if act != nil {
 		dlog.Init(flagDataDir, uint8(st.Config().PrintLevel),
 			st.Config().MaxPerLogSize, st.Config().MaxLogsSize)
+		var pver = pact.DPOSV2ProposalVersion
+
 		arbitrator, err = dpos.NewArbitrator(act, dpos.Config{
 			EnableEventLog: true,
 			Chain:          chain,
@@ -282,7 +285,10 @@ func startNode(c *cli.Context, st *settings.Settings) {
 			Broadcast: func(msg p2p.Message) {
 				netServer.BroadcastMessage(msg)
 			},
-			AnnounceAddr: route.AnnounceAddr,
+			AnnounceAddr:    route.AnnounceAddr,
+			BestHeight:      func() uint64 { return uint64(chain.GetHeight()) },
+			ProtocolVersion: pver,
+			NodeVersion:     nodePrefix + Version,
 		})
 		if err != nil {
 			printErrorAndExit(err)

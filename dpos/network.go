@@ -32,10 +32,13 @@ import (
 const dataPathDPoS = "elastos/data/dpos"
 
 type NetworkConfig struct {
-	ChainParams *config.Params
-	Account     account.Account
-	MedianTime  dtime.MedianTimeSource
-	Listener    manager.NetworkEventListener
+	ChainParams     *config.Params
+	Account         account.Account
+	MedianTime      dtime.MedianTimeSource
+	Listener        manager.NetworkEventListener
+	BestHeight      func() uint64
+	ProtocolVersion uint32
+	NodeVersion     string
 }
 
 type blockItem struct {
@@ -365,20 +368,24 @@ func NewDposNetwork(cfg NetworkConfig) (*network, error) {
 	var pid peer.PID
 	copy(pid[:], cfg.Account.PublicKeyBytes())
 	server, err := p2p.NewServer(&p2p.Config{
-		DataDir:        dataPathDPoS,
-		PID:            pid,
-		EnableHub:      true,
-		Localhost:      cfg.ChainParams.DPoSIPAddress,
-		MagicNumber:    cfg.ChainParams.DPoSMagic,
-		DefaultPort:    cfg.ChainParams.DPoSDefaultPort,
-		TimeSource:     cfg.MedianTime,
-		MaxNodePerHost: cfg.ChainParams.MaxNodePerHost,
-		CreateMessage:  createMessage,
-		HandleMessage:  network.handleMessage,
-		PingNonce:      network.getCurrentHeight,
-		PongNonce:      network.getCurrentHeight,
-		Sign:           cfg.Account.Sign,
-		StateNotifier:  notifier,
+		DataDir:           dataPathDPoS,
+		PID:               pid,
+		EnableHub:         true,
+		Localhost:         cfg.ChainParams.DPoSIPAddress,
+		MagicNumber:       cfg.ChainParams.DPoSMagic,
+		DefaultPort:       cfg.ChainParams.DPoSDefaultPort,
+		TimeSource:        cfg.MedianTime,
+		MaxNodePerHost:    cfg.ChainParams.MaxNodePerHost,
+		CreateMessage:     createMessage,
+		HandleMessage:     network.handleMessage,
+		PingNonce:         network.getCurrentHeight,
+		PongNonce:         network.getCurrentHeight,
+		Sign:              cfg.Account.Sign,
+		StateNotifier:     notifier,
+		BestHeight:        cfg.BestHeight,
+		DPoSV2StartHeight: cfg.ChainParams.DPoSV2StartHeight,
+		ProtocolVersion:   cfg.ProtocolVersion,
+		NodeVersion:       cfg.NodeVersion,
 	})
 	if err != nil {
 		return nil, err

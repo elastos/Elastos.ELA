@@ -79,6 +79,11 @@ type Config struct {
 
 	// StateNotifier notifies the server peer state changes.
 	StateNotifier StateNotifier
+
+	BestHeight        func() uint64
+	DPoSV2StartHeight uint32
+	ProtocolVersion   uint32
+	NodeVersion       string
 }
 
 // normalizeAddress returns addr with the passed default port appended if

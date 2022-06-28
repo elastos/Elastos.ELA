@@ -1335,8 +1335,7 @@ func (s *State) updateProducersDepositCoin(height uint32) {
 		}, func() {
 			producer.depositAmount = oriDepositAmount
 			producer.state = oriState
-
-			delete(s.CanceledProducers, producer.info.NickName)
+			delete(s.CanceledProducers, key)
 			switch oriState {
 			case Pending:
 				s.PendingProducers[key] = producer
@@ -1419,6 +1418,35 @@ func (s *State) processTransactions(txs []interfaces.Transaction, height uint32)
 		})
 	}
 
+	cancelDposV2ProducerFromActive := func(key string, producer *Producer) {
+		oriState := producer.state
+		s.History.Append(height, func() {
+			producer.state = Canceled
+			s.CanceledProducers[key] = producer
+			switch oriState {
+			case Active:
+				delete(s.ActivityProducers, key)
+			case Inactive:
+				delete(s.InactiveProducers, key)
+			case Illegal:
+				delete(s.IllegalProducers, key)
+			}
+			delete(s.Nicknames, producer.info.NickName)
+		}, func() {
+			producer.state = oriState
+			switch oriState {
+			case Active:
+				s.ActivityProducers[key] = producer
+			case Inactive:
+				s.InactiveProducers[key] = producer
+			case Illegal:
+				s.IllegalProducers[key] = producer
+			}
+			delete(s.CanceledProducers, key)
+			s.Nicknames[producer.info.NickName] = struct{}{}
+		})
+	}
+
 	cleanExpiredDposV2Votes := func(key common.Uint256, stakeAddress *common.Uint168, detailVoteInfo payload.DetailedVoteInfo, producer *Producer) {
 
 		for _, i := range detailVoteInfo.Info {
@@ -1484,6 +1512,12 @@ func (s *State) processTransactions(txs []interfaces.Transaction, height uint32)
 	if ps := s.getDposV2Producers(); len(ps) > 0 {
 		for _, p := range ps {
 			cp := p
+			if cp.info.StakeUntil < height {
+				key := hex.EncodeToString(cp.info.OwnerPublicKey)
+				if cp.state != Returned && cp.state != Canceled {
+					cancelDposV2ProducerFromActive(key, cp)
+				}
+			}
 			for stake, detail := range p.detailedDPoSV2Votes {
 				for refer, info := range detail {
 					ci := info

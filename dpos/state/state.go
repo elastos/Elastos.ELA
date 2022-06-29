@@ -1418,10 +1418,12 @@ func (s *State) processTransactions(txs []interfaces.Transaction, height uint32)
 		})
 	}
 
-	cancelDposV2ProducerFromActive := func(key string, producer *Producer) {
+	cancelDposV2AndDposV1V2Producer := func(key string, producer *Producer) {
 		oriState := producer.state
+		oriDepositAmount := producer.depositAmount
 		s.History.Append(height, func() {
 			producer.state = Canceled
+			producer.depositAmount -= state.MinDPoSV2DepositAmount
 			s.CanceledProducers[key] = producer
 			switch oriState {
 			case Active:
@@ -1434,6 +1436,7 @@ func (s *State) processTransactions(txs []interfaces.Transaction, height uint32)
 			delete(s.Nicknames, producer.info.NickName)
 		}, func() {
 			producer.state = oriState
+			producer.depositAmount = oriDepositAmount
 			switch oriState {
 			case Active:
 				s.ActivityProducers[key] = producer
@@ -1514,8 +1517,9 @@ func (s *State) processTransactions(txs []interfaces.Transaction, height uint32)
 			cp := p
 			if cp.info.StakeUntil < height {
 				key := hex.EncodeToString(cp.info.OwnerPublicKey)
-				if cp.state != Returned && cp.state != Canceled {
-					cancelDposV2ProducerFromActive(key, cp)
+				if cp.state != Returned && cp.state != Canceled &&
+					(cp.identity == DPoSV2 || (cp.identity == DPoSV1V2 && height > s.DPoSV2ActiveHeight)) {
+					cancelDposV2AndDposV1V2Producer(key, cp)
 				}
 			}
 			for stake, detail := range p.detailedDPoSV2Votes {

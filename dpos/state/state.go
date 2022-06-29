@@ -195,27 +195,12 @@ func (p *Producer) DepositAmount() common.Fixed64 {
 	return p.depositAmount
 }
 
-func (p *Producer) DPoSV2DepositAmount() common.Fixed64 {
-	if p.identity == DPoSV1 {
-		return p.depositAmount
-	}
-	return state.MinDPoSV2DepositAmount
-}
-
 func (p *Producer) TotalAmount() common.Fixed64 {
 	return p.totalAmount
 }
 
 func (p *Producer) AvailableAmount() common.Fixed64 {
 	return p.totalAmount - p.depositAmount - p.penalty
-}
-
-func (p *Producer) GetDPoSV2AvailableAmount(height uint32) common.Fixed64 {
-	if height > p.info.StakeUntil {
-		return p.totalAmount - p.penalty
-	}
-
-	return p.totalAmount - state.MinDPoSV2DepositAmount - p.penalty
 }
 
 func (p *Producer) Selected() bool {
@@ -1318,11 +1303,19 @@ func (s *State) updateProducersDepositCoin(height uint32) {
 			producer.depositAmount = oriDepositAmount
 		})
 	}
-	updateDepositCoinAndState := func(producer *Producer) {
+	updateDPoSV1V2DepositCoin := func(producer *Producer) {
 		oriDepositAmount := producer.depositAmount
+		s.History.Append(height, func() {
+			//when we are in v2 satge, v1v2producer depositAmount need -3000
+			producer.depositAmount -= (state.MinDepositAmount - state.MinDPoSV2DepositAmount)
+		}, func() {
+			producer.depositAmount = oriDepositAmount
+		})
+	}
+	updateDepositCoinAndState := func(producer *Producer) {
 		oriState := producer.state
 		key := hex.EncodeToString(producer.OwnerPublicKey())
-
+		oriDepositAmount := producer.depositAmount
 		s.History.Append(height, func() {
 			producer.depositAmount -= state.MinDepositAmount
 			producer.state = Canceled
@@ -1342,6 +1335,7 @@ func (s *State) updateProducersDepositCoin(height uint32) {
 		}, func() {
 			producer.depositAmount = oriDepositAmount
 			producer.state = oriState
+
 			delete(s.CanceledProducers, producer.info.NickName)
 			switch oriState {
 			case Pending:
@@ -1369,12 +1363,14 @@ func (s *State) updateProducersDepositCoin(height uint32) {
 
 	//when we are in DPoSV2ActiveHeight update dpos 1.0 producer DepositCoin and State
 	if height == s.DPoSV2ActiveHeight {
-		//todo  here use all state producer  do we need deal inactive or illegal producer?
 		ps := s.getAllProducers()
 		for _, producer := range ps {
 			if producer.identity == DPoSV1 && producer.state != Returned && producer.state != Canceled {
 				updateDepositCoinAndState(producer)
+			} else if producer.identity == DPoSV1V2 && producer.state != Returned && producer.state != Canceled {
+				updateDPoSV1V2DepositCoin(producer)
 			}
+
 		}
 	}
 

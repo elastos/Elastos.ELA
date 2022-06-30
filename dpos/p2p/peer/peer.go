@@ -60,6 +60,12 @@ func (p PID) String() string {
 	return hex.EncodeToString(p[:])
 }
 
+// PeersInfo include current peers and next peers.
+type PeersInfo struct {
+	CurrentPeers []PID
+	NextPeers    []PID
+}
+
 // outMsg is used to house a message to be sent along with a channel to signal
 // when the message has been sent (or won't be sent due to things such as
 // shutdown)

@@ -45,6 +45,10 @@ const (
 	// ETDirectPeersChanged indicates direct peers has changed.
 	ETDirectPeersChanged
 
+	// ETDirectPeersChangedV2 indicates direct peers has changed, but current
+	// peers and next peers is divided.
+	ETDirectPeersChangedV2
+
 	// ETBlockConfirmAccepted indicates a block with confirm was accepted
 	// into the block chain.  Note that this does not necessarily mean it
 	// was added to the main chain.  For that, use ETBlockConnected.
@@ -81,6 +85,7 @@ var notificationTypeStrings = map[EventType]string{
 	ETNewBlockReceived:             "ETNewBlockReceived",
 	ETConfirmAccepted:              "ETConfirmAccepted",
 	ETDirectPeersChanged:           "ETDirectPeersChanged",
+	ETDirectPeersChangedV2:           "ETDirectPeersChangedV2",
 	ETBlockConfirmAccepted:         "ETBlockConfirmAccepted",
 	ETBlockProcessed:               "ETBlockProcessed",
 	ETIllegalBlockEvidence:         "ETIllegalBlockEvidence",

@@ -118,17 +118,27 @@ func (n *network) Stop() error {
 	return n.p2pServer.Stop()
 }
 
-func (n *network) UpdatePeers(peers []peer.PID) {
-	log.Info("[UpdatePeers] peers:", len(peers), " height: ",
+func (n *network) UpdatePeers(currentPeers []peer.PID, nextPeers []peer.PID) {
+	log.Info("[UpdatePeers] current peers:", len(currentPeers),
+		"next peers:", len(nextPeers), " height: ",
 		blockchain.DefaultLedger.Blockchain.GetHeight())
-	for _, p := range peers {
+
+	for _, p := range currentPeers {
 		if bytes.Equal(n.publicKey, p[:]) {
-			n.p2pServer.ConnectPeers(peers)
+			n.p2pServer.ConnectPeers(currentPeers, nextPeers)
 			return
 		}
 	}
+
+	for _, p := range nextPeers {
+		if bytes.Equal(n.publicKey, p[:]) {
+			n.p2pServer.ConnectPeers(currentPeers, nextPeers)
+			return
+		}
+	}
+
 	log.Info("[UpdatePeers] i am not in peers")
-	n.p2pServer.ConnectPeers(nil)
+	n.p2pServer.ConnectPeers(nil, nil)
 }
 
 func (n *network) SendMessageToPeer(id peer.PID, msg elap2p.Message) error {

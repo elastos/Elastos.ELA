@@ -149,6 +149,9 @@ type server struct {
 	broadcast chan broadcastMsg
 	wg        sync.WaitGroup
 	quit      chan struct{}
+
+	currentPeers map[string]struct{} // key: PID string
+	nextPeers    map[string]struct{} // key: PID string
 }
 
 // IPeer extends the peer to maintain state shared by the server.
@@ -725,7 +728,22 @@ func (s *server) ConnectedCount() int32 {
 
 // ConnectPeers let server connect the peers in the given peers, and
 // disconnect peers that not in the peers.
-func (s *server) ConnectPeers(peers []peer.PID) {
+func (s *server) ConnectPeers(currentPeers []peer.PID, nextPeers []peer.PID) {
+	cp := make(map[string]struct{})
+	for _, p := range currentPeers {
+		cp[common.BytesToHexString(p[:])] = struct{}{}
+	}
+	s.currentPeers = cp
+
+	np := make(map[string]struct{})
+	for _, p := range nextPeers {
+		np[common.BytesToHexString(p[:])] = struct{}{}
+	}
+	s.nextPeers = np
+
+	peers := currentPeers
+	peers = append(peers, nextPeers...)
+
 	reply := make(chan struct{})
 	s.query <- connectPeersMsg{peers: peers, reply: reply}
 	<-reply
@@ -753,6 +771,24 @@ func (s *server) ConnectedPeers() []Peer {
 		peers = append(peers, (Peer)(sp))
 	}
 	return peers
+}
+
+// ConnectedCurrentPeers returns an array consisting of connected current peers.
+//
+// This function is safe for concurrent access and is part of the
+// IServer interface implementation.
+func (s *server) ConnectedCurrentPeers() []Peer {
+	peers := s.ConnectedPeers()
+
+	result := make([]Peer, 0)
+	for _, p := range peers {
+		pid := p.PID()
+		if _, ok := s.currentPeers[common.BytesToHexString(pid[:])]; ok {
+			result = append(result, p)
+		}
+	}
+
+	return result
 }
 
 // DumpPeersInfo returns an array consisting of all peers state in connect list.

@@ -29,6 +29,8 @@ type Arbitrators interface {
 	GetAllProducersPublicKey() []string
 	GetNextArbitrators() []*ArbiterInfo
 	GetNextCandidates() [][]byte
+	GetCurrentNeedConnectArbiters() []peer.PID
+	GetNextNeedConnectArbiters() []peer.PID
 	GetNeedConnectArbiters() []peer.PID
 	GetDutyIndexByHeight(height uint32) int
 	GetDutyIndex() int

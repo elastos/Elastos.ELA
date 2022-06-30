@@ -688,24 +688,30 @@ func (a *Arbiters) getDPoSV2Rewards(dposReward common.Fixed64, sponsor []byte) (
 			log.Error("accumulateReward Sponsor not exist ", hex.EncodeToString(sponsor))
 			return
 		}
-		var totalShare common.Fixed64
-		shareDetail := make(map[common.Uint168]common.Fixed64)
+		producersM := make(map[common.Uint168]float64)
+		var totalM float64
 		for sVoteAddr, sVoteDetail := range producer.detailedDPoSV2Votes {
+			var totalN float64
 			for _, votes := range sVoteDetail {
 				weightS := strconv.FormatFloat(
 					math.Log10(float64(votes.Info[0].LockTime-votes.BlockHeight)/7200*10), 'f', 2, 64)
 				weightF, _ := strconv.ParseFloat(weightS, 64)
-				share := common.Fixed64(float64(votes.Info[0].Votes) * weightF)
-				totalShare += share
-				shareDetail[sVoteAddr] += share
+				N := common.Fixed64(float64(votes.Info[0].Votes) * weightF)
+				totalN += float64(N)
 			}
+			M := math.Sqrt(totalN) * 400
+			producersM[sVoteAddr] = M
+			totalM += M
 		}
-		for sVoteAddr, share := range shareDetail {
+
+		for sVoteAddr, M := range producersM {
 			b := sVoteAddr.Bytes()
 			b[0] = byte(contract.PrefixStandard)
 			standardUint168, _ := common.Uint168FromBytes(b)
 			addr, _ := standardUint168.ToAddress()
-			rewards[addr] += common.Fixed64(float64(share) / float64(totalShare) * float64(votesReward))
+
+			p := M / totalM * float64(votesReward)
+			rewards[addr] += common.Fixed64(p)
 		}
 
 		var totalUsedVotesReward common.Fixed64
@@ -929,6 +935,7 @@ func (a *Arbiters) distributeWithNormalArbitratorsV3(height uint32, reward commo
 		log.Debugf("distributeWithNormalArbitratorsV3 rewardHash%s  r %s realDPOSReward %s", rewardHash.String(),
 			r.String(), realDPOSReward.String())
 	}
+
 	for _, candidate := range a.CurrentCandidates {
 		ownerHash := candidate.GetOwnerProgramHash()
 		votes := a.CurrentReward.OwnerVotesInRound[ownerHash]

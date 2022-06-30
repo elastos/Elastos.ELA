@@ -704,10 +704,13 @@ func (a *Arbiters) getDPoSV2Rewards(dposReward common.Fixed64, sponsor []byte) (
 		var totalNI float64
 		for sVoteAddr, sVoteDetail := range producer.detailedDPoSV2Votes {
 			var totalN float64
+			address, _ := sVoteAddr.ToAddress()
+
 			for _, votes := range sVoteDetail {
 				weightS := strconv.FormatFloat(
 					math.Log10(float64(votes.Info[0].LockTime-votes.BlockHeight)/7200*10), 'f', 2, 64)
 				weightF, _ := strconv.ParseFloat(weightS, 64)
+				log.Debugf("getDPoSV2Rewards sVoteAddr %s, weightF %f Votes %v\n", address, weightF, votes.Info[0].Votes)
 				N := common.Fixed64(float64(votes.Info[0].Votes) * weightF)
 				totalN += float64(N)
 			}
@@ -720,9 +723,9 @@ func (a *Arbiters) getDPoSV2Rewards(dposReward common.Fixed64, sponsor []byte) (
 			b[0] = byte(contract.PrefixStandard)
 			standardUint168, _ := common.Uint168FromBytes(b)
 			addr, _ := standardUint168.ToAddress()
-
 			p := N / totalNI * float64(votesReward)
 			rewards[addr] += common.Fixed64(p)
+			log.Debugf("getDPoSV2Rewards addr %s  add p %v %f rewards[addr]%v \n", addr, common.Fixed64(p), rewards[addr])
 		}
 
 		var totalUsedVotesReward common.Fixed64
@@ -733,6 +736,8 @@ func (a *Arbiters) getDPoSV2Rewards(dposReward common.Fixed64, sponsor []byte) (
 		// DPoS node reward is: reward - totalUsedVotesReward
 		dposNodeReward := dposReward - totalUsedVotesReward
 		rewards[ownerAddr] += dposNodeReward
+		log.Debugf("getDPoSV2Rewards totalUsedVotesReward %v dposNodeReward %v,  \n", totalUsedVotesReward, dposNodeReward)
+
 	}
 
 	return rewards

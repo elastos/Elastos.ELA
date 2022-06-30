@@ -439,13 +439,9 @@ func (d *DPOSManager) recoverAbnormalState() bool {
 }
 
 func (d *DPOSManager) DoRecover() {
-	var maxCount int
 	var maxCountMaxViewOffset uint32
-	for k, v := range d.statusMap {
-		if maxCount < len(v) {
-			maxCount = len(v)
-			maxCountMaxViewOffset = k
-		} else if maxCount == len(v) && maxCountMaxViewOffset < k {
+	for k, _ := range d.statusMap {
+		if maxCountMaxViewOffset < k {
 			maxCountMaxViewOffset = k
 		}
 	}

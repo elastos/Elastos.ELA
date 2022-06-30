@@ -60,7 +60,7 @@ func TestNotifier(t *testing.T) {
 		server.AddAddr(pid, fmt.Sprintf("127.0.0.1:%d", port))
 	}
 
-	server.ConnectPeers(peerList)
+	server.ConnectPeers(peerList, nil)
 
 	// Mock peers not started, wait for connection timeout.
 	select {
@@ -87,7 +87,7 @@ func TestNotifier(t *testing.T) {
 			t.FailNow()
 		}
 	}
-	server.ConnectPeers(peerList)
+	server.ConnectPeers(peerList, nil)
 
 	// Wait for network stable notify.
 	select {

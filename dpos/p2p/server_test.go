@@ -185,7 +185,7 @@ func TestServerConnections(t *testing.T) {
 		}
 
 		s.Start()
-		s.ConnectPeers(peerList)
+		s.ConnectPeers(peerList, nil)
 		serverChan <- s
 
 		// There will be 70 outbound connections and 70 inbound connections
@@ -277,7 +277,7 @@ func TestServer_ConnectPeers(t *testing.T) {
 	}
 
 	// Connect 50 peers
-	server.ConnectPeers(peerList[:50])
+	server.ConnectPeers(peerList[:50], nil)
 	for i := 0; i < 50; i++ {
 		select {
 		case <-peerChan:
@@ -313,7 +313,7 @@ func TestServer_ConnectPeers(t *testing.T) {
 	}
 
 	// Change connect peers
-	server.ConnectPeers(peerList[50:])
+	server.ConnectPeers(peerList[50:], nil)
 	for i := 0; i < 100; i++ { // 50 disconnect peers, 50 connected peers.
 		select {
 		case <-peerChan:
@@ -349,7 +349,7 @@ func TestServer_ConnectPeers(t *testing.T) {
 	}
 
 	// Connect all peers
-	server.ConnectPeers(peerList)
+	server.ConnectPeers(peerList, nil)
 	for i := 0; i < 50; i++ { // 50 new peers will connected.
 		select {
 		case <-peerChan:
@@ -425,7 +425,7 @@ func TestServer_ConnectPeers(t *testing.T) {
 
 	// Change connect peers, there are 50 inbound peers with the same PID as
 	// 50 outbound peers, so 100 peers will be disconnected.
-	server.ConnectPeers(peerList[50:])
+	server.ConnectPeers(peerList[50:], nil)
 	for i := 0; i < 100; i++ {
 		select {
 		case <-peerChan:
@@ -486,7 +486,7 @@ func TestServer_PeersReconnect(t *testing.T) {
 	}
 
 	// Connect peers and disconnect them to mock unstable connection.
-	server.ConnectPeers(peerList)
+	server.ConnectPeers(peerList, nil)
 	for i := 0; i < 1000; i++ {
 		select {
 		case p := <-peerChan:
@@ -547,7 +547,7 @@ func TestServer_BroadcastMessage(t *testing.T) {
 	}
 
 	// Mock 100 outbound peers.
-	server.ConnectPeers(peerList)
+	server.ConnectPeers(peerList, nil)
 	for i := 0; i < 100; i++ {
 		select {
 		case <-peerChan:
@@ -658,7 +658,7 @@ func TestServer_DumpPeersInfo(t *testing.T) {
 	}
 
 	// Wait for 10 valid outbound peers connected.
-	server.ConnectPeers(peerList)
+	server.ConnectPeers(peerList, nil)
 	for i := 0; i < 10; i++ {
 		select {
 		case <-peerChan:

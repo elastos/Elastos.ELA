@@ -106,7 +106,7 @@ type Server interface {
 
 	// ConnectPeers let server connect the peers in the given list, and
 	// disconnect peers that not in the list.
-	ConnectPeers(peers []peer.PID)
+	ConnectPeers(currentPeers []peer.PID, nextPeers []peer.PID)
 
 	// SendMessageToPeer send a message to the peer with the given id, error
 	// will be returned if there is no matches, or fail to send the message.
@@ -118,6 +118,10 @@ type Server interface {
 
 	// ConnectedPeers returns an array consisting of all connected peers.
 	ConnectedPeers() []Peer
+
+	// ConnectedCurrentPeers returns an array consisting of all connected
+	// current peers.
+	ConnectedCurrentPeers() []Peer
 
 	// DumpPeersInfo returns a list of connect peers information.  This is a
 	// high cost method, should not be called frequently.

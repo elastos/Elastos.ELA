@@ -456,6 +456,12 @@ func (a *Arbiters) forceChange(height uint32) error {
 	if a.started {
 		go events.Notify(events.ETDirectPeersChanged,
 			a.getNeedConnectArbiters())
+
+		currentArbiters := a.getCurrentNeedConnectArbiters()
+		nextArbiters := a.GetNextNeedConnectArbiters()
+
+		go events.Notify(events.ETDirectPeersChangedV2,
+			&peer.PeersInfo{CurrentPeers: currentArbiters, NextPeers: nextArbiters})
 	}
 	oriForceChanged := a.forceChanged
 	a.History.Append(height, func() {
@@ -1070,6 +1076,83 @@ func (a *Arbiters) distributeWithNormalArbitratorsV1(height uint32, reward commo
 		realDPOSReward += individualProducerReward
 	}
 	return roundReward, realDPOSReward, nil
+}
+
+func (a *Arbiters) GetCurrentNeedConnectArbiters() []peer.PID {
+	a.mtx.Lock()
+	defer a.mtx.Unlock()
+
+	return a.getNeedConnectArbiters()
+}
+
+func (a *Arbiters) getCurrentNeedConnectArbiters() []peer.PID {
+	height := a.History.Height() + 1
+	if height < a.ChainParams.CRCOnlyDPOSHeight-a.ChainParams.PreConnectOffset {
+		return nil
+	}
+
+	pids := make(map[string]peer.PID)
+	for _, p := range a.CurrentCRCArbitersMap {
+		abt, ok := p.(*crcArbiter)
+		if !ok || abt.crMember.MemberState != state.MemberElected {
+			continue
+		}
+		var pid peer.PID
+		copy(pid[:], p.GetNodePublicKey())
+		pids[common.BytesToHexString(p.GetNodePublicKey())] = pid
+	}
+
+	for _, v := range a.CurrentArbitrators {
+		key := common.BytesToHexString(v.GetNodePublicKey())
+		var pid peer.PID
+		copy(pid[:], v.GetNodePublicKey())
+		pids[key] = pid
+	}
+
+	peers := make([]peer.PID, 0, len(pids))
+	for _, pid := range pids {
+		peers = append(peers, pid)
+	}
+
+	return peers
+}
+func (a *Arbiters) GetNextNeedConnectArbiters() []peer.PID {
+	a.mtx.Lock()
+	defer a.mtx.Unlock()
+
+	return a.getNeedConnectArbiters()
+}
+
+func (a *Arbiters) getNextNeedConnectArbiters() []peer.PID {
+	height := a.History.Height() + 1
+	if height < a.ChainParams.CRCOnlyDPOSHeight-a.ChainParams.PreConnectOffset {
+		return nil
+	}
+
+	pids := make(map[string]peer.PID)
+	for _, p := range a.nextCRCArbitersMap {
+		abt, ok := p.(*crcArbiter)
+		if !ok || abt.crMember.MemberState != state.MemberElected {
+			continue
+		}
+		var pid peer.PID
+		copy(pid[:], p.GetNodePublicKey())
+		pids[common.BytesToHexString(p.GetNodePublicKey())] = pid
+	}
+
+	for _, v := range a.nextArbitrators {
+		key := common.BytesToHexString(v.GetNodePublicKey())
+		var pid peer.PID
+		copy(pid[:], v.GetNodePublicKey())
+		pids[key] = pid
+	}
+
+	peers := make([]peer.PID, 0, len(pids))
+	for _, pid := range pids {
+		peers = append(peers, pid)
+	}
+
+	return peers
 }
 
 func (a *Arbiters) GetNeedConnectArbiters() []peer.PID {

@@ -217,8 +217,8 @@ func (a *Arbitrator) OnConfirmReceived(p *mempool.ConfirmInfo) {
 	a.network.PostConfirmReceivedTask(p)
 }
 
-func (a *Arbitrator) OnPeersChanged(peers []peer.PID) {
-	a.network.UpdatePeers(peers)
+func (a *Arbitrator) OnPeersChanged(currentPeers []peer.PID, nextPeers []peer.PID) {
+	a.network.UpdatePeers(currentPeers, nextPeers)
 }
 
 func (a *Arbitrator) changeViewLoop() {
@@ -316,8 +316,9 @@ func NewArbitrator(account account.Account, cfg Config) (*Arbitrator, error) {
 		case events.ETConfirmAccepted:
 			go a.OnConfirmReceived(e.Data.(*mempool.ConfirmInfo))
 
-		case events.ETDirectPeersChanged:
-			a.OnPeersChanged(e.Data.([]peer.PID))
+		case events.ETDirectPeersChangedV2:
+			peersInfo := e.Data.(*peer.PeersInfo)
+			a.OnPeersChanged(peersInfo.CurrentPeers, peersInfo.NextPeers)
 
 		case events.ETTransactionAccepted:
 			tx := e.Data.(interfaces.Transaction)

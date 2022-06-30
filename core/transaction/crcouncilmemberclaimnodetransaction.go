@@ -52,7 +52,7 @@ func (t *CRCouncilMemberClaimNodeTransaction) SpecialContextCheck() (result elae
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid payload")), true
 	}
 
-	if t.parameters.BlockHeight < t.parameters.BlockChain.GetState().DPoSV2ActiveHeight &&
+	if t.parameters.BlockHeight < t.parameters.Config.DPoSV2StartHeight &&
 		!t.parameters.BlockChain.GetCRCommittee().IsInElectionPeriod() {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("CRCouncilMemberClaimNode must during election period")), true
 	}

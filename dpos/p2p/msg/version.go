@@ -8,6 +8,7 @@ package msg
 import (
 	"errors"
 	"io"
+	"sync"
 	"time"
 
 	"github.com/elastos/Elastos.ELA/common"
@@ -18,6 +19,22 @@ import (
 
 // Ensure Version implement p2p.Message interface.
 var _ p2p.Message = (*Version)(nil)
+
+var PayloadVersionLock sync.RWMutex
+
+var PayloadVersion uint32
+
+func GetPayloadVersion() uint32 {
+	PayloadVersionLock.RLock()
+	defer PayloadVersionLock.RUnlock()
+	return PayloadVersion
+}
+
+func SetPayloadVersion(version uint32) {
+	PayloadVersionLock.Lock()
+	defer PayloadVersionLock.Unlock()
+	PayloadVersion = version
+}
 
 type Version struct {
 	Version     uint32
@@ -34,25 +51,25 @@ func (msg *Version) CMD() string {
 }
 
 func (msg *Version) MaxLength() uint32 {
-	return 75 // 33+16+16+2+8
+	return 128 // 33+16+16+2+8 + Version +NodeVersion so extend to 128
 }
 
 func (msg *Version) Serialize(w io.Writer) error {
-	if msg.Version >= pact.DPOSV2ProposalVersion {
+	if GetPayloadVersion() >= pact.DPOSV2ProposalVersion {
 		if err := common.WriteUint32(w, msg.Version); err != nil {
 			return err
 		}
 	}
 	err := common.WriteElements(w, msg.PID, msg.Target, msg.Nonce, msg.Port,
 		msg.Timestamp.UnixNano())
-	if msg.Version >= pact.DPOSV2ProposalVersion {
+	if GetPayloadVersion() >= pact.DPOSV2ProposalVersion {
 		err = common.WriteVarString(w, msg.NodeVersion)
 	}
 	return err
 }
 
 func (msg *Version) Deserialize(r io.Reader) error {
-	if msg.Version >= pact.DPOSV2ProposalVersion {
+	if GetPayloadVersion() >= pact.DPOSV2ProposalVersion {
 		temp, err := common.ReadUint32(r)
 		if err != nil {
 			return err
@@ -75,7 +92,7 @@ func (msg *Version) Deserialize(r io.Reader) error {
 
 	msg.Timestamp = dtime.Int64ToTime(timestamp)
 
-	if msg.Version >= pact.DPOSV2ProposalVersion {
+	if GetPayloadVersion() >= pact.DPOSV2ProposalVersion {
 		msg.NodeVersion, err = common.ReadVarString(r)
 		if err != nil {
 			return err

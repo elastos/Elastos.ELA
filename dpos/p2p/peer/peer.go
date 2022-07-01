@@ -13,6 +13,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/elastos/Elastos.ELA/elanet/pact"
 	"github.com/elastos/Elastos.ELA/p2p/peer"
 	"io"
 	"net"
@@ -815,6 +816,9 @@ func (p *Peer) writeLocalVersionMsg() ([]byte, error) {
 	if bestHeight >= uint64(p.cfg.DPoSV2StartHeight) {
 		nodeVersion = p.cfg.NodeVersion
 		version = p.cfg.ProtocolVersion
+		if msg.GetPayloadVersion() < pact.DPOSV2ProposalVersion {
+			msg.SetPayloadVersion(p.cfg.ProtocolVersion)
+		}
 	}
 	// Version message.
 	localVerMsg := msg.NewVersion(version, p.cfg.PID, p.cfg.Target, nonce, p.cfg.Port, nodeVersion)

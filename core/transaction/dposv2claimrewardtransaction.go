@@ -78,8 +78,8 @@ func (t *DPoSV2ClaimRewardTransaction) SpecialContextCheck() (elaerr.ELAError, b
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("claim reward exceeded , max claim reward "+claimAmount.String())), true
 	}
 
-	if claimReward.Amount < t.parameters.Config.RealWithdrawSingleFee {
-		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("claim reward is less than RealWithdrawSingleFee")), true
+	if claimReward.Amount <= t.parameters.Config.RealWithdrawSingleFee {
+		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("claim reward should be bigger than RealWithdrawSingleFee")), true
 	}
 
 	err = t.checkClaimRewardSignature(pub, claimReward)

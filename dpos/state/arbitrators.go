@@ -688,8 +688,8 @@ func (a *Arbiters) getDPoSV2Rewards(dposReward common.Fixed64, sponsor []byte) (
 			log.Error("accumulateReward Sponsor not exist ", hex.EncodeToString(sponsor))
 			return
 		}
-		producersM := make(map[common.Uint168]float64)
-		var totalM float64
+		producersN := make(map[common.Uint168]float64)
+		var totalNI float64
 		for sVoteAddr, sVoteDetail := range producer.detailedDPoSV2Votes {
 			var totalN float64
 			for _, votes := range sVoteDetail {
@@ -699,18 +699,17 @@ func (a *Arbiters) getDPoSV2Rewards(dposReward common.Fixed64, sponsor []byte) (
 				N := common.Fixed64(float64(votes.Info[0].Votes) * weightF)
 				totalN += float64(N)
 			}
-			M := math.Sqrt(totalN) * 400
-			producersM[sVoteAddr] = M
-			totalM += M
+			producersN[sVoteAddr] = totalN
+			totalNI += totalN
 		}
 
-		for sVoteAddr, M := range producersM {
+		for sVoteAddr, N := range producersN {
 			b := sVoteAddr.Bytes()
 			b[0] = byte(contract.PrefixStandard)
 			standardUint168, _ := common.Uint168FromBytes(b)
 			addr, _ := standardUint168.ToAddress()
 
-			p := M / totalM * float64(votesReward)
+			p := N / totalNI * float64(votesReward)
 			rewards[addr] += common.Fixed64(p)
 		}
 

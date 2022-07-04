@@ -74,7 +74,7 @@ func (a *Arbitrator) Start() {
 	a.network.Start()
 
 	go a.changeViewLoop()
-	go a.recover()
+	//go a.recover()
 	go a.dumpPeersInfo()
 }
 

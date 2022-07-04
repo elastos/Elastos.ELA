@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"io"
 	"math"
+	"strconv"
 	"sync"
 
 	"github.com/elastos/Elastos.ELA/common"
@@ -224,6 +225,23 @@ func (p *Producer) GetDetailedDPoSV2Votes(stakeAddress common.Uint168,
 
 func (p *Producer) GetAllDetailedDPoSV2Votes() map[common.Uint168]map[common.Uint256]payload.DetailedVoteInfo {
 	return p.detailedDPoSV2Votes
+}
+
+func (p *Producer) GetTotalDPoSV2VoteRights() float64 {
+	var result float64
+	for _, sVoteDetail := range p.detailedDPoSV2Votes {
+		var totalN float64
+		for _, votes := range sVoteDetail {
+			weightS := strconv.FormatFloat(
+				math.Log10(float64(votes.Info[0].LockTime-votes.BlockHeight)/7200*10), 'f', 2, 64)
+			weightF, _ := strconv.ParseFloat(weightS, 64)
+			N := common.Fixed64(float64(votes.Info[0].Votes) * weightF)
+			totalN += float64(N)
+		}
+		result += totalN
+	}
+
+	return result
 }
 
 func (p *Producer) SetInfo(i payload.ProducerInfo) {
@@ -841,7 +859,8 @@ func (s *State) GetDposV2ActiveProducers() []*Producer {
 	producers := make([]*Producer, 0, len(s.ActivityProducers))
 	for _, producer := range s.ActivityProducers {
 		// limit arbiters can only be producers who have effective dposV2 votes
-		if producer.DposV2Votes() > s.ChainParams.DPoSV2EffectiveVotes {
+		voteRights := producer.GetTotalDPoSV2VoteRights()
+		if voteRights > float64(s.ChainParams.DPoSV2EffectiveVotes) {
 			producers = append(producers, producer)
 		}
 	}
@@ -1460,10 +1479,12 @@ func (s *State) processTransactions(txs []interfaces.Transaction, height uint32)
 				s.UsedDposV2Votes[*stakeAddress] += info.Votes
 			})
 
+			voteRights := producer.GetTotalDPoSV2VoteRights()
+
 			s.History.Append(height, func() {
 				delete(producer.detailedDPoSV2Votes[*stakeAddress], key)
 				producer.dposV2Votes -= info.Votes
-				if producer.dposV2Votes < s.ChainParams.DPoSV2EffectiveVotes {
+				if voteRights < float64(s.ChainParams.DPoSV2EffectiveVotes) {
 					delete(s.DposV2EffectedProducers, hex.EncodeToString(producer.OwnerPublicKey()))
 				}
 			}, func() {
@@ -1475,7 +1496,8 @@ func (s *State) processTransactions(txs []interfaces.Transaction, height uint32)
 				}
 				producer.detailedDPoSV2Votes[*stakeAddress][key] = detailVoteInfo
 				producer.dposV2Votes += info.Votes
-				if producer.dposV2Votes >= s.ChainParams.DPoSV2EffectiveVotes {
+				voteRights := producer.GetTotalDPoSV2VoteRights()
+				if voteRights >= float64(s.ChainParams.DPoSV2EffectiveVotes) {
 					s.DposV2EffectedProducers[hex.EncodeToString(producer.OwnerPublicKey())] = producer
 				}
 			})
@@ -1981,13 +2003,15 @@ func (s *State) processVotingContent(tx interfaces.Transaction, height uint32) {
 					}
 					producer.detailedDPoSV2Votes[*stakeAddress][dvi.ReferKey()] = dvi
 					producer.dposV2Votes += voteInfo.Votes
-					if producer.dposV2Votes >= s.ChainParams.DPoSV2EffectiveVotes {
+					voteRights := producer.GetTotalDPoSV2VoteRights()
+					if voteRights >= float64(s.ChainParams.DPoSV2EffectiveVotes) {
 						s.DposV2EffectedProducers[hex.EncodeToString(producer.OwnerPublicKey())] = producer
 					}
 				}, func() {
 					delete(producer.detailedDPoSV2Votes[*stakeAddress], dvi.ReferKey())
 					producer.dposV2Votes -= voteInfo.Votes
-					if producer.dposV2Votes >= s.ChainParams.DPoSV2EffectiveVotes {
+					voteRights := producer.GetTotalDPoSV2VoteRights()
+					if voteRights >= float64(s.ChainParams.DPoSV2EffectiveVotes) {
 						delete(s.DposV2EffectedProducers, hex.EncodeToString(producer.OwnerPublicKey()))
 					}
 				})

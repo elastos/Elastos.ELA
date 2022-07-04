@@ -589,6 +589,8 @@ func (c *Committee) tryEndVoting(height uint32) bool {
 }
 
 func (c *Committee) changeCommittee(height uint32) bool {
+	log.Info("change committee at height:", height)
+
 	if c.shouldCleanHistory(height) {
 		oriHistoryMembers := copyHistoryMembersMap(c.HistoryMembers)
 		oriHistoryCandidates := copyHistoryCandidateMap(c.state.HistoryCandidates)
@@ -1414,6 +1416,10 @@ func (c *Committee) changeCommitteeMembers(height uint32) error {
 
 		// if no next CR members, need to change InElectionPeriod to false
 		if len(c.NextMembers) == 0 {
+
+			// clear current members
+			c.resetCurrentMembers(height)
+
 			oriInElectionPeriod := c.InElectionPeriod
 			c.lastHistory.Append(height, func() {
 				c.InElectionPeriod = false
@@ -1488,6 +1494,39 @@ func (c *Committee) processNextMembers(height uint32,
 		c.NextMembers = oriMembers
 	})
 	return newMembers
+}
+
+func (c *Committee) resetCurrentMembers(height uint32) {
+	log.Info("reset current members at height:", height)
+	oriMembers := copyMembersMap(c.Members)
+	if len(c.Members) != 0 {
+		if _, ok := c.HistoryMembers[c.state.CurrentSession]; !ok {
+			currentSession := c.state.CurrentSession
+			c.lastHistory.Append(height, func() {
+				c.HistoryMembers[currentSession] =
+					make(map[common.Uint168]*CRMember)
+			}, func() {
+				delete(c.HistoryMembers, currentSession)
+			})
+		}
+
+		for _, m := range oriMembers {
+			member := *m
+			c.lastHistory.Append(height, func() {
+				c.HistoryMembers[c.state.CurrentSession][member.Info.CID] = &member
+			}, func() {
+				delete(c.HistoryMembers[c.state.CurrentSession], member.Info.CID)
+			})
+		}
+	}
+
+	c.lastHistory.Append(height, func() {
+		c.Members = make(map[common.Uint168]*CRMember)
+	}, func() {
+		c.Members = oriMembers
+	})
+
+	return
 }
 
 func (c *Committee) resetNextMembers(height uint32) {

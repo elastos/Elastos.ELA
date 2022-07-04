@@ -547,6 +547,7 @@ func GetVoteRights(params Params) map[string]interface{} {
 			Address:         address,
 			TotalVotesRight: totalVotesRight,
 			UsedVotesInfo: usedVoteRightDetailInfo{
+				UsedDPoSV2Votes:         []DetailedVoteInfo{},
 				UsedDPoSVotes:           []VotesWithLockTimeInfo{},
 				UsedCRVotes:             []VotesWithLockTimeInfo{},
 				UsdedCRImpeachmentVotes: []VotesWithLockTimeInfo{},

@@ -47,6 +47,7 @@ const (
 	slotRevertToDPOSHash                        = "RevertToDPOSHash"
 	slotUnstakeRealWithdraw                     = "UnstakeRealWithdraw"
 	slotStake                                   = "Stake"
+	slotDposV2ClaimReward                       = "DposV2ClaimReward"
 )
 
 type conflict struct {
@@ -441,6 +442,16 @@ func newConflictManager() conflictManager {
 					keyTypeFuncPair{
 						Type: common2.Unstake,
 						Func: strUnstake,
+					},
+				),
+			},
+			// DposV2ClaimReward
+			{
+				name: slotDposV2ClaimReward,
+				slot: newConflictSlot(programHash,
+					keyTypeFuncPair{
+						Type: common2.DposV2ClaimReward,
+						Func: programHashDposV2ClaimReward,
 					},
 				),
 			},

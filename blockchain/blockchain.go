@@ -10,6 +10,7 @@ import (
 	"container/list"
 	"errors"
 	"fmt"
+	"github.com/elastos/Elastos.ELA/dpos/p2p/peer"
 	"math/big"
 	"os"
 	"path/filepath"
@@ -332,6 +333,12 @@ func (b *BlockChain) InitCheckpoint(interrupt <-chan struct{},
 		arbiters.Start()
 		events.Notify(events.ETDirectPeersChanged,
 			arbiters.GetNeedConnectArbiters())
+
+		currentArbiters := arbiters.GetCurrentNeedConnectArbiters()
+		nextArbiters := arbiters.GetNextNeedConnectArbiters()
+
+		events.Notify(events.ETDirectPeersChangedV2,
+			&peer.PeersInfo{CurrentPeers: currentArbiters, NextPeers: nextArbiters})
 
 	case <-interrupt:
 	}

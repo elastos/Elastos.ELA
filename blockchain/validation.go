@@ -8,6 +8,8 @@ package blockchain
 import (
 	"crypto/sha256"
 	"errors"
+	"github.com/elastos/Elastos.ELA/vm"
+	interfaces2 "github.com/elastos/Elastos.ELA/vm/interfaces"
 
 	"sort"
 
@@ -18,6 +20,48 @@ import (
 	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/crypto"
 )
+
+var GetDataContainer = func(programHash *common.Uint168, tx interfaces.Transaction) interfaces2.IDataContainer {
+	return tx
+}
+
+func RunProgramsVM(tx interfaces.Transaction, hashes []common.Uint168, programs []*Program) error {
+	if tx == nil {
+		return errors.New("invalid data content nil transaction")
+	}
+	if len(hashes) != len(programs) {
+		return errors.New("number of data hashes is different with number of programs")
+	}
+
+	for i := 0; i < len(programs); i++ {
+		codeHash := common.ToCodeHash(programs[i].Code)
+
+		if !hashes[i].ToCodeHash().IsEqual(*codeHash) {
+			return errors.New("data hash is different from corresponding program code")
+		}
+		//execute program on VM
+		se := vm.NewExecutionEngine(GetDataContainer(&hashes[i], tx),
+			new(vm.CryptoECDsa), vm.MAXSTEPS, nil, nil)
+		se.LoadScript(programs[i].Code, false)
+		se.LoadScript(programs[i].Parameter, true)
+		se.Execute()
+
+		if se.GetState() != vm.HALT {
+			return errors.New("[VM] Finish State not equal to HALT")
+		}
+
+		if se.GetEvaluationStack().Count() != 1 {
+			return errors.New("[VM] Execute Engine Stack Count Error")
+		}
+
+		success := se.GetExecuteResult()
+		if !success {
+			return errors.New("[VM] Check Sig FALSE")
+		}
+	}
+
+	return nil
+}
 
 func RunPrograms(data []byte, programHashes []common.Uint168, programs []*Program) error {
 	if len(programHashes) != len(programs) {

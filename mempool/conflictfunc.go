@@ -313,7 +313,7 @@ func programHashDposV2ClaimReward(tx interfaces.Transaction) (interface{}, error
 	code := tx.Programs()[0].Code
 	ct, err := contract.CreateStakeContractByCode(code)
 	if err != nil {
-		return nil, fmt.Errorf("invlid voint code, tx:%s", tx.Hash())
+		return nil, fmt.Errorf("invlid DPoSV2ClaimReward code, tx:%s", tx.Hash())
 	}
 	programHash := ct.ToProgramHash()
 	return *programHash, nil

@@ -12,7 +12,6 @@ import (
 	"fmt"
 	"io"
 	"math"
-	"strconv"
 	"sync"
 
 	"github.com/elastos/Elastos.ELA/common"
@@ -234,9 +233,7 @@ func (p *Producer) GetTotalDPoSV2VoteRights() float64 {
 	for _, sVoteDetail := range p.detailedDPoSV2Votes {
 		var totalN float64
 		for _, votes := range sVoteDetail {
-			weightS := strconv.FormatFloat(
-				math.Log10(float64(votes.Info[0].LockTime-votes.BlockHeight)/7200*10), 'f', 2, 64)
-			weightF, _ := strconv.ParseFloat(weightS, 64)
+			weightF := math.Log10(float64(votes.Info[0].LockTime-votes.BlockHeight) / 7200 * 10)
 			N := common.Fixed64(float64(votes.Info[0].Votes) * weightF)
 			totalN += float64(N)
 		}
@@ -2020,8 +2017,9 @@ func (s *State) processVotingContent(tx interfaces.Transaction, height uint32) {
 				}, func() {
 					delete(producer.detailedDPoSV2Votes[*stakeAddress], dvi.ReferKey())
 					producer.dposV2Votes -= voteInfo.Votes
+
 					voteRights := producer.GetTotalDPoSV2VoteRights()
-					if voteRights >= float64(s.ChainParams.DPoSV2EffectiveVotes) {
+					if voteRights < float64(s.ChainParams.DPoSV2EffectiveVotes) {
 						delete(s.DposV2EffectedProducers, hex.EncodeToString(producer.OwnerPublicKey()))
 					}
 				})

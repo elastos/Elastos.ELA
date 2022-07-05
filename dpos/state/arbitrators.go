@@ -13,7 +13,6 @@ import (
 	"math"
 	"math/rand"
 	"sort"
-	"strconv"
 	"strings"
 	"sync"
 
@@ -704,13 +703,8 @@ func (a *Arbiters) getDPoSV2Rewards(dposReward common.Fixed64, sponsor []byte) (
 		var totalNI float64
 		for sVoteAddr, sVoteDetail := range producer.detailedDPoSV2Votes {
 			var totalN float64
-			address, _ := sVoteAddr.ToAddress()
-
 			for _, votes := range sVoteDetail {
-				weightS := strconv.FormatFloat(
-					math.Log10(float64(votes.Info[0].LockTime-votes.BlockHeight)/7200*10), 'f', 2, 64)
-				weightF, _ := strconv.ParseFloat(weightS, 64)
-				log.Debugf("getDPoSV2Rewards sVoteAddr %s, weightF %f Votes %v\n", address, weightF, votes.Info[0].Votes)
+				weightF := math.Log10(float64(votes.Info[0].LockTime-votes.BlockHeight) / 7200 * 10)
 				N := common.Fixed64(float64(votes.Info[0].Votes) * weightF)
 				totalN += float64(N)
 			}

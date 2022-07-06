@@ -457,7 +457,7 @@ func (a *Arbiters) forceChange(height uint32) error {
 			a.getNeedConnectArbiters())
 
 		currentArbiters := a.getCurrentNeedConnectArbiters()
-		nextArbiters := a.GetNextNeedConnectArbiters()
+		nextArbiters := a.getNextNeedConnectArbiters()
 
 		go events.Notify(events.ETDirectPeersChangedV2,
 			&peer.PeersInfo{CurrentPeers: currentArbiters, NextPeers: nextArbiters})

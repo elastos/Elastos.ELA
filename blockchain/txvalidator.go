@@ -707,7 +707,7 @@ func checkTransactionSignature(tx interfaces.Transaction, references map[*common
 	// sort the program hashes of owner and programs of the transaction
 	common.SortProgramHashByCodeHash(programHashes)
 	SortPrograms(tx.Programs())
-	return RunPrograms(buf.Bytes(), programHashes, tx.Programs())
+	return RunPrograms(tx, buf.Bytes(), programHashes, tx.Programs())
 }
 
 func CheckAmountPrecise(amount common.Fixed64, precision byte) bool {

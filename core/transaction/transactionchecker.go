@@ -599,14 +599,8 @@ func checkTransactionSignature(tx interfaces.Transaction, references map[*common
 	// sort the program hashes of owner and programs of the transaction
 	common.SortProgramHashByCodeHash(programHashes)
 	blockchain.SortPrograms(tx.Programs())
-	return blockchain.RunPrograms(buf.Bytes(), programHashes, tx.Programs())
 
-	// todo complete me
-	//
-	//switch tx.TxType() {
-	//case common2.TxType
-	//}
-	//return blockchain.RunProgramsVM(tx, programHashes, tx.Programs())
+	return blockchain.RunPrograms(tx, buf.Bytes(), programHashes, tx.Programs())
 }
 
 func checkTransactionDepositOutputs(bc *blockchain.BlockChain, txn interfaces.Transaction) error {

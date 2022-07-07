@@ -25,7 +25,7 @@ var GetDataContainer = func(programHash *common.Uint168, tx interfaces.Transacti
 	return tx
 }
 
-func RunProgramsVM(tx interfaces.Transaction, hashes []common.Uint168, programs []*Program) error {
+func RunPrograms(tx interfaces.Transaction, data []byte, hashes []common.Uint168, programs []*Program) error {
 	if tx == nil {
 		return errors.New("invalid data content nil transaction")
 	}
@@ -34,12 +34,53 @@ func RunProgramsVM(tx interfaces.Transaction, hashes []common.Uint168, programs 
 	}
 
 	for i := 0; i < len(programs); i++ {
-		codeHash := common.ToCodeHash(programs[i].Code)
+		program := programs[i]
+		programHash := hashes[i]
 
-		if !hashes[i].ToCodeHash().IsEqual(*codeHash) {
-			return errors.New("data hash is different from corresponding program code")
+		codeHash := common.ToCodeHash(program.Code)
+
+		prefixType := contract.GetPrefixType(programHash)
+
+
+		switch prefixType {
+		case contract.PrefixCrossChain:
+			if contract.IsSchnorr(program.Code) {
+				if ok, err := checkSchnorrSignatures(*program, common.Sha256D(data[:])); !ok {
+					return errors.New("check schnorr signature failed:" + err.Error())
+				}
+			} else {
+				if err := checkCrossChainSignatures(*program, data); err != nil {
+					return err
+				}
+			}
+			continue
+
+		case contract.PrefixStandard, contract.PrefixDeposit:
+			if !hashes[i].ToCodeHash().IsEqual(*codeHash) {
+				return errors.New("data hash is different from corresponding program code")
+			}
+
+			if contract.IsSchnorr(program.Code) {
+				if ok, err := checkSchnorrSignatures(*program, common.Sha256D(data[:])); !ok {
+					return errors.New("check schnorr signature failed:" + err.Error())
+				}
+				continue
+			}
+
+		case contract.PrefixMultiSig:
+			if !hashes[i].ToCodeHash().IsEqual(*codeHash) {
+				return errors.New("data hash is different from corresponding program code")
+			}
+			//if err := CheckMultiSigSignatures(*program, data); err != nil {
+			//	return err
+			//}
+
+		default:
+			return errors.New("unknown signature type")
 		}
-		//execute program on VM
+
+		// check standard or multi signature
+		// execute program on VM
 		se := vm.NewExecutionEngine(GetDataContainer(&hashes[i], tx),
 			new(vm.CryptoECDsa), vm.MAXSTEPS, nil, nil)
 		se.LoadScript(programs[i].Code, false)
@@ -57,58 +98,6 @@ func RunProgramsVM(tx interfaces.Transaction, hashes []common.Uint168, programs 
 		success := se.GetExecuteResult()
 		if !success {
 			return errors.New("[VM] Check Sig FALSE")
-		}
-	}
-
-	return nil
-}
-
-func RunPrograms(data []byte, programHashes []common.Uint168, programs []*Program) error {
-	if len(programHashes) != len(programs) {
-		return errors.New("the number of data hashes is different with number of programs")
-	}
-
-	for i, program := range programs {
-		programHash := programHashes[i]
-		prefixType := contract.GetPrefixType(programHash)
-
-		// TODO: this implementation will be deprecated
-		if prefixType == contract.PrefixCrossChain {
-			if contract.IsSchnorr(program.Code) {
-				if ok, err := checkSchnorrSignatures(*program, common.Sha256D(data[:])); !ok {
-					return errors.New("check schnorr signature failed:" + err.Error())
-				}
-			} else {
-				if err := checkCrossChainSignatures(*program, data); err != nil {
-					return err
-				}
-			}
-			continue
-		}
-
-		codeHash := common.ToCodeHash(program.Code)
-		ownerHash := programHash.ToCodeHash()
-
-		if !ownerHash.IsEqual(*codeHash) {
-			return errors.New("the data hashes is different with corresponding program code")
-		}
-
-		if prefixType == contract.PrefixStandard || prefixType == contract.PrefixDeposit {
-			if contract.IsSchnorr(program.Code) {
-				if ok, err := checkSchnorrSignatures(*program, common.Sha256D(data[:])); !ok {
-					return errors.New("check schnorr signature failed:" + err.Error())
-				}
-			} else {
-				if err := CheckStandardSignature(*program, data); err != nil {
-					return err
-				}
-			}
-		} else if prefixType == contract.PrefixMultiSig {
-			if err := CheckMultiSigSignatures(*program, data); err != nil {
-				return err
-			}
-		} else {
-			return errors.New("unknown signature type")
 		}
 	}
 

@@ -2174,7 +2174,7 @@ func (a *Arbiters) UpdateNextArbitrators(versionHeight, height uint32) error {
 					votedProducers)
 			} else {
 				candidates, err = a.GetDposV2CandidatesDesc(count+int(a.ChainParams.CRMemberCount),
-					votedProducersStr)
+					votedProducersStr, choosingArbiters)
 			}
 			if err != nil {
 				return err
@@ -2505,7 +2505,7 @@ func (a *Arbiters) GetCandidatesDesc(height uint32, startIndex int,
 }
 
 func (a *Arbiters) GetDposV2CandidatesDesc(startIndex int,
-	producers []string) ([]ArbiterMember, error) {
+	producers []string, choosingArbiters map[common.Uint168]ArbiterMember) ([]ArbiterMember, error) {
 	if len(producers) < startIndex {
 		return make([]ArbiterMember, 0), nil
 	}
@@ -2515,7 +2515,7 @@ func (a *Arbiters) GetDposV2CandidatesDesc(startIndex int,
 		ChainParams.CandidateArbiters; i++ {
 		ownkey, _ := hex.DecodeString(producers[i])
 		hash, _ := contract.PublicKeyToStandardProgramHash(ownkey)
-		crc, exist := a.nextCRCArbitersMap[*hash]
+		crc, exist := choosingArbiters[*hash]
 		if exist {
 			result = append(result, crc)
 		} else {

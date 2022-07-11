@@ -104,7 +104,7 @@ func (t *UpdateProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bool
 
 	case state.DPoSV1V2:
 		if t.parameters.BlockHeight > producer.Info().StakeUntil &&
-			len(stake.DposV2EffectedProducers) >= stake.ChainParams.GeneralArbiters*3/2 &&
+			t.parameters.BlockHeight > stake.DPoSV2ActiveHeight &&
 			info.StakeUntil != producer.Info().StakeUntil {
 			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("producer already expired and dposv2 already started, can not update stakeuntil ")), true
 		}

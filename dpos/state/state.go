@@ -2010,9 +2010,11 @@ func (s *State) processVotingContent(tx interfaces.Transaction, height uint32) {
 					}
 					producer.detailedDPoSV2Votes[*stakeAddress][dvi.ReferKey()] = dvi
 					producer.dposV2Votes += voteInfo.Votes
+
 					voteRights := producer.GetTotalDPoSV2VoteRights()
 					if voteRights >= float64(s.ChainParams.DPoSV2EffectiveVotes) {
 						s.DposV2EffectedProducers[hex.EncodeToString(producer.OwnerPublicKey())] = producer
+
 					}
 				}, func() {
 					delete(producer.detailedDPoSV2Votes[*stakeAddress], dvi.ReferKey())

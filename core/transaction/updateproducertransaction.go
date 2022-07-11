@@ -74,11 +74,7 @@ func (t *UpdateProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bool
 	if producer == nil {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("updating unknown producer")), true
 	}
-
-	if producer.State() != state.Active {
-		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("only active producer can update producer")), true
-	}
-
+	stake := t.parameters.BlockChain.GetState()
 	//if producer is already dposv2
 	switch producer.Identity() {
 	case state.DPoSV1:
@@ -89,6 +85,9 @@ func (t *UpdateProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bool
 			}
 		}
 	case state.DPoSV2:
+		if t.parameters.BlockHeight > producer.Info().StakeUntil && info.StakeUntil != producer.Info().StakeUntil {
+			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("producer already expired, can not update stakeuntil")), true
+		}
 		if info.StakeUntil < producer.Info().StakeUntil {
 			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("stake time is smaller than before")), true
 		} else if info.StakeUntil > producer.Info().StakeUntil {
@@ -104,6 +103,11 @@ func (t *UpdateProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bool
 		}
 
 	case state.DPoSV1V2:
+		if t.parameters.BlockHeight > producer.Info().StakeUntil &&
+			len(stake.DposV2EffectedProducers) >= stake.ChainParams.GeneralArbiters*3/2 &&
+			info.StakeUntil != producer.Info().StakeUntil {
+			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("producer already expired and dposv2 already started, can not update stakeuntil ")), true
+		}
 		if info.StakeUntil < producer.Info().StakeUntil {
 			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("stake time is smaller than before")), true
 		} else if info.StakeUntil > producer.Info().StakeUntil {

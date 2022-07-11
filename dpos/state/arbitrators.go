@@ -1900,11 +1900,11 @@ func (a *Arbiters) getSortedProducers() []*Producer {
 func (a *Arbiters) getSortedProducersDposV2() []*Producer {
 	votedProducers := a.State.GetDposV2ActiveProducers()
 	sort.Slice(votedProducers, func(i, j int) bool {
-		if votedProducers[i].DposV2Votes() == votedProducers[j].DposV2Votes() {
+		if votedProducers[i].GetTotalDPoSV2VoteRights() == votedProducers[j].GetTotalDPoSV2VoteRights() {
 			return bytes.Compare(votedProducers[i].info.NodePublicKey,
 				votedProducers[j].NodePublicKey()) < 0
 		}
-		return votedProducers[i].DposV2Votes() > votedProducers[j].DposV2Votes()
+		return votedProducers[i].GetTotalDPoSV2VoteRights() > votedProducers[j].GetTotalDPoSV2VoteRights()
 	})
 
 	return votedProducers
@@ -2240,11 +2240,11 @@ func (a *Arbiters) resetNextArbiterByCRC(versionHeight uint32, height uint32) (i
 
 		if a.isDposV2Active() {
 			sort.Slice(votedProducers, func(i, j int) bool {
-				if votedProducers[i].DposV2Votes() == votedProducers[j].DposV2Votes() {
+				if votedProducers[i].GetTotalDPoSV2VoteRights() == votedProducers[j].GetTotalDPoSV2VoteRights() {
 					return bytes.Compare(votedProducers[i].info.NodePublicKey,
 						votedProducers[j].NodePublicKey()) < 0
 				}
-				return votedProducers[i].DposV2Votes() > votedProducers[j].DposV2Votes()
+				return votedProducers[i].GetTotalDPoSV2VoteRights() > votedProducers[j].GetTotalDPoSV2VoteRights()
 			})
 		} else {
 			sort.Slice(votedProducers, func(i, j int) bool {

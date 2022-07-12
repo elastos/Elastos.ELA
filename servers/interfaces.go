@@ -492,7 +492,7 @@ func GetAllDetailedDPoSV2Votes(params Params) map[string]interface{} {
 		for _, v := range dposv2Votes {
 			for k1, v1 := range v {
 				address, _ := v1.StakeProgramHash.ToAddress()
-				result = append(result, &detailedVoteInfo{
+				info := &detailedVoteInfo{
 					ProducerOwnerKey: hex.EncodeToString(p.OwnerPublicKey()),
 					ProducerNodeKey:  hex.EncodeToString(p.NodePublicKey()),
 					ReferKey:         common.ToReversedString(k1),
@@ -500,12 +500,14 @@ func GetAllDetailedDPoSV2Votes(params Params) map[string]interface{} {
 					TransactionHash:  common.ToReversedString(v1.TransactionHash),
 					BlockHeight:      v1.BlockHeight,
 					PayloadVersion:   v1.PayloadVersion,
+					VoteType:         byte(v1.VoteType),
 					Info: VotesWithLockTimeInfo{
 						Candidate: hex.EncodeToString(v1.Info[0].Candidate),
 						Votes:     v1.Info[0].Votes.String(),
 						LockTime:  v1.Info[0].LockTime,
 					},
-				})
+				}
+				result = append(result, info)
 			}
 		}
 	}

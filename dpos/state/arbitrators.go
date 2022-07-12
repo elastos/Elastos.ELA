@@ -680,11 +680,6 @@ func (a *Arbiters) isDPoSV2Run(blockHeight uint32) bool {
 
 func (a *Arbiters) getDPoSV2Rewards(dposReward common.Fixed64, sponsor []byte) (rewards map[string]common.Fixed64) {
 	log.Debugf("accumulateReward dposReward %v", dposReward)
-	//024a3703bf5e45cde6e11e7008aca78b8a751e882fa7a7bf3bc4ec0e013b43566c
-	sponsorPubKey := hex.EncodeToString(sponsor)
-	if sponsorPubKey == "0218a367a7e6bca8b641cff65dd27abc4f78629f42f7ff0554b2450a03794f12b3" {
-		fmt.Println("hello")
-	}
 	ownerPubKeyStr := a.getProducerKey(sponsor)
 	ownerPubKeyBytes, _ := hex.DecodeString(ownerPubKeyStr)
 	ownerProgramHash, _ := contract.PublicKeyToStandardProgramHash(ownerPubKeyBytes)
@@ -711,10 +706,6 @@ func (a *Arbiters) getDPoSV2Rewards(dposReward common.Fixed64, sponsor []byte) (
 			for _, votes := range sVoteDetail {
 				weightF := math.Log10(float64(votes.Info[0].LockTime-votes.BlockHeight) / 7200 * 10)
 				N := common.Fixed64(float64(votes.Info[0].Votes) * weightF)
-				addr, _ := sVoteAddr.ToAddress()
-				if addr == "SdJafnusnEFbV6VecLBUhzb2zFnFjQ2LcN" {
-					fmt.Println("addr")
-				}
 				totalN += float64(N)
 			}
 
@@ -727,9 +718,6 @@ func (a *Arbiters) getDPoSV2Rewards(dposReward common.Fixed64, sponsor []byte) (
 			b[0] = byte(contract.PrefixStandard)
 			standardUint168, _ := common.Uint168FromBytes(b)
 			addr, _ := standardUint168.ToAddress()
-			if addr == "EZAV8XyEUpMJx6K3skBvAERS783xSUPrk2" {
-				fmt.Println("EZAV8XyEUpMJx6K3skBvAERS783xSUPrk2")
-			}
 			p := N / totalNI * float64(votesReward)
 			rewards[addr] += common.Fixed64(p)
 			log.Debugf("getDPoSV2Rewards addr %s  add p %v %f rewards[addr]%v \n", addr, common.Fixed64(p), rewards[addr])
@@ -774,9 +762,6 @@ func (a *Arbiters) accumulateReward(block *types.Block, confirm *payload.Confirm
 		oriDutyIndex := a.DutyIndex
 		oriForceChanged := a.forceChanged
 		oriDposV2RewardInfo := a.DposV2RewardInfo
-		if block.Height == 4573 {
-			fmt.Println("4573")
-		}
 		rewards := a.getDPoSV2Rewards(dposReward, confirm.Proposal.Sponsor)
 
 		a.History.Append(block.Height, func() {

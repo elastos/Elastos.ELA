@@ -8,14 +8,14 @@ package transaction
 import (
 	"errors"
 	"fmt"
+	"io"
+
 	"github.com/elastos/Elastos.ELA/blockchain"
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
 	pg "github.com/elastos/Elastos.ELA/core/contract/program"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
-	"github.com/elastos/Elastos.ELA/core/types/functions"
 	"github.com/elastos/Elastos.ELA/core/types/interfaces"
-	"io"
 )
 
 func GetTransactionByBytes(r io.Reader) (interfaces.Transaction, error) {
@@ -59,7 +59,7 @@ func CreateTransaction(
 	lockTime uint32,
 	programs []*pg.Program,
 ) interfaces.Transaction {
-	txn, err := functions.GetTransactionByTxType(txType)
+	txn, err := GetTransaction(txType)
 	if err != nil {
 		fmt.Println(err)
 	}

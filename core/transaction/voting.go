@@ -203,11 +203,17 @@ func (t *VotingTransaction) SpecialContextCheck() (result elaerr.ELAError, end b
 			if vote.VoteType != outputpayload.DposV2 {
 				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid vote type")), true
 			}
-			if vote.BlockHeight > content.VotesInfo.LockTime {
-				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid lock time")), true
-			}
 			if len(vote.Info) != 1 || vote.Info[0].Votes != content.VotesInfo.Votes {
 				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("votes not equal")), true
+			}
+			if content.VotesInfo.LockTime <= vote.Info[0].LockTime {
+				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("new lock time <= old lock time")), true
+			}
+			if content.VotesInfo.LockTime > producer.Info().StakeUntil {
+				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("new lock time > producer StakeUntil")), true
+			}
+			if content.VotesInfo.LockTime-vote.BlockHeight > t.parameters.Config.DPoSV2MaxVotesLockTime {
+				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid lock time > DPoSV2MaxVotesLockTime")), true
 			}
 			if !bytes.Equal(vote.Info[0].Candidate, content.VotesInfo.Candidate) {
 				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("candidate should be the same one")), true

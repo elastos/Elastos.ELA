@@ -547,9 +547,7 @@ func newPeerConfig(sp *serverPeer) *peer.Config {
 
 			}
 		},
-		BestHeight:        sp.server.cfg.BestHeight,
 		DPoSV2StartHeight: sp.server.cfg.DPoSV2StartHeight,
-		ProtocolVersion:   sp.server.cfg.ProtocolVersion,
 		NodeVersion:       sp.server.cfg.NodeVersion,
 	}
 }

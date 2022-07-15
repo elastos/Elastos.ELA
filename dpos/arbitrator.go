@@ -41,8 +41,6 @@ type Config struct {
 	ChainParams     *config.Params
 	Broadcast       func(msg p2p.Message)
 	AnnounceAddr    func()
-	BestHeight      func() uint64
-	ProtocolVersion uint32
 	NodeVersion     string
 }
 
@@ -257,8 +255,6 @@ func NewArbitrator(account account.Account, cfg Config) (*Arbitrator, error) {
 		Account:         account,
 		MedianTime:      medianTime,
 		Listener:        dposManager,
-		BestHeight:      cfg.BestHeight,
-		ProtocolVersion: cfg.ProtocolVersion,
 		NodeVersion:     cfg.NodeVersion,
 	})
 	if err != nil {

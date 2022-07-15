@@ -13,12 +13,14 @@ import (
 
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/dpos/dtime"
-	"github.com/elastos/Elastos.ELA/elanet/pact"
 	"github.com/elastos/Elastos.ELA/p2p"
 )
 
 // Ensure Version implement p2p.Message interface.
 var _ p2p.Message = (*Version)(nil)
+
+const DPoSV1Version = 0x00
+const DPoSV2Version = 0x01
 
 var PayloadVersionLock sync.RWMutex
 
@@ -55,26 +57,26 @@ func (msg *Version) MaxLength() uint32 {
 }
 
 func (msg *Version) Serialize(w io.Writer) error {
-	if GetPayloadVersion() >= pact.DPOSV2ProposalVersion {
+	if GetPayloadVersion() >= DPoSV2Version {
 		if err := common.WriteUint32(w, msg.Version); err != nil {
 			return err
 		}
 	}
 	err := common.WriteElements(w, msg.PID, msg.Target, msg.Nonce, msg.Port,
 		msg.Timestamp.UnixNano())
-	if GetPayloadVersion() >= pact.DPOSV2ProposalVersion {
+	if GetPayloadVersion() >= DPoSV2Version {
 		err = common.WriteVarString(w, msg.NodeVersion)
 	}
 	return err
 }
 
 func (msg *Version) Deserialize(r io.Reader) error {
-	if GetPayloadVersion() >= pact.DPOSV2ProposalVersion {
-		temp, err := common.ReadUint32(r)
+	if GetPayloadVersion() >= DPoSV2Version {
+		v, err := common.ReadUint32(r)
 		if err != nil {
 			return err
 		}
-		msg.Version = temp
+		msg.Version = v
 	}
 	var timestamp int64
 	err := common.ReadElements(r, &msg.PID, &msg.Target, &msg.Nonce, &msg.Port,
@@ -92,7 +94,7 @@ func (msg *Version) Deserialize(r io.Reader) error {
 
 	msg.Timestamp = dtime.Int64ToTime(timestamp)
 
-	if GetPayloadVersion() >= pact.DPOSV2ProposalVersion {
+	if GetPayloadVersion() >= DPoSV2Version {
 		msg.NodeVersion, err = common.ReadVarString(r)
 		if err != nil {
 			return err

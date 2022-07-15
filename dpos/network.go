@@ -36,8 +36,6 @@ type NetworkConfig struct {
 	Account         account.Account
 	MedianTime      dtime.MedianTimeSource
 	Listener        manager.NetworkEventListener
-	BestHeight      func() uint64
-	ProtocolVersion uint32
 	NodeVersion     string
 }
 
@@ -392,9 +390,7 @@ func NewDposNetwork(cfg NetworkConfig) (*network, error) {
 		PongNonce:         network.getCurrentHeight,
 		Sign:              cfg.Account.Sign,
 		StateNotifier:     notifier,
-		BestHeight:        cfg.BestHeight,
 		DPoSV2StartHeight: cfg.ChainParams.DPoSV2StartHeight,
-		ProtocolVersion:   cfg.ProtocolVersion,
 		NodeVersion:       cfg.NodeVersion,
 	})
 	if err != nil {

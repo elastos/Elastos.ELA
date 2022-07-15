@@ -13,8 +13,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"github.com/elastos/Elastos.ELA/elanet/pact"
-	"github.com/elastos/Elastos.ELA/p2p/peer"
 	"io"
 	"net"
 	"strconv"
@@ -27,6 +25,7 @@ import (
 	"github.com/elastos/Elastos.ELA/dpos/p2p/msg"
 	"github.com/elastos/Elastos.ELA/p2p"
 	pmsg "github.com/elastos/Elastos.ELA/p2p/msg"
+	"github.com/elastos/Elastos.ELA/p2p/peer"
 )
 
 const (
@@ -103,9 +102,7 @@ type Config struct {
 	CreateMessage func(hdr p2p.Header, r net.Conn) (message p2p.Message, err error)
 	MessageFunc   MessageFunc
 
-	BestHeight        func() uint64
 	DPoSV2StartHeight uint32
-	ProtocolVersion   uint32
 	NodeVersion       string
 }
 
@@ -812,22 +809,15 @@ func (p *Peer) writeLocalVersionMsg() ([]byte, error) {
 	var nonce [16]byte
 	rand.Read(nonce[:])
 
-	var nodeVersion string
-	var version uint32
-	bestHeight := uint64(0)
-	if p.cfg.BestHeight != nil {
-		bestHeight = p.cfg.BestHeight()
-	}
-
-	if bestHeight >= uint64(p.cfg.DPoSV2StartHeight) {
-		nodeVersion = p.cfg.NodeVersion
-		version = p.cfg.ProtocolVersion
-		if msg.GetPayloadVersion() < pact.DPOSV2ProposalVersion {
-			msg.SetPayloadVersion(p.cfg.ProtocolVersion)
+	if uint32(p.lastPingNonce) > p.cfg.DPoSV2StartHeight {
+		if msg.GetPayloadVersion() < msg.DPoSV2Version {
+			msg.SetPayloadVersion(msg.DPoSV2Version)
 		}
 	}
+
 	// Version message.
-	localVerMsg := msg.NewVersion(version, p.cfg.PID, p.cfg.Target, nonce, p.cfg.Port, nodeVersion)
+	localVerMsg := msg.NewVersion(0, p.cfg.PID, p.cfg.Target, nonce,
+		p.cfg.Port, p.cfg.NodeVersion)
 	return nonce[:], p.writeMessage(localVerMsg)
 }
 

@@ -18,9 +18,6 @@ const (
 	// CRProposalVersion is the protocol version which switch to CR proposal protocol.
 	CRProposalVersion uint32 = 80000
 
-	//todo reset later
-	DPOSV2ProposalVersion uint32 = 90000
-
 	// DPOSStartVersion is the protocol version which switch to DPOS protocol.
 	DPOSStartVersion uint32 = 20000
 

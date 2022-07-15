@@ -51,6 +51,21 @@ type IChainStore interface {
 	CloseLeveldb()
 }
 
+var (
+	StoreEx IChainStoreExtend
+)
+
+type IChainStoreExtend interface {
+	IChainStore
+	persistTxHistory(block *Block) error
+	CloseEx()
+	AddTask(task interface{})
+	GetTxHistory(addr, order string, timestamp uint64) interface{}
+	GetTxHistoryByLimit(addr, order string, skip, limit, timestamp uint32) (interface{}, int)
+	LockDposData()
+	UnlockDposData()
+}
+
 // IChainStore provides func with store package.
 type IFFLDBChainStore interface {
 	database.DB

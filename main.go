@@ -138,7 +138,7 @@ func startNode(cfg *config.Configuration) {
 	if err != nil {
 		printErrorAndExit(err)
 	}
-	defer chainStore.Close()
+
 	ledger.Store = chainStore // fixme
 
 	txMemPool := mempool.NewTxPool(cfg, ckpManager)
@@ -176,6 +176,13 @@ func startNode(cfg *config.Configuration) {
 		pgBar.Increase, dataDir, cfg); err != nil {
 		printErrorAndExit(err)
 	}
+	var chainStoreEx blockchain.IChainStoreExtend
+	chainStoreEx, err = blockchain.NewChainStoreEx(chain, chainStore, filepath.Join(dataDir, "ext"))
+	if err != nil {
+		printErrorAndExit(err)
+	}
+	defer chainStore.Close()
+	defer chainStoreEx.CloseEx()
 	pgBar.Stop()
 
 	ledger.Blockchain = chain // fixme

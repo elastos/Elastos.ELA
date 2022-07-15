@@ -6,9 +6,12 @@
 package utils
 
 import (
+	"archive/zip"
+	"bytes"
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net"
 	"os"
 	"strconv"
@@ -16,6 +19,7 @@ import (
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/core/contract"
 	"github.com/elastos/Elastos.ELA/crypto"
+	"github.com/elastos/Elastos.ELA/dpos/log"
 	"github.com/elastos/Elastos.ELA/vm"
 	"github.com/go-echarts/statsview"
 	"github.com/go-echarts/statsview/viewer"
@@ -235,4 +239,22 @@ func CheckHost(host string) error {
 	}
 
 	return nil
+}
+func ReadZipStream(data []byte) ([]*zip.File, error) {
+	zipReader, err := zip.NewReader(bytes.NewReader(data), int64(len(data)))
+	if err != nil {
+		log.Error("Read Zip Stream Error:", err)
+		return nil, err
+	} else {
+		return zipReader.File, nil
+	}
+}
+
+func ReadZipFile(zf *zip.File) ([]byte, error) {
+	f, err := zf.Open()
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+	return ioutil.ReadAll(f)
 }

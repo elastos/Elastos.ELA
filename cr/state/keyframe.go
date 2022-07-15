@@ -177,6 +177,7 @@ type ProposalState struct {
 	TxHash             common.Uint256
 	TxPayloadVer       byte
 	CRVotes            map[common.Uint168]payload.VoteResult
+	CROpinions         map[common.Uint168]common.Uint256
 	VotersRejectAmount common.Fixed64
 	RegisterHeight     uint32
 	VoteStartHeight    uint32
@@ -1297,6 +1298,20 @@ func (p *ProposalState) Serialize(w io.Writer) (err error) {
 			return
 		}
 	}
+
+	if err = common.WriteVarUint(w, uint64(len(p.CROpinions))); err != nil {
+		return
+	}
+	for k, v := range p.CROpinions {
+		if err = k.Serialize(w); err != nil {
+			return
+		}
+
+		if err = v.Serialize(w); err != nil {
+			return
+		}
+	}
+
 	if err = p.serializeBudgets(p.WithdrawnBudgets, w); err != nil {
 		return
 	}
@@ -1373,6 +1388,23 @@ func (p *ProposalState) Deserialize(r io.Reader) (err error) {
 			return
 		}
 		p.CRVotes[key] = payload.VoteResult(value)
+	}
+
+	if count, err = common.ReadVarUint(r, 0); err != nil {
+		return
+	}
+	p.CROpinions = make(map[common.Uint168]common.Uint256, count)
+	for i := uint64(0); i < count; i++ {
+		var key common.Uint168
+		if err = key.Deserialize(r); err != nil {
+			return
+		}
+
+		var value common.Uint256
+		if err = value.Deserialize(r); err != nil {
+			return
+		}
+		p.CROpinions[key] = value
 	}
 
 	if p.WithdrawnBudgets, err = p.deserializeBudgets(r); err != nil {

@@ -284,16 +284,18 @@ type BudgetBaseInfo struct {
 }
 
 type BudgetInfo struct {
-	Type   string `json:"type"`
-	Stage  uint8  `json:"stage"`
-	Amount string `json:"amount"`
-	Status string `json:"status"`
+	Type            string `json:"type"`
+	Stage           uint8  `json:"stage"`
+	Amount          string `json:"amount"`
+	Status          string `json:"status"`
+	PaymentCriteria string `json:"paymentCriteria"`
 }
 
 type CRCProposalInfo struct {
 	ProposalType             string           `json:"proposaltype"`
 	CategoryData             string           `json:"categorydata"`
 	OwnerPublicKey           string           `json:"ownerpublickey"`
+	DraftData                string           `json:"draftdata"`
 	DraftHash                string           `json:"drafthash"`
 	Budgets                  []BudgetBaseInfo `json:"budgets"`
 	Recipient                string           `json:"recipient"`
@@ -303,10 +305,47 @@ type CRCProposalInfo struct {
 	Hash                     string           `json:"hash"`
 }
 
+type CRCProposalBudget struct {
+	Stage           uint8  `json:"stage"`
+	PaymentCriteria string `json:"paymentCriteria"`
+}
+
+type CRCProposalMilestone struct {
+	Timestamp int    `json:"timestamp"`
+	Goal      string `json:"goal"`
+	Stage     int    `json:"stage"`
+}
+
+type CRCProposalImplementationTeam struct {
+	Member         string `json:"member"`
+	Role           string `json:"role"`
+	Responsibility string `json:"responsibility"`
+	Information    string `json:"info"`
+}
+
+type CRCDraftData interface{}
+
+type CRCProposalDraftData struct {
+	Title              string                          `json:"title"`
+	Abstract           string                          `json:"abstract"`
+	Motivation         string                          `json:"motivation"`
+	Budgets            []CRCProposalBudget             `json:"budgets"`
+	Milestone          []CRCProposalMilestone          `json:"milestone"`
+	Goal               string                          `json:"goal"`
+	ImplementationTeam []CRCProposalImplementationTeam `json:"implementationTeam"`
+	PlanStatement      string                          `json:"planStatement"`
+	BudgetStatement    string                          `json:"budgetStatement"`
+}
+
+type CRCProposalMessageData struct {
+	Content string `json:"content"`
+}
+
 type CRCChangeProposalOwnerInfo struct {
 	ProposalType             string `json:"proposaltype"`
 	CategoryData             string `json:"categorydata"`
 	OwnerPublicKey           string `json:"ownerpublickey"`
+	DraftData                string `json:"draftdata"`
 	DraftHash                string `json:"drafthash"`
 	TargetProposalHash       string `json:"targetproposalhash"`
 	NewRecipient             string `json:"newrecipient"`
@@ -322,6 +361,7 @@ type CRCCloseProposalInfo struct {
 	ProposalType             string `json:"proposaltype"`
 	CategoryData             string `json:"categorydata"`
 	OwnerPublicKey           string `json:"ownerpublickey"`
+	DraftData                string `json:"draftdata"`
 	DraftHash                string `json:"drafthash"`
 	TargetProposalHash       string `json:"targetproposalhash"`
 	Signature                string `json:"signature"`
@@ -334,6 +374,7 @@ type CRCReservedCustomIDProposalInfo struct {
 	ProposalType             string   `json:"proposaltype"`
 	CategoryData             string   `json:"categorydata"`
 	OwnerPublicKey           string   `json:"ownerpublickey"`
+	DraftData                string   `json:"draftdata"`
 	DraftHash                string   `json:"drafthash"`
 	ReservedCustomIDList     []string `json:"reservedcustomidlist"`
 	Signature                string   `json:"signature"`
@@ -346,6 +387,7 @@ type CRCChangeCustomIDFeeInfo struct {
 	ProposalType             string `json:"proposaltype"`
 	CategoryData             string `json:"categorydata"`
 	OwnerPublicKey           string `json:"ownerpublickey"`
+	DraftData                string `json:"draftdata"`
 	DraftHash                string `json:"drafthash"`
 	FeeRate                  int64  `json:"feerate"`
 	EIDEffectiveHeight       uint32 `json:"eideffectiveheight"`
@@ -359,6 +401,7 @@ type CRCReceivedCustomIDProposalInfo struct {
 	ProposalType             string   `json:"proposaltype"`
 	CategoryData             string   `json:"categorydata"`
 	OwnerPublicKey           string   `json:"ownerpublickey"`
+	DraftData                string   `json:"draftdata"`
 	DraftHash                string   `json:"drafthash"`
 	ReceiveCustomIDList      []string `json:"receivecustomidlist"`
 	ReceiverDID              string   `json:"receiverdid"`
@@ -372,6 +415,7 @@ type CRCSecretaryGeneralProposalInfo struct {
 	ProposalType              string `json:"proposaltype"`
 	CategoryData              string `json:"categorydata"`
 	OwnerPublicKey            string `json:"ownerpublickey"`
+	DraftData                 string `json:"draftdata"`
 	DraftHash                 string `json:"drafthash"`
 	SecretaryGeneralPublicKey string `json:"secretarygeneralpublickey"`
 	SecretaryGeneralDID       string `json:"secretarygeneraldid"`
@@ -386,6 +430,7 @@ type CRCRegisterSideChainProposalInfo struct {
 	ProposalType             string         `json:"proposaltype"`
 	CategoryData             string         `json:"categorydata"`
 	OwnerPublicKey           string         `json:"ownerpublickey"`
+	DraftData                string         `json:"draftdata"`
 	DraftHash                string         `json:"drafthash"`
 	SideChainName            string         `json:"sidechainname"`
 	MagicNumber              uint32         `json:"magicnumber"`
@@ -402,9 +447,16 @@ type CRCRegisterSideChainProposalInfo struct {
 type CRCProposalReviewInfo struct {
 	ProposalHash string `json:"proposalhash"`
 	VoteResult   string `json:"voteresult"`
+	OpinionData  string `json:"opiniondata"`
 	OpinionHash  string `json:"opinionhash"`
 	DID          string `json:"did"`
 	Sign         string `json:"sign"`
+}
+
+type CRCProposalReviewOpinion struct {
+	DID            string `json:"did"`
+	OpinionHash    string `json:"hash"`
+	OpinionMessage string `json:"message"`
 }
 
 type CRCCustomIDProposalResultInfo struct {
@@ -420,12 +472,14 @@ type ProposalResultInfo struct {
 type CRCProposalTrackingInfo struct {
 	ProposalTrackingType        string `json:"proposaltrackingtype"`
 	ProposalHash                string `json:"proposalhash"`
+	MessageData                 string `json:"messagedata"`
 	MessageHash                 string `json:"messagehash"`
 	Stage                       uint8  `json:"stage"`
 	OwnerPublicKey              string `json:"ownerpublickey"`
 	NewOwnerPublicKey           string `json:"newownerpublickey"`
 	OwnerSignature              string `json:"ownersignature"`
 	NewOwnerSignature           string `json:"newownersignature"`
+	SecretaryGeneralOpinionData string `json:"secretarygeneralopiniondata"`
 	SecretaryGeneralOpinionHash string `json:"secretarygeneralopinionhash"`
 	SecretaryGeneralSignature   string `json:"secretarygeneralsignature"`
 }

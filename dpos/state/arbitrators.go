@@ -1093,7 +1093,7 @@ func (a *Arbiters) GetCurrentNeedConnectArbiters() []peer.PID {
 	a.mtx.Lock()
 	defer a.mtx.Unlock()
 
-	return a.getNeedConnectArbiters()
+	return a.getCurrentNeedConnectArbiters()
 }
 
 func (a *Arbiters) getCurrentNeedConnectArbiters() []peer.PID {
@@ -1131,7 +1131,7 @@ func (a *Arbiters) GetNextNeedConnectArbiters() []peer.PID {
 	a.mtx.Lock()
 	defer a.mtx.Unlock()
 
-	return a.getNeedConnectArbiters()
+	return a.getNextNeedConnectArbiters()
 }
 
 func (a *Arbiters) getNextNeedConnectArbiters() []peer.PID {

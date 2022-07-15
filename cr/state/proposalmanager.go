@@ -643,6 +643,7 @@ func (p *ProposalManager) registerProposal(tx interfaces.Transaction,
 		TxHash:              tx.Hash(),
 		TxPayloadVer:        tx.PayloadVersion(),
 		CRVotes:             map[common.Uint168]payload.VoteResult{},
+		CROpinions:          map[common.Uint168]common.Uint256{},
 		VotersRejectAmount:  common.Fixed64(0),
 		RegisterHeight:      height,
 		VoteStartHeight:     0,
@@ -746,13 +747,17 @@ func (p *ProposalManager) proposalReview(tx interfaces.Transaction,
 	}
 	did := proposalReview.DID
 	oldVoteResult, oldVoteExist := proposalState.CRVotes[did]
+	oldOpinionResult, oldOpinionExist := proposalState.CROpinions[did]
 	history.Append(height, func() {
 		proposalState.CRVotes[did] = proposalReview.VoteResult
+		proposalState.CROpinions[did] = proposalReview.OpinionHash
 	}, func() {
-		if oldVoteExist {
+		if oldVoteExist && oldOpinionExist {
 			proposalState.CRVotes[did] = oldVoteResult
+			proposalState.CROpinions[did] = oldOpinionResult
 		} else {
 			delete(proposalState.CRVotes, did)
+			delete(proposalState.CROpinions, did)
 		}
 	})
 }

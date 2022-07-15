@@ -79,6 +79,7 @@ func StartRPCServer() {
 	mainMux["createrawtransaction"] = CreateRawTransaction
 	mainMux["decoderawtransaction"] = DecodeRawTransaction
 	mainMux["signrawtransactionwithkey"] = SignRawTransactionWithKey
+	mainMux["gethistory"] = GetHistory
 	// aux interfaces
 	mainMux["help"] = AuxHelp
 	mainMux["submitauxblock"] = SubmitAuxBlock
@@ -95,6 +96,7 @@ func StartRPCServer() {
 	mainMux["listcrproposalbasestate"] = ListCRProposalBaseState
 	mainMux["getcrproposalstate"] = GetCRProposalState
 	mainMux["getproposaldraftdata"] = GetProposalDraftData
+	mainMux["getproposaltitle"] = GetProposalTitle
 	mainMux["getsecretarygeneral"] = GetSecretaryGeneral
 	mainMux["getcrrelatedstage"] = GetCRRelatedStage
 	mainMux["getcommitteecanuseamount"] = GetCommitteeCanUseAmount

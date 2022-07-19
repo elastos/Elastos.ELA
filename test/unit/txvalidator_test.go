@@ -955,8 +955,12 @@ func (s *txValidatorTestSuite) TestCheckRegisterDposV2ProducerTransaction() {
 }
 
 func (s *txValidatorTestSuite) TestCheckStakeTransaction() {
-	stakeAddress := "Sdp4gnD6v2Z7RpCgqBYDBtc7YRpbeFh9ad"
-	stakeAddress_uint168, _ := common.Uint168FromAddress(stakeAddress)
+	publicKey := "03878cbe6abdafc702befd90e2329c4f37e7cb166410f0ecb70488c74c85b81d66"
+	publicKeyBytes, _ := common.HexStringToBytes(publicKey)
+	code := getCode(publicKeyBytes)
+	c, _ :=contract.CreateStakeContractByCode(code)
+	stakeAddress_uint168 := c.ToProgramHash()
+	stakeAddress, _ := stakeAddress_uint168.ToAddress()
 	rpPayload := &outputpayload.StakeOutput{
 		Version:      0,
 		StakeAddress: *stakeAddress_uint168,
@@ -1010,7 +1014,7 @@ func (s *txValidatorTestSuite) TestCheckStakeTransaction() {
 		[]*common2.Output{},
 		0,
 		[]*program.Program{{
-			Code:      nil,
+			Code:      code,
 			Parameter: nil,
 		}},
 	)
@@ -1085,7 +1089,7 @@ func (s *txValidatorTestSuite) TestCheckStakeTransaction() {
 		},
 		0,
 		[]*program.Program{{
-			Code:      nil,
+			Code:      code,
 			Parameter: nil,
 		}},
 	)
@@ -1112,7 +1116,7 @@ func (s *txValidatorTestSuite) TestCheckStakeTransaction() {
 		},
 		0,
 		[]*program.Program{{
-			Code:      nil,
+			Code:      code,
 			Parameter: nil,
 		}},
 	)
@@ -1139,12 +1143,12 @@ func (s *txValidatorTestSuite) TestCheckStakeTransaction() {
 		},
 		0,
 		[]*program.Program{{
-			Code:      nil,
+			Code:     code,
 			Parameter: nil,
 		}},
 	)
 	param := s.Chain.GetParams()
-	param.StakeAddress = "xxx"
+	param.StakePool = "xxx"
 	tx := txn.(*transaction.StakeTransaction)
 	tx.DefaultChecker.SetParameters(&transaction.TransactionParameters{
 		BlockChain: s.Chain,
@@ -1172,12 +1176,12 @@ func (s *txValidatorTestSuite) TestCheckStakeTransaction() {
 		},
 		0,
 		[]*program.Program{{
-			Code:      nil,
+			Code:      code,
 			Parameter: nil,
 		}},
 	)
 	param = s.Chain.GetParams()
-	param.StakeAddress = stakeAddress
+	param.StakePool = stakeAddress
 	tx = txn.(*transaction.StakeTransaction)
 	tx.DefaultChecker.SetParameters(&transaction.TransactionParameters{
 		BlockChain: s.Chain,
@@ -4419,7 +4423,7 @@ func (s *txValidatorTestSuite) TestCheckStakeTransaction2() {
 
 	bc := s.Chain
 	config := bc.GetParams()
-	config.StakeAddress, _ = stakeAddress.ToAddress()
+	config.StakePool, _ = stakeAddress.ToAddress()
 	tx := txn.(*transaction.StakeTransaction)
 	tx.DefaultChecker.SetParameters(&transaction.TransactionParameters{
 		BlockChain: bc,
@@ -4495,7 +4499,7 @@ func (s *txValidatorTestSuite) TestCheckUnstakeTransaction() {
 
 	bc := s.Chain
 	config := bc.GetParams()
-	config.StakeAddress, _ = stakeAddress.ToAddress()
+	config.StakePool, _ = stakeAddress.ToAddress()
 	tx := txn.(*transaction.UnstakeTransaction)
 	tx.DefaultChecker.SetParameters(&transaction.TransactionParameters{
 		BlockChain: bc,

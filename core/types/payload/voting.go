@@ -186,7 +186,7 @@ func (v *VotesWithLockTime) Deserialize(r io.Reader, version byte) error {
 
 func (v *VotesWithLockTime) String() string {
 	return fmt.Sprint("Content: {"+
-		"\n\t\t\t\t", "StakeAddress: ", common.BytesToHexString(v.Candidate),
+		"\n\t\t\t\t", "Candidate: ", common.BytesToHexString(v.Candidate),
 		"\n\t\t\t\t", "Votes: ", v.Votes,
 		"\n\t\t\t\t", "LockTime: ", v.LockTime,
 		"}\n\t\t\t\t")

@@ -513,7 +513,6 @@ func (a *Arbiters) IncreaseChainHeight(block *types.Block, confirm *payload.Conf
 	var notify = true
 	var snapshotVotes = true
 	a.mtx.Lock()
-
 	var containsIllegalBlockEvidence bool
 	for _, tx := range block.Transactions {
 		if tx.IsIllegalBlockTx() {
@@ -1996,15 +1995,9 @@ func (a *Arbiters) getRandomDposV2Producers(height uint32, unclaimedCount int, c
 	newProducers := make([]string, 0, len(producerKeys))
 	normalCount := a.ChainParams.GeneralArbiters + len(a.ChainParams.CRCArbiters)
 
-	for i := 0; i < normalCount; i++ {
-		if len(producerKeys) == 0 {
-			log.Warn("left producerKeys is 0")
-			break
-		}
-		s := r.Intn(len(producerKeys))
-		if len(producerKeys) == 1 && s == 0 {
-			producerKeys = producerKeys[0:0]
-		} else {
+	if len(producerKeys) > normalCount {
+		for i := 0; i < normalCount; i++ {
+			s := r.Intn(len(producerKeys))
 			newProducers = append(newProducers, producerKeys[s])
 			tmpProducers := producerKeys[s+1:]
 			producerKeys = producerKeys[0:s]

@@ -62,12 +62,26 @@ func (t *StakeTransaction) CheckTransactionOutput() error {
 	if p == nil {
 		return errors.New("invalid output payload")
 	}
-	if _, ok := p.(*outputpayload.StakeOutput); !ok {
+	sopayload, ok := p.(*outputpayload.StakeOutput)
+	if !ok {
 		return errors.New("invalid exchange vote output payload")
 	}
 	if err := p.Validate(); err != nil {
 		return err
 	}
+
+	// check output[0] stake address
+	code := t.Programs()[0].Code
+	ct, err := contract.CreateStakeContractByCode(code)
+	if err != nil {
+		return errors.New("invalid code")
+	}
+	stakeProgramHash := ct.ToProgramHash()
+
+	if !stakeProgramHash.IsEqual(sopayload.StakeAddress) {
+		return errors.New("invalid stake address")
+	}
+
 	// check output address, need to be stake address
 	addr, err := t.outputs[0].ProgramHash.ToAddress()
 	if err != nil {

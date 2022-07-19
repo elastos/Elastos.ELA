@@ -523,10 +523,10 @@ func (b *BlockChain) CreateDposV2RealWithdrawTransaction(
 
 func (b *BlockChain) CreateUnstakeRealWithdrawTransaction(
 	unstakeTXHashes []Uint256, outputs []*common.OutputInfo) (interfaces.Transaction, error) {
-	stakeAddr, err := Uint168FromAddress(b.chainParams.StakeAddress)
+	stakeAddr, err := Uint168FromAddress(b.chainParams.StakePool)
 	if err != nil {
-		log.Error("CreateUnstakeRealWithdrawTransaction StakeAddress to hash error")
-		return nil, errors.New("CreateUnstakeRealWithdrawTransaction StakeAddress to hash error")
+		log.Error("CreateUnstakeRealWithdrawTransaction StakePool to hash error")
+		return nil, errors.New("CreateUnstakeRealWithdrawTransaction StakePool to hash error")
 	}
 
 	utxos, _, err := b.getUTXOsFromAddress(*stakeAddr)

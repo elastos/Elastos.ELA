@@ -513,7 +513,7 @@ func (t *DefaultChecker) checkVoteCRContent(blockHeight uint32,
 		cid, err := common.Uint168FromBytes(cv.Candidate)
 		if err != nil {
 			return fmt.Errorf("invalid vote output payload " +
-				"StakeAddress can not change to proper cid")
+				"Candidate can not change to proper cid")
 		}
 		if _, ok := crs[*cid]; !ok {
 			return fmt.Errorf("invalid vote output payload "+

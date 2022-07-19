@@ -89,7 +89,7 @@ type Configuration struct {
 	ReturnCrossChainCoinStartHeight uint32            `json:"ReturnCrossChainCoinStartHeight"`
 	DPoSV2StartHeight               uint32            `json:"DPoSV2StartHeight"`
 	DPoSV2EffectiveVotes            common.Fixed64    `json:"DPoSV2EffectiveVotes"`
-	StakeAddress                    string            `json:"StakeAddress"`
+	StakePool                       string            `json:"StakePool"`
 	SchnorrStartHeight              uint32            `json:"SchnorrStartHeight"`
 	CrossChainMonitorStartHeight    uint32            `json:"CrossChainMonitorStartHeight"`
 	CrossChainMonitorInterval       uint32            `json:"CrossChainMonitorInterval"`

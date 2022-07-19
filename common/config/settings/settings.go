@@ -1072,8 +1072,8 @@ func NewSettings() *Settings {
 	result.Add(&settingItem{
 		Flag:         cmdcom.StakeAddressFlag,
 		DefaultValue: common.Fixed64(0),
-		ConfigPath:   "StakeAddress",
-		ParamName:    "StakeAddress"})
+		ConfigPath:   "StakePool",
+		ParamName:    "StakePool"})
 
 	result.Add(&settingItem{
 		Flag:         cmdcom.DposV2RewardAccumulateAddressFlag,

@@ -809,7 +809,7 @@ func (p *Peer) writeLocalVersionMsg() ([]byte, error) {
 	var nonce [16]byte
 	rand.Read(nonce[:])
 
-	if uint32(p.lastPingNonce) > p.cfg.DPoSV2StartHeight {
+	if uint32(p.cfg.PingNonce(p.pid)) > p.cfg.DPoSV2StartHeight {
 		if msg.GetPayloadVersion() < msg.DPoSV2Version {
 			msg.SetPayloadVersion(msg.DPoSV2Version)
 		}

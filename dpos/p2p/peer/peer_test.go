@@ -161,6 +161,9 @@ func peerConfig(magic uint32, verack chan<- struct{}) *peer.Config {
 			sign, _ := crypto.Sign(priKey, nonce)
 			return sign
 		},
+		PingNonce: func(pid peer.PID) uint64 {
+			return 0
+		},
 		CreateMessage: func(hdr p2p.Header, r net.Conn) (message p2p.Message, err error) {
 			return createMessage(hdr, r)
 		},
@@ -281,6 +284,9 @@ func TestUnsupportedVersionPeer(t *testing.T) {
 		Sign: func(nonce []byte) []byte {
 			sign, _ := crypto.Sign(priKey, nonce)
 			return sign
+		},
+		PingNonce: func(pid peer.PID) uint64 {
+			return 0
 		},
 		CreateMessage: createMessage,
 	}

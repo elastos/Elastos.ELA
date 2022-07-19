@@ -335,7 +335,7 @@ func (p *Producer) Serialize(w io.Writer) error {
 	if err := p.dposV2Votes.Serialize(w); err != nil {
 		return err
 	}
-	if err := serializeDetailVoteInfoMap(p.detailedDPoSV2Votes, w); err != nil {
+	if err := SerializeDetailVoteInfoMap(p.detailedDPoSV2Votes, w); err != nil {
 		return err
 	}
 
@@ -355,7 +355,7 @@ func (p *Producer) Serialize(w io.Writer) error {
 		p.inactiveCountingHeight, p.lastUpdateInactiveHeight, p.inactiveCount, p.inactiveCountV2, p.workedInRound)
 }
 
-func serializeDetailVoteInfoMap(
+func SerializeDetailVoteInfoMap(
 	vmap map[common.Uint168]map[common.Uint256]payload.DetailedVoteInfo,
 	w io.Writer) (err error) {
 
@@ -434,7 +434,7 @@ func (p *Producer) Deserialize(r io.Reader) (err error) {
 		return
 	}
 
-	voteInfoMap, err := deserializeDetailVoteInfoMap(r)
+	voteInfoMap, err := DeserializeDetailVoteInfoMap(r)
 	if err != nil {
 		return err
 	}
@@ -456,7 +456,7 @@ func (p *Producer) Deserialize(r io.Reader) (err error) {
 		&p.inactiveCountingHeight, &p.lastUpdateInactiveHeight, &p.inactiveCount, &p.inactiveCountV2, &p.workedInRound)
 }
 
-func deserializeDetailVoteInfoMap(
+func DeserializeDetailVoteInfoMap(
 	r io.Reader) (vmap map[common.Uint168]map[common.Uint256]payload.DetailedVoteInfo, err error) {
 	var count uint64
 	if count, err = common.ReadVarUint(r, 0); err != nil {

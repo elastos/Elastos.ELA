@@ -315,7 +315,9 @@ func (v *DetailedVoteInfo) ReferKey() common.Uint256 {
 }
 
 func (v *DetailedVoteInfo) Serialize(w io.Writer) error {
-
+	if err := v.StakeProgramHash.Serialize(w); err != nil {
+		return err
+	}
 	if err := v.TransactionHash.Serialize(w); err != nil {
 		return err
 	}
@@ -345,8 +347,11 @@ func (v *DetailedVoteInfo) Serialize(w io.Writer) error {
 }
 
 func (v *DetailedVoteInfo) Deserialize(r io.Reader) error {
-
-	err := v.TransactionHash.Deserialize(r)
+	err := v.StakeProgramHash.Deserialize(r)
+	if err != nil {
+		return err
+	}
+	err = v.TransactionHash.Deserialize(r)
 	if err != nil {
 		return err
 	}

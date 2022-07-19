@@ -602,7 +602,7 @@ func (s *State) getProducer(publicKey []byte) *Producer {
 func (s *State) getDPoSV2Producer(publicKey []byte) *Producer {
 	key := s.getProducerKey(publicKey)
 	produer := s.getProducerByOwnerPublicKey(key)
-	if produer.info.StakeUntil == 0 {
+	if produer != nil && produer.info.StakeUntil == 0 {
 		return nil
 	}
 

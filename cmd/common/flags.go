@@ -704,8 +704,8 @@ var (
 		Usage: "defines dposv2 reward accumulate address",
 	}
 
-	StakeAddressFlag = cli.StringFlag{
-		Name:  "stakeaddress",
+	StakePoolFlag = cli.StringFlag{
+		Name:  "stakepool",
 		Usage: "defines the stake address of DPoS v2 votes",
 	}
 

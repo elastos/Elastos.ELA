@@ -1070,7 +1070,7 @@ func NewSettings() *Settings {
 		ParamName:    "DPoSV2EffectiveVotes"})
 
 	result.Add(&settingItem{
-		Flag:         cmdcom.StakeAddressFlag,
+		Flag:         cmdcom.StakePoolFlag,
 		DefaultValue: common.Fixed64(0),
 		ConfigPath:   "StakePool",
 		ParamName:    "StakePool"})

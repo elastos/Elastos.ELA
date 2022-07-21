@@ -78,10 +78,10 @@ type Config struct {
 // state stores the DPOS addresses and other additional information tracking
 // addresses syncing status.
 type state struct {
-	peers       map[dp.PID]struct{}
-	crPeers     map[dp.PID]struct{}
-	requested   map[common.Uint256]struct{}
-	peerCache   map[*peer.Peer]*cache
+	peers     map[dp.PID]struct{}
+	crPeers   map[dp.PID]struct{}
+	requested map[common.Uint256]struct{}
+	peerCache map[*peer.Peer]*cache
 }
 
 type newPeerMsg *peer.Peer
@@ -121,7 +121,6 @@ type Routes struct {
 	addrMtx     sync.RWMutex
 	addrIndex   map[dp.PID]map[dp.PID]common.Uint256
 	knownAddr   map[common.Uint256]*msg.DAddr
-	crAddrIndex map[dp.PID]map[dp.PID]common.Uint256
 	crKnownAddr map[common.Uint256]*msg.DAddr
 	knownList   *list.List
 
@@ -134,10 +133,10 @@ type Routes struct {
 // addrHandler is the main handler to syncing the addresses state.
 func (r *Routes) addrHandler() {
 	state := &state{
-		peers:       make(map[dp.PID]struct{}),
-		crPeers:     make(map[dp.PID]struct{}),
-		requested:   make(map[common.Uint256]struct{}),
-		peerCache:   make(map[*peer.Peer]*cache),
+		peers:     make(map[dp.PID]struct{}),
+		crPeers:   make(map[dp.PID]struct{}),
+		requested: make(map[common.Uint256]struct{}),
+		peerCache: make(map[*peer.Peer]*cache),
 	}
 
 	// lastAnnounce indicates the time when last announce sent.
@@ -463,11 +462,11 @@ func (r *Routes) handleCRPeersMsg(state *state, peers []dp.PID) {
 
 		// Initiate address index.
 		r.addrMtx.RLock()
-		_, ok := r.crAddrIndex[pid]
+		_, ok := r.addrIndex[pid]
 		r.addrMtx.RUnlock()
 		if !ok {
 			r.addrMtx.Lock()
-			r.crAddrIndex[pid] = make(map[dp.PID]common.Uint256)
+			r.addrIndex[pid] = make(map[dp.PID]common.Uint256)
 			r.addrMtx.Unlock()
 		}
 	}
@@ -484,7 +483,7 @@ func (r *Routes) handleCRPeersMsg(state *state, peers []dp.PID) {
 	for _, pid := range delPeers {
 		// Remove from index and known addr.
 		r.addrMtx.RLock()
-		pids, ok := r.crAddrIndex[pid]
+		pids, ok := r.addrIndex[pid]
 		r.addrMtx.RUnlock()
 		if !ok {
 			continue
@@ -494,7 +493,7 @@ func (r *Routes) handleCRPeersMsg(state *state, peers []dp.PID) {
 		for _, pid := range pids {
 			delete(r.crKnownAddr, pid)
 		}
-		delete(r.crAddrIndex, pid)
+		delete(r.addrIndex, pid)
 		r.addrMtx.Unlock()
 	}
 
@@ -727,16 +726,16 @@ func New(cfg *Config) *Routes {
 	copy(pid[:], cfg.PID)
 
 	r := Routes{
-		pid:       pid,
-		cfg:       cfg,
-		addr:      cfg.Addr,
-		sign:      cfg.Sign,
-		addrIndex: make(map[dp.PID]map[dp.PID]common.Uint256),
-		knownAddr: make(map[common.Uint256]*msg.DAddr),
-		knownList: list.New(),
-		queue:     make(chan interface{}, 125),
-		announce:  make(chan struct{}, 1),
-		quit:      make(chan struct{}),
+		pid:         pid,
+		cfg:         cfg,
+		addr:        cfg.Addr,
+		sign:        cfg.Sign,
+		addrIndex:   make(map[dp.PID]map[dp.PID]common.Uint256),
+		knownAddr:   make(map[common.Uint256]*msg.DAddr),
+		knownList:   list.New(),
+		queue:       make(chan interface{}, 125),
+		announce:    make(chan struct{}, 1),
+		quit:        make(chan struct{}),
 	}
 
 	queuePeers := func(peers []dp.PID) {

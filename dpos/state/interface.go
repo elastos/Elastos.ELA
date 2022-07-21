@@ -31,6 +31,7 @@ type Arbitrators interface {
 	GetNextCandidates() [][]byte
 	GetCurrentNeedConnectArbiters() []peer.PID
 	GetNextNeedConnectArbiters() []peer.PID
+	GetNeedConnectCRArbiters() []peer.PID
 	GetNeedConnectArbiters() []peer.PID
 	GetDutyIndexByHeight(height uint32) int
 	GetDutyIndex() int

@@ -63,6 +63,7 @@ func (p PID) String() string {
 type PeersInfo struct {
 	CurrentPeers []PID
 	NextPeers    []PID
+	CRPeers      []PID
 }
 
 // outMsg is used to house a message to be sent along with a channel to signal

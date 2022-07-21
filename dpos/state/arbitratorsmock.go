@@ -189,6 +189,10 @@ func (a *ArbitratorsMock) GetNextNeedConnectArbiters() []peer.PID {
 	panic("implement me")
 }
 
+func (a *ArbitratorsMock) GetNeedConnectCRArbiters() []peer.PID {
+	panic("implement me")
+}
+
 func (a *ArbitratorsMock) GetNeedConnectArbiters() []peer.PID {
 	panic("implement me")
 }

@@ -336,9 +336,13 @@ func (b *BlockChain) InitCheckpoint(interrupt <-chan struct{},
 
 		currentArbiters := arbiters.GetCurrentNeedConnectArbiters()
 		nextArbiters := arbiters.GetNextNeedConnectArbiters()
+		crArbiters := arbiters.GetNeedConnectCRArbiters()
 
 		events.Notify(events.ETDirectPeersChangedV2,
-			&peer.PeersInfo{CurrentPeers: currentArbiters, NextPeers: nextArbiters})
+			&peer.PeersInfo{
+			CurrentPeers: currentArbiters,
+			NextPeers: nextArbiters,
+			CRPeers: crArbiters})
 
 	case <-interrupt:
 	}

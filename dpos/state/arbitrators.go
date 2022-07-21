@@ -458,9 +458,13 @@ func (a *Arbiters) forceChange(height uint32) error {
 
 		currentArbiters := a.getCurrentNeedConnectArbiters()
 		nextArbiters := a.getNextNeedConnectArbiters()
+		crArbiters := a.getNeedConnectCRArbiters()
 
 		go events.Notify(events.ETDirectPeersChangedV2,
-			&peer.PeersInfo{CurrentPeers: currentArbiters, NextPeers: nextArbiters})
+			&peer.PeersInfo{
+			CurrentPeers: currentArbiters,
+			NextPeers: nextArbiters,
+			CRPeers: crArbiters})
 	}
 	oriForceChanged := a.forceChanged
 	a.History.Append(height, func() {
@@ -598,9 +602,13 @@ func (a *Arbiters) IncreaseChainHeight(block *types.Block, confirm *payload.Conf
 
 		currentArbiters := a.GetCurrentNeedConnectArbiters()
 		nextArbiters := a.GetNextNeedConnectArbiters()
+		crArbiters := a.GetNeedConnectCRArbiters()
 
 		go events.Notify(events.ETDirectPeersChangedV2,
-			&peer.PeersInfo{CurrentPeers: currentArbiters, NextPeers: nextArbiters})
+			&peer.PeersInfo{
+			CurrentPeers: currentArbiters,
+			NextPeers: nextArbiters,
+			CRPeers: crArbiters})
 	}
 }
 
@@ -1126,6 +1134,7 @@ func (a *Arbiters) getCurrentNeedConnectArbiters() []peer.PID {
 
 	return peers
 }
+
 func (a *Arbiters) GetNextNeedConnectArbiters() []peer.PID {
 	a.mtx.Lock()
 	defer a.mtx.Unlock()
@@ -1155,6 +1164,48 @@ func (a *Arbiters) getNextNeedConnectArbiters() []peer.PID {
 		var pid peer.PID
 		copy(pid[:], v.GetNodePublicKey())
 		pids[key] = pid
+	}
+
+	peers := make([]peer.PID, 0, len(pids))
+	for _, pid := range pids {
+		peers = append(peers, pid)
+	}
+
+	return peers
+}
+
+func (a *Arbiters) GetNeedConnectCRArbiters() []peer.PID {
+	a.mtx.Lock()
+	defer a.mtx.Unlock()
+
+	return a.getNeedConnectCRArbiters()
+}
+
+func (a *Arbiters) getNeedConnectCRArbiters() []peer.PID {
+	height := a.History.Height() + 1
+	if height < a.ChainParams.CRCOnlyDPOSHeight-a.ChainParams.PreConnectOffset {
+		return nil
+	}
+
+	pids := make(map[string]peer.PID)
+	for _, p := range a.CurrentCRCArbitersMap {
+		abt, ok := p.(*crcArbiter)
+		if !ok || abt.crMember.MemberState != state.MemberElected {
+			continue
+		}
+		var pid peer.PID
+		copy(pid[:], p.GetNodePublicKey())
+		pids[common.BytesToHexString(p.GetNodePublicKey())] = pid
+	}
+
+	for _, p := range a.nextCRCArbitersMap {
+		abt, ok := p.(*crcArbiter)
+		if !ok || abt.crMember.MemberState != state.MemberElected {
+			continue
+		}
+		var pid peer.PID
+		copy(pid[:], p.GetNodePublicKey())
+		pids[common.BytesToHexString(p.GetNodePublicKey())] = pid
 	}
 
 	peers := make([]peer.PID, 0, len(pids))

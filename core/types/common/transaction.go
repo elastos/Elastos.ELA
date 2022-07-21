@@ -155,6 +155,10 @@ func (self TxType) Name() string {
 		return "Unstake"
 	case UnstakeRealWithdraw:
 		return "UnstakeRealWithdraw"
+	case DposV2ClaimReward:
+		return "DposV2ClaimReward"
+	case DposV2ClaimRewardRealWithdraw:
+		return "DposV2ClaimRewardRealWithdraw"
 	default:
 		return "Unknown"
 	}

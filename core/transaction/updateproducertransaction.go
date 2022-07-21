@@ -23,6 +23,23 @@ type UpdateProducerTransaction struct {
 	BaseTransaction
 }
 
+func (t *UpdateProducerTransaction) HeightVersionCheck() error {
+	blockHeight := t.parameters.BlockHeight
+	chainParams := t.parameters.Config
+
+	if blockHeight < chainParams.DPoSV2StartHeight {
+		producerPayload, ok := t.Payload().(*payload.ProducerInfo)
+		if !ok {
+			return errors.New("[HeightVersionCheck] invalid UpdateProducer  payload")
+		}
+		if producerPayload.StakeUntil != 0 {
+			return errors.New("not support update DPoS " +
+				"2.0 producer transaction before RevertToPOWStartHeight")
+		}
+	}
+	return nil
+}
+
 func (t *UpdateProducerTransaction) CheckTransactionPayload() error {
 	switch t.Payload().(type) {
 	case *payload.ProducerInfo:
@@ -81,6 +98,7 @@ func (t *UpdateProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bool
 	case state.DPoSV1:
 		//if this producer want to be dposv2
 		if info.StakeUntil != 0 {
+
 			if producer.State() != state.Active {
 				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("only active producer can update to DPoSV1V2")), true
 			}

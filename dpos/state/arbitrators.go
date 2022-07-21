@@ -462,9 +462,9 @@ func (a *Arbiters) forceChange(height uint32) error {
 
 		go events.Notify(events.ETDirectPeersChangedV2,
 			&peer.PeersInfo{
-			CurrentPeers: currentArbiters,
-			NextPeers: nextArbiters,
-			CRPeers: crArbiters})
+				CurrentPeers: currentArbiters,
+				NextPeers:    nextArbiters,
+				CRPeers:      crArbiters})
 	}
 	oriForceChanged := a.forceChanged
 	a.History.Append(height, func() {
@@ -606,9 +606,9 @@ func (a *Arbiters) IncreaseChainHeight(block *types.Block, confirm *payload.Conf
 
 		go events.Notify(events.ETDirectPeersChangedV2,
 			&peer.PeersInfo{
-			CurrentPeers: currentArbiters,
-			NextPeers: nextArbiters,
-			CRPeers: crArbiters})
+				CurrentPeers: currentArbiters,
+				NextPeers:    nextArbiters,
+				CRPeers:      crArbiters})
 	}
 }
 
@@ -1110,16 +1110,6 @@ func (a *Arbiters) getCurrentNeedConnectArbiters() []peer.PID {
 	}
 
 	pids := make(map[string]peer.PID)
-	for _, p := range a.CurrentCRCArbitersMap {
-		abt, ok := p.(*crcArbiter)
-		if !ok || abt.crMember.MemberState != state.MemberElected {
-			continue
-		}
-		var pid peer.PID
-		copy(pid[:], p.GetNodePublicKey())
-		pids[common.BytesToHexString(p.GetNodePublicKey())] = pid
-	}
-
 	for _, v := range a.CurrentArbitrators {
 		key := common.BytesToHexString(v.GetNodePublicKey())
 		var pid peer.PID
@@ -1149,16 +1139,6 @@ func (a *Arbiters) getNextNeedConnectArbiters() []peer.PID {
 	}
 
 	pids := make(map[string]peer.PID)
-	for _, p := range a.nextCRCArbitersMap {
-		abt, ok := p.(*crcArbiter)
-		if !ok || abt.crMember.MemberState != state.MemberElected {
-			continue
-		}
-		var pid peer.PID
-		copy(pid[:], p.GetNodePublicKey())
-		pids[common.BytesToHexString(p.GetNodePublicKey())] = pid
-	}
-
 	for _, v := range a.nextArbitrators {
 		key := common.BytesToHexString(v.GetNodePublicKey())
 		var pid peer.PID

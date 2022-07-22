@@ -584,10 +584,10 @@ type DposV2ClaimRewardRealWithdrawInfo struct {
 }
 
 type DetailedVoteInfo struct {
-	StakeProgramHash string
-	TransactionHash  string
-	BlockHeight      uint32
-	PayloadVersion   byte
-	VoteType         uint32
-	Info             []VotesWithLockTimeInfo
+	StakeAddress    string
+	TransactionHash string
+	BlockHeight     uint32
+	PayloadVersion  byte
+	VoteType        uint32
+	Info            []VotesWithLockTimeInfo
 }

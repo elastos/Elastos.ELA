@@ -99,6 +99,8 @@ func StartRPCServer() {
 
 	// vote interfaces
 	mainMux["listproducers"] = ListProducers
+	mainMux["getproducerinfo"] = GetProducerInfo
+
 	mainMux["producerstatus"] = ProducerStatus
 	mainMux["votestatus"] = VoteStatus
 
@@ -117,6 +119,7 @@ func StartRPCServer() {
 	// dposv2
 	mainMux["getalldetaileddposv2votes"] = GetAllDetailedDPoSV2Votes
 	mainMux["getvoterights"] = GetVoteRights
+
 	mainMux["dposv2rewardinfo"] = DposV2RewardInfo
 	mainMux["getdposv2info"] = GetDPosV2Info
 

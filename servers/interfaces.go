@@ -470,12 +470,15 @@ func GetArbiterPeersInfo(params Params) map[string]interface{} {
 	return ResponsePack(Success, result)
 }
 
+//if have params stakeAddress  get stakeAddress all dposv2 votes
+//else get all dposv2 votes
 func GetAllDetailedDPoSV2Votes(params Params) map[string]interface{} {
+	stakeAddress, _ := params.String("stakeaddress")
 	type detailedVoteInfo struct {
 		ProducerOwnerKey string                `json:"producerownerkey"`
 		ProducerNodeKey  string                `json:"producernodekey"`
 		ReferKey         string                `json:"referkey"`
-		StakeProgramHash string                `json:"stakeprogramhash"`
+		StakeAddress     string                `json:"stakeaddress"`
 		TransactionHash  string                `json:"transactionhash"`
 		BlockHeight      uint32                `json:"blockheight"`
 		PayloadVersion   byte                  `json:"payloadversion"`
@@ -486,33 +489,84 @@ func GetAllDetailedDPoSV2Votes(params Params) map[string]interface{} {
 	var result []*detailedVoteInfo
 	ps := Chain.GetState().GetAllProducers()
 	for _, p := range ps {
-		dposv2Votes := p.GetSortedAllDetailedDPoSV2Votes()
-		for _, v1 := range dposv2Votes {
-			address, _ := v1.StakeProgramHash.ToAddress()
-			info := &detailedVoteInfo{
-				ProducerOwnerKey: hex.EncodeToString(p.OwnerPublicKey()),
-				ProducerNodeKey:  hex.EncodeToString(p.NodePublicKey()),
-				ReferKey:         common.ToReversedString(v1.ReferKey()),
-				StakeProgramHash: address,
-				TransactionHash:  common.ToReversedString(v1.TransactionHash),
-				BlockHeight:      v1.BlockHeight,
-				PayloadVersion:   v1.PayloadVersion,
-				VoteType:         byte(v1.VoteType),
-				Info: VotesWithLockTimeInfo{
-					Candidate: hex.EncodeToString(v1.Info[0].Candidate),
-					Votes:     v1.Info[0].Votes.String(),
-					LockTime:  v1.Info[0].LockTime,
-				},
-				DPoSV2VoteRights: p.GetTotalDPoSV2VoteRights(),
+		dposv2Votes := p.GetAllDetailedDPoSV2Votes()
+		if len(dposv2Votes) == 0 {
+			continue
+		}
+		for _, v := range dposv2Votes {
+			for k1, v1 := range v {
+				address, _ := v1.StakeProgramHash.ToAddress()
+				//get stakeAddress all dposv2 votes
+				if stakeAddress != "" && stakeAddress != address {
+					continue
+				}
+				info := &detailedVoteInfo{
+					ProducerOwnerKey: hex.EncodeToString(p.OwnerPublicKey()),
+					ProducerNodeKey:  hex.EncodeToString(p.NodePublicKey()),
+					ReferKey:         common.ToReversedString(k1),
+					StakeAddress:     address,
+					TransactionHash:  common.ToReversedString(v1.TransactionHash),
+					BlockHeight:      v1.BlockHeight,
+					PayloadVersion:   v1.PayloadVersion,
+					VoteType:         byte(v1.VoteType),
+					Info: VotesWithLockTimeInfo{
+						Candidate: hex.EncodeToString(v1.Info[0].Candidate),
+						Votes:     v1.Info[0].Votes.String(),
+						LockTime:  v1.Info[0].LockTime,
+					},
+				}
+				result = append(result, info)
 			}
-			result = append(result, info)
 		}
 	}
+	sort.Slice(result, func(i, j int) bool {
+		return strings.Compare(result[i].ReferKey, result[j].ReferKey) >= 0
+	})
 	return ResponsePack(Success, result)
 }
 
+//GetProducerInfo
+func GetProducerInfo(params Params) map[string]interface{} {
+	publicKey, ok := params.String("publickey")
+	if !ok {
+		return ResponsePack(InvalidParams, "public key not found")
+	}
+	publicKeyBytes, err := common.HexStringToBytes(publicKey)
+	if err != nil {
+		return ResponsePack(InvalidParams, "invalid public key")
+	}
+	if _, err = contract.PublicKeyToStandardProgramHash(publicKeyBytes); err != nil {
+		return ResponsePack(InvalidParams, "invalid public key bytes")
+	}
+	p := Chain.GetState().GetProducer(publicKeyBytes)
+	if p == nil {
+		return ResponsePack(InvalidParams, "unknown producer public key")
+	}
+
+	producerInfo := RPCProducerInfo{
+		OwnerPublicKey: hex.EncodeToString(p.Info().OwnerPublicKey),
+		NodePublicKey:  hex.EncodeToString(p.Info().NodePublicKey),
+		Nickname:       p.Info().NickName,
+		Url:            p.Info().Url,
+		Location:       p.Info().Location,
+		StakeUntil:     p.Info().StakeUntil,
+		Active:         p.State() == state.Active,
+		Votes:          p.Votes().String(),
+		DPoSV2Votes:    common.Fixed64(p.GetTotalDPoSV2VoteRights()).String(),
+		State:          p.State().String(),
+		Identity:       p.Identity().String(),
+		RegisterHeight: p.RegisterHeight(),
+		CancelHeight:   p.CancelHeight(),
+		InactiveHeight: p.InactiveSince(),
+		IllegalHeight:  p.IllegalHeight(),
+		Index:          0,
+	}
+	return ResponsePack(Success, producerInfo)
+}
+
+//by s address.
 func GetVoteRights(params Params) map[string]interface{} {
-	addresses, ok := params.ArrayString("addresses")
+	addresses, ok := params.ArrayString("stakeaddresses")
 	if !ok {
 		return ResponsePack(InvalidParams, "need addresses in an array!")
 	}
@@ -525,7 +579,7 @@ func GetVoteRights(params Params) map[string]interface{} {
 	}
 
 	type detailedVoteRight struct {
-		Address         string                  `json:"address"`
+		StakeAddress    string                  `json:"stakeaddress"`
 		TotalVotesRight common.Fixed64          `json:"totalvotesright"`
 		UsedVotesInfo   usedVoteRightDetailInfo `json:"usedvotesinfo"`
 		RemainVoteRight []common.Fixed64        `json:"remainvoteright"` //index is same to VoteType
@@ -544,7 +598,7 @@ func GetVoteRights(params Params) map[string]interface{} {
 		//get totalVotes
 		totalVotesRight := voteRights[stakeProgramHash]
 		vote := &detailedVoteRight{
-			Address:         address,
+			StakeAddress:    address,
 			TotalVotesRight: totalVotesRight,
 			UsedVotesInfo: usedVoteRightDetailInfo{
 				UsedDPoSV2Votes:         []DetailedVoteInfo{},
@@ -607,11 +661,11 @@ func GetVoteRights(params Params) map[string]interface{} {
 			for i, v := range dpv2 {
 				address, _ := v.StakeProgramHash.ToAddress()
 				vote.UsedVotesInfo.UsedDPoSV2Votes = append(vote.UsedVotesInfo.UsedDPoSV2Votes, DetailedVoteInfo{
-					StakeProgramHash: address,
-					TransactionHash:  common.ToReversedString(v.TransactionHash),
-					BlockHeight:      v.BlockHeight,
-					PayloadVersion:   v.PayloadVersion,
-					VoteType:         uint32(v.VoteType),
+					StakeAddress:    address,
+					TransactionHash: common.ToReversedString(v.TransactionHash),
+					BlockHeight:     v.BlockHeight,
+					PayloadVersion:  v.PayloadVersion,
+					VoteType:        uint32(v.VoteType),
 				})
 
 				if v.Info != nil {
@@ -1907,7 +1961,7 @@ type RPCProducerInfo struct {
 	StakeUntil     uint32 `json:"stakeuntil"`
 	Active         bool   `json:"active"`
 	Votes          string `json:"votes"`
-	DposV2Votes    string `json:"dposv2votes"`
+	DPoSV2Votes    string `json:"dposv2votes"`
 	State          string `json:"state"`
 	Identity       string `json:"identity"`
 	RegisterHeight uint32 `json:"registerheight"`
@@ -2212,7 +2266,7 @@ func ListProducers(param Params) map[string]interface{} {
 			StakeUntil:     p.Info().StakeUntil,
 			Active:         p.State() == state.Active,
 			Votes:          p.Votes().String(),
-			DposV2Votes:    p.DposV2Votes().String(),
+			DPoSV2Votes:    common.Fixed64(p.GetTotalDPoSV2VoteRights()).String(),
 			State:          p.State().String(),
 			Identity:       p.Identity().String(),
 			RegisterHeight: p.RegisterHeight(),

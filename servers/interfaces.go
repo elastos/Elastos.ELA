@@ -481,34 +481,31 @@ func GetAllDetailedDPoSV2Votes(params Params) map[string]interface{} {
 		PayloadVersion   byte                  `json:"payloadversion"`
 		VoteType         byte                  `json:"votetype"`
 		Info             VotesWithLockTimeInfo `json:"info"`
+		DPoSV2VoteRights float64               `json:"DPoSV2VoteRights"`
 	}
 	var result []*detailedVoteInfo
 	ps := Chain.GetState().GetAllProducers()
 	for _, p := range ps {
-		dposv2Votes := p.GetAllDetailedDPoSV2Votes()
-		if len(dposv2Votes) == 0 {
-			continue
-		}
-		for _, v := range dposv2Votes {
-			for k1, v1 := range v {
-				address, _ := v1.StakeProgramHash.ToAddress()
-				info := &detailedVoteInfo{
-					ProducerOwnerKey: hex.EncodeToString(p.OwnerPublicKey()),
-					ProducerNodeKey:  hex.EncodeToString(p.NodePublicKey()),
-					ReferKey:         common.ToReversedString(k1),
-					StakeProgramHash: address,
-					TransactionHash:  common.ToReversedString(v1.TransactionHash),
-					BlockHeight:      v1.BlockHeight,
-					PayloadVersion:   v1.PayloadVersion,
-					VoteType:         byte(v1.VoteType),
-					Info: VotesWithLockTimeInfo{
-						Candidate: hex.EncodeToString(v1.Info[0].Candidate),
-						Votes:     v1.Info[0].Votes.String(),
-						LockTime:  v1.Info[0].LockTime,
-					},
-				}
-				result = append(result, info)
+		dposv2Votes := p.GetSortedAllDetailedDPoSV2Votes()
+		for _, v1 := range dposv2Votes {
+			address, _ := v1.StakeProgramHash.ToAddress()
+			info := &detailedVoteInfo{
+				ProducerOwnerKey: hex.EncodeToString(p.OwnerPublicKey()),
+				ProducerNodeKey:  hex.EncodeToString(p.NodePublicKey()),
+				ReferKey:         common.ToReversedString(v1.ReferKey()),
+				StakeProgramHash: address,
+				TransactionHash:  common.ToReversedString(v1.TransactionHash),
+				BlockHeight:      v1.BlockHeight,
+				PayloadVersion:   v1.PayloadVersion,
+				VoteType:         byte(v1.VoteType),
+				Info: VotesWithLockTimeInfo{
+					Candidate: hex.EncodeToString(v1.Info[0].Candidate),
+					Votes:     v1.Info[0].Votes.String(),
+					LockTime:  v1.Info[0].LockTime,
+				},
+				DPoSV2VoteRights: p.GetTotalDPoSV2VoteRights(),
 			}
+			result = append(result, info)
 		}
 	}
 	return ResponsePack(Success, result)

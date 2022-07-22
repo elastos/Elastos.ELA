@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"io"
 	"math"
+	"sort"
 	"sync"
 
 	"github.com/elastos/Elastos.ELA/common"
@@ -222,6 +223,27 @@ func (p *Producer) GetDetailedDPoSV2Votes(stakeAddress common.Uint168,
 	pl = vote
 
 	return
+}
+
+func (p *Producer) GetSortedAllDetailedDPoSV2Votes() []payload.DetailedVoteInfo {
+	var result []payload.DetailedVoteInfo
+	var keys []common.Uint168
+	for k := range p.detailedDPoSV2Votes {
+		keys = append(keys, k)
+	}
+	sort.Slice(keys, func(i, j int) bool {
+		return keys[i].Compare(keys[j]) >= 0
+	})
+	for _, programHash := range keys {
+		v := p.detailedDPoSV2Votes[programHash]
+		for _, v1 := range v {
+			result = append(result, v1)
+		}
+	}
+	sort.Slice(result, func(i, j int) bool {
+		return result[i].ReferKey().Compare(result[j].ReferKey()) >= 0
+	})
+	return result
 }
 
 func (p *Producer) GetAllDetailedDPoSV2Votes() map[common.Uint168]map[common.Uint256]payload.DetailedVoteInfo {
@@ -744,6 +766,9 @@ func (s *State) GetDetailedDPoSV2Votes(stakeProgramHash *common.Uint168) []paylo
 			result = append(result, detailedVoteInfo)
 		}
 	}
+	sort.Slice(result, func(i, j int) bool {
+		return result[i].ReferKey().Compare(result[j].ReferKey()) >= 0
+	})
 	return result
 }
 

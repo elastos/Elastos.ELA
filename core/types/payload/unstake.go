@@ -88,7 +88,7 @@ func (p *Unstake) Deserialize(r io.Reader, version byte) error {
 	if err != nil {
 		return err
 	}
-	p.Signature, err = common.ReadVarBytes(r, crypto.SignatureLength, "signature")
+	p.Signature, err = common.ReadVarBytes(r, crypto.MaxSignatureScriptLength, "signature")
 	if err != nil {
 		return errors.New("[Unstake], signature deserialize failed")
 	}

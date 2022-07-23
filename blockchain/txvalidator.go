@@ -3699,6 +3699,35 @@ func getParameterBySignature(signature []byte) []byte {
 	return buf.Bytes()
 }
 
+
+func CheckUnstakeTransactionSignature(signature []byte, code []byte, data []byte) error {
+	signType, err := crypto.GetScriptType(code)
+	if err != nil {
+		return errors.New("invalid code")
+	}
+	if signType == vm.CHECKSIG {
+		// check code and signature
+		if err := CheckStandardSignature(program.Program{
+			Code:      code,
+			Parameter: getParameterBySignature(signature),
+		}, data); err != nil {
+			return err
+		}
+	} else if signType == vm.CHECKMULTISIG {
+		// check code and signature
+		if err := CheckMultiSigSignatures(program.Program{
+			Code:      code,
+			Parameter: signature,
+		}, data); err != nil {
+			return err
+		}
+	} else {
+		return errors.New("invalid code type")
+	}
+
+	return nil
+}
+
 func CheckCRTransactionSignature(signature []byte, code []byte, data []byte) error {
 	signType, err := crypto.GetScriptType(code)
 	if err != nil {

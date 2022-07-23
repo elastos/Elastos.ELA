@@ -249,23 +249,23 @@ func GetDefaultParams() Params {
 		StopConfirmBlockTime:               11 * 3600,
 		HalvingRewardHeight:                1051200, // 4 * 365 * 720
 		HalvingRewardInterval:              1051200, // 4 * 365 * 720
-		NewELAIssuanceHeight:            919800,  // 3.5 * 365 * 720
-		SmallCrossTransferThreshold:     100000000,
-		ReturnDepositCoinFee:            100,
-		NewCrossChainStartHeight:        1032840,
-		ReturnCrossChainCoinStartHeight: 1032840,
-		ProhibitTransferToDIDHeight:     1032840,
-		DIDSideChainAddress:             "XKUh4GLhFJiqAMTF6HyWQrV9pK9HcGUdfJ",
-		DPoSV2StartHeight:               2000000,
-		DPoSV2EffectiveVotes:            80000,
-		DPoSV2RewardAccumulateAddress:   DposV2RewardAccumulateAddress,
-		StakePool:                       "",      // todo complete me
-		DPoSV2MinVotesLockTime:          7200,    // todo complete me
-		DPoSV2MaxVotesLockTime:          720000,  // todo complete me
-		SchnorrStartHeight:              2000000, // todo complete me
-		CRDPoSNodeHotFixHeight:          0,
-		CrossChainMonitorStartHeight:    2000000, // todo complete me
-		CrossChainMonitorInterval:       100,     // todo complete me
+		NewELAIssuanceHeight:               919800,  // 3.5 * 365 * 720
+		SmallCrossTransferThreshold:        100000000,
+		ReturnDepositCoinFee:               100,
+		NewCrossChainStartHeight:           1032840,
+		ReturnCrossChainCoinStartHeight:    1032840,
+		ProhibitTransferToDIDHeight:        1032840,
+		DIDSideChainAddress:                "XKUh4GLhFJiqAMTF6HyWQrV9pK9HcGUdfJ",
+		DPoSV2StartHeight:                  2000000,
+		DPoSV2EffectiveVotes:               8000000000000,
+		DPoSV2RewardAccumulateAddress:      DposV2RewardAccumulateAddress,
+		StakePool:                          "",      // todo complete me
+		DPoSV2MinVotesLockTime:             7200,    // todo complete me
+		DPoSV2MaxVotesLockTime:             720000,  // todo complete me
+		SchnorrStartHeight:                 2000000, // todo complete me
+		CRDPoSNodeHotFixHeight:             0,
+		CrossChainMonitorStartHeight:       2000000, // todo complete me
+		CrossChainMonitorInterval:          100,     // todo complete me
 	}
 }
 
@@ -359,7 +359,7 @@ func (p *Params) TestNet() *Params {
 	copy.ProhibitTransferToDIDHeight = 807000
 	copy.DIDSideChainAddress = "XKUh4GLhFJiqAMTF6HyWQrV9pK9HcGUdfJ"
 	copy.DPoSV2StartHeight = 2000000
-	copy.DPoSV2EffectiveVotes = 80000
+	copy.DPoSV2EffectiveVotes = 8000000000000
 	copy.DPoSV2RewardAccumulateAddress = DposV2RewardAccumulateAddress
 	copy.StakePool = ""                  // todo complete me
 	copy.DPoSV2MinVotesLockTime = 7200   // todo complete me
@@ -464,7 +464,7 @@ func (p *Params) RegNet() *Params {
 	copy.ProhibitTransferToDIDHeight = 730000
 	copy.DIDSideChainAddress = "XKUh4GLhFJiqAMTF6HyWQrV9pK9HcGUdfJ"
 	copy.DPoSV2StartHeight = 2000000
-	copy.DPoSV2EffectiveVotes = 80000
+	copy.DPoSV2EffectiveVotes = 8000000000000
 	copy.DPoSV2RewardAccumulateAddress = DposV2RewardAccumulateAddress
 	copy.StakePool = ""                  // todo complete me
 	copy.DPoSV2MinVotesLockTime = 7200   // todo complete me

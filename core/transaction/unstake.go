@@ -135,5 +135,5 @@ func (t *UnstakeTransaction) checkUnstakeSignature(unstakePayload *payload.Unsta
 		return err
 	}
 
-	return blockchain.CheckCRTransactionSignature(unstakePayload.Signature, unstakePayload.Code, signedBuf.Bytes())
+	return blockchain.CheckUnstakeTransactionSignature(unstakePayload.Signature, unstakePayload.Code, signedBuf.Bytes())
 }

@@ -386,8 +386,8 @@ func generateDposV2Address(c *cli.Context) error {
 			return err
 		}
 	}
-
-	if contract.GetPrefixType(*programHash) != contract.PrefixStandard {
+	prft := contract.GetPrefixType(*programHash)
+	if prft != contract.PrefixStandard && prft != contract.PrefixMultiSig{
 		return errors.New("standard address expected")
 	}
 

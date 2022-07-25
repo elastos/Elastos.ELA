@@ -120,6 +120,7 @@ type DPoSConfiguration struct {
 	StopConfirmBlockTime          int64          `json:"StopConfirmBlockTime"`
 	RevertToPOWStartHeight        uint32         `json:"RevertToPOWStartHeight"`
 	DPoSV2RewardAccumulateAddress string         `json:"DPoSV2RewardAccumulateAddress"`
+	DPoSV2DepositCoinMinLockTime  uint32         `json:"DPoSV2DepositCoinMinLockTime"`
 	DPoSV2MinVotesLockTime        uint32         `json:"DPoSV2MinVotesLockTime"`
 	DPoSV2MaxVotesLockTime        uint32         `json:"DPoSV2MaxVotesLockTime"`
 	CRDPoSNodeHotFixHeight        uint32         `json:"CRDPoSNodeHotFixHeight"`

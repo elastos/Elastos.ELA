@@ -799,6 +799,12 @@ func NewSettings() *Settings {
 		ParamName:    "DPoSV2MinVotesLockTime"})
 
 	result.Add(&settingItem{
+		Flag:         cmdcom.DPoSV2DepositCoinMinLockTimeFlag,
+		DefaultValue: uint32(0),
+		ConfigPath:   "DPoSConfiguration.DPoSV2DepositCoinMinLockTime",
+		ParamName:    "DPoSV2DepositCoinMinLockTime"})
+
+	result.Add(&settingItem{
 		Flag:         cmdcom.DPoSV2MaxVotesLockTimeFlag,
 		DefaultValue: uint32(0),
 		ConfigPath:   "DPoSConfiguration.DPoSV2MaxVotesLockTime",

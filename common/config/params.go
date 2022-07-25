@@ -260,6 +260,7 @@ func GetDefaultParams() Params {
 		DPoSV2EffectiveVotes:               8000000000000,
 		DPoSV2RewardAccumulateAddress:      DposV2RewardAccumulateAddress,
 		StakePool:                          "",      // todo complete me
+		DPoSV2DepositCoinMinLockTime:       7200,    // todo complete me change to 216000
 		DPoSV2MinVotesLockTime:             7200,    // todo complete me
 		DPoSV2MaxVotesLockTime:             720000,  // todo complete me
 		SchnorrStartHeight:                 2000000, // todo complete me
@@ -361,9 +362,10 @@ func (p *Params) TestNet() *Params {
 	copy.DPoSV2StartHeight = 2000000
 	copy.DPoSV2EffectiveVotes = 8000000000000
 	copy.DPoSV2RewardAccumulateAddress = DposV2RewardAccumulateAddress
-	copy.StakePool = ""                  // todo complete me
-	copy.DPoSV2MinVotesLockTime = 7200   // todo complete me
-	copy.DPoSV2MaxVotesLockTime = 720000 // todo complete me
+	copy.StakePool = ""                      // todo complete me
+	copy.DPoSV2DepositCoinMinLockTime = 7200 // todo complete me change to 216000
+	copy.DPoSV2MinVotesLockTime = 7200       // todo complete me
+	copy.DPoSV2MaxVotesLockTime = 720000     // todo complete me
 	copy.RealWithdrawSingleFee = 10000
 	copy.SchnorrStartHeight = 2000000 // todo complete me
 	copy.CRDPoSNodeHotFixHeight = 0
@@ -466,9 +468,10 @@ func (p *Params) RegNet() *Params {
 	copy.DPoSV2StartHeight = 2000000
 	copy.DPoSV2EffectiveVotes = 8000000000000
 	copy.DPoSV2RewardAccumulateAddress = DposV2RewardAccumulateAddress
-	copy.StakePool = ""                  // todo complete me
-	copy.DPoSV2MinVotesLockTime = 7200   // todo complete me
-	copy.DPoSV2MaxVotesLockTime = 720000 // todo complete me
+	copy.StakePool = ""                      // todo complete me
+	copy.DPoSV2DepositCoinMinLockTime = 7200 // todo complete me change to 216000
+	copy.DPoSV2MinVotesLockTime = 7200       // todo complete me
+	copy.DPoSV2MaxVotesLockTime = 720000     // todo complete me
 	copy.RealWithdrawSingleFee = 10000
 	copy.SchnorrStartHeight = 2000000 // todo fix me
 	copy.CRDPoSNodeHotFixHeight = 0
@@ -828,6 +831,9 @@ type Params struct {
 
 	// Stake address of votes
 	StakePool string
+
+	// minimum lock time of DPoS V2 deposit coin
+	DPoSV2DepositCoinMinLockTime uint32
 
 	// minimum lock time of DPoS V2 votes
 	DPoSV2MinVotesLockTime uint32

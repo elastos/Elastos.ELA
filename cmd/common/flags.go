@@ -484,6 +484,10 @@ var (
 		Name:  "emergencyinactivepenalty",
 		Usage: "defines penalty of emergency inactive",
 	}
+	DPoSV2DepositCoinMinLockTimeFlag = cli.StringFlag{
+		Name:  "dposv2depositcoinminlocktime",
+		Usage: "minimum lock time of DPoS V2 deposit coin",
+	}
 	DPoSV2MinVotesLockTimeFlag = cli.StringFlag{
 		Name:  "dposv2minvoteslocktime",
 		Usage: "minimum lock time of DPoS V2 votes",

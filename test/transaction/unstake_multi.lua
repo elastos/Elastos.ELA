@@ -21,8 +21,7 @@ local wallet = client.new(keystore, password, false)
 local addr = "8R7hnR9N6ujEYhuHRNwPjagbceXxdyPXQu"
 -- local addr = wallet:get_address()
 local pubkey = wallet:get_publickey()
-local saddr = wallet:get_s_address()
-
+local saddr = wallet:get_s_multi_address(2)
 print("addr", addr)
 print("saddr", saddr)
 print("pubkey", pubkey)
@@ -55,10 +54,10 @@ print("fee:", fee)
 
 
 -- payload
-local ta = unstake.new(pubkey,  recipient, amount * 100000000, wallet)
+local ta = unstake.new(pubkey,  recipient, amount * 100000000, wallet, 2)
 
 -- transaction: version, tx_type, payload_version, payload, locktime
-local tx = transaction.new(9, 0x65, 0, ta, 0)
+local tx = transaction.new(9, 0x64, 0, ta, 0)
 
 -- input: from, amount + fee
 local charge = tx:appendenough(addr, fee * 100000000)

@@ -87,7 +87,7 @@ func newUnstake(L *lua.LState) int {
 	toAddr := L.ToString(2)
 	amount := L.ToInt(3)
 	client, err := checkClient(L, 4)
-
+	m := L.ToInt(5)
 	addr, err := common.Uint168FromAddress(toAddr)
 	if err != nil {
 		fmt.Println("invalid unstake toAddr")
@@ -104,6 +104,21 @@ func newUnstake(L *lua.LState) int {
 	if err != nil {
 		fmt.Println("wrong producer public key")
 		os.Exit(1)
+	}
+	fmt.Println("value m " + strconv.Itoa(m))
+	if m != 0 {
+		var pks []*crypto.PublicKey
+		accs := client.GetAccounts()
+		for _, acc := range accs {
+			pks = append(pks, acc.PublicKey)
+		}
+
+		multiCode, err := contract.CreateMultiSigRedeemScript(int(m), pks)
+		if err != nil {
+			fmt.Println(err)
+			return 0
+		}
+		code = multiCode
 	}
 	unstakePayload := &payload.Unstake{
 		ToAddr: *addr,
@@ -129,6 +144,28 @@ func newUnstake(L *lua.LState) int {
 		fmt.Println(err)
 		os.Exit(1)
 	}
+	if m != 0 {
+		signerIndex := 0
+		var param []byte
+		for _, acc := range client.GetAccounts() {
+			signerIndex++
+			signature, err := crypto.Sign(acc.PrivKey(), buf.Bytes())
+			if err != nil {
+				fmt.Println("[Signature],SignBySigner failed")
+			}
+			param = append(param, byte(len(signature)))
+			param = append(param, signature...)
+			if signerIndex == m {
+				break
+			}
+		}
+		rpSig = param
+	}
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
 	unstakePayload.Signature = rpSig
 
 	ud := L.NewUserData()

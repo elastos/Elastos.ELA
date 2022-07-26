@@ -117,7 +117,6 @@ func (t *UnstakeTransaction) SpecialContextCheck() (result elaerr.ELAError, end 
 				errors.New("vote rights not enough")), true
 		}
 	}
-
 	//check pl.Code signature
 	err = t.checkUnstakeSignature(pl)
 	if err != nil {

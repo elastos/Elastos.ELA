@@ -484,7 +484,7 @@ func GetAllDetailedDPoSV2Votes(params Params) map[string]interface{} {
 		PayloadVersion   byte                  `json:"payloadversion"`
 		VoteType         byte                  `json:"votetype"`
 		Info             VotesWithLockTimeInfo `json:"info"`
-		DPoSV2VoteRights float64               `json:"DPoSV2VoteRights"`
+		DPoSV2VoteRights string                `json:"DPoSV2VoteRights"`
 	}
 	var result []*detailedVoteInfo
 	ps := Chain.GetState().GetAllProducers()
@@ -514,6 +514,7 @@ func GetAllDetailedDPoSV2Votes(params Params) map[string]interface{} {
 						Votes:     v1.Info[0].Votes.String(),
 						LockTime:  v1.Info[0].LockTime,
 					},
+					DPoSV2VoteRights: common.Fixed64(p.GetTotalDPoSV2VoteRights()).String(),
 				}
 				result = append(result, info)
 			}
@@ -568,7 +569,7 @@ func GetProducerInfo(params Params) map[string]interface{} {
 func GetVoteRights(params Params) map[string]interface{} {
 	addresses, ok := params.ArrayString("stakeaddresses")
 	if !ok {
-		return ResponsePack(InvalidParams, "need addresses in an array!")
+		return ResponsePack(InvalidParams, "need stakeaddresses in an array!")
 	}
 	type usedVoteRightDetailInfo struct {
 		UsedDPoSV2Votes         []DetailedVoteInfo      `json:"useddposv2votes"`
@@ -588,13 +589,15 @@ func GetVoteRights(params Params) map[string]interface{} {
 	state := Chain.GetState()
 	crstate := Chain.GetCRCommittee().GetState()
 	for _, address := range addresses {
+		if !strings.HasPrefix(address, "S") {
+			return ResponsePack(InvalidParams, "invalid stake address need prefix s")
+		}
 		programhash, err := common.Uint168FromAddress(address)
 		if err != nil {
-			return ResponsePack(InvalidParams, "invalid address")
+			return ResponsePack(InvalidParams, "invalid stake address")
 		}
-		codeHash := programhash.ToCodeHash()
-		stakeProgramHash := common.Uint168FromCodeHash(byte(contract.PrefixDPoSV2), codeHash)
 		voteRights := state.DposV2VoteRights
+		stakeProgramHash := *programhash
 		//get totalVotes
 		totalVotesRight := voteRights[stakeProgramHash]
 		vote := &detailedVoteRight{

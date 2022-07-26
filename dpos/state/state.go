@@ -104,8 +104,6 @@ func (pi ProducerIdentity) String() string {
 // Producer holds a producer's info.  It provides read only methods to access
 // producer's info.
 type Producer struct {
-	//PayloadVersion for ProducerInfo Serialize and Deserialize
-	PayloadVersion        byte
 	info                  payload.ProducerInfo
 	state                 ProducerState
 	identity              ProducerIdentity
@@ -289,11 +287,7 @@ func (p *Producer) SetSelected(s bool) {
 }
 
 func (p *Producer) Serialize(w io.Writer) error {
-	if err := common.WriteUint8(w, p.PayloadVersion); err != nil {
-		return err
-	}
-
-	if err := p.info.Serialize(w, p.PayloadVersion); err != nil {
+	if err := p.info.Serialize(w, payload.ProducerInfoDposV2Version); err != nil {
 		return err
 	}
 
@@ -384,10 +378,7 @@ func SerializeDetailVoteInfoMap(
 }
 
 func (p *Producer) Deserialize(r io.Reader) (err error) {
-	if p.PayloadVersion, err = common.ReadUint8(r); err != nil {
-		return
-	}
-	if err = p.info.Deserialize(r, p.PayloadVersion); err != nil {
+	if err = p.info.Deserialize(r, payload.ProducerInfoDposV2Version); err != nil {
 		return
 	}
 
@@ -1709,7 +1700,6 @@ func (s *State) registerProducer(tx interfaces.Transaction, height uint32) {
 	}
 
 	producer := Producer{
-		PayloadVersion:               tx.PayloadVersion(),
 		info:                         *info,
 		identity:                     identity,
 		registerHeight:               height,

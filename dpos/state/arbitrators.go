@@ -707,22 +707,27 @@ func (a *Arbiters) getDPoSV2Rewards(dposReward common.Fixed64, sponsor []byte) (
 			return
 		}
 		producersN := make(map[common.Uint168]float64)
+		stakeAddrPreTypeMgr := make(map[common.Uint168]byte)
+
 		var totalNI float64
 		for sVoteAddr, sVoteDetail := range producer.detailedDPoSV2Votes {
+			prefixType := byte(contract.PrefixStandard)
 			var totalN float64
 			for _, votes := range sVoteDetail {
 				weightF := math.Log10(float64(votes.Info[0].LockTime-votes.BlockHeight) / 7200 * 10)
 				N := common.Fixed64(float64(votes.Info[0].Votes) * weightF)
 				totalN += float64(N)
+				prefixType = votes.PrefixType
 			}
 
 			producersN[sVoteAddr] = totalN
+			stakeAddrPreTypeMgr[sVoteAddr] = prefixType
 			totalNI += totalN
 		}
 
 		for sVoteAddr, N := range producersN {
 			b := sVoteAddr.Bytes()
-			b[0] = byte(contract.PrefixStandard)
+			b[0] = stakeAddrPreTypeMgr[sVoteAddr]
 			standardUint168, _ := common.Uint168FromBytes(b)
 			addr, _ := standardUint168.ToAddress()
 			p := N / totalNI * float64(votesReward)

@@ -8,14 +8,9 @@ package utils
 import (
 	"fmt"
 	"io"
-	"net"
-	"net/http"
-	_ "net/http/pprof"
 	"os"
-	"strconv"
 
 	"github.com/elastos/Elastos.ELA/common"
-
 	"github.com/howeyc/gopass"
 )
 
@@ -62,16 +57,6 @@ func StringExisted(src []string, check string) bool {
 		}
 	}
 	return false
-}
-
-//open ela pprof ,must run with goroutine
-func StartPProf(port uint32) {
-	listenAddr := net.JoinHostPort("", strconv.FormatUint(uint64(port), 10))
-	fmt.Printf("Profile server listening on %s\n", listenAddr)
-	profileRedirect := http.RedirectHandler("/debug/pprof", http.StatusSeeOther)
-	http.Handle("/", profileRedirect)
-	ret := http.ListenAndServe(listenAddr, nil)
-	fmt.Printf("Profile server ListenAndServe return %v", ret)
 }
 
 // CopyStringSet copy the src map's key, and return the dst map.

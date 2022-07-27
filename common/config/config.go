@@ -68,6 +68,7 @@ type Configuration struct {
 	CheckRewardHeight               uint32            `json:"CheckRewardHeight"`
 	VoteStatisticsHeight            uint32            `json:"VoteStatisticsHeight"`
 	ProfilePort                     uint32            `json:"ProfilePort"`
+	ProfileHost                     string            `json:"ProfileHost"`
 	MaxBlockSize                    uint32            `json:"MaxBlockSize"`
 	MaxBlockHeaderSize              uint32            `json:"MaxBlockHeaderSize"`
 	MaxTxPerBlock                   uint32            `json:"MaxTxPerBlock"`

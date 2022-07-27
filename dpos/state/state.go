@@ -24,11 +24,13 @@ import (
 	"github.com/elastos/Elastos.ELA/core/types/outputpayload"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/cr/state"
+	"github.com/elastos/Elastos.ELA/crypto"
 	elaerr "github.com/elastos/Elastos.ELA/errors"
 	"github.com/elastos/Elastos.ELA/events"
 	"github.com/elastos/Elastos.ELA/p2p"
 	"github.com/elastos/Elastos.ELA/p2p/msg"
 	"github.com/elastos/Elastos.ELA/utils"
+	"github.com/elastos/Elastos.ELA/vm"
 )
 
 // ProducerState represents the state of a producer.
@@ -1922,9 +1924,16 @@ func (s *State) processVotingContent(tx interfaces.Transaction, height uint32) {
 
 	// get stake address(program hash)
 	code := tx.Programs()[0].Code
+	signType, _ := crypto.GetScriptType(code)
+	var prefixType byte
+	if signType == vm.CHECKSIG {
+		prefixType = byte(contract.PrefixStandard)
+	} else if signType == vm.CHECKMULTISIG {
+		prefixType = byte(contract.PrefixMultiSig)
+	}
+
 	ct, _ := contract.CreateStakeContractByCode(code)
 	stakeAddress := ct.ToProgramHash()
-
 	pld := tx.Payload().(*payload.Voting)
 	for _, cont := range pld.Contents {
 		content := cont
@@ -1994,6 +2003,7 @@ func (s *State) processVotingContent(tx interfaces.Transaction, height uint32) {
 					PayloadVersion:   tx.PayloadVersion(),
 					VoteType:         content.VoteType,
 					Info:             []payload.VotesWithLockTime{voteInfo},
+					PrefixType:       prefixType,
 				}
 				s.History.Append(height, func() {
 					if producer.detailedDPoSV2Votes == nil {

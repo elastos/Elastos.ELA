@@ -5,12 +5,13 @@ go 1.16
 require (
 	github.com/btcsuite/btcd v0.22.0-beta
 	github.com/fatih/color v1.13.0 // indirect
+	github.com/go-echarts/statsview v0.3.4
 	github.com/gorilla/websocket v1.4.2
 	github.com/howeyc/gopass v0.0.0-20190910152052-7cb4b85ec19c
 	github.com/itchyny/base58-go v0.1.0
 	github.com/mattn/go-runewidth v0.0.13 // indirect
 	github.com/rs/cors v1.8.0
-	github.com/stretchr/testify v1.4.0
+	github.com/stretchr/testify v1.6.0
 	github.com/syndtr/goleveldb v1.0.0
 	github.com/tidwall/gjson v1.8.1
 	github.com/urfave/cli v1.22.5

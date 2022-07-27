@@ -8,6 +8,7 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"net"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -38,10 +39,11 @@ import (
 	"github.com/elastos/Elastos.ELA/servers/httpnodeinfo"
 	"github.com/elastos/Elastos.ELA/servers/httprestful"
 	"github.com/elastos/Elastos.ELA/servers/httpwebsocket"
-	"github.com/elastos/Elastos.ELA/utils"
 	"github.com/elastos/Elastos.ELA/utils/elalog"
 	"github.com/elastos/Elastos.ELA/utils/signal"
 
+	"github.com/go-echarts/statsview"
+	"github.com/go-echarts/statsview/viewer"
 	"github.com/urfave/cli"
 )
 
@@ -129,9 +131,14 @@ func setupNode() *cli.App {
 }
 
 func startNode(c *cli.Context, st *settings.Settings) {
-	// Enable http profiling netServer if requested.
+	// Enable profiling server if requested.
 	if st.Config().ProfilePort != 0 {
-		go utils.StartPProf(st.Config().ProfilePort)
+		listenAddr := net.JoinHostPort("", strconv.FormatUint(
+			uint64(st.Config().ProfilePort), 10))
+		viewer.SetConfiguration(viewer.WithAddr(listenAddr),
+			viewer.WithLinkAddr(st.Config().ProfileHost))
+		mgr := statsview.New()
+		go mgr.Start()
 	}
 
 	flagDataDir := c.String("datadir")
@@ -283,8 +290,8 @@ func startNode(c *cli.Context, st *settings.Settings) {
 			Broadcast: func(msg p2p.Message) {
 				netServer.BroadcastMessage(msg)
 			},
-			AnnounceAddr:    route.AnnounceAddr,
-			NodeVersion:     nodePrefix + Version,
+			AnnounceAddr: route.AnnounceAddr,
+			NodeVersion:  nodePrefix + Version,
 		})
 		if err != nil {
 			printErrorAndExit(err)

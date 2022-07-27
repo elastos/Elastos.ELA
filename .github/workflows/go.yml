@@ -4,7 +4,7 @@ jobs:
 
   build:
     name: Build
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-latest
     strategy:
       matrix:
         go: ["1.16"]
@@ -25,12 +25,13 @@ jobs:
     - name: Test
       run: go test -race `go list ./... | grep -v benchmark` -short
 
-#    - name: Check code quality
-#      run: |
-#        export PATH=$PATH:$(go env GOPATH)/bin
-#        go get -u github.com/mgechev/revive
-#        revive -config .revive.toml -formatter friendly -exclude vendor/... $(go list ./...)
-#
+    - name: Check code quality
+      run: |
+        export PATH=$PATH:$(go env GOPATH)/bin
+        wget https://github.com/mgechev/revive/releases/download/v1.2.1/revive_1.2.1_Linux_x86_64.tar.gz
+        tar xf revive_1.2.1_Linux_x86_64.tar.gz -C /tmp
+        /tmp/revive -config .revive.toml -formatter friendly -exclude vendor/... $(go list ./...)
+
     - name: Make
       run: make dev
 

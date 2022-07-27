@@ -135,7 +135,9 @@ func startNode(c *cli.Context, st *settings.Settings) {
 	if st.Config().ProfilePort != 0 {
 		listenAddr := net.JoinHostPort("", strconv.FormatUint(
 			uint64(st.Config().ProfilePort), 10))
-		viewer.SetConfiguration(viewer.WithAddr(listenAddr),
+		viewer.SetConfiguration(viewer.WithMaxPoints(100),
+			viewer.WithInterval(300000),
+			viewer.WithAddr(listenAddr),
 			viewer.WithLinkAddr(st.Config().ProfileHost))
 		mgr := statsview.New()
 		go mgr.Start()

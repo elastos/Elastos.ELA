@@ -93,11 +93,13 @@ func opCheckMultiSig(e *ExecutionEngine) (VMState, error) {
 		}
 		if index != -1 {
 			pubkeys = append(pubkeys[:index], pubkeys[index+1:]...)
-		} else {
-			fSuccess = false
-			break
 		}
+		//else {
+		//	fSuccess = false
+		//	break
+		//}
 	}
+
 	if verified < m {
 		fSuccess = false
 	}

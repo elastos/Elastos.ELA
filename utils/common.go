@@ -6,6 +6,7 @@
 package utils
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -13,9 +14,12 @@ import (
 	"strconv"
 
 	"github.com/elastos/Elastos.ELA/common"
-
+	"github.com/elastos/Elastos.ELA/core/contract"
+	"github.com/elastos/Elastos.ELA/crypto"
+	"github.com/elastos/Elastos.ELA/vm"
 	"github.com/go-echarts/statsview"
 	"github.com/go-echarts/statsview/viewer"
+
 	"github.com/howeyc/gopass"
 )
 
@@ -156,4 +160,39 @@ func DeserializeStringSet(r io.Reader) (vmap map[string]struct{}, err error) {
 		vmap[k] = struct{}{}
 	}
 	return
+}
+
+func GetAddressByCode(code []byte) (string, error) {
+	programHash, err := GetProgramHashByCode(code)
+	if err != nil {
+		return "", err
+	}
+	address, err := programHash.ToAddress()
+	if err != nil {
+		return "", err
+	}
+	return address, nil
+}
+
+func GetProgramHashByCode(code []byte) (*common.Uint168, error) {
+	signType, err := crypto.GetScriptType(code)
+	if err != nil {
+		return nil, err
+	}
+	if signType == vm.CHECKSIG {
+		ct, err := contract.CreateStandardContractByCode(code)
+		if err != nil {
+			return nil, err
+		}
+		return ct.ToProgramHash(), nil
+
+	} else if signType == vm.CHECKMULTISIG {
+		ct, err := contract.CreateMultiSigContractByCode(code)
+		if err != nil {
+			return nil, err
+		}
+		return ct.ToProgramHash(), nil
+	} else {
+		return nil, errors.New("invalid code type")
+	}
 }

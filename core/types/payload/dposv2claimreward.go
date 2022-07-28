@@ -8,10 +8,10 @@ package payload
 import (
 	"bytes"
 	"errors"
-	"github.com/elastos/Elastos.ELA/crypto"
 	"io"
 
 	"github.com/elastos/Elastos.ELA/common"
+	"github.com/elastos/Elastos.ELA/crypto"
 )
 
 const (
@@ -57,7 +57,7 @@ func (a *DPoSV2ClaimReward) Deserialize(r io.Reader, version byte) error {
 	if err != nil {
 		return err
 	}
-	a.Signature, err = common.ReadVarBytes(r, crypto.SignatureLength, "signature")
+	a.Signature, err = common.ReadVarBytes(r, crypto.MaxSignatureScriptLength, "signature")
 	if err != nil {
 		return errors.New("[DPoSV2ClaimReward], signature deserialize failed")
 	}

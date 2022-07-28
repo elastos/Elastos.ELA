@@ -9,10 +9,14 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/elastos/Elastos.ELA/core/contract"
+
+	"github.com/elastos/Elastos.ELA/blockchain"
+	"github.com/elastos/Elastos.ELA/core/contract/program"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/crypto"
 	elaerr "github.com/elastos/Elastos.ELA/errors"
+	"github.com/elastos/Elastos.ELA/utils"
+	"github.com/elastos/Elastos.ELA/vm"
 )
 
 type DPoSV2ClaimRewardTransaction struct {
@@ -59,15 +63,10 @@ func (t *DPoSV2ClaimRewardTransaction) SpecialContextCheck() (elaerr.ELAError, b
 	if !ok {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid payload for dposV2claimReward")), true
 	}
-
-	pub := t.Programs()[0].Code[1 : len(t.Programs()[0].Code)-1]
-	u168, err := contract.PublicKeyToStandardProgramHash(pub)
+	code := t.Programs()[0].Code
+	addr, err := utils.GetAddressByCode(code)
 	if err != nil {
-		return elaerr.Simple(elaerr.ErrTxPayload, err), true
-	}
-	addr, err := u168.ToAddress()
-	if err != nil {
-		return elaerr.Simple(elaerr.ErrTxPayload, err), true
+		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("Programs code to address error")), true
 	}
 	claimAmount, ok := t.parameters.BlockChain.GetState().DposV2RewardInfo[addr]
 	if !ok {
@@ -81,29 +80,49 @@ func (t *DPoSV2ClaimRewardTransaction) SpecialContextCheck() (elaerr.ELAError, b
 	if claimReward.Amount <= t.parameters.Config.RealWithdrawSingleFee {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("claim reward should be bigger than RealWithdrawSingleFee")), true
 	}
-
-	err = t.checkClaimRewardSignature(pub, claimReward)
+	signedBuf := new(bytes.Buffer)
+	err = claimReward.SerializeUnsigned(signedBuf, payload.DposV2ClaimRewardVersion)
+	if err != nil {
+		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("claimReward Serialize error")), true
+	}
+	err = t.checkClaimRewardSignature(code, claimReward.Signature, signedBuf.Bytes())
 	if err != nil {
 		return elaerr.Simple(elaerr.ErrTxPayload, err), true
 	}
 	return nil, false
 }
 
-func (t *DPoSV2ClaimRewardTransaction) checkClaimRewardSignature(pub []byte, claimReward *payload.DPoSV2ClaimReward) error {
+func getParameterBySignature(signature []byte) []byte {
+	buf := new(bytes.Buffer)
+	buf.WriteByte(byte(len(signature)))
+	buf.Write(signature)
+	return buf.Bytes()
+}
 
-	// check signature
-	publicKey, err := crypto.DecodePoint(pub)
+func (t *DPoSV2ClaimRewardTransaction) checkClaimRewardSignature(code []byte, signature []byte, data []byte) error {
+	signType, err := crypto.GetScriptType(code)
 	if err != nil {
-		return errors.New("invalid public key in payload")
+		return errors.New("invalid code")
 	}
-	signedBuf := new(bytes.Buffer)
-	err = claimReward.SerializeUnsigned(signedBuf, payload.DposV2ClaimRewardVersion)
-	if err != nil {
-		return err
+	if signType == vm.CHECKSIG {
+		// check code and signature
+		if err := blockchain.CheckStandardSignature(program.Program{
+			Code:      code,
+			Parameter: getParameterBySignature(signature),
+		}, data); err != nil {
+			return err
+		}
+	} else if signType == vm.CHECKMULTISIG {
+		// check code and signature
+		if err := blockchain.CheckMultiSigSignatures(program.Program{
+			Code:      code,
+			Parameter: signature,
+		}, data); err != nil {
+			return err
+		}
+	} else {
+		return errors.New("invalid code type")
 	}
-	err = crypto.Verify(*publicKey, signedBuf.Bytes(), claimReward.Signature)
-	if err != nil {
-		return errors.New("invalid signature in payload")
-	}
+
 	return nil
 }

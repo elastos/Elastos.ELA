@@ -2457,16 +2457,13 @@ func (s *State) processDposV2ClaimReward(tx interfaces.Transaction, height uint3
 	oriDposV2RewardInfo := s.DposV2RewardInfo
 	oriDposV2RewardClaimingInfo := s.DposV2RewardClaimingInfo
 	payload := tx.Payload().(*payload.DPoSV2ClaimReward)
-	pub := hex.EncodeToString(tx.Programs()[0].Code[1 : len(tx.Programs()[0].Code)-1])
-	pkBytes, _ := common.HexStringToBytes(pub)
-	u168, _ := contract.PublicKeyToStandardProgramHash(pkBytes)
-	addr, _ := u168.ToAddress()
+	programHash, _ := utils.GetProgramHashByCode(tx.Programs()[0].Code)
+	addr, _ := programHash.ToAddress()
 	s.History.Append(height, func() {
 		s.DposV2RewardInfo[addr] -= payload.Amount
 		s.DposV2RewardClaimingInfo[addr] += payload.Amount
-		receipt, _ := contract.PublicKeyToStandardProgramHash(tx.Programs()[0].Code[1 : len(tx.Programs()[0].Code)-1])
 		s.WithdrawableTxInfo[tx.Hash()] = common2.OutputInfo{
-			Recipient: *receipt,
+			Recipient: *programHash,
 			Amount:    payload.Amount,
 		}
 	}, func() {

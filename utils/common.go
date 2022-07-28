@@ -8,9 +8,14 @@ package utils
 import (
 	"fmt"
 	"io"
+	"net"
 	"os"
+	"strconv"
 
 	"github.com/elastos/Elastos.ELA/common"
+
+	"github.com/go-echarts/statsview"
+	"github.com/go-echarts/statsview/viewer"
 	"github.com/howeyc/gopass"
 )
 
@@ -43,6 +48,17 @@ func GetConfirmedPassword() ([]byte, error) {
 		}
 	}
 	return first, nil
+}
+
+func StartPProf(port uint32, host string) {
+	listenAddr := net.JoinHostPort("", strconv.FormatUint(
+		uint64(port), 10))
+	viewer.SetConfiguration(viewer.WithMaxPoints(100),
+		viewer.WithInterval(300000),
+		viewer.WithAddr(listenAddr),
+		viewer.WithLinkAddr(host))
+	mgr := statsview.New()
+	mgr.Start()
 }
 
 func FileExisted(filename string) bool {

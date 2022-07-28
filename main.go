@@ -8,7 +8,6 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"net"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -39,11 +38,10 @@ import (
 	"github.com/elastos/Elastos.ELA/servers/httpnodeinfo"
 	"github.com/elastos/Elastos.ELA/servers/httprestful"
 	"github.com/elastos/Elastos.ELA/servers/httpwebsocket"
+	"github.com/elastos/Elastos.ELA/utils"
 	"github.com/elastos/Elastos.ELA/utils/elalog"
 	"github.com/elastos/Elastos.ELA/utils/signal"
 
-	"github.com/go-echarts/statsview"
-	"github.com/go-echarts/statsview/viewer"
 	"github.com/urfave/cli"
 )
 
@@ -133,14 +131,8 @@ func setupNode() *cli.App {
 func startNode(c *cli.Context, st *settings.Settings) {
 	// Enable profiling server if requested.
 	if st.Config().ProfilePort != 0 {
-		listenAddr := net.JoinHostPort("", strconv.FormatUint(
-			uint64(st.Config().ProfilePort), 10))
-		viewer.SetConfiguration(viewer.WithMaxPoints(100),
-			viewer.WithInterval(300000),
-			viewer.WithAddr(listenAddr),
-			viewer.WithLinkAddr(st.Config().ProfileHost))
-		mgr := statsview.New()
-		go mgr.Start()
+		go utils.StartPProf(st.Config().ProfilePort,
+			st.Config().ProfileHost)
 	}
 
 	flagDataDir := c.String("datadir")

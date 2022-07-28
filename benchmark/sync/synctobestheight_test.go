@@ -75,9 +75,10 @@ func Benchmark_Sync_ToBestHeight(b *testing.B) {
 }
 
 func startDstNode() {
-	// Enable http profiling server if requested.
+	// Enable profiling server if requested.
 	if dstSettings.Config().ProfilePort != 0 {
-		go utils.StartPProf(dstSettings.Config().ProfilePort)
+		go utils.StartPProf(dstSettings.Config().ProfilePort,
+			dstSettings.Config().ProfileHost)
 	}
 
 	flagDataDir := dstContext.String("datadir")

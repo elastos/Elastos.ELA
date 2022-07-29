@@ -516,8 +516,9 @@ func (t *DefaultChecker) checkVoteCRContent(blockHeight uint32,
 				"Candidate can not change to proper cid")
 		}
 		if _, ok := crs[*cid]; !ok {
+			cidAddress, _ := cid.ToAddress()
 			return fmt.Errorf("invalid vote output payload "+
-				"CR candidate: %s", cid.String())
+				"CR candidate: %s", cidAddress)
 		}
 	}
 	var totalVotes common.Fixed64

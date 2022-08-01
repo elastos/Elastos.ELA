@@ -317,12 +317,12 @@ func TestSchnorrRunProgramsOrigin(t *testing.T) {
 		}
 
 		publicKey, _ := crypto.DecodePoint(pk[:])
-		redeemscript, err := contract.CreateSchnorrMultiSigRedeemScript(publicKey)
+		redeemscript, err := contract.CreateSchnorrRedeemScript(publicKey)
 		if err != nil {
 			fmt.Println("err ", err)
 		}
 
-		c, err := contract.CreateSchnorrMultiSigContract(publicKey)
+		c, err := contract.CreateSchnorrContract(publicKey)
 		if err != nil {
 			t.Errorf("Create standard contract failed, error %s", err.Error())
 		}
@@ -754,12 +754,12 @@ func newSchnorrMultiAccount(num int, t *testing.T) *schnorAccount {
 	}
 	sumPublicKey := crypto.Marshal(crypto.Curve, Px, Py)
 	publicKey, err := crypto.DecodePoint(sumPublicKey)
-	ma.redeemScript, err = contract.CreateSchnorrMultiSigRedeemScript(publicKey)
+	ma.redeemScript, err = contract.CreateSchnorrRedeemScript(publicKey)
 	if err != nil {
 		t.Errorf("Create multisig redeem script failed, error %s", err.Error())
 	}
 
-	c, err := contract.CreateSchnorrMultiSigContract(publicKey)
+	c, err := contract.CreateSchnorrContract(publicKey)
 	if err != nil {
 		t.Errorf("Create multi-sign contract failed, error %s", err.Error())
 	}

@@ -429,9 +429,6 @@ func (d *DPOSManager) recoverAbnormalState() bool {
 
 				time.Sleep(time.Millisecond * 100)
 			}
-
-			<-time.NewTicker(time.Second * 2).C
-			d.network.RecoverTimeout()
 		}()
 		return true
 	}

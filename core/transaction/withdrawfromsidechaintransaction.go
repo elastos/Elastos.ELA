@@ -312,9 +312,9 @@ func checkSchnorrWithdrawFromSidechain(t interfaces.Transaction, pld *payload.Wi
 	if err != nil {
 		return errors.New("Invalid schnorr public key" + err.Error())
 	}
-	redeemScript, err := contract.CreateSchnorrMultiSigRedeemScript(publicKey)
+	redeemScript, err := contract.CreateSchnorrRedeemScript(publicKey)
 	if err != nil {
-		return errors.New("CreateSchnorrMultiSigRedeemScript error")
+		return errors.New("CreateSchnorrRedeemScript error")
 	}
 	for _, program := range t.Programs() {
 		if contract.IsSchnorr(program.Code) {

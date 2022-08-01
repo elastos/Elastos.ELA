@@ -33,7 +33,10 @@ func IsSchnorr(code []byte) bool {
 	if len(code) != 35 {
 		return false
 	}
-	if code[0] != 33 || code[34] != byte(vm.SCHNORR) {
+	if int(code[0]) != vm.PUSH1 {
+		return false
+	}
+	if int(code[1])+2 != len(code) {
 		return false
 	}
 	return true

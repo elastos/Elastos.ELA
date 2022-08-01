@@ -169,7 +169,14 @@ func (c *Committee) IsProposalAllowed(height uint32) bool {
 	if !c.InElectionPeriod {
 		return false
 	}
-	return !c.isInVotingPeriod(height)
+	inVotingPeriod := c.isInVotingPeriod(height)
+	inClaimPeriod := c.isInClaimPeriod(height)
+
+	if height > c.Params.DPoSV2StartHeight {
+		return !inVotingPeriod && !inClaimPeriod
+	}
+
+	return !inVotingPeriod
 }
 
 func (c *Committee) IsAppropriationNeeded() bool {
@@ -1382,6 +1389,16 @@ func (c *Committee) isInVotingPeriod(height uint32) bool {
 		}
 		return inVotingPeriod(c.LastCommitteeHeight + c.Params.CRDutyPeriod)
 	}
+}
+
+func (c *Committee) isInClaimPeriod(height uint32) bool {
+	if height >= c.Params.DPoSV2StartHeight {
+		return height >= c.LastVotingStartHeight+c.Params.CRVotingPeriod &&
+			height <= c.LastVotingStartHeight+c.Params.CRVotingPeriod+c.Params.CRClaimPeriod
+	}
+
+	return height >= c.LastCommitteeHeight &&
+		height <= c.LastCommitteeHeight+c.Params.CRClaimDPOSNodePeriod
 }
 
 func (c *Committee) updateNextCommitteeMembers(height uint32) error {

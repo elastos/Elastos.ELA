@@ -135,7 +135,7 @@ func CheckMultiSigSignatures(program Program, data []byte) error {
 
 func checkSchnorrSignatures(program Program, data [32]byte) (bool, error) {
 	publicKey := [33]byte{}
-	copy(publicKey[:], program.Code[1:len(program.Code)-1])
+	copy(publicKey[:], program.Code[2:])
 
 	signature := [64]byte{}
 	copy(signature[:], program.Parameter[:64])

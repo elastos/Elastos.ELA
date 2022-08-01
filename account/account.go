@@ -130,11 +130,11 @@ func NewSchnorrAggregateAccount(accounts []*Account) *SchnorAccount {
 	sumPublicKey := crypto.Marshal(crypto.Curve, Px, Py)
 	publicKey, err := crypto.DecodePoint(sumPublicKey)
 	fmt.Println("===", len(sa.PrivateKeys), common.BytesToHexString(sa.SumPublicKey[:]))
-	sa.RedeemScript, err = contract.CreateSchnorrMultiSigRedeemScript(publicKey)
+	sa.RedeemScript, err = contract.CreateSchnorrRedeemScript(publicKey)
 	if err != nil {
 		fmt.Errorf("Create multisig redeem script failed, error %s", err.Error())
 	}
-	ct, err := contract.CreateSchnorrMultiSigContract(publicKey)
+	ct, err := contract.CreateSchnorrContract(publicKey)
 	if err != nil {
 		fmt.Errorf("Create multi-sign contract failed, error %s", err.Error())
 	}

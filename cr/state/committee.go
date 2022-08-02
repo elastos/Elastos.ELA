@@ -2059,9 +2059,7 @@ func (c *Committee) TryUpdateCRMemberIllegal(did common.Uint168, height uint32, 
 		log.Errorf("TryUpdateCRMemberIllegal did %+v not exist", did.String())
 		return
 	}
-	if height >= c.Params.ChangeCommitteeNewCRHeight {
-		c.state.UpdateCRIllegalPenalty(crMember.Info.CID, height, illegalPenalty)
-	}
+	c.state.UpdateCRIllegalPenalty(crMember.Info.CID, illegalPenalty)
 	crMember.MemberState = MemberIllegal
 
 }
@@ -2075,9 +2073,7 @@ func (c *Committee) TryRevertCRMemberIllegal(did common.Uint168, oriState Member
 		return
 	}
 	crMember.MemberState = oriState
-	if height >= c.Params.ChangeCommitteeNewCRHeight {
-		c.state.RevertUpdateCRIllegalPenalty(crMember.Info.CID, height, illegalPenalty)
-	}
+	c.state.RevertUpdateCRIllegalPenalty(crMember.Info.CID, illegalPenalty)
 }
 
 func (c *Committee) Snapshot() *CommitteeKeyFrame {

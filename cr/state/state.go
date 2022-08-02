@@ -78,7 +78,7 @@ func (s *State) RevertUpdateCRInactivePenalty(cid common.Uint168, height uint32)
 	}
 }
 
-func (s *State) UpdateCRIllegalPenalty(cid common.Uint168, height uint32, illegalPenalty common.Fixed64) {
+func (s *State) UpdateCRIllegalPenalty(cid common.Uint168, illegalPenalty common.Fixed64) {
 	depositInfo, ok := s.DepositInfo[cid]
 	if !ok {
 		return
@@ -87,17 +87,13 @@ func (s *State) UpdateCRIllegalPenalty(cid common.Uint168, height uint32, illega
 	depositInfo.Penalty += illegalPenalty
 }
 
-func (s *State) RevertUpdateCRIllegalPenalty(cid common.Uint168, height uint32, illegalPenalty common.Fixed64) {
+func (s *State) RevertUpdateCRIllegalPenalty(cid common.Uint168, illegalPenalty common.Fixed64) {
 	depositInfo, ok := s.DepositInfo[cid]
 	if !ok {
 		return
 	}
 
-	if depositInfo.Penalty < illegalPenalty {
-		depositInfo.Penalty = common.Fixed64(0)
-	} else {
-		depositInfo.Penalty -= illegalPenalty
-	}
+	depositInfo.Penalty -= illegalPenalty
 }
 
 // RegisterFunctions set the tryStartVotingPeriod and processImpeachment function

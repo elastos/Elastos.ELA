@@ -200,8 +200,9 @@ func GetDefaultParams() Params {
 		ToleranceDuration:           5 * time.Second,
 		MaxInactiveRounds:           720 * 2,
 		InactivePenalty:             0, //there will be no penalty in this version
-		IllegalPenalty:              200,
-		EmergencyInactivePenalty:    0, //there will be no penalty in this version
+		IllegalPenalty:              0,
+		DPoSV2IllegalPenalty:        20000000000, // todo complete me
+		EmergencyInactivePenalty:    0,           //there will be no penalty in this version
 		GeneralArbiters:             24,
 		CandidateArbiters:           72,
 		PreConnectOffset:            360,
@@ -244,7 +245,7 @@ func GetDefaultParams() Params {
 		MaxInactiveRoundsOfRandomNode:      36 * 8,
 		MaxReservedCustomIDLength:          255,
 		CRCProposalDraftDataStartHeight:    1056600,
-		DPOSNodeCrossChainHeight:           2000000,
+		DPOSNodeCrossChainHeight:           2000000, // todo complete me
 		RevertToPOWNoBlockTime:             12 * 3600,
 		StopConfirmBlockTime:               11 * 3600,
 		HalvingRewardHeight:                1051200, // 4 * 365 * 720
@@ -256,7 +257,7 @@ func GetDefaultParams() Params {
 		ReturnCrossChainCoinStartHeight:    1032840,
 		ProhibitTransferToDIDHeight:        1032840,
 		DIDSideChainAddress:                "XKUh4GLhFJiqAMTF6HyWQrV9pK9HcGUdfJ",
-		DPoSV2StartHeight:                  2000000,
+		DPoSV2StartHeight:                  2000000, // todo complete me
 		DPoSV2EffectiveVotes:               8000000000000,
 		DPoSV2RewardAccumulateAddress:      DposV2RewardAccumulateAddress,
 		StakePool:                          "",      // todo complete me
@@ -340,11 +341,12 @@ func (p *Params) TestNet() *Params {
 	copy.ChangeCommitteeNewCRHeight = 815060
 	copy.CustomIDProposalStartHeight = 815060
 	copy.InactivePenalty = 0
-	copy.IllegalPenalty = 200
+	copy.IllegalPenalty = 0
+	copy.DPoSV2IllegalPenalty = 20000000000 // todo complete me
 	copy.NoCRCDPOSNodeHeight = 815060
 	copy.RandomCandidatePeriod = 36 * 10
 	copy.MaxInactiveRoundsOfRandomNode = 36 * 8
-	copy.DPOSNodeCrossChainHeight = 2000000
+	copy.DPOSNodeCrossChainHeight = 2000000 // todo complete me
 	copy.MaxReservedCustomIDLength = 255
 	copy.RevertToPOWNoBlockTime = 12 * 3600
 	copy.StopConfirmBlockTime = 11 * 3600
@@ -359,7 +361,7 @@ func (p *Params) TestNet() *Params {
 	copy.CRCProposalDraftDataStartHeight = 807000
 	copy.ProhibitTransferToDIDHeight = 807000
 	copy.DIDSideChainAddress = "XKUh4GLhFJiqAMTF6HyWQrV9pK9HcGUdfJ"
-	copy.DPoSV2StartHeight = 2000000
+	copy.DPoSV2StartHeight = 2000000 // todo complete me
 	copy.DPoSV2EffectiveVotes = 8000000000000
 	copy.DPoSV2RewardAccumulateAddress = DposV2RewardAccumulateAddress
 	copy.StakePool = ""                      // todo complete me
@@ -445,7 +447,8 @@ func (p *Params) RegNet() *Params {
 	copy.MaxCRAssetsAddressUTXOCount = 1440
 	copy.ChangeCommitteeNewCRHeight = 706240
 	copy.CustomIDProposalStartHeight = 706240
-	copy.IllegalPenalty = 200
+	copy.IllegalPenalty = 0
+	copy.DPoSV2IllegalPenalty = 20000000000 // todo complete me
 	copy.InactivePenalty = 0
 	copy.NoCRCDPOSNodeHeight = 706240
 	copy.RandomCandidatePeriod = 36 * 10
@@ -672,6 +675,9 @@ type Params struct {
 
 	// InactivePenalty defines the penalty amount the producer takes.
 	IllegalPenalty common.Fixed64
+
+	// DPoSV2InactivePenalty defines the penalty amount the producer takes.
+	DPoSV2IllegalPenalty common.Fixed64
 
 	// EmergencyInactivePenalty defines the penalty amount the emergency
 	// producer takes.

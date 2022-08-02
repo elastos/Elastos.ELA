@@ -112,6 +112,7 @@ type DPoSConfiguration struct {
 	MaxInactiveRounds             uint32         `json:"MaxInactiveRounds"`
 	InactivePenalty               common.Fixed64 `json:"InactivePenalty"`
 	IllegalPenalty                common.Fixed64 `json:"IllegalPenalty"`
+	DPoSV2IllegalPenalty          common.Fixed64 `json:"DPoSV2IllegalPenalty"`
 	PreConnectOffset              uint32         `json:"PreConnectOffset"`
 	NoCRCDPOSNodeHeight           uint32         `json:"NoCRCDPOSNodeHeight"`
 	RandomCandidatePeriod         uint32         `json:"RandomCandidatePeriod"`

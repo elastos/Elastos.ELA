@@ -2587,6 +2587,17 @@ func (s *State) RemoveSpecialTx(hash common.Uint256) {
 	delete(s.SpecialTxHashes, hash)
 }
 
+func (s *State) getIllegalPenaltyByHeight(height uint32) common.Fixed64 {
+	var illegalPenalty common.Fixed64
+	if height >= s.DPoSV2ActiveHeight {
+		illegalPenalty =  s.ChainParams.DPoSV2IllegalPenalty
+	} else if height >= s.ChainParams.ChangeCommitteeNewCRHeight {
+		illegalPenalty =  s.ChainParams.IllegalPenalty
+	}
+
+	return illegalPenalty
+}
+
 // processIllegalEvidence takes the illegal evidence payload and change producer
 // state according to the evidence.
 func (s *State) processIllegalEvidence(payloadData interfaces.Payload,
@@ -2621,11 +2632,7 @@ func (s *State) processIllegalEvidence(payloadData interfaces.Payload,
 	}
 
 	crMembersMap := s.getClaimedCRMemberDPOSPublicKeyMap()
-
-	var illegalPenalty = s.ChainParams.IllegalPenalty
-	if height < s.DPoSV2ActiveHeight {
-		illegalPenalty = 0
-	}
+	illegalPenalty := s.getIllegalPenaltyByHeight(height)
 
 	// Set illegal producers to FoundBad state
 	for _, pk := range illegalProducers {

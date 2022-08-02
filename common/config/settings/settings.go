@@ -506,11 +506,18 @@ func NewSettings() *Settings {
 		DefaultValue: uint32(0),
 		ConfigPath:   "PublicDPOSHeight",
 		ParamName:    "PublicDPOSHeight"})
+
 	result.Add(&settingItem{
 		Flag:         cmdcom.IllegalPenaltyFlag,
-		DefaultValue: uint32(0),
+		DefaultValue: common.Fixed64(0),
 		ConfigPath:   "DPoSConfiguration.IllegalPenalty",
 		ParamName:    "IllegalPenalty"})
+
+	result.Add(&settingItem{
+		Flag:         cmdcom.DPoSV2IllegalPenaltyFlag,
+		DefaultValue: common.Fixed64(0),
+		ConfigPath:   "DPoSConfiguration.DPoSV2IllegalPenalty",
+		ParamName:    "DPoSV2IllegalPenalty"})
 
 	result.Add(&settingItem{
 		Flag:         cmdcom.CRCommitteeStartHeightFlag,

@@ -399,6 +399,10 @@ var (
 		Name:  "illegalpenalty",
 		Usage: "defines the num of illegal penalty should be punished ",
 	}
+	DPoSV2IllegalPenaltyFlag = cli.StringFlag{
+		Name:  "dposv2illegalpenalty",
+		Usage: "defines the num of illegal penalty should be punished ",
+	}
 	CRCommitteeStartHeightFlag = cli.StringFlag{
 		Name:  "crcommitteestartheight",
 		Usage: "defines the height of CR Committee started",

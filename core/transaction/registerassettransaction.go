@@ -27,6 +27,7 @@ func (t *RegisterAssetTransaction) CheckTransactionPayload() error {
 		if !checkAmountPrecise(pld.Amount, pld.Asset.Precision) {
 			return errors.New("invalid asset value, out of precise")
 		}
+		return nil
 	}
 
 	return errors.New("invalid payload type")

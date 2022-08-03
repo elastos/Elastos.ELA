@@ -778,7 +778,7 @@ func (s *txValidatorSpecialTxTestSuite) TestCheckInactiveArbitrators() {
 func (s *txValidatorSpecialTxTestSuite) TestCheckUpdateVersion() {
 	tx := functions.CreateTransaction(
 		0,
-		0,
+		common2.UpdateVersion,
 		0,
 		nil,
 		[]*common2.Attribute{},
@@ -795,20 +795,24 @@ func (s *txValidatorSpecialTxTestSuite) TestCheckUpdateVersion() {
 
 	// set payload of invalid type
 	tx.SetPayload(&payload.InactiveArbitrators{})
-	s.EqualError(s.Chain.CheckUpdateVersionTransaction(tx),
-		"invalid payload")
+	err, _ := tx.SpecialContextCheck()
+	s.EqualError(err,
+		"transaction validate error: payload content invalid:invalid payload")
 
 	// set inactive mode off
 	p := &payload.UpdateVersion{}
 	tx.SetPayload(p)
-	s.EqualError(s.Chain.CheckUpdateVersionTransaction(tx),
-		"invalid update version height")
+	tx = CreateTransactionByType(tx, s.Chain)
+	err, _ = tx.SpecialContextCheck()
+	s.EqualError(err,
+		"transaction validate error: payload content invalid:invalid update version height")
 
 	// let EndHeight less than StartHeight
 	p.StartHeight = 10
 	p.EndHeight = p.StartHeight - 5
-	s.EqualError(s.Chain.CheckUpdateVersionTransaction(tx),
-		"invalid update version height")
+	err, _ = tx.SpecialContextCheck()
+	s.EqualError(err,
+		"transaction validate error: payload content invalid:invalid update version height")
 
 	// set invalid redeem script
 	p.EndHeight = p.StartHeight + 5
@@ -833,13 +837,15 @@ func (s *txValidatorSpecialTxTestSuite) TestCheckUpdateVersion() {
 	ar, _ := state.NewOriginArbiter(pkBuf)
 	arbitrators = append(arbitrators, ar)
 	tx.Programs()[0].Code = s.createArbitratorsRedeemScript(arbitrators)
-	s.EqualError(s.Chain.CheckUpdateVersionTransaction(tx),
-		"invalid multi sign public key")
+	err, _ = tx.SpecialContextCheck()
+	s.EqualError(err,
+		"transaction validate error: payload content invalid:invalid multi sign public key")
 
 	// correct redeem script
 	tx.Programs()[0].Code = s.createArbitratorsRedeemScript(
 		s.arbitrators.CRCArbitrators)
-	s.NoError(s.Chain.CheckUpdateVersionTransaction(tx))
+	err, _ = tx.SpecialContextCheck()
+	s.NoError(err)
 }
 
 func TestTxValidatorSpecialTxSuite(t *testing.T) {

@@ -53,6 +53,24 @@ func (t *UpdateProducerTransaction) IsAllowedInPOWConsensus() bool {
 	return false
 }
 
+func checkChangeStakeUntil(BlockHeight uint32, newinfo *payload.ProducerInfo, producer *state.Producer) *elaerr.SimpleErr {
+	switch producer.State() {
+	case state.Active, state.Inactive, state.Illegal:
+		if newinfo.StakeUntil < producer.Info().StakeUntil {
+			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("stake time is smaller than before"))
+		} else if newinfo.StakeUntil > producer.Info().StakeUntil {
+			//new StakeUntil must bigger than BlockHeight
+			if BlockHeight >= newinfo.StakeUntil {
+				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("producer StakeUntil less than BlockHeight"))
+			}
+		}
+	default:
+		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("Pending Canceled or Returned producer can  not update  StakeUntil "))
+
+	}
+	return nil
+}
+
 func (t *UpdateProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
 	info, ok := t.Payload().(*payload.ProducerInfo)
 	if !ok {
@@ -107,9 +125,11 @@ func (t *UpdateProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bool
 			}
 		}
 	case state.DPoSV2:
-		if t.parameters.BlockHeight > producer.Info().StakeUntil && info.StakeUntil != producer.Info().StakeUntil {
-			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("producer already expired, can not update stakeuntil")), true
+		// height > stakeUntil: can't change anything anymore.
+		if t.parameters.BlockHeight > producer.Info().StakeUntil {
+			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("DPoS 2.0 node has expired")), true
 		}
+
 		if info.StakeUntil < producer.Info().StakeUntil {
 			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("stake time is smaller than before")), true
 		} else if info.StakeUntil > producer.Info().StakeUntil {
@@ -119,23 +139,16 @@ func (t *UpdateProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bool
 			}
 		}
 
-		// height > stakeUntil: can't change stakeUntil anymore.
-		if t.parameters.BlockHeight > producer.Info().StakeUntil {
-			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("DPoS 2.0 node has expired")), true
-		}
-
 	case state.DPoSV1V2:
-		if t.parameters.BlockHeight > producer.Info().StakeUntil &&
-			t.parameters.BlockHeight > stake.DPoSV2ActiveHeight &&
-			info.StakeUntil != producer.Info().StakeUntil {
-			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("producer already expired and dposv2 already started, can not update stakeuntil ")), true
-		}
-		if info.StakeUntil < producer.Info().StakeUntil {
-			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("stake time is smaller than before")), true
-		} else if info.StakeUntil > producer.Info().StakeUntil {
-			//new StakeUntil must bigger than BlockHeight
-			if t.parameters.BlockHeight >= info.StakeUntil {
-				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("v2 producer StakeUntil less than BlockHeight")), true
+		if t.parameters.BlockHeight >= stake.DPoSV2ActiveHeight {
+			if t.parameters.BlockHeight > producer.Info().StakeUntil {
+				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("producer already expired and dposv2 already started, can not update anything ")), true
+			}
+		} else { //still in dpos1.0
+			if info.StakeUntil != producer.Info().StakeUntil { //change StakeUntil
+				if err := checkChangeStakeUntil(t.parameters.BlockHeight, info, producer); err != nil {
+					return err, true
+				}
 			}
 		}
 	}

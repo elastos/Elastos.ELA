@@ -2028,13 +2028,13 @@ func (a *Arbiters) getRandomDposV2Producers(height uint32, unclaimedCount int, c
 	for _, vp := range votedProducers[unclaimedCount:] {
 		producerKeys = append(producerKeys, hex.EncodeToString(vp.info.OwnerPublicKey))
 	}
-	newProducers := make([]string, 0, len(producerKeys))
-	normalCount := a.ChainParams.GeneralArbiters + len(a.ChainParams.CRCArbiters)
+	sortedProducer := make([]string, 0, len(producerKeys))
+	count := a.ChainParams.GeneralArbiters + len(a.ChainParams.CRCArbiters)
 
-	if len(producerKeys) > normalCount {
-		for i := 0; i < normalCount; i++ {
+	if len(producerKeys) > count {
+		for i := 0; i < count; i++ {
 			s := r.Intn(len(producerKeys))
-			newProducers = append(newProducers, producerKeys[s])
+			sortedProducer = append(sortedProducer, producerKeys[s])
 			tmpProducers := producerKeys[s+1:]
 			producerKeys = producerKeys[0:s]
 			producerKeys = append(producerKeys, tmpProducers...)
@@ -2042,10 +2042,10 @@ func (a *Arbiters) getRandomDposV2Producers(height uint32, unclaimedCount int, c
 	}
 
 	for i := 0; i < len(producerKeys); i++ {
-		newProducers = append(newProducers, producerKeys[i])
+		sortedProducer = append(sortedProducer, producerKeys[i])
 	}
 
-	return newProducers, nil
+	return sortedProducer, nil
 }
 
 func (a *Arbiters) getCandidateIndexAtRandom(height uint32, unclaimedCount, votedProducersCount int) (int, error) {

@@ -16,6 +16,10 @@ type TransactionChecker interface {
 	SanityCheck(p Parameters) elaerr.ELAError
 
 	ContextCheck(p Parameters) (map[*common2.Input]common2.Output, elaerr.ELAError)
+
+	SetParameters(p interface{}) elaerr.ELAError
+
+	SetReferences(ref map[*common2.Input]common2.Output)
 }
 
 type BaseTransactionChecker interface {

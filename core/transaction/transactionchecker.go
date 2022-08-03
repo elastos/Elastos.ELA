@@ -177,6 +177,10 @@ func (t *DefaultChecker) SetParameters(params interface{}) elaerr.ELAError {
 	return nil
 }
 
+func (t *DefaultChecker) SetReferences(ref map[*common2.Input]common2.Output) {
+	t.references = ref
+}
+
 func (t *DefaultChecker) CheckTransactionSize() error {
 	size := t.parameters.Transaction.GetSize()
 	if size <= 0 || size > int(pact.MaxBlockContextSize) {

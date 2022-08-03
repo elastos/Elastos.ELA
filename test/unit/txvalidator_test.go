@@ -124,9 +124,24 @@ func (s *txValidatorTestSuite) TestCheckTxHeightVersion() {
 
 	// check height version of registerCR transaction.
 	registerCR, _ := functions.GetTransactionByTxType(common2.RegisterCR)
-	err := s.Chain.CheckTxHeightVersion(registerCR, blockHeight1)
+	registerCR = CreateTransactionByType(registerCR, s.Chain)
+	registerCR.SetParameters(&transaction.TransactionParameters{
+		Transaction: registerCR,
+		BlockHeight: blockHeight1,
+		TimeStamp:   s.Chain.BestChain.Timestamp,
+		Config:      s.Chain.GetParams(),
+		BlockChain:  s.Chain,
+	})
+	err := registerCR.HeightVersionCheck()
 	s.EqualError(err, "not support RegisterCR transaction before CRVotingStartHeight")
-	err = s.Chain.CheckTxHeightVersion(registerCR, blockHeight2)
+	registerCR.SetParameters(&transaction.TransactionParameters{
+		Transaction: registerCR,
+		BlockHeight: blockHeight2,
+		TimeStamp:   s.Chain.BestChain.Timestamp,
+		Config:      s.Chain.GetParams(),
+		BlockChain:  s.Chain,
+	})
+	err = registerCR.HeightVersionCheck()
 	s.NoError(err)
 
 	registerCR2 := functions.CreateTransaction(
@@ -140,26 +155,24 @@ func (s *txValidatorTestSuite) TestCheckTxHeightVersion() {
 		0,
 		[]*program.Program{},
 	)
-	err = s.Chain.CheckTxHeightVersion(registerCR2, blockHeight1)
+	registerCR2 = CreateTransactionByType(registerCR2, s.Chain)
+	registerCR2.SetParameters(&transaction.TransactionParameters{
+		Transaction: registerCR2,
+		BlockHeight: blockHeight1,
+		TimeStamp:   s.Chain.BestChain.Timestamp,
+		Config:      s.Chain.GetParams(),
+		BlockChain:  s.Chain,
+	})
+	err = registerCR2.HeightVersionCheck()
 	s.EqualError(err, "not support RegisterCR transaction before CRVotingStartHeight")
-	err = s.Chain.CheckTxHeightVersion(registerCR2, blockHeight3)
-	s.NoError(err)
-
-	// check height version of updateCR transaction.
-	updateCR := functions.CreateTransaction(
-		0,
-		common2.UpdateCR,
-		0,
-		nil,
-		[]*common2.Attribute{},
-		[]*common2.Input{},
-		[]*common2.Output{},
-		0,
-		[]*program.Program{},
-	)
-	err = s.Chain.CheckTxHeightVersion(updateCR, blockHeight1)
-	s.EqualError(err, "not support UpdateCR transaction before CRVotingStartHeight")
-	err = s.Chain.CheckTxHeightVersion(updateCR, blockHeight2)
+	registerCR2.SetParameters(&transaction.TransactionParameters{
+		Transaction: registerCR2,
+		BlockHeight: blockHeight3,
+		TimeStamp:   s.Chain.BestChain.Timestamp,
+		Config:      s.Chain.GetParams(),
+		BlockChain:  s.Chain,
+	})
+	err = registerCR2.HeightVersionCheck()
 	s.NoError(err)
 
 	// check height version of unregister transaction.
@@ -174,9 +187,24 @@ func (s *txValidatorTestSuite) TestCheckTxHeightVersion() {
 		0,
 		[]*program.Program{},
 	)
-	err = s.Chain.CheckTxHeightVersion(unregisterCR, blockHeight1)
+	unregisterCR = CreateTransactionByType(unregisterCR, s.Chain)
+	unregisterCR.SetParameters(&transaction.TransactionParameters{
+		Transaction: unregisterCR,
+		BlockHeight: blockHeight1,
+		TimeStamp:   s.Chain.BestChain.Timestamp,
+		Config:      s.Chain.GetParams(),
+		BlockChain:  s.Chain,
+	})
+	err = unregisterCR.HeightVersionCheck()
 	s.EqualError(err, "not support UnregisterCR transaction before CRVotingStartHeight")
-	err = s.Chain.CheckTxHeightVersion(unregisterCR, blockHeight2)
+	unregisterCR.SetParameters(&transaction.TransactionParameters{
+		Transaction: unregisterCR,
+		BlockHeight: blockHeight2,
+		TimeStamp:   s.Chain.BestChain.Timestamp,
+		Config:      s.Chain.GetParams(),
+		BlockChain:  s.Chain,
+	})
+	err = unregisterCR.HeightVersionCheck()
 	s.NoError(err)
 
 	// check height version of unregister transaction.
@@ -191,9 +219,24 @@ func (s *txValidatorTestSuite) TestCheckTxHeightVersion() {
 		0,
 		[]*program.Program{},
 	)
-	err = s.Chain.CheckTxHeightVersion(returnCoin, blockHeight1)
+	returnCoin = CreateTransactionByType(returnCoin, s.Chain)
+	returnCoin.SetParameters(&transaction.TransactionParameters{
+		Transaction: returnCoin,
+		BlockHeight: blockHeight1,
+		TimeStamp:   s.Chain.BestChain.Timestamp,
+		Config:      s.Chain.GetParams(),
+		BlockChain:  s.Chain,
+	})
+	err = returnCoin.HeightVersionCheck()
 	s.EqualError(err, "not support ReturnCRDepositCoin transaction before CRVotingStartHeight")
-	err = s.Chain.CheckTxHeightVersion(returnCoin, blockHeight2)
+	returnCoin.SetParameters(&transaction.TransactionParameters{
+		Transaction: returnCoin,
+		BlockHeight: blockHeight2,
+		TimeStamp:   s.Chain.BestChain.Timestamp,
+		Config:      s.Chain.GetParams(),
+		BlockChain:  s.Chain,
+	})
+	err = returnCoin.HeightVersionCheck()
 	s.NoError(err)
 
 	// check height version of vote CR.
@@ -219,10 +262,25 @@ func (s *txValidatorTestSuite) TestCheckTxHeightVersion() {
 		0,
 		[]*program.Program{},
 	)
-	err = s.Chain.CheckTxHeightVersion(voteCR, blockHeight1)
+	voteCR = CreateTransactionByType(voteCR, s.Chain)
+	voteCR.SetParameters(&transaction.TransactionParameters{
+		Transaction: voteCR,
+		BlockHeight: blockHeight1,
+		TimeStamp:   s.Chain.BestChain.Timestamp,
+		Config:      s.Chain.GetParams(),
+		BlockChain:  s.Chain,
+	})
+	err = voteCR.HeightVersionCheck()
 	s.EqualError(err, "not support VoteProducerAndCRVersion "+
 		"before CRVotingStartHeight")
-	err = s.Chain.CheckTxHeightVersion(voteCR, blockHeight2)
+	voteCR.SetParameters(&transaction.TransactionParameters{
+		Transaction: voteCR,
+		BlockHeight: blockHeight2,
+		TimeStamp:   s.Chain.BestChain.Timestamp,
+		Config:      s.Chain.GetParams(),
+		BlockChain:  s.Chain,
+	})
+	err = voteCR.HeightVersionCheck()
 	s.NoError(err)
 }
 
@@ -468,7 +526,15 @@ func (s *txValidatorTestSuite) TestCheckAttributeProgram() {
 		attr := common2.NewAttribute(usage, nil)
 		tx.SetAttributes(append(tx.Attributes(), &attr))
 	}
-	err := s.Chain.CheckAttributeProgram(tx, 0)
+	tx = CreateTransactionByType(tx, s.Chain)
+	tx.SetParameters(&transaction.TransactionParameters{
+		Transaction: tx,
+		BlockHeight: 0,
+		TimeStamp:   s.Chain.BestChain.Timestamp,
+		Config:      s.Chain.GetParams(),
+		BlockChain:  s.Chain,
+	})
+	err := tx.CheckAttributeProgram()
 	s.EqualError(err, "no programs found in transaction")
 
 	// invalid attributes
@@ -484,20 +550,20 @@ func (s *txValidatorTestSuite) TestCheckAttributeProgram() {
 	for i := 0; i < 10; i++ {
 		attr := common2.NewAttribute(getInvalidUsage(), nil)
 		tx.SetAttributes([]*common2.Attribute{&attr})
-		err := s.Chain.CheckAttributeProgram(tx, 0)
+		err := tx.CheckAttributeProgram()
 		s.EqualError(err, fmt.Sprintf("invalid attribute usage %v", attr.Usage))
 	}
 	tx.SetAttributes(nil)
 
 	// empty programs
 	tx.SetPrograms([]*program.Program{})
-	err = s.Chain.CheckAttributeProgram(tx, 0)
+	err = tx.CheckAttributeProgram()
 	s.EqualError(err, "no programs found in transaction")
 
 	// nil program code
 	p := &program.Program{}
 	tx.SetPrograms(append(tx.Programs(), p))
-	err = s.Chain.CheckAttributeProgram(tx, 0)
+	err = tx.CheckAttributeProgram()
 	s.EqualError(err, "invalid program code nil")
 
 	// nil program parameter
@@ -505,7 +571,7 @@ func (s *txValidatorTestSuite) TestCheckAttributeProgram() {
 	rand.Read(code)
 	p = &program.Program{Code: code}
 	tx.SetPrograms([]*program.Program{p})
-	err = s.Chain.CheckAttributeProgram(tx, 0)
+	err = tx.CheckAttributeProgram()
 	s.EqualError(err, "invalid program parameter nil")
 }
 
@@ -521,7 +587,7 @@ func (s *txValidatorTestSuite) TestCheckTransactionPayload() {
 	}
 	tx := functions.CreateTransaction(
 		0,
-		common2.CRAssetsRectify,
+		common2.RegisterAsset,
 		0,
 		pd,
 		[]*common2.Attribute{},
@@ -530,19 +596,22 @@ func (s *txValidatorTestSuite) TestCheckTransactionPayload() {
 		0,
 		[]*program.Program{},
 	)
-	err := s.Chain.CheckTransactionPayload(tx)
+	tx = CreateTransactionByType(tx, s.Chain)
+	err := tx.CheckTransactionPayload()
 	s.NoError(err)
 
 	// invalid precision
 	pd.Asset.Precision = 9
-	err = s.Chain.CheckTransactionPayload(tx)
-	s.EqualError(err, "Invalide asset Precision.")
+	tx = CreateTransactionByType(tx, s.Chain)
+	err = tx.CheckTransactionPayload()
+	s.EqualError(err, "invalid asset precision")
 
 	// invalid amount
 	pd.Asset.Precision = 0
 	pd.Amount = 1234567
-	err = s.Chain.CheckTransactionPayload(tx)
-	s.EqualError(err, "Invalide asset value,out of precise.")
+	tx = CreateTransactionByType(tx, s.Chain)
+	err = tx.CheckTransactionPayload()
+	s.EqualError(err, "invalid asset value, out of precise")
 }
 
 func (s *txValidatorTestSuite) TestCheckDuplicateSidechainTx() {
@@ -747,46 +816,46 @@ func (s *txValidatorTestSuite) TestCheckRegisterProducerTransaction() {
 		OutputLock:  0,
 		ProgramHash: *publicKeyDeposit1,
 	}})
-
-	err = s.Chain.CheckRegisterProducerTransaction(txn)
+	txn = CreateTransactionByType(txn, s.Chain)
+	err, _ = txn.SpecialContextCheck()
 	s.NoError(err)
 
 	// Give an invalid owner public key in payload
 	txn.Payload().(*payload.ProducerInfo).OwnerPublicKey = errPublicKey
-	err = s.Chain.CheckRegisterProducerTransaction(txn)
-	s.EqualError(err, "invalid owner public key in payload")
+	err, _ = txn.SpecialContextCheck()
+	s.EqualError(err, "transaction validate error: payload content invalid:invalid owner public key in payload")
 
 	// check node public when block height is higher than h2
 	originHeight := config.DefaultParams.PublicDPOSHeight
 	txn.Payload().(*payload.ProducerInfo).NodePublicKey = errPublicKey
 	config.DefaultParams.PublicDPOSHeight = 0
-	err = s.Chain.CheckRegisterProducerTransaction(txn)
+	err, _ = txn.SpecialContextCheck()
 	config.DefaultParams.PublicDPOSHeight = originHeight
-	s.EqualError(err, "invalid node public key in payload")
+	s.EqualError(err, "transaction validate error: payload content invalid:invalid node public key in payload")
 
 	// check node public key same with CRC
 	txn.Payload().(*payload.ProducerInfo).OwnerPublicKey = publicKey2
 	pk, _ := common.HexStringToBytes(config.DefaultParams.CRCArbiters[0])
 	txn.Payload().(*payload.ProducerInfo).NodePublicKey = pk
 	config.DefaultParams.PublicDPOSHeight = 0
-	err = s.Chain.CheckRegisterProducerTransaction(txn)
+	err, _ = txn.SpecialContextCheck()
 	config.DefaultParams.PublicDPOSHeight = originHeight
-	s.EqualError(err, "node public key can't equal with CRC")
+	s.EqualError(err, "transaction validate error: payload content invalid:node public key can't equal with CRC")
 
 	// check owner public key same with CRC
 	txn.Payload().(*payload.ProducerInfo).NodePublicKey = publicKey2
 	pk, _ = common.HexStringToBytes(config.DefaultParams.CRCArbiters[0])
 	txn.Payload().(*payload.ProducerInfo).OwnerPublicKey = pk
 	config.DefaultParams.PublicDPOSHeight = 0
-	err = s.Chain.CheckRegisterProducerTransaction(txn)
+	err, _ = txn.SpecialContextCheck()
 	config.DefaultParams.PublicDPOSHeight = originHeight
-	s.EqualError(err, "owner public key can't equal with CRC")
+	s.EqualError(err, "transaction validate error: payload content invalid:owner public key can't equal with CRC")
 
 	// Invalidates the signature in payload
 	txn.Payload().(*payload.ProducerInfo).OwnerPublicKey = publicKey2
 	txn.Payload().(*payload.ProducerInfo).NodePublicKey = publicKey2
-	err = s.Chain.CheckRegisterProducerTransaction(txn)
-	s.EqualError(err, "invalid signature in payload")
+	err, _ = txn.SpecialContextCheck()
+	s.EqualError(err, "transaction validate error: payload content invalid:invalid signature in payload")
 
 	// Give a mismatching deposit address
 	rpPayload.OwnerPublicKey = publicKey1
@@ -806,8 +875,8 @@ func (s *txValidatorTestSuite) TestCheckRegisterProducerTransaction() {
 		OutputLock:  0,
 		ProgramHash: *publicKeyDeposit2,
 	}})
-	err = s.Chain.CheckRegisterProducerTransaction(txn)
-	s.EqualError(err, "deposit address does not match the public key in payload")
+	err, _ = txn.SpecialContextCheck()
+	s.EqualError(err, "transaction validate error: payload content invalid:deposit address does not match the public key in payload")
 
 	// Give a insufficient deposit coin
 	txn.SetOutputs([]*common2.Output{{
@@ -816,8 +885,8 @@ func (s *txValidatorTestSuite) TestCheckRegisterProducerTransaction() {
 		OutputLock:  0,
 		ProgramHash: *publicKeyDeposit1,
 	}})
-	err = s.Chain.CheckRegisterProducerTransaction(txn)
-	s.EqualError(err, "producer deposit amount is insufficient")
+	err, _ = txn.SpecialContextCheck()
+	s.EqualError(err, "transaction validate error: payload content invalid:producer deposit amount is insufficient")
 
 	// Multi deposit addresses
 	txn.SetOutputs([]*common2.Output{
@@ -833,8 +902,8 @@ func (s *txValidatorTestSuite) TestCheckRegisterProducerTransaction() {
 			OutputLock:  0,
 			ProgramHash: *publicKeyDeposit1,
 		}})
-	err = s.Chain.CheckRegisterProducerTransaction(txn)
-	s.EqualError(err, "there must be only one deposit address in outputs")
+	err, _ = txn.SpecialContextCheck()
+	s.EqualError(err, "transaction validate error: payload content invalid:there must be only one deposit address in outputs")
 }
 
 func (s *txValidatorTestSuite) TestCheckRegisterDposV2ProducerTransaction() {
@@ -958,7 +1027,7 @@ func (s *txValidatorTestSuite) TestCheckStakeTransaction() {
 	publicKey := "03878cbe6abdafc702befd90e2329c4f37e7cb166410f0ecb70488c74c85b81d66"
 	publicKeyBytes, _ := common.HexStringToBytes(publicKey)
 	code := getCode(publicKeyBytes)
-	c, _ :=contract.CreateStakeContractByCode(code)
+	c, _ := contract.CreateStakeContractByCode(code)
 	stakeAddress_uint168 := c.ToProgramHash()
 	stakeAddress, _ := stakeAddress_uint168.ToAddress()
 	rpPayload := &outputpayload.StakeOutput{
@@ -1143,7 +1212,7 @@ func (s *txValidatorTestSuite) TestCheckStakeTransaction() {
 		},
 		0,
 		[]*program.Program{{
-			Code:     code,
+			Code:      code,
 			Parameter: nil,
 		}},
 	)
@@ -1746,19 +1815,22 @@ func (s *txValidatorTestSuite) TestCheckUpdateProducerTransaction() {
 	s.CurrentHeight++
 	block.Header = common2.Header{Height: s.CurrentHeight}
 	s.Chain.GetState().ProcessBlock(block, nil, false, 0)
-
-	s.EqualError(s.Chain.CheckUpdateProducerTransaction(txn), "field NickName has invalid string length")
+	txn = CreateTransactionByType(txn, s.Chain)
+	err, _ := txn.SpecialContextCheck()
+	s.EqualError(err, "transaction validate error: payload content invalid:field NickName has invalid string length")
 	updatePayload.NickName = "nick name"
 
 	updatePayload.Url = "www.elastos.org"
 	updatePayload.OwnerPublicKey = errPublicKey
-	s.EqualError(s.Chain.CheckUpdateProducerTransaction(txn), "invalid owner public key in payload")
+	err, _ = txn.SpecialContextCheck()
+	s.EqualError(err, "transaction validate error: payload content invalid:invalid owner public key in payload")
 
 	// check node public when block height is higher than h2
 	originHeight := config.DefaultParams.PublicDPOSHeight
 	updatePayload.NodePublicKey = errPublicKey
 	config.DefaultParams.PublicDPOSHeight = 0
-	s.EqualError(s.Chain.CheckUpdateProducerTransaction(txn), "invalid node public key in payload")
+	err, _ = txn.SpecialContextCheck()
+	s.EqualError(err, "transaction validate error: payload content invalid:invalid node public key in payload")
 	config.DefaultParams.PublicDPOSHeight = originHeight
 
 	// check node public key same with CRC
@@ -1766,31 +1838,33 @@ func (s *txValidatorTestSuite) TestCheckUpdateProducerTransaction() {
 	pk, _ := common.HexStringToBytes(config.DefaultParams.CRCArbiters[0])
 	txn.Payload().(*payload.ProducerInfo).NodePublicKey = pk
 	config.DefaultParams.PublicDPOSHeight = 0
-	err := s.Chain.CheckUpdateProducerTransaction(txn)
+	err, _ = txn.SpecialContextCheck()
 	config.DefaultParams.PublicDPOSHeight = originHeight
-	s.EqualError(err, "node public key can't equal with CRC")
+	s.EqualError(err, "transaction validate error: payload content invalid:node public key can't equal with CR Arbiters")
 
 	// check owner public key same with CRC
 	txn.Payload().(*payload.ProducerInfo).NodePublicKey = publicKey2
 	pk, _ = common.HexStringToBytes(config.DefaultParams.CRCArbiters[0])
 	txn.Payload().(*payload.ProducerInfo).OwnerPublicKey = pk
 	config.DefaultParams.PublicDPOSHeight = 0
-	err = s.Chain.CheckUpdateProducerTransaction(txn)
+	err, _ = txn.SpecialContextCheck()
 	config.DefaultParams.PublicDPOSHeight = originHeight
-	s.EqualError(err, "owner public key can't equal with CRC")
+	s.EqualError(err, "transaction validate error: payload content invalid:invalid signature in payload")
 
 	updatePayload.OwnerPublicKey = publicKey2
 	updatePayload.NodePublicKey = publicKey1
-	s.EqualError(s.Chain.CheckUpdateProducerTransaction(txn), "invalid signature in payload")
+	err, _ = txn.SpecialContextCheck()
+	s.EqualError(err, "transaction validate error: payload content invalid:invalid signature in payload")
 
 	updatePayload.OwnerPublicKey = publicKey1
 	updateSignBuf := new(bytes.Buffer)
-	err = updatePayload.SerializeUnsigned(updateSignBuf, payload.ProducerInfoVersion)
-	s.NoError(err)
-	updateSig, err := crypto.Sign(privateKey1, updateSignBuf.Bytes())
-	s.NoError(err)
+	err1 := updatePayload.SerializeUnsigned(updateSignBuf, payload.ProducerInfoVersion)
+	s.NoError(err1)
+	updateSig, err1 := crypto.Sign(privateKey1, updateSignBuf.Bytes())
+	s.NoError(err1)
 	updatePayload.Signature = updateSig
-	s.NoError(s.Chain.CheckUpdateProducerTransaction(txn))
+	err, _ = txn.SpecialContextCheck()
+	s.NoError(err)
 
 	//rest of check test will be continued in chain test
 }
@@ -1825,10 +1899,13 @@ func (s *txValidatorTestSuite) TestCheckCancelProducerTransaction() {
 	)
 
 	cancelPayload.OwnerPublicKey = errPublicKey
-	s.EqualError(s.Chain.CheckCancelProducerTransaction(txn), "invalid public key in payload")
+	txn = CreateTransactionByType(txn, s.Chain)
+	err, _ := txn.SpecialContextCheck()
+	s.EqualError(err, "transaction validate error: payload content invalid:invalid public key in payload")
 
 	cancelPayload.OwnerPublicKey = publicKey2
-	s.EqualError(s.Chain.CheckCancelProducerTransaction(txn), "invalid signature in payload")
+	err, _ = txn.SpecialContextCheck()
+	s.EqualError(err, "transaction validate error: payload content invalid:invalid signature in payload")
 }
 
 func (s *txValidatorTestSuite) TestCheckActivateProducerTransaction() {
@@ -1861,12 +1938,23 @@ func (s *txValidatorTestSuite) TestCheckActivateProducerTransaction() {
 	)
 
 	activatePayload.NodePublicKey = errPublicKey
-	s.EqualError(s.Chain.CheckActivateProducerTransaction(txn, 0),
-		"invalid public key in payload")
+
+	txn = CreateTransactionByType(txn, s.Chain)
+	txn.SetParameters(&transaction.TransactionParameters{
+		Transaction: txn,
+		BlockHeight: 0,
+		TimeStamp:   s.Chain.BestChain.Timestamp,
+		Config:      s.Chain.GetParams(),
+		BlockChain:  s.Chain,
+	})
+	err, _ := txn.SpecialContextCheck()
+	s.EqualError(err,
+		"transaction validate error: payload content invalid:invalid public key in payload")
 
 	activatePayload.NodePublicKey = publicKey2
-	s.EqualError(s.Chain.CheckActivateProducerTransaction(txn, 0),
-		"invalid signature in payload")
+	err, _ = txn.SpecialContextCheck()
+	s.EqualError(err,
+		"transaction validate error: payload content invalid:invalid signature in payload")
 }
 
 func (s *txValidatorTestSuite) TestCheckRegisterCRTransaction() {
@@ -1898,90 +1986,128 @@ func (s *txValidatorTestSuite) TestCheckRegisterCRTransaction() {
 	registerCRByDIDHeight := config.DefaultParams.RegisterCRByDIDHeight
 
 	// All ok
-	err := s.Chain.CheckRegisterCRTransaction(txn, votingHeight)
+	txn = CreateTransactionByType(txn, s.Chain)
+	txn.SetParameters(&transaction.TransactionParameters{
+		Transaction: txn,
+		BlockHeight: votingHeight,
+		TimeStamp:   s.Chain.BestChain.Timestamp,
+		Config:      s.Chain.GetParams(),
+		BlockChain:  s.Chain,
+	})
+	err, _ := txn.SpecialContextCheck()
 	s.NoError(err)
-
-	// Invalid payload
-	txnUpdateCr := s.getUnregisterCRTx(publicKeyStr1, privateKeyStr1)
-	err = s.Chain.CheckRegisterCRTransaction(txnUpdateCr, votingHeight)
-	s.EqualError(err, "invalid payload")
 
 	// Give an invalid NickName length 0 in payload
 	nickName := txn.Payload().(*payload.CRInfo).NickName
 	txn.Payload().(*payload.CRInfo).NickName = ""
-	err = s.Chain.CheckRegisterCRTransaction(txn, votingHeight)
-	s.EqualError(err, "field NickName has invalid string length")
+	err, _ = txn.SpecialContextCheck()
+	s.EqualError(err, "transaction validate error: payload content invalid:field NickName has invalid string length")
 
 	// Give an invalid NickName length more than 100 in payload
 	txn.Payload().(*payload.CRInfo).NickName = "012345678901234567890123456789012345678901234567890" +
 		"12345678901234567890123456789012345678901234567890123456789"
-	err = s.Chain.CheckRegisterCRTransaction(txn, votingHeight)
-	s.EqualError(err, "field NickName has invalid string length")
+	err, _ = txn.SpecialContextCheck()
+	s.EqualError(err, "transaction validate error: payload content invalid:field NickName has invalid string length")
 
 	// Give an invalid url length more than 100 in payload
 	url := txn.Payload().(*payload.CRInfo).Url
 	txn.Payload().(*payload.CRInfo).NickName = nickName
 	txn.Payload().(*payload.CRInfo).Url = "012345678901234567890123456789012345678901234567890" +
 		"12345678901234567890123456789012345678901234567890123456789"
-	err = s.Chain.CheckRegisterCRTransaction(txn, votingHeight)
-	s.EqualError(err, "field Url has invalid string length")
+	err, _ = txn.SpecialContextCheck()
+	s.EqualError(err, "transaction validate error: payload content invalid:field Url has invalid string length")
 
 	// Not in vote Period lower
 	txn.Payload().(*payload.CRInfo).Url = url
-	err = s.Chain.CheckRegisterCRTransaction(txn, config.DefaultParams.CRVotingStartHeight-1)
-	s.EqualError(err, "should create tx during voting period")
+	txn.SetParameters(&transaction.TransactionParameters{
+		Transaction: txn,
+		BlockHeight: config.DefaultParams.CRVotingStartHeight - 1,
+		TimeStamp:   s.Chain.BestChain.Timestamp,
+		Config:      s.Chain.GetParams(),
+		BlockChain:  s.Chain,
+	})
+	err, _ = txn.SpecialContextCheck()
+	s.EqualError(err, "transaction validate error: payload content invalid:should create tx during voting period")
 
 	// Not in vote Period upper c.params.CRCommitteeStartHeight
 	s.Chain.GetCRCommittee().InElectionPeriod = true
-	err = s.Chain.CheckRegisterCRTransaction(txn, config.DefaultParams.CRCommitteeStartHeight+1)
-	s.EqualError(err, "should create tx during voting period")
+	txn.SetParameters(&transaction.TransactionParameters{
+		Transaction: txn,
+		BlockHeight: config.DefaultParams.CRCommitteeStartHeight + 1,
+		TimeStamp:   s.Chain.BestChain.Timestamp,
+		Config:      s.Chain.GetParams(),
+		BlockChain:  s.Chain,
+	})
+	err, _ = txn.SpecialContextCheck()
+	s.EqualError(err, "transaction validate error: payload content invalid:should create tx during voting period")
 
 	// Nickname already in use
 	s.Chain.GetCRCommittee().GetState().Nicknames[nickName1] = struct{}{}
-	err = s.Chain.CheckRegisterCRTransaction(txn, votingHeight)
-	s.EqualError(err, "nick name "+nickName1+" already inuse")
+	txn.SetParameters(&transaction.TransactionParameters{
+		Transaction: txn,
+		BlockHeight: votingHeight,
+		TimeStamp:   s.Chain.BestChain.Timestamp,
+		Config:      s.Chain.GetParams(),
+		BlockChain:  s.Chain,
+	})
+	err, _ = txn.SpecialContextCheck()
+	s.EqualError(err, "transaction validate error: payload content invalid:nick name "+nickName1+" already inuse")
 
 	delete(s.Chain.GetCRCommittee().GetState().Nicknames, nickName1)
-	err = s.Chain.CheckRegisterCRTransaction(txn, votingHeight)
+	err, _ = txn.SpecialContextCheck()
 	s.NoError(err)
 
-	err = s.Chain.CheckRegisterCRTransaction(txn, 0)
-	s.EqualError(err, "should create tx during voting period")
+	txn.SetParameters(&transaction.TransactionParameters{
+		Transaction: txn,
+		BlockHeight: 0,
+		TimeStamp:   s.Chain.BestChain.Timestamp,
+		Config:      s.Chain.GetParams(),
+		BlockChain:  s.Chain,
+	})
+	err, _ = txn.SpecialContextCheck()
+	s.EqualError(err, "transaction validate error: payload content invalid:should create tx during voting period")
 
 	delete(s.Chain.GetCRCommittee().GetState().CodeCIDMap, codeStr1)
-	err = s.Chain.CheckRegisterCRTransaction(txn, votingHeight)
+	txn.SetParameters(&transaction.TransactionParameters{
+		Transaction: txn,
+		BlockHeight: votingHeight,
+		TimeStamp:   s.Chain.BestChain.Timestamp,
+		Config:      s.Chain.GetParams(),
+		BlockChain:  s.Chain,
+	})
+	err, _ = txn.SpecialContextCheck()
 	s.NoError(err)
 
 	// CID already exist
 	s.Chain.GetCRCommittee().GetState().CodeCIDMap[codeStr1] = *cid1
 	s.Chain.GetCRCommittee().GetState().Candidates[*cid1] = &crstate.Candidate{}
-	err = s.Chain.CheckRegisterCRTransaction(txn, votingHeight)
-	s.EqualError(err, "cid "+cid1.String()+" already exist")
+	err, _ = txn.SpecialContextCheck()
+	s.EqualError(err, "transaction validate error: payload content invalid:cid "+cid1.String()+" already exist")
 	delete(s.Chain.GetCRCommittee().GetState().Candidates, *cid1)
 
 	// Give an invalid code in payload
 	txn.Payload().(*payload.CRInfo).Code = []byte{}
-	err = s.Chain.CheckRegisterCRTransaction(txn, votingHeight)
-	s.EqualError(err, "code is nil")
+	err, _ = txn.SpecialContextCheck()
+	s.EqualError(err, "transaction validate error: payload content invalid:code is nil")
 
 	// Give an invalid CID in payload
 	txn.Payload().(*payload.CRInfo).Code = code1
 	txn.Payload().(*payload.CRInfo).CID = common.Uint168{1, 2, 3}
-	err = s.Chain.CheckRegisterCRTransaction(txn, votingHeight)
-	s.EqualError(err, "invalid cid address")
+	err, _ = txn.SpecialContextCheck()
+	s.EqualError(err, "transaction validate error: payload content invalid:invalid cid address")
 
 	// Give a mismatching code and CID in payload
 	txn.Payload().(*payload.CRInfo).CID = *cid2
-	err = s.Chain.CheckRegisterCRTransaction(txn, votingHeight)
-	s.EqualError(err, "invalid cid address")
+	err, _ = txn.SpecialContextCheck()
+	s.EqualError(err, "transaction validate error: payload content invalid:invalid cid address")
 
 	// Invalidates the signature in payload
 	txn.Payload().(*payload.CRInfo).CID = *cid1
 	signatature := txn.Payload().(*payload.CRInfo).Signature
 	txn.Payload().(*payload.CRInfo).Signature = randomSignature()
-	err = s.Chain.CheckRegisterCRTransaction(txn, votingHeight)
+	err, _ = txn.SpecialContextCheck()
 	txn.Payload().(*payload.CRInfo).Signature = signatature
-	s.EqualError(err, "[Validation], Verify failed.")
+	s.EqualError(err, "transaction validate error: payload content invalid:[Validation], Verify failed.")
 
 	// Give a mismatching deposit address
 	outPuts := txn.Outputs()
@@ -1992,9 +2118,9 @@ func (s *txValidatorTestSuite) TestCheckRegisterCRTransaction() {
 		ProgramHash: *hash2,
 		Payload:     new(outputpayload.DefaultOutput),
 	}})
-	err = s.Chain.CheckRegisterCRTransaction(txn, votingHeight)
+	err, _ = txn.SpecialContextCheck()
 	txn.SetOutputs(outPuts)
-	s.EqualError(err, "deposit address does not match the code in payload")
+	s.EqualError(err, "transaction validate error: payload content invalid:deposit address does not match the code in payload")
 
 	// Give a insufficient deposit coin
 	txn.SetOutputs([]*common2.Output{{
@@ -2004,9 +2130,9 @@ func (s *txValidatorTestSuite) TestCheckRegisterCRTransaction() {
 		ProgramHash: *hash1,
 		Payload:     new(outputpayload.DefaultOutput),
 	}})
-	err = s.Chain.CheckRegisterCRTransaction(txn, votingHeight)
+	err, _ = txn.SpecialContextCheck()
 	txn.SetOutputs(outPuts)
-	s.EqualError(err, "CR deposit amount is insufficient")
+	s.EqualError(err, "transaction validate error: payload content invalid:CR deposit amount is insufficient")
 
 	// Multi deposit addresses
 	txn.SetOutputs([]*common2.Output{
@@ -2024,44 +2150,92 @@ func (s *txValidatorTestSuite) TestCheckRegisterCRTransaction() {
 			ProgramHash: *hash1,
 			Payload:     new(outputpayload.DefaultOutput),
 		}})
-	err = s.Chain.CheckRegisterCRTransaction(txn, votingHeight)
+	err, _ = txn.SpecialContextCheck()
 	txn.SetOutputs(outPuts)
-	s.EqualError(err, "there must be only one deposit address in outputs")
+	s.EqualError(err, "transaction validate error: payload content invalid:there must be only one deposit address in outputs")
 
 	// Check correct register CR transaction with multi sign code.
 	txn = s.getMultiSigRegisterCRTx(
 		[]string{publicKeyStr1, publicKeyStr2, publicKeyStr3},
 		[]string{privateKeyStr1, privateKeyStr2, privateKeyStr3}, nickName1)
-	err = s.Chain.CheckRegisterCRTransaction(txn, votingHeight)
-	s.EqualError(err, "CR not support multi sign code")
+	txn = CreateTransactionByType(txn, s.Chain)
+	txn.SetParameters(&transaction.TransactionParameters{
+		Transaction: txn,
+		BlockHeight: votingHeight,
+		TimeStamp:   s.Chain.BestChain.Timestamp,
+		Config:      s.Chain.GetParams(),
+		BlockChain:  s.Chain,
+	})
+	err, _ = txn.SpecialContextCheck()
+	s.EqualError(err, "transaction validate error: payload content invalid:CR not support multi sign code")
 
 	txn = s.getMultiSigRegisterCRTx(
 		[]string{publicKeyStr1, publicKeyStr2, publicKeyStr3},
 		[]string{privateKeyStr1, privateKeyStr2}, nickName1)
-	err = s.Chain.CheckRegisterCRTransaction(txn, votingHeight)
-	s.EqualError(err, "CR not support multi sign code")
+	txn = CreateTransactionByType(txn, s.Chain)
+	txn.SetParameters(&transaction.TransactionParameters{
+		Transaction: txn,
+		BlockHeight: votingHeight,
+		TimeStamp:   s.Chain.BestChain.Timestamp,
+		Config:      s.Chain.GetParams(),
+		BlockChain:  s.Chain,
+	})
+	err, _ = txn.SpecialContextCheck()
+	s.EqualError(err, "transaction validate error: payload content invalid:CR not support multi sign code")
 
 	txn = s.getMultiSigRegisterCRTx(
 		[]string{publicKeyStr1, publicKeyStr2, publicKeyStr3},
 		[]string{privateKeyStr1}, nickName1)
-	err = s.Chain.CheckRegisterCRTransaction(txn, votingHeight)
-	s.EqualError(err, "CR not support multi sign code")
+	txn = CreateTransactionByType(txn, s.Chain)
+	txn.SetParameters(&transaction.TransactionParameters{
+		Transaction: txn,
+		BlockHeight: votingHeight,
+		TimeStamp:   s.Chain.BestChain.Timestamp,
+		Config:      s.Chain.GetParams(),
+		BlockChain:  s.Chain,
+	})
+	err, _ = txn.SpecialContextCheck()
+	s.EqualError(err, "transaction validate error: payload content invalid:CR not support multi sign code")
 
 	//check register cr with CRInfoDIDVersion
 	txn2 := s.getRegisterCRTx(publicKeyStr1, privateKeyStr1, nickName1,
 		payload.CRInfoDIDVersion, &common.Uint168{1, 2, 3})
-	err = s.Chain.CheckRegisterCRTransaction(txn2, registerCRByDIDHeight)
-	s.EqualError(err, "invalid did address")
+	txn2 = CreateTransactionByType(txn2, s.Chain)
+	txn2.SetParameters(&transaction.TransactionParameters{
+		Transaction: txn2,
+		BlockHeight: registerCRByDIDHeight,
+		TimeStamp:   s.Chain.BestChain.Timestamp,
+		Config:      s.Chain.GetParams(),
+		BlockChain:  s.Chain,
+	})
+	err, _ = txn2.SpecialContextCheck()
+	s.EqualError(err, "transaction validate error: payload content invalid:invalid did address")
 	did2, _ := blockchain.GetDIDFromCode(code2)
 	txn2 = s.getRegisterCRTx(publicKeyStr1, privateKeyStr1, nickName1,
 		payload.CRInfoDIDVersion, did2)
-	err = s.Chain.CheckRegisterCRTransaction(txn2, registerCRByDIDHeight)
-	s.EqualError(err, "invalid did address")
+	txn2 = CreateTransactionByType(txn2, s.Chain)
+	txn2.SetParameters(&transaction.TransactionParameters{
+		Transaction: txn2,
+		BlockHeight: registerCRByDIDHeight,
+		TimeStamp:   s.Chain.BestChain.Timestamp,
+		Config:      s.Chain.GetParams(),
+		BlockChain:  s.Chain,
+	})
+	err, _ = txn2.SpecialContextCheck()
+	s.EqualError(err, "transaction validate error: payload content invalid:invalid did address")
 
 	did1, _ := blockchain.GetDIDFromCode(code1)
 	txn2 = s.getRegisterCRTx(publicKeyStr1, privateKeyStr1, nickName1,
 		payload.CRInfoDIDVersion, did1)
-	err = s.Chain.CheckRegisterCRTransaction(txn2, registerCRByDIDHeight)
+	txn2 = CreateTransactionByType(txn2, s.Chain)
+	txn2.SetParameters(&transaction.TransactionParameters{
+		Transaction: txn2,
+		BlockHeight: registerCRByDIDHeight,
+		TimeStamp:   s.Chain.BestChain.Timestamp,
+		Config:      s.Chain.GetParams(),
+		BlockChain:  s.Chain,
+	})
+	err, _ = txn2.SpecialContextCheck()
 	s.NoError(err)
 }
 
@@ -2760,78 +2934,174 @@ func (s *txValidatorTestSuite) TestCheckCRCProposalTrackingTransaction() {
 			ProposalOwner: ownerPubKey,
 		}
 
-	err := s.Chain.CheckCRCProposalTrackingTransaction(txn, votingHeight)
+	txn = CreateTransactionByType(txn, s.Chain)
+	txn.SetParameters(&transaction.TransactionParameters{
+		Transaction: txn,
+		BlockHeight: votingHeight,
+		TimeStamp:   s.Chain.BestChain.Timestamp,
+		Config:      s.Chain.GetParams(),
+		BlockChain:  s.Chain,
+	})
+	err, _ := txn.SpecialContextCheck()
 	s.NoError(err)
 
 	txn = s.getCRCProposalTrackingTx(payload.Common, *proposalHash, 1,
 		publicKeyStr1, privateKeyStr1, publicKeyStr2, privateKeyStr2,
 		publicKeyStr3, privateKeyStr3)
-	err = s.Chain.CheckCRCProposalTrackingTransaction(txn, votingHeight)
-	s.EqualError(err, "stage should assignment zero value")
+	txn = CreateTransactionByType(txn, s.Chain)
+	txn.SetParameters(&transaction.TransactionParameters{
+		Transaction: txn,
+		BlockHeight: votingHeight,
+		TimeStamp:   s.Chain.BestChain.Timestamp,
+		Config:      s.Chain.GetParams(),
+		BlockChain:  s.Chain,
+	})
+	err, _ = txn.SpecialContextCheck()
+	s.EqualError(err, "transaction validate error: payload content invalid:stage should assignment zero value")
 
 	txn = s.getCRCProposalTrackingTx(payload.Common, *proposalHash, 0,
 		publicKeyStr1, privateKeyStr1, publicKeyStr2, privateKeyStr2,
 		publicKeyStr3, privateKeyStr3)
-	err = s.Chain.CheckCRCProposalTrackingTransaction(txn, votingHeight)
-	s.EqualError(err, "the NewOwnerPublicKey need to be empty")
+	txn = CreateTransactionByType(txn, s.Chain)
+	txn.SetParameters(&transaction.TransactionParameters{
+		Transaction: txn,
+		BlockHeight: votingHeight,
+		TimeStamp:   s.Chain.BestChain.Timestamp,
+		Config:      s.Chain.GetParams(),
+		BlockChain:  s.Chain,
+	})
+	err, _ = txn.SpecialContextCheck()
+	s.EqualError(err, "transaction validate error: payload content invalid:the NewOwnerPublicKey need to be empty")
 
 	// Check Progress tracking tx.
 	txn = s.getCRCProposalTrackingTx(payload.Progress, *proposalHash, 1,
 		publicKeyStr1, privateKeyStr1, "", "",
 		publicKeyStr3, privateKeyStr3)
-	err = s.Chain.CheckCRCProposalTrackingTransaction(txn, votingHeight)
+	txn = CreateTransactionByType(txn, s.Chain)
+	txn.SetParameters(&transaction.TransactionParameters{
+		Transaction: txn,
+		BlockHeight: votingHeight,
+		TimeStamp:   s.Chain.BestChain.Timestamp,
+		Config:      s.Chain.GetParams(),
+		BlockChain:  s.Chain,
+	})
+	err, _ = txn.SpecialContextCheck()
 	s.NoError(err)
 
 	txn = s.getCRCProposalTrackingTx(payload.Progress, *proposalHash, 1,
 		publicKeyStr1, privateKeyStr1, publicKeyStr2, privateKeyStr2,
 		publicKeyStr3, privateKeyStr3)
-	err = s.Chain.CheckCRCProposalTrackingTransaction(txn, votingHeight)
-	s.EqualError(err, "the NewOwnerPublicKey need to be empty")
+	txn = CreateTransactionByType(txn, s.Chain)
+	txn.SetParameters(&transaction.TransactionParameters{
+		Transaction: txn,
+		BlockHeight: votingHeight,
+		TimeStamp:   s.Chain.BestChain.Timestamp,
+		Config:      s.Chain.GetParams(),
+		BlockChain:  s.Chain,
+	})
+	err, _ = txn.SpecialContextCheck()
+	s.EqualError(err, "transaction validate error: payload content invalid:the NewOwnerPublicKey need to be empty")
 
 	// Check Terminated tracking tx.
 	txn = s.getCRCProposalTrackingTx(payload.Terminated, *proposalHash, 0,
 		publicKeyStr1, privateKeyStr1, "", "",
 		publicKeyStr3, privateKeyStr3)
-	err = s.Chain.CheckCRCProposalTrackingTransaction(txn, votingHeight)
+	txn = CreateTransactionByType(txn, s.Chain)
+	txn.SetParameters(&transaction.TransactionParameters{
+		Transaction: txn,
+		BlockHeight: votingHeight,
+		TimeStamp:   s.Chain.BestChain.Timestamp,
+		Config:      s.Chain.GetParams(),
+		BlockChain:  s.Chain,
+	})
+	err, _ = txn.SpecialContextCheck()
 	s.NoError(err)
 
 	txn = s.getCRCProposalTrackingTx(payload.Terminated, *proposalHash, 1,
 		publicKeyStr1, privateKeyStr1, publicKeyStr2, privateKeyStr2,
 		publicKeyStr3, privateKeyStr3)
-	err = s.Chain.CheckCRCProposalTrackingTransaction(txn, votingHeight)
-	s.EqualError(err, "stage should assignment zero value")
+	txn = CreateTransactionByType(txn, s.Chain)
+	txn.SetParameters(&transaction.TransactionParameters{
+		Transaction: txn,
+		BlockHeight: votingHeight,
+		TimeStamp:   s.Chain.BestChain.Timestamp,
+		Config:      s.Chain.GetParams(),
+		BlockChain:  s.Chain,
+	})
+	err, _ = txn.SpecialContextCheck()
+	s.EqualError(err, "transaction validate error: payload content invalid:stage should assignment zero value")
 
 	txn = s.getCRCProposalTrackingTx(payload.Terminated, *proposalHash, 0,
 		publicKeyStr1, privateKeyStr1, publicKeyStr2, privateKeyStr2,
 		publicKeyStr3, privateKeyStr3)
-	err = s.Chain.CheckCRCProposalTrackingTransaction(txn, votingHeight)
-	s.EqualError(err, "the NewOwnerPublicKey need to be empty")
+	txn = CreateTransactionByType(txn, s.Chain)
+	txn.SetParameters(&transaction.TransactionParameters{
+		Transaction: txn,
+		BlockHeight: votingHeight,
+		TimeStamp:   s.Chain.BestChain.Timestamp,
+		Config:      s.Chain.GetParams(),
+		BlockChain:  s.Chain,
+	})
+	err, _ = txn.SpecialContextCheck()
+	s.EqualError(err, "transaction validate error: payload content invalid:the NewOwnerPublicKey need to be empty")
 
 	// Check ChangeOwner tracking tx.
 	txn = s.getCRCProposalTrackingTx(payload.ChangeOwner, *proposalHash, 0,
 		publicKeyStr1, privateKeyStr1, publicKeyStr2, privateKeyStr2,
 		publicKeyStr3, privateKeyStr3)
-	err = s.Chain.CheckCRCProposalTrackingTransaction(txn, votingHeight)
+	txn = CreateTransactionByType(txn, s.Chain)
+	txn.SetParameters(&transaction.TransactionParameters{
+		Transaction: txn,
+		BlockHeight: votingHeight,
+		TimeStamp:   s.Chain.BestChain.Timestamp,
+		Config:      s.Chain.GetParams(),
+		BlockChain:  s.Chain,
+	})
+	err, _ = txn.SpecialContextCheck()
 	s.NoError(err)
 
 	txn = s.getCRCProposalTrackingTx(payload.ChangeOwner, *proposalHash, 1,
 		publicKeyStr1, privateKeyStr1, publicKeyStr2, privateKeyStr2,
 		publicKeyStr3, privateKeyStr3)
-	err = s.Chain.CheckCRCProposalTrackingTransaction(txn, votingHeight)
-	s.EqualError(err, "stage should assignment zero value")
+	txn = CreateTransactionByType(txn, s.Chain)
+	txn.SetParameters(&transaction.TransactionParameters{
+		Transaction: txn,
+		BlockHeight: votingHeight,
+		TimeStamp:   s.Chain.BestChain.Timestamp,
+		Config:      s.Chain.GetParams(),
+		BlockChain:  s.Chain,
+	})
+	err, _ = txn.SpecialContextCheck()
+	s.EqualError(err, "transaction validate error: payload content invalid:stage should assignment zero value")
 
 	txn = s.getCRCProposalTrackingTx(payload.ChangeOwner, *proposalHash, 0,
 		publicKeyStr1, privateKeyStr1, "", "",
 		publicKeyStr3, privateKeyStr3)
-	err = s.Chain.CheckCRCProposalTrackingTransaction(txn, votingHeight)
-	s.EqualError(err, "invalid new proposal owner public key")
+	txn = CreateTransactionByType(txn, s.Chain)
+	txn.SetParameters(&transaction.TransactionParameters{
+		Transaction: txn,
+		BlockHeight: votingHeight,
+		TimeStamp:   s.Chain.BestChain.Timestamp,
+		Config:      s.Chain.GetParams(),
+		BlockChain:  s.Chain,
+	})
+	err, _ = txn.SpecialContextCheck()
+	s.EqualError(err, "transaction validate error: payload content invalid:invalid new proposal owner public key")
 
 	// Check invalid proposal hash.
 	txn = s.getCRCProposalTrackingTx(payload.Common, *randomUint256(), 0,
 		publicKeyStr1, privateKeyStr1, "", "",
 		publicKeyStr3, privateKeyStr3)
-	err = s.Chain.CheckCRCProposalTrackingTransaction(txn, votingHeight)
-	s.EqualError(err, "proposal not exist")
+	txn = CreateTransactionByType(txn, s.Chain)
+	txn.SetParameters(&transaction.TransactionParameters{
+		Transaction: txn,
+		BlockHeight: votingHeight,
+		TimeStamp:   s.Chain.BestChain.Timestamp,
+		Config:      s.Chain.GetParams(),
+		BlockChain:  s.Chain,
+	})
+	err, _ = txn.SpecialContextCheck()
+	s.EqualError(err, "transaction validate error: payload content invalid:proposal not exist")
 
 	txn = s.getCRCProposalTrackingTx(payload.Common, *proposalHash, 0,
 		publicKeyStr1, privateKeyStr1, "", "",
@@ -2854,8 +3124,16 @@ func (s *txValidatorTestSuite) TestCheckCRCProposalTrackingTransaction() {
 			ProposalOwner:    ownerPubKey,
 		}
 	s.Chain.GetCRCommittee().GetProposalManager().Proposals[*proposalHash].TerminatedHeight = 100
-	err = s.Chain.CheckCRCProposalTrackingTransaction(txn, votingHeight)
-	s.EqualError(err, "proposal status is not VoterAgreed")
+	txn = CreateTransactionByType(txn, s.Chain)
+	txn.SetParameters(&transaction.TransactionParameters{
+		Transaction: txn,
+		BlockHeight: votingHeight,
+		TimeStamp:   s.Chain.BestChain.Timestamp,
+		Config:      s.Chain.GetParams(),
+		BlockChain:  s.Chain,
+	})
+	err, _ = txn.SpecialContextCheck()
+	s.EqualError(err, "transaction validate error: payload content invalid:proposal status is not VoterAgreed")
 
 	// Check reach max proposal tracking count.
 	pld = payload.CRCProposal{
@@ -2873,8 +3151,16 @@ func (s *txValidatorTestSuite) TestCheckCRCProposalTrackingTransaction() {
 			Status:        crstate.VoterAgreed,
 			ProposalOwner: ownerPubKey,
 		}
-	err = s.Chain.CheckCRCProposalTrackingTransaction(txn, votingHeight)
-	s.EqualError(err, "reached max tracking count")
+	txn = CreateTransactionByType(txn, s.Chain)
+	txn.SetParameters(&transaction.TransactionParameters{
+		Transaction: txn,
+		BlockHeight: votingHeight,
+		TimeStamp:   s.Chain.BestChain.Timestamp,
+		Config:      s.Chain.GetParams(),
+		BlockChain:  s.Chain,
+	})
+	err, _ = txn.SpecialContextCheck()
+	s.EqualError(err, "transaction validate error: payload content invalid:reached max tracking count")
 
 }
 
@@ -2991,32 +3277,40 @@ func (s *txValidatorTestSuite) TestCheckCRCAppropriationTransaction() {
 	// Check correct transaction.
 	s.Chain.GetCRCommittee().NeedAppropriation = true
 	txn := s.getCRCAppropriationTx(input, output1, output2)
-	err := s.Chain.CheckCRCAppropriationTransaction(txn, reference)
+	txn = CreateTransactionByType(txn, s.Chain)
+	txn.SetReferences(reference)
+	err, _ := txn.SpecialContextCheck()
 	s.NoError(err)
 
 	// Appropriation transaction already exist.
 	s.Chain.GetCRCommittee().NeedAppropriation = false
-	err = s.Chain.CheckCRCAppropriationTransaction(txn, reference)
-	s.EqualError(err, "should have no appropriation transaction")
+	err, _ = txn.SpecialContextCheck()
+	s.EqualError(err, "transaction validate error: payload content invalid:should have no appropriation transaction")
 
 	// Input does not from CR assets address
 	s.Chain.GetCRCommittee().NeedAppropriation = true
 	reference[input] = refOutputErr
 	txn = s.getCRCAppropriationTx(input, output1, output2)
-	err = s.Chain.CheckCRCAppropriationTransaction(txn, reference)
-	s.EqualError(err, "input does not from CR assets address")
+	txn = CreateTransactionByType(txn, s.Chain)
+	txn.SetReferences(reference)
+	err, _ = txn.SpecialContextCheck()
+	s.EqualError(err, "transaction validate error: payload content invalid:input does not from CR assets address")
 
 	// Inputs total amount does not equal to outputs total amount.
 	reference[input] = refOutput
 	txn = s.getCRCAppropriationTx(input, output1, output2Err)
-	err = s.Chain.CheckCRCAppropriationTransaction(txn, reference)
-	s.EqualError(err, "inputs does not equal to outputs "+
+	txn = CreateTransactionByType(txn, s.Chain)
+	txn.SetReferences(reference)
+	err, _ = txn.SpecialContextCheck()
+	s.EqualError(err, "transaction validate error: payload content invalid:inputs does not equal to outputs "+
 		"amount, inputs:900 outputs:899")
 
 	// Invalid CRC appropriation amount.
 	txn = s.getCRCAppropriationTx(input, output1Err, output2Err)
-	err = s.Chain.CheckCRCAppropriationTransaction(txn, reference)
-	s.EqualError(err, "invalid appropriation amount 91, need to be 90")
+	txn = CreateTransactionByType(txn, s.Chain)
+	txn.SetReferences(reference)
+	err, _ = txn.SpecialContextCheck()
+	s.EqualError(err, "transaction validate error: payload content invalid:invalid appropriation amount 91, need to be 90")
 }
 
 func (s *txValidatorTestSuite) getCRCAppropriationTx(input *common2.Input,
@@ -3145,83 +3439,117 @@ func (s *txValidatorTestSuite) TestCheckUpdateCRTransaction() {
 	//ok nothing wrong
 	hash2, err := getDepositAddress(publicKeyStr2)
 	txn := s.getUpdateCRTx(publicKeyStr1, privateKeyStr1, nickName1)
-	err = s.Chain.CheckUpdateCRTransaction(txn, votingHeight)
+	txn = CreateTransactionByType(txn, s.Chain)
+	txn.SetParameters(&transaction.TransactionParameters{
+		Transaction: txn,
+		BlockHeight: votingHeight,
+		TimeStamp:   s.Chain.BestChain.Timestamp,
+		Config:      s.Chain.GetParams(),
+		BlockChain:  s.Chain,
+	})
+	err, _ = txn.SpecialContextCheck()
 	s.NoError(err)
 
-	//invalid payload
-	unregisterTx := s.getUnregisterCRTx(publicKeyStr1, privateKeyStr1)
-	err = s.Chain.CheckUpdateCRTransaction(unregisterTx, votingHeight)
-	s.EqualError(err, "invalid payload")
 	// Give an invalid NickName length 0 in payload
 	nickName := txn.Payload().(*payload.CRInfo).NickName
 	txn.Payload().(*payload.CRInfo).NickName = ""
-	err = s.Chain.CheckUpdateCRTransaction(txn, votingHeight)
+	err, _ = txn.SpecialContextCheck()
 	txn.Payload().(*payload.CRInfo).NickName = nickName
-	s.EqualError(err, "field NickName has invalid string length")
+	s.EqualError(err, "transaction validate error: payload content invalid:field NickName has invalid string length")
 
 	// Give an invalid NickName length more than 100 in payload
 	txn.Payload().(*payload.CRInfo).NickName = "012345678901234567890123456789012345678901234567890" +
 		"12345678901234567890123456789012345678901234567890123456789"
-	err = s.Chain.CheckUpdateCRTransaction(txn, votingHeight)
+	err, _ = txn.SpecialContextCheck()
 	txn.Payload().(*payload.CRInfo).NickName = nickName
-	s.EqualError(err, "field NickName has invalid string length")
+	s.EqualError(err, "transaction validate error: payload content invalid:field NickName has invalid string length")
 
 	// Give an invalid url length more than 100 in payload
 	url := txn.Payload().(*payload.CRInfo).Url
 	txn.Payload().(*payload.CRInfo).Url = "012345678901234567890123456789012345678901234567890" +
 		"12345678901234567890123456789012345678901234567890123456789"
-	err = s.Chain.CheckUpdateCRTransaction(txn, votingHeight)
+	err, _ = txn.SpecialContextCheck()
 	txn.Payload().(*payload.CRInfo).Url = url
-	s.EqualError(err, "field Url has invalid string length")
+	s.EqualError(err, "transaction validate error: payload content invalid:field Url has invalid string length")
 
 	// Give an invalid code in payload
 	code := txn.Payload().(*payload.CRInfo).Code
 	txn.Payload().(*payload.CRInfo).Code = []byte{1, 2, 3, 4, 5}
-	err = s.Chain.CheckUpdateCRTransaction(txn, votingHeight)
+	err, _ = txn.SpecialContextCheck()
 	txn.Payload().(*payload.CRInfo).Code = code
-	s.EqualError(err, "invalid cid address")
+	s.EqualError(err, "transaction validate error: payload content invalid:invalid cid address")
 
 	// Give an invalid CID in payload
 	cid := txn.Payload().(*payload.CRInfo).CID
 	txn.Payload().(*payload.CRInfo).CID = common.Uint168{1, 2, 3}
-	err = s.Chain.CheckUpdateCRTransaction(txn, votingHeight)
+	err, _ = txn.SpecialContextCheck()
 	txn.Payload().(*payload.CRInfo).CID = cid
-	s.EqualError(err, "invalid cid address")
+	s.EqualError(err, "transaction validate error: payload content invalid:invalid cid address")
 
 	// Give a mismatching code and CID in payload
 	txn.Payload().(*payload.CRInfo).CID = *hash2
-	err = s.Chain.CheckUpdateCRTransaction(txn, votingHeight)
+	err, _ = txn.SpecialContextCheck()
 	txn.Payload().(*payload.CRInfo).CID = cid
-	s.EqualError(err, "invalid cid address")
+	s.EqualError(err, "transaction validate error: payload content invalid:invalid cid address")
 
 	// Invalidates the signature in payload
 	signatur := txn.Payload().(*payload.CRInfo).Signature
 	txn.Payload().(*payload.CRInfo).Signature = randomSignature()
-	err = s.Chain.CheckUpdateCRTransaction(txn, votingHeight)
+	err, _ = txn.SpecialContextCheck()
 	txn.Payload().(*payload.CRInfo).Signature = signatur
-	s.EqualError(err, "[Validation], Verify failed.")
+	s.EqualError(err, "transaction validate error: payload content invalid:[Validation], Verify failed.")
 
 	//not in vote Period lower
-	err = s.Chain.CheckUpdateCRTransaction(txn, config.DefaultParams.CRVotingStartHeight-1)
-	s.EqualError(err, "should create tx during voting period")
+	txn.SetParameters(&transaction.TransactionParameters{
+		Transaction: txn,
+		BlockHeight: config.DefaultParams.CRVotingStartHeight - 1,
+		TimeStamp:   s.Chain.BestChain.Timestamp,
+		Config:      s.Chain.GetParams(),
+		BlockChain:  s.Chain,
+	})
+	err, _ = txn.SpecialContextCheck()
+	s.EqualError(err, "transaction validate error: payload content invalid:should create tx during voting period")
 
 	// set RegisterCRByDIDHeight after CRCommitteeStartHeight
 	s.Chain.GetParams().RegisterCRByDIDHeight = config.DefaultParams.CRCommitteeStartHeight + 10
 
 	//not in vote Period lower upper c.params.CRCommitteeStartHeight
 	s.Chain.GetCRCommittee().InElectionPeriod = true
-	err = s.Chain.CheckUpdateCRTransaction(txn, config.DefaultParams.CRCommitteeStartHeight+1)
-	s.EqualError(err, "should create tx during voting period")
+	txn.SetParameters(&transaction.TransactionParameters{
+		Transaction: txn,
+		BlockHeight: config.DefaultParams.CRCommitteeStartHeight + 1,
+		TimeStamp:   s.Chain.BestChain.Timestamp,
+		Config:      s.Chain.GetParams(),
+		BlockChain:  s.Chain,
+	})
+	err, _ = txn.SpecialContextCheck()
+	s.EqualError(err, "transaction validate error: payload content invalid:should create tx during voting period")
 
 	//updating unknown CR
 	txn3 := s.getUpdateCRTx(publicKeyStr3, privateKeyStr3, nickName3)
-	err = s.Chain.CheckUpdateCRTransaction(txn3, votingHeight)
-	s.EqualError(err, "updating unknown CR")
+	txn3 = CreateTransactionByType(txn3, s.Chain)
+	txn3.SetParameters(&transaction.TransactionParameters{
+		Transaction: txn3,
+		BlockHeight: votingHeight,
+		TimeStamp:   s.Chain.BestChain.Timestamp,
+		Config:      s.Chain.GetParams(),
+		BlockChain:  s.Chain,
+	})
+	err, _ = txn3.SpecialContextCheck()
+	s.EqualError(err, "transaction validate error: payload content invalid:updating unknown CR")
 
 	//nick name already exist
 	txn1Copy := s.getUpdateCRTx(publicKeyStr1, privateKeyStr1, nickName2)
-	err = s.Chain.CheckUpdateCRTransaction(txn1Copy, votingHeight)
-	str := fmt.Sprintf("nick name %s already exist", nickName2)
+	txn1Copy = CreateTransactionByType(txn1Copy, s.Chain)
+	txn1Copy.SetParameters(&transaction.TransactionParameters{
+		Transaction: txn1Copy,
+		BlockHeight: votingHeight,
+		TimeStamp:   s.Chain.BestChain.Timestamp,
+		Config:      s.Chain.GetParams(),
+		BlockChain:  s.Chain,
+	})
+	err, _ = txn1Copy.SpecialContextCheck()
+	str := fmt.Sprintf("transaction validate error: payload content invalid:nick name %s already exist", nickName2)
 	s.EqualError(err, str)
 
 }
@@ -3290,37 +3618,49 @@ func (s *txValidatorTestSuite) TestCheckCRCProposalRealWithdrawTransaction() {
 	txn := s.getCRCProposalRealWithdrawTx(input,
 		[]common.Uint256{},
 		[]*common2.Output{output1, output2})
-	err := s.Chain.CheckCRCProposalRealWithdrawTransaction(txn, reference)
-	s.EqualError(err, "invalid real withdraw transaction hashes count")
+	txn = CreateTransactionByType(txn, s.Chain)
+	txn.SetReferences(reference)
+	err, _ := txn.SpecialContextCheck()
+	s.EqualError(err, "transaction validate error: payload content invalid:invalid real withdraw transaction hashes count")
 
 	txn = s.getCRCProposalRealWithdrawTx(input,
 		[]common.Uint256{withdrawTransactionHash1, withdrawTransactionHash2},
 		[]*common2.Output{output1Err, output2, output3})
-	err = s.Chain.CheckCRCProposalRealWithdrawTransaction(txn, reference)
-	s.EqualError(err, "invalid real withdraw output amount:10, need to be:9.99990000")
+	txn = CreateTransactionByType(txn, s.Chain)
+	txn.SetReferences(reference)
+	err, _ = txn.SpecialContextCheck()
+	s.EqualError(err, "transaction validate error: payload content invalid:invalid real withdraw output amount:10, need to be:9.99990000")
 
 	txn = s.getCRCProposalRealWithdrawTx(input,
 		[]common.Uint256{withdrawTransactionHash1, withdrawTransactionHash2},
 		[]*common2.Output{output1, output2Err, output3})
-	err = s.Chain.CheckCRCProposalRealWithdrawTransaction(txn, reference)
-	s.EqualError(err, "invalid real withdraw output address")
+	txn = CreateTransactionByType(txn, s.Chain)
+	txn.SetReferences(reference)
+	err, _ = txn.SpecialContextCheck()
+	s.EqualError(err, "transaction validate error: payload content invalid:invalid real withdraw output address")
 
 	txn = s.getCRCProposalRealWithdrawTx(input,
 		[]common.Uint256{withdrawTransactionHash1, withdrawTransactionHash2},
 		[]*common2.Output{output1, output1, output3Err})
-	err = s.Chain.CheckCRCProposalRealWithdrawTransaction(txn, reference)
-	s.EqualError(err, "last output is invalid")
+	txn = CreateTransactionByType(txn, s.Chain)
+	txn.SetReferences(reference)
+	err, _ = txn.SpecialContextCheck()
+	s.EqualError(err, "transaction validate error: payload content invalid:last output is invalid")
 
 	txn = s.getCRCProposalRealWithdrawTx(input,
 		[]common.Uint256{withdrawTransactionHash1, withdrawTransactionHash1},
 		[]*common2.Output{output1, output1, output3})
-	err = s.Chain.CheckCRCProposalRealWithdrawTransaction(txn, reference)
-	s.EqualError(err, "duplicated real withdraw transactions hash")
+	txn = CreateTransactionByType(txn, s.Chain)
+	txn.SetReferences(reference)
+	err, _ = txn.SpecialContextCheck()
+	s.EqualError(err, "transaction validate error: payload content invalid:duplicated real withdraw transactions hash")
 
 	txn = s.getCRCProposalRealWithdrawTx(input,
 		[]common.Uint256{withdrawTransactionHash1, withdrawTransactionHash2},
 		[]*common2.Output{output1, output2, output3})
-	err = s.Chain.CheckCRCProposalRealWithdrawTransaction(txn, reference)
+	txn = CreateTransactionByType(txn, s.Chain)
+	txn.SetReferences(reference)
+	err, _ = txn.SpecialContextCheck()
 	s.NoError(err)
 }
 
@@ -3350,39 +3690,85 @@ func (s *txValidatorTestSuite) TestCheckUnregisterCRTransaction() {
 		Transactions: []interfaces.Transaction{
 			registerCRTxn,
 		},
-		Header: common2.Header{Height: s.CurrentHeight},
+		Header: common2.Header{Height: votingHeight},
 	}
 	s.Chain.GetCRCommittee().ProcessBlock(block, nil)
 	//ok
 	txn := s.getUnregisterCRTx(publicKeyStr1, privateKeyStr1)
-	err := s.Chain.CheckUnRegisterCRTransaction(txn, votingHeight)
+	txn = CreateTransactionByType(txn, s.Chain)
+	err := txn.SetParameters(&transaction.TransactionParameters{
+		Transaction: txn,
+		BlockHeight: votingHeight,
+		TimeStamp:   s.Chain.BestChain.Timestamp,
+		Config:      s.Chain.GetParams(),
+		BlockChain:  s.Chain,
+	})
+	err, _ = txn.SpecialContextCheck()
 	s.NoError(err)
 
 	//invalid payload need unregisterCR pass registerCr
 	registerTx := s.getRegisterCRTx(publicKeyStr1, privateKeyStr1,
 		nickName1, payload.CRInfoVersion, &common.Uint168{})
-	err = s.Chain.CheckUnRegisterCRTransaction(registerTx, votingHeight)
-	s.EqualError(err, "invalid payload")
+	registerTx = CreateTransactionByType(registerTx, s.Chain)
+	err = registerTx.SetParameters(&transaction.TransactionParameters{
+		Transaction: registerTx,
+		BlockHeight: votingHeight,
+		TimeStamp:   s.Chain.BestChain.Timestamp,
+		Config:      s.Chain.GetParams(),
+		BlockChain:  s.Chain,
+	})
+	err, _ = registerTx.SpecialContextCheck()
+	s.EqualError(err, "transaction validate error: payload content invalid:nick name nickname 1 already inuse")
 
 	//not in vote Period lower
-	err = s.Chain.CheckUnRegisterCRTransaction(txn, config.DefaultParams.CRVotingStartHeight-1)
-	s.EqualError(err, "should create tx during voting period")
+	err = txn.SetParameters(&transaction.TransactionParameters{
+		Transaction: txn,
+		BlockHeight: config.DefaultParams.CRVotingStartHeight - 1,
+		TimeStamp:   s.Chain.BestChain.Timestamp,
+		Config:      s.Chain.GetParams(),
+		BlockChain:  s.Chain,
+	})
+	err, _ = txn.SpecialContextCheck()
+	s.EqualError(err, "transaction validate error: payload content invalid:should create tx during voting period")
 
 	//not in vote Period lower upper c.params.CRCommitteeStartHeight
 	s.Chain.GetCRCommittee().InElectionPeriod = true
 	config.DefaultParams.DPoSV2StartHeight = 2000000
-	err = s.Chain.CheckUnRegisterCRTransaction(txn, config.DefaultParams.CRCommitteeStartHeight+1)
-	s.EqualError(err, "should create tx during voting period")
+	err = txn.SetParameters(&transaction.TransactionParameters{
+		Transaction: txn,
+		BlockHeight: config.DefaultParams.CRCommitteeStartHeight + 1,
+		TimeStamp:   s.Chain.BestChain.Timestamp,
+		Config:      s.Chain.GetParams(),
+		BlockChain:  s.Chain,
+	})
+	err, _ = txn.SpecialContextCheck()
+	s.EqualError(err, "transaction validate error: payload content invalid:should create tx during voting period")
 
 	//unregister unknown CR
 	txn2 := s.getUnregisterCRTx(publicKeyStr2, privateKeyStr2)
-	err = s.Chain.CheckUnRegisterCRTransaction(txn2, votingHeight)
-	s.EqualError(err, "unregister unknown CR")
+	txn2 = CreateTransactionByType(txn2, s.Chain)
+	err = txn2.SetParameters(&transaction.TransactionParameters{
+		Transaction: txn2,
+		BlockHeight: votingHeight,
+		TimeStamp:   s.Chain.BestChain.Timestamp,
+		Config:      s.Chain.GetParams(),
+		BlockChain:  s.Chain,
+	})
+	err, _ = txn2.SpecialContextCheck()
+
+	s.EqualError(err, "transaction validate error: payload content invalid:unregister unknown CR")
 
 	//wrong signature
 	txn.Payload().(*payload.UnregisterCR).Signature = randomSignature()
-	err = s.Chain.CheckUnRegisterCRTransaction(txn, votingHeight)
-	s.EqualError(err, "[Validation], Verify failed.")
+	err = txn.SetParameters(&transaction.TransactionParameters{
+		Transaction: txn,
+		BlockHeight: votingHeight,
+		TimeStamp:   s.Chain.BestChain.Timestamp,
+		Config:      s.Chain.GetParams(),
+		BlockChain:  s.Chain,
+	})
+	err, _ = txn.SpecialContextCheck()
+	s.EqualError(err, "transaction validate error: payload content invalid:[Validation], Verify failed.")
 }
 
 func (s *txValidatorTestSuite) getCRCProposalReviewTx(crPublicKeyStr,
@@ -3442,19 +3828,27 @@ func (s *txValidatorTestSuite) TestCheckCRCProposalReviewTransaction() {
 	manager.Proposals[crcProposalReview.ProposalHash] = &crstate.ProposalState{
 		Status: crstate.Registered,
 	}
-	err := s.Chain.CheckCRCProposalReviewTransaction(txn, tenureHeight)
+	txn = CreateTransactionByType(txn, s.Chain)
+	txn.SetParameters(&transaction.TransactionParameters{
+		Transaction: txn,
+		BlockHeight: tenureHeight,
+		TimeStamp:   s.Chain.BestChain.Timestamp,
+		Config:      s.Chain.GetParams(),
+		BlockChain:  s.Chain,
+	})
+	err, _ := txn.SpecialContextCheck()
 	s.NoError(err)
 
 	// member status is not elected
 	member1.MemberState = crstate.MemberImpeached
-	err = s.Chain.CheckCRCProposalReviewTransaction(txn, tenureHeight)
-	s.EqualError(err, "should be an elected CR members")
+	err, _ = txn.SpecialContextCheck()
+	s.EqualError(err, "transaction validate error: payload content invalid:should be an elected CR members")
 
 	// invalid payload
 	txn.SetPayload(&payload.CRInfo{})
 	member1.MemberState = crstate.MemberElected
-	err = s.Chain.CheckCRCProposalReviewTransaction(txn, tenureHeight)
-	s.EqualError(err, "invalid payload")
+	err, _ = txn.SpecialContextCheck()
+	s.EqualError(err, "transaction validate error: payload content invalid:invalid payload")
 
 	// invalid content type
 	txn = s.getCRCProposalReviewTx(publicKeyStr1, privateKeyStr1)
@@ -3463,8 +3857,16 @@ func (s *txValidatorTestSuite) TestCheckCRCProposalReviewTransaction() {
 	manager.Proposals[crcProposalReview2.ProposalHash] = &crstate.ProposalState{
 		Status: crstate.Registered,
 	}
-	err = s.Chain.CheckCRCProposalReviewTransaction(txn, tenureHeight)
-	s.EqualError(err, "VoteResult should be known")
+	txn = CreateTransactionByType(txn, s.Chain)
+	txn.SetParameters(&transaction.TransactionParameters{
+		Transaction: txn,
+		BlockHeight: tenureHeight,
+		TimeStamp:   s.Chain.BestChain.Timestamp,
+		Config:      s.Chain.GetParams(),
+		BlockChain:  s.Chain,
+	})
+	err, _ = txn.SpecialContextCheck()
+	s.EqualError(err, "transaction validate error: payload content invalid:VoteResult should be known")
 
 	// proposal reviewer is not CR member
 	txn = s.getCRCProposalReviewTx(publicKeyStr2, privateKeyStr2)
@@ -3472,8 +3874,15 @@ func (s *txValidatorTestSuite) TestCheckCRCProposalReviewTransaction() {
 	manager.Proposals[crcProposalReview3.ProposalHash] = &crstate.ProposalState{
 		Status: crstate.Registered,
 	}
-	err = s.Chain.CheckCRCProposalReviewTransaction(txn, tenureHeight)
-	s.EqualError(err, "did correspond crMember not exists")
+	txn.SetParameters(&transaction.TransactionParameters{
+		Transaction: txn,
+		BlockHeight: tenureHeight,
+		TimeStamp:   s.Chain.BestChain.Timestamp,
+		Config:      s.Chain.GetParams(),
+		BlockChain:  s.Chain,
+	})
+	err, _ = txn.SpecialContextCheck()
+	s.EqualError(err, "transaction validate error: payload content invalid:did correspond crMember not exists")
 
 	delete(manager.Proposals, crcProposalReview.ProposalHash)
 	// invalid CR proposal reviewer signature
@@ -3483,8 +3892,15 @@ func (s *txValidatorTestSuite) TestCheckCRCProposalReviewTransaction() {
 	manager.Proposals[crcProposalReview.ProposalHash] = &crstate.ProposalState{
 		Status: crstate.Registered,
 	}
-	err = s.Chain.CheckCRCProposalReviewTransaction(txn, tenureHeight)
-	s.EqualError(err, "invalid signature length")
+	txn.SetParameters(&transaction.TransactionParameters{
+		Transaction: txn,
+		BlockHeight: tenureHeight,
+		TimeStamp:   s.Chain.BestChain.Timestamp,
+		Config:      s.Chain.GetParams(),
+		BlockChain:  s.Chain,
+	})
+	err, _ = txn.SpecialContextCheck()
+	s.EqualError(err, "transaction validate error: payload content invalid:invalid signature length")
 	delete(s.Chain.GetCRCommittee().GetProposalManager().Proposals, crcProposalReview.ProposalHash)
 }
 
@@ -3617,14 +4033,24 @@ func (s *txValidatorTestSuite) TestCheckCRCProposalWithdrawTransaction() {
 	s.Chain.GetCRCommittee().GetProposalManager().Proposals[crcProposalWithdraw.
 		ProposalHash] = propState
 	err := s.Chain.CheckTransactionOutput(txn, tenureHeight)
-	err = s.Chain.CheckCRCProposalWithdrawTransaction(txn, references, tenureHeight)
+	txn = CreateTransactionByType(txn, s.Chain)
+	txn.SetParameters(&transaction.TransactionParameters{
+		Transaction: txn,
+		BlockHeight: tenureHeight,
+		TimeStamp:   s.Chain.BestChain.Timestamp,
+		Config:      s.Chain.GetParams(),
+		BlockChain:  s.Chain,
+	})
+	txn.SetReferences(references)
+	err, _ = txn.SpecialContextCheck()
 	s.NoError(err)
 
 	//CRCProposalWithdraw Stage wrong too small
 	propState.WithdrawnBudgets = map[uint8]common.Fixed64{0: 10 * 1e8}
 	err = s.Chain.CheckTransactionOutput(txn, tenureHeight)
-	err = s.Chain.CheckCRCProposalWithdrawTransaction(txn, references, tenureHeight)
-	s.EqualError(err, "no need to withdraw")
+	//err = s.Chain.CheckCRCProposalWithdrawTransaction(txn, references, tenureHeight)
+	err, _ = txn.SpecialContextCheck()
+	s.EqualError(err, "transaction validate error: payload content invalid:no need to withdraw")
 
 	//stage =2 ok
 	txn = s.getCRCProposalWithdrawTx(publicKeyStr1, privateKeyStr1,
@@ -3635,7 +4061,16 @@ func (s *txValidatorTestSuite) TestCheckCRCProposalWithdrawTransaction() {
 	s.Chain.GetCRCommittee().GetProposalManager().Proposals[crcProposalWithdraw.
 		ProposalHash] = propState
 	err = s.Chain.CheckTransactionOutput(txn, tenureHeight)
-	err = s.Chain.CheckCRCProposalWithdrawTransaction(txn, references, tenureHeight)
+	txn = CreateTransactionByType(txn, s.Chain)
+	txn.SetParameters(&transaction.TransactionParameters{
+		Transaction: txn,
+		BlockHeight: tenureHeight,
+		TimeStamp:   s.Chain.BestChain.Timestamp,
+		Config:      s.Chain.GetParams(),
+		BlockChain:  s.Chain,
+	})
+	txn.SetReferences(references)
+	err, _ = txn.SpecialContextCheck()
 	s.NoError(err)
 
 	//stage =3 ok
@@ -3648,7 +4083,16 @@ func (s *txValidatorTestSuite) TestCheckCRCProposalWithdrawTransaction() {
 	s.Chain.GetCRCommittee().GetProposalManager().Proposals[crcProposalWithdraw.
 		ProposalHash] = propState
 	err = s.Chain.CheckTransactionOutput(txn, tenureHeight)
-	err = s.Chain.CheckCRCProposalWithdrawTransaction(txn, references, tenureHeight)
+	txn = CreateTransactionByType(txn, s.Chain)
+	txn.SetParameters(&transaction.TransactionParameters{
+		Transaction: txn,
+		BlockHeight: tenureHeight,
+		TimeStamp:   s.Chain.BestChain.Timestamp,
+		Config:      s.Chain.GetParams(),
+		BlockChain:  s.Chain,
+	})
+	txn.SetReferences(references)
+	err, _ = txn.SpecialContextCheck()
 	s.NoError(err)
 
 	//len(txn.Outputs) ==0 transaction has no outputs
@@ -3660,12 +4104,13 @@ func (s *txValidatorTestSuite) TestCheckCRCProposalWithdrawTransaction() {
 	pk2Bytes, _ := common.HexStringToBytes(publicKeyStr2)
 
 	propState.ProposalOwner = pk2Bytes
-	err = s.Chain.CheckCRCProposalWithdrawTransaction(txn, references, tenureHeight)
-	s.EqualError(err, "the OwnerPublicKey is not owner of proposal")
+	err, _ = txn.SpecialContextCheck()
+	s.EqualError(err, "transaction validate error: payload content invalid:the OwnerPublicKey is not owner of proposal")
 
 	references[inputs[0]] = *outputs[1]
-	err = s.Chain.CheckCRCProposalWithdrawTransaction(txn, references, tenureHeight)
-	s.EqualError(err, "proposal withdrawal transaction for non-crc committee address")
+	txn.SetReferences(references)
+	err, _ = txn.SpecialContextCheck()
+	s.EqualError(err, "transaction validate error: payload content invalid:proposal withdrawal transaction for non-crc committee address")
 
 	txn = s.getCRCProposalWithdrawTx(publicKeyStr1, privateKeyStr1,
 		Recipient, CRExpensesAddressU168, 19*ela, 40*ela, 1)
@@ -3695,8 +4140,17 @@ func (s *txValidatorTestSuite) TestCheckCRCProposalWithdrawTransaction() {
 	}
 	references = make(map[*common2.Input]common2.Output)
 	references[inputs[0]] = *outputs[0]
-	err = s.Chain.CheckCRCProposalWithdrawTransaction(txn, references, tenureHeight)
-	s.EqualError(err, "withdrawPayload.Amount != withdrawAmount ")
+	txn = CreateTransactionByType(txn, s.Chain)
+	txn.SetParameters(&transaction.TransactionParameters{
+		Transaction: txn,
+		BlockHeight: tenureHeight,
+		TimeStamp:   s.Chain.BestChain.Timestamp,
+		Config:      s.Chain.GetParams(),
+		BlockChain:  s.Chain,
+	})
+	txn.SetReferences(references)
+	err, _ = txn.SpecialContextCheck()
+	s.EqualError(err, "transaction validate error: payload content invalid:withdrawPayload.Amount != withdrawAmount ")
 	outputs = []*common2.Output{
 		{
 			AssetID:     config.ELAAssetID,
@@ -3715,7 +4169,16 @@ func (s *txValidatorTestSuite) TestCheckCRCProposalWithdrawTransaction() {
 		ProposalHash] = propState
 	references = make(map[*common2.Input]common2.Output)
 	references[inputs[0]] = *outputs[0]
-	err = s.Chain.CheckCRCProposalWithdrawTransaction(txn, references, tenureHeight)
+	txn = CreateTransactionByType(txn, s.Chain)
+	txn.SetParameters(&transaction.TransactionParameters{
+		Transaction: txn,
+		BlockHeight: tenureHeight,
+		TimeStamp:   s.Chain.BestChain.Timestamp,
+		Config:      s.Chain.GetParams(),
+		BlockChain:  s.Chain,
+	})
+	txn.SetReferences(references)
+	err, _ = txn.SpecialContextCheck()
 	s.NoError(err)
 
 }
@@ -3856,41 +4319,50 @@ func (s *txValidatorTestSuite) TestCheckSecretaryGeneralProposalTransaction() {
 		secretaryPublicKeyStr, secretaryPrivateKeyStr)
 
 	//CRCouncilMember not elected cr
-	err := s.Chain.CheckCRCProposalTransaction(txn, tenureHeight, 0)
-	s.EqualError(err, "CR Council Member should be one of the CR members")
+	txn = CreateTransactionByType(txn, s.Chain)
+	txn.SetParameters(&transaction.TransactionParameters{
+		Transaction:         txn,
+		BlockHeight:         tenureHeight,
+		TimeStamp:           s.Chain.BestChain.Timestamp,
+		Config:              s.Chain.GetParams(),
+		BlockChain:          s.Chain,
+		ProposalsUsedAmount: 0,
+	})
+	err, _ := txn.SpecialContextCheck()
+	s.EqualError(err, "transaction validate error: payload content invalid:CR Council Member should be one of the CR members")
 	memebers[memberCr.Info.DID] = memberCr
 	memebers[memberOwner.Info.DID] = memberOwner
 
 	//owner signature check failed
 	rightSign := txn.Payload().(*payload.CRCProposal).Signature
 	txn.Payload().(*payload.CRCProposal).Signature = []byte{}
-	err = s.Chain.CheckCRCProposalTransaction(txn, tenureHeight, 0)
-	s.EqualError(err, "owner signature check failed")
+	err, _ = txn.SpecialContextCheck()
+	s.EqualError(err, "transaction validate error: payload content invalid:owner signature check failed")
 	txn.Payload().(*payload.CRCProposal).Signature = rightSign
 
 	//SecretaryGeneral signature check failed
 	secretaryGeneralSign := txn.Payload().(*payload.CRCProposal).SecretaryGeneraSignature
 	txn.Payload().(*payload.CRCProposal).SecretaryGeneraSignature = []byte{}
-	err = s.Chain.CheckCRCProposalTransaction(txn, tenureHeight, 0)
-	s.EqualError(err, "SecretaryGeneral signature check failed")
+	err, _ = txn.SpecialContextCheck()
+	s.EqualError(err, "transaction validate error: payload content invalid:SecretaryGeneral signature check failed")
 	txn.Payload().(*payload.CRCProposal).SecretaryGeneraSignature = secretaryGeneralSign
 
 	//CRCouncilMemberSignature signature check failed
 	crcouncilMemberSignature := txn.Payload().(*payload.CRCProposal).CRCouncilMemberSignature
 	txn.Payload().(*payload.CRCProposal).CRCouncilMemberSignature = []byte{}
-	err = s.Chain.CheckCRCProposalTransaction(txn, tenureHeight, 0)
-	s.EqualError(err, "CR Council Member signature check failed")
+	err, _ = txn.SpecialContextCheck()
+	s.EqualError(err, "transaction validate error: payload content invalid:CR Council Member signature check failed")
 	txn.Payload().(*payload.CRCProposal).CRCouncilMemberSignature = crcouncilMemberSignature
 
 	//SecretaryGeneralPublicKey and SecretaryGeneralDID not match
 	secretaryGeneralPublicKey := txn.Payload().(*payload.CRCProposal).SecretaryGeneralPublicKey
 	txn.Payload().(*payload.CRCProposal).SecretaryGeneralPublicKey, _ = common.HexStringToBytes(ownerPublicKeyStr1)
-	err = s.Chain.CheckCRCProposalTransaction(txn, tenureHeight, 0)
-	s.EqualError(err, "SecretaryGeneral NodePublicKey and DID is not matching")
+	err, _ = txn.SpecialContextCheck()
+	s.EqualError(err, "transaction validate error: payload content invalid:SecretaryGeneral NodePublicKey and DID is not matching")
 	txn.Payload().(*payload.CRCProposal).SecretaryGeneralPublicKey = secretaryGeneralPublicKey
 
 	// ok
-	err = s.Chain.CheckCRCProposalTransaction(txn, tenureHeight, 0)
+	err, _ = txn.SpecialContextCheck()
 	s.NoError(err)
 
 	//ChangeSecretaryGeneralProposal tx must InElectionPeriod and not during voting period
@@ -3898,8 +4370,16 @@ func (s *txValidatorTestSuite) TestCheckSecretaryGeneralProposalTransaction() {
 	s.Chain.GetCRCommittee().LastCommitteeHeight = config.DefaultParams.CRCommitteeStartHeight
 	tenureHeight = config.DefaultParams.CRCommitteeStartHeight + config.DefaultParams.CRDutyPeriod -
 		config.DefaultParams.CRVotingPeriod + 1
-	err = s.Chain.CheckCRCProposalTransaction(txn, tenureHeight, 0)
-	s.EqualError(err, "cr proposal tx must not during voting period")
+	txn.SetParameters(&transaction.TransactionParameters{
+		Transaction:         txn,
+		BlockHeight:         tenureHeight,
+		TimeStamp:           s.Chain.BestChain.Timestamp,
+		Config:              s.Chain.GetParams(),
+		BlockChain:          s.Chain,
+		ProposalsUsedAmount: 0,
+	})
+	err, _ = txn.SpecialContextCheck()
+	s.EqualError(err, "transaction validate error: payload content invalid:cr proposal tx must not during voting period")
 }
 
 func (s *txValidatorTestSuite) TestCheckCRCProposalRegisterSideChainTransaction() {
@@ -3924,29 +4404,56 @@ func (s *txValidatorTestSuite) TestCheckCRCProposalRegisterSideChainTransaction(
 	{
 		// no error
 		txn := s.getCRCRegisterSideChainProposalTx(publicKeyStr2, privateKeyStr2, publicKeyStr1, privateKeyStr1)
-		err := s.Chain.CheckCRCProposalTransaction(txn, tenureHeight, 0)
+		txn = CreateTransactionByType(txn, s.Chain)
+		txn.SetParameters(&transaction.TransactionParameters{
+			Transaction:         txn,
+			BlockHeight:         tenureHeight,
+			TimeStamp:           s.Chain.BestChain.Timestamp,
+			Config:              s.Chain.GetParams(),
+			BlockChain:          s.Chain,
+			ProposalsUsedAmount: 0,
+		})
+		err, _ := txn.SpecialContextCheck()
 		s.NoError(err)
 
 		// genesis hash can not be blank
 		payload, _ := txn.Payload().(*payload.CRCProposal)
 		payload.GenesisHash = common.Uint256{}
-		err = s.Chain.CheckCRCProposalTransaction(txn, tenureHeight, 0)
-		s.EqualError(err, "GenesisHash can not be empty")
+		err, _ = txn.SpecialContextCheck()
+		s.EqualError(err, "transaction validate error: payload content invalid:GenesisHash can not be empty")
 	}
 
 	{
 		txn := s.getCRCRegisterSideChainProposalTx(publicKeyStr2, privateKeyStr2, publicKeyStr1, privateKeyStr1)
 		payload, _ := txn.Payload().(*payload.CRCProposal)
 		payload.SideChainName = ""
-		err := s.Chain.CheckCRCProposalTransaction(txn, tenureHeight, 0)
-		s.EqualError(err, "SideChainName can not be empty")
+		txn = CreateTransactionByType(txn, s.Chain)
+		txn.SetParameters(&transaction.TransactionParameters{
+			Transaction:         txn,
+			BlockHeight:         tenureHeight,
+			TimeStamp:           s.Chain.BestChain.Timestamp,
+			Config:              s.Chain.GetParams(),
+			BlockChain:          s.Chain,
+			ProposalsUsedAmount: 0,
+		})
+		err, _ := txn.SpecialContextCheck()
+		s.EqualError(err, "transaction validate error: payload content invalid:SideChainName can not be empty")
 	}
 
 	{
 		s.Chain.GetCRCommittee().GetProposalManager().RegisteredSideChainNames = []string{"NEO"}
 		txn := s.getCRCRegisterSideChainProposalTx(publicKeyStr2, privateKeyStr2, publicKeyStr1, privateKeyStr1)
-		err := s.Chain.CheckCRCProposalTransaction(txn, tenureHeight, 0)
-		s.EqualError(err, "SideChainName already registered")
+		txn = CreateTransactionByType(txn, s.Chain)
+		txn.SetParameters(&transaction.TransactionParameters{
+			Transaction:         txn,
+			BlockHeight:         tenureHeight,
+			TimeStamp:           s.Chain.BestChain.Timestamp,
+			Config:              s.Chain.GetParams(),
+			BlockChain:          s.Chain,
+			ProposalsUsedAmount: 0,
+		})
+		err, _ := txn.SpecialContextCheck()
+		s.EqualError(err, "transaction validate error: payload content invalid:SideChainName already registered")
 	}
 
 }
@@ -3973,83 +4480,154 @@ func (s *txValidatorTestSuite) TestCheckCRCProposalTransaction() {
 
 	// ok
 	txn := s.getCRCProposalTx(publicKeyStr2, privateKeyStr2, publicKeyStr1, privateKeyStr1)
-	err := s.Chain.CheckCRCProposalTransaction(txn, tenureHeight, 0)
+
+	txn = CreateTransactionByType(txn, s.Chain)
+	txn.SetParameters(&transaction.TransactionParameters{
+		Transaction:         txn,
+		BlockHeight:         tenureHeight,
+		TimeStamp:           s.Chain.BestChain.Timestamp,
+		Config:              s.Chain.GetParams(),
+		BlockChain:          s.Chain,
+		ProposalsUsedAmount: 0,
+	})
+	err, _ := txn.SpecialContextCheck()
 	s.NoError(err)
 
 	// member status is not elected
 	member1.MemberState = crstate.MemberImpeached
-	err = s.Chain.CheckCRCProposalTransaction(txn, tenureHeight, 0)
-	s.EqualError(err, "CR Council Member should be an elected CR members")
+	err, _ = txn.SpecialContextCheck()
+	s.EqualError(err, "transaction validate error: payload content invalid:CR Council Member should be an elected CR members")
 
 	// register cr proposal in voting period
 	member1.MemberState = crstate.MemberElected
 	tenureHeight = config.DefaultParams.CRCommitteeStartHeight +
 		config.DefaultParams.CRDutyPeriod - config.DefaultParams.CRVotingPeriod
 	s.Chain.GetCRCommittee().InElectionPeriod = false
-	err = s.Chain.CheckCRCProposalTransaction(txn, tenureHeight, 0)
-	s.EqualError(err, "cr proposal tx must not during voting period")
+	txn.SetParameters(&transaction.TransactionParameters{
+		Transaction:         txn,
+		BlockHeight:         tenureHeight,
+		TimeStamp:           s.Chain.BestChain.Timestamp,
+		Config:              s.Chain.GetParams(),
+		BlockChain:          s.Chain,
+		ProposalsUsedAmount: 0,
+	})
+	err, _ = txn.SpecialContextCheck()
+	s.EqualError(err, "transaction validate error: payload content invalid:cr proposal tx must not during voting period")
 
 	// recipient is empty
 	s.Chain.GetCRCommittee().InElectionPeriod = true
 	tenureHeight = config.DefaultParams.CRCommitteeStartHeight + 1
 	txn.Payload().(*payload.CRCProposal).Recipient = common.Uint168{}
-	err = s.Chain.CheckCRCProposalTransaction(txn, tenureHeight, 0)
-	s.EqualError(err, "recipient is empty")
+	txn.SetParameters(&transaction.TransactionParameters{
+		Transaction:         txn,
+		BlockHeight:         tenureHeight,
+		TimeStamp:           s.Chain.BestChain.Timestamp,
+		Config:              s.Chain.GetParams(),
+		BlockChain:          s.Chain,
+		ProposalsUsedAmount: 0,
+	})
+	err, _ = txn.SpecialContextCheck()
+	s.EqualError(err, "transaction validate error: payload content invalid:recipient is empty")
 
 	// invalid payload
 	txn.SetPayload(&payload.CRInfo{})
-	err = s.Chain.CheckCRCProposalTransaction(txn, tenureHeight, 0)
-	s.EqualError(err, "invalid payload")
+	err, _ = txn.SpecialContextCheck()
+	s.EqualError(err, "transaction validate error: payload content invalid:invalid payload")
 
 	// invalid proposal type
 	txn = s.getCRCProposalTx(publicKeyStr2, privateKeyStr2, publicKeyStr1, privateKeyStr1)
 	txn.Payload().(*payload.CRCProposal).ProposalType = 0x1000
-	err = s.Chain.CheckCRCProposalTransaction(txn, tenureHeight, 0)
-	s.EqualError(err, "type of proposal should be known")
+	txn = CreateTransactionByType(txn, s.Chain)
+	txn.SetParameters(&transaction.TransactionParameters{
+		Transaction:         txn,
+		BlockHeight:         tenureHeight,
+		TimeStamp:           s.Chain.BestChain.Timestamp,
+		Config:              s.Chain.GetParams(),
+		BlockChain:          s.Chain,
+		ProposalsUsedAmount: 0,
+	})
+	err, _ = txn.SpecialContextCheck()
+	s.EqualError(err, "transaction validate error: payload content invalid:type of proposal should be known")
 
 	// invalid outputs of ELIP.
 	txn.Payload().(*payload.CRCProposal).ProposalType = 0x0100
-	err = s.Chain.CheckCRCProposalTransaction(txn, tenureHeight, 0)
-	s.EqualError(err, "ELIP needs to have and only have two budget")
+	err, _ = txn.SpecialContextCheck()
+	s.EqualError(err, "transaction validate error: payload content invalid:ELIP needs to have and only have two budget")
 
 	// invalid budgets.
 	txn.Payload().(*payload.CRCProposal).ProposalType = 0x0000
 	s.Chain.GetCRCommittee().CRCCommitteeBalance = common.Fixed64(10 * 1e8)
 	s.Chain.GetCRCommittee().CRCCurrentStageAmount = common.Fixed64(10 * 1e8)
-	err = s.Chain.CheckCRCProposalTransaction(txn, tenureHeight, 0)
-	s.EqualError(err, "budgets exceeds 10% of CRC committee balance")
+	err, _ = txn.SpecialContextCheck()
+	s.EqualError(err, "transaction validate error: payload content invalid:budgets exceeds 10% of CRC committee balance")
 
 	s.Chain.GetCRCommittee().CRCCommitteeBalance = common.Fixed64(100 * 1e8)
 	s.Chain.GetCRCommittee().CRCCurrentStageAmount = common.Fixed64(100 * 1e8)
 	s.Chain.GetCRCommittee().CRCCommitteeUsedAmount = common.Fixed64(99 * 1e8)
-	err = s.Chain.CheckCRCProposalTransaction(txn, tenureHeight, 0)
-	s.Error(err, "budgets exceeds the balance of CRC committee")
+	err, _ = txn.SpecialContextCheck()
+	s.Error(err, "transaction validate error: payload content invalid:budgets exceeds the balance of CRC committee")
 
 	s.Chain.GetCRCommittee().CRCCommitteeUsedAmount = common.Fixed64(0)
 
 	// CRCouncilMemberSignature is not signed by CR member
 	txn = s.getCRCProposalTx(publicKeyStr1, privateKeyStr1, publicKeyStr2, privateKeyStr2)
-	err = s.Chain.CheckCRCProposalTransaction(txn, tenureHeight, 0)
-	s.EqualError(err, "CR Council Member should be one of the CR members")
+	txn = CreateTransactionByType(txn, s.Chain)
+	txn.SetParameters(&transaction.TransactionParameters{
+		Transaction:         txn,
+		BlockHeight:         tenureHeight,
+		TimeStamp:           s.Chain.BestChain.Timestamp,
+		Config:              s.Chain.GetParams(),
+		BlockChain:          s.Chain,
+		ProposalsUsedAmount: 0,
+	})
+	err, _ = txn.SpecialContextCheck()
+	s.EqualError(err, "transaction validate error: payload content invalid:CR Council Member should be one of the CR members")
 
 	// invalid owner
 	txn = s.getCRCProposalTx(publicKeyStr2, privateKeyStr2, publicKeyStr1, privateKeyStr1)
 	txn.Payload().(*payload.CRCProposal).OwnerPublicKey = []byte{}
-	err = s.Chain.CheckCRCProposalTransaction(txn, tenureHeight, 0)
-	s.EqualError(err, "invalid owner")
+	txn = CreateTransactionByType(txn, s.Chain)
+	txn.SetParameters(&transaction.TransactionParameters{
+		Transaction:         txn,
+		BlockHeight:         tenureHeight,
+		TimeStamp:           s.Chain.BestChain.Timestamp,
+		Config:              s.Chain.GetParams(),
+		BlockChain:          s.Chain,
+		ProposalsUsedAmount: 0,
+	})
+	err, _ = txn.SpecialContextCheck()
+	s.EqualError(err, "transaction validate error: payload content invalid:invalid owner")
 
 	// invalid owner signature
 	txn = s.getCRCProposalTx(publicKeyStr2, privateKeyStr2, publicKeyStr1, privateKeyStr1)
 	publicKey1, _ := common.HexStringToBytes(publicKeyStr1)
 	txn.Payload().(*payload.CRCProposal).OwnerPublicKey = publicKey1
-	err = s.Chain.CheckCRCProposalTransaction(txn, tenureHeight, 0)
-	s.EqualError(err, "owner signature check failed")
+	txn = CreateTransactionByType(txn, s.Chain)
+	txn.SetParameters(&transaction.TransactionParameters{
+		Transaction:         txn,
+		BlockHeight:         tenureHeight,
+		TimeStamp:           s.Chain.BestChain.Timestamp,
+		Config:              s.Chain.GetParams(),
+		BlockChain:          s.Chain,
+		ProposalsUsedAmount: 0,
+	})
+	err, _ = txn.SpecialContextCheck()
+	s.EqualError(err, "transaction validate error: payload content invalid:owner signature check failed")
 
 	// invalid CR owner signature
 	txn = s.getCRCProposalTx(publicKeyStr2, privateKeyStr2, publicKeyStr1, privateKeyStr1)
 	txn.Payload().(*payload.CRCProposal).CRCouncilMemberSignature = []byte{}
-	err = s.Chain.CheckCRCProposalTransaction(txn, tenureHeight, 0)
-	s.EqualError(err, "failed to check CR Council Member signature")
+	txn = CreateTransactionByType(txn, s.Chain)
+	txn.SetParameters(&transaction.TransactionParameters{
+		Transaction:         txn,
+		BlockHeight:         tenureHeight,
+		TimeStamp:           s.Chain.BestChain.Timestamp,
+		Config:              s.Chain.GetParams(),
+		BlockChain:          s.Chain,
+		ProposalsUsedAmount: 0,
+	})
+	err, _ = txn.SpecialContextCheck()
+	s.EqualError(err, "transaction validate error: payload content invalid:failed to check CR Council Member signature")
 
 	// proposal status is not VoterAgreed
 	newOwnerPublicKeyStr := publicKeyStr2
@@ -4061,8 +4639,17 @@ func (s *txValidatorTestSuite) TestCheckCRCProposalTransaction() {
 
 	txn = s.getCRChangeProposalOwnerProposalTx(publicKeyStr2, privateKeyStr2, publicKeyStr1, privateKeyStr1,
 		newOwnerPublicKeyStr, proposal.Hash(payload.CRCProposalVersion01))
-	err = s.Chain.CheckCRCProposalTransaction(txn, tenureHeight, 0)
-	s.EqualError(err, "proposal status is not VoterAgreed")
+	txn = CreateTransactionByType(txn, s.Chain)
+	txn.SetParameters(&transaction.TransactionParameters{
+		Transaction:         txn,
+		BlockHeight:         tenureHeight,
+		TimeStamp:           s.Chain.BestChain.Timestamp,
+		Config:              s.Chain.GetParams(),
+		BlockChain:          s.Chain,
+		ProposalsUsedAmount: 0,
+	})
+	err, _ = txn.SpecialContextCheck()
+	s.EqualError(err, "transaction validate error: payload content invalid:proposal status is not VoterAgreed")
 
 	//proposal sponsors must be members
 	targetHash := proposal.Hash(payload.CRCProposalVersion01)
@@ -4076,8 +4663,17 @@ func (s *txValidatorTestSuite) TestCheckCRCProposalTransaction() {
 		newOwnerPublicKeyStr, targetHash)
 
 	s.Chain.GetCRCommittee().InElectionPeriod = false
-	err = s.Chain.CheckCRCProposalTransaction(txn, tenureHeight, 0)
-	s.EqualError(err, "cr proposal tx must not during voting period")
+	txn = CreateTransactionByType(txn, s.Chain)
+	txn.SetParameters(&transaction.TransactionParameters{
+		Transaction:         txn,
+		BlockHeight:         tenureHeight,
+		TimeStamp:           s.Chain.BestChain.Timestamp,
+		Config:              s.Chain.GetParams(),
+		BlockChain:          s.Chain,
+		ProposalsUsedAmount: 0,
+	})
+	err, _ = txn.SpecialContextCheck()
+	s.EqualError(err, "transaction validate error: payload content invalid:cr proposal tx must not during voting period")
 
 	// invalid proposal owner
 	s.Chain.GetCRCommittee().InElectionPeriod = true
@@ -4090,8 +4686,17 @@ func (s *txValidatorTestSuite) TestCheckCRCProposalTransaction() {
 
 	// invalid closeProposalHash
 	txn = s.getCRCCloseProposalTx(publicKeyStr2, privateKeyStr2, publicKeyStr1, privateKeyStr1)
-	err = s.Chain.CheckCRCProposalTransaction(txn, tenureHeight, 0)
-	s.EqualError(err, "CloseProposalHash does not exist")
+	txn = CreateTransactionByType(txn, s.Chain)
+	txn.SetParameters(&transaction.TransactionParameters{
+		Transaction:         txn,
+		BlockHeight:         tenureHeight,
+		TimeStamp:           s.Chain.BestChain.Timestamp,
+		Config:              s.Chain.GetParams(),
+		BlockChain:          s.Chain,
+		ProposalsUsedAmount: 0,
+	})
+	err, _ = txn.SpecialContextCheck()
+	s.EqualError(err, "transaction validate error: payload content invalid:CloseProposalHash does not exist")
 
 	// invalid proposal status
 	hash := proposal.Hash(payload.CRCProposalVersion01)
@@ -4102,8 +4707,17 @@ func (s *txValidatorTestSuite) TestCheckCRCProposalTransaction() {
 
 	proposalState.Status = crstate.Registered
 	s.Chain.GetCRCommittee().GetProposalManager().Proposals[hash] = proposalState
-	err = s.Chain.CheckCRCProposalTransaction(txn, tenureHeight, 0)
-	s.EqualError(err, "CloseProposalHash has to be voterAgreed")
+	txn = CreateTransactionByType(txn, s.Chain)
+	txn.SetParameters(&transaction.TransactionParameters{
+		Transaction:         txn,
+		BlockHeight:         tenureHeight,
+		TimeStamp:           s.Chain.BestChain.Timestamp,
+		Config:              s.Chain.GetParams(),
+		BlockChain:          s.Chain,
+		ProposalsUsedAmount: 0,
+	})
+	err, _ = txn.SpecialContextCheck()
+	s.EqualError(err, "transaction validate error: payload content invalid:CloseProposalHash has to be voterAgreed")
 
 	// invalid receipt
 	proposalState, proposal = s.createSpecificStatusProposal(publicKey1, publicKey2, tenureHeight,
@@ -4113,8 +4727,17 @@ func (s *txValidatorTestSuite) TestCheckCRCProposalTransaction() {
 	txn = s.getCRCCloseProposalTx(publicKeyStr2, privateKeyStr2, publicKeyStr1, privateKeyStr1)
 	txn.Payload().(*payload.CRCProposal).TargetProposalHash = hash
 	txn.Payload().(*payload.CRCProposal).Recipient = *randomUint168()
-	err = s.Chain.CheckCRCProposalTransaction(txn, tenureHeight, 0)
-	s.EqualError(err, "CloseProposal recipient must be empty")
+	txn = CreateTransactionByType(txn, s.Chain)
+	txn.SetParameters(&transaction.TransactionParameters{
+		Transaction:         txn,
+		BlockHeight:         tenureHeight,
+		TimeStamp:           s.Chain.BestChain.Timestamp,
+		Config:              s.Chain.GetParams(),
+		BlockChain:          s.Chain,
+		ProposalsUsedAmount: 0,
+	})
+	err, _ = txn.SpecialContextCheck()
+	s.EqualError(err, "transaction validate error: payload content invalid:CloseProposal recipient must be empty")
 
 	// invalid budget
 	txn = s.getCRCCloseProposalTx(publicKeyStr2, privateKeyStr2, publicKeyStr1, privateKeyStr1)
@@ -4124,8 +4747,17 @@ func (s *txValidatorTestSuite) TestCheckCRCProposalTransaction() {
 		0x01,
 		common.Fixed64(10000000000),
 	}}
-	err = s.Chain.CheckCRCProposalTransaction(txn, tenureHeight, 0)
-	s.EqualError(err, "CloseProposal cannot have budget")
+	txn = CreateTransactionByType(txn, s.Chain)
+	txn.SetParameters(&transaction.TransactionParameters{
+		Transaction:         txn,
+		BlockHeight:         tenureHeight,
+		TimeStamp:           s.Chain.BestChain.Timestamp,
+		Config:              s.Chain.GetParams(),
+		BlockChain:          s.Chain,
+		ProposalsUsedAmount: 0,
+	})
+	err, _ = txn.SpecialContextCheck()
+	s.EqualError(err, "transaction validate error: payload content invalid:CloseProposal cannot have budget")
 
 	// proposals can not more than MaxCommitteeProposalCount
 	txn = s.getCRCProposalTx(publicKeyStr2, privateKeyStr2, publicKeyStr1, privateKeyStr1)
@@ -4136,16 +4768,34 @@ func (s *txValidatorTestSuite) TestCheckCRCProposalTransaction() {
 	}
 	s.Chain.GetCRCommittee().GetProposalManager().ProposalHashes[crcProposal.
 		CRCouncilMemberDID] = proposalHashSet
-	err = s.Chain.CheckCRCProposalTransaction(txn, tenureHeight, 0)
-	s.EqualError(err, "proposal is full")
+	txn = CreateTransactionByType(txn, s.Chain)
+	txn.SetParameters(&transaction.TransactionParameters{
+		Transaction:         txn,
+		BlockHeight:         tenureHeight,
+		TimeStamp:           s.Chain.BestChain.Timestamp,
+		Config:              s.Chain.GetParams(),
+		BlockChain:          s.Chain,
+		ProposalsUsedAmount: 0,
+	})
+	err, _ = txn.SpecialContextCheck()
+	s.EqualError(err, "transaction validate error: payload content invalid:proposal is full")
 
 	s.Chain.GetParams().MaxCommitteeProposalCount = s.Chain.GetParams().MaxCommitteeProposalCount + 100
 	// invalid reserved custom id
 	txn = s.getCRCReservedCustomIDProposalTx(publicKeyStr2, privateKeyStr2, publicKeyStr1, privateKeyStr1)
 	proposal, _ = txn.Payload().(*payload.CRCProposal)
 	proposal.ReservedCustomIDList = append(proposal.ReservedCustomIDList, randomName(260))
-	err = s.Chain.CheckCRCProposalTransaction(txn, tenureHeight, 0)
-	s.EqualError(err, "invalid reserved custom id length")
+	txn = CreateTransactionByType(txn, s.Chain)
+	txn.SetParameters(&transaction.TransactionParameters{
+		Transaction:         txn,
+		BlockHeight:         tenureHeight,
+		TimeStamp:           s.Chain.BestChain.Timestamp,
+		Config:              s.Chain.GetParams(),
+		BlockChain:          s.Chain,
+		ProposalsUsedAmount: 0,
+	})
+	err, _ = txn.SpecialContextCheck()
+	s.EqualError(err, "transaction validate error: payload content invalid:invalid reserved custom id length")
 }
 
 func (s *txValidatorTestSuite) TestCheckStringField() {
@@ -4269,7 +4919,7 @@ func (s *txValidatorTestSuite) TestCheckReturnDepositCoinTransaction() {
 	code1, _ := contract.CreateStandardRedeemScript(pk)
 	rdTx := functions.CreateTransaction(
 		0,
-		common2.ReturnCRDepositCoin,
+		common2.ReturnDepositCoin,
 		0,
 		&payload.ReturnDepositCoin{},
 		[]*common2.Attribute{},
@@ -4283,10 +4933,10 @@ func (s *txValidatorTestSuite) TestCheckReturnDepositCoinTransaction() {
 		},
 	)
 
-	canceledHeight := uint32(8)
-	err := s.Chain.CheckReturnDepositCoinTransaction(
-		rdTx, references, 2160+canceledHeight)
-	s.EqualError(err, "overspend deposit")
+	rdTx = CreateTransactionByType(rdTx, s.Chain)
+	rdTx.SetReferences(references)
+	err, _ := rdTx.SpecialContextCheck()
+	s.EqualError(err, "transaction validate error: payload content invalid:overspend deposit")
 
 	// cancel CR
 	ctx := functions.CreateTransaction(
@@ -4321,16 +4971,14 @@ func (s *txValidatorTestSuite) TestCheckReturnDepositCoinTransaction() {
 	pubkey2, _ := crypto.DecodePoint(pubKeyBytes2)
 	code2, _ := contract.CreateStandardRedeemScript(pubkey2)
 	rdTx.Programs()[0].Code = code2
-	err = s.Chain.CheckReturnDepositCoinTransaction(
-		rdTx, references, 2160+canceledHeight)
-	s.EqualError(err, "signer must be producer")
+	err, _ = rdTx.SpecialContextCheck()
+	s.EqualError(err, "transaction validate error: payload content invalid:signer must be producer")
 
 	// check a return deposit coin transaction when not reached the
 	// count of DepositLockupBlocks.
 	rdTx.Programs()[0].Code = code1
-	err = s.Chain.CheckReturnDepositCoinTransaction(
-		rdTx, references, 2159+canceledHeight)
-	s.EqualError(err, "overspend deposit")
+	err, _ = rdTx.SpecialContextCheck()
+	s.EqualError(err, "transaction validate error: payload content invalid:overspend deposit")
 
 	s.CurrentHeight += s.Chain.GetParams().CRDepositLockupBlocks
 	s.Chain.GetState().ProcessBlock(&types.Block{
@@ -4342,14 +4990,12 @@ func (s *txValidatorTestSuite) TestCheckReturnDepositCoinTransaction() {
 
 	// check a return deposit coin transaction with wrong output amount.
 	rdTx.Outputs()[0].Value = 5000 * 100000000
-	err = s.Chain.CheckReturnDepositCoinTransaction(
-		rdTx, references, 2160+canceledHeight)
-	s.EqualError(err, "overspend deposit")
+	err, _ = rdTx.SpecialContextCheck()
+	s.EqualError(err, "transaction validate error: payload content invalid:overspend deposit")
 
 	// check a correct return deposit coin transaction.
 	rdTx.Outputs()[0].Value = 4999 * 100000000
-	err = s.Chain.CheckReturnDepositCoinTransaction(
-		rdTx, references, 2160+canceledHeight)
+	err, _ = rdTx.SpecialContextCheck()
 	s.NoError(err)
 }
 
@@ -4647,23 +5293,23 @@ func (s *txValidatorTestSuite) TestCheckReturnCRDepositCoinTransaction() {
 
 	// check a return cr deposit coin transaction with wrong code in voting period.
 	rdTx.Programs()[0].Code = code2
-	err := s.Chain.CheckReturnCRDepositCoinTransaction(
-		rdTx, references, 2160+canceledHeight)
-	s.EqualError(err, "signer must be candidate or member")
+
+	rdTx = CreateTransactionByType(rdTx, s.Chain)
+	rdTx.SetReferences(references)
+	err, _ := rdTx.SpecialContextCheck()
+	s.EqualError(err, "transaction validate error: payload content invalid:signer must be candidate or member")
 
 	// check a return cr deposit coin transaction with wrong output amount.
 	rdTx.Outputs()[0].Value = 5000 * 100000000
 	s.CurrentHeight = 2160 + canceledHeight
-	err = s.Chain.CheckReturnCRDepositCoinTransaction(
-		rdTx, references, 2160+canceledHeight)
-	s.EqualError(err, "signer must be candidate or member")
+	err, _ = rdTx.SpecialContextCheck()
+	s.EqualError(err, "transaction validate error: payload content invalid:signer must be candidate or member")
 
 	// check a correct return cr deposit coin transaction.
 	rdTx.Outputs()[0].Value = 4999 * 100000000
 	rdTx.Programs()[0].Code = code
 	s.CurrentHeight = s.Chain.GetParams().CRCommitteeStartHeight
-	err = s.Chain.CheckReturnCRDepositCoinTransaction(
-		rdTx, references, s.CurrentHeight)
+	err, _ = rdTx.SpecialContextCheck()
 	s.NoError(err)
 
 	// return CR deposit coin.
@@ -4679,8 +5325,7 @@ func (s *txValidatorTestSuite) TestCheckReturnCRDepositCoinTransaction() {
 	s.CurrentHeight++
 
 	// check a return cr deposit coin transaction with the amount has returned.
-	err = s.Chain.CheckReturnCRDepositCoinTransaction(
-		rdTx, references, 2160+canceledHeight)
+	err, _ = rdTx.SpecialContextCheck()
 	s.NoError(err)
 
 }
@@ -5614,3 +6259,27 @@ func (s *txValidatorTestSuite) TestArbitersAccumulateReward() {
 //	s.EqualError(err, "should have no appropriation transaction")
 //
 //}
+
+func CreateTransactionByType(ori interfaces.Transaction, chain *blockchain.BlockChain) interfaces.Transaction {
+	tx := functions.CreateTransaction(
+		ori.Version(),
+		ori.TxType(),
+		ori.PayloadVersion(),
+		ori.Payload(),
+		ori.Attributes(),
+		ori.Inputs(),
+		ori.Outputs(),
+		ori.LockTime(),
+		ori.Programs(),
+	)
+
+	tx.SetParameters(&transaction.TransactionParameters{
+		Transaction: tx,
+		BlockHeight: chain.BestChain.Height,
+		TimeStamp:   chain.BestChain.Timestamp,
+		Config:      chain.GetParams(),
+		BlockChain:  chain,
+	})
+
+	return tx
+}

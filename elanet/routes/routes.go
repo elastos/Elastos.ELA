@@ -118,11 +118,10 @@ type Routes struct {
 	stopped int32
 	waiting int32
 
-	addrMtx     sync.RWMutex
-	addrIndex   map[dp.PID]map[dp.PID]common.Uint256
-	knownAddr   map[common.Uint256]*msg.DAddr
-	crKnownAddr map[common.Uint256]*msg.DAddr
-	knownList   *list.List
+	addrMtx   sync.RWMutex
+	addrIndex map[dp.PID]map[dp.PID]common.Uint256
+	knownAddr map[common.Uint256]*msg.DAddr
+	knownList *list.List
 
 	queue      chan interface{}
 	announce   chan struct{}
@@ -158,6 +157,8 @@ func (r *Routes) addrHandler() {
 			r.crAnnounce <- struct{}{}
 		})
 	}
+
+	ciphers := make(map[string]map[dp.PID][]byte)
 
 out:
 	for {
@@ -229,12 +230,24 @@ out:
 					continue
 				}
 
-				// Generate DAddr for the given PID.
-				cipher, err := crypto.Encrypt(pubKey, []byte(r.addr))
-				if err != nil {
-					log.Warnf("encrypt addr %s failed %s", r.addr, err)
-					continue
+				var cipher []byte
+				if pidc, ok := ciphers[r.addr]; ok {
+					if c, ok := pidc[pid]; ok {
+						cipher = c
+					}
 				}
+
+				if len(cipher) == 0 {
+					// Generate DAddr for the given PID.
+					cipher, err = crypto.Encrypt(pubKey, []byte(r.addr))
+					if err != nil {
+						log.Warnf("encrypt addr %s failed %s", r.addr, err)
+						continue
+					}
+					ciphers[r.addr] = make(map[dp.PID][]byte)
+					ciphers[r.addr][pid] = cipher
+				}
+
 				addr := msg.DAddr{
 					PID:       r.pid,
 					Timestamp: r.cfg.TimeSource.AdjustedTime(),
@@ -320,6 +333,7 @@ cleanup:
 		select {
 		case <-r.queue:
 		case <-r.announce:
+		case <-r.crAnnounce:
 		default:
 			break cleanup
 		}
@@ -491,7 +505,7 @@ func (r *Routes) handleCRPeersMsg(state *state, peers []dp.PID) {
 
 		r.addrMtx.Lock()
 		for _, pid := range pids {
-			delete(r.crKnownAddr, pid)
+			delete(r.knownAddr, pid)
 		}
 		delete(r.addrIndex, pid)
 		r.addrMtx.Unlock()
@@ -626,8 +640,9 @@ func (r *Routes) handleDAddr(s *state, p *peer.Peer, m *msg.DAddr) {
 		return
 	}
 
-	_, ok := s.peers[m.PID]
-	if !ok {
+	_, isCRPeers := s.crPeers[m.PID]
+	_, isDPoSPeers := s.peers[m.PID]
+	if !isCRPeers && !isDPoSPeers {
 		log.Debugf("PID not in arbiter list")
 
 		// Peers may have disagree with the current producers, so some times we
@@ -726,16 +741,17 @@ func New(cfg *Config) *Routes {
 	copy(pid[:], cfg.PID)
 
 	r := Routes{
-		pid:         pid,
-		cfg:         cfg,
-		addr:        cfg.Addr,
-		sign:        cfg.Sign,
-		addrIndex:   make(map[dp.PID]map[dp.PID]common.Uint256),
-		knownAddr:   make(map[common.Uint256]*msg.DAddr),
-		knownList:   list.New(),
-		queue:       make(chan interface{}, 125),
-		announce:    make(chan struct{}, 1),
-		quit:        make(chan struct{}),
+		pid:        pid,
+		cfg:        cfg,
+		addr:       cfg.Addr,
+		sign:       cfg.Sign,
+		addrIndex:  make(map[dp.PID]map[dp.PID]common.Uint256),
+		knownAddr:  make(map[common.Uint256]*msg.DAddr),
+		knownList:  list.New(),
+		queue:      make(chan interface{}, 125),
+		announce:   make(chan struct{}, 1),
+		crAnnounce: make(chan struct{}, 1),
+		quit:       make(chan struct{}),
 	}
 
 	queuePeers := func(peers []dp.PID) {
@@ -748,7 +764,7 @@ func New(cfg *Config) *Routes {
 
 	events.Subscribe(func(e *events.Event) {
 		switch e.Type {
-		case events.ETDirectPeersChangedV2:
+		case events.ETDirectPeersChanged:
 			peersInfo := e.Data.(*dp.PeersInfo)
 			peers := peersInfo.CurrentPeers
 			go queuePeers(append(peers, peersInfo.NextPeers...))

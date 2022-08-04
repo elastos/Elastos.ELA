@@ -7,14 +7,15 @@ package main
 
 import (
 	"fmt"
-	"github.com/elastos/Elastos.ELA/core/transaction"
 	"io"
 	"path/filepath"
 	"time"
 
 	"github.com/elastos/Elastos.ELA/common/config/settings"
 	"github.com/elastos/Elastos.ELA/common/log"
+	"github.com/elastos/Elastos.ELA/core/transaction"
 	crstate "github.com/elastos/Elastos.ELA/cr/state"
+	"github.com/elastos/Elastos.ELA/dpos/p2p/hub"
 	"github.com/elastos/Elastos.ELA/dpos/state"
 	"github.com/elastos/Elastos.ELA/elanet"
 	"github.com/elastos/Elastos.ELA/elanet/netsync"
@@ -181,6 +182,7 @@ func setupLog(c *cli.Context, s *settings.Settings) {
 
 	admrlog := wrap(logger, elalog.LevelOff)
 	cmgrlog := wrap(logger, elalog.LevelOff)
+	hublog := wrap(logger, elalog.LevelOff)
 	synclog := wrap(logger, elalog.Level(s.Params().PrintLevel))
 	peerlog := wrap(logger, elalog.Level(s.Params().PrintLevel))
 	routlog := wrap(logger, elalog.Level(s.Params().PrintLevel))
@@ -198,4 +200,5 @@ func setupLog(c *cli.Context, s *settings.Settings) {
 	state.UseLogger(statlog)
 	crstate.UseLogger(crstatlog)
 	transaction.UseLogger(txslog)
+	hub.UseLogger(hublog)
 }

@@ -453,14 +453,11 @@ func (a *Arbiters) forceChange(height uint32) error {
 	}
 
 	if a.started {
-		go events.Notify(events.ETDirectPeersChanged,
-			a.getNeedConnectArbiters())
-
 		currentArbiters := a.getCurrentNeedConnectArbiters()
 		nextArbiters := a.getNextNeedConnectArbiters()
 		crArbiters := a.getNeedConnectCRArbiters()
 
-		go events.Notify(events.ETDirectPeersChangedV2,
+		go events.Notify(events.ETDirectPeersChanged,
 			&peer.PeersInfo{
 				CurrentPeers: currentArbiters,
 				NextPeers:    nextArbiters,
@@ -598,13 +595,11 @@ func (a *Arbiters) IncreaseChainHeight(block *types.Block, confirm *payload.Conf
 	}
 	a.mtx.Unlock()
 	if a.started && notify {
-		go events.Notify(events.ETDirectPeersChanged, a.GetNeedConnectArbiters())
-
 		currentArbiters := a.GetCurrentNeedConnectArbiters()
 		nextArbiters := a.GetNextNeedConnectArbiters()
 		crArbiters := a.GetNeedConnectCRArbiters()
 
-		go events.Notify(events.ETDirectPeersChangedV2,
+		go events.Notify(events.ETDirectPeersChanged,
 			&peer.PeersInfo{
 				CurrentPeers: currentArbiters,
 				NextPeers:    nextArbiters,
@@ -732,7 +727,7 @@ func (a *Arbiters) getDPoSV2Rewards(dposReward common.Fixed64, sponsor []byte) (
 			addr, _ := standardUint168.ToAddress()
 			p := N / totalNI * float64(votesReward)
 			rewards[addr] += common.Fixed64(p)
-			log.Debugf("getDPoSV2Rewards addr %s  add p %v %f rewards[addr]%v \n", addr, common.Fixed64(p), rewards[addr])
+			log.Debugf("getDPoSV2Rewards addr:%s, p:%s, reward:%s \n", addr, common.Fixed64(p), rewards[addr])
 		}
 
 		var totalUsedVotesReward common.Fixed64
@@ -743,7 +738,7 @@ func (a *Arbiters) getDPoSV2Rewards(dposReward common.Fixed64, sponsor []byte) (
 		// DPoS node reward is: reward - totalUsedVotesReward
 		dposNodeReward := dposReward - totalUsedVotesReward
 		rewards[ownerAddr] += dposNodeReward
-		log.Debugf("getDPoSV2Rewards totalUsedVotesReward %v dposNodeReward %v,  \n", totalUsedVotesReward, dposNodeReward)
+		log.Debugf("getDPoSV2Rewards totalUsedVotesReward %s dposNodeReward %s,  \n", totalUsedVotesReward, dposNodeReward)
 
 	}
 

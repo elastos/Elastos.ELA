@@ -26,6 +26,7 @@ import (
 	"github.com/elastos/Elastos.ELA/dpos"
 	"github.com/elastos/Elastos.ELA/dpos/account"
 	dlog "github.com/elastos/Elastos.ELA/dpos/log"
+	msg2 "github.com/elastos/Elastos.ELA/dpos/p2p/msg"
 	"github.com/elastos/Elastos.ELA/dpos/state"
 	"github.com/elastos/Elastos.ELA/elanet"
 	"github.com/elastos/Elastos.ELA/elanet/routes"
@@ -340,6 +341,11 @@ func startNode(c *cli.Context, st *settings.Settings) {
 		printErrorAndExit(err)
 	}
 	pgBar.Stop()
+
+	// todo remove me
+	if chain.GetHeight() > st.Params().DPoSV2StartHeight {
+		msg2.SetPayloadVersion(msg2.DPoSV2Version)
+	}
 
 	// Add small cross chain transactions to transaction pool
 	txs, _ := chain.GetDB().GetSmallCrossTransferTxs()

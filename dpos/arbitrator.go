@@ -318,7 +318,7 @@ func NewArbitrator(account account.Account, cfg Config) (*Arbitrator, error) {
 		case events.ETConfirmAccepted:
 			go a.OnConfirmReceived(e.Data.(*mempool.ConfirmInfo))
 
-		case events.ETDirectPeersChangedV2:
+		case events.ETDirectPeersChanged:
 			peersInfo := e.Data.(*peer.PeersInfo)
 			a.OnPeersChanged(peersInfo.CurrentPeers, peersInfo.NextPeers)
 

@@ -242,7 +242,6 @@ func (h *Hub) handleInbound(state *state, conn *Conn) {
 func (h *Hub) Intercept(conn net.Conn) net.Conn {
 	c, err := WrapConn(conn)
 	if err != nil {
-		log.Errorf("intercept connection failed, %s", err)
 		_ = conn.Close()
 		return nil
 	}
@@ -287,7 +286,12 @@ func New(magic uint32, pid [33]byte, admgr *addrmgr.AddrManager) *Hub {
 	events.Subscribe(func(e *events.Event) {
 		switch e.Type {
 		case events.ETDirectPeersChanged:
-			h.queue <- peerList(e.Data.([]peer.PID))
+			peersInfo := e.Data.(*peer.PeersInfo)
+			peers := peersInfo.CurrentPeers
+			peers = append(peers, peersInfo.NextPeers...)
+			peers = append(peers, peersInfo.CRPeers...)
+
+			h.queue <- peerList(peers)
 		}
 	})
 

@@ -25,6 +25,7 @@ import (
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/cr/state"
 	"github.com/elastos/Elastos.ELA/crypto"
+	msg2 "github.com/elastos/Elastos.ELA/dpos/p2p/msg"
 	elaerr "github.com/elastos/Elastos.ELA/errors"
 	"github.com/elastos/Elastos.ELA/events"
 	"github.com/elastos/Elastos.ELA/p2p"
@@ -1194,6 +1195,11 @@ func (s *State) ProcessBlock(block *types.Block, confirm *payload.Confirm, isDpo
 	if block.Height >= s.ChainParams.DPoSV2StartHeight &&
 		len(s.VotesWithdrawableTxInfo) != 0 {
 		s.createRealUnstakeTransaction(block.Height)
+	}
+
+	// todo remove me
+	if block.Height > s.ChainParams.DPoSV2StartHeight {
+		msg2.SetPayloadVersion(msg2.DPoSV2Version)
 	}
 
 	// Commit changes here if no errors found.
@@ -2590,9 +2596,9 @@ func (s *State) RemoveSpecialTx(hash common.Uint256) {
 func (s *State) getIllegalPenaltyByHeight(height uint32) common.Fixed64 {
 	var illegalPenalty common.Fixed64
 	if height >= s.DPoSV2ActiveHeight {
-		illegalPenalty =  s.ChainParams.DPoSV2IllegalPenalty
+		illegalPenalty = s.ChainParams.DPoSV2IllegalPenalty
 	} else if height >= s.ChainParams.ChangeCommitteeNewCRHeight {
-		illegalPenalty =  s.ChainParams.IllegalPenalty
+		illegalPenalty = s.ChainParams.IllegalPenalty
 	}
 
 	return illegalPenalty

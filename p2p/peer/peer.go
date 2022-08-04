@@ -445,6 +445,15 @@ func (p *Peer) LocalAddr() net.Addr {
 	return localAddr
 }
 
+// This function is safe fo concurrent access.
+func (p *Peer) RemoteAddr() net.Addr {
+	var remoteAddr net.Addr
+	if atomic.LoadInt32(&p.connected) != 0 {
+		remoteAddr = p.conn.RemoteAddr()
+	}
+	return remoteAddr
+}
+
 // TimeConnected returns the time at which the peer connected.
 //
 // This function is safe for concurrent access.

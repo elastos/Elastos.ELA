@@ -92,10 +92,6 @@ type peersMsg struct {
 	peers []dp.PID
 }
 
-type crPeersMsg struct {
-	peers []dp.PID
-}
-
 type invMsg struct {
 	peer *peer.Peer
 	msg  *msg.Inv
@@ -181,8 +177,6 @@ out:
 			case peersMsg:
 				r.handlePeersMsg(state, m.peers)
 
-			case crPeersMsg:
-				r.handleCRPeersMsg(state, m.peers)
 			}
 
 		// Handle the announce request.
@@ -432,12 +426,18 @@ func (r *Routes) handlePeersMsg(state *state, peers []dp.PID) {
 	}
 
 	// Remove peers that not in new peers list.
-	var delPeers []dp.PID
+	var delPeers, delCRPeers []dp.PID
 	for pid := range state.peers {
 		if _, ok := newPeers[pid]; ok {
 			continue
 		}
 		delPeers = append(delPeers, pid)
+	}
+	for pid := range state.crPeers {
+		if _, ok := newPeers[pid]; ok {
+			continue
+		}
+		delCRPeers = append(delCRPeers, pid)
 	}
 
 	for _, pid := range delPeers {
@@ -457,13 +457,32 @@ func (r *Routes) handlePeersMsg(state *state, peers []dp.PID) {
 		r.addrMtx.Unlock()
 	}
 
+	for _, pid := range delCRPeers {
+		// Remove from index and known addr.
+		r.addrMtx.RLock()
+		pids, ok := r.addrIndex[pid]
+		r.addrMtx.RUnlock()
+		if !ok {
+			continue
+		}
+
+		r.addrMtx.Lock()
+		for _, pid := range pids {
+			delete(r.knownAddr, pid)
+		}
+		delete(r.addrIndex, pid)
+		r.addrMtx.Unlock()
+	}
+
 	// Update peers list.
 	_, isArbiter := newPeers[r.pid]
 	_, wasArbiter := state.peers[r.pid]
+	_, wasCRArbiter := state.crPeers[r.pid]
+
 	state.peers = newPeers
 
 	// Announce address into P2P network if we become arbiter.
-	if isArbiter && !wasArbiter {
+	if isArbiter && !wasArbiter && !wasCRArbiter {
 		r.announceAddr()
 	}
 }
@@ -758,18 +777,14 @@ func New(cfg *Config) *Routes {
 		r.queue <- peersMsg{peers: peers}
 	}
 
-	queueCRPeers := func(peers []dp.PID) {
-		r.queue <- crPeersMsg{peers: peers}
-	}
-
 	events.Subscribe(func(e *events.Event) {
 		switch e.Type {
 		case events.ETDirectPeersChanged:
 			peersInfo := e.Data.(*dp.PeersInfo)
 			peers := peersInfo.CurrentPeers
-			go queuePeers(append(peers, peersInfo.NextPeers...))
-
-			go queueCRPeers(peersInfo.CRPeers)
+			peers = append(peers, peersInfo.NextPeers...)
+			peers = append(peers, peersInfo.CRPeers...)
+			go queuePeers(peers)
 		}
 	})
 	return &r

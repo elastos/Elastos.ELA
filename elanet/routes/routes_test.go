@@ -202,9 +202,9 @@ func TestRoutes_Messages(t *testing.T) {
 		peers := []dp.PID{pid1, pid2}
 		for i := 0; i < 1; i++ {
 			if i%2 == 0 {
-				routes.queue <- peersMsg{peers: peers}
+				routes.queue <- peersMsg{dposPeers: peers}
 			} else {
-				routes.queue <- peersMsg{peers: peers[1:]}
+				routes.queue <- peersMsg{dposPeers: peers[1:]}
 			}
 		}
 	}()

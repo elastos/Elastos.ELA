@@ -769,7 +769,11 @@ func (a *Arbiters) accumulateReward(block *types.Block, confirm *payload.Confirm
 		oriDutyIndex := a.DutyIndex
 		oriForceChanged := a.forceChanged
 		oriDposV2RewardInfo := a.DposV2RewardInfo
-		rewards := a.getDPoSV2Rewards(dposReward, confirm.Proposal.Sponsor)
+
+		var rewards map[string]common.Fixed64
+		if confirm != nil {
+			rewards = a.getDPoSV2Rewards(dposReward, confirm.Proposal.Sponsor)
+		}
 
 		a.History.Append(block.Height, func() {
 			for k, v := range rewards {

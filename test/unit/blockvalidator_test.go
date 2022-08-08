@@ -72,7 +72,7 @@ func TestCheckBlockSanity(t *testing.T) {
 	defer chainStore.Close()
 
 	chain, _ := blockchain.New(chainStore, &params, state.NewState(&params,
-		nil, nil, nil, nil,
+		nil, nil, nil, nil, nil,
 		nil, nil, nil,
 		nil, nil, nil), nil)
 	//chain.Init(nil)

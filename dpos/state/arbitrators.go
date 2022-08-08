@@ -2909,8 +2909,8 @@ func NewArbitrators(chainParams *config.Params, committee *state.Committee,
 	if err := a.initArbitrators(chainParams); err != nil {
 		return nil, err
 	}
-	a.State = NewState(chainParams, a.GetArbitrators, a.CRCommittee.GetAllMembers,
-		a.CRCommittee.IsInElectionPeriod,
+	a.State = NewState(chainParams, a.GetArbitrators, a.CRCommittee.GetCurrentMembers,
+		a.CRCommittee.GetNextMembers, a.CRCommittee.IsInElectionPeriod,
 		getProducerDepositAmount, tryUpdateCRMemberInactivity, tryRevertCRMemberInactivityfunc,
 		tryUpdateCRMemberIllegal, tryRevertCRMemberIllegal,
 		updateCRInactivePenalty,

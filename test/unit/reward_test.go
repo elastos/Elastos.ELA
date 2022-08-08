@@ -107,7 +107,7 @@ func TestCommittee_ChangeCommitteeReward(t *testing.T) {
 	currentHeight = cfg.CRCommitteeStartHeight
 	committee.ProcessBlock(&types.Block{
 		Header: common2.Header{Height: currentHeight}}, nil)
-	assert.Equal(t, 2, len(committee.GetAllMembers()))
+	assert.Equal(t, 2, len(committee.GetCurrentMembers()))
 
 	var bestHeight uint32
 	arbitrators, _ := state2.NewArbitrators(&config.DefaultParams,

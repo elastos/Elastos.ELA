@@ -2314,7 +2314,7 @@ func (s *State) processNextTurnDPOSInfo(tx interfaces.Transaction, height uint32
 }
 
 func (s *State) getCRMembersOwnerPublicKey(CRCommitteeDID common.Uint168) []byte {
-	if s.getCurrentCRMembers != nil {
+	if s.getCurrentCRMembers != nil &&  s.getNextCRMembers != nil {
 		for _, cr := range s.getCurrentCRMembers() {
 			if cr.Info.DID.IsEqual(CRCommitteeDID) {
 				return cr.Info.Code[1 : len(cr.Info.Code)-1]

@@ -176,20 +176,22 @@ func (pow *Service) AssignCoinbaseTxRewards(block *types.Block, totalReward comm
 		rewardCyberRepublic := common.Fixed64(math.Ceil(float64(totalReward) * 0.3))
 		rewardDposArbiter := common.Fixed64(math.Ceil(float64(totalReward) * 0.35))
 		rewardMergeMiner := common.Fixed64(totalReward) - rewardCyberRepublic - rewardDposArbiter
-		dposReward := pow.chain.GetBlockDPOSReward(block)
 		block.Transactions[0].Outputs()[0].Value = rewardCyberRepublic
 		block.Transactions[0].Outputs()[1].Value = rewardMergeMiner
-		if dposReward > common.Fixed64(0) {
+		dposRewardAddr := pow.chainParams.DPoSV2RewardAccumulateAddress
+		if pow.arbiters.IsInPOWMode() {
+			dposRewardAddr = pow.chainParams.DestroyELAAddress
+			block.Transactions[0].Outputs()[0].ProgramHash = pow.chainParams.DestroyELAAddress
+		}
+
+		if rewardDposArbiter > common.Fixed64(0) {
 			output := append(block.Transactions[0].Outputs(), &common2.Output{
 				AssetID:     config.ELAAssetID,
-				Value:       dposReward,
-				ProgramHash: pow.chainParams.DPoSV2RewardAccumulateAddress,
+				Value:       rewardDposArbiter,
+				ProgramHash: dposRewardAddr,
 				Payload:     &outputpayload.DefaultOutput{},
 			})
 			block.Transactions[0].SetOutputs(output)
-		}
-		if pow.arbiters.IsInPOWMode() {
-			block.Transactions[0].Outputs()[0].ProgramHash = pow.chainParams.DestroyELAAddress
 		}
 		return nil
 	}

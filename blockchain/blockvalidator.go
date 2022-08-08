@@ -22,6 +22,7 @@ import (
 	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/crypto"
+	"github.com/elastos/Elastos.ELA/dpos/state"
 	"github.com/elastos/Elastos.ELA/elanet/pact"
 	elaerr "github.com/elastos/Elastos.ELA/errors"
 )
@@ -449,19 +450,31 @@ func (b *BlockChain) checkCoinbaseTransactionContext(blockHeight uint32, coinbas
 		rewardDposArbiter := Fixed64(math.Ceil(float64(totalReward) * 0.35))
 		rewardMergeMiner := Fixed64(totalReward) - rewardCyberRepublic - rewardDposArbiter
 		if coinbase.Outputs()[0].Value != rewardCyberRepublic {
-			return errors.New("rewardCyberRepublic not correct")
+			return errors.New("rewardCyberRepublic value not correct")
+		}
+		if !coinbase.Outputs()[0].ProgramHash.IsEqual(b.chainParams.CRAssetsAddress) {
+			return errors.New("rewardCyberRepublic address not correct")
 		}
 		if coinbase.Outputs()[1].Value != rewardMergeMiner {
-			return errors.New("rewardMergeMiner not correct")
+			return errors.New("rewardMergeMiner value not correct")
 		}
 		if len(coinbase.Outputs()) != 3 {
-			return errors.New("coinbase only can have 3 outputs at the most when it is dposv2")
+			return errors.New("coinbase only can have 3 outputs at the most when it is DPoS v2")
 		}
-
 		if coinbase.Outputs()[2].Value != dposReward {
-			return errors.New("last bock dposReward not correct")
-
+			return errors.New("last DPoS reward value not correct")
 		}
+
+		if b.state.GetConsensusAlgorithm() == state.POW {
+			if !coinbase.Outputs()[2].ProgramHash.IsEqual(b.chainParams.DestroyELAAddress) {
+				return errors.New("DPoS reward address not correct")
+			}
+		} else {
+			if !coinbase.Outputs()[2].ProgramHash.IsEqual(b.chainParams.DPoSV2RewardAccumulateAddress) {
+				return errors.New("DPoS reward address not correct")
+			}
+		}
+
 		return nil
 	}
 

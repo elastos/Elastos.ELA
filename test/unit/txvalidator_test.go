@@ -76,7 +76,7 @@ func (s *txValidatorTestSuite) SetupSuite() {
 		s.Error(err)
 	}
 	s.Chain, err = blockchain.New(chainStore, params,
-		state.NewState(params, nil, nil,
+		state.NewState(params, nil, nil, nil,
 			func() bool { return false },
 			nil, nil,
 			nil, nil, nil, nil, nil),
@@ -1775,7 +1775,7 @@ func (s *txValidatorTestSuite) TestCheckUpdateProducerTransaction() {
 
 	s.CurrentHeight = 1
 	s.Chain.SetCRCommittee(crstate.NewCommittee(s.Chain.GetParams()))
-	s.Chain.SetState(state.NewState(s.Chain.GetParams(), nil, nil,
+	s.Chain.SetState(state.NewState(s.Chain.GetParams(), nil, nil, nil,
 		func() bool { return false }, func(programHash common.Uint168) (common.Fixed64,
 			error) {
 			amount := common.Fixed64(0)

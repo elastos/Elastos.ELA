@@ -208,12 +208,24 @@ func (c *Committee) GetMembersDIDs() []common.Uint168 {
 	return result
 }
 
-// get all CRMembers ordered by CID
-func (c *Committee) GetAllMembers() []*CRMember {
+// get all current CRMembers ordered by CID
+func (c *Committee) GetCurrentMembers() []*CRMember {
 	c.mtx.RLock()
 	defer c.mtx.RUnlock()
 
 	result := getCRMembers(c.Members)
+	sort.Slice(result, func(i, j int) bool {
+		return result[i].Info.DID.Compare(result[j].Info.DID) <= 0
+	})
+	return result
+}
+
+// get all next CRMembers ordered by CID
+func (c *Committee) GetNextMembers() []*CRMember {
+	c.mtx.RLock()
+	defer c.mtx.RUnlock()
+
+	result := getCRMembers(c.NextMembers)
 	sort.Slice(result, func(i, j int) bool {
 		return result[i].Info.DID.Compare(result[j].Info.DID) <= 0
 	})

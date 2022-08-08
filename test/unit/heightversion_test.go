@@ -68,7 +68,7 @@ func TestHeightVersionInit(t *testing.T) {
 	arbiters.RegisterFunction(func() uint32 { return bestHeight },
 		func() *common.Uint256 { return &common.Uint256{} },
 		nil, nil)
-	arbiters.State = state.NewState(activeNetParams, nil, nil,
+	arbiters.State = state.NewState(activeNetParams, nil, nil,nil,
 		func() bool { return false },
 		nil, nil, nil,
 		nil, nil, nil, nil)

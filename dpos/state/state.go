@@ -504,7 +504,8 @@ type State struct {
 
 	// GetArbiters defines methods about get current arbiters
 	GetArbiters                   func() []*ArbiterInfo
-	getCRMembers                  func() []*state.CRMember
+	getCurrentCRMembers           func() []*state.CRMember
+	getNextCRMembers              func() []*state.CRMember
 	getCRMember                   func(key string) *state.CRMember
 	updateCRInactivePenalty       func(cid common.Uint168, height uint32)
 	revertUpdateCRInactivePenalty func(cid common.Uint168, height uint32)
@@ -1297,7 +1298,7 @@ func (s *State) tryRevertToPOWByStateOfCRMember(height uint32) {
 		s.ConsensusAlgorithm == POW {
 		return
 	}
-	for _, m := range s.getCRMembers() {
+	for _, m := range s.getCurrentCRMembers() {
 		if m.MemberState == state.MemberElected {
 			return
 		}
@@ -2313,8 +2314,13 @@ func (s *State) processNextTurnDPOSInfo(tx interfaces.Transaction, height uint32
 }
 
 func (s *State) getCRMembersOwnerPublicKey(CRCommitteeDID common.Uint168) []byte {
-	if s.getCRMembers != nil {
-		for _, cr := range s.getCRMembers() {
+	if s.getCurrentCRMembers != nil {
+		for _, cr := range s.getCurrentCRMembers() {
+			if cr.Info.DID.IsEqual(CRCommitteeDID) {
+				return cr.Info.Code[1 : len(cr.Info.Code)-1]
+			}
+		}
+		for _, cr := range s.getNextCRMembers() {
 			if cr.Info.DID.IsEqual(CRCommitteeDID) {
 				return cr.Info.Code[1 : len(cr.Info.Code)-1]
 			}
@@ -2347,6 +2353,7 @@ func (s *State) processCRCouncilMemberClaimNode(tx interfaces.Transaction, heigh
 
 	ownerPublicKey := s.getCRMembersOwnerPublicKey(claimNodePayload.CRCouncilCommitteeDID)
 	if ownerPublicKey == nil {
+		log.Error("processCRCouncilMemberClaimNode cr member is not exist")
 		return
 	}
 	strOwnerPubkey := common.BytesToHexString(ownerPublicKey)
@@ -2428,10 +2435,10 @@ func (s *State) updateVersion(tx interfaces.Transaction, height uint32) {
 
 func (s *State) getClaimedCRMembersMap() map[string]*state.CRMember {
 	crMembersMap := make(map[string]*state.CRMember)
-	if s.getCRMembers == nil {
+	if s.getCurrentCRMembers == nil {
 		return crMembersMap
 	}
-	crMembers := s.getCRMembers()
+	crMembers := s.getCurrentCRMembers()
 	for _, m := range crMembers {
 		if len(m.DPOSPublicKey) != 0 {
 			crMembersMap[hex.EncodeToString(m.Info.Code[1:len(m.Info.Code)-1])] = m
@@ -2532,10 +2539,10 @@ func (s *State) processRevertToDPOS(Payload *payload.RevertToDPOS, height uint32
 
 func (s *State) getClaimedCRMemberDPOSPublicKeyMap() map[string]*state.CRMember {
 	crMembersMap := make(map[string]*state.CRMember)
-	if s.getCRMembers == nil {
+	if s.getCurrentCRMembers == nil {
 		return crMembersMap
 	}
-	crMembers := s.getCRMembers()
+	crMembers := s.getCurrentCRMembers()
 	for _, m := range crMembers {
 		if len(m.DPOSPublicKey) != 0 {
 			crMembersMap[hex.EncodeToString(m.DPOSPublicKey)] = m
@@ -2907,7 +2914,7 @@ func (s *State) countArbitratorsInactivityV3(height uint32,
 			})
 		}
 
-		ms := s.getCRMembers()
+		ms := s.getCurrentCRMembers()
 		for _, m := range ms {
 			cm := m
 			// reset workedInRound value
@@ -3405,6 +3412,7 @@ func (s *State) handleEvents(event *events.Event) {
 // NewState returns a new State instance.
 func NewState(chainParams *config.Params, getArbiters func() []*ArbiterInfo,
 	getCRMembers func() []*state.CRMember,
+	getNextCRMembers func() []*state.CRMember,
 	isInElectionPeriod func() bool,
 	getProducerDepositAmount func(common.Uint168) (common.Fixed64, error),
 	tryUpdateCRMemberInactivity func(did common.Uint168, needReset bool, height uint32),
@@ -3417,7 +3425,8 @@ func NewState(chainParams *config.Params, getArbiters func() []*ArbiterInfo,
 	state := State{
 		ChainParams:                   chainParams,
 		GetArbiters:                   getArbiters,
-		getCRMembers:                  getCRMembers,
+		getCurrentCRMembers:           getCRMembers,
+		getNextCRMembers:              getNextCRMembers,
 		isInElectionPeriod:            isInElectionPeriod,
 		GetProducerDepositAmount:      getProducerDepositAmount,
 		History:                       utils.NewHistory(maxHistoryCapacity),

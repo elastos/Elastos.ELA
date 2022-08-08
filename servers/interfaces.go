@@ -2442,7 +2442,7 @@ func ListCurrentCRs(param Params) map[string]interface{} {
 	cm := Chain.GetCRCommittee()
 	var crMembers []*crstate.CRMember
 	if cm.IsInElectionPeriod() {
-		crMembers = cm.GetAllMembers()
+		crMembers = cm.GetCurrentMembers()
 		sort.Slice(crMembers, func(i, j int) bool {
 			return crMembers[i].Info.GetCodeHash().Compare(
 				crMembers[j].Info.GetCodeHash()) < 0

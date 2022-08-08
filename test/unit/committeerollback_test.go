@@ -548,7 +548,7 @@ func TestCommittee_RollbackEndVotingPeriod(t *testing.T) {
 	currentHeight = cfg.CRCommitteeStartHeight - 1
 	committee.ProcessBlock(&types.Block{
 		Header: common2.Header{Height: currentHeight}}, nil)
-	assert.Equal(t, 0, len(committee.GetAllMembers()))
+	assert.Equal(t, 0, len(committee.GetCurrentMembers()))
 	assert.Equal(t, 3, len(committee.GetAllCandidates()))
 
 	// process
@@ -556,7 +556,7 @@ func TestCommittee_RollbackEndVotingPeriod(t *testing.T) {
 	currentHeight++
 	committee.ProcessBlock(&types.Block{
 		Header: common2.Header{Height: currentHeight}}, nil)
-	assert.Equal(t, 2, len(committee.GetAllMembers()))
+	assert.Equal(t, 2, len(committee.GetCurrentMembers()))
 	assert.Equal(t, 0, len(committee.GetAllCandidates()))
 	keyFrameB := committee.Snapshot()
 
@@ -564,7 +564,7 @@ func TestCommittee_RollbackEndVotingPeriod(t *testing.T) {
 	currentHeight--
 	err := committee.RollbackTo(currentHeight)
 	assert.NoError(t, err)
-	assert.Equal(t, 0, len(committee.GetAllMembers()))
+	assert.Equal(t, 0, len(committee.GetCurrentMembers()))
 	assert.Equal(t, 3, len(committee.GetAllCandidates()))
 	keyFrameC := committee.Snapshot()
 
@@ -572,7 +572,7 @@ func TestCommittee_RollbackEndVotingPeriod(t *testing.T) {
 	currentHeight++
 	committee.ProcessBlock(&types.Block{
 		Header: common2.Header{Height: currentHeight}}, nil)
-	assert.Equal(t, 2, len(committee.GetAllMembers()))
+	assert.Equal(t, 2, len(committee.GetCurrentMembers()))
 	assert.Equal(t, 0, len(committee.GetAllCandidates()))
 	keyFrameD := committee.Snapshot()
 
@@ -734,7 +734,7 @@ func TestCommittee_RollbackContinueVotingPeriod(t *testing.T) {
 	currentHeight++
 	committee.ProcessBlock(&types.Block{
 		Header: common2.Header{Height: currentHeight}}, nil)
-	assert.Equal(t, 4, len(committee.GetAllMembers()))
+	assert.Equal(t, 4, len(committee.GetCurrentMembers()))
 	assert.Equal(t, 0, len(committee.GetAllCandidates()))
 	keyFrameB2 := committee.Snapshot()
 
@@ -748,7 +748,7 @@ func TestCommittee_RollbackContinueVotingPeriod(t *testing.T) {
 	currentHeight++
 	committee.ProcessBlock(&types.Block{
 		Header: common2.Header{Height: currentHeight}}, nil)
-	assert.Equal(t, 4, len(committee.GetAllMembers()))
+	assert.Equal(t, 4, len(committee.GetCurrentMembers()))
 	assert.Equal(t, 0, len(committee.GetAllCandidates()))
 	keyFrameD2 := committee.Snapshot()
 
@@ -831,7 +831,7 @@ func TestCommittee_RollbackChangeCommittee(t *testing.T) {
 	currentHeight = cfg.CRCommitteeStartHeight
 	committee.ProcessBlock(&types.Block{
 		Header: common2.Header{Height: currentHeight}}, nil)
-	assert.Equal(t, 2, len(committee.GetAllMembers()))
+	assert.Equal(t, 2, len(committee.GetCurrentMembers()))
 
 	// register cr again  did1 did2 10000  did3 5000
 	currentHeight = config.DefaultParams.CRCommitteeStartHeight +
@@ -880,7 +880,7 @@ func TestCommittee_RollbackChangeCommittee(t *testing.T) {
 	currentHeight = cfg.CRCommitteeStartHeight + cfg.CRDutyPeriod
 	committee.ProcessBlock(&types.Block{
 		Header: common2.Header{Height: currentHeight}}, nil)
-	assert.Equal(t, 2, len(committee.GetAllMembers()))
+	assert.Equal(t, 2, len(committee.GetCurrentMembers()))
 	keyFrameB := committee.Snapshot()
 
 	// rollback
@@ -894,7 +894,7 @@ func TestCommittee_RollbackChangeCommittee(t *testing.T) {
 	currentHeight++
 	committee.ProcessBlock(&types.Block{
 		Header: common2.Header{Height: currentHeight}}, nil)
-	assert.Equal(t, 2, len(committee.GetAllMembers()))
+	assert.Equal(t, 2, len(committee.GetCurrentMembers()))
 	keyFrameD := committee.Snapshot()
 
 	checkResult(t, keyFrameA, keyFrameB, keyFrameC, keyFrameD)
@@ -974,7 +974,7 @@ func TestCommittee_RollbackCRCProposal(t *testing.T) {
 	currentHeight = cfg.CRCommitteeStartHeight
 	committee.ProcessBlock(&types.Block{
 		Header: common2.Header{Height: currentHeight}}, nil)
-	assert.Equal(t, 2, len(committee.GetAllMembers()))
+	assert.Equal(t, 2, len(committee.GetCurrentMembers()))
 	keyFrameA := committee.Snapshot()
 
 	// create CRC proposal tx
@@ -1173,7 +1173,7 @@ func TestCommittee_RollbackCRCProposalTracking(t *testing.T) {
 	currentHeight = cfg.CRCommitteeStartHeight
 	committee.ProcessBlock(&types.Block{
 		Header: common2.Header{Height: currentHeight}}, nil)
-	assert.Equal(t, 2, len(committee.GetAllMembers()))
+	assert.Equal(t, 2, len(committee.GetCurrentMembers()))
 
 	// create CRC proposal tx
 	elaAddress := "EZaqDYAPFsjynGpvHwbuiiiL4dEiHtX4gD"
@@ -1371,7 +1371,7 @@ func TestCommittee_RollbackCRCProposalWithdraw(t *testing.T) {
 	currentHeight = cfg.CRCommitteeStartHeight
 	committee.ProcessBlock(&types.Block{
 		Header: common2.Header{Height: currentHeight}}, nil)
-	assert.Equal(t, 2, len(committee.GetAllMembers()))
+	assert.Equal(t, 2, len(committee.GetCurrentMembers()))
 
 	// create CRC proposal tx
 	elaAddress := "EZaqDYAPFsjynGpvHwbuiiiL4dEiHtX4gD"
@@ -1595,7 +1595,7 @@ func TestCommittee_RollbackTempStartVotingPeriod(t *testing.T) {
 	currentHeight = cfg.CRCommitteeStartHeight
 	committee.ProcessBlock(&types.Block{
 		Header: common2.Header{Height: currentHeight}}, nil)
-	assert.Equal(t, 2, len(committee.GetAllMembers()))
+	assert.Equal(t, 2, len(committee.GetCurrentMembers()))
 
 	currentHeight = config.DefaultParams.CRCommitteeStartHeight +
 		cfg.CRDutyPeriod - cfg.CRVotingPeriod - 1
@@ -1750,7 +1750,7 @@ func TestCommittee_RollbackCRCAppropriationTx(t *testing.T) {
 	currentHeight = cfg.CRCommitteeStartHeight - 1
 	committee.ProcessBlock(&types.Block{
 		Header: common2.Header{Height: currentHeight}}, nil)
-	assert.Equal(t, 0, len(committee.GetAllMembers()))
+	assert.Equal(t, 0, len(committee.GetCurrentMembers()))
 	assert.Equal(t, 3, len(committee.GetAllCandidates()))
 
 	// process here change committee
@@ -1787,7 +1787,7 @@ func TestCommittee_RollbackCRCAppropriationTx(t *testing.T) {
 			txAppropriate,
 		},
 	}, nil)
-	assert.Equal(t, 2, len(committee.GetAllMembers()))
+	assert.Equal(t, 2, len(committee.GetCurrentMembers()))
 	assert.Equal(t, 0, len(committee.GetAllCandidates()))
 	keyFrameD := committee.Snapshot()
 
@@ -1946,7 +1946,7 @@ func TestCommittee_RollbackCRCImpeachmentTx(t *testing.T) {
 	currentHeight = cfg.CRCommitteeStartHeight - 1
 	committee.ProcessBlock(&types.Block{
 		Header: common2.Header{Height: currentHeight}}, nil)
-	assert.Equal(t, 0, len(committee.GetAllMembers()))
+	assert.Equal(t, 0, len(committee.GetCurrentMembers()))
 	assert.Equal(t, 3, len(committee.GetAllCandidates()))
 	// process
 
@@ -1955,7 +1955,7 @@ func TestCommittee_RollbackCRCImpeachmentTx(t *testing.T) {
 	currentHeight++
 	committee.ProcessBlock(&types.Block{
 		Header: common2.Header{Height: currentHeight}}, nil)
-	assert.Equal(t, 2, len(committee.GetAllMembers()))
+	assert.Equal(t, 2, len(committee.GetCurrentMembers()))
 	assert.Equal(t, 0, len(committee.GetAllCandidates()))
 	committee.GetState().DepositInfo = make(map[common.Uint168]*state.DepositInfo)
 	committee.GetState().DepositInfo[*did1] = &state.DepositInfo{
@@ -2080,7 +2080,7 @@ func TestCommittee_RollbackCRCImpeachmentAndReelectionTx(t *testing.T) {
 	currentHeight = cfg.CRCommitteeStartHeight - 1
 	committee.ProcessBlock(&types.Block{
 		Header: common2.Header{Height: currentHeight}}, nil)
-	assert.Equal(t, 0, len(committee.GetAllMembers()))
+	assert.Equal(t, 0, len(committee.GetCurrentMembers()))
 	assert.Equal(t, 3, len(committee.GetAllCandidates()))
 	// process
 
@@ -2089,7 +2089,7 @@ func TestCommittee_RollbackCRCImpeachmentAndReelectionTx(t *testing.T) {
 	currentHeight++
 	committee.ProcessBlock(&types.Block{
 		Header: common2.Header{Height: currentHeight}}, nil)
-	assert.Equal(t, 2, len(committee.GetAllMembers()))
+	assert.Equal(t, 2, len(committee.GetCurrentMembers()))
 	assert.Equal(t, 0, len(committee.GetAllCandidates()))
 	committee.GetState().DepositInfo = make(map[common.Uint168]*state.DepositInfo)
 	committee.GetState().DepositInfo[*did1] = &state.DepositInfo{
@@ -2291,7 +2291,7 @@ func TestCommitee_RollbackCRCBlendTx(t *testing.T) {
 		},
 	}, nil)
 	assert.Equal(t, 3, len(committee.GetProposals(state.Registered)))
-	assert.Equal(t, 2, len(committee.GetAllMembers()))
+	assert.Equal(t, 2, len(committee.GetCurrentMembers()))
 
 	// review proposal
 	proposalReviewTxB1 := getCRCProposalReviewTx(proposalBHash, payload.Approve,
@@ -2527,7 +2527,7 @@ func TestCommitee_RollbackCRCBlendAppropriationTx(t *testing.T) {
 		},
 	}, nil)
 	assert.Equal(t, 3, len(committee.GetProposals(state.Registered)))
-	assert.Equal(t, 2, len(committee.GetAllMembers()))
+	assert.Equal(t, 2, len(committee.GetCurrentMembers()))
 
 	// review proposal
 	proposalReviewTxB1 := getCRCProposalReviewTx(proposalBHash, payload.Approve,
@@ -2644,7 +2644,7 @@ func TestCommitee_RollbackCRCBlendAppropriationTx(t *testing.T) {
 	committee.LastVotingStartHeight = currentHeight - cfg.CRVotingPeriod
 	committee.ProcessBlock(&types.Block{
 		Header: common2.Header{Height: currentHeight}}, nil)
-	assert.Equal(t, 2, len(committee.GetAllMembers()))
+	assert.Equal(t, 2, len(committee.GetCurrentMembers()))
 	keyFrameA := committee.Snapshot()
 
 	//process appropriation tx
@@ -2783,7 +2783,7 @@ func TestCommitee_RollbackCRCBlendTxPropoalVert(t *testing.T) {
 		},
 	}, nil)
 	assert.Equal(t, 2, len(committee.GetProposals(state.Registered)))
-	assert.Equal(t, 2, len(committee.GetAllMembers()))
+	assert.Equal(t, 2, len(committee.GetCurrentMembers()))
 
 	// review proposal
 	proposalReviewTxB1 := getCRCProposalReviewTx(proposalBHash, payload.Approve,
@@ -3076,7 +3076,7 @@ func TestCommittee_RollbackReview(t *testing.T) {
 	currentHeight = cfg.CRCommitteeStartHeight
 	committee.ProcessBlock(&types.Block{
 		Header: common2.Header{Height: currentHeight}}, nil)
-	assert.Equal(t, 2, len(committee.GetAllMembers()))
+	assert.Equal(t, 2, len(committee.GetCurrentMembers()))
 	keyFrameA := committee.Snapshot()
 
 	// create CRC proposal tx

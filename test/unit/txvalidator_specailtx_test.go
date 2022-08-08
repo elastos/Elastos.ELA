@@ -93,7 +93,7 @@ func (s *txValidatorSpecialTxTestSuite) SetupSuite() {
 		s.Error(err)
 	}
 	s.Chain, err = blockchain.New(chainStore, &config.DefaultParams,
-		state.NewState(&config.DefaultParams, nil, nil, nil,
+		state.NewState(&config.DefaultParams, nil, nil, nil, nil,
 			nil, nil,
 			nil, nil, nil, nil, nil), nil)
 	if err != nil {

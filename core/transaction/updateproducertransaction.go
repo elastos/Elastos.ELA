@@ -50,7 +50,7 @@ func (t *UpdateProducerTransaction) CheckTransactionPayload() error {
 }
 
 func (t *UpdateProducerTransaction) IsAllowedInPOWConsensus() bool {
-	return false
+	return true
 }
 
 func checkChangeStakeUntil(BlockHeight uint32, newinfo *payload.ProducerInfo, producer *state.Producer) *elaerr.SimpleErr {

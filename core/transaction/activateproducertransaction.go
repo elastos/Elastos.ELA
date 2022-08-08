@@ -141,7 +141,24 @@ func (t *ActivateProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bo
 		depositAmount = producer.TotalAmount()
 	}
 
-	if depositAmount-producer.Penalty() < crstate.MinDepositAmount {
+	var minActivateAmount common.Fixed64
+	if t.parameters.BlockHeight >= t.parameters.BlockChain.GetState().DPoSV2ActiveHeight {
+		switch producer.Identity() {
+		case state.DPoSV1:
+			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("not allow to activate producer 1.0")), true
+		case state.DPoSV1V2, state.DPoSV2:
+			minActivateAmount = crstate.MinDPoSV2DepositAmount
+		}
+	} else {
+		switch producer.Identity() {
+		case state.DPoSV1, state.DPoSV1V2:
+			minActivateAmount = crstate.MinDepositAmount
+		case state.DPoSV2:
+			minActivateAmount = crstate.MinDPoSV2DepositAmount
+		}
+	}
+
+	if depositAmount-producer.Penalty() < minActivateAmount {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("insufficient deposit amount")), true
 	}
 

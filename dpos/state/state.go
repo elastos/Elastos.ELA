@@ -2314,7 +2314,7 @@ func (s *State) processNextTurnDPOSInfo(tx interfaces.Transaction, height uint32
 }
 
 func (s *State) getCRMembersOwnerPublicKey(CRCommitteeDID common.Uint168) []byte {
-	if s.getCurrentCRMembers != nil &&  s.getNextCRMembers != nil {
+	if s.getCurrentCRMembers != nil && s.getNextCRMembers != nil {
 		for _, cr := range s.getCurrentCRMembers() {
 			if cr.Info.DID.IsEqual(CRCommitteeDID) {
 				return cr.Info.Code[1 : len(cr.Info.Code)-1]
@@ -2467,8 +2467,6 @@ func (s *State) processUnstake(tx interfaces.Transaction, height uint32) {
 }
 
 func (s *State) processDposV2ClaimReward(tx interfaces.Transaction, height uint32) {
-	oriDposV2RewardInfo := s.DposV2RewardInfo
-	oriDposV2RewardClaimingInfo := s.DposV2RewardClaimingInfo
 	payload := tx.Payload().(*payload.DPoSV2ClaimReward)
 	programHash, _ := utils.GetProgramHashByCode(tx.Programs()[0].Code)
 	addr, _ := programHash.ToAddress()
@@ -2480,8 +2478,8 @@ func (s *State) processDposV2ClaimReward(tx interfaces.Transaction, height uint3
 			Amount:    payload.Amount,
 		}
 	}, func() {
-		s.DposV2RewardInfo = oriDposV2RewardInfo
-		s.DposV2RewardClaimingInfo = oriDposV2RewardClaimingInfo
+		s.DposV2RewardInfo[addr] += payload.Amount
+		s.DposV2RewardClaimingInfo[addr] -= payload.Amount
 		delete(s.WithdrawableTxInfo, tx.Hash())
 	})
 }

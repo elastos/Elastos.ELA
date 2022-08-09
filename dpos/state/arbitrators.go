@@ -768,7 +768,6 @@ func (a *Arbiters) accumulateReward(block *types.Block, confirm *payload.Confirm
 		log.Debugf("accumulateReward dposReward %v", dposReward)
 		oriDutyIndex := a.DutyIndex
 		oriForceChanged := a.forceChanged
-		oriDposV2RewardInfo := a.DposV2RewardInfo
 
 		var rewards map[string]common.Fixed64
 		if confirm != nil {
@@ -782,7 +781,9 @@ func (a *Arbiters) accumulateReward(block *types.Block, confirm *payload.Confirm
 			a.forceChanged = false
 			a.DutyIndex = oriDutyIndex + 1
 		}, func() {
-			a.DposV2RewardInfo = oriDposV2RewardInfo
+			for k, v := range rewards {
+				a.DposV2RewardInfo[k] -= v
+			}
 			a.forceChanged = oriForceChanged
 			a.DutyIndex = oriDutyIndex
 		})

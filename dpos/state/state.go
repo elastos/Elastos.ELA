@@ -120,7 +120,7 @@ type Producer struct {
 	dposV2Votes           common.Fixed64
 
 	// the detail information of DPoSV2 votes
-	//Uint168 key is  sVoteAddr
+	//Uint168 key is voter's sVoteAddr
 	//Uint256 key is DetailedVoteInfo's hash
 	detailedDPoSV2Votes map[common.Uint168]map[common.Uint256]payload.DetailedVoteInfo
 
@@ -1928,7 +1928,6 @@ func (s *State) processVoting(tx interfaces.Transaction, height uint32) {
 //}
 
 func (s *State) processVotingContent(tx interfaces.Transaction, height uint32) {
-
 	// get stake address(program hash)
 	code := tx.Programs()[0].Code
 	signType, _ := crypto.GetScriptType(code)
@@ -2025,7 +2024,6 @@ func (s *State) processVotingContent(tx interfaces.Transaction, height uint32) {
 					voteRights := producer.GetTotalDPoSV2VoteRights()
 					if voteRights >= float64(s.ChainParams.DPoSV2EffectiveVotes) {
 						s.DposV2EffectedProducers[hex.EncodeToString(producer.OwnerPublicKey())] = producer
-
 					}
 				}, func() {
 					delete(producer.detailedDPoSV2Votes[*stakeAddress], dvi.ReferKey())
@@ -2046,6 +2044,13 @@ func (s *State) processRenewalVotingContent(tx interfaces.Transaction, height ui
 	code := tx.Programs()[0].Code
 	ct, _ := contract.CreateStakeContractByCode(code)
 	stakeAddress := ct.ToProgramHash()
+	signType, _ := crypto.GetScriptType(code)
+	var prefixType byte
+	if signType == vm.CHECKSIG {
+		prefixType = byte(contract.PrefixStandard)
+	} else if signType == vm.CHECKMULTISIG {
+		prefixType = byte(contract.PrefixMultiSig)
+	}
 
 	pld := tx.Payload().(*payload.Voting)
 	for _, cont := range pld.RenewalContents {
@@ -2066,6 +2071,7 @@ func (s *State) processRenewalVotingContent(tx interfaces.Transaction, height ui
 			PayloadVersion:   voteInfo.PayloadVersion,
 			VoteType:         outputpayload.DposV2,
 			Info:             []payload.VotesWithLockTime{content.VotesInfo},
+			PrefixType:       prefixType,
 		}
 
 		referKey := detailVoteInfo.ReferKey()

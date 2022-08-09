@@ -452,9 +452,6 @@ func (b *BlockChain) checkCoinbaseTransactionContext(blockHeight uint32, coinbas
 		if coinbase.Outputs()[0].Value != rewardCyberRepublic {
 			return errors.New("rewardCyberRepublic value not correct")
 		}
-		if !coinbase.Outputs()[0].ProgramHash.IsEqual(b.chainParams.CRAssetsAddress) {
-			return errors.New("rewardCyberRepublic address not correct")
-		}
 		if coinbase.Outputs()[1].Value != rewardMergeMiner {
 			return errors.New("rewardMergeMiner value not correct")
 		}
@@ -469,7 +466,13 @@ func (b *BlockChain) checkCoinbaseTransactionContext(blockHeight uint32, coinbas
 			if !coinbase.Outputs()[2].ProgramHash.IsEqual(b.chainParams.DestroyELAAddress) {
 				return errors.New("DPoS reward address not correct")
 			}
+			if !coinbase.Outputs()[0].ProgramHash.IsEqual(b.chainParams.DestroyELAAddress) {
+				return errors.New("rewardCyberRepublic address not correct")
+			}
 		} else {
+			if !coinbase.Outputs()[0].ProgramHash.IsEqual(b.chainParams.CRAssetsAddress) {
+				return errors.New("rewardCyberRepublic address not correct")
+			}
 			if !coinbase.Outputs()[2].ProgramHash.IsEqual(b.chainParams.DPoSV2RewardAccumulateAddress) {
 				return errors.New("DPoS reward address not correct")
 			}

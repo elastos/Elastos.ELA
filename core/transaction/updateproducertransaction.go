@@ -144,6 +144,11 @@ func (t *UpdateProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bool
 			if t.parameters.BlockHeight > producer.Info().StakeUntil {
 				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("producer already expired and dposv2 already started, can not update anything ")), true
 			}
+			if info.StakeUntil != producer.Info().StakeUntil { //change StakeUntil
+				if err := checkChangeStakeUntil(t.parameters.BlockHeight, info, producer); err != nil {
+					return err, true
+				}
+			}
 		} else { //still in dpos1.0
 			if info.StakeUntil != producer.Info().StakeUntil { //change StakeUntil
 				if err := checkChangeStakeUntil(t.parameters.BlockHeight, info, producer); err != nil {

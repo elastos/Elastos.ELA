@@ -3473,9 +3473,9 @@ func getPayloadInfo(p interfaces.Payload, payloadVersion byte) PayloadInfo {
 			ToAddr: address,
 			// code
 			Code: common.BytesToHexString(object.Code),
-			//unstake value
+			// unstake value
 			Value: object.Value.String(),
-			//signature
+			// signature
 			Signature: common.BytesToHexString(object.Signature),
 		}
 		return obj
@@ -3494,8 +3494,14 @@ func getPayloadInfo(p interfaces.Payload, payloadVersion byte) PayloadInfo {
 		}
 		return obj
 	case *payload.DPoSV2ClaimReward:
+		address, _ := object.ToAddr.ToAddress()
 		obj := &DposV2ClaimRewardInfo{
-			Amount:    object.Amount.String(),
+			ToAddr: address,
+			// code
+			Code: common.BytesToHexString(object.Code),
+			// reward value
+			Value: object.Value.String(),
+			// signature
 			Signature: common.BytesToHexString(object.Signature),
 		}
 		return obj

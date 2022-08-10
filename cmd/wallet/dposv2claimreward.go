@@ -42,6 +42,15 @@ func CreateDposV2ClaimRewardTransaction(c *cli.Context) error {
 	}
 	walletPath := c.String("wallet")
 
+	toAddr := c.String("to")
+	if toAddr == "" {
+		return errors.New("use --to to specify recipient address")
+	}
+	to, err := common.Uint168FromAddress(toAddr)
+	if err != nil {
+		return err
+	}
+
 	feeStr := c.String("fee")
 	if feeStr == "" {
 		return errors.New("use --fee to specify transfer fee")
@@ -103,7 +112,9 @@ func CreateDposV2ClaimRewardTransaction(c *cli.Context) error {
 
 	buf := new(bytes.Buffer)
 	apPayload := &payload.DPoSV2ClaimReward{
-		Amount: common.Fixed64(amount),
+		ToAddr:   *to,
+		Code:      redeemScript,
+		Value:     common.Fixed64(amount),
 	}
 
 	if err = apPayload.SerializeUnsigned(buf, payload.ActivateProducerVersion); err != nil {

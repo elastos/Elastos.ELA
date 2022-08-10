@@ -2473,19 +2473,19 @@ func (s *State) processUnstake(tx interfaces.Transaction, height uint32) {
 }
 
 func (s *State) processDposV2ClaimReward(tx interfaces.Transaction, height uint32) {
-	payload := tx.Payload().(*payload.DPoSV2ClaimReward)
-	programHash, _ := utils.GetProgramHashByCode(tx.Programs()[0].Code)
+	pld := tx.Payload().(*payload.DPoSV2ClaimReward)
+	programHash, _ := utils.GetProgramHashByCode(pld.Code)
 	addr, _ := programHash.ToAddress()
 	s.History.Append(height, func() {
-		s.DposV2RewardInfo[addr] -= payload.Amount
-		s.DposV2RewardClaimingInfo[addr] += payload.Amount
+		s.DposV2RewardInfo[addr] -= pld.Value
+		s.DposV2RewardClaimingInfo[addr] += pld.Value
 		s.WithdrawableTxInfo[tx.Hash()] = common2.OutputInfo{
-			Recipient: *programHash,
-			Amount:    payload.Amount,
+			Recipient: pld.ToAddr,
+			Amount:    pld.Value,
 		}
 	}, func() {
-		s.DposV2RewardInfo[addr] += payload.Amount
-		s.DposV2RewardClaimingInfo[addr] -= payload.Amount
+		s.DposV2RewardInfo[addr] += pld.Value
+		s.DposV2RewardClaimingInfo[addr] -= pld.Value
 		delete(s.WithdrawableTxInfo, tx.Hash())
 	})
 }

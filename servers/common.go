@@ -554,13 +554,13 @@ type StakeInfo struct {
 }
 
 type UnstakeInfo struct {
-	//target or to address
+	// target or to address
 	ToAddr string `json:"toaddr"`
 	// code
 	Code string `json:"code"`
-	//unstake value
+	// unstake value
 	Value string `json:"value"`
-	//signature
+	// signature
 	Signature string `json:"signature"`
 }
 
@@ -574,7 +574,13 @@ type RealUnstakesInfo struct {
 }
 
 type DposV2ClaimRewardInfo struct {
-	Amount    string `json:"amount"`
+	// target or to address
+	ToAddr string `json:"toaddr"`
+	// code
+	Code string `json:"code"`
+	// reward value
+	Value string `json:"value"`
+	// signature
 	Signature string `json:"signature"`
 }
 

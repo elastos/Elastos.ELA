@@ -5940,20 +5940,24 @@ func (s *txValidatorTestSuite) TestCreateCRCAppropriationTransaction() {
 }
 
 func (s *txValidatorTestSuite) TestCreateCRClaimDposV2Transaction() {
-	buf := new(bytes.Buffer)
-	apPayload := &payload.DPoSV2ClaimReward{
-		Amount: common.Fixed64(100000000),
-	}
 	publicKeyStr1 := "02ca89a5fe6213da1b51046733529a84f0265abac59005f6c16f62330d20f02aeb"
 	publicKey1, _ := common.HexStringToBytes(publicKeyStr1)
+	pk, _ := crypto.DecodePoint(publicKey1)
+
 	privateKeyStr1 := "7a50d2b036d64fcb3d344cee429f61c4a3285a934c45582b26e8c9227bc1f33a"
 	privateKey1, _ := common.HexStringToBytes(privateKeyStr1)
+
+	redeemScript, _ := contract.CreateStandardRedeemScript(pk)
+
+	buf := new(bytes.Buffer)
+	apPayload := &payload.DPoSV2ClaimReward{
+		Value: common.Fixed64(100000000),
+		Code: redeemScript,
+	}
 
 	apPayload.SerializeUnsigned(buf, payload.ActivateProducerVersion)
 	signature, _ := crypto.Sign(privateKey1, buf.Bytes())
 	apPayload.Signature = signature
-	pk, _ := crypto.DecodePoint(publicKey1)
-	redeemScript, _ := contract.CreateStandardRedeemScript(pk)
 
 	// create program
 	var txProgram = &program.Program{

@@ -19,13 +19,13 @@ const (
 )
 
 type Unstake struct {
-	//target or to address
+	// target or to address
 	ToAddr common.Uint168
 	// code
 	Code []byte
-	//unstake value
+	// unstake value
 	Value common.Fixed64
-	//signature
+	// signature
 	Signature []byte
 }
 

@@ -19,7 +19,13 @@ const (
 )
 
 type DPoSV2ClaimReward struct {
-	Amount    common.Fixed64
+	// target or to address
+	ToAddr common.Uint168
+	// code
+	Code []byte
+	// reward value
+	Value common.Fixed64
+	// signature
 	Signature []byte
 }
 
@@ -36,6 +42,7 @@ func (a *DPoSV2ClaimReward) Serialize(w io.Writer, version byte) error {
 	if err != nil {
 		return err
 	}
+
 	err = common.WriteVarBytes(w, a.Signature)
 	if err != nil {
 		return errors.New("[DPoSV2ClaimReward], signature serialize failed")
@@ -44,11 +51,18 @@ func (a *DPoSV2ClaimReward) Serialize(w io.Writer, version byte) error {
 }
 
 func (a *DPoSV2ClaimReward) SerializeUnsigned(w io.Writer, version byte) error {
-	err := a.Amount.Serialize(w)
-	if err != nil {
-		return errors.New("[DPoSV2ClaimReward], write amount failed")
+	if err := a.ToAddr.Serialize(w); err != nil {
+		return errors.New("[DPoSV2ClaimReward], ToAddr serialize failed")
 	}
 
+	err := common.WriteVarBytes(w, a.Code)
+	if err != nil {
+		return errors.New("[DPoSV2ClaimReward], Code serialize failed")
+	}
+
+	if err := a.Value.Serialize(w); err != nil {
+		return errors.New("[DPoSV2ClaimReward], Value serialize failed")
+	}
 	return nil
 }
 
@@ -57,6 +71,7 @@ func (a *DPoSV2ClaimReward) Deserialize(r io.Reader, version byte) error {
 	if err != nil {
 		return err
 	}
+
 	a.Signature, err = common.ReadVarBytes(r, crypto.MaxSignatureScriptLength, "signature")
 	if err != nil {
 		return errors.New("[DPoSV2ClaimReward], signature deserialize failed")
@@ -65,10 +80,18 @@ func (a *DPoSV2ClaimReward) Deserialize(r io.Reader, version byte) error {
 }
 
 func (a *DPoSV2ClaimReward) DeserializeUnsigned(r io.Reader, version byte) error {
-	err := a.Amount.Deserialize(r)
-	if err != nil {
-		return errors.New("[DPoSV2ClaimReward], read amount failed")
+	var err error
+	if err := a.ToAddr.Deserialize(r); err != nil {
+		return errors.New("[DPoSV2ClaimReward], ToAddr Deserialize failed")
 	}
 
-	return err
+	a.Code, err = common.ReadVarBytes(r, crypto.MaxMultiSignCodeLength, "code")
+	if err != nil {
+		return errors.New("[DPoSV2ClaimReward], Code deserialize failed")
+	}
+
+	if err := a.Value.Deserialize(r); err != nil {
+		return errors.New("[DPoSV2ClaimReward], Value Deserialize failed")
+	}
+	return nil
 }

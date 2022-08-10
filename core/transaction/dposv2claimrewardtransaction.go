@@ -63,7 +63,7 @@ func (t *DPoSV2ClaimRewardTransaction) SpecialContextCheck() (elaerr.ELAError, b
 	if !ok {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid payload for dposV2claimReward")), true
 	}
-	code := t.Programs()[0].Code
+	code := claimReward.Code
 	addr, err := utils.GetAddressByCode(code)
 	if err != nil {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("Programs code to address error")), true
@@ -73,11 +73,11 @@ func (t *DPoSV2ClaimRewardTransaction) SpecialContextCheck() (elaerr.ELAError, b
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("no reward to claim for such address")), true
 	}
 
-	if claimAmount < claimReward.Amount {
+	if claimAmount < claimReward.Value {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("claim reward exceeded , max claim reward "+claimAmount.String())), true
 	}
 
-	if claimReward.Amount <= t.parameters.Config.RealWithdrawSingleFee {
+	if claimReward.Value <= t.parameters.Config.RealWithdrawSingleFee {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("claim reward should be bigger than RealWithdrawSingleFee")), true
 	}
 	signedBuf := new(bytes.Buffer)

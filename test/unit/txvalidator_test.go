@@ -1800,7 +1800,7 @@ func (s *txValidatorTestSuite) TestCheckUpdateProducerTransaction() {
 		},
 		Header: common2.Header{Height: s.CurrentHeight},
 	}
-	s.Chain.GetState().ProcessBlock(block, nil, false, 0)
+	s.Chain.GetState().ProcessBlock(block, nil, 0)
 
 	txn.SetTxType(common2.UpdateProducer)
 	updatePayload := &payload.ProducerInfo{
@@ -1814,7 +1814,7 @@ func (s *txValidatorTestSuite) TestCheckUpdateProducerTransaction() {
 	txn.SetPayload(updatePayload)
 	s.CurrentHeight++
 	block.Header = common2.Header{Height: s.CurrentHeight}
-	s.Chain.GetState().ProcessBlock(block, nil, false, 0)
+	s.Chain.GetState().ProcessBlock(block, nil, 0)
 	txn = CreateTransactionByType(txn, s.Chain)
 	err, _ := txn.SpecialContextCheck()
 	s.EqualError(err, "transaction validate error: payload content invalid:field NickName has invalid string length")
@@ -4893,7 +4893,7 @@ func (s *txValidatorTestSuite) TestCheckReturnDepositCoinTransaction() {
 			Height: s.CurrentHeight,
 		},
 		Transactions: []interfaces.Transaction{txn},
-	}, nil, false, 0)
+	}, nil, 0)
 	s.CurrentHeight++
 	producer := s.Chain.GetState().GetProducer(publicKey)
 	s.True(producer.State() == state.Pending, "register producer failed")
@@ -4904,7 +4904,7 @@ func (s *txValidatorTestSuite) TestCheckReturnDepositCoinTransaction() {
 				Height: s.CurrentHeight,
 			},
 			Transactions: []interfaces.Transaction{},
-		}, nil, false, 0)
+		}, nil, 0)
 		s.CurrentHeight++
 	}
 	s.True(producer.State() == state.Active, "active producer failed")
@@ -4962,7 +4962,7 @@ func (s *txValidatorTestSuite) TestCheckReturnDepositCoinTransaction() {
 			Height: s.CurrentHeight,
 		},
 		Transactions: []interfaces.Transaction{ctx},
-	}, nil, false, 0)
+	}, nil, 0)
 	s.True(producer.State() == state.Canceled, "cancel producer failed")
 
 	// check a return deposit coin transaction with wrong code.
@@ -4986,7 +4986,7 @@ func (s *txValidatorTestSuite) TestCheckReturnDepositCoinTransaction() {
 			Height: s.CurrentHeight,
 		},
 		Transactions: []interfaces.Transaction{},
-	}, nil, false, 0)
+	}, nil, 0)
 
 	// check a return deposit coin transaction with wrong output amount.
 	rdTx.Outputs()[0].Value = 5000 * 100000000

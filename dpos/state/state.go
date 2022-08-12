@@ -1164,7 +1164,7 @@ func (s *State) IsDPOSTransaction(tx interfaces.Transaction) bool {
 
 // ProcessBlock takes a block and it's confirm to update producers state and
 // votes accordingly.
-func (s *State) ProcessBlock(block *types.Block, confirm *payload.Confirm, isDposV2Run bool, dutyIndex int) {
+func (s *State) ProcessBlock(block *types.Block, confirm *payload.Confirm, dutyIndex int) {
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
 
@@ -1177,7 +1177,7 @@ func (s *State) ProcessBlock(block *types.Block, confirm *payload.Confirm, isDpo
 	s.tryUpdateLastIrreversibleHeight(block.Height)
 
 	if confirm != nil {
-		if isDposV2Run {
+		if block.Height > s.DPoSV2ActiveHeight {
 			s.countArbitratorsInactivityV3(block.Height, confirm, dutyIndex)
 		} else if block.Height >= s.ChainParams.ChangeCommitteeNewCRHeight {
 			s.countArbitratorsInactivityV2(block.Height, confirm)
@@ -2855,11 +2855,6 @@ func (s *State) countArbitratorsInactivityV3(height uint32,
 	}
 	currSponsor := s.getProducerKey(confirm.Proposal.Sponsor)
 	changingArbiters[currSponsor] = true
-	for _, vote := range confirm.Votes {
-		if _, ok := changingArbiters[s.getProducerKey(vote.Signer)]; ok {
-			changingArbiters[s.getProducerKey(vote.Signer)] = true
-		}
-	}
 	crMembersMap := s.getClaimedCRMembersMap()
 	// CRC producers are not in the ActivityProducers,
 	// so they will not be inactive

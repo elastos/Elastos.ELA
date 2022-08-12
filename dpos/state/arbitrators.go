@@ -182,7 +182,7 @@ func (a *Arbiters) recoverFromCheckPoints(point *CheckPoint) {
 }
 
 func (a *Arbiters) ProcessBlock(block *types.Block, confirm *payload.Confirm) {
-	a.State.ProcessBlock(block, confirm, a.IsDPoSV2Run(block.Height), a.DutyIndex)
+	a.State.ProcessBlock(block, confirm, a.DutyIndex)
 	a.IncreaseChainHeight(block, confirm)
 }
 

@@ -82,7 +82,15 @@ func (t *UnstakeTransaction) SpecialContextCheck() (result elaerr.ELAError, end 
 	}
 
 	// check if unused vote rights enough
-	code := pl.Code
+	var code []byte
+	if t.payloadVersion == payload.UnstakeVersionV0 {
+		code = pl.Code
+	} else if t.payloadVersion == payload.UnstakeVersionV1 {
+		code = t.Programs()[0].Code
+	} else {
+		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid payload version")), true
+	}
+
 	//1. get stake address
 	ct, err := contract.CreateStakeContractByCode(code)
 	if err != nil {
@@ -117,11 +125,15 @@ func (t *UnstakeTransaction) SpecialContextCheck() (result elaerr.ELAError, end 
 				errors.New("vote rights not enough")), true
 		}
 	}
-	//check pl.Code signature
-	err = t.checkUnstakeSignature(pl)
-	if err != nil {
-		return elaerr.Simple(elaerr.ErrTxPayload, err), true
+
+	if t.payloadVersion == payload.UnstakeVersionV0 {
+		//check pl.Code signature
+		err = t.checkUnstakeSignature(pl)
+		if err != nil {
+			return elaerr.Simple(elaerr.ErrTxPayload, err), true
+		}
 	}
+
 	return nil, false
 }
 
@@ -129,7 +141,7 @@ func (t *UnstakeTransaction) SpecialContextCheck() (result elaerr.ELAError, end 
 func (t *UnstakeTransaction) checkUnstakeSignature(unstakePayload *payload.Unstake) error {
 
 	signedBuf := new(bytes.Buffer)
-	err := unstakePayload.SerializeUnsigned(signedBuf, payload.UnstakeVersion)
+	err := unstakePayload.SerializeUnsigned(signedBuf, payload.UnstakeVersionV0)
 	if err != nil {
 		return err
 	}

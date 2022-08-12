@@ -2454,28 +2454,42 @@ func (s *State) getClaimedCRMembersMap() map[string]*state.CRMember {
 }
 
 func (s *State) processUnstake(tx interfaces.Transaction, height uint32) {
-	payload := tx.Payload().(*payload.Unstake)
-	// check if unused vote rights enough
-	code := payload.Code
+	pld := tx.Payload().(*payload.Unstake)
+	var code []byte
+	if tx.PayloadVersion() == payload.DposV2ClaimRewardVersionV0 {
+		code = pld.Code
+	} else {
+		code = tx.Programs()[0].Code
+	}
+
 	//1. get stake address
 	ct, _ := contract.CreateStakeContractByCode(code)
-	receipt := ct.ToProgramHash()
+	addr := ct.ToProgramHash()
+
 	s.History.Append(height, func() {
-		s.DposV2VoteRights[*receipt] -= payload.Value
+		s.DposV2VoteRights[*addr] -= pld.Value
 		s.VotesWithdrawableTxInfo[tx.Hash()] = common2.OutputInfo{
-			Recipient: payload.ToAddr,
-			Amount:    payload.Value,
+			Recipient: pld.ToAddr,
+			Amount:    pld.Value,
 		}
 	}, func() {
-		s.DposV2VoteRights[*receipt] += payload.Value
+		s.DposV2VoteRights[*addr] += pld.Value
 		delete(s.VotesWithdrawableTxInfo, tx.Hash())
 	})
 }
 
 func (s *State) processDposV2ClaimReward(tx interfaces.Transaction, height uint32) {
 	pld := tx.Payload().(*payload.DPoSV2ClaimReward)
-	programHash, _ := utils.GetProgramHashByCode(pld.Code)
+	var code []byte
+	if tx.PayloadVersion() == payload.DposV2ClaimRewardVersionV0 {
+		code = pld.Code
+	} else {
+		code = tx.Programs()[0].Code
+	}
+
+	programHash, _ := utils.GetProgramHashByCode(code)
 	addr, _ := programHash.ToAddress()
+
 	s.History.Append(height, func() {
 		s.DposV2RewardInfo[addr] -= pld.Value
 		s.DposV2RewardClaimingInfo[addr] += pld.Value

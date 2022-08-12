@@ -15,7 +15,8 @@ import (
 )
 
 const (
-	UnstakeVersion byte = 0x00
+	UnstakeVersionV0 byte = 0x00
+	UnstakeVersionV1 byte = 0x01
 )
 
 type Unstake struct {
@@ -43,10 +44,14 @@ func (p *Unstake) Serialize(w io.Writer, version byte) error {
 	if err != nil {
 		return err
 	}
-	err = common.WriteVarBytes(w, p.Signature)
-	if err != nil {
-		return errors.New("[Unstake], signature serialize failed")
+
+	if version == UnstakeVersionV0 {
+		err = common.WriteVarBytes(w, p.Signature)
+		if err != nil {
+			return errors.New("[Unstake], signature serialize failed")
+		}
 	}
+
 	return nil
 }
 
@@ -55,9 +60,11 @@ func (p *Unstake) SerializeUnsigned(w io.Writer, version byte) error {
 		return errors.New("[Unstake], ToAddr serialize failed")
 	}
 
-	err := common.WriteVarBytes(w, p.Code)
-	if err != nil {
-		return errors.New("[Unstake], Code serialize failed")
+	if version == UnstakeVersionV0 {
+		err := common.WriteVarBytes(w, p.Code)
+		if err != nil {
+			return errors.New("[Unstake], Code serialize failed")
+		}
 	}
 
 	if err := p.Value.Serialize(w); err != nil {
@@ -72,9 +79,11 @@ func (p *Unstake) DeserializeUnsigned(r io.Reader, version byte) error {
 		return errors.New("[Unstake], ToAddr Deserialize failed")
 	}
 
-	p.Code, err = common.ReadVarBytes(r, crypto.MaxMultiSignCodeLength, "code")
-	if err != nil {
-		return errors.New("[Unstake], Code deserialize failed")
+	if version == UnstakeVersionV0 {
+		p.Code, err = common.ReadVarBytes(r, crypto.MaxMultiSignCodeLength, "code")
+		if err != nil {
+			return errors.New("[Unstake], Code deserialize failed")
+		}
 	}
 
 	if err := p.Value.Deserialize(r); err != nil {
@@ -88,9 +97,13 @@ func (p *Unstake) Deserialize(r io.Reader, version byte) error {
 	if err != nil {
 		return err
 	}
-	p.Signature, err = common.ReadVarBytes(r, crypto.MaxSignatureScriptLength, "signature")
-	if err != nil {
-		return errors.New("[Unstake], signature deserialize failed")
+
+	if version == UnstakeVersionV0 {
+		p.Signature, err = common.ReadVarBytes(r, crypto.MaxSignatureScriptLength, "signature")
+		if err != nil {
+			return errors.New("[Unstake], signature deserialize failed")
+		}
 	}
+
 	return nil
 }

@@ -15,7 +15,8 @@ import (
 )
 
 const (
-	DposV2ClaimRewardVersion byte = 0x00
+	DposV2ClaimRewardVersionV0 byte = 0x00
+	DposV2ClaimRewardVersionV1 byte = 0x01
 )
 
 type DPoSV2ClaimReward struct {
@@ -43,9 +44,11 @@ func (a *DPoSV2ClaimReward) Serialize(w io.Writer, version byte) error {
 		return err
 	}
 
-	err = common.WriteVarBytes(w, a.Signature)
-	if err != nil {
-		return errors.New("[DPoSV2ClaimReward], signature serialize failed")
+	if version == DposV2ClaimRewardVersionV0 {
+		err = common.WriteVarBytes(w, a.Signature)
+		if err != nil {
+			return errors.New("[DPoSV2ClaimReward], signature serialize failed")
+		}
 	}
 	return nil
 }
@@ -55,9 +58,11 @@ func (a *DPoSV2ClaimReward) SerializeUnsigned(w io.Writer, version byte) error {
 		return errors.New("[DPoSV2ClaimReward], ToAddr serialize failed")
 	}
 
-	err := common.WriteVarBytes(w, a.Code)
-	if err != nil {
-		return errors.New("[DPoSV2ClaimReward], Code serialize failed")
+	if version == DposV2ClaimRewardVersionV0 {
+		err := common.WriteVarBytes(w, a.Code)
+		if err != nil {
+			return errors.New("[DPoSV2ClaimReward], Code serialize failed")
+		}
 	}
 
 	if err := a.Value.Serialize(w); err != nil {
@@ -72,10 +77,13 @@ func (a *DPoSV2ClaimReward) Deserialize(r io.Reader, version byte) error {
 		return err
 	}
 
-	a.Signature, err = common.ReadVarBytes(r, crypto.MaxSignatureScriptLength, "signature")
-	if err != nil {
-		return errors.New("[DPoSV2ClaimReward], signature deserialize failed")
+	if version == DposV2ClaimRewardVersionV0 {
+		a.Signature, err = common.ReadVarBytes(r, crypto.MaxSignatureScriptLength, "signature")
+		if err != nil {
+			return errors.New("[DPoSV2ClaimReward], signature deserialize failed")
+		}
 	}
+
 	return nil
 }
 
@@ -85,9 +93,11 @@ func (a *DPoSV2ClaimReward) DeserializeUnsigned(r io.Reader, version byte) error
 		return errors.New("[DPoSV2ClaimReward], ToAddr Deserialize failed")
 	}
 
-	a.Code, err = common.ReadVarBytes(r, crypto.MaxMultiSignCodeLength, "code")
-	if err != nil {
-		return errors.New("[DPoSV2ClaimReward], Code deserialize failed")
+	if version == DposV2ClaimRewardVersionV0 {
+		a.Code, err = common.ReadVarBytes(r, crypto.MaxMultiSignCodeLength, "code")
+		if err != nil {
+			return errors.New("[DPoSV2ClaimReward], Code deserialize failed")
+		}
 	}
 
 	if err := a.Value.Deserialize(r); err != nil {

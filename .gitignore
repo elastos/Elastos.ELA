@@ -17,7 +17,6 @@
 elastos*/
 /bin
 /tmp
-/go.sum
 keystore
 *.out
 *.test

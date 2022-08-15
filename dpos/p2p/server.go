@@ -740,7 +740,15 @@ func (s *server) ConnectPeers(currentPeers []peer.PID, nextPeers []peer.PID) {
 	s.nextPeers = np
 
 	peers := currentPeers
-	peers = append(peers, nextPeers...)
+	currentPeersMap := make(map[peer.PID]struct{})
+	for _, p := range currentPeers {
+		currentPeersMap[p] = struct{}{}
+	}
+	for _, p := range nextPeers {
+		if _, ok := currentPeersMap[p]; !ok {
+			peers = append(peers, p)
+		}
+	}
 
 	reply := make(chan struct{})
 	s.query <- connectPeersMsg{peers: peers, reply: reply}

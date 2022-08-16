@@ -293,7 +293,16 @@ func strUnstake(tx interfaces.Transaction) (interface{}, error) {
 		return nil, fmt.Errorf("invlid unstake payload, tx:%s", tx.Hash())
 	}
 
-	code := pld.Code
+	if len(tx.Programs()) < 1 {
+		return nil, fmt.Errorf("invlid unstake program, tx:%s", tx.Hash())
+	}
+
+	var code []byte
+	if tx.PayloadVersion() == payload.UnstakeVersionV0 {
+		code = pld.Code
+	} else {
+		code = tx.Programs()[0].Code
+	}
 	ct, err := contract.CreateStakeContractByCode(code)
 	if err != nil {
 		return nil, fmt.Errorf("invlid unstake code, tx:%s", tx.Hash())
@@ -303,14 +312,20 @@ func strUnstake(tx interfaces.Transaction) (interface{}, error) {
 }
 
 func programHashDposV2ClaimReward(tx interfaces.Transaction) (interface{}, error) {
-	_, ok := tx.Payload().(*payload.DPoSV2ClaimReward)
+	pld, ok := tx.Payload().(*payload.DPoSV2ClaimReward)
 	if !ok {
 		return nil, fmt.Errorf("invlid DPoSV2ClaimReward payload, tx:%s", tx.Hash())
 	}
 	if len(tx.Programs()) < 1 {
 		return nil, fmt.Errorf("invalid DPoSV2ClaimReward programs count, tx:%s", tx.Hash())
 	}
-	code := tx.Programs()[0].Code
+
+	var code []byte
+	if tx.PayloadVersion() == payload.DposV2ClaimRewardVersionV0 {
+		code = pld.Code
+	} else {
+		code = tx.Programs()[0].Code
+	}
 	ct, err := contract.CreateStakeContractByCode(code)
 	if err != nil {
 		return nil, fmt.Errorf("invlid DPoSV2ClaimReward code, tx:%s", tx.Hash())

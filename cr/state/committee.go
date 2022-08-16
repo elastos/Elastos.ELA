@@ -1586,11 +1586,15 @@ func (c *Committee) resetNextMembers(height uint32) {
 	oriVotes := utils.CopyStringSet(c.state.Votes)
 	oriClaimedDPoSKyes := copyClaimedDPoSKeysMap(c.ClaimedDPoSKeys)
 	oriNextClaimedDPoSKyes := copyClaimedDPoSKeysMap(c.NextClaimedDPoSKeys)
+	oriUsedCRVotes := copyProgramHashVotesInfoSet(c.state.UsedCRVotes)
+	oriUsedCRImpeachmentVotes := copyProgramHashVotesInfoSet(c.state.UsedCRImpeachmentVotes)
 	c.lastHistory.Append(height, func() {
 		c.Members = newMembers
 		c.NextMembers = make(map[common.Uint168]*CRMember)
-		c.state.Nicknames = map[string]struct{}{}
-		c.state.Votes = map[string]struct{}{}
+		c.state.Nicknames = make(map[string]struct{})
+		c.state.Votes = make(map[string]struct{})
+		c.state.UsedCRVotes = make(map[common.Uint168][]payload.VotesWithLockTime)
+		c.state.UsedCRImpeachmentVotes = make(map[common.Uint168][]payload.VotesWithLockTime)
 		c.ClaimedDPoSKeys = c.NextClaimedDPoSKeys
 		c.NextClaimedDPoSKeys = make(map[string]struct{})
 	}, func() {
@@ -1598,6 +1602,8 @@ func (c *Committee) resetNextMembers(height uint32) {
 		c.NextMembers = newMembers
 		c.state.Nicknames = oriNicknames
 		c.state.Votes = oriVotes
+		c.state.UsedCRVotes = oriUsedCRVotes
+		c.state.UsedCRImpeachmentVotes = oriUsedCRImpeachmentVotes
 		c.ClaimedDPoSKeys = oriClaimedDPoSKyes
 		c.NextClaimedDPoSKeys = oriNextClaimedDPoSKyes
 	})

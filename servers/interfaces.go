@@ -635,7 +635,7 @@ func GetVoteRights(params Params) map[string]interface{} {
 			}
 		}
 		// cr Impeachment
-		if uciv := crstate.UsdedCRImpeachmentVotes[stakeProgramHash]; uciv != nil {
+		if uciv := crstate.UsedCRImpeachmentVotes[stakeProgramHash]; uciv != nil {
 			for _, v := range uciv {
 				c, _ := common.Uint168FromBytes(v.Candidate)
 				candidate, _ := c.ToAddress()
@@ -732,7 +732,7 @@ func GetUsedVoteRight(voteType outputpayload.VoteType, stakeProgramHash *common.
 			usedDposVote = maxVotes
 		}
 	case outputpayload.CRCImpeachment:
-		if usedCRImpeachmentVoteRights, ok := crstate.UsdedCRImpeachmentVotes[*stakeProgramHash]; !ok {
+		if usedCRImpeachmentVoteRights, ok := crstate.UsedCRImpeachmentVotes[*stakeProgramHash]; !ok {
 			usedDposVote = 0
 		} else {
 			for _, votesInfo := range usedCRImpeachmentVoteRights {

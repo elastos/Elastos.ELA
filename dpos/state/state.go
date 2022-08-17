@@ -692,13 +692,14 @@ func (s *State) GetDposV2Producers() []*Producer {
 }
 
 func (s *State) getDposV2Producers() []*Producer {
-	producers := make([]*Producer, 0)
-	for _, producer := range s.ActivityProducers {
+	dposV2Producers := make([]*Producer, 0)
+	allProducer := s.getAllProducers()
+	for _, producer := range allProducer {
 		if producer.info.StakeUntil != 0 {
-			producers = append(producers, producer)
+			dposV2Producers = append(dposV2Producers, producer)
 		}
 	}
-	return producers
+	return dposV2Producers
 }
 
 func (s *State) GetAllProducersPublicKey() []string {
@@ -1479,20 +1480,20 @@ func (s *State) processTransactions(txs []interfaces.Transaction, height uint32)
 		})
 	}
 
-	cleanExpiredDposV2Votes := func(key common.Uint256, stakeAddress *common.Uint168, detailVoteInfo payload.DetailedVoteInfo, producer *Producer) {
+	cleanExpiredDposV2Votes := func(key common.Uint256, stakeAddress common.Uint168, detailVoteInfo payload.DetailedVoteInfo, producer *Producer) {
 
 		for _, i := range detailVoteInfo.Info {
 			info := i
 			s.History.Append(height, func() {
-				s.UsedDposV2Votes[*stakeAddress] -= info.Votes
+				s.UsedDposV2Votes[stakeAddress] -= info.Votes
 			}, func() {
-				s.UsedDposV2Votes[*stakeAddress] += info.Votes
+				s.UsedDposV2Votes[stakeAddress] += info.Votes
 			})
 
 			voteRights := producer.GetTotalDPoSV2VoteRights()
 
 			s.History.Append(height, func() {
-				delete(producer.detailedDPoSV2Votes[*stakeAddress], key)
+				delete(producer.detailedDPoSV2Votes[stakeAddress], key)
 				producer.dposV2Votes -= info.Votes
 				if voteRights < float64(s.ChainParams.DPoSV2EffectiveVotes) {
 					delete(s.DposV2EffectedProducers, hex.EncodeToString(producer.OwnerPublicKey()))
@@ -1501,10 +1502,10 @@ func (s *State) processTransactions(txs []interfaces.Transaction, height uint32)
 				if producer.detailedDPoSV2Votes == nil {
 					producer.detailedDPoSV2Votes = make(map[common.Uint168]map[common.Uint256]payload.DetailedVoteInfo)
 				}
-				if _, ok := producer.detailedDPoSV2Votes[*stakeAddress]; !ok {
-					producer.detailedDPoSV2Votes[*stakeAddress] = make(map[common.Uint256]payload.DetailedVoteInfo)
+				if _, ok := producer.detailedDPoSV2Votes[stakeAddress]; !ok {
+					producer.detailedDPoSV2Votes[stakeAddress] = make(map[common.Uint256]payload.DetailedVoteInfo)
 				}
-				producer.detailedDPoSV2Votes[*stakeAddress][key] = detailVoteInfo
+				producer.detailedDPoSV2Votes[stakeAddress][key] = detailVoteInfo
 				producer.dposV2Votes += info.Votes
 				voteRights := producer.GetTotalDPoSV2VoteRights()
 				if voteRights >= float64(s.ChainParams.DPoSV2EffectiveVotes) {
@@ -1558,7 +1559,7 @@ func (s *State) processTransactions(txs []interfaces.Transaction, height uint32)
 				for refer, info := range detail {
 					ci := info
 					crefer := refer
-					cstake := &stake
+					cstake := stake
 					if info.Info[0].LockTime < height {
 						cleanExpiredDposV2Votes(crefer, cstake, ci, cp)
 					}

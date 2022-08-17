@@ -2485,6 +2485,54 @@ func ListCurrentCRs(param Params) map[string]interface{} {
 	return ResponsePack(Success, result)
 }
 
+//list next crs according to (state)
+func ListNextCRs(param Params) map[string]interface{} {
+	cm := Chain.GetCRCommittee()
+	var crMembers []*crstate.CRMember
+	if cm.IsInElectionPeriod() {
+		crMembers = cm.GetNextMembers()
+		sort.Slice(crMembers, func(i, j int) bool {
+			return crMembers[i].Info.GetCodeHash().Compare(
+				crMembers[j].Info.GetCodeHash()) < 0
+		})
+	}
+
+	var rsCRMemberInfoSlice []RPCCRMemberInfo
+	for i, cr := range crMembers {
+		cidAddress, _ := cr.Info.CID.ToAddress()
+		var didAddress string
+		if !cr.Info.DID.IsEqual(emptyHash) {
+			didAddress, _ = cr.Info.DID.ToAddress()
+		}
+		depositAddr, _ := cr.DepositHash.ToAddress()
+		memberInfo := RPCCRMemberInfo{
+			Code:             hex.EncodeToString(cr.Info.Code),
+			CID:              cidAddress,
+			DID:              didAddress,
+			DPOSPublicKey:    hex.EncodeToString(cr.DPOSPublicKey),
+			NickName:         cr.Info.NickName,
+			Url:              cr.Info.Url,
+			Location:         cr.Info.Location,
+			ImpeachmentVotes: cr.ImpeachmentVotes.String(),
+			DepositAmount:    cm.GetAvailableDepositAmount(cr.Info.CID).String(),
+			DepositAddress:   depositAddr,
+			Penalty:          cm.GetPenalty(cr.Info.CID).String(),
+			Index:            uint64(i),
+			State:            cr.MemberState.String(),
+		}
+		rsCRMemberInfoSlice = append(rsCRMemberInfoSlice, memberInfo)
+	}
+
+	count := int64(len(crMembers))
+
+	result := &RPCCRMembersInfo{
+		CRMemberInfoSlice: rsCRMemberInfoSlice,
+		TotalCounts:       uint64(count),
+	}
+
+	return ResponsePack(Success, result)
+}
+
 func ListCRProposalBaseState(param Params) map[string]interface{} {
 	start, _ := param.Int("start")
 	limit, ok := param.Int("limit")

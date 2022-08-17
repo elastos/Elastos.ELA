@@ -277,8 +277,19 @@ func (t *WithdrawFromSideChainTransaction) checkWithdrawFromSideChainTransaction
 		return errors.New("Invalid withdraw from side chain payload type")
 	}
 
-	if len(pld.Signers) < (int(t.parameters.Config.CRMemberCount)*2/3 + 1) {
-		return errors.New("Signers number must be bigger than 2/3+1 CRMemberCount")
+	currentHeight := t.parameters.BlockHeight
+	if currentHeight <= config.Parameters.CRConfiguration.CRClaimDPOSNodeStartHeight {
+		if len(pld.Signers) < (int(t.parameters.Config.CRMemberCount)*2/3 + 1) {
+			return errors.New("Signers number must be bigger than 2/3+1 CRMemberCount")
+		}
+	} else if currentHeight < config.Parameters.DPoSConfiguration.DPOSNodeCrossChainHeight {
+		if len(pld.Signers) < (int(t.parameters.Config.CRMemberCount) * 2 / 3) {
+			return errors.New("Signers number must be bigger than 2/3 CRMemberCount")
+		}
+	} else {
+		if len(pld.Signers) < (int(t.parameters.Config.CRMemberCount)*2/3 + 1) {
+			return errors.New("Signers number must be bigger than 2/3+1 CRMemberCount")
+		}
 	}
 
 	for _, output := range t.references {

@@ -338,9 +338,9 @@ func (b *BlockChain) InitCheckpoint(interrupt <-chan struct{},
 
 		events.Notify(events.ETDirectPeersChanged,
 			&peer.PeersInfo{
-			CurrentPeers: currentArbiters,
-			NextPeers: nextArbiters,
-			CRPeers: crArbiters})
+				CurrentPeers: currentArbiters,
+				NextPeers:    nextArbiters,
+				CRPeers:      crArbiters})
 
 	case <-interrupt:
 	}
@@ -525,13 +525,7 @@ func (b *BlockChain) CreateDposV2RealWithdrawTransaction(
 
 func (b *BlockChain) CreateUnstakeRealWithdrawTransaction(
 	unstakeTXHashes []Uint256, outputs []*common.OutputInfo) (interfaces.Transaction, error) {
-	stakePoolAddr, err := Uint168FromAddress(b.chainParams.StakePool)
-	if err != nil {
-		log.Error("CreateUnstakeRealWithdrawTransaction StakePool to hash error")
-		return nil, errors.New("CreateUnstakeRealWithdrawTransaction StakePool to hash error")
-	}
-
-	utxos, _, err := b.getUTXOsFromAddress(*stakePoolAddr)
+	utxos, _, err := b.getUTXOsFromAddress(b.chainParams.StakePool)
 	if err != nil {
 		return nil, err
 	}
@@ -556,7 +550,7 @@ func (b *BlockChain) CreateUnstakeRealWithdrawTransaction(
 	txFee := b.chainParams.RealWithdrawSingleFee * Fixed64(len(unstakeTXHashes))
 	var tx interfaces.Transaction
 	tx, err = b.createTransaction(wPayload, common.UnstakeRealWithdraw,
-		*stakePoolAddr, txFee, uint32(0), utxos, outputs...)
+		b.chainParams.StakePool, txFee, uint32(0), utxos, outputs...)
 	if err != nil {
 		return nil, err
 	}

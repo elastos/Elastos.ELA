@@ -83,11 +83,7 @@ func (t *StakeTransaction) CheckTransactionOutput() error {
 	}
 
 	// check output address, need to be stake pool
-	addr, err := t.outputs[0].ProgramHash.ToAddress()
-	if err != nil {
-		return errors.New("invalid first output address")
-	}
-	if addr != t.parameters.Config.StakePool {
+	if t.outputs[0].ProgramHash != t.parameters.Config.StakePool {
 		return errors.New("first output address need to be stake address")
 	}
 

@@ -1084,9 +1084,31 @@ func NewSettings() *Settings {
 
 	result.Add(&settingItem{
 		Flag:         cmdcom.StakePoolFlag,
-		DefaultValue: common.Fixed64(0),
-		ConfigPath:   "StakePool",
-		ParamName:    "StakePool"})
+		DefaultValue: "",
+		ConfigSetter: func(path string, params *config.Params,
+			conf *config.Configuration) error {
+			stakePoolAddress, err := common.Uint168FromAddress(conf.StakePool)
+			if err != nil {
+				return errors.New("invalid stake pool address")
+			}
+			params.CRAssetsAddress = *stakePoolAddress
+			return nil
+		},
+		CliSetter: func(i interface{}, params *config.Params,
+			conf *config.Configuration) error {
+			value, ok := i.(string)
+			if !ok {
+				return errors.New("unknown foundation address type")
+			}
+			stakePoolAddress, err := common.Uint168FromAddress(value)
+			if err != nil {
+				return errors.New("invalid stake pool address")
+			}
+			params.CRAssetsAddress = *stakePoolAddress
+			return nil
+		},
+		ConfigPath: "StakePool",
+		ParamName:  "StakePool"})
 
 	result.Add(&settingItem{
 		Flag:         cmdcom.DposV2RewardAccumulateAddressFlag,

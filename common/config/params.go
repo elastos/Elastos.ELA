@@ -118,11 +118,20 @@ var (
 		0xe0, 0xf5, 0xee, 0x2c, 0x4e, 0xd2, 0xd3,
 	}
 
-	// Dpos V2 reward accumulate address
-	DposV2RewardAccumulateAddress = common.Uint168{
-		0x21, 0xF9, 0x3D, 0x20, 0x65, 0x24, 0xBF,
-		0xDD, 0x21, 0xCD, 0x6D, 0xA3, 0xB1, 0x14,
-		0x15, 0xFF, 0x8A, 0x27, 0xF5, 0x60, 0xE8,
+	// "STAKEPooLXXXXXXXXXXXXXXXXXXXpP1PQ2"
+	// DPoS 2.0 stake pool address.
+	StakePoolAddress = common.Uint168{
+		0x3f, 0x40, 0x5c, 0x9e, 0x71, 0x3f, 0x20,
+		0x13, 0xa3, 0x16, 0x39, 0x49, 0xbd, 0xd6,
+		0xf0, 0xbc, 0xad, 0xd6, 0xc8, 0xf5, 0xab,
+	}
+
+	// "STAKEREWARDXXXXXXXXXXXXXXXXXFD5SHU"
+	// DPoS 2.0 stake reward pool address.
+	StakeRewardAddress = common.Uint168{
+		0x3f, 0x40, 0x5c, 0x9e, 0x88, 0x6f, 0x83,
+		0xef, 0xe2, 0xeb, 0x7f, 0x86, 0x5c, 0xd4,
+		0xf1, 0x44, 0x5f, 0xb2, 0x11, 0x9c, 0xe6,
 	}
 )
 
@@ -259,15 +268,16 @@ func GetDefaultParams() Params {
 		DIDSideChainAddress:                "XKUh4GLhFJiqAMTF6HyWQrV9pK9HcGUdfJ",
 		DPoSV2StartHeight:                  2000000, // todo complete me
 		DPoSV2EffectiveVotes:               8000000000000,
-		DPoSV2RewardAccumulateAddress:      DposV2RewardAccumulateAddress,
-		StakePool:                          "",      // todo complete me
-		DPoSV2DepositCoinMinLockTime:       7200,    // todo complete me change to 216000
-		DPoSV2MinVotesLockTime:             7200,    // todo complete me
-		DPoSV2MaxVotesLockTime:             720000,  // todo complete me
-		SchnorrStartHeight:                 2000000, // todo complete me
+		DPoSV2RewardAccumulateAddress:      StakeRewardAddress,
+		StakePool:                          StakePoolAddress, // todo complete me
+		DPoSV2DepositCoinMinLockTime:       7200,             // todo complete me change to 216000
+		DPoSV2MinVotesLockTime:             7200,             // todo complete me
+		DPoSV2MaxVotesLockTime:             720000,           // todo complete me
+		SchnorrStartHeight:                 2000000,          // todo complete me
 		CRDPoSNodeHotFixHeight:             0,
-		CrossChainMonitorStartHeight:       2000000, // todo complete me
-		CrossChainMonitorInterval:          100,     // todo complete me
+		CrossChainMonitorStartHeight:       2000000,  // todo complete me
+		CrossChainMonitorInterval:          100,      // todo complete me
+		CRClaimPeriod:                      720 * 14, // todo complete me
 	}
 }
 
@@ -363,16 +373,17 @@ func (p *Params) TestNet() *Params {
 	copy.DIDSideChainAddress = "XKUh4GLhFJiqAMTF6HyWQrV9pK9HcGUdfJ"
 	copy.DPoSV2StartHeight = 2000000 // todo complete me
 	copy.DPoSV2EffectiveVotes = 8000000000000
-	copy.DPoSV2RewardAccumulateAddress = DposV2RewardAccumulateAddress
-	copy.StakePool = ""                      // todo complete me
+	copy.DPoSV2RewardAccumulateAddress = StakeRewardAddress
+	copy.StakePool = StakePoolAddress        // todo complete me
 	copy.DPoSV2DepositCoinMinLockTime = 7200 // todo complete me change to 216000
 	copy.DPoSV2MinVotesLockTime = 7200       // todo complete me
 	copy.DPoSV2MaxVotesLockTime = 720000     // todo complete me
-	copy.RealWithdrawSingleFee = 10000
+	copy.RealWithdrawSingleFee = 50000
 	copy.SchnorrStartHeight = 2000000 // todo complete me
 	copy.CRDPoSNodeHotFixHeight = 0
 	copy.CrossChainMonitorStartHeight = 2000000 // todo complete me
 	copy.CrossChainMonitorInterval = 10         // todo complete me
+	copy.CRClaimPeriod = 720 * 14               // todo complete me
 
 	return &copy
 }
@@ -448,12 +459,12 @@ func (p *Params) RegNet() *Params {
 	copy.ChangeCommitteeNewCRHeight = 706240
 	copy.CustomIDProposalStartHeight = 706240
 	copy.IllegalPenalty = 0
-	copy.DPoSV2IllegalPenalty = 20000000000 // todo complete me
+	copy.DPoSV2IllegalPenalty = 20000000000
 	copy.InactivePenalty = 0
 	copy.NoCRCDPOSNodeHeight = 706240
 	copy.RandomCandidatePeriod = 36 * 10
 	copy.MaxInactiveRoundsOfRandomNode = 36 * 8
-	copy.DPOSNodeCrossChainHeight = 2000000
+	copy.DPOSNodeCrossChainHeight = 2000000 // todo complete me
 	copy.MaxReservedCustomIDLength = 255
 	copy.RevertToPOWNoBlockTime = 12 * 3600
 	copy.StopConfirmBlockTime = 11 * 3600
@@ -468,18 +479,19 @@ func (p *Params) RegNet() *Params {
 	copy.CRCProposalDraftDataStartHeight = 730000
 	copy.ProhibitTransferToDIDHeight = 730000
 	copy.DIDSideChainAddress = "XKUh4GLhFJiqAMTF6HyWQrV9pK9HcGUdfJ"
-	copy.DPoSV2StartHeight = 2000000
-	copy.DPoSV2EffectiveVotes = 8000000000000
-	copy.DPoSV2RewardAccumulateAddress = DposV2RewardAccumulateAddress
-	copy.StakePool = ""                      // todo complete me
-	copy.DPoSV2DepositCoinMinLockTime = 7200 // todo complete me change to 216000
-	copy.DPoSV2MinVotesLockTime = 7200       // todo complete me
-	copy.DPoSV2MaxVotesLockTime = 720000     // todo complete me
+	copy.DPoSV2StartHeight = 875544 + 720*2
+	copy.DPoSV2EffectiveVotes = 300000000000
+	copy.DPoSV2RewardAccumulateAddress = StakeRewardAddress
+	copy.StakePool = StakePoolAddress
+	copy.DPoSV2DepositCoinMinLockTime = 7200 * 3
+	copy.DPoSV2MinVotesLockTime = 7200
+	copy.DPoSV2MaxVotesLockTime = 720000
 	copy.RealWithdrawSingleFee = 10000
-	copy.SchnorrStartHeight = 2000000 // todo fix me
+	copy.SchnorrStartHeight = 875544 + 720*5
 	copy.CRDPoSNodeHotFixHeight = 0
-	copy.CrossChainMonitorStartHeight = 2000000 // todo complete me
-	copy.CrossChainMonitorInterval = 10         // todo complete me
+	copy.CrossChainMonitorStartHeight = 875544 + 720*2
+	copy.CrossChainMonitorInterval = 12
+	copy.CRClaimPeriod = 10080
 
 	return &copy
 }
@@ -836,7 +848,7 @@ type Params struct {
 	DPoSV2RewardAccumulateAddress common.Uint168
 
 	// Stake address of votes
-	StakePool string
+	StakePool common.Uint168
 
 	// minimum lock time of DPoS V2 deposit coin
 	DPoSV2DepositCoinMinLockTime uint32

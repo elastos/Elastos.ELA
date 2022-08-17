@@ -90,6 +90,8 @@ func StartRPCServer() {
 	// cr interfaces
 	mainMux["listcrcandidates"] = ListCRCandidates
 	mainMux["listcurrentcrs"] = ListCurrentCRs
+	mainMux["listnextcrs"] = ListNextCRs
+
 	mainMux["listcrproposalbasestate"] = ListCRProposalBaseState
 	mainMux["getcrproposalstate"] = GetCRProposalState
 	mainMux["getproposaldraftdata"] = GetProposalDraftData

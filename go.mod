@@ -13,7 +13,7 @@ require (
 	github.com/rs/cors v1.8.0
 	github.com/stretchr/testify v1.6.0
 	github.com/syndtr/goleveldb v1.0.0
-	github.com/tidwall/gjson v1.8.1
+	github.com/tidwall/gjson v1.9.3
 	github.com/urfave/cli v1.22.5
 	github.com/yuin/gopher-lua v0.0.0-20210529063254-f4c35e4016d9
 	golang.org/x/crypto v0.0.0-20210711020723-a769d52b0f97

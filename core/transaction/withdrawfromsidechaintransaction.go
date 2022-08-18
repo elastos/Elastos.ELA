@@ -358,7 +358,7 @@ func (t *WithdrawFromSideChainTransaction) GetSaveProcessor() (database.TXProces
 
 			return nil
 		}, nil
-	} else if t.PayloadVersion() == payload.WithdrawFromSideChainVersionV1 {
+	} else if t.PayloadVersion() == payload.WithdrawFromSideChainVersionV1 || t.PayloadVersion() == payload.WithdrawFromSideChainVersionV2 {
 		return func(dbTx database.Tx) error {
 			err := blockchain.TryCreateBucket(dbTx, common.Tx3IndexBucketName)
 			if err != nil {

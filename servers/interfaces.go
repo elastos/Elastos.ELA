@@ -3517,13 +3517,17 @@ func getPayloadInfo(p interfaces.Payload, payloadVersion byte) PayloadInfo {
 		return obj
 	case *payload.Unstake:
 		address, _ := object.ToAddr.ToAddress()
+		if payloadVersion == payload.UnstakeVersionV1 {
+			obj := &UnstakeInfo{
+				ToAddr: address,
+				Value:  object.Value.String(),
+			}
+			return obj
+		}
 		obj := &UnstakeInfo{
-			ToAddr: address,
-			// code
-			Code: common.BytesToHexString(object.Code),
-			// unstake value
-			Value: object.Value.String(),
-			// signature
+			ToAddr:    address,
+			Code:      common.BytesToHexString(object.Code),
+			Value:     object.Value.String(),
 			Signature: common.BytesToHexString(object.Signature),
 		}
 		return obj
@@ -3543,13 +3547,17 @@ func getPayloadInfo(p interfaces.Payload, payloadVersion byte) PayloadInfo {
 		return obj
 	case *payload.DPoSV2ClaimReward:
 		address, _ := object.ToAddr.ToAddress()
+		if payloadVersion == payload.DposV2ClaimRewardVersionV1 {
+			obj := &DposV2ClaimRewardInfo{
+				ToAddr: address,
+				Value:  object.Value.String(),
+			}
+			return obj
+		}
 		obj := &DposV2ClaimRewardInfo{
-			ToAddr: address,
-			// code
-			Code: common.BytesToHexString(object.Code),
-			// reward value
-			Value: object.Value.String(),
-			// signature
+			ToAddr:    address,
+			Code:      common.BytesToHexString(object.Code),
+			Value:     object.Value.String(),
 			Signature: common.BytesToHexString(object.Signature),
 		}
 		return obj

@@ -557,11 +557,11 @@ type UnstakeInfo struct {
 	// target or to address
 	ToAddr string `json:"toaddr"`
 	// code
-	Code string `json:"code"`
+	Code string `json:"code,omitempty"`
 	// unstake value
 	Value string `json:"value"`
 	// signature
-	Signature string `json:"signature"`
+	Signature string `json:"signature,omitempty"`
 }
 
 type RealUnstakeInfo struct {
@@ -577,11 +577,11 @@ type DposV2ClaimRewardInfo struct {
 	// target or to address
 	ToAddr string `json:"toaddr"`
 	// code
-	Code string `json:"code"`
+	Code string `json:"code,omitempty"`
 	// reward value
 	Value string `json:"value"`
 	// signature
-	Signature string `json:"signature"`
+	Signature string `json:"signature,omitempty"`
 }
 
 type DposV2ClaimRewardRealWithdrawInfo struct {

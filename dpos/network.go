@@ -32,11 +32,12 @@ import (
 const dataPathDPoS = "elastos/data/dpos"
 
 type NetworkConfig struct {
-	ChainParams     *config.Params
-	Account         account.Account
-	MedianTime      dtime.MedianTimeSource
-	Listener        manager.NetworkEventListener
-	NodeVersion     string
+	ChainParams *config.Params
+	Account     account.Account
+	MedianTime  dtime.MedianTimeSource
+	Listener    manager.NetworkEventListener
+	NodeVersion string
+	Addr        string
 }
 
 type blockItem struct {
@@ -392,6 +393,7 @@ func NewDposNetwork(cfg NetworkConfig) (*network, error) {
 		StateNotifier:     notifier,
 		DPoSV2StartHeight: cfg.ChainParams.DPoSV2StartHeight,
 		NodeVersion:       cfg.NodeVersion,
+		Addr:              cfg.Addr,
 	})
 	if err != nil {
 		return nil, err

@@ -419,18 +419,11 @@ func (r *Routes) handlePeersMsg(state *state, dposPeers []dp.PID, crPeers []dp.P
 	peers := append(dposPeers, crPeers...)
 	var newDPoSPeers = make(map[dp.PID]struct{})
 	var newCRPeers = make(map[dp.PID]struct{})
-	var hasNewCRPeers, hasNewDPoSPeers bool
 	for _, pid := range dposPeers {
 		newDPoSPeers[pid] = struct{}{}
-		if _, ok := state.dposPeers[pid]; !ok {
-			hasNewDPoSPeers = true
-		}
 	}
 	for _, pid := range crPeers {
 		newCRPeers[pid] = struct{}{}
-		if _, ok := state.crPeers[pid]; !ok {
-			hasNewCRPeers = true
-		}
 	}
 	var newPeers = make(map[dp.PID]struct{})
 	for _, pid := range peers {
@@ -492,18 +485,18 @@ func (r *Routes) handlePeersMsg(state *state, dposPeers []dp.PID, crPeers []dp.P
 			break
 		}
 	}
-	//_, wasArbiter := state.dposPeers[r.pid]
-	//_, wasCRArbiter := state.crPeers[r.pid]
+	_, wasArbiter := state.dposPeers[r.pid]
+	_, wasCRArbiter := state.crPeers[r.pid]
 
 	// Update peers list.
 	state.dposPeers = newDPoSPeers
 	state.crPeers = newCRPeers
 
 	// Announce address into P2P network if we become arbiter.
-	if isDPoSArbiter && hasNewDPoSPeers {
+	if isDPoSArbiter && wasArbiter {
 		r.announceAddr()
 	}
-	if isCRArbiter && hasNewCRPeers {
+	if isCRArbiter && wasCRArbiter {
 		r.announceCRAddr()
 	}
 }

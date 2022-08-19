@@ -53,7 +53,7 @@ type DPOSNetwork interface {
 	SendMessageToPeer(id dpeer.PID, msg p2p.Message) error
 	BroadcastMessage(msg p2p.Message)
 
-	UpdatePeers(currentPeers []dpeer.PID, nextPeers []dpeer.PID)
+	UpdatePeers(currentPeers []dpeer.PID, nextPeers []dpeer.PID, crcPeers []dpeer.PID)
 	GetActivePeers() []dp2p.Peer
 	RecoverTimeout()
 }

@@ -32,16 +32,16 @@ import (
 const DumpPeersInfoInterval = 10 * time.Minute
 
 type Config struct {
-	EnableEventLog  bool
-	Chain           *blockchain.BlockChain
-	Arbitrators     state.Arbitrators
-	Server          elanet.Server
-	TxMemPool       *mempool.TxPool
-	BlockMemPool    *mempool.BlockPool
-	ChainParams     *config.Params
-	Broadcast       func(msg p2p.Message)
-	AnnounceAddr    func()
-	NodeVersion     string
+	EnableEventLog bool
+	Chain          *blockchain.BlockChain
+	Arbitrators    state.Arbitrators
+	Server         elanet.Server
+	TxMemPool      *mempool.TxPool
+	BlockMemPool   *mempool.BlockPool
+	ChainParams    *config.Params
+	Broadcast      func(msg p2p.Message)
+	AnnounceAddr   func()
+	NodeVersion    string
 }
 
 type Arbitrator struct {
@@ -218,8 +218,8 @@ func (a *Arbitrator) OnConfirmReceived(p *mempool.ConfirmInfo) {
 	a.network.PostConfirmReceivedTask(p)
 }
 
-func (a *Arbitrator) OnPeersChanged(currentPeers []peer.PID, nextPeers []peer.PID) {
-	a.network.UpdatePeers(currentPeers, nextPeers)
+func (a *Arbitrator) OnPeersChanged(currentPeers []peer.PID, nextPeers []peer.PID, crcPeers []peer.PID) {
+	a.network.UpdatePeers(currentPeers, nextPeers, crcPeers)
 }
 
 func (a *Arbitrator) changeViewLoop() {
@@ -251,11 +251,11 @@ func NewArbitrator(account account.Account, cfg Config) (*Arbitrator, error) {
 	})
 
 	network, err := NewDposNetwork(NetworkConfig{
-		ChainParams:     cfg.ChainParams,
-		Account:         account,
-		MedianTime:      medianTime,
-		Listener:        dposManager,
-		NodeVersion:     cfg.NodeVersion,
+		ChainParams: cfg.ChainParams,
+		Account:     account,
+		MedianTime:  medianTime,
+		Listener:    dposManager,
+		NodeVersion: cfg.NodeVersion,
 	})
 	if err != nil {
 		log.Error("Init p2p network error")
@@ -320,7 +320,7 @@ func NewArbitrator(account account.Account, cfg Config) (*Arbitrator, error) {
 
 		case events.ETDirectPeersChanged:
 			peersInfo := e.Data.(*peer.PeersInfo)
-			a.OnPeersChanged(peersInfo.CurrentPeers, peersInfo.NextPeers)
+			a.OnPeersChanged(peersInfo.CurrentPeers, peersInfo.NextPeers, peersInfo.CRPeers)
 
 		case events.ETTransactionAccepted:
 			tx := e.Data.(interfaces.Transaction)

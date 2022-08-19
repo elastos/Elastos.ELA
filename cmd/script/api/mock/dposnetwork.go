@@ -119,7 +119,7 @@ func (n *network) BroadcastMessage(msg p2p.Message) {
 	n.messageList = append(n.messageList, messageItem{ID: nil, Message: msg})
 }
 
-func (n *network) UpdatePeers(currentPeers []peer.PID, nextPeers []peer.PID) {}
+func (n *network) UpdatePeers(currentPeers []peer.PID, nextPeers []peer.PID, crcPeers []peer.PID) {}
 
 func (n *network) GetActivePeers() []dp2p.Peer {
 	return nil

@@ -32,11 +32,11 @@ import (
 const dataPathDPoS = "elastos/data/dpos"
 
 type NetworkConfig struct {
-	ChainParams     *config.Params
-	Account         account.Account
-	MedianTime      dtime.MedianTimeSource
-	Listener        manager.NetworkEventListener
-	NodeVersion     string
+	ChainParams *config.Params
+	Account     account.Account
+	MedianTime  dtime.MedianTimeSource
+	Listener    manager.NetworkEventListener
+	NodeVersion string
 }
 
 type blockItem struct {
@@ -116,27 +116,33 @@ func (n *network) Stop() error {
 	return n.p2pServer.Stop()
 }
 
-func (n *network) UpdatePeers(currentPeers []peer.PID, nextPeers []peer.PID) {
+func (n *network) UpdatePeers(currentPeers []peer.PID, nextPeers []peer.PID, crcPeers []peer.PID) {
 	log.Info("[UpdatePeers] current peers:", len(currentPeers),
 		"next peers:", len(nextPeers), " height: ",
 		blockchain.DefaultLedger.Blockchain.GetHeight())
 
 	for _, p := range currentPeers {
 		if bytes.Equal(n.publicKey, p[:]) {
-			n.p2pServer.ConnectPeers(currentPeers, nextPeers)
+			n.p2pServer.ConnectPeers(currentPeers, nextPeers, crcPeers)
 			return
 		}
 	}
 
 	for _, p := range nextPeers {
 		if bytes.Equal(n.publicKey, p[:]) {
-			n.p2pServer.ConnectPeers(currentPeers, nextPeers)
+			n.p2pServer.ConnectPeers(currentPeers, nextPeers, crcPeers)
 			return
 		}
 	}
 
+	for _, p := range crcPeers {
+		if bytes.Equal(n.publicKey, p[:]) {
+			n.p2pServer.ConnectPeers(currentPeers, nextPeers, crcPeers)
+			return
+		}
+	}
 	log.Info("[UpdatePeers] i am not in peers")
-	n.p2pServer.ConnectPeers(nil, nil)
+	n.p2pServer.ConnectPeers(nil, nil, nil)
 }
 
 func (n *network) SendMessageToPeer(id peer.PID, msg elap2p.Message) error {

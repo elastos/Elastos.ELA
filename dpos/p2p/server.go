@@ -152,6 +152,7 @@ type server struct {
 
 	currentPeers map[string]struct{} // key: PID string
 	nextPeers    map[string]struct{} // key: PID string
+	crcPeers     map[string]struct{} // key: PID string
 }
 
 // IPeer extends the peer to maintain state shared by the server.
@@ -379,7 +380,6 @@ func (s *server) handleQuery(state *peerState, querymsg interface{}) {
 			if _, ok := state.connectPeers[pid]; ok {
 				continue
 			}
-
 			// Connect the peer.
 			go s.connManager.Connect(pid)
 		}
@@ -726,7 +726,7 @@ func (s *server) ConnectedCount() int32 {
 
 // ConnectPeers let server connect the peers in the given peers, and
 // disconnect peers that not in the peers.
-func (s *server) ConnectPeers(currentPeers []peer.PID, nextPeers []peer.PID) {
+func (s *server) ConnectPeers(currentPeers []peer.PID, nextPeers []peer.PID, crcPeers []peer.PID) {
 	cp := make(map[string]struct{})
 	for _, p := range currentPeers {
 		cp[common.BytesToHexString(p[:])] = struct{}{}
@@ -739,12 +739,27 @@ func (s *server) ConnectPeers(currentPeers []peer.PID, nextPeers []peer.PID) {
 	}
 	s.nextPeers = np
 
+	crcp := make(map[string]struct{})
+	for _, p := range crcPeers {
+		crcp[common.BytesToHexString(p[:])] = struct{}{}
+	}
+	s.crcPeers = crcp
+
 	peers := currentPeers
 	currentPeersMap := make(map[peer.PID]struct{})
 	for _, p := range currentPeers {
 		currentPeersMap[p] = struct{}{}
 	}
 	for _, p := range nextPeers {
+		if _, ok := currentPeersMap[p]; !ok {
+			peers = append(peers, p)
+		}
+	}
+	currentPeersMap = make(map[peer.PID]struct{})
+	for _, p := range peers {
+		currentPeersMap[p] = struct{}{}
+	}
+	for _, p := range crcPeers {
 		if _, ok := currentPeersMap[p]; !ok {
 			peers = append(peers, p)
 		}

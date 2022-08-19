@@ -857,16 +857,13 @@ func (p *Peer) negotiateOutboundProtocol() error {
 	if err != nil {
 		return err
 	}
-
 	theirNonce, err := p.readRemoteVersionMsg()
 	if err != nil {
 		return err
 	}
-
 	if err := p.readRemoteVerAckMsg(ourNonce); err != nil {
 		return err
 	}
-
 	return p.writeLocalVerAckMsg(theirNonce)
 }
 
@@ -891,7 +888,6 @@ func (p *Peer) start() error {
 		return errors.New("protocol negotiation timeout")
 	}
 	log.Debugf("Connected to %s", p.Addr())
-
 	// The protocol has been negotiated successfully so start processing input
 	// and output messages.
 	go p.inHandler()

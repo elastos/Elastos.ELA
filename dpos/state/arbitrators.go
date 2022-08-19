@@ -598,7 +598,6 @@ func (a *Arbiters) IncreaseChainHeight(block *types.Block, confirm *payload.Conf
 		currentArbiters := a.GetCurrentNeedConnectArbiters()
 		nextArbiters := a.GetNextNeedConnectArbiters()
 		crArbiters := a.GetNeedConnectCRArbiters()
-
 		go events.Notify(events.ETDirectPeersChanged,
 			&peer.PeersInfo{
 				CurrentPeers: currentArbiters,

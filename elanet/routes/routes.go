@@ -313,7 +313,6 @@ out:
 					Cipher:    cipher,
 				}
 				addr.Signature = r.sign(addr.Data())
-
 				// Append and relay the local address.
 				r.appendAddr(&addr)
 			}
@@ -358,7 +357,6 @@ func (r *Routes) appendAddr(m *msg.DAddr) {
 		r.knownList.PushFront(hash)
 	}
 	r.addrMtx.Unlock()
-
 	// Relay addr to the P2P network.
 	iv := msg.NewInvVect(msg.InvTypeAddress, &hash)
 	r.cfg.RelayAddr(iv, m)
@@ -498,7 +496,6 @@ func (r *Routes) handlePeersMsg(state *state, dposPeers []dp.PID, crPeers []dp.P
 	// Update peers list.
 	state.dposPeers = newDPoSPeers
 	state.crPeers = newCRPeers
-
 	// Announce address into P2P network if we become arbiter.
 	if isDPoSArbiter && hasNewDPoSPeers {
 		r.announceAddr()
@@ -606,7 +603,6 @@ func (r *Routes) handleDAddr(s *state, p *peer.Peer, m *msg.DAddr) {
 		log.Warnf("Received getdaddr message for unknown peer %s", p)
 		return
 	}
-
 	hash := m.Hash()
 
 	if _, ok := c.requested[hash]; !ok {
@@ -615,7 +611,6 @@ func (r *Routes) handleDAddr(s *state, p *peer.Peer, m *msg.DAddr) {
 		p.Disconnect()
 		return
 	}
-
 	delete(c.requested, hash)
 	delete(s.requested, hash)
 
@@ -625,7 +620,6 @@ func (r *Routes) handleDAddr(s *state, p *peer.Peer, m *msg.DAddr) {
 		p.Disconnect()
 		return
 	}
-
 	_, isCRPeers := s.crPeers[m.PID]
 	_, isDPoSPeers := s.dposPeers[m.PID]
 	if !isCRPeers && !isDPoSPeers {
@@ -636,10 +630,8 @@ func (r *Routes) handleDAddr(s *state, p *peer.Peer, m *msg.DAddr) {
 		// disconnect the peer even the address not in producers list.
 		return
 	}
-
 	// Append received addr into state.
 	r.appendAddr(m)
-
 	// Notify the received DPOS address if the Encode matches.
 	if r.pid.Equal(m.Encode) && r.cfg.OnCipherAddr != nil {
 		r.cfg.OnCipherAddr(m.PID, m.Cipher)

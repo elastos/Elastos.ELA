@@ -109,7 +109,7 @@ type Server interface {
 
 	// ConnectPeers let server connect the peers in the given list, and
 	// disconnect peers that not in the list.
-	ConnectPeers(currentPeers []peer.PID, nextPeers []peer.PID)
+	ConnectPeers(currentPeers []peer.PID, nextPeers []peer.PID, crcPeers []peer.PID)
 
 	// SendMessageToPeer send a message to the peer with the given id, error
 	// will be returned if there is no matches, or fail to send the message.

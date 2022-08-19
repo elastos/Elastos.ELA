@@ -193,7 +193,6 @@ func (h *Hub) handleOutbound(state *state, conn *Conn) {
 		_ = conn.Close()
 		return
 	}
-
 	// Refuse target not in connect peers list.
 	target, ok := state.peers[conn.target]
 	if !ok {
@@ -212,7 +211,6 @@ func (h *Hub) handleOutbound(state *state, conn *Conn) {
 		_ = conn.Close()
 		return
 	}
-
 	// Create the pipe between local service and target address.
 	go createPipe(conn, addr)
 }
@@ -245,12 +243,10 @@ func (h *Hub) Intercept(conn net.Conn) net.Conn {
 		_ = conn.Close()
 		return nil
 	}
-
 	// The connection from main chain arbiter, do not intercept.
 	if h.magic == c.Magic() {
 		return c
 	}
-
 	// The connection come from our own service.
 	if h.pid.Equal(c.PID()) {
 		h.queue <- outbound(c)

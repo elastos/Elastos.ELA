@@ -700,15 +700,19 @@ func GetUsedVoteRight(voteType outputpayload.VoteType, stakeProgramHash *common.
 	usedDposVote := common.Fixed64(0)
 	switch voteType {
 	case outputpayload.Delegate:
-		if dposVotes, ok := state.UsedDposVotes[*stakeProgramHash]; !ok {
+		if Chain.GetHeight() >= Chain.GetState().DPoSV2ActiveHeight {
 			usedDposVote = 0
 		} else {
-			maxVotes := common.Fixed64(0)
-			for _, votesInfo := range dposVotes {
-				if votesInfo.Votes > maxVotes {
-					maxVotes = votesInfo.Votes
+			if dposVotes, ok := state.UsedDposVotes[*stakeProgramHash]; !ok {
+				usedDposVote = 0
+			} else {
+				maxVotes := common.Fixed64(0)
+				for _, votesInfo := range dposVotes {
+					if votesInfo.Votes > maxVotes {
+						maxVotes = votesInfo.Votes
+					}
+					usedDposVote = maxVotes
 				}
-				usedDposVote = maxVotes
 			}
 		}
 	case outputpayload.CRC:

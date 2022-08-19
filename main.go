@@ -287,6 +287,7 @@ func startNode(c *cli.Context, st *settings.Settings) {
 			},
 			AnnounceAddr: route.AnnounceAddr,
 			NodeVersion:  nodePrefix + Version,
+			Addr:         routesCfg.Addr,
 		})
 		if err != nil {
 			printErrorAndExit(err)

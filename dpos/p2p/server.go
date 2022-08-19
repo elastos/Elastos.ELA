@@ -934,7 +934,7 @@ func NewServer(origCfg *Config) (*server, error) {
 	admgr := addrmgr.New(cfg.DataDir)
 	var hubService *hub.Hub
 	if cfg.EnableHub {
-		hubService = hub.New(cfg.MagicNumber, cfg.PID, admgr)
+		hubService = hub.New(cfg.MagicNumber, cfg.PID, admgr, origCfg.Addr)
 	}
 
 	s := server{

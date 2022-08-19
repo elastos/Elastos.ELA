@@ -82,6 +82,9 @@ type Config struct {
 
 	DPoSV2StartHeight uint32
 	NodeVersion       string
+
+	// connection address of myself
+	Addr string
 }
 
 // normalizeAddress returns addr with the passed default port appended if

@@ -9,6 +9,10 @@ Hub is a network hub to provide different services through one network address.
 package hub
 
 import (
+	"bytes"
+	"fmt"
+	"github.com/elastos/Elastos.ELA/p2p"
+	msg2 "github.com/elastos/Elastos.ELA/p2p/msg"
 	"io"
 	"net"
 	"sync/atomic"
@@ -40,10 +44,10 @@ type pipe struct {
 }
 
 // start creates the data pipeline between inlet and outlet.
-func (p *pipe) start() {
+func (p *pipe) start(connChan chan bool) {
 	// Create two way flow between inlet and outlet.
-	go p.flow(p.inlet, p.outlet)
-	go p.flow(p.outlet, p.inlet)
+	go p.flow(p.inlet, p.outlet, connChan)
+	go p.flow(p.outlet, p.inlet, connChan)
 }
 
 // isAllowedReadError returns whether or not the passed error is allowed without
@@ -63,7 +67,11 @@ func (p *pipe) isAllowedIOError(err error) bool {
 }
 
 // flow creates a one way flow between from and to.
-func (p *pipe) flow(from net.Conn, to net.Conn) {
+func (p *pipe) flow(from net.Conn, to net.Conn, connChan chan bool) {
+	defer func() {
+		connChan <- true
+	}()
+
 	buf := make([]byte, buffSize)
 
 	idleTimer := time.NewTimer(pipeTimeout)
@@ -105,8 +113,10 @@ out:
 
 // state stores the current connect peers and local service index.
 type state struct {
-	peers map[[16]byte]peer.PID
-	index map[uint32]net.Addr
+	peers         map[[16]byte]peer.PID
+	inboundPipes  map[peer.PID]struct{}
+	outboundPipes map[peer.PID]struct{}
+	index         map[uint32]net.Addr
 }
 
 // peerList represents the connect peers list.
@@ -124,29 +134,33 @@ type Hub struct {
 	admgr *addrmgr.AddrManager
 	queue chan interface{}
 	quit  chan struct{}
+	addr  string
 }
 
 // createPipe creates a pipe between inlet connection and the network address.
-func createPipe(inlet net.Conn, addr net.Addr) {
+func createPipe(inlet net.Conn, addr net.Addr, connChan chan bool) {
 	// Attempt to connect to target address.
 	outlet, err := net.Dial(addr.Network(), addr.String())
 	if err != nil {
 		// If the outlet address can not be connected, close the inlet
 		// connection to signal the pipe can not be created.
 		_ = inlet.Close()
+		connChan <- true
 		return
 	}
 
 	// Creates a new pipe between connection and service address.
 	p := pipe{inlet: inlet, outlet: outlet}
-	p.start()
+	p.start(connChan)
 }
 
 // connHandler is the main handler of the hub implementation.
 func (h *Hub) connHandler() {
 	state := &state{
-		peers: make(map[[16]byte]peer.PID),
-		index: make(map[uint32]net.Addr),
+		peers:         make(map[[16]byte]peer.PID),
+		inboundPipes:  make(map[peer.PID]struct{}),
+		outboundPipes: make(map[peer.PID]struct{}),
+		index:         make(map[uint32]net.Addr),
 	}
 
 out:
@@ -214,7 +228,13 @@ func (h *Hub) handleOutbound(state *state, conn *Conn) {
 	}
 
 	// Create the pipe between local service and target address.
-	go createPipe(conn, addr)
+	go func() {
+		state.outboundPipes[target] = struct{}{}
+		connChan := make(chan bool)
+		createPipe(conn, addr, connChan)
+		<-connChan
+		delete(state.outboundPipes, target)
+	}()
 }
 
 func (h *Hub) handleInbound(state *state, conn *Conn) {
@@ -234,7 +254,55 @@ func (h *Hub) handleInbound(state *state, conn *Conn) {
 	}
 
 	// Create the pipe between inbound connection and local service.
-	go createPipe(conn, addr)
+	go func() {
+		state.inboundPipes[conn.PID()] = struct{}{}
+		connChan := make(chan bool)
+		createPipe(conn, addr, connChan)
+
+		// if only in inbound pipes, not in outbound pipes, need to announce addr
+		// todo announce addr
+		err := h.announceDaddr(conn)
+		if err != nil {
+			log.Debugf("service announce daddr error:", err)
+			_ = conn.Close()
+			return
+		}
+
+		<-connChan
+		delete(state.inboundPipes, conn.PID())
+	}()
+}
+
+func (h *Hub) announceDaddr(w *Conn) error {
+	msg := msg2.Addr{AddrList: []*p2p.NetAddress{
+		// todo complete me add new message instead of msg2.Addr
+
+	}}
+
+	buf := new(bytes.Buffer)
+	if err := msg.Serialize(buf); err != nil {
+		return fmt.Errorf("serialize message failed %s", err.Error())
+	}
+	payload := buf.Bytes()
+
+	// Create message header
+	hdr, err := p2p.BuildHeader(w.magic, msg.CMD(), payload).Serialize()
+	if err != nil {
+		return fmt.Errorf("serialize message header failed %s", err.Error())
+	}
+
+	// Set write deadline
+	err = w.SetWriteDeadline(time.Now().Add(p2p.WriteMessageTimeOut))
+	if err != nil {
+		return fmt.Errorf("set write deadline failed %s", err.Error())
+	}
+
+	// Write header
+	if _, err = w.Write(hdr); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // Intercept intercepts the accepted connection and distribute the connection to
@@ -264,13 +332,14 @@ func (h *Hub) Intercept(conn net.Conn) net.Conn {
 
 // New creates a new Hub instance with the main network magic, arbiter PID and
 // DPOS network AddrManager.
-func New(magic uint32, pid [33]byte, admgr *addrmgr.AddrManager) *Hub {
+func New(magic uint32, pid [33]byte, admgr *addrmgr.AddrManager, addr string) *Hub {
 	h := Hub{
 		magic: magic,
 		pid:   pid,
 		admgr: admgr,
 		queue: make(chan interface{}, 125),
 		quit:  make(chan struct{}),
+		addr:  addr,
 	}
 
 	// Start the hub.

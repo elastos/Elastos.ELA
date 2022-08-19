@@ -352,7 +352,7 @@ func (p *Params) TestNet() *Params {
 	copy.CustomIDProposalStartHeight = 815060
 	copy.InactivePenalty = 0
 	copy.IllegalPenalty = 0
-	copy.DPoSV2IllegalPenalty = 20000000000 // todo complete me
+	copy.DPoSV2IllegalPenalty = 200 * 100000000
 	copy.NoCRCDPOSNodeHeight = 815060
 	copy.RandomCandidatePeriod = 36 * 10
 	copy.MaxInactiveRoundsOfRandomNode = 36 * 8
@@ -371,19 +371,19 @@ func (p *Params) TestNet() *Params {
 	copy.CRCProposalDraftDataStartHeight = 807000
 	copy.ProhibitTransferToDIDHeight = 807000
 	copy.DIDSideChainAddress = "XKUh4GLhFJiqAMTF6HyWQrV9pK9HcGUdfJ"
-	copy.DPoSV2StartHeight = 2000000 // todo complete me
-	copy.DPoSV2EffectiveVotes = 8000000000000
+	copy.DPoSV2StartHeight = 965800 + 720*3
+	copy.DPoSV2EffectiveVotes = 3000 * 100000000
 	copy.DPoSV2RewardAccumulateAddress = StakeRewardAddress
-	copy.StakePool = StakePoolAddress        // todo complete me
-	copy.DPoSV2DepositCoinMinLockTime = 7200 // todo complete me change to 216000
-	copy.DPoSV2MinVotesLockTime = 7200       // todo complete me
-	copy.DPoSV2MaxVotesLockTime = 720000     // todo complete me
+	copy.StakePool = StakePoolAddress
+	copy.DPoSV2DepositCoinMinLockTime = 7200 * 3
+	copy.DPoSV2MinVotesLockTime = 7200
+	copy.DPoSV2MaxVotesLockTime = 720000
 	copy.RealWithdrawSingleFee = 50000
-	copy.SchnorrStartHeight = 2000000 // todo complete me
+	copy.SchnorrStartHeight = 965800 + 720*10
 	copy.CRDPoSNodeHotFixHeight = 0
-	copy.CrossChainMonitorStartHeight = 2000000 // todo complete me
-	copy.CrossChainMonitorInterval = 10         // todo complete me
-	copy.CRClaimPeriod = 720 * 14               // todo complete me
+	copy.CrossChainMonitorStartHeight = 965800 + 720*3
+	copy.CrossChainMonitorInterval = 12
+	copy.CRClaimPeriod = 10080
 
 	return &copy
 }

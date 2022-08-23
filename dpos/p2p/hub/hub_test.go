@@ -108,7 +108,7 @@ func TestHub_Intercept(t *testing.T) {
 	rand.Read(someID[:])
 	var mainMagic, subMagic = 123123, 321321
 	var mainPort, subPort, remotePort, somePort = 8200, 8300, 8301, 2222
-	var hub = New(uint32(mainMagic), mainID, addrmgr.New("./"))
+	var hub = New(uint32(mainMagic), mainID, addrmgr.New("./"), "")
 	hub.queue <- peerList{mainID, subID, someID}
 	hub.admgr.AddAddress(subID, &net.TCPAddr{
 		IP:   net.ParseIP("localhost"),

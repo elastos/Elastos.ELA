@@ -493,10 +493,10 @@ func (r *Routes) handlePeersMsg(state *state, dposPeers []dp.PID, crPeers []dp.P
 	state.crPeers = newCRPeers
 
 	// Announce address into P2P network if we become arbiter.
-	if isDPoSArbiter && wasArbiter {
+	if isDPoSArbiter && !wasArbiter {
 		r.announceAddr()
 	}
-	if isCRArbiter && wasCRArbiter {
+	if isCRArbiter && !wasCRArbiter {
 		r.announceCRAddr()
 	}
 }

@@ -342,6 +342,7 @@ func (b *BlockChain) InitCheckpoint(interrupt <-chan struct{},
 				NextPeers:    nextArbiters,
 				CRPeers:      crArbiters})
 
+
 	case <-interrupt:
 	}
 	return err

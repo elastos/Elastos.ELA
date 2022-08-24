@@ -1091,7 +1091,7 @@ func NewSettings() *Settings {
 			if err != nil {
 				return errors.New("invalid stake pool address")
 			}
-			params.CRAssetsAddress = *stakePoolAddress
+			params.StakePool = *stakePoolAddress
 			return nil
 		},
 		CliSetter: func(i interface{}, params *config.Params,
@@ -1104,7 +1104,7 @@ func NewSettings() *Settings {
 			if err != nil {
 				return errors.New("invalid stake pool address")
 			}
-			params.CRAssetsAddress = *stakePoolAddress
+			params.StakePool = *stakePoolAddress
 			return nil
 		},
 		ConfigPath: "StakePool",

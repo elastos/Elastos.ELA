@@ -42,6 +42,10 @@ func (t *StakeTransaction) CheckTransactionOutput() error {
 		return errors.New("transaction has no outputs")
 	}
 
+	if len(t.Programs()) < 1 {
+		return errors.New("invalid programs count")
+	}
+
 	// check if output address is valid
 	for _, output := range t.Outputs() {
 		if output.AssetID != config.ELAAssetID {

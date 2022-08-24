@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2020 The Elastos Foundation
+// Copyright (c) 2017-2022 The Elastos Foundation
 // Use of this source code is governed by an MIT
 // license that can be found in the LICENSE file.
 //
@@ -562,4 +562,11 @@ func (tx *BaseTransaction) IsSmallTransfer(min common.Fixed64) bool {
 	}
 
 	return totalCrossAmt <= min
+}
+
+// VM IDataContainer interface
+func (tx *BaseTransaction) GetData() []byte {
+	buf := new(bytes.Buffer)
+	tx.SerializeUnsigned(buf)
+	return buf.Bytes()
 }

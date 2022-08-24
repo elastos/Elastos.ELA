@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2020 The Elastos Foundation
+// Copyright (c) 2017-2022 The Elastos Foundation
 // Use of this source code is governed by an MIT
 // license that can be found in the LICENSE file.
 //
@@ -10,7 +10,6 @@ import (
 	"container/list"
 	"errors"
 	"fmt"
-	"github.com/elastos/Elastos.ELA/dpos/p2p/peer"
 	"math/big"
 	"os"
 	"path/filepath"
@@ -31,6 +30,7 @@ import (
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	crstate "github.com/elastos/Elastos.ELA/cr/state"
 	"github.com/elastos/Elastos.ELA/database"
+	"github.com/elastos/Elastos.ELA/dpos/p2p/peer"
 	"github.com/elastos/Elastos.ELA/dpos/state"
 	"github.com/elastos/Elastos.ELA/events"
 	"github.com/elastos/Elastos.ELA/p2p/msg"

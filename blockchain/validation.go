@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2020 The Elastos Foundation
+// Copyright (c) 2017-2022 The Elastos Foundation
 // Use of this source code is governed by an MIT
 // license that can be found in the LICENSE file.
 //
@@ -8,6 +8,8 @@ package blockchain
 import (
 	"crypto/sha256"
 	"errors"
+	"github.com/elastos/Elastos.ELA/vm"
+	interfaces2 "github.com/elastos/Elastos.ELA/vm/interfaces"
 
 	"sort"
 
@@ -19,17 +21,29 @@ import (
 	"github.com/elastos/Elastos.ELA/crypto"
 )
 
-func RunPrograms(data []byte, programHashes []common.Uint168, programs []*Program) error {
-	if len(programHashes) != len(programs) {
-		return errors.New("the number of data hashes is different with number of programs")
+var GetDataContainer = func(programHash *common.Uint168, tx interfaces.Transaction) interfaces2.IDataContainer {
+	return tx
+}
+
+func RunPrograms(tx interfaces.Transaction, data []byte, hashes []common.Uint168, programs []*Program) error {
+	if tx == nil {
+		return errors.New("invalid data content nil transaction")
+	}
+	if len(hashes) != len(programs) {
+		return errors.New("number of data hashes is different with number of programs")
 	}
 
-	for i, program := range programs {
-		programHash := programHashes[i]
+	for i := 0; i < len(programs); i++ {
+		program := programs[i]
+		programHash := hashes[i]
+
+		codeHash := common.ToCodeHash(program.Code)
+
 		prefixType := contract.GetPrefixType(programHash)
 
-		// TODO: this implementation will be deprecated
-		if prefixType == contract.PrefixCrossChain {
+
+		switch prefixType {
+		case contract.PrefixCrossChain:
 			if contract.IsSchnorr(program.Code) {
 				if ok, err := checkSchnorrSignatures(*program, common.Sha256D(data[:])); !ok {
 					return errors.New("check schnorr signature failed:" + err.Error())
@@ -40,31 +54,50 @@ func RunPrograms(data []byte, programHashes []common.Uint168, programs []*Progra
 				}
 			}
 			continue
-		}
 
-		codeHash := common.ToCodeHash(program.Code)
-		ownerHash := programHash.ToCodeHash()
+		case contract.PrefixStandard, contract.PrefixDeposit:
+			if !hashes[i].ToCodeHash().IsEqual(*codeHash) {
+				return errors.New("data hash is different from corresponding program code")
+			}
 
-		if !ownerHash.IsEqual(*codeHash) {
-			return errors.New("the data hashes is different with corresponding program code")
-		}
-
-		if prefixType == contract.PrefixStandard || prefixType == contract.PrefixDeposit {
 			if contract.IsSchnorr(program.Code) {
 				if ok, err := checkSchnorrSignatures(*program, common.Sha256D(data[:])); !ok {
 					return errors.New("check schnorr signature failed:" + err.Error())
 				}
-			} else {
-				if err := CheckStandardSignature(*program, data); err != nil {
-					return err
-				}
+				continue
 			}
-		} else if prefixType == contract.PrefixMultiSig {
-			if err := CheckMultiSigSignatures(*program, data); err != nil {
-				return err
+
+		case contract.PrefixMultiSig:
+			if !hashes[i].ToCodeHash().IsEqual(*codeHash) {
+				return errors.New("data hash is different from corresponding program code")
 			}
-		} else {
+			//if err := CheckMultiSigSignatures(*program, data); err != nil {
+			//	return err
+			//}
+
+		default:
 			return errors.New("unknown signature type")
+		}
+
+		// check standard or multi signature
+		// execute program on VM
+		se := vm.NewExecutionEngine(GetDataContainer(&hashes[i], tx),
+			new(vm.CryptoECDsa), vm.MAXSTEPS, nil, nil)
+		se.LoadScript(programs[i].Code, false)
+		se.LoadScript(programs[i].Parameter, true)
+		se.Execute()
+
+		if se.GetState() != vm.HALT {
+			return errors.New("[VM] Finish State not equal to HALT")
+		}
+
+		if se.GetEvaluationStack().Count() != 1 {
+			return errors.New("[VM] Execute Engine Stack Count Error")
+		}
+
+		success := se.GetExecuteResult()
+		if !success {
+			return errors.New("[VM] Check Sig FALSE")
 		}
 	}
 

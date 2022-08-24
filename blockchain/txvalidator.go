@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2020 The Elastos Foundation
+// Copyright (c) 2017-2022 The Elastos Foundation
 // Use of this source code is governed by an MIT
 // license that can be found in the LICENSE file.
 //
@@ -707,7 +707,7 @@ func checkTransactionSignature(tx interfaces.Transaction, references map[*common
 	// sort the program hashes of owner and programs of the transaction
 	common.SortProgramHashByCodeHash(programHashes)
 	SortPrograms(tx.Programs())
-	return RunPrograms(buf.Bytes(), programHashes, tx.Programs())
+	return RunPrograms(tx, buf.Bytes(), programHashes, tx.Programs())
 }
 
 func CheckAmountPrecise(amount common.Fixed64, precision byte) bool {

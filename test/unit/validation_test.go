@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2020 The Elastos Foundation
+// Copyright (c) 2017-2022 The Elastos Foundation
 // Use of this source code is governed by an MIT
 // license that can be found in the LICENSE file.
 //
@@ -330,7 +330,7 @@ func TestSchnorrRunProgramsOrigin(t *testing.T) {
 		programHash := c.ToProgramHash()
 		hashes = append(hashes, *programHash)
 		programs = append(programs, &program.Program{Code: redeemscript, Parameter: sig[:]})
-		err = blockchain.RunPrograms(data, hashes[0:1], programs)
+		err = blockchain.RunPrograms(tx, data, hashes[0:1], programs)
 		assert.NoError(t, err, "[RunProgram] passed with 1 checksig program")
 
 	})
@@ -566,7 +566,7 @@ func TestSchnorrRunPrograms(t *testing.T) {
 	init(schnorrAccountNum)
 
 	for index := 0; index < schnorrAccountNum; index++ {
-		err = blockchain.RunPrograms(data, hashes[index:index+1], programs[index:index+1])
+		err = blockchain.RunPrograms(tx, data, hashes[index:index+1], programs[index:index+1])
 		if err != nil {
 			fmt.Printf("AggregateSignatures index %d fail err %s \n", index, err.Error())
 		} else {
@@ -618,7 +618,7 @@ func TestRunPrograms(t *testing.T) {
 			break
 		}
 	}
-	err = blockchain.RunPrograms(data, hashes[index:index+1], programs[index:index+1])
+	err = blockchain.RunPrograms(tx, data, hashes[index:index+1], programs[index:index+1])
 	assert.NoError(t, err, "[RunProgram] passed with 1 checksig program")
 
 	// 1 loop multisig
@@ -629,25 +629,25 @@ func TestRunPrograms(t *testing.T) {
 			break
 		}
 	}
-	err = blockchain.RunPrograms(data, hashes[index:index+1], programs[index:index+1])
+	err = blockchain.RunPrograms(tx, data, hashes[index:index+1], programs[index:index+1])
 	assert.NoError(t, err, "[RunProgram] passed with 1 multisig program")
 
 	// multiple programs
-	err = blockchain.RunPrograms(data, hashes, programs)
+	err = blockchain.RunPrograms(tx, data, hashes, programs)
 	assert.NoError(t, err, "[RunProgram] passed with multiple programs")
 
 	// hashes count not equal to programs count
 	init()
 	removeIndex := math.Intn(num)
 	hashes = append(hashes[:removeIndex], hashes[removeIndex+1:]...)
-	err = blockchain.RunPrograms(data, hashes, programs)
+	err = blockchain.RunPrograms(tx, data, hashes, programs)
 	assert.Error(t, err, "[RunProgram] passed with unmathed hashes")
 	assert.Equal(t, "the number of data hashes is different with number of programs", err.Error())
 
 	// With no programs
 	init()
 	programs = []*program.Program{}
-	err = blockchain.RunPrograms(data, hashes, programs)
+	err = blockchain.RunPrograms(tx, data, hashes, programs)
 	assert.Error(t, err, "[RunProgram] passed with no programs")
 	assert.Equal(t, "the number of data hashes is different with number of programs", err.Error())
 
@@ -656,7 +656,7 @@ func TestRunPrograms(t *testing.T) {
 	for i := 0; i < num; i++ {
 		rand.Read(hashes[math.Intn(num)][:])
 	}
-	err = blockchain.RunPrograms(data, hashes, programs)
+	err = blockchain.RunPrograms(tx, data, hashes, programs)
 	assert.Error(t, err, "[RunProgram] passed with unmathed hashes")
 	assert.Equal(t, "the data hashes is different with corresponding program code", err.Error())
 
@@ -664,7 +664,7 @@ func TestRunPrograms(t *testing.T) {
 	init()
 	common.SortProgramHashByCodeHash(hashes)
 	sort.Sort(sort.Reverse(blockchain.ByHash(programs)))
-	err = blockchain.RunPrograms(data, hashes, programs)
+	err = blockchain.RunPrograms(tx, data, hashes, programs)
 	assert.Error(t, err, "[RunProgram] passed with disordered hashes")
 	assert.Equal(t, "the data hashes is different with corresponding program code", err.Error())
 
@@ -673,7 +673,7 @@ func TestRunPrograms(t *testing.T) {
 	for i := 0; i < num; i++ {
 		programs[math.Intn(num)].Code = nil
 	}
-	err = blockchain.RunPrograms(data, hashes, programs)
+	err = blockchain.RunPrograms(tx, data, hashes, programs)
 	assert.Error(t, err, "[RunProgram] passed with random no code")
 	assert.Equal(t, "the data hashes is different with corresponding program code", err.Error())
 
@@ -683,7 +683,7 @@ func TestRunPrograms(t *testing.T) {
 		index := math.Intn(num)
 		programs[index].Parameter = nil
 	}
-	err = blockchain.RunPrograms(data, hashes, programs)
+	err = blockchain.RunPrograms(tx, data, hashes, programs)
 	assert.Error(t, err, "[RunProgram] passed with random no parameter")
 }
 

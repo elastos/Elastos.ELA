@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -157,6 +158,7 @@ type state struct {
 	inboundPipes  map[peer.PID]struct{}
 	outboundPipes map[peer.PID]struct{}
 	index         map[uint32]net.Addr
+	lock          sync.RWMutex
 }
 
 // peerList represents the connect peers list.
@@ -271,25 +273,32 @@ func (h *Hub) handleOutbound(state *state, conn *Conn) {
 
 	// Create the pipe between local service and target address.
 	go func() {
+		state.lock.Lock()
 		state.outboundPipes[target] = struct{}{}
+		state.lock.Unlock()
 		connChan := make(chan bool)
 		remoteConn := createPipe(h.admgr, conn, addr, connChan)
 
 		// if only in outbound pipes, not in inbound pipes, need to announce addr
 		go func() {
 			time.Sleep(time.Second * 10)
+			state.lock.RLock()
 			if _, ok := state.inboundPipes[target]; !ok {
 				err := h.announceDaddr(remoteConn, conn)
 				if err != nil {
+					state.lock.RUnlock()
 					log.Debugf("service announce daddr error:", err)
 					_ = conn.Close()
 					return
 				}
 			}
+			state.lock.RUnlock()
 		}()
 
 		<-connChan
+		state.lock.Lock()
 		delete(state.outboundPipes, target)
+		state.lock.Unlock()
 	}()
 }
 
@@ -311,11 +320,15 @@ func (h *Hub) handleInbound(state *state, conn *Conn) {
 
 	// Create the pipe between inbound connection and local service.
 	go func() {
+		state.lock.Lock()
 		state.inboundPipes[conn.PID()] = struct{}{}
+		state.lock.Unlock()
 		connChan := make(chan bool)
 		createPipe(h.admgr, conn, addr, connChan)
 		<-connChan
+		state.lock.Lock()
 		delete(state.inboundPipes, conn.PID())
+		state.lock.Unlock()
 	}()
 }
 

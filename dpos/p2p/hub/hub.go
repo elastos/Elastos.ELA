@@ -276,14 +276,17 @@ func (h *Hub) handleOutbound(state *state, conn *Conn) {
 		remoteConn := createPipe(h.admgr, conn, addr, connChan)
 
 		// if only in outbound pipes, not in inbound pipes, need to announce addr
-		if _, ok := state.inboundPipes[target]; !ok {
-			err := h.announceDaddr(remoteConn, conn)
-			if err != nil {
-				log.Debugf("service announce daddr error:", err)
-				_ = conn.Close()
-				return
+		go func() {
+			time.Sleep(time.Second * 10)
+			if _, ok := state.inboundPipes[target]; !ok {
+				err := h.announceDaddr(remoteConn, conn)
+				if err != nil {
+					log.Debugf("service announce daddr error:", err)
+					_ = conn.Close()
+					return
+				}
 			}
-		}
+		}()
 
 		<-connChan
 		delete(state.outboundPipes, target)

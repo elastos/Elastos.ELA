@@ -296,6 +296,11 @@ out:
 					continue
 				}
 
+				// Do not create address when in DPoS peers
+				if _, ok := state.dposPeers[pid]; ok {
+					continue
+				}
+
 				pubKey, err := crypto.DecodePoint(pid[:])
 				if err != nil {
 					continue

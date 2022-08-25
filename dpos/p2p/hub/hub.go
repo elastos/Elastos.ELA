@@ -72,16 +72,21 @@ func (p *pipe) flow(manager *addrmgr.AddrManager, from net.Conn, to net.Conn, co
 		connChan <- true
 	}()
 
-	//buf := make([]byte, buffSize)
-
+	buf := make([]byte, buffSize)
 	idleTimer := time.NewTimer(pipeTimeout)
 	defer idleTimer.Stop()
 
 	ioFunc := func() error {
-		//n, err := from.Read(buf)
-		//if err != nil {
-		//	return err
-		//}
+		if fc, ok := from.(*Conn); ok {
+			if fc.buf != nil && len(fc.buf.Bytes()) != 0 {
+				n, err := from.Read(buf)
+				if err != nil {
+					return err
+				}
+				_, err = to.Write(buf[:n])
+				return err
+			}
+		}
 
 		// Read message header
 		var headerBytes [p2p.HeaderSize]byte

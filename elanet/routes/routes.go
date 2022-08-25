@@ -111,9 +111,10 @@ type Routes struct {
 	sign func([]byte) []byte
 
 	// The following variables must only be used atomically.
-	started int32
-	stopped int32
-	waiting int32
+	started   int32
+	stopped   int32
+	waiting   int32
+	crWaiting int32
 
 	addrMtx   sync.RWMutex
 	addrIndex map[dp.PID]map[dp.PID]common.Uint256
@@ -263,7 +264,7 @@ out:
 			if !ok {
 				// Waiting status must reset here or the announce will never
 				// work again.
-				atomic.StoreInt32(&r.waiting, 0)
+				atomic.StoreInt32(&r.crWaiting, 0)
 				continue
 			}
 
@@ -287,7 +288,7 @@ out:
 			lastCRAnnounce = now
 
 			// Reset waiting state to 0(false).
-			atomic.StoreInt32(&r.waiting, 0)
+			atomic.StoreInt32(&r.crWaiting, 0)
 
 			for pid := range state.crPeers {
 				// Do not create address for self.
@@ -386,7 +387,7 @@ func (r *Routes) announceCRAddr() {
 
 	// Refuse new announce if a previous announce is waiting,
 	// this is to reduce unnecessary announce.
-	if !atomic.CompareAndSwapInt32(&r.waiting, 0, 1) {
+	if !atomic.CompareAndSwapInt32(&r.crWaiting, 0, 1) {
 		return
 	}
 	r.crAnnounce <- struct{}{}

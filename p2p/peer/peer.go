@@ -8,6 +8,7 @@ package peer
 import (
 	"bytes"
 	"container/list"
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"github.com/elastos/Elastos.ELA/core/types/functions"
@@ -1109,7 +1110,9 @@ func (p *Peer) localVersionMsg() (*msg.Version, error) {
 	// Generate a unique nonce for this peer so self connections can be
 	// detected.  This is accomplished by adding it to a size-limited map of
 	// recently seen nonces.
-	nonce := p.cfg.GetVersionNonce()
+
+	var nonce [8]byte
+	rand.Read(nonce[:])
 
 	var m *msg.Version
 	bestHeight := p.cfg.BestHeight()
@@ -1122,7 +1125,7 @@ func (p *Peer) localVersionMsg() (*msg.Version, error) {
 	}
 	// Version message.
 	m = msg.NewVersion(ver, p.cfg.DefaultPort,
-		p.cfg.Services, nonce, bestHeight, p.cfg.DisableRelayTx, nodeVersion)
+		p.cfg.Services, binary.BigEndian.Uint64(nonce[:]), bestHeight, p.cfg.DisableRelayTx, nodeVersion)
 
 	return m, nil
 }

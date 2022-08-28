@@ -59,6 +59,7 @@ func StartRPCServer() {
 	mainMux["getrawtransaction"] = GetRawTransaction
 	mainMux["getneighbors"] = GetNeighbors
 	mainMux["getnodestate"] = GetNodeState
+	mainMux["getsupply"] = GetSupply
 	mainMux["sendrawtransaction"] = SendRawTransaction
 	mainMux["getarbitratorgroupbyheight"] = GetArbitratorGroupByHeight
 	mainMux["getbestblockhash"] = GetBestBlockHash
@@ -92,6 +93,9 @@ func StartRPCServer() {
 	mainMux["listcrcandidates"] = ListCRCandidates
 	mainMux["listcurrentcrs"] = ListCurrentCRs
 	mainMux["listnextcrs"] = ListNextCRs
+	mainMux["listcrterms"] = ListCRTerms
+	mainMux["listcrmembers"] = ListCRMembers
+	mainMux["getcrmember"] = GetCRMember
 
 	mainMux["listcrproposalbasestate"] = ListCRProposalBaseState
 	mainMux["getcrproposalstate"] = GetCRProposalState
@@ -100,6 +104,7 @@ func StartRPCServer() {
 	mainMux["getsecretarygeneral"] = GetSecretaryGeneral
 	mainMux["getcrrelatedstage"] = GetCRRelatedStage
 	mainMux["getcommitteecanuseamount"] = GetCommitteeCanUseAmount
+	mainMux["getcommitteeassetinfo"] = GetCommitteeAssetInfo
 
 	// vote interfaces
 	mainMux["listproducers"] = ListProducers
@@ -197,8 +202,6 @@ func Handle(w http.ResponseWriter, r *http.Request) {
 
 	err = json.Unmarshal(body, &request)
 	if err != nil {
-		log.Info("JSON-RPC request parsing error: ", err, "Try to unmarshal batches requests")
-
 		errArray := json.Unmarshal(body, &requestArray)
 		if errArray != nil {
 			log.Error("JSON-RPC request parsing error: ", errArray)

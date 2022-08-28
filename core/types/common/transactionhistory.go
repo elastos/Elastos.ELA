@@ -16,6 +16,8 @@ const (
 	CRC         VoteCategory = 0x02
 	Proposal    VoteCategory = 0x04
 	Impeachment VoteCategory = 0x08
+	DPoSV2      VoteCategory = 0x10
+	Cancel      VoteCategory = 0x80
 )
 
 var TxTypeEnum = map[TxType]string{

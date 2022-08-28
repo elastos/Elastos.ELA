@@ -461,6 +461,11 @@ func getDID(code []byte) *common.Uint168 {
 	return ct1.ToProgramHash()
 }
 
+func getCID(code []byte) *common.Uint168 {
+	ct1, _ := contract.CreateCRIDContractByCode(code)
+	return ct1.ToProgramHash()
+}
+
 func generateDIDAddress(c *cli.Context) error {
 	if c.NArg() < 1 {
 		cmdcom.PrintErrorMsg("Missing argument. Standard public key expected.")
@@ -492,11 +497,17 @@ func generateDIDAddress(c *cli.Context) error {
 	}
 
 	did := getDID(code)
+	cid := getCID(code)
 	didAddress, err := did.ToAddress()
 	if err != nil {
 		return err
 	}
-	fmt.Println(didAddress)
+	cidAddress, err := cid.ToAddress()
+	if err != nil {
+		return err
+	}
+	fmt.Println("DID:", didAddress)
+	fmt.Println("CID:", cidAddress)
 
 	return nil
 }

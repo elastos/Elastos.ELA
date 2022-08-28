@@ -571,7 +571,25 @@ func (s *State) getExistCIDByID(id common.Uint168) (*common.Uint168, bool) {
 	return nil, false
 }
 
-// getExistCIDByID return existing candidate by the given public key.
+// getExistDIDByID return existing DID by the given CID or DID.
+func (s *State) getExistDIDByID(id common.Uint168) (*common.Uint168, bool) {
+	for k, v := range s.CodeCIDMap {
+		code, err := common.HexStringToBytes(k)
+		if err != nil {
+			return nil, false
+		}
+		did, err := GetDIDByCode(code)
+		if err != nil {
+			return nil, false
+		}
+		if did.IsEqual(id) || v.IsEqual(id) {
+			return did, true
+		}
+	}
+	return nil, false
+}
+
+// getCandidateByPublicKey return existing candidate by the given public key.
 func (s *State) getCandidateByPublicKey(publicKey []byte) *Candidate {
 	cid, err := getCIDByPublicKey(publicKey)
 	if err != nil {

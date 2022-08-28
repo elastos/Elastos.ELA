@@ -141,3 +141,98 @@ func (a *CRInfo) DeserializeUnsigned(r io.Reader, version byte) error {
 func (a *CRInfo) GetCodeHash() common.Uint160 {
 	return *common.ToCodeHash(a.Code)
 }
+
+// CRMemberInfo defines the information of CR Member
+type CRMemberInfo struct {
+	Code        []byte
+	CID         common.Uint168
+	DID         common.Uint168
+	DepositHash common.Uint168
+	NickName    string
+	Url         string
+	Location    uint64
+}
+
+func (c *CRMemberInfo) Data() []byte {
+	buf := new(bytes.Buffer)
+	if err := c.Serialize(buf); err != nil {
+		return []byte{0}
+	}
+	return buf.Bytes()
+}
+
+func (c *CRMemberInfo) Serialize(w io.Writer) error {
+	err := common.WriteVarBytes(w, c.Code)
+	if err != nil {
+		return errors.New("[CRMemberInfo], Code serialize failed")
+	}
+
+	if err = c.CID.Serialize(w); err != nil {
+		return errors.New("[CRMemberInfo], CID serialize failed")
+	}
+
+	if err = c.DID.Serialize(w); err != nil {
+		return errors.New("[CRMemberInfo], DID serialize failed")
+	}
+
+	if err = c.DepositHash.Serialize(w); err != nil {
+		return errors.New("[CRMemberInfo], DepositHash serialize failed")
+	}
+
+	err = common.WriteVarString(w, c.NickName)
+	if err != nil {
+		return errors.New("[CRMemberInfo], nickname serialize failed")
+	}
+
+	err = common.WriteVarString(w, c.Url)
+	if err != nil {
+		return errors.New("[CRMemberInfo], url serialize failed")
+	}
+
+	err = common.WriteUint64(w, c.Location)
+	if err != nil {
+		return errors.New("[CRMemberInfo], location serialize failed")
+	}
+
+	return nil
+}
+
+func (c *CRMemberInfo) Deserialize(r io.Reader) error {
+	var err error
+	c.Code, err = common.ReadVarBytes(r, crypto.MaxMultiSignCodeLength, "code")
+	if err != nil {
+		return errors.New("[CRMemberInfo], Code deserialize failed")
+	}
+
+	if err = c.CID.Deserialize(r); err != nil {
+		return errors.New("[CRMemberInfo], CID deserialize failed")
+	}
+
+	if err = c.DID.Deserialize(r); err != nil {
+		return errors.New("[CRMemberInfo], DID deserialize failed")
+	}
+
+	if err = c.DepositHash.Deserialize(r); err != nil {
+		return errors.New("[CRMemberInfo], DepositHash deserialize failed")
+	}
+
+	c.NickName, err = common.ReadVarString(r)
+	if err != nil {
+		return errors.New("[CRMemberInfo], nickName deserialize failed")
+	}
+
+	c.Url, err = common.ReadVarString(r)
+	if err != nil {
+		return errors.New("[CRMemberInfo], Url deserialize failed")
+	}
+
+	c.Location, err = common.ReadUint64(r)
+	if err != nil {
+		return errors.New("[CRMemberInfo], location deserialize failed")
+	}
+
+	return nil
+}
+func (c *CRMemberInfo) GetCodeHash() common.Uint160 {
+	return *common.ToCodeHash(c.Code)
+}

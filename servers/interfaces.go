@@ -231,6 +231,26 @@ func GetNodeState(param Params) map[string]interface{} {
 	})
 }
 
+func GetSupply(param Params) map[string]interface{} {
+	crCommittee := Chain.GetCRCommittee()
+	burnAmount := crCommittee.DestroyedAmount
+	crAssetBalance := crCommittee.CRCFoundationBalance
+	crCouncilExpenses := crCommittee.CRCCommitteeBalance
+
+	height := Chain.GetHeight()
+	circulationAmount := common.Fixed64(config.OriginIssuanceAmount) +
+		crCommittee.CalculateTotalELAByHeight(height) - burnAmount
+	availableSupply := circulationAmount - crAssetBalance - crCouncilExpenses
+
+	return ResponsePack(Success, SupplyInfo{
+		TotaySupply:       circulationAmount.String(),
+		AvailableSupply:   availableSupply.String(),
+		BurnAmount:        burnAmount.String(),
+		CRAssets:          crAssetBalance.String(),
+		CRCouncilExpenses: crCouncilExpenses.String(),
+	})
+}
+
 func SetLogLevel(param Params) map[string]interface{} {
 	if rtn := checkRPCServiceLevel(config.ConfigurationPermitted); rtn != nil {
 		return rtn
@@ -1236,6 +1256,7 @@ func SendRawTransaction(param Params) map[string]interface{} {
 	if !ok {
 		return ResponsePack(InvalidParams, "need a string parameter named data")
 	}
+	log.Info("RawTx Received by SendRawTransaction:", str)
 	bys, err := common.HexStringToBytes(str)
 	if err != nil {
 		return ResponsePack(InvalidParams, "hex string to bytes error")
@@ -2126,6 +2147,7 @@ type RPCProducerInfo struct {
 	Votes          string `json:"votes"`
 	DPoSV2Votes    string `json:"dposv2votes"`
 	State          string `json:"state"`
+	OnDuty         string `json:"onduty"`
 	Identity       string `json:"identity"`
 	RegisterHeight uint32 `json:"registerheight"`
 	CancelHeight   uint32 `json:"cancelheight"`
@@ -2137,6 +2159,7 @@ type RPCProducerInfo struct {
 // a group producer info include TotalDPoSV1Votes and producer count
 type RPCProducersInfo struct {
 	ProducerInfoSlice []RPCProducerInfo `json:"producers"`
+	TotalVotes        string            `json:"totalvotes"`
 	TotalDPoSV1Votes  string            `json:"totaldposv1votes"`
 	TotalDPoSV2Votes  string            `json:"totaldposv2votes"`
 	TotalCounts       uint64            `json:"totalcounts"`
@@ -2173,13 +2196,24 @@ type RPCCommitteeCanUseAmount struct {
 	CommitteeCanUseAmount string `json:"committeecanuseamount"`
 }
 
+type RPCCommitteeAssetInfo struct {
+	CommitteeAssetBalance    string `json:"CommitteeAssetBalance"`
+	CommitteeExpensesBalance string `json:"CommitteeExpensesBalance"`
+	CommitteeCanUseAmount    string `json:"CommitteeCanUseAmount"`
+	MaxProposalBudgetAmount  string `json:"MaxProposalBudgetAmount"`
+}
+
 type RPCCRRelatedStage struct {
-	OnDuty            bool   `json:"onduty"`
-	OnDutyStartHeight uint32 `json:"ondutystartheight"`
-	OnDutyEndHeight   uint32 `json:"ondutyendheight"`
-	InVoting          bool   `json:"invoting"`
-	VotingStartHeight uint32 `json:"votingstartheight"`
-	VotingEndHeight   uint32 `json:"votingendheight"`
+	OnDuty              bool   `json:"onduty"`
+	OnDutyStartHeight   uint32 `json:"ondutystartheight"`
+	OnDutyEndHeight     uint32 `json:"ondutyendheight"`
+	CurrentSession      uint32 `json:"currentsession"`
+	InVoting            bool   `json:"invoting"`
+	VotingStartHeight   uint32 `json:"votingstartheight"`
+	VotingEndHeight     uint32 `json:"votingendheight"`
+	InClaiming          bool   `json:"inClaiming"`
+	ClaimingStartHeight uint32 `json:"claimingStartHeight"`
+	ClaimingEndHeight   uint32 `json:"claimingEndHeight"`
 }
 
 // single cr member info
@@ -2205,9 +2239,71 @@ type RPCCRMembersInfo struct {
 	TotalCounts       uint64            `json:"totalcounts"`
 }
 
+type RPCCRCouncilMemberInfo struct {
+	Code           string `json:"code"`
+	CID            string `json:"cid"`
+	DID            string `json:"did"`
+	NickName       string `json:"nickname"`
+	Url            string `json:"url"`
+	Location       uint64 `json:"location"`
+	DepositAddress string `json:"depositaddress"`
+	Index          uint64 `json:"index"`
+}
+
+//a group cr member info  include cr member count
+type RPCCRCouncilMembersInfo struct {
+	CRMemberInfoSlice []RPCCRCouncilMemberInfo `json:"crmembersinfo"`
+	TotalCounts       uint64                   `json:"totalcounts"`
+}
+
+type RPCCRMemberPerfornamce struct {
+	Title           string `json:"title"`
+	ProposalHash    string `json:"proposalHash"`
+	ProposalState   string `json:"proposalState"`
+	Opinion         string `json:"opinion"`
+	OpinionHash     string `json:"opinionHash"`
+	OpinionMessage  string `json:"opinionMessage"`
+	ReviewHeight    uint32 `json:"reviewHeight"`
+	ReviewTimestamp uint32 `json:"reviewTimestamp"`
+}
+
+// the CR Council Member's information including the performance
+type RPCCRMemberInfoV2 struct {
+	DID                     string                   `json:"did"`
+	CID                     string                   `json:"cid"`
+	Code                    string                   `json:"code"`
+	NickName                string                   `json:"nickname"`
+	Url                     string                   `json:"url"`
+	Location                uint64                   `json:"location"`
+	DepositAddress          string                   `json:"depositaddress"`
+	DepositAmount           string                   `json:"depositamout"`
+	DPOSPublicKey           string                   `json:"dpospublickey"`
+	ImpeachmentVotes        string                   `json:"impeachmentvotes"`
+	ImpeachmentThroughVotes string                   `json:"impeachmentThroughVotes"`
+	Penalty                 string                   `json:"penalty"`
+	Term                    []uint32                 `json:"term"`
+	Performance             []RPCCRMemberPerfornamce `json:"performance"`
+	State                   string                   `json:"state"`
+}
+
+//single CR Term Info
+type RPCCRTermInfo struct {
+	Index       uint64 `json:"index"`
+	State       string `json:"state"`
+	StartHeight uint32 `json:"startHeight"`
+	EndHeight   uint32 `json:"endHeight"`
+}
+
+//a group CR Term Info  include CR term count
+type RPCCRTermsInfo struct {
+	CRTermInfoSlice []RPCCRTermInfo `json:"crtermsinfo"`
+	TotalCounts     uint64          `json:"totalcounts"`
+}
+
 type RPCProposalBaseState struct {
 	Status             string            `json:"status"`
 	ProposalHash       string            `json:"proposalhash"`
+	ProposalTitle      string            `json:"proposalTitle"`
 	ProposalType       string            `json:"proposalType"`
 	TxHash             string            `json:"txhash"`
 	CRVotes            map[string]string `json:"crvotes"`
@@ -2350,9 +2446,10 @@ type RPCDposV2RewardInfo struct {
 }
 
 type RPCDPosV2Info struct {
-	ConsensusAlgorithm string `json:"consensusalgorithm"`
-	Height             uint32 `json:"height"`
-	DPoSV2ActiveHeight uint32 `json:"dposv2activeheight"`
+	ConsensusAlgorithm       string `json:"consensusalgorithm"`
+	Height                   uint32 `json:"height"`
+	DPoSV2ActiveHeight       uint32 `json:"dposv2activeheight"`
+	DPoSV2TransitStartHeight uint32 `json:"dposv2transitstartheight"`
 }
 
 func DposV2RewardInfo(param Params) map[string]interface{} {
@@ -2403,10 +2500,20 @@ func DposV2RewardInfo(param Params) map[string]interface{} {
 }
 
 func GetDPosV2Info(param Params) map[string]interface{} {
+	consensusAlgorithm := Chain.GetState().GetConsensusAlgorithm().String()
+	currentHeight := Store.GetHeight()
+	dposV2ActiveHeight := Chain.GetState().DPoSV2ActiveHeight
+
+	if currentHeight >= dposV2ActiveHeight {
+		consensusAlgorithm = "DPoS 2.0"
+	}
+	dposV2TransitStartHeight := config.Parameters.DPoSV2StartHeight
+
 	result := &RPCDPosV2Info{
-		ConsensusAlgorithm: Chain.GetState().GetConsensusAlgorithm().String(),
-		Height:             Store.GetHeight(),
-		DPoSV2ActiveHeight: Chain.GetState().DPoSV2ActiveHeight,
+		ConsensusAlgorithm:       consensusAlgorithm,
+		Height:                   currentHeight,
+		DPoSV2ActiveHeight:       dposV2ActiveHeight,
+		DPoSV2TransitStartHeight: dposV2TransitStartHeight,
 	}
 	return ResponsePack(Success, result)
 }
@@ -2423,6 +2530,12 @@ func ListProducers(param Params) map[string]interface{} {
 	s, ok := param.String("state")
 	if ok {
 		s = strings.ToLower(s)
+	}
+	identity, ok := param.String("identity")
+	if ok {
+		identity = strings.ToUpper(identity)
+	} else {
+		identity = "ALL"
 	}
 	var producers []*state.Producer
 	switch s {
@@ -2447,19 +2560,70 @@ func ListProducers(param Params) map[string]interface{} {
 		producers = Chain.GetState().GetProducers()
 	}
 
-	sort.Slice(producers, func(i, j int) bool {
-		if producers[i].Votes() == producers[j].Votes() {
-			return bytes.Compare(producers[i].NodePublicKey(),
-				producers[j].NodePublicKey()) < 0
+	// Filter Producers by identity
+	switch identity {
+	case "V1":
+		i := 0
+		for _, p := range producers {
+			if strings.Contains(p.Identity().String(), "V1") {
+				producers[i] = p
+				i++
+			}
 		}
-		return producers[i].Votes() > producers[j].Votes()
-	})
+		producers = producers[:i]
+		sort.Slice(producers, func(i, j int) bool {
+			if producers[i].Votes() == producers[j].Votes() {
+				return bytes.Compare(producers[i].NodePublicKey(),
+					producers[j].NodePublicKey()) < 0
+			}
+			return producers[i].Votes() > producers[j].Votes()
+		})
+	case "V2":
+		i := 0
+		for _, p := range producers {
+			if strings.Contains(p.Identity().String(), "V2") {
+				producers[i] = p
+				i++
+			}
+		}
+		producers = producers[:i]
+		sort.Slice(producers, func(i, j int) bool {
+			if producers[i].GetTotalDPoSV2VoteRights() == producers[j].GetTotalDPoSV2VoteRights() {
+				return bytes.Compare(producers[i].NodePublicKey(),
+					producers[j].NodePublicKey()) < 0
+			}
+			return producers[i].GetTotalDPoSV2VoteRights() > producers[j].GetTotalDPoSV2VoteRights()
+		})
+	case "ALL":
+		sort.Slice(producers, func(i, j int) bool {
+			if producers[i].GetTotalDPoSV2VoteRights() == producers[j].GetTotalDPoSV2VoteRights() {
+				return bytes.Compare(producers[i].NodePublicKey(),
+					producers[j].NodePublicKey()) < 0
+			}
+			return producers[i].GetTotalDPoSV2VoteRights() > producers[j].GetTotalDPoSV2VoteRights()
+		})
+	}
 
 	var producerInfoSlice []RPCProducerInfo
 	var totalVotes, totalDPoSV2Votes common.Fixed64
 	for i, p := range producers {
 		totalVotes += p.Votes()
-		totalDPoSV2Votes += common.Fixed64(p.GetTotalDPoSV2VoteRights())
+		dposV2Votes := common.Fixed64(p.GetTotalDPoSV2VoteRights())
+
+		totalDPoSV2Votes += dposV2Votes
+		var onDutyState string
+		switch p.State() {
+		case state.Active:
+			if dposV2Votes < ChainParams.DPoSV2EffectiveVotes {
+				onDutyState = "Candidate"
+			} else {
+				onDutyState = "Valid"
+			}
+		default:
+			onDutyState = "Invalid"
+
+		}
+
 		producerInfo := RPCProducerInfo{
 			OwnerPublicKey: hex.EncodeToString(p.Info().OwnerKey),
 			NodePublicKey:  hex.EncodeToString(p.Info().NodePublicKey),
@@ -2469,8 +2633,9 @@ func ListProducers(param Params) map[string]interface{} {
 			StakeUntil:     p.Info().StakeUntil,
 			Active:         p.State() == state.Active,
 			Votes:          p.Votes().String(),
-			DPoSV2Votes:    common.Fixed64(p.GetTotalDPoSV2VoteRights()).String(),
+			DPoSV2Votes:    dposV2Votes.String(),
 			State:          p.State().String(),
+			OnDuty:         onDutyState,
 			Identity:       p.Identity().String(),
 			RegisterHeight: p.RegisterHeight(),
 			CancelHeight:   p.CancelHeight(),
@@ -2498,6 +2663,7 @@ func ListProducers(param Params) map[string]interface{} {
 
 	result := &RPCProducersInfo{
 		ProducerInfoSlice: rsProducerInfoSlice,
+		TotalVotes:        totalVotes.String(),
 		TotalDPoSV1Votes:  totalVotes.String(),
 		TotalDPoSV2Votes:  totalDPoSV2Votes.String(),
 		TotalCounts:       uint64(count),
@@ -2524,33 +2690,62 @@ func GetCommitteeCanUseAmount(param Params) map[string]interface{} {
 	return ResponsePack(Success, result)
 }
 
+func GetCommitteeAssetInfo(param Params) map[string]interface{} {
+	crCommittee := Chain.GetCRCommittee()
+	maxProposalBudgetAmount := (crCommittee.CRCCurrentStageAmount -
+		crCommittee.CommitteeUsedAmount) * blockchain.CRCProposalBudgetsPercentage / 100
+
+	result := &RPCCommitteeAssetInfo{
+		CommitteeAssetBalance:    crCommittee.CRCFoundationBalance.String(),
+		CommitteeExpensesBalance: crCommittee.CRCCommitteeBalance.String(),
+		CommitteeCanUseAmount:    crCommittee.GetCommitteeCanUseAmount().String(),
+		MaxProposalBudgetAmount:  maxProposalBudgetAmount.String(),
+	}
+	return ResponsePack(Success, result)
+}
+
 func GetCRRelatedStage(param Params) map[string]interface{} {
 	cm := Chain.GetCRCommittee()
 	isOnDuty := cm.IsInElectionPeriod()
-	isInVoting := cm.IsInVotingPeriod(Chain.GetHeight())
-	var ondutyStartHeight uint32
-	var ondutyEndHeight uint32
+	currentHeight := Chain.GetHeight()
+	isInVoting := cm.IsInVotingPeriod(currentHeight)
+
+	var ondutyStartHeight, ondutyEndHeight uint32
+	var currentSession uint64
 	if isOnDuty {
 		ondutyStartHeight = cm.GetCROnDutyStartHeight()
 		ondutyEndHeight = ondutyStartHeight + cm.GetCROnDutyPeriod()
 	}
-	var votingStartHeight uint32
-	var votingEndHeight uint32
+	var votingStartHeight, votingEndHeight uint32
 	if isInVoting {
 		votingStartHeight = cm.GetCRVotingStartHeight()
 		votingEndHeight = votingStartHeight + cm.GetCRVotingPeriod()
 	} else {
-		votingStartHeight = ondutyEndHeight - cm.GetCRVotingPeriod()
-		votingEndHeight = ondutyEndHeight
+		votingStartHeight = cm.GetNextVotingStartHeight(currentHeight)
+		votingEndHeight = votingStartHeight + ChainParams.CRConfiguration.ProposalCRVotingPeriod
 	}
 
+	claimingStartHeight := votingEndHeight + 1
+	//claimingEndHeight := claimingStartHeight + ChainParams.CRClaimPeriod
+	claimingEndHeight := claimingStartHeight + ChainParams.CRConfiguration.CRClaimPeriod
+	isInClaiming := false
+	if claimingStartHeight <= currentHeight && currentHeight <= claimingEndHeight {
+		isInClaiming = true
+	}
+
+	currentSession = cm.GetCurrentSession()
+
 	result := &RPCCRRelatedStage{
-		OnDuty:            isOnDuty,
-		OnDutyStartHeight: ondutyStartHeight,
-		OnDutyEndHeight:   ondutyEndHeight,
-		InVoting:          isInVoting,
-		VotingStartHeight: votingStartHeight,
-		VotingEndHeight:   votingEndHeight,
+		OnDuty:              isOnDuty,
+		OnDutyStartHeight:   ondutyStartHeight,
+		OnDutyEndHeight:     ondutyEndHeight,
+		CurrentSession:      uint32(currentSession),
+		InVoting:            isInVoting,
+		VotingStartHeight:   votingStartHeight,
+		VotingEndHeight:     votingEndHeight,
+		InClaiming:          isInClaiming,
+		ClaimingStartHeight: claimingStartHeight,
+		ClaimingEndHeight:   claimingEndHeight,
 	}
 	return ResponsePack(Success, result)
 }
@@ -2651,8 +2846,7 @@ func ListCurrentCRs(param Params) map[string]interface{} {
 	if cm.IsInElectionPeriod() {
 		crMembers = cm.GetCurrentMembers()
 		sort.Slice(crMembers, func(i, j int) bool {
-			return crMembers[i].Info.GetCodeHash().Compare(
-				crMembers[j].Info.GetCodeHash()) < 0
+			return crMembers[i].Info.NickName < crMembers[j].Info.NickName
 		})
 	}
 
@@ -2738,6 +2932,181 @@ func ListNextCRs(param Params) map[string]interface{} {
 	return ResponsePack(Success, result)
 }
 
+//list CR Terms
+func ListCRTerms(param Params) map[string]interface{} {
+	cm := Chain.GetCRCommittee()
+	crTerms := cm.GetCRTerms()
+	var rsCRTermInfoSlice []RPCCRTermInfo
+
+	currentTerm := cm.GetCurrentSession()
+
+	for i, t := range crTerms {
+		s := "history"
+		if uint64(i) == currentTerm {
+			s = "current"
+		}
+
+		termInfo := RPCCRTermInfo{
+			Index:       uint64(i),
+			State:       s,
+			StartHeight: t.StartHeight,
+			EndHeight:   t.EndHeight,
+		}
+		rsCRTermInfoSlice = append(rsCRTermInfoSlice, termInfo)
+	}
+	sort.Slice(rsCRTermInfoSlice, func(i, j int) bool {
+		return rsCRTermInfoSlice[i].Index < rsCRTermInfoSlice[j].Index
+	})
+
+	count := int64(len(crTerms))
+
+	result := &RPCCRTermsInfo{
+		CRTermInfoSlice: rsCRTermInfoSlice,
+		TotalCounts:     uint64(count),
+	}
+
+	return ResponsePack(Success, result)
+}
+
+//Get CR Members by Term
+func ListCRMembers(param Params) map[string]interface{} {
+	cm := Chain.GetCRCommittee()
+	crTerm, ok := param.Uint("term")
+	if !ok {
+		crTerm = uint32(cm.GetCurrentSession())
+	}
+
+	var crMembers []payload.CRMemberInfo
+	crMembers = cm.GetCRCouncils()[crTerm]
+
+	var rsCRMemberInfoSlice []RPCCRCouncilMemberInfo
+	for _, cr := range crMembers {
+		cidAddress, _ := cr.CID.ToAddress()
+		var didAddress string
+		if !cr.DID.IsEqual(emptyHash) {
+			didAddress, _ = cr.DID.ToAddress()
+		}
+		depositAddr, _ := cr.DepositHash.ToAddress()
+		memberInfo := RPCCRCouncilMemberInfo{
+			Code:           hex.EncodeToString(cr.Code),
+			CID:            cidAddress,
+			DID:            didAddress,
+			NickName:       cr.NickName,
+			Url:            cr.Url,
+			Location:       cr.Location,
+			DepositAddress: depositAddr,
+			Index:          0,
+		}
+		rsCRMemberInfoSlice = append(rsCRMemberInfoSlice, memberInfo)
+	}
+	sort.Slice(rsCRMemberInfoSlice, func(i, j int) bool {
+		return rsCRMemberInfoSlice[i].NickName < rsCRMemberInfoSlice[j].NickName
+	})
+	for i, _ := range rsCRMemberInfoSlice {
+		rsCRMemberInfoSlice[i].Index = uint64(i)
+	}
+
+	count := int64(len(crMembers))
+
+	result := &RPCCRCouncilMembersInfo{
+		CRMemberInfoSlice: rsCRMemberInfoSlice,
+		TotalCounts:       uint64(count),
+	}
+
+	return ResponsePack(Success, result)
+}
+
+func GetCRMember(param Params) map[string]interface{} {
+	cm := Chain.GetCRCommittee()
+	var did *common.Uint168
+	id, hasID := param.String("id")
+	if hasID {
+		programHash, err := common.Uint168FromAddress(id)
+		if err != nil {
+			return ResponsePack(InvalidParams, "invalid id to programHash")
+		}
+		_did, exist := cm.GetDIDByID(*programHash)
+		if !exist {
+			return ResponsePack(InvalidParams, "invalid id")
+		}
+		did = _did
+	} else {
+		_did, hasDID := param.String("did")
+		if !hasDID {
+			return ResponsePack(InvalidParams, "")
+		}
+		programHash, err := common.Uint168FromAddress(_did)
+		if err != nil {
+			return ResponsePack(InvalidParams, "invalid did to programHash")
+		}
+		did = programHash
+	}
+
+	members := cm.GetCRMembersInfo()
+	cr, ok := members[*did]
+	if !ok {
+		return ResponsePack(InvalidParams, "invalid did")
+	}
+
+	cid := cr.Info.CID
+	didAddress, _ := cr.Info.DID.ToAddress()
+	cidAddress, _ := cid.ToAddress()
+	depositAddr, _ := cr.Info.DepositHash.ToAddress()
+
+	rsCRMemberPerfornamce := pasarCRMemberPerformance(cr.ProposalReviews)
+
+	rpcMemberInfo := RPCCRMemberInfoV2{
+		DID:                     didAddress,
+		CID:                     cidAddress,
+		Code:                    hex.EncodeToString(cr.Info.Code),
+		NickName:                cr.Info.NickName,
+		Url:                     cr.Info.Url,
+		Location:                cr.Info.Location,
+		DepositAddress:          depositAddr,
+		DepositAmount:           cm.GetAvailableDepositAmount(cr.Info.CID).String(),
+		DPOSPublicKey:           hex.EncodeToString(cm.GetDPOSPublicKeyByCID(cid)),
+		ImpeachmentVotes:        cm.GetImpeachmentVotesByCID(cid).String(),
+		ImpeachmentThroughVotes: cm.GetImpeachmentThroughVotes().String(),
+		Penalty:                 cm.GetPenalty(cid).String(),
+		Term:                    cr.Terms,
+		Performance:             rsCRMemberPerfornamce,
+		State:                   cr.MemberState.String(),
+	}
+
+	result := &rpcMemberInfo
+	return ResponsePack(Success, result)
+}
+
+func pasarCRMemberPerformance(record map[common.Uint256]crstate.ProposalReviewRecord) []RPCCRMemberPerfornamce {
+	crCommittee := Chain.GetCRCommittee()
+	var proposalState *crstate.ProposalState
+	var rsCRMemberPerfornamce []RPCCRMemberPerfornamce
+	for k, v := range record {
+		opinionHash := v.OpinionHash
+		_messageData, _ := parseProposalDraftData(&opinionHash)
+		opinionData, _ := _messageData.(CRCProposalMessageData)
+		reviewHeight := v.ReviewHeight
+		reviewTimestamp := getTimestampByHeight(reviewHeight)
+		proposalState = crCommittee.GetProposal(k)
+		p := RPCCRMemberPerfornamce{
+			Title:           getProposalTitleByProposalHash(k),
+			ProposalHash:    common.ToReversedString(k),
+			ProposalState:   proposalState.Status.String(),
+			Opinion:         v.Result.Name(),
+			OpinionHash:     opinionHash.String(),
+			OpinionMessage:  opinionData.Content,
+			ReviewHeight:    reviewHeight,
+			ReviewTimestamp: reviewTimestamp,
+		}
+		rsCRMemberPerfornamce = append(rsCRMemberPerfornamce, p)
+		sort.Slice(rsCRMemberPerfornamce, func(i, j int) bool {
+			return rsCRMemberPerfornamce[i].ReviewHeight >
+				rsCRMemberPerfornamce[j].ReviewHeight
+		})
+	}
+	return rsCRMemberPerfornamce
+}
+
 func ListCRProposalBaseState(param Params) map[string]interface{} {
 	start, _ := param.Int("start")
 	if start < 0 {
@@ -2801,9 +3170,23 @@ func ListCRProposalBaseState(param Params) map[string]interface{} {
 		registerHeight := proposal.RegisterHeight
 		_block, _ := Chain.GetBlockByHeight(registerHeight)
 		registerTimestamp := _block.Timestamp
+
+		draftHash := proposal.Proposal.DraftHash
+		draftData, errorStr := parseProposalDraftData(&draftHash)
+		var proposalData CRCProposalDraftData
+		if errorStr == "" {
+			proposalData, _ = draftData.(CRCProposalDraftData)
+		}
+
+		proposalTitle := ""
+		if errorStr == "" {
+			proposalTitle = proposalData.Title
+		}
+
 		rpcProposalBaseState := RPCProposalBaseState{
 			Status:             proposal.Status.String(),
 			ProposalHash:       common.ToReversedString(proposal.Proposal.Hash),
+			ProposalTitle:      proposalTitle,
 			ProposalType:       proposal.Proposal.ProposalType.Name(),
 			TxHash:             common.ToReversedString(proposal.TxHash),
 			CRVotes:            crVotes,
@@ -2873,7 +3256,7 @@ func ListCRProposalBaseState(param Params) map[string]interface{} {
 
 func getProposalDraftData(draftHash *common.Uint256) ([]*zip.File, string) {
 	draftData, _ := Chain.GetDB().GetProposalDraftDataByDraftHash(draftHash)
-	if draftData == nil {
+	if len(draftData) == 0 {
 		return nil, "invalidate draft hash"
 	}
 
@@ -2912,8 +3295,7 @@ func parseProposalDraftData(draftHash *common.Uint256) (CRCDraftData, string) {
 		// Get Opinion or Message data from opinion.json or message.json
 		case "opinion.json", "message.json":
 			unzippedFileBytes, err := utils.ReadZipFile(zipFile)
-			log.Error(unzippedFileBytes)
-			log.Error(unzippedFileBytes)
+
 			var messageData CRCProposalMessageData
 			if err != nil {
 				log.Error("Read Zip File Error:", err)
@@ -3208,6 +3590,9 @@ func GetProposalTitle(param Params) map[string]interface{} {
 			return ResponsePack(InvalidParams, "invalidate proposalhash")
 		}
 		proposalState := crCommittee.GetProposal(*ProposalHash)
+		if proposalState == nil {
+			return ResponsePack(InvalidParams, "invalidate proposalhash")
+		}
 		_draftHash := proposalState.Proposal.DraftHash
 		draftHash = &_draftHash
 	} else {
@@ -3237,6 +3622,40 @@ func GetProposalTitle(param Params) map[string]interface{} {
 		return ResponsePack(InvalidParams, "invalidate proposalhash")
 	}
 
+}
+
+func getProposalTitleByProposalHash(hash common.Uint256) string {
+	crCommittee := Chain.GetCRCommittee()
+	proposalState := crCommittee.GetProposal(hash)
+	_draftHash := proposalState.Proposal.DraftHash
+	draftHash := &_draftHash
+	draftData, errorStr := parseProposalDraftData(draftHash)
+	if errorStr != "" {
+		log.Error(InvalidParams, errorStr)
+		return ""
+	}
+	proposalDraftData, err := draftData.(CRCProposalDraftData)
+	if err {
+		return proposalDraftData.Title
+	} else {
+		log.Error(InvalidParams, "invalidate proposalhash")
+		return ""
+	}
+
+}
+
+func getTimestampByHeight(height uint32) uint32 {
+	hash, err := Chain.GetBlockHash(height)
+	if err != nil {
+		log.Error(UnknownTransaction, "")
+		return 0
+	}
+	header, err := Chain.GetHeader(hash)
+	if err != nil {
+		log.Error(UnknownTransaction, "")
+		return 0
+	}
+	return header.Timestamp
 }
 
 func ProducerStatus(param Params) map[string]interface{} {

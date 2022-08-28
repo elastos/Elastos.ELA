@@ -187,27 +187,70 @@ func (m *MemPool) AppendToMemPool(tx interfaces.Transaction) error {
 func (m *MemPool) isVoteTx(tx interfaces.Transaction) (vt common2.VoteCategory) {
 	version := tx.Version()
 	if version == 0x09 {
-		vout := tx.Outputs()
-		for _, v := range vout {
-			if v.Type == 0x01 && v.AssetID == *ELA_ASSET {
-				outputPayload, ok := v.Payload.(*outputpayload.VoteOutput)
-				if !ok || outputPayload == nil {
-					continue
-				}
-				contents := outputPayload.Contents
-				for _, cv := range contents {
-					votetype := cv.VoteType
-					switch votetype {
-					case 0x00:
-						vt = vt | common2.DPoS
-					case 0x01:
-						vt = vt | common2.CRC
-					case 0x02:
-						vt = vt | common2.Proposal
-					case 0x03:
-						vt = vt | common2.Impeachment
+		switch tx.TxType() {
+		case common2.TransferAsset:
+			vout := tx.Outputs()
+			for _, v := range vout {
+				if v.Type == 0x01 && v.AssetID == *ELA_ASSET {
+					outputPayload, ok := v.Payload.(*outputpayload.VoteOutput)
+					if !ok || outputPayload == nil {
+						continue
+					}
+					contents := outputPayload.Contents
+					for _, cv := range contents {
+						votetype := cv.VoteType
+						switch votetype {
+						case 0x00:
+							vt = vt | common2.DPoS
+						case 0x01:
+							vt = vt | common2.CRC
+						case 0x02:
+							vt = vt | common2.Proposal
+						case 0x03:
+							vt = vt | common2.Impeachment
+						}
 					}
 				}
+			}
+		case common2.Voting:
+			switch tx.PayloadVersion() {
+			case payload.VoteVersion:
+				voteContents := tx.Payload().(*payload.Voting).Contents
+				for _, c := range voteContents {
+					voteType := c.VoteType
+					_votes := c.VotesInfo
+					votetypeStr := ""
+					switch voteType {
+					case 0x00:
+						votetypeStr = "Delegate"
+					case 0x01:
+						votetypeStr = "CRC"
+					case 0x02:
+						votetypeStr = "CRCProposal"
+					case 0x03:
+						votetypeStr = "CRCImpeachment"
+					case 0x04:
+						votetypeStr = "DPoSV2"
+					}
+					if len(_votes) > 0 {
+						switch votetypeStr {
+						case "Delegate":
+							vt = vt | common2.DPoS
+						case "CRC":
+							vt = vt | common2.CRC
+						case "CRCProposal":
+							vt = vt | common2.Proposal
+						case "CRCImpeachment":
+							vt = vt | common2.Impeachment
+						case "DPoSV2":
+							vt = vt | common2.DPoSV2
+						}
+					} else {
+						vt = vt | common2.Cancel
+					}
+				}
+			case payload.RenewalVoteVersion:
+				vt = vt | common2.DPoSV2
 			}
 		}
 	}

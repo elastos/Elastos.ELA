@@ -154,6 +154,30 @@ func (c *Committee) GetCROnDutyPeriod() uint32 {
 	return c.Params.CRConfiguration.DutyPeriod
 }
 
+func (c *Committee) GetCurrentSession() uint64 {
+	c.mtx.RLock()
+	defer c.mtx.RUnlock()
+	return c.state.CurrentSession
+}
+
+func (c *Committee) GetCRTerms() map[uint32]*CRTermInfo {
+	c.mtx.RLock()
+	defer c.mtx.RUnlock()
+	return c.state.CRTermsInfo
+}
+
+func (c *Committee) GetCRCouncils() map[uint32][]payload.CRMemberInfo {
+	c.mtx.RLock()
+	defer c.mtx.RUnlock()
+	return c.state.CRCouncilsInfo
+}
+
+func (c *Committee) GetCRMembersInfo() map[common.Uint168]*CRCouncilMember {
+	c.mtx.RLock()
+	defer c.mtx.RUnlock()
+	return c.state.CRMembersInfo
+}
+
 func (c *Committee) GetCRVotingStartHeight() uint32 {
 	c.mtx.RLock()
 	defer c.mtx.RUnlock()
@@ -922,7 +946,7 @@ func (c *Committee) updateCirculationAmount(history *utils.History, height uint3
 		})
 	} else {
 		circulationAmount := common.Fixed64(config.OriginIssuanceAmount) +
-			c.calculateTotalELAByHeight(height) -
+			c.CalculateTotalELAByHeight(height) -
 			c.CRCFoundationBalance - c.CRCCommitteeBalance - c.DestroyedAmount
 		oriCirculationAmount := c.CirculationAmount
 		history.Append(height, func() {
@@ -933,7 +957,7 @@ func (c *Committee) updateCirculationAmount(history *utils.History, height uint3
 	}
 }
 
-func (c *Committee) calculateTotalELAByHeight(currentHeight uint32) common.Fixed64 {
+func (c *Committee) CalculateTotalELAByHeight(currentHeight uint32) common.Fixed64 {
 	height0 := c.Params.NewELAIssuanceHeight
 	height1 := c.Params.HalvingRewardHeight
 	height2 := c.Params.HalvingRewardInterval
@@ -965,7 +989,7 @@ func (c *Committee) recordLastVotingStartHeight(height uint32) {
 		return
 	}
 	// Update last voting start Height one block ahead.
-	if height == c.getNextVotingStartHeight(height) {
+	if height == c.GetNextVotingStartHeight(height) {
 		lastVotingStartHeight := c.LastVotingStartHeight
 		c.state.History.Append(height, func() {
 			c.LastVotingStartHeight = height + 1
@@ -975,7 +999,7 @@ func (c *Committee) recordLastVotingStartHeight(height uint32) {
 	}
 }
 
-func (c *Committee) getNextVotingStartHeight(height uint32) uint32 {
+func (c *Committee) GetNextVotingStartHeight(height uint32) uint32 {
 	if height >= c.Params.DPoSV2StartHeight {
 		return c.LastCommitteeHeight + c.Params.CRConfiguration.DutyPeriod -
 			c.Params.CRConfiguration.VotingPeriod - c.Params.CRConfiguration.CRClaimPeriod - 1
@@ -1309,11 +1333,46 @@ func (c *Committee) GetDepositAmountByID(
 	return c.state.getDepositInfoByCID(*cid)
 }
 
+func (c *Committee) GetDIDByID(id common.Uint168) (*common.Uint168, bool) {
+	c.mtx.RLock()
+	defer c.mtx.RUnlock()
+	return c.state.getExistDIDByID(id)
+}
+
 func (c *Committee) GetAvailableDepositAmount(cid common.Uint168) common.Fixed64 {
 	c.mtx.RLock()
 	defer c.mtx.RUnlock()
 
 	return c.state.getAvailableDepositAmount(cid)
+}
+
+func (c *Committee) GetDPOSPublicKeyByCID(cid common.Uint168) []byte {
+	crMembers := c.GetCurrentMembers()
+	var publicKey []byte
+	for _, cr := range crMembers {
+		if cid == cr.Info.CID {
+			publicKey = cr.DPOSPublicKey
+		}
+	}
+	return publicKey
+}
+
+func (c *Committee) GetImpeachmentVotesByCID(cid common.Uint168) common.Fixed64 {
+	crMembers := c.GetCurrentMembers()
+	var votes common.Fixed64
+	for _, cr := range crMembers {
+		if cid == cr.Info.CID {
+			votes = cr.ImpeachmentVotes
+		}
+	}
+	return votes
+}
+
+func (c *Committee) GetImpeachmentThroughVotes() common.Fixed64 {
+	circulation := c.CirculationAmount
+	votes := common.Fixed64(float64(circulation) *
+		c.Params.CRConfiguration.VoterRejectPercentage / 100.0)
+	return votes
 }
 
 func (c *Committee) getHistoryMember(code []byte) []*CRMember {
@@ -1505,6 +1564,10 @@ func (c *Committee) changeCommitteeMembers(height uint32) error {
 			c.state.CurrentSession += 1
 			c.InElectionPeriod = true
 			c.LastCommitteeHeight = height
+
+			c.changeCRTermsInfo(height)
+			c.changeCRCRCouncilsInfo(c.Members)
+			c.changeCRMembersInfo(c.Members)
 		}, func() {
 			c.state.CurrentSession -= 1
 			c.InElectionPeriod = oriInElectionPeriod
@@ -1545,6 +1608,10 @@ func (c *Committee) changeCommitteeMembers(height uint32) error {
 		c.state.CurrentSession += 1
 		c.InElectionPeriod = true
 		c.LastCommitteeHeight = height
+
+		c.changeCRTermsInfo(height)
+		c.changeCRCRCouncilsInfo(newMembers)
+		c.changeCRMembersInfo(newMembers)
 	}, func() {
 		c.state.CurrentSession -= 1
 		c.InElectionPeriod = oriInElectionPeriod
@@ -1552,6 +1619,95 @@ func (c *Committee) changeCommitteeMembers(height uint32) error {
 	})
 
 	return nil
+}
+
+func (c *Committee) changeCRTermsInfo(height uint32) {
+	currentSession := c.state.CurrentSession
+	var termInfo CRTermInfo
+	termInfo.StartHeight = height
+	if currentSession == 1 {
+		c.state.CRTermsInfo = make(map[uint32]*CRTermInfo)
+
+	}
+	c.state.CRTermsInfo[uint32(currentSession)] = &termInfo
+
+	if currentSession > 1 {
+		c.state.CRTermsInfo[uint32(currentSession-1)].EndHeight = height - 1
+	}
+}
+
+func (c *Committee) changeCRCRCouncilsInfo(members map[common.Uint168]*CRMember) {
+	membersInfo := c.convertCRMembers2CRMemberInfos(members)
+	if c.state.CurrentSession == 1 {
+		c.state.CRCouncilsInfo = make(map[uint32][]payload.CRMemberInfo)
+	}
+	c.state.CRCouncilsInfo[uint32(c.state.CurrentSession)] = membersInfo
+}
+
+func (c *Committee) changeCRMembersInfo(newMembers map[common.Uint168]*CRMember) {
+	currentSession := c.state.CurrentSession
+	if currentSession == 1 {
+		c.state.CRMembersInfo = make(map[common.Uint168]*CRCouncilMember)
+
+	}
+
+	//Modify the information of non-reelected members
+	for k, v := range c.state.CRMembersInfo {
+		_, exist := newMembers[k]
+		if !exist {
+			v.MemberState = MemberResign
+		}
+		c.state.CRMembersInfo[k] = v
+	}
+
+	for k, v := range newMembers {
+		info := convertCRMember2CRMemberInfo(v)
+		cr, exist := c.state.CRMembersInfo[k]
+
+		if !exist {
+			//Add the information of  newly elected committee member
+			var term []uint32
+			term = append(term, uint32(currentSession))
+			review := make(map[common.Uint256]ProposalReviewRecord)
+			member := CRCouncilMember{
+				Info:            info,
+				MemberState:     v.MemberState,
+				DPOSPublicKey:   v.DPOSPublicKey,
+				Terms:           term,
+				ProposalReviews: review,
+			}
+			c.state.CRMembersInfo[k] = &member
+		} else {
+			//Modify the information of re-elected committee members
+			cr.Info = info
+			cr.MemberState = v.MemberState
+			cr.DPOSPublicKey = v.DPOSPublicKey
+			cr.Terms = append(cr.Terms, uint32(currentSession))
+			c.state.CRMembersInfo[k] = cr
+		}
+	}
+}
+
+func (c *Committee) convertCRMembers2CRMemberInfos(members map[common.Uint168]*CRMember) []payload.CRMemberInfo {
+	var membersInfo []payload.CRMemberInfo
+	for _, v := range members {
+		member := convertCRMember2CRMemberInfo(v)
+		membersInfo = append(membersInfo, member)
+	}
+	return membersInfo
+}
+
+func convertCRMember2CRMemberInfo(cr *CRMember) payload.CRMemberInfo {
+	member := payload.CRMemberInfo{
+		Code:        cr.Info.Code,
+		CID:         cr.Info.CID,
+		DID:         cr.Info.DID,
+		DepositHash: cr.DepositHash,
+		NickName:    cr.Info.NickName,
+		Url:         cr.Info.Url,
+		Location:    cr.Info.Location,
+	}
+	return member
 }
 
 func (c *Committee) processNextMembers(height uint32,

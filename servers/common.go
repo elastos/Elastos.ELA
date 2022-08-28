@@ -143,6 +143,14 @@ type ConfirmInfo struct {
 	Votes      []VoteInfo `json:"votes"`
 }
 
+type SupplyInfo struct {
+	TotaySupply       string `json:"TotaySupply"`     // The TotaySupply includes the balances of all addresses except Burn Address
+	AvailableSupply   string `json:"AvailableSupply"` // The AvailableSupply doesn't include the balances of CR addresses
+	BurnAmount        string `json:"BurnAmount"`
+	CRAssets          string `json:"CRAssets"`
+	CRCouncilExpenses string `json:"CRCouncilExpenses"`
+}
+
 type ServerInfo struct {
 	Compile   string      `json:"compile"`   // The compile version of this server node
 	Height    uint32      `json:"height"`    // The ServerNode latest block height

@@ -445,30 +445,66 @@ func doProcessVote(block *Block, voteTxHolder *map[string]common.VoteCategory) e
 			return err
 		}
 		if version == 0x09 {
-			vout := tx.Outputs()
-			for _, v := range vout {
-				if v.Type == 0x01 && v.AssetID == *ELA_ASSET {
-					outputPayload, ok := v.Payload.(*outputpayload.VoteOutput)
-					if !ok || outputPayload == nil {
-						continue
-					}
-					contents := outputPayload.Contents
-					for _, cv := range contents {
-						votetype := cv.VoteType
-						votetypeStr := ""
-						if votetype == 0x00 {
-							votetypeStr = "Delegate"
-						} else if votetype == 0x01 {
-							votetypeStr = "CRC"
-						} else if votetype == 0x02 {
-							votetypeStr = "CRCProposal"
-						} else if votetype == 0x03 {
-							votetypeStr = "CRCImpeachment"
-						} else {
+			switch tx.TxType() {
+			case common.TransferAsset:
+				vout := tx.Outputs()
+				for _, v := range vout {
+					if v.Type == 0x01 && v.AssetID == *ELA_ASSET {
+						outputPayload, ok := v.Payload.(*outputpayload.VoteOutput)
+						if !ok || outputPayload == nil {
 							continue
 						}
+						contents := outputPayload.Contents
+						for _, cv := range contents {
+							votetype := cv.VoteType
+							votetypeStr := ""
+							switch votetype {
+							case 0x00:
+								votetypeStr = "Delegate"
+							case 0x01:
+								votetypeStr = "CRC"
+							case 0x02:
+								votetypeStr = "CRCProposal"
+							case 0x03:
+								votetypeStr = "CRCImpeachment"
+							}
 
-						if len(cv.CandidateVotes) > 0 {
+							if len(cv.CandidateVotes) > 0 {
+								switch votetypeStr {
+								case "Delegate":
+									vt = vt | common.DPoS
+								case "CRC":
+									vt = vt | common.CRC
+								case "CRCProposal":
+									vt = vt | common.Proposal
+								case "CRCImpeachment":
+									vt = vt | common.Impeachment
+								}
+							}
+						}
+					}
+				}
+			case common.Voting:
+				switch tx.PayloadVersion() {
+				case payload.VoteVersion:
+					voteContents := tx.Payload().(*payload.Voting).Contents
+					for _, c := range voteContents {
+						voteType := c.VoteType
+						_votes := c.VotesInfo
+						votetypeStr := ""
+						switch voteType {
+						case 0x00:
+							votetypeStr = "Delegate"
+						case 0x01:
+							votetypeStr = "CRC"
+						case 0x02:
+							votetypeStr = "CRCProposal"
+						case 0x03:
+							votetypeStr = "CRCImpeachment"
+						case 0x04:
+							votetypeStr = "DPoSV2"
+						}
+						if len(_votes) > 0 {
 							switch votetypeStr {
 							case "Delegate":
 								vt = vt | common.DPoS
@@ -478,9 +514,15 @@ func doProcessVote(block *Block, voteTxHolder *map[string]common.VoteCategory) e
 								vt = vt | common.Proposal
 							case "CRCImpeachment":
 								vt = vt | common.Impeachment
+							case "DPoSV2":
+								vt = vt | common.DPoSV2
 							}
+						} else {
+							vt = vt | common.Cancel
 						}
 					}
+				case payload.RenewalVoteVersion:
+					vt = vt | common.DPoSV2
 				}
 			}
 		}
@@ -528,6 +570,7 @@ func (c *ChainStoreExtend) persistTxHistory(blk *Block) error {
 			continue
 		}
 
+		// voteTxHolder: [txid]VoteCatepory
 		voteTxHolder := make(map[string]common.VoteCategory)
 		err = c.processVote(block, &voteTxHolder)
 		if err != nil {
@@ -591,8 +634,8 @@ func (c *ChainStoreExtend) persistTxHistory(blk *Block) error {
 				voteType := voteTxHolder[txid]
 				spend := make(map[Uint168]Fixed64)
 				var totalInput int64 = 0
-				var fromAddress []Uint168
-				var toAddress []Uint168
+				var fromAddress []Uint168 // spender list
+				var toAddress []Uint168   // receiver list
 				for _, input := range tx.Inputs() {
 					txid := input.Previous.TxID
 					index := input.Previous.Index

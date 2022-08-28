@@ -739,7 +739,7 @@ func getCIDByPublicKey(publicKey []byte) (*common.Uint168, error) {
 }
 
 func (p *ProposalManager) proposalReview(tx interfaces.Transaction,
-	height uint32, history *utils.History) {
+	height uint32, history *utils.History, membersinfo map[common.Uint168]*CRCouncilMember) {
 	proposalReview := tx.Payload().(*payload.CRCProposalReview)
 	proposalState := p.getProposal(proposalReview.ProposalHash)
 	if proposalState == nil {
@@ -751,6 +751,7 @@ func (p *ProposalManager) proposalReview(tx interfaces.Transaction,
 	history.Append(height, func() {
 		proposalState.CRVotes[did] = proposalReview.VoteResult
 		proposalState.CROpinions[did] = proposalReview.OpinionHash
+		p.updateCRMemberProposalReviews(membersinfo, *proposalReview, proposalState, height)
 	}, func() {
 		if oldVoteExist && oldOpinionExist {
 			proposalState.CRVotes[did] = oldVoteResult
@@ -760,6 +761,28 @@ func (p *ProposalManager) proposalReview(tx interfaces.Transaction,
 			delete(proposalState.CROpinions, did)
 		}
 	})
+}
+
+func (p *ProposalManager) updateCRMemberProposalReviews(membersinfo map[common.Uint168]*CRCouncilMember,
+	payload payload.CRCProposalReview, proposalState *ProposalState, reviewHeight uint32) {
+	did := payload.DID
+	proposalHash := payload.ProposalHash
+	_, ok := membersinfo[did].ProposalReviews[proposalHash]
+	if ok {
+		membersinfo[did].ProposalReviews[proposalHash] = ProposalReviewRecord{
+			Result:       payload.VoteResult,
+			OpinionHash:  payload.OpinionHash,
+			ReviewHeight: proposalState.RegisterHeight,
+		}
+	} else {
+		proposalHeigit := proposalState.RegisterHeight
+		membersinfo[did].ProposalReviews[proposalHash] = ProposalReviewRecord{
+			ProposalCreateHeight: proposalHeigit,
+			Result:               payload.VoteResult,
+			OpinionHash:          payload.OpinionHash,
+			ReviewHeight:         reviewHeight,
+		}
+	}
 }
 
 func (p *ProposalManager) proposalWithdraw(tx interfaces.Transaction,

@@ -577,6 +577,88 @@ Response:
 }
 ```
 
+### gethistory
+
+Get the transaction history of given address
+
+#### Parameter
+
+| name        | type                             | description                                          |
+| ----------- | -------------------------------- | ---------------------------------------------------- |
+| address     | string                           | address                                              |
+| order       | string, optional, default=desc   | query order                                          |
+| skip        | int, optional, default=0         | the skip count of the transaction record             |
+| limit       | int, optional, default=10,max=50 | the limit count of the transaction record            |
+| timestamp   | int, optional, default=0         | the transaction after the timestamp will be returned |
+
+#### Example
+
+Request:
+
+```json
+{
+  "method": "gethistory",
+  "params": {
+    "address": "CREXPENSESXXXXXXXXXXXXXXXXXX4UdT6b",
+    "order": "desc",
+    "skip": 1,
+    "limit": 2
+  }
+}
+```
+
+Response:
+
+```json
+{
+  "jsonrpc": "2.0",
+  "result": {
+    "txhistory": [
+      {
+        "address": "CREXPENSESXXXXXXXXXXXXXXXXXX4UdT6b",
+        "txid": "13abbc3eb9e86c9d018cf490b47d6bf5f54b300cb2594d9572adb710919b1fc7",
+        "type": "sent",
+        "value": "50000",
+        "time": 1593673406,
+        "height": 675302,
+        "fee": "0.00010000",
+        "inputs": [
+          "CREXPENSESXXXXXXXXXXXXXXXXXX4UdT6b"
+        ],
+        "outputs": [
+          "8Kvg8Y6wka3sAG6ePoYnPPr4AxyqNozfp4",
+          "CREXPENSESXXXXXXXXXXXXXXXXXX4UdT6b"
+        ],
+        "txtype": "crcproposalwithdraw",
+        "memo": "",
+        "Status": "confirmed"
+      },
+      {
+        "address": "CREXPENSESXXXXXXXXXXXXXXXXXX4UdT6b",
+        "txid": "e731ae5d412b3952b9634d2f28b50d0db5c99d636d49ed4e69fabcb184775a92",
+        "type": "received",
+        "value": "1235547.63182878",
+        "time": 1591452410,
+        "height": 656679,
+        "fee": "0",
+        "inputs": [
+          "8VYXVxKKSAxkmRrfmGpQR2Kc66XhG6m3ta"
+        ],
+        "outputs": [
+          "CREXPENSESXXXXXXXXXXXXXXXXXX4UdT6b"
+        ],
+        "txtype": "transferasset",
+        "memo": "",
+        "Status": "confirmed"
+      }
+    ],
+    "totalcount": 4
+  },
+  "id": null,
+  "error": null
+}
+```
+
 ### setloglevel
 
 Set log level
@@ -762,6 +844,47 @@ Response:
             }
         ]
     }
+}
+```
+
+### getsupply
+
+Get the circulating supply.
+
+#### Result
+
+| name              | type   | description                                                                       |
+|-------------------|--------|-----------------------------------------------------------------------------------|
+| TotaySupply       | string | the amount of the circulating including the CR Assets and CR Council Expenses     |
+| AvailableSupply   | string | the amount of the circulating not including the CR Assets and CR Council Expenses |
+| BurnAmount        | string | the amount of the destroyed ELA                                                  |
+| CRAssets          | string | the balance of CR assets address                                                  |
+| CRCouncilExpenses | string | the balance of CR Council Expenses account                                        |
+
+#### Example
+
+Request:
+
+```json
+{
+  "method":"getsupply"
+}
+```
+
+Response:
+
+```json
+{
+  "jsonrpc": "2.0",
+  "result": {
+    "TotaySupply": "24912179.65239382",
+    "AvailableSupply": "21011009.92795304",
+    "BurnAmount": "13454421.10718433",
+    "CRAssets": "3210919.78584277",
+    "CRCouncilExpenses": "690249.93859801"
+  },
+  "id": null,
+  "error": null
 }
 ```
 
@@ -1023,11 +1146,12 @@ Show producers infromation
 
 #### Parameter 
 
-| name  | type    | description                                                  |
-| ----- | ------- | ------------------------------------------------------------ |
-| start | integer | the start index of producers                                 |
-| limit | integer | the limit count of producers                                 |
-| state | string  | the producer state you want<br/>"all": get producers in any state<br/>"pending": get producers in the pendding state<br/>
+| name     | type    | description                                                                                                               |
+|----------|---------|---------------------------------------------------------------------------------------------------------------------------|
+| start    | integer | optional, the start index of producers                                                                                    |
+| limit    | integer | optional, the limit count of producers                                                                                    |
+| identity | string  | optional, the identity of the producers, the default value is `all`, and the valid input is `v1`, `v2` and `all`          |
+| state    | string  | the producer state you want<br/>"all": get producers in any state<br/>"pending": get producers in the pendding state<br/> 
 "active": get producers in the active state<br/>
 "inactive": get producers in the inactive state<br/>
 "canceled": get producers in the canceled state<br/>
@@ -1037,23 +1161,27 @@ if state flag not provided return the producers in pending and active state.
 
 #### Result
 
-| name           | type   | description                               |
-| -------------- | ------ | ----------------------------------------- |
-| ownerpublickey | string | the owner public key of producer          |
-| nodepublickey  | string | the node public key of the producer       |
-| nickname       | string | the nick name of the producer             |
-| url            | string | the url of the producer                   |
-| location       | uint64 | the location number of the producer       |
-| active         | bool   | if producer has confirmed                 |
-| votes          | string | the votes currently held                  |
-| state          | string | the current state of the producer         |
-| registerheight | uint32 | the height of cancel producer             |
-| cancelheight   | uint32 | the cancel height of the producer         |
-| inactiveheight | uint32 | the inactive start height of the producer |
-| illegalheight  | uint32 | the illegal start height of the producer  |
-| index          | uint64 | the index of the producer                 |
-| totalvotes     | string | the total votes of registered producers   |
-| totalcounts    | uint64 | the total counts of registered producers  |
+| name             | type   | description                                                    |
+|------------------| ------ |----------------------------------------------------------------|
+| ownerpublickey   | string | the owner public key of producer                               |
+| nodepublickey    | string | the node public key of the producer                            |
+| nickname         | string | the nick name of the producer                                  |
+| url              | string | the url of the producer                                        |
+| location         | uint64 | the location number of the producer                            |
+| active           | bool   | if producer has confirmed                                      |
+| votes            | string | the votes currently held                                       |
+| state            | string | the current state of the producer                              |
+| onduty           | string | the current on duty state of the DPoS 2.0 node                 |
+| identity         | string | the current identity of the DPoS node                          |
+| registerheight   | uint32 | the height of cancel producer                                  |
+| cancelheight     | uint32 | the cancel height of the producer                              |
+| inactiveheight   | uint32 | the inactive start height of the producer                      |
+| illegalheight    | uint32 | the illegal start height of the producer                       |
+| index            | uint64 | the index of the producer                                      |
+| totalvotes       | string | the total votes of the DPoS 1.0 nodes(will be deprecated soon) |
+| totaldposv1votes | string | the total votes of the DPoS 1.0 nodes                          |
+| totaldposv2votes | string | the total votes of the DPoS 2.0 nodes                          |
+| totalcounts      | uint64 | the total counts of registered producers                       |
 
 #### Example
 
@@ -1064,7 +1192,8 @@ Request:
   "method": "listproducers",
   "params":{
     "start": 0,
-    "limit": 3
+    "limit": 3,
+    "identity":"V2"
   }
 }
 ```
@@ -1086,7 +1215,10 @@ Response:
         "location": 401,
         "active": true,
         "votes": "3.11100000",
+        "dposv2votes": "3.11100000",
         "state": "Active",
+        "onduty": "valid",
+        "identity": "DPoSV1V2",
         "registerheight": 236,
         "cancelheight": 0,
         "inactiveheight": 0,
@@ -1101,7 +1233,10 @@ Response:
         "location": 402,
         "active": true,
         "votes": "2.10000000",
+        "dposv2votes": "2.10000000",
         "state": "Active",
+        "onduty": "valid",
+        "identity": "DPoSV1V2",
         "registerheight": 225,
         "cancelheight": 0,
         "inactiveheight": 0,
@@ -1116,7 +1251,10 @@ Response:
         "location": 403,
         "active": true,
         "votes": "0",
+        "dposv2votes": "0", 
         "state": "Active",
+        "onduty": "invalid",
+        "identity": "DPoSV1V2",
         "registerheight": 216,
         "cancelheight": 0,
         "inactiveheight": 0,
@@ -1125,6 +1263,8 @@ Response:
       }
     ],
     "totalvotes": "5.21100000",
+    "totaldposv1votes": "5.21100000",
+    "totaldposv2votes": "5.21100000",
     "totalcounts": 10
   }
 }
@@ -2073,20 +2213,20 @@ Show current cr members information
 | state | string  | the cr member state you want know <br/>
 
 #### Result
-| name            | type   | description                               |
-| --------------  | ------ | ----------------------------------------- |
-| code            | string | the cr member code                        |
-| cid             | string | the cr member address                     |
-| did             | string | the cr member did address                 |
-| nickname        | string | the nick name of the cr member            |
-| url             | string | the url of the cr member                  |
-| location        | uint64 | the location number of the cr member      |
-| impeachmentvotes| int64  | impeachment votes of the cr member        |
-| depositamount   | string | the deposite amout of the cr member       |
-| depositaddress  | string | the deposite address of the cr member     |
-| penalty         | int64  | the penalty of the cr member              |
-| index           | uint64 | the index of the cr member                |
-| totalcounts     | uint64 | the total counts of current cr member     |
+| name            | type   | description                           |
+| --------------  | ------ |---------------------------------------|
+| code            | string | the cr member code                    |
+| cid             | string | the cr member address                 |
+| did             | string | the cr member did address             |
+| nickname        | string | the nick name of the cr member        |
+| url             | string | the url of the cr member              |
+| location        | uint64 | the location number of the cr member  |
+| impeachmentvotes| int64  | impeachment votes of the cr member    |
+| depositamount   | string | the deposite amout of the cr member   |
+| depositaddress  | string | the deposite address of the cr member |
+| penalty         | int64  | the penalty of the cr member          |
+| index           | uint64 | the index of the cr member            |
+| totalcounts     | uint64 | the total counts of current cr member |
 
 
 #### Example
@@ -2142,6 +2282,241 @@ Response:
 }
 ```
 
+### listcrterms
+
+Shows all CR committees
+
+#### Result
+| name            | type   | description                             |
+| --------------  |--------|-----------------------------------------|
+| index           | uint   | the index of the CR Council             |
+| state           | string | the cr member address                   |
+| startHeight     | uint   | the start height of the CR Council Term |
+| endHeight       | uint   | the end height of the CR Council Term   |
+
+#### Example
+
+Request:
+
+```json
+{
+  "method":"listcrterms"
+}
+```
+
+Response:
+
+```json
+{
+  "jsonrpc": "2.0",
+  "result": {
+    "crtermsinfo": [
+      {
+        "index": 1,
+        "state": "history",
+        "startHeight": 800,
+        "endHeight": 7999
+      },
+      {
+        "index": 2,
+        "state": "history",
+        "startHeight": 8000,
+        "endHeight": 15199
+      },
+      {
+        "index": 3,
+        "state": "current",
+        "startHeight": 15200,
+        "endHeight": 0
+      }
+    ],
+    "totalcounts": 3
+  },
+  "id": null,
+  "error": null
+}
+```
+
+### listcrmembers
+
+Show the CR Members of the specified CR Council Term
+
+#### Parameter
+
+| name  | type    | description                  |
+|:------| ------- |------------------------------|
+| term  | integer | the index of CR Council Term |
+
+#### Result
+| name            | type   | description                           |
+| --------------  | ------ |---------------------------------------|
+| code            | string | the public key of the CR Member       |
+| cid             | string | the CID address of the CR Member      |
+| did             | string | the DID address of the CR Member      |
+| nickname        | string | the nickname of the CR Member         |
+| url             | string | the url of the CR Member              |
+| location        | uint64 | the location number of the CR Member  |
+| depositaddress  | string | the deposite address of the CR Member |
+| index           | uint64 | the index of the cr member            |
+| totalcounts     | uint64 | the total counts of the CR Members    |
+
+#### Example
+
+Request:
+
+```json
+{  "method": "listcrmembers",
+   "params": {
+     "term":3
+   }
+}
+```
+
+Response:
+
+```json
+{
+  "jsonrpc": "2.0",
+  "result": {
+    "crmembersinfo": [
+      {
+        "code": "210287de855c87579ee3821ff4a3a3dc9072ca727cb53316d54f6d2f1709e821c5afac",
+        "cid": "iWWPzYbCny9Pbjdb7nCdvSdr1M1mcgvYUv",
+        "did": "iakWWbvg76NrJkQ8mERGHDYyposdT7ivjN",
+        "nickname": "CR01",
+        "url": "https://cr01.com",
+        "location": 1001,
+        "depositaddress": "DYAy6j8TfynJiXbMMaDh1R3Ch2TrTjDvmQ",
+        "index": 0
+      },
+      {
+        "code": "2103818969b2c7f0ace157ecf4d97136db20f74d5896a287ec4a09b1cda822bb0d35ac",
+        "cid": "igDiSLhyGD23YAB4r9fJ9w8wcQ5HLWAnQE",
+        "did": "ikK5VRj1JB7WzJSa3EyGuTo1VQzSTwHN9f",
+        "nickname": "CR02",
+        "url": "https://cr02.com",
+        "location": 1001,
+        "depositaddress": "DhtHYXFE9Dexex8q5wgMEuYJJ5XNAbLRRt",
+        "index": 1
+      },
+      {
+        "code": "21036168081072c66e433c329dd28eaa3a530746873025145e13a937d98b55668ef6ac",
+        "cid": "ii8t9UmM8z3CvBxAiaM1UiMrH2LGTajGgH",
+        "did": "imnP8SJsFJfFb5mUrc6qLe9qyf18KAGH1X",
+        "nickname": "CR03",
+        "url": "https://cr03.com",
+        "location": 1001,
+        "depositaddress": "DjoTFfJc1zg82yuvxNN4ZgmCxhnMHSERB5",
+        "index": 2
+      }
+    ],
+    "totalcounts": 3
+  },
+  "id": null,
+  "error": null
+}
+```
+
+### getcrmember
+Get the infomation of the CR Member
+
+#### Parameter
+
+| name | type   | description                         |
+|:-----|--------|-------------------------------------|
+| id   | string | the cid or did address of CR Member |
+| did  | string | the did address of the CR Member    |
+
+#### Result
+| name                    | type   | description                                             |
+|-------------------------|--------|---------------------------------------------------------|
+| code                    | string | the public key of the CR Member                         |
+| cid                     | string | the CID address of the CR Member                        |
+| did                     | string | the DID address of the CR Member                        |
+| nickname                | string | the nickname of the CR Member                           |
+| url                     | string | the url of the CR Member                                |
+| location                | uint64 | the location number of the CR Member                    |
+| depositaddress          | string | the deposite address of the CR Member                   |
+| depositamout            | string | the amount of CR member's deposit that can be retrieved |
+| dpospublickey           | string | the public key of CR member's Super Node                |
+| impeachmentvotes        | string | the impeachment votes of the CR Member                  |
+| impeachmentThroughVotes | string | the number of votes to pass the impeachment             |
+| penalty                 | string | the penalty of the CR Member                            |
+| term                    | []uint | the terms of the CR Member                              |
+| performance             | list   | the CR member's performance of duties                   |
+| title                   | string | the title of the proposal                               |
+| proposalHash            | string | the hash of the proposal                                |
+| opinion                 | string | the vote result of the CR Member                        |
+| opinionHash             | string | the hash of the CR Member's vote message                |
+| opinionMessage          | string | the vote message of the CR Member                       |
+| reviewHeight            | list   | the height of the CR Member vote                        |
+| reviewTimestamp         | list   | the timestamp of the CR Member Vote                     |
+| state                   | string | the state of the CR Member                              |
+
+#### Example
+
+Request:
+
+```json
+{
+  "method": "getcrmember",
+  "params": 
+  {
+    "did":"ikK5VRj1JB7WzJSa3EyGuTo1VQzSTwHN9f"
+  }
+}
+```
+
+Response:
+
+```json
+{
+  "jsonrpc": "2.0",
+  "result": {
+    "did": "ikK5VRj1JB7WzJSa3EyGuTo1VQzSTwHN9f",
+    "cid": "igDiSLhyGD23YAB4r9fJ9w8wcQ5HLWAnQE",
+    "code": "2103818969b2c7f0ace157ecf4d97136db20f74d5896a287ec4a09b1cda822bb0d35ac",
+    "nickname": "CR02",
+    "url": "https://cr02.com",
+    "location": 1001,
+    "depositaddress": "DhtHYXFE9Dexex8q5wgMEuYJJ5XNAbLRRt",
+    "depositamout": "0",
+    "dpospublickey": "02175944ed43bb7ec70a80e1856fb0324562502af36ba63e7f35fcbc2c712985f8",
+    "impeachmentvotes": "0",
+    "impeachmentThroughVotes": "3205864.12661419",
+    "penalty": "5708.06533185",
+    "term": [
+      1,
+      2,
+      3
+    ],
+    "performance": [
+      {
+        "title": "new motion cr02--20220817-lemon---0001",
+        "proposalHash": "c8bcf7dda3deab6d6e7a1bb69fbd45d3b8946d5720ba7bacae649a7b655e1bc0",
+        "opinion": "approve",
+        "opinionHash": "c2fc5f8ffe77df9fd315832eb81eee5521e58bda08ff23717baa0b35113b04c6",
+        "opinionMessage": "Agree",
+        "reviewHeight": 15407,
+        "reviewTimestamp": 1660741017
+      },
+      {
+        "title": "New Motion-cr01-lemon-202208020002",
+        "proposalHash": "848c2686581f3f654c780020ea2a4a1c9317c6ebdb654fec6f8055e86bff9e3b",
+        "opinion": "approve",
+        "opinionHash": "42c2ae2aaf616886c2755da562aa5de82415a72a5590f6d1d3808331e922b892",
+        "opinionMessage": "Agree",
+        "reviewHeight": 15404,
+        "reviewTimestamp": 1660740609
+      }
+    ],
+    "state": "Elected"
+  },
+  "id": null,
+  "error": null
+}
+```
+
 ### listcrproposalbasestate
 
 Show current cr proposal base state information
@@ -2165,9 +2540,10 @@ Show current cr proposal base state information
 #### Result
 
 | name               | type                  | description                                        |
-| ------------------ | --------------------- | -------------------------------------------------- |
+|--------------------| --------------------- |----------------------------------------------------|
 | status             | string                | the proposal status                                |
 | proposalhash       | string                | the cr proposal hash                               |
+| proposalTitle      | string                | the title of the cr proposal                       |
 | txhash             | string                | the transacion's hash which cr proposal located in |
 | crvotes            | map[string]VoteResult | per cr VoteResult                                  |
 | votersrejectamount | common.Fixed64        | voters reject amount                               |
@@ -2223,8 +2599,6 @@ Response:
     }
 }
 ```
-
-
 
 ### getcrproposalstate
 
@@ -2379,20 +2753,20 @@ Response:
  }
 ```
 
- ### getproposaldraftdata
+### getproposaldraftdata
 
  Get draft data of proposal or proposalReview or proposalTracking transaction detail information by draft hash.
 
- #### Parameter
+#### Parameter
 
 | name         | type   | description                                                             |
 | ------------ | ------ | ------------------------------------------------------------------------|
 | drafthash    | string | draft hash of proposal or proposalReview or proposalTracking transaction|
 
- #### Result
+#### Result
  Result is the hex string of draft data.
 
- #### Example
+#### Example
 
  Request:
  ```json
@@ -2415,13 +2789,51 @@ Response:
 }
  ```
 
- ### createrawtransaction
+### getproposaltitle
+todo: 补充参数及示例
+Get the title of the proposal
+
+#### Parameter
+
+| name         | type   | description                              |
+| ------------ | ------ |------------------------------------------|
+| proposalhash | string | the hash of the proposal, optional       |
+| drafthash    | string | the draft hash of the proposal, optional |
+
+#### Result
+Result is the title of the proposal.
+
+#### Example
+
+Request:
+ ```json
+{
+  "method": "getproposaltitle",
+  "params": 
+  {
+    "proposalhash":"c8bcf7dda3deab6d6e7a1bb69fbd45d3b8946d5720ba7bacae649a7b655e1bc0"
+  }
+}
+ ```
+
+Response:
+
+ ```json
+{
+  "jsonrpc": "2.0",
+  "result": "this is the title of the proposal",
+  "id": null,
+  "error": null
+}
+ ```
+
+### createrawtransaction
 
  Create a transaction spending the given inputs and creating new outputs.
  Warning: you should calculate the change output and append it to transaction outputs, otherwise the change should
   be given to the miners.
 
- #### Parameter 
+#### Parameter 
 
 | name     | type          | description                        |
 | -------- | ------------- | ---------------------------------- |
@@ -2429,7 +2841,7 @@ Response:
 | outputs  | array[string] | outputs json array of json objects |
 | locktime | interger      | the transaction lock time number   |
 
- #### Example
+#### Example
 
  Request:
 
@@ -2591,17 +3003,21 @@ Request:
 Response:
 ```
 {
-    "error": null,
-    "id": null,
     "jsonrpc": "2.0",
     "result": {
-        "onduty":true,
-        "ondutystartheight":1000,
-        "ondutyendheight":2000,
-        "invoting":false,
-        "votingstartheight":0,
-        "votingendheight":0
-    }
+        "onduty": true,
+        "ondutystartheight": 15200,
+        "ondutyendheight": 22400,
+        "currentsession": 3,
+        "invoting": false,
+        "votingstartheight": 22299,
+        "votingendheight": 22359,
+        "inClaiming": false,
+        "claimingStartHeight": 22360,
+        "claimingEndHeight": 22400
+    },
+    "id": null,
+    "error": null
 }
 ```
 
@@ -2788,9 +3204,10 @@ Response:
 {
     "jsonrpc": "2.0",
     "result": {
-        "consensusalgorithm": "DPOS",
-        "height": 8502,
-        "dposv2activeheight": 6052
+        "consensusalgorithm": "DPoS 2.0",
+        "height": 15882,
+        "dposv2activeheight": 15875,
+        "dposv2transitstartheight": 15450
     },
     "id": null,
     "error": null

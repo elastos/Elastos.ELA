@@ -250,10 +250,8 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var request Request
 	err = json.Unmarshal(body, &request)
 	if err != nil {
-		fmt.Println("JSON-RPC request parsing error: ", err, "Try to unmarshal batches requests")
 		errArray := json.Unmarshal(body, &requestArray)
 		if errArray != nil {
-			fmt.Println("JSON-RPC request parsing error: ", errArray)
 			RPCError(w, http.StatusBadRequest, ParseError, "JSON-RPC request parsing error:"+err.Error())
 			return
 		}

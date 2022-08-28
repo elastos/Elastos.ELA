@@ -183,7 +183,7 @@ func (c *Committee) processTransaction(tx interfaces.Transaction, height uint32)
 		c.manager.registerProposal(tx, height, c.state.CurrentSession, c.state.History)
 
 	case common2.CRCProposalReview:
-		c.manager.proposalReview(tx, height, c.state.History)
+		c.manager.proposalReview(tx, height, c.state.History, c.state.CRMembersInfo)
 
 	case common2.CRCProposalTracking:
 		c.proposalTracking(tx, height)

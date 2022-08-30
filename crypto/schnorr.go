@@ -139,6 +139,22 @@ func Unmarshal(curve elliptic.Curve, data []byte) (x, y *big.Int) {
 	return
 }
 
+// AggregateSignatures aggregates multiple public keys to one public key
+func AggregatePublickeys(publickeys [][]byte) ([]byte, error) {
+	var pxArr []*big.Int
+	var pyArr []*big.Int
+	for _, pk := range publickeys {
+		px, py := Unmarshal(Curve, pk)
+		pxArr = append(pxArr, px)
+		pyArr = append(pyArr, py)
+	}
+	Px, Py := new(big.Int), new(big.Int)
+	for i := 0; i < len(pxArr); i++ {
+		Px, Py = Curve.Add(Px, Py, pxArr[i], pyArr[i])
+	}
+	return Marshal(Curve, Px, Py), nil
+}
+
 // AggregateSignatures aggregates multiple signatures of different private keys over
 // the same message into a single 64 byte signature.
 func AggregateSignatures(privateKeys []*big.Int, message [32]byte) ([64]byte, error) {

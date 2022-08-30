@@ -37,6 +37,10 @@ local asset_id = m.get_asset_id()
 --local vote_candidate_votes = {'0.1'}
 
 local recipient = getToAddr()
+if recipient == "" then
+    recipient = addr
+end
+
 local amount = getAmount()
 local fee = getFee()
 print("toAddr", recipient)

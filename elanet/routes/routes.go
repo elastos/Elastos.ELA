@@ -157,6 +157,10 @@ func (r *Routes) addrHandler() {
 	}
 
 	ciphers := make(map[string]map[dp.PID][]byte)
+	sentDPoSPeers := make(map[dp.PID]uint32)
+	sentCrPeers := make(map[dp.PID]uint32)
+	var roundDPoS uint32 = 0
+	var roundCr uint32 = 0
 
 out:
 	for {
@@ -214,10 +218,17 @@ out:
 
 			// Reset waiting state to 0(false).
 			atomic.StoreInt32(&r.waiting, 0)
+			// add round atomicly
+			atomic.AddUint32(&roundDPoS, 1)
 
 			for pid := range state.dposPeers {
 				// Do not create address for self.
 				if r.pid.Equal(pid) {
+					continue
+				}
+
+				// Do not create address when in DPoS peers
+				if sentCrPeers[pid] == roundCr {
 					continue
 				}
 
@@ -252,6 +263,7 @@ out:
 				}
 				addr.Signature = r.sign(addr.Data())
 
+				sentDPoSPeers[pid] = roundDPoS
 				// Append and relay the local address.
 				r.appendAddr(&addr)
 			}
@@ -289,6 +301,8 @@ out:
 
 			// Reset waiting state to 0(false).
 			atomic.StoreInt32(&r.crWaiting, 0)
+			// add round atomicly
+			atomic.AddUint32(&roundCr, 1)
 
 			for pid := range state.crPeers {
 				// Do not create address for self.
@@ -297,7 +311,7 @@ out:
 				}
 
 				// Do not create address when in DPoS peers
-				if _, ok := state.dposPeers[pid]; ok {
+				if sentDPoSPeers[pid] == roundDPoS {
 					continue
 				}
 
@@ -320,6 +334,7 @@ out:
 				}
 				addr.Signature = r.sign(addr.Data())
 
+				sentCrPeers[pid] = roundCr
 				// Append and relay the local address.
 				r.appendAddr(&addr)
 			}

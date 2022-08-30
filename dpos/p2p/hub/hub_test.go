@@ -8,6 +8,7 @@ package hub
 import (
 	"crypto/rand"
 	"fmt"
+	dp "github.com/elastos/Elastos.ELA/dpos/p2p/peer"
 	"github.com/elastos/Elastos.ELA/p2p/peer"
 	"net"
 	"strconv"
@@ -108,7 +109,9 @@ func TestHub_Intercept(t *testing.T) {
 	rand.Read(someID[:])
 	var mainMagic, subMagic = 123123, 321321
 	var mainPort, subPort, remotePort, somePort = 8200, 8300, 8301, 2222
-	var hub = New(uint32(mainMagic), mainID, addrmgr.New("./"), "")
+	var hub = New(uint32(mainMagic), mainID, addrmgr.New("./"), "", func(pid dp.PID) uint64 {
+		return 0
+	}, 0)
 	hub.queue <- peerList{mainID, subID, someID}
 	hub.admgr.AddAddress(subID, &net.TCPAddr{
 		IP:   net.ParseIP("localhost"),

@@ -171,12 +171,14 @@ type inbound *Conn
 type outbound *Conn
 
 type Hub struct {
-	magic uint32
-	pid   peer.PID
-	admgr *addrmgr.AddrManager
-	queue chan interface{}
-	quit  chan struct{}
-	addr  string
+	magic             uint32
+	pid               peer.PID
+	admgr             *addrmgr.AddrManager
+	queue             chan interface{}
+	quit              chan struct{}
+	addr              string
+	pingNonce         func(pid peer.PID) uint64
+	dposV2StartHeight uint32
 }
 
 // createPipe creates a pipe between inlet connection and the network address.
@@ -280,20 +282,24 @@ func (h *Hub) handleOutbound(state *state, conn *Conn) {
 		remoteConn := createPipe(h.admgr, conn, addr, connChan)
 
 		// if only in outbound pipes, not in inbound pipes, need to announce addr
-		go func() {
-			time.Sleep(time.Second * 10)
-			state.lock.RLock()
-			if _, ok := state.inboundPipes[target]; !ok {
-				err := h.announceDaddr(remoteConn, conn)
-				if err != nil {
-					state.lock.RUnlock()
-					log.Debugf("service announce daddr error:", err)
-					_ = conn.Close()
-					return
+		if uint32(h.pingNonce(peer.PID{})) > h.dposV2StartHeight {
+			go func() {
+				time.Sleep(time.Second * 10)
+				state.lock.RLock()
+				if _, ok := state.inboundPipes[target]; !ok {
+					err := h.announceDaddr(remoteConn, conn)
+					if err != nil {
+						state.lock.RUnlock()
+						log.Debugf("service announce daddr error:", err)
+						_ = conn.Close()
+						return
+					}
 				}
-			}
-			state.lock.RUnlock()
-		}()
+				state.lock.RUnlock()
+			}()
+		} else {
+			log.Info("Don't send daddr message in hub when height is not reach dposV2StartHeight")
+		}
 
 		<-connChan
 		state.lock.Lock()
@@ -391,14 +397,17 @@ func (h *Hub) Intercept(conn net.Conn) net.Conn {
 
 // New creates a new Hub instance with the main network magic, arbiter PID and
 // DPOS network AddrManager.
-func New(magic uint32, pid [33]byte, admgr *addrmgr.AddrManager, addr string) *Hub {
+func New(magic uint32, pid [33]byte, admgr *addrmgr.AddrManager, addr string,
+	pingNonce func(pid peer.PID) uint64, dposV2startHeight uint32) *Hub {
 	h := Hub{
-		magic: magic,
-		pid:   pid,
-		admgr: admgr,
-		queue: make(chan interface{}, 125),
-		quit:  make(chan struct{}),
-		addr:  addr,
+		magic:             magic,
+		pid:               pid,
+		admgr:             admgr,
+		queue:             make(chan interface{}, 125),
+		quit:              make(chan struct{}),
+		addr:              addr,
+		pingNonce:         pingNonce,
+		dposV2StartHeight: dposV2startHeight,
 	}
 
 	// Start the hub.

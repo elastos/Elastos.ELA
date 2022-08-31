@@ -66,9 +66,9 @@ func (t *DPoSV2ClaimRewardTransaction) SpecialContextCheck() (elaerr.ELAError, b
 
 	version := t.PayloadVersion()
 	var code []byte
-	if version == payload.UnstakeVersionV0 {
+	if version == payload.DposV2ClaimRewardVersionV0 {
 		code = claimReward.Code
-	} else if version == payload.UnstakeVersionV1 {
+	} else if version == payload.DposV2ClaimRewardVersionV1 {
 		code = t.Programs()[0].Code
 	} else {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid payload version")), true
@@ -91,7 +91,7 @@ func (t *DPoSV2ClaimRewardTransaction) SpecialContextCheck() (elaerr.ELAError, b
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("claim reward should be bigger than RealWithdrawSingleFee")), true
 	}
 
-	if version == payload.UnstakeVersionV0 {
+	if version == payload.DposV2ClaimRewardVersionV0 {
 		signedBuf := new(bytes.Buffer)
 		err = claimReward.SerializeUnsigned(signedBuf, payload.DposV2ClaimRewardVersionV0)
 		if err != nil {

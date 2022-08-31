@@ -2457,7 +2457,7 @@ func (s *State) getClaimedCRMembersMap() map[string]*state.CRMember {
 func (s *State) processUnstake(tx interfaces.Transaction, height uint32) {
 	pld := tx.Payload().(*payload.Unstake)
 	var code []byte
-	if tx.PayloadVersion() == payload.DposV2ClaimRewardVersionV0 {
+	if tx.PayloadVersion() == payload.UnstakeVersionV0 {
 		code = pld.Code
 	} else {
 		code = tx.Programs()[0].Code

@@ -159,8 +159,8 @@ func (r *Routes) addrHandler() {
 	ciphers := make(map[string]map[dp.PID][]byte)
 	sentDPoSPeers := make(map[dp.PID]uint32)
 	sentCrPeers := make(map[dp.PID]uint32)
-	var roundDPoS uint32 = 0
-	var roundCr uint32 = 0
+	var roundDPoS uint32 = 1
+	var roundCr uint32 = 1
 
 out:
 	for {

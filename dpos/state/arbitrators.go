@@ -706,6 +706,9 @@ func (a *Arbiters) getDPoSV2Rewards(dposReward common.Fixed64, sponsor []byte) (
 
 		var totalNI float64
 		for sVoteAddr, sVoteDetail := range producer.detailedDPoSV2Votes {
+			if len(sVoteDetail) == 0 {
+				continue
+			}
 			prefixType := byte(contract.PrefixStandard)
 			var totalN float64
 			for _, votes := range sVoteDetail {
@@ -714,7 +717,9 @@ func (a *Arbiters) getDPoSV2Rewards(dposReward common.Fixed64, sponsor []byte) (
 				totalN += float64(N)
 				prefixType = votes.PrefixType
 			}
-
+			if totalN == 0 {
+				continue
+			}
 			producersN[sVoteAddr] = totalN
 			stakeAddrPreTypeMgr[sVoteAddr] = prefixType
 			totalNI += totalN

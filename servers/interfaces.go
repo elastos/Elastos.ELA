@@ -2493,13 +2493,11 @@ func ListCurrentCRs(param Params) map[string]interface{} {
 func ListNextCRs(param Params) map[string]interface{} {
 	cm := Chain.GetCRCommittee()
 	var crMembers []*crstate.CRMember
-	if cm.IsInElectionPeriod() {
-		crMembers = cm.GetNextMembers()
-		sort.Slice(crMembers, func(i, j int) bool {
-			return crMembers[i].Info.GetCodeHash().Compare(
-				crMembers[j].Info.GetCodeHash()) < 0
-		})
-	}
+	crMembers = cm.GetNextMembers()
+	sort.Slice(crMembers, func(i, j int) bool {
+		return crMembers[i].Info.GetCodeHash().Compare(
+			crMembers[j].Info.GetCodeHash()) < 0
+	})
 
 	var rsCRMemberInfoSlice []RPCCRMemberInfo
 	for i, cr := range crMembers {

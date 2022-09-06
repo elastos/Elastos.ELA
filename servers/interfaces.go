@@ -581,9 +581,9 @@ func GetVoteRights(params Params) map[string]interface{} {
 
 	type detailedVoteRight struct {
 		StakeAddress    string                  `json:"stakeaddress"`
-		TotalVotesRight common.Fixed64          `json:"totalvotesright"`
+		TotalVotesRight string                  `json:"totalvotesright"`
 		UsedVotesInfo   usedVoteRightDetailInfo `json:"usedvotesinfo"`
-		RemainVoteRight []common.Fixed64        `json:"remainvoteright"` //index is same to VoteType
+		RemainVoteRight []string                `json:"remainvoteright"` //index is same to VoteType
 	}
 	var result []*detailedVoteRight
 	state := Chain.GetState()
@@ -602,7 +602,7 @@ func GetVoteRights(params Params) map[string]interface{} {
 		totalVotesRight := voteRights[stakeProgramHash]
 		vote := &detailedVoteRight{
 			StakeAddress:    address,
-			TotalVotesRight: totalVotesRight,
+			TotalVotesRight: totalVotesRight.String(),
 			UsedVotesInfo: usedVoteRightDetailInfo{
 				UsedDPoSV2Votes:         []DetailedVoteInfo{},
 				UsedDPoSVotes:           []VotesWithLockTimeInfo{},
@@ -610,7 +610,7 @@ func GetVoteRights(params Params) map[string]interface{} {
 				UsdedCRImpeachmentVotes: []VotesWithLockTimeInfo{},
 				UsedCRCProposalVotes:    []VotesWithLockTimeInfo{},
 			},
-			RemainVoteRight: make([]common.Fixed64, 5),
+			RemainVoteRight: make([]string, 5),
 		}
 		// dposv1
 		if udv := state.UsedDposVotes[stakeProgramHash]; udv != nil {
@@ -687,7 +687,7 @@ func GetVoteRights(params Params) map[string]interface{} {
 		for i := outputpayload.Delegate; i <= outputpayload.DposV2; i++ {
 			usedVoteRight, _ := GetUsedVoteRight(i, &stakeProgramHash)
 			remainRoteRight := totalVotesRight - usedVoteRight
-			vote.RemainVoteRight[i] = remainRoteRight
+			vote.RemainVoteRight[i] = remainRoteRight.String()
 		}
 		result = append(result, vote)
 	}
@@ -2172,10 +2172,10 @@ type RPCCRProposalStateInfo struct {
 }
 
 type RPCDposV2RewardInfo struct {
-	Address   string         `json:"address"`
-	Claimable common.Fixed64 `json:"claimable"`
-	Claiming  common.Fixed64 `json:"claiming"`
-	Claimed   common.Fixed64 `json:"claimed"`
+	Address   string `json:"address"`
+	Claimable string `json:"claimable"`
+	Claiming  string `json:"claiming"`
+	Claimed   string `json:"claimed"`
 }
 
 type RPCDPosV2Info struct {
@@ -2192,9 +2192,9 @@ func DposV2RewardInfo(param Params) map[string]interface{} {
 		claimed := Chain.GetState().DposV2RewardClaimedInfo[addr]
 		result := RPCDposV2RewardInfo{
 			Address:   addr,
-			Claimable: claimable,
-			Claiming:  claiming,
-			Claimed:   claimed,
+			Claimable: claimable.String(),
+			Claiming:  claiming.String(),
+			Claimed:   claimed.String(),
 		}
 		return ResponsePack(Success, result)
 	} else {
@@ -2203,9 +2203,9 @@ func DposV2RewardInfo(param Params) map[string]interface{} {
 		for addr, value := range dposV2RewardInfo {
 			result = append(result, RPCDposV2RewardInfo{
 				Address:   addr,
-				Claimable: value,
-				Claiming:  Chain.GetState().DposV2RewardClaimingInfo[addr],
-				Claimed:   Chain.GetState().DposV2RewardClaimedInfo[addr],
+				Claimable: value.String(),
+				Claiming:  Chain.GetState().DposV2RewardClaimingInfo[addr].String(),
+				Claimed:   Chain.GetState().DposV2RewardClaimedInfo[addr].String(),
 			})
 		}
 

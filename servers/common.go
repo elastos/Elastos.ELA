@@ -208,6 +208,10 @@ type WithdrawFromSideChainInfo struct {
 	SideChainTransactionHashes []string `json:"sidechaintransactionhashes"`
 }
 
+type SchnorrWithdrawFromSideChainInfo struct {
+	Signers []uint8 `json:"blockheight"`
+}
+
 type ProducerInfo struct {
 	OwnerPublicKey string `json:"ownerpublickey"`
 	NodePublicKey  string `json:"nodepublickey"`

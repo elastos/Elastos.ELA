@@ -3071,16 +3071,24 @@ func getPayloadInfo(p interfaces.Payload, payloadVersion byte) PayloadInfo {
 		obj.Signature = common.BytesToHexString(object.Signature)
 		return obj
 	case *payload.WithdrawFromSideChain:
-		if payloadVersion == payload.WithdrawFromSideChainVersionV1 {
+		switch payloadVersion {
+		case payload.WithdrawFromSideChainVersion:
+			obj := new(WithdrawFromSideChainInfo)
+			obj.BlockHeight = object.BlockHeight
+			obj.GenesisBlockAddress = object.GenesisBlockAddress
+			for _, hash := range object.SideChainTransactionHashes {
+				obj.SideChainTransactionHashes = append(obj.SideChainTransactionHashes, hash.String())
+			}
+			return obj
+		case payload.WithdrawFromSideChainVersionV1:
 			return nil
+		case payload.WithdrawFromSideChainVersionV2:
+			obj := new(SchnorrWithdrawFromSideChainInfo)
+			obj.Signers = object.Signers
+			return obj
 		}
-		obj := new(WithdrawFromSideChainInfo)
-		obj.BlockHeight = object.BlockHeight
-		obj.GenesisBlockAddress = object.GenesisBlockAddress
-		for _, hash := range object.SideChainTransactionHashes {
-			obj.SideChainTransactionHashes = append(obj.SideChainTransactionHashes, hash.String())
-		}
-		return obj
+		return nil
+
 	case *payload.TransferCrossChainAsset:
 		if payloadVersion == payload.TransferCrossChainVersionV1 {
 			return nil

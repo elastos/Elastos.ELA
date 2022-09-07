@@ -209,7 +209,7 @@ type WithdrawFromSideChainInfo struct {
 }
 
 type SchnorrWithdrawFromSideChainInfo struct {
-	Signers []uint8 `json:"blockheight"`
+	Signers []uint32 `json:"Signers"`
 }
 
 type ProducerInfo struct {

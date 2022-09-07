@@ -722,10 +722,10 @@ func (s *State) GetAllProducersPublicKey() []string {
 }
 
 // GetAllProducers returns all producers including pending, active, canceled, illegal and inactive producers.
-func (s *State) GetAllProducers() []*Producer {
+func (s *State) GetAllProducers() []Producer {
 	s.mtx.RLock()
 	defer s.mtx.RUnlock()
-	return s.getAllProducers()
+	return s.getAllProducersByCopy()
 }
 
 func (s *State) GetDetailedDPoSV2Votes(stakeProgramHash *common.Uint168) []payload.DetailedVoteInfo {
@@ -745,6 +745,27 @@ func (s *State) GetDetailedDPoSV2Votes(stakeProgramHash *common.Uint168) []paylo
 		return result[i].ReferKey().Compare(result[j].ReferKey()) >= 0
 	})
 	return result
+}
+
+func (s *State) getAllProducersByCopy() []Producer {
+	producers := make([]Producer, 0, len(s.PendingProducers)+
+		len(s.ActivityProducers))
+	for _, producer := range s.PendingProducers {
+		producers = append(producers, *producer)
+	}
+	for _, producer := range s.ActivityProducers {
+		producers = append(producers, *producer)
+	}
+	for _, producer := range s.InactiveProducers {
+		producers = append(producers, *producer)
+	}
+	for _, producer := range s.CanceledProducers {
+		producers = append(producers, *producer)
+	}
+	for _, producer := range s.IllegalProducers {
+		producers = append(producers, *producer)
+	}
+	return producers
 }
 
 func (s *State) getAllProducers() []*Producer {

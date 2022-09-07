@@ -473,6 +473,15 @@ func GetArbiterPeersInfo(params Params) map[string]interface{} {
 //if have params stakeAddress  get stakeAddress all dposv2 votes
 //else get all dposv2 votes
 func GetAllDetailedDPoSV2Votes(params Params) map[string]interface{} {
+	start, _ := params.Int("start")
+	if start < 0 {
+		start = 0
+	}
+	limit, ok := params.Int("limit")
+	if !ok {
+		limit = -1
+	}
+
 	stakeAddress, _ := params.String("stakeaddress")
 	type detailedVoteInfo struct {
 		ProducerOwnerKey string                `json:"producerownerkey"`
@@ -486,6 +495,7 @@ func GetAllDetailedDPoSV2Votes(params Params) map[string]interface{} {
 		Info             VotesWithLockTimeInfo `json:"info"`
 		DPoSV2VoteRights string                `json:"DPoSV2VoteRights"`
 	}
+
 	var result []*detailedVoteInfo
 	ps := Chain.GetState().GetAllProducers()
 	for _, p := range ps {
@@ -523,7 +533,23 @@ func GetAllDetailedDPoSV2Votes(params Params) map[string]interface{} {
 	sort.Slice(result, func(i, j int) bool {
 		return strings.Compare(result[i].ReferKey, result[j].ReferKey) >= 0
 	})
-	return ResponsePack(Success, result)
+
+	count := int64(len(result))
+	if limit < 0 {
+		limit = count
+	}
+	var dvi []*detailedVoteInfo
+	if start < count {
+		end := start
+		if start+limit <= count {
+			end = start + limit
+		} else {
+			end = count
+		}
+		dvi = append(dvi, result[start:end]...)
+	}
+
+	return ResponsePack(Success, dvi)
 }
 
 //GetProducerInfo
@@ -2224,6 +2250,9 @@ func GetDPosV2Info(param Params) map[string]interface{} {
 
 func ListProducers(param Params) map[string]interface{} {
 	start, _ := param.Int("start")
+	if start < 0 {
+		start = 0
+	}
 	limit, ok := param.Int("limit")
 	if !ok {
 		limit = -1
@@ -2235,7 +2264,10 @@ func ListProducers(param Params) map[string]interface{} {
 	var producers []*state.Producer
 	switch s {
 	case "all":
-		producers = Chain.GetState().GetAllProducers()
+		ps := Chain.GetState().GetAllProducers()
+		for i, _ := range ps {
+			producers = append(producers, &ps[i])
+		}
 	case "pending":
 		producers = Chain.GetState().GetPendingProducers()
 	case "active":
@@ -2358,6 +2390,9 @@ func GetCRRelatedStage(param Params) map[string]interface{} {
 //list cr candidates according to ( state , start and limit)
 func ListCRCandidates(param Params) map[string]interface{} {
 	start, _ := param.Int("start")
+	if start < 0 {
+		start = 0
+	}
 	limit, ok := param.Int("limit")
 	if !ok {
 		limit = -1
@@ -2537,6 +2572,9 @@ func ListNextCRs(param Params) map[string]interface{} {
 
 func ListCRProposalBaseState(param Params) map[string]interface{} {
 	start, _ := param.Int("start")
+	if start < 0 {
+		start = 0
+	}
 	limit, ok := param.Int("limit")
 	if !ok {
 		limit = -1
@@ -3084,7 +3122,10 @@ func getPayloadInfo(p interfaces.Payload, payloadVersion byte) PayloadInfo {
 			return nil
 		case payload.WithdrawFromSideChainVersionV2:
 			obj := new(SchnorrWithdrawFromSideChainInfo)
-			obj.Signers = object.Signers
+			obj.Signers = make([]uint32, 0)
+			for _, s := range object.Signers {
+				obj.Signers = append(obj.Signers, uint32(s))
+			}
 			return obj
 		}
 		return nil

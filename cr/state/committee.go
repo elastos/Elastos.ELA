@@ -1096,7 +1096,7 @@ func getSignedPubKeys(m, n int, publicKeys [][]byte, signatures, data []byte) ([
 
 func (c *Committee) processsWithdrawFromSideChain(tx interfaces.Transaction,
 	height uint32, history *utils.History) {
-	log.Infof("currentWithdrawFromSideChainIndex is %d, CrossChainMonitorInterval is %d", c.CurrentWithdrawFromSideChainIndex, c.Params.CrossChainMonitorInterval)
+	log.Debugf("currentWithdrawFromSideChainIndex is %d, CrossChainMonitorInterval is %d", c.CurrentWithdrawFromSideChainIndex, c.Params.CrossChainMonitorInterval)
 
 	originCurrentWithdrawFromSideChainIndex := c.CurrentWithdrawFromSideChainIndex
 	originCurrentSignedWithdrawFromSideChainKeys := c.CurrentSignedWithdrawFromSideChainKeys
@@ -1109,7 +1109,7 @@ func (c *Committee) processsWithdrawFromSideChain(tx interfaces.Transaction,
 	} else {
 		tmpCurrentWithdrawFromSideChainIndex += 1
 	}
-	log.Infof("CurrentSignedWithdrawFromSideChainKeys %v", tmpCurrentSignedWithdrawFromSideChainKeys)
+	log.Debugf("CurrentSignedWithdrawFromSideChainKeys %v", tmpCurrentSignedWithdrawFromSideChainKeys)
 	electedMembers := getOriginElectedCRMembers(c.Members)
 	electedMemAll := make(map[string]*CRMember)
 	for _, elected := range electedMembers {
@@ -1145,7 +1145,7 @@ func (c *Committee) processsWithdrawFromSideChain(tx interfaces.Transaction,
 	}
 
 	if reachTop {
-		log.Info("reach top")
+		log.Debug("reach top at height:", height)
 		for k, m := range electedMemAll {
 			tmp := k
 			tmpMem := m
@@ -1153,7 +1153,7 @@ func (c *Committee) processsWithdrawFromSideChain(tx interfaces.Transaction,
 				if tmpMem != nil && tmpMem.MemberState == MemberElected {
 					history.Append(height, func() {
 						tmpMem.MemberState = MemberInactive
-						log.Info("Set to inactive", tmpMem.Info.NickName)
+						log.Debug("Set to inactive", tmpMem.Info.NickName)
 						if height >= c.Params.ChangeCommitteeNewCRHeight {
 							c.state.UpdateCRInactivePenalty(tmpMem.Info.CID, height)
 						}

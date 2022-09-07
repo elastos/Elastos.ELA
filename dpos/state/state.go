@@ -2511,7 +2511,6 @@ func (s *State) processDposV2ClaimReward(tx interfaces.Transaction, height uint3
 
 	programHash, _ := utils.GetProgramHashByCode(code)
 	addr, _ := programHash.ToAddress()
-
 	s.History.Append(height, func() {
 		s.DposV2RewardInfo[addr] -= pld.Value
 		s.DposV2RewardClaimingInfo[addr] += pld.Value
@@ -2519,10 +2518,13 @@ func (s *State) processDposV2ClaimReward(tx interfaces.Transaction, height uint3
 			Recipient: pld.ToAddr,
 			Amount:    pld.Value,
 		}
+		s.ClaimingRewardAddr[tx.Hash()] = *programHash
 	}, func() {
 		s.DposV2RewardInfo[addr] += pld.Value
 		s.DposV2RewardClaimingInfo[addr] -= pld.Value
 		delete(s.WithdrawableTxInfo, tx.Hash())
+		delete(s.ClaimingRewardAddr, tx.Hash())
+
 	})
 }
 
@@ -2546,22 +2548,28 @@ func (s *State) processDposV2ClaimRewardRealWithdraw(tx interfaces.Transaction, 
 	for k, v := range s.StateKeyFrame.WithdrawableTxInfo {
 		txs[k] = v
 	}
-	oriClaimingInfo := s.DposV2RewardClaimingInfo
-	oriClaimedInfo := s.DposV2RewardClaimedInfo
+
+	oriRewardClaimingAddr := copyRewardClaimingAddrMap(s.ClaimingRewardAddr)
+	oriClaimingInfo := copyFixed64Map(s.DposV2RewardClaimingInfo)
+	oriClaimedInfo := copyFixed64Map(s.DposV2RewardClaimedInfo)
+
 	withdrawPayload := tx.Payload().(*payload.DposV2ClaimRewardRealWithdraw)
 
 	s.History.Append(height, func() {
 		for _, hash := range withdrawPayload.WithdrawTransactionHashes {
 			info := s.StateKeyFrame.WithdrawableTxInfo[hash]
-			addr, _ := info.Recipient.ToAddress()
+			prgramHash := s.ClaimingRewardAddr[hash]
+			addr, _ := prgramHash.ToAddress()
 			s.DposV2RewardClaimingInfo[addr] -= info.Amount
 			s.DposV2RewardClaimedInfo[addr] += info.Amount
 			delete(s.StateKeyFrame.WithdrawableTxInfo, hash)
+			delete(s.StateKeyFrame.ClaimingRewardAddr, hash)
 		}
 	}, func() {
 		s.StateKeyFrame.WithdrawableTxInfo = txs
 		s.DposV2RewardClaimingInfo = oriClaimingInfo
 		s.DposV2RewardClaimedInfo = oriClaimedInfo
+		s.StateKeyFrame.ClaimingRewardAddr = oriRewardClaimingAddr
 	})
 }
 

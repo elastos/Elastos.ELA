@@ -62,7 +62,9 @@ type StateKeyFrame struct {
 	ProducerDepositMap       map[common.Uint168]struct{}
 	// dposV2Withdraw info
 	WithdrawableTxInfo map[common.Uint256]common2.OutputInfo
-	//votes  withdraw
+	// record Claiming Reward Addr
+	ClaimingRewardAddr map[common.Uint256]common.Uint168
+	// votes withdraw
 	VotesWithdrawableTxInfo map[common.Uint256]common2.OutputInfo
 
 	EmergencyInactiveArbiters map[string]struct{}
@@ -119,6 +121,7 @@ func (s *StateKeyFrame) snapshot() *StateKeyFrame {
 		DposV2RewardClaimingInfo: make(map[string]common.Fixed64),
 		DposV2RewardClaimedInfo:  make(map[string]common.Fixed64),
 		WithdrawableTxInfo:       make(map[common.Uint256]common2.OutputInfo),
+		ClaimingRewardAddr:       make(map[common.Uint256]common.Uint168),
 		VotesWithdrawableTxInfo:  make(map[common.Uint256]common2.OutputInfo),
 		Nicknames:                make(map[string]struct{}),
 		SpecialTxHashes:          make(map[common.Uint256]struct{}),
@@ -146,6 +149,8 @@ func (s *StateKeyFrame) snapshot() *StateKeyFrame {
 	state.DposV2RewardClaimingInfo = copyFixed64Map(s.DposV2RewardClaimingInfo)
 	state.DposV2RewardClaimedInfo = copyFixed64Map(s.DposV2RewardClaimedInfo)
 	state.WithdrawableTxInfo = copyWithdrawableTransactionsMap(s.WithdrawableTxInfo)
+	state.ClaimingRewardAddr = copyRewardClaimingAddrMap(s.ClaimingRewardAddr)
+
 	state.VotesWithdrawableTxInfo = copyWithdrawableTransactionsMap(s.VotesWithdrawableTxInfo)
 
 	state.Nicknames = copyStringSet(s.Nicknames)
@@ -230,6 +235,9 @@ func (s *StateKeyFrame) Serialize(w io.Writer) (err error) {
 	}
 
 	if err = s.serializeWithdrawableTransactionsMap(s.WithdrawableTxInfo, w); err != nil {
+		return
+	}
+	if err = s.SerializeRewardClaimingAddrMap(s.ClaimingRewardAddr, w); err != nil {
 		return
 	}
 	if err = s.serializeWithdrawableTransactionsMap(s.VotesWithdrawableTxInfo, w); err != nil {
@@ -344,6 +352,11 @@ func (s *StateKeyFrame) Deserialize(r io.Reader) (err error) {
 	if s.WithdrawableTxInfo, err = s.deserializeWithdrawableTransactionsMap(r); err != nil {
 		return
 	}
+
+	if s.ClaimingRewardAddr, err = s.DeserializeRewardClaimingAddrMap(r); err != nil {
+		return
+	}
+
 	if s.VotesWithdrawableTxInfo, err = s.deserializeWithdrawableTransactionsMap(r); err != nil {
 		return
 	}
@@ -432,6 +445,23 @@ func (s *StateKeyFrame) SerializeFixed64Map(vmap map[string]common.Fixed64,
 	return
 }
 
+// ClaimingRewardAddr
+func (s *StateKeyFrame) SerializeRewardClaimingAddrMap(vmap map[common.Uint256]common.Uint168,
+	w io.Writer) (err error) {
+	if err = common.WriteVarUint(w, uint64(len(vmap))); err != nil {
+		return
+	}
+	for k, v := range vmap {
+		if err = k.Serialize(w); err != nil {
+			return
+		}
+		if err = v.Serialize(w); err != nil {
+			return
+		}
+	}
+	return
+}
+
 func (p *StateKeyFrame) serializeWithdrawableTransactionsMap(
 	proposalWithdrableTx map[common.Uint256]common2.OutputInfo, w io.Writer) (err error) {
 	if err = common.WriteVarUint(w, uint64(len(proposalWithdrableTx))); err != nil {
@@ -481,6 +511,27 @@ func (s *StateKeyFrame) DeserializeFixed64Map(
 			return
 		}
 		var v common.Fixed64
+		if err = v.Deserialize(r); err != nil {
+			return
+		}
+		vmap[k] = v
+	}
+	return
+}
+
+func (s *StateKeyFrame) DeserializeRewardClaimingAddrMap(
+	r io.Reader) (vmap map[common.Uint256]common.Uint168, err error) {
+	var count uint64
+	if count, err = common.ReadVarUint(r, 0); err != nil {
+		return
+	}
+	vmap = make(map[common.Uint256]common.Uint168)
+	for i := uint64(0); i < count; i++ {
+		var k common.Uint256
+		if err = k.Deserialize(r); err != nil {
+			return
+		}
+		var v common.Uint168
 		if err = v.Deserialize(r); err != nil {
 			return
 		}
@@ -817,6 +868,7 @@ func NewStateKeyFrame() *StateKeyFrame {
 		DposV2RewardClaimingInfo:  make(map[string]common.Fixed64),
 		DposV2RewardClaimedInfo:   make(map[string]common.Fixed64),
 		WithdrawableTxInfo:        make(map[common.Uint256]common2.OutputInfo),
+		ClaimingRewardAddr:        make(map[common.Uint256]common.Uint168),
 		VotesWithdrawableTxInfo:   make(map[common.Uint256]common2.OutputInfo),
 		Nicknames:                 make(map[string]struct{}),
 		SpecialTxHashes:           make(map[common.Uint256]struct{}),
@@ -917,6 +969,14 @@ func copyWithdrawableTransactionsMap(src map[common.Uint256]common2.OutputInfo) 
 			Recipient: v.Recipient,
 			Amount:    v.Amount,
 		}
+	}
+	return
+}
+
+func copyRewardClaimingAddrMap(src map[common.Uint256]common.Uint168) (dst map[common.Uint256]common.Uint168) {
+	dst = map[common.Uint256]common.Uint168{}
+	for k, v := range src {
+		dst[k] = v
 	}
 	return
 }

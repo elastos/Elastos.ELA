@@ -10,6 +10,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math"
+	"math/big"
 	"math/rand"
 	"path/filepath"
 	"testing"
@@ -599,4 +600,77 @@ func getValidCID(publicKeyStr string) *common.Uint168 {
 func getCID(code []byte) *common.Uint168 {
 	ct1, _ := contract.CreateCRIDContractByCode(code)
 	return ct1.ToProgramHash()
+}
+
+
+func TestSchnorr(t *testing.T) {
+	rawTxStr := "09020001001332323837373031313533373638303434393437013D4321277C999B4428BE031857DCB55ADAF04F706EAFBB9ACDC25C595DA3900101000000000001B037DB964A231458D2D6FFD5EA18944C4F90E63D547C5D3B9874DF66A4EAD0A3B763A900000000000000000021BE47F0B3851EDD38D3FD08A9F3ADA677E8913E62000000000001414056303BD38A49DAF60DC7F6AEFDD8D620FC4D6C197C4EE0176A4C74EE5CCF5E21790084DFE37A1C79A702DA5D25E40C6482D5A0590BAD2239C5C6E414CEA4F49D2351210364CB605A75B15705E3D4F881493491BF4851430E11E350C7E8FF873829978674"
+	data, err := common.HexStringToBytes(rawTxStr)
+	if err != nil {
+		fmt.Println("err", err)
+		return
+
+	}
+	reader := bytes.NewReader(data)
+	tx, _ := functions.GetTransactionByBytes(reader)
+	err2 := tx.Deserialize(reader)
+	if err2 != nil {
+		fmt.Println("err2", err2)
+		return
+	}
+
+	fmt.Println("tx hash:", tx.Hash())
+
+	buf := new(bytes.Buffer)
+	if err := tx.SerializeUnsigned(buf); err != nil {
+		fmt.Println("error:", err)
+	}
+
+	da := buf.Bytes()
+	phd := common.Sha256D(da)
+	ph, _ := common.Uint256FromBytes(phd[:])
+	fmt.Println("ph:", ph)
+
+	privs := make([]*big.Int, 0)
+	pv1, _ := common.HexStringToBytes("39205bb64c62dae517e5ee0678c7837236bdb4057464fb501e2c8215e0be0f7b")
+	pv2, _ := common.HexStringToBytes("2ad85c7312aee8ec66c342aec6e1a3cbe9ebe27d3d3053dbfac314c456ec70ce")
+	pv3, _ := common.HexStringToBytes("096a6e5c49e624844a0d8088672e67f89a4f5fd8edab5b5c32de49606375d2ad")
+	pv4, _ := common.HexStringToBytes("de016d3dc360e0cbce74c960029a6bc4adc8d0a318aa86678c9f33462a6cfa3b")
+
+	fmt.Println("len:", len(pv1))
+
+	privs = append(privs, new(big.Int).SetBytes(pv1))
+	privs = append(privs, new(big.Int).SetBytes(pv2))
+	privs = append(privs, new(big.Int).SetBytes(pv3))
+	privs = append(privs, new(big.Int).SetBytes(pv4))
+
+	para, err := crypto.AggregateSignatures(privs, phd)
+	if err != nil {
+		fmt.Println("aggregate signatures error", err)
+	}
+	fmt.Println("old signature:", common.BytesToHexString(tx.Programs()[0].Parameter))
+	tx.Programs()[0].Parameter = para[:]
+	fmt.Println("new signature:", common.BytesToHexString(tx.Programs()[0].Parameter))
+
+	//para, err := crypto.AggregatePublickeys(privs, phd)
+	//if err != nil {
+	//      fmt.Println("aggregate signatures error", err)
+	//}
+
+	r, err := checkSchnorrSignatures(*tx.Programs()[0], phd)
+	if err != nil {
+		fmt.Println("err:", err)
+	}
+	fmt.Println(r)
+
+}
+
+func checkSchnorrSignatures(program program.Program, data [32]byte) (bool, error) {
+	publicKey := [33]byte{}
+	copy(publicKey[:], program.Code[2:])
+	fmt.Println("pk:", common.BytesToHexString(publicKey[:]))
+	signature := [64]byte{}
+	copy(signature[:], program.Parameter[:64])
+
+	return crypto.SchnorrVerify(publicKey, data, signature)
 }

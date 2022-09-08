@@ -121,6 +121,91 @@ func (s *txValidatorTestSuite) TestCheckTxHeightVersion() {
 	blockHeight1 := s.Chain.GetParams().CRVotingStartHeight - 1
 	blockHeight2 := s.Chain.GetParams().CRVotingStartHeight
 	blockHeight3 := s.Chain.GetParams().RegisterCRByDIDHeight
+	blockHeight4 := s.Chain.GetParams().DPoSV2StartHeight
+
+	stake, _ := functions.GetTransactionByTxType(common2.Stake)
+	stake = CreateTransactionByType(stake, s.Chain)
+	stake.SetParameters(&transaction.TransactionParameters{
+		Transaction: stake,
+		BlockHeight: blockHeight1,
+		TimeStamp:   s.Chain.BestChain.Timestamp,
+		Config:      s.Chain.GetParams(),
+		BlockChain:  s.Chain,
+	})
+	err := stake.HeightVersionCheck()
+	s.EqualError(err, "not support Stake transaction before DPoSV2StartHeight")
+	stake.SetParameters(&transaction.TransactionParameters{
+		Transaction: stake,
+		BlockHeight: blockHeight4,
+		TimeStamp:   s.Chain.BestChain.Timestamp,
+		Config:      s.Chain.GetParams(),
+		BlockChain:  s.Chain,
+	})
+	err = stake.HeightVersionCheck()
+	s.NoError(err)
+
+	unstake, _ := functions.GetTransactionByTxType(common2.Unstake)
+	unstake = CreateTransactionByType(unstake, s.Chain)
+	unstake.SetParameters(&transaction.TransactionParameters{
+		Transaction: unstake,
+		BlockHeight: blockHeight1,
+		TimeStamp:   s.Chain.BestChain.Timestamp,
+		Config:      s.Chain.GetParams(),
+		BlockChain:  s.Chain,
+	})
+	err = unstake.HeightVersionCheck()
+	s.EqualError(err, "not support Unstake transaction before DPoSV2StartHeight")
+	unstake.SetParameters(&transaction.TransactionParameters{
+		Transaction: unstake,
+		BlockHeight: blockHeight4,
+		TimeStamp:   s.Chain.BestChain.Timestamp,
+		Config:      s.Chain.GetParams(),
+		BlockChain:  s.Chain,
+	})
+	err = unstake.HeightVersionCheck()
+	s.NoError(err)
+
+	voting, _ := functions.GetTransactionByTxType(common2.Voting)
+	voting = CreateTransactionByType(voting, s.Chain)
+	voting.SetParameters(&transaction.TransactionParameters{
+		Transaction: voting,
+		BlockHeight: blockHeight1,
+		TimeStamp:   s.Chain.BestChain.Timestamp,
+		Config:      s.Chain.GetParams(),
+		BlockChain:  s.Chain,
+	})
+	err = voting.HeightVersionCheck()
+	s.EqualError(err, "not support Voting transaction before DPoSV2StartHeight")
+	voting.SetParameters(&transaction.TransactionParameters{
+		Transaction: voting,
+		BlockHeight: blockHeight4,
+		TimeStamp:   s.Chain.BestChain.Timestamp,
+		Config:      s.Chain.GetParams(),
+		BlockChain:  s.Chain,
+	})
+	err = voting.HeightVersionCheck()
+	s.NoError(err)
+
+	dposV2ClaimReward, _ := functions.GetTransactionByTxType(common2.DposV2ClaimReward)
+	dposV2ClaimReward = CreateTransactionByType(dposV2ClaimReward, s.Chain)
+	dposV2ClaimReward.SetParameters(&transaction.TransactionParameters{
+		Transaction: dposV2ClaimReward,
+		BlockHeight: blockHeight1,
+		TimeStamp:   s.Chain.BestChain.Timestamp,
+		Config:      s.Chain.GetParams(),
+		BlockChain:  s.Chain,
+	})
+	err = dposV2ClaimReward.HeightVersionCheck()
+	s.EqualError(err, "not support DposV2ClaimReward transaction before DPoSV2StartHeight")
+	dposV2ClaimReward.SetParameters(&transaction.TransactionParameters{
+		Transaction: dposV2ClaimReward,
+		BlockHeight: blockHeight4,
+		TimeStamp:   s.Chain.BestChain.Timestamp,
+		Config:      s.Chain.GetParams(),
+		BlockChain:  s.Chain,
+	})
+	err = dposV2ClaimReward.HeightVersionCheck()
+	s.NoError(err)
 
 	// check height version of registerCR transaction.
 	registerCR, _ := functions.GetTransactionByTxType(common2.RegisterCR)
@@ -132,7 +217,7 @@ func (s *txValidatorTestSuite) TestCheckTxHeightVersion() {
 		Config:      s.Chain.GetParams(),
 		BlockChain:  s.Chain,
 	})
-	err := registerCR.HeightVersionCheck()
+	err = registerCR.HeightVersionCheck()
 	s.EqualError(err, "not support RegisterCR transaction before CRVotingStartHeight")
 	registerCR.SetParameters(&transaction.TransactionParameters{
 		Transaction: registerCR,
@@ -5163,6 +5248,206 @@ func (s *txValidatorTestSuite) TestCheckUnstakeTransaction() {
 
 }
 
+func (s *txValidatorTestSuite) TestCheckUnstakeTransaction2() {
+	private := "97751342c819562a8d65059d759494fc9b2b565232bef047d1eae93f7c97baed"
+	publicKey := "0228329FD319A5444F2265D08482B8C09360AE59945C50FA5211548C0C11D31F08"
+	publicKeyBytes, _ := common.HexStringToBytes(publicKey)
+	code := getCode(publicKeyBytes)
+	c, _ := contract.CreateStakeContractByCode(code)
+	stakeAddress_uint168 := c.ToProgramHash()
+	//toAddr , _ := stakeAddress_uint168.ToAddress()
+	txn := functions.CreateTransaction(
+		0,
+		common2.Unstake,
+		1,
+		nil,
+		[]*common2.Attribute{},
+		[]*common2.Input{},
+		[]*common2.Output{},
+		0,
+		[]*program.Program{{
+			Code:      code,
+			Parameter: nil,
+		}},
+	)
+	txn.SetParameters(&transaction.TransactionParameters{
+		Transaction: txn,
+		Config:      s.Chain.GetParams(),
+		BlockChain:  s.Chain,
+	})
+	err := txn.CheckTransactionOutput()
+
+	s.EqualError(err, "transaction has no outputs")
+
+	txn = functions.CreateTransaction(
+		0,
+		common2.Unstake,
+		1,
+		nil,
+		[]*common2.Attribute{},
+		[]*common2.Input{},
+		[]*common2.Output{
+			{
+				AssetID:     common.Uint256{},
+				Value:       100000000,
+				OutputLock:  0,
+				ProgramHash: *stakeAddress_uint168,
+				Payload:     nil,
+			},
+		},
+		0,
+		[]*program.Program{{
+			Code:      nil,
+			Parameter: nil,
+		}},
+	)
+	txn.SetParameters(&transaction.TransactionParameters{
+		Transaction: txn,
+		Config:      s.Chain.GetParams(),
+		BlockChain:  s.Chain,
+	})
+	err = txn.CheckTransactionOutput()
+	s.EqualError(err, "asset ID in output is invalid")
+
+	txn = functions.CreateTransaction(
+		0,
+		common2.Unstake,
+		1,
+		nil,
+		[]*common2.Attribute{},
+		[]*common2.Input{},
+		[]*common2.Output{
+			{
+				AssetID:     config.ELAAssetID,
+				Value:       -1,
+				OutputLock:  0,
+				ProgramHash: *stakeAddress_uint168,
+				Payload:     nil,
+			},
+		},
+		0,
+		[]*program.Program{{
+			Code:      nil,
+			Parameter: nil,
+		}},
+	)
+	txn.SetParameters(&transaction.TransactionParameters{
+		Transaction: txn,
+		Config:      s.Chain.GetParams(),
+		BlockChain:  s.Chain,
+	})
+	err = txn.CheckTransactionOutput()
+	s.EqualError(err, "invalid transaction UTXO output")
+
+	err, _ = txn.SpecialContextCheck()
+	s.EqualError(err, "transaction validate error: payload content invalid:invalid payload")
+
+	txn = functions.CreateTransaction(
+		0,
+		common2.Unstake,
+		1,
+		nil,
+		[]*common2.Attribute{},
+		[]*common2.Input{},
+		[]*common2.Output{
+			{
+				AssetID:     config.ELAAssetID,
+				Value:       1,
+				OutputLock:  0,
+				ProgramHash: *stakeAddress_uint168,
+				Payload:     nil,
+			},
+		},
+		0,
+		[]*program.Program{{
+			Code:      nil,
+			Parameter: nil,
+		}},
+	)
+	txn.SetParameters(&transaction.TransactionParameters{
+		Transaction: txn,
+		Config:      s.Chain.GetParams(),
+		BlockChain:  s.Chain,
+	})
+	err = txn.CheckTransactionOutput()
+	s.NoError(err)
+
+	txn = functions.CreateTransaction(
+		0,
+		common2.Unstake,
+		1,
+		&payload.Unstake{
+			Value: -1,
+		},
+		[]*common2.Attribute{},
+		[]*common2.Input{},
+		[]*common2.Output{
+			{
+				AssetID:     config.ELAAssetID,
+				Value:       1,
+				OutputLock:  0,
+				ProgramHash: *stakeAddress_uint168,
+			},
+		},
+		0,
+		[]*program.Program{{
+			Code:      nil,
+			Parameter: nil,
+		}},
+	)
+	txn.SetParameters(&transaction.TransactionParameters{
+		Transaction: txn,
+		Config:      s.Chain.GetParams(),
+		BlockChain:  s.Chain,
+	})
+
+	err, _ = txn.SpecialContextCheck()
+	s.EqualError(err, "transaction validate error: payload content invalid:invalid unstake value")
+
+	txn.SetPayload(&payload.Unstake{
+		Value: 10000,
+	})
+	txn.SetPayloadVersion(0x02)
+	err, _ = txn.SpecialContextCheck()
+	s.EqualError(err, "transaction validate error: payload content invalid:invalid payload version")
+
+	txn.SetPayloadVersion(0x00)
+	txn.SetPayload(&payload.Unstake{
+		Value: 10000,
+		Code:  code,
+	})
+	err, _ = txn.SpecialContextCheck()
+	s.EqualError(err, "transaction validate error: payload content invalid:vote rights not enough")
+
+	s.Chain.GetState().DposV2VoteRights = map[common.Uint168]common.Fixed64{
+		*stakeAddress_uint168: 10000,
+	}
+	txn.SetParameters(&transaction.TransactionParameters{
+		Transaction: txn,
+		Config:      s.Chain.GetParams(),
+		BlockChain:  s.Chain,
+	})
+
+	buf := new(bytes.Buffer)
+	tmpPayload := payload.Unstake{
+		ToAddr: *stakeAddress_uint168,
+		Value:  10000,
+		Code:   code,
+	}
+
+	tmpPayload.SerializeUnsigned(buf, payload.UnstakeVersionV0)
+	privBuf, _ := hex.DecodeString(private)
+	signature, _ := crypto.Sign(privBuf, buf.Bytes())
+	txn.SetPayload(&payload.Unstake{
+		ToAddr:    *stakeAddress_uint168,
+		Value:     10000,
+		Code:      code,
+		Signature: signature,
+	})
+	err, _ = txn.SpecialContextCheck()
+	s.NoError(err)
+}
+
 func (s *txValidatorTestSuite) TestCheckReturnCRDepositCoinTransaction() {
 	s.CurrentHeight = 1
 	_, pk, _ := crypto.GenerateKeyPair()
@@ -5951,7 +6236,7 @@ func (s *txValidatorTestSuite) TestCreateCRClaimDposV2Transaction() {
 	buf := new(bytes.Buffer)
 	apPayload := &payload.DPoSV2ClaimReward{
 		Value: common.Fixed64(100000000),
-		Code: redeemScript,
+		Code:  redeemScript,
 	}
 
 	apPayload.SerializeUnsigned(buf, payload.ActivateProducerVersion)

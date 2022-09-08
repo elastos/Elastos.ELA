@@ -143,7 +143,7 @@ type KeyFrame struct {
 	CRAssetsAddressUTXOCount uint32
 
 	CurrentWithdrawFromSideChainIndex      uint32
-	CurrentSignedWithdrawFromSideChainKeys []string
+	CurrentSignedWithdrawFromSideChainKeys map[string]struct{}
 }
 
 type DepositInfo struct {
@@ -154,8 +154,8 @@ type DepositInfo struct {
 
 // StateKeyFrame holds necessary State about CR State.
 type StateKeyFrame struct {
-	CodeCIDMap              map[string]common.Uint168
-	DepositHashCIDMap       map[common.Uint168]common.Uint168
+	CodeCIDMap             map[string]common.Uint168
+	DepositHashCIDMap      map[common.Uint168]common.Uint168
 	Candidates             map[common.Uint168]*Candidate
 	HistoryCandidates      map[uint64]map[common.Uint168]*Candidate
 	DepositInfo            map[common.Uint168]*DepositInfo
@@ -604,33 +604,6 @@ func serializeDetailVoteInfoMap(w io.Writer, vmap map[common.Uint256]payload.Det
 	return
 }
 
-func serializeUnsignedWithdrawFromSideChainKeys(w io.Writer, src []string) (err error) {
-	if err = common.WriteVarUint(w, uint64(len(src))); err != nil {
-		return
-	}
-	for _, v := range src {
-		if err = common.WriteVarString(w, v); err != nil {
-			return
-		}
-	}
-	return
-}
-
-func deserializeUnsignedWithdrawFromSideChainKeys(r io.Reader) (ret []string, err error) {
-	var count uint64
-	if count, err = common.ReadVarUint(r, 0); err != nil {
-		return
-	}
-	for i := uint64(0); i < count; i++ {
-		var v string
-		if v, err = common.ReadVarString(r); err != nil {
-			return
-		}
-		ret = append(ret, v)
-	}
-	return
-}
-
 func deserializeDetailVoteInfoMap(
 	r io.Reader) (vmap map[common.Uint256]payload.DetailedVoteInfo, err error) {
 	var count uint64
@@ -648,6 +621,35 @@ func deserializeDetailVoteInfoMap(
 			return
 		}
 		vmap[k] = v
+	}
+	return
+}
+
+func serializeUnsignedWithdrawFromSideChainKeys(w io.Writer, src map[string]struct{}) (err error) {
+	if err = common.WriteVarUint(w, uint64(len(src))); err != nil {
+		return
+	}
+	for k, _ := range src {
+		if err = common.WriteVarString(w, k); err != nil {
+			return
+		}
+	}
+	return
+}
+
+func deserializeUnsignedWithdrawFromSideChainKeys(r io.Reader) (ret map[string]struct{}, err error) {
+	var count uint64
+	if count, err = common.ReadVarUint(r, 0); err != nil {
+		return
+	}
+
+	ret = make(map[string]struct{}, 0)
+	for i := uint64(0); i < count; i++ {
+		var k string
+		if k, err = common.ReadVarString(r); err != nil {
+			return
+		}
+		ret[k] = struct{}{}
 	}
 	return
 }
@@ -751,7 +753,7 @@ func (kf *KeyFrame) Snapshot() *KeyFrame {
 	frame.HistoryMembers = copyHistoryMembersMap(kf.HistoryMembers)
 	frame.CRAssetsAddressUTXOCount = kf.CRAssetsAddressUTXOCount
 	frame.CurrentWithdrawFromSideChainIndex = kf.CurrentWithdrawFromSideChainIndex
-	frame.CurrentSignedWithdrawFromSideChainKeys = copyUnsidedWithdrawFromSideChainKeys(kf.CurrentSignedWithdrawFromSideChainKeys)
+	frame.CurrentSignedWithdrawFromSideChainKeys = copeWithdrawFromSideChainKeys(kf.CurrentSignedWithdrawFromSideChainKeys)
 	return frame
 }
 
@@ -763,7 +765,7 @@ func NewKeyFrame() *KeyFrame {
 		NextClaimedDPoSKeys:                    make(map[string]struct{}, 0),
 		HistoryMembers:                         make(map[uint64]map[common.Uint168]*CRMember, 0),
 		LastCommitteeHeight:                    0,
-		CurrentSignedWithdrawFromSideChainKeys: make([]string, 0),
+		CurrentSignedWithdrawFromSideChainKeys: make(map[string]struct{}, 0),
 	}
 }
 
@@ -1983,8 +1985,8 @@ func NewProposalKeyFrame() *ProposalKeyFrame {
 
 func NewStateKeyFrame() *StateKeyFrame {
 	return &StateKeyFrame{
-		CodeCIDMap:              make(map[string]common.Uint168),
-		DepositHashCIDMap:       make(map[common.Uint168]common.Uint168),
+		CodeCIDMap:             make(map[string]common.Uint168),
+		DepositHashCIDMap:      make(map[common.Uint168]common.Uint168),
 		Candidates:             make(map[common.Uint168]*Candidate),
 		HistoryCandidates:      make(map[uint64]map[common.Uint168]*Candidate),
 		DepositInfo:            make(map[common.Uint168]*DepositInfo),
@@ -2156,9 +2158,10 @@ func copyHistoryMembersMap(src map[uint64]map[common.Uint168]*CRMember) (
 	return
 }
 
-func copyUnsidedWithdrawFromSideChainKeys(src []string) (dst []string) {
-	for _, v := range src {
-		dst = append(dst, v)
+func copeWithdrawFromSideChainKeys(src map[string]struct{}) (dst map[string]struct{}) {
+	dst = make(map[string]struct{}, 0)
+	for k, _ := range src {
+		dst[k] = struct{}{}
 	}
 	return
 }

@@ -1094,103 +1094,40 @@ func getSignedPubKeys(m, n int, publicKeys [][]byte, signatures, data []byte) ([
 	return retKeys, nil
 }
 
-func (c *Committee) processsWithdrawFromSideChain(tx interfaces.Transaction,
-	height uint32, history *utils.History) {
-	log.Debugf("currentWithdrawFromSideChainIndex is %d, CrossChainMonitorInterval is %d", c.CurrentWithdrawFromSideChainIndex, c.Params.CrossChainMonitorInterval)
-
-	originCurrentWithdrawFromSideChainIndex := c.CurrentWithdrawFromSideChainIndex
-	originCurrentSignedWithdrawFromSideChainKeys := c.CurrentSignedWithdrawFromSideChainKeys
-	tmpCurrentWithdrawFromSideChainIndex := c.CurrentWithdrawFromSideChainIndex
-	tmpCurrentSignedWithdrawFromSideChainKeys := c.CurrentSignedWithdrawFromSideChainKeys
-	reachTop := false
-	if tmpCurrentWithdrawFromSideChainIndex == c.Params.CrossChainMonitorInterval {
-		reachTop = true
-		tmpCurrentWithdrawFromSideChainIndex = 0
-	} else {
-		tmpCurrentWithdrawFromSideChainIndex += 1
-	}
-	log.Debugf("CurrentSignedWithdrawFromSideChainKeys %v", tmpCurrentSignedWithdrawFromSideChainKeys)
-	electedMembers := getOriginElectedCRMembers(c.Members)
+// get public keys from withdraw from side chain transaction
+func (c *Committee) getSignersFromWithdrawFromSideChainTx(tx interfaces.Transaction, electedMembers []*CRMember) []string {
 	electedMemAll := make(map[string]*CRMember)
 	for _, elected := range electedMembers {
 		electedMemAll[hex.EncodeToString(elected.DPOSPublicKey)] = elected
 	}
-	var publicKeys [][]byte
+	publicKeys := make([]string, 0)
 	if tx.PayloadVersion() == payload.WithdrawFromSideChainVersionV2 {
 		allPulicKeys := c.getCurrentArbiters()
 		pld := tx.Payload().(*payload.WithdrawFromSideChain)
 		for _, index := range pld.Signers {
-			publicKeys = append(publicKeys, allPulicKeys[index])
+			publicKeys = append(publicKeys, hex.EncodeToString(allPulicKeys[index]))
 		}
 	} else {
 		buf := new(bytes.Buffer)
 		tx.SerializeUnsigned(buf)
 		data := buf.Bytes()
-		var err error
 		for _, p := range tx.Programs() {
-			publicKeys, err = getCrossChainSignedPubKeys(*p, data)
+			pks, err := getCrossChainSignedPubKeys(*p, data)
 			if err != nil {
-				return
+				log.Error("getSignersFromWithdrawFromSideChainTx error:", err)
+				return publicKeys
 			}
+			for _, pk := range pks {
+				publicKeys = append(publicKeys, hex.EncodeToString(pk))
+			}
+
 			if len(publicKeys) != 0 {
 				break
 			}
 		}
 	}
-	for _, pub := range publicKeys {
-		pubStr := hex.EncodeToString(pub)
-		if !isArbiterEixst(pubStr, tmpCurrentSignedWithdrawFromSideChainKeys) {
-			tmpCurrentSignedWithdrawFromSideChainKeys = append(tmpCurrentSignedWithdrawFromSideChainKeys, pubStr)
-		}
-	}
 
-	if reachTop {
-		log.Debug("reach top at height:", height)
-		for k, m := range electedMemAll {
-			tmp := k
-			tmpMem := m
-			if !isArbiterEixst(tmp, tmpCurrentSignedWithdrawFromSideChainKeys) {
-				if tmpMem != nil && tmpMem.MemberState == MemberElected {
-					history.Append(height, func() {
-						tmpMem.MemberState = MemberInactive
-						log.Debug("Set to inactive", tmpMem.Info.NickName)
-						if height >= c.Params.ChangeCommitteeNewCRHeight {
-							c.state.UpdateCRInactivePenalty(tmpMem.Info.CID, height)
-						}
-					}, func() {
-						tmpMem.MemberState = MemberElected
-						if height >= c.Params.ChangeCommitteeNewCRHeight {
-							c.state.RevertUpdateCRInactivePenalty(tmpMem.Info.CID, height)
-						}
-					})
-				}
-			}
-		}
-		history.Append(height, func() {
-			c.CurrentSignedWithdrawFromSideChainKeys = make([]string, 0)
-			c.CurrentWithdrawFromSideChainIndex = tmpCurrentWithdrawFromSideChainIndex
-		}, func() {
-			c.CurrentSignedWithdrawFromSideChainKeys = originCurrentSignedWithdrawFromSideChainKeys
-			c.CurrentWithdrawFromSideChainIndex = originCurrentWithdrawFromSideChainIndex
-		})
-	} else {
-		history.Append(height, func() {
-			c.CurrentSignedWithdrawFromSideChainKeys = tmpCurrentSignedWithdrawFromSideChainKeys
-			c.CurrentWithdrawFromSideChainIndex = tmpCurrentWithdrawFromSideChainIndex
-		}, func() {
-			c.CurrentSignedWithdrawFromSideChainKeys = originCurrentSignedWithdrawFromSideChainKeys
-			c.CurrentWithdrawFromSideChainIndex = originCurrentWithdrawFromSideChainIndex
-		})
-	}
-}
-
-func isArbiterEixst(cmpK string, keys []string) bool {
-	for _, v := range keys {
-		if cmpK == v {
-			return true
-		}
-	}
-	return false
+	return publicKeys
 }
 
 func (c *Committee) activateProducer(tx interfaces.Transaction,

@@ -7,6 +7,7 @@ package state
 
 import (
 	"bytes"
+	"encoding/hex"
 	"math"
 	"sort"
 
@@ -34,6 +35,8 @@ func (c *Committee) processTransactions(txs []interfaces.Transaction, height uin
 	for _, tx := range sortedTxs {
 		c.processTransaction(tx, height)
 	}
+
+	c.checkWithdrawAndInactiveCR(sortedTxs[1:], height)
 
 	// Check if any pending inactive CR member has got 6 confirms, then set them
 	// to elected.
@@ -69,6 +72,84 @@ func SortTransactions(txs []interfaces.Transaction) {
 		}
 		return !txs[j].IsCRCProposalWithdrawTx()
 	})
+}
+
+// checkWithdrawAndInactiveCR check withdraw from side chain transaction to
+// inactive CR when the CR council member is not working properly.
+func (c *Committee) checkWithdrawAndInactiveCR(txs []interfaces.Transaction,
+	height uint32) {
+
+	if height < c.Params.CrossChainMonitorStartHeight {
+		return
+	}
+
+	wtxs := make([]interfaces.Transaction, 0)
+	for _, tx := range txs {
+		if tx.TxType() != common2.WithdrawFromSideChain {
+			continue
+		}
+		wtxs = append(wtxs, tx)
+	}
+	if len(wtxs) == 0 {
+		return
+	}
+
+	count := c.CurrentWithdrawFromSideChainIndex
+	wmap := copeWithdrawFromSideChainKeys(c.CurrentSignedWithdrawFromSideChainKeys)
+	members := getOriginElectedCRMembers(c.Members)
+	for _, tx := range wtxs {
+		if tx.TxType() != common2.WithdrawFromSideChain {
+			continue
+		}
+		pks := c.getSignersFromWithdrawFromSideChainTx(tx, members)
+		for _, pub := range pks {
+			wmap[pub] = struct{}{}
+		}
+
+		count++
+		if count == c.Params.CrossChainMonitorInterval {
+			// inactive member which one has not worked for withdraw
+			c.inactiveMembersByWithdrawKeys(height, members, wmap)
+
+			// reset count and keys
+			count = 0
+			wmap = make(map[string]struct{})
+		}
+	}
+
+	// update count and keys
+	oriIndex := c.CurrentWithdrawFromSideChainIndex
+	oriKeys := copeWithdrawFromSideChainKeys(c.CurrentSignedWithdrawFromSideChainKeys)
+	c.state.History.Append(height, func() {
+		c.CurrentWithdrawFromSideChainIndex = count
+		c.CurrentSignedWithdrawFromSideChainKeys = wmap
+	}, func() {
+		c.CurrentWithdrawFromSideChainIndex = oriIndex
+		c.CurrentSignedWithdrawFromSideChainKeys = oriKeys
+	})
+}
+
+// inactiveMembersByWithdrawKeys inactive member which one has not worked for withdraw
+func (c *Committee) inactiveMembersByWithdrawKeys(height uint32,
+	members []*CRMember, wmap map[string]struct{}) {
+	for _, m := range members {
+		member := m
+		if _, ok := wmap[hex.EncodeToString(m.DPOSPublicKey)]; !ok {
+			// inactive CR member
+			c.state.History.Append(height, func() {
+				member.MemberState = MemberInactive
+				log.Infof("[checkWithdrawAndInactiveCR] Set %s to inactive", member.Info.NickName)
+				if height >= c.Params.ChangeCommitteeNewCRHeight {
+					c.state.UpdateCRInactivePenalty(member.Info.CID, height)
+				}
+			}, func() {
+				member.MemberState = MemberElected
+				if height >= c.Params.ChangeCommitteeNewCRHeight {
+					c.state.RevertUpdateCRInactivePenalty(member.Info.CID, height)
+				}
+			})
+		}
+	}
 }
 
 // processTransaction take a transaction and the Height it has been packed into
@@ -121,11 +202,6 @@ func (c *Committee) processTransaction(tx interfaces.Transaction, height uint32)
 
 	case common2.ActivateProducer:
 		c.activateProducer(tx, height, c.state.History)
-
-	case common2.WithdrawFromSideChain:
-		if height > c.Params.CrossChainMonitorStartHeight {
-			c.processsWithdrawFromSideChain(tx, height, c.state.History)
-		}
 	}
 
 	if tx.TxType() != common2.RegisterCR {

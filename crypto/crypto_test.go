@@ -6,6 +6,8 @@
 package crypto
 
 import (
+	"encoding/hex"
+	"fmt"
 	"sort"
 	"testing"
 
@@ -57,4 +59,17 @@ func TestEncryptDecrypt(t *testing.T) {
 	assert.NoError(t, err)
 
 	assert.Equal(t, message, m)
+
+	pub := "03813e9ca3f1de5cc28db4ef3ca6726a91a2368dff52b053206456b91c45c8f576"
+	priv := "03c01fca28701cd72330a723b271195ca8bbd1b6a80dd2a2a43993413701de5e"
+
+	privateKey, _ := hex.DecodeString(priv)
+	Px, Py := Curve.ScalarBaseMult(privateKey)
+	fmt.Println(Px.String(),Py.String())
+
+	pubf , _ := hex.DecodeString(pub)
+	px, py := Unmarshal(Curve, pubf)
+	fmt.Println(px.String(),py.String())
+
+
 }

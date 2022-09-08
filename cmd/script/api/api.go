@@ -252,6 +252,7 @@ func walkDir(dirPth, suffix string) (files []string, err error) {
 func RegisterDataType(L *lua.LState) int {
 	RegisterClientType(L)
 	RegisterAccountType(L)
+	RegisterAggPubType(L)
 	RegisterAttributeType(L)
 	RegisterInputType(L)
 	RegisterOutputType(L)

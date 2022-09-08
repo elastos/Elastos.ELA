@@ -840,9 +840,13 @@ func newRegisterV2Producer(L *lua.LState) int {
 	address := L.ToString(6)
 	stakeUntil := L.ToInt64(7)
 	needSign := true
+	var account *account.SchnorAccount
 	client, err := checkClient(L, 8)
 	if err != nil {
-		needSign = false
+		account, err = checkAccount(L, 9)
+		if err != nil {
+			needSign = false
+		}
 	}
 
 	ownerPublicKey, err := common.HexStringToBytes(ownerPublicKeyStr)
@@ -874,17 +878,31 @@ func newRegisterV2Producer(L *lua.LState) int {
 			os.Exit(1)
 		}
 		codeHash, err := contract.PublicKeyToStandardCodeHash(ownerPublicKey)
-		acc := client.GetAccountByCodeHash(*codeHash)
-		if acc == nil {
-			fmt.Println("no available account in wallet")
-			os.Exit(1)
-		}
-		rpSig, err := crypto.Sign(acc.PrivKey(), rpSignBuf.Bytes())
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
 		}
-		registerProducer.Signature = rpSig
+		if account == nil {
+			acc := client.GetAccountByCodeHash(*codeHash)
+			if acc == nil {
+				fmt.Println("no available account in wallet")
+				os.Exit(1)
+			}
+			rpSig, err := crypto.Sign(acc.PrivKey(), rpSignBuf.Bytes())
+			if err != nil {
+				fmt.Println(err)
+				os.Exit(1)
+			}
+			registerProducer.Signature = rpSig
+		} else {
+			fmt.Println("process AggregateSignatures")
+			rpSig, err := crypto.AggregateSignatures(account.PrivateKeys, common.Sha256D(rpSignBuf.Bytes()))
+			if err != nil {
+				fmt.Println(err)
+				os.Exit(1)
+			}
+			registerProducer.Signature = rpSig[:]
+		}
 	}
 
 	ud := L.NewUserData()

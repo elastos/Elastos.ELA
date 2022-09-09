@@ -34,7 +34,7 @@ type Account struct {
 type SchnorAccount struct {
 	Accounts     []*Account
 	PrivateKeys  []*big.Int
-	SumPublicKey [33]byte
+	SumPublicKey []byte
 	RedeemScript []byte
 	ProgramHash  *common.Uint168
 }
@@ -127,9 +127,9 @@ func NewSchnorrAggregateAccount(accounts []*Account) *SchnorAccount {
 	for i := 0; i < len(Pxs); i++ {
 		Px, Py = crypto.Curve.Add(Px, Py, Pxs[i], Pys[i])
 	}
-	sumPublicKey := crypto.Marshal(crypto.Curve, Px, Py)
-	publicKey, err := crypto.DecodePoint(sumPublicKey)
-	fmt.Println("===", len(sa.PrivateKeys), common.BytesToHexString(sa.SumPublicKey[:]))
+	sa.SumPublicKey = crypto.Marshal(crypto.Curve, Px, Py)
+	publicKey, err := crypto.DecodePoint(sa.SumPublicKey)
+	fmt.Println("===", len(sa.PrivateKeys), common.BytesToHexString(sa.SumPublicKey))
 	sa.RedeemScript, err = contract.CreateSchnorrRedeemScript(publicKey)
 	if err != nil {
 		fmt.Errorf("Create multisig redeem script failed, error %s", err.Error())

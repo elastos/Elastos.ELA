@@ -16,6 +16,7 @@ import (
 const (
 	slotDPoSOwnerPublicKey                      = "DPoSOwnerPublicKey"
 	slotDPoSNodePublicKey                       = "DPoSNodePublicKey"
+	slotDPoSOwnerNodePublicKeys                 = "DPoSOwnerNodePublicKeys"
 	slotDPoSNickname                            = "DPoSNickname"
 	slotCRDID                                   = "CrDID"
 	slotCRNickname                              = "CrNickname"
@@ -177,6 +178,20 @@ func newConflictManager() conflictManager {
 					keyTypeFuncPair{
 						Type: common2.CRCouncilMemberClaimNode,
 						Func: strCRManagementPublicKey,
+					},
+				),
+			},
+			//Owner PublicKey Node Public can not conflict
+			{
+				name: slotDPoSOwnerNodePublicKeys,
+				slot: newConflictSlot(strArray,
+					keyTypeFuncPair{
+						Type: common2.RegisterProducer,
+						Func: strDPoSOwnerNodePublicKeys,
+					},
+					keyTypeFuncPair{
+						Type: common2.UpdateProducer,
+						Func: strDPoSOwnerNodePublicKeys,
 					},
 				),
 			},

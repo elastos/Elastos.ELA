@@ -532,6 +532,24 @@ func hashArraySidechainReturnDepositTransactionHashes(
 }
 
 // str array related functions
+func strDPoSOwnerNodePublicKeys(tx interfaces.Transaction) (interface{}, error) {
+	p, err := comGetProducerInfo(tx)
+	if err != nil {
+		return nil, err
+	}
+	result := make([]string, 0, 2)
+
+	ownerPubkeyStr := common.BytesToHexString(p.OwnerPublicKey)
+	result = append(result, ownerPubkeyStr)
+
+	nodePubkeyStr := common.BytesToHexString(p.NodePublicKey)
+	if nodePubkeyStr != ownerPubkeyStr {
+		result = append(result, nodePubkeyStr)
+	}
+	return result, nil
+}
+
+// str array related functions
 func strArrayTxReferences(tx interfaces.Transaction) (interface{}, error) {
 	reference, err :=
 		blockchain.DefaultLedger.Blockchain.UTXOCache.GetTxReference(tx)

@@ -1651,10 +1651,13 @@ func (c *Committee) processCurrentCandidates(height uint32,
 			continue
 		}
 		oriDepositAmount := c.state.DepositInfo[ca.Info.CID].DepositAmount
+		oriCRVotes := copyVotesMap(c.state.UsedCRVotes)
 		c.lastHistory.Append(height, func() {
 			c.state.DepositInfo[ca.Info.CID].DepositAmount -= MinDepositAmount
+			c.state.UsedCRVotes = make(map[common.Uint168][]payload.VotesWithLockTime, 0)
 		}, func() {
 			c.state.DepositInfo[ca.Info.CID].DepositAmount = oriDepositAmount
+			c.state.UsedCRVotes = oriCRVotes
 		})
 	}
 	c.lastHistory.Append(height, func() {

@@ -5405,7 +5405,7 @@ func (s *txValidatorTestSuite) TestCheckUnstakeTransaction2() {
 	s.EqualError(err, "transaction validate error: payload content invalid:invalid unstake value")
 
 	txn.SetPayload(&payload.Unstake{
-		Value: 10000,
+		Value: 10001,
 	})
 	txn.SetPayloadVersion(0x02)
 	err, _ = txn.SpecialContextCheck()
@@ -5413,14 +5413,14 @@ func (s *txValidatorTestSuite) TestCheckUnstakeTransaction2() {
 
 	txn.SetPayloadVersion(0x00)
 	txn.SetPayload(&payload.Unstake{
-		Value: 10000,
+		Value: 10001,
 		Code:  code,
 	})
 	err, _ = txn.SpecialContextCheck()
 	s.EqualError(err, "transaction validate error: payload content invalid:vote rights not enough")
 
 	s.Chain.GetState().DposV2VoteRights = map[common.Uint168]common.Fixed64{
-		*stakeAddress_uint168: 10000,
+		*stakeAddress_uint168: 10001,
 	}
 	txn.SetParameters(&transaction.TransactionParameters{
 		Transaction: txn,
@@ -5431,7 +5431,7 @@ func (s *txValidatorTestSuite) TestCheckUnstakeTransaction2() {
 	buf := new(bytes.Buffer)
 	tmpPayload := payload.Unstake{
 		ToAddr: *stakeAddress_uint168,
-		Value:  10000,
+		Value:  10001,
 		Code:   code,
 	}
 
@@ -5440,7 +5440,7 @@ func (s *txValidatorTestSuite) TestCheckUnstakeTransaction2() {
 	signature, _ := crypto.Sign(privBuf, buf.Bytes())
 	txn.SetPayload(&payload.Unstake{
 		ToAddr:    *stakeAddress_uint168,
-		Value:     10000,
+		Value:     10001,
 		Code:      code,
 		Signature: signature,
 	})

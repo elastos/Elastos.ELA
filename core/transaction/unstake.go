@@ -76,8 +76,8 @@ func (t *UnstakeTransaction) SpecialContextCheck() (result elaerr.ELAError, end 
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid payload")), true
 	}
 
-	// check value
-	if pl.Value <= 0 {
+	// Value must bigger than RealWithdrawSingleFee
+	if pl.Value <= t.parameters.Config.RealWithdrawSingleFee {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid unstake value")), true
 	}
 

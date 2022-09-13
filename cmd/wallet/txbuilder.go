@@ -17,6 +17,7 @@ import (
 	"github.com/elastos/Elastos.ELA/account"
 	cmdcom "github.com/elastos/Elastos.ELA/cmd/common"
 	"github.com/elastos/Elastos.ELA/common"
+	"github.com/elastos/Elastos.ELA/core/contract"
 	pg "github.com/elastos/Elastos.ELA/core/contract/program"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/core/types/functions"
@@ -121,6 +122,47 @@ func getSender(walletPath string, from string) (*account.AccountData, error) {
 
 	if from == "" {
 		from = mainAccount.Address
+		sender = mainAccount
+	} else {
+		storeAccounts, err := account.GetWalletAccountData(walletPath)
+		if err != nil {
+			return nil, err
+		}
+		for _, acc := range storeAccounts {
+			if from == acc.Address {
+				sender = &acc
+				break
+			}
+		}
+		if sender == nil {
+			return nil, errors.New(from + " is not local account")
+		}
+	}
+
+	return sender, nil
+}
+
+func getDSender(walletPath string, from string) (*account.AccountData, error) {
+	var sender *account.AccountData
+	mainAccount, err := account.GetWalletMainAccountData(walletPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if from == "" {
+		from = mainAccount.Address
+		programHash, err := common.Uint168FromAddress(from)
+		if err != nil {
+			return nil, err
+		}
+		if contract.GetPrefixType(*programHash) != contract.PrefixStandard {
+			return nil, errors.New("standard address expected")
+		}
+		codeHash := programHash.ToCodeHash()
+		depositHash := common.Uint168FromCodeHash(byte(contract.PrefixDeposit), codeHash)
+		address, err := depositHash.ToAddress()
+		mainAccount.Address = address
+		fmt.Println("convert to daddress " + mainAccount.Address)
 		sender = mainAccount
 	} else {
 		storeAccounts, err := account.GetWalletAccountData(walletPath)
@@ -276,9 +318,18 @@ func createTransaction(walletPath string, from string, fee common.Fixed64, outpu
 	outputs ...*OutputInfo) (interfaces.Transaction, error) {
 
 	// get sender in wallet by from address
-	sender, err := getSender(walletPath, from)
-	if err != nil {
-		return nil, err
+	var sender *account.AccountData
+	var err error
+	if txType == common2.ReturnDepositCoin {
+		sender, err = getDSender(walletPath, from)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		sender, err = getSender(walletPath, from)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	// create outputs

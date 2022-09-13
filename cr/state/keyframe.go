@@ -2002,6 +2002,16 @@ func NewStateKeyFrame() *StateKeyFrame {
 	}
 }
 
+func copyVotesMap(src map[common.Uint168][]payload.VotesWithLockTime) (
+	dst map[common.Uint168][]payload.VotesWithLockTime) {
+	dst = map[common.Uint168][]payload.VotesWithLockTime{}
+	for k, v := range src {
+		votes := v
+		dst[k] = votes
+	}
+	return dst
+}
+
 // copyCandidateMap copy the CR map's key and value, and return the dst map.
 func copyCandidateMap(src map[common.Uint168]*Candidate) (
 	dst map[common.Uint168]*Candidate) {

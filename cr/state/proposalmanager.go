@@ -192,9 +192,10 @@ func getProposalUnusedBudgetAmount(proposalState *ProposalState) common.Fixed64 
 }
 
 // updateProposals will update proposals' status.
-func (p *ProposalManager) updateProposals(height uint32,
+func (p *ProposalManager) updateProposals(state *State, height uint32,
 	circulation common.Fixed64, inElectionPeriod bool) (common.Fixed64, []payload.ProposalResult) {
 	var unusedAmount common.Fixed64
+	endProposals := make(map[string]struct{})
 	results := make([]payload.ProposalResult, 0)
 	for k, v := range p.Proposals {
 		proposalType := v.Proposal.ProposalType
@@ -230,9 +231,13 @@ func (p *ProposalManager) updateProposals(height uint32,
 				if proposalType == payload.ReserveCustomID {
 					p.tryCancelReservedCustomID(height)
 				}
+				endProposals[v.Proposal.Hash.String()] = struct{}{}
 				break
 			}
 			if p.shouldEndPublicVote(v.VoteStartHeight, height) {
+				// record finished proposals
+				endProposals[v.Proposal.Hash.String()] = struct{}{}
+
 				if p.transferCRAgreedState(v, height, circulation) == VoterCanceled {
 					p.removeRegisterSideChainInfo(v, height)
 					unusedAmount += getProposalTotalBudgetAmount(v.Proposal)
@@ -247,6 +252,27 @@ func (p *ProposalManager) updateProposals(height uint32,
 			}
 		}
 	}
+
+	newUsedCRCProposalVotes := map[common.Uint168][]payload.VotesWithLockTime{}
+	for k, v := range state.UsedCRCProposalVotes {
+		stakeAddress := k
+		for _, voteInfo := range v {
+			if _, ok := endProposals[common.BytesToHexString(voteInfo.Candidate)]; ok {
+				continue
+			}
+			if _, ok := newUsedCRCProposalVotes[stakeAddress]; !ok {
+				newUsedCRCProposalVotes[stakeAddress] = make([]payload.VotesWithLockTime, 0)
+			}
+			newUsedCRCProposalVotes[stakeAddress] = append(newUsedCRCProposalVotes[stakeAddress], voteInfo)
+		}
+	}
+
+	oriUsedCRCProposalVotes := copyProgramHashVotesInfoSet(state.UsedCRCProposalVotes)
+	p.history.Append(height, func() {
+		state.UsedCRCProposalVotes = newUsedCRCProposalVotes
+	}, func() {
+		state.UsedCRCProposalVotes = oriUsedCRCProposalVotes
+	})
 
 	return unusedAmount, results
 }

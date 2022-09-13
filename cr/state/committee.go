@@ -541,7 +541,7 @@ func (c *Committee) updateCRInactiveStatus(history *utils.History, height uint32
 
 func (c *Committee) updateProposals(height uint32, inElectionPeriod bool) {
 	unusedAmount, results := c.manager.updateProposals(
-		height, c.CirculationAmount, inElectionPeriod)
+		c.state, height, c.CirculationAmount, inElectionPeriod)
 	oriLastCIDProposalResults := c.PartProposalResults
 	oriNeedCIDProposalResult := c.NeedRecordProposalResult
 	var needCIDProposalResult bool

@@ -597,12 +597,15 @@ func GetVoteRights(params Params) map[string]interface{} {
 	if !ok {
 		return ResponsePack(InvalidParams, "need stakeaddresses in an array!")
 	}
+	currentHeight := Chain.GetHeight()
+	dposV2 := Arbiters.IsDPoSV2Run(currentHeight)
+
 	type usedVoteRightDetailInfo struct {
-		UsedDPoSV2Votes         []DetailedVoteInfo      `json:"useddposv2votes"`
 		UsedDPoSVotes           []VotesWithLockTimeInfo `json:"useddposvotes"`
 		UsedCRVotes             []VotesWithLockTimeInfo `json:"usedcrvotes"`
-		UsdedCRImpeachmentVotes []VotesWithLockTimeInfo `json:"usdedcrimpeachmentvotes"`
 		UsedCRCProposalVotes    []VotesWithLockTimeInfo `json:"usedcrcproposalvotes"`
+		UsdedCRImpeachmentVotes []VotesWithLockTimeInfo `json:"usdedcrimpeachmentvotes"`
+		UsedDPoSV2Votes         []DetailedVoteInfo      `json:"useddposv2votes"`
 	}
 
 	type detailedVoteRight struct {
@@ -649,7 +652,7 @@ func GetVoteRights(params Params) map[string]interface{} {
 			}
 		}
 		// crc
-		if ucv := crstate.UsedCRVotes[stakeProgramHash]; ucv != nil {
+		if ucv := crstate.UsedCRVotes[stakeProgramHash]; !dposV2 && ucv != nil {
 			for _, v := range ucv {
 				c, _ := common.Uint168FromBytes(v.Candidate)
 				candidate, _ := c.ToAddress()
@@ -713,7 +716,11 @@ func GetVoteRights(params Params) map[string]interface{} {
 		for i := outputpayload.Delegate; i <= outputpayload.DposV2; i++ {
 			usedVoteRight, _ := GetUsedVoteRight(i, &stakeProgramHash)
 			remainRoteRight := totalVotesRight - usedVoteRight
-			vote.RemainVoteRight[i] = remainRoteRight.String()
+			if dposV2 && i == outputpayload.Delegate {
+				vote.RemainVoteRight[i] = common.Fixed64(0).String()
+			} else {
+				vote.RemainVoteRight[i] = remainRoteRight.String()
+			}
 		}
 		result = append(result, vote)
 	}

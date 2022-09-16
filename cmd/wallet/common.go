@@ -296,6 +296,61 @@ func parseCandidates(path string) ([]string, error) {
 	return candidates, nil
 }
 
+func parseCandidatesVotes(candidates string, votes string) ([]payload.VotesWithLockTime, error) {
+	cds := strings.Split(candidates, ",")
+	vts := strings.Split(votes, ",")
+	if len(cds) != len(vts) {
+		return nil, errors.New("candidates count need to be equal to votes count")
+	}
+	votesInfo := make([]payload.VotesWithLockTime, 0)
+	for i := 0; i < len(cds); i++ {
+		c, err := common.HexStringToBytes(cds[i])
+		if err != nil {
+			return nil, err
+		}
+		v, err := common.StringToFixed64(vts[i])
+		if err != nil {
+			return nil, err
+		}
+		votesInfo = append(votesInfo, payload.VotesWithLockTime{
+			Candidate: c,
+			Votes:     *v,
+			LockTime:  0,
+		})
+	}
+	return votesInfo, nil
+}
+
+func parseCandidatesVotesWithStakeUntil(candidates string, votes string, stakeUntil string) ([]payload.VotesWithLockTime, error) {
+	cds := strings.Split(candidates, ",")
+	vts := strings.Split(votes, ",")
+	sus := strings.Split(stakeUntil, ",")
+	if len(cds) != len(vts) || len(cds) != len(sus) {
+		return nil, errors.New("candidates and votes and stakeuntils count need to be equal")
+	}
+	votesInfo := make([]payload.VotesWithLockTime, 0)
+	for i := 0; i < len(cds); i++ {
+		c, err := common.HexStringToBytes(cds[i])
+		if err != nil {
+			return nil, err
+		}
+		v, err := common.StringToFixed64(vts[i])
+		if err != nil {
+			return nil, err
+		}
+		s, err := strconv.Atoi(sus[i])
+		if err != nil {
+			return nil, err
+		}
+		votesInfo = append(votesInfo, payload.VotesWithLockTime{
+			Candidate: c,
+			Votes:     *v,
+			LockTime:  uint32(s),
+		})
+	}
+	return votesInfo, nil
+}
+
 func parseCandidatesAndVotes(path string) ([]payload.VotesWithLockTime, error) {
 	if _, err := os.Stat(path); err != nil {
 		return nil, errors.New("invalid candidates file path")
@@ -317,6 +372,7 @@ func parseCandidatesAndVotes(path string) ([]payload.VotesWithLockTime, error) {
 		}
 		str := strings.TrimSpace(record[0])
 		candidateVote := strings.Split(str, ",")
+		fmt.Println(str)
 		candidate, err := common.HexStringToBytes(candidateVote[0])
 		if err != nil {
 			return nil, errors.New("invalid candidate")

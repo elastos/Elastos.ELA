@@ -56,6 +56,10 @@ var (
 		Usage: "the amount to claim of dposv2 reward",
 		Value: 0,
 	}
+	TransactionReferKeyFlag = cli.StringFlag{
+		Name:  "referkey",
+		Usage: "the refer key is the hash of detailed DPoS 2.0 node votes information",
+	}
 	TransactionFeeFlag = cli.StringFlag{
 		Name:  "fee",
 		Usage: "the transfer `<fee>` of the transaction",
@@ -83,6 +87,22 @@ var (
 	TransactionForFlag = cli.StringFlag{
 		Name:  "for",
 		Usage: "the `<file>` path that holds the list of candidates",
+	}
+	VoteTypeFlag = cli.Uint64Flag{
+		Name:  "votetype",
+		Usage: "the list of votes",
+	}
+	CandidatesFlag = cli.StringFlag{
+		Name:  "candidates",
+		Usage: "the list of candidates",
+	}
+	VotesFlag = cli.StringFlag{
+		Name:  "votes",
+		Usage: "the list of votes",
+	}
+	StakeUntilListFlag = cli.StringFlag{
+		Name:  "stakeuntils",
+		Usage: "the list of stake until",
 	}
 	TransactionSAddressFlag = cli.StringFlag{
 		Name:  "saddress",

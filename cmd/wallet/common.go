@@ -13,8 +13,10 @@ import (
 	"errors"
 	"fmt"
 	"github.com/elastos/Elastos.ELA/core/types/functions"
+	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"io"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/elastos/Elastos.ELA/account"
@@ -292,4 +294,48 @@ func parseCandidates(path string) ([]string, error) {
 	}
 
 	return candidates, nil
+}
+
+func parseCandidatesAndVotes(path string) ([]payload.VotesWithLockTime, error) {
+	if _, err := os.Stat(path); err != nil {
+		return nil, errors.New("invalid candidates file path")
+	}
+	file, err := os.OpenFile(path, os.O_RDONLY, 0400)
+	if err != nil {
+		return nil, errors.New("open candidates file failed")
+	}
+
+	votesInfo := make([]payload.VotesWithLockTime, 0)
+	r := csv.NewReader(file)
+	for {
+		record, err := r.Read()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return nil, errors.New(fmt.Sprint("invalid candidate data:", err.Error()))
+		}
+		str := strings.TrimSpace(record[0])
+		candidateVote := strings.Split(str, ",")
+		candidate, err := common.HexStringToBytes(candidateVote[0])
+		if err != nil {
+			return nil, errors.New("invalid candidate")
+		}
+		votes, err := common.StringToFixed64(candidateVote[1])
+		if err != nil {
+			return nil, errors.New("invalid candidate vote")
+		}
+		stakeUntil, err := strconv.Atoi(candidateVote[2])
+		if err != nil {
+			return nil, errors.New("invalid candidate stakeUntil")
+		}
+		votesInfo = append(votesInfo, payload.VotesWithLockTime{
+			Candidate: candidate,
+			Votes:     *votes,
+			LockTime:  uint32(stakeUntil),
+		})
+		fmt.Println("candidate:", candidateVote[0], "vote:", candidateVote[1], candidateVote[2])
+	}
+
+	return votesInfo, nil
 }

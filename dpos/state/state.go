@@ -2104,7 +2104,6 @@ func (s *State) processRenewalVotingContent(tx interfaces.Transaction, height ui
 			delete(producer.detailedDPoSV2Votes[*stakeAddress], referKey)
 			producer.detailedDPoSV2Votes[*stakeAddress][content.ReferKey] = voteInfo
 		})
-
 	}
 }
 

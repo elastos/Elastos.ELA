@@ -111,6 +111,7 @@ var buildTxCommand = []cli.Command{
 	proposal,
 	stake,
 	dposV2Vote,
+	dposV2VoteReview,
 }
 
 func getTransactionHex(c *cli.Context) (string, error) {

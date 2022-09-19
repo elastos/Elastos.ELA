@@ -56,8 +56,8 @@ var (
 		Usage: "the amount to claim of dposv2 reward",
 		Value: 0,
 	}
-	TransactionReferKeyFlag = cli.StringFlag{
-		Name:  "referkey",
+	TransactionReferKeysFlag = cli.StringFlag{
+		Name:  "referkeys",
 		Usage: "the refer key is the hash of detailed DPoS 2.0 node votes information",
 	}
 	TransactionFeeFlag = cli.StringFlag{

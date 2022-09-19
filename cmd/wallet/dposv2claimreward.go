@@ -9,7 +9,6 @@ import (
 	"github.com/elastos/Elastos.ELA/account"
 	cmdcom "github.com/elastos/Elastos.ELA/cmd/common"
 	"github.com/elastos/Elastos.ELA/common"
-	"github.com/elastos/Elastos.ELA/core/contract"
 	pg "github.com/elastos/Elastos.ELA/core/contract/program"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/core/types/functions"
@@ -25,6 +24,9 @@ var dpossv2claimreward = cli.Command{
 		cmdcom.TransactionClaimAmountFlag,
 		cmdcom.TransactionFeeFlag,
 		cmdcom.AccountWalletFlag,
+		cmdcom.AccountPasswordFlag,
+		cmdcom.PayloadVersionFlag,
+		cmdcom.TransactionToFlag,
 	},
 	Action: func(c *cli.Context) error {
 		if err := CreateDposV2ClaimRewardTransaction(c); err != nil {
@@ -74,9 +76,7 @@ func CreateDposV2ClaimRewardTransaction(c *cli.Context) error {
 		return err
 	}
 	acc := client.GetMainAccount()
-	if contract.GetPrefixType(acc.ProgramHash) != contract.PrefixStandard {
-		return errors.New("main account is not a standard account")
-	}
+
 	mainAccount, err := account.GetWalletMainAccountData(walletPath)
 	if err != nil {
 		return err
@@ -112,19 +112,22 @@ func CreateDposV2ClaimRewardTransaction(c *cli.Context) error {
 
 	buf := new(bytes.Buffer)
 	apPayload := &payload.DPoSV2ClaimReward{
-		ToAddr:   *to,
-		Code:      redeemScript,
-		Value:     common.Fixed64(amount),
+		ToAddr: *to,
+		Value:  common.Fixed64(amount),
 	}
 
-	if err = apPayload.SerializeUnsigned(buf, payload.ActivateProducerVersion); err != nil {
-		return err
+	payloadVersion := c.Int64(cmdcom.PayloadVersionFlag.Name)
+	if byte(payloadVersion) == payload.DposV2ClaimRewardVersionV0 {
+		apPayload.Code = redeemScript
+		if err = apPayload.SerializeUnsigned(buf, byte(payloadVersion)); err != nil {
+			return err
+		}
+		signature, err := acc.Sign(buf.Bytes())
+		if err != nil {
+			return err
+		}
+		apPayload.Signature = signature
 	}
-	signature, err := acc.Sign(buf.Bytes())
-	if err != nil {
-		return err
-	}
-	apPayload.Signature = signature
 
 	txn := functions.CreateTransaction(
 		common2.TxVersion09,

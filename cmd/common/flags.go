@@ -756,6 +756,11 @@ var (
 		Name:  "crosschainmonitorinterval",
 		Usage: "defines the interval cross chain arbitration",
 	}
+	PayloadVersionFlag = cli.Int64Flag{
+		Name:  "payloadversion",
+		Usage: "payload version",
+		Value: 0,
+	}
 )
 
 // MoveRPCFlags finds the rpc argument and moves it to the front

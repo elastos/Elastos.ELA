@@ -37,11 +37,16 @@ var unstake = cli.Command{
 }
 
 func CreateUnstakeTransaction(c *cli.Context) error {
-	amount := c.Int64(cmdcom.TransactionAmountFlag.Name)
-	if amount == 0 {
-		return errors.New("must specify amount flag")
+	amountStr := c.String(cmdcom.TransactionAmountFlag.Name)
+	if amountStr == "" {
+		return errors.New("use --amount to specify amount")
 	}
 	walletPath := c.String("wallet")
+
+	amount, err := common.StringToFixed64(amountStr)
+	if err != nil {
+		return errors.New("invalid amount")
+	}
 
 	toAddr := c.String(cmdcom.TransactionToFlag.Name)
 	if toAddr == "" {
@@ -80,7 +85,7 @@ func CreateUnstakeTransaction(c *cli.Context) error {
 	p := &payload.Unstake{
 		ToAddr: *to,
 		// unstake value
-		Value: common.Fixed64(amount),
+		Value: *amount,
 	}
 
 	if byte(payloadVersion) == payload.UnstakeVersionV0 {

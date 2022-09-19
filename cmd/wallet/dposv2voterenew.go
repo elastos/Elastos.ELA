@@ -12,6 +12,7 @@ import (
 	pg "github.com/elastos/Elastos.ELA/core/contract/program"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/core/types/functions"
+	"github.com/elastos/Elastos.ELA/core/types/outputpayload"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 
 	"github.com/urfave/cli"
@@ -127,6 +128,18 @@ func CreateDPoSV2VoteRenewTransaction(c *cli.Context) error {
 	)
 
 	OutputTx(0, 1, txn)
+
+	// print refer key
+	for _, v := range pld.RenewalContents {
+		dpld := payload.DetailedVoteInfo{
+			TransactionHash: txn.Hash(),
+			VoteType:        outputpayload.DposV2,
+			Info: []payload.VotesWithLockTime{
+				v.VotesInfo,
+			},
+		}
+		fmt.Println("candidate:", common.BytesToHexString(v.VotesInfo.Candidate), "votes:", v.VotesInfo.Votes, "referKey:", dpld.ReferKey())
+	}
 
 	return nil
 }

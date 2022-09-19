@@ -122,8 +122,8 @@ var accountCommand = []cli.Command{
 	},
 	{
 		Category: "Account",
-		Name:     "dposv2addr",
-		Usage:    "Generate dposv2 address",
+		Name:     "stakeaddress",
+		Usage:    "Generate DPoS 2.0 stake address",
 		Action:   generateDposV2Address,
 	},
 	{
@@ -387,7 +387,7 @@ func generateDposV2Address(c *cli.Context) error {
 		}
 	}
 	prft := contract.GetPrefixType(*programHash)
-	if prft != contract.PrefixStandard && prft != contract.PrefixMultiSig{
+	if prft != contract.PrefixStandard && prft != contract.PrefixMultiSig {
 		return errors.New("standard address expected")
 	}
 

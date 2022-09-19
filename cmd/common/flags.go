@@ -51,10 +51,10 @@ var (
 		Name:  "amount",
 		Usage: "the transfer `<amount>` of the transaction",
 	}
-	TransactionClaimAmountFlag = cli.Int64Flag{
+	TransactionClaimAmountFlag = cli.StringFlag{
 		Name:  "claimamount",
 		Usage: "the amount to claim of dposv2 reward",
-		Value: 0,
+		Value: "",
 	}
 	TransactionReferKeysFlag = cli.StringFlag{
 		Name:  "referkeys",

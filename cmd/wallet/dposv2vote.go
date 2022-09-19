@@ -3,6 +3,10 @@ package wallet
 import (
 	"errors"
 	"fmt"
+	"math/rand"
+	"os"
+	"strconv"
+
 	cmdcom "github.com/elastos/Elastos.ELA/cmd/common"
 	"github.com/elastos/Elastos.ELA/common"
 	pg "github.com/elastos/Elastos.ELA/core/contract/program"
@@ -10,16 +14,13 @@ import (
 	"github.com/elastos/Elastos.ELA/core/types/functions"
 	"github.com/elastos/Elastos.ELA/core/types/outputpayload"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
-	"math/rand"
-	"os"
-	"strconv"
 
 	"github.com/urfave/cli"
 )
 
 var dposV2Vote = cli.Command{
 	Name:  "dposv2vote",
-	Usage: "Build a tx to vote DPoS 2.0 node",
+	Usage: "Build a tx to vote CRC CRCProposal CRCImpeachment or DPoS 2.0 node",
 	Flags: []cli.Flag{
 		cmdcom.TransactionForFlag,
 		cmdcom.TransactionFeeFlag,

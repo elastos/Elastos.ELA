@@ -142,6 +142,11 @@ func (t *VotingTransaction) SpecialContextCheck() (result elaerr.ELAError, end b
 	pld := t.Payload().(*payload.Voting)
 	switch t.PayloadVersion() {
 	case payload.VoteVersion:
+		if len(pld.Contents) == 0 {
+			return elaerr.Simple(elaerr.ErrTxPayload,
+				errors.New("contents is nil")), true
+		}
+
 		for _, content := range pld.Contents {
 			for _, vi := range content.VotesInfo {
 				if vi.Votes <= 0 {
@@ -191,6 +196,10 @@ func (t *VotingTransaction) SpecialContextCheck() (result elaerr.ELAError, end b
 			}
 		}
 	case payload.RenewalVoteVersion:
+		if len(pld.RenewalContents) == 0 {
+			return elaerr.Simple(elaerr.ErrTxPayload,
+				errors.New("renewal contents is nil")), true
+		}
 		for _, content := range pld.RenewalContents {
 			producer := state.GetProducer(content.VotesInfo.Candidate)
 			if producer == nil {

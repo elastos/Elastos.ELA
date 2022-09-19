@@ -17,7 +17,7 @@ import (
 	"github.com/urfave/cli"
 )
 
-var dposV2VoteReview = cli.Command{
+var dposV2VoteRenew = cli.Command{
 	Name:  "dposv2voterenew",
 	Usage: "Build a tx to renew DPoS 2.0 node votes",
 	Flags: []cli.Flag{

@@ -20,7 +20,7 @@ import (
 	"github.com/urfave/cli"
 )
 
-func createProducerInfoCommonTransaction(c *cli.Context, txType common2.TxType, needOutputAmount bool) error {
+func createProducerInfoCommonTransaction(c *cli.Context, txType common2.TxType, needOutputAmount bool, payloadVersion byte) error {
 	var name string
 	var amount *common.Fixed64
 	var err error
@@ -110,10 +110,15 @@ func createProducerInfoCommonTransaction(c *cli.Context, txType common2.TxType, 
 		return errors.New(fmt.Sprintf("use --%s to specify ip address of producer", name))
 	}
 
-	name = cmdcom.TransactionStakeUntilFlag.Name
-	stakeUntil := c.Uint(name)
-	if stakeUntil == 0 {
-		return errors.New(fmt.Sprintf("use --%s to specify until block height", name))
+	var stakeUntil uint
+	if payloadVersion == payload.ProducerInfoDposV2Version {
+		name = cmdcom.TransactionStakeUntilFlag.Name
+		stakeUntil = c.Uint(name)
+		if stakeUntil == 0 {
+			return errors.New(fmt.Sprintf("use --%s to specify until block height", name))
+		}
+	} else {
+		stakeUntil = 0
 	}
 
 	p := &payload.ProducerInfo{
@@ -127,7 +132,7 @@ func createProducerInfoCommonTransaction(c *cli.Context, txType common2.TxType, 
 	}
 
 	rpSignBuf := new(bytes.Buffer)
-	err = p.SerializeUnsigned(rpSignBuf, payload.ProducerInfoDposV2Version)
+	err = p.SerializeUnsigned(rpSignBuf, payloadVersion)
 	if err != nil {
 		return err
 	}
@@ -140,7 +145,7 @@ func createProducerInfoCommonTransaction(c *cli.Context, txType common2.TxType, 
 
 	var txn interfaces.Transaction
 	txn, err = createTransaction(walletPath, "", *fee, 0, 0, txType,
-		payload.ProducerInfoDposV2Version, p, outputs...)
+		payloadVersion, p, outputs...)
 	if err != nil {
 		return errors.New("create transaction failed: " + err.Error())
 	}
@@ -150,12 +155,12 @@ func createProducerInfoCommonTransaction(c *cli.Context, txType common2.TxType, 
 	return nil
 }
 
-func createRegisterProducerTransaction(c *cli.Context) error {
-	return createProducerInfoCommonTransaction(c, common2.RegisterProducer, true)
+func createRegisterProducerTransaction(c *cli.Context, payloadVersion byte) error {
+	return createProducerInfoCommonTransaction(c, common2.RegisterProducer, true, payloadVersion)
 }
 
-func createUpdateProducerTransaction(c *cli.Context) error {
-	return createProducerInfoCommonTransaction(c, common2.UpdateProducer, false)
+func createUpdateProducerTransaction(c *cli.Context, payloadVersion byte) error {
+	return createProducerInfoCommonTransaction(c, common2.UpdateProducer, false, payloadVersion)
 }
 
 func createUnregisterProducerTransaction(c *cli.Context) error {
@@ -296,9 +301,32 @@ func CreateActivateProducerTransaction(c *cli.Context) error {
 	return nil
 }
 
-var registerproducer = cli.Command{
-	Name:  "register",
-	Usage: "Build a tx to register producer",
+var registerV1 = cli.Command{
+	Name:  "v1",
+	Usage: "Build a tx to register producer (version 1)",
+	Flags: []cli.Flag{
+		cmdcom.AccountWalletFlag,
+		cmdcom.AccountPasswordFlag,
+		cmdcom.TransactionAmountFlag,
+		cmdcom.TransactionFeeFlag,
+		cmdcom.TransactionNodePublicKeyFlag,
+		cmdcom.TransactionNickNameFlag,
+		cmdcom.TransactionUrlFlag,
+		cmdcom.TransactionLocationFlag,
+		cmdcom.TransactionNetAddressFlag,
+	},
+	Action: func(c *cli.Context) error {
+		if err := createRegisterProducerTransaction(c, payload.ProducerInfoVersion); err != nil {
+			fmt.Println("error:", err)
+			os.Exit(1)
+		}
+		return nil
+	},
+}
+
+var registerV2 = cli.Command{
+	Name:  "v2",
+	Usage: "Build a tx to register producer (version 2)",
 	Flags: []cli.Flag{
 		cmdcom.AccountWalletFlag,
 		cmdcom.AccountPasswordFlag,
@@ -312,7 +340,7 @@ var registerproducer = cli.Command{
 		cmdcom.TransactionStakeUntilFlag,
 	},
 	Action: func(c *cli.Context) error {
-		if err := createRegisterProducerTransaction(c); err != nil {
+		if err := createRegisterProducerTransaction(c, payload.ProducerInfoDposV2Version); err != nil {
 			fmt.Println("error:", err)
 			os.Exit(1)
 		}
@@ -320,9 +348,45 @@ var registerproducer = cli.Command{
 	},
 }
 
-var updateproducer = cli.Command{
-	Name:  "update",
-	Usage: "Build a tx to update producer",
+var registerproducer = cli.Command{
+	Name:  "register",
+	Usage: "Build a tx to register producer",
+	Flags: []cli.Flag{},
+	Subcommands: []cli.Command{
+		registerV1,
+		registerV2,
+	},
+	Action: func(c *cli.Context) error {
+		cli.ShowSubcommandHelp(c)
+		return nil
+	},
+}
+
+var updateV1 = cli.Command{
+	Name:  "v1",
+	Usage: "Build a tx to update producer (version 1)",
+	Flags: []cli.Flag{
+		cmdcom.AccountWalletFlag,
+		cmdcom.AccountPasswordFlag,
+		cmdcom.TransactionFeeFlag,
+		cmdcom.TransactionNodePublicKeyFlag,
+		cmdcom.TransactionNickNameFlag,
+		cmdcom.TransactionUrlFlag,
+		cmdcom.TransactionLocationFlag,
+		cmdcom.TransactionNetAddressFlag,
+	},
+	Action: func(c *cli.Context) error {
+		if err := createUpdateProducerTransaction(c, payload.ProducerInfoVersion); err != nil {
+			fmt.Println("error:", err)
+			os.Exit(1)
+		}
+		return nil
+	},
+}
+
+var updateV2 = cli.Command{
+	Name:  "v2",
+	Usage: "Build a tx to update producer (version 2)",
 	Flags: []cli.Flag{
 		cmdcom.AccountWalletFlag,
 		cmdcom.AccountPasswordFlag,
@@ -335,10 +399,24 @@ var updateproducer = cli.Command{
 		cmdcom.TransactionStakeUntilFlag,
 	},
 	Action: func(c *cli.Context) error {
-		if err := createUpdateProducerTransaction(c); err != nil {
+		if err := createUpdateProducerTransaction(c, payload.ProducerInfoDposV2Version); err != nil {
 			fmt.Println("error:", err)
 			os.Exit(1)
 		}
+		return nil
+	},
+}
+
+var updateproducer = cli.Command{
+	Name:  "update",
+	Usage: "Build a tx to update producer",
+	Flags: []cli.Flag{},
+	Subcommands: []cli.Command{
+		updateV1,
+		updateV2,
+	},
+	Action: func(c *cli.Context) error {
+		cli.ShowSubcommandHelp(c)
 		return nil
 	},
 }

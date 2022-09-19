@@ -38,10 +38,15 @@ var dpossv2claimreward = cli.Command{
 }
 
 func CreateDposV2ClaimRewardTransaction(c *cli.Context) error {
-	amount := c.Int64("claimamount")
-	if amount == 0 {
-		return errors.New("must specify claimamount flag")
+	amountStr := c.String("claimamount")
+	if amountStr == "" {
+		return errors.New("use --claimamount to specify claim amount")
 	}
+	amount, err := common.StringToFixed64(amountStr)
+	if err != nil {
+		return errors.New("")
+	}
+
 	walletPath := c.String("wallet")
 
 	toAddr := c.String("to")
@@ -113,7 +118,7 @@ func CreateDposV2ClaimRewardTransaction(c *cli.Context) error {
 	buf := new(bytes.Buffer)
 	apPayload := &payload.DPoSV2ClaimReward{
 		ToAddr: *to,
-		Value:  common.Fixed64(amount),
+		Value:  *amount,
 	}
 
 	payloadVersion := c.Int64(cmdcom.PayloadVersionFlag.Name)

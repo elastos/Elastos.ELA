@@ -12,7 +12,6 @@ import (
 	pg "github.com/elastos/Elastos.ELA/core/contract/program"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/core/types/functions"
-	"github.com/elastos/Elastos.ELA/core/types/outputpayload"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 
 	"github.com/urfave/cli"
@@ -22,9 +21,12 @@ var dposV2VoteReview = cli.Command{
 	Name:  "dposv2voterenew",
 	Usage: "Build a tx to renew DPoS 2.0 node votes",
 	Flags: []cli.Flag{
-		cmdcom.TransactionReferKeyFlag,
+		cmdcom.TransactionReferKeysFlag,
 		cmdcom.TransactionFeeFlag,
 		cmdcom.AccountWalletFlag,
+		cmdcom.CandidatesFlag,
+		cmdcom.VotesFlag,
+		cmdcom.StakeUntilListFlag,
 	},
 	Action: func(c *cli.Context) error {
 		if err := CreateDPoSV2VoteRenewTransaction(c); err != nil {
@@ -56,37 +58,37 @@ func CreateDPoSV2VoteRenewTransaction(c *cli.Context) error {
 	}
 
 	// get refer key of DPoS 2.0 node votes
-	referKeyStr := c.String("referkey")
-	if referKeyStr == "" {
-		return errors.New("use --referkey to specify referkey")
+	referKeysStr := c.String("referkeys")
+	if referKeysStr == "" {
+		return errors.New("use --referkeys to specify referkey")
 	}
-	referKey, err := common.Uint256FromHexString(referKeyStr)
-	if err != nil {
-		return err
+	candidates := c.String("candidates")
+	if candidates == "" {
+		return errors.New("use --candidates to specify candidates information")
+	}
+	votes := c.String("votes")
+	if votes == "" {
+		return errors.New("use --votes to specify votes information")
+	}
+	stakeUntilList := c.String("stakeuntils")
+	if stakeUntilList == "" {
+		return errors.New("use --stakeuntils to specify stake until information")
 	}
 
-	// get candidate list from file
-	candidatePath := c.String("for")
-	candidateVotesList, err := parseCandidatesAndVotes(candidatePath)
+	//// get candidate list from file
+	//candidatePath := c.String("for")
+	//candidateVotesList, err := parseCandidatesAndVotes(candidatePath)
+	//if err != nil {
+	//	return err
+	//}
+
+	contents, err := parseRenewalVotesContent(referKeysStr, candidates, votes, stakeUntilList)
 	if err != nil {
 		return err
 	}
+	fmt.Println("contents:", contents)
 	pld := payload.Voting{
-		Contents: []payload.VotesContent{
-			{
-				VoteType:  outputpayload.DposV2,
-				VotesInfo: candidateVotesList,
-			},
-		},
-		RenewalContents: []payload.RenewalVotesContent{
-			{
-
-
-
-				ReferKey:  *referKey,
-				VotesInfo: candidateVotesList[0],
-			},
-		},
+		RenewalContents: contents,
 	}
 
 	// create inputs
@@ -115,7 +117,7 @@ func CreateDPoSV2VoteRenewTransaction(c *cli.Context) error {
 	txn := functions.CreateTransaction(
 		common2.TxVersion09,
 		common2.Voting,
-		0,
+		1,
 		&pld,
 		txAttributes,
 		txInputs,

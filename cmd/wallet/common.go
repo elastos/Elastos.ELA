@@ -395,3 +395,42 @@ func parseCandidatesAndVotes(path string) ([]payload.VotesWithLockTime, error) {
 
 	return votesInfo, nil
 }
+
+func parseRenewalVotesContent(referKeys string, candidates string, votes string, stakeUntil string) ([]payload.RenewalVotesContent, error) {
+	rks := strings.Split(referKeys, ",")
+	cds := strings.Split(candidates, ",")
+	vts := strings.Split(votes, ",")
+	sus := strings.Split(stakeUntil, ",")
+	if len(rks) != len(cds) || len(rks) != len(vts) || len(cds) != len(sus) {
+		return nil, errors.New("referkeys and candidates and votes and stakeuntils count need to be equal")
+	}
+
+	votesInfo := make([]payload.RenewalVotesContent, 0)
+	for i := 0; i < len(cds); i++ {
+		referKey, err := common.Uint256FromHexString(rks[i])
+		if err != nil {
+			return nil, err
+		}
+		c, err := common.HexStringToBytes(cds[i])
+		if err != nil {
+			return nil, err
+		}
+		v, err := common.StringToFixed64(vts[i])
+		if err != nil {
+			return nil, err
+		}
+		s, err := strconv.Atoi(sus[i])
+		if err != nil {
+			return nil, err
+		}
+		votesInfo = append(votesInfo, payload.RenewalVotesContent{
+			ReferKey: *referKey,
+			VotesInfo: payload.VotesWithLockTime{
+				Candidate: c,
+				Votes:     *v,
+				LockTime:  uint32(s),
+			},
+		})
+	}
+	return votesInfo, nil
+}

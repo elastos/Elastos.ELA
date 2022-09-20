@@ -41,6 +41,7 @@ func main() {
 		cmdcom.RPCPasswordFlag,
 		cmdcom.RPCPortFlag,
 		cmdcom.RPCIpFlag,
+		cmdcom.RPCUrlFlag,
 	}
 	app.Before = func(c *cli.Context) error {
 		//seed transaction nonce

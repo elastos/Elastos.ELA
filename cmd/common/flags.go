@@ -282,6 +282,10 @@ var (
 		Name:  "rpcip",
 		Usage: "JSON-RPC server listening ip `<string>`",
 	}
+	RPCUrlFlag = cli.StringFlag{
+		Name:  "rpcurl",
+		Usage: "JSON-RPC server listening url `<string>`",
+	}
 	EnableRPCFlag = cli.StringFlag{
 		Name:  "server",
 		Usage: "decide if open JSON-RPC server or not",
@@ -771,6 +775,8 @@ func MoveRPCFlags(args []string) ([]string, error) {
 
 	for i := 1; i < len(args); i++ {
 		switch args[i] {
+		case "--rpcurl":
+			fallthrough
 		case "--rpcip":
 			fallthrough
 		case "--rpcport":

@@ -171,16 +171,7 @@ func (t *UpdateProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bool
 			common.BytesToHexString(info.NodePublicKey))), true
 	}
 
-	//check if OwnerPublicKey is others' NodePublicKey
-	if t.parameters.BlockChain.GetHeight() >= t.parameters.Config.PublicDPOSHeight {
-		if t.parameters.BlockHeight > t.parameters.Config.DPoSV2StartHeight {
-			//check if OwnerPublicKey is others' NodePublicKey
-			if t.parameters.BlockChain.GetState().ProducerOrCRNodePublicKeyExists(info.OwnerPublicKey) {
-				return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("OwnerPublicKey %s can not be other producer's NodePublicKey ",
-					hex.EncodeToString(info.OwnerPublicKey))), true
-			}
-		}
-	}
+	// It is not necessary to check if OwnerPublicKey is others' NodePublicKey since we can not change OwnerPublicKey
 
 	// check node public key duplication
 	if bytes.Equal(info.NodePublicKey, producer.Info().NodePublicKey) {
@@ -206,6 +197,13 @@ func (t *UpdateProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bool
 				return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("NodePublicKey %s can not be other producer's ownerPublicKey ",
 					hex.EncodeToString(info.NodePublicKey))), true
 			}
+			//NodePublicKey can not be change into  one producer's OwnerPublicKey only if it is the same producer.
+			producer := t.parameters.BlockChain.GetState().GetProducerByOwnerPublicKey(info.NodePublicKey)
+			if producer != nil && !bytes.Equal(info.OwnerPublicKey, producer.OwnerPublicKey()) {
+				return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("NodePublicKey %s can not be other producer's ownerPublicKey ",
+					hex.EncodeToString(info.NodePublicKey))), true
+			}
+
 		}
 	}
 

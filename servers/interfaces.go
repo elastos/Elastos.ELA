@@ -642,7 +642,8 @@ func GetVoteRights(params Params) map[string]interface{} {
 			RemainVoteRight: make([]string, 5),
 		}
 		// dposv1
-		if udv := state.UsedDposVotes[stakeProgramHash]; udv != nil {
+
+		if udv := state.UsedDposVotes[stakeProgramHash]; !dposV2 && udv != nil {
 			for _, v := range udv {
 				vote.UsedVotesInfo.UsedDPoSVotes = append(vote.UsedVotesInfo.UsedDPoSVotes, VotesWithLockTimeInfo{
 					Candidate: hex.EncodeToString(v.Candidate),
@@ -652,7 +653,7 @@ func GetVoteRights(params Params) map[string]interface{} {
 			}
 		}
 		// crc
-		if ucv := crstate.UsedCRVotes[stakeProgramHash]; !dposV2 && ucv != nil {
+		if ucv := crstate.UsedCRVotes[stakeProgramHash]; ucv != nil {
 			for _, v := range ucv {
 				c, _ := common.Uint168FromBytes(v.Candidate)
 				candidate, _ := c.ToAddress()

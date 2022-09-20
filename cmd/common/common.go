@@ -23,6 +23,7 @@ const (
 )
 
 var (
+	rpcUrl      = ""
 	rpcIp       = "127.0.0.1"
 	rpcPort     = "20336"
 	rpcUser     = ""
@@ -30,6 +31,7 @@ var (
 )
 
 func SetRpcConfig(c *cli.Context) {
+	rpcUrl = c.String("rpcurl")
 	serverIp := c.String("rpcip")
 	if serverIp != "" {
 		rpcIp = serverIp
@@ -49,6 +51,9 @@ func SetRpcConfig(c *cli.Context) {
 }
 
 func localServer() string {
+	if rpcUrl != "" {
+		return rpcUrl
+	}
 	return "http://" + rpcIp + ":" + rpcPort
 }
 

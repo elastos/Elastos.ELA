@@ -116,11 +116,10 @@ func (t *UpdateProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bool
 	case state.DPoSV1:
 		//if this producer want to be dposv2
 		if info.StakeUntil != 0 {
-
 			if producer.State() != state.Active {
 				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("only active producer can update to DPoSV1V2")), true
 			}
-			if t.parameters.BlockHeight+t.parameters.Config.DPoSV2MinVotesLockTime >= info.StakeUntil {
+			if t.parameters.BlockHeight+t.parameters.Config.DPoSV2DepositCoinMinLockTime >= info.StakeUntil {
 				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("v2 producer StakeUntil less than BlockHeight")), true
 			}
 		}

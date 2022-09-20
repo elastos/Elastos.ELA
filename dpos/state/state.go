@@ -1079,6 +1079,14 @@ func (s *State) ProducerOwnerPublicKeyExists(publicKey []byte) bool {
 	return producer != nil
 }
 
+func (s *State) GetProducerByOwnerPublicKey(publicKey []byte) *Producer {
+	s.mtx.RLock()
+	key := hex.EncodeToString(publicKey)
+	producer := s.getProducerByOwnerPublicKey(key)
+	s.mtx.RUnlock()
+	return producer
+}
+
 // ProducerOrCRNodePublicKeyExists returns if a producer is exists by it's node public key.
 func (s *State) ProducerOrCRNodePublicKeyExists(publicKey []byte) bool {
 	s.mtx.RLock()

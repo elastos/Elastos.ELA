@@ -2051,7 +2051,6 @@ func (a *Arbiters) getRandomDposV2Producers(height uint32, unclaimedCount int, c
 	for i := 0; i < len(producerKeys); i++ {
 		sortedProducer = append(sortedProducer, producerKeys[i])
 	}
-
 	return sortedProducer, nil
 }
 
@@ -2078,6 +2077,9 @@ func (a *Arbiters) getCandidateIndexAtRandom(height uint32, unclaimedCount, vote
 }
 
 func (a *Arbiters) isDposV2Active() bool {
+	if a.DPoSV2ActiveHeight != math.MaxUint32 {
+		return true
+	}
 	return len(a.DposV2EffectedProducers) >= a.ChainParams.GeneralArbiters*3/2
 }
 

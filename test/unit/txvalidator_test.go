@@ -6073,6 +6073,8 @@ func (s *txValidatorTestSuite) TestCheckVoteOutputs() {
 
 	producersMap := make(map[string]struct{})
 	producersMap[publicKey1] = struct{}{}
+	producersMap2 := make(map[string]uint32)
+	producersMap2[publicKey1] = 0
 	crsMap := make(map[common.Uint168]struct{})
 
 	crsMap[*candidateCID1] = struct{}{}
@@ -6122,6 +6124,69 @@ func (s *txValidatorTestSuite) TestCheckVoteOutputs() {
 	})
 	s.EqualError(s.Chain.CheckVoteOutputs(config.DefaultParams.CRVotingStartHeight,
 		outputs2, references, producersMap, nil, crsMap),
+		"the output address of vote tx should exist in its input")
+
+	// Check vote output of v0 with crc type and with wrong output program hash
+	outputs20 := []*common2.Output{{Type: common2.OTNone}}
+	outputs20 = append(outputs20, &common2.Output{
+		Type:        common2.OTVote,
+		ProgramHash: *hash,
+		Payload: &outputpayload.VoteOutput{
+			Version: 1,
+			Contents: []outputpayload.VoteContent{
+				{
+					VoteType: outputpayload.CRCProposal,
+					CandidateVotes: []outputpayload.CandidateVotes{
+						{candidateCID3.Bytes(), 0},
+					},
+				},
+			},
+		},
+	})
+	s.EqualError(s.Chain.CheckVoteOutputs(config.DefaultParams.CRVotingStartHeight,
+		outputs20, references, producersMap, nil, crsMap),
+		"the output address of vote tx should exist in its input")
+
+	// Check vote output of v0 with crc type and with wrong output program hash
+	outputs21 := []*common2.Output{{Type: common2.OTNone}}
+	outputs21 = append(outputs21, &common2.Output{
+		Type:        common2.OTVote,
+		ProgramHash: *hash,
+		Payload: &outputpayload.VoteOutput{
+			Version: 1,
+			Contents: []outputpayload.VoteContent{
+				{
+					VoteType: outputpayload.CRCImpeachment,
+					CandidateVotes: []outputpayload.CandidateVotes{
+						{candidateCID3.Bytes(), 0},
+					},
+				},
+			},
+		},
+	})
+	s.EqualError(s.Chain.CheckVoteOutputs(config.DefaultParams.CRVotingStartHeight,
+		outputs21, references, producersMap, nil, crsMap),
+		"the output address of vote tx should exist in its input")
+
+	// Check vote output of v0 with crc type and with wrong output program hash
+	outputs22 := []*common2.Output{{Type: common2.OTNone}}
+	outputs22 = append(outputs22, &common2.Output{
+		Type:        common2.OTVote,
+		ProgramHash: *hash,
+		Payload: &outputpayload.VoteOutput{
+			Version: 1,
+			Contents: []outputpayload.VoteContent{
+				{
+					VoteType: outputpayload.DposV2,
+					CandidateVotes: []outputpayload.CandidateVotes{
+						{candidateCID3.Bytes(), 0},
+					},
+				},
+			},
+		},
+	})
+	s.EqualError(s.Chain.CheckVoteOutputs(config.DefaultParams.CRVotingStartHeight,
+		outputs22, references, producersMap, nil, crsMap),
 		"the output address of vote tx should exist in its input")
 
 	// Check vote output of v1 with wrong output program hash
@@ -6175,6 +6240,69 @@ func (s *txValidatorTestSuite) TestCheckVoteOutputs() {
 	s.EqualError(s.Chain.CheckVoteOutputs(config.DefaultParams.CRVotingStartHeight,
 		outputs4, references, producersMap, nil, crsMap),
 		"invalid vote output payload producer candidate: "+publicKey2)
+
+	// Check vote output of v0 with delegate type and invalid candidate
+	outputs23 := []*common2.Output{{Type: common2.OTNone}}
+	outputs23 = append(outputs23, &common2.Output{
+		Type:        common2.OTVote,
+		ProgramHash: *hash,
+		Payload: &outputpayload.VoteOutput{
+			Version: 0,
+			Contents: []outputpayload.VoteContent{
+				{
+					VoteType: outputpayload.DposV2,
+					CandidateVotes: []outputpayload.CandidateVotes{
+						{candidate2, 0},
+					},
+				},
+			},
+		},
+		OutputLock: 0,
+	})
+	s.EqualError(s.Chain.CheckVoteOutputs(config.DefaultParams.CRVotingStartHeight,
+		outputs23, references, producersMap, producersMap2, crsMap),
+		"invalid vote output payload producer candidate: "+publicKey2)
+
+	outputs23 = []*common2.Output{{Type: common2.OTNone}}
+	outputs23 = append(outputs23, &common2.Output{
+		Type:        common2.OTVote,
+		ProgramHash: *hash,
+		Payload: &outputpayload.VoteOutput{
+			Version: 0,
+			Contents: []outputpayload.VoteContent{
+				{
+					VoteType: outputpayload.DposV2,
+					CandidateVotes: []outputpayload.CandidateVotes{
+						{candidate1, 0},
+					},
+				},
+			},
+		},
+		OutputLock: 0,
+	})
+	s.EqualError(s.Chain.CheckVoteOutputs(config.DefaultParams.CRVotingStartHeight,
+		outputs23, references, producersMap, producersMap2, crsMap),
+		fmt.Sprintf("payload VoteDposV2Version not support vote DposV2"))
+
+	outputs23 = []*common2.Output{{Type: common2.OTNone}}
+	outputs23 = append(outputs23, &common2.Output{
+		Type:        common2.OTVote,
+		ProgramHash: *hash,
+		Payload: &outputpayload.VoteOutput{
+			Version: outputpayload.VoteDposV2Version,
+			Contents: []outputpayload.VoteContent{
+				{
+					VoteType: outputpayload.DposV2,
+					CandidateVotes: []outputpayload.CandidateVotes{
+						{candidate1, 0},
+					},
+				},
+			},
+		},
+		OutputLock: 0,
+	})
+	s.NoError(s.Chain.CheckVoteOutputs(config.DefaultParams.CRVotingStartHeight,
+		outputs23, references, producersMap, producersMap2, crsMap))
 
 	// Check vote output v0 with correct output program hash
 	s.NoError(s.Chain.CheckVoteOutputs(config.DefaultParams.CRVotingStartHeight,

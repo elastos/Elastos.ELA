@@ -566,18 +566,44 @@ func (c *Committee) updateCRMembers(
 		return
 	}
 	circulation := c.CirculationAmount
-	for _, v := range c.Members {
-		if v.MemberState != MemberElected && v.MemberState != MemberInactive &&
-			v.MemberState != MemberIllegal {
+	usedCRImpeachmentVotes := make(map[common.Uint168][]payload.VotesWithLockTime)
+	for _, member := range c.Members {
+		if member.MemberState != MemberElected && member.MemberState != MemberInactive &&
+			member.MemberState != MemberIllegal {
 			continue
 		}
 
-		if v.ImpeachmentVotes >= common.Fixed64(float64(circulation)*
+		if member.ImpeachmentVotes >= common.Fixed64(float64(circulation)*
 			c.Params.VoterRejectPercentage/100.0) {
-			c.transferCRMemberState(v, height)
+
+			// record new used CR impeachment votes information.
+			for stakeAddress, votes := range c.state.UsedCRImpeachmentVotes {
+				vts := make([]payload.VotesWithLockTime, 0)
+				for _, v := range votes {
+					votes := v
+					if bytes.Equal(member.Info.CID.Bytes(), votes.Candidate) {
+						continue
+					}
+					vts = append(vts, votes)
+				}
+				if len(vts) != 0 {
+					usedCRImpeachmentVotes[stakeAddress] = vts
+				}
+			}
+
+			c.transferCRMemberState(member, height)
 			newImpeachedCount++
 		}
 	}
+
+	// update used CR impeachment votes
+	oriUsedCRImpeachmentVotes := copyProgramHashVotesInfoSet(c.state.UsedCRImpeachmentVotes)
+	c.lastHistory.Append(height, func() {
+		c.state.UsedCRImpeachmentVotes = usedCRImpeachmentVotes
+	}, func() {
+		c.state.UsedCRImpeachmentVotes = oriUsedCRImpeachmentVotes
+	})
+
 	return
 }
 

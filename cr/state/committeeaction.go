@@ -344,11 +344,11 @@ func (c *Committee) processVoting(tx interfaces.Transaction, height uint32) {
 			for _, v := range content.VotesInfo {
 				c.processImpeachment(height, v.Candidate, v.Votes, c.state.History)
 			}
-			oriUsdedCRImpeachmentVotes := c.state.UsedCRImpeachmentVotes[*stakeAddress]
+			oriUsedCRImpeachmentVotes := c.state.UsedCRImpeachmentVotes[*stakeAddress]
 			c.state.History.Append(height, func() {
 				c.state.UsedCRImpeachmentVotes[*stakeAddress] = content.VotesInfo
 			}, func() {
-				c.state.UsedCRImpeachmentVotes[*stakeAddress] = oriUsdedCRImpeachmentVotes
+				c.state.UsedCRImpeachmentVotes[*stakeAddress] = oriUsedCRImpeachmentVotes
 			})
 		}
 	}

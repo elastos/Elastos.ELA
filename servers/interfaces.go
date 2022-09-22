@@ -737,9 +737,7 @@ func GetUsedVoteRight(voteType outputpayload.VoteType, stakeProgramHash *common.
 		if Chain.GetHeight() >= Chain.GetState().DPoSV2ActiveHeight {
 			usedDposVote = 0
 		} else {
-			if dposVotes, ok := state.UsedDposVotes[*stakeProgramHash]; !ok {
-				usedDposVote = 0
-			} else {
+			if dposVotes, ok := state.UsedDposVotes[*stakeProgramHash]; ok {
 				maxVotes := common.Fixed64(0)
 				for _, votesInfo := range dposVotes {
 					if votesInfo.Votes > maxVotes {
@@ -750,17 +748,13 @@ func GetUsedVoteRight(voteType outputpayload.VoteType, stakeProgramHash *common.
 			}
 		}
 	case outputpayload.CRC:
-		if usedCRVoteRights, ok := crstate.UsedCRVotes[*stakeProgramHash]; !ok {
-			usedDposVote = 0
-		} else {
+		if usedCRVoteRights, ok := crstate.UsedCRVotes[*stakeProgramHash]; ok {
 			for _, votesInfo := range usedCRVoteRights {
 				usedDposVote += votesInfo.Votes
 			}
 		}
 	case outputpayload.CRCProposal:
-		if usedCRCProposalVoteRights, ok := crstate.UsedCRCProposalVotes[*stakeProgramHash]; !ok {
-			usedDposVote = 0
-		} else {
+		if usedCRCProposalVoteRights, ok := crstate.UsedCRCProposalVotes[*stakeProgramHash]; ok {
 			maxVotes := common.Fixed64(0)
 			for _, votesInfo := range usedCRCProposalVoteRights {
 				if votesInfo.Votes > maxVotes {
@@ -769,10 +763,9 @@ func GetUsedVoteRight(voteType outputpayload.VoteType, stakeProgramHash *common.
 			}
 			usedDposVote = maxVotes
 		}
+
 	case outputpayload.CRCImpeachment:
-		if usedCRImpeachmentVoteRights, ok := crstate.UsedCRImpeachmentVotes[*stakeProgramHash]; !ok {
-			usedDposVote = 0
-		} else {
+		if usedCRImpeachmentVoteRights, ok := crstate.UsedCRImpeachmentVotes[*stakeProgramHash]; ok {
 			for _, votesInfo := range usedCRImpeachmentVoteRights {
 				usedDposVote += votesInfo.Votes
 			}

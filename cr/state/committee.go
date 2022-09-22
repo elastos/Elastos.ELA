@@ -567,6 +567,7 @@ func (c *Committee) updateCRMembers(
 	}
 	circulation := c.CirculationAmount
 	usedCRImpeachmentVotes := make(map[common.Uint168][]payload.VotesWithLockTime)
+	impeachedCRMembersCID := make(map[common.Uint168]struct{}, 0)
 	for _, member := range c.Members {
 		if member.MemberState != MemberElected && member.MemberState != MemberInactive &&
 			member.MemberState != MemberIllegal {
@@ -575,24 +576,34 @@ func (c *Committee) updateCRMembers(
 
 		if member.ImpeachmentVotes >= common.Fixed64(float64(circulation)*
 			c.Params.VoterRejectPercentage/100.0) {
-
-			// record new used CR impeachment votes information.
-			for stakeAddress, votes := range c.state.UsedCRImpeachmentVotes {
-				vts := make([]payload.VotesWithLockTime, 0)
-				for _, v := range votes {
-					votes := v
-					if bytes.Equal(member.Info.CID.Bytes(), votes.Candidate) {
-						continue
-					}
-					vts = append(vts, votes)
-				}
-				if len(vts) != 0 {
-					usedCRImpeachmentVotes[stakeAddress] = vts
-				}
-			}
-
 			c.transferCRMemberState(member, height)
 			newImpeachedCount++
+			impeachedCRMembersCID[member.Info.CID] = struct{}{}
+		}
+	}
+
+	if len(impeachedCRMembersCID) == 0 {
+		return
+	}
+
+	log.Info("### at height:", height, "impeachedCRMembersCID:", impeachedCRMembersCID)
+
+	// record new used CR impeachment votes information.
+	for stakeAddress, votes := range c.state.UsedCRImpeachmentVotes {
+		vts := make([]payload.VotesWithLockTime, 0)
+		for _, v := range votes {
+			votes := v
+			cid, err := common.Uint168FromBytes(votes.Candidate)
+			if err != nil {
+				continue
+			}
+			if _, ok := impeachedCRMembersCID[*cid]; ok {
+				continue
+			}
+			vts = append(vts, votes)
+		}
+		if len(vts) != 0 {
+			usedCRImpeachmentVotes[stakeAddress] = vts
 		}
 	}
 
@@ -603,7 +614,6 @@ func (c *Committee) updateCRMembers(
 	}, func() {
 		c.state.UsedCRImpeachmentVotes = oriUsedCRImpeachmentVotes
 	})
-
 	return
 }
 
@@ -1442,7 +1452,15 @@ func (c *Committee) changeCommitteeMembers(height uint32) error {
 	candidates := c.getActiveAndExistDIDCRCandidatesDesc()
 	oriInElectionPeriod := c.InElectionPeriod
 	oriLastVotingStartHeight := c.LastVotingStartHeight
-	if uint32(len(candidates)) < c.Params.CRMemberCount {
+
+	var activeCandidatesCount uint32
+	for _, candidate := range candidates {
+		if candidate.Votes > 0 {
+			activeCandidatesCount++
+		}
+	}
+
+	if activeCandidatesCount < c.Params.CRMemberCount {
 		c.lastHistory.Append(height, func() {
 			c.InElectionPeriod = false
 			c.LastVotingStartHeight = height
@@ -1450,7 +1468,7 @@ func (c *Committee) changeCommitteeMembers(height uint32) error {
 			c.InElectionPeriod = oriInElectionPeriod
 			c.LastVotingStartHeight = oriLastVotingStartHeight
 		})
-		return errors.New("candidates count less than required count Height" + strconv.Itoa(int(height)))
+		return errors.New("candidates count less than required count, height" + strconv.Itoa(int(height)))
 	}
 	// GetProcessor current members.
 	newMembers := c.processCurrentMembersHistory(height, candidates)
@@ -1515,9 +1533,12 @@ func (c *Committee) resetCurrentMembers(height uint32) {
 		}
 	}
 
+	oriUsedCRImpeachmentVotes := copyProgramHashVotesInfoSet(c.state.UsedCRImpeachmentVotes)
 	c.lastHistory.Append(height, func() {
+		c.state.UsedCRImpeachmentVotes = make(map[common.Uint168][]payload.VotesWithLockTime)
 		c.Members = make(map[common.Uint168]*CRMember)
 	}, func() {
+		c.state.UsedCRImpeachmentVotes = oriUsedCRImpeachmentVotes
 		c.Members = oriMembers
 	})
 

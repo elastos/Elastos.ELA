@@ -960,7 +960,10 @@ func (c *Committee) tryStartVotingPeriod(height uint32) (inElection bool) {
 		c.Params.CRMemberCount-c.Params.CRAgreementCount {
 		lastVotingStartHeight := c.LastVotingStartHeight
 		inElectionPeriod := c.InElectionPeriod
+
+		oriUsedCRImpeachmentVotes := copyProgramHashVotesInfoSet(c.state.UsedCRImpeachmentVotes)
 		c.lastHistory.Append(height, func() {
+			c.state.UsedCRImpeachmentVotes = make(map[common.Uint168][]payload.VotesWithLockTime)
 			c.InElectionPeriod = false
 			if c.LastVotingStartHeight == 0 {
 				c.LastVotingStartHeight = height
@@ -968,6 +971,7 @@ func (c *Committee) tryStartVotingPeriod(height uint32) (inElection bool) {
 				c.LastVotingStartHeight = height
 			}
 		}, func() {
+			c.state.UsedCRImpeachmentVotes = oriUsedCRImpeachmentVotes
 			c.InElectionPeriod = inElectionPeriod
 			c.LastVotingStartHeight = lastVotingStartHeight
 		})

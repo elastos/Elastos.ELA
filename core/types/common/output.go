@@ -160,7 +160,7 @@ func getOutputPayload(outputType OutputType) (OutputPayload, error) {
 	case OTDposV2Vote:
 		op = new(outputpayload.VoteOutput)
 	case OTStake:
-		op = new(outputpayload.StakeOutput)
+		op = new(outputpayload.ExchangeVotesOutput)
 	default:
 		return nil, errors.New("invalid transaction output type")
 	}

@@ -73,7 +73,7 @@ func RegisterUnstakeType(L *lua.LState) {
 
 // Constructor
 func newStake(L *lua.LState) int {
-	cb := &payload.Stake{}
+	cb := &payload.ExchangeVotes{}
 	ud := L.NewUserData()
 	ud.Value = cb
 	L.SetMetatable(ud, L.GetTypeMetatable(luaStakeName))
@@ -176,8 +176,8 @@ func newUnstake(L *lua.LState) int {
 	return 1
 }
 
-// Checks whether the first lua argument is a *LUserData with *Stake and
-// returns this *Stake.
+// Checks whether the first lua argument is a *LUserData with *payload.Voting and
+// returns this *payload.Voting.
 func checkStake(L *lua.LState, idx int) *payload.Voting {
 	ud := L.CheckUserData(idx)
 	if v, ok := ud.Value.(*payload.Voting); ok {

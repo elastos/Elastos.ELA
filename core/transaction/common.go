@@ -200,7 +200,7 @@ func GetTransaction(txType common2.TxType) (txn interfaces.Transaction, err erro
 		txn = new(RecordTransaction)
 
 	case common2.Stake:
-		txn = new(StakeTransaction)
+		txn = new(ExchangeVotesTransaction)
 
 	case common2.Voting:
 		txn = new(VotingTransaction)

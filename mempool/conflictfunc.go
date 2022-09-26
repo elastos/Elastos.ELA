@@ -288,7 +288,7 @@ func strVoting(tx interfaces.Transaction) (interface{}, error) {
 }
 
 func strUnstake(tx interfaces.Transaction) (interface{}, error) {
-	pld, ok := tx.Payload().(*payload.Unstake)
+	pld, ok := tx.Payload().(*payload.ReturnVotes)
 	if !ok {
 		return nil, fmt.Errorf("invlid unstake payload, tx:%s", tx.Hash())
 	}
@@ -298,7 +298,7 @@ func strUnstake(tx interfaces.Transaction) (interface{}, error) {
 	}
 
 	var code []byte
-	if tx.PayloadVersion() == payload.UnstakeVersionV0 {
+	if tx.PayloadVersion() == payload.ReturnVotesVersionV0 {
 		code = pld.Code
 	} else {
 		code = tx.Programs()[0].Code
@@ -404,14 +404,14 @@ func strSecretaryGeneral(tx interfaces.Transaction) (interface{}, error) {
 
 func strUnstakeRealWithdrawTX(
 	tx interfaces.Transaction) (interface{}, error) {
-	_, ok := tx.Payload().(*payload.UnstakeRealWithdrawPayload)
+	_, ok := tx.Payload().(*payload.VotesRealWithdrawPayload)
 	if !ok {
 		return nil, fmt.Errorf(
-			"UnstakeRealWithdrawPayload cast failed, tx: %s",
+			"VotesRealWithdrawPayload cast failed, tx: %s",
 			tx.Hash())
 	}
 
-	return "UnstakeRealWithdraw", nil
+	return "VotesRealWithdraw", nil
 }
 
 func hashArrayDposV2ClaimRewardRealWithdrawTransactionHashes(

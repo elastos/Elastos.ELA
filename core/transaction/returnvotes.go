@@ -17,11 +17,11 @@ import (
 	elaerr "github.com/elastos/Elastos.ELA/errors"
 )
 
-type UnstakeTransaction struct {
+type ReturnVotesTransaction struct {
 	BaseTransaction
 }
 
-func (t *UnstakeTransaction) HeightVersionCheck() error {
+func (t *ReturnVotesTransaction) HeightVersionCheck() error {
 	blockHeight := t.parameters.BlockHeight
 	chainParams := t.parameters.Config
 
@@ -32,16 +32,16 @@ func (t *UnstakeTransaction) HeightVersionCheck() error {
 	return nil
 }
 
-func (t *UnstakeTransaction) CheckTransactionPayload() error {
+func (t *ReturnVotesTransaction) CheckTransactionPayload() error {
 	switch t.Payload().(type) {
-	case *payload.Unstake:
+	case *payload.ReturnVotes:
 		return nil
 	}
 
 	return errors.New("invalid payload type")
 }
 
-func (t *UnstakeTransaction) CheckAttributeProgram() error {
+func (t *ReturnVotesTransaction) CheckAttributeProgram() error {
 	// Check attributes
 	for _, attr := range t.Attributes() {
 		if !common2.IsValidAttributeType(attr.Usage) {
@@ -63,15 +63,15 @@ func (t *UnstakeTransaction) CheckAttributeProgram() error {
 	return nil
 }
 
-func (t *UnstakeTransaction) IsAllowedInPOWConsensus() bool {
+func (t *ReturnVotesTransaction) IsAllowedInPOWConsensus() bool {
 	return false
 }
 
-func (t *UnstakeTransaction) SpecialContextCheck() (result elaerr.ELAError, end bool) {
+func (t *ReturnVotesTransaction) SpecialContextCheck() (result elaerr.ELAError, end bool) {
 
 	// 1.check if unused vote rights enough
 	// 2.return value if payload need to be equal to outputs
-	pl, ok := t.Payload().(*payload.Unstake)
+	pl, ok := t.Payload().(*payload.ReturnVotes)
 	if !ok {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid payload")), true
 	}
@@ -83,9 +83,9 @@ func (t *UnstakeTransaction) SpecialContextCheck() (result elaerr.ELAError, end 
 
 	// check if unused vote rights enough
 	var code []byte
-	if t.payloadVersion == payload.UnstakeVersionV0 {
+	if t.payloadVersion == payload.ReturnVotesVersionV0 {
 		code = pl.Code
-	} else if t.payloadVersion == payload.UnstakeVersionV1 {
+	} else if t.payloadVersion == payload.ReturnVotesVersionV1 {
 		code = t.Programs()[0].Code
 	} else {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid payload version")), true
@@ -126,7 +126,7 @@ func (t *UnstakeTransaction) SpecialContextCheck() (result elaerr.ELAError, end 
 		}
 	}
 
-	if t.payloadVersion == payload.UnstakeVersionV0 {
+	if t.payloadVersion == payload.ReturnVotesVersionV0 {
 		//check pl.Code signature
 		err = t.checkUnstakeSignature(pl)
 		if err != nil {
@@ -138,10 +138,10 @@ func (t *UnstakeTransaction) SpecialContextCheck() (result elaerr.ELAError, end 
 }
 
 // check signature
-func (t *UnstakeTransaction) checkUnstakeSignature(unstakePayload *payload.Unstake) error {
+func (t *ReturnVotesTransaction) checkUnstakeSignature(unstakePayload *payload.ReturnVotes) error {
 
 	signedBuf := new(bytes.Buffer)
-	err := unstakePayload.SerializeUnsigned(signedBuf, payload.UnstakeVersionV0)
+	err := unstakePayload.SerializeUnsigned(signedBuf, payload.ReturnVotesVersionV0)
 	if err != nil {
 		return err
 	}

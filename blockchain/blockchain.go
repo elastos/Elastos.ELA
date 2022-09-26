@@ -530,18 +530,18 @@ func (b *BlockChain) CreateUnstakeRealWithdrawTransaction(
 	if err != nil {
 		return nil, err
 	}
-	var unstakeRealWithdraw []payload.UnstakeRealWidhdraw
+	var unstakeRealWithdraw []payload.VotesRealWidhdraw
 	for i, output := range outputs {
-		withdraw := payload.UnstakeRealWidhdraw{
-			UnstakeTXHash: unstakeTXHashes[i],
-			StakeAddress:  output.Recipient,
-			Value:         output.Amount,
+		withdraw := payload.VotesRealWidhdraw{
+			ReturnVotesTXHash: unstakeTXHashes[i],
+			StakeAddress:      output.Recipient,
+			Value:             output.Amount,
 		}
 		unstakeRealWithdraw = append(unstakeRealWithdraw, withdraw)
 	}
 
-	wPayload := &payload.UnstakeRealWithdrawPayload{
-		UnstakeRealWithdraw: unstakeRealWithdraw,
+	wPayload := &payload.VotesRealWithdrawPayload{
+		VotesRealWithdraw: unstakeRealWithdraw,
 	}
 
 	for _, v := range outputs {

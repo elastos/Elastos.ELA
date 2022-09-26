@@ -206,10 +206,10 @@ func GetTransaction(txType common2.TxType) (txn interfaces.Transaction, err erro
 		txn = new(VotingTransaction)
 
 	case common2.Unstake:
-		txn = new(UnstakeTransaction)
+		txn = new(ReturnVotesTransaction)
 
 	case common2.UnstakeRealWithdraw:
-		txn = new(UnstakeRealWithdrawTransaction)
+		txn = new(VotesRealWithdrawTransaction)
 
 	case common2.DposV2ClaimReward:
 		txn = new(DPoSV2ClaimRewardTransaction)

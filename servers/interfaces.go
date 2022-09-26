@@ -3567,9 +3567,9 @@ func getPayloadInfo(p interfaces.Payload, payloadVersion byte) PayloadInfo {
 	case *payload.ExchangeVotes:
 		obj := new(StakeInfo)
 		return obj
-	case *payload.Unstake:
+	case *payload.ReturnVotes:
 		address, _ := object.ToAddr.ToAddress()
-		if payloadVersion == payload.UnstakeVersionV1 {
+		if payloadVersion == payload.ReturnVotesVersionV1 {
 			obj := &UnstakeInfo{
 				ToAddr: address,
 				Value:  object.Value.String(),
@@ -3583,14 +3583,14 @@ func getPayloadInfo(p interfaces.Payload, payloadVersion byte) PayloadInfo {
 			Signature: common.BytesToHexString(object.Signature),
 		}
 		return obj
-	case *payload.UnstakeRealWithdrawPayload:
+	case *payload.VotesRealWithdrawPayload:
 		obj := &RealUnstakesInfo{
 			RealUnstakes: make([]RealUnstakeInfo, 0),
 		}
-		for _, withdraw := range object.UnstakeRealWithdraw {
+		for _, withdraw := range object.VotesRealWithdraw {
 			address, _ := withdraw.StakeAddress.ToAddress()
 			realUnstakeInfo := RealUnstakeInfo{
-				UnstaketXHash: common.ToReversedString(withdraw.UnstakeTXHash),
+				UnstaketXHash: common.ToReversedString(withdraw.ReturnVotesTXHash),
 				StakeAddress:  address,
 				Value:         withdraw.Value.String(),
 			}

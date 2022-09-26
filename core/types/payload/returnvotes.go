@@ -15,11 +15,11 @@ import (
 )
 
 const (
-	UnstakeVersionV0 byte = 0x00
-	UnstakeVersionV1 byte = 0x01
+	ReturnVotesVersionV0 byte = 0x00
+	ReturnVotesVersionV1 byte = 0x01
 )
 
-type Unstake struct {
+type ReturnVotes struct {
 	// target or to address
 	ToAddr common.Uint168
 	// code
@@ -30,7 +30,7 @@ type Unstake struct {
 	Signature []byte
 }
 
-func (p *Unstake) Data(version byte) []byte {
+func (p *ReturnVotes) Data(version byte) []byte {
 	buf := new(bytes.Buffer)
 	if err := p.Serialize(buf, version); err != nil {
 		return []byte{0}
@@ -39,69 +39,69 @@ func (p *Unstake) Data(version byte) []byte {
 	return buf.Bytes()
 }
 
-func (p *Unstake) Serialize(w io.Writer, version byte) error {
+func (p *ReturnVotes) Serialize(w io.Writer, version byte) error {
 	err := p.SerializeUnsigned(w, version)
 	if err != nil {
 		return err
 	}
 
-	if version == UnstakeVersionV0 {
+	if version == ReturnVotesVersionV0 {
 		err = common.WriteVarBytes(w, p.Signature)
 		if err != nil {
-			return errors.New("[Unstake], signature serialize failed")
+			return errors.New("[ReturnVotes], signature serialize failed")
 		}
 	}
 
 	return nil
 }
 
-func (p *Unstake) SerializeUnsigned(w io.Writer, version byte) error {
+func (p *ReturnVotes) SerializeUnsigned(w io.Writer, version byte) error {
 	if err := p.ToAddr.Serialize(w); err != nil {
-		return errors.New("[Unstake], ToAddr serialize failed")
+		return errors.New("[ReturnVotes], ToAddr serialize failed")
 	}
 
-	if version == UnstakeVersionV0 {
+	if version == ReturnVotesVersionV0 {
 		err := common.WriteVarBytes(w, p.Code)
 		if err != nil {
-			return errors.New("[Unstake], Code serialize failed")
+			return errors.New("[ReturnVotes], Code serialize failed")
 		}
 	}
 
 	if err := p.Value.Serialize(w); err != nil {
-		return errors.New("[Unstake], Value serialize failed")
+		return errors.New("[ReturnVotes], Value serialize failed")
 	}
 	return nil
 }
 
-func (p *Unstake) DeserializeUnsigned(r io.Reader, version byte) error {
+func (p *ReturnVotes) DeserializeUnsigned(r io.Reader, version byte) error {
 	var err error
 	if err := p.ToAddr.Deserialize(r); err != nil {
-		return errors.New("[Unstake], ToAddr Deserialize failed")
+		return errors.New("[ReturnVotes], ToAddr Deserialize failed")
 	}
 
-	if version == UnstakeVersionV0 {
+	if version == ReturnVotesVersionV0 {
 		p.Code, err = common.ReadVarBytes(r, crypto.MaxMultiSignCodeLength, "code")
 		if err != nil {
-			return errors.New("[Unstake], Code deserialize failed")
+			return errors.New("[ReturnVotes], Code deserialize failed")
 		}
 	}
 
 	if err := p.Value.Deserialize(r); err != nil {
-		return errors.New("[Unstake], Value Deserialize failed")
+		return errors.New("[ReturnVotes], Value Deserialize failed")
 	}
 	return nil
 }
 
-func (p *Unstake) Deserialize(r io.Reader, version byte) error {
+func (p *ReturnVotes) Deserialize(r io.Reader, version byte) error {
 	err := p.DeserializeUnsigned(r, version)
 	if err != nil {
 		return err
 	}
 
-	if version == UnstakeVersionV0 {
+	if version == ReturnVotesVersionV0 {
 		p.Signature, err = common.ReadVarBytes(r, crypto.MaxSignatureScriptLength, "signature")
 		if err != nil {
-			return errors.New("[Unstake], signature deserialize failed")
+			return errors.New("[ReturnVotes], signature deserialize failed")
 		}
 	}
 

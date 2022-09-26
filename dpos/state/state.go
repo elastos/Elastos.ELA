@@ -2483,9 +2483,9 @@ func (s *State) getClaimedCRMembersMap() map[string]*state.CRMember {
 }
 
 func (s *State) processUnstake(tx interfaces.Transaction, height uint32) {
-	pld := tx.Payload().(*payload.Unstake)
+	pld := tx.Payload().(*payload.ReturnVotes)
 	var code []byte
-	if tx.PayloadVersion() == payload.UnstakeVersionV0 {
+	if tx.PayloadVersion() == payload.ReturnVotesVersionV0 {
 		code = pld.Code
 	} else {
 		code = tx.Programs()[0].Code
@@ -2540,10 +2540,10 @@ func (s *State) processRetVotesRewardRealWithdraw(tx interfaces.Transaction, hei
 	for k, v := range s.StateKeyFrame.VotesWithdrawableTxInfo {
 		txs[k] = v
 	}
-	withdrawPayload := tx.Payload().(*payload.UnstakeRealWithdrawPayload)
+	withdrawPayload := tx.Payload().(*payload.VotesRealWithdrawPayload)
 	s.History.Append(height, func() {
-		for _, realUnstake := range withdrawPayload.UnstakeRealWithdraw {
-			delete(s.StateKeyFrame.VotesWithdrawableTxInfo, realUnstake.UnstakeTXHash)
+		for _, realUnstake := range withdrawPayload.VotesRealWithdraw {
+			delete(s.StateKeyFrame.VotesWithdrawableTxInfo, realUnstake.ReturnVotesTXHash)
 		}
 	}, func() {
 		s.StateKeyFrame.VotesWithdrawableTxInfo = txs

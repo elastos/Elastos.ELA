@@ -281,6 +281,10 @@ func (p *Producer) SetVotes(v common.Fixed64) {
 	p.votes = v
 }
 
+func (p *Producer) SetTotalAmount(v common.Fixed64) {
+	p.totalAmount = v
+}
+
 func (p *Producer) SetDposV2Votes(v common.Fixed64) {
 	p.dposV2Votes = v
 }

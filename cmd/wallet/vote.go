@@ -205,7 +205,7 @@ func CreateStakeTransaction(c *cli.Context) error {
 	}
 
 	// create outputs
-	stakeOutput := &outputpayload.StakeOutput{
+	stakeOutput := &outputpayload.ExchangeVotesOutput{
 		Version:      0,
 		StakeAddress: *sAddressProgramHash,
 	}
@@ -243,7 +243,7 @@ func CreateStakeTransaction(c *cli.Context) error {
 		common2.TxVersion09,
 		common2.Stake,
 		0,
-		&payload.Stake{},
+		&payload.ExchangeVotes{},
 		txAttributes,
 		txInputs,
 		txOutputs,

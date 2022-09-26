@@ -18,11 +18,11 @@ import (
 	elaerr "github.com/elastos/Elastos.ELA/errors"
 )
 
-type StakeTransaction struct {
+type ExchangeVotesTransaction struct {
 	BaseTransaction
 }
 
-func (t *StakeTransaction) HeightVersionCheck() error {
+func (t *ExchangeVotesTransaction) HeightVersionCheck() error {
 	blockHeight := t.parameters.BlockHeight
 	chainParams := t.parameters.Config
 
@@ -33,7 +33,7 @@ func (t *StakeTransaction) HeightVersionCheck() error {
 	return nil
 }
 
-func (t *StakeTransaction) CheckTransactionOutput() error {
+func (t *ExchangeVotesTransaction) CheckTransactionOutput() error {
 	if len(t.Outputs()) > 2 {
 		return errors.New("output count should not be greater than 2")
 	}
@@ -66,7 +66,7 @@ func (t *StakeTransaction) CheckTransactionOutput() error {
 	if p == nil {
 		return errors.New("invalid output payload")
 	}
-	sopayload, ok := p.(*outputpayload.StakeOutput)
+	sopayload, ok := p.(*outputpayload.ExchangeVotesOutput)
 	if !ok {
 		return errors.New("invalid exchange vote output payload")
 	}
@@ -102,16 +102,16 @@ func (t *StakeTransaction) CheckTransactionOutput() error {
 	return nil
 }
 
-func (t *StakeTransaction) CheckTransactionPayload() error {
+func (t *ExchangeVotesTransaction) CheckTransactionPayload() error {
 	switch t.Payload().(type) {
-	case *payload.Stake:
+	case *payload.ExchangeVotes:
 		return nil
 	}
 
 	return errors.New("invalid payload type")
 }
 
-func (t *StakeTransaction) CheckAttributeProgram() error {
+func (t *ExchangeVotesTransaction) CheckAttributeProgram() error {
 	// Check attributes
 	for _, attr := range t.Attributes() {
 		if !common2.IsValidAttributeType(attr.Usage) {
@@ -133,11 +133,11 @@ func (t *StakeTransaction) CheckAttributeProgram() error {
 	return nil
 }
 
-func (t *StakeTransaction) IsAllowedInPOWConsensus() bool {
+func (t *ExchangeVotesTransaction) IsAllowedInPOWConsensus() bool {
 
 	return true
 }
 
-func (t *StakeTransaction) SpecialContextCheck() (result elaerr.ELAError, end bool) {
+func (t *ExchangeVotesTransaction) SpecialContextCheck() (result elaerr.ELAError, end bool) {
 	return nil, false
 }

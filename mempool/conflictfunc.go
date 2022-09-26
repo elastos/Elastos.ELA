@@ -262,7 +262,7 @@ func strStake(tx interfaces.Transaction) (interface{}, error) {
 	if p == nil {
 		return nil, fmt.Errorf("invlid unstake outputs payload, tx:%s", tx.Hash())
 	}
-	pld, ok := p.(*outputpayload.StakeOutput)
+	pld, ok := p.(*outputpayload.ExchangeVotesOutput)
 	if !ok {
 		return nil, fmt.Errorf("invlid unstake output payload, tx:%s", tx.Hash())
 	}

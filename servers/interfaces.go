@@ -3564,7 +3564,7 @@ func getPayloadInfo(p interfaces.Payload, payloadVersion byte) PayloadInfo {
 		}
 		return obj
 
-	case *payload.Stake:
+	case *payload.ExchangeVotes:
 		obj := new(StakeInfo)
 		return obj
 	case *payload.Unstake:
@@ -3706,7 +3706,7 @@ func getOutputPayloadInfo(op common2.OutputPayload) OutputPayloadInfo {
 			obj.Contents = append(obj.Contents, contentInfo)
 		}
 		return obj
-	case *outputpayload.StakeOutput:
+	case *outputpayload.ExchangeVotesOutput:
 		addr, _ := object.StakeAddress.ToAddress()
 		obj := new(StakeOutputInfo)
 		obj.Version = object.Version

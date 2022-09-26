@@ -135,7 +135,7 @@ func (s *txValidatorTestSuite) TestCheckTxHeightVersion() {
 		BlockChain:  s.Chain,
 	})
 	err := stake.HeightVersionCheck()
-	s.EqualError(err, "not support Stake transaction before DPoSV2StartHeight")
+	s.EqualError(err, "not support ExchangeVotes transaction before DPoSV2StartHeight")
 	stake.SetParameters(&transaction.TransactionParameters{
 		Transaction: stake,
 		BlockHeight: blockHeight4,
@@ -1116,7 +1116,7 @@ func (s *txValidatorTestSuite) TestCheckStakeTransaction() {
 	code := getCode(publicKeyBytes)
 	c, _ := contract.CreateStakeContractByCode(code)
 	stakeAddress_uint168 := c.ToProgramHash()
-	rpPayload := &outputpayload.StakeOutput{
+	rpPayload := &outputpayload.ExchangeVotesOutput{
 		Version:      0,
 		StakeAddress: *stakeAddress_uint168,
 	}
@@ -1304,7 +1304,7 @@ func (s *txValidatorTestSuite) TestCheckStakeTransaction() {
 	)
 	param := s.Chain.GetParams()
 	param.StakePool = common.Uint168{0x1, 0x2, 0x3}
-	tx := txn.(*transaction.StakeTransaction)
+	tx := txn.(*transaction.ExchangeVotesTransaction)
 	tx.DefaultChecker.SetParameters(&transaction.TransactionParameters{
 		BlockChain: s.Chain,
 		Config:     s.Chain.GetParams(),
@@ -1337,7 +1337,7 @@ func (s *txValidatorTestSuite) TestCheckStakeTransaction() {
 	)
 	param = s.Chain.GetParams()
 	param.StakePool = *stakeAddress_uint168
-	tx = txn.(*transaction.StakeTransaction)
+	tx = txn.(*transaction.ExchangeVotesTransaction)
 	tx.DefaultChecker.SetParameters(&transaction.TransactionParameters{
 		BlockChain: s.Chain,
 		Config:     s.Chain.GetParams(),
@@ -5406,7 +5406,7 @@ func (s *txValidatorTestSuite) TestCheckStakeTransaction2() {
 	code := cont.Code
 	ct, _ := contract.CreateStakeContractByCode(code)
 	stakeAddress := ct.ToProgramHash()
-	ps := &payload.Stake{}
+	ps := &payload.ExchangeVotes{}
 	attribute := []*common2.Attribute{}
 
 	tx1 := functions.CreateTransaction(
@@ -5440,7 +5440,7 @@ func (s *txValidatorTestSuite) TestCheckStakeTransaction2() {
 			ProgramHash: *stakeAddress,
 			Type:        common2.OTStake,
 			Value:       common.Fixed64(1000 * 1e8),
-			Payload: &outputpayload.StakeOutput{
+			Payload: &outputpayload.ExchangeVotesOutput{
 				StakeAddress: *stakeAddress,
 			},
 		}, {
@@ -5469,7 +5469,7 @@ func (s *txValidatorTestSuite) TestCheckStakeTransaction2() {
 	bc := s.Chain
 	config := bc.GetParams()
 	config.StakePool = *stakeAddress
-	tx := txn.(*transaction.StakeTransaction)
+	tx := txn.(*transaction.ExchangeVotesTransaction)
 	tx.DefaultChecker.SetParameters(&transaction.TransactionParameters{
 		BlockChain: bc,
 		Config:     config,

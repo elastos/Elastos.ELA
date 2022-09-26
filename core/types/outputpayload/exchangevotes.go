@@ -14,19 +14,18 @@ import (
 	"github.com/elastos/Elastos.ELA/common"
 )
 
-const StakeOutputVersion byte = 0x00
+const ExchangeVotesOutputVersion byte = 0x00
 
-// CandidateVotes defines the voting information for individual candidates.
-type StakeOutput struct {
+type ExchangeVotesOutput struct {
 	Version      byte
 	StakeAddress common.Uint168
 }
 
-func (ev *StakeOutput) Data() []byte {
+func (ev *ExchangeVotesOutput) Data() []byte {
 	return nil
 }
 
-func (ev *StakeOutput) Serialize(w io.Writer) error {
+func (ev *ExchangeVotesOutput) Serialize(w io.Writer) error {
 	if _, err := w.Write([]byte{ev.Version}); err != nil {
 		return err
 	}
@@ -37,7 +36,7 @@ func (ev *StakeOutput) Serialize(w io.Writer) error {
 	return nil
 }
 
-func (ev *StakeOutput) Deserialize(r io.Reader) error {
+func (ev *ExchangeVotesOutput) Deserialize(r io.Reader) error {
 	version, err := common.ReadBytes(r, 1)
 	if err != nil {
 		return err
@@ -50,15 +49,15 @@ func (ev *StakeOutput) Deserialize(r io.Reader) error {
 	return nil
 }
 
-func (ev *StakeOutput) GetVersion() byte {
+func (ev *ExchangeVotesOutput) GetVersion() byte {
 	return ev.Version
 }
 
-func (ev *StakeOutput) Validate() error {
+func (ev *ExchangeVotesOutput) Validate() error {
 	if ev == nil {
-		return errors.New("exchange vote output payload is nil")
+		return errors.New("exchange votes output payload is nil")
 	}
-	if ev.Version > StakeOutputVersion {
+	if ev.Version > ExchangeVotesOutputVersion {
 		return errors.New("invalid exchange vote version")
 	}
 
@@ -68,7 +67,7 @@ func (ev *StakeOutput) Validate() error {
 	return nil
 }
 
-func (ev *StakeOutput) String() string {
+func (ev *ExchangeVotesOutput) String() string {
 	addr, _ := ev.StakeAddress.ToAddress()
 	return fmt.Sprint("{\n\t\t\t\t",
 		"StakeAddress: ", addr, "\n\t\t\t\t")

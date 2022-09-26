@@ -156,7 +156,7 @@ func (s *txValidatorTestSuite) TestCheckTxHeightVersion() {
 		BlockChain:  s.Chain,
 	})
 	err = unstake.HeightVersionCheck()
-	s.EqualError(err, "not support Unstake transaction before DPoSV2StartHeight")
+	s.EqualError(err, "not support ReturnVotes transaction before DPoSV2StartHeight")
 	unstake.SetParameters(&transaction.TransactionParameters{
 		Transaction: unstake,
 		BlockHeight: blockHeight4,
@@ -5488,7 +5488,7 @@ func (s *txValidatorTestSuite) TestCheckUnstakeTransaction() {
 	code := cont.Code
 	ct, _ := contract.CreateStakeContractByCode(code)
 	stakeAddress := ct.ToProgramHash()
-	pl := &payload.Unstake{
+	pl := &payload.ReturnVotes{
 		Value: 100,
 	}
 	attribute := []*common2.Attribute{}
@@ -5545,7 +5545,7 @@ func (s *txValidatorTestSuite) TestCheckUnstakeTransaction() {
 	bc := s.Chain
 	config := bc.GetParams()
 	config.StakePool = *stakeAddress
-	tx := txn.(*transaction.UnstakeTransaction)
+	tx := txn.(*transaction.ReturnVotesTransaction)
 	tx.DefaultChecker.SetParameters(&transaction.TransactionParameters{
 		BlockChain: bc,
 		Config:     config,
@@ -5691,7 +5691,7 @@ func (s *txValidatorTestSuite) TestCheckUnstakeTransaction2() {
 		0,
 		common2.Unstake,
 		1,
-		&payload.Unstake{
+		&payload.ReturnVotes{
 			Value: -1,
 		},
 		[]*common2.Attribute{},
@@ -5719,7 +5719,7 @@ func (s *txValidatorTestSuite) TestCheckUnstakeTransaction2() {
 	err, _ = txn.SpecialContextCheck()
 	s.EqualError(err, "transaction validate error: payload content invalid:invalid unstake value")
 
-	txn.SetPayload(&payload.Unstake{
+	txn.SetPayload(&payload.ReturnVotes{
 		Value: 10001,
 	})
 	txn.SetPayloadVersion(0x02)
@@ -5727,7 +5727,7 @@ func (s *txValidatorTestSuite) TestCheckUnstakeTransaction2() {
 	s.EqualError(err, "transaction validate error: payload content invalid:invalid payload version")
 
 	txn.SetPayloadVersion(0x00)
-	txn.SetPayload(&payload.Unstake{
+	txn.SetPayload(&payload.ReturnVotes{
 		Value: 10001,
 		Code:  code,
 	})
@@ -5744,16 +5744,16 @@ func (s *txValidatorTestSuite) TestCheckUnstakeTransaction2() {
 	})
 
 	buf := new(bytes.Buffer)
-	tmpPayload := payload.Unstake{
+	tmpPayload := payload.ReturnVotes{
 		ToAddr: *stakeAddress_uint168,
 		Value:  10001,
 		Code:   code,
 	}
 
-	tmpPayload.SerializeUnsigned(buf, payload.UnstakeVersionV0)
+	tmpPayload.SerializeUnsigned(buf, payload.ReturnVotesVersionV0)
 	privBuf, _ := hex.DecodeString(private)
 	signature, _ := crypto.Sign(privBuf, buf.Bytes())
-	txn.SetPayload(&payload.Unstake{
+	txn.SetPayload(&payload.ReturnVotes{
 		ToAddr:    *stakeAddress_uint168,
 		Value:     10001,
 		Code:      code,

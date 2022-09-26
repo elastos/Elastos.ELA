@@ -107,8 +107,8 @@ func newTransaction(L *lua.LState) int {
 		pload, _ = ud.Value.(*payload.ExchangeVotes)
 	case *payload.Voting:
 		pload, _ = ud.Value.(*payload.Voting)
-	case *payload.Unstake:
-		pload, _ = ud.Value.(*payload.Unstake)
+	case *payload.ReturnVotes:
+		pload, _ = ud.Value.(*payload.ReturnVotes)
 	default:
 		fmt.Println("error: undefined payload type")
 		os.Exit(1)

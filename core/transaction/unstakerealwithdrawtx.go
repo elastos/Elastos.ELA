@@ -8,16 +8,17 @@ package transaction
 import (
 	"errors"
 	"fmt"
+
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	elaerr "github.com/elastos/Elastos.ELA/errors"
 )
 
-type UnstakeRealWithdrawTransaction struct {
+type VotesRealWithdrawTransaction struct {
 	BaseTransaction
 }
 
-func (t *UnstakeRealWithdrawTransaction) CheckAttributeProgram() error {
+func (t *VotesRealWithdrawTransaction) CheckAttributeProgram() error {
 	if len(t.Programs()) != 0 {
 		return errors.New("txs should have no programs")
 	}
@@ -27,20 +28,20 @@ func (t *UnstakeRealWithdrawTransaction) CheckAttributeProgram() error {
 	return nil
 }
 
-func (t *UnstakeRealWithdrawTransaction) CheckTransactionPayload() error {
+func (t *VotesRealWithdrawTransaction) CheckTransactionPayload() error {
 	switch t.Payload().(type) {
-	case *payload.UnstakeRealWithdrawPayload:
+	case *payload.VotesRealWithdrawPayload:
 		return nil
 	}
 
 	return errors.New("invalid payload type")
 }
 
-func (t *UnstakeRealWithdrawTransaction) IsAllowedInPOWConsensus() bool {
+func (t *VotesRealWithdrawTransaction) IsAllowedInPOWConsensus() bool {
 	return true
 }
 
-func (t *UnstakeRealWithdrawTransaction) HeightVersionCheck() error {
+func (t *VotesRealWithdrawTransaction) HeightVersionCheck() error {
 	blockHeight := t.parameters.BlockHeight
 	chainParams := t.parameters.Config
 
@@ -51,22 +52,22 @@ func (t *UnstakeRealWithdrawTransaction) HeightVersionCheck() error {
 	return nil
 }
 
-func (t *UnstakeRealWithdrawTransaction) SpecialContextCheck() (result elaerr.ELAError, end bool) {
-	unstakeRealWithdraw, ok := t.Payload().(*payload.UnstakeRealWithdrawPayload)
+func (t *VotesRealWithdrawTransaction) SpecialContextCheck() (result elaerr.ELAError, end bool) {
+	unstakeRealWithdraw, ok := t.Payload().(*payload.VotesRealWithdrawPayload)
 	if !ok {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid payload")), true
 	}
-	txsCount := len(unstakeRealWithdraw.UnstakeRealWithdraw)
-	// check UnstakeRealWithdraw count and output count
+	txsCount := len(unstakeRealWithdraw.VotesRealWithdraw)
+	// check VotesRealWithdraw count and output count
 	if txsCount != len(t.Outputs()) && txsCount != len(t.Outputs())-1 {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid real unstake transaction outputs count")), true
 	}
 
-	// check other outputs, need to match with UnstakeRealWithdraw
+	// check other outputs, need to match with VotesRealWithdraw
 	txs := t.parameters.BlockChain.GetState().GetVotesWithdrawableTxInfo()
 	txsMap := make(map[common.Uint256]struct{})
-	for i, realUnstake := range unstakeRealWithdraw.UnstakeRealWithdraw {
-		txInfo, ok := txs[realUnstake.UnstakeTXHash]
+	for i, realUnstake := range unstakeRealWithdraw.VotesRealWithdraw {
+		txInfo, ok := txs[realUnstake.ReturnVotesTXHash]
 		if !ok {
 			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid unstake transaction hash")), true
 		}
@@ -79,10 +80,10 @@ func (t *UnstakeRealWithdrawTransaction) SpecialContextCheck() (result elaerr.EL
 				"amount:%s, need to be:%s",
 				output.Value, txInfo.Amount-t.parameters.Config.RealWithdrawSingleFee))), true
 		}
-		if _, ok := txsMap[realUnstake.UnstakeTXHash]; ok {
+		if _, ok := txsMap[realUnstake.ReturnVotesTXHash]; ok {
 			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("duplicated real unstake transactions hash")), true
 		}
-		txsMap[realUnstake.UnstakeTXHash] = struct{}{}
+		txsMap[realUnstake.ReturnVotesTXHash] = struct{}{}
 	}
 
 	// check transaction fee

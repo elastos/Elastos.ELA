@@ -46,7 +46,7 @@ const (
 	slotCRCouncilMemberDID                      = "CRCouncilMemberDID"
 	slotCRCSecretaryGeneral                     = "CRCSecretaryGeneral"
 	slotRevertToDPOSHash                        = "RevertToDPOSHash"
-	slotUnstakeRealWithdraw                     = "UnstakeRealWithdraw"
+	slotUnstakeRealWithdraw                     = "VotesRealWithdraw"
 	slotStake                                   = "Stake"
 	slotDposV2ClaimReward                       = "DposV2ClaimReward"
 )
@@ -470,7 +470,7 @@ func newConflictManager() conflictManager {
 					},
 				),
 			},
-			// UnstakeRealWithdraw key
+			// VotesRealWithdraw key
 			{
 				name: slotUnstakeRealWithdraw,
 				slot: newConflictSlot(str,

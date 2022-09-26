@@ -120,7 +120,7 @@ func newUnstake(L *lua.LState) int {
 		}
 		code = multiCode
 	}
-	unstakePayload := &payload.Unstake{
+	unstakePayload := &payload.ReturnVotes{
 		ToAddr: *addr,
 		Code:   code,
 		Value:  common.Fixed64(amount),
@@ -187,9 +187,9 @@ func checkStake(L *lua.LState, idx int) *payload.Voting {
 	return nil
 }
 
-func checkUnstake(L *lua.LState, idx int) *payload.Unstake {
+func checkUnstake(L *lua.LState, idx int) *payload.ReturnVotes {
 	ud := L.CheckUserData(idx)
-	if v, ok := ud.Value.(*payload.Unstake); ok {
+	if v, ok := ud.Value.(*payload.ReturnVotes); ok {
 		return v
 	}
 	L.ArgError(1, "Exchange votes expected")

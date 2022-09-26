@@ -16,9 +16,9 @@ import (
 	"github.com/urfave/cli"
 )
 
-var unstake = cli.Command{
-	Name:  "unstake",
-	Usage: "Build a tx to unstake",
+var returnvotes = cli.Command{
+	Name:  "returnvotes",
+	Usage: "Build a tx to return votes",
 	Flags: []cli.Flag{
 		cmdcom.TransactionAmountFlag,
 		cmdcom.TransactionFeeFlag,
@@ -82,13 +82,13 @@ func CreateUnstakeTransaction(c *cli.Context) error {
 		return err
 	}
 
-	p := &payload.Unstake{
+	p := &payload.ReturnVotes{
 		ToAddr: *to,
-		// unstake value
+		// returnvotes value
 		Value: *amount,
 	}
 
-	if byte(payloadVersion) == payload.UnstakeVersionV0 {
+	if byte(payloadVersion) == payload.ReturnVotesVersionV0 {
 		redeemScript, err := common.HexStringToBytes(mainAccount.RedeemScript)
 		if err != nil {
 			fmt.Println("err", err)

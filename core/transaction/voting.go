@@ -332,8 +332,14 @@ func (t *VotingTransaction) checkCRImpeachmentContent(
 		if cv.LockTime != 0 {
 			return errors.New("votes lock time need to be zero")
 		}
-		if _, ok := crMembersMap[common.BytesToHexString(cv.Candidate)]; !ok {
+		crState, ok := crMembersMap[common.BytesToHexString(cv.Candidate)]
+		if !ok {
 			return errors.New("candidate should be one of the CR members")
+		}
+		if crState == crstate.MemberImpeached ||
+			crState == crstate.MemberTerminated ||
+			crState == crstate.MemberReturned {
+			return errors.New("CR member state is wrong")
 		}
 		totalVotes += cv.Votes
 	}

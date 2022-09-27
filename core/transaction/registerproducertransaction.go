@@ -54,18 +54,18 @@ func (t *RegisterProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bo
 
 	// check duplication of node.
 	if t.parameters.BlockChain.GetState().ProducerOrCRNodePublicKeyExists(info.NodePublicKey) {
-		return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("producer already registered")), true
+		return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("Same NodePublicKey producer/cr already registered")), true
 	}
 
 	if t.parameters.BlockHeight >= t.parameters.Config.DPoSV2StartHeight {
-		// check duplication of node.
+		// OwnerPublicKey is  already other's NodePublicKey
 		if t.parameters.BlockChain.GetState().ProducerOrCRNodePublicKeyExists(info.OwnerPublicKey) {
-			return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("producer already registered")), true
+			return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("OwnerPublicKey is  already other's NodePublicKey")), true
 		}
 
-		// check duplication of owner.
+		// NodePublicKey is  already other's OwnerPublicKey
 		if t.parameters.BlockChain.GetState().ProducerOwnerPublicKeyExists(info.NodePublicKey) {
-			return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("producer owner already registered")), true
+			return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("NodePublicKey is  already other's OwnerPublicKey")), true
 		}
 	}
 	// check duplication of owner.

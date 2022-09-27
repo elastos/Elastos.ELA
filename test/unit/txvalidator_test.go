@@ -18,6 +18,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	elaact "github.com/elastos/Elastos.ELA/account"
 	"github.com/elastos/Elastos.ELA/blockchain"
@@ -68,6 +69,7 @@ func (s *txValidatorTestSuite) SetupSuite() {
 	log.NewDefault(test.NodeLogPath, 0, 0, 0)
 
 	params := &config.DefaultParams
+	params.DPoSV2StartHeight = 0
 	blockchain.FoundationAddress = params.Foundation
 	s.foundationAddress = params.Foundation
 
@@ -1820,6 +1822,319 @@ func (s *txValidatorTestSuite) TestCheckVoteProducerOutput() {
 
 	err = outputs[6].Payload.(*outputpayload.VoteOutput).Validate()
 	s.EqualError(err, "invalid candidate votes")
+}
+
+func (s *txValidatorTestSuite) TestCheckRegisterProducerTransaction2() {
+	publicKeyStr1 := "031e12374bae471aa09ad479f66c2306f4bcc4ca5b754609a82a1839b94b4721b9"
+	publicKey1, _ := common.HexStringToBytes(publicKeyStr1)
+	//privateKeyStr1 := "94396a69462208b8fd96d83842855b867d3b0e663203cb31d0dfaec0362ec034"
+	//privateKey1, _ := common.HexStringToBytes(privateKeyStr1)
+
+	publicKeyStr2 := "027c4f35081821da858f5c7197bac5e33e77e5af4a3551285f8a8da0a59bd37c45"
+	publicKey2, _ := common.HexStringToBytes(publicKeyStr2)
+	//errPublicKeyStr := "02b611f07341d5ddce51b5c4366aca7b889cfe0993bd63fd4"
+	//errPublicKey, _ := common.HexStringToBytes(errPublicKeyStr)
+
+	publicKeyStr3 := "02f981e4dae4983a5d284d01609ad735e3242c5672bb2c7bb0018cc36f9ab0c4a5"
+	publicKey3, _ := common.HexStringToBytes(publicKeyStr3)
+	//privateKeyStr3 := "15e0947580575a9b6729570bed6360a890f84a07dc837922fe92275feec837d4"
+	//privateKey3, _ := common.HexStringToBytes(privateKeyStr3)
+
+	publicKeyStr4 := "03c77af162438d4b7140f8544ad6523b9734cca9c7a62476d54ed5d1bddc7a39c3"
+	publicKey4, _ := common.HexStringToBytes(publicKeyStr4)
+
+	publicKeyStr5 := "036db5984e709d2e0ec62fd974283e9a18e7b87e8403cc784baf1f61f775926535"
+	publicKey5, _ := common.HexStringToBytes(publicKeyStr5)
+	privateKeyStr5 := "b2c25e877c8a87d54e8a20a902d27c7f24ed52810813ba175ca4e8d3036d130e"
+	privateKey5, _ := common.HexStringToBytes(privateKeyStr5)
+
+	errorPrefix := "transaction validate error: payload content invalid:"
+	registerProducer := func() {
+		registerPayload := &payload.ProducerInfo{
+			OwnerPublicKey: publicKey1,
+			NodePublicKey:  publicKey3,
+			NickName:       "producer1",
+			Url:            "url1",
+			Location:       1,
+			NetAddress:     "",
+		}
+		txn := getRegisterProducerTX(publicKeyStr1, registerPayload, s.Chain)
+		s.CurrentHeight = 1
+		params := s.Chain.GetParams()
+		params.DPoSV2StartHeight = 0
+		s.Chain.SetCRCommittee(crstate.NewCommittee(s.Chain.GetParams()))
+		s.Chain.SetState(state.NewState(s.Chain.GetParams(), nil, nil, nil,
+			func() bool { return false }, func(programHash common.Uint168) (common.Fixed64,
+				error) {
+				amount := common.Fixed64(0)
+				utxos, err := s.Chain.GetDB().GetFFLDB().GetUTXO(&programHash)
+				if err != nil {
+					return amount, err
+				}
+				for _, utxo := range utxos {
+					amount += utxo.Value
+				}
+				return amount, nil
+			}, nil, nil, nil, nil, nil, nil))
+		s.Chain.GetCRCommittee().RegisterFuncitons(&crstate.CommitteeFuncsConfig{
+			GetTxReference:                   s.Chain.UTXOCache.GetTxReference,
+			GetUTXO:                          s.Chain.GetDB().GetFFLDB().GetUTXO,
+			GetHeight:                        func() uint32 { return s.CurrentHeight },
+			CreateCRAppropriationTransaction: s.Chain.CreateCRCAppropriationTransaction,
+		})
+		block := &types.Block{
+			Transactions: []interfaces.Transaction{
+				txn,
+			},
+			Header: common2.Header{Height: s.CurrentHeight},
+		}
+		//fmt.Println("houpei t.parameters.Config.DPoSV2StartHeight", txn..Config.DPoSV2StartHeight)
+		s.Chain.GetState().ProcessBlock(block, nil, 0)
+	}
+	//register and process
+	registerProducer()
+	//  OwnerPublicKey is already other's NodePublicKey
+	ownerPublicKeyIsOtherNodePublicKey := func() {
+		registerPayload := &payload.ProducerInfo{
+			OwnerPublicKey: publicKey3,
+			NodePublicKey:  publicKey2,
+			NickName:       "producer2",
+			Url:            "url1",
+			Location:       1,
+			NetAddress:     "",
+		}
+		txn := getRegisterProducerTX(publicKeyStr3, registerPayload, s.Chain)
+		s.CurrentHeight = 2
+		err, _ := txn.SpecialContextCheck()
+		s.EqualError(err,
+			errorPrefix+"OwnerPublicKey is  already other's NodePublicKey")
+	}
+	ownerPublicKeyIsOtherNodePublicKey()
+
+	// NodePublicKey is  already other's OwnerPublicKey
+	nodePublicKeyIsOtherOwnerPublicKey := func() {
+
+		registerPayload := &payload.ProducerInfo{
+			OwnerPublicKey: publicKey2,
+			NodePublicKey:  publicKey1,
+			NickName:       "producer2",
+			Url:            "url1",
+			Location:       1,
+			NetAddress:     "",
+		}
+		txn := getRegisterProducerTX(publicKeyStr2, registerPayload, s.Chain)
+		err, _ := txn.SpecialContextCheck()
+		s.EqualError(err,
+			errorPrefix+"NodePublicKey is  already other's OwnerPublicKey")
+	}
+	nodePublicKeyIsOtherOwnerPublicKey()
+
+	// invalid payload
+	invalidPayload := func() {
+		wrongPayload := &payload.CRCAppropriation{}
+		txn := getRegisterProducerTX(publicKeyStr2, wrongPayload, s.Chain)
+		err, _ := txn.SpecialContextCheck()
+		s.EqualError(err,
+			errorPrefix+"invalid payload")
+	}
+	invalidPayload()
+	//wrong nickname
+	wrongNickName := func() {
+		registerPayload := &payload.ProducerInfo{
+			OwnerPublicKey: publicKey2,
+			NodePublicKey:  publicKey1,
+			NickName:       "",
+			Url:            "url1",
+			Location:       1,
+			NetAddress:     "",
+		}
+		txn := getRegisterProducerTX(publicKeyStr3, registerPayload, s.Chain)
+		err, _ := txn.SpecialContextCheck()
+		s.EqualError(err,
+			errorPrefix+"field NickName has invalid string length")
+	}
+	wrongNickName()
+	//wrong url
+	wrongURL := func() {
+		registerPayload := &payload.ProducerInfo{
+			OwnerPublicKey: publicKey2,
+			NodePublicKey:  publicKey1,
+			NickName:       "NickName",
+			Url:            randomUrl(),
+			Location:       1,
+			NetAddress:     "",
+		}
+		txn := getRegisterProducerTX(publicKeyStr3, registerPayload, s.Chain)
+		err, _ := txn.SpecialContextCheck()
+		s.EqualError(err,
+			errorPrefix+"field Url has invalid string length")
+	}
+	wrongURL()
+	// check duplication of node public key.
+	duplicateNodePublcKey := func() {
+		registerPayload := &payload.ProducerInfo{
+			OwnerPublicKey: publicKey2,
+			NodePublicKey:  publicKey3,
+			NickName:       "NickName",
+			Url:            "",
+			Location:       1,
+			NetAddress:     "",
+		}
+		txn := getRegisterProducerTX(publicKeyStr3, registerPayload, s.Chain)
+		err, _ := txn.SpecialContextCheck()
+		s.EqualError(err,
+			errorPrefix+"Same NodePublicKey producer/cr already registered")
+	}
+	duplicateNodePublcKey()
+	// check duplication of owner public key.
+	duplicateOwnerPublcKey := func() {
+		registerPayload := &payload.ProducerInfo{
+			OwnerPublicKey: publicKey1,
+			NodePublicKey:  publicKey5,
+			NickName:       "NickName",
+			Url:            "",
+			Location:       1,
+			NetAddress:     "",
+		}
+		txn := getRegisterProducerTX(publicKeyStr1, registerPayload, s.Chain)
+		err, _ := txn.SpecialContextCheck()
+		s.EqualError(err,
+			errorPrefix+"producer owner already registered")
+	}
+	duplicateOwnerPublcKey()
+
+	// check duplication of nickname.
+	duplicateNickName := func() {
+		registerPayload := &payload.ProducerInfo{
+			OwnerPublicKey: publicKey2,
+			NodePublicKey:  publicKey2,
+			NickName:       "producer1",
+			Url:            "",
+			Location:       1,
+			NetAddress:     "",
+		}
+		txn := getRegisterProducerTX(publicKeyStr3, registerPayload, s.Chain)
+		err, _ := txn.SpecialContextCheck()
+		s.EqualError(err,
+			errorPrefix+"nick name producer1 already inuse")
+	}
+	duplicateNickName()
+	//owner public key is already exist in cr list
+	ownerKeyInCrList := func() {
+		registerPayload := &payload.ProducerInfo{
+			OwnerPublicKey: publicKey2,
+			NodePublicKey:  publicKey2,
+			NickName:       "producer111",
+			Url:            "",
+			Location:       1,
+			NetAddress:     "",
+		}
+		//add cr
+		code := getCode(publicKey2)
+		cid := getCID(code)
+		txn := getRegisterProducerTX(publicKeyStr3, registerPayload, s.Chain)
+		s.Chain.GetCRCommittee().GetState().CodeCIDMap[common.BytesToHexString(code)] = *cid
+
+		err, _ := txn.SpecialContextCheck()
+		s.EqualError(err,
+			errorPrefix+"owner public key 027c4f35081821da858f5c7197bac5e33e77e5af4a3551285f8a8da0a59bd37c45 already exist in cr list")
+		delete(s.Chain.GetCRCommittee().GetState().CodeCIDMap, common.BytesToHexString(code))
+
+	}
+	ownerKeyInCrList()
+
+	//node public key is already exist in cr list
+	nodePublicKeyInCrList := func() {
+		registerPayload := &payload.ProducerInfo{
+			OwnerPublicKey: publicKey4,
+			NodePublicKey:  publicKey5,
+			NickName:       "producer111",
+			Url:            "",
+			Location:       1,
+			NetAddress:     "",
+		}
+		//add cr
+		code := getCode(publicKey5)
+		cid := getCID(code)
+		txn := getRegisterProducerTX(publicKeyStr5, registerPayload, s.Chain)
+		s.Chain.GetCRCommittee().GetState().CodeCIDMap[common.BytesToHexString(code)] = *cid
+
+		err, _ := txn.SpecialContextCheck()
+		s.EqualError(err,
+			errorPrefix+"node public key 036db5984e709d2e0ec62fd974283e9a18e7b87e8403cc784baf1f61f775926535 already exist in cr list")
+		s.Chain.GetCRCommittee().GetState().CodeCIDMap[common.BytesToHexString(code)] = *cid
+		delete(s.Chain.GetCRCommittee().GetState().CodeCIDMap, common.BytesToHexString(code))
+	}
+	nodePublicKeyInCrList()
+	//can not register dposv1 after dposv2 active height
+	noRegisterDPOSV1 := func() {
+		registerPayload := &payload.ProducerInfo{
+			OwnerPublicKey: publicKey5,
+			NodePublicKey:  publicKey4,
+			NickName:       "producer111",
+			Url:            "",
+			Location:       1,
+			NetAddress:     "",
+		}
+		//
+		signedBuf := new(bytes.Buffer)
+		registerPayload.SerializeUnsigned(signedBuf, payload.ProducerInfoVersion)
+		registerPayload.Signature, _ = crypto.Sign(privateKey5, signedBuf.Bytes())
+
+		txn := getRegisterProducerTX(publicKeyStr3, registerPayload, s.Chain)
+		s.Chain.GetState().DPoSV2ActiveHeight = 0
+		header := &common2.Header{
+			Version:    0,
+			Previous:   common.Uint256{},
+			MerkleRoot: common.EmptyHash,
+			Timestamp:  uint32(time.Now().Unix()),
+			Bits:       config.DefaultParams.PowLimitBits,
+			Height:     1,
+			Nonce:      1,
+		}
+		blockNode := blockchain.NewBlockNode(header, &common.Uint256{})
+		s.Chain.SetTip(blockNode)
+		s.CurrentHeight = 2
+		err, _ := txn.SpecialContextCheck()
+		s.EqualError(err,
+			errorPrefix+"can not register dposv1 after dposv2 active height")
+	}
+	noRegisterDPOSV1()
+
+}
+
+func getRegisterProducerTX(publicKeyStr3 string, registerPayload interfaces.Payload,
+	chain *blockchain.BlockChain) interfaces.Transaction {
+	programs := []*program.Program{{
+		Code:      getCodeByPubKeyStr(publicKeyStr3),
+		Parameter: nil,
+	}}
+
+	txn := functions.CreateTransaction(
+		0,
+		common2.RegisterProducer,
+		0,
+		registerPayload,
+		[]*common2.Attribute{},
+		[]*common2.Input{},
+		[]*common2.Output{},
+		0,
+		programs,
+	)
+	txn.SetParameters(&transaction.TransactionParameters{
+		Transaction: txn,
+		BlockHeight: chain.GetHeight(),
+		TimeStamp:   chain.BestChain.Timestamp,
+		Config:      chain.GetParams(),
+		BlockChain:  chain,
+	})
+	return txn
+}
+
+func randomUrl() string {
+	a := make([]byte, 101)
+	rand.Read(a)
+	return common.BytesToHexString(a)
 }
 
 func (s *txValidatorTestSuite) TestCheckUpdateProducerTransaction() {

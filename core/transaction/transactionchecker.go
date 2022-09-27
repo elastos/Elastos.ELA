@@ -392,10 +392,10 @@ func getCRCIDsMap(crs []*crstate.Candidate) map[common.Uint168]struct{} {
 	return codes
 }
 
-func getCRMembersMap(members []*crstate.CRMember) map[string]struct{} {
-	crMaps := make(map[string]struct{})
+func getCRMembersMap(members []*crstate.CRMember) map[string]crstate.MemberState {
+	crMaps := make(map[string]crstate.MemberState)
 	for _, c := range members {
-		crMaps[c.Info.CID.String()] = struct{}{}
+		crMaps[c.Info.CID.String()] = c.MemberState
 	}
 	return crMaps
 }

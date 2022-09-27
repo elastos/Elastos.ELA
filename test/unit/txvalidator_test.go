@@ -5396,6 +5396,13 @@ func (s *txValidatorTestSuite) TestCheckReturnDepositCoinTransaction() {
 	rdTx.Outputs()[0].Value = 4999 * 100000000
 	err, _ = rdTx.SpecialContextCheck()
 	s.NoError(err)
+
+	_, pk3, _ := crypto.GenerateKeyPair()
+	code3, _ := contract.CreateStandardRedeemScript(pk3)
+	rdTx.Programs()[0].Code = code3
+	err, _ = rdTx.SpecialContextCheck()
+	s.EqualError(err, "transaction validate error: payload content invalid:signer must be producer")
+
 }
 
 func (s *txValidatorTestSuite) TestCheckStakeTransaction2() {
@@ -5477,6 +5484,9 @@ func (s *txValidatorTestSuite) TestCheckStakeTransaction2() {
 
 	err := txn.CheckTransactionOutput()
 	s.NoError(err)
+
+	err2, _ := txn.SpecialContextCheck()
+	s.NoError(err2)
 
 }
 
@@ -5560,7 +5570,6 @@ func (s *txValidatorTestSuite) TestCheckReutrnVotesTransaction() {
 
 	err3 := txn.CheckTransactionPayload()
 	s.NoError(err3)
-
 }
 
 func (s *txValidatorTestSuite) TestCheckReturnVotesTransaction2() {
@@ -5926,6 +5935,12 @@ func (s *txValidatorTestSuite) TestCheckReturnCRDepositCoinTransaction() {
 	// check a return cr deposit coin transaction with the amount has returned.
 	err, _ = rdTx.SpecialContextCheck()
 	s.NoError(err)
+
+	_, pk3, _ := crypto.GenerateKeyPair()
+	code3, _ := contract.CreateStandardRedeemScript(pk3)
+	rdTx.Programs()[0].Code = code3
+	err, _ = rdTx.SpecialContextCheck()
+	s.EqualError(err, "transaction validate error: payload content invalid:signer must be candidate or member")
 
 }
 

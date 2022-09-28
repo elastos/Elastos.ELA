@@ -797,7 +797,7 @@ func getParameterBySignature(signature []byte) []byte {
 	return buf.Bytes()
 }
 
-func CheckUnstakeTransactionSignature(signature []byte, code []byte, data []byte) error {
+func CheckReturnVotesTransactionSignature(signature []byte, code []byte, data []byte) error {
 	signType, err := crypto.GetScriptType(code)
 	if err != nil {
 		return errors.New("invalid code")

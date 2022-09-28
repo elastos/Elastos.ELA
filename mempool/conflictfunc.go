@@ -256,15 +256,15 @@ func strProducerInfoNickname(tx interfaces.Transaction) (interface{}, error) {
 
 func strStake(tx interfaces.Transaction) (interface{}, error) {
 	if len(tx.Outputs()) < 1 {
-		return nil, fmt.Errorf("invlid unstake outputs count, tx:%s", tx.Hash())
+		return nil, fmt.Errorf("invlid return votes outputs count, tx:%s", tx.Hash())
 	}
 	p := tx.Outputs()[0].Payload
 	if p == nil {
-		return nil, fmt.Errorf("invlid unstake outputs payload, tx:%s", tx.Hash())
+		return nil, fmt.Errorf("invlid return votes outputs payload, tx:%s", tx.Hash())
 	}
 	pld, ok := p.(*outputpayload.ExchangeVotesOutput)
 	if !ok {
-		return nil, fmt.Errorf("invlid unstake output payload, tx:%s", tx.Hash())
+		return nil, fmt.Errorf("invlid return votes output payload, tx:%s", tx.Hash())
 	}
 
 	return pld.StakeAddress, nil
@@ -287,14 +287,14 @@ func strVoting(tx interfaces.Transaction) (interface{}, error) {
 	return *stakeProgramHash, nil
 }
 
-func strUnstake(tx interfaces.Transaction) (interface{}, error) {
+func strReturnVotes(tx interfaces.Transaction) (interface{}, error) {
 	pld, ok := tx.Payload().(*payload.ReturnVotes)
 	if !ok {
-		return nil, fmt.Errorf("invlid unstake payload, tx:%s", tx.Hash())
+		return nil, fmt.Errorf("invlid return votes payload, tx:%s", tx.Hash())
 	}
 
 	if len(tx.Programs()) < 1 {
-		return nil, fmt.Errorf("invlid unstake program, tx:%s", tx.Hash())
+		return nil, fmt.Errorf("invlid return votes program, tx:%s", tx.Hash())
 	}
 
 	var code []byte
@@ -305,7 +305,7 @@ func strUnstake(tx interfaces.Transaction) (interface{}, error) {
 	}
 	ct, err := contract.CreateStakeContractByCode(code)
 	if err != nil {
-		return nil, fmt.Errorf("invlid unstake code, tx:%s", tx.Hash())
+		return nil, fmt.Errorf("invlid return votes code, tx:%s", tx.Hash())
 	}
 	stakeProgramHash := ct.ToProgramHash()
 	return *stakeProgramHash, nil
@@ -402,7 +402,7 @@ func strSecretaryGeneral(tx interfaces.Transaction) (interface{}, error) {
 	return nil, nil
 }
 
-func strUnstakeRealWithdrawTX(
+func strVotesRealWithdrawTX(
 	tx interfaces.Transaction) (interface{}, error) {
 	_, ok := tx.Payload().(*payload.VotesRealWithdrawPayload)
 	if !ok {
@@ -414,7 +414,7 @@ func strUnstakeRealWithdrawTX(
 	return "VotesRealWithdraw", nil
 }
 
-func hashArrayDposV2ClaimRewardRealWithdrawTransactionHashes(
+func hashArrayDPoSV2ClaimRewardRealWithdrawTransactionHashes(
 	tx interfaces.Transaction) (interface{}, error) {
 	p, ok := tx.Payload().(*payload.DposV2ClaimRewardRealWithdraw)
 	if !ok {

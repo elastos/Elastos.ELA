@@ -28,7 +28,7 @@ var returnvotes = cli.Command{
 		cmdcom.TransactionToFlag,
 	},
 	Action: func(c *cli.Context) error {
-		if err := CreateUnstakeTransaction(c); err != nil {
+		if err := CreateReturnVotesTransaction(c); err != nil {
 			fmt.Println("error:", err)
 			os.Exit(1)
 		}
@@ -36,7 +36,7 @@ var returnvotes = cli.Command{
 	},
 }
 
-func CreateUnstakeTransaction(c *cli.Context) error {
+func CreateReturnVotesTransaction(c *cli.Context) error {
 	amountStr := c.String(cmdcom.TransactionAmountFlag.Name)
 	if amountStr == "" {
 		return errors.New("use --amount to specify amount")
@@ -111,7 +111,7 @@ func CreateUnstakeTransaction(c *cli.Context) error {
 
 	outputs := make([]*OutputInfo, 0)
 	var txn interfaces.Transaction
-	txn, err = createTransaction(walletPath, "", *fee, 0, 0, common2.Unstake,
+	txn, err = createTransaction(walletPath, "", *fee, 0, 0, common2.ReturnVotes,
 		byte(payloadVersion), p, outputs...)
 	if err != nil {
 		return errors.New("create transaction failed: " + err.Error())

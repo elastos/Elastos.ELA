@@ -585,7 +585,7 @@ func checkTransactionSignature(tx interfaces.Transaction, references map[*common
 	programHashes, err := blockchain.GetTxProgramHashes(tx, references)
 	if (tx.IsCRCProposalWithdrawTx() && tx.PayloadVersion() == payload.CRCProposalWithdrawDefault) ||
 		tx.IsCRAssetsRectifyTx() || tx.IsCRCProposalRealWithdrawTx() || tx.IsNextTurnDPOSInfoTx() ||
-		tx.IsDposV2ClaimRewardRealWithdraw() || tx.IsUnstakeRealWithdrawTX() {
+		tx.IsDposV2ClaimRewardRealWithdraw() || tx.IsVotesRealWithdrawTX() {
 		return nil
 	}
 

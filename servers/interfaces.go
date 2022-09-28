@@ -3565,18 +3565,18 @@ func getPayloadInfo(p interfaces.Payload, payloadVersion byte) PayloadInfo {
 		return obj
 
 	case *payload.ExchangeVotes:
-		obj := new(StakeInfo)
+		obj := new(ExchangeVotesInfo)
 		return obj
 	case *payload.ReturnVotes:
 		address, _ := object.ToAddr.ToAddress()
 		if payloadVersion == payload.ReturnVotesVersionV1 {
-			obj := &UnstakeInfo{
+			obj := &ReturnVotesInfo{
 				ToAddr: address,
 				Value:  object.Value.String(),
 			}
 			return obj
 		}
-		obj := &UnstakeInfo{
+		obj := &ReturnVotesInfo{
 			ToAddr:    address,
 			Code:      common.BytesToHexString(object.Code),
 			Value:     object.Value.String(),
@@ -3584,17 +3584,17 @@ func getPayloadInfo(p interfaces.Payload, payloadVersion byte) PayloadInfo {
 		}
 		return obj
 	case *payload.VotesRealWithdrawPayload:
-		obj := &RealUnstakesInfo{
-			RealUnstakes: make([]RealUnstakeInfo, 0),
+		obj := &RealVotesWithdrawInfo{
+			RealReturnVotes: make([]RealReturnVotesInfo, 0),
 		}
 		for _, withdraw := range object.VotesRealWithdraw {
 			address, _ := withdraw.StakeAddress.ToAddress()
-			realUnstakeInfo := RealUnstakeInfo{
-				UnstaketXHash: common.ToReversedString(withdraw.ReturnVotesTXHash),
-				StakeAddress:  address,
-				Value:         withdraw.Value.String(),
+			realReturnVotesInfo := RealReturnVotesInfo{
+				ReturnVotesTXHash: common.ToReversedString(withdraw.ReturnVotesTXHash),
+				StakeAddress:      address,
+				Value:             withdraw.Value.String(),
 			}
-			obj.RealUnstakes = append(obj.RealUnstakes, realUnstakeInfo)
+			obj.RealReturnVotes = append(obj.RealReturnVotes, realReturnVotesInfo)
 		}
 		return obj
 	case *payload.DPoSV2ClaimReward:
@@ -3708,7 +3708,7 @@ func getOutputPayloadInfo(op common2.OutputPayload) OutputPayloadInfo {
 		return obj
 	case *outputpayload.ExchangeVotesOutput:
 		addr, _ := object.StakeAddress.ToAddress()
-		obj := new(StakeOutputInfo)
+		obj := new(ExchangeVotesOutputInfo)
 		obj.Version = object.Version
 		obj.StakeAddress = addr
 		return obj

@@ -36,19 +36,19 @@ const (
 	slotCloseProposalTargetProposalHash         = "CloseProposalTargetProposalHash"
 	slotChangeProposalOwnerTargetProposalHash   = "ChangeProposalOwnerTargetProposalHash"
 	slotChangeCustomIDFee                       = "ChangeCustomIDFee"
-	slotReserveCustomID                         = "ReserveCustomID"
-	slotSpecialTxHash                           = "SpecialTxHash"
-	slotSidechainTxHashes                       = "SidechainTxHashes"
-	slotSidechainReturnDepositTxHashes          = "SidechainReturnDepositTxHashes"
-	slotCustomIDProposalResult                  = "CustomIDProposalResult"
-	slotTxInputsReferKeys                       = "TxInputsReferKeys"
-	slotCRCouncilMemberNodePublicKey            = "CRCouncilMemberNodePublicKey"
-	slotCRCouncilMemberDID                      = "CRCouncilMemberDID"
-	slotCRCSecretaryGeneral                     = "CRCSecretaryGeneral"
-	slotRevertToDPOSHash                        = "RevertToDPOSHash"
-	slotUnstakeRealWithdraw                     = "VotesRealWithdraw"
-	slotStake                                   = "Stake"
-	slotDposV2ClaimReward                       = "DposV2ClaimReward"
+	slotReserveCustomID                = "ReserveCustomID"
+	slotSpecialTxHash                  = "SpecialTxHash"
+	slotSidechainTxHashes              = "SidechainTxHashes"
+	slotSidechainReturnDepositTxHashes = "SidechainReturnDepositTxHashes"
+	slotCustomIDProposalResult         = "CustomIDProposalResult"
+	slotTxInputsReferKeys              = "TxInputsReferKeys"
+	slotCRCouncilMemberNodePublicKey   = "CRCouncilMemberNodePublicKey"
+	slotCRCouncilMemberDID             = "CRCouncilMemberDID"
+	slotCRCSecretaryGeneral            = "CRCSecretaryGeneral"
+	slotRevertToDPOSHash               = "RevertToDPOSHash"
+	slotVotesRealWithdraw              = "VotesRealWithdraw"
+	slotExchangeVotes                  = "ExchangeVotes"
+	slotDposV2ClaimReward              = "DposV2ClaimReward"
 )
 
 type conflict struct {
@@ -438,16 +438,16 @@ func newConflictManager() conflictManager {
 				slot: newConflictSlot(hashArray,
 					keyTypeFuncPair{
 						Type: common2.DposV2ClaimRewardRealWithdraw,
-						Func: hashArrayDposV2ClaimRewardRealWithdrawTransactionHashes,
+						Func: hashArrayDPoSV2ClaimRewardRealWithdrawTransactionHashes,
 					},
 				),
 			},
-			// Stake
+			// ExchangeVotes
 			{
-				name: slotStake,
+				name: slotExchangeVotes,
 				slot: newConflictSlot(programHash,
 					keyTypeFuncPair{
-						Type: common2.Stake,
+						Type: common2.ExchangeVotes,
 						Func: strStake,
 					},
 					keyTypeFuncPair{
@@ -455,8 +455,8 @@ func newConflictManager() conflictManager {
 						Func: strVoting,
 					},
 					keyTypeFuncPair{
-						Type: common2.Unstake,
-						Func: strUnstake,
+						Type: common2.ReturnVotes,
+						Func: strReturnVotes,
 					},
 				),
 			},
@@ -472,11 +472,11 @@ func newConflictManager() conflictManager {
 			},
 			// VotesRealWithdraw key
 			{
-				name: slotUnstakeRealWithdraw,
+				name: slotVotesRealWithdraw,
 				slot: newConflictSlot(str,
 					keyTypeFuncPair{
-						Type: common2.UnstakeRealWithdraw,
-						Func: strUnstakeRealWithdrawTX,
+						Type: common2.VotesRealWithdraw,
+						Func: strVotesRealWithdrawTX,
 					},
 				),
 			},

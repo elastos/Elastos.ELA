@@ -265,9 +265,9 @@ func startNode(c *cli.Context, st *settings.Settings) {
 		Broadcast: func(msg p2p.Message) {
 			netServer.BroadcastMessage(msg)
 		},
-		AppendToTxpool:                       txMemPool.AppendToTxPool,
-		CreateDposV2RealWithdrawTransaction:  chain.CreateDposV2RealWithdrawTransaction,
-		CreateUnstakeRealWithdrawTransaction: chain.CreateUnstakeRealWithdrawTransaction,
+		AppendToTxpool:                      txMemPool.AppendToTxPool,
+		CreateDposV2RealWithdrawTransaction: chain.CreateDposV2RealWithdrawTransaction,
+		CreateVotesRealWithdrawTransaction:  chain.CreateVotesRealWithdrawTransaction,
 	})
 
 	var arbitrator *dpos.Arbitrator

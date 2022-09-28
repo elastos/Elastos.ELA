@@ -7,7 +7,7 @@ import (
 	"github.com/elastos/Elastos.ELA/common"
 )
 
-const UnstakeRealWithdrawPayloadVersion byte = 0x00
+const VotesRealWithdrawPayloadVersion byte = 0x00
 
 type VotesRealWidhdraw struct {
 	ReturnVotesTXHash common.Uint256

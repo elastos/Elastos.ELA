@@ -24,7 +24,7 @@ type ReturnVotes struct {
 	ToAddr common.Uint168
 	// code
 	Code []byte
-	// unstake value
+	// return votes value
 	Value common.Fixed64
 	// signature
 	Signature []byte

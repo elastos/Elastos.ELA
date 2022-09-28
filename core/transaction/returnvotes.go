@@ -78,7 +78,7 @@ func (t *ReturnVotesTransaction) SpecialContextCheck() (result elaerr.ELAError, 
 
 	// Value must bigger than RealWithdrawSingleFee
 	if pl.Value <= t.parameters.Config.RealWithdrawSingleFee {
-		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid unstake value")), true
+		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid return votes value")), true
 	}
 
 	// check if unused vote rights enough
@@ -128,7 +128,7 @@ func (t *ReturnVotesTransaction) SpecialContextCheck() (result elaerr.ELAError, 
 
 	if t.payloadVersion == payload.ReturnVotesVersionV0 {
 		//check pl.Code signature
-		err = t.checkUnstakeSignature(pl)
+		err = t.checkReturnVotesSignature(pl)
 		if err != nil {
 			return elaerr.Simple(elaerr.ErrTxPayload, err), true
 		}
@@ -138,13 +138,13 @@ func (t *ReturnVotesTransaction) SpecialContextCheck() (result elaerr.ELAError, 
 }
 
 // check signature
-func (t *ReturnVotesTransaction) checkUnstakeSignature(unstakePayload *payload.ReturnVotes) error {
+func (t *ReturnVotesTransaction) checkReturnVotesSignature(returnVotesPayload *payload.ReturnVotes) error {
 
 	signedBuf := new(bytes.Buffer)
-	err := unstakePayload.SerializeUnsigned(signedBuf, payload.ReturnVotesVersionV0)
+	err := returnVotesPayload.SerializeUnsigned(signedBuf, payload.ReturnVotesVersionV0)
 	if err != nil {
 		return err
 	}
 
-	return blockchain.CheckUnstakeTransactionSignature(unstakePayload.Signature, unstakePayload.Code, signedBuf.Bytes())
+	return blockchain.CheckReturnVotesTransactionSignature(returnVotesPayload.Signature, returnVotesPayload.Code, signedBuf.Bytes())
 }

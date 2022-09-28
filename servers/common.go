@@ -59,7 +59,7 @@ type ReturnSideChainDepositInfo struct {
 	DepositTransactionHash string `json:"DepositTransactionHash"`
 }
 
-type StakeOutputInfo struct {
+type ExchangeVotesOutputInfo struct {
 	Version      byte   `json:"Version"`
 	StakeAddress string `json:"StakeAddress"`
 }
@@ -554,27 +554,27 @@ type RenewalVotesContentInfo struct {
 	VotesInfo VotesWithLockTimeInfo `json:"votesinfo"`
 }
 
-type StakeInfo struct {
+type ExchangeVotesInfo struct {
 }
 
-type UnstakeInfo struct {
+type ReturnVotesInfo struct {
 	// target or to address
 	ToAddr string `json:"toaddr"`
 	// code
 	Code string `json:"code,omitempty"`
-	// unstake value
+	// return votes value
 	Value string `json:"value"`
 	// signature
 	Signature string `json:"signature,omitempty"`
 }
 
-type RealUnstakeInfo struct {
-	UnstaketXHash string `json:"unstaketxhash"`
-	StakeAddress  string `json:"stakeaddress"`
-	Value         string `json:"value"`
+type RealReturnVotesInfo struct {
+	ReturnVotesTXHash string `json:"returnvotestxhash"`
+	StakeAddress      string `json:"stakeaddress"`
+	Value             string `json:"value"`
 }
-type RealUnstakesInfo struct {
-	RealUnstakes []RealUnstakeInfo `json:"realunstakes"`
+type RealVotesWithdrawInfo struct {
+	RealReturnVotes []RealReturnVotesInfo `json:"realReturnVotes"`
 }
 
 type DposV2ClaimRewardInfo struct {

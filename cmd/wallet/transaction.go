@@ -109,7 +109,7 @@ var buildTxCommand = []cli.Command{
 	producer,
 	crc,
 	proposal,
-	stake,
+	exchangevotes,
 	returnvotes,
 	dposV2Vote,
 	dposV2VoteRenew,

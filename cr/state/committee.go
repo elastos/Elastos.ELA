@@ -1395,8 +1395,14 @@ func (c *Committee) updateNextCommitteeMembers(height uint32) error {
 	// if candidates is not enough, need to restart voting period and no need to
 	// end election period.
 	candidates := c.getActiveAndExistDIDCRCandidatesDesc()
+	var activeCandidatesCount uint32
+	for _, candidate := range candidates {
+		if candidate.Votes > 0 {
+			activeCandidatesCount++
+		}
+	}
 	oriLastVotingStartHeight := c.LastVotingStartHeight
-	if uint32(len(candidates)) < c.Params.CRMemberCount {
+	if activeCandidatesCount < c.Params.CRMemberCount {
 		c.lastHistory.Append(height, func() {
 			c.LastVotingStartHeight = height
 		}, func() {

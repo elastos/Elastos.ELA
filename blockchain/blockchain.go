@@ -524,33 +524,33 @@ func (b *BlockChain) CreateDposV2RealWithdrawTransaction(
 	return tx, nil
 }
 
-func (b *BlockChain) CreateUnstakeRealWithdrawTransaction(
-	unstakeTXHashes []Uint256, outputs []*common.OutputInfo) (interfaces.Transaction, error) {
+func (b *BlockChain) CreateVotesRealWithdrawTransaction(
+	returnVotesTXHashes []Uint256, outputs []*common.OutputInfo) (interfaces.Transaction, error) {
 	utxos, _, err := b.getUTXOsFromAddress(b.chainParams.StakePool)
 	if err != nil {
 		return nil, err
 	}
-	var unstakeRealWithdraw []payload.VotesRealWidhdraw
+	var votesRealWithdraw []payload.VotesRealWidhdraw
 	for i, output := range outputs {
 		withdraw := payload.VotesRealWidhdraw{
-			ReturnVotesTXHash: unstakeTXHashes[i],
+			ReturnVotesTXHash: returnVotesTXHashes[i],
 			StakeAddress:      output.Recipient,
 			Value:             output.Amount,
 		}
-		unstakeRealWithdraw = append(unstakeRealWithdraw, withdraw)
+		votesRealWithdraw = append(votesRealWithdraw, withdraw)
 	}
 
 	wPayload := &payload.VotesRealWithdrawPayload{
-		VotesRealWithdraw: unstakeRealWithdraw,
+		VotesRealWithdraw: votesRealWithdraw,
 	}
 
 	for _, v := range outputs {
 		v.Amount -= b.chainParams.RealWithdrawSingleFee
 	}
 	//todo fee
-	txFee := b.chainParams.RealWithdrawSingleFee * Fixed64(len(unstakeTXHashes))
+	txFee := b.chainParams.RealWithdrawSingleFee * Fixed64(len(returnVotesTXHashes))
 	var tx interfaces.Transaction
-	tx, err = b.createTransaction(wPayload, common.UnstakeRealWithdraw,
+	tx, err = b.createTransaction(wPayload, common.VotesRealWithdraw,
 		b.chainParams.StakePool, txFee, uint32(0), utxos, outputs...)
 	if err != nil {
 		return nil, err

@@ -530,7 +530,7 @@ type State struct {
 	appendToTxpool                      func(transaction interfaces.Transaction) elaerr.ELAError
 	createDposV2RealWithdrawTransaction func(withdrawTransactionHashes []common.Uint256,
 		outputs []*common2.OutputInfo) (interfaces.Transaction, error)
-	createUnstakeRealWithdrawTransaction func(withdrawTransactionHashes []common.Uint256,
+	createVotesRealWithdrawTransaction func(withdrawTransactionHashes []common.Uint256,
 		outputs []*common2.OutputInfo) (interfaces.Transaction, error)
 }
 
@@ -1225,7 +1225,7 @@ func (s *State) ProcessBlock(block *types.Block, confirm *payload.Confirm, dutyI
 
 	if block.Height >= s.ChainParams.DPoSV2StartHeight &&
 		len(s.VotesWithdrawableTxInfo) != 0 {
-		s.createRealUnstakeTransaction(block.Height)
+		s.createRealWithdrawTransaction(block.Height)
 	}
 
 	// todo remove me
@@ -1237,8 +1237,8 @@ func (s *State) ProcessBlock(block *types.Block, confirm *payload.Confirm, dutyI
 	s.History.Commit(block.Height)
 }
 
-func (s *State) createRealUnstakeTransaction(height uint32) {
-	if s.createUnstakeRealWithdrawTransaction != nil && height == s.getHeight() {
+func (s *State) createRealWithdrawTransaction(height uint32) {
+	if s.createVotesRealWithdrawTransaction != nil && height == s.getHeight() {
 		retVoteswithdrawTxHashes := make([]common.Uint256, 0)
 		ouputs := make([]*common2.OutputInfo, 0)
 		for k, v := range s.VotesWithdrawableTxInfo {
@@ -1246,13 +1246,13 @@ func (s *State) createRealUnstakeTransaction(height uint32) {
 			outputInfo := v
 			ouputs = append(ouputs, &outputInfo)
 		}
-		tx, err := s.createUnstakeRealWithdrawTransaction(retVoteswithdrawTxHashes, ouputs)
+		tx, err := s.createVotesRealWithdrawTransaction(retVoteswithdrawTxHashes, ouputs)
 		if err != nil {
-			log.Error("create real unstake tx failed:", err.Error())
+			log.Error("create real return votes tx failed:", err.Error())
 			return
 		}
 
-		log.Info("create real unstake transaction:", tx.Hash())
+		log.Info("create real return votes transaction:", tx.Hash())
 		if s.isCurrent != nil && s.broadcast != nil && s.
 			appendToTxpool != nil {
 			go func() {
@@ -1260,7 +1260,7 @@ func (s *State) createRealUnstakeTransaction(height uint32) {
 					if err := s.appendToTxpool(tx); err == nil {
 						s.broadcast(msg.NewTx(tx))
 					} else {
-						log.Warn("create real unstake tx "+
+						log.Warn("create real return votes tx "+
 							"append to tx pool err ", err)
 					}
 				}
@@ -1307,7 +1307,7 @@ type StateFuncsConfig struct {
 	GetHeight                           func() uint32
 	CreateDposV2RealWithdrawTransaction func(withdrawTransactionHashes []common.Uint256,
 		outpus []*common2.OutputInfo) (interfaces.Transaction, error)
-	CreateUnstakeRealWithdrawTransaction func(withdrawTransactionHashes []common.Uint256,
+	CreateVotesRealWithdrawTransaction func(withdrawTransactionHashes []common.Uint256,
 		outpus []*common2.OutputInfo) (interfaces.Transaction, error)
 	IsCurrent      func() bool
 	Broadcast      func(msg p2p.Message)
@@ -1316,7 +1316,7 @@ type StateFuncsConfig struct {
 
 func (c *State) RegisterFuncitons(cfg *StateFuncsConfig) {
 	c.createDposV2RealWithdrawTransaction = cfg.CreateDposV2RealWithdrawTransaction
-	c.createUnstakeRealWithdrawTransaction = cfg.CreateUnstakeRealWithdrawTransaction
+	c.createVotesRealWithdrawTransaction = cfg.CreateVotesRealWithdrawTransaction
 	c.isCurrent = cfg.IsCurrent
 	c.broadcast = cfg.Broadcast
 	c.appendToTxpool = cfg.AppendToTxpool
@@ -1643,7 +1643,7 @@ func (s *State) processTransaction(tx interfaces.Transaction, height uint32) {
 	case common2.TransferAsset:
 		s.processVotes(tx, height)
 
-	case common2.Stake:
+	case common2.ExchangeVotes:
 		s.processStake(tx, height)
 
 	case common2.Voting:
@@ -1691,13 +1691,13 @@ func (s *State) processTransaction(tx interfaces.Transaction, height uint32) {
 	case common2.DposV2ClaimReward:
 		s.processDposV2ClaimReward(tx, height)
 
-	case common2.Unstake:
-		s.processUnstake(tx, height)
+	case common2.ReturnVotes:
+		s.processReturnVotes(tx, height)
 
 	case common2.DposV2ClaimRewardRealWithdraw:
 		s.processDposV2ClaimRewardRealWithdraw(tx, height)
 
-	case common2.UnstakeRealWithdraw:
+	case common2.VotesRealWithdraw:
 		s.processRetVotesRewardRealWithdraw(tx, height)
 	}
 
@@ -2482,7 +2482,7 @@ func (s *State) getClaimedCRMembersMap() map[string]*state.CRMember {
 	return crMembersMap
 }
 
-func (s *State) processUnstake(tx interfaces.Transaction, height uint32) {
+func (s *State) processReturnVotes(tx interfaces.Transaction, height uint32) {
 	pld := tx.Payload().(*payload.ReturnVotes)
 	var code []byte
 	if tx.PayloadVersion() == payload.ReturnVotesVersionV0 {
@@ -2542,8 +2542,8 @@ func (s *State) processRetVotesRewardRealWithdraw(tx interfaces.Transaction, hei
 	}
 	withdrawPayload := tx.Payload().(*payload.VotesRealWithdrawPayload)
 	s.History.Append(height, func() {
-		for _, realUnstake := range withdrawPayload.VotesRealWithdraw {
-			delete(s.StateKeyFrame.VotesWithdrawableTxInfo, realUnstake.ReturnVotesTXHash)
+		for _, realReturnVotes := range withdrawPayload.VotesRealWithdraw {
+			delete(s.StateKeyFrame.VotesWithdrawableTxInfo, realReturnVotes.ReturnVotesTXHash)
 		}
 	}, func() {
 		s.StateKeyFrame.VotesWithdrawableTxInfo = txs

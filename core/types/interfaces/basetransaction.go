@@ -95,5 +95,5 @@ type Transaction interface {
 	IsSmallTransfer(min common.Fixed64) bool
 	IsDposV2ClaimRewardTx() bool
 	IsDposV2ClaimRewardRealWithdraw() bool
-	IsUnstakeRealWithdrawTX() bool
+	IsVotesRealWithdrawTX() bool
 }

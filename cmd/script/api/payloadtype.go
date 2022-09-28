@@ -48,41 +48,41 @@ const (
 	luaCRCRegisterSideChainProposalHashName = "crcproposalregistersidechain"
 
 	// dpos2.0
-	luaStakeName       = "stake"
-	luaVotingName      = "voting"
-	luaRenewVotingName = "renewvoting"
-	luaCancelVotesName = "cancelVotes"
-	luaUnstakeName     = "unstake"
+	luaExchangeVotesName = "exchangevotes"
+	luaVotingName        = "voting"
+	luaRenewVotingName   = "renewvoting"
+	luaCancelVotesName   = "cancelVotes"
+	luaReturnVotesName   = "returnvotes"
 )
 
-func RegisterStakeType(L *lua.LState) {
-	mt := L.NewTypeMetatable(luaStakeName)
-	L.SetGlobal("stake", mt)
-	L.SetField(mt, "new", L.NewFunction(newStake))
+func RegisterExchangeVotesType(L *lua.LState) {
+	mt := L.NewTypeMetatable(luaExchangeVotesName)
+	L.SetGlobal("exchangevotes", mt)
+	L.SetField(mt, "new", L.NewFunction(newExchangeVotes))
 	// methods
-	L.SetField(mt, "__index", L.SetFuncs(L.NewTable(), stakeMethods))
+	L.SetField(mt, "__index", L.SetFuncs(L.NewTable(), exchangeVotesMethods))
 }
 
-func RegisterUnstakeType(L *lua.LState) {
-	mt := L.NewTypeMetatable(luaUnstakeName)
-	L.SetGlobal("unstake", mt)
-	L.SetField(mt, "new", L.NewFunction(newUnstake))
+func RegisterReturnVotesType(L *lua.LState) {
+	mt := L.NewTypeMetatable(luaReturnVotesName)
+	L.SetGlobal("returnvotes", mt)
+	L.SetField(mt, "new", L.NewFunction(newReturnVotes))
 	// methods
-	L.SetField(mt, "__index", L.SetFuncs(L.NewTable(), unstakeMethods))
+	L.SetField(mt, "__index", L.SetFuncs(L.NewTable(), returnVotesMethods))
 }
 
 // Constructor
-func newStake(L *lua.LState) int {
+func newExchangeVotes(L *lua.LState) int {
 	cb := &payload.ExchangeVotes{}
 	ud := L.NewUserData()
 	ud.Value = cb
-	L.SetMetatable(ud, L.GetTypeMetatable(luaStakeName))
+	L.SetMetatable(ud, L.GetTypeMetatable(luaExchangeVotesName))
 	L.Push(ud)
 
 	return 1
 }
 
-func newUnstake(L *lua.LState) int {
+func newReturnVotes(L *lua.LState) int {
 	publicKeyStr := L.ToString(1)
 	toAddr := L.ToString(2)
 	amount := L.ToInt(3)
@@ -90,7 +90,7 @@ func newUnstake(L *lua.LState) int {
 	m := L.ToInt(5)
 	addr, err := common.Uint168FromAddress(toAddr)
 	if err != nil {
-		fmt.Println("invalid unstake toAddr")
+		fmt.Println("invalid return votes toAddr")
 		os.Exit(1)
 	}
 
@@ -120,7 +120,7 @@ func newUnstake(L *lua.LState) int {
 		}
 		code = multiCode
 	}
-	unstakePayload := &payload.ReturnVotes{
+	returnVotesPayload := &payload.ReturnVotes{
 		ToAddr: *addr,
 		Code:   code,
 		Value:  common.Fixed64(amount),
@@ -134,8 +134,8 @@ func newUnstake(L *lua.LState) int {
 	}
 
 	buf := new(bytes.Buffer)
-	if err := unstakePayload.SerializeUnsigned(buf, 0); err != nil {
-		fmt.Println("invalid unstake payload")
+	if err := returnVotesPayload.SerializeUnsigned(buf, 0); err != nil {
+		fmt.Println("invalid return votes payload")
 		os.Exit(1)
 	}
 
@@ -166,10 +166,10 @@ func newUnstake(L *lua.LState) int {
 		os.Exit(1)
 	}
 
-	unstakePayload.Signature = rpSig
+	returnVotesPayload.Signature = rpSig
 
 	ud := L.NewUserData()
-	ud.Value = unstakePayload
+	ud.Value = returnVotesPayload
 	L.SetMetatable(ud, L.GetTypeMetatable(luaCoinBaseTypeName))
 	L.Push(ud)
 
@@ -178,7 +178,7 @@ func newUnstake(L *lua.LState) int {
 
 // Checks whether the first lua argument is a *LUserData with *payload.Voting and
 // returns this *payload.Voting.
-func checkStake(L *lua.LState, idx int) *payload.Voting {
+func checkExchangeVotes(L *lua.LState, idx int) *payload.Voting {
 	ud := L.CheckUserData(idx)
 	if v, ok := ud.Value.(*payload.Voting); ok {
 		return v
@@ -187,7 +187,7 @@ func checkStake(L *lua.LState, idx int) *payload.Voting {
 	return nil
 }
 
-func checkUnstake(L *lua.LState, idx int) *payload.ReturnVotes {
+func checkReturnVotes(L *lua.LState, idx int) *payload.ReturnVotes {
 	ud := L.CheckUserData(idx)
 	if v, ok := ud.Value.(*payload.ReturnVotes); ok {
 		return v
@@ -196,24 +196,24 @@ func checkUnstake(L *lua.LState, idx int) *payload.ReturnVotes {
 	return nil
 }
 
-var stakeMethods = map[string]lua.LGFunction{
-	"get": stakeGet,
+var exchangeVotesMethods = map[string]lua.LGFunction{
+	"get": exchangeVOtesGet,
 }
 
-var unstakeMethods = map[string]lua.LGFunction{
-	"get": unstakeGet,
+var returnVotesMethods = map[string]lua.LGFunction{
+	"get": returnVotesGet,
 }
 
 // Getter and setter for the Person#Name
-func stakeGet(L *lua.LState) int {
-	p := checkStake(L, 1)
+func exchangeVOtesGet(L *lua.LState) int {
+	p := checkExchangeVotes(L, 1)
 	fmt.Println(p)
 
 	return 0
 }
 
-func unstakeGet(L *lua.LState) int {
-	p := checkUnstake(L, 1)
+func returnVotesGet(L *lua.LState) int {
+	p := checkReturnVotes(L, 1)
 	fmt.Println(p)
 
 	return 0

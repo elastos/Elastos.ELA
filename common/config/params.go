@@ -847,7 +847,7 @@ type Params struct {
 	// DPoSV2RewardAccumulateAddress defines the dposv2 reward accumulating address
 	DPoSV2RewardAccumulateAddress common.Uint168
 
-	// Stake address of votes
+	// ExchangeVotes address of votes
 	StakePool common.Uint168
 
 	// minimum lock time of DPoS V2 deposit coin

@@ -125,7 +125,7 @@ func (s *txValidatorTestSuite) TestCheckTxHeightVersion() {
 	blockHeight3 := s.Chain.GetParams().RegisterCRByDIDHeight
 	blockHeight4 := s.Chain.GetParams().DPoSV2StartHeight
 
-	stake, _ := functions.GetTransactionByTxType(common2.Stake)
+	stake, _ := functions.GetTransactionByTxType(common2.ExchangeVotes)
 	stake = CreateTransactionByType(stake, s.Chain)
 	stake.SetParameters(&transaction.TransactionParameters{
 		Transaction: stake,
@@ -146,25 +146,25 @@ func (s *txValidatorTestSuite) TestCheckTxHeightVersion() {
 	err = stake.HeightVersionCheck()
 	s.NoError(err)
 
-	unstake, _ := functions.GetTransactionByTxType(common2.Unstake)
-	unstake = CreateTransactionByType(unstake, s.Chain)
-	unstake.SetParameters(&transaction.TransactionParameters{
-		Transaction: unstake,
+	returnVotes, _ := functions.GetTransactionByTxType(common2.ReturnVotes)
+	returnVotes = CreateTransactionByType(returnVotes, s.Chain)
+	returnVotes.SetParameters(&transaction.TransactionParameters{
+		Transaction: returnVotes,
 		BlockHeight: blockHeight1,
 		TimeStamp:   s.Chain.BestChain.Timestamp,
 		Config:      s.Chain.GetParams(),
 		BlockChain:  s.Chain,
 	})
-	err = unstake.HeightVersionCheck()
+	err = returnVotes.HeightVersionCheck()
 	s.EqualError(err, "not support ReturnVotes transaction before DPoSV2StartHeight")
-	unstake.SetParameters(&transaction.TransactionParameters{
-		Transaction: unstake,
+	returnVotes.SetParameters(&transaction.TransactionParameters{
+		Transaction: returnVotes,
 		BlockHeight: blockHeight4,
 		TimeStamp:   s.Chain.BestChain.Timestamp,
 		Config:      s.Chain.GetParams(),
 		BlockChain:  s.Chain,
 	})
-	err = unstake.HeightVersionCheck()
+	err = returnVotes.HeightVersionCheck()
 	s.NoError(err)
 
 	voting, _ := functions.GetTransactionByTxType(common2.Voting)
@@ -1122,7 +1122,7 @@ func (s *txValidatorTestSuite) TestCheckStakeTransaction() {
 	}
 	txn := functions.CreateTransaction(
 		0,
-		common2.Stake,
+		common2.ExchangeVotes,
 		1,
 		nil,
 		[]*common2.Attribute{},
@@ -1161,7 +1161,7 @@ func (s *txValidatorTestSuite) TestCheckStakeTransaction() {
 
 	txn = functions.CreateTransaction(
 		0,
-		common2.Stake,
+		common2.ExchangeVotes,
 		1,
 		nil,
 		[]*common2.Attribute{},
@@ -1178,7 +1178,7 @@ func (s *txValidatorTestSuite) TestCheckStakeTransaction() {
 
 	txn = functions.CreateTransaction(
 		0,
-		common2.Stake,
+		common2.ExchangeVotes,
 		1,
 		nil,
 		[]*common2.Attribute{},
@@ -1203,7 +1203,7 @@ func (s *txValidatorTestSuite) TestCheckStakeTransaction() {
 
 	txn = functions.CreateTransaction(
 		0,
-		common2.Stake,
+		common2.ExchangeVotes,
 		1,
 		nil,
 		[]*common2.Attribute{},
@@ -1228,7 +1228,7 @@ func (s *txValidatorTestSuite) TestCheckStakeTransaction() {
 
 	txn = functions.CreateTransaction(
 		0,
-		common2.Stake,
+		common2.ExchangeVotes,
 		1,
 		nil,
 		[]*common2.Attribute{},
@@ -1254,7 +1254,7 @@ func (s *txValidatorTestSuite) TestCheckStakeTransaction() {
 	rpPayload.Version = 1
 	txn = functions.CreateTransaction(
 		0,
-		common2.Stake,
+		common2.ExchangeVotes,
 		1,
 		nil,
 		[]*common2.Attribute{},
@@ -1281,7 +1281,7 @@ func (s *txValidatorTestSuite) TestCheckStakeTransaction() {
 	rpPayload.Version = 0
 	txn = functions.CreateTransaction(
 		0,
-		common2.Stake,
+		common2.ExchangeVotes,
 		1,
 		nil,
 		[]*common2.Attribute{},
@@ -1314,7 +1314,7 @@ func (s *txValidatorTestSuite) TestCheckStakeTransaction() {
 
 	txn = functions.CreateTransaction(
 		0,
-		common2.Stake,
+		common2.ExchangeVotes,
 		1,
 		nil,
 		[]*common2.Attribute{},
@@ -5456,7 +5456,7 @@ func (s *txValidatorTestSuite) TestCheckStakeTransaction2() {
 	}}
 	txn := functions.CreateTransaction(
 		0,
-		common2.Stake,
+		common2.ExchangeVotes,
 		1,
 		ps,
 		attribute,
@@ -5480,7 +5480,7 @@ func (s *txValidatorTestSuite) TestCheckStakeTransaction2() {
 
 }
 
-func (s *txValidatorTestSuite) TestCheckUnstakeTransaction() {
+func (s *txValidatorTestSuite) TestCheckReutrnVotesTransaction() {
 	s.CurrentHeight = 1
 	_, pk, _ := crypto.GenerateKeyPair()
 	//publicKey, _ := pk.EncodePoint(true)
@@ -5532,7 +5532,7 @@ func (s *txValidatorTestSuite) TestCheckUnstakeTransaction() {
 	}}
 	txn := functions.CreateTransaction(
 		9,
-		common2.Unstake,
+		common2.ReturnVotes,
 		0,
 		pl,
 		attribute,
@@ -5563,7 +5563,7 @@ func (s *txValidatorTestSuite) TestCheckUnstakeTransaction() {
 
 }
 
-func (s *txValidatorTestSuite) TestCheckUnstakeTransaction2() {
+func (s *txValidatorTestSuite) TestCheckReturnVotesTransaction2() {
 	private := "97751342c819562a8d65059d759494fc9b2b565232bef047d1eae93f7c97baed"
 	publicKey := "0228329FD319A5444F2265D08482B8C09360AE59945C50FA5211548C0C11D31F08"
 	publicKeyBytes, _ := common.HexStringToBytes(publicKey)
@@ -5573,7 +5573,7 @@ func (s *txValidatorTestSuite) TestCheckUnstakeTransaction2() {
 	//toAddr , _ := stakeAddress_uint168.ToAddress()
 	txn := functions.CreateTransaction(
 		0,
-		common2.Unstake,
+		common2.ReturnVotes,
 		1,
 		nil,
 		[]*common2.Attribute{},
@@ -5596,7 +5596,7 @@ func (s *txValidatorTestSuite) TestCheckUnstakeTransaction2() {
 
 	txn = functions.CreateTransaction(
 		0,
-		common2.Unstake,
+		common2.ReturnVotes,
 		1,
 		nil,
 		[]*common2.Attribute{},
@@ -5626,7 +5626,7 @@ func (s *txValidatorTestSuite) TestCheckUnstakeTransaction2() {
 
 	txn = functions.CreateTransaction(
 		0,
-		common2.Unstake,
+		common2.ReturnVotes,
 		1,
 		nil,
 		[]*common2.Attribute{},
@@ -5659,7 +5659,7 @@ func (s *txValidatorTestSuite) TestCheckUnstakeTransaction2() {
 
 	txn = functions.CreateTransaction(
 		0,
-		common2.Unstake,
+		common2.ReturnVotes,
 		1,
 		nil,
 		[]*common2.Attribute{},
@@ -5689,7 +5689,7 @@ func (s *txValidatorTestSuite) TestCheckUnstakeTransaction2() {
 
 	txn = functions.CreateTransaction(
 		0,
-		common2.Unstake,
+		common2.ReturnVotes,
 		1,
 		&payload.ReturnVotes{
 			Value: -1,
@@ -5717,7 +5717,7 @@ func (s *txValidatorTestSuite) TestCheckUnstakeTransaction2() {
 	})
 
 	err, _ = txn.SpecialContextCheck()
-	s.EqualError(err, "transaction validate error: payload content invalid:invalid unstake value")
+	s.EqualError(err, "transaction validate error: payload content invalid:invalid return votes value")
 
 	txn.SetPayload(&payload.ReturnVotes{
 		Value: 10001,

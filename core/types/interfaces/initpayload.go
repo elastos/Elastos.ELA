@@ -86,13 +86,13 @@ func GetPayload(txType common.TxType, payloadVersion byte) (Payload, error) {
 		p = new(payload.RecordProposalResult)
 	case common.ReturnSideChainDepositCoin:
 		p = new(payload.ReturnSideChainDepositCoin)
-	case common.Stake:
+	case common.ExchangeVotes:
 		p = new(payload.ExchangeVotes)
 	case common.Voting:
 		p = new(payload.Voting)
-	case common.Unstake:
+	case common.ReturnVotes:
 		p = new(payload.ReturnVotes)
-	case common.UnstakeRealWithdraw:
+	case common.VotesRealWithdraw:
 		p = new(payload.VotesRealWithdrawPayload)
 	case common.DposV2ClaimReward:
 		p = new(payload.DPoSV2ClaimReward)

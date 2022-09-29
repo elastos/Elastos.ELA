@@ -6,13 +6,9 @@
 package settings
 
 import (
-	"bytes"
-	"encoding/json"
 	"errors"
-	"fmt"
-	"io/ioutil"
-	"net"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -23,9 +19,11 @@ import (
 	transaction2 "github.com/elastos/Elastos.ELA/core/transaction"
 	"github.com/elastos/Elastos.ELA/core/types/functions"
 	"github.com/elastos/Elastos.ELA/elanet/pact"
+	"github.com/elastos/Elastos.ELA/utils"
 	"github.com/elastos/Elastos.ELA/utils/elalog"
 	"github.com/elastos/Elastos.ELA/utils/gpath"
 
+	"github.com/spf13/viper"
 	"github.com/urfave/cli"
 )
 
@@ -53,6 +51,63 @@ type settingItem struct {
 	ParamName    string
 	ConfigSetter func(string, *config.Params, *config.Configuration) error
 	CliSetter    func(interface{}, *config.Params, *config.Configuration) error
+}
+
+type Settings struct {
+	items   []settingItem
+	conf    *config.Configuration
+	params  *config.Params
+	context *cli.Context
+}
+
+func (s *Settings) SetupConfig() {
+	configPath := s.context.String("conf")
+	conf, err := s.loadConfigFile(configPath)
+	if err != nil {
+		if s.context.IsSet("conf") {
+			cmdcom.PrintErrorMsg(err.Error())
+			os.Exit(1)
+		}
+		conf = &defaultConfig
+	}
+
+	s.conf = conf
+}
+
+func (s *Settings) loadConfigFile(files string) (*config.Configuration, error) {
+	cfgFile := config.Config{}
+	paths, fileName := filepath.Split(files)
+	fileExt := filepath.Ext(files)
+	viper.AddConfigPath("./" + paths)
+	viper.SetConfigName(strings.TrimSuffix(fileName, fileExt))
+	viper.SetConfigType(strings.TrimPrefix(fileExt, "."))
+	if err := viper.ReadInConfig(); err != nil {
+		return &defaultConfig, errors.New("☠️ cannot read configuration" + err.Error())
+	}
+	if err := viper.Unmarshal(&cfgFile); err != nil {
+		return &defaultConfig, errors.New("☠️ configuration files can't be loaded" + err.Error())
+	}
+
+	return &cfgFile.Configuration, nil
+}
+
+// Config return the loaded config parameters to running the ELA node.
+func (s *Settings) Config() *config.Configuration {
+	return s.conf
+}
+
+// Params return a pointer to the parameters specific to the currently
+// active ELA network.
+func (s *Settings) Params() *config.Params {
+	return s.params
+}
+
+func (s *Settings) SetContext(c *cli.Context) {
+	s.context = c
+}
+
+func (s *Settings) Add(item *settingItem) {
+	s.items = append(s.items, *item)
 }
 
 func (s *settingItem) TryInitValue(params *config.Params,
@@ -169,28 +224,6 @@ func (s *settingItem) initByConfig(params *config.Params,
 	}
 }
 
-type Settings struct {
-	items   []settingItem
-	conf    *config.Configuration
-	params  *config.Params
-	context *cli.Context
-}
-
-// Config return the loaded config parameters to running the ELA node.
-func (s *Settings) Config() *config.Configuration {
-	return s.conf
-}
-
-// Params return a pointer to the parameters specific to the currently
-// active ELA network.
-func (s *Settings) Params() *config.Params {
-	return s.params
-}
-
-func (s *Settings) SetContext(c *cli.Context) {
-	s.context = c
-}
-
 func (s *Settings) Flags() []cli.Flag {
 	result := make([]cli.Flag, 0, len(s.items))
 	for _, v := range s.items {
@@ -213,10 +246,6 @@ func (s *Settings) InitParamsValue() {
 			os.Exit(1)
 		}
 	}
-}
-
-func (s *Settings) Add(item *settingItem) {
-	s.items = append(s.items, *item)
 }
 
 func (s *Settings) initNetSetting() (err error) {
@@ -689,7 +718,7 @@ func NewSettings() *Settings {
 		ConfigSetter: func(path string, params *config.Params,
 			conf *config.Configuration) error {
 			// When arbiter service enabled, IP address must be set.
-			return checkHost(conf.DPoSConfiguration.IPAddress)
+			return utils.CheckHost(conf.DPoSConfiguration.IPAddress)
 		},
 		CliSetter: func(i interface{}, params *config.Params,
 			conf *config.Configuration) error {
@@ -1157,68 +1186,6 @@ func NewSettings() *Settings {
 		ParamName:    "CrossChainMonitorInterval"})
 
 	return result
-}
-
-func (s *Settings) SetupConfig() {
-	configPath := s.context.String("conf")
-	file, err := s.loadConfigFile(configPath)
-	if err != nil {
-		if s.context.IsSet("conf") {
-			cmdcom.PrintErrorMsg(err.Error())
-			os.Exit(1)
-		}
-		file = &defaultConfig
-	}
-
-	s.conf = file
-}
-
-// loadConfigFile read configuration parameters through the config file.
-func (s *Settings) loadConfigFile(path string) (*config.Configuration, error) {
-	file, err := ioutil.ReadFile(path)
-	if err != nil {
-		return nil, err
-	}
-	// Remove the UTF-8 Byte Order Mark
-	file = bytes.TrimPrefix(file, []byte("\xef\xbb\xbf"))
-
-	cfgFile := struct {
-		config.Configuration `json:"Configuration"`
-	}{
-		Configuration: defaultConfig,
-	}
-
-	err = json.Unmarshal(file, &cfgFile)
-	if err != nil {
-		return nil, errors.New("config file parsing failed, " + err.Error())
-	}
-
-	return &cfgFile.Configuration, nil
-}
-
-// checkHost check the host or IP address is valid and available.
-func checkHost(host string) error {
-	// Empty host check.
-	if host == "" {
-		return errors.New("arbiter IPAddress must set when arbiter" +
-			" service enabled")
-	}
-
-	// Skip if host is already an IP address.
-	if ip := net.ParseIP(host); ip != nil {
-		return nil
-	}
-
-	// Attempt to look up an IP address associated with the parsed host.
-	ips, err := net.LookupIP(host)
-	if err != nil {
-		return err
-	}
-	if len(ips) == 0 {
-		return fmt.Errorf("no addresses found for %s", host)
-	}
-
-	return nil
 }
 
 // mainNetDefault set the default parameters for main net usage.

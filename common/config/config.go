@@ -15,20 +15,8 @@ var (
 	Parameters *Configuration
 )
 
-// PowConfiguration defines the Proof-of-Work parameters.
-type PowConfiguration struct {
-	PayToAddr    string `json:"PayToAddr"`
-	AutoMining   bool   `json:"AutoMining"`
-	MinerInfo    string `json:"MinerInfo"`
-	MinTxFee     int    `json:"MinTxFee"`
-	InstantBlock bool   `json:"InstantBlock"`
-}
-
-// RpcConfiguration defines the JSON-RPC authenticate parameters.
-type RpcConfiguration struct {
-	User        string   `json:"User"`
-	Pass        string   `json:"Pass"`
-	WhiteIPList []string `json:"WhiteIPList"`
+type Config struct {
+	Configuration `json:"Configuration"`
 }
 
 // Configuration defines the configurable parameters to run a ELA node.
@@ -162,6 +150,22 @@ type CRConfiguration struct {
 	CRClaimPeriod                      uint32         `json:"CRClaimPeriod"`
 }
 
+// PowConfiguration defines the Proof-of-Work parameters.
+type PowConfiguration struct {
+	PayToAddr    string `json:"PayToAddr"`
+	AutoMining   bool   `json:"AutoMining"`
+	MinerInfo    string `json:"MinerInfo"`
+	MinTxFee     int    `json:"MinTxFee"`
+	InstantBlock bool   `json:"InstantBlock"`
+}
+
+// RpcConfiguration defines the JSON-RPC authenticate parameters.
+type RpcConfiguration struct {
+	User        string   `json:"User"`
+	Pass        string   `json:"Pass"`
+	WhiteIPList []string `json:"WhiteIPList"`
+}
+
 type RPCServiceLevel byte
 
 const (
@@ -181,6 +185,35 @@ const (
 	// Allowed only query related options.
 	QueryOnly
 )
+
+type NodeProfileStrategy byte
+
+const (
+	// Node will balance usage of CPU and memory.
+	Balanced NodeProfileStrategy = iota
+
+	// Node will optimise the block processing procedure, super node strongly
+	//	recommended.
+	SpeedFirst
+
+	// Node will optimise the usage of memory usage, note this may slow down
+	//	block processing, do no use this if your memory is extremely low (
+	//	specifically small than 2G bytes).
+	MemoryFirst
+)
+
+func (s NodeProfileStrategy) String() string {
+	switch s {
+	case Balanced:
+		return "Balanced"
+	case SpeedFirst:
+		return "SpeedFirst"
+	case MemoryFirst:
+		return "MemoryFirst"
+	default:
+		return "Unknown"
+	}
+}
 
 func (l RPCServiceLevel) String() string {
 	switch l {
@@ -213,34 +246,5 @@ func RPCServiceLevelFromString(str string) RPCServiceLevel {
 		return QueryOnly
 	default:
 		return ConfigurationPermitted
-	}
-}
-
-type NodeProfileStrategy byte
-
-const (
-	// Node will balance usage of CPU and memory.
-	Balanced NodeProfileStrategy = iota
-
-	// Node will optimise the block processing procedure, super node strongly
-	//	recommended.
-	SpeedFirst
-
-	// Node will optimise the usage of memory usage, note this may slow down
-	//	block processing, do no use this if your memory is extremely low (
-	//	specifically small than 2G bytes).
-	MemoryFirst
-)
-
-func (s NodeProfileStrategy) String() string {
-	switch s {
-	case Balanced:
-		return "Balanced"
-	case SpeedFirst:
-		return "SpeedFirst"
-	case MemoryFirst:
-		return "MemoryFirst"
-	default:
-		return "Unknown"
 	}
 }

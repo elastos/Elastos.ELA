@@ -72,6 +72,10 @@ func (a *ArbitratorsMock) SetNeedRevertToDPOSTX(need bool) {
 	panic("implement me")
 }
 
+func (a *ArbitratorsMock) SetNeedNextTurnDPOSInfo(need bool) {
+	panic("implement me")
+}
+
 func (a *ArbitratorsMock) IsDPoSV2Run(blockHeight uint32) bool {
 	return false
 }

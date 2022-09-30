@@ -12,6 +12,7 @@ import (
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/crypto"
 	"github.com/elastos/Elastos.ELA/errors"
+	math "math/rand"
 )
 
 func (s *txValidatorTestSuite) TestCheckRegisterProducerTransaction() {
@@ -39,7 +40,8 @@ func (s *txValidatorTestSuite) TestCheckRegisterProducerTransaction() {
 	rpSig, err := crypto.Sign(privateKey1, rpSignBuf.Bytes())
 	s.NoError(err)
 	rpPayload.Signature = rpSig
-
+	s.Chain.BestChain.Height = 0
+	s.Chain.GetState().DPoSV2ActiveHeight = math.Uint32()
 	txn := functions.CreateTransaction(
 		0,
 		common2.RegisterProducer,

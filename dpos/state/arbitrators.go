@@ -120,6 +120,12 @@ func (a *Arbiters) SetNeedRevertToDPOSTX(need bool) {
 	a.NeedRevertToDPOSTX = need
 }
 
+func (a *Arbiters) SetNeedNextTurnDPOSInfo(need bool) {
+	a.mtx.Lock()
+	defer a.mtx.Unlock()
+	a.NeedNextTurnDPOSInfo = need
+}
+
 func (a *Arbiters) IsInPOWMode() bool {
 	a.mtx.Lock()
 	defer a.mtx.Unlock()

@@ -41,6 +41,7 @@ type Arbitrators interface {
 	GetArbitersRoundReward() map[common.Uint168]common.Fixed64
 	GetFinalRoundChange() common.Fixed64
 	SetNeedRevertToDPOSTX(need bool)
+	SetNeedNextTurnDPOSInfo(need bool)
 	IsInPOWMode() bool
 	GetRevertToPOWBlockHeight() uint32
 	GetLastBlockTimestamp() uint32

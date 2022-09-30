@@ -610,10 +610,14 @@ func (a *Arbiters) IncreaseChainHeight(block *types.Block, confirm *payload.Conf
 func (a *Arbiters) createRevertToPOWTransaction(blockHeight uint32) {
 
 	var revertType payload.RevertType
-	if a.NoClaimDPOSNode {
-		revertType = payload.NoClaimDPOSNode
-	} else {
+	if a.NoProducers {
 		revertType = payload.NoProducers
+	} else {
+		if blockHeight > a.DPoSV2ActiveHeight {
+			log.Info("no need to create no claim DPoS node transaction")
+			return
+		}
+		revertType = payload.NoClaimDPOSNode
 	}
 	revertToPOWPayload := payload.RevertToPOW{
 		Type:          revertType,

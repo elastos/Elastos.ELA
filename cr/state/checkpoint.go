@@ -54,7 +54,8 @@ func (c *Checkpoint) OnRollbackTo(height uint32) error {
 			Params:               c.committee.Params,
 			KeyFrame:             *keyFrame,
 			firstHistory:         utils.NewHistory(maxHistoryCapacity),
-			lastHistory:          utils.NewHistory(maxHistoryCapacity),
+			inactiveCRHistory:    utils.NewHistory(maxHistoryCapacity),
+			committeeHistory:     utils.NewHistory(maxHistoryCapacity),
 			appropriationHistory: utils.NewHistory(maxHistoryCapacity),
 		}
 		c.initFromCommittee(committee)
@@ -69,7 +70,8 @@ func (c *Checkpoint) OnRollbackTo(height uint32) error {
 
 func (c *Checkpoint) OnRollbackSeekTo(height uint32) {
 	c.committee.firstHistory.RollbackSeekTo(height)
-	c.committee.lastHistory.RollbackSeekTo(height)
+	c.committee.inactiveCRHistory.RollbackSeekTo(height)
+	c.committee.committeeHistory.RollbackSeekTo(height)
 	c.committee.appropriationHistory.RollbackSeekTo(height)
 	c.committee.manager.history.RollbackSeekTo(height)
 	c.committee.state.History.RollbackSeekTo(height)

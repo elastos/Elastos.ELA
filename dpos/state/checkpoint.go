@@ -35,17 +35,18 @@ const (
 // CheckPoint defines all variables need record in database
 type CheckPoint struct {
 	StateKeyFrame
-	Height                uint32
-	DutyIndex             int
-	CurrentArbitrators    []ArbiterMember
-	NextArbitrators       []ArbiterMember
-	NextCandidates        []ArbiterMember
-	CurrentCandidates     []ArbiterMember
-	CurrentReward         RewardData
-	NextReward            RewardData
-	CurrentCRCArbitersMap map[common.Uint168]ArbiterMember
-	NextCRCArbitersMap    map[common.Uint168]ArbiterMember
-	NextCRCArbiters       []ArbiterMember
+	Height                      uint32
+	DutyIndex                   int
+	CurrentArbitrators          []ArbiterMember
+	NextArbitrators             []ArbiterMember
+	NextCandidates              []ArbiterMember
+	CurrentCandidates           []ArbiterMember
+	CurrentReward               RewardData
+	NextReward                  RewardData
+	CurrentCRCArbitersMap       map[common.Uint168]ArbiterMember
+	CurrentOnDutyCRCArbitersMap map[common.Uint168]ArbiterMember
+	NextCRCArbitersMap          map[common.Uint168]ArbiterMember
+	NextCRCArbiters             []ArbiterMember
 
 	CRCChangedHeight           uint32
 	AccumulativeReward         common.Fixed64
@@ -192,6 +193,9 @@ func (c *CheckPoint) Serialize(w io.Writer) (err error) {
 	if err = c.serializeCRCArbitersMap(w, c.CurrentCRCArbitersMap); err != nil {
 		return
 	}
+	if err = c.serializeCRCArbitersMap(w, c.CurrentOnDutyCRCArbitersMap); err != nil {
+		return
+	}
 
 	if err = c.serializeCRCArbitersMap(w, c.NextCRCArbitersMap); err != nil {
 		return
@@ -318,6 +322,9 @@ func (c *CheckPoint) Deserialize(r io.Reader) (err error) {
 	}
 
 	if c.CurrentCRCArbitersMap, err = c.deserializeCRCArbitersMap(r); err != nil {
+		return
+	}
+	if c.CurrentOnDutyCRCArbitersMap, err = c.deserializeCRCArbitersMap(r); err != nil {
 		return
 	}
 	if c.NextCRCArbitersMap, err = c.deserializeCRCArbitersMap(r); err != nil {
@@ -483,6 +490,7 @@ func (c *CheckPoint) initFromArbitrators(ar *Arbiters) {
 	c.IllegalBlocksPayloadHashes = ar.illegalBlocksPayloadHashes
 	c.CRCChangedHeight = ar.crcChangedHeight
 	c.CurrentCRCArbitersMap = ar.CurrentCRCArbitersMap
+	c.CurrentOnDutyCRCArbitersMap = ar.LastCRCArbitersMap
 	c.NextCRCArbitersMap = ar.nextCRCArbitersMap
 	c.NextCRCArbiters = ar.nextCRCArbiters
 	c.ForceChanged = ar.forceChanged

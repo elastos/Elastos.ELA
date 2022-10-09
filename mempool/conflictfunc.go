@@ -6,6 +6,7 @@
 package mempool
 
 import (
+	"bytes"
 	"encoding/hex"
 	"fmt"
 	"strconv"
@@ -350,13 +351,21 @@ func strRegisterCRPublicKey(tx interfaces.Transaction) (interface{}, error) {
 		return nil, err
 	}
 
-	signType, err := crypto.GetScriptType(p.Code)
+	var code []byte
+	if tx.PayloadVersion() == payload.CRInfoSchnorrVersion {
+		code = tx.Programs()[0].Code
+	} else {
+		code = p.Code
+	}
+	signType, err := crypto.GetScriptType(code)
 	if err != nil {
 		return nil, err
 	}
 
 	if signType == vm.CHECKSIG {
 		return hex.EncodeToString(p.Code[1 : len(p.Code)-1]), nil
+	} else if bytes.Equal(p.Code, []byte{}) && contract.IsSchnorr(code) {
+		return hex.EncodeToString(code[2:]), nil
 	} else {
 		return nil, fmt.Errorf("unsupported sign script type: %d", signType)
 	}

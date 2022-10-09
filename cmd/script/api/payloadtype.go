@@ -1378,10 +1378,15 @@ func newRegisterCR(L *lua.LState) int {
 	location := L.ToInt64(4)
 	payloadVersion := byte(L.ToInt(5))
 	needSign := true
+	var account *account.SchnorAccount
 	client, err := checkClient(L, 6)
 	if err != nil {
-		needSign = false
+		account, err = checkAccount(L, 7)
+		if err != nil {
+			needSign = false
+		}
 	}
+
 	publicKey, err := common.HexStringToBytes(publicKeyStr)
 	if err != nil {
 		fmt.Println("wrong cr public key")
@@ -1415,6 +1420,31 @@ func newRegisterCR(L *lua.LState) int {
 		os.Exit(1)
 	}
 
+	if account != nil {
+		fmt.Println("get schnorr code")
+		code, err = getSchnorrCode(publicKey)
+		if err != nil {
+			fmt.Println("wrong schnorr producer public key")
+			os.Exit(1)
+		}
+
+		ct, err = contract.CreateCRIDContractByCode(code)
+		if err != nil {
+			fmt.Println("wrong cr public key")
+			os.Exit(1)
+		}
+
+		didCode = make([]byte, len(code))
+		copy(didCode, code)
+		didCode = append(didCode[1:], common.DID)
+		didCT, err = contract.CreateCRIDContractByCode(didCode)
+		if err != nil {
+			fmt.Println("wrong cr public key")
+			os.Exit(1)
+		}
+		code = []byte{}
+	}
+
 	registerCR := &payload.CRInfo{
 		Code:     code,
 		CID:      *ct.ToProgramHash(),
@@ -1436,17 +1466,28 @@ func newRegisterCR(L *lua.LState) int {
 			fmt.Println(err)
 			os.Exit(1)
 		}
-		acc := client.GetAccountByCodeHash(*codeHash)
-		if acc == nil {
-			fmt.Println("no available account in wallet")
-			os.Exit(1)
+		if account == nil {
+			acc := client.GetAccountByCodeHash(*codeHash)
+			if acc == nil {
+				fmt.Println("no available account in wallet")
+				os.Exit(1)
+			}
+			rpSig, err := crypto.Sign(acc.PrivKey(), rpSignBuf.Bytes())
+			if err != nil {
+				fmt.Println(err)
+				os.Exit(1)
+			}
+			registerCR.Signature = rpSig
+		} else {
+			//fmt.Println("process AggregateSignatures")
+			//rpSig, err := crypto.AggregateSignatures(account.PrivateKeys, common.Sha256D(rpSignBuf.Bytes()))
+			//if err != nil {
+			//	fmt.Println(err)
+			//	os.Exit(1)
+			//}
+			//registerCR.Signature = rpSig[:]
 		}
-		rpSig, err := crypto.Sign(acc.PrivKey(), rpSignBuf.Bytes())
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
-		}
-		registerCR.Signature = rpSig
+
 	}
 
 	ud := L.NewUserData()
@@ -1455,6 +1496,18 @@ func newRegisterCR(L *lua.LState) int {
 	L.Push(ud)
 
 	return 1
+}
+
+func getSchnorrCode(publicKey []byte) ([]byte, error) {
+	if pk, err := crypto.DecodePoint(publicKey); err != nil {
+		return nil, err
+	} else {
+		if redeemScript, err := contract.CreateSchnorrRedeemScript(pk); err != nil {
+			return nil, err
+		} else {
+			return redeemScript, nil
+		}
+	}
 }
 
 // Checks whether the first lua argument is a *LUserData with *CRInfo and

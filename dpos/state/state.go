@@ -579,6 +579,10 @@ func (s *State) getProducerKey(publicKey []byte) string {
 		return owner
 	}
 
+	if owner, ok := s.LastCRNodeOwnerKeys[key]; ok {
+		return owner
+	}
+
 	if owner, ok := s.CurrentCRNodeOwnerKeys[key]; ok {
 		return owner
 	}
@@ -3457,7 +3461,8 @@ func (s *State) handleEvents(event *events.Event) {
 				delete(s.NodeOwnerKeys, nodePubKey)
 			}
 		}
-		s.CurrentCRNodeOwnerKeys = s.NextCRNodeOwnerKeys
+		s.LastCRNodeOwnerKeys = copyStringMap(s.CurrentCRNodeOwnerKeys)
+		s.CurrentCRNodeOwnerKeys = copyStringMap(s.NextCRNodeOwnerKeys)
 		s.NextCRNodeOwnerKeys = make(map[string]string)
 		s.mtx.Unlock()
 	}

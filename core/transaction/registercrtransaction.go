@@ -83,22 +83,28 @@ func (t *RegisterCRTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
 	}
 	programHash := ct.ToProgramHash()
 
-	// check if program code conflict with producer public keys
-	if info.Code[len(info.Code)-1] == vm.CHECKSIG {
-		pk := info.Code[1 : len(info.Code)-1]
-		if t.parameters.BlockChain.GetState().ProducerExists(pk) {
-			return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("public key %s already inuse in producer list",
-				common.BytesToHexString(info.Code[1:len(info.Code)-1]))), true
-		}
-		if blockchain.DefaultLedger.Arbitrators.IsCRCArbitrator(pk) {
-			return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("public key %s already inuse in CRC list",
-				common.BytesToHexString(info.Code[0:len(info.Code)-1]))), true
-		}
-	}
-
 	// check CID
 	if !info.CID.IsEqual(*programHash) {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid cid address")), true
+	}
+
+	// check if program code conflict with producer public keys
+	var pk []byte
+	if contract.IsSchnorr(info.Code) {
+		pk = info.Code[2:]
+	} else if info.Code[len(info.Code)-1] == vm.CHECKSIG {
+		pk = info.Code[1 : len(info.Code)-1]
+	} else {
+		return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("invalid code %s",
+			common.BytesToHexString(info.Code))), true
+	}
+	if t.parameters.BlockChain.GetState().ProducerExists(pk) {
+		return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("public key %s already inuse in producer list",
+			common.BytesToHexString(pk))), true
+	}
+	if blockchain.DefaultLedger.Arbitrators.IsCRCArbitrator(pk) {
+		return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("public key %s already inuse in CRC list",
+			common.BytesToHexString(pk))), true
 	}
 
 	if t.parameters.BlockHeight >= t.parameters.Config.CRConfiguration.RegisterCRByDIDHeight &&
@@ -150,7 +156,12 @@ func (t *RegisterCRTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
 func getDIDFromCode(code []byte) (*common.Uint168, error) {
 	newCode := make([]byte, len(code))
 	copy(newCode, code)
-	didCode := append(newCode[:len(newCode)-1], common.DID)
+	var didCode []byte
+	if contract.IsSchnorr(code) {
+		didCode = append(newCode[1:], common.DID)
+	} else {
+		didCode = append(newCode[:len(newCode)-1], common.DID)
+	}
 
 	if ct1, err := contract.CreateCRIDContractByCode(didCode); err != nil {
 		return nil, err

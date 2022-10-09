@@ -717,7 +717,7 @@ func (a *Arbiters) getDPoSV2RewardsV2(dposReward common.Fixed64, sponsor []byte,
 
 		producer := a.getProducer(sponsor)
 		if producer == nil {
-			log.Error("accumulateReward Sponsor not exist ", hex.EncodeToString(sponsor))
+			log.Error("v2 accumulateReward Sponsor not exist ", hex.EncodeToString(sponsor))
 			return
 		}
 		ownerProgramHash, _ := contract.PublicKeyToStandardProgramHash(producer.OwnerPublicKey())
@@ -789,7 +789,7 @@ func (a *Arbiters) getDPoSV2RewardsV1(dposReward common.Fixed64, sponsor []byte)
 
 		producer := a.getProducer(sponsor)
 		if producer == nil {
-			log.Error("accumulateReward Sponsor not exist ", hex.EncodeToString(sponsor))
+			log.Error("v1 accumulateReward Sponsor not exist ", hex.EncodeToString(sponsor))
 			return
 		}
 		producersN := make(map[common.Uint168]float64)

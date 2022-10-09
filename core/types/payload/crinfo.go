@@ -26,7 +26,7 @@ type CRInfo struct {
 	Url       string
 	Location  uint64
 	Signature []byte
-}
+}	
 
 func (a *CRInfo) Data(version byte) []byte {
 	buf := new(bytes.Buffer)

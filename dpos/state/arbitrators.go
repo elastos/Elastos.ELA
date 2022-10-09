@@ -86,6 +86,8 @@ type Arbiters struct {
 	nextArbitrators    []ArbiterMember
 	nextCandidates     []ArbiterMember
 
+	// last cr arbiters map
+	LastCRCArbitersMap map[common.Uint168]ArbiterMember
 	// current cr arbiters map
 	CurrentCRCArbitersMap map[common.Uint168]ArbiterMember
 	// next cr arbiters map
@@ -176,6 +178,7 @@ func (a *Arbiters) recoverFromCheckPoints(point *CheckPoint) {
 
 	a.crcChangedHeight = point.CRCChangedHeight
 	a.CurrentCRCArbitersMap = point.CurrentCRCArbitersMap
+	a.LastCRCArbitersMap = point.CurrentOnDutyCRCArbitersMap
 	a.nextCRCArbitersMap = point.NextCRCArbitersMap
 	a.nextCRCArbiters = point.NextCRCArbiters
 	a.forceChanged = point.ForceChanged
@@ -684,7 +687,77 @@ func (a *Arbiters) isDPoSV2Run(blockHeight uint32) bool {
 	return blockHeight >= a.DPoSV2ActiveHeight
 }
 
-func (a *Arbiters) getDPoSV2Rewards(dposReward common.Fixed64, sponsor []byte) (rewards map[string]common.Fixed64) {
+func (a *Arbiters) getDPoSV2RewardsV2(dposReward common.Fixed64, sponsor []byte) (rewards map[string]common.Fixed64) {
+	log.Debugf("accumulateReward dposReward %v", dposReward)
+	ownerPubKeyStr := a.getProducerKey(sponsor)
+	ownerPubKeyBytes, _ := hex.DecodeString(ownerPubKeyStr)
+	ownerProgramHash, _ := contract.PublicKeyToStandardProgramHash(ownerPubKeyBytes)
+	ownerAddr, _ := ownerProgramHash.ToAddress()
+
+	rewards = make(map[string]common.Fixed64)
+	if _, ok := a.LastCRCArbitersMap[*ownerProgramHash]; ok { // crc
+		// all reward to DPoS node owner
+		rewards[ownerAddr] += dposReward
+	} else {
+
+		// DPoS votes reward is: reward * 3 /4
+		votesReward := dposReward * 3 / 4
+
+		producer := a.getProducer(sponsor)
+		if producer == nil {
+			log.Error("accumulateReward Sponsor not exist ", hex.EncodeToString(sponsor))
+			return
+		}
+		producersN := make(map[common.Uint168]float64)
+		stakeAddrPreTypeMgr := make(map[common.Uint168]byte)
+
+		var totalNI float64
+		for sVoteAddr, sVoteDetail := range producer.detailedDPoSV2Votes {
+			if len(sVoteDetail) == 0 {
+				continue
+			}
+			prefixType := byte(contract.PrefixStandard)
+			var totalN float64
+			for _, votes := range sVoteDetail {
+				weightF := math.Log10(float64(votes.Info[0].LockTime-votes.BlockHeight) / 7200 * 10)
+				N := common.Fixed64(float64(votes.Info[0].Votes) * weightF)
+				totalN += float64(N)
+				prefixType = votes.PrefixType
+			}
+			if totalN == 0 {
+				continue
+			}
+			producersN[sVoteAddr] = totalN
+			stakeAddrPreTypeMgr[sVoteAddr] = prefixType
+			totalNI += totalN
+		}
+
+		for sVoteAddr, N := range producersN {
+			b := sVoteAddr.Bytes()
+			b[0] = stakeAddrPreTypeMgr[sVoteAddr]
+			standardUint168, _ := common.Uint168FromBytes(b)
+			addr, _ := standardUint168.ToAddress()
+			p := N / totalNI * float64(votesReward)
+			rewards[addr] += common.Fixed64(p)
+			log.Debugf("getDPoSV2Rewards addr:%s, p:%s, reward:%s \n", addr, common.Fixed64(p), rewards[addr])
+		}
+
+		var totalUsedVotesReward common.Fixed64
+		for _, v := range rewards {
+			totalUsedVotesReward += v
+		}
+
+		// DPoS node reward is: reward - totalUsedVotesReward
+		dposNodeReward := dposReward - totalUsedVotesReward
+		rewards[ownerAddr] += dposNodeReward
+		log.Debugf("getDPoSV2Rewards totalUsedVotesReward %s dposNodeReward %s,  \n", totalUsedVotesReward, dposNodeReward)
+
+	}
+
+	return rewards
+}
+
+func (a *Arbiters) getDPoSV2RewardsV1(dposReward common.Fixed64, sponsor []byte) (rewards map[string]common.Fixed64) {
 	log.Debugf("accumulateReward dposReward %v", dposReward)
 	ownerPubKeyStr := a.getProducerKey(sponsor)
 	ownerPubKeyBytes, _ := hex.DecodeString(ownerPubKeyStr)
@@ -780,7 +853,11 @@ func (a *Arbiters) accumulateReward(block *types.Block, confirm *payload.Confirm
 
 		var rewards map[string]common.Fixed64
 		if confirm != nil {
-			rewards = a.getDPoSV2Rewards(dposReward, confirm.Proposal.Sponsor)
+			if block.Height > a.ChainParams.DPoSV2StartHeight {
+				rewards = a.getDPoSV2RewardsV2(dposReward, confirm.Proposal.Sponsor)
+			} else {
+				rewards = a.getDPoSV2RewardsV1(dposReward, confirm.Proposal.Sponsor)
+			}
 		}
 
 		a.History.Append(block.Height, func() {
@@ -1739,6 +1816,7 @@ func (a *Arbiters) getChangeType(height uint32) (ChangeType, uint32) {
 
 func (a *Arbiters) cleanArbitrators(height uint32) {
 	oriCurrentCRCArbitersMap := copyCRCArbitersMap(a.CurrentCRCArbitersMap)
+	oriCurrentOnDutyCRCArbitersMap := copyCRCArbitersMap(a.LastCRCArbitersMap)
 	oriCurrentArbitrators := a.CurrentArbitrators
 	oriCurrentCandidates := a.CurrentCandidates
 	oriNextCRCArbitersMap := copyCRCArbitersMap(a.nextCRCArbitersMap)
@@ -1747,6 +1825,7 @@ func (a *Arbiters) cleanArbitrators(height uint32) {
 	oriDutyIndex := a.DutyIndex
 	a.History.Append(height, func() {
 		a.CurrentCRCArbitersMap = make(map[common.Uint168]ArbiterMember)
+		a.LastCRCArbitersMap = make(map[common.Uint168]ArbiterMember)
 		a.CurrentArbitrators = make([]ArbiterMember, 0)
 		a.CurrentCandidates = make([]ArbiterMember, 0)
 		a.nextCRCArbitersMap = make(map[common.Uint168]ArbiterMember)
@@ -1755,6 +1834,7 @@ func (a *Arbiters) cleanArbitrators(height uint32) {
 		a.DutyIndex = 0
 	}, func() {
 		a.CurrentCRCArbitersMap = oriCurrentCRCArbitersMap
+		a.LastCRCArbitersMap = oriCurrentOnDutyCRCArbitersMap
 		a.CurrentArbitrators = oriCurrentArbitrators
 		a.CurrentCandidates = oriCurrentCandidates
 		a.nextCRCArbitersMap = oriNextCRCArbitersMap
@@ -1766,6 +1846,7 @@ func (a *Arbiters) cleanArbitrators(height uint32) {
 
 func (a *Arbiters) ChangeCurrentArbitrators(height uint32) error {
 	oriCurrentCRCArbitersMap := copyCRCArbitersMap(a.CurrentCRCArbitersMap)
+	oriLastCRCArbitersMap := copyCRCArbitersMap(a.LastCRCArbitersMap)
 	oriCurrentArbitrators := a.CurrentArbitrators
 	oriCurrentCandidates := a.CurrentCandidates
 	oriCurrentReward := a.CurrentReward
@@ -1775,12 +1856,14 @@ func (a *Arbiters) ChangeCurrentArbitrators(height uint32) error {
 			return bytes.Compare(a.nextArbitrators[i].GetNodePublicKey(),
 				a.nextArbitrators[j].GetNodePublicKey()) < 0
 		})
+		a.LastCRCArbitersMap = oriCurrentCRCArbitersMap
 		a.CurrentCRCArbitersMap = copyCRCArbitersMap(a.nextCRCArbitersMap)
 		a.CurrentArbitrators = a.nextArbitrators
 		a.CurrentCandidates = a.nextCandidates
 		a.CurrentReward = a.NextReward
 		a.DutyIndex = 0
 	}, func() {
+		a.LastCRCArbitersMap = oriLastCRCArbitersMap
 		a.CurrentCRCArbitersMap = oriCurrentCRCArbitersMap
 		a.CurrentArbitrators = oriCurrentArbitrators
 		a.CurrentCandidates = oriCurrentCandidates
@@ -2705,25 +2788,26 @@ func (a *Arbiters) getBlockDPOSReward(block *types.Block) common.Fixed64 {
 
 func (a *Arbiters) newCheckPoint(height uint32) *CheckPoint {
 	point := &CheckPoint{
-		Height:                     height,
-		DutyIndex:                  a.DutyIndex,
-		CurrentCandidates:          make([]ArbiterMember, 0),
-		NextArbitrators:            make([]ArbiterMember, 0),
-		NextCandidates:             make([]ArbiterMember, 0),
-		CurrentReward:              *NewRewardData(),
-		NextReward:                 *NewRewardData(),
-		CurrentCRCArbitersMap:      make(map[common.Uint168]ArbiterMember),
-		NextCRCArbitersMap:         make(map[common.Uint168]ArbiterMember),
-		NextCRCArbiters:            make([]ArbiterMember, 0),
-		CRCChangedHeight:           a.crcChangedHeight,
-		AccumulativeReward:         a.accumulativeReward,
-		FinalRoundChange:           a.finalRoundChange,
-		ClearingHeight:             a.clearingHeight,
-		ForceChanged:               a.forceChanged,
-		ArbitersRoundReward:        make(map[common.Uint168]common.Fixed64),
-		IllegalBlocksPayloadHashes: make(map[common.Uint256]interface{}),
-		CurrentArbitrators:         a.CurrentArbitrators,
-		StateKeyFrame:              *a.State.snapshot(),
+		Height:                      height,
+		DutyIndex:                   a.DutyIndex,
+		CurrentCandidates:           make([]ArbiterMember, 0),
+		NextArbitrators:             make([]ArbiterMember, 0),
+		NextCandidates:              make([]ArbiterMember, 0),
+		CurrentReward:               *NewRewardData(),
+		NextReward:                  *NewRewardData(),
+		CurrentCRCArbitersMap:       make(map[common.Uint168]ArbiterMember),
+		CurrentOnDutyCRCArbitersMap: make(map[common.Uint168]ArbiterMember),
+		NextCRCArbitersMap:          make(map[common.Uint168]ArbiterMember),
+		NextCRCArbiters:             make([]ArbiterMember, 0),
+		CRCChangedHeight:            a.crcChangedHeight,
+		AccumulativeReward:          a.accumulativeReward,
+		FinalRoundChange:            a.finalRoundChange,
+		ClearingHeight:              a.clearingHeight,
+		ForceChanged:                a.forceChanged,
+		ArbitersRoundReward:         make(map[common.Uint168]common.Fixed64),
+		IllegalBlocksPayloadHashes:  make(map[common.Uint256]interface{}),
+		CurrentArbitrators:          a.CurrentArbitrators,
+		StateKeyFrame:               *a.State.snapshot(),
 	}
 	point.CurrentArbitrators = copyByteList(a.CurrentArbitrators)
 	point.CurrentCandidates = copyByteList(a.CurrentCandidates)
@@ -2733,6 +2817,7 @@ func (a *Arbiters) newCheckPoint(height uint32) *CheckPoint {
 	point.NextReward = *copyReward(&a.NextReward)
 	point.NextCRCArbitersMap = copyCRCArbitersMap(a.nextCRCArbitersMap)
 	point.CurrentCRCArbitersMap = copyCRCArbitersMap(a.CurrentCRCArbitersMap)
+	point.CurrentOnDutyCRCArbitersMap = copyCRCArbitersMap(a.LastCRCArbitersMap)
 	point.NextCRCArbiters = copyByteList(a.nextCRCArbiters)
 
 	for k, v := range a.arbitersRoundReward {

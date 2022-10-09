@@ -91,7 +91,8 @@ func dposCheckPointsEqual(first *state.CheckPoint, second *state.CheckPoint) boo
 	}
 
 	if !arbitersMapEqual(first.NextCRCArbitersMap, second.NextCRCArbitersMap) ||
-		!arbitersMapEqual(first.CurrentCRCArbitersMap, second.CurrentCRCArbitersMap) {
+		!arbitersMapEqual(first.CurrentCRCArbitersMap, second.CurrentCRCArbitersMap) ||
+		!arbitersMapEqual(first.CurrentOnDutyCRCArbitersMap, second.CurrentOnDutyCRCArbitersMap) {
 		return false
 	}
 	return votesMapEqual(first.CurrentReward.OwnerVotesInRound,
@@ -102,20 +103,21 @@ func dposCheckPointsEqual(first *state.CheckPoint, second *state.CheckPoint) boo
 
 func generateDPOSCheckPoint(height uint32) *state.CheckPoint {
 	result := &state.CheckPoint{
-		Height:                height,
-		DutyIndex:             int(rand.Uint32()),
-		NextArbitrators:       []state.ArbiterMember{},
-		NextCandidates:        []state.ArbiterMember{},
-		CurrentCandidates:     []state.ArbiterMember{},
-		CurrentArbitrators:    []state.ArbiterMember{},
-		CurrentReward:         *state.NewRewardData(),
-		NextReward:            *state.NewRewardData(),
-		CurrentCRCArbitersMap: make(map[common.Uint168]state.ArbiterMember),
-		NextCRCArbitersMap:    make(map[common.Uint168]state.ArbiterMember),
-		NextCRCArbiters:       make([]state.ArbiterMember, 0),
-		CRCChangedHeight:      123,
-		ForceChanged:          true,
-		StateKeyFrame:         *randomDPOSStateKeyFrame(),
+		Height:                      height,
+		DutyIndex:                   int(rand.Uint32()),
+		NextArbitrators:             []state.ArbiterMember{},
+		NextCandidates:              []state.ArbiterMember{},
+		CurrentCandidates:           []state.ArbiterMember{},
+		CurrentArbitrators:          []state.ArbiterMember{},
+		CurrentReward:               *state.NewRewardData(),
+		NextReward:                  *state.NewRewardData(),
+		CurrentCRCArbitersMap:       make(map[common.Uint168]state.ArbiterMember),
+		CurrentOnDutyCRCArbitersMap: make(map[common.Uint168]state.ArbiterMember),
+		NextCRCArbitersMap:          make(map[common.Uint168]state.ArbiterMember),
+		NextCRCArbiters:             make([]state.ArbiterMember, 0),
+		CRCChangedHeight:            123,
+		ForceChanged:                true,
+		StateKeyFrame:               *randomDPOSStateKeyFrame(),
 	}
 	result.CurrentReward.TotalVotesInRound = common.Fixed64(rand.Uint64())
 	result.NextReward.TotalVotesInRound = common.Fixed64(rand.Uint64())
@@ -134,6 +136,8 @@ func generateDPOSCheckPoint(height uint32) *state.CheckPoint {
 		result.NextCRCArbiters = append(result.NextCRCArbiters, ar)
 		ar, _ = state.NewOriginArbiter(randomFakePK())
 		result.CurrentCRCArbitersMap[ar.GetOwnerProgramHash()] = ar
+		ar, _ = state.NewOriginArbiter(randomFakePK())
+		result.CurrentOnDutyCRCArbitersMap[ar.GetOwnerProgramHash()] = ar
 		ar, _ = state.NewOriginArbiter(randomFakePK())
 		result.NextCRCArbitersMap[ar.GetOwnerProgramHash()] = ar
 

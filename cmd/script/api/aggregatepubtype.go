@@ -9,7 +9,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-
 	"github.com/elastos/Elastos.ELA/crypto"
 
 	lua "github.com/yuin/gopher-lua"

@@ -490,7 +490,6 @@ func (c *CheckPoint) initFromArbitrators(ar *Arbiters) {
 	c.IllegalBlocksPayloadHashes = ar.illegalBlocksPayloadHashes
 	c.CRCChangedHeight = ar.crcChangedHeight
 	c.CurrentCRCArbitersMap = ar.CurrentCRCArbitersMap
-	c.CurrentOnDutyCRCArbitersMap = ar.LastCRCArbitersMap
 	c.NextCRCArbitersMap = ar.nextCRCArbitersMap
 	c.NextCRCArbiters = ar.nextCRCArbiters
 	c.ForceChanged = ar.forceChanged

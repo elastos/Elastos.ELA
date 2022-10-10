@@ -6815,7 +6815,12 @@ func (s *txValidatorTestSuite) TestArbitersAccumulateReward() {
 			for i := 0; i < 20; i++ {
 				a.State.DposV2EffectedProducers[randomString()] = nil
 			}
-			a.State.ActivityProducers[ownerPubKeyStr] = &state.Producer{}
+			producer := &state.Producer{}
+			producer.SetInfo(payload.ProducerInfo{
+				OwnerPublicKey: nodePubKey,
+				NodePublicKey:  nodePubKey,
+			})
+			a.State.ActivityProducers[ownerPubKeyStr] = producer
 			//CurrentCRCArbitersMap
 			a.AccumulateReward(tt.args.block, tt.args.confirm)
 			a.History.Commit(tt.args.block.Height)

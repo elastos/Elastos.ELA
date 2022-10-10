@@ -86,8 +86,6 @@ type Arbiters struct {
 	nextArbitrators    []ArbiterMember
 	nextCandidates     []ArbiterMember
 
-	// last cr arbiters map
-	LastCRCArbitersMap map[common.Uint168]ArbiterMember
 	// current cr arbiters map
 	CurrentCRCArbitersMap map[common.Uint168]ArbiterMember
 	// next cr arbiters map
@@ -178,7 +176,6 @@ func (a *Arbiters) recoverFromCheckPoints(point *CheckPoint) {
 
 	a.crcChangedHeight = point.CRCChangedHeight
 	a.CurrentCRCArbitersMap = point.CurrentCRCArbitersMap
-	a.LastCRCArbitersMap = point.CurrentOnDutyCRCArbitersMap
 	a.nextCRCArbitersMap = point.NextCRCArbitersMap
 	a.nextCRCArbiters = point.NextCRCArbiters
 	a.forceChanged = point.ForceChanged
@@ -687,19 +684,22 @@ func (a *Arbiters) isDPoSV2Run(blockHeight uint32) bool {
 	return blockHeight >= a.DPoSV2ActiveHeight
 }
 
-func (a *Arbiters) getDPoSV2RewardsV2(dposReward common.Fixed64, sponsor []byte) (rewards map[string]common.Fixed64) {
+func (a *Arbiters) getDPoSV2RewardsV2(dposReward common.Fixed64, sponsor []byte, height uint32) (rewards map[string]common.Fixed64) {
 	log.Debugf("accumulateReward dposReward %v", dposReward)
-	ownerPubKeyStr := a.getProducerKey(sponsor)
-	ownerPubKeyBytes, _ := hex.DecodeString(ownerPubKeyStr)
-	ownerProgramHash, _ := contract.PublicKeyToStandardProgramHash(ownerPubKeyBytes)
-	ownerAddr, _ := ownerProgramHash.ToAddress()
 
 	rewards = make(map[string]common.Fixed64)
-	if _, ok := a.LastCRCArbitersMap[*ownerProgramHash]; ok { // crc
-		// all reward to DPoS node owner
-		rewards[ownerAddr] += dposReward
-	} else {
+	var isCR bool
+	for _, cr := range a.CurrentCRCArbitersMap {
+		if bytes.Equal(sponsor, cr.GetNodePublicKey()) {
+			ownerProgramHash, _ := contract.PublicKeyToStandardProgramHash(cr.GetOwnerPublicKey())
+			ownerAddr, _ := ownerProgramHash.ToAddress()
+			rewards[ownerAddr] += dposReward
+			isCR = true
+			break
+		}
+	}
 
+	if !isCR {
 		// DPoS votes reward is: reward * 3 /4
 		votesReward := dposReward * 3 / 4
 
@@ -708,6 +708,9 @@ func (a *Arbiters) getDPoSV2RewardsV2(dposReward common.Fixed64, sponsor []byte)
 			log.Error("accumulateReward Sponsor not exist ", hex.EncodeToString(sponsor))
 			return
 		}
+		ownerProgramHash, _ := contract.PublicKeyToStandardProgramHash(producer.OwnerPublicKey())
+		ownerAddr, _ := ownerProgramHash.ToAddress()
+
 		producersN := make(map[common.Uint168]float64)
 		stakeAddrPreTypeMgr := make(map[common.Uint168]byte)
 
@@ -751,7 +754,6 @@ func (a *Arbiters) getDPoSV2RewardsV2(dposReward common.Fixed64, sponsor []byte)
 		dposNodeReward := dposReward - totalUsedVotesReward
 		rewards[ownerAddr] += dposNodeReward
 		log.Debugf("getDPoSV2Rewards totalUsedVotesReward %s dposNodeReward %s,  \n", totalUsedVotesReward, dposNodeReward)
-
 	}
 
 	return rewards
@@ -854,7 +856,7 @@ func (a *Arbiters) accumulateReward(block *types.Block, confirm *payload.Confirm
 		var rewards map[string]common.Fixed64
 		if confirm != nil {
 			if block.Height > a.ChainParams.DPoSV2StartHeight {
-				rewards = a.getDPoSV2RewardsV2(dposReward, confirm.Proposal.Sponsor)
+				rewards = a.getDPoSV2RewardsV2(dposReward, confirm.Proposal.Sponsor, block.Height)
 			} else {
 				rewards = a.getDPoSV2RewardsV1(dposReward, confirm.Proposal.Sponsor)
 			}
@@ -1816,7 +1818,6 @@ func (a *Arbiters) getChangeType(height uint32) (ChangeType, uint32) {
 
 func (a *Arbiters) cleanArbitrators(height uint32) {
 	oriCurrentCRCArbitersMap := copyCRCArbitersMap(a.CurrentCRCArbitersMap)
-	oriCurrentOnDutyCRCArbitersMap := copyCRCArbitersMap(a.LastCRCArbitersMap)
 	oriCurrentArbitrators := a.CurrentArbitrators
 	oriCurrentCandidates := a.CurrentCandidates
 	oriNextCRCArbitersMap := copyCRCArbitersMap(a.nextCRCArbitersMap)
@@ -1825,7 +1826,6 @@ func (a *Arbiters) cleanArbitrators(height uint32) {
 	oriDutyIndex := a.DutyIndex
 	a.History.Append(height, func() {
 		a.CurrentCRCArbitersMap = make(map[common.Uint168]ArbiterMember)
-		a.LastCRCArbitersMap = make(map[common.Uint168]ArbiterMember)
 		a.CurrentArbitrators = make([]ArbiterMember, 0)
 		a.CurrentCandidates = make([]ArbiterMember, 0)
 		a.nextCRCArbitersMap = make(map[common.Uint168]ArbiterMember)
@@ -1834,7 +1834,6 @@ func (a *Arbiters) cleanArbitrators(height uint32) {
 		a.DutyIndex = 0
 	}, func() {
 		a.CurrentCRCArbitersMap = oriCurrentCRCArbitersMap
-		a.LastCRCArbitersMap = oriCurrentOnDutyCRCArbitersMap
 		a.CurrentArbitrators = oriCurrentArbitrators
 		a.CurrentCandidates = oriCurrentCandidates
 		a.nextCRCArbitersMap = oriNextCRCArbitersMap
@@ -1846,7 +1845,6 @@ func (a *Arbiters) cleanArbitrators(height uint32) {
 
 func (a *Arbiters) ChangeCurrentArbitrators(height uint32) error {
 	oriCurrentCRCArbitersMap := copyCRCArbitersMap(a.CurrentCRCArbitersMap)
-	oriLastCRCArbitersMap := copyCRCArbitersMap(a.LastCRCArbitersMap)
 	oriCurrentArbitrators := a.CurrentArbitrators
 	oriCurrentCandidates := a.CurrentCandidates
 	oriCurrentReward := a.CurrentReward
@@ -1856,14 +1854,12 @@ func (a *Arbiters) ChangeCurrentArbitrators(height uint32) error {
 			return bytes.Compare(a.nextArbitrators[i].GetNodePublicKey(),
 				a.nextArbitrators[j].GetNodePublicKey()) < 0
 		})
-		a.LastCRCArbitersMap = oriCurrentCRCArbitersMap
 		a.CurrentCRCArbitersMap = copyCRCArbitersMap(a.nextCRCArbitersMap)
 		a.CurrentArbitrators = a.nextArbitrators
 		a.CurrentCandidates = a.nextCandidates
 		a.CurrentReward = a.NextReward
 		a.DutyIndex = 0
 	}, func() {
-		a.LastCRCArbitersMap = oriLastCRCArbitersMap
 		a.CurrentCRCArbitersMap = oriCurrentCRCArbitersMap
 		a.CurrentArbitrators = oriCurrentArbitrators
 		a.CurrentCandidates = oriCurrentCandidates
@@ -2817,7 +2813,6 @@ func (a *Arbiters) newCheckPoint(height uint32) *CheckPoint {
 	point.NextReward = *copyReward(&a.NextReward)
 	point.NextCRCArbitersMap = copyCRCArbitersMap(a.nextCRCArbitersMap)
 	point.CurrentCRCArbitersMap = copyCRCArbitersMap(a.CurrentCRCArbitersMap)
-	point.CurrentOnDutyCRCArbitersMap = copyCRCArbitersMap(a.LastCRCArbitersMap)
 	point.NextCRCArbiters = copyByteList(a.nextCRCArbiters)
 
 	for k, v := range a.arbitersRoundReward {
@@ -2964,7 +2959,7 @@ func (a *Arbiters) initArbitrators(chainParams *config.Params) error {
 
 	a.CurrentArbitrators = originArbiters
 	a.nextArbitrators = originArbiters
-	a.nextCRCArbitersMap = crcArbiters
+	a.nextCRCArbitersMap = copyCRCArbitersMap(crcArbiters)
 	a.CurrentCRCArbitersMap = crcArbiters
 	a.CurrentReward = RewardData{
 		OwnerVotesInRound: make(map[common.Uint168]common.Fixed64),

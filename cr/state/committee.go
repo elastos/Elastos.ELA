@@ -589,8 +589,6 @@ func (c *Committee) updateCRMembers(
 		return
 	}
 
-	log.Info("### at height:", height, "impeachedCRMembersCID:", impeachedCRMembersCID)
-
 	// record new used CR impeachment votes information.
 	for stakeAddress, votes := range c.state.UsedCRImpeachmentVotes {
 		vts := make([]payload.VotesWithLockTime, 0)

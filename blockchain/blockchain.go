@@ -10,7 +10,6 @@ import (
 	"container/list"
 	"errors"
 	"fmt"
-	"github.com/elastos/Elastos.ELA/dpos/p2p/peer"
 	"math/big"
 	"os"
 	"path/filepath"
@@ -22,6 +21,7 @@ import (
 	. "github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/common/log"
+	"github.com/elastos/Elastos.ELA/core/checkpoint"
 	"github.com/elastos/Elastos.ELA/core/contract/program"
 	. "github.com/elastos/Elastos.ELA/core/types"
 	"github.com/elastos/Elastos.ELA/core/types/common"
@@ -31,10 +31,12 @@ import (
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	crstate "github.com/elastos/Elastos.ELA/cr/state"
 	"github.com/elastos/Elastos.ELA/database"
+	"github.com/elastos/Elastos.ELA/dpos/p2p/peer"
 	"github.com/elastos/Elastos.ELA/dpos/state"
 	"github.com/elastos/Elastos.ELA/events"
 	"github.com/elastos/Elastos.ELA/p2p/msg"
 	"github.com/elastos/Elastos.ELA/utils"
+	"github.com/elastos/Elastos.ELA/utils/signal"
 )
 
 const (
@@ -318,7 +320,8 @@ func (b *BlockChain) InitCheckpoint(interrupt <-chan struct{},
 				break
 			}
 
-			b.chainParams.CkpManager.OnBlockSaved(block, nil, b.state.ConsensusAlgorithm == state.POW)
+			b.chainParams.CkpManager.OnBlockSaved(block, nil,
+				b.state.ConsensusAlgorithm == state.POW, b.state.RevertToPOWBlockHeight)
 
 			// Notify process increase.
 			if increase != nil {
@@ -341,7 +344,6 @@ func (b *BlockChain) InitCheckpoint(interrupt <-chan struct{},
 				CurrentPeers: currentArbiters,
 				NextPeers:    nextArbiters,
 				CRPeers:      crArbiters})
-
 
 	case <-interrupt:
 	}
@@ -1288,6 +1290,12 @@ func (b *BlockChain) reorganizeChain(detachNodes, attachNodes *list.List) error 
 		}
 	}
 
+	forkCount := detachNodes.Len()
+	var recoverFromGenesis bool
+	if forkCount > checkpoint.MaxCheckPointFilesCount {
+		recoverFromGenesis = true
+	}
+
 	// Disconnect blocks from the main chain.
 	for e := detachNodes.Front(); e != nil; e = e.Next() {
 		n := e.Value.(*BlockNode)
@@ -1297,7 +1305,7 @@ func (b *BlockChain) reorganizeChain(detachNodes, attachNodes *list.List) error 
 		}
 
 		// roll back state about the last block before disconnect
-		if block.Height-1 >= b.chainParams.VoteStartHeight {
+		if block.Height-1 >= b.chainParams.VoteStartHeight && !recoverFromGenesis {
 			err = b.chainParams.CkpManager.OnRollbackTo(
 				block.Height-1, b.state.ConsensusAlgorithm == state.POW)
 			if err != nil {
@@ -1313,6 +1321,20 @@ func (b *BlockChain) reorganizeChain(detachNodes, attachNodes *list.List) error 
 			return err
 		}
 	}
+
+	// recover check point from genesis block
+	if recoverFromGenesis {
+		err := b.chainParams.CkpManager.OnRollbackTo(
+			0, false)
+		if err != nil {
+			return err
+		}
+
+		var interrupt = signal.NewInterrupt()
+		b.InitCheckpoint(interrupt.C, nil, nil)
+		<-interrupt.C
+	}
+
 	// Connect the new best chain blocks.
 	for e := attachNodes.Front(); e != nil; e = e.Next() {
 		n := e.Value.(*BlockNode)
@@ -1330,7 +1352,8 @@ func (b *BlockChain) reorganizeChain(detachNodes, attachNodes *list.List) error 
 			Block:       block,
 			HaveConfirm: confirm != nil,
 			Confirm:     confirm,
-		}, nil, b.state.ConsensusAlgorithm == state.POW)
+		}, nil, b.state.ConsensusAlgorithm == state.POW,
+			b.state.RevertToPOWBlockHeight)
 		DefaultLedger.Arbitrators.DumpInfo(block.Height)
 		delete(b.blockCache, *n.Hash)
 		delete(b.confirmCache, *n.Hash)
@@ -1540,7 +1563,8 @@ func (b *BlockChain) maybeAcceptBlock(block *Block, confirm *payload.Confirm) (b
 			Block:       block,
 			HaveConfirm: confirm != nil,
 			Confirm:     confirm,
-		}, nil, b.state.ConsensusAlgorithm == state.POW)
+		}, nil, b.state.ConsensusAlgorithm == state.POW,
+			b.state.RevertToPOWBlockHeight)
 		DefaultLedger.Arbitrators.DumpInfo(block.Height)
 	}
 

@@ -106,9 +106,30 @@ func (t *RegisterProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bo
 	if err != nil {
 		return elaerr.Simple(elaerr.ErrTxPayload, err), true
 	}
-	err = crypto.Verify(*publicKey, signedBuf.Bytes(), info.Signature)
-	if err != nil {
-		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid signature in payload")), true
+	//err = crypto.Verify(*publicKey, signedBuf.Bytes(), info.Signature)
+	//if err != nil {
+	//	return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid signature in payload")), true
+	//}
+
+	//var isSchnorrTx bool
+	for _, program := range t.Programs() {
+		if contract.IsSchnorr(program.Code) {
+			pub := [33]byte{}
+			pubbuf, _ := publicKey.EncodePoint(true)
+			copy(pub[:], pubbuf)
+
+			signature := [64]byte{}
+			copy(signature[:], info.Signature)
+			if ok, err = crypto.SchnorrVerify(pub, common.Sha256D(signedBuf.Bytes()), signature); !ok {
+				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid schnorr signature in payload")), true
+			}
+			//isSchnorrTx = true
+		} else {
+			err = crypto.Verify(*publicKey, signedBuf.Bytes(), info.Signature)
+			if err != nil {
+				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid signature in payload")), true
+			}
+		}
 	}
 
 	height := t.parameters.BlockChain.GetHeight()
@@ -118,16 +139,44 @@ func (t *RegisterProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bo
 	} else if height > state.DPoSV2ActiveHeight && t.payloadVersion == payload.ProducerInfoVersion {
 		return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("can not register dposv1 after dposv2 active height")), true
 	}
+	//tx.Programs()[0].Code
+
+	//ownProgramHash :=
+	var hash *common.Uint168
+	//if contract.Schnorr == contract.GetCodeType(t.Programs()[0].Code) {
+	//	publicKey, err := crypto.DecodePoint(info.OwnerPublicKey)
+	//	ct, err := contract.CreateSchnorrContract(publicKey)
+	//	if err != nil {
+	//		fmt.Errorf("Create multi-sign contract failed, error %s", err.Error())
+	//	}
+	//	hash = ct.ToProgramHash()
+	//	addr, _ := hash.ToAddress()
+	//	log.Debugf("#### Schnorr addr", addr)
+	//} else {
+	//	hash, err = contract.PublicKeyToDepositProgramHash(info.OwnerPublicKey)
+	//	if err != nil {
+	//		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid public key")), true
+	//	}
+	//	addr, _ := hash.ToAddress()
+	//	log.Debugf("#### normal addr", addr)
+	//
+	//}
+
+	hash, err = contract.PublicKeyToDepositProgramHash(info.OwnerPublicKey)
+	if err != nil {
+		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid public key")), true
+	}
+	addr, _ := hash.ToAddress()
+	log.Debugf("####  hash.ToAddress", addr)
 
 	if t.PayloadVersion() == payload.ProducerInfoVersion {
 		// check deposit coin
-		hash, err := contract.PublicKeyToDepositProgramHash(info.OwnerPublicKey)
-		if err != nil {
-			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid public key")), true
-		}
 		var depositCount int
 		for _, output := range t.Outputs() {
 			if contract.GetPrefixType(output.ProgramHash) == contract.PrefixDeposit {
+				addr, _ := output.ProgramHash.ToAddress()
+
+				log.Debugf("#### register producer 1.0 ", addr)
 				depositCount++
 				if !output.ProgramHash.IsEqual(*hash) {
 					return elaerr.Simple(elaerr.ErrTxPayload, errors.New("deposit"+
@@ -148,15 +197,12 @@ func (t *RegisterProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bo
 		//if info.StakeUntil > t.parameters.BlockHeight+t.parameters.Config.DPoSV2MaxVotesLockTime {
 		//	return elaerr.Simple(elaerr.ErrTxPayload, errors.New("v2 producer StakeUntil bigger than DPoSV2MaxVotesLockTime")), true
 		//}
-
-		// check deposit coin
-		hash, err := contract.PublicKeyToDepositProgramHash(info.OwnerPublicKey)
-		if err != nil {
-			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid public key")), true
-		}
 		var depositCount int
 		for _, output := range t.Outputs() {
 			if contract.GetPrefixType(output.ProgramHash) == contract.PrefixDeposit {
+				addr, _ := output.ProgramHash.ToAddress()
+
+				log.Debugf("#### register producer 2.o ", addr)
 				depositCount++
 				if !output.ProgramHash.IsEqual(*hash) {
 					return elaerr.Simple(elaerr.ErrTxPayload, errors.New("deposit address does not match the public key in payload")), true

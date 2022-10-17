@@ -1318,6 +1318,15 @@ func (c *Committee) RollbackTo(height uint32) error {
 func (c *Committee) Recover(checkpoint *Checkpoint) {
 	c.mtx.Lock()
 	defer c.mtx.Unlock()
+
+	// reset history
+	c.state.History = utils.NewHistory(maxHistoryCapacity)
+	c.manager.history = utils.NewHistory(maxHistoryCapacity)
+	c.firstHistory = utils.NewHistory(maxHistoryCapacity)
+	c.inactiveCRHistory = utils.NewHistory(maxHistoryCapacity)
+	c.committeeHistory = utils.NewHistory(maxHistoryCapacity)
+	c.appropriationHistory = utils.NewHistory(maxHistoryCapacity)
+
 	c.state.StateKeyFrame = checkpoint.StateKeyFrame
 	c.KeyFrame = checkpoint.KeyFrame
 

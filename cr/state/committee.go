@@ -910,15 +910,54 @@ func (c *Committee) recordCRCRelatedAddressOutputs(block *types.Block) {
 }
 
 func (c *Committee) updateCirculationAmount(history *utils.History, height uint32) {
-	circulationAmount := common.Fixed64(config.OriginIssuanceAmount) +
-		common.Fixed64(height)*c.Params.GetBlockReward(height) -
-		c.CRCFoundationBalance - c.CRCCommitteeBalance - c.DestroyedAmount
-	oriCirculationAmount := c.CirculationAmount
-	history.Append(height, func() {
-		c.CirculationAmount = circulationAmount
-	}, func() {
-		c.CirculationAmount = oriCirculationAmount
-	})
+	if height < c.Params.DPoSV2StartHeight {
+		circulationAmount := common.Fixed64(config.OriginIssuanceAmount) +
+			common.Fixed64(height)*c.Params.GetBlockReward(height) -
+			c.CRCFoundationBalance - c.CRCCommitteeBalance - c.DestroyedAmount
+		oriCirculationAmount := c.CirculationAmount
+		history.Append(height, func() {
+			c.CirculationAmount = circulationAmount
+		}, func() {
+			c.CirculationAmount = oriCirculationAmount
+		})
+	} else {
+		circulationAmount := common.Fixed64(config.OriginIssuanceAmount) +
+			c.calculateTotalELAByHeight(height) -
+			c.CRCFoundationBalance - c.CRCCommitteeBalance - c.DestroyedAmount
+		oriCirculationAmount := c.CirculationAmount
+		history.Append(height, func() {
+			c.CirculationAmount = circulationAmount
+		}, func() {
+			c.CirculationAmount = oriCirculationAmount
+		})
+	}
+}
+
+func (c *Committee) calculateTotalELAByHeight(currentHeight uint32) common.Fixed64 {
+	height0 := c.Params.NewELAIssuanceHeight
+	height1 := c.Params.HalvingRewardHeight
+	height2 := c.Params.HalvingRewardInterval
+
+	heights := make([]uint32, 0)
+	if currentHeight >= height0 {
+		heights = append(heights, height0)
+	}
+	for i := uint32(0); ; i++ {
+		h := height1 + height2*i
+		if currentHeight < h {
+			break
+		}
+		heights = append(heights, h)
+	}
+	var totalAmount common.Fixed64
+	lastHeight := uint32(1)
+	for _, h := range heights {
+		totalAmount += common.Fixed64(h-lastHeight) * c.Params.GetBlockReward(h-1)
+		lastHeight = h
+	}
+	totalAmount += common.Fixed64(currentHeight-lastHeight) * c.Params.GetBlockReward(currentHeight)
+
+	return totalAmount
 }
 
 func (c *Committee) recordLastVotingStartHeight(height uint32) {

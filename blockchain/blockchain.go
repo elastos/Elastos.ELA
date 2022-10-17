@@ -36,7 +36,6 @@ import (
 	"github.com/elastos/Elastos.ELA/events"
 	"github.com/elastos/Elastos.ELA/p2p/msg"
 	"github.com/elastos/Elastos.ELA/utils"
-	"github.com/elastos/Elastos.ELA/utils/signal"
 )
 
 const (
@@ -330,7 +329,7 @@ func (b *BlockChain) InitCheckpoint(interrupt <-chan struct{},
 		}
 		done <- struct{}{}
 	}()
-
+	log.Info("### 1 recoverFromGenesis end 0")
 	select {
 	case <-done:
 		arbiters.Start()
@@ -1291,26 +1290,18 @@ func (b *BlockChain) reorganizeChain(detachNodes, attachNodes *list.List) error 
 	}
 
 	forkCount := detachNodes.Len()
-	var recoverFromGenesis bool
-	if forkCount > checkpoint.MaxCheckPointFilesCount {
-		recoverFromGenesis = true
+	var recoverFromDefault bool
+	if forkCount >= checkpoint.MaxCheckPointFilesCount {
+		recoverFromDefault = true
 	}
 
 	// Disconnect blocks from the main chain.
+	var forkHeight uint32
 	for e := detachNodes.Front(); e != nil; e = e.Next() {
 		n := e.Value.(*BlockNode)
 		block, err := b.db.GetFFLDB().GetBlock(*n.Hash)
 		if err != nil {
 			return err
-		}
-
-		// roll back state about the last block before disconnect
-		if block.Height-1 >= b.chainParams.VoteStartHeight && !recoverFromGenesis {
-			err = b.chainParams.CkpManager.OnRollbackTo(
-				block.Height-1, b.state.ConsensusAlgorithm == state.POW)
-			if err != nil {
-				return err
-			}
 		}
 
 		log.Info("disconnect block:", block.Height)
@@ -1320,19 +1311,32 @@ func (b *BlockChain) reorganizeChain(detachNodes, attachNodes *list.List) error 
 		if err != nil {
 			return err
 		}
+
+		forkHeight = block.Height
 	}
 
 	// recover check point from genesis block
-	if recoverFromGenesis {
-		err := b.chainParams.CkpManager.OnRollbackTo(
-			0, false)
-		if err != nil {
-			return err
+	if recoverFromDefault {
+		//	err := b.chainParams.CkpManager.OnRollbackTo(
+		//		0, false)
+		//	if err != nil {
+		//		return err
+		//	}
+		//
+		log.Info("### 1 recoverFromDefault:", recoverFromDefault, "forkHeight:", forkHeight)
+		b.InitCheckpoint(nil, nil, nil)
+		log.Info("### 1 recoverFromDefault end")
+	} else {
+		// roll back state about the last block before disconnect
+		//if forkHeight >= b.chainParams.VoteStartHeight && !recoverFromDefault {
+		if forkHeight >= b.chainParams.VoteStartHeight {
+			log.Info("### 2 recoverFromDefault:", recoverFromDefault)
+			err := b.chainParams.CkpManager.OnRollbackTo(
+				forkHeight, b.state.ConsensusAlgorithm == state.POW)
+			if err != nil {
+				return err
+			}
 		}
-
-		var interrupt = signal.NewInterrupt()
-		b.InitCheckpoint(interrupt.C, nil, nil)
-		<-interrupt.C
 	}
 
 	// Connect the new best chain blocks.

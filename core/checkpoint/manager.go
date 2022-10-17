@@ -323,9 +323,6 @@ func (m *Manager) onBlockSaved(block *types.DposBlock,
 	sortedPoints := m.getOrderedCheckpoints()
 	var saveCheckPoint bool
 	var useCheckPoint bool
-	//for _, v := range sortedPoints {
-	//	log.Info("### checkpoints ", v.Key(), "start height:", v.StartHeight(), "height:", block.Height, "get height:", v.GetHeight())
-	//}
 
 	for _, v := range sortedPoints {
 		if filter != nil && !filter(v) {
@@ -352,7 +349,11 @@ func (m *Manager) onBlockSaved(block *types.DposBlock,
 				v.Key() == dposCheckpointKey && useCheckPoint) {
 
 			reply := make(chan bool, 1)
-			m.channels[v.Key()].Replace(v, reply, originalHeight)
+			if v.Key() == dposCheckpointKey || v.Key() == crCheckpointKey {
+				m.channels[v.Key()].ReplaceRemove(v, reply, originalHeight)
+			} else {
+				m.channels[v.Key()].Replace(v, reply, originalHeight)
+			}
 			if !async {
 				<-reply
 			}
@@ -373,9 +374,11 @@ func (m *Manager) onBlockSaved(block *types.DposBlock,
 				continue
 			}
 			reply := make(chan bool, 1)
-			if isPow && block.Height-revertToPowHeight > uint32(MaxCheckPointFilesCount) {
-				m.channels[v.Key()].Remove(v, reply, block.Height-uint32(MaxCheckPointFilesCount))
-				<-reply
+			if v.Key() == dposCheckpointKey || v.Key() == crCheckpointKey {
+				if isPow && block.Height-revertToPowHeight > uint32(MaxCheckPointFilesCount) {
+					m.channels[v.Key()].Remove(v, reply, block.Height-uint32(MaxCheckPointFilesCount))
+					<-reply
+				}
 			}
 			m.channels[v.Key()].Save(snapshot, reply)
 			if !async {

@@ -3547,6 +3547,9 @@ func getPayloadInfo(p interfaces.Payload, payloadVersion byte) PayloadInfo {
 				case outputpayload.CRC, outputpayload.CRCImpeachment:
 					c, _ := common.Uint168FromBytes(detail.Candidate)
 					candidate, _ = c.ToAddress()
+				case outputpayload.CRCProposal:
+					proposalHash, _ := common.Uint256FromBytes(detail.Candidate)
+					candidate = common.ToReversedString(*proposalHash)
 				default:
 					candidate = common.BytesToHexString(detail.Candidate)
 				}

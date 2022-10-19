@@ -9,13 +9,14 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
-	"github.com/elastos/Elastos.ELA/core/types/outputpayload"
 	"os"
 	"strconv"
 	"strings"
 
+	"github.com/elastos/Elastos.ELA/account"
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/core/contract"
+	"github.com/elastos/Elastos.ELA/core/types/outputpayload"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/crypto"
 	lua "github.com/yuin/gopher-lua"
@@ -27,6 +28,7 @@ const (
 	luaTransferCrossChainAssetTypeName      = "transfercrosschainasset"
 	luaRegisterProducerName                 = "registerproducer"
 	luaRegisterV2ProducerName               = "registerv2producer"
+	luaUpdateV2ProducerName                 = "updatev2producer"
 	luaUpdateProducerName                   = "updateproducer"
 	luaCancelProducerName                   = "cancelproducer"
 	luaActivateProducerName                 = "activateproducer"
@@ -546,6 +548,103 @@ func RegisterUpdateProducerType(L *lua.LState) {
 	L.SetField(mt, "__index", L.SetFuncs(L.NewTable(), updateProducerMethods))
 }
 
+//luaUpdateV2ProducerName
+func RegisterUpdateV2ProducerType(L *lua.LState) {
+	mt := L.NewTypeMetatable(luaUpdateV2ProducerName)
+	L.SetGlobal("updatev2producer", mt)
+	// static attributes
+	L.SetField(mt, "new", L.NewFunction(newUpdateV2Producer))
+	// methods
+	L.SetField(mt, "__index", L.SetFuncs(L.NewTable(), updateV2ProducerMethods))
+}
+
+// Constructor
+func newUpdateV2Producer(L *lua.LState) int {
+	ownerPublicKeyStr := L.ToString(1)
+	nodePublicKeyStr := L.ToString(2)
+	nickName := L.ToString(3)
+	url := L.ToString(4)
+	location := L.ToInt64(5)
+	address := L.ToString(6)
+	stakeuntil := L.ToInt64(7)
+	needSign := true
+	client, err := checkClient(L, 8)
+	var account *account.SchnorAccount
+	if err != nil {
+		account, err = checkAccount(L, 9)
+		if err != nil {
+			needSign = false
+		}
+	}
+
+	ownerPublicKey, err := common.HexStringToBytes(ownerPublicKeyStr)
+	if err != nil {
+		fmt.Println("wrong producer public key")
+		os.Exit(1)
+	}
+	nodePublicKey, err := common.HexStringToBytes(nodePublicKeyStr)
+	if err != nil {
+		fmt.Println("wrong producer public key")
+		os.Exit(1)
+	}
+	updateProducer := &payload.ProducerInfo{
+		OwnerPublicKey: []byte(ownerPublicKey),
+		NodePublicKey:  []byte(nodePublicKey),
+		NickName:       nickName,
+		Url:            url,
+		Location:       uint64(location),
+		NetAddress:     address,
+		StakeUntil:     uint32(stakeuntil),
+	}
+
+	if needSign {
+		upSignBuf := new(bytes.Buffer)
+		version := payload.ProducerInfoVersion
+		if stakeuntil != 0 {
+			version = payload.ProducerInfoDposV2Version
+		}
+		err = updateProducer.SerializeUnsigned(upSignBuf, version)
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+
+		codeHash, err := contract.PublicKeyToStandardCodeHash(ownerPublicKey)
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+		if account == nil {
+			acc := client.GetAccountByCodeHash(*codeHash)
+			if acc == nil {
+				fmt.Println("no available account in wallet")
+				os.Exit(1)
+			}
+			rpSig, err := crypto.Sign(acc.PrivKey(), upSignBuf.Bytes())
+			if err != nil {
+				fmt.Println(err)
+				os.Exit(1)
+			}
+			updateProducer.Signature = rpSig
+		} else {
+			fmt.Println("process AggregateSignatures")
+			rpSig, err := crypto.AggregateSignatures(account.PrivateKeys, common.Sha256D(upSignBuf.Bytes()))
+			if err != nil {
+				fmt.Println(err)
+				os.Exit(1)
+			}
+			updateProducer.Signature = rpSig[:]
+		}
+	}
+
+	ud := L.NewUserData()
+	ud.Value = updateProducer
+	L.SetMetatable(ud, L.GetTypeMetatable(luaUpdateProducerName))
+	L.Push(ud)
+
+	return 1
+}
+
 // Constructor
 func newUpdateProducer(L *lua.LState) int {
 	ownerPublicKeyStr := L.ToString(1)
@@ -630,6 +729,18 @@ var updateProducerMethods = map[string]lua.LGFunction{
 
 // Getter and setter for the Person#Name
 func updateProducerGet(L *lua.LState) int {
+	p := checkUpdateProducer(L, 1)
+	fmt.Println(p)
+
+	return 0
+}
+
+var updateV2ProducerMethods = map[string]lua.LGFunction{
+	"get": updateV2ProducerGet,
+}
+
+// Getter and setter for the Person#Name
+func updateV2ProducerGet(L *lua.LState) int {
 	p := checkUpdateProducer(L, 1)
 	fmt.Println(p)
 

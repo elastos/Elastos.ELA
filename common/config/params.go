@@ -153,12 +153,13 @@ func GetDefaultParams() Params {
 			"node-mainnet-025.elastos.org:20338",
 		},
 
-		Foundation:        mainNetFoundation,
-		CRCAddress:        mainNetCRCAddress,
-		CRAssetsAddress:   CRAssetsAddress,
-		CRExpensesAddress: CRCExpensesAddress,
-		DestroyELAAddress: DestroyELAAddress,
-		GenesisBlock:      GenesisBlock(&mainNetFoundation),
+		Foundation:          mainNetFoundation,
+		CRCAddress:          mainNetCRCAddress,
+		CRAssetsAddress:     CRAssetsAddress,
+		CRExpensesAddress:   CRCExpensesAddress,
+		DestroyELAAddress:   DestroyELAAddress,
+		OriginDestroyAmount: common.Fixed64(45341569050100),
+		GenesisBlock:        GenesisBlock(&mainNetFoundation),
 
 		DPoSMagic:       2019000,
 		DPoSDefaultPort: 20339,
@@ -540,6 +541,9 @@ type Params struct {
 
 	// DestroyELAAddress defines address which receiving destroyed ELA.
 	DestroyELAAddress common.Uint168
+
+	// OriginDestroyAmount defines the destroyed ELA before voting start height.
+	OriginDestroyAmount common.Fixed64
 
 	// GenesisBlock defines the first block of the chain.
 	GenesisBlock *types.Block

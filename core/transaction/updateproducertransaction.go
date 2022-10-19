@@ -10,6 +10,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/elastos/Elastos.ELA/core/contract"
 
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
@@ -101,9 +102,24 @@ func (t *UpdateProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bool
 	if err != nil {
 		return elaerr.Simple(elaerr.ErrTxPayload, err), true
 	}
-	err = crypto.Verify(*publicKey, signedBuf.Bytes(), info.Signature)
-	if err != nil {
-		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid signature in payload")), true
+
+	for _, program := range t.Programs() {
+		if contract.IsSchnorr(program.Code) {
+			pub := [33]byte{}
+			pubbuf, _ := publicKey.EncodePoint(true)
+			copy(pub[:], pubbuf)
+
+			signature := [64]byte{}
+			copy(signature[:], info.Signature)
+			if ok, err = crypto.SchnorrVerify(pub, common.Sha256D(signedBuf.Bytes()), signature); !ok {
+				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid schnorr signature in payload")), true
+			}
+		} else {
+			err = crypto.Verify(*publicKey, signedBuf.Bytes(), info.Signature)
+			if err != nil {
+				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid signature in payload")), true
+			}
+		}
 	}
 
 	producer := t.parameters.BlockChain.GetState().GetProducer(info.OwnerPublicKey)

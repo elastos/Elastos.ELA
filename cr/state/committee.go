@@ -2125,5 +2125,9 @@ func NewCommittee(params *config.Params) *Committee {
 	committee.manager.InitSecretaryGeneralPublicKey(params.SecretaryGeneral)
 	committee.state.SetManager(committee.manager)
 	params.CkpManager.Register(NewCheckpoint(committee))
+
+	// initialize destroyed ELA
+	committee.KeyFrame.DestroyedAmount = params.OriginDestroyAmount
+
 	return committee
 }

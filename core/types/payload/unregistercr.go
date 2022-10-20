@@ -15,6 +15,7 @@ import (
 )
 
 const UnregisterCRVersion byte = 0x00
+const UnregisterCRSchnorrVersion byte = 0x01
 
 type UnregisterCR struct {
 	CID       common.Uint168
@@ -35,9 +36,11 @@ func (a *UnregisterCR) Serialize(w io.Writer, version byte) error {
 		return err
 	}
 
-	err = common.WriteVarBytes(w, a.Signature)
-	if err != nil {
-		return errors.New("[UnregisterCR], Signature serialize failed")
+	if version != UnregisterCRSchnorrVersion {
+		err = common.WriteVarBytes(w, a.Signature)
+		if err != nil {
+			return errors.New("[UnregisterCR], Signature serialize failed")
+		}
 	}
 
 	return nil
@@ -55,9 +58,12 @@ func (a *UnregisterCR) Deserialize(r io.Reader, version byte) error {
 	if err != nil {
 		return err
 	}
-	a.Signature, err = common.ReadVarBytes(r, crypto.MaxSignatureScriptLength, "signature")
-	if err != nil {
-		return errors.New("[UnregisterCR], signature deserialize failed")
+
+	if version != UnregisterCRSchnorrVersion {
+		a.Signature, err = common.ReadVarBytes(r, crypto.MaxSignatureScriptLength, "signature")
+		if err != nil {
+			return errors.New("[UnregisterCR], signature deserialize failed")
+		}
 	}
 
 	return nil

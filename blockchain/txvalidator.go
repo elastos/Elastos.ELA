@@ -862,7 +862,7 @@ func CheckCRTransactionSignature(signature []byte, code []byte, data []byte) err
 	return nil
 }
 
-func CrInfoSanityCheck(info *payload.CRInfo, payloadVersion byte) error {
+func CheckPayloadSignature(info *payload.CRInfo, payloadVersion byte) error {
 	signedBuf := new(bytes.Buffer)
 	err := info.SerializeUnsigned(signedBuf, payloadVersion)
 	if err != nil {

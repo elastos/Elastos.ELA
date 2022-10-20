@@ -4535,12 +4535,12 @@ func (s *txValidatorTestSuite) TestCrInfoSanityCheck() {
 
 	//test ok
 	rcPayload.Signature = rcSig1
-	err = blockchain.CrInfoSanityCheck(rcPayload, payload.CRInfoVersion)
+	err = blockchain.CheckPayloadSignature(rcPayload, payload.CRInfoVersion)
 	s.NoError(err)
 
 	//invalid code
 	rcPayload.Code = []byte{1, 2, 3, 4, 5}
-	err = blockchain.CrInfoSanityCheck(rcPayload, payload.CRInfoVersion)
+	err = blockchain.CheckPayloadSignature(rcPayload, payload.CRInfoVersion)
 	s.EqualError(err, "invalid code")
 
 	//todo CHECKMULTISIG

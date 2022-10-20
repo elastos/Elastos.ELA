@@ -77,7 +77,13 @@ func (t *RegisterCRTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
 	}
 
 	// get CID program hash and check length of code
-	ct, err := contract.CreateCRIDContractByCode(info.Code)
+	var code []byte
+	if t.payloadVersion == payload.CRInfoSchnorrVersion {
+		code = t.Programs()[0].Code
+	} else {
+		code = info.Code
+	}
+	ct, err := contract.CreateCRIDContractByCode(code)
 	if err != nil {
 		return elaerr.Simple(elaerr.ErrTxPayload, err), true
 	}
@@ -90,13 +96,16 @@ func (t *RegisterCRTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
 
 	// check if program code conflict with producer public keys
 	var pk []byte
-	if contract.IsSchnorr(info.Code) {
-		pk = info.Code[2:]
-	} else if info.Code[len(info.Code)-1] == vm.CHECKSIG {
-		pk = info.Code[1 : len(info.Code)-1]
+	if contract.IsSchnorr(code) {
+		pk = code[2:]
+	} else if code[len(code)-1] == vm.CHECKSIG {
+		pk = code[1 : len(code)-1]
+	} else if code[len(code)-1] == vm.CHECKMULTISIG {
+		// todo complete me in the feature
+		return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("CR not support multi sign code")), true
 	} else {
 		return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("invalid code %s",
-			common.BytesToHexString(info.Code))), true
+			common.BytesToHexString(code))), true
 	}
 	if t.parameters.BlockChain.GetState().ProducerExists(pk) {
 		return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("public key %s already inuse in producer list",
@@ -111,7 +120,7 @@ func (t *RegisterCRTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
 		t.PayloadVersion() == payload.CRInfoDIDVersion {
 		// get DID program hash
 
-		programHash, err = getDIDFromCode(info.Code)
+		programHash, err = getDIDFromCode(code)
 		if err != nil {
 			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid info.Code")), true
 		}
@@ -122,8 +131,10 @@ func (t *RegisterCRTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
 	}
 
 	// check code and signature
-	if err := blockchain.CrInfoSanityCheck(info, t.PayloadVersion()); err != nil {
-		return elaerr.Simple(elaerr.ErrTxPayload, err), true
+	if t.payloadVersion != payload.CRInfoSchnorrVersion {
+		if err := blockchain.CheckPayloadSignature(info, t.PayloadVersion()); err != nil {
+			return elaerr.Simple(elaerr.ErrTxPayload, err), true
+		}
 	}
 
 	// check deposit coin
@@ -132,7 +143,7 @@ func (t *RegisterCRTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
 		if contract.GetPrefixType(output.ProgramHash) == contract.PrefixDeposit {
 			depositCount++
 			// get deposit program hash
-			ct, err := contract.CreateDepositContractByCode(info.Code)
+			ct, err := contract.CreateDepositContractByCode(code)
 			if err != nil {
 				return elaerr.Simple(elaerr.ErrTxPayload, err), true
 			}

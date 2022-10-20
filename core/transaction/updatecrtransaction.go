@@ -8,8 +8,8 @@ package transaction
 import (
 	"errors"
 	"fmt"
-
 	"github.com/elastos/Elastos.ELA/blockchain"
+
 	"github.com/elastos/Elastos.ELA/core/contract"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	crstate "github.com/elastos/Elastos.ELA/cr/state"
@@ -48,15 +48,19 @@ func (t *UpdateCRTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
 		return elaerr.Simple(elaerr.ErrTxPayload, err), true
 	}
 
+	var code []byte
+	if t.payloadVersion == payload.CRInfoSchnorrVersion {
+		code = t.Programs()[0].Code
+	} else {
+		code = info.Code
+	}
+
 	// get CID program hash and check length of code
-	ct, err := contract.CreateCRIDContractByCode(info.Code)
+	ct, err := contract.CreateCRIDContractByCode(code)
 	if err != nil {
 		return elaerr.Simple(elaerr.ErrTxPayload, err), true
 	}
 	programHash := ct.ToProgramHash()
-	if err != nil {
-		return elaerr.Simple(elaerr.ErrTxPayload, err), true
-	}
 
 	// check CID
 	if !info.CID.IsEqual(*programHash) {
@@ -67,7 +71,7 @@ func (t *UpdateCRTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
 		t.PayloadVersion() == payload.CRInfoDIDVersion {
 		// get DID program hash
 
-		programHash, err = getDIDFromCode(info.Code)
+		programHash, err = getDIDFromCode(code)
 		if err != nil {
 			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid info.Code")), true
 		}
@@ -78,9 +82,12 @@ func (t *UpdateCRTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
 	}
 
 	// check code and signature
-	if err := blockchain.CrInfoSanityCheck(info, t.PayloadVersion()); err != nil {
-		return elaerr.Simple(elaerr.ErrTxPayload, err), true
+	if t.payloadVersion != payload.CRInfoSchnorrVersion {
+		if err := blockchain.CheckPayloadSignature(info, t.PayloadVersion()); err != nil {
+			return elaerr.Simple(elaerr.ErrTxPayload, err), true
+		}
 	}
+
 	if !t.parameters.BlockChain.GetCRCommittee().IsInVotingPeriod(t.parameters.BlockHeight) {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("should create tx during voting period")), true
 	}

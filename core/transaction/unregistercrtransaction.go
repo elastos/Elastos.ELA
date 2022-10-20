@@ -9,7 +9,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-
 	"github.com/elastos/Elastos.ELA/blockchain"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	crstate "github.com/elastos/Elastos.ELA/cr/state"
@@ -63,14 +62,19 @@ func (t *UnregisterCRTransaction) SpecialContextCheck() (elaerr.ELAError, bool) 
 	}
 
 	signedBuf := new(bytes.Buffer)
-	err := info.SerializeUnsigned(signedBuf, payload.UnregisterCRVersion)
+	err := info.SerializeUnsigned(signedBuf, t.payloadVersion)
 	if err != nil {
 		return elaerr.Simple(elaerr.ErrTxPayload, err), true
 	}
-
-	err = blockchain.CheckCRTransactionSignature(info.Signature, cr.Info.Code, signedBuf.Bytes())
-	if err != nil {
-		return elaerr.Simple(elaerr.ErrTxPayload, err), true
+	if t.payloadVersion != payload.UnregisterCRSchnorrVersion {
+		err = blockchain.CheckCRTransactionSignature(info.Signature, cr.Info.Code, signedBuf.Bytes())
+		if err != nil {
+			return elaerr.Simple(elaerr.ErrTxPayload, err), true
+		}
+	} else {
+		if !bytes.Equal(cr.Info.Code, t.Programs()[0].Code) {
+			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid transaction code")), true
+		}
 	}
 
 	return nil, false

@@ -35,12 +35,18 @@ type TxPool struct {
 	proposalsUsedAmount  Fixed64
 	crossChainHeightList map[Uint256]uint32
 	CkpManager           *checkpoint.Manager
+	txReceivingInfo      map[Uint256]TxReceivingInfo
 
 	sync.RWMutex
 }
 
-// append transaction to txnpool when check ok, and broadcast the transaction.
-// 1.check  2.check with ledger(db) 3.check with pool
+//TxReceivingInfo record the tx receiving info detail, can expend it's field in the future need
+type TxReceivingInfo struct {
+	Height uint32
+}
+
+//append transaction to txnpool when check ok, and broadcast the transaction.
+//1.check  2.check with ledger(db) 3.check with pool
 func (mp *TxPool) AppendToTxPool(tx interfaces.Transaction) elaerr.ELAError {
 	mp.Lock()
 	defer mp.Unlock()
@@ -138,7 +144,12 @@ func (mp *TxPool) appendToTxPool(tx interfaces.Transaction) elaerr.ELAError {
 		}
 		mp.crossChainHeightList[tx.Hash()] = bestHeight
 	}
-	//log.Infof("endAppendToTxPool:  Hash: %s, %d", tx.Hash(), tx.TxType)
+
+	// record the tx receiving info
+	mp.txReceivingInfo[tx.Hash()] = TxReceivingInfo{
+		Height: bestHeight,
+	}
+
 	return nil
 }
 
@@ -184,6 +195,27 @@ func (mp *TxPool) CleanSubmittedTransactions(block *Block) {
 	mp.cleanSideChainPowTx()
 	if err := mp.cleanCanceledProducerAndCR(block.Transactions); err != nil {
 		log.Warn("error occurred when clean canceled producer and cr", err)
+	}
+	mp.Unlock()
+}
+
+//ResendOutdatedTransactions Resend outdated transactions
+func (mp *TxPool) ResendOutdatedTransactions(block *Block) {
+	mp.Lock()
+	txs := make([]interfaces.Transaction, 0)
+	for txHash, info := range mp.txReceivingInfo {
+		if block.Height-info.Height > mp.chainParams.MemoryPoolTxMaximumStayHeight {
+			tx, ok := mp.txnList[txHash]
+			if !ok {
+				log.Warn("ResendOutdatedTransactions invalid transaction")
+				continue
+			}
+			txs = append(txs, tx)
+		}
+	}
+
+	if len(txs) != 0 {
+		go events.Notify(events.ETResendOutdatedTxToTxPool, txs)
 	}
 	mp.Unlock()
 }
@@ -570,6 +602,9 @@ func (mp *TxPool) doRemoveTransaction(tx interfaces.Transaction) {
 		if _, ok := mp.crossChainHeightList[hash]; ok {
 			delete(mp.crossChainHeightList, hash)
 		}
+		if _, ok := mp.txReceivingInfo[hash]; ok {
+			delete(mp.txReceivingInfo, hash)
+		}
 		mp.txFees.RemoveTx(hash, uint64(txSize), feeRate)
 		mp.removeTx(tx)
 	}
@@ -597,6 +632,7 @@ func NewTxPool(params *config.Configuration, ckpManager *checkpoint.Manager) *Tx
 		CkpManager:           ckpManager,
 		proposalsUsedAmount:  0,
 		crossChainHeightList: make(map[Uint256]uint32),
+		txReceivingInfo:      make(map[Uint256]TxReceivingInfo),
 	}
 	rtn.txPoolCheckpoint = newTxPoolCheckpoint(
 		rtn, func(m map[Uint256]interfaces.Transaction) {

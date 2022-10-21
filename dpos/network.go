@@ -150,7 +150,7 @@ func (n *network) BroadcastMessage(msg elap2p.Message) {
 }
 
 func (n *network) GetActivePeers() []p2p.Peer {
-	return n.p2pServer.ConnectedPeers()
+	return n.p2pServer.ConnectedCurrentPeers()
 }
 
 func (n *network) PostChangeViewTask() {

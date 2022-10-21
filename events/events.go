@@ -70,6 +70,9 @@ const (
 	//ETSmallCrossChainNeedRelay indicates that need to relay some small cross
 	//chain transaction
 	ETSmallCrossChainNeedRelay
+
+	//ETResendOutdatedTxToTxPool indicates that need to resend outdate tx to tx pool
+	ETResendOutdatedTxToTxPool
 )
 
 // notificationTypeStrings is a map of notification types back to their constant
@@ -89,6 +92,7 @@ var notificationTypeStrings = map[EventType]string{
 	ETAppendTxToTxPoolWithoutRelay: "ETAppendTxToTxPoolWithoutRelay",
 	ETCRCChangeCommittee:           "ETCRCChangeCommittee",
 	ETSmallCrossChainNeedRelay:     "ETSmallCrossChainNeedRelay",
+	ETResendOutdatedTxToTxPool:     "ETResendOutdatedTxToTxPool",
 }
 
 // String returns the EventType in human-readable form.

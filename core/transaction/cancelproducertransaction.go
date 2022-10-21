@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"errors"
 
+	"github.com/elastos/Elastos.ELA/core/contract"
 	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/crypto"
@@ -70,14 +71,25 @@ func (t *CancelProducerTransaction) checkProcessProducer(params *TransactionPara
 	if err != nil {
 		return nil, errors.New("invalid public key in payload")
 	}
-	signedBuf := new(bytes.Buffer)
-	err = processProducer.SerializeUnsigned(signedBuf, payload.ProcessProducerVersion)
-	if err != nil {
-		return nil, err
-	}
-	err = crypto.Verify(*publicKey, signedBuf.Bytes(), processProducer.Signature)
-	if err != nil {
-		return nil, errors.New("invalid signature in payload")
+
+	if t.PayloadVersion() != payload.ProcessProducerSchnorrVersion {
+		signedBuf := new(bytes.Buffer)
+		err = processProducer.SerializeUnsigned(signedBuf, t.PayloadVersion())
+		if err != nil {
+			return nil, err
+		}
+		err = crypto.Verify(*publicKey, signedBuf.Bytes(), processProducer.Signature)
+		if err != nil {
+			return nil, errors.New("invalid signature in payload")
+		}
+	} else {
+		if !contract.IsSchnorr(t.Programs()[0].Code) {
+			return nil, errors.New("only schnorr code can use ProcessProducerSchnorrVersion")
+		}
+		pk := t.Programs()[0].Code[2:]
+		if !bytes.Equal(pk, processProducer.OwnerPublicKey) {
+			return nil, errors.New("tx program pk must equal with processProducer OwnerPublicKey ")
+		}
 	}
 
 	producer := t.parameters.BlockChain.GetState().GetProducer(processProducer.OwnerPublicKey)

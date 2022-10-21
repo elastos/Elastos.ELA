@@ -101,28 +101,30 @@ func (t *RegisterProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bo
 	if err != nil {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid owner public key in payload")), true
 	}
-	signedBuf := new(bytes.Buffer)
-	err = info.SerializeUnsigned(signedBuf, t.payloadVersion)
-	if err != nil {
-		return elaerr.Simple(elaerr.ErrTxPayload, err), true
-	}
-	//var isSchnorrTx bool
-	for _, program := range t.Programs() {
-		if contract.IsSchnorr(program.Code) {
-			pub := [33]byte{}
-			pubbuf, _ := publicKey.EncodePoint(true)
-			copy(pub[:], pubbuf)
 
-			signature := [64]byte{}
-			copy(signature[:], info.Signature)
-			if ok, err = crypto.SchnorrVerify(pub, common.Sha256D(signedBuf.Bytes()), signature); !ok {
-				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid schnorr signature in payload")), true
-			}
-		} else {
-			err = crypto.Verify(*publicKey, signedBuf.Bytes(), info.Signature)
-			if err != nil {
-				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid signature in payload")), true
-			}
+	if t.PayloadVersion() != payload.ProducerInfoSchnorrVersion {
+		signedBuf := new(bytes.Buffer)
+		err = info.SerializeUnsigned(signedBuf, t.payloadVersion)
+		if err != nil {
+			return elaerr.Simple(elaerr.ErrTxPayload, err), true
+		}
+		err = crypto.Verify(*publicKey, signedBuf.Bytes(), info.Signature)
+		if err != nil {
+			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid signature in payload")), true
+		}
+	} else {
+		if len(t.Programs()) != 1 {
+			return elaerr.Simple(elaerr.ErrTxPayload,
+				errors.New("ProducerInfoSchnorrVersion can only have one program code")), true
+		}
+		if !contract.IsSchnorr(t.Programs()[0].Code) {
+			return elaerr.Simple(elaerr.ErrTxPayload,
+				errors.New("only schnorr code can use ProducerInfoSchnorrVersion")), true
+		}
+		pk := t.Programs()[0].Code[2:]
+		if !bytes.Equal(pk, info.OwnerPublicKey) {
+			return elaerr.Simple(elaerr.ErrTxPayload,
+				errors.New("tx program pk must equal with OwnerPublicKey")), true
 		}
 	}
 
@@ -163,7 +165,7 @@ func (t *RegisterProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bo
 		if depositCount != 1 {
 			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("there must be only one deposit address in outputs")), true
 		}
-	} else if t.PayloadVersion() == payload.ProducerInfoDposV2Version {
+	} else if t.PayloadVersion() == payload.ProducerInfoDposV2Version || t.PayloadVersion() == payload.ProducerInfoSchnorrVersion {
 		if t.parameters.BlockHeight+t.parameters.Config.DPoSV2DepositCoinMinLockTime >= info.StakeUntil {
 			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("v2 producer StakeUntil less than DPoSV2DepositCoinMinLockTime")), true
 		}

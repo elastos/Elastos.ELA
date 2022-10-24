@@ -57,8 +57,8 @@ func TestSortTransactions(t *testing.T) {
 	assert.Equal(t, txs[2].TxType().Name(), "CRCProposalWithdraw")
 	assert.Equal(t, txs[3].TxType().Name(), "CRCProposalWithdraw")
 	assert.Equal(t, txs[4].TxType().Name(), "TransferAsset")
-	assert.Equal(t, txs[5].TxType().Name(), "TransferAsset")
-	assert.Equal(t, txs[6].TxType().Name(), "CRCProposalTracking")
+	assert.Equal(t, txs[5].TxType().Name(), "CRCProposalTracking")
+	assert.Equal(t, txs[6].TxType().Name(), "TransferAsset")
 	assert.Equal(t, txs[7].TxType().Name(), "TransferAsset")
 }
 

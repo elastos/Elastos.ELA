@@ -8,6 +8,7 @@ package unit
 import (
 	"bytes"
 	"encoding/hex"
+	"github.com/elastos/Elastos.ELA/core/checkpoint"
 	state2 "github.com/elastos/Elastos.ELA/dpos/state"
 	"math/rand"
 	"strconv"
@@ -99,9 +100,11 @@ func TestArbitrators_GetSnapshot(t *testing.T) {
 	var bestHeight uint32
 
 	params := config.GetDefaultParams()
-	arbitrators, _ := state2.NewArbitrators(&params,
+	CkpManager := checkpoint.NewManager(config.GetDefaultParams())
+	arbitrators, _ := state2.NewArbitrators(params,
 		nil, nil, nil,
-		nil, nil, nil, nil, nil)
+		nil, nil, nil,
+		nil, nil, CkpManager)
 	arbitrators.RegisterFunction(func() uint32 { return bestHeight },
 		func() *common.Uint256 { return &common.Uint256{} },
 		nil, nil)

@@ -7,10 +7,10 @@ package transaction
 
 import (
 	"errors"
+	"github.com/elastos/Elastos.ELA/core"
 	"math"
 
 	"github.com/elastos/Elastos.ELA/common"
-	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/core/contract"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/core/types/outputpayload"
@@ -33,8 +33,9 @@ func (t *TransferAssetTransaction) CheckTransactionOutput() error {
 
 	// check if output address is valid
 	specialOutputCount := 0
+	ELAAssetID, _ := common.Uint256FromHexString(core.ELAAssetID)
 	for _, output := range t.Outputs() {
-		if output.AssetID != config.ELAAssetID {
+		if output.AssetID != *ELAAssetID {
 			return errors.New("asset ID in output is invalid")
 		}
 
@@ -144,7 +145,7 @@ func (t *TransferAssetTransaction) HeightVersionCheck() error {
 	blockHeight := t.parameters.BlockHeight
 	chainParams := t.parameters.Config
 
-	if blockHeight >= chainParams.CRVotingStartHeight {
+	if blockHeight >= chainParams.CRConfiguration.CRVotingStartHeight {
 		return nil
 	}
 	if t.Version() >= common2.TxVersion09 {

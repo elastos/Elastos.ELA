@@ -77,7 +77,7 @@ func (t *ReturnVotesTransaction) SpecialContextCheck() (result elaerr.ELAError, 
 	}
 
 	// Value must bigger than RealWithdrawSingleFee
-	if pl.Value <= t.parameters.Config.RealWithdrawSingleFee {
+	if pl.Value <= t.parameters.Config.CRConfiguration.RealWithdrawSingleFee {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid return votes value")), true
 	}
 

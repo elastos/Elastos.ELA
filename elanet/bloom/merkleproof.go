@@ -7,10 +7,10 @@ package bloom
 
 import (
 	"fmt"
+	"github.com/elastos/Elastos.ELA/common/config"
 	"io"
 
 	"github.com/elastos/Elastos.ELA/common"
-	"github.com/elastos/Elastos.ELA/elanet/pact"
 )
 
 // maxFlagsPerMerkleProof is the maximum number of flag bytes that could
@@ -18,7 +18,7 @@ import (
 // a single bit, this is the max number of transactions per block divided by
 // 8 bits per byte.  Then an extra one to cover partials.
 func maxFlagsPerMerkleProof() uint32 {
-	return pact.MaxTxPerBlock / 8
+	return config.GetDefaultParams().MaxTxPerBlock / 8
 }
 
 type MerkleProof struct {
@@ -32,9 +32,9 @@ type MerkleProof struct {
 func (p *MerkleProof) Serialize(w io.Writer) error {
 	// Read num transaction hashes and limit to max.
 	numHashes := len(p.Hashes)
-	if uint32(numHashes) > pact.MaxTxPerBlock {
+	if uint32(numHashes) > config.GetDefaultParams().MaxTxPerBlock {
 		str := fmt.Sprintf("too many transaction hashes for message "+
-			"[count %v, max %v]", numHashes, pact.MaxTxPerBlock)
+			"[count %v, max %v]", numHashes, config.GetDefaultParams().MaxTxPerBlock)
 		return common.FuncError("MerkleProof.Serialize", str)
 	}
 	numFlagBytes := len(p.Flags)
@@ -71,9 +71,9 @@ func (p *MerkleProof) Deserialize(r io.Reader) error {
 		return err
 	}
 
-	if numHashes > pact.MaxTxPerBlock {
+	if numHashes > config.GetDefaultParams().MaxTxPerBlock {
 		return fmt.Errorf("MerkleProof.Deserialize too many transaction"+
-			" hashes for message [count %v, max %v]", numHashes, pact.MaxTxPerBlock)
+			" hashes for message [count %v, max %v]", numHashes, config.GetDefaultParams().MaxTxPerBlock)
 	}
 
 	hashes := make([]common.Uint256, numHashes)

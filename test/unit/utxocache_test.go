@@ -7,7 +7,6 @@ package unit
 
 import (
 	"errors"
-	"fmt"
 	"testing"
 
 	"github.com/elastos/Elastos.ELA/blockchain"
@@ -40,7 +39,7 @@ func init() {
 	functions.GetTransactionByBytes = transaction.GetTransactionByBytes
 	functions.CreateTransaction = transaction.CreateTransaction
 	functions.GetTransactionParameters = transaction.GetTransactionparameters
-	config.DefaultParams = config.GetDefaultParams()
+	config.DefaultParams = *config.GetDefaultParams()
 
 	referTx = functions.CreateTransaction(
 		common2.TxVersion09,
@@ -132,7 +131,7 @@ func NewUtxoCacheDB() *UtxoCacheDB {
 
 func TestUTXOCache_Init(t *testing.T) {
 	utxoCacheDB = NewUtxoCacheDB()
-	fmt.Println("refer tx hash:", referTx.Hash().String())
+	//fmt.Println("refer tx hash:", referTx.Hash().String())
 	utxoCacheDB.SetTransaction(referTx)
 }
 

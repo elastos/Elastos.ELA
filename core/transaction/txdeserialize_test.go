@@ -15,7 +15,7 @@ func init() {
 	functions.GetTransactionByBytes = GetTransactionByBytes
 	functions.CreateTransaction = CreateTransaction
 	functions.GetTransactionParameters = GetTransactionparameters
-	config.DefaultParams = config.GetDefaultParams()
+	config.DefaultParams = *config.GetDefaultParams()
 }
 
 func TestDeserializeTransaction(t *testing.T) {

@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"github.com/elastos/Elastos.ELA/core/checkpoint"
 	"os"
 	"path/filepath"
 	"strings"
@@ -167,6 +168,7 @@ func setArbitrators(L *lua.LState) int {
 func initLedger(L *lua.LState) int {
 	chainParams := &config.DefaultParams
 	logLevel := uint8(L.ToInt(1))
+	CkpManager := checkpoint.NewManager(config.GetDefaultParams())
 
 	log.NewDefault(test.NodeLogPath, logLevel, 0, 0)
 	dlog.Init("elastos", logLevel, 0, 0)
@@ -179,7 +181,7 @@ func initLedger(L *lua.LState) int {
 
 	arbiters, err := state.NewArbitrators(chainParams,
 		nil, nil, nil,
-		nil, nil, nil, nil, nil)
+		nil, nil, nil, nil, nil, CkpManager)
 	if err != nil {
 		fmt.Printf("New arbitrators error: %s \n", err.Error())
 	}
@@ -191,9 +193,10 @@ func initLedger(L *lua.LState) int {
 
 	var interrupt = signal.NewInterrupt()
 	chain, err := blockchain.New(chainStore, chainParams,
-		state.NewState(chainParams, arbiters.GetArbitrators, nil,nil, nil,
+		state.NewState(chainParams, arbiters.GetArbitrators, nil, nil, nil,
 			nil, nil, nil,
-			nil, nil, nil, nil), nil)
+			nil, nil, nil, nil), nil,
+		CkpManager)
 	if err != nil {
 		fmt.Printf("Init block chain error: %s \n", err.Error())
 	}
@@ -205,8 +208,8 @@ func initLedger(L *lua.LState) int {
 	if err != nil {
 		fmt.Printf("Init fflDB error: %s \n", err.Error())
 	}
-
-	blockchain.FoundationAddress = chainParams.Foundation
+	FoundationAddress, _ := common.Uint168FromAddress(chainParams.FoundationAddress)
+	blockchain.FoundationAddress = *FoundationAddress
 	blockchain.DefaultLedger = &ledger // fixme
 	blockchain.DefaultLedger.Blockchain = chain
 	blockchain.DefaultLedger.Store = chainStore

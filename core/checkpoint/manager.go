@@ -18,6 +18,7 @@ import (
 	"sync"
 
 	"github.com/elastos/Elastos.ELA/common"
+	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/common/log"
 	"github.com/elastos/Elastos.ELA/core/types"
 	"github.com/elastos/Elastos.ELA/utils"
@@ -35,6 +36,10 @@ type RollBackStatus byte
 
 const (
 	DefaultCheckpoint = "default"
+
+	// checkpointPath indicates the path storing the checkpoint data.
+
+	CheckpointPath = "checkpoints"
 
 	VeryHigh   Priority = 0x00
 	High       Priority = 0x01
@@ -109,31 +114,16 @@ type ICheckPoint interface {
 	StartHeight() uint32
 }
 
-// Config holds checkpoint related configurations.
-type Config struct {
-	// EnableHistory is a switch about recording history of snapshots of
-	// checkpoints.
-	EnableHistory bool
-
-	// HistoryStartHeight defines the height manager should start to record
-	// snapshots of checkpoints.
-	HistoryStartHeight uint32
-
-	// DataPath defines root directory path of all checkpoint related files.
-	DataPath string
-
-	// NeedSave indicate whether or not manager should save checkpoints when
-	//	reached a save point.
-	NeedSave bool
-}
-
 // Manager holds checkpoints save automatically.
 type Manager struct {
 	checkpoints map[string]ICheckPoint
 	channels    map[string]*fileChannels
-	cfg         *Config
+	cfg         *config.Configuration
 	mtx         sync.RWMutex
 }
+
+var instance *Manager
+var once sync.Once
 
 // OnBlockSaved is an event fired after block saved to chain db,
 // which means block has been settled in block chain.
@@ -207,7 +197,7 @@ func (m *Manager) GetCheckpoint(key string, height uint32) (
 		return
 	}
 
-	if m.cfg.EnableHistory {
+	if m.cfg.CheckPointConfiguration.EnableHistory {
 		return m.findHistoryCheckpoint(checkpoint, height)
 	} else {
 		return nil, false
@@ -294,14 +284,14 @@ func (m *Manager) Close() {
 
 // SetDataPath set root path of all checkpoints.
 func (m *Manager) SetDataPath(path string) {
-	m.cfg.DataPath = path
+	m.cfg.CheckPointConfiguration.DataPath = path
 }
 
 // RegisterNeedSave register the need save function.
 func (m *Manager) SetNeedSave(needSave bool) {
 	m.mtx.Lock()
 	defer m.mtx.Unlock()
-	m.cfg.NeedSave = needSave
+	m.cfg.CheckPointConfiguration.NeedSave = needSave
 }
 
 func (m *Manager) getOrderedCheckpoints() []ICheckPoint {
@@ -329,7 +319,7 @@ func (m *Manager) onBlockSaved(block *types.DposBlock,
 			continue
 		}
 		v.OnBlockSaved(block)
-		if !m.cfg.NeedSave {
+		if !m.cfg.CheckPointConfiguration.NeedSave {
 			continue
 		}
 
@@ -392,12 +382,12 @@ func (m *Manager) findHistoryCheckpoint(current ICheckPoint,
 		bestHeight = 0
 	}
 
-	path := getFilePathByHeight(m.cfg.DataPath, current, bestHeight)
+	path := getFilePathByHeight(m.cfg.CheckPointConfiguration.DataPath, current, bestHeight)
 	return m.constructCheckpoint(current, path)
 }
 
 func (m *Manager) loadDefaultCheckpoint(current ICheckPoint) (err error) {
-	path := getDefaultPath(m.cfg.DataPath, current)
+	path := getDefaultPath(m.cfg.CheckPointConfiguration.DataPath, current)
 	data, err := m.readFileBuffer(path)
 	if err != nil {
 		return err
@@ -408,7 +398,7 @@ func (m *Manager) loadDefaultCheckpoint(current ICheckPoint) (err error) {
 }
 
 func (m *Manager) loadSpecificHeightCheckpoint(current ICheckPoint, height int) (err error) {
-	path := getSpecificHeightPath(m.cfg.DataPath, current, height)
+	path := getSpecificHeightPath(m.cfg.CheckPointConfiguration.DataPath, current, height)
 	data, err := m.readFileBuffer(path)
 	if err != nil {
 		return err
@@ -480,11 +470,13 @@ func getCheckpointDirectory(root string,
 	return filepath.Join(root, checkpoint.Key())
 }
 
-func NewManager(cfg *Config) *Manager {
-	m := &Manager{
+func NewManager(cfg *config.Configuration) *Manager {
+	//once.Do(func() {
+	instance = &Manager{
 		checkpoints: make(map[string]ICheckPoint),
 		channels:    make(map[string]*fileChannels),
 		cfg:         cfg,
 	}
-	return m
+	//})
+	return instance
 }

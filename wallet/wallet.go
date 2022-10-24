@@ -14,7 +14,6 @@ import (
 	"github.com/elastos/Elastos.ELA/account"
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/log"
-	"github.com/elastos/Elastos.ELA/core/checkpoint"
 	"github.com/elastos/Elastos.ELA/core/contract"
 	"github.com/elastos/Elastos.ELA/crypto"
 	"github.com/elastos/Elastos.ELA/utils"
@@ -83,9 +82,9 @@ func (w *Wallet) ImportPubkey(pubKey []byte, enableUtxoDB bool) error {
 		address: address,
 		code:    sc.Code,
 	})
-	ChainParam.CkpManager.Reset(func(point checkpoint.ICheckPoint) bool {
-		return point.Key() == utxoCheckPointKey
-	})
+	//ChainParam.CkpManager.Reset(func(point checkpoint.ICheckPoint) bool {
+	//	return point.Key() == utxoCheckPointKey
+	//})
 
 	if enableUtxoDB {
 		return nil
@@ -106,9 +105,9 @@ func (w *Wallet) ImportAddress(address string, enableUtxoDB bool) error {
 		address: address,
 		code:    nil,
 	})
-	ChainParam.CkpManager.Reset(func(point checkpoint.ICheckPoint) bool {
-		return point.Key() == utxoCheckPointKey
-	})
+	//ChainParam.CkpManager.Reset(func(point checkpoint.ICheckPoint) bool {
+	//	return point.Key() == utxoCheckPointKey
+	//})
 
 	if enableUtxoDB {
 		return nil

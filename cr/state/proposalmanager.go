@@ -75,7 +75,7 @@ func (status ProposalStatus) String() string {
 // ProposalManager used to manage all proposals existing in block chain.
 type ProposalManager struct {
 	ProposalKeyFrame
-	params  *config.Params
+	params  *config.Configuration
 	history *utils.History
 }
 
@@ -91,7 +91,7 @@ func (p *ProposalManager) tryCancelReservedCustomID(height uint32) {
 	}
 }
 
-//only init use
+// only init use
 func (p *ProposalManager) InitSecretaryGeneralPublicKey(publicKey string) {
 	p.SecretaryGeneralPublicKey = publicKey
 }
@@ -354,7 +354,7 @@ func (p *ProposalManager) transferRegisteredState(proposalState *ProposalState,
 	}
 
 	oriVoteStartHeight := proposalState.VoteStartHeight
-	if agreedCount >= p.params.CRAgreementCount {
+	if agreedCount >= p.params.CRConfiguration.CRAgreementCount {
 		status = CRAgreed
 		p.history.Append(height, func() {
 			proposalState.Status = CRAgreed
@@ -457,7 +457,7 @@ func (p *ProposalManager) dealProposal(proposalState *ProposalState, unusedAmoun
 func (p *ProposalManager) transferCRAgreedState(proposalState *ProposalState,
 	height uint32, circulation common.Fixed64) (status ProposalStatus) {
 	if proposalState.VotersRejectAmount >= common.Fixed64(float64(circulation)*
-		p.params.VoterRejectPercentage/100.0) {
+		p.params.CRConfiguration.VoterRejectPercentage/100.0) {
 		status = VoterCanceled
 		oriBudgetsStatus := make(map[uint8]BudgetStatus)
 		for k, v := range proposalState.BudgetsStatus {
@@ -520,11 +520,12 @@ func isSpecialProposal(proposalType payload.CRCProposalType) bool {
 }
 
 // shouldEndCRCVote returns if current Height should end CRC vote about
-// 	the specified proposal.
+//
+//	the specified proposal.
 func (p *ProposalManager) shouldEndCRCVote(RegisterHeight uint32,
 	height uint32) bool {
 	//proposal.RegisterHeight
-	return RegisterHeight+p.params.ProposalCRVotingPeriod <= height
+	return RegisterHeight+p.params.CRConfiguration.ProposalCRVotingPeriod <= height
 }
 
 func (p *ProposalManager) addRegisterSideChainInfo(proposalState *ProposalState, height uint32) {
@@ -580,12 +581,12 @@ func (p *ProposalManager) removeRegisterSideChainInfo(proposalState *ProposalSta
 // about the specified proposal.
 func (p *ProposalManager) shouldEndPublicVote(VoteStartHeight uint32,
 	height uint32) bool {
-	return VoteStartHeight+p.params.ProposalPublicVotingPeriod <=
+	return VoteStartHeight+p.params.CRConfiguration.ProposalPublicVotingPeriod <=
 		height
 }
 
 func (p *ProposalManager) isProposalFull(did common.Uint168) bool {
-	return p.getProposalCount(did) >= int(p.params.MaxCommitteeProposalCount)
+	return p.getProposalCount(did) >= int(p.params.CRConfiguration.MaxCommitteeProposalCount)
 }
 
 func (p *ProposalManager) getProposalCount(did common.Uint168) int {
@@ -916,7 +917,7 @@ func (p *ProposalManager) proposalTracking(tx interfaces.Transaction,
 	return
 }
 
-func NewProposalManager(params *config.Params) *ProposalManager {
+func NewProposalManager(params *config.Configuration) *ProposalManager {
 	return &ProposalManager{
 		ProposalKeyFrame: *NewProposalKeyFrame(),
 		params:           params,

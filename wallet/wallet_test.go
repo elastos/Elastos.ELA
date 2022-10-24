@@ -30,7 +30,7 @@ var wallet *Wallet
 func TestWallet_New(t *testing.T) {
 	log.NewDefault(test.NodeLogPath, 0, 0, 0)
 	defaultParams := config.GetDefaultParams()
-	ChainParam = &defaultParams
+	ChainParam = defaultParams
 
 	wallet = New(test.DataDir)
 

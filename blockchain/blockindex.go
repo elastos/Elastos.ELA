@@ -115,7 +115,7 @@ type blockIndex struct {
 	// be changed afterwards, so there is no need to protect them with a
 	// separate mutex.
 	db          IChainStore
-	chainParams *config.Params
+	chainParams *config.Configuration
 
 	sync.RWMutex
 	index map[common.Uint256]*BlockNode
@@ -125,7 +125,7 @@ type blockIndex struct {
 // newBlockIndex returns a new empty instance of a block index.  The index will
 // be dynamically populated as block nodes are loaded from the database and
 // manually added.
-func newBlockIndex(db IChainStore, chainParams *config.Params) *blockIndex {
+func newBlockIndex(db IChainStore, chainParams *config.Configuration) *blockIndex {
 	return &blockIndex{
 		db:          db,
 		chainParams: chainParams,

@@ -7,7 +7,7 @@ package msg
 
 import (
 	"github.com/elastos/Elastos.ELA/common"
-	"github.com/elastos/Elastos.ELA/elanet/pact"
+	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/p2p"
 )
 
@@ -27,5 +27,5 @@ func (msg *Block) CMD() string {
 }
 
 func (msg *Block) MaxLength() uint32 {
-	return (pact.MaxBlockContextSize + pact.MaxBlockHeaderSize) * 2
+	return (config.GetDefaultParams().MaxBlockSize + config.GetDefaultParams().MaxBlockHeaderSize) * 2
 }

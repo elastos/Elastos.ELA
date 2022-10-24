@@ -32,7 +32,7 @@ import (
 const dataPathDPoS = "elastos/data/dpos"
 
 type NetworkConfig struct {
-	ChainParams *config.Params
+	ChainParams *config.Configuration
 	Account     account.Account
 	MedianTime  dtime.MedianTimeSource
 	Listener    manager.NetworkEventListener
@@ -380,9 +380,9 @@ func NewDposNetwork(cfg NetworkConfig) (*network, error) {
 		DataDir:           dataPathDPoS,
 		PID:               pid,
 		EnableHub:         true,
-		Localhost:         cfg.ChainParams.DPoSIPAddress,
-		MagicNumber:       cfg.ChainParams.DPoSMagic,
-		DefaultPort:       cfg.ChainParams.DPoSDefaultPort,
+		Localhost:         cfg.ChainParams.DPoSConfiguration.IPAddress,
+		MagicNumber:       cfg.ChainParams.DPoSConfiguration.DPoSMagic,
+		DefaultPort:       cfg.ChainParams.DPoSConfiguration.DPoSPort,
 		TimeSource:        cfg.MedianTime,
 		MaxNodePerHost:    cfg.ChainParams.MaxNodePerHost,
 		CreateMessage:     createMessage,

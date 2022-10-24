@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"github.com/elastos/Elastos.ELA/core/checkpoint"
 	"math"
 	"math/big"
 	"math/rand"
@@ -59,13 +60,15 @@ func init() {
 	functions.GetTransactionByBytes = transaction2.GetTransactionByBytes
 	functions.CreateTransaction = transaction2.CreateTransaction
 	functions.GetTransactionParameters = transaction2.GetTransactionparameters
-	config.DefaultParams = config.GetDefaultParams()
+	config.DefaultParams = *config.GetDefaultParams()
 }
 
 func TestCheckBlockSanity(t *testing.T) {
 	log.NewDefault(test.NodeLogPath, 0, 0, 0)
-	params := config.GetDefaultParams()
-	blockchain.FoundationAddress = params.Foundation
+	params := *config.GetDefaultParams()
+	FoundationAddress, _ := common.Uint168FromAddress(params.FoundationAddress)
+	blockchain.FoundationAddress = *FoundationAddress
+	CkpManager := checkpoint.NewManager(config.GetDefaultParams())
 	chainStore, err := blockchain.NewChainStore(filepath.Join(test.DataPath, "sanity"), &params)
 	if err != nil {
 		t.Error(err.Error())
@@ -75,7 +78,8 @@ func TestCheckBlockSanity(t *testing.T) {
 	chain, _ := blockchain.New(chainStore, &params, state.NewState(&params,
 		nil, nil, nil, nil, nil,
 		nil, nil, nil,
-		nil, nil, nil), nil)
+		nil, nil, nil), nil,
+		CkpManager)
 	//chain.Init(nil)
 	if blockchain.DefaultLedger == nil {
 		blockchain.DefaultLedger = &blockchain.Ledger{
@@ -601,7 +605,6 @@ func getCID(code []byte) *common.Uint168 {
 	ct1, _ := contract.CreateCRIDContractByCode(code)
 	return ct1.ToProgramHash()
 }
-
 
 func TestSchnorr(t *testing.T) {
 	rawTxStr := "09020001001332323837373031313533373638303434393437013D4321277C999B4428BE031857DCB55ADAF04F706EAFBB9ACDC25C595DA3900101000000000001B037DB964A231458D2D6FFD5EA18944C4F90E63D547C5D3B9874DF66A4EAD0A3B763A900000000000000000021BE47F0B3851EDD38D3FD08A9F3ADA677E8913E62000000000001414056303BD38A49DAF60DC7F6AEFDD8D620FC4D6C197C4EE0176A4C74EE5CCF5E21790084DFE37A1C79A702DA5D25E40C6482D5A0590BAD2239C5C6E414CEA4F49D2351210364CB605A75B15705E3D4F881493491BF4851430E11E350C7E8FF873829978674"

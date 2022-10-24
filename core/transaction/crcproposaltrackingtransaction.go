@@ -42,10 +42,10 @@ func (t *CRCProposalTrackingTransaction) HeightVersionCheck() error {
 	blockHeight := t.parameters.BlockHeight
 	chainParams := t.parameters.Config
 
-	if blockHeight < chainParams.CRCommitteeStartHeight {
+	if blockHeight < chainParams.CRConfiguration.CRCommitteeStartHeight {
 		return errors.New(fmt.Sprintf("not support %s transaction "+
 			"before CRCommitteeStartHeight", t.TxType().Name()))
-	} else if blockHeight < chainParams.CRCProposalDraftDataStartHeight {
+	} else if blockHeight < chainParams.CRConfiguration.CRCProposalDraftDataStartHeight {
 		if t.PayloadVersion() != payload.CRCProposalVersion {
 			return errors.New("payload version should be CRCProposalVersion")
 		}
@@ -72,7 +72,7 @@ func (t *CRCProposalTrackingTransaction) SpecialContextCheck() (result elaerr.EL
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("proposal status is not VoterAgreed")), true
 	}
 	// Check proposal tracking count.
-	if proposalState.TrackingCount >= t.parameters.Config.MaxProposalTrackingCount {
+	if proposalState.TrackingCount >= t.parameters.Config.CRConfiguration.MaxProposalTrackingCount {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("reached max tracking count")), true
 	}
 
@@ -288,7 +288,7 @@ func (t *CRCProposalTrackingTransaction) checkCRCProposalProgressTracking(
 func (t *CRCProposalTrackingTransaction) checkCRCProposalRejectedTracking(
 	params *TransactionParameters, cptPayload *payload.CRCProposalTracking, pState *crstate.ProposalState,
 	blockHeight uint32, payloadVersion byte) error {
-	if blockHeight < t.parameters.Config.CRCProposalWithdrawPayloadV1Height {
+	if blockHeight < t.parameters.Config.CRConfiguration.CRCProposalWithdrawPayloadV1Height {
 		return t.checkCRCProposalProgressTracking(t.parameters, cptPayload, pState, payloadVersion)
 	}
 	// Check stage of proposal

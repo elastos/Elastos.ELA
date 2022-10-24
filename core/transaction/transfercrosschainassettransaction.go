@@ -8,10 +8,10 @@ package transaction
 import (
 	"bytes"
 	"errors"
+	"github.com/elastos/Elastos.ELA/core"
 	"math"
 
 	"github.com/elastos/Elastos.ELA/common"
-	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/core/contract"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/core/types/outputpayload"
@@ -23,7 +23,7 @@ type TransferCrossChainAssetTransaction struct {
 	BaseTransaction
 }
 
-func (t *TransferCrossChainAssetTransaction)  CheckTransactionOutput() error {
+func (t *TransferCrossChainAssetTransaction) CheckTransactionOutput() error {
 	blockHeight := t.parameters.BlockHeight
 	if len(t.Outputs()) > math.MaxUint16 {
 		return errors.New("output count should not be greater than 65535(MaxUint16)")
@@ -35,8 +35,9 @@ func (t *TransferCrossChainAssetTransaction)  CheckTransactionOutput() error {
 
 	// check if output address is valid
 	specialOutputCount := 0
+	ELAAssetID, _ := common.Uint256FromHexString(core.ELAAssetID)
 	for _, output := range t.Outputs() {
-		if output.AssetID != config.ELAAssetID {
+		if output.AssetID != *ELAAssetID {
 			return errors.New("asset ID in output is invalid")
 		}
 

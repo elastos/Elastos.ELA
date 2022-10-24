@@ -34,7 +34,7 @@ func init() {
 	functions.GetTransactionByBytes = transaction.GetTransactionByBytes
 	functions.CreateTransaction = transaction.CreateTransaction
 	functions.GetTransactionParameters = transaction.GetTransactionparameters
-	config.DefaultParams = config.GetDefaultParams()
+	config.DefaultParams = *config.GetDefaultParams()
 }
 
 // mockBlock creates a block instance by the given height and transactions.
@@ -254,7 +254,7 @@ func mockInactiveArbitratorsTx(publicKey []byte) interfaces.Transaction {
 }
 
 func TestState_ProcessTransaction(t *testing.T) {
-	params := config.GetDefaultParams()
+	params := *config.GetDefaultParams()
 	state := state2.NewState(&params, nil, nil, nil,
 		func() bool { return false },
 		nil, nil, nil,
@@ -1047,8 +1047,8 @@ func TestState_InactiveProducer_Normal(t *testing.T) {
 		func() bool { return false },
 		nil, nil, nil,
 		nil, nil, nil, nil)
-	state.ChainParams.InactivePenalty = 50
-	state.ChainParams.ChangeCommitteeNewCRHeight = 1
+	state.ChainParams.DPoSConfiguration.InactivePenalty = 50
+	state.ChainParams.CRConfiguration.ChangeCommitteeNewCRHeight = 1
 	state.ChainParams.DPoSV2StartHeight = 1
 	// Create 10 producers info.
 	producers := make([]*payload.ProducerInfo, 10)
@@ -1090,7 +1090,7 @@ func TestState_InactiveProducer_Normal(t *testing.T) {
 
 	currentHeight := 11
 	config.DefaultParams.PublicDPOSHeight = 11
-	config.DefaultParams.MaxInactiveRounds = 10
+	config.DefaultParams.DPoSConfiguration.MaxInactiveRounds = 10
 
 	// simulate producers[0] do not sign for continuous 11 blocks
 	for round := 0; round < 3; round++ {
@@ -1114,7 +1114,7 @@ func TestState_InactiveProducer_Normal(t *testing.T) {
 	// check penalty
 	inactiveProducer := state.GetProducer(producers[0].NodePublicKey)
 	if !assert.Equal(t, inactiveProducer.Penalty(),
-		state.ChainParams.InactivePenalty) {
+		state.ChainParams.DPoSConfiguration.InactivePenalty) {
 		t.FailNow()
 	}
 }
@@ -1166,7 +1166,7 @@ func TestState_InactiveProducer_FailNoContinuous(t *testing.T) {
 
 	currentHeight := 11
 	config.DefaultParams.PublicDPOSHeight = 11
-	config.DefaultParams.MaxInactiveRounds = 10
+	config.DefaultParams.DPoSConfiguration.MaxInactiveRounds = 10
 
 	// simulate producers[0] do not sign for over 10 blocks,
 	// but is not continuous
@@ -1204,7 +1204,7 @@ func TestState_InactiveProducer_RecoverFromInactiveState(t *testing.T) {
 		func() bool { return false },
 		nil, nil, nil,
 		nil, nil, nil, nil)
-	state.ChainParams.ChangeCommitteeNewCRHeight = 1
+	state.ChainParams.CRConfiguration.ChangeCommitteeNewCRHeight = 1
 	state.ChainParams.DPoSV2StartHeight = 1
 	// Create 10 producers info.
 	producers := make([]*payload.ProducerInfo, 10)
@@ -1246,7 +1246,7 @@ func TestState_InactiveProducer_RecoverFromInactiveState(t *testing.T) {
 
 	currentHeight := 11
 	config.DefaultParams.PublicDPOSHeight = 11
-	config.DefaultParams.MaxInactiveRounds = 10
+	config.DefaultParams.DPoSConfiguration.MaxInactiveRounds = 10
 
 	// simulate producers[0] do not sign for continuous 11 blocks
 	for round := 0; round < 3; round++ {
@@ -1270,7 +1270,7 @@ func TestState_InactiveProducer_RecoverFromInactiveState(t *testing.T) {
 	// check penalty
 	inactiveProducer := state.GetProducer(producers[0].NodePublicKey)
 	if !assert.Equal(t, inactiveProducer.Penalty(),
-		state.ChainParams.InactivePenalty) {
+		state.ChainParams.DPoSConfiguration.InactivePenalty) {
 		t.FailNow()
 	}
 
@@ -1299,7 +1299,7 @@ func TestState_InactiveProducer_DuringUpdateVersion(t *testing.T) {
 		func() bool { return false },
 		nil, nil, nil,
 		nil, nil, nil, nil)
-	state.ChainParams.InactivePenalty = 50
+	state.ChainParams.DPoSConfiguration.InactivePenalty = 50
 
 	// Create 10 producers info.
 	producers := make([]*payload.ProducerInfo, 10)
@@ -1360,7 +1360,7 @@ func TestState_InactiveProducer_DuringUpdateVersion(t *testing.T) {
 
 	currentHeight++
 	config.DefaultParams.PublicDPOSHeight = 11
-	config.DefaultParams.MaxInactiveRounds = 10
+	config.DefaultParams.DPoSConfiguration.MaxInactiveRounds = 10
 
 	// simulate producers[0] do not sign for continuous 11 blocks
 	for round := 0; round < 3; round++ {
@@ -1394,7 +1394,7 @@ func TestDPoSState_ProcessBlock_DepositAndReturnDeposit(t *testing.T) {
 		func() bool { return false },
 		nil, nil, nil,
 		nil, nil, nil, nil)
-	height := config.DefaultParams.CRVotingStartHeight - 1
+	height := config.DefaultParams.CRConfiguration.CRVotingStartHeight - 1
 
 	_, pk, _ := crypto.GenerateKeyPair()
 	pkBuf, _ := pk.EncodePoint(true)
@@ -1665,7 +1665,7 @@ func TestState_CountArbitratorsInactivityV1(t *testing.T) {
 	state.GetArbiters = func() []*state2.ArbiterInfo {
 		result := make([]*state2.ArbiterInfo, 0)
 		for i, p := range pds {
-			if i >= len(state.ChainParams.CRCArbiters)+state.ChainParams.GeneralArbiters {
+			if i >= len(state.ChainParams.DPoSConfiguration.CRCArbiters)+state.ChainParams.DPoSConfiguration.NormalArbitratorsCount {
 				break
 			}
 			result = append(result, &state2.ArbiterInfo{
@@ -1678,8 +1678,8 @@ func TestState_CountArbitratorsInactivityV1(t *testing.T) {
 
 	// set the random DPOS node.
 	pds[len(pds)-1].SetSelected(true)
-	config.DefaultParams.MaxInactiveRounds = 36
-	config.DefaultParams.MaxInactiveRoundsOfRandomNode = 10
+	config.DefaultParams.DPoSConfiguration.MaxInactiveRounds = 36
+	config.DefaultParams.DPoSConfiguration.MaxInactiveRoundsOfRandomNode = 10
 
 	// random DPOS node does not work for 10 turns.
 	for i := 0; i < 10*36; i++ {
@@ -1688,7 +1688,7 @@ func TestState_CountArbitratorsInactivityV1(t *testing.T) {
 		if p.Selected() {
 			nodePublcKey = pds[0].NodePublicKey()
 		}
-		height := state.ChainParams.ChangeCommitteeNewCRHeight + 1 + uint32(i)
+		height := state.ChainParams.CRConfiguration.ChangeCommitteeNewCRHeight + 1 + uint32(i)
 		state.CountArbitratorsInactivityV1(
 			height,
 			&payload.Confirm{

@@ -11,6 +11,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/elastos/Elastos.ELA/core"
 	"sort"
 	"strings"
 
@@ -44,8 +45,7 @@ import (
 
 var (
 	Compile     string
-	Config      *config.Configuration
-	ChainParams *config.Params
+	ChainParams *config.Configuration
 	Chain       *blockchain.BlockChain
 	Store       blockchain.IChainStore
 	TxMemPool   *mempool.TxPool
@@ -212,7 +212,7 @@ func GetNodeState(param Params) map[string]interface{} {
 	}
 	height := Chain.GetHeight()
 	ver := pact.DPOSStartVersion
-	if height > uint32(ChainParams.NewP2PProtocolVersionHeight) {
+	if height > uint32(ChainParams.CRConfiguration.NewP2PProtocolVersionHeight) {
 		ver = pact.CRProposalVersion
 	}
 	return ResponsePack(Success, ServerInfo{
@@ -220,10 +220,10 @@ func GetNodeState(param Params) map[string]interface{} {
 		Height:    height,
 		Version:   ver,
 		Services:  Server.Services().String(),
-		Port:      Config.NodePort,
-		RPCPort:   uint16(Config.HttpJsonPort),
-		RestPort:  uint16(Config.HttpRestPort),
-		WSPort:    uint16(Config.HttpWsPort),
+		Port:      ChainParams.NodePort,
+		RPCPort:   uint16(ChainParams.HttpJsonPort),
+		RestPort:  uint16(ChainParams.HttpRestPort),
+		WSPort:    uint16(ChainParams.HttpWsPort),
 		Neighbors: states,
 	})
 }
@@ -470,8 +470,8 @@ func GetArbiterPeersInfo(params Params) map[string]interface{} {
 	return ResponsePack(Success, result)
 }
 
-//if have params stakeAddress  get stakeAddress all dposv2 votes
-//else get all dposv2 votes
+// if have params stakeAddress  get stakeAddress all dposv2 votes
+// else get all dposv2 votes
 func GetAllDetailedDPoSV2Votes(params Params) map[string]interface{} {
 	start, _ := params.Int("start")
 	if start < 0 {
@@ -552,7 +552,7 @@ func GetAllDetailedDPoSV2Votes(params Params) map[string]interface{} {
 	return ResponsePack(Success, dvi)
 }
 
-//GetProducerInfo
+// GetProducerInfo
 func GetProducerInfo(params Params) map[string]interface{} {
 	publicKey, ok := params.String("publickey")
 	if !ok {
@@ -591,7 +591,7 @@ func GetProducerInfo(params Params) map[string]interface{} {
 	return ResponsePack(Success, producerInfo)
 }
 
-//by s address.
+// by s address.
 func GetVoteRights(params Params) map[string]interface{} {
 	addresses, ok := params.ArrayString("stakeaddresses")
 	if !ok {
@@ -877,7 +877,7 @@ func GetMiningInfo(param Params) map[string]interface{} {
 		Difficulty:     Chain.CalcCurrentDifficulty(block.Bits),
 		NetWorkHashPS:  Chain.GetNetworkHashPS().String(),
 		PooledTx:       uint32(len(TxMemPool.GetTxsInPool())),
-		Chain:          Config.ActiveNet,
+		Chain:          ChainParams.ActiveNet,
 	}
 
 	return ResponsePack(Success, miningInfo)
@@ -1250,7 +1250,7 @@ func GetArbitratorGroupByHeight(param Params) map[string]interface{} {
 	}
 
 	result := ArbitratorGroupInfo{}
-	if height < ChainParams.DPOSNodeCrossChainHeight {
+	if height < ChainParams.DPoSConfiguration.DPOSNodeCrossChainHeight {
 		crcArbiters := Arbiters.GetCRCArbiters()
 		sort.Slice(crcArbiters, func(i, j int) bool {
 			return bytes.Compare(crcArbiters[i].NodePublicKey, crcArbiters[j].NodePublicKey) < 0
@@ -1294,7 +1294,7 @@ func GetAssetByHash(param Params) map[string]interface{} {
 	asset := payload.RegisterAsset{
 		Asset: payload.Asset{
 			Name:      "ELA",
-			Precision: config.ELAPrecision,
+			Precision: core.ELAPrecision,
 			AssetType: 0x00,
 		},
 		Amount:     0 * 100000000,
@@ -1464,6 +1464,7 @@ func GetUTXOsByAmount(param Params) map[string]interface{} {
 	}
 
 	totalAmount := common.Fixed64(0)
+	ELAAssetID, _ := common.Uint256FromHexString(core.ELAAssetID)
 	for _, utxo := range utxos {
 		if totalAmount >= *amount {
 			break
@@ -1481,14 +1482,14 @@ func GetUTXOsByAmount(param Params) map[string]interface{} {
 			tx.Outputs()[utxo.Index].Type == common2.OTVote {
 			continue
 		}
-		if tx.TxType() == common2.CoinBase && bestHeight-height < config.DefaultParams.CoinbaseMaturity {
+		if tx.TxType() == common2.CoinBase && bestHeight-height < ChainParams.PowConfiguration.CoinbaseMaturity {
 			continue
 		}
 		totalAmount += utxo.Value
 		result = append(result, UTXOInfo{
 			TxType:        byte(tx.TxType()),
 			TxID:          common.ToReversedString(utxo.TxID),
-			AssetID:       common.ToReversedString(config.ELAAssetID),
+			AssetID:       common.ToReversedString(*ELAAssetID),
 			VOut:          utxo.Index,
 			Amount:        utxo.Value.String(),
 			Address:       address,
@@ -1559,6 +1560,7 @@ func ListUnspent(param Params) map[string]interface{} {
 			return ResponsePack(InvalidParams, "invalid utxotype")
 		}
 	}
+	ELAAssetID, _ := common.Uint256FromHexString(core.ELAAssetID)
 	for _, address := range addresses {
 		programHash, err := common.Uint168FromAddress(address)
 		if err != nil {
@@ -1587,7 +1589,7 @@ func ListUnspent(param Params) map[string]interface{} {
 			result = append(result, UTXOInfo{
 				TxType:        byte(tx.TxType()),
 				TxID:          common.ToReversedString(utxo.TxID),
-				AssetID:       common.ToReversedString(config.ELAAssetID),
+				AssetID:       common.ToReversedString(*ELAAssetID),
 				VOut:          utxo.Index,
 				Amount:        utxo.Value.String(),
 				Address:       address,
@@ -1850,6 +1852,7 @@ func GetUnspends(param Params) map[string]interface{} {
 	if err != nil {
 		return ResponsePack(InvalidParams, "list unspent failed, "+err.Error())
 	}
+	ELAAssetID, _ := common.Uint256FromHexString(core.ELAAssetID)
 	for _, u := range utxos {
 		var unspendsInfo []UTXOUnspentInfo
 		unspendsInfo = append(unspendsInfo, UTXOUnspentInfo{
@@ -1858,7 +1861,7 @@ func GetUnspends(param Params) map[string]interface{} {
 			u.Value.String()})
 
 		results = append(results, Result{
-			common.ToReversedString(config.ELAAssetID),
+			common.ToReversedString(*ELAAssetID),
 			"ELA",
 			unspendsInfo})
 	}
@@ -1895,7 +1898,7 @@ func GetUnspendOutput(param Params) map[string]interface{} {
 	return ResponsePack(Success, UTXOoutputs)
 }
 
-//BaseTransaction
+// BaseTransaction
 func GetTransactionByHash(param Params) map[string]interface{} {
 	str, ok := param.String("hash")
 	if !ok {
@@ -1985,7 +1988,7 @@ func GetExistSideChainReturnDepositTransactions(param Params) map[string]interfa
 	return ResponsePack(Success, resultTxHashes)
 }
 
-//single producer info
+// single producer info
 type RPCProducerInfo struct {
 	OwnerPublicKey string `json:"ownerpublickey"`
 	NodePublicKey  string `json:"nodepublickey"`
@@ -2005,14 +2008,14 @@ type RPCProducerInfo struct {
 	Index          uint64 `json:"index"`
 }
 
-//a group producer info  include TotalVotes and producer count
+// a group producer info  include TotalVotes and producer count
 type RPCProducersInfo struct {
 	ProducerInfoSlice []RPCProducerInfo `json:"producers"`
 	TotalVotes        string            `json:"totalvotes"`
 	TotalCounts       uint64            `json:"totalcounts"`
 }
 
-//single cr candidate info
+// single cr candidate info
 type RPCCRCandidateInfo struct {
 	Code           string `json:"code"`
 	CID            string `json:"cid"`
@@ -2028,7 +2031,7 @@ type RPCCRCandidateInfo struct {
 	Index uint64 `json:"index"`
 }
 
-//a group cr candidate info include TotalVotes and candidate count
+// a group cr candidate info include TotalVotes and candidate count
 type RPCCRCandidatesInfo struct {
 	CRCandidateInfoSlice []RPCCRCandidateInfo `json:"crcandidatesinfo"`
 	TotalVotes           string               `json:"totalvotes"`
@@ -2052,7 +2055,7 @@ type RPCCRRelatedStage struct {
 	VotingEndHeight   uint32 `json:"votingendheight"`
 }
 
-//single cr member info
+// single cr member info
 type RPCCRMemberInfo struct {
 	Code             string `json:"code"`
 	CID              string `json:"cid"`
@@ -2069,7 +2072,7 @@ type RPCCRMemberInfo struct {
 	Index            uint64 `json:"index"`
 }
 
-//a group cr member info  include cr member count
+// a group cr member info  include cr member count
 type RPCCRMembersInfo struct {
 	CRMemberInfoSlice []RPCCRMemberInfo `json:"crmembersinfo"`
 	TotalCounts       uint64            `json:"totalcounts"`
@@ -2388,7 +2391,7 @@ func GetCRRelatedStage(param Params) map[string]interface{} {
 	return ResponsePack(Success, result)
 }
 
-//list cr candidates according to ( state , start and limit)
+// list cr candidates according to ( state , start and limit)
 func ListCRCandidates(param Params) map[string]interface{} {
 	start, _ := param.Int("start")
 	if start < 0 {
@@ -2477,7 +2480,7 @@ func ListCRCandidates(param Params) map[string]interface{} {
 	return ResponsePack(Success, result)
 }
 
-//list current crs according to (state)
+// list current crs according to (state)
 func ListCurrentCRs(param Params) map[string]interface{} {
 	cm := Chain.GetCRCommittee()
 	var crMembers []*crstate.CRMember
@@ -2525,7 +2528,7 @@ func ListCurrentCRs(param Params) map[string]interface{} {
 	return ResponsePack(Success, result)
 }
 
-//list next crs according to (state)
+// list next crs according to (state)
 func ListNextCRs(param Params) map[string]interface{} {
 	cm := Chain.GetCRCommittee()
 	var crMembers []*crstate.CRMember

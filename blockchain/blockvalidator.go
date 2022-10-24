@@ -8,6 +8,7 @@ package blockchain
 import (
 	"bytes"
 	"errors"
+	"github.com/elastos/Elastos.ELA/core"
 	"math"
 	"math/big"
 	"strconv"
@@ -15,6 +16,7 @@ import (
 
 	. "github.com/elastos/Elastos.ELA/auxpow"
 	. "github.com/elastos/Elastos.ELA/common"
+	common2 "github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/common/log"
 	. "github.com/elastos/Elastos.ELA/core/types"
@@ -23,7 +25,6 @@ import (
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/crypto"
 	"github.com/elastos/Elastos.ELA/dpos/state"
-	"github.com/elastos/Elastos.ELA/elanet/pact"
 	elaerr "github.com/elastos/Elastos.ELA/errors"
 )
 
@@ -37,7 +38,7 @@ func (b *BlockChain) CheckBlockSanity(block *Block) error {
 	if !header.AuxPow.Check(&hash, AuxPowChainID) {
 		return errors.New("[PowCheckBlockSanity] block check aux pow failed")
 	}
-	if CheckProofOfWork(&header, b.chainParams.PowLimit) != nil {
+	if CheckProofOfWork(&header, b.chainParams.PowConfiguration.PowLimit) != nil {
 		return errors.New("[PowCheckBlockSanity] block check proof of work failed")
 	}
 
@@ -60,7 +61,7 @@ func (b *BlockChain) CheckBlockSanity(block *Block) error {
 	}
 
 	// A block must not have more transactions than the max block payload.
-	if uint32(numTx) > pact.MaxTxPerBlock {
+	if uint32(numTx) > config.GetDefaultParams().MaxTxPerBlock {
 		return errors.New("[PowCheckBlockSanity]  block contains too many" +
 			" transactions, tx count: " + strconv.FormatInt(int64(numTx), 10))
 	}
@@ -68,14 +69,15 @@ func (b *BlockChain) CheckBlockSanity(block *Block) error {
 	// A block header must not exceed the maximum allowed block payload when
 	//serialized.
 	headerSize := block.Header.GetSize()
-	if headerSize > int(pact.MaxBlockHeaderSize) {
+	if headerSize > int(config.GetDefaultParams().MaxBlockHeaderSize) {
 		return errors.New(
 			"[PowCheckBlockSanity] serialized block header is too big")
 	}
 
 	// A block must not exceed the maximum allowed block payload when serialized.
 	blockSize := block.GetSize()
-	if blockSize > int(pact.MaxBlockContextSize+pact.MaxBlockHeaderSize) {
+	if blockSize > int(b.chainParams.MaxBlockSize+b.chainParams.MaxBlockHeaderSize) {
+		//if blockSize > int(pact.MaxBlockContextSize+pact.MaxBlockHeaderSize) {
 		return errors.New("[PowCheckBlockSanity] serialized block is too big")
 	}
 
@@ -253,6 +255,7 @@ func (b *BlockChain) checkTxsContext(block *Block) error {
 	var totalTxFee = Fixed64(0)
 
 	var proposalsUsedAmount Fixed64
+	ELAAssetID, _ := common2.Uint256FromHexString(core.ELAAssetID)
 	for i := 1; i < len(block.Transactions); i++ {
 		references, errCode := b.CheckTransactionContext(block.Height,
 			block.Transactions[i], proposalsUsedAmount, block.Timestamp)
@@ -262,7 +265,7 @@ func (b *BlockChain) checkTxsContext(block *Block) error {
 		}
 
 		// Calculate transaction fee
-		totalTxFee += GetTxFee(block.Transactions[i], config.ELAAssetID, references)
+		totalTxFee += GetTxFee(block.Transactions[i], *ELAAssetID, references)
 		if block.Transactions[i].IsCRCProposalTx() {
 			RecordCRCProposalAmount(&proposalsUsedAmount, block.Transactions[i])
 		}
@@ -463,17 +466,20 @@ func (b *BlockChain) checkCoinbaseTransactionContext(blockHeight uint32, coinbas
 		}
 
 		if b.state.GetConsensusAlgorithm() == state.POW {
-			if !coinbase.Outputs()[2].ProgramHash.IsEqual(b.chainParams.DestroyELAAddress) {
+			DestroyELAAddress, _ := common2.Uint168FromAddress(b.chainParams.DestroyELAAddress)
+			if !coinbase.Outputs()[2].ProgramHash.IsEqual(*DestroyELAAddress) {
 				return errors.New("DPoS reward address not correct")
 			}
-			if !coinbase.Outputs()[0].ProgramHash.IsEqual(b.chainParams.DestroyELAAddress) {
+			if !coinbase.Outputs()[0].ProgramHash.IsEqual(*DestroyELAAddress) {
 				return errors.New("rewardCyberRepublic address not correct")
 			}
 		} else {
-			if !coinbase.Outputs()[0].ProgramHash.IsEqual(b.chainParams.CRAssetsAddress) {
+			CRAssetsAddress, _ := common2.Uint168FromAddress(b.chainParams.CRConfiguration.CRAssetsAddress)
+			DPoSV2RewardAccumulateAddress, _ := common2.Uint168FromAddress(b.chainParams.DPoSConfiguration.DPoSV2RewardAccumulateAddress)
+			if !coinbase.Outputs()[0].ProgramHash.IsEqual(*CRAssetsAddress) {
 				return errors.New("rewardCyberRepublic address not correct")
 			}
-			if !coinbase.Outputs()[2].ProgramHash.IsEqual(b.chainParams.DPoSV2RewardAccumulateAddress) {
+			if !coinbase.Outputs()[2].ProgramHash.IsEqual(*DPoSV2RewardAccumulateAddress) {
 				return errors.New("DPoS reward address not correct")
 			}
 		}

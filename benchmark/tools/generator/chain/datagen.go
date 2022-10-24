@@ -9,6 +9,8 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/elastos/Elastos.ELA/core"
+	"github.com/elastos/Elastos.ELA/core/checkpoint"
 	"io/ioutil"
 	"math"
 	"os"
@@ -41,7 +43,7 @@ type TimeCounter struct {
 type DataGen struct {
 	txRepo         *TxRepository
 	chain          *blockchain.BlockChain
-	chainParams    *config.Params
+	chainParams    *config.Configuration
 	pow            *pow.Service
 	txPool         *mempool.TxPool
 	prevBlockHash  common.Uint256
@@ -272,14 +274,15 @@ func LoadDataGen(dataPath string) (*DataGen, error) {
 
 func FromTxRepository(dataDir string, interrupt <-chan struct{},
 	repo *TxRepository, initFoundationUTXO bool) (*DataGen, error) {
-	chainParams := generateChainParams(repo.GetFoundationAccount())
+	chainParams := config.DefaultParams.RegNet()
 	chain, err := newBlockChain(dataDir, chainParams, interrupt)
+	CkpManager := checkpoint.NewManager(config.GetDefaultParams())
 	if err != nil {
 		return nil, err
 	}
-
+	block := core.GenesisBlock(chainParams.FoundationAddress)
 	if initFoundationUTXO {
-		fundTx := chainParams.GenesisBlock.Transactions[0]
+		fundTx := block.Transactions[0]
 		repo.SetFoundationUTXO(&common2.UTXO{
 			TxID:  fundTx.Hash(),
 			Index: 0,
@@ -292,14 +295,15 @@ func FromTxRepository(dataDir string, interrupt <-chan struct{},
 		return nil, err
 	}
 
-	txPool := mempool.NewTxPool(chainParams)
+	txPool := mempool.NewTxPool(chainParams,
+		CkpManager)
 	return &DataGen{
 		txRepo:             repo,
 		chainParams:        chainParams,
 		chain:              chain,
 		txPool:             txPool,
 		foundationAddr:     foundationAddr,
-		prevBlockHash:      chainParams.GenesisBlock.Hash(),
+		prevBlockHash:      block.Hash(),
 		dataDir:            dataDir,
 		pressure:           false,
 		pressureTxSize:     8000000,

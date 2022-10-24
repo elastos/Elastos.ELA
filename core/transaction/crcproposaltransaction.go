@@ -43,7 +43,7 @@ func (t *CRCProposalTransaction) HeightVersionCheck() error {
 	blockHeight := t.parameters.BlockHeight
 	chainParams := t.parameters.Config
 
-	if blockHeight < chainParams.CRCProposalDraftDataStartHeight {
+	if blockHeight < chainParams.CRConfiguration.CRCProposalDraftDataStartHeight {
 		if t.PayloadVersion() != payload.CRCProposalVersion {
 			return errors.New("payload version should be CRCProposalVersion")
 		}
@@ -59,7 +59,7 @@ func (t *CRCProposalTransaction) HeightVersionCheck() error {
 	}
 	switch p.ProposalType {
 	case payload.ChangeProposalOwner, payload.CloseProposal, payload.SecretaryGeneral:
-		if blockHeight < chainParams.CRCProposalV1Height {
+		if blockHeight < chainParams.CRConfiguration.CRCProposalV1Height {
 			return errors.New(fmt.Sprintf("not support %s CRCProposal"+
 				" transactio before CRCProposalV1Height", p.ProposalType.Name()))
 		}
@@ -74,7 +74,7 @@ func (t *CRCProposalTransaction) HeightVersionCheck() error {
 				" transaction before NewCrossChainStartHeight", p.ProposalType.Name()))
 		}
 	default:
-		if blockHeight < chainParams.CRCommitteeStartHeight {
+		if blockHeight < chainParams.CRConfiguration.CRCommitteeStartHeight {
 			return errors.New(fmt.Sprintf("not support %s CRCProposal"+
 				" transaction before CRCommitteeStartHeight", p.ProposalType.Name()))
 		}

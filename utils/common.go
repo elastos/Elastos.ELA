@@ -196,3 +196,28 @@ func GetProgramHashByCode(code []byte) (*common.Uint168, error) {
 		return nil, errors.New("invalid code type")
 	}
 }
+
+// checkHost check the host or IP address is valid and available.
+func CheckHost(host string) error {
+	// Empty host check.
+	if host == "" {
+		return errors.New("arbiter IPAddress must set when arbiter" +
+			" service enabled")
+	}
+
+	// Skip if host is already an IP address.
+	if ip := net.ParseIP(host); ip != nil {
+		return nil
+	}
+
+	// Attempt to look up an IP address associated with the parsed host.
+	ips, err := net.LookupIP(host)
+	if err != nil {
+		return err
+	}
+	if len(ips) == 0 {
+		return fmt.Errorf("no addresses found for %s", host)
+	}
+
+	return nil
+}

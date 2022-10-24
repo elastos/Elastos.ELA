@@ -39,10 +39,10 @@ func (t *CRCProposalReviewTransaction) HeightVersionCheck() error {
 	blockHeight := t.parameters.BlockHeight
 	chainParams := t.parameters.Config
 
-	if blockHeight < chainParams.CRCommitteeStartHeight {
+	if blockHeight < chainParams.CRConfiguration.CRCommitteeStartHeight {
 		return errors.New(fmt.Sprintf("not support %s transaction "+
 			"before CRCommitteeStartHeight", t.TxType().Name()))
-	} else if blockHeight < chainParams.CRCProposalDraftDataStartHeight {
+	} else if blockHeight < chainParams.CRConfiguration.CRCProposalDraftDataStartHeight {
 		if t.PayloadVersion() != payload.CRCProposalVersion {
 			return errors.New("payload version should be CRCProposalVersion")
 		}

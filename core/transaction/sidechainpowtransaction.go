@@ -9,11 +9,11 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/elastos/Elastos.ELA/core"
 	"math"
 
 	"github.com/elastos/Elastos.ELA/blockchain"
 	"github.com/elastos/Elastos.ELA/common"
-	"github.com/elastos/Elastos.ELA/common/config"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/crypto"
@@ -74,8 +74,9 @@ func (t *SideChainPOWTransaction) CheckTransactionOutput() error {
 
 		// check if output address is valid
 		specialOutputCount := 0
+		ELAAssetID, _ := common.Uint256FromHexString(core.ELAAssetID)
 		for _, output := range t.Outputs() {
-			if output.AssetID != config.ELAAssetID {
+			if output.AssetID != *ELAAssetID {
 				return errors.New("asset ID in output is invalid")
 			}
 

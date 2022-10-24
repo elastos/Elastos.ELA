@@ -92,16 +92,17 @@ func main() {
 
 	// If port parameter specified use the given port number.
 	if port != 0 {
-		params.DefaultPort = uint16(port)
+		params.NodePort = uint16(port)
 	}
 
 	// If port parameter specified use the given port number.
 	if newversionheight != 0 {
-		params.NewP2PProtocolVersionHeight = uint64(newversionheight)
+		params.CRConfiguration.NewP2PProtocolVersionHeight = uint64(newversionheight)
 	}
 
 	// Create the DNS instance.
-	dnsService, err := dns.New(dataDir, params.Magic, params.DefaultPort, params.NewP2PProtocolVersionHeight, nodePrefix+Version)
+	dnsService, err := dns.New(dataDir, params.Magic, params.NodePort,
+		params.CRConfiguration.NewP2PProtocolVersionHeight, nodePrefix+Version)
 	if err != nil {
 		fmt.Fprint(os.Stderr, err.Error())
 		os.Exit(1)

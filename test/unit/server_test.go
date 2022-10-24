@@ -24,7 +24,7 @@ func init() {
 	functions.GetTransactionByBytes = transaction2.GetTransactionByBytes
 	functions.CreateTransaction = transaction2.CreateTransaction
 	functions.GetTransactionParameters = transaction2.GetTransactionparameters
-	config.DefaultParams = config.GetDefaultParams()
+	config.DefaultParams = *config.GetDefaultParams()
 }
 
 // iPeer fakes a server.IPeer for test.

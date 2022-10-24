@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/elastos/Elastos.ELA/core"
 	"math"
 
 	"github.com/elastos/Elastos.ELA/common"
@@ -24,7 +25,6 @@ import (
 	"github.com/elastos/Elastos.ELA/crypto"
 	. "github.com/elastos/Elastos.ELA/crypto"
 	"github.com/elastos/Elastos.ELA/dpos/state"
-	"github.com/elastos/Elastos.ELA/elanet/pact"
 	elaerr "github.com/elastos/Elastos.ELA/errors"
 	"github.com/elastos/Elastos.ELA/vm"
 )
@@ -297,7 +297,7 @@ func (b *BlockChain) checkVoteCRContent(blockHeight uint32,
 	if payloadVersion < outputpayload.VoteProducerAndCRVersion {
 		return errors.New("payload VoteProducerVersion not support vote CR")
 	}
-	if blockHeight >= b.chainParams.CheckVoteCRCountHeight {
+	if blockHeight >= b.chainParams.CRConfiguration.CheckVoteCRCountHeight {
 		if len(content.CandidateVotes) > outputpayload.MaxVoteProducersPerTransaction {
 			return errors.New("invalid count of CR candidates ")
 		}
@@ -359,15 +359,16 @@ func getCRMembersMap(members []*crstate.CRMember) map[string]struct{} {
 }
 
 func CheckDestructionAddress(references map[*common2.Input]common2.Output) error {
+	DestroyELAAddress, _ := common.Uint168FromAddress(config.DestroyELAAddress)
 	for _, output := range references {
-		if output.ProgramHash == config.DestroyELAAddress {
+		if output.ProgramHash == *DestroyELAAddress {
 			return errors.New("cannot use utxo from the destruction address")
 		}
 	}
 	return nil
 }
 
-//validate the transaction of duplicate UTXO input
+// validate the transaction of duplicate UTXO input
 func CheckTransactionInput(txn interfaces.Transaction) error {
 	if txn.IsCoinBaseTx() {
 		if len(txn.Inputs()) != 1 {
@@ -426,9 +427,10 @@ func (b *BlockChain) CheckTransactionOutput(txn interfaces.Transaction,
 
 		foundationReward := txn.Outputs()[0].Value
 		var totalReward = common.Fixed64(0)
+		ELAAssetID, _ := common.Uint256FromHexString(core.ELAAssetID)
 		if blockHeight < b.chainParams.PublicDPOSHeight {
 			for _, output := range txn.Outputs() {
-				if output.AssetID != config.ELAAssetID {
+				if output.AssetID != *ELAAssetID {
 					return errors.New("asset ID in coinbase is invalid")
 				}
 				totalReward += output.Value
@@ -461,14 +463,16 @@ func (b *BlockChain) CheckTransactionOutput(txn interfaces.Transaction,
 	}
 
 	if txn.IsCRCAppropriationTx() {
+		CRAssetsAddress, _ := common.Uint168FromAddress(b.chainParams.CRConfiguration.CRAssetsAddress)
+		CRExpensesAddress, _ := common.Uint168FromAddress(b.chainParams.CRConfiguration.CRExpensesAddress)
 		if len(txn.Outputs()) != 2 {
 			return errors.New("new CRCAppropriation tx must have two output")
 		}
-		if !txn.Outputs()[0].ProgramHash.IsEqual(b.chainParams.CRExpensesAddress) {
+		if !txn.Outputs()[0].ProgramHash.IsEqual(*CRExpensesAddress) {
 			return errors.New("new CRCAppropriation tx must have the first" +
 				"output to CR expenses address")
 		}
-		if !txn.Outputs()[1].ProgramHash.IsEqual(b.chainParams.CRAssetsAddress) {
+		if !txn.Outputs()[1].ProgramHash.IsEqual(*CRAssetsAddress) {
 			return errors.New("new CRCAppropriation tx must have the second" +
 				"output to CR assets address")
 		}
@@ -493,8 +497,9 @@ func (b *BlockChain) CheckTransactionOutput(txn interfaces.Transaction,
 
 	// check if output address is valid
 	specialOutputCount := 0
+	ELAAssetID, _ := common.Uint256FromHexString(core.ELAAssetID)
 	for _, output := range txn.Outputs() {
-		if output.AssetID != config.ELAAssetID {
+		if output.AssetID != *ELAAssetID {
 			return errors.New("asset ID in output is invalid")
 		}
 
@@ -530,15 +535,17 @@ func (b *BlockChain) CheckTransactionOutput(txn interfaces.Transaction,
 
 func CheckOutputProgramHash(height uint32, programHash common.Uint168) error {
 	// main version >= 88812
+	CRAssetsAddress, _ := common.Uint168FromAddress(config.CRAssetsAddress)
+	CRCExpensesAddress, _ := common.Uint168FromAddress(config.CRCExpensesAddress)
 	if height >= config.DefaultParams.CheckAddressHeight {
 		var empty = common.Uint168{}
 		if programHash.IsEqual(empty) {
 			return nil
 		}
-		if programHash.IsEqual(config.CRAssetsAddress) {
+		if programHash.IsEqual(*CRAssetsAddress) {
 			return nil
 		}
-		if programHash.IsEqual(config.CRCExpensesAddress) {
+		if programHash.IsEqual(*CRCExpensesAddress) {
 			return nil
 		}
 
@@ -641,7 +648,7 @@ func CheckTransactionDepositUTXO(txn interfaces.Transaction, references map[*com
 
 func CheckTransactionSize(txn interfaces.Transaction) error {
 	size := txn.GetSize()
-	if size <= 0 || size > int(pact.MaxBlockContextSize) {
+	if size <= 0 || size > int(config.GetDefaultParams().MaxBlockSize) {
 		return fmt.Errorf("Invalid transaction size: %d bytes", size)
 	}
 
@@ -650,7 +657,7 @@ func CheckTransactionSize(txn interfaces.Transaction) error {
 
 func CheckAssetPrecision(txn interfaces.Transaction) error {
 	for _, output := range txn.Outputs() {
-		if !CheckAmountPrecise(output.Value, config.ELAPrecision) {
+		if !CheckAmountPrecise(output.Value, core.ELAPrecision) {
 			return errors.New("the precision of asset is incorrect")
 		}
 	}

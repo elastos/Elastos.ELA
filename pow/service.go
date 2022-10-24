@@ -9,6 +9,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"github.com/elastos/Elastos.ELA/core"
 	pg "github.com/elastos/Elastos.ELA/core/contract/program"
 	"github.com/elastos/Elastos.ELA/core/types/functions"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
@@ -29,7 +30,6 @@ import (
 	"github.com/elastos/Elastos.ELA/core/types/outputpayload"
 	"github.com/elastos/Elastos.ELA/crypto"
 	"github.com/elastos/Elastos.ELA/dpos/state"
-	"github.com/elastos/Elastos.ELA/elanet/pact"
 	"github.com/elastos/Elastos.ELA/mempool"
 )
 
@@ -44,7 +44,7 @@ type Config struct {
 	PayToAddr      string
 	MinerInfo      string
 	Chain          *blockchain.BlockChain
-	ChainParams    *config.Params
+	ChainParams    *config.Configuration
 	TxMemPool      *mempool.TxPool
 	BlkMemPool     *mempool.BlockPool
 	BroadcastBlock func(block *types.Block)
@@ -84,7 +84,7 @@ type Service struct {
 	PayToAddr   string
 	MinerInfo   string
 	chain       *blockchain.BlockChain
-	chainParams *config.Params
+	chainParams *config.Configuration
 	txMemPool   *mempool.TxPool
 	blkMemPool  *mempool.BlockPool
 	broadcast   func(block *types.Block)
@@ -116,9 +116,9 @@ func (pow *Service) GetDefaultTxVersion(height uint32) common2.TransactionVersio
 
 func (pow *Service) CreateCoinbaseTx(minerAddr string, height uint32) (interfaces.Transaction, error) {
 
-	crRewardAddr := pow.chainParams.Foundation
-	if height >= pow.chainParams.CRCommitteeStartHeight {
-		crRewardAddr = pow.chainParams.CRAssetsAddress
+	crRewardAddr := pow.chainParams.FoundationAddress
+	if height >= pow.chainParams.CRConfiguration.CRCommitteeStartHeight {
+		crRewardAddr = pow.chainParams.CRConfiguration.CRAssetsAddress
 	}
 
 	minerProgramHash, err := common.Uint168FromAddress(minerAddr)
@@ -129,7 +129,8 @@ func (pow *Service) CreateCoinbaseTx(minerAddr string, height uint32) (interface
 	nonce := make([]byte, 8)
 	binary.BigEndian.PutUint64(nonce, rand.Uint64())
 	txAttr := common2.NewAttribute(common2.Nonce, nonce)
-
+	ELAAssetID, _ := common.Uint256FromHexString(core.ELAAssetID)
+	CRRewardAddr, _ := common.Uint168FromAddress(crRewardAddr)
 	tx := functions.CreateTransaction(
 		pow.GetDefaultTxVersion(height),
 		common2.CoinBase,
@@ -149,14 +150,14 @@ func (pow *Service) CreateCoinbaseTx(minerAddr string, height uint32) (interface
 		},
 		[]*common2.Output{
 			{
-				AssetID:     config.ELAAssetID,
+				AssetID:     *ELAAssetID,
 				Value:       0,
-				ProgramHash: crRewardAddr,
+				ProgramHash: *CRRewardAddr,
 				Type:        common2.OTNone,
 				Payload:     &outputpayload.DefaultOutput{},
 			},
 			{
-				AssetID:     config.ELAAssetID,
+				AssetID:     *ELAAssetID,
 				Value:       0,
 				ProgramHash: *minerProgramHash,
 				Type:        common2.OTNone,
@@ -172,23 +173,26 @@ func (pow *Service) CreateCoinbaseTx(minerAddr string, height uint32) (interface
 
 func (pow *Service) AssignCoinbaseTxRewards(block *types.Block, totalReward common.Fixed64) error {
 	activeHeight := pow.arbiters.GetDPoSV2ActiveHeight()
+	DestroyELAAddress, _ := common.Uint168FromAddress(pow.chainParams.DestroyELAAddress)
+	ELAAssetID, _ := common.Uint256FromHexString(core.ELAAssetID)
 	if activeHeight != math.MaxUint32 && block.Height > activeHeight+1 {
 		rewardCyberRepublic := common.Fixed64(math.Ceil(float64(totalReward) * 0.3))
 		rewardDposArbiter := common.Fixed64(math.Ceil(float64(totalReward) * 0.35))
 		rewardMergeMiner := common.Fixed64(totalReward) - rewardCyberRepublic - rewardDposArbiter
 		block.Transactions[0].Outputs()[0].Value = rewardCyberRepublic
 		block.Transactions[0].Outputs()[1].Value = rewardMergeMiner
-		dposRewardAddr := pow.chainParams.DPoSV2RewardAccumulateAddress
+		dposRewardAddr, _ := common.Uint168FromAddress(pow.chainParams.DPoSConfiguration.DPoSV2RewardAccumulateAddress)
+
 		if pow.arbiters.IsInPOWMode() {
-			dposRewardAddr = pow.chainParams.DestroyELAAddress
-			block.Transactions[0].Outputs()[0].ProgramHash = pow.chainParams.DestroyELAAddress
+
+			block.Transactions[0].Outputs()[0].ProgramHash = *DestroyELAAddress
 		}
 
 		if rewardDposArbiter > common.Fixed64(0) {
 			output := append(block.Transactions[0].Outputs(), &common2.Output{
-				AssetID:     config.ELAAssetID,
+				AssetID:     *ELAAssetID,
 				Value:       rewardDposArbiter,
-				ProgramHash: dposRewardAddr,
+				ProgramHash: *dposRewardAddr,
 				Payload:     &outputpayload.DefaultOutput{},
 			})
 			block.Transactions[0].SetOutputs(output)
@@ -216,7 +220,7 @@ func (pow *Service) AssignCoinbaseTxRewards(block *types.Block, totalReward comm
 		block.Transactions[0].Outputs()[0].Value = rewardCyberRepublic
 		block.Transactions[0].Outputs()[1].Value = rewardMergeMiner
 		if pow.arbiters.IsInPOWMode() {
-			block.Transactions[0].Outputs()[0].ProgramHash = pow.chainParams.DestroyELAAddress
+			block.Transactions[0].Outputs()[0].ProgramHash = *DestroyELAAddress
 		}
 		return nil
 	}
@@ -229,7 +233,7 @@ func (pow *Service) AssignCoinbaseTxRewards(block *types.Block, totalReward comm
 	block.Transactions[0].Outputs()[0].Value = rewardCyberRepublic
 	block.Transactions[0].Outputs()[1].Value = rewardMergeMiner
 	block.Transactions[0].SetOutputs(append(block.Transactions[0].Outputs(), &common2.Output{
-		AssetID:     config.ELAAssetID,
+		AssetID:     *ELAAssetID,
 		Value:       rewardDposArbiter,
 		ProgramHash: blockchain.FoundationAddress,
 	}))
@@ -238,10 +242,10 @@ func (pow *Service) AssignCoinbaseTxRewards(block *types.Block, totalReward comm
 
 func (pow *Service) distributeDPOSReward(coinBaseTx interfaces.Transaction,
 	rewards map[common.Uint168]common.Fixed64) (common.Fixed64, error) {
-
+	ELAAssetID, _ := common.Uint256FromHexString(core.ELAAssetID)
 	for ownerHash, reward := range rewards {
 		coinBaseTx.SetOutputs(append(coinBaseTx.Outputs(), &common2.Output{
-			AssetID:     config.ELAAssetID,
+			AssetID:     *ELAAssetID,
 			Value:       reward,
 			ProgramHash: ownerHash,
 			Type:        common2.OTNone,
@@ -264,7 +268,7 @@ func (pow *Service) GenerateBlock(minerAddr string,
 		Previous:   *pow.chain.BestChain.Hash,
 		MerkleRoot: common.EmptyHash,
 		Timestamp:  uint32(pow.chain.MedianAdjustedTime().Unix()),
-		Bits:       pow.chainParams.PowLimitBits,
+		Bits:       pow.chainParams.PowConfiguration.PowLimitBits,
 		Height:     nextBlockHeight,
 		Nonce:      0,
 	}
@@ -304,7 +308,8 @@ func (pow *Service) GenerateBlock(minerAddr string,
 	for _, tx := range txs {
 
 		size := totalTxsSize + tx.GetSize()
-		if size > int(pact.MaxBlockContextSize) {
+		if size > int(pow.chainParams.MaxBlockSize) {
+			//if size > int(pact.MaxBlockContextSize) {
 			continue
 		}
 		totalTxsSize = size

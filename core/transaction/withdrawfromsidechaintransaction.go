@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"errors"
+	"github.com/elastos/Elastos.ELA/core"
 	"github.com/elastos/Elastos.ELA/database"
 	"math"
 	"math/big"
@@ -42,8 +43,9 @@ func (t *WithdrawFromSideChainTransaction) CheckTransactionOutput() error {
 
 	// check if output address is valid
 	specialOutputCount := 0
+	ELAAssetID, _ := common.Uint256FromHexString(core.ELAAssetID)
 	for _, output := range t.Outputs() {
-		if output.AssetID != config.ELAAssetID {
+		if output.AssetID != *ELAAssetID {
 			return errors.New("asset ID in output is invalid")
 		}
 
@@ -145,15 +147,15 @@ func (t *WithdrawFromSideChainTransaction) checkWithdrawFromSideChainTransaction
 			return err
 		}
 
-		if height >= t.parameters.Config.CRClaimDPOSNodeStartHeight {
+		if height >= t.parameters.Config.CRConfiguration.CRClaimDPOSNodeStartHeight {
 			var arbiters []*state.ArbiterInfo
 			var minCount uint32
-			if height >= t.parameters.Config.DPOSNodeCrossChainHeight {
+			if height >= t.parameters.Config.DPoSConfiguration.DPOSNodeCrossChainHeight {
 				arbiters = blockchain.DefaultLedger.Arbitrators.GetArbitrators()
-				minCount = uint32(t.parameters.Config.GeneralArbiters) + 1
+				minCount = uint32(t.parameters.Config.DPoSConfiguration.NormalArbitratorsCount) + 1
 			} else {
 				arbiters = blockchain.DefaultLedger.Arbitrators.GetCRCArbiters()
-				minCount = t.parameters.Config.CRAgreementCount
+				minCount = t.parameters.Config.CRConfiguration.CRAgreementCount
 			}
 			var arbitersCount int
 			for _, c := range arbiters {
@@ -243,12 +245,12 @@ func (t *WithdrawFromSideChainTransaction) checkWithdrawFromSideChainTransaction
 		}
 		var arbiters []*state.ArbiterInfo
 		var minCount uint32
-		if height >= t.parameters.Config.DPOSNodeCrossChainHeight {
+		if height >= t.parameters.Config.DPoSConfiguration.DPOSNodeCrossChainHeight {
 			arbiters = blockchain.DefaultLedger.Arbitrators.GetArbitrators()
-			minCount = uint32(t.parameters.Config.GeneralArbiters) + 1
+			minCount = uint32(t.parameters.Config.DPoSConfiguration.NormalArbitratorsCount) + 1
 		} else {
 			arbiters = blockchain.DefaultLedger.Arbitrators.GetCRCArbiters()
-			minCount = t.parameters.Config.CRAgreementCount
+			minCount = t.parameters.Config.CRConfiguration.CRAgreementCount
 		}
 		var arbitersCount int
 		for _, c := range arbiters {
@@ -279,15 +281,15 @@ func (t *WithdrawFromSideChainTransaction) checkWithdrawFromSideChainTransaction
 
 	currentHeight := t.parameters.BlockHeight
 	if currentHeight <= config.Parameters.CRConfiguration.CRClaimDPOSNodeStartHeight {
-		if len(pld.Signers) < (int(t.parameters.Config.CRMemberCount)*2/3 + 1) {
+		if len(pld.Signers) < (int(t.parameters.Config.CRConfiguration.MemberCount)*2/3 + 1) {
 			return errors.New("Signers number must be bigger than 2/3+1 CRMemberCount")
 		}
 	} else if currentHeight < config.Parameters.DPoSConfiguration.DPOSNodeCrossChainHeight {
-		if len(pld.Signers) < (int(t.parameters.Config.CRMemberCount) * 2 / 3) {
+		if len(pld.Signers) < (int(t.parameters.Config.CRConfiguration.MemberCount) * 2 / 3) {
 			return errors.New("Signers number must be bigger than 2/3 CRMemberCount")
 		}
 	} else {
-		if len(pld.Signers) < (int(t.parameters.Config.CRMemberCount)*2/3 + 1) {
+		if len(pld.Signers) < (int(t.parameters.Config.CRConfiguration.MemberCount)*2/3 + 1) {
 			return errors.New("Signers number must be bigger than 2/3+1 CRMemberCount")
 		}
 	}

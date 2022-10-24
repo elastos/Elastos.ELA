@@ -8,13 +8,14 @@ package rollback
 import (
 	"errors"
 	"fmt"
-	"github.com/elastos/Elastos.ELA/core/types/common"
 	"strconv"
 
 	"github.com/elastos/Elastos.ELA/blockchain"
 	cmdcom "github.com/elastos/Elastos.ELA/cmd/common"
 	"github.com/elastos/Elastos.ELA/common/config/settings"
 	"github.com/elastos/Elastos.ELA/common/log"
+	"github.com/elastos/Elastos.ELA/core/checkpoint"
+	"github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/database"
 
 	"github.com/urfave/cli"
@@ -47,9 +48,7 @@ func NewCommand() *cli.Command {
 }
 
 func rollbackAction(c *cli.Context) error {
-	appSettings.SetContext(c)
-	appSettings.SetupConfig()
-	appSettings.InitParamsValue()
+	config := appSettings.SetupConfig()
 
 	if c.NumFlags() == 0 {
 		cli.ShowSubcommandHelp(c)
@@ -67,14 +66,14 @@ func rollbackAction(c *cli.Context) error {
 	}
 
 	log.NewDefault("logs/node", 0, 0, 0)
-	chainStore, err := blockchain.NewChainStore(dataDir, appSettings.Params())
+	chainStore, err := blockchain.NewChainStore(dataDir, config)
 	if err != nil {
 		fmt.Println("create chain store failed, ", err)
 		return err
 	}
 	defer chainStore.Close()
-
-	chain, err := blockchain.New(chainStore, appSettings.Params(), nil, nil)
+	CkpManager := checkpoint.NewManager(config)
+	chain, err := blockchain.New(chainStore, config, nil, nil, CkpManager)
 	if err != nil {
 		fmt.Println("create blockchain failed, ", err)
 		return err

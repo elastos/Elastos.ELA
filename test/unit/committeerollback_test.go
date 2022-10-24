@@ -8,6 +8,7 @@ package unit
 import (
 	"bytes"
 	"fmt"
+	"github.com/elastos/Elastos.ELA/core/checkpoint"
 	"testing"
 
 	"github.com/elastos/Elastos.ELA/common"
@@ -34,7 +35,7 @@ func init() {
 	functions.GetTransactionByBytes = transaction.GetTransactionByBytes
 	functions.CreateTransaction = transaction.CreateTransaction
 	functions.GetTransactionParameters = transaction.GetTransactionparameters
-	config.DefaultParams = config.GetDefaultParams()
+	config.DefaultParams = *config.GetDefaultParams()
 }
 
 func getCIDByPublicKeyStr(publicKey string) *common.Uint168 {
@@ -410,11 +411,13 @@ func TestCommittee_RollbackRegisterAndVoteCR(t *testing.T) {
 	registerCRTxn2 := getRegisterCRTx(publicKeyStr2, privateKeyStr2, nickName2)
 	registerCRTxn3 := getRegisterCRTx(publicKeyStr3, privateKeyStr3, nickName3)
 
+	CkpManager := checkpoint.NewManager(config.GetDefaultParams())
 	// new committee
-	committee := state.NewCommittee(&config.DefaultParams)
+	committee := state.NewCommittee(&config.DefaultParams,
+		CkpManager)
 
 	// avoid getting UTXOs from database
-	currentHeight := config.DefaultParams.CRVotingStartHeight
+	currentHeight := config.DefaultParams.CRConfiguration.CRVotingStartHeight
 
 	// register cr
 	committee.ProcessBlock(&types.Block{
@@ -497,14 +500,15 @@ func TestCommittee_RollbackEndVotingPeriod(t *testing.T) {
 
 	// set count of CR member
 	cfg := &config.DefaultParams
-	cfg.CRCArbiters = cfg.CRCArbiters[0:2]
-	cfg.CRMemberCount = 2
+	cfg.DPoSConfiguration.CRCArbiters = cfg.DPoSConfiguration.CRCArbiters[0:2]
+	cfg.CRConfiguration.MemberCount = 2
 
+	CkpManager := checkpoint.NewManager(config.GetDefaultParams())
 	// new committee
-	committee := state.NewCommittee(cfg)
+	committee := state.NewCommittee(cfg, CkpManager)
 
 	// avoid getting UTXOs from database
-	currentHeight := config.DefaultParams.CRVotingStartHeight
+	currentHeight := config.DefaultParams.CRConfiguration.CRVotingStartHeight
 
 	// register cr
 	committee.ProcessBlock(&types.Block{
@@ -545,7 +549,7 @@ func TestCommittee_RollbackEndVotingPeriod(t *testing.T) {
 		},
 	}, nil)
 
-	currentHeight = cfg.CRCommitteeStartHeight - 1
+	currentHeight = cfg.CRConfiguration.CRCommitteeStartHeight - 1
 	committee.ProcessBlock(&types.Block{
 		Header: common2.Header{Height: currentHeight}}, nil)
 	assert.Equal(t, 0, len(committee.GetCurrentMembers()))
@@ -601,15 +605,16 @@ func TestCommittee_RollbackContinueVotingPeriod(t *testing.T) {
 
 	// set count of CR member
 	params := config.GetDefaultParams()
-	cfg := &params
-	cfg.CRCArbiters = cfg.CRCArbiters[0:4]
-	cfg.CRMemberCount = 4
+	cfg := params
+	cfg.DPoSConfiguration.CRCArbiters = cfg.DPoSConfiguration.CRCArbiters[0:4]
+	cfg.CRConfiguration.MemberCount = 4
 
+	CkpManager := checkpoint.NewManager(config.GetDefaultParams())
 	// new committee
-	committee := state.NewCommittee(cfg)
+	committee := state.NewCommittee(cfg, CkpManager)
 
 	// avoid getting UTXOs from database
-	currentHeight := config.DefaultParams.CRVotingStartHeight
+	currentHeight := config.DefaultParams.CRConfiguration.CRVotingStartHeight
 
 	// register cr
 	committee.ProcessBlock(&types.Block{
@@ -662,7 +667,7 @@ func TestCommittee_RollbackContinueVotingPeriod(t *testing.T) {
 		},
 	}, nil)
 
-	currentHeight = cfg.CRCommitteeStartHeight - 1
+	currentHeight = cfg.CRConfiguration.CRCommitteeStartHeight - 1
 	committee.ProcessBlock(&types.Block{
 		Header: common2.Header{Height: currentHeight}}, nil)
 	keyFrameA := committee.Snapshot()
@@ -725,7 +730,7 @@ func TestCommittee_RollbackContinueVotingPeriod(t *testing.T) {
 	}, nil)
 
 	// set current Height to one block before ending voting period
-	currentHeight = cfg.CRCommitteeStartHeight - 1 + cfg.CRVotingPeriod
+	currentHeight = cfg.CRConfiguration.CRCommitteeStartHeight - 1 + cfg.CRConfiguration.VotingPeriod
 	committee.ProcessBlock(&types.Block{
 		Header: common2.Header{Height: currentHeight}}, nil)
 	keyFrameA2 := committee.Snapshot()
@@ -776,16 +781,17 @@ func TestCommittee_RollbackChangeCommittee(t *testing.T) {
 	registerCRTxn2 := getRegisterCRTx(publicKeyStr2, privateKeyStr2, nickName2)
 	registerCRTxn3 := getRegisterCRTx(publicKeyStr3, privateKeyStr3, nickName3)
 
+	CkpManager := checkpoint.NewManager(config.GetDefaultParams())
 	// new committee
-	committee := state.NewCommittee(&config.DefaultParams)
+	committee := state.NewCommittee(&config.DefaultParams, CkpManager)
 
 	// set count of CR member
 	cfg := &config.DefaultParams
-	cfg.CRCArbiters = cfg.CRCArbiters[0:2]
-	cfg.CRMemberCount = 2
+	cfg.DPoSConfiguration.CRCArbiters = cfg.DPoSConfiguration.CRCArbiters[0:2]
+	cfg.CRConfiguration.MemberCount = 2
 
 	// avoid getting UTXOs from database
-	currentHeight := cfg.CRVotingStartHeight
+	currentHeight := cfg.CRConfiguration.CRVotingStartHeight
 
 	// register cr   every cr DepositAmount is 5000
 	committee.ProcessBlock(&types.Block{
@@ -828,14 +834,14 @@ func TestCommittee_RollbackChangeCommittee(t *testing.T) {
 	//did1 did2 is cr did3 is candidate
 	//did1 did2 DepositAmount 5000 ela
 	//did3 is candidate DepositAmount 0 ela
-	currentHeight = cfg.CRCommitteeStartHeight
+	currentHeight = cfg.CRConfiguration.CRCommitteeStartHeight
 	committee.ProcessBlock(&types.Block{
 		Header: common2.Header{Height: currentHeight}}, nil)
 	assert.Equal(t, 2, len(committee.GetCurrentMembers()))
 
 	// register cr again  did1 did2 10000  did3 5000
-	currentHeight = config.DefaultParams.CRCommitteeStartHeight +
-		cfg.CRDutyPeriod - cfg.CRVotingPeriod
+	currentHeight = config.DefaultParams.CRConfiguration.CRCommitteeStartHeight +
+		cfg.CRConfiguration.DutyPeriod - cfg.CRConfiguration.VotingPeriod
 	committee.ProcessBlock(&types.Block{
 		Header: common2.Header{
 			Height: currentHeight,
@@ -877,7 +883,7 @@ func TestCommittee_RollbackChangeCommittee(t *testing.T) {
 	//change commitee old cr  did1 did2 -5000  DepositAmount 5000
 	//did1 is candidate -5000 DepositAmount 0
 	//did3 5000
-	currentHeight = cfg.CRCommitteeStartHeight + cfg.CRDutyPeriod
+	currentHeight = cfg.CRConfiguration.CRCommitteeStartHeight + cfg.CRConfiguration.DutyPeriod
 	committee.ProcessBlock(&types.Block{
 		Header: common2.Header{Height: currentHeight}}, nil)
 	assert.Equal(t, 2, len(committee.GetCurrentMembers()))
@@ -920,18 +926,19 @@ func TestCommittee_RollbackCRCProposal(t *testing.T) {
 	registerCRTxn2 := getRegisterCRTx(publicKeyStr2, privateKeyStr2, nickName2)
 	registerCRTxn3 := getRegisterCRTx(publicKeyStr3, privateKeyStr3, nickName3)
 
+	CkpManager := checkpoint.NewManager(config.GetDefaultParams())
 	// new committee
-	committee := state.NewCommittee(&config.DefaultParams)
+	committee := state.NewCommittee(&config.DefaultParams, CkpManager)
 
 	// set count of CR member
 	cfg := &config.DefaultParams
-	cfg.CRCArbiters = cfg.CRCArbiters[0:2]
-	cfg.CRMemberCount = 2
-	cfg.CRAgreementCount = 2
-	cfg.CRClaimDPOSNodePeriod = 1000000
+	cfg.DPoSConfiguration.CRCArbiters = cfg.DPoSConfiguration.CRCArbiters[0:2]
+	cfg.CRConfiguration.MemberCount = 2
+	cfg.CRConfiguration.CRAgreementCount = 2
+	cfg.CRConfiguration.CRClaimDPOSNodePeriod = 1000000
 
 	// avoid getting UTXOs from database
-	currentHeight := cfg.CRVotingStartHeight
+	currentHeight := cfg.CRConfiguration.CRVotingStartHeight
 
 	// register cr
 	committee.ProcessBlock(&types.Block{
@@ -971,7 +978,7 @@ func TestCommittee_RollbackCRCProposal(t *testing.T) {
 	assert.Equal(t, common.Fixed64(3), committee.GetCandidate(*did1).Votes)
 
 	// end first voting period
-	currentHeight = cfg.CRCommitteeStartHeight
+	currentHeight = cfg.CRConfiguration.CRCommitteeStartHeight
 	committee.ProcessBlock(&types.Block{
 		Header: common2.Header{Height: currentHeight}}, nil)
 	assert.Equal(t, 2, len(committee.GetCurrentMembers()))
@@ -1012,7 +1019,7 @@ func TestCommittee_RollbackCRCProposal(t *testing.T) {
 	checkResult(t, keyFrameA, keyFrameB, keyFrameC, keyFrameD)
 
 	// set CR agreement count
-	committee.Params.CRAgreementCount = 2
+	committee.Params.CRConfiguration.CRAgreementCount = 2
 
 	// review proposal
 	proposalReviewTx1 := getCRCProposalReviewTx(proposalHash, payload.Approve,
@@ -1053,7 +1060,7 @@ func TestCommittee_RollbackCRCProposal(t *testing.T) {
 
 	// change to CRAgreed
 	keyFrameA3 := committee.Snapshot()
-	currentHeight += cfg.ProposalCRVotingPeriod
+	currentHeight += cfg.CRConfiguration.ProposalCRVotingPeriod
 	committee.ProcessBlock(&types.Block{
 		Header: common2.Header{Height: currentHeight}}, nil)
 	assert.Equal(t, state.CRAgreed, committee.GetProposal(proposalHash).Status)
@@ -1077,8 +1084,8 @@ func TestCommittee_RollbackCRCProposal(t *testing.T) {
 
 	// change to VoterAgreed
 	keyFrameA4 := committee.Snapshot()
-	currentHeight += cfg.ProposalPublicVotingPeriod
-	currentHeight += cfg.ProposalCRVotingPeriod
+	currentHeight += cfg.CRConfiguration.ProposalPublicVotingPeriod
+	currentHeight += cfg.CRConfiguration.ProposalCRVotingPeriod
 	committee.ProcessBlock(&types.Block{
 		Header: common2.Header{Height: currentHeight}}, nil)
 	assert.Equal(t, state.VoterAgreed, committee.GetProposal(proposalHash).Status)
@@ -1121,16 +1128,17 @@ func TestCommittee_RollbackCRCProposalTracking(t *testing.T) {
 	registerCRTxn2 := getRegisterCRTx(publicKeyStr2, privateKeyStr2, nickName2)
 	registerCRTxn3 := getRegisterCRTx(publicKeyStr3, privateKeyStr3, nickName3)
 
+	CkpManager := checkpoint.NewManager(config.GetDefaultParams())
 	// new committee
-	committee := state.NewCommittee(&config.DefaultParams)
+	committee := state.NewCommittee(&config.DefaultParams, CkpManager)
 
 	// set count of CR member
 	cfg := &config.DefaultParams
-	cfg.CRCArbiters = cfg.CRCArbiters[0:2]
-	cfg.CRMemberCount = 2
+	cfg.DPoSConfiguration.CRCArbiters = cfg.DPoSConfiguration.CRCArbiters[0:2]
+	cfg.CRConfiguration.MemberCount = 2
 
 	// avoid getting UTXOs from database
-	currentHeight := cfg.CRVotingStartHeight
+	currentHeight := cfg.CRConfiguration.CRVotingStartHeight
 
 	// register cr
 	committee.ProcessBlock(&types.Block{
@@ -1170,7 +1178,7 @@ func TestCommittee_RollbackCRCProposalTracking(t *testing.T) {
 	assert.Equal(t, common.Fixed64(3), committee.GetCandidate(*did1).Votes)
 
 	// end first voting period
-	currentHeight = cfg.CRCommitteeStartHeight
+	currentHeight = cfg.CRConfiguration.CRCommitteeStartHeight
 	committee.ProcessBlock(&types.Block{
 		Header: common2.Header{Height: currentHeight}}, nil)
 	assert.Equal(t, 2, len(committee.GetCurrentMembers()))
@@ -1190,7 +1198,7 @@ func TestCommittee_RollbackCRCProposalTracking(t *testing.T) {
 	//assert.Equal(t, 2, committee.GetProposal(proposalTx.Payload.(*payload.CRCProposal).Hash()))
 
 	// set CR agreement count
-	committee.Params.CRAgreementCount = 2
+	committee.Params.CRConfiguration.CRAgreementCount = 2
 
 	// review proposal
 	proposalReviewTx1 := getCRCProposalReviewTx(proposalHash, payload.Approve,
@@ -1209,13 +1217,13 @@ func TestCommittee_RollbackCRCProposalTracking(t *testing.T) {
 	assert.Equal(t, state.Registered, committee.GetProposal(proposalHash).Status)
 
 	// change to CRAgreed
-	currentHeight += cfg.ProposalCRVotingPeriod
+	currentHeight += cfg.CRConfiguration.ProposalCRVotingPeriod
 	committee.ProcessBlock(&types.Block{
 		Header: common2.Header{Height: currentHeight}}, nil)
 	assert.Equal(t, state.CRAgreed, committee.GetProposal(proposalHash).Status)
 
 	// change to VoterAgreed
-	currentHeight += cfg.ProposalPublicVotingPeriod
+	currentHeight += cfg.CRConfiguration.ProposalPublicVotingPeriod
 	committee.ProcessBlock(&types.Block{
 		Header: common2.Header{Height: currentHeight}}, nil)
 	assert.Equal(t, state.VoterAgreed, committee.GetProposal(proposalHash).Status)
@@ -1223,7 +1231,7 @@ func TestCommittee_RollbackCRCProposalTracking(t *testing.T) {
 	// set secretary-general
 	publicKeyStr4 := "027209c3a6bcb95e9ef766c81136bcd6f2338eee7f9caebf694825e411320bab12"
 	privateKeyStr4 := "b3b1c16abd786c4994af9ee8c79d25457f66509731f74d6a9a9673ca872fa8fa"
-	committee.Params.SecretaryGeneral = publicKeyStr4
+	committee.Params.CRConfiguration.SecretaryGeneral = publicKeyStr4
 	committee.GetHeight = func() uint32 {
 		return currentHeight
 	}
@@ -1319,16 +1327,17 @@ func TestCommittee_RollbackCRCProposalWithdraw(t *testing.T) {
 	registerCRTxn2 := getRegisterCRTx(publicKeyStr2, privateKeyStr2, nickName2)
 	registerCRTxn3 := getRegisterCRTx(publicKeyStr3, privateKeyStr3, nickName3)
 
+	CkpManager := checkpoint.NewManager(config.GetDefaultParams())
 	// new committee
-	committee := state.NewCommittee(&config.DefaultParams)
+	committee := state.NewCommittee(&config.DefaultParams, CkpManager)
 
 	// set count of CR member
 	cfg := &config.DefaultParams
-	cfg.CRCArbiters = cfg.CRCArbiters[0:2]
-	cfg.CRMemberCount = 2
+	cfg.DPoSConfiguration.CRCArbiters = cfg.DPoSConfiguration.CRCArbiters[0:2]
+	cfg.CRConfiguration.MemberCount = 2
 
 	// avoid getting UTXOs from database
-	currentHeight := cfg.CRVotingStartHeight
+	currentHeight := cfg.CRConfiguration.CRVotingStartHeight
 
 	// register cr
 	committee.ProcessBlock(&types.Block{
@@ -1368,7 +1377,7 @@ func TestCommittee_RollbackCRCProposalWithdraw(t *testing.T) {
 	assert.Equal(t, common.Fixed64(3), committee.GetCandidate(*did1).Votes)
 
 	// end first voting period
-	currentHeight = cfg.CRCommitteeStartHeight
+	currentHeight = cfg.CRConfiguration.CRCommitteeStartHeight
 	committee.ProcessBlock(&types.Block{
 		Header: common2.Header{Height: currentHeight}}, nil)
 	assert.Equal(t, 2, len(committee.GetCurrentMembers()))
@@ -1387,7 +1396,7 @@ func TestCommittee_RollbackCRCProposalWithdraw(t *testing.T) {
 	assert.Equal(t, 1, len(committee.GetProposals(state.Registered)))
 
 	// set CR agreement count
-	committee.Params.CRAgreementCount = 2
+	committee.Params.CRConfiguration.CRAgreementCount = 2
 
 	// review proposal
 	proposalReviewTx1 := getCRCProposalReviewTx(proposalHash, payload.Approve,
@@ -1406,13 +1415,13 @@ func TestCommittee_RollbackCRCProposalWithdraw(t *testing.T) {
 	assert.Equal(t, state.Registered, committee.GetProposal(proposalHash).Status)
 
 	// change to CRAgreed
-	currentHeight += cfg.ProposalCRVotingPeriod
+	currentHeight += cfg.CRConfiguration.ProposalCRVotingPeriod
 	committee.ProcessBlock(&types.Block{
 		Header: common2.Header{Height: currentHeight}}, nil)
 	assert.Equal(t, state.CRAgreed, committee.GetProposal(proposalHash).Status)
 
 	// change to VoterAgreed
-	currentHeight += cfg.ProposalPublicVotingPeriod
+	currentHeight += cfg.CRConfiguration.ProposalPublicVotingPeriod
 	committee.ProcessBlock(&types.Block{
 		Header: common2.Header{Height: currentHeight}}, nil)
 	assert.Equal(t, state.VoterAgreed, committee.GetProposal(proposalHash).Status)
@@ -1454,7 +1463,7 @@ func TestCommittee_RollbackCRCProposalWithdraw(t *testing.T) {
 	// set secretary-general
 	publicKeyStr4 := "027209c3a6bcb95e9ef766c81136bcd6f2338eee7f9caebf694825e411320bab12"
 	privateKeyStr4 := "b3b1c16abd786c4994af9ee8c79d25457f66509731f74d6a9a9673ca872fa8fa"
-	committee.Params.SecretaryGeneral = publicKeyStr4
+	committee.Params.CRConfiguration.SecretaryGeneral = publicKeyStr4
 	committee.GetHeight = func() uint32 {
 		return currentHeight
 	}
@@ -1542,17 +1551,18 @@ func TestCommittee_RollbackTempStartVotingPeriod(t *testing.T) {
 	registerCRTxn2 := getRegisterCRTx(publicKeyStr2, privateKeyStr2, nickName2)
 	registerCRTxn3 := getRegisterCRTx(publicKeyStr3, privateKeyStr3, nickName3)
 
+	CkpManager := checkpoint.NewManager(config.GetDefaultParams())
 	// new committee
-	committee := state.NewCommittee(&config.DefaultParams)
+	committee := state.NewCommittee(&config.DefaultParams, CkpManager)
 
 	// set count of CR member
 	cfg := &config.DefaultParams
-	cfg.CRCArbiters = cfg.CRCArbiters[0:2]
-	cfg.CRMemberCount = 2
-	cfg.CRAgreementCount = 2
+	cfg.DPoSConfiguration.CRCArbiters = cfg.DPoSConfiguration.CRCArbiters[0:2]
+	cfg.CRConfiguration.MemberCount = 2
+	cfg.CRConfiguration.CRAgreementCount = 2
 
 	// avoid getting UTXOs from database
-	currentHeight := cfg.CRVotingStartHeight
+	currentHeight := cfg.CRConfiguration.CRVotingStartHeight
 
 	// register cr
 	committee.ProcessBlock(&types.Block{
@@ -1592,19 +1602,19 @@ func TestCommittee_RollbackTempStartVotingPeriod(t *testing.T) {
 	assert.Equal(t, common.Fixed64(3), committee.GetCandidate(*did1).Votes)
 
 	// end first voting period
-	currentHeight = cfg.CRCommitteeStartHeight
+	currentHeight = cfg.CRConfiguration.CRCommitteeStartHeight
 	committee.ProcessBlock(&types.Block{
 		Header: common2.Header{Height: currentHeight}}, nil)
 	assert.Equal(t, 2, len(committee.GetCurrentMembers()))
 
-	currentHeight = config.DefaultParams.CRCommitteeStartHeight +
-		cfg.CRDutyPeriod - cfg.CRVotingPeriod - 1
+	currentHeight = config.DefaultParams.CRConfiguration.CRCommitteeStartHeight +
+		cfg.CRConfiguration.DutyPeriod - cfg.CRConfiguration.VotingPeriod - 1
 	committee.ProcessBlock(&types.Block{
 		Header: common2.Header{Height: currentHeight}}, nil)
 
 	// register cr again
-	currentHeight = config.DefaultParams.CRCommitteeStartHeight +
-		cfg.CRDutyPeriod - cfg.CRVotingPeriod
+	currentHeight = config.DefaultParams.CRConfiguration.CRCommitteeStartHeight +
+		cfg.CRConfiguration.DutyPeriod - cfg.CRConfiguration.VotingPeriod
 	committee.ProcessBlock(&types.Block{
 		Header: common2.Header{
 			Height: currentHeight,
@@ -1641,7 +1651,7 @@ func TestCommittee_RollbackTempStartVotingPeriod(t *testing.T) {
 	keyFrameA := committee.Snapshot()
 
 	// end second voting period
-	currentHeight = cfg.CRCommitteeStartHeight + cfg.CRDutyPeriod
+	currentHeight = cfg.CRConfiguration.CRCommitteeStartHeight + cfg.CRConfiguration.DutyPeriod
 	committee.ProcessBlock(&types.Block{
 		Header: common2.Header{Height: currentHeight}}, nil)
 	assert.Equal(t, false, committee.IsInElectionPeriod())
@@ -1694,14 +1704,15 @@ func TestCommittee_RollbackCRCAppropriationTx(t *testing.T) {
 
 	// set count of CR member
 	cfg := &config.DefaultParams
-	cfg.CRCArbiters = cfg.CRCArbiters[0:2]
-	cfg.CRMemberCount = 2
+	cfg.DPoSConfiguration.CRCArbiters = cfg.DPoSConfiguration.CRCArbiters[0:2]
+	cfg.CRConfiguration.MemberCount = 2
 
+	CkpManager := checkpoint.NewManager(config.GetDefaultParams())
 	// new committee
-	committee := state.NewCommittee(cfg)
+	committee := state.NewCommittee(cfg, CkpManager)
 
 	// avoid getting UTXOs from database
-	currentHeight := config.DefaultParams.CRVotingStartHeight
+	currentHeight := config.DefaultParams.CRConfiguration.CRVotingStartHeight
 	committee.RegisterFuncitons(&state.CommitteeFuncsConfig{
 		GetHeight: func() uint32 {
 			return currentHeight
@@ -1747,7 +1758,7 @@ func TestCommittee_RollbackCRCAppropriationTx(t *testing.T) {
 	}, nil)
 
 	//currentHeight to before CRCommitteeStartHeight
-	currentHeight = cfg.CRCommitteeStartHeight - 1
+	currentHeight = cfg.CRConfiguration.CRCommitteeStartHeight - 1
 	committee.ProcessBlock(&types.Block{
 		Header: common2.Header{Height: currentHeight}}, nil)
 	assert.Equal(t, 0, len(committee.GetCurrentMembers()))
@@ -1897,14 +1908,15 @@ func TestCommittee_RollbackCRCImpeachmentTx(t *testing.T) {
 
 	// set count of CR member
 	cfg := &config.DefaultParams
-	cfg.CRCArbiters = cfg.CRCArbiters[0:2]
-	cfg.CRMemberCount = 2
+	cfg.DPoSConfiguration.CRCArbiters = cfg.DPoSConfiguration.CRCArbiters[0:2]
+	cfg.CRConfiguration.MemberCount = 2
 
+	CkpManager := checkpoint.NewManager(config.GetDefaultParams())
 	// new committee
-	committee := state.NewCommittee(cfg)
+	committee := state.NewCommittee(cfg, CkpManager)
 
 	// avoid getting UTXOs from database
-	currentHeight := config.DefaultParams.CRVotingStartHeight
+	currentHeight := config.DefaultParams.CRConfiguration.CRVotingStartHeight
 
 	// register cr
 	committee.ProcessBlock(&types.Block{
@@ -1943,7 +1955,7 @@ func TestCommittee_RollbackCRCImpeachmentTx(t *testing.T) {
 		},
 	}, nil)
 
-	currentHeight = cfg.CRCommitteeStartHeight - 1
+	currentHeight = cfg.CRConfiguration.CRCommitteeStartHeight - 1
 	committee.ProcessBlock(&types.Block{
 		Header: common2.Header{Height: currentHeight}}, nil)
 	assert.Equal(t, 0, len(committee.GetCurrentMembers()))
@@ -1951,7 +1963,7 @@ func TestCommittee_RollbackCRCImpeachmentTx(t *testing.T) {
 	// process
 
 	//here change committee
-	committee.Params.CRAgreementCount = 2
+	committee.Params.CRConfiguration.CRAgreementCount = 2
 	currentHeight++
 	committee.ProcessBlock(&types.Block{
 		Header: common2.Header{Height: currentHeight}}, nil)
@@ -2031,14 +2043,15 @@ func TestCommittee_RollbackCRCImpeachmentAndReelectionTx(t *testing.T) {
 
 	// set count of CR member
 	cfg := &config.DefaultParams
-	cfg.CRCArbiters = cfg.CRCArbiters[0:2]
-	cfg.CRMemberCount = 2
+	cfg.DPoSConfiguration.CRCArbiters = cfg.DPoSConfiguration.CRCArbiters[0:2]
+	cfg.CRConfiguration.MemberCount = 2
 
+	CkpManager := checkpoint.NewManager(config.GetDefaultParams())
 	// new committee
-	committee := state.NewCommittee(cfg)
+	committee := state.NewCommittee(cfg, CkpManager)
 
 	// avoid getting UTXOs from database
-	currentHeight := config.DefaultParams.CRVotingStartHeight
+	currentHeight := config.DefaultParams.CRConfiguration.CRVotingStartHeight
 
 	// register cr
 	committee.ProcessBlock(&types.Block{
@@ -2077,7 +2090,7 @@ func TestCommittee_RollbackCRCImpeachmentAndReelectionTx(t *testing.T) {
 		},
 	}, nil)
 
-	currentHeight = cfg.CRCommitteeStartHeight - 1
+	currentHeight = cfg.CRConfiguration.CRCommitteeStartHeight - 1
 	committee.ProcessBlock(&types.Block{
 		Header: common2.Header{Height: currentHeight}}, nil)
 	assert.Equal(t, 0, len(committee.GetCurrentMembers()))
@@ -2085,7 +2098,7 @@ func TestCommittee_RollbackCRCImpeachmentAndReelectionTx(t *testing.T) {
 	// process
 
 	//here change committee
-	committee.Params.CRAgreementCount = 2
+	committee.Params.CRConfiguration.CRAgreementCount = 2
 	currentHeight++
 	committee.ProcessBlock(&types.Block{
 		Header: common2.Header{Height: currentHeight}}, nil)
@@ -2107,7 +2120,7 @@ func TestCommittee_RollbackCRCImpeachmentAndReelectionTx(t *testing.T) {
 	//here process impeachment
 	//generate impeachment tx
 	impeachValue := committee.CirculationAmount*common.Fixed64(committee.
-		Params.VoterRejectPercentage)/common.Fixed64(100) + 1
+		Params.CRConfiguration.VoterRejectPercentage)/common.Fixed64(100) + 1
 	impeachmentTx := getCRCImpeachmentTx(publicKeyStr1, did1, impeachValue, *address1Uint168)
 
 	currentHeight++
@@ -2209,16 +2222,17 @@ func TestCommitee_RollbackCRCBlendTx(t *testing.T) {
 	registerCRTxn2 := getRegisterCRTx(publicKeyStr2, privateKeyStr2, nickName2)
 	registerCRTxn3 := getRegisterCRTx(publicKeyStr3, privateKeyStr3, nickName3)
 
+	CkpManager := checkpoint.NewManager(config.GetDefaultParams())
 	// new committee
-	committee := state.NewCommittee(&config.DefaultParams)
+	committee := state.NewCommittee(&config.DefaultParams, CkpManager)
 	// set count of CR member
 	cfg := &config.DefaultParams
-	cfg.CRCArbiters = cfg.CRCArbiters[0:2]
-	cfg.CRMemberCount = 2
-	cfg.CRAgreementCount = 2
+	cfg.DPoSConfiguration.CRCArbiters = cfg.DPoSConfiguration.CRCArbiters[0:2]
+	cfg.CRConfiguration.MemberCount = 2
+	cfg.CRConfiguration.CRAgreementCount = 2
 
 	// avoid getting UTXOs from database
-	currentHeight := cfg.CRVotingStartHeight
+	currentHeight := cfg.CRConfiguration.CRVotingStartHeight
 	// register cr
 	committee.ProcessBlock(&types.Block{
 		Header: common2.Header{
@@ -2271,7 +2285,7 @@ func TestCommitee_RollbackCRCBlendTx(t *testing.T) {
 		publicKeyStr2, privateKeyStr2)
 
 	// end first voting period
-	currentHeight = cfg.CRCommitteeStartHeight
+	currentHeight = cfg.CRConfiguration.CRCommitteeStartHeight
 	committee.ProcessBlock(&types.Block{
 		Header: common2.Header{
 			Height: currentHeight,
@@ -2319,15 +2333,15 @@ func TestCommitee_RollbackCRCBlendTx(t *testing.T) {
 	assert.Equal(t, state.Registered, committee.GetProposal(proposalCHash).Status)
 
 	// change to CRAgreed
-	currentHeight += cfg.ProposalCRVotingPeriod
+	currentHeight += cfg.CRConfiguration.ProposalCRVotingPeriod
 	committee.ProcessBlock(&types.Block{
 		Header: common2.Header{Height: currentHeight}}, nil)
 	assert.Equal(t, state.CRAgreed, committee.GetProposal(proposalBHash).Status)
 	assert.Equal(t, state.CRAgreed, committee.GetProposal(proposalCHash).Status)
 
 	// register cr again
-	currentHeight = config.DefaultParams.CRCommitteeStartHeight +
-		cfg.CRDutyPeriod - cfg.CRVotingPeriod
+	currentHeight = config.DefaultParams.CRConfiguration.CRCommitteeStartHeight +
+		cfg.CRConfiguration.DutyPeriod - cfg.CRConfiguration.VotingPeriod
 	committee.ProcessBlock(&types.Block{
 		Header: common2.Header{
 			Height: currentHeight,
@@ -2350,7 +2364,7 @@ func TestCommitee_RollbackCRCBlendTx(t *testing.T) {
 	withdrawCTx := getCRCProposalWithdrawTx(proposalCHash, publicKeyStr1,
 		privateKeyStr1, 1, []*common2.Input{}, []*common2.Output{})
 	impeachValue := committee.CirculationAmount*common.Fixed64(committee.
-		Params.VoterRejectPercentage)/common.Fixed64(100) + 1
+		Params.CRConfiguration.VoterRejectPercentage)/common.Fixed64(100) + 1
 	//generate impeachment tx
 	impeachmentTx := getCRCImpeachmentTx(publicKeyStr1, did1, impeachValue, *address1Uint168)
 
@@ -2439,16 +2453,17 @@ func TestCommitee_RollbackCRCBlendAppropriationTx(t *testing.T) {
 	registerCRTxn2 := getRegisterCRTx(publicKeyStr2, privateKeyStr2, nickName2)
 	registerCRTxn3 := getRegisterCRTx(publicKeyStr3, privateKeyStr3, nickName3)
 
+	CkpManager := checkpoint.NewManager(config.GetDefaultParams())
 	// new committee
-	committee := state.NewCommittee(&config.DefaultParams)
+	committee := state.NewCommittee(&config.DefaultParams, CkpManager)
 	// set count of CR member
 	cfg := &config.DefaultParams
-	cfg.CRCArbiters = cfg.CRCArbiters[0:2]
-	cfg.CRMemberCount = 2
-	cfg.CRAgreementCount = 2
+	cfg.DPoSConfiguration.CRCArbiters = cfg.DPoSConfiguration.CRCArbiters[0:2]
+	cfg.CRConfiguration.MemberCount = 2
+	cfg.CRConfiguration.CRAgreementCount = 2
 
 	// avoid getting UTXOs from database
-	currentHeight := cfg.CRVotingStartHeight
+	currentHeight := cfg.CRConfiguration.CRVotingStartHeight
 	committee.RegisterFuncitons(&state.CommitteeFuncsConfig{
 		GetHeight: func() uint32 {
 			return currentHeight
@@ -2507,7 +2522,7 @@ func TestCommitee_RollbackCRCBlendAppropriationTx(t *testing.T) {
 		publicKeyStr2, privateKeyStr2)
 
 	// end first voting period
-	currentHeight = cfg.CRCommitteeStartHeight
+	currentHeight = cfg.CRConfiguration.CRCommitteeStartHeight
 	committee.ProcessBlock(&types.Block{
 		Header: common2.Header{
 			Height: currentHeight,
@@ -2555,15 +2570,15 @@ func TestCommitee_RollbackCRCBlendAppropriationTx(t *testing.T) {
 	assert.Equal(t, state.Registered, committee.GetProposal(proposalCHash).Status)
 
 	// change to CRAgreed
-	currentHeight += cfg.ProposalCRVotingPeriod
+	currentHeight += cfg.CRConfiguration.ProposalCRVotingPeriod
 	committee.ProcessBlock(&types.Block{
 		Header: common2.Header{Height: currentHeight}}, nil)
 	assert.Equal(t, state.CRAgreed, committee.GetProposal(proposalBHash).Status)
 	assert.Equal(t, state.CRAgreed, committee.GetProposal(proposalCHash).Status)
 
 	// register cr again
-	currentHeight = config.DefaultParams.CRCommitteeStartHeight +
-		cfg.CRDutyPeriod - cfg.CRVotingPeriod
+	currentHeight = config.DefaultParams.CRConfiguration.CRCommitteeStartHeight +
+		cfg.CRConfiguration.DutyPeriod - cfg.CRConfiguration.VotingPeriod
 	committee.ProcessBlock(&types.Block{
 		Header: common2.Header{
 			Height: currentHeight,
@@ -2587,7 +2602,7 @@ func TestCommitee_RollbackCRCBlendAppropriationTx(t *testing.T) {
 	withdrawCTx := getCRCProposalWithdrawTx(proposalCHash, publicKeyStr1,
 		privateKeyStr1, 1, []*common2.Input{}, []*common2.Output{})
 	impeachValue := committee.CirculationAmount*common.Fixed64(committee.
-		Params.VoterRejectPercentage)/common.Fixed64(100) + 1
+		Params.CRConfiguration.VoterRejectPercentage)/common.Fixed64(100) + 1
 	//generate impeachment tx
 	impeachmentTx := getCRCImpeachmentTx(publicKeyStr1, did1, impeachValue, *address1Uint168)
 
@@ -2640,8 +2655,8 @@ func TestCommitee_RollbackCRCBlendAppropriationTx(t *testing.T) {
 		},
 	}, nil)
 
-	currentHeight = cfg.CRCommitteeStartHeight + cfg.CRDutyPeriod + 1
-	committee.LastVotingStartHeight = currentHeight - cfg.CRVotingPeriod
+	currentHeight = cfg.CRConfiguration.CRCommitteeStartHeight + cfg.CRConfiguration.DutyPeriod + 1
+	committee.LastVotingStartHeight = currentHeight - cfg.CRConfiguration.VotingPeriod
 	committee.ProcessBlock(&types.Block{
 		Header: common2.Header{Height: currentHeight}}, nil)
 	assert.Equal(t, 2, len(committee.GetCurrentMembers()))
@@ -2705,17 +2720,18 @@ func TestCommitee_RollbackCRCBlendTxPropoalVert(t *testing.T) {
 	registerCRTxn1 := getRegisterCRTx(publicKeyStr1, privateKeyStr1, nickName1)
 	registerCRTxn2 := getRegisterCRTx(publicKeyStr2, privateKeyStr2, nickName2)
 
+	CkpManager := checkpoint.NewManager(config.GetDefaultParams())
 	// new committee
-	committee := state.NewCommittee(&config.DefaultParams)
+	committee := state.NewCommittee(&config.DefaultParams, CkpManager)
 
 	// set count of CR member
 	cfg := &config.DefaultParams
-	cfg.CRCArbiters = cfg.CRCArbiters[0:2]
-	cfg.CRMemberCount = 2
-	cfg.CRAgreementCount = 2
+	cfg.DPoSConfiguration.CRCArbiters = cfg.DPoSConfiguration.CRCArbiters[0:2]
+	cfg.CRConfiguration.MemberCount = 2
+	cfg.CRConfiguration.CRAgreementCount = 2
 
 	// avoid getting UTXOs from database
-	currentHeight := cfg.CRVotingStartHeight
+	currentHeight := cfg.CRConfiguration.CRVotingStartHeight
 
 	// register cr
 	committee.ProcessBlock(&types.Block{
@@ -2764,7 +2780,7 @@ func TestCommitee_RollbackCRCBlendTxPropoalVert(t *testing.T) {
 		publicKeyStr2, privateKeyStr2)
 	proposalCHash := proposalTxC.Payload().(*payload.CRCProposal).Hash(payload.CRCProposalVersion01)
 
-	currentHeight = cfg.CRCommitteeStartHeight
+	currentHeight = cfg.CRConfiguration.CRCommitteeStartHeight
 	committee.ProcessBlock(&types.Block{
 		Header: common2.Header{
 			Height: currentHeight,
@@ -2810,14 +2826,14 @@ func TestCommitee_RollbackCRCBlendTxPropoalVert(t *testing.T) {
 	assert.Equal(t, state.Registered, committee.GetProposal(proposalCHash).Status)
 
 	// register to CRAgreed
-	currentHeight += cfg.ProposalPublicVotingPeriod
+	currentHeight += cfg.CRConfiguration.ProposalPublicVotingPeriod
 	committee.ProcessBlock(&types.Block{
 		Header: common2.Header{Height: currentHeight}}, nil)
 	assert.Equal(t, state.CRAgreed, committee.GetProposal(proposalBHash).Status)
 	assert.Equal(t, state.CRAgreed, committee.GetProposal(proposalCHash).Status)
 
 	// change to CRAgreed
-	currentHeight += cfg.ProposalCRVotingPeriod
+	currentHeight += cfg.CRConfiguration.ProposalCRVotingPeriod
 	committee.ProcessBlock(&types.Block{
 		Header: common2.Header{Height: currentHeight}}, nil)
 	assert.Equal(t, 1, len(committee.GetProposal(proposalBHash).
@@ -2889,7 +2905,7 @@ func TestCommitee_RollbackCRCBlendTxPropoalVert(t *testing.T) {
 		WithdrawnBudgets))
 
 	// rollback
-	currentHeight = cfg.CRVotingStartHeight
+	currentHeight = cfg.CRConfiguration.CRVotingStartHeight
 	err := committee.RollbackTo(currentHeight)
 	assert.NoError(t, err)
 	keyFrameC := committee.Snapshot()
@@ -2920,17 +2936,18 @@ func TestCommitee_RollbackCRCBlendTxCRVert(t *testing.T) {
 	registerCRTxn1 := getRegisterCRTx(publicKeyStr1, privateKeyStr1, nickName1)
 	registerCRTxn2 := getRegisterCRTx(publicKeyStr2, privateKeyStr2, nickName2)
 
+	CkpManager := checkpoint.NewManager(config.GetDefaultParams())
 	// new committee
-	committee := state.NewCommittee(&config.DefaultParams)
+	committee := state.NewCommittee(&config.DefaultParams, CkpManager)
 	registerFuncs(committee.GetState())
 
 	// set count of CR member
 	cfg := &config.DefaultParams
-	cfg.CRCArbiters = cfg.CRCArbiters[0:2]
-	cfg.CRMemberCount = 2
+	cfg.DPoSConfiguration.CRCArbiters = cfg.DPoSConfiguration.CRCArbiters[0:2]
+	cfg.CRConfiguration.MemberCount = 2
 	// avoid getting UTXOs from database
 
-	currentHeight := cfg.CRVotingStartHeight
+	currentHeight := cfg.CRConfiguration.CRVotingStartHeight
 	// register cr
 	committee.ProcessBlock(&types.Block{
 		Header: common2.Header{
@@ -2980,7 +2997,7 @@ func TestCommitee_RollbackCRCBlendTxCRVert(t *testing.T) {
 
 	returnDepositTx1 := generateReturnDeposite(publicKeyStr1)
 	returnDepositTx2 := generateReturnDeposite(publicKeyStr2)
-	currentHeight += committee.Params.CRDepositLockupBlocks + 1
+	currentHeight += committee.Params.CRConfiguration.DepositLockupBlocks + 1
 	// returnDepositTx
 	committee.ProcessBlock(&types.Block{
 		Header: common2.Header{
@@ -2996,7 +3013,7 @@ func TestCommitee_RollbackCRCBlendTxCRVert(t *testing.T) {
 	assert.Equal(t, state.Returned, committee.GetCandidate(*cid2).State)
 
 	// rollback
-	currentHeight = cfg.CRVotingStartHeight
+	currentHeight = cfg.CRConfiguration.CRVotingStartHeight
 	err := committee.RollbackTo(currentHeight)
 	assert.NoError(t, err)
 	keyFrameC := committee.Snapshot()
@@ -3023,16 +3040,17 @@ func TestCommittee_RollbackReview(t *testing.T) {
 	registerCRTxn2 := getRegisterCRTx(publicKeyStr2, privateKeyStr2, nickName2)
 	registerCRTxn3 := getRegisterCRTx(publicKeyStr3, privateKeyStr3, nickName3)
 
+	CkpManager := checkpoint.NewManager(config.GetDefaultParams())
 	// new committee
-	committee := state.NewCommittee(&config.DefaultParams)
+	committee := state.NewCommittee(&config.DefaultParams, CkpManager)
 
 	// set count of CR member
 	cfg := &config.DefaultParams
-	cfg.CRCArbiters = cfg.CRCArbiters[0:2]
-	cfg.CRMemberCount = 2
+	cfg.DPoSConfiguration.CRCArbiters = cfg.DPoSConfiguration.CRCArbiters[0:2]
+	cfg.CRConfiguration.MemberCount = 2
 
 	// avoid getting UTXOs from database
-	currentHeight := cfg.CRVotingStartHeight
+	currentHeight := cfg.CRConfiguration.CRVotingStartHeight
 	//committee.recordBalanceHeight = currentHeight - 1
 
 	// register cr
@@ -3073,7 +3091,7 @@ func TestCommittee_RollbackReview(t *testing.T) {
 	assert.Equal(t, common.Fixed64(3), committee.GetCandidate(*did1).Votes)
 
 	// end first voting period
-	currentHeight = cfg.CRCommitteeStartHeight
+	currentHeight = cfg.CRConfiguration.CRCommitteeStartHeight
 	committee.ProcessBlock(&types.Block{
 		Header: common2.Header{Height: currentHeight}}, nil)
 	assert.Equal(t, 2, len(committee.GetCurrentMembers()))
@@ -3114,7 +3132,7 @@ func TestCommittee_RollbackReview(t *testing.T) {
 	checkResult(t, keyFrameA, keyFrameB, keyFrameC, keyFrameD)
 
 	// set CR agreement count
-	committee.Params.CRAgreementCount = 2
+	committee.Params.CRConfiguration.CRAgreementCount = 2
 
 	// review proposal Approve
 	proposalReviewTx1 := getCRCProposalReviewTx(proposalHash, payload.Approve,

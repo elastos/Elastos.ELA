@@ -77,7 +77,7 @@ func (s *Server) Start() {
 	s.initMethods()
 	s.Upgrader.CheckOrigin = func(r *http.Request) bool { return true }
 
-	if config.Parameters.HttpWsPort%1000 == servers.TlsPort {
+	if config.Parameters.HttpWsPort == servers.TlsPort {
 		var err error
 		s.Listener, err = s.initTlsListen()
 		if err != nil {

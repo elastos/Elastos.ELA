@@ -11,6 +11,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/elastos/Elastos.ELA/core/checkpoint"
 	"os"
 	"testing"
 
@@ -47,7 +48,7 @@ func init() {
 	functions.GetTransactionByBytes = transaction2.GetTransactionByBytes
 	functions.CreateTransaction = transaction2.CreateTransaction
 	functions.GetTransactionParameters = transaction2.GetTransactionparameters
-	config.DefaultParams = config.GetDefaultParams()
+	config.DefaultParams = *config.GetDefaultParams()
 }
 
 type UtxoCacheDB struct {
@@ -81,8 +82,10 @@ func TestTxPoolInit(t *testing.T) {
 	log.NewDefault(test.NodeLogPath, 0, 0, 0)
 	dplog.Init("elastos", 0, 0, 0)
 
+	CkpManager := checkpoint.NewManager(config.GetDefaultParams())
 	params := &config.DefaultParams
-	blockchain.FoundationAddress = params.Foundation
+	FoundationAddress, _ := common.Uint168FromAddress(params.FoundationAddress)
+	blockchain.FoundationAddress = *FoundationAddress
 	chainStore, err := blockchain.NewChainStore(test.DataPath, params)
 	if err != nil {
 		t.Fatal("open LedgerStore err:", err)
@@ -106,7 +109,8 @@ func TestTxPoolInit(t *testing.T) {
 
 	chain, err := blockchain.New(chainStore, params, state.NewState(params, nil, nil,
 		nil, nil, nil, nil,
-		nil, nil, nil, nil, nil), nil)
+		nil, nil, nil, nil, nil), nil,
+		CkpManager)
 	if err != nil {
 		t.Fatal(err, "BlockChain generate failed")
 	}
@@ -120,7 +124,7 @@ func TestTxPoolInit(t *testing.T) {
 		Arbitrators: arbitrators,
 	}
 
-	txPool = NewTxPool(&config.DefaultParams)
+	txPool = NewTxPool(&config.DefaultParams, CkpManager)
 }
 
 func TestTxPool_VerifyDuplicateSidechainTx(t *testing.T) {
@@ -698,6 +702,7 @@ func TestTxPool_AppendToTxnPool(t *testing.T) {
 }
 
 func TestTxPool_CleanSubmittedTransactions(t *testing.T) {
+	CkpManager := checkpoint.NewManager(config.GetDefaultParams())
 	appendTx := func(tx interfaces.Transaction) elaerr.ELAError {
 		if err := txPool.AppendTx(tx); err != nil {
 			return err
@@ -706,7 +711,7 @@ func TestTxPool_CleanSubmittedTransactions(t *testing.T) {
 		return nil
 	}
 
-	txPool = NewTxPool(&config.DefaultParams)
+	txPool = NewTxPool(&config.DefaultParams, CkpManager)
 	/*------------------------------------------------------------*/
 	/* check double spend but not duplicate txs */
 	//two mock transactions, they are double-spent to each other.
@@ -839,7 +844,7 @@ func TestTxPool_CleanSubmittedTransactions(t *testing.T) {
 	rand.Read(sideBlockHash5[:])
 	fmt.Println("sideBlockHash5:", sideBlockHash5)
 
-	txPool = NewTxPool(&config.DefaultParams)
+	txPool = NewTxPool(&config.DefaultParams, CkpManager)
 	//two mock transactions again, they have some identical sidechain hashes
 	tx3Prev := functions.CreateTransaction(
 		0,
@@ -1034,7 +1039,7 @@ func TestTxPool_CleanSubmittedTransactions(t *testing.T) {
 
 	/*------------------------------------------------------------*/
 	/* check double spend and duplicate txs */
-	txPool = NewTxPool(&config.DefaultParams)
+	txPool = NewTxPool(&config.DefaultParams, CkpManager)
 
 	assert.NoError(t, appendTx(tx4))
 

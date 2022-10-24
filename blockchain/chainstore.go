@@ -43,7 +43,7 @@ type ChainStore struct {
 	persistMutex       sync.Mutex
 }
 
-func NewChainStore(dataDir string, params *config.Params) (IChainStore, error) {
+func NewChainStore(dataDir string, params *config.Configuration) (IChainStore, error) {
 	db, err := NewLevelDB(filepath.Join(dataDir, "chain"))
 	if err != nil {
 		return nil, err

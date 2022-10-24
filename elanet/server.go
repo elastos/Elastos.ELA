@@ -80,7 +80,7 @@ type NetServer struct {
 	svr.IServer
 	SyncManager  *netsync.SyncManager
 	chain        *blockchain.BlockChain
-	ChainParams  *config.Params
+	ChainParams  *config.Configuration
 	txMemPool    *mempool.TxPool
 	blockMemPool *mempool.BlockPool
 	Routes       *routes.Routes
@@ -1006,20 +1006,20 @@ func NewServer(dataDir string, cfg *Config, nodeVersion string) (*NetServer, err
 
 	// If no listeners added, create default listener.
 	if len(params.ListenAddrs) == 0 {
-		params.ListenAddrs = []string{fmt.Sprint(":", params.DefaultPort)}
+		params.ListenAddrs = []string{fmt.Sprint(":", params.NodePort)}
 	}
 
 	var pver = pact.DPOSStartVersion
-	if cfg.Chain.GetHeight() >= uint32(params.NewP2PProtocolVersionHeight) {
+	if cfg.Chain.GetHeight() >= uint32(params.CRConfiguration.NewP2PProtocolVersionHeight) {
 		pver = pact.CRProposalVersion
 	}
 
 	svrCfg := svr.NewDefaultConfig(
 		params.Magic, pver, uint64(services),
-		params.DefaultPort, params.DNSSeeds, params.ListenAddrs,
+		params.NodePort, params.DNSSeeds, params.ListenAddrs,
 		nil, nil, createMessage,
 		func() uint64 { return uint64(cfg.Chain.GetHeight()) },
-		params.NewP2PProtocolVersionHeight, nodeVersion,
+		params.CRConfiguration.NewP2PProtocolVersionHeight, nodeVersion,
 	)
 	svrCfg.DataDir = dataDir
 	svrCfg.NAFilter = &naFilter{}

@@ -520,7 +520,7 @@ func (m *Manager) IsSideChainReturnDepositExist(txHash *common.Uint256) bool {
 //
 // The manager returned satisfies the blockchain.IndexManager interface and thus
 // cleanly plugs into the normal blockchain processing path.
-func NewManager(db database.DB, params *config.Params) *Manager {
+func NewManager(db database.DB, params *config.Configuration) *Manager {
 	txIndex := NewTxIndex(db)
 	unspentIndex := NewUnspentIndex(db, params)
 	utxoIndex := NewUtxoIndex(db, unspentIndex)

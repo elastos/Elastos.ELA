@@ -58,7 +58,7 @@ type TxCache struct {
 	txns map[common.Uint256]*TxInfo
 	sync.RWMutex
 
-	params *config.Params
+	params *config.Configuration
 }
 
 func (t *TxCache) Serialize(w io.Writer) (err error) {
@@ -99,8 +99,7 @@ func (t *TxCache) Deserialize(r io.Reader) (err error) {
 }
 
 func (t *TxCache) setTxn(height uint32, txn interfaces.Transaction) {
-	if t.params.NodeProfileStrategy ==
-		config.MemoryFirst.String() {
+	if t.params.MemoryFirst {
 		return
 	}
 
@@ -117,8 +116,7 @@ func (t *TxCache) setTxn(height uint32, txn interfaces.Transaction) {
 }
 
 func (t *TxCache) deleteTxn(hash common.Uint256) {
-	if t.params.NodeProfileStrategy ==
-		config.MemoryFirst.String() {
+	if t.params.MemoryFirst {
 		return
 	}
 
@@ -135,8 +133,7 @@ func (t *TxCache) GetTxn(hash common.Uint256) *TxInfo {
 }
 
 func (t *TxCache) trim() {
-	if t.params.NodeProfileStrategy ==
-		config.MemoryFirst.String() {
+	if t.params.MemoryFirst {
 		return
 	}
 
@@ -156,7 +153,7 @@ func (t *TxCache) trim() {
 	}
 }
 
-func NewTxCache(params *config.Params) *TxCache {
+func NewTxCache(params *config.Configuration) *TxCache {
 	return &TxCache{
 		txns:   make(map[common.Uint256]*TxInfo),
 		params: params,

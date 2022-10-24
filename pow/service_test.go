@@ -7,6 +7,7 @@ package pow
 
 import (
 	"fmt"
+	"github.com/elastos/Elastos.ELA/core/checkpoint"
 	transaction2 "github.com/elastos/Elastos.ELA/core/transaction"
 	"math"
 	"path/filepath"
@@ -44,9 +45,9 @@ func TestService_Init(t *testing.T) {
 	functions.GetTransactionParameters = transaction2.GetTransactionparameters
 
 	// Initialize default parameters
-	config.DefaultParams = config.GetDefaultParams()
+	config.DefaultParams = *config.GetDefaultParams()
 	params := &config.DefaultParams
-
+	CkpManager := checkpoint.NewManager(config.GetDefaultParams())
 	chainStore, err := blockchain.NewChainStore(filepath.Join(test.DataPath, "service"), params)
 	if err != nil {
 		t.Error(err)
@@ -59,7 +60,7 @@ func TestService_Init(t *testing.T) {
 		"03e281f89d85b3a7de177c240c4961cb5b1f2106f09daa42d15874a38bbeae85dd",
 		"0393e823c2087ed30871cbea9fa5121fa932550821e9f3b17acef0e581971efab0",
 	}
-	params.CRCArbiters = []string{
+	params.DPoSConfiguration.CRCArbiters = []string{
 		"023a133480176214f88848c6eaa684a54b316849df2b8570b57f3a917f19bbc77a",
 		"030a26f8b4ab0ea219eb461d1e454ce5f0bd0d289a6a64ffc0743dab7bd5be0be9",
 		"0288e79636e41edce04d4fa95d8f62fed73a76164f8631ccc42f5425f960e4a0c7",
@@ -79,7 +80,8 @@ func TestService_Init(t *testing.T) {
 
 	chain, err := blockchain.New(chainStore, params, state.NewState(params, nil, nil,
 		nil, nil, nil, nil,
-		nil, nil, nil, nil, nil), nil)
+		nil, nil, nil, nil, nil), nil,
+		CkpManager)
 	if err != nil {
 		t.Error(err)
 	}

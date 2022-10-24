@@ -7,6 +7,7 @@ package unit
 
 import (
 	"bytes"
+	"github.com/elastos/Elastos.ELA/core/checkpoint"
 	"math/rand"
 	"path/filepath"
 	"testing"
@@ -33,7 +34,7 @@ func init() {
 	functions.GetTransactionByBytes = transaction.GetTransactionByBytes
 	functions.CreateTransaction = transaction.CreateTransaction
 	functions.GetTransactionParameters = transaction.GetTransactionparameters
-	config.DefaultParams = config.GetDefaultParams()
+	config.DefaultParams = *config.GetDefaultParams()
 }
 
 type txValidatorSpecialTxTestSuite struct {
@@ -92,10 +93,12 @@ func (s *txValidatorSpecialTxTestSuite) SetupSuite() {
 	if err != nil {
 		s.Error(err)
 	}
+	CkpManager := checkpoint.NewManager(config.GetDefaultParams())
 	s.Chain, err = blockchain.New(chainStore, &config.DefaultParams,
 		state.NewState(&config.DefaultParams, nil, nil, nil, nil,
 			nil, nil,
-			nil, nil, nil, nil, nil), nil)
+			nil, nil, nil,
+			nil, nil), nil, CkpManager)
 	if err != nil {
 		s.Error(err)
 	}

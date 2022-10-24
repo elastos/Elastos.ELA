@@ -7,7 +7,7 @@ package main
 
 import (
 	"bytes"
-	"fmt"
+	"net"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -16,11 +16,11 @@ import (
 	"time"
 
 	"github.com/elastos/Elastos.ELA/blockchain"
-	cmdcom "github.com/elastos/Elastos.ELA/cmd/common"
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/common/config/settings"
 	"github.com/elastos/Elastos.ELA/common/log"
+	"github.com/elastos/Elastos.ELA/core/checkpoint"
 	"github.com/elastos/Elastos.ELA/core/types"
 	crstate "github.com/elastos/Elastos.ELA/cr/state"
 	"github.com/elastos/Elastos.ELA/dpos"
@@ -43,215 +43,150 @@ import (
 	"github.com/elastos/Elastos.ELA/utils/elalog"
 	"github.com/elastos/Elastos.ELA/utils/signal"
 
-	"github.com/urfave/cli"
-)
-
-const (
-	// dataPath indicates the path storing the chain data.
-	dataPath = "data"
-
-	// logPath indicates the path storing the node log.
-	nodeLogPath = "logs/node"
-
-	// checkpointPath indicates the path storing the checkpoint data.
-	checkpointPath = "checkpoints"
-
-	// nodePrefix indicates the prefix of node version.
-	nodePrefix = "ela-"
+	"github.com/fungolang/screw"
 )
 
 var (
-	// Build version generated when build program.
+	// Version generated when build program.
 	Version string
 
-	// The go source code version at build.
+	// GoVersion version at build.
 	GoVersion string
 
-	// printStateInterval is the interval to print out peer-to-peer network
-	// state.
+	// The interval to print out peer-to-peer network state.
 	printStateInterval = time.Minute
 )
 
 func main() {
-	if err := setupNode().Run(os.Args); err != nil {
-		cmdcom.PrintErrorMsg(err.Error())
-		os.Exit(1)
+	// Initialization
+	screw.SetAbout("Copyright (c) 2017-2022 The Elastos Foundation")
+	screw.SetVersion(config.NodePrefix + Version + GoVersion)
+
+	// Setting config
+	setting := settings.NewSettings()
+	config := setting.SetupConfig()
+
+	// Use all processor cores.
+	runtime.GOMAXPROCS(runtime.NumCPU())
+
+	// This value was arrived at with the help of profiling live usage.
+	if config.MemoryFirst {
+		debug.SetGCPercent(10)
 	}
+
+	// Init logger
+	setupLog(config)
+
+	// Start Node
+	startNode(config)
 }
 
-func setupNode() *cli.App {
-	appSettings := settings.NewSettings()
+func startNode(cfg *config.Configuration) {
+	log.Infof("Node version: %s, %s, %s", Version, GoVersion, cfg.ActiveNet)
+	log.Debug("++++ main ++++", cfg.ActiveNet, cfg.Magic,
+		cfg.DNSSeeds, cfg.FoundationAddress, cfg.ActiveNet,
+		cfg.DNSSeeds, cfg.NodePort, cfg.HttpInfoPort,
+		cfg.HttpRestPort, cfg.HttpWsPort, cfg.HttpJsonPort,
+		cfg.CheckPointConfiguration)
 
-	app := cli.NewApp()
-	app.Name = "ela"
-	app.Version = Version
-	app.HelpName = "ela"
-	app.Usage = "ela node for elastos blockchain"
-	app.UsageText = "ela [options] [args]"
-	app.Flags = []cli.Flag{
-		cmdcom.ConfigFileFlag,
-		cmdcom.DataDirFlag,
-		cmdcom.AccountPasswordFlag,
-		cmdcom.TestNetFlag,
-		cmdcom.RegTestFlag,
-		cmdcom.InfoPortFlag,
-		cmdcom.RestPortFlag,
-		cmdcom.WsPortFlag,
-		cmdcom.InstantBlockFlag,
-		cmdcom.RPCPortFlag,
-		cmdcom.RPCIpFlag,
-		cmdcom.RPCUrlFlag,
-	}
-	app.Flags = append(app.Flags, appSettings.Flags()...)
-	app.Action = func(c *cli.Context) {
-		setupLog(c, appSettings)
-		startNode(c, appSettings)
-	}
-	app.Before = func(c *cli.Context) error {
-		appSettings.SetContext(c)
-		appSettings.SetupConfig()
-		appSettings.InitParamsValue()
-
-		// Use all processor cores.
-		runtime.GOMAXPROCS(runtime.NumCPU())
-
-		// Block and transaction processing can cause bursty allocations.  This
-		// limits the garbage collector from excessively overallocating during
-		// bursts.  This value was arrived at with the help of profiling live
-		// usage.
-		if appSettings.Params().NodeProfileStrategy ==
-			config.MemoryFirst.String() {
-			debug.SetGCPercent(10)
-		}
-
-		return nil
+	if cfg.ProfilePort != 0 {
+		go utils.StartPProf(cfg.ProfilePort, cfg.ProfileHost)
 	}
 
-	return app
-}
-
-func startNode(c *cli.Context, st *settings.Settings) {
-	// Enable profiling server if requested.
-	if st.Config().ProfilePort != 0 {
-		go utils.StartPProf(st.Config().ProfilePort,
-			st.Config().ProfileHost)
+	flagDataDir := config.DataDir
+	if cfg.DataDir != "" {
+		flagDataDir = cfg.DataDir
 	}
+	dataDir := filepath.Join(flagDataDir, config.DataPath)
 
-	flagDataDir := c.String("datadir")
-	dataDir := filepath.Join(flagDataDir, dataPath)
-	st.Params().CkpManager.SetDataPath(
-		filepath.Join(dataDir, checkpointPath))
+	CkpManager := checkpoint.NewManager(cfg)
+	CkpManager.SetDataPath(filepath.Join(dataDir, checkpoint.CheckpointPath))
 
-	var act account.Account
-	if st.Config().DPoSConfiguration.EnableArbiter {
-		password, err := cmdcom.GetFlagPassword(c)
+	var acc account.Account
+	if cfg.DPoSConfiguration.EnableArbiter {
+		password, err := utils.GetPassword()
 		if err != nil {
 			printErrorAndExit(err)
 		}
-		act, err = account.Open(password, st.Params().WalletPath)
+		acc, err = account.Open(password, cfg.WalletPath)
 		if err != nil {
 			printErrorAndExit(err)
 		}
 	}
-
-	log.Infof("Node version: %s", Version)
-	log.Info(GoVersion)
-
 	var interrupt = signal.NewInterrupt()
 
 	// fixme remove singleton Ledger
 	ledger := blockchain.Ledger{}
 
 	// Initializes the foundation address
-	blockchain.FoundationAddress = st.Params().Foundation
-	chainStore, err := blockchain.NewChainStore(dataDir, st.Params())
+	foundation, _ := common.Uint168FromAddress(cfg.FoundationAddress)
+	blockchain.FoundationAddress = *foundation
+	chainStore, err := blockchain.NewChainStore(dataDir, cfg)
 	if err != nil {
 		printErrorAndExit(err)
 	}
 	defer chainStore.Close()
 	ledger.Store = chainStore // fixme
 
-	txMemPool := mempool.NewTxPool(st.Params())
-	blockMemPool := mempool.NewBlockPool(st.Params())
+	txMemPool := mempool.NewTxPool(cfg, CkpManager)
+	blockMemPool := mempool.NewBlockPool(cfg)
 	blockMemPool.Store = chainStore
 
 	blockchain.DefaultLedger = &ledger // fixme
 
-	committee := crstate.NewCommittee(st.Params())
+	committee := crstate.NewCommittee(cfg, CkpManager)
 	ledger.Committee = committee
 
-	arbiters, err := state.NewArbitrators(st.Params(), committee,
-		func(programHash common.Uint168) (common.Fixed64,
-			error) {
-			amount := common.Fixed64(0)
-			utxos, err := blockchain.DefaultLedger.Store.
-				GetFFLDB().GetUTXO(&programHash)
-			if err != nil {
-				return amount, err
-			}
-			for _, utxo := range utxos {
-				amount += utxo.Value
-			}
-			return amount, nil
-		},
+	arbiters, err := state.NewArbitrators(cfg, committee, ledger.GetAmount,
 		committee.TryUpdateCRMemberInactivity,
 		committee.TryRevertCRMemberInactivity,
 		committee.TryUpdateCRMemberIllegal,
 		committee.TryRevertCRMemberIllegal,
 		committee.UpdateCRInactivePenalty,
 		committee.RevertUpdateCRInactivePenalty,
+		CkpManager,
 	)
 	if err != nil {
 		printErrorAndExit(err)
 	}
 	ledger.Arbitrators = arbiters // fixme
 
-	chain, err := blockchain.New(chainStore, st.Params(), arbiters.State, committee)
+	chain, err := blockchain.New(chainStore, cfg,
+		arbiters.State, committee, CkpManager)
 	if err != nil {
 		printErrorAndExit(err)
 	}
-	if err := chain.Init(interrupt.C); err != nil {
+	if err = chain.Init(interrupt.C); err != nil {
 		printErrorAndExit(err)
 	}
-	if err := chain.MigrateOldDB(interrupt.C, pgBar.Start,
-		pgBar.Increase, dataDir, st.Params()); err != nil {
+	if err = chain.MigrateOldDB(interrupt.C, pgBar.Start,
+		pgBar.Increase, dataDir, cfg); err != nil {
 		printErrorAndExit(err)
 	}
 	pgBar.Stop()
+
 	ledger.Blockchain = chain // fixme
 	blockMemPool.Chain = chain
 	arbiters.RegisterFunction(chain.GetHeight, chain.GetBestBlockHash,
-		func(height uint32) (*types.Block, error) {
-			hash, err := chain.GetBlockHash(height)
-			if err != nil {
-				return nil, err
-			}
-			block, err := chainStore.GetFFLDB().GetBlock(hash)
-			if err != nil {
-				return nil, err
-			}
-			blockchain.CalculateTxsFee(block.Block)
-			return block.Block, nil
-		}, chain.UTXOCache.GetTxReference)
+		chain.GetBlock, chain.UTXOCache.GetTxReference)
 
 	routesCfg := &routes.Config{TimeSource: chain.TimeSource}
-	if act != nil {
-		routesCfg.PID = act.PublicKeyBytes()
-		routesCfg.Addr = fmt.Sprintf("%s:%d",
-			st.Params().DPoSIPAddress,
-			st.Params().DPoSDefaultPort)
-		routesCfg.Sign = act.Sign
+	if acc != nil {
+		routesCfg.PID = acc.PublicKeyBytes()
+		routesCfg.Addr = net.JoinHostPort(cfg.DPoSConfiguration.IPAddress,
+			strconv.FormatUint(uint64(cfg.DPoSConfiguration.DPoSPort), 10))
+		routesCfg.Sign = acc.Sign
 	}
 
 	route := routes.New(routesCfg)
 	netServer, err := elanet.NewServer(dataDir, &elanet.Config{
 		Chain:          chain,
-		ChainParams:    st.Params(),
-		PermanentPeers: st.Params().PermanentPeers,
+		ChainParams:    cfg,
+		PermanentPeers: cfg.PermanentPeers,
 		TxMemPool:      txMemPool,
 		BlockMemPool:   blockMemPool,
 		Routes:         route,
-	}, nodePrefix+Version)
+	}, config.NodePrefix+Version)
 	if err != nil {
 		printErrorAndExit(err)
 	}
@@ -270,15 +205,12 @@ func startNode(c *cli.Context, st *settings.Settings) {
 		CreateVotesRealWithdrawTransaction:  chain.CreateVotesRealWithdrawTransaction,
 	})
 
-	var arbitrator *dpos.Arbitrator
-	if act != nil {
-		dlog.Init(flagDataDir, uint8(st.Config().PrintLevel),
-			st.Config().MaxPerLogSize, st.Config().MaxLogsSize)
-
-		arbitrator, err = dpos.NewArbitrator(act, dpos.Config{
+	if acc != nil {
+		dlog.Init(flagDataDir, uint8(cfg.PrintLevel), cfg.MaxPerLogSize, cfg.MaxLogsSize)
+		arbitrator, err := dpos.NewArbitrator(acc, dpos.Config{
 			EnableEventLog: true,
 			Chain:          chain,
-			ChainParams:    st.Params(),
+			ChainParams:    cfg,
 			Arbitrators:    arbiters,
 			Server:         netServer,
 			TxMemPool:      txMemPool,
@@ -287,7 +219,7 @@ func startNode(c *cli.Context, st *settings.Settings) {
 				netServer.BroadcastMessage(msg)
 			},
 			AnnounceAddr: route.AnnounceAddr,
-			NodeVersion:  nodePrefix + Version,
+			NodeVersion:  config.NodePrefix + Version,
 			Addr:         routesCfg.Addr,
 		})
 		if err != nil {
@@ -315,18 +247,17 @@ func startNode(c *cli.Context, st *settings.Settings) {
 	})
 
 	servers.Compile = Version
-	servers.Config = st.Config()
-	servers.ChainParams = st.Params()
+	servers.ChainParams = cfg
 	servers.Chain = chain
 	servers.Store = chainStore
 	servers.TxMemPool = txMemPool
 	servers.Server = netServer
 	servers.Arbiters = arbiters
 	servers.Pow = pow.NewService(&pow.Config{
-		PayToAddr:   st.Config().PowConfiguration.PayToAddr,
-		MinerInfo:   st.Config().PowConfiguration.MinerInfo,
+		PayToAddr:   cfg.PowConfiguration.PayToAddr,
+		MinerInfo:   cfg.PowConfiguration.MinerInfo,
 		Chain:       chain,
-		ChainParams: st.Params(),
+		ChainParams: cfg,
 		TxMemPool:   txMemPool,
 		BlkMemPool:  blockMemPool,
 		BroadcastBlock: func(block *types.Block) {
@@ -336,7 +267,7 @@ func startNode(c *cli.Context, st *settings.Settings) {
 		Arbitrators: arbiters,
 	})
 
-	st.Params().CkpManager.SetNeedSave(true)
+	CkpManager.SetNeedSave(true)
 	// initialize producer state after arbiters has initialized.
 	if err = chain.InitCheckpoint(interrupt.C, pgBar.Start,
 		pgBar.Increase); err != nil {
@@ -345,7 +276,7 @@ func startNode(c *cli.Context, st *settings.Settings) {
 	pgBar.Stop()
 
 	// todo remove me
-	if chain.GetHeight() > st.Params().DPoSV2StartHeight {
+	if chain.GetHeight() > cfg.DPoSV2StartHeight {
 		msg2.SetPayloadVersion(msg2.DPoSV2Version)
 	}
 
@@ -362,16 +293,16 @@ func startNode(c *cli.Context, st *settings.Settings) {
 	defer netServer.Stop()
 
 	log.Info("Start services")
-	if st.Config().EnableRPC {
+	if cfg.EnableRPC {
 		go httpjsonrpc.StartRPCServer()
 	}
-	if st.Config().HttpRestStart {
+	if cfg.HttpRestStart {
 		go httprestful.StartServer()
 	}
-	if st.Config().HttpWsStart {
+	if cfg.HttpWsStart {
 		go httpwebsocket.Start()
 	}
-	if st.Config().HttpInfoStart {
+	if cfg.HttpInfoStart {
 		go httpnodeinfo.StartServer()
 	}
 
@@ -382,7 +313,7 @@ func startNode(c *cli.Context, st *settings.Settings) {
 		return
 	}
 	log.Info("Start consensus")
-	if st.Config().PowConfiguration.AutoMining {
+	if cfg.PowConfiguration.AutoMining {
 		log.Info("Start POW Services")
 		go servers.Pow.Start()
 	}

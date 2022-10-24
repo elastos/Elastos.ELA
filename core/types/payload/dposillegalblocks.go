@@ -7,11 +7,11 @@ package payload
 
 import (
 	"bytes"
+	"github.com/elastos/Elastos.ELA/common/config"
 	"io"
 
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/crypto"
-	"github.com/elastos/Elastos.ELA/elanet/pact"
 )
 
 type CoinType uint32
@@ -78,7 +78,7 @@ func (b *BlockEvidence) Serialize(w io.Writer) error {
 
 func (b *BlockEvidence) DeserializeUnsigned(r io.Reader) error {
 	var err error
-	if b.Header, err = common.ReadVarBytes(r, pact.MaxBlockContextSize,
+	if b.Header, err = common.ReadVarBytes(r, config.GetDefaultParams().MaxBlockSize,
 		"block data"); err != nil {
 		return err
 	}
@@ -86,7 +86,7 @@ func (b *BlockEvidence) DeserializeUnsigned(r io.Reader) error {
 }
 
 func (b *BlockEvidence) DeserializeOthers(r io.Reader) (err error) {
-	if b.BlockConfirm, err = common.ReadVarBytes(r, pact.MaxBlockHeaderSize,
+	if b.BlockConfirm, err = common.ReadVarBytes(r, config.GetDefaultParams().MaxBlockHeaderSize,
 		"confirm data"); err != nil {
 		return err
 	}

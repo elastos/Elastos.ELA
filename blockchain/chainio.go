@@ -21,6 +21,7 @@ import (
 
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/log"
+	"github.com/elastos/Elastos.ELA/core"
 	"github.com/elastos/Elastos.ELA/core/types"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/database"
@@ -332,7 +333,7 @@ func DBRemoveData(dbTx database.Tx, bucketName, key []byte) error {
 func (b *BlockChain) createChainState() error {
 
 	// Create a new node from the genesis block and set it as the best node.
-	genesisBlock := b.chainParams.GenesisBlock
+	genesisBlock := core.GenesisBlock(b.chainParams.FoundationAddress)
 	header := &genesisBlock.Header
 	hash := genesisBlock.Hash()
 
@@ -479,7 +480,7 @@ func (b *BlockChain) initChainState() error {
 				return err
 			}
 			curHash := header.Hash()
-			if lastNode == nil && !curHash.IsEqual(b.chainParams.GenesisBlock.Hash()) {
+			if lastNode == nil && !curHash.IsEqual(core.GenesisBlock(b.chainParams.FoundationAddress).Hash()) {
 				return fmt.Errorf("initChainState: Expected "+
 					"first entry in block index to be genesis block, "+
 					"found %s", curHash)

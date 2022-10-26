@@ -9,7 +9,6 @@ import (
 	"bytes"
 	"encoding/hex"
 	"errors"
-	"github.com/elastos/Elastos.ELA/database"
 	"path/filepath"
 	"sync"
 	"sync/atomic"
@@ -23,6 +22,7 @@ import (
 	"github.com/elastos/Elastos.ELA/core/types/functions"
 	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
+	"github.com/elastos/Elastos.ELA/database"
 	_ "github.com/elastos/Elastos.ELA/database/ffldb"
 )
 
@@ -43,7 +43,7 @@ type ChainStore struct {
 	persistMutex       sync.Mutex
 }
 
-func NewChainStore(dataDir string, params *config.Params) (IChainStore, error) {
+func NewChainStore(dataDir string, params *config.Configuration) (IChainStore, error) {
 	db, err := NewLevelDB(filepath.Join(dataDir, "chain"))
 	if err != nil {
 		return nil, err

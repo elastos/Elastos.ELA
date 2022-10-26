@@ -7,6 +7,7 @@ package mock
 
 import (
 	"fmt"
+	"github.com/elastos/Elastos.ELA/core/checkpoint"
 	"time"
 
 	"github.com/elastos/Elastos.ELA/blockchain"
@@ -27,9 +28,9 @@ type PeerMock interface {
 	Broadcast(msg p2p.Message)
 }
 
-func NewPeerMock(params *config.Params) PeerMock {
+func NewPeerMock(params *config.Configuration) PeerMock {
 	p := &peerMock{
-		TxPool: mempool.NewTxPool(params),
+		TxPool:    mempool.NewTxPool(params, checkpoint.NewManager(params)),
 		BlockPool: mempool.NewBlockPool(params),
 		relayList: make([]p2p.Message, 0),
 	}

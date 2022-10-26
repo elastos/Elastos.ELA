@@ -7,10 +7,10 @@ package state
 
 import (
 	"bytes"
-	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"io"
 
 	"github.com/elastos/Elastos.ELA/common"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/crypto"
 	"github.com/elastos/Elastos.ELA/utils"

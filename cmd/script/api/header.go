@@ -6,12 +6,12 @@
 package api
 
 import (
-	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"math/rand"
 	"time"
 
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/yuin/gopher-lua"
 )
 
@@ -39,7 +39,7 @@ func newHeader(L *lua.LState) int {
 		Previous:   *hash,
 		MerkleRoot: common.EmptyHash,
 		Timestamp:  uint32(time.Now().Unix()),
-		Bits:       config.DefaultParams.PowLimitBits,
+		Bits:       config.Parameters.PowConfiguration.PowLimitBits,
 		Height:     height,
 		Nonce:      rand.Uint32(),
 	}

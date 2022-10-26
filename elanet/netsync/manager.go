@@ -120,7 +120,7 @@ type SyncManager struct {
 	started      int32
 	shutdown     int32
 	chain        *blockchain.BlockChain
-	chainParams  *config.Params
+	chainParams  *config.Configuration
 	txMemPool    *mempool.TxPool
 	blockMemPool *mempool.BlockPool
 	msgChan      chan interface{}

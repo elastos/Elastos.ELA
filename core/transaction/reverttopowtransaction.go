@@ -26,7 +26,7 @@ func (t *RevertToPOWTransaction) CheckTransactionInput() error {
 	return nil
 }
 
-func (t *RevertToPOWTransaction)  CheckTransactionOutput() error {
+func (t *RevertToPOWTransaction) CheckTransactionOutput() error {
 
 	if len(t.Outputs()) > math.MaxUint16 {
 		return errors.New("output count should not be greater than 65535(MaxUint16)")
@@ -59,7 +59,7 @@ func (t *RevertToPOWTransaction) IsAllowedInPOWConsensus() bool {
 }
 
 func (t *RevertToPOWTransaction) HeightVersionCheck() error {
-	if t.parameters.BlockHeight < t.parameters.Config.RevertToPOWStartHeight {
+	if t.parameters.BlockHeight < t.parameters.Config.DPoSConfiguration.RevertToPOWStartHeight {
 		return errors.New(fmt.Sprintf("not support %s transaction "+
 			"before RevertToPOWStartHeight", t.TxType().Name()))
 	}
@@ -80,7 +80,7 @@ func (t *RevertToPOWTransaction) SpecialContextCheck() (result elaerr.ELAError, 
 	switch p.Type {
 	case payload.NoBlock:
 		lastBlockTime := int64(t.parameters.BlockChain.BestChain.Timestamp)
-		noBlockTime := t.parameters.Config.RevertToPOWNoBlockTime
+		noBlockTime := t.parameters.Config.DPoSConfiguration.RevertToPOWNoBlockTime
 
 		if t.parameters.TimeStamp == 0 {
 			// is not in block, check by local time.

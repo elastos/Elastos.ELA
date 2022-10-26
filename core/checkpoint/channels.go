@@ -13,6 +13,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/utils"
 )
 
@@ -27,7 +28,7 @@ type heightFileMsg struct {
 }
 
 type fileChannels struct {
-	cfg *Config
+	cfg *config.Configuration
 
 	save    chan fileMsg
 	clean   chan fileMsg
@@ -88,14 +89,14 @@ func (c *fileChannels) messageLoop() {
 func (c *fileChannels) saveCheckpoint(msg *fileMsg) (err error) {
 	defer c.replyMsg(msg)
 
-	dir := getCheckpointDirectory(c.cfg.DataPath, msg.checkpoint)
+	dir := getCheckpointDirectory(c.cfg.CheckPointConfiguration.DataPath, msg.checkpoint)
 	if !utils.FileExisted(dir) {
 		if err = os.MkdirAll(dir, 0700); err != nil {
 			return
 		}
 	}
 
-	filename := getFilePath(c.cfg.DataPath, msg.checkpoint)
+	filename := getFilePath(c.cfg.CheckPointConfiguration.DataPath, msg.checkpoint)
 	var file *os.File
 	file, err = os.OpenFile(filename,
 		os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0600)
@@ -113,7 +114,7 @@ func (c *fileChannels) saveCheckpoint(msg *fileMsg) (err error) {
 		return
 	}
 
-	if !c.cfg.EnableHistory {
+	if !c.cfg.CheckPointConfiguration.EnableHistory {
 		return c.cleanCheckpoints(msg, false, false)
 	}
 	return nil
@@ -125,7 +126,7 @@ func (c *fileChannels) cleanCheckpoints(msg *fileMsg,
 		defer c.replyMsg(msg)
 	}
 
-	dir := getCheckpointDirectory(c.cfg.DataPath, msg.checkpoint)
+	dir := getCheckpointDirectory(c.cfg.CheckPointConfiguration.DataPath, msg.checkpoint)
 	reserveCurrentName := getFileName(msg.checkpoint, msg.checkpoint.GetHeight())
 	reservePrevName := getFileName(msg.checkpoint,
 		msg.checkpoint.GetHeight()-msg.checkpoint.SavePeriod())
@@ -153,9 +154,9 @@ func (c *fileChannels) cleanCheckpoints(msg *fileMsg,
 func (c *fileChannels) replaceCheckpoints(msg *heightFileMsg) (err error) {
 	defer c.replyMsg(&msg.fileMsg)
 
-	defaultFullName := getDefaultPath(c.cfg.DataPath, msg.checkpoint)
+	defaultFullName := getDefaultPath(c.cfg.CheckPointConfiguration.DataPath, msg.checkpoint)
 	// source file is the previous saved checkpoint
-	sourceFullName := getFilePathByHeight(c.cfg.DataPath, msg.checkpoint,
+	sourceFullName := getFilePathByHeight(c.cfg.CheckPointConfiguration.DataPath, msg.checkpoint,
 		msg.height)
 	if !utils.FileExisted(sourceFullName) {
 		return errors.New(fmt.Sprintf("source file %s does not exist",
@@ -177,7 +178,7 @@ func (c *fileChannels) replyMsg(msg *fileMsg) {
 	}
 }
 
-func NewFileChannels(cfg *Config) *fileChannels {
+func NewFileChannels(cfg *config.Configuration) *fileChannels {
 	channels := &fileChannels{
 		cfg:     cfg,
 		save:    make(chan fileMsg),

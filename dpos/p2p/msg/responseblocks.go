@@ -8,9 +8,8 @@ package msg
 import (
 	"io"
 
-	"github.com/elastos/Elastos.ELA/core/types"
-
 	"github.com/elastos/Elastos.ELA/common"
+	"github.com/elastos/Elastos.ELA/core/types"
 )
 
 //todo move to config

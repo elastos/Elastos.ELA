@@ -29,7 +29,7 @@ func init() {
 	functions.GetTransactionByBytes = transaction.GetTransactionByBytes
 	functions.CreateTransaction = transaction.CreateTransaction
 	functions.GetTransactionParameters = transaction.GetTransactionparameters
-	config.DefaultParams = config.GetDefaultParams()
+	config.DefaultParams = *config.GetDefaultParams()
 }
 
 func TestRewardData_Deserialize(t *testing.T) {
@@ -574,7 +574,7 @@ func arbiterMemberEqual(first state.ArbiterMember, second state.ArbiterMember) b
 	return false
 }
 
-//	NextCRCArbitersMap    map[common.Uint168]ArbiterMember
+// NextCRCArbitersMap    map[common.Uint168]ArbiterMember
 func arbitersMapEqual(first map[common.Uint168]state.ArbiterMember,
 	second map[common.Uint168]state.ArbiterMember) bool {
 	if len(first) != len(second) {

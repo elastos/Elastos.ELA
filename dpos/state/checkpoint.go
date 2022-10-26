@@ -62,7 +62,7 @@ type CheckPoint struct {
 func (c *CheckPoint) StartHeight() uint32 {
 	return uint32(math.Min(float64(c.arbitrators.ChainParams.VoteStartHeight),
 		float64(c.arbitrators.ChainParams.CRCOnlyDPOSHeight-
-			c.arbitrators.ChainParams.PreConnectOffset)))
+			c.arbitrators.ChainParams.DPoSConfiguration.PreConnectOffset)))
 }
 
 func (c *CheckPoint) OnBlockSaved(block *types.DposBlock) {

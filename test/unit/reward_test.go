@@ -12,6 +12,7 @@ import (
 
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
+	"github.com/elastos/Elastos.ELA/core/checkpoint"
 	"github.com/elastos/Elastos.ELA/core/transaction"
 	"github.com/elastos/Elastos.ELA/core/types"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
@@ -54,17 +55,18 @@ func TestCommittee_ChangeCommitteeReward(t *testing.T) {
 	registerCRTxn3 := getRegisterCRTx(publicKeyStr3, privateKeyStr3, nickName3)
 
 	// set count of CR member
-	config.DefaultParams = config.GetDefaultParams()
+	config.DefaultParams = *config.GetDefaultParams()
 	cfg := &config.DefaultParams
-	cfg.CRCArbiters = cfg.CRCArbiters[0:2]
-	cfg.CRMemberCount = 2
-	cfg.GeneralArbiters = 24
+	cfg.DPoSConfiguration.CRCArbiters = cfg.DPoSConfiguration.CRCArbiters[0:2]
+	cfg.CRConfiguration.MemberCount = 2
+	cfg.DPoSConfiguration.NormalArbitratorsCount = 24
 
+	ckpManager := checkpoint.NewManager(config.GetDefaultParams())
 	// new committee
-	committee := state.NewCommittee(&config.DefaultParams)
+	committee := state.NewCommittee(&config.DefaultParams, ckpManager)
 
 	// avoid getting UTXOs from database
-	currentHeight := cfg.CRVotingStartHeight
+	currentHeight := cfg.CRConfiguration.CRVotingStartHeight
 
 	// register cr
 	committee.ProcessBlock(&types.Block{
@@ -104,18 +106,18 @@ func TestCommittee_ChangeCommitteeReward(t *testing.T) {
 	assert.Equal(t, common.Fixed64(3), committee.GetCandidate(*did1).Votes)
 
 	// end first voting period
-	currentHeight = cfg.CRCommitteeStartHeight
+	currentHeight = cfg.CRConfiguration.CRCommitteeStartHeight
 	committee.ProcessBlock(&types.Block{
 		Header: common2.Header{Height: currentHeight}}, nil)
 	assert.Equal(t, 2, len(committee.GetCurrentMembers()))
-
 	var bestHeight uint32
 	arbitrators, _ := state2.NewArbitrators(&config.DefaultParams,
-		committee, nil, nil, nil, nil, nil, nil, nil)
+		committee, nil, nil, nil, nil,
+		nil, nil, nil, ckpManager)
 	arbitrators.RegisterFunction(func() uint32 { return bestHeight },
 		func() *common.Uint256 { return &common.Uint256{} },
 		nil, nil)
-	arbitrators.ChainParams.NoCRCDPOSNodeHeight = 2000000
+	arbitrators.ChainParams.DPoSConfiguration.NoCRCDPOSNodeHeight = 2000000
 
 	// Create 200 producers info.
 	producers := make([]*payload.ProducerInfo, 200)
@@ -163,7 +165,7 @@ func TestCommittee_ChangeCommitteeReward(t *testing.T) {
 	}
 
 	arbitrators.ProcessBlock(mockBlock(arbitrators.ChainParams.PublicDPOSHeight-
-		arbitrators.ChainParams.PreConnectOffset-1), nil)
+		arbitrators.ChainParams.DPoSConfiguration.PreConnectOffset-1), nil)
 	arbitrators.ProcessBlock(mockBlock(arbitrators.ChainParams.PublicDPOSHeight-1), nil)
 
 	arbitrators.DutyIndex = 25

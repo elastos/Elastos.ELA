@@ -15,7 +15,7 @@ import (
 var (
 	Store      blockchain.IChainStore
 	Chain      *blockchain.BlockChain
-	ChainParam *config.Params
+	ChainParam *config.Configuration
 
 	addressBook = make(map[string]*AddressInfo, 0)
 	abMutex     sync.RWMutex

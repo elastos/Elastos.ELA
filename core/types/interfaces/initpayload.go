@@ -7,6 +7,7 @@ package interfaces
 
 import (
 	"errors"
+
 	common "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 )

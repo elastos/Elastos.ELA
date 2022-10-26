@@ -86,7 +86,7 @@ func GetTransactionparameters(
 		Transaction:         transaction,
 		BlockHeight:         blockHeight,
 		TimeStamp:           timeStamp,
-		Config:              cfg.(*config.Params),
+		Config:              cfg.(*config.Configuration),
 		BlockChain:          bc.(*blockchain.BlockChain),
 		ProposalsUsedAmount: proposalsUsedAmount,
 	}

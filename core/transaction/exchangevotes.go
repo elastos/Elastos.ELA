@@ -10,7 +10,7 @@ import (
 	"fmt"
 
 	"github.com/elastos/Elastos.ELA/common"
-	"github.com/elastos/Elastos.ELA/common/config"
+	"github.com/elastos/Elastos.ELA/core"
 	"github.com/elastos/Elastos.ELA/core/contract"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/core/types/outputpayload"
@@ -45,10 +45,10 @@ func (t *ExchangeVotesTransaction) CheckTransactionOutput() error {
 	if len(t.Programs()) < 1 {
 		return errors.New("invalid programs count")
 	}
-
+	ELAAssetID, _ := common.Uint256FromHexString(core.ELAAssetID)
 	// check if output address is valid
 	for _, output := range t.Outputs() {
-		if output.AssetID != config.ELAAssetID {
+		if output.AssetID != *ELAAssetID {
 			return errors.New("asset ID in output is invalid")
 		}
 
@@ -86,8 +86,9 @@ func (t *ExchangeVotesTransaction) CheckTransactionOutput() error {
 		return errors.New("invalid stake address")
 	}
 
+	StakePool, _ := common.Uint168FromAddress(t.parameters.Config.StakePool)
 	// check output address, need to be stake pool
-	if t.outputs[0].ProgramHash != t.parameters.Config.StakePool {
+	if t.outputs[0].ProgramHash != *StakePool {
 		return errors.New("first output address need to be stake address")
 	}
 

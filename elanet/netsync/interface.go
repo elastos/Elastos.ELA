@@ -23,7 +23,7 @@ type PeerNotifier interface {
 type Config struct {
 	PeerNotifier PeerNotifier
 	Chain        *blockchain.BlockChain
-	ChainParams  *config.Params
+	ChainParams  *config.Configuration
 	TxMemPool    *mempool.TxPool
 	BlockMemPool *mempool.BlockPool
 

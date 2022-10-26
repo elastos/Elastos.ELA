@@ -88,7 +88,7 @@ func (t *RevertToDPOSTransaction) IsAllowedInPOWConsensus() bool {
 }
 
 func (t *RevertToDPOSTransaction) HeightVersionCheck() error {
-	if t.parameters.BlockHeight < t.parameters.Config.RevertToPOWStartHeight {
+	if t.parameters.BlockHeight < t.parameters.Config.DPoSConfiguration.RevertToPOWStartHeight {
 		return errors.New(fmt.Sprintf("not support %s transaction "+
 			"before RevertToPOWStartHeight", t.TxType().Name()))
 	}

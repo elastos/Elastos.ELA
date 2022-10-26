@@ -128,8 +128,8 @@ func (up *UTXOCache) CleanCache() {
 	up.TxCache = make(map[common.Uint256]interfaces.Transaction)
 }
 
-func NewUTXOCache(db IUTXOCacheStore, params *config.Params) *UTXOCache {
-	if params.NodeProfileStrategy == config.MemoryFirst.String() {
+func NewUTXOCache(db IUTXOCacheStore, params *config.Configuration) *UTXOCache {
+	if params.MemoryFirst {
 		MaxReferenceSize = memoryFirstReferenceSize
 	}
 

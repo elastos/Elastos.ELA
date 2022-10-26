@@ -520,7 +520,7 @@ type State struct {
 	tryUpdateCRMemberIllegal func(did common.Uint168, height uint32, illegalPenalty common.Fixed64)
 	tryRevertCRMemberIllegal func(did common.Uint168, oriState state.MemberState, height uint32, illegalPenalty common.Fixed64)
 
-	ChainParams *config.Params
+	ChainParams *config.Configuration
 	mtx         sync.RWMutex
 	History     *utils.History
 
@@ -546,8 +546,8 @@ func (s *State) dposV2Started() bool {
 
 func (s *State) isDposV2Active() bool {
 	log.Errorf("isDposV2Active len(a.DposV2EffectedProducers) %d  GeneralArbiters %d", len(s.DposV2EffectedProducers),
-		s.ChainParams.GeneralArbiters)
-	return len(s.DposV2EffectedProducers) >= s.ChainParams.GeneralArbiters*3/2
+		s.ChainParams.DPoSConfiguration.NormalArbitratorsCount)
+	return len(s.DposV2EffectedProducers) >= s.ChainParams.DPoSConfiguration.NormalArbitratorsCount*3/2
 }
 
 func (s *State) GetRealWithdrawTransactions() map[common.Uint256]common2.OutputInfo {
@@ -715,7 +715,7 @@ func (s *State) GetAllProducersPublicKey() []string {
 	for nodePK, _ := range s.NextCRNodeOwnerKeys {
 		nodePublicKeys = append(nodePublicKeys, nodePK)
 	}
-	for _, nodePK := range s.ChainParams.CRCArbiters {
+	for _, nodePK := range s.ChainParams.DPoSConfiguration.CRCArbiters {
 		nodePublicKeys = append(nodePublicKeys, nodePK)
 	}
 	return nodePublicKeys
@@ -1036,7 +1036,7 @@ func (s *State) IsAbleToRecoverFromInactiveMode() bool {
 // IsAbleToRecoverFromInactiveMode returns if there are enough active arbiters
 func (s *State) IsAbleToRecoverFromUnderstaffedState() bool {
 	s.mtx.RLock()
-	result := len(s.ActivityProducers) >= s.ChainParams.GeneralArbiters
+	result := len(s.ActivityProducers) >= s.ChainParams.DPoSConfiguration.NormalArbitratorsCount
 	s.mtx.RUnlock()
 	return result
 }
@@ -1209,9 +1209,9 @@ func (s *State) ProcessBlock(block *types.Block, confirm *payload.Confirm, dutyI
 	if confirm != nil {
 		if block.Height > s.DPoSV2ActiveHeight {
 			s.countArbitratorsInactivityV3(block.Height, confirm, dutyIndex)
-		} else if block.Height >= s.ChainParams.ChangeCommitteeNewCRHeight {
+		} else if block.Height >= s.ChainParams.CRConfiguration.ChangeCommitteeNewCRHeight {
 			s.countArbitratorsInactivityV2(block.Height, confirm)
-		} else if block.Height >= s.ChainParams.CRClaimDPOSNodeStartHeight {
+		} else if block.Height >= s.ChainParams.CRConfiguration.CRClaimDPOSNodeStartHeight {
 			s.countArbitratorsInactivityV1(block.Height, confirm)
 		} else {
 			s.countArbitratorsInactivityV0(block.Height, confirm)
@@ -1414,7 +1414,7 @@ func (s *State) updateProducersDepositCoin(height uint32) {
 
 	canceledProducers := s.getCanceledProducers()
 	for _, producer := range canceledProducers {
-		if height-producer.CancelHeight() == s.ChainParams.CRDepositLockupBlocks {
+		if height-producer.CancelHeight() == s.ChainParams.CRConfiguration.DepositLockupBlocks {
 			updateDepositCoin(producer)
 		}
 	}
@@ -2658,9 +2658,9 @@ func (s *State) RemoveSpecialTx(hash common.Uint256) {
 func (s *State) getIllegalPenaltyByHeight(height uint32) common.Fixed64 {
 	var illegalPenalty common.Fixed64
 	if height >= s.DPoSV2ActiveHeight {
-		illegalPenalty = s.ChainParams.DPoSV2IllegalPenalty
-	} else if height >= s.ChainParams.ChangeCommitteeNewCRHeight {
-		illegalPenalty = s.ChainParams.IllegalPenalty
+		illegalPenalty = s.ChainParams.DPoSConfiguration.DPoSV2IllegalPenalty
+	} else if height >= s.ChainParams.CRConfiguration.ChangeCommitteeNewCRHeight {
+		illegalPenalty = s.ChainParams.DPoSConfiguration.IllegalPenalty
 	}
 
 	return illegalPenalty
@@ -2728,7 +2728,7 @@ func (s *State) processIllegalEvidence(payloadData interfaces.Payload,
 				producer.illegalHeight = height
 				s.IllegalProducers[key] = producer
 				producer.activateRequestHeight = math.MaxUint32
-				if height >= s.ChainParams.ChangeCommitteeNewCRHeight {
+				if height >= s.ChainParams.CRConfiguration.ChangeCommitteeNewCRHeight {
 					producer.penalty += illegalPenalty
 				}
 				delete(s.ActivityProducers, key)
@@ -2752,7 +2752,7 @@ func (s *State) processIllegalEvidence(payloadData interfaces.Payload,
 				producer.illegalHeight = height
 				s.IllegalProducers[key] = producer
 				producer.activateRequestHeight = math.MaxUint32
-				if height >= s.ChainParams.ChangeCommitteeNewCRHeight {
+				if height >= s.ChainParams.CRConfiguration.ChangeCommitteeNewCRHeight {
 					producer.penalty += illegalPenalty
 				}
 				delete(s.InactiveProducers, key)
@@ -2773,7 +2773,7 @@ func (s *State) processIllegalEvidence(payloadData interfaces.Payload,
 			s.History.Append(height, func() {
 				producer.illegalHeight = height
 				producer.activateRequestHeight = math.MaxUint32
-				if height >= s.ChainParams.ChangeCommitteeNewCRHeight {
+				if height >= s.ChainParams.CRConfiguration.ChangeCommitteeNewCRHeight {
 					producer.penalty += illegalPenalty
 				}
 			}, func() {
@@ -2791,7 +2791,7 @@ func (s *State) processIllegalEvidence(payloadData interfaces.Payload,
 				producer.state = Illegal
 				producer.illegalHeight = height
 				s.IllegalProducers[key] = producer
-				if height >= s.ChainParams.ChangeCommitteeNewCRHeight {
+				if height >= s.ChainParams.CRConfiguration.ChangeCommitteeNewCRHeight {
 					producer.penalty += illegalPenalty
 				}
 				delete(s.CanceledProducers, key)
@@ -2834,14 +2834,14 @@ func (s *State) setInactiveProducer(producer *Producer, key string,
 	s.InactiveProducers[key] = producer
 	delete(s.ActivityProducers, key)
 
-	var penalty = s.ChainParams.InactivePenalty
+	var penalty = s.ChainParams.DPoSConfiguration.InactivePenalty
 	if height < s.VersionStartHeight || height >= s.VersionEndHeight {
 		if !emergency {
-			if height >= s.ChainParams.ChangeCommitteeNewCRHeight {
+			if height >= s.ChainParams.CRConfiguration.ChangeCommitteeNewCRHeight {
 				producer.penalty += penalty
 			}
 		} else {
-			producer.penalty += s.ChainParams.EmergencyInactivePenalty
+			producer.penalty += s.ChainParams.DPoSConfiguration.EmergencyInactivePenalty
 
 		}
 	}
@@ -2856,10 +2856,10 @@ func (s *State) revertSettingInactiveProducer(producer *Producer, key string,
 	s.ActivityProducers[key] = producer
 	delete(s.InactiveProducers, key)
 
-	var penalty = s.ChainParams.InactivePenalty
+	var penalty = s.ChainParams.DPoSConfiguration.InactivePenalty
 	if height < s.VersionStartHeight || height >= s.VersionEndHeight {
 		if emergency {
-			penalty = s.ChainParams.EmergencyInactivePenalty
+			penalty = s.ChainParams.DPoSConfiguration.EmergencyInactivePenalty
 		}
 
 		if producer.penalty < penalty {
@@ -2879,9 +2879,9 @@ func (s *State) countArbitratorsInactivityV3(height uint32,
 		return
 	}
 
-	lastPosition := dutyIndex == s.ChainParams.GeneralArbiters+len(s.ChainParams.CRCArbiters)-1
+	lastPosition := dutyIndex == s.ChainParams.DPoSConfiguration.NormalArbitratorsCount+len(s.ChainParams.DPoSConfiguration.CRCArbiters)-1
 
-	isDPOSAsCR := height > s.ChainParams.ChangeCommitteeNewCRHeight
+	isDPOSAsCR := height > s.ChainParams.CRConfiguration.ChangeCommitteeNewCRHeight
 
 	// changingArbiters indicates the arbiters that should reset inactive
 	// counting state. With the value of true means the producer is on duty or
@@ -2985,7 +2985,7 @@ func (s *State) updateCRMemberInactiveCountV2(lastPosition, needReset, workedInR
 			member.InactiveCountV2 += 1
 			if member.InactiveCountV2 >= 3 {
 				member.MemberState = state.MemberInactive
-				if height >= s.ChainParams.ChangeCommitteeNewCRHeight {
+				if height >= s.ChainParams.CRConfiguration.ChangeCommitteeNewCRHeight {
 					s.updateCRInactivePenalty(member.Info.CID, height)
 				}
 				member.InactiveCountV2 = 0
@@ -2993,7 +2993,7 @@ func (s *State) updateCRMemberInactiveCountV2(lastPosition, needReset, workedInR
 		}, func() {
 			if member.MemberState == state.MemberInactive && member.InactiveCountV2 >= 3 {
 				member.MemberState = state.MemberElected
-				if height >= s.ChainParams.ChangeCommitteeNewCRHeight {
+				if height >= s.ChainParams.CRConfiguration.ChangeCommitteeNewCRHeight {
 					s.revertUpdateCRInactivePenalty(member.Info.CID, height)
 				}
 			}
@@ -3044,7 +3044,7 @@ func (s *State) countArbitratorsInactivityV2(height uint32,
 		return
 	}
 
-	isDPOSAsCR := height > s.ChainParams.ChangeCommitteeNewCRHeight
+	isDPOSAsCR := height > s.ChainParams.CRConfiguration.ChangeCommitteeNewCRHeight
 
 	// changingArbiters indicates the arbiters that should reset inactive
 	// counting state. With the value of true means the producer is on duty or
@@ -3280,12 +3280,12 @@ func (s *State) tryUpdateInactivityV2(key string, producer *Producer,
 
 	if producer.selected {
 		producer.randomCandidateInactiveCount++
-		if producer.randomCandidateInactiveCount >= s.ChainParams.MaxInactiveRoundsOfRandomNode {
+		if producer.randomCandidateInactiveCount >= s.ChainParams.DPoSConfiguration.MaxInactiveRoundsOfRandomNode {
 			s.setInactiveProducer(producer, key, height, false)
 		}
 	} else {
 		producer.inactiveCount++
-		if producer.inactiveCount >= s.ChainParams.MaxInactiveRounds {
+		if producer.inactiveCount >= s.ChainParams.DPoSConfiguration.MaxInactiveRounds {
 			s.setInactiveProducer(producer, key, height, false)
 			producer.inactiveCount = 0
 		}
@@ -3304,7 +3304,7 @@ func (s *State) tryUpdateInactivity(key string, producer *Producer,
 		producer.inactiveCountingHeight = height
 	}
 
-	if height-producer.inactiveCountingHeight >= s.ChainParams.MaxInactiveRounds {
+	if height-producer.inactiveCountingHeight >= s.ChainParams.DPoSConfiguration.MaxInactiveRounds {
 		s.setInactiveProducer(producer, key, height, false)
 		producer.inactiveCountingHeight = 0
 	}
@@ -3367,7 +3367,7 @@ func (s *State) GetLastIrreversibleHeight() uint32 {
 }
 
 func (s *State) tryUpdateLastIrreversibleHeight(height uint32) {
-	if height < s.ChainParams.RevertToPOWStartHeight {
+	if height < s.ChainParams.DPoSConfiguration.RevertToPOWStartHeight {
 		return
 	}
 
@@ -3416,7 +3416,7 @@ func (s *State) tryUpdateLastIrreversibleHeight(height uint32) {
 	}
 }
 
-//is this Height Irreversible
+// is this Height Irreversible
 func (s *State) IsIrreversible(curBlockHeight uint32, detachNodesLen int) bool {
 	s.mtx.RLock()
 	defer s.mtx.RUnlock()
@@ -3428,7 +3428,7 @@ func (s *State) IsIrreversible(curBlockHeight uint32, detachNodesLen int) bool {
 	if curBlockHeight-uint32(detachNodesLen) <= s.LastIrreversibleHeight {
 		return true
 	}
-	if curBlockHeight >= s.ChainParams.RevertToPOWStartHeight {
+	if curBlockHeight >= s.ChainParams.DPoSConfiguration.RevertToPOWStartHeight {
 		if s.ConsensusAlgorithm == DPOS {
 			if detachNodesLen >= IrreversibleHeight {
 				return true
@@ -3460,7 +3460,7 @@ func (s *State) handleEvents(event *events.Event) {
 }
 
 // NewState returns a new State instance.
-func NewState(chainParams *config.Params, getArbiters func() []*ArbiterInfo,
+func NewState(chainParams *config.Configuration, getArbiters func() []*ArbiterInfo,
 	getCRMembers func() []*state.CRMember,
 	getNextCRMembers func() []*state.CRMember,
 	isInElectionPeriod func() bool,

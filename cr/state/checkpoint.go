@@ -146,7 +146,7 @@ func (c *Checkpoint) OnInit() {
 }
 
 func (c *Checkpoint) StartHeight() uint32 {
-	return c.committee.Params.CRVotingStartHeight
+	return c.committee.Params.CRConfiguration.CRVotingStartHeight
 }
 
 func (c *Checkpoint) Serialize(w io.Writer) (err error) {

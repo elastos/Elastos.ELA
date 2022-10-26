@@ -35,7 +35,7 @@ type ProposalDispatcherConfig struct {
 	Network      DPOSNetwork
 	Manager      *DPOSManager
 	Account      account.Account
-	ChainParams  *config.Params
+	ChainParams  *config.Configuration
 	TimeSource   dtime.MedianTimeSource
 }
 

@@ -11,9 +11,9 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"github.com/elastos/Elastos.ELA/common/log"
 
 	"github.com/elastos/Elastos.ELA/common"
+	"github.com/elastos/Elastos.ELA/common/log"
 )
 
 type Header struct {

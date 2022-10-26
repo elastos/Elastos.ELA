@@ -21,7 +21,7 @@ type ReturnDepositCoinTransaction struct {
 
 func (t *ReturnDepositCoinTransaction) CheckAttributeProgram() error {
 
-	if t.parameters.BlockHeight >= t.parameters.Config.CRVotingStartHeight {
+	if t.parameters.BlockHeight >= t.parameters.Config.CRConfiguration.CRVotingStartHeight {
 		if len(t.Programs()) != 1 {
 			return errors.New("return deposit coin transactions should have one and only one program")
 		}

@@ -8,9 +8,9 @@ package mempool
 import (
 	"fmt"
 
-	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/common"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/errors"
 )
 
@@ -50,6 +50,7 @@ const (
 )
 
 // conflictSlot hold a set of transactions references that may conflict with
+//
 //	incoming transactions, those transactions will process with same rule to
 //	generate key by which to detect the conflict.
 type conflictSlot struct {

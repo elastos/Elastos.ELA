@@ -21,7 +21,7 @@ func (pow *Service) ListenForRevert() {
 	go func() {
 		for {
 			time.Sleep(CheckRevertToPOWInterval)
-			if pow.chain.BestChain.Height < pow.chainParams.RevertToPOWStartHeight {
+			if pow.chain.BestChain.Height < pow.chainParams.DPoSConfiguration.RevertToPOWStartHeight {
 				continue
 			}
 			if pow.arbiters.IsInPOWMode() {
@@ -29,7 +29,7 @@ func (pow *Service) ListenForRevert() {
 			}
 			lastBlockTimestamp := int64(pow.arbiters.GetLastBlockTimestamp())
 			localTimestamp := pow.chain.TimeSource.AdjustedTime().Unix()
-			if localTimestamp-lastBlockTimestamp < pow.chainParams.RevertToPOWNoBlockTime {
+			if localTimestamp-lastBlockTimestamp < pow.chainParams.DPoSConfiguration.RevertToPOWNoBlockTime {
 				continue
 			}
 

@@ -12,6 +12,7 @@ import (
 
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
+	"github.com/elastos/Elastos.ELA/core/checkpoint"
 	"github.com/elastos/Elastos.ELA/core/contract/program"
 	transaction2 "github.com/elastos/Elastos.ELA/core/transaction"
 	"github.com/elastos/Elastos.ELA/core/types"
@@ -35,7 +36,7 @@ func init() {
 }
 
 func TestHeightVersionInit(t *testing.T) {
-	config.DefaultParams = config.GetDefaultParams()
+	config.DefaultParams = *config.GetDefaultParams()
 	arbitratorsStr := []string{
 		"023a133480176214f88848c6eaa684a54b316849df2b8570b57f3a917f19bbc77a",
 		"030a26f8b4ab0ea219eb461d1e454ce5f0bd0d289a6a64ffc0743dab7bd5be0be9",
@@ -51,7 +52,7 @@ func TestHeightVersionInit(t *testing.T) {
 	}
 
 	activeNetParams := &config.DefaultParams
-	activeNetParams.CRCArbiters = []string{
+	activeNetParams.DPoSConfiguration.CRCArbiters = []string{
 		"023a133480176214f88848c6eaa684a54b316849df2b8570b57f3a917f19bbc77a",
 		"030a26f8b4ab0ea219eb461d1e454ce5f0bd0d289a6a64ffc0743dab7bd5be0be9",
 		"0288e79636e41edce04d4fa95d8f62fed73a76164f8631ccc42f5425f960e4a0c7",
@@ -60,15 +61,16 @@ func TestHeightVersionInit(t *testing.T) {
 	}
 	var err error
 	bestHeight = 0
-
+	ckpManager := checkpoint.NewManager(config.GetDefaultParams())
 	arbiters, err = state.NewArbitrators(activeNetParams,
 		nil, nil, nil, nil,
-		nil, nil, nil, nil)
+		nil, nil, nil, nil,
+		ckpManager)
 	assert.NoError(t, err)
 	arbiters.RegisterFunction(func() uint32 { return bestHeight },
 		func() *common.Uint256 { return &common.Uint256{} },
 		nil, nil)
-	arbiters.State = state.NewState(activeNetParams, nil, nil,nil,
+	arbiters.State = state.NewState(activeNetParams, nil, nil, nil,
 		func() bool { return false },
 		nil, nil, nil,
 		nil, nil, nil, nil)
@@ -77,7 +79,7 @@ func TestHeightVersionInit(t *testing.T) {
 
 func TestArbitrators_GetNormalArbitratorsDescV0(t *testing.T) {
 	arbitrators := make([][]byte, 0)
-	for _, v := range config.DefaultParams.OriginArbiters {
+	for _, v := range config.DefaultParams.DPoSConfiguration.OriginArbiters {
 		a, _ := common.HexStringToBytes(v)
 		arbitrators = append(arbitrators, a)
 	}
@@ -187,43 +189,43 @@ func TestArbitrators_GetNormalArbitratorsDesc(t *testing.T) {
 
 func TestArbitrators_GetNextOnDutyArbitratorV0(t *testing.T) {
 	currentArbitrator := arbiters.GetNextOnDutyArbitratorV0(1, 0)
-	assert.Equal(t, arbiters.State.ChainParams.OriginArbiters[0],
+	assert.Equal(t, arbiters.State.ChainParams.DPoSConfiguration.OriginArbiters[0],
 		common.BytesToHexString(currentArbitrator.GetNodePublicKey()))
 
 	currentArbitrator = arbiters.GetNextOnDutyArbitratorV0(2, 0)
-	assert.Equal(t, arbiters.State.ChainParams.OriginArbiters[1],
+	assert.Equal(t, arbiters.State.ChainParams.DPoSConfiguration.OriginArbiters[1],
 		common.BytesToHexString(currentArbitrator.GetNodePublicKey()))
 
 	currentArbitrator = arbiters.GetNextOnDutyArbitratorV0(3, 0)
-	assert.Equal(t, arbiters.State.ChainParams.OriginArbiters[2],
+	assert.Equal(t, arbiters.State.ChainParams.DPoSConfiguration.OriginArbiters[2],
 		common.BytesToHexString(currentArbitrator.GetNodePublicKey()))
 
 	currentArbitrator = arbiters.GetNextOnDutyArbitratorV0(4, 0)
-	assert.Equal(t, arbiters.State.ChainParams.OriginArbiters[3],
+	assert.Equal(t, arbiters.State.ChainParams.DPoSConfiguration.OriginArbiters[3],
 		common.BytesToHexString(currentArbitrator.GetNodePublicKey()))
 
 	currentArbitrator = arbiters.GetNextOnDutyArbitratorV0(5, 0)
-	assert.Equal(t, arbiters.State.ChainParams.OriginArbiters[4],
+	assert.Equal(t, arbiters.State.ChainParams.DPoSConfiguration.OriginArbiters[4],
 		common.BytesToHexString(currentArbitrator.GetNodePublicKey()))
 
 	currentArbitrator = arbiters.GetNextOnDutyArbitratorV0(0, 1)
-	assert.Equal(t, arbiters.State.ChainParams.OriginArbiters[0],
+	assert.Equal(t, arbiters.State.ChainParams.DPoSConfiguration.OriginArbiters[0],
 		common.BytesToHexString(currentArbitrator.GetNodePublicKey()))
 
 	currentArbitrator = arbiters.GetNextOnDutyArbitratorV0(0, 2)
-	assert.Equal(t, arbiters.State.ChainParams.OriginArbiters[1],
+	assert.Equal(t, arbiters.State.ChainParams.DPoSConfiguration.OriginArbiters[1],
 		common.BytesToHexString(currentArbitrator.GetNodePublicKey()))
 
 	currentArbitrator = arbiters.GetNextOnDutyArbitratorV0(0, 3)
-	assert.Equal(t, arbiters.State.ChainParams.OriginArbiters[2],
+	assert.Equal(t, arbiters.State.ChainParams.DPoSConfiguration.OriginArbiters[2],
 		common.BytesToHexString(currentArbitrator.GetNodePublicKey()))
 
 	currentArbitrator = arbiters.GetNextOnDutyArbitratorV0(0, 4)
-	assert.Equal(t, arbiters.State.ChainParams.OriginArbiters[3],
+	assert.Equal(t, arbiters.State.ChainParams.DPoSConfiguration.OriginArbiters[3],
 		common.BytesToHexString(currentArbitrator.GetNodePublicKey()))
 
 	currentArbitrator = arbiters.GetNextOnDutyArbitratorV0(0, 5)
-	assert.Equal(t, arbiters.State.ChainParams.OriginArbiters[4],
+	assert.Equal(t, arbiters.State.ChainParams.DPoSConfiguration.OriginArbiters[4],
 		common.BytesToHexString(currentArbitrator.GetNodePublicKey()))
 }
 
@@ -234,7 +236,7 @@ func TestArbitrators_GetNextOnDutyArbitrator(t *testing.T) {
 	arbiters.ChangeCurrentArbitrators(bestHeight + 1)
 	arbiters.History.Commit(bestHeight + 1)
 
-	sortedArbiters := arbiters.State.ChainParams.CRCArbiters
+	sortedArbiters := arbiters.State.ChainParams.DPoSConfiguration.CRCArbiters
 	sort.Slice(sortedArbiters, func(i, j int) bool {
 		return sortedArbiters[i] < sortedArbiters[j]
 	})

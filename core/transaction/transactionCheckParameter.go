@@ -17,7 +17,7 @@ type TransactionParameters struct {
 
 	BlockHeight         uint32
 	TimeStamp           uint32
-	Config              *config.Params
+	Config              *config.Configuration
 	BlockChain          *blockchain.BlockChain
 	ProposalsUsedAmount common.Fixed64
 }

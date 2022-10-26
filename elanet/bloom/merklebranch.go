@@ -8,9 +8,9 @@ package bloom
 import (
 	"errors"
 	"fmt"
-	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 
 	"github.com/elastos/Elastos.ELA/common"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/p2p/msg"
 )
 

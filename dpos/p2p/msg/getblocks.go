@@ -6,8 +6,9 @@
 package msg
 
 import (
-	"github.com/elastos/Elastos.ELA/common"
 	"io"
+
+	"github.com/elastos/Elastos.ELA/common"
 )
 
 type GetBlocks struct {

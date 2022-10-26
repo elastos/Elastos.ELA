@@ -6,8 +6,9 @@
 package payload
 
 import (
-	"github.com/elastos/Elastos.ELA/common"
 	"io"
+
+	"github.com/elastos/Elastos.ELA/common"
 )
 
 const ReturnSideChainDepositCoinVersion byte = 0x00

@@ -9,7 +9,7 @@ import (
 	"github.com/elastos/Elastos.ELA/account"
 	"github.com/elastos/Elastos.ELA/benchmark/common/utils"
 	"github.com/elastos/Elastos.ELA/common"
-	"github.com/elastos/Elastos.ELA/common/config"
+	"github.com/elastos/Elastos.ELA/core"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/core/types/outputpayload"
@@ -38,8 +38,9 @@ func (a *fixAmountAssigner) SignAndChange(tx interfaces.Transaction) error {
 	for _, o := range tx.Outputs() {
 		o.Value = defaultAmount
 	}
+	ELAAssetID, _ := common.Uint256FromHexString(core.ELAAssetID)
 	tx.SetOutputs(append(tx.Outputs(), &common2.Output{
-		AssetID: config.ELAAssetID,
+		AssetID: *ELAAssetID,
 		Value: a.utxo.Value -
 			defaultAmount*common.Fixed64(len(tx.Outputs())) - defaultFee,
 		OutputLock:  0,

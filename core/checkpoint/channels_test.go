@@ -8,14 +8,17 @@ package checkpoint
 import (
 	"testing"
 
+	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/utils"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestFileChannels_LifeCycle(t *testing.T) {
-	channels := NewFileChannels(&Config{
-		EnableHistory: true,
-	})
+	cfg := &config.Configuration{
+		CheckPointConfiguration: config.CheckPointConfiguration{
+			EnableHistory: true,
+		}}
+	channels := NewFileChannels(cfg)
 	data := uint64(1)
 	currentHeight := uint32(10)
 	pt := &checkpoint{

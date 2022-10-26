@@ -7,13 +7,14 @@ package state
 
 import (
 	"bytes"
+	"math/rand"
+	"testing"
+
 	"github.com/elastos/Elastos.ELA/common"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/core/types/outputpayload"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/crypto"
-	"math/rand"
-	"testing"
 
 	"github.com/stretchr/testify/assert"
 )

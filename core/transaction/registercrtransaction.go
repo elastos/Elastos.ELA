@@ -39,8 +39,8 @@ func (t *RegisterCRTransaction) HeightVersionCheck() error {
 	blockHeight := t.parameters.BlockHeight
 	chainParams := t.parameters.Config
 
-	if blockHeight < chainParams.CRVotingStartHeight ||
-		(blockHeight < chainParams.RegisterCRByDIDHeight &&
+	if blockHeight < chainParams.CRConfiguration.CRVotingStartHeight ||
+		(blockHeight < chainParams.CRConfiguration.RegisterCRByDIDHeight &&
 			t.PayloadVersion() != payload.CRInfoVersion) {
 		return errors.New(fmt.Sprintf("not support %s transaction "+
 			"before CRVotingStartHeight", t.TxType().Name()))
@@ -101,7 +101,7 @@ func (t *RegisterCRTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid cid address")), true
 	}
 
-	if t.parameters.BlockHeight >= t.parameters.Config.RegisterCRByDIDHeight &&
+	if t.parameters.BlockHeight >= t.parameters.Config.CRConfiguration.RegisterCRByDIDHeight &&
 		t.PayloadVersion() == payload.CRInfoDIDVersion {
 		// get DID program hash
 

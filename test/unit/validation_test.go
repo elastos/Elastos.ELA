@@ -35,7 +35,7 @@ func init() {
 	functions.GetTransactionByBytes = transaction2.GetTransactionByBytes
 	functions.CreateTransaction = transaction2.CreateTransaction
 	functions.GetTransactionParameters = transaction2.GetTransactionparameters
-	config.DefaultParams = config.GetDefaultParams()
+	config.DefaultParams = *config.GetDefaultParams()
 }
 
 type act interface {
@@ -278,11 +278,11 @@ func TestSchnorrRunProgramsOrigin(t *testing.T) {
 		}
 
 		privKey := decodePrivateKey(test.d, t)
-		MyPublicKey := decodePublicKey(test.pk, t)
-		fmt.Println("MyPublicKey", MyPublicKey)
-		pubKey, err := crypto.DecodePoint(MyPublicKey[:])
-		fmt.Println(err)
-		fmt.Println(pubKey)
+		//MyPublicKey := decodePublicKey(test.pk, t)
+		//fmt.Println("MyPublicKey", MyPublicKey)
+		//pubKey, err := crypto.DecodePoint(MyPublicKey[:])
+		//fmt.Println(err)
+		//fmt.Println(pubKey)
 
 		pks = append(pks, privKey)
 
@@ -300,11 +300,9 @@ func TestSchnorrRunProgramsOrigin(t *testing.T) {
 		//this is the sum pk elliptic.
 		copy(pk[:], crypto.Marshal(crypto.Curve, Px, Py))
 
-		publicKey1, _ := crypto.DecodePoint(pk[:])
-		fmt.Println(publicKey1)
-		//var err error
+		//publicKey1, _ := crypto.DecodePoint(pk[:])
+		//fmt.Println(publicKey1)
 		var tx interfaces.Transaction
-		//var acts []act
 		var hashes []common.Uint168
 		var programs []*program.Program
 
@@ -336,7 +334,7 @@ func TestSchnorrRunProgramsOrigin(t *testing.T) {
 	})
 }
 
-//TestAggregateSignatures TestSchnorrRunProgramsOrigin
+// TestAggregateSignatures TestSchnorrRunProgramsOrigin
 func TestAggregateSignatures(t *testing.T) {
 	var testCases = []struct {
 		d           string //private key
@@ -570,7 +568,7 @@ func TestSchnorrRunPrograms(t *testing.T) {
 		if err != nil {
 			fmt.Printf("AggregateSignatures index %d fail err %s \n", index, err.Error())
 		} else {
-			fmt.Printf("AggregateSignatures index %d passed \n", index)
+			//fmt.Printf("AggregateSignatures index %d passed \n", index)
 		}
 	}
 	assert.NoError(t, err, "[RunProgram] passed with 1 checksig program")

@@ -6,9 +6,9 @@
 package functions
 
 import (
-	"github.com/elastos/Elastos.ELA/common"
 	"io"
 
+	"github.com/elastos/Elastos.ELA/common"
 	pg "github.com/elastos/Elastos.ELA/core/contract/program"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/core/types/interfaces"

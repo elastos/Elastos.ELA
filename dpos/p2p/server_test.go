@@ -7,7 +7,6 @@ package p2p
 
 import (
 	"fmt"
-	peer2 "github.com/elastos/Elastos.ELA/p2p/peer"
 	"io"
 	"math/rand"
 	"net"
@@ -19,6 +18,7 @@ import (
 	"github.com/elastos/Elastos.ELA/dpos/p2p/msg"
 	"github.com/elastos/Elastos.ELA/dpos/p2p/peer"
 	"github.com/elastos/Elastos.ELA/p2p"
+	peer2 "github.com/elastos/Elastos.ELA/p2p/peer"
 	"github.com/elastos/Elastos.ELA/utils/test"
 
 	"github.com/stretchr/testify/assert"

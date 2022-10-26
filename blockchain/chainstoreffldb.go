@@ -44,10 +44,10 @@ type ChainStoreFFLDB struct {
 	mtx              sync.RWMutex
 	blockHashesCache []Uint256
 	blocksCache      map[Uint256]*DposBlock
-	params           *config.Params
+	params           *config.Configuration
 }
 
-func NewChainStoreFFLDB(dataDir string, params *config.Params) (IFFLDBChainStore, error) {
+func NewChainStoreFFLDB(dataDir string, params *config.Configuration) (IFFLDBChainStore, error) {
 	fflDB, err := LoadBlockDB(dataDir, blockDbName)
 	if err != nil {
 		return nil, err

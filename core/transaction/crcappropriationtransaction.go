@@ -11,7 +11,7 @@ import (
 	"math"
 
 	"github.com/elastos/Elastos.ELA/common"
-	"github.com/elastos/Elastos.ELA/common/config"
+	"github.com/elastos/Elastos.ELA/core"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	elaerr "github.com/elastos/Elastos.ELA/errors"
@@ -24,6 +24,9 @@ type CRCAppropriationTransaction struct {
 func (t *CRCAppropriationTransaction) CheckTransactionOutput() error {
 	blockHeight := t.parameters.BlockHeight
 	chainParams := t.parameters.Config
+	ELAAssetID, _ := common.Uint256FromHexString(core.ELAAssetID)
+	CRExpensesAddress, _ := common.Uint168FromAddress(chainParams.CRConfiguration.CRExpensesAddress)
+	CRAssetsAddress, _ := common.Uint168FromAddress(chainParams.CRConfiguration.CRAssetsAddress)
 	if len(t.Outputs()) > math.MaxUint16 {
 		return errors.New("output count should not be greater than 65535(MaxUint16)")
 	}
@@ -31,11 +34,11 @@ func (t *CRCAppropriationTransaction) CheckTransactionOutput() error {
 	if len(t.Outputs()) != 2 {
 		return errors.New("new CRCAppropriation tx must have two output")
 	}
-	if !t.Outputs()[0].ProgramHash.IsEqual(chainParams.CRExpensesAddress) {
+	if !t.Outputs()[0].ProgramHash.IsEqual(*CRExpensesAddress) {
 		return errors.New("new CRCAppropriation tx must have the first" +
 			"output to CR expenses address")
 	}
-	if !t.Outputs()[1].ProgramHash.IsEqual(chainParams.CRAssetsAddress) {
+	if !t.Outputs()[1].ProgramHash.IsEqual(*CRAssetsAddress) {
 		return errors.New("new CRCAppropriation tx must have the second" +
 			"output to CR assets address")
 	}
@@ -43,7 +46,7 @@ func (t *CRCAppropriationTransaction) CheckTransactionOutput() error {
 	// check if output address is valid
 	specialOutputCount := 0
 	for _, output := range t.Outputs() {
-		if output.AssetID != config.ELAAssetID {
+		if output.AssetID != *ELAAssetID {
 			return errors.New("asset ID in output is invalid")
 		}
 
@@ -100,7 +103,7 @@ func (t *CRCAppropriationTransaction) HeightVersionCheck() error {
 	blockHeight := t.parameters.BlockHeight
 	chainParams := t.parameters.Config
 
-	if blockHeight < chainParams.CRCommitteeStartHeight {
+	if blockHeight < chainParams.CRConfiguration.CRCommitteeStartHeight {
 		return errors.New(fmt.Sprintf("not support %s transaction "+
 			"before CRCommitteeStartHeight", t.TxType().Name()))
 	}
@@ -115,9 +118,11 @@ func (t *CRCAppropriationTransaction) SpecialContextCheck() (result elaerr.ELAEr
 
 	// Inputs need to only from CR assets address
 	var totalInput common.Fixed64
+
 	for _, output := range t.references {
 		totalInput += output.Value
-		if !output.ProgramHash.IsEqual(t.parameters.Config.CRAssetsAddress) {
+		CRAssetsAddress, _ := common.Uint168FromAddress(t.parameters.Config.CRConfiguration.CRAssetsAddress)
+		if !output.ProgramHash.IsEqual(*CRAssetsAddress) {
 			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("input does not from CR assets address")), true
 		}
 	}

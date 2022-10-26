@@ -11,6 +11,7 @@ import (
 
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
+	"github.com/elastos/Elastos.ELA/core/checkpoint"
 	"github.com/elastos/Elastos.ELA/core/contract"
 	"github.com/elastos/Elastos.ELA/core/contract/program"
 	"github.com/elastos/Elastos.ELA/core/transaction"
@@ -36,7 +37,7 @@ func init() {
 	functions.GetTransactionByBytes = transaction.GetTransactionByBytes
 	functions.CreateTransaction = transaction.CreateTransaction
 	functions.GetTransactionParameters = transaction.GetTransactionparameters
-	config.DefaultParams = config.GetDefaultParams()
+	config.DefaultParams = *config.GetDefaultParams()
 }
 
 func initArbiters() {
@@ -53,20 +54,21 @@ func initArbiters() {
 		a, _ := common.HexStringToBytes(v)
 		abtList = append(abtList, a)
 	}
-
+	ckpManager := checkpoint.NewManager(config.GetDefaultParams())
 	activeNetParams := &config.DefaultParams
-	activeNetParams.CRCArbiters = []string{
+	activeNetParams.DPoSConfiguration.CRCArbiters = []string{
 		"03e435ccd6073813917c2d841a0815d21301ec3286bc1412bb5b099178c68a10b6",
 		"038a1829b4b2bee784a99bebabbfecfec53f33dadeeeff21b460f8b4fc7c2ca771",
 	}
 	bestHeight := uint32(0)
 
 	abt, _ = state.NewArbitrators(activeNetParams, nil, nil,
-		nil, nil, nil, nil, nil, nil)
+		nil, nil, nil,
+		nil, nil, nil, ckpManager)
 	abt.RegisterFunction(func() uint32 { return bestHeight },
 		func() *common.Uint256 { return &common.Uint256{} },
 		nil, nil)
-	abt.State = state.NewState(activeNetParams, nil, nil,nil,
+	abt.State = state.NewState(activeNetParams, nil, nil, nil,
 		func() bool { return false },
 		nil, nil, nil,
 		nil, nil, nil, nil)
@@ -581,7 +583,7 @@ func TestArbitrators_RollbackReturnProducerDeposit(t *testing.T) {
 
 	assert.Equal(t, common.Fixed64(5000*1e8), abt.GetProducer(abtList[0]).DepositAmount())
 
-	currentHeight += abt.ChainParams.CRDepositLockupBlocks
+	currentHeight += abt.ChainParams.CRConfiguration.DepositLockupBlocks
 	abt.ProcessBlock(&types.Block{
 		Header:       common2.Header{Height: currentHeight},
 		Transactions: []interfaces.Transaction{cancelProducerTx}}, nil)
@@ -599,7 +601,7 @@ func TestArbitrators_RollbackReturnProducerDeposit(t *testing.T) {
 	arbiterStateA := abt.Snapshot()
 
 	// process
-	currentHeight = abt.ChainParams.CRVotingStartHeight
+	currentHeight = abt.ChainParams.CRConfiguration.CRVotingStartHeight
 	abt.ProcessBlock(&types.Block{
 		Header:       common2.Header{Height: currentHeight},
 		Transactions: []interfaces.Transaction{returnDepositTx}}, nil)
@@ -665,12 +667,12 @@ func TestArbitrators_RollbackLastBlockOfARound(t *testing.T) {
 		Transactions: []interfaces.Transaction{voteProducerTx}}, nil)
 
 	// set general arbiters count
-	abt.ChainParams.GeneralArbiters = 2
+	abt.ChainParams.DPoSConfiguration.NormalArbitratorsCount = 2
 	arbiterStateA := abt.Snapshot()
 
 	// update next arbiters
 	currentHeight = abt.ChainParams.PublicDPOSHeight -
-		abt.ChainParams.PreConnectOffset - 1
+		abt.ChainParams.DPoSConfiguration.PreConnectOffset - 1
 	abt.ProcessBlock(&types.Block{
 		Header: common2.Header{Height: currentHeight}}, nil)
 	arbiterStateB := abt.Snapshot()
@@ -778,12 +780,12 @@ func TestArbitrators_NextTurnDposInfoTX(t *testing.T) {
 		Transactions: []interfaces.Transaction{voteProducerTx}}, nil)
 
 	// set general arbiters count
-	abt.ChainParams.GeneralArbiters = 2
+	abt.ChainParams.DPoSConfiguration.NormalArbitratorsCount = 2
 	//arbiterStateA := abt.Snapshot()
 
 	// update next arbiters
 	currentHeight = abt.ChainParams.PublicDPOSHeight -
-		abt.ChainParams.PreConnectOffset - 1
+		abt.ChainParams.DPoSConfiguration.PreConnectOffset - 1
 
 	//here generate next turn dpos info tx
 	abt.ProcessBlock(&types.Block{
@@ -859,11 +861,11 @@ func TestArbitrators_RollbackRewardBlock(t *testing.T) {
 		Transactions: []interfaces.Transaction{voteProducerTx}}, nil)
 
 	// set general arbiters count
-	abt.ChainParams.GeneralArbiters = 2
+	abt.ChainParams.DPoSConfiguration.NormalArbitratorsCount = 2
 
 	// preConnect
 	currentHeight = abt.ChainParams.PublicDPOSHeight -
-		abt.ChainParams.PreConnectOffset - 1
+		abt.ChainParams.DPoSConfiguration.PreConnectOffset - 1
 	abt.ProcessBlock(&types.Block{
 		Header: common2.Header{Height: currentHeight}}, nil)
 
@@ -1009,7 +1011,7 @@ func TestArbitrators_RollbackMultipleTransactions(t *testing.T) {
 	arbiterStateA := abt.Snapshot()
 
 	// process
-	currentHeight = abt.ChainParams.CRVotingStartHeight
+	currentHeight = abt.ChainParams.CRConfiguration.CRVotingStartHeight
 	abt.ProcessBlock(&types.Block{
 		Header: common2.Header{Height: currentHeight},
 		Transactions: []interfaces.Transaction{

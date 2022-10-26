@@ -7,9 +7,9 @@ package mempool
 
 import (
 	"fmt"
+
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/core/types/interfaces"
-
 	"github.com/elastos/Elastos.ELA/errors"
 )
 
@@ -36,19 +36,19 @@ const (
 	slotCloseProposalTargetProposalHash         = "CloseProposalTargetProposalHash"
 	slotChangeProposalOwnerTargetProposalHash   = "ChangeProposalOwnerTargetProposalHash"
 	slotChangeCustomIDFee                       = "ChangeCustomIDFee"
-	slotReserveCustomID                = "ReserveCustomID"
-	slotSpecialTxHash                  = "SpecialTxHash"
-	slotSidechainTxHashes              = "SidechainTxHashes"
-	slotSidechainReturnDepositTxHashes = "SidechainReturnDepositTxHashes"
-	slotCustomIDProposalResult         = "CustomIDProposalResult"
-	slotTxInputsReferKeys              = "TxInputsReferKeys"
-	slotCRCouncilMemberNodePublicKey   = "CRCouncilMemberNodePublicKey"
-	slotCRCouncilMemberDID             = "CRCouncilMemberDID"
-	slotCRCSecretaryGeneral            = "CRCSecretaryGeneral"
-	slotRevertToDPOSHash               = "RevertToDPOSHash"
-	slotVotesRealWithdraw              = "VotesRealWithdraw"
-	slotExchangeVotes                  = "ExchangeVotes"
-	slotDposV2ClaimReward              = "DposV2ClaimReward"
+	slotReserveCustomID                         = "ReserveCustomID"
+	slotSpecialTxHash                           = "SpecialTxHash"
+	slotSidechainTxHashes                       = "SidechainTxHashes"
+	slotSidechainReturnDepositTxHashes          = "SidechainReturnDepositTxHashes"
+	slotCustomIDProposalResult                  = "CustomIDProposalResult"
+	slotTxInputsReferKeys                       = "TxInputsReferKeys"
+	slotCRCouncilMemberNodePublicKey            = "CRCouncilMemberNodePublicKey"
+	slotCRCouncilMemberDID                      = "CRCouncilMemberDID"
+	slotCRCSecretaryGeneral                     = "CRCSecretaryGeneral"
+	slotRevertToDPOSHash                        = "RevertToDPOSHash"
+	slotVotesRealWithdraw                       = "VotesRealWithdraw"
+	slotExchangeVotes                           = "ExchangeVotes"
+	slotDposV2ClaimReward                       = "DposV2ClaimReward"
 )
 
 type conflict struct {

@@ -15,6 +15,7 @@ import (
 	. "github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/common/log"
+	"github.com/elastos/Elastos.ELA/core/checkpoint"
 	. "github.com/elastos/Elastos.ELA/core/types"
 	"github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/core/types/interfaces"
@@ -29,16 +30,17 @@ const broadcastCrossChainTransactionInterval = 30
 type TxPool struct {
 	conflictManager
 	*txPoolCheckpoint
-	chainParams *config.Params
+	chainParams *config.Configuration
 	//proposal of txpool used amout
 	proposalsUsedAmount  Fixed64
 	crossChainHeightList map[Uint256]uint32
+	CkpManager           *checkpoint.Manager
 
 	sync.RWMutex
 }
 
-//append transaction to txnpool when check ok, and broadcast the transaction.
-//1.check  2.check with ledger(db) 3.check with pool
+// append transaction to txnpool when check ok, and broadcast the transaction.
+// 1.check  2.check with ledger(db) 3.check with pool
 func (mp *TxPool) AppendToTxPool(tx interfaces.Transaction) elaerr.ELAError {
 	mp.Lock()
 	defer mp.Unlock()
@@ -51,8 +53,8 @@ func (mp *TxPool) AppendToTxPool(tx interfaces.Transaction) elaerr.ELAError {
 	return nil
 }
 
-//append transaction to txnpool when check ok.
-//1.check  2.check with ledger(db) 3.check with pool
+// append transaction to txnpool when check ok.
+// 1.check  2.check with ledger(db) 3.check with pool
 func (mp *TxPool) AppendToTxPoolWithoutEvent(tx interfaces.Transaction) elaerr.ELAError {
 	mp.Lock()
 	defer mp.Unlock()
@@ -175,7 +177,7 @@ func (mp *TxPool) GetTxsInPool() []interfaces.Transaction {
 	return txs
 }
 
-//clean the transaction Pool with committed block.
+// clean the transaction Pool with committed block.
 func (mp *TxPool) CleanSubmittedTransactions(block *Block) {
 	mp.Lock()
 	mp.cleanTransactions(block.Transactions)
@@ -413,14 +415,14 @@ func (mp *TxPool) cleanVoteAndUpdateCR(cid Uint168) error {
 	return nil
 }
 
-//get the transaction by hash
+// get the transaction by hash
 func (mp *TxPool) GetTransaction(hash Uint256) interfaces.Transaction {
 	mp.RLock()
 	defer mp.RUnlock()
 	return mp.txnList[hash]
 }
 
-//verify transaction with txnpool
+// verify transaction with txnpool
 func (mp *TxPool) verifyTransactionWithTxnPool(
 	txn interfaces.Transaction) elaerr.ELAError {
 	if txn.IsSideChainPowTx() {
@@ -431,7 +433,7 @@ func (mp *TxPool) verifyTransactionWithTxnPool(
 	return mp.VerifyTx(txn)
 }
 
-//remove from associated map
+// remove from associated map
 func (mp *TxPool) removeTransaction(tx interfaces.Transaction) {
 	//1.remove from txnList
 	if _, ok := mp.txnList[tx.Hash()]; ok {
@@ -588,10 +590,11 @@ func (mp *TxPool) onPopBack(hash Uint256) {
 
 }
 
-func NewTxPool(params *config.Params) *TxPool {
+func NewTxPool(params *config.Configuration, ckpManager *checkpoint.Manager) *TxPool {
 	rtn := &TxPool{
 		conflictManager:      newConflictManager(),
 		chainParams:          params,
+		CkpManager:           ckpManager,
 		proposalsUsedAmount:  0,
 		crossChainHeightList: make(map[Uint256]uint32),
 	}
@@ -603,6 +606,6 @@ func NewTxPool(params *config.Params) *TxPool {
 				}
 			}
 		})
-	params.CkpManager.Register(rtn.txPoolCheckpoint)
+	rtn.CkpManager.Register(rtn.txPoolCheckpoint)
 	return rtn
 }

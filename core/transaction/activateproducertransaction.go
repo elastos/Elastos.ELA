@@ -101,7 +101,7 @@ func (t *ActivateProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bo
 			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("can not activate this producer")), true
 		}
 	} else {
-		if t.parameters.BlockHeight < t.parameters.Config.ChangeCommitteeNewCRHeight {
+		if t.parameters.BlockHeight < t.parameters.Config.CRConfiguration.ChangeCommitteeNewCRHeight {
 			if producer.State() != state.Active &&
 				producer.State() != state.Inactive &&
 				producer.State() != state.Illegal {
@@ -122,7 +122,7 @@ func (t *ActivateProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bo
 	}
 
 	depositAmount := common.Fixed64(0)
-	if t.parameters.BlockHeight < t.parameters.Config.CRVotingStartHeight {
+	if t.parameters.BlockHeight < t.parameters.Config.CRConfiguration.CRVotingStartHeight {
 		programHash, err := contract.PublicKeyToDepositProgramHash(
 			producer.OwnerPublicKey())
 		if err != nil {

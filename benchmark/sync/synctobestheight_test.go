@@ -7,7 +7,6 @@ package sync
 
 import (
 	"bytes"
-	"flag"
 	"fmt"
 	"os"
 	"os/exec"
@@ -19,10 +18,11 @@ import (
 	"time"
 
 	"github.com/elastos/Elastos.ELA/blockchain"
-	cmdcom "github.com/elastos/Elastos.ELA/cmd/common"
 	"github.com/elastos/Elastos.ELA/common"
+	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/common/config/settings"
 	"github.com/elastos/Elastos.ELA/common/log"
+	"github.com/elastos/Elastos.ELA/core/checkpoint"
 	"github.com/elastos/Elastos.ELA/core/types"
 	crstate "github.com/elastos/Elastos.ELA/cr/state"
 	"github.com/elastos/Elastos.ELA/dpos/state"
@@ -76,25 +76,26 @@ func Benchmark_Sync_ToBestHeight(b *testing.B) {
 
 func startDstNode() {
 	// Enable profiling server if requested.
-	if dstSettings.Config().ProfilePort != 0 {
-		go utils.StartPProf(dstSettings.Config().ProfilePort,
-			dstSettings.Config().ProfileHost)
+	if dstSettings.ProfilePort != 0 {
+		go utils.StartPProf(dstSettings.ProfilePort,
+			dstSettings.ProfileHost)
 	}
 
 	flagDataDir := dstContext.String("datadir")
 	dataDir := filepath.Join(flagDataDir, dataPath)
-	dstSettings.Params().CkpManager.SetDataPath(
-		filepath.Join(dataDir, checkpointPath))
-	dstSettings.Params().CkpManager.SetNeedSave(true)
+
+	ckpManager := checkpoint.NewManager(dstSettings)
+	ckpManager.SetDataPath(filepath.Join(dataDir, checkpointPath))
 
 	var interrupt = signal.NewInterrupt()
 
 	ledger := blockchain.Ledger{}
 
 	// Initializes the foundation address
-	blockchain.FoundationAddress = dstSettings.Params().Foundation
+	FoundationAddress, _ := common.Uint168FromAddress(dstSettings.FoundationAddress)
+	blockchain.FoundationAddress = *FoundationAddress
 
-	chainStore, err := blockchain.NewChainStore(dataDir, dstSettings.Params())
+	chainStore, err := blockchain.NewChainStore(dataDir, dstSettings)
 	if err != nil {
 		logger.Error(err)
 		return
@@ -102,16 +103,16 @@ func startDstNode() {
 	defer chainStore.Close()
 	ledger.Store = chainStore
 
-	txMemPool := mempool.NewTxPool(dstSettings.Params())
-	blockMemPool := mempool.NewBlockPool(dstSettings.Params())
+	txMemPool := mempool.NewTxPool(dstSettings, ckpManager)
+	blockMemPool := mempool.NewBlockPool(dstSettings)
 	blockMemPool.Store = chainStore
 
 	blockchain.DefaultLedger = &ledger
 
-	committee := crstate.NewCommittee(dstSettings.Params())
+	committee := crstate.NewCommittee(dstSettings, ckpManager)
 	ledger.Committee = committee
 
-	arbiters, err := state.NewArbitrators(dstSettings.Params(), committee,
+	arbiters, err := state.NewArbitrators(dstSettings, committee,
 		func(programHash common.Uint168) (common.Fixed64,
 			error) {
 			amount := common.Fixed64(0)
@@ -125,14 +126,15 @@ func startDstNode() {
 			}
 			return amount, nil
 		}, nil, nil,
-		nil, nil, nil, nil)
+		nil, nil, nil, nil,
+		ckpManager)
 	if err != nil {
 		logger.Error(err)
 		return
 	}
 	ledger.Arbitrators = arbiters
 
-	chain, err := blockchain.New(chainStore, dstSettings.Params(), arbiters.State, committee)
+	chain, err := blockchain.New(chainStore, dstSettings, arbiters.State, committee, ckpManager)
 	if err != nil {
 		logger.Error(err)
 		return
@@ -142,7 +144,7 @@ func startDstNode() {
 		return
 	}
 	if err := chain.MigrateOldDB(interrupt.C, func(uint32) {},
-		func() {}, dataDir, dstSettings.Params()); err != nil {
+		func() {}, dataDir, dstSettings); err != nil {
 		logger.Error(err)
 		return
 	}
@@ -168,8 +170,8 @@ func startDstNode() {
 	route := routes.New(routesCfg)
 	server, err := elanet.NewServer(dataDir, &elanet.Config{
 		Chain:          chain,
-		ChainParams:    dstSettings.Params(),
-		PermanentPeers: dstSettings.Params().PermanentPeers,
+		ChainParams:    dstSettings,
+		PermanentPeers: dstSettings.PermanentPeers,
 		TxMemPool:      txMemPool,
 		BlockMemPool:   blockMemPool,
 		Routes:         route,
@@ -196,14 +198,13 @@ func startDstNode() {
 
 	wal := wallet.NewWallet()
 	wallet.Store = chainStore
-	wallet.ChainParam = dstSettings.Params()
+	wallet.ChainParam = dstSettings
 	wallet.Chain = chain
 
-	dstSettings.Params().CkpManager.Register(wal)
+	ckpManager.Register(wal)
 
 	servers.Compile = "benchmark"
-	servers.Config = dstSettings.Config()
-	servers.ChainParams = dstSettings.Params()
+	servers.ChainParams = dstSettings
 	servers.Chain = chain
 	servers.Store = chainStore
 	servers.TxMemPool = txMemPool
@@ -211,10 +212,10 @@ func startDstNode() {
 	servers.Arbiters = arbiters
 	servers.Wallet = wal
 	servers.Pow = pow.NewService(&pow.Config{
-		PayToAddr:   dstSettings.Config().PowConfiguration.PayToAddr,
-		MinerInfo:   dstSettings.Config().PowConfiguration.MinerInfo,
+		PayToAddr:   dstSettings.PowConfiguration.PayToAddr,
+		MinerInfo:   dstSettings.PowConfiguration.MinerInfo,
 		Chain:       chain,
-		ChainParams: dstSettings.Params(),
+		ChainParams: dstSettings,
 		TxMemPool:   txMemPool,
 		BlkMemPool:  blockMemPool,
 		BroadcastBlock: func(block *types.Block) {
@@ -276,55 +277,11 @@ func getSrcRunArgs() []string {
 	}
 }
 
-func newCliContext(st *settings.Settings) *cli.Context {
-	ctx := cli.NewContext(nil, newFlagSet(st), nil)
-	ctx.Set("magic", magic)
-	ctx.Set("conf", configPath)
-	ctx.Set("datadir", dstDataDir)
-	ctx.Set("peers", getPeerAddr(srcNodePort))
-	ctx.Set("port", dstNodePort)
-	ctx.Set("arbiter", "false")
-	ctx.Set("server", "false")
-	ctx.Set("automining", "false")
-	return ctx
-}
-
-func initDstSettings() *settings.Settings {
-	st := settings.NewSettings()
-	dstContext = newCliContext(st)
-	st.SetContext(dstContext)
-	st.SetupConfig()
-	st.InitParamsValue()
-	setupLog(dstContext, st)
-	return st
-}
-
-func newFlagSet(st *settings.Settings) *flag.FlagSet {
-	originFlags := []cli.StringFlag{
-		cmdcom.ConfigFileFlag,
-		cmdcom.DataDirFlag,
-		cmdcom.AccountPasswordFlag,
-		cmdcom.TestNetFlag,
-		cmdcom.RegTestFlag,
-		cmdcom.InfoPortFlag,
-		cmdcom.RestPortFlag,
-		cmdcom.WsPortFlag,
-		cmdcom.InstantBlockFlag,
-		cmdcom.RPCPortFlag,
-	}
-	result := &flag.FlagSet{}
-
-	for _, v := range originFlags {
-		result.String(v.GetName(), v.GetValue(), v.GetUsage())
-	}
-
-	for _, v := range st.Flags() {
-		if strFlag, ok := v.(cli.StringFlag); ok {
-			result.String(strFlag.GetName(), strFlag.GetValue(),
-				strFlag.GetUsage())
-		}
-	}
-	return result
+func initDstSettings() *config.Configuration {
+	setting := settings.NewSettings()
+	config := setting.SetupConfig()
+	setupLog(config)
+	return config
 }
 
 func waitForSyncFinish(server elanet.Server, interrupt <-chan struct{}) {
@@ -345,12 +302,14 @@ out:
 	}
 }
 
-func setupLog(c *cli.Context, s *settings.Settings) {
-	flagDataDir := c.String("datadir")
+func setupLog(s *config.Configuration) {
+	flagDataDir := config.DataDir
+	if s.DataDir != "" {
+		flagDataDir = s.DataDir
+	}
 	path := filepath.Join(flagDataDir, dstNodeLogPath)
-
-	logger = log.NewDefault(path, uint8(s.Config().PrintLevel),
-		s.Config().MaxPerLogSize, s.Config().MaxLogsSize)
+	logger = log.NewDefault(path, uint8(s.PrintLevel),
+		s.MaxPerLogSize, s.MaxLogsSize)
 
 	addrmgr.UseLogger(logger)
 	connmgr.UseLogger(logger)

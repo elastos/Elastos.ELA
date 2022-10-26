@@ -8,10 +8,10 @@ package outputpayload
 import (
 	"errors"
 	"fmt"
-	"github.com/elastos/Elastos.ELA/core/contract"
 	"io"
 
 	"github.com/elastos/Elastos.ELA/common"
+	"github.com/elastos/Elastos.ELA/core/contract"
 )
 
 const ExchangeVotesOutputVersion byte = 0x00

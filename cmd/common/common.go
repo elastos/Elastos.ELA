@@ -17,11 +17,6 @@ import (
 	"github.com/urfave/cli"
 )
 
-const (
-	defaultConfigPath = "./config.json"
-	defaultDataDir    = "elastos"
-)
-
 var (
 	rpcUrl      = ""
 	rpcIp       = "127.0.0.1"

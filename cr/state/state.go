@@ -7,6 +7,7 @@ package state
 
 import (
 	"errors"
+
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/core/contract"
@@ -42,7 +43,7 @@ type State struct {
 	GetTxReference   func(tx interfaces.Transaction) (
 		map[*common2.Input]common2.Output, error)
 
-	params  *config.Params
+	params  *config.Configuration
 	History *utils.History
 }
 
@@ -62,7 +63,7 @@ func (s *State) UpdateCRInactivePenalty(cid common.Uint168, height uint32) {
 	if !ok {
 		return
 	}
-	depositInfo.Penalty += s.params.InactivePenalty
+	depositInfo.Penalty += s.params.DPoSConfiguration.InactivePenalty
 }
 
 func (s *State) RevertUpdateCRInactivePenalty(cid common.Uint168, height uint32) {
@@ -70,7 +71,7 @@ func (s *State) RevertUpdateCRInactivePenalty(cid common.Uint168, height uint32)
 	if !ok {
 		return
 	}
-	var penalty = s.params.InactivePenalty
+	var penalty = s.params.DPoSConfiguration.InactivePenalty
 	if depositInfo.Penalty < penalty {
 		depositInfo.Penalty = common.Fixed64(0)
 	} else {
@@ -397,7 +398,7 @@ func (s *State) returnDeposit(tx interfaces.Transaction, height uint32) {
 				s.DepositInfo[*cid].DepositAmount
 
 			if candidate.State == Canceled &&
-				height-candidate.CancelHeight > s.params.CRDepositLockupBlocks &&
+				height-candidate.CancelHeight > s.params.CRConfiguration.DepositLockupBlocks &&
 				balance <= s.params.MinTransactionFee {
 				returnCandidateAction(candidate, candidate.State)
 			}
@@ -621,7 +622,7 @@ func (s *State) getCandidateFromMap(cmap map[common.Uint168]*Candidate,
 	return result
 }
 
-func NewState(chainParams *config.Params) *State {
+func NewState(chainParams *config.Configuration) *State {
 	return &State{
 		StateKeyFrame: *NewStateKeyFrame(),
 		params:        chainParams,

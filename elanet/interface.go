@@ -1,7 +1,7 @@
 // Copyright (c) 2017-2020 The Elastos Foundation
 // Use of this source code is governed by an MIT
 // license that can be found in the LICENSE file.
-// 
+//
 
 package elanet
 
@@ -21,7 +21,7 @@ type Config struct {
 	Chain *blockchain.BlockChain
 
 	// ChainParams is the initial parameters to start the blockchain.
-	ChainParams *config.Params
+	ChainParams *config.Configuration
 
 	// PermanentPeers are the peers need to be connected permanently.
 	PermanentPeers []string
@@ -47,7 +47,7 @@ type Server interface {
 	Services() pact.ServiceFlag
 
 	// NewPeer adds a new peer that has already been connected to the NetServer.
-	NewPeer(p svr.IPeer)(bool)
+	NewPeer(p svr.IPeer) bool
 
 	// DonePeer removes a peer that has already been connected to the NetServer by ip.
 	DonePeer(p svr.IPeer)

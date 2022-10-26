@@ -6,6 +6,7 @@
 package chain
 
 import (
+	"path/filepath"
 	"sort"
 	"time"
 
@@ -14,6 +15,8 @@ import (
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/common/log"
+	"github.com/elastos/Elastos.ELA/core"
+	"github.com/elastos/Elastos.ELA/core/checkpoint"
 	"github.com/elastos/Elastos.ELA/core/contract/program"
 	"github.com/elastos/Elastos.ELA/core/types"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
@@ -28,20 +31,23 @@ import (
 	"github.com/elastos/Elastos.ELA/utils/test"
 )
 
-func newBlockChain(path string, params *config.Params,
+var checkpointPath = "checkpoints"
+
+func newBlockChain(path string, params *config.Configuration,
 	interrupt <-chan struct{}) (*blockchain.BlockChain, error) {
 	log.NewDefault(test.NodeLogPath, 1, 0, 0)
-
-	committee := crstate.NewCommittee(params)
+	ckpManager := checkpoint.NewManager(params)
+	ckpManager.SetDataPath(filepath.Join(params.DataDir, checkpointPath))
+	committee := crstate.NewCommittee(params, ckpManager)
 	arbiters, err := state.NewArbitrators(
 		params, committee, nil, nil,
-		nil, nil, nil, nil, nil)
-
+		nil, nil,
+		nil, nil, nil, ckpManager)
 	chainStore, err := blockchain.NewChainStore(path, params)
 	if err != nil {
 		return nil, err
 	}
-	chain, err := blockchain.New(chainStore, params, arbiters.State, committee)
+	chain, err := blockchain.New(chainStore, params, arbiters.State, committee, ckpManager)
 	if err != nil {
 		return nil, err
 	}
@@ -84,15 +90,8 @@ func initDefaultLedger(chain *blockchain.BlockChain,
 	}
 }
 
-func generateChainParams(ac *account.Account) *config.Params {
-	proto := config.DefaultParams.RegNet()
-	proto.GenesisBlock = newGenesisBlock(ac)
-	proto.Foundation = ac.ProgramHash
-	blockchain.FoundationAddress = ac.ProgramHash
-	return proto.InstantBlock()
-}
-
 func newGenesisBlock(ac *account.Account) *types.Block {
+	ELAAssetID, _ := common.Uint256FromHexString(core.ELAAssetID)
 	attrNonce := common2.NewAttribute(common2.Nonce,
 		[]byte{77, 101, 130, 33, 7, 252, 253, 82})
 	genesisTime, _ := time.Parse(time.RFC3339, "2017-12-22T10:00:00Z")
@@ -114,7 +113,7 @@ func newGenesisBlock(ac *account.Account) *types.Block {
 		},
 		[]*common2.Output{
 			{
-				AssetID:     config.ELAAssetID,
+				AssetID:     *ELAAssetID,
 				Value:       3300 * 10000 * 100000000,
 				ProgramHash: ac.ProgramHash,
 			},
@@ -124,7 +123,7 @@ func newGenesisBlock(ac *account.Account) *types.Block {
 	)
 
 	merkleRoot, _ := crypto.ComputeRoot([]common.Uint256{coinBase.Hash(),
-		config.ELAAssetID})
+		*ELAAssetID})
 
 	return &types.Block{
 		Header: common2.Header{
@@ -161,7 +160,7 @@ func newGenesisBlock(ac *account.Account) *types.Block {
 }
 
 func quickGenerateBlock(pow *pow.Service, prevHash *common.Uint256,
-	txs []interfaces.Transaction, minerAddr string, params *config.Params,
+	txs []interfaces.Transaction, minerAddr string, params *config.Configuration,
 	height uint32) (*types.Block, error) {
 	coinBaseTx, err := pow.CreateCoinbaseTx(minerAddr, height)
 	if err != nil {
@@ -173,7 +172,7 @@ func quickGenerateBlock(pow *pow.Service, prevHash *common.Uint256,
 		Previous:   *prevHash,
 		MerkleRoot: common.EmptyHash,
 		Timestamp:  uint32(time.Now().Unix()),
-		Bits:       params.PowLimitBits,
+		Bits:       params.PowConfiguration.PowLimitBits,
 		Height:     height,
 		Nonce:      0,
 	}
@@ -221,7 +220,7 @@ func quickGenerateBlock(pow *pow.Service, prevHash *common.Uint256,
 		txCount++
 	}
 
-	totalReward := totalTxFee + params.RewardPerBlock
+	totalReward := totalTxFee + params.PowConfiguration.RewardPerBlock
 	pow.AssignCoinbaseTxRewards(msgBlock, totalReward)
 
 	txHash := make([]common.Uint256, 0, len(msgBlock.Transactions))

@@ -14,6 +14,7 @@ import (
 	"github.com/elastos/Elastos.ELA/blockchain"
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
+	"github.com/elastos/Elastos.ELA/core"
 	"github.com/elastos/Elastos.ELA/core/contract"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/core/types/interfaces"
@@ -190,7 +191,7 @@ func (t *DefaultChecker) CheckTransactionSize() error {
 	return nil
 }
 
-//validate the transaction of duplicate UTXO input
+// validate the transaction of duplicate UTXO input
 func (t *DefaultChecker) CheckTransactionInput() error {
 	txn := t.parameters.Transaction
 	if len(txn.Inputs()) <= 0 {
@@ -225,8 +226,9 @@ func (t *DefaultChecker) CheckTransactionOutput() error {
 
 	// check if output address is valid
 	specialOutputCount := 0
+	ELAAssetID, _ := common.Uint256FromHexString(core.ELAAssetID)
 	for _, output := range txn.Outputs() {
-		if output.AssetID != config.ELAAssetID {
+		if output.AssetID != *ELAAssetID {
 			return errors.New("asset ID in output is invalid")
 		}
 
@@ -508,7 +510,7 @@ func (t *DefaultChecker) checkVoteCRContent(blockHeight uint32,
 	if payloadVersion < outputpayload.VoteProducerAndCRVersion {
 		return errors.New("payload VoteProducerVersion not support vote CR")
 	}
-	if blockHeight >= t.parameters.Config.CheckVoteCRCountHeight {
+	if blockHeight >= t.parameters.Config.CRConfiguration.CheckVoteCRCountHeight {
 		if len(content.CandidateVotes) > outputpayload.MaxVoteProducersPerTransaction {
 			return errors.New("invalid count of CR candidates ")
 		}
@@ -570,7 +572,7 @@ func (t *DefaultChecker) checkInvalidUTXO(txn interfaces.Transaction) error {
 			return err
 		}
 		if referTxn.IsCoinBaseTx() {
-			if currentHeight-referTxn.LockTime() < t.parameters.Config.CoinbaseMaturity {
+			if currentHeight-referTxn.LockTime() < t.parameters.Config.PowConfiguration.CoinbaseMaturity {
 				return errors.New("the utxo of coinbase is locking")
 			}
 		} else if referTxn.IsNewSideChainPowTx() {
@@ -643,8 +645,9 @@ func checkTransactionDepositUTXO(txn interfaces.Transaction, references map[*com
 }
 
 func checkDestructionAddress(references map[*common2.Input]common2.Output) error {
+	DestroyELAAddress, _ := common.Uint168FromAddress(config.DestroyELAAddress)
 	for _, output := range references {
-		if output.ProgramHash == config.DestroyELAAddress {
+		if output.ProgramHash == *DestroyELAAddress {
 			return errors.New("cannot use utxo from the destruction address")
 		}
 	}
@@ -667,14 +670,16 @@ func (t *DefaultChecker) checkTransactionFee(tx interfaces.Transaction, referenc
 func checkOutputProgramHash(height uint32, programHash common.Uint168) error {
 	// main version >= 88812
 	if height >= config.DefaultParams.CheckAddressHeight {
+		CRAssetsAddress, _ := common.Uint168FromAddress(config.CRAssetsAddress)
+		CRCExpensesAddress, _ := common.Uint168FromAddress(config.CRCExpensesAddress)
 		var empty = common.Uint168{}
 		if programHash.IsEqual(empty) {
 			return nil
 		}
-		if programHash.IsEqual(config.CRAssetsAddress) {
+		if programHash.IsEqual(*CRAssetsAddress) {
 			return nil
 		}
-		if programHash.IsEqual(config.CRCExpensesAddress) {
+		if programHash.IsEqual(*CRCExpensesAddress) {
 			return nil
 		}
 
@@ -717,7 +722,7 @@ func checkOutputPayload(output *common2.Output) error {
 
 func checkAssetPrecision(txn interfaces.Transaction) error {
 	for _, output := range txn.Outputs() {
-		if !checkAmountPrecise(output.Value, config.ELAPrecision) {
+		if !checkAmountPrecise(output.Value, core.ELAPrecision) {
 			return errors.New("the precision of asset is incorrect")
 		}
 	}

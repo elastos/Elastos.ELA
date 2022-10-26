@@ -6,11 +6,11 @@
 package blockchain
 
 import (
-	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"math/big"
 	"testing"
 
 	"github.com/elastos/Elastos.ELA/common"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/stretchr/testify/assert"
 )
 

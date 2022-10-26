@@ -8,17 +8,18 @@ package unit
 import (
 	"bytes"
 	"encoding/hex"
-	state2 "github.com/elastos/Elastos.ELA/dpos/state"
 	"math/rand"
 	"strconv"
 	"testing"
 
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
+	"github.com/elastos/Elastos.ELA/core/checkpoint"
 	"github.com/elastos/Elastos.ELA/core/contract"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/cr/state"
 	"github.com/elastos/Elastos.ELA/crypto"
+	state2 "github.com/elastos/Elastos.ELA/dpos/state"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -99,9 +100,11 @@ func TestArbitrators_GetSnapshot(t *testing.T) {
 	var bestHeight uint32
 
 	params := config.GetDefaultParams()
-	arbitrators, _ := state2.NewArbitrators(&params,
+	ckpManager := checkpoint.NewManager(config.GetDefaultParams())
+	arbitrators, _ := state2.NewArbitrators(params,
 		nil, nil, nil,
-		nil, nil, nil, nil, nil)
+		nil, nil, nil,
+		nil, nil, ckpManager)
 	arbitrators.RegisterFunction(func() uint32 { return bestHeight },
 		func() *common.Uint256 { return &common.Uint256{} },
 		nil, nil)

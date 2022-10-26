@@ -26,7 +26,7 @@ type CRCProposalWithdrawTransaction struct {
 func (t *CRCProposalWithdrawTransaction) CheckAttributeProgram() error {
 
 	if len(t.Programs()) != 0 && t.parameters.BlockHeight <
-		t.parameters.Config.CRCProposalWithdrawPayloadV1Height {
+		t.parameters.Config.CRConfiguration.CRCProposalWithdrawPayloadV1Height {
 		return errors.New("crcproposalwithdraw tx should have no programs")
 	}
 	if t.PayloadVersion() == payload.CRCProposalWithdrawDefault {
@@ -73,18 +73,18 @@ func (t *CRCProposalWithdrawTransaction) HeightVersionCheck() error {
 	blockHeight := t.parameters.BlockHeight
 	chainParams := t.parameters.Config
 
-	if blockHeight < chainParams.CRCommitteeStartHeight {
+	if blockHeight < chainParams.CRConfiguration.CRCommitteeStartHeight {
 		return errors.New(fmt.Sprintf("not support %s transaction "+
 			"before CRCommitteeStartHeight", t.TxType().Name()))
 	}
 	if t.PayloadVersion() == payload.CRCProposalWithdrawDefault &&
-		blockHeight >= chainParams.CRCProposalWithdrawPayloadV1Height {
+		blockHeight >= chainParams.CRConfiguration.CRCProposalWithdrawPayloadV1Height {
 		return errors.New(fmt.Sprintf("not support %s transaction "+
 			"after CRCProposalWithdrawPayloadV1Height", t.TxType().Name()))
 	}
 
 	if t.PayloadVersion() == payload.CRCProposalWithdrawVersion01 &&
-		blockHeight < chainParams.CRCProposalWithdrawPayloadV1Height {
+		blockHeight < chainParams.CRConfiguration.CRCProposalWithdrawPayloadV1Height {
 		return errors.New(fmt.Sprintf("not support %s transaction "+
 			"before CRCProposalWithdrawPayloadV1Height", t.TxType().Name()))
 	}
@@ -92,10 +92,10 @@ func (t *CRCProposalWithdrawTransaction) HeightVersionCheck() error {
 }
 
 func (t *CRCProposalWithdrawTransaction) SpecialContextCheck() (result elaerr.ELAError, end bool) {
-
+	CRExpensesAddress, _ := common.Uint168FromAddress(t.parameters.Config.CRConfiguration.CRExpensesAddress)
 	if t.PayloadVersion() == payload.CRCProposalWithdrawDefault {
 		for _, output := range t.references {
-			if output.ProgramHash != t.parameters.Config.CRExpensesAddress {
+			if output.ProgramHash != *CRExpensesAddress {
 				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("proposal withdrawal transaction for non-crc committee address")), true
 			}
 		}
@@ -137,7 +137,7 @@ func (t *CRCProposalWithdrawTransaction) SpecialContextCheck() (result elaerr.EL
 
 		// Check output[1] if exist must equal with CRCComitteeAddresss
 		if len(t.Outputs()) > 1 {
-			if t.Outputs()[1].ProgramHash != t.parameters.Config.CRExpensesAddress {
+			if t.Outputs()[1].ProgramHash != *CRExpensesAddress {
 				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("txn.Outputs()[1].ProgramHash !=CRCComitteeAddresss")), true
 			}
 		}
@@ -159,7 +159,7 @@ func (t *CRCProposalWithdrawTransaction) SpecialContextCheck() (result elaerr.EL
 		if withdrawPayload.Amount != withdrawAmount {
 			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("withdrawPayload.Amount != withdrawAmount ")), true
 		}
-		if withdrawPayload.Amount <= t.parameters.Config.RealWithdrawSingleFee {
+		if withdrawPayload.Amount <= t.parameters.Config.CRConfiguration.RealWithdrawSingleFee {
 			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("withdraw amount should be bigger than RealWithdrawSingleFee")), true
 		}
 	}

@@ -37,7 +37,7 @@ func (t *UnregisterCRTransaction) HeightVersionCheck() error {
 	blockHeight := t.parameters.BlockHeight
 	chainParams := t.parameters.Config
 
-	if blockHeight < chainParams.CRVotingStartHeight {
+	if blockHeight < chainParams.CRConfiguration.CRVotingStartHeight {
 		return errors.New(fmt.Sprintf("not support %s transaction "+
 			"before CRVotingStartHeight", t.TxType().Name()))
 	}

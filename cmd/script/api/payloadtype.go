@@ -9,13 +9,13 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
-	"github.com/elastos/Elastos.ELA/core/types/outputpayload"
 	"os"
 	"strconv"
 	"strings"
 
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/core/contract"
+	"github.com/elastos/Elastos.ELA/core/types/outputpayload"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/crypto"
 	lua "github.com/yuin/gopher-lua"
@@ -1230,7 +1230,6 @@ func registerCRGet(L *lua.LState) int {
 	return 0
 }
 
-//
 // Registers my person type to given L.
 func RegisterUpdateCRType(L *lua.LState) {
 	mt := L.NewTypeMetatable(luaUpdateCRName)

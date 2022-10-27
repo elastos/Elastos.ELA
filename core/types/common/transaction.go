@@ -71,8 +71,7 @@ const (
 	VotesRealWithdraw             TxType = 0x65
 
 	// NFT
-	CreateNFT TxType = 0x71
-	//nft
+	CreateNFT               TxType = 0x71
 	NFTDestroyFromSideChain TxType = 0x72
 )
 

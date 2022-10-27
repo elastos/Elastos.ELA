@@ -372,7 +372,7 @@ func (p *Configuration) TestNet() *Configuration {
 	p.CrossChainMonitorStartHeight = 965800 + 720*3
 	p.CrossChainMonitorInterval = 12
 	p.CRConfiguration.CRClaimPeriod = 10080
-	p.DPoSConfiguration.NFTStartHeight = 100 // todo complete me
+	p.DPoSConfiguration.NFTStartHeight = 2000000 // todo complete me
 
 	p.HttpInfoPort = 21333
 	p.HttpRestPort = 21334
@@ -485,7 +485,7 @@ func (p *Configuration) RegNet() *Configuration {
 	p.CrossChainMonitorStartHeight = 875544 + 720*2
 	p.CrossChainMonitorInterval = 12
 	p.CRConfiguration.CRClaimPeriod = 10080
-	p.DPoSConfiguration.NFTStartHeight = 100 // todo complete me
+	p.DPoSConfiguration.NFTStartHeight = 2000000 // todo complete me
 	p.HttpInfoPort = 22333
 	p.HttpRestPort = 22334
 	p.HttpWsPort = 22335

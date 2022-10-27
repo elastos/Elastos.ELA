@@ -11,14 +11,13 @@ import (
 	"io"
 
 	"github.com/elastos/Elastos.ELA/common"
-	"github.com/elastos/Elastos.ELA/crypto"
 )
 
 const NFTDestroyFromSideChainVersion byte = 0x00
 
 type NFTDestroyFromSideChain struct {
-	ID1       common.Uint256 //detail votes info referkey
-	OwnerCode []byte         //owner Code
+	ID                common.Uint256 //detail votes info referkey
+	OwnerStakeAddress common.Uint168 //owner OwnerStakeAddress
 }
 
 func (t *NFTDestroyFromSideChain) Data(version byte) []byte {
@@ -31,25 +30,26 @@ func (t *NFTDestroyFromSideChain) Data(version byte) []byte {
 }
 
 func (t *NFTDestroyFromSideChain) Serialize(w io.Writer, version byte) error {
-	if err := t.ID1.Serialize(w); err != nil {
+
+	if err := t.ID.Serialize(w); err != nil {
 		return errors.New(
-			"failed to serialize ID1")
+			"failed to serialize ID")
 	}
-	if err := common.WriteVarBytes(w, t.OwnerCode); err != nil {
-		return errors.New("failed to serialize OwnerCode")
+	if err := t.OwnerStakeAddress.Serialize(w); err != nil {
+		return errors.New(
+			"failed to serialize OwnerStakeAddress")
 	}
 	return nil
 }
 
 func (t *NFTDestroyFromSideChain) Deserialize(r io.Reader, version byte) error {
 	var err error
-	if err = t.ID1.Deserialize(r); err != nil {
-		return errors.New("failed to deserialize ID1")
-	}
 
-	t.OwnerCode, err = common.ReadVarBytes(r, crypto.MaxMultiSignCodeLength, "OwnerCode")
-	if err != nil {
-		return errors.New("[NFTDestroyFromSideChain], OwnerCode deserialize failed")
+	if err = t.ID.Deserialize(r); err != nil {
+		return errors.New("failed to deserialize ID")
+	}
+	if err = t.OwnerStakeAddress.Deserialize(r); err != nil {
+		return errors.New("failed to deserialize ID")
 	}
 	return nil
 }

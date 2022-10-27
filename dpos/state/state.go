@@ -2704,9 +2704,46 @@ func (s *State) getIllegalPenaltyByHeight(height uint32) common.Fixed64 {
 }
 
 func (s *State) processNFTDestroyFromSideChain(tx interfaces.Transaction, height uint32) {
-	pld := tx.Payload().(*payload.NFTDestroyFromSideChain)
-	//todo
-	log.Debug("processNFTDestroyFromSideChain", pld.ID1)
+
+	nftDestroyPayload := tx.Payload().(*payload.NFTDestroyFromSideChain)
+	producers := s.getDposV2Producers()
+	OwnerStakeAddress := nftDestroyPayload.OwnerStakeAddress
+	for _, producer := range producers {
+		for stakeAddress, votesInfo := range producer.GetAllDetailedDPoSV2Votes() {
+			for referKey, detailVoteInfo := range votesInfo {
+				if referKey.IsEqual(nftDestroyPayload.ID) {
+					strNFTStakeAddress, _ := stakeAddress.ToAddress()
+					strOwnerStakeAddress, _ := OwnerStakeAddress.ToAddress()
+					s.History.Append(height, func() {
+						//remove nft stake address for future create new nft .
+						delete(producer.detailedDPoSV2Votes[stakeAddress], nftDestroyPayload.ID)
+
+						//assign nft stake address reward to new owner
+						//if _, ok := s.DPoSV2RewardInfo[strOwnerStakeAddress]; ok {
+						//	s.DPoSV2RewardInfo[strOwnerStakeAddress] += s.DPoSV2RewardInfo[strNFTStakeAddress]
+						//} else {
+						//	s.DPoSV2RewardInfo[strOwnerStakeAddress] = s.DPoSV2RewardInfo[strNFTStakeAddress]
+						//}
+						s.DPoSV2RewardInfo[strOwnerStakeAddress] += s.DPoSV2RewardInfo[strNFTStakeAddress]
+						//detailVoteInfo add to new owner nftDestroyPayload.OwnerStakeAddress
+						producer.detailedDPoSV2Votes[OwnerStakeAddress][referKey] = detailVoteInfo
+
+					}, func() {
+						//add detailVoteInfo to  nft stake address
+						producer.detailedDPoSV2Votes[stakeAddress][nftDestroyPayload.ID] = detailVoteInfo
+						//remove owner's detailVoteInfo
+						delete(producer.detailedDPoSV2Votes[OwnerStakeAddress], referKey)
+						s.DPoSV2RewardInfo[strOwnerStakeAddress] -= s.DPoSV2RewardInfo[strNFTStakeAddress]
+						if s.DPoSV2RewardInfo[strOwnerStakeAddress] == 0 {
+							delete(s.DPoSV2RewardInfo, strOwnerStakeAddress)
+						}
+					})
+					return
+				}
+			}
+		}
+	}
+	log.Debug("processNFTDestroyFromSideChain", nftDestroyPayload.ID)
 }
 
 // processIllegalEvidence takes the illegal evidence payload and change producer

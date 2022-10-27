@@ -3132,8 +3132,9 @@ func getPayloadInfo(p interfaces.Payload, payloadVersion byte) PayloadInfo {
 		return nil
 	case *payload.NFTDestroyFromSideChain:
 		obj := new(NFTDestroyFromSideChainInfo)
-		obj.ID1 = object.ID1.String()
-		obj.OwnerCode = common.BytesToHexString(object.OwnerCode)
+		obj.ID = common.ToReversedString(object.ID)
+		address, _ := object.OwnerStakeAddress.ToAddress()
+		obj.StakeAddress = address
 		return obj
 	case *payload.TransferCrossChainAsset:
 		if payloadVersion == payload.TransferCrossChainVersionV1 {

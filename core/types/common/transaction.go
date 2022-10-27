@@ -70,10 +70,9 @@ const (
 	ReturnVotes                   TxType = 0x64
 	VotesRealWithdraw             TxType = 0x65
 
-	//nft
-	NFTDestroyFromSideChain TxType = 0x71
 	// NFT
-	CreateNFT TxType = 0x71
+	CreateNFT               TxType = 0x71
+	NFTDestroyFromSideChain TxType = 0x72
 )
 
 func (self TxType) Name() string {

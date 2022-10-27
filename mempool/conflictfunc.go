@@ -84,7 +84,7 @@ func hashNFTDestroyFromSideChainHash(tx interfaces.Transaction) (interface{}, er
 			"CRC proposal payload cast failed, tx:%s", tx.Hash())
 	}
 
-	return p.ID1, nil
+	return p.ID, nil
 }
 
 func hashCRCProposalSecretaryGeneralDID(tx interfaces.Transaction) (interface{}, error) {
@@ -593,7 +593,6 @@ func comGetCRInfo(tx interfaces.Transaction) (*payload.CRInfo, error) {
 	}
 	return p, nil
 }
-
 
 func hashCreateNFTID(tx interfaces.Transaction) (interface{}, error) {
 	p, ok := tx.Payload().(*payload.CreateNFT)

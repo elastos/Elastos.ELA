@@ -209,8 +209,8 @@ type WithdrawFromSideChainInfo struct {
 }
 
 type NFTDestroyFromSideChainInfo struct {
-	ID1       string //detail votes info referkey
-	OwnerCode string //owner Code
+	ID           string //detail votes info referkey
+	StakeAddress string //owner Code
 }
 
 type SchnorrWithdrawFromSideChainInfo struct {

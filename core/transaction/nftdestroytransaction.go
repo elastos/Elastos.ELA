@@ -7,8 +7,10 @@ package transaction
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/elastos/Elastos.ELA/blockchain"
+	"github.com/elastos/Elastos.ELA/core/contract"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/crypto"
 	"github.com/elastos/Elastos.ELA/dpos/state"
@@ -29,14 +31,49 @@ func (t *NFTDestroyTransactionFromSideChain) CheckTransactionPayload() error {
 	return nil
 }
 
+func (t *NFTDestroyTransactionFromSideChain) HeightVersionCheck() error {
+	blockHeight := t.parameters.BlockHeight
+	chainParams := t.parameters.Config
+	if blockHeight < chainParams.DPoSConfiguration.NFTStartHeight {
+		return errors.New(fmt.Sprintf("not support %s transaction "+
+			"before NFTStartHeight", t.TxType().Name()))
+	}
+	return nil
+}
+
 func (t *NFTDestroyTransactionFromSideChain) IsAllowedInPOWConsensus() bool {
 	return false
 }
 
 func (t *NFTDestroyTransactionFromSideChain) SpecialContextCheck() (elaerr.ELAError, bool) {
-	if t.parameters.BlockHeight > t.parameters.Config.SchnorrStartHeight && t.PayloadVersion() != payload.WithdrawFromSideChainVersionV2 {
-		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("only support schnorr type of  withdraw from sidechain transaction")), true
+	nftDestroyPayload, ok := t.Payload().(*payload.NFTDestroyFromSideChain)
+	if !ok {
+		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid payload")), true
 	}
+	state := t.parameters.BlockChain.GetState()
+	producers := state.GetDposV2Producers()
+	foundNFT := false
+	for _, p := range producers {
+		for stakeAddress, votesInfo := range p.GetAllDetailedDPoSV2Votes() {
+			for referKey, voteInfo := range votesInfo {
+				if referKey.IsEqual(nftDestroyPayload.ID) {
+					ct, _ := contract.CreateStakeContractByCode(referKey.Bytes())
+					nftStakeAddress := ct.ToProgramHash()
+					if !stakeAddress.IsEqual(*nftStakeAddress) {
+						return elaerr.Simple(elaerr.ErrTxPayload,
+							errors.New("the NFT has not been created yet")), true
+					}
+					log.Info("destroy NFT, vote information:", voteInfo)
+					foundNFT = true
+				}
+			}
+		}
+	}
+	if !foundNFT {
+		return elaerr.Simple(elaerr.ErrTxPayload,
+			errors.New("the NFT was not found yet")), true
+	}
+
 	var err error
 	err = t.checkNFTDestroyTransactionFromSideChain()
 	if err != nil {

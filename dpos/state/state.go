@@ -1707,6 +1707,9 @@ func (s *State) processTransaction(tx interfaces.Transaction, height uint32) {
 
 	case common2.VotesRealWithdraw:
 		s.processRetVotesRewardRealWithdraw(tx, height)
+
+	case common2.NFTDestroyFromSideChain:
+		s.processNFTDestroyFromSideChain(tx, height)
 	}
 
 	if tx.TxType() != common2.RegisterProducer {
@@ -2672,6 +2675,12 @@ func (s *State) getIllegalPenaltyByHeight(height uint32) common.Fixed64 {
 	}
 
 	return illegalPenalty
+}
+
+func (s *State) processNFTDestroyFromSideChain(tx interfaces.Transaction, height uint32) {
+	pld := tx.Payload().(*payload.NFTDestroyFromSideChain)
+	//todo
+	log.Debug("processNFTDestroyFromSideChain", pld.ID1)
 }
 
 // processIllegalEvidence takes the illegal evidence payload and change producer

@@ -208,6 +208,11 @@ type WithdrawFromSideChainInfo struct {
 	SideChainTransactionHashes []string `json:"sidechaintransactionhashes"`
 }
 
+type NFTDestroyFromSideChainInfo struct {
+	ID1       string //detail votes info referkey
+	OwnerCode string //owner Code
+}
+
 type SchnorrWithdrawFromSideChainInfo struct {
 	Signers []uint32 `json:"Signers"`
 }

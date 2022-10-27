@@ -1703,6 +1703,10 @@ func (s *State) processTransaction(tx interfaces.Transaction, height uint32) {
 
 	case common2.VotesRealWithdraw:
 		s.processRetVotesRewardRealWithdraw(tx, height)
+
+	case common2.CreateNFT:
+		s.processCreateNFT(tx, height)
+
 	}
 
 	if tx.TxType() != common2.RegisterProducer {
@@ -2523,7 +2527,7 @@ func (s *State) processDposV2ClaimReward(tx interfaces.Transaction, height uint3
 	programHash, _ := utils.GetProgramHashByCode(code)
 	addr, _ := programHash.ToAddress()
 	s.History.Append(height, func() {
-		s.DposV2RewardInfo[addr] -= pld.Value
+		s.DPoSV2RewardInfo[addr] -= pld.Value
 		s.DposV2RewardClaimingInfo[addr] += pld.Value
 		s.WithdrawableTxInfo[tx.Hash()] = common2.OutputInfo{
 			Recipient: pld.ToAddr,
@@ -2531,7 +2535,7 @@ func (s *State) processDposV2ClaimReward(tx interfaces.Transaction, height uint3
 		}
 		s.ClaimingRewardAddr[tx.Hash()] = *programHash
 	}, func() {
-		s.DposV2RewardInfo[addr] += pld.Value
+		s.DPoSV2RewardInfo[addr] += pld.Value
 		s.DposV2RewardClaimingInfo[addr] -= pld.Value
 		delete(s.WithdrawableTxInfo, tx.Hash())
 		delete(s.ClaimingRewardAddr, tx.Hash())
@@ -2552,6 +2556,29 @@ func (s *State) processRetVotesRewardRealWithdraw(tx interfaces.Transaction, hei
 	}, func() {
 		s.StateKeyFrame.VotesWithdrawableTxInfo = txs
 	})
+}
+
+func (s *State) processCreateNFT(tx interfaces.Transaction, height uint32) {
+	nftPayload := tx.Payload().(*payload.CreateNFT)
+	producers := s.getDposV2Producers()
+	for _, producer := range producers {
+		for stakeAddress, votesInfo := range producer.GetAllDetailedDPoSV2Votes() {
+			for referKey, detailVoteInfo := range votesInfo {
+				if referKey.IsEqual(nftPayload.ID) {
+					ct, _ := contract.CreateStakeContractByCode(referKey.Bytes())
+					nftStakeAddress := ct.ToProgramHash()
+					s.History.Append(height, func() {
+						producer.detailedDPoSV2Votes[*nftStakeAddress][referKey] = detailVoteInfo
+						delete(producer.detailedDPoSV2Votes[stakeAddress], nftPayload.ID)
+					}, func() {
+						delete(producer.detailedDPoSV2Votes[*nftStakeAddress], referKey)
+						producer.detailedDPoSV2Votes[stakeAddress][nftPayload.ID] = detailVoteInfo
+					})
+					return
+				}
+			}
+		}
+	}
 }
 
 func (s *State) processDposV2ClaimRewardRealWithdraw(tx interfaces.Transaction, height uint32) {

@@ -69,6 +69,9 @@ const (
 	Voting                        TxType = 0x63
 	ReturnVotes                   TxType = 0x64
 	VotesRealWithdraw             TxType = 0x65
+
+	// NFT
+	CreateNFT TxType = 0x71
 )
 
 func (self TxType) Name() string {
@@ -159,6 +162,8 @@ func (self TxType) Name() string {
 		return "DposV2ClaimReward"
 	case DposV2ClaimRewardRealWithdraw:
 		return "DposV2ClaimRewardRealWithdraw"
+	case CreateNFT:
+		return "CreateNFT"
 	default:
 		return "Unknown"
 	}

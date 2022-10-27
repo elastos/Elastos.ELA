@@ -54,7 +54,7 @@ type StateKeyFrame struct {
 
 	DepositOutputs map[string]common.Fixed64
 	//key is addr str value is dposReward
-	DposV2RewardInfo         map[string]common.Fixed64
+	DPoSV2RewardInfo         map[string]common.Fixed64
 	DposV2RewardClaimingInfo map[string]common.Fixed64
 	DposV2RewardClaimedInfo  map[string]common.Fixed64
 	Nicknames                map[string]struct{}
@@ -119,7 +119,7 @@ func (s *StateKeyFrame) snapshot() *StateKeyFrame {
 		UsedDposV2Votes:  make(map[common.Uint168]common.Fixed64),
 
 		DepositOutputs:           make(map[string]common.Fixed64),
-		DposV2RewardInfo:         make(map[string]common.Fixed64),
+		DPoSV2RewardInfo:         make(map[string]common.Fixed64),
 		DposV2RewardClaimingInfo: make(map[string]common.Fixed64),
 		DposV2RewardClaimedInfo:  make(map[string]common.Fixed64),
 		WithdrawableTxInfo:       make(map[common.Uint256]common2.OutputInfo),
@@ -148,7 +148,7 @@ func (s *StateKeyFrame) snapshot() *StateKeyFrame {
 	state.UsedDposV2Votes = copyProgramHashAmountSet(s.UsedDposV2Votes)
 
 	state.DepositOutputs = copyFixed64Map(s.DepositOutputs)
-	state.DposV2RewardInfo = copyFixed64Map(s.DposV2RewardInfo)
+	state.DPoSV2RewardInfo = copyFixed64Map(s.DPoSV2RewardInfo)
 	state.DposV2RewardClaimingInfo = copyFixed64Map(s.DposV2RewardClaimingInfo)
 	state.DposV2RewardClaimedInfo = copyFixed64Map(s.DposV2RewardClaimedInfo)
 	state.WithdrawableTxInfo = copyWithdrawableTransactionsMap(s.WithdrawableTxInfo)
@@ -230,7 +230,7 @@ func (s *StateKeyFrame) Serialize(w io.Writer) (err error) {
 		return
 	}
 
-	if err = s.SerializeFixed64Map(s.DposV2RewardInfo, w); err != nil {
+	if err = s.SerializeFixed64Map(s.DPoSV2RewardInfo, w); err != nil {
 		return
 	}
 	if err = s.SerializeFixed64Map(s.DposV2RewardClaimingInfo, w); err != nil {
@@ -347,7 +347,7 @@ func (s *StateKeyFrame) Deserialize(r io.Reader) (err error) {
 		return
 	}
 
-	if s.DposV2RewardInfo, err = s.DeserializeFixed64Map(r); err != nil {
+	if s.DPoSV2RewardInfo, err = s.DeserializeFixed64Map(r); err != nil {
 		return
 	}
 
@@ -875,7 +875,7 @@ func NewStateKeyFrame() *StateKeyFrame {
 		UsedDposVotes:             make(map[common.Uint168][]payload.VotesWithLockTime),
 		UsedDposV2Votes:           make(map[common.Uint168]common.Fixed64),
 		DepositOutputs:            make(map[string]common.Fixed64),
-		DposV2RewardInfo:          info,
+		DPoSV2RewardInfo:          info,
 		DposV2RewardClaimingInfo:  make(map[string]common.Fixed64),
 		DposV2RewardClaimedInfo:   make(map[string]common.Fixed64),
 		WithdrawableTxInfo:        make(map[common.Uint256]common2.OutputInfo),

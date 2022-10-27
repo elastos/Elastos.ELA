@@ -876,13 +876,13 @@ func (a *Arbiters) accumulateReward(block *types.Block, confirm *payload.Confirm
 
 		a.History.Append(block.Height, func() {
 			for k, v := range rewards {
-				a.DposV2RewardInfo[k] += v
+				a.DPoSV2RewardInfo[k] += v
 			}
 			a.forceChanged = false
 			a.DutyIndex = oriDutyIndex + 1
 		}, func() {
 			for k, v := range rewards {
-				a.DposV2RewardInfo[k] -= v
+				a.DPoSV2RewardInfo[k] -= v
 			}
 			a.forceChanged = oriForceChanged
 			a.DutyIndex = oriDutyIndex

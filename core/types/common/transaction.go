@@ -72,6 +72,8 @@ const (
 
 	// NFT
 	CreateNFT TxType = 0x71
+	//nft
+	NFTDestroyFromSideChain TxType = 0x72
 )
 
 func (self TxType) Name() string {
@@ -92,6 +94,8 @@ func (self TxType) Name() string {
 		return "RechargeToSideChain"
 	case WithdrawFromSideChain:
 		return "WithdrawFromSideChain"
+	case NFTDestroyFromSideChain:
+		return "NFTDestroyFromSideChain"
 	case TransferCrossChainAsset:
 		return "TransferCrossChainAsset"
 	case RegisterProducer:

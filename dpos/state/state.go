@@ -1707,6 +1707,8 @@ func (s *State) processTransaction(tx interfaces.Transaction, height uint32) {
 	case common2.CreateNFT:
 		s.processCreateNFT(tx, height)
 
+	case common2.NFTDestroyFromSideChain:
+		s.processNFTDestroyFromSideChain(tx, height)
 	}
 
 	if tx.TxType() != common2.RegisterProducer {
@@ -2568,7 +2570,7 @@ func (s *State) processCreateNFT(tx interfaces.Transaction, height uint32) {
 					ct, _ := contract.CreateStakeContractByCode(referKey.Bytes())
 					nftStakeAddress := ct.ToProgramHash()
 					s.History.Append(height, func() {
-						if _, ok:= producer.detailedDPoSV2Votes[*nftStakeAddress]; !ok {
+						if _, ok := producer.detailedDPoSV2Votes[*nftStakeAddress]; !ok {
 							producer.detailedDPoSV2Votes[*nftStakeAddress] = make(map[common.Uint256]payload.DetailedVoteInfo)
 						}
 						producer.detailedDPoSV2Votes[*nftStakeAddress][referKey] = detailVoteInfo
@@ -2698,6 +2700,12 @@ func (s *State) getIllegalPenaltyByHeight(height uint32) common.Fixed64 {
 	}
 
 	return illegalPenalty
+}
+
+func (s *State) processNFTDestroyFromSideChain(tx interfaces.Transaction, height uint32) {
+	pld := tx.Payload().(*payload.NFTDestroyFromSideChain)
+	//todo
+	log.Debug("processNFTDestroyFromSideChain", pld.ID1)
 }
 
 // processIllegalEvidence takes the illegal evidence payload and change producer

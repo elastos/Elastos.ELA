@@ -72,6 +72,5 @@ func (a *CreateNFT) DeserializeUnsigned(r io.Reader, version byte) error {
 		return errors.New("[CreateNFT], failed to deserialize To address")
 	}
 	a.To = to
-
 	return nil
 }

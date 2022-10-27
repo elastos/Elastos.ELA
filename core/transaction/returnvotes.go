@@ -85,7 +85,7 @@ func (t *ReturnVotesTransaction) SpecialContextCheck() (result elaerr.ELAError, 
 	var code []byte
 	if t.payloadVersion == payload.ReturnVotesVersionV0 {
 		code = pl.Code
-	} else if t.payloadVersion == payload.ReturnVotesVersionV1 {
+	} else if t.payloadVersion == payload.ReturnVotesSchnorrVersion {
 		code = t.Programs()[0].Code
 	} else {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid payload version")), true

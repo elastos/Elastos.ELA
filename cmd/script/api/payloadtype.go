@@ -89,6 +89,15 @@ func newReturnVotes(L *lua.LState) int {
 	toAddr := L.ToString(2)
 	amount := L.ToInt(3)
 	client, err := checkClient(L, 4)
+	var account *account.SchnorAccount
+	if err != nil {
+		fmt.Println("account exist")
+		account, err = checkAccount(L, 6)
+		if err != nil {
+			fmt.Println(err.Error())
+			os.Exit(1)
+		}
+	}
 	m := L.ToInt(5)
 	addr, err := common.Uint168FromAddress(toAddr)
 	if err != nil {
@@ -102,10 +111,20 @@ func newReturnVotes(L *lua.LState) int {
 		os.Exit(1)
 	}
 
-	code, err := getCode(publicKey)
+	var code []byte
+	code, err = getCode(publicKey)
 	if err != nil {
 		fmt.Println("wrong producer public key")
 		os.Exit(1)
+	}
+	if account != nil {
+		//fmt.Println("get schnorr code")
+		//code, err = getSchnorrCode(publicKey)
+		//if err != nil {
+		//	fmt.Println("wrong schnorr producer public key")
+		//	os.Exit(1)
+		//}
+		code = []byte{}
 	}
 	fmt.Println("value m " + strconv.Itoa(m))
 	if m != 0 {
@@ -128,23 +147,34 @@ func newReturnVotes(L *lua.LState) int {
 		Value:  common.Fixed64(amount),
 	}
 
-	codeHash, err := contract.PublicKeyToStandardCodeHash(publicKey)
-	acc := client.GetAccountByCodeHash(*codeHash)
-	if acc == nil {
-		fmt.Println("no available account in wallet")
-		os.Exit(1)
-	}
-
+	var rpSig []byte
 	buf := new(bytes.Buffer)
 	if err := returnVotesPayload.SerializeUnsigned(buf, 0); err != nil {
-		fmt.Println("invalid return votes payload")
+		fmt.Println("invalid unstake payload")
 		os.Exit(1)
 	}
+	codeHash, err := contract.PublicKeyToStandardCodeHash(publicKey)
+	if account == nil {
+		acc := client.GetAccountByCodeHash(*codeHash)
+		if acc == nil {
+			fmt.Println("no available account in wallet")
+			os.Exit(1)
+		}
 
-	rpSig, err := crypto.Sign(acc.PrivKey(), buf.Bytes())
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		rpSig, err = crypto.Sign(acc.PrivKey(), buf.Bytes())
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+	} else {
+		//var tmpSig [64]byte
+		fmt.Println("process AggregateSignatures")
+		//tmpSig, err = crypto.AggregateSignatures(account.PrivateKeys, common.Sha256D(buf.Bytes()))
+		//if err != nil {
+		//	fmt.Println(err)
+		//	os.Exit(1)
+		//}
+		rpSig = []byte{}
 	}
 	if m != 0 {
 		signerIndex := 0
@@ -176,6 +206,18 @@ func newReturnVotes(L *lua.LState) int {
 	L.Push(ud)
 
 	return 1
+}
+
+func getSchnorrCode(publicKey []byte) ([]byte, error) {
+	if pk, err := crypto.DecodePoint(publicKey); err != nil {
+		return nil, err
+	} else {
+		if redeemScript, err := contract.CreateSchnorrRedeemScript(pk); err != nil {
+			return nil, err
+		} else {
+			return redeemScript, nil
+		}
+	}
 }
 
 // Checks whether the first lua argument is a *LUserData with *payload.Voting and

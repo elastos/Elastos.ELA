@@ -3572,7 +3572,7 @@ func getPayloadInfo(p interfaces.Payload, payloadVersion byte) PayloadInfo {
 		return obj
 	case *payload.ReturnVotes:
 		address, _ := object.ToAddr.ToAddress()
-		if payloadVersion == payload.ReturnVotesVersionV1 {
+		if payloadVersion == payload.ReturnVotesSchnorrVersion {
 			obj := &ReturnVotesInfo{
 				ToAddr: address,
 				Value:  object.Value.String(),

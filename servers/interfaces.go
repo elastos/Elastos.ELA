@@ -2214,7 +2214,7 @@ type RPCDPosV2Info struct {
 func DposV2RewardInfo(param Params) map[string]interface{} {
 	addr, ok := param.String("address")
 	if ok {
-		claimable := Chain.GetState().DposV2RewardInfo[addr]
+		claimable := Chain.GetState().DPoSV2RewardInfo[addr]
 		claiming := Chain.GetState().DposV2RewardClaimingInfo[addr]
 		claimed := Chain.GetState().DposV2RewardClaimedInfo[addr]
 		result := RPCDposV2RewardInfo{
@@ -2226,7 +2226,7 @@ func DposV2RewardInfo(param Params) map[string]interface{} {
 		return ResponsePack(Success, result)
 	} else {
 		var result []RPCDposV2RewardInfo
-		dposV2RewardInfo := Chain.GetState().DposV2RewardInfo
+		dposV2RewardInfo := Chain.GetState().DPoSV2RewardInfo
 		for addr, value := range dposV2RewardInfo {
 			result = append(result, RPCDposV2RewardInfo{
 				Address:   addr,

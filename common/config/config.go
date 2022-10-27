@@ -193,6 +193,7 @@ func GetDefaultParams() *Configuration {
 			NormalArbitratorsCount:            24,
 			CandidatesCount:                   72,
 			DPoSV2RewardAccumulateProgramHash: StakeRewardProgramHash,
+			NFTStartHeight:                    2000000, // todo complete me
 			OriginArbiters: []string{
 				"0248df6705a909432be041e0baa25b8f648741018f70d1911f2ed28778db4b8fe4",
 				"02771faf0f4d4235744b30972d5f2c470993920846c761e4d08889ecfdc061cddf",
@@ -371,6 +372,8 @@ func (p *Configuration) TestNet() *Configuration {
 	p.CrossChainMonitorStartHeight = 965800 + 720*3
 	p.CrossChainMonitorInterval = 12
 	p.CRConfiguration.CRClaimPeriod = 10080
+	p.DPoSConfiguration.NFTStartHeight = 2000000 // todo complete me
+
 	p.HttpInfoPort = 21333
 	p.HttpRestPort = 21334
 	p.HttpWsPort = 21335
@@ -482,6 +485,7 @@ func (p *Configuration) RegNet() *Configuration {
 	p.CrossChainMonitorStartHeight = 875544 + 720*2
 	p.CrossChainMonitorInterval = 12
 	p.CRConfiguration.CRClaimPeriod = 10080
+	p.DPoSConfiguration.NFTStartHeight = 2000000 // todo complete me
 	p.HttpInfoPort = 22333
 	p.HttpRestPort = 22334
 	p.HttpWsPort = 22335
@@ -684,6 +688,8 @@ type DPoSConfiguration struct {
 	DPoSV2MaxVotesLockTime uint32 `screw:"--dposv2maxvoteslocktime" usage:"max lock time of DPoS V2 votes"`
 	// CRDPoSNodeHotFixHeight indicates the hot fix start height of CR DPoS node
 	CRDPoSNodeHotFixHeight uint32 `screw:"--crdposnodehotfixheight" usage:"CRDPoSNodeHotFixHeight indicates the hot fix start height of CR DPoS node"`
+	// NFTStartHeight defines the height of NFT started.
+	NFTStartHeight uint32 `screw:"--nftstartheight" usage:"the start height of NFT transaction"`
 }
 
 type CRConfiguration struct {

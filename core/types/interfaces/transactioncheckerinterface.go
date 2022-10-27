@@ -44,6 +44,7 @@ type BaseTransactionChecker interface {
 	// if the transaction should create in POW need to return true
 	IsAllowedInPOWConsensus() bool
 	// the special context check of transaction, such as check the transaction payload
+	// if you have no others check after SpecialContextCheck, need to set end to true
 	SpecialContextCheck() (error elaerr.ELAError, end bool)
 	//Check Transaction Fee
 	CheckTransactionFee(references map[*common2.Input]common2.Output) error

@@ -72,6 +72,8 @@ const (
 
 	//nft
 	NFTDestroyFromSideChain TxType = 0x71
+	// NFT
+	CreateNFT TxType = 0x71
 )
 
 func (self TxType) Name() string {
@@ -164,6 +166,8 @@ func (self TxType) Name() string {
 		return "DposV2ClaimReward"
 	case DposV2ClaimRewardRealWithdraw:
 		return "DposV2ClaimRewardRealWithdraw"
+	case CreateNFT:
+		return "CreateNFT"
 	default:
 		return "Unknown"
 	}

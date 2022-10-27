@@ -77,6 +77,16 @@ func hashCloseProposalTargetProposalHash(tx interfaces.Transaction) (interface{}
 	return nil, nil
 }
 
+func hashNFTDestroyFromSideChainHash(tx interfaces.Transaction) (interface{}, error) {
+	p, ok := tx.Payload().(*payload.NFTDestroyFromSideChain)
+	if !ok {
+		return nil, fmt.Errorf(
+			"CRC proposal payload cast failed, tx:%s", tx.Hash())
+	}
+
+	return p.ID1, nil
+}
+
 func hashCRCProposalSecretaryGeneralDID(tx interfaces.Transaction) (interface{}, error) {
 	p, ok := tx.Payload().(*payload.CRCProposal)
 	if !ok {

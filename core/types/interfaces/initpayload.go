@@ -29,6 +29,8 @@ func GetPayload(txType common.TxType, payloadVersion byte) (Payload, error) {
 		p = new(payload.SideChainPow)
 	case common.WithdrawFromSideChain:
 		p = new(payload.WithdrawFromSideChain)
+	case common.NFTDestroyFromSideChain:
+		p = new(payload.NFTDestroyFromSideChain)
 	case common.TransferCrossChainAsset:
 		p = new(payload.TransferCrossChainAsset)
 	case common.RegisterProducer:

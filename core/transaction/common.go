@@ -169,6 +169,9 @@ func GetTransaction(txType common2.TxType) (txn interfaces.Transaction, err erro
 	case common2.WithdrawFromSideChain:
 		txn = new(WithdrawFromSideChainTransaction)
 
+	case common2.NFTDestroyFromSideChain:
+		txn = new(NFTDestroyTransactionFromSideChain)
+
 	case common2.TransferCrossChainAsset:
 		txn = new(TransferCrossChainAssetTransaction)
 

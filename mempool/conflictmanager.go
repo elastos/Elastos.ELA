@@ -49,6 +49,7 @@ const (
 	slotVotesRealWithdraw                       = "VotesRealWithdraw"
 	slotExchangeVotes                           = "ExchangeVotes"
 	slotDposV2ClaimReward                       = "DposV2ClaimReward"
+	slotNFTDestroyFromSideChainHash             = "NFTDestroyFromSideChainHash"
 )
 
 type conflict struct {
@@ -546,6 +547,16 @@ func newConflictManager() conflictManager {
 					keyTypeFuncPair{
 						Type: common2.ReturnSideChainDepositCoin,
 						Func: hashArraySidechainReturnDepositTransactionHashes,
+					},
+				),
+			},
+			// NFT Destroy From SideChain Hash
+			{
+				name: slotNFTDestroyFromSideChainHash,
+				slot: newConflictSlot(hash,
+					keyTypeFuncPair{
+						Type: common2.NFTDestroyFromSideChain,
+						Func: hashNFTDestroyFromSideChainHash,
 					},
 				),
 			},

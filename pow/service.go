@@ -9,6 +9,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"github.com/elastos/Elastos.ELA/core"
 	"math"
 	"math/rand"
 	"sort"
@@ -20,7 +21,6 @@ import (
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/common/log"
-	"github.com/elastos/Elastos.ELA/core"
 	pg "github.com/elastos/Elastos.ELA/core/contract/program"
 	"github.com/elastos/Elastos.ELA/core/types"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
@@ -130,7 +130,6 @@ func (pow *Service) CreateCoinbaseTx(minerAddr string, height uint32) (interface
 	nonce := make([]byte, 8)
 	binary.BigEndian.PutUint64(nonce, rand.Uint64())
 	txAttr := common2.NewAttribute(common2.Nonce, nonce)
-	ELAAssetID, _ := common.Uint256FromHexString(core.ELAAssetID)
 	CRRewardAddr, _ := common.Uint168FromAddress(crRewardAddr)
 	tx := functions.CreateTransaction(
 		pow.GetDefaultTxVersion(height),
@@ -151,14 +150,14 @@ func (pow *Service) CreateCoinbaseTx(minerAddr string, height uint32) (interface
 		},
 		[]*common2.Output{
 			{
-				AssetID:     *ELAAssetID,
+				AssetID:     core.ELAAssetID,
 				Value:       0,
 				ProgramHash: *CRRewardAddr,
 				Type:        common2.OTNone,
 				Payload:     &outputpayload.DefaultOutput{},
 			},
 			{
-				AssetID:     *ELAAssetID,
+				AssetID:     core.ELAAssetID,
 				Value:       0,
 				ProgramHash: *minerProgramHash,
 				Type:        common2.OTNone,
@@ -175,7 +174,6 @@ func (pow *Service) CreateCoinbaseTx(minerAddr string, height uint32) (interface
 func (pow *Service) AssignCoinbaseTxRewards(block *types.Block, totalReward common.Fixed64) error {
 	activeHeight := pow.arbiters.GetDPoSV2ActiveHeight()
 	DestroyELAAddress, _ := common.Uint168FromAddress(pow.chainParams.DestroyELAAddress)
-	ELAAssetID, _ := common.Uint256FromHexString(core.ELAAssetID)
 	if activeHeight != math.MaxUint32 && block.Height > activeHeight+1 {
 		rewardCyberRepublic := common.Fixed64(math.Ceil(float64(totalReward) * 0.3))
 		rewardDposArbiter := common.Fixed64(math.Ceil(float64(totalReward) * 0.35))
@@ -191,7 +189,7 @@ func (pow *Service) AssignCoinbaseTxRewards(block *types.Block, totalReward comm
 
 		if rewardDposArbiter > common.Fixed64(0) {
 			output := append(block.Transactions[0].Outputs(), &common2.Output{
-				AssetID:     *ELAAssetID,
+				AssetID:     core.ELAAssetID,
 				Value:       rewardDposArbiter,
 				ProgramHash: *dposRewardAddr,
 				Payload:     &outputpayload.DefaultOutput{},
@@ -234,7 +232,7 @@ func (pow *Service) AssignCoinbaseTxRewards(block *types.Block, totalReward comm
 	block.Transactions[0].Outputs()[0].Value = rewardCyberRepublic
 	block.Transactions[0].Outputs()[1].Value = rewardMergeMiner
 	block.Transactions[0].SetOutputs(append(block.Transactions[0].Outputs(), &common2.Output{
-		AssetID:     *ELAAssetID,
+		AssetID:     core.ELAAssetID,
 		Value:       rewardDposArbiter,
 		ProgramHash: blockchain.FoundationAddress,
 	}))
@@ -243,10 +241,9 @@ func (pow *Service) AssignCoinbaseTxRewards(block *types.Block, totalReward comm
 
 func (pow *Service) distributeDPOSReward(coinBaseTx interfaces.Transaction,
 	rewards map[common.Uint168]common.Fixed64) (common.Fixed64, error) {
-	ELAAssetID, _ := common.Uint256FromHexString(core.ELAAssetID)
 	for ownerHash, reward := range rewards {
 		coinBaseTx.SetOutputs(append(coinBaseTx.Outputs(), &common2.Output{
-			AssetID:     *ELAAssetID,
+			AssetID:     core.ELAAssetID,
 			Value:       reward,
 			ProgramHash: ownerHash,
 			Type:        common2.OTNone,

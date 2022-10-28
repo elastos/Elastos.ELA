@@ -91,7 +91,6 @@ func initDefaultLedger(chain *blockchain.BlockChain,
 }
 
 func newGenesisBlock(ac *account.Account) *types.Block {
-	ELAAssetID, _ := common.Uint256FromHexString(core.ELAAssetID)
 	attrNonce := common2.NewAttribute(common2.Nonce,
 		[]byte{77, 101, 130, 33, 7, 252, 253, 82})
 	genesisTime, _ := time.Parse(time.RFC3339, "2017-12-22T10:00:00Z")
@@ -113,7 +112,7 @@ func newGenesisBlock(ac *account.Account) *types.Block {
 		},
 		[]*common2.Output{
 			{
-				AssetID:     *ELAAssetID,
+				AssetID:     core.ELAAssetID,
 				Value:       3300 * 10000 * 100000000,
 				ProgramHash: ac.ProgramHash,
 			},
@@ -123,7 +122,7 @@ func newGenesisBlock(ac *account.Account) *types.Block {
 	)
 
 	merkleRoot, _ := crypto.ComputeRoot([]common.Uint256{coinBase.Hash(),
-		*ELAAssetID})
+		core.ELAAssetID})
 
 	return &types.Block{
 		Header: common2.Header{

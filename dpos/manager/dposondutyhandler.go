@@ -96,7 +96,9 @@ func (h *DPOSOnDutyHandler) TryCreateRevertToDPOSTx(BlockHeight uint32) bool {
 	activeArbitersCount := float64(h.getActiveArbitersCount())
 	needCount := float64(h.cfg.Arbitrators.GetArbitersCount())*float64(4)/float64(5) + 1
 	log.Info("[TryCreateRevertToDPOSTx] current active arbiters count:", activeArbitersCount, "need:", needCount)
-	if activeArbitersCount < needCount {
+	if len(h.cfg.Arbitrators.GetArbitrators()) == 0 ||
+		len(h.cfg.Arbitrators.GetNextArbitrators()) == 0 ||
+		activeArbitersCount < needCount {
 		return false
 	}
 	// if it is in not pow mod

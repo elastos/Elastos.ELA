@@ -96,6 +96,7 @@ func GetDefaultParams() *Configuration {
 			"node-mainnet-025.elastos.org:20338",
 		},
 		DestroyELAAddress:  DestroyELAAddress,
+		OriginDestroyAmount: common.Fixed64(45341569050100),
 		FoundationAddress:  mainNetFoundation,
 		MaxTxPerBlock:      10000,
 		MaxBlockSize:       2000000,
@@ -508,6 +509,8 @@ type Configuration struct {
 	MinTransactionFee common.Fixed64 `json:"MinTransactionFee"`
 	// DestroyELAAddress defines address which receiving destroyed ELA.
 	DestroyELAAddress string `json:"DestroyELAAddress"`
+	// OriginDestroyAmount defines the destroyed ELA before voting start height.
+	OriginDestroyAmount common.Fixed64 `json:"OriginDestroyAmount"`
 	// Foundation defines the foundation address which receiving mining rewards.
 	FoundationAddress string `screw:"--foundation" usage:"specify the foundation address"`
 	// Did side chain address

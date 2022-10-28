@@ -24,7 +24,6 @@ type CRCAppropriationTransaction struct {
 func (t *CRCAppropriationTransaction) CheckTransactionOutput() error {
 	blockHeight := t.parameters.BlockHeight
 	chainParams := t.parameters.Config
-	ELAAssetID, _ := common.Uint256FromHexString(core.ELAAssetID)
 	CRExpensesAddress, _ := common.Uint168FromAddress(chainParams.CRConfiguration.CRExpensesAddress)
 	CRAssetsAddress, _ := common.Uint168FromAddress(chainParams.CRConfiguration.CRAssetsAddress)
 	if len(t.Outputs()) > math.MaxUint16 {
@@ -46,7 +45,7 @@ func (t *CRCAppropriationTransaction) CheckTransactionOutput() error {
 	// check if output address is valid
 	specialOutputCount := 0
 	for _, output := range t.Outputs() {
-		if output.AssetID != *ELAAssetID {
+		if output.AssetID != core.ELAAssetID {
 			return errors.New("asset ID in output is invalid")
 		}
 

@@ -50,10 +50,9 @@ func (t *CoinBaseTransaction) CheckTransactionOutput() error {
 
 	foundationReward := t.Outputs()[0].Value
 	var totalReward = common.Fixed64(0)
-	ELAAssetID, _ := common.Uint256FromHexString(core.ELAAssetID)
 	if blockHeight < chainParams.PublicDPOSHeight {
 		for _, output := range t.Outputs() {
-			if output.AssetID != *ELAAssetID {
+			if output.AssetID != core.ELAAssetID {
 				return errors.New("asset ID in coinbase is invalid")
 			}
 			totalReward += output.Value

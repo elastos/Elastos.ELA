@@ -38,9 +38,8 @@ func (a *fixAmountAssigner) SignAndChange(tx interfaces.Transaction) error {
 	for _, o := range tx.Outputs() {
 		o.Value = defaultAmount
 	}
-	ELAAssetID, _ := common.Uint256FromHexString(core.ELAAssetID)
 	tx.SetOutputs(append(tx.Outputs(), &common2.Output{
-		AssetID: *ELAAssetID,
+		AssetID: core.ELAAssetID,
 		Value: a.utxo.Value -
 			defaultAmount*common.Fixed64(len(tx.Outputs())) - defaultFee,
 		OutputLock:  0,

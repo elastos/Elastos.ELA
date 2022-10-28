@@ -134,10 +134,9 @@ func blockUpdate(L *lua.LState) int {
 func updateDposRewards(b *types.Block) {
 
 	totalTxFee := common.Fixed64(0)
-	ELAAssetID, _ := common.Uint256FromHexString(core.ELAAssetID)
 	for _, tx := range b.Transactions {
 		reference, _ := blockchain.DefaultLedger.Blockchain.UTXOCache.GetTxReference(tx)
-		fee := blockchain.GetTxFee(tx, *ELAAssetID, reference)
+		fee := blockchain.GetTxFee(tx, core.ELAAssetID, reference)
 		if fee != tx.Fee() {
 			continue
 		}

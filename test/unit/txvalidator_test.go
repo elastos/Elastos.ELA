@@ -437,17 +437,16 @@ func (s *txValidatorTestSuite) TestCheckTransactionInput() {
 func (s *txValidatorTestSuite) TestCheckTransactionOutput() {
 	// coinbase
 	tx := newCoinBaseTransaction(new(payload.CoinBase), 0)
-	ELAAssetID, _ := common.Uint256FromHexString(core.ELAAssetID)
 	tx.SetOutputs([]*common2.Output{
-		{AssetID: *ELAAssetID, ProgramHash: s.foundationAddress},
-		{AssetID: *ELAAssetID, ProgramHash: s.foundationAddress},
+		{AssetID: core.ELAAssetID, ProgramHash: s.foundationAddress},
+		{AssetID: core.ELAAssetID, ProgramHash: s.foundationAddress},
 	})
 	err := s.Chain.CheckTransactionOutput(tx, s.HeightVersion1)
 	s.NoError(err)
 
 	// outputs < 2
 	tx.SetOutputs([]*common2.Output{
-		{AssetID: *ELAAssetID, ProgramHash: s.foundationAddress},
+		{AssetID: core.ELAAssetID, ProgramHash: s.foundationAddress},
 	})
 	err = s.Chain.CheckTransactionOutput(tx, s.HeightVersion1)
 	s.EqualError(err, "coinbase output is not enough, at least 2")
@@ -466,8 +465,8 @@ func (s *txValidatorTestSuite) TestCheckTransactionOutput() {
 	foundationReward := common.Fixed64(float64(totalReward) * 0.3)
 	fmt.Printf("Foundation reward amount %s", foundationReward.String())
 	tx.SetOutputs([]*common2.Output{
-		{AssetID: *ELAAssetID, ProgramHash: s.foundationAddress, Value: foundationReward},
-		{AssetID: *ELAAssetID, ProgramHash: common.Uint168{}, Value: totalReward - foundationReward},
+		{AssetID: core.ELAAssetID, ProgramHash: s.foundationAddress, Value: foundationReward},
+		{AssetID: core.ELAAssetID, ProgramHash: common.Uint168{}, Value: totalReward - foundationReward},
 	})
 	err = s.Chain.CheckTransactionOutput(tx, s.HeightVersion1)
 	s.NoError(err)
@@ -476,8 +475,8 @@ func (s *txValidatorTestSuite) TestCheckTransactionOutput() {
 	foundationReward = common.Fixed64(float64(totalReward) * 0.299999)
 	fmt.Printf("Foundation reward amount %s", foundationReward.String())
 	tx.SetOutputs([]*common2.Output{
-		{AssetID: *ELAAssetID, ProgramHash: s.foundationAddress, Value: foundationReward},
-		{AssetID: *ELAAssetID, ProgramHash: common.Uint168{}, Value: totalReward - foundationReward},
+		{AssetID: core.ELAAssetID, ProgramHash: s.foundationAddress, Value: foundationReward},
+		{AssetID: core.ELAAssetID, ProgramHash: common.Uint168{}, Value: totalReward - foundationReward},
 	})
 	err = s.Chain.CheckTransactionOutput(tx, s.HeightVersion1)
 	s.EqualError(err, "reward to foundation in coinbase < 30%")
@@ -485,7 +484,7 @@ func (s *txValidatorTestSuite) TestCheckTransactionOutput() {
 	// normal transaction
 	tx = buildTx()
 	for _, output := range tx.Outputs() {
-		output.AssetID = *ELAAssetID
+		output.AssetID = core.ELAAssetID
 		output.ProgramHash = common.Uint168{}
 	}
 	err = s.Chain.CheckTransactionOutput(tx, s.HeightVersion1)
@@ -513,7 +512,7 @@ func (s *txValidatorTestSuite) TestCheckTransactionOutput() {
 	appendSpecial := func() []*common2.Output {
 		return append(tx.Outputs(), &common2.Output{
 			Type:        common2.OTVote,
-			AssetID:     *ELAAssetID,
+			AssetID:     core.ELAAssetID,
 			ProgramHash: address,
 			Value:       common.Fixed64(mrand.Int63()),
 			OutputLock:  mrand.Uint32(),
@@ -535,7 +534,7 @@ func (s *txValidatorTestSuite) TestCheckTransactionOutput() {
 	tx.SetVersion(common2.TxVersionDefault)
 	tx.SetOutputs(randomOutputs())
 	for _, output := range tx.Outputs() {
-		output.AssetID = *ELAAssetID
+		output.AssetID = core.ELAAssetID
 		address := common.Uint168{}
 		address[0] = 0x23
 		output.ProgramHash = address
@@ -746,7 +745,6 @@ func (s *txValidatorTestSuite) TestCheckDuplicateSidechainTx() {
 
 func (s *txValidatorTestSuite) TestCheckTransactionBalance() {
 	// WithdrawFromSideChain will pass check in any condition
-	ELAAssetID, _ := common.Uint256FromHexString(core.ELAAssetID)
 	tx := functions.CreateTransaction(
 		0,
 		common2.WithdrawFromSideChain,
@@ -764,7 +762,7 @@ func (s *txValidatorTestSuite) TestCheckTransactionBalance() {
 	outputValue1 := common.Fixed64(100 * s.ELA)
 	deposit := newCoinBaseTransaction(new(payload.CoinBase), 0)
 	deposit.SetOutputs([]*common2.Output{
-		{AssetID: *ELAAssetID, ProgramHash: s.foundationAddress, Value: outputValue1},
+		{AssetID: core.ELAAssetID, ProgramHash: s.foundationAddress, Value: outputValue1},
 	})
 
 	references := map[*common2.Input]common2.Output{
@@ -786,8 +784,8 @@ func (s *txValidatorTestSuite) TestCheckTransactionBalance() {
 	outputValue1 = common.Fixed64(30 * s.ELA)
 	outputValue2 := common.Fixed64(70 * s.ELA)
 	tx.SetOutputs([]*common2.Output{
-		{AssetID: *ELAAssetID, ProgramHash: s.foundationAddress, Value: outputValue1},
-		{AssetID: *ELAAssetID, ProgramHash: common.Uint168{}, Value: outputValue2},
+		{AssetID: core.ELAAssetID, ProgramHash: s.foundationAddress, Value: outputValue1},
+		{AssetID: core.ELAAssetID, ProgramHash: common.Uint168{}, Value: outputValue2},
 	})
 
 	references = map[*common2.Input]common2.Output{
@@ -1119,7 +1117,6 @@ func (s *txValidatorTestSuite) TestCheckRegisterDposV2ProducerTransaction() {
 }
 
 func (s *txValidatorTestSuite) TestCheckStakeTransaction() {
-	ELAAssetID, _ := common.Uint256FromHexString(core.ELAAssetID)
 	publicKey := "03878cbe6abdafc702befd90e2329c4f37e7cb166410f0ecb70488c74c85b81d66"
 	publicKeyBytes, _ := common.HexStringToBytes(publicKey)
 	code := getCode(publicKeyBytes)
@@ -1220,7 +1217,7 @@ func (s *txValidatorTestSuite) TestCheckStakeTransaction() {
 		[]*common2.Input{},
 		[]*common2.Output{
 			{
-				AssetID:     *ELAAssetID,
+				AssetID:     core.ELAAssetID,
 				Value:       -1,
 				OutputLock:  0,
 				ProgramHash: *stakeAddress_uint168,
@@ -1245,7 +1242,7 @@ func (s *txValidatorTestSuite) TestCheckStakeTransaction() {
 		[]*common2.Input{},
 		[]*common2.Output{
 			{
-				AssetID:     *ELAAssetID,
+				AssetID:     core.ELAAssetID,
 				Value:       100000000,
 				OutputLock:  0,
 				ProgramHash: *stakeAddress_uint168,
@@ -1271,7 +1268,7 @@ func (s *txValidatorTestSuite) TestCheckStakeTransaction() {
 		[]*common2.Input{},
 		[]*common2.Output{
 			{
-				AssetID:     *ELAAssetID,
+				AssetID:     core.ELAAssetID,
 				Value:       100000000,
 				OutputLock:  0,
 				ProgramHash: *stakeAddress_uint168,
@@ -1298,7 +1295,7 @@ func (s *txValidatorTestSuite) TestCheckStakeTransaction() {
 		[]*common2.Input{},
 		[]*common2.Output{
 			{
-				AssetID:     *ELAAssetID,
+				AssetID:     core.ELAAssetID,
 				Value:       100000000,
 				OutputLock:  0,
 				ProgramHash: *stakeAddress_uint168,
@@ -1331,7 +1328,7 @@ func (s *txValidatorTestSuite) TestCheckStakeTransaction() {
 		[]*common2.Input{},
 		[]*common2.Output{
 			{
-				AssetID:     *ELAAssetID,
+				AssetID:     core.ELAAssetID,
 				Value:       100000000,
 				OutputLock:  0,
 				ProgramHash: *stakeAddress_uint168,
@@ -2280,9 +2277,327 @@ func (s *txValidatorTestSuite) TestCheckUpdateProducerTransaction() {
 	//rest of check test will be continued in chain test
 }
 
-func (s *txValidatorTestSuite) TestCheckCancelProducerTransaction() {
-	publicKeyStr1 := "02b611f07341d5ddce51b5c4366aca7b889cfe0993bd63fd47e944507292ea08dd"
+func (s *txValidatorTestSuite) TestCheckUpdateProducerV1V2Transaction() {
+	publicKeyStr1 := "031e12374bae471aa09ad479f66c2306f4bcc4ca5b754609a82a1839b94b4721b9"
 	publicKey1, _ := common.HexStringToBytes(publicKeyStr1)
+	privateKeyStr1 := "94396a69462208b8fd96d83842855b867d3b0e663203cb31d0dfaec0362ec034"
+	privateKey1, _ := common.HexStringToBytes(privateKeyStr1)
+	publicKeyStr2 := "027c4f35081821da858f5c7197bac5e33e77e5af4a3551285f8a8da0a59bd37c45"
+	publicKey2, _ := common.HexStringToBytes(publicKeyStr2)
+	errPublicKeyStr := "02b611f07341d5ddce51b5c4366aca7b889cfe0993bd63fd4"
+	errPublicKey, _ := common.HexStringToBytes(errPublicKeyStr)
+
+	registerPayload := &payload.ProducerInfo{
+		OwnerPublicKey: publicKey1,
+		NodePublicKey:  publicKey1,
+		NickName:       "",
+		Url:            "",
+		Location:       1,
+		NetAddress:     "",
+	}
+	programs := []*program.Program{{
+		Code:      getCodeByPubKeyStr(publicKeyStr1),
+		Parameter: nil,
+	}}
+
+	txn := functions.CreateTransaction(
+		0,
+		common2.RegisterProducer,
+		0,
+		registerPayload,
+		[]*common2.Attribute{},
+		[]*common2.Input{},
+		[]*common2.Output{},
+		0,
+		programs,
+	)
+
+	s.CurrentHeight = 1
+	ckpManager := checkpoint.NewManager(&config.DefaultParams)
+	ckpManager.SetDataPath(filepath.Join(config.DefaultParams.DataDir, "checkpoints"))
+	s.Chain.SetCRCommittee(crstate.NewCommittee(s.Chain.GetParams(), ckpManager))
+	s.Chain.SetState(state.NewState(s.Chain.GetParams(), nil, nil, nil,
+		func() bool { return false }, func(programHash common.Uint168) (common.Fixed64,
+			error) {
+			amount := common.Fixed64(0)
+			utxos, err := s.Chain.GetDB().GetFFLDB().GetUTXO(&programHash)
+			if err != nil {
+				return amount, err
+			}
+			for _, utxo := range utxos {
+				amount += utxo.Value
+			}
+			return amount, nil
+		}, nil, nil, nil, nil, nil, nil))
+	s.Chain.GetCRCommittee().RegisterFuncitons(&crstate.CommitteeFuncsConfig{
+		GetTxReference:                   s.Chain.UTXOCache.GetTxReference,
+		GetUTXO:                          s.Chain.GetDB().GetFFLDB().GetUTXO,
+		GetHeight:                        func() uint32 { return s.CurrentHeight },
+		CreateCRAppropriationTransaction: s.Chain.CreateCRCAppropriationTransaction,
+	})
+	block := &types.Block{
+		Transactions: []interfaces.Transaction{
+			txn,
+		},
+		Header: common2.Header{Height: s.CurrentHeight},
+	}
+	s.Chain.GetState().ProcessBlock(block, nil, 0)
+
+	txn.SetTxType(common2.UpdateProducer)
+	updatePayload := &payload.ProducerInfo{
+		OwnerPublicKey: publicKey1,
+		NodePublicKey:  publicKey1,
+		NickName:       "",
+		Url:            "",
+		Location:       2,
+		NetAddress:     "",
+		StakeUntil:     10,
+	}
+	txn.SetPayload(updatePayload)
+	s.CurrentHeight++
+	block.Header = common2.Header{Height: s.CurrentHeight}
+	s.Chain.GetState().ProcessBlock(block, nil, 0)
+	txn = CreateTransactionByType(txn, s.Chain)
+	err, _ := txn.SpecialContextCheck()
+	s.EqualError(err, "transaction validate error: payload content invalid:field NickName has invalid string length")
+	updatePayload.NickName = "nick name"
+
+	updatePayload.Url = "www.elastos.org"
+	updatePayload.OwnerPublicKey = errPublicKey
+	err, _ = txn.SpecialContextCheck()
+	s.EqualError(err, "transaction validate error: payload content invalid:invalid owner public key in payload")
+
+	// check node public when block height is higher than h2
+	originHeight := config.DefaultParams.PublicDPOSHeight
+	updatePayload.NodePublicKey = errPublicKey
+	config.DefaultParams.PublicDPOSHeight = 0
+	err, _ = txn.SpecialContextCheck()
+	s.EqualError(err, "transaction validate error: payload content invalid:invalid node public key in payload")
+	config.DefaultParams.PublicDPOSHeight = originHeight
+
+	// check node public key same with CRC
+	txn.Payload().(*payload.ProducerInfo).OwnerPublicKey = publicKey2
+	pk, _ := common.HexStringToBytes(config.DefaultParams.DPoSConfiguration.CRCArbiters[0])
+	txn.Payload().(*payload.ProducerInfo).NodePublicKey = pk
+	config.DefaultParams.PublicDPOSHeight = 0
+	err, _ = txn.SpecialContextCheck()
+	config.DefaultParams.PublicDPOSHeight = originHeight
+	s.EqualError(err, "transaction validate error: payload content invalid:node public key can't equal with CR Arbiters")
+
+	// check owner public key same with CRC
+	txn.Payload().(*payload.ProducerInfo).NodePublicKey = publicKey2
+	pk, _ = common.HexStringToBytes(config.DefaultParams.DPoSConfiguration.CRCArbiters[0])
+	txn.Payload().(*payload.ProducerInfo).OwnerPublicKey = pk
+	config.DefaultParams.PublicDPOSHeight = 0
+	err, _ = txn.SpecialContextCheck()
+	config.DefaultParams.PublicDPOSHeight = originHeight
+	s.EqualError(err, "transaction validate error: payload content invalid:invalid signature in payload")
+
+	updatePayload.OwnerPublicKey = publicKey2
+	updatePayload.NodePublicKey = publicKey1
+	err, _ = txn.SpecialContextCheck()
+	s.EqualError(err, "transaction validate error: payload content invalid:invalid signature in payload")
+
+	updatePayload.OwnerPublicKey = publicKey1
+	updateSignBuf := new(bytes.Buffer)
+	err1 := updatePayload.SerializeUnsigned(updateSignBuf, payload.ProducerInfoVersion)
+	s.NoError(err1)
+	updateSig, err1 := crypto.Sign(privateKey1, updateSignBuf.Bytes())
+	s.NoError(err1)
+	updatePayload.Signature = updateSig
+	err, _ = txn.SpecialContextCheck()
+	s.NoError(err)
+
+	//process block
+	block = &types.Block{
+		Transactions: []interfaces.Transaction{
+			txn,
+		},
+		Header: common2.Header{Height: s.CurrentHeight},
+	}
+	s.Chain.GetState().ProcessBlock(block, nil, 0)
+	// update stakeuntil
+	updatePayload.StakeUntil = 20
+	txn.SetPayload(updatePayload)
+	err, _ = txn.SpecialContextCheck()
+	s.EqualError(err, "transaction validate error: payload content invalid:Pending Canceled or Returned producer can  not update  StakeUntil ")
+
+	s.Chain.BestChain.Height = 100
+	s.Chain.GetState().DPoSV2ActiveHeight = 10
+	txn = CreateTransactionByType(txn, s.Chain)
+	err, _ = txn.SpecialContextCheck()
+	s.EqualError(err, "transaction validate error: payload content invalid:producer already expired and dposv2 already started, can not update anything ")
+
+	s.Chain.BestChain.Height = 5
+	s.Chain.GetState().DPoSV2ActiveHeight = 2
+	txn = CreateTransactionByType(txn, s.Chain)
+	err, _ = txn.SpecialContextCheck()
+	s.EqualError(err, "transaction validate error: payload content invalid:Pending Canceled or Returned producer can  not update  StakeUntil ")
+
+	producer := s.Chain.GetState().GetProducer(publicKey1)
+	producer.SetState(state.Active)
+	txn = CreateTransactionByType(txn, s.Chain)
+	err, _ = txn.SpecialContextCheck()
+	s.NoError(err)
+}
+
+func (s *txValidatorTestSuite) TestCheckUpdateProducerV2Transaction() {
+	publicKeyStr1 := "031e12374bae471aa09ad479f66c2306f4bcc4ca5b754609a82a1839b94b4721b9"
+	publicKey1, _ := common.HexStringToBytes(publicKeyStr1)
+	privateKeyStr1 := "94396a69462208b8fd96d83842855b867d3b0e663203cb31d0dfaec0362ec034"
+	privateKey1, _ := common.HexStringToBytes(privateKeyStr1)
+	publicKeyStr2 := "027c4f35081821da858f5c7197bac5e33e77e5af4a3551285f8a8da0a59bd37c45"
+	publicKey2, _ := common.HexStringToBytes(publicKeyStr2)
+	errPublicKeyStr := "02b611f07341d5ddce51b5c4366aca7b889cfe0993bd63fd4"
+	errPublicKey, _ := common.HexStringToBytes(errPublicKeyStr)
+
+	registerPayload := &payload.ProducerInfo{
+		OwnerPublicKey: publicKey1,
+		NodePublicKey:  publicKey1,
+		NickName:       "",
+		Url:            "",
+		Location:       1,
+		NetAddress:     "",
+		StakeUntil:     100,
+	}
+	programs := []*program.Program{{
+		Code:      getCodeByPubKeyStr(publicKeyStr1),
+		Parameter: nil,
+	}}
+
+	txn := functions.CreateTransaction(
+		0,
+		common2.RegisterProducer,
+		0,
+		registerPayload,
+		[]*common2.Attribute{},
+		[]*common2.Input{},
+		[]*common2.Output{},
+		0,
+		programs,
+	)
+
+	s.CurrentHeight = 1
+	ckpManager := checkpoint.NewManager(&config.DefaultParams)
+	ckpManager.SetDataPath(filepath.Join(config.DefaultParams.DataDir, "checkpoints"))
+	s.Chain.SetCRCommittee(crstate.NewCommittee(s.Chain.GetParams(), ckpManager))
+	s.Chain.SetState(state.NewState(s.Chain.GetParams(), nil, nil, nil,
+		func() bool { return false }, func(programHash common.Uint168) (common.Fixed64,
+			error) {
+			amount := common.Fixed64(0)
+			utxos, err := s.Chain.GetDB().GetFFLDB().GetUTXO(&programHash)
+			if err != nil {
+				return amount, err
+			}
+			for _, utxo := range utxos {
+				amount += utxo.Value
+			}
+			return amount, nil
+		}, nil, nil, nil, nil, nil, nil))
+	s.Chain.GetCRCommittee().RegisterFuncitons(&crstate.CommitteeFuncsConfig{
+		GetTxReference:                   s.Chain.UTXOCache.GetTxReference,
+		GetUTXO:                          s.Chain.GetDB().GetFFLDB().GetUTXO,
+		GetHeight:                        func() uint32 { return s.CurrentHeight },
+		CreateCRAppropriationTransaction: s.Chain.CreateCRCAppropriationTransaction,
+	})
+	block := &types.Block{
+		Transactions: []interfaces.Transaction{
+			txn,
+		},
+		Header: common2.Header{Height: s.CurrentHeight},
+	}
+	s.Chain.GetState().ProcessBlock(block, nil, 0)
+
+	txn.SetTxType(common2.UpdateProducer)
+	updatePayload := &payload.ProducerInfo{
+		OwnerPublicKey: publicKey1,
+		NodePublicKey:  publicKey1,
+		NickName:       "",
+		Url:            "",
+		Location:       2,
+		NetAddress:     "",
+		StakeUntil:     1000,
+	}
+	txn.SetPayload(updatePayload)
+	s.CurrentHeight++
+	block.Header = common2.Header{Height: s.CurrentHeight}
+	s.Chain.GetState().ProcessBlock(block, nil, 0)
+	txn = CreateTransactionByType(txn, s.Chain)
+	err, _ := txn.SpecialContextCheck()
+	s.EqualError(err, "transaction validate error: payload content invalid:field NickName has invalid string length")
+	updatePayload.NickName = "nick name"
+
+	updatePayload.Url = "www.elastos.org"
+	updatePayload.OwnerPublicKey = errPublicKey
+	err, _ = txn.SpecialContextCheck()
+	s.EqualError(err, "transaction validate error: payload content invalid:invalid owner public key in payload")
+
+	// check node public when block height is higher than h2
+	originHeight := config.DefaultParams.PublicDPOSHeight
+	updatePayload.NodePublicKey = errPublicKey
+	config.DefaultParams.PublicDPOSHeight = 0
+	err, _ = txn.SpecialContextCheck()
+	s.EqualError(err, "transaction validate error: payload content invalid:invalid node public key in payload")
+	config.DefaultParams.PublicDPOSHeight = originHeight
+
+	// check node public key same with CRC
+	txn.Payload().(*payload.ProducerInfo).OwnerPublicKey = publicKey2
+	pk, _ := common.HexStringToBytes(config.DefaultParams.DPoSConfiguration.CRCArbiters[0])
+	txn.Payload().(*payload.ProducerInfo).NodePublicKey = pk
+	config.DefaultParams.PublicDPOSHeight = 0
+	err, _ = txn.SpecialContextCheck()
+	config.DefaultParams.PublicDPOSHeight = originHeight
+	s.EqualError(err, "transaction validate error: payload content invalid:node public key can't equal with CR Arbiters")
+
+	// check owner public key same with CRC
+	txn.Payload().(*payload.ProducerInfo).NodePublicKey = publicKey2
+	pk, _ = common.HexStringToBytes(config.DefaultParams.DPoSConfiguration.CRCArbiters[0])
+	txn.Payload().(*payload.ProducerInfo).OwnerPublicKey = pk
+	config.DefaultParams.PublicDPOSHeight = 0
+	err, _ = txn.SpecialContextCheck()
+	config.DefaultParams.PublicDPOSHeight = originHeight
+	s.EqualError(err, "transaction validate error: payload content invalid:invalid signature in payload")
+
+	updatePayload.OwnerPublicKey = publicKey2
+	updatePayload.NodePublicKey = publicKey1
+	err, _ = txn.SpecialContextCheck()
+	s.EqualError(err, "transaction validate error: payload content invalid:invalid signature in payload")
+
+	updatePayload.OwnerPublicKey = publicKey1
+	updateSignBuf := new(bytes.Buffer)
+	err1 := updatePayload.SerializeUnsigned(updateSignBuf, payload.ProducerInfoVersion)
+	s.NoError(err1)
+	updateSig, err1 := crypto.Sign(privateKey1, updateSignBuf.Bytes())
+	s.NoError(err1)
+	updatePayload.Signature = updateSig
+	err, _ = txn.SpecialContextCheck()
+	s.NoError(err)
+
+	s.Chain.BestChain.Height = 10000
+	txn = CreateTransactionByType(txn, s.Chain)
+	err, _ = txn.SpecialContextCheck()
+	s.EqualError(err, "transaction validate error: payload content invalid:DPoS 2.0 node has expired")
+
+	s.Chain.BestChain.Height = 100
+	updatePayload.StakeUntil = 10
+	txn.SetPayload(updatePayload)
+	txn = CreateTransactionByType(txn, s.Chain)
+	err, _ = txn.SpecialContextCheck()
+	s.EqualError(err, "transaction validate error: payload content invalid:stake time is smaller than before")
+
+	s.Chain.BestChain.Height = 100
+	updatePayload.StakeUntil = 10000
+	txn.SetPayload(updatePayload)
+	txn = CreateTransactionByType(txn, s.Chain)
+	err, _ = txn.SpecialContextCheck()
+	s.NoError(err)
+}
+
+func (s *txValidatorTestSuite) TestCheckCancelProducerTransaction() {
+	publicKeyStr1 := "031e12374bae471aa09ad479f66c2306f4bcc4ca5b754609a82a1839b94b4721b9"
+	publicKey1, _ := common.HexStringToBytes(publicKeyStr1)
+	privateKeyStr1 := "94396a69462208b8fd96d83842855b867d3b0e663203cb31d0dfaec0362ec034"
+	privateKey1, _ := common.HexStringToBytes(privateKeyStr1)
 	publicKeyStr2 := "027c4f35081821da858f5c7197bac5e33e77e5af4a3551285f8a8da0a59bd37c45"
 	publicKey2, _ := common.HexStringToBytes(publicKeyStr2)
 	errPublicKeyStr := "02b611f07341d5ddce51b5c4366aca7b889cfe0993bd63fd4"
@@ -2317,11 +2632,273 @@ func (s *txValidatorTestSuite) TestCheckCancelProducerTransaction() {
 	cancelPayload.OwnerPublicKey = publicKey2
 	err, _ = txn.SpecialContextCheck()
 	s.EqualError(err, "transaction validate error: payload content invalid:invalid signature in payload")
+
+	buf := new(bytes.Buffer)
+	cancelPayload.OwnerPublicKey = publicKey1
+	cancelPayload.SerializeUnsigned(buf, 0)
+
+	sig, _ := crypto.Sign(privateKey1, buf.Bytes())
+	cancelPayload.Signature = sig
+	s.Chain.SetState(state.NewState(s.Chain.GetParams(), nil, nil, nil,
+		func() bool { return false }, func(programHash common.Uint168) (common.Fixed64,
+			error) {
+			amount := common.Fixed64(0)
+			utxos, err := s.Chain.GetDB().GetFFLDB().GetUTXO(&programHash)
+			if err != nil {
+				return amount, err
+			}
+			for _, utxo := range utxos {
+				amount += utxo.Value
+			}
+			return amount, nil
+		}, nil, nil, nil, nil, nil, nil))
+	err, _ = txn.SpecialContextCheck()
+	s.EqualError(err, "transaction validate error: payload content invalid:getting unknown producer")
+
+	{
+		registerPayload := &payload.ProducerInfo{
+			OwnerPublicKey: publicKey1,
+			NodePublicKey:  publicKey1,
+			NickName:       "",
+			Url:            "",
+			Location:       1,
+			NetAddress:     "",
+		}
+		programs = []*program.Program{{
+			Code:      getCodeByPubKeyStr(publicKeyStr1),
+			Parameter: nil,
+		}}
+
+		txn1 := functions.CreateTransaction(
+			0,
+			common2.RegisterProducer,
+			0,
+			registerPayload,
+			[]*common2.Attribute{},
+			[]*common2.Input{},
+			[]*common2.Output{},
+			0,
+			programs,
+		)
+
+		s.CurrentHeight = 1
+		ckpManager := checkpoint.NewManager(&config.DefaultParams)
+		ckpManager.SetDataPath(filepath.Join(config.DefaultParams.DataDir, "checkpoints"))
+		s.Chain.SetCRCommittee(crstate.NewCommittee(s.Chain.GetParams(), ckpManager))
+		s.Chain.SetState(state.NewState(s.Chain.GetParams(), nil, nil, nil,
+			func() bool { return false }, func(programHash common.Uint168) (common.Fixed64,
+				error) {
+				amount := common.Fixed64(0)
+				utxos, err := s.Chain.GetDB().GetFFLDB().GetUTXO(&programHash)
+				if err != nil {
+					return amount, err
+				}
+				for _, utxo := range utxos {
+					amount += utxo.Value
+				}
+				return amount, nil
+			}, nil, nil, nil, nil, nil, nil))
+		s.Chain.GetCRCommittee().RegisterFuncitons(&crstate.CommitteeFuncsConfig{
+			GetTxReference:                   s.Chain.UTXOCache.GetTxReference,
+			GetUTXO:                          s.Chain.GetDB().GetFFLDB().GetUTXO,
+			GetHeight:                        func() uint32 { return s.CurrentHeight },
+			CreateCRAppropriationTransaction: s.Chain.CreateCRCAppropriationTransaction,
+		})
+		block := &types.Block{
+			Transactions: []interfaces.Transaction{
+				txn1,
+			},
+			Header: common2.Header{Height: s.CurrentHeight},
+		}
+		s.Chain.GetState().ProcessBlock(block, nil, 0)
+
+		err, _ = txn.SpecialContextCheck()
+		s.NoError(err)
+	}
+
+	{
+		registerPayload := &payload.ProducerInfo{
+			OwnerPublicKey: publicKey1,
+			NodePublicKey:  publicKey1,
+			NickName:       "",
+			Url:            "",
+			Location:       1,
+			NetAddress:     "",
+			StakeUntil:     100,
+		}
+		programs = []*program.Program{{
+			Code:      getCodeByPubKeyStr(publicKeyStr1),
+			Parameter: nil,
+		}}
+
+		txn1 := functions.CreateTransaction(
+			0,
+			common2.RegisterProducer,
+			0,
+			registerPayload,
+			[]*common2.Attribute{},
+			[]*common2.Input{},
+			[]*common2.Output{},
+			0,
+			programs,
+		)
+
+		s.CurrentHeight = 1
+		ckpManager := checkpoint.NewManager(&config.DefaultParams)
+		ckpManager.SetDataPath(filepath.Join(config.DefaultParams.DataDir, "checkpoints"))
+		s.Chain.SetCRCommittee(crstate.NewCommittee(s.Chain.GetParams(), ckpManager))
+		s.Chain.SetState(state.NewState(s.Chain.GetParams(), nil, nil, nil,
+			func() bool { return false }, func(programHash common.Uint168) (common.Fixed64,
+				error) {
+				amount := common.Fixed64(0)
+				utxos, err := s.Chain.GetDB().GetFFLDB().GetUTXO(&programHash)
+				if err != nil {
+					return amount, err
+				}
+				for _, utxo := range utxos {
+					amount += utxo.Value
+				}
+				return amount, nil
+			}, nil, nil, nil, nil, nil, nil))
+		s.Chain.GetCRCommittee().RegisterFuncitons(&crstate.CommitteeFuncsConfig{
+			GetTxReference:                   s.Chain.UTXOCache.GetTxReference,
+			GetUTXO:                          s.Chain.GetDB().GetFFLDB().GetUTXO,
+			GetHeight:                        func() uint32 { return s.CurrentHeight },
+			CreateCRAppropriationTransaction: s.Chain.CreateCRCAppropriationTransaction,
+		})
+		block := &types.Block{
+			Transactions: []interfaces.Transaction{
+				txn1,
+			},
+			Header: common2.Header{Height: s.CurrentHeight},
+		}
+		s.Chain.GetState().ProcessBlock(block, nil, 0)
+
+		err, _ = txn.SpecialContextCheck()
+		s.EqualError(err, "transaction validate error: payload content invalid:can not cancel DPoS V2 producer")
+	}
+
+	{
+		registerPayload := &payload.ProducerInfo{
+			OwnerPublicKey: publicKey1,
+			NodePublicKey:  publicKey1,
+			NickName:       "",
+			Url:            "",
+			Location:       1,
+			NetAddress:     "",
+		}
+		programs = []*program.Program{{
+			Code:      getCodeByPubKeyStr(publicKeyStr1),
+			Parameter: nil,
+		}}
+
+		txn1 := functions.CreateTransaction(
+			0,
+			common2.RegisterProducer,
+			0,
+			registerPayload,
+			[]*common2.Attribute{},
+			[]*common2.Input{},
+			[]*common2.Output{},
+			0,
+			programs,
+		)
+
+		s.CurrentHeight = 1
+		ckpManager := checkpoint.NewManager(&config.DefaultParams)
+		ckpManager.SetDataPath(filepath.Join(config.DefaultParams.DataDir, "checkpoints"))
+		s.Chain.SetCRCommittee(crstate.NewCommittee(s.Chain.GetParams(), ckpManager))
+		s.Chain.SetState(state.NewState(s.Chain.GetParams(), nil, nil, nil,
+			func() bool { return false }, func(programHash common.Uint168) (common.Fixed64,
+				error) {
+				amount := common.Fixed64(0)
+				utxos, err := s.Chain.GetDB().GetFFLDB().GetUTXO(&programHash)
+				if err != nil {
+					return amount, err
+				}
+				for _, utxo := range utxos {
+					amount += utxo.Value
+				}
+				return amount, nil
+			}, nil, nil, nil, nil, nil, nil))
+		s.Chain.GetCRCommittee().RegisterFuncitons(&crstate.CommitteeFuncsConfig{
+			GetTxReference:                   s.Chain.UTXOCache.GetTxReference,
+			GetUTXO:                          s.Chain.GetDB().GetFFLDB().GetUTXO,
+			GetHeight:                        func() uint32 { return s.CurrentHeight },
+			CreateCRAppropriationTransaction: s.Chain.CreateCRCAppropriationTransaction,
+		})
+		block := &types.Block{
+			Transactions: []interfaces.Transaction{
+				txn1,
+			},
+			Header: common2.Header{Height: s.CurrentHeight},
+		}
+		s.Chain.GetState().ProcessBlock(block, nil, 0)
+
+		txn2 := functions.CreateTransaction(
+			0,
+			common2.UpdateProducer,
+			0,
+			nil,
+			[]*common2.Attribute{},
+			[]*common2.Input{},
+			[]*common2.Output{},
+			0,
+			programs,
+		)
+		updatePayload := &payload.ProducerInfo{
+			OwnerPublicKey: publicKey1,
+			NodePublicKey:  publicKey1,
+			NickName:       "nick name",
+			Url:            "www.elastos.org",
+			Location:       2,
+			NetAddress:     "",
+			StakeUntil:     10,
+		}
+		txn2.SetPayload(updatePayload)
+
+		updateSignBuf := new(bytes.Buffer)
+		err1 := updatePayload.SerializeUnsigned(updateSignBuf, payload.ProducerInfoVersion)
+		s.NoError(err1)
+		updateSig, err1 := crypto.Sign(privateKey1, updateSignBuf.Bytes())
+		s.NoError(err1)
+		updatePayload.Signature = updateSig
+		s.Chain.GetState().GetProducer(publicKey1).SetState(state.Active)
+		s.Chain.GetParams().DPoSConfiguration.DPoSV2DepositCoinMinLockTime = 1
+		s.Chain.BestChain.Height = 1
+		txn2 = CreateTransactionByType(txn2, s.Chain)
+		err, _ = txn2.SpecialContextCheck()
+		s.NoError(err)
+		block = &types.Block{
+			Transactions: []interfaces.Transaction{
+				txn2,
+			},
+			Header: common2.Header{Height: s.CurrentHeight},
+		}
+		s.Chain.GetState().ProcessBlock(block, nil, 0)
+
+		err, _ = txn.SpecialContextCheck()
+		s.EqualError(err, "transaction validate error: payload content invalid:can not cancel DPoS V1&V2 producer")
+
+		s.Chain.GetState().GetProducer(publicKey1).SetState(state.Illegal)
+		s.Chain.BestChain.Height = 1000
+		txn = CreateTransactionByType(txn, s.Chain)
+		err, _ = txn.SpecialContextCheck()
+		s.EqualError(err, "transaction validate error: payload content invalid:can not cancel this producer")
+
+		s.Chain.GetState().GetProducer(publicKey1).SetState(state.Active)
+		txn = CreateTransactionByType(txn, s.Chain)
+		err, _ = txn.SpecialContextCheck()
+		s.NoError(err)
+	}
+
 }
 
 func (s *txValidatorTestSuite) TestCheckActivateProducerTransaction() {
-	publicKeyStr1 := "02b611f07341d5ddce51b5c4366aca7b889cfe0993bd63fd47e944507292ea08dd"
+	publicKeyStr1 := "031e12374bae471aa09ad479f66c2306f4bcc4ca5b754609a82a1839b94b4721b9"
 	publicKey1, _ := common.HexStringToBytes(publicKeyStr1)
+	privateKeyStr1 := "94396a69462208b8fd96d83842855b867d3b0e663203cb31d0dfaec0362ec034"
+	privateKey1, _ := common.HexStringToBytes(privateKeyStr1)
 	publicKeyStr2 := "027c4f35081821da858f5c7197bac5e33e77e5af4a3551285f8a8da0a59bd37c45"
 	publicKey2, _ := common.HexStringToBytes(publicKeyStr2)
 	errPublicKeyStr := "02b611f07341d5ddce51b5c4366aca7b889cfe0993bd63fd4"
@@ -2366,6 +2943,167 @@ func (s *txValidatorTestSuite) TestCheckActivateProducerTransaction() {
 	err, _ = txn.SpecialContextCheck()
 	s.EqualError(err,
 		"transaction validate error: payload content invalid:invalid signature in payload")
+
+	buf := new(bytes.Buffer)
+	activatePayload.NodePublicKey = publicKey1
+	activatePayload.SerializeUnsigned(buf, 0)
+	sig, _ := crypto.Sign(privateKey1, buf.Bytes())
+	activatePayload.Signature = sig
+	err, _ = txn.SpecialContextCheck()
+	s.EqualError(err,
+		"transaction validate error: payload content invalid:getting unknown producer")
+
+	{
+		registerPayload := &payload.ProducerInfo{
+			OwnerPublicKey: publicKey1,
+			NodePublicKey:  publicKey1,
+			NickName:       "",
+			Url:            "",
+			Location:       1,
+			NetAddress:     "",
+		}
+		programs = []*program.Program{{
+			Code:      getCodeByPubKeyStr(publicKeyStr1),
+			Parameter: nil,
+		}}
+
+		txn1 := functions.CreateTransaction(
+			0,
+			common2.RegisterProducer,
+			0,
+			registerPayload,
+			[]*common2.Attribute{},
+			[]*common2.Input{},
+			[]*common2.Output{},
+			0,
+			programs,
+		)
+
+		s.CurrentHeight = 1
+		ckpManager := checkpoint.NewManager(&config.DefaultParams)
+		ckpManager.SetDataPath(filepath.Join(config.DefaultParams.DataDir, "checkpoints"))
+		s.Chain.SetCRCommittee(crstate.NewCommittee(s.Chain.GetParams(), ckpManager))
+		s.Chain.SetState(state.NewState(s.Chain.GetParams(), nil, nil, nil,
+			func() bool { return false }, func(programHash common.Uint168) (common.Fixed64,
+				error) {
+				amount := common.Fixed64(0)
+				utxos, err := s.Chain.GetDB().GetFFLDB().GetUTXO(&programHash)
+				if err != nil {
+					return amount, err
+				}
+				for _, utxo := range utxos {
+					amount += utxo.Value
+				}
+				return amount, nil
+			}, nil, nil, nil, nil, nil, nil))
+		s.Chain.GetCRCommittee().RegisterFuncitons(&crstate.CommitteeFuncsConfig{
+			GetTxReference:                   s.Chain.UTXOCache.GetTxReference,
+			GetUTXO:                          s.Chain.GetDB().GetFFLDB().GetUTXO,
+			GetHeight:                        func() uint32 { return s.CurrentHeight },
+			CreateCRAppropriationTransaction: s.Chain.CreateCRCAppropriationTransaction,
+		})
+		block := &types.Block{
+			Transactions: []interfaces.Transaction{
+				txn1,
+			},
+			Header: common2.Header{Height: s.CurrentHeight},
+		}
+		s.Chain.GetState().ProcessBlock(block, nil, 0)
+
+		err, _ = txn.SpecialContextCheck()
+		s.EqualError(err,
+			"transaction validate error: payload content invalid:can not activate this producer")
+
+		s.Chain.GetState().GetProducer(publicKey1).SetState(state.Inactive)
+		txn = CreateTransactionByType(txn, s.Chain)
+		txn.SetParameters(&transaction.TransactionParameters{
+			Transaction: txn,
+			BlockHeight: 0,
+			TimeStamp:   s.Chain.BestChain.Timestamp,
+			Config:      s.Chain.GetParams(),
+			BlockChain:  s.Chain,
+		})
+		err, _ = txn.SpecialContextCheck()
+		s.EqualError(err, "transaction validate error: payload content invalid:insufficient deposit amount")
+
+		s.Chain.GetState().GetProducer(publicKey1).SetTotalAmount(500100000000)
+		s.Chain.GetParams().CRConfiguration.CRVotingStartHeight = 1
+		s.Chain.BestChain.Height = 10
+		txn = CreateTransactionByType(txn, s.Chain)
+		err, _ = txn.SpecialContextCheck()
+		s.NoError(err)
+	}
+
+	{
+		registerPayload := &payload.ProducerInfo{
+			OwnerPublicKey: publicKey1,
+			NodePublicKey:  publicKey1,
+			NickName:       "",
+			Url:            "",
+			Location:       1,
+			NetAddress:     "",
+			StakeUntil:     100,
+		}
+		programs = []*program.Program{{
+			Code:      getCodeByPubKeyStr(publicKeyStr1),
+			Parameter: nil,
+		}}
+
+		txn1 := functions.CreateTransaction(
+			0,
+			common2.RegisterProducer,
+			0,
+			registerPayload,
+			[]*common2.Attribute{},
+			[]*common2.Input{},
+			[]*common2.Output{},
+			0,
+			programs,
+		)
+
+		s.CurrentHeight = 1
+		ckpManager := checkpoint.NewManager(&config.DefaultParams)
+		ckpManager.SetDataPath(filepath.Join(config.DefaultParams.DataDir, "checkpoints"))
+		s.Chain.SetCRCommittee(crstate.NewCommittee(s.Chain.GetParams(), ckpManager))
+		s.Chain.SetState(state.NewState(s.Chain.GetParams(), nil, nil, nil,
+			func() bool { return false }, func(programHash common.Uint168) (common.Fixed64,
+				error) {
+				amount := common.Fixed64(0)
+				utxos, err := s.Chain.GetDB().GetFFLDB().GetUTXO(&programHash)
+				if err != nil {
+					return amount, err
+				}
+				for _, utxo := range utxos {
+					amount += utxo.Value
+				}
+				return amount, nil
+			}, nil, nil, nil, nil, nil, nil))
+		s.Chain.GetCRCommittee().RegisterFuncitons(&crstate.CommitteeFuncsConfig{
+			GetTxReference:                   s.Chain.UTXOCache.GetTxReference,
+			GetUTXO:                          s.Chain.GetDB().GetFFLDB().GetUTXO,
+			GetHeight:                        func() uint32 { return s.CurrentHeight },
+			CreateCRAppropriationTransaction: s.Chain.CreateCRCAppropriationTransaction,
+		})
+		block := &types.Block{
+			Transactions: []interfaces.Transaction{
+				txn1,
+			},
+			Header: common2.Header{Height: s.CurrentHeight},
+		}
+		s.Chain.GetState().ProcessBlock(block, nil, 0)
+
+		s.Chain.GetState().GetProducer(publicKey1).SetState(state.Inactive)
+		err, _ = txn.SpecialContextCheck()
+		s.EqualError(err, "transaction validate error: payload content invalid:insufficient deposit amount")
+
+		s.Chain.GetState().GetProducer(publicKey1).SetTotalAmount(200100000000)
+		s.Chain.GetParams().CRConfiguration.CRVotingStartHeight = 1
+		s.Chain.BestChain.Height = 10
+		txn = CreateTransactionByType(txn, s.Chain)
+		err, _ = txn.SpecialContextCheck()
+		s.NoError(err)
+	}
+
 }
 
 func (s *txValidatorTestSuite) TestCheckRegisterCRTransaction() {
@@ -4323,7 +5061,6 @@ func (s *txValidatorTestSuite) TestCheckCRCProposalReviewTransaction() {
 func (s *txValidatorTestSuite) getCRCProposalWithdrawTx(crPublicKeyStr,
 	crPrivateKeyStr string, recipient,
 	commitee *common.Uint168, recipAmout, commiteAmout common.Fixed64, payloadVersion byte) interfaces.Transaction {
-	ELAAssetID, _ := common.Uint256FromHexString(core.ELAAssetID)
 	privateKey1, _ := common.HexStringToBytes(crPrivateKeyStr)
 	pkBytes, _ := common.HexStringToBytes(crPublicKeyStr)
 
@@ -4371,12 +5108,12 @@ func (s *txValidatorTestSuite) getCRCProposalWithdrawTx(crPublicKeyStr,
 	})
 	txn.SetOutputs([]*common2.Output{
 		{
-			AssetID:     *ELAAssetID,
+			AssetID:     core.ELAAssetID,
 			ProgramHash: *recipient,
 			Value:       recipAmout,
 		},
 		{
-			AssetID:     *ELAAssetID,
+			AssetID:     core.ELAAssetID,
 			ProgramHash: *commitee,
 			Value:       commiteAmout,
 		},
@@ -4396,7 +5133,6 @@ func (s *txValidatorTestSuite) TestCheckCRCProposalWithdrawTransaction() {
 	RecipientAddress := "ERyUmNH51roR9qfru37Kqkaok2NghR7L5U"
 	CRExpensesAddress := "CREXPENSESXXXXXXXXXXXXXXXXXX4UdT6b"
 	NOCRExpensesAddress := "EWm2ZGeSyDBBAsVSsvSvspPKV4wQBKPjUk"
-	ELAAssetID, _ := common.Uint256FromHexString(core.ELAAssetID)
 	Recipient, _ := common.Uint168FromAddress(RecipientAddress)
 	tenureHeight := config.DefaultParams.CRConfiguration.CRCommitteeStartHeight
 	pk1Bytes, _ := common.HexStringToBytes(publicKeyStr1)
@@ -4415,12 +5151,12 @@ func (s *txValidatorTestSuite) TestCheckCRCProposalWithdrawTransaction() {
 	}
 	outputs := []*common2.Output{
 		{
-			AssetID:     *ELAAssetID,
+			AssetID:     core.ELAAssetID,
 			ProgramHash: *CRExpensesAddressU168,
 			Value:       common.Fixed64(60 * ela),
 		},
 		{
-			AssetID:     *ELAAssetID,
+			AssetID:     core.ELAAssetID,
 			ProgramHash: *NOCRExpensesAddressU168,
 			Value:       common.Fixed64(600 * ela),
 		},
@@ -4550,7 +5286,7 @@ func (s *txValidatorTestSuite) TestCheckCRCProposalWithdrawTransaction() {
 	}
 	outputs = []*common2.Output{
 		{
-			AssetID:     *ELAAssetID,
+			AssetID:     core.ELAAssetID,
 			ProgramHash: *CRExpensesAddressU168,
 			Value:       common.Fixed64(61 * ela),
 		},
@@ -4570,7 +5306,7 @@ func (s *txValidatorTestSuite) TestCheckCRCProposalWithdrawTransaction() {
 	s.EqualError(err, "transaction validate error: payload content invalid:withdrawPayload.Amount != withdrawAmount ")
 	outputs = []*common2.Output{
 		{
-			AssetID:     *ELAAssetID,
+			AssetID:     core.ELAAssetID,
 			ProgramHash: *CRExpensesAddressU168,
 			Value:       common.Fixed64(61 * ela),
 		},
@@ -5415,10 +6151,16 @@ func (s *txValidatorTestSuite) TestCheckReturnDepositCoinTransaction() {
 	rdTx.Outputs()[0].Value = 4999 * 100000000
 	err, _ = rdTx.SpecialContextCheck()
 	s.NoError(err)
+
+	_, pk3, _ := crypto.GenerateKeyPair()
+	code3, _ := contract.CreateStandardRedeemScript(pk3)
+	rdTx.Programs()[0].Code = code3
+	err, _ = rdTx.SpecialContextCheck()
+	s.EqualError(err, "transaction validate error: payload content invalid:signer must be producer")
+
 }
 
 func (s *txValidatorTestSuite) TestCheckStakeTransaction2() {
-	ELAAssetID, _ := common.Uint256FromHexString(core.ELAAssetID)
 	s.CurrentHeight = 1
 	_, pk, _ := crypto.GenerateKeyPair()
 	//publicKey, _ := pk.EncodePoint(true)
@@ -5443,7 +6185,7 @@ func (s *txValidatorTestSuite) TestCheckStakeTransaction2() {
 	)
 	tx1.SetOutputs([]*common2.Output{
 		&common2.Output{
-			AssetID:     *ELAAssetID,
+			AssetID:     core.ELAAssetID,
 			Value:       2000,
 			ProgramHash: blockchain.FoundationAddress,
 		},
@@ -5457,7 +6199,7 @@ func (s *txValidatorTestSuite) TestCheckStakeTransaction2() {
 	}
 	outputs := []*common2.Output{
 		{
-			AssetID:     *ELAAssetID,
+			AssetID:     core.ELAAssetID,
 			ProgramHash: *stakeHash,
 			Type:        common2.OTStake,
 			Value:       common.Fixed64(1000 * 1e8),
@@ -5465,7 +6207,7 @@ func (s *txValidatorTestSuite) TestCheckStakeTransaction2() {
 				StakeAddress: *stakeHash,
 			},
 		}, {
-			AssetID:     *ELAAssetID,
+			AssetID:     core.ELAAssetID,
 			ProgramHash: *cont.ToProgramHash(),
 			Type:        common2.OTNone,
 			Value:       common.Fixed64(1000 * 1e8),
@@ -5499,10 +6241,12 @@ func (s *txValidatorTestSuite) TestCheckStakeTransaction2() {
 	err := txn.CheckTransactionOutput()
 	s.NoError(err)
 
+	err2, _ := txn.SpecialContextCheck()
+	s.NoError(err2)
+
 }
 
 func (s *txValidatorTestSuite) TestCheckReutrnVotesTransaction() {
-	ELAAssetID, _ := common.Uint256FromHexString(core.ELAAssetID)
 	s.CurrentHeight = 1
 	_, pk, _ := crypto.GenerateKeyPair()
 	//publicKey, _ := pk.EncodePoint(true)
@@ -5528,7 +6272,7 @@ func (s *txValidatorTestSuite) TestCheckReutrnVotesTransaction() {
 	)
 	tx1.SetOutputs([]*common2.Output{
 		&common2.Output{
-			AssetID:     *ELAAssetID,
+			AssetID:     core.ELAAssetID,
 			Value:       1000,
 			ProgramHash: blockchain.FoundationAddress,
 		},
@@ -5542,7 +6286,7 @@ func (s *txValidatorTestSuite) TestCheckReutrnVotesTransaction() {
 	}
 	outputs := []*common2.Output{
 		{
-			AssetID:     *ELAAssetID,
+			AssetID:     core.ELAAssetID,
 			ProgramHash: *cont.ToProgramHash(),
 			Type:        common2.OTNone,
 			Value:       common.Fixed64(1000 * 1e8),
@@ -5582,13 +6326,11 @@ func (s *txValidatorTestSuite) TestCheckReutrnVotesTransaction() {
 
 	err3 := txn.CheckTransactionPayload()
 	s.NoError(err3)
-
 }
 
 func (s *txValidatorTestSuite) TestCheckReturnVotesTransaction2() {
 	private := "97751342c819562a8d65059d759494fc9b2b565232bef047d1eae93f7c97baed"
 	publicKey := "0228329FD319A5444F2265D08482B8C09360AE59945C50FA5211548C0C11D31F08"
-	ELAAssetID, _ := common.Uint256FromHexString(core.ELAAssetID)
 	publicKeyBytes, _ := common.HexStringToBytes(publicKey)
 	code := getCode(publicKeyBytes)
 	c, _ := contract.CreateStakeContractByCode(code)
@@ -5656,7 +6398,7 @@ func (s *txValidatorTestSuite) TestCheckReturnVotesTransaction2() {
 		[]*common2.Input{},
 		[]*common2.Output{
 			{
-				AssetID:     *ELAAssetID,
+				AssetID:     core.ELAAssetID,
 				Value:       -1,
 				OutputLock:  0,
 				ProgramHash: *stakeAddress_uint168,
@@ -5689,7 +6431,7 @@ func (s *txValidatorTestSuite) TestCheckReturnVotesTransaction2() {
 		[]*common2.Input{},
 		[]*common2.Output{
 			{
-				AssetID:     *ELAAssetID,
+				AssetID:     core.ELAAssetID,
 				Value:       1,
 				OutputLock:  0,
 				ProgramHash: *stakeAddress_uint168,
@@ -5721,7 +6463,7 @@ func (s *txValidatorTestSuite) TestCheckReturnVotesTransaction2() {
 		[]*common2.Input{},
 		[]*common2.Output{
 			{
-				AssetID:     *ELAAssetID,
+				AssetID:     core.ELAAssetID,
 				Value:       1,
 				OutputLock:  0,
 				ProgramHash: *stakeAddress_uint168,
@@ -5951,6 +6693,12 @@ func (s *txValidatorTestSuite) TestCheckReturnCRDepositCoinTransaction() {
 	err, _ = rdTx.SpecialContextCheck()
 	s.NoError(err)
 
+	_, pk3, _ := crypto.GenerateKeyPair()
+	code3, _ := contract.CreateStandardRedeemScript(pk3)
+	rdTx.Programs()[0].Code = code3
+	err, _ = rdTx.SpecialContextCheck()
+	s.EqualError(err, "transaction validate error: payload content invalid:signer must be candidate or member")
+
 }
 
 func (s *txValidatorTestSuite) TestCheckOutputPayload() {
@@ -6098,6 +6846,8 @@ func (s *txValidatorTestSuite) TestCheckVoteOutputs() {
 
 	producersMap := make(map[string]struct{})
 	producersMap[publicKey1] = struct{}{}
+	producersMap2 := make(map[string]uint32)
+	producersMap2[publicKey1] = 0
 	crsMap := make(map[common.Uint168]struct{})
 
 	crsMap[*candidateCID1] = struct{}{}
@@ -6147,6 +6897,69 @@ func (s *txValidatorTestSuite) TestCheckVoteOutputs() {
 	})
 	s.EqualError(s.Chain.CheckVoteOutputs(config.DefaultParams.CRConfiguration.CRVotingStartHeight,
 		outputs2, references, producersMap, nil, crsMap),
+		"the output address of vote tx should exist in its input")
+
+	// Check vote output of v0 with crc type and with wrong output program hash
+	outputs20 := []*common2.Output{{Type: common2.OTNone}}
+	outputs20 = append(outputs20, &common2.Output{
+		Type:        common2.OTVote,
+		ProgramHash: *hash,
+		Payload: &outputpayload.VoteOutput{
+			Version: 1,
+			Contents: []outputpayload.VoteContent{
+				{
+					VoteType: outputpayload.CRCProposal,
+					CandidateVotes: []outputpayload.CandidateVotes{
+						{candidateCID3.Bytes(), 0},
+					},
+				},
+			},
+		},
+	})
+	s.EqualError(s.Chain.CheckVoteOutputs(config.DefaultParams.CRConfiguration.CRVotingStartHeight,
+		outputs20, references, producersMap, nil, crsMap),
+		"the output address of vote tx should exist in its input")
+
+	// Check vote output of v0 with crc type and with wrong output program hash
+	outputs21 := []*common2.Output{{Type: common2.OTNone}}
+	outputs21 = append(outputs21, &common2.Output{
+		Type:        common2.OTVote,
+		ProgramHash: *hash,
+		Payload: &outputpayload.VoteOutput{
+			Version: 1,
+			Contents: []outputpayload.VoteContent{
+				{
+					VoteType: outputpayload.CRCImpeachment,
+					CandidateVotes: []outputpayload.CandidateVotes{
+						{candidateCID3.Bytes(), 0},
+					},
+				},
+			},
+		},
+	})
+	s.EqualError(s.Chain.CheckVoteOutputs(config.DefaultParams.CRConfiguration.CRVotingStartHeight,
+		outputs21, references, producersMap, nil, crsMap),
+		"the output address of vote tx should exist in its input")
+
+	// Check vote output of v0 with crc type and with wrong output program hash
+	outputs22 := []*common2.Output{{Type: common2.OTNone}}
+	outputs22 = append(outputs22, &common2.Output{
+		Type:        common2.OTVote,
+		ProgramHash: *hash,
+		Payload: &outputpayload.VoteOutput{
+			Version: 1,
+			Contents: []outputpayload.VoteContent{
+				{
+					VoteType: outputpayload.DposV2,
+					CandidateVotes: []outputpayload.CandidateVotes{
+						{candidateCID3.Bytes(), 0},
+					},
+				},
+			},
+		},
+	})
+	s.EqualError(s.Chain.CheckVoteOutputs(config.DefaultParams.CRConfiguration.CRVotingStartHeight,
+		outputs22, references, producersMap, nil, crsMap),
 		"the output address of vote tx should exist in its input")
 
 	// Check vote output of v1 with wrong output program hash
@@ -6200,6 +7013,69 @@ func (s *txValidatorTestSuite) TestCheckVoteOutputs() {
 	s.EqualError(s.Chain.CheckVoteOutputs(config.DefaultParams.CRConfiguration.CRVotingStartHeight,
 		outputs4, references, producersMap, nil, crsMap),
 		"invalid vote output payload producer candidate: "+publicKey2)
+
+	// Check vote output of v0 with delegate type and invalid candidate
+	outputs23 := []*common2.Output{{Type: common2.OTNone}}
+	outputs23 = append(outputs23, &common2.Output{
+		Type:        common2.OTVote,
+		ProgramHash: *hash,
+		Payload: &outputpayload.VoteOutput{
+			Version: 0,
+			Contents: []outputpayload.VoteContent{
+				{
+					VoteType: outputpayload.DposV2,
+					CandidateVotes: []outputpayload.CandidateVotes{
+						{candidate2, 0},
+					},
+				},
+			},
+		},
+		OutputLock: 0,
+	})
+	s.EqualError(s.Chain.CheckVoteOutputs(config.DefaultParams.CRConfiguration.CRVotingStartHeight,
+		outputs23, references, producersMap, producersMap2, crsMap),
+		"invalid vote output payload producer candidate: "+publicKey2)
+
+	outputs23 = []*common2.Output{{Type: common2.OTNone}}
+	outputs23 = append(outputs23, &common2.Output{
+		Type:        common2.OTVote,
+		ProgramHash: *hash,
+		Payload: &outputpayload.VoteOutput{
+			Version: 0,
+			Contents: []outputpayload.VoteContent{
+				{
+					VoteType: outputpayload.DposV2,
+					CandidateVotes: []outputpayload.CandidateVotes{
+						{candidate1, 0},
+					},
+				},
+			},
+		},
+		OutputLock: 0,
+	})
+	s.EqualError(s.Chain.CheckVoteOutputs(config.DefaultParams.CRConfiguration.CRVotingStartHeight,
+		outputs23, references, producersMap, producersMap2, crsMap),
+		fmt.Sprintf("payload VoteDposV2Version not support vote DposV2"))
+
+	outputs23 = []*common2.Output{{Type: common2.OTNone}}
+	outputs23 = append(outputs23, &common2.Output{
+		Type:        common2.OTVote,
+		ProgramHash: *hash,
+		Payload: &outputpayload.VoteOutput{
+			Version: outputpayload.VoteDposV2Version,
+			Contents: []outputpayload.VoteContent{
+				{
+					VoteType: outputpayload.DposV2,
+					CandidateVotes: []outputpayload.CandidateVotes{
+						{candidate1, 0},
+					},
+				},
+			},
+		},
+		OutputLock: 0,
+	})
+	s.NoError(s.Chain.CheckVoteOutputs(config.DefaultParams.CRConfiguration.CRVotingStartHeight,
+		outputs23, references, producersMap, producersMap2, crsMap))
 
 	// Check vote output v0 with correct output program hash
 	s.NoError(s.Chain.CheckVoteOutputs(config.DefaultParams.CRConfiguration.CRVotingStartHeight,

@@ -899,12 +899,12 @@ func newRegisterV2Producer(L *lua.LState) int {
 			registerProducer.Signature = rpSig
 		} else {
 			fmt.Println("process AggregateSignatures")
-			rpSig, err := crypto.AggregateSignatures(account.PrivateKeys, common.Sha256D(rpSignBuf.Bytes()))
-			if err != nil {
-				fmt.Println(err)
-				os.Exit(1)
-			}
-			registerProducer.Signature = rpSig[:]
+			//rpSig, err := crypto.AggregateSignatures(account.PrivateKeys, common.Sha256D(rpSignBuf.Bytes()))
+			//if err != nil {
+			//	fmt.Println(err)
+			//	os.Exit(1)
+			//}
+			//registerProducer.Signature = rpSig[:]
 		}
 	}
 

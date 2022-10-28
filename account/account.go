@@ -34,7 +34,7 @@ type Account struct {
 type SchnorAccount struct {
 	Accounts     []*Account
 	PrivateKeys  []*big.Int
-	SumPublicKey []byte
+	SumPublicKey [33]byte
 	RedeemScript []byte
 	ProgramHash  *common.Uint168
 }

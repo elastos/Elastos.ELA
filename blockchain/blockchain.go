@@ -321,7 +321,8 @@ func (b *BlockChain) InitCheckpoint(interrupt <-chan struct{},
 				break
 			}
 
-			b.CkpManager.OnBlockSaved(block, nil, b.state.ConsensusAlgorithm == state.POW)
+			b.CkpManager.OnBlockSaved(block, nil,
+				b.state.ConsensusAlgorithm == state.POW, b.state.RevertToPOWBlockHeight)
 
 			// Notify process increase.
 			if increase != nil {
@@ -330,7 +331,7 @@ func (b *BlockChain) InitCheckpoint(interrupt <-chan struct{},
 		}
 		done <- struct{}{}
 	}()
-
+	log.Info("### 1 recoverFromGenesis end 0")
 	select {
 	case <-done:
 		arbiters.Start()
@@ -1309,21 +1310,19 @@ func (b *BlockChain) reorganizeChain(detachNodes, attachNodes *list.List) error 
 		}
 	}
 
+	forkCount := detachNodes.Len()
+	var recoverFromDefault bool
+	if forkCount >= checkpoint.MaxCheckPointFilesCount {
+		recoverFromDefault = true
+	}
+
 	// Disconnect blocks from the main chain.
+	var forkHeight uint32
 	for e := detachNodes.Front(); e != nil; e = e.Next() {
 		n := e.Value.(*BlockNode)
 		block, err := b.db.GetFFLDB().GetBlock(*n.Hash)
 		if err != nil {
 			return err
-		}
-
-		// roll back state about the last block before disconnect
-		if block.Height-1 >= b.chainParams.VoteStartHeight {
-			err = b.CkpManager.OnRollbackTo(
-				block.Height-1, b.state.ConsensusAlgorithm == state.POW)
-			if err != nil {
-				return err
-			}
 		}
 
 		log.Info("disconnect block:", block.Height)
@@ -1333,7 +1332,34 @@ func (b *BlockChain) reorganizeChain(detachNodes, attachNodes *list.List) error 
 		if err != nil {
 			return err
 		}
+
+		forkHeight = block.Height
 	}
+
+	// recover check point from genesis block
+	if recoverFromDefault {
+		//	err := b.chainParams.CkpManager.OnRollbackTo(
+		//		0, false)
+		//	if err != nil {
+		//		return err
+		//	}
+		//
+		log.Info("### 1 recoverFromDefault:", recoverFromDefault, "forkHeight:", forkHeight)
+		b.InitCheckpoint(nil, nil, nil)
+		log.Info("### 1 recoverFromDefault end")
+	} else {
+		// roll back state about the last block before disconnect
+		//if forkHeight >= b.chainParams.VoteStartHeight && !recoverFromDefault {
+		if forkHeight >= b.chainParams.VoteStartHeight {
+			log.Info("### 2 recoverFromDefault:", recoverFromDefault)
+			err := b.CkpManager.OnRollbackTo(
+				forkHeight, b.state.ConsensusAlgorithm == state.POW)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
 	// Connect the new best chain blocks.
 	for e := attachNodes.Front(); e != nil; e = e.Next() {
 		n := e.Value.(*BlockNode)
@@ -1351,7 +1377,8 @@ func (b *BlockChain) reorganizeChain(detachNodes, attachNodes *list.List) error 
 			Block:       block,
 			HaveConfirm: confirm != nil,
 			Confirm:     confirm,
-		}, nil, b.state.ConsensusAlgorithm == state.POW)
+		}, nil, b.state.ConsensusAlgorithm == state.POW,
+			b.state.RevertToPOWBlockHeight)
 		DefaultLedger.Arbitrators.DumpInfo(block.Height)
 		delete(b.blockCache, *n.Hash)
 		delete(b.confirmCache, *n.Hash)
@@ -1561,7 +1588,8 @@ func (b *BlockChain) maybeAcceptBlock(block *Block, confirm *payload.Confirm) (b
 			Block:       block,
 			HaveConfirm: confirm != nil,
 			Confirm:     confirm,
-		}, nil, b.state.ConsensusAlgorithm == state.POW)
+		}, nil, b.state.ConsensusAlgorithm == state.POW,
+			b.state.RevertToPOWBlockHeight)
 		DefaultLedger.Arbitrators.DumpInfo(block.Height)
 	}
 

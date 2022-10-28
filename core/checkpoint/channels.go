@@ -12,6 +12,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/utils"
@@ -28,13 +29,15 @@ type heightFileMsg struct {
 }
 
 type fileChannels struct {
-	cfg *config.Configuration
+	cfg *config.CheckPointConfiguration
 
-	save    chan fileMsg
-	clean   chan fileMsg
-	reset   chan fileMsg
-	replace chan heightFileMsg
-	exit    chan struct{}
+	save          chan fileMsg
+	clean         chan fileMsg
+	reset         chan fileMsg
+	replace       chan heightFileMsg
+	remove        chan heightFileMsg
+	replaceRemove chan heightFileMsg
+	exit          chan struct{}
 }
 
 func (c *fileChannels) Save(checkpoint ICheckPoint, reply chan bool) {
@@ -48,6 +51,18 @@ func (c *fileChannels) Clean(checkpoint ICheckPoint, reply chan bool) {
 func (c *fileChannels) Replace(checkpoint ICheckPoint, reply chan bool,
 	height uint32) {
 	c.replace <- heightFileMsg{fileMsg{checkpoint, reply},
+		height}
+}
+
+func (c *fileChannels) Remove(checkpoint ICheckPoint, reply chan bool,
+	height uint32) {
+	c.remove <- heightFileMsg{fileMsg{checkpoint, reply},
+		height}
+}
+
+func (c *fileChannels) ReplaceRemove(checkpoint ICheckPoint, reply chan bool,
+	height uint32) {
+	c.replaceRemove <- heightFileMsg{fileMsg{checkpoint, reply},
 		height}
 }
 
@@ -80,6 +95,14 @@ func (c *fileChannels) messageLoop() {
 			if err := c.replaceCheckpoints(&heightMsg); err != nil {
 				heightMsg.checkpoint.LogError(err)
 			}
+		case heightMsg = <-c.remove:
+			if err := c.removeCheckpoints(&heightMsg); err != nil {
+				heightMsg.checkpoint.LogError(err)
+			}
+		case heightMsg = <-c.replaceRemove:
+			if err := c.replaceAndRemoveCheckpoints(&heightMsg); err != nil {
+				heightMsg.checkpoint.LogError(err)
+			}
 		case <-c.exit:
 			return
 		}
@@ -89,14 +112,14 @@ func (c *fileChannels) messageLoop() {
 func (c *fileChannels) saveCheckpoint(msg *fileMsg) (err error) {
 	defer c.replyMsg(msg)
 
-	dir := getCheckpointDirectory(c.cfg.CheckPointConfiguration.DataPath, msg.checkpoint)
+	dir := getCheckpointDirectory(c.cfg.DataPath, msg.checkpoint)
 	if !utils.FileExisted(dir) {
 		if err = os.MkdirAll(dir, 0700); err != nil {
 			return
 		}
 	}
 
-	filename := getFilePath(c.cfg.CheckPointConfiguration.DataPath, msg.checkpoint)
+	filename := getFilePath(c.cfg.DataPath, msg.checkpoint)
 	var file *os.File
 	file, err = os.OpenFile(filename,
 		os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0600)
@@ -114,7 +137,7 @@ func (c *fileChannels) saveCheckpoint(msg *fileMsg) (err error) {
 		return
 	}
 
-	if !c.cfg.CheckPointConfiguration.EnableHistory {
+	if !c.cfg.EnableHistory {
 		return c.cleanCheckpoints(msg, false, false)
 	}
 	return nil
@@ -126,7 +149,7 @@ func (c *fileChannels) cleanCheckpoints(msg *fileMsg,
 		defer c.replyMsg(msg)
 	}
 
-	dir := getCheckpointDirectory(c.cfg.CheckPointConfiguration.DataPath, msg.checkpoint)
+	dir := getCheckpointDirectory(c.cfg.DataPath, msg.checkpoint)
 	reserveCurrentName := getFileName(msg.checkpoint, msg.checkpoint.GetHeight())
 	reservePrevName := getFileName(msg.checkpoint,
 		msg.checkpoint.GetHeight()-msg.checkpoint.SavePeriod())
@@ -154,9 +177,9 @@ func (c *fileChannels) cleanCheckpoints(msg *fileMsg,
 func (c *fileChannels) replaceCheckpoints(msg *heightFileMsg) (err error) {
 	defer c.replyMsg(&msg.fileMsg)
 
-	defaultFullName := getDefaultPath(c.cfg.CheckPointConfiguration.DataPath, msg.checkpoint)
+	defaultFullName := getDefaultPath(c.cfg.DataPath, msg.checkpoint)
 	// source file is the previous saved checkpoint
-	sourceFullName := getFilePathByHeight(c.cfg.CheckPointConfiguration.DataPath, msg.checkpoint,
+	sourceFullName := getFilePathByHeight(c.cfg.DataPath, msg.checkpoint,
 		msg.height)
 	if !utils.FileExisted(sourceFullName) {
 		return errors.New(fmt.Sprintf("source file %s does not exist",
@@ -172,6 +195,52 @@ func (c *fileChannels) replaceCheckpoints(msg *heightFileMsg) (err error) {
 	return os.Rename(sourceFullName, defaultFullName)
 }
 
+func (c *fileChannels) replaceAndRemoveCheckpoints(msg *heightFileMsg) (err error) {
+	defer c.replyMsg(&msg.fileMsg)
+
+	defaultFullName := getDefaultPath(c.cfg.DataPath, msg.checkpoint)
+	// source file is the previous saved checkpoint
+	sourceFullName := getFilePathByHeight(c.cfg.DataPath, msg.checkpoint,
+		msg.height)
+	if !utils.FileExisted(sourceFullName) {
+		return errors.New(fmt.Sprintf("source file %s does not exist",
+			sourceFullName))
+	}
+
+	dir := getCheckpointDirectory(c.cfg.DataPath, msg.checkpoint)
+	var files []os.FileInfo
+	if files, err = ioutil.ReadDir(dir); err != nil {
+		return
+	}
+
+	for _, f := range files {
+		if strings.Contains(sourceFullName, f.Name()) {
+			continue
+		}
+
+		if e := os.Remove(filepath.Join(dir, f.Name())); e != nil {
+			msg.checkpoint.LogError(e)
+		}
+	}
+
+	return os.Rename(sourceFullName, defaultFullName)
+}
+
+func (c *fileChannels) removeCheckpoints(msg *heightFileMsg) (err error) {
+	defer c.replyMsg(&msg.fileMsg)
+
+	// source file is the previous saved checkpoint
+	sourceFullName := getFilePathByHeight(c.cfg.DataPath, msg.checkpoint,
+		msg.height)
+
+	if !utils.FileExisted(sourceFullName) {
+		return errors.New(fmt.Sprintf("source file %s does not exist",
+			sourceFullName))
+	}
+
+	return os.Remove(sourceFullName)
+}
+
 func (c *fileChannels) replyMsg(msg *fileMsg) {
 	if msg.reply != nil {
 		msg.reply <- true
@@ -180,12 +249,14 @@ func (c *fileChannels) replyMsg(msg *fileMsg) {
 
 func NewFileChannels(cfg *config.Configuration) *fileChannels {
 	channels := &fileChannels{
-		cfg:     cfg,
-		save:    make(chan fileMsg),
-		clean:   make(chan fileMsg),
-		reset:   make(chan fileMsg),
-		replace: make(chan heightFileMsg),
-		exit:    make(chan struct{}),
+		cfg:           &cfg.CheckPointConfiguration,
+		save:          make(chan fileMsg),
+		clean:         make(chan fileMsg),
+		reset:         make(chan fileMsg),
+		replace:       make(chan heightFileMsg),
+		remove:        make(chan heightFileMsg),
+		replaceRemove: make(chan heightFileMsg),
+		exit:          make(chan struct{}),
 	}
 	go channels.messageLoop()
 	return channels

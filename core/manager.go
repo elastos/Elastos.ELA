@@ -15,7 +15,13 @@ import (
 
 var (
 	// ELAAssetID represents the asset ID of ELA coin.
-	ELAAssetID = "b037db964a231458d2d6ffd5ea18944c4f90e63d547c5d3b9874df66a4ead0a3"
+	ELAAssetID = common2.Uint256{
+		0xb0, 0x37, 0xdb, 0x96, 0x4a, 0x23, 0x14,
+		0x58, 0xd2, 0xd6, 0xff, 0xd5, 0xea, 0x18,
+		0x94, 0x4c, 0x4f, 0x90, 0xe6, 0x3d, 0x54,
+		0x7c, 0x5d, 0x3b, 0x98, 0x74, 0xdf, 0x66,
+		0xa4, 0xea, 0xd0, 0xa3,
+	}
 
 	// attrNonce represents the nonce attribute used in the genesis coinbase transaction.
 	attrNonce = common.NewAttribute(common.Nonce, []byte{77, 101, 130, 33, 7, 252, 253, 82})
@@ -55,7 +61,6 @@ func GenesisBlock(foundationAddr string) *types.Block {
 		[]*program.Program{},
 	)
 
-	assetID, _ := common2.Uint256FromHexString(ELAAssetID)
 	coinBase := functions.CreateTransaction(
 		0,
 		common.CoinBase,
@@ -73,7 +78,7 @@ func GenesisBlock(foundationAddr string) *types.Block {
 		},
 		[]*common.Output{
 			{
-				AssetID:     *assetID,
+				AssetID:     ELAAssetID,
 				Value:       3300 * 10000 * 100000000,
 				ProgramHash: *foundation,
 			},
@@ -82,7 +87,7 @@ func GenesisBlock(foundationAddr string) *types.Block {
 		[]*program.Program{},
 	)
 
-	merkleRoot, _ := crypto.ComputeRoot([]common2.Uint256{coinBase.Hash(), *assetID})
+	merkleRoot, _ := crypto.ComputeRoot([]common2.Uint256{coinBase.Hash(), ELAAssetID})
 
 	return &types.Block{
 		Header: common.Header{

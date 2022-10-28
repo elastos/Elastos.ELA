@@ -45,10 +45,9 @@ func (t *ExchangeVotesTransaction) CheckTransactionOutput() error {
 	if len(t.Programs()) < 1 {
 		return errors.New("invalid programs count")
 	}
-	ELAAssetID, _ := common.Uint256FromHexString(core.ELAAssetID)
 	// check if output address is valid
 	for _, output := range t.Outputs() {
-		if output.AssetID != *ELAAssetID {
+		if output.AssetID != core.ELAAssetID {
 			return errors.New("asset ID in output is invalid")
 		}
 

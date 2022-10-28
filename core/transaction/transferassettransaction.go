@@ -33,9 +33,8 @@ func (t *TransferAssetTransaction) CheckTransactionOutput() error {
 
 	// check if output address is valid
 	specialOutputCount := 0
-	ELAAssetID, _ := common.Uint256FromHexString(core.ELAAssetID)
 	for _, output := range t.Outputs() {
-		if output.AssetID != *ELAAssetID {
+		if output.AssetID != core.ELAAssetID {
 			return errors.New("asset ID in output is invalid")
 		}
 

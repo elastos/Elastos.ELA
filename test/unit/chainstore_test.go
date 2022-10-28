@@ -53,10 +53,9 @@ func TestGenesisBlock(t *testing.T) {
 
 func TestCheckAssetPrecision(t *testing.T) {
 	tx := buildTx()
-	ELAAssetID, _ := common.Uint256FromHexString(core.ELAAssetID)
 	// valid precision
 	for _, output := range tx.Outputs() {
-		output.AssetID = *ELAAssetID
+		output.AssetID = core.ELAAssetID
 		output.ProgramHash = common.Uint168{}
 		output.Value = 123456789876
 	}
@@ -64,7 +63,7 @@ func TestCheckAssetPrecision(t *testing.T) {
 	assert.NoError(t, err)
 
 	for _, output := range tx.Outputs() {
-		output.AssetID = *ELAAssetID
+		output.AssetID = core.ELAAssetID
 		output.ProgramHash = common.Uint168{}
 		output.Value = 0
 	}

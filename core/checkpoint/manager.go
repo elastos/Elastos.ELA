@@ -29,6 +29,8 @@ const (
 	txpoolCheckpointKey = "cp_txPool"
 	dposCheckpointKey   = "cp_dpos"
 	crCheckpointKey     = "cp_cr"
+
+	MaxCheckPointFilesCount int = 36
 )
 
 type Priority byte
@@ -121,10 +123,10 @@ type Manager struct {
 // OnBlockSaved is an event fired after block saved to chain db,
 // which means block has been settled in block chain.
 func (m *Manager) OnBlockSaved(block *types.DposBlock,
-	filter func(point ICheckPoint) bool, isPow bool) {
+	filter func(point ICheckPoint) bool, isPow bool, revertToPowHeight uint32) {
 	m.mtx.Lock()
 	defer m.mtx.Unlock()
-	m.onBlockSaved(block, filter, true, isPow)
+	m.onBlockSaved(block, filter, true, isPow, revertToPowHeight)
 }
 
 // OnRollbackTo is an event fired during the block chain rollback, since we
@@ -299,11 +301,12 @@ func (m *Manager) getOrderedCheckpoints() []ICheckPoint {
 }
 
 func (m *Manager) onBlockSaved(block *types.DposBlock,
-	filter func(point ICheckPoint) bool, async bool, isPow bool) {
+	filter func(point ICheckPoint) bool, async bool, isPow bool, revertToPowHeight uint32) {
 
 	sortedPoints := m.getOrderedCheckpoints()
 	var saveCheckPoint bool
 	var useCheckPoint bool
+
 	for _, v := range sortedPoints {
 		if filter != nil && !filter(v) {
 			continue
@@ -329,7 +332,11 @@ func (m *Manager) onBlockSaved(block *types.DposBlock,
 				v.Key() == dposCheckpointKey && useCheckPoint) {
 
 			reply := make(chan bool, 1)
-			m.channels[v.Key()].Replace(v, reply, originalHeight)
+			if v.Key() == dposCheckpointKey || v.Key() == crCheckpointKey {
+				m.channels[v.Key()].ReplaceRemove(v, reply, originalHeight)
+			} else {
+				m.channels[v.Key()].Replace(v, reply, originalHeight)
+			}
 			if !async {
 				<-reply
 			}
@@ -350,6 +357,12 @@ func (m *Manager) onBlockSaved(block *types.DposBlock,
 				continue
 			}
 			reply := make(chan bool, 1)
+			if v.Key() == dposCheckpointKey || v.Key() == crCheckpointKey {
+				if isPow && block.Height-revertToPowHeight > uint32(MaxCheckPointFilesCount) {
+					m.channels[v.Key()].Remove(v, reply, block.Height-uint32(MaxCheckPointFilesCount))
+					<-reply
+				}
+			}
 			m.channels[v.Key()].Save(snapshot, reply)
 			if !async {
 				<-reply

@@ -1464,7 +1464,6 @@ func GetUTXOsByAmount(param Params) map[string]interface{} {
 	}
 
 	totalAmount := common.Fixed64(0)
-	ELAAssetID, _ := common.Uint256FromHexString(core.ELAAssetID)
 	for _, utxo := range utxos {
 		if totalAmount >= *amount {
 			break
@@ -1489,7 +1488,7 @@ func GetUTXOsByAmount(param Params) map[string]interface{} {
 		result = append(result, UTXOInfo{
 			TxType:        byte(tx.TxType()),
 			TxID:          common.ToReversedString(utxo.TxID),
-			AssetID:       common.ToReversedString(*ELAAssetID),
+			AssetID:       common.ToReversedString(core.ELAAssetID),
 			VOut:          utxo.Index,
 			Amount:        utxo.Value.String(),
 			Address:       address,
@@ -1560,7 +1559,6 @@ func ListUnspent(param Params) map[string]interface{} {
 			return ResponsePack(InvalidParams, "invalid utxotype")
 		}
 	}
-	ELAAssetID, _ := common.Uint256FromHexString(core.ELAAssetID)
 	for _, address := range addresses {
 		programHash, err := common.Uint168FromAddress(address)
 		if err != nil {
@@ -1589,7 +1587,7 @@ func ListUnspent(param Params) map[string]interface{} {
 			result = append(result, UTXOInfo{
 				TxType:        byte(tx.TxType()),
 				TxID:          common.ToReversedString(utxo.TxID),
-				AssetID:       common.ToReversedString(*ELAAssetID),
+				AssetID:       common.ToReversedString(core.ELAAssetID),
 				VOut:          utxo.Index,
 				Amount:        utxo.Value.String(),
 				Address:       address,
@@ -1852,7 +1850,6 @@ func GetUnspends(param Params) map[string]interface{} {
 	if err != nil {
 		return ResponsePack(InvalidParams, "list unspent failed, "+err.Error())
 	}
-	ELAAssetID, _ := common.Uint256FromHexString(core.ELAAssetID)
 	for _, u := range utxos {
 		var unspendsInfo []UTXOUnspentInfo
 		unspendsInfo = append(unspendsInfo, UTXOUnspentInfo{
@@ -1861,7 +1858,7 @@ func GetUnspends(param Params) map[string]interface{} {
 			u.Value.String()})
 
 		results = append(results, Result{
-			common.ToReversedString(*ELAAssetID),
+			common.ToReversedString(core.ELAAssetID),
 			"ELA",
 			unspendsInfo})
 	}
@@ -3550,6 +3547,9 @@ func getPayloadInfo(p interfaces.Payload, payloadVersion byte) PayloadInfo {
 				case outputpayload.CRC, outputpayload.CRCImpeachment:
 					c, _ := common.Uint168FromBytes(detail.Candidate)
 					candidate, _ = c.ToAddress()
+				case outputpayload.CRCProposal:
+					proposalHash, _ := common.Uint256FromBytes(detail.Candidate)
+					candidate = common.ToReversedString(*proposalHash)
 				default:
 					candidate = common.BytesToHexString(detail.Candidate)
 				}

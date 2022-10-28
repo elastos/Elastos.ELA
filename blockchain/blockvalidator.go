@@ -255,7 +255,6 @@ func (b *BlockChain) checkTxsContext(block *Block) error {
 	var totalTxFee = Fixed64(0)
 
 	var proposalsUsedAmount Fixed64
-	ELAAssetID, _ := common2.Uint256FromHexString(core.ELAAssetID)
 	for i := 1; i < len(block.Transactions); i++ {
 		references, errCode := b.CheckTransactionContext(block.Height,
 			block.Transactions[i], proposalsUsedAmount, block.Timestamp)
@@ -265,7 +264,7 @@ func (b *BlockChain) checkTxsContext(block *Block) error {
 		}
 
 		// Calculate transaction fee
-		totalTxFee += GetTxFee(block.Transactions[i], *ELAAssetID, references)
+		totalTxFee += GetTxFee(block.Transactions[i], core.ELAAssetID, references)
 		if block.Transactions[i].IsCRCProposalTx() {
 			RecordCRCProposalAmount(&proposalsUsedAmount, block.Transactions[i])
 		}

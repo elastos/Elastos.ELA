@@ -114,6 +114,7 @@ func (t *UpdateProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bool
 			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid signature in payload")), true
 		}
 	} else {
+		log.Debug("#### UpdateProducerTransaction ProducerInfoSchnorrVersion")
 		if len(t.Programs()) != 1 {
 			return elaerr.Simple(elaerr.ErrTxPayload,
 				errors.New("ProducerInfoSchnorrVersion can only have one program code")), true

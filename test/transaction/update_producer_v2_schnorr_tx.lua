@@ -87,7 +87,7 @@ local up_payload = updatev2producer.new(own_publickey, node_publickey, nick_name
 print(up_payload:get())
 
 -- transaction: version, txType, payloadVersion, payload, locktime
-local tx = transaction.new(9, 0x0b, 1, up_payload, 0)
+local tx = transaction.new(9, 0x0b, 2, up_payload, 0)
 
 -- input: from, amount + fee
 local charge = tx:appendenough(addr, fee * 100000000)

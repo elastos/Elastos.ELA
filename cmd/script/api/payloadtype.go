@@ -606,11 +606,6 @@ func newUpdateV2Producer(L *lua.LState) int {
 		if stakeuntil != 0 {
 			version = payload.ProducerInfoDposV2Version
 		}
-		err = updateProducer.SerializeUnsigned(upSignBuf, version)
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
-		}
 
 		codeHash, err := contract.PublicKeyToStandardCodeHash(ownerPublicKey)
 		if err != nil {
@@ -623,6 +618,12 @@ func newUpdateV2Producer(L *lua.LState) int {
 				fmt.Println("no available account in wallet")
 				os.Exit(1)
 			}
+			err = updateProducer.SerializeUnsigned(upSignBuf, version)
+			if err != nil {
+				fmt.Println(err)
+				os.Exit(1)
+			}
+
 			rpSig, err := crypto.Sign(acc.PrivKey(), upSignBuf.Bytes())
 			if err != nil {
 				fmt.Println(err)
@@ -630,13 +631,12 @@ func newUpdateV2Producer(L *lua.LState) int {
 			}
 			updateProducer.Signature = rpSig
 		} else {
-			fmt.Println("process AggregateSignatures")
-			rpSig, err := crypto.AggregateSignatures(account.PrivateKeys, common.Sha256D(upSignBuf.Bytes()))
+			fmt.Println("process AggregateSignatures payload version 2")
+			err = updateProducer.SerializeUnsigned(upSignBuf, payload.ProducerInfoSchnorrVersion)
 			if err != nil {
 				fmt.Println(err)
 				os.Exit(1)
 			}
-			updateProducer.Signature = rpSig[:]
 		}
 	}
 
@@ -842,6 +842,7 @@ func newRegisterV2Producer(L *lua.LState) int {
 	location := L.ToInt64(5)
 	address := L.ToString(6)
 	stakeUntil := L.ToInt64(7)
+	fmt.Println("#### newRegisterV2Producer stakeUntil", stakeUntil)
 	needSign := true
 	var account *account.SchnorAccount
 	client, err := checkClient(L, 8)
@@ -875,17 +876,18 @@ func newRegisterV2Producer(L *lua.LState) int {
 
 	if needSign {
 		rpSignBuf := new(bytes.Buffer)
-		err = registerProducer.SerializeUnsigned(rpSignBuf, payload.ProducerInfoDposV2Version)
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
-		}
+
 		codeHash, err := contract.PublicKeyToStandardCodeHash(ownerPublicKey)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
 		}
 		if account == nil {
+			err = registerProducer.SerializeUnsigned(rpSignBuf, payload.ProducerInfoDposV2Version)
+			if err != nil {
+				fmt.Println(err)
+				os.Exit(1)
+			}
 			acc := client.GetAccountByCodeHash(*codeHash)
 			if acc == nil {
 				fmt.Println("no available account in wallet")
@@ -898,7 +900,12 @@ func newRegisterV2Producer(L *lua.LState) int {
 			}
 			registerProducer.Signature = rpSig
 		} else {
-			fmt.Println("process AggregateSignatures")
+			fmt.Println("process AggregateSignatures payload version 2")
+			err = registerProducer.SerializeUnsigned(rpSignBuf, payload.ProducerInfoSchnorrVersion)
+			if err != nil {
+				fmt.Println(err)
+				os.Exit(1)
+			}
 			//rpSig, err := crypto.AggregateSignatures(account.PrivateKeys, common.Sha256D(rpSignBuf.Bytes()))
 			//if err != nil {
 			//	fmt.Println(err)

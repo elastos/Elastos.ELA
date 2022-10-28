@@ -101,8 +101,10 @@ func (t *RegisterProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bo
 	if err != nil {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid owner public key in payload")), true
 	}
-
+	log.Debug("#### RegisterProducerTransaction PayloadVersion", t.PayloadVersion())
 	if t.PayloadVersion() != payload.ProducerInfoSchnorrVersion {
+		log.Debug("#### not ProducerInfoSchnorrVersion", t.PayloadVersion())
+
 		signedBuf := new(bytes.Buffer)
 		err = info.SerializeUnsigned(signedBuf, t.payloadVersion)
 		if err != nil {
@@ -113,6 +115,8 @@ func (t *RegisterProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bo
 			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid signature in payload")), true
 		}
 	} else {
+		log.Debug("#### ProducerInfoSchnorrVersion", t.PayloadVersion())
+
 		if len(t.Programs()) != 1 {
 			return elaerr.Simple(elaerr.ErrTxPayload,
 				errors.New("ProducerInfoSchnorrVersion can only have one program code")), true
@@ -167,6 +171,8 @@ func (t *RegisterProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bo
 		}
 
 	} else if t.PayloadVersion() == payload.ProducerInfoDposV2Version || t.PayloadVersion() == payload.ProducerInfoSchnorrVersion {
+		log.Debugf("####  info.StakeUntil %d DPoSV2DepositCoinMinLockTime %d", info.StakeUntil,
+			t.parameters.BlockHeight+t.parameters.Config.DPoSConfiguration.DPoSV2DepositCoinMinLockTime)
 		if t.parameters.BlockHeight+t.parameters.Config.DPoSConfiguration.DPoSV2DepositCoinMinLockTime >= info.StakeUntil {
 			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("v2 producer StakeUntil less than DPoSV2DepositCoinMinLockTime")), true
 		}

@@ -329,7 +329,6 @@ func (b *BlockChain) InitCheckpoint(interrupt <-chan struct{},
 		}
 		done <- struct{}{}
 	}()
-	log.Info("### 1 recoverFromGenesis end 0")
 	select {
 	case <-done:
 		arbiters.Start()
@@ -1317,20 +1316,11 @@ func (b *BlockChain) reorganizeChain(detachNodes, attachNodes *list.List) error 
 
 	// recover check point from genesis block
 	if recoverFromDefault {
-		//	err := b.chainParams.CkpManager.OnRollbackTo(
-		//		0, false)
-		//	if err != nil {
-		//		return err
-		//	}
-		//
-		log.Info("### 1 recoverFromDefault:", recoverFromDefault, "forkHeight:", forkHeight)
 		b.InitCheckpoint(nil, nil, nil)
-		log.Info("### 1 recoverFromDefault end")
 	} else {
 		// roll back state about the last block before disconnect
 		//if forkHeight >= b.chainParams.VoteStartHeight && !recoverFromDefault {
 		if forkHeight >= b.chainParams.VoteStartHeight {
-			log.Info("### 2 recoverFromDefault:", recoverFromDefault)
 			err := b.chainParams.CkpManager.OnRollbackTo(
 				forkHeight, b.state.ConsensusAlgorithm == state.POW)
 			if err != nil {

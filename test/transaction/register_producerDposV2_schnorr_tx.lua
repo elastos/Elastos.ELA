@@ -143,7 +143,7 @@ local rp_payload = registerv2producer.new(own_publickey, node_publickey, nick_na
 print(rp_payload:get())
 
 -- transaction: version, txType, payloadVersion, payload, locktime
-local tx = transaction.new(9, 0x09, 1, rp_payload, 0)
+local tx = transaction.new(9, 0x09, 2, rp_payload, 0)
 print(tx:get())
 
 -- input: from, amount + fee

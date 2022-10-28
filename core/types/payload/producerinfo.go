@@ -85,7 +85,7 @@ func (a *ProducerInfo) SerializeUnsigned(w io.Writer, version byte) error {
 		return errors.New("[ProducerInfo], address serialize failed")
 	}
 
-	if version == ProducerInfoDposV2Version {
+	if version >= ProducerInfoDposV2Version {
 		err = common.WriteUint32(w, a.StakeUntil)
 		if err != nil {
 			return errors.New("[ProducerInfo], stakeuntil serialize failed")
@@ -140,7 +140,7 @@ func (a *ProducerInfo) DeserializeUnsigned(r io.Reader, version byte) error {
 		return errors.New("[ProducerInfo], address deserialize failed")
 	}
 
-	if version == ProducerInfoDposV2Version {
+	if version >= ProducerInfoDposV2Version {
 		a.StakeUntil, err = common.ReadUint32(r)
 		if err != nil {
 			return errors.New("[ProducerInfo], stakeuntil deserialize failed")

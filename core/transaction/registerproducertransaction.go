@@ -106,6 +106,11 @@ func (t *RegisterProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bo
 	if err != nil {
 		return elaerr.Simple(elaerr.ErrTxPayload, err), true
 	}
+	//err = crypto.Verify(*publicKey, signedBuf.Bytes(), info.Signature)
+	//if err != nil {
+	//	return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid signature in payload")), true
+	//}
+
 	//var isSchnorrTx bool
 	for _, program := range t.Programs() {
 		if contract.IsSchnorr(program.Code) {
@@ -118,6 +123,7 @@ func (t *RegisterProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bo
 			if ok, err = crypto.SchnorrVerify(pub, common.Sha256D(signedBuf.Bytes()), signature); !ok {
 				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid schnorr signature in payload")), true
 			}
+			//isSchnorrTx = true
 		} else {
 			err = crypto.Verify(*publicKey, signedBuf.Bytes(), info.Signature)
 			if err != nil {
@@ -133,7 +139,28 @@ func (t *RegisterProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bo
 	} else if height > state.DPoSV2ActiveHeight && t.payloadVersion == payload.ProducerInfoVersion {
 		return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("can not register dposv1 after dposv2 active height")), true
 	}
+	//tx.Programs()[0].Code
+
+	//ownProgramHash :=
 	var hash *common.Uint168
+	//if contract.Schnorr == contract.GetCodeType(t.Programs()[0].Code) {
+	//	publicKey, err := crypto.DecodePoint(info.OwnerPublicKey)
+	//	ct, err := contract.CreateSchnorrContract(publicKey)
+	//	if err != nil {
+	//		fmt.Errorf("Create multi-sign contract failed, error %s", err.Error())
+	//	}
+	//	hash = ct.ToProgramHash()
+	//	addr, _ := hash.ToAddress()
+	//	log.Debugf("#### Schnorr addr", addr)
+	//} else {
+	//	hash, err = contract.PublicKeyToDepositProgramHash(info.OwnerPublicKey)
+	//	if err != nil {
+	//		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid public key")), true
+	//	}
+	//	addr, _ := hash.ToAddress()
+	//	log.Debugf("#### normal addr", addr)
+	//
+	//}
 
 	hash, err = contract.PublicKeyToDepositProgramHash(info.OwnerPublicKey)
 	if err != nil {

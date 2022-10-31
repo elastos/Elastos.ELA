@@ -15,8 +15,7 @@ import (
 )
 
 const (
-	ActivateProducerVersion        byte = 0x00
-	ActivateProducerSchnorrVersion byte = 0x01
+	ActivateProducerVersion byte = 0x00
 )
 
 type ActivateProducer struct {
@@ -37,12 +36,12 @@ func (a *ActivateProducer) Serialize(w io.Writer, version byte) error {
 	if err != nil {
 		return err
 	}
-	if version != ActivateProducerSchnorrVersion {
-		err = common.WriteVarBytes(w, a.Signature)
-		if err != nil {
-			return errors.New("[ActivateProducer], signature serialize failed")
-		}
+
+	err = common.WriteVarBytes(w, a.Signature)
+	if err != nil {
+		return errors.New("[ActivateProducer], signature serialize failed")
 	}
+
 	return nil
 }
 
@@ -60,12 +59,12 @@ func (a *ActivateProducer) Deserialize(r io.Reader, version byte) error {
 	if err != nil {
 		return err
 	}
-	if version != ActivateProducerSchnorrVersion {
-		a.Signature, err = common.ReadVarBytes(r, crypto.SignatureLength, "signature")
-		if err != nil {
-			return errors.New("[ActivateProducer], signature deserialize failed")
-		}
+
+	a.Signature, err = common.ReadVarBytes(r, crypto.SignatureLength, "signature")
+	if err != nil {
+		return errors.New("[ActivateProducer], signature deserialize failed")
 	}
+
 	return nil
 }
 

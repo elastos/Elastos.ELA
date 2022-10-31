@@ -18,8 +18,7 @@ import (
 type ProducerOperation byte
 
 const (
-	ProcessProducerVersion        byte = 0x00
-	ProcessProducerSchnorrVersion byte = 0x01
+	ProcessProducerVersion byte = 0x00
 )
 
 type ProcessProducer struct {
@@ -40,12 +39,12 @@ func (a *ProcessProducer) Serialize(w io.Writer, version byte) error {
 	if err != nil {
 		return err
 	}
-	if version != ProcessProducerSchnorrVersion {
-		err = common.WriteVarBytes(w, a.Signature)
-		if err != nil {
-			return errors.New("[ProcessProducer], signature serialize failed")
-		}
+
+	err = common.WriteVarBytes(w, a.Signature)
+	if err != nil {
+		return errors.New("[ProcessProducer], signature serialize failed")
 	}
+
 	return nil
 }
 
@@ -63,12 +62,12 @@ func (a *ProcessProducer) Deserialize(r io.Reader, version byte) error {
 	if err != nil {
 		return err
 	}
-	if version != ProcessProducerSchnorrVersion {
-		a.Signature, err = common.ReadVarBytes(r, crypto.SignatureLength, "signature")
-		if err != nil {
-			return errors.New("[ProcessProducer], signature deserialize failed")
-		}
+
+	a.Signature, err = common.ReadVarBytes(r, crypto.SignatureLength, "signature")
+	if err != nil {
+		return errors.New("[ProcessProducer], signature deserialize failed")
 	}
+
 	return nil
 }
 

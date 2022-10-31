@@ -167,35 +167,6 @@ func (t *ActivateProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bo
 
 func (t *ActivateProducerTransaction) checkActivateProducerSignature(
 	activateProducer *payload.ActivateProducer) error {
-
-	// check signature
-	if t.PayloadVersion() != payload.ActivateProducerSchnorrVersion {
-		publicKey, err := crypto.DecodePoint(activateProducer.NodePublicKey)
-		if err != nil {
-			return errors.New("invalid public key in payload")
-		}
-		signedBuf := new(bytes.Buffer)
-		err = activateProducer.SerializeUnsigned(signedBuf, t.payloadVersion)
-		if err != nil {
-			return err
-		}
-		err = crypto.Verify(*publicKey, signedBuf.Bytes(), activateProducer.Signature)
-		if err != nil {
-			return errors.New("invalid signature in payload")
-		}
-	} else {
-		if len(t.Programs()) != 1 {
-			return errors.New("ProducerInfoSchnorrVersion can only have one program code")
-		}
-		if !contract.IsSchnorr(t.Programs()[0].Code) {
-			return errors.New("only schnorr code can use ProducerInfoSchnorrVersion")
-		}
-		pk := t.Programs()[0].Code[2:]
-		if !bytes.Equal(pk, activateProducer.NodePublicKey) {
-			return errors.New("tx program pk must equal with OwnerPublicKey")
-		}
-	}
-
 	// check signature
 	publicKey, err := crypto.DecodePoint(activateProducer.NodePublicKey)
 	if err != nil {
@@ -210,6 +181,5 @@ func (t *ActivateProducerTransaction) checkActivateProducerSignature(
 	if err != nil {
 		return errors.New("invalid signature in payload")
 	}
-
 	return nil
 }

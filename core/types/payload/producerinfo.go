@@ -15,9 +15,8 @@ import (
 )
 
 const (
-	ProducerInfoVersion        byte = 0x00
-	ProducerInfoDposV2Version  byte = 0x01
-	ProducerInfoSchnorrVersion byte = 0x02
+	ProducerInfoVersion       byte = 0x00
+	ProducerInfoDposV2Version byte = 0x01
 )
 
 type ProducerInfo struct {
@@ -44,11 +43,10 @@ func (a *ProducerInfo) Serialize(w io.Writer, version byte) error {
 	if err != nil {
 		return err
 	}
-	if version != ProducerInfoSchnorrVersion {
-		err = common.WriteVarBytes(w, a.Signature)
-		if err != nil {
-			return errors.New("[ProducerInfo], Signature serialize failed")
-		}
+
+	err = common.WriteVarBytes(w, a.Signature)
+	if err != nil {
+		return errors.New("[ProducerInfo], Signature serialize failed")
 	}
 
 	return nil
@@ -99,12 +97,11 @@ func (a *ProducerInfo) Deserialize(r io.Reader, version byte) error {
 	if err != nil {
 		return err
 	}
-	if version != ProducerInfoSchnorrVersion {
-		a.Signature, err = common.ReadVarBytes(r, crypto.SignatureLength, "signature")
-		if err != nil {
-			return errors.New("[ProducerInfo], signature deserialize failed")
-		}
+	a.Signature, err = common.ReadVarBytes(r, crypto.SignatureLength, "signature")
+	if err != nil {
+		return errors.New("[ProducerInfo], signature deserialize failed")
 	}
+
 	return nil
 }
 

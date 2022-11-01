@@ -534,6 +534,10 @@ func (tx *BaseTransaction) IsVotesRealWithdrawTX() bool {
 	return tx.txType == common2.VotesRealWithdraw
 }
 
+func (tx *BaseTransaction) IsCreateNFTTX() bool {
+	return tx.txType == common2.CreateNFT
+}
+
 // SerializeSizeStripped returns the number of bytes it would take to serialize
 // the block, excluding any witness data (if any).
 func (tx *BaseTransaction) SerializeSizeStripped() int {

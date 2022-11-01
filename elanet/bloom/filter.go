@@ -255,14 +255,26 @@ func (bf *Filter) matchTxAndUpdate(txn interfaces.Transaction) bool {
 	// This is useful for finding transactions when they appear in a block.
 	hash := txn.Hash()
 	matched := bf.matches(hash[:])
+	txTypesMap := make(map[common2.TxType]struct{}, 0)
+	for _, t := range bf.msg.TxTypes {
+		txTypesMap[t] = struct{}{}
+	}
 
 	// Check if the filter is a side chain SPV filter
 	if bf.msg.Tweak == math.MaxUint32 {
-		for _, txOut := range txn.Outputs() {
-			if bf.matches(txOut.ProgramHash[:]) {
-				return true
+		if len(txTypesMap) != 0 {
+			if _, exist := txTypesMap[txn.TxType()]; !exist {
+				return false
 			}
 		}
+		if len(bf.msg.Filter) != 0 {
+			for _, txOut := range txn.Outputs() {
+				if bf.matches(txOut.ProgramHash[:]) {
+					return true
+				}
+			}
+		}
+
 		return false
 	}
 

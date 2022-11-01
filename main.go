@@ -120,7 +120,13 @@ func startNode(cfg *config.Configuration) {
 
 	var acc account.Account
 	if cfg.DPoSConfiguration.EnableArbiter {
-		password, err := utils.GetPassword()
+		var err error
+		var password []byte
+		if cfg.Password != "" {
+			password = []byte(cfg.Password)
+		} else {
+			password, err = utils.GetPassword()
+		}
 		if err != nil {
 			printErrorAndExit(err)
 		}

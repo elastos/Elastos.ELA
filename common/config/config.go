@@ -95,12 +95,12 @@ func GetDefaultParams() *Configuration {
 			"node-mainnet-020.elastos.org:20338",
 			"node-mainnet-025.elastos.org:20338",
 		},
-		DestroyELAAddress:  DestroyELAAddress,
+		DestroyELAAddress:   DestroyELAAddress,
 		OriginDestroyAmount: common.Fixed64(45341569050100),
-		FoundationAddress:  mainNetFoundation,
-		MaxTxPerBlock:      10000,
-		MaxBlockSize:       2000000,
-		MaxBlockHeaderSize: 1000000,
+		FoundationAddress:   mainNetFoundation,
+		MaxTxPerBlock:       10000,
+		MaxBlockSize:        2000000,
+		MaxBlockHeaderSize:  1000000,
 		PowConfiguration: PowConfiguration{
 			PowLimit:           powLimit,
 			PowLimitBits:       0x1f0008ff,
@@ -465,6 +465,7 @@ func (p *Configuration) RegNet() *Configuration {
 // Configuration defines the configurable parameters to run a ELA node.
 type Configuration struct {
 	ActiveNet     string `json:"ActiveNet"`
+	Password      string `screw:"short;--password" usage:"password for keystore"`
 	DataDir       string `screw:"short;--datadir" usage:"block data and logs storage path default: elastos"`
 	HttpInfoPort  uint16 `screw:"--infoport" usage:"port for the http info server"`
 	HttpInfoStart bool   `json:"HttpInfoStart"`

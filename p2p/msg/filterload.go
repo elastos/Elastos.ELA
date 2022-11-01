@@ -7,6 +7,7 @@ package msg
 
 import (
 	"fmt"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"io"
 
 	"github.com/elastos/Elastos.ELA/common"
@@ -30,6 +31,7 @@ type FilterLoad struct {
 	HashFuncs uint32
 	Tweak     uint32
 	Flags     uint8
+	TxTypes   []common2.TxType
 }
 
 func (msg *FilterLoad) CMD() string {
@@ -59,7 +61,24 @@ func (msg *FilterLoad) Serialize(w io.Writer) error {
 		return err
 	}
 
-	return common.WriteElements(w, msg.HashFuncs, msg.Tweak, msg.Flags)
+	err = common.WriteElements(w, msg.HashFuncs, msg.Tweak, msg.Flags)
+	if err != nil {
+		return err
+	}
+
+	count := uint64(len(msg.TxTypes))
+	err = common.WriteVarUint(w, count)
+	if err != nil {
+		return err
+	}
+	for _, t := range msg.TxTypes {
+		err = common.WriteElement(w, t)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (msg *FilterLoad) Deserialize(r io.Reader) error {
@@ -81,8 +100,23 @@ func (msg *FilterLoad) Deserialize(r io.Reader) error {
 		return common.FuncError("FilterLoad.Deserialize", str)
 	}
 
-	// deserialize flags ignore the result for compatibility with previous versions
-	common.ReadElements(r, &msg.Flags)
+	// deserialize flags
+	err = common.ReadElements(r, &msg.Flags)
+	if err != nil {
+		return err
+	}
+
+	// deserialize TxTypes ignore the result
+	count, _ := common.ReadVarUint(r, 0)
+	msg.TxTypes = make([]common2.TxType, 0, count)
+	for i := uint64(0); i < count; i++ {
+		var txType byte
+		err = common.ReadElement(r, &txType)
+		if err != nil {
+			return nil
+		}
+		msg.TxTypes = append(msg.TxTypes, common2.TxType(txType))
+	}
 
 	return nil
 }

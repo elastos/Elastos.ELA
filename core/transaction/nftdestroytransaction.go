@@ -7,10 +7,12 @@ package transaction
 
 import (
 	"errors"
+
 	"github.com/elastos/Elastos.ELA/blockchain"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/crypto"
 	"github.com/elastos/Elastos.ELA/dpos/state"
+
 	elaerr "github.com/elastos/Elastos.ELA/errors"
 )
 

@@ -24,27 +24,45 @@ type ActivateProducerTransaction struct {
 }
 
 func (t *ActivateProducerTransaction) CheckTransactionInput() error {
-	if len(t.Inputs()) != 0 {
-		return errors.New("no cost transactions must has no input")
+	chainParams := t.parameters.Config
+	blockHeight := t.parameters.BlockHeight
+	//todo use new height to compatible
+	newActivateHeight := chainParams.DPoSV2StartHeight
+
+	if blockHeight <= newActivateHeight {
+		if len(t.Inputs()) != 0 {
+			return errors.New("no cost transactions must has no input")
+		}
 	}
 	return nil
 }
 
 func (t *ActivateProducerTransaction) CheckTransactionOutput() error {
+	chainParams := t.parameters.Config
+	blockHeight := t.parameters.BlockHeight
+	//todo use new height to compatible
+	newActivateHeight := chainParams.DPoSV2StartHeight
 
-	if len(t.Outputs()) > math.MaxUint16 {
-		return errors.New("output count should not be greater than 65535(MaxUint16)")
+	if blockHeight <= newActivateHeight {
+		if len(t.Outputs()) > math.MaxUint16 {
+			return errors.New("output count should not be greater than 65535(MaxUint16)")
+		}
+		if len(t.Outputs()) != 0 {
+			return errors.New("no cost transactions should have no output")
+		}
 	}
-	if len(t.Outputs()) != 0 {
-		return errors.New("no cost transactions should have no output")
-	}
-
 	return nil
 }
 
 func (t *ActivateProducerTransaction) CheckAttributeProgram() error {
-	if len(t.Programs()) != 0 || len(t.Attributes()) != 0 {
-		return errors.New("zero cost tx should have no attributes and programs")
+	chainParams := t.parameters.Config
+	blockHeight := t.parameters.BlockHeight
+	//todo use new height to compatible
+	newActivateHeight := chainParams.DPoSV2StartHeight
+	if blockHeight <= newActivateHeight {
+		if len(t.Programs()) != 0 || len(t.Attributes()) != 0 {
+			return errors.New("zero cost tx should have no attributes and programs")
+		}
 	}
 	return nil
 }
@@ -162,7 +180,15 @@ func (t *ActivateProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bo
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("insufficient deposit amount")), true
 	}
 
-	return nil, true
+	chainParams := t.parameters.Config
+	blockHeight := t.parameters.BlockHeight
+	//todo use new height to compatible
+	newActivateHeight := chainParams.DPoSV2StartHeight
+	end := false
+	if blockHeight <= newActivateHeight {
+		end = true
+	}
+	return nil, end
 }
 
 func (t *ActivateProducerTransaction) checkActivateProducerSignature(
@@ -194,21 +220,6 @@ func (t *ActivateProducerTransaction) checkActivateProducerSignature(
 		if !bytes.Equal(pk, activateProducer.NodePublicKey) {
 			return errors.New("tx program pk must equal with OwnerPublicKey")
 		}
-	}
-
-	// check signature
-	publicKey, err := crypto.DecodePoint(activateProducer.NodePublicKey)
-	if err != nil {
-		return errors.New("invalid public key in payload")
-	}
-	signedBuf := new(bytes.Buffer)
-	err = activateProducer.SerializeUnsigned(signedBuf, payload.ActivateProducerVersion)
-	if err != nil {
-		return err
-	}
-	err = crypto.Verify(*publicKey, signedBuf.Bytes(), activateProducer.Signature)
-	if err != nil {
-		return errors.New("invalid signature in payload")
 	}
 
 	return nil

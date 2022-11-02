@@ -31,7 +31,9 @@ const (
 	luaUpdateV2ProducerName                 = "updatev2producer"
 	luaUpdateProducerName                   = "updateproducer"
 	luaCancelProducerName                   = "cancelproducer"
+	luaCancelProducerSchnorrName            = "cancelproducerschnorr"
 	luaActivateProducerName                 = "activateproducer"
+	luaActivateProducerSchnorrName          = "activateproducerschnorr"
 	luaReturnDepositCoinName                = "returndepositcoin"
 	luaSideChainPowName                     = "sidechainpow"
 	luaRegisterCRName                       = "registercr"
@@ -639,7 +641,8 @@ func newUpdateV2Producer(L *lua.LState) int {
 
 	ud := L.NewUserData()
 	ud.Value = updateProducer
-	L.SetMetatable(ud, L.GetTypeMetatable(luaUpdateProducerName))
+	//todo luaUpdateV2ProducerName
+	L.SetMetatable(ud, L.GetTypeMetatable(luaUpdateV2ProducerName))
 	L.Push(ud)
 
 	return 1
@@ -903,18 +906,13 @@ func newRegisterV2Producer(L *lua.LState) int {
 				fmt.Println(err)
 				os.Exit(1)
 			}
-			//rpSig, err := crypto.AggregateSignatures(account.PrivateKeys, common.Sha256D(rpSignBuf.Bytes()))
-			//if err != nil {
-			//	fmt.Println(err)
-			//	os.Exit(1)
-			//}
-			//registerProducer.Signature = rpSig[:]
 		}
 	}
 
 	ud := L.NewUserData()
 	ud.Value = registerProducer
-	L.SetMetatable(ud, L.GetTypeMetatable(luaRegisterProducerName))
+	//todo chage into luaRegisterV2ProducerName
+	L.SetMetatable(ud, L.GetTypeMetatable(luaRegisterV2ProducerName))
 	L.Push(ud)
 
 	return 1
@@ -1044,6 +1042,64 @@ func cancelProducerGet(L *lua.LState) int {
 	return 0
 }
 
+func RegisterCancelProducerSchnorrType(L *lua.LState) {
+	mt := L.NewTypeMetatable(luaCancelProducerSchnorrName)
+	L.SetGlobal("cancelproducerschnorr", mt)
+	// static attributes
+	L.SetField(mt, "new", L.NewFunction(newCancelProducerSchnorr))
+	// methods
+	L.SetField(mt, "__index", L.SetFuncs(L.NewTable(), cancelProducerSchnorrMethods))
+}
+
+var cancelProducerSchnorrMethods = map[string]lua.LGFunction{
+	"get": cancelProducerSchnorrGet,
+}
+
+// Getter and setter for the Person#Name
+func cancelProducerSchnorrGet(L *lua.LState) int {
+	p := checkCancelProducerSchnorr(L, 1)
+	fmt.Println(p)
+
+	return 0
+}
+
+func checkCancelProducerSchnorr(L *lua.LState, idx int) *payload.ProcessProducer {
+	ud := L.CheckUserData(idx)
+	if v, ok := ud.Value.(*payload.ProcessProducer); ok {
+		return v
+	}
+	L.ArgError(1, "CancelProducer expected")
+	return nil
+}
+
+// Constructor
+func newCancelProducerSchnorr(L *lua.LState) int {
+	publicKeyStr := L.ToString(1)
+
+	publicKey, err := common.HexStringToBytes(publicKeyStr)
+	if err != nil {
+		fmt.Println("wrong producer public key")
+		os.Exit(1)
+	}
+	processProducer := &payload.ProcessProducer{
+		OwnerPublicKey: []byte(publicKey),
+	}
+
+	cpSignBuf := new(bytes.Buffer)
+	err = processProducer.SerializeUnsigned(cpSignBuf, payload.ProcessProducerSchnorrVersion)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
+	ud := L.NewUserData()
+	ud.Value = processProducer
+	L.SetMetatable(ud, L.GetTypeMetatable(luaCancelProducerSchnorrName))
+	L.Push(ud)
+
+	return 1
+}
+
 func RegisterReturnDepositCoinType(L *lua.LState) {
 	mt := L.NewTypeMetatable(luaReturnDepositCoinName)
 	L.SetGlobal("returndepositcoin", mt)
@@ -1162,6 +1218,63 @@ var activateProducerMethods = map[string]lua.LGFunction{
 // Getter and setter for the Person#Name
 func activateProducerGet(L *lua.LState) int {
 	p := checkActivateProducer(L, 1)
+	fmt.Println(p)
+
+	return 0
+}
+
+//luaActivateProducerSchnorrName
+func RegisterActivateProducerSchnorrType(L *lua.LState) {
+	mt := L.NewTypeMetatable(luaActivateProducerSchnorrName)
+	L.SetGlobal("activateproducerschnorr", mt)
+	// static attributes
+	L.SetField(mt, "new", L.NewFunction(newActivateProducerSchnorr))
+	// methods
+	L.SetField(mt, "__index", L.SetFuncs(L.NewTable(), activateProducerSchnorrMethods))
+}
+
+func newActivateProducerSchnorr(L *lua.LState) int {
+	publicKeyStr := L.ToString(1)
+
+	publicKey, err := common.HexStringToBytes(publicKeyStr)
+	if err != nil {
+		fmt.Println("wrong producer node public key")
+		os.Exit(1)
+	}
+	activateProducer := &payload.ActivateProducer{
+		NodePublicKey: []byte(publicKey),
+	}
+
+	apSignBuf := new(bytes.Buffer)
+	err = activateProducer.SerializeUnsigned(apSignBuf, payload.ActivateProducerSchnorrVersion)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+	ud := L.NewUserData()
+	ud.Value = activateProducer
+	L.SetMetatable(ud, L.GetTypeMetatable(luaActivateProducerSchnorrName))
+	L.Push(ud)
+
+	return 1
+}
+
+func checkActivateProducerSchnorr(L *lua.LState, idx int) *payload.ActivateProducer {
+	ud := L.CheckUserData(idx)
+	if v, ok := ud.Value.(*payload.ActivateProducer); ok {
+		return v
+	}
+	L.ArgError(1, "ActivateProducer expected")
+	return nil
+}
+
+var activateProducerSchnorrMethods = map[string]lua.LGFunction{
+	"get": activateProducerSchnorrGet,
+}
+
+// Getter and setter for the Person#Name
+func activateProducerSchnorrGet(L *lua.LState) int {
+	p := checkActivateProducerSchnorr(L, 1)
 	fmt.Println(p)
 
 	return 0

@@ -32,39 +32,10 @@ local pub = aggpub:get_aggpub()
 print("pub",pub)
 print("------------------------")
 
--- local keystore = getWallet()
--- local password = getPassword()
---
--- if keystore == "" then
---     keystore = "keystore.dat"
--- end
--- if password == "" then
---     password = "123"
--- end
---
--- local wallet = client.new(keystore, password, false)
---
--- -- account
--- local addr = wallet:get_address()
--- local pubkey = wallet:get_publickey()
--- print(addr)
--- print(pubkey)
 
 -- asset_id
 local asset_id = m.get_asset_id()
 
--- amount, fee
---local amount = 5000
---local fee = 0.001
-
--- deposit params
---local deposit_address = "DVgnDnVfPVuPa2y2E4JitaWjWgRGJDuyrD"
---local own_publickey = "034f3a7d2f33ac7f4e30876080d359ce5f314c9eabddbaaca637676377f655e16c"
---local node_publickey = "029628ed890a25295a91817669dd9e35b4d792d51503c7eb4190b01a26e1a48fba"
---local nick_name = "ela_test"
---local url = "ela_test.org"
---local location = "112211"
---local host_address = "127.0.0.1"
 
 local amount = getDepositAmount()
 local stakeuntil = getStakeUntil()

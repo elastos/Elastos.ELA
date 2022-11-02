@@ -41,7 +41,6 @@ func (t *CancelProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bool
 	}
 
 	height := t.parameters.BlockHeight
-
 	switch producer.Identity() {
 	case state.DPoSV1:
 	case state.DPoSV2:

@@ -10,10 +10,12 @@ import (
 	"fmt"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/core/transaction"
 	"github.com/elastos/Elastos.ELA/core/types/functions"
+	"github.com/elastos/Elastos.ELA/elanet/pact"
 
 	"github.com/fungolang/screw"
 	"github.com/spf13/viper"
@@ -37,6 +39,12 @@ func (s *Settings) loadConfigFile(files string, cfg config.Config) (*config.Conf
 	if err := s.viper.ReadInConfig(); err != nil {
 		return &config.DefaultParams, errors.New("cannot read configuration" + err.Error())
 	}
+
+	crcArbiters := s.viper.Get("configuration.dposconfiguration.crcarbiters")
+	if crcArbiters != nil {
+		cfg.DPoSConfiguration.CRCArbiters = []string{}
+	}
+
 	if err := s.viper.Unmarshal(&cfg); err != nil {
 		return &config.DefaultParams, errors.New("configuration files can't be loaded" + err.Error())
 	}
@@ -61,8 +69,10 @@ func (s *Settings) SetupConfig() *config.Configuration {
 	}
 
 	// switch activeNet params
+	var testNet bool
 	switch strings.ToLower(conf.ActiveNet) {
 	case "testnet", "test":
+		testNet = true
 		testnet := config.Config{
 			Configuration: params.TestNet(),
 		}
@@ -74,11 +84,28 @@ func (s *Settings) SetupConfig() *config.Configuration {
 		conf, err = s.loadConfigFile(configFile, regnet)
 	}
 
-	screw.Bind(conf)
+	if conf.MaxBlockSize > 0 {
+		pact.MaxBlockContextSize = conf.MaxBlockSize
+	} else if !testNet {
+		pact.MaxBlockContextSize = 2000000
+	}
+
+	if conf.MaxBlockHeaderSize > 0 {
+		pact.MaxBlockHeaderSize = conf.MaxBlockHeaderSize
+	}
+
+	if conf.MaxTxPerBlock > 0 {
+		pact.MaxTxPerBlock = conf.MaxTxPerBlock
+	} else {
+		pact.MaxTxPerBlock = 10000
+	}
+
 	instantBlock := conf.PowConfiguration.InstantBlock
 	if instantBlock {
 		conf = conf.InstantBlock()
 	}
+	screw.Bind(conf)
+	conf.DPoSConfiguration.SignTolerance = conf.DPoSConfiguration.SignTolerance * time.Second
 	config.Parameters = conf
 	return conf
 }

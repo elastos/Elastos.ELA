@@ -61,15 +61,13 @@ var (
 	// testNetCRCAddress
 	testNetCRCAddress = "8JJCdEjMRm6x2rVsSMesL5gmoq7ts4wHMo"
 
-	// destroyAddress
+	// DestroyELAAddress
 	DestroyELAAddress = "ELANULLXXXXXXXXXXXXXXXXXXXXXYvs3rr"
 
-	// CRAssetsAddress indicates the
-	// CR assets address.
+	// CRAssetsAddress indicates the CR assets address.
 	CRAssetsAddress = "CRASSETSXXXXXXXXXXXXXXXXXXXX2qDX5J"
 
-	// CRCExpensesAddress indicates the
-	// CRC council expenses address.
+	// CRCExpensesAddress indicates the CRC council expenses address.
 	CRCExpensesAddress = "CREXPENSESXXXXXXXXXXXXXXXXXX4UdT6b"
 
 	// DPoS 2.0 stake pool address.
@@ -98,16 +96,13 @@ func GetDefaultParams() *Configuration {
 		DestroyELAAddress:   DestroyELAAddress,
 		OriginDestroyAmount: common.Fixed64(45341569050100),
 		FoundationAddress:   mainNetFoundation,
-		MaxTxPerBlock:       10000,
-		MaxBlockSize:        2000000,
-		MaxBlockHeaderSize:  1000000,
 		PowConfiguration: PowConfiguration{
 			PowLimit:           powLimit,
 			PowLimitBits:       0x1f0008ff,
 			TargetTimespan:     24 * time.Hour,  // 24 hours
 			TargetTimePerBlock: 2 * time.Minute, // 2 minute
 			AdjustmentFactor:   4,               // 25% less, 400% more
-			RewardPerBlock:     RewardPerBlock(2 * time.Minute),
+			RewardPerBlock:     rewardPerBlock(2 * time.Minute),
 			CoinbaseMaturity:   100,
 		},
 
@@ -147,7 +142,7 @@ func GetDefaultParams() *Configuration {
 		},
 
 		DPoSConfiguration: DPoSConfiguration{
-			DPoSMagic:                     2019000,
+			Magic:                         2019000,
 			DPoSPort:                      20339,
 			CRDPoSNodeHotFixHeight:        0,
 			DPoSV2IllegalPenalty:          20000000000, // todo complete me
@@ -249,14 +244,11 @@ func (p *Configuration) TestNet() *Configuration {
 	}
 	p.DestroyELAAddress = DestroyELAAddress
 	p.FoundationAddress = testNetFoundation
-	p.MaxTxPerBlock = 10000
-	p.MaxBlockSize = 8000000
-	p.MaxBlockHeaderSize = 1000000
 	p.CRConfiguration.CRCAddress = testNetCRCAddress
 	p.CRConfiguration.CRAssetsAddress = CRAssetsAddress
 	p.CRConfiguration.CRExpensesAddress = CRCExpensesAddress
 
-	p.DPoSConfiguration.DPoSMagic = 2019100
+	p.DPoSConfiguration.Magic = 2019100
 	p.DPoSConfiguration.DPoSPort = 21339
 	p.DPoSConfiguration.OriginArbiters = []string{
 		"03e333657c788a20577c0288559bd489ee65514748d18cb1dc7560ae4ce3d45613",
@@ -365,10 +357,7 @@ func (p *Configuration) RegNet() *Configuration {
 	p.CRConfiguration.CRAssetsAddress = CRAssetsAddress
 	p.CRConfiguration.CRExpensesAddress = CRCExpensesAddress
 	p.DestroyELAAddress = DestroyELAAddress
-	p.MaxTxPerBlock = 10000
-	p.MaxBlockSize = 8000000
-	p.MaxBlockHeaderSize = 1000000
-	p.DPoSConfiguration.DPoSMagic = 2019200
+	p.DPoSConfiguration.Magic = 2019200
 	p.DPoSConfiguration.DPoSPort = 22339
 	p.DPoSConfiguration.OriginArbiters = []string{
 		"03e333657c788a20577c0288559bd489ee65514748d18cb1dc7560ae4ce3d45613",
@@ -597,8 +586,8 @@ type CheckPointConfiguration struct {
 // DPoSConfiguration defines the DPoS consensus parameters.
 type DPoSConfiguration struct {
 	EnableArbiter bool `screw:"--arbiter" usage:"indicates where or not to enable DPoS arbiter switch"`
-	// DPoSMagic defines the magic number used in the DPoS network.
-	DPoSMagic uint32 `screw:"--dposmagic" usage:"defines the magic number used in the DPoS network"`
+	// Magic defines the magic number used in the DPoS network.
+	Magic uint32 `screw:"--dposmagic" usage:"defines the magic number used in the DPoS network"`
 	// DPoSIPAddress defines the IP address for the DPoS network.
 	IPAddress string `screw:"--dposipaddress" usage:"defines the default IP address for the DPoS network"`
 	// DPoSDefaultPort defines the default port for the DPoS network.
@@ -760,8 +749,8 @@ func (p *Configuration) InstantBlock() *Configuration {
 	return p
 }
 
-// RewardPerBlock calculates the reward for each block by a specified time duration.
-func RewardPerBlock(targetTimePerBlock time.Duration) common.Fixed64 {
+// rewardPerBlock calculates the reward for each block by a specified time duration.
+func rewardPerBlock(targetTimePerBlock time.Duration) common.Fixed64 {
 	blockGenerateInterval := int64(targetTimePerBlock / time.Second)
 	generatedBlocksPerYear := 365 * 24 * 60 * 60 / blockGenerateInterval
 	return common.Fixed64(float64(inflationPerYear) / float64(generatedBlocksPerYear))

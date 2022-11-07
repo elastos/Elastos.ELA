@@ -7,6 +7,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"net"
 	"os"
@@ -93,18 +94,16 @@ func main() {
 	// Init logger
 	setupLog(config)
 
+	// Debug
+	cfg, _ := json.MarshalIndent(config, "", "\t")
+	log.Debug("Configuration: ", string(cfg))
+
 	// Start Node
 	startNode(config)
 }
 
 func startNode(cfg *config.Configuration) {
 	log.Infof("Node version: %s, %s, %s", Version, GoVersion, cfg.ActiveNet)
-	log.Debug("Main: ", cfg.ActiveNet, cfg.Magic,
-		cfg.DNSSeeds, cfg.FoundationAddress, cfg.ActiveNet,
-		cfg.DNSSeeds, cfg.NodePort, cfg.HttpInfoPort,
-		cfg.HttpRestPort, cfg.HttpWsPort, cfg.HttpJsonPort,
-		cfg.CheckPointConfiguration)
-
 	if cfg.ProfilePort != 0 {
 		go utils.StartPProf(cfg.ProfilePort, cfg.ProfileHost)
 	}

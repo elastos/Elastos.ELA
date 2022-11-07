@@ -381,7 +381,7 @@ func NewDposNetwork(cfg NetworkConfig) (*network, error) {
 		PID:               pid,
 		EnableHub:         true,
 		Localhost:         cfg.ChainParams.DPoSConfiguration.IPAddress,
-		MagicNumber:       cfg.ChainParams.DPoSConfiguration.DPoSMagic,
+		MagicNumber:       cfg.ChainParams.DPoSConfiguration.Magic,
 		DefaultPort:       cfg.ChainParams.DPoSConfiguration.DPoSPort,
 		TimeSource:        cfg.MedianTime,
 		MaxNodePerHost:    cfg.ChainParams.MaxNodePerHost,

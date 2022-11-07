@@ -279,7 +279,9 @@ func NewArbitrator(account account.Account, cfg Config) (*Arbitrator, error) {
 		TimeSource:  medianTime,
 	})
 
-	consensus := manager.NewConsensus(dposManager, cfg.ChainParams.DPoSConfiguration.SignTolerance, dposHandlerSwitch)
+	consensus := manager.NewConsensus(dposManager,
+		cfg.ChainParams.DPoSConfiguration.SignTolerance,
+		dposHandlerSwitch)
 	proposalDispatcher, illegalMonitor := manager.NewDispatcherAndIllegalMonitor(
 		manager.ProposalDispatcherConfig{
 			EventMonitor: eventMonitor,

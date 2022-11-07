@@ -21,7 +21,6 @@ import (
 	. "github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/common/log"
-	"github.com/elastos/Elastos.ELA/core"
 	"github.com/elastos/Elastos.ELA/core/checkpoint"
 	"github.com/elastos/Elastos.ELA/core/contract/program"
 	. "github.com/elastos/Elastos.ELA/core/types"
@@ -101,7 +100,7 @@ func New(db IChainStore, chainParams *config.Configuration, state *state.State,
 		CkpManager:          ckpManager,
 		crCommittee:         committee,
 		UTXOCache:           NewUTXOCache(db, chainParams),
-		GenesisHash:         core.GenesisBlock(chainParams.FoundationAddress).Hash(),
+		GenesisHash:         chainParams.GenesisBlock.Hash(),
 		minRetargetTimespan: targetTimespan / adjustmentFactor,
 		maxRetargetTimespan: targetTimespan * adjustmentFactor,
 		blocksPerRetarget:   uint32(targetTimespan / targetTimePerBlock),

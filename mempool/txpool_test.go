@@ -19,6 +19,7 @@ import (
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/common/log"
+	"github.com/elastos/Elastos.ELA/core"
 	"github.com/elastos/Elastos.ELA/core/checkpoint"
 	"github.com/elastos/Elastos.ELA/core/contract"
 	"github.com/elastos/Elastos.ELA/core/contract/program"
@@ -84,6 +85,7 @@ func TestTxPoolInit(t *testing.T) {
 
 	ckpManager := checkpoint.NewManager(config.GetDefaultParams())
 	params := &config.DefaultParams
+	params.GenesisBlock = core.GenesisBlock(params.FoundationAddress)
 	FoundationAddress, _ := common.Uint168FromAddress(params.FoundationAddress)
 	blockchain.FoundationAddress = *FoundationAddress
 	chainStore, err := blockchain.NewChainStore(test.DataPath, params)

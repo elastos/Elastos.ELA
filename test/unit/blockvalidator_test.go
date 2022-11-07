@@ -19,6 +19,7 @@ import (
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/common/log"
+	"github.com/elastos/Elastos.ELA/core"
 	"github.com/elastos/Elastos.ELA/core/checkpoint"
 	"github.com/elastos/Elastos.ELA/core/contract"
 	"github.com/elastos/Elastos.ELA/core/contract/program"
@@ -66,6 +67,7 @@ func init() {
 func TestCheckBlockSanity(t *testing.T) {
 	log.NewDefault(test.NodeLogPath, 0, 0, 0)
 	params := *config.GetDefaultParams()
+	params.GenesisBlock = core.GenesisBlock(params.FoundationAddress)
 	FoundationAddress, _ := common.Uint168FromAddress(params.FoundationAddress)
 	blockchain.FoundationAddress = *FoundationAddress
 	ckpManager := checkpoint.NewManager(config.GetDefaultParams())

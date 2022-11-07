@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/elastos/Elastos.ELA/common/config"
+	"github.com/elastos/Elastos.ELA/core"
 	"github.com/elastos/Elastos.ELA/core/transaction"
 	"github.com/elastos/Elastos.ELA/core/types/functions"
 	"github.com/elastos/Elastos.ELA/elanet/pact"
@@ -62,6 +63,7 @@ func (s *Settings) SetupConfig() *config.Configuration {
 	params := config.Config{
 		Configuration: &config.DefaultParams,
 	}
+	params.GenesisBlock = core.GenesisBlock(params.FoundationAddress)
 	// set mainNet params
 	conf, err := s.loadConfigFile(configFile, params)
 	if err != nil {
@@ -76,11 +78,13 @@ func (s *Settings) SetupConfig() *config.Configuration {
 		testnet := config.Config{
 			Configuration: params.TestNet(),
 		}
+		testnet.GenesisBlock = core.GenesisBlock(testnet.FoundationAddress)
 		conf, err = s.loadConfigFile(configFile, testnet)
 	case "regnet", "regtest", "reg":
 		regnet := config.Config{
 			Configuration: params.RegNet(),
 		}
+		regnet.GenesisBlock = core.GenesisBlock(regnet.FoundationAddress)
 		conf, err = s.loadConfigFile(configFile, regnet)
 	}
 

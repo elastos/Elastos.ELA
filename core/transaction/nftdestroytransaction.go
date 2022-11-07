@@ -56,12 +56,12 @@ func (t *NFTDestroyTransactionFromSideChain) checkNFTDestroyTransactionFromSideC
 		}
 		var arbiters []*state.ArbiterInfo
 		var minCount uint32
-		if height >= t.parameters.Config.DPOSNodeCrossChainHeight {
+		if height >= t.parameters.Config.DPoSConfiguration.DPOSNodeCrossChainHeight {
 			arbiters = blockchain.DefaultLedger.Arbitrators.GetArbitrators()
-			minCount = uint32(t.parameters.Config.GeneralArbiters) + 1
+			minCount = uint32(t.parameters.Config.DPoSConfiguration.NormalArbitratorsCount) + 1
 		} else {
 			arbiters = blockchain.DefaultLedger.Arbitrators.GetCRCArbiters()
-			minCount = t.parameters.Config.CRAgreementCount
+			minCount = t.parameters.Config.CRConfiguration.CRAgreementCount
 		}
 		var arbitersCount int
 		for _, c := range arbiters {

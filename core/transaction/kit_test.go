@@ -103,7 +103,7 @@ func (s *txValidatorSpecialTxTestSuite) SetupSuite() {
 	}
 
 	params := &config.DefaultParams
-	params.GenesisBlock = core.GenesisBlock(params.FoundationAddress)
+	params.GenesisBlock = core.GenesisBlock(*params.FoundationAddressUint168)
 	chainStore, err := blockchain.NewChainStore(filepath.Join(test.DataPath, "special"), params)
 	if err != nil {
 		s.Error(err)
@@ -150,8 +150,8 @@ func (s *txValidatorTestSuite) SetupSuite() {
 	log2.NewDefault(test.NodeLogPath, 0, 0, 0)
 
 	params := &config.DefaultParams
-	params.GenesisBlock = core.GenesisBlock(params.FoundationAddress)
-	addr, _ := common.Uint168FromAddress(params.FoundationAddress)
+	params.GenesisBlock = core.GenesisBlock(*params.FoundationAddressUint168)
+	addr := params.FoundationAddressUint168
 	blockchain.FoundationAddress = *addr
 	s.foundationAddress = *addr
 

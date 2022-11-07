@@ -50,32 +50,68 @@ var (
 	//  It is the value 2^255 - 1.
 	powLimit = new(big.Int).Sub(new(big.Int).Lsh(bigOne, 255), bigOne)
 
-	// mainNetFoundation
-	mainNetFoundation = "8VYXVxKKSAxkmRrfmGpQR2Kc66XhG6m3ta"
+	// mainNetFoundationUint168 "8VYXVxKKSAxkmRrfmGpQR2Kc66XhG6m3ta"
+	mainNetFoundationUint168 = &common.Uint168{
+		0x12, 0x9e, 0x9c, 0xf1, 0xc5, 0xf3, 0x36,
+		0xfc, 0xf3, 0xa6, 0xc9, 0x54, 0x44, 0x4e,
+		0xd4, 0x82, 0xc5, 0xd9, 0x16, 0xe5, 0x06,
+	}
 
-	// testNetFoundation
-	testNetFoundation = "8ZNizBf4KhhPjeJRGpox6rPcHE5Np6tFx3"
+	// testNetFoundationUint168 "8ZNizBf4KhhPjeJRGpox6rPcHE5Np6tFx3"
+	testNetFoundationUint168 = &common.Uint168{
+		0x12, 0xc8, 0xa2, 0xe0, 0x67, 0x72, 0x27,
+		0x14, 0x4d, 0xf8, 0x22, 0xb7, 0xd9, 0x24,
+		0x6c, 0x58, 0xdf, 0x68, 0xeb, 0x11, 0xce,
+	}
 
-	// mainNetCRCAddress
-	mainNetCRCAddress = "8ZZLWQUDSbjWUn8sEdxEFJsZiRFpzg53rJ"
+	// mainNetCRCAddressUint168 "8ZZLWQUDSbjWUn8sEdxEFJsZiRFpzg53rJ"
+	mainNetCRCAddressUint168 = &common.Uint168{
+		0x12, 0xca, 0xa4, 0xb0, 0x0b, 0x86, 0x8b,
+		0xe7, 0x92, 0xe2, 0x40, 0x1e, 0x97, 0x4e,
+		0xcd, 0x5f, 0xcb, 0x1f, 0xd9, 0xab, 0x37,
+	}
 
-	// testNetCRCAddress
-	testNetCRCAddress = "8JJCdEjMRm6x2rVsSMesL5gmoq7ts4wHMo"
+	// testNetCRCAddressUint168 "8JJCdEjMRm6x2rVsSMesL5gmoq7ts4wHMo"
+	testNetCRCAddressUint168 = &common.Uint168{
+		0x12, 0x23, 0x3d, 0xfb, 0x54, 0x88, 0xbb,
+		0xa2, 0xe9, 0xfa, 0x9a, 0x11, 0xbb, 0x07,
+		0xac, 0x10, 0xcd, 0x77, 0x29, 0x41, 0x22,
+	}
 
-	// DestroyELAAddress
-	DestroyELAAddress = "ELANULLXXXXXXXXXXXXXXXXXXXXXYvs3rr"
+	// DestroyELAAddressUint168 "ELANULLXXXXXXXXXXXXXXXXXXXXXYvs3rr"
+	DestroyELAAddressUint168 = &common.Uint168{
+		0x21, 0x20, 0xfe, 0xe5, 0xd7, 0xeb, 0x3e,
+		0x5c, 0x7d, 0x31, 0x97, 0xfe, 0xcf, 0x6c,
+		0x0d, 0xe3, 0x0f, 0x88, 0x9a, 0xce, 0xf7,
+	}
 
-	// CRAssetsAddress indicates the CR assets address.
-	CRAssetsAddress = "CRASSETSXXXXXXXXXXXXXXXXXXXX2qDX5J"
+	// CRAssetsAddressUint168 "CRASSETSXXXXXXXXXXXXXXXXXXXX2qDX5J"
+	CRAssetsAddressUint168 = &common.Uint168{
+		0x1c, 0x5f, 0x6c, 0x3e, 0x9f, 0x0c, 0x9a,
+		0x71, 0x10, 0xb8, 0xeb, 0x6e, 0x37, 0x02,
+		0x63, 0x0f, 0x71, 0x27, 0x4d, 0xf1, 0xc0,
+	}
 
-	// CRCExpensesAddress indicates the CRC council expenses address.
-	CRCExpensesAddress = "CREXPENSESXXXXXXXXXXXXXXXXXX4UdT6b"
+	// CRCExpensesAddressUint168 "CREXPENSESXXXXXXXXXXXXXXXXXX4UdT6b"
+	CRCExpensesAddressUint168 = &common.Uint168{
+		0x1c, 0x60, 0x32, 0x09, 0xff, 0x5d, 0x86,
+		0x54, 0x2d, 0x26, 0x1a, 0x8d, 0x22, 0x7f,
+		0xe0, 0xf5, 0xee, 0x2c, 0x4e, 0xd2, 0xd3,
+	}
 
-	// DPoS 2.0 stake pool address.
-	StakePoolAddress = "STAKEPooLXXXXXXXXXXXXXXXXXXXpP1PQ2"
+	// StakePoolAddressUint168 "STAKEPooLXXXXXXXXXXXXXXXXXXXpP1PQ2"
+	StakePoolAddressUint168 = &common.Uint168{
+		0x3f, 0x40, 0x5c, 0x9e, 0x71, 0x3f, 0x20,
+		0x13, 0xa3, 0x16, 0x39, 0x49, 0xbd, 0xd6,
+		0xf0, 0xbc, 0xad, 0xd6, 0xc8, 0xf5, 0xab,
+	}
 
-	// DPoS 2.0 stake reward pool address.
-	StakeRewardAddress = "STAKEREWARDXXXXXXXXXXXXXXXXXFD5SHU"
+	// StakeRewardAddressUint168 "STAKEREWARDXXXXXXXXXXXXXXXXXFD5SHU"
+	StakeRewardAddressUint168 = &common.Uint168{
+		0x3f, 0x40, 0x5c, 0x9e, 0x88, 0x6f, 0x83,
+		0xef, 0xe2, 0xeb, 0x7f, 0x86, 0x5c, 0xd4,
+		0xf1, 0x44, 0x5f, 0xb2, 0x11, 0x9c, 0xe6,
+	}
 )
 
 func SetParameters(configuration *Configuration) {
@@ -94,9 +130,9 @@ func GetDefaultParams() *Configuration {
 			"node-mainnet-020.elastos.org:20338",
 			"node-mainnet-025.elastos.org:20338",
 		},
-		DestroyELAAddress:   DestroyELAAddress,
-		OriginDestroyAmount: common.Fixed64(45341569050100),
-		FoundationAddress:   mainNetFoundation,
+		DestroyELAAddressUint168: DestroyELAAddressUint168,
+		OriginDestroyAmount:      common.Fixed64(45341569050100),
+		FoundationAddressUint168: mainNetFoundationUint168,
 		PowConfiguration: PowConfiguration{
 			PowLimit:           powLimit,
 			PowLimitBits:       0x1f0008ff,
@@ -108,9 +144,9 @@ func GetDefaultParams() *Configuration {
 		},
 
 		CRConfiguration: CRConfiguration{
-			CRCAddress:                         mainNetCRCAddress,
-			CRAssetsAddress:                    CRAssetsAddress,
-			CRExpensesAddress:                  CRCExpensesAddress,
+			CRCAddressUint168:                  mainNetCRCAddressUint168,
+			CRAssetsAddressUint168:             CRAssetsAddressUint168,
+			CRExpensesAddressUint168:           CRCExpensesAddressUint168,
 			CRClaimPeriod:                      720 * 14, // todo complete me
 			MemberCount:                        12,
 			VotingPeriod:                       30 * 720,
@@ -143,29 +179,29 @@ func GetDefaultParams() *Configuration {
 		},
 
 		DPoSConfiguration: DPoSConfiguration{
-			Magic:                         2019000,
-			DPoSPort:                      20339,
-			CRDPoSNodeHotFixHeight:        0,
-			DPoSV2IllegalPenalty:          20000000000, // todo complete me
-			PreConnectOffset:              360,
-			NoCRCDPOSNodeHeight:           932530,
-			RevertToPOWStartHeight:        932530,
-			RandomCandidatePeriod:         36 * 10,
-			MaxInactiveRoundsOfRandomNode: 36 * 8,
-			DPOSNodeCrossChainHeight:      2000000, // todo complete me
-			RevertToPOWNoBlockTime:        12 * 3600,
-			StopConfirmBlockTime:          11 * 3600,
-			DPoSV2RewardAccumulateAddress: StakeRewardAddress,
-			DPoSV2DepositCoinMinLockTime:  7200,   // todo complete me change to 216000
-			DPoSV2MinVotesLockTime:        7200,   // todo complete me
-			DPoSV2MaxVotesLockTime:        720000, // todo complete me
-			SignTolerance:                 5 * time.Second,
-			MaxInactiveRounds:             720 * 2,
-			InactivePenalty:               0, //there will be no penalty in this version
-			IllegalPenalty:                0,
-			EmergencyInactivePenalty:      0, //there will be no penalty in this version
-			NormalArbitratorsCount:        24,
-			CandidatesCount:               72,
+			Magic:                                2019000,
+			DPoSPort:                             20339,
+			CRDPoSNodeHotFixHeight:               0,
+			DPoSV2IllegalPenalty:                 20000000000, // todo complete me
+			PreConnectOffset:                     360,
+			NoCRCDPOSNodeHeight:                  932530,
+			RevertToPOWStartHeight:               932530,
+			RandomCandidatePeriod:                36 * 10,
+			MaxInactiveRoundsOfRandomNode:        36 * 8,
+			DPOSNodeCrossChainHeight:             2000000, // todo complete me
+			RevertToPOWNoBlockTime:               12 * 3600,
+			StopConfirmBlockTime:                 11 * 3600,
+			DPoSV2RewardAccumulateAddressUint168: StakeRewardAddressUint168,
+			DPoSV2DepositCoinMinLockTime:         7200,   // todo complete me change to 216000
+			DPoSV2MinVotesLockTime:               7200,   // todo complete me
+			DPoSV2MaxVotesLockTime:               720000, // todo complete me
+			SignTolerance:                        5 * time.Second,
+			MaxInactiveRounds:                    720 * 2,
+			InactivePenalty:                      0, //there will be no penalty in this version
+			IllegalPenalty:                       0,
+			EmergencyInactivePenalty:             0, //there will be no penalty in this version
+			NormalArbitratorsCount:               24,
+			CandidatesCount:                      72,
 			OriginArbiters: []string{
 				"0248df6705a909432be041e0baa25b8f648741018f70d1911f2ed28778db4b8fe4",
 				"02771faf0f4d4235744b30972d5f2c470993920846c761e4d08889ecfdc061cddf",
@@ -217,10 +253,10 @@ func GetDefaultParams() *Configuration {
 		DIDSideChainAddress:             "XKUh4GLhFJiqAMTF6HyWQrV9pK9HcGUdfJ",
 		DPoSV2StartHeight:               2000000, // todo complete me
 		DPoSV2EffectiveVotes:            8000000000000,
-		StakePool:                       StakePoolAddress, // todo complete me
-		SchnorrStartHeight:              2000000,          // todo complete me
-		CrossChainMonitorStartHeight:    2000000,          // todo complete me
-		CrossChainMonitorInterval:       100,              // todo complete me
+		StakePoolUint168:                StakePoolAddressUint168, // todo complete me
+		SchnorrStartHeight:              2000000,                 // todo complete me
+		CrossChainMonitorStartHeight:    2000000,                 // todo complete me
+		CrossChainMonitorInterval:       100,                     // todo complete me
 		HttpInfoPort:                    20333,
 		HttpRestPort:                    20334,
 		HttpWsPort:                      20335,
@@ -243,11 +279,11 @@ func (p *Configuration) TestNet() *Configuration {
 		"node-testnet-003.elastos.org:21338",
 		"node-testnet-004.elastos.org:21338",
 	}
-	p.DestroyELAAddress = DestroyELAAddress
-	p.FoundationAddress = testNetFoundation
-	p.CRConfiguration.CRCAddress = testNetCRCAddress
-	p.CRConfiguration.CRAssetsAddress = CRAssetsAddress
-	p.CRConfiguration.CRExpensesAddress = CRCExpensesAddress
+	p.DestroyELAAddressUint168 = DestroyELAAddressUint168
+	p.FoundationAddressUint168 = testNetFoundationUint168
+	p.CRConfiguration.CRCAddressUint168 = testNetCRCAddressUint168
+	p.CRConfiguration.CRAssetsAddressUint168 = CRAssetsAddressUint168
+	p.CRConfiguration.CRExpensesAddressUint168 = CRCExpensesAddressUint168
 
 	p.DPoSConfiguration.Magic = 2019100
 	p.DPoSConfiguration.DPoSPort = 21339
@@ -323,8 +359,8 @@ func (p *Configuration) TestNet() *Configuration {
 	p.DIDSideChainAddress = "XKUh4GLhFJiqAMTF6HyWQrV9pK9HcGUdfJ"
 	p.DPoSV2StartHeight = 965800 + 720*3
 	p.DPoSV2EffectiveVotes = 3000 * 100000000
-	p.DPoSConfiguration.DPoSV2RewardAccumulateAddress = StakeRewardAddress
-	p.StakePool = StakePoolAddress
+	p.DPoSConfiguration.DPoSV2RewardAccumulateAddressUint168 = StakeRewardAddressUint168
+	p.StakePoolUint168 = StakePoolAddressUint168
 	p.DPoSConfiguration.DPoSV2DepositCoinMinLockTime = 7200 * 3
 	p.DPoSConfiguration.DPoSV2MinVotesLockTime = 7200
 	p.DPoSConfiguration.DPoSV2MaxVotesLockTime = 720000
@@ -353,11 +389,11 @@ func (p *Configuration) RegNet() *Configuration {
 		"node-regtest-104.eadd.co:22338",
 	}
 
-	p.FoundationAddress = testNetFoundation
-	p.CRConfiguration.CRCAddress = testNetCRCAddress
-	p.CRConfiguration.CRAssetsAddress = CRAssetsAddress
-	p.CRConfiguration.CRExpensesAddress = CRCExpensesAddress
-	p.DestroyELAAddress = DestroyELAAddress
+	p.FoundationAddressUint168 = testNetFoundationUint168
+	p.CRConfiguration.CRCAddressUint168 = testNetCRCAddressUint168
+	p.CRConfiguration.CRAssetsAddressUint168 = CRAssetsAddressUint168
+	p.CRConfiguration.CRExpensesAddressUint168 = CRCExpensesAddressUint168
+	p.DestroyELAAddressUint168 = DestroyELAAddressUint168
 	p.DPoSConfiguration.Magic = 2019200
 	p.DPoSConfiguration.DPoSPort = 22339
 	p.DPoSConfiguration.OriginArbiters = []string{
@@ -433,8 +469,8 @@ func (p *Configuration) RegNet() *Configuration {
 	p.DIDSideChainAddress = "XKUh4GLhFJiqAMTF6HyWQrV9pK9HcGUdfJ"
 	p.DPoSV2StartHeight = 875544 + 720*2
 	p.DPoSV2EffectiveVotes = 300000000000
-	p.DPoSConfiguration.DPoSV2RewardAccumulateAddress = StakeRewardAddress
-	p.StakePool = StakePoolAddress
+	p.DPoSConfiguration.DPoSV2RewardAccumulateAddressUint168 = StakeRewardAddressUint168
+	p.StakePoolUint168 = StakePoolAddressUint168
 	p.DPoSConfiguration.DPoSV2DepositCoinMinLockTime = 7200 * 3
 	p.DPoSConfiguration.DPoSV2MinVotesLockTime = 7200
 	p.DPoSConfiguration.DPoSV2MaxVotesLockTime = 720000
@@ -502,11 +538,13 @@ type Configuration struct {
 	// MinTransactionFee defines the minimum fee of a transaction.
 	MinTransactionFee common.Fixed64 `json:"MinTransactionFee"`
 	// DestroyELAAddress defines address which receiving destroyed ELA.
-	DestroyELAAddress string `json:"DestroyELAAddress"`
+	DestroyELAAddress        string `json:"DestroyELAAddress"`
+	DestroyELAAddressUint168 *common.Uint168
 	// OriginDestroyAmount defines the destroyed ELA before voting start height.
 	OriginDestroyAmount common.Fixed64 `json:"OriginDestroyAmount"`
 	// Foundation defines the foundation address which receiving mining rewards.
-	FoundationAddress string `screw:"--foundation" usage:"specify the foundation address"`
+	FoundationAddress        string `screw:"--foundation" usage:"specify the foundation address"`
+	FoundationAddressUint168 *common.Uint168
 	// Did side chain address
 	DIDSideChainAddress string `screw:"--didsidechainaddress" usage:"specify the did sidechain address"`
 	//Prohibit transfers to did height
@@ -562,7 +600,8 @@ type Configuration struct {
 	// DPoSV2EffectiveVotes defines the votes which producer will become a dposV2 effective node
 	DPoSV2EffectiveVotes common.Fixed64 `screw:"--dposv2effectivevotes" usage:"defines the minimum votes to active a DposV2 producer"`
 	// ExchangeVotes address of votes
-	StakePool string `json:"StakePool"`
+	StakePool        string `json:"StakePool"`
+	StakePoolUint168 *common.Uint168
 	// SchnorrStartHeight indicates the start height of schnorr
 	SchnorrStartHeight uint32 `screw:"--schnorrstartheight" usage:"defines the start height to support schnorr transaction"`
 	// CrossChainMonitorStartHeight indicates the monitor height of cr cross chain arbitration
@@ -633,7 +672,8 @@ type DPoSConfiguration struct {
 	// RevertToPOWStartHeight defines the start height to allow to revert to POW mode.
 	RevertToPOWStartHeight uint32 `screw:"--reverttopowstartheight" usage:"defines the start height to allow to revert to POW mode"`
 	// DPoSV2RewardAccumulateAddress defines the dposv2 reward accumulating address
-	DPoSV2RewardAccumulateAddress string `screw:"--dposv2rewardaccumulateaddress" usage:"defines dposv2 reward accumulate address"`
+	DPoSV2RewardAccumulateAddress        string `screw:"--dposv2rewardaccumulateaddress" usage:"defines dposv2 reward accumulate address"`
+	DPoSV2RewardAccumulateAddressUint168 *common.Uint168
 	// minimum lock time of DPoS V2 deposit coin
 	DPoSV2DepositCoinMinLockTime uint32 `screw:"--dposv2depositcoinminlocktime" usage:"minimum lock time of DPoS V2 deposit coin"`
 	// minimum lock time of DPoS V2 votes
@@ -684,11 +724,14 @@ type CRConfiguration struct {
 	// CRCProposalV1Height defines the height to support ChangeProposalOwner, CloseProposal and SecretaryGeneral proposal.
 	CRCProposalV1Height uint32 `screw:"--crcproposalv1height" usage:"defines the ChangeProposalOwner，CloseProposal and SecretaryGeneral crc proposal type accept height"`
 	// CRCAddress defines the CRC address which receiving mining rewards.
-	CRCAddress string `screw:"--crcaddress" usage:"crc address of CRC"`
+	CRCAddress        string `screw:"--crcaddress" usage:"crc address of CRC"`
+	CRCAddressUint168 *common.Uint168
 	// CRAssetsAddress defines the CR assets address.
-	CRAssetsAddress string `screw:"--crassetsaddress" usage:"defines foundation address of CRC"`
+	CRAssetsAddress        string `screw:"--crassetsaddress" usage:"defines foundation address of CRC"`
+	CRAssetsAddressUint168 *common.Uint168
 	// CRExpensesAddress defines the CR committee address which receiving appropriation from CR assets address.
-	CRExpensesAddress string `screw:"--crexpensesaddress" usage:"defines appropriation address of CRC committee"`
+	CRExpensesAddress        string `screw:"--crexpensesaddress" usage:"defines appropriation address of CRC committee"`
+	CRExpensesAddressUint168 *common.Uint168
 	// CRVotingStartHeight defines the height of CR voting started.
 	CRVotingStartHeight uint32 `screw:"--crvotingstartheight" usage:"defines the height of CR voting started"`
 	// CRCommitteeStartHeight defines the height of CR Committee started.
@@ -719,9 +762,9 @@ type PowConfiguration struct {
 	MinTxFee     int    `screw:"--mintxfee" usage:"specify minimum transaction fee"`
 	InstantBlock bool   `json:"InstantBlock"`
 	// powLimit defines the highest allowed proof of work value for a block as a uint256.
-	PowLimit *big.Int `json:"PowLimit"`
+	PowLimit *big.Int
 	// PowLimitBits defines the highest allowed proof of work value for a block in compact form.
-	PowLimitBits uint32 `json:"PowLimitBits"`
+	PowLimitBits uint32
 	// TargetTimespan is the desired amount of time that should elapse before the block difficulty requirement
 	//is examined to determine how it should be changed in order to maintain the desired block generation rate.
 	TargetTimespan time.Duration
@@ -750,6 +793,39 @@ func (p *Configuration) InstantBlock() *Configuration {
 	p.PowConfiguration.PowLimitBits = 0x207fffff
 	p.PowConfiguration.TargetTimespan = 10 * time.Second
 	p.PowConfiguration.TargetTimePerBlock = 1 * time.Second
+	return p
+}
+
+func (p *Configuration) Sterilize() *Configuration {
+	if p.FoundationAddress != "" {
+		p.FoundationAddressUint168, _ = common.Uint168FromAddress(
+			p.FoundationAddress)
+	}
+	if p.DestroyELAAddress != "" {
+		p.DestroyELAAddressUint168, _ = common.Uint168FromAddress(
+			p.DestroyELAAddress)
+	}
+	if p.CRConfiguration.CRCAddress != "" {
+		p.CRConfiguration.CRCAddressUint168, _ = common.Uint168FromAddress(
+			p.CRConfiguration.CRCAddress)
+	}
+	if p.CRConfiguration.CRAssetsAddress != "" {
+		p.CRConfiguration.CRAssetsAddressUint168, _ = common.Uint168FromAddress(
+			p.CRConfiguration.CRAssetsAddress)
+	}
+	if p.CRConfiguration.CRExpensesAddress != "" {
+		p.CRConfiguration.CRExpensesAddressUint168, _ = common.Uint168FromAddress(
+			p.CRConfiguration.CRExpensesAddress)
+	}
+	if p.StakePool != "" {
+		p.StakePoolUint168, _ = common.Uint168FromAddress(
+			p.StakePool)
+	}
+	if p.DPoSConfiguration.DPoSV2RewardAccumulateAddress != "" {
+		p.DPoSConfiguration.DPoSV2RewardAccumulateAddressUint168, _ = common.Uint168FromAddress(
+			p.DPoSConfiguration.DPoSV2RewardAccumulateAddress)
+	}
+	p.DPoSConfiguration.SignTolerance = p.DPoSConfiguration.SignTolerance * time.Second
 	return p
 }
 

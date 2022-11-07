@@ -8,15 +8,13 @@ package settings
 import (
 	"errors"
 	"fmt"
-	"path/filepath"
-	"strings"
-	"time"
-
 	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/core"
 	"github.com/elastos/Elastos.ELA/core/transaction"
 	"github.com/elastos/Elastos.ELA/core/types/functions"
 	"github.com/elastos/Elastos.ELA/elanet/pact"
+	"path/filepath"
+	"strings"
 
 	"github.com/fungolang/screw"
 	"github.com/spf13/viper"
@@ -63,7 +61,7 @@ func (s *Settings) SetupConfig() *config.Configuration {
 	params := config.Config{
 		Configuration: &config.DefaultParams,
 	}
-	params.GenesisBlock = core.GenesisBlock(params.FoundationAddress)
+	params.GenesisBlock = core.GenesisBlock(*params.FoundationAddressUint168)
 	// set mainNet params
 	conf, err := s.loadConfigFile(configFile, params)
 	if err != nil {
@@ -78,13 +76,13 @@ func (s *Settings) SetupConfig() *config.Configuration {
 		testnet := config.Config{
 			Configuration: params.TestNet(),
 		}
-		testnet.GenesisBlock = core.GenesisBlock(testnet.FoundationAddress)
+		testnet.GenesisBlock = core.GenesisBlock(*testnet.FoundationAddressUint168)
 		conf, err = s.loadConfigFile(configFile, testnet)
 	case "regnet", "regtest", "reg":
 		regnet := config.Config{
 			Configuration: params.RegNet(),
 		}
-		regnet.GenesisBlock = core.GenesisBlock(regnet.FoundationAddress)
+		regnet.GenesisBlock = core.GenesisBlock(*regnet.FoundationAddressUint168)
 		conf, err = s.loadConfigFile(configFile, regnet)
 	}
 
@@ -109,7 +107,7 @@ func (s *Settings) SetupConfig() *config.Configuration {
 		conf = conf.InstantBlock()
 	}
 	screw.Bind(conf)
-	conf.DPoSConfiguration.SignTolerance = conf.DPoSConfiguration.SignTolerance * time.Second
+	conf = conf.Sterilize()
 	config.Parameters = conf
 	return conf
 }

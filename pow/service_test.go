@@ -45,7 +45,7 @@ func TestService_Init(t *testing.T) {
 	functions.CreateTransaction = transaction2.CreateTransaction
 	functions.GetTransactionParameters = transaction2.GetTransactionparameters
 	params := &config.DefaultParams
-	params.GenesisBlock = core.GenesisBlock(params.FoundationAddress)
+	params.GenesisBlock = core.GenesisBlock(*params.FoundationAddressUint168)
 
 	// Initialize default parameters
 	ckpManager := checkpoint.NewManager(params)

@@ -36,9 +36,9 @@ package payload
 //		BlockHeight:            0,
 //		CRCommitteeStartHeight: 0,
 //		ConsensusAlgorithm:     0,
-//		DestroyELAAddress:      common.Uint168{},
-//		CRAssetsAddress:        common.Uint168{},
-//		FoundationAddress:      common.Uint168{},
+//		DestroyELAAddressUint168:      common.Uint168{},
+//		CRAssetsAddressUint168:        common.Uint168{},
+//		FoundationAddressUint168:      common.Uint168{},
 //	} // self check
 //	payload := CoinBase{
 //		DefaultChecker: DefaultChecker{

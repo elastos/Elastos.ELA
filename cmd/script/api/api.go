@@ -208,8 +208,7 @@ func initLedger(L *lua.LState) int {
 	if err != nil {
 		fmt.Printf("Init fflDB error: %s \n", err.Error())
 	}
-	FoundationAddress, _ := common.Uint168FromAddress(chainParams.FoundationAddress)
-	blockchain.FoundationAddress = *FoundationAddress
+	blockchain.FoundationAddress = *chainParams.FoundationAddressUint168
 	blockchain.DefaultLedger = &ledger // fixme
 	blockchain.DefaultLedger.Blockchain = chain
 	blockchain.DefaultLedger.Store = chainStore

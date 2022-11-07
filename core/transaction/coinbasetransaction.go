@@ -62,7 +62,7 @@ func (t *CoinBaseTransaction) CheckTransactionOutput() error {
 			return errors.New("reward to foundation in coinbase < 30%")
 		}
 	} else {
-		// check the ratio of FoundationAddress reward with miner reward
+		// check the ratio of FoundationAddressUint168 reward with miner reward
 		totalReward = t.Outputs()[0].Value + t.Outputs()[1].Value
 		if len(t.Outputs()) == 2 && foundationReward <
 			common.Fixed64(float64(totalReward)*0.3/0.65) {
@@ -96,25 +96,21 @@ func (t *CoinBaseTransaction) IsAllowedInPOWConsensus() bool {
 }
 
 func (a *CoinBaseTransaction) SpecialContextCheck() (result elaerr.ELAError, end bool) {
-
 	para := a.parameters
-	DestroyELAAddress, _ := common.Uint168FromAddress(para.Config.DestroyELAAddress)
-	CRAssetsAddress, _ := common.Uint168FromAddress(para.Config.CRConfiguration.CRAssetsAddress)
-	FoundationAddress, _ := common.Uint168FromAddress(para.Config.FoundationAddress)
 	if para.BlockHeight >= para.Config.CRConfiguration.CRCommitteeStartHeight {
 		if para.BlockChain.GetState().GetConsensusAlgorithm() == 0x01 {
-			if !a.outputs[0].ProgramHash.IsEqual(*DestroyELAAddress) {
+			if !a.outputs[0].ProgramHash.IsEqual(*para.Config.DestroyELAAddressUint168) {
 				return elaerr.Simple(elaerr.ErrTxInvalidOutput,
 					errors.New("first output address should be "+
 						"DestroyAddress in POW consensus algorithm")), true
 			}
 		} else {
-			if !a.outputs[0].ProgramHash.IsEqual(*CRAssetsAddress) {
+			if !a.outputs[0].ProgramHash.IsEqual(*para.Config.CRConfiguration.CRAssetsAddressUint168) {
 				return elaerr.Simple(elaerr.ErrTxInvalidOutput,
 					errors.New("first output address should be CR assets address")), true
 			}
 		}
-	} else if !a.outputs[0].ProgramHash.IsEqual(*FoundationAddress) {
+	} else if !a.outputs[0].ProgramHash.IsEqual(*para.Config.FoundationAddressUint168) {
 		return elaerr.Simple(elaerr.ErrTxInvalidOutput,
 			errors.New("first output address should be foundation address")), true
 	}

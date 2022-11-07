@@ -15,7 +15,6 @@ import (
 
 	. "github.com/elastos/Elastos.ELA/auxpow"
 	. "github.com/elastos/Elastos.ELA/common"
-	common2 "github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/common/log"
 	"github.com/elastos/Elastos.ELA/core"
@@ -465,20 +464,17 @@ func (b *BlockChain) checkCoinbaseTransactionContext(blockHeight uint32, coinbas
 		}
 
 		if b.state.GetConsensusAlgorithm() == state.POW {
-			DestroyELAAddress, _ := common2.Uint168FromAddress(b.chainParams.DestroyELAAddress)
-			if !coinbase.Outputs()[2].ProgramHash.IsEqual(*DestroyELAAddress) {
+			if !coinbase.Outputs()[2].ProgramHash.IsEqual(*b.chainParams.DestroyELAAddressUint168) {
 				return errors.New("DPoS reward address not correct")
 			}
-			if !coinbase.Outputs()[0].ProgramHash.IsEqual(*DestroyELAAddress) {
+			if !coinbase.Outputs()[0].ProgramHash.IsEqual(*b.chainParams.DestroyELAAddressUint168) {
 				return errors.New("rewardCyberRepublic address not correct")
 			}
 		} else {
-			CRAssetsAddress, _ := common2.Uint168FromAddress(b.chainParams.CRConfiguration.CRAssetsAddress)
-			DPoSV2RewardAccumulateAddress, _ := common2.Uint168FromAddress(b.chainParams.DPoSConfiguration.DPoSV2RewardAccumulateAddress)
-			if !coinbase.Outputs()[0].ProgramHash.IsEqual(*CRAssetsAddress) {
+			if !coinbase.Outputs()[0].ProgramHash.IsEqual(*b.chainParams.CRConfiguration.CRAssetsAddressUint168) {
 				return errors.New("rewardCyberRepublic address not correct")
 			}
-			if !coinbase.Outputs()[2].ProgramHash.IsEqual(*DPoSV2RewardAccumulateAddress) {
+			if !coinbase.Outputs()[2].ProgramHash.IsEqual(*b.chainParams.DPoSConfiguration.DPoSV2RewardAccumulateAddressUint168) {
 				return errors.New("DPoS reward address not correct")
 			}
 		}

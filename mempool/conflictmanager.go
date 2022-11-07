@@ -49,6 +49,7 @@ const (
 	slotVotesRealWithdraw                       = "VotesRealWithdraw"
 	slotExchangeVotes                           = "ExchangeVotes"
 	slotDposV2ClaimReward                       = "DposV2ClaimReward"
+	slotCreateNFT                               = "createnft"
 )
 
 type conflict struct {
@@ -556,6 +557,15 @@ func newConflictManager() conflictManager {
 					keyTypeFuncPair{
 						Type: allType,
 						Func: strArrayTxReferences,
+					},
+				),
+			},
+			{
+				name: slotCreateNFT,
+				slot: newConflictSlot(hash,
+					keyTypeFuncPair{
+						Type: common2.CreateNFT,
+						Func: hashCreateNFTID,
 					},
 				),
 			},

@@ -57,6 +57,9 @@ const (
 	luaRenewVotingName   = "renewvoting"
 	luaCancelVotesName   = "cancelVotes"
 	luaReturnVotesName   = "returnvotes"
+
+	// nft
+	luaCreateNFT = "createnft"
 )
 
 func RegisterExchangeVotesType(L *lua.LState) {
@@ -3040,4 +3043,54 @@ func checkCRCouncilMemberClaimNode(L *lua.LState, idx int) *payload.CRCouncilMem
 	}
 	L.ArgError(1, "CRCouncilMemberClaimNode expected")
 	return nil
+}
+
+func RegisterCreateNFTType(L *lua.LState) {
+	mt := L.NewTypeMetatable(luaCreateNFT)
+	L.SetGlobal("createnft", mt)
+	// static attributes
+	L.SetField(mt, "new", L.NewFunction(newCreateNFT))
+	// methods
+	L.SetField(mt, "__index", L.SetFuncs(L.NewTable(), cancelProducerMethods))
+}
+
+// Constructor
+func newCreateNFT(L *lua.LState) int {
+	idStr := L.ToString(1)
+	id, err := common.Uint256FromHexString(idStr)
+	if err != nil {
+		fmt.Println("wrong NFT id")
+		os.Exit(1)
+	}
+	createNFTPayload := &payload.CreateNFT{
+		ID: *id,
+	}
+
+	ud := L.NewUserData()
+	ud.Value = createNFTPayload
+	L.SetMetatable(ud, L.GetTypeMetatable(luaCreateNFT))
+	L.Push(ud)
+
+	return 1
+}
+
+func checkCreateNFT(L *lua.LState, idx int) *payload.CreateNFT {
+	ud := L.CheckUserData(idx)
+	if v, ok := ud.Value.(*payload.CreateNFT); ok {
+		return v
+	}
+	L.ArgError(1, "CreateNFT expected")
+	return nil
+}
+
+var createNFTMethods = map[string]lua.LGFunction{
+	"get": createNFTGet,
+}
+
+// Getter and setter for the nft
+func createNFTGet(L *lua.LState) int {
+	p := checkCreateNFT(L, 1)
+	fmt.Println(p)
+
+	return 0
 }

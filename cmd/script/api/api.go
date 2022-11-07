@@ -309,5 +309,9 @@ func RegisterDataType(L *lua.LState) int {
 	RegisterVotingType(L)
 	RegisterRenewVotingType(L)
 	RegisterReturnVotesType(L)
+
+	// nft
+	RegisterCreateNFTType(L)
+
 	return 0
 }

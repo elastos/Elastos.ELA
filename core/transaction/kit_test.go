@@ -5,11 +5,19 @@ import (
 	crand "crypto/rand"
 	"encoding/binary"
 	"encoding/hex"
+	"math/big"
+	"math/rand"
+	"path/filepath"
+	"strconv"
+	"testing"
+	"time"
+
 	"github.com/elastos/Elastos.ELA/auxpow"
 	"github.com/elastos/Elastos.ELA/blockchain"
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
 	log2 "github.com/elastos/Elastos.ELA/common/log"
+	"github.com/elastos/Elastos.ELA/core"
 	"github.com/elastos/Elastos.ELA/core/checkpoint"
 	"github.com/elastos/Elastos.ELA/core/contract"
 	"github.com/elastos/Elastos.ELA/core/contract/program"
@@ -23,12 +31,6 @@ import (
 	"github.com/elastos/Elastos.ELA/dpos/state"
 	"github.com/elastos/Elastos.ELA/utils/test"
 	"github.com/stretchr/testify/suite"
-	"math/big"
-	"math/rand"
-	"path/filepath"
-	"strconv"
-	"testing"
-	"time"
 )
 
 type txValidatorTestSuite struct {
@@ -100,7 +102,9 @@ func (s *txValidatorSpecialTxTestSuite) SetupSuite() {
 		s.arbitratorsPriKeys = append(s.arbitratorsPriKeys, a)
 	}
 
-	chainStore, err := blockchain.NewChainStore(filepath.Join(test.DataPath, "special"), &config.DefaultParams)
+	params := &config.DefaultParams
+	params.GenesisBlock = core.GenesisBlock(params.FoundationAddress)
+	chainStore, err := blockchain.NewChainStore(filepath.Join(test.DataPath, "special"), params)
 	if err != nil {
 		s.Error(err)
 	}
@@ -146,6 +150,7 @@ func (s *txValidatorTestSuite) SetupSuite() {
 	log2.NewDefault(test.NodeLogPath, 0, 0, 0)
 
 	params := &config.DefaultParams
+	params.GenesisBlock = core.GenesisBlock(params.FoundationAddress)
 	addr, _ := common.Uint168FromAddress(params.FoundationAddress)
 	blockchain.FoundationAddress = *addr
 	s.foundationAddress = *addr

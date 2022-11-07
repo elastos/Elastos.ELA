@@ -16,6 +16,7 @@ import (
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/common/log"
+	"github.com/elastos/Elastos.ELA/core"
 	"github.com/elastos/Elastos.ELA/core/checkpoint"
 	"github.com/elastos/Elastos.ELA/core/contract"
 	"github.com/elastos/Elastos.ELA/core/contract/program"
@@ -44,6 +45,7 @@ func TestService_Init(t *testing.T) {
 	functions.CreateTransaction = transaction2.CreateTransaction
 	functions.GetTransactionParameters = transaction2.GetTransactionparameters
 	params := &config.DefaultParams
+	params.GenesisBlock = core.GenesisBlock(params.FoundationAddress)
 
 	// Initialize default parameters
 	ckpManager := checkpoint.NewManager(params)

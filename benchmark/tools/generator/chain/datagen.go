@@ -19,7 +19,6 @@ import (
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/common/log"
-	"github.com/elastos/Elastos.ELA/core"
 	"github.com/elastos/Elastos.ELA/core/checkpoint"
 	"github.com/elastos/Elastos.ELA/core/types"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
@@ -280,7 +279,7 @@ func FromTxRepository(dataDir string, interrupt <-chan struct{},
 	if err != nil {
 		return nil, err
 	}
-	block := core.GenesisBlock(chainParams.FoundationAddress)
+	block := chainParams.GenesisBlock
 	if initFoundationUTXO {
 		fundTx := block.Transactions[0]
 		repo.SetFoundationUTXO(&common2.UTXO{

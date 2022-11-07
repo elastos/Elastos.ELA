@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/elastos/Elastos.ELA/common"
+	"github.com/elastos/Elastos.ELA/core/types"
 )
 
 const (
@@ -471,6 +472,9 @@ type Configuration struct {
 	MaxPerLogSize int64  `json:"MaxPerLogSize"`
 	RestCertPath  string `json:"RestCertPath"`
 	RestKeyPath   string `json:"RestKeyPath"`
+	// GenesisBlock defines the first block of the chain.
+	GenesisBlock *types.Block
+
 	// MaxBlockContextSize is the maximum number of bytes allowed per block context. default value 8000000
 	MaxBlockSize uint32 `json:"MaxBlockSize"`
 	// MaxBlockHeaderSize is the maximum number of bytes allowed per block header. default value 1000000

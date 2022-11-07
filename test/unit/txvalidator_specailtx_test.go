@@ -15,6 +15,7 @@ import (
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/common/log"
+	"github.com/elastos/Elastos.ELA/core"
 	"github.com/elastos/Elastos.ELA/core/checkpoint"
 	"github.com/elastos/Elastos.ELA/core/contract"
 	"github.com/elastos/Elastos.ELA/core/contract/program"
@@ -88,8 +89,9 @@ func (s *txValidatorSpecialTxTestSuite) SetupSuite() {
 		a, _ := common.HexStringToBytes(v)
 		s.arbitratorsPriKeys = append(s.arbitratorsPriKeys, a)
 	}
-
-	chainStore, err := blockchain.NewChainStore(filepath.Join(test.DataPath, "special"), &config.DefaultParams)
+	params := &config.DefaultParams
+	params.GenesisBlock = core.GenesisBlock(params.FoundationAddress)
+	chainStore, err := blockchain.NewChainStore(filepath.Join(test.DataPath, "special"), params)
 	if err != nil {
 		s.Error(err)
 	}

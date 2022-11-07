@@ -583,3 +583,13 @@ func comGetCRInfo(tx interfaces.Transaction) (*payload.CRInfo, error) {
 	}
 	return p, nil
 }
+
+
+func hashCreateNFTID(tx interfaces.Transaction) (interface{}, error) {
+	p, ok := tx.Payload().(*payload.CreateNFT)
+	if !ok {
+		return nil, fmt.Errorf(
+			"CreateNFT payload cast failed, tx: %s", tx.Hash())
+	}
+	return p.ID, nil
+}

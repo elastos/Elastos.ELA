@@ -67,11 +67,10 @@ func (t *CRAssetsRectifyTransaction) SpecialContextCheck() (result elaerr.ELAErr
 
 	// Inputs need to only from CR assets address
 	var totalInput common.Fixed64
-	CRAssetsAddress, _ := common.Uint168FromAddress(t.parameters.Config.CRConfiguration.CRAssetsAddress)
 	for _, output := range t.references {
 		totalInput += output.Value
-		if !output.ProgramHash.IsEqual(*CRAssetsAddress) {
-			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("input does not from CRAssetsAddress")), true
+		if !output.ProgramHash.IsEqual(*t.parameters.Config.CRConfiguration.CRAssetsAddressUint168) {
+			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("input does not from CRAssetsAddressUint168")), true
 		}
 	}
 
@@ -81,8 +80,8 @@ func (t *CRAssetsRectifyTransaction) SpecialContextCheck() (result elaerr.ELAErr
 	}
 
 	// common2.Output should translate to CR assets address only
-	if !t.Outputs()[0].ProgramHash.IsEqual(*CRAssetsAddress) {
-		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("output does not to CRAssetsAddress")), true
+	if !t.Outputs()[0].ProgramHash.IsEqual(*t.parameters.Config.CRConfiguration.CRAssetsAddressUint168) {
+		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("output does not to CRAssetsAddressUint168")), true
 	}
 
 	// Inputs amount need equal to outputs amount

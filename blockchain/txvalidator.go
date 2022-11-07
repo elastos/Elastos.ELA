@@ -360,9 +360,8 @@ func getCRMembersMap(members []*crstate.CRMember) map[string]struct{} {
 }
 
 func CheckDestructionAddress(references map[*common2.Input]common2.Output) error {
-	DestroyELAAddress, _ := common.Uint168FromAddress(config.DestroyELAAddress)
 	for _, output := range references {
-		if output.ProgramHash == *DestroyELAAddress {
+		if output.ProgramHash == *config.DestroyELAAddressUint168 {
 			return errors.New("cannot use utxo from the destruction address")
 		}
 	}
@@ -440,7 +439,7 @@ func (b *BlockChain) CheckTransactionOutput(txn interfaces.Transaction,
 				return errors.New("reward to foundation in coinbase < 30%")
 			}
 		} else {
-			// check the ratio of FoundationAddress reward with miner reward
+			// check the ratio of FoundationAddressUint168 reward with miner reward
 			totalReward = txn.Outputs()[0].Value + txn.Outputs()[1].Value
 			if len(txn.Outputs()) == 2 && foundationReward <
 				common.Fixed64(float64(totalReward)*0.3/0.65) {
@@ -463,16 +462,14 @@ func (b *BlockChain) CheckTransactionOutput(txn interfaces.Transaction,
 	}
 
 	if txn.IsCRCAppropriationTx() {
-		CRAssetsAddress, _ := common.Uint168FromAddress(b.chainParams.CRConfiguration.CRAssetsAddress)
-		CRExpensesAddress, _ := common.Uint168FromAddress(b.chainParams.CRConfiguration.CRExpensesAddress)
 		if len(txn.Outputs()) != 2 {
 			return errors.New("new CRCAppropriation tx must have two output")
 		}
-		if !txn.Outputs()[0].ProgramHash.IsEqual(*CRExpensesAddress) {
+		if !txn.Outputs()[0].ProgramHash.IsEqual(*b.chainParams.CRConfiguration.CRExpensesAddressUint168) {
 			return errors.New("new CRCAppropriation tx must have the first" +
 				"output to CR expenses address")
 		}
-		if !txn.Outputs()[1].ProgramHash.IsEqual(*CRAssetsAddress) {
+		if !txn.Outputs()[1].ProgramHash.IsEqual(*b.chainParams.CRConfiguration.CRAssetsAddressUint168) {
 			return errors.New("new CRCAppropriation tx must have the second" +
 				"output to CR assets address")
 		}
@@ -534,17 +531,15 @@ func (b *BlockChain) CheckTransactionOutput(txn interfaces.Transaction,
 
 func CheckOutputProgramHash(height uint32, programHash common.Uint168) error {
 	// main version >= 88812
-	CRAssetsAddress, _ := common.Uint168FromAddress(config.CRAssetsAddress)
-	CRCExpensesAddress, _ := common.Uint168FromAddress(config.CRCExpensesAddress)
 	if height >= config.DefaultParams.CheckAddressHeight {
 		var empty = common.Uint168{}
 		if programHash.IsEqual(empty) {
 			return nil
 		}
-		if programHash.IsEqual(*CRAssetsAddress) {
+		if programHash.IsEqual(*config.CRAssetsAddressUint168) {
 			return nil
 		}
-		if programHash.IsEqual(*CRCExpensesAddress) {
+		if programHash.IsEqual(*config.CRCExpensesAddressUint168) {
 			return nil
 		}
 

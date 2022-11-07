@@ -990,34 +990,31 @@ func (a *Arbiters) distributeWithNormalArbitratorsV3(height uint32, reward commo
 	totalBlockConfirmReward := float64(reward) * 0.25
 	totalTopProducersReward := float64(reward) - totalBlockConfirmReward
 	// Consider that there is no only CR consensus.
-	arbitersCount := len(a.ChainParams.DPoSConfiguration.CRCArbiters) + a.ChainParams.DPoSConfiguration.NormalArbitratorsCount
+	arbitersCount := len(a.ChainParams.DPoSConfiguration.CRCArbiters) +
+		a.ChainParams.DPoSConfiguration.NormalArbitratorsCount
 	individualBlockConfirmReward := common.Fixed64(
 		math.Floor(totalBlockConfirmReward / float64(arbitersCount)))
 	totalVotesInRound := a.CurrentReward.TotalVotesInRound
 	log.Debugf("distributeWithNormalArbitratorsV3 TotalVotesInRound %f", a.CurrentReward.TotalVotesInRound)
-	DestroyELAAddress, _ := common.Uint168FromAddress(a.ChainParams.DestroyELAAddress)
 	if a.ConsensusAlgorithm == POW || len(a.CurrentArbitrators) == 0 ||
 		len(a.ChainParams.DPoSConfiguration.CRCArbiters) == len(a.CurrentArbitrators) {
 		// if no normal DPOS node, need to destroy reward.
-		roundReward[*DestroyELAAddress] = reward
+		roundReward[*a.ChainParams.DestroyELAAddressUint168] = reward
 		return roundReward, reward, nil
 	}
 	log.Debugf("totalTopProducersReward totalTopProducersReward %f", totalTopProducersReward)
-
 	rewardPerVote := totalTopProducersReward / float64(totalVotesInRound)
-
 	realDPOSReward := common.Fixed64(0)
-
 	for _, arbiter := range a.CurrentArbitrators {
 		ownerHash := arbiter.GetOwnerProgramHash()
 		rewardHash := ownerHash
 		var r common.Fixed64
 		if arbiter.GetType() == CRC {
 			r = individualBlockConfirmReward
-			log.Debugf("1233 r =individualBlockConfirmReward %s", individualBlockConfirmReward.String())
+			log.Debugf("### r =individualBlockConfirmReward %s", individualBlockConfirmReward.String())
 			m, ok := arbiter.(*crcArbiter)
 			if !ok || m.crMember.MemberState != state.MemberElected {
-				rewardHash = *DestroyELAAddress
+				rewardHash = *a.ChainParams.DestroyELAAddressUint168
 			} else if len(m.crMember.DPOSPublicKey) == 0 {
 				nodePK := arbiter.GetNodePublicKey()
 				ownerPK := a.getProducerKey(nodePK)
@@ -1034,13 +1031,13 @@ func (a *Arbiters) distributeWithNormalArbitratorsV3(height uint32, reward commo
 					votes) * rewardPerVote))
 				r = individualBlockConfirmReward + individualCRCProducerReward
 				rewardHash = *programHash
-				log.Debugf("000 rewardHash%s  individualCRCProducerReward %s individualBlockConfirmReward %s votes %s", rewardHash.String(),
+				log.Debugf("### rewardHash%s  individualCRCProducerReward %s individualBlockConfirmReward %s votes %s", rewardHash.String(),
 					individualCRCProducerReward.String(), individualBlockConfirmReward.String(), votes.String())
 			} else {
 				pk := arbiter.GetOwnerPublicKey()
 				programHash, err := contract.PublicKeyToStandardProgramHash(pk)
 				if err != nil {
-					rewardHash = *DestroyELAAddress
+					rewardHash = *a.ChainParams.DestroyELAAddressUint168
 				} else {
 					rewardHash = *programHash
 				}
@@ -1071,7 +1068,7 @@ func (a *Arbiters) distributeWithNormalArbitratorsV3(height uint32, reward commo
 	}
 	// Abnormal CR`s reward need to be destroyed.
 	for i := len(a.CurrentArbitrators); i < arbitersCount; i++ {
-		roundReward[*DestroyELAAddress] += individualBlockConfirmReward
+		roundReward[*a.ChainParams.DestroyELAAddressUint168] += individualBlockConfirmReward
 	}
 	return roundReward, realDPOSReward, nil
 }
@@ -1082,7 +1079,6 @@ func (a *Arbiters) distributeWithNormalArbitratorsV2(height uint32, reward commo
 	//	return nil, 0, errors.New("not found arbiters when " +
 	//		"distributeWithNormalArbitratorsV2")
 	//}
-	DestroyELAAddress, _ := common.Uint168FromAddress(a.ChainParams.DestroyELAAddress)
 	roundReward := map[common.Uint168]common.Fixed64{}
 	totalBlockConfirmReward := float64(reward) * 0.25
 	totalTopProducersReward := float64(reward) - totalBlockConfirmReward
@@ -1095,7 +1091,7 @@ func (a *Arbiters) distributeWithNormalArbitratorsV2(height uint32, reward commo
 		len(a.ChainParams.DPoSConfiguration.CRCArbiters) == len(a.CurrentArbitrators) {
 		//if len(a.ChainParams.CRCArbiters) == len(a.CurrentArbitrators) {
 		// if no normal DPOS node, need to destroy reward.
-		roundReward[*DestroyELAAddress] = reward
+		roundReward[*a.ChainParams.DestroyELAAddressUint168] = reward
 		return roundReward, reward, nil
 	}
 	rewardPerVote := totalTopProducersReward / float64(totalVotesInRound)
@@ -1109,12 +1105,12 @@ func (a *Arbiters) distributeWithNormalArbitratorsV2(height uint32, reward commo
 			r = individualBlockConfirmReward
 			m, ok := arbiter.(*crcArbiter)
 			if !ok || m.crMember.MemberState != state.MemberElected || len(m.crMember.DPOSPublicKey) == 0 {
-				rewardHash = *DestroyELAAddress
+				rewardHash = *a.ChainParams.DestroyELAAddressUint168
 			} else {
 				pk := arbiter.GetOwnerPublicKey()
 				programHash, err := contract.PublicKeyToStandardProgramHash(pk)
 				if err != nil {
-					rewardHash = *DestroyELAAddress
+					rewardHash = *a.ChainParams.DestroyELAAddressUint168
 				} else {
 					rewardHash = *programHash
 				}
@@ -1139,7 +1135,7 @@ func (a *Arbiters) distributeWithNormalArbitratorsV2(height uint32, reward commo
 	}
 	// Abnormal CR`s reward need to be destroyed.
 	for i := len(a.CurrentArbitrators); i < arbitersCount; i++ {
-		roundReward[*DestroyELAAddress] += individualBlockConfirmReward
+		roundReward[*a.ChainParams.DestroyELAAddressUint168] += individualBlockConfirmReward
 	}
 	return roundReward, realDPOSReward, nil
 }
@@ -1150,8 +1146,6 @@ func (a *Arbiters) distributeWithNormalArbitratorsV1(height uint32, reward commo
 		return nil, 0, errors.New("not found arbiters when " +
 			"distributeWithNormalArbitratorsV1")
 	}
-	DestroyELAAddress, _ := common.Uint168FromAddress(a.ChainParams.DestroyELAAddress)
-	CRCAddress, _ := common.Uint168FromAddress(a.ChainParams.CRConfiguration.CRCAddress)
 	roundReward := map[common.Uint168]common.Fixed64{}
 	totalBlockConfirmReward := float64(reward) * 0.25
 	totalTopProducersReward := float64(reward) - totalBlockConfirmReward
@@ -1159,7 +1153,7 @@ func (a *Arbiters) distributeWithNormalArbitratorsV1(height uint32, reward commo
 		math.Floor(totalBlockConfirmReward / float64(len(a.CurrentArbitrators))))
 	totalVotesInRound := a.CurrentReward.TotalVotesInRound
 	if len(a.ChainParams.DPoSConfiguration.CRCArbiters) == len(a.CurrentArbitrators) {
-		roundReward[*CRCAddress] = reward
+		roundReward[*a.ChainParams.CRConfiguration.CRCAddressUint168] = reward
 		return roundReward, reward, nil
 	}
 	rewardPerVote := totalTopProducersReward / float64(totalVotesInRound)
@@ -1172,12 +1166,12 @@ func (a *Arbiters) distributeWithNormalArbitratorsV1(height uint32, reward commo
 			r = individualBlockConfirmReward
 			m, ok := arbiter.(*crcArbiter)
 			if !ok || m.crMember.MemberState != state.MemberElected {
-				rewardHash = *DestroyELAAddress
+				rewardHash = *a.ChainParams.DestroyELAAddressUint168
 			} else {
 				pk := arbiter.GetOwnerPublicKey()
 				programHash, err := contract.PublicKeyToStandardProgramHash(pk)
 				if err != nil {
-					rewardHash = *DestroyELAAddress
+					rewardHash = *a.ChainParams.DestroyELAAddressUint168
 				} else {
 					rewardHash = *programHash
 				}
@@ -1312,7 +1306,8 @@ func (a *Arbiters) GetNeedConnectArbiters() []peer.PID {
 
 func (a *Arbiters) getNeedConnectArbiters() []peer.PID {
 	height := a.History.Height() + 1
-	if height < a.ChainParams.CRCOnlyDPOSHeight-a.ChainParams.DPoSConfiguration.PreConnectOffset {
+	if height < a.ChainParams.CRCOnlyDPOSHeight-
+		a.ChainParams.DPoSConfiguration.PreConnectOffset {
 		return nil
 	}
 

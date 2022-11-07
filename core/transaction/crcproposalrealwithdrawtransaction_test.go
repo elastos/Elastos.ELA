@@ -17,9 +17,10 @@ import (
 
 func (s *txValidatorTestSuite) TestCheckCRCProposalRealWithdrawTransaction() {
 	// Set CR expenses address.
-	ceAddr := config.CRCExpensesAddress
-	ceExpensesAddress, err := common.Uint168FromAddress(ceAddr)
-	s.Chain.GetParams().CRConfiguration.CRExpensesAddress = ceAddr
+	var err error
+	ceAddr := config.CRCExpensesAddressUint168
+	ceExpensesAddress := ceAddr
+	s.Chain.GetParams().CRConfiguration.CRExpensesAddressUint168 = ceAddr
 
 	// Set WithdrawableTxInfo
 	withdrawTransactionHash1 := *randomUint256()

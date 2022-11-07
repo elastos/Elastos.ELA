@@ -20,13 +20,11 @@ import (
 
 func (s *txValidatorTestSuite) TestCheckCRCAppropriationTransaction() {
 	// Set CR assets address and CR expenses address.
-	caAddr := config.CRAssetsAddress
-	ceAddr := config.CRCExpensesAddress
-	crAssetsAddress, _ := common.Uint168FromAddress(caAddr)
-	crExpensesAddress, _ := common.Uint168FromAddress(ceAddr)
+	caAddr := config.CRAssetsAddressUint168
+	ceAddr := config.CRCExpensesAddressUint168
 
-	s.Chain.GetParams().CRConfiguration.CRAssetsAddress = caAddr
-	s.Chain.GetParams().CRConfiguration.CRExpensesAddress = ceAddr
+	s.Chain.GetParams().CRConfiguration.CRAssetsAddressUint168 = caAddr
+	s.Chain.GetParams().CRConfiguration.CRExpensesAddressUint168 = ceAddr
 
 	// Set CR assets and CRC committee amount.
 	s.Chain.GetCRCommittee().CRCFoundationBalance = common.Fixed64(900 * 1e8)
@@ -43,7 +41,7 @@ func (s *txValidatorTestSuite) TestCheckCRCAppropriationTransaction() {
 	}
 	refOutput := common2.Output{
 		Value:       900 * 1e8,
-		ProgramHash: *crAssetsAddress,
+		ProgramHash: *caAddr,
 	}
 	refOutputErr := common2.Output{
 		Value:       900 * 1e8,
@@ -54,19 +52,19 @@ func (s *txValidatorTestSuite) TestCheckCRCAppropriationTransaction() {
 	// Create CRC appropriation transaction.
 	output1 := &common2.Output{
 		Value:       90 * 1e8,
-		ProgramHash: *crExpensesAddress,
+		ProgramHash: *ceAddr,
 	}
 	output2 := &common2.Output{
 		Value:       810 * 1e8,
-		ProgramHash: *crAssetsAddress,
+		ProgramHash: *caAddr,
 	}
 	output1Err := &common2.Output{
 		Value:       91 * 1e8,
-		ProgramHash: *crExpensesAddress,
+		ProgramHash: *ceAddr,
 	}
 	output2Err := &common2.Output{
 		Value:       809 * 1e8,
-		ProgramHash: *crAssetsAddress,
+		ProgramHash: *caAddr,
 	}
 
 	// Check correct transaction.
@@ -134,10 +132,10 @@ func (s *txValidatorTestSuite) TestCreateCRCAppropriationTransaction() {
 	crAddress := "ERyUmNH51roR9qfru37Kqkaok2NghR7L5U"
 	crcFoundation, _ := common.Uint168FromAddress(crAddress)
 
-	s.Chain.GetParams().CRConfiguration.CRAssetsAddress = crAddress
+	s.Chain.GetParams().CRConfiguration.CRAssetsAddressUint168 = crcFoundation
 	crcCommiteeAddressStr := "ESq12oQrvGqHfTkEDYJyR9MxZj1NMnonjo"
-
-	s.Chain.GetParams().CRConfiguration.CRExpensesAddress = crcCommiteeAddressStr
+	crcCommiteeAddress, _ := common.Uint168FromAddress(crcCommiteeAddressStr)
+	s.Chain.GetParams().CRConfiguration.CRExpensesAddressUint168 = crcCommiteeAddress
 
 	s.CurrentHeight = 1
 	ckpManager := checkpoint.NewManager(&config.DefaultParams)
@@ -202,7 +200,7 @@ func (s *txValidatorTestSuite) TestCreateCRCAppropriationTransaction() {
 		},
 		Header: common2.Header{
 			Height:   1,
-			Previous: core.GenesisBlock(s.Chain.GetParams().FoundationAddress).Hash(),
+			Previous: core.GenesisBlock(*s.Chain.GetParams().FoundationAddressUint168).Hash(),
 		},
 	}
 	hash := block.Hash()

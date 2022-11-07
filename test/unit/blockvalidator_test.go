@@ -67,9 +67,8 @@ func init() {
 func TestCheckBlockSanity(t *testing.T) {
 	log.NewDefault(test.NodeLogPath, 0, 0, 0)
 	params := *config.GetDefaultParams()
-	params.GenesisBlock = core.GenesisBlock(params.FoundationAddress)
-	FoundationAddress, _ := common.Uint168FromAddress(params.FoundationAddress)
-	blockchain.FoundationAddress = *FoundationAddress
+	params.GenesisBlock = core.GenesisBlock(*params.FoundationAddressUint168)
+	blockchain.FoundationAddress = *params.FoundationAddressUint168
 	ckpManager := checkpoint.NewManager(config.GetDefaultParams())
 	chainStore, err := blockchain.NewChainStore(filepath.Join(test.DataPath, "sanity"), &params)
 	if err != nil {

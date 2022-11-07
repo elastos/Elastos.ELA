@@ -53,8 +53,8 @@ func (s *txValidatorTestSuite) TestCheckCRCProposalWithdrawTransaction() {
 	references := make(map[*common2.Input]common2.Output)
 	references[inputs[0]] = *outputs[0]
 
-	addr, _ := CRExpensesAddressU168.ToAddress()
-	s.Chain.GetParams().CRConfiguration.CRExpensesAddress = addr
+	addr := CRExpensesAddressU168
+	s.Chain.GetParams().CRConfiguration.CRExpensesAddressUint168 = addr
 	// stage = 1 ok
 	txn := s.getCRCProposalWithdrawTx(publicKeyStr1, privateKeyStr1,
 		Recipient, CRExpensesAddressU168, 9*ela, 50*ela, 0)

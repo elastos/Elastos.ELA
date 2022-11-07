@@ -90,7 +90,7 @@ func (s *txValidatorSpecialTxTestSuite) SetupSuite() {
 		s.arbitratorsPriKeys = append(s.arbitratorsPriKeys, a)
 	}
 	params := &config.DefaultParams
-	params.GenesisBlock = core.GenesisBlock(params.FoundationAddress)
+	params.GenesisBlock = core.GenesisBlock(*params.FoundationAddressUint168)
 	chainStore, err := blockchain.NewChainStore(filepath.Join(test.DataPath, "special"), params)
 	if err != nil {
 		s.Error(err)

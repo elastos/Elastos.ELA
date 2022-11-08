@@ -93,7 +93,7 @@ var (
 		0x63, 0x0f, 0x71, 0x27, 0x4d, 0xf1, 0xc0,
 	}
 
-	// CRCExpensesAddress "CREXPENSESXXXXXXXXXXXXXXXXXX4UdT6b"
+	//CRCExpensesAddress = "CREXPENSESXXXXXXXXXXXXXXXXXX4UdT6b"
 	CRCExpensesProgramHash = &common.Uint168{
 		0x1c, 0x60, 0x32, 0x09, 0xff, 0x5d, 0x86,
 		0x54, 0x2d, 0x26, 0x1a, 0x8d, 0x22, 0x7f,
@@ -268,6 +268,7 @@ func GetDefaultParams() *Configuration {
 			HistoryStartHeight: uint32(0),
 			NeedSave:           true,
 		},
+		MemoryPoolTxMaximumStayHeight: 10,
 	}
 }
 
@@ -378,6 +379,8 @@ func (p *Configuration) TestNet() *Configuration {
 	p.HttpRestPort = 21334
 	p.HttpWsPort = 21335
 	p.HttpJsonPort = 21336
+
+	p.MemoryPoolTxMaximumStayHeight = 10
 
 	return p
 }
@@ -490,6 +493,8 @@ func (p *Configuration) RegNet() *Configuration {
 	p.HttpRestPort = 22334
 	p.HttpWsPort = 22335
 	p.HttpJsonPort = 22336
+
+	p.MemoryPoolTxMaximumStayHeight = 10
 
 	return p
 }
@@ -610,6 +615,8 @@ type Configuration struct {
 	StakePoolProgramHash *common.Uint168
 	// SchnorrStartHeight indicates the start height of schnorr
 	SchnorrStartHeight uint32 `screw:"--schnorrstartheight" usage:"defines the start height to support schnorr transaction"`
+	// MemoryPoolTxMaximumStayHeight indicates the maximum time of txs can stay in memory pool before rebroadcast again
+	MemoryPoolTxMaximumStayHeight uint32 `screw:"--memorypooltxmaximumstayheight" usage:"defines the maximum stay time of memory pool tx before rebroadcast tx again"`
 	// CrossChainMonitorStartHeight indicates the monitor height of cr cross chain arbitration
 	CrossChainMonitorStartHeight uint32 `screw:"--crosschainmonitorstartheight" usage:"defines the start height to monitor cr cross chain transaction"`
 	// CrossChainMonitorInterval indicates the interval value of cr cross chain arbitration

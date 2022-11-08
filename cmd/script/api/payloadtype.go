@@ -1588,8 +1588,32 @@ func newUpdateCR(L *lua.LState) int {
 		os.Exit(1)
 	}
 
+	if needSign == false {
+		code, err = getSchnorrCode(publicKey)
+		if err != nil {
+			fmt.Println("wrong schnorr producer public key")
+			os.Exit(1)
+		}
+
+		ct, err = contract.CreateCRIDContractByCode(code)
+		if err != nil {
+			fmt.Println("wrong cr public key")
+			os.Exit(1)
+		}
+
+		didCode = make([]byte, len(code))
+		copy(didCode, code)
+		didCode = append(didCode[1:], common.DID)
+		didCT, err = contract.CreateCRIDContractByCode(didCode)
+		if err != nil {
+			fmt.Println("wrong cr public key")
+			os.Exit(1)
+		}
+		code = []byte{}
+	}
+
 	updateCR := &payload.CRInfo{
-		Code:     ct.Code,
+		Code:     code,
 		CID:      *ct.ToProgramHash(),
 		DID:      *didCT.ToProgramHash(),
 		NickName: nickName,

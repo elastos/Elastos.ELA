@@ -6,6 +6,7 @@
 package state
 
 import (
+	"encoding/hex"
 	"errors"
 
 	"github.com/elastos/Elastos.ELA/common"
@@ -250,9 +251,14 @@ func (s *State) rollbackTo(height uint32) error {
 func (s *State) registerCR(tx interfaces.Transaction, height uint32) {
 	info := tx.Payload().(*payload.CRInfo)
 	nickname := info.NickName
-	code := common.BytesToHexString(info.Code)
-
-	depositContract, _ := contract.CreateDepositContractByCode(info.Code)
+	var code string
+	if tx.PayloadVersion() == payload.CRInfoSchnorrVersion {
+		code = common.BytesToHexString(tx.Programs()[0].Code)
+	} else {
+		code = common.BytesToHexString(info.Code)
+	}
+	codeBytes, _ := hex.DecodeString(code)
+	depositContract, _ := contract.CreateDepositContractByCode(codeBytes)
 	candidate := Candidate{
 		Info:           *info,
 		RegisterHeight: height,

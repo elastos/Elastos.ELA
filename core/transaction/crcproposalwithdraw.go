@@ -92,10 +92,10 @@ func (t *CRCProposalWithdrawTransaction) HeightVersionCheck() error {
 }
 
 func (t *CRCProposalWithdrawTransaction) SpecialContextCheck() (result elaerr.ELAError, end bool) {
-	CRExpensesAddress, _ := common.Uint168FromAddress(t.parameters.Config.CRConfiguration.CRExpensesAddress)
 	if t.PayloadVersion() == payload.CRCProposalWithdrawDefault {
 		for _, output := range t.references {
-			if output.ProgramHash != *CRExpensesAddress {
+			if output.ProgramHash !=
+				*t.parameters.Config.CRConfiguration.CRExpensesProgramHash {
 				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("proposal withdrawal transaction for non-crc committee address")), true
 			}
 		}
@@ -137,7 +137,7 @@ func (t *CRCProposalWithdrawTransaction) SpecialContextCheck() (result elaerr.EL
 
 		// Check output[1] if exist must equal with CRCComitteeAddresss
 		if len(t.Outputs()) > 1 {
-			if t.Outputs()[1].ProgramHash != *CRExpensesAddress {
+			if t.Outputs()[1].ProgramHash != *t.parameters.Config.CRConfiguration.CRExpensesProgramHash {
 				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("txn.Outputs()[1].ProgramHash !=CRCComitteeAddresss")), true
 			}
 		}

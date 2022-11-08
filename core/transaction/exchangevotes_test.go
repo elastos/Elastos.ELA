@@ -19,10 +19,10 @@ func (s *txValidatorTestSuite) TestCheckStakeTransaction() {
 	publicKeyBytes, _ := common.HexStringToBytes(publicKey)
 	code, _ := getCode(publicKeyBytes)
 	c, _ := contract.CreateStakeContractByCode(code)
-	stakeAddress_uint168 := c.ToProgramHash()
+	stakeAddressProgramHash := c.ToProgramHash()
 	rpPayload := &outputpayload.ExchangeVotesOutput{
 		Version:      0,
-		StakeAddress: *stakeAddress_uint168,
+		StakeAddress: *stakeAddressProgramHash,
 	}
 	txn := functions.CreateTransaction(
 		0,
@@ -36,21 +36,21 @@ func (s *txValidatorTestSuite) TestCheckStakeTransaction() {
 				AssetID:     common.Uint256{},
 				Value:       100000000,
 				OutputLock:  0,
-				ProgramHash: *stakeAddress_uint168,
+				ProgramHash: *stakeAddressProgramHash,
 				Payload:     rpPayload,
 			},
 			{
 				AssetID:     common.Uint256{},
 				Value:       100000000,
 				OutputLock:  0,
-				ProgramHash: *stakeAddress_uint168,
+				ProgramHash: *stakeAddressProgramHash,
 				Payload:     rpPayload,
 			},
 			{
 				AssetID:     common.Uint256{},
 				Value:       100000000,
 				OutputLock:  0,
-				ProgramHash: *stakeAddress_uint168,
+				ProgramHash: *stakeAddressProgramHash,
 				Payload:     rpPayload,
 			},
 		},
@@ -92,7 +92,7 @@ func (s *txValidatorTestSuite) TestCheckStakeTransaction() {
 				AssetID:     common.Uint256{},
 				Value:       100000000,
 				OutputLock:  0,
-				ProgramHash: *stakeAddress_uint168,
+				ProgramHash: *stakeAddressProgramHash,
 				Payload:     rpPayload,
 			},
 		},
@@ -117,7 +117,7 @@ func (s *txValidatorTestSuite) TestCheckStakeTransaction() {
 				AssetID:     core.ELAAssetID,
 				Value:       -1,
 				OutputLock:  0,
-				ProgramHash: *stakeAddress_uint168,
+				ProgramHash: *stakeAddressProgramHash,
 				Payload:     rpPayload,
 			},
 		},
@@ -142,7 +142,7 @@ func (s *txValidatorTestSuite) TestCheckStakeTransaction() {
 				AssetID:     core.ELAAssetID,
 				Value:       100000000,
 				OutputLock:  0,
-				ProgramHash: *stakeAddress_uint168,
+				ProgramHash: *stakeAddressProgramHash,
 				Payload:     rpPayload,
 			},
 		},
@@ -168,7 +168,7 @@ func (s *txValidatorTestSuite) TestCheckStakeTransaction() {
 				AssetID:     core.ELAAssetID,
 				Value:       100000000,
 				OutputLock:  0,
-				ProgramHash: *stakeAddress_uint168,
+				ProgramHash: *stakeAddressProgramHash,
 				Payload:     rpPayload,
 				Type:        common2.OTStake,
 			},
@@ -195,7 +195,7 @@ func (s *txValidatorTestSuite) TestCheckStakeTransaction() {
 				AssetID:     core.ELAAssetID,
 				Value:       100000000,
 				OutputLock:  0,
-				ProgramHash: *stakeAddress_uint168,
+				ProgramHash: *stakeAddressProgramHash,
 				Payload:     rpPayload,
 				Type:        common2.OTStake,
 			},
@@ -207,7 +207,7 @@ func (s *txValidatorTestSuite) TestCheckStakeTransaction() {
 		}},
 	)
 	param := s.Chain.GetParams()
-	param.StakePool = config.StakePoolAddress
+	param.StakePoolProgramHash = config.StakePoolProgramHash
 	tx := txn.(*ExchangeVotesTransaction)
 	tx.DefaultChecker.SetParameters(&TransactionParameters{
 		BlockChain: s.Chain,
@@ -228,7 +228,7 @@ func (s *txValidatorTestSuite) TestCheckStakeTransaction() {
 				AssetID:     core.ELAAssetID,
 				Value:       100000000,
 				OutputLock:  0,
-				ProgramHash: *stakeAddress_uint168,
+				ProgramHash: *stakeAddressProgramHash,
 				Payload:     rpPayload,
 				Type:        common2.OTStake,
 			},
@@ -240,7 +240,7 @@ func (s *txValidatorTestSuite) TestCheckStakeTransaction() {
 		}},
 	)
 	param = s.Chain.GetParams()
-	param.StakePool, _ = stakeAddress_uint168.ToAddress()
+	param.StakePoolProgramHash = stakeAddressProgramHash
 	tx = txn.(*ExchangeVotesTransaction)
 	tx.DefaultChecker.SetParameters(&TransactionParameters{
 		BlockChain: s.Chain,
@@ -320,7 +320,7 @@ func (s *txValidatorTestSuite) TestCheckStakeTransaction2() {
 
 	bc := s.Chain
 	config := bc.GetParams()
-	config.StakePool, _ = stakeAddress.ToAddress()
+	config.StakePoolProgramHash = stakeAddress
 	tx := txn.(*ExchangeVotesTransaction)
 	tx.DefaultChecker.SetParameters(&TransactionParameters{
 		BlockChain: bc,

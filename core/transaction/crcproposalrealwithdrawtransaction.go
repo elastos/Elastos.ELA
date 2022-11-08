@@ -53,7 +53,6 @@ func (t *CRCProposalRealWithdrawTransaction) HeightVersionCheck() error {
 }
 
 func (t *CRCProposalRealWithdrawTransaction) SpecialContextCheck() (result elaerr.ELAError, end bool) {
-	CRExpensesAddress, _ := common.Uint168FromAddress(t.parameters.Config.CRConfiguration.CRExpensesAddress)
 	crcRealWithdraw, ok := t.Payload().(*payload.CRCProposalRealWithdraw)
 	if !ok {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid payload")), true
@@ -67,7 +66,7 @@ func (t *CRCProposalRealWithdrawTransaction) SpecialContextCheck() (result elaer
 	// if need change, the last output is only allowed to CRExpensesAddress.
 	if txsCount != len(t.Outputs()) {
 		toProgramHash := t.Outputs()[len(t.Outputs())-1].ProgramHash
-		if !toProgramHash.IsEqual(*CRExpensesAddress) {
+		if !toProgramHash.IsEqual(*t.parameters.Config.CRConfiguration.CRExpensesProgramHash) {
 			return elaerr.Simple(elaerr.ErrTxPayload, errors.New(fmt.Sprintf("last output is invalid"))), true
 		}
 	}

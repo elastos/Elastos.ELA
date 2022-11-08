@@ -885,11 +885,9 @@ func (c *Committee) recordCurrentStageAmount(height uint32, lockedAmount common.
 }
 
 func (c *Committee) recordCRCRelatedAddressOutputs(block *types.Block) {
-	CRExpensesAddress, _ := common.Uint168FromAddress(c.Params.CRConfiguration.CRExpensesAddress)
-	CRAssetsAddress, _ := common.Uint168FromAddress(c.Params.CRConfiguration.CRAssetsAddress)
 	for _, tx := range block.Transactions {
 		for i, output := range tx.Outputs() {
-			if output.ProgramHash.IsEqual(*CRAssetsAddress) {
+			if output.ProgramHash.IsEqual(*c.Params.CRConfiguration.CRAssetsProgramHash) {
 				key := common2.NewOutPoint(tx.Hash(), uint16(i)).ReferKey()
 				value := output.Value
 				c.firstHistory.Append(block.Height, func() {
@@ -897,7 +895,7 @@ func (c *Committee) recordCRCRelatedAddressOutputs(block *types.Block) {
 				}, func() {
 					delete(c.state.CRCFoundationOutputs, key)
 				})
-			} else if output.ProgramHash.IsEqual(*CRExpensesAddress) {
+			} else if output.ProgramHash.IsEqual(*c.Params.CRConfiguration.CRExpensesProgramHash) {
 				key := common2.NewOutPoint(tx.Hash(), uint16(i)).ReferKey()
 				value := output.Value
 				c.firstHistory.Append(block.Height, func() {

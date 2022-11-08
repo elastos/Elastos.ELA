@@ -117,9 +117,9 @@ func (pow *Service) GetDefaultTxVersion(height uint32) common2.TransactionVersio
 
 func (pow *Service) CreateCoinbaseTx(minerAddr string, height uint32) (interfaces.Transaction, error) {
 
-	crRewardAddr := pow.chainParams.FoundationAddress
+	crRewardAddr := pow.chainParams.FoundationProgramHash
 	if height >= pow.chainParams.CRConfiguration.CRCommitteeStartHeight {
-		crRewardAddr = pow.chainParams.CRConfiguration.CRAssetsAddress
+		crRewardAddr = pow.chainParams.CRConfiguration.CRAssetsProgramHash
 	}
 
 	minerProgramHash, err := common.Uint168FromAddress(minerAddr)
@@ -130,7 +130,6 @@ func (pow *Service) CreateCoinbaseTx(minerAddr string, height uint32) (interface
 	nonce := make([]byte, 8)
 	binary.BigEndian.PutUint64(nonce, rand.Uint64())
 	txAttr := common2.NewAttribute(common2.Nonce, nonce)
-	CRRewardAddr, _ := common.Uint168FromAddress(crRewardAddr)
 	tx := functions.CreateTransaction(
 		pow.GetDefaultTxVersion(height),
 		common2.CoinBase,
@@ -152,7 +151,7 @@ func (pow *Service) CreateCoinbaseTx(minerAddr string, height uint32) (interface
 			{
 				AssetID:     core.ELAAssetID,
 				Value:       0,
-				ProgramHash: *CRRewardAddr,
+				ProgramHash: *crRewardAddr,
 				Type:        common2.OTNone,
 				Payload:     &outputpayload.DefaultOutput{},
 			},
@@ -173,25 +172,24 @@ func (pow *Service) CreateCoinbaseTx(minerAddr string, height uint32) (interface
 
 func (pow *Service) AssignCoinbaseTxRewards(block *types.Block, totalReward common.Fixed64) error {
 	activeHeight := pow.arbiters.GetDPoSV2ActiveHeight()
-	DestroyELAAddress, _ := common.Uint168FromAddress(pow.chainParams.DestroyELAAddress)
+
 	if activeHeight != math.MaxUint32 && block.Height > activeHeight+1 {
 		rewardCyberRepublic := common.Fixed64(math.Ceil(float64(totalReward) * 0.3))
 		rewardDposArbiter := common.Fixed64(math.Ceil(float64(totalReward) * 0.35))
 		rewardMergeMiner := common.Fixed64(totalReward) - rewardCyberRepublic - rewardDposArbiter
 		block.Transactions[0].Outputs()[0].Value = rewardCyberRepublic
 		block.Transactions[0].Outputs()[1].Value = rewardMergeMiner
-		dposRewardAddr, _ := common.Uint168FromAddress(pow.chainParams.DPoSConfiguration.DPoSV2RewardAccumulateAddress)
 
 		if pow.arbiters.IsInPOWMode() {
 
-			block.Transactions[0].Outputs()[0].ProgramHash = *DestroyELAAddress
+			block.Transactions[0].Outputs()[0].ProgramHash = *pow.chainParams.DestroyELAProgramHash
 		}
 
 		if rewardDposArbiter > common.Fixed64(0) {
 			output := append(block.Transactions[0].Outputs(), &common2.Output{
 				AssetID:     core.ELAAssetID,
 				Value:       rewardDposArbiter,
-				ProgramHash: *dposRewardAddr,
+				ProgramHash: *pow.chainParams.DPoSConfiguration.DPoSV2RewardAccumulateProgramHash,
 				Payload:     &outputpayload.DefaultOutput{},
 			})
 			block.Transactions[0].SetOutputs(output)
@@ -219,7 +217,7 @@ func (pow *Service) AssignCoinbaseTxRewards(block *types.Block, totalReward comm
 		block.Transactions[0].Outputs()[0].Value = rewardCyberRepublic
 		block.Transactions[0].Outputs()[1].Value = rewardMergeMiner
 		if pow.arbiters.IsInPOWMode() {
-			block.Transactions[0].Outputs()[0].ProgramHash = *DestroyELAAddress
+			block.Transactions[0].Outputs()[0].ProgramHash = *pow.chainParams.DestroyELAProgramHash
 		}
 		return nil
 	}

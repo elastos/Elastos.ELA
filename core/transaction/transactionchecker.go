@@ -644,9 +644,8 @@ func checkTransactionDepositUTXO(txn interfaces.Transaction, references map[*com
 }
 
 func checkDestructionAddress(references map[*common2.Input]common2.Output) error {
-	DestroyELAAddress, _ := common.Uint168FromAddress(config.DestroyELAAddress)
 	for _, output := range references {
-		if output.ProgramHash == *DestroyELAAddress {
+		if output.ProgramHash == *config.DestroyELAProgramHash {
 			return errors.New("cannot use utxo from the destruction address")
 		}
 	}
@@ -669,16 +668,14 @@ func (t *DefaultChecker) checkTransactionFee(tx interfaces.Transaction, referenc
 func checkOutputProgramHash(height uint32, programHash common.Uint168) error {
 	// main version >= 88812
 	if height >= config.DefaultParams.CheckAddressHeight {
-		CRAssetsAddress, _ := common.Uint168FromAddress(config.CRAssetsAddress)
-		CRCExpensesAddress, _ := common.Uint168FromAddress(config.CRCExpensesAddress)
 		var empty = common.Uint168{}
 		if programHash.IsEqual(empty) {
 			return nil
 		}
-		if programHash.IsEqual(*CRAssetsAddress) {
+		if programHash.IsEqual(*config.CRAssetsProgramHash) {
 			return nil
 		}
-		if programHash.IsEqual(*CRCExpensesAddress) {
+		if programHash.IsEqual(*config.CRCExpensesProgramHash) {
 			return nil
 		}
 

@@ -63,7 +63,7 @@ func TestStringUint(t *testing.T) {
 			0x0d, 0xe3, 0x0f, 0x88, 0x9a, 0xce, 0xf7,
 		})
 
-	// CRAssetsAddress indicates the
+	// CRAssetsProgramHash indicates the
 	// CR assets address.
 	CRAssetsAddress := "CRASSETSXXXXXXXXXXXXXXXXXXXX2qDX5J"
 	uint168CRAssetsAddress, _ := common.Uint168FromAddress(CRAssetsAddress)
@@ -74,7 +74,7 @@ func TestStringUint(t *testing.T) {
 			0x63, 0x0f, 0x71, 0x27, 0x4d, 0xf1, 0xc0,
 		})
 
-	// CRCExpensesAddress indicates the
+	// CRCExpensesProgramHash indicates the
 	// CRC council expenses address.
 	CRCExpensesAddress := "CREXPENSESXXXXXXXXXXXXXXXXXX4UdT6b"
 	uint168CRCExpensesAddress, _ := common.Uint168FromAddress(CRCExpensesAddress)

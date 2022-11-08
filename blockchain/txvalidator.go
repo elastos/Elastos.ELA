@@ -360,9 +360,8 @@ func getCRMembersMap(members []*crstate.CRMember) map[string]struct{} {
 }
 
 func CheckDestructionAddress(references map[*common2.Input]common2.Output) error {
-	DestroyELAAddress, _ := common.Uint168FromAddress(config.DestroyELAAddress)
 	for _, output := range references {
-		if output.ProgramHash == *DestroyELAAddress {
+		if output.ProgramHash == *config.DestroyELAProgramHash {
 			return errors.New("cannot use utxo from the destruction address")
 		}
 	}
@@ -463,16 +462,14 @@ func (b *BlockChain) CheckTransactionOutput(txn interfaces.Transaction,
 	}
 
 	if txn.IsCRCAppropriationTx() {
-		CRAssetsAddress, _ := common.Uint168FromAddress(b.chainParams.CRConfiguration.CRAssetsAddress)
-		CRExpensesAddress, _ := common.Uint168FromAddress(b.chainParams.CRConfiguration.CRExpensesAddress)
 		if len(txn.Outputs()) != 2 {
 			return errors.New("new CRCAppropriation tx must have two output")
 		}
-		if !txn.Outputs()[0].ProgramHash.IsEqual(*CRExpensesAddress) {
+		if !txn.Outputs()[0].ProgramHash.IsEqual(*b.chainParams.CRConfiguration.CRExpensesProgramHash) {
 			return errors.New("new CRCAppropriation tx must have the first" +
 				"output to CR expenses address")
 		}
-		if !txn.Outputs()[1].ProgramHash.IsEqual(*CRAssetsAddress) {
+		if !txn.Outputs()[1].ProgramHash.IsEqual(*b.chainParams.CRConfiguration.CRAssetsProgramHash) {
 			return errors.New("new CRCAppropriation tx must have the second" +
 				"output to CR assets address")
 		}
@@ -534,17 +531,15 @@ func (b *BlockChain) CheckTransactionOutput(txn interfaces.Transaction,
 
 func CheckOutputProgramHash(height uint32, programHash common.Uint168) error {
 	// main version >= 88812
-	CRAssetsAddress, _ := common.Uint168FromAddress(config.CRAssetsAddress)
-	CRCExpensesAddress, _ := common.Uint168FromAddress(config.CRCExpensesAddress)
 	if height >= config.DefaultParams.CheckAddressHeight {
 		var empty = common.Uint168{}
 		if programHash.IsEqual(empty) {
 			return nil
 		}
-		if programHash.IsEqual(*CRAssetsAddress) {
+		if programHash.IsEqual(*config.CRAssetsProgramHash) {
 			return nil
 		}
-		if programHash.IsEqual(*CRCExpensesAddress) {
+		if programHash.IsEqual(*config.CRCExpensesProgramHash) {
 			return nil
 		}
 

@@ -72,9 +72,8 @@ func (s *txValidatorTestSuite) SetupSuite() {
 
 	params := &config.DefaultParams
 	params.DPoSV2StartHeight = 0
-	FoundationAddress, _ := common.Uint168FromAddress(params.FoundationAddress)
-	blockchain.FoundationAddress = *FoundationAddress
-	s.foundationAddress = *FoundationAddress
+	blockchain.FoundationAddress = *params.FoundationProgramHash
+	s.foundationAddress = *params.FoundationProgramHash
 
 	chainStore, err := blockchain.NewChainStore(filepath.Join(test.DataPath, "txvalidator"), params)
 	if err != nil {
@@ -1121,11 +1120,10 @@ func (s *txValidatorTestSuite) TestCheckStakeTransaction() {
 	publicKeyBytes, _ := common.HexStringToBytes(publicKey)
 	code := getCode(publicKeyBytes)
 	c, _ := contract.CreateStakeContractByCode(code)
-	stakeAddress_uint168 := c.ToProgramHash()
-	stakeAddress, _ := stakeAddress_uint168.ToAddress()
+	stakeAddressProgramHash := c.ToProgramHash()
 	rpPayload := &outputpayload.ExchangeVotesOutput{
 		Version:      0,
-		StakeAddress: *stakeAddress_uint168,
+		StakeAddress: *stakeAddressProgramHash,
 	}
 	txn := functions.CreateTransaction(
 		0,
@@ -1139,21 +1137,21 @@ func (s *txValidatorTestSuite) TestCheckStakeTransaction() {
 				AssetID:     common.Uint256{},
 				Value:       100000000,
 				OutputLock:  0,
-				ProgramHash: *stakeAddress_uint168,
+				ProgramHash: *stakeAddressProgramHash,
 				Payload:     rpPayload,
 			},
 			{
 				AssetID:     common.Uint256{},
 				Value:       100000000,
 				OutputLock:  0,
-				ProgramHash: *stakeAddress_uint168,
+				ProgramHash: *stakeAddressProgramHash,
 				Payload:     rpPayload,
 			},
 			{
 				AssetID:     common.Uint256{},
 				Value:       100000000,
 				OutputLock:  0,
-				ProgramHash: *stakeAddress_uint168,
+				ProgramHash: *stakeAddressProgramHash,
 				Payload:     rpPayload,
 			},
 		},
@@ -1195,7 +1193,7 @@ func (s *txValidatorTestSuite) TestCheckStakeTransaction() {
 				AssetID:     common.Uint256{},
 				Value:       100000000,
 				OutputLock:  0,
-				ProgramHash: *stakeAddress_uint168,
+				ProgramHash: *stakeAddressProgramHash,
 				Payload:     rpPayload,
 			},
 		},
@@ -1220,7 +1218,7 @@ func (s *txValidatorTestSuite) TestCheckStakeTransaction() {
 				AssetID:     core.ELAAssetID,
 				Value:       -1,
 				OutputLock:  0,
-				ProgramHash: *stakeAddress_uint168,
+				ProgramHash: *stakeAddressProgramHash,
 				Payload:     rpPayload,
 			},
 		},
@@ -1245,7 +1243,7 @@ func (s *txValidatorTestSuite) TestCheckStakeTransaction() {
 				AssetID:     core.ELAAssetID,
 				Value:       100000000,
 				OutputLock:  0,
-				ProgramHash: *stakeAddress_uint168,
+				ProgramHash: *stakeAddressProgramHash,
 				Payload:     rpPayload,
 			},
 		},
@@ -1271,7 +1269,7 @@ func (s *txValidatorTestSuite) TestCheckStakeTransaction() {
 				AssetID:     core.ELAAssetID,
 				Value:       100000000,
 				OutputLock:  0,
-				ProgramHash: *stakeAddress_uint168,
+				ProgramHash: *stakeAddressProgramHash,
 				Payload:     rpPayload,
 				Type:        common2.OTStake,
 			},
@@ -1298,7 +1296,7 @@ func (s *txValidatorTestSuite) TestCheckStakeTransaction() {
 				AssetID:     core.ELAAssetID,
 				Value:       100000000,
 				OutputLock:  0,
-				ProgramHash: *stakeAddress_uint168,
+				ProgramHash: *stakeAddressProgramHash,
 				Payload:     rpPayload,
 				Type:        common2.OTStake,
 			},
@@ -1310,7 +1308,6 @@ func (s *txValidatorTestSuite) TestCheckStakeTransaction() {
 		}},
 	)
 	param := *s.Chain.GetParams()
-	param.StakePool = "STAKE"
 	tx := txn.(*transaction.ExchangeVotesTransaction)
 	tx.DefaultChecker.SetParameters(&transaction.TransactionParameters{
 		BlockChain: s.Chain,
@@ -1331,7 +1328,7 @@ func (s *txValidatorTestSuite) TestCheckStakeTransaction() {
 				AssetID:     core.ELAAssetID,
 				Value:       100000000,
 				OutputLock:  0,
-				ProgramHash: *stakeAddress_uint168,
+				ProgramHash: *stakeAddressProgramHash,
 				Payload:     rpPayload,
 				Type:        common2.OTStake,
 			},
@@ -1343,7 +1340,7 @@ func (s *txValidatorTestSuite) TestCheckStakeTransaction() {
 		}},
 	)
 	param = *s.Chain.GetParams()
-	param.StakePool = stakeAddress
+	param.StakePoolProgramHash = stakeAddressProgramHash
 	tx = txn.(*transaction.ExchangeVotesTransaction)
 	tx.DefaultChecker.SetParameters(&transaction.TransactionParameters{
 		BlockChain: s.Chain,
@@ -4379,10 +4376,8 @@ func (s *txValidatorTestSuite) getCRCProposalTrackingTx(
 
 func (s *txValidatorTestSuite) TestCheckCRCAppropriationTransaction() {
 	// Set CR assets address and CR expenses address.
-	s.Chain.GetParams().CRConfiguration.CRAssetsAddress = "CRASSETSXXXXXXXXXXXXXXXXXXXX2qDX5J"
-	s.Chain.GetParams().CRConfiguration.CRExpensesAddress = "CREXPENSESXXXXXXXXXXXXXXXXXX4UdT6b"
-	CRAssetsAddress, _ := common.Uint168FromAddress(s.Chain.GetParams().CRConfiguration.CRAssetsAddress)
-	CRExpensesAddress, _ := common.Uint168FromAddress(s.Chain.GetParams().CRConfiguration.CRExpensesAddress)
+	CRAssetsAddress := s.Chain.GetParams().CRConfiguration.CRAssetsProgramHash
+	CRExpensesAddress := s.Chain.GetParams().CRConfiguration.CRExpensesProgramHash
 
 	// Set CR assets and CRC committee amount.
 	s.Chain.GetCRCommittee().CRCFoundationBalance = common.Fixed64(900 * 1e8)
@@ -4708,9 +4703,7 @@ func (s *txValidatorTestSuite) TestCheckUpdateCRTransaction() {
 
 func (s *txValidatorTestSuite) TestCheckCRCProposalRealWithdrawTransaction() {
 	// Set CR expenses address.
-	s.Chain.GetParams().CRConfiguration.CRExpensesAddress = "CREXPENSESXXXXXXXXXXXXXXXXXX4UdT6b"
-	CRExpensesAddress, _ := common.Uint168FromAddress(s.Chain.GetParams().CRConfiguration.CRExpensesAddress)
-
+	CRExpensesAddress := s.Chain.GetParams().CRConfiguration.CRExpensesProgramHash
 	// Set WithdrawableTxInfo
 	withdrawTransactionHash1 := *randomUint256()
 	recipient1 := *randomUint168()
@@ -5165,7 +5158,7 @@ func (s *txValidatorTestSuite) TestCheckCRCProposalWithdrawTransaction() {
 	references := make(map[*common2.Input]common2.Output)
 	references[inputs[0]] = *outputs[0]
 
-	s.Chain.GetParams().CRConfiguration.CRExpensesAddress = "CREXPENSESXXXXXXXXXXXXXXXXXX4UdT6b"
+	//s.Chain.GetParams().CRConfiguration.CRExpensesProgramHash = "CREXPENSESXXXXXXXXXXXXXXXXXX4UdT6b"
 	// stage = 1 ok
 	txn := s.getCRCProposalWithdrawTx(publicKeyStr1, privateKeyStr1,
 		Recipient, CRExpensesAddressU168, 9*ela, 50*ela, 0)
@@ -6168,7 +6161,6 @@ func (s *txValidatorTestSuite) TestCheckStakeTransaction2() {
 	code := cont.Code
 	ct, _ := contract.CreateStakeContractByCode(code)
 	stakeHash := ct.ToProgramHash()
-	stakeAddress, _ := stakeHash.ToAddress()
 	ps := &payload.ExchangeVotes{}
 	attribute := []*common2.Attribute{}
 
@@ -6231,7 +6223,7 @@ func (s *txValidatorTestSuite) TestCheckStakeTransaction2() {
 
 	bc := s.Chain
 	config := bc.GetParams()
-	config.StakePool = stakeAddress
+	config.StakePoolProgramHash = stakeHash
 	tx := txn.(*transaction.ExchangeVotesTransaction)
 	tx.DefaultChecker.SetParameters(&transaction.TransactionParameters{
 		BlockChain: bc,
@@ -6310,7 +6302,8 @@ func (s *txValidatorTestSuite) TestCheckReutrnVotesTransaction() {
 
 	bc := s.Chain
 	config := bc.GetParams()
-	config.StakePool = "STAKEREWARDXXXXXXXXXXXXXXXXXFD5SHU"
+	stakePool, _ := common.Uint168FromAddress("STAKEREWARDXXXXXXXXXXXXXXXXXFD5SHU")
+	config.StakePoolProgramHash = stakePool
 	tx := txn.(*transaction.ReturnVotesTransaction)
 	tx.DefaultChecker.SetParameters(&transaction.TransactionParameters{
 		BlockChain: bc,
@@ -7362,10 +7355,11 @@ func (s *txValidatorTestSuite) TestCreateCRCAppropriationTransaction() {
 	crAddress := "ERyUmNH51roR9qfru37Kqkaok2NghR7L5U"
 	crcFoundation, _ := common.Uint168FromAddress(crAddress)
 
-	s.Chain.GetParams().CRConfiguration.CRAssetsAddress = crAddress
-	crcCommiteeAddressStr := "ESq12oQrvGqHfTkEDYJyR9MxZj1NMnonjo"
+	s.Chain.GetParams().CRConfiguration.CRAssetsProgramHash = crcFoundation
 
-	s.Chain.GetParams().CRConfiguration.CRExpensesAddress = crcCommiteeAddressStr
+	crcCommiteeAddressStr := "ESq12oQrvGqHfTkEDYJyR9MxZj1NMnonjo"
+	crcCommiteeAddress, _ := common.Uint168FromAddress(crcCommiteeAddressStr)
+	s.Chain.GetParams().CRConfiguration.CRExpensesProgramHash = crcCommiteeAddress
 
 	s.CurrentHeight = 1
 	ckpManager := checkpoint.NewManager(config.GetDefaultParams())
@@ -7429,7 +7423,7 @@ func (s *txValidatorTestSuite) TestCreateCRCAppropriationTransaction() {
 		},
 		Header: common2.Header{
 			Height:   1,
-			Previous: core.GenesisBlock(s.Chain.GetParams().FoundationAddress).Hash(),
+			Previous: core.GenesisBlock(*s.Chain.GetParams().FoundationProgramHash).Hash(),
 		},
 	}
 	hash := block.Hash()

@@ -347,7 +347,7 @@ func (s *txValidatorTestSuite) TestCheckCoinbaseTransaction() {
 		s.EqualError(err,
 			"transaction validate error: output invalid:first output address should be CR assets address")
 
-		addr, _ := common.Uint168FromAddress(s.Chain.GetParams().CRConfiguration.CRAssetsAddress)
+		addr := s.Chain.GetParams().CRConfiguration.CRAssetsProgramHash
 		tx.SetOutputs([]*common2.Output{
 			{AssetID: core.ELAAssetID, ProgramHash: *addr},
 			{AssetID: core.ELAAssetID, ProgramHash: s.foundationAddress},
@@ -363,7 +363,7 @@ func (s *txValidatorTestSuite) TestCheckCoinbaseTransaction() {
 		s.EqualError(err,
 			"transaction validate error: output invalid:first output address should be DestroyAddress in POW consensus algorithm")
 
-		addr, _ = common.Uint168FromAddress(s.Chain.GetParams().DestroyELAAddress)
+		addr = s.Chain.GetParams().DestroyELAProgramHash
 		tx.SetOutputs([]*common2.Output{
 			{AssetID: core.ELAAssetID, ProgramHash: *addr},
 			{AssetID: core.ELAAssetID, ProgramHash: s.foundationAddress},

@@ -6,7 +6,6 @@
 package transaction
 
 import (
-	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/core/contract/program"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/core/types/functions"
@@ -30,7 +29,7 @@ func (s *txValidatorTestSuite) TestCRAssetsRectifyTransaction() {
 		"transaction validate error: payload content invalid:inputs count should be greater than or equal to MinCRAssetsAddressUTXOCount")
 
 	{
-		addr, _ := common.Uint168FromAddress(s.Chain.GetParams().CRConfiguration.CRExpensesAddress)
+		addr := s.Chain.GetParams().CRConfiguration.CRExpensesProgramHash
 		s.Chain.GetParams().CRConfiguration.MinCRAssetsAddressUTXOCount = 1
 		reference := make(map[*common2.Input]common2.Output)
 		input := &common2.Input{
@@ -51,12 +50,12 @@ func (s *txValidatorTestSuite) TestCRAssetsRectifyTransaction() {
 
 		err, _ = txn.SpecialContextCheck()
 		s.EqualError(err,
-			"transaction validate error: payload content invalid:input does not from CRAssetsAddress")
+			"transaction validate error: payload content invalid:input does not from CRAssetsProgramHash")
 	}
 
 	{
-		addr, _ := common.Uint168FromAddress(s.Chain.GetParams().CRConfiguration.CRAssetsAddress)
-		dAddr, _ := common.Uint168FromAddress(s.Chain.GetParams().DestroyELAAddress)
+		addr := s.Chain.GetParams().CRConfiguration.CRAssetsProgramHash
+		dAddr := s.Chain.GetParams().DestroyELAProgramHash
 		s.Chain.GetParams().CRConfiguration.MinCRAssetsAddressUTXOCount = 1
 		reference := make(map[*common2.Input]common2.Output)
 		input := &common2.Input{
@@ -81,7 +80,7 @@ func (s *txValidatorTestSuite) TestCRAssetsRectifyTransaction() {
 
 		err, _ = txn.SpecialContextCheck()
 		s.EqualError(err,
-			"transaction validate error: payload content invalid:output does not to CRAssetsAddress")
+			"transaction validate error: payload content invalid:output does not to CRAssetsProgramHash")
 	}
 
 	{
@@ -94,7 +93,7 @@ func (s *txValidatorTestSuite) TestCRAssetsRectifyTransaction() {
 				Index: 0,
 			},
 		}
-		addr, _ := common.Uint168FromAddress(s.Chain.GetParams().CRConfiguration.CRExpensesAddress)
+		addr := s.Chain.GetParams().CRConfiguration.CRExpensesProgramHash
 		refOutput := common2.Output{
 			Value:       20 * 1e8,
 			ProgramHash: *addr,
@@ -111,7 +110,7 @@ func (s *txValidatorTestSuite) TestCRAssetsRectifyTransaction() {
 	}
 
 	{
-		addr, _ := common.Uint168FromAddress(s.Chain.GetParams().CRConfiguration.CRAssetsAddress)
+		addr := s.Chain.GetParams().CRConfiguration.CRAssetsProgramHash
 		s.Chain.GetParams().CRConfiguration.MinCRAssetsAddressUTXOCount = 1
 		reference := make(map[*common2.Input]common2.Output)
 		input := &common2.Input{
@@ -136,7 +135,7 @@ func (s *txValidatorTestSuite) TestCRAssetsRectifyTransaction() {
 	}
 
 	{
-		addr, _ := common.Uint168FromAddress(s.Chain.GetParams().CRConfiguration.CRAssetsAddress)
+		addr := s.Chain.GetParams().CRConfiguration.CRAssetsProgramHash
 		s.Chain.GetParams().CRConfiguration.MinCRAssetsAddressUTXOCount = 1
 		reference := make(map[*common2.Input]common2.Output)
 		input := &common2.Input{
@@ -166,7 +165,7 @@ func (s *txValidatorTestSuite) TestCRAssetsRectifyTransaction() {
 	}
 
 	{
-		addr, _ := common.Uint168FromAddress(s.Chain.GetParams().CRConfiguration.CRAssetsAddress)
+		addr := s.Chain.GetParams().CRConfiguration.CRAssetsProgramHash
 		s.Chain.GetParams().CRConfiguration.MinCRAssetsAddressUTXOCount = 1
 		reference := make(map[*common2.Input]common2.Output)
 		input := &common2.Input{

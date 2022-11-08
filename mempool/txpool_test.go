@@ -85,9 +85,8 @@ func TestTxPoolInit(t *testing.T) {
 
 	ckpManager := checkpoint.NewManager(config.GetDefaultParams())
 	params := &config.DefaultParams
-	params.GenesisBlock = core.GenesisBlock(params.FoundationAddress)
-	FoundationAddress, _ := common.Uint168FromAddress(params.FoundationAddress)
-	blockchain.FoundationAddress = *FoundationAddress
+	params.GenesisBlock = core.GenesisBlock(*params.FoundationProgramHash)
+	blockchain.FoundationAddress = *params.FoundationProgramHash
 	chainStore, err := blockchain.NewChainStore(test.DataPath, params)
 	if err != nil {
 		t.Fatal("open LedgerStore err:", err)

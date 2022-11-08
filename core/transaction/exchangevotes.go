@@ -85,9 +85,8 @@ func (t *ExchangeVotesTransaction) CheckTransactionOutput() error {
 		return errors.New("invalid stake address")
 	}
 
-	StakePool, _ := common.Uint168FromAddress(t.parameters.Config.StakePool)
 	// check output address, need to be stake pool
-	if t.outputs[0].ProgramHash != *StakePool {
+	if t.outputs[0].ProgramHash != *t.parameters.Config.StakePoolProgramHash {
 		return errors.New("first output address need to be stake address")
 	}
 

@@ -18,7 +18,6 @@ import (
 	"time"
 
 	"github.com/elastos/Elastos.ELA/blockchain"
-	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/common/config/settings"
 	"github.com/elastos/Elastos.ELA/common/log"
@@ -140,8 +139,7 @@ func startNode(cfg *config.Configuration) {
 	ledger := blockchain.Ledger{}
 
 	// Initializes the foundation address
-	foundation, _ := common.Uint168FromAddress(cfg.FoundationAddress)
-	blockchain.FoundationAddress = *foundation
+	blockchain.FoundationAddress = *cfg.FoundationProgramHash
 	chainStore, err := blockchain.NewChainStore(dataDir, cfg)
 	if err != nil {
 		printErrorAndExit(err)

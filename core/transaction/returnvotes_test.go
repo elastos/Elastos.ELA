@@ -79,7 +79,7 @@ func (s *txValidatorTestSuite) TestCheckUnstakeTransaction() {
 
 	bc := s.Chain
 	config := bc.GetParams()
-	config.StakePool, _ = stakeAddress.ToAddress()
+	config.StakePoolProgramHash = stakeAddress
 	tx := txn.(*ReturnVotesTransaction)
 	tx.DefaultChecker.SetParameters(&TransactionParameters{
 		BlockChain: bc,

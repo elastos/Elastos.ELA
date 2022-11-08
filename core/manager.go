@@ -38,8 +38,7 @@ var (
 
 // GenesisBlock creates a genesis block by the specified foundation address.
 // The genesis block goes different because the foundation address in each network is different.
-func GenesisBlock(foundationAddr string) *types.Block {
-	foundation, _ := common2.Uint168FromAddress(foundationAddr)
+func GenesisBlock(foundationProgramHash common2.Uint168) *types.Block {
 	// elaAsset is the transaction that create and register the ELA coin.
 	elaAsset := functions.CreateTransaction(
 		0,
@@ -80,7 +79,7 @@ func GenesisBlock(foundationAddr string) *types.Block {
 			{
 				AssetID:     ELAAssetID,
 				Value:       3300 * 10000 * 100000000,
-				ProgramHash: *foundation,
+				ProgramHash: foundationProgramHash,
 			},
 		},
 		0,

@@ -24,8 +24,6 @@ type CRCAppropriationTransaction struct {
 func (t *CRCAppropriationTransaction) CheckTransactionOutput() error {
 	blockHeight := t.parameters.BlockHeight
 	chainParams := t.parameters.Config
-	CRExpensesAddress, _ := common.Uint168FromAddress(chainParams.CRConfiguration.CRExpensesAddress)
-	CRAssetsAddress, _ := common.Uint168FromAddress(chainParams.CRConfiguration.CRAssetsAddress)
 	if len(t.Outputs()) > math.MaxUint16 {
 		return errors.New("output count should not be greater than 65535(MaxUint16)")
 	}
@@ -33,11 +31,11 @@ func (t *CRCAppropriationTransaction) CheckTransactionOutput() error {
 	if len(t.Outputs()) != 2 {
 		return errors.New("new CRCAppropriation tx must have two output")
 	}
-	if !t.Outputs()[0].ProgramHash.IsEqual(*CRExpensesAddress) {
+	if !t.Outputs()[0].ProgramHash.IsEqual(*chainParams.CRConfiguration.CRExpensesProgramHash) {
 		return errors.New("new CRCAppropriation tx must have the first" +
 			"output to CR expenses address")
 	}
-	if !t.Outputs()[1].ProgramHash.IsEqual(*CRAssetsAddress) {
+	if !t.Outputs()[1].ProgramHash.IsEqual(*chainParams.CRConfiguration.CRAssetsProgramHash) {
 		return errors.New("new CRCAppropriation tx must have the second" +
 			"output to CR assets address")
 	}
@@ -120,8 +118,7 @@ func (t *CRCAppropriationTransaction) SpecialContextCheck() (result elaerr.ELAEr
 
 	for _, output := range t.references {
 		totalInput += output.Value
-		CRAssetsAddress, _ := common.Uint168FromAddress(t.parameters.Config.CRConfiguration.CRAssetsAddress)
-		if !output.ProgramHash.IsEqual(*CRAssetsAddress) {
+		if !output.ProgramHash.IsEqual(*t.parameters.Config.CRConfiguration.CRAssetsProgramHash) {
 			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("input does not from CR assets address")), true
 		}
 	}
@@ -144,8 +141,9 @@ func (t *CRCAppropriationTransaction) SpecialContextCheck() (result elaerr.ELAEr
 	// first one to CRCommitteeAddress, second one to CRAssetsAddress
 	appropriationAmount := t.parameters.BlockChain.GetCRCommittee().AppropriationAmount
 	if appropriationAmount != t.Outputs()[0].Value {
-		return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("invalid appropriation amount %s, need to be %s",
-			t.Outputs()[0].Value, appropriationAmount)), true
+		return elaerr.Simple(elaerr.ErrTxPayload,
+			fmt.Errorf("invalid appropriation amount %s, need to be %s",
+				t.Outputs()[0].Value, appropriationAmount)), true
 	}
 
 	return nil, true

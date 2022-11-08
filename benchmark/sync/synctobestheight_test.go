@@ -92,8 +92,7 @@ func startDstNode() {
 	ledger := blockchain.Ledger{}
 
 	// Initializes the foundation address
-	FoundationAddress, _ := common.Uint168FromAddress(dstSettings.FoundationAddress)
-	blockchain.FoundationAddress = *FoundationAddress
+	blockchain.FoundationAddress = *dstSettings.FoundationProgramHash
 
 	chainStore, err := blockchain.NewChainStore(dataDir, dstSettings)
 	if err != nil {

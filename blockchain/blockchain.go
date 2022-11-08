@@ -475,9 +475,7 @@ func (b *BlockChain) createInputs(fromAddress Uint168,
 }
 
 func (b *BlockChain) CreateCRCAppropriationTransaction() (interfaces.Transaction, Fixed64, error) {
-	CRAssetsAddress, _ := Uint168FromAddress(b.chainParams.CRConfiguration.CRAssetsAddress)
-	CRExpensesAddress, _ := Uint168FromAddress(b.chainParams.CRConfiguration.CRExpensesAddress)
-	utxos, lockedAmount, err := b.getUTXOsFromAddress(*CRAssetsAddress)
+	utxos, lockedAmount, err := b.getUTXOsFromAddress(*b.chainParams.CRConfiguration.CRAssetsProgramHash)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -492,11 +490,11 @@ func (b *BlockChain) CreateCRCAppropriationTransaction() (interfaces.Transaction
 	if appropriationAmount <= 0 {
 		return nil, 0, nil
 	}
-	outputs := []*common.OutputInfo{{*CRExpensesAddress,
+	outputs := []*common.OutputInfo{{*b.chainParams.CRConfiguration.CRExpensesProgramHash,
 		appropriationAmount}}
 
 	tx, err := b.createTransaction(&payload.CRCAppropriation{}, common.CRCAppropriation,
-		*CRAssetsAddress, Fixed64(0), uint32(0), utxos, outputs...)
+		*b.chainParams.CRConfiguration.CRAssetsProgramHash, Fixed64(0), uint32(0), utxos, outputs...)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -505,8 +503,7 @@ func (b *BlockChain) CreateCRCAppropriationTransaction() (interfaces.Transaction
 
 func (b *BlockChain) CreateDposV2RealWithdrawTransaction(
 	withdrawTransactionHashes []Uint256, outputs []*common.OutputInfo) (interfaces.Transaction, error) {
-	DPoSV2RewardAccumulateAddress, _ := Uint168FromAddress(b.chainParams.DPoSConfiguration.DPoSV2RewardAccumulateAddress)
-	utxos, _, err := b.getUTXOsFromAddress(*DPoSV2RewardAccumulateAddress)
+	utxos, _, err := b.getUTXOsFromAddress(*b.chainParams.DPoSConfiguration.DPoSV2RewardAccumulateProgramHash)
 	if err != nil {
 		return nil, err
 	}
@@ -522,7 +519,7 @@ func (b *BlockChain) CreateDposV2RealWithdrawTransaction(
 	txFee := b.chainParams.CRConfiguration.RealWithdrawSingleFee * Fixed64(len(withdrawTransactionHashes))
 	var tx interfaces.Transaction
 	tx, err = b.createTransaction(wPayload, common.DposV2ClaimRewardRealWithdraw,
-		*DPoSV2RewardAccumulateAddress, txFee, uint32(0), utxos, outputs...)
+		*b.chainParams.DPoSConfiguration.DPoSV2RewardAccumulateProgramHash, txFee, uint32(0), utxos, outputs...)
 	if err != nil {
 		return nil, err
 	}
@@ -531,8 +528,7 @@ func (b *BlockChain) CreateDposV2RealWithdrawTransaction(
 
 func (b *BlockChain) CreateVotesRealWithdrawTransaction(
 	returnVotesTXHashes []Uint256, outputs []*common.OutputInfo) (interfaces.Transaction, error) {
-	StakePool, _ := Uint168FromAddress(b.chainParams.StakePool)
-	utxos, _, err := b.getUTXOsFromAddress(*StakePool)
+	utxos, _, err := b.getUTXOsFromAddress(*b.chainParams.StakePoolProgramHash)
 	if err != nil {
 		return nil, err
 	}
@@ -557,7 +553,7 @@ func (b *BlockChain) CreateVotesRealWithdrawTransaction(
 	txFee := b.chainParams.CRConfiguration.RealWithdrawSingleFee * Fixed64(len(returnVotesTXHashes))
 	var tx interfaces.Transaction
 	tx, err = b.createTransaction(wPayload, common.VotesRealWithdraw,
-		*StakePool, txFee, uint32(0), utxos, outputs...)
+		*b.chainParams.StakePoolProgramHash, txFee, uint32(0), utxos, outputs...)
 	if err != nil {
 		return nil, err
 	}
@@ -566,8 +562,7 @@ func (b *BlockChain) CreateVotesRealWithdrawTransaction(
 
 func (b *BlockChain) CreateCRRealWithdrawTransaction(
 	withdrawTransactionHashes []Uint256, outputs []*common.OutputInfo) (interfaces.Transaction, error) {
-	CRExpensesAddress, _ := Uint168FromAddress(b.chainParams.CRConfiguration.CRExpensesAddress)
-	utxos, _, err := b.getUTXOsFromAddress(*CRExpensesAddress)
+	utxos, _, err := b.getUTXOsFromAddress(*b.chainParams.CRConfiguration.CRExpensesProgramHash)
 	if err != nil {
 		return nil, err
 	}
@@ -582,7 +577,7 @@ func (b *BlockChain) CreateCRRealWithdrawTransaction(
 
 	txFee := b.chainParams.CRConfiguration.RealWithdrawSingleFee * Fixed64(len(withdrawTransactionHashes))
 	tx, err := b.createTransaction(wPayload, common.CRCProposalRealWithdraw,
-		*CRExpensesAddress, txFee, uint32(0), utxos, outputs...)
+		*b.chainParams.CRConfiguration.CRExpensesProgramHash, txFee, uint32(0), utxos, outputs...)
 	if err != nil {
 		return nil, err
 	}
@@ -590,8 +585,7 @@ func (b *BlockChain) CreateCRRealWithdrawTransaction(
 }
 
 func (b *BlockChain) CreateCRAssetsRectifyTransaction() (interfaces.Transaction, error) {
-	CRAssetsAddress, _ := Uint168FromAddress(b.chainParams.CRConfiguration.CRAssetsAddress)
-	utxos, _, err := b.getUTXOsFromAddress(*CRAssetsAddress)
+	utxos, _, err := b.getUTXOsFromAddress(*b.chainParams.CRConfiguration.CRAssetsProgramHash)
 	if err != nil {
 		return nil, err
 	}
@@ -614,11 +608,12 @@ func (b *BlockChain) CreateCRAssetsRectifyTransaction() (interfaces.Transaction,
 	if rectifyAmount <= 0 {
 		return nil, nil
 	}
-	outputs := []*common.OutputInfo{{*CRAssetsAddress,
+	outputs := []*common.OutputInfo{{*b.chainParams.CRConfiguration.CRAssetsProgramHash,
 		rectifyAmount}}
 
 	tx, err := b.createTransaction(&payload.CRAssetsRectify{}, common.CRAssetsRectify,
-		*CRAssetsAddress, b.chainParams.CRConfiguration.RectifyTxFee, uint32(0), utxos, outputs...)
+		*b.chainParams.CRConfiguration.CRAssetsProgramHash,
+		b.chainParams.CRConfiguration.RectifyTxFee, uint32(0), utxos, outputs...)
 	if err != nil {
 		return nil, err
 	}

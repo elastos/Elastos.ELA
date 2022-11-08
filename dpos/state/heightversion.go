@@ -113,12 +113,13 @@ func (a *Arbiters) getNextOnDutyArbitratorV0(height,
 }
 
 func (a *Arbiters) distributeWithNormalArbitratorsV0(
-	height uint32, reward common.Fixed64) (map[common.Uint168]common.Fixed64, common.Fixed64, error) {
+	height uint32, reward common.Fixed64) (
+	map[common.Uint168]common.Fixed64,
+	common.Fixed64, error) {
 	if len(a.CurrentArbitrators) == 0 {
-		return nil, 0, errors.New("not found arbiters when distributeWithNormalArbitratorsV0")
+		return nil, 0, errors.New(
+			"not found arbiters when distributeWithNormalArbitratorsV0")
 	}
-
-	CRCAddress, _ := common.Uint168FromAddress(a.ChainParams.CRConfiguration.CRCAddress)
 	roundReward := map[common.Uint168]common.Fixed64{}
 	totalBlockConfirmReward := float64(reward) * 0.25
 	totalTopProducersReward := float64(reward) - totalBlockConfirmReward
@@ -126,12 +127,12 @@ func (a *Arbiters) distributeWithNormalArbitratorsV0(
 		math.Floor(totalBlockConfirmReward / float64(len(a.CurrentArbitrators))))
 	totalVotesInRound := a.CurrentReward.TotalVotesInRound
 	if len(a.ChainParams.DPoSConfiguration.CRCArbiters) == len(a.CurrentArbitrators) {
-		roundReward[*CRCAddress] = reward
+		roundReward[*a.ChainParams.CRConfiguration.CRCProgramHash] = reward
 		return roundReward, reward, nil
 	}
 	rewardPerVote := totalTopProducersReward / float64(totalVotesInRound)
 
-	roundReward[*CRCAddress] = 0
+	roundReward[*a.ChainParams.CRConfiguration.CRCProgramHash] = 0
 	realDPOSReward := common.Fixed64(0)
 	for _, arbiter := range a.CurrentArbitrators {
 		ownerHash := arbiter.GetOwnerProgramHash()
@@ -141,7 +142,7 @@ func (a *Arbiters) distributeWithNormalArbitratorsV0(
 		r := individualBlockConfirmReward + individualProducerReward
 		if _, ok := a.CurrentCRCArbitersMap[ownerHash]; ok {
 			r = individualBlockConfirmReward
-			roundReward[*CRCAddress] += r
+			roundReward[*a.ChainParams.CRConfiguration.CRCProgramHash] += r
 		} else {
 			roundReward[ownerHash] = r
 		}

@@ -6,10 +6,10 @@
 package transaction
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"github.com/elastos/Elastos.ELA/blockchain"
-
 	"github.com/elastos/Elastos.ELA/core/contract"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	crstate "github.com/elastos/Elastos.ELA/cr/state"
@@ -81,13 +81,6 @@ func (t *UpdateCRTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
 		}
 	}
 
-	// check code and signature
-	if t.payloadVersion != payload.CRInfoSchnorrVersion {
-		if err := blockchain.CheckPayloadSignature(info, t.PayloadVersion()); err != nil {
-			return elaerr.Simple(elaerr.ErrTxPayload, err), true
-		}
-	}
-
 	if !t.parameters.BlockChain.GetCRCommittee().IsInVotingPeriod(t.parameters.BlockHeight) {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("should create tx during voting period")), true
 	}
@@ -104,6 +97,17 @@ func (t *UpdateCRTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
 	if cr.Info.NickName != info.NickName &&
 		t.parameters.BlockChain.GetCRCommittee().ExistCandidateByNickname(info.NickName) {
 		return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("nick name %s already exist", info.NickName)), true
+	}
+
+	// check code and signature
+	if t.payloadVersion != payload.CRInfoSchnorrVersion {
+		if err := blockchain.CheckPayloadSignature(info, t.PayloadVersion()); err != nil {
+			return elaerr.Simple(elaerr.ErrTxPayload, err), true
+		}
+	} else {
+		if !bytes.Equal(cr.Info.Code, t.Programs()[0].Code) {
+			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid transaction code")), true
+		}
 	}
 
 	return nil, false

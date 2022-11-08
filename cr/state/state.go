@@ -603,6 +603,16 @@ func (s *State) getCIDByCode(programCode []byte) (cid common.Uint168,
 	return
 }
 
+func (s *State) GetCodeByCid(cid common.Uint168) (code string,
+	exist bool) {
+	for k, v := range s.CodeCIDMap {
+		if v == cid {
+			return k, true
+		}
+	}
+	return "", false
+}
+
 // GetCandidates returns candidates with specified candidate State.
 func (s *State) GetCandidates(state CandidateState) []*Candidate {
 	switch state {

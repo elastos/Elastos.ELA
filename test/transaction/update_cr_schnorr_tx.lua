@@ -47,7 +47,7 @@ local asset_id = m.get_asset_id()
 -- fee
 --local fee = 0.001
 
-local cr_publickey = getPublicKey()
+local cr_publickey = pub
 local nick_name = getNickName()
 local url = getUrl()
 local location = getLocation()

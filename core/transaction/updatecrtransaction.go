@@ -7,6 +7,7 @@ package transaction
 
 import (
 	"bytes"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"github.com/elastos/Elastos.ELA/blockchain"
@@ -105,7 +106,12 @@ func (t *UpdateCRTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
 			return elaerr.Simple(elaerr.ErrTxPayload, err), true
 		}
 	} else {
-		if !bytes.Equal(cr.Info.Code, t.Programs()[0].Code) {
+		c, exist := t.parameters.BlockChain.GetCRCommittee().GetState().GetCodeByCid(info.CID)
+		if !exist {
+			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("can not find code from cid")), true
+		}
+		cf, _ := hex.DecodeString(c)
+		if !bytes.Equal(cf, t.Programs()[0].Code) {
 			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid transaction code")), true
 		}
 	}

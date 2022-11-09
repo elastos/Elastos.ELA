@@ -131,7 +131,7 @@ func (t *DefaultChecker) ContextCheck(params interfaces.Parameters) (
 		return references, cerr
 	}
 
-	if err := t.checkTransactionFee(t.parameters.Transaction, references); err != nil {
+	if err := t.parameters.Transaction.CheckTransactionFee(references); err != nil {
 		log.Warn("[CheckTransactionFee],", err)
 		return nil, elaerr.Simple(elaerr.ErrTxBalance, err)
 	}
@@ -652,16 +652,24 @@ func checkDestructionAddress(references map[*common2.Input]common2.Output) error
 	return nil
 }
 
-func (t *DefaultChecker) checkTransactionFee(tx interfaces.Transaction, references map[*common2.Input]common2.Output) error {
-	fee := getTransactionFee(tx, references)
+//tx interfaces.Transaction,
+func (t *DefaultChecker) CheckTransactionFee(references map[*common2.Input]common2.Output) error {
+	log.Debug("DefaultChecker checkTransactionFee begin")
+	txn := t.parameters.Transaction
+	//blockHeight := t.parameters.BlockHeight
+	fee := getTransactionFee(txn, references)
 	if t.isSmallThanMinTransactionFee(fee) {
+		log.Debug("DefaultChecker checkTransactionFee fee too small end")
+
 		return fmt.Errorf("transaction fee not enough")
 	}
 	// set Fee and FeePerKB if check has passed
-	tx.SetFee(fee)
+	txn.SetFee(fee)
 	buf := new(bytes.Buffer)
-	tx.Serialize(buf)
-	tx.SetFeePerKB(fee * 1000 / common.Fixed64(len(buf.Bytes())))
+	txn.Serialize(buf)
+	txn.SetFeePerKB(fee * 1000 / common.Fixed64(len(buf.Bytes())))
+	log.Debug("DefaultChecker checkTransactionFee end")
+
 	return nil
 }
 

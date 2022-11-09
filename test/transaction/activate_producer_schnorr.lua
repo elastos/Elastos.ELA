@@ -20,11 +20,8 @@ for i, v in pairs(publickeys) do
 end
 print("------------------------")
 
-local fee = getFee()
-if fee == 0
-then
-    fee = 0.001
-end
+
+local fee = 0
 
 print("fee",fee)
 

@@ -35,10 +35,10 @@ type BaseTransactionChecker interface {
 	CheckTransactionInput() error
 	// check transaction outputs
 	CheckTransactionOutput() error
-	// check transaction payload type
-	CheckTransactionPayload() error
 	// check transaction attributes and programs
 	CheckAttributeProgram() error
+	// check transaction payload type
+	CheckTransactionPayload() error
 
 	/// CONTEXT CHECK
 	// if the transaction should create in POW need to return true
@@ -46,4 +46,6 @@ type BaseTransactionChecker interface {
 	// the special context check of transaction, such as check the transaction payload
 	// if you have no others check after SpecialContextCheck, need to set end to true
 	SpecialContextCheck() (error elaerr.ELAError, end bool)
+	//Check Transaction Fee
+	CheckTransactionFee(references map[*common2.Input]common2.Output) error
 }

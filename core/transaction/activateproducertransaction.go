@@ -8,6 +8,8 @@ package transaction
 import (
 	"bytes"
 	"errors"
+	"fmt"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"math"
 
 	"github.com/elastos/Elastos.ELA/common"
@@ -78,6 +80,24 @@ func (t *ActivateProducerTransaction) CheckTransactionPayload() error {
 
 func (t *ActivateProducerTransaction) IsAllowedInPOWConsensus() bool {
 	return true
+}
+
+func (t *ActivateProducerTransaction) CheckTransactionFee(references map[*common2.Input]common2.Output) error {
+	log.Debug("ActivateProducerTransaction checkTransactionFee begin")
+	fee := getTransactionFee(t, references)
+	if fee != 0 {
+		log.Debug("checkTransactionFee end fee != 0")
+
+		return fmt.Errorf("transaction fee should be 0")
+	}
+	// set Fee and FeePerKB if check has passed
+	t.SetFee(fee)
+	buf := new(bytes.Buffer)
+	t.Serialize(buf)
+	t.SetFeePerKB(0)
+	log.Debug("ActivateProducerTransaction checkTransactionFee end")
+
+	return nil
 }
 
 func (t *ActivateProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {

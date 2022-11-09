@@ -1724,6 +1724,16 @@ func newUnregisterCR(L *lua.LState) int {
 		os.Exit(1)
 	}
 	cid := getIDProgramHash(ct.Code)
+
+	if needSign == false {
+		code, err := getSchnorrCode(publicKey)
+		if err != nil {
+			fmt.Println("wrong schnorr producer public key")
+			os.Exit(1)
+		}
+		cid = getIDProgramHash(code)
+	}
+
 	unregisterCR := &payload.UnregisterCR{
 		CID: *cid,
 	}

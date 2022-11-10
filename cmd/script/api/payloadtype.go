@@ -2913,7 +2913,7 @@ func RegisterCreateNFTType(L *lua.LState) {
 	// static attributes
 	L.SetField(mt, "new", L.NewFunction(newCreateNFT))
 	// methods
-	L.SetField(mt, "__index", L.SetFuncs(L.NewTable(), cancelProducerMethods))
+	L.SetField(mt, "__index", L.SetFuncs(L.NewTable(), createNFTMethods))
 }
 
 // Constructor
@@ -2921,7 +2921,7 @@ func newCreateNFT(L *lua.LState) int {
 	idStr := L.ToString(1)
 	id, err := common.Uint256FromHexString(idStr)
 	if err != nil {
-		fmt.Println("wrong NFT id")
+		fmt.Println("wrong NFT id:", idStr)
 		os.Exit(1)
 	}
 	createNFTPayload := &payload.CreateNFT{

@@ -217,6 +217,9 @@ func GetTransaction(txType common2.TxType) (txn interfaces.Transaction, err erro
 	case common2.DposV2ClaimRewardRealWithdraw:
 		txn = new(DposV2ClaimRewardRealWithdrawTransaction)
 
+	case common2.CreateNFT:
+		txn = new(CreateNFTTransaction)
+
 	default:
 		return nil, errors.New("invalid transaction type")
 	}

@@ -109,6 +109,8 @@ func newTransaction(L *lua.LState) int {
 		pload, _ = ud.Value.(*payload.Voting)
 	case *payload.ReturnVotes:
 		pload, _ = ud.Value.(*payload.ReturnVotes)
+	case *payload.CreateNFT:
+		pload, _ = ud.Value.(*payload.CreateNFT)
 	default:
 		fmt.Println("error: undefined payload type")
 		os.Exit(1)

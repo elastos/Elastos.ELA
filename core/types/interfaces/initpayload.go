@@ -101,6 +101,8 @@ func GetPayload(txType common.TxType, payloadVersion byte) (Payload, error) {
 		p = new(payload.DPoSV2ClaimReward)
 	case common.DposV2ClaimRewardRealWithdraw:
 		p = new(payload.DposV2ClaimRewardRealWithdraw)
+	case common.CreateNFT:
+		p = new(payload.CreateNFT)
 	default:
 		return nil, errors.New("[BaseTransaction], invalid transaction type.")
 	}

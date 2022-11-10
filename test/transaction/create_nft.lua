@@ -42,7 +42,7 @@ print("fee:", fee)
 print("nft id:", nft_id)
 
 -- cancel producer payload: publickey, wallet
-local nft_payload = createnft.new(id)
+local nft_payload = createnft.new(nft_id)
 print(nft_payload:get())
 
 -- transaction: version, txType, payloadVersion, payload, locktime

@@ -10,6 +10,7 @@ import (
 	"sync"
 
 	"github.com/elastos/Elastos.ELA/common"
+	"github.com/elastos/Elastos.ELA/common/log"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/p2p/msg"
@@ -263,8 +264,8 @@ func (bf *Filter) matchTxAndUpdate(txn interfaces.Transaction) bool {
 	// Check if the filter is a side chain SPV filter
 	if bf.msg.Tweak == math.MaxUint32 {
 		if len(txTypesMap) != 0 {
-			if _, exist := txTypesMap[txn.TxType()]; !exist {
-				return false
+			if _, exist := txTypesMap[txn.TxType()]; exist {
+				return true
 			}
 		}
 		if len(bf.msg.Filter) != 0 {

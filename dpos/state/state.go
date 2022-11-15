@@ -2568,6 +2568,9 @@ func (s *State) processCreateNFT(tx interfaces.Transaction, height uint32) {
 					ct, _ := contract.CreateStakeContractByCode(referKey.Bytes())
 					nftStakeAddress := ct.ToProgramHash()
 					s.History.Append(height, func() {
+						if _, ok:= producer.detailedDPoSV2Votes[*nftStakeAddress]; !ok {
+							producer.detailedDPoSV2Votes[*nftStakeAddress] = make(map[common.Uint256]payload.DetailedVoteInfo)
+						}
 						producer.detailedDPoSV2Votes[*nftStakeAddress][referKey] = detailVoteInfo
 						delete(producer.detailedDPoSV2Votes[stakeAddress], nftPayload.ID)
 					}, func() {

@@ -591,6 +591,27 @@ func GetProducerInfo(params Params) map[string]interface{} {
 	return ResponsePack(Success, producerInfo)
 }
 
+func GetCanDestroynftIDs(params Params) map[string]interface{} {
+	idsParam, ok := params.ArrayString("ids")
+	if !ok {
+		return ResponsePack(InvalidParams, "need ids in an array!")
+	}
+
+	var IDs []common.Uint256
+	for i := 0; i < len(idsParam); i++ {
+		//todo do we need to use ReversedHexString
+		id, err := common.Uint256FromReversedHexString(idsParam[i])
+		if err != nil {
+			continue
+		}
+		IDs = append(IDs, *id)
+	}
+	state := Chain.GetState()
+	canDestroyIDs := state.CanNFTDestroy(IDs)
+
+	return ResponsePack(Success, canDestroyIDs)
+}
+
 // by s address.
 func GetVoteRights(params Params) map[string]interface{} {
 	addresses, ok := params.ArrayString("stakeaddresses")
@@ -3132,9 +3153,12 @@ func getPayloadInfo(p interfaces.Payload, payloadVersion byte) PayloadInfo {
 		return nil
 	case *payload.NFTDestroyFromSideChain:
 		obj := new(NFTDestroyFromSideChainInfo)
-		obj.ID = common.ToReversedString(object.ID)
-		address, _ := object.OwnerStakeAddress.ToAddress()
-		obj.StakeAddress = address
+		for i := 0; i < len(object.ID); i++ {
+			obj.ID[i] = common.ToReversedString(object.ID[i])
+			address, _ := object.OwnerStakeAddress[i].ToAddress()
+			obj.StakeAddress[i] = address
+		}
+
 		return obj
 	case *payload.TransferCrossChainAsset:
 		if payloadVersion == payload.TransferCrossChainVersionV1 {

@@ -16,8 +16,8 @@ import (
 const NFTDestroyFromSideChainVersion byte = 0x00
 
 type NFTDestroyFromSideChain struct {
-	ID                common.Uint256 //detail votes info referkey
-	OwnerStakeAddress common.Uint168 //owner OwnerStakeAddress
+	ID                []common.Uint256 //detail votes info referkey
+	OwnerStakeAddress []common.Uint168 //owner OwnerStakeAddress
 }
 
 func (t *NFTDestroyFromSideChain) Data(version byte) []byte {
@@ -30,26 +30,60 @@ func (t *NFTDestroyFromSideChain) Data(version byte) []byte {
 }
 
 func (t *NFTDestroyFromSideChain) Serialize(w io.Writer, version byte) error {
+	if err := common.WriteVarUint(w, uint64(len(t.ID))); err != nil {
+		return errors.New("[NFTDestroyFromSideChain], ID count serialize failed")
+	}
 
-	if err := t.ID.Serialize(w); err != nil {
-		return errors.New(
-			"failed to serialize ID")
+	for _, hash := range t.ID {
+		err := hash.Serialize(w)
+		if err != nil {
+			return errors.New("[NFTDestroyFromSideChain], ID serialize failed")
+		}
 	}
-	if err := t.OwnerStakeAddress.Serialize(w); err != nil {
-		return errors.New(
-			"failed to serialize OwnerStakeAddress")
+
+	if err := common.WriteVarUint(w, uint64(len(t.OwnerStakeAddress))); err != nil {
+		return errors.New("[NFTDestroyFromSideChain], OwnerStakeAddress count serialize failed")
 	}
+
+	for _, hash := range t.OwnerStakeAddress {
+		err := hash.Serialize(w)
+		if err != nil {
+			return errors.New("[NFTDestroyFromSideChain], OwnerStakeAddress serialize failed")
+		}
+	}
+
 	return nil
 }
 
 func (t *NFTDestroyFromSideChain) Deserialize(r io.Reader, version byte) error {
-	var err error
+	count, err := common.ReadVarUint(r, 0)
+	if err != nil {
+		return err
+	}
+	t.ID = make([]common.Uint256, 0)
+	for i := uint64(0); i < count; i++ {
+		var id common.Uint256
+		err := id.Deserialize(r)
+		if err != nil {
+			return errors.New("[NFTDestroyFromSideChain], id deserialize failed.")
+		}
+		t.ID = append(t.ID, id)
+	}
 
-	if err = t.ID.Deserialize(r); err != nil {
-		return errors.New("failed to deserialize ID")
+	t.ID = make([]common.Uint256, 0)
+
+	count, err = common.ReadVarUint(r, 0)
+	if err != nil {
+		return err
 	}
-	if err = t.OwnerStakeAddress.Deserialize(r); err != nil {
-		return errors.New("failed to deserialize ID")
+	for i := uint64(0); i < count; i++ {
+		var ownerStakeAddress common.Uint168
+		err := ownerStakeAddress.Deserialize(r)
+		if err != nil {
+			return errors.New("[NFTDestroyFromSideChain], ownerStakeAddress deserialize failed.")
+		}
+		t.OwnerStakeAddress = append(t.OwnerStakeAddress, ownerStakeAddress)
 	}
+
 	return nil
 }

@@ -10,7 +10,6 @@ import (
 	"fmt"
 
 	"github.com/elastos/Elastos.ELA/blockchain"
-	"github.com/elastos/Elastos.ELA/core/contract"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/crypto"
 	"github.com/elastos/Elastos.ELA/dpos/state"
@@ -45,33 +44,20 @@ func (t *NFTDestroyTransactionFromSideChain) IsAllowedInPOWConsensus() bool {
 	return false
 }
 
+//todo need rewrite CheckTransactionFee
+
 func (t *NFTDestroyTransactionFromSideChain) SpecialContextCheck() (elaerr.ELAError, bool) {
 	nftDestroyPayload, ok := t.Payload().(*payload.NFTDestroyFromSideChain)
 	if !ok {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid payload")), true
 	}
 	state := t.parameters.BlockChain.GetState()
-	producers := state.GetDposV2Producers()
-	foundNFT := false
-	for _, p := range producers {
-		for stakeAddress, votesInfo := range p.GetAllDetailedDPoSV2Votes() {
-			for referKey, voteInfo := range votesInfo {
-				if referKey.IsEqual(nftDestroyPayload.ID) {
-					ct, _ := contract.CreateStakeContractByCode(referKey.Bytes())
-					nftStakeAddress := ct.ToProgramHash()
-					if !stakeAddress.IsEqual(*nftStakeAddress) {
-						return elaerr.Simple(elaerr.ErrTxPayload,
-							errors.New("the NFT has not been created yet")), true
-					}
-					log.Info("destroy NFT, vote information:", voteInfo)
-					foundNFT = true
-				}
-			}
-		}
-	}
-	if !foundNFT {
+	//producers := state.GetDposV2Producers()
+
+	canDestroyIDs := state.CanNFTDestroy(nftDestroyPayload.ID)
+	if len(canDestroyIDs) != len(nftDestroyPayload.ID) {
 		return elaerr.Simple(elaerr.ErrTxPayload,
-			errors.New("the NFT was not found yet")), true
+			errors.New(" NFT can not destroy")), true
 	}
 
 	var err error

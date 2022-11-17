@@ -135,11 +135,11 @@ var DefaultParams = Params{
 	DefaultPort: 20338,
 
 	DNSSeeds: []string{
-		"node-mainnet-005.elastos.org:20338",
-		"node-mainnet-010.elastos.org:20338",
-		"node-mainnet-015.elastos.org:20338",
-		"node-mainnet-020.elastos.org:20338",
-		"node-mainnet-025.elastos.org:20338",
+		"52.74.28.202:20338",
+		"52.62.113.83:20338",
+		"35.156.51.127:20338",
+		"35.177.89.244:20338",
+		"52.53.134.102:20338",
 	},
 
 	Foundation:        mainNetFoundation,
@@ -264,9 +264,9 @@ func (p *Params) TestNet() *Params {
 	copy.DefaultPort = 21338
 
 	copy.DNSSeeds = []string{
-		"node-testnet-002.elastos.org:21338",
-		"node-testnet-003.elastos.org:21338",
-		"node-testnet-004.elastos.org:21338",
+		"3.208.184.54:21338",
+		"3.209.35.13:21338",
+		"3.210.227.193:21338",
 	}
 
 	copy.Foundation = testNetFoundation
@@ -358,9 +358,9 @@ func (p *Params) RegNet() *Params {
 	copy.DefaultPort = 22338
 
 	copy.DNSSeeds = []string{
-		"node-regtest-102.eadd.co:22338",
-		"node-regtest-103.eadd.co:22338",
-		"node-regtest-104.eadd.co:22338",
+		"3.209.120.83:22338",
+		"3.212.134.14:22338",
+		"3.212.156.65:22338",
 	}
 
 	copy.Foundation = testNetFoundation

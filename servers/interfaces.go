@@ -599,10 +599,13 @@ func GetCanDestroynftIDs(params Params) map[string]interface{} {
 
 	var IDs []common.Uint256
 	for i := 0; i < len(idsParam); i++ {
-		//todo do we need to use ReversedHexString
-		id, err := common.Uint256FromReversedHexString(idsParam[i])
+		idBytes, err := common.HexStringToBytes(idsParam[i])
 		if err != nil {
-			continue
+			return ResponsePack(InvalidParams, "")
+		}
+		id, err := common.Uint256FromBytes(idBytes)
+		if err != nil {
+			return ResponsePack(InvalidParams, "")
 		}
 		IDs = append(IDs, *id)
 	}

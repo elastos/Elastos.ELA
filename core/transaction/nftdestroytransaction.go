@@ -6,19 +6,43 @@
 package transaction
 
 import (
+	"bytes"
+	"crypto/sha256"
 	"errors"
 	"fmt"
 
 	"github.com/elastos/Elastos.ELA/blockchain"
+	"github.com/elastos/Elastos.ELA/common"
+	"github.com/elastos/Elastos.ELA/core/contract/program"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/crypto"
 	"github.com/elastos/Elastos.ELA/dpos/state"
-
 	elaerr "github.com/elastos/Elastos.ELA/errors"
 )
 
 type NFTDestroyTransactionFromSideChain struct {
 	BaseTransaction
+}
+
+func (t *NFTDestroyTransactionFromSideChain) CheckTransactionInput() error {
+	if len(t.Inputs()) != 0 {
+		return errors.New("no cost transactions must has no input")
+	}
+	return nil
+}
+
+func (t *NFTDestroyTransactionFromSideChain) CheckTransactionOutput() error {
+	if len(t.Outputs()) != 0 {
+		return errors.New("no cost transactions should have no output")
+	}
+	return nil
+}
+
+func (t *NFTDestroyTransactionFromSideChain) CheckAttributeProgram() error {
+	if len(t.Programs()) != 0 || len(t.Attributes()) != 0 {
+		return errors.New("zero cost tx should have no attributes and programs")
+	}
+	return nil
 }
 
 func (t *NFTDestroyTransactionFromSideChain) CheckTransactionPayload() error {
@@ -44,7 +68,23 @@ func (t *NFTDestroyTransactionFromSideChain) IsAllowedInPOWConsensus() bool {
 	return false
 }
 
-//todo need rewrite CheckTransactionFee
+//func (t *NFTDestroyTransactionFromSideChain) CheckTransactionFee(references map[*common2.Input]common2.Output) error {
+//	log.Debug("NFTDestroyTransactionFromSideChain checkTransactionFee begin")
+//	fee := getTransactionFee(t, references)
+//	if fee != 0 {
+//		log.Debug("checkTransactionFee end fee != 0")
+//
+//		return fmt.Errorf("transaction fee should be 0")
+//	}
+//	// set Fee and FeePerKB if check has passed
+//	t.SetFee(fee)
+//	buf := new(bytes.Buffer)
+//	t.Serialize(buf)
+//	t.SetFeePerKB(0)
+//	log.Debug("NFTDestroyTransactionFromSideChain checkTransactionFee end")
+//
+//	return nil
+//}
 
 func (t *NFTDestroyTransactionFromSideChain) SpecialContextCheck() (elaerr.ELAError, bool) {
 	nftDestroyPayload, ok := t.Payload().(*payload.NFTDestroyFromSideChain)
@@ -66,11 +106,12 @@ func (t *NFTDestroyTransactionFromSideChain) SpecialContextCheck() (elaerr.ELAEr
 		return elaerr.Simple(elaerr.ErrTxPayload, err), true
 	}
 
-	return nil, false
+	return nil, true
 }
 
 func (t *NFTDestroyTransactionFromSideChain) checkNFTDestroyTransactionFromSideChain() error {
-
+	buf := new(bytes.Buffer)
+	t.SerializeUnsigned(buf)
 	height := t.parameters.BlockHeight
 	for _, p := range t.Programs() {
 		publicKeys, m, n, err := crypto.ParseCrossChainScriptV1(p.Code)
@@ -102,6 +143,65 @@ func (t *NFTDestroyTransactionFromSideChain) checkNFTDestroyTransactionFromSideC
 		if err := checkCrossChainArbitrators(publicKeys); err != nil {
 			return err
 		}
+		if err := checkCrossChainSignatures(*p, buf.Bytes()); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func checkCrossChainSignatures(program program.Program, data []byte) error {
+	code := program.Code
+	// Get N parameter
+	n := int(code[len(code)-2]) - crypto.PUSH1 + 1
+	// Get M parameter
+	m := int(code[0]) - crypto.PUSH1 + 1
+	publicKeys, err := crypto.ParseCrossChainScript(code)
+	if err != nil {
+		return err
+	}
+
+	return verifyMultisigSignatures(m, n, publicKeys, program.Parameter, data)
+}
+
+func verifyMultisigSignatures(m, n int, publicKeys [][]byte, signatures, data []byte) error {
+	if len(publicKeys) != n {
+		return errors.New("invalid multi sign public key script count")
+	}
+	if len(signatures)%crypto.SignatureScriptLength != 0 {
+		return errors.New("invalid multi sign signatures, length not match")
+	}
+	if len(signatures)/crypto.SignatureScriptLength < m {
+		return errors.New("invalid signatures, not enough signatures")
+	}
+	if len(signatures)/crypto.SignatureScriptLength > n {
+		return errors.New("invalid signatures, too many signatures")
+	}
+
+	var verified = make(map[common.Uint256]struct{})
+	for i := 0; i < len(signatures); i += crypto.SignatureScriptLength {
+		// Remove length byte
+		sign := signatures[i : i+crypto.SignatureScriptLength][1:]
+		// Match public key with signature
+		for _, publicKey := range publicKeys {
+			pubKey, err := crypto.DecodePoint(publicKey[1:])
+			if err != nil {
+				return err
+			}
+			err = crypto.Verify(*pubKey, data, sign)
+			if err == nil {
+				hash := sha256.Sum256(publicKey)
+				if _, ok := verified[hash]; ok {
+					return errors.New("duplicated signatures")
+				}
+				verified[hash] = struct{}{}
+				break // back to public keys loop
+			}
+		}
+	}
+	// Check signatures count
+	if len(verified) < m {
+		return errors.New("matched signatures not enough")
 	}
 
 	return nil

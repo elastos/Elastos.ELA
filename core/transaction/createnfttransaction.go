@@ -10,6 +10,7 @@ import (
 	"fmt"
 
 	"github.com/elastos/Elastos.ELA/core/contract"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	elaerr "github.com/elastos/Elastos.ELA/errors"
 )
@@ -29,6 +30,35 @@ func (t *CreateNFTTransaction) CheckTransactionPayload() error {
 
 func (t *CreateNFTTransaction) IsAllowedInPOWConsensus() bool {
 	return false
+}
+
+func (t *CreateNFTTransaction) CheckAttributeProgram() error {
+
+	if t.PayloadVersion() == payload.CreateNFTVersion {
+		return nil
+	}
+
+	// Check attributes
+	for _, attr := range t.Attributes() {
+		if !common2.IsValidAttributeType(attr.Usage) {
+			return fmt.Errorf("invalid attribute usage %v", attr.Usage)
+		}
+	}
+
+	// Check programs
+	if len(t.Programs()) != 1 {
+		return fmt.Errorf("need to be only one program")
+	}
+	for _, program := range t.Programs() {
+		if program.Code == nil {
+			return fmt.Errorf("invalid program code nil")
+		}
+		if program.Parameter == nil {
+			return fmt.Errorf("invalid program parameter nil")
+		}
+	}
+
+	return nil
 }
 
 func (t *CreateNFTTransaction) HeightVersionCheck() error {
@@ -65,6 +95,16 @@ func (t *CreateNFTTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
 				}
 			}
 		}
+	}
+
+	// stake address need to be same from code
+	ct, _ := contract.CreateStakeContractByCode(t.programs[0].Code)
+	stakeAddress, err := ct.ToProgramHash().ToAddress()
+	if err != nil {
+		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid stake address")), true
+	}
+	if stakeAddress != pld.StakeAddress {
+		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("stake address not from code")), true
 	}
 
 	return elaerr.Simple(elaerr.ErrTxPayload, errors.New("the NFT ID does not exist")), true

@@ -21,7 +21,7 @@ type CreateNFT struct {
 	ID common.Uint256
 
 	// side chain format address.
-	To string
+	StakeAddress string
 }
 
 func (a *CreateNFT) Data(version byte) []byte {
@@ -46,8 +46,8 @@ func (a *CreateNFT) SerializeUnsigned(w io.Writer, version byte) error {
 		return errors.New("[CreateNFT], failed to serialize ID")
 	}
 
-	if err := common.WriteVarString(w, a.To); err != nil {
-		return errors.New("[CreateNFT], failed to serialize To address")
+	if err := common.WriteVarString(w, a.StakeAddress); err != nil {
+		return errors.New("[CreateNFT], failed to serialize StakeAddress address")
 	}
 
 	return nil
@@ -69,9 +69,9 @@ func (a *CreateNFT) DeserializeUnsigned(r io.Reader, version byte) error {
 
 	to, err := common.ReadVarString(r)
 	if err != nil {
-		return errors.New("[CreateNFT], failed to deserialize To address")
+		return errors.New("[CreateNFT], failed to deserialize StakeAddress address")
 	}
-	a.To = to
+	a.StakeAddress = to
 
 	return nil
 }

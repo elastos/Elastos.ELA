@@ -51,7 +51,6 @@ const (
 	slotDposV2ClaimReward                       = "DposV2ClaimReward"
 	slotCreateNFT                               = "createnft"
 	slotNFTDestroyFromSideChainHash             = "NFTDestroyFromSideChainHash"
-	slotCreateNFT                               = "createnft"
 )
 
 type conflict struct {

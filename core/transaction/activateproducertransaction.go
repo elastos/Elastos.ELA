@@ -9,11 +9,11 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"math"
 
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/core/contract"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	crstate "github.com/elastos/Elastos.ELA/cr/state"
 	"github.com/elastos/Elastos.ELA/crypto"
@@ -28,8 +28,7 @@ type ActivateProducerTransaction struct {
 func (t *ActivateProducerTransaction) CheckTransactionInput() error {
 	chainParams := t.parameters.Config
 	blockHeight := t.parameters.BlockHeight
-	//todo use new height to compatible
-	newActivateHeight := chainParams.DPoSV2StartHeight
+	newActivateHeight := chainParams.DPoSConfiguration.NFTStartHeight
 
 	if blockHeight <= newActivateHeight {
 		if len(t.Inputs()) != 0 {
@@ -42,8 +41,7 @@ func (t *ActivateProducerTransaction) CheckTransactionInput() error {
 func (t *ActivateProducerTransaction) CheckTransactionOutput() error {
 	chainParams := t.parameters.Config
 	blockHeight := t.parameters.BlockHeight
-	//todo use new height to compatible
-	newActivateHeight := chainParams.DPoSV2StartHeight
+	newActivateHeight := chainParams.DPoSConfiguration.NFTStartHeight
 
 	if blockHeight <= newActivateHeight {
 		if len(t.Outputs()) > math.MaxUint16 {
@@ -59,8 +57,7 @@ func (t *ActivateProducerTransaction) CheckTransactionOutput() error {
 func (t *ActivateProducerTransaction) CheckAttributeProgram() error {
 	chainParams := t.parameters.Config
 	blockHeight := t.parameters.BlockHeight
-	//todo use new height to compatible
-	newActivateHeight := chainParams.DPoSV2StartHeight
+	newActivateHeight := chainParams.DPoSConfiguration.NFTStartHeight
 	if blockHeight <= newActivateHeight {
 		if len(t.Programs()) != 0 || len(t.Attributes()) != 0 {
 			return errors.New("zero cost tx should have no attributes and programs")
@@ -202,8 +199,7 @@ func (t *ActivateProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bo
 
 	chainParams := t.parameters.Config
 	blockHeight := t.parameters.BlockHeight
-	//todo use new height to compatible
-	newActivateHeight := chainParams.DPoSV2StartHeight
+	newActivateHeight := chainParams.DPoSConfiguration.NFTStartHeight
 	end := false
 	if blockHeight <= newActivateHeight {
 		end = true

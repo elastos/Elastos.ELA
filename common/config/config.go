@@ -246,6 +246,7 @@ func GetDefaultParams() *Configuration {
 		DIDSideChainAddress:             "XKUh4GLhFJiqAMTF6HyWQrV9pK9HcGUdfJ",
 		DPoSV2EffectiveVotes:            8000000000000,
 		DPoSV2StartHeight:               2000000,              // todo complete me
+		SupportMultiCodeHeight:          2000000,              // todo complete me
 		StakePoolProgramHash:            StakePoolProgramHash, // todo complete me
 		SchnorrStartHeight:              2000000,              // todo complete me
 		CrossChainMonitorStartHeight:    2000000,              // todo complete me
@@ -362,6 +363,7 @@ func (p *Configuration) TestNet() *Configuration {
 	p.ProhibitTransferToDIDHeight = 807000
 	p.DIDSideChainAddress = "XKUh4GLhFJiqAMTF6HyWQrV9pK9HcGUdfJ"
 	p.DPoSV2StartHeight = 965800 + 720*3
+	p.SupportMultiCodeHeight = 2000000
 	p.DPoSV2EffectiveVotes = 3000 * 100000000
 	p.DPoSConfiguration.DPoSV2DepositCoinMinLockTime = 7200 * 3
 	p.DPoSConfiguration.DPoSV2MinVotesLockTime = 7200
@@ -475,6 +477,7 @@ func (p *Configuration) RegNet() *Configuration {
 	p.ProhibitTransferToDIDHeight = 730000
 	p.DIDSideChainAddress = "XKUh4GLhFJiqAMTF6HyWQrV9pK9HcGUdfJ"
 	p.DPoSV2StartHeight = 875544 + 720*2
+	p.SupportMultiCodeHeight = 2000000
 	p.DPoSV2EffectiveVotes = 300000000000
 	p.DPoSConfiguration.DPoSV2DepositCoinMinLockTime = 7200 * 3
 	p.DPoSConfiguration.DPoSV2MinVotesLockTime = 7200
@@ -605,6 +608,8 @@ type Configuration struct {
 	DPoSV2StartHeight uint32 `screw:"--dposv2startheight" usage:"defines the start height to support DPoSV2 transaction"`
 	// DPoSV2EffectiveVotes defines the votes which producer will become a dposV2 effective node
 	DPoSV2EffectiveVotes common.Fixed64 `screw:"--dposv2effectivevotes" usage:"defines the minimum votes to active a DposV2 producer"`
+	// multicode support height
+	SupportMultiCodeHeight uint32 `screw:"--supportmulticodeheight" usage:"defines the support height of multicode transaction"`
 	// ExchangeVotes address of votes
 	StakePool            string `screw:"--stakepool" usage:"defines DPoSv2 ExchangeVotes address of votes"`
 	StakePoolProgramHash *common.Uint168

@@ -150,7 +150,6 @@ func GetDefaultParams() Params {
 			"52.62.113.83:20338",
 			"35.156.51.127:20338",
 			"35.177.89.244:20338",
-			"52.53.134.102:20338",
 		},
 
 		Foundation:          mainNetFoundation,
@@ -289,9 +288,9 @@ func (p *Params) TestNet() *Params {
 	copy.DefaultPort = 21338
 
 	copy.DNSSeeds = []string{
-		"3.208.184.54:21338",
-		"3.209.35.13:21338",
-		"3.210.227.193:21338",
+		"13.234.24.155:21338",
+		"15.206.198.252:21338",
+		"13.234.249.168:21338",
 	}
 
 	copy.Foundation = testNetFoundation
@@ -396,9 +395,9 @@ func (p *Params) RegNet() *Params {
 	copy.DefaultPort = 22338
 
 	copy.DNSSeeds = []string{
-		"3.209.120.83:22338",
-		"3.212.134.14:22338",
-		"3.212.156.65:22338",
+		"15.206.236.124:22338",
+		"3.111.241.201:22338",
+		"65.0.164.47:22338",
 	}
 
 	copy.Foundation = testNetFoundation

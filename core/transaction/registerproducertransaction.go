@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/elastos/Elastos.ELA/core/contract/program"
 
 	"github.com/elastos/Elastos.ELA/blockchain"
 	"github.com/elastos/Elastos.ELA/common"
@@ -62,7 +63,13 @@ func (t *RegisterProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bo
 			return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("producer owner already registered")), true
 		}
 	} else {
-		//TODO multicode
+		if t.parameters.BlockChain.GetState().ProducerOrCRNodePublicKeyExists(info.NodePublicKey) {
+			return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("Same NodePublicKey producer/cr already registered")), true
+		}
+		// check duplication of owner.
+		if t.parameters.BlockChain.GetState().ProducerMultiCodeExists(info.MultiCode) {
+			return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("producer MultiCode already registered")), true
+		}
 	}
 
 	if t.parameters.BlockHeight >= t.parameters.Config.DPoSV2StartHeight {
@@ -71,13 +78,10 @@ func (t *RegisterProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bo
 			if t.parameters.BlockChain.GetState().ProducerOrCRNodePublicKeyExists(info.OwnerPublicKey) {
 				return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("OwnerPublicKey is  already other's NodePublicKey")), true
 			}
-
-			// NodePublicKey is  already other's OwnerPublicKey
-			if t.parameters.BlockChain.GetState().ProducerOwnerPublicKeyExists(info.NodePublicKey) {
-				return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("NodePublicKey is  already other's OwnerPublicKey")), true
-			}
-		} else {
-			//TODO multicode
+		}
+		// NodePublicKey is  already other's OwnerPublicKey
+		if t.parameters.BlockChain.GetState().ProducerOwnerPublicKeyExists(info.NodePublicKey) {
+			return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("NodePublicKey is  already other's OwnerPublicKey")), true
 		}
 	}
 
@@ -94,14 +98,18 @@ func (t *RegisterProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bo
 			return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("owner public key %s already exist in cr list",
 				common.BytesToHexString(info.OwnerPublicKey))), true
 		}
-		nodeCode := append([]byte{byte(crypto.COMPRESSEDLEN)}, info.NodePublicKey...)
-		nodeCode = append(nodeCode, vm.CHECKSIG)
-		if t.parameters.BlockChain.GetCRCommittee().ExistCR(nodeCode) {
-			return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("node public key %s already exist in cr list",
-				common.BytesToHexString(info.NodePublicKey))), true
-		}
 	} else {
-		//TODO multicode
+		if t.parameters.BlockChain.GetCRCommittee().ExistCR(info.MultiCode) {
+			return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("MultiCode %s already exist in cr list",
+				common.BytesToHexString(info.MultiCode))), true
+		}
+	}
+
+	nodeCode := append([]byte{byte(crypto.COMPRESSEDLEN)}, info.NodePublicKey...)
+	nodeCode = append(nodeCode, vm.CHECKSIG)
+	if t.parameters.BlockChain.GetCRCommittee().ExistCR(nodeCode) {
+		return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("node public key %s already exist in cr list",
+			common.BytesToHexString(info.NodePublicKey))), true
 	}
 
 	if err := t.additionalProducerInfoCheck(info); err != nil {
@@ -126,7 +134,13 @@ func (t *RegisterProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bo
 				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid signature in payload")), true
 			}
 		} else {
-			//TODO multicode
+			err := blockchain.CheckMultiSigSignatures(program.Program{
+				Code:      info.MultiCode,
+				Parameter: info.Signature,
+			}, signedBuf.Bytes())
+			if err != nil {
+				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid signature in payload")), true
+			}
 		}
 	} else {
 		if len(t.Programs()) != 1 {
@@ -161,7 +175,11 @@ func (t *RegisterProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bo
 			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid public key")), true
 		}
 	} else {
-		//TODO multicode
+		c := &contract.Contract{
+			Code:   info.MultiCode,
+			Prefix: contract.PrefixDeposit,
+		}
+		hash = c.ToProgramHash()
 	}
 
 	if t.PayloadVersion() == payload.ProducerInfoVersion || t.PayloadVersion() == payload.ProducerInfoMultiVersion {

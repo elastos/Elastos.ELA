@@ -630,6 +630,27 @@ func (s *State) getProducerByOwnerPublicKey(key string) *Producer {
 	return nil
 }
 
+// getProducer returns a producer with the producer's owner public key,
+// if no matches return nil.
+func (s *State) getProducerByMultiCode(key string) *Producer {
+	if producer, ok := s.ActivityProducers[key]; ok {
+		return producer
+	}
+	if producer, ok := s.CanceledProducers[key]; ok {
+		return producer
+	}
+	if producer, ok := s.IllegalProducers[key]; ok {
+		return producer
+	}
+	if producer, ok := s.PendingProducers[key]; ok {
+		return producer
+	}
+	if producer, ok := s.InactiveProducers[key]; ok {
+		return producer
+	}
+	return nil
+}
+
 // updateProducerInfo updates the producer's info with value compare, any change
 // will be updated.
 func (s *State) updateProducerInfo(origin *payload.ProducerInfo, update *payload.ProducerInfo) {
@@ -1070,6 +1091,14 @@ func (s *State) NicknameExists(nickname string) bool {
 func (s *State) ProducerExists(publicKey []byte) bool {
 	s.mtx.RLock()
 	producer := s.getProducer(publicKey)
+	s.mtx.RUnlock()
+	return producer != nil
+}
+
+func (s *State) ProducerMultiCodeExists(multiCode []byte) bool {
+	s.mtx.RLock()
+	key := hex.EncodeToString(multiCode)
+	producer := s.getProducerByMultiCode(key)
 	s.mtx.RUnlock()
 	return producer != nil
 }
@@ -2568,7 +2597,7 @@ func (s *State) processCreateNFT(tx interfaces.Transaction, height uint32) {
 					ct, _ := contract.CreateStakeContractByCode(referKey.Bytes())
 					nftStakeAddress := ct.ToProgramHash()
 					s.History.Append(height, func() {
-						if _, ok:= producer.detailedDPoSV2Votes[*nftStakeAddress]; !ok {
+						if _, ok := producer.detailedDPoSV2Votes[*nftStakeAddress]; !ok {
 							producer.detailedDPoSV2Votes[*nftStakeAddress] = make(map[common.Uint256]payload.DetailedVoteInfo)
 						}
 						producer.detailedDPoSV2Votes[*nftStakeAddress][referKey] = detailVoteInfo

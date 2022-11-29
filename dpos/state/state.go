@@ -1750,10 +1750,22 @@ func (s *State) registerProducer(tx interfaces.Transaction, height uint32) {
 	nickname := info.NickName
 	nodeKey := hex.EncodeToString(info.NodePublicKey)
 	ownerKey := hex.EncodeToString(info.OwnerPublicKey)
+	if len(info.MultiCode) != 0 {
+		ownerKey = hex.EncodeToString(info.MultiCode)
+	}
 	// ignore error here because this converting process has been ensured in
 	// the context check already
-	programHash, _ := contract.PublicKeyToDepositProgramHash(info.
-		OwnerPublicKey)
+	var programHash *common.Uint168
+	if len(info.OwnerPublicKey) != 0 {
+		programHash, _ = contract.PublicKeyToDepositProgramHash(info.
+			OwnerPublicKey)
+	} else {
+		c := &contract.Contract{
+			Code:   info.MultiCode,
+			Prefix: contract.PrefixDeposit,
+		}
+		programHash = c.ToProgramHash()
+	}
 
 	amount := common.Fixed64(0)
 	depositOutputs := make(map[string]common.Fixed64)

@@ -70,11 +70,10 @@ func (a *ProducerInfo) SerializeUnsigned(w io.Writer, version byte) error {
 		if err != nil {
 			return errors.New("[ProducerInfo], owner publicKey serialize failed")
 		}
-
-		err = common.WriteVarBytes(w, a.NodePublicKey)
-		if err != nil {
-			return errors.New("[ProducerInfo], node publicKey serialize failed")
-		}
+	}
+	err = common.WriteVarBytes(w, a.NodePublicKey)
+	if err != nil {
+		return errors.New("[ProducerInfo], node publicKey serialize failed")
 	}
 
 	err = common.WriteVarString(w, a.NickName)
@@ -133,12 +132,12 @@ func (a *ProducerInfo) DeserializeUnsigned(r io.Reader, version byte) error {
 		if err != nil {
 			return errors.New("[ProducerInfo], owner publicKey deserialize failed")
 		}
-
-		a.NodePublicKey, err = common.ReadVarBytes(r, crypto.NegativeBigLength, "node public key")
-		if err != nil {
-			return errors.New("[ProducerInfo], node publicKey deserialize failed")
-		}
 	}
+	a.NodePublicKey, err = common.ReadVarBytes(r, crypto.NegativeBigLength, "node public key")
+	if err != nil {
+		return errors.New("[ProducerInfo], node publicKey deserialize failed")
+	}
+
 	a.NickName, err = common.ReadVarString(r)
 	if err != nil {
 		return errors.New("[ProducerInfo], nickName deserialize failed")

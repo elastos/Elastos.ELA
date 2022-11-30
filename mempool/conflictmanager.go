@@ -17,6 +17,7 @@ const (
 	slotDPoSOwnerPublicKey                      = "DPoSOwnerPublicKey"
 	slotDPoSNodePublicKey                       = "DPoSNodePublicKey"
 	slotDPoSOwnerNodePublicKeys                 = "DPoSOwnerNodePublicKeys"
+	slotDPoSActivateCancel                      = "DPoSActivateCancel"
 	slotDPoSNickname                            = "DPoSNickname"
 	slotCRDID                                   = "CrDID"
 	slotCRNickname                              = "CrNickname"
@@ -36,19 +37,19 @@ const (
 	slotCloseProposalTargetProposalHash         = "CloseProposalTargetProposalHash"
 	slotChangeProposalOwnerTargetProposalHash   = "ChangeProposalOwnerTargetProposalHash"
 	slotChangeCustomIDFee                       = "ChangeCustomIDFee"
-	slotReserveCustomID                = "ReserveCustomID"
-	slotSpecialTxHash                  = "SpecialTxHash"
-	slotSidechainTxHashes              = "SidechainTxHashes"
-	slotSidechainReturnDepositTxHashes = "SidechainReturnDepositTxHashes"
-	slotCustomIDProposalResult         = "CustomIDProposalResult"
-	slotTxInputsReferKeys              = "TxInputsReferKeys"
-	slotCRCouncilMemberNodePublicKey   = "CRCouncilMemberNodePublicKey"
-	slotCRCouncilMemberDID             = "CRCouncilMemberDID"
-	slotCRCSecretaryGeneral            = "CRCSecretaryGeneral"
-	slotRevertToDPOSHash               = "RevertToDPOSHash"
-	slotVotesRealWithdraw              = "VotesRealWithdraw"
-	slotExchangeVotes                  = "ExchangeVotes"
-	slotDposV2ClaimReward              = "DposV2ClaimReward"
+	slotReserveCustomID                         = "ReserveCustomID"
+	slotSpecialTxHash                           = "SpecialTxHash"
+	slotSidechainTxHashes                       = "SidechainTxHashes"
+	slotSidechainReturnDepositTxHashes          = "SidechainReturnDepositTxHashes"
+	slotCustomIDProposalResult                  = "CustomIDProposalResult"
+	slotTxInputsReferKeys                       = "TxInputsReferKeys"
+	slotCRCouncilMemberNodePublicKey            = "CRCouncilMemberNodePublicKey"
+	slotCRCouncilMemberDID                      = "CRCouncilMemberDID"
+	slotCRCSecretaryGeneral                     = "CRCSecretaryGeneral"
+	slotRevertToDPOSHash                        = "RevertToDPOSHash"
+	slotVotesRealWithdraw                       = "VotesRealWithdraw"
+	slotExchangeVotes                           = "ExchangeVotes"
+	slotDposV2ClaimReward                       = "DposV2ClaimReward"
 )
 
 type conflict struct {
@@ -152,6 +153,19 @@ func newConflictManager() conflictManager {
 					keyTypeFuncPair{
 						Type: common2.RegisterCR,
 						Func: strRegisterCRPublicKey,
+					},
+				),
+			},
+			{
+				name: slotDPoSActivateCancel,
+				slot: newConflictSlot(str,
+					keyTypeFuncPair{
+						Type: common2.CancelProducer,
+						Func: strActivateAndCancelKeys,
+					},
+					keyTypeFuncPair{
+						Type: common2.ActivateProducer,
+						Func: strActivateAndCancelKeys,
 					},
 				),
 			},

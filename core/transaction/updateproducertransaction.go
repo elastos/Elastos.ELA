@@ -10,7 +10,9 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/elastos/Elastos.ELA/blockchain"
 	"github.com/elastos/Elastos.ELA/core/contract"
+	"github.com/elastos/Elastos.ELA/core/contract/program"
 
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
@@ -103,13 +105,21 @@ func (t *UpdateProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bool
 		return elaerr.Simple(elaerr.ErrTxPayload, err), true
 	}
 
-	if t.PayloadVersion() != payload.ProducerInfoSchnorrVersion {
+	if t.PayloadVersion() != payload.ProducerInfoSchnorrVersion && t.PayloadVersion() != payload.ProducerInfoMultiVersion {
 		signedBuf := new(bytes.Buffer)
 		err = info.SerializeUnsigned(signedBuf, t.payloadVersion)
 		if err != nil {
 			return elaerr.Simple(elaerr.ErrTxPayload, err), true
 		}
 		err = crypto.Verify(*publicKey, signedBuf.Bytes(), info.Signature)
+		if err != nil {
+			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid signature in payload")), true
+		}
+	} else if t.PayloadVersion() == payload.ProducerInfoMultiVersion {
+		err := blockchain.CheckMultiSigSignatures(program.Program{
+			Code:      info.MultiCode,
+			Parameter: info.Signature,
+		}, signedBuf.Bytes())
 		if err != nil {
 			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid signature in payload")), true
 		}
@@ -128,8 +138,12 @@ func (t *UpdateProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bool
 				errors.New("tx program pk must equal with OwnerPublicKey")), true
 		}
 	}
-
-	producer := t.parameters.BlockChain.GetState().GetProducer(info.OwnerPublicKey)
+	var producer *state.Producer
+	if len(info.OwnerPublicKey) != 0 {
+		producer = t.parameters.BlockChain.GetState().GetProducer(info.OwnerPublicKey)
+	} else {
+		producer = t.parameters.BlockChain.GetState().GetProducer(info.MultiCode)
+	}
 	if producer == nil {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("updating unknown producer")), true
 	}

@@ -1612,6 +1612,9 @@ func (s *State) processTransactions(txs []interfaces.Transaction, height uint32)
 			cp := p
 			if cp.info.StakeUntil < height {
 				key := hex.EncodeToString(cp.info.OwnerPublicKey)
+				if len(cp.info.OwnerPublicKey) == 0 {
+					key = hex.EncodeToString(cp.info.MultiCode)
+				}
 				if cp.state != Returned && cp.state != Canceled &&
 					(cp.identity == DPoSV2 || (cp.identity == DPoSV1V2 && height > s.DPoSV2ActiveHeight)) {
 					cancelDposV2AndDposV1V2Producer(key, cp)

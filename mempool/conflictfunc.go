@@ -538,14 +538,25 @@ func strDPoSOwnerNodePublicKeys(tx interfaces.Transaction) (interface{}, error) 
 		return nil, err
 	}
 	result := make([]string, 0, 2)
-
-	ownerPubkeyStr := common.BytesToHexString(p.OwnerPublicKey)
-	result = append(result, ownerPubkeyStr)
+	var ownerPubkeyStr string
+	if len(p.OwnerPublicKey) != 0 {
+		ownerPubkeyStr = common.BytesToHexString(p.OwnerPublicKey)
+		result = append(result, ownerPubkeyStr)
+	}
 
 	nodePubkeyStr := common.BytesToHexString(p.NodePublicKey)
 	if nodePubkeyStr != ownerPubkeyStr {
 		result = append(result, nodePubkeyStr)
 	}
+
+	var multiCode string
+	if len(p.MultiCode) != 0 {
+		if nodePubkeyStr != multiCode {
+			multiCode = common.BytesToHexString(p.MultiCode)
+			result = append(result, multiCode)
+		}
+	}
+
 	return result, nil
 }
 
@@ -583,7 +594,6 @@ func comGetCRInfo(tx interfaces.Transaction) (*payload.CRInfo, error) {
 	}
 	return p, nil
 }
-
 
 func hashCreateNFTID(tx interfaces.Transaction) (interface{}, error) {
 	p, ok := tx.Payload().(*payload.CreateNFT)

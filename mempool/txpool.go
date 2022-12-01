@@ -289,7 +289,14 @@ func (mp *TxPool) cleanCanceledProducerAndCR(txs []interfaces.Transaction) error
 			if !ok {
 				return errors.New("invalid cancel producer payload")
 			}
-			if err := mp.cleanVoteAndUpdateProducer(cpPayload.OwnerPublicKey); err != nil {
+			var ownerPublicKeyOrMultiCode []byte
+			if len(cpPayload.OwnerPublicKey) != 0 {
+				ownerPublicKeyOrMultiCode = cpPayload.OwnerPublicKey
+			} else if len(cpPayload.MultiCode) != 0 {
+				ownerPublicKeyOrMultiCode = cpPayload.MultiCode
+			}
+
+			if err := mp.cleanVoteAndUpdateProducer(ownerPublicKeyOrMultiCode); err != nil {
 				log.Error(err)
 			}
 		}
@@ -332,7 +339,7 @@ func (mp *TxPool) checkAndCleanAllTransactions() {
 		deleteCount, txCount-deleteCount))
 }
 
-func (mp *TxPool) cleanVoteAndUpdateProducer(ownerPublicKey []byte) error {
+func (mp *TxPool) cleanVoteAndUpdateProducer(ownerPublicKeyOrMultiCode []byte) error {
 	for _, txn := range mp.txnList {
 		if txn.TxType() == common.TransferAsset {
 		end:
@@ -345,7 +352,7 @@ func (mp *TxPool) cleanVoteAndUpdateProducer(ownerPublicKey []byte) error {
 					for _, content := range opPayload.Contents {
 						if content.VoteType == outputpayload.Delegate {
 							for _, cv := range content.CandidateVotes {
-								if bytes.Equal(ownerPublicKey, cv.Candidate) {
+								if bytes.Equal(ownerPublicKeyOrMultiCode, cv.Candidate) {
 									mp.removeTransaction(txn)
 									break end
 								}
@@ -359,7 +366,13 @@ func (mp *TxPool) cleanVoteAndUpdateProducer(ownerPublicKey []byte) error {
 			if !ok {
 				return errors.New("invalid update producer payload")
 			}
-			if bytes.Equal(upPayload.OwnerPublicKey, ownerPublicKey) {
+			var compareKey []byte
+			if len(upPayload.OwnerPublicKey) != 0 {
+				compareKey = upPayload.OwnerPublicKey
+			} else if len(upPayload.MultiCode) != 0 {
+				compareKey = upPayload.MultiCode
+			}
+			if bytes.Equal(compareKey, ownerPublicKeyOrMultiCode) {
 				mp.removeTransaction(txn)
 				if err := mp.RemoveKey(
 					BytesToHexString(upPayload.OwnerPublicKey),

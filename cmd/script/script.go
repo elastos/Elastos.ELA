@@ -90,6 +90,7 @@ func registerParams(c *cli.Context, L *lua.LState) {
 
 	// nft
 	nftID := c.String("nftid")
+	stakeAddress := c.String("stakeaddr")
 
 	getWallet := func(L *lua.LState) int {
 		L.Push(lua.LString(wallet))
@@ -386,6 +387,11 @@ func registerParams(c *cli.Context, L *lua.LState) {
 		return 1
 	}
 
+	getStakeAddress := func(L *lua.LState) int {
+		L.Push(lua.LString(stakeAddress))
+		return 1
+	}
+
 	L.Register("getWallet", getWallet)
 	L.Register("getPassword", getPassword)
 	L.Register("getDepositAddr", getDepositAddr)
@@ -455,6 +461,7 @@ func registerParams(c *cli.Context, L *lua.LState) {
 	L.Register("getReferKey", getReferKey)
 	L.Register("getVoteType", getVoteType)
 	L.Register("getNFTID", getNFTID)
+	L.Register("getStakeAddr", getStakeAddress)
 }
 
 func scriptAction(c *cli.Context) error {
@@ -763,6 +770,10 @@ func NewCommand() *cli.Command {
 			cli.StringFlag{
 				Name:  "nftid",
 				Usage: "set id of NFT, id is the hash of detailed vote information",
+			},
+			cli.StringFlag{
+				Name:  "stakeaddr",
+				Usage: "set stake address of NFT",
 			},
 		},
 		Action: scriptAction,

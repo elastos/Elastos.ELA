@@ -28,6 +28,7 @@ print("pubkey", pubkey)
 local asset_id = m.get_asset_id()
 local fee = getFee()
 local nft_id = getNFTID()
+local stake_addr = getStakeAddr()
 
 if fee == 0 then
 	fee = 0.001
@@ -42,7 +43,7 @@ print("fee:", fee)
 print("nft id:", nft_id)
 
 -- cancel producer payload: publickey, wallet
-local nft_payload = createnft.new(nft_id)
+local nft_payload = createnft.new(nft_id, stake_addr)
 print(nft_payload:get())
 
 -- transaction: version, txType, payloadVersion, payload, locktime

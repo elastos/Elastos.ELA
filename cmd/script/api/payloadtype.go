@@ -3055,13 +3055,15 @@ func RegisterCreateNFTType(L *lua.LState) {
 // Constructor
 func newCreateNFT(L *lua.LState) int {
 	idStr := L.ToString(1)
+	stakeAddress := L.ToString(2)
 	id, err := common.Uint256FromHexString(idStr)
 	if err != nil {
 		fmt.Println("wrong NFT id:", idStr)
 		os.Exit(1)
 	}
 	createNFTPayload := &payload.CreateNFT{
-		ID: *id,
+		ID:           *id,
+		StakeAddress: stakeAddress,
 	}
 
 	ud := L.NewUserData()

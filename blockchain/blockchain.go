@@ -1306,6 +1306,16 @@ func (b *BlockChain) reorganizeChain(detachNodes, attachNodes *list.List) error 
 		log.Info("disconnect block:", block.Height)
 		DefaultLedger.Arbitrators.DumpInfo(block.Height - 1)
 
+		// roll back state about the last block before disconnect
+		if !recoverFromDefault && b.state.ConsensusAlgorithm != state.POW &&
+			block.Height-1 >= b.chainParams.VoteStartHeight {
+			err = b.chainParams.CkpManager.OnRollbackTo(
+				block.Height-1, b.state.ConsensusAlgorithm == state.POW)
+			if err != nil {
+				return err
+			}
+		}
+
 		err = b.disconnectBlock(n, block.Block, block.Confirm)
 		if err != nil {
 			return err
@@ -1317,7 +1327,7 @@ func (b *BlockChain) reorganizeChain(detachNodes, attachNodes *list.List) error 
 	// recover check point from genesis block
 	if recoverFromDefault {
 		b.InitCheckpoint(nil, nil, nil)
-	} else {
+	} else if b.state.ConsensusAlgorithm == state.POW {
 		// roll back state about the last block before disconnect
 		//if forkHeight >= b.chainParams.VoteStartHeight && !recoverFromDefault {
 		if forkHeight >= b.chainParams.VoteStartHeight {

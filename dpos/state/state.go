@@ -668,7 +668,11 @@ func (s *State) updateProducerInfo(origin *payload.ProducerInfo, update *payload
 		oldKey := hex.EncodeToString(origin.NodePublicKey)
 		newKey := hex.EncodeToString(update.NodePublicKey)
 		delete(s.NodeOwnerKeys, oldKey)
-		s.NodeOwnerKeys[newKey] = hex.EncodeToString(origin.OwnerPublicKey)
+		if len(origin.OwnerPublicKey) != 0 {
+			s.NodeOwnerKeys[newKey] = hex.EncodeToString(origin.OwnerPublicKey)
+		} else if len(origin.MultiCode) != 0 {
+			s.NodeOwnerKeys[newKey] = hex.EncodeToString(origin.MultiCode)
+		}
 	}
 
 	producer.info = *update
@@ -1828,7 +1832,12 @@ func (s *State) registerProducer(tx interfaces.Transaction, height uint32) {
 
 // updateProducer handles the update producer transaction.
 func (s *State) updateProducer(info *payload.ProducerInfo, height uint32) {
-	producer := s.getProducer(info.OwnerPublicKey)
+	var producer *Producer
+	if len(info.OwnerPublicKey) != 0 {
+		producer = s.getProducer(info.OwnerPublicKey)
+	} else if len(info.MultiCode) != 0 {
+		producer = s.getProducer(info.MultiCode)
+	}
 	originProducerIdentity := producer.identity
 	producerInfo := producer.info
 	s.History.Append(height, func() {
@@ -2348,12 +2357,21 @@ func (s *State) returnDeposit(tx interfaces.Transaction, height uint32) {
 	for _, program := range tx.Programs() {
 		pk := program.Code[1 : len(program.Code)-1]
 		if producer := s.getProducer(pk); producer != nil {
-
+			var hash *common.Uint168
+			var err error
 			// check deposit coin
-			hash, err := contract.PublicKeyToDepositProgramHash(producer.info.OwnerPublicKey)
-			if err != nil {
-				log.Error("owner public key to deposit program hash: failed")
-				return
+			if len(producer.info.OwnerPublicKey) != 0 {
+				hash, err = contract.PublicKeyToDepositProgramHash(producer.info.OwnerPublicKey)
+				if err != nil {
+					log.Error("owner public key to deposit program hash: failed")
+					return
+				}
+			} else if len(producer.info.MultiCode) != 0 {
+				c := &contract.Contract{
+					Code:   producer.info.MultiCode,
+					Prefix: contract.PrefixDeposit,
+				}
+				hash = c.ToProgramHash()
 			}
 
 			var changeValue common.Fixed64

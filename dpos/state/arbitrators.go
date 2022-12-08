@@ -2055,7 +2055,7 @@ func (a *Arbiters) getSortedProducersWithRandom(height uint32, unclaimedCount in
 	if a.LastRandomCandidateHeight != 0 &&
 		height-a.LastRandomCandidateHeight < a.ChainParams.DPoSConfiguration.RandomCandidatePeriod {
 		for i, p := range votedProducers {
-			if common.BytesToHexString(p.info.OwnerPublicKey) == a.LastRandomCandidateOwner {
+			if common.BytesToHexString(p.info.OwnerPublicKey) == a.LastRandomCandidateOwner || common.BytesToHexString(p.info.MultiCode) == a.LastRandomCandidateOwner {
 				if i < unclaimedCount+a.ChainParams.DPoSConfiguration.NormalArbitratorsCount-1 || p.state != Active {
 					// need get again at random.
 					break
@@ -2086,7 +2086,11 @@ func (a *Arbiters) getSortedProducersWithRandom(height uint32, unclaimedCount in
 
 	// todo need to use History?
 	a.LastRandomCandidateHeight = height
-	a.LastRandomCandidateOwner = common.BytesToHexString(candidateProducer.info.OwnerPublicKey)
+	if len(candidateProducer.info.OwnerPublicKey) != 0 {
+		a.LastRandomCandidateOwner = common.BytesToHexString(candidateProducer.info.OwnerPublicKey)
+	} else {
+		a.LastRandomCandidateOwner = common.BytesToHexString(candidateProducer.info.MultiCode)
+	}
 
 	newProducers := make([]*Producer, 0, len(votedProducers))
 	newProducers = append(newProducers, votedProducers[:unclaimedCount+normalCount]...)
@@ -2125,7 +2129,11 @@ func (a *Arbiters) getRandomDposV2Producers(height uint32, unclaimedCount int, c
 		return strings.Compare(producerKeys[i], producerKeys[j]) < 0
 	})
 	for _, vp := range votedProducers[unclaimedCount:] {
-		producerKeys = append(producerKeys, hex.EncodeToString(vp.info.OwnerPublicKey))
+		if len(vp.info.OwnerPublicKey) != 0 {
+			producerKeys = append(producerKeys, hex.EncodeToString(vp.info.OwnerPublicKey))
+		} else {
+			producerKeys = append(producerKeys, hex.EncodeToString(vp.info.MultiCode))
+		}
 	}
 	sortedProducer := make([]string, 0, len(producerKeys))
 	count := a.ChainParams.DPoSConfiguration.NormalArbitratorsCount + len(a.ChainParams.DPoSConfiguration.CRCArbiters)
@@ -2256,7 +2264,12 @@ func (a *Arbiters) UpdateNextArbitrators(versionHeight, height uint32) error {
 					var newSelected bool
 					for _, p := range votedProducers {
 						producer := p
-						ownerPK := common.BytesToHexString(producer.info.OwnerPublicKey)
+						var ownerPK string
+						if len(producer.info.OwnerPublicKey) != 0 {
+							ownerPK = common.BytesToHexString(producer.info.OwnerPublicKey)
+						} else {
+							ownerPK = common.BytesToHexString(producer.info.MultiCode)
+						}
 						if ownerPK == a.LastRandomCandidateOwner &&
 							height-a.LastRandomCandidateHeight == uint32(count) {
 							newSelected = true

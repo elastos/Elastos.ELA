@@ -611,8 +611,12 @@ func GetCanDestroynftIDs(params Params) map[string]interface{} {
 	}
 	state := Chain.GetState()
 	canDestroyIDs := state.CanNFTDestroy(IDs)
+	var destoryIDs []string
+	for _, v := range canDestroyIDs {
+		destoryIDs = append(destoryIDs, v.String())
+	}
 
-	return ResponsePack(Success, canDestroyIDs)
+	return ResponsePack(Success, destoryIDs)
 }
 
 // by s address.
@@ -3156,10 +3160,12 @@ func getPayloadInfo(p interfaces.Payload, payloadVersion byte) PayloadInfo {
 		return nil
 	case *payload.NFTDestroyFromSideChain:
 		obj := new(NFTDestroyFromSideChainInfo)
+		obj.ID = make([]string, 0)
+		obj.StakeAddress = make([]string, 0)
 		for i := 0; i < len(object.ID); i++ {
-			obj.ID[i] = common.ToReversedString(object.ID[i])
+			obj.ID = append(obj.ID, object.ID[i].String())
 			address, _ := object.OwnerStakeAddress[i].ToAddress()
-			obj.StakeAddress[i] = address
+			obj.StakeAddress = append(obj.StakeAddress, address)
 		}
 
 		return obj

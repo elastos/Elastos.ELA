@@ -554,10 +554,10 @@ func newConflictManager() conflictManager {
 			// NFT Destroy From SideChain Hash
 			{
 				name: slotNFTDestroyFromSideChainHash,
-				slot: newConflictSlot(hash,
+				slot: newConflictSlot(hashArray,
 					keyTypeFuncPair{
 						Type: common2.NFTDestroyFromSideChain,
-						Func: hashNFTDestroyFromSideChainHash,
+						Func: hashArrayNFTDestroyFromSideChainHash,
 					},
 				),
 			},

@@ -70,7 +70,7 @@ func (t *NFTDestroyFromSideChain) Deserialize(r io.Reader, version byte) error {
 		t.ID = append(t.ID, id)
 	}
 
-	t.ID = make([]common.Uint256, 0)
+	t.OwnerStakeAddress = make([]common.Uint168, 0)
 
 	count, err = common.ReadVarUint(r, 0)
 	if err != nil {

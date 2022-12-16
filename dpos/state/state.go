@@ -2703,50 +2703,50 @@ func (s *State) getIllegalPenaltyByHeight(height uint32) common.Fixed64 {
 }
 
 func (s *State) processNFTDestroyFromSideChain(tx interfaces.Transaction, height uint32) {
-
 	nftDestroyPayload := tx.Payload().(*payload.NFTDestroyFromSideChain)
 	producers := s.getDposV2Producers()
 	for i := 0; i < len(nftDestroyPayload.ID); i++ {
-		OwnerStakeAddress := nftDestroyPayload.OwnerStakeAddress[i]
+		newOwnerStakeAddress := nftDestroyPayload.OwnerStakeAddress[i]
 		ID := nftDestroyPayload.ID[i]
+	out:
 		for _, producer := range producers {
 			for stakeAddress, votesInfo := range producer.GetAllDetailedDPoSV2Votes() {
 				for referKey, detailVoteInfo := range votesInfo {
 					if referKey.IsEqual(ID) {
 						strNFTStakeAddress, _ := stakeAddress.ToAddress()
-						strOwnerStakeAddress, _ := OwnerStakeAddress.ToAddress()
+						strOwnerStakeAddress, _ := newOwnerStakeAddress.ToAddress()
+						oriRewardsInfo := s.DPoSV2RewardInfo[strNFTStakeAddress]
 						s.History.Append(height, func() {
 							//remove nft stake address for future create new nft .
 							delete(producer.detailedDPoSV2Votes[stakeAddress], ID)
-
-							//assign nft stake address reward to new owner
-							//if _, ok := s.DPoSV2RewardInfo[strOwnerStakeAddress]; ok {
-							//	s.DPoSV2RewardInfo[strOwnerStakeAddress] += s.DPoSV2RewardInfo[strNFTStakeAddress]
-							//} else {
-							//	s.DPoSV2RewardInfo[strOwnerStakeAddress] = s.DPoSV2RewardInfo[strNFTStakeAddress]
-							//}
 							s.DPoSV2RewardInfo[strOwnerStakeAddress] += s.DPoSV2RewardInfo[strNFTStakeAddress]
+							delete(s.DPoSV2RewardInfo, strNFTStakeAddress)
 							//detailVoteInfo add to new owner nftDestroyPayload.OwnerStakeAddress
-							producer.detailedDPoSV2Votes[OwnerStakeAddress][referKey] = detailVoteInfo
+							if len(producer.detailedDPoSV2Votes[newOwnerStakeAddress]) == 0 {
+								producer.detailedDPoSV2Votes[newOwnerStakeAddress] = make(map[common.Uint256]payload.DetailedVoteInfo)
+							}
+							producer.detailedDPoSV2Votes[newOwnerStakeAddress][referKey] = detailVoteInfo
 
 						}, func() {
 							//add detailVoteInfo to  nft stake address
+							if len(producer.detailedDPoSV2Votes[stakeAddress]) == 0 {
+								producer.detailedDPoSV2Votes[stakeAddress] = make(map[common.Uint256]payload.DetailedVoteInfo)
+							}
 							producer.detailedDPoSV2Votes[stakeAddress][ID] = detailVoteInfo
 							//remove owner's detailVoteInfo
-							delete(producer.detailedDPoSV2Votes[OwnerStakeAddress], referKey)
+							delete(producer.detailedDPoSV2Votes[newOwnerStakeAddress], referKey)
 							s.DPoSV2RewardInfo[strOwnerStakeAddress] -= s.DPoSV2RewardInfo[strNFTStakeAddress]
+							s.DPoSV2RewardInfo[strNFTStakeAddress] = oriRewardsInfo
 							if s.DPoSV2RewardInfo[strOwnerStakeAddress] == 0 {
 								delete(s.DPoSV2RewardInfo, strOwnerStakeAddress)
 							}
 						})
-						return
+						break out
 					}
 				}
 			}
 		}
 	}
-
-	log.Debug("processNFTDestroyFromSideChain", nftDestroyPayload.ID)
 }
 
 func (s *State) CanNFTDestroy(IDs []common.Uint256) []common.Uint256 {

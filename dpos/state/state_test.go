@@ -57,3 +57,17 @@ func getCode(publicKey string) []byte {
 	redeemScript, _ := contract.CreateStandardRedeemScript(pk)
 	return redeemScript
 }
+
+func TestBreakOut(t *testing.T) {
+	for i := 0; i < 10; i++ {
+		fmt.Println("i ", i)
+	out:
+		for j := 11; j < 20; j++ {
+			for k := 21; k < 30; k++ {
+				fmt.Println("j", j, "k ", k)
+				break out
+			}
+		}
+	}
+
+}

@@ -109,6 +109,7 @@ func (mp *TxPool) appendToTxPool(tx interfaces.Transaction) elaerr.ELAError {
 	}
 	//verify transaction by pool with lock
 	if err := mp.verifyTransactionWithTxnPool(tx); err != nil {
+		log.Error("[TxPool verifyTransactionWithTxnPool] err", err)
 		log.Warn("[TxPool verifyTransactionWithTxnPool] failed", tx.Hash())
 		return err
 	}
@@ -119,7 +120,8 @@ func (mp *TxPool) appendToTxPool(tx interfaces.Transaction) elaerr.ELAError {
 		return elaerr.Simple(elaerr.ErrTxPoolOverCapacity, nil)
 	}
 	if err := mp.AppendTx(tx); err != nil {
-		log.Warn("[TxPool verifyTransactionWithTxnPool] failed", tx.Hash())
+		log.Error("[TxPool AppendTx] err", err)
+		log.Warn("[TxPool AppendTx] failed", tx.Hash())
 		return err
 	}
 	// Add the transaction to mem pool

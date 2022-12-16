@@ -39,8 +39,8 @@ func (t *NFTDestroyTransactionFromSideChain) CheckTransactionOutput() error {
 }
 
 func (t *NFTDestroyTransactionFromSideChain) CheckAttributeProgram() error {
-	if len(t.Programs()) != 0 || len(t.Attributes()) != 0 {
-		return errors.New("zero cost tx should have no attributes and programs")
+	if len(t.Programs()) != 1 || len(t.Attributes()) != 1 {
+		return errors.New("zero cost tx should have one programs and one attributes")
 	}
 	return nil
 }
@@ -68,31 +68,12 @@ func (t *NFTDestroyTransactionFromSideChain) IsAllowedInPOWConsensus() bool {
 	return false
 }
 
-//func (t *NFTDestroyTransactionFromSideChain) CheckTransactionFee(references map[*common2.Input]common2.Output) error {
-//	log.Debug("NFTDestroyTransactionFromSideChain checkTransactionFee begin")
-//	fee := getTransactionFee(t, references)
-//	if fee != 0 {
-//		log.Debug("checkTransactionFee end fee != 0")
-//
-//		return fmt.Errorf("transaction fee should be 0")
-//	}
-//	// set Fee and FeePerKB if check has passed
-//	t.SetFee(fee)
-//	buf := new(bytes.Buffer)
-//	t.Serialize(buf)
-//	t.SetFeePerKB(0)
-//	log.Debug("NFTDestroyTransactionFromSideChain checkTransactionFee end")
-//
-//	return nil
-//}
-
 func (t *NFTDestroyTransactionFromSideChain) SpecialContextCheck() (elaerr.ELAError, bool) {
 	nftDestroyPayload, ok := t.Payload().(*payload.NFTDestroyFromSideChain)
 	if !ok {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid payload")), true
 	}
 	state := t.parameters.BlockChain.GetState()
-	//producers := state.GetDposV2Producers()
 
 	canDestroyIDs := state.CanNFTDestroy(nftDestroyPayload.ID)
 	if len(canDestroyIDs) != len(nftDestroyPayload.ID) {
@@ -105,7 +86,6 @@ func (t *NFTDestroyTransactionFromSideChain) SpecialContextCheck() (elaerr.ELAEr
 	if err != nil {
 		return elaerr.Simple(elaerr.ErrTxPayload, err), true
 	}
-
 	return nil, true
 }
 

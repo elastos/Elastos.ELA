@@ -94,8 +94,7 @@ func main() {
 	setupLog(config)
 
 	// Debug
-	cfg, _ := json.MarshalIndent(config, "", "\t")
-	log.Debug("Configuration: ", string(cfg))
+	json.MarshalIndent(config, "", "\t")
 
 	// Start Node
 	startNode(config)

@@ -644,7 +644,6 @@ func newUpdateV2Producer(L *lua.LState) int {
 
 	ud := L.NewUserData()
 	ud.Value = updateProducer
-	//todo luaUpdateV2ProducerName
 	L.SetMetatable(ud, L.GetTypeMetatable(luaUpdateV2ProducerName))
 	L.Push(ud)
 
@@ -845,7 +844,7 @@ func newRegisterV2Producer(L *lua.LState) int {
 	location := L.ToInt64(5)
 	address := L.ToString(6)
 	stakeUntil := L.ToInt64(7)
-	fmt.Println("#### newRegisterV2Producer stakeUntil", stakeUntil)
+	fmt.Println(" newRegisterV2Producer stakeUntil", stakeUntil)
 	needSign := true
 	var account *account.SchnorAccount
 	client, err := checkClient(L, 8)
@@ -914,7 +913,6 @@ func newRegisterV2Producer(L *lua.LState) int {
 
 	ud := L.NewUserData()
 	ud.Value = registerProducer
-	//todo chage into luaRegisterV2ProducerName
 	L.SetMetatable(ud, L.GetTypeMetatable(luaRegisterV2ProducerName))
 	L.Push(ud)
 

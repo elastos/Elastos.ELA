@@ -218,10 +218,20 @@ func signPayload(L *lua.LState) int {
 			cmdcom.PrintErrorAndExit(err.Error())
 		}
 
-		codeHash, err := contract.PublicKeyToStandardCodeHash(producerInfo.OwnerPublicKey)
-		if err != nil {
-			cmdcom.PrintErrorAndExit(err.Error())
+		var codeHash *common.Uint160
+		if len(producerInfo.OwnerPublicKey) != 0 {
+			codeHash, err = contract.PublicKeyToStandardCodeHash(producerInfo.OwnerPublicKey)
+			if err != nil {
+				cmdcom.PrintErrorAndExit(err.Error())
+			}
+		} else {
+			c := &contract.Contract{
+				Code:   producerInfo.MultiCode,
+				Prefix: contract.PrefixMultiSig,
+			}
+			codeHash = c.ToCodeHash()
 		}
+
 		acc := client.GetAccountByCodeHash(*codeHash)
 		if acc == nil {
 			cmdcom.PrintErrorAndExit("no available account in wallet")

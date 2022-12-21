@@ -247,8 +247,13 @@ func (t *RegisterProducerTransaction) additionalProducerInfoCheck(info *payload.
 			if blockchain.DefaultLedger.Arbitrators.IsCRCArbitrator(info.NodePublicKey) {
 				return errors.New("node public key can't equal with CRC")
 			}
-
-			if blockchain.DefaultLedger.Arbitrators.IsCRCArbitrator(info.OwnerPublicKey) {
+			var pk []byte
+			if len(info.OwnerPublicKey) == 0 {
+				pk = info.MultiCode
+			} else {
+				pk = info.OwnerPublicKey
+			}
+			if blockchain.DefaultLedger.Arbitrators.IsCRCArbitrator(pk) {
 				return errors.New("owner public key can't equal with CRC")
 			}
 		} else {

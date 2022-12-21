@@ -159,7 +159,14 @@ func CheckDuplicateTx(block *Block) error {
 				return errors.New("[PowCheckBlockSanity] invalid register producer payload")
 			}
 
-			producer := BytesToHexString(producerPayload.OwnerPublicKey)
+			var key []byte
+			if len(producerPayload.OwnerPublicKey) != 0 {
+				key = producerPayload.OwnerPublicKey
+			} else {
+				key = producerPayload.MultiCode
+			}
+
+			producer := BytesToHexString(key)
 			// Check for duplicate producer in a block
 			if _, exists := existingProducer[producer]; exists {
 				return errors.New("[PowCheckBlockSanity] block contains duplicate producer")
@@ -178,7 +185,14 @@ func CheckDuplicateTx(block *Block) error {
 				return errors.New("[PowCheckBlockSanity] invalid update producer payload")
 			}
 
-			producer := BytesToHexString(producerPayload.OwnerPublicKey)
+			var key []byte
+			if len(producerPayload.OwnerPublicKey) != 0 {
+				key = producerPayload.OwnerPublicKey
+			} else {
+				key = producerPayload.MultiCode
+			}
+
+			producer := BytesToHexString(key)
 			// Check for duplicate producer in a block
 			if _, exists := existingProducer[producer]; exists {
 				return errors.New("[PowCheckBlockSanity] block contains duplicate producer")

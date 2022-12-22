@@ -2033,10 +2033,11 @@ type RPCProducerInfo struct {
 	Index          uint64 `json:"index"`
 }
 
-// a group producer info  include TotalVotes and producer count
+//a group producer info include TotalDPoSV1Votes and producer count
 type RPCProducersInfo struct {
 	ProducerInfoSlice []RPCProducerInfo `json:"producers"`
-	TotalVotes        string            `json:"totalvotes"`
+	TotalDPoSV1Votes  string            `json:"totaldposv1votes"`
+	TotalDPoSV2Votes  string            `json:"totaldposv2votes"`
 	TotalCounts       uint64            `json:"totalcounts"`
 }
 
@@ -2056,7 +2057,7 @@ type RPCCRCandidateInfo struct {
 	Index uint64 `json:"index"`
 }
 
-// a group cr candidate info include TotalVotes and candidate count
+//a group cr candidate info include TotalDPoSV1Votes and candidate count
 type RPCCRCandidatesInfo struct {
 	CRCandidateInfoSlice []RPCCRCandidateInfo `json:"crcandidatesinfo"`
 	TotalVotes           string               `json:"totalvotes"`
@@ -2322,9 +2323,10 @@ func ListProducers(param Params) map[string]interface{} {
 	})
 
 	var producerInfoSlice []RPCProducerInfo
-	var totalVotes common.Fixed64
+	var totalVotes, totalDPoSV2Votes common.Fixed64
 	for i, p := range producers {
 		totalVotes += p.Votes()
+		totalDPoSV2Votes += common.Fixed64(p.GetTotalDPoSV2VoteRights())
 		producerInfo := RPCProducerInfo{
 			OwnerPublicKey: hex.EncodeToString(p.Info().OwnerPublicKey),
 			NodePublicKey:  hex.EncodeToString(p.Info().NodePublicKey),
@@ -2363,7 +2365,8 @@ func ListProducers(param Params) map[string]interface{} {
 
 	result := &RPCProducersInfo{
 		ProducerInfoSlice: rsProducerInfoSlice,
-		TotalVotes:        totalVotes.String(),
+		TotalDPoSV1Votes:  totalVotes.String(),
+		TotalDPoSV2Votes:  totalDPoSV2Votes.String(),
 		TotalCounts:       uint64(count),
 	}
 

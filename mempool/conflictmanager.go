@@ -17,6 +17,7 @@ const (
 	slotDPoSOwnerPublicKey                      = "DPoSOwnerPublicKey"
 	slotDPoSNodePublicKey                       = "DPoSNodePublicKey"
 	slotDPoSOwnerNodePublicKeys                 = "DPoSOwnerNodePublicKeys"
+	slotDPoSActivateCancel                      = "DPoSActivateCancel"
 	slotDPoSNickname                            = "DPoSNickname"
 	slotCRDID                                   = "CrDID"
 	slotCRNickname                              = "CrNickname"
@@ -154,6 +155,19 @@ func newConflictManager() conflictManager {
 					keyTypeFuncPair{
 						Type: common2.RegisterCR,
 						Func: strRegisterCRPublicKey,
+					},
+				),
+			},
+			{
+				name: slotDPoSActivateCancel,
+				slot: newConflictSlot(str,
+					keyTypeFuncPair{
+						Type: common2.CancelProducer,
+						Func: strActivateAndCancelKeys,
+					},
+					keyTypeFuncPair{
+						Type: common2.ActivateProducer,
+						Func: strActivateAndCancelKeys,
 					},
 				),
 			},

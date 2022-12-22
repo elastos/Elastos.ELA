@@ -321,7 +321,7 @@ func (b *BlockChain) InitCheckpoint(interrupt <-chan struct{},
 			}
 
 			b.CkpManager.OnBlockSaved(block, nil,
-				b.state.ConsensusAlgorithm == state.POW, b.state.RevertToPOWBlockHeight)
+				b.state.ConsensusAlgorithm == state.POW, b.state.RevertToPOWBlockHeight, true)
 
 			// Notify process increase.
 			if increase != nil {
@@ -330,7 +330,6 @@ func (b *BlockChain) InitCheckpoint(interrupt <-chan struct{},
 		}
 		done <- struct{}{}
 	}()
-	log.Info("### 1 recoverFromGenesis end 0")
 	select {
 	case <-done:
 		arbiters.Start()
@@ -1322,6 +1321,16 @@ func (b *BlockChain) reorganizeChain(detachNodes, attachNodes *list.List) error 
 		log.Info("disconnect block:", block.Height)
 		DefaultLedger.Arbitrators.DumpInfo(block.Height - 1)
 
+		// roll back state about the last block before disconnect
+		if !recoverFromDefault && b.state.ConsensusAlgorithm != state.POW &&
+			block.Height-1 >= b.chainParams.VoteStartHeight {
+			err = b.CkpManager.OnRollbackTo(
+				block.Height-1, b.state.ConsensusAlgorithm == state.POW)
+			if err != nil {
+				return err
+			}
+		}
+
 		err = b.disconnectBlock(n, block.Block, block.Confirm)
 		if err != nil {
 			return err
@@ -1332,16 +1341,8 @@ func (b *BlockChain) reorganizeChain(detachNodes, attachNodes *list.List) error 
 
 	// recover check point from genesis block
 	if recoverFromDefault {
-		//	err := b.chainParams.CkpManager.OnRollbackTo(
-		//		0, false)
-		//	if err != nil {
-		//		return err
-		//	}
-		//
-		log.Info("### 1 recoverFromDefault:", recoverFromDefault, "forkHeight:", forkHeight)
 		b.InitCheckpoint(nil, nil, nil)
-		log.Info("### 1 recoverFromDefault end")
-	} else {
+	} else if b.state.ConsensusAlgorithm == state.POW {
 		// roll back state about the last block before disconnect
 		//if forkHeight >= b.chainParams.VoteStartHeight && !recoverFromDefault {
 		if forkHeight >= b.chainParams.VoteStartHeight {
@@ -1372,7 +1373,7 @@ func (b *BlockChain) reorganizeChain(detachNodes, attachNodes *list.List) error 
 			HaveConfirm: confirm != nil,
 			Confirm:     confirm,
 		}, nil, b.state.ConsensusAlgorithm == state.POW,
-			b.state.RevertToPOWBlockHeight)
+			b.state.RevertToPOWBlockHeight, false)
 		DefaultLedger.Arbitrators.DumpInfo(block.Height)
 		delete(b.blockCache, *n.Hash)
 		delete(b.confirmCache, *n.Hash)
@@ -1583,7 +1584,7 @@ func (b *BlockChain) maybeAcceptBlock(block *Block, confirm *payload.Confirm) (b
 			HaveConfirm: confirm != nil,
 			Confirm:     confirm,
 		}, nil, b.state.ConsensusAlgorithm == state.POW,
-			b.state.RevertToPOWBlockHeight)
+			b.state.RevertToPOWBlockHeight, false)
 		DefaultLedger.Arbitrators.DumpInfo(block.Height)
 	}
 

@@ -223,6 +223,16 @@ func strCancelProducerOwnerPublicKey(tx interfaces.Transaction) (interface{},
 	return common.BytesToHexString(p.OwnerPublicKey), nil
 }
 
+func strActivateAndCancelKeys(tx interfaces.Transaction) (interface{},
+	error) {
+	if tx.TxType() != common2.CancelProducer && tx.TxType() != common2.ActivateProducer {
+		err := fmt.Errorf(
+			"invalid tx:%s", tx.Hash())
+		return nil, errors.Simple(errors.ErrTxPoolFailure, err)
+	}
+	return "activatecancel", nil
+}
+
 func strProducerInfoOwnerPublicKey(tx interfaces.Transaction) (interface{}, error) {
 	p, err := comGetProducerInfo(tx)
 	if err != nil {

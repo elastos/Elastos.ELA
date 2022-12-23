@@ -536,6 +536,9 @@ type State struct {
 		outputs []*common2.OutputInfo) (interfaces.Transaction, error)
 	createVotesRealWithdrawTransaction func(withdrawTransactionHashes []common.Uint256,
 		outputs []*common2.OutputInfo) (interfaces.Transaction, error)
+
+	// temp use
+	LastRenewalDPoSV2Votes map[common.Uint256]struct{}
 }
 
 func (s *State) DPoSV2Started() bool {
@@ -1449,7 +1452,7 @@ func (s *State) ProcessVoteStatisticsBlock(block *types.Block) {
 // packed into a block.  Then loop through the transactions to update producers
 // state and votes according to transactions content.
 func (s *State) processTransactions(txs []interfaces.Transaction, height uint32) {
-
+	s.LastRenewalDPoSV2Votes = make(map[common.Uint256]struct{}, 0)
 	for _, tx := range txs {
 		s.processTransaction(tx, height)
 	}
@@ -1513,8 +1516,11 @@ func (s *State) processTransactions(txs []interfaces.Transaction, height uint32)
 		})
 	}
 
-	cleanExpiredDposV2Votes := func(key common.Uint256, stakeAddress common.Uint168, detailVoteInfo payload.DetailedVoteInfo, producer *Producer) {
-
+	cleanExpiredDposV2Votes := func(key common.Uint256, stakeAddress common.Uint168,
+		detailVoteInfo payload.DetailedVoteInfo, producer *Producer) {
+		if _, ok := s.LastRenewalDPoSV2Votes[detailVoteInfo.ReferKey()]; ok {
+			return
+		}
 		for _, i := range detailVoteInfo.Info {
 			info := i
 			s.History.Append(height, func() {
@@ -2113,6 +2119,8 @@ func (s *State) processRenewalVotingContent(tx interfaces.Transaction, height ui
 			Info:             []payload.VotesWithLockTime{content.VotesInfo},
 			PrefixType:       prefixType,
 		}
+
+		s.LastRenewalDPoSV2Votes[content.ReferKey] = struct{}{}
 
 		referKey := detailVoteInfo.ReferKey()
 		s.History.Append(height, func() {

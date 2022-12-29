@@ -81,6 +81,7 @@ func (t *CreateNFTTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
 
 	state := t.parameters.BlockChain.GetState()
 	producers := state.GetDposV2Producers()
+	var existVote bool
 	for _, p := range producers {
 		for stakeAddress, votesInfo := range p.GetAllDetailedDPoSV2Votes() {
 			for referKey, voteInfo := range votesInfo {
@@ -92,10 +93,15 @@ func (t *CreateNFTTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
 							errors.New("the NFT has been created yet")), true
 					}
 					log.Info("create NFT, vote information:", voteInfo)
-					return nil, false
+					existVote = true
 				}
 			}
 		}
+	}
+
+	if !existVote {
+		return elaerr.Simple(elaerr.ErrTxPayload,
+			errors.New("has no DPoS 2.0 votes equal to the NFT ID")), true
 	}
 
 	// stake address need to be same from code

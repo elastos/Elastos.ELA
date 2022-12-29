@@ -208,11 +208,6 @@ type WithdrawFromSideChainInfo struct {
 	SideChainTransactionHashes []string `json:"sidechaintransactionhashes"`
 }
 
-type NFTDestroyFromSideChainInfo struct {
-	ID           []string //detail votes info referkey
-	StakeAddress []string //owner StakeAddress
-}
-
 type SchnorrWithdrawFromSideChainInfo struct {
 	Signers []uint32 `json:"Signers"`
 }
@@ -596,6 +591,20 @@ type DposV2ClaimRewardInfo struct {
 type DposV2ClaimRewardRealWithdrawInfo struct {
 	// Hash of the proposal to withdrawal ela.
 	WithdrawTransactionHashes []string `json:"withdrawtransactionhashes"`
+}
+
+type CreateNFTInfo struct {
+	// nft id, hash of detailed vote information.
+	ID string
+	// side chain format address.
+	StakeAddress string
+}
+
+type DestroyNFTInfo struct {
+	//detail votes info referkey
+	ID []string
+	//owner OwnerStakeAddress
+	OwnerStakeAddress []string
 }
 
 type DetailedVoteInfo struct {

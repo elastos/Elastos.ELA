@@ -3161,17 +3161,7 @@ func getPayloadInfo(p interfaces.Payload, payloadVersion byte) PayloadInfo {
 			return obj
 		}
 		return nil
-	case *payload.NFTDestroyFromSideChain:
-		obj := new(NFTDestroyFromSideChainInfo)
-		obj.ID = make([]string, 0)
-		obj.StakeAddress = make([]string, 0)
-		for i := 0; i < len(object.ID); i++ {
-			obj.ID = append(obj.ID, object.ID[i].String())
-			address, _ := object.OwnerStakeAddress[i].ToAddress()
-			obj.StakeAddress = append(obj.StakeAddress, address)
-		}
 
-		return obj
 	case *payload.TransferCrossChainAsset:
 		if payloadVersion == payload.TransferCrossChainVersionV1 {
 			return nil
@@ -3665,6 +3655,30 @@ func getPayloadInfo(p interfaces.Payload, payloadVersion byte) PayloadInfo {
 			obj.WithdrawTransactionHashes = append(obj.WithdrawTransactionHashes, common.ToReversedString(txHash))
 		}
 		return obj
+
+	case *payload.CreateNFT:
+		obj := &CreateNFTInfo{
+			ID:           object.ID.String(),
+			StakeAddress: object.StakeAddress,
+		}
+		return obj
+
+	case *payload.NFTDestroyFromSideChain:
+		nftIDs := make([]string, 0)
+		nftStatkeAddresses := make([]string, 0)
+		for _, id := range object.ID	 {
+			nftIDs = append(nftIDs, id.String())
+		}
+		for _, sa := range object.OwnerStakeAddress {
+			addr, _ := sa.ToAddress()
+			nftStatkeAddresses = append(nftStatkeAddresses, addr)
+		}
+		obj := DestroyNFTInfo{
+			ID:                nftIDs,
+			OwnerStakeAddress: nftStatkeAddresses,
+		}
+		return obj
+
 	}
 	return nil
 }

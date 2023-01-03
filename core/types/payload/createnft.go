@@ -22,6 +22,9 @@ type CreateNFT struct {
 
 	// side chain format address.
 	StakeAddress string
+
+	// genesis block hash of side chain.
+	GenesisBlockHash common.Uint256
 }
 
 func (a *CreateNFT) Data(version byte) []byte {
@@ -47,7 +50,11 @@ func (a *CreateNFT) SerializeUnsigned(w io.Writer, version byte) error {
 	}
 
 	if err := common.WriteVarString(w, a.StakeAddress); err != nil {
-		return errors.New("[CreateNFT], failed to serialize StakeAddress address")
+		return errors.New("[CreateNFT], failed to serialize StakeAddress")
+	}
+
+	if err := a.GenesisBlockHash.Serialize(w); err != nil {
+		return errors.New("[CreateNFT], failed to serialize GenesisBlockHash")
 	}
 
 	return nil
@@ -69,8 +76,13 @@ func (a *CreateNFT) DeserializeUnsigned(r io.Reader, version byte) error {
 
 	to, err := common.ReadVarString(r)
 	if err != nil {
-		return errors.New("[CreateNFT], failed to deserialize StakeAddress address")
+		return errors.New("[CreateNFT], failed to deserialize StakeAddress")
 	}
 	a.StakeAddress = to
+
+	if err := a.GenesisBlockHash.Deserialize(r); err != nil {
+		return errors.New("[CreateNFT], failed to deserialize GenesisBlockHash")
+	}
+
 	return nil
 }

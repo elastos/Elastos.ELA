@@ -3666,16 +3666,17 @@ func getPayloadInfo(p interfaces.Payload, payloadVersion byte) PayloadInfo {
 	case *payload.NFTDestroyFromSideChain:
 		nftIDs := make([]string, 0)
 		nftStatkeAddresses := make([]string, 0)
-		for _, id := range object.ID	 {
+		for _, id := range object.IDs {
 			nftIDs = append(nftIDs, id.String())
 		}
-		for _, sa := range object.OwnerStakeAddress {
+		for _, sa := range object.OwnerStakeAddresses {
 			addr, _ := sa.ToAddress()
 			nftStatkeAddresses = append(nftStatkeAddresses, addr)
 		}
 		obj := DestroyNFTInfo{
-			ID:                nftIDs,
-			OwnerStakeAddress: nftStatkeAddresses,
+			IDs:                 nftIDs,
+			OwnerStakeAddresses: nftStatkeAddresses,
+			GenesisBlockAddress: object.GenesisBlockAddress,
 		}
 		return obj
 

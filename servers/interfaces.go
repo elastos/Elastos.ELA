@@ -596,6 +596,14 @@ func GetCanDestroynftIDs(params Params) map[string]interface{} {
 	if !ok {
 		return ResponsePack(InvalidParams, "need ids in an array!")
 	}
+	genesisBlockStr, ok := params.String("genesisblockhash")
+	if !ok {
+		return ResponsePack(InvalidParams, "genesisblockhash not found")
+	}
+	genesisBlockhash, err := common.Uint256FromHexString(genesisBlockStr)
+	if err != nil {
+		return ResponsePack(InvalidParams, "invalid genesisblockhash ")
+	}
 
 	var IDs []common.Uint256
 	for i := 0; i < len(idsParam); i++ {
@@ -612,8 +620,11 @@ func GetCanDestroynftIDs(params Params) map[string]interface{} {
 	state := Chain.GetState()
 	canDestroyIDs := state.CanNFTDestroy(IDs)
 	var destoryIDs []string
-	for _, v := range canDestroyIDs {
-		destoryIDs = append(destoryIDs, v.String())
+
+	for _, id := range canDestroyIDs {
+		if state.IsNFTIDBelongToSideChain(id, *genesisBlockhash) {
+			destoryIDs = append(destoryIDs, id.String())
+		}
 	}
 
 	return ResponsePack(Success, destoryIDs)
@@ -3676,7 +3687,7 @@ func getPayloadInfo(p interfaces.Payload, payloadVersion byte) PayloadInfo {
 		obj := DestroyNFTInfo{
 			IDs:                 nftIDs,
 			OwnerStakeAddresses: nftStatkeAddresses,
-			GenesisBlockAddress: object.GenesisBlockAddress,
+			GenesisBlockAddress: common.ToReversedString(object.GenesisBlockHash),
 		}
 		return obj
 

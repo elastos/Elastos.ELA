@@ -18,7 +18,8 @@ const NFTDestroyFromSideChainVersion byte = 0x00
 type NFTDestroyFromSideChain struct {
 	IDs                 []common.Uint256 //detail votes info referkey
 	OwnerStakeAddresses []common.Uint168 //owner OwnerStakeAddresses
-	GenesisBlockAddress string           // GenesisBlockAddress
+	// genesis block hash of side chain.
+	GenesisBlockHash common.Uint256
 }
 
 func (t *NFTDestroyFromSideChain) Data(version byte) []byte {
@@ -53,8 +54,8 @@ func (t *NFTDestroyFromSideChain) Serialize(w io.Writer, version byte) error {
 		}
 	}
 
-	if err := common.WriteVarString(w, t.GenesisBlockAddress); err != nil {
-		return err
+	if err := t.GenesisBlockHash.Serialize(w); err != nil {
+		return errors.New("[NFTDestroyFromSideChain], failed to serialize GenesisBlockHash")
 	}
 	return nil
 }
@@ -89,8 +90,8 @@ func (t *NFTDestroyFromSideChain) Deserialize(r io.Reader, version byte) error {
 		t.OwnerStakeAddresses = append(t.OwnerStakeAddresses, ownerStakeAddress)
 	}
 
-	if t.GenesisBlockAddress, err = common.ReadVarString(r); err != nil {
-		return err
+	if err := t.GenesisBlockHash.Deserialize(r); err != nil {
+		return errors.New("[NFTDestroyFromSideChain], failed to deserialize GenesisBlockHash")
 	}
 	return nil
 }

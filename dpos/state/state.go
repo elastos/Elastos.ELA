@@ -2714,18 +2714,31 @@ func (s *State) getIllegalPenaltyByHeight(height uint32) common.Fixed64 {
 	return illegalPenalty
 }
 
+func (s *State) IsNFTIDBelongToSideChain(id, genesisBlockHash common.Uint256) bool {
+	s.mtx.RLock()
+	defer s.mtx.RUnlock()
+
+	if v, ok := s.NFTIDGenesisBlockHashMap[id]; ok {
+		if v.IsEqual(genesisBlockHash) {
+			return true
+		}
+
+	}
+	log.Warnf("id genesisBlockHash not match, id:%s genesisBlockHash %s", id.String(), genesisBlockHash.String())
+	return false
+}
+
 func (s *State) processNFTDestroyFromSideChain(tx interfaces.Transaction, height uint32) {
 	nftDestroyPayload := tx.Payload().(*payload.NFTDestroyFromSideChain)
 
 	// remove the relationship between NFT id and genesis block hash
-	genesisBlockHash, _ := common.Uint256FromHexString(nftDestroyPayload.GenesisBlockAddress)
 	s.History.Append(height, func() {
 		for _, id := range nftDestroyPayload.IDs {
 			delete(s.NFTIDGenesisBlockHashMap, id)
 		}
 	}, func() {
 		for _, id := range nftDestroyPayload.IDs {
-			s.NFTIDGenesisBlockHashMap[id] = *genesisBlockHash
+			s.NFTIDGenesisBlockHashMap[id] = nftDestroyPayload.GenesisBlockHash
 		}
 	})
 

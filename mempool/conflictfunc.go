@@ -85,7 +85,7 @@ func hashArrayNFTDestroyFromSideChainHash(tx interfaces.Transaction) (interface{
 			"CRC proposal payload cast failed, tx:%s", tx.Hash())
 	}
 
-	return p.ID, nil
+	return p.IDs, nil
 }
 
 func hashCRCProposalSecretaryGeneralDID(tx interfaces.Transaction) (interface{}, error) {

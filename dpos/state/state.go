@@ -2713,9 +2713,9 @@ func (s *State) getIllegalPenaltyByHeight(height uint32) common.Fixed64 {
 func (s *State) processNFTDestroyFromSideChain(tx interfaces.Transaction, height uint32) {
 	nftDestroyPayload := tx.Payload().(*payload.NFTDestroyFromSideChain)
 	producers := s.getDposV2Producers()
-	for i := 0; i < len(nftDestroyPayload.ID); i++ {
-		newOwnerStakeAddress := nftDestroyPayload.OwnerStakeAddress[i]
-		ID := nftDestroyPayload.ID[i]
+	for i := 0; i < len(nftDestroyPayload.IDs); i++ {
+		newOwnerStakeAddress := nftDestroyPayload.OwnerStakeAddresses[i]
+		ID := nftDestroyPayload.IDs[i]
 	out:
 		for _, producer := range producers {
 			for stakeAddress, votesInfo := range producer.GetAllDetailedDPoSV2Votes() {
@@ -2729,7 +2729,7 @@ func (s *State) processNFTDestroyFromSideChain(tx interfaces.Transaction, height
 							delete(producer.detailedDPoSV2Votes[stakeAddress], ID)
 							s.DPoSV2RewardInfo[strOwnerStakeAddress] += s.DPoSV2RewardInfo[strNFTStakeAddress]
 							delete(s.DPoSV2RewardInfo, strNFTStakeAddress)
-							//detailVoteInfo add to new owner nftDestroyPayload.OwnerStakeAddress
+							//detailVoteInfo add to new owner nftDestroyPayload.OwnerStakeAddresses
 							if len(producer.detailedDPoSV2Votes[newOwnerStakeAddress]) == 0 {
 								producer.detailedDPoSV2Votes[newOwnerStakeAddress] = make(map[common.Uint256]payload.DetailedVoteInfo)
 							}

@@ -602,9 +602,11 @@ type CreateNFTInfo struct {
 
 type DestroyNFTInfo struct {
 	//detail votes info referkey
-	ID []string
+	IDs []string
 	//owner OwnerStakeAddress
-	OwnerStakeAddress []string
+	OwnerStakeAddresses []string
+	// GenesisBlockAddress
+	GenesisBlockAddress string
 }
 
 type DetailedVoteInfo struct {

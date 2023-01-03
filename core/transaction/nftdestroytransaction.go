@@ -73,13 +73,6 @@ func (t *NFTDestroyTransactionFromSideChain) SpecialContextCheck() (elaerr.ELAEr
 	if !ok {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid payload")), true
 	}
-	_, err := common.Uint168FromAddress(nftDestroyPayload.GenesisBlockAddress)
-	// check genesis block when sidechain registered in the future
-	if err != nil {
-		return elaerr.Simple(elaerr.ErrTxPayload,
-			errors.New(" invalid GenesisBlockAddress")), true
-	}
-
 	state := t.parameters.BlockChain.GetState()
 
 	// check if the NFT exist
@@ -90,14 +83,13 @@ func (t *NFTDestroyTransactionFromSideChain) SpecialContextCheck() (elaerr.ELAEr
 				errors.New("the NFT is not exist")), true
 		}
 	}
-
 	canDestroyIDs := state.CanNFTDestroy(nftDestroyPayload.IDs)
 	if len(canDestroyIDs) != len(nftDestroyPayload.IDs) {
 		return elaerr.Simple(elaerr.ErrTxPayload,
 			errors.New(" NFT can not destroy")), true
 	}
 
-	err = t.checkNFTDestroyTransactionFromSideChain()
+	err := t.checkNFTDestroyTransactionFromSideChain()
 	if err != nil {
 		return elaerr.Simple(elaerr.ErrTxPayload, err), true
 	}

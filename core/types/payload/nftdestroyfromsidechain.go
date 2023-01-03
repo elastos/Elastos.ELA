@@ -16,8 +16,9 @@ import (
 const NFTDestroyFromSideChainVersion byte = 0x00
 
 type NFTDestroyFromSideChain struct {
-	ID                []common.Uint256 //detail votes info referkey
-	OwnerStakeAddress []common.Uint168 //owner OwnerStakeAddress
+	IDs                 []common.Uint256 //detail votes info referkey
+	OwnerStakeAddresses []common.Uint168 //owner OwnerStakeAddresses
+	GenesisBlockAddress string           // GenesisBlockAddress
 }
 
 func (t *NFTDestroyFromSideChain) Data(version byte) []byte {
@@ -30,28 +31,31 @@ func (t *NFTDestroyFromSideChain) Data(version byte) []byte {
 }
 
 func (t *NFTDestroyFromSideChain) Serialize(w io.Writer, version byte) error {
-	if err := common.WriteVarUint(w, uint64(len(t.ID))); err != nil {
+	if err := common.WriteVarUint(w, uint64(len(t.IDs))); err != nil {
 		return errors.New("[NFTDestroyFromSideChain], ID count serialize failed")
 	}
 
-	for _, hash := range t.ID {
+	for _, hash := range t.IDs {
 		err := hash.Serialize(w)
 		if err != nil {
 			return errors.New("[NFTDestroyFromSideChain], ID serialize failed")
 		}
 	}
 
-	if err := common.WriteVarUint(w, uint64(len(t.OwnerStakeAddress))); err != nil {
-		return errors.New("[NFTDestroyFromSideChain], OwnerStakeAddress count serialize failed")
+	if err := common.WriteVarUint(w, uint64(len(t.OwnerStakeAddresses))); err != nil {
+		return errors.New("[NFTDestroyFromSideChain], OwnerStakeAddresses count serialize failed")
 	}
 
-	for _, hash := range t.OwnerStakeAddress {
+	for _, hash := range t.OwnerStakeAddresses {
 		err := hash.Serialize(w)
 		if err != nil {
-			return errors.New("[NFTDestroyFromSideChain], OwnerStakeAddress serialize failed")
+			return errors.New("[NFTDestroyFromSideChain], OwnerStakeAddresses serialize failed")
 		}
 	}
 
+	if err := common.WriteVarString(w, t.GenesisBlockAddress); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -60,17 +64,17 @@ func (t *NFTDestroyFromSideChain) Deserialize(r io.Reader, version byte) error {
 	if err != nil {
 		return err
 	}
-	t.ID = make([]common.Uint256, 0)
+	t.IDs = make([]common.Uint256, 0)
 	for i := uint64(0); i < count; i++ {
 		var id common.Uint256
 		err := id.Deserialize(r)
 		if err != nil {
 			return errors.New("[NFTDestroyFromSideChain], id deserialize failed.")
 		}
-		t.ID = append(t.ID, id)
+		t.IDs = append(t.IDs, id)
 	}
 
-	t.OwnerStakeAddress = make([]common.Uint168, 0)
+	t.OwnerStakeAddresses = make([]common.Uint168, 0)
 
 	count, err = common.ReadVarUint(r, 0)
 	if err != nil {
@@ -82,8 +86,11 @@ func (t *NFTDestroyFromSideChain) Deserialize(r io.Reader, version byte) error {
 		if err != nil {
 			return errors.New("[NFTDestroyFromSideChain], ownerStakeAddress deserialize failed.")
 		}
-		t.OwnerStakeAddress = append(t.OwnerStakeAddress, ownerStakeAddress)
+		t.OwnerStakeAddresses = append(t.OwnerStakeAddresses, ownerStakeAddress)
 	}
 
+	if t.GenesisBlockAddress, err = common.ReadVarString(r); err != nil {
+		return err
+	}
 	return nil
 }

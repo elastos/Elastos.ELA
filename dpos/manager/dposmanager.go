@@ -436,6 +436,11 @@ func (d *DPOSManager) recoverAbnormalState() bool {
 }
 
 func (d *DPOSManager) DoRecover() {
+	if d.consensus.viewOffset == 0 {
+		log.Info("no need to recover view offset")
+		return
+	}
+
 	var maxCountMaxViewOffset uint32
 	for k, _ := range d.statusMap {
 		if maxCountMaxViewOffset < k {

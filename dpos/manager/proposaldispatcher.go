@@ -656,8 +656,10 @@ func (p *ProposalDispatcher) OnResponseResetViewReceived(msg *dmsg.ResetView) {
 	}
 
 	p.resetViewRequests[common.BytesToHexString(signer)] = struct{}{}
+	log.Info("[OnResponseResetViewReceived] signer:", common.BytesToHexString(signer))
 
 	if len(p.resetViewRequests) >= p.cfg.Arbitrators.GetArbitersMajorityCount() {
+		log.Info("[OnResponseResetViewReceived] signer:", common.BytesToHexString(signer))
 		// do reset
 		p.resetConsensus()
 		p.resetViewRequests = make(map[string]struct{}, 0)

@@ -29,6 +29,7 @@ local asset_id = m.get_asset_id()
 local fee = getFee()
 local nft_id = getNFTID()
 local stake_addr = getStakeAddr()
+local getGenesisHash = getGenesisHash()
 
 if fee == 0 then
 	fee = 0.001
@@ -38,6 +39,17 @@ if nft_id == "" then
     print("nft id is nil, should use --nftid to set it.")
     return
 end
+
+if stake_addr == "" then
+    print("nft stake address is nil, should use --stakeaddr to set it.")
+    return
+end
+
+if getGenesisHash == "" then
+    print("nft genesis block hash is nil, should use --genesishash to set it.")
+    return
+end
+
 
 print("fee:", fee)
 print("nft id:", nft_id)

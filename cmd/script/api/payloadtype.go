@@ -3173,14 +3173,21 @@ func RegisterCreateNFTType(L *lua.LState) {
 func newCreateNFT(L *lua.LState) int {
 	idStr := L.ToString(1)
 	stakeAddress := L.ToString(2)
+	genesisBlockHashStr := L.ToString(3)
 	id, err := common.Uint256FromHexString(idStr)
 	if err != nil {
 		fmt.Println("wrong NFT id:", idStr)
 		os.Exit(1)
 	}
+	genesisBlockHash, err := common.Uint256FromHexString(genesisBlockHashStr)
+	if err != nil {
+		fmt.Println("wrong NFT genesis block hash:", genesisBlockHashStr)
+		os.Exit(1)
+	}
 	createNFTPayload := &payload.CreateNFT{
 		ID:           *id,
 		StakeAddress: stakeAddress,
+		GenesisBlockHash: *genesisBlockHash,
 	}
 
 	ud := L.NewUserData()

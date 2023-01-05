@@ -20,7 +20,7 @@ type CreateNFT struct {
 	// nft id, hash of detailed vote information.
 	ID common.Uint256
 
-	// side chain format address.
+	// format address.
 	StakeAddress string
 
 	// genesis block hash of side chain.

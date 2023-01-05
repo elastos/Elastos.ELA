@@ -2716,6 +2716,19 @@ func (s *State) getIllegalPenaltyByHeight(height uint32) common.Fixed64 {
 
 func (s *State) processNFTDestroyFromSideChain(tx interfaces.Transaction, height uint32) {
 	nftDestroyPayload := tx.Payload().(*payload.NFTDestroyFromSideChain)
+
+	// remove the relationship between NFT id and genesis block hash
+	genesisBlockHash, _ := common.Uint256FromHexString(nftDestroyPayload.GenesisBlockAddress)
+	s.History.Append(height, func() {
+		for _, id := range nftDestroyPayload.IDs {
+			delete(s.NFTIDGenesisBlockHashMap, id)
+		}
+	}, func() {
+		for _, id := range nftDestroyPayload.IDs {
+			s.NFTIDGenesisBlockHashMap[id] = *genesisBlockHash
+		}
+	})
+
 	producers := s.getDposV2Producers()
 	for i := 0; i < len(nftDestroyPayload.IDs); i++ {
 		newOwnerStakeAddress := nftDestroyPayload.OwnerStakeAddresses[i]

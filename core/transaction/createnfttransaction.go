@@ -114,5 +114,13 @@ func (t *CreateNFTTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("stake address not from code")), true
 	}
 
+	// nft has not been created before
+	if g, ok := state.NFTIDGenesisBlockHashMap[pld.ID]; ok {
+		log.Warnf("NFT has been create before, side chain genesis block "+
+			"hash: %s", g)
+		return elaerr.Simple(elaerr.ErrTxPayload,
+			errors.New("NFT has been created before")), true
+	}
+
 	return elaerr.Simple(elaerr.ErrTxPayload, errors.New("the NFT ID does not exist")), true
 }

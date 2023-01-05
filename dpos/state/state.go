@@ -2570,6 +2570,10 @@ func (s *State) processRetVotesRewardRealWithdraw(tx interfaces.Transaction, hei
 
 func (s *State) processCreateNFT(tx interfaces.Transaction, height uint32) {
 	nftPayload := tx.Payload().(*payload.CreateNFT)
+
+	// record the relationship map between ID and genesis block hash
+	s.NFTIDGenesisBlockHashMap[nftPayload.ID] = nftPayload.GenesisBlockHash
+
 	producers := s.getDposV2Producers()
 	for _, producer := range producers {
 		for stakeAddress, votesInfo := range producer.GetAllDetailedDPoSV2Votes() {

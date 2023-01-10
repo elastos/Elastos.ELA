@@ -362,7 +362,8 @@ func strRegisterCRPublicKey(tx interfaces.Transaction) (interface{}, error) {
 	}
 
 	var code []byte
-	if tx.PayloadVersion() == payload.CRInfoSchnorrVersion {
+	if tx.PayloadVersion() == payload.CRInfoSchnorrVersion ||
+		tx.PayloadVersion() == payload.CRInfoMultiSignVersion {
 		code = tx.Programs()[0].Code
 	} else {
 		code = p.Code
@@ -372,7 +373,9 @@ func strRegisterCRPublicKey(tx interfaces.Transaction) (interface{}, error) {
 		return nil, err
 	}
 
-	if signType == vm.CHECKSIG {
+	if signType == vm.CHECKMULTISIG {
+		return hex.EncodeToString(p.Code), nil
+	} else if signType == vm.CHECKSIG {
 		return hex.EncodeToString(p.Code[1 : len(p.Code)-1]), nil
 	} else if bytes.Equal(p.Code, []byte{}) && contract.IsSchnorr(code) {
 		return hex.EncodeToString(code[2:]), nil

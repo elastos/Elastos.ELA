@@ -66,12 +66,11 @@ func (t *CancelProducerTransaction) checkProcessProducer(params *TransactionPara
 	}
 
 	// check signature
-	publicKey, err := crypto.DecodePoint(processProducer.OwnerPublicKey)
-	if err != nil {
-		return nil, errors.New("invalid public key in payload")
-	}
-
-	if t.PayloadVersion() != payload.ProcessProducerSchnorrVersion {
+	if t.PayloadVersion() == payload.ProcessProducerVersion {
+		publicKey, err := crypto.DecodePoint(processProducer.OwnerPublicKey)
+		if err != nil {
+			return nil, errors.New("invalid public key in payload")
+		}
 		signedBuf := new(bytes.Buffer)
 		err = processProducer.SerializeUnsigned(signedBuf, t.PayloadVersion())
 		if err != nil {
@@ -81,13 +80,19 @@ func (t *CancelProducerTransaction) checkProcessProducer(params *TransactionPara
 		if err != nil {
 			return nil, errors.New("invalid signature in payload")
 		}
-	} else {
+	} else if t.PayloadVersion() == payload.ProcessProducerSchnorrVersion {
 		if !contract.IsSchnorr(t.Programs()[0].Code) {
 			return nil, errors.New("only schnorr code can use ProcessProducerSchnorrVersion")
 		}
 		pk := t.Programs()[0].Code[2:]
+		//todo OwnerPublicKey should be public key
 		if !bytes.Equal(pk, processProducer.OwnerPublicKey) {
 			return nil, errors.New("tx program pk must equal with processProducer OwnerPublicKey ")
+		}
+	} else if t.PayloadVersion() == payload.ProcessMultiCodeVersion {
+		if !contract.IsMultiSig(t.Programs()[0].Code) {
+			return nil, elaerr.Simple(elaerr.ErrTxPayload,
+				errors.New("only multi sign code can use ProcessMultiCodeVersion"))
 		}
 	}
 

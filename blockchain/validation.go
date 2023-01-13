@@ -48,14 +48,18 @@ func RunPrograms(data []byte, programHashes []common.Uint168, programs []*Progra
 		if !ownerHash.IsEqual(*codeHash) {
 			return errors.New("the data hashes is different with corresponding program code")
 		}
-
 		if prefixType == contract.PrefixStandard || prefixType == contract.PrefixDeposit {
 			if contract.IsSchnorr(program.Code) {
 				if ok, err := checkSchnorrSignatures(*program, common.Sha256D(data[:])); !ok {
 					return errors.New("check schnorr signature failed:" + err.Error())
 				}
-			} else {
+			} else if contract.IsStandard(program.Code) {
 				if err := CheckStandardSignature(*program, data); err != nil {
+					return err
+				}
+			} else if contract.IsMultiSig(program.Code) {
+				//todo mulitisign deposite
+				if err := CheckMultiSigSignatures(*program, data); err != nil {
 					return err
 				}
 			}

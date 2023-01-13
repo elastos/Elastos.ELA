@@ -1723,6 +1723,15 @@ func (s *State) processTransaction(tx interfaces.Transaction, height uint32) {
 	s.processCancelVotes(tx, height)
 }
 
+func getOwnerKeyDepositProgramHash(ownerPublicKey []byte) (ownKeyProgramHash *common.Uint168, err error) {
+	if len(ownerPublicKey) == crypto.NegativeBigLength {
+		ownKeyProgramHash, err = contract.PublicKeyToDepositProgramHash(ownerPublicKey)
+	} else {
+		ownKeyProgramHash = common.ToProgramHash(byte(contract.PrefixDeposit), ownerPublicKey)
+	}
+	return ownKeyProgramHash, err
+}
+
 // registerProducer handles the register producer transaction.
 func (s *State) registerProducer(tx interfaces.Transaction, height uint32) {
 	info := tx.Payload().(*payload.ProducerInfo)
@@ -1731,7 +1740,7 @@ func (s *State) registerProducer(tx interfaces.Transaction, height uint32) {
 	ownerKey := hex.EncodeToString(info.OwnerPublicKey)
 	// ignore error here because this converting process has been ensured in
 	// the context check already
-	programHash, _ := contract.PublicKeyToDepositProgramHash(info.
+	programHash, _ := getOwnerKeyDepositProgramHash(info.
 		OwnerPublicKey)
 
 	amount := common.Fixed64(0)

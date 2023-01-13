@@ -20,6 +20,7 @@ type ProducerOperation byte
 const (
 	ProcessProducerVersion        byte = 0x00
 	ProcessProducerSchnorrVersion byte = 0x01
+	ProcessMultiCodeVersion       byte = 0x02
 )
 
 type ProcessProducer struct {
@@ -40,7 +41,7 @@ func (a *ProcessProducer) Serialize(w io.Writer, version byte) error {
 	if err != nil {
 		return err
 	}
-	if version != ProcessProducerSchnorrVersion {
+	if version < ProcessProducerSchnorrVersion {
 		err = common.WriteVarBytes(w, a.Signature)
 		if err != nil {
 			return errors.New("[ProcessProducer], signature serialize failed")
@@ -63,7 +64,7 @@ func (a *ProcessProducer) Deserialize(r io.Reader, version byte) error {
 	if err != nil {
 		return err
 	}
-	if version != ProcessProducerSchnorrVersion {
+	if version < ProcessProducerSchnorrVersion {
 		a.Signature, err = common.ReadVarBytes(r, crypto.SignatureLength, "signature")
 		if err != nil {
 			return errors.New("[ProcessProducer], signature deserialize failed")
@@ -73,8 +74,12 @@ func (a *ProcessProducer) Deserialize(r io.Reader, version byte) error {
 }
 
 func (a *ProcessProducer) DeserializeUnsigned(r io.Reader, version byte) error {
+	readLen := uint32(crypto.NegativeBigLength)
+	if version == ProcessMultiCodeVersion {
+		readLen = crypto.MaxMultiSignCodeLength
+	}
 	var err error
-	a.OwnerPublicKey, err = common.ReadVarBytes(r, crypto.NegativeBigLength, "public key")
+	a.OwnerPublicKey, err = common.ReadVarBytes(r, readLen, "public key")
 	if err != nil {
 		return errors.New("[ProcessProducer], read owner public key failed")
 	}

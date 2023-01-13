@@ -92,18 +92,11 @@ func (t *UpdateProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bool
 		return elaerr.Simple(elaerr.ErrTxPayload, err), true
 	}
 
-	// check signature
-	publicKey, err := crypto.DecodePoint(info.OwnerPublicKey)
-	if err != nil {
-		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid owner public key in payload")), true
-	}
-	signedBuf := new(bytes.Buffer)
-	err = info.SerializeUnsigned(signedBuf, t.payloadVersion)
-	if err != nil {
-		return elaerr.Simple(elaerr.ErrTxPayload, err), true
-	}
-
-	if t.PayloadVersion() != payload.ProducerInfoSchnorrVersion {
+	if t.PayloadVersion() < payload.ProducerInfoSchnorrVersion {
+		publicKey, err := crypto.DecodePoint(info.OwnerPublicKey)
+		if err != nil {
+			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid owner public key in payload")), true
+		}
 		signedBuf := new(bytes.Buffer)
 		err = info.SerializeUnsigned(signedBuf, t.payloadVersion)
 		if err != nil {
@@ -113,7 +106,7 @@ func (t *UpdateProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bool
 		if err != nil {
 			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid signature in payload")), true
 		}
-	} else {
+	} else if t.PayloadVersion() == payload.ProducerInfoSchnorrVersion {
 		if len(t.Programs()) != 1 {
 			return elaerr.Simple(elaerr.ErrTxPayload,
 				errors.New("ProducerInfoSchnorrVersion can only have one program code")), true
@@ -126,6 +119,11 @@ func (t *UpdateProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bool
 		if !bytes.Equal(pk, info.OwnerPublicKey) {
 			return elaerr.Simple(elaerr.ErrTxPayload,
 				errors.New("tx program pk must equal with OwnerPublicKey")), true
+		}
+	} else if t.PayloadVersion() == payload.ProducerInfoMultiVersion {
+		if !contract.IsMultiSig(t.Programs()[0].Code) {
+			return elaerr.Simple(elaerr.ErrTxPayload,
+				errors.New("only multi sign code can use ProducerInfoMultiVersion")), true
 		}
 	}
 

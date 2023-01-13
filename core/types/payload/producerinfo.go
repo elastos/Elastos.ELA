@@ -18,17 +18,20 @@ const (
 	ProducerInfoVersion        byte = 0x00
 	ProducerInfoDposV2Version  byte = 0x01
 	ProducerInfoSchnorrVersion byte = 0x02
+	ProducerInfoMultiVersion   byte = 0x03
 )
 
 type ProducerInfo struct {
+	//can be standard or multi todo change name into OwnerKey(publick key or Code)
 	OwnerPublicKey []byte
-	NodePublicKey  []byte
-	NickName       string
-	Url            string
-	Location       uint64
-	NetAddress     string
-	StakeUntil     uint32
-	Signature      []byte
+	//must standard
+	NodePublicKey []byte
+	NickName      string
+	Url           string
+	Location      uint64
+	NetAddress    string
+	StakeUntil    uint32
+	Signature     []byte
 }
 
 func (a *ProducerInfo) Data(version byte) []byte {
@@ -44,7 +47,7 @@ func (a *ProducerInfo) Serialize(w io.Writer, version byte) error {
 	if err != nil {
 		return err
 	}
-	if version != ProducerInfoSchnorrVersion {
+	if version < ProducerInfoSchnorrVersion {
 		err = common.WriteVarBytes(w, a.Signature)
 		if err != nil {
 			return errors.New("[ProducerInfo], Signature serialize failed")
@@ -99,7 +102,7 @@ func (a *ProducerInfo) Deserialize(r io.Reader, version byte) error {
 	if err != nil {
 		return err
 	}
-	if version != ProducerInfoSchnorrVersion {
+	if version < ProducerInfoSchnorrVersion {
 		a.Signature, err = common.ReadVarBytes(r, crypto.SignatureLength, "signature")
 		if err != nil {
 			return errors.New("[ProducerInfo], signature deserialize failed")
@@ -109,13 +112,17 @@ func (a *ProducerInfo) Deserialize(r io.Reader, version byte) error {
 }
 
 func (a *ProducerInfo) DeserializeUnsigned(r io.Reader, version byte) error {
+	readLen := uint32(crypto.NegativeBigLength)
+	if version == ProducerInfoMultiVersion {
+		readLen = crypto.MaxMultiSignCodeLength
+	}
 	var err error
-	a.OwnerPublicKey, err = common.ReadVarBytes(r, crypto.NegativeBigLength, "own public key")
+	a.OwnerPublicKey, err = common.ReadVarBytes(r, readLen, "own public key")
 	if err != nil {
 		return errors.New("[ProducerInfo], owner publicKey deserialize failed")
 	}
 
-	a.NodePublicKey, err = common.ReadVarBytes(r, crypto.NegativeBigLength, "node public key")
+	a.NodePublicKey, err = common.ReadVarBytes(r, readLen, "node public key")
 	if err != nil {
 		return errors.New("[ProducerInfo], node publicKey deserialize failed")
 	}

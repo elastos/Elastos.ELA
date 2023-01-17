@@ -92,6 +92,7 @@ type Configuration struct {
 	DPoSV2EffectiveVotes            common.Fixed64    `json:"DPoSV2EffectiveVotes"`
 	StakePool                       string            `json:"StakePool"`
 	SchnorrStartHeight              uint32            `json:"SchnorrStartHeight"`
+	NormalSchnorrStartHeight        uint32            `json:"NormalSchnorrStartHeight"`
 	CrossChainMonitorStartHeight    uint32            `json:"CrossChainMonitorStartHeight"`
 	CrossChainMonitorInterval       uint32            `json:"CrossChainMonitorInterval"`
 	ShowPeersIp                     bool              `json:"ShowPeersIp"`

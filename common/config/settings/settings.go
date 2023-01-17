@@ -1145,6 +1145,12 @@ func NewSettings() *Settings {
 		ParamName:    "SchnorrStartHeight"})
 
 	result.Add(&settingItem{
+		Flag:         cmdcom.NormalSchnorrStartHeightFlag,
+		DefaultValue: uint32(0),
+		ConfigPath:   "NormalSchnorrStartHeight",
+		ParamName:    "NormalSchnorrStartHeight"})
+
+	result.Add(&settingItem{
 		Flag:         cmdcom.CrossChainMonitorStartHeightFlag,
 		DefaultValue: uint32(0),
 		ConfigPath:   "CrossChainMonitorStartHeight",

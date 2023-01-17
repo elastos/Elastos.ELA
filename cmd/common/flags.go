@@ -746,6 +746,11 @@ var (
 		Usage: "defines the start height to support schnorr transaction",
 	}
 
+	NormalSchnorrStartHeightFlag = cli.StringFlag{
+		Name:  "normalschnorrstartheight",
+		Usage: "defines the start height to support schnorr transfer asset transaction",
+	}
+
 	CRDPoSNodeHotFixHeightFlag = cli.StringFlag{
 		Name:  "crdposnodehotfixheight",
 		Usage: "CRDPoSNodeHotFixHeight indicates the hot fix start height of CR DPoS node",

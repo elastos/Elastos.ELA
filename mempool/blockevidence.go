@@ -78,6 +78,10 @@ func (bm *BlockPool) CheckConfirmedBlockOnFork(height uint32, block *types.Block
 			return err
 		}
 
+		if !anotherBlock.HaveConfirm {
+			return nil
+		}
+
 		if block.Hash().IsEqual(anotherBlock.Hash()) {
 			return nil
 		}

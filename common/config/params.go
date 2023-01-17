@@ -274,6 +274,7 @@ func GetDefaultParams() Params {
 		DPoSV2MinVotesLockTime:             7200,             // todo complete me
 		DPoSV2MaxVotesLockTime:             720000,           // todo complete me
 		SchnorrStartHeight:                 2000000,          // todo complete me
+		NormalSchnorrStartHeight:           2000000,          // todo complete me
 		CRDPoSNodeHotFixHeight:             0,
 		CrossChainMonitorStartHeight:       2000000,  // todo complete me
 		CrossChainMonitorInterval:          100,      // todo complete me
@@ -380,6 +381,7 @@ func (p *Params) TestNet() *Params {
 	copy.DPoSV2MaxVotesLockTime = 720000
 	copy.RealWithdrawSingleFee = 50000
 	copy.SchnorrStartHeight = 965800 + 720*10
+	copy.NormalSchnorrStartHeight = 965800 + 720*10
 	copy.CRDPoSNodeHotFixHeight = 0
 	copy.CrossChainMonitorStartHeight = 965800 + 720*3
 	copy.CrossChainMonitorInterval = 12
@@ -488,6 +490,7 @@ func (p *Params) RegNet() *Params {
 	copy.DPoSV2MaxVotesLockTime = 720000
 	copy.RealWithdrawSingleFee = 10000
 	copy.SchnorrStartHeight = 875544 + 720*5
+	copy.NormalSchnorrStartHeight = 875544 + 720*5
 	copy.CRDPoSNodeHotFixHeight = 0
 	copy.CrossChainMonitorStartHeight = 875544 + 720*2
 	copy.CrossChainMonitorInterval = 12
@@ -864,6 +867,9 @@ type Params struct {
 
 	// SchnorrStartHeight indicates the start height of schnorr
 	SchnorrStartHeight uint32
+
+	// NormalSchnorrStartHeight indicates the height  of schnorr transfer asset tx
+	NormalSchnorrStartHeight uint32
 
 	// CRDPoSNodeHotFixHeight indicates the hot fix start height of CR DPoS node
 	CRDPoSNodeHotFixHeight uint32

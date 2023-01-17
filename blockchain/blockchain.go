@@ -1677,7 +1677,7 @@ func (b *BlockChain) connectBestChain(node *BlockNode, block *Block, confirm *pa
 	// common ancenstor (the point where the chain forked).
 	detachNodes, attachNodes := b.getReorganizeNodes(node)
 	// forbid reorganize if detaching nodes more than IrreversibleHeight
-	if b.state.IsIrreversible(block.Height, detachNodes.Len()) {
+	if b.state.IsIrreversible(b.BestChain.Height, detachNodes.Len()) {
 		return false, false, nil
 	}
 	//for e := detachNodes.Front(); e != nil; e = e.Next() {

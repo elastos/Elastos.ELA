@@ -2581,17 +2581,26 @@ func (s *State) processCreateNFT(tx interfaces.Transaction, height uint32) {
 				if referKey.IsEqual(nftPayload.ID) {
 					ct, _ := contract.CreateStakeContractByCode(referKey.Bytes())
 					nftStakeAddress := ct.ToProgramHash()
+					nftAmount := detailVoteInfo.Info[0].Votes
 					s.History.Append(height, func() {
 						if _, ok := producer.detailedDPoSV2Votes[*nftStakeAddress]; !ok {
 							producer.detailedDPoSV2Votes[*nftStakeAddress] = make(map[common.Uint256]payload.DetailedVoteInfo)
 						}
 						producer.detailedDPoSV2Votes[*nftStakeAddress][referKey] = detailVoteInfo
 						delete(producer.detailedDPoSV2Votes[stakeAddress], nftPayload.ID)
+						// process total vote rights
+						s.DposV2VoteRights[*nftStakeAddress] -= nftAmount
+						if s.DposV2VoteRights[*nftStakeAddress] == 0 {
+							delete(s.DposV2VoteRights, *nftStakeAddress)
+						}
 					}, func() {
+						producer.detailedDPoSV2Votes[*nftStakeAddress][referKey] = detailVoteInfo
 						delete(producer.detailedDPoSV2Votes[*nftStakeAddress], referKey)
 						producer.detailedDPoSV2Votes[stakeAddress][nftPayload.ID] = detailVoteInfo
+						// process total vote rights
+						s.DposV2VoteRights[*nftStakeAddress] += nftAmount
 					})
-					return
+					break
 				}
 			}
 		}
@@ -2754,7 +2763,10 @@ func (s *State) processNFTDestroyFromSideChain(tx interfaces.Transaction, height
 						strNFTStakeAddress, _ := stakeAddress.ToAddress()
 						strOwnerStakeAddress, _ := newOwnerStakeAddress.ToAddress()
 						oriRewardsInfo := s.DPoSV2RewardInfo[strNFTStakeAddress]
+						nftAmount := detailVoteInfo.Info[0].Votes
 						s.History.Append(height, func() {
+							//process total vote rights
+							s.DposV2VoteRights[newOwnerStakeAddress] += nftAmount
 							//remove nft stake address for future create new nft .
 							delete(producer.detailedDPoSV2Votes[stakeAddress], ID)
 							s.DPoSV2RewardInfo[strOwnerStakeAddress] += s.DPoSV2RewardInfo[strNFTStakeAddress]
@@ -2766,6 +2778,11 @@ func (s *State) processNFTDestroyFromSideChain(tx interfaces.Transaction, height
 							producer.detailedDPoSV2Votes[newOwnerStakeAddress][referKey] = detailVoteInfo
 
 						}, func() {
+							//process total vote rights
+							s.DposV2VoteRights[newOwnerStakeAddress] -= nftAmount
+							if s.DposV2VoteRights[newOwnerStakeAddress] == 0 {
+								delete(s.DposV2VoteRights, newOwnerStakeAddress)
+							}
 							//add detailVoteInfo to  nft stake address
 							if len(producer.detailedDPoSV2Votes[stakeAddress]) == 0 {
 								producer.detailedDPoSV2Votes[stakeAddress] = make(map[common.Uint256]payload.DetailedVoteInfo)

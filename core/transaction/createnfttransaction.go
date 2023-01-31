@@ -8,6 +8,7 @@ package transaction
 import (
 	"errors"
 	"fmt"
+	"github.com/elastos/Elastos.ELA/common"
 
 	"github.com/elastos/Elastos.ELA/core/contract"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
@@ -80,8 +81,10 @@ func (t *CreateNFTTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
 	}
 
 	state := t.parameters.BlockChain.GetState()
+	crState := t.parameters.BlockChain.GetCRCommittee().GetState()
 	producers := state.GetDposV2Producers()
 	var existVote bool
+	var nftAmount common.Fixed64
 	for _, p := range producers {
 		for stakeAddress, votesInfo := range p.GetAllDetailedDPoSV2Votes() {
 			for referKey, voteInfo := range votesInfo {
@@ -94,6 +97,7 @@ func (t *CreateNFTTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
 					}
 					log.Info("create NFT, vote information:", voteInfo)
 					existVote = true
+					nftAmount = voteInfo.Info[0].Votes
 				}
 			}
 		}
@@ -106,7 +110,8 @@ func (t *CreateNFTTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
 
 	// stake address need to be same from code
 	ct, _ := contract.CreateStakeContractByCode(t.programs[0].Code)
-	stakeAddress, err := ct.ToProgramHash().ToAddress()
+	stakeProgramHash := ct.ToProgramHash()
+	stakeAddress, err := stakeProgramHash.ToAddress()
 	if err != nil {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid stake address")), true
 	}
@@ -120,6 +125,40 @@ func (t *CreateNFTTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
 			"hash: %s", g)
 		return elaerr.Simple(elaerr.ErrTxPayload,
 			errors.New("NFT has been created before")), true
+	}
+
+	// check the vote rights is enough or not
+	totalVoteRights := state.DposV2VoteRights[*stakeProgramHash]
+	var usedCRVotes common.Fixed64
+	if ucv := crState.UsedCRVotes[*stakeProgramHash]; ucv != nil {
+		for _, v := range ucv {
+			usedCRVotes += v.Votes
+		}
+	}
+	var usedCRImpeachmentVotes common.Fixed64
+	if ucv := crState.UsedCRImpeachmentVotes[*stakeProgramHash]; ucv != nil {
+		for _, v := range ucv {
+			usedCRImpeachmentVotes += v.Votes
+		}
+	}
+	var usedCRProposalVotes common.Fixed64
+	if ucv := crState.UsedCRCProposalVotes[*stakeProgramHash]; ucv != nil {
+		for _, v := range ucv {
+			if usedCRProposalVotes < v.Votes {
+				usedCRProposalVotes = v.Votes
+			}
+		}
+	}
+	if nftAmount < totalVoteRights-usedCRVotes ||
+		nftAmount < totalVoteRights-usedCRImpeachmentVotes ||
+		nftAmount < totalVoteRights-usedCRProposalVotes {
+		log.Errorf("vote rights is not enough, nft amount:%d, "+
+			"total vote rights:%d, used CR votes:%d, "+
+			"used CR impeachment votes:%d, used CR proposal votes:%d",
+			nftAmount, totalVoteRights, usedCRVotes,
+			usedCRImpeachmentVotes, usedCRProposalVotes)
+		return elaerr.Simple(elaerr.ErrTxPayload,
+			errors.New("vote rights is not enough")), true
 	}
 
 	return elaerr.Simple(elaerr.ErrTxPayload, errors.New("the NFT ID does not exist")), true

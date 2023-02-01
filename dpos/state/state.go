@@ -3572,7 +3572,6 @@ func (s *State) tryUpdateLastIrreversibleHeight(height uint32) {
 				log.Debugf("[tryUpdateLastIrreversibleHeight] LastIrreversibleHeight %d, DPOSStartHeight %d",
 					s.LastIrreversibleHeight, s.DPOSStartHeight)
 			}, func() {
-				s.LastIrreversibleHeight = oriLastIrreversibleHeight
 				s.DPOSStartHeight = oriDPOSStartHeight
 				log.Debugf("[tryUpdateLastIrreversibleHeight] rollback LastIrreversibleHeight %d, DPOSStartHeight %d",
 					s.LastIrreversibleHeight, s.DPOSStartHeight)

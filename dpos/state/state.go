@@ -2589,18 +2589,18 @@ func (s *State) processCreateNFT(tx interfaces.Transaction, height uint32) {
 						producer.detailedDPoSV2Votes[*nftStakeAddress][referKey] = detailVoteInfo
 						delete(producer.detailedDPoSV2Votes[stakeAddress], nftPayload.ID)
 						// process total vote rights
-						s.DposV2VoteRights[*nftStakeAddress] -= nftAmount
-						if s.DposV2VoteRights[*nftStakeAddress] == 0 {
-							delete(s.DposV2VoteRights, *nftStakeAddress)
+						s.DposV2VoteRights[stakeAddress] -= nftAmount
+						if s.DposV2VoteRights[stakeAddress] == 0 {
+							delete(s.DposV2VoteRights, stakeAddress)
 						}
 					}, func() {
 						producer.detailedDPoSV2Votes[*nftStakeAddress][referKey] = detailVoteInfo
 						delete(producer.detailedDPoSV2Votes[*nftStakeAddress], referKey)
 						producer.detailedDPoSV2Votes[stakeAddress][nftPayload.ID] = detailVoteInfo
 						// process total vote rights
-						s.DposV2VoteRights[*nftStakeAddress] += nftAmount
+						s.DposV2VoteRights[stakeAddress] += nftAmount
 					})
-					break
+					return
 				}
 			}
 		}

@@ -1266,63 +1266,6 @@ func activateProducerGet(L *lua.LState) int {
 	return 0
 }
 
-//luaActivateProducerSchnorrName
-func RegisterActivateProducerSchnorrType(L *lua.LState) {
-	mt := L.NewTypeMetatable(luaActivateProducerSchnorrName)
-	L.SetGlobal("activateproducerschnorr", mt)
-	// static attributes
-	L.SetField(mt, "new", L.NewFunction(newActivateProducerSchnorr))
-	// methods
-	L.SetField(mt, "__index", L.SetFuncs(L.NewTable(), activateProducerSchnorrMethods))
-}
-
-func newActivateProducerSchnorr(L *lua.LState) int {
-	publicKeyStr := L.ToString(1)
-
-	publicKey, err := common.HexStringToBytes(publicKeyStr)
-	if err != nil {
-		fmt.Println("wrong producer node public key")
-		os.Exit(1)
-	}
-	activateProducer := &payload.ActivateProducer{
-		NodePublicKey: []byte(publicKey),
-	}
-
-	apSignBuf := new(bytes.Buffer)
-	err = activateProducer.SerializeUnsigned(apSignBuf, payload.ActivateProducerSchnorrVersion)
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
-	ud := L.NewUserData()
-	ud.Value = activateProducer
-	L.SetMetatable(ud, L.GetTypeMetatable(luaActivateProducerSchnorrName))
-	L.Push(ud)
-
-	return 1
-}
-
-func checkActivateProducerSchnorr(L *lua.LState, idx int) *payload.ActivateProducer {
-	ud := L.CheckUserData(idx)
-	if v, ok := ud.Value.(*payload.ActivateProducer); ok {
-		return v
-	}
-	L.ArgError(1, "ActivateProducer expected")
-	return nil
-}
-
-var activateProducerSchnorrMethods = map[string]lua.LGFunction{
-	"get": activateProducerSchnorrGet,
-}
-
-// Getter and setter for the Person#Name
-func activateProducerSchnorrGet(L *lua.LState) int {
-	p := checkActivateProducerSchnorr(L, 1)
-	fmt.Println(p)
-
-	return 0
-}
-
 func RegisterSidechainPowType(L *lua.LState) {
 	mt := L.NewTypeMetatable(luaSideChainPowName)
 	L.SetGlobal("sidechainpow", mt)

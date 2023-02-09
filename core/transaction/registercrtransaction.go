@@ -45,6 +45,16 @@ func (t *RegisterCRTransaction) HeightVersionCheck() error {
 		return errors.New(fmt.Sprintf("not support %s transaction "+
 			"before CRVotingStartHeight", t.TxType().Name()))
 	}
+
+	if blockHeight < chainParams.DPoSConfiguration.NFTStartHeight {
+		if t.PayloadVersion() == payload.CRInfoSchnorrVersion ||
+			t.PayloadVersion() == payload.CRInfoMultiSignVersion {
+			return errors.New(fmt.Sprintf("not support %s transaction "+
+				"with payload version %d before NFTStartHeight",
+				t.TxType().Name(), t.PayloadVersion()))
+		}
+	}
+
 	return nil
 }
 

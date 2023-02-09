@@ -18,39 +18,17 @@ end
 local wallet = client.new(keystore, password, false)
 
 -- account
-local privatekeys = getPrivateKeys()
-print("------------------------")
-for i, v in pairs(privatekeys) do
-    print(i, v)
-end
-print("------------------------")
-
--- account
-local publickeys = getPublicKeys()
-print("------------------------")
-for i, v in pairs(publickeys) do
-    print(i, v)
-end
-print("------------------------")
-
-print("------------------------")
-local account = account.new(privatekeys)
-local addr = account:get_address()
-print("addr",addr)
-print("------------------------")
-
-print("------------------------")
-local aggpub = aggpub.new(publickeys)
-local pub = aggpub:get_aggpub()
-print("pub",pub)
-print("------------------------")
+local addr = wallet:get_address()
+local pubkey = wallet:get_publickey()
+print(addr)
+print(pubkey)
 
 -- asset_id
-local amount = getDepositAmount()
 local asset_id = m.get_asset_id()
+
+local amount = getDepositAmount()
 local fee = getFee()
 local deposit_address = getDepositAddr()
-local cr_publickey = pub
 local nick_name = getNickName()
 local url = getUrl()
 local location = getLocation()
@@ -72,12 +50,6 @@ if deposit_address == ""
     return
 end
 
-if cr_publickey == ""
-then
-    print("public key is nil, should use --publickey or -pk to set it.")
-    return
-end
-
 if nick_name == ""
     then
     nick_name = "nickname_test"
@@ -96,19 +68,18 @@ end
 print("deposit amount:", amount)
 print("fee:", fee)
 print("deposit addr:", deposit_address)
-print("public key:", cr_publickey)
 print("nick name:", nick_name)
 print("url:", url)
 print("location:", location)
 print("payload version:", payload_version)
 
 -- register cr payload: publickey, nickname, url, local, wallet
-local rp_payload = registercr.new(cr_publickey, nick_name, url, location,
- payload_version, wallet, account)
+local rp_payload =registercr.new(payload_version, nick_name, url,
+    location, 3, wallet)
 print(rp_payload:get())
 
 -- transaction: version, txType, payloadVersion, payload, locktime
-local tx = transaction.new(9, 0x21, 2, rp_payload, 0)
+local tx = transaction.new(9, 0x21, payload_version, rp_payload, 0)
 print(tx:get())
 
 -- input: from, amount + fee
@@ -126,11 +97,9 @@ local amount_output = output.new(asset_id, amount * 100000000, deposit_address, 
 
 tx:appendtxout(charge_output)
 tx:appendtxout(amount_output)
--- print(charge_output:get())
--- print(amount_output:get())
 
 -- sign
-tx:signschnorr(account)
+tx:multisign(wallet, 3)
 print(tx:get())
 
 -- send

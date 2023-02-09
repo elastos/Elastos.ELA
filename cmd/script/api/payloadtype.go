@@ -1357,11 +1357,67 @@ func RegisterRegisterCRType(L *lua.LState) {
 
 // Constructor
 func newRegisterCR(L *lua.LState) int {
-	publicKeyStr := L.ToString(1)
-	nickName := L.ToString(2)
-	url := L.ToString(3)
-	location := L.ToInt64(4)
-	payloadVersion := byte(L.ToInt(5))
+	payloadVersion := byte(L.ToInt(1))
+
+	// multi sign
+	if payloadVersion == payload.CRInfoMultiSignVersion {
+		nickName := L.ToString(2)
+		url := L.ToString(3)
+		location := L.ToInt64(4)
+		m := L.ToInt(5)
+		client, err := checkClient(L, 6)
+
+		var code []byte
+		var pks []*crypto.PublicKey
+		accs := client.GetAccounts()
+		for _, acc := range accs {
+			pks = append(pks, acc.PublicKey)
+		}
+
+		multiCode, err := contract.CreateMultiSigRedeemScript(int(m), pks)
+		if err != nil {
+			fmt.Println(err)
+			return 0
+		}
+		code = multiCode
+
+		ct, err := contract.CreateCRIDContractByCode(code)
+		if err != nil {
+			fmt.Println("wrong cr public key")
+			os.Exit(1)
+		}
+
+		didCode := make([]byte, len(code))
+		copy(didCode, code)
+		didCode = append(didCode[:len(code)-1], common.DID)
+		didCT, err := contract.CreateCRIDContractByCode(didCode)
+		if err != nil {
+			fmt.Println("wrong cr public key")
+			os.Exit(1)
+		}
+
+		registerCR := &payload.CRInfo{
+			Code:     code,
+			CID:      *ct.ToProgramHash(),
+			DID:      *didCT.ToProgramHash(),
+			NickName: nickName,
+			Url:      url,
+			Location: uint64(location),
+		}
+
+		ud := L.NewUserData()
+		ud.Value = registerCR
+		L.SetMetatable(ud, L.GetTypeMetatable(luaRegisterCRName))
+		L.Push(ud)
+
+		return 1
+	}
+
+	// normal sign or schnorr sign (old logic)
+	publicKeyStr := L.ToString(2)
+	nickName := L.ToString(3)
+	url := L.ToString(4)
+	location := L.ToInt64(5)
 	needSign := true
 	var account *account.SchnorAccount
 	client, err := checkClient(L, 6)
@@ -1472,7 +1528,6 @@ func newRegisterCR(L *lua.LState) int {
 			//}
 			//registerCR.Signature = rpSig[:]
 		}
-
 	}
 
 	ud := L.NewUserData()
@@ -3128,8 +3183,8 @@ func newCreateNFT(L *lua.LState) int {
 		os.Exit(1)
 	}
 	createNFTPayload := &payload.CreateNFT{
-		ID:           *id,
-		StakeAddress: stakeAddress,
+		ID:               *id,
+		StakeAddress:     stakeAddress,
 		GenesisBlockHash: *genesisBlockHash,
 	}
 

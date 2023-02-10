@@ -1371,8 +1371,12 @@ func newRegisterCR(L *lua.LState) int {
 		var pks []*crypto.PublicKey
 		accs := client.GetAccounts()
 		for _, acc := range accs {
+			if acc.PublicKey == nil {
+				continue
+			}
 			pks = append(pks, acc.PublicKey)
 		}
+		fmt.Println("pks:", len(pks), pks)
 
 		multiCode, err := contract.CreateMultiSigRedeemScript(int(m), pks)
 		if err != nil {
@@ -1404,6 +1408,7 @@ func newRegisterCR(L *lua.LState) int {
 			Url:      url,
 			Location: uint64(location),
 		}
+		fmt.Println("pld:", registerCR)
 
 		ud := L.NewUserData()
 		ud.Value = registerCR

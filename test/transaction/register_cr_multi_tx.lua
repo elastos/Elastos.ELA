@@ -19,9 +19,7 @@ local wallet = client.new(keystore, password, false)
 
 -- account
 local addr = wallet:get_address()
-local pubkey = wallet:get_publickey()
 print(addr)
-print(pubkey)
 
 -- asset_id
 local asset_id = m.get_asset_id()

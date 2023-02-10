@@ -298,6 +298,9 @@ func multiSignTx(L *lua.LState) int {
 	pks := make([]*crypto.PublicKey, 0)
 	accs := client.GetAccounts()
 	for _, acc := range accs {
+		if acc.PublicKey == nil {
+			continue
+		}
 		pks = append(pks, acc.PublicKey)
 	}
 

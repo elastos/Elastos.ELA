@@ -1401,7 +1401,6 @@ func newRegisterCR(L *lua.LState) int {
 		}
 
 		registerCR := &payload.CRInfo{
-			Code:     code,
 			CID:      *ct.ToProgramHash(),
 			DID:      *didCT.ToProgramHash(),
 			NickName: nickName,
@@ -1578,11 +1577,69 @@ func RegisterUpdateCRType(L *lua.LState) {
 
 // Constructor
 func newUpdateCR(L *lua.LState) int {
-	publicKeyStr := L.ToString(1)
-	nickName := L.ToString(2)
-	url := L.ToString(3)
-	location := L.ToInt64(4)
-	payloadVersion := byte(L.ToInt(5))
+	payloadVersion := byte(L.ToInt(1))
+	// multi sign
+	if payloadVersion == payload.CRInfoMultiSignVersion {
+		nickName := L.ToString(2)
+		url := L.ToString(3)
+		location := L.ToInt64(4)
+		m := L.ToInt(5)
+		client, err := checkClient(L, 6)
+
+		var code []byte
+		var pks []*crypto.PublicKey
+		accs := client.GetAccounts()
+		for _, acc := range accs {
+			if acc.PublicKey == nil {
+				continue
+			}
+			pks = append(pks, acc.PublicKey)
+		}
+		fmt.Println("pks:", len(pks), pks)
+
+		multiCode, err := contract.CreateMultiSigRedeemScript(int(m), pks)
+		if err != nil {
+			fmt.Println(err)
+			return 0
+		}
+		code = multiCode
+
+		ct, err := contract.CreateCRIDContractByCode(code)
+		if err != nil {
+			fmt.Println("wrong cr public key")
+			os.Exit(1)
+		}
+
+		didCode := make([]byte, len(code))
+		copy(didCode, code)
+		didCode = append(didCode[:len(code)-1], common.DID)
+		didCT, err := contract.CreateCRIDContractByCode(didCode)
+		if err != nil {
+			fmt.Println("wrong cr public key")
+			os.Exit(1)
+		}
+
+		updateCR := &payload.CRInfo{
+			CID:      *ct.ToProgramHash(),
+			DID:      *didCT.ToProgramHash(),
+			NickName: nickName,
+			Url:      url,
+			Location: uint64(location),
+		}
+		fmt.Println("pld:", updateCR)
+
+		ud := L.NewUserData()
+		ud.Value = updateCR
+		L.SetMetatable(ud, L.GetTypeMetatable(luaUpdateCRName))
+		L.Push(ud)
+
+		return 1
+	}
+
+	publicKeyStr := L.ToString(2)
+	nickName := L.ToString(3)
+	url := L.ToString(4)
+	location := L.ToInt64(5)
 	needSign := true
 	client, err := checkClient(L, 6)
 	if err != nil {

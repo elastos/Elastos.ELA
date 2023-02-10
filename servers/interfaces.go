@@ -3230,21 +3230,40 @@ func getPayloadInfo(p interfaces.Payload, payloadVersion byte) PayloadInfo {
 		obj.EndHeight = object.EndHeight
 		return obj
 	case *payload.CRInfo:
-		obj := new(CRInfo)
-		obj.Code = common.BytesToHexString(object.Code)
-		cid, _ := object.CID.ToAddress()
-		obj.CID = cid
-		did, _ := object.DID.ToAddress()
-		if object.DID.IsEqual(emptyHash) {
-			obj.DID = ""
-		} else {
-			obj.DID = did
+		switch payloadVersion {
+		case payload.CRInfoSchnorrVersion, payload.CRInfoMultiSignVersion:
+			obj := new(MultiCRInfo)
+			cid, _ := object.CID.ToAddress()
+			obj.CID = cid
+			did, _ := object.DID.ToAddress()
+			if object.DID.IsEqual(emptyHash) {
+				obj.DID = ""
+			} else {
+				obj.DID = did
+			}
+			obj.NickName = object.NickName
+			obj.Url = object.Url
+			obj.Location = object.Location
+			return obj
+
+		default:
+			obj := new(CRInfo)
+			obj.Code = common.BytesToHexString(object.Code)
+			cid, _ := object.CID.ToAddress()
+			obj.CID = cid
+			did, _ := object.DID.ToAddress()
+			if object.DID.IsEqual(emptyHash) {
+				obj.DID = ""
+			} else {
+				obj.DID = did
+			}
+			obj.NickName = object.NickName
+			obj.Url = object.Url
+			obj.Location = object.Location
+			obj.Signature = common.BytesToHexString(object.Signature)
+			return obj
 		}
-		obj.NickName = object.NickName
-		obj.Url = object.Url
-		obj.Location = object.Location
-		obj.Signature = common.BytesToHexString(object.Signature)
-		return obj
+
 	case *payload.UnregisterCR:
 		obj := new(UnregisterCRInfo)
 		cid, _ := object.CID.ToAddress()

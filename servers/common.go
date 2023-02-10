@@ -264,6 +264,14 @@ type CRInfo struct {
 	Signature string `json:"signature"`
 }
 
+type MultiCRInfo struct {
+	CID       string `json:"cid"`
+	DID       string `json:"did"`
+	NickName  string `json:"nickname"`
+	Url       string `json:"url"`
+	Location  uint64 `json:"location"`
+}
+
 type UnregisterCRInfo struct {
 	CID       string `json:"cid"`
 	Signature string `json:"signature"`

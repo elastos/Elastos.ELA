@@ -7,13 +7,44 @@ package contract
 
 import (
 	"encoding/hex"
+	"fmt"
 	"testing"
 
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/crypto"
+	"github.com/elastos/Elastos.ELA/utils/test"
 
 	"github.com/stretchr/testify/assert"
 )
+
+func TestCalculateDepositAddr(t *testing.T) {
+	test.SkipShort(t)
+	publicKeyStrs := make([]string, 0)
+	publicKeyStrs = append(publicKeyStrs, "0261056c3bb7fd2399a1e8e8ca00c9f213d9a9d8b5e986b75ee627ecdedbdadda1")
+	publicKeyStrs = append(publicKeyStrs, "039a6c4f6b0c679bb8023ccae91340b6489c79d482d07d42aba1d52a9e85bc29af")
+	publicKeyStrs = append(publicKeyStrs, "039fa77a2b64c3065023d6e0ef279dc87ffef7f634f28d5a58b707f2f6054385eb")
+	publicKeyStrs = append(publicKeyStrs, "02f7042c66d5da58a41677f52eaeba5dd776454c3df3cfb8e84484e249e0c689bc")
+
+	var publicKeys []*crypto.PublicKey
+	for _, publicKeyStr := range publicKeyStrs {
+		publicKeyBytes, _ := hex.DecodeString(publicKeyStr)
+		publicKey, _ := crypto.DecodePoint(publicKeyBytes)
+		publicKeys = append(publicKeys, publicKey)
+	}
+
+	multiCode, _ := CreateMultiSigRedeemScript(3, publicKeys)
+
+	ct, err := CreateDepositContractByCode(multiCode)
+	if err != nil {
+		fmt.Println("error:", err)
+	}
+	addr, err := ct.ToProgramHash().ToAddress()
+	if err != nil {
+		fmt.Println("error 2:", err)
+	}
+	fmt.Println("addr:", addr)
+
+}
 
 func TestToProgramHash(t *testing.T) {
 	// Exit address

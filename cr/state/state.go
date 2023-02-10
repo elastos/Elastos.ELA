@@ -255,6 +255,7 @@ func (s *State) registerCR(tx interfaces.Transaction, height uint32) {
 	if tx.PayloadVersion() == payload.CRInfoSchnorrVersion ||
 		tx.PayloadVersion() == payload.CRInfoMultiSignVersion {
 		code = common.BytesToHexString(tx.Programs()[0].Code)
+		info.Code = tx.Programs()[0].Code
 	} else {
 		code = common.BytesToHexString(info.Code)
 	}

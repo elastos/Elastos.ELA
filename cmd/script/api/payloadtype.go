@@ -1772,6 +1772,7 @@ func RegisterUnregisterCRType(L *lua.LState) {
 	L.SetGlobal("unregistercr", mt)
 	// static attributes
 	L.SetField(mt, "new", L.NewFunction(newUnregisterCR))
+	L.SetField(mt, "newmulti", L.NewFunction(newMultiUnregisterCR))
 	// methods
 	L.SetField(mt, "__index", L.SetFuncs(L.NewTable(), unregisterCRMethods))
 }
@@ -1851,6 +1852,47 @@ func newUnregisterCR(L *lua.LState) int {
 			os.Exit(1)
 		}
 		unregisterCR.Signature = rpSig
+	}
+
+	ud := L.NewUserData()
+	ud.Value = unregisterCR
+	L.SetMetatable(ud, L.GetTypeMetatable(luaUnregisterCRName))
+	L.Push(ud)
+
+	return 1
+}
+
+// Constructor
+func newMultiUnregisterCR(L *lua.LState) int {
+	m := L.ToInt(1)
+	client, err := checkClient(L, 2)
+
+	var code []byte
+	var pks []*crypto.PublicKey
+	accs := client.GetAccounts()
+	for _, acc := range accs {
+		if acc.PublicKey == nil {
+			continue
+		}
+		pks = append(pks, acc.PublicKey)
+	}
+	fmt.Println("pks:", len(pks), pks)
+
+	multiCode, err := contract.CreateMultiSigRedeemScript(m, pks)
+	if err != nil {
+		fmt.Println(err)
+		return 0
+	}
+	code = multiCode
+
+	ct, err := contract.CreateCRIDContractByCode(code)
+	if err != nil {
+		fmt.Println("wrong code")
+		os.Exit(1)
+	}
+
+	unregisterCR := &payload.UnregisterCR{
+		CID: *ct.ToProgramHash(),
 	}
 
 	ud := L.NewUserData()

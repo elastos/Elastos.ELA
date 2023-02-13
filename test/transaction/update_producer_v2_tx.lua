@@ -44,6 +44,7 @@ local nick_name = getNickName()
 local url = getUrl()
 local location = getLocation()
 local host_address = getHostAddr()
+local payloadversion = getPayloadVersion()
 
 if stakeuntil == ""
 	then
@@ -91,9 +92,10 @@ print("url:", url)
 print("location:", location)
 print("host address:", host_address)
 print("stakeuntil:", stakeuntil)
+print("payloadversion:", payloadversion)
 
 -- update producer payload: publickey, nickname, url, local, host, wallet
-local up_payload = updateproducer.new(own_publickey, node_publickey, nick_name, url, location, host_address, stakeuntil, wallet)
+local up_payload = updateproducer.new(own_publickey, node_publickey, nick_name, url, location, host_address, stakeuntil,payloadversion, wallet)
 print(up_payload:get())
 
 -- transaction: version, txType, payloadVersion, payload, locktime

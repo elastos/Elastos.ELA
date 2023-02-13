@@ -41,9 +41,12 @@ then
 end
 print("owner public key:", own_publickey)
 
+local payloadversion = getPayloadVersion()
+print("payloadversion:", payloadversion)
+
 
 -- cancel producer payload: publickey, wallet
-local cp_payload = cancelproducer.new(own_publickey, wallet)
+local cp_payload = cancelproducer.new(own_publickey,payloadversion, wallet)
 print(cp_payload:get())
 
 -- transaction: version, txType, payloadVersion, payload, locktime

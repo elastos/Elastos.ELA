@@ -38,6 +38,13 @@ func (t *UpdateProducerTransaction) HeightVersionCheck() error {
 				"2.0 producer transaction before RevertToPOWStartHeight")
 		}
 	}
+	if blockHeight < chainParams.SupportMultiCodeHeight {
+		if t.PayloadVersion() == payload.ProducerInfoMultiVersion {
+			return errors.New(fmt.Sprintf("not support %s transaction "+
+				"with payload version %d before SupportMultiCodeHeight",
+				t.TxType().Name(), t.PayloadVersion()))
+		}
+	}
 	return nil
 }
 

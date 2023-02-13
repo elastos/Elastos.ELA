@@ -701,8 +701,9 @@ func newUpdateProducer(L *lua.LState) int {
 	location := L.ToInt64(5)
 	address := L.ToString(6)
 	stakeuntil := L.ToInt64(7)
+	payloadversion := L.ToInt(8)
 	needSign := true
-	client, err := checkClient(L, 8)
+	client, err := checkClient(L, 9)
 	if err != nil {
 		needSign = false
 	}
@@ -733,6 +734,7 @@ func newUpdateProducer(L *lua.LState) int {
 		if stakeuntil != 0 {
 			version = payload.ProducerInfoDposV2Version
 		}
+		version = byte(payloadversion)
 		err = updateProducer.SerializeUnsigned(upSignBuf, version)
 		if err != nil {
 			fmt.Println(err)
@@ -886,10 +888,14 @@ func newRegisterV2Producer(L *lua.LState) int {
 	location := L.ToInt64(5)
 	address := L.ToString(6)
 	stakeUntil := L.ToInt64(7)
+	payloadversion := L.ToInt(8)
+
 	fmt.Println(" newRegisterV2Producer stakeUntil", stakeUntil)
+	fmt.Println(" newRegisterV2Producer payloadversion", payloadversion)
+
 	needSign := true
 	var account *account.SchnorAccount
-	client, err := checkClient(L, 8)
+	client, err := checkClient(L, 9)
 	if err != nil {
 		account, err = checkAccount(L, 9)
 		if err != nil {
@@ -927,7 +933,7 @@ func newRegisterV2Producer(L *lua.LState) int {
 			os.Exit(1)
 		}
 		if account == nil {
-			err = registerProducer.SerializeUnsigned(rpSignBuf, payload.ProducerInfoDposV2Version)
+			err = registerProducer.SerializeUnsigned(rpSignBuf, byte(payloadversion))
 			if err != nil {
 				fmt.Println(err)
 				os.Exit(1)
@@ -945,7 +951,7 @@ func newRegisterV2Producer(L *lua.LState) int {
 			registerProducer.Signature = rpSig
 		} else {
 			fmt.Println("process AggregateSignatures payload version 2")
-			err = registerProducer.SerializeUnsigned(rpSignBuf, payload.ProducerInfoSchnorrVersion)
+			err = registerProducer.SerializeUnsigned(rpSignBuf, byte(payloadversion))
 			if err != nil {
 				fmt.Println(err)
 				os.Exit(1)
@@ -1019,7 +1025,8 @@ func RegisterCancelProducerType(L *lua.LState) {
 // Constructor
 func newProcessProducer(L *lua.LState) int {
 	publicKeyStr := L.ToString(1)
-	client, err := checkClient(L, 2)
+	payloadversion := L.ToInt(2)
+	client, err := checkClient(L, 3)
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -1034,7 +1041,7 @@ func newProcessProducer(L *lua.LState) int {
 	}
 
 	cpSignBuf := new(bytes.Buffer)
-	err = processProducer.SerializeUnsigned(cpSignBuf, payload.ProcessProducerVersion)
+	err = processProducer.SerializeUnsigned(cpSignBuf, byte(payloadversion))
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)

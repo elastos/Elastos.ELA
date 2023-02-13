@@ -24,6 +24,21 @@ type RegisterProducerTransaction struct {
 	BaseTransaction
 }
 
+func (t *RegisterProducerTransaction) HeightVersionCheck() error {
+	blockHeight := t.parameters.BlockHeight
+	chainParams := t.parameters.Config
+
+	if blockHeight < chainParams.SupportMultiCodeHeight {
+		if t.PayloadVersion() == payload.ProducerInfoMultiVersion {
+			return errors.New(fmt.Sprintf("not support %s transaction "+
+				"with payload version %d before SupportMultiCodeHeight",
+				t.TxType().Name(), t.PayloadVersion()))
+		}
+	}
+
+	return nil
+}
+
 func (t *RegisterProducerTransaction) CheckTransactionPayload() error {
 	switch t.Payload().(type) {
 	case *payload.ProducerInfo:

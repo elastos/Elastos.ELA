@@ -8,6 +8,7 @@ package transaction
 import (
 	"bytes"
 	"errors"
+	"fmt"
 
 	"github.com/elastos/Elastos.ELA/core/contract"
 	"github.com/elastos/Elastos.ELA/core/types/interfaces"
@@ -32,6 +33,21 @@ func (t *CancelProducerTransaction) CheckTransactionPayload() error {
 
 func (t *CancelProducerTransaction) IsAllowedInPOWConsensus() bool {
 	return false
+}
+
+func (t *CancelProducerTransaction) HeightVersionCheck() error {
+	blockHeight := t.parameters.BlockHeight
+	chainParams := t.parameters.Config
+
+	if blockHeight < chainParams.SupportMultiCodeHeight {
+		if t.PayloadVersion() == payload.ProcessMultiCodeVersion {
+			return errors.New(fmt.Sprintf("not support %s transaction "+
+				"with payload version %d before SupportMultiCodeHeight",
+				t.TxType().Name(), t.PayloadVersion()))
+		}
+	}
+
+	return nil
 }
 
 func (t *CancelProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {

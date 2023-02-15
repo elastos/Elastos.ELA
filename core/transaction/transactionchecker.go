@@ -372,7 +372,7 @@ func (t *DefaultChecker) tryCheckVoteOutputs() error {
 func getProducerPublicKeysMap(producers []*state.Producer) map[string]struct{} {
 	pds := make(map[string]struct{})
 	for _, p := range producers {
-		pds[common.BytesToHexString(p.Info().OwnerPublicKey)] = struct{}{}
+		pds[common.BytesToHexString(p.Info().OwnerKey)] = struct{}{}
 	}
 	return pds
 }
@@ -380,7 +380,7 @@ func getProducerPublicKeysMap(producers []*state.Producer) map[string]struct{} {
 func getDPoSV2ProducersMap(producers []*state.Producer) map[string]uint32 {
 	pds := make(map[string]uint32)
 	for _, p := range producers {
-		pds[common.BytesToHexString(p.Info().OwnerPublicKey)] = p.Info().StakeUntil
+		pds[common.BytesToHexString(p.Info().OwnerKey)] = p.Info().StakeUntil
 	}
 	return pds
 }

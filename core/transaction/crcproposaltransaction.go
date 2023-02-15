@@ -260,7 +260,7 @@ func (t *CRCProposalTransaction) checkChangeOwnerSign(proposal *payload.CRCPropo
 func (t *CRCProposalTransaction) checkCloseProposal(params *TransactionParameters, proposal *payload.CRCProposal, PayloadVersion byte) error {
 	_, err := crypto.DecodePoint(proposal.OwnerPublicKey)
 	if err != nil {
-		return errors.New("DecodePoint from OwnerPublicKey error")
+		return errors.New("DecodePoint from OwnerKey error")
 	}
 	if ps := t.parameters.BlockChain.GetCRCommittee().GetProposal(proposal.TargetProposalHash); ps == nil {
 		return errors.New("CloseProposalHash does not exist")
@@ -444,7 +444,7 @@ func (t *CRCProposalTransaction) checkReservedCustomID(params *TransactionParame
 	}
 	_, err := crypto.DecodePoint(proposal.OwnerPublicKey)
 	if err != nil {
-		return errors.New("DecodePoint from OwnerPublicKey error")
+		return errors.New("DecodePoint from OwnerKey error")
 	}
 
 	if len(proposal.ReservedCustomIDList) == 0 {
@@ -473,7 +473,7 @@ func (t *CRCProposalTransaction) checkReservedCustomID(params *TransactionParame
 func (t *CRCProposalTransaction) checkReceivedCustomID(params *TransactionParameters, proposal *payload.CRCProposal, PayloadVersion byte) error {
 	_, err := crypto.DecodePoint(proposal.OwnerPublicKey)
 	if err != nil {
-		return errors.New("DecodePoint from OwnerPublicKey error")
+		return errors.New("DecodePoint from OwnerKey error")
 	}
 	reservedCustomIDList := t.parameters.BlockChain.GetCRCommittee().GetReservedCustomIDLists()
 	receivedCustomIDList := t.parameters.BlockChain.GetCRCommittee().GetReceivedCustomIDLists()
@@ -512,7 +512,7 @@ func (t *CRCProposalTransaction) checkReceivedCustomID(params *TransactionParame
 func (t *CRCProposalTransaction) checkChangeCustomIDFee(params *TransactionParameters, proposal *payload.CRCProposal, PayloadVersion byte) error {
 	_, err := crypto.DecodePoint(proposal.OwnerPublicKey)
 	if err != nil {
-		return errors.New("DecodePoint from OwnerPublicKey error")
+		return errors.New("DecodePoint from OwnerKey error")
 	}
 	if proposal.RateOfCustomIDFee < 0 {
 		return errors.New("invalid fee rate of custom ID")
@@ -530,7 +530,7 @@ func (t *CRCProposalTransaction) checkChangeCustomIDFee(params *TransactionParam
 func (t *CRCProposalTransaction) checkRegisterSideChainProposal(params *TransactionParameters, proposal *payload.CRCProposal, payloadVersion byte) error {
 	_, err := crypto.DecodePoint(proposal.OwnerPublicKey)
 	if err != nil {
-		return errors.New("DecodePoint from OwnerPublicKey error")
+		return errors.New("DecodePoint from OwnerKey error")
 	}
 
 	if proposal.SideChainName == "" {

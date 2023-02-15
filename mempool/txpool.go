@@ -323,7 +323,7 @@ func (mp *TxPool) cleanCanceledProducerAndCR(txs []interfaces.Transaction) error
 			if !ok {
 				return errors.New("invalid cancel producer payload")
 			}
-			if err := mp.cleanVoteAndUpdateProducer(cpPayload.OwnerPublicKey); err != nil {
+			if err := mp.cleanVoteAndUpdateProducer(cpPayload.OwnerKey); err != nil {
 				log.Error(err)
 			}
 		}
@@ -393,10 +393,10 @@ func (mp *TxPool) cleanVoteAndUpdateProducer(ownerPublicKey []byte) error {
 			if !ok {
 				return errors.New("invalid update producer payload")
 			}
-			if bytes.Equal(upPayload.OwnerPublicKey, ownerPublicKey) {
+			if bytes.Equal(upPayload.OwnerKey, ownerPublicKey) {
 				mp.removeTransaction(txn)
 				if err := mp.RemoveKey(
-					BytesToHexString(upPayload.OwnerPublicKey),
+					BytesToHexString(upPayload.OwnerKey),
 					slotDPoSOwnerPublicKey); err != nil {
 					return err
 				}

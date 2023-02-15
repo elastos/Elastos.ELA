@@ -70,7 +70,7 @@ func (m *Mapping) Deserialize(r io.Reader) error {
 	}
 
 	m.OwnerPublicKey, err = common.ReadVarBytes(r, crypto.COMPRESSEDLEN,
-		"OwnerPublicKey")
+		"OwnerKey")
 	if err != nil {
 		return err
 	}
@@ -93,7 +93,7 @@ func (m *Mapping) GetVersion() byte {
 func (m *Mapping) Validate() error {
 	pubKey, err := crypto.DecodePoint(m.OwnerPublicKey)
 	if err != nil {
-		return errors.New("mapping invalid OwnerPublicKey")
+		return errors.New("mapping invalid OwnerKey")
 	}
 
 	err = crypto.Verify(*pubKey, m.Data(), m.Signature)

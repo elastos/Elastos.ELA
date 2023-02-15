@@ -78,12 +78,12 @@ func (s *txValidatorTestSuite) TestCheckActivateProducerTransaction() {
 
 	{
 		registerPayload := &payload.ProducerInfo{
-			OwnerPublicKey: publicKey1,
-			NodePublicKey:  publicKey1,
-			NickName:       "",
-			Url:            "",
-			Location:       1,
-			NetAddress:     "",
+			OwnerKey:      publicKey1,
+			NodePublicKey: publicKey1,
+			NickName:      "",
+			Url:           "",
+			Location:      1,
+			NetAddress:    "",
 		}
 		programs = []*program.Program{{
 			Code:      getCodeByPubKeyStr(publicKeyStr1),
@@ -159,13 +159,13 @@ func (s *txValidatorTestSuite) TestCheckActivateProducerTransaction() {
 
 	{
 		registerPayload := &payload.ProducerInfo{
-			OwnerPublicKey: publicKey1,
-			NodePublicKey:  publicKey1,
-			NickName:       "",
-			Url:            "",
-			Location:       1,
-			NetAddress:     "",
-			StakeUntil:     100,
+			OwnerKey:      publicKey1,
+			NodePublicKey: publicKey1,
+			NickName:      "",
+			Url:           "",
+			Location:      1,
+			NetAddress:    "",
+			StakeUntil:    100,
 		}
 		programs = []*program.Program{{
 			Code:      getCodeByPubKeyStr(publicKeyStr1),

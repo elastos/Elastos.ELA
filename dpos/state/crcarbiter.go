@@ -17,7 +17,7 @@ import (
 
 type crcArbiter struct {
 	crMember  *state.CRMember
-	nodePk    []byte //node code/node public key
+	nodePk    []byte
 	ownerHash common.Uint168
 	isNormal  bool
 }

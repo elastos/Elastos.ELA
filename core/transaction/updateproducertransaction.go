@@ -100,7 +100,7 @@ func (t *UpdateProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bool
 	}
 
 	if t.PayloadVersion() < payload.ProducerInfoSchnorrVersion {
-		publicKey, err := crypto.DecodePoint(info.OwnerPublicKey)
+		publicKey, err := crypto.DecodePoint(info.OwnerKey)
 		if err != nil {
 			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid owner public key in payload")), true
 		}
@@ -123,9 +123,9 @@ func (t *UpdateProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bool
 				errors.New("only schnorr code can use ProducerInfoSchnorrVersion")), true
 		}
 		pk := t.Programs()[0].Code[2:]
-		if !bytes.Equal(pk, info.OwnerPublicKey) {
+		if !bytes.Equal(pk, info.OwnerKey) {
 			return elaerr.Simple(elaerr.ErrTxPayload,
-				errors.New("tx program pk must equal with OwnerPublicKey")), true
+				errors.New("tx program pk must equal with OwnerKey")), true
 		}
 	} else if t.PayloadVersion() == payload.ProducerInfoMultiVersion {
 		if !contract.IsMultiSig(t.Programs()[0].Code) {
@@ -134,7 +134,7 @@ func (t *UpdateProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bool
 		}
 	}
 
-	producer := t.parameters.BlockChain.GetState().GetProducer(info.OwnerPublicKey)
+	producer := t.parameters.BlockChain.GetState().GetProducer(info.OwnerKey)
 	if producer == nil {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("updating unknown producer")), true
 	}
@@ -194,7 +194,7 @@ func (t *UpdateProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bool
 			common.BytesToHexString(info.NodePublicKey))), true
 	}
 
-	// It is not necessary to check if OwnerPublicKey is others' NodePublicKey since we can not change OwnerPublicKey
+	// It is not necessary to check if OwnerKey is others' NodePublicKey since we can not change OwnerKey
 
 	// check node public key duplication
 	if bytes.Equal(info.NodePublicKey, producer.Info().NodePublicKey) {
@@ -216,9 +216,9 @@ func (t *UpdateProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bool
 
 		if t.parameters.BlockHeight > t.parameters.Config.DPoSV2StartHeight {
 			//check if NodePublicKey is others' ownerpublickey
-			//NodePublicKey can not be change into  one producer's OwnerPublicKey only if it is the same producer.
+			//NodePublicKey can not be change into  one producer's OwnerKey only if it is the same producer.
 			producer := t.parameters.BlockChain.GetState().GetProducerByOwnerPublicKey(info.NodePublicKey)
-			if producer != nil && !bytes.Equal(info.OwnerPublicKey, producer.OwnerPublicKey()) {
+			if producer != nil && !bytes.Equal(info.OwnerKey, producer.OwnerPublicKey()) {
 				return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("NodePublicKey %s can not be other producer's ownerPublicKey ",
 					hex.EncodeToString(info.NodePublicKey))), true
 			}

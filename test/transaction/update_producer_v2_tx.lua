@@ -19,9 +19,7 @@ local wallet = client.new(keystore, password, false)
 
 -- account
 local addr = wallet:get_address()
-local pubkey = wallet:get_publickey()
 print(addr)
-print(pubkey)
 
 -- asset_id
 local asset_id = m.get_asset_id()
@@ -99,7 +97,7 @@ local up_payload = updateproducer.new(own_publickey, node_publickey, nick_name, 
 print(up_payload:get())
 
 -- transaction: version, txType, payloadVersion, payload, locktime
-local tx = transaction.new(9, 0x0b, 1, up_payload, 0)
+local tx = transaction.new(9, 0x0b, payloadversion, up_payload, 0)
 
 -- input: from, amount + fee
 local charge = tx:appendenough(addr, fee * 100000000)
@@ -114,7 +112,8 @@ tx:appendtxout(charge_output)
 -- print(charge_output:get())
 
 -- sign
-tx:sign(wallet)
+--tx:sign(wallet)
+tx:multisign(wallet, 3)
 print(tx:get())
 
 -- send

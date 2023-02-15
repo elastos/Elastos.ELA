@@ -571,7 +571,7 @@ func GetProducerInfo(params Params) map[string]interface{} {
 	}
 
 	producerInfo := RPCProducerInfo{
-		OwnerPublicKey: hex.EncodeToString(p.Info().OwnerPublicKey),
+		OwnerPublicKey: hex.EncodeToString(p.Info().OwnerKey),
 		NodePublicKey:  hex.EncodeToString(p.Info().NodePublicKey),
 		Nickname:       p.Info().NickName,
 		Url:            p.Info().Url,
@@ -2339,7 +2339,7 @@ func ListProducers(param Params) map[string]interface{} {
 		totalVotes += p.Votes()
 		totalDPoSV2Votes += common.Fixed64(p.GetTotalDPoSV2VoteRights())
 		producerInfo := RPCProducerInfo{
-			OwnerPublicKey: hex.EncodeToString(p.Info().OwnerPublicKey),
+			OwnerPublicKey: hex.EncodeToString(p.Info().OwnerKey),
 			NodePublicKey:  hex.EncodeToString(p.Info().NodePublicKey),
 			Nickname:       p.Info().NickName,
 			Url:            p.Info().Url,
@@ -3186,7 +3186,7 @@ func getPayloadInfo(p interfaces.Payload, payloadVersion byte) PayloadInfo {
 	case *payload.Record:
 	case *payload.ProducerInfo:
 		obj := new(ProducerInfo)
-		obj.OwnerPublicKey = common.BytesToHexString(object.OwnerPublicKey)
+		obj.OwnerPublicKey = common.BytesToHexString(object.OwnerKey)
 		obj.NodePublicKey = common.BytesToHexString(object.NodePublicKey)
 		obj.NickName = object.NickName
 		obj.Url = object.Url
@@ -3197,7 +3197,7 @@ func getPayloadInfo(p interfaces.Payload, payloadVersion byte) PayloadInfo {
 		return obj
 	case *payload.ProcessProducer:
 		obj := new(CancelProducerInfo)
-		obj.OwnerPublicKey = common.BytesToHexString(object.OwnerPublicKey)
+		obj.OwnerPublicKey = common.BytesToHexString(object.OwnerKey)
 		obj.Signature = common.BytesToHexString(object.Signature)
 		return obj
 	case *payload.InactiveArbitrators:

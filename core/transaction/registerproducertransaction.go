@@ -61,7 +61,7 @@ func (t *RegisterProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bo
 	if t.PayloadVersion() == payload.ProducerInfoMultiVersion {
 		multiSignOwner = true
 	}
-	if multiSignOwner && len(info.OwnerPublicKey) == crypto.NegativeBigLength {
+	if multiSignOwner && len(info.OwnerKey) == crypto.NegativeBigLength {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("ProducerInfoMultiVersion match multi code")), true
 	}
 
@@ -84,22 +84,22 @@ func (t *RegisterProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bo
 	nodeCode = append(nodeCode, vm.CHECKSIG)
 
 	if t.parameters.BlockHeight >= t.parameters.Config.DPoSV2StartHeight {
-		// OwnerPublicKey is  already other's NodePublicKey
-		//OwnerPublicKey will not be other's nodepublic key if OwnerPublicKey is multicode
+		// OwnerKey is  already other's NodePublicKey
+		//OwnerKey will not be other's nodepublic key if OwnerKey is multicode
 		if !multiSignOwner {
-			if t.parameters.BlockChain.GetState().ProducerOrCRNodePublicKeyExists(info.OwnerPublicKey) {
-				return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("OwnerPublicKey is  already other's NodePublicKey")), true
+			if t.parameters.BlockChain.GetState().ProducerOrCRNodePublicKeyExists(info.OwnerKey) {
+				return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("OwnerKey is  already other's NodePublicKey")), true
 			}
 		}
 
-		// NodePublicKey is  already other's OwnerPublicKey
+		// NodePublicKey is  already other's OwnerKey
 		//here must check  NodePublicKey  as other's owner public key but no need check other's  owner code
 		if t.parameters.BlockChain.GetState().ProducerOwnerPublicKeyExists(info.NodePublicKey) {
-			return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("NodePublicKey is  already other's OwnerPublicKey")), true
+			return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("NodePublicKey is  already other's OwnerKey")), true
 		}
 	}
 	// check duplication of owner.
-	if t.parameters.BlockChain.GetState().ProducerOwnerPublicKeyExists(info.OwnerPublicKey) {
+	if t.parameters.BlockChain.GetState().ProducerOwnerPublicKeyExists(info.OwnerKey) {
 		return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("producer owner already registered")), true
 	}
 
@@ -111,14 +111,14 @@ func (t *RegisterProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bo
 	ownerCode := []byte{}
 	// check if public keys conflict with cr program code
 	if !multiSignOwner {
-		ownerCode = append([]byte{byte(crypto.COMPRESSEDLEN)}, info.OwnerPublicKey...)
+		ownerCode = append([]byte{byte(crypto.COMPRESSEDLEN)}, info.OwnerKey...)
 		ownerCode = append(ownerCode, vm.CHECKSIG)
 	} else {
-		ownerCode = info.OwnerPublicKey
+		ownerCode = info.OwnerKey
 	}
 	if t.parameters.BlockChain.GetCRCommittee().ExistCR(ownerCode) {
 		return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("owner public key %s already exist in cr list",
-			common.BytesToHexString(info.OwnerPublicKey))), true
+			common.BytesToHexString(info.OwnerKey))), true
 	}
 
 	if t.parameters.BlockChain.GetCRCommittee().ExistCR(nodeCode) {
@@ -132,7 +132,7 @@ func (t *RegisterProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bo
 
 	// check signature
 	if t.PayloadVersion() < payload.ProducerInfoSchnorrVersion {
-		publicKey, err := crypto.DecodePoint(info.OwnerPublicKey)
+		publicKey, err := crypto.DecodePoint(info.OwnerKey)
 		if err != nil {
 			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid owner public key in payload")), true
 		}
@@ -155,9 +155,9 @@ func (t *RegisterProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bo
 				errors.New("only schnorr code can use ProducerInfoSchnorrVersion")), true
 		}
 		pk := t.Programs()[0].Code[2:]
-		if !bytes.Equal(pk, info.OwnerPublicKey) {
+		if !bytes.Equal(pk, info.OwnerKey) {
 			return elaerr.Simple(elaerr.ErrTxPayload,
-				errors.New("tx program pk must equal with OwnerPublicKey")), true
+				errors.New("tx program pk must equal with OwnerKey")), true
 		}
 	} else if t.PayloadVersion() == payload.ProducerInfoMultiVersion {
 		if !contract.IsMultiSig(t.Programs()[0].Code) {
@@ -178,7 +178,7 @@ func (t *RegisterProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bo
 
 	var ownKeyProgramHash *common.Uint168
 
-	ownKeyProgramHash, err := getOwnerKeyDepositProgramHash(info.OwnerPublicKey)
+	ownKeyProgramHash, err := getOwnerKeyDepositProgramHash(info.OwnerKey)
 	if err != nil {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid public key")), true
 	}
@@ -265,7 +265,7 @@ func (t *RegisterProducerTransaction) additionalProducerInfoCheck(info *payload.
 			return errors.New("node public key can't equal with CRC")
 		}
 		if t.PayloadVersion() != payload.ProducerInfoMultiVersion {
-			if blockchain.DefaultLedger.Arbitrators.IsCRCArbitrator(info.OwnerPublicKey) {
+			if blockchain.DefaultLedger.Arbitrators.IsCRCArbitrator(info.OwnerKey) {
 				return errors.New("owner public key can't equal with CRC")
 			}
 		}

@@ -162,7 +162,7 @@ func (t *CRCProposalTrackingTransaction) normalCheckCRCProposalTrackingSignature
 
 	// Check signature of proposal owner.
 	if !bytes.Equal(pState.ProposalOwner, cptPayload.OwnerPublicKey) {
-		return errors.New("the OwnerPublicKey is not owner of proposal")
+		return errors.New("the OwnerKey is not owner of proposal")
 	}
 	signedBuf := new(bytes.Buffer)
 	if err := checkProposalOwnerSignature(cptPayload,
@@ -337,7 +337,7 @@ func (t *CRCProposalTrackingTransaction) checkCRCProposalTrackingSignature(
 	payloadVersion byte) error {
 	// Check signature of proposal owner.
 	if !bytes.Equal(pState.ProposalOwner, cptPayload.OwnerPublicKey) {
-		return errors.New("the OwnerPublicKey is not owner of proposal")
+		return errors.New("the OwnerKey is not owner of proposal")
 	}
 	signedBuf := new(bytes.Buffer)
 	if err := checkProposalOwnerSignature(cptPayload,

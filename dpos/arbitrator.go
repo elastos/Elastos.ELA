@@ -64,7 +64,7 @@ func (p *PeerInfo) String() string {
 	return fmt.Sprint("PeerInfo: {\n\t",
 		"IP: ", p.IP, "\n\t",
 		"ConnState: ", p.ConnState, "\n\t",
-		"OwnerPublicKey: ", p.OwnerPublicKey, "\n\t",
+		"OwnerKey: ", p.OwnerPublicKey, "\n\t",
 		"NodePublicKey: ", p.NodePublicKey, "\n\t",
 		"}\n")
 }

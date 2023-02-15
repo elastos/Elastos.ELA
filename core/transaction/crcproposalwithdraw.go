@@ -119,7 +119,7 @@ func (t *CRCProposalWithdrawTransaction) SpecialContextCheck() (result elaerr.EL
 	}
 
 	if !bytes.Equal(proposalState.ProposalOwner, withdrawPayload.OwnerPublicKey) {
-		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("the OwnerPublicKey is not owner of proposal")), true
+		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("the OwnerKey is not owner of proposal")), true
 	}
 	fee := getTransactionFee(t, t.references)
 	if t.isSmallThanMinTransactionFee(fee) {

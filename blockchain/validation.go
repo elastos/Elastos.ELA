@@ -12,6 +12,7 @@ import (
 	"sort"
 
 	"github.com/elastos/Elastos.ELA/common"
+	"github.com/elastos/Elastos.ELA/common/log"
 	"github.com/elastos/Elastos.ELA/core/contract"
 	. "github.com/elastos/Elastos.ELA/core/contract/program"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
@@ -58,7 +59,7 @@ func RunPrograms(data []byte, programHashes []common.Uint168, programs []*Progra
 					return err
 				}
 			} else if contract.IsMultiSig(program.Code) {
-				//todo mulitisign deposite
+				log.Info("mulitisign deposite")
 				if err := CheckMultiSigSignatures(*program, data); err != nil {
 					return err
 				}

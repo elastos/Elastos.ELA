@@ -83,7 +83,7 @@ func (t *CancelProducerTransaction) checkProcessProducer(params *TransactionPara
 
 	// check signature
 	if t.PayloadVersion() == payload.ProcessProducerVersion {
-		publicKey, err := crypto.DecodePoint(processProducer.OwnerPublicKey)
+		publicKey, err := crypto.DecodePoint(processProducer.OwnerKey)
 		if err != nil {
 			return nil, errors.New("invalid public key in payload")
 		}
@@ -101,9 +101,9 @@ func (t *CancelProducerTransaction) checkProcessProducer(params *TransactionPara
 			return nil, errors.New("only schnorr code can use ProcessProducerSchnorrVersion")
 		}
 		pk := t.Programs()[0].Code[2:]
-		//todo OwnerPublicKey should be public key
-		if !bytes.Equal(pk, processProducer.OwnerPublicKey) {
-			return nil, errors.New("tx program pk must equal with processProducer OwnerPublicKey ")
+		//todo OwnerKey should be public key
+		if !bytes.Equal(pk, processProducer.OwnerKey) {
+			return nil, errors.New("tx program pk must equal with processProducer OwnerKey ")
 		}
 	} else if t.PayloadVersion() == payload.ProcessMultiCodeVersion {
 		if !contract.IsMultiSig(t.Programs()[0].Code) {
@@ -112,9 +112,9 @@ func (t *CancelProducerTransaction) checkProcessProducer(params *TransactionPara
 		}
 	}
 
-	producer := t.parameters.BlockChain.GetState().GetProducer(processProducer.OwnerPublicKey)
+	producer := t.parameters.BlockChain.GetState().GetProducer(processProducer.OwnerKey)
 	if producer == nil || !bytes.Equal(producer.OwnerPublicKey(),
-		processProducer.OwnerPublicKey) {
+		processProducer.OwnerKey) {
 		return nil, errors.New("getting unknown producer")
 	}
 	return producer, nil

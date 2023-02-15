@@ -176,7 +176,7 @@ func (p *Producer) NodePublicKey() []byte {
 }
 
 func (p *Producer) OwnerPublicKey() []byte {
-	return p.info.OwnerPublicKey
+	return p.info.OwnerKey
 }
 
 func (p *Producer) Penalty() common.Fixed64 {
@@ -636,7 +636,7 @@ func (s *State) getProducerByOwnerPublicKey(key string) *Producer {
 // updateProducerInfo updates the producer's info with value compare, any change
 // will be updated.
 func (s *State) updateProducerInfo(origin *payload.ProducerInfo, update *payload.ProducerInfo) {
-	producer := s.getProducer(origin.OwnerPublicKey)
+	producer := s.getProducer(origin.OwnerKey)
 
 	// compare and update node nickname.
 	if origin.NickName != update.NickName {
@@ -650,7 +650,7 @@ func (s *State) updateProducerInfo(origin *payload.ProducerInfo, update *payload
 		oldKey := hex.EncodeToString(origin.NodePublicKey)
 		newKey := hex.EncodeToString(update.NodePublicKey)
 		delete(s.NodeOwnerKeys, oldKey)
-		s.NodeOwnerKeys[newKey] = hex.EncodeToString(origin.OwnerPublicKey)
+		s.NodeOwnerKeys[newKey] = hex.EncodeToString(origin.OwnerKey)
 	}
 
 	producer.info = *update
@@ -1588,7 +1588,7 @@ func (s *State) processTransactions(txs []interfaces.Transaction, height uint32)
 		for _, p := range ps {
 			cp := p
 			if cp.info.StakeUntil < height {
-				key := hex.EncodeToString(cp.info.OwnerPublicKey)
+				key := hex.EncodeToString(cp.info.OwnerKey)
 				if cp.state != Returned && cp.state != Canceled &&
 					(cp.identity == DPoSV2 || (cp.identity == DPoSV1V2 && height > s.DPoSV2ActiveHeight)) {
 					cancelDposV2AndDposV1V2Producer(key, cp)
@@ -1737,11 +1737,11 @@ func (s *State) registerProducer(tx interfaces.Transaction, height uint32) {
 	info := tx.Payload().(*payload.ProducerInfo)
 	nickname := info.NickName
 	nodeKey := hex.EncodeToString(info.NodePublicKey)
-	ownerKey := hex.EncodeToString(info.OwnerPublicKey)
+	ownerKey := hex.EncodeToString(info.OwnerKey)
 	// ignore error here because this converting process has been ensured in
 	// the context check already
 	programHash, _ := getOwnerKeyDepositProgramHash(info.
-		OwnerPublicKey)
+		OwnerKey)
 
 	amount := common.Fixed64(0)
 	depositOutputs := make(map[string]common.Fixed64)
@@ -1801,7 +1801,7 @@ func (s *State) registerProducer(tx interfaces.Transaction, height uint32) {
 
 // updateProducer handles the update producer transaction.
 func (s *State) updateProducer(info *payload.ProducerInfo, height uint32) {
-	producer := s.getProducer(info.OwnerPublicKey)
+	producer := s.getProducer(info.OwnerKey)
 	originProducerIdentity := producer.identity
 	producerInfo := producer.info
 	s.History.Append(height, func() {
@@ -1827,8 +1827,8 @@ func (s *State) updateProducer(info *payload.ProducerInfo, height uint32) {
 
 // cancelProducer handles the cancel producer transaction.
 func (s *State) cancelProducer(payload *payload.ProcessProducer, height uint32) {
-	key := hex.EncodeToString(payload.OwnerPublicKey)
-	producer := s.getProducer(payload.OwnerPublicKey)
+	key := hex.EncodeToString(payload.OwnerKey)
+	producer := s.getProducer(payload.OwnerKey)
 	oriState := producer.state
 	s.History.Append(height, func() {
 		producer.state = Canceled
@@ -2325,7 +2325,7 @@ func (s *State) returnDeposit(tx interfaces.Transaction, height uint32) {
 		if producer := s.getProducer(pk); producer != nil {
 
 			// check deposit coin
-			hash, err := contract.PublicKeyToDepositProgramHash(producer.info.OwnerPublicKey)
+			hash, err := contract.PublicKeyToDepositProgramHash(producer.info.OwnerKey)
 			if err != nil {
 				log.Error("owner public key to deposit program hash: failed")
 				return

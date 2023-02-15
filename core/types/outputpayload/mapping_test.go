@@ -26,7 +26,7 @@ func TestMapping_Serialize(t *testing.T) {
 	assert.NoError(t, err)
 
 	// 1 byte(Version)
-	// 1 byte(len) + 33 bytes(OwnerPublicKey)
+	// 1 byte(len) + 33 bytes(OwnerKey)
 	// 1 byte(len) + 33 bytes(SideProducerID)
 	// 1 byte(len) + 64 bytes(Signature)
 	// = 134 bytes
@@ -38,7 +38,7 @@ func TestMapping_Serialize(t *testing.T) {
 
 func TestMapping_Deserialize(t *testing.T) {
 	m := Mapping{}
-	// OwnerPublicKey over size.
+	// OwnerKey over size.
 	m.OwnerPublicKey = make([]byte, 34)
 	m.SideProducerID = make([]byte, 33)
 	buf := new(bytes.Buffer)

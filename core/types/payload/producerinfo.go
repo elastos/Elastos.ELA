@@ -23,7 +23,7 @@ const (
 
 type ProducerInfo struct {
 	//can be standard or multi todo change name into OwnerKey(publick key or Code)
-	OwnerPublicKey []byte
+	OwnerKey []byte
 	//must standard
 	NodePublicKey []byte
 	NickName      string
@@ -58,9 +58,9 @@ func (a *ProducerInfo) Serialize(w io.Writer, version byte) error {
 }
 
 func (a *ProducerInfo) SerializeUnsigned(w io.Writer, version byte) error {
-	err := common.WriteVarBytes(w, a.OwnerPublicKey)
+	err := common.WriteVarBytes(w, a.OwnerKey)
 	if err != nil {
-		return errors.New("[ProducerInfo], owner publicKey serialize failed")
+		return errors.New("[ProducerInfo], owner Key serialize failed")
 	}
 
 	err = common.WriteVarBytes(w, a.NodePublicKey)
@@ -112,12 +112,9 @@ func (a *ProducerInfo) Deserialize(r io.Reader, version byte) error {
 }
 
 func (a *ProducerInfo) DeserializeUnsigned(r io.Reader, version byte) error {
-	readLen := uint32(crypto.NegativeBigLength)
-	if version == ProducerInfoMultiVersion {
-		readLen = crypto.MaxMultiSignCodeLength
-	}
+	readLen := uint32(crypto.MaxMultiSignCodeLength)
 	var err error
-	a.OwnerPublicKey, err = common.ReadVarBytes(r, readLen, "own public key")
+	a.OwnerKey, err = common.ReadVarBytes(r, readLen, "owner public key or owner multisign code")
 	if err != nil {
 		return errors.New("[ProducerInfo], owner publicKey deserialize failed")
 	}

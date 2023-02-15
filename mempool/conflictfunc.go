@@ -220,7 +220,7 @@ func strCancelProducerOwnerPublicKey(tx interfaces.Transaction) (interface{},
 			"cancel producer payload cast failed, tx:%s", tx.Hash())
 		return nil, errors.Simple(errors.ErrTxPoolFailure, err)
 	}
-	return common.BytesToHexString(p.OwnerPublicKey), nil
+	return common.BytesToHexString(p.OwnerKey), nil
 }
 
 func strActivateAndCancelKeys(tx interfaces.Transaction) (interface{},
@@ -238,7 +238,7 @@ func strProducerInfoOwnerPublicKey(tx interfaces.Transaction) (interface{}, erro
 	if err != nil {
 		return nil, err
 	}
-	return common.BytesToHexString(p.OwnerPublicKey), nil
+	return common.BytesToHexString(p.OwnerKey), nil
 }
 
 func strProducerInfoNodePublicKey(tx interfaces.Transaction) (interface{}, error) {
@@ -571,7 +571,7 @@ func strDPoSOwnerNodePublicKeys(tx interfaces.Transaction) (interface{}, error) 
 	}
 	result := make([]string, 0, 2)
 
-	ownerPubkeyStr := common.BytesToHexString(p.OwnerPublicKey)
+	ownerPubkeyStr := common.BytesToHexString(p.OwnerKey)
 	result = append(result, ownerPubkeyStr)
 
 	nodePubkeyStr := common.BytesToHexString(p.NodePublicKey)

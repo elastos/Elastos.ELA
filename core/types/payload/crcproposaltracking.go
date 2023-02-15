@@ -143,7 +143,7 @@ func (p *CRCProposalTracking) SerializeUnsigned(w io.Writer, version byte) error
 	}
 
 	if err := common.WriteVarBytes(w, p.OwnerPublicKey); err != nil {
-		return errors.New("failed to serialize OwnerPublicKey")
+		return errors.New("failed to serialize OwnerKey")
 	}
 
 	if err := common.WriteVarBytes(w, p.NewOwnerPublicKey); err != nil {
@@ -209,7 +209,7 @@ func (p *CRCProposalTracking) DeserializeUnSigned(r io.Reader, version byte) err
 
 	if p.OwnerPublicKey, err = common.ReadVarBytes(r, crypto.PublicKeyScriptLength,
 		"owner pubkey"); err != nil {
-		return errors.New("failed to deserialize OwnerPublicKey")
+		return errors.New("failed to deserialize OwnerKey")
 	}
 
 	if p.NewOwnerPublicKey, err = common.ReadVarBytes(r, crypto.PublicKeyScriptLength,

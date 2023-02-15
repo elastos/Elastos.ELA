@@ -147,7 +147,7 @@ func (s *txValidatorTestSuite) TestCheckCRCProposalWithdrawTransaction() {
 
 	propState.ProposalOwner = pk2Bytes
 	err, _ = txn.SpecialContextCheck()
-	s.EqualError(err, "transaction validate error: payload content invalid:the OwnerPublicKey is not owner of proposal")
+	s.EqualError(err, "transaction validate error: payload content invalid:the OwnerKey is not owner of proposal")
 
 	references[inputs[0]] = *outputs[1]
 	txn.SetReferences(references)

@@ -101,7 +101,6 @@ func (t *CancelProducerTransaction) checkProcessProducer(params *TransactionPara
 			return nil, errors.New("only schnorr code can use ProcessProducerSchnorrVersion")
 		}
 		pk := t.Programs()[0].Code[2:]
-		//todo OwnerKey should be public key
 		if !bytes.Equal(pk, processProducer.OwnerKey) {
 			return nil, errors.New("tx program pk must equal with processProducer OwnerKey ")
 		}

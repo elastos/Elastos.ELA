@@ -89,11 +89,11 @@ type CRCProposalTracking struct {
 	// The stage of proposal.
 	Stage uint8
 
-	// The proposal owner public key.
-	OwnerPublicKey []byte
+	// The proposal owner public key or multisign code.
+	OwnerKey []byte
 
 	// The new proposal owner public key.
-	NewOwnerPublicKey []byte
+	NewOwnerKey []byte
 
 	// The signature of proposal owner.
 	OwnerSignature []byte
@@ -142,12 +142,12 @@ func (p *CRCProposalTracking) SerializeUnsigned(w io.Writer, version byte) error
 		return errors.New("failed to serialize Stage")
 	}
 
-	if err := common.WriteVarBytes(w, p.OwnerPublicKey); err != nil {
+	if err := common.WriteVarBytes(w, p.OwnerKey); err != nil {
 		return errors.New("failed to serialize OwnerKey")
 	}
 
-	if err := common.WriteVarBytes(w, p.NewOwnerPublicKey); err != nil {
-		return errors.New("failed to serialize NewOwnerPublicKey")
+	if err := common.WriteVarBytes(w, p.NewOwnerKey); err != nil {
+		return errors.New("failed to serialize NewOwnerKey")
 	}
 
 	return nil
@@ -206,15 +206,14 @@ func (p *CRCProposalTracking) DeserializeUnSigned(r io.Reader, version byte) err
 	if p.Stage, err = common.ReadUint8(r); err != nil {
 		return errors.New("failed to deserialize Stage")
 	}
-
-	if p.OwnerPublicKey, err = common.ReadVarBytes(r, crypto.PublicKeyScriptLength,
+	if p.OwnerKey, err = common.ReadVarBytes(r, crypto.MaxMultiSignCodeLength,
 		"owner pubkey"); err != nil {
 		return errors.New("failed to deserialize OwnerKey")
 	}
 
-	if p.NewOwnerPublicKey, err = common.ReadVarBytes(r, crypto.PublicKeyScriptLength,
+	if p.NewOwnerKey, err = common.ReadVarBytes(r, crypto.MaxMultiSignCodeLength,
 		"new owner pubkey"); err != nil {
-		return errors.New("failed to deserialize NewOwnerPublicKey")
+		return errors.New("failed to deserialize NewOwnerKey")
 	}
 
 	return nil

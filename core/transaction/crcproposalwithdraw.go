@@ -118,7 +118,7 @@ func (t *CRCProposalWithdrawTransaction) SpecialContextCheck() (result elaerr.EL
 			"Finished, Aborted or Terminated")), true
 	}
 
-	if !bytes.Equal(proposalState.ProposalOwner, withdrawPayload.OwnerPublicKey) {
+	if !bytes.Equal(proposalState.ProposalOwner, withdrawPayload.OwnerKey) {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("the OwnerKey is not owner of proposal")), true
 	}
 	fee := getTransactionFee(t, t.references)
@@ -170,7 +170,7 @@ func (t *CRCProposalWithdrawTransaction) SpecialContextCheck() (result elaerr.EL
 		return elaerr.Simple(elaerr.ErrTxPayload, err), true
 	}
 	var code []byte
-	if code, err = getCode(withdrawPayload.OwnerPublicKey); err != nil {
+	if code, err = getCode(withdrawPayload.OwnerKey); err != nil {
 		return elaerr.Simple(elaerr.ErrTxPayload, err), true
 	}
 	err = blockchain.CheckCRTransactionSignature(withdrawPayload.Signature, code, signedBuf.Bytes())

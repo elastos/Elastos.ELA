@@ -22,7 +22,7 @@ const (
 )
 
 type ProducerInfo struct {
-	//can be standard or multi todo change name into OwnerKey(publick key or Code)
+	//can be standard or multi Code
 	OwnerKey []byte
 	//must standard
 	NodePublicKey []byte

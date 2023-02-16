@@ -60,9 +60,9 @@ func (s *txValidatorTestSuite) TestCheckCRCProposalWithdrawTransaction() {
 		Recipient, CRExpensesAddressU168, 9*ela, 50*ela, 0)
 	crcProposalWithdraw, _ := txn.Payload().(*payload.CRCProposalWithdraw)
 	pld := payload.CRCProposal{
-		OwnerPublicKey: pk1Bytes,
-		Recipient:      *Recipient,
-		Budgets:        createBudgets(3),
+		OwnerKey:  pk1Bytes,
+		Recipient: *Recipient,
+		Budgets:   createBudgets(3),
 	}
 	propState := &crstate.ProposalState{
 		Status:              crstate.VoterAgreed,
@@ -247,15 +247,15 @@ func (s *txValidatorTestSuite) getCRCProposalWithdrawTx(crPublicKeyStr,
 	switch payloadVersion {
 	case 0x00:
 		crcProposalWithdraw = &payload.CRCProposalWithdraw{
-			ProposalHash:   *randomUint256(),
-			OwnerPublicKey: pkBytes,
+			ProposalHash: *randomUint256(),
+			OwnerKey:     pkBytes,
 		}
 	case 0x01:
 		crcProposalWithdraw = &payload.CRCProposalWithdraw{
-			ProposalHash:   *randomUint256(),
-			OwnerPublicKey: pkBytes,
-			Recipient:      *recipient,
-			Amount:         recipAmout,
+			ProposalHash: *randomUint256(),
+			OwnerKey:     pkBytes,
+			Recipient:    *recipient,
+			Amount:       recipAmout,
 		}
 		txn.SetPayloadVersion(payload.CRCProposalWithdrawVersion01)
 	}

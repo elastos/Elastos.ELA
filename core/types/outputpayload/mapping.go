@@ -8,6 +8,7 @@ package outputpayload
 import (
 	"bytes"
 	"errors"
+	"github.com/elastos/Elastos.ELA/core/contract/program"
 	"io"
 
 	"github.com/elastos/Elastos.ELA/common"
@@ -25,8 +26,8 @@ type Mapping struct {
 	// Version indicates the version of Mapping payload.
 	Version byte
 
-	// OwnerPublicKey is the owner public key of the main chain producer.
-	OwnerPublicKey []byte
+	// OwnerKey is the owner public key of the main chain producer.
+	OwnerKey []byte
 
 	// SideProducerID indicates a piece of data represent the identity of the
 	// side chain producer, whether it is a public key or address etc.
@@ -47,7 +48,7 @@ func (m *Mapping) serializeContent(w io.Writer) error {
 		return err
 	}
 
-	if err := common.WriteVarBytes(w, m.OwnerPublicKey); err != nil {
+	if err := common.WriteVarBytes(w, m.OwnerKey); err != nil {
 		return err
 	}
 
@@ -69,7 +70,7 @@ func (m *Mapping) Deserialize(r io.Reader) error {
 		return err
 	}
 
-	m.OwnerPublicKey, err = common.ReadVarBytes(r, crypto.COMPRESSEDLEN,
+	m.OwnerKey, err = common.ReadVarBytes(r, crypto.MaxMultiSignCodeLength,
 		"OwnerKey")
 	if err != nil {
 		return err
@@ -91,15 +92,25 @@ func (m *Mapping) GetVersion() byte {
 }
 
 func (m *Mapping) Validate() error {
-	pubKey, err := crypto.DecodePoint(m.OwnerPublicKey)
-	if err != nil {
-		return errors.New("mapping invalid OwnerKey")
-	}
+	//todo
+	if len(m.OwnerKey) == crypto.NegativeBigLength {
+		pubKey, err := crypto.DecodePoint(m.OwnerKey)
+		if err != nil {
+			return errors.New("mapping invalid OwnerKey")
+		}
 
-	err = crypto.Verify(*pubKey, m.Data(), m.Signature)
-	if err != nil {
-		return errors.New("invalid content signature")
+		err = crypto.Verify(*pubKey, m.Data(), m.Signature)
+		if err != nil {
+			return errors.New("invalid content signature")
+		}
+	} else {
+		// check CheckMultiSigSignatures
+		if err := crypto.CheckMultiSigSignatures(program.Program{
+			Code:      m.OwnerKey,
+			Parameter: m.Signature,
+		}, m.Data()); err != nil {
+			return err
+		}
 	}
-
 	return nil
 }

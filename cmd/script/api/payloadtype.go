@@ -2042,7 +2042,7 @@ func newSecretaryGeneralProposal(L *lua.LState) int {
 
 	crcProposal := &payload.CRCProposal{
 		ProposalType:              payload.CRCProposalType(proposalType),
-		OwnerPublicKey:            ownPublicKey,
+		OwnerKey:                  ownPublicKey,
 		DraftData:                 []byte(draftDataStr),
 		DraftHash:                 draftHash,
 		SecretaryGeneralPublicKey: secretaryGeneralPublicKey,
@@ -2162,7 +2162,7 @@ func newCRCProposal(L *lua.LState) int {
 	did, _ := getDIDFromCode(ct.Code)
 	crcProposal := &payload.CRCProposal{
 		ProposalType:       payload.CRCProposalType(proposalType),
-		OwnerPublicKey:     publicKey,
+		OwnerKey:           publicKey,
 		DraftHash:          draftHash,
 		DraftData:          []byte(draftDataStr),
 		Budgets:            budgets,
@@ -2292,12 +2292,12 @@ func newCRChangeProposalOwner(L *lua.LState) int {
 
 	crcProposal := &payload.CRCProposal{
 		ProposalType:       payload.CRCProposalType(proposalType),
-		OwnerPublicKey:     ownerPublicKey,
+		OwnerKey:           ownerPublicKey,
 		Recipient:          *recipient,
 		DraftHash:          draftHash,
 		DraftData:          []byte(draftDataStr),
 		TargetProposalHash: *targetHash,
-		NewOwnerPublicKey:  newOwnerPublicKey,
+		NewOwnerKey:        newOwnerPublicKey,
 		CRCouncilMemberDID: *CRCouncilMemberDID,
 		NewOwnerSignature:  []byte{},
 	}
@@ -2401,9 +2401,9 @@ func newCRCRegisterSideChainProposalHash(L *lua.LState) int {
 	}
 	did, _ := getDIDFromCode(ct.Code)
 	crcProposal := &payload.CRCProposal{
-		ProposalType:   payload.CRCProposalType(proposalType),
-		OwnerPublicKey: publicKey,
-		DraftHash:      *draftHash,
+		ProposalType: payload.CRCProposalType(proposalType),
+		OwnerKey:     publicKey,
+		DraftHash:    *draftHash,
 		SideChainInfo: payload.SideChainInfo{
 			SideChainName:   sideChainName,
 			MagicNumber:     uint32(magicNumber),
@@ -2503,7 +2503,7 @@ func newCRCChangeCustomIDFee(L *lua.LState) int {
 	}
 	crcProposal := &payload.CRCProposal{
 		ProposalType:        payload.ChangeCustomIDFee,
-		OwnerPublicKey:      publicKey,
+		OwnerKey:            publicKey,
 		DraftHash:           draftHash,
 		DraftData:           []byte(draftDataStr),
 		CustomIDFeeRateInfo: payload.CustomIDFeeRateInfo{RateOfCustomIDFee: *rate},
@@ -2600,7 +2600,7 @@ func newCRCReceivedCustomID(L *lua.LState) int {
 
 	crcProposal := &payload.CRCProposal{
 		ProposalType:         payload.CRCProposalType(proposalType),
-		OwnerPublicKey:       publicKey,
+		OwnerKey:             publicKey,
 		DraftHash:            draftHash,
 		DraftData:            []byte(draftDataStr),
 		CRCouncilMemberDID:   *did,
@@ -2692,7 +2692,7 @@ func newCRCReservedCustomID(L *lua.LState) int {
 	did, _ := getDIDFromCode(ct.Code)
 	crcProposal := &payload.CRCProposal{
 		ProposalType:         payload.CRCProposalType(proposalType),
-		OwnerPublicKey:       publicKey,
+		OwnerKey:             publicKey,
 		DraftHash:            draftHash,
 		DraftData:            []byte(draftDataStr),
 		CRCouncilMemberDID:   *did,
@@ -2788,7 +2788,7 @@ func newCRCCloseProposalHash(L *lua.LState) int {
 	did, _ := getDIDFromCode(ct.Code)
 	crcProposal := &payload.CRCProposal{
 		ProposalType:       payload.CRCProposalType(proposalType),
-		OwnerPublicKey:     publicKey,
+		OwnerKey:           publicKey,
 		DraftHash:          draftHash,
 		DraftData:          []byte(draftDataStr),
 		TargetProposalHash: *closeProposalHash,
@@ -3033,8 +3033,8 @@ func newCRCProposalTracking(L *lua.LState) int {
 		MessageHash:                 *MessageHash,
 		SecretaryGeneralOpinionHash: *opinionHash,
 		Stage:                       uint8(stage),
-		OwnerPublicKey:              ownerpublickey,
-		NewOwnerPublicKey:           newownerpublickey,
+		OwnerKey:                    ownerpublickey,
+		NewOwnerKey:                 newownerpublickey,
 		OwnerSignature:              []byte{},
 		NewOwnerSignature:           []byte{},
 		SecretaryGeneralSignature:   []byte{},
@@ -3144,7 +3144,7 @@ func newCRCProposalWithdraw(L *lua.LState) int {
 		os.Exit(1)
 	}
 	pubkey := getPublicKeyFromCode(acc.RedeemScript)
-	crcProposalWithdraw.OwnerPublicKey = pubkey
+	crcProposalWithdraw.OwnerKey = pubkey
 	if payloadversion == 1 {
 		r, err := common.Uint168FromAddress(receipt)
 		if err != nil {

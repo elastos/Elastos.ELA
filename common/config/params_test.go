@@ -6,11 +6,81 @@
 package config
 
 import (
+	"bufio"
+	"encoding/json"
+	"fmt"
+	"io"
+	"os"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 )
+
+type ConfigFile struct {
+	Address  string `json:"address"`
+	WalletId string `json:"walletId"`
+}
+
+func TestParams_GetBlockReward(t *testing.T) {
+
+	f, err := os.Open("/Users/jiangzehua/work/elastos/src/github.com/elastos/Elastos.ELA/testjson")
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	buf := bufio.NewReader(f)
+	var result []ConfigFile
+	for {
+		line, err := buf.ReadBytes('\n')
+		if err != nil {
+			if err == io.EOF {
+				data, err := json.MarshalIndent(result, "", "\t")
+				if err != nil {
+					fmt.Println(err)
+					return
+				}
+				fmt.Println(string(data))
+
+				newFile, err := os.OpenFile("/Users/jiangzehua/work/elastos/src/github.com/elastos/Elastos.ELA/testjson2",
+					os.O_RDWR|os.O_CREATE, 0640)
+				if err != nil {
+					fmt.Println(err)
+					return
+				}
+				newFile.Write(data)
+
+				return
+			}
+		}
+		i := ConfigFile{}
+		err = json.Unmarshal(line, &i)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		result = append(result, i)
+	}
+
+	//file, e := ioutil.ReadFile("/Users/jiangzehua/work/elastos/src/github.com/elastos/Elastos.ELA/testjson.json")
+	//if e != nil {
+	//	fmt.Printf("File error: %v\n", e)
+	//	return
+	//}
+	//
+	//i := ConfigFile{}
+	//// Remove the UTF-8 Byte Order Mark
+	//file = bytes.TrimPrefix(file, []byte("\xef\xbb\xbf"))
+	//
+	//e = json.Unmarshal(file, &i)
+	//data, err := json.MarshalIndent(i, "", "\t")
+	//if err != nil {
+	//	fmt.Println(err)
+	//}
+	//
+	//
+	//fmt.Println(string(data))
+}
 
 func TestGenesisBlock(t *testing.T) {
 	block := GenesisBlock(&mainNetFoundation)

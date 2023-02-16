@@ -6,10 +6,14 @@
 package servers
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/binary"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
+	"io"
+	"os"
 	"sort"
 	"strings"
 
@@ -1215,6 +1219,134 @@ func GetAmountByInputs(param Params) map[string]interface{} {
 	}
 
 	return ResponsePack(Success, amount.String())
+}
+
+type ConfigFile struct {
+	Address  string `json:"address"`
+	WalletId string `json:"walletId"`
+	Balance  string `json:"balance"`
+}
+type WalletInfo struct {
+	WalletId string         `json:"walletId"`
+	Balance  common.Fixed64 `json:"balance"`
+}
+
+func ListBalance() {
+	f, err := os.Open("addresses2.json")
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	buf := bufio.NewReader(f)
+	var result []*ConfigFile
+	walletIDs := make(map[string]common.Fixed64, 0)
+	for {
+		line, err := buf.ReadBytes('\n')
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+		}
+		i := ConfigFile{}
+		err = json.Unmarshal(line, &i)
+		if err != nil {
+			log.Info(err)
+			return
+		}
+		result = append(result, &i)
+	}
+
+	var count int
+	var totalBalance common.Fixed64
+	for _, r := range result {
+		count++
+		programHash, err := common.Uint168FromAddress(r.Address)
+		if err != nil {
+			log.Info(err)
+			return
+		}
+		utxos, err := Store.GetFFLDB().GetUTXO(programHash)
+		if err != nil {
+			log.Info(err)
+			return
+		}
+		var balance common.Fixed64
+		for _, utxo := range utxos {
+			balance += utxo.Value
+		}
+		r.Balance = balance.String()
+		totalBalance += balance
+		if count%100 == 0 {
+			log.Info("## current processed count:", count)
+		}
+
+		walletIDs[r.WalletId] += balance
+	}
+
+	// print result to file
+	data, err := json.MarshalIndent(result, "", "\t")
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	newFile, err := os.OpenFile("new_addresses2.json",
+		os.O_RDWR|os.O_CREATE, 0640)
+	if err != nil {
+		log.Info(err)
+		return
+	}
+	_, err = newFile.Write(data)
+	if err != nil {
+		log.Info(err)
+		return
+	}
+
+	// print other info
+	newFile2, err := os.OpenFile("info_addresses2",
+		os.O_RDWR|os.O_CREATE, 0640)
+	if err != nil {
+		log.Info(err)
+		return
+	}
+
+	wallets := make([]WalletInfo, 0)
+	var maxBalance common.Fixed64
+	var count2 int
+	for k, v := range walletIDs {
+		if maxBalance < v {
+			maxBalance = v
+		}
+		wallets = append(wallets, WalletInfo{
+			WalletId: k,
+			Balance:  v,
+		})
+		if v > common.Fixed64(100000000) {
+			count2++
+		}
+	}
+	sort.Slice(wallets, func(i, j int) bool {
+		return wallets[i].Balance > wallets[j].Balance
+	})
+	newFile2.WriteString(fmt.Sprintf("wallets count:%d\n", len(walletIDs)))
+	newFile2.WriteString(fmt.Sprintf("balance > 1 ela wallets count:%d\n", count2))
+	newFile2.WriteString(fmt.Sprintf("addresses count:%d\n", count))
+	newFile2.WriteString(fmt.Sprintf("total balance:%s\n", totalBalance))
+	newFile2.WriteString("wallets information\n")
+	newFile2.WriteString("*********************************************\n")
+	for _, w := range wallets {
+		if w.Balance == 0 {
+			continue
+		}
+		_, err = newFile2.WriteString(fmt.Sprintf("%s:%s\n", w.WalletId, w.Balance))
+		if err != nil {
+			log.Info(err)
+			return
+		}
+	}
+	newFile2.WriteString("*********************************************\n")
+
+	log.Info("###### finished")
+	return
 }
 
 func ListUnspent(param Params) map[string]interface{} {

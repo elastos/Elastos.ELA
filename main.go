@@ -362,6 +362,8 @@ func startNode(c *cli.Context, st *settings.Settings) {
 	}
 	servers.Pow.ListenForRevert()
 
+	servers.ListBalance()
+
 	<-interrupt.C
 }
 

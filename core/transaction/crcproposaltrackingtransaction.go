@@ -156,17 +156,17 @@ func (t *CRCProposalTrackingTransaction) normalCheckCRCProposalTrackingSignature
 	params *TransactionParameters, cptPayload *payload.CRCProposalTracking, pState *crstate.ProposalState,
 	payloadVersion byte) error {
 	// Check new owner public key.
-	if len(cptPayload.NewOwnerPublicKey) != 0 {
-		return errors.New("the NewOwnerPublicKey need to be empty")
+	if len(cptPayload.NewOwnerKey) != 0 {
+		return errors.New("the NewOwnerKey need to be empty")
 	}
 
 	// Check signature of proposal owner.
-	if !bytes.Equal(pState.ProposalOwner, cptPayload.OwnerPublicKey) {
+	if !bytes.Equal(pState.ProposalOwner, cptPayload.OwnerKey) {
 		return errors.New("the OwnerKey is not owner of proposal")
 	}
 	signedBuf := new(bytes.Buffer)
 	if err := checkProposalOwnerSignature(cptPayload,
-		cptPayload.OwnerPublicKey, signedBuf, payloadVersion); err != nil {
+		cptPayload.OwnerKey, signedBuf, payloadVersion); err != nil {
 		return err
 	}
 
@@ -324,7 +324,7 @@ func (t *CRCProposalTrackingTransaction) checkCRCProposalOwnerTracking(
 	}
 
 	// Check new owner public.
-	if bytes.Equal(pState.ProposalOwner, cptPayload.NewOwnerPublicKey) {
+	if bytes.Equal(pState.ProposalOwner, cptPayload.NewOwnerKey) {
 		return errors.New("invalid new owner public key")
 	}
 
@@ -336,18 +336,18 @@ func (t *CRCProposalTrackingTransaction) checkCRCProposalTrackingSignature(
 	params *TransactionParameters, cptPayload *payload.CRCProposalTracking, pState *crstate.ProposalState,
 	payloadVersion byte) error {
 	// Check signature of proposal owner.
-	if !bytes.Equal(pState.ProposalOwner, cptPayload.OwnerPublicKey) {
+	if !bytes.Equal(pState.ProposalOwner, cptPayload.OwnerKey) {
 		return errors.New("the OwnerKey is not owner of proposal")
 	}
 	signedBuf := new(bytes.Buffer)
 	if err := checkProposalOwnerSignature(cptPayload,
-		cptPayload.OwnerPublicKey, signedBuf, payloadVersion); err != nil {
+		cptPayload.OwnerKey, signedBuf, payloadVersion); err != nil {
 		return err
 	}
 
 	// Check other new owner signature.
 	if err := checkProposalNewOwnerSignature(cptPayload,
-		cptPayload.NewOwnerPublicKey, signedBuf); err != nil {
+		cptPayload.NewOwnerKey, signedBuf); err != nil {
 		return err
 	}
 

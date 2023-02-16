@@ -727,7 +727,7 @@ func (s *transactionSuite) TestCRCouncilMemberClaimNode_SerializeDeserialize() {
 
 func crpPayloadEqual(payload1 *payload.CRCProposal, payload2 *payload.CRCProposal) bool {
 	return payload1.ProposalType == payload2.ProposalType &&
-		bytes.Equal(payload1.OwnerPublicKey, payload2.OwnerPublicKey) &&
+		bytes.Equal(payload1.OwnerKey, payload2.OwnerKey) &&
 		payload1.CRCouncilMemberDID.IsEqual(payload2.CRCouncilMemberDID) &&
 		payload1.DraftHash.IsEqual(payload2.DraftHash) &&
 		bytes.Equal(payload1.Signature, payload2.Signature) &&
@@ -736,8 +736,8 @@ func crpPayloadEqual(payload1 *payload.CRCProposal, payload2 *payload.CRCProposa
 
 func crpPayloadChangeProposalOwnerEqual(payload1 *payload.CRCProposal, payload2 *payload.CRCProposal) bool {
 	return payload1.ProposalType == payload2.ProposalType &&
-		bytes.Equal(payload1.OwnerPublicKey, payload2.OwnerPublicKey) &&
-		bytes.Equal(payload1.NewOwnerPublicKey, payload2.NewOwnerPublicKey) &&
+		bytes.Equal(payload1.OwnerKey, payload2.OwnerKey) &&
+		bytes.Equal(payload1.NewOwnerKey, payload2.NewOwnerKey) &&
 		payload1.DraftHash.IsEqual(payload2.DraftHash) &&
 		payload1.Recipient.IsEqual(payload2.Recipient) &&
 		payload1.TargetProposalHash.IsEqual(payload2.TargetProposalHash) &&
@@ -748,7 +748,7 @@ func crpPayloadChangeProposalOwnerEqual(payload1 *payload.CRCProposal, payload2 
 
 func crpPayloadCloseProposalEqual(payload1 *payload.CRCProposal, payload2 *payload.CRCProposal) bool {
 	return payload1.ProposalType == payload2.ProposalType &&
-		bytes.Equal(payload1.OwnerPublicKey, payload2.OwnerPublicKey) &&
+		bytes.Equal(payload1.OwnerKey, payload2.OwnerKey) &&
 		payload1.CRCouncilMemberDID.IsEqual(payload2.CRCouncilMemberDID) &&
 		payload1.DraftHash.IsEqual(payload2.DraftHash) &&
 		payload1.TargetProposalHash.IsEqual(payload2.TargetProposalHash) &&
@@ -764,7 +764,7 @@ func crpPayloadReservedCustomIDEqual(payload1 *payload.CRCProposal, payload2 *pa
 	}
 
 	return payload1.ProposalType == payload2.ProposalType &&
-		bytes.Equal(payload1.OwnerPublicKey, payload2.OwnerPublicKey) &&
+		bytes.Equal(payload1.OwnerKey, payload2.OwnerKey) &&
 		payload1.CRCouncilMemberDID.IsEqual(payload2.CRCouncilMemberDID) &&
 		payload1.DraftHash.IsEqual(payload2.DraftHash) &&
 		bytes.Equal(payload1.Signature, payload2.Signature) &&
@@ -779,7 +779,7 @@ func crpPayloadReceivedCustomIDEqual(payload1 *payload.CRCProposal, payload2 *pa
 	}
 
 	return payload1.ProposalType == payload2.ProposalType &&
-		bytes.Equal(payload1.OwnerPublicKey, payload2.OwnerPublicKey) &&
+		bytes.Equal(payload1.OwnerKey, payload2.OwnerKey) &&
 		payload1.CRCouncilMemberDID.IsEqual(payload2.CRCouncilMemberDID) &&
 		payload1.DraftHash.IsEqual(payload2.DraftHash) &&
 		bytes.Equal(payload1.Signature, payload2.Signature) &&
@@ -861,8 +861,8 @@ func ctpPayloadEqual(payload1 *payload.CRCProposalTracking, payload2 *payload.CR
 		payload1.MessageHash.IsEqual(payload2.MessageHash) &&
 		payload1.SecretaryGeneralOpinionHash.IsEqual(payload2.SecretaryGeneralOpinionHash) &&
 		payload1.Stage == payload2.Stage &&
-		bytes.Equal(payload1.OwnerPublicKey, payload2.OwnerPublicKey) &&
-		bytes.Equal(payload1.NewOwnerPublicKey, payload2.NewOwnerPublicKey) &&
+		bytes.Equal(payload1.OwnerKey, payload2.OwnerKey) &&
+		bytes.Equal(payload1.NewOwnerKey, payload2.NewOwnerKey) &&
 		bytes.Equal(payload1.OwnerSignature, payload2.OwnerSignature) &&
 		bytes.Equal(payload1.NewOwnerSignature, payload2.NewOwnerSignature) &&
 		bytes.Equal(payload1.SecretaryGeneralSignature, payload2.SecretaryGeneralSignature)
@@ -1016,7 +1016,7 @@ func randomUnregisterCRPayload() *payload.UnregisterCR {
 func createCRCProposalPayload(proposalType payload.CRCProposalType) *payload.CRCProposal {
 	return &payload.CRCProposal{
 		ProposalType:             proposalType,
-		OwnerPublicKey:           randomBytes(33),
+		OwnerKey:                 randomBytes(33),
 		CRCouncilMemberDID:       *randomUint168(),
 		DraftHash:                *randomUint256(),
 		TargetProposalHash:       *randomUint256(),
@@ -1040,8 +1040,8 @@ func randomCRCProposalTrackingPayload() *payload.CRCProposalTracking {
 		ProposalHash:                *randomUint256(),
 		MessageHash:                 *randomUint256(),
 		Stage:                       randomUint8(),
-		OwnerPublicKey:              randomBytes(33),
-		NewOwnerPublicKey:           randomBytes(35),
+		OwnerKey:                    randomBytes(33),
+		NewOwnerKey:                 randomBytes(35),
 		OwnerSignature:              randomBytes(64),
 		NewOwnerSignature:           randomBytes(64),
 		SecretaryGeneralSignature:   randomBytes(64),

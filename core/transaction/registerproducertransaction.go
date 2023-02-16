@@ -241,7 +241,6 @@ func getOwnerKeyDepositProgramHash(ownerPublicKey []byte) (ownKeyProgramHash *co
 	if len(ownerPublicKey) == crypto.NegativeBigLength {
 		ownKeyProgramHash, err = contract.PublicKeyToDepositProgramHash(ownerPublicKey)
 	} else {
-		//todo multi code deposite hash needs check
 		ownKeyProgramHash = common.ToProgramHash(byte(contract.PrefixDeposit), ownerPublicKey)
 	}
 	return ownKeyProgramHash, err

@@ -144,21 +144,21 @@ func TestCheckMultiSigSignature(t *testing.T) {
 	assert.NoError(t, err, "Generate signature failed, error %v", err)
 
 	// Normal
-	err = blockchain.CheckMultiSigSignatures(program.Program{Code: act.redeemScript, Parameter: signature}, data)
+	err = crypto.CheckMultiSigSignatures(program.Program{Code: act.redeemScript, Parameter: signature}, data)
 	assert.NoError(t, err, "[CheckMultisigSignature] failed, %v", err)
 
 	// invalid redeem script M < 1
 	fakeCode := make([]byte, len(act.redeemScript))
 	copy(fakeCode, act.redeemScript)
 	fakeCode[0] = fakeCode[0] - fakeCode[0] + crypto.PUSH1 - 1
-	err = blockchain.CheckMultiSigSignatures(program.Program{Code: fakeCode, Parameter: signature}, data)
+	err = crypto.CheckMultiSigSignatures(program.Program{Code: fakeCode, Parameter: signature}, data)
 	assert.Error(t, err, "[CheckMultisigSignature] code with M < 1 passed")
 	assert.Equal(t, "invalid multi sign script code", err.Error())
 
 	// invalid redeem script M > N
 	copy(fakeCode, act.redeemScript)
 	fakeCode[0] = fakeCode[len(fakeCode)-2] - crypto.PUSH1 + 2
-	err = blockchain.CheckMultiSigSignatures(program.Program{Code: fakeCode, Parameter: signature}, data)
+	err = crypto.CheckMultiSigSignatures(program.Program{Code: fakeCode, Parameter: signature}, data)
 	assert.Error(t, err, "[CheckMultisigSignature] code with M > N passed")
 	assert.Equal(t, "invalid multi sign script code", err.Error())
 
@@ -167,7 +167,7 @@ func TestCheckMultiSigSignature(t *testing.T) {
 	for len(fakeCode) >= crypto.MinMultiSignCodeLength {
 		fakeCode = append(fakeCode[:1], fakeCode[crypto.PublicKeyScriptLength:]...)
 	}
-	err = blockchain.CheckMultiSigSignatures(program.Program{Code: fakeCode, Parameter: signature}, data)
+	err = crypto.CheckMultiSigSignatures(program.Program{Code: fakeCode, Parameter: signature}, data)
 	assert.Error(t, err, "[CheckMultisigSignature] invalid length code passed")
 	assert.Equal(t, "not a valid multi sign transaction code, length not enough", err.Error())
 
@@ -175,7 +175,7 @@ func TestCheckMultiSigSignature(t *testing.T) {
 	fakeCode = make([]byte, len(act.redeemScript))
 	copy(fakeCode, act.redeemScript)
 	fakeCode[len(fakeCode)-2] = fakeCode[len(fakeCode)-2] + 1
-	err = blockchain.CheckMultiSigSignatures(program.Program{Code: fakeCode, Parameter: signature}, data)
+	err = crypto.CheckMultiSigSignatures(program.Program{Code: fakeCode, Parameter: signature}, data)
 	assert.Error(t, err, "[CheckMultisigSignature] invalid redeem script N not equal to public keys count")
 	assert.Equal(t, "invalid multi sign public key script count", err.Error())
 
@@ -183,29 +183,29 @@ func TestCheckMultiSigSignature(t *testing.T) {
 	fakeCode = make([]byte, len(act.redeemScript))
 	copy(fakeCode, act.redeemScript)
 	fakeCode[2] = 0x01
-	err = blockchain.CheckMultiSigSignatures(program.Program{Code: fakeCode, Parameter: signature}, data)
+	err = crypto.CheckMultiSigSignatures(program.Program{Code: fakeCode, Parameter: signature}, data)
 	assert.Error(t, err, "[CheckMultisigSignature] invalid redeem script wrong public key")
 	assert.Equal(t, "the encodeData format is error", err.Error())
 
 	// invalid signature length not match
-	err = blockchain.CheckMultiSigSignatures(program.Program{Code: fakeCode, Parameter: signature[1+math.Intn(64):]}, data)
+	err = crypto.CheckMultiSigSignatures(program.Program{Code: fakeCode, Parameter: signature[1+math.Intn(64):]}, data)
 	assert.Error(t, err, "[CheckMultisigSignature] invalid signature length not match")
 	assert.Equal(t, "invalid multi sign signatures, length not match", err.Error())
 
 	// invalid signature not enough
 	cut := len(signature)/crypto.SignatureScriptLength - int(act.redeemScript[0]-crypto.PUSH1)
-	err = blockchain.CheckMultiSigSignatures(program.Program{Code: act.redeemScript, Parameter: signature[65*cut:]}, data)
+	err = crypto.CheckMultiSigSignatures(program.Program{Code: act.redeemScript, Parameter: signature[65*cut:]}, data)
 	assert.Error(t, err, "[CheckMultisigSignature] invalid signature not enough")
 	assert.Equal(t, "invalid signatures, not enough signatures", err.Error())
 
 	// invalid signature too many
-	err = blockchain.CheckMultiSigSignatures(program.Program{Code: act.redeemScript,
+	err = crypto.CheckMultiSigSignatures(program.Program{Code: act.redeemScript,
 		Parameter: append(signature[:65], signature...)}, data)
 	assert.Error(t, err, "[CheckMultisigSignature] invalid signature too many")
 	assert.Equal(t, "invalid signatures, too many signatures", err.Error())
 
 	// invalid signature duplicate
-	err = blockchain.CheckMultiSigSignatures(program.Program{Code: act.redeemScript,
+	err = crypto.CheckMultiSigSignatures(program.Program{Code: act.redeemScript,
 		Parameter: append(signature[:65], signature[:len(signature)-65]...)}, data)
 	assert.Error(t, err, "[CheckMultisigSignature] invalid signature duplicate")
 	assert.Equal(t, "duplicated signatures", err.Error())
@@ -213,7 +213,7 @@ func TestCheckMultiSigSignature(t *testing.T) {
 	// invalid signature fake signature
 	signature, err = newMultiAccount(math.Intn(2)+3, t).Sign(data)
 	assert.NoError(t, err, "Generate signature failed, error %v", err)
-	err = blockchain.CheckMultiSigSignatures(program.Program{Code: act.redeemScript, Parameter: signature}, data)
+	err = crypto.CheckMultiSigSignatures(program.Program{Code: act.redeemScript, Parameter: signature}, data)
 	assert.Error(t, err, "[CheckMultisigSignature] invalid signature fake signature")
 }
 

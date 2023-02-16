@@ -6,7 +6,6 @@
 package blockchain
 
 import (
-	"crypto/sha256"
 	"errors"
 
 	"sort"
@@ -60,12 +59,12 @@ func RunPrograms(data []byte, programHashes []common.Uint168, programs []*Progra
 				}
 			} else if contract.IsMultiSig(program.Code) {
 				log.Info("mulitisign deposite")
-				if err := CheckMultiSigSignatures(*program, data); err != nil {
+				if err := crypto.CheckMultiSigSignatures(*program, data); err != nil {
 					return err
 				}
 			}
 		} else if prefixType == contract.PrefixMultiSig {
-			if err := CheckMultiSigSignatures(*program, data); err != nil {
+			if err := crypto.CheckMultiSigSignatures(*program, data); err != nil {
 				return err
 			}
 		} else {
@@ -121,23 +120,6 @@ func CheckStandardSignature(program Program, data []byte) error {
 	return crypto.Verify(*publicKey, data, program.Parameter[1:])
 }
 
-func CheckMultiSigSignatures(program Program, data []byte) error {
-	code := program.Code
-	// Get N parameter
-	n := int(code[len(code)-2]) - crypto.PUSH1 + 1
-	// Get M parameter
-	m := int(code[0]) - crypto.PUSH1 + 1
-	if m < 1 || m > n {
-		return errors.New("invalid multi sign script code")
-	}
-	publicKeys, err := crypto.ParseMultisigScript(code)
-	if err != nil {
-		return err
-	}
-
-	return verifyMultisigSignatures(m, n, publicKeys, program.Parameter, data)
-}
-
 func checkSchnorrSignatures(program Program, data [32]byte) (bool, error) {
 	publicKey := [33]byte{}
 	copy(publicKey[:], program.Code[2:])
@@ -159,50 +141,7 @@ func checkCrossChainSignatures(program Program, data []byte) error {
 		return err
 	}
 
-	return verifyMultisigSignatures(m, n, publicKeys, program.Parameter, data)
-}
-
-func verifyMultisigSignatures(m, n int, publicKeys [][]byte, signatures, data []byte) error {
-	if len(publicKeys) != n {
-		return errors.New("invalid multi sign public key script count")
-	}
-	if len(signatures)%crypto.SignatureScriptLength != 0 {
-		return errors.New("invalid multi sign signatures, length not match")
-	}
-	if len(signatures)/crypto.SignatureScriptLength < m {
-		return errors.New("invalid signatures, not enough signatures")
-	}
-	if len(signatures)/crypto.SignatureScriptLength > n {
-		return errors.New("invalid signatures, too many signatures")
-	}
-
-	var verified = make(map[common.Uint256]struct{})
-	for i := 0; i < len(signatures); i += crypto.SignatureScriptLength {
-		// Remove length byte
-		sign := signatures[i : i+crypto.SignatureScriptLength][1:]
-		// Match public key with signature
-		for _, publicKey := range publicKeys {
-			pubKey, err := crypto.DecodePoint(publicKey[1:])
-			if err != nil {
-				return err
-			}
-			err = crypto.Verify(*pubKey, data, sign)
-			if err == nil {
-				hash := sha256.Sum256(publicKey)
-				if _, ok := verified[hash]; ok {
-					return errors.New("duplicated signatures")
-				}
-				verified[hash] = struct{}{}
-				break // back to public keys loop
-			}
-		}
-	}
-	// Check signatures count
-	if len(verified) < m {
-		return errors.New("matched signatures not enough")
-	}
-
-	return nil
+	return crypto.VerifyMultisigSignatures(m, n, publicKeys, program.Parameter, data)
 }
 
 func SortPrograms(programs []*Program) {

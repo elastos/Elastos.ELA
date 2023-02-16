@@ -182,15 +182,15 @@ func (t *CRCProposalTransaction) checkChangeProposalOwner(params *TransactionPar
 		return errors.New("proposal status is not VoterAgreed")
 	}
 
-	if _, err := crypto.DecodePoint(proposal.OwnerPublicKey); err != nil {
+	if _, err := crypto.DecodePoint(proposal.OwnerKey); err != nil {
 		return errors.New("invalid owner public key")
 	}
 
-	if _, err := crypto.DecodePoint(proposal.NewOwnerPublicKey); err != nil {
+	if _, err := crypto.DecodePoint(proposal.NewOwnerKey); err != nil {
 		return errors.New("invalid new owner public key")
 	}
 
-	if bytes.Equal(proposal.NewOwnerPublicKey, proposalState.ProposalOwner) &&
+	if bytes.Equal(proposal.NewOwnerKey, proposalState.ProposalOwner) &&
 		proposal.NewRecipient.IsEqual(proposalState.Recipient) {
 		return errors.New("new owner or recipient must be different from the previous one")
 	}
@@ -211,7 +211,7 @@ func (t *CRCProposalTransaction) checkChangeOwnerSign(proposal *payload.CRCPropo
 	}
 
 	// Check signature of owner.
-	publicKey, err := crypto.DecodePoint(proposal.OwnerPublicKey)
+	publicKey, err := crypto.DecodePoint(proposal.OwnerKey)
 	if err != nil {
 		return errors.New("invalid owner")
 	}
@@ -225,7 +225,7 @@ func (t *CRCProposalTransaction) checkChangeOwnerSign(proposal *payload.CRCPropo
 	}
 
 	// Check signature of new owner.
-	newOwnerPublicKey, err := crypto.DecodePoint(proposal.NewOwnerPublicKey)
+	newOwnerPublicKey, err := crypto.DecodePoint(proposal.NewOwnerKey)
 	if err != nil {
 		return errors.New("invalid owner")
 	}
@@ -258,7 +258,7 @@ func (t *CRCProposalTransaction) checkChangeOwnerSign(proposal *payload.CRCPropo
 }
 
 func (t *CRCProposalTransaction) checkCloseProposal(params *TransactionParameters, proposal *payload.CRCProposal, PayloadVersion byte) error {
-	_, err := crypto.DecodePoint(proposal.OwnerPublicKey)
+	_, err := crypto.DecodePoint(proposal.OwnerKey)
 	if err != nil {
 		return errors.New("DecodePoint from OwnerKey error")
 	}
@@ -284,7 +284,7 @@ func (t *CRCProposalTransaction) checkCloseProposal(params *TransactionParameter
 func (t *CRCProposalTransaction) checkOwnerAndCRCouncilMemberSign(proposal *payload.CRCProposal, crMemberCode []byte,
 	PayloadVersion byte) error {
 	// Check signature of owner.
-	publicKey, err := crypto.DecodePoint(proposal.OwnerPublicKey)
+	publicKey, err := crypto.DecodePoint(proposal.OwnerKey)
 	if err != nil {
 		return errors.New("invalid owner")
 	}
@@ -322,7 +322,7 @@ func (t *CRCProposalTransaction) checkChangeSecretaryGeneralProposalTx(params *T
 		return errors.New("SecretaryGeneral NodePublicKey and DID is not matching")
 	}
 	// Check owner public key
-	if _, err := crypto.DecodePoint(crcProposal.OwnerPublicKey); err != nil {
+	if _, err := crypto.DecodePoint(crcProposal.OwnerKey); err != nil {
 		return errors.New("invalid owner public key")
 	}
 
@@ -387,7 +387,7 @@ func checkProposalOwnerSign(crcProposal *payload.CRCProposal, signedBuf *bytes.B
 	//get ownerCode
 	var code []byte
 	var err error
-	if code, err = getCode(crcProposal.OwnerPublicKey); err != nil {
+	if code, err = getCode(crcProposal.OwnerKey); err != nil {
 		return err
 	}
 	// get verify data
@@ -442,7 +442,7 @@ func (t *CRCProposalTransaction) checkReservedCustomID(params *TransactionParame
 	if t.parameters.BlockChain.GetCRCommittee().GetProposalManager().ReservedCustomID {
 		return errors.New("Already have one ReservedCustomID proposal")
 	}
-	_, err := crypto.DecodePoint(proposal.OwnerPublicKey)
+	_, err := crypto.DecodePoint(proposal.OwnerKey)
 	if err != nil {
 		return errors.New("DecodePoint from OwnerKey error")
 	}
@@ -471,7 +471,7 @@ func (t *CRCProposalTransaction) checkReservedCustomID(params *TransactionParame
 }
 
 func (t *CRCProposalTransaction) checkReceivedCustomID(params *TransactionParameters, proposal *payload.CRCProposal, PayloadVersion byte) error {
-	_, err := crypto.DecodePoint(proposal.OwnerPublicKey)
+	_, err := crypto.DecodePoint(proposal.OwnerKey)
 	if err != nil {
 		return errors.New("DecodePoint from OwnerKey error")
 	}
@@ -510,7 +510,7 @@ func (t *CRCProposalTransaction) checkReceivedCustomID(params *TransactionParame
 }
 
 func (t *CRCProposalTransaction) checkChangeCustomIDFee(params *TransactionParameters, proposal *payload.CRCProposal, PayloadVersion byte) error {
-	_, err := crypto.DecodePoint(proposal.OwnerPublicKey)
+	_, err := crypto.DecodePoint(proposal.OwnerKey)
 	if err != nil {
 		return errors.New("DecodePoint from OwnerKey error")
 	}
@@ -528,7 +528,7 @@ func (t *CRCProposalTransaction) checkChangeCustomIDFee(params *TransactionParam
 }
 
 func (t *CRCProposalTransaction) checkRegisterSideChainProposal(params *TransactionParameters, proposal *payload.CRCProposal, payloadVersion byte) error {
-	_, err := crypto.DecodePoint(proposal.OwnerPublicKey)
+	_, err := crypto.DecodePoint(proposal.OwnerKey)
 	if err != nil {
 		return errors.New("DecodePoint from OwnerKey error")
 	}

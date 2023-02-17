@@ -8,10 +8,10 @@ package outputpayload
 import (
 	"bytes"
 	"errors"
-	"github.com/elastos/Elastos.ELA/core/contract/program"
 	"io"
 
 	"github.com/elastos/Elastos.ELA/common"
+	"github.com/elastos/Elastos.ELA/core/contract/program"
 	"github.com/elastos/Elastos.ELA/crypto"
 )
 
@@ -92,7 +92,6 @@ func (m *Mapping) GetVersion() byte {
 }
 
 func (m *Mapping) Validate() error {
-	//todo
 	if len(m.OwnerKey) == crypto.NegativeBigLength {
 		pubKey, err := crypto.DecodePoint(m.OwnerKey)
 		if err != nil {

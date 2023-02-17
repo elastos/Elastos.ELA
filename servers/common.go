@@ -213,19 +213,19 @@ type SchnorrWithdrawFromSideChainInfo struct {
 }
 
 type ProducerInfo struct {
-	OwnerKey      string `json:"ownerkey"`
-	NodePublicKey string `json:"nodepublickey"`
-	NickName      string `json:"nickname"`
-	Url           string `json:"url"`
-	Location      uint64 `json:"location"`
-	NetAddress    string `json:"netaddress"`
-	StakeUntil    uint32 `json:"stakeuntil"`
-	Signature     string `json:"signature"`
+	OwnerPublicKey string `json:"ownerpublickey"`
+	NodePublicKey  string `json:"nodepublickey"`
+	NickName       string `json:"nickname"`
+	Url            string `json:"url"`
+	Location       uint64 `json:"location"`
+	NetAddress     string `json:"netaddress"`
+	StakeUntil     uint32 `json:"stakeuntil"`
+	Signature      string `json:"signature"`
 }
 
 type CancelProducerInfo struct {
-	OwnerKey  string `json:"ownerkey"`
-	Signature string `json:"signature"`
+	OwnerPublicKey string `json:"ownerpublickey"`
+	Signature      string `json:"signature"`
 }
 
 type InactiveArbitratorsInfo struct {

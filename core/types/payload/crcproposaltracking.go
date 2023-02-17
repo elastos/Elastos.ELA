@@ -206,12 +206,12 @@ func (p *CRCProposalTracking) DeserializeUnSigned(r io.Reader, version byte) err
 	if p.Stage, err = common.ReadUint8(r); err != nil {
 		return errors.New("failed to deserialize Stage")
 	}
-	if p.OwnerKey, err = common.ReadVarBytes(r, crypto.MaxMultiSignCodeLength,
+	if p.OwnerKey, err = common.ReadVarBytes(r, crypto.PublicKeyScriptLength,
 		"owner pubkey"); err != nil {
 		return errors.New("failed to deserialize OwnerKey")
 	}
 
-	if p.NewOwnerKey, err = common.ReadVarBytes(r, crypto.MaxMultiSignCodeLength,
+	if p.NewOwnerKey, err = common.ReadVarBytes(r, crypto.PublicKeyScriptLength,
 		"new owner pubkey"); err != nil {
 		return errors.New("failed to deserialize NewOwnerKey")
 	}

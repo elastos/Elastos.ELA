@@ -85,7 +85,7 @@ func (p *CRCProposalWithdraw) Deserialize(r io.Reader, version byte) error {
 	if err != nil {
 		return err
 	}
-	p.Signature, err = common.ReadVarBytes(r, crypto.MaxSignatureScriptLength, "sign")
+	p.Signature, err = common.ReadVarBytes(r, crypto.NegativeBigLength, "sign")
 	if err != nil {
 		return errors.New("[CRCProposalWithdraw], Signature deserialize failed")
 	}
@@ -99,7 +99,7 @@ func (p *CRCProposalWithdraw) DeserializeUnsigned(r io.Reader,
 	if err = p.ProposalHash.Deserialize(r); err != nil {
 		return err
 	}
-	ownerPublicKey, err := common.ReadVarBytes(r, crypto.MaxMultiSignCodeLength, "owner")
+	ownerPublicKey, err := common.ReadVarBytes(r, crypto.NegativeBigLength, "owner")
 	if err != nil {
 		return err
 	}

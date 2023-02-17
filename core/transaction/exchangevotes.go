@@ -138,5 +138,13 @@ func (t *ExchangeVotesTransaction) IsAllowedInPOWConsensus() bool {
 }
 
 func (t *ExchangeVotesTransaction) SpecialContextCheck() (result elaerr.ELAError, end bool) {
+
+	if t.parameters.BlockHeight < t.parameters.Config.VotesSchnorrStartHeight &&
+		contract.IsSchnorr(t.programs[0].Code) {
+		return elaerr.Simple(elaerr.ErrTxPayload,
+			errors.New(fmt.Sprintf("not support %s transaction "+
+				"before DPoSV2StartHeight", t.TxType().Name()))), true
+	}
+
 	return nil, false
 }

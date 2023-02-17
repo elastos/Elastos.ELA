@@ -248,6 +248,9 @@ func GetDefaultParams() *Configuration {
 		DPoSV2StartHeight:               2000000,              // todo complete me
 		StakePoolProgramHash:            StakePoolProgramHash, // todo complete me
 		SchnorrStartHeight:              2000000,              // todo complete me
+		ProducerSchnorrStartHeight:      2000000,              // todo complete me
+		CRSchnorrStartHeight:            2000000,              // todo complete me
+		VotesSchnorrStartHeight:         2000000,              // todo complete me
 		CrossChainMonitorStartHeight:    2000000,              // todo complete me
 		CrossChainMonitorInterval:       100,                  // todo complete me
 		HttpInfoPort:                    20333,
@@ -379,6 +382,9 @@ func (p *Configuration) TestNet() *Configuration {
 	p.HttpRestPort = 21334
 	p.HttpWsPort = 21335
 	p.HttpJsonPort = 21336
+	p.ProducerSchnorrStartHeight = 2000000 // todo complete me
+	p.CRSchnorrStartHeight = 2000000       // todo complete me
+	p.VotesSchnorrStartHeight = 2000000    // todo complete me
 
 	p.MemoryPoolTxMaximumStayHeight = 10
 
@@ -493,6 +499,9 @@ func (p *Configuration) RegNet() *Configuration {
 	p.HttpRestPort = 22334
 	p.HttpWsPort = 22335
 	p.HttpJsonPort = 22336
+	p.ProducerSchnorrStartHeight = 2000000 // todo complete me
+	p.CRSchnorrStartHeight = 2000000       // todo complete me
+	p.VotesSchnorrStartHeight = 2000000    // todo complete me
 
 	p.MemoryPoolTxMaximumStayHeight = 10
 
@@ -613,10 +622,16 @@ type Configuration struct {
 	// ExchangeVotes address of votes
 	StakePool            string `screw:"--stakepool" usage:"defines DPoSv2 ExchangeVotes address of votes"`
 	StakePoolProgramHash *common.Uint168
-	// SchnorrStartHeight indicates the start height of schnorr
-	SchnorrStartHeight uint32 `screw:"--schnorrstartheight" usage:"defines the start height to support schnorr transaction"`
 	// MemoryPoolTxMaximumStayHeight indicates the maximum time of txs can stay in memory pool before rebroadcast again
 	MemoryPoolTxMaximumStayHeight uint32 `screw:"--memorypooltxmaximumstayheight" usage:"defines the maximum stay time of memory pool tx before rebroadcast tx again"`
+	// SchnorrStartHeight indicates the start height of schnorr withdraw
+	SchnorrStartHeight uint32 `screw:"--schnorrstartheight" usage:"defines the start height to support schnorr withdraw transaction"`
+	// ProducerSchnorrStartHeight indicates the start height of producer related schnorr tx
+	ProducerSchnorrStartHeight uint32 `screw:"--producerschnorrstartheight" usage:"defines the start height to support producer related schnorr transaction"`
+	// CRSchnorrStartHeight indicates the start height of CR related schnorr tx
+	CRSchnorrStartHeight uint32 `screw:"--crschnorrstartheight" usage:"defines the start height to support CR related schnorr transaction"`
+	// VotesSchnorrStartHeight indicates the start height of votes related schnorr tx
+	VotesSchnorrStartHeight uint32 `screw:"--votesschnorrstartheight" usage:"defines the start height to support votes related schnorr transaction"`
 	// CrossChainMonitorStartHeight indicates the monitor height of cr cross chain arbitration
 	CrossChainMonitorStartHeight uint32 `screw:"--crosschainmonitorstartheight" usage:"defines the start height to monitor cr cross chain transaction"`
 	// CrossChainMonitorInterval indicates the interval value of cr cross chain arbitration

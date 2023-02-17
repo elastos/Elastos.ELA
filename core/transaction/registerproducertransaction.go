@@ -24,6 +24,30 @@ type RegisterProducerTransaction struct {
 	BaseTransaction
 }
 
+func (t *RegisterProducerTransaction) HeightVersionCheck() error {
+	blockHeight := t.parameters.BlockHeight
+	chainParams := t.parameters.Config
+
+	switch t.payloadVersion {
+	case payload.ProducerInfoVersion:
+	case payload.ProducerInfoDposV2Version:
+		if blockHeight < chainParams.DPoSV2StartHeight {
+			return errors.New(fmt.Sprintf("not support %s transaction "+
+				"before DPoSV2StartHeight", t.TxType().Name()))
+		}
+	case payload.ProducerInfoSchnorrVersion:
+		if blockHeight < chainParams.ProducerSchnorrStartHeight {
+			return errors.New(fmt.Sprintf("not support %s transaction "+
+				"before ProducerSchnorrStartHeight", t.TxType().Name()))
+		}
+	default:
+		return errors.New(fmt.Sprintf("invalid payload version, "+
+			"%s transaction", t.TxType().Name()))
+	}
+
+	return nil
+}
+
 func (t *RegisterProducerTransaction) CheckTransactionPayload() error {
 	switch t.Payload().(type) {
 	case *payload.ProducerInfo:

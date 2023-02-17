@@ -46,7 +46,6 @@ func (t *CancelProducerTransaction) HeightVersionCheck() error {
 				t.TxType().Name(), t.PayloadVersion()))
 		}
 	}
-
 	return nil
 }
 

@@ -882,7 +882,7 @@ func (p *CRCProposal) DeserializeUnsignedUpgradeCode(r io.Reader, version byte) 
 	if p.CategoryData, err = common.ReadVarString(r); err != nil {
 		return errors.New("[CRCProposal], Category data deserialize failed")
 	}
-	if p.OwnerKey, err = common.ReadVarBytes(r, crypto.MaxMultiSignCodeLength, "owner"); err != nil {
+	if p.OwnerKey, err = common.ReadVarBytes(r, crypto.NegativeBigLength, "owner"); err != nil {
 		return errors.New("failed to deserialize OwnerKey")
 	}
 	if err = p.DraftHash.Deserialize(r); err != nil {
@@ -904,7 +904,7 @@ func (p *CRCProposal) DeserializeUnSignedNormalOrELIP(r io.Reader, version byte)
 		return errors.New("[CRCProposal], Category data deserialize failed")
 	}
 
-	p.OwnerKey, err = common.ReadVarBytes(r, crypto.MaxMultiSignCodeLength, "owner")
+	p.OwnerKey, err = common.ReadVarBytes(r, crypto.NegativeBigLength, "owner")
 	if err != nil {
 		return errors.New("failed to deserialize OwnerKey")
 	}
@@ -943,7 +943,7 @@ func (p *CRCProposal) DeserializeUnSignedChangeProposalOwner(r io.Reader, versio
 	if p.CategoryData, err = common.ReadVarString(r); err != nil {
 		return errors.New("[CRCProposal], Category data deserialize failed")
 	}
-	if p.OwnerKey, err = common.ReadVarBytes(r, crypto.MaxMultiSignCodeLength, "owner"); err != nil {
+	if p.OwnerKey, err = common.ReadVarBytes(r, crypto.NegativeBigLength, "owner"); err != nil {
 		return errors.New("failed to deserialize OwnerKey")
 	}
 	if err = p.DraftHash.Deserialize(r); err != nil {
@@ -961,7 +961,7 @@ func (p *CRCProposal) DeserializeUnSignedChangeProposalOwner(r io.Reader, versio
 	if err = p.NewRecipient.Deserialize(r); err != nil {
 		return errors.New("failed to deserialize Recipient")
 	}
-	if p.NewOwnerKey, err = common.ReadVarBytes(r, crypto.MaxMultiSignCodeLength, "owner"); err != nil {
+	if p.NewOwnerKey, err = common.ReadVarBytes(r, crypto.NegativeBigLength, "owner"); err != nil {
 		return errors.New("failed to deserialize NewOwnerKey")
 	}
 	return nil
@@ -975,7 +975,7 @@ func (p *CRCProposal) DeserializeUnsignedRegisterSideChain(r io.Reader, version 
 		return errors.New("[CRCProposal], Category data deserialize failed")
 	}
 
-	p.OwnerKey, err = common.ReadVarBytes(r, crypto.MaxMultiSignCodeLength, "owner")
+	p.OwnerKey, err = common.ReadVarBytes(r, crypto.NegativeBigLength, "owner")
 	if err != nil {
 		return errors.New("failed to deserialize OwnerKey")
 	}
@@ -1006,7 +1006,7 @@ func (p *CRCProposal) DeserializeUnSignedCloseProposal(r io.Reader, version byte
 		return errors.New("[CRCProposal], Category data deserialize failed")
 	}
 
-	p.OwnerKey, err = common.ReadVarBytes(r, crypto.MaxMultiSignCodeLength, "owner")
+	p.OwnerKey, err = common.ReadVarBytes(r, crypto.NegativeBigLength, "owner")
 	if err != nil {
 		return errors.New("failed to deserialize OwnerKey")
 	}
@@ -1035,7 +1035,7 @@ func (p *CRCProposal) DeserializeUnSignedChangeCustomIDFee(r io.Reader, version 
 		return errors.New("[CRCProposal], Category data deserialize failed")
 	}
 
-	p.OwnerKey, err = common.ReadVarBytes(r, crypto.MaxMultiSignCodeLength, "owner")
+	p.OwnerKey, err = common.ReadVarBytes(r, crypto.NegativeBigLength, "owner")
 	if err != nil {
 		return errors.New("failed to deserialize OwnerKey")
 	}
@@ -1065,7 +1065,7 @@ func (p *CRCProposal) DeserializeUnSignedReceivedCustomID(r io.Reader, version b
 		return errors.New("[CRCProposal], Category data deserialize failed")
 	}
 
-	p.OwnerKey, err = common.ReadVarBytes(r, crypto.MaxMultiSignCodeLength, "owner")
+	p.OwnerKey, err = common.ReadVarBytes(r, crypto.NegativeBigLength, "owner")
 	if err != nil {
 		return errors.New("failed to deserialize OwnerKey")
 	}
@@ -1109,7 +1109,7 @@ func (p *CRCProposal) DeserializeUnSignedReservedCustomID(r io.Reader, version b
 		return errors.New("[CRCProposal], Category data deserialize failed")
 	}
 
-	p.OwnerKey, err = common.ReadVarBytes(r, crypto.MaxMultiSignCodeLength, "owner")
+	p.OwnerKey, err = common.ReadVarBytes(r, crypto.NegativeBigLength, "owner")
 	if err != nil {
 		return errors.New("failed to deserialize OwnerKey")
 	}
@@ -1148,7 +1148,7 @@ func (p *CRCProposal) DeserializeUnSignedChangeSecretaryGeneral(r io.Reader, ver
 		return errors.New("[CRCProposal], Category data deserialize failed")
 	}
 
-	p.OwnerKey, err = common.ReadVarBytes(r, crypto.MaxMultiSignCodeLength, "owner")
+	p.OwnerKey, err = common.ReadVarBytes(r, crypto.NegativeBigLength, "owner")
 	if err != nil {
 		return errors.New("failed to deserialize OwnerKey")
 	}
@@ -1572,7 +1572,7 @@ func (p *CRCProposalInfo) Deserialize(r io.Reader, version byte) error {
 		return errors.New("failed to deserialize CategoryData")
 	}
 
-	p.OwnerPublicKey, err = common.ReadVarBytes(r, crypto.MaxMultiSignCodeLength, "owner")
+	p.OwnerPublicKey, err = common.ReadVarBytes(r, crypto.NegativeBigLength, "owner")
 	if err != nil {
 		return errors.New("failed to deserialize OwnerKey")
 	}
@@ -1644,7 +1644,7 @@ func (p *CRCProposalInfo) Deserialize(r io.Reader, version byte) error {
 		return errors.New("failed to deserialize Recipient")
 	}
 
-	if p.NewOwnerPublicKey, err = common.ReadVarBytes(r, crypto.MaxMultiSignCodeLength, "owner"); err != nil {
+	if p.NewOwnerPublicKey, err = common.ReadVarBytes(r, crypto.NegativeBigLength, "owner"); err != nil {
 		return errors.New("failed to deserialize NewOwnerKey")
 	}
 

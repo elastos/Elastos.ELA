@@ -12,12 +12,12 @@ import (
 	"crypto/sha256"
 	"errors"
 	"fmt"
-	"github.com/elastos/Elastos.ELA/core/contract/program"
 	"io"
 	"math/big"
 	"sort"
 
 	"github.com/elastos/Elastos.ELA/common"
+	"github.com/elastos/Elastos.ELA/core/contract/program"
 	"github.com/elastos/Elastos.ELA/crypto/ecies"
 )
 

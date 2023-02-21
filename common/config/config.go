@@ -248,6 +248,7 @@ func GetDefaultParams() *Configuration {
 		DPoSV2StartHeight:               2000000,              // todo complete me
 		StakePoolProgramHash:            StakePoolProgramHash, // todo complete me
 		SchnorrStartHeight:              2000000,              // todo complete me
+		NormalSchnorrStartHeight:        2000000,              // todo complete me
 		ProducerSchnorrStartHeight:      2000000,              // todo complete me
 		CRSchnorrStartHeight:            2000000,              // todo complete me
 		VotesSchnorrStartHeight:         2000000,              // todo complete me
@@ -372,6 +373,7 @@ func (p *Configuration) TestNet() *Configuration {
 	p.DPoSConfiguration.DPoSV2MaxVotesLockTime = 720000
 	p.CRConfiguration.RealWithdrawSingleFee = 50000
 	p.SchnorrStartHeight = 965800 + 720*10
+	p.NormalSchnorrStartHeight = 965800 + 720*10
 	p.DPoSConfiguration.CRDPoSNodeHotFixHeight = 0
 	p.CrossChainMonitorStartHeight = 965800 + 720*3
 	p.CrossChainMonitorInterval = 12
@@ -490,6 +492,7 @@ func (p *Configuration) RegNet() *Configuration {
 	p.DPoSConfiguration.DPoSV2MaxVotesLockTime = 720000
 	p.CRConfiguration.RealWithdrawSingleFee = 10000
 	p.SchnorrStartHeight = 875544 + 720*5
+	p.NormalSchnorrStartHeight = 875544 + 720*5
 	p.DPoSConfiguration.CRDPoSNodeHotFixHeight = 0
 	p.CrossChainMonitorStartHeight = 875544 + 720*2
 	p.CrossChainMonitorInterval = 12
@@ -626,6 +629,8 @@ type Configuration struct {
 	MemoryPoolTxMaximumStayHeight uint32 `screw:"--memorypooltxmaximumstayheight" usage:"defines the maximum stay time of memory pool tx before rebroadcast tx again"`
 	// SchnorrStartHeight indicates the start height of schnorr withdraw
 	SchnorrStartHeight uint32 `screw:"--schnorrstartheight" usage:"defines the start height to support schnorr withdraw transaction"`
+	// NormalSchnorrStartHeight indicates the start height of schnorr transfer asset tx
+	NormalSchnorrStartHeight uint32 `screw:"--normalschnorrstartheight" usage:"defines the start height to support schnorr transfer asset transaction"`
 	// ProducerSchnorrStartHeight indicates the start height of producer related schnorr tx
 	ProducerSchnorrStartHeight uint32 `screw:"--producerschnorrstartheight" usage:"defines the start height to support producer related schnorr transaction"`
 	// CRSchnorrStartHeight indicates the start height of CR related schnorr tx

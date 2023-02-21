@@ -14,7 +14,6 @@ import (
 
 	"github.com/elastos/Elastos.ELA/blockchain"
 	"github.com/elastos/Elastos.ELA/common"
-	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/core"
 	"github.com/elastos/Elastos.ELA/core/contract"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
@@ -279,11 +278,11 @@ func (t *WithdrawFromSideChainTransaction) checkWithdrawFromSideChainTransaction
 	}
 
 	currentHeight := t.parameters.BlockHeight
-	if currentHeight <= config.Parameters.CRConfiguration.CRClaimDPOSNodeStartHeight {
+	if currentHeight <= t.parameters.Config.CRConfiguration.CRClaimDPOSNodeStartHeight {
 		if len(pld.Signers) < (int(t.parameters.Config.CRConfiguration.MemberCount)*2/3 + 1) {
 			return errors.New("Signers number must be bigger than 2/3+1 CRMemberCount")
 		}
-	} else if currentHeight < config.Parameters.DPoSConfiguration.DPOSNodeCrossChainHeight {
+	} else if currentHeight < t.parameters.Config.DPoSConfiguration.DPOSNodeCrossChainHeight {
 		if len(pld.Signers) < (int(t.parameters.Config.CRConfiguration.MemberCount) * 2 / 3) {
 			return errors.New("Signers number must be bigger than 2/3 CRMemberCount")
 		}

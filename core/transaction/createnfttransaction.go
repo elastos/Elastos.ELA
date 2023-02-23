@@ -85,6 +85,7 @@ func (t *CreateNFTTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
 	producers := state.GetDposV2Producers()
 	var existVote bool
 	var nftAmount common.Fixed64
+	var votesStakeAddress common.Uint168
 	for _, p := range producers {
 		for stakeAddress, votesInfo := range p.GetAllDetailedDPoSV2Votes() {
 			for referKey, voteInfo := range votesInfo {
@@ -98,6 +99,7 @@ func (t *CreateNFTTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
 					log.Info("create NFT, vote information:", voteInfo)
 					existVote = true
 					nftAmount = voteInfo.Info[0].Votes
+					votesStakeAddress = stakeAddress
 				}
 			}
 		}
@@ -117,6 +119,9 @@ func (t *CreateNFTTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
 	}
 	if stakeAddress != pld.StakeAddress {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("stake address not from code")), true
+	}
+	if !votesStakeAddress.IsEqual(*stakeProgramHash) {
+		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid stake address from NFT ID")), true
 	}
 
 	// nft has not been created before

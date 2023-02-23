@@ -149,17 +149,37 @@ func (t *CreateNFTTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
 			}
 		}
 	}
-	if nftAmount < totalVoteRights-usedCRVotes ||
-		nftAmount < totalVoteRights-usedCRImpeachmentVotes ||
-		nftAmount < totalVoteRights-usedCRProposalVotes {
-		log.Errorf("vote rights is not enough, nft amount:%d, "+
-			"total vote rights:%d, used CR votes:%d, "+
-			"used CR impeachment votes:%d, used CR proposal votes:%d",
+	var usedDPoSVotes common.Fixed64
+	if udv := state.UsedDposVotes[*stakeProgramHash]; udv != nil {
+		for _, v := range udv {
+			if usedDPoSVotes < v.Votes {
+				usedDPoSVotes = v.Votes
+			}
+		}
+	}
+
+	blockHeight := t.parameters.BlockHeight
+	if blockHeight < state.DPoSV2ActiveHeight {
+		if nftAmount > totalVoteRights-usedDPoSVotes {
+			log.Errorf("vote rights is not enough, nft amount:%s, "+
+				"total vote rights:%s, used DPoS 1.0 votes:%s",
+				nftAmount, totalVoteRights, usedDPoSVotes)
+			return elaerr.Simple(elaerr.ErrTxPayload,
+				errors.New("vote rights is not enough")), true
+		}
+	}
+
+	if nftAmount > totalVoteRights-usedCRVotes ||
+		nftAmount > totalVoteRights-usedCRImpeachmentVotes ||
+		nftAmount > totalVoteRights-usedCRProposalVotes {
+		log.Errorf("vote rights is not enough, nft amount:%s, "+
+			"total vote rights:%s, used CR votes:%s, "+
+			"used CR impeachment votes:%s, used CR proposal votes:%s",
 			nftAmount, totalVoteRights, usedCRVotes,
 			usedCRImpeachmentVotes, usedCRProposalVotes)
 		return elaerr.Simple(elaerr.ErrTxPayload,
 			errors.New("vote rights is not enough")), true
 	}
 
-	return elaerr.Simple(elaerr.ErrTxPayload, errors.New("the NFT ID does not exist")), true
+	return nil, false
 }

@@ -3669,8 +3669,9 @@ func getPayloadInfo(p interfaces.Payload, payloadVersion byte) PayloadInfo {
 
 	case *payload.CreateNFT:
 		obj := &CreateNFTInfo{
-			ID:           object.ID.String(),
-			StakeAddress: object.StakeAddress,
+			ID:               object.ID.String(),
+			StakeAddress:     object.StakeAddress,
+			GenesisBlockHash: object.GenesisBlockHash.String(),
 		}
 		return obj
 

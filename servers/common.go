@@ -598,6 +598,8 @@ type CreateNFTInfo struct {
 	ID string
 	// side chain format address.
 	StakeAddress string
+	// side chain genesis block address
+	GenesisBlockHash string
 }
 
 type DestroyNFTInfo struct {

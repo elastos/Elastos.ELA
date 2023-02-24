@@ -51,6 +51,7 @@ const (
 	slotExchangeVotes                           = "ExchangeVotes"
 	slotDposV2ClaimReward                       = "DposV2ClaimReward"
 	slotCreateNFT                               = "createnft"
+	slotCreateNFTStakeAddr                      = "createnftstakeaddr"
 	slotNFTDestroyFromSideChainHash             = "NFTDestroyFromSideChainHash"
 )
 
@@ -591,6 +592,15 @@ func newConflictManager() conflictManager {
 					keyTypeFuncPair{
 						Type: common2.CreateNFT,
 						Func: hashCreateNFTID,
+					},
+				),
+			},
+			{
+				name: slotCreateNFTStakeAddr,
+				slot: newConflictSlot(str,
+					keyTypeFuncPair{
+						Type: common2.CreateNFT,
+						Func: strCreateNFTID,
 					},
 				),
 			},

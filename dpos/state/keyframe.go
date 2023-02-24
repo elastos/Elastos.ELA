@@ -913,6 +913,7 @@ func NewStateKeyFrame() *StateKeyFrame {
 		DposV2EffectedProducers:   make(map[string]*Producer),
 		Votes:                     make(map[string]struct{}),
 		DposV2VoteRights:          make(map[common.Uint168]common.Fixed64),
+		NFTIDGenesisBlockHashMap:  make(map[common.Uint256]common.Uint256),
 		UsedDposVotes:             make(map[common.Uint168][]payload.VotesWithLockTime),
 		UsedDposV2Votes:           make(map[common.Uint168]common.Fixed64),
 		DepositOutputs:            make(map[string]common.Fixed64),

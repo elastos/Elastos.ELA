@@ -35,11 +35,6 @@ func (t *CreateNFTTransaction) IsAllowedInPOWConsensus() bool {
 }
 
 func (t *CreateNFTTransaction) CheckAttributeProgram() error {
-
-	if t.PayloadVersion() == payload.CreateNFTVersion {
-		return nil
-	}
-
 	// Check attributes
 	for _, attr := range t.Attributes() {
 		if !common2.IsValidAttributeType(attr.Usage) {

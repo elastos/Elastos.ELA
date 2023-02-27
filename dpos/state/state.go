@@ -2593,12 +2593,17 @@ func (s *State) processCreateNFT(tx interfaces.Transaction, height uint32) {
 						if s.DposV2VoteRights[stakeAddress] == 0 {
 							delete(s.DposV2VoteRights, stakeAddress)
 						}
+						s.UsedDposV2Votes[stakeAddress] -= nftAmount
+						if s.UsedDposV2Votes[stakeAddress] == 0 {
+							delete(s.UsedDposV2Votes, stakeAddress)
+						}
 					}, func() {
 						producer.detailedDPoSV2Votes[*nftStakeAddress][referKey] = detailVoteInfo
 						delete(producer.detailedDPoSV2Votes[*nftStakeAddress], referKey)
 						producer.detailedDPoSV2Votes[stakeAddress][nftPayload.ID] = detailVoteInfo
 						// process total vote rights
 						s.DposV2VoteRights[stakeAddress] += nftAmount
+						s.UsedDposV2Votes[stakeAddress] += nftAmount
 					})
 					return
 				}
@@ -2767,6 +2772,7 @@ func (s *State) processNFTDestroyFromSideChain(tx interfaces.Transaction, height
 						s.History.Append(height, func() {
 							//process total vote rights
 							s.DposV2VoteRights[newOwnerStakeAddress] += nftAmount
+							s.UsedDposV2Votes[newOwnerStakeAddress] += nftAmount
 							//remove nft stake address for future create new nft .
 							delete(producer.detailedDPoSV2Votes[stakeAddress], ID)
 							s.DPoSV2RewardInfo[strOwnerStakeAddress] += s.DPoSV2RewardInfo[strNFTStakeAddress]
@@ -2782,6 +2788,10 @@ func (s *State) processNFTDestroyFromSideChain(tx interfaces.Transaction, height
 							s.DposV2VoteRights[newOwnerStakeAddress] -= nftAmount
 							if s.DposV2VoteRights[newOwnerStakeAddress] == 0 {
 								delete(s.DposV2VoteRights, newOwnerStakeAddress)
+							}
+							s.UsedDposV2Votes[newOwnerStakeAddress] -= nftAmount
+							if s.UsedDposV2Votes[newOwnerStakeAddress] == 0 {
+								delete(s.UsedDposV2Votes, newOwnerStakeAddress)
 							}
 							//add detailVoteInfo to  nft stake address
 							if len(producer.detailedDPoSV2Votes[stakeAddress]) == 0 {

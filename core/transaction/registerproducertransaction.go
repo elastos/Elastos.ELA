@@ -28,13 +28,29 @@ func (t *RegisterProducerTransaction) HeightVersionCheck() error {
 	blockHeight := t.parameters.BlockHeight
 	chainParams := t.parameters.Config
 
-	if blockHeight < chainParams.SupportMultiCodeHeight {
-		if t.PayloadVersion() == payload.ProducerInfoMultiVersion {
+	switch t.payloadVersion {
+	case payload.ProducerInfoVersion:
+	case payload.ProducerInfoDposV2Version:
+		if blockHeight < chainParams.DPoSV2StartHeight {
+			return errors.New(fmt.Sprintf("not support %s transaction "+
+				"before DPoSV2StartHeight", t.TxType().Name()))
+		}
+	case payload.ProducerInfoSchnorrVersion:
+		if blockHeight < chainParams.ProducerSchnorrStartHeight {
+			return errors.New(fmt.Sprintf("not support %s transaction "+
+				"before ProducerSchnorrStartHeight", t.TxType().Name()))
+		}
+	case payload.ProducerInfoMultiVersion:
+		if blockHeight < chainParams.SupportMultiCodeHeight {
 			return errors.New(fmt.Sprintf("not support %s transaction "+
 				"with payload version %d before SupportMultiCodeHeight",
 				t.TxType().Name(), t.PayloadVersion()))
 		}
+	default:
+		return errors.New(fmt.Sprintf("invalid payload version, "+
+			"%s transaction", t.TxType().Name()))
 	}
+
 	return nil
 }
 

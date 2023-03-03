@@ -256,7 +256,7 @@ func (s *txValidatorTestSuite) TestCheckTxHeightVersion() {
 		BlockChain:  s.Chain,
 	})
 	err = registerCR2.HeightVersionCheck()
-	s.EqualError(err, "not support RegisterCR transaction before CRVotingStartHeight")
+	s.EqualError(err, "not support RegisterCR transaction before RegisterCRByDIDHeight")
 	registerCR2.SetParameters(&transaction.TransactionParameters{
 		Transaction: registerCR2,
 		BlockHeight: blockHeight3,

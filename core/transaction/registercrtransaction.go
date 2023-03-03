@@ -39,11 +39,25 @@ func (t *RegisterCRTransaction) HeightVersionCheck() error {
 	blockHeight := t.parameters.BlockHeight
 	chainParams := t.parameters.Config
 
-	if blockHeight < chainParams.CRConfiguration.CRVotingStartHeight ||
-		(blockHeight < chainParams.CRConfiguration.RegisterCRByDIDHeight &&
-			t.PayloadVersion() != payload.CRInfoVersion) {
-		return errors.New(fmt.Sprintf("not support %s transaction "+
-			"before CRVotingStartHeight", t.TxType().Name()))
+	switch t.payloadVersion {
+	case payload.CRInfoVersion:
+		if blockHeight < chainParams.CRConfiguration.CRVotingStartHeight {
+			return errors.New(fmt.Sprintf("not support %s transaction "+
+				"before CRVotingStartHeight", t.TxType().Name()))
+		}
+	case payload.CRInfoDIDVersion:
+		if blockHeight < chainParams.CRConfiguration.RegisterCRByDIDHeight {
+			return errors.New(fmt.Sprintf("not support %s transaction "+
+				"before RegisterCRByDIDHeight", t.TxType().Name()))
+		}
+	case payload.CRInfoSchnorrVersion:
+		if blockHeight < chainParams.CRSchnorrStartHeight {
+			return errors.New(fmt.Sprintf("not support %s transaction "+
+				"before CRSchnorrStartHeight", t.TxType().Name()))
+		}
+	default:
+		return errors.New(fmt.Sprintf("invalid payload version, "+
+			"%s transaction", t.TxType().Name()))
 	}
 
 	if blockHeight < chainParams.DPoSConfiguration.NFTStartHeight {

@@ -503,18 +503,18 @@ func GetAllDetailedDPoSV2Votes(params Params) map[string]interface{} {
 		if len(dposv2Votes) == 0 {
 			continue
 		}
-		for _, v := range dposv2Votes {
+		for voterProgramHash, v := range dposv2Votes {
 			for k1, v1 := range v {
-				address, _ := v1.StakeProgramHash.ToAddress()
+				voterAddress, _ := voterProgramHash.ToAddress()
 				//get stakeAddress all dposv2 votes
-				if stakeAddress != "" && stakeAddress != address {
+				if stakeAddress != "" && stakeAddress != voterAddress {
 					continue
 				}
 				info := &detailedVoteInfo{
 					ProducerOwnerKey: hex.EncodeToString(p.OwnerPublicKey()),
 					ProducerNodeKey:  hex.EncodeToString(p.NodePublicKey()),
 					ReferKey:         common.ToReversedString(k1),
-					StakeAddress:     address,
+					StakeAddress:     voterAddress,
 					TransactionHash:  common.ToReversedString(v1.TransactionHash),
 					BlockHeight:      v1.BlockHeight,
 					PayloadVersion:   v1.PayloadVersion,
@@ -3688,8 +3688,9 @@ func getPayloadInfo(p interfaces.Payload, payloadVersion byte) PayloadInfo {
 
 	case *payload.CreateNFT:
 		obj := &CreateNFTInfo{
-			ID:           object.ID.String(),
-			StakeAddress: object.StakeAddress,
+			ID:               object.ID.String(),
+			StakeAddress:     object.StakeAddress,
+			GenesisBlockHash: object.GenesisBlockHash.String(),
 		}
 		return obj
 

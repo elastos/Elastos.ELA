@@ -332,6 +332,25 @@ func strReturnVotes(tx interfaces.Transaction) (interface{}, error) {
 	return *stakeProgramHash, nil
 }
 
+func strCreateNFT(tx interfaces.Transaction) (interface{}, error) {
+	_, ok := tx.Payload().(*payload.CreateNFT)
+	if !ok {
+		return nil, fmt.Errorf("invlid create NFT payload, tx:%s", tx.Hash())
+	}
+
+	if len(tx.Programs()) < 1 {
+		return nil, fmt.Errorf("invlid create NFT program, tx:%s", tx.Hash())
+	}
+
+	code := tx.Programs()[0].Code
+	ct, err := contract.CreateStakeContractByCode(code)
+	if err != nil {
+		return nil, fmt.Errorf("invlid create NFT code, tx:%s", tx.Hash())
+	}
+	stakeProgramHash := ct.ToProgramHash()
+	return *stakeProgramHash, nil
+}
+
 func programHashDposV2ClaimReward(tx interfaces.Transaction) (interface{}, error) {
 	pld, ok := tx.Payload().(*payload.DPoSV2ClaimReward)
 	if !ok {

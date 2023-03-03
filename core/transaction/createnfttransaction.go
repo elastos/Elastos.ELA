@@ -35,11 +35,6 @@ func (t *CreateNFTTransaction) IsAllowedInPOWConsensus() bool {
 }
 
 func (t *CreateNFTTransaction) CheckAttributeProgram() error {
-
-	if t.PayloadVersion() == payload.CreateNFTVersion {
-		return nil
-	}
-
 	// Check attributes
 	for _, attr := range t.Attributes() {
 		if !common2.IsValidAttributeType(attr.Usage) {
@@ -85,6 +80,7 @@ func (t *CreateNFTTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
 	producers := state.GetDposV2Producers()
 	var existVote bool
 	var nftAmount common.Fixed64
+	var votesStakeAddress common.Uint168
 	for _, p := range producers {
 		for stakeAddress, votesInfo := range p.GetAllDetailedDPoSV2Votes() {
 			for referKey, voteInfo := range votesInfo {
@@ -98,6 +94,7 @@ func (t *CreateNFTTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
 					log.Info("create NFT, vote information:", voteInfo)
 					existVote = true
 					nftAmount = voteInfo.Info[0].Votes
+					votesStakeAddress = stakeAddress
 				}
 			}
 		}
@@ -117,6 +114,9 @@ func (t *CreateNFTTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
 	}
 	if stakeAddress != pld.StakeAddress {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("stake address not from code")), true
+	}
+	if !votesStakeAddress.IsEqual(*stakeProgramHash) {
+		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid stake address from NFT ID")), true
 	}
 
 	// nft has not been created before
@@ -149,17 +149,37 @@ func (t *CreateNFTTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
 			}
 		}
 	}
-	if nftAmount < totalVoteRights-usedCRVotes ||
-		nftAmount < totalVoteRights-usedCRImpeachmentVotes ||
-		nftAmount < totalVoteRights-usedCRProposalVotes {
-		log.Errorf("vote rights is not enough, nft amount:%d, "+
-			"total vote rights:%d, used CR votes:%d, "+
-			"used CR impeachment votes:%d, used CR proposal votes:%d",
+	var usedDPoSVotes common.Fixed64
+	if udv := state.UsedDposVotes[*stakeProgramHash]; udv != nil {
+		for _, v := range udv {
+			if usedDPoSVotes < v.Votes {
+				usedDPoSVotes = v.Votes
+			}
+		}
+	}
+
+	blockHeight := t.parameters.BlockHeight
+	if blockHeight < state.DPoSV2ActiveHeight {
+		if nftAmount > totalVoteRights-usedDPoSVotes {
+			log.Errorf("vote rights is not enough, nft amount:%s, "+
+				"total vote rights:%s, used DPoS 1.0 votes:%s",
+				nftAmount, totalVoteRights, usedDPoSVotes)
+			return elaerr.Simple(elaerr.ErrTxPayload,
+				errors.New("vote rights is not enough")), true
+		}
+	}
+
+	if nftAmount > totalVoteRights-usedCRVotes ||
+		nftAmount > totalVoteRights-usedCRImpeachmentVotes ||
+		nftAmount > totalVoteRights-usedCRProposalVotes {
+		log.Errorf("vote rights is not enough, nft amount:%s, "+
+			"total vote rights:%s, used CR votes:%s, "+
+			"used CR impeachment votes:%s, used CR proposal votes:%s",
 			nftAmount, totalVoteRights, usedCRVotes,
 			usedCRImpeachmentVotes, usedCRProposalVotes)
 		return elaerr.Simple(elaerr.ErrTxPayload,
 			errors.New("vote rights is not enough")), true
 	}
 
-	return elaerr.Simple(elaerr.ErrTxPayload, errors.New("the NFT ID does not exist")), true
+	return nil, false
 }

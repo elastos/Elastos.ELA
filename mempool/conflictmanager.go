@@ -475,6 +475,10 @@ func newConflictManager() conflictManager {
 						Type: common2.ReturnVotes,
 						Func: strReturnVotes,
 					},
+					keyTypeFuncPair{
+						Type: common2.CreateNFT,
+						Func: strCreateNFT,
+					},
 				),
 			},
 			// DposV2ClaimReward

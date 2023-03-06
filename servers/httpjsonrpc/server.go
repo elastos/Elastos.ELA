@@ -127,6 +127,7 @@ func StartRPCServer() {
 
 	//nft
 	mainMux["getcandestroynftids"] = GetCanDestroynftIDs
+	mainMux["getnftinfo"] = GetNFTInfo
 
 	var handler http.Handler
 	rpcServeMux := http.NewServeMux()

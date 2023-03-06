@@ -591,6 +591,55 @@ func GetProducerInfo(params Params) map[string]interface{} {
 	return ResponsePack(Success, producerInfo)
 }
 
+func GetNFTInfo(params Params) map[string]interface{} {
+	idParam, ok := params.String("id")
+	if !ok {
+		return ResponsePack(InvalidParams, "need id in an array!")
+	}
+
+	idBytes, err := common.HexStringToBytes(idParam)
+	if err != nil {
+		return ResponsePack(InvalidParams, "")
+	}
+	nftID, err := common.Uint256FromBytes(idBytes)
+	if err != nil {
+		return ResponsePack(InvalidParams, "")
+	}
+
+	type nftInfo struct {
+		ID          string `json:"ID"`
+		StartHeight uint32 `json:"startheight"`
+		EndHeight   uint32 `json:"endheight"`
+		Votes       string `json:"votes"`
+		VotesRight  string `json:"votesright"`
+		Rewards     string `json:"rewards"`
+	}
+
+	var info nftInfo
+	info.ID = idParam
+
+	producers := Chain.GetState().GetAllProducers()
+	for _, producer := range producers {
+		for _, votesInfo := range producer.GetAllDetailedDPoSV2Votes() {
+			for referKey, detailVoteInfo := range votesInfo {
+				if referKey.IsEqual(*nftID) {
+					ct, _ := contract.CreateStakeContractByCode(referKey.Bytes())
+					nftStakeAddress, _ := ct.ToProgramHash().ToAddress()
+					info.StartHeight = detailVoteInfo.BlockHeight
+					info.EndHeight = detailVoteInfo.Info[0].LockTime
+					info.Votes = detailVoteInfo.Info[0].Votes.String()
+					info.VotesRight = common.Fixed64(producer.GetNFTVotesRight(nftID)).String()
+					info.Rewards = Chain.GetState().DPoSV2RewardInfo[nftStakeAddress].String()
+					return ResponsePack(Success, info)
+
+				}
+			}
+		}
+	}
+	return ResponsePack(InvalidParams, "wrong nft id, not found it!")
+
+}
+
 func GetCanDestroynftIDs(params Params) map[string]interface{} {
 	idsParam, ok := params.ArrayString("ids")
 	if !ok {

@@ -245,6 +245,26 @@ func (p *Producer) GetTotalDPoSV2VoteRights() float64 {
 	return result
 }
 
+func (p *Producer) GetNFTVotesRight(nftID *common.Uint256) float64 {
+	var result float64
+out:
+	for _, sVoteDetail := range p.detailedDPoSV2Votes {
+		var totalN float64
+		for referKey, votes := range sVoteDetail {
+			if referKey.IsEqual(*nftID) {
+				weightF := math.Log10(float64(votes.Info[0].LockTime-votes.BlockHeight) / 7200 * 10)
+				N := common.Fixed64(float64(votes.Info[0].Votes) * weightF)
+				totalN += float64(N)
+				break out
+			}
+
+		}
+		result += totalN
+	}
+
+	return result
+}
+
 func (p *Producer) SetInfo(i payload.ProducerInfo) {
 	p.info = i
 }

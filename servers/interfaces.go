@@ -3669,7 +3669,7 @@ func getPayloadInfo(p interfaces.Payload, payloadVersion byte) PayloadInfo {
 
 	case *payload.CreateNFT:
 		obj := &CreateNFTInfo{
-			ID:               object.ID.String(),
+			ID:               object.ID.ReversedString(),
 			StakeAddress:     object.StakeAddress,
 			GenesisBlockHash: object.GenesisBlockHash.String(),
 		}
@@ -3679,7 +3679,7 @@ func getPayloadInfo(p interfaces.Payload, payloadVersion byte) PayloadInfo {
 		nftIDs := make([]string, 0)
 		nftStatkeAddresses := make([]string, 0)
 		for _, id := range object.IDs {
-			nftIDs = append(nftIDs, id.String())
+			nftIDs = append(nftIDs, id.ReversedString())
 		}
 		for _, sa := range object.OwnerStakeAddresses {
 			addr, _ := sa.ToAddress()

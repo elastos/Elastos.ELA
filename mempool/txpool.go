@@ -217,7 +217,7 @@ func (mp *TxPool) ResendOutdatedTransactions(block *Block) {
 	}
 
 	if len(txs) != 0 {
-		go events.Notify(events.ETResendOutdatedTxToTxPool, txs)
+		go events.Notify(events.ETOutdatedTxRelay, txs)
 	}
 	mp.Unlock()
 }

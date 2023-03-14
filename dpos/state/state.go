@@ -24,14 +24,12 @@ import (
 	"github.com/elastos/Elastos.ELA/core/types/outputpayload"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/cr/state"
-	"github.com/elastos/Elastos.ELA/crypto"
 	msg2 "github.com/elastos/Elastos.ELA/dpos/p2p/msg"
 	elaerr "github.com/elastos/Elastos.ELA/errors"
 	"github.com/elastos/Elastos.ELA/events"
 	"github.com/elastos/Elastos.ELA/p2p"
 	"github.com/elastos/Elastos.ELA/p2p/msg"
 	"github.com/elastos/Elastos.ELA/utils"
-	"github.com/elastos/Elastos.ELA/vm"
 )
 
 // ProducerState represents the state of a producer.
@@ -1996,14 +1994,6 @@ func (s *State) processVoting(tx interfaces.Transaction, height uint32) {
 func (s *State) processVotingContent(tx interfaces.Transaction, height uint32) {
 	// get stake address(program hash)
 	code := tx.Programs()[0].Code
-	signType, _ := crypto.GetScriptType(code)
-	var prefixType byte
-	if signType == vm.CHECKSIG {
-		prefixType = byte(contract.PrefixStandard)
-	} else if signType == vm.CHECKMULTISIG {
-		prefixType = byte(contract.PrefixMultiSig)
-	}
-
 	ct, _ := contract.CreateStakeContractByCode(code)
 	stakeAddress := ct.ToProgramHash()
 	pld := tx.Payload().(*payload.Voting)
@@ -2075,7 +2065,6 @@ func (s *State) processVotingContent(tx interfaces.Transaction, height uint32) {
 					PayloadVersion:   tx.PayloadVersion(),
 					VoteType:         content.VoteType,
 					Info:             []payload.VotesWithLockTime{voteInfo},
-					PrefixType:       prefixType,
 				}
 				s.History.Append(height, func() {
 					if producer.detailedDPoSV2Votes == nil {
@@ -2110,14 +2099,6 @@ func (s *State) processRenewalVotingContent(tx interfaces.Transaction, height ui
 	code := tx.Programs()[0].Code
 	ct, _ := contract.CreateStakeContractByCode(code)
 	stakeAddress := ct.ToProgramHash()
-	signType, _ := crypto.GetScriptType(code)
-	var prefixType byte
-	if signType == vm.CHECKSIG {
-		prefixType = byte(contract.PrefixStandard)
-	} else if signType == vm.CHECKMULTISIG {
-		prefixType = byte(contract.PrefixMultiSig)
-	}
-
 	pld := tx.Payload().(*payload.Voting)
 	for _, cont := range pld.RenewalContents {
 		content := cont
@@ -2137,7 +2118,6 @@ func (s *State) processRenewalVotingContent(tx interfaces.Transaction, height ui
 			PayloadVersion:   voteInfo.PayloadVersion,
 			VoteType:         outputpayload.DposV2,
 			Info:             []payload.VotesWithLockTime{content.VotesInfo},
-			PrefixType:       prefixType,
 		}
 
 		s.LastRenewalDPoSV2Votes[content.ReferKey] = struct{}{}
@@ -2555,7 +2535,8 @@ func (s *State) processDposV2ClaimReward(tx interfaces.Transaction, height uint3
 	}
 
 	programHash, _ := utils.GetProgramHashByCode(code)
-	addr, _ := programHash.ToAddress()
+	stakeProgramHash := common.Uint168FromCodeHash(byte(contract.PrefixDPoSV2), programHash.ToCodeHash())
+	addr, _ := stakeProgramHash.ToAddress()
 	s.History.Append(height, func() {
 		s.DPoSV2RewardInfo[addr] -= pld.Value
 		s.DposV2RewardClaimingInfo[addr] += pld.Value

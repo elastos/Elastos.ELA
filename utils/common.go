@@ -162,6 +162,20 @@ func DeserializeStringSet(r io.Reader) (vmap map[string]struct{}, err error) {
 	return
 }
 
+func GetStakeAddressByCode(code []byte) (string, error) {
+	programHash, err := GetProgramHashByCode(code)
+	if err != nil {
+		return "", err
+	}
+	stakeProgramHash := common.Uint168FromCodeHash(
+		byte(contract.PrefixDPoSV2), programHash.ToCodeHash())
+	address, err := stakeProgramHash.ToAddress()
+	if err != nil {
+		return "", err
+	}
+	return address, nil
+}
+
 func GetAddressByCode(code []byte) (string, error) {
 	programHash, err := GetProgramHashByCode(code)
 	if err != nil {
@@ -195,6 +209,7 @@ func GetProgramHashByCode(code []byte) (*common.Uint168, error) {
 	} else {
 		return nil, errors.New("invalid code type")
 	}
+	// todo support schnorr
 }
 
 // checkHost check the host or IP address is valid and available.

@@ -74,7 +74,7 @@ func (t *DPoSV2ClaimRewardTransaction) SpecialContextCheck() (elaerr.ELAError, b
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid payload version")), true
 	}
 
-	addr, err := utils.GetAddressByCode(code)
+	addr, err := utils.GetStakeAddressByCode(code)
 	if err != nil {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("Programs code to address error")), true
 	}

@@ -900,10 +900,10 @@ func (sm *SyncManager) handleBlockchainEvents(event *events.Event) {
 			iv := msg.NewInvVect(msg.InvTypeTx, &txHash)
 			sm.peerNotifier.RelayInventory(iv, tx)
 		}
-	case events.ETResendOutdatedTxToTxPool:
+	case events.ETOutdatedTxRelay:
 		txs, ok := event.Data.([]interfaces.Transaction)
 		if !ok {
-			log.Error("ETResendOutdatedTxToTxPool event is not a tx list")
+			log.Error("ETOutdatedTxRelay event is not a tx list")
 		}
 		for _, tx := range txs {
 			txHash := tx.Hash()

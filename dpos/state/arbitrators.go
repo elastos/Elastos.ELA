@@ -704,7 +704,9 @@ func (a *Arbiters) getDPoSV2RewardsV2(dposReward common.Fixed64, sponsor []byte,
 	for _, cr := range a.CurrentCRCArbitersMap {
 		if bytes.Equal(sponsor, cr.GetNodePublicKey()) {
 			ownerProgramHash, _ := contract.PublicKeyToStandardProgramHash(cr.GetOwnerPublicKey())
-			ownerAddr, _ := ownerProgramHash.ToAddress()
+			stakeProgramHash := common.Uint168FromCodeHash(
+				byte(contract.PrefixDPoSV2), ownerProgramHash.ToCodeHash())
+			ownerAddr, _ := stakeProgramHash.ToAddress()
 			rewards[ownerAddr] += dposReward
 			isCR = true
 			break
@@ -721,37 +723,32 @@ func (a *Arbiters) getDPoSV2RewardsV2(dposReward common.Fixed64, sponsor []byte,
 			return
 		}
 		ownerProgramHash, _ := contract.PublicKeyToStandardProgramHash(producer.OwnerPublicKey())
-		ownerAddr, _ := ownerProgramHash.ToAddress()
+		stakeProgramHash := common.Uint168FromCodeHash(
+			byte(contract.PrefixDPoSV2), ownerProgramHash.ToCodeHash())
+		ownerAddr, _ := stakeProgramHash.ToAddress()
 
 		producersN := make(map[common.Uint168]float64)
-		stakeAddrPreTypeMgr := make(map[common.Uint168]byte)
 
 		var totalNI float64
 		for sVoteAddr, sVoteDetail := range producer.detailedDPoSV2Votes {
 			if len(sVoteDetail) == 0 {
 				continue
 			}
-			prefixType := byte(contract.PrefixStandard)
 			var totalN float64
 			for _, votes := range sVoteDetail {
 				weightF := math.Log10(float64(votes.Info[0].LockTime-votes.BlockHeight) / 7200 * 10)
 				N := common.Fixed64(float64(votes.Info[0].Votes) * weightF)
 				totalN += float64(N)
-				prefixType = votes.PrefixType
 			}
 			if totalN == 0 {
 				continue
 			}
 			producersN[sVoteAddr] = totalN
-			stakeAddrPreTypeMgr[sVoteAddr] = prefixType
 			totalNI += totalN
 		}
 
 		for sVoteAddr, N := range producersN {
-			b := sVoteAddr.Bytes()
-			b[0] = stakeAddrPreTypeMgr[sVoteAddr]
-			standardUint168, _ := common.Uint168FromBytes(b)
-			addr, _ := standardUint168.ToAddress()
+			addr, _ := sVoteAddr.ToAddress()
 			p := N / totalNI * float64(votesReward)
 			rewards[addr] += common.Fixed64(p)
 			log.Debugf("getDPoSV2Rewards addr:%s, p:%s, reward:%s \n", addr, common.Fixed64(p), rewards[addr])
@@ -766,76 +763,6 @@ func (a *Arbiters) getDPoSV2RewardsV2(dposReward common.Fixed64, sponsor []byte,
 		dposNodeReward := dposReward - totalUsedVotesReward
 		rewards[ownerAddr] += dposNodeReward
 		log.Debugf("getDPoSV2Rewards totalUsedVotesReward %s dposNodeReward %s,  \n", totalUsedVotesReward, dposNodeReward)
-	}
-
-	return rewards
-}
-
-func (a *Arbiters) getDPoSV2RewardsV1(dposReward common.Fixed64, sponsor []byte) (rewards map[string]common.Fixed64) {
-	log.Debugf("accumulateReward dposReward %v", dposReward)
-	ownerPubKeyStr := a.getProducerKey(sponsor)
-	ownerPubKeyBytes, _ := hex.DecodeString(ownerPubKeyStr)
-	ownerProgramHash, _ := contract.PublicKeyToStandardProgramHash(ownerPubKeyBytes)
-	ownerAddr, _ := ownerProgramHash.ToAddress()
-
-	rewards = make(map[string]common.Fixed64)
-	if _, ok := a.CurrentCRCArbitersMap[*ownerProgramHash]; ok { // crc
-		// all reward to DPoS node owner
-		rewards[ownerAddr] += dposReward
-	} else {
-
-		// DPoS votes reward is: reward * 3 /4
-		votesReward := dposReward * 3 / 4
-
-		producer := a.getProducer(sponsor)
-		if producer == nil {
-			log.Error("v1 accumulateReward Sponsor not exist ", hex.EncodeToString(sponsor))
-			return
-		}
-		producersN := make(map[common.Uint168]float64)
-		stakeAddrPreTypeMgr := make(map[common.Uint168]byte)
-
-		var totalNI float64
-		for sVoteAddr, sVoteDetail := range producer.detailedDPoSV2Votes {
-			if len(sVoteDetail) == 0 {
-				continue
-			}
-			prefixType := byte(contract.PrefixStandard)
-			var totalN float64
-			for _, votes := range sVoteDetail {
-				weightF := math.Log10(float64(votes.Info[0].LockTime-votes.BlockHeight) / 7200 * 10)
-				N := common.Fixed64(float64(votes.Info[0].Votes) * weightF)
-				totalN += float64(N)
-				prefixType = votes.PrefixType
-			}
-			if totalN == 0 {
-				continue
-			}
-			producersN[sVoteAddr] = totalN
-			stakeAddrPreTypeMgr[sVoteAddr] = prefixType
-			totalNI += totalN
-		}
-
-		for sVoteAddr, N := range producersN {
-			b := sVoteAddr.Bytes()
-			b[0] = stakeAddrPreTypeMgr[sVoteAddr]
-			standardUint168, _ := common.Uint168FromBytes(b)
-			addr, _ := standardUint168.ToAddress()
-			p := N / totalNI * float64(votesReward)
-			rewards[addr] += common.Fixed64(p)
-			log.Debugf("getDPoSV2Rewards addr:%s, p:%s, reward:%s \n", addr, common.Fixed64(p), rewards[addr])
-		}
-
-		var totalUsedVotesReward common.Fixed64
-		for _, v := range rewards {
-			totalUsedVotesReward += v
-		}
-
-		// DPoS node reward is: reward - totalUsedVotesReward
-		dposNodeReward := dposReward - totalUsedVotesReward
-		rewards[ownerAddr] += dposNodeReward
-		log.Debugf("getDPoSV2Rewards totalUsedVotesReward %s dposNodeReward %s,  \n", totalUsedVotesReward, dposNodeReward)
-
 	}
 
 	return rewards
@@ -867,11 +794,7 @@ func (a *Arbiters) accumulateReward(block *types.Block, confirm *payload.Confirm
 
 		var rewards map[string]common.Fixed64
 		if confirm != nil {
-			if block.Height > a.ChainParams.DPoSV2StartHeight {
-				rewards = a.getDPoSV2RewardsV2(dposReward, confirm.Proposal.Sponsor, block.Height)
-			} else {
-				rewards = a.getDPoSV2RewardsV1(dposReward, confirm.Proposal.Sponsor)
-			}
+			rewards = a.getDPoSV2RewardsV2(dposReward, confirm.Proposal.Sponsor, block.Height)
 		}
 
 		a.History.Append(block.Height, func() {

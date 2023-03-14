@@ -16,8 +16,10 @@ import (
 const NFTDestroyFromSideChainVersion byte = 0x00
 
 type NFTDestroyFromSideChain struct {
-	IDs                 []common.Uint256 //detail votes info referkey
-	OwnerStakeAddresses []common.Uint168 //owner OwnerStakeAddresses
+	//detail votes info referkey
+	IDs []common.Uint256
+	//owner OwnerStakeAddresses
+	OwnerStakeAddresses []common.Uint168
 	// genesis block hash of side chain.
 	GenesisBlockHash common.Uint256
 }

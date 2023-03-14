@@ -272,7 +272,7 @@ func GetDefaultParams() *Configuration {
 			HistoryStartHeight: uint32(0),
 			NeedSave:           true,
 		},
-		MemoryPoolTxMaximumStayHeight: 10,
+		MemoryPoolTxMaximumStayHeight: 10, // todo complete me
 	}
 }
 

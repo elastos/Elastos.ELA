@@ -7487,8 +7487,12 @@ func (s *txValidatorTestSuite) TestCreateCRClaimDposV2Transaction() {
 	err, _ = tx.SpecialContextCheck()
 	s.EqualError(err.(errors.ELAError).InnerError(), "no reward to claim for such address")
 
+	addr, _ := common.Uint168FromAddress("ERyUmNH51roR9qfru37Kqkaok2NghR7L5U")
+	addr[0] = byte(contract.PrefixDPoSV2)
+	stakeAddr, _ := addr.ToAddress()
+
 	bc := s.Chain
-	bc.GetState().DPoSV2RewardInfo["ERyUmNH51roR9qfru37Kqkaok2NghR7L5U"] = 100
+	bc.GetState().DPoSV2RewardInfo[stakeAddr] = 100
 	tx.DefaultChecker.SetParameters(&transaction.TransactionParameters{
 		BlockChain:  bc,
 		Config:      param,
@@ -7499,7 +7503,7 @@ func (s *txValidatorTestSuite) TestCreateCRClaimDposV2Transaction() {
 	s.EqualError(err.(errors.ELAError).InnerError(), "claim reward exceeded , max claim reward 0.00000100")
 
 	bc = s.Chain
-	bc.GetState().DPoSV2RewardInfo["ERyUmNH51roR9qfru37Kqkaok2NghR7L5U"] = 10000000000
+	bc.GetState().DPoSV2RewardInfo[stakeAddr] = 10000000000
 	tx.DefaultChecker.SetParameters(&transaction.TransactionParameters{
 		BlockChain:  bc,
 		Config:      param,
@@ -7724,7 +7728,10 @@ func (s *txValidatorTestSuite) TestArbitersAccumulateReward() {
 			//CurrentCRCArbitersMap
 			a.AccumulateReward(tt.args.block, tt.args.confirm)
 			a.History.Commit(tt.args.block.Height)
-			if a.State.DPoSV2RewardInfo["ET54cpnGG4JHeRatvPij6hGV6zN18eVSSj"] != 102 {
+			addr, _ := common.Uint168FromAddress("ET54cpnGG4JHeRatvPij6hGV6zN18eVSSj")
+			addr[0] = byte(contract.PrefixDPoSV2)
+			stakeAddr, _ := addr.ToAddress()
+			if a.State.DPoSV2RewardInfo[stakeAddr] != 102 {
 				t.Errorf("DPoSV2RewardInfo() addr %v, want %v", "ET54cpnGG4JHeRatvPij6hGV6zN18eVSSj", 102)
 			}
 		})

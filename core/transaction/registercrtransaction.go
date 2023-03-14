@@ -112,6 +112,7 @@ func (t *RegisterCRTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
 	var pk []byte
 	if contract.IsSchnorr(code) {
 		pk = code[2:]
+		// todo check
 	} else if code[len(code)-1] == vm.CHECKSIG {
 		pk = code[1 : len(code)-1]
 	} else if code[len(code)-1] == vm.CHECKMULTISIG {

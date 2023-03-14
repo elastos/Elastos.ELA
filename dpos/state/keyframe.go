@@ -1107,7 +1107,6 @@ func copyReferKeyInfoMap(src map[common.Uint256]payload.DetailedVoteInfo) (dst m
 			PayloadVersion:   a.PayloadVersion,
 			VoteType:         a.VoteType,
 			Info:             a.Info,
-			PrefixType:       a.PrefixType,
 		}
 	}
 	return

@@ -164,17 +164,11 @@ func (t *RegisterProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bo
 	if err != nil {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid public key")), true
 	}
-	addr, _ := hash.ToAddress()
-	log.Debugf("####  hash.ToAddress", addr)
-
 	if t.PayloadVersion() == payload.ProducerInfoVersion {
 		// check deposit coin
 		var depositCount int
 		for _, output := range t.Outputs() {
 			if contract.GetPrefixType(output.ProgramHash) == contract.PrefixDeposit {
-				addr, _ := output.ProgramHash.ToAddress()
-
-				log.Debugf("#### register producer 1.0 ", addr)
 				depositCount++
 				if !output.ProgramHash.IsEqual(*hash) {
 					return elaerr.Simple(elaerr.ErrTxPayload, errors.New("deposit"+
@@ -199,9 +193,6 @@ func (t *RegisterProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bo
 		var depositCount int
 		for _, output := range t.Outputs() {
 			if contract.GetPrefixType(output.ProgramHash) == contract.PrefixDeposit {
-				addr, _ := output.ProgramHash.ToAddress()
-
-				log.Debugf("#### register producer 2.o ", addr)
 				depositCount++
 				if !output.ProgramHash.IsEqual(*hash) {
 					return elaerr.Simple(elaerr.ErrTxPayload, errors.New("deposit address does not match the public key in payload")), true

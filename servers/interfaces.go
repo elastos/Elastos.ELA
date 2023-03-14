@@ -2303,9 +2303,27 @@ type RPCDPosV2Info struct {
 func DposV2RewardInfo(param Params) map[string]interface{} {
 	addr, ok := param.String("address")
 	if ok {
-		claimable := Chain.GetState().DPoSV2RewardInfo[addr]
-		claiming := Chain.GetState().DposV2RewardClaimingInfo[addr]
-		claimed := Chain.GetState().DposV2RewardClaimedInfo[addr]
+		// need to get claimable reward from Standard or Multi-sign address,
+		// also need to get claimable reward from Stake address.
+		address, err := common.Uint168FromAddress(addr)
+		if err != nil {
+			return ResponsePack(InternalError, "invalid address")
+		}
+		// check prefix, if the prefix is not PrefixDPoSV2, we need to change it
+		// to PrefixDPoSV2.
+		stakeAddress := addr
+		if address[0] != byte(contract.PrefixDPoSV2) {
+			address[0] = byte(contract.PrefixDPoSV2)
+			// create stake address from Standard or Multi-sign address.
+			stakeAddress, err = address.ToAddress()
+			if err != nil {
+				return ResponsePack(InternalError, "invalid stake address")
+			}
+		}
+
+		claimable := Chain.GetState().DPoSV2RewardInfo[stakeAddress]
+		claiming := Chain.GetState().DposV2RewardClaimingInfo[stakeAddress]
+		claimed := Chain.GetState().DposV2RewardClaimedInfo[stakeAddress]
 		result := RPCDposV2RewardInfo{
 			Address:   addr,
 			Claimable: claimable.String(),

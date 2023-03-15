@@ -594,16 +594,16 @@ func GetProducerInfo(params Params) map[string]interface{} {
 func GetNFTInfo(params Params) map[string]interface{} {
 	idParam, ok := params.String("id")
 	if !ok {
-		return ResponsePack(InvalidParams, "need id in an array!")
+		return ResponsePack(InvalidParams, "need string id ")
 	}
 
 	idBytes, err := common.HexStringToBytes(idParam)
 	if err != nil {
-		return ResponsePack(InvalidParams, "")
+		return ResponsePack(InvalidParams, "id HexStringToBytes error")
 	}
 	nftID, err := common.Uint256FromBytes(idBytes)
 	if err != nil {
-		return ResponsePack(InvalidParams, "")
+		return ResponsePack(InvalidParams, "idbytes to hash error")
 	}
 
 	type nftInfo struct {
@@ -627,7 +627,7 @@ func GetNFTInfo(params Params) map[string]interface{} {
 					return ResponsePack(InvalidParams, "wrong nft id, not found it!")
 				}
 				if referKey.IsEqual(nftReferKey) {
-					ct, _ := contract.CreateStakeContractByCode(referKey.Bytes())
+					ct, _ := contract.CreateStakeContractByCode(nftID.Bytes())
 					nftStakeAddress, _ := ct.ToProgramHash().ToAddress()
 					info.StartHeight = detailVoteInfo.BlockHeight
 					info.EndHeight = detailVoteInfo.Info[0].LockTime

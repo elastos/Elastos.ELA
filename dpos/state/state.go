@@ -243,21 +243,20 @@ func (p *Producer) GetTotalDPoSV2VoteRights() float64 {
 	return result
 }
 
-func (p *Producer) GetNFTVotesRight(referKey common.Uint256) float64 {
+func (p *Producer) GetNFTVotesRight(targetReferKey common.Uint256) float64 {
 	var result float64
 out:
 	for _, sVoteDetail := range p.detailedDPoSV2Votes {
 		var totalN float64
 		for referKey, votes := range sVoteDetail {
-			if referKey.IsEqual(referKey) {
+			if referKey.IsEqual(targetReferKey) {
 				weightF := math.Log10(float64(votes.Info[0].LockTime-votes.BlockHeight) / 7200 * 10)
 				N := common.Fixed64(float64(votes.Info[0].Votes) * weightF)
 				totalN += float64(N)
+				result += totalN
 				break out
 			}
-
 		}
-		result += totalN
 	}
 
 	return result
@@ -2602,6 +2601,8 @@ func (s *State) processCreateNFT(tx interfaces.Transaction, height uint32) {
 						if _, ok := producer.detailedDPoSV2Votes[*nftStakeAddress]; !ok {
 							producer.detailedDPoSV2Votes[*nftStakeAddress] = make(map[common.Uint256]payload.DetailedVoteInfo)
 						}
+						//change vote's owner
+						detailVoteInfo.StakeProgramHash = *nftStakeAddress
 						producer.detailedDPoSV2Votes[*nftStakeAddress][referKey] = detailVoteInfo
 						delete(producer.detailedDPoSV2Votes[stakeAddress], nftPayload.ReferKey)
 						// process total vote rights
@@ -2803,6 +2804,9 @@ func (s *State) processNFTDestroyFromSideChain(tx interfaces.Transaction, height
 							if len(producer.detailedDPoSV2Votes[newOwnerStakeAddress]) == 0 {
 								producer.detailedDPoSV2Votes[newOwnerStakeAddress] = make(map[common.Uint256]payload.DetailedVoteInfo)
 							}
+
+							//change vote's owner
+							detailVoteInfo.StakeProgramHash = newOwnerStakeAddress
 							producer.detailedDPoSV2Votes[newOwnerStakeAddress][referKey] = detailVoteInfo
 
 						}, func() {

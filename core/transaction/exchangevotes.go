@@ -149,6 +149,7 @@ func (t *ExchangeVotesTransaction) SpecialContextCheck() (result elaerr.ELAError
 		return elaerr.Simple(elaerr.ErrTxPayload,
 			errors.New(fmt.Sprintf("not support %s transaction "+
 				"before VotesSchnorrStartHeight:", t.TxType().Name()))), true
+
 	}
 
 	return nil, false

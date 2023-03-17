@@ -622,13 +622,17 @@ func GetNFTInfo(params Params) map[string]interface{} {
 	for _, producer := range producers {
 		for _, votesInfo := range producer.GetAllDetailedDPoSV2Votes() {
 			for referKey, detailVoteInfo := range votesInfo {
-				if referKey.IsEqual(*nftID) {
+				nftReferKey, err := Chain.GetState().GetNFTReferKey(*nftID)
+				if err != nil {
+					return ResponsePack(InvalidParams, "wrong nft id, not found it!")
+				}
+				if referKey.IsEqual(nftReferKey) {
 					ct, _ := contract.CreateStakeContractByCode(referKey.Bytes())
 					nftStakeAddress, _ := ct.ToProgramHash().ToAddress()
 					info.StartHeight = detailVoteInfo.BlockHeight
 					info.EndHeight = detailVoteInfo.Info[0].LockTime
 					info.Votes = detailVoteInfo.Info[0].Votes.String()
-					info.VotesRight = common.Fixed64(producer.GetNFTVotesRight(nftID)).String()
+					info.VotesRight = common.Fixed64(producer.GetNFTVotesRight(referKey)).String()
 					info.Rewards = Chain.GetState().DPoSV2RewardInfo[nftStakeAddress].String()
 					return ResponsePack(Success, info)
 
@@ -3736,7 +3740,7 @@ func getPayloadInfo(p interfaces.Payload, payloadVersion byte) PayloadInfo {
 
 	case *payload.CreateNFT:
 		obj := &CreateNFTInfo{
-			ID:               object.ID.ReversedString(),
+			ID:               object.ReferKey.ReversedString(),
 			StakeAddress:     object.StakeAddress,
 			GenesisBlockHash: object.GenesisBlockHash.String(),
 		}

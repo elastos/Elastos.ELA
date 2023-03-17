@@ -9,10 +9,8 @@ import (
 	"errors"
 	"fmt"
 	"github.com/elastos/Elastos.ELA/common"
-
 	"github.com/elastos/Elastos.ELA/core/contract"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
-
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	elaerr "github.com/elastos/Elastos.ELA/errors"
 )
@@ -78,14 +76,15 @@ func (t *CreateNFTTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
 	state := t.parameters.BlockChain.GetState()
 	crState := t.parameters.BlockChain.GetCRCommittee().GetState()
 	producers := state.GetDposV2Producers()
+	nftID := common.GetNFTID(pld.ReferKey, t.hash())
 	var existVote bool
 	var nftAmount common.Fixed64
 	var votesStakeAddress common.Uint168
 	for _, p := range producers {
 		for stakeAddress, votesInfo := range p.GetAllDetailedDPoSV2Votes() {
 			for referKey, voteInfo := range votesInfo {
-				if referKey.IsEqual(pld.ID) {
-					ct, _ := contract.CreateStakeContractByCode(referKey.Bytes())
+				if referKey.IsEqual(pld.ReferKey) {
+					ct, _ := contract.CreateStakeContractByCode(nftID.Bytes())
 					nftStakeAddress := ct.ToProgramHash()
 					if stakeAddress.IsEqual(*nftStakeAddress) {
 						return elaerr.Simple(elaerr.ErrTxPayload,
@@ -120,7 +119,7 @@ func (t *CreateNFTTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
 	}
 
 	// nft has not been created before
-	if g, ok := state.NFTIDGenesisBlockHashMap[pld.ID]; ok {
+	if g, ok := state.NFTIDInfoHashMap[nftID]; ok {
 		log.Warnf("NFT has been create before, side chain genesis block "+
 			"hash: %s", g)
 		return elaerr.Simple(elaerr.ErrTxPayload,

@@ -243,13 +243,13 @@ func (p *Producer) GetTotalDPoSV2VoteRights() float64 {
 	return result
 }
 
-func (p *Producer) GetNFTVotesRight(nftID *common.Uint256) float64 {
+func (p *Producer) GetNFTVotesRight(referKey common.Uint256) float64 {
 	var result float64
 out:
 	for _, sVoteDetail := range p.detailedDPoSV2Votes {
 		var totalN float64
 		for referKey, votes := range sVoteDetail {
-			if referKey.IsEqual(*nftID) {
+			if referKey.IsEqual(referKey) {
 				weightF := math.Log10(float64(votes.Info[0].LockTime-votes.BlockHeight) / 7200 * 10)
 				N := common.Fixed64(float64(votes.Info[0].Votes) * weightF)
 				totalN += float64(N)
@@ -839,6 +839,16 @@ func (s *State) getAllNodePublicKey() map[string]struct{} {
 		nodePublicKeyMap[strNodePublicKey] = struct{}{}
 	}
 	return nodePublicKeyMap
+}
+func (s *State) GetNFTReferKey(nftID common.Uint256) (common.Uint256, error) {
+	s.mtx.RLock()
+	defer s.mtx.Unlock()
+	nftInfo, exist := s.NFTIDInfoHashMap[nftID]
+	if !exist {
+		return common.Uint256{}, errors.New("nft is not exist")
+	}
+
+	return nftInfo.ReferKey, nil
 }
 
 // GetPendingProducers returns all producers that in pending state.
@@ -2571,16 +2581,21 @@ func (s *State) processRetVotesRewardRealWithdraw(tx interfaces.Transaction, hei
 
 func (s *State) processCreateNFT(tx interfaces.Transaction, height uint32) {
 	nftPayload := tx.Payload().(*payload.CreateNFT)
+	nftID := common.GetNFTID(nftPayload.ReferKey, tx.Hash())
 
 	// record the relationship map between ID and genesis block hash
-	s.NFTIDGenesisBlockHashMap[nftPayload.ID] = nftPayload.GenesisBlockHash
+	s.NFTIDInfoHashMap[nftID] = payload.NFTInfo{
+		ReferKey:         nftPayload.ReferKey,
+		GenesisBlockHash: nftPayload.GenesisBlockHash,
+		CreateNFTTxHash:  tx.Hash(),
+	}
 
 	producers := s.getDposV2Producers()
 	for _, producer := range producers {
 		for stakeAddress, votesInfo := range producer.GetAllDetailedDPoSV2Votes() {
 			for referKey, detailVoteInfo := range votesInfo {
-				if referKey.IsEqual(nftPayload.ID) {
-					ct, _ := contract.CreateStakeContractByCode(referKey.Bytes())
+				if referKey.IsEqual(nftPayload.ReferKey) {
+					ct, _ := contract.CreateStakeContractByCode(nftID.Bytes())
 					nftStakeAddress := ct.ToProgramHash()
 					nftAmount := detailVoteInfo.Info[0].Votes
 					s.History.Append(height, func() {
@@ -2588,7 +2603,7 @@ func (s *State) processCreateNFT(tx interfaces.Transaction, height uint32) {
 							producer.detailedDPoSV2Votes[*nftStakeAddress] = make(map[common.Uint256]payload.DetailedVoteInfo)
 						}
 						producer.detailedDPoSV2Votes[*nftStakeAddress][referKey] = detailVoteInfo
-						delete(producer.detailedDPoSV2Votes[stakeAddress], nftPayload.ID)
+						delete(producer.detailedDPoSV2Votes[stakeAddress], nftPayload.ReferKey)
 						// process total vote rights
 						s.DposV2VoteRights[stakeAddress] -= nftAmount
 						if s.DposV2VoteRights[stakeAddress] == 0 {
@@ -2601,7 +2616,7 @@ func (s *State) processCreateNFT(tx interfaces.Transaction, height uint32) {
 					}, func() {
 						producer.detailedDPoSV2Votes[*nftStakeAddress][referKey] = detailVoteInfo
 						delete(producer.detailedDPoSV2Votes[*nftStakeAddress], referKey)
-						producer.detailedDPoSV2Votes[stakeAddress][nftPayload.ID] = detailVoteInfo
+						producer.detailedDPoSV2Votes[stakeAddress][nftPayload.ReferKey] = detailVoteInfo
 						// process total vote rights
 						s.DposV2VoteRights[stakeAddress] += nftAmount
 						s.UsedDposV2Votes[stakeAddress] += nftAmount
@@ -2733,8 +2748,8 @@ func (s *State) IsNFTIDBelongToSideChain(id, genesisBlockHash common.Uint256) bo
 	s.mtx.RLock()
 	defer s.mtx.RUnlock()
 
-	if v, ok := s.NFTIDGenesisBlockHashMap[id]; ok {
-		if v.IsEqual(genesisBlockHash) {
+	if v, ok := s.NFTIDInfoHashMap[id]; ok {
+		if v.GenesisBlockHash.IsEqual(genesisBlockHash) {
 			return true
 		}
 
@@ -2747,25 +2762,31 @@ func (s *State) processNFTDestroyFromSideChain(tx interfaces.Transaction, height
 	nftDestroyPayload := tx.Payload().(*payload.NFTDestroyFromSideChain)
 
 	// remove the relationship between NFT id and genesis block hash
+	oriNFTInfoMap := make(map[common.Uint256]payload.NFTInfo, 0)
+	for _, id := range nftDestroyPayload.IDs {
+		nftInfo := s.NFTIDInfoHashMap[id]
+		oriNFTInfoMap[id] = nftInfo
+	}
 	s.History.Append(height, func() {
 		for _, id := range nftDestroyPayload.IDs {
-			delete(s.NFTIDGenesisBlockHashMap, id)
+			delete(s.NFTIDInfoHashMap, id)
 		}
 	}, func() {
-		for _, id := range nftDestroyPayload.IDs {
-			s.NFTIDGenesisBlockHashMap[id] = nftDestroyPayload.GenesisBlockHash
+		for id, nftInfo := range oriNFTInfoMap {
+			s.NFTIDInfoHashMap[id] = nftInfo
 		}
 	})
 
 	producers := s.getDposV2Producers()
 	for i := 0; i < len(nftDestroyPayload.IDs); i++ {
 		newOwnerStakeAddress := nftDestroyPayload.OwnerStakeAddresses[i]
-		ID := nftDestroyPayload.IDs[i]
+		nftID := nftDestroyPayload.IDs[i]
+		nftInfo := oriNFTInfoMap[nftID]
 	out:
 		for _, producer := range producers {
 			for stakeAddress, votesInfo := range producer.GetAllDetailedDPoSV2Votes() {
 				for referKey, detailVoteInfo := range votesInfo {
-					if referKey.IsEqual(ID) {
+					if common.GetNFTID(referKey, nftInfo.CreateNFTTxHash).IsEqual(nftID) {
 						strNFTStakeAddress, _ := stakeAddress.ToAddress()
 						strOwnerStakeAddress, _ := newOwnerStakeAddress.ToAddress()
 						oriRewardsInfo := s.DPoSV2RewardInfo[strNFTStakeAddress]
@@ -2775,7 +2796,7 @@ func (s *State) processNFTDestroyFromSideChain(tx interfaces.Transaction, height
 							s.DposV2VoteRights[newOwnerStakeAddress] += nftAmount
 							s.UsedDposV2Votes[newOwnerStakeAddress] += nftAmount
 							//remove nft stake address for future create new nft .
-							delete(producer.detailedDPoSV2Votes[stakeAddress], ID)
+							delete(producer.detailedDPoSV2Votes[stakeAddress], referKey)
 							s.DPoSV2RewardInfo[strOwnerStakeAddress] += s.DPoSV2RewardInfo[strNFTStakeAddress]
 							delete(s.DPoSV2RewardInfo, strNFTStakeAddress)
 							//detailVoteInfo add to new owner nftDestroyPayload.OwnerStakeAddresses
@@ -2798,7 +2819,7 @@ func (s *State) processNFTDestroyFromSideChain(tx interfaces.Transaction, height
 							if len(producer.detailedDPoSV2Votes[stakeAddress]) == 0 {
 								producer.detailedDPoSV2Votes[stakeAddress] = make(map[common.Uint256]payload.DetailedVoteInfo)
 							}
-							producer.detailedDPoSV2Votes[stakeAddress][ID] = detailVoteInfo
+							producer.detailedDPoSV2Votes[stakeAddress][referKey] = detailVoteInfo
 							//remove owner's detailVoteInfo
 							delete(producer.detailedDPoSV2Votes[newOwnerStakeAddress], referKey)
 							s.DPoSV2RewardInfo[strOwnerStakeAddress] -= s.DPoSV2RewardInfo[strNFTStakeAddress]
@@ -2815,18 +2836,34 @@ func (s *State) processNFTDestroyFromSideChain(tx interfaces.Transaction, height
 	}
 }
 
+func (s *State) ExistNFTID(id common.Uint256) bool {
+	s.mtx.RLock()
+	defer s.mtx.Unlock()
+	_, exist := s.NFTIDInfoHashMap[id]
+
+	return exist
+}
+
 func (s *State) CanNFTDestroy(IDs []common.Uint256) []common.Uint256 {
-	producers := s.GetDposV2Producers()
+	s.mtx.RLock()
+	defer s.mtx.Unlock()
+
+	producers := s.getDposV2Producers()
 	var canDestroyIDs []common.Uint256
 
 	for i := 0; i < len(IDs); i++ {
 		ID := IDs[i]
+		nftInfo, exist := s.NFTIDInfoHashMap[ID]
+		if !exist {
+			return canDestroyIDs
+		}
 	out:
 		for _, p := range producers {
-			for stakeAddress, votesInfo := range p.GetAllDetailedDPoSV2Votes() {
+			for stakeAddress, votesInfo := range p.detailedDPoSV2Votes {
 				for referKey, _ := range votesInfo {
-					if referKey.IsEqual(ID) {
-						ct, _ := contract.CreateStakeContractByCode(referKey.Bytes())
+					nftID := common.GetNFTID(referKey, nftInfo.CreateNFTTxHash)
+					if nftID.IsEqual(ID) {
+						ct, _ := contract.CreateStakeContractByCode(nftID.Bytes())
 						nftStakeAddress := ct.ToProgramHash()
 						if stakeAddress.IsEqual(*nftStakeAddress) {
 							canDestroyIDs = append(canDestroyIDs, ID)

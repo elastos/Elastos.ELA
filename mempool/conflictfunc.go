@@ -638,7 +638,7 @@ func hashCreateNFTID(tx interfaces.Transaction) (interface{}, error) {
 		return nil, fmt.Errorf(
 			"CreateNFT payload cast failed, tx: %s", tx.Hash())
 	}
-	return p.ID, nil
+	return p.ReferKey, nil
 }
 
 func strCreateNFTID(tx interfaces.Transaction) (interface{}, error) {

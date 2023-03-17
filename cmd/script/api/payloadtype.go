@@ -3128,8 +3128,8 @@ func newCreateNFT(L *lua.LState) int {
 		os.Exit(1)
 	}
 	createNFTPayload := &payload.CreateNFT{
-		ID:           *id,
-		StakeAddress: stakeAddress,
+		ReferKey:         *id,
+		StakeAddress:     stakeAddress,
 		GenesisBlockHash: *genesisBlockHash,
 	}
 

@@ -842,7 +842,7 @@ func (s *State) getAllNodePublicKey() map[string]struct{} {
 }
 func (s *State) GetNFTReferKey(nftID common.Uint256) (common.Uint256, error) {
 	s.mtx.RLock()
-	defer s.mtx.Unlock()
+	defer s.mtx.RUnlock()
 	nftInfo, exist := s.NFTIDInfoHashMap[nftID]
 	if !exist {
 		return common.Uint256{}, errors.New("nft is not exist")
@@ -2838,7 +2838,7 @@ func (s *State) processNFTDestroyFromSideChain(tx interfaces.Transaction, height
 
 func (s *State) ExistNFTID(id common.Uint256) bool {
 	s.mtx.RLock()
-	defer s.mtx.Unlock()
+	defer s.mtx.RUnlock()
 	_, exist := s.NFTIDInfoHashMap[id]
 
 	return exist
@@ -2846,7 +2846,7 @@ func (s *State) ExistNFTID(id common.Uint256) bool {
 
 func (s *State) CanNFTDestroy(IDs []common.Uint256) []common.Uint256 {
 	s.mtx.RLock()
-	defer s.mtx.Unlock()
+	defer s.mtx.RUnlock()
 
 	producers := s.getDposV2Producers()
 	var canDestroyIDs []common.Uint256

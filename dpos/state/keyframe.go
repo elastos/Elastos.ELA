@@ -47,7 +47,8 @@ type StateKeyFrame struct {
 	Votes                    map[string]struct{}
 
 	// NFT
-	NFTIDGenesisBlockHashMap map[common.Uint256]common.Uint256 // key: ID value: genesis block hash
+	// key: ID value: (genesis block hash, createNFT tx hash)
+	NFTIDInfoHashMap map[common.Uint256]payload.NFTInfo
 
 	// dpos 2.0
 	DposV2VoteRights map[common.Uint168]common.Fixed64              // key: address value: amount
@@ -115,7 +116,7 @@ func (s *StateKeyFrame) snapshot() *StateKeyFrame {
 		DposV2EffectedProducers:  make(map[string]*Producer),
 		Votes:                    make(map[string]struct{}),
 
-		NFTIDGenesisBlockHashMap: make(map[common.Uint256]common.Uint256),
+		NFTIDInfoHashMap: make(map[common.Uint256]payload.NFTInfo),
 
 		DposV2VoteRights: make(map[common.Uint168]common.Fixed64),
 		UsedDposVotes:    make(map[common.Uint168][]payload.VotesWithLockTime),
@@ -145,7 +146,7 @@ func (s *StateKeyFrame) snapshot() *StateKeyFrame {
 	state.DposV2EffectedProducers = copyProducerMap(s.DposV2EffectedProducers)
 	state.Votes = copyStringSet(s.Votes)
 
-	state.NFTIDGenesisBlockHashMap = copyUint256MapSet(s.NFTIDGenesisBlockHashMap)
+	state.NFTIDInfoHashMap = copyUint256MapSet(s.NFTIDInfoHashMap)
 
 	state.DposV2VoteRights = copyProgramHashAmountSet(s.DposV2VoteRights)
 	state.UsedDposVotes = copyProgramHashVotesInfoSet(s.UsedDposVotes)
@@ -217,7 +218,7 @@ func (s *StateKeyFrame) Serialize(w io.Writer) (err error) {
 		return
 	}
 
-	if err = s.SerializeUint256Map(s.NFTIDGenesisBlockHashMap, w); err != nil {
+	if err = s.SerializeUint256NFTInfoMap(s.NFTIDInfoHashMap, w); err != nil {
 		return
 	}
 
@@ -335,7 +336,7 @@ func (s *StateKeyFrame) Deserialize(r io.Reader) (err error) {
 		return
 	}
 
-	if s.NFTIDGenesisBlockHashMap, err = s.DeserializeUint256Map(r); err != nil {
+	if s.NFTIDInfoHashMap, err = s.DeserializeUint256NFTInfoMap(r); err != nil {
 		return
 	}
 
@@ -621,7 +622,7 @@ func (s *StateKeyFrame) SerializeStringHeightMap(vmap map[string]uint32,
 	return
 }
 
-func (s *StateKeyFrame) SerializeUint256Map(vmap map[common.Uint256]common.Uint256,
+func (s *StateKeyFrame) SerializeUint256NFTInfoMap(vmap map[common.Uint256]payload.NFTInfo,
 	w io.Writer) (err error) {
 	if err = common.WriteVarUint(w, uint64(len(vmap))); err != nil {
 		return
@@ -708,19 +709,19 @@ func (s *StateKeyFrame) DeserializeStringHeightMap(
 	return
 }
 
-func (s *StateKeyFrame) DeserializeUint256Map(
-	r io.Reader) (vmap map[common.Uint256]common.Uint256, err error) {
+func (s *StateKeyFrame) DeserializeUint256NFTInfoMap(
+	r io.Reader) (vmap map[common.Uint256]payload.NFTInfo, err error) {
 	var count uint64
 	if count, err = common.ReadVarUint(r, 0); err != nil {
 		return
 	}
-	vmap = make(map[common.Uint256]common.Uint256)
+	vmap = make(map[common.Uint256]payload.NFTInfo)
 	for i := uint64(0); i < count; i++ {
 		var k common.Uint256
 		if err = k.Deserialize(r); err != nil {
 			return
 		}
-		var v common.Uint256
+		var v payload.NFTInfo
 		if err = v.Deserialize(r); err != nil {
 			return
 		}
@@ -913,7 +914,7 @@ func NewStateKeyFrame() *StateKeyFrame {
 		DposV2EffectedProducers:   make(map[string]*Producer),
 		Votes:                     make(map[string]struct{}),
 		DposV2VoteRights:          make(map[common.Uint168]common.Fixed64),
-		NFTIDGenesisBlockHashMap:  make(map[common.Uint256]common.Uint256),
+		NFTIDInfoHashMap:          make(map[common.Uint256]payload.NFTInfo),
 		UsedDposVotes:             make(map[common.Uint168][]payload.VotesWithLockTime),
 		UsedDposV2Votes:           make(map[common.Uint168]common.Fixed64),
 		DepositOutputs:            make(map[string]common.Fixed64),
@@ -1060,9 +1061,9 @@ func copyHashSet(src map[common.Uint256]struct{}) (
 	return
 }
 
-func copyUint256MapSet(src map[common.Uint256]common.Uint256) (
-	dst map[common.Uint256]common.Uint256) {
-	dst = map[common.Uint256]common.Uint256{}
+func copyUint256MapSet(src map[common.Uint256]payload.NFTInfo) (
+	dst map[common.Uint256]payload.NFTInfo) {
+	dst = map[common.Uint256]payload.NFTInfo{}
 	for k, v := range src {
 		a := v
 		dst[k] = a

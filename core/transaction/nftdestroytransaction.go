@@ -77,7 +77,7 @@ func (t *NFTDestroyTransactionFromSideChain) SpecialContextCheck() (elaerr.ELAEr
 
 	// check if the NFT exist
 	for _, id := range nftDestroyPayload.IDs {
-		if _, ok := state.NFTIDGenesisBlockHashMap[id]; !ok {
+		if ok := state.ExistNFTID(id); !ok {
 			log.Warnf("the NFT is not exist, id:%s", id)
 			return elaerr.Simple(elaerr.ErrTxPayload,
 				errors.New("the NFT is not exist")), true

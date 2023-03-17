@@ -640,8 +640,8 @@ func GetNFTInfo(params Params) map[string]interface{} {
 			}
 		}
 	}
-	return ResponsePack(InvalidParams, "wrong nft id, not found it!")
 
+	return ResponsePack(InvalidParams, "wrong nft id, not found it!")
 }
 
 func GetCanDestroynftIDs(params Params) map[string]interface{} {

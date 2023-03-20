@@ -16,6 +16,7 @@ import (
 	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/core"
 	"github.com/elastos/Elastos.ELA/core/contract"
+	"github.com/elastos/Elastos.ELA/core/contract/program"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/core/types/outputpayload"
@@ -270,15 +271,18 @@ func (t *DefaultChecker) CheckAttributeProgram() error {
 	if len(tx.Programs()) == 0 {
 		return fmt.Errorf("no programs found in transaction")
 	}
-	for _, program := range tx.Programs() {
-		if program.Code == nil {
+	for _, p := range tx.Programs() {
+		if p.Code == nil {
 			return fmt.Errorf("invalid program code nil")
 		}
-		if program.Parameter == nil {
+		if len(p.Code) < program.MinProgramCodeSize {
+			return fmt.Errorf("invalid program code size")
+		}
+		if p.Parameter == nil {
 			return fmt.Errorf("invalid program parameter nil")
 		}
 
-		if t.parameters.BlockHeight < t.parameters.Config.NormalSchnorrStartHeight && contract.IsSchnorr(program.Code) {
+		if t.parameters.BlockHeight < t.parameters.Config.NormalSchnorrStartHeight && contract.IsSchnorr(p.Code) {
 			return fmt.Errorf("invalid program code with schnorr before SchnorrStartHeight")
 		}
 	}

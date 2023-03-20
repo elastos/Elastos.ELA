@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/elastos/Elastos.ELA/core/contract/program"
 
 	"github.com/elastos/Elastos.ELA/blockchain"
 	"github.com/elastos/Elastos.ELA/core/contract"
@@ -55,6 +56,9 @@ func (t *ReturnVotesTransaction) CheckAttributeProgram() error {
 	}
 	if t.Programs()[0].Code == nil {
 		return fmt.Errorf("invalid program code nil")
+	}
+	if len(t.Programs()[0].Code) < program.MinProgramCodeSize {
+		return fmt.Errorf("invalid program code size")
 	}
 	if t.Programs()[0].Parameter == nil {
 		return fmt.Errorf("invalid program parameter nil")

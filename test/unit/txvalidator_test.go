@@ -659,7 +659,7 @@ func (s *txValidatorTestSuite) TestCheckAttributeProgram() {
 	s.EqualError(err, "invalid program code nil")
 
 	// nil program parameter
-	var code = make([]byte, 21)
+	var code = make([]byte, 23)
 	rand.Read(code)
 	p = &program.Program{Code: code}
 	tx.SetPrograms([]*program.Program{p})

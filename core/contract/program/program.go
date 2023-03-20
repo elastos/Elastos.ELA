@@ -13,6 +13,9 @@ import (
 )
 
 const (
+	// MinProgramCodeSize is the minimum allowed length of program code.
+	MinProgramCodeSize = 23
+
 	// MaxProgramCodeSize is the maximum allowed length of program code.
 	MaxProgramCodeSize = 10000
 

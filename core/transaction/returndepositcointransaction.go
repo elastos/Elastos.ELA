@@ -8,6 +8,7 @@ package transaction
 import (
 	"errors"
 	"fmt"
+	"github.com/elastos/Elastos.ELA/core/contract/program"
 
 	"github.com/elastos/Elastos.ELA/common"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
@@ -38,11 +39,14 @@ func (t *ReturnDepositCoinTransaction) CheckAttributeProgram() error {
 	if len(t.Programs()) == 0 {
 		return fmt.Errorf("no programs found in transaction")
 	}
-	for _, program := range t.Programs() {
-		if program.Code == nil {
+	for _, p := range t.Programs() {
+		if p.Code == nil {
 			return fmt.Errorf("invalid program code nil")
 		}
-		if program.Parameter == nil {
+		if len(p.Code) < program.MinProgramCodeSize {
+			return fmt.Errorf("invalid program code size")
+		}
+		if p.Parameter == nil {
 			return fmt.Errorf("invalid program parameter nil")
 		}
 	}

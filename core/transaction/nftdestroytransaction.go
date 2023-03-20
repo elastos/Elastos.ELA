@@ -10,6 +10,7 @@ import (
 	"crypto/sha256"
 	"errors"
 	"fmt"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 
 	"github.com/elastos/Elastos.ELA/blockchain"
 	"github.com/elastos/Elastos.ELA/common"
@@ -41,6 +42,29 @@ func (t *NFTDestroyTransactionFromSideChain) CheckTransactionOutput() error {
 func (t *NFTDestroyTransactionFromSideChain) CheckAttributeProgram() error {
 	if len(t.Programs()) != 1 || len(t.Attributes()) != 1 {
 		return errors.New("zero cost tx should have one programs and one attributes")
+	}
+
+	// Check attributes
+	for _, attr := range t.Attributes() {
+		if !common2.IsValidAttributeType(attr.Usage) {
+			return fmt.Errorf("invalid attribute usage %v", attr.Usage)
+		}
+	}
+
+	// Check programs
+	if len(t.Programs()) == 0 {
+		return fmt.Errorf("no programs found in transaction")
+	}
+	for _, p := range t.Programs() {
+		if p.Code == nil {
+			return fmt.Errorf("invalid program code nil")
+		}
+		if len(p.Code) < program.MinProgramCodeSize {
+			return fmt.Errorf("invalid program code size")
+		}
+		if p.Parameter == nil {
+			return fmt.Errorf("invalid program parameter nil")
+		}
 	}
 	return nil
 }

@@ -8,6 +8,7 @@ package transaction
 import (
 	"errors"
 	"fmt"
+	program2 "github.com/elastos/Elastos.ELA/core/contract/program"
 
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/core"
@@ -125,6 +126,9 @@ func (t *ExchangeVotesTransaction) CheckAttributeProgram() error {
 	}
 	if t.Programs()[0].Code == nil {
 		return fmt.Errorf("invalid program code nil")
+	}
+	if len(t.Programs()[0].Code) < program2.MinProgramCodeSize {
+		return fmt.Errorf("invalid program code size")
 	}
 	if t.Programs()[0].Parameter == nil {
 		return fmt.Errorf("invalid program parameter nil")

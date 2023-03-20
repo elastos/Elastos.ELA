@@ -12,6 +12,7 @@ import (
 
 	"github.com/elastos/Elastos.ELA/blockchain"
 	"github.com/elastos/Elastos.ELA/common"
+	"github.com/elastos/Elastos.ELA/core/contract/program"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
@@ -44,11 +45,14 @@ func (t *CRCProposalWithdrawTransaction) CheckAttributeProgram() error {
 	if len(t.Programs()) == 0 {
 		return fmt.Errorf("no programs found in transaction")
 	}
-	for _, program := range t.Programs() {
-		if program.Code == nil {
+	for _, p := range t.Programs() {
+		if p.Code == nil {
 			return fmt.Errorf("invalid program code nil")
 		}
-		if program.Parameter == nil {
+		if len(p.Code) < program.MinProgramCodeSize {
+			return fmt.Errorf("invalid program code size")
+		}
+		if p.Parameter == nil {
 			return fmt.Errorf("invalid program parameter nil")
 		}
 	}

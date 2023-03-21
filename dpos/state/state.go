@@ -2855,7 +2855,7 @@ func (s *State) CanNFTDestroy(IDs []common.Uint256) []common.Uint256 {
 		ID := IDs[i]
 		nftInfo, exist := s.NFTIDInfoHashMap[ID]
 		if !exist {
-			return canDestroyIDs
+			continue
 		}
 	out:
 		for _, p := range producers {

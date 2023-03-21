@@ -662,11 +662,11 @@ func GetCanDestroynftIDs(params Params) map[string]interface{} {
 	for i := 0; i < len(idsParam); i++ {
 		idBytes, err := common.HexStringToBytes(idsParam[i])
 		if err != nil {
-			return ResponsePack(InvalidParams, "")
+			return ResponsePack(InvalidParams, "HexStringToBytes idsParam[i] error")
 		}
 		id, err := common.Uint256FromBytes(idBytes)
 		if err != nil {
-			return ResponsePack(InvalidParams, "")
+			return ResponsePack(InvalidParams, "Uint256FromBytes error")
 		}
 		IDs = append(IDs, *id)
 	}

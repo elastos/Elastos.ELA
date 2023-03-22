@@ -2553,7 +2553,7 @@ func (s *State) processDposV2ClaimReward(tx interfaces.Transaction, height uint3
 			Recipient: pld.ToAddr,
 			Amount:    pld.Value,
 		}
-		s.ClaimingRewardAddr[tx.Hash()] = *programHash
+		s.ClaimingRewardAddr[tx.Hash()] = stakeProgramHash
 	}, func() {
 		s.DPoSV2RewardInfo[addr] += pld.Value
 		s.DposV2RewardClaimingInfo[addr] -= pld.Value

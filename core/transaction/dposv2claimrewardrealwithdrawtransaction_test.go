@@ -6,12 +6,13 @@
 package transaction
 
 import (
+	"math"
+
 	"github.com/elastos/Elastos.ELA/common"
-	"github.com/elastos/Elastos.ELA/common/config"
+	"github.com/elastos/Elastos.ELA/core"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/core/types/functions"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
-	"math"
 )
 
 func (s *txValidatorTestSuite) TestDposV2ClaimRewardRealWithdrawTransaction() {
@@ -84,7 +85,7 @@ func (s *txValidatorTestSuite) TestDposV2ClaimRewardRealWithdrawTransaction() {
 	}
 	outputs := []*common2.Output{
 		{
-			AssetID: config.ELAAssetID,
+			AssetID: core.ELAAssetID,
 			Value:   common.Fixed64(20 * 1e8),
 		},
 	}

@@ -7,9 +7,9 @@ package transaction
 
 import (
 	"bytes"
+	"encoding/hex"
 	"errors"
 	"fmt"
-
 	"github.com/elastos/Elastos.ELA/blockchain"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	crstate "github.com/elastos/Elastos.ELA/cr/state"
@@ -37,7 +37,7 @@ func (t *UnregisterCRTransaction) HeightVersionCheck() error {
 	blockHeight := t.parameters.BlockHeight
 	chainParams := t.parameters.Config
 
-	if blockHeight < chainParams.CRVotingStartHeight {
+	if blockHeight < chainParams.CRConfiguration.CRVotingStartHeight {
 		return errors.New(fmt.Sprintf("not support %s transaction "+
 			"before CRVotingStartHeight", t.TxType().Name()))
 	}
@@ -63,14 +63,24 @@ func (t *UnregisterCRTransaction) SpecialContextCheck() (elaerr.ELAError, bool) 
 	}
 
 	signedBuf := new(bytes.Buffer)
-	err := info.SerializeUnsigned(signedBuf, payload.UnregisterCRVersion)
+	err := info.SerializeUnsigned(signedBuf, t.payloadVersion)
 	if err != nil {
 		return elaerr.Simple(elaerr.ErrTxPayload, err), true
 	}
-
-	err = blockchain.CheckCRTransactionSignature(info.Signature, cr.Info.Code, signedBuf.Bytes())
-	if err != nil {
-		return elaerr.Simple(elaerr.ErrTxPayload, err), true
+	if t.payloadVersion != payload.UnregisterCRSchnorrVersion {
+		err = blockchain.CheckCRTransactionSignature(info.Signature, cr.Info.Code, signedBuf.Bytes())
+		if err != nil {
+			return elaerr.Simple(elaerr.ErrTxPayload, err), true
+		}
+	} else {
+		c, exist := t.parameters.BlockChain.GetCRCommittee().GetState().GetCodeByCid(info.CID)
+		if !exist {
+			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("can not find code from cid")), true
+		}
+		cf, _ := hex.DecodeString(c)
+		if !bytes.Equal(cf, t.Programs()[0].Code) {
+			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid transaction code")), true
+		}
 	}
 
 	return nil, false

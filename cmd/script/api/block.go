@@ -11,6 +11,7 @@ import (
 	"github.com/elastos/Elastos.ELA/blockchain"
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
+	"github.com/elastos/Elastos.ELA/core"
 	"github.com/elastos/Elastos.ELA/core/types"
 	"github.com/elastos/Elastos.ELA/crypto"
 	"github.com/elastos/Elastos.ELA/pow"
@@ -135,7 +136,7 @@ func updateDposRewards(b *types.Block) {
 	totalTxFee := common.Fixed64(0)
 	for _, tx := range b.Transactions {
 		reference, _ := blockchain.DefaultLedger.Blockchain.UTXOCache.GetTxReference(tx)
-		fee := blockchain.GetTxFee(tx, config.ELAAssetID, reference)
+		fee := blockchain.GetTxFee(tx, core.ELAAssetID, reference)
 		if fee != tx.Fee() {
 			continue
 		}

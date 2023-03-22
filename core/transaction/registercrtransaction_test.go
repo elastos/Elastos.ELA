@@ -18,7 +18,7 @@ import (
 )
 
 func (s *txValidatorTestSuite) TestCheckRegisterCRTransaction() {
-	config.DefaultParams = config.GetDefaultParams()
+	config.DefaultParams = *config.GetDefaultParams()
 
 	// Generate a register CR transaction
 	publicKeyStr1 := "03c77af162438d4b7140f8544ad6523b9734cca9c7a62476d54ed5d1bddc7a39c3"
@@ -42,8 +42,8 @@ func (s *txValidatorTestSuite) TestCheckRegisterCRTransaction() {
 	cid1 := getCID(code1)
 	cid2 := getCID(code2)
 
-	votingHeight := config.DefaultParams.CRVotingStartHeight
-	registerCRByDIDHeight := config.DefaultParams.RegisterCRByDIDHeight
+	votingHeight := config.DefaultParams.CRConfiguration.CRVotingStartHeight
+	registerCRByDIDHeight := config.DefaultParams.CRConfiguration.RegisterCRByDIDHeight
 
 	// All ok
 	txn = CreateTransactionByType(txn, s.Chain)
@@ -81,7 +81,7 @@ func (s *txValidatorTestSuite) TestCheckRegisterCRTransaction() {
 	txn.Payload().(*payload.CRInfo).Url = url
 	txn.SetParameters(&TransactionParameters{
 		Transaction: txn,
-		BlockHeight: config.DefaultParams.CRVotingStartHeight - 1,
+		BlockHeight: config.DefaultParams.CRConfiguration.CRVotingStartHeight - 1,
 		TimeStamp:   s.Chain.BestChain.Timestamp,
 		Config:      s.Chain.GetParams(),
 		BlockChain:  s.Chain,
@@ -93,7 +93,7 @@ func (s *txValidatorTestSuite) TestCheckRegisterCRTransaction() {
 	s.Chain.GetCRCommittee().InElectionPeriod = true
 	txn.SetParameters(&TransactionParameters{
 		Transaction: txn,
-		BlockHeight: config.DefaultParams.CRCommitteeStartHeight + 1,
+		BlockHeight: config.DefaultParams.CRConfiguration.CRCommitteeStartHeight + 1,
 		TimeStamp:   s.Chain.BestChain.Timestamp,
 		Config:      s.Chain.GetParams(),
 		BlockChain:  s.Chain,

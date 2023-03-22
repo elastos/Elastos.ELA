@@ -125,6 +125,10 @@ func StartRPCServer() {
 	mainMux["dposv2rewardinfo"] = DposV2RewardInfo
 	mainMux["getdposv2info"] = GetDPosV2Info
 
+	//nft
+	mainMux["getcandestroynftids"] = GetCanDestroynftIDs
+	mainMux["getnftinfo"] = GetNFTInfo
+
 	var handler http.Handler
 	rpcServeMux := http.NewServeMux()
 	if config.Parameters.EnableCORS {

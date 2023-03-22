@@ -9,13 +9,14 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
-	"github.com/elastos/Elastos.ELA/core/types/outputpayload"
 	"os"
 	"strconv"
 	"strings"
 
+	"github.com/elastos/Elastos.ELA/account"
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/core/contract"
+	"github.com/elastos/Elastos.ELA/core/types/outputpayload"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/crypto"
 	lua "github.com/yuin/gopher-lua"
@@ -27,9 +28,12 @@ const (
 	luaTransferCrossChainAssetTypeName      = "transfercrosschainasset"
 	luaRegisterProducerName                 = "registerproducer"
 	luaRegisterV2ProducerName               = "registerv2producer"
+	luaUpdateV2ProducerName                 = "updatev2producer"
 	luaUpdateProducerName                   = "updateproducer"
 	luaCancelProducerName                   = "cancelproducer"
+	luaCancelProducerSchnorrName            = "cancelproducerschnorr"
 	luaActivateProducerName                 = "activateproducer"
+	luaActivateProducerSchnorrName          = "activateproducerschnorr"
 	luaReturnDepositCoinName                = "returndepositcoin"
 	luaSideChainPowName                     = "sidechainpow"
 	luaRegisterCRName                       = "registercr"
@@ -53,6 +57,9 @@ const (
 	luaRenewVotingName   = "renewvoting"
 	luaCancelVotesName   = "cancelVotes"
 	luaReturnVotesName   = "returnvotes"
+
+	// nft
+	luaCreateNFT = "createnft"
 )
 
 func RegisterExchangeVotesType(L *lua.LState) {
@@ -87,6 +94,15 @@ func newReturnVotes(L *lua.LState) int {
 	toAddr := L.ToString(2)
 	amount := L.ToInt(3)
 	client, err := checkClient(L, 4)
+	var account *account.SchnorAccount
+	if err != nil {
+		fmt.Println("account exist")
+		account, err = checkAccount(L, 6)
+		if err != nil {
+			fmt.Println(err.Error())
+			os.Exit(1)
+		}
+	}
 	m := L.ToInt(5)
 	addr, err := common.Uint168FromAddress(toAddr)
 	if err != nil {
@@ -100,10 +116,20 @@ func newReturnVotes(L *lua.LState) int {
 		os.Exit(1)
 	}
 
-	code, err := getCode(publicKey)
+	var code []byte
+	code, err = getCode(publicKey)
 	if err != nil {
 		fmt.Println("wrong producer public key")
 		os.Exit(1)
+	}
+	if account != nil {
+		//fmt.Println("get schnorr code")
+		//code, err = getSchnorrCode(publicKey)
+		//if err != nil {
+		//	fmt.Println("wrong schnorr producer public key")
+		//	os.Exit(1)
+		//}
+		code = []byte{}
 	}
 	fmt.Println("value m " + strconv.Itoa(m))
 	if m != 0 {
@@ -126,23 +152,34 @@ func newReturnVotes(L *lua.LState) int {
 		Value:  common.Fixed64(amount),
 	}
 
-	codeHash, err := contract.PublicKeyToStandardCodeHash(publicKey)
-	acc := client.GetAccountByCodeHash(*codeHash)
-	if acc == nil {
-		fmt.Println("no available account in wallet")
-		os.Exit(1)
-	}
-
+	var rpSig []byte
 	buf := new(bytes.Buffer)
 	if err := returnVotesPayload.SerializeUnsigned(buf, 0); err != nil {
-		fmt.Println("invalid return votes payload")
+		fmt.Println("invalid unstake payload")
 		os.Exit(1)
 	}
+	codeHash, err := contract.PublicKeyToStandardCodeHash(publicKey)
+	if account == nil {
+		acc := client.GetAccountByCodeHash(*codeHash)
+		if acc == nil {
+			fmt.Println("no available account in wallet")
+			os.Exit(1)
+		}
 
-	rpSig, err := crypto.Sign(acc.PrivKey(), buf.Bytes())
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		rpSig, err = crypto.Sign(acc.PrivKey(), buf.Bytes())
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+	} else {
+		//var tmpSig [64]byte
+		fmt.Println("process AggregateSignatures")
+		//tmpSig, err = crypto.AggregateSignatures(account.PrivateKeys, common.Sha256D(buf.Bytes()))
+		//if err != nil {
+		//	fmt.Println(err)
+		//	os.Exit(1)
+		//}
+		rpSig = []byte{}
 	}
 	if m != 0 {
 		signerIndex := 0
@@ -174,6 +211,18 @@ func newReturnVotes(L *lua.LState) int {
 	L.Push(ud)
 
 	return 1
+}
+
+func getSchnorrCode(publicKey []byte) ([]byte, error) {
+	if pk, err := crypto.DecodePoint(publicKey); err != nil {
+		return nil, err
+	} else {
+		if redeemScript, err := contract.CreateSchnorrRedeemScript(pk); err != nil {
+			return nil, err
+		} else {
+			return redeemScript, nil
+		}
+	}
 }
 
 // Checks whether the first lua argument is a *LUserData with *payload.Voting and
@@ -546,6 +595,103 @@ func RegisterUpdateProducerType(L *lua.LState) {
 	L.SetField(mt, "__index", L.SetFuncs(L.NewTable(), updateProducerMethods))
 }
 
+//luaUpdateV2ProducerName
+func RegisterUpdateV2ProducerType(L *lua.LState) {
+	mt := L.NewTypeMetatable(luaUpdateV2ProducerName)
+	L.SetGlobal("updatev2producer", mt)
+	// static attributes
+	L.SetField(mt, "new", L.NewFunction(newUpdateV2Producer))
+	// methods
+	L.SetField(mt, "__index", L.SetFuncs(L.NewTable(), updateV2ProducerMethods))
+}
+
+// Constructor
+func newUpdateV2Producer(L *lua.LState) int {
+	ownerPublicKeyStr := L.ToString(1)
+	nodePublicKeyStr := L.ToString(2)
+	nickName := L.ToString(3)
+	url := L.ToString(4)
+	location := L.ToInt64(5)
+	address := L.ToString(6)
+	stakeuntil := L.ToInt64(7)
+	needSign := true
+	client, err := checkClient(L, 8)
+	var account *account.SchnorAccount
+	if err != nil {
+		account, err = checkAccount(L, 9)
+		if err != nil {
+			needSign = false
+		}
+	}
+
+	ownerPublicKey, err := common.HexStringToBytes(ownerPublicKeyStr)
+	if err != nil {
+		fmt.Println("wrong producer public key")
+		os.Exit(1)
+	}
+	nodePublicKey, err := common.HexStringToBytes(nodePublicKeyStr)
+	if err != nil {
+		fmt.Println("wrong producer public key")
+		os.Exit(1)
+	}
+	updateProducer := &payload.ProducerInfo{
+		OwnerPublicKey: []byte(ownerPublicKey),
+		NodePublicKey:  []byte(nodePublicKey),
+		NickName:       nickName,
+		Url:            url,
+		Location:       uint64(location),
+		NetAddress:     address,
+		StakeUntil:     uint32(stakeuntil),
+	}
+
+	if needSign {
+		upSignBuf := new(bytes.Buffer)
+		version := payload.ProducerInfoVersion
+		if stakeuntil != 0 {
+			version = payload.ProducerInfoDposV2Version
+		}
+
+		codeHash, err := contract.PublicKeyToStandardCodeHash(ownerPublicKey)
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+		if account == nil {
+			acc := client.GetAccountByCodeHash(*codeHash)
+			if acc == nil {
+				fmt.Println("no available account in wallet")
+				os.Exit(1)
+			}
+			err = updateProducer.SerializeUnsigned(upSignBuf, version)
+			if err != nil {
+				fmt.Println(err)
+				os.Exit(1)
+			}
+
+			rpSig, err := crypto.Sign(acc.PrivKey(), upSignBuf.Bytes())
+			if err != nil {
+				fmt.Println(err)
+				os.Exit(1)
+			}
+			updateProducer.Signature = rpSig
+		} else {
+			fmt.Println("process AggregateSignatures payload version 2")
+			err = updateProducer.SerializeUnsigned(upSignBuf, payload.ProducerInfoSchnorrVersion)
+			if err != nil {
+				fmt.Println(err)
+				os.Exit(1)
+			}
+		}
+	}
+
+	ud := L.NewUserData()
+	ud.Value = updateProducer
+	L.SetMetatable(ud, L.GetTypeMetatable(luaUpdateV2ProducerName))
+	L.Push(ud)
+
+	return 1
+}
+
 // Constructor
 func newUpdateProducer(L *lua.LState) int {
 	ownerPublicKeyStr := L.ToString(1)
@@ -630,6 +776,18 @@ var updateProducerMethods = map[string]lua.LGFunction{
 
 // Getter and setter for the Person#Name
 func updateProducerGet(L *lua.LState) int {
+	p := checkUpdateProducer(L, 1)
+	fmt.Println(p)
+
+	return 0
+}
+
+var updateV2ProducerMethods = map[string]lua.LGFunction{
+	"get": updateV2ProducerGet,
+}
+
+// Getter and setter for the Person#Name
+func updateV2ProducerGet(L *lua.LState) int {
 	p := checkUpdateProducer(L, 1)
 	fmt.Println(p)
 
@@ -728,10 +886,15 @@ func newRegisterV2Producer(L *lua.LState) int {
 	location := L.ToInt64(5)
 	address := L.ToString(6)
 	stakeUntil := L.ToInt64(7)
+	fmt.Println(" newRegisterV2Producer stakeUntil", stakeUntil)
 	needSign := true
+	var account *account.SchnorAccount
 	client, err := checkClient(L, 8)
 	if err != nil {
-		needSign = false
+		account, err = checkAccount(L, 9)
+		if err != nil {
+			needSign = false
+		}
 	}
 
 	ownerPublicKey, err := common.HexStringToBytes(ownerPublicKeyStr)
@@ -757,28 +920,42 @@ func newRegisterV2Producer(L *lua.LState) int {
 
 	if needSign {
 		rpSignBuf := new(bytes.Buffer)
-		err = registerProducer.SerializeUnsigned(rpSignBuf, payload.ProducerInfoDposV2Version)
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
-		}
+
 		codeHash, err := contract.PublicKeyToStandardCodeHash(ownerPublicKey)
-		acc := client.GetAccountByCodeHash(*codeHash)
-		if acc == nil {
-			fmt.Println("no available account in wallet")
-			os.Exit(1)
-		}
-		rpSig, err := crypto.Sign(acc.PrivKey(), rpSignBuf.Bytes())
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
 		}
-		registerProducer.Signature = rpSig
+		if account == nil {
+			err = registerProducer.SerializeUnsigned(rpSignBuf, payload.ProducerInfoDposV2Version)
+			if err != nil {
+				fmt.Println(err)
+				os.Exit(1)
+			}
+			acc := client.GetAccountByCodeHash(*codeHash)
+			if acc == nil {
+				fmt.Println("no available account in wallet")
+				os.Exit(1)
+			}
+			rpSig, err := crypto.Sign(acc.PrivKey(), rpSignBuf.Bytes())
+			if err != nil {
+				fmt.Println(err)
+				os.Exit(1)
+			}
+			registerProducer.Signature = rpSig
+		} else {
+			fmt.Println("process AggregateSignatures payload version 2")
+			err = registerProducer.SerializeUnsigned(rpSignBuf, payload.ProducerInfoSchnorrVersion)
+			if err != nil {
+				fmt.Println(err)
+				os.Exit(1)
+			}
+		}
 	}
 
 	ud := L.NewUserData()
 	ud.Value = registerProducer
-	L.SetMetatable(ud, L.GetTypeMetatable(luaRegisterProducerName))
+	L.SetMetatable(ud, L.GetTypeMetatable(luaRegisterV2ProducerName))
 	L.Push(ud)
 
 	return 1
@@ -906,6 +1083,64 @@ func cancelProducerGet(L *lua.LState) int {
 	fmt.Println(p)
 
 	return 0
+}
+
+func RegisterCancelProducerSchnorrType(L *lua.LState) {
+	mt := L.NewTypeMetatable(luaCancelProducerSchnorrName)
+	L.SetGlobal("cancelproducerschnorr", mt)
+	// static attributes
+	L.SetField(mt, "new", L.NewFunction(newCancelProducerSchnorr))
+	// methods
+	L.SetField(mt, "__index", L.SetFuncs(L.NewTable(), cancelProducerSchnorrMethods))
+}
+
+var cancelProducerSchnorrMethods = map[string]lua.LGFunction{
+	"get": cancelProducerSchnorrGet,
+}
+
+// Getter and setter for the Person#Name
+func cancelProducerSchnorrGet(L *lua.LState) int {
+	p := checkCancelProducerSchnorr(L, 1)
+	fmt.Println(p)
+
+	return 0
+}
+
+func checkCancelProducerSchnorr(L *lua.LState, idx int) *payload.ProcessProducer {
+	ud := L.CheckUserData(idx)
+	if v, ok := ud.Value.(*payload.ProcessProducer); ok {
+		return v
+	}
+	L.ArgError(1, "CancelProducer expected")
+	return nil
+}
+
+// Constructor
+func newCancelProducerSchnorr(L *lua.LState) int {
+	publicKeyStr := L.ToString(1)
+
+	publicKey, err := common.HexStringToBytes(publicKeyStr)
+	if err != nil {
+		fmt.Println("wrong producer public key")
+		os.Exit(1)
+	}
+	processProducer := &payload.ProcessProducer{
+		OwnerPublicKey: []byte(publicKey),
+	}
+
+	cpSignBuf := new(bytes.Buffer)
+	err = processProducer.SerializeUnsigned(cpSignBuf, payload.ProcessProducerSchnorrVersion)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
+	ud := L.NewUserData()
+	ud.Value = processProducer
+	L.SetMetatable(ud, L.GetTypeMetatable(luaCancelProducerSchnorrName))
+	L.Push(ud)
+
+	return 1
 }
 
 func RegisterReturnDepositCoinType(L *lua.LState) {
@@ -1128,10 +1363,15 @@ func newRegisterCR(L *lua.LState) int {
 	location := L.ToInt64(4)
 	payloadVersion := byte(L.ToInt(5))
 	needSign := true
+	var account *account.SchnorAccount
 	client, err := checkClient(L, 6)
 	if err != nil {
-		needSign = false
+		account, err = checkAccount(L, 7)
+		if err != nil {
+			needSign = false
+		}
 	}
+
 	publicKey, err := common.HexStringToBytes(publicKeyStr)
 	if err != nil {
 		fmt.Println("wrong cr public key")
@@ -1165,6 +1405,31 @@ func newRegisterCR(L *lua.LState) int {
 		os.Exit(1)
 	}
 
+	if account != nil {
+		fmt.Println("get schnorr code")
+		code, err = getSchnorrCode(publicKey)
+		if err != nil {
+			fmt.Println("wrong schnorr producer public key")
+			os.Exit(1)
+		}
+
+		ct, err = contract.CreateCRIDContractByCode(code)
+		if err != nil {
+			fmt.Println("wrong cr public key")
+			os.Exit(1)
+		}
+
+		didCode = make([]byte, len(code))
+		copy(didCode, code)
+		didCode = append(didCode[1:], common.DID)
+		didCT, err = contract.CreateCRIDContractByCode(didCode)
+		if err != nil {
+			fmt.Println("wrong cr public key")
+			os.Exit(1)
+		}
+		code = []byte{}
+	}
+
 	registerCR := &payload.CRInfo{
 		Code:     code,
 		CID:      *ct.ToProgramHash(),
@@ -1186,17 +1451,28 @@ func newRegisterCR(L *lua.LState) int {
 			fmt.Println(err)
 			os.Exit(1)
 		}
-		acc := client.GetAccountByCodeHash(*codeHash)
-		if acc == nil {
-			fmt.Println("no available account in wallet")
-			os.Exit(1)
+		if account == nil {
+			acc := client.GetAccountByCodeHash(*codeHash)
+			if acc == nil {
+				fmt.Println("no available account in wallet")
+				os.Exit(1)
+			}
+			rpSig, err := crypto.Sign(acc.PrivKey(), rpSignBuf.Bytes())
+			if err != nil {
+				fmt.Println(err)
+				os.Exit(1)
+			}
+			registerCR.Signature = rpSig
+		} else {
+			//fmt.Println("process AggregateSignatures")
+			//rpSig, err := crypto.AggregateSignatures(account.PrivateKeys, common.Sha256D(rpSignBuf.Bytes()))
+			//if err != nil {
+			//	fmt.Println(err)
+			//	os.Exit(1)
+			//}
+			//registerCR.Signature = rpSig[:]
 		}
-		rpSig, err := crypto.Sign(acc.PrivKey(), rpSignBuf.Bytes())
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
-		}
-		registerCR.Signature = rpSig
+
 	}
 
 	ud := L.NewUserData()
@@ -1230,7 +1506,6 @@ func registerCRGet(L *lua.LState) int {
 	return 0
 }
 
-//
 // Registers my person type to given L.
 func RegisterUpdateCRType(L *lua.LState) {
 	mt := L.NewTypeMetatable(luaUpdateCRName)
@@ -1286,8 +1561,32 @@ func newUpdateCR(L *lua.LState) int {
 		os.Exit(1)
 	}
 
+	if needSign == false {
+		code, err = getSchnorrCode(publicKey)
+		if err != nil {
+			fmt.Println("wrong schnorr producer public key")
+			os.Exit(1)
+		}
+
+		ct, err = contract.CreateCRIDContractByCode(code)
+		if err != nil {
+			fmt.Println("wrong cr public key")
+			os.Exit(1)
+		}
+
+		didCode = make([]byte, len(code))
+		copy(didCode, code)
+		didCode = append(didCode[1:], common.DID)
+		didCT, err = contract.CreateCRIDContractByCode(didCode)
+		if err != nil {
+			fmt.Println("wrong cr public key")
+			os.Exit(1)
+		}
+		code = []byte{}
+	}
+
 	updateCR := &payload.CRInfo{
-		Code:     ct.Code,
+		Code:     code,
 		CID:      *ct.ToProgramHash(),
 		DID:      *didCT.ToProgramHash(),
 		NickName: nickName,
@@ -1398,6 +1697,16 @@ func newUnregisterCR(L *lua.LState) int {
 		os.Exit(1)
 	}
 	cid := getIDProgramHash(ct.Code)
+
+	if needSign == false {
+		code, err := getSchnorrCode(publicKey)
+		if err != nil {
+			fmt.Println("wrong schnorr producer public key")
+			os.Exit(1)
+		}
+		cid = getIDProgramHash(code)
+	}
+
 	unregisterCR := &payload.UnregisterCR{
 		CID: *cid,
 	}
@@ -2792,4 +3101,63 @@ func checkCRCouncilMemberClaimNode(L *lua.LState, idx int) *payload.CRCouncilMem
 	}
 	L.ArgError(1, "CRCouncilMemberClaimNode expected")
 	return nil
+}
+
+func RegisterCreateNFTType(L *lua.LState) {
+	mt := L.NewTypeMetatable(luaCreateNFT)
+	L.SetGlobal("createnft", mt)
+	// static attributes
+	L.SetField(mt, "new", L.NewFunction(newCreateNFT))
+	// methods
+	L.SetField(mt, "__index", L.SetFuncs(L.NewTable(), createNFTMethods))
+}
+
+// Constructor
+func newCreateNFT(L *lua.LState) int {
+	idStr := L.ToString(1)
+	stakeAddress := L.ToString(2)
+	genesisBlockHashStr := L.ToString(3)
+	id, err := common.Uint256FromHexString(idStr)
+	if err != nil {
+		fmt.Println("wrong NFT id:", idStr)
+		os.Exit(1)
+	}
+	genesisBlockHash, err := common.Uint256FromHexString(genesisBlockHashStr)
+	if err != nil {
+		fmt.Println("wrong NFT genesis block hash:", genesisBlockHashStr)
+		os.Exit(1)
+	}
+	createNFTPayload := &payload.CreateNFT{
+		ReferKey:         *id,
+		StakeAddress:     stakeAddress,
+		GenesisBlockHash: *genesisBlockHash,
+	}
+
+	ud := L.NewUserData()
+	ud.Value = createNFTPayload
+	L.SetMetatable(ud, L.GetTypeMetatable(luaCreateNFT))
+	L.Push(ud)
+
+	return 1
+}
+
+func checkCreateNFT(L *lua.LState, idx int) *payload.CreateNFT {
+	ud := L.CheckUserData(idx)
+	if v, ok := ud.Value.(*payload.CreateNFT); ok {
+		return v
+	}
+	L.ArgError(1, "CreateNFT expected")
+	return nil
+}
+
+var createNFTMethods = map[string]lua.LGFunction{
+	"get": createNFTGet,
+}
+
+// Getter and setter for the nft
+func createNFTGet(L *lua.LState) int {
+	p := checkCreateNFT(L, 1)
+	fmt.Println(p)
+
+	return 0
 }

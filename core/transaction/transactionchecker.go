@@ -14,7 +14,9 @@ import (
 	"github.com/elastos/Elastos.ELA/blockchain"
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
+	"github.com/elastos/Elastos.ELA/core"
 	"github.com/elastos/Elastos.ELA/core/contract"
+	"github.com/elastos/Elastos.ELA/core/contract/program"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/core/types/outputpayload"
@@ -130,7 +132,7 @@ func (t *DefaultChecker) ContextCheck(params interfaces.Parameters) (
 		return references, cerr
 	}
 
-	if err := t.checkTransactionFee(t.parameters.Transaction, references); err != nil {
+	if err := t.parameters.Transaction.CheckTransactionFee(references); err != nil {
 		log.Warn("[CheckTransactionFee],", err)
 		return nil, elaerr.Simple(elaerr.ErrTxBalance, err)
 	}
@@ -190,7 +192,7 @@ func (t *DefaultChecker) CheckTransactionSize() error {
 	return nil
 }
 
-//validate the transaction of duplicate UTXO input
+// validate the transaction of duplicate UTXO input
 func (t *DefaultChecker) CheckTransactionInput() error {
 	txn := t.parameters.Transaction
 	if len(txn.Inputs()) <= 0 {
@@ -226,7 +228,7 @@ func (t *DefaultChecker) CheckTransactionOutput() error {
 	// check if output address is valid
 	specialOutputCount := 0
 	for _, output := range txn.Outputs() {
-		if output.AssetID != config.ELAAssetID {
+		if output.AssetID != core.ELAAssetID {
 			return errors.New("asset ID in output is invalid")
 		}
 
@@ -269,15 +271,18 @@ func (t *DefaultChecker) CheckAttributeProgram() error {
 	if len(tx.Programs()) == 0 {
 		return fmt.Errorf("no programs found in transaction")
 	}
-	for _, program := range tx.Programs() {
-		if program.Code == nil {
+	for _, p := range tx.Programs() {
+		if p.Code == nil {
 			return fmt.Errorf("invalid program code nil")
 		}
-		if program.Parameter == nil {
+		if len(p.Code) < program.MinProgramCodeSize {
+			return fmt.Errorf("invalid program code size")
+		}
+		if p.Parameter == nil {
 			return fmt.Errorf("invalid program parameter nil")
 		}
 
-		if t.parameters.BlockHeight < t.parameters.Config.NormalSchnorrStartHeight && contract.IsSchnorr(program.Code) {
+		if t.parameters.BlockHeight < t.parameters.Config.NormalSchnorrStartHeight && contract.IsSchnorr(p.Code) {
 			return fmt.Errorf("invalid program code with schnorr before SchnorrStartHeight")
 		}
 	}
@@ -508,7 +513,7 @@ func (t *DefaultChecker) checkVoteCRContent(blockHeight uint32,
 	if payloadVersion < outputpayload.VoteProducerAndCRVersion {
 		return errors.New("payload VoteProducerVersion not support vote CR")
 	}
-	if blockHeight >= t.parameters.Config.CheckVoteCRCountHeight {
+	if blockHeight >= t.parameters.Config.CRConfiguration.CheckVoteCRCountHeight {
 		if len(content.CandidateVotes) > outputpayload.MaxVoteProducersPerTransaction {
 			return errors.New("invalid count of CR candidates ")
 		}
@@ -570,7 +575,7 @@ func (t *DefaultChecker) checkInvalidUTXO(txn interfaces.Transaction) error {
 			return err
 		}
 		if referTxn.IsCoinBaseTx() {
-			if currentHeight-referTxn.LockTime() < t.parameters.Config.CoinbaseMaturity {
+			if currentHeight-referTxn.LockTime() < t.parameters.Config.PowConfiguration.CoinbaseMaturity {
 				return errors.New("the utxo of coinbase is locking")
 			}
 		} else if referTxn.IsNewSideChainPowTx() {
@@ -644,23 +649,31 @@ func checkTransactionDepositUTXO(txn interfaces.Transaction, references map[*com
 
 func checkDestructionAddress(references map[*common2.Input]common2.Output) error {
 	for _, output := range references {
-		if output.ProgramHash == config.DestroyELAAddress {
+		if output.ProgramHash == *config.DestroyELAProgramHash {
 			return errors.New("cannot use utxo from the destruction address")
 		}
 	}
 	return nil
 }
 
-func (t *DefaultChecker) checkTransactionFee(tx interfaces.Transaction, references map[*common2.Input]common2.Output) error {
-	fee := getTransactionFee(tx, references)
+//tx interfaces.Transaction,
+func (t *DefaultChecker) CheckTransactionFee(references map[*common2.Input]common2.Output) error {
+	log.Debug("DefaultChecker checkTransactionFee begin")
+	txn := t.parameters.Transaction
+	//blockHeight := t.parameters.BlockHeight
+	fee := getTransactionFee(txn, references)
 	if t.isSmallThanMinTransactionFee(fee) {
+		log.Debug("DefaultChecker checkTransactionFee fee too small end")
+
 		return fmt.Errorf("transaction fee not enough")
 	}
 	// set Fee and FeePerKB if check has passed
-	tx.SetFee(fee)
+	txn.SetFee(fee)
 	buf := new(bytes.Buffer)
-	tx.Serialize(buf)
-	tx.SetFeePerKB(fee * 1000 / common.Fixed64(len(buf.Bytes())))
+	txn.Serialize(buf)
+	txn.SetFeePerKB(fee * 1000 / common.Fixed64(len(buf.Bytes())))
+	log.Debug("DefaultChecker checkTransactionFee end")
+
 	return nil
 }
 
@@ -671,10 +684,10 @@ func checkOutputProgramHash(height uint32, programHash common.Uint168) error {
 		if programHash.IsEqual(empty) {
 			return nil
 		}
-		if programHash.IsEqual(config.CRAssetsAddress) {
+		if programHash.IsEqual(*config.CRAssetsProgramHash) {
 			return nil
 		}
-		if programHash.IsEqual(config.CRCExpensesAddress) {
+		if programHash.IsEqual(*config.CRCExpensesProgramHash) {
 			return nil
 		}
 
@@ -717,7 +730,7 @@ func checkOutputPayload(output *common2.Output) error {
 
 func checkAssetPrecision(txn interfaces.Transaction) error {
 	for _, output := range txn.Outputs() {
-		if !checkAmountPrecise(output.Value, config.ELAPrecision) {
+		if !checkAmountPrecise(output.Value, core.ELAPrecision) {
 			return errors.New("the precision of asset is incorrect")
 		}
 	}

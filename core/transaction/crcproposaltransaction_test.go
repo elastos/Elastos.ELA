@@ -27,7 +27,7 @@ func (s *txValidatorTestSuite) TestCheckSecretaryGeneralProposalTransaction() {
 	secretaryPublicKeyStr := "031e12374bae471aa09ad479f66c2306f4bcc4ca5b754609a82a1839b94b4721b9"
 	secretaryPrivateKeyStr := "94396a69462208b8fd96d83842855b867d3b0e663203cb31d0dfaec0362ec034"
 
-	tenureHeight := config.DefaultParams.CRCommitteeStartHeight + 1
+	tenureHeight := config.DefaultParams.CRConfiguration.CRCommitteeStartHeight + 1
 	ownerNickName := "nickname owner"
 	crNickName := "nickname cr"
 
@@ -95,14 +95,14 @@ func (s *txValidatorTestSuite) TestCheckSecretaryGeneralProposalTransaction() {
 
 	//ChangeSecretaryGeneralProposal tx must InElectionPeriod and not during voting period
 	config.DefaultParams.DPoSV2StartHeight = 2000000
-	s.Chain.GetCRCommittee().LastCommitteeHeight = config.DefaultParams.CRCommitteeStartHeight
-	tenureHeight = config.DefaultParams.CRCommitteeStartHeight + config.DefaultParams.CRDutyPeriod -
-		config.DefaultParams.CRVotingPeriod + 1
+	s.Chain.GetCRCommittee().LastCommitteeHeight = config.DefaultParams.CRConfiguration.CRCommitteeStartHeight
+	tenureHeight = config.DefaultParams.CRConfiguration.CRCommitteeStartHeight + config.DefaultParams.CRConfiguration.DutyPeriod -
+		config.DefaultParams.CRConfiguration.VotingPeriod + 1
 	txn.SetParameters(&TransactionParameters{
 		Transaction:         txn,
 		BlockHeight:         tenureHeight,
 		TimeStamp:           s.Chain.BestChain.Timestamp,
-		Config:              s.Chain.GetParams(),
+		Config:              &config.DefaultParams,
 		BlockChain:          s.Chain,
 		ProposalsUsedAmount: 0,
 	})
@@ -177,7 +177,7 @@ func (s *txValidatorTestSuite) TestCheckCRCProposalRegisterSideChainTransaction(
 	publicKeyStr2 := "036db5984e709d2e0ec62fd974283e9a18e7b87e8403cc784baf1f61f775926535"
 	privateKeyStr2 := "b2c25e877c8a87d54e8a20a902d27c7f24ed52810813ba175ca4e8d3036d130e"
 
-	tenureHeight := config.DefaultParams.CRCommitteeStartHeight + 1
+	tenureHeight := config.DefaultParams.CRConfiguration.CRCommitteeStartHeight + 1
 	nickName1 := "nickname 1"
 
 	member1 := s.getCRMember(publicKeyStr1, privateKeyStr1, nickName1)
@@ -307,7 +307,7 @@ func (s *txValidatorTestSuite) TestCheckCRCProposalTransaction() {
 	publicKeyStr2 := "036db5984e709d2e0ec62fd974283e9a18e7b87e8403cc784baf1f61f775926535"
 	privateKeyStr2 := "b2c25e877c8a87d54e8a20a902d27c7f24ed52810813ba175ca4e8d3036d130e"
 
-	tenureHeight := config.DefaultParams.CRCommitteeStartHeight + 1
+	tenureHeight := config.DefaultParams.CRConfiguration.CRCommitteeStartHeight + 1
 	nickName1 := "nickname 1"
 	nickName2 := "nickname 2"
 
@@ -342,8 +342,8 @@ func (s *txValidatorTestSuite) TestCheckCRCProposalTransaction() {
 
 	// register cr proposal in voting period
 	member1.MemberState = crstate.MemberElected
-	tenureHeight = config.DefaultParams.CRCommitteeStartHeight +
-		config.DefaultParams.CRDutyPeriod - config.DefaultParams.CRVotingPeriod
+	tenureHeight = config.DefaultParams.CRConfiguration.CRCommitteeStartHeight +
+		config.DefaultParams.CRConfiguration.DutyPeriod - config.DefaultParams.CRConfiguration.VotingPeriod
 	s.Chain.GetCRCommittee().InElectionPeriod = false
 	txn.SetParameters(&TransactionParameters{
 		Transaction:         txn,
@@ -358,7 +358,7 @@ func (s *txValidatorTestSuite) TestCheckCRCProposalTransaction() {
 
 	// recipient is empty
 	s.Chain.GetCRCommittee().InElectionPeriod = true
-	tenureHeight = config.DefaultParams.CRCommitteeStartHeight + 1
+	tenureHeight = config.DefaultParams.CRConfiguration.CRCommitteeStartHeight + 1
 	txn.Payload().(*payload.CRCProposal).Recipient = common.Uint168{}
 	txn.SetParameters(&TransactionParameters{
 		Transaction:         txn,
@@ -605,7 +605,7 @@ func (s *txValidatorTestSuite) TestCheckCRCProposalTransaction() {
 	txn = s.getCRCProposalTx(publicKeyStr2, privateKeyStr2, publicKeyStr1, privateKeyStr1)
 	crcProposal, _ := txn.Payload().(*payload.CRCProposal)
 	proposalHashSet := crstate.NewProposalHashSet()
-	for i := 0; i < int(s.Chain.GetParams().MaxCommitteeProposalCount); i++ {
+	for i := 0; i < int(s.Chain.GetParams().CRConfiguration.MaxCommitteeProposalCount); i++ {
 		proposalHashSet.Add(*randomUint256())
 	}
 	s.Chain.GetCRCommittee().GetProposalManager().ProposalHashes[crcProposal.
@@ -622,7 +622,7 @@ func (s *txValidatorTestSuite) TestCheckCRCProposalTransaction() {
 	err, _ = txn.SpecialContextCheck()
 	s.EqualError(err, "transaction validate error: payload content invalid:proposal is full")
 
-	s.Chain.GetParams().MaxCommitteeProposalCount = s.Chain.GetParams().MaxCommitteeProposalCount + 100
+	s.Chain.GetParams().CRConfiguration.MaxCommitteeProposalCount = s.Chain.GetParams().CRConfiguration.MaxCommitteeProposalCount + 100
 	// invalid reserved custom id
 	txn = s.getCRCReservedCustomIDProposalTx(publicKeyStr2, privateKeyStr2, publicKeyStr1, privateKeyStr1)
 	proposal, _ = txn.Payload().(*payload.CRCProposal)

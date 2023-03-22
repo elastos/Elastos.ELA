@@ -8,10 +8,12 @@ package transaction
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"math"
 
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/core/contract"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	crstate "github.com/elastos/Elastos.ELA/cr/state"
 	"github.com/elastos/Elastos.ELA/crypto"
@@ -24,27 +26,42 @@ type ActivateProducerTransaction struct {
 }
 
 func (t *ActivateProducerTransaction) CheckTransactionInput() error {
-	if len(t.Inputs()) != 0 {
-		return errors.New("no cost transactions must has no input")
+	chainParams := t.parameters.Config
+	blockHeight := t.parameters.BlockHeight
+	newActivateHeight := chainParams.DPoSConfiguration.NFTStartHeight
+
+	if blockHeight <= newActivateHeight {
+		if len(t.Inputs()) != 0 {
+			return errors.New("no cost transactions must has no input")
+		}
 	}
 	return nil
 }
 
 func (t *ActivateProducerTransaction) CheckTransactionOutput() error {
+	chainParams := t.parameters.Config
+	blockHeight := t.parameters.BlockHeight
+	newActivateHeight := chainParams.DPoSConfiguration.NFTStartHeight
 
-	if len(t.Outputs()) > math.MaxUint16 {
-		return errors.New("output count should not be greater than 65535(MaxUint16)")
+	if blockHeight <= newActivateHeight {
+		if len(t.Outputs()) > math.MaxUint16 {
+			return errors.New("output count should not be greater than 65535(MaxUint16)")
+		}
+		if len(t.Outputs()) != 0 {
+			return errors.New("no cost transactions should have no output")
+		}
 	}
-	if len(t.Outputs()) != 0 {
-		return errors.New("no cost transactions should have no output")
-	}
-
 	return nil
 }
 
 func (t *ActivateProducerTransaction) CheckAttributeProgram() error {
-	if len(t.Programs()) != 0 || len(t.Attributes()) != 0 {
-		return errors.New("zero cost tx should have no attributes and programs")
+	chainParams := t.parameters.Config
+	blockHeight := t.parameters.BlockHeight
+	newActivateHeight := chainParams.DPoSConfiguration.NFTStartHeight
+	if blockHeight <= newActivateHeight {
+		if len(t.Programs()) != 0 || len(t.Attributes()) != 0 {
+			return errors.New("zero cost tx should have no attributes and programs")
+		}
 	}
 	return nil
 }
@@ -60,6 +77,24 @@ func (t *ActivateProducerTransaction) CheckTransactionPayload() error {
 
 func (t *ActivateProducerTransaction) IsAllowedInPOWConsensus() bool {
 	return true
+}
+
+func (t *ActivateProducerTransaction) CheckTransactionFee(references map[*common2.Input]common2.Output) error {
+	log.Debug("ActivateProducerTransaction checkTransactionFee begin")
+	fee := getTransactionFee(t, references)
+	if fee != 0 {
+		log.Debug("checkTransactionFee end fee != 0")
+
+		return fmt.Errorf("transaction fee should be 0")
+	}
+	// set Fee and FeePerKB if check has passed
+	t.SetFee(fee)
+	buf := new(bytes.Buffer)
+	t.Serialize(buf)
+	t.SetFeePerKB(0)
+	log.Debug("ActivateProducerTransaction checkTransactionFee end")
+
+	return nil
 }
 
 func (t *ActivateProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
@@ -101,7 +136,7 @@ func (t *ActivateProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bo
 			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("can not activate this producer")), true
 		}
 	} else {
-		if t.parameters.BlockHeight < t.parameters.Config.ChangeCommitteeNewCRHeight {
+		if t.parameters.BlockHeight < t.parameters.Config.CRConfiguration.ChangeCommitteeNewCRHeight {
 			if producer.State() != state.Active &&
 				producer.State() != state.Inactive &&
 				producer.State() != state.Illegal {
@@ -122,7 +157,7 @@ func (t *ActivateProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bo
 	}
 
 	depositAmount := common.Fixed64(0)
-	if t.parameters.BlockHeight < t.parameters.Config.CRVotingStartHeight {
+	if t.parameters.BlockHeight < t.parameters.Config.CRConfiguration.CRVotingStartHeight {
 		programHash, err := contract.PublicKeyToDepositProgramHash(
 			producer.OwnerPublicKey())
 		if err != nil {
@@ -162,18 +197,26 @@ func (t *ActivateProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bo
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("insufficient deposit amount")), true
 	}
 
-	return nil, true
+	chainParams := t.parameters.Config
+	blockHeight := t.parameters.BlockHeight
+	newActivateHeight := chainParams.DPoSConfiguration.NFTStartHeight
+	end := false
+	if blockHeight <= newActivateHeight {
+		end = true
+	}
+	return nil, end
 }
 
 func (t *ActivateProducerTransaction) checkActivateProducerSignature(
 	activateProducer *payload.ActivateProducer) error {
+
 	// check signature
 	publicKey, err := crypto.DecodePoint(activateProducer.NodePublicKey)
 	if err != nil {
 		return errors.New("invalid public key in payload")
 	}
 	signedBuf := new(bytes.Buffer)
-	err = activateProducer.SerializeUnsigned(signedBuf, payload.ActivateProducerVersion)
+	err = activateProducer.SerializeUnsigned(signedBuf, t.payloadVersion)
 	if err != nil {
 		return err
 	}
@@ -181,5 +224,6 @@ func (t *ActivateProducerTransaction) checkActivateProducerSignature(
 	if err != nil {
 		return errors.New("invalid signature in payload")
 	}
+
 	return nil
 }

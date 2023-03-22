@@ -7,6 +7,7 @@ package transaction
 
 import (
 	"github.com/elastos/Elastos.ELA/common"
+	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/core/contract/program"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/core/types/functions"
@@ -16,7 +17,10 @@ import (
 
 func (s *txValidatorTestSuite) TestCheckCRCProposalRealWithdrawTransaction() {
 	// Set CR expenses address.
-	s.Chain.GetParams().CRExpensesAddress = *randomUint168()
+	var err error
+	ceAddr := config.CRCExpensesProgramHash
+	ceExpensesAddress := ceAddr
+	s.Chain.GetParams().CRConfiguration.CRExpensesProgramHash = ceAddr
 
 	// Set WithdrawableTxInfo
 	withdrawTransactionHash1 := *randomUint256()
@@ -44,7 +48,7 @@ func (s *txValidatorTestSuite) TestCheckCRCProposalRealWithdrawTransaction() {
 	}
 	refOutput := common2.Output{
 		Value:       20 * 1e8,
-		ProgramHash: s.Chain.GetParams().CRExpensesAddress,
+		ProgramHash: *ceExpensesAddress,
 	}
 	reference[input] = refOutput
 
@@ -59,7 +63,7 @@ func (s *txValidatorTestSuite) TestCheckCRCProposalRealWithdrawTransaction() {
 	}
 	output3 := &common2.Output{
 		Value:       1 * 1e8,
-		ProgramHash: s.Chain.GetParams().CRExpensesAddress,
+		ProgramHash: *ceExpensesAddress,
 	}
 	output1Err := &common2.Output{
 		Value:       10 * 1e8,
@@ -80,7 +84,7 @@ func (s *txValidatorTestSuite) TestCheckCRCProposalRealWithdrawTransaction() {
 		[]*common2.Output{output1, output2})
 	txn = CreateTransactionByType(txn, s.Chain)
 	txn.SetReferences(reference)
-	err, _ := txn.SpecialContextCheck()
+	err, _ = txn.SpecialContextCheck()
 	s.EqualError(err, "transaction validate error: payload content invalid:invalid real withdraw transaction hashes count")
 
 	txn = s.getCRCProposalRealWithdrawTx(input,

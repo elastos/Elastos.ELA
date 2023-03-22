@@ -7,18 +7,16 @@ package unit
 
 import (
 	"errors"
-	"fmt"
 	"testing"
 
 	"github.com/elastos/Elastos.ELA/blockchain"
-	"github.com/elastos/Elastos.ELA/core/contract/program"
-	"github.com/elastos/Elastos.ELA/core/transaction"
-	"github.com/elastos/Elastos.ELA/core/types/functions"
-	"github.com/elastos/Elastos.ELA/core/types/interfaces"
-
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
+	"github.com/elastos/Elastos.ELA/core/contract/program"
+	"github.com/elastos/Elastos.ELA/core/transaction"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/functions"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/core/types/outputpayload"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/utils/test"
@@ -40,7 +38,7 @@ func init() {
 	functions.GetTransactionByBytes = transaction.GetTransactionByBytes
 	functions.CreateTransaction = transaction.CreateTransaction
 	functions.GetTransactionParameters = transaction.GetTransactionparameters
-	config.DefaultParams = config.GetDefaultParams()
+	config.DefaultParams = *config.GetDefaultParams()
 
 	referTx = functions.CreateTransaction(
 		common2.TxVersion09,
@@ -132,7 +130,7 @@ func NewUtxoCacheDB() *UtxoCacheDB {
 
 func TestUTXOCache_Init(t *testing.T) {
 	utxoCacheDB = NewUtxoCacheDB()
-	fmt.Println("refer tx hash:", referTx.Hash().String())
+	//fmt.Println("refer tx hash:", referTx.Hash().String())
 	utxoCacheDB.SetTransaction(referTx)
 }
 

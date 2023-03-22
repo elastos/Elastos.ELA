@@ -3,6 +3,8 @@ package transaction
 import (
 	"bytes"
 	"github.com/elastos/Elastos.ELA/common"
+	"github.com/elastos/Elastos.ELA/common/config"
+	"github.com/elastos/Elastos.ELA/core/checkpoint"
 	"github.com/elastos/Elastos.ELA/core/contract/program"
 	"github.com/elastos/Elastos.ELA/core/types"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
@@ -12,6 +14,7 @@ import (
 	crstate "github.com/elastos/Elastos.ELA/cr/state"
 	"github.com/elastos/Elastos.ELA/crypto"
 	"github.com/elastos/Elastos.ELA/dpos/state"
+	"path/filepath"
 )
 
 func (s *txValidatorTestSuite) TestCheckActivateProducerTransaction() {
@@ -100,7 +103,9 @@ func (s *txValidatorTestSuite) TestCheckActivateProducerTransaction() {
 		)
 
 		s.CurrentHeight = 1
-		s.Chain.SetCRCommittee(crstate.NewCommittee(s.Chain.GetParams()))
+		ckpManager := checkpoint.NewManager(&config.DefaultParams)
+		ckpManager.SetDataPath(filepath.Join(config.DefaultParams.DataDir, "checkpoints"))
+		s.Chain.SetCRCommittee(crstate.NewCommittee(s.Chain.GetParams(), ckpManager))
 		s.Chain.SetState(state.NewState(s.Chain.GetParams(), nil, nil, nil,
 			func() bool { return false }, func(programHash common.Uint168) (common.Fixed64,
 				error) {
@@ -145,7 +150,7 @@ func (s *txValidatorTestSuite) TestCheckActivateProducerTransaction() {
 		s.EqualError(err, "transaction validate error: payload content invalid:insufficient deposit amount")
 
 		s.Chain.GetState().GetProducer(publicKey1).SetTotalAmount(500100000000)
-		s.Chain.GetParams().CRVotingStartHeight = 1
+		s.Chain.GetParams().CRConfiguration.CRVotingStartHeight = 1
 		s.Chain.BestChain.Height = 10
 		txn = CreateTransactionByType(txn, s.Chain)
 		err, _ = txn.SpecialContextCheck()
@@ -180,7 +185,9 @@ func (s *txValidatorTestSuite) TestCheckActivateProducerTransaction() {
 		)
 
 		s.CurrentHeight = 1
-		s.Chain.SetCRCommittee(crstate.NewCommittee(s.Chain.GetParams()))
+		ckpManager := checkpoint.NewManager(&config.DefaultParams)
+		ckpManager.SetDataPath(filepath.Join(config.DefaultParams.DataDir, "checkpoints"))
+		s.Chain.SetCRCommittee(crstate.NewCommittee(s.Chain.GetParams(), ckpManager))
 		s.Chain.SetState(state.NewState(s.Chain.GetParams(), nil, nil, nil,
 			func() bool { return false }, func(programHash common.Uint168) (common.Fixed64,
 				error) {
@@ -213,7 +220,7 @@ func (s *txValidatorTestSuite) TestCheckActivateProducerTransaction() {
 		s.EqualError(err, "transaction validate error: payload content invalid:insufficient deposit amount")
 
 		s.Chain.GetState().GetProducer(publicKey1).SetTotalAmount(200100000000)
-		s.Chain.GetParams().CRVotingStartHeight = 1
+		s.Chain.GetParams().CRConfiguration.CRVotingStartHeight = 1
 		s.Chain.BestChain.Height = 10
 		txn = CreateTransactionByType(txn, s.Chain)
 		err, _ = txn.SpecialContextCheck()

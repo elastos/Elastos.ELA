@@ -7,7 +7,6 @@ package wallet
 
 import (
 	"bytes"
-	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"io"
 	"sync"
 
@@ -16,6 +15,7 @@ import (
 	"github.com/elastos/Elastos.ELA/core/checkpoint"
 	"github.com/elastos/Elastos.ELA/core/contract"
 	"github.com/elastos/Elastos.ELA/core/types"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 )
 
 // CoinsCheckPoint implement the ICheckPoint interface and store all coins

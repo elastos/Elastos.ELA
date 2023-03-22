@@ -12,6 +12,7 @@ import (
 
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
+	"github.com/elastos/Elastos.ELA/core/checkpoint"
 	"github.com/elastos/Elastos.ELA/core/contract/program"
 	transaction2 "github.com/elastos/Elastos.ELA/core/transaction"
 	"github.com/elastos/Elastos.ELA/core/types"
@@ -28,13 +29,12 @@ func init() {
 	functions.GetTransactionByBytes = transaction2.GetTransactionByBytes
 	functions.CreateTransaction = transaction2.CreateTransaction
 	functions.GetTransactionParameters = transaction2.GetTransactionparameters
-	config.DefaultParams = config.GetDefaultParams()
+	config.DefaultParams = *config.GetDefaultParams()
 }
 
 func TestSortTransactions(t *testing.T) {
-	types := []common2.TxType{common2.CoinBase, common2.TransferAsset, common2.TransferAsset,
-		common2.CRCProposalTracking, common2.CRCProposalWithdraw, common2.CRCProposalWithdraw,
-		common2.TransferAsset, common2.CRCProposalWithdraw,
+	types := []common2.TxType{common2.CoinBase, common2.TransferAsset,
+		common2.CRCProposalTracking, common2.CRCProposalWithdraw,
 	}
 	var txs []interfaces.Transaction
 	for _, t := range types {
@@ -54,16 +54,14 @@ func TestSortTransactions(t *testing.T) {
 	state.SortTransactions(txs[1:])
 	assert.Equal(t, txs[0].TxType().Name(), "CoinBase")
 	assert.Equal(t, txs[1].TxType().Name(), "CRCProposalWithdraw")
-	assert.Equal(t, txs[2].TxType().Name(), "CRCProposalWithdraw")
-	assert.Equal(t, txs[3].TxType().Name(), "CRCProposalWithdraw")
-	assert.Equal(t, txs[4].TxType().Name(), "TransferAsset")
-	assert.Equal(t, txs[5].TxType().Name(), "TransferAsset")
-	assert.Equal(t, txs[6].TxType().Name(), "CRCProposalTracking")
-	assert.Equal(t, txs[7].TxType().Name(), "TransferAsset")
+	assert.Equal(t, txs[2].TxType().Name(), "CRCProposalTracking")
+	assert.Equal(t, txs[3].TxType().Name(), "TransferAsset")
 }
 
 func TestNewCRCommittee(t *testing.T) {
-	committee := state.NewCommittee(&config.DefaultParams)
+	ckpManager := checkpoint.NewManager(&config.DefaultParams)
+	committee := state.NewCommittee(&config.DefaultParams,
+		ckpManager)
 
 	assert.Equal(t, uint32(0), committee.LastCommitteeHeight)
 	assert.Equal(t, 0, len(committee.GetMembersCodes()))
@@ -71,7 +69,8 @@ func TestNewCRCommittee(t *testing.T) {
 }
 
 func TestCommittee_ProcessBlock(t *testing.T) {
-	committee := state.NewCommittee(&config.DefaultParams)
+	ckpManager := checkpoint.NewManager(&config.DefaultParams)
+	committee := state.NewCommittee(&config.DefaultParams, ckpManager)
 	round1, expectCandidates1, votes1 := generateCandidateSuite()
 	round2, expectCandidates2, votes2 := generateCandidateSuite()
 	committee.GetState().StateKeyFrame = *round1
@@ -79,7 +78,7 @@ func TestCommittee_ProcessBlock(t *testing.T) {
 	// < CRCommitteeStartHeight
 	committee.ProcessBlock(&types.Block{
 		Header: common2.Header{
-			Height: config.DefaultParams.CRCommitteeStartHeight - 1,
+			Height: config.DefaultParams.CRConfiguration.CRCommitteeStartHeight - 1,
 		},
 	}, nil)
 	assert.Equal(t, 0, len(committee.GetMembersCodes()))
@@ -88,7 +87,7 @@ func TestCommittee_ProcessBlock(t *testing.T) {
 	// CRCommitteeStartHeight
 	committee.ProcessBlock(&types.Block{
 		Header: common2.Header{
-			Height: config.DefaultParams.CRCommitteeStartHeight,
+			Height: config.DefaultParams.CRConfiguration.CRCommitteeStartHeight,
 		},
 	}, nil)
 	codes1 := committee.GetMembersCodes()
@@ -112,8 +111,8 @@ func TestCommittee_ProcessBlock(t *testing.T) {
 	committee.GetState().StateKeyFrame = *round2
 	committee.ProcessBlock(&types.Block{
 		Header: common2.Header{
-			Height: config.DefaultParams.CRCommitteeStartHeight +
-				config.DefaultParams.CRDutyPeriod - 1,
+			Height: config.DefaultParams.CRConfiguration.CRCommitteeStartHeight +
+				config.DefaultParams.CRConfiguration.DutyPeriod - 1,
 		},
 	}, nil)
 	codes2 := committee.GetMembersCodes()
@@ -126,12 +125,12 @@ func TestCommittee_ProcessBlock(t *testing.T) {
 	}
 
 	// CRCommitteeStartHeight + CRDutyPeriod
-	committee.LastVotingStartHeight = config.DefaultParams.CRCommitteeStartHeight +
-		config.DefaultParams.CRDutyPeriod - config.DefaultParams.CRVotingPeriod
+	committee.LastVotingStartHeight = config.DefaultParams.CRConfiguration.CRCommitteeStartHeight +
+		config.DefaultParams.CRConfiguration.DutyPeriod - config.DefaultParams.CRConfiguration.VotingPeriod
 	committee.ProcessBlock(&types.Block{
 		Header: common2.Header{
-			Height: config.DefaultParams.CRCommitteeStartHeight +
-				config.DefaultParams.CRDutyPeriod,
+			Height: config.DefaultParams.CRConfiguration.CRCommitteeStartHeight +
+				config.DefaultParams.CRConfiguration.DutyPeriod,
 		},
 	}, nil)
 	codes2 = committee.GetMembersCodes()
@@ -163,93 +162,95 @@ func sortDIDList(cid []common.Uint168, votes map[common.Uint168]common.Fixed64) 
 }
 
 func TestCommittee_IsInVotingPeriod(t *testing.T) {
-	committee := state.NewCommittee(&config.DefaultParams)
+	ckpManager := checkpoint.NewManager(config.GetDefaultParams())
+	committee := state.NewCommittee(&config.DefaultParams, ckpManager)
 
 	// 0
 	assert.False(t, committee.IsInVotingPeriod(0))
 
 	// < CRVotingStartHeight
 	assert.False(t, committee.IsInVotingPeriod(
-		config.DefaultParams.CRVotingStartHeight-1))
+		config.DefaultParams.CRConfiguration.CRVotingStartHeight-1))
 
 	// [CRVotingStartHeight, CRCommitteeStartHeight - CRVotingPeriod]
 	assert.True(t, committee.IsInVotingPeriod(
-		config.DefaultParams.CRCommitteeStartHeight-
-			config.DefaultParams.CRVotingPeriod-1))
+		config.DefaultParams.CRConfiguration.CRCommitteeStartHeight-
+			config.DefaultParams.CRConfiguration.VotingPeriod-1))
 
 	// CRCommitteeStartHeight - CRVotingPeriod
 	assert.True(t, committee.IsInVotingPeriod(
-		config.DefaultParams.CRCommitteeStartHeight-
-			config.DefaultParams.CRVotingPeriod))
+		config.DefaultParams.CRConfiguration.CRCommitteeStartHeight-
+			config.DefaultParams.CRConfiguration.VotingPeriod))
 
 	// [CRCommitteeStartHeight - CRVotingPeriod, CRCommitteeStartHeight)
 	assert.True(t, committee.IsInVotingPeriod(
-		config.DefaultParams.CRCommitteeStartHeight-
-			config.DefaultParams.CRVotingPeriod+1))
+		config.DefaultParams.CRConfiguration.CRCommitteeStartHeight-
+			config.DefaultParams.CRConfiguration.VotingPeriod+1))
 
 	// CRCommitteeStartHeight
 	assert.False(t, committee.IsInVotingPeriod(
-		config.DefaultParams.CRCommitteeStartHeight))
+		config.DefaultParams.CRConfiguration.CRCommitteeStartHeight))
 
 	// change to first committee
-	committee.LastCommitteeHeight = config.DefaultParams.CRCommitteeStartHeight
+	committee.LastCommitteeHeight = config.DefaultParams.CRConfiguration.CRCommitteeStartHeight
 
 	// < CRCommitteeStartHeight + CRDutyPeriod - CRVotingPeriod
 	committee.InElectionPeriod = true
 	assert.False(t, committee.IsInVotingPeriod(
-		config.DefaultParams.CRCommitteeStartHeight+
-			config.DefaultParams.CRDutyPeriod-config.DefaultParams.
-			CRVotingPeriod-1))
+		config.DefaultParams.CRConfiguration.CRCommitteeStartHeight+
+			config.DefaultParams.CRConfiguration.DutyPeriod-config.DefaultParams.
+			CRConfiguration.VotingPeriod-1))
 
 	// CRCommitteeStartHeight + CRDutyPeriod - CRVotingPeriod
 	assert.True(t, committee.IsInVotingPeriod(
-		config.DefaultParams.CRCommitteeStartHeight+
-			config.DefaultParams.CRDutyPeriod-config.DefaultParams.
-			CRVotingPeriod))
+		config.DefaultParams.CRConfiguration.CRCommitteeStartHeight+
+			config.DefaultParams.CRConfiguration.DutyPeriod-config.DefaultParams.
+			CRConfiguration.VotingPeriod))
 
 	// [CRCommitteeStartHeight + CRDutyPeriod - CRVotingPeriod,
 	// CRCommitteeStartHeight + CRDutyPeriod)
 	assert.True(t, committee.IsInVotingPeriod(
-		config.DefaultParams.CRCommitteeStartHeight+
-			config.DefaultParams.CRDutyPeriod-config.DefaultParams.
-			CRVotingPeriod+1))
+		config.DefaultParams.CRConfiguration.CRCommitteeStartHeight+
+			config.DefaultParams.CRConfiguration.DutyPeriod-config.DefaultParams.
+			CRConfiguration.VotingPeriod+1))
 
 	// CRCommitteeStartHeight + CRDutyPeriod
 	assert.False(t, committee.IsInVotingPeriod(
-		config.DefaultParams.CRCommitteeStartHeight+
-			config.DefaultParams.CRDutyPeriod))
+		config.DefaultParams.CRConfiguration.CRCommitteeStartHeight+
+			config.DefaultParams.CRConfiguration.DutyPeriod))
 
 	// change to next committee
 	committee.LastCommitteeHeight = config.DefaultParams.
-		CRCommitteeStartHeight + config.DefaultParams.CRDutyPeriod
+		CRConfiguration.CRCommitteeStartHeight + config.DefaultParams.CRConfiguration.DutyPeriod
 
 	// < CRCommitteeStartHeight + CRDutyPeriod * 2 - CRVotingPeriod
 	assert.False(t, committee.IsInVotingPeriod(
-		config.DefaultParams.CRCommitteeStartHeight+
-			config.DefaultParams.CRDutyPeriod*2-config.DefaultParams.
-			CRVotingPeriod-1))
+		config.DefaultParams.CRConfiguration.CRCommitteeStartHeight+
+			config.DefaultParams.CRConfiguration.DutyPeriod*2-config.DefaultParams.
+			CRConfiguration.VotingPeriod-1))
 
 	// CRCommitteeStartHeight + CRDutyPeriod * 2 - CRVotingPeriod
 	assert.True(t, committee.IsInVotingPeriod(
-		config.DefaultParams.CRCommitteeStartHeight+
-			config.DefaultParams.CRDutyPeriod*2-config.DefaultParams.
-			CRVotingPeriod))
+		config.DefaultParams.CRConfiguration.CRCommitteeStartHeight+
+			config.DefaultParams.CRConfiguration.DutyPeriod*2-config.DefaultParams.
+			CRConfiguration.VotingPeriod))
 
 	// [CRCommitteeStartHeight + CRDutyPeriod - CRVotingPeriod,
 	// CRCommitteeStartHeight + CRDutyPeriod)
 	assert.True(t, committee.IsInVotingPeriod(
-		config.DefaultParams.CRCommitteeStartHeight+
-			config.DefaultParams.CRDutyPeriod*2-config.DefaultParams.
-			CRVotingPeriod+1))
+		config.DefaultParams.CRConfiguration.CRCommitteeStartHeight+
+			config.DefaultParams.CRConfiguration.DutyPeriod*2-config.DefaultParams.
+			CRConfiguration.VotingPeriod+1))
 
 	// CRCommitteeStartHeight + CRDutyPeriod * 2
 	assert.False(t, committee.IsInVotingPeriod(
-		config.DefaultParams.CRCommitteeStartHeight+
-			config.DefaultParams.CRDutyPeriod*2))
+		config.DefaultParams.CRConfiguration.CRCommitteeStartHeight+
+			config.DefaultParams.CRConfiguration.DutyPeriod*2))
 }
 
 func TestCommittee_RollbackTo_SameCommittee_VotingPeriod(t *testing.T) {
-	committee := state.NewCommittee(&config.DefaultParams)
+	ckpManager := checkpoint.NewManager(config.GetDefaultParams())
+	committee := state.NewCommittee(&config.DefaultParams, ckpManager)
 	committee.RegisterFuncitons(&state.CommitteeFuncsConfig{})
 
 	code := randomBytes(34)
@@ -257,8 +258,8 @@ func TestCommittee_RollbackTo_SameCommittee_VotingPeriod(t *testing.T) {
 	cid := *randomUint168()
 
 	// register candidate
-	height := config.DefaultParams.CRCommitteeStartHeight -
-		config.DefaultParams.CRVotingPeriod
+	height := config.DefaultParams.CRConfiguration.CRCommitteeStartHeight -
+		config.DefaultParams.CRConfiguration.VotingPeriod
 	committee.ProcessBlock(&types.Block{
 		Header: common2.Header{
 			Height: height,
@@ -303,23 +304,24 @@ func TestCommittee_RollbackTo_SameCommittee_VotingPeriod(t *testing.T) {
 
 	// rollback to the nickname before update
 	assert.NoError(t, committee.RollbackTo(
-		config.DefaultParams.CRCommitteeStartHeight-
-			config.DefaultParams.CRVotingPeriod))
+		config.DefaultParams.CRConfiguration.CRCommitteeStartHeight-
+			config.DefaultParams.CRConfiguration.VotingPeriod))
 	assert.True(t, committee.ExistCandidateByNickname(nickname))
 }
 
 func TestCommittee_RollbackTo_SameCommittee_BeforeVoting(t *testing.T) {
 	//let committee be the first committee started state
 	keyframe := randomKeyFrame(12,
-		config.DefaultParams.CRCommitteeStartHeight)
+		config.DefaultParams.CRConfiguration.CRCommitteeStartHeight)
 	keyframe.InElectionPeriod = false
-	committee := state.NewCommittee(&config.DefaultParams)
+	ckpManager := checkpoint.NewManager(config.GetDefaultParams())
+	committee := state.NewCommittee(&config.DefaultParams, ckpManager)
 	committee.KeyFrame = *keyframe
 	committee.RegisterFuncitons(&state.CommitteeFuncsConfig{})
 
 	// let processing height be 6 blocks before the second voting
-	height := config.DefaultParams.CRCommitteeStartHeight + config.
-		DefaultParams.CRDutyPeriod - config.DefaultParams.CRVotingPeriod - 6
+	height := config.DefaultParams.CRConfiguration.CRCommitteeStartHeight + config.
+		DefaultParams.CRConfiguration.DutyPeriod - config.DefaultParams.CRConfiguration.VotingPeriod - 6
 
 	// simulate processing register CR before and after CR
 	for i := 0; i < 10; i++ {
@@ -348,8 +350,8 @@ func TestCommittee_RollbackTo_SameCommittee_BeforeVoting(t *testing.T) {
 	assert.Equal(t, 4, len(committee.GetCandidates(state.Active)))
 
 	// rollback to the voting height
-	height = config.DefaultParams.CRCommitteeStartHeight + config.
-		DefaultParams.CRDutyPeriod - config.DefaultParams.CRVotingPeriod
+	height = config.DefaultParams.CRConfiguration.CRCommitteeStartHeight + config.
+		DefaultParams.CRConfiguration.DutyPeriod - config.DefaultParams.CRConfiguration.VotingPeriod
 	assert.NoError(t, committee.RollbackTo(height))
 	assert.False(t, keyframeEqual(keyframe, &committee.KeyFrame))
 	assert.Equal(t, 2, len(committee.GetCandidates(state.Active)))

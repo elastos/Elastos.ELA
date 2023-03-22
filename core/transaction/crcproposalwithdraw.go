@@ -12,6 +12,7 @@ import (
 
 	"github.com/elastos/Elastos.ELA/blockchain"
 	"github.com/elastos/Elastos.ELA/common"
+	"github.com/elastos/Elastos.ELA/core/contract/program"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
@@ -26,7 +27,7 @@ type CRCProposalWithdrawTransaction struct {
 func (t *CRCProposalWithdrawTransaction) CheckAttributeProgram() error {
 
 	if len(t.Programs()) != 0 && t.parameters.BlockHeight <
-		t.parameters.Config.CRCProposalWithdrawPayloadV1Height {
+		t.parameters.Config.CRConfiguration.CRCProposalWithdrawPayloadV1Height {
 		return errors.New("crcproposalwithdraw tx should have no programs")
 	}
 	if t.PayloadVersion() == payload.CRCProposalWithdrawDefault {
@@ -44,11 +45,14 @@ func (t *CRCProposalWithdrawTransaction) CheckAttributeProgram() error {
 	if len(t.Programs()) == 0 {
 		return fmt.Errorf("no programs found in transaction")
 	}
-	for _, program := range t.Programs() {
-		if program.Code == nil {
+	for _, p := range t.Programs() {
+		if p.Code == nil {
 			return fmt.Errorf("invalid program code nil")
 		}
-		if program.Parameter == nil {
+		if len(p.Code) < program.MinProgramCodeSize {
+			return fmt.Errorf("invalid program code size")
+		}
+		if p.Parameter == nil {
 			return fmt.Errorf("invalid program parameter nil")
 		}
 	}
@@ -73,18 +77,18 @@ func (t *CRCProposalWithdrawTransaction) HeightVersionCheck() error {
 	blockHeight := t.parameters.BlockHeight
 	chainParams := t.parameters.Config
 
-	if blockHeight < chainParams.CRCommitteeStartHeight {
+	if blockHeight < chainParams.CRConfiguration.CRCommitteeStartHeight {
 		return errors.New(fmt.Sprintf("not support %s transaction "+
 			"before CRCommitteeStartHeight", t.TxType().Name()))
 	}
 	if t.PayloadVersion() == payload.CRCProposalWithdrawDefault &&
-		blockHeight >= chainParams.CRCProposalWithdrawPayloadV1Height {
+		blockHeight >= chainParams.CRConfiguration.CRCProposalWithdrawPayloadV1Height {
 		return errors.New(fmt.Sprintf("not support %s transaction "+
 			"after CRCProposalWithdrawPayloadV1Height", t.TxType().Name()))
 	}
 
 	if t.PayloadVersion() == payload.CRCProposalWithdrawVersion01 &&
-		blockHeight < chainParams.CRCProposalWithdrawPayloadV1Height {
+		blockHeight < chainParams.CRConfiguration.CRCProposalWithdrawPayloadV1Height {
 		return errors.New(fmt.Sprintf("not support %s transaction "+
 			"before CRCProposalWithdrawPayloadV1Height", t.TxType().Name()))
 	}
@@ -92,10 +96,10 @@ func (t *CRCProposalWithdrawTransaction) HeightVersionCheck() error {
 }
 
 func (t *CRCProposalWithdrawTransaction) SpecialContextCheck() (result elaerr.ELAError, end bool) {
-
 	if t.PayloadVersion() == payload.CRCProposalWithdrawDefault {
 		for _, output := range t.references {
-			if output.ProgramHash != t.parameters.Config.CRExpensesAddress {
+			if output.ProgramHash !=
+				*t.parameters.Config.CRConfiguration.CRExpensesProgramHash {
 				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("proposal withdrawal transaction for non-crc committee address")), true
 			}
 		}
@@ -137,7 +141,7 @@ func (t *CRCProposalWithdrawTransaction) SpecialContextCheck() (result elaerr.EL
 
 		// Check output[1] if exist must equal with CRCComitteeAddresss
 		if len(t.Outputs()) > 1 {
-			if t.Outputs()[1].ProgramHash != t.parameters.Config.CRExpensesAddress {
+			if t.Outputs()[1].ProgramHash != *t.parameters.Config.CRConfiguration.CRExpensesProgramHash {
 				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("txn.Outputs()[1].ProgramHash !=CRCComitteeAddresss")), true
 			}
 		}
@@ -159,7 +163,7 @@ func (t *CRCProposalWithdrawTransaction) SpecialContextCheck() (result elaerr.EL
 		if withdrawPayload.Amount != withdrawAmount {
 			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("withdrawPayload.Amount != withdrawAmount ")), true
 		}
-		if withdrawPayload.Amount <= t.parameters.Config.RealWithdrawSingleFee {
+		if withdrawPayload.Amount <= t.parameters.Config.CRConfiguration.RealWithdrawSingleFee {
 			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("withdraw amount should be bigger than RealWithdrawSingleFee")), true
 		}
 	}

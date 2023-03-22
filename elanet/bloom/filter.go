@@ -6,12 +6,12 @@
 package bloom
 
 import (
-	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"math"
 	"sync"
 
 	"github.com/elastos/Elastos.ELA/common"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/p2p/msg"
 )
 
@@ -255,14 +255,26 @@ func (bf *Filter) matchTxAndUpdate(txn interfaces.Transaction) bool {
 	// This is useful for finding transactions when they appear in a block.
 	hash := txn.Hash()
 	matched := bf.matches(hash[:])
+	txTypesMap := make(map[common2.TxType]struct{}, 0)
+	for _, t := range bf.msg.TxTypes {
+		txTypesMap[t] = struct{}{}
+	}
 
 	// Check if the filter is a side chain SPV filter
 	if bf.msg.Tweak == math.MaxUint32 {
-		for _, txOut := range txn.Outputs() {
-			if bf.matches(txOut.ProgramHash[:]) {
+		if len(txTypesMap) != 0 {
+			if _, exist := txTypesMap[txn.TxType()]; exist {
 				return true
 			}
 		}
+		if len(bf.msg.Filter) != 0 {
+			for _, txOut := range txn.Outputs() {
+				if bf.matches(txOut.ProgramHash[:]) {
+					return true
+				}
+			}
+		}
+
 		return false
 	}
 

@@ -10,6 +10,7 @@ import (
 
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
+	"github.com/elastos/Elastos.ELA/core/checkpoint"
 	"github.com/elastos/Elastos.ELA/core/contract"
 	"github.com/elastos/Elastos.ELA/core/contract/program"
 	"github.com/elastos/Elastos.ELA/core/transaction"
@@ -32,7 +33,7 @@ func init() {
 	functions.GetTransactionByBytes = transaction.GetTransactionByBytes
 	functions.CreateTransaction = transaction.CreateTransaction
 	functions.GetTransactionParameters = transaction.GetTransactionparameters
-	config.DefaultParams = config.GetDefaultParams()
+	config.DefaultParams = *config.GetDefaultParams()
 }
 
 func TestState_GetCandidatesRelated(t *testing.T) {
@@ -86,9 +87,10 @@ func TestState_ExistCandidateRelated(t *testing.T) {
 
 func TestState_ProcessBlock_PendingUpdateThenCancel(t *testing.T) {
 	cfg := &config.DefaultParams
-	cfg.CRVotingStartHeight = 0
+	cfg.CRConfiguration.CRVotingStartHeight = 0
 	currentHeight := uint32(1)
-	committee := state2.NewCommittee(cfg)
+	ckpManager := checkpoint.NewManager(config.GetDefaultParams())
+	committee := state2.NewCommittee(cfg, ckpManager)
 	committee.RegisterFuncitons(&state2.CommitteeFuncsConfig{
 		GetHeight: func() uint32 {
 			return currentHeight
@@ -163,9 +165,10 @@ func TestState_ProcessBlock_PendingUpdateThenCancel(t *testing.T) {
 
 func TestState_ProcessBlock_PendingActiveThenCancel(t *testing.T) {
 	cfg := &config.DefaultParams
-	cfg.CRVotingStartHeight = 0
+	cfg.CRConfiguration.CRVotingStartHeight = 0
 	currentHeight := uint32(1)
-	committee := state2.NewCommittee(cfg)
+	ckpManager := checkpoint.NewManager(config.GetDefaultParams())
+	committee := state2.NewCommittee(cfg, ckpManager)
 	committee.RegisterFuncitons(&state2.CommitteeFuncsConfig{
 		GetHeight: func() uint32 {
 			return currentHeight
@@ -253,9 +256,10 @@ func TestState_ProcessBlock_PendingActiveThenCancel(t *testing.T) {
 
 func TestState_ProcessBlock_MixedCRProcessing(t *testing.T) {
 	cfg := &config.DefaultParams
-	cfg.CRVotingStartHeight = 0
+	cfg.CRConfiguration.CRVotingStartHeight = 0
 	currentHeight := uint32(1)
-	committee := state2.NewCommittee(cfg)
+	ckpManager := checkpoint.NewManager(config.GetDefaultParams())
+	committee := state2.NewCommittee(cfg, ckpManager)
 	committee.GetState().StateKeyFrame = *randomStateKeyFrame(5, true)
 	committee.RegisterFuncitons(&state2.CommitteeFuncsConfig{
 		GetHeight: func() uint32 {
@@ -312,10 +316,11 @@ func TestState_ProcessBlock_MixedCRProcessing(t *testing.T) {
 
 func TestState_ProcessBlock_VotingAndCancel(t *testing.T) {
 	cfg := &config.DefaultParams
-	cfg.CRVotingStartHeight = 0
+	cfg.CRConfiguration.CRVotingStartHeight = 0
 	currentHeight := uint32(1)
+	ckpManager := checkpoint.NewManager(config.GetDefaultParams())
 	keyframe := randomStateKeyFrame(5, true)
-	committee := state2.NewCommittee(cfg)
+	committee := state2.NewCommittee(cfg, ckpManager)
 	committee.GetState().StateKeyFrame = *keyframe
 	committee.RegisterFuncitons(&state2.CommitteeFuncsConfig{
 		GetHeight: func() uint32 {
@@ -390,9 +395,10 @@ func TestState_ProcessBlock_VotingAndCancel(t *testing.T) {
 
 func TestState_ProcessBlock_DepositAndReturnDeposit(t *testing.T) {
 	cfg := &config.DefaultParams
-	cfg.CRVotingStartHeight = 0
+	cfg.CRConfiguration.CRVotingStartHeight = 0
 	currentHeight := uint32(1)
-	committee := state2.NewCommittee(cfg)
+	ckpManager := checkpoint.NewManager(config.GetDefaultParams())
+	committee := state2.NewCommittee(cfg, ckpManager)
 	committee.RegisterFuncitons(&state2.CommitteeFuncsConfig{
 		GetHeight: func() uint32 {
 			return currentHeight
@@ -507,7 +513,7 @@ func TestState_ProcessBlock_DepositAndReturnDeposit(t *testing.T) {
 	assert.Equal(t, state2.Canceled, candidate.State)
 
 	// reached the Height to return deposit amount.
-	currentHeight = cancelHeight + committee.Params.CRDepositLockupBlocks
+	currentHeight = cancelHeight + committee.Params.CRConfiguration.DepositLockupBlocks
 	committee.ProcessBlock(&types.Block{
 		Header: common2.Header{
 			Height: currentHeight,

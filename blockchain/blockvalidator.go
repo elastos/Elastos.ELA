@@ -17,6 +17,7 @@ import (
 	. "github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/common/log"
+	"github.com/elastos/Elastos.ELA/core"
 	. "github.com/elastos/Elastos.ELA/core/types"
 	"github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/core/types/interfaces"
@@ -37,7 +38,7 @@ func (b *BlockChain) CheckBlockSanity(block *Block) error {
 	if !header.AuxPow.Check(&hash, AuxPowChainID) {
 		return errors.New("[PowCheckBlockSanity] block check aux pow failed")
 	}
-	if CheckProofOfWork(&header, b.chainParams.PowLimit) != nil {
+	if CheckProofOfWork(&header, b.chainParams.PowConfiguration.PowLimit) != nil {
 		return errors.New("[PowCheckBlockSanity] block check proof of work failed")
 	}
 
@@ -262,7 +263,7 @@ func (b *BlockChain) checkTxsContext(block *Block) error {
 		}
 
 		// Calculate transaction fee
-		totalTxFee += GetTxFee(block.Transactions[i], config.ELAAssetID, references)
+		totalTxFee += GetTxFee(block.Transactions[i], core.ELAAssetID, references)
 		if block.Transactions[i].IsCRCProposalTx() {
 			RecordCRCProposalAmount(&proposalsUsedAmount, block.Transactions[i])
 		}
@@ -463,17 +464,17 @@ func (b *BlockChain) checkCoinbaseTransactionContext(blockHeight uint32, coinbas
 		}
 
 		if b.state.GetConsensusAlgorithm() == state.POW {
-			if !coinbase.Outputs()[2].ProgramHash.IsEqual(b.chainParams.DestroyELAAddress) {
+			if !coinbase.Outputs()[2].ProgramHash.IsEqual(*b.chainParams.DestroyELAProgramHash) {
 				return errors.New("DPoS reward address not correct")
 			}
-			if !coinbase.Outputs()[0].ProgramHash.IsEqual(b.chainParams.DestroyELAAddress) {
+			if !coinbase.Outputs()[0].ProgramHash.IsEqual(*b.chainParams.DestroyELAProgramHash) {
 				return errors.New("rewardCyberRepublic address not correct")
 			}
 		} else {
-			if !coinbase.Outputs()[0].ProgramHash.IsEqual(b.chainParams.CRAssetsAddress) {
+			if !coinbase.Outputs()[0].ProgramHash.IsEqual(*b.chainParams.CRConfiguration.CRAssetsProgramHash) {
 				return errors.New("rewardCyberRepublic address not correct")
 			}
-			if !coinbase.Outputs()[2].ProgramHash.IsEqual(b.chainParams.DPoSV2RewardAccumulateAddress) {
+			if !coinbase.Outputs()[2].ProgramHash.IsEqual(*b.chainParams.DPoSConfiguration.DPoSV2RewardAccumulateProgramHash) {
 				return errors.New("DPoS reward address not correct")
 			}
 		}

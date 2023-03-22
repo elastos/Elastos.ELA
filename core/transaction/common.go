@@ -86,7 +86,7 @@ func GetTransactionparameters(
 		Transaction:         transaction,
 		BlockHeight:         blockHeight,
 		TimeStamp:           timeStamp,
-		Config:              cfg.(*config.Params),
+		Config:              cfg.(*config.Configuration),
 		BlockChain:          bc.(*blockchain.BlockChain),
 		ProposalsUsedAmount: proposalsUsedAmount,
 	}
@@ -169,6 +169,9 @@ func GetTransaction(txType common2.TxType) (txn interfaces.Transaction, err erro
 	case common2.WithdrawFromSideChain:
 		txn = new(WithdrawFromSideChainTransaction)
 
+	case common2.NFTDestroyFromSideChain:
+		txn = new(NFTDestroyTransactionFromSideChain)
+
 	case common2.TransferCrossChainAsset:
 		txn = new(TransferCrossChainAssetTransaction)
 
@@ -216,6 +219,9 @@ func GetTransaction(txType common2.TxType) (txn interfaces.Transaction, err erro
 
 	case common2.DposV2ClaimRewardRealWithdraw:
 		txn = new(DposV2ClaimRewardRealWithdrawTransaction)
+
+	case common2.CreateNFT:
+		txn = new(CreateNFTTransaction)
 
 	default:
 		return nil, errors.New("invalid transaction type")

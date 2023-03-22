@@ -134,6 +134,7 @@ func checkCRCArbitratorsSignatures(program *program.Program) error {
 
 	code := program.Code
 	// Get N parameter
+	// todo check
 	n := int(code[len(code)-2]) - crypto.PUSH1 + 1
 	// Get M parameter
 	m := int(code[0]) - crypto.PUSH1 + 1

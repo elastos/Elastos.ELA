@@ -27,7 +27,7 @@ func (s *txValidatorTestSuite) TestCheckCRCProposalTrackingTransaction() {
 
 	proposalHash := randomUint256()
 	recipient := randomUint168()
-	votingHeight := config.DefaultParams.CRVotingStartHeight
+	votingHeight := config.DefaultParams.CRConfiguration.CRVotingStartHeight
 
 	// Set secretary general.
 	s.Chain.GetCRCommittee().GetProposalManager().SecretaryGeneralPublicKey = publicKeyStr3

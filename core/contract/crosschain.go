@@ -7,9 +7,9 @@ package contract
 
 import (
 	"bytes"
-	"github.com/elastos/Elastos.ELA/vm"
 
 	"github.com/elastos/Elastos.ELA/common"
+	"github.com/elastos/Elastos.ELA/vm"
 )
 
 // A temporary file created for cross chain tx

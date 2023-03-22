@@ -6,9 +6,10 @@
 package transaction
 
 import (
+	"bytes"
+	"encoding/hex"
 	"errors"
 	"fmt"
-
 	"github.com/elastos/Elastos.ELA/blockchain"
 	"github.com/elastos/Elastos.ELA/core/contract"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
@@ -48,26 +49,30 @@ func (t *UpdateCRTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
 		return elaerr.Simple(elaerr.ErrTxPayload, err), true
 	}
 
+	var code []byte
+	if t.payloadVersion == payload.CRInfoSchnorrVersion {
+		code = t.Programs()[0].Code
+	} else {
+		code = info.Code
+	}
+
 	// get CID program hash and check length of code
-	ct, err := contract.CreateCRIDContractByCode(info.Code)
+	ct, err := contract.CreateCRIDContractByCode(code)
 	if err != nil {
 		return elaerr.Simple(elaerr.ErrTxPayload, err), true
 	}
 	programHash := ct.ToProgramHash()
-	if err != nil {
-		return elaerr.Simple(elaerr.ErrTxPayload, err), true
-	}
 
 	// check CID
 	if !info.CID.IsEqual(*programHash) {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid cid address")), true
 	}
 
-	if t.parameters.BlockHeight >= t.parameters.Config.RegisterCRByDIDHeight &&
+	if t.parameters.BlockHeight >= t.parameters.Config.CRConfiguration.RegisterCRByDIDHeight &&
 		t.PayloadVersion() == payload.CRInfoDIDVersion {
 		// get DID program hash
 
-		programHash, err = getDIDFromCode(info.Code)
+		programHash, err = getDIDFromCode(code)
 		if err != nil {
 			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid info.Code")), true
 		}
@@ -77,10 +82,6 @@ func (t *UpdateCRTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
 		}
 	}
 
-	// check code and signature
-	if err := blockchain.CrInfoSanityCheck(info, t.PayloadVersion()); err != nil {
-		return elaerr.Simple(elaerr.ErrTxPayload, err), true
-	}
 	if !t.parameters.BlockChain.GetCRCommittee().IsInVotingPeriod(t.parameters.BlockHeight) {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("should create tx during voting period")), true
 	}
@@ -97,6 +98,22 @@ func (t *UpdateCRTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
 	if cr.Info.NickName != info.NickName &&
 		t.parameters.BlockChain.GetCRCommittee().ExistCandidateByNickname(info.NickName) {
 		return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("nick name %s already exist", info.NickName)), true
+	}
+
+	// check code and signature
+	if t.payloadVersion != payload.CRInfoSchnorrVersion {
+		if err := blockchain.CheckPayloadSignature(info, t.PayloadVersion()); err != nil {
+			return elaerr.Simple(elaerr.ErrTxPayload, err), true
+		}
+	} else {
+		c, exist := t.parameters.BlockChain.GetCRCommittee().GetState().GetCodeByCid(info.CID)
+		if !exist {
+			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("can not find code from cid")), true
+		}
+		cf, _ := hex.DecodeString(c)
+		if !bytes.Equal(cf, t.Programs()[0].Code) {
+			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid transaction code")), true
+		}
 	}
 
 	return nil, false

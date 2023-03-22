@@ -9,11 +9,11 @@ import (
 	"errors"
 	"fmt"
 
-	common2 "github.com/elastos/Elastos.ELA/core/types/common"
-	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/core/types"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/database"
 )
 
@@ -287,14 +287,10 @@ func dbFetchHeightByHash(dbTx database.Tx, hash *common.Uint256) (uint32, error)
 // It implements the Indexer interface which plugs into the IndexManager that in
 // turn is used by the blockchain package.  This allows the index to be
 // seamlessly maintained along with the chain.
-func NewUnspentIndex(db database.DB, params *config.Params) *UnspentIndex {
+func NewUnspentIndex(db database.DB, params *config.Configuration) *UnspentIndex {
 	unspentIndex := &UnspentIndex{
 		DB:      db,
 		TxCache: NewTxCache(params),
 	}
-	//if params.NodeProfileStrategy !=
-	//	config.MemoryFirst.String() {
-	//	params.CkpManager.Register(NewCheckpoint(unspentIndex))
-	//}
 	return unspentIndex
 }

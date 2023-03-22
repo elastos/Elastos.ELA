@@ -5,11 +5,20 @@ import (
 	crand "crypto/rand"
 	"encoding/binary"
 	"encoding/hex"
+	"math/big"
+	"math/rand"
+	"path/filepath"
+	"strconv"
+	"testing"
+	"time"
+
 	"github.com/elastos/Elastos.ELA/auxpow"
 	"github.com/elastos/Elastos.ELA/blockchain"
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
 	log2 "github.com/elastos/Elastos.ELA/common/log"
+	"github.com/elastos/Elastos.ELA/core"
+	"github.com/elastos/Elastos.ELA/core/checkpoint"
 	"github.com/elastos/Elastos.ELA/core/contract"
 	"github.com/elastos/Elastos.ELA/core/contract/program"
 	"github.com/elastos/Elastos.ELA/core/types"
@@ -22,12 +31,6 @@ import (
 	"github.com/elastos/Elastos.ELA/dpos/state"
 	"github.com/elastos/Elastos.ELA/utils/test"
 	"github.com/stretchr/testify/suite"
-	"math/big"
-	"math/rand"
-	"path/filepath"
-	"strconv"
-	"testing"
-	"time"
 )
 
 type txValidatorTestSuite struct {
@@ -48,7 +51,7 @@ func init() {
 	functions.GetTransactionByBytes = GetTransactionByBytes
 	functions.CreateTransaction = CreateTransaction
 	functions.GetTransactionParameters = GetTransactionparameters
-	config.DefaultParams = config.GetDefaultParams()
+	config.DefaultParams = *config.GetDefaultParams()
 }
 
 type txValidatorSpecialTxTestSuite struct {
@@ -99,14 +102,18 @@ func (s *txValidatorSpecialTxTestSuite) SetupSuite() {
 		s.arbitratorsPriKeys = append(s.arbitratorsPriKeys, a)
 	}
 
-	chainStore, err := blockchain.NewChainStore(filepath.Join(test.DataPath, "special"), &config.DefaultParams)
+	params := &config.DefaultParams
+	params.GenesisBlock = core.GenesisBlock(*params.FoundationProgramHash)
+	chainStore, err := blockchain.NewChainStore(filepath.Join(test.DataPath, "special"), params)
 	if err != nil {
 		s.Error(err)
 	}
+	ckpManager := checkpoint.NewManager(&config.DefaultParams)
+	ckpManager.SetDataPath(filepath.Join(config.DefaultParams.DataDir, "checkpoints"))
 	s.Chain, err = blockchain.New(chainStore, &config.DefaultParams,
 		state.NewState(&config.DefaultParams, nil, nil, nil, nil,
 			nil, nil,
-			nil, nil, nil, nil, nil), nil)
+			nil, nil, nil, nil, nil), nil, ckpManager)
 	if err != nil {
 		s.Error(err)
 	}
@@ -143,19 +150,23 @@ func (s *txValidatorTestSuite) SetupSuite() {
 	log2.NewDefault(test.NodeLogPath, 0, 0, 0)
 
 	params := &config.DefaultParams
-	blockchain.FoundationAddress = params.Foundation
-	s.foundationAddress = params.Foundation
+	params.GenesisBlock = core.GenesisBlock(*params.FoundationProgramHash)
+	addr := params.FoundationProgramHash
+	blockchain.FoundationAddress = *addr
+	s.foundationAddress = *addr
 
 	chainStore, err := blockchain.NewChainStore(filepath.Join(test.DataPath, "txvalidator"), params)
 	if err != nil {
 		s.Error(err)
 	}
+	ckpManager := checkpoint.NewManager(params)
+	ckpManager.SetDataPath(filepath.Join(params.DataDir, "checkpoints"))
 	s.Chain, err = blockchain.New(chainStore, params,
 		state.NewState(params, nil, nil, nil,
 			func() bool { return false },
 			nil, nil,
 			nil, nil, nil, nil, nil),
-		crstate.NewCommittee(params))
+		crstate.NewCommittee(params, ckpManager), ckpManager)
 	if err != nil {
 		s.Error(err)
 	}
@@ -172,7 +183,7 @@ func (s *txValidatorTestSuite) SetupSuite() {
 
 	arbiters, err := state.NewArbitrators(params,
 		nil, nil, nil,
-		nil, nil, nil, nil, nil)
+		nil, nil, nil, nil, nil, ckpManager)
 	if err != nil {
 		s.Fail("initialize arbitrator failed")
 	}

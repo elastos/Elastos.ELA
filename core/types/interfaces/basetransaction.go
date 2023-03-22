@@ -96,4 +96,5 @@ type Transaction interface {
 	IsDposV2ClaimRewardTx() bool
 	IsDposV2ClaimRewardRealWithdraw() bool
 	IsVotesRealWithdrawTX() bool
+	IsCreateNFTTX() bool
 }

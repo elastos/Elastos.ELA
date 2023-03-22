@@ -29,7 +29,8 @@ func (s *txValidatorTestSuite) TestCRAssetsRectifyTransaction() {
 		"transaction validate error: payload content invalid:inputs count should be greater than or equal to MinCRAssetsAddressUTXOCount")
 
 	{
-		s.Chain.GetParams().MinCRAssetsAddressUTXOCount = 1
+		addr := s.Chain.GetParams().CRConfiguration.CRExpensesProgramHash
+		s.Chain.GetParams().CRConfiguration.MinCRAssetsAddressUTXOCount = 1
 		reference := make(map[*common2.Input]common2.Output)
 		input := &common2.Input{
 			Previous: common2.OutPoint{
@@ -39,7 +40,7 @@ func (s *txValidatorTestSuite) TestCRAssetsRectifyTransaction() {
 		}
 		refOutput := common2.Output{
 			Value:       20 * 1e8,
-			ProgramHash: s.Chain.GetParams().CRExpensesAddress,
+			ProgramHash: *addr,
 		}
 		reference[input] = refOutput
 
@@ -49,11 +50,13 @@ func (s *txValidatorTestSuite) TestCRAssetsRectifyTransaction() {
 
 		err, _ = txn.SpecialContextCheck()
 		s.EqualError(err,
-			"transaction validate error: payload content invalid:input does not from CRAssetsAddress")
+			"transaction validate error: payload content invalid:input does not from CRAssetsProgramHash")
 	}
 
 	{
-		s.Chain.GetParams().MinCRAssetsAddressUTXOCount = 1
+		addr := s.Chain.GetParams().CRConfiguration.CRAssetsProgramHash
+		dAddr := s.Chain.GetParams().DestroyELAProgramHash
+		s.Chain.GetParams().CRConfiguration.MinCRAssetsAddressUTXOCount = 1
 		reference := make(map[*common2.Input]common2.Output)
 		input := &common2.Input{
 			Previous: common2.OutPoint{
@@ -63,12 +66,12 @@ func (s *txValidatorTestSuite) TestCRAssetsRectifyTransaction() {
 		}
 		refOutput := common2.Output{
 			Value:       20 * 1e8,
-			ProgramHash: s.Chain.GetParams().CRAssetsAddress,
+			ProgramHash: *addr,
 		}
 		reference[input] = refOutput
 		output1 := common2.Output{
 			Value:       20 * 1e8,
-			ProgramHash: s.Chain.GetParams().DestroyELAAddress,
+			ProgramHash: *dAddr,
 		}
 
 		txn.SetInputs([]*common2.Input{input})
@@ -77,12 +80,12 @@ func (s *txValidatorTestSuite) TestCRAssetsRectifyTransaction() {
 
 		err, _ = txn.SpecialContextCheck()
 		s.EqualError(err,
-			"transaction validate error: payload content invalid:output does not to CRAssetsAddress")
+			"transaction validate error: payload content invalid:output does not to CRAssetsProgramHash")
 	}
 
 	{
-		s.Chain.GetParams().MinCRAssetsAddressUTXOCount = 1
-		s.Chain.GetParams().MaxCRAssetsAddressUTXOCount = 1
+		s.Chain.GetParams().CRConfiguration.MinCRAssetsAddressUTXOCount = 1
+		s.Chain.GetParams().CRConfiguration.MaxCRAssetsAddressUTXOCount = 1
 		reference := make(map[*common2.Input]common2.Output)
 		input := &common2.Input{
 			Previous: common2.OutPoint{
@@ -90,9 +93,10 @@ func (s *txValidatorTestSuite) TestCRAssetsRectifyTransaction() {
 				Index: 0,
 			},
 		}
+		addr := s.Chain.GetParams().CRConfiguration.CRExpensesProgramHash
 		refOutput := common2.Output{
 			Value:       20 * 1e8,
-			ProgramHash: s.Chain.GetParams().CRExpensesAddress,
+			ProgramHash: *addr,
 		}
 		reference[input] = refOutput
 
@@ -106,7 +110,8 @@ func (s *txValidatorTestSuite) TestCRAssetsRectifyTransaction() {
 	}
 
 	{
-		s.Chain.GetParams().MinCRAssetsAddressUTXOCount = 1
+		addr := s.Chain.GetParams().CRConfiguration.CRAssetsProgramHash
+		s.Chain.GetParams().CRConfiguration.MinCRAssetsAddressUTXOCount = 1
 		reference := make(map[*common2.Input]common2.Output)
 		input := &common2.Input{
 			Previous: common2.OutPoint{
@@ -116,7 +121,7 @@ func (s *txValidatorTestSuite) TestCRAssetsRectifyTransaction() {
 		}
 		refOutput := common2.Output{
 			Value:       20 * 1e8,
-			ProgramHash: s.Chain.GetParams().CRAssetsAddress,
+			ProgramHash: *addr,
 		}
 		reference[input] = refOutput
 
@@ -130,8 +135,8 @@ func (s *txValidatorTestSuite) TestCRAssetsRectifyTransaction() {
 	}
 
 	{
-
-		s.Chain.GetParams().MinCRAssetsAddressUTXOCount = 1
+		addr := s.Chain.GetParams().CRConfiguration.CRAssetsProgramHash
+		s.Chain.GetParams().CRConfiguration.MinCRAssetsAddressUTXOCount = 1
 		reference := make(map[*common2.Input]common2.Output)
 		input := &common2.Input{
 			Previous: common2.OutPoint{
@@ -141,14 +146,14 @@ func (s *txValidatorTestSuite) TestCRAssetsRectifyTransaction() {
 		}
 		refOutput := common2.Output{
 			Value:       20 * 1e8,
-			ProgramHash: s.Chain.GetParams().CRAssetsAddress,
+			ProgramHash: *addr,
 		}
 		reference[input] = refOutput
 
 		// create outputs
 		output1 := &common2.Output{
 			Value:       20*1e8 - 10000,
-			ProgramHash: s.Chain.GetParams().CRAssetsAddress,
+			ProgramHash: *addr,
 		}
 
 		txn.SetInputs([]*common2.Input{input})
@@ -160,8 +165,8 @@ func (s *txValidatorTestSuite) TestCRAssetsRectifyTransaction() {
 	}
 
 	{
-
-		s.Chain.GetParams().MinCRAssetsAddressUTXOCount = 1
+		addr := s.Chain.GetParams().CRConfiguration.CRAssetsProgramHash
+		s.Chain.GetParams().CRConfiguration.MinCRAssetsAddressUTXOCount = 1
 		reference := make(map[*common2.Input]common2.Output)
 		input := &common2.Input{
 			Previous: common2.OutPoint{
@@ -171,14 +176,14 @@ func (s *txValidatorTestSuite) TestCRAssetsRectifyTransaction() {
 		}
 		refOutput := common2.Output{
 			Value:       20 * 1e8,
-			ProgramHash: s.Chain.GetParams().CRAssetsAddress,
+			ProgramHash: *addr,
 		}
 		reference[input] = refOutput
 
 		// create outputs
 		output1 := &common2.Output{
 			Value:       20*1e8 - 10000,
-			ProgramHash: s.Chain.GetParams().CRAssetsAddress,
+			ProgramHash: *addr,
 		}
 
 		txn.SetInputs([]*common2.Input{input})

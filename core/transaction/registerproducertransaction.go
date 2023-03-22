@@ -9,19 +9,43 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/elastos/Elastos.ELA/common"
-	"github.com/elastos/Elastos.ELA/core/contract"
-	crstate "github.com/elastos/Elastos.ELA/cr/state"
-	"github.com/elastos/Elastos.ELA/vm"
 
 	"github.com/elastos/Elastos.ELA/blockchain"
+	"github.com/elastos/Elastos.ELA/common"
+	"github.com/elastos/Elastos.ELA/core/contract"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
+	crstate "github.com/elastos/Elastos.ELA/cr/state"
 	"github.com/elastos/Elastos.ELA/crypto"
 	elaerr "github.com/elastos/Elastos.ELA/errors"
+	"github.com/elastos/Elastos.ELA/vm"
 )
 
 type RegisterProducerTransaction struct {
 	BaseTransaction
+}
+
+func (t *RegisterProducerTransaction) HeightVersionCheck() error {
+	blockHeight := t.parameters.BlockHeight
+	chainParams := t.parameters.Config
+
+	switch t.payloadVersion {
+	case payload.ProducerInfoVersion:
+	case payload.ProducerInfoDposV2Version:
+		if blockHeight < chainParams.DPoSV2StartHeight {
+			return errors.New(fmt.Sprintf("not support %s transaction "+
+				"before DPoSV2StartHeight", t.TxType().Name()))
+		}
+	case payload.ProducerInfoSchnorrVersion:
+		if blockHeight < chainParams.ProducerSchnorrStartHeight {
+			return errors.New(fmt.Sprintf("not support %s transaction "+
+				"before ProducerSchnorrStartHeight", t.TxType().Name()))
+		}
+	default:
+		return errors.New(fmt.Sprintf("invalid payload version, "+
+			"%s transaction", t.TxType().Name()))
+	}
+
+	return nil
 }
 
 func (t *RegisterProducerTransaction) CheckTransactionPayload() error {
@@ -101,14 +125,30 @@ func (t *RegisterProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bo
 	if err != nil {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid owner public key in payload")), true
 	}
-	signedBuf := new(bytes.Buffer)
-	err = info.SerializeUnsigned(signedBuf, t.payloadVersion)
-	if err != nil {
-		return elaerr.Simple(elaerr.ErrTxPayload, err), true
-	}
-	err = crypto.Verify(*publicKey, signedBuf.Bytes(), info.Signature)
-	if err != nil {
-		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid signature in payload")), true
+	if t.PayloadVersion() != payload.ProducerInfoSchnorrVersion {
+		signedBuf := new(bytes.Buffer)
+		err = info.SerializeUnsigned(signedBuf, t.payloadVersion)
+		if err != nil {
+			return elaerr.Simple(elaerr.ErrTxPayload, err), true
+		}
+		err = crypto.Verify(*publicKey, signedBuf.Bytes(), info.Signature)
+		if err != nil {
+			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid signature in payload")), true
+		}
+	} else {
+		if len(t.Programs()) != 1 {
+			return elaerr.Simple(elaerr.ErrTxPayload,
+				errors.New("ProducerInfoSchnorrVersion can only have one program code")), true
+		}
+		if !contract.IsSchnorr(t.Programs()[0].Code) {
+			return elaerr.Simple(elaerr.ErrTxPayload,
+				errors.New("only schnorr code can use ProducerInfoSchnorrVersion")), true
+		}
+		pk := t.Programs()[0].Code[2:]
+		if !bytes.Equal(pk, info.OwnerPublicKey) {
+			return elaerr.Simple(elaerr.ErrTxPayload,
+				errors.New("tx program pk must equal with OwnerPublicKey")), true
+		}
 	}
 
 	height := t.parameters.BlockChain.GetHeight()
@@ -118,13 +158,14 @@ func (t *RegisterProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bo
 	} else if height > state.DPoSV2ActiveHeight && t.payloadVersion == payload.ProducerInfoVersion {
 		return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("can not register dposv1 after dposv2 active height")), true
 	}
+	var hash *common.Uint168
 
+	hash, err = contract.PublicKeyToDepositProgramHash(info.OwnerPublicKey)
+	if err != nil {
+		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid public key")), true
+	}
 	if t.PayloadVersion() == payload.ProducerInfoVersion {
 		// check deposit coin
-		hash, err := contract.PublicKeyToDepositProgramHash(info.OwnerPublicKey)
-		if err != nil {
-			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid public key")), true
-		}
 		var depositCount int
 		for _, output := range t.Outputs() {
 			if contract.GetPrefixType(output.ProgramHash) == contract.PrefixDeposit {
@@ -141,19 +182,14 @@ func (t *RegisterProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bo
 		if depositCount != 1 {
 			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("there must be only one deposit address in outputs")), true
 		}
-	} else if t.PayloadVersion() == payload.ProducerInfoDposV2Version {
-		if t.parameters.BlockHeight+t.parameters.Config.DPoSV2DepositCoinMinLockTime >= info.StakeUntil {
+
+	} else if t.PayloadVersion() == payload.ProducerInfoDposV2Version || t.PayloadVersion() == payload.ProducerInfoSchnorrVersion {
+		if t.parameters.BlockHeight+t.parameters.Config.DPoSConfiguration.DPoSV2DepositCoinMinLockTime >= info.StakeUntil {
 			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("v2 producer StakeUntil less than DPoSV2DepositCoinMinLockTime")), true
 		}
 		//if info.StakeUntil > t.parameters.BlockHeight+t.parameters.Config.DPoSV2MaxVotesLockTime {
 		//	return elaerr.Simple(elaerr.ErrTxPayload, errors.New("v2 producer StakeUntil bigger than DPoSV2MaxVotesLockTime")), true
 		//}
-
-		// check deposit coin
-		hash, err := contract.PublicKeyToDepositProgramHash(info.OwnerPublicKey)
-		if err != nil {
-			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid public key")), true
-		}
 		var depositCount int
 		for _, output := range t.Outputs() {
 			if contract.GetPrefixType(output.ProgramHash) == contract.PrefixDeposit {

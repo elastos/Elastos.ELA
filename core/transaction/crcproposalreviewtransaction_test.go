@@ -20,7 +20,7 @@ func (s *txValidatorTestSuite) TestCheckCRCProposalReviewTransaction() {
 	privateKeyStr1 := "15e0947580575a9b6729570bed6360a890f84a07dc837922fe92275feec837d4"
 	publicKeyStr2 := "036db5984e709d2e0ec62fd974283e9a18e7b87e8403cc784baf1f61f775926535"
 	privateKeyStr2 := "b2c25e877c8a87d54e8a20a902d27c7f24ed52810813ba175ca4e8d3036d130e"
-	tenureHeight := config.DefaultParams.CRCommitteeStartHeight
+	tenureHeight := config.DefaultParams.CRConfiguration.CRCommitteeStartHeight
 	nickName1 := "nickname 1"
 
 	fmt.Println("getcode ", getCodeHexStr("02e23f70b9b967af35571c32b1442d787c180753bbed5cd6e7d5a5cfe75c7fc1ff"))

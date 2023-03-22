@@ -39,11 +39,25 @@ func (t *RegisterCRTransaction) HeightVersionCheck() error {
 	blockHeight := t.parameters.BlockHeight
 	chainParams := t.parameters.Config
 
-	if blockHeight < chainParams.CRVotingStartHeight ||
-		(blockHeight < chainParams.RegisterCRByDIDHeight &&
-			t.PayloadVersion() != payload.CRInfoVersion) {
-		return errors.New(fmt.Sprintf("not support %s transaction "+
-			"before CRVotingStartHeight", t.TxType().Name()))
+	switch t.payloadVersion {
+	case payload.CRInfoVersion:
+		if blockHeight < chainParams.CRConfiguration.CRVotingStartHeight {
+			return errors.New(fmt.Sprintf("not support %s transaction "+
+				"before CRVotingStartHeight", t.TxType().Name()))
+		}
+	case payload.CRInfoDIDVersion:
+		if blockHeight < chainParams.CRConfiguration.RegisterCRByDIDHeight {
+			return errors.New(fmt.Sprintf("not support %s transaction "+
+				"before RegisterCRByDIDHeight", t.TxType().Name()))
+		}
+	case payload.CRInfoSchnorrVersion:
+		if blockHeight < chainParams.CRSchnorrStartHeight {
+			return errors.New(fmt.Sprintf("not support %s transaction "+
+				"before CRSchnorrStartHeight", t.TxType().Name()))
+		}
+	default:
+		return errors.New(fmt.Sprintf("invalid payload version, "+
+			"%s transaction", t.TxType().Name()))
 	}
 	return nil
 }
@@ -77,35 +91,51 @@ func (t *RegisterCRTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
 	}
 
 	// get CID program hash and check length of code
-	ct, err := contract.CreateCRIDContractByCode(info.Code)
+	var code []byte
+	if t.payloadVersion == payload.CRInfoSchnorrVersion {
+		code = t.Programs()[0].Code
+	} else {
+		code = info.Code
+	}
+	ct, err := contract.CreateCRIDContractByCode(code)
 	if err != nil {
 		return elaerr.Simple(elaerr.ErrTxPayload, err), true
 	}
 	programHash := ct.ToProgramHash()
-
-	// check if program code conflict with producer public keys
-	if info.Code[len(info.Code)-1] == vm.CHECKSIG {
-		pk := info.Code[1 : len(info.Code)-1]
-		if t.parameters.BlockChain.GetState().ProducerExists(pk) {
-			return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("public key %s already inuse in producer list",
-				common.BytesToHexString(info.Code[1:len(info.Code)-1]))), true
-		}
-		if blockchain.DefaultLedger.Arbitrators.IsCRCArbitrator(pk) {
-			return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("public key %s already inuse in CRC list",
-				common.BytesToHexString(info.Code[0:len(info.Code)-1]))), true
-		}
-	}
 
 	// check CID
 	if !info.CID.IsEqual(*programHash) {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid cid address")), true
 	}
 
-	if t.parameters.BlockHeight >= t.parameters.Config.RegisterCRByDIDHeight &&
+	// check if program code conflict with producer public keys
+	var pk []byte
+	if contract.IsSchnorr(code) {
+		pk = code[2:]
+		// todo check
+	} else if code[len(code)-1] == vm.CHECKSIG {
+		pk = code[1 : len(code)-1]
+	} else if code[len(code)-1] == vm.CHECKMULTISIG {
+		// todo complete me in the feature
+		return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("CR not support multi sign code")), true
+	} else {
+		return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("invalid code %s",
+			common.BytesToHexString(code))), true
+	}
+	if t.parameters.BlockChain.GetState().ProducerExists(pk) {
+		return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("public key %s already inuse in producer list",
+			common.BytesToHexString(pk))), true
+	}
+	if blockchain.DefaultLedger.Arbitrators.IsCRCArbitrator(pk) {
+		return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("public key %s already inuse in CRC list",
+			common.BytesToHexString(pk))), true
+	}
+
+	if t.parameters.BlockHeight >= t.parameters.Config.CRConfiguration.RegisterCRByDIDHeight &&
 		t.PayloadVersion() == payload.CRInfoDIDVersion {
 		// get DID program hash
 
-		programHash, err = getDIDFromCode(info.Code)
+		programHash, err = getDIDFromCode(code)
 		if err != nil {
 			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid info.Code")), true
 		}
@@ -116,8 +146,10 @@ func (t *RegisterCRTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
 	}
 
 	// check code and signature
-	if err := blockchain.CrInfoSanityCheck(info, t.PayloadVersion()); err != nil {
-		return elaerr.Simple(elaerr.ErrTxPayload, err), true
+	if t.payloadVersion != payload.CRInfoSchnorrVersion {
+		if err := blockchain.CheckPayloadSignature(info, t.PayloadVersion()); err != nil {
+			return elaerr.Simple(elaerr.ErrTxPayload, err), true
+		}
 	}
 
 	// check deposit coin
@@ -126,7 +158,7 @@ func (t *RegisterCRTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
 		if contract.GetPrefixType(output.ProgramHash) == contract.PrefixDeposit {
 			depositCount++
 			// get deposit program hash
-			ct, err := contract.CreateDepositContractByCode(info.Code)
+			ct, err := contract.CreateDepositContractByCode(code)
 			if err != nil {
 				return elaerr.Simple(elaerr.ErrTxPayload, err), true
 			}
@@ -150,7 +182,12 @@ func (t *RegisterCRTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
 func getDIDFromCode(code []byte) (*common.Uint168, error) {
 	newCode := make([]byte, len(code))
 	copy(newCode, code)
-	didCode := append(newCode[:len(newCode)-1], common.DID)
+	var didCode []byte
+	if contract.IsSchnorr(code) {
+		didCode = append(newCode[1:], common.DID)
+	} else {
+		didCode = append(newCode[:len(newCode)-1], common.DID)
+	}
 
 	if ct1, err := contract.CreateCRIDContractByCode(didCode); err != nil {
 		return nil, err

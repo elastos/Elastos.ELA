@@ -9,19 +9,19 @@ import (
 	"bytes"
 	"encoding/hex"
 	"errors"
-	"github.com/elastos/Elastos.ELA/database"
 	"math"
 	"math/big"
 
 	"github.com/elastos/Elastos.ELA/blockchain"
 	"github.com/elastos/Elastos.ELA/common"
-	"github.com/elastos/Elastos.ELA/common/config"
+	"github.com/elastos/Elastos.ELA/core"
 	"github.com/elastos/Elastos.ELA/core/contract"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/core/types/outputpayload"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/crypto"
+	"github.com/elastos/Elastos.ELA/database"
 	"github.com/elastos/Elastos.ELA/dpos/state"
 	elaerr "github.com/elastos/Elastos.ELA/errors"
 )
@@ -43,7 +43,7 @@ func (t *WithdrawFromSideChainTransaction) CheckTransactionOutput() error {
 	// check if output address is valid
 	specialOutputCount := 0
 	for _, output := range t.Outputs() {
-		if output.AssetID != config.ELAAssetID {
+		if output.AssetID != core.ELAAssetID {
 			return errors.New("asset ID in output is invalid")
 		}
 
@@ -145,15 +145,15 @@ func (t *WithdrawFromSideChainTransaction) checkWithdrawFromSideChainTransaction
 			return err
 		}
 
-		if height >= t.parameters.Config.CRClaimDPOSNodeStartHeight {
+		if height >= t.parameters.Config.CRConfiguration.CRClaimDPOSNodeStartHeight {
 			var arbiters []*state.ArbiterInfo
 			var minCount uint32
-			if height >= t.parameters.Config.DPOSNodeCrossChainHeight {
+			if height >= t.parameters.Config.DPoSConfiguration.DPOSNodeCrossChainHeight {
 				arbiters = blockchain.DefaultLedger.Arbitrators.GetArbitrators()
-				minCount = uint32(t.parameters.Config.GeneralArbiters) + 1
+				minCount = uint32(t.parameters.Config.DPoSConfiguration.NormalArbitratorsCount) + 1
 			} else {
 				arbiters = blockchain.DefaultLedger.Arbitrators.GetCRCArbiters()
-				minCount = t.parameters.Config.CRAgreementCount
+				minCount = t.parameters.Config.CRConfiguration.CRAgreementCount
 			}
 			var arbitersCount int
 			for _, c := range arbiters {
@@ -243,12 +243,12 @@ func (t *WithdrawFromSideChainTransaction) checkWithdrawFromSideChainTransaction
 		}
 		var arbiters []*state.ArbiterInfo
 		var minCount uint32
-		if height >= t.parameters.Config.DPOSNodeCrossChainHeight {
+		if height >= t.parameters.Config.DPoSConfiguration.DPOSNodeCrossChainHeight {
 			arbiters = blockchain.DefaultLedger.Arbitrators.GetArbitrators()
-			minCount = uint32(t.parameters.Config.GeneralArbiters) + 1
+			minCount = uint32(t.parameters.Config.DPoSConfiguration.NormalArbitratorsCount) + 1
 		} else {
 			arbiters = blockchain.DefaultLedger.Arbitrators.GetCRCArbiters()
-			minCount = t.parameters.Config.CRAgreementCount
+			minCount = t.parameters.Config.CRConfiguration.CRAgreementCount
 		}
 		var arbitersCount int
 		for _, c := range arbiters {
@@ -278,16 +278,16 @@ func (t *WithdrawFromSideChainTransaction) checkWithdrawFromSideChainTransaction
 	}
 
 	currentHeight := t.parameters.BlockHeight
-	if currentHeight <= t.parameters.Config.CRClaimDPOSNodeStartHeight {
-		if len(pld.Signers) < (int(t.parameters.Config.CRMemberCount)*2/3 + 1) {
+	if currentHeight <= t.parameters.Config.CRConfiguration.CRClaimDPOSNodeStartHeight {
+		if len(pld.Signers) < (int(t.parameters.Config.CRConfiguration.MemberCount)*2/3 + 1) {
 			return errors.New("Signers number must be bigger than 2/3+1 CRMemberCount")
 		}
-	} else if currentHeight < t.parameters.Config.DPOSNodeCrossChainHeight {
-		if len(pld.Signers) < (int(t.parameters.Config.CRMemberCount) * 2 / 3) {
+	} else if currentHeight < t.parameters.Config.DPoSConfiguration.DPOSNodeCrossChainHeight {
+		if len(pld.Signers) < (int(t.parameters.Config.CRConfiguration.MemberCount) * 2 / 3) {
 			return errors.New("Signers number must be bigger than 2/3 CRMemberCount")
 		}
 	} else {
-		if len(pld.Signers) < (int(t.parameters.Config.CRMemberCount)*2/3 + 1) {
+		if len(pld.Signers) < (int(t.parameters.Config.CRConfiguration.MemberCount)*2/3 + 1) {
 			return errors.New("Signers number must be bigger than 2/3+1 CRMemberCount")
 		}
 	}

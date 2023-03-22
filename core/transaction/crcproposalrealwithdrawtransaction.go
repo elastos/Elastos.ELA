@@ -45,7 +45,7 @@ func (t *CRCProposalRealWithdrawTransaction) HeightVersionCheck() error {
 	blockHeight := t.parameters.BlockHeight
 	chainParams := t.parameters.Config
 
-	if blockHeight < chainParams.CRAssetsRectifyTransactionHeight {
+	if blockHeight < chainParams.CRConfiguration.CRAssetsRectifyTransactionHeight {
 		return errors.New(fmt.Sprintf("not support %s transaction "+
 			"before CRCProposalWithdrawPayloadV1Height", t.TxType().Name()))
 	}
@@ -66,7 +66,7 @@ func (t *CRCProposalRealWithdrawTransaction) SpecialContextCheck() (result elaer
 	// if need change, the last output is only allowed to CRExpensesAddress.
 	if txsCount != len(t.Outputs()) {
 		toProgramHash := t.Outputs()[len(t.Outputs())-1].ProgramHash
-		if !toProgramHash.IsEqual(t.parameters.Config.CRExpensesAddress) {
+		if !toProgramHash.IsEqual(*t.parameters.Config.CRConfiguration.CRExpensesProgramHash) {
 			return elaerr.Simple(elaerr.ErrTxPayload, errors.New(fmt.Sprintf("last output is invalid"))), true
 		}
 	}
@@ -83,10 +83,10 @@ func (t *CRCProposalRealWithdrawTransaction) SpecialContextCheck() (result elaer
 		if !output.ProgramHash.IsEqual(txInfo.Recipient) {
 			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid real withdraw output address")), true
 		}
-		if output.Value != txInfo.Amount-t.parameters.Config.RealWithdrawSingleFee {
+		if output.Value != txInfo.Amount-t.parameters.Config.CRConfiguration.RealWithdrawSingleFee {
 			return elaerr.Simple(elaerr.ErrTxPayload, errors.New(fmt.Sprintf("invalid real withdraw output "+
 				"amount:%s, need to be:%s",
-				output.Value, txInfo.Amount-t.parameters.Config.RealWithdrawSingleFee))), true
+				output.Value, txInfo.Amount-t.parameters.Config.CRConfiguration.RealWithdrawSingleFee))), true
 		}
 		if _, ok := txsMap[hash]; ok {
 			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("duplicated real withdraw transactions hash")), true
@@ -103,10 +103,10 @@ func (t *CRCProposalRealWithdrawTransaction) SpecialContextCheck() (result elaer
 	for _, o := range t.Outputs() {
 		outputAmount += o.Value
 	}
-	if inputAmount-outputAmount != t.parameters.Config.RealWithdrawSingleFee*common.Fixed64(txsCount) {
+	if inputAmount-outputAmount != t.parameters.Config.CRConfiguration.RealWithdrawSingleFee*common.Fixed64(txsCount) {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New(fmt.Sprintf("invalid real withdraw transaction"+
 			" fee:%s, need to be:%s, txsCount:%d", inputAmount-outputAmount,
-			t.parameters.Config.RealWithdrawSingleFee*common.Fixed64(txsCount), txsCount))), true
+			t.parameters.Config.CRConfiguration.RealWithdrawSingleFee*common.Fixed64(txsCount), txsCount))), true
 	}
 
 	return nil, false

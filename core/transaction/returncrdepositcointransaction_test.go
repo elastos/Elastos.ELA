@@ -7,6 +7,8 @@ package transaction
 
 import (
 	"github.com/elastos/Elastos.ELA/common"
+	"github.com/elastos/Elastos.ELA/common/config"
+	"github.com/elastos/Elastos.ELA/core/checkpoint"
 	"github.com/elastos/Elastos.ELA/core/contract"
 	"github.com/elastos/Elastos.ELA/core/contract/program"
 	"github.com/elastos/Elastos.ELA/core/types"
@@ -16,6 +18,7 @@ import (
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	crstate "github.com/elastos/Elastos.ELA/cr/state"
 	"github.com/elastos/Elastos.ELA/crypto"
+	"path/filepath"
 )
 
 func (s *txValidatorTestSuite) TestCheckReturnCRDepositCoinTransaction() {
@@ -27,9 +30,11 @@ func (s *txValidatorTestSuite) TestCheckReturnCRDepositCoinTransaction() {
 	ct, _ := contract.CreateCRIDContractByCode(code)
 	cid := ct.ToProgramHash()
 
-	s.Chain.GetParams().CRVotingStartHeight = uint32(1)
-	s.Chain.GetParams().CRCommitteeStartHeight = uint32(3000)
-	s.Chain.SetCRCommittee(crstate.NewCommittee(s.Chain.GetParams()))
+	s.Chain.GetParams().CRConfiguration.CRVotingStartHeight = uint32(1)
+	s.Chain.GetParams().CRConfiguration.CRCommitteeStartHeight = uint32(3000)
+	ckpManager := checkpoint.NewManager(&config.DefaultParams)
+	ckpManager.SetDataPath(filepath.Join(config.DefaultParams.DataDir, "checkpoints"))
+	s.Chain.SetCRCommittee(crstate.NewCommittee(s.Chain.GetParams(), ckpManager))
 	s.Chain.GetCRCommittee().RegisterFuncitons(&crstate.CommitteeFuncsConfig{
 		GetTxReference:                   s.Chain.UTXOCache.GetTxReference,
 		GetUTXO:                          s.Chain.GetDB().GetFFLDB().GetUTXO,
@@ -162,7 +167,7 @@ func (s *txValidatorTestSuite) TestCheckReturnCRDepositCoinTransaction() {
 	// check a correct return cr deposit coin transaction.
 	rdTx.Outputs()[0].Value = 4999 * 100000000
 	rdTx.Programs()[0].Code = code
-	s.CurrentHeight = s.Chain.GetParams().CRCommitteeStartHeight
+	s.CurrentHeight = s.Chain.GetParams().CRConfiguration.CRCommitteeStartHeight
 	err, _ = rdTx.SpecialContextCheck()
 	s.NoError(err)
 

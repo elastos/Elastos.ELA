@@ -4,12 +4,14 @@ import (
 	"fmt"
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
+	"github.com/elastos/Elastos.ELA/core/checkpoint"
 	"github.com/elastos/Elastos.ELA/core/types"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/core/types/outputpayload"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	crstate "github.com/elastos/Elastos.ELA/cr/state"
+	"path/filepath"
 )
 
 func (s *txValidatorTestSuite) TestCheckDposV2VoteProducerOutput() {
@@ -497,7 +499,9 @@ func (s *txValidatorTestSuite) TestCheckVoteOutputs() {
 		"nickName3", payload.CRInfoVersion, &common.Uint168{})
 
 	s.CurrentHeight = 1
-	s.Chain.SetCRCommittee(crstate.NewCommittee(s.Chain.GetParams()))
+	ckpManager := checkpoint.NewManager(&config.DefaultParams)
+	ckpManager.SetDataPath(filepath.Join(config.DefaultParams.DataDir, "checkpoints"))
+	s.Chain.SetCRCommittee(crstate.NewCommittee(s.Chain.GetParams(), ckpManager))
 	s.Chain.GetCRCommittee().RegisterFuncitons(&crstate.CommitteeFuncsConfig{
 		GetTxReference:                   s.Chain.UTXOCache.GetTxReference,
 		GetUTXO:                          s.Chain.GetDB().GetFFLDB().GetUTXO,
@@ -553,7 +557,7 @@ func (s *txValidatorTestSuite) TestCheckVoteOutputs() {
 			},
 		},
 	})
-	s.EqualError(s.Chain.CheckVoteOutputs(config.DefaultParams.CRVotingStartHeight,
+	s.EqualError(s.Chain.CheckVoteOutputs(config.DefaultParams.CRConfiguration.CRVotingStartHeight,
 		outputs1, references, producersMap, nil, crsMap),
 		"the output address of vote tx should exist in its input")
 
@@ -574,7 +578,7 @@ func (s *txValidatorTestSuite) TestCheckVoteOutputs() {
 			},
 		},
 	})
-	s.EqualError(s.Chain.CheckVoteOutputs(config.DefaultParams.CRVotingStartHeight,
+	s.EqualError(s.Chain.CheckVoteOutputs(config.DefaultParams.CRConfiguration.CRVotingStartHeight,
 		outputs2, references, producersMap, nil, crsMap),
 		"the output address of vote tx should exist in its input")
 
@@ -595,7 +599,7 @@ func (s *txValidatorTestSuite) TestCheckVoteOutputs() {
 			},
 		},
 	})
-	s.EqualError(s.Chain.CheckVoteOutputs(config.DefaultParams.CRVotingStartHeight,
+	s.EqualError(s.Chain.CheckVoteOutputs(config.DefaultParams.CRConfiguration.CRVotingStartHeight,
 		outputs20, references, producersMap, nil, crsMap),
 		"the output address of vote tx should exist in its input")
 
@@ -616,7 +620,7 @@ func (s *txValidatorTestSuite) TestCheckVoteOutputs() {
 			},
 		},
 	})
-	s.EqualError(s.Chain.CheckVoteOutputs(config.DefaultParams.CRVotingStartHeight,
+	s.EqualError(s.Chain.CheckVoteOutputs(config.DefaultParams.CRConfiguration.CRVotingStartHeight,
 		outputs21, references, producersMap, nil, crsMap),
 		"the output address of vote tx should exist in its input")
 
@@ -637,7 +641,7 @@ func (s *txValidatorTestSuite) TestCheckVoteOutputs() {
 			},
 		},
 	})
-	s.EqualError(s.Chain.CheckVoteOutputs(config.DefaultParams.CRVotingStartHeight,
+	s.EqualError(s.Chain.CheckVoteOutputs(config.DefaultParams.CRConfiguration.CRVotingStartHeight,
 		outputs22, references, producersMap, nil, crsMap),
 		"the output address of vote tx should exist in its input")
 
@@ -664,7 +668,7 @@ func (s *txValidatorTestSuite) TestCheckVoteOutputs() {
 			},
 		},
 	})
-	s.EqualError(s.Chain.CheckVoteOutputs(config.DefaultParams.CRVotingStartHeight,
+	s.EqualError(s.Chain.CheckVoteOutputs(config.DefaultParams.CRConfiguration.CRVotingStartHeight,
 		outputs3, references, producersMap, nil, crsMap),
 		"the output address of vote tx should exist in its input")
 
@@ -689,7 +693,7 @@ func (s *txValidatorTestSuite) TestCheckVoteOutputs() {
 			},
 		},
 	})
-	s.EqualError(s.Chain.CheckVoteOutputs(config.DefaultParams.CRVotingStartHeight,
+	s.EqualError(s.Chain.CheckVoteOutputs(config.DefaultParams.CRConfiguration.CRVotingStartHeight,
 		outputs4, references, producersMap, nil, crsMap),
 		"invalid vote output payload producer candidate: "+publicKey2)
 
@@ -711,7 +715,7 @@ func (s *txValidatorTestSuite) TestCheckVoteOutputs() {
 		},
 		OutputLock: 0,
 	})
-	s.EqualError(s.Chain.CheckVoteOutputs(config.DefaultParams.CRVotingStartHeight,
+	s.EqualError(s.Chain.CheckVoteOutputs(config.DefaultParams.CRConfiguration.CRVotingStartHeight,
 		outputs23, references, producersMap, producersMap2, crsMap),
 		"invalid vote output payload producer candidate: "+publicKey2)
 
@@ -732,7 +736,7 @@ func (s *txValidatorTestSuite) TestCheckVoteOutputs() {
 		},
 		OutputLock: 0,
 	})
-	s.EqualError(s.Chain.CheckVoteOutputs(config.DefaultParams.CRVotingStartHeight,
+	s.EqualError(s.Chain.CheckVoteOutputs(config.DefaultParams.CRConfiguration.CRVotingStartHeight,
 		outputs23, references, producersMap, producersMap2, crsMap),
 		fmt.Sprintf("payload VoteDposV2Version not support vote DposV2"))
 
@@ -753,15 +757,15 @@ func (s *txValidatorTestSuite) TestCheckVoteOutputs() {
 		},
 		OutputLock: 0,
 	})
-	s.NoError(s.Chain.CheckVoteOutputs(config.DefaultParams.CRVotingStartHeight,
+	s.NoError(s.Chain.CheckVoteOutputs(config.DefaultParams.CRConfiguration.CRVotingStartHeight,
 		outputs23, references, producersMap, producersMap2, crsMap))
 
 	// Check vote output v0 with correct output program hash
-	s.NoError(s.Chain.CheckVoteOutputs(config.DefaultParams.CRVotingStartHeight,
+	s.NoError(s.Chain.CheckVoteOutputs(config.DefaultParams.CRConfiguration.CRVotingStartHeight,
 		outputs1, references, producersMap, nil, crsMap))
-	s.NoError(s.Chain.CheckVoteOutputs(config.DefaultParams.CRVotingStartHeight,
+	s.NoError(s.Chain.CheckVoteOutputs(config.DefaultParams.CRConfiguration.CRVotingStartHeight,
 		outputs2, references, producersMap, nil, crsMap))
-	s.NoError(s.Chain.CheckVoteOutputs(config.DefaultParams.CRVotingStartHeight,
+	s.NoError(s.Chain.CheckVoteOutputs(config.DefaultParams.CRConfiguration.CRVotingStartHeight,
 		outputs3, references, producersMap, nil, crsMap))
 
 	// Check vote output of v0 with crc type and invalid candidate
@@ -781,7 +785,7 @@ func (s *txValidatorTestSuite) TestCheckVoteOutputs() {
 			},
 		},
 	})
-	s.EqualError(s.Chain.CheckVoteOutputs(config.DefaultParams.CRVotingStartHeight,
+	s.EqualError(s.Chain.CheckVoteOutputs(config.DefaultParams.CRConfiguration.CRVotingStartHeight,
 		outputs5, references, producersMap, nil, crsMap),
 		"payload VoteProducerVersion not support vote CR")
 
@@ -802,7 +806,7 @@ func (s *txValidatorTestSuite) TestCheckVoteOutputs() {
 			},
 		},
 	})
-	s.EqualError(s.Chain.CheckVoteOutputs(config.DefaultParams.CRVotingStartHeight,
+	s.EqualError(s.Chain.CheckVoteOutputs(config.DefaultParams.CRConfiguration.CRVotingStartHeight,
 		outputs6, references, producersMap, nil, crsMap),
 		"invalid vote output payload CR candidate: "+candidateCID2.String())
 
@@ -829,7 +833,7 @@ func (s *txValidatorTestSuite) TestCheckVoteOutputs() {
 			},
 		},
 	})
-	s.EqualError(s.Chain.CheckVoteOutputs(config.DefaultParams.CRVotingStartHeight,
+	s.EqualError(s.Chain.CheckVoteOutputs(config.DefaultParams.CRConfiguration.CRVotingStartHeight,
 		outputs7, references, producersMap, nil, crsMap),
 		"payload VoteProducerVersion not support vote CR")
 
@@ -851,7 +855,7 @@ func (s *txValidatorTestSuite) TestCheckVoteOutputs() {
 			},
 		},
 	})
-	s.EqualError(s.Chain.CheckVoteOutputs(config.DefaultParams.CRVotingStartHeight,
+	s.EqualError(s.Chain.CheckVoteOutputs(config.DefaultParams.CRConfiguration.CRVotingStartHeight,
 		outputs8, references, producersMap, nil, crsMap),
 		"votes larger than output amount")
 
@@ -874,7 +878,7 @@ func (s *txValidatorTestSuite) TestCheckVoteOutputs() {
 			},
 		},
 	})
-	s.EqualError(s.Chain.CheckVoteOutputs(config.DefaultParams.CRVotingStartHeight,
+	s.EqualError(s.Chain.CheckVoteOutputs(config.DefaultParams.CRConfiguration.CRVotingStartHeight,
 		outputs9, references, producersMap, nil, crsMap),
 		"total votes larger than output amount")
 
@@ -902,7 +906,7 @@ func (s *txValidatorTestSuite) TestCheckVoteOutputs() {
 			},
 		},
 	})
-	s.EqualError(s.Chain.CheckVoteOutputs(config.DefaultParams.CRVotingStartHeight,
+	s.EqualError(s.Chain.CheckVoteOutputs(config.DefaultParams.CRConfiguration.CRVotingStartHeight,
 		outputs10, references, producersMap, nil, crsMap),
 		"votes larger than output amount")
 
@@ -930,7 +934,7 @@ func (s *txValidatorTestSuite) TestCheckVoteOutputs() {
 			},
 		},
 	})
-	s.NoError(s.Chain.CheckVoteOutputs(config.DefaultParams.CRVotingStartHeight,
+	s.NoError(s.Chain.CheckVoteOutputs(config.DefaultParams.CRConfiguration.CRVotingStartHeight,
 		outputs11, references, producersMap, nil, crsMap))
 
 	// Check vote output of v1 with wrong votes
@@ -957,7 +961,7 @@ func (s *txValidatorTestSuite) TestCheckVoteOutputs() {
 			},
 		},
 	})
-	s.NoError(s.Chain.CheckVoteOutputs(config.DefaultParams.CRVotingStartHeight,
+	s.NoError(s.Chain.CheckVoteOutputs(config.DefaultParams.CRConfiguration.CRVotingStartHeight,
 		outputs12, references, producersMap, nil, crsMap))
 
 	// Check vote output v1 with correct votes
@@ -982,7 +986,7 @@ func (s *txValidatorTestSuite) TestCheckVoteOutputs() {
 	})
 	s.Chain.GetCRCommittee().GetProposalManager().Proposals[*proposalHash1] =
 		&crstate.ProposalState{Status: 1}
-	s.NoError(s.Chain.CheckVoteOutputs(config.DefaultParams.CRVotingStartHeight,
+	s.NoError(s.Chain.CheckVoteOutputs(config.DefaultParams.CRConfiguration.CRVotingStartHeight,
 		outputs13, references, producersMap, nil, crsMap))
 
 	// Check vote output of v1 with wrong votes
@@ -1005,7 +1009,7 @@ func (s *txValidatorTestSuite) TestCheckVoteOutputs() {
 			},
 		},
 	})
-	s.EqualError(s.Chain.CheckVoteOutputs(config.DefaultParams.CRVotingStartHeight,
+	s.EqualError(s.Chain.CheckVoteOutputs(config.DefaultParams.CRConfiguration.CRVotingStartHeight,
 		outputs14, references, producersMap, nil, crsMap),
 		"invalid CRCProposal: c0fc5185e8d0c82e13894e5ba0fc5375dc79285419a705c4c1e0188799b85a9c")
 }

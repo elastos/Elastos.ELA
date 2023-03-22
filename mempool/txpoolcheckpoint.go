@@ -7,13 +7,13 @@ package mempool
 
 import (
 	"bytes"
-	"github.com/elastos/Elastos.ELA/core/types/functions"
 	"io"
 
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/log"
 	"github.com/elastos/Elastos.ELA/core/checkpoint"
 	"github.com/elastos/Elastos.ELA/core/types"
+	"github.com/elastos/Elastos.ELA/core/types/functions"
 	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/elanet/pact"
 )

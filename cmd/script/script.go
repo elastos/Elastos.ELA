@@ -23,6 +23,7 @@ func registerParams(c *cli.Context, L *lua.LState) {
 	code := c.String("code")
 	publicKey := c.String("publickey")
 	privateKeys := c.String("privatekeys")
+	publicKeys := c.String("publickeys")
 	depositAddr := c.String("depositaddr")
 	nickname := c.String("nickname")
 	url := c.String("url")
@@ -87,6 +88,10 @@ func registerParams(c *cli.Context, L *lua.LState) {
 	referKey := c.String("referkey")
 	voteType := c.Uint("votetype")
 
+	// nft
+	nftID := c.String("nftid")
+	stakeAddress := c.String("stakeaddr")
+
 	getWallet := func(L *lua.LState) int {
 		L.Push(lua.LString(wallet))
 		return 1
@@ -107,6 +112,16 @@ func registerParams(c *cli.Context, L *lua.LState) {
 		table := L.NewTable()
 		L.SetMetatable(table, L.GetTypeMetatable("privatekeys"))
 		cs := strings.Split(privateKeys, ",")
+		for _, c := range cs {
+			table.Append(lua.LString(c))
+		}
+		L.Push(table)
+		return 1
+	}
+	getPublicKeys := func(L *lua.LState) int {
+		table := L.NewTable()
+		L.SetMetatable(table, L.GetTypeMetatable("publickeys"))
+		cs := strings.Split(publicKeys, ",")
 		for _, c := range cs {
 			table.Append(lua.LString(c))
 		}
@@ -367,11 +382,22 @@ func registerParams(c *cli.Context, L *lua.LState) {
 		return 1
 	}
 
+	getNFTID := func(L *lua.LState) int {
+		L.Push(lua.LString(nftID))
+		return 1
+	}
+
+	getStakeAddress := func(L *lua.LState) int {
+		L.Push(lua.LString(stakeAddress))
+		return 1
+	}
+
 	L.Register("getWallet", getWallet)
 	L.Register("getPassword", getPassword)
 	L.Register("getDepositAddr", getDepositAddr)
 	L.Register("getPublicKey", getPublicKey)
 	L.Register("getPrivateKeys", getPrivateKeys)
+	L.Register("getPublicKeys", getPublicKeys)
 	L.Register("getCode", getCode)
 	L.Register("getNickName", getNickName)
 	L.Register("getUrl", getUrl)
@@ -434,6 +460,8 @@ func registerParams(c *cli.Context, L *lua.LState) {
 
 	L.Register("getReferKey", getReferKey)
 	L.Register("getVoteType", getVoteType)
+	L.Register("getNFTID", getNFTID)
+	L.Register("getStakeAddr", getStakeAddress)
 }
 
 func scriptAction(c *cli.Context) error {
@@ -505,6 +533,10 @@ func NewCommand() *cli.Command {
 			cli.StringFlag{
 				Name:  "privatekeys, priks",
 				Usage: "set the private key",
+			},
+			cli.StringFlag{
+				Name:  "publickeys, pubs",
+				Usage: "set the pub keys",
 			},
 			cli.StringFlag{
 				Name:  "depositaddr, daddr",
@@ -734,6 +766,14 @@ func NewCommand() *cli.Command {
 			cli.Int64Flag{
 				Name:  "votetype",
 				Usage: "set vote type of related votes",
+			},
+			cli.StringFlag{
+				Name:  "nftid",
+				Usage: "set id of NFT, id is the hash of detailed vote information",
+			},
+			cli.StringFlag{
+				Name:  "stakeaddr",
+				Usage: "set stake address of NFT",
 			},
 		},
 		Action: scriptAction,

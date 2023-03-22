@@ -9,13 +9,14 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/elastos/Elastos.ELA/utils"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 
 	"github.com/elastos/Elastos.ELA/blockchain"
 	"github.com/elastos/Elastos.ELA/core/contract/program"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/crypto"
 	elaerr "github.com/elastos/Elastos.ELA/errors"
+	"github.com/elastos/Elastos.ELA/utils"
 	"github.com/elastos/Elastos.ELA/vm"
 )
 
@@ -37,6 +38,25 @@ func (t *DPoSV2ClaimRewardTransaction) HeightVersionCheck() error {
 func (t *DPoSV2ClaimRewardTransaction) CheckAttributeProgram() error {
 	if len(t.Programs()) != 1 {
 		return errors.New("dposV2 claim reward transactions should have one and only one program")
+	}
+
+	// Check attributes
+	for _, attr := range t.Attributes() {
+		if !common2.IsValidAttributeType(attr.Usage) {
+			return fmt.Errorf("invalid attribute usage %v", attr.Usage)
+		}
+	}
+	// Check programs
+	for _, p := range t.Programs() {
+		if p.Code == nil {
+			return fmt.Errorf("invalid program code nil")
+		}
+		if len(p.Code) < program.MinProgramCodeSize {
+			return fmt.Errorf("invalid program code size")
+		}
+		if p.Parameter == nil {
+			return fmt.Errorf("invalid program parameter nil")
+		}
 	}
 	return nil
 }
@@ -74,11 +94,11 @@ func (t *DPoSV2ClaimRewardTransaction) SpecialContextCheck() (elaerr.ELAError, b
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid payload version")), true
 	}
 
-	addr, err := utils.GetAddressByCode(code)
+	addr, err := utils.GetStakeAddressByCode(code)
 	if err != nil {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("Programs code to address error")), true
 	}
-	claimAmount, ok := t.parameters.BlockChain.GetState().DposV2RewardInfo[addr]
+	claimAmount, ok := t.parameters.BlockChain.GetState().DPoSV2RewardInfo[addr]
 	if !ok {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("no reward to claim for such address")), true
 	}
@@ -87,7 +107,7 @@ func (t *DPoSV2ClaimRewardTransaction) SpecialContextCheck() (elaerr.ELAError, b
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("claim reward exceeded , max claim reward "+claimAmount.String())), true
 	}
 
-	if claimReward.Value <= t.parameters.Config.RealWithdrawSingleFee {
+	if claimReward.Value <= t.parameters.Config.CRConfiguration.RealWithdrawSingleFee {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("claim reward should be bigger than RealWithdrawSingleFee")), true
 	}
 

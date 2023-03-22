@@ -7,9 +7,9 @@ package mempool
 
 import (
 	"fmt"
+
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/core/types/interfaces"
-
 	"github.com/elastos/Elastos.ELA/errors"
 )
 
@@ -50,6 +50,9 @@ const (
 	slotVotesRealWithdraw                       = "VotesRealWithdraw"
 	slotExchangeVotes                           = "ExchangeVotes"
 	slotDposV2ClaimReward                       = "DposV2ClaimReward"
+	slotCreateNFT                               = "createnft"
+	slotCreateNFTStakeAddr                      = "createnftstakeaddr"
+	slotNFTDestroyFromSideChainHash             = "NFTDestroyFromSideChainHash"
 )
 
 type conflict struct {
@@ -472,6 +475,10 @@ func newConflictManager() conflictManager {
 						Type: common2.ReturnVotes,
 						Func: strReturnVotes,
 					},
+					keyTypeFuncPair{
+						Type: common2.CreateNFT,
+						Func: strCreateNFT,
+					},
 				),
 			},
 			// DposV2ClaimReward
@@ -563,6 +570,16 @@ func newConflictManager() conflictManager {
 					},
 				),
 			},
+			// NFT Destroy From SideChain Hash
+			{
+				name: slotNFTDestroyFromSideChainHash,
+				slot: newConflictSlot(hashArray,
+					keyTypeFuncPair{
+						Type: common2.NFTDestroyFromSideChain,
+						Func: hashArrayNFTDestroyFromSideChainHash,
+					},
+				),
+			},
 			// tx inputs refer keys
 			{
 				name: slotTxInputsReferKeys,
@@ -570,6 +587,24 @@ func newConflictManager() conflictManager {
 					keyTypeFuncPair{
 						Type: allType,
 						Func: strArrayTxReferences,
+					},
+				),
+			},
+			{
+				name: slotCreateNFT,
+				slot: newConflictSlot(hash,
+					keyTypeFuncPair{
+						Type: common2.CreateNFT,
+						Func: hashCreateNFTID,
+					},
+				),
+			},
+			{
+				name: slotCreateNFTStakeAddr,
+				slot: newConflictSlot(str,
+					keyTypeFuncPair{
+						Type: common2.CreateNFT,
+						Func: strCreateNFTID,
 					},
 				),
 			},

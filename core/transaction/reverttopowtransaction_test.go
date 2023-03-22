@@ -53,7 +53,7 @@ func (s *txValidatorTestSuite) TestRevertToPowTransaction() {
 		txn.SetParameters(&TransactionParameters{
 			Transaction: txn,
 			BlockHeight: s.Chain.BestChain.Height,
-			TimeStamp:   s.Chain.BestChain.Timestamp + (uint32(s.Chain.GetParams().RevertToPOWNoBlockTime) + 1000),
+			TimeStamp:   s.Chain.BestChain.Timestamp + (uint32(s.Chain.GetParams().DPoSConfiguration.RevertToPOWNoBlockTime) + 1000),
 			Config:      s.Chain.GetParams(),
 			BlockChain:  s.Chain,
 		})

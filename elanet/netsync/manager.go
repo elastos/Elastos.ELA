@@ -120,7 +120,7 @@ type SyncManager struct {
 	started      int32
 	shutdown     int32
 	chain        *blockchain.BlockChain
-	chainParams  *config.Params
+	chainParams  *config.Configuration
 	txMemPool    *mempool.TxPool
 	blockMemPool *mempool.BlockPool
 	msgChan      chan interface{}
@@ -835,6 +835,9 @@ func (sm *SyncManager) handleBlockchainEvents(event *events.Event) {
 		// so need a goroutine calling here.
 		go sm.blockMemPool.CleanFinalConfirmedBlock(block.Height)
 
+		// Rebroadcast tx if a tx stays in pool too long
+		sm.txMemPool.ResendOutdatedTransactions(block)
+
 		// A block has been disconnected from the main block chain.
 	case events.ETBlockDisconnected:
 		block, ok := event.Data.(*types.Block)
@@ -891,6 +894,16 @@ func (sm *SyncManager) handleBlockchainEvents(event *events.Event) {
 		txs, ok := event.Data.([]interfaces.Transaction)
 		if !ok {
 			log.Error("ETSmallCrossChainNeedRelay event is not a tx list")
+		}
+		for _, tx := range txs {
+			txHash := tx.Hash()
+			iv := msg.NewInvVect(msg.InvTypeTx, &txHash)
+			sm.peerNotifier.RelayInventory(iv, tx)
+		}
+	case events.ETOutdatedTxRelay:
+		txs, ok := event.Data.([]interfaces.Transaction)
+		if !ok {
+			log.Error("ETOutdatedTxRelay event is not a tx list")
 		}
 		for _, tx := range txs {
 			txHash := tx.Hash()

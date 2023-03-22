@@ -297,7 +297,6 @@ type DetailedVoteInfo struct {
 	PayloadVersion   byte
 	VoteType         outputpayload.VoteType
 	Info             []VotesWithLockTime
-	PrefixType       byte
 }
 
 func (v *DetailedVoteInfo) bytes() []byte {
@@ -343,9 +342,6 @@ func (v *DetailedVoteInfo) Serialize(w io.Writer) error {
 			return err
 		}
 	}
-	if err := common.WriteUint8(w, v.PrefixType); err != nil {
-		return err
-	}
 
 	return nil
 }
@@ -389,10 +385,6 @@ func (v *DetailedVoteInfo) Deserialize(r io.Reader) error {
 			return err
 		}
 		v.Info[i] = info
-	}
-	v.PrefixType, err = common.ReadUint8(r)
-	if err != nil {
-		return err
 	}
 	return nil
 }

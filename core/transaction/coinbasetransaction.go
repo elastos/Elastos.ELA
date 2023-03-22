@@ -10,7 +10,7 @@ import (
 	"math"
 
 	"github.com/elastos/Elastos.ELA/common"
-	"github.com/elastos/Elastos.ELA/common/config"
+	"github.com/elastos/Elastos.ELA/core"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
@@ -52,7 +52,7 @@ func (t *CoinBaseTransaction) CheckTransactionOutput() error {
 	var totalReward = common.Fixed64(0)
 	if blockHeight < chainParams.PublicDPOSHeight {
 		for _, output := range t.Outputs() {
-			if output.AssetID != config.ELAAssetID {
+			if output.AssetID != core.ELAAssetID {
 				return errors.New("asset ID in coinbase is invalid")
 			}
 			totalReward += output.Value
@@ -96,22 +96,21 @@ func (t *CoinBaseTransaction) IsAllowedInPOWConsensus() bool {
 }
 
 func (a *CoinBaseTransaction) SpecialContextCheck() (result elaerr.ELAError, end bool) {
-
 	para := a.parameters
-	if para.BlockHeight >= para.Config.CRCommitteeStartHeight {
+	if para.BlockHeight >= para.Config.CRConfiguration.CRCommitteeStartHeight {
 		if para.BlockChain.GetState().GetConsensusAlgorithm() == 0x01 {
-			if !a.outputs[0].ProgramHash.IsEqual(para.Config.DestroyELAAddress) {
+			if !a.outputs[0].ProgramHash.IsEqual(*para.Config.DestroyELAProgramHash) {
 				return elaerr.Simple(elaerr.ErrTxInvalidOutput,
 					errors.New("first output address should be "+
 						"DestroyAddress in POW consensus algorithm")), true
 			}
 		} else {
-			if !a.outputs[0].ProgramHash.IsEqual(para.Config.CRAssetsAddress) {
+			if !a.outputs[0].ProgramHash.IsEqual(*para.Config.CRConfiguration.CRAssetsProgramHash) {
 				return elaerr.Simple(elaerr.ErrTxInvalidOutput,
 					errors.New("first output address should be CR assets address")), true
 			}
 		}
-	} else if !a.outputs[0].ProgramHash.IsEqual(para.Config.Foundation) {
+	} else if !a.outputs[0].ProgramHash.IsEqual(*para.Config.FoundationProgramHash) {
 		return elaerr.Simple(elaerr.ErrTxInvalidOutput,
 			errors.New("first output address should be foundation address")), true
 	}

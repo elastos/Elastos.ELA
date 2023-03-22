@@ -62,11 +62,14 @@ func (t *RevertToDPOSTransaction) CheckAttributeProgram() error {
 	if len(t.Programs()) == 0 {
 		return fmt.Errorf("no programs found in transaction")
 	}
-	for _, program := range t.Programs() {
-		if program.Code == nil {
+	for _, p := range t.Programs() {
+		if p.Code == nil {
 			return fmt.Errorf("invalid program code nil")
 		}
-		if program.Parameter == nil {
+		if len(p.Code) < program.MinProgramCodeSize {
+			return fmt.Errorf("invalid program code size")
+		}
+		if p.Parameter == nil {
 			return fmt.Errorf("invalid program parameter nil")
 		}
 	}
@@ -88,7 +91,7 @@ func (t *RevertToDPOSTransaction) IsAllowedInPOWConsensus() bool {
 }
 
 func (t *RevertToDPOSTransaction) HeightVersionCheck() error {
-	if t.parameters.BlockHeight < t.parameters.Config.RevertToPOWStartHeight {
+	if t.parameters.BlockHeight < t.parameters.Config.DPoSConfiguration.RevertToPOWStartHeight {
 		return errors.New(fmt.Sprintf("not support %s transaction "+
 			"before RevertToPOWStartHeight", t.TxType().Name()))
 	}

@@ -6,6 +6,7 @@
 package mempool
 
 import (
+	"bytes"
 	"encoding/hex"
 	"fmt"
 	"strconv"
@@ -75,6 +76,16 @@ func hashCloseProposalTargetProposalHash(tx interfaces.Transaction) (interface{}
 		return p.TargetProposalHash, nil
 	}
 	return nil, nil
+}
+
+func hashArrayNFTDestroyFromSideChainHash(tx interfaces.Transaction) (interface{}, error) {
+	p, ok := tx.Payload().(*payload.NFTDestroyFromSideChain)
+	if !ok {
+		return nil, fmt.Errorf(
+			"CRC proposal payload cast failed, tx:%s", tx.Hash())
+	}
+
+	return p.IDs, nil
 }
 
 func hashCRCProposalSecretaryGeneralDID(tx interfaces.Transaction) (interface{}, error) {
@@ -321,6 +332,25 @@ func strReturnVotes(tx interfaces.Transaction) (interface{}, error) {
 	return *stakeProgramHash, nil
 }
 
+func strCreateNFT(tx interfaces.Transaction) (interface{}, error) {
+	_, ok := tx.Payload().(*payload.CreateNFT)
+	if !ok {
+		return nil, fmt.Errorf("invlid create NFT payload, tx:%s", tx.Hash())
+	}
+
+	if len(tx.Programs()) < 1 {
+		return nil, fmt.Errorf("invlid create NFT program, tx:%s", tx.Hash())
+	}
+
+	code := tx.Programs()[0].Code
+	ct, err := contract.CreateStakeContractByCode(code)
+	if err != nil {
+		return nil, fmt.Errorf("invlid create NFT code, tx:%s", tx.Hash())
+	}
+	stakeProgramHash := ct.ToProgramHash()
+	return *stakeProgramHash, nil
+}
+
 func programHashDposV2ClaimReward(tx interfaces.Transaction) (interface{}, error) {
 	pld, ok := tx.Payload().(*payload.DPoSV2ClaimReward)
 	if !ok {
@@ -350,13 +380,21 @@ func strRegisterCRPublicKey(tx interfaces.Transaction) (interface{}, error) {
 		return nil, err
 	}
 
-	signType, err := crypto.GetScriptType(p.Code)
+	var code []byte
+	if tx.PayloadVersion() == payload.CRInfoSchnorrVersion {
+		code = tx.Programs()[0].Code
+	} else {
+		code = p.Code
+	}
+	signType, err := crypto.GetScriptType(code)
 	if err != nil {
 		return nil, err
 	}
 
 	if signType == vm.CHECKSIG {
 		return hex.EncodeToString(p.Code[1 : len(p.Code)-1]), nil
+	} else if bytes.Equal(p.Code, []byte{}) && contract.IsSchnorr(code) {
+		return hex.EncodeToString(code[2:]), nil
 	} else {
 		return nil, fmt.Errorf("unsupported sign script type: %d", signType)
 	}
@@ -592,4 +630,22 @@ func comGetCRInfo(tx interfaces.Transaction) (*payload.CRInfo, error) {
 			"register CR payload cast failed, tx:%s", tx.Hash())
 	}
 	return p, nil
+}
+
+func hashCreateNFTID(tx interfaces.Transaction) (interface{}, error) {
+	p, ok := tx.Payload().(*payload.CreateNFT)
+	if !ok {
+		return nil, fmt.Errorf(
+			"CreateNFT payload cast failed, tx: %s", tx.Hash())
+	}
+	return p.ReferKey, nil
+}
+
+func strCreateNFTID(tx interfaces.Transaction) (interface{}, error) {
+	p, ok := tx.Payload().(*payload.CreateNFT)
+	if !ok {
+		return nil, fmt.Errorf(
+			"CreateNFT payload cast failed, tx: %s", tx.Hash())
+	}
+	return p.StakeAddress, nil
 }

@@ -8,7 +8,6 @@ package api
 import (
 	"encoding/hex"
 	"fmt"
-	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"os"
 	"strconv"
 	"strings"
@@ -16,6 +15,7 @@ import (
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/log"
 	"github.com/elastos/Elastos.ELA/core/contract"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/core/types/outputpayload"
 	"github.com/elastos/Elastos.ELA/crypto"
 

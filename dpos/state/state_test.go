@@ -4,13 +4,13 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
-	"github.com/elastos/Elastos.ELA/core/contract"
-	"github.com/elastos/Elastos.ELA/crypto"
-	"github.com/stretchr/testify/assert"
 	"testing"
 
 	"github.com/elastos/Elastos.ELA/common"
+	"github.com/elastos/Elastos.ELA/core/contract"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
+	"github.com/elastos/Elastos.ELA/crypto"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestProducer_ActivateRequestHeight(t *testing.T) {
@@ -56,4 +56,18 @@ func getCode(publicKey string) []byte {
 	pk, _ := crypto.DecodePoint(pkBytes)
 	redeemScript, _ := contract.CreateStandardRedeemScript(pk)
 	return redeemScript
+}
+
+func TestBreakOut(t *testing.T) {
+	for i := 0; i < 10; i++ {
+		fmt.Println("i ", i)
+	out:
+		for j := 11; j < 20; j++ {
+			for k := 21; k < 30; k++ {
+				fmt.Println("j", j, "k ", k)
+				break out
+			}
+		}
+	}
+
 }

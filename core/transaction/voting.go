@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/elastos/Elastos.ELA/core/contract/program"
 
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/core/contract"
@@ -58,6 +59,9 @@ func (t *VotingTransaction) CheckAttributeProgram() error {
 	}
 	if t.Programs()[0].Code == nil {
 		return fmt.Errorf("invalid program code nil")
+	}
+	if len(t.Programs()[0].Code) < program.MinProgramCodeSize {
+		return fmt.Errorf("invalid program code size")
 	}
 	if t.Programs()[0].Parameter == nil {
 		return fmt.Errorf("invalid program parameter nil")
@@ -221,7 +225,7 @@ func (t *VotingTransaction) SpecialContextCheck() (result elaerr.ELAError, end b
 			if content.VotesInfo.LockTime > producer.Info().StakeUntil {
 				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("new lock time > producer StakeUntil")), true
 			}
-			if content.VotesInfo.LockTime-vote.BlockHeight > t.parameters.Config.DPoSV2MaxVotesLockTime {
+			if content.VotesInfo.LockTime-vote.BlockHeight > t.parameters.Config.DPoSConfiguration.DPoSV2MaxVotesLockTime {
 				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid lock time > DPoSV2MaxVotesLockTime")), true
 			}
 			if !bytes.Equal(vote.Info[0].Candidate, content.VotesInfo.Candidate) {
@@ -363,8 +367,8 @@ func (t *VotingTransaction) checkDPoSV2Content(content payload.VotesContent,
 		}
 		lockTime := cv.LockTime - t.parameters.BlockHeight
 		if cv.LockTime <= t.parameters.BlockHeight || cv.LockTime > lockUntil ||
-			lockTime < t.parameters.Config.DPoSV2MinVotesLockTime ||
-			lockTime > t.parameters.Config.DPoSV2MaxVotesLockTime {
+			lockTime < t.parameters.Config.DPoSConfiguration.DPoSV2MinVotesLockTime ||
+			lockTime > t.parameters.Config.DPoSConfiguration.DPoSV2MaxVotesLockTime {
 
 			return errors.New("invalid DPoS 2.0 votes lock time")
 		}

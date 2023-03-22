@@ -38,7 +38,7 @@ type Config struct {
 	Server         elanet.Server
 	TxMemPool      *mempool.TxPool
 	BlockMemPool   *mempool.BlockPool
-	ChainParams    *config.Params
+	ChainParams    *config.Configuration
 	Broadcast      func(msg p2p.Message)
 	AnnounceAddr   func()
 	NodeVersion    string
@@ -201,10 +201,10 @@ func (a *Arbitrator) OnBlockReceived(b *types.Block, confirmed bool) {
 	if !a.cfg.Server.IsCurrent() {
 		return
 	}
-	if b.Height >= a.cfg.ChainParams.RevertToPOWStartHeight {
+	if b.Height >= a.cfg.ChainParams.DPoSConfiguration.RevertToPOWStartHeight {
 		lastBlockTimestamp := int64(a.cfg.Arbitrators.GetLastBlockTimestamp())
 		localTimestamp := a.cfg.Chain.TimeSource.AdjustedTime().Unix()
-		if localTimestamp-lastBlockTimestamp >= a.cfg.ChainParams.StopConfirmBlockTime {
+		if localTimestamp-lastBlockTimestamp >= a.cfg.ChainParams.DPoSConfiguration.StopConfirmBlockTime {
 			return
 		}
 	}
@@ -279,7 +279,9 @@ func NewArbitrator(account account.Account, cfg Config) (*Arbitrator, error) {
 		TimeSource:  medianTime,
 	})
 
-	consensus := manager.NewConsensus(dposManager, cfg.ChainParams.ToleranceDuration, dposHandlerSwitch)
+	consensus := manager.NewConsensus(dposManager,
+		cfg.ChainParams.DPoSConfiguration.SignTolerance,
+		dposHandlerSwitch)
 	proposalDispatcher, illegalMonitor := manager.NewDispatcherAndIllegalMonitor(
 		manager.ProposalDispatcherConfig{
 			EventMonitor: eventMonitor,

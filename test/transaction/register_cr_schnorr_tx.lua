@@ -92,11 +92,11 @@ print("payload version:", payload_version)
 
 -- register cr payload: publickey, nickname, url, local, wallet
 local rp_payload = registercr.new(cr_publickey, nick_name, url, location,
- payload_version, wallet)
+ payload_version, wallet, account)
 print(rp_payload:get())
 
 -- transaction: version, txType, payloadVersion, payload, locktime
-local tx = transaction.new(9, 0x21, payload_version, rp_payload, 0)
+local tx = transaction.new(9, 0x21, 2, rp_payload, 0)
 print(tx:get())
 
 -- input: from, amount + fee

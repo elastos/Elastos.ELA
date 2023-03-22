@@ -7,27 +7,86 @@ package unit
 
 import (
 	"errors"
-	"fmt"
+	"os"
+	"path/filepath"
 	"testing"
-
-	"github.com/elastos/Elastos.ELA/common/config"
-	"github.com/elastos/Elastos.ELA/core/contract/program"
-	"github.com/elastos/Elastos.ELA/core/transaction"
-	"github.com/elastos/Elastos.ELA/core/types/functions"
-	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 
 	"github.com/elastos/Elastos.ELA/blockchain/indexers"
 	"github.com/elastos/Elastos.ELA/common"
+	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/common/log"
+	"github.com/elastos/Elastos.ELA/core/contract/program"
+	"github.com/elastos/Elastos.ELA/core/transaction"
 	"github.com/elastos/Elastos.ELA/core/types"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/functions"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/core/types/outputpayload"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/database"
 	"github.com/elastos/Elastos.ELA/utils/test"
 
+	"github.com/btcsuite/btcd/wire"
 	"github.com/stretchr/testify/assert"
 )
+
+const (
+	// blockDbNamePrefix is the prefix for the block database name.  The
+	// database type is appended to this value to form the full block
+	// database name.
+	blockDbNamePrefix = "blocks"
+)
+
+// dbPath returns the path to the block database given a database type.
+func blockDbPath(dataPath, dbType string) string {
+	// The database name is based on the database type.
+	dbName := blockDbNamePrefix + "_" + dbType
+	if dbType == "sqlite" {
+		dbName = dbName + ".db"
+	}
+	dbPath := filepath.Join(dataPath, dbName)
+	return dbPath
+}
+
+// loadBlockDB loads (or creates when needed) the block database taking into
+// account the selected database backend and returns a handle to it.  It also
+// contains additional logic such warning the user if there are multiple
+// databases which consume space on the file system and ensuring the regression
+// test database is clean when in regression test mode.
+func LoadBlockDB(dataPath string) (database.DB, error) {
+	// The memdb backend does not have a file path associated with it, so
+	// handle it uniquely.  We also don't want to worry about the multiple
+	// database type warnings when running with the memory database.
+
+	// The database name is based on the database type.
+	dbType := "ffldb"
+	dbPath := blockDbPath(dataPath, dbType)
+
+	log.Infof("Loading block database from '%s'", dbPath)
+	db, err := database.Open(dbType, dbPath, wire.MainNet)
+	if err != nil {
+		// Return the error if it's not because the database doesn't
+		// exist.
+		if dbErr, ok := err.(database.Error); !ok || dbErr.ErrorCode !=
+			database.ErrDbDoesNotExist {
+
+			return nil, err
+		}
+
+		// Create the db if it does not exist.
+		err = os.MkdirAll(dataPath, 0700)
+		if err != nil {
+			return nil, err
+		}
+		db, err = database.Create(dbType, dbPath, wire.MainNet)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	log.Info("Block database loaded")
+	return db, nil
+}
 
 var (
 	referHeight        = uint32(100)
@@ -52,7 +111,7 @@ func init() {
 	functions.GetTransactionByBytes = transaction.GetTransactionByBytes
 	functions.CreateTransaction = transaction.CreateTransaction
 	functions.GetTransactionParameters = transaction.GetTransactionparameters
-	config.DefaultParams = config.GetDefaultParams()
+	config.DefaultParams = *config.GetDefaultParams()
 
 	testUtxoIndexReferTx = functions.CreateTransaction(
 		common2.TxVersion09,
@@ -216,7 +275,7 @@ func TestUTXOIndexInit(t *testing.T) {
 	assert.NoError(t, err)
 	testTxStore = NewTestTxStore()
 	testTxStore.SetTx(testUtxoIndexReferTx, referHeight)
-	fmt.Println("refer tx hash:", testUtxoIndexReferTx.Hash().String())
+	//fmt.Println("refer tx hash:", testUtxoIndexReferTx.Hash().String())
 
 	testUtxoIndex = indexers.NewUtxoIndex(utxoIndexDB, testTxStore)
 	assert.NotEqual(t, nil, testUtxoIndex)

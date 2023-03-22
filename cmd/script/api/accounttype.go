@@ -9,7 +9,9 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-
+	"github.com/elastos/Elastos.ELA/common"
+	"github.com/elastos/Elastos.ELA/core/contract"
+	"github.com/elastos/Elastos.ELA/crypto"
 	"github.com/elastos/Elastos.ELA/account"
 	lua "github.com/yuin/gopher-lua"
 )
@@ -44,8 +46,36 @@ func newAccount(L *lua.LState) int {
 }
 
 var accountMethods = map[string]lua.LGFunction{
-	"get_account": getAccount,
-	"get_address": getAccountAddr,
+	"get_account":  getAccount,
+	"get_address":  getAccountAddr,
+	"get_saddress": getAccountSaddr,
+}
+
+func getAccountSaddr(L *lua.LState) int {
+	sa, err := checkAccount(L, 1)
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+	fmt.Println("-----ToAddress-------")
+	pub := sa.SumPublicKey[:]
+	pubKey, err := crypto.DecodePoint(pub)
+	if err != nil {
+		fmt.Println(err.Error())
+		return 0
+	}
+	signatureContract, err := contract.CreateSchnorrContract(pubKey)
+	if err != nil {
+		fmt.Println(err.Error())
+		return 0
+	}
+	programHash := signatureContract.ToProgramHash()
+	codeHash := programHash.ToCodeHash()
+	depositHash := common.Uint168FromCodeHash(byte(contract.PrefixDPoSV2), codeHash)
+	sAddress, err := depositHash.ToAddress()
+	fmt.Println("-----ToSAddress-------" + sAddress)
+	L.Push(lua.LString(sAddress))
+
+	return 1
 }
 
 func getAccount(L *lua.LState) int {

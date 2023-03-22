@@ -3,6 +3,8 @@ package transaction
 import (
 	"bytes"
 	"github.com/elastos/Elastos.ELA/common"
+	"github.com/elastos/Elastos.ELA/common/config"
+	"github.com/elastos/Elastos.ELA/core/checkpoint"
 	"github.com/elastos/Elastos.ELA/core/contract/program"
 	"github.com/elastos/Elastos.ELA/core/types"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
@@ -12,6 +14,7 @@ import (
 	crstate "github.com/elastos/Elastos.ELA/cr/state"
 	"github.com/elastos/Elastos.ELA/crypto"
 	"github.com/elastos/Elastos.ELA/dpos/state"
+	"path/filepath"
 )
 
 func (s *txValidatorTestSuite) TestCheckCancelProducerTransaction() {
@@ -103,7 +106,9 @@ func (s *txValidatorTestSuite) TestCheckCancelProducerTransaction() {
 		)
 
 		s.CurrentHeight = 1
-		s.Chain.SetCRCommittee(crstate.NewCommittee(s.Chain.GetParams()))
+		ckpManager := checkpoint.NewManager(&config.DefaultParams)
+		ckpManager.SetDataPath(filepath.Join(config.DefaultParams.DataDir, "checkpoints"))
+		s.Chain.SetCRCommittee(crstate.NewCommittee(s.Chain.GetParams(), ckpManager))
 		s.Chain.SetState(state.NewState(s.Chain.GetParams(), nil, nil, nil,
 			func() bool { return false }, func(programHash common.Uint168) (common.Fixed64,
 				error) {
@@ -163,7 +168,9 @@ func (s *txValidatorTestSuite) TestCheckCancelProducerTransaction() {
 		)
 
 		s.CurrentHeight = 1
-		s.Chain.SetCRCommittee(crstate.NewCommittee(s.Chain.GetParams()))
+		ckpManager := checkpoint.NewManager(&config.DefaultParams)
+		ckpManager.SetDataPath(filepath.Join(config.DefaultParams.DataDir, "checkpoints"))
+		s.Chain.SetCRCommittee(crstate.NewCommittee(s.Chain.GetParams(), ckpManager))
 		s.Chain.SetState(state.NewState(s.Chain.GetParams(), nil, nil, nil,
 			func() bool { return false }, func(programHash common.Uint168) (common.Fixed64,
 				error) {
@@ -222,7 +229,9 @@ func (s *txValidatorTestSuite) TestCheckCancelProducerTransaction() {
 		)
 
 		s.CurrentHeight = 1
-		s.Chain.SetCRCommittee(crstate.NewCommittee(s.Chain.GetParams()))
+		ckpManager := checkpoint.NewManager(&config.DefaultParams)
+		ckpManager.SetDataPath(filepath.Join(config.DefaultParams.DataDir, "checkpoints"))
+		s.Chain.SetCRCommittee(crstate.NewCommittee(s.Chain.GetParams(), ckpManager))
 		s.Chain.SetState(state.NewState(s.Chain.GetParams(), nil, nil, nil,
 			func() bool { return false }, func(programHash common.Uint168) (common.Fixed64,
 				error) {
@@ -279,7 +288,7 @@ func (s *txValidatorTestSuite) TestCheckCancelProducerTransaction() {
 		s.NoError(err1)
 		updatePayload.Signature = updateSig
 		s.Chain.GetState().GetProducer(publicKey1).SetState(state.Active)
-		s.Chain.GetParams().DPoSV2DepositCoinMinLockTime = 1
+		s.Chain.GetParams().DPoSConfiguration.DPoSV2DepositCoinMinLockTime = 1
 		s.Chain.BestChain.Height = 1
 		txn2 = CreateTransactionByType(txn2, s.Chain)
 		err, _ = txn2.SpecialContextCheck()

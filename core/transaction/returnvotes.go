@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/elastos/Elastos.ELA/core/contract/program"
 
 	"github.com/elastos/Elastos.ELA/blockchain"
 	"github.com/elastos/Elastos.ELA/core/contract"
@@ -56,6 +57,9 @@ func (t *ReturnVotesTransaction) CheckAttributeProgram() error {
 	if t.Programs()[0].Code == nil {
 		return fmt.Errorf("invalid program code nil")
 	}
+	if len(t.Programs()[0].Code) < program.MinProgramCodeSize {
+		return fmt.Errorf("invalid program code size")
+	}
 	if t.Programs()[0].Parameter == nil {
 		return fmt.Errorf("invalid program parameter nil")
 	}
@@ -77,7 +81,7 @@ func (t *ReturnVotesTransaction) SpecialContextCheck() (result elaerr.ELAError, 
 	}
 
 	// Value must bigger than RealWithdrawSingleFee
-	if pl.Value <= t.parameters.Config.RealWithdrawSingleFee {
+	if pl.Value <= t.parameters.Config.CRConfiguration.RealWithdrawSingleFee {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid return votes value")), true
 	}
 
@@ -85,7 +89,7 @@ func (t *ReturnVotesTransaction) SpecialContextCheck() (result elaerr.ELAError, 
 	var code []byte
 	if t.payloadVersion == payload.ReturnVotesVersionV0 {
 		code = pl.Code
-	} else if t.payloadVersion == payload.ReturnVotesVersionV1 {
+	} else if t.payloadVersion == payload.ReturnVotesSchnorrVersion {
 		code = t.Programs()[0].Code
 	} else {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid payload version")), true

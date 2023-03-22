@@ -29,7 +29,7 @@ func init() {
 	functions.GetTransactionByBytes = transaction.GetTransactionByBytes
 	functions.CreateTransaction = transaction.CreateTransaction
 	functions.GetTransactionParameters = transaction.GetTransactionparameters
-	config.DefaultParams = config.GetDefaultParams()
+	config.DefaultParams = *config.GetDefaultParams()
 }
 
 func TestRewardData_Deserialize(t *testing.T) {
@@ -162,7 +162,7 @@ func stateKeyFrameEqual(first *state.StateKeyFrame, second *state.StateKeyFrame)
 		len(first.Votes) != len(second.Votes) ||
 		len(first.UsedDposV2Votes) != len(second.UsedDposV2Votes) ||
 		len(first.DepositOutputs) != len(second.DepositOutputs) ||
-		len(first.DposV2RewardInfo) != len(second.DposV2RewardInfo) ||
+		len(first.DPoSV2RewardInfo) != len(second.DPoSV2RewardInfo) ||
 		len(first.DposV2RewardClaimingInfo) != len(second.DposV2RewardClaimingInfo) ||
 		len(first.DposV2RewardClaimedInfo) != len(second.DposV2RewardClaimedInfo) ||
 		len(first.WithdrawableTxInfo) != len(second.WithdrawableTxInfo) ||
@@ -268,8 +268,8 @@ func stateKeyFrameEqual(first *state.StateKeyFrame, second *state.StateKeyFrame)
 		}
 	}
 
-	for k := range first.DposV2RewardInfo {
-		_, ok := second.DposV2RewardInfo[k]
+	for k := range first.DPoSV2RewardInfo {
+		_, ok := second.DPoSV2RewardInfo[k]
 		if !ok {
 			return false
 		}
@@ -355,7 +355,7 @@ func randomDPOSStateKeyFrame() *state.StateKeyFrame {
 		UsedDposVotes:             make(map[common.Uint168][]payload.VotesWithLockTime),
 		UsedDposV2Votes:           make(map[common.Uint168]common.Fixed64),
 		DepositOutputs:            make(map[string]common.Fixed64),
-		DposV2RewardInfo:          make(map[string]common.Fixed64),
+		DPoSV2RewardInfo:          make(map[string]common.Fixed64),
 		DposV2RewardClaimingInfo:  make(map[string]common.Fixed64),
 		DposV2RewardClaimedInfo:   make(map[string]common.Fixed64),
 		Nicknames:                 make(map[string]struct{}),
@@ -387,7 +387,7 @@ func randomDPOSStateKeyFrame() *state.StateKeyFrame {
 		}
 		result.UsedDposV2Votes[*randomUint168()] = randomFix64()
 		result.DepositOutputs[randomString()] = common.Fixed64(rand.Uint64())
-		result.DposV2RewardInfo[randomString()] = common.Fixed64(rand.Uint64())
+		result.DPoSV2RewardInfo[randomString()] = common.Fixed64(rand.Uint64())
 		result.DposV2RewardClaimingInfo[randomString()] = common.Fixed64(rand.Uint64())
 		result.DposV2RewardClaimedInfo[randomString()] = common.Fixed64(rand.Uint64())
 		result.Nicknames[randomString()] = struct{}{}
@@ -574,7 +574,7 @@ func arbiterMemberEqual(first state.ArbiterMember, second state.ArbiterMember) b
 	return false
 }
 
-//	NextCRCArbitersMap    map[common.Uint168]ArbiterMember
+// NextCRCArbitersMap    map[common.Uint168]ArbiterMember
 func arbitersMapEqual(first map[common.Uint168]state.ArbiterMember,
 	second map[common.Uint168]state.ArbiterMember) bool {
 	if len(first) != len(second) {

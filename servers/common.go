@@ -593,6 +593,24 @@ type DposV2ClaimRewardRealWithdrawInfo struct {
 	WithdrawTransactionHashes []string `json:"withdrawtransactionhashes"`
 }
 
+type CreateNFTInfo struct {
+	// nft id, hash of detailed vote information.
+	ID string
+	// side chain format address.
+	StakeAddress string
+	// side chain genesis block address
+	GenesisBlockHash string
+}
+
+type DestroyNFTInfo struct {
+	// detail votes info referkey
+	IDs []string
+	// owner OwnerStakeAddress
+	OwnerStakeAddresses []string
+	// genesis block hash of side chain
+	GenesisBlockHash string
+}
+
 type DetailedVoteInfo struct {
 	StakeAddress    string
 	TransactionHash string

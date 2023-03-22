@@ -15,8 +15,8 @@ import (
 )
 
 const (
-	ReturnVotesVersionV0 byte = 0x00
-	ReturnVotesVersionV1 byte = 0x01
+	ReturnVotesVersionV0      byte = 0x00
+	ReturnVotesSchnorrVersion byte = 0x01
 )
 
 type ReturnVotes struct {

@@ -8,7 +8,7 @@ package tx
 import (
 	"github.com/elastos/Elastos.ELA/account"
 	"github.com/elastos/Elastos.ELA/benchmark/common/utils"
-	"github.com/elastos/Elastos.ELA/common/config"
+	"github.com/elastos/Elastos.ELA/core"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/core/types/functions"
 	"github.com/elastos/Elastos.ELA/core/types/interfaces"
@@ -43,7 +43,7 @@ func (g *transferAssetGenerator) Generate() interfaces.Transaction {
 	)
 	for _, v := range g.account {
 		txn.SetOutputs(append(txn.Outputs(), &common2.Output{
-			AssetID:     config.ELAAssetID,
+			AssetID:     core.ELAAssetID,
 			Value:       0, // assign later
 			OutputLock:  0,
 			ProgramHash: v.ProgramHash,

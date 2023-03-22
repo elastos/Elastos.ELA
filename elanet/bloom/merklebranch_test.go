@@ -8,12 +8,12 @@ package bloom
 import (
 	"crypto/rand"
 	"fmt"
-	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"os"
 	"testing"
 
 	"github.com/elastos/Elastos.ELA/auxpow"
 	"github.com/elastos/Elastos.ELA/common"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/p2p/msg"
 )
 

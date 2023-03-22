@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
+	"github.com/elastos/Elastos.ELA/core/checkpoint"
 	"github.com/elastos/Elastos.ELA/core/contract"
 	"github.com/elastos/Elastos.ELA/core/contract/program"
 	"github.com/elastos/Elastos.ELA/core/types"
@@ -14,6 +15,7 @@ import (
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	crstate "github.com/elastos/Elastos.ELA/cr/state"
 	"github.com/elastos/Elastos.ELA/crypto"
+	"path/filepath"
 )
 
 func (s *txValidatorTestSuite) TestCheckUpdateCRTransaction() {
@@ -32,7 +34,7 @@ func (s *txValidatorTestSuite) TestCheckUpdateCRTransaction() {
 	nickName2 := "nickname 2"
 	nickName3 := "nickname 3"
 
-	votingHeight := config.DefaultParams.CRVotingStartHeight
+	votingHeight := config.DefaultParams.CRConfiguration.CRVotingStartHeight
 	//
 	//registe an cr to update
 	registerCRTxn1 := s.getRegisterCRTx(publicKeyStr1, privateKeyStr1,
@@ -40,8 +42,10 @@ func (s *txValidatorTestSuite) TestCheckUpdateCRTransaction() {
 	registerCRTxn2 := s.getRegisterCRTx(publicKeyStr2, privateKeyStr2,
 		nickName2, payload.CRInfoDIDVersion, &common.Uint168{})
 
-	s.CurrentHeight = s.Chain.GetParams().CRVotingStartHeight + 1
-	s.Chain.SetCRCommittee(crstate.NewCommittee(s.Chain.GetParams()))
+	s.CurrentHeight = s.Chain.GetParams().CRConfiguration.CRVotingStartHeight + 1
+	ckpManager := checkpoint.NewManager(&config.DefaultParams)
+	ckpManager.SetDataPath(filepath.Join(config.DefaultParams.DataDir, "checkpoints"))
+	s.Chain.SetCRCommittee(crstate.NewCommittee(s.Chain.GetParams(), ckpManager))
 	s.Chain.GetCRCommittee().RegisterFuncitons(&crstate.CommitteeFuncsConfig{
 		GetTxReference:                   s.Chain.UTXOCache.GetTxReference,
 		GetUTXO:                          s.Chain.GetDB().GetFFLDB().GetUTXO,
@@ -123,7 +127,7 @@ func (s *txValidatorTestSuite) TestCheckUpdateCRTransaction() {
 	//not in vote Period lower
 	txn.SetParameters(&TransactionParameters{
 		Transaction: txn,
-		BlockHeight: config.DefaultParams.CRVotingStartHeight - 1,
+		BlockHeight: config.DefaultParams.CRConfiguration.CRVotingStartHeight - 1,
 		TimeStamp:   s.Chain.BestChain.Timestamp,
 		Config:      s.Chain.GetParams(),
 		BlockChain:  s.Chain,
@@ -132,13 +136,13 @@ func (s *txValidatorTestSuite) TestCheckUpdateCRTransaction() {
 	s.EqualError(err, "transaction validate error: payload content invalid:should create tx during voting period")
 
 	// set RegisterCRByDIDHeight after CRCommitteeStartHeight
-	s.Chain.GetParams().RegisterCRByDIDHeight = config.DefaultParams.CRCommitteeStartHeight + 10
+	s.Chain.GetParams().CRConfiguration.RegisterCRByDIDHeight = config.DefaultParams.CRConfiguration.CRCommitteeStartHeight + 10
 
 	//not in vote Period lower upper c.params.CRCommitteeStartHeight
 	s.Chain.GetCRCommittee().InElectionPeriod = true
 	txn.SetParameters(&TransactionParameters{
 		Transaction: txn,
-		BlockHeight: config.DefaultParams.CRCommitteeStartHeight + 1,
+		BlockHeight: config.DefaultParams.CRConfiguration.CRCommitteeStartHeight + 1,
 		TimeStamp:   s.Chain.BestChain.Timestamp,
 		Config:      s.Chain.GetParams(),
 		BlockChain:  s.Chain,

@@ -7,9 +7,9 @@ package contract
 
 import (
 	"encoding/hex"
-	"github.com/elastos/Elastos.ELA/common"
 	"testing"
 
+	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/crypto"
 
 	"github.com/stretchr/testify/assert"

@@ -4,6 +4,9 @@ import (
 	elaact "github.com/elastos/Elastos.ELA/account"
 	"github.com/elastos/Elastos.ELA/blockchain"
 	"github.com/elastos/Elastos.ELA/common"
+	"github.com/elastos/Elastos.ELA/common/config"
+	"github.com/elastos/Elastos.ELA/core"
+	"github.com/elastos/Elastos.ELA/core/checkpoint"
 	"github.com/elastos/Elastos.ELA/core/contract/program"
 	"github.com/elastos/Elastos.ELA/core/types"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
@@ -12,12 +15,16 @@ import (
 	"github.com/elastos/Elastos.ELA/core/types/outputpayload"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	crstate "github.com/elastos/Elastos.ELA/cr/state"
+	"path/filepath"
 )
 
 func (s *txValidatorTestSuite) TestCheckCRCAppropriationTransaction() {
 	// Set CR assets address and CR expenses address.
-	s.Chain.GetParams().CRAssetsAddress = *randomUint168()
-	s.Chain.GetParams().CRExpensesAddress = *randomUint168()
+	caAddr := config.CRAssetsProgramHash
+	ceAddr := config.CRCExpensesProgramHash
+
+	s.Chain.GetParams().CRConfiguration.CRAssetsProgramHash = caAddr
+	s.Chain.GetParams().CRConfiguration.CRExpensesProgramHash = ceAddr
 
 	// Set CR assets and CRC committee amount.
 	s.Chain.GetCRCommittee().CRCFoundationBalance = common.Fixed64(900 * 1e8)
@@ -34,7 +41,7 @@ func (s *txValidatorTestSuite) TestCheckCRCAppropriationTransaction() {
 	}
 	refOutput := common2.Output{
 		Value:       900 * 1e8,
-		ProgramHash: s.Chain.GetParams().CRAssetsAddress,
+		ProgramHash: *caAddr,
 	}
 	refOutputErr := common2.Output{
 		Value:       900 * 1e8,
@@ -45,19 +52,19 @@ func (s *txValidatorTestSuite) TestCheckCRCAppropriationTransaction() {
 	// Create CRC appropriation transaction.
 	output1 := &common2.Output{
 		Value:       90 * 1e8,
-		ProgramHash: s.Chain.GetParams().CRExpensesAddress,
+		ProgramHash: *ceAddr,
 	}
 	output2 := &common2.Output{
 		Value:       810 * 1e8,
-		ProgramHash: s.Chain.GetParams().CRAssetsAddress,
+		ProgramHash: *caAddr,
 	}
 	output1Err := &common2.Output{
 		Value:       91 * 1e8,
-		ProgramHash: s.Chain.GetParams().CRExpensesAddress,
+		ProgramHash: *ceAddr,
 	}
 	output2Err := &common2.Output{
 		Value:       809 * 1e8,
-		ProgramHash: s.Chain.GetParams().CRAssetsAddress,
+		ProgramHash: *caAddr,
 	}
 
 	// Check correct transaction.
@@ -125,14 +132,15 @@ func (s *txValidatorTestSuite) TestCreateCRCAppropriationTransaction() {
 	crAddress := "ERyUmNH51roR9qfru37Kqkaok2NghR7L5U"
 	crcFoundation, _ := common.Uint168FromAddress(crAddress)
 
-	s.Chain.GetParams().CRAssetsAddress = *crcFoundation
+	s.Chain.GetParams().CRConfiguration.CRAssetsProgramHash = crcFoundation
 	crcCommiteeAddressStr := "ESq12oQrvGqHfTkEDYJyR9MxZj1NMnonjo"
-
-	crcCommiteeAddressHash, _ := common.Uint168FromAddress(crcCommiteeAddressStr)
-	s.Chain.GetParams().CRExpensesAddress = *crcCommiteeAddressHash
+	crcCommiteeAddress, _ := common.Uint168FromAddress(crcCommiteeAddressStr)
+	s.Chain.GetParams().CRConfiguration.CRExpensesProgramHash = crcCommiteeAddress
 
 	s.CurrentHeight = 1
-	s.Chain.SetCRCommittee(crstate.NewCommittee(s.Chain.GetParams()))
+	ckpManager := checkpoint.NewManager(&config.DefaultParams)
+	ckpManager.SetDataPath(filepath.Join(config.DefaultParams.DataDir, "checkpoints"))
+	s.Chain.SetCRCommittee(crstate.NewCommittee(s.Chain.GetParams(), ckpManager))
 	s.Chain.GetCRCommittee().RegisterFuncitons(&crstate.CommitteeFuncsConfig{
 		GetTxReference:                   s.Chain.UTXOCache.GetTxReference,
 		GetUTXO:                          s.Chain.GetDB().GetFFLDB().GetUTXO,
@@ -192,7 +200,7 @@ func (s *txValidatorTestSuite) TestCreateCRCAppropriationTransaction() {
 		},
 		Header: common2.Header{
 			Height:   1,
-			Previous: s.Chain.GetParams().GenesisBlock.Hash(),
+			Previous: core.GenesisBlock(*s.Chain.GetParams().FoundationProgramHash).Hash(),
 		},
 	}
 	hash := block.Hash()

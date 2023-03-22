@@ -46,6 +46,10 @@ type StateKeyFrame struct {
 	DposV2EffectedProducers  map[string]*Producer
 	Votes                    map[string]struct{}
 
+	// NFT
+	// key: ID value: (genesis block hash, createNFT tx hash)
+	NFTIDInfoHashMap map[common.Uint256]payload.NFTInfo
+
 	// dpos 2.0
 	DposV2VoteRights map[common.Uint168]common.Fixed64              // key: address value: amount
 	UsedDposVotes    map[common.Uint168][]payload.VotesWithLockTime // key: address value: amount
@@ -53,7 +57,7 @@ type StateKeyFrame struct {
 
 	DepositOutputs map[string]common.Fixed64
 	//key is addr str value is dposReward
-	DposV2RewardInfo         map[string]common.Fixed64
+	DPoSV2RewardInfo         map[string]common.Fixed64
 	DposV2RewardClaimingInfo map[string]common.Fixed64
 	DposV2RewardClaimedInfo  map[string]common.Fixed64
 	Nicknames                map[string]struct{}
@@ -112,12 +116,14 @@ func (s *StateKeyFrame) snapshot() *StateKeyFrame {
 		DposV2EffectedProducers:  make(map[string]*Producer),
 		Votes:                    make(map[string]struct{}),
 
+		NFTIDInfoHashMap: make(map[common.Uint256]payload.NFTInfo),
+
 		DposV2VoteRights: make(map[common.Uint168]common.Fixed64),
 		UsedDposVotes:    make(map[common.Uint168][]payload.VotesWithLockTime),
 		UsedDposV2Votes:  make(map[common.Uint168]common.Fixed64),
 
 		DepositOutputs:           make(map[string]common.Fixed64),
-		DposV2RewardInfo:         make(map[string]common.Fixed64),
+		DPoSV2RewardInfo:         make(map[string]common.Fixed64),
 		DposV2RewardClaimingInfo: make(map[string]common.Fixed64),
 		DposV2RewardClaimedInfo:  make(map[string]common.Fixed64),
 		WithdrawableTxInfo:       make(map[common.Uint256]common2.OutputInfo),
@@ -140,12 +146,14 @@ func (s *StateKeyFrame) snapshot() *StateKeyFrame {
 	state.DposV2EffectedProducers = copyProducerMap(s.DposV2EffectedProducers)
 	state.Votes = copyStringSet(s.Votes)
 
+	state.NFTIDInfoHashMap = copyUint256MapSet(s.NFTIDInfoHashMap)
+
 	state.DposV2VoteRights = copyProgramHashAmountSet(s.DposV2VoteRights)
 	state.UsedDposVotes = copyProgramHashVotesInfoSet(s.UsedDposVotes)
 	state.UsedDposV2Votes = copyProgramHashAmountSet(s.UsedDposV2Votes)
 
 	state.DepositOutputs = copyFixed64Map(s.DepositOutputs)
-	state.DposV2RewardInfo = copyFixed64Map(s.DposV2RewardInfo)
+	state.DPoSV2RewardInfo = copyFixed64Map(s.DPoSV2RewardInfo)
 	state.DposV2RewardClaimingInfo = copyFixed64Map(s.DposV2RewardClaimingInfo)
 	state.DposV2RewardClaimedInfo = copyFixed64Map(s.DposV2RewardClaimedInfo)
 	state.WithdrawableTxInfo = copyWithdrawableTransactionsMap(s.WithdrawableTxInfo)
@@ -210,6 +218,10 @@ func (s *StateKeyFrame) Serialize(w io.Writer) (err error) {
 		return
 	}
 
+	if err = s.SerializeUint256NFTInfoMap(s.NFTIDInfoHashMap, w); err != nil {
+		return
+	}
+
 	if err = s.SerializeProgramHashAmountMap(s.DposV2VoteRights, w); err != nil {
 		return
 	}
@@ -224,7 +236,7 @@ func (s *StateKeyFrame) Serialize(w io.Writer) (err error) {
 		return
 	}
 
-	if err = s.SerializeFixed64Map(s.DposV2RewardInfo, w); err != nil {
+	if err = s.SerializeFixed64Map(s.DPoSV2RewardInfo, w); err != nil {
 		return
 	}
 	if err = s.SerializeFixed64Map(s.DposV2RewardClaimingInfo, w); err != nil {
@@ -324,6 +336,10 @@ func (s *StateKeyFrame) Deserialize(r io.Reader) (err error) {
 		return
 	}
 
+	if s.NFTIDInfoHashMap, err = s.DeserializeUint256NFTInfoMap(r); err != nil {
+		return
+	}
+
 	if s.DposV2VoteRights, err = s.DeserializeProgramHashAmountMap(r); err != nil {
 		return
 	}
@@ -337,7 +353,7 @@ func (s *StateKeyFrame) Deserialize(r io.Reader) (err error) {
 		return
 	}
 
-	if s.DposV2RewardInfo, err = s.DeserializeFixed64Map(r); err != nil {
+	if s.DPoSV2RewardInfo, err = s.DeserializeFixed64Map(r); err != nil {
 		return
 	}
 
@@ -606,6 +622,22 @@ func (s *StateKeyFrame) SerializeStringHeightMap(vmap map[string]uint32,
 	return
 }
 
+func (s *StateKeyFrame) SerializeUint256NFTInfoMap(vmap map[common.Uint256]payload.NFTInfo,
+	w io.Writer) (err error) {
+	if err = common.WriteVarUint(w, uint64(len(vmap))); err != nil {
+		return
+	}
+	for k, v := range vmap {
+		if err = k.Serialize(w); err != nil {
+			return
+		}
+		if err = v.Serialize(w); err != nil {
+			return
+		}
+	}
+	return
+}
+
 func (s *StateKeyFrame) SerializeProgramHashAmountMap(vmap map[common.Uint168]common.Fixed64,
 	w io.Writer) (err error) {
 	if err = common.WriteVarUint(w, uint64(len(vmap))); err != nil {
@@ -670,6 +702,27 @@ func (s *StateKeyFrame) DeserializeStringHeightMap(
 		}
 		var v uint32
 		if v, err = common.ReadUint32(r); err != nil {
+			return
+		}
+		vmap[k] = v
+	}
+	return
+}
+
+func (s *StateKeyFrame) DeserializeUint256NFTInfoMap(
+	r io.Reader) (vmap map[common.Uint256]payload.NFTInfo, err error) {
+	var count uint64
+	if count, err = common.ReadVarUint(r, 0); err != nil {
+		return
+	}
+	vmap = make(map[common.Uint256]payload.NFTInfo)
+	for i := uint64(0); i < count; i++ {
+		var k common.Uint256
+		if err = k.Deserialize(r); err != nil {
+			return
+		}
+		var v payload.NFTInfo
+		if err = v.Deserialize(r); err != nil {
 			return
 		}
 		vmap[k] = v
@@ -861,10 +914,11 @@ func NewStateKeyFrame() *StateKeyFrame {
 		DposV2EffectedProducers:   make(map[string]*Producer),
 		Votes:                     make(map[string]struct{}),
 		DposV2VoteRights:          make(map[common.Uint168]common.Fixed64),
+		NFTIDInfoHashMap:          make(map[common.Uint256]payload.NFTInfo),
 		UsedDposVotes:             make(map[common.Uint168][]payload.VotesWithLockTime),
 		UsedDposV2Votes:           make(map[common.Uint168]common.Fixed64),
 		DepositOutputs:            make(map[string]common.Fixed64),
-		DposV2RewardInfo:          info,
+		DPoSV2RewardInfo:          info,
 		DposV2RewardClaimingInfo:  make(map[string]common.Fixed64),
 		DposV2RewardClaimedInfo:   make(map[string]common.Fixed64),
 		WithdrawableTxInfo:        make(map[common.Uint256]common2.OutputInfo),
@@ -1007,6 +1061,15 @@ func copyHashSet(src map[common.Uint256]struct{}) (
 	return
 }
 
+func copyUint256MapSet(src map[common.Uint256]payload.NFTInfo) (
+	dst map[common.Uint256]payload.NFTInfo) {
+	dst = map[common.Uint256]payload.NFTInfo{}
+	for k, v := range src {
+		a := v
+		dst[k] = a
+	}
+	return
+}
 func copyDIDSet(src map[common.Uint168]struct{}) (
 	dst map[common.Uint168]struct{}) {
 	dst = map[common.Uint168]struct{}{}
@@ -1045,7 +1108,6 @@ func copyReferKeyInfoMap(src map[common.Uint256]payload.DetailedVoteInfo) (dst m
 			PayloadVersion:   a.PayloadVersion,
 			VoteType:         a.VoteType,
 			Info:             a.Info,
-			PrefixType:       a.PrefixType,
 		}
 	}
 	return

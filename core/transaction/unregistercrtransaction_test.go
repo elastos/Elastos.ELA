@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
+	"github.com/elastos/Elastos.ELA/core/checkpoint"
 	"github.com/elastos/Elastos.ELA/core/contract/program"
 	"github.com/elastos/Elastos.ELA/core/types"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
@@ -17,6 +18,7 @@ import (
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	crstate "github.com/elastos/Elastos.ELA/cr/state"
 	"github.com/elastos/Elastos.ELA/crypto"
+	"path/filepath"
 )
 
 func (s *txValidatorTestSuite) TestCheckUnregisterCRTransaction() {
@@ -27,14 +29,16 @@ func (s *txValidatorTestSuite) TestCheckUnregisterCRTransaction() {
 	publicKeyStr2 := "036db5984e709d2e0ec62fd974283e9a18e7b87e8403cc784baf1f61f775926535"
 	privateKeyStr2 := "b2c25e877c8a87d54e8a20a902d27c7f24ed52810813ba175ca4e8d3036d130e"
 
-	votingHeight := config.DefaultParams.CRVotingStartHeight
+	votingHeight := config.DefaultParams.CRConfiguration.CRVotingStartHeight
 	nickName1 := "nickname 1"
 
 	//register a cr to unregister
 	registerCRTxn := s.getRegisterCRTx(publicKeyStr1, privateKeyStr1,
 		nickName1, payload.CRInfoVersion, &common.Uint168{})
 	s.CurrentHeight = 1
-	s.Chain.SetCRCommittee(crstate.NewCommittee(s.Chain.GetParams()))
+	ckpManager := checkpoint.NewManager(&config.DefaultParams)
+	ckpManager.SetDataPath(filepath.Join(config.DefaultParams.DataDir, "checkpoints"))
+	s.Chain.SetCRCommittee(crstate.NewCommittee(s.Chain.GetParams(), ckpManager))
 	s.Chain.GetCRCommittee().RegisterFuncitons(&crstate.CommitteeFuncsConfig{
 		GetTxReference:                   s.Chain.UTXOCache.GetTxReference,
 		GetUTXO:                          s.Chain.GetDB().GetFFLDB().GetUTXO,
@@ -78,7 +82,7 @@ func (s *txValidatorTestSuite) TestCheckUnregisterCRTransaction() {
 	//not in vote Period lower
 	err = txn.SetParameters(&TransactionParameters{
 		Transaction: txn,
-		BlockHeight: config.DefaultParams.CRVotingStartHeight - 1,
+		BlockHeight: config.DefaultParams.CRConfiguration.CRVotingStartHeight - 1,
 		TimeStamp:   s.Chain.BestChain.Timestamp,
 		Config:      s.Chain.GetParams(),
 		BlockChain:  s.Chain,
@@ -91,7 +95,7 @@ func (s *txValidatorTestSuite) TestCheckUnregisterCRTransaction() {
 	config.DefaultParams.DPoSV2StartHeight = 2000000
 	err = txn.SetParameters(&TransactionParameters{
 		Transaction: txn,
-		BlockHeight: config.DefaultParams.CRCommitteeStartHeight + 1,
+		BlockHeight: config.DefaultParams.CRConfiguration.CRCommitteeStartHeight + 1,
 		TimeStamp:   s.Chain.BestChain.Timestamp,
 		Config:      s.Chain.GetParams(),
 		BlockChain:  s.Chain,

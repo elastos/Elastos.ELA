@@ -83,7 +83,7 @@ func (s *txValidatorTestSuite) TestCheckRegisterProducerTransaction() {
 
 	// check node public key same with CRC
 	txn.Payload().(*payload.ProducerInfo).OwnerPublicKey = publicKey2
-	pk, _ := common.HexStringToBytes(config.DefaultParams.CRCArbiters[0])
+	pk, _ := common.HexStringToBytes(config.DefaultParams.DPoSConfiguration.CRCArbiters[0])
 	txn.Payload().(*payload.ProducerInfo).NodePublicKey = pk
 	config.DefaultParams.PublicDPOSHeight = 0
 	err, _ = txn.SpecialContextCheck()
@@ -92,7 +92,7 @@ func (s *txValidatorTestSuite) TestCheckRegisterProducerTransaction() {
 
 	// check owner public key same with CRC
 	txn.Payload().(*payload.ProducerInfo).NodePublicKey = publicKey2
-	pk, _ = common.HexStringToBytes(config.DefaultParams.CRCArbiters[0])
+	pk, _ = common.HexStringToBytes(config.DefaultParams.DPoSConfiguration.CRCArbiters[0])
 	txn.Payload().(*payload.ProducerInfo).OwnerPublicKey = pk
 	config.DefaultParams.PublicDPOSHeight = 0
 	err, _ = txn.SpecialContextCheck()

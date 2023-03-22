@@ -75,10 +75,10 @@ func (t *DposV2ClaimRewardRealWithdrawTransaction) SpecialContextCheck() (result
 		if !output.ProgramHash.IsEqual(txInfo.Recipient) {
 			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid real withdraw output address")), true
 		}
-		if output.Value != txInfo.Amount-t.parameters.Config.RealWithdrawSingleFee {
+		if output.Value != txInfo.Amount-t.parameters.Config.CRConfiguration.RealWithdrawSingleFee {
 			return elaerr.Simple(elaerr.ErrTxPayload, errors.New(fmt.Sprintf("invalid real withdraw output "+
 				"amount:%s, need to be:%s",
-				output.Value, txInfo.Amount-t.parameters.Config.RealWithdrawSingleFee))), true
+				output.Value, txInfo.Amount-t.parameters.Config.CRConfiguration.RealWithdrawSingleFee))), true
 		}
 		if _, ok := txsMap[hash]; ok {
 			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("duplicated real withdraw transactions hash")), true
@@ -95,10 +95,10 @@ func (t *DposV2ClaimRewardRealWithdrawTransaction) SpecialContextCheck() (result
 	for _, o := range t.Outputs() {
 		outputAmount += o.Value
 	}
-	if inputAmount-outputAmount != t.parameters.Config.RealWithdrawSingleFee*common.Fixed64(txsCount) {
+	if inputAmount-outputAmount != t.parameters.Config.CRConfiguration.RealWithdrawSingleFee*common.Fixed64(txsCount) {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New(fmt.Sprintf("invalid real withdraw transaction"+
 			" fee:%s, need to be:%s, txsCount:%d", inputAmount-outputAmount,
-			t.parameters.Config.RealWithdrawSingleFee*common.Fixed64(txsCount), txsCount))), true
+			t.parameters.Config.CRConfiguration.RealWithdrawSingleFee*common.Fixed64(txsCount), txsCount))), true
 	}
 
 	return nil, false

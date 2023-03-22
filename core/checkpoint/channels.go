@@ -14,6 +14,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/utils"
 )
 
@@ -28,7 +29,7 @@ type heightFileMsg struct {
 }
 
 type fileChannels struct {
-	cfg *Config
+	cfg *config.CheckPointConfiguration
 
 	save          chan fileMsg
 	clean         chan fileMsg
@@ -246,9 +247,9 @@ func (c *fileChannels) replyMsg(msg *fileMsg) {
 	}
 }
 
-func NewFileChannels(cfg *Config) *fileChannels {
+func NewFileChannels(cfg *config.Configuration) *fileChannels {
 	channels := &fileChannels{
-		cfg:           cfg,
+		cfg:           &cfg.CheckPointConfiguration,
 		save:          make(chan fileMsg),
 		clean:         make(chan fileMsg),
 		reset:         make(chan fileMsg),

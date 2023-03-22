@@ -4,6 +4,7 @@ import (
 	"github.com/elastos/Elastos.ELA/blockchain"
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
+	"github.com/elastos/Elastos.ELA/core"
 	"github.com/elastos/Elastos.ELA/core/contract"
 	"github.com/elastos/Elastos.ELA/core/contract/program"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
@@ -18,10 +19,10 @@ func (s *txValidatorTestSuite) TestCheckStakeTransaction() {
 	publicKeyBytes, _ := common.HexStringToBytes(publicKey)
 	code, _ := getCode(publicKeyBytes)
 	c, _ := contract.CreateStakeContractByCode(code)
-	stakeAddress_uint168 := c.ToProgramHash()
+	stakeAddressProgramHash := c.ToProgramHash()
 	rpPayload := &outputpayload.ExchangeVotesOutput{
 		Version:      0,
-		StakeAddress: *stakeAddress_uint168,
+		StakeAddress: *stakeAddressProgramHash,
 	}
 	txn := functions.CreateTransaction(
 		0,
@@ -35,21 +36,21 @@ func (s *txValidatorTestSuite) TestCheckStakeTransaction() {
 				AssetID:     common.Uint256{},
 				Value:       100000000,
 				OutputLock:  0,
-				ProgramHash: *stakeAddress_uint168,
+				ProgramHash: *stakeAddressProgramHash,
 				Payload:     rpPayload,
 			},
 			{
 				AssetID:     common.Uint256{},
 				Value:       100000000,
 				OutputLock:  0,
-				ProgramHash: *stakeAddress_uint168,
+				ProgramHash: *stakeAddressProgramHash,
 				Payload:     rpPayload,
 			},
 			{
 				AssetID:     common.Uint256{},
 				Value:       100000000,
 				OutputLock:  0,
-				ProgramHash: *stakeAddress_uint168,
+				ProgramHash: *stakeAddressProgramHash,
 				Payload:     rpPayload,
 			},
 		},
@@ -91,7 +92,7 @@ func (s *txValidatorTestSuite) TestCheckStakeTransaction() {
 				AssetID:     common.Uint256{},
 				Value:       100000000,
 				OutputLock:  0,
-				ProgramHash: *stakeAddress_uint168,
+				ProgramHash: *stakeAddressProgramHash,
 				Payload:     rpPayload,
 			},
 		},
@@ -113,10 +114,10 @@ func (s *txValidatorTestSuite) TestCheckStakeTransaction() {
 		[]*common2.Input{},
 		[]*common2.Output{
 			{
-				AssetID:     config.ELAAssetID,
+				AssetID:     core.ELAAssetID,
 				Value:       -1,
 				OutputLock:  0,
-				ProgramHash: *stakeAddress_uint168,
+				ProgramHash: *stakeAddressProgramHash,
 				Payload:     rpPayload,
 			},
 		},
@@ -138,10 +139,10 @@ func (s *txValidatorTestSuite) TestCheckStakeTransaction() {
 		[]*common2.Input{},
 		[]*common2.Output{
 			{
-				AssetID:     config.ELAAssetID,
+				AssetID:     core.ELAAssetID,
 				Value:       100000000,
 				OutputLock:  0,
-				ProgramHash: *stakeAddress_uint168,
+				ProgramHash: *stakeAddressProgramHash,
 				Payload:     rpPayload,
 			},
 		},
@@ -164,10 +165,10 @@ func (s *txValidatorTestSuite) TestCheckStakeTransaction() {
 		[]*common2.Input{},
 		[]*common2.Output{
 			{
-				AssetID:     config.ELAAssetID,
+				AssetID:     core.ELAAssetID,
 				Value:       100000000,
 				OutputLock:  0,
-				ProgramHash: *stakeAddress_uint168,
+				ProgramHash: *stakeAddressProgramHash,
 				Payload:     rpPayload,
 				Type:        common2.OTStake,
 			},
@@ -191,10 +192,10 @@ func (s *txValidatorTestSuite) TestCheckStakeTransaction() {
 		[]*common2.Input{},
 		[]*common2.Output{
 			{
-				AssetID:     config.ELAAssetID,
+				AssetID:     core.ELAAssetID,
 				Value:       100000000,
 				OutputLock:  0,
-				ProgramHash: *stakeAddress_uint168,
+				ProgramHash: *stakeAddressProgramHash,
 				Payload:     rpPayload,
 				Type:        common2.OTStake,
 			},
@@ -206,7 +207,7 @@ func (s *txValidatorTestSuite) TestCheckStakeTransaction() {
 		}},
 	)
 	param := s.Chain.GetParams()
-	param.StakePool = common.Uint168{0x1, 0x2, 0x3}
+	param.StakePoolProgramHash = config.StakePoolProgramHash
 	tx := txn.(*ExchangeVotesTransaction)
 	tx.DefaultChecker.SetParameters(&TransactionParameters{
 		BlockChain: s.Chain,
@@ -224,10 +225,10 @@ func (s *txValidatorTestSuite) TestCheckStakeTransaction() {
 		[]*common2.Input{},
 		[]*common2.Output{
 			{
-				AssetID:     config.ELAAssetID,
+				AssetID:     core.ELAAssetID,
 				Value:       100000000,
 				OutputLock:  0,
-				ProgramHash: *stakeAddress_uint168,
+				ProgramHash: *stakeAddressProgramHash,
 				Payload:     rpPayload,
 				Type:        common2.OTStake,
 			},
@@ -239,7 +240,7 @@ func (s *txValidatorTestSuite) TestCheckStakeTransaction() {
 		}},
 	)
 	param = s.Chain.GetParams()
-	param.StakePool = *stakeAddress_uint168
+	param.StakePoolProgramHash = stakeAddressProgramHash
 	tx = txn.(*ExchangeVotesTransaction)
 	tx.DefaultChecker.SetParameters(&TransactionParameters{
 		BlockChain: s.Chain,
@@ -273,7 +274,7 @@ func (s *txValidatorTestSuite) TestCheckStakeTransaction2() {
 	)
 	tx1.SetOutputs([]*common2.Output{
 		&common2.Output{
-			AssetID:     config.ELAAssetID,
+			AssetID:     core.ELAAssetID,
 			Value:       2000,
 			ProgramHash: blockchain.FoundationAddress,
 		},
@@ -287,7 +288,7 @@ func (s *txValidatorTestSuite) TestCheckStakeTransaction2() {
 	}
 	outputs := []*common2.Output{
 		{
-			AssetID:     config.ELAAssetID,
+			AssetID:     core.ELAAssetID,
 			ProgramHash: *stakeAddress,
 			Type:        common2.OTStake,
 			Value:       common.Fixed64(1000 * 1e8),
@@ -295,7 +296,7 @@ func (s *txValidatorTestSuite) TestCheckStakeTransaction2() {
 				StakeAddress: *stakeAddress,
 			},
 		}, {
-			AssetID:     config.ELAAssetID,
+			AssetID:     core.ELAAssetID,
 			ProgramHash: *cont.ToProgramHash(),
 			Type:        common2.OTNone,
 			Value:       common.Fixed64(1000 * 1e8),
@@ -319,7 +320,7 @@ func (s *txValidatorTestSuite) TestCheckStakeTransaction2() {
 
 	bc := s.Chain
 	config := bc.GetParams()
-	config.StakePool = *stakeAddress
+	config.StakePoolProgramHash = stakeAddress
 	tx := txn.(*ExchangeVotesTransaction)
 	tx.DefaultChecker.SetParameters(&TransactionParameters{
 		BlockChain: bc,

@@ -39,7 +39,7 @@ func (t *CRCouncilMemberClaimNodeTransaction) HeightVersionCheck() error {
 	blockHeight := t.parameters.BlockHeight
 	chainParams := t.parameters.Config
 
-	if blockHeight < chainParams.CRClaimDPOSNodeStartHeight {
+	if blockHeight < chainParams.CRConfiguration.CRClaimDPOSNodeStartHeight {
 		return errors.New(fmt.Sprintf("not support %s transaction "+
 			"before CRClaimDPOSNodeStartHeight", t.TxType().Name()))
 	}

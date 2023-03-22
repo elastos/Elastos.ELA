@@ -15,6 +15,8 @@ import (
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/common/log"
+	"github.com/elastos/Elastos.ELA/core"
+	"github.com/elastos/Elastos.ELA/core/checkpoint"
 	"github.com/elastos/Elastos.ELA/core/contract"
 	"github.com/elastos/Elastos.ELA/core/contract/program"
 	"github.com/elastos/Elastos.ELA/core/transaction"
@@ -33,7 +35,7 @@ func init() {
 	functions.GetTransactionByBytes = transaction.GetTransactionByBytes
 	functions.CreateTransaction = transaction.CreateTransaction
 	functions.GetTransactionParameters = transaction.GetTransactionparameters
-	config.DefaultParams = config.GetDefaultParams()
+	config.DefaultParams = *config.GetDefaultParams()
 }
 
 type txValidatorSpecialTxTestSuite struct {
@@ -87,15 +89,18 @@ func (s *txValidatorSpecialTxTestSuite) SetupSuite() {
 		a, _ := common.HexStringToBytes(v)
 		s.arbitratorsPriKeys = append(s.arbitratorsPriKeys, a)
 	}
-
-	chainStore, err := blockchain.NewChainStore(filepath.Join(test.DataPath, "special"), &config.DefaultParams)
+	params := &config.DefaultParams
+	params.GenesisBlock = core.GenesisBlock(*params.FoundationProgramHash)
+	chainStore, err := blockchain.NewChainStore(filepath.Join(test.DataPath, "special"), params)
 	if err != nil {
 		s.Error(err)
 	}
+	ckpManager := checkpoint.NewManager(config.GetDefaultParams())
 	s.Chain, err = blockchain.New(chainStore, &config.DefaultParams,
 		state.NewState(&config.DefaultParams, nil, nil, nil, nil,
 			nil, nil,
-			nil, nil, nil, nil, nil), nil)
+			nil, nil, nil,
+			nil, nil), nil, ckpManager)
 	if err != nil {
 		s.Error(err)
 	}

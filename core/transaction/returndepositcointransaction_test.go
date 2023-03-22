@@ -6,8 +6,12 @@
 package transaction
 
 import (
+	"github.com/elastos/Elastos.ELA/common/config"
+	"path/filepath"
+
 	"github.com/elastos/Elastos.ELA/blockchain"
 	"github.com/elastos/Elastos.ELA/common"
+	"github.com/elastos/Elastos.ELA/core/checkpoint"
 	"github.com/elastos/Elastos.ELA/core/contract"
 	"github.com/elastos/Elastos.ELA/core/contract/program"
 	"github.com/elastos/Elastos.ELA/core/types"
@@ -66,7 +70,9 @@ func (s *txValidatorTestSuite) TestCheckTransactionDepositUTXO() {
 
 func (s *txValidatorTestSuite) TestCheckReturnDepositCoinTransaction() {
 	s.CurrentHeight = 1
-	s.Chain.SetCRCommittee(crstate.NewCommittee(s.Chain.GetParams()))
+	ckpManager := checkpoint.NewManager(&config.DefaultParams)
+	ckpManager.SetDataPath(filepath.Join(config.DefaultParams.DataDir, "checkpoints"))
+	s.Chain.SetCRCommittee(crstate.NewCommittee(s.Chain.GetParams(), ckpManager))
 	s.Chain.GetCRCommittee().RegisterFuncitons(&crstate.CommitteeFuncsConfig{
 		GetTxReference:                   s.Chain.UTXOCache.GetTxReference,
 		GetUTXO:                          s.Chain.GetDB().GetFFLDB().GetUTXO,
@@ -192,7 +198,7 @@ func (s *txValidatorTestSuite) TestCheckReturnDepositCoinTransaction() {
 	err, _ = rdTx.SpecialContextCheck()
 	s.EqualError(err, "transaction validate error: payload content invalid:overspend deposit")
 
-	s.CurrentHeight += s.Chain.GetParams().CRDepositLockupBlocks
+	s.CurrentHeight += s.Chain.GetParams().CRConfiguration.DepositLockupBlocks
 	s.Chain.GetState().ProcessBlock(&types.Block{
 		Header: common2.Header{
 			Height: s.CurrentHeight,

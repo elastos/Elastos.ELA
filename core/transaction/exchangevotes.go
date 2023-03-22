@@ -8,9 +8,10 @@ package transaction
 import (
 	"errors"
 	"fmt"
+	program2 "github.com/elastos/Elastos.ELA/core/contract/program"
 
 	"github.com/elastos/Elastos.ELA/common"
-	"github.com/elastos/Elastos.ELA/common/config"
+	"github.com/elastos/Elastos.ELA/core"
 	"github.com/elastos/Elastos.ELA/core/contract"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/core/types/outputpayload"
@@ -27,6 +28,7 @@ func (t *ExchangeVotesTransaction) HeightVersionCheck() error {
 	chainParams := t.parameters.Config
 
 	if blockHeight < chainParams.DPoSV2StartHeight {
+		log.Info("### blockHeight:", blockHeight, "DPoSV2StartHeight:", chainParams.DPoSV2StartHeight)
 		return errors.New(fmt.Sprintf("not support %s transaction "+
 			"before DPoSV2StartHeight", t.TxType().Name()))
 	}
@@ -45,10 +47,9 @@ func (t *ExchangeVotesTransaction) CheckTransactionOutput() error {
 	if len(t.Programs()) < 1 {
 		return errors.New("invalid programs count")
 	}
-
 	// check if output address is valid
 	for _, output := range t.Outputs() {
-		if output.AssetID != config.ELAAssetID {
+		if output.AssetID != core.ELAAssetID {
 			return errors.New("asset ID in output is invalid")
 		}
 
@@ -87,7 +88,7 @@ func (t *ExchangeVotesTransaction) CheckTransactionOutput() error {
 	}
 
 	// check output address, need to be stake pool
-	if t.outputs[0].ProgramHash != t.parameters.Config.StakePool {
+	if t.outputs[0].ProgramHash != *t.parameters.Config.StakePoolProgramHash {
 		return errors.New("first output address need to be stake address")
 	}
 
@@ -126,6 +127,9 @@ func (t *ExchangeVotesTransaction) CheckAttributeProgram() error {
 	if t.Programs()[0].Code == nil {
 		return fmt.Errorf("invalid program code nil")
 	}
+	if len(t.Programs()[0].Code) < program2.MinProgramCodeSize {
+		return fmt.Errorf("invalid program code size")
+	}
 	if t.Programs()[0].Parameter == nil {
 		return fmt.Errorf("invalid program parameter nil")
 	}
@@ -139,5 +143,14 @@ func (t *ExchangeVotesTransaction) IsAllowedInPOWConsensus() bool {
 }
 
 func (t *ExchangeVotesTransaction) SpecialContextCheck() (result elaerr.ELAError, end bool) {
+
+	if t.parameters.BlockHeight < t.parameters.Config.VotesSchnorrStartHeight &&
+		contract.IsSchnorr(t.programs[0].Code) {
+		return elaerr.Simple(elaerr.ErrTxPayload,
+			errors.New(fmt.Sprintf("not support %s transaction "+
+				"before VotesSchnorrStartHeight:", t.TxType().Name()))), true
+
+	}
+
 	return nil, false
 }

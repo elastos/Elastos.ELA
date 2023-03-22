@@ -6,6 +6,7 @@ import (
 	"github.com/elastos/Elastos.ELA/blockchain"
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
+	"github.com/elastos/Elastos.ELA/core"
 	"github.com/elastos/Elastos.ELA/core/contract"
 	"github.com/elastos/Elastos.ELA/core/contract/program"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
@@ -61,7 +62,7 @@ func (s *txValidatorTestSuite) TestCheckTransactionBalance() {
 	outputValue1 := common.Fixed64(100 * s.ELA)
 	deposit := newCoinBaseTransaction(new(payload.CoinBase), 0)
 	deposit.SetOutputs([]*common2.Output{
-		{AssetID: config.ELAAssetID, ProgramHash: s.foundationAddress, Value: outputValue1},
+		{AssetID: core.ELAAssetID, ProgramHash: s.foundationAddress, Value: outputValue1},
 	})
 
 	references := map[*common2.Input]common2.Output{
@@ -83,8 +84,8 @@ func (s *txValidatorTestSuite) TestCheckTransactionBalance() {
 	outputValue1 = common.Fixed64(30 * s.ELA)
 	outputValue2 := common.Fixed64(70 * s.ELA)
 	tx.SetOutputs([]*common2.Output{
-		{AssetID: config.ELAAssetID, ProgramHash: s.foundationAddress, Value: outputValue1},
-		{AssetID: config.ELAAssetID, ProgramHash: common.Uint168{}, Value: outputValue2},
+		{AssetID: core.ELAAssetID, ProgramHash: s.foundationAddress, Value: outputValue1},
+		{AssetID: core.ELAAssetID, ProgramHash: common.Uint168{}, Value: outputValue2},
 	})
 
 	references = map[*common2.Input]common2.Output{
@@ -150,15 +151,15 @@ func (s *txValidatorTestSuite) TestCheckTransactionOutput() {
 	// coinbase
 	tx := newCoinBaseTransaction(new(payload.CoinBase), 0)
 	tx.SetOutputs([]*common2.Output{
-		{AssetID: config.ELAAssetID, ProgramHash: s.foundationAddress},
-		{AssetID: config.ELAAssetID, ProgramHash: s.foundationAddress},
+		{AssetID: core.ELAAssetID, ProgramHash: s.foundationAddress},
+		{AssetID: core.ELAAssetID, ProgramHash: s.foundationAddress},
 	})
 	err := s.Chain.CheckTransactionOutput(tx, s.HeightVersion1)
 	s.NoError(err)
 
 	// outputs < 2
 	tx.SetOutputs([]*common2.Output{
-		{AssetID: config.ELAAssetID, ProgramHash: s.foundationAddress},
+		{AssetID: core.ELAAssetID, ProgramHash: s.foundationAddress},
 	})
 	err = s.Chain.CheckTransactionOutput(tx, s.HeightVersion1)
 	s.EqualError(err, "coinbase output is not enough, at least 2")
@@ -172,13 +173,13 @@ func (s *txValidatorTestSuite) TestCheckTransactionOutput() {
 	s.EqualError(err, "asset ID in coinbase is invalid")
 
 	// reward to foundation in coinbase = 30% (CheckTxOut version)
-	totalReward := config.DefaultParams.RewardPerBlock
+	totalReward := config.DefaultParams.PowConfiguration.RewardPerBlock
 	fmt.Printf("Block reward amount %s", totalReward.String())
 	foundationReward := common.Fixed64(float64(totalReward) * 0.3)
 	fmt.Printf("Foundation reward amount %s", foundationReward.String())
 	tx.SetOutputs([]*common2.Output{
-		{AssetID: config.ELAAssetID, ProgramHash: s.foundationAddress, Value: foundationReward},
-		{AssetID: config.ELAAssetID, ProgramHash: common.Uint168{}, Value: totalReward - foundationReward},
+		{AssetID: core.ELAAssetID, ProgramHash: s.foundationAddress, Value: foundationReward},
+		{AssetID: core.ELAAssetID, ProgramHash: common.Uint168{}, Value: totalReward - foundationReward},
 	})
 	err = s.Chain.CheckTransactionOutput(tx, s.HeightVersion1)
 	s.NoError(err)
@@ -187,8 +188,8 @@ func (s *txValidatorTestSuite) TestCheckTransactionOutput() {
 	foundationReward = common.Fixed64(float64(totalReward) * 0.299999)
 	fmt.Printf("Foundation reward amount %s", foundationReward.String())
 	tx.SetOutputs([]*common2.Output{
-		{AssetID: config.ELAAssetID, ProgramHash: s.foundationAddress, Value: foundationReward},
-		{AssetID: config.ELAAssetID, ProgramHash: common.Uint168{}, Value: totalReward - foundationReward},
+		{AssetID: core.ELAAssetID, ProgramHash: s.foundationAddress, Value: foundationReward},
+		{AssetID: core.ELAAssetID, ProgramHash: common.Uint168{}, Value: totalReward - foundationReward},
 	})
 	err = s.Chain.CheckTransactionOutput(tx, s.HeightVersion1)
 	s.EqualError(err, "reward to foundation in coinbase < 30%")
@@ -196,7 +197,7 @@ func (s *txValidatorTestSuite) TestCheckTransactionOutput() {
 	// normal transaction
 	tx = buildTx()
 	for _, output := range tx.Outputs() {
-		output.AssetID = config.ELAAssetID
+		output.AssetID = core.ELAAssetID
 		output.ProgramHash = common.Uint168{}
 	}
 	err = s.Chain.CheckTransactionOutput(tx, s.HeightVersion1)
@@ -224,7 +225,7 @@ func (s *txValidatorTestSuite) TestCheckTransactionOutput() {
 	appendSpecial := func() []*common2.Output {
 		return append(tx.Outputs(), &common2.Output{
 			Type:        common2.OTVote,
-			AssetID:     config.ELAAssetID,
+			AssetID:     core.ELAAssetID,
 			ProgramHash: address,
 			Value:       common.Fixed64(mrand.Int63()),
 			OutputLock:  mrand.Uint32(),
@@ -246,7 +247,7 @@ func (s *txValidatorTestSuite) TestCheckTransactionOutput() {
 	tx.SetVersion(common2.TxVersionDefault)
 	tx.SetOutputs(randomOutputs())
 	for _, output := range tx.Outputs() {
-		output.AssetID = config.ELAAssetID
+		output.AssetID = core.ELAAssetID
 		address := common.Uint168{}
 		address[0] = 0x23
 		output.ProgramHash = address
@@ -313,8 +314,8 @@ func (s *txValidatorTestSuite) TestCheckCoinbaseTransaction() {
 		tx := newCoinBaseTransaction(new(payload.CoinBase), 0)
 		randomAddr := randomUint168()
 		tx.SetOutputs([]*common2.Output{
-			{AssetID: config.ELAAssetID, ProgramHash: *randomAddr},
-			{AssetID: config.ELAAssetID, ProgramHash: s.foundationAddress},
+			{AssetID: core.ELAAssetID, ProgramHash: *randomAddr},
+			{AssetID: core.ELAAssetID, ProgramHash: s.foundationAddress},
 		})
 
 		tx = CreateTransactionByType(tx, s.Chain)
@@ -323,8 +324,8 @@ func (s *txValidatorTestSuite) TestCheckCoinbaseTransaction() {
 			"transaction validate error: output invalid:first output address should be foundation address")
 
 		tx.SetOutputs([]*common2.Output{
-			{AssetID: config.ELAAssetID, ProgramHash: s.foundationAddress},
-			{AssetID: config.ELAAssetID, ProgramHash: s.foundationAddress},
+			{AssetID: core.ELAAssetID, ProgramHash: s.foundationAddress},
+			{AssetID: core.ELAAssetID, ProgramHash: s.foundationAddress},
 		})
 
 		err, _ = tx.SpecialContextCheck()
@@ -335,8 +336,8 @@ func (s *txValidatorTestSuite) TestCheckCoinbaseTransaction() {
 		tx := newCoinBaseTransaction(new(payload.CoinBase), 0)
 		randomAddr := randomUint168()
 		tx.SetOutputs([]*common2.Output{
-			{AssetID: config.ELAAssetID, ProgramHash: *randomAddr},
-			{AssetID: config.ELAAssetID, ProgramHash: s.foundationAddress},
+			{AssetID: core.ELAAssetID, ProgramHash: *randomAddr},
+			{AssetID: core.ELAAssetID, ProgramHash: s.foundationAddress},
 		})
 
 		s.Chain.GetBestChain().Height = 1000000
@@ -346,9 +347,10 @@ func (s *txValidatorTestSuite) TestCheckCoinbaseTransaction() {
 		s.EqualError(err,
 			"transaction validate error: output invalid:first output address should be CR assets address")
 
+		addr := s.Chain.GetParams().CRConfiguration.CRAssetsProgramHash
 		tx.SetOutputs([]*common2.Output{
-			{AssetID: config.ELAAssetID, ProgramHash: s.Chain.GetParams().CRAssetsAddress},
-			{AssetID: config.ELAAssetID, ProgramHash: s.foundationAddress},
+			{AssetID: core.ELAAssetID, ProgramHash: *addr},
+			{AssetID: core.ELAAssetID, ProgramHash: s.foundationAddress},
 		})
 
 		err, _ = tx.SpecialContextCheck()
@@ -361,9 +363,10 @@ func (s *txValidatorTestSuite) TestCheckCoinbaseTransaction() {
 		s.EqualError(err,
 			"transaction validate error: output invalid:first output address should be DestroyAddress in POW consensus algorithm")
 
+		addr = s.Chain.GetParams().DestroyELAProgramHash
 		tx.SetOutputs([]*common2.Output{
-			{AssetID: config.ELAAssetID, ProgramHash: s.Chain.GetParams().DestroyELAAddress},
-			{AssetID: config.ELAAssetID, ProgramHash: s.foundationAddress},
+			{AssetID: core.ELAAssetID, ProgramHash: *addr},
+			{AssetID: core.ELAAssetID, ProgramHash: s.foundationAddress},
 		})
 
 		err, _ = tx.SpecialContextCheck()

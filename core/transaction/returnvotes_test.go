@@ -3,9 +3,10 @@ package transaction
 import (
 	"bytes"
 	"encoding/hex"
+
 	"github.com/elastos/Elastos.ELA/blockchain"
 	"github.com/elastos/Elastos.ELA/common"
-	"github.com/elastos/Elastos.ELA/common/config"
+	"github.com/elastos/Elastos.ELA/core"
 	"github.com/elastos/Elastos.ELA/core/contract"
 	"github.com/elastos/Elastos.ELA/core/contract/program"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
@@ -40,7 +41,7 @@ func (s *txValidatorTestSuite) TestCheckUnstakeTransaction() {
 	)
 	tx1.SetOutputs([]*common2.Output{
 		&common2.Output{
-			AssetID:     config.ELAAssetID,
+			AssetID:     core.ELAAssetID,
 			Value:       1000,
 			ProgramHash: blockchain.FoundationAddress,
 		},
@@ -54,7 +55,7 @@ func (s *txValidatorTestSuite) TestCheckUnstakeTransaction() {
 	}
 	outputs := []*common2.Output{
 		{
-			AssetID:     config.ELAAssetID,
+			AssetID:     core.ELAAssetID,
 			ProgramHash: *cont.ToProgramHash(),
 			Type:        common2.OTNone,
 			Value:       common.Fixed64(1000 * 1e8),
@@ -78,7 +79,7 @@ func (s *txValidatorTestSuite) TestCheckUnstakeTransaction() {
 
 	bc := s.Chain
 	config := bc.GetParams()
-	config.StakePool = *stakeAddress
+	config.StakePoolProgramHash = stakeAddress
 	tx := txn.(*ReturnVotesTransaction)
 	tx.DefaultChecker.SetParameters(&TransactionParameters{
 		BlockChain: bc,
@@ -167,7 +168,7 @@ func (s *txValidatorTestSuite) TestCheckUnstakeTransaction2() {
 		[]*common2.Input{},
 		[]*common2.Output{
 			{
-				AssetID:     config.ELAAssetID,
+				AssetID:     core.ELAAssetID,
 				Value:       -1,
 				OutputLock:  0,
 				ProgramHash: *stakeAddress_uint168,
@@ -200,7 +201,7 @@ func (s *txValidatorTestSuite) TestCheckUnstakeTransaction2() {
 		[]*common2.Input{},
 		[]*common2.Output{
 			{
-				AssetID:     config.ELAAssetID,
+				AssetID:     core.ELAAssetID,
 				Value:       1,
 				OutputLock:  0,
 				ProgramHash: *stakeAddress_uint168,
@@ -232,7 +233,7 @@ func (s *txValidatorTestSuite) TestCheckUnstakeTransaction2() {
 		[]*common2.Input{},
 		[]*common2.Output{
 			{
-				AssetID:     config.ELAAssetID,
+				AssetID:     core.ELAAssetID,
 				Value:       1,
 				OutputLock:  0,
 				ProgramHash: *stakeAddress_uint168,

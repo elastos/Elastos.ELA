@@ -10,7 +10,6 @@ import (
 	"crypto/rand"
 	"errors"
 	"fmt"
-	peer2 "github.com/elastos/Elastos.ELA/p2p/peer"
 	"io"
 	"net"
 	"testing"
@@ -22,6 +21,7 @@ import (
 	"github.com/elastos/Elastos.ELA/dpos/p2p/peer"
 	"github.com/elastos/Elastos.ELA/p2p"
 	pmsg "github.com/elastos/Elastos.ELA/p2p/msg"
+	peer2 "github.com/elastos/Elastos.ELA/p2p/peer"
 )
 
 func createMessage(hdr p2p.Header, r net.Conn) (message p2p.Message, err error) {

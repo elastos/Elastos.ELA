@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
+	"github.com/elastos/Elastos.ELA/core"
 	"github.com/elastos/Elastos.ELA/core/contract/program"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/core/types/functions"
@@ -21,7 +22,7 @@ func (s *txValidatorTestSuite) TestCheckCRCProposalWithdrawTransaction() {
 	CRExpensesAddress := "8VYXVxKKSAxkmRrfmGpQR2Kc66XhG6m3ta"
 	NOCRExpensesAddress := "EWm2ZGeSyDBBAsVSsvSvspPKV4wQBKPjUk"
 	Recipient, _ := common.Uint168FromAddress(RecipientAddress)
-	tenureHeight := config.DefaultParams.CRCommitteeStartHeight
+	tenureHeight := config.DefaultParams.CRConfiguration.CRCommitteeStartHeight
 	pk1Bytes, _ := common.HexStringToBytes(publicKeyStr1)
 	ela := common.Fixed64(100000000)
 	CRExpensesAddressU168, _ := common.Uint168FromAddress(CRExpensesAddress)
@@ -38,12 +39,12 @@ func (s *txValidatorTestSuite) TestCheckCRCProposalWithdrawTransaction() {
 	}
 	outputs := []*common2.Output{
 		{
-			AssetID:     config.ELAAssetID,
+			AssetID:     core.ELAAssetID,
 			ProgramHash: *CRExpensesAddressU168,
 			Value:       common.Fixed64(60 * ela),
 		},
 		{
-			AssetID:     config.ELAAssetID,
+			AssetID:     core.ELAAssetID,
 			ProgramHash: *NOCRExpensesAddressU168,
 			Value:       common.Fixed64(600 * ela),
 		},
@@ -52,7 +53,8 @@ func (s *txValidatorTestSuite) TestCheckCRCProposalWithdrawTransaction() {
 	references := make(map[*common2.Input]common2.Output)
 	references[inputs[0]] = *outputs[0]
 
-	s.Chain.GetParams().CRExpensesAddress = *CRExpensesAddressU168
+	addr := CRExpensesAddressU168
+	s.Chain.GetParams().CRConfiguration.CRExpensesProgramHash = addr
 	// stage = 1 ok
 	txn := s.getCRCProposalWithdrawTx(publicKeyStr1, privateKeyStr1,
 		Recipient, CRExpensesAddressU168, 9*ela, 50*ela, 0)
@@ -173,7 +175,7 @@ func (s *txValidatorTestSuite) TestCheckCRCProposalWithdrawTransaction() {
 	}
 	outputs = []*common2.Output{
 		{
-			AssetID:     config.ELAAssetID,
+			AssetID:     core.ELAAssetID,
 			ProgramHash: *CRExpensesAddressU168,
 			Value:       common.Fixed64(61 * ela),
 		},
@@ -193,7 +195,7 @@ func (s *txValidatorTestSuite) TestCheckCRCProposalWithdrawTransaction() {
 	s.EqualError(err, "transaction validate error: payload content invalid:withdrawPayload.Amount != withdrawAmount ")
 	outputs = []*common2.Output{
 		{
-			AssetID:     config.ELAAssetID,
+			AssetID:     core.ELAAssetID,
 			ProgramHash: *CRExpensesAddressU168,
 			Value:       common.Fixed64(61 * ela),
 		},
@@ -274,12 +276,12 @@ func (s *txValidatorTestSuite) getCRCProposalWithdrawTx(crPublicKeyStr,
 	})
 	txn.SetOutputs([]*common2.Output{
 		{
-			AssetID:     config.ELAAssetID,
+			AssetID:     core.ELAAssetID,
 			ProgramHash: *recipient,
 			Value:       recipAmout,
 		},
 		{
-			AssetID:     config.ELAAssetID,
+			AssetID:     core.ELAAssetID,
 			ProgramHash: *commitee,
 			Value:       commiteAmout,
 		},

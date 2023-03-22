@@ -15,6 +15,7 @@ import (
 	. "github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/common/log"
+	"github.com/elastos/Elastos.ELA/core/checkpoint"
 	. "github.com/elastos/Elastos.ELA/core/types"
 	"github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/core/types/interfaces"
@@ -29,12 +30,19 @@ const broadcastCrossChainTransactionInterval = 30
 type TxPool struct {
 	conflictManager
 	*txPoolCheckpoint
-	chainParams *config.Params
+	chainParams *config.Configuration
 	//proposal of txpool used amout
 	proposalsUsedAmount  Fixed64
 	crossChainHeightList map[Uint256]uint32
+	CkpManager           *checkpoint.Manager
+	txReceivingInfo      map[Uint256]TxReceivingInfo
 
 	sync.RWMutex
+}
+
+//TxReceivingInfo record the tx receiving info detail, can expend it's field in the future need
+type TxReceivingInfo struct {
+	Height uint32
 }
 
 //append transaction to txnpool when check ok, and broadcast the transaction.
@@ -51,8 +59,8 @@ func (mp *TxPool) AppendToTxPool(tx interfaces.Transaction) elaerr.ELAError {
 	return nil
 }
 
-//append transaction to txnpool when check ok.
-//1.check  2.check with ledger(db) 3.check with pool
+// append transaction to txnpool when check ok.
+// 1.check  2.check with ledger(db) 3.check with pool
 func (mp *TxPool) AppendToTxPoolWithoutEvent(tx interfaces.Transaction) elaerr.ELAError {
 	mp.Lock()
 	defer mp.Unlock()
@@ -107,6 +115,7 @@ func (mp *TxPool) appendToTxPool(tx interfaces.Transaction) elaerr.ELAError {
 	}
 	//verify transaction by pool with lock
 	if err := mp.verifyTransactionWithTxnPool(tx); err != nil {
+		log.Error("[TxPool verifyTransactionWithTxnPool] err", err)
 		log.Warn("[TxPool verifyTransactionWithTxnPool] failed", tx.Hash())
 		return err
 	}
@@ -117,7 +126,8 @@ func (mp *TxPool) appendToTxPool(tx interfaces.Transaction) elaerr.ELAError {
 		return elaerr.Simple(elaerr.ErrTxPoolOverCapacity, nil)
 	}
 	if err := mp.AppendTx(tx); err != nil {
-		log.Warn("[TxPool verifyTransactionWithTxnPool] failed", tx.Hash())
+		log.Error("[TxPool AppendTx] err", err)
+		log.Warn("[TxPool AppendTx] failed", tx.Hash())
 		return err
 	}
 	// Add the transaction to mem pool
@@ -136,7 +146,12 @@ func (mp *TxPool) appendToTxPool(tx interfaces.Transaction) elaerr.ELAError {
 		}
 		mp.crossChainHeightList[tx.Hash()] = bestHeight
 	}
-	//log.Infof("endAppendToTxPool:  Hash: %s, %d", tx.Hash(), tx.TxType)
+
+	// record the tx receiving info
+	mp.txReceivingInfo[tx.Hash()] = TxReceivingInfo{
+		Height: bestHeight,
+	}
+
 	return nil
 }
 
@@ -175,13 +190,34 @@ func (mp *TxPool) GetTxsInPool() []interfaces.Transaction {
 	return txs
 }
 
-//clean the transaction Pool with committed block.
+// clean the transaction Pool with committed block.
 func (mp *TxPool) CleanSubmittedTransactions(block *Block) {
 	mp.Lock()
 	mp.cleanTransactions(block.Transactions)
 	mp.cleanSideChainPowTx()
 	if err := mp.cleanCanceledProducerAndCR(block.Transactions); err != nil {
 		log.Warn("error occurred when clean canceled producer and cr", err)
+	}
+	mp.Unlock()
+}
+
+//ResendOutdatedTransactions Resend outdated transactions
+func (mp *TxPool) ResendOutdatedTransactions(block *Block) {
+	mp.Lock()
+	txs := make([]interfaces.Transaction, 0)
+	for txHash, info := range mp.txReceivingInfo {
+		if block.Height-info.Height > mp.chainParams.MemoryPoolTxMaximumStayHeight {
+			tx, ok := mp.txnList[txHash]
+			if !ok {
+				log.Warn("ResendOutdatedTransactions invalid transaction")
+				continue
+			}
+			txs = append(txs, tx)
+		}
+	}
+
+	if len(txs) != 0 {
+		go events.Notify(events.ETOutdatedTxRelay, txs)
 	}
 	mp.Unlock()
 }
@@ -413,14 +449,14 @@ func (mp *TxPool) cleanVoteAndUpdateCR(cid Uint168) error {
 	return nil
 }
 
-//get the transaction by hash
+// get the transaction by hash
 func (mp *TxPool) GetTransaction(hash Uint256) interfaces.Transaction {
 	mp.RLock()
 	defer mp.RUnlock()
 	return mp.txnList[hash]
 }
 
-//verify transaction with txnpool
+// verify transaction with txnpool
 func (mp *TxPool) verifyTransactionWithTxnPool(
 	txn interfaces.Transaction) elaerr.ELAError {
 	if txn.IsSideChainPowTx() {
@@ -431,7 +467,7 @@ func (mp *TxPool) verifyTransactionWithTxnPool(
 	return mp.VerifyTx(txn)
 }
 
-//remove from associated map
+// remove from associated map
 func (mp *TxPool) removeTransaction(tx interfaces.Transaction) {
 	//1.remove from txnList
 	if _, ok := mp.txnList[tx.Hash()]; ok {
@@ -568,6 +604,9 @@ func (mp *TxPool) doRemoveTransaction(tx interfaces.Transaction) {
 		if _, ok := mp.crossChainHeightList[hash]; ok {
 			delete(mp.crossChainHeightList, hash)
 		}
+		if _, ok := mp.txReceivingInfo[hash]; ok {
+			delete(mp.txReceivingInfo, hash)
+		}
 		mp.txFees.RemoveTx(hash, uint64(txSize), feeRate)
 		mp.removeTx(tx)
 	}
@@ -588,12 +627,14 @@ func (mp *TxPool) onPopBack(hash Uint256) {
 
 }
 
-func NewTxPool(params *config.Params) *TxPool {
+func NewTxPool(params *config.Configuration, ckpManager *checkpoint.Manager) *TxPool {
 	rtn := &TxPool{
 		conflictManager:      newConflictManager(),
 		chainParams:          params,
+		CkpManager:           ckpManager,
 		proposalsUsedAmount:  0,
 		crossChainHeightList: make(map[Uint256]uint32),
+		txReceivingInfo:      make(map[Uint256]TxReceivingInfo),
 	}
 	rtn.txPoolCheckpoint = newTxPoolCheckpoint(
 		rtn, func(m map[Uint256]interfaces.Transaction) {
@@ -603,6 +644,6 @@ func NewTxPool(params *config.Params) *TxPool {
 				}
 			}
 		})
-	params.CkpManager.Register(rtn.txPoolCheckpoint)
+	rtn.CkpManager.Register(rtn.txPoolCheckpoint)
 	return rtn
 }

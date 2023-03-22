@@ -166,7 +166,7 @@ func GetDefaultParams() *Configuration {
 			NewP2PProtocolVersionHeight:        751400,
 			ChangeCommitteeNewCRHeight:         932530,
 			CheckVoteCRCountHeight:             658930,
-			CRClaimPeriod:                      720 * 14, // todo complete me
+			CRClaimPeriod:                      720 * 14,
 		},
 
 		DPoSConfiguration: DPoSConfiguration{
@@ -180,11 +180,11 @@ func GetDefaultParams() *Configuration {
 			MaxInactiveRoundsOfRandomNode:     36 * 8,
 			RevertToPOWNoBlockTime:            12 * 3600,
 			StopConfirmBlockTime:              11 * 3600,
-			DPoSV2IllegalPenalty:              20000000000, // todo complete me
-			DPOSNodeCrossChainHeight:          2000000,     // todo complete me
-			DPoSV2DepositCoinMinLockTime:      7200,        // todo complete me change to 216000
-			DPoSV2MinVotesLockTime:            7200,        // todo complete me
-			DPoSV2MaxVotesLockTime:            720000,      // todo complete me
+			DPoSV2IllegalPenalty:              20000000000,
+			DPOSNodeCrossChainHeight:          math.MaxUint32,
+			DPoSV2DepositCoinMinLockTime:      7200,
+			DPoSV2MinVotesLockTime:            7200,
+			DPoSV2MaxVotesLockTime:            720000,
 			SignTolerance:                     5 * time.Second,
 			MaxInactiveRounds:                 720 * 2,
 			InactivePenalty:                   0, //there will be no penalty in this version
@@ -193,7 +193,7 @@ func GetDefaultParams() *Configuration {
 			NormalArbitratorsCount:            24,
 			CandidatesCount:                   72,
 			DPoSV2RewardAccumulateProgramHash: StakeRewardProgramHash,
-			NFTStartHeight:                    100, // todo complete me
+			NFTStartHeight:                    1405000 + 720*15,
 			OriginArbiters: []string{
 				"0248df6705a909432be041e0baa25b8f648741018f70d1911f2ed28778db4b8fe4",
 				"02771faf0f4d4235744b30972d5f2c470993920846c761e4d08889ecfdc061cddf",
@@ -244,16 +244,16 @@ func GetDefaultParams() *Configuration {
 		ReturnCrossChainCoinStartHeight: 1032840,
 		ProhibitTransferToDIDHeight:     1032840,
 		DIDSideChainAddress:             "XKUh4GLhFJiqAMTF6HyWQrV9pK9HcGUdfJ",
-		DPoSV2EffectiveVotes:            8000000000000,
-		DPoSV2StartHeight:               2000000,              // todo complete me
-		StakePoolProgramHash:            StakePoolProgramHash, // todo complete me
-		SchnorrStartHeight:              2000000,              // todo complete me
-		NormalSchnorrStartHeight:        2000000,              // todo complete me
-		ProducerSchnorrStartHeight:      2000000,              // todo complete me
-		CRSchnorrStartHeight:            2000000,              // todo complete me
-		VotesSchnorrStartHeight:         2000000,              // todo complete me
-		CrossChainMonitorStartHeight:    2000000,              // todo complete me
-		CrossChainMonitorInterval:       100,                  // todo complete me
+		DPoSV2EffectiveVotes:            80000 * 100000000,
+		DPoSV2StartHeight:               1405000,
+		StakePoolProgramHash:            StakePoolProgramHash,
+		SchnorrStartHeight:              math.MaxUint32,
+		NormalSchnorrStartHeight:        1405000,
+		ProducerSchnorrStartHeight:      math.MaxUint32,
+		CRSchnorrStartHeight:            math.MaxUint32,
+		VotesSchnorrStartHeight:         math.MaxUint32,
+		CrossChainMonitorStartHeight:    math.MaxUint32,
+		CrossChainMonitorInterval:       100,
 		HttpInfoPort:                    20333,
 		HttpRestPort:                    20334,
 		HttpWsPort:                      20335,
@@ -272,7 +272,7 @@ func GetDefaultParams() *Configuration {
 			HistoryStartHeight: uint32(0),
 			NeedSave:           true,
 		},
-		MemoryPoolTxMaximumStayHeight: 10, // todo complete me
+		MemoryPoolTxMaximumStayHeight: 10,
 	}
 }
 
@@ -378,15 +378,15 @@ func (p *Configuration) TestNet() *Configuration {
 	p.CrossChainMonitorStartHeight = 965800 + 720*3
 	p.CrossChainMonitorInterval = 12
 	p.CRConfiguration.CRClaimPeriod = 10080
-	p.DPoSConfiguration.NFTStartHeight = 100 // todo complete me
+	p.DPoSConfiguration.NFTStartHeight = 100
 
 	p.HttpInfoPort = 21333
 	p.HttpRestPort = 21334
 	p.HttpWsPort = 21335
 	p.HttpJsonPort = 21336
-	p.ProducerSchnorrStartHeight = 2000000 // todo complete me
-	p.CRSchnorrStartHeight = 2000000       // todo complete me
-	p.VotesSchnorrStartHeight = 2000000    // todo complete me
+	p.ProducerSchnorrStartHeight = math.MaxUint32
+	p.CRSchnorrStartHeight = math.MaxUint32
+	p.VotesSchnorrStartHeight = math.MaxUint32
 
 	p.MemoryPoolTxMaximumStayHeight = 10
 
@@ -502,9 +502,9 @@ func (p *Configuration) RegNet() *Configuration {
 	p.HttpRestPort = 22334
 	p.HttpWsPort = 22335
 	p.HttpJsonPort = 22336
-	p.ProducerSchnorrStartHeight = 2000000 // todo complete me
-	p.CRSchnorrStartHeight = 2000000       // todo complete me
-	p.VotesSchnorrStartHeight = 2000000    // todo complete me
+	p.ProducerSchnorrStartHeight = math.MaxUint32 // todo complete me
+	p.CRSchnorrStartHeight = math.MaxUint32       // todo complete me
+	p.VotesSchnorrStartHeight = math.MaxUint32    // todo complete me
 
 	p.MemoryPoolTxMaximumStayHeight = 10
 

@@ -3742,7 +3742,7 @@ func getPayloadInfo(p interfaces.Payload, payloadVersion byte) PayloadInfo {
 		obj := &CreateNFTInfo{
 			ID:               object.ReferKey.ReversedString(),
 			StakeAddress:     object.StakeAddress,
-			GenesisBlockHash: object.GenesisBlockHash.String(),
+			GenesisBlockHash: common.ToReversedString(object.GenesisBlockHash),
 		}
 		return obj
 

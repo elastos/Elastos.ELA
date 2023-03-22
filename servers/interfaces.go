@@ -3759,7 +3759,7 @@ func getPayloadInfo(p interfaces.Payload, payloadVersion byte) PayloadInfo {
 		obj := DestroyNFTInfo{
 			IDs:                 nftIDs,
 			OwnerStakeAddresses: nftStatkeAddresses,
-			GenesisBlockAddress: common.ToReversedString(object.GenesisBlockHash),
+			GenesisBlockHash: common.ToReversedString(object.GenesisBlockHash),
 		}
 		return obj
 

@@ -44,7 +44,8 @@ import (
 	"github.com/elastos/Elastos.ELA/utils/elalog"
 	"github.com/elastos/Elastos.ELA/utils/signal"
 
-	"github.com/fungolang/screw"
+	// todo fork it to Elastos
+	"github.com/RainFallsSilent/screw"
 )
 
 const (

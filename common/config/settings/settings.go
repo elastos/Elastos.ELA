@@ -7,7 +7,6 @@ package settings
 
 import (
 	"errors"
-	"fmt"
 	"path/filepath"
 	"strings"
 
@@ -16,7 +15,8 @@ import (
 	"github.com/elastos/Elastos.ELA/core/types/functions"
 	"github.com/elastos/Elastos.ELA/elanet/pact"
 
-	"github.com/fungolang/screw"
+	// todo fork it to Elastos
+	"github.com/RainFallsSilent/screw"
 	"github.com/spf13/viper"
 )
 
@@ -62,10 +62,7 @@ func (s *Settings) SetupConfig() *config.Configuration {
 		Configuration: &config.DefaultParams,
 	}
 	// set mainNet params
-	conf, err := s.loadConfigFile(configFile, params)
-	if err != nil {
-		fmt.Println("loadConfigFile err", err.Error())
-	}
+	conf, _ := s.loadConfigFile(configFile, params)
 
 	// switch activeNet params
 	var testNet bool
@@ -75,12 +72,12 @@ func (s *Settings) SetupConfig() *config.Configuration {
 		testnet := config.Config{
 			Configuration: params.TestNet(),
 		}
-		conf, err = s.loadConfigFile(configFile, testnet)
+		conf, _ = s.loadConfigFile(configFile, testnet)
 	case "regnet", "regtest", "reg":
 		regnet := config.Config{
 			Configuration: params.RegNet(),
 		}
-		conf, err = s.loadConfigFile(configFile, regnet)
+		conf, _ = s.loadConfigFile(configFile, regnet)
 	}
 
 	if conf.MaxBlockSize > 0 {

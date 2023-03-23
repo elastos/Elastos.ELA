@@ -3,8 +3,8 @@ module github.com/elastos/Elastos.ELA
 go 1.16
 
 require (
+	github.com/RainFallsSilent/screw v1.0.0
 	github.com/btcsuite/btcd v0.22.0-beta
-	github.com/fungolang/screw v1.0.1
 	github.com/go-echarts/statsview v0.3.4
 	github.com/gorilla/websocket v1.4.2
 	github.com/howeyc/gopass v0.0.0-20190910152052-7cb4b85ec19c

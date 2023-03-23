@@ -376,9 +376,9 @@ func (p *Configuration) TestNet() *Configuration {
 	p.NormalSchnorrStartHeight = 965800 + 720*10
 	p.DPoSConfiguration.CRDPoSNodeHotFixHeight = 0
 	p.CrossChainMonitorStartHeight = 965800 + 720*3
-	p.CrossChainMonitorInterval = 12
+	p.CrossChainMonitorInterval = 100
 	p.CRConfiguration.CRClaimPeriod = 10080
-	p.DPoSConfiguration.NFTStartHeight = 100
+	p.DPoSConfiguration.NFTStartHeight = 1098000
 
 	p.HttpInfoPort = 21333
 	p.HttpRestPort = 21334
@@ -495,16 +495,16 @@ func (p *Configuration) RegNet() *Configuration {
 	p.NormalSchnorrStartHeight = 875544 + 720*5
 	p.DPoSConfiguration.CRDPoSNodeHotFixHeight = 0
 	p.CrossChainMonitorStartHeight = 875544 + 720*2
-	p.CrossChainMonitorInterval = 12
+	p.CrossChainMonitorInterval = 100
 	p.CRConfiguration.CRClaimPeriod = 10080
-	p.DPoSConfiguration.NFTStartHeight = 100 // todo complete me
+	p.DPoSConfiguration.NFTStartHeight = 968000
 	p.HttpInfoPort = 22333
 	p.HttpRestPort = 22334
 	p.HttpWsPort = 22335
 	p.HttpJsonPort = 22336
-	p.ProducerSchnorrStartHeight = math.MaxUint32 // todo complete me
-	p.CRSchnorrStartHeight = math.MaxUint32       // todo complete me
-	p.VotesSchnorrStartHeight = math.MaxUint32    // todo complete me
+	p.ProducerSchnorrStartHeight = math.MaxUint32
+	p.CRSchnorrStartHeight = math.MaxUint32
+	p.VotesSchnorrStartHeight = math.MaxUint32
 
 	p.MemoryPoolTxMaximumStayHeight = 10
 

@@ -121,6 +121,8 @@ type Producer struct {
 	//Uint168 key is voter's sVoteAddr
 	//Uint256 key is DetailedVoteInfo's hash
 	detailedDPoSV2Votes map[common.Uint168]map[common.Uint256]payload.DetailedVoteInfo
+	//Uint168 key is nftid--->stakeaddress
+	expiredNFTVotes map[common.Uint168]payload.DetailedVoteInfo
 
 	depositAmount                common.Fixed64
 	totalAmount                  common.Fixed64
@@ -226,6 +228,10 @@ func (p *Producer) GetDetailedDPoSV2Votes(stakeAddress common.Uint168,
 
 func (p *Producer) GetAllDetailedDPoSV2Votes() map[common.Uint168]map[common.Uint256]payload.DetailedVoteInfo {
 	return p.detailedDPoSV2Votes
+}
+
+func (p *Producer) GetExpiredNFTVotes() map[common.Uint168]payload.DetailedVoteInfo {
+	return p.expiredNFTVotes
 }
 
 func (p *Producer) GetTotalDPoSV2VoteRights() float64 {
@@ -351,7 +357,9 @@ func (p *Producer) Serialize(w io.Writer) error {
 	if err := SerializeDetailVoteInfoMap(p.detailedDPoSV2Votes, w); err != nil {
 		return err
 	}
-
+	if err := SerializeDetailVoteInfo(p.expiredNFTVotes, w); err != nil {
+		return err
+	}
 	if err := p.depositAmount.Serialize(w); err != nil {
 		return err
 	}
@@ -392,6 +400,47 @@ func SerializeDetailVoteInfoMap(
 		}
 	}
 
+	return
+}
+
+func SerializeDetailVoteInfo(
+	vmap map[common.Uint168]payload.DetailedVoteInfo,
+	w io.Writer) (err error) {
+
+	if err := common.WriteVarUint(w, uint64(len(vmap))); err != nil {
+		return err
+	}
+	for k, v := range vmap {
+		if err := k.Serialize(w); err != nil {
+			return err
+		}
+		if err := v.Serialize(w); err != nil {
+			return err
+		}
+	}
+
+	return
+}
+
+func DeserializeDetailVoteInfo(
+	r io.Reader) (vmap map[common.Uint168]payload.DetailedVoteInfo, err error) {
+	var count uint64
+	if count, err = common.ReadVarUint(r, 0); err != nil {
+		return
+	}
+	vmap = make(map[common.Uint168]payload.DetailedVoteInfo)
+	for i := uint64(0); i < count; i++ {
+		var k common.Uint168
+		if err = k.Deserialize(r); err != nil {
+			return
+		}
+
+		var v payload.DetailedVoteInfo
+		if err = v.Deserialize(r); err != nil {
+			return
+		}
+		vmap[k] = v
+	}
 	return
 }
 
@@ -449,6 +498,12 @@ func (p *Producer) Deserialize(r io.Reader) (err error) {
 		return err
 	}
 	p.detailedDPoSV2Votes = voteInfoMap
+
+	expiredNFTVotes, err := DeserializeDetailVoteInfo(r)
+	if err != nil {
+		return err
+	}
+	p.expiredNFTVotes = expiredNFTVotes
 
 	if err = p.depositAmount.Deserialize(r); err != nil {
 		return
@@ -1469,6 +1524,24 @@ func (s *State) ProcessVoteStatisticsBlock(block *types.Block) {
 	}
 }
 
+func (s *State) ifCreatedNFT(referKey common.Uint256) bool {
+	for _, nftinfo := range s.NFTIDInfoHashMap {
+		if nftinfo.ReferKey.IsEqual(referKey) {
+			return true
+		}
+	}
+	return false
+}
+
+func (s *State) getNFTID(referKey common.Uint256) (bool, common.Uint256) {
+	for nftID, nftinfo := range s.NFTIDInfoHashMap {
+		if nftinfo.ReferKey.IsEqual(referKey) {
+			return true, nftID
+		}
+	}
+	return false, common.Uint256{}
+}
+
 // processTransactions takes the transactions and the height when they have been
 // packed into a block.  Then loop through the transactions to update producers
 // state and votes according to transactions content.
@@ -1536,12 +1609,13 @@ func (s *State) processTransactions(txs []interfaces.Transaction, height uint32)
 			s.Nicknames[producer.info.NickName] = struct{}{}
 		})
 	}
-
+	//key is referkey  stake address
 	cleanExpiredDposV2Votes := func(key common.Uint256, stakeAddress common.Uint168,
 		detailVoteInfo payload.DetailedVoteInfo, producer *Producer) {
 		if _, ok := s.LastRenewalDPoSV2Votes[detailVoteInfo.ReferKey()]; ok {
 			return
 		}
+
 		for _, i := range detailVoteInfo.Info {
 			info := i
 			s.History.Append(height, func() {
@@ -1549,16 +1623,30 @@ func (s *State) processTransactions(txs []interfaces.Transaction, height uint32)
 			}, func() {
 				s.UsedDposV2Votes[stakeAddress] += info.Votes
 			})
-
 			voteRights := producer.GetTotalDPoSV2VoteRights()
-
+			//if this vote create nft
+			exist, nftID := s.getNFTID(key)
 			s.History.Append(height, func() {
+				if exist {
+					if producer.expiredNFTVotes == nil {
+						producer.expiredNFTVotes = make(map[common.Uint168]payload.DetailedVoteInfo)
+					}
+					ct, _ := contract.CreateStakeContractByCode(nftID.Bytes())
+					nftStakeAddress := ct.ToProgramHash()
+					producer.expiredNFTVotes[*nftStakeAddress] = detailVoteInfo
+				}
 				delete(producer.detailedDPoSV2Votes[stakeAddress], key)
 				producer.dposV2Votes -= info.Votes
 				if voteRights < float64(s.ChainParams.DPoSV2EffectiveVotes) {
 					delete(s.DposV2EffectedProducers, hex.EncodeToString(producer.OwnerPublicKey()))
 				}
 			}, func() {
+				if exist {
+					ct, _ := contract.CreateStakeContractByCode(nftID.Bytes())
+					nftStakeAddress := ct.ToProgramHash()
+					delete(producer.expiredNFTVotes, *nftStakeAddress)
+				}
+
 				if producer.detailedDPoSV2Votes == nil {
 					producer.detailedDPoSV2Votes = make(map[common.Uint168]map[common.Uint256]payload.DetailedVoteInfo)
 				}
@@ -2608,6 +2696,8 @@ func (s *State) processCreateNFT(tx interfaces.Transaction, height uint32) {
 						if s.UsedDposV2Votes[stakeAddress] == 0 {
 							delete(s.UsedDposV2Votes, stakeAddress)
 						}
+						s.UsedDposV2Votes[*nftStakeAddress] += nftAmount
+						s.DposV2VoteRights[*nftStakeAddress] += nftAmount
 					}, func() {
 						producer.detailedDPoSV2Votes[*nftStakeAddress][referKey] = detailVoteInfo
 						delete(producer.detailedDPoSV2Votes[*nftStakeAddress], referKey)
@@ -2615,6 +2705,8 @@ func (s *State) processCreateNFT(tx interfaces.Transaction, height uint32) {
 						// process total vote rights
 						s.DposV2VoteRights[stakeAddress] += nftAmount
 						s.UsedDposV2Votes[stakeAddress] += nftAmount
+						s.UsedDposV2Votes[*nftStakeAddress] -= nftAmount
+						s.DposV2VoteRights[*nftStakeAddress] -= nftAmount
 					})
 					return
 				}
@@ -2773,6 +2865,7 @@ func (s *State) processNFTDestroyFromSideChain(tx interfaces.Transaction, height
 	})
 
 	producers := s.getDposV2Producers()
+	//deal with not expired nft votes
 	for i := 0; i < len(nftDestroyPayload.IDs); i++ {
 		newOwnerStakeAddress := nftDestroyPayload.OwnerStakeAddresses[i]
 		nftID := nftDestroyPayload.IDs[i]
@@ -2787,7 +2880,9 @@ func (s *State) processNFTDestroyFromSideChain(tx interfaces.Transaction, height
 						oriRewardsInfo := s.DPoSV2RewardInfo[strNFTStakeAddress]
 						nftAmount := detailVoteInfo.Info[0].Votes
 						s.History.Append(height, func() {
-							//process total vote rights
+							s.UsedDposV2Votes[stakeAddress] -= nftAmount
+							s.DposV2VoteRights[stakeAddress] -= nftAmount
+
 							s.DposV2VoteRights[newOwnerStakeAddress] += nftAmount
 							s.UsedDposV2Votes[newOwnerStakeAddress] += nftAmount
 							//remove nft stake address for future create new nft .
@@ -2804,6 +2899,8 @@ func (s *State) processNFTDestroyFromSideChain(tx interfaces.Transaction, height
 							producer.detailedDPoSV2Votes[newOwnerStakeAddress][referKey] = detailVoteInfo
 
 						}, func() {
+							s.UsedDposV2Votes[stakeAddress] += nftAmount
+							s.DposV2VoteRights[stakeAddress] += nftAmount
 							//process total vote rights
 							s.DposV2VoteRights[newOwnerStakeAddress] -= nftAmount
 							if s.DposV2VoteRights[newOwnerStakeAddress] == 0 {
@@ -2828,6 +2925,67 @@ func (s *State) processNFTDestroyFromSideChain(tx interfaces.Transaction, height
 						})
 						break out
 					}
+				}
+			}
+		}
+	}
+
+	//deal with  expired nft votes
+	for i := 0; i < len(nftDestroyPayload.IDs); i++ {
+		newOwnerStakeAddress := nftDestroyPayload.OwnerStakeAddresses[i]
+		nftID := nftDestroyPayload.IDs[i]
+		nftInfo := oriNFTInfoMap[nftID]
+	out2:
+		for _, producer := range producers {
+			for stakeAddress, votesInfo := range producer.expiredNFTVotes {
+				if common.GetNFTID(votesInfo.ReferKey(), nftInfo.CreateNFTTxHash).IsEqual(nftID) {
+					strNFTStakeAddress, _ := stakeAddress.ToAddress()
+					strOwnerStakeAddress, _ := newOwnerStakeAddress.ToAddress()
+					oriRewardsInfo := s.DPoSV2RewardInfo[strNFTStakeAddress]
+					nftAmount := votesInfo.Info[0].Votes
+					s.History.Append(height, func() {
+						//process total vote rights
+						s.DposV2VoteRights[stakeAddress] -= nftAmount
+						s.DposV2VoteRights[newOwnerStakeAddress] += nftAmount
+						//s.UsedDposV2Votes[newOwnerStakeAddress] += nftAmount
+						//remove nft stake address for future create new nft .
+						delete(producer.expiredNFTVotes, stakeAddress)
+						s.DPoSV2RewardInfo[strOwnerStakeAddress] += s.DPoSV2RewardInfo[strNFTStakeAddress]
+						delete(s.DPoSV2RewardInfo, strNFTStakeAddress)
+						//detailVoteInfo add to new owner nftDestroyPayload.OwnerStakeAddresses
+						//if len(producer.detailedDPoSV2Votes[newOwnerStakeAddress]) == 0 {
+						//	producer.detailedDPoSV2Votes[newOwnerStakeAddress] = make(map[common.Uint256]payload.DetailedVoteInfo)
+						//}
+
+						//// if we destroy one expired votes,no need add anymore
+						//votesInfo.StakeProgramHash = newOwnerStakeAddress
+						//producer.expiredNFTVotes[newOwnerStakeAddress] = votesInfo
+
+					}, func() {
+						//process total vote rights
+						s.DposV2VoteRights[stakeAddress] += nftAmount
+						s.DposV2VoteRights[newOwnerStakeAddress] -= nftAmount
+						if s.DposV2VoteRights[newOwnerStakeAddress] == 0 {
+							delete(s.DposV2VoteRights, newOwnerStakeAddress)
+						}
+						s.UsedDposV2Votes[newOwnerStakeAddress] -= nftAmount
+						if s.UsedDposV2Votes[newOwnerStakeAddress] == 0 {
+							delete(s.UsedDposV2Votes, newOwnerStakeAddress)
+						}
+						////add detailVoteInfo to  nft stake address
+						//if len(producer.detailedDPoSV2Votes[stakeAddress]) == 0 {
+						//	producer.detailedDPoSV2Votes[stakeAddress] = make(map[common.Uint256]payload.DetailedVoteInfo)
+						//}
+						producer.expiredNFTVotes[stakeAddress] = votesInfo
+						//remove owner's detailVoteInfo
+						//delete(producer.expiredNFTVotes, newOwnerStakeAddress)
+						s.DPoSV2RewardInfo[strOwnerStakeAddress] -= s.DPoSV2RewardInfo[strNFTStakeAddress]
+						s.DPoSV2RewardInfo[strNFTStakeAddress] = oriRewardsInfo
+						if s.DPoSV2RewardInfo[strOwnerStakeAddress] == 0 {
+							delete(s.DPoSV2RewardInfo, strOwnerStakeAddress)
+						}
+					})
+					break out2
 				}
 			}
 		}
@@ -2870,6 +3028,14 @@ func (s *State) CanNFTDestroy(IDs []common.Uint256) []common.Uint256 {
 						}
 						break out
 					}
+				}
+			}
+
+			for _, expiredVotesInfo := range p.GetExpiredNFTVotes() {
+				nftID := common.GetNFTID(expiredVotesInfo.ReferKey(), nftInfo.CreateNFTTxHash)
+				if nftID.IsEqual(ID) {
+					canDestroyIDs = append(canDestroyIDs, ID)
+					break out
 				}
 			}
 		}

@@ -615,28 +615,39 @@ func GetNFTInfo(params Params) map[string]interface{} {
 		Rewards     string `json:"rewards"`
 	}
 
-	var info nftInfo
-	info.ID = idParam
-
 	producers := Chain.GetState().GetAllProducers()
+
+	fillNFTINFO := func(nftID common.Uint256, detailVoteInfo payload.DetailedVoteInfo) (info nftInfo) {
+		ct, _ := contract.CreateStakeContractByCode(nftID.Bytes())
+		nftStakeAddress, _ := ct.ToProgramHash().ToAddress()
+		info.StartHeight = detailVoteInfo.BlockHeight
+		info.EndHeight = detailVoteInfo.Info[0].LockTime
+		info.Votes = detailVoteInfo.Info[0].Votes.String()
+		info.Rewards = Chain.GetState().DPoSV2RewardInfo[nftStakeAddress].String()
+		return
+	}
+	nftReferKey, err := Chain.GetState().GetNFTReferKey(*nftID)
+	if err != nil {
+		return ResponsePack(InvalidParams, "wrong nft id, not found it!")
+	}
+	//todo referkey recreate problem
 	for _, producer := range producers {
 		for _, votesInfo := range producer.GetAllDetailedDPoSV2Votes() {
 			for referKey, detailVoteInfo := range votesInfo {
-				nftReferKey, err := Chain.GetState().GetNFTReferKey(*nftID)
-				if err != nil {
-					return ResponsePack(InvalidParams, "wrong nft id, not found it!")
-				}
 				if referKey.IsEqual(nftReferKey) {
-					ct, _ := contract.CreateStakeContractByCode(nftID.Bytes())
-					nftStakeAddress, _ := ct.ToProgramHash().ToAddress()
-					info.StartHeight = detailVoteInfo.BlockHeight
-					info.EndHeight = detailVoteInfo.Info[0].LockTime
-					info.Votes = detailVoteInfo.Info[0].Votes.String()
+					info := fillNFTINFO(*nftID, detailVoteInfo)
+					info.ID = idParam
 					info.VotesRight = common.Fixed64(producer.GetNFTVotesRight(referKey)).String()
-					info.Rewards = Chain.GetState().DPoSV2RewardInfo[nftStakeAddress].String()
 					return ResponsePack(Success, info)
-
 				}
+			}
+		}
+		for _, expiredVotesInfo := range producer.GetExpiredNFTVotes() {
+			if expiredVotesInfo.ReferKey().IsEqual(nftReferKey) {
+				info := fillNFTINFO(*nftID, expiredVotesInfo)
+				info.ID = idParam
+				info.VotesRight = "0"
+				return ResponsePack(Success, info)
 			}
 		}
 	}
@@ -863,6 +874,8 @@ func GetUsedVoteRight(voteType outputpayload.VoteType, stakeProgramHash *common.
 			}
 		}
 	case outputpayload.DposV2:
+		addr, _ := stakeProgramHash.ToAddress()
+		fmt.Println("addr", addr)
 		usedDposVote = state.UsedDposV2Votes[*stakeProgramHash]
 	default:
 		return 0, errors.New("unsupport vote type")
@@ -3759,7 +3772,7 @@ func getPayloadInfo(p interfaces.Payload, payloadVersion byte) PayloadInfo {
 		obj := DestroyNFTInfo{
 			IDs:                 nftIDs,
 			OwnerStakeAddresses: nftStatkeAddresses,
-			GenesisBlockHash: common.ToReversedString(object.GenesisBlockHash),
+			GenesisBlockHash:    common.ToReversedString(object.GenesisBlockHash),
 		}
 		return obj
 

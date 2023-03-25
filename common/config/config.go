@@ -125,11 +125,10 @@ func GetDefaultParams() *Configuration {
 		Magic:    2017001,
 		NodePort: 20338,
 		DNSSeeds: []string{
-			"node-mainnet-005.elastos.org:20338",
-			"node-mainnet-010.elastos.org:20338",
-			"node-mainnet-015.elastos.org:20338",
-			"node-mainnet-020.elastos.org:20338",
-			"node-mainnet-025.elastos.org:20338",
+			"52.74.28.202:20338",
+			"52.62.113.83:20338",
+			"35.156.51.127:20338",
+			"35.177.89.244:20338",
 		},
 		DestroyELAProgramHash: DestroyELAProgramHash,
 		FoundationProgramHash: mainNetFoundationProgramHash,
@@ -282,9 +281,9 @@ func (p *Configuration) TestNet() *Configuration {
 	p.NodePort = 21338
 
 	p.DNSSeeds = []string{
-		"node-testnet-002.elastos.org:21338",
-		"node-testnet-003.elastos.org:21338",
-		"node-testnet-004.elastos.org:21338",
+		"13.234.24.155:21338",
+		"15.206.198.252:21338",
+		"13.234.249.168:21338",
 	}
 	p.DestroyELAProgramHash = DestroyELAProgramHash
 	p.FoundationProgramHash = testNetFoundationProgramHash
@@ -399,9 +398,9 @@ func (p *Configuration) RegNet() *Configuration {
 	p.NodePort = 22338
 
 	p.DNSSeeds = []string{
-		"node-regtest-102.eadd.co:22338",
-		"node-regtest-103.eadd.co:22338",
-		"node-regtest-104.eadd.co:22338",
+		"15.206.236.124:22338",
+		"3.111.241.201:22338",
+		"65.0.164.47:22338",
 	}
 
 	p.FoundationProgramHash = testNetFoundationProgramHash

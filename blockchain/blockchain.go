@@ -700,6 +700,7 @@ func (b *BlockChain) getHeight() uint32 {
 func (b *BlockChain) ProcessBlock(block *Block, confirm *payload.Confirm) (bool, bool, error) {
 	b.mutex.Lock()
 	defer b.mutex.Unlock()
+
 	return b.processBlock(block, confirm)
 }
 

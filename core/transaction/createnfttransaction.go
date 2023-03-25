@@ -8,7 +8,6 @@ package transaction
 import (
 	"errors"
 	"fmt"
-
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/core/contract"
 	"github.com/elastos/Elastos.ELA/core/contract/program"
@@ -16,6 +15,8 @@ import (
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	elaerr "github.com/elastos/Elastos.ELA/errors"
 )
+
+const CanNotCreateNFTHeight = 6
 
 type CreateNFTTransaction struct {
 	BaseTransaction
@@ -94,6 +95,10 @@ func (t *CreateNFTTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
 					if stakeAddress.IsEqual(*nftStakeAddress) {
 						return elaerr.Simple(elaerr.ErrTxPayload,
 							errors.New("the NFT has been created yet")), true
+					}
+					if t.parameters.BlockHeight >= voteInfo.Info[0].LockTime-CanNotCreateNFTHeight {
+						return elaerr.Simple(elaerr.ErrTxPayload,
+							errors.New("vote is almost expired")), true
 					}
 					log.Info("create NFT, vote information:", voteInfo)
 					existVote = true

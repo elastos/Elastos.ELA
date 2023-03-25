@@ -81,7 +81,7 @@ func main() {
 
 	// Setting config
 	setting := settings.NewSettings()
-	config := setting.SetupConfig()
+	config := setting.SetupConfig(true)
 
 	// Use all processor cores.
 	runtime.GOMAXPROCS(runtime.NumCPU())

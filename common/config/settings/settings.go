@@ -50,7 +50,7 @@ func (s *Settings) loadConfigFile(files string, cfg config.Config) (*config.Conf
 	return cfg.Configuration, nil
 }
 
-func (s *Settings) SetupConfig() *config.Configuration {
+func (s *Settings) SetupConfig(withScrew bool) *config.Configuration {
 	// Initialize functions
 	functions.GetTransactionByTxType = transaction.GetTransaction
 	functions.GetTransactionByBytes = transaction.GetTransactionByBytes
@@ -100,7 +100,9 @@ func (s *Settings) SetupConfig() *config.Configuration {
 	if instantBlock {
 		conf = conf.InstantBlock()
 	}
-	screw.Bind(conf)
+	if withScrew {
+		screw.Bind(conf)
+	}
 	conf = conf.Sterilize()
 	config.Parameters = conf
 	return conf

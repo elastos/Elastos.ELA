@@ -122,8 +122,9 @@ func SetParameters(configuration *Configuration) {
 func GetDefaultParams() *Configuration {
 	// DefaultParams defines the default network parameters.
 	return &Configuration{
-		Magic:    2017001,
-		NodePort: 20338,
+		Magic:      2017001,
+		PrintLevel: 1,
+		NodePort:   20338,
 		DNSSeeds: []string{
 			"52.74.28.202:20338",
 			"52.62.113.83:20338",
@@ -278,6 +279,7 @@ func GetDefaultParams() *Configuration {
 // TestNet returns the network parameters for the test network.
 func (p *Configuration) TestNet() *Configuration {
 	p.Magic = 2018101
+	p.PrintLevel = 1
 	p.NodePort = 21338
 
 	p.DNSSeeds = []string{
@@ -395,6 +397,7 @@ func (p *Configuration) TestNet() *Configuration {
 // RegNet returns the network parameters for the test network.
 func (p *Configuration) RegNet() *Configuration {
 	p.Magic = 2018201
+	p.PrintLevel = 1
 	p.NodePort = 22338
 
 	p.DNSSeeds = []string{

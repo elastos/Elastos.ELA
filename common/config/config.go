@@ -528,7 +528,7 @@ type Configuration struct {
 	ProfilePort   uint32 `screw:"--profileport" usage:"port for the http profile port rpc server"`
 	ProfileHost   string `screw:"--profilehost" usage:"port for the http profile rpc host server"`
 	DisableDNS    bool   `screw:"--disableDNS" usage:"disable DNS for node"`
-	EnableRPC     bool   `screw:"--enableRPC" usage:"enable RPC for node"`
+	EnableRPC     bool   `screw:"--server" usage:"decide if open JSON-RPC server or not"`
 	MaxLogsSize   int64  `json:"MaxLogsSize"`
 	MaxPerLogSize int64  `json:"MaxPerLogSize"`
 	RestCertPath  string `json:"RestCertPath"`
@@ -648,6 +648,19 @@ type Configuration struct {
 	PowConfiguration          PowConfiguration        `json:"PowConfiguration"`
 	RpcConfiguration          RpcConfiguration        `json:"RpcConfiguration"`
 	CheckPointConfiguration   CheckPointConfiguration `json:"CheckPointConfiguration"`
+
+	ConfigFile      string `screw:"--conf" usage:"config <file> path, "`
+	TestNetStr      string `screw:"--testnet" usage:"specify network type to test net"`
+	RegTest         string `screw:"--regtest" usage:"specify network type to reg test net"`
+	InstantBlockStr string `screw:"--instant" usage:"specify if need to generate instant block"`
+	RPCIp           string `screw:"--rpcip" usage:"JSON-RPC server listening ip <string>"`
+	Port            string `screw:"--port" usage:"default peer-to-peer port for the network"`
+	Peers           string `screw:"--peers" usage:"peers seeds for node to initialize p2p connection"`
+	RPCUser         string `screw:"--rpcuser" usage:"username for JSON-RPC connections"`
+	RPCPassword     string `screw:"--rpcpassword" usage:"password for JSON-RPC connections"`
+	RPCAllowedIPs   string `screw:"--rpcips" usage:"white IP list allowed to access RPC server"`
+	EnableDns       string `screw:"--dnsseed" usage:"enable dns seeds for node to initialize p2p connection"`
+	AccountWallet   string `screw:"-w;--wallet" usage:"wallet <file> path"`
 }
 
 type CheckPointConfiguration struct {

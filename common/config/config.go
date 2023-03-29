@@ -185,7 +185,7 @@ func GetDefaultParams() *Configuration {
 			DPoSV2DepositCoinMinLockTime:      7200,
 			DPoSV2MinVotesLockTime:            7200,
 			DPoSV2MaxVotesLockTime:            720000,
-			SignTolerance:                     5 * time.Second,
+			SignTolerance:                     5,
 			MaxInactiveRounds:                 720 * 2,
 			InactivePenalty:                   0, //there will be no penalty in this version
 			IllegalPenalty:                    0,

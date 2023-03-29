@@ -18,20 +18,20 @@ Make sure the [macOS version](https://en.wikipedia.org/wiki/MacOS#Release_histor
 
 ```bash
 $ uname -srm
-Darwin 18.7.0 x86_64
+Darwin 21.6.0 x86_64
 ```
 
-Use [Homebrew](https://brew.sh/) to install Golang 1.16
+Use [Homebrew](https://brew.sh/) to install Golang
 
 ```bash
-$ brew install go@1.16
+$ brew install go
 ```
 
 Check the golang version. Make sure they are the following version number or above.
 
 ```bash
 $ go version
-go version go1.16.5 darwin/amd64
+go version go1.19.1 darwin/amd64
 ```
 
 ### 2. Ubuntu Prerequisites
@@ -40,7 +40,7 @@ Make sure your ubuntu version is 18.04 or later.
 
 ```bash
 $ cat /etc/issue
-Ubuntu 18.04.5 LTS \n \l
+Ubuntu 22.04.1 LTS \n \l
 ```
 
 Install Git.
@@ -52,8 +52,8 @@ $ sudo apt-get install -y git
 Install Go distribution.
 
 ```bash
-$ curl -O https://golang.org/dl/go1.13.15.linux-amd64.tar.gz
-$ tar -xvf go1.13.15.linux-amd64.tar.gz
+$ curl -O https://golang.org/dl/go1.19.1.linux-amd64.tar.gz
+$ tar -xvf go1.19.1.linux-amd64.tar.gz
 $ sudo chown -R root:root ./go
 $ sudo mv go /usr/local
 $ export GOPATH=$HOME/go

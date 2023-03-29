@@ -193,7 +193,7 @@ func GetDefaultParams() *Configuration {
 			NormalArbitratorsCount:            24,
 			CandidatesCount:                   72,
 			DPoSV2RewardAccumulateProgramHash: StakeRewardProgramHash,
-			NFTStartHeight:                    1405000 + 720*15,
+			NFTStartHeight:                    1405000,
 			OriginArbiters: []string{
 				"0248df6705a909432be041e0baa25b8f648741018f70d1911f2ed28778db4b8fe4",
 				"02771faf0f4d4235744b30972d5f2c470993920846c761e4d08889ecfdc061cddf",
@@ -527,8 +527,8 @@ type Configuration struct {
 	HttpJsonPort  int    `screw:"--rpcport" usage:"port for the http json rpc port server"`
 	ProfilePort   uint32 `screw:"--profileport" usage:"port for the http profile port rpc server"`
 	ProfileHost   string `screw:"--profilehost" usage:"port for the http profile rpc host server"`
-	DisableDNS    bool   `screw:"--disableDNS" usage:"disable DNS for node"`
-	EnableRPC     bool   `screw:"--enableRPC" usage:"enable RPC for node"`
+	DisableDNS    bool   `screw:"--disabledns" usage:"disable DNS for node"`
+	EnableRPC     bool   `screw:"--enablerpc" usage:"enable RPC for node"`
 	MaxLogsSize   int64  `json:"MaxLogsSize"`
 	MaxPerLogSize int64  `json:"MaxPerLogSize"`
 	RestCertPath  string `json:"RestCertPath"`
@@ -593,7 +593,7 @@ type Configuration struct {
 	// Enable cors for http server.
 	EnableCORS bool `json:"EnableCORS"`
 	// WalletPath defines the wallet path used by DPoS arbiters and CR members.
-	WalletPath string `json:"WalletPath"`
+	WalletPath string `screw:"-w;--walletpath" json:"WalletPath" usage:"defines the keystore file"`
 	// RPCServiceLevel defines level of service provide to client.
 	RPCServiceLevel string `json:"RPCServiceLevel"`
 	// NodeProfileStrategy defines strategy about node profiling.
@@ -797,7 +797,7 @@ type PowConfiguration struct {
 	AutoMining   bool   `screw:"--automining" usage:"specify if should open auto mining"`
 	MinerInfo    string `json:"MinerInfo"`
 	MinTxFee     int    `screw:"--mintxfee" usage:"specify minimum transaction fee"`
-	InstantBlock bool   `json:"InstantBlock"`
+	InstantBlock bool   `screw:"--instant" usage:"instant block" usage:"low difficulty to mine block"`
 	// powLimit defines the highest allowed proof of work value for a block as a uint256.
 	PowLimit *big.Int
 	// PowLimitBits defines the highest allowed proof of work value for a block in compact form.

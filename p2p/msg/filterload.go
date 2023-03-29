@@ -106,9 +106,15 @@ func (msg *FilterLoad) Deserialize(r io.Reader) error {
 		return err
 	}
 
-	// deserialize TxTypes ignore the result
-	count, _ := common.ReadVarUint(r, 0)
-	msg.TxTypes = make([]common2.TxType, 0, count)
+	msg.TxTypes = make([]common2.TxType, 0)
+	count, err := common.ReadVarUint(r, 0)
+	if err != nil {
+		if err == io.EOF {
+			return nil
+		}
+		return err
+	}
+
 	for i := uint64(0); i < count; i++ {
 		var txType byte
 		err = common.ReadElement(r, &txType)

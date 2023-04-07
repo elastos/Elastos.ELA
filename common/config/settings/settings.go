@@ -6,7 +6,6 @@
 package settings
 
 import (
-	"errors"
 	"path/filepath"
 	"strings"
 
@@ -28,14 +27,15 @@ func (s *Settings) Viper() *viper.Viper {
 	return s.viper
 }
 
-func (s *Settings) loadConfigFile(files string, cfg config.Config) (*config.Configuration, error) {
+// ignore the error, for command line
+func (s *Settings) loadConfigFile(files string, cfg *config.Config) {
 	paths, fileName := filepath.Split(files)
 	fileExt := filepath.Ext(files)
 	s.viper.AddConfigPath(paths)
 	s.viper.SetConfigName(strings.TrimSuffix(fileName, fileExt))
 	s.viper.SetConfigType(strings.TrimPrefix(fileExt, "."))
 	if err := s.viper.ReadInConfig(); err != nil {
-		return &config.DefaultParams, errors.New("cannot read configuration" + err.Error())
+		return
 	}
 
 	crcArbiters := s.viper.Get("configuration.dposconfiguration.crcarbiters")
@@ -43,10 +43,7 @@ func (s *Settings) loadConfigFile(files string, cfg config.Config) (*config.Conf
 		cfg.DPoSConfiguration.CRCArbiters = []string{}
 	}
 
-	if err := s.viper.Unmarshal(&cfg); err != nil {
-		return &config.DefaultParams, errors.New("configuration files can't be loaded" + err.Error())
-	}
-	return cfg.Configuration, nil
+	s.viper.Unmarshal(&cfg)
 }
 
 func (s *Settings) SetupConfig(withScrew bool) *config.Configuration {
@@ -56,33 +53,27 @@ func (s *Settings) SetupConfig(withScrew bool) *config.Configuration {
 	functions.CreateTransaction = transaction.CreateTransaction
 	functions.GetTransactionParameters = transaction.GetTransactionparameters
 
-	params := config.Config{
+	conf := &config.Config{
 		Configuration: &config.DefaultParams,
 	}
-	// set mainNet params
-	conf := &config.Configuration{}
 	if withScrew {
-		screw.Bind(conf)
+		screw.Bind(conf.Configuration)
 	}
 	if conf.Conf == "" {
 		conf.Conf = config.ConfigFile
 	}
-	conf, _ = s.loadConfigFile(conf.Conf, params)
+	s.loadConfigFile(conf.Conf, conf)
 
 	// switch activeNet params
 	var testNet bool
 	switch strings.ToLower(conf.ActiveNet) {
 	case "testnet", "test":
 		testNet = true
-		testnet := config.Config{
-			Configuration: params.TestNet(),
-		}
-		conf, _ = s.loadConfigFile(conf.Conf, testnet)
+		conf.TestNet()
+		s.loadConfigFile(conf.Conf, conf)
 	case "regnet", "regtest", "reg":
-		regnet := config.Config{
-			Configuration: params.RegNet(),
-		}
-		conf, _ = s.loadConfigFile(conf.Conf, regnet)
+		conf.RegNet()
+		s.loadConfigFile(conf.Conf, conf)
 	}
 
 	if conf.MaxBlockSize > 0 {
@@ -103,11 +94,14 @@ func (s *Settings) SetupConfig(withScrew bool) *config.Configuration {
 
 	instantBlock := conf.PowConfiguration.InstantBlock
 	if instantBlock {
-		conf = conf.InstantBlock()
+		conf.Configuration = conf.InstantBlock()
 	}
-	conf = conf.Sterilize()
-	config.Parameters = conf
-	return conf
+	if withScrew {
+		screw.Bind(conf.Configuration)
+	}
+	conf.Configuration = conf.Sterilize()
+	config.Parameters = conf.Configuration
+	return conf.Configuration
 }
 
 func NewSettings() *Settings {

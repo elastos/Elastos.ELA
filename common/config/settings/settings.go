@@ -10,13 +10,12 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/RainFallsSilent/screw"
 	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/core/transaction"
 	"github.com/elastos/Elastos.ELA/core/types/functions"
 	"github.com/elastos/Elastos.ELA/elanet/pact"
 
-	// todo fork it to Elastos
-	"github.com/RainFallsSilent/screw"
 	"github.com/spf13/viper"
 )
 
@@ -32,7 +31,7 @@ func (s *Settings) Viper() *viper.Viper {
 func (s *Settings) loadConfigFile(files string, cfg config.Config) (*config.Configuration, error) {
 	paths, fileName := filepath.Split(files)
 	fileExt := filepath.Ext(files)
-	s.viper.AddConfigPath("./" + paths)
+	s.viper.AddConfigPath(paths)
 	s.viper.SetConfigName(strings.TrimSuffix(fileName, fileExt))
 	s.viper.SetConfigType(strings.TrimPrefix(fileExt, "."))
 	if err := s.viper.ReadInConfig(); err != nil {
@@ -57,12 +56,18 @@ func (s *Settings) SetupConfig(withScrew bool) *config.Configuration {
 	functions.CreateTransaction = transaction.CreateTransaction
 	functions.GetTransactionParameters = transaction.GetTransactionparameters
 
-	configFile := config.ConfigFile
 	params := config.Config{
 		Configuration: &config.DefaultParams,
 	}
 	// set mainNet params
-	conf, _ := s.loadConfigFile(configFile, params)
+	conf := &config.Configuration{}
+	if withScrew {
+		screw.Bind(conf)
+	}
+	if conf.Conf == "" {
+		conf.Conf = config.ConfigFile
+	}
+	conf, _ = s.loadConfigFile(conf.Conf, params)
 
 	// switch activeNet params
 	var testNet bool
@@ -72,12 +77,12 @@ func (s *Settings) SetupConfig(withScrew bool) *config.Configuration {
 		testnet := config.Config{
 			Configuration: params.TestNet(),
 		}
-		conf, _ = s.loadConfigFile(configFile, testnet)
+		conf, _ = s.loadConfigFile(conf.Conf, testnet)
 	case "regnet", "regtest", "reg":
 		regnet := config.Config{
 			Configuration: params.RegNet(),
 		}
-		conf, _ = s.loadConfigFile(configFile, regnet)
+		conf, _ = s.loadConfigFile(conf.Conf, regnet)
 	}
 
 	if conf.MaxBlockSize > 0 {
@@ -99,9 +104,6 @@ func (s *Settings) SetupConfig(withScrew bool) *config.Configuration {
 	instantBlock := conf.PowConfiguration.InstantBlock
 	if instantBlock {
 		conf = conf.InstantBlock()
-	}
-	if withScrew {
-		screw.Bind(conf)
 	}
 	conf = conf.Sterilize()
 	config.Parameters = conf

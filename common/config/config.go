@@ -515,6 +515,7 @@ func (p *Configuration) RegNet() *Configuration {
 
 // Configuration defines the configurable parameters to run a ELA node.
 type Configuration struct {
+	Conf          string `screw:"--conf" usage:"set the config file path"`
 	ActiveNet     string `json:"ActiveNet"`
 	Password      string `screw:"short;--password" usage:"password for keystore"`
 	DataDir       string `screw:"short;--datadir" usage:"block data and logs storage path default: elastos"`

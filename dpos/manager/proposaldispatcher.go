@@ -106,10 +106,10 @@ func (p *ProposalDispatcher) ProcessVote(v *payload.DPOSProposalVote,
 		return false, false
 	}
 
-	if anotherVote, legal := p.illegalMonitor.IsLegalVote(v); !legal {
-		p.illegalMonitor.ProcessIllegalVote(v, anotherVote)
-		return
-	}
+	//if anotherVote, legal := p.illegalMonitor.IsLegalVote(v); !legal {
+	//	p.illegalMonitor.ProcessIllegalVote(v, anotherVote)
+	//	return
+	//}
 
 	if accept {
 		return p.countAcceptedVote(v)
@@ -301,10 +301,10 @@ func (p *ProposalDispatcher) ProcessProposal(id peer.PID, d *payload.DPOSProposa
 		}
 	}
 
-	if anotherProposal, ok := p.illegalMonitor.IsLegalProposal(d); !ok {
-		p.illegalMonitor.ProcessIllegalProposal(d, anotherProposal)
-		return true, true
-	}
+	//if anotherProposal, ok := p.illegalMonitor.IsLegalProposal(d); !ok {
+	//	p.illegalMonitor.ProcessIllegalProposal(d, anotherProposal)
+	//	return true, true
+	//}
 
 	if !p.cfg.Consensus.IsArbitratorOnDuty(d.Sponsor) {
 		currentArbiter := p.cfg.Manager.GetArbitrators().GetNextOnDutyArbitrator(p.cfg.Consensus.GetViewOffset())

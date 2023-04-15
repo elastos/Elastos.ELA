@@ -281,12 +281,14 @@ func (pow *Service) GenerateBlock(minerAddr string,
 	txs := pow.txMemPool.GetTxsInPool()
 
 	isHighPriority := func(tx interfaces.Transaction) bool {
-		if tx.IsIllegalTypeTx() || tx.IsInactiveArbitrators() ||
+		if tx.IsRevertToPOW() || tx.IsRevertToDPOS() ||
+			tx.IsIllegalTypeTx() || tx.IsInactiveArbitrators() ||
 			tx.IsSideChainPowTx() || tx.IsUpdateVersion() ||
 			tx.IsActivateProducerTx() || tx.IsCRCAppropriationTx() ||
 			tx.IsCRAssetsRectifyTx() || tx.IsNextTurnDPOSInfoTx() {
 			return true
 		}
+
 		return false
 	}
 
@@ -302,6 +304,10 @@ func (pow *Service) GenerateBlock(minerAddr string,
 
 	var proposalsUsedAmount common.Fixed64
 	for _, tx := range txs {
+
+		if tx.IsIllegalProposalTx() || tx.IsIllegalVoteTx() {
+			continue
+		}
 
 		size := totalTxsSize + tx.GetSize()
 		if size > int(pact.MaxBlockContextSize) {

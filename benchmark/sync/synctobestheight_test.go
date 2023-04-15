@@ -278,7 +278,7 @@ func getSrcRunArgs() []string {
 
 func initDstSettings() *config.Configuration {
 	setting := settings.NewSettings()
-	config := setting.SetupConfig(true)
+	config := setting.SetupConfig(true, "", "")
 	setupLog(config)
 	return config
 }

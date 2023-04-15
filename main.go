@@ -43,9 +43,6 @@ import (
 	"github.com/elastos/Elastos.ELA/utils"
 	"github.com/elastos/Elastos.ELA/utils/elalog"
 	"github.com/elastos/Elastos.ELA/utils/signal"
-
-	// todo fork it to Elastos
-	"github.com/RainFallsSilent/screw"
 )
 
 const (
@@ -74,14 +71,11 @@ var (
 )
 
 func main() {
-	// Initialization
-	screw.SetAbout("Copyright (c) 2017-" +
-		fmt.Sprint(time.Now().Year()) + " The Elastos Foundation")
-	screw.SetVersion(nodePrefix + Version + GoVersion)
 
 	// Setting config
 	setting := settings.NewSettings()
-	config := setting.SetupConfig(true)
+	config := setting.SetupConfig(true, "Copyright (c) 2017-"+
+		fmt.Sprint(time.Now().Year())+" The Elastos Foundation", nodePrefix+Version+GoVersion)
 
 	// Use all processor cores.
 	runtime.GOMAXPROCS(runtime.NumCPU())

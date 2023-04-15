@@ -3,7 +3,7 @@ module github.com/elastos/Elastos.ELA
 go 1.16
 
 require (
-	github.com/RainFallsSilent/screw v1.1.0
+	github.com/RainFallsSilent/screw v1.1.1
 	github.com/btcsuite/btcd v0.22.0-beta
 	github.com/go-echarts/statsview v0.3.4
 	github.com/gorilla/websocket v1.4.2

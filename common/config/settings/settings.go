@@ -6,16 +6,14 @@
 package settings
 
 import (
-	"path/filepath"
-	"strings"
-
 	"github.com/RainFallsSilent/screw"
 	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/core/transaction"
 	"github.com/elastos/Elastos.ELA/core/types/functions"
 	"github.com/elastos/Elastos.ELA/elanet/pact"
-
 	"github.com/spf13/viper"
+	"path/filepath"
+	"strings"
 )
 
 type Settings struct {
@@ -46,7 +44,7 @@ func (s *Settings) loadConfigFile(files string, cfg *config.Config) {
 	s.viper.Unmarshal(&cfg)
 }
 
-func (s *Settings) SetupConfig(withScrew bool) *config.Configuration {
+func (s *Settings) SetupConfig(withScrew bool, about string, version string) *config.Configuration {
 	// Initialize functions
 	functions.GetTransactionByTxType = transaction.GetTransaction
 	functions.GetTransactionByBytes = transaction.GetTransactionByBytes
@@ -57,7 +55,7 @@ func (s *Settings) SetupConfig(withScrew bool) *config.Configuration {
 		Configuration: &config.DefaultParams,
 	}
 	if withScrew {
-		screw.Bind(conf.Configuration)
+		screw.Bind(conf.Configuration, version, about)
 	}
 	if conf.Conf == "" {
 		conf.Conf = config.ConfigFile
@@ -97,7 +95,7 @@ func (s *Settings) SetupConfig(withScrew bool) *config.Configuration {
 		conf.Configuration = conf.InstantBlock()
 	}
 	if withScrew {
-		screw.Bind(conf.Configuration)
+		screw.Bind(conf.Configuration, version, about)
 	}
 	conf.Configuration = conf.Sterilize()
 	config.Parameters = conf.Configuration

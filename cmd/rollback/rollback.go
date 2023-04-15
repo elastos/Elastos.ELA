@@ -48,7 +48,7 @@ func NewCommand() *cli.Command {
 }
 
 func rollbackAction(c *cli.Context) error {
-	config := appSettings.SetupConfig(false)
+	config := appSettings.SetupConfig(false, "", "")
 
 	if c.NumFlags() == 0 {
 		cli.ShowSubcommandHelp(c)

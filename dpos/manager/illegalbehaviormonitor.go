@@ -32,7 +32,7 @@ type IllegalBehaviorMonitor struct {
 }
 
 func (i *IllegalBehaviorMonitor) AddEvidence(evidence payload.DPOSIllegalData) {
-	i.evidenceCache.AddEvidence(evidence)
+	//i.evidenceCache.AddEvidence(evidence)
 }
 
 func (i *IllegalBehaviorMonitor) SetInactiveArbitratorsTxHash(

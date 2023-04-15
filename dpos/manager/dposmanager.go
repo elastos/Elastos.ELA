@@ -209,10 +209,10 @@ func (d *DPOSManager) isCRCArbiter() bool {
 }
 
 func (d *DPOSManager) ProcessHigherBlock(b *types.Block) {
-	if !d.illegalMonitor.IsBlockValid(b) {
-		log.Info("[ProcessHigherBlock] received block do not contains illegal evidence, block hash: ", b.Hash())
-		return
-	}
+	//if !d.illegalMonitor.IsBlockValid(b) {
+	//	log.Info("[ProcessHigherBlock] received block do not contains illegal evidence, block hash: ", b.Hash())
+	//	return
+	//}
 
 	if !d.consensus.IsOnDuty() {
 		log.Info("[ProcessHigherBlock] broadcast inv and try start new consensus")
@@ -527,7 +527,7 @@ func (d *DPOSManager) OnChangeView() {
 }
 
 func (d *DPOSManager) OnBlockReceived(b *types.Block, confirmed bool) {
-	log.Info("[OnBlockReceived] start hash %s IsCurrent %t", b.Hash().String(), d.server.IsCurrent())
+	log.Infof("[OnBlockReceived] start hash %s IsCurrent %t", b.Hash().String(), d.server.IsCurrent())
 	defer log.Info("[OnBlockReceived] end")
 	isCurArbiter := d.isCurrentArbiter()
 

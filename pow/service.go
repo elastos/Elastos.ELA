@@ -180,16 +180,19 @@ func (pow *Service) AssignCoinbaseTxRewards(block *types.Block, totalReward comm
 		block.Transactions[0].Outputs()[0].Value = rewardCyberRepublic
 		block.Transactions[0].Outputs()[1].Value = rewardMergeMiner
 
+		var dposRewardProgramHash common.Uint168
 		if pow.arbiters.IsInPOWMode() {
-
+			dposRewardProgramHash = *pow.chainParams.DestroyELAProgramHash
 			block.Transactions[0].Outputs()[0].ProgramHash = *pow.chainParams.DestroyELAProgramHash
+		} else {
+			dposRewardProgramHash = *pow.chainParams.DPoSConfiguration.DPoSV2RewardAccumulateProgramHash
 		}
 
 		if rewardDposArbiter > common.Fixed64(0) {
 			output := append(block.Transactions[0].Outputs(), &common2.Output{
 				AssetID:     core.ELAAssetID,
 				Value:       rewardDposArbiter,
-				ProgramHash: *pow.chainParams.DPoSConfiguration.DPoSV2RewardAccumulateProgramHash,
+				ProgramHash: dposRewardProgramHash,
 				Payload:     &outputpayload.DefaultOutput{},
 			})
 			block.Transactions[0].SetOutputs(output)
@@ -437,7 +440,7 @@ func (pow *Service) DiscreteMining(n uint32) ([]*common.Uint256, error) {
 					Block: msgBlock,
 				})
 				if err != nil {
-					continue
+					return blockHashes, nil
 				}
 
 				h := msgBlock.Hash()
@@ -452,6 +455,7 @@ func (pow *Service) DiscreteMining(n uint32) ([]*common.Uint256, error) {
 				}
 			}
 		}
+		return blockHashes, nil
 	}
 }
 

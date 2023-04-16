@@ -485,12 +485,18 @@ func (b *BlockChain) initChainState() error {
 					"found %s", curHash)
 			}
 
+			exists, err := dbTx.HasBlock(curHash)
+			if err != nil || !exists {
+				continue
+			}
+
 			// Initialize the block node for the block, connect it,
 			// and add it to the block index.
 			node, err := b.LoadBlockNode(header, &curHash)
 			if err != nil {
-				return fmt.Errorf("initChainState: Could "+
-					"not load block node for block %s", header.Hash())
+				log.Infof("initChainState: Could "+
+					"not load block node for block %s, height: %d, err: %s", header.Hash(), header.Height, err)
+				continue
 			}
 			node.Status = status
 
@@ -502,6 +508,7 @@ func (b *BlockChain) initChainState() error {
 		// are ancestors of the current chain tip, and find the real tip.
 		for iterNode := lastNode; iterNode != nil; iterNode = iterNode.Parent {
 			if iterNode.Status.KnownValid() {
+				log.Info("iterNode:", iterNode.Height, "hash:", iterNode.Hash.String())
 				b.setTip(iterNode)
 				break
 			}

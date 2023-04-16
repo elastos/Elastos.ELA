@@ -39,10 +39,11 @@ import (
 )
 
 const (
-	maxOrphanBlocks  = 10000
-	minMemoryNodes   = 20160
-	maxBlockLocators = 500
-	medianTimeBlocks = 11
+	maxOrphanBlocks    = 10000
+	minMemoryNodes     = 20160
+	maxBlockLocators   = 500
+	medianTimeBlocks   = 11
+	maxHistoryCapacity = 720
 )
 
 var (
@@ -85,6 +86,8 @@ type BlockChain struct {
 	TimeSource     MedianTimeSource
 	MedianTimePast time.Time
 	mutex          sync.RWMutex
+
+	AncestorBlock Block
 }
 
 func New(db IChainStore, chainParams *config.Configuration, state *state.State,
@@ -298,6 +301,8 @@ func (b *BlockChain) InitCheckpoint(interrupt <-chan struct{},
 		if barStart != nil && bestHeight >= startHeight {
 			barStart(bestHeight - startHeight)
 		}
+
+		var lastBlock Block
 		for i := startHeight; i <= bestHeight; i++ {
 			hash, e := b.GetBlockHash(i)
 			if e != nil {
@@ -308,6 +313,17 @@ func (b *BlockChain) InitCheckpoint(interrupt <-chan struct{},
 			if e != nil {
 				err = e
 				break
+			}
+
+			if b.AncestorBlock.Height == 0 && block.Height > b.chainParams.DPoSV2StartHeight {
+				// tod check block
+				err := b.CheckTransactions(block.Block)
+				if err != nil {
+					b.AncestorBlock = lastBlock
+					log.Info("transaction check error:", err)
+				} else {
+					lastBlock = *block.Block
+				}
 			}
 
 			if block.Height >= bestHeight-uint32(
@@ -328,6 +344,21 @@ func (b *BlockChain) InitCheckpoint(interrupt <-chan struct{},
 				increase()
 			}
 		}
+
+		log.Info("ancestor block height:", b.AncestorBlock.Height)
+		if b.AncestorBlock.Height != 0 {
+			log.Info("ReorganizeChain2 ancestor block height:", b.AncestorBlock.Height)
+			err := b.ReorganizeChain2(&b.AncestorBlock)
+			if err != nil {
+				log.Info("ReorganizeChain2 error:", err)
+				panic(err)
+			}
+
+			b.db.Close()
+			log.Info("###################### need to restart again ######################")
+			os.Exit(0)
+		}
+
 		done <- struct{}{}
 	}()
 	select {
@@ -1258,8 +1289,14 @@ func (b *BlockChain) getReorganizeNodes(node *BlockNode) (*list.List, *list.List
 	// so they are attached in the appropriate order when iterating the list
 	// later.
 	ancestor := node
+	nodesMap := make(map[Uint256]*BlockNode)
+	for _, n := range b.Nodes {
+		nodesMap[*n.Hash] = n
+	}
+
 	for ; ancestor.Parent != nil; ancestor = ancestor.Parent {
-		if ancestor.InMainChain {
+		if _, ok := nodesMap[*ancestor.Hash]; ok {
+			log.Info("ancestor:", ancestor.Height, "hash:", ancestor.Hash.String())
 			break
 		}
 		attachNodes.PushFront(ancestor)
@@ -1274,14 +1311,43 @@ func (b *BlockChain) getReorganizeNodes(node *BlockNode) (*list.List, *list.List
 	// Start from the end of the main chain and work backwards until the
 	// common ancestor adding each block to the list of nodes to detach from
 	// the main chain.
+	log.Info("bestChain:", b.BestChain.Height, "hash:", b.BestChain.Hash.String())
 	for n := b.BestChain; n != nil && n.Parent != nil; n = n.Parent {
 		if n.Hash.IsEqual(*ancestor.Hash) {
+			log.Info("equal hash:", n.Hash.String(), "height:", n.Height)
 			break
 		}
 		detachNodes.PushBack(n)
 	}
 
+	log.Info("getReorganizeNodes datachNodes:", detachNodes.Len(), "attachNodes:", attachNodes.Len())
 	return detachNodes, attachNodes
+}
+
+// reorganizeChain reorganizes the block chain by disconnecting the nodes in the
+// detachNodes list and connecting the nodes in the attach list.  It expects
+// that the lists are already in the correct order and are in sync with the
+// end of the current best chain.  Specifically, nodes that are being
+// disconnected must be in reverse order (think of popping them off
+// the end of the chain) and nodes the are being attached must be in forwards
+// order (think pushing them onto the end of the chain).
+func (b *BlockChain) reorganizeChain2(detachNodes *list.List) error {
+	// Disconnect blocks from the main chain.
+	for e := detachNodes.Front(); e != nil; e = e.Next() {
+		n := e.Value.(*BlockNode)
+		block, err := b.db.GetFFLDB().GetBlock(*n.Hash)
+		if err != nil {
+			continue
+		}
+
+		log.Info("disconnect block:", block.Height, "hash:", block.Hash())
+		err = b.disconnectBlock2(n, block.Block, block.Confirm)
+		if err != nil {
+			continue
+		}
+	}
+
+	return nil
 }
 
 // reorganizeChain reorganizes the block chain by disconnecting the nodes in the
@@ -1306,7 +1372,7 @@ func (b *BlockChain) reorganizeChain(detachNodes, attachNodes *list.List) error 
 
 	forkCount := detachNodes.Len()
 	var recoverFromDefault bool
-	if forkCount >= checkpoint.MaxCheckPointFilesCount {
+	if forkCount >= maxHistoryCapacity {
 		recoverFromDefault = true
 	}
 
@@ -1365,6 +1431,30 @@ func (b *BlockChain) reorganizeChain(detachNodes, attachNodes *list.List) error 
 		delete(b.blockCache, *n.Hash)
 		delete(b.confirmCache, *n.Hash)
 	}
+	return nil
+}
+
+// // disconnectBlock handles disconnecting the passed node/block from the end of
+// // the main (best) chain.
+func (b *BlockChain) disconnectBlock2(node *BlockNode, block *Block, confirm *payload.Confirm) error {
+	log.Info("disconnect block:", block.Height, "hash:", block.Hash())
+
+	// Remove the block from the database which houses the main chain.
+	prevNode, err := b.getPrevNodeFromNode(node)
+	if err != nil {
+		return err
+	}
+
+	b.db.GetFFLDB().Update(func(dbTx database.Tx) error {
+		log.Info("DBRemoveBlockNode start")
+		return DBRemoveBlockNode(dbTx, &block.Header)
+	})
+
+	err = b.db.RollbackBlock(block, node, confirm, CalcPastMedianTime(prevNode))
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -1503,6 +1593,7 @@ func (b *BlockChain) BlockExists(hash *Uint256) bool {
 	// Check memory chain first (could be main chain or side chain blocks).
 	//if _, ok := b.Index[*hash]; ok {
 	if _, ok := b.index.LookupNode(hash); ok {
+		// Check in database (rest of main chain not in memory).
 		return true
 	}
 
@@ -1721,6 +1812,36 @@ func (b *BlockChain) ReorganizeChain(block *Block) error {
 
 	log.Info("[ReorganizeChain] begin reorganize chain")
 	err := b.reorganizeChain(detachNodes, attachNodes)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// ReorganizeChain reorganize chain by specify a block, this method shall not
+// be called normally because it can cause reorganizing without node work sum
+// checking
+func (b *BlockChain) ReorganizeChain2(block *Block) error {
+	hash := block.Hash()
+	node, ok := b.index.LookupNode(&hash)
+	if !ok {
+		return errors.New("node of the reorganizing block does not exist")
+	}
+
+	detachNodes, attachNodes := b.getReorganizeNodes(node)
+
+	for _, v := range b.DepNodes {
+		for _, n := range v {
+			if n.Height > block.Height {
+				detachNodes.PushFront(n)
+			}
+		}
+	}
+
+	log.Info("[ReorganizeChain] begin reorganize chain, detachNodes count:",
+		detachNodes.Len(), "attachNodes count:", attachNodes.Len())
+	err := b.reorganizeChain2(detachNodes)
 	if err != nil {
 		return err
 	}

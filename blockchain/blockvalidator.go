@@ -340,6 +340,14 @@ func (b *BlockChain) CheckBlockContext(block *Block, prevNode *BlockNode) error 
 	return b.checkTxsContext(block)
 }
 
+func (b *BlockChain) CheckTransactions(block *Block) error {
+	if err := DefaultLedger.Arbitrators.CheckNextTurnDPOSInfoTx(block); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func CheckProofOfWork(header *common.Header, powLimit *big.Int) error {
 	// The target difficulty must be larger than zero.
 	target := CompactToBig(header.Bits)

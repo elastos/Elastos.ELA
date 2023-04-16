@@ -397,6 +397,7 @@ func (m *Manager) Init(chain IChain, interrupt <-chan struct{}) error {
 	// each block that needs to be indexed.
 	log.Infof("Catching up indexes from height %d to %d", lowestHeight,
 		bestHeight)
+
 	for height := lowestHeight + 1; height <= bestHeight; height++ {
 		// Load the block for the height since it is required to index it.
 		block, err := chain.GetBlockByHeight(uint32(height))

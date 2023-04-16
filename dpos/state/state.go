@@ -3802,8 +3802,14 @@ func (s *State) IsIrreversible(curBlockHeight uint32, detachNodesLen int) bool {
 	}
 
 	if curBlockHeight-uint32(detachNodesLen) <= s.LastIrreversibleHeight {
+		log.Debug("IsIrreversible curBlockHeight:", curBlockHeight,
+			"detachNodesLen:", detachNodesLen, "s.LastIrreversibleHeight:", s.LastIrreversibleHeight)
 		return true
 	}
+
+	log.Debug("IsIrreversible curBlockHeight:", curBlockHeight,
+		"RevertToPOWStartHeight:", s.ChainParams.DPoSConfiguration.RevertToPOWStartHeight,
+		"detachNodesLen", detachNodesLen, "ConsensusAlgorithm:", s.ConsensusAlgorithm.String())
 	if curBlockHeight >= s.ChainParams.DPoSConfiguration.RevertToPOWStartHeight {
 		if s.ConsensusAlgorithm == DPOS {
 			if detachNodesLen >= IrreversibleHeight {

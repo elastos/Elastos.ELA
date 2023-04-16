@@ -28,7 +28,7 @@ func (t *ExchangeVotesTransaction) HeightVersionCheck() error {
 	chainParams := t.parameters.Config
 
 	if blockHeight < chainParams.DPoSV2StartHeight {
-		log.Info("### blockHeight:", blockHeight, "DPoSV2StartHeight:", chainParams.DPoSV2StartHeight)
+		log.Debug("blockHeight:", blockHeight, "DPoSV2StartHeight:", chainParams.DPoSV2StartHeight)
 		return errors.New(fmt.Sprintf("not support %s transaction "+
 			"before DPoSV2StartHeight", t.TxType().Name()))
 	}

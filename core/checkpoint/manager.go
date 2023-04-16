@@ -135,20 +135,21 @@ func (m *Manager) OnBlockSaved(block *types.DposBlock,
 func (m *Manager) OnRollbackTo(height uint32, isPow bool) error {
 	m.mtx.Lock()
 	defer m.mtx.Unlock()
-	if isPow {
-		err := m.RestoreTo(int(height))
-		if err != nil {
-			log.Errorf("Error rollback to height %d , %s ", height, err.Error())
+	//if isPow {
+	//	err := m.RestoreTo(int(height))
+	//	if err != nil {
+	//		log.Errorf("Error rollback to height %d , %s ", height, err.Error())
+	//		return err
+	//	}
+	//} else {
+	sortedPoints := m.getOrderedCheckpoints()
+	for _, v := range sortedPoints {
+		if err := v.OnRollbackTo(height); err != nil {
+			log.Errorf("manager rollback failed,", err)
 			return err
 		}
-	} else {
-		sortedPoints := m.getOrderedCheckpoints()
-		for _, v := range sortedPoints {
-			if err := v.OnRollbackTo(height); err != nil {
-				log.Debug("manager rollback failed,", err)
-			}
-		}
 	}
+	//}
 	return nil
 }
 

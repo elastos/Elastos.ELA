@@ -8,6 +8,7 @@ package manager
 import (
 	"bytes"
 	"errors"
+	"github.com/elastos/Elastos.ELA/benchmark/common/utils"
 
 	"github.com/elastos/Elastos.ELA/blockchain"
 	"github.com/elastos/Elastos.ELA/common"
@@ -27,6 +28,8 @@ import (
 	"github.com/elastos/Elastos.ELA/dpos/p2p/peer"
 	"github.com/elastos/Elastos.ELA/dpos/state"
 )
+
+const RevertToDPosNonceRandomLength = 20
 
 type ProposalDispatcherConfig struct {
 	EventAnalyzerConfig
@@ -915,17 +918,16 @@ func (p *ProposalDispatcher) CreateRevertToDPOS(RevertToPOWBlockHeight uint32) (
 		return nil, err
 	}
 
-	programHash := con.ToProgramHash()
-
 	tx := functions.CreateTransaction(
 		common2.TxVersion09,
 		common2.RevertToDPOS,
 		payload.RevertToDPOSVersion,
 		revertToDPOSPayload,
-		[]*common2.Attribute{{
-			Usage: common2.Script,
-			Data:  programHash.Bytes(),
-		}},
+		[]*common2.Attribute{
+			{
+				Usage: common2.Nonce,
+				Data:  utils.RandomBytes(RevertToDPosNonceRandomLength),
+			}},
 		[]*common2.Input{},
 		[]*common2.Output{},
 		0,

@@ -8,18 +8,24 @@ package transaction
 import (
 	"errors"
 	"fmt"
-	program2 "github.com/elastos/Elastos.ELA/core/contract/program"
 
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/core"
 	"github.com/elastos/Elastos.ELA/core/contract"
+	program2 "github.com/elastos/Elastos.ELA/core/contract/program"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/outputpayload"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
+	"github.com/elastos/Elastos.ELA/dpos/state"
 	elaerr "github.com/elastos/Elastos.ELA/errors"
 )
 
 type ExchangeVotesTransaction struct {
 	BaseTransaction
+}
+
+func (t *ExchangeVotesTransaction) inPow() bool {
+	return t.parameters.BlockChain.GetState().GetConsensusAlgorithm() == state.POW
 }
 
 func (t *ExchangeVotesTransaction) HeightVersionCheck() error {
@@ -35,6 +41,11 @@ func (t *ExchangeVotesTransaction) HeightVersionCheck() error {
 }
 
 func (t *ExchangeVotesTransaction) CheckTransactionOutput() error {
+	if t.inPow() {
+		if len(t.Outputs()) > 2 {
+			return errors.New("output count should not be greater than 2")
+		}
+	}
 	if len(t.Outputs()) < 1 {
 		return errors.New("transaction has no outputs")
 	}
@@ -52,11 +63,12 @@ func (t *ExchangeVotesTransaction) CheckTransactionOutput() error {
 		if output.Value <= common.Fixed64(0) {
 			return errors.New("invalid transaction UTXO output")
 		}
-
-		if i >= 1 {
-			if contract.GetPrefixType(output.ProgramHash) != contract.PrefixStandard &&
-				contract.GetPrefixType(output.ProgramHash) != contract.PrefixMultiSig {
-				return errors.New("second output address need to be Standard or MultiSig")
+		if !t.inPow() {
+			if i >= 1 {
+				if contract.GetPrefixType(output.ProgramHash) != contract.PrefixStandard &&
+					contract.GetPrefixType(output.ProgramHash) != contract.PrefixMultiSig {
+					return errors.New("second output address need to be Standard or MultiSig")
+				}
 			}
 		}
 	}
@@ -71,6 +83,32 @@ func (t *ExchangeVotesTransaction) CheckTransactionOutput() error {
 	}
 	if err := p.Validate(); err != nil {
 		return err
+	}
+	//when we are in pow
+	if t.inPow() {
+		sopayload, ok := p.(*outputpayload.ExchangeVotesOutput)
+		if !ok {
+			return errors.New("invalid exchange vote output payload")
+		}
+		// check output[0] stake address
+		code := t.Programs()[0].Code
+		ct, err := contract.CreateStakeContractByCode(code)
+		if err != nil {
+			return errors.New("invalid code")
+		}
+		stakeProgramHash := ct.ToProgramHash()
+
+		if !stakeProgramHash.IsEqual(sopayload.StakeAddress) {
+			return errors.New("invalid stake address")
+		}
+		// check the second output
+		if len(t.Outputs()) == 2 {
+			if contract.GetPrefixType(t.Outputs()[1].ProgramHash) != contract.PrefixStandard &&
+				contract.GetPrefixType(t.Outputs()[1].ProgramHash) != contract.PrefixMultiSig {
+				return errors.New("second output address need to be Standard or MultiSig")
+			}
+		}
+
 	}
 
 	// check output address, need to be stake pool
@@ -97,11 +135,17 @@ func (t *ExchangeVotesTransaction) CheckAttributeProgram() error {
 			return fmt.Errorf("invalid attribute usage %v", attr.Usage)
 		}
 	}
-
-	// Check programs
-	if len(t.Programs()) < 1 {
-		return errors.New("transaction should have program")
+	if t.inPow() {
+		if len(t.Programs()) != 1 {
+			return errors.New("transaction should have one  program")
+		}
+	} else {
+		// Check programs
+		if len(t.Programs()) < 1 {
+			return errors.New("transaction should have program")
+		}
 	}
+
 	if t.Programs()[0].Code == nil {
 		return fmt.Errorf("invalid program code nil")
 	}

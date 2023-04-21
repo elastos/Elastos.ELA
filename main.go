@@ -307,6 +307,8 @@ func startNode(cfg *config.Configuration) {
 
 	log.Info("Start services")
 	if cfg.EnableRPC {
+		log.Info("Start rpc server, user:", chain.GetParams().RpcConfiguration.User,
+			"whit ip list:", chain.GetParams().RpcConfiguration.WhiteIPList)
 		go httpjsonrpc.StartRPCServer()
 	}
 	if cfg.HttpRestStart {

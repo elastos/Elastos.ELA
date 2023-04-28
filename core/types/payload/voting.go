@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/core/types/outputpayload"
@@ -308,6 +309,11 @@ func (v *DetailedVoteInfo) bytes() []byte {
 		i.Serialize(buf, v.PayloadVersion)
 	}
 	return buf.Bytes()
+}
+
+func (v *DetailedVoteInfo) VoteRights() common.Fixed64 {
+	weightF := math.Log10(float64(v.Info[0].LockTime-v.BlockHeight) / 7200 * 10)
+	return common.Fixed64(float64(v.Info[0].Votes) * weightF)
 }
 
 func (v *DetailedVoteInfo) ReferKey() common.Uint256 {

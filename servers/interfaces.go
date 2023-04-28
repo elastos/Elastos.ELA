@@ -524,7 +524,7 @@ func GetAllDetailedDPoSV2Votes(params Params) map[string]interface{} {
 						Votes:     v1.Info[0].Votes.String(),
 						LockTime:  v1.Info[0].LockTime,
 					},
-					DPoSV2VoteRights: common.Fixed64(p.GetTotalDPoSV2VoteRights()).String(),
+					DPoSV2VoteRights: v1.VoteRights().String(),
 				}
 				result = append(result, info)
 			}

@@ -326,9 +326,13 @@ func (b *BlockChain) InitCheckpoint(interrupt <-chan struct{},
 				}
 			}
 
-			if block.Height >= bestHeight-uint32(
-				b.chainParams.DPoSConfiguration.NormalArbitratorsCount+len(b.chainParams.DPoSConfiguration.CRCArbiters)) {
+			if block.Height >= b.chainParams.DPoSV2StartHeight {
 				CalculateTxsFee(block.Block)
+			} else {
+				if block.Height >= bestHeight-uint32(
+					b.chainParams.DPoSConfiguration.NormalArbitratorsCount+len(b.chainParams.DPoSConfiguration.CRCArbiters)) {
+					CalculateTxsFee(block.Block)
+				}
 			}
 
 			if e = PreProcessSpecialTx(block.Block); e != nil {

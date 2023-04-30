@@ -2679,6 +2679,7 @@ func (s *State) processCreateNFT(tx interfaces.Transaction, height uint32) {
 					ct, _ := contract.CreateStakeContractByCode(nftID.Bytes())
 					nftStakeAddress := ct.ToProgramHash()
 					nftAmount := detailVoteInfo.Info[0].Votes
+					originDetailVoteInfo := detailVoteInfo
 					s.History.Append(height, func() {
 						if _, ok := producer.detailedDPoSV2Votes[*nftStakeAddress]; !ok {
 							producer.detailedDPoSV2Votes[*nftStakeAddress] = make(map[common.Uint256]payload.DetailedVoteInfo)
@@ -2699,9 +2700,8 @@ func (s *State) processCreateNFT(tx interfaces.Transaction, height uint32) {
 						s.UsedDposV2Votes[*nftStakeAddress] += nftAmount
 						s.DposV2VoteRights[*nftStakeAddress] += nftAmount
 					}, func() {
-						producer.detailedDPoSV2Votes[*nftStakeAddress][referKey] = detailVoteInfo
 						delete(producer.detailedDPoSV2Votes[*nftStakeAddress], referKey)
-						producer.detailedDPoSV2Votes[stakeAddress][nftPayload.ReferKey] = detailVoteInfo
+						producer.detailedDPoSV2Votes[stakeAddress][nftPayload.ReferKey] = originDetailVoteInfo
 						// process total vote rights
 						s.DposV2VoteRights[stakeAddress] += nftAmount
 						s.UsedDposV2Votes[stakeAddress] += nftAmount
@@ -2879,6 +2879,7 @@ func (s *State) processNFTDestroyFromSideChain(tx interfaces.Transaction, height
 						strOwnerStakeAddress, _ := newOwnerStakeAddress.ToAddress()
 						oriRewardsInfo := s.DPoSV2RewardInfo[strNFTStakeAddress]
 						nftAmount := detailVoteInfo.Info[0].Votes
+						originDetailVoteInfo := detailVoteInfo
 						s.History.Append(height, func() {
 							s.UsedDposV2Votes[stakeAddress] -= nftAmount
 							s.DposV2VoteRights[stakeAddress] -= nftAmount
@@ -2914,7 +2915,7 @@ func (s *State) processNFTDestroyFromSideChain(tx interfaces.Transaction, height
 							if len(producer.detailedDPoSV2Votes[stakeAddress]) == 0 {
 								producer.detailedDPoSV2Votes[stakeAddress] = make(map[common.Uint256]payload.DetailedVoteInfo)
 							}
-							producer.detailedDPoSV2Votes[stakeAddress][referKey] = detailVoteInfo
+							producer.detailedDPoSV2Votes[stakeAddress][referKey] = originDetailVoteInfo
 							//remove owner's detailVoteInfo
 							delete(producer.detailedDPoSV2Votes[newOwnerStakeAddress], referKey)
 							s.DPoSV2RewardInfo[strOwnerStakeAddress] -= s.DPoSV2RewardInfo[strNFTStakeAddress]

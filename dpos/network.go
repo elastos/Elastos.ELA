@@ -8,7 +8,6 @@ package dpos
 import (
 	"bytes"
 	"errors"
-	"github.com/elastos/Elastos.ELA/common"
 	"net"
 	"sync"
 
@@ -123,18 +122,14 @@ func (n *network) UpdatePeers(currentPeers []peer.PID, nextPeers []peer.PID) {
 		"next peers:", len(nextPeers), " height: ",
 		blockchain.DefaultLedger.Blockchain.GetHeight())
 
-	log.Info("### my publickey:", common.BytesToHexString(n.publicKey))
-
-	for i, p := range currentPeers {
-		log.Info("### current peers pk[", i, "]:", common.BytesToHexString(p[:]))
+	for _, p := range currentPeers {
 		if bytes.Equal(n.publicKey, p[:]) {
 			n.p2pServer.ConnectPeers(currentPeers, nextPeers)
 			return
 		}
 	}
 
-	for i, p := range nextPeers {
-		log.Info("### next peers pk[", i, "]:", common.BytesToHexString(p[:]))
+	for _, p := range nextPeers {
 		if bytes.Equal(n.publicKey, p[:]) {
 			n.p2pServer.ConnectPeers(currentPeers, nextPeers)
 			return

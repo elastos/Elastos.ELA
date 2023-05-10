@@ -1301,6 +1301,14 @@ func (s *State) ProcessBlock(block *types.Block, confirm *payload.Confirm, dutyI
 		}
 	}
 
+	// todo remove me
+	if block.Height > s.ChainParams.DPoSV2StartHeight {
+		msg2.SetPayloadVersion(msg2.DPoSV2Version)
+	}
+
+	// Commit changes here if no errors found.
+	s.History.Commit(block.Height)
+
 	if block.Height >= s.ChainParams.DPoSV2StartHeight &&
 		len(s.WithdrawableTxInfo) != 0 {
 		s.createDposV2ClaimRewardRealWithdrawTransaction(block.Height)
@@ -1310,14 +1318,6 @@ func (s *State) ProcessBlock(block *types.Block, confirm *payload.Confirm, dutyI
 		len(s.VotesWithdrawableTxInfo) != 0 {
 		s.createRealWithdrawTransaction(block.Height)
 	}
-
-	// todo remove me
-	if block.Height > s.ChainParams.DPoSV2StartHeight {
-		msg2.SetPayloadVersion(msg2.DPoSV2Version)
-	}
-
-	// Commit changes here if no errors found.
-	s.History.Commit(block.Height)
 }
 
 func (s *State) createRealWithdrawTransaction(height uint32) {

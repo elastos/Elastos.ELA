@@ -194,6 +194,7 @@ func GetDefaultParams() *Configuration {
 			CandidatesCount:                   72,
 			DPoSV2RewardAccumulateProgramHash: StakeRewardProgramHash,
 			NFTStartHeight:                    1405000,
+			DexStartHeight:                    math.MaxUint32, // todo complete me
 			OriginArbiters: []string{
 				"0248df6705a909432be041e0baa25b8f648741018f70d1911f2ed28778db4b8fe4",
 				"02771faf0f4d4235744b30972d5f2c470993920846c761e4d08889ecfdc061cddf",
@@ -352,7 +353,7 @@ func (p *Configuration) TestNet() *Configuration {
 	p.DPoSConfiguration.NoCRCDPOSNodeHeight = 815060
 	p.DPoSConfiguration.RandomCandidatePeriod = 36 * 10
 	p.DPoSConfiguration.MaxInactiveRoundsOfRandomNode = 36 * 8
-	p.DPoSConfiguration.DPOSNodeCrossChainHeight = 2000000 // todo complete me
+	p.DPoSConfiguration.DPOSNodeCrossChainHeight = math.MaxUint32 // todo complete me
 	p.MaxReservedCustomIDLength = 255
 	p.DPoSConfiguration.RevertToPOWNoBlockTime = 12 * 3600
 	p.DPoSConfiguration.StopConfirmBlockTime = 11 * 3600
@@ -380,6 +381,7 @@ func (p *Configuration) TestNet() *Configuration {
 	p.CrossChainMonitorInterval = 100
 	p.CRConfiguration.CRClaimPeriod = 10080
 	p.DPoSConfiguration.NFTStartHeight = 1098000
+	p.DPoSConfiguration.DexStartHeight = math.MaxUint32 // todo complete me
 
 	p.HttpInfoPort = 21333
 	p.HttpRestPort = 21334
@@ -472,7 +474,7 @@ func (p *Configuration) RegNet() *Configuration {
 	p.DPoSConfiguration.NoCRCDPOSNodeHeight = 706240
 	p.DPoSConfiguration.RandomCandidatePeriod = 36 * 10
 	p.DPoSConfiguration.MaxInactiveRoundsOfRandomNode = 36 * 8
-	p.DPoSConfiguration.DPOSNodeCrossChainHeight = 2000000 // todo complete me
+	p.DPoSConfiguration.DPOSNodeCrossChainHeight = math.MaxUint32 // todo complete me
 	p.MaxReservedCustomIDLength = 255
 	p.DPoSConfiguration.RevertToPOWNoBlockTime = 12 * 3600
 	p.DPoSConfiguration.StopConfirmBlockTime = 11 * 3600
@@ -507,6 +509,7 @@ func (p *Configuration) RegNet() *Configuration {
 	p.ProducerSchnorrStartHeight = math.MaxUint32
 	p.CRSchnorrStartHeight = math.MaxUint32
 	p.VotesSchnorrStartHeight = math.MaxUint32
+	p.DPoSConfiguration.DexStartHeight = math.MaxUint32 // todo complete me
 
 	p.MemoryPoolTxMaximumStayHeight = 10
 
@@ -719,7 +722,9 @@ type DPoSConfiguration struct {
 	// CRDPoSNodeHotFixHeight indicates the hot fix start height of CR DPoS node
 	CRDPoSNodeHotFixHeight uint32 `screw:"--crdposnodehotfixheight" usage:"CRDPoSNodeHotFixHeight indicates the hot fix start height of CR DPoS node"`
 	// NFTStartHeight defines the height of NFT started.
-	NFTStartHeight uint32 `screw:"--nftstartheight" usage:"the start height of NFT transaction"`
+	NFTStartHeight uint32 `screw:"--nftstartheight" usage:"the starting height of NFT transaction"`
+	// DexStartHeight defines the height of DEX started.
+	DexStartHeight uint32 `screw:"--dexstartheight" usage:"the starting height of Dex support"`
 }
 
 type CRConfiguration struct {

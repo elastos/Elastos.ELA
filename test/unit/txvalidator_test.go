@@ -7500,7 +7500,8 @@ func (s *txValidatorTestSuite) TestCreateCRClaimDposV2Transaction() {
 	})
 
 	err, _ = tx.SpecialContextCheck()
-	s.EqualError(err.(errors.ELAError).InnerError(), "claim reward exceeded , max claim reward 0.00000100")
+	s.EqualError(err.(errors.ELAError).InnerError(), "claim reward " +
+		"exceeded , max claim reward 0.00000100 current:0.00000100")
 
 	bc = s.Chain
 	bc.GetState().DPoSV2RewardInfo[stakeAddr] = 10000000000

@@ -40,14 +40,15 @@ func RegisterTransactionType(L *lua.LState) {
 }
 
 // Constructor
-//  Version		   TransactionVersion
-//	TxType         TxType
-//	PayloadVersion byte
-//	Payload        Payload
-//	Attributes     []*Attribute
-//	Inputs     	   []*Input
-//	Outputs        []*Output
-//	LockTime       uint32
+//
+//	 Version		   TransactionVersion
+//		TxType         TxType
+//		PayloadVersion byte
+//		Payload        Payload
+//		Attributes     []*Attribute
+//		Inputs     	   []*Input
+//		Outputs        []*Output
+//		LockTime       uint32
 func newTransaction(L *lua.LState) int {
 	version := L.ToInt(1)
 	txType := common2.TxType(L.ToInt(2))
@@ -183,19 +184,21 @@ func checkTransaction(L *lua.LState, idx int) interfaces.Transaction {
 }
 
 var transactionMethods = map[string]lua.LGFunction{
-	"appendtxin":    txAppendInput,
-	"appendtxout":   txAppendOutput,
-	"appendattr":    txAppendAttribute,
-	"get":           txGet,
-	"sign":          signTx,
-	"multisign":     multiSignTx,
-	"signschnorr":   signSchnorrTx,
-	"hash":          txHash,
-	"serialize":     serialize,
-	"deserialize":   deserialize,
-	"appendenough":  appendEnough,
-	"appendprogram": appendProgram,
-	"signpayload":   signPayload,
+	"appendtxin":             txAppendInput,
+	"appendtxout":            txAppendOutput,
+	"appendattr":             txAppendAttribute,
+	"get":                    txGet,
+	"sign":                   signTx,
+	"multisign":              multiSignTx,
+	"signschnorr":            signSchnorrTx,
+	"hash":                   txHash,
+	"serialize":              serialize,
+	"deserialize":            deserialize,
+	"appendenough":           appendEnough,
+	"appendenoughmultiinput": appendEnoughMultiInput,
+	"appendprogram":          appendProgram,
+	"signpayload":            signPayload,
+	"multiprogramssigntx":    multiProgramsSignTx,
 }
 
 func signPayload(L *lua.LState) int {
@@ -350,6 +353,34 @@ func signTx(L *lua.LState) int {
 	return 0
 }
 
+func multiProgramsSignTx(L *lua.LState) int {
+	txn := checkTransaction(L, 1)
+	client, err := checkClient(L, 2)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
+	var programs []*pg.Program
+	for _, account := range client.GetAccounts() {
+		program := pg.Program{
+			Code:      account.RedeemScript,
+			Parameter: []byte{},
+		}
+		programs = append(programs, &program)
+	}
+
+	txn.SetPrograms(programs)
+
+	txn, err = client.Sign(txn)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
+	return 0
+}
+
 func signSchnorrTx(L *lua.LState) int {
 	txn := checkTransaction(L, 1)
 	account, err := checkAccount(L, 2)
@@ -461,6 +492,72 @@ func appendEnough(L *lua.LState) int {
 	}
 
 	txn.SetInputs(txInputs)
+	L.Push(lua.LNumber(charge))
+
+	return 1
+}
+
+func appendEnoughMultiInput(L *lua.LState) int {
+	txn := checkTransaction(L, 1)
+	from := L.ToString(2)
+	totalAmount := L.ToInt64(3)
+	result, err := cmdcom.RPCCall("listunspent", http.Params{
+		"addresses": []string{from},
+	})
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+	data, err := json.Marshal(result)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+	var utxos []servers.UTXOInfo
+	err = json.Unmarshal(data, &utxos)
+
+	var availabelUtxos []servers.UTXOInfo
+	for _, utxo := range utxos {
+		if common2.TxType(utxo.TxType) == common2.CoinBase && utxo.Confirmations < 101 {
+			continue
+		}
+		availabelUtxos = append(availabelUtxos, utxo)
+	}
+
+	//totalAmount := common.Fixed64(0)
+	var charge int64
+	// Create transaction inputs
+	var txInputs []*common2.Input // The inputs in transaction
+	for _, utxo := range availabelUtxos {
+		txIDReverse, _ := hex.DecodeString(utxo.TxID)
+		txID, _ := common.Uint256FromBytes(common.BytesReverse(txIDReverse))
+		input := &common2.Input{
+			Previous: common2.OutPoint{
+				TxID:  *txID,
+				Index: uint16(utxo.VOut),
+			},
+			Sequence: 4294967295,
+		}
+		txInputs = append(txInputs, input)
+		amount, _ := common.StringToFixed64(utxo.Amount)
+		if int64(*amount) < totalAmount {
+			totalAmount -= int64(*amount)
+		} else if int64(*amount) == totalAmount {
+			totalAmount = 0
+			break
+		} else if int64(*amount) > totalAmount {
+			charge = int64(*amount) - totalAmount
+			totalAmount = 0
+			break
+		}
+	}
+
+	if totalAmount > 0 {
+		fmt.Println("[Wallet], Available token is not enough")
+		os.Exit(1)
+	}
+
+	txn.SetInputs(append(txn.Inputs(), txInputs...))
 	L.Push(lua.LNumber(charge))
 
 	return 1

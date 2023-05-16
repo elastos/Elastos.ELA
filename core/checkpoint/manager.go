@@ -305,8 +305,6 @@ func (m *Manager) onBlockSaved(block *types.DposBlock,
 	filter func(point ICheckPoint) bool, async bool, isPow bool, revertToPowHeight uint32, init bool) {
 
 	sortedPoints := m.getOrderedCheckpoints()
-	var saveCheckPoint bool
-	var useCheckPoint bool
 
 	for _, v := range sortedPoints {
 		if filter != nil && !filter(v) {
@@ -327,30 +325,18 @@ func (m *Manager) onBlockSaved(block *types.DposBlock,
 			if !async {
 				<-reply
 			}
-		} else if originalHeight > 0 &&
-			(v.Key() != dposCheckpointKey && block.Height ==
-				originalHeight+v.EffectivePeriod() ||
-				v.Key() == dposCheckpointKey && useCheckPoint) {
+		} else if originalHeight > 0 && block.Height ==
+			originalHeight+v.EffectivePeriod() {
 
 			reply := make(chan bool, 1)
-			if v.Key() == dposCheckpointKey || v.Key() == crCheckpointKey {
-				m.channels[v.Key()].ReplaceRemove(v, reply, originalHeight)
-			} else {
-				m.channels[v.Key()].Replace(v, reply, originalHeight)
-			}
+			m.channels[v.Key()].Replace(v, reply, originalHeight)
 			if !async {
 				<-reply
 			}
-			if v.Key() == crCheckpointKey {
-				useCheckPoint = true
-			} else if v.Key() == dposCheckpointKey {
-				useCheckPoint = false
-			}
 		}
 
-		if v.Key() != dposCheckpointKey && block.Height >=
-			originalHeight+v.SavePeriod() ||
-			v.Key() == dposCheckpointKey && saveCheckPoint || isPow {
+		if block.Height >=
+			originalHeight+v.SavePeriod() {
 			v.SetHeight(block.Height)
 			snapshot := v.Snapshot()
 			if snapshot == nil {
@@ -358,20 +344,9 @@ func (m *Manager) onBlockSaved(block *types.DposBlock,
 				continue
 			}
 			reply := make(chan bool, 1)
-			if v.Key() == dposCheckpointKey || v.Key() == crCheckpointKey {
-				if isPow && block.Height-revertToPowHeight > uint32(MaxCheckPointFilesCount) {
-					m.channels[v.Key()].Remove(v, reply, block.Height-uint32(MaxCheckPointFilesCount))
-					<-reply
-				}
-			}
 			m.channels[v.Key()].Save(snapshot, reply)
 			if !async {
 				<-reply
-			}
-			if v.Key() == crCheckpointKey {
-				saveCheckPoint = true
-			} else if v.Key() == dposCheckpointKey {
-				saveCheckPoint = false
 			}
 		}
 	}

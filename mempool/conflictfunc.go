@@ -220,7 +220,7 @@ func strCancelProducerOwnerPublicKey(tx interfaces.Transaction) (interface{},
 			"cancel producer payload cast failed, tx:%s", tx.Hash())
 		return nil, errors.Simple(errors.ErrTxPoolFailure, err)
 	}
-	return common.BytesToHexString(p.OwnerPublicKey), nil
+	return common.BytesToHexString(p.OwnerKey), nil
 }
 
 func strActivateAndCancelKeys(tx interfaces.Transaction) (interface{},
@@ -238,7 +238,7 @@ func strProducerInfoOwnerPublicKey(tx interfaces.Transaction) (interface{}, erro
 	if err != nil {
 		return nil, err
 	}
-	return common.BytesToHexString(p.OwnerPublicKey), nil
+	return common.BytesToHexString(p.OwnerKey), nil
 }
 
 func strProducerInfoNodePublicKey(tx interfaces.Transaction) (interface{}, error) {
@@ -381,7 +381,8 @@ func strRegisterCRPublicKey(tx interfaces.Transaction) (interface{}, error) {
 	}
 
 	var code []byte
-	if tx.PayloadVersion() == payload.CRInfoSchnorrVersion {
+	if tx.PayloadVersion() == payload.CRInfoSchnorrVersion ||
+		tx.PayloadVersion() == payload.CRInfoMultiSignVersion {
 		code = tx.Programs()[0].Code
 	} else {
 		code = p.Code
@@ -391,7 +392,9 @@ func strRegisterCRPublicKey(tx interfaces.Transaction) (interface{}, error) {
 		return nil, err
 	}
 
-	if signType == vm.CHECKSIG {
+	if signType == vm.CHECKMULTISIG {
+		return hex.EncodeToString(p.Code), nil
+	} else if signType == vm.CHECKSIG {
 		return hex.EncodeToString(p.Code[1 : len(p.Code)-1]), nil
 	} else if bytes.Equal(p.Code, []byte{}) && contract.IsSchnorr(code) {
 		return hex.EncodeToString(code[2:]), nil
@@ -587,7 +590,7 @@ func strDPoSOwnerNodePublicKeys(tx interfaces.Transaction) (interface{}, error) 
 	}
 	result := make([]string, 0, 2)
 
-	ownerPubkeyStr := common.BytesToHexString(p.OwnerPublicKey)
+	ownerPubkeyStr := common.BytesToHexString(p.OwnerKey)
 	result = append(result, ownerPubkeyStr)
 
 	nodePubkeyStr := common.BytesToHexString(p.NodePublicKey)

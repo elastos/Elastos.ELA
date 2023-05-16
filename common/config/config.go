@@ -254,6 +254,7 @@ func GetDefaultParams() *Configuration {
 		VotesSchnorrStartHeight:         math.MaxUint32,
 		CrossChainMonitorStartHeight:    math.MaxUint32,
 		CrossChainMonitorInterval:       100,
+		SupportMultiCodeHeight:          2000,                 // todo complete me
 		HttpInfoPort:                    20333,
 		HttpRestPort:                    20334,
 		HttpWsPort:                      20335,
@@ -368,6 +369,7 @@ func (p *Configuration) TestNet() *Configuration {
 	p.ProhibitTransferToDIDHeight = 807000
 	p.DIDSideChainAddress = "XKUh4GLhFJiqAMTF6HyWQrV9pK9HcGUdfJ"
 	p.DPoSV2StartHeight = 965800 + 720*3
+	p.SupportMultiCodeHeight = 2000
 	p.DPoSV2EffectiveVotes = 3000 * 100000000
 	p.DPoSConfiguration.DPoSV2DepositCoinMinLockTime = 7200 * 3
 	p.DPoSConfiguration.DPoSV2MinVotesLockTime = 7200
@@ -488,6 +490,7 @@ func (p *Configuration) RegNet() *Configuration {
 	p.ProhibitTransferToDIDHeight = 730000
 	p.DIDSideChainAddress = "XKUh4GLhFJiqAMTF6HyWQrV9pK9HcGUdfJ"
 	p.DPoSV2StartHeight = 875544 + 720*2
+	p.SupportMultiCodeHeight = 2000
 	p.DPoSV2EffectiveVotes = 300000000000
 	p.DPoSConfiguration.DPoSV2DepositCoinMinLockTime = 7200 * 3
 	p.DPoSConfiguration.DPoSV2MinVotesLockTime = 7200
@@ -623,6 +626,8 @@ type Configuration struct {
 	ReturnCrossChainCoinStartHeight uint32 `screw:"--returncrosschaincoinstartheight" usage:"defines the start height to support ReturnCrossChainDepositCoin transaction"`
 	// DPoSV2StartHeight defines the start height of dpos 2.0.
 	DPoSV2StartHeight uint32 `screw:"--dposv2startheight" usage:"defines the start height to support DPoSV2 transaction"`
+	// multicode support height
+	SupportMultiCodeHeight uint32 `screw:"--supportmulticodeheight" usage:"defines the support height of multicode transaction"`
 	// DPoSV2EffectiveVotes defines the votes which producer will become a dposV2 effective node
 	DPoSV2EffectiveVotes common.Fixed64 `screw:"--dposv2effectivevotes" usage:"defines the minimum votes to active a DposV2 producer"`
 	// ExchangeVotes address of votes

@@ -23,8 +23,8 @@ type CRCProposalWithdraw struct {
 	// Hash of the proposal to withdrawal ela.
 	ProposalHash common.Uint256
 
-	// Public key of proposal owner.
-	OwnerPublicKey []byte
+	// Public key or  multisign code of proposal owner.
+	OwnerKey []byte
 
 	// The specified ELA address where the funds will be sent.
 	Recipient common.Uint168
@@ -63,7 +63,7 @@ func (p *CRCProposalWithdraw) SerializeUnsigned(w io.Writer, version byte) error
 		return err
 	}
 
-	if err := common.WriteVarBytes(w, p.OwnerPublicKey); err != nil {
+	if err := common.WriteVarBytes(w, p.OwnerKey); err != nil {
 		return err
 	}
 
@@ -85,7 +85,7 @@ func (p *CRCProposalWithdraw) Deserialize(r io.Reader, version byte) error {
 	if err != nil {
 		return err
 	}
-	p.Signature, err = common.ReadVarBytes(r, crypto.MaxSignatureScriptLength, "sign")
+	p.Signature, err = common.ReadVarBytes(r, crypto.NegativeBigLength, "sign")
 	if err != nil {
 		return errors.New("[CRCProposalWithdraw], Signature deserialize failed")
 	}
@@ -103,7 +103,7 @@ func (p *CRCProposalWithdraw) DeserializeUnsigned(r io.Reader,
 	if err != nil {
 		return err
 	}
-	p.OwnerPublicKey = ownerPublicKey
+	p.OwnerKey = ownerPublicKey
 
 	if version == CRCProposalWithdrawVersion01 {
 		if err := p.Recipient.Deserialize(r); err != nil {

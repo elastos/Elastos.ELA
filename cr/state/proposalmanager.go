@@ -652,7 +652,7 @@ func (p *ProposalManager) registerProposal(tx interfaces.Transaction,
 		FinalPaymentStatus:  false,
 		TrackingCount:       0,
 		TerminatedHeight:    0,
-		ProposalOwner:       proposal.OwnerPublicKey,
+		ProposalOwner:       proposal.OwnerKey,
 		Recipient:           proposal.Recipient,
 	}
 	crCouncilMemberDID := proposal.CRCouncilMemberDID
@@ -862,7 +862,7 @@ func (p *ProposalManager) proposalTracking(tx interfaces.Transaction,
 			}
 			proposalState.BudgetsStatus[proposalTracking.Stage] = Rejected
 		case payload.ChangeOwner:
-			proposalState.ProposalOwner = proposalTracking.NewOwnerPublicKey
+			proposalState.ProposalOwner = proposalTracking.NewOwnerKey
 		case payload.Terminated:
 			proposalState.TerminatedHeight = height
 			proposalState.Status = Terminated

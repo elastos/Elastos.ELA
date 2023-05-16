@@ -148,7 +148,7 @@ func (t *DPoSV2ClaimRewardTransaction) checkClaimRewardSignature(code []byte, si
 		}
 	} else if signType == vm.CHECKMULTISIG {
 		// check code and signature
-		if err := blockchain.CheckMultiSigSignatures(program.Program{
+		if err := crypto.CheckMultiSigSignatures(program.Program{
 			Code:      code,
 			Parameter: signature,
 		}, data); err != nil {

@@ -101,8 +101,8 @@ func TestArbitrators_GetNormalArbitratorsDesc(t *testing.T) {
 			common2.RegisterProducer,
 			0,
 			&payload.ProducerInfo{
-				OwnerPublicKey: arbitratorList[i],
-				NodePublicKey:  arbitratorList[i],
+				OwnerKey:      arbitratorList[i],
+				NodePublicKey: arbitratorList[i],
 			},
 			[]*common2.Attribute{},
 			[]*common2.Input{},
@@ -143,8 +143,8 @@ func TestArbitrators_GetNormalArbitratorsDesc(t *testing.T) {
 		common2.RegisterProducer,
 		0,
 		&payload.ProducerInfo{
-			OwnerPublicKey: arbitratorList[4],
-			NodePublicKey:  arbitratorList[4],
+			OwnerKey:      arbitratorList[4],
+			NodePublicKey: arbitratorList[4],
 		},
 		[]*common2.Attribute{},
 		[]*common2.Input{},

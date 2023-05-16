@@ -221,7 +221,7 @@ func signPayload(L *lua.LState) int {
 			cmdcom.PrintErrorAndExit(err.Error())
 		}
 
-		codeHash, err := contract.PublicKeyToStandardCodeHash(producerInfo.OwnerPublicKey)
+		codeHash, err := contract.PublicKeyToStandardCodeHash(producerInfo.OwnerKey)
 		if err != nil {
 			cmdcom.PrintErrorAndExit(err.Error())
 		}
@@ -301,6 +301,9 @@ func multiSignTx(L *lua.LState) int {
 	pks := make([]*crypto.PublicKey, 0)
 	accs := client.GetAccounts()
 	for _, acc := range accs {
+		if acc.PublicKey == nil {
+			continue
+		}
 		pks = append(pks, acc.PublicKey)
 	}
 

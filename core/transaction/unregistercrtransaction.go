@@ -67,7 +67,8 @@ func (t *UnregisterCRTransaction) SpecialContextCheck() (elaerr.ELAError, bool) 
 	if err != nil {
 		return elaerr.Simple(elaerr.ErrTxPayload, err), true
 	}
-	if t.payloadVersion != payload.UnregisterCRSchnorrVersion {
+	if t.payloadVersion != payload.UnregisterCRSchnorrVersion &&
+		t.payloadVersion != payload.UnregisterCRMultiVersion {
 		err = blockchain.CheckCRTransactionSignature(info.Signature, cr.Info.Code, signedBuf.Bytes())
 		if err != nil {
 			return elaerr.Simple(elaerr.ErrTxPayload, err), true

@@ -59,6 +59,16 @@ func (t *RegisterCRTransaction) HeightVersionCheck() error {
 		return errors.New(fmt.Sprintf("invalid payload version, "+
 			"%s transaction", t.TxType().Name()))
 	}
+
+	if blockHeight < chainParams.DPoSConfiguration.NFTStartHeight {
+		if t.PayloadVersion() == payload.CRInfoSchnorrVersion ||
+			t.PayloadVersion() == payload.CRInfoMultiSignVersion {
+			return errors.New(fmt.Sprintf("not support %s transaction "+
+				"with payload version %d before NFTStartHeight",
+				t.TxType().Name(), t.PayloadVersion()))
+		}
+	}
+
 	return nil
 }
 
@@ -92,7 +102,8 @@ func (t *RegisterCRTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
 
 	// get CID program hash and check length of code
 	var code []byte
-	if t.payloadVersion == payload.CRInfoSchnorrVersion {
+	if t.payloadVersion == payload.CRInfoSchnorrVersion ||
+		t.payloadVersion == payload.CRInfoMultiSignVersion {
 		code = t.Programs()[0].Code
 	} else {
 		code = info.Code
@@ -116,8 +127,7 @@ func (t *RegisterCRTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
 	} else if code[len(code)-1] == vm.CHECKSIG {
 		pk = code[1 : len(code)-1]
 	} else if code[len(code)-1] == vm.CHECKMULTISIG {
-		// todo complete me in the feature
-		return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("CR not support multi sign code")), true
+		pk = code
 	} else {
 		return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("invalid code %s",
 			common.BytesToHexString(code))), true
@@ -146,7 +156,8 @@ func (t *RegisterCRTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
 	}
 
 	// check code and signature
-	if t.payloadVersion != payload.CRInfoSchnorrVersion {
+	if t.payloadVersion != payload.CRInfoSchnorrVersion &&
+		t.payloadVersion != payload.CRInfoMultiSignVersion {
 		if err := blockchain.CheckPayloadSignature(info, t.PayloadVersion()); err != nil {
 			return elaerr.Simple(elaerr.ErrTxPayload, err), true
 		}

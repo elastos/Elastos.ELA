@@ -225,7 +225,7 @@ func producerInfoEqual(first *payload.ProducerInfo,
 		return false
 	}
 
-	return bytes.Equal(first.OwnerPublicKey, second.OwnerPublicKey) &&
+	return bytes.Equal(first.OwnerKey, second.OwnerKey) &&
 		bytes.Equal(first.NodePublicKey, second.NodePublicKey) &&
 		bytes.Equal(first.Signature, second.Signature)
 }
@@ -287,13 +287,13 @@ func randomProgramHash() *common.Uint168 {
 func randomProducer() *Producer {
 	p := &Producer{}
 	p.SetInfo(payload.ProducerInfo{
-		OwnerPublicKey: randomFakePK(),
-		NodePublicKey:  randomFakePK(),
-		NickName:       randomString(),
-		Url:            randomString(),
-		Location:       rand.Uint64(),
-		NetAddress:     randomString(),
-		Signature:      randomBytes(64),
+		OwnerKey:      randomFakePK(),
+		NodePublicKey: randomFakePK(),
+		NickName:      randomString(),
+		Url:           randomString(),
+		Location:      rand.Uint64(),
+		NetAddress:    randomString(),
+		Signature:     randomBytes(64),
 	})
 	p.SetState(ProducerState(rand.Uint32()))
 	p.SetRegisterHeight(rand.Uint32())

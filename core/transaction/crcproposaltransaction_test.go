@@ -141,7 +141,7 @@ func (s *txValidatorTestSuite) getSecretaryGeneralCRCProposalTx(ownerPublicKeySt
 	crcProposalPayload := &payload.CRCProposal{
 		ProposalType:              payload.SecretaryGeneral,
 		CategoryData:              "111",
-		OwnerPublicKey:            ownerPublicKey,
+		OwnerKey:                  ownerPublicKey,
 		DraftHash:                 common.Hash(draftData),
 		SecretaryGeneralPublicKey: secretaryPublicKey,
 		SecretaryGeneralDID:       *secretaryGeneralDID,
@@ -269,7 +269,7 @@ func (s *txValidatorTestSuite) getCRCRegisterSideChainProposalTx(publicKeyStr, p
 	CRCouncilMemberDID, _ := blockchain.GetDIDFromCode(getCodeByPubKeyStr(crPublicKeyStr))
 	crcProposalPayload := &payload.CRCProposal{
 		ProposalType:       payload.RegisterSideChain,
-		OwnerPublicKey:     normalPublicKey,
+		OwnerKey:           normalPublicKey,
 		CRCouncilMemberDID: *CRCouncilMemberDID,
 		DraftHash:          common.Hash(draftData),
 		SideChainInfo: payload.SideChainInfo{
@@ -427,7 +427,7 @@ func (s *txValidatorTestSuite) TestCheckCRCProposalTransaction() {
 
 	// invalid owner
 	txn = s.getCRCProposalTx(publicKeyStr2, privateKeyStr2, publicKeyStr1, privateKeyStr1)
-	txn.Payload().(*payload.CRCProposal).OwnerPublicKey = []byte{}
+	txn.Payload().(*payload.CRCProposal).OwnerKey = []byte{}
 	txn = CreateTransactionByType(txn, s.Chain)
 	txn.SetParameters(&TransactionParameters{
 		Transaction:         txn,
@@ -443,7 +443,7 @@ func (s *txValidatorTestSuite) TestCheckCRCProposalTransaction() {
 	// invalid owner signature
 	txn = s.getCRCProposalTx(publicKeyStr2, privateKeyStr2, publicKeyStr1, privateKeyStr1)
 	publicKey1, _ := common.HexStringToBytes(publicKeyStr1)
-	txn.Payload().(*payload.CRCProposal).OwnerPublicKey = publicKey1
+	txn.Payload().(*payload.CRCProposal).OwnerKey = publicKey1
 	txn = CreateTransactionByType(txn, s.Chain)
 	txn.SetParameters(&TransactionParameters{
 		Transaction:         txn,
@@ -499,7 +499,7 @@ func (s *txValidatorTestSuite) TestCheckCRCProposalTransaction() {
 	proposalState2, proposal2 := s.createSpecificStatusProposal(publicKey1, publicKey2, tenureHeight+1,
 		crstate.VoterAgreed, payload.ChangeProposalOwner)
 	proposal2.TargetProposalHash = targetHash
-	proposal2.OwnerPublicKey = newOwnerPublicKey
+	proposal2.OwnerKey = newOwnerPublicKey
 	s.Chain.GetCRCommittee().GetProposalManager().Proposals[targetHash] = proposalState2
 	txn = s.getCRChangeProposalOwnerProposalTx(publicKeyStr2, privateKeyStr2, publicKeyStr1, privateKeyStr1,
 		newOwnerPublicKeyStr, targetHash)
@@ -668,7 +668,7 @@ func (s *txValidatorTestSuite) getCRCProposalTx(publicKeyStr, privateKeyStr,
 	did2, _ := blockchain.GetDIDFromCode(code2)
 	crcProposalPayload := &payload.CRCProposal{
 		ProposalType:       payload.Normal,
-		OwnerPublicKey:     publicKey1,
+		OwnerKey:           publicKey1,
 		CRCouncilMemberDID: *did2,
 		DraftHash:          common.Hash(draftData),
 		Budgets:            createBudgets(3),
@@ -717,8 +717,8 @@ func (s *txValidatorTestSuite) getCRChangeProposalOwnerProposalTx(publicKeyStr, 
 
 	crcProposalPayload := &payload.CRCProposal{
 		ProposalType:       payload.ChangeProposalOwner,
-		OwnerPublicKey:     crPublicKey,
-		NewOwnerPublicKey:  newOwnerPublicKey,
+		OwnerKey:           crPublicKey,
+		NewOwnerKey:        newOwnerPublicKey,
 		TargetProposalHash: targetHash,
 		DraftHash:          common.Hash(draftData),
 		CRCouncilMemberDID: *crDid,
@@ -751,7 +751,7 @@ func (s *txValidatorTestSuite) createSpecificStatusProposal(publicKey1, publicKe
 	CRCouncilMemberDID, _ := blockchain.GetDIDFromCode(code2)
 	proposal := &payload.CRCProposal{
 		ProposalType:       proposalType,
-		OwnerPublicKey:     publicKey1,
+		OwnerKey:           publicKey1,
 		CRCouncilMemberDID: *CRCouncilMemberDID,
 		DraftHash:          common.Hash(draftData),
 		Budgets:            createBudgets(3),
@@ -779,7 +779,7 @@ func (s *txValidatorTestSuite) createSpecificStatusProposal(publicKey1, publicKe
 		FinalPaymentStatus:  false,
 		TrackingCount:       0,
 		TerminatedHeight:    0,
-		ProposalOwner:       proposal.OwnerPublicKey,
+		ProposalOwner:       proposal.OwnerKey,
 	}
 	return proposalState, proposal
 }
@@ -811,7 +811,7 @@ func (s *txValidatorTestSuite) getCRCCloseProposalTxWithHash(publicKeyStr, priva
 	CRCouncilMemberDID, _ := blockchain.GetDIDFromCode(code2)
 	crcProposalPayload := &payload.CRCProposal{
 		ProposalType:       payload.CloseProposal,
-		OwnerPublicKey:     publicKey1,
+		OwnerKey:           publicKey1,
 		CRCouncilMemberDID: *CRCouncilMemberDID,
 		DraftHash:          common.Hash(draftData),
 		TargetProposalHash: closeProposalHash,
@@ -862,7 +862,7 @@ func (s *txValidatorTestSuite) getCRCCloseProposalTx(publicKeyStr, privateKeyStr
 	CRCouncilMemberDID, _ := blockchain.GetDIDFromCode(code2)
 	crcProposalPayload := &payload.CRCProposal{
 		ProposalType:       payload.CloseProposal,
-		OwnerPublicKey:     publicKey2,
+		OwnerKey:           publicKey2,
 		CRCouncilMemberDID: *CRCouncilMemberDID,
 		DraftHash:          common.Hash(draftData),
 		TargetProposalHash: common.Hash(randomBytes(10)),
@@ -913,7 +913,7 @@ func (s *txValidatorTestSuite) getCRCReservedCustomIDProposalTx(publicKeyStr, pr
 	CRCouncilMemberDID, _ := blockchain.GetDIDFromCode(code2)
 	crcProposalPayload := &payload.CRCProposal{
 		ProposalType:         payload.ReserveCustomID,
-		OwnerPublicKey:       publicKey2,
+		OwnerKey:             publicKey2,
 		CRCouncilMemberDID:   *CRCouncilMemberDID,
 		DraftHash:            common.Hash(draftData),
 		ReservedCustomIDList: []string{randomName(3), randomName(3), randomName(3)},

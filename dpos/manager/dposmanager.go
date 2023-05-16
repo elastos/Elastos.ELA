@@ -14,7 +14,9 @@ import (
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/core/types"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
+	account2 "github.com/elastos/Elastos.ELA/dpos/account"
 	"github.com/elastos/Elastos.ELA/dpos/dtime"
 	"github.com/elastos/Elastos.ELA/dpos/log"
 	dp2p "github.com/elastos/Elastos.ELA/dpos/p2p"
@@ -31,6 +33,9 @@ const (
 	// maxRequestedBlocks is the maximum number of requested block
 	// hashes to store in memory.
 	maxRequestedBlocks = msg.MaxInvPerMsg
+
+	// maxViewOffset is the maximum offset of consensus view.
+	maxViewOffset = 100
 )
 
 type DPOSNetworkConfig struct {
@@ -48,7 +53,7 @@ type DPOSNetwork interface {
 	SendMessageToPeer(id dpeer.PID, msg p2p.Message) error
 	BroadcastMessage(msg p2p.Message)
 
-	UpdatePeers(peers []dpeer.PID)
+	UpdatePeers(currentPeers []dpeer.PID, nextPeers []dpeer.PID)
 	GetActivePeers() []dp2p.Peer
 	RecoverTimeout()
 }
@@ -79,13 +84,14 @@ type NetworkEventListener interface {
 	OnBadNetwork()
 	OnRecover()
 	OnRecoverTimeout()
+	OnResponseResetViewReceived(msg *dmsg.ResetView)
 
 	OnBlockReceived(b *types.Block, confirmed bool)
 	OnConfirmReceived(p *payload.Confirm, height uint32)
 	OnIllegalBlocksTxReceived(i *payload.DPOSIllegalBlocks)
 	OnSidechainIllegalEvidenceReceived(s *payload.SidechainIllegalData)
-	OnInactiveArbitratorsReceived(id dpeer.PID, tx *types.Transaction)
-	OnRevertToDPOSTxReceived(id dpeer.PID, tx *types.Transaction)
+	OnInactiveArbitratorsReceived(id dpeer.PID, tx interfaces.Transaction)
+	OnRevertToDPOSTxReceived(id dpeer.PID, tx interfaces.Transaction)
 	OnResponseInactiveArbitratorsReceived(txHash *common.Uint256,
 		Signer []byte, Sign []byte)
 	OnResponseRevertToDPOSTxReceived(txHash *common.Uint256,
@@ -101,7 +107,7 @@ type AbnormalRecovering interface {
 type DPOSManagerConfig struct {
 	PublicKey   []byte
 	Arbitrators state.Arbitrators
-	ChainParams *config.Params
+	ChainParams *config.Configuration
 	TimeSource  dtime.MedianTimeSource
 	Server      elanet.Server
 }
@@ -109,6 +115,8 @@ type DPOSManagerConfig struct {
 type DPOSManager struct {
 	publicKey  []byte
 	blockCache *ConsensusBlockCache
+
+	acc account2.Account
 
 	handler        *DPOSHandlerSwitch
 	network        DPOSNetwork
@@ -119,7 +127,7 @@ type DPOSManager struct {
 	arbitrators state.Arbitrators
 	blockPool   *mempool.BlockPool
 	txPool      *mempool.TxPool
-	chainParams *config.Params
+	chainParams *config.Configuration
 	timeSource  dtime.MedianTimeSource
 	server      elanet.Server
 	broadcast   func(p2p.Message)
@@ -156,10 +164,11 @@ func NewManager(cfg DPOSManagerConfig) *DPOSManager {
 	return m
 }
 
-func (d *DPOSManager) Initialize(handler *DPOSHandlerSwitch,
+func (d *DPOSManager) Initialize(acc account2.Account, handler *DPOSHandlerSwitch,
 	dispatcher *ProposalDispatcher, consensus *Consensus, network DPOSNetwork,
 	illegalMonitor *IllegalBehaviorMonitor, blockPool *mempool.BlockPool,
 	txPool *mempool.TxPool, broadcast func(message p2p.Message)) {
+	d.acc = acc
 	d.handler = handler
 	d.dispatcher = dispatcher
 	d.consensus = consensus
@@ -171,7 +180,7 @@ func (d *DPOSManager) Initialize(handler *DPOSHandlerSwitch,
 	d.broadcast = broadcast
 }
 
-func (d *DPOSManager) AppendToTxnPool(txn *types.Transaction) error {
+func (d *DPOSManager) AppendToTxnPool(txn interfaces.Transaction) error {
 	return d.txPool.AppendToTxPool(txn)
 }
 
@@ -200,10 +209,10 @@ func (d *DPOSManager) isCRCArbiter() bool {
 }
 
 func (d *DPOSManager) ProcessHigherBlock(b *types.Block) {
-	if !d.illegalMonitor.IsBlockValid(b) {
-		log.Info("[ProcessHigherBlock] received block do not contains illegal evidence, block hash: ", b.Hash())
-		return
-	}
+	//if !d.illegalMonitor.IsBlockValid(b) {
+	//	log.Info("[ProcessHigherBlock] received block do not contains illegal evidence, block hash: ", b.Hash())
+	//	return
+	//}
 
 	if !d.consensus.IsOnDuty() {
 		log.Info("[ProcessHigherBlock] broadcast inv and try start new consensus")
@@ -236,7 +245,7 @@ func (d *DPOSManager) OnProposalReceived(id dpeer.PID, p *payload.DPOSProposal) 
 		d.notHandledProposal[pubKey] = struct{}{}
 		count := len(d.notHandledProposal)
 
-		if d.arbitrators.HasArbitersMinorityCount(count) {
+		if d.consensus.viewOffset != 0 && d.arbitrators.HasArbitersHalfMinorityCount(count) {
 			log.Info("[OnProposalReceived] has minority not handled" +
 				" proposals, need recover")
 			if d.recoverAbnormalState() {
@@ -392,16 +401,34 @@ func (d *DPOSManager) recoverAbnormalState() bool {
 		return false
 	}
 
+	minCount := d.GetArbitrators().GetArbitersMajorityCount()
 	if arbiters := d.arbitrators.GetArbitrators(); len(arbiters) != 0 {
-		if peers := d.network.GetActivePeers(); len(peers) == 0 {
-			log.Error("[recoverAbnormalState] can not find active peer")
+		if peers := d.network.GetActivePeers(); len(peers) < minCount {
+			log.Error("[recoverAbnormalState] can not find enough active peer")
 			return false
 		}
 		d.recoverStarted = true
 		d.handler.RequestAbnormalRecovering()
+
+		startTime := time.Now()
 		go func() {
-			<-time.NewTicker(time.Second * 2).C
-			d.network.RecoverTimeout()
+			for {
+				var count int
+				for _, v := range d.statusMap {
+					count += len(v)
+				}
+				if count > minCount {
+					d.network.RecoverTimeout()
+					break
+				}
+
+				if time.Now().Sub(startTime) > time.Second*3 {
+					d.network.RecoverTimeout()
+					break
+				}
+
+				time.Sleep(time.Millisecond * 100)
+			}
 		}()
 		return true
 	}
@@ -409,13 +436,14 @@ func (d *DPOSManager) recoverAbnormalState() bool {
 }
 
 func (d *DPOSManager) DoRecover() {
-	var maxCount int
+	if d.consensus.viewOffset == 0 {
+		log.Info("no need to recover view offset")
+		return
+	}
+
 	var maxCountMaxViewOffset uint32
-	for k, v := range d.statusMap {
-		if maxCount < len(v) {
-			maxCount = len(v)
-			maxCountMaxViewOffset = k
-		} else if maxCount == len(v) && maxCountMaxViewOffset < k {
+	for k, _ := range d.statusMap {
+		if maxCountMaxViewOffset < k {
 			maxCountMaxViewOffset = k
 		}
 	}
@@ -474,9 +502,32 @@ func (d *DPOSManager) OnChangeView() {
 	if d.consensus.TryChangeView() {
 		log.Info("[TryChangeView] succeed")
 	}
+
+	if d.consensus.viewOffset >= maxViewOffset {
+		m := &dmsg.ResetView{
+			Sponsor: d.GetPublicKey(),
+		}
+		buf := new(bytes.Buffer)
+		err := m.SerializeUnsigned(buf)
+		if err != nil {
+			log.Error("failed to serialize ResetView message")
+			return
+		}
+
+		m.Sign = d.acc.Sign(buf.Bytes())
+		log.Info("[TryChangeView] ResetView message created, broadcast it")
+		d.network.BroadcastMessage(m)
+
+		// record self
+		if d.dispatcher.resetViewRequests == nil {
+			d.dispatcher.resetViewRequests = make(map[string]struct{}, 0)
+		}
+		d.dispatcher.resetViewRequests[common.BytesToHexString(m.Sponsor)] = struct{}{}
+	}
 }
 
 func (d *DPOSManager) OnBlockReceived(b *types.Block, confirmed bool) {
+	log.Infof("[OnBlockReceived] start hash %s IsCurrent %t", b.Hash().String(), d.server.IsCurrent())
 	defer log.Info("[OnBlockReceived] end")
 	isCurArbiter := d.isCurrentArbiter()
 
@@ -500,7 +551,7 @@ func (d *DPOSManager) OnBlockReceived(b *types.Block, confirmed bool) {
 	}
 	for _, tx := range b.Transactions {
 		if tx.IsInactiveArbitrators() {
-			p := tx.Payload.(*payload.InactiveArbitrators)
+			p := tx.Payload().(*payload.InactiveArbitrators)
 			if err := d.arbitrators.ProcessSpecialTxPayload(p,
 				blockchain.DefaultLedger.Blockchain.GetHeight()); err != nil {
 				log.Errorf("process special tx payload err: %s", err.Error())
@@ -606,7 +657,7 @@ func (d *DPOSManager) clearInactiveData(p *payload.InactiveArbitrators) {
 }
 
 func (d *DPOSManager) OnRevertToDPOSTxReceived(id dpeer.PID,
-	tx *types.Transaction) {
+	tx interfaces.Transaction) {
 
 	if !d.isCurrentArbiter() {
 		return
@@ -619,7 +670,7 @@ func (d *DPOSManager) OnRevertToDPOSTxReceived(id dpeer.PID,
 }
 
 func (d *DPOSManager) OnInactiveArbitratorsReceived(id dpeer.PID,
-	tx *types.Transaction) {
+	tx interfaces.Transaction) {
 	if !d.isCRCArbiter() {
 		return
 	}
@@ -651,6 +702,15 @@ func (d *DPOSManager) OnResponseRevertToDPOSTxReceived(
 	}
 	d.dispatcher.OnResponseRevertToDPOSTxReceived(txHash, signers, signs)
 
+}
+
+func (d *DPOSManager) OnResponseResetViewReceived(msg *dmsg.ResetView) {
+
+	if !d.isCurrentArbiter() {
+		return
+	}
+
+	d.dispatcher.OnResponseResetViewReceived(msg)
 }
 
 func (d *DPOSManager) OnRequestProposal(id dpeer.PID, hash common.Uint256) {

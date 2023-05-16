@@ -16,6 +16,9 @@ import (
 	"github.com/elastos/Elastos.ELA/cmd/rollback"
 	"github.com/elastos/Elastos.ELA/cmd/script"
 	"github.com/elastos/Elastos.ELA/cmd/wallet"
+	"github.com/elastos/Elastos.ELA/common/config"
+	transaction2 "github.com/elastos/Elastos.ELA/core/transaction"
+	"github.com/elastos/Elastos.ELA/core/types/functions"
 
 	"github.com/urfave/cli"
 )
@@ -23,6 +26,8 @@ import (
 var Version string
 
 func main() {
+	initFunctions()
+
 	app := cli.NewApp()
 	app.Name = "ela-cli"
 	app.Version = Version
@@ -36,6 +41,7 @@ func main() {
 		cmdcom.RPCPasswordFlag,
 		cmdcom.RPCPortFlag,
 		cmdcom.RPCIpFlag,
+		cmdcom.RPCUrlFlag,
 	}
 	app.Before = func(c *cli.Context) error {
 		//seed transaction nonce
@@ -65,4 +71,12 @@ func main() {
 		cmdcom.PrintErrorMsg(err.Error())
 		os.Exit(1)
 	}
+}
+
+func initFunctions() {
+	functions.GetTransactionByTxType = transaction2.GetTransaction
+	functions.GetTransactionByBytes = transaction2.GetTransactionByBytes
+	functions.CreateTransaction = transaction2.CreateTransaction
+	functions.GetTransactionParameters = transaction2.GetTransactionparameters
+	config.DefaultParams = *config.GetDefaultParams()
 }

@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"github.com/elastos/Elastos.ELA/common"
-	"github.com/elastos/Elastos.ELA/core/types"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -25,7 +25,7 @@ func init() {
 }
 
 func TestBlockChain_GetNetworkHashPS(t *testing.T) {
-	firstHeader := &types.Header{
+	firstHeader := &common2.Header{
 		Previous:  common.Uint256{},
 		Timestamp: uint32(10000000),
 		Bits:      bits,
@@ -38,7 +38,7 @@ func TestBlockChain_GetNetworkHashPS(t *testing.T) {
 	tipNode := firstNode
 
 	for i := 1; i < blockCount; i++ {
-		header := &types.Header{
+		header := &common2.Header{
 			Previous:  common.Uint256{},
 			Timestamp: uint32(10000000 + i*timespanPerBlock),
 			Bits:      bits,

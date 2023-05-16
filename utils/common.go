@@ -6,15 +6,19 @@
 package utils
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"net"
-	"net/http"
-	_ "net/http/pprof"
 	"os"
 	"strconv"
 
 	"github.com/elastos/Elastos.ELA/common"
+	"github.com/elastos/Elastos.ELA/core/contract"
+	"github.com/elastos/Elastos.ELA/crypto"
+	"github.com/elastos/Elastos.ELA/vm"
+	"github.com/go-echarts/statsview"
+	"github.com/go-echarts/statsview/viewer"
 
 	"github.com/howeyc/gopass"
 )
@@ -50,6 +54,17 @@ func GetConfirmedPassword() ([]byte, error) {
 	return first, nil
 }
 
+func StartPProf(port uint32, host string) {
+	listenAddr := net.JoinHostPort("", strconv.FormatUint(
+		uint64(port), 10))
+	viewer.SetConfiguration(viewer.WithMaxPoints(100),
+		viewer.WithInterval(3e5),
+		viewer.WithAddr(listenAddr),
+		viewer.WithLinkAddr(host))
+	mgr := statsview.New()
+	mgr.Start()
+}
+
 func FileExisted(filename string) bool {
 	_, err := os.Stat(filename)
 	return err == nil || os.IsExist(err)
@@ -62,16 +77,6 @@ func StringExisted(src []string, check string) bool {
 		}
 	}
 	return false
-}
-
-//open ela pprof ,must run with goroutine
-func StartPProf(port uint32) {
-	listenAddr := net.JoinHostPort("", strconv.FormatUint(uint64(port), 10))
-	fmt.Printf("Profile server listening on %s\n", listenAddr)
-	profileRedirect := http.RedirectHandler("/debug/pprof", http.StatusSeeOther)
-	http.Handle("/", profileRedirect)
-	ret := http.ListenAndServe(listenAddr, nil)
-	fmt.Printf("Profile server ListenAndServe return %v", ret)
 }
 
 // CopyStringSet copy the src map's key, and return the dst map.
@@ -155,4 +160,79 @@ func DeserializeStringSet(r io.Reader) (vmap map[string]struct{}, err error) {
 		vmap[k] = struct{}{}
 	}
 	return
+}
+
+func GetStakeAddressByCode(code []byte) (string, error) {
+	programHash, err := GetProgramHashByCode(code)
+	if err != nil {
+		return "", err
+	}
+	stakeProgramHash := common.Uint168FromCodeHash(
+		byte(contract.PrefixDPoSV2), programHash.ToCodeHash())
+	address, err := stakeProgramHash.ToAddress()
+	if err != nil {
+		return "", err
+	}
+	return address, nil
+}
+
+func GetAddressByCode(code []byte) (string, error) {
+	programHash, err := GetProgramHashByCode(code)
+	if err != nil {
+		return "", err
+	}
+	address, err := programHash.ToAddress()
+	if err != nil {
+		return "", err
+	}
+	return address, nil
+}
+
+func GetProgramHashByCode(code []byte) (*common.Uint168, error) {
+	signType, err := crypto.GetScriptType(code)
+	if err != nil {
+		return nil, err
+	}
+	if signType == vm.CHECKSIG {
+		ct, err := contract.CreateStandardContractByCode(code)
+		if err != nil {
+			return nil, err
+		}
+		return ct.ToProgramHash(), nil
+
+	} else if signType == vm.CHECKMULTISIG {
+		ct, err := contract.CreateMultiSigContractByCode(code)
+		if err != nil {
+			return nil, err
+		}
+		return ct.ToProgramHash(), nil
+	} else {
+		return nil, errors.New("invalid code type")
+	}
+	// todo support schnorr
+}
+
+// checkHost check the host or IP address is valid and available.
+func CheckHost(host string) error {
+	// Empty host check.
+	if host == "" {
+		return errors.New("arbiter IPAddress must set when arbiter" +
+			" service enabled")
+	}
+
+	// Skip if host is already an IP address.
+	if ip := net.ParseIP(host); ip != nil {
+		return nil
+	}
+
+	// Attempt to look up an IP address associated with the parsed host.
+	ips, err := net.LookupIP(host)
+	if err != nil {
+		return err
+	}
+	if len(ips) == 0 {
+		return fmt.Errorf("no addresses found for %s", host)
+	}
+
+	return nil
 }

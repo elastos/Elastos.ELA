@@ -62,6 +62,17 @@ func randomCRInfo() *payload.CRInfo {
 		Location: rand.Uint64(),
 	}
 }
+func randomString() string {
+	a := make([]byte, 20)
+	rand.Read(a)
+	return common.BytesToHexString(a)
+}
+
+func randomBytes(len int) []byte {
+	a := make([]byte, len)
+	rand.Read(a)
+	return a
+}
 
 func randomUint168() *common.Uint168 {
 	randBytes := make([]byte, 21)

@@ -6,6 +6,7 @@
 package chain
 
 import (
+	"path/filepath"
 	"sort"
 	"time"
 
@@ -14,8 +15,13 @@ import (
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/common/log"
+	"github.com/elastos/Elastos.ELA/core"
+	"github.com/elastos/Elastos.ELA/core/checkpoint"
 	"github.com/elastos/Elastos.ELA/core/contract/program"
 	"github.com/elastos/Elastos.ELA/core/types"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/functions"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	crstate "github.com/elastos/Elastos.ELA/cr/state"
 	"github.com/elastos/Elastos.ELA/crypto"
@@ -25,20 +31,23 @@ import (
 	"github.com/elastos/Elastos.ELA/utils/test"
 )
 
-func newBlockChain(path string, params *config.Params,
+var checkpointPath = "checkpoints"
+
+func newBlockChain(path string, params *config.Configuration,
 	interrupt <-chan struct{}) (*blockchain.BlockChain, error) {
 	log.NewDefault(test.NodeLogPath, 1, 0, 0)
-
-	committee := crstate.NewCommittee(params)
+	ckpManager := checkpoint.NewManager(params)
+	ckpManager.SetDataPath(filepath.Join(params.DataDir, checkpointPath))
+	committee := crstate.NewCommittee(params, ckpManager)
 	arbiters, err := state.NewArbitrators(
 		params, committee, nil, nil,
-		nil, nil, nil)
-
+		nil, nil,
+		nil, nil, nil, ckpManager)
 	chainStore, err := blockchain.NewChainStore(path, params)
 	if err != nil {
 		return nil, err
 	}
-	chain, err := blockchain.New(chainStore, params, arbiters.State, committee)
+	chain, err := blockchain.New(chainStore, params, arbiters.State, committee, ckpManager)
 	if err != nil {
 		return nil, err
 	}
@@ -81,50 +90,42 @@ func initDefaultLedger(chain *blockchain.BlockChain,
 	}
 }
 
-func generateChainParams(ac *account.Account) *config.Params {
-	proto := config.DefaultParams.RegNet()
-	proto.GenesisBlock = newGenesisBlock(ac)
-	proto.Foundation = ac.ProgramHash
-	blockchain.FoundationAddress = ac.ProgramHash
-	return proto.InstantBlock()
-}
-
 func newGenesisBlock(ac *account.Account) *types.Block {
-	attrNonce := types.NewAttribute(types.Nonce,
+	attrNonce := common2.NewAttribute(common2.Nonce,
 		[]byte{77, 101, 130, 33, 7, 252, 253, 82})
 	genesisTime, _ := time.Parse(time.RFC3339, "2017-12-22T10:00:00Z")
 
-	coinBase := types.Transaction{
-		Version:        0,
-		TxType:         types.CoinBase,
-		PayloadVersion: payload.CoinBaseVersion,
-		Payload:        &payload.CoinBase{},
-		Attributes:     []*types.Attribute{&attrNonce},
-		Inputs: []*types.Input{
+	coinBase := functions.CreateTransaction(
+		0,
+		common2.CoinBase,
+		payload.CoinBaseVersion,
+		&payload.CoinBase{},
+		[]*common2.Attribute{&attrNonce},
+		[]*common2.Input{
 			{
-				Previous: types.OutPoint{
+				Previous: common2.OutPoint{
 					TxID:  common.Uint256{},
 					Index: 0x0000,
 				},
 				Sequence: 0x00000000,
 			},
 		},
-		Outputs: []*types.Output{
+		[]*common2.Output{
 			{
-				AssetID:     config.ELAAssetID,
+				AssetID:     core.ELAAssetID,
 				Value:       3300 * 10000 * 100000000,
 				ProgramHash: ac.ProgramHash,
 			},
 		},
-		LockTime: 0,
-		Programs: []*program.Program{},
-	}
+		0,
+		[]*program.Program{},
+	)
 
 	merkleRoot, _ := crypto.ComputeRoot([]common.Uint256{coinBase.Hash(),
-		config.ELAAssetID})
+		core.ELAAssetID})
 
 	return &types.Block{
-		Header: types.Header{
+		Header: common2.Header{
 			Version:    0,
 			Previous:   common.Uint256{},
 			MerkleRoot: merkleRoot,
@@ -133,12 +134,13 @@ func newGenesisBlock(ac *account.Account) *types.Block {
 			Nonce:      2083236893,
 			Height:     0,
 		},
-		Transactions: []*types.Transaction{
-			&coinBase,
-			{
-				TxType:         types.RegisterAsset,
-				PayloadVersion: 0,
-				Payload: &payload.RegisterAsset{
+		Transactions: []interfaces.Transaction{
+			coinBase,
+			functions.CreateTransaction(
+				0,
+				common2.RegisterAsset,
+				0,
+				&payload.RegisterAsset{
 					Asset: payload.Asset{
 						Name:      "ELA",
 						Precision: 0x08,
@@ -147,42 +149,43 @@ func newGenesisBlock(ac *account.Account) *types.Block {
 					Amount:     0 * 100000000,
 					Controller: common.Uint168{},
 				},
-				Attributes: []*types.Attribute{},
-				Inputs:     []*types.Input{},
-				Outputs:    []*types.Output{},
-				Programs:   []*program.Program{},
-			}},
+				[]*common2.Attribute{},
+				[]*common2.Input{},
+				[]*common2.Output{},
+				0,
+				[]*program.Program{},
+			)},
 	}
 }
 
 func quickGenerateBlock(pow *pow.Service, prevHash *common.Uint256,
-	txs []*types.Transaction, minerAddr string, params *config.Params,
+	txs []interfaces.Transaction, minerAddr string, params *config.Configuration,
 	height uint32) (*types.Block, error) {
 	coinBaseTx, err := pow.CreateCoinbaseTx(minerAddr, height)
 	if err != nil {
 		return nil, err
 	}
 
-	header := types.Header{
+	header := common2.Header{
 		Version:    0,
 		Previous:   *prevHash,
 		MerkleRoot: common.EmptyHash,
 		Timestamp:  uint32(time.Now().Unix()),
-		Bits:       params.PowLimitBits,
+		Bits:       params.PowConfiguration.PowLimitBits,
 		Height:     height,
 		Nonce:      0,
 	}
 
 	msgBlock := &types.Block{
 		Header:       header,
-		Transactions: []*types.Transaction{},
+		Transactions: []interfaces.Transaction{},
 	}
 
 	msgBlock.Transactions = append(msgBlock.Transactions, coinBaseTx)
 	totalTxsSize := coinBaseTx.GetSize()
 	txCount := 1
 	totalTxFee := common.Fixed64(0)
-	isHighPriority := func(tx *types.Transaction) bool {
+	isHighPriority := func(tx interfaces.Transaction) bool {
 		if tx.IsIllegalTypeTx() || tx.IsInactiveArbitrators() ||
 			tx.IsSideChainPowTx() || tx.IsUpdateVersion() ||
 			tx.IsActivateProducerTx() {
@@ -198,7 +201,7 @@ func quickGenerateBlock(pow *pow.Service, prevHash *common.Uint256,
 		if isHighPriority(txs[j]) {
 			return false
 		}
-		return txs[i].FeePerKB > txs[j].FeePerKB
+		return txs[i].FeePerKB() > txs[j].FeePerKB()
 	})
 
 	for _, tx := range txs {
@@ -212,11 +215,11 @@ func quickGenerateBlock(pow *pow.Service, prevHash *common.Uint256,
 			continue
 		}
 		msgBlock.Transactions = append(msgBlock.Transactions, tx)
-		totalTxFee += tx.Fee
+		totalTxFee += tx.Fee()
 		txCount++
 	}
 
-	totalReward := totalTxFee + params.RewardPerBlock
+	totalReward := totalTxFee + params.PowConfiguration.RewardPerBlock
 	pow.AssignCoinbaseTxRewards(msgBlock, totalReward)
 
 	txHash := make([]common.Uint256, 0, len(msgBlock.Transactions))

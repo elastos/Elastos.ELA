@@ -42,7 +42,8 @@ const (
 	// ETConfirmAccepted indicates a block confirmed message received.
 	ETConfirmAccepted
 
-	// ETDirectPeersChanged indicates direct peers has changed.
+	// ETDirectPeersChanged indicates direct peers has changed, but current
+	// peers and next peers is divided.
 	ETDirectPeersChanged
 
 	// ETBlockConfirmAccepted indicates a block with confirm was accepted
@@ -69,6 +70,9 @@ const (
 	//ETSmallCrossChainNeedRelay indicates that need to relay some small cross
 	//chain transaction
 	ETSmallCrossChainNeedRelay
+
+	//ETOutdatedTxRelay indicates that need to resend outdate tx to tx pool
+	ETOutdatedTxRelay
 )
 
 // notificationTypeStrings is a map of notification types back to their constant
@@ -88,6 +92,7 @@ var notificationTypeStrings = map[EventType]string{
 	ETAppendTxToTxPoolWithoutRelay: "ETAppendTxToTxPoolWithoutRelay",
 	ETCRCChangeCommittee:           "ETCRCChangeCommittee",
 	ETSmallCrossChainNeedRelay:     "ETSmallCrossChainNeedRelay",
+	ETOutdatedTxRelay:              "ETOutdatedTxRelay",
 }
 
 // String returns the EventType in human-readable form.
@@ -104,7 +109,7 @@ func (n EventType) String() string {
 // 	- ETBlockAccepted:     *types.Block
 // 	- ETBlockConnected:    *types.Block
 // 	- ETBlockDisconnected: *types.Block
-// 	- ETTransactionAccepted: *types.Transaction
+// 	- ETTransactionAccepted: *types.BaseTransaction
 type Event struct {
 	Type EventType
 	Data interface{}

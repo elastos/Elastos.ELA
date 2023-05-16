@@ -22,11 +22,14 @@ func registerParams(c *cli.Context, L *lua.LState) {
 	password := c.String("password")
 	code := c.String("code")
 	publicKey := c.String("publickey")
+	privateKeys := c.String("privatekeys")
+	publicKeys := c.String("publickeys")
 	depositAddr := c.String("depositaddr")
 	nickname := c.String("nickname")
 	url := c.String("url")
 	location := c.Int64("location")
 	depositAmount := c.Float64("depositamount")
+	stakeUntil := c.Int64("stakeuntil")
 	amount := c.Float64("amount")
 	fee := c.Float64("fee")
 	votes := c.Float64("votes")
@@ -81,6 +84,14 @@ func registerParams(c *cli.Context, L *lua.LState) {
 	effectiveHeight := c.Uint("effectiveheight")
 	resourcePath := c.String("resourcepath")
 
+	// dposv2
+	referKey := c.String("referkey")
+	voteType := c.Uint("votetype")
+
+	// nft
+	nftID := c.String("nftid")
+	stakeAddress := c.String("stakeaddr")
+
 	getWallet := func(L *lua.LState) int {
 		L.Push(lua.LString(wallet))
 		return 1
@@ -95,6 +106,26 @@ func registerParams(c *cli.Context, L *lua.LState) {
 	}
 	getPublicKey := func(L *lua.LState) int {
 		L.Push(lua.LString(publicKey))
+		return 1
+	}
+	getPrivateKeys := func(L *lua.LState) int {
+		table := L.NewTable()
+		L.SetMetatable(table, L.GetTypeMetatable("privatekeys"))
+		cs := strings.Split(privateKeys, ",")
+		for _, c := range cs {
+			table.Append(lua.LString(c))
+		}
+		L.Push(table)
+		return 1
+	}
+	getPublicKeys := func(L *lua.LState) int {
+		table := L.NewTable()
+		L.SetMetatable(table, L.GetTypeMetatable("publickeys"))
+		cs := strings.Split(publicKeys, ",")
+		for _, c := range cs {
+			table.Append(lua.LString(c))
+		}
+		L.Push(table)
 		return 1
 	}
 	getCode := func(L *lua.LState) int {
@@ -115,6 +146,10 @@ func registerParams(c *cli.Context, L *lua.LState) {
 	}
 	getDepositAmount := func(L *lua.LState) int {
 		L.Push(lua.LNumber(depositAmount))
+		return 1
+	}
+	getStakeUntil := func(L *lua.LState) int {
+		L.Push(lua.LNumber(stakeUntil))
 		return 1
 	}
 	getAmount := func(L *lua.LState) int {
@@ -328,7 +363,7 @@ func registerParams(c *cli.Context, L *lua.LState) {
 	}
 
 	getEffectiveHeight := func(L *lua.LState) int {
-		L.Push(lua.LString(effectiveHeight))
+		L.Push(lua.LString(string(rune(effectiveHeight))))
 		return 1
 	}
 
@@ -337,15 +372,38 @@ func registerParams(c *cli.Context, L *lua.LState) {
 		return 1
 	}
 
+	getReferKey := func(L *lua.LState) int {
+		L.Push(lua.LString(referKey))
+		return 1
+	}
+
+	getVoteType := func(L *lua.LState) int {
+		L.Push(lua.LNumber(voteType))
+		return 1
+	}
+
+	getNFTID := func(L *lua.LState) int {
+		L.Push(lua.LString(nftID))
+		return 1
+	}
+
+	getStakeAddress := func(L *lua.LState) int {
+		L.Push(lua.LString(stakeAddress))
+		return 1
+	}
+
 	L.Register("getWallet", getWallet)
 	L.Register("getPassword", getPassword)
 	L.Register("getDepositAddr", getDepositAddr)
 	L.Register("getPublicKey", getPublicKey)
+	L.Register("getPrivateKeys", getPrivateKeys)
+	L.Register("getPublicKeys", getPublicKeys)
 	L.Register("getCode", getCode)
 	L.Register("getNickName", getNickName)
 	L.Register("getUrl", getUrl)
 	L.Register("getLocation", getLocation)
 	L.Register("getDepositAmount", getDepositAmount)
+	L.Register("getStakeUntil", getStakeUntil)
 	L.Register("getAmount", getAmount)
 	L.Register("getFee", getFee)
 	L.Register("getVotes", getVotes)
@@ -399,6 +457,11 @@ func registerParams(c *cli.Context, L *lua.LState) {
 	L.Register("getExchangeRate", getExchangeRate)
 	L.Register("getEffectiveHeight", getEffectiveHeight)
 	L.Register("getResourcePath", getResourcePath)
+
+	L.Register("getReferKey", getReferKey)
+	L.Register("getVoteType", getVoteType)
+	L.Register("getNFTID", getNFTID)
+	L.Register("getStakeAddr", getStakeAddress)
 }
 
 func scriptAction(c *cli.Context) error {
@@ -468,6 +531,14 @@ func NewCommand() *cli.Command {
 				Usage: "set the public key",
 			},
 			cli.StringFlag{
+				Name:  "privatekeys, priks",
+				Usage: "set the private key",
+			},
+			cli.StringFlag{
+				Name:  "publickeys, pubs",
+				Usage: "set the pub keys",
+			},
+			cli.StringFlag{
 				Name:  "depositaddr, daddr",
 				Usage: "set the deposit addr",
 			},
@@ -490,6 +561,10 @@ func NewCommand() *cli.Command {
 			cli.Float64Flag{
 				Name:  "amount",
 				Usage: "set the amount",
+			},
+			cli.Int64Flag{
+				Name:  "stakeuntil",
+				Usage: "set the stakeuntil height",
 			},
 			cli.Float64Flag{
 				Name:  "fee",
@@ -683,6 +758,22 @@ func NewCommand() *cli.Command {
 			cli.StringFlag{
 				Name:  "genesisblockdifficulty",
 				Usage: "set genesis block difficulty ",
+			},
+			cli.StringFlag{
+				Name:  "referkey",
+				Usage: "set refer key of related votes",
+			},
+			cli.Int64Flag{
+				Name:  "votetype",
+				Usage: "set vote type of related votes",
+			},
+			cli.StringFlag{
+				Name:  "nftid",
+				Usage: "set id of NFT, id is the hash of detailed vote information",
+			},
+			cli.StringFlag{
+				Name:  "stakeaddr",
+				Usage: "set stake address of NFT",
 			},
 		},
 		Action: scriptAction,

@@ -18,7 +18,6 @@ import (
 	"sync"
 
 	"github.com/elastos/Elastos.ELA/common"
-	"github.com/elastos/Elastos.ELA/core/types"
 	"github.com/elastos/Elastos.ELA/database"
 	"github.com/elastos/Elastos.ELA/database/internal/treap"
 
@@ -150,7 +149,7 @@ func convertErr(desc string, ldbErr error) database.Error {
 	case ldbErr == leveldb.ErrClosed:
 		code = database.ErrDbNotOpen
 
-	// Transaction errors.
+	// BaseTransaction errors.
 	case ldbErr == leveldb.ErrSnapshotReleased:
 		code = database.ErrTxClosed
 	case ldbErr == leveldb.ErrIterReleased:
@@ -1148,7 +1147,7 @@ func (tx *transaction) hasBlock(hash common.Uint256) bool {
 //   - ErrTxClosed if the transaction has already been closed
 //
 // This function is part of the database.Tx interface implementation.
-func (tx *transaction) StoreBlock(block *types.DposBlock) error {
+func (tx *transaction) StoreBlock(blockHash common.Uint256, data []byte) error {
 	// Ensure transaction state is valid.
 	if err := tx.checkClosed(); err != nil {
 		return err
@@ -1161,18 +1160,9 @@ func (tx *transaction) StoreBlock(block *types.DposBlock) error {
 	}
 
 	// Reject the block if it already exists.
-	blockHash := block.Hash()
 	if tx.hasBlock(blockHash) {
 		str := fmt.Sprintf("block %s already exists", blockHash)
 		return makeDbErr(database.ErrBlockExists, str, nil)
-	}
-
-	buf := new(bytes.Buffer)
-	err := block.Serialize(buf)
-	if err != nil {
-		str := fmt.Sprintf("failed to get serialized bytes for block %s",
-			blockHash)
-		return makeDbErr(database.ErrDriverSpecific, str, err)
 	}
 
 	// Add the block to be stored to the list of pending blocks to store
@@ -1185,7 +1175,7 @@ func (tx *transaction) StoreBlock(block *types.DposBlock) error {
 	tx.pendingBlocks[blockHash] = len(tx.pendingBlockData)
 	tx.pendingBlockData = append(tx.pendingBlockData, pendingBlock{
 		hash:  &blockHash,
-		bytes: buf.Bytes(),
+		bytes: data,
 	})
 	log.Debugf("Added block %s to pending blocks", blockHash)
 

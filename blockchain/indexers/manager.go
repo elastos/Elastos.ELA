@@ -17,11 +17,13 @@ import (
 	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/common/log"
 	"github.com/elastos/Elastos.ELA/core/types"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/database"
 )
 
 var (
-	// indexTipsBucketName is the name of the db bucket used to house the
+	// indexTipsBucketName is the name of the DB bucket used to house the
 	// current tip of each index.
 	indexTipsBucketName = []byte("idxtips")
 )
@@ -395,6 +397,7 @@ func (m *Manager) Init(chain IChain, interrupt <-chan struct{}) error {
 	// each block that needs to be indexed.
 	log.Infof("Catching up indexes from height %d to %d", lowestHeight,
 		bestHeight)
+
 	for height := lowestHeight + 1; height <= bestHeight; height++ {
 		// Load the block for the height since it is required to index it.
 		block, err := chain.GetBlockByHeight(uint32(height))
@@ -472,7 +475,7 @@ func (m *Manager) DisconnectBlock(dbTx database.Tx, block *types.Block) error {
 	return nil
 }
 
-func (m *Manager) FetchTx(txID common.Uint256) (*types.Transaction, uint32, error) {
+func (m *Manager) FetchTx(txID common.Uint256) (interfaces.Transaction, uint32, error) {
 	return m.txStore.FetchTx(txID)
 }
 
@@ -480,7 +483,7 @@ func (m *Manager) FetchUnspent(txID common.Uint256) ([]uint16, error) {
 	var indexes []uint16
 	err := m.db.View(func(dbTx database.Tx) error {
 		var err error
-		indexes, err = dbFetchUnspentIndexEntry(dbTx, &txID)
+		indexes, err = DBFetchUnspentIndexEntry(dbTx, &txID)
 		return err
 	})
 	if err != nil {
@@ -490,11 +493,11 @@ func (m *Manager) FetchUnspent(txID common.Uint256) ([]uint16, error) {
 	return indexes, nil
 }
 
-func (m *Manager) FetchUTXO(programHash *common.Uint168) ([]*types.UTXO, error) {
-	var utxos []*types.UTXO
+func (m *Manager) FetchUTXO(programHash *common.Uint168) ([]*common2.UTXO, error) {
+	var utxos []*common2.UTXO
 	err := m.db.View(func(dbTx database.Tx) error {
 		var err error
-		utxos, err = dbFetchUtxoIndexEntry(dbTx, programHash)
+		utxos, err = DBFetchUtxoIndexEntry(dbTx, programHash)
 		return err
 	})
 	if err != nil {
@@ -504,20 +507,10 @@ func (m *Manager) FetchUTXO(programHash *common.Uint168) ([]*types.UTXO, error) 
 	return utxos, nil
 }
 
-func (m *Manager) IsTx3Exist(txHash *common.Uint256) bool {
-	exist := false
-	_ = m.db.View(func(dbTx database.Tx) error {
-		exist = dbFetchTx3IndexEntry(dbTx, txHash)
-		return nil
-	})
-
-	return exist
-}
-
 func (m *Manager) IsSideChainReturnDepositExist(txHash *common.Uint256) bool {
 	exist := false
 	_ = m.db.View(func(dbTx database.Tx) error {
-		exist = dbFetchReturnDepositIndexEntry(dbTx, txHash)
+		exist = DBFetchReturnDepositIndexEntry(dbTx, txHash)
 		return nil
 	})
 
@@ -528,14 +521,13 @@ func (m *Manager) IsSideChainReturnDepositExist(txHash *common.Uint256) bool {
 //
 // The manager returned satisfies the blockchain.IndexManager interface and thus
 // cleanly plugs into the normal blockchain processing path.
-func NewManager(db database.DB, params *config.Params) *Manager {
+func NewManager(db database.DB, params *config.Configuration) *Manager {
 	txIndex := NewTxIndex(db)
 	unspentIndex := NewUnspentIndex(db, params)
 	utxoIndex := NewUtxoIndex(db, unspentIndex)
-	tx3Index := NewTx3Index(db)
 	returnDepositIndex := NewReturnDepositIndex(db)
 	var enabledIndexes []Indexer
-	enabledIndexes = append(enabledIndexes, txIndex, unspentIndex, utxoIndex, tx3Index, returnDepositIndex)
+	enabledIndexes = append(enabledIndexes, txIndex, unspentIndex, utxoIndex, returnDepositIndex)
 	return &Manager{
 		db:             db,
 		enabledIndexes: enabledIndexes,

@@ -76,8 +76,8 @@ const (
 	XOR    = 0x86 // Boolean exclusive or between each bit in the inputs.
 	EQUAL  = 0x87 // Returns 1 if the inputs are exactly equal, 0 otherwise.
 	//EQUALVERIFY = 0x88 // Same as EQUAL, but runs VERIFY afterward.
-	//RESERVED1 = 0x89 // Transaction is invalid unless occurring in an unexecuted IF branch
-	//RESERVED2 = 0x8A // Transaction is invalid unless occurring in an unexecuted IF branch
+	//RESERVED1 = 0x89 // BaseTransaction is invalid unless occurring in an unexecuted IF branch
+	//RESERVED2 = 0x8A // BaseTransaction is invalid unless occurring in an unexecuted IF branch
 
 	// Arithmetic
 	// Note: Arithmetic inputs are limited to signed 32-bit integers, but may overflow their output.
@@ -116,10 +116,14 @@ const (
 	HASH256       = 0xAA
 	CHECKSIG      = 0xAC // The entire transaction's outputs inputs and script (from the most recently-executed CODESEPARATOR to the end) are hashed. The signature used by CHECKSIG must be a valid signature for this hash and public key. If it is 1 is returned 0 otherwise.
 	CHECKMULTISIG = 0xAE // For each signature and public key pair CHECKSIG is executed. If more public keys than signatures are listed some key/sig pairs can fail. All signatures need to match a public key. If all signatures are valid 1 is returned 0 otherwise. Due to a bug one extra unused value is removed from the stack.
+	CROSSCHAIN    = 0xAF
 
 	// Array
 	ARRAYSIZE = 0xC0
 	PACK      = 0xC1
 	UNPACK    = 0xC2
 	PICKITEM  = 0xC3
+
+	// For schnorr
+	SCHNORR = 0xD0
 )

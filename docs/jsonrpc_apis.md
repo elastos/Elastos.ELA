@@ -2377,23 +2377,23 @@ Response:
          }
      }
  }
- ```
- 
+```
+
  ### getproposaldraftdata
- 
+
  Get draft data of proposal or proposalReview or proposalTracking transaction detail information by draft hash.
- 
+
  #### Parameter
- 
- | name         | type   | description                                                             |
- | ------------ | ------ | ------------------------------------------------------------------------|
- | drafthash    | string | draft hash of proposal or proposalReview or proposalTracking transaction|
- 
+
+| name         | type   | description                                                             |
+| ------------ | ------ | ------------------------------------------------------------------------|
+| drafthash    | string | draft hash of proposal or proposalReview or proposalTracking transaction|
+
  #### Result
  Result is the hex string of draft data.
- 
+
  #### Example
- 
+
  Request:
  ```json
  {
@@ -2403,9 +2403,9 @@ Response:
    }
  }
  ```
- 
+
  Response:
- 
+
  ```json
  {
      "error": null,
@@ -2413,26 +2413,26 @@ Response:
      "jsonrpc": "2.0",
      "result": "6d6d9581ba0156314f1e92fd03430c6e4428a32bb3f1b9dc6271024"
 }
-```
+ ```
 
  ### createrawtransaction
- 
+
  Create a transaction spending the given inputs and creating new outputs.
  Warning: you should calculate the change output and append it to transaction outputs, otherwise the change should
   be given to the miners.
- 
+
  #### Parameter 
- 
- | name     | type          | description                        |
- | -------- | ------------- | ---------------------------------- |
- | inputs   | array[string] | inputs json array of json objects  |
- | outputs  | array[string] | outputs json array of json objects |
- | locktime | interger      | the transaction lock time number   |
- 
+
+| name     | type          | description                        |
+| -------- | ------------- | ---------------------------------- |
+| inputs   | array[string] | inputs json array of json objects  |
+| outputs  | array[string] | outputs json array of json objects |
+| locktime | interger      | the transaction lock time number   |
+
  #### Example
- 
+
  Request:
- 
+
  ```
   {
    "method": "createrawtransaction",
@@ -2442,7 +2442,7 @@ Response:
      "locktime": 0
    }
  }
-```
+ ```
 
 Response:
 
@@ -2604,3 +2604,323 @@ Response:
     }
 }
 ```
+
+
+
+### getvoterights
+
+Get vote rights by stakeaddresses.
+
+#### Example
+
+Request:
+
+```
+{
+    "method": "getvoterights",
+    "params": {
+        "stakeaddresses": [
+            "SReFYxAHSshg2PLgVC8Je7HPrU3GbYdSuu"
+        ]
+    }
+}
+```
+
+Response:
+
+```
+{
+    "jsonrpc": "2.0",
+    "result": [
+        {
+            "stakeaddress": "SReFYxAHSshg2PLgVC8Je7HPrU3GbYdSuu",
+            "totalvotesright": 20999999980000,
+            "usedvotesinfo": {
+                "useddposv2votes": [
+                    {
+                        "StakeAddress": "SReFYxAHSshg2PLgVC8Je7HPrU3GbYdSuu",
+                        "TransactionHash": "aa7bc8ef542f9e1623542aa63b3e905f76cb720c56c62646ec9e58fe203aa40e",
+                        "BlockHeight": 8052,
+                        "PayloadVersion": 0,
+                        "VoteType": 4,
+                        "Info": [
+                            {
+                                "candidate": "02148cc0ca8f09a4d6845b793d4baabfc85614ce63ba84c1512c81962801471ee2",
+                                "votes": "30000",
+                                "locktime": 9000
+                            }
+                        ]
+                    }
+                ],
+                "useddposvotes": [],
+                "usedcrvotes": [],
+                "usdedcrimpeachmentvotes": [],
+                "usedcrcproposalvotes": []
+            },
+            "remainvoteright": [
+                20999999980000,
+                20999999980000,
+                20999999980000,
+                20999999980000,
+                17999999980000
+            ]
+        }
+    ],
+    "id": null,
+    "error": null
+}
+```
+
+
+
+
+
+### getalldetaileddposv2votes
+
+If request have no stakeaddress param get all detailed dposv2 votes else get detailed dposv2 votes by stakeaddress
+
+#### Example 1
+
+Request:
+
+```
+{
+    "method": "getalldetaileddposv2votes",
+    "params": {
+    	"stakeaddress": "SdJafnusnEFbV6VecLBUhzb2zFnFjQ2LcN"
+    }
+}
+```
+
+Response:
+
+```
+{
+    "jsonrpc": "2.0",
+    "result": [
+        {
+            "producerownerkey": "02148cc0ca8f09a4d6845b793d4baabfc85614ce63ba84c1512c81962801471ee2",
+            "producernodekey": "02801b7bc8c459c42651229132aaf91227286050e8bde4f1236a18bf63c21b1942",
+            "referkey": "289b623244a056f7e766b12577b1945302c233ac49a8380c552879f01bfe0f5a",
+            "stakeaddress": "SReFYxAHSshg2PLgVC8Je7HPrU3GbYdSuu",
+            "transactionhash": "aa7bc8ef542f9e1623542aa63b3e905f76cb720c56c62646ec9e58fe203aa40e",
+            "blockheight": 8052,
+            "payloadversion": 0,
+            "votetype": 4,
+            "info": {
+                "candidate": "02148cc0ca8f09a4d6845b793d4baabfc85614ce63ba84c1512c81962801471ee2",
+                "votes": "30000",
+                "locktime": 9000
+            },
+            "DPoSV2VoteRights": "3584.27522720"
+        }
+    ],
+    "id": null,
+    "error": null
+}
+```
+
+
+
+#### Example 2
+
+Request:
+
+```
+{
+    "method": "getalldetaileddposv2votes",
+    "params": {
+    }
+}
+```
+
+Response:
+
+```
+{
+    "jsonrpc": "2.0",
+    "result": [
+        {
+            "producerownerkey": "02148cc0ca8f09a4d6845b793d4baabfc85614ce63ba84c1512c81962801471ee2",
+            "producernodekey": "02801b7bc8c459c42651229132aaf91227286050e8bde4f1236a18bf63c21b1942",
+            "referkey": "289b623244a056f7e766b12577b1945302c233ac49a8380c552879f01bfe0f5a",
+            "stakeaddress": "SReFYxAHSshg2PLgVC8Je7HPrU3GbYdSuu",
+            "transactionhash": "aa7bc8ef542f9e1623542aa63b3e905f76cb720c56c62646ec9e58fe203aa40e",
+            "blockheight": 8052,
+            "payloadversion": 0,
+            "votetype": 4,
+            "info": {
+                "candidate": "02148cc0ca8f09a4d6845b793d4baabfc85614ce63ba84c1512c81962801471ee2",
+                "votes": "30000",
+                "locktime": 9000
+            },
+            "DPoSV2VoteRights": "3584.27522720"
+        }
+    ],
+    "id": null,
+    "error": null
+}
+```
+
+
+
+
+
+### getdposv2info
+
+Get dposv2 info such as consensusalgorithm, current block height, dposv2activeheight . 
+
+#### Example
+
+Request:
+
+```
+{
+	"method":"getdposv2info",
+	"params": {
+	}
+}
+```
+
+Response:
+
+```
+{
+    "jsonrpc": "2.0",
+    "result": {
+        "consensusalgorithm": "DPOS",
+        "height": 8502,
+        "dposv2activeheight": 6052
+    },
+    "id": null,
+    "error": null
+}
+```
+
+
+
+### dposv2rewardinfo
+
+If request have no address param get all dposv2 rewards else get dposv2 reward by address
+
+#### Example 1
+
+Request:
+
+```
+{
+	"method":"getdposv2info",
+	"params": {
+	}
+}
+```
+
+Response:
+
+```
+{
+    "jsonrpc": "2.0",
+    "result": [
+        {
+            "address": "EWr9iackkRUMcmpF36FedXzj5kuBWmgAJH",
+            "claimable": 14239726060,
+            "claiming": 0,
+            "claimed": 0
+        },
+        {
+            "address": "Eg546gUgkKM2hwshk1hbvdwExApb3LBD2q",
+            "claimable": 8385083738,
+            "claiming": 0,
+            "claimed": 0
+        },
+  
+        {
+            "address": "EUPULRn29UzVDWCCUHDntU93V4xCY7EhB3",
+            "claimable": 4695966650,
+            "claiming": 0,
+            "claimed": 0
+        }
+    ],
+    "id": null,
+    "error": null
+}
+
+```
+
+#### Example 2
+
+Request:
+
+```
+{
+	"method":"dposv2rewardinfo",
+	"params": {
+			"address":"EX3h7qR5G5Jr6y8vt94wpoAfW7Fta81Vhg"
+	}
+}
+```
+
+Response:
+
+```
+{
+    "jsonrpc": "2.0",
+    "result": {
+        "address": "EX3h7qR5G5Jr6y8vt94wpoAfW7Fta81Vhg",
+        "claimable": 15363778267,
+        "claiming": 0,
+        "claimed": 0
+    },
+    "id": null,
+    "error": null
+}
+
+```
+
+
+
+### getproducerinfo
+
+Get producer info.  
+
+#### Example
+
+Request:
+
+```
+{
+	"method":"getproducerinfo",
+	"params": {
+		"publickey":"03c3bd59e853ab20b56e5e379f333a9fbc650db536a39e37c1340ce54dc74a39ea"
+	}
+}
+```
+
+Response:
+
+```
+{
+    "jsonrpc": "2.0",
+    "result": {
+        "ownerpublickey": "03065bcbdd897e654bcee27afac10c7be9c9fe40e13da3e4240923d24631b06a7b",
+        "nodepublickey": "03c3bd59e853ab20b56e5e379f333a9fbc650db536a39e37c1340ce54dc74a39ea",
+        "nickname": "producer45producer_2.0_7000",
+        "url": "https://blockchain.elastos.org",
+        "location": 100083,
+        "stakeuntil": 7000,
+        "active": false,
+        "votes": "519999.99980000",
+        "dposv2votes": "0",
+        "state": "Returned",
+        "identity": "DPoSV1V2",
+        "registerheight": 3832,
+        "cancelheight": 0,
+        "inactiveheight": 0,
+        "illegalheight": 4612,
+        "index": 0
+    },
+    "id": null,
+    "error": null
+}
+```
+

@@ -11,6 +11,8 @@ import (
 	"github.com/elastos/Elastos.ELA/blockchain/indexers"
 	. "github.com/elastos/Elastos.ELA/common"
 	. "github.com/elastos/Elastos.ELA/core/types"
+	"github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/database"
 )
@@ -21,15 +23,15 @@ type IChainStore interface {
 
 	SaveBlock(b *Block, node *BlockNode, confirm *payload.Confirm,
 		medianTimePast time.Time) error
-	IsDoubleSpend(tx *Transaction) bool
+	IsDoubleSpend(tx interfaces.Transaction) bool
 
 	GetConfirm(hash Uint256) (*payload.Confirm, error)
 
 	RollbackBlock(b *Block, node *BlockNode,
 		confirm *payload.Confirm, medianTimePast time.Time) error
 
-	GetTransaction(txID Uint256) (*Transaction, uint32, error)
-	GetTxReference(tx *Transaction) (map[*Input]*Output, error)
+	GetTransaction(txID Uint256) (interfaces.Transaction, uint32, error)
+	GetTxReference(tx interfaces.Transaction) (map[*common.Input]*common.Output, error)
 
 	SetHeight(height uint32)
 	GetHeight() uint32
@@ -40,8 +42,8 @@ type IChainStore interface {
 
 	GetProposalDraftDataByDraftHash(draftHash *Uint256) ([]byte, error)
 
-	SaveSmallCrossTransferTx(tx *Transaction) error
-	GetSmallCrossTransferTxs() ([]*Transaction, error)
+	SaveSmallCrossTransferTx(tx interfaces.Transaction) error
+	GetSmallCrossTransferTxs() ([]interfaces.Transaction, error)
 	GetSmallCrossTransferTx() ([]string, error)
 	CleanSmallCrossTransferTx(txHash Uint256) error
 
@@ -53,33 +55,33 @@ type IChainStore interface {
 type IFFLDBChainStore interface {
 	database.DB
 
-	// SaveBlock will write block into file db.
+	// SaveBlock will write block into file DB.
 	SaveBlock(b *Block, node *BlockNode, confirm *payload.Confirm,
-		medianTimePast time.Time) error
+		medianTimePast time.Time, ps []database.TXProcessor) error
 
 	// RollbackBlock only remove block state and block index.
-	RollbackBlock(b *Block, node *BlockNode,
-		confirm *payload.Confirm, medianTimePast time.Time) error
+	RollbackBlock(b *Block, node *BlockNode, confirm *payload.Confirm,
+		medianTimePast time.Time, ps []database.TXProcessor) error
 
-	// Get block from file db.
+	// Get block from file DB.
 	GetBlock(hash Uint256) (*DposBlock, error)
 
-	// Get block from file db.
+	// Get block from file DB.
 	GetOldBlock(hash Uint256) (*Block, error)
 
-	// Get block header from file db.
-	GetHeader(hash Uint256) (*Header, error)
+	// Get block header from file DB.
+	GetHeader(hash Uint256) (*common.Header, error)
 
-	// If already exist in main chain(exist in file db and exist block index),
+	// If already exist in main chain(exist in file DB and exist block index),
 	// will return true.
 	BlockExists(hash *Uint256) (bool, uint32, error)
 
-	// If already exist in file db (rollback will not remove from file db), will
+	// If already exist in file DB (rollback will not remove from file DB), will
 	// return true.
 	IsBlockInStore(hash *Uint256) bool
 
 	// Get a transaction by transaction hash.
-	GetTransaction(txID Uint256) (*Transaction, uint32, error)
+	GetTransaction(txID Uint256) (interfaces.Transaction, uint32, error)
 
 	// InitIndex use to initialize the index manager.
 	InitIndex(chain indexers.IChain, interrupt <-chan struct{}) error
@@ -88,12 +90,12 @@ type IFFLDBChainStore interface {
 	GetUnspent(txID Uint256) ([]uint16, error)
 
 	// Get utxo by program hash.
-	GetUTXO(programHash *Uint168) ([]*UTXO, error)
+	GetUTXO(programHash *Uint168) ([]*common.UTXO, error)
 
-	// IsTx3Exist use to find if tx3 exist in db.
+	// IsTx3Exist use to find if tx3 exist in DB.
 	IsTx3Exist(txHash *Uint256) bool
 
-	// IsSideChainReturnDepositExist use to find if return deposit exist in db.
+	// IsSideChainReturnDepositExist use to find if return deposit exist in DB.
 	IsSideChainReturnDepositExist(txHash *Uint256) bool
 
 	// Get proposal draft data by draft hash.

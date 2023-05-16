@@ -1,6 +1,6 @@
 GOVER := $(shell go version)
 VERSION := $(shell git describe --abbrev=4 --dirty --always --tags)
-BUILD = go build -ldflags "-X main.Version=$(VERSION) -X 'main.GoVersion=$(GOVER)'" #-race
+BUILD = go build -ldflags "-X main.Version=$(VERSION) -X 'main.GoVersion=$(GOVER)'"
 
 DEV_BRANCH := $(shell git rev-parse --abbrev-ref HEAD)
 DEV_VERSION := $(shell git rev-list HEAD -n 1 | cut -c 1-8)

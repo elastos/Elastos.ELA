@@ -11,7 +11,8 @@ import (
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/core/contract"
-	"github.com/elastos/Elastos.ELA/core/types"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/crypto"
 	"github.com/elastos/Elastos.ELA/utils"
@@ -74,7 +75,7 @@ func (status ProposalStatus) String() string {
 // ProposalManager used to manage all proposals existing in block chain.
 type ProposalManager struct {
 	ProposalKeyFrame
-	params  *config.Params
+	params  *config.Configuration
 	history *utils.History
 }
 
@@ -90,7 +91,7 @@ func (p *ProposalManager) tryCancelReservedCustomID(height uint32) {
 	}
 }
 
-//only init use
+// only init use
 func (p *ProposalManager) InitSecretaryGeneralPublicKey(publicKey string) {
 	p.SecretaryGeneralPublicKey = publicKey
 }
@@ -191,9 +192,10 @@ func getProposalUnusedBudgetAmount(proposalState *ProposalState) common.Fixed64 
 }
 
 // updateProposals will update proposals' status.
-func (p *ProposalManager) updateProposals(height uint32,
+func (p *ProposalManager) updateProposals(state *State, height uint32,
 	circulation common.Fixed64, inElectionPeriod bool) (common.Fixed64, []payload.ProposalResult) {
 	var unusedAmount common.Fixed64
+	endProposals := make(map[string]struct{})
 	results := make([]payload.ProposalResult, 0)
 	for k, v := range p.Proposals {
 		proposalType := v.Proposal.ProposalType
@@ -229,9 +231,13 @@ func (p *ProposalManager) updateProposals(height uint32,
 				if proposalType == payload.ReserveCustomID {
 					p.tryCancelReservedCustomID(height)
 				}
+				endProposals[v.Proposal.Hash.String()] = struct{}{}
 				break
 			}
 			if p.shouldEndPublicVote(v.VoteStartHeight, height) {
+				// record finished proposals
+				endProposals[v.Proposal.Hash.String()] = struct{}{}
+
 				if p.transferCRAgreedState(v, height, circulation) == VoterCanceled {
 					p.removeRegisterSideChainInfo(v, height)
 					unusedAmount += getProposalTotalBudgetAmount(v.Proposal)
@@ -246,6 +252,27 @@ func (p *ProposalManager) updateProposals(height uint32,
 			}
 		}
 	}
+
+	newUsedCRCProposalVotes := map[common.Uint168][]payload.VotesWithLockTime{}
+	for k, v := range state.UsedCRCProposalVotes {
+		stakeAddress := k
+		for _, voteInfo := range v {
+			if _, ok := endProposals[common.BytesToHexString(voteInfo.Candidate)]; ok {
+				continue
+			}
+			if _, ok := newUsedCRCProposalVotes[stakeAddress]; !ok {
+				newUsedCRCProposalVotes[stakeAddress] = make([]payload.VotesWithLockTime, 0)
+			}
+			newUsedCRCProposalVotes[stakeAddress] = append(newUsedCRCProposalVotes[stakeAddress], voteInfo)
+		}
+	}
+
+	oriUsedCRCProposalVotes := copyProgramHashVotesInfoSet(state.UsedCRCProposalVotes)
+	p.history.Append(height, func() {
+		state.UsedCRCProposalVotes = newUsedCRCProposalVotes
+	}, func() {
+		state.UsedCRCProposalVotes = oriUsedCRCProposalVotes
+	})
 
 	return unusedAmount, results
 }
@@ -315,7 +342,7 @@ func (p *ProposalManager) terminatedProposal(proposalState *ProposalState,
 	})
 }
 
-// transferRegisteredState will transfer the Registered state by CR agreement
+// transferRegisteredState will transfer the Registered State by CR agreement
 // count.
 func (p *ProposalManager) transferRegisteredState(proposalState *ProposalState,
 	height uint32) (status ProposalStatus) {
@@ -327,7 +354,7 @@ func (p *ProposalManager) transferRegisteredState(proposalState *ProposalState,
 	}
 
 	oriVoteStartHeight := proposalState.VoteStartHeight
-	if agreedCount >= p.params.CRAgreementCount {
+	if agreedCount >= p.params.CRConfiguration.CRAgreementCount {
 		status = CRAgreed
 		p.history.Append(height, func() {
 			proposalState.Status = CRAgreed
@@ -426,11 +453,11 @@ func (p *ProposalManager) dealProposal(proposalState *ProposalState, unusedAmoun
 	}
 }
 
-// transferCRAgreedState will transfer CRAgreed state by votes' reject amount.
+// transferCRAgreedState will transfer CRAgreed State by Votes' reject amount.
 func (p *ProposalManager) transferCRAgreedState(proposalState *ProposalState,
 	height uint32, circulation common.Fixed64) (status ProposalStatus) {
 	if proposalState.VotersRejectAmount >= common.Fixed64(float64(circulation)*
-		p.params.VoterRejectPercentage/100.0) {
+		p.params.CRConfiguration.VoterRejectPercentage/100.0) {
 		status = VoterCanceled
 		oriBudgetsStatus := make(map[uint8]BudgetStatus)
 		for k, v := range proposalState.BudgetsStatus {
@@ -492,12 +519,13 @@ func isSpecialProposal(proposalType payload.CRCProposalType) bool {
 	}
 }
 
-// shouldEndCRCVote returns if current height should end CRC vote about
-// 	the specified proposal.
+// shouldEndCRCVote returns if current Height should end CRC vote about
+//
+//	the specified proposal.
 func (p *ProposalManager) shouldEndCRCVote(RegisterHeight uint32,
 	height uint32) bool {
 	//proposal.RegisterHeight
-	return RegisterHeight+p.params.ProposalCRVotingPeriod <= height
+	return RegisterHeight+p.params.CRConfiguration.ProposalCRVotingPeriod <= height
 }
 
 func (p *ProposalManager) addRegisterSideChainInfo(proposalState *ProposalState, height uint32) {
@@ -549,16 +577,16 @@ func (p *ProposalManager) removeRegisterSideChainInfo(proposalState *ProposalSta
 	}
 }
 
-// shouldEndPublicVote returns if current height should end public vote
+// shouldEndPublicVote returns if current Height should end public vote
 // about the specified proposal.
 func (p *ProposalManager) shouldEndPublicVote(VoteStartHeight uint32,
 	height uint32) bool {
-	return VoteStartHeight+p.params.ProposalPublicVotingPeriod <=
+	return VoteStartHeight+p.params.CRConfiguration.ProposalPublicVotingPeriod <=
 		height
 }
 
 func (p *ProposalManager) isProposalFull(did common.Uint168) bool {
-	return p.getProposalCount(did) >= int(p.params.MaxCommitteeProposalCount)
+	return p.getProposalCount(did) >= int(p.params.CRConfiguration.MaxCommitteeProposalCount)
 }
 
 func (p *ProposalManager) getProposalCount(did common.Uint168) int {
@@ -593,10 +621,10 @@ func (p *ProposalManager) delProposal(did common.Uint168,
 	}
 }
 
-// registerProposal will register proposal state in proposal manager
-func (p *ProposalManager) registerProposal(tx *types.Transaction,
+// registerProposal will register proposal State in proposal manager
+func (p *ProposalManager) registerProposal(tx interfaces.Transaction,
 	height uint32, currentsSession uint64, history *utils.History) {
-	proposal := tx.Payload.(*payload.CRCProposal)
+	proposal := tx.Payload().(*payload.CRCProposal)
 	//The number of the proposals of the committee can not more than 128
 	if p.isProposalFull(proposal.CRCouncilMemberDID) {
 		return
@@ -611,9 +639,9 @@ func (p *ProposalManager) registerProposal(tx *types.Transaction,
 	}
 	proposalState := &ProposalState{
 		Status:              Registered,
-		Proposal:            proposal.ToProposalInfo(tx.PayloadVersion),
+		Proposal:            proposal.ToProposalInfo(tx.PayloadVersion()),
 		TxHash:              tx.Hash(),
-		TxPayloadVer:        tx.PayloadVersion,
+		TxPayloadVer:        tx.PayloadVersion(),
 		CRVotes:             map[common.Uint168]payload.VoteResult{},
 		VotersRejectAmount:  common.Fixed64(0),
 		RegisterHeight:      height,
@@ -628,10 +656,10 @@ func (p *ProposalManager) registerProposal(tx *types.Transaction,
 		Recipient:           proposal.Recipient,
 	}
 	crCouncilMemberDID := proposal.CRCouncilMemberDID
-	hash := proposal.Hash(tx.PayloadVersion)
+	hash := proposal.Hash(tx.PayloadVersion())
 
 	history.Append(height, func() {
-		hash := proposal.Hash(tx.PayloadVersion)
+		hash := proposal.Hash(tx.PayloadVersion())
 		log.Debug("registerProposal hash", hash.String())
 		p.Proposals[hash] = proposalState
 		p.addProposal(crCouncilMemberDID, hash)
@@ -639,9 +667,9 @@ func (p *ProposalManager) registerProposal(tx *types.Transaction,
 			p.ProposalSession[currentsSession] = make([]common.Uint256, 0)
 		}
 		p.ProposalSession[currentsSession] =
-			append(p.ProposalSession[currentsSession], proposal.Hash(tx.PayloadVersion))
+			append(p.ProposalSession[currentsSession], proposal.Hash(tx.PayloadVersion()))
 	}, func() {
-		delete(p.Proposals, proposal.Hash(tx.PayloadVersion))
+		delete(p.Proposals, proposal.Hash(tx.PayloadVersion()))
 		p.delProposal(crCouncilMemberDID, hash)
 		if len(p.ProposalSession[currentsSession]) == 1 {
 			delete(p.ProposalSession, currentsSession)
@@ -674,7 +702,7 @@ func (p *ProposalManager) registerProposal(tx *types.Transaction,
 	}
 }
 
-func getCIDByCode(code []byte) (*common.Uint168, error) {
+func GetCIDByCode(code []byte) (*common.Uint168, error) {
 	ct1, err := contract.CreateCRIDContractByCode(code)
 	if err != nil {
 		return nil, err
@@ -682,7 +710,7 @@ func getCIDByCode(code []byte) (*common.Uint168, error) {
 	return ct1.ToProgramHash(), err
 }
 
-func getDIDByCode(code []byte) (*common.Uint168, error) {
+func GetDIDByCode(code []byte) (*common.Uint168, error) {
 	didCode := make([]byte, len(code))
 	copy(didCode, code)
 	didCode = append(didCode[:len(code)-1], common.DID)
@@ -709,9 +737,9 @@ func getCIDByPublicKey(publicKey []byte) (*common.Uint168, error) {
 	return ct.ToProgramHash(), nil
 }
 
-func (p *ProposalManager) proposalReview(tx *types.Transaction,
+func (p *ProposalManager) proposalReview(tx interfaces.Transaction,
 	height uint32, history *utils.History) {
-	proposalReview := tx.Payload.(*payload.CRCProposalReview)
+	proposalReview := tx.Payload().(*payload.CRCProposalReview)
 	proposalState := p.getProposal(proposalReview.ProposalHash)
 	if proposalState == nil {
 		return
@@ -729,9 +757,9 @@ func (p *ProposalManager) proposalReview(tx *types.Transaction,
 	})
 }
 
-func (p *ProposalManager) proposalWithdraw(tx *types.Transaction,
+func (p *ProposalManager) proposalWithdraw(tx interfaces.Transaction,
 	height uint32, history *utils.History) {
-	withdrawPayload := tx.Payload.(*payload.CRCProposalWithdraw)
+	withdrawPayload := tx.Payload().(*payload.CRCProposalWithdraw)
 	proposalState := p.getProposal(withdrawPayload.ProposalHash)
 	if proposalState == nil {
 		return
@@ -755,8 +783,8 @@ func (p *ProposalManager) proposalWithdraw(tx *types.Transaction,
 				proposalState.BudgetsStatus[k] = Withdrawn
 			}
 		}
-		if tx.PayloadVersion == payload.CRCProposalWithdrawVersion01 {
-			p.WithdrawableTxInfo[tx.Hash()] = types.OutputInfo{
+		if tx.PayloadVersion() == payload.CRCProposalWithdrawVersion01 {
+			p.WithdrawableTxInfo[tx.Hash()] = common2.OutputInfo{
 				Recipient: withdrawPayload.Recipient,
 				Amount:    withdrawPayload.Amount,
 			}
@@ -766,15 +794,15 @@ func (p *ProposalManager) proposalWithdraw(tx *types.Transaction,
 			delete(proposalState.WithdrawnBudgets, k)
 		}
 		proposalState.BudgetsStatus = oriBudgetsStatus
-		if tx.PayloadVersion == payload.CRCProposalWithdrawVersion01 {
+		if tx.PayloadVersion() == payload.CRCProposalWithdrawVersion01 {
 			delete(p.WithdrawableTxInfo, tx.Hash())
 		}
 	})
 }
 
-func (p *ProposalManager) proposalTracking(tx *types.Transaction,
+func (p *ProposalManager) proposalTracking(tx interfaces.Transaction,
 	height uint32, history *utils.History) (unusedBudget common.Fixed64) {
-	proposalTracking := tx.Payload.(*payload.CRCProposalTracking)
+	proposalTracking := tx.Payload().(*payload.CRCProposalTracking)
 	proposalState := p.getProposal(proposalTracking.ProposalHash)
 	if proposalState == nil {
 		return
@@ -889,7 +917,7 @@ func (p *ProposalManager) proposalTracking(tx *types.Transaction,
 	return
 }
 
-func NewProposalManager(params *config.Params) *ProposalManager {
+func NewProposalManager(params *config.Configuration) *ProposalManager {
 	return &ProposalManager{
 		ProposalKeyFrame: *NewProposalKeyFrame(),
 		params:           params,

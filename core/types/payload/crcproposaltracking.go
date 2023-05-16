@@ -76,6 +76,7 @@ const (
 )
 
 type CRCProposalTracking struct {
+
 	// The hash of current tracking proposal.
 	ProposalHash common.Uint256
 

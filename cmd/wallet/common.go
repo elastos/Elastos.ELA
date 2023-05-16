@@ -14,13 +14,17 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/elastos/Elastos.ELA/account"
 	cmdcom "github.com/elastos/Elastos.ELA/cmd/common"
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/core/contract"
-	"github.com/elastos/Elastos.ELA/core/types"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/functions"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
+	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/crypto"
 	"github.com/elastos/Elastos.ELA/servers"
 	"github.com/elastos/Elastos.ELA/utils/http"
@@ -140,7 +144,7 @@ func getAddressUTXOs(address string) ([]servers.UTXOInfo, []servers.UTXOInfo, er
 	var availableUTXOs []servers.UTXOInfo
 	var lockedUTXOs []servers.UTXOInfo
 	for _, utxo := range UTXOs {
-		if types.TxType(utxo.TxType) == types.CoinBase && utxo.Confirmations < 101 {
+		if common2.TxType(utxo.TxType) == common2.CoinBase && utxo.Confirmations < 101 {
 			lockedUTXOs = append(lockedUTXOs, utxo)
 			continue
 		}
@@ -177,7 +181,7 @@ func getAddressBalance(address string) (common.Fixed64, common.Fixed64, error) {
 	return availableAmount, lockedAmount, nil
 }
 
-func OutputTx(haveSign, needSign int, txn *types.Transaction) error {
+func OutputTx(haveSign, needSign int, txn interfaces.Transaction) error {
 	// Serialise transaction content
 	buf := new(bytes.Buffer)
 	err := txn.Serialize(buf)
@@ -197,7 +201,7 @@ func OutputTx(haveSign, needSign int, txn *types.Transaction) error {
 	fileName := "to_be_signed" // Create transaction file name
 
 	if haveSign == 0 && needSign > 0 {
-		//	Transaction created do nothing
+		//	BaseTransaction created do nothing
 	} else if needSign > haveSign {
 		fileName = fmt.Sprint(fileName, "_", haveSign, "_of_", needSign)
 	} else if needSign == haveSign {
@@ -215,9 +219,13 @@ func OutputTx(haveSign, needSign int, txn *types.Transaction) error {
 		return err
 	}
 
-	var tx types.Transaction
 	txBytes, _ := hex.DecodeString(content)
-	if err := tx.Deserialize(bytes.NewReader(txBytes)); err != nil {
+	r := bytes.NewReader(txBytes)
+	tx, err := functions.GetTransactionByBytes(r)
+	if err != nil {
+		return err
+	}
+	if err := tx.Deserialize(r); err != nil {
 		return err
 	}
 
@@ -286,4 +294,143 @@ func parseCandidates(path string) ([]string, error) {
 	}
 
 	return candidates, nil
+}
+
+func parseCandidatesVotes(candidates string, votes string) ([]payload.VotesWithLockTime, error) {
+	cds := strings.Split(candidates, ",")
+	vts := strings.Split(votes, ",")
+	if len(cds) != len(vts) {
+		return nil, errors.New("candidates count need to be equal to votes count")
+	}
+	votesInfo := make([]payload.VotesWithLockTime, 0)
+	for i := 0; i < len(cds); i++ {
+		c, err := common.HexStringToBytes(cds[i])
+		if err != nil {
+			return nil, err
+		}
+		v, err := common.StringToFixed64(vts[i])
+		if err != nil {
+			return nil, err
+		}
+		votesInfo = append(votesInfo, payload.VotesWithLockTime{
+			Candidate: c,
+			Votes:     *v,
+			LockTime:  0,
+		})
+	}
+	return votesInfo, nil
+}
+
+func parseCandidatesVotesWithStakeUntil(candidates string, votes string, stakeUntil string) ([]payload.VotesWithLockTime, error) {
+	cds := strings.Split(candidates, ",")
+	vts := strings.Split(votes, ",")
+	sus := strings.Split(stakeUntil, ",")
+	if len(cds) != len(vts) || len(cds) != len(sus) {
+		return nil, errors.New("candidates and votes and stakeuntils count need to be equal")
+	}
+	votesInfo := make([]payload.VotesWithLockTime, 0)
+	for i := 0; i < len(cds); i++ {
+		c, err := common.HexStringToBytes(cds[i])
+		if err != nil {
+			return nil, err
+		}
+		v, err := common.StringToFixed64(vts[i])
+		if err != nil {
+			return nil, err
+		}
+		s, err := strconv.Atoi(sus[i])
+		if err != nil {
+			return nil, err
+		}
+		votesInfo = append(votesInfo, payload.VotesWithLockTime{
+			Candidate: c,
+			Votes:     *v,
+			LockTime:  uint32(s),
+		})
+	}
+	return votesInfo, nil
+}
+
+func parseCandidatesAndVotes(path string) ([]payload.VotesWithLockTime, error) {
+	if _, err := os.Stat(path); err != nil {
+		return nil, errors.New("invalid candidates file path")
+	}
+	file, err := os.OpenFile(path, os.O_RDONLY, 0400)
+	if err != nil {
+		return nil, errors.New("open candidates file failed")
+	}
+
+	votesInfo := make([]payload.VotesWithLockTime, 0)
+	r := csv.NewReader(file)
+	for {
+		record, err := r.Read()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return nil, errors.New(fmt.Sprint("invalid candidate data:", err.Error()))
+		}
+		str := strings.TrimSpace(record[0])
+		candidateVote := strings.Split(str, ",")
+		fmt.Println(str)
+		candidate, err := common.HexStringToBytes(candidateVote[0])
+		if err != nil {
+			return nil, errors.New("invalid candidate")
+		}
+		votes, err := common.StringToFixed64(candidateVote[1])
+		if err != nil {
+			return nil, errors.New("invalid candidate vote")
+		}
+		stakeUntil, err := strconv.Atoi(candidateVote[2])
+		if err != nil {
+			return nil, errors.New("invalid candidate stakeUntil")
+		}
+		votesInfo = append(votesInfo, payload.VotesWithLockTime{
+			Candidate: candidate,
+			Votes:     *votes,
+			LockTime:  uint32(stakeUntil),
+		})
+		fmt.Println("candidate:", candidateVote[0], "vote:", candidateVote[1], candidateVote[2])
+	}
+
+	return votesInfo, nil
+}
+
+func parseRenewalVotesContent(referKeys string, candidates string, votes string, stakeUntil string) ([]payload.RenewalVotesContent, error) {
+	rks := strings.Split(referKeys, ",")
+	cds := strings.Split(candidates, ",")
+	vts := strings.Split(votes, ",")
+	sus := strings.Split(stakeUntil, ",")
+	if len(rks) != len(cds) || len(rks) != len(vts) || len(cds) != len(sus) {
+		return nil, errors.New("referkeys and candidates and votes and stakeuntils count need to be equal")
+	}
+
+	votesInfo := make([]payload.RenewalVotesContent, 0)
+	for i := 0; i < len(cds); i++ {
+		referKey, err := common.Uint256FromHexString(rks[i])
+		if err != nil {
+			return nil, err
+		}
+		c, err := common.HexStringToBytes(cds[i])
+		if err != nil {
+			return nil, err
+		}
+		v, err := common.StringToFixed64(vts[i])
+		if err != nil {
+			return nil, err
+		}
+		s, err := strconv.Atoi(sus[i])
+		if err != nil {
+			return nil, err
+		}
+		votesInfo = append(votesInfo, payload.RenewalVotesContent{
+			ReferKey: *referKey,
+			VotesInfo: payload.VotesWithLockTime{
+				Candidate: c,
+				Votes:     *v,
+				LockTime:  uint32(s),
+			},
+		})
+	}
+	return votesInfo, nil
 }

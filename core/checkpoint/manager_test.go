@@ -10,13 +10,16 @@ import (
 	"errors"
 	"io"
 	"io/ioutil"
+	"math"
 	"math/rand"
 	"os"
 	"path/filepath"
 	"testing"
 
 	"github.com/elastos/Elastos.ELA/common"
+	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/core/types"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/utils/test"
 	"github.com/stretchr/testify/assert"
 )
@@ -139,40 +142,43 @@ func TestManager_SaveAndRestore(t *testing.T) {
 		data:   &data,
 		height: currentHeight,
 	}
-
-	manager := NewManager(&Config{
-		EnableHistory: false,
-		NeedSave:      true,
-	})
+	cfg := &config.Configuration{
+		CheckPointConfiguration: config.CheckPointConfiguration{
+			EnableHistory: false,
+			NeedSave:      true,
+		}}
+	manager := NewManager(cfg)
 	manager.Register(pt)
 
 	// save nothing
 	manager.onBlockSaved(&types.DposBlock{
 		Block: &types.Block{
-			Header: types.Header{Height: currentHeight},
+			Header: common2.Header{Height: currentHeight},
 		},
-	}, nil, false, false)
+	}, nil, false, false, math.MaxUint32, false)
 
 	// save current height
 	currentHeight += pt.SavePeriod()
 	manager.onBlockSaved(&types.DposBlock{
 		Block: &types.Block{
-			Header: types.Header{Height: currentHeight},
+			Header: common2.Header{Height: currentHeight},
 		},
-	}, nil, false, false)
+	}, nil, false, false, math.MaxUint32, false)
 
 	// replace to default.pt
 	currentHeight += pt.EffectivePeriod()
 	manager.onBlockSaved(&types.DposBlock{
 		Block: &types.Block{
-			Header: types.Header{Height: currentHeight},
+			Header: common2.Header{Height: currentHeight},
 		},
-	}, nil, false, false)
+	}, nil, false, false, math.MaxUint32, false)
 
+	cfg2 := &config.Configuration{
+		CheckPointConfiguration: config.CheckPointConfiguration{
+			EnableHistory: false,
+		}}
 	// new a checkpoint manager and restore
-	manager2 := NewManager(&Config{
-		EnableHistory: false,
-	})
+	manager2 := NewManager(cfg2)
 	manager2.Register(&checkpoint{})
 	assert.NoError(t, manager2.Restore())
 	assert.Equal(t, currentHeight-pt.EffectivePeriod(),
@@ -188,10 +194,11 @@ func TestManager_GetCheckpoint_DisableHistory(t *testing.T) {
 		data:   &data,
 		height: currentHeight,
 	}
-
-	manager := NewManager(&Config{
-		EnableHistory: false,
-	})
+	cfg := &config.Configuration{
+		CheckPointConfiguration: config.CheckPointConfiguration{
+			EnableHistory: false,
+		}}
+	manager := NewManager(cfg)
 	manager.Register(pt)
 
 	result, ok := manager.GetCheckpoint(pt.Key(), currentHeight-1)
@@ -217,25 +224,27 @@ func TestManager_GetCheckpoint_EnableHistory(t *testing.T) {
 		height: 0,
 	}
 
-	manager := NewManager(&Config{
-		EnableHistory:      true,
-		HistoryStartHeight: currentHeight,
-		NeedSave:           true,
-	})
+	cfg := &config.Configuration{
+		CheckPointConfiguration: config.CheckPointConfiguration{
+			EnableHistory:      true,
+			HistoryStartHeight: currentHeight,
+			NeedSave:           true,
+		}}
+	manager := NewManager(cfg)
 	manager.Register(pt)
 
 	manager.OnBlockSaved(&types.DposBlock{
 		Block: &types.Block{
-			Header: types.Header{Height: currentHeight},
+			Header: common2.Header{Height: currentHeight},
 		},
-	}, nil, false)
+	}, nil, false, math.MaxUint32, false)
 	currentHeight += pt.SavePeriod()
 
 	manager.OnBlockSaved(&types.DposBlock{
 		Block: &types.Block{
-			Header: types.Header{Height: currentHeight},
+			Header: common2.Header{Height: currentHeight},
 		},
-	}, nil, false)
+	}, nil, false, math.MaxUint32, false)
 
 	result, ok := manager.GetCheckpoint(pt.Key(),
 		currentHeight-pt.SavePeriod()-1)
@@ -244,10 +253,6 @@ func TestManager_GetCheckpoint_EnableHistory(t *testing.T) {
 
 	// less than current height will get history checkpoint
 	result, ok = manager.GetCheckpoint(pt.Key(), currentHeight-1)
-	assert.NotEqual(t, nil, result)
-	assert.Equal(t, true, ok)
-
-	result, ok = manager.GetCheckpoint(pt.Key(), currentHeight)
 	assert.NotEqual(t, nil, result)
 	assert.Equal(t, true, ok)
 
@@ -266,19 +271,22 @@ func TestManager_OnRollbackTo(t *testing.T) {
 		height: currentHeight,
 	}
 
-	manager := NewManager(&Config{
-		EnableHistory:      true,
-		HistoryStartHeight: currentHeight,
-	})
+	cfg := &config.Configuration{
+		CheckPointConfiguration: config.CheckPointConfiguration{
+			EnableHistory:      true,
+			HistoryStartHeight: currentHeight,
+		}}
+
+	manager := NewManager(cfg)
 	manager.Register(pt)
 
 	originalHeight := currentHeight
 	currentHeight += pt.SavePeriod()
 	manager.onBlockSaved(&types.DposBlock{
 		Block: &types.Block{
-			Header: types.Header{Height: currentHeight},
+			Header: common2.Header{Height: currentHeight},
 		},
-	}, nil, false, false)
+	}, nil, false, false, math.MaxUint32, false)
 
 	assert.Equal(t, currentHeight, uint32(*pt.data))
 	assert.NoError(t, manager.OnRollbackTo(originalHeight, false))
@@ -288,7 +296,11 @@ func TestManager_OnRollbackTo(t *testing.T) {
 }
 
 func TestManager_getOrderedCheckpoints(t *testing.T) {
-	manager := NewManager(&Config{})
+	cfg := &config.Configuration{
+		CheckPointConfiguration: config.CheckPointConfiguration{
+			EnableHistory: true,
+		}}
+	manager := NewManager(cfg)
 
 	for i := 0; i < 10; i++ {
 		manager.checkpoints[randomString()] =

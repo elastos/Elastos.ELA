@@ -16,11 +16,7 @@ const (
 	Signature ContractType = iota
 	MultiSig
 	Custom
-)
-
-// Extension OP_CODE
-const (
-	CROSSCHAIN = 0xAF
+	Schnorr
 )
 
 func IsStandard(code []byte) bool {
@@ -28,6 +24,19 @@ func IsStandard(code []byte) bool {
 		return false
 	}
 	if code[0] != 33 || code[34] != byte(vm.CHECKSIG) {
+		return false
+	}
+	return true
+}
+
+func IsSchnorr(code []byte) bool {
+	if len(code) != 35 {
+		return false
+	}
+	if int(code[0]) != vm.PUSH1 {
+		return false
+	}
+	if int(code[1])+2 != len(code) {
 		return false
 	}
 	return true
@@ -120,6 +129,9 @@ func GetCodeType(code []byte) ContractType {
 	}
 	if IsMultiSig(code) {
 		return MultiSig
+	}
+	if IsSchnorr(code) {
+		return Schnorr
 	}
 	return Custom
 }

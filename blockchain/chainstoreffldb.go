@@ -18,6 +18,8 @@ import (
 	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/common/log"
 	. "github.com/elastos/Elastos.ELA/core/types"
+	"github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/database"
 
@@ -42,10 +44,10 @@ type ChainStoreFFLDB struct {
 	mtx              sync.RWMutex
 	blockHashesCache []Uint256
 	blocksCache      map[Uint256]*DposBlock
-	params           *config.Params
+	params           *config.Configuration
 }
 
-func NewChainStoreFFLDB(dataDir string, params *config.Params) (IFFLDBChainStore, error) {
+func NewChainStoreFFLDB(dataDir string, params *config.Configuration) (IFFLDBChainStore, error) {
 	fflDB, err := LoadBlockDB(dataDir, blockDbName)
 	if err != nil {
 		return nil, err
@@ -96,7 +98,7 @@ func LoadBlockDB(dataPath string, dbName string) (database.DB, error) {
 			return nil, err
 		}
 
-		// Create the db if it does not exist.
+		// Create the DB if it does not exist.
 		err = os.MkdirAll(dataPath, 0700)
 		if err != nil {
 			return nil, err
@@ -131,71 +133,8 @@ func (c *ChainStoreFFLDB) Close() error {
 	return c.db.Close()
 }
 
-func ProcessProposalDraftData(dbTx database.Tx, Transactions []*Transaction) (err error) {
-	//var err error
-	for _, tx := range Transactions {
-		switch tx.TxType {
-		case CRCProposal:
-			proposal := tx.Payload.(*payload.CRCProposal)
-			err = dbPutProposalDraftData(dbTx, &proposal.DraftHash, proposal.DraftData)
-			if err != nil {
-				return err
-			}
-		case CRCProposalTracking:
-			proposalTracking := tx.Payload.(*payload.CRCProposalTracking)
-			err = dbPutProposalDraftData(dbTx, &proposalTracking.SecretaryGeneralOpinionHash,
-				proposalTracking.SecretaryGeneralOpinionData)
-			if err != nil {
-				return err
-			}
-			err = dbPutProposalDraftData(dbTx, &proposalTracking.MessageHash, proposalTracking.MessageData)
-			if err != nil {
-				return err
-			}
-		case CRCProposalReview:
-			proposalReview := tx.Payload.(*payload.CRCProposalReview)
-			err = dbPutProposalDraftData(dbTx, &proposalReview.OpinionHash, proposalReview.OpinionData)
-			if err != nil {
-				return err
-			}
-		}
-	}
-	return err
-}
-
-func RollbackProcessProposalDraftData(dbTx database.Tx, Transactions []*Transaction) (err error) {
-	//var err error
-	for _, tx := range Transactions {
-		switch tx.TxType {
-		case CRCProposal:
-			proposal := tx.Payload.(*payload.CRCProposal)
-			err = DBRemoveProposalDraftData(dbTx, &proposal.DraftHash)
-			if err != nil {
-				return err
-			}
-		case CRCProposalTracking:
-			proposalTracking := tx.Payload.(*payload.CRCProposalTracking)
-			err = DBRemoveProposalDraftData(dbTx, &proposalTracking.SecretaryGeneralOpinionHash)
-			if err != nil {
-				return err
-			}
-			err = DBRemoveProposalDraftData(dbTx, &proposalTracking.MessageHash)
-			if err != nil {
-				return err
-			}
-		case CRCProposalReview:
-			proposalReview := tx.Payload.(*payload.CRCProposalReview)
-			err = DBRemoveProposalDraftData(dbTx, &proposalReview.OpinionHash)
-			if err != nil {
-				return err
-			}
-		}
-	}
-	return err
-}
-
 func (c *ChainStoreFFLDB) SaveBlock(b *Block, node *BlockNode,
-	confirm *payload.Confirm, medianTimePast time.Time) error {
+	confirm *payload.Confirm, medianTimePast time.Time, ps []database.TXProcessor) error {
 
 	err := c.db.Update(func(dbTx database.Tx) error {
 		return dbStoreBlock(dbTx, &DposBlock{
@@ -231,8 +170,11 @@ func (c *ChainStoreFFLDB) SaveBlock(b *Block, node *BlockNode,
 			return err
 		}
 
-		if b.Height >= c.params.ChangeCommitteeNewCRHeight {
-			ProcessProposalDraftData(dbTx, b.Transactions)
+		for _, processor := range ps {
+			err = processor(dbTx)
+			if err != nil {
+				return err
+			}
 		}
 
 		// Allow the index manager to call each of the currently active
@@ -252,7 +194,7 @@ func (c *ChainStoreFFLDB) SaveBlock(b *Block, node *BlockNode,
 }
 
 func (c *ChainStoreFFLDB) RollbackBlock(b *Block, node *BlockNode,
-	confirm *payload.Confirm, medianTimePast time.Time) error {
+	confirm *payload.Confirm, medianTimePast time.Time, ps []database.TXProcessor) error {
 	// Load the previous block since some details for it are needed below.
 	prevNode := node.Parent
 	var prevBlock *Block
@@ -287,8 +229,8 @@ func (c *ChainStoreFFLDB) RollbackBlock(b *Block, node *BlockNode,
 			return err
 		}
 
-		if b.Height >= c.params.ChangeCommitteeNewCRHeight {
-			err = RollbackProcessProposalDraftData(dbTx, b.Transactions)
+		for _, processor := range ps {
+			err = processor(dbTx)
 			if err != nil {
 				return err
 			}
@@ -368,7 +310,7 @@ func (c *ChainStoreFFLDB) GetBlock(hash Uint256) (*DposBlock, error) {
 	return b, nil
 }
 
-func (c *ChainStoreFFLDB) GetHeader(hash Uint256) (*Header, error) {
+func (c *ChainStoreFFLDB) GetHeader(hash Uint256) (*common.Header, error) {
 	var headerBytes []byte
 	err := c.db.View(func(tx database.Tx) error {
 		var e error
@@ -382,7 +324,7 @@ func (c *ChainStoreFFLDB) GetHeader(hash Uint256) (*Header, error) {
 		return nil, errors.New("[BlockChain], GetHeader failed")
 	}
 
-	var header Header
+	var header common.Header
 	err = header.DeserializeNoAux(bytes.NewReader(headerBytes))
 	if err != nil {
 		return nil, errors.New("[BlockChain], GetHeader deserialize failed")
@@ -450,7 +392,7 @@ func (c *ChainStoreFFLDB) GetProposalDraftDataByDraftHash(hash *Uint256) ([]byte
 	return draftData, err
 }
 
-func (c *ChainStoreFFLDB) GetTransaction(txID Uint256) (*Transaction, uint32, error) {
+func (c *ChainStoreFFLDB) GetTransaction(txID Uint256) (interfaces.Transaction, uint32, error) {
 	return c.indexManager.FetchTx(txID)
 }
 
@@ -462,12 +404,30 @@ func (c *ChainStoreFFLDB) GetUnspent(txID Uint256) ([]uint16, error) {
 	return c.indexManager.FetchUnspent(txID)
 }
 
-func (c *ChainStoreFFLDB) GetUTXO(programHash *Uint168) ([]*UTXO, error) {
+func (c *ChainStoreFFLDB) GetUTXO(programHash *Uint168) ([]*common.UTXO, error) {
 	return c.indexManager.FetchUTXO(programHash)
 }
 
+func DBFetchTx3IndexEntry(dbTx database.Tx, txHash *Uint256) bool {
+	hashIndex := dbTx.Metadata().Bucket(Tx3IndexBucketName)
+	if hashIndex == nil {
+		return false
+	}
+	value := hashIndex.Get(txHash[:])
+	if bytes.Equal(value, Tx3IndexValue) {
+		return true
+	}
+	return false
+}
+
 func (c *ChainStoreFFLDB) IsTx3Exist(txHash *Uint256) bool {
-	return c.indexManager.IsTx3Exist(txHash)
+	exist := false
+	_ = c.db.View(func(dbTx database.Tx) error {
+		exist = DBFetchTx3IndexEntry(dbTx, txHash)
+		return nil
+	})
+
+	return exist
 }
 
 func (c *ChainStoreFFLDB) IsSideChainReturnDepositExist(txHash *Uint256) bool {

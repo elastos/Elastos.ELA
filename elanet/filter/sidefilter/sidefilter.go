@@ -12,7 +12,8 @@ and also the transactions related to the SideChain addresses.
 package sidefilter
 
 import (
-	"github.com/elastos/Elastos.ELA/core/types"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/dpos/state"
 	"github.com/elastos/Elastos.ELA/elanet/bloom"
 	"github.com/elastos/Elastos.ELA/elanet/filter"
@@ -40,24 +41,24 @@ func (f *Filter) Add(data []byte) error {
 
 // MatchConfirmed returns if a confirmed (packed into a block) transaction
 // matches the filter.
-func (f *Filter) MatchConfirmed(tx *types.Transaction) bool {
+func (f *Filter) MatchConfirmed(tx interfaces.Transaction) bool {
 	return f.TxFilter.MatchConfirmed(tx) || f.state.IsDPOSTransaction(tx) ||
 		tx.IsRevertToPOW() || tx.IsRevertToDPOS()
 }
 
 // MatchUnconfirmed returns if a unconfirmed (not packed into a block yet)
 // transaction matches the filter.
-func (f *Filter) MatchUnconfirmed(tx *types.Transaction) bool {
-	switch tx.TxType {
-	case types.IllegalProposalEvidence:
+func (f *Filter) MatchUnconfirmed(tx interfaces.Transaction) bool {
+	switch tx.TxType() {
+	case common2.IllegalProposalEvidence:
 		fallthrough
-	case types.IllegalVoteEvidence:
+	case common2.IllegalVoteEvidence:
 		fallthrough
-	case types.IllegalBlockEvidence:
+	case common2.IllegalBlockEvidence:
 		fallthrough
-	case types.IllegalSidechainEvidence:
+	case common2.IllegalSidechainEvidence:
 		fallthrough
-	case types.InactiveArbitrators:
+	case common2.InactiveArbitrators:
 		return true
 	}
 	return false

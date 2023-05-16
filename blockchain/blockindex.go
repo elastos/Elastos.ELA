@@ -17,7 +17,7 @@ import (
 
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
-	"github.com/elastos/Elastos.ELA/core/types"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/database"
 )
 
@@ -89,7 +89,7 @@ type BlockNode struct {
 
 // NewBlockNode returns a new block node for the given block header and block
 // hash, calculating the height and workSum from the respective fields.
-func NewBlockNode(header *types.Header, hash *common.Uint256) *BlockNode {
+func NewBlockNode(header *common2.Header, hash *common.Uint256) *BlockNode {
 	var previous, current common.Uint256
 	copy(previous[:], header.Previous[:])
 	copy(current[:], hash[:])
@@ -115,22 +115,22 @@ type blockIndex struct {
 	// be changed afterwards, so there is no need to protect them with a
 	// separate mutex.
 	db          IChainStore
-	chainParams *config.Params
+	chainParams *config.Configuration
 
 	sync.RWMutex
 	index map[common.Uint256]*BlockNode
-	dirty map[*types.Header]blockStatus
+	dirty map[*common2.Header]blockStatus
 }
 
 // newBlockIndex returns a new empty instance of a block index.  The index will
 // be dynamically populated as block nodes are loaded from the database and
 // manually added.
-func newBlockIndex(db IChainStore, chainParams *config.Params) *blockIndex {
+func newBlockIndex(db IChainStore, chainParams *config.Configuration) *blockIndex {
 	return &blockIndex{
 		db:          db,
 		chainParams: chainParams,
 		index:       make(map[common.Uint256]*BlockNode),
-		dirty:       make(map[*types.Header]blockStatus),
+		dirty:       make(map[*common2.Header]blockStatus),
 	}
 }
 
@@ -159,7 +159,7 @@ func (bi *blockIndex) LookupNode(hash *common.Uint256) (*BlockNode, bool) {
 // Duplicate entries are not checked so it is up to caller to avoid adding them.
 //
 // This function is safe for concurrent access.
-func (bi *blockIndex) AddNode(node *BlockNode, header *types.Header) {
+func (bi *blockIndex) AddNode(node *BlockNode, header *common2.Header) {
 	bi.Lock()
 	bi.addNode(node)
 	bi.dirty[header] = node.Status
@@ -191,7 +191,7 @@ func (bi *blockIndex) NodeStatus(node *BlockNode) blockStatus {
 }
 
 // SetFlags set the Status flags.
-func (bi *blockIndex) SetFlags(header *types.Header, flags blockStatus) {
+func (bi *blockIndex) SetFlags(header *common2.Header, flags blockStatus) {
 	bi.Lock()
 	bi.dirty[header] = flags
 	bi.Unlock()
@@ -218,7 +218,7 @@ func (bi *blockIndex) flushToDB() error {
 
 	// If write was successful, clear the dirty set.
 	if err == nil {
-		bi.dirty = make(map[*types.Header]blockStatus)
+		bi.dirty = make(map[*common2.Header]blockStatus)
 	}
 
 	bi.Unlock()

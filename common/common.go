@@ -50,6 +50,10 @@ func BytesReverse(u []byte) []byte {
 	return u
 }
 
+func GetPublicKeyFromCode(code []byte) []byte {
+	return code[1 : len(code)-1]
+}
+
 func BytesToHexString(data []byte) string {
 	return hex.EncodeToString(data)
 }
@@ -144,4 +148,9 @@ func GetIpFromAddr(addr string) string {
 func IsLetterOrNumber(s string) bool {
 	isLetterOrNumber := regexp.MustCompile(`^[a-zA-Z0-9]+$`).MatchString
 	return isLetterOrNumber(s)
+}
+
+// get NFT ID by refer key and tx hash
+func GetNFTID(referkey, txHash Uint256) Uint256 {
+	return Sha256D(append(referkey[:], txHash[:]...))
 }

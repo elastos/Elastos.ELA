@@ -25,7 +25,7 @@ func DisableLog() {
 	log = elalog.Disabled
 }
 
-// UseLogger uses a specified Logger to output package logging info.
+// UseLogger uses a specified Logger to output package logging Info.
 // This should be used in preference to SetLogWriter if the caller is also
 // using elalog.
 func UseLogger(logger elalog.Logger) {

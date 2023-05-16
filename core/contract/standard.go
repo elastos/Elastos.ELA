@@ -41,6 +41,13 @@ func CreateStandardContract(pubKey *crypto.PublicKey) (*Contract, error) {
 	}, nil
 }
 
+func CreateStandardContractByCode(code []byte) (*Contract, error) {
+	return &Contract{
+		Code:   code,
+		Prefix: PrefixStandard,
+	}, nil
+}
+
 func PublicKeyToStandardProgramHash(pubKey []byte) (*common.Uint168, error) {
 	publicKey, err := crypto.DecodePoint(pubKey)
 	if err != nil {

@@ -9,6 +9,7 @@ import (
 	"bytes"
 
 	"github.com/elastos/Elastos.ELA/common"
+	"github.com/elastos/Elastos.ELA/vm"
 )
 
 // A temporary file created for cross chain tx
@@ -45,7 +46,7 @@ func CreateCrossChainRedeemScript(genesisHash common.Uint256) []byte {
 	buf := new(bytes.Buffer)
 	buf.WriteByte(byte(len(genesisHash.Bytes())))
 	buf.Write(genesisHash.Bytes())
-	buf.WriteByte(byte(CROSSCHAIN))
+	buf.WriteByte(byte(vm.CROSSCHAIN))
 
 	return buf.Bytes()
 }

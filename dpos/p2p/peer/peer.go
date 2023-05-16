@@ -25,6 +25,7 @@ import (
 	"github.com/elastos/Elastos.ELA/dpos/p2p/msg"
 	"github.com/elastos/Elastos.ELA/p2p"
 	pmsg "github.com/elastos/Elastos.ELA/p2p/msg"
+	"github.com/elastos/Elastos.ELA/p2p/peer"
 )
 
 const (
@@ -58,6 +59,13 @@ func (p PID) String() string {
 	return hex.EncodeToString(p[:])
 }
 
+// PeersInfo include current peers and next peers.
+type PeersInfo struct {
+	CurrentPeers []PID
+	NextPeers    []PID
+	CRPeers      []PID
+}
+
 // outMsg is used to house a message to be sent along with a channel to signal
 // when the message has been sent (or won't be sent due to things such as
 // shutdown)
@@ -84,16 +92,19 @@ type MessageFunc func(peer *Peer, msg p2p.Message)
 
 // Config is a descriptor which specifies the peer instance configuration.
 type Config struct {
-	PID              PID
-	Target           [16]byte
-	Magic            uint32
-	Port             uint16
-	PingInterval     time.Duration
-	Sign             func(data []byte) []byte
-	PingNonce        func(pid PID) uint64
-	PongNonce        func(pid PID) uint64
-	MakeEmptyMessage func(cmd string) (p2p.Message, error)
-	MessageFunc      MessageFunc
+	PID           PID
+	Target        [16]byte
+	Magic         uint32
+	Port          uint16
+	PingInterval  time.Duration
+	Sign          func(data []byte) []byte
+	PingNonce     func(pid PID) uint64
+	PongNonce     func(pid PID) uint64
+	CreateMessage func(hdr p2p.Header, r net.Conn) (message p2p.Message, err error)
+	MessageFunc   MessageFunc
+
+	DPoSV2StartHeight uint32
+	NodeVersion       string
 }
 
 // newNetAddress attempts to extract the IP address and port from the passed
@@ -142,12 +153,13 @@ type Peer struct {
 	inbound bool
 	msgFns  []MessageFunc
 
-	flagsMtx sync.Mutex // protects the peer flags below
-	id       uint64
-	na       *p2p.NetAddress
-	pk       *crypto.PublicKey
-	pid      PID
-
+	flagsMtx    sync.Mutex // protects the peer flags below
+	id          uint64
+	na          *p2p.NetAddress
+	pk          *crypto.PublicKey
+	pid         PID
+	version     uint32 // negotiated protocol version
+	NodeVersion string // protocol node version advertised by remote
 	// These fields keep track of statistics for the peer and are protected
 	// by the statsMtx mutex.
 	statsMtx       sync.RWMutex
@@ -350,9 +362,9 @@ func (p *Peer) handlePongMsg(pong *msg.Pong) {
 	p.statsMtx.Unlock()
 }
 
-func (p *Peer) makeEmptyMessage(cmd string) (p2p.Message, error) {
+func (p *Peer) createMessage(hdr p2p.Header, r net.Conn) (p2p.Message, error) {
 	var message p2p.Message
-	switch cmd {
+	switch hdr.GetCMD() {
 	case msg.CmdVersion:
 		message = &msg.Version{}
 
@@ -369,14 +381,15 @@ func (p *Peer) makeEmptyMessage(cmd string) (p2p.Message, error) {
 		message = &msg.Pong{}
 
 	default:
-		return p.cfg.MakeEmptyMessage(cmd)
+		return p.cfg.CreateMessage(hdr, r)
 	}
-	return message, nil
+
+	return peer.CheckAndCreateMessage(hdr, message, r)
 }
 
 func (p *Peer) readMessage() (p2p.Message, error) {
 	msg, err := p2p.ReadMessage(
-		p.conn, p.cfg.Magic, p2p.ReadMessageTimeOut, p.makeEmptyMessage)
+		p.conn, p.cfg.Magic, p2p.ReadMessageTimeOut, p.createMessage)
 	// Use closures to log expensive operations so they are only run when
 	// the logging level requires it.
 	log.Debugf("%v", newLogClosure(func() string {
@@ -760,6 +773,8 @@ func (p *Peer) readRemoteVersionMsg() ([]byte, error) {
 	p.flagsMtx.Lock()
 	p.pk = pk
 	p.pid = verMsg.PID
+	p.version = verMsg.Version
+	p.NodeVersion = verMsg.NodeVersion
 	p.flagsMtx.Unlock()
 
 	p.handleMessage(p, verMsg)
@@ -795,9 +810,15 @@ func (p *Peer) writeLocalVersionMsg() ([]byte, error) {
 	var nonce [16]byte
 	rand.Read(nonce[:])
 
-	// Version message.
-	localVerMsg := msg.NewVersion(p.cfg.PID, p.cfg.Target, nonce, p.cfg.Port)
+	if uint32(p.cfg.PingNonce(p.pid)) > p.cfg.DPoSV2StartHeight {
+		if msg.GetPayloadVersion() < msg.DPoSV2Version {
+			msg.SetPayloadVersion(msg.DPoSV2Version)
+		}
+	}
 
+	// Version message.
+	localVerMsg := msg.NewVersion(0, p.cfg.PID, p.cfg.Target, nonce,
+		p.cfg.Port, p.cfg.NodeVersion)
 	return nonce[:], p.writeMessage(localVerMsg)
 }
 

@@ -2,28 +2,30 @@ package indexers
 
 import (
 	"bytes"
+
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/core/types"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/core/types/outputpayload"
 	"github.com/elastos/Elastos.ELA/database"
 )
 
 const (
-	// returnDepositIndexName is the human-readable name for the index.
-	returnDepositIndexName = "return deposit index"
+	// ReturnDepositIndexName is the human-readable name for the index.
+	ReturnDepositIndexName = "return deposit index"
 )
 
 var (
-	// returnDepositIndexKey is the key of the returnDeposit index and the db bucket used
+	// ReturnDepositIndexKey is the key of the returnDeposit index and the DB bucket used
 	// to house it.
-	returnDepositIndexKey = []byte("returnDeposithash")
+	ReturnDepositIndexKey = []byte("returnDeposithash")
 
 	// returnDepositIndexValue is placeholder for returnDeposit index
 	returnDepositIndexValue = []byte{1}
 )
 
-func dbFetchReturnDepositIndexEntry(dbTx database.Tx, txHash *common.Uint256) bool {
-	hashIndex := dbTx.Metadata().Bucket(returnDepositIndexKey)
+func DBFetchReturnDepositIndexEntry(dbTx database.Tx, txHash *common.Uint256) bool {
+	hashIndex := dbTx.Metadata().Bucket(ReturnDepositIndexKey)
 	value := hashIndex.Get(txHash[:])
 	if bytes.Equal(value, returnDepositIndexValue) {
 		return true
@@ -32,14 +34,14 @@ func dbFetchReturnDepositIndexEntry(dbTx database.Tx, txHash *common.Uint256) bo
 }
 
 func dbPutReturnDepositIndexEntry(dbTx database.Tx, txHash *common.Uint256) error {
-	returnDepositIndex := dbTx.Metadata().Bucket(returnDepositIndexKey)
+	returnDepositIndex := dbTx.Metadata().Bucket(ReturnDepositIndexKey)
 	return returnDepositIndex.Put(txHash[:], returnDepositIndexValue)
 }
 
 // dbRemoveTxIndexEntry uses an existing database transaction to remove the most
 // recent returnDeposit entry for the given hash.
 func dbRemoveReturnDepositIndexEntry(dbTx database.Tx, txHash *common.Uint256) error {
-	returnDepositIndex := dbTx.Metadata().Bucket(returnDepositIndexKey)
+	returnDepositIndex := dbTx.Metadata().Bucket(ReturnDepositIndexKey)
 
 	return returnDepositIndex.Delete(txHash[:])
 }
@@ -59,14 +61,14 @@ func (idx *ReturnDepositIndex) Init() error {
 //
 // This is part of the Indexer interface.
 func (idx *ReturnDepositIndex) Key() []byte {
-	return returnDepositIndexKey
+	return ReturnDepositIndexKey
 }
 
 // Name returns the human-readable name of the index.
 //
 // This is part of the Indexer interface.
 func (idx *ReturnDepositIndex) Name() string {
-	return returnDepositIndexName
+	return ReturnDepositIndexName
 }
 
 // Create is invoked when the indexer manager determines the index needs
@@ -76,7 +78,7 @@ func (idx *ReturnDepositIndex) Name() string {
 // This is part of the Indexer interface.
 func (idx *ReturnDepositIndex) Create(dbTx database.Tx) error {
 	meta := dbTx.Metadata()
-	_, err := meta.CreateBucket(returnDepositIndexKey)
+	_, err := meta.CreateBucket(ReturnDepositIndexKey)
 	return err
 }
 
@@ -87,11 +89,11 @@ func (idx *ReturnDepositIndex) Create(dbTx database.Tx) error {
 // This is part of the Indexer interface.
 func (idx *ReturnDepositIndex) ConnectBlock(dbTx database.Tx, block *types.Block) error {
 	for _, txn := range block.Transactions {
-		if txn.TxType != types.ReturnSideChainDepositCoin {
+		if txn.TxType() != common2.ReturnSideChainDepositCoin {
 			continue
 		}
-		for _, output := range txn.Outputs {
-			if output.Type == types.OTReturnSideChainDepositCoin {
+		for _, output := range txn.Outputs() {
+			if output.Type == common2.OTReturnSideChainDepositCoin {
 				payload, ok := output.Payload.(*outputpayload.ReturnSideChainDeposit)
 				if ok {
 					err := dbPutReturnDepositIndexEntry(dbTx, &payload.DepositTransactionHash)
@@ -112,11 +114,11 @@ func (idx *ReturnDepositIndex) ConnectBlock(dbTx database.Tx, block *types.Block
 // This is part of the Indexer interface.
 func (idx *ReturnDepositIndex) DisconnectBlock(dbTx database.Tx, block *types.Block) error {
 	for _, txn := range block.Transactions {
-		if txn.TxType != types.ReturnSideChainDepositCoin {
+		if txn.TxType() != common2.ReturnSideChainDepositCoin {
 			continue
 		}
-		for _, output := range txn.Outputs {
-			if output.Type == types.OTReturnSideChainDepositCoin {
+		for _, output := range txn.Outputs() {
+			if output.Type == common2.OTReturnSideChainDepositCoin {
 				payload, ok := output.Payload.(*outputpayload.ReturnSideChainDeposit)
 				if ok {
 					err := dbRemoveReturnDepositIndexEntry(dbTx, &payload.DepositTransactionHash)

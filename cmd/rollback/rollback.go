@@ -14,7 +14,8 @@ import (
 	cmdcom "github.com/elastos/Elastos.ELA/cmd/common"
 	"github.com/elastos/Elastos.ELA/common/config/settings"
 	"github.com/elastos/Elastos.ELA/common/log"
-	"github.com/elastos/Elastos.ELA/core/types"
+	"github.com/elastos/Elastos.ELA/core/checkpoint"
+	"github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/database"
 
 	"github.com/urfave/cli"
@@ -47,9 +48,7 @@ func NewCommand() *cli.Command {
 }
 
 func rollbackAction(c *cli.Context) error {
-	appSettings.SetContext(c)
-	appSettings.SetupConfig()
-	appSettings.InitParamsValue()
+	config := appSettings.SetupConfig(false, "", "")
 
 	if c.NumFlags() == 0 {
 		cli.ShowSubcommandHelp(c)
@@ -67,14 +66,14 @@ func rollbackAction(c *cli.Context) error {
 	}
 
 	log.NewDefault("logs/node", 0, 0, 0)
-	chainStore, err := blockchain.NewChainStore(dataDir, appSettings.Params())
+	chainStore, err := blockchain.NewChainStore(dataDir, config)
 	if err != nil {
 		fmt.Println("create chain store failed, ", err)
 		return err
 	}
 	defer chainStore.Close()
-
-	chain, err := blockchain.New(chainStore, appSettings.Params(), nil, nil)
+	ckpManager := checkpoint.NewManager(config)
+	chain, err := blockchain.New(chainStore, config, nil, nil, ckpManager)
 	if err != nil {
 		fmt.Println("create blockchain failed, ", err)
 		return err
@@ -112,7 +111,7 @@ func rollbackAction(c *cli.Context) error {
 	return nil
 }
 
-func removeBlockNode(fflDB blockchain.IFFLDBChainStore, header *types.Header) error {
+func removeBlockNode(fflDB blockchain.IFFLDBChainStore, header *common.Header) error {
 	return fflDB.Update(func(dbTx database.Tx) error {
 		return blockchain.DBRemoveBlockNode(dbTx, header)
 	})

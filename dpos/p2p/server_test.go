@@ -18,6 +18,7 @@ import (
 	"github.com/elastos/Elastos.ELA/dpos/p2p/msg"
 	"github.com/elastos/Elastos.ELA/dpos/p2p/peer"
 	"github.com/elastos/Elastos.ELA/p2p"
+	peer2 "github.com/elastos/Elastos.ELA/p2p/peer"
 	"github.com/elastos/Elastos.ELA/utils/test"
 
 	"github.com/stretchr/testify/assert"
@@ -57,9 +58,9 @@ func mockRemotePeer(pid peer.PID, priKey []byte, port uint16,
 			sign, _ := crypto.Sign(priKey, nonce)
 			return sign
 		},
-		PingNonce:        func(pid peer.PID) uint64 { return 0 },
-		PongNonce:        func(pid peer.PID) uint64 { return 0 },
-		MakeEmptyMessage: makeEmptyMessage,
+		PingNonce:     func(pid peer.PID) uint64 { return 0 },
+		PongNonce:     func(pid peer.PID) uint64 { return 0 },
+		CreateMessage: createMessage,
 		MessageFunc: func(peer *peer.Peer, m p2p.Message) {
 			switch m := m.(type) {
 			case *msg.VerAck:
@@ -106,9 +107,9 @@ func mockInboundPeer(addr PeerAddr, priKey []byte, pc chan<- *peer.Peer,
 			sign, _ := crypto.Sign(priKey, nonce)
 			return sign
 		},
-		PingNonce:        func(pid peer.PID) uint64 { return 0 },
-		PongNonce:        func(pid peer.PID) uint64 { return 0 },
-		MakeEmptyMessage: makeEmptyMessage,
+		PingNonce:     func(pid peer.PID) uint64 { return 0 },
+		PongNonce:     func(pid peer.PID) uint64 { return 0 },
+		CreateMessage: createMessage,
 		MessageFunc: func(peer *peer.Peer, m p2p.Message) {
 			switch m := m.(type) {
 			case *msg.VerAck:
@@ -164,7 +165,7 @@ func TestServerConnections(t *testing.T) {
 				sign, _ := crypto.Sign(priKey, nonce)
 				return sign
 			},
-			MakeEmptyMessage: makeEmptyMessage,
+			CreateMessage: createMessage,
 		})
 
 		peerList = append(peerList, pid)
@@ -184,7 +185,7 @@ func TestServerConnections(t *testing.T) {
 		}
 
 		s.Start()
-		s.ConnectPeers(peerList)
+		s.ConnectPeers(peerList, nil)
 		serverChan <- s
 
 		// There will be 70 outbound connections and 70 inbound connections
@@ -246,7 +247,7 @@ func TestServer_ConnectPeers(t *testing.T) {
 			sign, _ := crypto.Sign(priKey, nonce)
 			return sign
 		},
-		MakeEmptyMessage: makeEmptyMessage,
+		CreateMessage: createMessage,
 	})
 	if !assert.NoError(t, err) {
 		t.FailNow()
@@ -276,7 +277,7 @@ func TestServer_ConnectPeers(t *testing.T) {
 	}
 
 	// Connect 50 peers
-	server.ConnectPeers(peerList[:50])
+	server.ConnectPeers(peerList[:50], nil)
 	for i := 0; i < 50; i++ {
 		select {
 		case <-peerChan:
@@ -312,7 +313,7 @@ func TestServer_ConnectPeers(t *testing.T) {
 	}
 
 	// Change connect peers
-	server.ConnectPeers(peerList[50:])
+	server.ConnectPeers(peerList[50:], nil)
 	for i := 0; i < 100; i++ { // 50 disconnect peers, 50 connected peers.
 		select {
 		case <-peerChan:
@@ -348,7 +349,7 @@ func TestServer_ConnectPeers(t *testing.T) {
 	}
 
 	// Connect all peers
-	server.ConnectPeers(peerList)
+	server.ConnectPeers(peerList, nil)
 	for i := 0; i < 50; i++ { // 50 new peers will connected.
 		select {
 		case <-peerChan:
@@ -424,7 +425,7 @@ func TestServer_ConnectPeers(t *testing.T) {
 
 	// Change connect peers, there are 50 inbound peers with the same PID as
 	// 50 outbound peers, so 100 peers will be disconnected.
-	server.ConnectPeers(peerList[50:])
+	server.ConnectPeers(peerList[50:], nil)
 	for i := 0; i < 100; i++ {
 		select {
 		case <-peerChan:
@@ -458,7 +459,7 @@ func TestServer_PeersReconnect(t *testing.T) {
 			sign, _ := crypto.Sign(priKey, nonce)
 			return sign
 		},
-		MakeEmptyMessage: makeEmptyMessage,
+		CreateMessage: createMessage,
 	})
 	if !assert.NoError(t, err) {
 		t.FailNow()
@@ -485,7 +486,7 @@ func TestServer_PeersReconnect(t *testing.T) {
 	}
 
 	// Connect peers and disconnect them to mock unstable connection.
-	server.ConnectPeers(peerList)
+	server.ConnectPeers(peerList, nil)
 	for i := 0; i < 1000; i++ {
 		select {
 		case p := <-peerChan:
@@ -517,7 +518,7 @@ func TestServer_BroadcastMessage(t *testing.T) {
 			sign, _ := crypto.Sign(priKey, nonce)
 			return sign
 		},
-		MakeEmptyMessage: makeEmptyMessage,
+		CreateMessage: createMessage,
 	})
 	if !assert.NoError(t, err) {
 		t.FailNow()
@@ -546,7 +547,7 @@ func TestServer_BroadcastMessage(t *testing.T) {
 	}
 
 	// Mock 100 outbound peers.
-	server.ConnectPeers(peerList)
+	server.ConnectPeers(peerList, nil)
 	for i := 0; i < 100; i++ {
 		select {
 		case <-peerChan:
@@ -614,8 +615,8 @@ func TestServer_DumpPeersInfo(t *testing.T) {
 			sign, _ := crypto.Sign(priKey, nonce)
 			return sign
 		},
-		MaxNodePerHost:   20,
-		MakeEmptyMessage: makeEmptyMessage,
+		MaxNodePerHost: 20,
+		CreateMessage:  createMessage,
 	})
 	if !assert.NoError(t, err) {
 		t.FailNow()
@@ -657,7 +658,7 @@ func TestServer_DumpPeersInfo(t *testing.T) {
 	}
 
 	// Wait for 10 valid outbound peers connected.
-	server.ConnectPeers(peerList)
+	server.ConnectPeers(peerList, nil)
 	for i := 0; i < 10; i++ {
 		select {
 		case <-peerChan:
@@ -710,12 +711,12 @@ func TestServer_DumpPeersInfo(t *testing.T) {
 	}
 }
 
-func makeEmptyMessage(cmd string) (m p2p.Message, e error) {
-	switch cmd {
+func createMessage(hdr p2p.Header, r net.Conn) (m p2p.Message, err error) {
+	switch hdr.GetCMD() {
 	case p2p.CmdReject:
 		m = &msg.Reject{}
 	case "message":
 		m = &message{}
 	}
-	return m, nil
+	return peer2.CheckAndCreateMessage(hdr, m, r)
 }

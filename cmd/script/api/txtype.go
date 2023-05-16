@@ -16,7 +16,9 @@ import (
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/core/contract"
 	pg "github.com/elastos/Elastos.ELA/core/contract/program"
-	"github.com/elastos/Elastos.ELA/core/types"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/functions"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/crypto"
 	"github.com/elastos/Elastos.ELA/servers"
@@ -48,12 +50,12 @@ func RegisterTransactionType(L *lua.LState) {
 //	LockTime       uint32
 func newTransaction(L *lua.LState) int {
 	version := L.ToInt(1)
-	txType := types.TxType(L.ToInt(2))
+	txType := common2.TxType(L.ToInt(2))
 	payloadVersion := byte(L.ToInt(3))
 	ud := L.CheckUserData(4)
 	lockTime := uint32(L.ToInt(5))
 
-	var pload types.Payload
+	var pload interfaces.Payload
 	switch ud.Value.(type) {
 	case *payload.CoinBase:
 		pload, _ = ud.Value.(*payload.CoinBase)
@@ -100,22 +102,35 @@ func newTransaction(L *lua.LState) int {
 	case *payload.CRCouncilMemberClaimNode:
 		pload, _ = ud.Value.(*payload.CRCouncilMemberClaimNode)
 	case *payload.TransferCrossChainAsset:
-		pload, _= ud.Value.(*payload.TransferCrossChainAsset)
+		pload, _ = ud.Value.(*payload.TransferCrossChainAsset)
+	case *payload.ExchangeVotes:
+		pload, _ = ud.Value.(*payload.ExchangeVotes)
+	case *payload.Voting:
+		pload, _ = ud.Value.(*payload.Voting)
+	case *payload.ReturnVotes:
+		pload, _ = ud.Value.(*payload.ReturnVotes)
+	case *payload.CreateNFT:
+		pload, _ = ud.Value.(*payload.CreateNFT)
 	default:
 		fmt.Println("error: undefined payload type")
 		os.Exit(1)
 	}
 
-	txn := &types.Transaction{
-		Version:        types.TransactionVersion(version),
-		TxType:         txType,
-		PayloadVersion: payloadVersion,
-		Payload:        pload,
-		Attributes:     []*types.Attribute{},
-		Inputs:         []*types.Input{},
-		Outputs:        []*types.Output{},
-		LockTime:       lockTime,
+	txn, err := functions.GetTransactionByTxType(txType)
+	if err != nil {
+		fmt.Println("error: undefined tx type")
+		os.Exit(1)
 	}
+
+	txn.SetVersion(common2.TransactionVersion(version))
+	txn.SetTxType(txType)
+	txn.SetPayloadVersion(payloadVersion)
+	txn.SetPayload(pload)
+	txn.SetAttributes([]*common2.Attribute{})
+	txn.SetInputs([]*common2.Input{})
+	txn.SetOutputs([]*common2.Output{})
+	txn.SetLockTime(lockTime)
+
 	udn := L.NewUserData()
 	udn.Value = txn
 
@@ -137,8 +152,13 @@ func fromFile(L *lua.LState) int {
 		os.Exit(1)
 	}
 
-	var txn types.Transaction
-	err = txn.Deserialize(bytes.NewReader(txData))
+	r := bytes.NewReader(txData)
+	txn, err := functions.GetTransactionByBytes(r)
+	if err != nil {
+		fmt.Println("decode transaction type failed")
+		os.Exit(1)
+	}
+	err = txn.Deserialize(r)
 	if err != nil {
 		fmt.Println("deserialize transaction failed")
 		os.Exit(1)
@@ -152,13 +172,13 @@ func fromFile(L *lua.LState) int {
 	return 1
 }
 
-// Checks whether the first lua argument is a *LUserData with *Transaction and returns this *Transaction.
-func checkTransaction(L *lua.LState, idx int) *types.Transaction {
+// Checks whether the first lua argument is a *LUserData with *BaseTransaction and returns this *BaseTransaction.
+func checkTransaction(L *lua.LState, idx int) interfaces.Transaction {
 	ud := L.CheckUserData(idx)
-	if v, ok := ud.Value.(*types.Transaction); ok {
+	if v, ok := ud.Value.(interfaces.Transaction); ok {
 		return v
 	}
-	L.ArgError(1, "Transaction expected")
+	L.ArgError(1, "BaseTransaction expected")
 	return nil
 }
 
@@ -168,6 +188,8 @@ var transactionMethods = map[string]lua.LGFunction{
 	"appendattr":    txAppendAttribute,
 	"get":           txGet,
 	"sign":          signTx,
+	"multisign":     multiSignTx,
+	"signschnorr":   signSchnorrTx,
 	"hash":          txHash,
 	"serialize":     serialize,
 	"deserialize":   deserialize,
@@ -183,11 +205,11 @@ func signPayload(L *lua.LState) int {
 		cmdcom.PrintErrorAndExit(err.Error())
 	}
 
-	switch txn.TxType {
-	case types.RegisterProducer:
+	switch txn.TxType() {
+	case common2.RegisterProducer:
 		fallthrough
-	case types.UpdateProducer:
-		producerInfo, ok := txn.Payload.(*payload.ProducerInfo)
+	case common2.UpdateProducer:
+		producerInfo, ok := txn.Payload().(*payload.ProducerInfo)
 		if !ok {
 			cmdcom.PrintErrorAndExit("invalid producer payload")
 		}
@@ -209,7 +231,7 @@ func signPayload(L *lua.LState) int {
 			cmdcom.PrintErrorAndExit(err.Error())
 		}
 		producerInfo.Signature = rpSig
-		txn.Payload = producerInfo
+		txn.SetPayload(producerInfo)
 	default:
 		cmdcom.PrintErrorAndExit("invalid producer payload")
 	}
@@ -233,7 +255,7 @@ func txGet(L *lua.LState) int {
 func txAppendInput(L *lua.LState) int {
 	p := checkTransaction(L, 1)
 	input := checkInput(L, 2)
-	p.Inputs = append(p.Inputs, input)
+	p.SetInputs(append(p.Inputs(), input))
 
 	return 0
 }
@@ -241,7 +263,7 @@ func txAppendInput(L *lua.LState) int {
 func txAppendAttribute(L *lua.LState) int {
 	p := checkTransaction(L, 1)
 	attr := checkAttribute(L, 2)
-	p.Attributes = append(p.Attributes, attr)
+	p.SetAttributes(append(p.Attributes(), attr))
 
 	return 0
 }
@@ -249,7 +271,7 @@ func txAppendAttribute(L *lua.LState) int {
 func txAppendOutput(L *lua.LState) int {
 	txn := checkTransaction(L, 1)
 	output := checkTxOutput(L, 2)
-	txn.Outputs = append(txn.Outputs, output)
+	txn.SetOutputs(append(txn.Outputs(), output))
 
 	return 0
 }
@@ -262,6 +284,44 @@ func txHash(L *lua.LState) int {
 	L.Push(lua.LString(hex.EncodeToString(hash)))
 
 	return 1
+}
+
+func multiSignTx(L *lua.LState) int {
+	txn := checkTransaction(L, 1)
+	client, err := checkClient(L, 2)
+	m := L.ToInt64(3)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
+	pks := make([]*crypto.PublicKey, 0)
+	accs := client.GetAccounts()
+	for _, acc := range accs {
+		pks = append(pks, acc.PublicKey)
+	}
+
+	multiCode, err := contract.CreateMultiSigRedeemScript(int(m), pks)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
+	program := pg.Program{
+		Code:      multiCode,
+		Parameter: []byte{},
+	}
+	txn.SetPrograms([]*pg.Program{
+		&program,
+	})
+
+	txn, err = client.MultiSign(int(m), txn)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
+	return 0
 }
 
 func signTx(L *lua.LState) int {
@@ -277,13 +337,42 @@ func signTx(L *lua.LState) int {
 		Code:      acc.RedeemScript,
 		Parameter: []byte{},
 	}
-	txn.Programs = []*pg.Program{
+	txn.SetPrograms([]*pg.Program{
 		&program,
-	}
+	})
 
 	txn, err = client.Sign(txn)
 	if err != nil {
 		fmt.Println(err)
+		os.Exit(1)
+	}
+
+	return 0
+}
+
+func signSchnorrTx(L *lua.LState) int {
+	txn := checkTransaction(L, 1)
+	account, err := checkAccount(L, 2)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+	buf := new(bytes.Buffer)
+	if err := txn.SerializeUnsigned(buf); err != nil {
+		return -1
+	}
+	signature, err := crypto.AggregateSignatures(account.PrivateKeys, common.Sha256D(buf.Bytes()))
+	if err != nil {
+		return -1
+	}
+	txn.SetPrograms([]*pg.Program{
+		&pg.Program{
+			Code:      account.RedeemScript,
+			Parameter: signature[:],
+		},
+	})
+	if err != nil {
+		fmt.Println("signSchnorrTx error:", err.Error(), txn)
 		os.Exit(1)
 	}
 
@@ -332,7 +421,7 @@ func appendEnough(L *lua.LState) int {
 
 	var availabelUtxos []servers.UTXOInfo
 	for _, utxo := range utxos {
-		if types.TxType(utxo.TxType) == types.CoinBase && utxo.Confirmations < 101 {
+		if common2.TxType(utxo.TxType) == common2.CoinBase && utxo.Confirmations < 101 {
 			continue
 		}
 		availabelUtxos = append(availabelUtxos, utxo)
@@ -341,12 +430,12 @@ func appendEnough(L *lua.LState) int {
 	//totalAmount := common.Fixed64(0)
 	var charge int64
 	// Create transaction inputs
-	var txInputs []*types.Input // The inputs in transaction
+	var txInputs []*common2.Input // The inputs in transaction
 	for _, utxo := range availabelUtxos {
 		txIDReverse, _ := hex.DecodeString(utxo.TxID)
 		txID, _ := common.Uint256FromBytes(common.BytesReverse(txIDReverse))
-		input := &types.Input{
-			Previous: types.OutPoint{
+		input := &common2.Input{
+			Previous: common2.OutPoint{
 				TxID:  *txID,
 				Index: uint16(utxo.VOut),
 			},
@@ -371,7 +460,7 @@ func appendEnough(L *lua.LState) int {
 		os.Exit(1)
 	}
 
-	txn.Inputs = txInputs
+	txn.SetInputs(txInputs)
 	L.Push(lua.LNumber(charge))
 
 	return 1
@@ -380,7 +469,7 @@ func appendEnough(L *lua.LState) int {
 func appendProgram(L *lua.LState) int {
 	txn := checkTransaction(L, 1)
 	program := checkProgram(L, 2)
-	txn.Programs = append(txn.Programs, program)
+	txn.SetPrograms(append(txn.Programs(), program))
 
 	return 0
 }

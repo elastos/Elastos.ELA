@@ -12,10 +12,11 @@ import (
 
 	"github.com/elastos/Elastos.ELA/account"
 	"github.com/elastos/Elastos.ELA/common"
+	config2 "github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/common/log"
 	"github.com/elastos/Elastos.ELA/core/checkpoint"
 	"github.com/elastos/Elastos.ELA/core/contract"
-	"github.com/elastos/Elastos.ELA/core/types"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/crypto"
 	"github.com/elastos/Elastos.ELA/utils"
 )
@@ -26,6 +27,12 @@ const (
 
 	// dataExtension defines checkpoint file extension of utxo checkpoint.
 	dataExtension = ".ucp"
+
+	// dataPath indicates the path storing the chain data.
+	dataPath = "data"
+
+	// checkpointPath indicates the path storing the checkpoint data.
+	checkpointPath = "checkpoints"
 
 	// savePeriod defines interval height between two neighbor check
 	// points.
@@ -83,7 +90,10 @@ func (w *Wallet) ImportPubkey(pubKey []byte, enableUtxoDB bool) error {
 		address: address,
 		code:    sc.Code,
 	})
-	ChainParam.CkpManager.Reset(func(point checkpoint.ICheckPoint) bool {
+	config := config2.DefaultParams
+	ckpManager := checkpoint.NewManager(&config)
+	ckpManager.SetDataPath(filepath.Join(dataPath, checkpointPath))
+	ckpManager.Reset(func(point checkpoint.ICheckPoint) bool {
 		return point.Key() == utxoCheckPointKey
 	})
 
@@ -106,7 +116,10 @@ func (w *Wallet) ImportAddress(address string, enableUtxoDB bool) error {
 		address: address,
 		code:    nil,
 	})
-	ChainParam.CkpManager.Reset(func(point checkpoint.ICheckPoint) bool {
+	config := config2.DefaultParams
+	ckpManager := checkpoint.NewManager(&config)
+	ckpManager.SetDataPath(filepath.Join(dataPath, checkpointPath))
+	ckpManager.Reset(func(point checkpoint.ICheckPoint) bool {
 		return point.Key() == utxoCheckPointKey
 	})
 
@@ -117,18 +130,18 @@ func (w *Wallet) ImportAddress(address string, enableUtxoDB bool) error {
 	return w.RescanWallet()
 }
 
-func (w *Wallet) ListUnspent(address string, enableUtxoDB bool) (map[common.Uint256][]*types.UTXO,
+func (w *Wallet) ListUnspent(address string, enableUtxoDB bool) (map[common.Uint256][]*common2.UTXO,
 	error) {
 	coins := w.ListCoins(address)
-	utxos := make([]*types.UTXO, 0)
+	utxos := make([]*common2.UTXO, 0)
 	for op, coin := range coins {
-		utxos = append(utxos, &types.UTXO{
+		utxos = append(utxos, &common2.UTXO{
 			TxID:  op.TxID,
 			Index: op.Index,
 			Value: coin.Output.Value,
 		})
 	}
-	unspent := make(map[common.Uint256][]*types.UTXO, 0)
+	unspent := make(map[common.Uint256][]*common2.UTXO, 0)
 	unspent[*account.SystemAssetID] = utxos
 
 	return unspent, nil

@@ -1,5 +1,6 @@
 {
   "Configuration": {
+    "PrintLevel": 0,
     "PowConfiguration": {
       "PayToAddr": "8VYXVxKKSAxkmRrfmGpQR2Kc66XhG6m3ta",
       "MinerInfo": "ELA",
@@ -7,8 +8,8 @@
     },
     "EnableRPC": true,
     "RpcConfiguration": {
-      "User": "User",
-      "Pass": "Password",
+      "User": "",
+      "Pass": "",
       "WhiteIPList": [
         "127.0.0.1"
       ]
@@ -17,7 +18,7 @@
       "52.74.28.202:20338",
       "52.62.113.83:20338",
       "35.156.51.127:20338",
-      "35.177.89.244:20338",
+      "35.177.89.244:20338"
     ]
   }
 }

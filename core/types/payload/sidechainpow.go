@@ -34,15 +34,15 @@ func (a *SideChainPow) Data(version byte) []byte {
 func (a *SideChainPow) SerializeUnsigned(w io.Writer, version byte) error {
 	err := a.SideBlockHash.Serialize(w)
 	if err != nil {
-		return errors.New("[SideChainPow], SideBlockHash serialize failed.")
+		return errors.New("[SideChainPow], SideBlockHash serialize failed")
 	}
 	err = a.SideGenesisHash.Serialize(w)
 	if err != nil {
-		return errors.New("[SideChainPow], SideGenesisHash serialize failed.")
+		return errors.New("[SideChainPow], SideGenesisHash serialize failed")
 	}
 	err = common.WriteUint32(w, a.BlockHeight)
 	if err != nil {
-		return errors.New("[SideChainPow], BlockHeight serialize failed.")
+		return errors.New("[SideChainPow], BlockHeight serialize failed")
 	}
 
 	return nil
@@ -56,7 +56,7 @@ func (a *SideChainPow) Serialize(w io.Writer, version byte) error {
 
 	err = common.WriteVarBytes(w, a.Signature)
 	if err != nil {
-		return errors.New("[SideChainPow], SignatureData serialize failed.")
+		return errors.New("[SideChainPow], SignatureData serialize failed")
 	}
 	return nil
 }
@@ -64,19 +64,19 @@ func (a *SideChainPow) Serialize(w io.Writer, version byte) error {
 func (a *SideChainPow) Deserialize(r io.Reader, version byte) error {
 	err := a.SideBlockHash.Deserialize(r)
 	if err != nil {
-		return errors.New("[SideChainPow], SignatureData dserialize failed.")
+		return errors.New("[SideChainPow], SignatureData deserialize failed")
 	}
 	err = a.SideGenesisHash.Deserialize(r)
 	if err != nil {
-		return errors.New("[SideChainPow], SignatureData dserialize failed.")
+		return errors.New("[SideChainPow], SignatureData deserialize failed")
 	}
 	a.BlockHeight, err = common.ReadUint32(r)
 	if err != nil {
-		return errors.New("[SideChainPow], SignatureData dserialize failed.")
+		return errors.New("[SideChainPow], SignatureData deserialize failed")
 	}
 	if a.Signature, err = common.ReadVarBytes(r, MaxPayloadDataSize,
 		"payload sidechainpow signed data"); err != nil {
-		return errors.New("[SideChainPow], SignatureData dserialize failed.")
+		return errors.New("[SideChainPow], SignatureData deserialize failed")
 	}
 	return nil
 }

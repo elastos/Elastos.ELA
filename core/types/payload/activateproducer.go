@@ -36,12 +36,10 @@ func (a *ActivateProducer) Serialize(w io.Writer, version byte) error {
 	if err != nil {
 		return err
 	}
-
 	err = common.WriteVarBytes(w, a.Signature)
 	if err != nil {
 		return errors.New("[ActivateProducer], signature serialize failed")
 	}
-
 	return nil
 }
 
@@ -59,12 +57,10 @@ func (a *ActivateProducer) Deserialize(r io.Reader, version byte) error {
 	if err != nil {
 		return err
 	}
-
 	a.Signature, err = common.ReadVarBytes(r, crypto.SignatureLength, "signature")
 	if err != nil {
 		return errors.New("[ActivateProducer], signature deserialize failed")
 	}
-
 	return nil
 }
 

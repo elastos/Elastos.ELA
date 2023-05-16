@@ -19,6 +19,8 @@ import (
 
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/core/types"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/database"
 )
 
@@ -59,18 +61,15 @@ type IndexManager interface {
 
 	// FetchTx retrieval a transaction and a block hash where it
 	// located by transaction hash
-	FetchTx(txID common.Uint256) (*types.Transaction, uint32, error)
+	FetchTx(txID common.Uint256) (interfaces.Transaction, uint32, error)
 
 	// FetchUnspent retrieval the unspent set of transaction by its hash
 	FetchUnspent(txID common.Uint256) ([]uint16, error)
 
 	// FetchUTXO retrieval the utxo set of a account address
-	FetchUTXO(programHash *common.Uint168) ([]*types.UTXO, error)
+	FetchUTXO(programHash *common.Uint168) ([]*common2.UTXO, error)
 
-	// IsTx3Exist use to find if tx3 exist in db
-	IsTx3Exist(txHash *common.Uint256) bool
-
-	// IsSideChainReturnDepositExist use to find if return deposit exist in db
+	// IsSideChainReturnDepositExist use to find if return deposit exist in DB
 	IsSideChainReturnDepositExist(txHash *common.Uint256) bool
 }
 
@@ -104,7 +103,7 @@ type Indexer interface {
 type ITxStore interface {
 	// FetchTx retrieval a transaction and a block hash where it
 	// located by transaction hash
-	FetchTx(txID common.Uint256) (*types.Transaction, uint32, error)
+	FetchTx(txID common.Uint256) (interfaces.Transaction, uint32, error)
 }
 
 // AssertError identifies an error that indicates an internal code consistency

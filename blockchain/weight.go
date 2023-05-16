@@ -12,9 +12,9 @@
 package blockchain
 
 import (
-	"github.com/elastos/Elastos.ELA/core/types"
-
 	"github.com/btcsuite/btcd/wire"
+	"github.com/elastos/Elastos.ELA/core/types"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 )
 
 const (
@@ -67,7 +67,7 @@ func GetBlockWeight(blk *types.Block) int64 {
 // transactions's serialized size without any witness data scaled
 // proportionally by the WitnessScaleFactor, and the transaction's serialized
 // size including any witness data.
-func GetTransactionWeight(tx *types.Transaction) int64 {
+func GetTransactionWeight(tx interfaces.Transaction) int64 {
 	baseSize := tx.SerializeSizeStripped()
 	return int64(baseSize)
 }

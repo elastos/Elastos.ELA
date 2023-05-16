@@ -368,16 +368,16 @@ func (sp *serverPeer) BanScore() uint32 {
 
 // checkAddr check and remove invalid address in address manager.
 func (s *server) checkAddr(addr string) error {
-	makeEmptyMessage := func(cmd string) (p2p.Message, error) {
+	createMessage := func(hdr p2p.Header, r net.Conn) (p2p.Message, error) {
 		var message p2p.Message
-		switch cmd {
+		switch hdr.GetCMD() {
 		case p2p.CmdVersion:
 			message = &msg.Version{}
+			return peer.CheckAndCreateMessage(hdr, message, r)
 
 		default:
 			return nil, errors.New("invalid message")
 		}
-		return message, nil
 	}
 
 	conn, err := net.DialTimeout("tcp", addr, time.Second)
@@ -406,7 +406,7 @@ func (s *server) checkAddr(addr string) error {
 		return err
 	}
 	remoteMsg, err := p2p.ReadMessage(
-		conn, s.cfg.MagicNumber, time.Second*2, makeEmptyMessage)
+		conn, s.cfg.MagicNumber, time.Second*2, createMessage)
 	if err != nil {
 		return err
 	}
@@ -793,7 +793,7 @@ func newPeerConfig(sp *serverPeer) *peer.Config {
 		Services:         sp.server.cfg.Services,
 		DisableRelayTx:   sp.server.cfg.DisableRelayTx,
 		HostToNetAddress: sp.server.addrManager.HostToNetAddress,
-		MakeEmptyMessage: sp.server.cfg.MakeEmptyMessage,
+		CreateMessage:    sp.server.cfg.CreateMessage,
 		BestHeight:       sp.server.cfg.BestHeight,
 		IsSelfConnection: func(ip net.IP, port int, nonce uint64) bool {
 			exists := sp.server.sentNonces.Exists(nonce)

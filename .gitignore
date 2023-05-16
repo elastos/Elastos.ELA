@@ -19,6 +19,10 @@ elastos*/
 /tmp
 /go.sum
 keystore
+goheader
 *.out
 *.test
 benchmark/process/run-to-height
+ela
+ela-cli
+ela-dns

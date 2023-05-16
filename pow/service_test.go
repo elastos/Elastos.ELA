@@ -7,6 +7,7 @@ package pow
 
 import (
 	"fmt"
+
 	"math"
 	"path/filepath"
 	"testing"
@@ -15,8 +16,15 @@ import (
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/common/log"
+	"github.com/elastos/Elastos.ELA/core"
+	"github.com/elastos/Elastos.ELA/core/checkpoint"
 	"github.com/elastos/Elastos.ELA/core/contract"
+	"github.com/elastos/Elastos.ELA/core/contract/program"
+	transaction2 "github.com/elastos/Elastos.ELA/core/transaction"
 	"github.com/elastos/Elastos.ELA/core/types"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/functions"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/dpos/state"
 	"github.com/elastos/Elastos.ELA/utils/test"
 
@@ -31,7 +39,16 @@ var originLedger *blockchain.Ledger
 func TestService_Init(t *testing.T) {
 	log.NewDefault(test.NodeLogPath, 0, 0, 0)
 
+	// Initialize functions
+	functions.GetTransactionByTxType = transaction2.GetTransaction
+	functions.GetTransactionByBytes = transaction2.GetTransactionByBytes
+	functions.CreateTransaction = transaction2.CreateTransaction
+	functions.GetTransactionParameters = transaction2.GetTransactionparameters
 	params := &config.DefaultParams
+	params.GenesisBlock = core.GenesisBlock(*params.FoundationProgramHash)
+
+	// Initialize default parameters
+	ckpManager := checkpoint.NewManager(params)
 	chainStore, err := blockchain.NewChainStore(filepath.Join(test.DataPath, "service"), params)
 	if err != nil {
 		t.Error(err)
@@ -44,7 +61,7 @@ func TestService_Init(t *testing.T) {
 		"03e281f89d85b3a7de177c240c4961cb5b1f2106f09daa42d15874a38bbeae85dd",
 		"0393e823c2087ed30871cbea9fa5121fa932550821e9f3b17acef0e581971efab0",
 	}
-	params.CRCArbiters = []string{
+	params.DPoSConfiguration.CRCArbiters = []string{
 		"023a133480176214f88848c6eaa684a54b316849df2b8570b57f3a917f19bbc77a",
 		"030a26f8b4ab0ea219eb461d1e454ce5f0bd0d289a6a64ffc0743dab7bd5be0be9",
 		"0288e79636e41edce04d4fa95d8f62fed73a76164f8631ccc42f5425f960e4a0c7",
@@ -62,9 +79,10 @@ func TestService_Init(t *testing.T) {
 		CurrentArbitrators: arbitrators,
 	}
 
-	chain, err := blockchain.New(chainStore, params, state.NewState(params, nil,
+	chain, err := blockchain.New(chainStore, params, state.NewState(params, nil, nil,
 		nil, nil, nil, nil,
-		nil, nil, nil), nil)
+		nil, nil, nil, nil, nil), nil,
+		ckpManager)
 	if err != nil {
 		t.Error(err)
 	}
@@ -163,44 +181,52 @@ func TestService_AssignCoinbaseTxRewards(t *testing.T) {
 	arbitratorsChange := dposTotalReward - realReward
 	arbitratorsMock.FinalRoundChange = arbitratorsChange
 
-	tx := &types.Transaction{
-		Version: types.TxVersion09,
-		TxType:  types.CoinBase,
-	}
-	tx.Outputs = []*types.Output{
+	tx := functions.CreateTransaction(
+		common2.TxVersion09,
+		common2.CoinBase,
+		0,
+		nil,
+		[]*common2.Attribute{},
+		[]*common2.Input{},
+		[]*common2.Output{},
+		0,
+		[]*program.Program{},
+	)
+
+	tx.SetOutputs([]*common2.Output{
 		{ProgramHash: blockchain.FoundationAddress, Value: 0},
 		{ProgramHash: common.Uint168{}, Value: 0},
-	}
+	})
 	block := &types.Block{
-		Header: types.Header{
+		Header: common2.Header{
 			Height: config.DefaultParams.PublicDPOSHeight,
 		},
-		Transactions: []*types.Transaction{
+		Transactions: []interfaces.Transaction{
 			tx,
 		},
 	}
 
 	assert.NoError(t, pow.AssignCoinbaseTxRewards(block, rewardInCoinbase))
 
-	assert.Equal(t, foundationReward, tx.Outputs[0].Value)
-	assert.NotEqual(t, minerReward, tx.Outputs[1].Value)
-	assert.Equal(t, minerReward+arbitratorsChange, tx.Outputs[1].Value,
+	assert.Equal(t, foundationReward, tx.Outputs()[0].Value)
+	assert.NotEqual(t, minerReward, tx.Outputs()[1].Value)
+	assert.Equal(t, minerReward+arbitratorsChange, tx.Outputs()[1].Value,
 		"should add change of arbitrators' reward")
-	assert.Equal(t, 2+5+5, len(tx.Outputs))
+	assert.Equal(t, 2+5+5, len(tx.Outputs()))
 	for i := 2; i < 12; i++ {
 		found := false
-		if _, ok := arbitratorHashMap[tx.Outputs[i].ProgramHash]; ok {
-			vote := ownerVotes[tx.Outputs[i].ProgramHash]
+		if _, ok := arbitratorHashMap[tx.Outputs()[i].ProgramHash]; ok {
+			vote := ownerVotes[tx.Outputs()[i].ProgramHash]
 			individualProducerReward := common.Fixed64(float64(vote) * rewardPerVote)
 			assert.Equal(t, individualBlockConfirmReward+individualProducerReward,
-				tx.Outputs[i].Value)
+				tx.Outputs()[i].Value)
 			found = true
 		}
 
-		if _, ok := candidateHashMap[tx.Outputs[i].ProgramHash]; ok {
-			vote := ownerVotes[tx.Outputs[i].ProgramHash]
+		if _, ok := candidateHashMap[tx.Outputs()[i].ProgramHash]; ok {
+			vote := ownerVotes[tx.Outputs()[i].ProgramHash]
 			individualProducerReward := common.Fixed64(float64(vote) * rewardPerVote)
-			assert.Equal(t, individualProducerReward, tx.Outputs[i].Value)
+			assert.Equal(t, individualProducerReward, tx.Outputs()[i].Value)
 			found = true
 		}
 
@@ -234,44 +260,50 @@ func TestService_AssignCoinbaseTxRewards(t *testing.T) {
 	}
 	arbitratorsChange = dposTotalReward - realReward
 	arbitratorsMock.FinalRoundChange = arbitratorsChange
-
-	tx = &types.Transaction{
-		Version: types.TxVersion09,
-		TxType:  types.CoinBase,
-	}
-	tx.Outputs = []*types.Output{
+	tx = functions.CreateTransaction(
+		common2.TxVersion09,
+		common2.CoinBase,
+		0,
+		nil,
+		[]*common2.Attribute{},
+		[]*common2.Input{},
+		[]*common2.Output{},
+		0,
+		[]*program.Program{},
+	)
+	tx.SetOutputs([]*common2.Output{
 		{ProgramHash: blockchain.FoundationAddress, Value: 0},
 		{ProgramHash: common.Uint168{}, Value: 0},
-	}
+	})
 	block = &types.Block{
-		Header: types.Header{
+		Header: common2.Header{
 			Height: config.DefaultParams.PublicDPOSHeight,
 		},
-		Transactions: []*types.Transaction{
+		Transactions: []interfaces.Transaction{
 			tx,
 		},
 	}
 
 	assert.NoError(t, pow.AssignCoinbaseTxRewards(block, rewardInCoinbase))
 
-	assert.NotEqual(t, foundationRewardNormal, tx.Outputs[0].Value)
-	assert.Equal(t, foundationReward, tx.Outputs[0].Value)
-	assert.Equal(t, minerReward+arbitratorsChange, tx.Outputs[1].Value)
-	assert.Equal(t, 2+5+5, len(tx.Outputs))
+	assert.NotEqual(t, foundationRewardNormal, tx.Outputs()[0].Value)
+	assert.Equal(t, foundationReward, tx.Outputs()[0].Value)
+	assert.Equal(t, minerReward+arbitratorsChange, tx.Outputs()[1].Value)
+	assert.Equal(t, 2+5+5, len(tx.Outputs()))
 	for i := 2; i < 12; i++ {
 		found := false
-		if _, ok := arbitratorHashMap[tx.Outputs[i].ProgramHash]; ok {
-			vote := ownerVotes[tx.Outputs[i].ProgramHash]
+		if _, ok := arbitratorHashMap[tx.Outputs()[i].ProgramHash]; ok {
+			vote := ownerVotes[tx.Outputs()[i].ProgramHash]
 			individualProducerReward := common.Fixed64(float64(vote) * rewardPerVote)
 			assert.Equal(t,
-				individualBlockConfirmReward+individualProducerReward, tx.Outputs[i].Value)
+				individualBlockConfirmReward+individualProducerReward, tx.Outputs()[i].Value)
 			found = true
 		}
 
-		if _, ok := candidateHashMap[tx.Outputs[i].ProgramHash]; ok {
-			vote := ownerVotes[tx.Outputs[i].ProgramHash]
+		if _, ok := candidateHashMap[tx.Outputs()[i].ProgramHash]; ok {
+			vote := ownerVotes[tx.Outputs()[i].ProgramHash]
 			individualProducerReward := common.Fixed64(float64(vote) * rewardPerVote)
-			assert.Equal(t, individualProducerReward, tx.Outputs[i].Value)
+			assert.Equal(t, individualProducerReward, tx.Outputs()[i].Value)
 			found = true
 		}
 
@@ -289,24 +321,32 @@ func TestService_AssignCoinbaseTxRewards(t *testing.T) {
 	minerReward = common.Fixed64(float64(rewardInCoinbase) * 0.35)
 	dposTotalReward = rewardInCoinbase - foundationReward - minerReward
 
-	tx = &types.Transaction{
-		Version: 0,
-		TxType:  types.CoinBase,
-	}
-	tx.Outputs = []*types.Output{
+	tx = functions.CreateTransaction(
+		common2.TxVersion09,
+		common2.CoinBase,
+		0,
+		nil,
+		[]*common2.Attribute{},
+		[]*common2.Input{},
+		[]*common2.Output{},
+		0,
+		[]*program.Program{},
+	)
+
+	tx.SetOutputs([]*common2.Output{
 		{ProgramHash: blockchain.FoundationAddress, Value: 0},
 		{ProgramHash: common.Uint168{}, Value: 0},
-	}
+	})
 	block = &types.Block{
-		Transactions: []*types.Transaction{
+		Transactions: []interfaces.Transaction{
 			tx,
 		},
 	}
 
 	assert.NoError(t, pow.AssignCoinbaseTxRewards(block, rewardInCoinbase))
-	assert.Equal(t, foundationReward, tx.Outputs[0].Value)
-	assert.Equal(t, minerReward, tx.Outputs[1].Value)
-	assert.Equal(t, dposTotalReward, tx.Outputs[1].Value)
+	assert.Equal(t, foundationReward, tx.Outputs()[0].Value)
+	assert.Equal(t, minerReward, tx.Outputs()[1].Value)
+	assert.Equal(t, dposTotalReward, tx.Outputs()[1].Value)
 
 	//reward can not be exactly division
 	rewardInCoinbase = common.Fixed64(999)
@@ -315,25 +355,32 @@ func TestService_AssignCoinbaseTxRewards(t *testing.T) {
 	minerReward = common.Fixed64(float64(rewardInCoinbase) * 0.35)
 	dposTotalReward = rewardInCoinbase - foundationRewardNormal - minerReward
 
-	tx = &types.Transaction{
-		Version: 0,
-		TxType:  types.CoinBase,
-	}
-	tx.Outputs = []*types.Output{
+	tx = functions.CreateTransaction(
+		common2.TxVersion09,
+		common2.CoinBase,
+		0,
+		nil,
+		[]*common2.Attribute{},
+		[]*common2.Input{},
+		[]*common2.Output{},
+		0,
+		[]*program.Program{},
+	)
+	tx.SetOutputs([]*common2.Output{
 		{ProgramHash: blockchain.FoundationAddress, Value: 0},
 		{ProgramHash: common.Uint168{}, Value: 0},
-	}
+	})
 	block = &types.Block{
-		Transactions: []*types.Transaction{
+		Transactions: []interfaces.Transaction{
 			tx,
 		},
 	}
 
 	assert.NoError(t, pow.AssignCoinbaseTxRewards(block, rewardInCoinbase))
-	assert.Equal(t, foundationRewardNormal, tx.Outputs[0].Value)
-	assert.NotEqual(t, foundationReward, tx.Outputs[0].Value)
-	assert.Equal(t, minerReward, tx.Outputs[1].Value)
-	assert.Equal(t, dposTotalReward, tx.Outputs[2].Value)
+	assert.Equal(t, foundationRewardNormal, tx.Outputs()[0].Value)
+	assert.NotEqual(t, foundationReward, tx.Outputs()[0].Value)
+	assert.Equal(t, minerReward, tx.Outputs()[1].Value)
+	assert.Equal(t, dposTotalReward, tx.Outputs()[2].Value)
 
 	blockchain.DefaultLedger = originLedger
 }

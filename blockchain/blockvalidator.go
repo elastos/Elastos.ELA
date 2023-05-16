@@ -17,9 +17,13 @@ import (
 	. "github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/common/log"
+	"github.com/elastos/Elastos.ELA/core"
 	. "github.com/elastos/Elastos.ELA/core/types"
+	"github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/crypto"
+	"github.com/elastos/Elastos.ELA/dpos/state"
 	"github.com/elastos/Elastos.ELA/elanet/pact"
 	elaerr "github.com/elastos/Elastos.ELA/errors"
 )
@@ -34,7 +38,7 @@ func (b *BlockChain) CheckBlockSanity(block *Block) error {
 	if !header.AuxPow.Check(&hash, AuxPowChainID) {
 		return errors.New("[PowCheckBlockSanity] block check aux pow failed")
 	}
-	if CheckProofOfWork(&header, b.chainParams.PowLimit) != nil {
+	if CheckProofOfWork(&header, b.chainParams.PowConfiguration.PowLimit) != nil {
 		return errors.New("[PowCheckBlockSanity] block check proof of work failed")
 	}
 
@@ -106,8 +110,8 @@ func (b *BlockChain) CheckBlockSanity(block *Block) error {
 				"CheckTransactionSanity failed when verifiy block")
 		}
 
-		// Check for duplicate UTXO inputs in a block
-		for _, input := range txn.Inputs {
+		// Check for duplicate UTXO Inputs in a block
+		for _, input := range txn.Inputs() {
 			referKey := input.ReferKey()
 			if _, exists := existingTxInputs[referKey]; exists {
 				return errors.New("[PowCheckBlockSanity] block contains duplicate UTXO")
@@ -118,7 +122,7 @@ func (b *BlockChain) CheckBlockSanity(block *Block) error {
 		// Append transaction to list
 		txIDs = append(txIDs, txID)
 	}
-	if err := checkDuplicateTx(block); err != nil {
+	if err := CheckDuplicateTx(block); err != nil {
 		return err
 	}
 	calcTransactionsRoot, err := crypto.ComputeRoot(txIDs)
@@ -132,15 +136,15 @@ func (b *BlockChain) CheckBlockSanity(block *Block) error {
 	return nil
 }
 
-func checkDuplicateTx(block *Block) error {
+func CheckDuplicateTx(block *Block) error {
 	existingSideTxs := make(map[Uint256]struct{})
 	existingProducer := make(map[string]struct{})
 	existingProducerNode := make(map[string]struct{})
 	existingCR := make(map[Uint168]struct{})
 	for _, txn := range block.Transactions {
-		switch txn.TxType {
-		case WithdrawFromSideChain:
-			witPayload := txn.Payload.(*payload.WithdrawFromSideChain)
+		switch txn.TxType() {
+		case common.WithdrawFromSideChain:
+			witPayload := txn.Payload().(*payload.WithdrawFromSideChain)
 
 			// Check for duplicate sidechain tx in a block
 			for _, hash := range witPayload.SideChainTransactionHashes {
@@ -149,8 +153,8 @@ func checkDuplicateTx(block *Block) error {
 				}
 				existingSideTxs[hash] = struct{}{}
 			}
-		case RegisterProducer:
-			producerPayload, ok := txn.Payload.(*payload.ProducerInfo)
+		case common.RegisterProducer:
+			producerPayload, ok := txn.Payload().(*payload.ProducerInfo)
 			if !ok {
 				return errors.New("[PowCheckBlockSanity] invalid register producer payload")
 			}
@@ -168,8 +172,8 @@ func checkDuplicateTx(block *Block) error {
 				return errors.New("[PowCheckBlockSanity] block contains duplicate producer node")
 			}
 			existingProducerNode[producerNode] = struct{}{}
-		case UpdateProducer:
-			producerPayload, ok := txn.Payload.(*payload.ProducerInfo)
+		case common.UpdateProducer:
+			producerPayload, ok := txn.Payload().(*payload.ProducerInfo)
 			if !ok {
 				return errors.New("[PowCheckBlockSanity] invalid update producer payload")
 			}
@@ -187,8 +191,8 @@ func checkDuplicateTx(block *Block) error {
 				return errors.New("[PowCheckBlockSanity] block contains duplicate producer node")
 			}
 			existingProducerNode[producerNode] = struct{}{}
-		case CancelProducer:
-			processProducerPayload, ok := txn.Payload.(*payload.ProcessProducer)
+		case common.CancelProducer:
+			processProducerPayload, ok := txn.Payload().(*payload.ProcessProducer)
 			if !ok {
 				return errors.New("[PowCheckBlockSanity] invalid cancel producer payload")
 			}
@@ -199,8 +203,8 @@ func checkDuplicateTx(block *Block) error {
 				return errors.New("[PowCheckBlockSanity] block contains duplicate producer")
 			}
 			existingProducer[producer] = struct{}{}
-		case RegisterCR:
-			crPayload, ok := txn.Payload.(*payload.CRInfo)
+		case common.RegisterCR:
+			crPayload, ok := txn.Payload().(*payload.CRInfo)
 			if !ok {
 				return errors.New("[PowCheckBlockSanity] invalid register CR payload")
 			}
@@ -210,8 +214,8 @@ func checkDuplicateTx(block *Block) error {
 				return errors.New("[PowCheckBlockSanity] block contains duplicate CR")
 			}
 			existingCR[crPayload.CID] = struct{}{}
-		case UpdateCR:
-			crPayload, ok := txn.Payload.(*payload.CRInfo)
+		case common.UpdateCR:
+			crPayload, ok := txn.Payload().(*payload.CRInfo)
 			if !ok {
 				return errors.New("[PowCheckBlockSanity] invalid update CR payload")
 			}
@@ -221,8 +225,8 @@ func checkDuplicateTx(block *Block) error {
 				return errors.New("[PowCheckBlockSanity] block contains duplicate CR")
 			}
 			existingCR[crPayload.CID] = struct{}{}
-		case UnregisterCR:
-			unregisterCR, ok := txn.Payload.(*payload.UnregisterCR)
+		case common.UnregisterCR:
+			unregisterCR, ok := txn.Payload().(*payload.UnregisterCR)
 			if !ok {
 				return errors.New("[PowCheckBlockSanity] invalid unregister CR payload")
 			}
@@ -236,8 +240,8 @@ func checkDuplicateTx(block *Block) error {
 	return nil
 }
 
-func RecordCRCProposalAmount(usedAmount *Fixed64, txn *Transaction) {
-	proposal, ok := txn.Payload.(*payload.CRCProposal)
+func RecordCRCProposalAmount(usedAmount *Fixed64, txn interfaces.Transaction) {
+	proposal, ok := txn.Payload().(*payload.CRCProposal)
 	if !ok {
 		return
 	}
@@ -259,14 +263,14 @@ func (b *BlockChain) checkTxsContext(block *Block) error {
 		}
 
 		// Calculate transaction fee
-		totalTxFee += GetTxFee(block.Transactions[i], config.ELAAssetID, references)
+		totalTxFee += GetTxFee(block.Transactions[i], core.ELAAssetID, references)
 		if block.Transactions[i].IsCRCProposalTx() {
 			RecordCRCProposalAmount(&proposalsUsedAmount, block.Transactions[i])
 		}
 	}
-
+	dposReward := b.GetBlockDPOSReward(block)
 	err := b.checkCoinbaseTransactionContext(block.Height,
-		block.Transactions[0], totalTxFee)
+		block.Transactions[0], totalTxFee, dposReward)
 	if err != nil {
 		buf := new(bytes.Buffer)
 		if block.Height < b.chainParams.CheckRewardHeight {
@@ -336,7 +340,15 @@ func (b *BlockChain) CheckBlockContext(block *Block, prevNode *BlockNode) error 
 	return b.checkTxsContext(block)
 }
 
-func CheckProofOfWork(header *Header, powLimit *big.Int) error {
+func (b *BlockChain) CheckTransactions(block *Block) error {
+	if err := DefaultLedger.Arbitrators.CheckNextTurnDPOSInfoTx(block); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func CheckProofOfWork(header *common.Header, powLimit *big.Int) error {
 	// The target difficulty must be larger than zero.
 	target := CompactToBig(header.Bits)
 	if target.Sign() <= 0 {
@@ -359,9 +371,9 @@ func CheckProofOfWork(header *Header, powLimit *big.Int) error {
 	return nil
 }
 
-func IsFinalizedTransaction(msgTx *Transaction, blockHeight uint32) bool {
+func IsFinalizedTransaction(msgTx interfaces.Transaction, blockHeight uint32) bool {
 	// Lock time of zero means the transaction is finalized.
-	lockTime := msgTx.LockTime
+	lockTime := msgTx.LockTime()
 	if lockTime == 0 {
 		return true
 	}
@@ -373,8 +385,8 @@ func IsFinalizedTransaction(msgTx *Transaction, blockHeight uint32) bool {
 
 	// At this point, the transaction's lock time hasn't occurred yet, but
 	// the transaction might still be finalized if the sequence number
-	// for all transaction inputs is maxed out.
-	for _, txIn := range msgTx.Inputs {
+	// for all transaction Inputs is maxed out.
+	for _, txIn := range msgTx.Inputs() {
 		if txIn.Sequence != math.MaxUint16 {
 			return false
 		}
@@ -382,7 +394,7 @@ func IsFinalizedTransaction(msgTx *Transaction, blockHeight uint32) bool {
 	return true
 }
 
-func GetTxFee(tx *Transaction, assetId Uint256, references map[*Input]Output) Fixed64 {
+func GetTxFee(tx interfaces.Transaction, assetId Uint256, references map[*common.Input]common.Output) Fixed64 {
 	feeMap, err := GetTxFeeMap(tx, references)
 	if err != nil {
 		return 0
@@ -391,7 +403,7 @@ func GetTxFee(tx *Transaction, assetId Uint256, references map[*Input]Output) Fi
 	return feeMap[assetId]
 }
 
-func GetTxFeeMap(tx *Transaction, references map[*Input]Output) (map[Uint256]Fixed64, error) {
+func GetTxFeeMap(tx interfaces.Transaction, references map[*common.Input]common.Output) (map[Uint256]Fixed64, error) {
 	feeMap := make(map[Uint256]Fixed64)
 	var inputs = make(map[Uint256]Fixed64)
 	var outputs = make(map[Uint256]Fixed64)
@@ -404,7 +416,7 @@ func GetTxFeeMap(tx *Transaction, references map[*Input]Output) (map[Uint256]Fix
 			inputs[output.AssetID] = output.Value
 		}
 	}
-	for _, v := range tx.Outputs {
+	for _, v := range tx.Outputs() {
 		amount, ok := outputs[v.AssetID]
 		if ok {
 			outputs[v.AssetID] = amount + v.Value
@@ -430,23 +442,71 @@ func GetTxFeeMap(tx *Transaction, references map[*Input]Output) (map[Uint256]Fix
 	return feeMap, nil
 }
 
-func (b *BlockChain) checkCoinbaseTransactionContext(blockHeight uint32, coinbase *Transaction, totalTxFee Fixed64) error {
+func (b *BlockChain) GetBlockDPOSReward(block *Block) Fixed64 {
+	totalTxFx := Fixed64(0)
+	for _, tx := range block.Transactions {
+		totalTxFx += tx.Fee()
+	}
+	return Fixed64(math.Ceil(float64(totalTxFx+
+		b.chainParams.GetBlockReward(block.Height)) * 0.35))
+}
+
+func (b *BlockChain) checkCoinbaseTransactionContext(blockHeight uint32, coinbase interfaces.Transaction, totalTxFee, dposReward Fixed64) error {
+	activeHeight := DefaultLedger.Arbitrators.GetDPoSV2ActiveHeight()
+	if activeHeight != math.MaxUint32 && blockHeight > activeHeight+1 {
+		totalReward := totalTxFee + b.chainParams.GetBlockReward(blockHeight)
+		rewardCyberRepublic := Fixed64(math.Ceil(float64(totalReward) * 0.3))
+		rewardDposArbiter := Fixed64(math.Ceil(float64(totalReward) * 0.35))
+		rewardMergeMiner := Fixed64(totalReward) - rewardCyberRepublic - rewardDposArbiter
+		if coinbase.Outputs()[0].Value != rewardCyberRepublic {
+			return errors.New("rewardCyberRepublic value not correct")
+		}
+		if coinbase.Outputs()[1].Value != rewardMergeMiner {
+			return errors.New("rewardMergeMiner value not correct")
+		}
+		if len(coinbase.Outputs()) != 3 {
+			return errors.New("coinbase only can have 3 outputs at the most when it is DPoS v2")
+		}
+		if coinbase.Outputs()[2].Value != dposReward {
+			return errors.New("last DPoS reward value not correct")
+		}
+
+		if b.state.GetConsensusAlgorithm() == state.POW {
+			if !coinbase.Outputs()[2].ProgramHash.IsEqual(*b.chainParams.DestroyELAProgramHash) {
+				return errors.New("DPoS reward address not correct")
+			}
+			if !coinbase.Outputs()[0].ProgramHash.IsEqual(*b.chainParams.DestroyELAProgramHash) {
+				return errors.New("rewardCyberRepublic address not correct")
+			}
+		} else {
+			if !coinbase.Outputs()[0].ProgramHash.IsEqual(*b.chainParams.CRConfiguration.CRAssetsProgramHash) {
+				return errors.New("rewardCyberRepublic address not correct")
+			}
+			if !coinbase.Outputs()[2].ProgramHash.IsEqual(*b.chainParams.DPoSConfiguration.DPoSV2RewardAccumulateProgramHash) {
+				return errors.New("DPoS reward address not correct")
+			}
+		}
+
+		return nil
+	}
+
 	// main version >= H2
 	if blockHeight >= b.chainParams.PublicDPOSHeight {
 		totalReward := totalTxFee + b.chainParams.GetBlockReward(blockHeight)
 		rewardDPOSArbiter := Fixed64(math.Ceil(float64(totalReward) * 0.35))
 		if totalReward-rewardDPOSArbiter+DefaultLedger.Arbitrators.
-			GetFinalRoundChange() != coinbase.Outputs[0].Value+
-			coinbase.Outputs[1].Value {
+			GetFinalRoundChange() != coinbase.Outputs()[0].Value+
+			coinbase.Outputs()[1].Value {
+
 			return errors.New("reward amount in coinbase not correct")
 		}
 
-		if err := checkCoinbaseArbitratorsReward(coinbase); err != nil {
+		if err := CheckCoinbaseArbitratorsReward(coinbase); err != nil {
 			return err
 		}
 	} else { // old version [0, H2)
 		var rewardInCoinbase = Fixed64(0)
-		for _, output := range coinbase.Outputs {
+		for _, output := range coinbase.Outputs() {
 			rewardInCoinbase += output.Value
 		}
 
@@ -462,18 +522,18 @@ func (b *BlockChain) checkCoinbaseTransactionContext(blockHeight uint32, coinbas
 	return nil
 }
 
-func checkCoinbaseArbitratorsReward(coinbase *Transaction) error {
+func CheckCoinbaseArbitratorsReward(coinbase interfaces.Transaction) error {
 	rewards := DefaultLedger.Arbitrators.GetArbitersRoundReward()
-	if len(rewards) != len(coinbase.Outputs)-2 {
+	if len(rewards) != len(coinbase.Outputs())-2 {
 		return errors.New("coinbase output count not match")
 	}
 
-	for i := 2; i < len(coinbase.Outputs); i++ {
-		amount, ok := rewards[coinbase.Outputs[i].ProgramHash]
+	for i := 2; i < len(coinbase.Outputs()); i++ {
+		amount, ok := rewards[coinbase.Outputs()[i].ProgramHash]
 		if !ok {
 			return errors.New("unknown dpos reward address")
 		}
-		if amount != coinbase.Outputs[i].Value {
+		if amount != coinbase.Outputs()[i].Value {
 			return errors.New("incorrect dpos reward amount")
 		}
 	}

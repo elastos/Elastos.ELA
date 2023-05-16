@@ -9,8 +9,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/elastos/Elastos.ELA/elanet/filter/returnsidechaindepositcoinfilter"
-	"github.com/elastos/Elastos.ELA/elanet/filter/upgradefilter"
+	"net"
 	"sync/atomic"
 	"time"
 
@@ -18,13 +17,16 @@ import (
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/core/types"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/dpos/state"
 	"github.com/elastos/Elastos.ELA/elanet/bloom"
 	"github.com/elastos/Elastos.ELA/elanet/filter"
 	"github.com/elastos/Elastos.ELA/elanet/filter/customidfilter"
 	"github.com/elastos/Elastos.ELA/elanet/filter/nextturndposfilter"
+	"github.com/elastos/Elastos.ELA/elanet/filter/returnsidechaindepositcoinfilter"
 	"github.com/elastos/Elastos.ELA/elanet/filter/sidefilter"
+	"github.com/elastos/Elastos.ELA/elanet/filter/upgradefilter"
 	"github.com/elastos/Elastos.ELA/elanet/netsync"
 	"github.com/elastos/Elastos.ELA/elanet/pact"
 	"github.com/elastos/Elastos.ELA/elanet/peer"
@@ -32,19 +34,20 @@ import (
 	"github.com/elastos/Elastos.ELA/mempool"
 	"github.com/elastos/Elastos.ELA/p2p"
 	"github.com/elastos/Elastos.ELA/p2p/msg"
+	peer2 "github.com/elastos/Elastos.ELA/p2p/peer"
 	svr "github.com/elastos/Elastos.ELA/p2p/server"
 )
 
 const (
 	// defaultServices describes the default services that are supported by
-	// the server.
+	// the NetServer.
 	defaultServices = pact.SFNodeNetwork | pact.SFTxFiltering | pact.SFNodeBloom
 
 	// maxNonNodePeers defines the maximum count of accepting non-node peers.
 	maxNonNodePeers = 100
 )
 
-// naFilter defines a network address filter for the main chain server, for now
+// naFilter defines a network address filter for the main chain NetServer, for now
 // it is used to filter SPV wallet addresses from relaying to other peers.
 type naFilter struct{}
 
@@ -53,16 +56,16 @@ func (f *naFilter) Filter(na *p2p.NetAddress) bool {
 	return service&pact.SFNodeNetwork == pact.SFNodeNetwork
 }
 
-// newPeerMsg represent a new connected peer.
-type newPeerMsg struct {
+// NewPeerMsg represent a new connected peer.
+type NewPeerMsg struct {
 	svr.IPeer
-	reply chan bool
+	Reply chan bool
 }
 
-// donePeerMsg represent a disconnected peer.
-type donePeerMsg struct {
+// DonePeerMsg represent a disconnected peer.
+type DonePeerMsg struct {
 	svr.IPeer
-	reply chan struct{}
+	Reply chan struct{}
 }
 
 // relayMsg packages an inventory vector along with the newly discovered
@@ -72,15 +75,15 @@ type relayMsg struct {
 	data    interface{}
 }
 
-// server provides a server for handling communications to and from peers.
-type server struct {
+// NetServer provides a NetServer for handling communications to and from peers.
+type NetServer struct {
 	svr.IServer
-	syncManager  *netsync.SyncManager
+	SyncManager  *netsync.SyncManager
 	chain        *blockchain.BlockChain
-	chainParams  *config.Params
+	ChainParams  *config.Configuration
 	txMemPool    *mempool.TxPool
 	blockMemPool *mempool.BlockPool
-	routes       *routes.Routes
+	Routes       *routes.Routes
 
 	nonNodePeers int32 // This variable must be use atomically.
 	peerQueue    chan interface{}
@@ -89,24 +92,24 @@ type server struct {
 	services     pact.ServiceFlag
 }
 
-// serverPeer extends the peer to maintain state shared by the server and
+// ServerPeer extends the peer to maintain state shared by the NetServer and
 // the blockmanager.
-type serverPeer struct {
+type ServerPeer struct {
 	*peer.Peer
 
-	server        *server
+	server        *NetServer
 	continueHash  *common.Uint256
 	isWhitelisted bool
 	filter        *filter.Filter
 	quit          chan struct{}
-	// The following chans are used to sync blockmanager and server.
+	// The following chans are used to sync blockmanager and NetServer.
 	txProcessed    chan struct{}
 	blockProcessed chan struct{}
 }
 
-// newServerPeer returns a new serverPeer instance. The peer needs to be set by
+// newServerPeer returns a new ServerPeer instance. The peer needs to be set by
 // the caller.
-func newServerPeer(s *server) *serverPeer {
+func newServerPeer(s *NetServer) *ServerPeer {
 	filter := filter.New(func(typ uint8) filter.TxFilter {
 		switch typ {
 		case filter.FTBloom:
@@ -125,7 +128,7 @@ func newServerPeer(s *server) *serverPeer {
 		return nil
 	})
 
-	return &serverPeer{
+	return &ServerPeer{
 		server:         s,
 		filter:         filter,
 		quit:           make(chan struct{}),
@@ -136,10 +139,10 @@ func newServerPeer(s *server) *serverPeer {
 
 // handleDisconnect handles peer disconnects and remove the peer from
 // SyncManager and Routes.
-func (sp *serverPeer) handleDisconnect() {
+func (sp *ServerPeer) handleDisconnect() {
 	sp.WaitForDisconnect()
-	sp.server.routes.DonePeer(sp.Peer)
-	sp.server.syncManager.DonePeer(sp.Peer)
+	sp.server.Routes.DonePeer(sp.Peer)
+	sp.server.SyncManager.DonePeer(sp.Peer)
 
 	// Decrease non node count.
 	if !nodeFlag(uint64(sp.Services())) {
@@ -150,7 +153,7 @@ func (sp *serverPeer) handleDisconnect() {
 // OnVersion is invoked when a peer receives a version message and is
 // used to negotiate the protocol version details as well as kick start
 // the communications.
-func (sp *serverPeer) OnVersion(_ *peer.Peer, m *msg.Version) {
+func (sp *ServerPeer) OnVersion(_ *peer.Peer, m *msg.Version) {
 
 	// Disconnect full node peers that do not support DPOS protocol.
 	if nodeFlag(m.Services) && sp.ProtocolVersion() < pact.DPOSStartVersion {
@@ -173,11 +176,11 @@ func (sp *serverPeer) OnVersion(_ *peer.Peer, m *msg.Version) {
 	// the local clock to keep the network time in sync.
 	sp.server.chain.TimeSource.AddTimeSample(sp.Addr(), m.Timestamp)
 
-	// Signal the routes this peer is a new sync candidate.
-	sp.server.routes.NewPeer(sp.Peer)
+	// Signal the Routes this peer is a new sync candidate.
+	sp.server.Routes.NewPeer(sp.Peer)
 
 	// Signal the sync manager this peer is a new sync candidate.
-	sp.server.syncManager.NewPeer(sp.Peer)
+	sp.server.SyncManager.NewPeer(sp.Peer)
 
 	// Choose whether or not to relay transactions before a filter command
 	// is received.
@@ -191,8 +194,8 @@ func (sp *serverPeer) OnVersion(_ *peer.Peer, m *msg.Version) {
 // It creates and sends an inventory message with the contents of the memory
 // pool up to the maximum inventory allowed per message.  When the peer has a
 // bloom filter loaded, the contents are filtered accordingly.
-func (sp *serverPeer) OnMemPool(_ *peer.Peer, _ *msg.MemPool) {
-	// Only allow mempool requests if the server has bloom filtering
+func (sp *ServerPeer) OnMemPool(_ *peer.Peer, _ *msg.MemPool) {
+	// Only allow mempool requests if the NetServer has bloom filtering
 	// enabled.
 	if sp.server.services&pact.SFTxFiltering != pact.SFTxFiltering {
 		log.Debugf("peer %v sent mempool request with bloom "+
@@ -239,11 +242,11 @@ func (sp *serverPeer) OnMemPool(_ *peer.Peer, _ *msg.MemPool) {
 // until the transaction has been fully processed.  Unlock the block
 // handler this does not serialize all transactions through a single thread
 // transactions don't rely on the previous one in a linear fashion like blocks.
-func (sp *serverPeer) OnTx(_ *peer.Peer, msgTx *msg.Tx) {
+func (sp *ServerPeer) OnTx(_ *peer.Peer, msgTx *msg.Tx) {
 	// Add the transaction to the known inventory for the peer.
 	// Convert the raw MsgTx to a btcutil.Tx which provides some convenience
 	// methods and things such as hash caching.
-	tx := msgTx.Serializable.(*types.Transaction)
+	tx := msgTx.Serializable.(interfaces.Transaction)
 	txId := tx.Hash()
 	iv := msg.NewInvVect(msg.InvTypeTx, &txId)
 	sp.AddKnownInventory(iv)
@@ -253,13 +256,13 @@ func (sp *serverPeer) OnTx(_ *peer.Peer, msgTx *msg.Tx) {
 	// processed and known good or bad.  This helps prevent a malicious peer
 	// from queuing up a bunch of bad transactions before disconnecting (or
 	// being disconnected) and wasting memory.
-	sp.server.syncManager.QueueTx(tx, sp.Peer, sp.txProcessed)
+	sp.server.SyncManager.QueueTx(tx, sp.Peer, sp.txProcessed)
 	<-sp.txProcessed
 }
 
 // OnBlock is invoked when a peer receives a block message.  It
 // blocks until the block has been fully processed.
-func (sp *serverPeer) OnBlock(_ *peer.Peer, msgBlock *msg.Block) {
+func (sp *ServerPeer) OnBlock(_ *peer.Peer, msgBlock *msg.Block) {
 	block := msgBlock.Serializable.(*types.DposBlock)
 	blockHash := block.Block.Hash()
 	iv := msg.NewInvVect(msg.InvTypeBlock, &blockHash)
@@ -281,7 +284,7 @@ func (sp *serverPeer) OnBlock(_ *peer.Peer, msgBlock *msg.Block) {
 	// reference implementation processes blocks in the same
 	// thread and therefore blocks further messages until
 	// the block has been fully processed.
-	sp.server.syncManager.QueueBlock(block, sp.Peer, sp.blockProcessed)
+	sp.server.SyncManager.QueueBlock(block, sp.Peer, sp.blockProcessed)
 	<-sp.blockProcessed
 }
 
@@ -289,16 +292,16 @@ func (sp *serverPeer) OnBlock(_ *peer.Peer, msgBlock *msg.Block) {
 // used to examine the inventory being advertised by the remote peer and react
 // accordingly.  We pass the message down to blockmanager which will call
 // QueueMessage with any appropriate responses.
-func (sp *serverPeer) OnInv(_ *peer.Peer, inv *msg.Inv) {
+func (sp *ServerPeer) OnInv(_ *peer.Peer, inv *msg.Inv) {
 	if len(inv.InvList) > 0 {
-		sp.server.syncManager.QueueInv(inv, sp.Peer)
-		sp.server.routes.QueueInv(sp.Peer, inv)
+		sp.server.SyncManager.QueueInv(inv, sp.Peer)
+		sp.server.Routes.QueueInv(sp.Peer, inv)
 	}
 }
 
 // OnNotFound is invoked when a peer receives an notfounc message.
 // A peer should not response a notfound message so we just disconnect it.
-func (sp *serverPeer) OnNotFound(_ *peer.Peer, notFound *msg.NotFound) {
+func (sp *ServerPeer) OnNotFound(_ *peer.Peer, notFound *msg.NotFound) {
 	for _, i := range notFound.InvList {
 		if i.Type == msg.InvTypeTx {
 			continue
@@ -313,9 +316,9 @@ func (sp *serverPeer) OnNotFound(_ *peer.Peer, notFound *msg.NotFound) {
 
 // handleGetData is invoked when a peer receives a getdata message and
 // is used to deliver block and transaction information.
-func (sp *serverPeer) OnGetData(_ *peer.Peer, getData *msg.GetData) {
-	// Notify the GetData message to DPOS routes.
-	sp.server.routes.OnGetData(sp.Peer, getData)
+func (sp *ServerPeer) OnGetData(_ *peer.Peer, getData *msg.GetData) {
+	// Notify the GetData message to DPOS Routes.
+	sp.server.Routes.OnGetData(sp.Peer, getData)
 
 	numAdded := 0
 	notFound := msg.NewNotFound()
@@ -393,7 +396,7 @@ func (sp *serverPeer) OnGetData(_ *peer.Peer, getData *msg.GetData) {
 
 // OnGetBlocks is invoked when a peer receives a getblocks
 // message.
-func (sp *serverPeer) OnGetBlocks(_ *peer.Peer, m *msg.GetBlocks) {
+func (sp *ServerPeer) OnGetBlocks(_ *peer.Peer, m *msg.GetBlocks) {
 	// Find the most recent known block in the best chain based on the block
 	// locator and fetch all of the block hashes after it until either
 	// wire.MaxBlocksPerMsg have been fetched or the provided stop hash is
@@ -433,11 +436,11 @@ func (sp *serverPeer) OnGetBlocks(_ *peer.Peer, m *msg.GetBlocks) {
 	}
 }
 
-// enforceTxFilterFlag disconnects the peer if the server is not configured to
+// enforceTxFilterFlag disconnects the peer if the NetServer is not configured to
 // allow tx filters.  Additionally, if the peer has negotiated to a protocol
 // version  that is high enough to observe the bloom filter service support bit,
 // it will be banned since it is intentionally violating the protocol.
-func (sp *serverPeer) enforceTxFilterFlag(cmd string) bool {
+func (sp *ServerPeer) enforceTxFilterFlag(cmd string) bool {
 	if sp.server.services&pact.SFTxFiltering != pact.SFTxFiltering {
 		// Disconnect the peer regardless of protocol version or banning
 		// state.
@@ -454,8 +457,8 @@ func (sp *serverPeer) enforceTxFilterFlag(cmd string) bool {
 // OnFilterAdd is invoked when a peer receives a filteradd
 // message and is used by remote peers to add data to an already loaded bloom
 // filter.  The peer will be disconnected if a filter is not loaded when this
-// message is received or the server is not configured to allow bloom filters.
-func (sp *serverPeer) OnFilterAdd(_ *peer.Peer, filterAdd *msg.FilterAdd) {
+// message is received or the NetServer is not configured to allow bloom filters.
+func (sp *ServerPeer) OnFilterAdd(_ *peer.Peer, filterAdd *msg.FilterAdd) {
 	// Disconnect and/or ban depending on the node bloom services flag and
 	// negotiated protocol version.
 	if !sp.enforceTxFilterFlag(filterAdd.CMD()) {
@@ -480,8 +483,8 @@ func (sp *serverPeer) OnFilterAdd(_ *peer.Peer, filterAdd *msg.FilterAdd) {
 // OnFilterClear is invoked when a peer receives a filterclear
 // message and is used by remote peers to clear an already loaded bloom filter.
 // The peer will be disconnected if a filter is not loaded when this message is
-// received  or the server is not configured to allow bloom filters.
-func (sp *serverPeer) OnFilterClear(_ *peer.Peer, filterClear *msg.FilterClear) {
+// received  or the NetServer is not configured to allow bloom filters.
+func (sp *ServerPeer) OnFilterClear(_ *peer.Peer, filterClear *msg.FilterClear) {
 	// Disconnect and/or ban depending on the node bloom services flag and
 	// negotiated protocol version.
 	if !sp.enforceTxFilterFlag(filterClear.CMD()) {
@@ -503,9 +506,9 @@ func (sp *serverPeer) OnFilterClear(_ *peer.Peer, filterClear *msg.FilterClear) 
 // OnFilterLoad is invoked when a peer receives a filterload
 // message and it used to load a bloom filter that should be used for
 // delivering merkle blocks and associated transactions that match the filter.
-// The peer will be disconnected if the server is not configured to allow bloom
+// The peer will be disconnected if the NetServer is not configured to allow bloom
 // filters.
-func (sp *serverPeer) OnFilterLoad(_ *peer.Peer, filterLoad *msg.FilterLoad) {
+func (sp *ServerPeer) OnFilterLoad(_ *peer.Peer, filterLoad *msg.FilterLoad) {
 	// Disconnect and/or ban depending on the node bloom services flag and
 	// negotiated protocol version.
 	if !sp.enforceTxFilterFlag(filterLoad.CMD()) {
@@ -530,8 +533,8 @@ func (sp *serverPeer) OnFilterLoad(_ *peer.Peer, filterLoad *msg.FilterLoad) {
 // OnTxFilterLoad is invoked when a peer receives a txfilter message and it used to
 // load a transaction filter that should be used for delivering merkle blocks and
 // associated transactions that match the filter. The peer will be disconnected
-// if the server is not configured to allow transaction filtering.
-func (sp *serverPeer) OnTxFilterLoad(_ *peer.Peer, tf *msg.TxFilterLoad) {
+// if the NetServer is not configured to allow transaction filtering.
+func (sp *ServerPeer) OnTxFilterLoad(_ *peer.Peer, tf *msg.TxFilterLoad) {
 	// Disconnect and/or ban depending on the tx filter services flag and
 	// negotiated protocol version.
 	if !sp.enforceTxFilterFlag(tf.CMD()) {
@@ -550,14 +553,14 @@ func (sp *serverPeer) OnTxFilterLoad(_ *peer.Peer, tf *msg.TxFilterLoad) {
 }
 
 // OnReject is invoked when a peer receives a reject message.
-func (sp *serverPeer) OnReject(_ *peer.Peer, msg *msg.Reject) {
+func (sp *ServerPeer) OnReject(_ *peer.Peer, msg *msg.Reject) {
 	log.Infof("%s sent a reject message Code: %s, Hash %s, Reason: %s",
 		sp, msg.RejectCode.String(), msg.Hash.String(), msg.Reason)
 }
 
 // pushTxMsg sends a tx message for the provided transaction hash to the
 // connected peer.  An error is returned if the transaction hash is not known.
-func (s *server) pushTxMsg(sp *serverPeer, hash *common.Uint256, doneChan chan<- struct{},
+func (s *NetServer) pushTxMsg(sp *ServerPeer, hash *common.Uint256, doneChan chan<- struct{},
 	waitChan <-chan struct{}) error {
 
 	// Attempt to fetch the requested transaction from the pool.  A
@@ -583,7 +586,7 @@ func (s *server) pushTxMsg(sp *serverPeer, hash *common.Uint256, doneChan chan<-
 
 // pushBlockMsg sends a block message for the provided block hash to the
 // connected peer.  An error is returned if the block hash is not known.
-func (s *server) pushBlockMsg(sp *serverPeer, hash *common.Uint256, doneChan chan<- struct{},
+func (s *NetServer) pushBlockMsg(sp *ServerPeer, hash *common.Uint256, doneChan chan<- struct{},
 	waitChan <-chan struct{}) error {
 
 	// Fetch the block from the database.
@@ -633,7 +636,7 @@ func (s *server) pushBlockMsg(sp *serverPeer, hash *common.Uint256, doneChan cha
 
 // pushBlockMsg sends a block message for the provided block hash to the
 // connected peer.  An error is returned if the block hash is not known.
-func (s *server) pushConfirmedBlockMsg(sp *serverPeer, hash *common.Uint256, doneChan chan<- struct{},
+func (s *NetServer) pushConfirmedBlockMsg(sp *ServerPeer, hash *common.Uint256, doneChan chan<- struct{},
 	waitChan <-chan struct{}) error {
 
 	// Fetch the block from the database.
@@ -684,7 +687,7 @@ func (s *server) pushConfirmedBlockMsg(sp *serverPeer, hash *common.Uint256, don
 // the connected peer.  Since a merkle block requires the peer to have a filter
 // loaded, this call will simply be ignored if there is no filter loaded.  An
 // error is returned if the block hash is not known.
-func (s *server) pushMerkleBlockMsg(sp *serverPeer, hash *common.Uint256,
+func (s *NetServer) pushMerkleBlockMsg(sp *ServerPeer, hash *common.Uint256,
 	doneChan chan<- struct{}, waitChan <-chan struct{}) error {
 
 	// Do not send a response if the peer doesn't have a filter loaded.
@@ -765,7 +768,7 @@ func (s *server) pushMerkleBlockMsg(sp *serverPeer, hash *common.Uint256,
 
 // handleRelayInvMsg deals with relaying inventory to peers that are not already
 // known to have it.  It is invoked from the peerHandler goroutine.
-func (s *server) handleRelayInvMsg(peers map[svr.IPeer]*serverPeer, rmsg relayMsg) {
+func (s *NetServer) handleRelayInvMsg(peers map[svr.IPeer]*ServerPeer, rmsg relayMsg) {
 	// TODO remove after main net growth higher than H1 for efficiency.
 	current := s.chain.GetHeight()
 
@@ -782,10 +785,10 @@ func (s *server) handleRelayInvMsg(peers map[svr.IPeer]*serverPeer, rmsg relayMs
 				continue
 			}
 
-			tx, ok := rmsg.data.(*types.Transaction)
+			tx, ok := rmsg.data.(interfaces.Transaction)
 			if !ok {
 				log.Warnf("Underlying data for tx inv "+
-					"relay is not a *core.Transaction: %T",
+					"relay is not a *core.BaseTransaction: %T",
 					rmsg.data)
 				return
 			}
@@ -803,7 +806,7 @@ func (s *server) handleRelayInvMsg(peers map[svr.IPeer]*serverPeer, rmsg relayMs
 			// Compatible for old version SPV client.
 			if sp.filter.IsLoaded() {
 				// Do not send unconfirmed block to SPV client after H1.
-				if current >= s.chainParams.CRCOnlyDPOSHeight-1 &&
+				if current >= s.ChainParams.CRCOnlyDPOSHeight-1 &&
 					s.chain.GetState().ConsensusAlgorithm != state.POW &&
 					rmsg.invVect.Type == msg.InvTypeBlock {
 					continue
@@ -826,9 +829,9 @@ func (s *server) handleRelayInvMsg(peers map[svr.IPeer]*serverPeer, rmsg relayMs
 }
 
 // peerHandler is used to handle peer operations such as adding and removing
-// peers to and from the server, banning peers, and broadcasting messages to
+// peers to and from the NetServer, banning peers, and broadcasting messages to
 // peers.  It must be run in a goroutine.
-func (s *server) peerHandler() {
+func (s *NetServer) peerHandler() {
 
 	// Reset the TimeSource of BlockChain.
 	s.resetTimeSource()
@@ -838,16 +841,16 @@ func (s *server) peerHandler() {
 	// to this handler and rather than adding more channels to sychronize
 	// things, it's easier and slightly faster to simply start and stop them
 	// in this handler.
-	s.syncManager.Start()
+	s.SyncManager.Start()
 
-	peers := make(map[svr.IPeer]*serverPeer)
+	peers := make(map[svr.IPeer]*ServerPeer)
 
 out:
 	for {
 		select {
 		// Deal with peer messages.
 		case peer := <-s.peerQueue:
-			s.handlePeerMsg(peers, peer)
+			s.HandlePeerMsg(peers, peer)
 
 			// New inventory to potentially be relayed to other peers.
 		case invMsg := <-s.relayInv:
@@ -858,7 +861,7 @@ out:
 		}
 	}
 
-	s.syncManager.Stop()
+	s.SyncManager.Stop()
 
 	// Drain channels before exiting so nothing is left waiting around
 	// to send.
@@ -873,7 +876,7 @@ cleanup:
 	}
 }
 
-func (s *server) isOverMaxNodePerHost(peers map[svr.IPeer]*serverPeer,
+func (s *NetServer) isOverMaxNodePerHost(peers map[svr.IPeer]*ServerPeer,
 	orgPeer svr.IPeer) bool {
 	sp := orgPeer.ToPeer()
 	hostNodeCount := uint32(1)
@@ -889,22 +892,22 @@ func (s *server) isOverMaxNodePerHost(peers map[svr.IPeer]*serverPeer,
 			hostNodeCount++
 		}
 	}
-	if hostNodeCount > s.chainParams.MaxNodePerHost {
+	if hostNodeCount > s.ChainParams.MaxNodePerHost {
 		log.Infof("New peer %s ignored, "+
 			"hostNodeCount %d is more than  MaxNodePerHost %d ",
-			sp, hostNodeCount, s.chainParams.MaxNodePerHost)
+			sp, hostNodeCount, s.ChainParams.MaxNodePerHost)
 		return true
 	}
 	return false
 }
 
-// handlePeerMsg deals with adding and removing peers.
-func (s *server) handlePeerMsg(peers map[svr.IPeer]*serverPeer, p interface{}) {
+// HandlePeerMsg deals with adding and removing peers.
+func (s *NetServer) HandlePeerMsg(peers map[svr.IPeer]*ServerPeer, p interface{}) {
 	switch p := p.(type) {
-	case newPeerMsg:
+	case NewPeerMsg:
 		sp := newServerPeer(s)
 		if s.isOverMaxNodePerHost(peers, p) {
-			p.reply <- false
+			p.Reply <- false
 			return
 		}
 		sp.Peer = peer.New(p, &peer.Listeners{
@@ -921,68 +924,68 @@ func (s *server) handlePeerMsg(peers map[svr.IPeer]*serverPeer, p interface{}) {
 			OnFilterLoad:   sp.OnFilterLoad,
 			OnTxFilterLoad: sp.OnTxFilterLoad,
 			OnReject:       sp.OnReject,
-			OnDAddr:        s.routes.QueueDAddr,
+			OnDAddr:        s.Routes.QueueDAddr,
 		})
 		peers[p.IPeer] = sp
-		p.reply <- true
-	case donePeerMsg:
+		p.Reply <- true
+	case DonePeerMsg:
 		delete(peers, p.IPeer)
-		p.reply <- struct{}{}
+		p.Reply <- struct{}{}
 	}
 }
 
 // Reset TimeSource after one second to avoid accepting the wrong time
 // in version message.
-func (s *server) resetTimeSource() {
+func (s *NetServer) resetTimeSource() {
 	go func() {
 		time.Sleep(time.Second)
 		s.chain.TimeSource.Reset()
 	}()
 }
 
-// Services returns the service flags the server supports.
-func (s *server) Services() pact.ServiceFlag {
+// Services returns the service flags the NetServer supports.
+func (s *NetServer) Services() pact.ServiceFlag {
 	return s.services
 }
 
-// NewPeer adds a new peer that has already been connected to the server.
-func (s *server) NewPeer(p svr.IPeer) bool {
+// NewPeer adds a new peer that has already been connected to the NetServer.
+func (s *NetServer) NewPeer(p svr.IPeer) bool {
 	reply := make(chan bool)
-	s.peerQueue <- newPeerMsg{p, reply}
+	s.peerQueue <- NewPeerMsg{p, reply}
 	return <-reply
 }
 
-// DonePeer removes a peer that has already been connected to the server by ip.
-func (s *server) DonePeer(p svr.IPeer) {
+// DonePeer removes a peer that has already been connected to the NetServer by ip.
+func (s *NetServer) DonePeer(p svr.IPeer) {
 	reply := make(chan struct{})
-	s.peerQueue <- donePeerMsg{p, reply}
+	s.peerQueue <- DonePeerMsg{p, reply}
 	<-reply
 }
 
 // RelayInventory relays the passed inventory vector to all connected peers
 // that are not already known to have it.
-func (s *server) RelayInventory(invVect *msg.InvVect, data interface{}) {
+func (s *NetServer) RelayInventory(invVect *msg.InvVect, data interface{}) {
 	s.relayInv <- relayMsg{invVect: invVect, data: data}
 }
 
 // IsCurrent returns whether or not the sync manager believes it is synced with
 // the connected peers.
-func (s *server) IsCurrent() bool {
-	return s.syncManager.IsCurrent()
+func (s *NetServer) IsCurrent() bool {
+	return s.SyncManager.IsCurrent()
 }
 
 // Start begins accepting connections from peers.
-func (s *server) Start() {
-	s.routes.Start()
+func (s *NetServer) Start() {
+	s.Routes.Start()
 	s.IServer.Start()
 
 	go s.peerHandler()
 }
 
-// Stop gracefully shuts down the server by stopping and disconnecting all
+// Stop gracefully shuts down the NetServer by stopping and disconnecting all
 // peers and the main listener.
-func (s *server) Stop() error {
-	s.routes.Stop()
+func (s *NetServer) Stop() error {
+	s.Routes.Stop()
 	err := s.IServer.Stop()
 
 	// Signal the remaining goroutines to quit.
@@ -990,10 +993,10 @@ func (s *server) Stop() error {
 	return err
 }
 
-// NewServer returns a new elanet server configured to listen on addr for the
-// network type specified by chainParams.  Use start to begin accepting
+// NewServer returns a new elanet NetServer configured to listen on addr for the
+// network type specified by ChainParams.  Use start to begin accepting
 // connections from peers.
-func NewServer(dataDir string, cfg *Config, nodeVersion string) (*server, error) {
+func NewServer(dataDir string, cfg *Config, nodeVersion string) (*NetServer, error) {
 	services := defaultServices
 	params := cfg.ChainParams
 	if params.DisableTxFilters {
@@ -1003,31 +1006,31 @@ func NewServer(dataDir string, cfg *Config, nodeVersion string) (*server, error)
 
 	// If no listeners added, create default listener.
 	if len(params.ListenAddrs) == 0 {
-		params.ListenAddrs = []string{fmt.Sprint(":", params.DefaultPort)}
+		params.ListenAddrs = []string{fmt.Sprint(":", params.NodePort)}
 	}
 
 	var pver = pact.DPOSStartVersion
-	if cfg.Chain.GetHeight() >= uint32(params.NewP2PProtocolVersionHeight) {
+	if cfg.Chain.GetHeight() >= uint32(params.CRConfiguration.NewP2PProtocolVersionHeight) {
 		pver = pact.CRProposalVersion
 	}
 
 	svrCfg := svr.NewDefaultConfig(
 		params.Magic, pver, uint64(services),
-		params.DefaultPort, params.DNSSeeds, params.ListenAddrs,
-		nil, nil, makeEmptyMessage,
+		params.NodePort, params.DNSSeeds, params.ListenAddrs,
+		nil, nil, createMessage,
 		func() uint64 { return uint64(cfg.Chain.GetHeight()) },
-		params.NewP2PProtocolVersionHeight, nodeVersion,
+		params.CRConfiguration.NewP2PProtocolVersionHeight, nodeVersion,
 	)
 	svrCfg.DataDir = dataDir
 	svrCfg.NAFilter = &naFilter{}
 	svrCfg.PermanentPeers = cfg.PermanentPeers
 
-	s := server{
+	s := NetServer{
 		chain:        cfg.Chain,
-		chainParams:  cfg.ChainParams,
+		ChainParams:  cfg.ChainParams,
 		txMemPool:    cfg.TxMemPool,
 		blockMemPool: cfg.BlockMemPool,
-		routes:       cfg.Routes,
+		Routes:       cfg.Routes,
 		peerQueue:    make(chan interface{}, svrCfg.MaxPeers),
 		relayInv:     make(chan relayMsg, svrCfg.MaxPeers),
 		quit:         make(chan struct{}),
@@ -1042,7 +1045,7 @@ func NewServer(dataDir string, cfg *Config, nodeVersion string) (*server, error)
 	}
 	s.IServer = p2pServer
 
-	s.syncManager = netsync.New(&netsync.Config{
+	s.SyncManager = netsync.New(&netsync.Config{
 		PeerNotifier: &s,
 		Chain:        cfg.Chain,
 		ChainParams:  cfg.ChainParams,
@@ -1054,14 +1057,14 @@ func NewServer(dataDir string, cfg *Config, nodeVersion string) (*server, error)
 	return &s, nil
 }
 
-func makeEmptyMessage(cmd string) (p2p.Message, error) {
+func createMessage(hdr p2p.Header, r net.Conn) (p2p.Message, error) {
 	var message p2p.Message
-	switch cmd {
+	switch hdr.GetCMD() {
 	case p2p.CmdMemPool:
 		message = &msg.MemPool{}
 
 	case p2p.CmdTx:
-		message = msg.NewTx(&types.Transaction{})
+		return peer2.CheckAndCreateTxMessage(hdr, r)
 
 	case p2p.CmdBlock:
 		message = msg.NewBlock(&types.DposBlock{})
@@ -1097,9 +1100,10 @@ func makeEmptyMessage(cmd string) (p2p.Message, error) {
 		message = &msg.DAddr{}
 
 	default:
-		return nil, fmt.Errorf("unhandled command [%s]", cmd)
+		return nil, fmt.Errorf("unhandled command [%s]", hdr.GetCMD())
 	}
-	return message, nil
+
+	return peer2.CheckAndCreateMessage(hdr, message, r)
 }
 
 // nodeFlag returns if a peer contains the full node flag.

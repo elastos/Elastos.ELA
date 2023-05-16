@@ -11,10 +11,9 @@ import (
 	"io"
 
 	"github.com/elastos/Elastos.ELA/common"
-)
-
-const (
-	InvalidBlockSize int = -1
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/functions"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 )
 
 // TxLoc holds locator data for the offset and length of where a transaction is
@@ -25,8 +24,8 @@ type TxLoc struct {
 }
 
 type Block struct {
-	Header
-	Transactions []*Transaction
+	common2.Header
+	Transactions []interfaces.Transaction
 }
 
 func (b *Block) Serialize(w io.Writer) error {
@@ -46,18 +45,21 @@ func (b *Block) Serialize(w io.Writer) error {
 
 func (b *Block) Deserialize(r io.Reader) error {
 	if err := b.Header.Deserialize(r); err != nil {
-		return errors.New("Block header deserialize failed, " + err.Error())
+		return errors.New("block header deserialize failed, " + err.Error())
 	}
 
 	//Transactions
 	count, err := common.ReadUint32(r)
 	if err != nil {
-		return errors.New("Block item transactions count deserialize failed.")
+		return errors.New("block item transactions count deserialize failed")
 	}
 	for i := uint32(0); i < count; i++ {
-		transaction := new(Transaction)
+		transaction, err := functions.GetTransactionByBytes(r)
+		if err != nil {
+			return errors.New("invalid transaction")
+		}
 		if err := transaction.Deserialize(r); err != nil {
-			return errors.New("Block item transaction deserialize failed, " + err.Error())
+			return errors.New("block item transaction deserialize failed, " + err.Error())
 		}
 		b.Transactions = append(b.Transactions, transaction)
 	}
@@ -83,16 +85,19 @@ func (b *Block) DeserializeTxLoc(r *bytes.Buffer) ([]TxLoc, error) {
 
 	// Deserialize each transaction while keeping track of its location
 	// within the byte stream.
-	b.Transactions = make([]*Transaction, 0, txCount)
+	b.Transactions = make([]interfaces.Transaction, 0, txCount)
 	txLocs := make([]TxLoc, txCount)
 	for i := uint32(0); i < txCount; i++ {
 		txLocs[i].TxStart = fullLen - r.Len()
-		tx := Transaction{}
-		err := tx.Deserialize(r)
+		tx, err := functions.GetTransactionByBytes(r)
 		if err != nil {
 			return nil, err
 		}
-		b.Transactions = append(b.Transactions, &tx)
+		err = tx.Deserialize(r)
+		if err != nil {
+			return nil, err
+		}
+		b.Transactions = append(b.Transactions, tx)
 		txLocs[i].TxLen = (fullLen - r.Len()) - txLocs[i].TxStart
 	}
 
@@ -119,7 +124,7 @@ func (b *Block) TxLoc() ([]TxLoc, error) {
 func (b *Block) GetSize() int {
 	buf := new(bytes.Buffer)
 	if err := b.Serialize(buf); err != nil {
-		return InvalidBlockSize
+		return common2.InvalidBlockSize
 	}
 
 	return buf.Len()
@@ -127,6 +132,10 @@ func (b *Block) GetSize() int {
 
 func (b *Block) Hash() common.Uint256 {
 	return b.Header.Hash()
+}
+
+func (b *Block) HashWithAux() common.Uint256 {
+	return b.Header.HashWithAux()
 }
 
 // SerializeSizeStripped returns the number of bytes it would take to serialize

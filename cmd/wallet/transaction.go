@@ -15,7 +15,9 @@ import (
 	"github.com/elastos/Elastos.ELA/account"
 	cmdcom "github.com/elastos/Elastos.ELA/cmd/common"
 	"github.com/elastos/Elastos.ELA/common"
-	"github.com/elastos/Elastos.ELA/core/types"
+	"github.com/elastos/Elastos.ELA/core/contract/program"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/functions"
 	"github.com/elastos/Elastos.ELA/crypto"
 	"github.com/elastos/Elastos.ELA/utils/http"
 
@@ -55,6 +57,29 @@ var txCommand = []cli.Command{
 		Action: signTx,
 	},
 	{
+		Category: "Transaction",
+		Name:     "signdigest",
+		Usage:    "sign digest",
+		Flags: []cli.Flag{
+			cmdcom.AccountWalletFlag,
+			cmdcom.AccountPasswordFlag,
+			cmdcom.TransactionDigestFlag,
+		},
+		Action: signDigest,
+	},
+	{
+		Category: "Transaction",
+		Name:     "verifydigest",
+		Usage:    "verify digest",
+		Flags: []cli.Flag{
+			cmdcom.AccountWalletFlag,
+			cmdcom.AccountPasswordFlag,
+			cmdcom.TransactionDigestFlag,
+			cmdcom.TransactionSignatureFlag,
+		},
+		Action: verifyDigest,
+	},
+	{
 		Category:    "Transaction",
 		Name:        "sendtx",
 		Usage:       "Send a transaction",
@@ -78,89 +103,16 @@ var txCommand = []cli.Command{
 }
 
 var buildTxCommand = []cli.Command{
-	{
-		Name:  "withdraw",
-		Usage: "Build a tx to withdraw crc proposal",
-		Flags: []cli.Flag{
-			cmdcom.AccountWalletFlag,
-			cmdcom.AccountPasswordFlag,
-			cmdcom.CRCProposalHashFlag,
-			cmdcom.CRCProposalStageFlag,
-			cmdcom.TransactionAmountFlag,
-			cmdcom.TransactionFeeFlag,
-			cmdcom.CRCCommiteeAddrFlag,
-			cmdcom.TransactionToFlag,
-		},
-		Action: func(c *cli.Context) error {
-			if err := CreateCRCProposalWithdrawTransaction(c); err != nil {
-				fmt.Println("error:", err)
-				os.Exit(1)
-			}
-			return nil
-		},
-	},
-	{
-		Name:  "activate",
-		Usage: "Build a tx to activate producer which have been inactivated",
-		Flags: []cli.Flag{
-			cmdcom.TransactionNodePublicKeyFlag,
-			cmdcom.AccountWalletFlag,
-			cmdcom.AccountPasswordFlag,
-		},
-		Action: func(c *cli.Context) error {
-			if err := CreateActivateProducerTransaction(c); err != nil {
-				fmt.Println("error:", err)
-				os.Exit(1)
-			}
-			return nil
-		},
-	},
-	{
-		Name:  "vote",
-		Usage: "Build a tx to vote for candidates using ELA",
-		Flags: []cli.Flag{
-			cmdcom.TransactionForFlag,
-			cmdcom.TransactionAmountFlag,
-			cmdcom.TransactionFromFlag,
-			cmdcom.TransactionFeeFlag,
-			cmdcom.AccountWalletFlag,
-			cmdcom.AccountPasswordFlag,
-		},
-		Action: func(c *cli.Context) error {
-			if c.NumFlags() == 0 {
-				cli.ShowSubcommandHelp(c)
-				return nil
-			}
-			if err := CreateVoteTransaction(c); err != nil {
-				fmt.Println("error:", err)
-				os.Exit(1)
-			}
-			return nil
-		},
-	},
-	{
-		Name:  "crosschain",
-		Usage: "Build a cross chain tx",
-		Flags: []cli.Flag{
-			cmdcom.TransactionSAddressFlag,
-			cmdcom.TransactionAmountFlag,
-			cmdcom.TransactionFromFlag,
-			cmdcom.TransactionToFlag,
-			cmdcom.TransactionFeeFlag,
-			cmdcom.AccountWalletFlag,
-		},
-		Action: func(c *cli.Context) error {
-			if c.NumFlags() == 0 {
-				cli.ShowSubcommandHelp(c)
-				return nil
-			}
-			if err := CreateCrossChainTransaction(c); err != nil {
-				fmt.Println("error:", err)
-				os.Exit(1)
-			}
-			return nil
-		},
-	},
+	dpossv2claimreward,
+	vote,
+	crosschain,
+	producer,
+	crc,
+	proposal,
+	exchangevotes,
+	returnvotes,
+	dposV2Vote,
+	dposV2VoteRenew,
 }
 
 func getTransactionHex(c *cli.Context) (string, error) {
@@ -213,17 +165,21 @@ func signTx(c *cli.Context) error {
 		return errors.New("decode transaction content failed")
 	}
 
-	var txn types.Transaction
-	err = txn.Deserialize(bytes.NewReader(rawData))
+	r := bytes.NewReader(rawData)
+	txn, err := functions.GetTransactionByBytes(r)
+	if err != nil {
+		return errors.New("invalid transaction")
+	}
+	err = txn.Deserialize(r)
 	if err != nil {
 		return errors.New("deserialize transaction failed")
 	}
 
-	if len(txn.Programs) == 0 {
+	if len(txn.Programs()) == 0 {
 		return errors.New("no program found in transaction")
 	}
 
-	haveSign, needSign, err := crypto.GetSignStatus(txn.Programs[0].Code, txn.Programs[0].Parameter)
+	haveSign, needSign, err := crypto.GetSignStatus(txn.Programs()[0].Code, txn.Programs()[0].Parameter)
 	if err != nil {
 		return err
 	}
@@ -231,15 +187,94 @@ func signTx(c *cli.Context) error {
 		return errors.New("transaction was fully signed, no need more sign")
 	}
 
-	txnSigned, err := client.Sign(&txn)
+	txnSigned, err := client.Sign(txn)
 	if err != nil {
 		return err
 	}
 
-	haveSign, needSign, _ = crypto.GetSignStatus(txn.Programs[0].Code, txn.Programs[0].Parameter)
-	fmt.Println("[", haveSign, "/", needSign, "] Transaction was successfully signed")
+	haveSign, needSign, _ = crypto.GetSignStatus(txn.Programs()[0].Code, txn.Programs()[0].Parameter)
+	fmt.Println("[", haveSign, "/", needSign, "] BaseTransaction was successfully signed")
 
 	OutputTx(haveSign, needSign, txnSigned)
+
+	return nil
+}
+
+func signDigest(c *cli.Context) error {
+	var name string
+
+	name = strings.Split(cmdcom.AccountWalletFlag.Name, ",")[0]
+	walletPath := c.String(name)
+	if walletPath == "" {
+		return errors.New(fmt.Sprintf("use --%s to specify wallet path", name))
+	}
+	password, err := cmdcom.GetFlagPassword(c)
+	if err != nil {
+		return err
+	}
+
+	sDigest := c.String(cmdcom.TransactionDigestFlag.Name)
+	digest, err := common.Uint256FromReversedHexString(sDigest)
+	if err != nil {
+		return errors.New("invalid digest: " + err.Error())
+	}
+
+	var acc *account.Account
+	client, err := account.Open(walletPath, password)
+	if err != nil {
+		return err
+	}
+
+	acc = client.GetMainAccount()
+
+	sign, err := acc.SignDigest(digest.Bytes())
+	if err != nil {
+		return errors.New("sign failed: " + err.Error())
+	}
+
+	fmt.Println("Signature: ", common.BytesToHexString(sign))
+	return nil
+}
+
+func verifyDigest(c *cli.Context) error {
+	var name string
+
+	name = strings.Split(cmdcom.AccountWalletFlag.Name, ",")[0]
+	walletPath := c.String(name)
+	if walletPath == "" {
+		return errors.New(fmt.Sprintf("use --%s to specify wallet path", name))
+	}
+	password, err := cmdcom.GetFlagPassword(c)
+	if err != nil {
+		return err
+	}
+
+	sDigest := c.String(cmdcom.TransactionDigestFlag.Name)
+	digest, err := common.Uint256FromReversedHexString(sDigest)
+	if err != nil {
+		return errors.New("invalid digest: " + err.Error())
+	}
+
+	sSign := c.String(cmdcom.TransactionSignatureFlag.Name)
+	sign, err := common.HexStringToBytes(sSign)
+	if err != nil {
+		return errors.New("invalid signature: " + err.Error())
+	}
+
+	var acc *account.Account
+	client, err := account.Open(walletPath, password)
+	if err != nil {
+		return err
+	}
+
+	acc = client.GetMainAccount()
+
+	err = crypto.VerifyDigest(*acc.PublicKey, digest.Bytes(), sign)
+	if err != nil {
+		fmt.Println("verify digest: false")
+	} else {
+		fmt.Println("verify digest: true")
+	}
 
 	return nil
 }
@@ -279,7 +314,18 @@ func showTx(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	var txn types.Transaction
+	txn := functions.CreateTransaction(
+		common2.TxVersion09,
+		common2.TransferAsset,
+		0,
+		nil,
+		[]*common2.Attribute{},
+		[]*common2.Input{},
+		[]*common2.Output{},
+		0,
+		[]*program.Program{},
+	)
+
 	if err := txn.Deserialize(bytes.NewReader(txBytes)); err != nil {
 		return err
 	}

@@ -11,9 +11,11 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/elastos/Elastos.ELA/common/config/settings"
+	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/common/log"
+	"github.com/elastos/Elastos.ELA/core/transaction"
 	crstate "github.com/elastos/Elastos.ELA/cr/state"
+	"github.com/elastos/Elastos.ELA/dpos/p2p/hub"
 	"github.com/elastos/Elastos.ELA/dpos/state"
 	"github.com/elastos/Elastos.ELA/elanet"
 	"github.com/elastos/Elastos.ELA/elanet/netsync"
@@ -23,7 +25,6 @@ import (
 	"github.com/elastos/Elastos.ELA/p2p/connmgr"
 	"github.com/elastos/Elastos.ELA/utils/elalog"
 
-	"github.com/urfave/cli"
 	"gopkg.in/cheggaaa/pb.v1"
 )
 
@@ -170,22 +171,26 @@ var (
 )
 
 // The default amount of logging is none.
-func setupLog(c *cli.Context, s *settings.Settings) {
-	flagDataDir := c.String("datadir")
+func setupLog(s *config.Configuration) {
+	flagDataDir := config.DataDir
+	if s.DataDir != "" {
+		flagDataDir = s.DataDir
+	}
 	path := filepath.Join(flagDataDir, nodeLogPath)
-
-	logger = log.NewDefault(path, uint8(s.Params().PrintLevel),
-		s.Config().MaxPerLogSize, s.Config().MaxLogsSize)
+	logger = log.NewDefault(path, uint8(s.PrintLevel),
+		s.MaxPerLogSize, s.MaxLogsSize)
 	pgBar = newProgress(logger.Writer())
 
 	admrlog := wrap(logger, elalog.LevelOff)
 	cmgrlog := wrap(logger, elalog.LevelOff)
-	synclog := wrap(logger, elalog.Level(s.Params().PrintLevel))
-	peerlog := wrap(logger, elalog.Level(s.Params().PrintLevel))
-	routlog := wrap(logger, elalog.Level(s.Params().PrintLevel))
-	elanlog := wrap(logger, elalog.Level(s.Params().PrintLevel))
-	statlog := wrap(logger, elalog.Level(s.Params().PrintLevel))
-	crstatlog := wrap(logger, elalog.Level(s.Params().PrintLevel))
+	hublog := wrap(logger, elalog.LevelOff)
+	synclog := wrap(logger, elalog.Level(s.PrintLevel))
+	peerlog := wrap(logger, elalog.Level(s.PrintLevel))
+	routlog := wrap(logger, elalog.Level(s.PrintLevel))
+	elanlog := wrap(logger, elalog.Level(s.PrintLevel))
+	statlog := wrap(logger, elalog.Level(s.PrintLevel))
+	crstatlog := wrap(logger, elalog.Level(s.PrintLevel))
+	txslog := wrap(logger, elalog.Level(s.PrintLevel))
 
 	addrmgr.UseLogger(admrlog)
 	connmgr.UseLogger(cmgrlog)
@@ -195,4 +200,6 @@ func setupLog(c *cli.Context, s *settings.Settings) {
 	elanet.UseLogger(elanlog)
 	state.UseLogger(statlog)
 	crstate.UseLogger(crstatlog)
+	transaction.UseLogger(txslog)
+	hub.UseLogger(hublog)
 }

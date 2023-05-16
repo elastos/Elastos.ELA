@@ -90,6 +90,8 @@ func StartRPCServer() {
 	// cr interfaces
 	mainMux["listcrcandidates"] = ListCRCandidates
 	mainMux["listcurrentcrs"] = ListCurrentCRs
+	mainMux["listnextcrs"] = ListNextCRs
+
 	mainMux["listcrproposalbasestate"] = ListCRProposalBaseState
 	mainMux["getcrproposalstate"] = GetCRProposalState
 	mainMux["getproposaldraftdata"] = GetProposalDraftData
@@ -99,8 +101,11 @@ func StartRPCServer() {
 
 	// vote interfaces
 	mainMux["listproducers"] = ListProducers
+	mainMux["getproducerinfo"] = GetProducerInfo
+
 	mainMux["producerstatus"] = ProducerStatus
 	mainMux["votestatus"] = VoteStatus
+
 	// for cross-chain arbiter
 	mainMux["submitsidechainillegaldata"] = SubmitSidechainIllegalData
 	mainMux["getarbiterpeersinfo"] = GetArbiterPeersInfo
@@ -112,6 +117,17 @@ func StartRPCServer() {
 	mainMux["getdepositcoin"] = GetDepositCoin
 	mainMux["getcrdepositcoin"] = GetCRDepositCoin
 	mainMux["getarbitersinfo"] = GetArbitersInfo
+
+	// dposv2
+	mainMux["getalldetaileddposv2votes"] = GetAllDetailedDPoSV2Votes
+	mainMux["getvoterights"] = GetVoteRights
+
+	mainMux["dposv2rewardinfo"] = DposV2RewardInfo
+	mainMux["getdposv2info"] = GetDPosV2Info
+
+	//nft
+	mainMux["getcandestroynftids"] = GetCanDestroynftIDs
+	mainMux["getnftinfo"] = GetNFTInfo
 
 	var handler http.Handler
 	rpcServeMux := http.NewServeMux()

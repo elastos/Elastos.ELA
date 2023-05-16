@@ -13,7 +13,7 @@ import (
 
 	"github.com/elastos/Elastos.ELA/auxpow"
 	"github.com/elastos/Elastos.ELA/common"
-	"github.com/elastos/Elastos.ELA/core/types"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/p2p/msg"
 )
 
@@ -53,7 +53,7 @@ func run(txs uint32) {
 	merkleRoot := *mBlock.CalcHash(treeDepth(txs), 0)
 	// Create and return the merkle block.
 	merkleBlock := msg.MerkleBlock{
-		Header: &types.Header{
+		Header: &common2.Header{
 			MerkleRoot: merkleRoot,
 		},
 		Transactions: mBlock.NumTx,

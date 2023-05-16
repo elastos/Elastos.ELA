@@ -122,6 +122,12 @@ var accountCommand = []cli.Command{
 	},
 	{
 		Category: "Account",
+		Name:     "stakeaddress",
+		Usage:    "Generate DPoS 2.0 stake address",
+		Action:   generateDposV2Address,
+	},
+	{
+		Category: "Account",
 		Name:     "didaddr",
 		Usage:    "Generate did address",
 		Action:   generateDIDAddress,
@@ -348,6 +354,50 @@ func exportAccount(c *cli.Context) error {
 			fmt.Println(strings.Repeat("-", 34), strings.Repeat("-", 66))
 		}
 	}
+
+	return nil
+}
+
+func generateDposV2Address(c *cli.Context) error {
+	if c.NArg() < 1 {
+		cmdcom.PrintErrorMsg("Missing argument. Standard address expected.")
+		cli.ShowCommandHelpAndExit(c, "depositaddress", 1)
+	}
+	addr := c.Args().First()
+
+	var programHash *common.Uint168
+	var err error
+	if addr == "" {
+		mainAccount, err := account.GetWalletMainAccountData(account.KeystoreFileName)
+		if err != nil {
+			return err
+		}
+		p, err := common.HexStringToBytes(mainAccount.ProgramHash)
+		if err != nil {
+			return err
+		}
+		programHash, err = common.Uint168FromBytes(p)
+		if err != nil {
+			return err
+		}
+	} else {
+		programHash, err = common.Uint168FromAddress(addr)
+		if err != nil {
+			return err
+		}
+	}
+	prft := contract.GetPrefixType(*programHash)
+	if prft != contract.PrefixStandard && prft != contract.PrefixMultiSig {
+		return errors.New("standard address expected")
+	}
+
+	codeHash := programHash.ToCodeHash()
+	depositHash := common.Uint168FromCodeHash(byte(contract.PrefixDPoSV2), codeHash)
+	address, err := depositHash.ToAddress()
+	if err != nil {
+		return err
+	}
+	fmt.Println(address)
 
 	return nil
 }

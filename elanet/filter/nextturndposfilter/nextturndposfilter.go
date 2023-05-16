@@ -11,7 +11,7 @@ NextTurnDPOSInfo and also the transactions related to the add addresses.
 package nextturndposfilter
 
 import (
-	"github.com/elastos/Elastos.ELA/core/types"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/elanet/bloom"
 	"github.com/elastos/Elastos.ELA/elanet/filter"
 )
@@ -37,14 +37,14 @@ func (f *NextTurnDPOSInfoFilter) Add(data []byte) error {
 
 // MatchConfirmed returns if a confirmed (packed into a block) transaction
 // matches the filter.
-func (f *NextTurnDPOSInfoFilter) MatchConfirmed(tx *types.Transaction) bool {
+func (f *NextTurnDPOSInfoFilter) MatchConfirmed(tx interfaces.Transaction) bool {
 	return f.TxFilter.MatchConfirmed(tx) || tx.IsNextTurnDPOSInfoTx() ||
 		tx.IsRevertToPOW() || tx.IsRevertToDPOS()
 }
 
 // MatchUnconfirmed returns if a unconfirmed (not packed into a block yet)
 // transaction matches the filter.
-func (f *NextTurnDPOSInfoFilter) MatchUnconfirmed(tx *types.Transaction) bool {
+func (f *NextTurnDPOSInfoFilter) MatchUnconfirmed(tx interfaces.Transaction) bool {
 	return f.TxFilter.MatchUnconfirmed(tx)
 }
 

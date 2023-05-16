@@ -16,3 +16,13 @@ func CreateCRIDContractByCode(code []byte) (*Contract, error) {
 		Prefix: PrefixCRDID,
 	}, nil
 }
+
+func CreateStakeContractByCode(code []byte) (*Contract, error) {
+	if len(code) == 0 {
+		return nil, errors.New("code is nil")
+	}
+	return &Contract{
+		Code:   code,
+		Prefix: PrefixDPoSV2,
+	}, nil
+}

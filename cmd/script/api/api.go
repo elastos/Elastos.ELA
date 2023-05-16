@@ -19,6 +19,7 @@ import (
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/common/log"
+	"github.com/elastos/Elastos.ELA/core/checkpoint"
 	"github.com/elastos/Elastos.ELA/core/contract"
 	"github.com/elastos/Elastos.ELA/core/types"
 	"github.com/elastos/Elastos.ELA/crypto"
@@ -27,8 +28,7 @@ import (
 	"github.com/elastos/Elastos.ELA/utils/http"
 	"github.com/elastos/Elastos.ELA/utils/signal"
 	"github.com/elastos/Elastos.ELA/utils/test"
-
-	"github.com/yuin/gopher-lua"
+	lua "github.com/yuin/gopher-lua"
 )
 
 func Loader(L *lua.LState) int {
@@ -57,12 +57,12 @@ var exports = map[string]lua.LGFunction{
 
 func outputTx(L *lua.LState) int {
 	txn := checkTransaction(L, 1)
-	if len(txn.Programs) == 0 {
+	if len(txn.Programs()) == 0 {
 		fmt.Println("no program found in transaction")
 		os.Exit(1)
 	}
-	haveSign, needSign, _ := crypto.GetSignStatus(txn.Programs[0].Code, txn.Programs[0].Parameter)
-	fmt.Println("[", haveSign, "/", needSign, "] Transaction was successfully signed")
+	haveSign, needSign, _ := crypto.GetSignStatus(txn.Programs()[0].Code, txn.Programs()[0].Parameter)
+	fmt.Println("[", haveSign, "/", needSign, "] BaseTransaction was successfully signed")
 	wallet.OutputTx(haveSign, needSign, txn)
 
 	return 0
@@ -168,6 +168,7 @@ func setArbitrators(L *lua.LState) int {
 func initLedger(L *lua.LState) int {
 	chainParams := &config.DefaultParams
 	logLevel := uint8(L.ToInt(1))
+	ckpManager := checkpoint.NewManager(chainParams)
 
 	log.NewDefault(test.NodeLogPath, logLevel, 0, 0)
 	dlog.Init("elastos", logLevel, 0, 0)
@@ -180,7 +181,7 @@ func initLedger(L *lua.LState) int {
 
 	arbiters, err := state.NewArbitrators(chainParams,
 		nil, nil, nil,
-		nil, nil, nil)
+		nil, nil, nil, nil, nil, ckpManager)
 	if err != nil {
 		fmt.Printf("New arbitrators error: %s \n", err.Error())
 	}
@@ -192,9 +193,10 @@ func initLedger(L *lua.LState) int {
 
 	var interrupt = signal.NewInterrupt()
 	chain, err := blockchain.New(chainStore, chainParams,
-		state.NewState(chainParams, arbiters.GetArbitrators, nil,
+		state.NewState(chainParams, arbiters.GetArbitrators, nil, nil, nil,
 			nil, nil, nil,
-			nil, nil, nil), nil)
+			nil, nil, nil, nil), nil,
+		ckpManager)
 	if err != nil {
 		fmt.Printf("Init block chain error: %s \n", err.Error())
 	}
@@ -206,8 +208,7 @@ func initLedger(L *lua.LState) int {
 	if err != nil {
 		fmt.Printf("Init fflDB error: %s \n", err.Error())
 	}
-
-	blockchain.FoundationAddress = chainParams.Foundation
+	blockchain.FoundationAddress = *chainParams.FoundationProgramHash
 	blockchain.DefaultLedger = &ledger // fixme
 	blockchain.DefaultLedger.Blockchain = chain
 	blockchain.DefaultLedger.Store = chainStore
@@ -249,6 +250,8 @@ func walkDir(dirPth, suffix string) (files []string, err error) {
 
 func RegisterDataType(L *lua.LState) int {
 	RegisterClientType(L)
+	RegisterAccountType(L)
+	RegisterAggPubType(L)
 	RegisterAttributeType(L)
 	RegisterInputType(L)
 	RegisterOutputType(L)
@@ -271,8 +274,12 @@ func RegisterDataType(L *lua.LState) int {
 	RegisterDposManagerType(L)
 	RegisterArbitratorsType(L)
 	RegisterRegisterProducerType(L)
+
+	RegisterRegisterV2ProducerType(L)
 	RegisterUpdateProducerType(L)
+	RegisterUpdateV2ProducerType(L)
 	RegisterCancelProducerType(L)
+	RegisterCancelProducerSchnorrType(L)
 	RegisterActivateProducerType(L)
 	RegisterIllegalProposalsType(L)
 	RegisterIllegalVotesType(L)
@@ -294,5 +301,16 @@ func RegisterDataType(L *lua.LState) int {
 	RegisterCRCProposalTrackingType(L)
 	RegisterCRCouncilMemberClaimNodeType(L)
 	RegisterCRCRegisterSideChainProposalHashType(L)
+
+	// DPoS 2.0
+	RegisterExchangeVotesType(L)
+	RegisterStakeOutputType(L)
+	RegisterVotingType(L)
+	RegisterRenewVotingType(L)
+	RegisterReturnVotesType(L)
+
+	// nft
+	RegisterCreateNFTType(L)
+
 	return 0
 }

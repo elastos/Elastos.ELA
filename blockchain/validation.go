@@ -8,12 +8,14 @@ package blockchain
 import (
 	"crypto/sha256"
 	"errors"
+
 	"sort"
 
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/core/contract"
 	. "github.com/elastos/Elastos.ELA/core/contract/program"
-	. "github.com/elastos/Elastos.ELA/core/types"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/crypto"
 )
 
@@ -28,8 +30,14 @@ func RunPrograms(data []byte, programHashes []common.Uint168, programs []*Progra
 
 		// TODO: this implementation will be deprecated
 		if prefixType == contract.PrefixCrossChain {
-			if err := checkCrossChainSignatures(*program, data); err != nil {
-				return err
+			if contract.IsSchnorr(program.Code) {
+				if ok, err := checkSchnorrSignatures(*program, common.Sha256D(data[:])); !ok {
+					return errors.New("check schnorr signature failed:" + err.Error())
+				}
+			} else {
+				if err := checkCrossChainSignatures(*program, data); err != nil {
+					return err
+				}
 			}
 			continue
 		}
@@ -42,12 +50,17 @@ func RunPrograms(data []byte, programHashes []common.Uint168, programs []*Progra
 		}
 
 		if prefixType == contract.PrefixStandard || prefixType == contract.PrefixDeposit {
-			if err := checkStandardSignature(*program, data); err != nil {
-				return err
+			if contract.IsSchnorr(program.Code) {
+				if ok, err := checkSchnorrSignatures(*program, common.Sha256D(data[:])); !ok {
+					return errors.New("check schnorr signature failed:" + err.Error())
+				}
+			} else {
+				if err := CheckStandardSignature(*program, data); err != nil {
+					return err
+				}
 			}
-
 		} else if prefixType == contract.PrefixMultiSig {
-			if err := checkMultiSigSignatures(*program, data); err != nil {
+			if err := CheckMultiSigSignatures(*program, data); err != nil {
 				return err
 			}
 		} else {
@@ -58,9 +71,9 @@ func RunPrograms(data []byte, programHashes []common.Uint168, programs []*Progra
 	return nil
 }
 
-func GetTxProgramHashes(tx *Transaction, references map[*Input]Output) ([]common.Uint168, error) {
+func GetTxProgramHashes(tx interfaces.Transaction, references map[*common2.Input]common2.Output) ([]common.Uint168, error) {
 	if tx == nil {
-		return nil, errors.New("[Transaction],GetProgramHashes transaction is nil")
+		return nil, errors.New("[BaseTransaction],GetProgramHashes transaction is nil")
 	}
 	hashes := make([]common.Uint168, 0)
 	uniqueHashes := make([]common.Uint168, 0)
@@ -69,11 +82,11 @@ func GetTxProgramHashes(tx *Transaction, references map[*Input]Output) ([]common
 		programHash := output.ProgramHash
 		hashes = append(hashes, programHash)
 	}
-	for _, attribute := range tx.Attributes {
-		if attribute.Usage == Script {
+	for _, attribute := range tx.Attributes() {
+		if attribute.Usage == common2.Script {
 			dataHash, err := common.Uint168FromBytes(attribute.Data)
 			if err != nil {
-				return nil, errors.New("[Transaction], GetProgramHashes err")
+				return nil, errors.New("[BaseTransaction], GetProgramHashes err")
 			}
 			hashes = append(hashes, *dataHash)
 		}
@@ -90,7 +103,7 @@ func GetTxProgramHashes(tx *Transaction, references map[*Input]Output) ([]common
 	return uniqueHashes, nil
 }
 
-func checkStandardSignature(program Program, data []byte) error {
+func CheckStandardSignature(program Program, data []byte) error {
 	if len(program.Parameter) != crypto.SignatureScriptLength {
 		return errors.New("invalid signature length")
 	}
@@ -103,7 +116,7 @@ func checkStandardSignature(program Program, data []byte) error {
 	return crypto.Verify(*publicKey, data, program.Parameter[1:])
 }
 
-func checkMultiSigSignatures(program Program, data []byte) error {
+func CheckMultiSigSignatures(program Program, data []byte) error {
 	code := program.Code
 	// Get N parameter
 	n := int(code[len(code)-2]) - crypto.PUSH1 + 1
@@ -118,6 +131,16 @@ func checkMultiSigSignatures(program Program, data []byte) error {
 	}
 
 	return verifyMultisigSignatures(m, n, publicKeys, program.Parameter, data)
+}
+
+func checkSchnorrSignatures(program Program, data [32]byte) (bool, error) {
+	publicKey := [33]byte{}
+	copy(publicKey[:], program.Code[2:])
+
+	signature := [64]byte{}
+	copy(signature[:], program.Parameter[:64])
+
+	return crypto.SchnorrVerify(publicKey, data, signature)
 }
 
 func checkCrossChainSignatures(program Program, data []byte) error {
@@ -178,14 +201,14 @@ func verifyMultisigSignatures(m, n int, publicKeys [][]byte, signatures, data []
 }
 
 func SortPrograms(programs []*Program) {
-	sort.Sort(byHash(programs))
+	sort.Sort(ByHash(programs))
 }
 
-type byHash []*Program
+type ByHash []*Program
 
-func (p byHash) Len() int      { return len(p) }
-func (p byHash) Swap(i, j int) { p[i], p[j] = p[j], p[i] }
-func (p byHash) Less(i, j int) bool {
+func (p ByHash) Len() int      { return len(p) }
+func (p ByHash) Swap(i, j int) { p[i], p[j] = p[j], p[i] }
+func (p ByHash) Less(i, j int) bool {
 	hashi := common.ToCodeHash(p[i].Code)
 	hashj := common.ToCodeHash(p[j].Code)
 	return hashi.Compare(*hashj) < 0

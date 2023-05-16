@@ -19,9 +19,15 @@ import (
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/common/log"
+	"github.com/elastos/Elastos.ELA/core"
+	"github.com/elastos/Elastos.ELA/core/checkpoint"
 	"github.com/elastos/Elastos.ELA/core/contract"
 	"github.com/elastos/Elastos.ELA/core/contract/program"
+	transaction2 "github.com/elastos/Elastos.ELA/core/transaction"
 	"github.com/elastos/Elastos.ELA/core/types"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/functions"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/crypto"
 	dplog "github.com/elastos/Elastos.ELA/dpos/log"
@@ -38,12 +44,20 @@ var (
 	utxoCacheDB   = NewUtxoCacheDB()
 )
 
+func init() {
+	functions.GetTransactionByTxType = transaction2.GetTransaction
+	functions.GetTransactionByBytes = transaction2.GetTransactionByBytes
+	functions.CreateTransaction = transaction2.CreateTransaction
+	functions.GetTransactionParameters = transaction2.GetTransactionparameters
+	config.DefaultParams = *config.GetDefaultParams()
+}
+
 type UtxoCacheDB struct {
-	transactions map[common.Uint256]*types.Transaction
+	transactions map[common.Uint256]interfaces.Transaction
 }
 
 func (s *UtxoCacheDB) GetTransaction(txID common.Uint256) (
-	*types.Transaction, uint32, error) {
+	interfaces.Transaction, uint32, error) {
 	txn, exist := s.transactions[txID]
 	if exist {
 		return txn, 0, nil
@@ -51,7 +65,7 @@ func (s *UtxoCacheDB) GetTransaction(txID common.Uint256) (
 	return nil, 0, errors.New("leveldb: not found")
 }
 
-func (s *UtxoCacheDB) PutTransaction(txn *types.Transaction) {
+func (s *UtxoCacheDB) PutTransaction(txn interfaces.Transaction) {
 	s.transactions[txn.Hash()] = txn
 }
 
@@ -61,7 +75,7 @@ func (s *UtxoCacheDB) RemoveTransaction(txID common.Uint256) {
 
 func NewUtxoCacheDB() *UtxoCacheDB {
 	var db UtxoCacheDB
-	db.transactions = make(map[common.Uint256]*types.Transaction)
+	db.transactions = make(map[common.Uint256]interfaces.Transaction)
 	return &db
 }
 
@@ -69,8 +83,10 @@ func TestTxPoolInit(t *testing.T) {
 	log.NewDefault(test.NodeLogPath, 0, 0, 0)
 	dplog.Init("elastos", 0, 0, 0)
 
+	ckpManager := checkpoint.NewManager(config.GetDefaultParams())
 	params := &config.DefaultParams
-	blockchain.FoundationAddress = params.Foundation
+	params.GenesisBlock = core.GenesisBlock(*params.FoundationProgramHash)
+	blockchain.FoundationAddress = *params.FoundationProgramHash
 	chainStore, err := blockchain.NewChainStore(test.DataPath, params)
 	if err != nil {
 		t.Fatal("open LedgerStore err:", err)
@@ -92,9 +108,10 @@ func TestTxPoolInit(t *testing.T) {
 	}
 	arbitrators := state.NewArbitratorsMock(arbiters, 0, 3)
 
-	chain, err := blockchain.New(chainStore, params, state.NewState(params, nil,
+	chain, err := blockchain.New(chainStore, params, state.NewState(params, nil, nil,
 		nil, nil, nil, nil,
-		nil, nil, nil), nil)
+		nil, nil, nil, nil, nil), nil,
+		ckpManager)
 	if err != nil {
 		t.Fatal(err, "BlockChain generate failed")
 	}
@@ -108,7 +125,7 @@ func TestTxPoolInit(t *testing.T) {
 		Arbitrators: arbitrators,
 	}
 
-	txPool = NewTxPool(&config.DefaultParams)
+	txPool = NewTxPool(&config.DefaultParams, ckpManager)
 }
 
 func TestTxPool_VerifyDuplicateSidechainTx(t *testing.T) {
@@ -120,30 +137,49 @@ func TestTxPool_VerifyDuplicateSidechainTx(t *testing.T) {
 	hash2, _ := common.Uint256FromBytes(hashBytes2)
 
 	// 1. Generate a withdraw transaction
-	txn1 := new(types.Transaction)
-	txn1.TxType = types.WithdrawFromSideChain
-	txn1.Payload = &payload.WithdrawFromSideChain{
+
+	txn1 := functions.CreateTransaction(
+		0,
+		common2.WithdrawFromSideChain,
+		0,
+		nil,
+		[]*common2.Attribute{},
+		[]*common2.Input{},
+		[]*common2.Output{},
+		0,
+		[]*program.Program{},
+	)
+	txn1.SetPayload(&payload.WithdrawFromSideChain{
 		BlockHeight:         100,
 		GenesisBlockAddress: "eb7adb1fea0dd6185b09a43bdcd4924bb22bff7151f0b1b4e08699840ab1384b",
 		SideChainTransactionHashes: []common.Uint256{
 			*hash1,
 			*hash2,
 		},
-	}
+	})
 
 	// 2. Add sidechain Tx to pool
 	assert.NoError(t, txPool.AppendTx(txn1))
 
 	// 3. Generate a withdraw transaction with duplicate sidechain Tx which already in the pool
-	txn2 := new(types.Transaction)
-	txn2.TxType = types.WithdrawFromSideChain
-	txn2.Payload = &payload.WithdrawFromSideChain{
+	txn2 := functions.CreateTransaction(
+		0,
+		common2.WithdrawFromSideChain,
+		0,
+		nil,
+		[]*common2.Attribute{},
+		[]*common2.Input{},
+		[]*common2.Output{},
+		0,
+		[]*program.Program{},
+	)
+	txn2.SetPayload(&payload.WithdrawFromSideChain{
 		BlockHeight:         100,
 		GenesisBlockAddress: "eb7adb1fea0dd6185b09a43bdcd4924bb22bff7151f0b1b4e08699840ab1384b",
 		SideChainTransactionHashes: []common.Uint256{
 			*hash1, // duplicate sidechain Tx
 		},
-	}
+	})
 
 	// 4. Run verifyDuplicateSidechainTx
 	assert.Errorf(t, txPool.VerifyTx(txn2),
@@ -152,36 +188,54 @@ func TestTxPool_VerifyDuplicateSidechainTx(t *testing.T) {
 
 func TestTxPool_VerifyDuplicateCRTx(t *testing.T) {
 	// 1. Generate a register CR transaction
-	tx1 := new(types.Transaction)
-	tx1.TxType = types.TransferAsset
-	tx1.Payload = &payload.TransferAsset{}
-	tx1.Outputs = []*types.Output{
-		&types.Output{
+
+	tx1 := functions.CreateTransaction(
+		0,
+		common2.TransferAsset,
+		0,
+		&payload.TransferAsset{},
+		[]*common2.Attribute{},
+		[]*common2.Input{},
+		[]*common2.Output{},
+		0,
+		[]*program.Program{},
+	)
+	tx1.SetOutputs([]*common2.Output{
+		&common2.Output{
 			AssetID:     common.Uint256{1, 2, 3},
 			Value:       1,
 			ProgramHash: common.Uint168{1, 2, 3},
 		},
-		&types.Output{
+		&common2.Output{
 			AssetID:     common.Uint256{4, 5, 6},
 			Value:       1,
 			ProgramHash: common.Uint168{4, 5, 6},
 		},
-	}
-	tx2 := new(types.Transaction)
-	tx2.TxType = types.TransferAsset
-	tx2.Payload = &payload.TransferAsset{}
-	tx2.Outputs = []*types.Output{
-		&types.Output{
+	})
+
+	tx2 := functions.CreateTransaction(
+		0,
+		common2.TransferAsset,
+		0,
+		&payload.TransferAsset{},
+		[]*common2.Attribute{},
+		[]*common2.Input{},
+		[]*common2.Output{},
+		0,
+		[]*program.Program{},
+	)
+	tx2.SetOutputs([]*common2.Output{
+		&common2.Output{
 			AssetID:     common.Uint256{11, 12, 13},
 			Value:       1,
 			ProgramHash: common.Uint168{11, 12, 13},
 		},
-		&types.Output{
+		&common2.Output{
 			AssetID:     common.Uint256{14, 15, 16},
 			Value:       1,
 			ProgramHash: common.Uint168{14, 15, 16},
 		},
-	}
+	})
 
 	publicKeyStr1 := "03c77af162438d4b7140f8544ad6523b9734cca9c7a62476d54ed5d1bddc7a39c3"
 	publicKey1, _ := common.HexStringToBytes(publicKeyStr1)
@@ -190,103 +244,153 @@ func TestTxPool_VerifyDuplicateCRTx(t *testing.T) {
 	pk1, _ := crypto.DecodePoint(publicKey1)
 	ct1, _ := contract.CreateStandardContract(pk1)
 	hash1, _ := contract.PublicKeyToDepositProgramHash(publicKey1)
-	input1 := &types.Input{
-		Previous: types.OutPoint{
+	input1 := &common2.Input{
+		Previous: common2.OutPoint{
 			TxID:  tx1.Hash(),
 			Index: 0,
 		},
 		Sequence: 0,
 	}
-	input2 := &types.Input{
-		Previous: types.OutPoint{
+	input2 := &common2.Input{
+		Previous: common2.OutPoint{
 			TxID:  tx2.Hash(),
 			Index: 0,
 		},
 		Sequence: 0,
 	}
-	input3 := &types.Input{
-		Previous: types.OutPoint{
+	input3 := &common2.Input{
+		Previous: common2.OutPoint{
 			TxID:  tx1.Hash(),
 			Index: 1,
 		},
 		Sequence: 0,
 	}
-	input4 := &types.Input{
-		Previous: types.OutPoint{
+	input4 := &common2.Input{
+		Previous: common2.OutPoint{
 			TxID:  tx2.Hash(),
 			Index: 1,
 		},
 		Sequence: 0,
 	}
 
-	tx3 := new(types.Transaction)
-	tx3.TxType = types.RegisterCR
-	tx3.Version = types.TxVersion09
-	tx3.Payload = &payload.CRInfo{
+	tx3 := functions.CreateTransaction(
+		common2.TxVersion09,
+		common2.RegisterCR,
+		0,
+		nil,
+		[]*common2.Attribute{},
+		[]*common2.Input{},
+		[]*common2.Output{},
+		0,
+		[]*program.Program{},
+	)
+
+	tx3.SetPayload(&payload.CRInfo{
 		Code:     ct1.Code,
 		CID:      *hash1,
 		NickName: "nickname 1",
 		Url:      "http://www.elastos_test.com",
 		Location: 1,
-	}
-	tx3.Inputs = []*types.Input{input1}
+	})
+	tx3.SetInputs([]*common2.Input{input1})
 
-	tx4 := new(types.Transaction)
-	tx4.TxType = types.UpdateCR
-	tx4.Version = types.TxVersion09
-	tx4.Payload = &payload.CRInfo{
+	tx4 := functions.CreateTransaction(
+		common2.TxVersion09,
+		common2.UpdateCR,
+		0,
+		nil,
+		[]*common2.Attribute{},
+		[]*common2.Input{},
+		[]*common2.Output{},
+		0,
+		[]*program.Program{},
+	)
+	tx4.SetPayload(&payload.CRInfo{
 		Code:     ct1.Code,
 		CID:      *hash1,
 		NickName: "nickname 2",
 		Url:      "http://www.elastos_test.com",
 		Location: 2,
-	}
-	tx4.Inputs = []*types.Input{input2}
+	})
+	tx4.SetInputs([]*common2.Input{input2})
 
-	tx5 := new(types.Transaction)
-	tx5.TxType = types.RegisterProducer
-	tx5.Version = types.TxVersion09
-	tx5.Payload = &payload.ProducerInfo{
+	tx5 := functions.CreateTransaction(
+		common2.TxVersion09,
+		common2.RegisterProducer,
+		0,
+		nil,
+		[]*common2.Attribute{},
+		[]*common2.Input{},
+		[]*common2.Output{},
+		0,
+		[]*program.Program{},
+	)
+	tx5.SetPayload(&payload.ProducerInfo{
 		OwnerPublicKey: publicKey1,
 		NodePublicKey:  publicKey2,
 		NickName:       "nickname 3",
 		Url:            "http://www.elastos_test.com",
 		Location:       3,
-	}
-	tx5.Inputs = []*types.Input{input3}
+	})
+	tx5.SetInputs([]*common2.Input{input3})
 
-	tx6 := new(types.Transaction)
-	tx6.TxType = types.RegisterProducer
-	tx6.Version = types.TxVersion09
-	tx6.Payload = &payload.ProducerInfo{
+	tx6 := functions.CreateTransaction(
+		common2.TxVersion09,
+		common2.RegisterProducer,
+		0,
+		nil,
+		[]*common2.Attribute{},
+		[]*common2.Input{},
+		[]*common2.Output{},
+		0,
+		[]*program.Program{},
+	)
+	tx6.SetPayload(&payload.ProducerInfo{
 		OwnerPublicKey: publicKey2,
 		NodePublicKey:  publicKey1,
 		NickName:       "nickname 4",
 		Url:            "http://www.elastos_test.com",
 		Location:       4,
-	}
-	tx6.Inputs = []*types.Input{input4}
+	})
+	tx6.SetInputs([]*common2.Input{input4})
 
 	//tx7 tx8 no use same code,so not conflict
-	tx7 := new(types.Transaction)
-	tx7.TxType = types.ReturnDepositCoin
-	tx7.Version = types.TxVersion09
-	tx7.Programs = []*program.Program{
+	tx7 := functions.CreateTransaction(
+		common2.TxVersion09,
+		common2.ReturnDepositCoin,
+		0,
+		nil,
+		[]*common2.Attribute{},
+		[]*common2.Input{},
+		[]*common2.Output{},
+		0,
+		[]*program.Program{},
+	)
+	tx7.SetPrograms([]*program.Program{
 		&program.Program{
 			Code:      []byte{11},
 			Parameter: nil,
 		},
-	}
+	})
 
-	tx8 := new(types.Transaction)
-	tx8.TxType = types.ReturnCRDepositCoin
-	tx8.Version = types.TxVersion09
-	tx8.Programs = []*program.Program{
+	tx8 := functions.CreateTransaction(
+		common2.TxVersion09,
+		common2.ReturnCRDepositCoin,
+		0,
+		nil,
+		[]*common2.Attribute{},
+		[]*common2.Input{},
+		[]*common2.Output{},
+		0,
+		[]*program.Program{},
+	)
+
+	tx8.SetPrograms([]*program.Program{
 		&program.Program{
 			Code:      []byte{22},
 			Parameter: nil,
 		},
-	}
+	})
 
 	// 2. Add tx1 and tx2 into store and input UTXO list
 	utxoCacheDB.PutTransaction(tx1)
@@ -306,7 +410,7 @@ func TestTxPool_VerifyDuplicateCRTx(t *testing.T) {
 	assert.Error(t, txPool.VerifyTx(tx6))
 
 	// 7. Clean CR related tx
-	txs := make([]*types.Transaction, 1)
+	txs := make([]interfaces.Transaction, 1)
 	txs[0] = tx3
 	txPool.cleanTransactions(txs)
 
@@ -321,7 +425,7 @@ func TestTxPool_VerifyDuplicateCRTx(t *testing.T) {
 	assert.NoError(t, txPool.VerifyTx(tx4))
 
 	// 11. Clean producer related tx
-	txs2 := make([]*types.Transaction, 2)
+	txs2 := make([]interfaces.Transaction, 2)
 	txs2[0] = tx4
 	txs2[1] = tx5
 	txPool.cleanTransactions(txs2)
@@ -343,31 +447,47 @@ func TestTxPool_VerifyDuplicateCRTx(t *testing.T) {
 	// 16. Verify same ReturnCRDepositCoin tx again
 	assert.Error(t, txPool.VerifyTx(tx8))
 
-	txs3 := make([]*types.Transaction, 2)
+	txs3 := make([]interfaces.Transaction, 2)
 	txs3[0] = tx7
 	txs3[1] = tx8
 	txPool.cleanTransactions(txs3)
 
 	//tx9 tx10 both use ct1.code should conflict
-	tx9 := new(types.Transaction)
-	tx9.TxType = types.ReturnDepositCoin
-	tx9.Version = types.TxVersion09
-	tx9.Programs = []*program.Program{
+	tx9 := functions.CreateTransaction(
+		common2.TxVersion09,
+		common2.ReturnDepositCoin,
+		0,
+		nil,
+		[]*common2.Attribute{},
+		[]*common2.Input{},
+		[]*common2.Output{},
+		0,
+		[]*program.Program{},
+	)
+	tx9.SetPrograms([]*program.Program{
 		&program.Program{
 			Code:      ct1.Code,
 			Parameter: nil,
 		},
-	}
+	})
+	tx10 := functions.CreateTransaction(
+		common2.TxVersion09,
+		common2.ReturnCRDepositCoin,
+		0,
+		nil,
+		[]*common2.Attribute{},
+		[]*common2.Input{},
+		[]*common2.Output{},
+		0,
+		[]*program.Program{},
+	)
 
-	tx10 := new(types.Transaction)
-	tx10.TxType = types.ReturnCRDepositCoin
-	tx10.Version = types.TxVersion09
-	tx10.Programs = []*program.Program{
+	tx10.SetPrograms([]*program.Program{
 		&program.Program{
 			Code:      ct1.Code,
 			Parameter: nil,
 		},
-	}
+	})
 	// 13. Verify ReturnDepositCoin tx
 	assert.NoError(t, txPool.VerifyTx(tx9))
 	assert.NoError(t, txPool.AppendTx(tx9))
@@ -398,39 +518,63 @@ func TestTxPool_CleanSidechainTx(t *testing.T) {
 	hash5, _ := common.Uint256FromBytes(hashBytes5)
 
 	// 1. Generate some withdraw transactions
-	txn1 := new(types.Transaction)
-	txn1.TxType = types.WithdrawFromSideChain
-	txn1.Payload = &payload.WithdrawFromSideChain{
-		BlockHeight:         100,
-		GenesisBlockAddress: "eb7adb1fea0dd6185b09a43bdcd4924bb22bff7151f0b1b4e08699840ab1384b",
-		SideChainTransactionHashes: []common.Uint256{
-			*hash1,
-			*hash2,
+	txn1 := functions.CreateTransaction(
+		0,
+		common2.WithdrawFromSideChain,
+		0,
+		&payload.WithdrawFromSideChain{
+			BlockHeight:         100,
+			GenesisBlockAddress: "eb7adb1fea0dd6185b09a43bdcd4924bb22bff7151f0b1b4e08699840ab1384b",
+			SideChainTransactionHashes: []common.Uint256{
+				*hash1,
+				*hash2,
+			},
 		},
-	}
+		[]*common2.Attribute{},
+		[]*common2.Input{},
+		[]*common2.Output{},
+		0,
+		[]*program.Program{},
+	)
 
-	txn2 := new(types.Transaction)
-	txn2.TxType = types.WithdrawFromSideChain
-	txn2.Payload = &payload.WithdrawFromSideChain{
-		BlockHeight:         100,
-		GenesisBlockAddress: "eb7adb1fea0dd6185b09a43bdcd4924bb22bff7151f0b1b4e08699840ab1384b",
-		SideChainTransactionHashes: []common.Uint256{
-			*hash3,
+	txn2 := functions.CreateTransaction(
+		0,
+		common2.WithdrawFromSideChain,
+		0,
+		&payload.WithdrawFromSideChain{
+			BlockHeight:         100,
+			GenesisBlockAddress: "eb7adb1fea0dd6185b09a43bdcd4924bb22bff7151f0b1b4e08699840ab1384b",
+			SideChainTransactionHashes: []common.Uint256{
+				*hash3,
+			},
 		},
-	}
+		[]*common2.Attribute{},
+		[]*common2.Input{},
+		[]*common2.Output{},
+		0,
+		[]*program.Program{},
+	)
 
-	txn3 := new(types.Transaction)
-	txn3.TxType = types.WithdrawFromSideChain
-	txn3.Payload = &payload.WithdrawFromSideChain{
-		BlockHeight:         100,
-		GenesisBlockAddress: "eb7adb1fea0dd6185b09a43bdcd4924bb22bff7151f0b1b4e08699840ab1384b",
-		SideChainTransactionHashes: []common.Uint256{
-			*hash4,
-			*hash5,
+	txn3 := functions.CreateTransaction(
+		0,
+		common2.WithdrawFromSideChain,
+		0,
+		&payload.WithdrawFromSideChain{
+			BlockHeight:         100,
+			GenesisBlockAddress: "eb7adb1fea0dd6185b09a43bdcd4924bb22bff7151f0b1b4e08699840ab1384b",
+			SideChainTransactionHashes: []common.Uint256{
+				*hash4,
+				*hash5,
+			},
 		},
-	}
-	txns := []*types.Transaction{txn1, txn2, txn3}
-
+		[]*common2.Attribute{},
+		[]*common2.Input{},
+		[]*common2.Output{},
+		0,
+		[]*program.Program{},
+	)
+	var txns []interfaces.Transaction
+	txns = append(txns, txn1, txn2, txn3)
 	// 2. Add to sidechain txs pool
 	for _, txn := range txns {
 		assert.NoError(t, txPool.AppendTx(txn))
@@ -462,23 +606,39 @@ func TestTxPool_ReplaceDuplicateSideChainPowTx(t *testing.T) {
 	rand.Read(sideBlockHash2[:])
 	rand.Read(sideGenesisHash[:])
 
-	txn1 := new(types.Transaction)
-	txn1.TxType = types.SideChainPow
-	txn1.Payload = &payload.SideChainPow{
-		SideBlockHash:   sideBlockHash1,
-		SideGenesisHash: sideGenesisHash,
-		BlockHeight:     100,
-	}
+	txn1 := functions.CreateTransaction(
+		0,
+		common2.SideChainPow,
+		0,
+		&payload.SideChainPow{
+			SideBlockHash:   sideBlockHash1,
+			SideGenesisHash: sideGenesisHash,
+			BlockHeight:     100,
+		},
+		[]*common2.Attribute{},
+		[]*common2.Input{},
+		[]*common2.Output{},
+		0,
+		[]*program.Program{},
+	)
 
 	txPool.txnList[txn1.Hash()] = txn1
 
-	txn2 := new(types.Transaction)
-	txn2.TxType = types.SideChainPow
-	txn2.Payload = &payload.SideChainPow{
-		SideBlockHash:   sideBlockHash2,
-		SideGenesisHash: sideGenesisHash,
-		BlockHeight:     100,
-	}
+	txn2 := functions.CreateTransaction(
+		0,
+		common2.SideChainPow,
+		0,
+		&payload.SideChainPow{
+			SideBlockHash:   sideBlockHash2,
+			SideGenesisHash: sideGenesisHash,
+			BlockHeight:     100,
+		},
+		[]*common2.Attribute{},
+		[]*common2.Input{},
+		[]*common2.Output{},
+		0,
+		[]*program.Program{},
+	)
 	txPool.replaceDuplicateSideChainPowTx(txn2)
 	txPool.txnList[txn2.Hash()] = txn2
 
@@ -498,16 +658,24 @@ func TestTxPool_IsDuplicateSidechainTx(t *testing.T) {
 	rand.Read(sideTx2[:])
 
 	// 1. Generate a withdraw transaction
-	txn1 := new(types.Transaction)
-	txn1.TxType = types.WithdrawFromSideChain
-	txn1.Payload = &payload.WithdrawFromSideChain{
-		BlockHeight:         100,
-		GenesisBlockAddress: "eb7adb1fea0dd6185b09a43bdcd4924bb22bff7151f0b1b4e08699840ab1384b",
-		SideChainTransactionHashes: []common.Uint256{
-			sideTx1,
-			sideTx2,
+	txn1 := functions.CreateTransaction(
+		0,
+		common2.WithdrawFromSideChain,
+		0,
+		&payload.WithdrawFromSideChain{
+			BlockHeight:         100,
+			GenesisBlockAddress: "eb7adb1fea0dd6185b09a43bdcd4924bb22bff7151f0b1b4e08699840ab1384b",
+			SideChainTransactionHashes: []common.Uint256{
+				sideTx1,
+				sideTx2,
+			},
 		},
-	}
+		[]*common2.Attribute{},
+		[]*common2.Input{},
+		[]*common2.Output{},
+		0,
+		[]*program.Program{},
+	)
 
 	// 2. Add sidechain Tx to pool
 	assert.NoError(t, txPool.AppendTx(txn1))
@@ -520,7 +688,6 @@ func TestTxPool_IsDuplicateSidechainTx(t *testing.T) {
 }
 
 func TestTxPool_AppendToTxnPool(t *testing.T) {
-	tx := new(types.Transaction)
 	txBytes, _ := hex.DecodeString("000403454c41010008803e6306563b26de010" +
 		"000000000000000000000000000000000000000000000000000000000000000ffff" +
 		"ffffffff02b037db964a231458d2d6ffd5ea18944c4f90e63d547c5d3b9874df66a" +
@@ -528,13 +695,16 @@ func TestTxPool_AppendToTxnPool(t *testing.T) {
 		"eb11ceb037db964a231458d2d6ffd5ea18944c4f90e63d547c5d3b9874df66a4ead" +
 		"0a3c1d258040000000000000000129e9cf1c5f336fcf3a6c954444ed482c5d916e5" +
 		"06dd00000000")
-	tx.Deserialize(bytes.NewReader(txBytes))
+	r := bytes.NewReader(txBytes)
+	tx, _ := transaction2.GetTransactionByBytes(r)
+	tx.Deserialize(r)
 	errCode := txPool.AppendToTxPool(tx)
 	assert.Equal(t, errCode.Code(), elaerr.ErrBlockIneffectiveCoinbase)
 }
 
 func TestTxPool_CleanSubmittedTransactions(t *testing.T) {
-	appendTx := func(tx *types.Transaction) elaerr.ELAError {
+	ckpManager := checkpoint.NewManager(config.GetDefaultParams())
+	appendTx := func(tx interfaces.Transaction) elaerr.ELAError {
 		if err := txPool.AppendTx(tx); err != nil {
 			return err
 		}
@@ -542,61 +712,82 @@ func TestTxPool_CleanSubmittedTransactions(t *testing.T) {
 		return nil
 	}
 
-	txPool = NewTxPool(&config.DefaultParams)
+	txPool = NewTxPool(&config.DefaultParams, ckpManager)
 	/*------------------------------------------------------------*/
 	/* check double spend but not duplicate txs */
 	//two mock transactions, they are double-spent to each other.
-	tx1Prev := &types.Transaction{
-		TxType:  types.TransferAsset,
-		Payload: &payload.TransferAsset{},
-		Outputs: []*types.Output{
+	tx1Prev := functions.CreateTransaction(
+		0,
+		common2.TransferAsset,
+		0,
+		&payload.TransferAsset{},
+		[]*common2.Attribute{},
+		[]*common2.Input{},
+		[]*common2.Output{
 			{
 				AssetID:     common.Uint256{1, 1, 1},
 				Value:       1,
 				ProgramHash: common.Uint168{1, 1, 1},
 			},
 		},
-	}
-	input := &types.Input{
-		Previous: types.OutPoint{
+		0,
+		[]*program.Program{},
+	)
+	input := &common2.Input{
+		Previous: common2.OutPoint{
 			TxID:  tx1Prev.Hash(),
 			Index: 0,
 		},
 		Sequence: 100,
 	}
 	utxoCacheDB.PutTransaction(tx1Prev)
-	tx1 := new(types.Transaction)
-	tx1.TxType = types.TransferAsset
-	tx1.PayloadVersion = 0
-	tx1.Payload = &payload.TransferAsset{}
-	var attribute1 *types.Attribute
-	attribute1 = &types.Attribute{
-		Usage: types.Nonce,
+	tx1 := functions.CreateTransaction(
+		0,
+		common2.TransferAsset,
+		0,
+		&payload.TransferAsset{},
+		[]*common2.Attribute{},
+		[]*common2.Input{},
+		[]*common2.Output{},
+		0,
+		[]*program.Program{},
+	)
+
+	//var attribute1 *common2.Attribute
+	attribute1 := &common2.Attribute{
+		Usage: common2.Nonce,
 		Data: []byte("5217023ca4139475f8a4c2772a113168568da958c05faaaedff1b3" +
 			"77d420ed328f39f15420f48ce4e9c83b69b14e88da00ab6c87f35dc5841c064" +
 			"35b7c49dbf3a944171e3d8604dd817324bb2c77f0500000ae0858a6c4222a83" +
 			"ba0c42ea3d8038177531a4dfc8183a0ab1de6741e6da79b8bddeacdeeefb78f" +
 			"586c8bc45e9c"),
 	}
-	tx1.Attributes = []*types.Attribute{attribute1}
+	tx1.SetAttributes([]*common2.Attribute{attribute1})
 
-	tx1.Inputs = []*types.Input{input}
+	tx1.SetInputs([]*common2.Input{input})
 
-	tx2 := new(types.Transaction)
-	tx2.TxType = types.TransferAsset
-	tx2.PayloadVersion = 0
-	tx2.Payload = &payload.TransferAsset{}
-	var attribute2 *types.Attribute
-	attribute2 = &types.Attribute{
-		Usage: types.Nonce,
+	tx2 := functions.CreateTransaction(
+		0,
+		common2.TransferAsset,
+		0,
+		&payload.TransferAsset{},
+		[]*common2.Attribute{},
+		[]*common2.Input{},
+		[]*common2.Output{},
+		0,
+		[]*program.Program{},
+	)
+	//var attribute2 *common2.Attribute
+	attribute2 := &common2.Attribute{
+		Usage: common2.Nonce,
 		Data: []byte("202bf0908cfe9687d04f4dc29f3b73eea8d0f7b00d159a3f4843a4" +
 			"400a86297404bda1c1f2f5c497149db3fdea371f1bb9e71c86dafccce128944" +
 			"b26a7181ebafa9e4869cdfbc7a6e1f34b8818a78f361888907452a05d04c399" +
 			"1c10e92b1041e7258611dc52059917f4a946ea89cf68b7af0808e89aa5d8241" +
 			"e453410fb1f46"),
 	}
-	tx2.Attributes = []*types.Attribute{attribute2}
-	tx2.Inputs = []*types.Input{input}
+	tx2.SetAttributes([]*common2.Attribute{attribute2})
+	tx2.SetInputs([]*common2.Input{input})
 
 	// a mock block
 	var newBLock types.Block
@@ -621,7 +812,7 @@ func TestTxPool_CleanSubmittedTransactions(t *testing.T) {
 	newBLock.Nonce = 0
 	newBLock.Height = 221
 	newBLock.AuxPow = blockAuxpow
-	newBLock.Transactions = []*types.Transaction{tx2}
+	newBLock.Transactions = []interfaces.Transaction{tx2}
 	assert.NoError(t, appendTx(tx1))
 
 	txPool.CleanSubmittedTransactions(&newBLock)
@@ -630,7 +821,7 @@ func TestTxPool_CleanSubmittedTransactions(t *testing.T) {
 	assert.False(t, exist,
 		"Should delete double spent utxo transaction")
 
-	for _, input := range tx1.Inputs {
+	for _, input := range tx1.Inputs() {
 		assert.True(t, txPool.getInputUTXOList(input) == nil,
 			"Should delete double spent utxo transaction")
 	}
@@ -654,118 +845,186 @@ func TestTxPool_CleanSubmittedTransactions(t *testing.T) {
 	rand.Read(sideBlockHash5[:])
 	fmt.Println("sideBlockHash5:", sideBlockHash5)
 
-	txPool = NewTxPool(&config.DefaultParams)
+	txPool = NewTxPool(&config.DefaultParams, ckpManager)
 	//two mock transactions again, they have some identical sidechain hashes
-	tx3Prev := &types.Transaction{
-		TxType:  types.TransferAsset,
-		Payload: &payload.TransferAsset{},
-		Outputs: []*types.Output{
+	tx3Prev := functions.CreateTransaction(
+		0,
+		common2.TransferAsset,
+		0,
+		&payload.TransferAsset{},
+		[]*common2.Attribute{},
+		[]*common2.Input{},
+		[]*common2.Output{
 			{
 				AssetID:     common.Uint256{3, 3, 3},
 				Value:       1,
 				ProgramHash: common.Uint168{3, 3, 3},
 			},
 		},
-	}
+		0,
+		[]*program.Program{},
+	)
+
 	utxoCacheDB.PutTransaction(tx3Prev)
-	tx3 := new(types.Transaction)
-	tx3.TxType = types.WithdrawFromSideChain
-	tx3.Payload = &payload.WithdrawFromSideChain{
-		SideChainTransactionHashes: []common.Uint256{sideBlockHash1, sideBlockHash2},
-	}
-	tx3.Inputs = []*types.Input{
-		{
-			Previous: types.OutPoint{
-				TxID:  tx3Prev.Hash(),
-				Index: 0,
-			},
-			Sequence: 100,
+	tx3 := functions.CreateTransaction(
+		0,
+		common2.WithdrawFromSideChain,
+		0,
+		&payload.WithdrawFromSideChain{
+			SideChainTransactionHashes: []common.Uint256{sideBlockHash1, sideBlockHash2},
 		},
-	}
-	tx4Prev := &types.Transaction{
-		TxType:  types.TransferAsset,
-		Payload: &payload.TransferAsset{},
-		Outputs: []*types.Output{
+		[]*common2.Attribute{},
+		[]*common2.Input{
+			{
+				Previous: common2.OutPoint{
+					TxID:  tx3Prev.Hash(),
+					Index: 0,
+				},
+				Sequence: 100,
+			},
+		},
+		[]*common2.Output{},
+		0,
+		[]*program.Program{},
+	)
+
+	tx4Prev := functions.CreateTransaction(
+		0,
+		common2.TransferAsset,
+		0,
+		&payload.TransferAsset{},
+		[]*common2.Attribute{},
+		[]*common2.Input{},
+		[]*common2.Output{
 			{
 				AssetID:     common.Uint256{4, 4, 4},
 				Value:       1,
 				ProgramHash: common.Uint168{4, 4, 4},
 			},
 		},
-	}
+		0,
+		[]*program.Program{},
+	)
 	utxoCacheDB.PutTransaction(tx4Prev)
-	tx4 := new(types.Transaction)
-	tx4.TxType = types.WithdrawFromSideChain
-	tx4.Payload = &payload.WithdrawFromSideChain{
-		SideChainTransactionHashes: []common.Uint256{sideBlockHash1, sideBlockHash4},
-	}
-	tx4.Inputs = []*types.Input{
-		{
-			Previous: types.OutPoint{
-				TxID:  tx4Prev.Hash(),
-				Index: 0,
-			},
-			Sequence: 100,
+
+	tx4 := functions.CreateTransaction(
+		0,
+		common2.WithdrawFromSideChain,
+		0,
+		&payload.WithdrawFromSideChain{
+			SideChainTransactionHashes: []common.Uint256{sideBlockHash1, sideBlockHash4},
 		},
-	}
-	tx5Prev := &types.Transaction{
-		TxType:  types.TransferAsset,
-		Payload: &payload.TransferAsset{},
-		Outputs: []*types.Output{
+		[]*common2.Attribute{},
+		[]*common2.Input{
+			{
+				Previous: common2.OutPoint{
+					TxID:  tx4Prev.Hash(),
+					Index: 0,
+				},
+				Sequence: 100,
+			},
+		},
+		[]*common2.Output{
+			{
+				AssetID:     common.Uint256{4, 4, 4},
+				Value:       1,
+				ProgramHash: common.Uint168{4, 4, 4},
+			},
+		},
+		0,
+		[]*program.Program{},
+	)
+
+	tx5Prev := functions.CreateTransaction(
+		0,
+		common2.TransferAsset,
+		0,
+		&payload.TransferAsset{},
+		[]*common2.Attribute{},
+		[]*common2.Input{},
+		[]*common2.Output{
 			{
 				AssetID:     common.Uint256{5, 5, 5},
 				Value:       1,
 				ProgramHash: common.Uint168{5, 5, 5},
 			},
 		},
-	}
+		0,
+		[]*program.Program{},
+	)
+
 	utxoCacheDB.PutTransaction(tx5Prev)
-	tx5 := new(types.Transaction)
-	tx5.TxType = types.WithdrawFromSideChain
-	tx5.Payload = &payload.WithdrawFromSideChain{
-		SideChainTransactionHashes: []common.Uint256{sideBlockHash2, sideBlockHash5},
-	}
-	tx5.Inputs = []*types.Input{
+	tx5 := functions.CreateTransaction(
+		0,
+		common2.WithdrawFromSideChain,
+		0,
+		&payload.WithdrawFromSideChain{
+			SideChainTransactionHashes: []common.Uint256{sideBlockHash2, sideBlockHash5},
+		},
+		[]*common2.Attribute{},
+		[]*common2.Input{},
+		[]*common2.Output{},
+		0,
+		[]*program.Program{},
+	)
+
+	tx5.SetInputs([]*common2.Input{
 		{
-			Previous: types.OutPoint{
+			Previous: common2.OutPoint{
 				TxID:  tx5Prev.Hash(),
 				Index: 0,
 			},
 			Sequence: 100,
 		},
-	}
-	tx6Prev := &types.Transaction{
-		TxType:  types.TransferAsset,
-		Payload: &payload.TransferAsset{},
-		Outputs: []*types.Output{
+	})
+
+	tx6Prev := functions.CreateTransaction(
+		0,
+		common2.TransferAsset,
+		0,
+		&payload.TransferAsset{},
+		[]*common2.Attribute{},
+		[]*common2.Input{},
+		[]*common2.Output{
 			{
 				AssetID:     common.Uint256{6, 6, 6},
 				Value:       1,
 				ProgramHash: common.Uint168{6, 6, 6},
 			},
 		},
-	}
+		0,
+		[]*program.Program{},
+	)
 	utxoCacheDB.PutTransaction(tx6Prev)
-	tx6 := new(types.Transaction)
-	tx6.TxType = types.WithdrawFromSideChain
-	tx6.Payload = &payload.WithdrawFromSideChain{
-		SideChainTransactionHashes: []common.Uint256{sideBlockHash3},
-	}
-	tx6.Inputs = []*types.Input{
+
+	tx6 := functions.CreateTransaction(
+		0,
+		common2.WithdrawFromSideChain,
+		0,
+		&payload.WithdrawFromSideChain{
+			SideChainTransactionHashes: []common.Uint256{sideBlockHash3},
+		},
+		[]*common2.Attribute{},
+		[]*common2.Input{},
+		[]*common2.Output{},
+		0,
+		[]*program.Program{},
+	)
+	tx6.SetInputs([]*common2.Input{
 		{
-			Previous: types.OutPoint{
+			Previous: common2.OutPoint{
 				TxID:  tx6Prev.Hash(),
 				Index: 0,
 			},
 			Sequence: 100,
 		},
-	}
+	})
 
 	assert.NoError(t, appendTx(tx4))
 	assert.NoError(t, appendTx(tx5))
 	assert.NoError(t, appendTx(tx6))
 
-	newBLock.Transactions = []*types.Transaction{tx4, tx5, tx6}
+	newBLock.Transactions = []interfaces.Transaction{tx4, tx5, tx6}
 	txPool.CleanSubmittedTransactions(&newBLock)
 	if err := isTransactionCleaned(txPool, tx4); err != nil {
 		t.Error("should clean transaction tx4:", err)
@@ -781,11 +1040,11 @@ func TestTxPool_CleanSubmittedTransactions(t *testing.T) {
 
 	/*------------------------------------------------------------*/
 	/* check double spend and duplicate txs */
-	txPool = NewTxPool(&config.DefaultParams)
+	txPool = NewTxPool(&config.DefaultParams, ckpManager)
 
 	assert.NoError(t, appendTx(tx4))
 
-	newBLock.Transactions = []*types.Transaction{tx4}
+	newBLock.Transactions = []interfaces.Transaction{tx4}
 
 	txPool.CleanSubmittedTransactions(&newBLock)
 
@@ -796,7 +1055,7 @@ func TestTxPool_CleanSubmittedTransactions(t *testing.T) {
 	/*------------------------------------------------------------*/
 	/* normal case */
 	assert.NoError(t, appendTx(tx2))
-	newBLock.Transactions = []*types.Transaction{tx3}
+	newBLock.Transactions = []interfaces.Transaction{tx3}
 	txPool.CleanSubmittedTransactions(&newBLock)
 	txPool.CheckAndCleanAllTransactions()
 	if err := isTransactionCleaned(txPool, tx2); err != nil {
@@ -810,17 +1069,17 @@ func TestTxPool_End(t *testing.T) {
 	initialLedger = nil
 }
 
-func isTransactionExisted(pool *TxPool, tx *types.Transaction) error {
+func isTransactionExisted(pool *TxPool, tx interfaces.Transaction) error {
 	if _, ok := pool.txnList[tx.Hash()]; !ok {
 		return fmt.Errorf("does not have transaction in transaction pool")
 	}
-	for _, input := range tx.Inputs {
+	for _, input := range tx.Inputs() {
 		if poolInput := pool.getInputUTXOList(input); poolInput == nil {
 			return fmt.Errorf("does not have utxo inputs in input list pool" + input.String())
 		}
 	}
-	if tx.TxType == types.WithdrawFromSideChain {
-		payload := tx.Payload.(*payload.WithdrawFromSideChain)
+	if tx.TxType() == common2.WithdrawFromSideChain {
+		payload := tx.Payload().(*payload.WithdrawFromSideChain)
 		for _, hash := range payload.SideChainTransactionHashes {
 			if pool.ContainsKey(hash, slotSidechainTxHashes) {
 				return fmt.Errorf("does not have sidechain hash in sidechain list pool" + hash.String())
@@ -830,17 +1089,17 @@ func isTransactionExisted(pool *TxPool, tx *types.Transaction) error {
 	return nil
 }
 
-func isTransactionCleaned(pool *TxPool, tx *types.Transaction) error {
+func isTransactionCleaned(pool *TxPool, tx interfaces.Transaction) error {
 	if tx := pool.txnList[tx.Hash()]; tx != nil {
 		return fmt.Errorf("has transaction in transaction pool" + tx.Hash().String())
 	}
-	for _, input := range tx.Inputs {
+	for _, input := range tx.Inputs() {
 		if poolInput := pool.getInputUTXOList(input); poolInput != nil {
 			return fmt.Errorf("has utxo inputs in input list pool" + input.String())
 		}
 	}
-	if tx.TxType == types.WithdrawFromSideChain {
-		payload := tx.Payload.(*payload.WithdrawFromSideChain)
+	if tx.TxType() == common2.WithdrawFromSideChain {
+		payload := tx.Payload().(*payload.WithdrawFromSideChain)
 		for _, hash := range payload.SideChainTransactionHashes {
 			if pool.ContainsKey(hash, slotSidechainTxHashes) {
 				return fmt.Errorf("has sidechain hash in sidechain list pool" + hash.String())

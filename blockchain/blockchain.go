@@ -21,12 +21,17 @@ import (
 	. "github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/common/log"
+	"github.com/elastos/Elastos.ELA/core/checkpoint"
 	"github.com/elastos/Elastos.ELA/core/contract/program"
 	. "github.com/elastos/Elastos.ELA/core/types"
+	"github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/functions"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/core/types/outputpayload"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	crstate "github.com/elastos/Elastos.ELA/cr/state"
 	"github.com/elastos/Elastos.ELA/database"
+	"github.com/elastos/Elastos.ELA/dpos/p2p/peer"
 	"github.com/elastos/Elastos.ELA/dpos/state"
 	"github.com/elastos/Elastos.ELA/events"
 	"github.com/elastos/Elastos.ELA/p2p/msg"
@@ -34,10 +39,11 @@ import (
 )
 
 const (
-	maxOrphanBlocks  = 10000
-	minMemoryNodes   = 20160
-	maxBlockLocators = 500
-	medianTimeBlocks = 11
+	maxOrphanBlocks    = 10000
+	minMemoryNodes     = 20160
+	maxBlockLocators   = 500
+	medianTimeBlocks   = 11
+	maxHistoryCapacity = 720
 )
 
 var (
@@ -45,7 +51,8 @@ var (
 )
 
 type BlockChain struct {
-	chainParams *config.Params
+	chainParams *config.Configuration
+	CkpManager  *checkpoint.Manager
 	db          IChainStore
 	state       *state.State
 	crCommittee *crstate.Committee
@@ -79,18 +86,21 @@ type BlockChain struct {
 	TimeSource     MedianTimeSource
 	MedianTimePast time.Time
 	mutex          sync.RWMutex
+
+	AncestorBlock Block
 }
 
-func New(db IChainStore, chainParams *config.Params, state *state.State,
-	committee *crstate.Committee) (*BlockChain, error) {
+func New(db IChainStore, chainParams *config.Configuration, state *state.State,
+	committee *crstate.Committee, ckpManager *checkpoint.Manager) (*BlockChain, error) {
 
-	targetTimespan := int64(chainParams.TargetTimespan / time.Second)
-	targetTimePerBlock := int64(chainParams.TargetTimePerBlock / time.Second)
-	adjustmentFactor := chainParams.AdjustmentFactor
+	targetTimespan := int64(chainParams.PowConfiguration.TargetTimespan / time.Second)
+	targetTimePerBlock := int64(chainParams.PowConfiguration.TargetTimePerBlock / time.Second)
+	adjustmentFactor := chainParams.PowConfiguration.AdjustmentFactor
 	chain := BlockChain{
 		chainParams:         chainParams,
 		db:                  db,
 		state:               state,
+		CkpManager:          ckpManager,
 		crCommittee:         committee,
 		UTXOCache:           NewUTXOCache(db, chainParams),
 		GenesisHash:         chainParams.GenesisBlock.Hash(),
@@ -111,7 +121,7 @@ func New(db IChainStore, chainParams *config.Params, state *state.State,
 		TimeSource:          NewMedianTime(),
 	}
 
-	// Initialize the chain state from the passed database.  When the db
+	// Initialize the chain state from the passed database.  When the DB
 	// does not yet contain any chain state, both it and the chain state
 	// will be initialized to contain only the genesis block.
 	if err := chain.initChainState(); err != nil {
@@ -123,6 +133,10 @@ func New(db IChainStore, chainParams *config.Params, state *state.State,
 
 func (b *BlockChain) GetDB() IChainStore {
 	return b.db
+}
+
+func (b *BlockChain) GetParams() *config.Configuration {
+	return b.chainParams
 }
 
 func (b *BlockChain) Init(interrupt <-chan struct{}) error {
@@ -137,7 +151,7 @@ func (b *BlockChain) MigrateOldDB(
 	barStart func(total uint32),
 	increase func(),
 	dataDir string,
-	params *config.Params) (err error) {
+	params *config.Configuration) (err error) {
 
 	// No old database need migrate.
 	if !utils.FileExisted(filepath.Join(dataDir, oldBlockDbName)) {
@@ -161,7 +175,7 @@ func (b *BlockChain) MigrateOldDB(
 	oldChainStore := &ChainStore{
 		fflDB: oldChainStoreFFLDB,
 	}
-	oldChain, err := New(oldChainStore, params, nil, nil)
+	oldChain, err := New(oldChainStore, params, nil, nil, b.CkpManager)
 	if err != nil {
 		return err
 	}
@@ -194,14 +208,14 @@ func (b *BlockChain) MigrateOldDB(
 			if start >= params.CRCOnlyDPOSHeight {
 				confirm, err = b.db.GetConfirm(hash)
 				if err != nil {
-					done <- fmt.Errorf("GetConfirm err: %s", err)
+					done <- fmt.Errorf("get confirm err: %s", err)
 					break
 				}
 			}
 
 			node, err := b.LoadBlockNode(&block.Header, &hash)
 			if err != nil {
-				done <- fmt.Errorf("LoadBlockNode err: %s", err)
+				done <- fmt.Errorf("load block node err: %s", err)
 				break
 			}
 			b.SetTip(node)
@@ -209,20 +223,25 @@ func (b *BlockChain) MigrateOldDB(
 			b.index.SetFlags(&block.Header, statusDataStored)
 			err = b.index.flushToDB()
 			if err != nil {
-				done <- fmt.Errorf("flushToDB err: %s", err)
+				done <- fmt.Errorf("flusht to DB err: %s", err)
 				break
 			}
 
-			err = b.db.GetFFLDB().SaveBlock(block, node, confirm, CalcPastMedianTime(node))
+			ps, err := GetSaveProcessorsFromBlock(block)
 			if err != nil {
-				done <- fmt.Errorf("SaveBlock err: %s", err)
+				done <- fmt.Errorf("get processors err: %s", err)
+				break
+			}
+			err = b.db.GetFFLDB().SaveBlock(block, node, confirm, CalcPastMedianTime(node), ps)
+			if err != nil {
+				done <- fmt.Errorf("save block err: %s", err)
 				break
 			}
 
 			b.index.SetFlags(&block.Header, statusDataStored|statusValid)
 			err = b.index.flushToDB()
 			if err != nil {
-				done <- fmt.Errorf("flushToDB err: %s", err)
+				done <- fmt.Errorf("flush to DB err: %s", err)
 				break
 			}
 
@@ -241,7 +260,7 @@ func (b *BlockChain) MigrateOldDB(
 		if err != nil {
 			err = fmt.Errorf("process block failed, %s", err)
 		} else {
-			log.Info("Migrating the old db finished, then delete the old db files.")
+			log.Info("Migrating the old DB finished, then delete the old DB files.")
 
 			// Delete the old database files include "chain", "blocks_ffldb" and "dpos".
 			oldFFLDB.Close()
@@ -264,17 +283,16 @@ func (b *BlockChain) InitCheckpoint(interrupt <-chan struct{},
 	bestHeight := b.GetHeight()
 	log.Info("current block height ->", bestHeight)
 	arbiters := DefaultLedger.Arbitrators
-	ckpManager := b.chainParams.CkpManager
 	done := make(chan struct{})
 	go func() {
 		// Notify initialize process start.
 		startHeight := uint32(0)
 
-		if err = ckpManager.Restore(); err != nil {
+		if err = b.CkpManager.Restore(); err != nil {
 			log.Warn(err)
 			err = nil
 		}
-		safeHeight := ckpManager.SafeHeight()
+		safeHeight := b.CkpManager.SafeHeight()
 		if startHeight < safeHeight {
 			startHeight = safeHeight + 1
 		}
@@ -283,6 +301,8 @@ func (b *BlockChain) InitCheckpoint(interrupt <-chan struct{},
 		if barStart != nil && bestHeight >= startHeight {
 			barStart(bestHeight - startHeight)
 		}
+
+		var lastBlock Block
 		for i := startHeight; i <= bestHeight; i++ {
 			hash, e := b.GetBlockHash(i)
 			if e != nil {
@@ -295,9 +315,24 @@ func (b *BlockChain) InitCheckpoint(interrupt <-chan struct{},
 				break
 			}
 
-			if block.Height >= bestHeight-uint32(
-				b.chainParams.GeneralArbiters+len(b.chainParams.CRCArbiters)) {
+			if b.AncestorBlock.Height == 0 && block.Height > b.chainParams.DPoSV2StartHeight {
+				// tod check block
+				err := b.CheckTransactions(block.Block)
+				if err != nil {
+					b.AncestorBlock = lastBlock
+					log.Info("transaction check error:", err)
+				} else {
+					lastBlock = *block.Block
+				}
+			}
+
+			if block.Height >= b.chainParams.DPoSV2StartHeight {
 				CalculateTxsFee(block.Block)
+			} else {
+				if block.Height >= bestHeight-uint32(
+					b.chainParams.DPoSConfiguration.NormalArbitratorsCount+len(b.chainParams.DPoSConfiguration.CRCArbiters)) {
+					CalculateTxsFee(block.Block)
+				}
 			}
 
 			if e = PreProcessSpecialTx(block.Block); e != nil {
@@ -305,30 +340,54 @@ func (b *BlockChain) InitCheckpoint(interrupt <-chan struct{},
 				break
 			}
 
-			b.chainParams.CkpManager.OnBlockSaved(block, nil, b.state.ConsensusAlgorithm == state.POW)
+			b.CkpManager.OnBlockSaved(block, nil,
+				b.state.ConsensusAlgorithm == state.POW, b.state.RevertToPOWBlockHeight, true)
 
 			// Notify process increase.
 			if increase != nil {
 				increase()
 			}
 		}
+
+		log.Info("ancestor block height:", b.AncestorBlock.Height)
+		if b.AncestorBlock.Height != 0 {
+			log.Info("ReorganizeChain2 ancestor block height:", b.AncestorBlock.Height)
+			err := b.ReorganizeChain2(&b.AncestorBlock)
+			if err != nil {
+				log.Info("ReorganizeChain2 error:", err)
+				panic(err)
+			}
+
+			b.db.Close()
+			log.Info("###################### need to restart again ######################")
+			os.Exit(0)
+		}
+
 		done <- struct{}{}
 	}()
-
 	select {
 	case <-done:
 		arbiters.Start()
+
+		currentArbiters := arbiters.GetCurrentNeedConnectArbiters()
+		nextArbiters := arbiters.GetNextNeedConnectArbiters()
+		crArbiters := arbiters.GetNeedConnectCRArbiters()
+
 		events.Notify(events.ETDirectPeersChanged,
-			arbiters.GetNeedConnectArbiters())
+			&peer.PeersInfo{
+				CurrentPeers: currentArbiters,
+				NextPeers:    nextArbiters,
+				CRPeers:      crArbiters})
 
 	case <-interrupt:
 	}
 	return err
 }
 
-func (b *BlockChain) createTransaction(pd Payload, txType TxType,
+func (b *BlockChain) createTransaction(pd interfaces.Payload, txType common.TxType,
 	fromAddress Uint168, fee Fixed64, lockedUntil uint32,
-	utxos []*UTXO, outputs ...*OutputInfo) (*Transaction, error) {
+	utxos []*common.UTXO, outputs ...*common.OutputInfo) (interfaces.Transaction, error) {
+
 	// check output
 	if len(outputs) == 0 {
 		return nil, errors.New("invalid transaction target")
@@ -339,36 +398,38 @@ func (b *BlockChain) createTransaction(pd Payload, txType TxType,
 	if err != nil {
 		return nil, err
 	}
-	// create inputs
+	// create Inputs
 	txInputs, changeOutputs, err := b.createInputs(fromAddress, totalAmount, utxos)
 	if err != nil {
 		return nil, err
 	}
 	txOutputs = append(txOutputs, changeOutputs...)
-	return &Transaction{
-		Version:    TxVersion09,
-		TxType:     txType,
-		Payload:    pd,
-		Attributes: []*Attribute{},
-		Inputs:     txInputs,
-		Outputs:    txOutputs,
-		Programs:   []*program.Program{},
-		LockTime:   0,
-	}, nil
+
+	return functions.CreateTransaction(
+		common.TxVersion09,
+		txType,
+		0,
+		pd,
+		[]*common.Attribute{},
+		txInputs,
+		txOutputs,
+		0,
+		[]*program.Program{},
+	), nil
 }
 
-func (b *BlockChain) createNormalOutputs(outputs []*OutputInfo, fee Fixed64,
-	lockedUntil uint32) ([]*Output, Fixed64, error) {
-	var totalAmount = Fixed64(0) // The total amount will be spend
-	var txOutputs []*Output      // The outputs in transaction
-	totalAmount += fee           // Add transaction fee
+func (b *BlockChain) createNormalOutputs(outputs []*common.OutputInfo, fee Fixed64,
+	lockedUntil uint32) ([]*common.Output, Fixed64, error) {
+	var totalAmount = Fixed64(0)   // The total amount will be spend
+	var txOutputs []*common.Output // The outputs in transaction
+	totalAmount += fee             // Add transaction fee
 	for _, output := range outputs {
-		txOutput := &Output{
+		txOutput := &common.Output{
 			AssetID:     *elaact.SystemAssetID,
 			ProgramHash: output.Recipient,
 			Value:       output.Amount,
 			OutputLock:  lockedUntil,
-			Type:        OTNone,
+			Type:        common.OTNone,
 			Payload:     &outputpayload.DefaultOutput{},
 		}
 		totalAmount += output.Amount
@@ -377,8 +438,8 @@ func (b *BlockChain) createNormalOutputs(outputs []*OutputInfo, fee Fixed64,
 	return txOutputs, totalAmount, nil
 }
 
-func (b *BlockChain) getUTXOsFromAddress(address Uint168) ([]*UTXO, Fixed64, error) {
-	var utxoSlice []*UTXO
+func (b *BlockChain) getUTXOsFromAddress(address Uint168) ([]*common.UTXO, Fixed64, error) {
+	var utxoSlice []*common.UTXO
 	var lockedAmount Fixed64
 	utxos, err := b.db.GetFFLDB().GetUTXO(&address)
 	if err != nil {
@@ -390,8 +451,8 @@ func (b *BlockChain) getUTXOsFromAddress(address Uint168) ([]*UTXO, Fixed64, err
 		if err != nil {
 			return nil, 0, err
 		}
-		diff := curHeight - referTxn.LockTime
-		if referTxn.IsCoinBaseTx() && diff < b.chainParams.CoinbaseMaturity {
+		diff := curHeight - referTxn.LockTime()
+		if referTxn.IsCoinBaseTx() && diff < b.chainParams.PowConfiguration.CoinbaseMaturity {
 			lockedAmount += utxo.Value
 			continue
 		}
@@ -408,12 +469,12 @@ func (b *BlockChain) getUTXOsFromAddress(address Uint168) ([]*UTXO, Fixed64, err
 }
 
 func (b *BlockChain) createInputs(fromAddress Uint168,
-	totalAmount Fixed64, utxos []*UTXO) ([]*Input, []*Output, error) {
-	var txInputs []*Input
-	var changeOutputs []*Output
+	totalAmount Fixed64, utxos []*common.UTXO) ([]*common.Input, []*common.Output, error) {
+	var txInputs []*common.Input
+	var changeOutputs []*common.Output
 	for _, utxo := range utxos {
-		input := &Input{
-			Previous: OutPoint{
+		input := &common.Input{
+			Previous: common.OutPoint{
 				TxID:  utxo.TxID,
 				Index: uint16(utxo.Index),
 			},
@@ -427,12 +488,12 @@ func (b *BlockChain) createInputs(fromAddress Uint168,
 			totalAmount = 0
 			break
 		} else if *amount > totalAmount {
-			change := &Output{
+			change := &common.Output{
 				AssetID:     *elaact.SystemAssetID,
 				Value:       *amount - totalAmount,
 				OutputLock:  uint32(0),
 				ProgramHash: fromAddress,
-				Type:        OTNone,
+				Type:        common.OTNone,
 				Payload:     &outputpayload.DefaultOutput{},
 			}
 			changeOutputs = append(changeOutputs, change)
@@ -447,8 +508,8 @@ func (b *BlockChain) createInputs(fromAddress Uint168,
 	return txInputs, changeOutputs, nil
 }
 
-func (b *BlockChain) CreateCRCAppropriationTransaction() (*Transaction, Fixed64, error) {
-	utxos, lockedAmount, err := b.getUTXOsFromAddress(b.chainParams.CRAssetsAddress)
+func (b *BlockChain) CreateCRCAppropriationTransaction() (interfaces.Transaction, Fixed64, error) {
+	utxos, lockedAmount, err := b.getUTXOsFromAddress(*b.chainParams.CRConfiguration.CRAssetsProgramHash)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -456,28 +517,86 @@ func (b *BlockChain) CreateCRCAppropriationTransaction() (*Transaction, Fixed64,
 	for _, u := range utxos {
 		crcFoundationBalance += u.Value
 	}
-	p := b.chainParams.CRCAppropriatePercentage
+	p := b.chainParams.CRConfiguration.CRCAppropriatePercentage
 	appropriationAmount := Fixed64(float64(crcFoundationBalance) * p / 100.0)
 
 	log.Info("create appropriation transaction amount:", appropriationAmount)
 	if appropriationAmount <= 0 {
 		return nil, 0, nil
 	}
-	outputs := []*OutputInfo{{b.chainParams.CRExpensesAddress,
+	outputs := []*common.OutputInfo{{*b.chainParams.CRConfiguration.CRExpensesProgramHash,
 		appropriationAmount}}
 
-	var tx *Transaction
-	tx, err = b.createTransaction(&payload.CRCAppropriation{}, CRCAppropriation,
-		b.chainParams.CRAssetsAddress, Fixed64(0), uint32(0), utxos, outputs...)
+	tx, err := b.createTransaction(&payload.CRCAppropriation{}, common.CRCAppropriation,
+		*b.chainParams.CRConfiguration.CRAssetsProgramHash, Fixed64(0), uint32(0), utxos, outputs...)
 	if err != nil {
 		return nil, 0, err
 	}
 	return tx, lockedAmount, nil
 }
 
+func (b *BlockChain) CreateDposV2RealWithdrawTransaction(
+	withdrawTransactionHashes []Uint256, outputs []*common.OutputInfo) (interfaces.Transaction, error) {
+	utxos, _, err := b.getUTXOsFromAddress(*b.chainParams.DPoSConfiguration.DPoSV2RewardAccumulateProgramHash)
+	if err != nil {
+		return nil, err
+	}
+
+	wPayload := &payload.DposV2ClaimRewardRealWithdraw{
+		WithdrawTransactionHashes: withdrawTransactionHashes,
+	}
+
+	for _, v := range outputs {
+		v.Amount -= b.chainParams.CRConfiguration.RealWithdrawSingleFee
+	}
+
+	txFee := b.chainParams.CRConfiguration.RealWithdrawSingleFee * Fixed64(len(withdrawTransactionHashes))
+	var tx interfaces.Transaction
+	tx, err = b.createTransaction(wPayload, common.DposV2ClaimRewardRealWithdraw,
+		*b.chainParams.DPoSConfiguration.DPoSV2RewardAccumulateProgramHash, txFee, uint32(0), utxos, outputs...)
+	if err != nil {
+		return nil, err
+	}
+	return tx, nil
+}
+
+func (b *BlockChain) CreateVotesRealWithdrawTransaction(
+	returnVotesTXHashes []Uint256, outputs []*common.OutputInfo) (interfaces.Transaction, error) {
+	utxos, _, err := b.getUTXOsFromAddress(*b.chainParams.StakePoolProgramHash)
+	if err != nil {
+		return nil, err
+	}
+	var votesRealWithdraw []payload.VotesRealWidhdraw
+	for i, output := range outputs {
+		withdraw := payload.VotesRealWidhdraw{
+			ReturnVotesTXHash: returnVotesTXHashes[i],
+			StakeAddress:      output.Recipient,
+			Value:             output.Amount,
+		}
+		votesRealWithdraw = append(votesRealWithdraw, withdraw)
+	}
+
+	wPayload := &payload.VotesRealWithdrawPayload{
+		VotesRealWithdraw: votesRealWithdraw,
+	}
+
+	for _, v := range outputs {
+		v.Amount -= b.chainParams.CRConfiguration.RealWithdrawSingleFee
+	}
+	//todo fee
+	txFee := b.chainParams.CRConfiguration.RealWithdrawSingleFee * Fixed64(len(returnVotesTXHashes))
+	var tx interfaces.Transaction
+	tx, err = b.createTransaction(wPayload, common.VotesRealWithdraw,
+		*b.chainParams.StakePoolProgramHash, txFee, uint32(0), utxos, outputs...)
+	if err != nil {
+		return nil, err
+	}
+	return tx, nil
+}
+
 func (b *BlockChain) CreateCRRealWithdrawTransaction(
-	withdrawTransactionHashes []Uint256, outputs []*OutputInfo) (*Transaction, error) {
-	utxos, _, err := b.getUTXOsFromAddress(b.chainParams.CRExpensesAddress)
+	withdrawTransactionHashes []Uint256, outputs []*common.OutputInfo) (interfaces.Transaction, error) {
+	utxos, _, err := b.getUTXOsFromAddress(*b.chainParams.CRConfiguration.CRExpensesProgramHash)
 	if err != nil {
 		return nil, err
 	}
@@ -487,49 +606,48 @@ func (b *BlockChain) CreateCRRealWithdrawTransaction(
 	}
 
 	for _, v := range outputs {
-		v.Amount -= b.chainParams.RealWithdrawSingleFee
+		v.Amount -= b.chainParams.CRConfiguration.RealWithdrawSingleFee
 	}
 
-	txFee := b.chainParams.RealWithdrawSingleFee * Fixed64(len(withdrawTransactionHashes))
-	var tx *Transaction
-	tx, err = b.createTransaction(wPayload, CRCProposalRealWithdraw,
-		b.chainParams.CRExpensesAddress, txFee, uint32(0), utxos, outputs...)
+	txFee := b.chainParams.CRConfiguration.RealWithdrawSingleFee * Fixed64(len(withdrawTransactionHashes))
+	tx, err := b.createTransaction(wPayload, common.CRCProposalRealWithdraw,
+		*b.chainParams.CRConfiguration.CRExpensesProgramHash, txFee, uint32(0), utxos, outputs...)
 	if err != nil {
 		return nil, err
 	}
 	return tx, nil
 }
 
-func (b *BlockChain) CreateCRAssetsRectifyTransaction() (*Transaction, error) {
-	utxos, _, err := b.getUTXOsFromAddress(b.chainParams.CRAssetsAddress)
+func (b *BlockChain) CreateCRAssetsRectifyTransaction() (interfaces.Transaction, error) {
+	utxos, _, err := b.getUTXOsFromAddress(*b.chainParams.CRConfiguration.CRAssetsProgramHash)
 	if err != nil {
 		return nil, err
 	}
-	if len(utxos) < int(b.chainParams.MinCRAssetsAddressUTXOCount) {
+	if len(utxos) < int(b.chainParams.CRConfiguration.MinCRAssetsAddressUTXOCount) {
 		return nil, errors.New("Available utxo is less than MinCRAssetsAddressUTXOCount")
 	}
-	if len(utxos) > int(b.chainParams.MaxCRAssetsAddressUTXOCount) {
-		utxos = utxos[:b.chainParams.MaxCRAssetsAddressUTXOCount]
+	if len(utxos) > int(b.chainParams.CRConfiguration.MaxCRAssetsAddressUTXOCount) {
+		utxos = utxos[:b.chainParams.CRConfiguration.MaxCRAssetsAddressUTXOCount]
 	}
 	var crcFoundationBalance Fixed64
 	for i, u := range utxos {
-		if i >= int(b.chainParams.MaxCRAssetsAddressUTXOCount) {
+		if i >= int(b.chainParams.CRConfiguration.MaxCRAssetsAddressUTXOCount) {
 			break
 		}
 		crcFoundationBalance += u.Value
 	}
-	rectifyAmount := crcFoundationBalance - b.chainParams.RectifyTxFee
+	rectifyAmount := crcFoundationBalance - b.chainParams.CRConfiguration.RectifyTxFee
 
 	log.Info("create CR assets rectify amount:", rectifyAmount)
 	if rectifyAmount <= 0 {
 		return nil, nil
 	}
-	outputs := []*OutputInfo{{b.chainParams.CRAssetsAddress,
+	outputs := []*common.OutputInfo{{*b.chainParams.CRConfiguration.CRAssetsProgramHash,
 		rectifyAmount}}
 
-	var tx *Transaction
-	tx, err = b.createTransaction(&payload.CRAssetsRectify{}, CRAssetsRectify,
-		b.chainParams.CRAssetsAddress, b.chainParams.RectifyTxFee, uint32(0), utxos, outputs...)
+	tx, err := b.createTransaction(&payload.CRAssetsRectify{}, common.CRAssetsRectify,
+		*b.chainParams.CRConfiguration.CRAssetsProgramHash,
+		b.chainParams.CRConfiguration.RectifyTxFee, uint32(0), utxos, outputs...)
 	if err != nil {
 		return nil, err
 	}
@@ -543,22 +661,22 @@ func CalculateTxsFee(block *Block) {
 		}
 		references, err := DefaultLedger.Blockchain.UTXOCache.GetTxReference(tx)
 		if err != nil {
-			log.Error("get transaction reference failed")
+			log.Error("get transaction Reference failed")
 			return
 		}
 		var outputValue Fixed64
 		var inputValue Fixed64
-		for _, output := range tx.Outputs {
+		for _, output := range tx.Outputs() {
 			outputValue += output.Value
 		}
 		for _, output := range references {
 			inputValue += output.Value
 		}
 		// set Fee and FeePerKB if check has passed
-		tx.Fee = inputValue - outputValue
+		tx.SetFee(inputValue - outputValue)
 		buf := new(bytes.Buffer)
 		tx.Serialize(buf)
-		tx.FeePerKB = tx.Fee * 1000 / Fixed64(len(buf.Bytes()))
+		tx.SetFeePerKB(tx.Fee() * 1000 / Fixed64(len(buf.Bytes())))
 	}
 }
 
@@ -567,8 +685,28 @@ func CalculateTxsFee(block *Block) {
 func (b *BlockChain) GetState() *state.State {
 	return b.state
 }
+func (b *BlockChain) SetState(s *state.State) {
+	b.state = s
+}
+
 func (b *BlockChain) GetCRCommittee() *crstate.Committee {
 	return b.crCommittee
+}
+func (b *BlockChain) SetCRCommittee(c *crstate.Committee) {
+	b.crCommittee = c
+}
+
+func (b *BlockChain) GetBlock(height uint32) (*Block, error) {
+	hash, err := b.GetBlockHash(height)
+	if err != nil {
+		return nil, err
+	}
+	block, err := b.db.GetFFLDB().GetBlock(hash)
+	if err != nil {
+		return nil, err
+	}
+	CalculateTxsFee(block.Block)
+	return block.Block, nil
 }
 
 func (b *BlockChain) GetBestBlockHash() *Uint256 {
@@ -597,10 +735,11 @@ func (b *BlockChain) getHeight() uint32 {
 func (b *BlockChain) ProcessBlock(block *Block, confirm *payload.Confirm) (bool, bool, error) {
 	b.mutex.Lock()
 	defer b.mutex.Unlock()
+
 	return b.processBlock(block, confirm)
 }
 
-func (b *BlockChain) GetHeader(hash Uint256) (*Header, error) {
+func (b *BlockChain) GetHeader(hash Uint256) (*common.Header, error) {
 	header, err := b.db.GetFFLDB().GetHeader(hash)
 	if err != nil {
 		return nil, errors.New("[BlockChain], GetHeader failed.")
@@ -944,7 +1083,7 @@ func RemoveChildNode(children []*BlockNode, node *BlockNode) []*BlockNode {
 
 }
 
-func (b *BlockChain) LoadBlockNode(blockHeader *Header, hash *Uint256) (*BlockNode, error) {
+func (b *BlockChain) LoadBlockNode(blockHeader *common.Header, hash *Uint256) (*BlockNode, error) {
 
 	// Create the new block node for the block and set the work.
 	node := NewBlockNode(blockHeader, hash)
@@ -1058,7 +1197,7 @@ func (b *BlockChain) removeBlockNode(node *BlockNode) error {
 	}
 	node.Children = nil
 
-	// Remove the reference from the dependency index.
+	// Remove the Reference from the dependency index.
 	prevHash := node.ParentHash
 	if children, ok := b.DepNodes[*prevHash]; ok {
 		// Find the node amongst the children of the
@@ -1154,8 +1293,14 @@ func (b *BlockChain) getReorganizeNodes(node *BlockNode) (*list.List, *list.List
 	// so they are attached in the appropriate order when iterating the list
 	// later.
 	ancestor := node
+	nodesMap := make(map[Uint256]*BlockNode)
+	for _, n := range b.Nodes {
+		nodesMap[*n.Hash] = n
+	}
+
 	for ; ancestor.Parent != nil; ancestor = ancestor.Parent {
-		if ancestor.InMainChain {
+		if _, ok := nodesMap[*ancestor.Hash]; ok {
+			log.Info("ancestor:", ancestor.Height, "hash:", ancestor.Hash.String())
 			break
 		}
 		attachNodes.PushFront(ancestor)
@@ -1170,14 +1315,43 @@ func (b *BlockChain) getReorganizeNodes(node *BlockNode) (*list.List, *list.List
 	// Start from the end of the main chain and work backwards until the
 	// common ancestor adding each block to the list of nodes to detach from
 	// the main chain.
+	log.Info("bestChain:", b.BestChain.Height, "hash:", b.BestChain.Hash.String())
 	for n := b.BestChain; n != nil && n.Parent != nil; n = n.Parent {
 		if n.Hash.IsEqual(*ancestor.Hash) {
+			log.Info("equal hash:", n.Hash.String(), "height:", n.Height)
 			break
 		}
 		detachNodes.PushBack(n)
 	}
 
+	log.Info("getReorganizeNodes datachNodes:", detachNodes.Len(), "attachNodes:", attachNodes.Len())
 	return detachNodes, attachNodes
+}
+
+// reorganizeChain reorganizes the block chain by disconnecting the nodes in the
+// detachNodes list and connecting the nodes in the attach list.  It expects
+// that the lists are already in the correct order and are in sync with the
+// end of the current best chain.  Specifically, nodes that are being
+// disconnected must be in reverse order (think of popping them off
+// the end of the chain) and nodes the are being attached must be in forwards
+// order (think pushing them onto the end of the chain).
+func (b *BlockChain) reorganizeChain2(detachNodes *list.List) error {
+	// Disconnect blocks from the main chain.
+	for e := detachNodes.Front(); e != nil; e = e.Next() {
+		n := e.Value.(*BlockNode)
+		block, err := b.db.GetFFLDB().GetBlock(*n.Hash)
+		if err != nil {
+			continue
+		}
+
+		log.Info("disconnect block:", block.Height, "hash:", block.Hash())
+		err = b.disconnectBlock2(n, block.Block, block.Confirm)
+		if err != nil {
+			continue
+		}
+	}
+
+	return nil
 }
 
 // reorganizeChain reorganizes the block chain by disconnecting the nodes in the
@@ -1200,6 +1374,12 @@ func (b *BlockChain) reorganizeChain(detachNodes, attachNodes *list.List) error 
 		}
 	}
 
+	forkCount := detachNodes.Len()
+	var recoverFromDefault bool
+	if forkCount >= maxHistoryCapacity {
+		recoverFromDefault = true
+	}
+
 	// Disconnect blocks from the main chain.
 	for e := detachNodes.Front(); e != nil; e = e.Next() {
 		n := e.Value.(*BlockNode)
@@ -1208,23 +1388,30 @@ func (b *BlockChain) reorganizeChain(detachNodes, attachNodes *list.List) error 
 			return err
 		}
 
+		log.Info("disconnect block:", block.Height)
+		DefaultLedger.Arbitrators.DumpInfo(block.Height - 1)
+
 		// roll back state about the last block before disconnect
-		if block.Height-1 >= b.chainParams.VoteStartHeight {
-			err = b.chainParams.CkpManager.OnRollbackTo(
+		if !recoverFromDefault &&
+			block.Height-1 >= b.chainParams.VoteStartHeight {
+			err = b.CkpManager.OnRollbackTo(
 				block.Height-1, b.state.ConsensusAlgorithm == state.POW)
 			if err != nil {
 				return err
 			}
 		}
 
-		log.Info("disconnect block:", block.Height)
-		DefaultLedger.Arbitrators.DumpInfo(block.Height - 1)
-
 		err = b.disconnectBlock(n, block.Block, block.Confirm)
 		if err != nil {
 			return err
 		}
 	}
+
+	// recover check point from genesis block
+	if recoverFromDefault {
+		b.InitCheckpoint(nil, nil, nil)
+	}
+
 	// Connect the new best chain blocks.
 	for e := attachNodes.Front(); e != nil; e = e.Next() {
 		n := e.Value.(*BlockNode)
@@ -1238,11 +1425,12 @@ func (b *BlockChain) reorganizeChain(detachNodes, attachNodes *list.List) error 
 		}
 
 		// update state after connected block
-		b.chainParams.CkpManager.OnBlockSaved(&DposBlock{
+		b.CkpManager.OnBlockSaved(&DposBlock{
 			Block:       block,
 			HaveConfirm: confirm != nil,
 			Confirm:     confirm,
-		}, nil, b.state.ConsensusAlgorithm == state.POW)
+		}, nil, b.state.ConsensusAlgorithm == state.POW,
+			b.state.RevertToPOWBlockHeight, false)
 		DefaultLedger.Arbitrators.DumpInfo(block.Height)
 		delete(b.blockCache, *n.Hash)
 		delete(b.confirmCache, *n.Hash)
@@ -1250,8 +1438,32 @@ func (b *BlockChain) reorganizeChain(detachNodes, attachNodes *list.List) error 
 	return nil
 }
 
-//// disconnectBlock handles disconnecting the passed node/block from the end of
-//// the main (best) chain.
+// // disconnectBlock handles disconnecting the passed node/block from the end of
+// // the main (best) chain.
+func (b *BlockChain) disconnectBlock2(node *BlockNode, block *Block, confirm *payload.Confirm) error {
+	log.Info("disconnect block:", block.Height, "hash:", block.Hash())
+
+	// Remove the block from the database which houses the main chain.
+	prevNode, err := b.getPrevNodeFromNode(node)
+	if err != nil {
+		return err
+	}
+
+	b.db.GetFFLDB().Update(func(dbTx database.Tx) error {
+		log.Info("DBRemoveBlockNode start")
+		return DBRemoveBlockNode(dbTx, &block.Header)
+	})
+
+	err = b.db.RollbackBlock(block, node, confirm, CalcPastMedianTime(prevNode))
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// // disconnectBlock handles disconnecting the passed node/block from the end of
+// // the main (best) chain.
 func (b *BlockChain) disconnectBlock(node *BlockNode, block *Block, confirm *payload.Confirm) error {
 	// Make sure the node being disconnected is the end of the best chain.
 	if b.BestChain == nil || !node.Hash.IsEqual(*b.BestChain.Hash) {
@@ -1311,7 +1523,7 @@ func (b *BlockChain) connectBlock(node *BlockNode, block *Block, confirm *payloa
 	if block.Height >= b.chainParams.CRCOnlyDPOSHeight && !revertToPOW &&
 		b.state.ConsensusAlgorithm != state.POW && confirm != nil {
 		if err := checkBlockWithConfirmation(block, confirm,
-			b.chainParams.CkpManager, b.state.ConsensusAlgorithm == state.POW); err != nil {
+			b.CkpManager, b.state.ConsensusAlgorithm == state.POW); err != nil {
 			return fmt.Errorf("block confirmation validate failed: %s", err)
 		}
 	}
@@ -1385,6 +1597,7 @@ func (b *BlockChain) BlockExists(hash *Uint256) bool {
 	// Check memory chain first (could be main chain or side chain blocks).
 	//if _, ok := b.Index[*hash]; ok {
 	if _, ok := b.index.LookupNode(hash); ok {
+		// Check in database (rest of main chain not in memory).
 		return true
 	}
 
@@ -1448,11 +1661,12 @@ func (b *BlockChain) maybeAcceptBlock(block *Block, confirm *payload.Confirm) (b
 	}
 
 	if inMainChain && !reorganized {
-		b.chainParams.CkpManager.OnBlockSaved(&DposBlock{
+		b.CkpManager.OnBlockSaved(&DposBlock{
 			Block:       block,
 			HaveConfirm: confirm != nil,
 			Confirm:     confirm,
-		}, nil, b.state.ConsensusAlgorithm == state.POW)
+		}, nil, b.state.ConsensusAlgorithm == state.POW,
+			b.state.RevertToPOWBlockHeight, false)
 		DefaultLedger.Arbitrators.DumpInfo(block.Height)
 	}
 
@@ -1561,7 +1775,7 @@ func (b *BlockChain) connectBestChain(node *BlockNode, block *Block, confirm *pa
 	// common ancenstor (the point where the chain forked).
 	detachNodes, attachNodes := b.getReorganizeNodes(node)
 	// forbid reorganize if detaching nodes more than IrreversibleHeight
-	if b.state.IsIrreversible(block.Height, detachNodes.Len()) {
+	if b.state.IsIrreversible(b.BestChain.Height, detachNodes.Len()) {
 		return false, false, nil
 	}
 	//for e := detachNodes.Front(); e != nil; e = e.Next() {
@@ -1609,10 +1823,40 @@ func (b *BlockChain) ReorganizeChain(block *Block) error {
 	return nil
 }
 
-//(bool, bool, error)
-//1. inMainChain
-//2. isOphan
-//3. error
+// ReorganizeChain reorganize chain by specify a block, this method shall not
+// be called normally because it can cause reorganizing without node work sum
+// checking
+func (b *BlockChain) ReorganizeChain2(block *Block) error {
+	hash := block.Hash()
+	node, ok := b.index.LookupNode(&hash)
+	if !ok {
+		return errors.New("node of the reorganizing block does not exist")
+	}
+
+	detachNodes, attachNodes := b.getReorganizeNodes(node)
+
+	for _, v := range b.DepNodes {
+		for _, n := range v {
+			if n.Height > block.Height {
+				detachNodes.PushFront(n)
+			}
+		}
+	}
+
+	log.Info("[ReorganizeChain] begin reorganize chain, detachNodes count:",
+		detachNodes.Len(), "attachNodes count:", attachNodes.Len())
+	err := b.reorganizeChain2(detachNodes)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// (bool, bool, error)
+// 1. inMainChain
+// 2. isOphan
+// 3. error
 func (b *BlockChain) processBlock(block *Block, confirm *payload.Confirm) (bool, bool, error) {
 	blockHash := block.Hash()
 
@@ -1634,7 +1878,7 @@ func (b *BlockChain) processBlock(block *Block, confirm *payload.Confirm) (bool,
 	log.Debugf("[ProcessBLock] orphan already exist= %v", exists)
 
 	// Perform preliminary sanity checks on the block and its transactions.
-	//err = PowCheckBlockSanity(block, PowLimit, b.TimeSource)
+	//err = PowCheckBlockSanity(block, powLimit, b.TimeSource)
 	err := b.CheckBlockSanity(block)
 	if err != nil {
 		log.Errorf("PowCheckBlockSanity error %s", err.Error())
@@ -1901,11 +2145,11 @@ func (b *BlockChain) locateBlocks(startHash *Uint256, stopHash *Uint256, maxBloc
 //
 // In addition, there are two special cases:
 //
-// - When no locators are provided, the stop hash is treated as a request for
-//   that block, so it will either return the stop hash itself if it is known,
-//   or nil if it is unknown
-// - When locators are provided, but none of them are known, hashes starting
-//   after the genesis block will be returned
+//   - When no locators are provided, the stop hash is treated as a request for
+//     that block, so it will either return the stop hash itself if it is known,
+//     or nil if it is unknown
+//   - When locators are provided, but none of them are known, hashes starting
+//     after the genesis block will be returned
 //
 // This function is safe for concurrent access.
 func (b *BlockChain) LocateBlocks(locator []*Uint256, hashStop *Uint256, maxHashes uint32) []*Uint256 {

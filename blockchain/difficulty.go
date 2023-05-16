@@ -56,7 +56,7 @@ func (b *BlockChain) GetNetworkHashPS() *big.Int {
 }
 
 func (b *BlockChain) CalcCurrentDifficulty(currentBits uint32) string {
-	targetGenesisBlockBig := CompactToBig(b.chainParams.PowLimitBits)
+	targetGenesisBlockBig := CompactToBig(b.chainParams.PowConfiguration.PowLimitBits)
 	targetCurrentBig := CompactToBig(currentBits)
 	return new(big.Int).Div(targetGenesisBlockBig, targetCurrentBig).String()
 }
@@ -64,8 +64,8 @@ func (b *BlockChain) CalcCurrentDifficulty(currentBits uint32) string {
 func (b *BlockChain) CalcNextRequiredDifficulty(prevNode *BlockNode, newBlockTime time.Time) (uint32, error) {
 	// 1. Genesis block.
 	// 2. when we want to generate block instantly, don't change difficulty
-	if (prevNode.Height == 0) || (b.chainParams.PowLimitBits == 0x207fffff) {
-		return uint32(b.chainParams.PowLimitBits), nil
+	if (prevNode.Height == 0) || (b.chainParams.PowConfiguration.PowLimitBits == 0x207fffff) {
+		return uint32(b.chainParams.PowConfiguration.PowLimitBits), nil
 	}
 
 	// Return the previous block's difficulty requirements if this block
@@ -102,12 +102,12 @@ func (b *BlockChain) CalcNextRequiredDifficulty(prevNode *BlockNode, newBlockTim
 	// result.
 	oldTarget := CompactToBig(prevNode.Bits)
 	newTarget := new(big.Int).Mul(oldTarget, big.NewInt(adjustedTimespan))
-	targetTimeSpan := int64(b.chainParams.TargetTimespan / time.Second)
+	targetTimeSpan := int64(b.chainParams.PowConfiguration.TargetTimespan / time.Second)
 	newTarget.Div(newTarget, big.NewInt(targetTimeSpan))
 
 	// Limit new value to the proof of work limit.
-	if newTarget.Cmp(b.chainParams.PowLimit) > 0 {
-		newTarget.Set(b.chainParams.PowLimit)
+	if newTarget.Cmp(b.chainParams.PowConfiguration.PowLimit) > 0 {
+		newTarget.Set(b.chainParams.PowConfiguration.PowLimit)
 	}
 
 	// Log new target difficulty and return it.  The new target logging is
@@ -121,7 +121,7 @@ func (b *BlockChain) CalcNextRequiredDifficulty(prevNode *BlockNode, newBlockTim
 	log.Debugf("Actual timespan %v, adjusted timespan %v, target timespan %v",
 		time.Duration(actualTimespan)*time.Second,
 		time.Duration(adjustedTimespan)*time.Second,
-		b.chainParams.TargetTimespan)
+		b.chainParams.PowConfiguration.TargetTimespan)
 
 	return newTargetBits, nil
 }

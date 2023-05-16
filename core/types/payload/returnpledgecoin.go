@@ -5,7 +5,9 @@
 
 package payload
 
-import "io"
+import (
+	"io"
+)
 
 const ReturnDepositCoinVersion byte = 0x00
 

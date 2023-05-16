@@ -19,7 +19,10 @@ import (
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/common/log"
+	"github.com/elastos/Elastos.ELA/core/checkpoint"
 	"github.com/elastos/Elastos.ELA/core/types"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/mempool"
 	"github.com/elastos/Elastos.ELA/pow"
 	"github.com/elastos/Elastos.ELA/utils"
@@ -39,7 +42,7 @@ type TimeCounter struct {
 type DataGen struct {
 	txRepo         *TxRepository
 	chain          *blockchain.BlockChain
-	chainParams    *config.Params
+	chainParams    *config.Configuration
 	pow            *pow.Service
 	txPool         *mempool.TxPool
 	prevBlockHash  common.Uint256
@@ -98,7 +101,7 @@ func (g *DataGen) Generate(height uint32) (err error) {
 }
 
 func (g *DataGen) fastProcess(height uint32) (err error) {
-	var txs []*types.Transaction
+	var txs []interfaces.Transaction
 	if txs, err = g.generateTxs(height); err != nil {
 		return
 	}
@@ -120,7 +123,7 @@ func (g *DataGen) fastProcess(height uint32) (err error) {
 }
 
 func (g *DataGen) normalProcess(height uint32) (err error) {
-	var txs []*types.Transaction
+	var txs []interfaces.Transaction
 	if txs, err = g.generateTxs(height); err != nil {
 		return
 	}
@@ -142,7 +145,7 @@ func (g *DataGen) normalProcess(height uint32) (err error) {
 }
 
 func (g *DataGen) minimalProcess(height uint32) (err error) {
-	var txs []*types.Transaction
+	var txs []interfaces.Transaction
 	if txs, err = g.generateTxs(height); err != nil {
 		return
 	}
@@ -174,7 +177,7 @@ func (g *DataGen) countProcess(counter *TimeCounter, action func()) {
 }
 
 func (g *DataGen) generateTxs(
-	height uint32) (txs []*types.Transaction, err error) {
+	height uint32) (txs []interfaces.Transaction, err error) {
 	if g.pressure {
 		return g.txRepo.GeneratePressureTxs(height, g.pressureTxSize)
 	} else {
@@ -183,7 +186,7 @@ func (g *DataGen) generateTxs(
 }
 
 func (g *DataGen) generateBlock(
-	txs []*types.Transaction) (block *types.Block, err error) {
+	txs []interfaces.Transaction) (block *types.Block, err error) {
 	g.countProcess(g.addToTxPoolCount, func() {
 		for _, v := range txs {
 			if err = g.txPool.AppendToTxPool(v); err != nil {
@@ -203,8 +206,13 @@ func (g *DataGen) generateBlock(
 func (g *DataGen) storeData(block *types.Block) error {
 	blockHash := block.Hash()
 	newNode := blockchain.NewBlockNode(&block.Header, &blockHash)
+
+	ps, err := blockchain.GetSaveProcessorsFromBlock(block)
+	if err != nil {
+		return err
+	}
 	if err := g.chain.GetDB().GetFFLDB().SaveBlock(block, newNode,
-		nil, time.Unix(int64(block.Timestamp), 0)); err != nil {
+		nil, time.Unix(int64(block.Timestamp), 0), ps); err != nil {
 		return err
 	}
 
@@ -265,18 +273,19 @@ func LoadDataGen(dataPath string) (*DataGen, error) {
 
 func FromTxRepository(dataDir string, interrupt <-chan struct{},
 	repo *TxRepository, initFoundationUTXO bool) (*DataGen, error) {
-	chainParams := generateChainParams(repo.GetFoundationAccount())
+	chainParams := config.DefaultParams.RegNet()
 	chain, err := newBlockChain(dataDir, chainParams, interrupt)
+	ckpManager := checkpoint.NewManager(chainParams)
 	if err != nil {
 		return nil, err
 	}
-
+	block := chainParams.GenesisBlock
 	if initFoundationUTXO {
-		fundTx := chainParams.GenesisBlock.Transactions[0]
-		repo.SetFoundationUTXO(&types.UTXO{
+		fundTx := block.Transactions[0]
+		repo.SetFoundationUTXO(&common2.UTXO{
 			TxID:  fundTx.Hash(),
 			Index: 0,
-			Value: fundTx.Outputs[0].Value,
+			Value: fundTx.Outputs()[0].Value,
 		})
 	}
 
@@ -285,14 +294,15 @@ func FromTxRepository(dataDir string, interrupt <-chan struct{},
 		return nil, err
 	}
 
-	txPool := mempool.NewTxPool(chainParams)
+	txPool := mempool.NewTxPool(chainParams,
+		ckpManager)
 	return &DataGen{
 		txRepo:             repo,
 		chainParams:        chainParams,
 		chain:              chain,
 		txPool:             txPool,
 		foundationAddr:     foundationAddr,
-		prevBlockHash:      chainParams.GenesisBlock.Hash(),
+		prevBlockHash:      block.Hash(),
 		dataDir:            dataDir,
 		pressure:           false,
 		pressureTxSize:     8000000,

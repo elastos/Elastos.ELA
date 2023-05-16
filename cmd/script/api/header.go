@@ -9,10 +9,9 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/elastos/Elastos.ELA/common/config"
-	"github.com/elastos/Elastos.ELA/core/types"
-
 	"github.com/elastos/Elastos.ELA/common"
+	"github.com/elastos/Elastos.ELA/common/config"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/yuin/gopher-lua"
 )
 
@@ -35,12 +34,12 @@ func newHeader(L *lua.LState) int {
 
 	hash, _ := common.Uint256FromHexString(prevBlockHash)
 
-	header := &types.Header{
+	header := &common2.Header{
 		Version:    version,
 		Previous:   *hash,
 		MerkleRoot: common.EmptyHash,
 		Timestamp:  uint32(time.Now().Unix()),
-		Bits:       config.DefaultParams.PowLimitBits,
+		Bits:       config.Parameters.PowConfiguration.PowLimitBits,
 		Height:     height,
 		Nonce:      rand.Uint32(),
 	}
@@ -54,9 +53,9 @@ func newHeader(L *lua.LState) int {
 }
 
 // Checks whether the first lua argument is a *LUserData with *Attribute and returns this *Attribute.
-func checkHeader(L *lua.LState, idx int) *types.Header {
+func checkHeader(L *lua.LState, idx int) *common2.Header {
 	ud := L.CheckUserData(idx)
-	if v, ok := ud.Value.(*types.Header); ok {
+	if v, ok := ud.Value.(*common2.Header); ok {
 		return v
 	}
 	L.ArgError(1, "DPosProposal expected")
@@ -71,7 +70,7 @@ var headerMethods = map[string]lua.LGFunction{
 func headerHeight(L *lua.LState) int {
 	h := checkHeader(L, 1)
 
-	L.Push(lua.LString(h.Height))
+	L.Push(lua.LString(string(rune(h.Height))))
 	return 1
 }
 

@@ -7,6 +7,9 @@ package state
 
 import (
 	"bytes"
+	"math"
+	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/elastos/Elastos.ELA/crypto"
@@ -41,4 +44,14 @@ func TestOriginArbiter_Clone(t *testing.T) {
 
 	a2.key[0] = 10 // should only change data of a2
 	assert.False(t, bytes.Equal(a1.key, a2.key))
+
+	factor := strconv.FormatFloat(math.Log10(float64(72000)/7200*10), 'f', 2, 64)
+	assert.True(t, strings.EqualFold(factor, "2.00"))
 }
+
+func randomPublicKey() []byte {
+	_, pub, _ := crypto.GenerateKeyPair()
+	result, _ := pub.EncodePoint(true)
+	return result
+}
+

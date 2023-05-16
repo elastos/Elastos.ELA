@@ -7,7 +7,7 @@ package servers
 
 import (
 	"github.com/elastos/Elastos.ELA/common"
-	. "github.com/elastos/Elastos.ELA/core/types"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/core/types/outputpayload"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 )
@@ -15,8 +15,8 @@ import (
 const TlsPort = 443
 
 type AttributeInfo struct {
-	Usage AttributeUsage `json:"usage"`
-	Data  string         `json:"data"`
+	Usage common2.AttributeUsage `json:"usage"`
+	Data  string                 `json:"data"`
 }
 
 type InputInfo struct {
@@ -59,6 +59,11 @@ type ReturnSideChainDepositInfo struct {
 	DepositTransactionHash string `json:"DepositTransactionHash"`
 }
 
+type ExchangeVotesOutputInfo struct {
+	Version      byte   `json:"Version"`
+	StakeAddress string `json:"StakeAddress"`
+}
+
 type CandidateVotes struct {
 	Candidate string `json:"candidate"`
 	Votes     string `json:"votes"`
@@ -80,19 +85,19 @@ type ProgramInfo struct {
 }
 
 type TransactionInfo struct {
-	TxID           string             `json:"txid"`
-	Hash           string             `json:"hash"`
-	Size           uint32             `json:"size"`
-	VSize          uint32             `json:"vsize"`
-	Version        TransactionVersion `json:"version"`
-	TxType         TxType             `json:"type"`
-	PayloadVersion byte               `json:"payloadversion"`
-	Payload        PayloadInfo        `json:"payload"`
-	Attributes     []AttributeInfo    `json:"attributes"`
-	Inputs         []InputInfo        `json:"vin"`
-	Outputs        []RpcOutputInfo    `json:"vout"`
-	LockTime       uint32             `json:"locktime"`
-	Programs       []ProgramInfo      `json:"programs"`
+	TxID           string                     `json:"txid"`
+	Hash           string                     `json:"hash"`
+	Size           uint32                     `json:"size"`
+	VSize          uint32                     `json:"vsize"`
+	Version        common2.TransactionVersion `json:"version"`
+	TxType         common2.TxType             `json:"type"`
+	PayloadVersion byte                       `json:"payloadversion"`
+	Payload        PayloadInfo                `json:"payload"`
+	Attributes     []AttributeInfo            `json:"attributes"`
+	Inputs         []InputInfo                `json:"vin"`
+	Outputs        []RpcOutputInfo            `json:"vout"`
+	LockTime       uint32                     `json:"locktime"`
+	Programs       []ProgramInfo              `json:"programs"`
 }
 
 type TransactionContextInfo struct {
@@ -203,6 +208,10 @@ type WithdrawFromSideChainInfo struct {
 	SideChainTransactionHashes []string `json:"sidechaintransactionhashes"`
 }
 
+type SchnorrWithdrawFromSideChainInfo struct {
+	Signers []uint32 `json:"Signers"`
+}
+
 type ProducerInfo struct {
 	OwnerPublicKey string `json:"ownerpublickey"`
 	NodePublicKey  string `json:"nodepublickey"`
@@ -210,6 +219,7 @@ type ProducerInfo struct {
 	Url            string `json:"url"`
 	Location       uint64 `json:"location"`
 	NetAddress     string `json:"netaddress"`
+	StakeUntil     uint32 `json:"stakeuntil"`
 	Signature      string `json:"signature"`
 }
 
@@ -521,4 +531,91 @@ type RsInfo struct {
 	TxHash          string         `json:"txhash"`
 	Height          uint32         `json:"height"`
 	EffectiveHeight uint32         `json:"effectiveheight"`
+}
+
+type VotingInfo struct {
+	Contents        []VotesContentInfo        `json:"contents"`
+	RenewalContents []RenewalVotesContentInfo `json:"renewalcontents"`
+}
+
+type VotesContentInfo struct {
+	VoteType  byte                    `json:"votetype"`
+	VotesInfo []VotesWithLockTimeInfo `json:"votesinfo"`
+}
+
+type VotesWithLockTimeInfo struct {
+	Candidate string `json:"candidate"`
+	Votes     string `json:"votes"`
+	LockTime  uint32 `json:"locktime"`
+}
+
+type RenewalVotesContentInfo struct {
+	ReferKey  string                `json:"referkey"`
+	VotesInfo VotesWithLockTimeInfo `json:"votesinfo"`
+}
+
+type ExchangeVotesInfo struct {
+}
+
+type ReturnVotesInfo struct {
+	// target or to address
+	ToAddr string `json:"toaddr"`
+	// code
+	Code string `json:"code,omitempty"`
+	// return votes value
+	Value string `json:"value"`
+	// signature
+	Signature string `json:"signature,omitempty"`
+}
+
+type RealReturnVotesInfo struct {
+	ReturnVotesTXHash string `json:"returnvotestxhash"`
+	StakeAddress      string `json:"stakeaddress"`
+	Value             string `json:"value"`
+}
+type RealVotesWithdrawInfo struct {
+	RealReturnVotes []RealReturnVotesInfo `json:"realReturnVotes"`
+}
+
+type DposV2ClaimRewardInfo struct {
+	// target or to address
+	ToAddr string `json:"toaddr"`
+	// code
+	Code string `json:"code,omitempty"`
+	// reward value
+	Value string `json:"value"`
+	// signature
+	Signature string `json:"signature,omitempty"`
+}
+
+type DposV2ClaimRewardRealWithdrawInfo struct {
+	// Hash of the proposal to withdrawal ela.
+	WithdrawTransactionHashes []string `json:"withdrawtransactionhashes"`
+}
+
+type CreateNFTInfo struct {
+	// nft id, hash of detailed vote information.
+	ID string
+	// side chain format address.
+	StakeAddress string
+	// side chain genesis block address
+	GenesisBlockHash string
+}
+
+type DestroyNFTInfo struct {
+	// detail votes info referkey
+	IDs []string
+	// owner OwnerStakeAddress
+	OwnerStakeAddresses []string
+	// genesis block hash of side chain
+	GenesisBlockHash string
+}
+
+type DetailedVoteInfo struct {
+	StakeAddress    string
+	TransactionHash string
+	BlockHeight     uint32
+	PayloadVersion  byte
+	VoteType        uint32
+	Info            []VotesWithLockTimeInfo
 }

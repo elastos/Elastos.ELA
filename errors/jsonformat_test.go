@@ -21,9 +21,9 @@ func TestToJsonFormatter(t *testing.T) {
 
 	formatter := ToJsonFormatter(simpleParent)
 	assert.Equal(t, int(simpleParentCode), formatter.Code)
-	assert.Equal(t, ErrMap[simpleParentCode], formatter.Description)
+	assert.Equal(t, ErrMap[simpleParentCode]+":"+ErrMap[simpleChildCode]+":"+plainErr.Error(), formatter.Description)
 	assert.Equal(t, int(simpleChildCode), formatter.Inner.Code)
-	assert.Equal(t, ErrMap[simpleChildCode], formatter.Inner.Description)
+	assert.Equal(t, ErrMap[simpleChildCode]+":"+plainErr.Error(), formatter.Inner.Description)
 	assert.Equal(t, int(ErrFail), formatter.Inner.Inner.Code)
 	assert.Equal(t, plainErr.Error(), formatter.Inner.Inner.Description)
 }

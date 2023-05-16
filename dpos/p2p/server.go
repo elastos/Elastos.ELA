@@ -149,6 +149,9 @@ type server struct {
 	broadcast chan broadcastMsg
 	wg        sync.WaitGroup
 	quit      chan struct{}
+
+	currentPeers map[string]struct{} // key: PID string
+	nextPeers    map[string]struct{} // key: PID string
 }
 
 // IPeer extends the peer to maintain state shared by the server.
@@ -460,9 +463,10 @@ func (s *server) handleQuery(state *peerState, querymsg interface{}) {
 		peers := make(map[peer.PID]*PeerInfo)
 		for _, sp := range state.outboundPeers {
 			peers[sp.PID()] = &PeerInfo{
-				PID:   sp.PID(),
-				Addr:  sp.Addr(),
-				State: CSOutboundOnly,
+				PID:         sp.PID(),
+				Addr:        sp.Addr(),
+				State:       CSOutboundOnly,
+				NodeVersion: sp.NodeVersion,
 			}
 		}
 		for _, sp := range state.inboundPeers {
@@ -471,9 +475,10 @@ func (s *server) handleQuery(state *peerState, querymsg interface{}) {
 				continue
 			}
 			peers[sp.PID()] = &PeerInfo{
-				PID:   sp.PID(),
-				Addr:  sp.Addr(),
-				State: CSInboundOnly,
+				PID:         sp.PID(),
+				Addr:        sp.Addr(),
+				State:       CSInboundOnly,
+				NodeVersion: sp.NodeVersion,
 			}
 		}
 		for pid := range state.connectPeers {
@@ -524,14 +529,14 @@ func (s *server) pongNonce(pid peer.PID) uint64 {
 // newPeerConfig returns the configuration for the given serverPeer.
 func newPeerConfig(sp *serverPeer) *peer.Config {
 	return &peer.Config{
-		PID:              sp.server.cfg.PID,
-		Magic:            sp.server.cfg.MagicNumber,
-		Port:             sp.server.cfg.DefaultPort,
-		PingInterval:     sp.server.cfg.PingInterval,
-		Sign:             sp.server.cfg.Sign,
-		PingNonce:        sp.server.pingNonce,
-		PongNonce:        sp.server.pongNonce,
-		MakeEmptyMessage: sp.server.cfg.MakeEmptyMessage,
+		PID:           sp.server.cfg.PID,
+		Magic:         sp.server.cfg.MagicNumber,
+		Port:          sp.server.cfg.DefaultPort,
+		PingInterval:  sp.server.cfg.PingInterval,
+		Sign:          sp.server.cfg.Sign,
+		PingNonce:     sp.server.pingNonce,
+		PongNonce:     sp.server.pongNonce,
+		CreateMessage: sp.server.cfg.CreateMessage,
 		MessageFunc: func(peer *peer.Peer, m p2p.Message) {
 			switch m := m.(type) {
 			case *msg.Version:
@@ -542,6 +547,8 @@ func newPeerConfig(sp *serverPeer) *peer.Config {
 
 			}
 		},
+		DPoSV2StartHeight: sp.server.cfg.DPoSV2StartHeight,
+		NodeVersion:       sp.server.cfg.NodeVersion,
 	}
 }
 
@@ -719,7 +726,30 @@ func (s *server) ConnectedCount() int32 {
 
 // ConnectPeers let server connect the peers in the given peers, and
 // disconnect peers that not in the peers.
-func (s *server) ConnectPeers(peers []peer.PID) {
+func (s *server) ConnectPeers(currentPeers []peer.PID, nextPeers []peer.PID) {
+	cp := make(map[string]struct{})
+	for _, p := range currentPeers {
+		cp[common.BytesToHexString(p[:])] = struct{}{}
+	}
+	s.currentPeers = cp
+
+	np := make(map[string]struct{})
+	for _, p := range nextPeers {
+		np[common.BytesToHexString(p[:])] = struct{}{}
+	}
+	s.nextPeers = np
+
+	peers := currentPeers
+	currentPeersMap := make(map[peer.PID]struct{})
+	for _, p := range currentPeers {
+		currentPeersMap[p] = struct{}{}
+	}
+	for _, p := range nextPeers {
+		if _, ok := currentPeersMap[p]; !ok {
+			peers = append(peers, p)
+		}
+	}
+
 	reply := make(chan struct{})
 	s.query <- connectPeersMsg{peers: peers, reply: reply}
 	<-reply
@@ -747,6 +777,24 @@ func (s *server) ConnectedPeers() []Peer {
 		peers = append(peers, (Peer)(sp))
 	}
 	return peers
+}
+
+// ConnectedCurrentPeers returns an array consisting of connected current peers.
+//
+// This function is safe for concurrent access and is part of the
+// IServer interface implementation.
+func (s *server) ConnectedCurrentPeers() []Peer {
+	peers := s.ConnectedPeers()
+
+	result := make([]Peer, 0)
+	for _, p := range peers {
+		pid := p.PID()
+		if _, ok := s.currentPeers[common.BytesToHexString(pid[:])]; ok {
+			result = append(result, p)
+		}
+	}
+
+	return result
 }
 
 // DumpPeersInfo returns an array consisting of all peers state in connect list.
@@ -886,7 +934,7 @@ func NewServer(origCfg *Config) (*server, error) {
 	admgr := addrmgr.New(cfg.DataDir)
 	var hubService *hub.Hub
 	if cfg.EnableHub {
-		hubService = hub.New(cfg.MagicNumber, cfg.PID, admgr)
+		hubService = hub.New(cfg.MagicNumber, cfg.PID, admgr, origCfg.Addr, cfg.PingNonce, cfg.DPoSV2StartHeight)
 	}
 
 	s := server{

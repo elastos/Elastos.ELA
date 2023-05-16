@@ -8,11 +8,13 @@ package dpos
 import (
 	"bytes"
 	"errors"
+	"net"
 	"sync"
 
 	"github.com/elastos/Elastos.ELA/blockchain"
 	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/core/types"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/dpos/account"
 	"github.com/elastos/Elastos.ELA/dpos/dtime"
@@ -24,15 +26,18 @@ import (
 	"github.com/elastos/Elastos.ELA/mempool"
 	elap2p "github.com/elastos/Elastos.ELA/p2p"
 	elamsg "github.com/elastos/Elastos.ELA/p2p/msg"
+	peer2 "github.com/elastos/Elastos.ELA/p2p/peer"
 )
 
 const dataPathDPoS = "elastos/data/dpos"
 
 type NetworkConfig struct {
-	ChainParams *config.Params
+	ChainParams *config.Configuration
 	Account     account.Account
 	MedianTime  dtime.MedianTimeSource
 	Listener    manager.NetworkEventListener
+	NodeVersion string
+	Addr        string
 }
 
 type blockItem struct {
@@ -112,17 +117,27 @@ func (n *network) Stop() error {
 	return n.p2pServer.Stop()
 }
 
-func (n *network) UpdatePeers(peers []peer.PID) {
-	log.Info("[UpdatePeers] peers:", len(peers), " height: ",
+func (n *network) UpdatePeers(currentPeers []peer.PID, nextPeers []peer.PID) {
+	log.Info("[UpdatePeers] current peers:", len(currentPeers),
+		"next peers:", len(nextPeers), " height: ",
 		blockchain.DefaultLedger.Blockchain.GetHeight())
-	for _, p := range peers {
+
+	for _, p := range currentPeers {
 		if bytes.Equal(n.publicKey, p[:]) {
-			n.p2pServer.ConnectPeers(peers)
+			n.p2pServer.ConnectPeers(currentPeers, nextPeers)
 			return
 		}
 	}
+
+	for _, p := range nextPeers {
+		if bytes.Equal(n.publicKey, p[:]) {
+			n.p2pServer.ConnectPeers(currentPeers, nextPeers)
+			return
+		}
+	}
+
 	log.Info("[UpdatePeers] i am not in peers")
-	n.p2pServer.ConnectPeers(nil)
+	n.p2pServer.ConnectPeers(nil, nil)
 }
 
 func (n *network) SendMessageToPeer(id peer.PID, msg elap2p.Message) error {
@@ -135,7 +150,7 @@ func (n *network) BroadcastMessage(msg elap2p.Message) {
 }
 
 func (n *network) GetActivePeers() []p2p.Peer {
-	return n.p2pServer.ConnectedPeers()
+	return n.p2pServer.ConnectedCurrentPeers()
 }
 
 func (n *network) PostChangeViewTask() {
@@ -267,7 +282,7 @@ func (n *network) processMessage(msgItem *messageItem) {
 	case elap2p.CmdTx:
 		msgTx, processed := m.(*elamsg.Tx)
 		if processed {
-			tx, ok := msgTx.Serializable.(*types.Transaction)
+			tx, ok := msgTx.Serializable.(interfaces.Transaction)
 			if !ok {
 				return
 			}
@@ -289,6 +304,12 @@ func (n *network) processMessage(msgItem *messageItem) {
 		if processed {
 			n.listener.OnResponseRevertToDPOSTxReceived(
 				&msgResponse.TxHash, msgResponse.Signer, msgResponse.Sign)
+		}
+	case msg.CmdResetConsensusView:
+		msgResponse, processed := m.(*msg.ResetView)
+
+		if processed {
+			n.listener.OnResponseResetViewReceived(msgResponse)
 		}
 	}
 }
@@ -356,20 +377,23 @@ func NewDposNetwork(cfg NetworkConfig) (*network, error) {
 	var pid peer.PID
 	copy(pid[:], cfg.Account.PublicKeyBytes())
 	server, err := p2p.NewServer(&p2p.Config{
-		DataDir:          dataPathDPoS,
-		PID:              pid,
-		EnableHub:        true,
-		Localhost:        cfg.ChainParams.DPoSIPAddress,
-		MagicNumber:      cfg.ChainParams.DPoSMagic,
-		DefaultPort:      cfg.ChainParams.DPoSDefaultPort,
-		TimeSource:       cfg.MedianTime,
-		MaxNodePerHost:   cfg.ChainParams.MaxNodePerHost,
-		MakeEmptyMessage: makeEmptyMessage,
-		HandleMessage:    network.handleMessage,
-		PingNonce:        network.getCurrentHeight,
-		PongNonce:        network.getCurrentHeight,
-		Sign:             cfg.Account.Sign,
-		StateNotifier:    notifier,
+		DataDir:           dataPathDPoS,
+		PID:               pid,
+		EnableHub:         true,
+		Localhost:         cfg.ChainParams.DPoSConfiguration.IPAddress,
+		MagicNumber:       cfg.ChainParams.DPoSConfiguration.Magic,
+		DefaultPort:       cfg.ChainParams.DPoSConfiguration.DPoSPort,
+		TimeSource:        cfg.MedianTime,
+		MaxNodePerHost:    cfg.ChainParams.MaxNodePerHost,
+		CreateMessage:     createMessage,
+		HandleMessage:     network.handleMessage,
+		PingNonce:         network.getCurrentHeight,
+		PongNonce:         network.getCurrentHeight,
+		Sign:              cfg.Account.Sign,
+		StateNotifier:     notifier,
+		DPoSV2StartHeight: cfg.ChainParams.DPoSV2StartHeight,
+		NodeVersion:       cfg.NodeVersion,
+		Addr:              cfg.Addr,
 	})
 	if err != nil {
 		return nil, err
@@ -379,44 +403,65 @@ func NewDposNetwork(cfg NetworkConfig) (*network, error) {
 	return network, nil
 }
 
-func makeEmptyMessage(cmd string) (message elap2p.Message, err error) {
-	switch cmd {
+func createMessage(hdr elap2p.Header, r net.Conn) (message elap2p.Message, err error) {
+	switch hdr.GetCMD() {
 	case elap2p.CmdBlock:
 		message = elamsg.NewBlock(&types.Block{})
+
 	case elap2p.CmdTx:
-		message = elamsg.NewTx(&types.Transaction{})
+		return peer2.CheckAndCreateTxMessage(hdr, r)
+
 	case msg.CmdAcceptVote:
 		message = &msg.Vote{Command: msg.CmdAcceptVote}
+
 	case msg.CmdReceivedProposal:
 		message = &msg.Proposal{}
+
 	case msg.CmdRejectVote:
 		message = &msg.Vote{Command: msg.CmdRejectVote}
+
 	case msg.CmdInv:
 		message = &msg.Inventory{}
+
 	case msg.CmdGetBlock:
 		message = &msg.GetBlock{}
+
 	case msg.CmdGetBlocks:
 		message = &msg.GetBlocks{}
+
 	case msg.CmdResponseBlocks:
 		message = &msg.ResponseBlocks{}
+
 	case msg.CmdRequestConsensus:
 		message = &msg.RequestConsensus{}
+
 	case msg.CmdResponseConsensus:
 		message = &msg.ResponseConsensus{}
+
 	case msg.CmdRequestProposal:
 		message = &msg.RequestProposal{}
+
 	case msg.CmdIllegalProposals:
 		message = &msg.IllegalProposals{}
+
 	case msg.CmdIllegalVotes:
 		message = &msg.IllegalVotes{}
+
 	case msg.CmdSidechainIllegalData:
 		message = &msg.SidechainIllegalData{}
+
 	case msg.CmdResponseInactiveArbitrators:
 		message = &msg.ResponseInactiveArbitrators{}
+
 	case msg.CmdResponseRevertToDPOS:
 		message = &msg.ResponseRevertToDPOS{}
+
+	case msg.CmdResetConsensusView:
+		message = &msg.ResetView{}
+
 	default:
-		return nil, errors.New("Received unsupported message, CMD " + cmd)
+		return nil, errors.New("Received unsupported message, CMD " + hdr.GetCMD())
 	}
-	return message, nil
+
+	return peer2.CheckAndCreateMessage(hdr, message, r)
 }

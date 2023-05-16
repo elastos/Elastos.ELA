@@ -14,6 +14,7 @@ package blockchain
 import (
 	"bytes"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"math/big"
 	"time"
@@ -21,6 +22,7 @@ import (
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/log"
 	"github.com/elastos/Elastos.ELA/core/types"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/database"
 )
 
@@ -46,41 +48,37 @@ const (
 )
 
 var (
-	// blockIndexBucketName is the name of the db bucket used to house to the
+	// blockIndexBucketName is the name of the DB bucket used to house to the
 	// block headers and contextual information.
 	blockIndexBucketName = []byte("blockheaderidx")
 
-	// hashIndexBucketName is the name of the db bucket used to house to the
+	// hashIndexBucketName is the name of the DB bucket used to house to the
 	// block hash -> block height index.
 	hashIndexBucketName = []byte("hashidx")
 
-	// heightIndexBucketName is the name of the db bucket used to house to
+	// heightIndexBucketName is the name of the DB bucket used to house to
 	// the block height -> block hash index.
 	heightIndexBucketName = []byte("heightidx")
 
-	// chainStateKeyName is the name of the db key used to store the best
+	// chainStateKeyName is the name of the DB key used to store the best
 	// chain state.
 	chainStateKeyName = []byte("chainstate")
 
-	// spendJournalVersionKeyName is the name of the db key used to store
+	// spendJournalVersionKeyName is the name of the DB key used to store
 	// the version of the spend journal currently in the database.
 	spendJournalVersionKeyName = []byte("spendjournalversion")
 
-	// spendJournalBucketName is the name of the db bucket used to house
+	// spendJournalBucketName is the name of the DB bucket used to house
 	// transactions outputs that are spent in each block.
 	spendJournalBucketName = []byte("spendjournal")
 
-	// utxoSetVersionKeyName is the name of the db key used to store the
+	// utxoSetVersionKeyName is the name of the DB key used to store the
 	// version of the utxo set currently in the database.
 	utxoSetVersionKeyName = []byte("utxosetversion")
 
-	// utxoSetBucketName is the name of the db bucket used to house the
+	// utxoSetBucketName is the name of the DB bucket used to house the
 	// unspent transaction output set.
 	utxoSetBucketName = []byte("utxosetv2")
-
-	// proposalDraftDataBucketName is the name of the db bucket used to house the
-	// proposal releated draft data and draft hash.
-	proposalDraftDataBucketName = []byte("proposaldraftdata")
 
 	// byteOrder is the preferred byte order used for serializing numeric
 	// fields for storage in the database.
@@ -232,7 +230,16 @@ func dbStoreBlock(dbTx database.Tx, block *types.DposBlock) error {
 	if hasBlock {
 		return nil
 	}
-	return dbTx.StoreBlock(block)
+
+	buf := new(bytes.Buffer)
+	err = block.Serialize(buf)
+	if err != nil {
+		str := fmt.Sprintf("failed to get serialized bytes for block %s",
+			blockHash)
+		return errors.New(str)
+	}
+
+	return dbTx.StoreBlock(blockHash, buf.Bytes())
 }
 
 // -----------------------------------------------------------------------------
@@ -273,19 +280,35 @@ func dbPutBlockIndex(dbTx database.Tx, hash *common.Uint256, height uint32) erro
 	return heightIndex.Put(serializedHeight[:], hash[:])
 }
 
-// dbPutProposalDraftData store the CR council member proposal related draft data.
-func dbPutProposalDraftData(dbTx database.Tx, hash *common.Uint256, draftData []byte) error {
+// TryCreateBucket try to create new bucket by bucket name
+func TryCreateBucket(dbTx database.Tx, name []byte) error {
+	meta := dbTx.Metadata()
+	if b := meta.Bucket(name); b == nil {
+		_, err := meta.CreateBucket(name)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// DBPutData store data to ffldb.
+func DBPutData(dbTx database.Tx, name []byte, key []byte, value []byte) error {
 	// Add the block hash to height mapping to the index.
 	meta := dbTx.Metadata()
 	// Add the block height to hash mapping to the index.
-	draftDataBucket := meta.Bucket(proposalDraftDataBucketName)
-	return draftDataBucket.Put(hash[:], draftData)
+	dataBucket := meta.Bucket(name)
+	return dataBucket.Put(key, value)
 }
 
 // dbFetchProposalDraftData get the proposal draft data by draft hash.
 func dbFetchProposalDraftData(dbTx database.Tx, hash *common.Uint256) ([]byte, error) {
 	meta := dbTx.Metadata()
-	draftDataBucket := meta.Bucket(proposalDraftDataBucketName)
+	draftDataBucket := meta.Bucket(common.ProposalDraftDataBucketName)
+	if draftDataBucket == nil {
+		return nil, errors.New("no bucket")
+	}
 	draftData := draftDataBucket.Get(hash[:])
 	if draftData == nil {
 		return nil, fmt.Errorf("draft data %s is not found", hash)
@@ -294,14 +317,13 @@ func dbFetchProposalDraftData(dbTx database.Tx, hash *common.Uint256) ([]byte, e
 	return draftData, nil
 }
 
-// DBRemoveBlockIndex uses an existing database transaction remove block index
-// entries from the hash to height and height to hash mappings for the provided
-// values.
-func DBRemoveProposalDraftData(dbTx database.Tx, hash *common.Uint256) error {
+// DBRemoveData uses an existing database transaction remove data
+// from the bucket name and key.
+func DBRemoveData(dbTx database.Tx, bucketName, key []byte) error {
 	// Remove the block hash to height mapping.
 	meta := dbTx.Metadata()
-	draftDataBucket := meta.Bucket(proposalDraftDataBucketName)
-	return draftDataBucket.Delete(hash[:])
+	draftDataBucket := meta.Bucket(bucketName)
+	return draftDataBucket.Delete(key)
 }
 
 // createChainState initializes both the database and the chain state to the
@@ -372,12 +394,6 @@ func (b *BlockChain) createChainState() error {
 			return err
 		}
 
-		// Create the bucket that houses proposal related draft data
-		_, err = meta.CreateBucket(proposalDraftDataBucketName)
-		if err != nil {
-			return err
-		}
-
 		// Save the genesis block to the block index database.
 		err = DBStoreBlockNode(dbTx, header, node.Status)
 		if err != nil {
@@ -404,7 +420,7 @@ func (b *BlockChain) createChainState() error {
 }
 
 // initChainState attempts to load and initialize the chain state from the
-// database.  When the db does not yet contain any chain state, both it and the
+// database.  When the DB does not yet contain any chain state, both it and the
 // chain state are initialized to the genesis block.
 func (b *BlockChain) initChainState() error {
 	// Determine the state of the chain database. We may need to initialize
@@ -426,28 +442,12 @@ func (b *BlockChain) initChainState() error {
 	}
 
 	if !hasBlockIndex {
-		//err = migrateBlockIndex(b.db.GetFFLDB())
+		//err = migrateBlockIndex(b.DB.GetFFLDB())
 		//if err != nil {
 		//	return initialized, nil
 		//}
 		//return initialized, errors.New("initChainState failed")
 		return nil
-	}
-
-	// try create other bucket
-	err = b.db.GetFFLDB().Update(func(dbTx database.Tx) error {
-		// Create the bucket that houses proposal related draft data
-		meta := dbTx.Metadata()
-		if b := meta.Bucket(proposalDraftDataBucketName); b == nil {
-			_, err = meta.CreateBucket(proposalDraftDataBucketName)
-			if err != nil {
-				return err
-			}
-		}
-		return nil
-	})
-	if err != nil {
-		return err
 	}
 
 	// Attempt to load the chain state from the database.
@@ -485,12 +485,18 @@ func (b *BlockChain) initChainState() error {
 					"found %s", curHash)
 			}
 
+			exists, err := dbTx.HasBlock(curHash)
+			if err != nil || !exists {
+				continue
+			}
+
 			// Initialize the block node for the block, connect it,
 			// and add it to the block index.
 			node, err := b.LoadBlockNode(header, &curHash)
 			if err != nil {
-				return fmt.Errorf("initChainState: Could "+
-					"not load block node for block %s", header.Hash())
+				log.Infof("initChainState: Could "+
+					"not load block node for block %s, height: %d, err: %s", header.Hash(), header.Height, err)
+				continue
 			}
 			node.Status = status
 
@@ -502,6 +508,7 @@ func (b *BlockChain) initChainState() error {
 		// are ancestors of the current chain tip, and find the real tip.
 		for iterNode := lastNode; iterNode != nil; iterNode = iterNode.Parent {
 			if iterNode.Status.KnownValid() {
+				log.Info("iterNode:", iterNode.Height, "hash:", iterNode.Hash.String())
 				b.setTip(iterNode)
 				break
 			}
@@ -526,10 +533,10 @@ func (b *BlockChain) initChainState() error {
 
 // DeserializeBlockRow parses a value in the block index bucket into a block
 // header and block Status bitfield.
-func DeserializeBlockRow(blockRow []byte) (*types.Header, blockStatus, error) {
+func DeserializeBlockRow(blockRow []byte) (*common2.Header, blockStatus, error) {
 	buffer := bytes.NewReader(blockRow)
 
-	var header types.Header
+	var header common2.Header
 	err := header.DeserializeNoAux(buffer)
 	if err != nil {
 		return nil, statusNone, err
@@ -545,7 +552,7 @@ func DeserializeBlockRow(blockRow []byte) (*types.Header, blockStatus, error) {
 
 // DBStoreBlockNode stores the block header to the block index bucket.
 // This overwrites the current entry if there exists one.
-func DBStoreBlockNode(dbTx database.Tx, header *types.Header,
+func DBStoreBlockNode(dbTx database.Tx, header *common2.Header,
 	status blockStatus) error {
 	// Serialize block data to be stored.
 	w := bytes.NewBuffer(make([]byte, 0, blockHdrNoAuxSize))
@@ -568,7 +575,7 @@ func DBStoreBlockNode(dbTx database.Tx, header *types.Header,
 
 // DBRemoveBlockNode stores the block header to the block index bucket.
 // This overwrites the current entry if there exists one.
-func DBRemoveBlockNode(dbTx database.Tx, header *types.Header) error {
+func DBRemoveBlockNode(dbTx database.Tx, header *common2.Header) error {
 	// Write block header data to block index bucket.
 	blockHash := header.Hash()
 	blockIndexBucket := dbTx.Metadata().Bucket(blockIndexBucketName)

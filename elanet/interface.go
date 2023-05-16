@@ -1,7 +1,7 @@
 // Copyright (c) 2017-2020 The Elastos Foundation
 // Use of this source code is governed by an MIT
 // license that can be found in the LICENSE file.
-// 
+//
 
 package elanet
 
@@ -15,13 +15,13 @@ import (
 	svr "github.com/elastos/Elastos.ELA/p2p/server"
 )
 
-// Config is the parameters needed to create a Server instance.
+// Config is the parameters needed to create a NetServer instance.
 type Config struct {
 	// Chain is the BlockChain instance.
 	Chain *blockchain.BlockChain
 
 	// ChainParams is the initial parameters to start the blockchain.
-	ChainParams *config.Params
+	ChainParams *config.Configuration
 
 	// PermanentPeers are the peers need to be connected permanently.
 	PermanentPeers []string
@@ -32,24 +32,24 @@ type Config struct {
 	// BlockMemPool is the block mempool uses by DPOS consensus.
 	BlockMemPool *mempool.BlockPool
 
-	// Routes is the DPOS network routes depends on the normal P2P network.
+	// Routes is the DPOS network Routes depends on the normal P2P network.
 	Routes *routes.Routes
 }
 
-// Server represent the elanet server.
+// NetServer represent the elanet NetServer.
 //
 // The interface contract requires that all of these methods are safe for
 // concurrent access.
 type Server interface {
 	svr.IServer
 
-	// Services returns the service flags the server supports.
+	// Services returns the service flags the NetServer supports.
 	Services() pact.ServiceFlag
 
-	// NewPeer adds a new peer that has already been connected to the server.
-	NewPeer(p svr.IPeer)(bool)
+	// NewPeer adds a new peer that has already been connected to the NetServer.
+	NewPeer(p svr.IPeer) bool
 
-	// DonePeer removes a peer that has already been connected to the server by ip.
+	// DonePeer removes a peer that has already been connected to the NetServer by ip.
 	DonePeer(p svr.IPeer)
 
 	// RelayInventory relays the passed inventory vector to all connected peers

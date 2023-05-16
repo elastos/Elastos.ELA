@@ -10,6 +10,7 @@ import (
 
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/core/types"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/dpos/p2p/peer"
 )
 
@@ -42,7 +43,7 @@ func NewArbitratorsMock(arbitersByte []ArbiterMember, changeCount,
 	}
 }
 
-//mock object of arbitrators
+//mock object of Arbiters
 type ArbitratorsMock struct {
 	CurrentArbitrators          []ArbiterMember
 	CRCArbitrators              []ArbiterMember
@@ -69,6 +70,18 @@ type ArbitratorsMock struct {
 
 func (a *ArbitratorsMock) SetNeedRevertToDPOSTX(need bool) {
 	panic("implement me")
+}
+
+func (a *ArbitratorsMock) SetNeedNextTurnDPOSInfo(need bool) {
+	panic("implement me")
+}
+
+func (a *ArbitratorsMock) IsDPoSV2Run(blockHeight uint32) bool {
+	return false
+}
+
+func (a *ArbitratorsMock) GetDPoSV2ActiveHeight() uint32 {
+	return 2000000
 }
 
 func (a *ArbitratorsMock) IsInPOWMode() bool {
@@ -156,7 +169,7 @@ func (a *ArbitratorsMock) CheckRevertToDPOSTX(block *types.Block) error {
 	panic("implement me")
 }
 
-func (a *ArbitratorsMock) ProcessSpecialTxPayload(p types.Payload, height uint32) error {
+func (a *ArbitratorsMock) ProcessSpecialTxPayload(p interfaces.Payload, height uint32) error {
 	panic("implement me")
 }
 
@@ -170,6 +183,18 @@ func (a *ArbitratorsMock) CheckNextTurnDPOSInfoTx(block *types.Block) error {
 
 func (a *ArbitratorsMock) CheckCustomIDResultsTx(block *types.Block) error {
 	return nil
+}
+
+func (a *ArbitratorsMock) GetCurrentNeedConnectArbiters() []peer.PID {
+	panic("implement me")
+}
+
+func (a *ArbitratorsMock) GetNextNeedConnectArbiters() []peer.PID {
+	panic("implement me")
+}
+
+func (a *ArbitratorsMock) GetNeedConnectCRArbiters() []peer.PID {
+	panic("implement me")
 }
 
 func (a *ArbitratorsMock) GetNeedConnectArbiters() []peer.PID {
@@ -333,6 +358,14 @@ func (a *ArbitratorsMock) GetNextCRCArbiters() [][]byte {
 	return result
 }
 
+func (a *ArbitratorsMock) GetAllNextCRCArbiters() [][]byte {
+	result := make([][]byte, 0, len(a.NextCRCArbitrators))
+	for _, v := range a.NextCRCArbitrators {
+		result = append(result, v.GetNodePublicKey())
+	}
+	return result
+}
+
 func (a *ArbitratorsMock) GetDutyChangedCount() int {
 	return a.DutyChangedCount
 }
@@ -375,6 +408,10 @@ func (a *ArbitratorsMock) HasArbitersMajorityCount(num int) bool {
 
 func (a *ArbitratorsMock) HasArbitersMinorityCount(num int) bool {
 	return num >= len(a.CurrentArbitrators)-a.MajorityCount
+}
+
+func (a *ArbitratorsMock) HasArbitersHalfMinorityCount(num int) bool {
+	return num >= (len(a.CurrentArbitrators)-a.MajorityCount)/2
 }
 
 func (a *ArbitratorsMock) DumpInfo(height uint32) {

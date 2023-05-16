@@ -34,7 +34,7 @@ type BlockPool struct {
 	sync.RWMutex
 	blocks      map[common.Uint256]*types.Block
 	confirms    map[common.Uint256]*payload.Confirm
-	chainParams *config.Params
+	chainParams *config.Configuration
 }
 
 func (bm *BlockPool) AppendConfirm(confirm *payload.Confirm) (bool,
@@ -50,7 +50,7 @@ func (bm *BlockPool) AddDposBlock(dposBlock *types.DposBlock) (bool, bool, error
 		return bm.Chain.ProcessBlock(dposBlock.Block, dposBlock.Confirm)
 	}
 
-	if dposBlock.Block.Height > bm.chainParams.RevertToPOWStartHeight && !dposBlock.HaveConfirm {
+	if dposBlock.Block.Height > bm.chainParams.DPoSConfiguration.RevertToPOWStartHeight && !dposBlock.HaveConfirm {
 		for _, tx := range dposBlock.Transactions {
 			if tx.IsRevertToPOW() {
 				return bm.Chain.ProcessBlock(dposBlock.Block, dposBlock.Confirm)
@@ -60,11 +60,11 @@ func (bm *BlockPool) AddDposBlock(dposBlock *types.DposBlock) (bool, bool, error
 
 	// main version >=H1
 	if dposBlock.Block.Height >= bm.chainParams.CRCOnlyDPOSHeight {
-		if dposBlock.Block.Height >= bm.chainParams.CRCommitteeStartHeight {
+		if dposBlock.Block.Height >= bm.chainParams.CRConfiguration.CRCommitteeStartHeight {
 			if len(dposBlock.Block.Transactions) > 0 &&
-				len(dposBlock.Block.Transactions[0].Outputs) >= 1 &&
-				dposBlock.Block.Transactions[0].Outputs[0].ProgramHash.
-					IsEqual(bm.chainParams.DestroyELAAddress) {
+				len(dposBlock.Block.Transactions[0].Outputs()) >= 1 &&
+				dposBlock.Block.Transactions[0].Outputs()[0].ProgramHash.
+					IsEqual(*bm.chainParams.DestroyELAProgramHash) {
 				return bm.Chain.ProcessBlock(dposBlock.Block, dposBlock.Confirm)
 			}
 		}
@@ -290,7 +290,7 @@ func (bm *BlockPool) CleanFinalConfirmedBlock(height uint32) {
 	}
 }
 
-func NewBlockPool(params *config.Params) *BlockPool {
+func NewBlockPool(params *config.Configuration) *BlockPool {
 	return &BlockPool{
 		blocks:      make(map[common.Uint256]*types.Block),
 		confirms:    make(map[common.Uint256]*payload.Confirm),

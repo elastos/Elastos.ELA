@@ -13,6 +13,8 @@ import (
 	"github.com/elastos/Elastos.ELA/common/log"
 	"github.com/elastos/Elastos.ELA/core/checkpoint"
 	"github.com/elastos/Elastos.ELA/core/types"
+	"github.com/elastos/Elastos.ELA/core/types/functions"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/elanet/pact"
 )
 
@@ -30,12 +32,12 @@ const (
 
 type txPoolCheckpoint struct {
 	// transaction which have been verified will put into this map
-	txnList map[common.Uint256]*types.Transaction
+	txnList map[common.Uint256]interfaces.Transaction
 	txFees  *txFeeOrderedList
 	txPool  *TxPool
 
 	height              uint32
-	initConflictManager func(map[common.Uint256]*types.Transaction)
+	initConflictManager func(map[common.Uint256]interfaces.Transaction)
 }
 
 func (c *txPoolCheckpoint) OnBlockSaved(block *types.DposBlock) {
@@ -149,12 +151,16 @@ func (c *txPoolCheckpoint) Deserialize(r io.Reader) (err error) {
 	}
 	var hash common.Uint256
 	for i := uint64(0); i < count; i++ {
-		tx := &types.Transaction{}
+
 		if err = hash.Deserialize(r); err != nil {
 			return
 		}
+		tx, err := functions.GetTransactionByBytes(r)
+		if err != nil {
+			return err
+		}
 		if err = tx.Deserialize(r); err != nil {
-			return
+			return err
 		}
 		c.txPool.appendToTxPool(tx)
 	}
@@ -163,11 +169,11 @@ func (c *txPoolCheckpoint) Deserialize(r io.Reader) (err error) {
 	return c.txFees.Deserialize(r)
 }
 
-func newTxPoolCheckpoint(txPool *TxPool, initConflictManager func(
-	map[common.Uint256]*types.Transaction)) *txPoolCheckpoint {
+func newTxPoolCheckpoint(txPool *TxPool,
+	initConflictManager func(map[common.Uint256]interfaces.Transaction)) *txPoolCheckpoint {
 	return &txPoolCheckpoint{
 		txPool:              txPool,
-		txnList:             map[common.Uint256]*types.Transaction{},
+		txnList:             map[common.Uint256]interfaces.Transaction{},
 		txFees:              newTxFeeOrderedList(txPool.onPopBack, pact.MaxTxPoolSize),
 		height:              0,
 		initConflictManager: initConflictManager,

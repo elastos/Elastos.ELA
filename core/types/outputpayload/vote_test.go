@@ -7,10 +7,10 @@ package outputpayload
 
 import (
 	"bytes"
-	"github.com/stretchr/testify/assert"
 	"testing"
 
 	"github.com/elastos/Elastos.ELA/common"
+	"github.com/stretchr/testify/assert"
 )
 
 const (

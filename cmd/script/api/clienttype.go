@@ -11,6 +11,9 @@ import (
 	"fmt"
 
 	"github.com/elastos/Elastos.ELA/account"
+	"github.com/elastos/Elastos.ELA/common"
+	"github.com/elastos/Elastos.ELA/core/contract"
+	"github.com/elastos/Elastos.ELA/crypto"
 
 	"github.com/yuin/gopher-lua"
 )
@@ -58,9 +61,11 @@ func checkClient(L *lua.LState, idx int) (*account.Client, error) {
 }
 
 var clientMethods = map[string]lua.LGFunction{
-	"get":           clientGet,
-	"get_address":   getWalletAddr,
-	"get_publickey": getWalletPubkey,
+	"get":                 clientGet,
+	"get_address":         getWalletAddr,
+	"get_s_address":       getSWalletAddr,
+	"get_s_multi_address": getMultiSWalletAddr,
+	"get_publickey":       getWalletPubkey,
 }
 
 // Getter and setter for the Person#Name
@@ -72,6 +77,54 @@ func clientGet(L *lua.LState) int {
 	fmt.Println(p)
 
 	return 0
+}
+
+func getSWalletAddr(L *lua.LState) int {
+	wallet, err := checkClient(L, 1)
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+	acc := wallet.GetMainAccount()
+	codeHash := acc.ProgramHash.ToCodeHash()
+	depositHash := common.Uint168FromCodeHash(byte(contract.PrefixDPoSV2), codeHash)
+	sAddress, err := depositHash.ToAddress()
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+	L.Push(lua.LString(sAddress))
+	return 1
+}
+
+func getMultiSWalletAddr(L *lua.LState) int {
+	wallet, err := checkClient(L, 1)
+	m := L.ToInt64(2)
+	if err != nil {
+		fmt.Println(err.Error())
+		return 0
+	}
+	pks := make([]*crypto.PublicKey, 0)
+	accs := wallet.GetAccounts()
+	for _, acc := range accs {
+		pks = append(pks, acc.PublicKey)
+	}
+
+	multiCode, err := contract.CreateMultiSigRedeemScript(int(m), pks)
+	if err != nil {
+		fmt.Println(err)
+		return 0
+	}
+	ct, err := contract.CreateStakeContractByCode(multiCode)
+	if err != nil {
+		fmt.Println(err)
+		return 0
+	}
+	stakeProgramHash := ct.ToProgramHash()
+	sAddress, err := stakeProgramHash.ToAddress()
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+	L.Push(lua.LString(sAddress))
+	return 1
 }
 
 func getWalletAddr(L *lua.LState) int {

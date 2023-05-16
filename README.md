@@ -21,17 +21,17 @@ $ uname -srm
 Darwin 18.7.0 x86_64
 ```
 
-Use [Homebrew](https://brew.sh/) to install Golang 1.13.
+Use [Homebrew](https://brew.sh/) to install Golang 1.16
 
 ```bash
-$ brew install go@1.13
+$ brew install go@1.16
 ```
 
 Check the golang version. Make sure they are the following version number or above.
 
 ```bash
 $ go version
-go version go1.13.15 darwin/amd64
+go version go1.16.5 darwin/amd64
 ```
 
 ### 2. Ubuntu Prerequisites
@@ -74,6 +74,8 @@ If clone works successfully, you should see folder structure like Elastos.ELA/Ma
 Build the node.
 ```bash
 $ cd Elastos.ELA
+$ go get .
+$ go mod tidy
 $ make
 ```
 

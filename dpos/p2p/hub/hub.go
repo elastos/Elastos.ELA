@@ -9,14 +9,19 @@ Hub is a network hub to provide different services through one network address.
 package hub
 
 import (
+	"bytes"
+	"fmt"
 	"io"
 	"net"
+	"sync"
 	"sync/atomic"
 	"time"
 
 	"github.com/elastos/Elastos.ELA/dpos/p2p/addrmgr"
+	"github.com/elastos/Elastos.ELA/dpos/p2p/msg"
 	"github.com/elastos/Elastos.ELA/dpos/p2p/peer"
 	"github.com/elastos/Elastos.ELA/events"
+	"github.com/elastos/Elastos.ELA/p2p"
 	"github.com/elastos/Elastos.ELA/utils/signal"
 )
 
@@ -40,10 +45,10 @@ type pipe struct {
 }
 
 // start creates the data pipeline between inlet and outlet.
-func (p *pipe) start() {
+func (p *pipe) start(manager *addrmgr.AddrManager, connChan chan bool) {
 	// Create two way flow between inlet and outlet.
-	go p.flow(p.inlet, p.outlet)
-	go p.flow(p.outlet, p.inlet)
+	go p.flow(manager, p.inlet, p.outlet, connChan)
+	go p.flow(manager, p.outlet, p.inlet, connChan)
 }
 
 // isAllowedReadError returns whether or not the passed error is allowed without
@@ -63,19 +68,63 @@ func (p *pipe) isAllowedIOError(err error) bool {
 }
 
 // flow creates a one way flow between from and to.
-func (p *pipe) flow(from net.Conn, to net.Conn) {
-	buf := make([]byte, buffSize)
+func (p *pipe) flow(manager *addrmgr.AddrManager, from net.Conn, to net.Conn, connChan chan bool) {
+	defer func() {
+		connChan <- true
+	}()
 
+	buf := make([]byte, buffSize)
 	idleTimer := time.NewTimer(pipeTimeout)
 	defer idleTimer.Stop()
 
 	ioFunc := func() error {
-		n, err := from.Read(buf)
+		if fc, ok := from.(*Conn); ok {
+			if fc.buf != nil && len(fc.buf.Bytes()) != 0 {
+				n, err := from.Read(buf)
+				if err != nil {
+					return err
+				}
+				_, err = to.Write(buf[:n])
+				return err
+			}
+		}
+
+		// Read message header
+		var headerBytes [p2p.HeaderSize]byte
+		if _, err := io.ReadFull(from, headerBytes[:]); err != nil {
+			return err
+		}
+
+		// Deserialize message header
+		var hdr p2p.Header
+		if err := hdr.Deserialize(headerBytes[:]); err != nil {
+			return err
+		}
+
+		// Read payload
+		payload := make([]byte, hdr.Length)
+		_, err := io.ReadFull(from, payload[:])
 		if err != nil {
 			return err
 		}
 
-		_, err = to.Write(buf[:n])
+		// Verify checksum
+		if err = hdr.Verify(payload); err != nil {
+			return err
+		}
+
+		if hdr.GetCMD() == p2p.CmdDAddr {
+			message := msg.Daddr{}
+			if err = message.Deserialize(bytes.NewBuffer(payload)); err != nil {
+				return err
+			}
+			manager.AddAddress(from.(*Conn).PID(), &message)
+		} else {
+			hdrData := headerBytes[:]
+			data := append(hdrData, payload...)
+			_, err = to.Write(data[:])
+		}
+
 		return err
 	}
 	done := make(chan error)
@@ -105,8 +154,11 @@ out:
 
 // state stores the current connect peers and local service index.
 type state struct {
-	peers map[[16]byte]peer.PID
-	index map[uint32]net.Addr
+	peers         map[[16]byte]peer.PID
+	inboundPipes  map[peer.PID]struct{}
+	outboundPipes map[peer.PID]struct{}
+	index         map[uint32]net.Addr
+	lock          sync.RWMutex
 }
 
 // peerList represents the connect peers list.
@@ -119,34 +171,42 @@ type inbound *Conn
 type outbound *Conn
 
 type Hub struct {
-	magic uint32
-	pid   peer.PID
-	admgr *addrmgr.AddrManager
-	queue chan interface{}
-	quit  chan struct{}
+	magic             uint32
+	pid               peer.PID
+	admgr             *addrmgr.AddrManager
+	queue             chan interface{}
+	quit              chan struct{}
+	addr              string
+	pingNonce         func(pid peer.PID) uint64
+	dposV2StartHeight uint32
 }
 
 // createPipe creates a pipe between inlet connection and the network address.
-func createPipe(inlet net.Conn, addr net.Addr) {
+func createPipe(manager *addrmgr.AddrManager, inlet net.Conn, addr net.Addr, connChan chan bool) net.Conn {
 	// Attempt to connect to target address.
 	outlet, err := net.Dial(addr.Network(), addr.String())
 	if err != nil {
 		// If the outlet address can not be connected, close the inlet
 		// connection to signal the pipe can not be created.
 		_ = inlet.Close()
-		return
+		connChan <- true
+		return nil
 	}
 
 	// Creates a new pipe between connection and service address.
 	p := pipe{inlet: inlet, outlet: outlet}
-	p.start()
+	p.start(manager, connChan)
+
+	return outlet
 }
 
 // connHandler is the main handler of the hub implementation.
 func (h *Hub) connHandler() {
 	state := &state{
-		peers: make(map[[16]byte]peer.PID),
-		index: make(map[uint32]net.Addr),
+		peers:         make(map[[16]byte]peer.PID),
+		inboundPipes:  make(map[peer.PID]struct{}),
+		outboundPipes: make(map[peer.PID]struct{}),
+		index:         make(map[uint32]net.Addr),
 	}
 
 out:
@@ -214,7 +274,38 @@ func (h *Hub) handleOutbound(state *state, conn *Conn) {
 	}
 
 	// Create the pipe between local service and target address.
-	go createPipe(conn, addr)
+	go func() {
+		state.lock.Lock()
+		state.outboundPipes[target] = struct{}{}
+		state.lock.Unlock()
+		connChan := make(chan bool)
+		remoteConn := createPipe(h.admgr, conn, addr, connChan)
+
+		// if only in outbound pipes, not in inbound pipes, need to announce addr
+		if uint32(h.pingNonce(peer.PID{})) > h.dposV2StartHeight {
+			go func() {
+				time.Sleep(time.Second * 10)
+				state.lock.RLock()
+				if _, ok := state.inboundPipes[target]; !ok {
+					err := h.announceDaddr(remoteConn, conn)
+					if err != nil {
+						state.lock.RUnlock()
+						log.Debugf("service announce daddr error:", err)
+						_ = conn.Close()
+						return
+					}
+				}
+				state.lock.RUnlock()
+			}()
+		} else {
+			log.Info("Don't send daddr message in hub when height is not reach dposV2StartHeight")
+		}
+
+		<-connChan
+		state.lock.Lock()
+		delete(state.outboundPipes, target)
+		state.lock.Unlock()
+	}()
 }
 
 func (h *Hub) handleInbound(state *state, conn *Conn) {
@@ -234,7 +325,49 @@ func (h *Hub) handleInbound(state *state, conn *Conn) {
 	}
 
 	// Create the pipe between inbound connection and local service.
-	go createPipe(conn, addr)
+	go func() {
+		state.lock.Lock()
+		state.inboundPipes[conn.PID()] = struct{}{}
+		state.lock.Unlock()
+		connChan := make(chan bool)
+		createPipe(h.admgr, conn, addr, connChan)
+		<-connChan
+		state.lock.Lock()
+		delete(state.inboundPipes, conn.PID())
+		state.lock.Unlock()
+	}()
+}
+
+func (h *Hub) announceDaddr(remote net.Conn, current *Conn) error {
+	// send our addr to conn
+	msg := msg.NewDaddr(h.addr)
+
+	buf := new(bytes.Buffer)
+	if err := msg.Serialize(buf); err != nil {
+		return fmt.Errorf("serialize message failed %s", err.Error())
+	}
+	payload := buf.Bytes()
+
+	// Create message header
+	hdr, err := p2p.BuildHeader(current.magic, msg.CMD(), payload).Serialize()
+	if err != nil {
+		return fmt.Errorf("serialize message header failed %s", err.Error())
+	}
+
+	// Set write deadline
+	err = remote.SetWriteDeadline(time.Now().Add(p2p.WriteMessageTimeOut))
+	if err != nil {
+		return fmt.Errorf("set write deadline failed %s", err.Error())
+	}
+
+	// Write header
+	if _, err = remote.Write(hdr); err != nil {
+		return err
+	}
+
+	// Write payload
+	_, err = remote.Write(payload)
+	return err
 }
 
 // Intercept intercepts the accepted connection and distribute the connection to
@@ -242,7 +375,6 @@ func (h *Hub) handleInbound(state *state, conn *Conn) {
 func (h *Hub) Intercept(conn net.Conn) net.Conn {
 	c, err := WrapConn(conn)
 	if err != nil {
-		log.Errorf("intercept connection failed, %s", err)
 		_ = conn.Close()
 		return nil
 	}
@@ -265,13 +397,17 @@ func (h *Hub) Intercept(conn net.Conn) net.Conn {
 
 // New creates a new Hub instance with the main network magic, arbiter PID and
 // DPOS network AddrManager.
-func New(magic uint32, pid [33]byte, admgr *addrmgr.AddrManager) *Hub {
+func New(magic uint32, pid [33]byte, admgr *addrmgr.AddrManager, addr string,
+	pingNonce func(pid peer.PID) uint64, dposV2startHeight uint32) *Hub {
 	h := Hub{
-		magic: magic,
-		pid:   pid,
-		admgr: admgr,
-		queue: make(chan interface{}, 125),
-		quit:  make(chan struct{}),
+		magic:             magic,
+		pid:               pid,
+		admgr:             admgr,
+		queue:             make(chan interface{}, 125),
+		quit:              make(chan struct{}),
+		addr:              addr,
+		pingNonce:         pingNonce,
+		dposV2StartHeight: dposV2startHeight,
 	}
 
 	// Start the hub.
@@ -287,7 +423,12 @@ func New(magic uint32, pid [33]byte, admgr *addrmgr.AddrManager) *Hub {
 	events.Subscribe(func(e *events.Event) {
 		switch e.Type {
 		case events.ETDirectPeersChanged:
-			h.queue <- peerList(e.Data.([]peer.PID))
+			peersInfo := e.Data.(*peer.PeersInfo)
+			peers := peersInfo.CurrentPeers
+			peers = append(peers, peersInfo.NextPeers...)
+			peers = append(peers, peersInfo.CRPeers...)
+
+			h.queue <- peerList(peers)
 		}
 	})
 

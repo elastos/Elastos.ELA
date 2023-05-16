@@ -12,7 +12,8 @@ import (
 
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
-	"github.com/elastos/Elastos.ELA/core/types"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 )
 
 const (
@@ -20,88 +21,88 @@ const (
 )
 
 var (
-	maxReferenceSize = 100000
+	MaxReferenceSize = 100000
 )
 
 type IUTXOCacheStore interface {
-	GetTransaction(txID common.Uint256) (*types.Transaction, uint32, error)
+	GetTransaction(txID common.Uint256) (interfaces.Transaction, uint32, error)
 }
 
 type UTXOCache struct {
 	sync.Mutex
 
-	db        IUTXOCacheStore
-	inputs    *list.List
-	reference map[types.Input]types.Output
-	txCache   map[common.Uint256]*types.Transaction
+	DB        IUTXOCacheStore
+	Inputs    *list.List
+	Reference map[common2.Input]common2.Output
+	TxCache   map[common.Uint256]interfaces.Transaction
 }
 
-func (up *UTXOCache) insertReference(input *types.Input, output *types.Output) {
-	if up.inputs.Len() >= maxReferenceSize {
-		for e := up.inputs.Front(); e != nil; e = e.Next() {
-			up.inputs.Remove(e)
-			delete(up.reference, e.Value.(types.Input))
-			if up.inputs.Len() < maxReferenceSize {
+func (up *UTXOCache) InsertReference(input *common2.Input, output *common2.Output) {
+	if up.Inputs.Len() >= MaxReferenceSize {
+		for e := up.Inputs.Front(); e != nil; e = e.Next() {
+			up.Inputs.Remove(e)
+			delete(up.Reference, e.Value.(common2.Input))
+			if up.Inputs.Len() < MaxReferenceSize {
 				break
 			}
 		}
 	}
 
-	up.inputs.PushBack(*input)
-	up.reference[*input] = *output
+	up.Inputs.PushBack(*input)
+	up.Reference[*input] = *output
 }
 
-func (up *UTXOCache) GetTxReference(tx *types.Transaction) (map[*types.Input]types.Output, error) {
+func (up *UTXOCache) GetTxReference(tx interfaces.Transaction) (map[*common2.Input]common2.Output, error) {
 	up.Lock()
 	defer up.Unlock()
 
-	result := make(map[*types.Input]types.Output)
-	for _, input := range tx.Inputs {
-		if output, exist := up.reference[*input]; exist {
+	result := make(map[*common2.Input]common2.Output)
+	for _, input := range tx.Inputs() {
+		if output, exist := up.Reference[*input]; exist {
 			result[input] = output
 		} else {
 			prevTx, err := up.getTransaction(input.Previous.TxID)
 			if err != nil {
 				return nil, errors.New("GetTxReference failed, " + err.Error())
 			}
-			if int(input.Previous.Index) >= len(prevTx.Outputs) {
+			if int(input.Previous.Index) >= len(prevTx.Outputs()) {
 				return nil, errors.New("GetTxReference failed, refIdx out of range")
 			}
 
-			result[input] = *prevTx.Outputs[input.Previous.Index]
-			up.insertReference(input, prevTx.Outputs[input.Previous.Index])
+			result[input] = *prevTx.Outputs()[input.Previous.Index]
+			up.InsertReference(input, prevTx.Outputs()[input.Previous.Index])
 		}
 	}
 
 	return result, nil
 }
 
-func (up *UTXOCache) GetTransaction(txID common.Uint256) (*types.Transaction, error) {
+func (up *UTXOCache) GetTransaction(txID common.Uint256) (interfaces.Transaction, error) {
 	up.Lock()
 	defer up.Unlock()
 
 	return up.getTransaction(txID)
 }
 
-func (up *UTXOCache) insertTransaction(txID common.Uint256, tx *types.Transaction) {
-	if len(up.txCache) > maxReferenceSize {
-		for k := range up.txCache {
-			delete(up.txCache, k)
+func (up *UTXOCache) insertTransaction(txID common.Uint256, tx interfaces.Transaction) {
+	if len(up.TxCache) > MaxReferenceSize {
+		for k := range up.TxCache {
+			delete(up.TxCache, k)
 
-			if len(up.txCache) <= maxReferenceSize {
+			if len(up.TxCache) <= MaxReferenceSize {
 				break
 			}
 		}
 	}
 
-	up.txCache[txID] = tx
+	up.TxCache[txID] = tx
 }
 
-func (up *UTXOCache) getTransaction(txID common.Uint256) (*types.Transaction, error) {
-	prevTx, exist := up.txCache[txID]
+func (up *UTXOCache) getTransaction(txID common.Uint256) (interfaces.Transaction, error) {
+	prevTx, exist := up.TxCache[txID]
 	if !exist {
 		var err error
-		prevTx, _, err = up.db.GetTransaction(txID)
+		prevTx, _, err = up.DB.GetTransaction(txID)
 		if err != nil {
 			return nil, errors.New("transaction not found, " + err.Error())
 		}
@@ -115,27 +116,27 @@ func (up *UTXOCache) CleanTxCache() {
 	up.Lock()
 	defer up.Unlock()
 
-	up.txCache = make(map[common.Uint256]*types.Transaction)
+	up.TxCache = make(map[common.Uint256]interfaces.Transaction)
 }
 
 func (up *UTXOCache) CleanCache() {
 	up.Lock()
 	defer up.Unlock()
 
-	up.inputs.Init()
-	up.reference = make(map[types.Input]types.Output)
-	up.txCache = make(map[common.Uint256]*types.Transaction)
+	up.Inputs.Init()
+	up.Reference = make(map[common2.Input]common2.Output)
+	up.TxCache = make(map[common.Uint256]interfaces.Transaction)
 }
 
-func NewUTXOCache(db IUTXOCacheStore, params *config.Params) *UTXOCache {
-	if params.NodeProfileStrategy == config.MemoryFirst.String() {
-		maxReferenceSize = memoryFirstReferenceSize
+func NewUTXOCache(db IUTXOCacheStore, params *config.Configuration) *UTXOCache {
+	if params.MemoryFirst {
+		MaxReferenceSize = memoryFirstReferenceSize
 	}
 
 	return &UTXOCache{
-		db:        db,
-		inputs:    list.New(),
-		reference: make(map[types.Input]types.Output),
-		txCache:   make(map[common.Uint256]*types.Transaction),
+		DB:        db,
+		Inputs:    list.New(),
+		Reference: make(map[common2.Input]common2.Output),
+		TxCache:   make(map[common.Uint256]interfaces.Transaction),
 	}
 }

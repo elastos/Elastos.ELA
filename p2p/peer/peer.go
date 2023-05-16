@@ -6,7 +6,9 @@
 package peer
 
 import (
+	"bytes"
 	"container/list"
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"io"
@@ -18,6 +20,7 @@ import (
 	"time"
 
 	"github.com/elastos/Elastos.ELA/core/types"
+	"github.com/elastos/Elastos.ELA/core/types/functions"
 	"github.com/elastos/Elastos.ELA/elanet/pact"
 	elaerr "github.com/elastos/Elastos.ELA/errors"
 	"github.com/elastos/Elastos.ELA/p2p"
@@ -107,7 +110,7 @@ type Config struct {
 	Services         uint64
 	DisableRelayTx   bool
 	HostToNetAddress HostToNetAddrFunc
-	MakeEmptyMessage func(cmd string) (p2p.Message, error)
+	CreateMessage    func(hdr p2p.Header, r net.Conn) (p2p.Message, error)
 	BestHeight       func() uint64
 	IsSelfConnection func(ip net.IP, port int, nonce uint64) bool
 	GetVersionNonce  func() uint64
@@ -443,6 +446,15 @@ func (p *Peer) LocalAddr() net.Addr {
 	return localAddr
 }
 
+// This function is safe fo concurrent access.
+func (p *Peer) RemoteAddr() net.Addr {
+	var remoteAddr net.Addr
+	if atomic.LoadInt32(&p.connected) != 0 {
+		remoteAddr = p.conn.RemoteAddr()
+	}
+	return remoteAddr
+}
+
 // TimeConnected returns the time at which the peer connected.
 //
 // This function is safe for concurrent access.
@@ -534,9 +546,66 @@ func (p *Peer) handlePongMsg(pong *msg.Pong) {
 	p.statsMtx.Unlock()
 }
 
-func (p *Peer) makeEmptyMessage(cmd string) (p2p.Message, error) {
+func CheckAndCreateTxMessage(hdr p2p.Header, r net.Conn) (p2p.Message, error) {
+	// Check for message length
+	var txMessage msg.Tx
+	if hdr.Length > txMessage.MaxLength() {
+		return nil, p2p.ErrMsgSizeExceeded
+	}
+
+	// Read payload
+	payload := make([]byte, hdr.Length)
+	_, err := io.ReadFull(r, payload[:])
+	if err != nil {
+		return nil, err
+	}
+
+	// Verify checksum
+	if err := hdr.Verify(payload); err != nil {
+		return nil, p2p.ErrInvalidPayload
+	}
+
+	reader := bytes.NewReader(payload)
+	txn, err := functions.GetTransactionByBytes(reader)
+	if err != nil {
+		return nil, err
+	}
+	if err := txn.Deserialize(reader); err != nil {
+		return nil, fmt.Errorf("deserialize message %s failed %s", txMessage.CMD(), err.Error())
+	}
+	message := msg.NewTx(txn)
+
+	return message, nil
+}
+
+func CheckAndCreateMessage(hdr p2p.Header, message p2p.Message, r net.Conn) (p2p.Message, error) {
+	// Check for message length
+	if hdr.Length > message.MaxLength() {
+		return nil, p2p.ErrMsgSizeExceeded
+	}
+
+	// Read payload
+	payload := make([]byte, hdr.Length)
+	_, err := io.ReadFull(r, payload[:])
+	if err != nil {
+		return nil, err
+	}
+
+	// Verify checksum
+	if err := hdr.Verify(payload); err != nil {
+		return nil, p2p.ErrInvalidPayload
+	}
+
+	if err := message.Deserialize(bytes.NewBuffer(payload)); err != nil {
+		return nil, fmt.Errorf("deserialize message %s failed %s", message.CMD(), err.Error())
+	}
+
+	return message, nil
+}
+
+func (p *Peer) createMessage(hdr p2p.Header, r net.Conn) (p2p.Message, error) {
 	var message p2p.Message
-	switch cmd {
+	switch hdr.GetCMD() {
 	case p2p.CmdVersion:
 		message = &msg.Version{}
 
@@ -556,14 +625,15 @@ func (p *Peer) makeEmptyMessage(cmd string) (p2p.Message, error) {
 		message = &msg.Pong{}
 
 	default:
-		return p.cfg.MakeEmptyMessage(cmd)
+		return p.cfg.CreateMessage(hdr, r)
 	}
-	return message, nil
+
+	return CheckAndCreateMessage(hdr, message, r)
 }
 
 func (p *Peer) readMessage() (p2p.Message, error) {
 	msg, err := p2p.ReadMessage(
-		p.conn, p.cfg.Magic, p2p.ReadMessageTimeOut, p.makeEmptyMessage)
+		p.conn, p.cfg.Magic, p2p.ReadMessageTimeOut, p.createMessage)
 	// Use closures to log expensive operations so they are only run when
 	// the logging level requires it.
 	log.Debugf("%v", newLogClosure(func() string {
@@ -1040,7 +1110,9 @@ func (p *Peer) localVersionMsg() (*msg.Version, error) {
 	// Generate a unique nonce for this peer so self connections can be
 	// detected.  This is accomplished by adding it to a size-limited map of
 	// recently seen nonces.
-	nonce := p.cfg.GetVersionNonce()
+
+	var nonce [8]byte
+	rand.Read(nonce[:])
 
 	var m *msg.Version
 	bestHeight := p.cfg.BestHeight()
@@ -1053,7 +1125,7 @@ func (p *Peer) localVersionMsg() (*msg.Version, error) {
 	}
 	// Version message.
 	m = msg.NewVersion(ver, p.cfg.DefaultPort,
-		p.cfg.Services, nonce, bestHeight, p.cfg.DisableRelayTx, nodeVersion)
+		p.cfg.Services, binary.BigEndian.Uint64(nonce[:]), bestHeight, p.cfg.DisableRelayTx, nodeVersion)
 
 	return m, nil
 }

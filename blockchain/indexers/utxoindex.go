@@ -7,8 +7,10 @@ package indexers
 
 import (
 	"bytes"
+
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/core/types"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/database"
 )
 
@@ -18,16 +20,16 @@ const (
 )
 
 var (
-	// utxoIndexKey is the key of the utxo index and the db bucket used
+	// UTXOIndexKey is the key of the utxo index and the DB bucket used
 	// to house it.
-	utxoIndexKey = []byte("utxobyhashidx")
+	UTXOIndexKey = []byte("utxobyhashidx")
 )
 
-// dbPutUtxoIndexEntry uses an existing database transaction to update the
+// DBPutUtxoIndexEntry uses an existing database transaction to update the
 // index of utxo.
-func dbPutUtxoIndexEntry(dbTx database.Tx, programHash *common.Uint168,
-	height uint32, utxos []*types.UTXO) error {
-	utxoIndex := dbTx.Metadata().Bucket(utxoIndexKey)
+func DBPutUtxoIndexEntry(dbTx database.Tx, programHash *common.Uint168,
+	height uint32, utxos []*common2.UTXO) error {
+	utxoIndex := dbTx.Metadata().Bucket(UTXOIndexKey)
 	programHashIndex, err := utxoIndex.CreateBucketIfNotExists(programHash.Bytes())
 	if err != nil {
 		return err
@@ -49,17 +51,17 @@ func dbPutUtxoIndexEntry(dbTx database.Tx, programHash *common.Uint168,
 	return programHashIndex.Put(key.Bytes(), w.Bytes())
 }
 
-// dbFetchUtxoIndexEntry uses an existing database transaction to fetch its
+// DBFetchUtxoIndexEntry uses an existing database transaction to fetch its
 // utxos. When there is no entry for the provided hash, nil will be returned
 // for the both the index and the error.
-func dbFetchUtxoIndexEntry(dbTx database.Tx, programHash *common.Uint168) (
-	[]*types.UTXO, error) {
+func DBFetchUtxoIndexEntry(dbTx database.Tx, programHash *common.Uint168) (
+	[]*common2.UTXO, error) {
 	// Load the record from the database and return now if it doesn't exist.
-	programHashIndex := dbTx.Metadata().Bucket(utxoIndexKey).Bucket(programHash.Bytes())
+	programHashIndex := dbTx.Metadata().Bucket(UTXOIndexKey).Bucket(programHash.Bytes())
 	if programHashIndex == nil {
 		return nil, nil
 	}
-	utxos := make([]*types.UTXO, 0)
+	utxos := make([]*common2.UTXO, 0)
 	err := programHashIndex.ForEach(func(height, serializedData []byte) error {
 		if len(serializedData) == 0 {
 			return nil
@@ -71,7 +73,7 @@ func dbFetchUtxoIndexEntry(dbTx database.Tx, programHash *common.Uint168) (
 			return err
 		}
 		for i := 0; i < int(count); i++ {
-			var utxo types.UTXO
+			var utxo common2.UTXO
 			if err := utxo.Deserialize(r); err != nil {
 				return err
 			}
@@ -86,13 +88,13 @@ func dbFetchUtxoIndexEntry(dbTx database.Tx, programHash *common.Uint168) (
 	return utxos, nil
 }
 
-// dbFetchUtxoIndexEntry uses an existing database transaction to fetch its
+// DBFetchUtxoIndexEntry uses an existing database transaction to fetch its
 // utxos. When there is no entry for the provided hash, nil will be returned
 // for the both the index and the error.
-func dbFetchUtxoIndexEntryByHeight(dbTx database.Tx, programHash *common.Uint168,
-	height uint32) ([]*types.UTXO, error) {
+func DBFetchUtxoIndexEntryByHeight(dbTx database.Tx, programHash *common.Uint168,
+	height uint32) ([]*common2.UTXO, error) {
 	// Load the record from the database and return now if it doesn't exist.
-	utxoIndex := dbTx.Metadata().Bucket(utxoIndexKey)
+	utxoIndex := dbTx.Metadata().Bucket(UTXOIndexKey)
 	programHashIndex, err := utxoIndex.CreateBucketIfNotExists(programHash.Bytes())
 	if err != nil {
 		return nil, err
@@ -111,9 +113,9 @@ func dbFetchUtxoIndexEntryByHeight(dbTx database.Tx, programHash *common.Uint168
 	if err != nil {
 		return nil, err
 	}
-	utxos := make([]*types.UTXO, 0, count)
+	utxos := make([]*common2.UTXO, 0, count)
 	for i := 0; i < int(count); i++ {
-		var utxo types.UTXO
+		var utxo common2.UTXO
 		if err := utxo.Deserialize(r); err != nil {
 			return nil, err
 		}
@@ -139,7 +141,7 @@ func (idx *UtxoIndex) Init() error {
 //
 // This is part of the Indexer interface.
 func (idx *UtxoIndex) Key() []byte {
-	return utxoIndexKey
+	return UTXOIndexKey
 }
 
 // Name returns the human-readable name of the index.
@@ -156,7 +158,7 @@ func (idx *UtxoIndex) Name() string {
 // This is part of the Indexer interface.
 func (idx *UtxoIndex) Create(dbTx database.Tx) error {
 	meta := dbTx.Metadata()
-	_, err := meta.CreateBucket(utxoIndexKey)
+	_, err := meta.CreateBucket(UTXOIndexKey)
 	return err
 }
 
@@ -166,26 +168,26 @@ func (idx *UtxoIndex) Create(dbTx database.Tx) error {
 //
 // This is part of the Indexer interface.
 func (idx *UtxoIndex) ConnectBlock(dbTx database.Tx, block *types.Block) error {
-	utxoMap := make(map[common.Uint168]map[uint32][]*types.UTXO)
+	utxoMap := make(map[common.Uint168]map[uint32][]*common2.UTXO)
 	for _, txn := range block.Transactions {
 		// output process
-		for i, output := range txn.Outputs {
+		for i, output := range txn.Outputs() {
 			if output.Value == 0 {
 				continue
 			}
 			if _, ok := utxoMap[output.ProgramHash]; !ok {
-				utxoMap[output.ProgramHash] = make(map[uint32][]*types.UTXO)
+				utxoMap[output.ProgramHash] = make(map[uint32][]*common2.UTXO)
 			}
 			utxos, ok := utxoMap[output.ProgramHash][block.Height]
 			if !ok {
 				var err error
-				utxos, err = dbFetchUtxoIndexEntryByHeight(dbTx,
+				utxos, err = DBFetchUtxoIndexEntryByHeight(dbTx,
 					&output.ProgramHash, block.Height)
 				if err != nil {
 					return err
 				}
 			}
-			utxos = append(utxos, &types.UTXO{TxID: txn.Hash(), Index: uint16(i),
+			utxos = append(utxos, &common2.UTXO{TxID: txn.Hash(), Index: uint16(i),
 				Value: output.Value})
 			utxoMap[output.ProgramHash][block.Height] = utxos
 		}
@@ -193,19 +195,19 @@ func (idx *UtxoIndex) ConnectBlock(dbTx database.Tx, block *types.Block) error {
 			continue
 		}
 		// inputs process
-		for _, input := range txn.Inputs {
+		for _, input := range txn.Inputs() {
 			referTx, height, err := idx.txStore.FetchTx(input.Previous.TxID)
 			if err != nil {
 				return err
 			}
-			referOutput := referTx.Outputs[input.Previous.Index]
+			referOutput := referTx.Outputs()[input.Previous.Index]
 			// find the spent items and remove it
 			if _, ok := utxoMap[referOutput.ProgramHash]; !ok {
-				utxoMap[referOutput.ProgramHash] = make(map[uint32][]*types.UTXO)
+				utxoMap[referOutput.ProgramHash] = make(map[uint32][]*common2.UTXO)
 			}
 			utxos, ok := utxoMap[referOutput.ProgramHash][height]
 			if !ok {
-				utxos, err = dbFetchUtxoIndexEntryByHeight(dbTx,
+				utxos, err = DBFetchUtxoIndexEntryByHeight(dbTx,
 					&referOutput.ProgramHash, height)
 				if err != nil {
 					return err
@@ -226,7 +228,7 @@ func (idx *UtxoIndex) ConnectBlock(dbTx database.Tx, block *types.Block) error {
 
 	for programHash, heightMap := range utxoMap {
 		for height, utxos := range heightMap {
-			err := dbPutUtxoIndexEntry(dbTx, &programHash, height, utxos)
+			err := DBPutUtxoIndexEntry(dbTx, &programHash, height, utxos)
 			if err != nil {
 				return err
 			}
@@ -242,40 +244,40 @@ func (idx *UtxoIndex) ConnectBlock(dbTx database.Tx, block *types.Block) error {
 //
 // This is part of the Indexer interface.
 func (idx *UtxoIndex) DisconnectBlock(dbTx database.Tx, block *types.Block) error {
-	utxoMap := make(map[common.Uint168]map[uint32][]*types.UTXO)
+	utxoMap := make(map[common.Uint168]map[uint32][]*common2.UTXO)
 	for _, txn := range block.Transactions {
 		// output process
-		for _, output := range txn.Outputs {
+		for _, output := range txn.Outputs() {
 			if _, ok := utxoMap[output.ProgramHash]; !ok {
-				utxoMap[output.ProgramHash] = make(map[uint32][]*types.UTXO)
+				utxoMap[output.ProgramHash] = make(map[uint32][]*common2.UTXO)
 			}
-			utxoMap[output.ProgramHash][block.Height] = []*types.UTXO{}
+			utxoMap[output.ProgramHash][block.Height] = []*common2.UTXO{}
 		}
 
 		// inputs process
 		if txn.IsCoinBaseTx() {
 			continue
 		}
-		for _, input := range txn.Inputs {
+		for _, input := range txn.Inputs() {
 			referTx, height, err := idx.txStore.FetchTx(input.Previous.TxID)
 			if err != nil {
 				return err
 			}
-			referOutput := referTx.Outputs[input.Previous.Index]
+			referOutput := referTx.Outputs()[input.Previous.Index]
 			if referOutput.Value == 0 {
 				continue
 			}
 			if _, ok := utxoMap[referOutput.ProgramHash]; !ok {
-				utxoMap[referOutput.ProgramHash] = make(map[uint32][]*types.UTXO)
+				utxoMap[referOutput.ProgramHash] = make(map[uint32][]*common2.UTXO)
 			}
 			utxos, ok := utxoMap[referOutput.ProgramHash][height]
 			if !ok {
-				utxos, err = dbFetchUtxoIndexEntryByHeight(dbTx, &referOutput.ProgramHash, height)
+				utxos, err = DBFetchUtxoIndexEntryByHeight(dbTx, &referOutput.ProgramHash, height)
 				if err != nil {
 					return err
 				}
 			}
-			utxos = append(utxos, &types.UTXO{
+			utxos = append(utxos, &common2.UTXO{
 				TxID:  input.Previous.TxID,
 				Index: input.Previous.Index,
 				Value: referOutput.Value,
@@ -286,7 +288,7 @@ func (idx *UtxoIndex) DisconnectBlock(dbTx database.Tx, block *types.Block) erro
 
 	for programHash, heightMap := range utxoMap {
 		for height, utxos := range heightMap {
-			err := dbPutUtxoIndexEntry(dbTx, &programHash, height, utxos)
+			err := DBPutUtxoIndexEntry(dbTx, &programHash, height, utxos)
 			if err != nil {
 				return err
 			}

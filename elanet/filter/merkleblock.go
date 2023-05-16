@@ -10,7 +10,8 @@ import (
 	"fmt"
 
 	"github.com/elastos/Elastos.ELA/common"
-	"github.com/elastos/Elastos.ELA/core/types"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/p2p/msg"
 )
 
@@ -94,7 +95,7 @@ func (m *mBlock) traverseAndBuild(height, pos uint32) {
 }
 
 // NewMerkleBlock returns a new *MerkleBlock
-func NewMerkleBlock(txs []*types.Transaction, filter *Filter) (*msg.MerkleBlock, []uint32) {
+func NewMerkleBlock(txs []interfaces.Transaction, filter *Filter) (*msg.MerkleBlock, []uint32) {
 	NumTx := uint32(len(txs))
 	mBlock := mBlock{
 		NumTx:       NumTx,
@@ -188,7 +189,7 @@ func CheckMerkleBlock(m msg.MerkleBlock) ([]*common.Uint256, error) {
 	if len(m.Flags) == 0 {
 		return nil, fmt.Errorf("No flag bits")
 	}
-	var header = m.Header.(*types.Header)
+	var header = m.Header.(*common2.Header)
 	var s []merkleNode      // the stack
 	var r []*common.Uint256 // slice to return; txids we care about
 

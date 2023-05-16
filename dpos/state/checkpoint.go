@@ -27,7 +27,7 @@ const (
 	// points.
 	CheckPointInterval = uint32(720)
 
-	// checkpointEffectiveHeight defines the minimal height arbitrators obj
+	// checkpointEffectiveHeight defines the minimal height Arbiters obj
 	// should scan to recover effective state.
 	checkpointEffectiveHeight = uint32(7)
 )
@@ -35,34 +35,34 @@ const (
 // CheckPoint defines all variables need record in database
 type CheckPoint struct {
 	StateKeyFrame
-	Height                uint32
-	DutyIndex             int
-	CurrentArbitrators    []ArbiterMember
-	NextArbitrators       []ArbiterMember
-	NextCandidates        []ArbiterMember
-	CurrentCandidates     []ArbiterMember
-	CurrentReward         RewardData
-	NextReward            RewardData
-	CurrentCRCArbitersMap map[common.Uint168]ArbiterMember
-	NextCRCArbitersMap    map[common.Uint168]ArbiterMember
-	NextCRCArbiters       []ArbiterMember
+	Height                      uint32
+	DutyIndex                   int
+	CurrentArbitrators          []ArbiterMember
+	NextArbitrators             []ArbiterMember
+	NextCandidates              []ArbiterMember
+	CurrentCandidates           []ArbiterMember
+	CurrentReward               RewardData
+	NextReward                  RewardData
+	CurrentCRCArbitersMap       map[common.Uint168]ArbiterMember
+	CurrentOnDutyCRCArbitersMap map[common.Uint168]ArbiterMember
+	NextCRCArbitersMap          map[common.Uint168]ArbiterMember
+	NextCRCArbiters             []ArbiterMember
 
-	crcChangedHeight           uint32
-	accumulativeReward         common.Fixed64
-	finalRoundChange           common.Fixed64
-	clearingHeight             uint32
-	arbitersRoundReward        map[common.Uint168]common.Fixed64
-	illegalBlocksPayloadHashes map[common.Uint256]interface{}
+	CRCChangedHeight           uint32
+	AccumulativeReward         common.Fixed64
+	FinalRoundChange           common.Fixed64
+	ClearingHeight             uint32
+	ArbitersRoundReward        map[common.Uint168]common.Fixed64
+	IllegalBlocksPayloadHashes map[common.Uint256]interface{}
 
-	forceChanged bool
-
-	arbitrators *arbitrators
+	ForceChanged bool
+	arbitrators  *Arbiters
 }
 
 func (c *CheckPoint) StartHeight() uint32 {
-	return uint32(math.Min(float64(c.arbitrators.chainParams.VoteStartHeight),
-		float64(c.arbitrators.chainParams.CRCOnlyDPOSHeight-
-			c.arbitrators.chainParams.PreConnectOffset)))
+	return uint32(math.Min(float64(c.arbitrators.ChainParams.VoteStartHeight),
+		float64(c.arbitrators.ChainParams.CRCOnlyDPOSHeight-
+			c.arbitrators.ChainParams.DPoSConfiguration.PreConnectOffset)))
 }
 
 func (c *CheckPoint) OnBlockSaved(block *types.DposBlock) {
@@ -78,8 +78,8 @@ func (c *CheckPoint) OnRollbackSeekTo(height uint32) {
 
 func (c *CheckPoint) OnRollbackTo(height uint32) error {
 	if height < c.StartHeight() {
-		ar := &arbitrators{}
-		if err := ar.initArbitrators(c.arbitrators.chainParams); err != nil {
+		ar := &Arbiters{}
+		if err := ar.initArbitrators(c.arbitrators.ChainParams); err != nil {
 			return err
 		}
 		c.initFromArbitrators(ar)
@@ -193,6 +193,9 @@ func (c *CheckPoint) Serialize(w io.Writer) (err error) {
 	if err = c.serializeCRCArbitersMap(w, c.CurrentCRCArbitersMap); err != nil {
 		return
 	}
+	if err = c.serializeCRCArbitersMap(w, c.CurrentOnDutyCRCArbitersMap); err != nil {
+		return
+	}
 
 	if err = c.serializeCRCArbitersMap(w, c.NextCRCArbitersMap); err != nil {
 		return
@@ -201,31 +204,31 @@ func (c *CheckPoint) Serialize(w io.Writer) (err error) {
 		return
 	}
 
-	if err = common.WriteUint32(w, c.crcChangedHeight); err != nil {
+	if err = common.WriteUint32(w, c.CRCChangedHeight); err != nil {
 		return
 	}
 
-	if err = c.accumulativeReward.Serialize(w); err != nil {
+	if err = c.AccumulativeReward.Serialize(w); err != nil {
 		return
 	}
 
-	if err = c.finalRoundChange.Serialize(w); err != nil {
+	if err = c.FinalRoundChange.Serialize(w); err != nil {
 		return
 	}
 
-	if err = common.WriteUint32(w, c.clearingHeight); err != nil {
+	if err = common.WriteUint32(w, c.ClearingHeight); err != nil {
 		return
 	}
 
-	if err = c.serializeRoundRewardMap(w, c.arbitersRoundReward); err != nil {
+	if err = c.serializeRoundRewardMap(w, c.ArbitersRoundReward); err != nil {
 		return
 	}
 
-	if err = c.serializeIllegalPayloadHashesMap(w, c.illegalBlocksPayloadHashes); err != nil {
+	if err = c.serializeIllegalPayloadHashesMap(w, c.IllegalBlocksPayloadHashes); err != nil {
 		return
 	}
 
-	if err = common.WriteElements(w, c.forceChanged); err != nil {
+	if err = common.WriteElements(w, c.ForceChanged); err != nil {
 		return
 	}
 	return c.StateKeyFrame.Serialize(w)
@@ -321,6 +324,9 @@ func (c *CheckPoint) Deserialize(r io.Reader) (err error) {
 	if c.CurrentCRCArbitersMap, err = c.deserializeCRCArbitersMap(r); err != nil {
 		return
 	}
+	if c.CurrentOnDutyCRCArbitersMap, err = c.deserializeCRCArbitersMap(r); err != nil {
+		return
+	}
 	if c.NextCRCArbitersMap, err = c.deserializeCRCArbitersMap(r); err != nil {
 		return
 	}
@@ -328,31 +334,31 @@ func (c *CheckPoint) Deserialize(r io.Reader) (err error) {
 		return
 	}
 
-	if c.crcChangedHeight, err = common.ReadUint32(r); err != nil {
+	if c.CRCChangedHeight, err = common.ReadUint32(r); err != nil {
 		return
 	}
 
-	if err = c.accumulativeReward.Deserialize(r); err != nil {
+	if err = c.AccumulativeReward.Deserialize(r); err != nil {
 		return
 	}
 
-	if err = c.finalRoundChange.Deserialize(r); err != nil {
+	if err = c.FinalRoundChange.Deserialize(r); err != nil {
 		return
 	}
 
-	if c.clearingHeight, err = common.ReadUint32(r); err != nil {
+	if c.ClearingHeight, err = common.ReadUint32(r); err != nil {
 		return
 	}
 
-	if c.arbitersRoundReward, err = c.deserializeRoundRewardMap(r); err != nil {
+	if c.ArbitersRoundReward, err = c.deserializeRoundRewardMap(r); err != nil {
 		return
 	}
 
-	c.illegalBlocksPayloadHashes, err = c.deserializeIllegalPayloadHashes(r)
+	c.IllegalBlocksPayloadHashes, err = c.deserializeIllegalPayloadHashes(r)
 	if err != nil {
 		return
 	}
-	if err = common.ReadElement(r, &c.forceChanged); err != nil {
+	if err = common.ReadElement(r, &c.ForceChanged); err != nil {
 		return
 	}
 	return c.StateKeyFrame.Deserialize(r)
@@ -468,29 +474,29 @@ func (c *CheckPoint) readArbiters(r io.Reader) ([]ArbiterMember, error) {
 	return arbiters, nil
 }
 
-func (c *CheckPoint) initFromArbitrators(ar *arbitrators) {
-	c.CurrentCandidates = ar.currentCandidates
+func (c *CheckPoint) initFromArbitrators(ar *Arbiters) {
+	c.CurrentCandidates = ar.CurrentCandidates
 	c.NextArbitrators = ar.nextArbitrators
 	c.NextCandidates = ar.nextCandidates
 	c.CurrentReward = ar.CurrentReward
 	c.NextReward = ar.NextReward
-	c.CurrentArbitrators = ar.currentArbitrators
+	c.CurrentArbitrators = ar.CurrentArbitrators
 	c.StateKeyFrame = *ar.State.StateKeyFrame
-	c.DutyIndex = ar.dutyIndex
-	c.accumulativeReward = ar.accumulativeReward
-	c.finalRoundChange = ar.finalRoundChange
-	c.clearingHeight = ar.clearingHeight
-	c.arbitersRoundReward = ar.arbitersRoundReward
-	c.illegalBlocksPayloadHashes = ar.illegalBlocksPayloadHashes
-	c.crcChangedHeight = ar.crcChangedHeight
-	c.CurrentCRCArbitersMap = ar.currentCRCArbitersMap
+	c.DutyIndex = ar.DutyIndex
+	c.AccumulativeReward = ar.accumulativeReward
+	c.FinalRoundChange = ar.finalRoundChange
+	c.ClearingHeight = ar.clearingHeight
+	c.ArbitersRoundReward = ar.arbitersRoundReward
+	c.IllegalBlocksPayloadHashes = ar.illegalBlocksPayloadHashes
+	c.CRCChangedHeight = ar.crcChangedHeight
+	c.CurrentCRCArbitersMap = ar.CurrentCRCArbitersMap
 	c.NextCRCArbitersMap = ar.nextCRCArbitersMap
 	c.NextCRCArbiters = ar.nextCRCArbiters
-	c.forceChanged = ar.forceChanged
+	c.ForceChanged = ar.forceChanged
 
 }
 
-func NewCheckpoint(ar *arbitrators) *CheckPoint {
+func NewCheckpoint(ar *Arbiters) *CheckPoint {
 	cp := &CheckPoint{
 		arbitrators: ar,
 	}

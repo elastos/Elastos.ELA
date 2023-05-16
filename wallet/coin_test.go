@@ -11,7 +11,7 @@ import (
 
 	"github.com/elastos/Elastos.ELA/account"
 	"github.com/elastos/Elastos.ELA/common"
-	"github.com/elastos/Elastos.ELA/core/types"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/core/types/outputpayload"
 	"github.com/stretchr/testify/assert"
 )
@@ -19,12 +19,12 @@ import (
 func TestCoin_Serialize_Deserialize(t *testing.T) {
 	programHash, err := common.Uint168FromAddress("EYGv9wNyEMtVHAkGJvdkFLb7FJneRWdbEu")
 	assert.NoError(t, err)
-	output := &types.Output{
+	output := &common2.Output{
 		AssetID:     *account.SystemAssetID,
 		Value:       common.Fixed64(100),
 		OutputLock:  10,
 		ProgramHash: *programHash,
-		Type:        types.OTVote,
+		Type:        common2.OTVote,
 		Payload:     &outputpayload.VoteOutput{},
 	}
 

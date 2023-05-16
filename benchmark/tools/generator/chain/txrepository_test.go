@@ -13,8 +13,7 @@ import (
 
 	"github.com/elastos/Elastos.ELA/account"
 	"github.com/elastos/Elastos.ELA/common"
-	"github.com/elastos/Elastos.ELA/core/types"
-
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -36,7 +35,7 @@ func randomTxRepository() *TxRepository {
 		foundationUTXO: randomUTXO(),
 		foundation:     randomAccount(),
 		accounts:       map[common.Uint168]*account.Account{},
-		utxos:          map[common.Uint168][]types.UTXO{},
+		utxos:          map[common.Uint168][]common2.UTXO{},
 	}
 
 	for i := 0; i < 5; i++ {
@@ -44,7 +43,7 @@ func randomTxRepository() *TxRepository {
 		result.accountKeys = append(result.accountKeys, *key)
 		result.accounts[*key] = randomAccount()
 
-		utxos := make([]types.UTXO, 0, 5)
+		utxos := make([]common2.UTXO, 0, 5)
 		for j := 0; j < 5; j++ {
 			utxos = append(utxos, randomUTXO())
 		}
@@ -90,7 +89,7 @@ func txRepositoriesEqual(first, second *TxRepository) bool {
 	return true
 }
 
-func utxosEqual(first, second *types.UTXO) bool {
+func utxosEqual(first, second *common2.UTXO) bool {
 	return first.Index == second.Index && first.Value == second.Value &&
 		first.TxID.IsEqual(second.TxID)
 }
@@ -120,8 +119,8 @@ func randomUint256() *common.Uint256 {
 	return result
 }
 
-func randomUTXO() types.UTXO {
-	return types.UTXO{
+func randomUTXO() common2.UTXO {
+	return common2.UTXO{
 		TxID:  *randomUint256(),
 		Index: uint16(rand.Int31n(math.MaxUint16)),
 		Value: common.Fixed64(rand.Int63()),

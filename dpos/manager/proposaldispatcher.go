@@ -8,13 +8,17 @@ package manager
 import (
 	"bytes"
 	"errors"
+	"github.com/elastos/Elastos.ELA/benchmark/common/utils"
 
 	"github.com/elastos/Elastos.ELA/blockchain"
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/core/contract"
-	"github.com/elastos/Elastos.ELA/core/contract/program"
+	pg "github.com/elastos/Elastos.ELA/core/contract/program"
 	"github.com/elastos/Elastos.ELA/core/types"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
+	"github.com/elastos/Elastos.ELA/core/types/functions"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/crypto"
 	"github.com/elastos/Elastos.ELA/dpos/account"
@@ -25,6 +29,8 @@ import (
 	"github.com/elastos/Elastos.ELA/dpos/state"
 )
 
+const RevertToDPosNonceRandomLength = 20
+
 type ProposalDispatcherConfig struct {
 	EventAnalyzerConfig
 	EventMonitor *log.EventMonitor
@@ -32,7 +38,7 @@ type ProposalDispatcherConfig struct {
 	Network      DPOSNetwork
 	Manager      *DPOSManager
 	Account      account.Account
-	ChainParams  *config.Params
+	ChainParams  *config.Configuration
 	TimeSource   dtime.MedianTimeSource
 }
 
@@ -54,13 +60,15 @@ type ProposalDispatcher struct {
 	firstBadNetworkRecover  bool
 
 	inactiveCountDown           ViewChangesCountDown
-	currentInactiveArbitratorTx *types.Transaction
-	RevertToDPOSTx              *types.Transaction
+	currentInactiveArbitratorTx interfaces.Transaction
+	RevertToDPOSTx              interfaces.Transaction
 
 	signedTxs map[common.Uint256]interface{}
 
 	eventAnalyzer  *eventAnalyzer
 	illegalMonitor *IllegalBehaviorMonitor
+
+	resetViewRequests map[string]struct{} // sponsors
 }
 
 func (p *ProposalDispatcher) RequestAbnormalRecovering() {
@@ -101,10 +109,10 @@ func (p *ProposalDispatcher) ProcessVote(v *payload.DPOSProposalVote,
 		return false, false
 	}
 
-	if anotherVote, legal := p.illegalMonitor.IsLegalVote(v); !legal {
-		p.illegalMonitor.ProcessIllegalVote(v, anotherVote)
-		return
-	}
+	//if anotherVote, legal := p.illegalMonitor.IsLegalVote(v); !legal {
+	//	p.illegalMonitor.ProcessIllegalVote(v, anotherVote)
+	//	return
+	//}
 
 	if accept {
 		return p.countAcceptedVote(v)
@@ -296,10 +304,10 @@ func (p *ProposalDispatcher) ProcessProposal(id peer.PID, d *payload.DPOSProposa
 		}
 	}
 
-	if anotherProposal, ok := p.illegalMonitor.IsLegalProposal(d); !ok {
-		p.illegalMonitor.ProcessIllegalProposal(d, anotherProposal)
-		return true, true
-	}
+	//if anotherProposal, ok := p.illegalMonitor.IsLegalProposal(d); !ok {
+	//	p.illegalMonitor.ProcessIllegalProposal(d, anotherProposal)
+	//	return true, true
+	//}
 
 	if !p.cfg.Consensus.IsArbitratorOnDuty(d.Sponsor) {
 		currentArbiter := p.cfg.Manager.GetArbitrators().GetNextOnDutyArbitrator(p.cfg.Consensus.GetViewOffset())
@@ -393,61 +401,74 @@ func (p *ProposalDispatcher) FinishConsensus(height uint32, blockHash common.Uin
 		p.cfg.EventMonitor.OnConsensusFinished(&c)
 		p.cfg.Consensus.SetReady()
 		p.CleanProposals(false)
+		p.resetViewRequests = make(map[string]struct{}, 0)
+	}
+}
+
+func (p *ProposalDispatcher) resetConsensus() {
+	log.Info("[resetConsensus] start")
+	defer log.Info("[resetConsensus] end")
+
+	if p.cfg.Consensus.IsRunning() {
+		log.Info("[resetConsensus] reset view")
+		p.cfg.Consensus.SetReady()
+		p.CleanProposals(false)
 	}
 }
 
 func (p *ProposalDispatcher) CollectConsensusStatus(status *dmsg.ConsensusStatus) error {
 	status.AcceptVotes = make([]payload.DPOSProposalVote, 0, len(p.acceptVotes))
-	for _, v := range p.acceptVotes {
-		status.AcceptVotes = append(status.AcceptVotes, *v)
-	}
+	//for _, v := range p.acceptVotes {
+	//	status.AcceptVotes = append(status.AcceptVotes, *v)
+	//}
 
 	status.RejectedVotes = make([]payload.DPOSProposalVote, 0, len(p.rejectedVotes))
-	for _, v := range p.rejectedVotes {
-		status.RejectedVotes = append(status.RejectedVotes, *v)
-	}
+	//for _, v := range p.rejectedVotes {
+	//	status.RejectedVotes = append(status.RejectedVotes, *v)
+	//}
 
 	status.PendingProposals = make([]payload.DPOSProposal, 0, len(p.pendingProposals))
-	for _, v := range p.pendingProposals {
-		status.PendingProposals = append(status.PendingProposals, *v)
-	}
+	//for _, v := range p.pendingProposals {
+	//	status.PendingProposals = append(status.PendingProposals, *v)
+	//}
 
 	status.PendingVotes = make([]payload.DPOSProposalVote, 0, len(p.pendingVotes))
-	for _, v := range p.pendingVotes {
-		status.PendingVotes = append(status.PendingVotes, *v)
-	}
+	//for _, v := range p.pendingVotes {
+	//	status.PendingVotes = append(status.PendingVotes, *v)
+	//}
 
 	return nil
 }
 
 func (p *ProposalDispatcher) RecoverFromConsensusStatus(status *dmsg.ConsensusStatus) error {
 	p.acceptVotes = make(map[common.Uint256]*payload.DPOSProposalVote)
-	for _, v := range status.AcceptVotes {
-		vote := v
-		p.acceptVotes[v.Hash()] = &vote
-	}
+	//for _, v := range status.AcceptVotes {
+	//	vote := v
+	//	p.acceptVotes[v.Hash()] = &vote
+	//}
 
 	p.rejectedVotes = make(map[common.Uint256]*payload.DPOSProposalVote)
-	for _, v := range status.RejectedVotes {
-		vote := v
-		p.rejectedVotes[v.Hash()] = &vote
-	}
+	//for _, v := range status.RejectedVotes {
+	//	vote := v
+	//	p.rejectedVotes[v.Hash()] = &vote
+	//}
 
 	p.pendingProposals = make(map[common.Uint256]*payload.DPOSProposal)
-	for _, v := range status.PendingProposals {
-		vote := v
-		p.pendingProposals[v.Hash()] = &vote
-	}
+	//for _, v := range status.PendingProposals {
+	//	vote := v
+	//	p.pendingProposals[v.Hash()] = &vote
+	//}
 
 	p.pendingVotes = make(map[common.Uint256]*payload.DPOSProposalVote)
-	for _, v := range status.PendingVotes {
-		vote := v
-		p.pendingVotes[v.Hash()] = &vote
-	}
+	//for _, v := range status.PendingVotes {
+	//	vote := v
+	//	p.pendingVotes[v.Hash()] = &vote
+	//}
 
 	if status.ConsensusStatus == consensusReady {
 		p.processingBlock = nil
 	}
+
 	return nil
 }
 
@@ -490,7 +511,7 @@ func (p *ProposalDispatcher) OnIllegalBlocksTxReceived(i *payload.DPOSIllegalBlo
 }
 
 func (p *ProposalDispatcher) OnRevertToDPOSTxReceived(id peer.PID,
-	tx *types.Transaction) {
+	tx interfaces.Transaction) {
 	if _, ok := p.signedTxs[tx.Hash()]; ok {
 		return
 	}
@@ -515,7 +536,7 @@ func (p *ProposalDispatcher) OnRevertToDPOSTxReceived(id peer.PID,
 }
 
 func (p *ProposalDispatcher) OnInactiveArbitratorsReceived(id peer.PID,
-	tx *types.Transaction) {
+	tx interfaces.Transaction) {
 	if _, ok := p.signedTxs[tx.Hash()]; ok {
 		log.Warn("[OnInactiveArbitratorsReceived] already processed")
 		return
@@ -529,7 +550,7 @@ func (p *ProposalDispatcher) OnInactiveArbitratorsReceived(id peer.PID,
 		return
 	}
 
-	inactivePayload := tx.Payload.(*payload.InactiveArbitrators)
+	inactivePayload := tx.Payload().(*payload.InactiveArbitrators)
 	if len(inactivePayload.Arbitrators) == 0 {
 		log.Warn("[OnInactiveArbitratorsReceived] received empty payload")
 		return
@@ -604,13 +625,48 @@ func (p *ProposalDispatcher) OnResponseRevertToDPOSTxReceived(
 		return
 	}
 
-	pro := p.RevertToDPOSTx.Programs[0]
+	pro := p.RevertToDPOSTx.Programs()[0]
 	buf := new(bytes.Buffer)
 	buf.Write(pro.Parameter)
 	buf.WriteByte(byte(len(sign)))
 	buf.Write(sign)
 	pro.Parameter = buf.Bytes()
 	p.tryEnterDPOSState(len(pro.Parameter) / crypto.SignatureScriptLength)
+}
+
+func (p *ProposalDispatcher) OnResponseResetViewReceived(msg *dmsg.ResetView) {
+	signer := msg.Sponsor
+	sign := msg.Sign
+
+	if p.resetViewRequests == nil {
+		p.resetViewRequests = make(map[string]struct{}, 0)
+	}
+
+	data := new(bytes.Buffer)
+	if err := msg.SerializeUnsigned(
+		data); err != nil {
+		return
+	}
+
+	pk, err := crypto.DecodePoint(signer)
+	if err != nil {
+		return
+	}
+
+	if err := crypto.Verify(*pk, data.Bytes(), sign); err != nil {
+		log.Errorf("invalid message signature:", *msg)
+		return
+	}
+
+	p.resetViewRequests[common.BytesToHexString(signer)] = struct{}{}
+	log.Info("[OnResponseResetViewReceived] signer:", common.BytesToHexString(signer))
+
+	if len(p.resetViewRequests) >= p.cfg.Arbitrators.GetArbitersMajorityCount() {
+		log.Info("[OnResponseResetViewReceived] signer:", common.BytesToHexString(signer))
+		// do reset
+		p.resetConsensus()
+		p.resetViewRequests = make(map[string]struct{}, 0)
+	}
 }
 
 func (p *ProposalDispatcher) OnResponseInactiveArbitratorsReceived(
@@ -646,7 +702,7 @@ func (p *ProposalDispatcher) OnResponseInactiveArbitratorsReceived(
 		return
 	}
 
-	pro := p.currentInactiveArbitratorTx.Programs[0]
+	pro := p.currentInactiveArbitratorTx.Programs()[0]
 	buf := new(bytes.Buffer)
 	buf.Write(pro.Parameter)
 	buf.WriteByte(byte(len(sign)))
@@ -660,7 +716,7 @@ func (p *ProposalDispatcher) tryEnterDPOSState(signCount int) bool {
 	minSignCount := int(float64(p.cfg.Arbitrators.GetArbitersCount())*
 		state.MajoritySignRatioNumerator/state.MajoritySignRatioDenominator) + 1
 	if signCount >= minSignCount {
-		payload := p.RevertToDPOSTx.Payload.(*payload.RevertToDPOS)
+		payload := p.RevertToDPOSTx.Payload().(*payload.RevertToDPOS)
 		p.cfg.Arbitrators.SetNeedRevertToDPOSTX(true)
 		err := p.cfg.Manager.AppendToTxnPool(p.RevertToDPOSTx)
 		if err != nil {
@@ -679,12 +735,12 @@ func (p *ProposalDispatcher) tryEnterEmergencyState(signCount int) bool {
 	minSignCount := int(float64(len(p.cfg.Arbitrators.GetCRCArbiters()))*
 		state.MajoritySignRatioNumerator/state.MajoritySignRatioDenominator) + 1
 	if signCount >= minSignCount {
-		payload := p.currentInactiveArbitratorTx.Payload.(*payload.InactiveArbitrators)
+		payload := p.currentInactiveArbitratorTx.Payload().(*payload.InactiveArbitrators)
 		p.illegalMonitor.AddEvidence(payload)
 		p.cfg.Manager.AppendToTxnPool(p.currentInactiveArbitratorTx)
 
 		if err := p.cfg.Arbitrators.ProcessSpecialTxPayload(
-			p.currentInactiveArbitratorTx.Payload,
+			p.currentInactiveArbitratorTx.Payload(),
 			blockchain.DefaultLedger.Blockchain.GetHeight()); err != nil {
 			log.Error("[tryEnterEmergencyState] force change arbitrators"+
 				" error: ", err.Error())
@@ -832,7 +888,7 @@ func (p *ProposalDispatcher) setProcessingProposal(d *payload.DPOSProposal) (fin
 }
 
 func (p *ProposalDispatcher) CreateRevertToDPOS(RevertToPOWBlockHeight uint32) (
-	*types.Transaction, error) {
+	interfaces.Transaction, error) {
 
 	var err error
 	revertToDPOSPayload := &payload.RevertToDPOS{
@@ -844,40 +900,41 @@ func (p *ProposalDispatcher) CreateRevertToDPOS(RevertToPOWBlockHeight uint32) (
 		return nil, err
 	}
 
-	programHash := con.ToProgramHash()
-	tx := &types.Transaction{
-		Version:        types.TxVersion09,
-		TxType:         types.RevertToDPOS,
-		PayloadVersion: payload.RevertToDPOSVersion,
-		Payload:        revertToDPOSPayload,
-		Attributes: []*types.Attribute{{
-			Usage: types.Script,
-			Data:  programHash.Bytes(),
-		}},
-		LockTime: 0,
-		Outputs:  []*types.Output{},
-		Inputs:   []*types.Input{},
-		Fee:      0,
-	}
+	tx := functions.CreateTransaction(
+		common2.TxVersion09,
+		common2.RevertToDPOS,
+		payload.RevertToDPOSVersion,
+		revertToDPOSPayload,
+		[]*common2.Attribute{
+			{
+				Usage: common2.Nonce,
+				Data:  utils.RandomBytes(RevertToDPosNonceRandomLength),
+			}},
+		[]*common2.Input{},
+		[]*common2.Output{},
+		0,
+		[]*pg.Program{},
+	)
 
 	var sign []byte
 	if sign, err = p.cfg.Account.SignTx(tx); err != nil {
 		return nil, err
 	}
 	parameter := append([]byte{byte(len(sign))}, sign...)
-	tx.Programs = []*program.Program{
+	tx.SetPrograms([]*pg.Program{
 		{
 			Code:      con.Code,
 			Parameter: parameter,
 		},
-	}
+	})
 
 	p.RevertToDPOSTx = tx
 	return tx, nil
 }
 
 func (p *ProposalDispatcher) CreateInactiveArbitrators() (
-	*types.Transaction, error) {
+	interfaces.Transaction, error) {
+
 	var err error
 
 	inactivePayload := &payload.InactiveArbitrators{
@@ -904,32 +961,32 @@ func (p *ProposalDispatcher) CreateInactiveArbitrators() (
 	}
 
 	programHash := con.ToProgramHash()
-	tx := &types.Transaction{
-		Version:        types.TxVersion09,
-		TxType:         types.InactiveArbitrators,
-		PayloadVersion: payload.InactiveArbitratorsVersion,
-		Payload:        inactivePayload,
-		Attributes: []*types.Attribute{{
-			Usage: types.Script,
+
+	tx := functions.CreateTransaction(
+		common2.TxVersion09,
+		common2.InactiveArbitrators,
+		payload.InactiveArbitratorsVersion,
+		inactivePayload,
+		[]*common2.Attribute{{
+			Usage: common2.Script,
 			Data:  programHash.Bytes(),
 		}},
-		LockTime: 0,
-		Outputs:  []*types.Output{},
-		Inputs:   []*types.Input{},
-		Fee:      0,
-	}
-
+		[]*common2.Input{},
+		[]*common2.Output{},
+		0,
+		[]*pg.Program{},
+	)
 	var sign []byte
 	if sign, err = p.cfg.Account.SignTx(tx); err != nil {
 		return nil, err
 	}
 	parameter := append([]byte{byte(len(sign))}, sign...)
-	tx.Programs = []*program.Program{
+	tx.SetPrograms([]*pg.Program{
 		{
 			Code:      con.Code,
 			Parameter: parameter,
 		},
-	}
+	})
 
 	p.currentInactiveArbitratorTx = tx
 	return tx, nil

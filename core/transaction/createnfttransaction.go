@@ -76,6 +76,11 @@ func (t *CreateNFTTransaction) HeightVersionCheck() error {
 		return errors.New(fmt.Sprintf("not support %s transaction "+
 			"before NFTV2StartHeight", t.TxType().Name()))
 	}
+	if blockHeight >= chainParams.DPoSConfiguration.NFTV2StartHeight &&
+		t.payloadVersion != payload.CreateNFTVersion2 {
+		return errors.New(fmt.Sprintf("not support %s transaction "+
+			"with payload version 0 before NFTV2StartHeight", t.TxType().Name()))
+	}
 
 	return nil
 }

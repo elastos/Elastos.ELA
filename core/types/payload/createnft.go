@@ -8,12 +8,14 @@ package payload
 import (
 	"bytes"
 	"errors"
+	"github.com/elastos/Elastos.ELA/crypto"
 	"io"
 
 	"github.com/elastos/Elastos.ELA/common"
 )
 
 const CreateNFTVersion byte = 0x00
+const CreateNFTVersion2 byte = 0x01
 
 // CreateNFT defines the transaction of NFT.
 type CreateNFT struct {
@@ -26,6 +28,22 @@ type CreateNFT struct {
 
 	// genesis block hash of side chain.
 	GenesisBlockHash common.Uint256
+
+	// the start height of votes
+	StartHeight uint32
+
+	// the end height of votes: start height + lock time.
+	EndHeight uint32
+
+	// the DPoS 2.0 votes.
+	Votes common.Fixed64
+
+	// the DPoS 2.0 vote rights.
+	VoteRights common.Fixed64
+
+	// the votes to the producer, and TargetOwnerPublicKey is the producer's
+	// owner key.
+	TargetOwnerKey []byte
 }
 
 func (a *CreateNFT) Data(version byte) []byte {
@@ -58,6 +76,24 @@ func (a *CreateNFT) SerializeUnsigned(w io.Writer, version byte) error {
 		return errors.New("[CreateNFT], failed to serialize GenesisBlockHash")
 	}
 
+	if version >= CreateNFTVersion2 {
+		if err := common.WriteUint32(w, a.StartHeight); err != nil {
+			return errors.New("[CreateNFT], failed to serialize StartHeight")
+		}
+		if err := common.WriteUint32(w, a.EndHeight); err != nil {
+			return errors.New("[CreateNFT], failed to serialize EndHeight")
+		}
+		if err := a.Votes.Serialize(w); err != nil {
+			return errors.New("[CreateNFT], failed to serialize Votes")
+		}
+		if err := a.VoteRights.Serialize(w); err != nil {
+			return errors.New("[CreateNFT], failed to serialize VoteRights")
+		}
+		if err := common.WriteVarBytes(w, a.TargetOwnerKey); err != nil {
+			return errors.New("[CreateNFT], failed to serialize TargetOwnerPublicKey")
+		}
+	}
+
 	return nil
 }
 
@@ -83,6 +119,25 @@ func (a *CreateNFT) DeserializeUnsigned(r io.Reader, version byte) error {
 
 	if err := a.GenesisBlockHash.Deserialize(r); err != nil {
 		return errors.New("[CreateNFT], failed to deserialize GenesisBlockHash")
+	}
+
+	if version >= CreateNFTVersion2 {
+
+		if a.StartHeight, err = common.ReadUint32(r); err != nil {
+			return errors.New("[CreateNFT], failed to deserialize StartHeight")
+		}
+		if a.EndHeight, err = common.ReadUint32(r); err != nil {
+			return errors.New("[CreateNFT], failed to deserialize EndHeight")
+		}
+		if err := a.Votes.Deserialize(r); err != nil {
+			return errors.New("[CreateNFT], failed to deserialize Votes")
+		}
+		if err := a.VoteRights.Deserialize(r); err != nil {
+			return errors.New("[CreateNFT], failed to deserialize VoteRights")
+		}
+		if a.TargetOwnerKey, err = common.ReadVarBytes(r, crypto.MaxMultiSignCodeLength, "TargetOwnerKey"); err != nil {
+			return errors.New("[CreateNFT], failed to deserialize TargetOwnerKey")
+		}
 	}
 
 	return nil

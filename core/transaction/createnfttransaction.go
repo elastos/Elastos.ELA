@@ -6,6 +6,7 @@
 package transaction
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"github.com/elastos/Elastos.ELA/common"
@@ -70,6 +71,12 @@ func (t *CreateNFTTransaction) HeightVersionCheck() error {
 		return errors.New(fmt.Sprintf("not support %s transaction "+
 			"before NFTStartHeight", t.TxType().Name()))
 	}
+	if blockHeight < chainParams.DPoSConfiguration.NFTV2StartHeight &&
+		t.payloadVersion >= payload.CreateNFTVersion2 {
+		return errors.New(fmt.Sprintf("not support %s transaction "+
+			"before NFTV2StartHeight", t.TxType().Name()))
+	}
+
 	return nil
 }
 
@@ -86,6 +93,7 @@ func (t *CreateNFTTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
 	var existVote bool
 	var nftAmount common.Fixed64
 	var votesStakeAddress common.Uint168
+	var detailedVotes payload.DetailedVoteInfo
 	for _, p := range producers {
 		for stakeAddress, votesInfo := range p.GetAllDetailedDPoSV2Votes() {
 			for referKey, voteInfo := range votesInfo {
@@ -104,6 +112,7 @@ func (t *CreateNFTTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
 					existVote = true
 					nftAmount = voteInfo.Info[0].Votes
 					votesStakeAddress = stakeAddress
+					detailedVotes = voteInfo
 				}
 			}
 		}
@@ -190,5 +199,30 @@ func (t *CreateNFTTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
 			errors.New("vote rights is not enough")), true
 	}
 
+	if t.payloadVersion == payload.CreateNFTVersion2 {
+		if detailedVotes.BlockHeight != pld.StartHeight {
+			return elaerr.Simple(elaerr.ErrTxPayload,
+				errors.New("invalid StartHeight")), true
+		}
+		if detailedVotes.BlockHeight+detailedVotes.Info[0].LockTime != pld.EndHeight {
+			return elaerr.Simple(elaerr.ErrTxPayload,
+				errors.New("invalid EndHeight")), true
+		}
+		if nftAmount != pld.Votes {
+			return elaerr.Simple(elaerr.ErrTxPayload,
+				errors.New("invalid Votes")), true
+		}
+		if detailedVotes.VoteRights() != pld.VoteRights {
+			return elaerr.Simple(elaerr.ErrTxPayload,
+				errors.New("invalid VoteRights")), true
+		}
+		if !bytes.Equal(detailedVotes.Info[0].Candidate, pld.TargetOwnerKey) {
+			return elaerr.Simple(elaerr.ErrTxPayload,
+				errors.New("invalid TargetOwnerKey")), true
+		}
+	} else if t.payloadVersion > payload.CreateNFTVersion2 {
+		return elaerr.Simple(elaerr.ErrTxPayload,
+			errors.New("invalid payload version")), true
+	}
 	return nil, false
 }

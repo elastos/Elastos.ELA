@@ -194,6 +194,7 @@ func GetDefaultParams() *Configuration {
 			CandidatesCount:                   72,
 			DPoSV2RewardAccumulateProgramHash: StakeRewardProgramHash,
 			NFTStartHeight:                    1405000,
+			NFTV2StartHeight:                  math.MaxUint32, // todo complete me
 			OriginArbiters: []string{
 				"0248df6705a909432be041e0baa25b8f648741018f70d1911f2ed28778db4b8fe4",
 				"02771faf0f4d4235744b30972d5f2c470993920846c761e4d08889ecfdc061cddf",
@@ -254,7 +255,7 @@ func GetDefaultParams() *Configuration {
 		VotesSchnorrStartHeight:         math.MaxUint32,
 		CrossChainMonitorStartHeight:    math.MaxUint32,
 		CrossChainMonitorInterval:       100,
-		SupportMultiCodeHeight:          2000,                 // todo complete me
+		SupportMultiCodeHeight:          math.MaxUint32, // todo complete me
 		HttpInfoPort:                    20333,
 		HttpRestPort:                    20334,
 		HttpWsPort:                      20335,
@@ -382,6 +383,7 @@ func (p *Configuration) TestNet() *Configuration {
 	p.CrossChainMonitorInterval = 100
 	p.CRConfiguration.CRClaimPeriod = 10080
 	p.DPoSConfiguration.NFTStartHeight = 1098000
+	p.DPoSConfiguration.NFTV2StartHeight = math.MaxUint32 // todo complete me
 
 	p.HttpInfoPort = 21333
 	p.HttpRestPort = 21334
@@ -503,6 +505,7 @@ func (p *Configuration) RegNet() *Configuration {
 	p.CrossChainMonitorInterval = 100
 	p.CRConfiguration.CRClaimPeriod = 10080
 	p.DPoSConfiguration.NFTStartHeight = 968000
+	p.DPoSConfiguration.NFTV2StartHeight = math.MaxUint32 // todo complete me
 	p.HttpInfoPort = 22333
 	p.HttpRestPort = 22334
 	p.HttpWsPort = 22335
@@ -725,6 +728,8 @@ type DPoSConfiguration struct {
 	CRDPoSNodeHotFixHeight uint32 `screw:"--crdposnodehotfixheight" usage:"CRDPoSNodeHotFixHeight indicates the hot fix start height of CR DPoS node"`
 	// NFTStartHeight defines the height of NFT started.
 	NFTStartHeight uint32 `screw:"--nftstartheight" usage:"the start height of NFT transaction"`
+	// NFTV2StartHeight defines the height of NFT 2.0 started, NFT transaction will record the detailed votes information.
+	NFTV2StartHeight uint32 `screw:"--NFTV2StartHeight" usage:"the start height of NFT 2.0 transaction"`
 }
 
 type CRConfiguration struct {

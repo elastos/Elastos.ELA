@@ -256,6 +256,7 @@ func GetDefaultParams() *Configuration {
 		CrossChainMonitorStartHeight:    math.MaxUint32,
 		CrossChainMonitorInterval:       100,
 		SupportMultiCodeHeight:          math.MaxUint32, // todo complete me
+		MultiExchangeVotesStartHeight:   math.MaxUint32, // todo complete me
 		HttpInfoPort:                    20333,
 		HttpRestPort:                    20334,
 		HttpWsPort:                      20335,
@@ -392,6 +393,7 @@ func (p *Configuration) TestNet() *Configuration {
 	p.ProducerSchnorrStartHeight = math.MaxUint32
 	p.CRSchnorrStartHeight = math.MaxUint32
 	p.VotesSchnorrStartHeight = math.MaxUint32
+	p.MultiExchangeVotesStartHeight = math.MaxUint32 // todo complete me
 
 	p.MemoryPoolTxMaximumStayHeight = 10
 
@@ -513,6 +515,7 @@ func (p *Configuration) RegNet() *Configuration {
 	p.ProducerSchnorrStartHeight = math.MaxUint32
 	p.CRSchnorrStartHeight = math.MaxUint32
 	p.VotesSchnorrStartHeight = math.MaxUint32
+	p.MultiExchangeVotesStartHeight = math.MaxUint32 // todo complete me
 
 	p.MemoryPoolTxMaximumStayHeight = 10
 
@@ -648,6 +651,8 @@ type Configuration struct {
 	CRSchnorrStartHeight uint32 `screw:"--crschnorrstartheight" usage:"defines the start height to support CR related schnorr transaction"`
 	// VotesSchnorrStartHeight indicates the start height of votes related schnorr tx
 	VotesSchnorrStartHeight uint32 `screw:"--votesschnorrstartheight" usage:"defines the start height to support votes related schnorr transaction"`
+	// MultiExchangeVotesStartHeight indicates the start height of multi-addr exchange votes transaction
+	MultiExchangeVotesStartHeight uint32 `screw:"--multiexchangevotesstartheight" usage:"defines the start height to support multi-addr exchange votes transaction"`
 	// CrossChainMonitorStartHeight indicates the monitor height of cr cross chain arbitration
 	CrossChainMonitorStartHeight uint32 `screw:"--crosschainmonitorstartheight" usage:"defines the start height to monitor cr cross chain transaction"`
 	// CrossChainMonitorInterval indicates the interval value of cr cross chain arbitration

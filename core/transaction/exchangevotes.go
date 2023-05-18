@@ -24,10 +24,6 @@ type ExchangeVotesTransaction struct {
 	BaseTransaction
 }
 
-func (t *ExchangeVotesTransaction) inPow() bool {
-	return t.parameters.BlockChain.GetState().GetConsensusAlgorithm() == state.POW
-}
-
 func (t *ExchangeVotesTransaction) HeightVersionCheck() error {
 	blockHeight := t.parameters.BlockHeight
 	chainParams := t.parameters.Config
@@ -37,11 +33,18 @@ func (t *ExchangeVotesTransaction) HeightVersionCheck() error {
 		return errors.New(fmt.Sprintf("not support %s transaction "+
 			"before DPoSV2StartHeight", t.TxType().Name()))
 	}
+
+	if blockHeight < chainParams.MultiExchangeVotesStartHeight &&
+		len(t.programs) > 1 {
+		return errors.New(fmt.Sprintf("not support multi-addr %s transaction "+
+			"before MultiExchangeVotesStartHeight", t.TxType().Name()))
+	}
 	return nil
 }
 
 func (t *ExchangeVotesTransaction) CheckTransactionOutput() error {
-	if t.inPow() {
+	inPow := t.parameters.BlockChain.GetState().GetConsensusAlgorithm() == state.POW
+	if inPow {
 		if len(t.Outputs()) > 2 {
 			return errors.New("output count should not be greater than 2")
 		}
@@ -63,7 +66,7 @@ func (t *ExchangeVotesTransaction) CheckTransactionOutput() error {
 		if output.Value <= common.Fixed64(0) {
 			return errors.New("invalid transaction UTXO output")
 		}
-		if !t.inPow() {
+		if !inPow {
 			if i >= 1 {
 				if contract.GetPrefixType(output.ProgramHash) != contract.PrefixStandard &&
 					contract.GetPrefixType(output.ProgramHash) != contract.PrefixMultiSig {
@@ -85,7 +88,7 @@ func (t *ExchangeVotesTransaction) CheckTransactionOutput() error {
 		return err
 	}
 	//when we are in pow
-	if t.inPow() {
+	if inPow {
 		sopayload, ok := p.(*outputpayload.ExchangeVotesOutput)
 		if !ok {
 			return errors.New("invalid exchange vote output payload")
@@ -135,7 +138,7 @@ func (t *ExchangeVotesTransaction) CheckAttributeProgram() error {
 			return fmt.Errorf("invalid attribute usage %v", attr.Usage)
 		}
 	}
-	if t.inPow() {
+	if t.parameters.BlockChain.GetState().GetConsensusAlgorithm() == state.POW {
 		if len(t.Programs()) != 1 {
 			return errors.New("transaction should have one  program")
 		}

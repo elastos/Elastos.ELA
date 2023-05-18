@@ -223,14 +223,42 @@ func strCancelProducerOwnerPublicKey(tx interfaces.Transaction) (interface{},
 	return common.BytesToHexString(p.OwnerKey), nil
 }
 
-func strActivateAndCancelKeys(tx interfaces.Transaction) (interface{},
+func strActivateKey(tx interfaces.Transaction) (interface{},
 	error) {
-	if tx.TxType() != common2.CancelProducer && tx.TxType() != common2.ActivateProducer {
+	if tx.TxType() != common2.ActivateProducer {
 		err := fmt.Errorf(
 			"invalid tx:%s", tx.Hash())
 		return nil, errors.Simple(errors.ErrTxPoolFailure, err)
 	}
-	return "activatecancel", nil
+	p, ok := tx.Payload().(*payload.ActivateProducer)
+	if !ok {
+		return nil, fmt.Errorf(
+			"activate producer payload cast failed, tx:%s", tx.Hash())
+	}
+	return common.BytesToHexString(p.NodePublicKey), nil
+
+}
+
+func strCancelKey(tx interfaces.Transaction) (interface{},
+	error) {
+	if tx.TxType() != common2.CancelProducer {
+		err := fmt.Errorf(
+			"invalid tx:%s", tx.Hash())
+		return nil, errors.Simple(errors.ErrTxPoolFailure, err)
+	}
+	p, ok := tx.Payload().(*payload.ProcessProducer)
+	if !ok {
+		err := fmt.Errorf(
+			"cancel producer payload cast failed, tx:%s", tx.Hash())
+		return nil, errors.Simple(errors.ErrTxPoolFailure, err)
+	}
+	producer := blockchain.DefaultLedger.Blockchain.GetState().GetProducer(p.OwnerKey)
+	if producer == nil {
+		err := fmt.Errorf(
+			"cancel producer GetProducer(p.OwnerKey) failed, tx:%s", tx.Hash())
+		return nil, errors.Simple(errors.ErrTxPoolFailure, err)
+	}
+	return common.BytesToHexString(producer.NodePublicKey()), nil
 }
 
 func strProducerInfoOwnerPublicKey(tx interfaces.Transaction) (interface{}, error) {

@@ -42,13 +42,76 @@ func (t *ExchangeVotesTransaction) HeightVersionCheck() error {
 	return nil
 }
 
-func (t *ExchangeVotesTransaction) CheckTransactionOutput() error {
-	inPow := t.parameters.BlockChain.GetState().GetConsensusAlgorithm() == state.POW
-	if inPow {
-		if len(t.Outputs()) > 2 {
-			return errors.New("output count should not be greater than 2")
+// pow or  before MultiExchangeVotesStartHeight
+func (t *ExchangeVotesTransaction) CheckOutputSingleInput() error {
+	if len(t.Outputs()) > 2 {
+		return errors.New("output count should not be greater than 2")
+	}
+
+	if len(t.Outputs()) < 1 {
+		return errors.New("transaction has no outputs")
+	}
+
+	if len(t.Programs()) < 1 {
+		return errors.New("invalid programs count")
+	}
+	// check if output address is valid
+	for _, output := range t.Outputs() {
+		if output.AssetID != core.ELAAssetID {
+			return errors.New("asset ID in output is invalid")
+		}
+
+		// output value must > 0
+		if output.Value <= common.Fixed64(0) {
+			return errors.New("invalid transaction UTXO output")
 		}
 	}
+
+	// check output payload
+	if t.outputs[0].Type != common2.OTStake {
+		return errors.New("invalid output type")
+	}
+	p := t.outputs[0].Payload
+	if p == nil {
+		return errors.New("invalid output payload")
+	}
+	sopayload, ok := p.(*outputpayload.ExchangeVotesOutput)
+	if !ok {
+		return errors.New("invalid exchange vote output payload")
+	}
+	if err := p.Validate(); err != nil {
+		return err
+	}
+
+	// check output[0] stake address
+	code := t.Programs()[0].Code
+	ct, err := contract.CreateStakeContractByCode(code)
+	if err != nil {
+		return errors.New("invalid code")
+	}
+	stakeProgramHash := ct.ToProgramHash()
+
+	if !stakeProgramHash.IsEqual(sopayload.StakeAddress) {
+		return errors.New("invalid stake address")
+	}
+
+	// check output address, need to be stake pool
+	if t.outputs[0].ProgramHash != *t.parameters.Config.StakePoolProgramHash {
+		return errors.New("first output address need to be stake address")
+	}
+
+	// check the second output
+	if len(t.Outputs()) == 2 {
+		if contract.GetPrefixType(t.Outputs()[1].ProgramHash) != contract.PrefixStandard &&
+			contract.GetPrefixType(t.Outputs()[1].ProgramHash) != contract.PrefixMultiSig {
+			return errors.New("second output address need to be Standard or MultiSig")
+		}
+	}
+
+	return nil
+}
+
+func (t *ExchangeVotesTransaction) CheckOutputMultiInputs() error {
 	if len(t.Outputs()) < 1 {
 		return errors.New("transaction has no outputs")
 	}
@@ -66,12 +129,10 @@ func (t *ExchangeVotesTransaction) CheckTransactionOutput() error {
 		if output.Value <= common.Fixed64(0) {
 			return errors.New("invalid transaction UTXO output")
 		}
-		if !inPow {
-			if i >= 1 {
-				if contract.GetPrefixType(output.ProgramHash) != contract.PrefixStandard &&
-					contract.GetPrefixType(output.ProgramHash) != contract.PrefixMultiSig {
-					return errors.New("second output address need to be Standard or MultiSig")
-				}
+		if i >= 1 {
+			if contract.GetPrefixType(output.ProgramHash) != contract.PrefixStandard &&
+				contract.GetPrefixType(output.ProgramHash) != contract.PrefixMultiSig {
+				return errors.New("second output address need to be Standard or MultiSig")
 			}
 		}
 	}
@@ -87,32 +148,6 @@ func (t *ExchangeVotesTransaction) CheckTransactionOutput() error {
 	if err := p.Validate(); err != nil {
 		return err
 	}
-	//when we are in pow
-	if inPow {
-		sopayload, ok := p.(*outputpayload.ExchangeVotesOutput)
-		if !ok {
-			return errors.New("invalid exchange vote output payload")
-		}
-		// check output[0] stake address
-		code := t.Programs()[0].Code
-		ct, err := contract.CreateStakeContractByCode(code)
-		if err != nil {
-			return errors.New("invalid code")
-		}
-		stakeProgramHash := ct.ToProgramHash()
-
-		if !stakeProgramHash.IsEqual(sopayload.StakeAddress) {
-			return errors.New("invalid stake address")
-		}
-		// check the second output
-		if len(t.Outputs()) == 2 {
-			if contract.GetPrefixType(t.Outputs()[1].ProgramHash) != contract.PrefixStandard &&
-				contract.GetPrefixType(t.Outputs()[1].ProgramHash) != contract.PrefixMultiSig {
-				return errors.New("second output address need to be Standard or MultiSig")
-			}
-		}
-
-	}
 
 	// check output address, need to be stake pool
 	if t.outputs[0].ProgramHash != *t.parameters.Config.StakePoolProgramHash {
@@ -120,6 +155,15 @@ func (t *ExchangeVotesTransaction) CheckTransactionOutput() error {
 	}
 
 	return nil
+}
+
+func (t *ExchangeVotesTransaction) CheckTransactionOutput() error {
+	inPow := t.parameters.BlockChain.GetState().GetConsensusAlgorithm() == state.POW
+	if inPow || t.parameters.BlockHeight < t.parameters.Config.MultiExchangeVotesStartHeight {
+		return t.CheckOutputSingleInput()
+	} else {
+		return t.CheckOutputMultiInputs()
+	}
 }
 
 func (t *ExchangeVotesTransaction) CheckTransactionPayload() error {
@@ -149,14 +193,16 @@ func (t *ExchangeVotesTransaction) CheckAttributeProgram() error {
 		}
 	}
 
-	if t.Programs()[0].Code == nil {
-		return fmt.Errorf("invalid program code nil")
-	}
-	if len(t.Programs()[0].Code) < program2.MinProgramCodeSize {
-		return fmt.Errorf("invalid program code size")
-	}
-	if t.Programs()[0].Parameter == nil {
-		return fmt.Errorf("invalid program parameter nil")
+	for _, p := range t.Programs() {
+		if p.Code == nil {
+			return fmt.Errorf("invalid program code nil")
+		}
+		if len(p.Code) < program2.MinProgramCodeSize {
+			return fmt.Errorf("invalid program code size")
+		}
+		if p.Parameter == nil {
+			return fmt.Errorf("invalid program parameter nil")
+		}
 	}
 
 	return nil

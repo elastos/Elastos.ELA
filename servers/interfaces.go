@@ -3554,18 +3554,39 @@ func getPayloadInfo(p interfaces.Payload, payloadVersion byte) PayloadInfo {
 		return obj
 
 	case *payload.NextTurnDPOSInfo:
-		obj := new(NextTurnDPOSPayloadInfo)
+		if payloadVersion == payload.NextTurnDPOSInfoVersion {
+			obj := new(NextTurnDPOSPayloadInfo)
+			crPublicKeysString := make([]string, 0)
+			dposPublicKeysString := make([]string, 0)
+			for _, v := range object.CRPublicKeys {
+				crPublicKeysString = append(crPublicKeysString, common.BytesToHexString(v))
+			}
+			for _, v := range object.DPOSPublicKeys {
+				dposPublicKeysString = append(dposPublicKeysString, common.BytesToHexString(v))
+			}
+			obj.WorkingHeight = object.WorkingHeight
+			obj.CRPublickeys = crPublicKeysString
+			obj.DPOSPublicKeys = dposPublicKeysString
+			return obj
+		}
+
+		obj := new(NextTurnDPOSPayloadInfoV2)
 		crPublicKeysString := make([]string, 0)
 		dposPublicKeysString := make([]string, 0)
+		completeCRPublicKeysString := make([]string, 0)
 		for _, v := range object.CRPublicKeys {
 			crPublicKeysString = append(crPublicKeysString, common.BytesToHexString(v))
 		}
 		for _, v := range object.DPOSPublicKeys {
 			dposPublicKeysString = append(dposPublicKeysString, common.BytesToHexString(v))
 		}
+		for _, v := range object.CompleteCRPublicKeys {
+			completeCRPublicKeysString = append(completeCRPublicKeysString, common.BytesToHexString(v))
+		}
 		obj.WorkingHeight = object.WorkingHeight
-		obj.CRPublickeys = crPublicKeysString
+		obj.CRPublicKeys = crPublicKeysString
 		obj.DPOSPublicKeys = dposPublicKeysString
+		obj.CompleteCRPublicKeys = completeCRPublicKeysString
 		return obj
 
 	case *payload.CRCProposalRealWithdraw:

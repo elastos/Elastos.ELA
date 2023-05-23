@@ -88,6 +88,9 @@ type ICheckPoint interface {
 	// SavePeriod defines how long should we save the checkpoint.
 	SavePeriod() uint32
 
+	// SaveStartHeight returns the height to create checkpoints file.
+	SaveStartHeight() uint32
+
 	// EffectivePeriod defines the legal height a checkpoint can take
 	// effect.
 	EffectivePeriod() uint32
@@ -314,7 +317,8 @@ func (m *Manager) onBlockSaved(block *types.DposBlock,
 			continue
 		}
 		v.OnBlockSaved(block)
-		if !m.cfg.CheckPointConfiguration.NeedSave || init {
+
+		if !m.cfg.CheckPointConfiguration.NeedSave || init || block.Height <= v.SaveStartHeight() {
 			continue
 		}
 

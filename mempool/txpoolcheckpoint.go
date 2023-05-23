@@ -118,6 +118,10 @@ func (c *txPoolCheckpoint) OnInit() {
 	c.initConflictManager(c.txnList)
 }
 
+func (c *txPoolCheckpoint) SaveStartHeight() uint32 {
+	return uint32(1)
+}
+
 func (c *txPoolCheckpoint) StartHeight() uint32 {
 	return uint32(1)
 }

@@ -145,6 +145,10 @@ func (c *Checkpoint) OnInit() {
 	c.committee.Recover(c)
 }
 
+func (c *Checkpoint) SaveStartHeight() uint32 {
+	return c.committee.Params.CRConfiguration.CRVotingStartHeight
+}
+
 func (c *Checkpoint) StartHeight() uint32 {
 	return c.committee.Params.CRConfiguration.CRVotingStartHeight
 }

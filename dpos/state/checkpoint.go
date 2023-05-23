@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"errors"
 	"io"
+	"math"
 
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/core/checkpoint"
@@ -58,8 +59,15 @@ type CheckPoint struct {
 	arbitrators  *Arbiters
 }
 
-func (c *CheckPoint) StartHeight() uint32 {
+func (c *CheckPoint) SaveStartHeight() uint32 {
+	// same to CR
 	return c.arbitrators.ChainParams.CRConfiguration.CRVotingStartHeight
+}
+
+func (c *CheckPoint) StartHeight() uint32 {
+	return uint32(math.Min(float64(c.arbitrators.ChainParams.VoteStartHeight),
+		float64(c.arbitrators.ChainParams.CRCOnlyDPOSHeight-
+			c.arbitrators.ChainParams.DPoSConfiguration.PreConnectOffset)))
 }
 
 func (c *CheckPoint) OnBlockSaved(block *types.DposBlock) {

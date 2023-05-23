@@ -36,6 +36,10 @@ type checkpoint struct {
 	priority Priority
 }
 
+func (c *checkpoint) SaveStartHeight() uint32 {
+	return 0
+}
+
 func (c *checkpoint) StartHeight() uint32 {
 	return 0
 }

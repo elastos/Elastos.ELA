@@ -442,6 +442,13 @@ type NextTurnDPOSPayloadInfo struct {
 	DPOSPublicKeys []string `json:"dpospublickeys"`
 }
 
+type NextTurnDPOSPayloadInfoV2 struct {
+	WorkingHeight        uint32   `json:"workingheight"`
+	CRPublicKeys         []string `json:"crpublickeys"`
+	DPOSPublicKeys       []string `json:"dpospublickeys"`
+	CompleteCRPublicKeys []string `json:"CompleteCRPublicKeys"`
+}
+
 type CRCProposalRealWithdrawInfo struct {
 	WithdrawTransactionHashes []string `json:"withdrawtransactionhashes"`
 }

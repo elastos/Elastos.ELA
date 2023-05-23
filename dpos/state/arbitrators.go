@@ -510,6 +510,13 @@ func (a *Arbiters) normalChange(height uint32) error {
 }
 
 func (a *Arbiters) notifyNextTurnDPOSInfoTx(blockHeight, versionHeight uint32, forceChange bool) {
+	if blockHeight+uint32(a.ChainParams.DPoSConfiguration.NormalArbitratorsCount+len(a.ChainParams.DPoSConfiguration.CRCArbiters)) >= a.ChainParams.DPoSConfiguration.DexStartHeight {
+		nextTurnDPOSInfoTx := a.createNextTurnDPOSInfoTransactionV2(blockHeight, forceChange)
+		go events.Notify(events.ETAppendTxToTxPool, nextTurnDPOSInfoTx)
+
+		return
+	}
+
 	if blockHeight+uint32(a.ChainParams.DPoSConfiguration.NormalArbitratorsCount+len(a.ChainParams.DPoSConfiguration.CRCArbiters)) >= a.DPoSV2ActiveHeight {
 		nextTurnDPOSInfoTx := a.createNextTurnDPOSInfoTransactionV1(blockHeight, forceChange)
 		go events.Notify(events.ETAppendTxToTxPool, nextTurnDPOSInfoTx)
@@ -519,6 +526,7 @@ func (a *Arbiters) notifyNextTurnDPOSInfoTx(blockHeight, versionHeight uint32, f
 
 	nextTurnDPOSInfoTx := a.createNextTurnDPOSInfoTransactionV0(blockHeight, forceChange)
 	go events.Notify(events.ETAppendTxToTxPool, nextTurnDPOSInfoTx)
+
 	return
 }
 
@@ -1853,6 +1861,56 @@ func (a *Arbiters) createNextTurnDPOSInfoTransactionV0(blockHeight uint32, force
 		common2.TxVersion09,
 		common2.NextTurnDPOSInfo,
 		0,
+		&nextTurnDPOSInfo,
+		[]*common2.Attribute{},
+		[]*common2.Input{},
+		[]*common2.Output{},
+		0,
+		[]*program.Program{},
+	)
+}
+
+func (a *Arbiters) createNextTurnDPOSInfoTransactionV2(blockHeight uint32, forceChange bool) interfaces.Transaction {
+
+	var nextTurnDPOSInfo payload.NextTurnDPOSInfo
+	nextTurnDPOSInfo.CRPublicKeys = make([][]byte, 0)
+	nextTurnDPOSInfo.DPOSPublicKeys = make([][]byte, 0)
+	var workingHeight uint32
+	if forceChange {
+		workingHeight = blockHeight
+	} else {
+		workingHeight = blockHeight + uint32(a.ChainParams.DPoSConfiguration.NormalArbitratorsCount+len(a.ChainParams.DPoSConfiguration.CRCArbiters))
+	}
+	nextTurnDPOSInfo.WorkingHeight = workingHeight
+	for _, v := range a.nextCRCArbiters {
+		nodePK := v.GetNodePublicKey()
+		if v.IsNormal() {
+			nextTurnDPOSInfo.CRPublicKeys = append(nextTurnDPOSInfo.CRPublicKeys, nodePK)
+		} else {
+			nextTurnDPOSInfo.CRPublicKeys = append(nextTurnDPOSInfo.CRPublicKeys, []byte{})
+		}
+
+		nextTurnDPOSInfo.CompleteCRPublicKeys = append(nextTurnDPOSInfo.CompleteCRPublicKeys, nodePK)
+	}
+	for _, v := range a.nextArbitrators {
+		if a.isNextCRCArbitrator(v.GetNodePublicKey()) {
+			if abt, ok := v.(*crcArbiter); ok && abt.crMember.MemberState != state.MemberElected {
+				nextTurnDPOSInfo.DPOSPublicKeys = append(nextTurnDPOSInfo.DPOSPublicKeys, []byte{})
+			} else {
+				nextTurnDPOSInfo.DPOSPublicKeys = append(nextTurnDPOSInfo.DPOSPublicKeys, v.GetNodePublicKey())
+			}
+		} else {
+			nextTurnDPOSInfo.DPOSPublicKeys = append(nextTurnDPOSInfo.DPOSPublicKeys, v.GetNodePublicKey())
+		}
+	}
+
+	log.Debugf("[createNextTurnDPOSInfoTransaction] CRPublicKeys %v, DPOSPublicKeys%v\n",
+		a.ConvertToArbitersStr(nextTurnDPOSInfo.CRPublicKeys), a.ConvertToArbitersStr(nextTurnDPOSInfo.DPOSPublicKeys))
+
+	return functions.CreateTransaction(
+		common2.TxVersion09,
+		common2.NextTurnDPOSInfo,
+		payload.NextTurnDPOSInfoVersion2,
 		&nextTurnDPOSInfo,
 		[]*common2.Attribute{},
 		[]*common2.Input{},

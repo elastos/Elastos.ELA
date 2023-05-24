@@ -2110,7 +2110,7 @@ type RPCProducerInfo struct {
 	Index          uint64 `json:"index"`
 }
 
-//a group producer info include TotalDPoSV1Votes and producer count
+// a group producer info include TotalDPoSV1Votes and producer count
 type RPCProducersInfo struct {
 	ProducerInfoSlice []RPCProducerInfo `json:"producers"`
 	TotalDPoSV1Votes  string            `json:"totaldposv1votes"`
@@ -2134,7 +2134,7 @@ type RPCCRCandidateInfo struct {
 	Index uint64 `json:"index"`
 }
 
-//a group cr candidate info include TotalDPoSV1Votes and candidate count
+// a group cr candidate info include TotalDPoSV1Votes and candidate count
 type RPCCRCandidatesInfo struct {
 	CRCandidateInfoSlice []RPCCRCandidateInfo `json:"crcandidatesinfo"`
 	TotalVotes           string               `json:"totalvotes"`
@@ -3792,10 +3792,24 @@ func getPayloadInfo(p interfaces.Payload, payloadVersion byte) PayloadInfo {
 		return obj
 
 	case *payload.CreateNFT:
-		obj := &CreateNFTInfo{
+		if payloadVersion == payload.CreateNFTVersion {
+			obj := &CreateNFTInfo{
+				ID:               object.ReferKey.ReversedString(),
+				StakeAddress:     object.StakeAddress,
+				GenesisBlockHash: common.ToReversedString(object.GenesisBlockHash),
+			}
+			return obj
+		}
+
+		obj := &CreateNFTInfoV2{
 			ID:               object.ReferKey.ReversedString(),
 			StakeAddress:     object.StakeAddress,
 			GenesisBlockHash: common.ToReversedString(object.GenesisBlockHash),
+			StartHeight:      object.StartHeight,
+			EndHeight:        object.EndHeight,
+			Votes:            object.Votes.String(),
+			VoteRights:       object.VoteRights.String(),
+			TargetOwnerKey:   common.BytesToHexString(object.TargetOwnerKey),
 		}
 		return obj
 

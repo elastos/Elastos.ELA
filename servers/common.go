@@ -617,6 +617,26 @@ type CreateNFTInfo struct {
 	GenesisBlockHash string
 }
 
+type CreateNFTInfoV2 struct {
+	// nft id, hash of detailed vote information.
+	ID string
+	// side chain format address.
+	StakeAddress string
+	// side chain genesis block address
+	GenesisBlockHash string
+	// the start height of votes
+	StartHeight uint32
+	// the end height of votes: start height + lock time.
+	EndHeight uint32
+	// the DPoS 2.0 votes.
+	Votes string
+	// the DPoS 2.0 vote rights.
+	VoteRights string
+	// the votes to the producer, and TargetOwnerPublicKey is the producer's
+	// owner key.
+	TargetOwnerKey string
+}
+
 type DestroyNFTInfo struct {
 	// detail votes info referkey
 	IDs []string

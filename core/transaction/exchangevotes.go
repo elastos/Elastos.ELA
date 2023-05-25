@@ -52,7 +52,7 @@ func (t *ExchangeVotesTransaction) CheckOutputSingleInput() error {
 		return errors.New("transaction has no outputs")
 	}
 
-	if len(t.Programs()) < 1 {
+	if len(t.Programs()) != 1 {
 		return errors.New("invalid programs count")
 	}
 	// check if output address is valid

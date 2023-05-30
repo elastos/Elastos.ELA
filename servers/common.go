@@ -609,8 +609,10 @@ type DposV2ClaimRewardRealWithdrawInfo struct {
 }
 
 type CreateNFTInfo struct {
-	// nft id, hash of detailed vote information.
+	// NFT ID
 	ID string
+	// hash of detailed vote information.
+	ReferKey string
 	// side chain format address.
 	StakeAddress string
 	// side chain genesis block address
@@ -618,8 +620,10 @@ type CreateNFTInfo struct {
 }
 
 type CreateNFTInfoV2 struct {
-	// nft id, hash of detailed vote information.
+	// NFT ID
 	ID string
+	// hash of detailed vote information.
+	ReferKey string
 	// side chain format address.
 	StakeAddress string
 	// side chain genesis block address

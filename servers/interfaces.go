@@ -100,7 +100,7 @@ func GetTransactionInfo(tx interfaces.Transaction) *TransactionInfo {
 		Version:        tx.Version(),
 		TxType:         tx.TxType(),
 		PayloadVersion: tx.PayloadVersion(),
-		Payload:        getPayloadInfo(tx.Payload(), tx.PayloadVersion()),
+		Payload:        getPayloadInfo(tx, tx.PayloadVersion()),
 		Attributes:     attributes,
 		Inputs:         inputs,
 		Outputs:        outputs,
@@ -3216,7 +3216,8 @@ func DecodeRawTransaction(param Params) map[string]interface{} {
 	return ResponsePack(Success, GetTransactionInfo(txn))
 }
 
-func getPayloadInfo(p interfaces.Payload, payloadVersion byte) PayloadInfo {
+func getPayloadInfo(tx interfaces.Transaction, payloadVersion byte) PayloadInfo {
+	p := tx.Payload()
 	switch object := p.(type) {
 	case *payload.CoinBase:
 		obj := new(CoinbaseInfo)
@@ -3794,7 +3795,8 @@ func getPayloadInfo(p interfaces.Payload, payloadVersion byte) PayloadInfo {
 	case *payload.CreateNFT:
 		if payloadVersion == payload.CreateNFTVersion {
 			obj := &CreateNFTInfo{
-				ID:               object.ReferKey.ReversedString(),
+				ID:               common.GetNFTID(object.ReferKey, tx.Hash()).ReversedString(),
+				ReferKey:         object.ReferKey.ReversedString(),
 				StakeAddress:     object.StakeAddress,
 				GenesisBlockHash: common.ToReversedString(object.GenesisBlockHash),
 			}
@@ -3802,7 +3804,8 @@ func getPayloadInfo(p interfaces.Payload, payloadVersion byte) PayloadInfo {
 		}
 
 		obj := &CreateNFTInfoV2{
-			ID:               object.ReferKey.ReversedString(),
+			ID:               common.GetNFTID(object.ReferKey, tx.Hash()).ReversedString(),
+			ReferKey:         object.ReferKey.ReversedString(),
 			StakeAddress:     object.StakeAddress,
 			GenesisBlockHash: common.ToReversedString(object.GenesisBlockHash),
 			StartHeight:      object.StartHeight,

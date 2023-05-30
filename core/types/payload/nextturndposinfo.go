@@ -124,6 +124,9 @@ func (n *NextTurnDPOSInfo) DeserializeUnsigned(r io.Reader, version byte) error 
 	}
 
 	if version >= NextTurnDPOSInfoVersion2 {
+		if len, err = common.ReadVarUint(r, 0); err != nil {
+			return err
+		}
 		n.CompleteCRPublicKeys = make([][]byte, 0, len)
 		for i := uint64(0); i < len; i++ {
 			var publicKey []byte

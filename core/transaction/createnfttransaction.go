@@ -209,7 +209,7 @@ func (t *CreateNFTTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
 			return elaerr.Simple(elaerr.ErrTxPayload,
 				errors.New("invalid StartHeight")), true
 		}
-		if detailedVotes.BlockHeight+detailedVotes.Info[0].LockTime != pld.EndHeight {
+		if detailedVotes.Info[0].LockTime != pld.EndHeight {
 			return elaerr.Simple(elaerr.ErrTxPayload,
 				errors.New("invalid EndHeight")), true
 		}

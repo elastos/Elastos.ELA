@@ -2716,21 +2716,24 @@ func GetCRRelatedStage(param Params) map[string]interface{} {
 		ondutyStartHeight = cm.GetCROnDutyStartHeight()
 		ondutyEndHeight = ondutyStartHeight + cm.GetCROnDutyPeriod()
 	}
-	var votingStartHeight, votingEndHeight uint32
-	if isInVoting {
-		votingStartHeight = cm.GetCRVotingStartHeight()
-		votingEndHeight = votingStartHeight + cm.GetCRVotingPeriod()
-	} else {
-		votingStartHeight = cm.GetNextVotingStartHeight(currentHeight)
-		votingEndHeight = votingStartHeight + ChainParams.CRConfiguration.ProposalCRVotingPeriod
-	}
 
-	claimingStartHeight := votingEndHeight + 1
-	//claimingEndHeight := claimingStartHeight + ChainParams.CRClaimPeriod
+	var votingStartHeight, votingEndHeight uint32
+	votingStartHeight = cm.GetCRVotingStartHeight()
+	votingEndHeight = votingStartHeight + cm.GetCRVotingPeriod()
+
+	claimingStartHeight := votingEndHeight
 	claimingEndHeight := claimingStartHeight + ChainParams.CRConfiguration.CRClaimPeriod
+
 	isInClaiming := false
 	if claimingStartHeight <= currentHeight && currentHeight <= claimingEndHeight {
 		isInClaiming = true
+	}
+
+	if !isInVoting && !isInClaiming {
+		votingStartHeight = cm.GetNextVotingStartHeight(currentHeight)
+		votingEndHeight = votingStartHeight + cm.GetCRVotingPeriod()
+		claimingStartHeight = votingEndHeight
+		claimingEndHeight = claimingStartHeight + ChainParams.CRConfiguration.CRClaimPeriod
 	}
 
 	currentSession = cm.GetCurrentSession()

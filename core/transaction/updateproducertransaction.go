@@ -84,7 +84,13 @@ func (t *UpdateProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bool
 	if !ok {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid payload")), true
 	}
-
+	multiSignOwner := false
+	if t.PayloadVersion() == payload.ProducerInfoMultiVersion {
+		multiSignOwner = true
+	}
+	if multiSignOwner && len(info.OwnerKey) == crypto.NegativeBigLength {
+		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("ProducerInfoMultiVersion match multi code")), true
+	}
 	// check nick name
 	if err := checkStringField(info.NickName, "NickName", false); err != nil {
 		return elaerr.Simple(elaerr.ErrTxPayload, err), true
@@ -131,6 +137,11 @@ func (t *UpdateProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bool
 		if !contract.IsMultiSig(t.Programs()[0].Code) {
 			return elaerr.Simple(elaerr.ErrTxPayload,
 				errors.New("only multi sign code can use ProducerInfoMultiVersion")), true
+		}
+		//t.Programs()[0].Code equal info.OwnerKey
+		if !bytes.Equal(t.Programs()[0].Code, info.OwnerKey) {
+			return elaerr.Simple(elaerr.ErrTxPayload,
+				errors.New("ProducerInfoMultiVersion tx program pk must equal with OwnerKey")), true
 		}
 	}
 

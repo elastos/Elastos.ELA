@@ -21,10 +21,10 @@ import (
 	"github.com/elastos/Elastos.ELA/core/types"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/core/types/interfaces"
-	"github.com/elastos/Elastos.ELA/crypto"
 	"github.com/elastos/Elastos.ELA/core/types/outputpayload"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/cr/state"
+	"github.com/elastos/Elastos.ELA/crypto"
 	msg2 "github.com/elastos/Elastos.ELA/dpos/p2p/msg"
 	elaerr "github.com/elastos/Elastos.ELA/errors"
 	"github.com/elastos/Elastos.ELA/events"
@@ -1833,11 +1833,20 @@ func (s *State) processTransaction(tx interfaces.Transaction, height uint32) {
 	s.processCancelVotes(tx, height)
 }
 
-func getOwnerKeyDepositProgramHash(ownerPublicKey []byte) (ownKeyProgramHash *common.Uint168, err error) {
-	if len(ownerPublicKey) == crypto.NegativeBigLength {
-		ownKeyProgramHash, err = contract.PublicKeyToDepositProgramHash(ownerPublicKey)
+func GetOwnerKeyCodeHash(ownerKey []byte) (ownKeyProgramHash *common.Uint160, err error) {
+	if len(ownerKey) == crypto.NegativeBigLength {
+		ownKeyProgramHash, err = contract.PublicKeyToStandardCodeHash(ownerKey)
 	} else {
-		ownKeyProgramHash = common.ToProgramHash(byte(contract.PrefixDeposit), ownerPublicKey)
+		return common.ToCodeHash(ownerKey), nil
+	}
+	return ownKeyProgramHash, err
+}
+
+func GetOwnerKeyDepositProgramHash(ownerKey []byte) (ownKeyProgramHash *common.Uint168, err error) {
+	if len(ownerKey) == crypto.NegativeBigLength {
+		ownKeyProgramHash, err = contract.PublicKeyToDepositProgramHash(ownerKey)
+	} else {
+		ownKeyProgramHash = common.ToProgramHash(byte(contract.PrefixDeposit), ownerKey)
 	}
 	return ownKeyProgramHash, err
 }
@@ -1850,7 +1859,7 @@ func (s *State) registerProducer(tx interfaces.Transaction, height uint32) {
 	ownerKey := hex.EncodeToString(info.OwnerKey)
 	// ignore error here because this converting process has been ensured in
 	// the context check already
-	programHash, _ := getOwnerKeyDepositProgramHash(info.
+	programHash, _ := GetOwnerKeyDepositProgramHash(info.
 		OwnerKey)
 
 	amount := common.Fixed64(0)
@@ -2417,7 +2426,7 @@ func (s *State) returnDeposit(tx interfaces.Transaction, height uint32) {
 		if producer := s.getProducer(pk); producer != nil {
 
 			// check deposit coin
-			hash, err := contract.PublicKeyToDepositProgramHash(producer.info.OwnerKey)
+			hash, err := GetOwnerKeyDepositProgramHash(producer.info.OwnerKey)
 			if err != nil {
 				log.Error("owner public key to deposit program hash: failed")
 				return

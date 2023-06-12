@@ -562,9 +562,6 @@ func GetProducerInfo(params Params) map[string]interface{} {
 	if err != nil {
 		return ResponsePack(InvalidParams, "invalid public key")
 	}
-	if _, err = contract.PublicKeyToStandardProgramHash(publicKeyBytes); err != nil {
-		return ResponsePack(InvalidParams, "invalid public key bytes")
-	}
 	p := Chain.GetState().GetProducer(publicKeyBytes)
 	if p == nil {
 		return ResponsePack(InvalidParams, "unknown producer public key")
@@ -3009,9 +3006,6 @@ func ProducerStatus(param Params) map[string]interface{} {
 	publicKeyBytes, err := common.HexStringToBytes(publicKey)
 	if err != nil {
 		return ResponsePack(InvalidParams, "invalid public key")
-	}
-	if _, err = contract.PublicKeyToStandardProgramHash(publicKeyBytes); err != nil {
-		return ResponsePack(InvalidParams, "invalid public key bytes")
 	}
 	producer := Chain.GetState().GetProducer(publicKeyBytes)
 	if producer == nil {

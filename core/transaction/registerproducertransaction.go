@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	state2 "github.com/elastos/Elastos.ELA/dpos/state"
 
 	"github.com/elastos/Elastos.ELA/blockchain"
 	"github.com/elastos/Elastos.ELA/common"
@@ -179,6 +180,11 @@ func (t *RegisterProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bo
 			return elaerr.Simple(elaerr.ErrTxPayload,
 				errors.New("only multi sign code can use ProducerInfoMultiVersion")), true
 		}
+		//t.Programs()[0].Code equal info.OwnerKey
+		if !bytes.Equal(t.Programs()[0].Code, info.OwnerKey) {
+			return elaerr.Simple(elaerr.ErrTxPayload,
+				errors.New("ProducerInfoMultiVersion tx program pk must equal with OwnerKey")), true
+		}
 	}
 
 	height := t.parameters.BlockChain.GetHeight()
@@ -193,7 +199,7 @@ func (t *RegisterProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bo
 
 	var ownKeyProgramHash *common.Uint168
 
-	ownKeyProgramHash, err := getOwnerKeyDepositProgramHash(info.OwnerKey)
+	ownKeyProgramHash, err := state2.GetOwnerKeyDepositProgramHash(info.OwnerKey)
 	if err != nil {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid public key")), true
 	}
@@ -241,15 +247,6 @@ func (t *RegisterProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bo
 	}
 
 	return nil, false
-}
-
-func getOwnerKeyDepositProgramHash(ownerPublicKey []byte) (ownKeyProgramHash *common.Uint168, err error) {
-	if len(ownerPublicKey) == crypto.NegativeBigLength {
-		ownKeyProgramHash, err = contract.PublicKeyToDepositProgramHash(ownerPublicKey)
-	} else {
-		ownKeyProgramHash = common.ToProgramHash(byte(contract.PrefixDeposit), ownerPublicKey)
-	}
-	return ownKeyProgramHash, err
 }
 
 func checkStringField(rawStr string, field string, allowEmpty bool) error {

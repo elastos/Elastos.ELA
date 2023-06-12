@@ -27,6 +27,7 @@ import (
 	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/cr/state"
+	"github.com/elastos/Elastos.ELA/crypto"
 	"github.com/elastos/Elastos.ELA/dpos/p2p/peer"
 	"github.com/elastos/Elastos.ELA/events"
 	"github.com/elastos/Elastos.ELA/utils"
@@ -120,6 +121,15 @@ func (a *Arbiters) SetNeedRevertToDPOSTX(need bool) {
 	a.mtx.Lock()
 	defer a.mtx.Unlock()
 	a.NeedRevertToDPOSTX = need
+}
+
+func GetOwnerKeyStandardProgramHash(ownerKey []byte) (ownKeyProgramHash *common.Uint168, err error) {
+	if len(ownerKey) == crypto.NegativeBigLength {
+		ownKeyProgramHash, err = contract.PublicKeyToStandardProgramHash(ownerKey)
+	} else {
+		ownKeyProgramHash = common.ToProgramHash(byte(contract.PrefixStandard), ownerKey)
+	}
+	return ownKeyProgramHash, err
 }
 
 func (a *Arbiters) SetNeedNextTurnDPOSInfo(need bool) {
@@ -711,7 +721,7 @@ func (a *Arbiters) getDPoSV2RewardsV2(dposReward common.Fixed64, sponsor []byte,
 	var isCR bool
 	for _, cr := range a.CurrentCRCArbitersMap {
 		if bytes.Equal(sponsor, cr.GetNodePublicKey()) {
-			ownerProgramHash, _ := contract.PublicKeyToStandardProgramHash(cr.GetOwnerPublicKey())
+			ownerProgramHash, _ := GetOwnerKeyStandardProgramHash(cr.GetOwnerPublicKey())
 			stakeProgramHash := common.Uint168FromCodeHash(
 				byte(contract.PrefixDPoSV2), ownerProgramHash.ToCodeHash())
 			ownerAddr, _ := stakeProgramHash.ToAddress()
@@ -730,7 +740,7 @@ func (a *Arbiters) getDPoSV2RewardsV2(dposReward common.Fixed64, sponsor []byte,
 			log.Error("v2 accumulateReward Sponsor not exist ", hex.EncodeToString(sponsor))
 			return
 		}
-		ownerProgramHash, _ := contract.PublicKeyToStandardProgramHash(producer.OwnerPublicKey())
+		ownerProgramHash, _ := GetOwnerKeyStandardProgramHash(producer.OwnerPublicKey())
 		stakeProgramHash := common.Uint168FromCodeHash(
 			byte(contract.PrefixDPoSV2), ownerProgramHash.ToCodeHash())
 		ownerAddr, _ := stakeProgramHash.ToAddress()
@@ -953,7 +963,7 @@ func (a *Arbiters) distributeWithNormalArbitratorsV3(height uint32, reward commo
 				if err != nil {
 					panic("get owner public key err:" + err.Error())
 				}
-				programHash, err := contract.PublicKeyToStandardProgramHash(opk)
+				programHash, err := GetOwnerKeyStandardProgramHash(opk)
 				if err != nil {
 					panic("public key to standard program hash err:" + err.Error())
 				}
@@ -966,7 +976,7 @@ func (a *Arbiters) distributeWithNormalArbitratorsV3(height uint32, reward commo
 					individualCRCProducerReward.String(), individualBlockConfirmReward.String(), votes.String())
 			} else {
 				pk := arbiter.GetOwnerPublicKey()
-				programHash, err := contract.PublicKeyToStandardProgramHash(pk)
+				programHash, err := GetOwnerKeyStandardProgramHash(pk)
 				if err != nil {
 					rewardHash = *a.ChainParams.DestroyELAProgramHash
 				} else {
@@ -1039,7 +1049,7 @@ func (a *Arbiters) distributeWithNormalArbitratorsV2(height uint32, reward commo
 				rewardHash = *a.ChainParams.DestroyELAProgramHash
 			} else {
 				pk := arbiter.GetOwnerPublicKey()
-				programHash, err := contract.PublicKeyToStandardProgramHash(pk)
+				programHash, err := GetOwnerKeyStandardProgramHash(pk)
 				if err != nil {
 					rewardHash = *a.ChainParams.DestroyELAProgramHash
 				} else {
@@ -1100,7 +1110,7 @@ func (a *Arbiters) distributeWithNormalArbitratorsV1(height uint32, reward commo
 				rewardHash = *a.ChainParams.DestroyELAProgramHash
 			} else {
 				pk := arbiter.GetOwnerPublicKey()
-				programHash, err := contract.PublicKeyToStandardProgramHash(pk)
+				programHash, err := GetOwnerKeyStandardProgramHash(pk)
 				if err != nil {
 					rewardHash = *a.ChainParams.DestroyELAProgramHash
 				} else {
@@ -2624,7 +2634,7 @@ func (a *Arbiters) GetDposV2CandidatesDesc(startIndex int,
 	for i := startIndex; i < len(producers) && i < startIndex+a.
 		ChainParams.DPoSConfiguration.CandidatesCount; i++ {
 		ownkey, _ := hex.DecodeString(producers[i])
-		hash, _ := contract.PublicKeyToStandardProgramHash(ownkey)
+		hash, _ := GetOwnerKeyStandardProgramHash(ownkey)
 		crc, exist := choosingArbiters[*hash]
 		if exist {
 			result = append(result, crc)
@@ -2670,8 +2680,7 @@ func (a *Arbiters) snapshotVotesStates(height uint32) error {
 		if producer == nil {
 			return errors.New("get producer by node public key failed")
 		}
-		programHash, err := contract.PublicKeyToStandardProgramHash(
-			producer.OwnerPublicKey())
+		programHash, err := GetOwnerKeyStandardProgramHash(producer.OwnerPublicKey())
 		if err != nil {
 			return err
 		}
@@ -2710,7 +2719,7 @@ func (a *Arbiters) snapshotVotesStates(height uint32) error {
 		if producer == nil {
 			return errors.New("get producer by node public key failed")
 		}
-		programHash, err := contract.PublicKeyToStandardProgramHash(producer.OwnerPublicKey())
+		programHash, err := GetOwnerKeyStandardProgramHash(producer.OwnerPublicKey())
 		if err != nil {
 			return err
 		}

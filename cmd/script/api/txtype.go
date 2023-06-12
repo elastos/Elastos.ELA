@@ -21,6 +21,7 @@ import (
 	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/crypto"
+	"github.com/elastos/Elastos.ELA/dpos/state"
 	"github.com/elastos/Elastos.ELA/servers"
 	"github.com/elastos/Elastos.ELA/utils/http"
 
@@ -220,8 +221,7 @@ func signPayload(L *lua.LState) int {
 		if err := producerInfo.SerializeUnsigned(rpSignBuf, payload.ProducerInfoVersion); err != nil {
 			cmdcom.PrintErrorAndExit(err.Error())
 		}
-
-		codeHash, err := contract.PublicKeyToStandardCodeHash(producerInfo.OwnerKey)
+		codeHash, err := state.GetOwnerKeyCodeHash(producerInfo.OwnerKey)
 		if err != nil {
 			cmdcom.PrintErrorAndExit(err.Error())
 		}

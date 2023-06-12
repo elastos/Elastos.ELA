@@ -19,6 +19,7 @@ import (
 	"github.com/elastos/Elastos.ELA/core/types/outputpayload"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/crypto"
+	"github.com/elastos/Elastos.ELA/dpos/state"
 	lua "github.com/yuin/gopher-lua"
 )
 
@@ -595,7 +596,7 @@ func RegisterUpdateProducerType(L *lua.LState) {
 	L.SetField(mt, "__index", L.SetFuncs(L.NewTable(), updateProducerMethods))
 }
 
-//luaUpdateV2ProducerName
+// luaUpdateV2ProducerName
 func RegisterUpdateV2ProducerType(L *lua.LState) {
 	mt := L.NewTypeMetatable(luaUpdateV2ProducerName)
 	L.SetGlobal("updatev2producer", mt)
@@ -651,7 +652,7 @@ func newUpdateV2Producer(L *lua.LState) int {
 			version = payload.ProducerInfoDposV2Version
 		}
 
-		codeHash, err := contract.PublicKeyToStandardCodeHash(ownerKey)
+		codeHash, err := state.GetOwnerKeyCodeHash(ownerKey)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
@@ -741,7 +742,7 @@ func newUpdateProducer(L *lua.LState) int {
 			os.Exit(1)
 		}
 
-		codeHash, err := contract.PublicKeyToStandardCodeHash(ownerKey)
+		codeHash, err := state.GetOwnerKeyCodeHash(ownerKey)
 		acc := client.GetAccountByCodeHash(*codeHash)
 		if acc == nil {
 			fmt.Println("no available account in wallet")
@@ -857,7 +858,7 @@ func newRegisterProducer(L *lua.LState) int {
 			fmt.Println(err)
 			os.Exit(1)
 		}
-		codeHash, err := contract.PublicKeyToStandardCodeHash(ownerPublicKey)
+		codeHash, err := state.GetOwnerKeyCodeHash(ownerPublicKey)
 		acc := client.GetAccountByCodeHash(*codeHash)
 		if acc == nil {
 			fmt.Println("no available account in wallet")
@@ -927,7 +928,7 @@ func newRegisterV2Producer(L *lua.LState) int {
 	if needSign && payloadversion != int(payload.ProducerInfoMultiVersion) {
 		rpSignBuf := new(bytes.Buffer)
 
-		codeHash, err := contract.PublicKeyToStandardCodeHash(ownerKey)
+		codeHash, err := state.GetOwnerKeyCodeHash(ownerKey)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
@@ -1047,7 +1048,7 @@ func newProcessProducer(L *lua.LState) int {
 		os.Exit(1)
 	}
 	if payloadversion == int(payload.ProcessProducerVersion) {
-		codeHash, err := contract.PublicKeyToStandardCodeHash(publicKey)
+		codeHash, err := state.GetOwnerKeyCodeHash(publicKey)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)

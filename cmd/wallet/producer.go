@@ -16,6 +16,7 @@ import (
 	"github.com/elastos/Elastos.ELA/core/types/functions"
 	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
+	"github.com/elastos/Elastos.ELA/dpos/state"
 
 	"github.com/urfave/cli"
 )
@@ -69,7 +70,7 @@ func createProducerInfoCommonTransaction(c *cli.Context, txType common2.TxType, 
 			return errors.New("invalid transaction amount")
 		}
 
-		programHash, err := contract.PublicKeyToDepositProgramHash(ownerPublicKey)
+		programHash, err := state.GetOwnerKeyDepositProgramHash(ownerPublicKey)
 		if err != nil {
 			return err
 		}

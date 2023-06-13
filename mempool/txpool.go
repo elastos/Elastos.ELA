@@ -80,11 +80,6 @@ func (mp *TxPool) removeCRAppropriationConflictTransactions() {
 }
 
 func (mp *TxPool) appendToTxPool(tx interfaces.Transaction) elaerr.ELAError {
-	// todo complete me
-	if tx.IsIllegalProposalTx() || tx.IsIllegalVoteTx() {
-		return elaerr.Simple(elaerr.ErrTxValidation, nil)
-	}
-
 	txHash := tx.Hash()
 
 	// If the transaction is CR appropriation transaction, need to remove

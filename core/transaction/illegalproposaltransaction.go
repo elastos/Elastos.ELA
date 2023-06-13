@@ -1,12 +1,12 @@
 // Copyright (c) 2017-2021 The Elastos Foundation
 // Use of this source code is governed by an MIT
 // license that can be found in the LICENSE file.
-//
 package transaction
 
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"math"
 
 	"github.com/elastos/Elastos.ELA/blockchain"
@@ -18,6 +18,18 @@ import (
 
 type IllegalProposalTransaction struct {
 	BaseTransaction
+}
+
+func (t *IllegalProposalTransaction) HeightVersionCheck() error {
+	blockHeight := t.parameters.BlockHeight
+	chainParams := t.parameters.Config
+
+	if blockHeight >= chainParams.DPoSConfiguration.IllegalV2Height {
+		return errors.New(fmt.Sprintf("not support %s transaction "+
+			"with payload version %d after IllegalV2Height",
+			t.TxType().Name(), t.PayloadVersion()))
+	}
+	return nil
 }
 
 func (t *IllegalProposalTransaction) CheckTransactionInput() error {

@@ -40,13 +40,13 @@ type TxPool struct {
 	sync.RWMutex
 }
 
-//TxReceivingInfo record the tx receiving info detail, can expend it's field in the future need
+// TxReceivingInfo record the tx receiving info detail, can expend it's field in the future need
 type TxReceivingInfo struct {
 	Height uint32
 }
 
-//append transaction to txnpool when check ok, and broadcast the transaction.
-//1.check  2.check with ledger(db) 3.check with pool
+// append transaction to txnpool when check ok, and broadcast the transaction.
+// 1.check  2.check with ledger(db) 3.check with pool
 func (mp *TxPool) AppendToTxPool(tx interfaces.Transaction) elaerr.ELAError {
 	mp.Lock()
 	defer mp.Unlock()
@@ -80,11 +80,6 @@ func (mp *TxPool) removeCRAppropriationConflictTransactions() {
 }
 
 func (mp *TxPool) appendToTxPool(tx interfaces.Transaction) elaerr.ELAError {
-	// todo complete me
-	if tx.IsIllegalProposalTx() || tx.IsIllegalVoteTx() {
-		return elaerr.Simple(elaerr.ErrTxValidation, nil)
-	}
-
 	txHash := tx.Hash()
 
 	// If the transaction is CR appropriation transaction, need to remove
@@ -206,7 +201,7 @@ func (mp *TxPool) CleanSubmittedTransactions(block *Block) {
 	mp.Unlock()
 }
 
-//ResendOutdatedTransactions Resend outdated transactions
+// ResendOutdatedTransactions Resend outdated transactions
 func (mp *TxPool) ResendOutdatedTransactions(block *Block) {
 	mp.Lock()
 	txs := make([]interfaces.Transaction, 0)

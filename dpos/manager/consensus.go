@@ -18,6 +18,8 @@ import (
 const (
 	consensusReady = iota
 	consensusRunning
+
+	DefaultViewOffset = 10
 )
 
 type Consensus struct {
@@ -32,7 +34,7 @@ func NewConsensus(manager *DPOSManager, tolerance time.Duration,
 	viewListener ViewListener) *Consensus {
 	c := &Consensus{
 		consensusStatus: consensusReady,
-		viewOffset:      0,
+		viewOffset:      DefaultViewOffset,
 		manager:         manager,
 		currentView: view{
 			publicKey:     manager.publicKey,
@@ -135,5 +137,5 @@ func (c *Consensus) RecoverFromConsensusStatus(status *msg.ConsensusStatus) erro
 }
 
 func (c *Consensus) resetViewOffset() {
-	c.viewOffset = 0
+	c.viewOffset = DefaultViewOffset
 }

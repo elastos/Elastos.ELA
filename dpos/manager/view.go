@@ -45,8 +45,15 @@ func (v *view) ResetView(t time.Time) {
 }
 
 func (v *view) ChangeView(viewOffset *uint32, now time.Time) {
-	offset, offsetTime := v.calculateOffsetTime(v.viewStartTime, now)
-	*viewOffset += uint32(offset)
+	//offset, offsetTime := v.calculateOffsetTimeV0(v.viewStartTime, now)
+	//*viewOffset += uint32(offset)
+
+	offset, offsetTime := v.calculateOffsetTimeV1(*viewOffset, v.viewStartTime, now)
+	*viewOffset = uint32(offset)
+
+	//offset, offsetTime := v.calculateOffsetTimeV2(*viewOffset, v.viewStartTime, now)
+	//*viewOffset = uint32(offset)
+
 	v.viewStartTime = now.Add(-offsetTime)
 
 	if offset > 0 {
@@ -60,13 +67,51 @@ func (v *view) ChangeView(viewOffset *uint32, now time.Time) {
 	}
 }
 
-func (v *view) calculateOffsetTime(startTime time.Time,
+func (v *view) calculateOffsetTimeV0(startTime time.Time,
 	now time.Time) (uint32, time.Duration) {
 	duration := now.Sub(startTime)
 	offset := duration / v.signTolerance
 	offsetTime := duration % v.signTolerance
 
 	return uint32(offset), offsetTime
+}
+
+func (v *view) calculateOffsetTimeV1(currentViewOffset uint32, startTime time.Time, now time.Time) (uint32, time.Duration) {
+	step := uint32(3)
+	duration := now.Sub(startTime)
+	offsetSeconds := 5 * time.Second
+	currentOffset := currentViewOffset
+
+	for duration >= offsetSeconds {
+		if currentOffset < 36 {
+			currentOffset++
+		} else {
+			currentOffset += 1 << ((currentOffset - 36) / 36)
+		}
+		duration -= offsetSeconds
+		offsetSeconds = time.Duration((currentOffset/36+1)*5*step) * time.Second
+	}
+
+	return currentOffset, duration
+}
+
+func (v *view) calculateOffsetTimeV2(currentViewOffset uint32, startTime time.Time, now time.Time) (uint32, time.Duration) {
+	duration := now.Sub(startTime)
+	offsetSeconds := 5 * time.Second
+	currentOffset := currentViewOffset
+
+	for duration >= offsetSeconds {
+		if currentOffset < 36 {
+			currentOffset++
+		} else {
+			currentOffset++
+			duration -= time.Second
+		}
+		duration -= offsetSeconds
+		offsetSeconds = time.Duration((currentOffset/36+1)*5+currentOffset-36) * time.Second
+	}
+
+	return currentOffset, duration
 }
 
 func (v *view) TryChangeView(viewOffset *uint32, now time.Time) bool {

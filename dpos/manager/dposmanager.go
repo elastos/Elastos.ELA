@@ -7,6 +7,7 @@ package manager
 
 import (
 	"bytes"
+	"math"
 	"sort"
 	"time"
 
@@ -35,7 +36,7 @@ const (
 	maxRequestedBlocks = msg.MaxInvPerMsg
 
 	// maxViewOffset is the maximum offset of consensus view.
-	maxViewOffset = 100
+	maxViewOffset = math.MaxUint32
 )
 
 type DPOSNetworkConfig struct {
@@ -248,11 +249,12 @@ func (d *DPOSManager) OnProposalReceived(id dpeer.PID, p *payload.DPOSProposal) 
 		if d.consensus.viewOffset != 0 && d.arbitrators.HasArbitersHalfMinorityCount(count) {
 			log.Info("[OnProposalReceived] has minority not handled" +
 				" proposals, need recover")
-			if d.recoverAbnormalState() {
-				log.Info("[OnProposalReceived] recover start")
-			} else {
-				log.Error("[OnProposalReceived] has no active peers recover failed")
-			}
+
+			//if d.recoverAbnormalState() {
+			//	log.Info("[OnProposalReceived] recover start")
+			//} else {
+			//	log.Error("[OnProposalReceived] has no active peers recover failed")
+			//}
 		}
 	}
 }

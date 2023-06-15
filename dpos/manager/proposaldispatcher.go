@@ -153,6 +153,8 @@ func (p *ProposalDispatcher) StartProposal(b *types.Block) {
 		Proposal: *proposal,
 	}
 
+	log.Info("############# start proposal at ", b.Height, "current time:", time.Now())
+
 	log.Info("[StartProposal] send proposal message finished, Proposal Hash: ", dmsg.GetMessageHash(m))
 	p.cfg.Network.BroadcastMessage(m)
 
@@ -342,6 +344,7 @@ func (p *ProposalDispatcher) ProcessProposal(id peer.PID, d *payload.DPOSProposa
 	}
 
 	if !p.proposalProcessFinished {
+		log.Info("############# accept proposal at ", p.processingBlock.Height, "current time:", time.Now())
 		p.acceptProposal(d)
 	}
 

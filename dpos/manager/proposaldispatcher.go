@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"errors"
 	"github.com/elastos/Elastos.ELA/benchmark/common/utils"
+	"time"
 
 	"github.com/elastos/Elastos.ELA/blockchain"
 	"github.com/elastos/Elastos.ELA/common"
@@ -139,6 +140,7 @@ func (p *ProposalDispatcher) StartProposal(b *types.Block) {
 	proposal := &payload.DPOSProposal{Sponsor: p.cfg.Manager.GetPublicKey(),
 		BlockHash: b.Hash(), ViewOffset: p.cfg.Consensus.GetViewOffset()}
 	var err error
+	log.Info("### start proposal view offset:", proposal.ViewOffset)
 	proposal.Sign, err = p.cfg.Account.SignProposal(proposal)
 	if err != nil {
 		log.Error("[StartProposal] start proposal failed:", err.Error())
@@ -289,6 +291,7 @@ func (p *ProposalDispatcher) ProcessProposal(id peer.PID, d *payload.DPOSProposa
 		return true, true
 	}
 
+	log.Info("### proposal viewOffset:", d.ViewOffset, "my viewOffset:", p.cfg.Consensus.GetViewOffset())
 	if d.ViewOffset != p.cfg.Consensus.GetViewOffset() {
 		log.Info("have different view offset")
 		if d.ViewOffset > p.cfg.Consensus.GetViewOffset() {
@@ -801,6 +804,10 @@ func (p *ProposalDispatcher) countAcceptedVote(v *payload.DPOSProposalVote) (
 
 		if p.cfg.Manager.GetArbitrators().HasArbitersMajorityCount(len(p.acceptVotes)) {
 			log.Info("Collect majority signs, finish proposal.")
+
+			if p.processingBlock != nil {
+				log.Info("############# finish consensus at ", p.processingBlock.Height, "current time:", time.Now())
+			}
 			return true, p.FinishProposal()
 		}
 		return true, false

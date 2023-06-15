@@ -12,6 +12,7 @@ import (
 	"github.com/elastos/Elastos.ELA/dpos/log"
 	"github.com/elastos/Elastos.ELA/dpos/p2p/peer"
 	"github.com/elastos/Elastos.ELA/p2p/msg"
+	"time"
 )
 
 type DPOSOnDutyHandler struct {
@@ -64,6 +65,7 @@ func (h *DPOSOnDutyHandler) TryStartNewConsensus(b *types.Block) bool {
 	result := false
 
 	if h.consensus.IsReady() {
+		log.Info("############# start new consensus at ", b.Height, "current time:", time.Now())
 		log.Info("[OnDuty][OnBlockReceived] received first unsigned block, start consensus")
 		h.consensus.StartConsensus(b)
 		h.proposalDispatcher.StartProposal(b)

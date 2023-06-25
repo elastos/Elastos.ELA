@@ -2420,11 +2420,14 @@ func (s *State) returnDeposit(tx interfaces.Transaction, height uint32) {
 	for _, input := range tx.Inputs() {
 		inputValue += s.DepositOutputs[input.ReferKey()]
 	}
-
 	for _, program := range tx.Programs() {
-		pk := program.Code[1 : len(program.Code)-1]
-		if producer := s.getProducer(pk); producer != nil {
-
+		ownerKey := make([]byte, len(program.Code), len(program.Code))
+		if contract.IsMultiSig(program.Code) {
+			copy(ownerKey, program.Code)
+		} else {
+			ownerKey = program.Code[1 : len(program.Code)-1]
+		}
+		if producer := s.getProducer(ownerKey); producer != nil {
 			// check deposit coin
 			hash, err := GetOwnerKeyDepositProgramHash(producer.info.OwnerKey)
 			if err != nil {

@@ -21,6 +21,9 @@ import (
 	"github.com/elastos/Elastos.ELA/vm"
 )
 
+// max n number for multisign producer register
+const MaxMultisignN = 10
+
 type RegisterProducerTransaction struct {
 	BaseTransaction
 }
@@ -184,6 +187,13 @@ func (t *RegisterProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bo
 		if !bytes.Equal(t.Programs()[0].Code, info.OwnerKey) {
 			return elaerr.Simple(elaerr.ErrTxPayload,
 				errors.New("ProducerInfoMultiVersion tx program pk must equal with OwnerKey")), true
+		}
+		//check n
+		code := t.Programs()[0].Code
+		n := int(code[len(code)-2]) - crypto.PUSH1 + 1
+		if n > MaxMultisignN {
+			return elaerr.Simple(elaerr.ErrTxPayload,
+				errors.New("multisign n can not over 10")), true
 		}
 	}
 

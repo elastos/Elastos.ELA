@@ -204,7 +204,15 @@ func (a *Arbitrator) OnBlockReceived(b *types.Block, confirmed bool) {
 	if b.Height >= a.cfg.ChainParams.DPoSConfiguration.RevertToPOWStartHeight {
 		lastBlockTimestamp := int64(a.cfg.Arbitrators.GetLastBlockTimestamp())
 		localTimestamp := a.cfg.Chain.TimeSource.AdjustedTime().Unix()
-		if localTimestamp-lastBlockTimestamp >= a.cfg.ChainParams.DPoSConfiguration.StopConfirmBlockTime {
+
+		var stopConfirmTime int64
+		if b.Height < a.cfg.ChainParams.DPoSConfiguration.RevertToPOWV1Height {
+			stopConfirmTime = a.cfg.ChainParams.DPoSConfiguration.StopConfirmBlockTime
+		} else {
+			stopConfirmTime = a.cfg.ChainParams.DPoSConfiguration.StopConfirmBlockTime
+		}
+
+		if localTimestamp-lastBlockTimestamp >= stopConfirmTime {
 			return
 		}
 	}
@@ -281,7 +289,7 @@ func NewArbitrator(account account.Account, cfg Config) (*Arbitrator, error) {
 
 	consensus := manager.NewConsensus(dposManager,
 		cfg.ChainParams.DPoSConfiguration.SignTolerance,
-		dposHandlerSwitch)
+		dposHandlerSwitch, cfg.ChainParams.DPoSConfiguration.ChangeViewV1Height)
 	proposalDispatcher, illegalMonitor := manager.NewDispatcherAndIllegalMonitor(
 		manager.ProposalDispatcherConfig{
 			EventMonitor: eventMonitor,

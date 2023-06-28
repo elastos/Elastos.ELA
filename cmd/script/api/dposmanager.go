@@ -8,6 +8,7 @@ package api
 import (
 	"encoding/json"
 	"fmt"
+	"math"
 	"strconv"
 	"time"
 
@@ -88,7 +89,7 @@ func newDposManager(L *lua.LState) int {
 		TimeSource: medianTime,
 	})
 
-	mockManager.Consensus = NewConsensus(dposManager, 5*time.Second, mockManager.Handler)
+	mockManager.Consensus = NewConsensus(dposManager, 5*time.Second, mockManager.Handler, math.MaxUint32)
 	mockManager.Dispatcher, mockManager.IllegalMonitor = NewDispatcherAndIllegalMonitor(ProposalDispatcherConfig{
 		EventMonitor: mockManager.EventMonitor,
 		Consensus:    mockManager.Consensus,
@@ -324,7 +325,7 @@ func dposManagerSignVote(L *lua.LState) int {
 	return 1
 }
 
-//mock object of dpos manager
+// mock object of dpos manager
 type manager struct {
 	*DPOSManager
 	Account        account.Account

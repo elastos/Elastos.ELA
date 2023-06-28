@@ -760,8 +760,6 @@ type DPoSConfiguration struct {
 	NFTV2StartHeight uint32 `screw:"--NFTV2StartHeight" usage:"the start height of NFT 2.0 transaction"`
 	// DexStartHeight defines the height of DEX started.
 	DexStartHeight uint32 `screw:"--dexstartheight" usage:"the starting height of Dex support"`
-	// IllegalV2Height defines the height of new rule of illegal.
-	IllegalV2Height uint32 `screw:"--illegal" usage:"the height of new rule of illegal"`
 }
 
 type CRConfiguration struct {

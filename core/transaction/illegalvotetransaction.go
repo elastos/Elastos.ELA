@@ -101,7 +101,7 @@ func (t *IllegalVoteTransaction) CheckDPOSIllegalVotes(d *payload.DPOSIllegalVot
 		return errors.New("should be same sponsor")
 	}
 
-	if t.parameters.BlockHeight > t.parameters.Config.DPoSConfiguration.IllegalV2Height {
+	if t.parameters.BlockHeight <= t.parameters.Config.DPoSConfiguration.ChangeViewV1Height {
 		if !d.Evidence.Proposal.Hash().IsEqual(d.CompareEvidence.Proposal.Hash()) {
 			return errors.New("should be same proposal")
 		}

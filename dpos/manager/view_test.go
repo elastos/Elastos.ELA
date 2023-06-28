@@ -7,10 +7,12 @@ import (
 	"sort"
 	"testing"
 	"time"
+
+	"github.com/elastos/Elastos.ELA/utils/test"
 )
 
 func TestView_ChangeViewV1(t *testing.T) {
-	testing.Short()
+	test.SkipShort(t)
 	print("[")
 	for step := uint32(1); step <= 50; step++ {
 		for i := 0; i < 100; i++ {
@@ -29,7 +31,7 @@ func TestView_ChangeViewV1(t *testing.T) {
 }
 
 func TestView_ChangeViewV2(t *testing.T) {
-	testing.Short()
+	test.SkipShort(t)
 	print("[")
 	for step := uint32(2); step <= 36; step++ {
 		for i := 0; i < 100; i++ {
@@ -50,7 +52,7 @@ func TestView_ChangeViewV2(t *testing.T) {
 }
 
 func TestView_ChangeViewV3(t *testing.T) {
-	testing.Short()
+	test.SkipShort(t)
 	addTime := uint32(1)
 	offsetTime := 60 * time.Second
 	arbitersCount := 36
@@ -76,7 +78,7 @@ func TestView_ChangeViewV3(t *testing.T) {
 }
 
 func TestView_ChangeViewV3_Special(t *testing.T) {
-	testing.Short()
+	test.SkipShort(t)
 	addTime := uint32(1)
 	offsetTime := 60 * time.Second
 	arbitersCount := 36
@@ -110,7 +112,7 @@ func TestView_ChangeViewV3_Special(t *testing.T) {
 }
 
 func TestView_ChangeViewV4(t *testing.T) {
-	testing.Short()
+	test.SkipShort(t)
 	addTime := uint32(1)
 	offsetTime := 3600 * time.Second
 	arbitersCount := 36
@@ -136,7 +138,7 @@ func TestView_ChangeViewV4(t *testing.T) {
 }
 
 func TestView_ChangeViewV4_Special(t *testing.T) {
-	testing.Short()
+	test.SkipShort(t)
 	addTime := uint32(3)
 	offsetTime := 7200 * time.Second
 	arbitersCount := 36

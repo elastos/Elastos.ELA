@@ -399,19 +399,19 @@ func (p *ProposalDispatcher) FinishConsensus(height uint32, blockHash common.Uin
 		p.cfg.Manager.changeOnDuty()
 		c := log.ConsensusEvent{EndTime: p.cfg.TimeSource.AdjustedTime(), Height: height}
 		p.cfg.EventMonitor.OnConsensusFinished(&c)
-		p.cfg.Consensus.SetReady()
+		p.cfg.Consensus.SetReady(height)
 		p.CleanProposals(false)
 		p.resetViewRequests = make(map[string]struct{}, 0)
 	}
 }
 
-func (p *ProposalDispatcher) resetConsensus() {
+func (p *ProposalDispatcher) resetConsensus(height uint32) {
 	log.Info("[resetConsensus] start")
 	defer log.Info("[resetConsensus] end")
 
 	if p.cfg.Consensus.IsRunning() {
 		log.Info("[resetConsensus] reset view")
-		p.cfg.Consensus.SetReady()
+		p.cfg.Consensus.SetReady(height)
 		p.CleanProposals(false)
 	}
 }
@@ -678,7 +678,7 @@ func (p *ProposalDispatcher) OnResponseResetViewReceived(msg *dmsg.ResetView) {
 	if len(p.resetViewRequests) >= p.cfg.Arbitrators.GetArbitersMajorityCount() {
 		log.Info("[OnResponseResetViewReceived] signer:", common.BytesToHexString(signer))
 		// do reset
-		p.resetConsensus()
+		p.resetConsensus(p.finishedHeight)
 		p.resetViewRequests = make(map[string]struct{}, 0)
 	}
 }

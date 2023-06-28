@@ -180,6 +180,10 @@ func GetDefaultParams() *Configuration {
 			MaxInactiveRoundsOfRandomNode:     36 * 8,
 			RevertToPOWNoBlockTime:            12 * 3600,
 			StopConfirmBlockTime:              11 * 3600,
+			RevertToPOWV1Height:               math.MaxUint32, // todo complete me
+			RevertToPOWNoBlockTimeV1:          2 * 3600,       // todo complete me
+			StopConfirmBlockTimeV1:            6600,           // todo complete me
+			ChangeViewV1Height:                math.MaxUint32, // todo complete me
 			DPoSV2IllegalPenalty:              20000000000,
 			DPOSNodeCrossChainHeight:          math.MaxUint32,
 			DPoSV2DepositCoinMinLockTime:      7200,
@@ -360,6 +364,10 @@ func (p *Configuration) TestNet() *Configuration {
 	p.MaxReservedCustomIDLength = 255
 	p.DPoSConfiguration.RevertToPOWNoBlockTime = 12 * 3600
 	p.DPoSConfiguration.StopConfirmBlockTime = 11 * 3600
+	p.DPoSConfiguration.RevertToPOWV1Height = math.MaxUint32 // todo complete me
+	p.DPoSConfiguration.RevertToPOWNoBlockTimeV1 = 2 * 3600  // todo complete me
+	p.DPoSConfiguration.StopConfirmBlockTimeV1 = 6600        // todo complete me
+	p.DPoSConfiguration.ChangeViewV1Height = math.MaxUint32  // todo complete me
 	p.DPoSConfiguration.RevertToPOWStartHeight = 815060
 	p.HalvingRewardHeight = 877880    //767000 + 154 * 720
 	p.HalvingRewardInterval = 1051200 //4 * 365 * 720
@@ -484,6 +492,10 @@ func (p *Configuration) RegNet() *Configuration {
 	p.MaxReservedCustomIDLength = 255
 	p.DPoSConfiguration.RevertToPOWNoBlockTime = 12 * 3600
 	p.DPoSConfiguration.StopConfirmBlockTime = 11 * 3600
+	p.DPoSConfiguration.RevertToPOWV1Height = math.MaxUint32 // todo complete me
+	p.DPoSConfiguration.RevertToPOWNoBlockTimeV1 = 2 * 3600  // todo complete me
+	p.DPoSConfiguration.StopConfirmBlockTimeV1 = 6600        // todo complete me
+	p.DPoSConfiguration.ChangeViewV1Height = math.MaxUint32  // todo complete me
 	p.DPoSConfiguration.RevertToPOWStartHeight = 706240
 	p.HalvingRewardHeight = 801240    //690360 + 154 * 720
 	p.HalvingRewardInterval = 1051200 //4 * 365 * 720
@@ -721,6 +733,14 @@ type DPoSConfiguration struct {
 	RevertToPOWNoBlockTime int64 `screw:"--reverttopownoblocktime" usage:"defines how long time does it take to revert to POW mode"`
 	// StopConfirmBlockTime defines how long time dose it take before stop confirm block.
 	StopConfirmBlockTime int64 `screw:"--stopconfirmblocktime" usage:"defines how long time does it take to stop confirm block"`
+	// RevertToPOWV1Height defines how the height of POW mode of version 1.0
+	RevertToPOWV1Height uint32 `screw:"--reverttopowv1height" usage:"defines how the height of POW mode of version 1.0"`
+	// RevertToPOWInterval defines how long time does it take to revert to POW mode.
+	RevertToPOWNoBlockTimeV1 int64 `screw:"--reverttopownoblocktimev1" usage:"defines how long time does it take to revert to POW mode"`
+	// StopConfirmBlockTime defines how long time dose it take before stop confirm block.
+	StopConfirmBlockTimeV1 int64 `screw:"--stopconfirmblocktimev1" usage:"defines how long time does it take to stop confirm block"`
+	// ChangeViewV1Height defines the height of ChangeView version 1.0
+	ChangeViewV1Height uint32 `screw:"--changeviewv1height" usage:"defines how the height of ChangeView version 1.0"`
 	// RevertToPOWStartHeight defines the start height to allow to revert to POW mode.
 	RevertToPOWStartHeight uint32 `screw:"--reverttopowstartheight" usage:"defines the start height to allow to revert to POW mode"`
 	// DPoSV2RewardAccumulateAddress defines the dposv2 reward accumulating address

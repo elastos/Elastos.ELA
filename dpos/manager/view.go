@@ -15,16 +15,22 @@ import (
 	"github.com/elastos/Elastos.ELA/dpos/state"
 )
 
+const (
+	ChangeViewAddStep = uint32(3)
+	ChangeViewMulStep = uint32(20)
+)
+
 type ViewListener interface {
 	OnViewChanged(isOnDuty bool)
 }
 
 type view struct {
-	publicKey     []byte
-	signTolerance time.Duration
-	viewStartTime time.Time
-	isDposOnDuty  bool
-	arbitrators   state.Arbitrators
+	publicKey          []byte
+	signTolerance      time.Duration
+	viewStartTime      time.Time
+	isDposOnDuty       bool
+	changeViewV1Height uint32
+	arbitrators        state.Arbitrators
 
 	listener ViewListener
 }
@@ -46,16 +52,27 @@ func (v *view) ResetView(t time.Time) {
 }
 
 func (v *view) ChangeView(viewOffset *uint32, now time.Time) {
-	//offset, offsetTime := v.calculateOffsetTimeV0(v.viewStartTime, now)
-	//*viewOffset += uint32(offset)
+	offset, offsetTime := v.calculateOffsetTimeV0(v.viewStartTime, now)
+	*viewOffset += offset
 
+	v.viewStartTime = now.Add(-offsetTime)
+
+	if offset > 0 {
+		currentArbiter := v.arbitrators.GetNextOnDutyArbitrator(*viewOffset)
+
+		v.isDposOnDuty = bytes.Equal(currentArbiter, v.publicKey)
+		log.Info("current onduty arbiter:",
+			common.BytesToHexString(currentArbiter))
+
+		v.listener.OnViewChanged(v.isDposOnDuty)
+	}
+}
+
+func (v *view) ChangeViewV1(viewOffset *uint32, now time.Time) {
 	arbitersCount := v.arbitrators.GetArbitersCount()
 
 	offset, offsetTime := v.calculateOffsetTimeV1(*viewOffset, v.viewStartTime, now, uint32(arbitersCount))
-	*viewOffset = uint32(offset)
-
-	//offset, offsetTime := v.calculateOffsetTimeV2(*viewOffset, v.viewStartTime, now, uint32(arbitersCount))
-	//*viewOffset = uint32(offset)
+	*viewOffset = offset
 
 	v.viewStartTime = now.Add(-offsetTime)
 
@@ -81,15 +98,26 @@ func (v *view) calculateOffsetTimeV0(startTime time.Time,
 
 func (v *view) calculateOffsetTimeV1(currentViewOffset uint32, startTime time.Time,
 	now time.Time, arbitersCount uint32) (uint32, time.Duration) {
-	step := float64(3)
-	duration := now.Sub(startTime)
-	currentOffset := currentViewOffset
 
-	offsetSeconds := time.Duration(5*math.Pow(step, float64(currentOffset/arbitersCount))) * time.Second
+	currentOffset := currentViewOffset
+	duration := now.Sub(startTime)
+
+	var offsetSeconds time.Duration
+	if currentOffset < arbitersCount {
+		offsetSeconds = 5 * time.Second
+	} else {
+		offsetSeconds = time.Duration(5+(currentOffset-arbitersCount)*ChangeViewAddStep*
+			uint32(math.Pow(float64(ChangeViewMulStep), float64(currentOffset/arbitersCount)))) * time.Second
+	}
 	for duration >= offsetSeconds {
 		currentOffset++
 		duration -= offsetSeconds
-		offsetSeconds = time.Duration(5*math.Pow(step, float64(currentOffset/arbitersCount))) * time.Second
+		if currentOffset < arbitersCount {
+			offsetSeconds = 5 * time.Second
+		} else {
+			offsetSeconds = time.Duration(5+(currentOffset-arbitersCount)*ChangeViewAddStep*
+				uint32(math.Pow(float64(ChangeViewMulStep), float64(currentOffset/arbitersCount)))) * time.Second
+		}
 	}
 
 	return currentOffset, duration
@@ -114,6 +142,15 @@ func (v *view) TryChangeView(viewOffset *uint32, now time.Time) bool {
 	if now.After(v.viewStartTime.Add(v.signTolerance)) {
 		log.Info("[TryChangeView] succeed")
 		v.ChangeView(viewOffset, now)
+		return true
+	}
+	return false
+}
+
+func (v *view) TryChangeViewV1(viewOffset *uint32, now time.Time) bool {
+	if now.After(v.viewStartTime.Add(v.signTolerance)) {
+		log.Info("[TryChangeView] succeed")
+		v.ChangeViewV1(viewOffset, now)
 		return true
 	}
 	return false

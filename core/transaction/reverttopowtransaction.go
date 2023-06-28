@@ -80,7 +80,13 @@ func (t *RevertToPOWTransaction) SpecialContextCheck() (result elaerr.ELAError, 
 	switch p.Type {
 	case payload.NoBlock:
 		lastBlockTime := int64(t.parameters.BlockChain.BestChain.Timestamp)
-		noBlockTime := t.parameters.Config.DPoSConfiguration.RevertToPOWNoBlockTime
+
+		var noBlockTime int64
+		if t.parameters.BlockHeight < t.parameters.Config.DPoSConfiguration.RevertToPOWV1Height {
+			noBlockTime = t.parameters.Config.DPoSConfiguration.RevertToPOWNoBlockTime
+		} else {
+			noBlockTime = t.parameters.Config.DPoSConfiguration.RevertToPOWNoBlockTimeV1
+		}
 
 		if t.parameters.TimeStamp == 0 {
 			// is not in block, check by local time.

@@ -1383,6 +1383,8 @@ func (b *BlockChain) reorganizeChain(detachNodes, attachNodes *list.List) error 
 
 	// recover check point from genesis block
 	if recoverFromDefault {
+		//reset all mem state data
+		b.CkpManager.OnReset()
 		b.InitCheckpoint(nil, nil, nil)
 	}
 
@@ -1705,6 +1707,7 @@ func (b *BlockChain) connectBestChain(node *BlockNode, block *Block, confirm *pa
 	// for future processing, so add the block to the side chain holding
 	// cache.
 	log.Debugf("Adding block %x to side chain cache", node.Hash.Bytes())
+
 	b.blockCache[*node.Hash] = block
 	b.confirmCache[*node.Hash] = confirm
 	//b.Index[*node.Hash] = node
@@ -1839,6 +1842,8 @@ func (b *BlockChain) processBlock(block *Block, confirm *payload.Confirm) (bool,
 	// The block must not already exist in the main chain or side chains.
 	exists := b.BlockExists(&blockHash)
 	if exists {
+		b.blockCache[block.Hash()] = block
+		b.confirmCache[block.Hash()] = confirm
 		str := fmt.Sprintf("already have block %x height %d\n ", blockHash.Bytes(), block.Height)
 		return false, false, fmt.Errorf(str)
 	}
@@ -2019,7 +2024,6 @@ func (b *BlockChain) BlockLocatorFromHash(inhash *Uint256) []*Uint256 {
 
 		// The desired block height is in the main chain, so look it up
 		// from the main chain database.
-
 		h, err := b.GetBlockHash(uint32(blockHeight))
 		if err != nil {
 			log.Debugf("Lookup of known valid height failed %v", blockHeight)

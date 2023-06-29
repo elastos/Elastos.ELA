@@ -1185,6 +1185,7 @@ func (c *Committee) getSignersFromWithdrawFromSideChainTx(tx interfaces.Transact
 	publicKeys := make([]string, 0)
 	if tx.PayloadVersion() == payload.WithdrawFromSideChainVersionV2 {
 		allPulicKeys := c.getCurrentArbiters()
+
 		pld := tx.Payload().(*payload.WithdrawFromSideChain)
 		for _, index := range pld.Signers {
 			publicKeys = append(publicKeys, hex.EncodeToString(allPulicKeys[index]))

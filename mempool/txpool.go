@@ -40,13 +40,13 @@ type TxPool struct {
 	sync.RWMutex
 }
 
-//TxReceivingInfo record the tx receiving info detail, can expend it's field in the future need
+// TxReceivingInfo record the tx receiving info detail, can expend it's field in the future need
 type TxReceivingInfo struct {
 	Height uint32
 }
 
-//append transaction to txnpool when check ok, and broadcast the transaction.
-//1.check  2.check with ledger(db) 3.check with pool
+// append transaction to txnpool when check ok, and broadcast the transaction.
+// 1.check  2.check with ledger(db) 3.check with pool
 func (mp *TxPool) AppendToTxPool(tx interfaces.Transaction) elaerr.ELAError {
 	mp.Lock()
 	defer mp.Unlock()
@@ -206,7 +206,7 @@ func (mp *TxPool) CleanSubmittedTransactions(block *Block) {
 	mp.Unlock()
 }
 
-//ResendOutdatedTransactions Resend outdated transactions
+// ResendOutdatedTransactions Resend outdated transactions
 func (mp *TxPool) ResendOutdatedTransactions(block *Block) {
 	mp.Lock()
 	txs := make([]interfaces.Transaction, 0)

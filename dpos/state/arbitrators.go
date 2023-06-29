@@ -279,7 +279,6 @@ func (a *Arbiters) CheckNextTurnDPOSInfoTx(block *types.Block) error {
 	if needNextTurnDposInfo {
 		needNextTurnDPOSInfoCount = 1
 	}
-
 	if nextTurnDPOSInfoTxCount != needNextTurnDPOSInfoCount {
 		return fmt.Errorf("current block height %d, NextTurnDPOSInfo "+
 			"transaction count should be %d, current block contains %d",

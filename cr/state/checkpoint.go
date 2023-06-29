@@ -46,6 +46,27 @@ func (c *Checkpoint) OnBlockSaved(block *types.DposBlock) {
 	c.committee.ProcessBlock(block.Block, block.Confirm)
 }
 
+func (c *Checkpoint) OnReset() error {
+	log.Info("cr state OnReset")
+	keyFrame := NewKeyFrame()
+
+	committee := &Committee{
+		state:                NewState(c.committee.Params),
+		Params:               c.committee.Params,
+		KeyFrame:             *keyFrame,
+		firstHistory:         utils.NewHistory(maxHistoryCapacity),
+		inactiveCRHistory:    utils.NewHistory(maxHistoryCapacity),
+		committeeHistory:     utils.NewHistory(maxHistoryCapacity),
+		appropriationHistory: utils.NewHistory(maxHistoryCapacity),
+	}
+	c.initFromCommittee(committee)
+	c.committee.Recover(c)
+	c.committee.state.RegisterFunctions(&FunctionsConfig{
+		GetHistoryMember: committee.getHistoryMember,
+	})
+	return nil
+}
+
 func (c *Checkpoint) OnRollbackTo(height uint32) error {
 	keyFrame := NewKeyFrame()
 	if height < c.StartHeight() {

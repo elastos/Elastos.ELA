@@ -206,10 +206,10 @@ func (a *Arbitrator) OnBlockReceived(b *types.Block, confirmed bool) {
 		localTimestamp := a.cfg.Chain.TimeSource.AdjustedTime().Unix()
 
 		var stopConfirmTime int64
-		if b.Height < a.cfg.ChainParams.DPoSConfiguration.RevertToPOWV1Height {
+		if b.Height < a.cfg.ChainParams.DPoSConfiguration.ChangeViewV1Height {
 			stopConfirmTime = a.cfg.ChainParams.DPoSConfiguration.StopConfirmBlockTime
 		} else {
-			stopConfirmTime = a.cfg.ChainParams.DPoSConfiguration.StopConfirmBlockTime
+			stopConfirmTime = a.cfg.ChainParams.DPoSConfiguration.StopConfirmBlockTimeV1
 		}
 
 		if localTimestamp-lastBlockTimestamp >= stopConfirmTime {

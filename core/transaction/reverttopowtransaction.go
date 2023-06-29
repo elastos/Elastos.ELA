@@ -82,7 +82,7 @@ func (t *RevertToPOWTransaction) SpecialContextCheck() (result elaerr.ELAError, 
 		lastBlockTime := int64(t.parameters.BlockChain.BestChain.Timestamp)
 
 		var noBlockTime int64
-		if t.parameters.BlockHeight < t.parameters.Config.DPoSConfiguration.RevertToPOWV1Height {
+		if t.parameters.BlockHeight < t.parameters.Config.DPoSConfiguration.ChangeViewV1Height {
 			noBlockTime = t.parameters.Config.DPoSConfiguration.RevertToPOWNoBlockTime
 		} else {
 			noBlockTime = t.parameters.Config.DPoSConfiguration.RevertToPOWNoBlockTimeV1

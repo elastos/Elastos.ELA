@@ -19,7 +19,7 @@ const (
 	consensusReady = iota
 	consensusRunning
 
-	DefaultViewOffset = 10
+	DefaultViewOffset = 0
 )
 
 type Consensus struct {

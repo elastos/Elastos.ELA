@@ -76,6 +76,10 @@ func (c *txPoolCheckpoint) GetHeight() uint32 {
 	return c.height
 }
 
+func (c *txPoolCheckpoint) OnReset() error {
+	return nil
+}
+
 func (c *txPoolCheckpoint) SetHeight(height uint32) {
 	c.height = height
 }

@@ -1839,6 +1839,8 @@ func (b *BlockChain) processBlock(block *Block, confirm *payload.Confirm) (bool,
 	// The block must not already exist in the main chain or side chains.
 	exists := b.BlockExists(&blockHash)
 	if exists {
+		b.blockCache[block.Hash()] = block
+		b.confirmCache[block.Hash()] = confirm
 		str := fmt.Sprintf("already have block %x height %d\n ", blockHash.Bytes(), block.Height)
 		return false, false, fmt.Errorf(str)
 	}

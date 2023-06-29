@@ -568,7 +568,9 @@ func (sm *SyncManager) handleInvMsg(imsg *invMsg) {
 			// Add it to the request queue.
 			state.requestQueue = append(state.requestQueue, iv)
 			continue
-		} else if iv.Type == msg.InvTypeConfirmedBlock {
+		}
+
+		if iv.Type == msg.InvTypeConfirmedBlock {
 			// The block is an orphan block that we already have.
 			// When the existing orphan was processed, it requested
 			// the missing parent blocks.  When this scenario

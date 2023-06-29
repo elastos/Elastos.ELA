@@ -127,6 +127,10 @@ func (ccp *CoinsCheckPoint) Generator() func(buf []byte) checkpoint.ICheckPoint 
 	}
 }
 
+func (ccp *CoinsCheckPoint) OnReset() error {
+	return nil
+}
+
 func (ccp *CoinsCheckPoint) LogError(err error) {
 	log.Warn(err.Error())
 }

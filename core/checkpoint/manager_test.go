@@ -135,6 +135,10 @@ func (c *checkpoint) OnRollbackSeekTo(height uint32) {
 	return
 }
 
+func (c *checkpoint) OnReset() error {
+	return nil
+}
+
 func TestManager_SaveAndRestore(t *testing.T) {
 	data := uint64(1)
 	currentHeight := uint32(10)

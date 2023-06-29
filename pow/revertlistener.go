@@ -31,7 +31,7 @@ func (pow *Service) ListenForRevert() {
 			lastBlockTimestamp := int64(pow.arbiters.GetLastBlockTimestamp())
 			localTimestamp := pow.chain.TimeSource.AdjustedTime().Unix()
 			var noBlockTime int64
-			if currentHeight < pow.chainParams.DPoSConfiguration.RevertToPOWV1Height {
+			if currentHeight < pow.chainParams.DPoSConfiguration.ChangeViewV1Height {
 				noBlockTime = pow.chainParams.DPoSConfiguration.RevertToPOWNoBlockTime
 			} else {
 				noBlockTime = pow.chainParams.DPoSConfiguration.RevertToPOWNoBlockTimeV1

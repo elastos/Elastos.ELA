@@ -26,8 +26,7 @@ func (t *IllegalProposalTransaction) HeightVersionCheck() error {
 
 	if blockHeight < chainParams.DPoSConfiguration.ChangeViewV1Height {
 		return errors.New(fmt.Sprintf("not support %s transaction "+
-			"with payload version %d after IllegalV2Height",
-			t.TxType().Name(), t.PayloadVersion()))
+			"before ChangeViewV1Height", t.TxType().Name()))
 	}
 	return nil
 }

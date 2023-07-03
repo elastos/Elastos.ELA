@@ -378,7 +378,7 @@ func (p *Configuration) TestNet() *Configuration {
 	p.ProhibitTransferToDIDHeight = 807000
 	p.DIDSideChainAddress = "XKUh4GLhFJiqAMTF6HyWQrV9pK9HcGUdfJ"
 	p.DPoSV2StartHeight = 965800 + 720*3
-	p.SupportMultiCodeHeight = 2000
+	p.SupportMultiCodeHeight = 1171000
 	p.DPoSV2EffectiveVotes = 3000 * 100000000
 	p.DPoSConfiguration.DPoSV2DepositCoinMinLockTime = 7200 * 3
 	p.DPoSConfiguration.DPoSV2MinVotesLockTime = 7200
@@ -391,17 +391,17 @@ func (p *Configuration) TestNet() *Configuration {
 	p.CrossChainMonitorInterval = 100
 	p.CRConfiguration.CRClaimPeriod = 10080
 	p.DPoSConfiguration.NFTStartHeight = 1098000
-	p.DPoSConfiguration.NFTV2StartHeight = math.MaxUint32 // todo complete me
-	p.DPoSConfiguration.DexStartHeight = math.MaxUint32   // todo complete me
+	p.DPoSConfiguration.NFTV2StartHeight = 1171000
+	p.DPoSConfiguration.DexStartHeight = 1171000
 
 	p.HttpInfoPort = 21333
 	p.HttpRestPort = 21334
 	p.HttpWsPort = 21335
 	p.HttpJsonPort = 21336
-	p.ProducerSchnorrStartHeight = math.MaxUint32
-	p.CRSchnorrStartHeight = math.MaxUint32
-	p.VotesSchnorrStartHeight = math.MaxUint32
-	p.MultiExchangeVotesStartHeight = math.MaxUint32 // todo complete me
+	p.ProducerSchnorrStartHeight = math.MaxUint32 // todo complete me
+	p.CRSchnorrStartHeight = math.MaxUint32       // todo complete me
+	p.VotesSchnorrStartHeight = math.MaxUint32    // todo complete me
+	p.MultiExchangeVotesStartHeight = 1171000
 
 	p.MemoryPoolTxMaximumStayHeight = 10
 

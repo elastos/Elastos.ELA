@@ -89,10 +89,10 @@ func (s *txValidatorTestSuite) TestCheckReturnDepositCoinTransaction() {
 		common2.RegisterProducer,
 		0,
 		&payload.ProducerInfo{
-			OwnerPublicKey: publicKey,
-			NodePublicKey:  publicKey,
-			NickName:       randomString(),
-			Url:            randomString(),
+			OwnerKey:      publicKey,
+			NodePublicKey: publicKey,
+			NickName:      randomString(),
+			Url:           randomString(),
 		},
 		[]*common2.Attribute{},
 		[]*common2.Input{},
@@ -162,7 +162,7 @@ func (s *txValidatorTestSuite) TestCheckReturnDepositCoinTransaction() {
 		common2.CancelProducer,
 		0,
 		&payload.ProcessProducer{
-			OwnerPublicKey: publicKey,
+			OwnerKey: publicKey,
 		},
 		[]*common2.Attribute{},
 		[]*common2.Input{},

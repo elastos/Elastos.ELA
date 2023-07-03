@@ -27,7 +27,7 @@ const (
 	checkpointHeight = uint32(720)
 
 	// EffectiveHeight defines interval to change src file to default file.
-	EffectiveHeight = uint32(7)
+	EffectiveHeight = uint32(720)
 )
 
 // Checkpoint hold all CR related states to recover from scratch.
@@ -143,6 +143,10 @@ func (c *Checkpoint) Priority() checkpoint.Priority {
 
 func (c *Checkpoint) OnInit() {
 	c.committee.Recover(c)
+}
+
+func (c *Checkpoint) SaveStartHeight() uint32 {
+	return c.committee.Params.CRConfiguration.CRVotingStartHeight
 }
 
 func (c *Checkpoint) StartHeight() uint32 {

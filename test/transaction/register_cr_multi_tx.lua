@@ -9,106 +9,99 @@ local keystore = getWallet()
 local password = getPassword()
 
 if keystore == "" then
-	keystore = "keystore.dat"
+    keystore = "keystore.dat"
 end
 if password == "" then
-	password = "123"
+    password = "123"
 end
 
 local wallet = client.new(keystore, password, false)
 
 -- account
 local addr = wallet:get_address()
-local pubkey = wallet:get_publickey()
 print(addr)
-print(pubkey)
 
 -- asset_id
 local asset_id = m.get_asset_id()
 
-
--- deposit params
---local deposit_address = "DW1jxCSjnrCrtkyvbkGcUp4aPvjacXBpAM"
---local cr_publickey = "036db5984e709d2e0ec62fd974283e9a18e7b87e8403cc784baf1f61f775926535"
---local nick_name = "ela_test11"
---local url = "ela_test.org11"
---local location = "00112211"
--- fee
---local fee = 0.001
-
-local cr_publickey = getPublicKey()
+local amount = getDepositAmount()
+local fee = getFee()
+local deposit_address = getDepositAddr()
 local nick_name = getNickName()
 local url = getUrl()
 local location = getLocation()
-local fee = getFee()
 local payload_version = getPayloadVersion()
 
-if cr_publickey == ""
-	then
-		print("public key is nil, should use --publickey or -pk to set it.")
-		return
-end
-
-if nick_name == ""
-	then
-		nick_name = "nickname_test"
-end
-
-if url == ""
-	then
-		url = "url_test"
-end
-
-if location == ""
-	then
-		location = 123
+if amount == 0
+    then
+    amount = 5000
 end
 
 if fee == 0
-	then
-		fee = 0.001
+    then
+    fee = 0.1
 end
 
-print("public key:", cr_publickey)
-print("nick_name:", nick_name)
+if deposit_address == ""
+    then
+    print("deposit addr is nil, should use --depositaddr or -daddr to set it.")
+    return
+end
+
+if nick_name == ""
+    then
+    nick_name = "nickname_test"
+end
+
+if url == ""
+    then
+    url = "url_test"
+end
+
+if location == ""
+    then
+    location = 123
+end
+
+print("deposit amount:", amount)
+print("fee:", fee)
+print("deposit addr:", deposit_address)
+print("nick name:", nick_name)
 print("url:", url)
 print("location:", location)
 print("payload version:", payload_version)
 
 -- register cr payload: publickey, nickname, url, local, wallet
-local up_payload =updatecr.new(payload_version, cr_publickey, nick_name, url,
-	location, wallet)
-print(up_payload:get())
+local rp_payload =registercr.new(payload_version, nick_name, url,
+    location, 3, wallet)
+print(rp_payload:get())
 
 -- transaction: version, txType, payloadVersion, payload, locktime
-local tx = transaction.new(9, 0x23, payload_version, up_payload, 0)
-print("tx1")
+local tx = transaction.new(9, 0x21, payload_version, rp_payload, 0)
 print(tx:get())
 
 -- input: from, amount + fee
-local charge = tx:appendenough(addr, fee * 100000000)
-print("charge " .. charge)
+local charge = tx:appendenough(addr, (amount + fee) * 100000000)
+print(charge)
 
 -- outputpayload
 local default_output = defaultoutput.new()
 
 -- output: asset_id, value, recipient, output_paload_type, outputpaload
 local charge_output = output.new(asset_id, charge, addr, 0, default_output)
---local amount_output = output.new(asset_id, amount * 100000000, deposit_address, 0, default_output)
+
+local amount_output = output.new(asset_id, amount * 100000000, deposit_address, 0, default_output)
+
+
 tx:appendtxout(charge_output)
---tx:appendtxout(amount_output)
--- print(charge_output:get())
--- print(amount_output:get())
+tx:appendtxout(amount_output)
 
 -- sign
-tx:sign(wallet)
-print("tx2 ")
+tx:multisign(wallet, 3)
 print(tx:get())
 
 -- send
 local hash = tx:hash()
-print("before send_tx ")
-
 local res = m.send_tx(tx)
 
 print("sending " .. hash)

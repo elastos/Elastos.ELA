@@ -27,6 +27,7 @@ import (
 	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/cr/state"
+	"github.com/elastos/Elastos.ELA/crypto"
 	"github.com/elastos/Elastos.ELA/dpos/p2p/peer"
 	"github.com/elastos/Elastos.ELA/events"
 	"github.com/elastos/Elastos.ELA/utils"
@@ -120,6 +121,15 @@ func (a *Arbiters) SetNeedRevertToDPOSTX(need bool) {
 	a.mtx.Lock()
 	defer a.mtx.Unlock()
 	a.NeedRevertToDPOSTX = need
+}
+
+func GetOwnerKeyStandardProgramHash(ownerKey []byte) (ownKeyProgramHash *common.Uint168, err error) {
+	if len(ownerKey) == crypto.NegativeBigLength {
+		ownKeyProgramHash, err = contract.PublicKeyToStandardProgramHash(ownerKey)
+	} else {
+		ownKeyProgramHash = common.ToProgramHash(byte(contract.PrefixStandard), ownerKey)
+	}
+	return ownKeyProgramHash, err
 }
 
 func (a *Arbiters) SetNeedNextTurnDPOSInfo(need bool) {
@@ -510,6 +520,13 @@ func (a *Arbiters) normalChange(height uint32) error {
 }
 
 func (a *Arbiters) notifyNextTurnDPOSInfoTx(blockHeight, versionHeight uint32, forceChange bool) {
+	if blockHeight > a.ChainParams.DPoSConfiguration.DexStartHeight {
+		nextTurnDPOSInfoTx := a.createNextTurnDPOSInfoTransactionV2(blockHeight, forceChange)
+		go events.Notify(events.ETAppendTxToTxPool, nextTurnDPOSInfoTx)
+
+		return
+	}
+
 	if blockHeight+uint32(a.ChainParams.DPoSConfiguration.NormalArbitratorsCount+len(a.ChainParams.DPoSConfiguration.CRCArbiters)) >= a.DPoSV2ActiveHeight {
 		nextTurnDPOSInfoTx := a.createNextTurnDPOSInfoTransactionV1(blockHeight, forceChange)
 		go events.Notify(events.ETAppendTxToTxPool, nextTurnDPOSInfoTx)
@@ -519,6 +536,7 @@ func (a *Arbiters) notifyNextTurnDPOSInfoTx(blockHeight, versionHeight uint32, f
 
 	nextTurnDPOSInfoTx := a.createNextTurnDPOSInfoTransactionV0(blockHeight, forceChange)
 	go events.Notify(events.ETAppendTxToTxPool, nextTurnDPOSInfoTx)
+
 	return
 }
 
@@ -703,7 +721,7 @@ func (a *Arbiters) getDPoSV2RewardsV2(dposReward common.Fixed64, sponsor []byte,
 	var isCR bool
 	for _, cr := range a.CurrentCRCArbitersMap {
 		if bytes.Equal(sponsor, cr.GetNodePublicKey()) {
-			ownerProgramHash, _ := contract.PublicKeyToStandardProgramHash(cr.GetOwnerPublicKey())
+			ownerProgramHash, _ := GetOwnerKeyStandardProgramHash(cr.GetOwnerPublicKey())
 			stakeProgramHash := common.Uint168FromCodeHash(
 				byte(contract.PrefixDPoSV2), ownerProgramHash.ToCodeHash())
 			ownerAddr, _ := stakeProgramHash.ToAddress()
@@ -722,7 +740,7 @@ func (a *Arbiters) getDPoSV2RewardsV2(dposReward common.Fixed64, sponsor []byte,
 			log.Error("v2 accumulateReward Sponsor not exist ", hex.EncodeToString(sponsor))
 			return
 		}
-		ownerProgramHash, _ := contract.PublicKeyToStandardProgramHash(producer.OwnerPublicKey())
+		ownerProgramHash, _ := GetOwnerKeyStandardProgramHash(producer.OwnerPublicKey())
 		stakeProgramHash := common.Uint168FromCodeHash(
 			byte(contract.PrefixDPoSV2), ownerProgramHash.ToCodeHash())
 		ownerAddr, _ := stakeProgramHash.ToAddress()
@@ -945,7 +963,7 @@ func (a *Arbiters) distributeWithNormalArbitratorsV3(height uint32, reward commo
 				if err != nil {
 					panic("get owner public key err:" + err.Error())
 				}
-				programHash, err := contract.PublicKeyToStandardProgramHash(opk)
+				programHash, err := GetOwnerKeyStandardProgramHash(opk)
 				if err != nil {
 					panic("public key to standard program hash err:" + err.Error())
 				}
@@ -958,7 +976,7 @@ func (a *Arbiters) distributeWithNormalArbitratorsV3(height uint32, reward commo
 					individualCRCProducerReward.String(), individualBlockConfirmReward.String(), votes.String())
 			} else {
 				pk := arbiter.GetOwnerPublicKey()
-				programHash, err := contract.PublicKeyToStandardProgramHash(pk)
+				programHash, err := GetOwnerKeyStandardProgramHash(pk)
 				if err != nil {
 					rewardHash = *a.ChainParams.DestroyELAProgramHash
 				} else {
@@ -1031,7 +1049,7 @@ func (a *Arbiters) distributeWithNormalArbitratorsV2(height uint32, reward commo
 				rewardHash = *a.ChainParams.DestroyELAProgramHash
 			} else {
 				pk := arbiter.GetOwnerPublicKey()
-				programHash, err := contract.PublicKeyToStandardProgramHash(pk)
+				programHash, err := GetOwnerKeyStandardProgramHash(pk)
 				if err != nil {
 					rewardHash = *a.ChainParams.DestroyELAProgramHash
 				} else {
@@ -1092,7 +1110,7 @@ func (a *Arbiters) distributeWithNormalArbitratorsV1(height uint32, reward commo
 				rewardHash = *a.ChainParams.DestroyELAProgramHash
 			} else {
 				pk := arbiter.GetOwnerPublicKey()
-				programHash, err := contract.PublicKeyToStandardProgramHash(pk)
+				programHash, err := GetOwnerKeyStandardProgramHash(pk)
 				if err != nil {
 					rewardHash = *a.ChainParams.DestroyELAProgramHash
 				} else {
@@ -1862,6 +1880,56 @@ func (a *Arbiters) createNextTurnDPOSInfoTransactionV0(blockHeight uint32, force
 	)
 }
 
+func (a *Arbiters) createNextTurnDPOSInfoTransactionV2(blockHeight uint32, forceChange bool) interfaces.Transaction {
+
+	var nextTurnDPOSInfo payload.NextTurnDPOSInfo
+	nextTurnDPOSInfo.CRPublicKeys = make([][]byte, 0)
+	nextTurnDPOSInfo.DPOSPublicKeys = make([][]byte, 0)
+	var workingHeight uint32
+	if forceChange {
+		workingHeight = blockHeight
+	} else {
+		workingHeight = blockHeight + uint32(a.ChainParams.DPoSConfiguration.NormalArbitratorsCount+len(a.ChainParams.DPoSConfiguration.CRCArbiters))
+	}
+	nextTurnDPOSInfo.WorkingHeight = workingHeight
+	for _, v := range a.nextCRCArbiters {
+		nodePK := v.GetNodePublicKey()
+		if v.IsNormal() {
+			nextTurnDPOSInfo.CRPublicKeys = append(nextTurnDPOSInfo.CRPublicKeys, nodePK)
+		} else {
+			nextTurnDPOSInfo.CRPublicKeys = append(nextTurnDPOSInfo.CRPublicKeys, []byte{})
+		}
+
+		nextTurnDPOSInfo.CompleteCRPublicKeys = append(nextTurnDPOSInfo.CompleteCRPublicKeys, nodePK)
+	}
+	for _, v := range a.nextArbitrators {
+		if a.isNextCRCArbitrator(v.GetNodePublicKey()) {
+			if abt, ok := v.(*crcArbiter); ok && abt.crMember.MemberState != state.MemberElected {
+				nextTurnDPOSInfo.DPOSPublicKeys = append(nextTurnDPOSInfo.DPOSPublicKeys, []byte{})
+			} else {
+				nextTurnDPOSInfo.DPOSPublicKeys = append(nextTurnDPOSInfo.DPOSPublicKeys, v.GetNodePublicKey())
+			}
+		} else {
+			nextTurnDPOSInfo.DPOSPublicKeys = append(nextTurnDPOSInfo.DPOSPublicKeys, v.GetNodePublicKey())
+		}
+	}
+
+	log.Debugf("[createNextTurnDPOSInfoTransaction] CRPublicKeys %v, DPOSPublicKeys%v\n",
+		a.ConvertToArbitersStr(nextTurnDPOSInfo.CRPublicKeys), a.ConvertToArbitersStr(nextTurnDPOSInfo.DPOSPublicKeys))
+
+	return functions.CreateTransaction(
+		common2.TxVersion09,
+		common2.NextTurnDPOSInfo,
+		payload.NextTurnDPOSInfoVersion2,
+		&nextTurnDPOSInfo,
+		[]*common2.Attribute{},
+		[]*common2.Input{},
+		[]*common2.Output{},
+		0,
+		[]*program.Program{},
+	)
+}
+
 func (a *Arbiters) createNextTurnDPOSInfoTransactionV1(blockHeight uint32, forceChange bool) interfaces.Transaction {
 
 	var nextTurnDPOSInfo payload.NextTurnDPOSInfo
@@ -1978,7 +2046,7 @@ func (a *Arbiters) getSortedProducersWithRandom(height uint32, unclaimedCount in
 	if a.LastRandomCandidateHeight != 0 &&
 		height-a.LastRandomCandidateHeight < a.ChainParams.DPoSConfiguration.RandomCandidatePeriod {
 		for i, p := range votedProducers {
-			if common.BytesToHexString(p.info.OwnerPublicKey) == a.LastRandomCandidateOwner {
+			if common.BytesToHexString(p.info.OwnerKey) == a.LastRandomCandidateOwner {
 				if i < unclaimedCount+a.ChainParams.DPoSConfiguration.NormalArbitratorsCount-1 || p.state != Active {
 					// need get again at random.
 					break
@@ -2009,7 +2077,7 @@ func (a *Arbiters) getSortedProducersWithRandom(height uint32, unclaimedCount in
 
 	// todo need to use History?
 	a.LastRandomCandidateHeight = height
-	a.LastRandomCandidateOwner = common.BytesToHexString(candidateProducer.info.OwnerPublicKey)
+	a.LastRandomCandidateOwner = common.BytesToHexString(candidateProducer.info.OwnerKey)
 
 	newProducers := make([]*Producer, 0, len(votedProducers))
 	newProducers = append(newProducers, votedProducers[:unclaimedCount+normalCount]...)
@@ -2048,7 +2116,7 @@ func (a *Arbiters) getRandomDposV2Producers(height uint32, unclaimedCount int, c
 		return strings.Compare(producerKeys[i], producerKeys[j]) < 0
 	})
 	for _, vp := range votedProducers[unclaimedCount:] {
-		producerKeys = append(producerKeys, hex.EncodeToString(vp.info.OwnerPublicKey))
+		producerKeys = append(producerKeys, hex.EncodeToString(vp.info.OwnerKey))
 	}
 	sortedProducer := make([]string, 0, len(producerKeys))
 	count := a.ChainParams.DPoSConfiguration.NormalArbitratorsCount + len(a.ChainParams.DPoSConfiguration.CRCArbiters)
@@ -2179,7 +2247,7 @@ func (a *Arbiters) UpdateNextArbitrators(versionHeight, height uint32) error {
 					var newSelected bool
 					for _, p := range votedProducers {
 						producer := p
-						ownerPK := common.BytesToHexString(producer.info.OwnerPublicKey)
+						ownerPK := common.BytesToHexString(producer.info.OwnerKey)
 						if ownerPK == a.LastRandomCandidateOwner &&
 							height-a.LastRandomCandidateHeight == uint32(count) {
 							newSelected = true
@@ -2195,7 +2263,7 @@ func (a *Arbiters) UpdateNextArbitrators(versionHeight, height uint32) error {
 									producer.selected = true
 								})
 							}
-							ownerPK := common.BytesToHexString(producer.info.OwnerPublicKey)
+							ownerPK := common.BytesToHexString(producer.info.OwnerKey)
 							oriRandomInactiveCount := producer.randomCandidateInactiveCount
 							if ownerPK == a.LastRandomCandidateOwner {
 								a.History.Append(height, func() {
@@ -2327,8 +2395,8 @@ func (a *Arbiters) resetNextArbiterByCRC(versionHeight uint32, height uint32) (i
 			}
 			producer := &Producer{ // here need crc NODE public key
 				info: payload.ProducerInfo{
-					OwnerPublicKey: pubKey,
-					NodePublicKey:  pubKey,
+					OwnerKey:      pubKey,
+					NodePublicKey: pubKey,
 				},
 				activateRequestHeight: math.MaxUint32,
 			}
@@ -2566,7 +2634,7 @@ func (a *Arbiters) GetDposV2CandidatesDesc(startIndex int,
 	for i := startIndex; i < len(producers) && i < startIndex+a.
 		ChainParams.DPoSConfiguration.CandidatesCount; i++ {
 		ownkey, _ := hex.DecodeString(producers[i])
-		hash, _ := contract.PublicKeyToStandardProgramHash(ownkey)
+		hash, _ := GetOwnerKeyStandardProgramHash(ownkey)
 		crc, exist := choosingArbiters[*hash]
 		if exist {
 			result = append(result, crc)
@@ -2612,8 +2680,7 @@ func (a *Arbiters) snapshotVotesStates(height uint32) error {
 		if producer == nil {
 			return errors.New("get producer by node public key failed")
 		}
-		programHash, err := contract.PublicKeyToStandardProgramHash(
-			producer.OwnerPublicKey())
+		programHash, err := GetOwnerKeyStandardProgramHash(producer.OwnerPublicKey())
 		if err != nil {
 			return err
 		}
@@ -2652,7 +2719,7 @@ func (a *Arbiters) snapshotVotesStates(height uint32) error {
 		if producer == nil {
 			return errors.New("get producer by node public key failed")
 		}
-		programHash, err := contract.PublicKeyToStandardProgramHash(producer.OwnerPublicKey())
+		programHash, err := GetOwnerKeyStandardProgramHash(producer.OwnerPublicKey())
 		if err != nil {
 			return err
 		}
@@ -2877,8 +2944,8 @@ func (a *Arbiters) initArbitrators(chainParams *config.Configuration) error {
 		}
 		producer := &Producer{ // here need crc NODE public key
 			info: payload.ProducerInfo{
-				OwnerPublicKey: pubKey,
-				NodePublicKey:  pubKey,
+				OwnerKey:      pubKey,
+				NodePublicKey: pubKey,
 			},
 			activateRequestHeight: math.MaxUint32,
 		}

@@ -24,6 +24,7 @@ import (
 	"github.com/elastos/Elastos.ELA/core/types/outputpayload"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/cr/state"
+	"github.com/elastos/Elastos.ELA/crypto"
 	msg2 "github.com/elastos/Elastos.ELA/dpos/p2p/msg"
 	elaerr "github.com/elastos/Elastos.ELA/errors"
 	"github.com/elastos/Elastos.ELA/events"
@@ -176,7 +177,7 @@ func (p *Producer) NodePublicKey() []byte {
 }
 
 func (p *Producer) OwnerPublicKey() []byte {
-	return p.info.OwnerPublicKey
+	return p.info.OwnerKey
 }
 
 func (p *Producer) Penalty() common.Fixed64 {
@@ -702,7 +703,7 @@ func (s *State) getProducerByOwnerPublicKey(key string) *Producer {
 // updateProducerInfo updates the producer's info with value compare, any change
 // will be updated.
 func (s *State) updateProducerInfo(origin *payload.ProducerInfo, update *payload.ProducerInfo) {
-	producer := s.getProducer(origin.OwnerPublicKey)
+	producer := s.getProducer(origin.OwnerKey)
 
 	// compare and update node nickname.
 	if origin.NickName != update.NickName {
@@ -716,7 +717,7 @@ func (s *State) updateProducerInfo(origin *payload.ProducerInfo, update *payload
 		oldKey := hex.EncodeToString(origin.NodePublicKey)
 		newKey := hex.EncodeToString(update.NodePublicKey)
 		delete(s.NodeOwnerKeys, oldKey)
-		s.NodeOwnerKeys[newKey] = hex.EncodeToString(origin.OwnerPublicKey)
+		s.NodeOwnerKeys[newKey] = hex.EncodeToString(origin.OwnerKey)
 	}
 
 	producer.info = *update
@@ -1301,6 +1302,14 @@ func (s *State) ProcessBlock(block *types.Block, confirm *payload.Confirm, dutyI
 		}
 	}
 
+	// todo remove me
+	if block.Height > s.ChainParams.DPoSV2StartHeight {
+		msg2.SetPayloadVersion(msg2.DPoSV2Version)
+	}
+
+	// Commit changes here if no errors found.
+	s.History.Commit(block.Height)
+
 	if block.Height >= s.ChainParams.DPoSV2StartHeight &&
 		len(s.WithdrawableTxInfo) != 0 {
 		s.createDposV2ClaimRewardRealWithdrawTransaction(block.Height)
@@ -1310,14 +1319,6 @@ func (s *State) ProcessBlock(block *types.Block, confirm *payload.Confirm, dutyI
 		len(s.VotesWithdrawableTxInfo) != 0 {
 		s.createRealWithdrawTransaction(block.Height)
 	}
-
-	// todo remove me
-	if block.Height > s.ChainParams.DPoSV2StartHeight {
-		msg2.SetPayloadVersion(msg2.DPoSV2Version)
-	}
-
-	// Commit changes here if no errors found.
-	s.History.Commit(block.Height)
 }
 
 func (s *State) createRealWithdrawTransaction(height uint32) {
@@ -1697,7 +1698,7 @@ func (s *State) processTransactions(txs []interfaces.Transaction, height uint32)
 		for _, p := range ps {
 			cp := p
 			if cp.info.StakeUntil < height {
-				key := hex.EncodeToString(cp.info.OwnerPublicKey)
+				key := hex.EncodeToString(cp.info.OwnerKey)
 				if cp.state != Returned && cp.state != Canceled &&
 					(cp.identity == DPoSV2 || (cp.identity == DPoSV1V2 && height > s.DPoSV2ActiveHeight)) {
 					cancelDposV2AndDposV1V2Producer(key, cp)
@@ -1832,16 +1833,34 @@ func (s *State) processTransaction(tx interfaces.Transaction, height uint32) {
 	s.processCancelVotes(tx, height)
 }
 
+func GetOwnerKeyCodeHash(ownerKey []byte) (ownKeyProgramHash *common.Uint160, err error) {
+	if len(ownerKey) == crypto.NegativeBigLength {
+		ownKeyProgramHash, err = contract.PublicKeyToStandardCodeHash(ownerKey)
+	} else {
+		return common.ToCodeHash(ownerKey), nil
+	}
+	return ownKeyProgramHash, err
+}
+
+func GetOwnerKeyDepositProgramHash(ownerKey []byte) (ownKeyProgramHash *common.Uint168, err error) {
+	if len(ownerKey) == crypto.NegativeBigLength {
+		ownKeyProgramHash, err = contract.PublicKeyToDepositProgramHash(ownerKey)
+	} else {
+		ownKeyProgramHash = common.ToProgramHash(byte(contract.PrefixDeposit), ownerKey)
+	}
+	return ownKeyProgramHash, err
+}
+
 // registerProducer handles the register producer transaction.
 func (s *State) registerProducer(tx interfaces.Transaction, height uint32) {
 	info := tx.Payload().(*payload.ProducerInfo)
 	nickname := info.NickName
 	nodeKey := hex.EncodeToString(info.NodePublicKey)
-	ownerKey := hex.EncodeToString(info.OwnerPublicKey)
+	ownerKey := hex.EncodeToString(info.OwnerKey)
 	// ignore error here because this converting process has been ensured in
 	// the context check already
-	programHash, _ := contract.PublicKeyToDepositProgramHash(info.
-		OwnerPublicKey)
+	programHash, _ := GetOwnerKeyDepositProgramHash(info.
+		OwnerKey)
 
 	amount := common.Fixed64(0)
 	depositOutputs := make(map[string]common.Fixed64)
@@ -1901,7 +1920,7 @@ func (s *State) registerProducer(tx interfaces.Transaction, height uint32) {
 
 // updateProducer handles the update producer transaction.
 func (s *State) updateProducer(info *payload.ProducerInfo, height uint32) {
-	producer := s.getProducer(info.OwnerPublicKey)
+	producer := s.getProducer(info.OwnerKey)
 	originProducerIdentity := producer.identity
 	producerInfo := producer.info
 	s.History.Append(height, func() {
@@ -1927,8 +1946,8 @@ func (s *State) updateProducer(info *payload.ProducerInfo, height uint32) {
 
 // cancelProducer handles the cancel producer transaction.
 func (s *State) cancelProducer(payload *payload.ProcessProducer, height uint32) {
-	key := hex.EncodeToString(payload.OwnerPublicKey)
-	producer := s.getProducer(payload.OwnerPublicKey)
+	key := hex.EncodeToString(payload.OwnerKey)
+	producer := s.getProducer(payload.OwnerKey)
 	oriState := producer.state
 	s.History.Append(height, func() {
 		producer.state = Canceled
@@ -2401,13 +2420,16 @@ func (s *State) returnDeposit(tx interfaces.Transaction, height uint32) {
 	for _, input := range tx.Inputs() {
 		inputValue += s.DepositOutputs[input.ReferKey()]
 	}
-
 	for _, program := range tx.Programs() {
-		pk := program.Code[1 : len(program.Code)-1]
-		if producer := s.getProducer(pk); producer != nil {
-
+		ownerKey := make([]byte, len(program.Code), len(program.Code))
+		if contract.IsMultiSig(program.Code) {
+			copy(ownerKey, program.Code)
+		} else {
+			ownerKey = program.Code[1 : len(program.Code)-1]
+		}
+		if producer := s.getProducer(ownerKey); producer != nil {
 			// check deposit coin
-			hash, err := contract.PublicKeyToDepositProgramHash(producer.info.OwnerPublicKey)
+			hash, err := GetOwnerKeyDepositProgramHash(producer.info.OwnerKey)
 			if err != nil {
 				log.Error("owner public key to deposit program hash: failed")
 				return

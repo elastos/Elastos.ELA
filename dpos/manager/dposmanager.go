@@ -658,14 +658,20 @@ func (d *DPOSManager) clearInactiveData(p *payload.InactiveArbitrators) {
 
 func (d *DPOSManager) OnRevertToDPOSTxReceived(id dpeer.PID,
 	tx interfaces.Transaction) {
+	log.Info("### RevertToDPoS OnRevertToDPOSTxReceived  start 1, id:", id.String(), "tx hash:", tx.Hash())
 
 	if !d.isCurrentArbiter() {
+		log.Info("### RevertToDPoS OnRevertToDPOSTxReceived  but is not current")
 		return
 	}
+	log.Info("### RevertToDPoS OnRevertToDPOSTxReceived  start 2")
+
 	if err := blockchain.CheckRevertToDPOSTransaction(tx); err != nil {
 		log.Info("[OnRevertToDPOSTxReceived] received error evidence: ", err)
 		return
 	}
+
+	log.Info("### RevertToDPoS OnRevertToDPOSTxReceived  start 3")
 	d.dispatcher.OnRevertToDPOSTxReceived(id, tx)
 }
 

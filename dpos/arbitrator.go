@@ -54,17 +54,17 @@ type Arbitrator struct {
 }
 
 type PeerInfo struct {
-	OwnerPublicKey string `json:"ownerpublickey"`
-	NodePublicKey  string `json:"nodepublickey"`
-	IP             string `json:"ip"`
-	ConnState      string `json:"connstate"`
+	OwnerKey      string `json:"ownerpublickey"`
+	NodePublicKey string `json:"nodepublickey"`
+	IP            string `json:"ip"`
+	ConnState     string `json:"connstate"`
 }
 
 func (p *PeerInfo) String() string {
 	return fmt.Sprint("PeerInfo: {\n\t",
 		"IP: ", p.IP, "\n\t",
 		"ConnState: ", p.ConnState, "\n\t",
-		"OwnerPublicKey: ", p.OwnerPublicKey, "\n\t",
+		"OwnerKey: ", p.OwnerKey, "\n\t",
 		"NodePublicKey: ", p.NodePublicKey, "\n\t",
 		"}\n")
 }
@@ -137,7 +137,7 @@ func (a *Arbitrator) dumpPeersInfo() {
 				continue
 			}
 			peerInfo := PeerInfo{
-				OwnerPublicKey: common.BytesToHexString(
+				OwnerKey: common.BytesToHexString(
 					producer.GetOwnerPublicKey()),
 				NodePublicKey: common.BytesToHexString(
 					producer.GetNodePublicKey()),

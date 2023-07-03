@@ -9,8 +9,8 @@ import (
 	"encoding/hex"
 
 	"github.com/elastos/Elastos.ELA/common"
-	"github.com/elastos/Elastos.ELA/core/contract"
 	"github.com/elastos/Elastos.ELA/crypto"
+	"github.com/elastos/Elastos.ELA/dpos/state"
 )
 
 const (
@@ -33,7 +33,7 @@ func GetSigners(code []byte) ([]*common.Uint160, error) {
 
 	var signers []*common.Uint160
 	for _, publicKey := range publicKeys {
-		hash, err := contract.PublicKeyToStandardCodeHash(publicKey[1:])
+		hash, err := state.GetOwnerKeyCodeHash(publicKey[1:])
 		if err != nil {
 			return nil, err
 		}
@@ -51,7 +51,7 @@ func GetCorssChainSigners(code []byte) ([]*common.Uint160, error) {
 
 	var signers []*common.Uint160
 	for _, publicKey := range publicKeys {
-		hash, err := contract.PublicKeyToStandardCodeHash(publicKey[1:])
+		hash, err := state.GetOwnerKeyCodeHash(publicKey[1:])
 		if err != nil {
 			return nil, err
 		}

@@ -264,6 +264,14 @@ type CRInfo struct {
 	Signature string `json:"signature"`
 }
 
+type MultiCRInfo struct {
+	CID      string `json:"cid"`
+	DID      string `json:"did"`
+	NickName string `json:"nickname"`
+	Url      string `json:"url"`
+	Location uint64 `json:"location"`
+}
+
 type UnregisterCRInfo struct {
 	CID       string `json:"cid"`
 	Signature string `json:"signature"`
@@ -442,6 +450,13 @@ type NextTurnDPOSPayloadInfo struct {
 	DPOSPublicKeys []string `json:"dpospublickeys"`
 }
 
+type NextTurnDPOSPayloadInfoV2 struct {
+	WorkingHeight        uint32   `json:"workingheight"`
+	CRPublicKeys         []string `json:"crpublickeys"`
+	DPOSPublicKeys       []string `json:"dpospublickeys"`
+	CompleteCRPublicKeys []string `json:"CompleteCRPublicKeys"`
+}
+
 type CRCProposalRealWithdrawInfo struct {
 	WithdrawTransactionHashes []string `json:"withdrawtransactionhashes"`
 }
@@ -594,12 +609,36 @@ type DposV2ClaimRewardRealWithdrawInfo struct {
 }
 
 type CreateNFTInfo struct {
-	// nft id, hash of detailed vote information.
+	// NFT ID
 	ID string
+	// hash of detailed vote information.
+	ReferKey string
 	// side chain format address.
 	StakeAddress string
 	// side chain genesis block address
 	GenesisBlockHash string
+}
+
+type CreateNFTInfoV2 struct {
+	// NFT ID
+	ID string
+	// hash of detailed vote information.
+	ReferKey string
+	// side chain format address.
+	StakeAddress string
+	// side chain genesis block address
+	GenesisBlockHash string
+	// the start height of votes
+	StartHeight uint32
+	// the end height of votes: start height + lock time.
+	EndHeight uint32
+	// the DPoS 2.0 votes.
+	Votes string
+	// the DPoS 2.0 vote rights.
+	VoteRights string
+	// the votes to the producer, and TargetOwnerPublicKey is the producer's
+	// owner key.
+	TargetOwnerKey string
 }
 
 type DestroyNFTInfo struct {

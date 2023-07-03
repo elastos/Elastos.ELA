@@ -326,11 +326,11 @@ func TestTxPool_VerifyDuplicateCRTx(t *testing.T) {
 		[]*program.Program{},
 	)
 	tx5.SetPayload(&payload.ProducerInfo{
-		OwnerPublicKey: publicKey1,
-		NodePublicKey:  publicKey2,
-		NickName:       "nickname 3",
-		Url:            "http://www.elastos_test.com",
-		Location:       3,
+		OwnerKey:      publicKey1,
+		NodePublicKey: publicKey2,
+		NickName:      "nickname 3",
+		Url:           "http://www.elastos_test.com",
+		Location:      3,
 	})
 	tx5.SetInputs([]*common2.Input{input3})
 
@@ -346,11 +346,11 @@ func TestTxPool_VerifyDuplicateCRTx(t *testing.T) {
 		[]*program.Program{},
 	)
 	tx6.SetPayload(&payload.ProducerInfo{
-		OwnerPublicKey: publicKey2,
-		NodePublicKey:  publicKey1,
-		NickName:       "nickname 4",
-		Url:            "http://www.elastos_test.com",
-		Location:       4,
+		OwnerKey:      publicKey2,
+		NodePublicKey: publicKey1,
+		NickName:      "nickname 4",
+		Url:           "http://www.elastos_test.com",
+		Location:      4,
 	})
 	tx6.SetInputs([]*common2.Input{input4})
 

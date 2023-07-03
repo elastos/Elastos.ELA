@@ -8,6 +8,7 @@ package transaction
 import (
 	"bytes"
 	"errors"
+	"fmt"
 
 	"github.com/elastos/Elastos.ELA/core/contract"
 	"github.com/elastos/Elastos.ELA/core/types/interfaces"
@@ -32,6 +33,20 @@ func (t *CancelProducerTransaction) CheckTransactionPayload() error {
 
 func (t *CancelProducerTransaction) IsAllowedInPOWConsensus() bool {
 	return false
+}
+
+func (t *CancelProducerTransaction) HeightVersionCheck() error {
+	blockHeight := t.parameters.BlockHeight
+	chainParams := t.parameters.Config
+
+	if blockHeight < chainParams.SupportMultiCodeHeight {
+		if t.PayloadVersion() == payload.ProcessMultiCodeVersion {
+			return errors.New(fmt.Sprintf("not support %s transaction "+
+				"with payload version %d before SupportMultiCodeHeight",
+				t.TxType().Name(), t.PayloadVersion()))
+		}
+	}
+	return nil
 }
 
 func (t *CancelProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
@@ -66,12 +81,11 @@ func (t *CancelProducerTransaction) checkProcessProducer(params *TransactionPara
 	}
 
 	// check signature
-	publicKey, err := crypto.DecodePoint(processProducer.OwnerPublicKey)
-	if err != nil {
-		return nil, errors.New("invalid public key in payload")
-	}
-
-	if t.PayloadVersion() != payload.ProcessProducerSchnorrVersion {
+	if t.PayloadVersion() == payload.ProcessProducerVersion {
+		publicKey, err := crypto.DecodePoint(processProducer.OwnerKey)
+		if err != nil {
+			return nil, errors.New("invalid public key in payload")
+		}
 		signedBuf := new(bytes.Buffer)
 		err = processProducer.SerializeUnsigned(signedBuf, t.PayloadVersion())
 		if err != nil {
@@ -81,19 +95,24 @@ func (t *CancelProducerTransaction) checkProcessProducer(params *TransactionPara
 		if err != nil {
 			return nil, errors.New("invalid signature in payload")
 		}
-	} else {
+	} else if t.PayloadVersion() == payload.ProcessProducerSchnorrVersion {
 		if !contract.IsSchnorr(t.Programs()[0].Code) {
 			return nil, errors.New("only schnorr code can use ProcessProducerSchnorrVersion")
 		}
 		pk := t.Programs()[0].Code[2:]
-		if !bytes.Equal(pk, processProducer.OwnerPublicKey) {
-			return nil, errors.New("tx program pk must equal with processProducer OwnerPublicKey ")
+		if !bytes.Equal(pk, processProducer.OwnerKey) {
+			return nil, errors.New("tx program pk must equal with processProducer OwnerKey ")
+		}
+	} else if t.PayloadVersion() == payload.ProcessMultiCodeVersion {
+		if !contract.IsMultiSig(t.Programs()[0].Code) {
+			return nil, elaerr.Simple(elaerr.ErrTxPayload,
+				errors.New("only multi sign code can use ProcessMultiCodeVersion"))
 		}
 	}
 
-	producer := t.parameters.BlockChain.GetState().GetProducer(processProducer.OwnerPublicKey)
+	producer := t.parameters.BlockChain.GetState().GetProducer(processProducer.OwnerKey)
 	if producer == nil || !bytes.Equal(producer.OwnerPublicKey(),
-		processProducer.OwnerPublicKey) {
+		processProducer.OwnerKey) {
 		return nil, errors.New("getting unknown producer")
 	}
 	return producer, nil

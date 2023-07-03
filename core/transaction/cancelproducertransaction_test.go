@@ -28,7 +28,7 @@ func (s *txValidatorTestSuite) TestCheckCancelProducerTransaction() {
 	errPublicKey, _ := common.HexStringToBytes(errPublicKeyStr)
 
 	cancelPayload := &payload.ProcessProducer{
-		OwnerPublicKey: publicKey1,
+		OwnerKey: publicKey1,
 	}
 
 	programs := []*program.Program{{
@@ -48,17 +48,17 @@ func (s *txValidatorTestSuite) TestCheckCancelProducerTransaction() {
 		programs,
 	)
 
-	cancelPayload.OwnerPublicKey = errPublicKey
+	cancelPayload.OwnerKey = errPublicKey
 	txn = CreateTransactionByType(txn, s.Chain)
 	err, _ := txn.SpecialContextCheck()
 	s.EqualError(err, "transaction validate error: payload content invalid:invalid public key in payload")
 
-	cancelPayload.OwnerPublicKey = publicKey2
+	cancelPayload.OwnerKey = publicKey2
 	err, _ = txn.SpecialContextCheck()
 	s.EqualError(err, "transaction validate error: payload content invalid:invalid signature in payload")
 
 	buf := new(bytes.Buffer)
-	cancelPayload.OwnerPublicKey = publicKey1
+	cancelPayload.OwnerKey = publicKey1
 	cancelPayload.SerializeUnsigned(buf, 0)
 
 	sig, _ := crypto.Sign(privateKey1, buf.Bytes())
@@ -81,12 +81,12 @@ func (s *txValidatorTestSuite) TestCheckCancelProducerTransaction() {
 
 	{
 		registerPayload := &payload.ProducerInfo{
-			OwnerPublicKey: publicKey1,
-			NodePublicKey:  publicKey1,
-			NickName:       "",
-			Url:            "",
-			Location:       1,
-			NetAddress:     "",
+			OwnerKey:      publicKey1,
+			NodePublicKey: publicKey1,
+			NickName:      "",
+			Url:           "",
+			Location:      1,
+			NetAddress:    "",
 		}
 		programs = []*program.Program{{
 			Code:      getCodeByPubKeyStr(publicKeyStr1),
@@ -142,13 +142,13 @@ func (s *txValidatorTestSuite) TestCheckCancelProducerTransaction() {
 
 	{
 		registerPayload := &payload.ProducerInfo{
-			OwnerPublicKey: publicKey1,
-			NodePublicKey:  publicKey1,
-			NickName:       "",
-			Url:            "",
-			Location:       1,
-			NetAddress:     "",
-			StakeUntil:     100,
+			OwnerKey:      publicKey1,
+			NodePublicKey: publicKey1,
+			NickName:      "",
+			Url:           "",
+			Location:      1,
+			NetAddress:    "",
+			StakeUntil:    100,
 		}
 		programs = []*program.Program{{
 			Code:      getCodeByPubKeyStr(publicKeyStr1),
@@ -204,12 +204,12 @@ func (s *txValidatorTestSuite) TestCheckCancelProducerTransaction() {
 
 	{
 		registerPayload := &payload.ProducerInfo{
-			OwnerPublicKey: publicKey1,
-			NodePublicKey:  publicKey1,
-			NickName:       "",
-			Url:            "",
-			Location:       1,
-			NetAddress:     "",
+			OwnerKey:      publicKey1,
+			NodePublicKey: publicKey1,
+			NickName:      "",
+			Url:           "",
+			Location:      1,
+			NetAddress:    "",
 		}
 		programs = []*program.Program{{
 			Code:      getCodeByPubKeyStr(publicKeyStr1),
@@ -271,13 +271,13 @@ func (s *txValidatorTestSuite) TestCheckCancelProducerTransaction() {
 			programs,
 		)
 		updatePayload := &payload.ProducerInfo{
-			OwnerPublicKey: publicKey1,
-			NodePublicKey:  publicKey1,
-			NickName:       "nick name",
-			Url:            "www.elastos.org",
-			Location:       2,
-			NetAddress:     "",
-			StakeUntil:     10,
+			OwnerKey:      publicKey1,
+			NodePublicKey: publicKey1,
+			NickName:      "nick name",
+			Url:           "www.elastos.org",
+			Location:      2,
+			NetAddress:    "",
+			StakeUntil:    10,
 		}
 		txn2.SetPayload(updatePayload)
 

@@ -17,6 +17,7 @@ import (
 const CRInfoVersion byte = 0x00
 const CRInfoDIDVersion byte = 0x01
 const CRInfoSchnorrVersion byte = 0x02
+const CRInfoMultiSignVersion byte = 0x03
 
 // CRInfo defines the information of CR.
 type CRInfo struct {
@@ -27,7 +28,7 @@ type CRInfo struct {
 	Url       string
 	Location  uint64
 	Signature []byte
-}	
+}
 
 func (a *CRInfo) Data(version byte) []byte {
 	buf := new(bytes.Buffer)
@@ -43,7 +44,7 @@ func (a *CRInfo) Serialize(w io.Writer, version byte) error {
 		return err
 	}
 
-	if version != CRInfoSchnorrVersion {
+	if version != CRInfoSchnorrVersion && version != CRInfoMultiSignVersion {
 		err = common.WriteVarBytes(w, a.Signature)
 		if err != nil {
 			return errors.New("[CRInfo], Signature serialize failed")
@@ -54,7 +55,7 @@ func (a *CRInfo) Serialize(w io.Writer, version byte) error {
 }
 
 func (a *CRInfo) SerializeUnsigned(w io.Writer, version byte) error {
-	if version != CRInfoSchnorrVersion {
+	if version != CRInfoSchnorrVersion && version != CRInfoMultiSignVersion {
 		err := common.WriteVarBytes(w, a.Code)
 		if err != nil {
 			return errors.New("[CRInfo], code serialize failed")
@@ -92,7 +93,7 @@ func (a *CRInfo) Deserialize(r io.Reader, version byte) error {
 		return err
 	}
 
-	if version != CRInfoSchnorrVersion {
+	if version != CRInfoSchnorrVersion && version != CRInfoMultiSignVersion  {
 		a.Signature, err = common.ReadVarBytes(r, crypto.MaxSignatureScriptLength, "signature")
 		if err != nil {
 			return errors.New("[CRInfo], signature deserialize failed")
@@ -103,7 +104,7 @@ func (a *CRInfo) Deserialize(r io.Reader, version byte) error {
 
 func (a *CRInfo) DeserializeUnsigned(r io.Reader, version byte) error {
 	var err error
-	if version != CRInfoSchnorrVersion {
+	if version != CRInfoSchnorrVersion  && version != CRInfoMultiSignVersion {
 		a.Code, err = common.ReadVarBytes(r, crypto.MaxMultiSignCodeLength, "code")
 		if err != nil {
 			return errors.New("[CRInfo], code deserialize failed")

@@ -535,6 +535,46 @@ func (b *BlockChain) CreateCRCAppropriationTransaction() (interfaces.Transaction
 	return tx, lockedAmount, nil
 }
 
+func (b *BlockChain) TryCreateBPoSRewardTransaction(addr Uint168,
+	dutyNodes map[Uint168]uint32, notDutyNodes []Uint168) (interfaces.Transaction, Fixed64, error) {
+	utxos, lockedAmount, err := b.getUTXOsFromAddress(addr)
+	if err != nil {
+		return nil, 0, err
+	}
+	var balance Fixed64
+	for _, u := range utxos {
+		balance += u.Value
+	}
+	if balance <= 1e8 {
+		return nil, 0, errors.New("no utxo")
+	}
+	fee := Fixed64(10000)
+	rewards := balance - fee
+
+	log.Info("create votes reward transaction, rewards:", rewards, "fee:", fee)
+
+	outputs := make([]*common.OutputInfo, 0)
+	var totalBlock uint32
+	for _, v := range dutyNodes {
+		totalBlock += v
+	}
+	exchange := rewards
+	for k, v := range dutyNodes {
+		reward := Fixed64(float64(v) / float64(totalBlock) * float64(rewards))
+		outputs = append(outputs, &common.OutputInfo{k, reward})
+		exchange -= reward
+	}
+	outputs[0].Amount += exchange
+
+	tx, err := b.createTransaction(&payload.TransferAsset{}, common.TransferAsset,
+		addr, fee, uint32(0), utxos, outputs...)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return tx, lockedAmount, nil
+}
+
 func (b *BlockChain) CreateDposV2RealWithdrawTransaction(
 	withdrawTransactionHashes []Uint256, outputs []*common.OutputInfo) (interfaces.Transaction, error) {
 	utxos, _, err := b.getUTXOsFromAddress(*b.chainParams.DPoSConfiguration.DPoSV2RewardAccumulateProgramHash)

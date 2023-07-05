@@ -10,6 +10,8 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	pg "github.com/elastos/Elastos.ELA/core/contract/program"
+	account2 "github.com/elastos/Elastos.ELA/dpos/account"
 	"io"
 	"math"
 	"sort"
@@ -134,6 +136,8 @@ type Producer struct {
 	inactiveCount                uint32
 	inactiveCountV2              uint32
 	workedInRound                bool
+
+	ConfirmBlockCount uint32
 }
 
 // Info returns a copy of the origin registered producer info.
@@ -373,7 +377,7 @@ func (p *Producer) Serialize(w io.Writer) error {
 	}
 
 	return common.WriteElements(w, p.selected, p.randomCandidateInactiveCount,
-		p.inactiveCountingHeight, p.lastUpdateInactiveHeight, p.inactiveCount, p.inactiveCountV2, p.workedInRound)
+		p.inactiveCountingHeight, p.lastUpdateInactiveHeight, p.inactiveCount, p.inactiveCountV2, p.workedInRound, p.ConfirmBlockCount)
 }
 
 func SerializeDetailVoteInfoMap(
@@ -518,7 +522,7 @@ func (p *Producer) Deserialize(r io.Reader) (err error) {
 	}
 
 	return common.ReadElements(r, &p.selected, &p.randomCandidateInactiveCount,
-		&p.inactiveCountingHeight, &p.lastUpdateInactiveHeight, &p.inactiveCount, &p.inactiveCountV2, &p.workedInRound)
+		&p.inactiveCountingHeight, &p.lastUpdateInactiveHeight, &p.inactiveCount, &p.inactiveCountV2, &p.workedInRound, &p.ConfirmBlockCount)
 }
 
 func DeserializeDetailVoteInfoMap(
@@ -602,9 +606,13 @@ type State struct {
 		outputs []*common2.OutputInfo) (interfaces.Transaction, error)
 	createVotesRealWithdrawTransaction func(withdrawTransactionHashes []common.Uint256,
 		outputs []*common2.OutputInfo) (interfaces.Transaction, error)
+	TryCreateBPoSRewardTransaction func(addr common.Uint168,
+		dutyNodes map[common.Uint168]uint32, notDutyNodes []common.Uint168) (interfaces.Transaction, common.Fixed64, error)
 
 	// temp use
 	LastRenewalDPoSV2Votes map[common.Uint256]struct{}
+
+	account account2.Account
 }
 
 func (s *State) DPoSV2Started() bool {
@@ -1318,6 +1326,67 @@ func (s *State) ProcessBlock(block *types.Block, confirm *payload.Confirm, dutyI
 
 	// Commit changes here if no errors found.
 	s.History.Commit(block.Height)
+
+	// check balance of account, and send reward to BPoS nodes
+	if block.Height > s.ChainParams.DPoSV2StartHeight && confirm != nil {
+		sponsor := confirm.Proposal.Sponsor
+
+		for _, a := range s.ActivityProducers {
+			if bytes.Equal(a.info.NodePublicKey, sponsor) {
+				a.ConfirmBlockCount++
+			}
+		}
+
+		dutyNodes := make(map[common.Uint168]uint32)
+		notDutyNodes := make([]common.Uint168, 0)
+
+		for _, a := range s.ActivityProducers {
+			if (a.identity == DPoSV2 || a.identity == DPoSV1V2) &&
+				a.state == Active {
+
+				hash, _ := contract.PublicKeyToStandardProgramHash(
+					a.OwnerPublicKey())
+				if a.GetTotalDPoSV2VoteRights() >= float64(8000*1e8) {
+					dutyNodes[*hash] = a.ConfirmBlockCount
+				} else {
+
+					notDutyNodes = append(notDutyNodes, *hash)
+				}
+			}
+		}
+
+		hash, _ := contract.PublicKeyToStandardProgramHash(
+			s.account.PublicKeyBytes())
+		tx, _, err := s.TryCreateBPoSRewardTransaction(*hash, dutyNodes, notDutyNodes)
+		if tx != nil && err == nil {
+			unsignedBuf := new(bytes.Buffer)
+			err := tx.SerializeUnsigned(unsignedBuf)
+			if err != nil {
+				fmt.Println(err)
+			}
+			sign := s.account.Sign(unsignedBuf.Bytes())
+			parameter := append([]byte{byte(len(sign))}, sign...)
+			code, err := contract.CreateStandardRedeemScript(s.account.PublicKey())
+			if err != nil {
+				fmt.Println(err)
+			}
+
+			var txProgram = &pg.Program{
+				Code:      code,
+				Parameter: parameter,
+			}
+
+			tx.SetPrograms(append(tx.Programs(), txProgram))
+			go func() {
+				if s.isCurrent() {
+					if err := s.appendToTxpool(tx); err != nil {
+						log.Warn("create BPoS votes reward tx "+
+							"append to tx pool err ", err)
+					}
+				}
+			}()
+		}
+	}
 }
 
 func (s *State) createRealWithdrawTransaction(height uint32) {
@@ -1392,14 +1461,17 @@ type StateFuncsConfig struct {
 		outpus []*common2.OutputInfo) (interfaces.Transaction, error)
 	CreateVotesRealWithdrawTransaction func(withdrawTransactionHashes []common.Uint256,
 		outpus []*common2.OutputInfo) (interfaces.Transaction, error)
-	IsCurrent      func() bool
-	Broadcast      func(msg p2p.Message)
-	AppendToTxpool func(transaction interfaces.Transaction) elaerr.ELAError
+	IsCurrent                      func() bool
+	Broadcast                      func(msg p2p.Message)
+	AppendToTxpool                 func(transaction interfaces.Transaction) elaerr.ELAError
+	TryCreateBPoSRewardTransaction func(addr common.Uint168,
+		dutyNodes map[common.Uint168]uint32, notDutyNodes []common.Uint168) (interfaces.Transaction, common.Fixed64, error)
 }
 
 func (c *State) RegisterFuncitons(cfg *StateFuncsConfig) {
 	c.createDposV2RealWithdrawTransaction = cfg.CreateDposV2RealWithdrawTransaction
 	c.createVotesRealWithdrawTransaction = cfg.CreateVotesRealWithdrawTransaction
+	c.TryCreateBPoSRewardTransaction = cfg.TryCreateBPoSRewardTransaction
 	c.isCurrent = cfg.IsCurrent
 	c.broadcast = cfg.Broadcast
 	c.appendToTxpool = cfg.AppendToTxpool
@@ -3854,7 +3926,8 @@ func NewState(chainParams *config.Configuration, getArbiters func() []*ArbiterIn
 	tryRevertCRMemberIllegal func(did common.Uint168, oriState state.MemberState, height uint32,
 		illegalPenalty common.Fixed64),
 	updateCRInactivePenalty func(cid common.Uint168, height uint32),
-	revertUpdateCRInactivePenalty func(cid common.Uint168, height uint32)) *State {
+	revertUpdateCRInactivePenalty func(cid common.Uint168, height uint32),
+	acc account2.Account) *State {
 	state := State{
 		ChainParams:                   chainParams,
 		GetArbiters:                   getArbiters,
@@ -3870,6 +3943,7 @@ func NewState(chainParams *config.Configuration, getArbiters func() []*ArbiterIn
 		tryRevertCRMemberIllegal:      tryRevertCRMemberIllegal,
 		updateCRInactivePenalty:       updateCRInactivePenalty,
 		revertUpdateCRInactivePenalty: revertUpdateCRInactivePenalty,
+		account:                       acc,
 	}
 	events.Subscribe(state.handleEvents)
 	return &state

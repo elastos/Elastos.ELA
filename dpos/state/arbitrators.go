@@ -27,6 +27,7 @@ import (
 	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/cr/state"
+	account2 "github.com/elastos/Elastos.ELA/dpos/account"
 	"github.com/elastos/Elastos.ELA/dpos/p2p/peer"
 	"github.com/elastos/Elastos.ELA/events"
 	"github.com/elastos/Elastos.ELA/utils"
@@ -2912,7 +2913,7 @@ func NewArbitrators(chainParams *config.Configuration, committee *state.Committe
 	tryRevertCRMemberIllegal func(did common.Uint168, oriState state.MemberState, height uint32, illegalPenalty common.Fixed64),
 	updateCRInactivePenalty func(cid common.Uint168, height uint32),
 	revertUpdateCRInactivePenalty func(cid common.Uint168, height uint32),
-	ckpManager *checkpoint.Manager) (*Arbiters, error) {
+	ckpManager *checkpoint.Manager, acc account2.Account) (*Arbiters, error) {
 	a := &Arbiters{
 		ChainParams:                chainParams,
 		CRCommittee:                committee,
@@ -2941,7 +2942,7 @@ func NewArbitrators(chainParams *config.Configuration, committee *state.Committe
 		getProducerDepositAmount, tryUpdateCRMemberInactivity, tryRevertCRMemberInactivityfunc,
 		tryUpdateCRMemberIllegal, tryRevertCRMemberIllegal,
 		updateCRInactivePenalty,
-		revertUpdateCRInactivePenalty)
+		revertUpdateCRInactivePenalty, acc)
 	a.CkpManager.Register(NewCheckpoint(a))
 	return a, nil
 }

@@ -46,6 +46,9 @@ type StateKeyFrame struct {
 	DposV2EffectedProducers  map[string]*Producer
 	Votes                    map[string]struct{}
 
+	DutyNodes    map[common.Uint168]uint32
+	NotDutyNodes []common.Uint168
+
 	// NFT
 	// key: ID value: (genesis block hash, createNFT tx hash)
 	NFTIDInfoHashMap map[common.Uint256]payload.NFTInfo
@@ -145,6 +148,8 @@ func (s *StateKeyFrame) snapshot() *StateKeyFrame {
 	state.PendingCanceledProducers = copyProducerMap(s.PendingCanceledProducers)
 	state.DposV2EffectedProducers = copyProducerMap(s.DposV2EffectedProducers)
 	state.Votes = copyStringSet(s.Votes)
+	state.DutyNodes = copyAddrUint32Map(s.DutyNodes)
+	state.NotDutyNodes = s.NotDutyNodes
 
 	state.NFTIDInfoHashMap = copyUint256MapSet(s.NFTIDInfoHashMap)
 
@@ -215,6 +220,13 @@ func (s *StateKeyFrame) Serialize(w io.Writer) (err error) {
 	}
 
 	if err = s.SerializeStringSet(s.Votes, w); err != nil {
+		return
+	}
+
+	if err = s.SerializeAddrUint32Map(s.DutyNodes, w); err != nil {
+		return
+	}
+	if err = s.SerializeAddrList(s.NotDutyNodes, w); err != nil {
 		return
 	}
 
@@ -563,6 +575,35 @@ func (s *StateKeyFrame) SerializeStringSet(vmap map[string]struct{},
 	}
 	for k := range vmap {
 		if err = common.WriteVarString(w, k); err != nil {
+			return
+		}
+	}
+	return
+}
+
+func (s *StateKeyFrame) SerializeAddrUint32Map(vmap map[common.Uint168]uint32,
+	w io.Writer) (err error) {
+	if err = common.WriteVarUint(w, uint64(len(vmap))); err != nil {
+		return
+	}
+	for k, v := range vmap {
+		if err = k.Serialize(w); err != nil {
+			return
+		}
+		if err = common.WriteUint32(w, v); err != nil {
+			return
+		}
+	}
+	return
+}
+
+func (s *StateKeyFrame) SerializeAddrList(vmap []common.Uint168,
+	w io.Writer) (err error) {
+	if err = common.WriteVarUint(w, uint64(len(vmap))); err != nil {
+		return
+	}
+	for _, v := range vmap {
+		if err = v.Serialize(w); err != nil {
 			return
 		}
 	}
@@ -994,6 +1035,15 @@ func copyProducerMap(src map[string]*Producer) (dst map[string]*Producer) {
 	for k, v := range src {
 		p := *v
 		dst[k] = &p
+	}
+	return
+}
+
+func copyAddrUint32Map(src map[common.Uint168]uint32) (dst map[common.Uint168]uint32) {
+	dst = map[common.Uint168]uint32{}
+	for k, v := range src {
+		count := v
+		dst[k] = count
 	}
 	return
 }

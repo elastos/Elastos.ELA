@@ -111,21 +111,19 @@ func startNode(cfg *config.Configuration) {
 	ckpManager.SetDataPath(filepath.Join(dataDir, checkpointPath))
 
 	var acc account.Account
-	if cfg.DPoSConfiguration.EnableArbiter {
-		var err error
-		var password []byte
-		if cfg.Password != "" {
-			password = []byte(cfg.Password)
-		} else {
-			password, err = utils.GetPassword()
-		}
-		if err != nil {
-			printErrorAndExit(err)
-		}
-		acc, err = account.Open(password, cfg.WalletPath)
-		if err != nil {
-			printErrorAndExit(err)
-		}
+	var err error
+	var password []byte
+	if cfg.Password != "" {
+		password = []byte(cfg.Password)
+	} else {
+		password, err = utils.GetPassword()
+	}
+	if err != nil {
+		printErrorAndExit(err)
+	}
+	acc, err = account.Open(password, cfg.WalletPath)
+	if err != nil {
+		printErrorAndExit(err)
 	}
 	var interrupt = signal.NewInterrupt()
 
@@ -158,6 +156,7 @@ func startNode(cfg *config.Configuration) {
 		committee.UpdateCRInactivePenalty,
 		committee.RevertUpdateCRInactivePenalty,
 		ckpManager,
+		acc,
 	)
 	if err != nil {
 		printErrorAndExit(err)
@@ -216,9 +215,10 @@ func startNode(cfg *config.Configuration) {
 		AppendToTxpool:                      txMemPool.AppendToTxPool,
 		CreateDposV2RealWithdrawTransaction: chain.CreateDposV2RealWithdrawTransaction,
 		CreateVotesRealWithdrawTransaction:  chain.CreateVotesRealWithdrawTransaction,
+		TryCreateBPoSRewardTransaction:      chain.TryCreateBPoSRewardTransaction,
 	})
 
-	if acc != nil {
+	if cfg.DPoSConfiguration.EnableArbiter {
 		dlog.Init(flagDataDir, uint8(cfg.PrintLevel), cfg.MaxPerLogSize, cfg.MaxLogsSize)
 		arbitrator, err := dpos.NewArbitrator(acc, dpos.Config{
 			EnableEventLog: true,

@@ -1289,6 +1289,31 @@ func (s *State) ProcessBlock(block *types.Block, confirm *payload.Confirm, dutyI
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
 
+	hash, _ := contract.PublicKeyToStandardProgramHash(
+		s.account.PublicKeyBytes())
+
+	for _, tx := range block.Transactions {
+		if tx.TxType() != common2.TransferAsset {
+			continue
+		}
+		references, err := s.GetTxReference(tx)
+		if err != nil {
+			log.Errorf("get tx reference failed, tx hash:%s", common.ToReversedString(tx.Hash()))
+			return
+		}
+		for _, input := range tx.Inputs() {
+			if references[input].ProgramHash.IsEqual(*hash) {
+				// reset block count
+				for _, a := range s.ActivityProducers {
+					a.ConfirmBlockCount = 0
+				}
+				for _, a := range s.InactiveProducers {
+					a.ConfirmBlockCount = 0
+				}
+			}
+		}
+	}
+
 	//s.tryInitProducerAssetAmounts(block.Height)
 	s.processTransactions(block.Transactions, block.Height)
 	s.ProcessVoteStatisticsBlock(block)
@@ -1328,15 +1353,15 @@ func (s *State) ProcessBlock(block *types.Block, confirm *payload.Confirm, dutyI
 	s.History.Commit(block.Height)
 
 	// check balance of account, and send reward to BPoS nodes
-	if block.Height >= s.getHeight() && block.Height > s.ChainParams.DPoSV2StartHeight && confirm != nil {
+	if block.Height > s.ChainParams.DPoSV2StartHeight && confirm != nil {
 		sponsor := confirm.Proposal.Sponsor
-
 		for _, a := range s.ActivityProducers {
 			if bytes.Equal(a.info.NodePublicKey, sponsor) {
 				a.ConfirmBlockCount++
 			}
 		}
-
+	}
+	if block.Height >= s.getHeight() && block.Height > s.ChainParams.DPoSV2StartHeight {
 		dutyNodes := make(map[common.Uint168]uint32)
 		notDutyNodes := make([]common.Uint168, 0)
 
@@ -1355,8 +1380,6 @@ func (s *State) ProcessBlock(block *types.Block, confirm *payload.Confirm, dutyI
 			}
 		}
 
-		hash, _ := contract.PublicKeyToStandardProgramHash(
-			s.account.PublicKeyBytes())
 		tx, _, err := s.TryCreateBPoSRewardTransaction(*hash, dutyNodes, notDutyNodes)
 		if tx != nil && err == nil {
 			unsignedBuf := new(bytes.Buffer)

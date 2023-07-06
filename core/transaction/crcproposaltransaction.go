@@ -92,6 +92,17 @@ func (t *CRCProposalTransaction) SpecialContextCheck() (result elaerr.ELAError, 
 	if t.parameters.BlockChain.GetCRCommittee().IsProposalFull(proposal.CRCouncilMemberDID) {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("proposal is full")), true
 	}
+
+	if len(proposal.OwnerKey) != 0 && len(proposal.OwnerKey) != 33 {
+		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("OwnerKey must standard publickey")), true
+	}
+	if len(proposal.NewOwnerKey) != 0 && len(proposal.NewOwnerKey) != 33 {
+		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("NewOwnerKey must standard publickey")), true
+	}
+	if len(proposal.SecretaryGeneralPublicKey) != 0 && len(proposal.SecretaryGeneralPublicKey) != 33 {
+		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("SecretaryGeneralPublicKey must standard publickey")), true
+	}
+
 	// Check draft hash of proposal.
 	if t.parameters.BlockChain.GetCRCommittee().ExistDraft(proposal.DraftHash) {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("duplicated draft proposal hash")), true

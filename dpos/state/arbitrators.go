@@ -127,7 +127,8 @@ func GetOwnerKeyStandardProgramHash(ownerKey []byte) (ownKeyProgramHash *common.
 	if len(ownerKey) == crypto.NegativeBigLength {
 		ownKeyProgramHash, err = contract.PublicKeyToStandardProgramHash(ownerKey)
 	} else {
-		ownKeyProgramHash = common.ToProgramHash(byte(contract.PrefixStandard), ownerKey)
+		//PrefixMultiSig
+		ownKeyProgramHash = common.ToProgramHash(byte(contract.PrefixMultiSig), ownerKey)
 	}
 	return ownKeyProgramHash, err
 }
@@ -781,7 +782,6 @@ func (a *Arbiters) getDPoSV2RewardsV2(dposReward common.Fixed64, sponsor []byte,
 		rewards[ownerAddr] += dposNodeReward
 		log.Debugf("getDPoSV2Rewards totalUsedVotesReward %s dposNodeReward %s,  \n", totalUsedVotesReward, dposNodeReward)
 	}
-
 	return rewards
 }
 
@@ -2505,12 +2505,12 @@ func (a *Arbiters) getCRCArbitersV2(height uint32) (map[common.Uint168]ArbiterMe
 		} else {
 			pk = cr.DPOSPublicKey
 		}
-		crPublicKey := cr.Info.Code[1 : len(cr.Info.Code)-1]
+		ownerKey := common.GetOwnerKey(cr.Info.Code)
 		isNormal := true
 		if height >= claimHeight && cr.MemberState != state.MemberElected {
 			isNormal = false
 		}
-		ar, err := NewCRCArbiter(pk, crPublicKey, cr, isNormal)
+		ar, err := NewCRCArbiter(pk, ownerKey, cr, isNormal)
 		if err != nil {
 			return nil, 0, err
 		}
@@ -2562,12 +2562,12 @@ func (a *Arbiters) getCRCArbitersV1(height uint32) (map[common.Uint168]ArbiterMe
 		} else {
 			pk = cr.DPOSPublicKey
 		}
-		crPublicKey := cr.Info.Code[1 : len(cr.Info.Code)-1]
+		ownerKey := common.GetOwnerKey(cr.Info.Code)
 		isNormal := true
 		if height >= claimHeight && cr.MemberState != state.MemberElected {
 			isNormal = false
 		}
-		ar, err := NewCRCArbiter(pk, crPublicKey, cr, isNormal)
+		ar, err := NewCRCArbiter(pk, ownerKey, cr, isNormal)
 		if err != nil {
 			return nil, err
 		}

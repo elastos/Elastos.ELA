@@ -37,15 +37,16 @@ func (c *Committee) processTransactions(txs []interfaces.Transaction, height uin
 	}
 
 	c.checkWithdrawAndInactiveCR(sortedTxs[1:], height)
-
 	// Check if any pending inactive CR member has got 6 confirms, then set them
 	// to elected.
 	activateCRMemberFromInactive := func(cr *CRMember) {
 		oriState := cr.MemberState
 		oriActivateRequestHeight := cr.ActivateRequestHeight
 		c.state.History.Append(height, func() {
-			cr.MemberState = MemberElected
-			cr.ActivateRequestHeight = math.MaxUint32
+			if canChangeState(cr.MemberState, MemberElected) {
+				cr.MemberState = MemberElected
+				cr.ActivateRequestHeight = math.MaxUint32
+			}
 		}, func() {
 			cr.MemberState = oriState
 			cr.ActivateRequestHeight = oriActivateRequestHeight
@@ -62,6 +63,24 @@ func (c *Committee) processTransactions(txs []interfaces.Transaction, height uin
 			}
 		}
 	}
+}
+
+func canChangeState(nowState, targetState MemberState) bool {
+	switch targetState {
+	case MemberElected:
+		if nowState != MemberInactive && nowState != MemberIllegal {
+			return false
+		} else {
+			return true
+		}
+	case MemberInactive:
+		if nowState != MemberElected {
+			return false
+		} else {
+			return true
+		}
+	}
+	return false
 }
 
 // SortTransactions purpose is to process some transaction first.
@@ -137,12 +156,17 @@ func (c *Committee) inactiveMembersByWithdrawKeys(height uint32,
 		if _, ok := wmap[hex.EncodeToString(m.DPOSPublicKey)]; !ok {
 			// inactive CR member
 			c.state.History.Append(height, func() {
-				member.MemberState = MemberInactive
-				log.Infof("[checkWithdrawAndInactiveCR] Set %s to inactive", member.Info.NickName)
-				if height >= c.Params.CRConfiguration.ChangeCommitteeNewCRHeight {
-					c.state.UpdateCRInactivePenalty(member.Info.CID, height)
+				changeState := canChangeState(member.MemberState, MemberInactive)
+				if changeState {
+					member.MemberState = MemberInactive
+					log.Infof("[checkWithdrawAndInactiveCR] Set %s to inactive", member.Info.NickName)
+					if height >= c.Params.CRConfiguration.ChangeCommitteeNewCRHeight {
+						c.state.UpdateCRInactivePenalty(member.Info.CID, height)
+					}
 				}
+
 			}, func() {
+				//todo
 				member.MemberState = MemberElected
 				if height >= c.Params.CRConfiguration.ChangeCommitteeNewCRHeight {
 					c.state.RevertUpdateCRInactivePenalty(member.Info.CID, height)

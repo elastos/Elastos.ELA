@@ -159,6 +159,7 @@ func NewManager(cfg DPOSManagerConfig) *DPOSManager {
 		statusMap:          make(map[uint32]map[string]*dmsg.ConsensusStatus),
 		requestedBlocks:    make(map[common.Uint256]struct{}),
 	}
+
 	m.blockCache.Reset(nil)
 
 	return m
@@ -301,6 +302,8 @@ func (d *DPOSManager) OnBlock(id dpeer.PID, block *types.Block) {
 	}
 	delete(d.requestedBlocks, hash)
 	if block.Header.Height == blockchain.DefaultLedger.Blockchain.GetHeight()+1 {
+		log.Debug("[OnBlock] before AppendDposBlock:", block.Hash().String())
+
 		if _, _, err := d.blockPool.AppendDposBlock(&types.DposBlock{
 			Block: block,
 		}); err != nil {
@@ -503,7 +506,7 @@ func medianOf(nums []int64) int64 {
 
 func (d *DPOSManager) OnChangeView() {
 	if d.consensus.TryChangeView() {
-		log.Info("[TryChangeView] succeed")
+		log.Info("[TryChangeView] succeed  3")
 	}
 
 	if d.consensus.viewOffset >= maxViewOffset {
@@ -564,8 +567,12 @@ func (d *DPOSManager) OnBlockReceived(b *types.Block, confirmed bool) {
 		}
 	}
 
+	defer log.Info("####[OnBlockReceived] b.Hash()", b.Hash())
+
 	if b.Height > blockchain.DefaultLedger.Blockchain.GetHeight() &&
 		b.Height > d.dispatcher.GetFinishedHeight() { //new height block coming
+		defer log.Info("####[OnBlockReceived] before ProcessHigherBlock b.Hash()", b.Hash())
+
 		d.ProcessHigherBlock(b)
 	} else {
 		log.Warn("a.Leger.LastBlock.Height", blockchain.DefaultLedger.Blockchain.GetHeight(), "b.Height", b.Height)

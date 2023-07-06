@@ -2479,16 +2479,24 @@ func (s *State) processNextTurnDPOSInfo(tx interfaces.Transaction, height uint32
 	})
 }
 
-func (s *State) getCRMembersOwnerPublicKey(CRCommitteeDID common.Uint168) []byte {
+func (s *State) getCRMembersOwnerKey(CRCommitteeDID common.Uint168) []byte {
 	if s.getCurrentCRMembers != nil && s.getNextCRMembers != nil {
 		for _, cr := range s.getCurrentCRMembers() {
 			if cr.Info.DID.IsEqual(CRCommitteeDID) {
-				return cr.Info.Code[1 : len(cr.Info.Code)-1]
+				if len(cr.Info.Code) == 35 {
+					return cr.Info.Code[1 : len(cr.Info.Code)-1]
+				} else {
+					return cr.Info.Code
+				}
 			}
 		}
 		for _, cr := range s.getNextCRMembers() {
 			if cr.Info.DID.IsEqual(CRCommitteeDID) {
-				return cr.Info.Code[1 : len(cr.Info.Code)-1]
+				if len(cr.Info.Code) == 35 {
+					return cr.Info.Code[1 : len(cr.Info.Code)-1]
+				} else {
+					return cr.Info.Code
+				}
 			}
 		}
 	}
@@ -2517,38 +2525,38 @@ func (s *State) processCRCouncilMemberClaimNode(tx interfaces.Transaction, heigh
 	claimNodePayload := tx.Payload().(*payload.CRCouncilMemberClaimNode)
 	strNewNodePublicKey := common.BytesToHexString(claimNodePayload.NodePublicKey)
 
-	ownerPublicKey := s.getCRMembersOwnerPublicKey(claimNodePayload.CRCouncilCommitteeDID)
-	if ownerPublicKey == nil {
+	ownerKey := s.getCRMembersOwnerKey(claimNodePayload.CRCouncilCommitteeDID)
+	if ownerKey == nil {
 		log.Error("processCRCouncilMemberClaimNode cr member is not exist")
 		return
 	}
-	strOwnerPubkey := common.BytesToHexString(ownerPublicKey)
+	strOwnerkey := common.BytesToHexString(ownerKey)
 
 	switch tx.PayloadVersion() {
-	case payload.CurrentCRClaimDPoSNodeVersion:
-		strOldNodePublicKey := s.getCurrentCRNodePublicKeyStr(strOwnerPubkey)
+	case payload.CurrentCRClaimDPoSNodeVersion, payload.CurrentCRClaimDPoSNodeMultiSignVersion:
+		strOldNodePublicKey := s.getCurrentCRNodePublicKeyStr(strOwnerkey)
 		s.History.Append(height, func() {
-			s.CurrentCRNodeOwnerKeys[strNewNodePublicKey] = strOwnerPubkey
+			s.CurrentCRNodeOwnerKeys[strNewNodePublicKey] = strOwnerkey
 			if strOldNodePublicKey != "" {
 				delete(s.CurrentCRNodeOwnerKeys, strOldNodePublicKey)
 			}
 		}, func() {
 			delete(s.CurrentCRNodeOwnerKeys, strNewNodePublicKey)
 			if strOldNodePublicKey != "" {
-				s.CurrentCRNodeOwnerKeys[strOldNodePublicKey] = strOwnerPubkey
+				s.CurrentCRNodeOwnerKeys[strOldNodePublicKey] = strOwnerkey
 			}
 		})
-	case payload.NextCRClaimDPoSNodeVersion:
-		strOldNodePublicKey := s.getNextCRNodePublicKeyStr(strOwnerPubkey)
+	case payload.NextCRClaimDPoSNodeVersion, payload.NextCRClaimDPoSNodeMultiSignVersion:
+		strOldNodePublicKey := s.getNextCRNodePublicKeyStr(strOwnerkey)
 		s.History.Append(height, func() {
-			s.NextCRNodeOwnerKeys[strNewNodePublicKey] = strOwnerPubkey
+			s.NextCRNodeOwnerKeys[strNewNodePublicKey] = strOwnerkey
 			if strOldNodePublicKey != "" {
 				delete(s.NextCRNodeOwnerKeys, strOldNodePublicKey)
 			}
 		}, func() {
 			delete(s.NextCRNodeOwnerKeys, strNewNodePublicKey)
 			if strOldNodePublicKey != "" {
-				s.NextCRNodeOwnerKeys[strOldNodePublicKey] = strOwnerPubkey
+				s.NextCRNodeOwnerKeys[strOldNodePublicKey] = strOwnerkey
 			}
 		})
 	}

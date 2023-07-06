@@ -61,6 +61,8 @@ func (v *view) ChangeView(viewOffset *uint32, now time.Time) {
 		currentArbiter := v.arbitrators.GetNextOnDutyArbitrator(*viewOffset)
 
 		v.isDposOnDuty = bytes.Equal(currentArbiter, v.publicKey)
+		log.Info("v0 viewOffset:", *viewOffset)
+
 		log.Info("current onduty arbiter:",
 			common.BytesToHexString(currentArbiter))
 
@@ -70,8 +72,11 @@ func (v *view) ChangeView(viewOffset *uint32, now time.Time) {
 
 func (v *view) ChangeViewV1(viewOffset *uint32, now time.Time) {
 	arbitersCount := v.arbitrators.GetArbitersCount()
-
+	log.Info("ChangeViewV1 viewOffset:", *viewOffset)
 	offset, offsetTime := v.calculateOffsetTimeV1(*viewOffset, v.viewStartTime, now, uint32(arbitersCount))
+	if *viewOffset == offset {
+		return
+	}
 	*viewOffset = offset
 
 	v.viewStartTime = now.Add(-offsetTime)
@@ -80,6 +85,7 @@ func (v *view) ChangeViewV1(viewOffset *uint32, now time.Time) {
 		currentArbiter := v.arbitrators.GetNextOnDutyArbitrator(*viewOffset)
 
 		v.isDposOnDuty = bytes.Equal(currentArbiter, v.publicKey)
+		log.Info("ChangeViewV1 viewOffset:", *viewOffset)
 		log.Info("current onduty arbiter:",
 			common.BytesToHexString(currentArbiter))
 
@@ -140,7 +146,7 @@ func (v *view) calculateOffsetTimeV2(currentViewOffset uint32, startTime time.Ti
 
 func (v *view) TryChangeView(viewOffset *uint32, now time.Time) bool {
 	if now.After(v.viewStartTime.Add(v.signTolerance)) {
-		log.Info("[TryChangeView] succeed")
+		log.Info("[TryChangeView] succeed 1")
 		v.ChangeView(viewOffset, now)
 		return true
 	}
@@ -149,7 +155,7 @@ func (v *view) TryChangeView(viewOffset *uint32, now time.Time) bool {
 
 func (v *view) TryChangeViewV1(viewOffset *uint32, now time.Time) bool {
 	if now.After(v.viewStartTime.Add(v.signTolerance)) {
-		log.Info("[TryChangeView] succeed")
+		log.Info("[TryChangeView] succeed 2")
 		v.ChangeViewV1(viewOffset, now)
 		return true
 	}

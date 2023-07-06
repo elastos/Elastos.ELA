@@ -32,7 +32,7 @@ type Consensus struct {
 }
 
 func NewConsensus(manager *DPOSManager, tolerance time.Duration,
-	viewListener ViewListener, changeViewV1Height uint32) *Consensus {
+	viewListener ViewListener, changeViewV1Height, bestHeight uint32) *Consensus {
 	c := &Consensus{
 		consensusStatus: consensusReady,
 		viewOffset:      DefaultViewOffset,
@@ -44,6 +44,7 @@ func NewConsensus(manager *DPOSManager, tolerance time.Duration,
 			arbitrators:        manager.arbitrators,
 			changeViewV1Height: changeViewV1Height,
 		},
+		finishedHeight: bestHeight,
 	}
 
 	return c
@@ -109,6 +110,7 @@ func (c *Consensus) GetViewOffset() uint32 {
 }
 
 func (c *Consensus) ProcessBlock(b *types.Block) {
+
 	c.manager.GetBlockCache().AddValue(b.Hash(), b)
 }
 
@@ -123,6 +125,8 @@ func (c *Consensus) ChangeView() {
 
 func (c *Consensus) TryChangeView() bool {
 	if c.IsRunning() {
+		log.Warn("TryChangeView finishedHeight ", c.finishedHeight)
+		log.Warn("TryChangeView ChangeViewV1Height ", c.manager.chainParams.DPoSConfiguration.ChangeViewV1Height)
 		if c.finishedHeight < c.manager.chainParams.DPoSConfiguration.ChangeViewV1Height {
 			return c.currentView.TryChangeView(&c.viewOffset, c.manager.timeSource.AdjustedTime())
 		} else {

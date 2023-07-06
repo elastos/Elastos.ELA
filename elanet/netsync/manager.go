@@ -7,6 +7,7 @@ package netsync
 
 import (
 	"fmt"
+	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -759,7 +760,7 @@ func (sm *SyncManager) handleBlockchainEvents(event *events.Event) {
 		//	sm.chain.ProcessInactiveArbiter(tx.Payload.(*payload.InactiveArbitrators))
 		//}
 
-		if tx.IsIllegalTypeTx() || tx.IsInactiveArbitrators() || tx.IsRevertToDPOS() {
+		if tx.IsIllegalTypeTx() || tx.IsInactiveArbitrators() || tx.IsRevertToDPOS() || tx.TxType() == common2.TransferAsset {
 			// Relay tx inventory to other peers.
 			txHash := tx.Hash()
 			iv := msg.NewInvVect(msg.InvTypeTx, &txHash)

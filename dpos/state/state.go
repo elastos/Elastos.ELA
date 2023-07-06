@@ -1328,7 +1328,7 @@ func (s *State) ProcessBlock(block *types.Block, confirm *payload.Confirm, dutyI
 	s.History.Commit(block.Height)
 
 	// check balance of account, and send reward to BPoS nodes
-	if block.Height > s.ChainParams.DPoSV2StartHeight && confirm != nil {
+	if block.Height >= s.getHeight() && block.Height > s.ChainParams.DPoSV2StartHeight && confirm != nil {
 		sponsor := confirm.Proposal.Sponsor
 
 		for _, a := range s.ActivityProducers {
@@ -1346,7 +1346,7 @@ func (s *State) ProcessBlock(block *types.Block, confirm *payload.Confirm, dutyI
 
 				hash, _ := contract.PublicKeyToStandardProgramHash(
 					a.OwnerPublicKey())
-				if a.GetTotalDPoSV2VoteRights() >= float64(8000*1e8) {
+				if a.GetTotalDPoSV2VoteRights() >= float64(s.ChainParams.DPoSV2EffectiveVotes) {
 					dutyNodes[*hash] = a.ConfirmBlockCount
 				} else {
 
@@ -1377,9 +1377,14 @@ func (s *State) ProcessBlock(block *types.Block, confirm *payload.Confirm, dutyI
 			}
 
 			tx.SetPrograms(append(tx.Programs(), txProgram))
+
+			log.Info("create BPoS votes reward tx finished, append to tx pool")
+
 			go func() {
 				if s.isCurrent() {
-					if err := s.appendToTxpool(tx); err != nil {
+					if err := s.appendToTxpool(tx); err == nil {
+						s.broadcast(msg.NewTx(tx))
+					} else {
 						log.Warn("create BPoS votes reward tx "+
 							"append to tx pool err ", err)
 					}
@@ -1410,8 +1415,6 @@ func (s *State) createRealWithdrawTransaction(height uint32) {
 			go func() {
 				if s.isCurrent() {
 					if err := s.appendToTxpool(tx); err == nil {
-						s.broadcast(msg.NewTx(tx))
-					} else {
 						log.Warn("create real return votes tx "+
 							"append to tx pool err ", err)
 					}

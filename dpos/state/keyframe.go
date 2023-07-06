@@ -46,9 +46,6 @@ type StateKeyFrame struct {
 	DposV2EffectedProducers  map[string]*Producer
 	Votes                    map[string]struct{}
 
-	DutyNodes    map[common.Uint168]uint32
-	NotDutyNodes []common.Uint168
-
 	// NFT
 	// key: ID value: (genesis block hash, createNFT tx hash)
 	NFTIDInfoHashMap map[common.Uint256]payload.NFTInfo
@@ -148,8 +145,6 @@ func (s *StateKeyFrame) snapshot() *StateKeyFrame {
 	state.PendingCanceledProducers = copyProducerMap(s.PendingCanceledProducers)
 	state.DposV2EffectedProducers = copyProducerMap(s.DposV2EffectedProducers)
 	state.Votes = copyStringSet(s.Votes)
-	state.DutyNodes = copyAddrUint32Map(s.DutyNodes)
-	state.NotDutyNodes = s.NotDutyNodes
 
 	state.NFTIDInfoHashMap = copyUint256MapSet(s.NFTIDInfoHashMap)
 
@@ -220,13 +215,6 @@ func (s *StateKeyFrame) Serialize(w io.Writer) (err error) {
 	}
 
 	if err = s.SerializeStringSet(s.Votes, w); err != nil {
-		return
-	}
-
-	if err = s.SerializeAddrUint32Map(s.DutyNodes, w); err != nil {
-		return
-	}
-	if err = s.SerializeAddrList(s.NotDutyNodes, w); err != nil {
 		return
 	}
 

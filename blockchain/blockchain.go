@@ -548,20 +548,45 @@ func (b *BlockChain) TryCreateBPoSRewardTransaction(addr Uint168,
 	if balance <= 1e8 {
 		return nil, 0, errors.New("no utxo")
 	}
+	if len(dutyNodes) == 0 {
+		return nil, 0, errors.New("no duty nodes")
+	}
 	fee := Fixed64(10000)
 	rewards := balance - fee
 
-	log.Info("create votes reward transaction, rewards:", rewards, "fee:", fee)
+	log.Info("create votes reward transaction, rewards:", rewards, "fee:", fee, "dutyNodes:", dutyNodes, "notDutyNodes:", notDutyNodes)
 
 	outputs := make([]*common.OutputInfo, 0)
 	var totalBlock uint32
 	for _, v := range dutyNodes {
 		totalBlock += v
 	}
-	exchange := rewards
+
+	dutyReward := Fixed64(float64(len(dutyNodes)) / float64(len(dutyNodes)+len(notDutyNodes)) * float64(rewards))
+	notDutyReward := rewards - dutyReward
+	exchange := dutyReward
 	for k, v := range dutyNodes {
-		reward := Fixed64(float64(v) / float64(totalBlock) * float64(rewards))
+		reward := Fixed64(float64(v) / float64(totalBlock) * float64(dutyReward))
+		addr, _ := k.ToAddress()
+		log.Info("duty BPoS node, addr:", addr, "reward:", reward)
+		if reward <= 0 {
+			continue
+		}
 		outputs = append(outputs, &common.OutputInfo{k, reward})
+
+		exchange -= reward
+	}
+	outputs[0].Amount += exchange
+	exchange = notDutyReward
+	for _, v := range notDutyNodes {
+		reward := Fixed64(float64(1) / float64(len(notDutyNodes)) * float64(notDutyReward))
+		addr, _ := v.ToAddress()
+		log.Info("not duty BPoS node, addr:", addr, "reward:", reward)
+		if reward <= 0 {
+			continue
+		}
+		outputs = append(outputs, &common.OutputInfo{v, reward})
+
 		exchange -= reward
 	}
 	outputs[0].Amount += exchange

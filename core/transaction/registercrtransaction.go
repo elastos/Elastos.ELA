@@ -55,6 +55,12 @@ func (t *RegisterCRTransaction) HeightVersionCheck() error {
 			return errors.New(fmt.Sprintf("not support %s transaction "+
 				"before CRSchnorrStartHeight", t.TxType().Name()))
 		}
+	case payload.CRInfoMultiSignVersion:
+		//if blockHeight < chainParams.CRSchnorrStartHeight {
+		//	return errors.New(fmt.Sprintf("not support %s transaction "+
+		//		"before CRSchnorrStartHeight", t.TxType().Name()))
+		//}
+		log.Warnf("todo add one height for cr multisign")
 	default:
 		return errors.New(fmt.Sprintf("invalid payload version, "+
 			"%s transaction", t.TxType().Name()))

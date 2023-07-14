@@ -8,7 +8,6 @@ package transaction
 import (
 	"errors"
 	"fmt"
-
 	"github.com/elastos/Elastos.ELA/blockchain"
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/core/contract"
@@ -86,6 +85,13 @@ func (t *RegisterCRTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
 
 	if err := checkStringField(info.NickName, "NickName", false); err != nil {
 		return elaerr.Simple(elaerr.ErrTxPayload, err), true
+	}
+	contract.IsMultiSig(t.Programs()[0].Code)
+	if t.PayloadVersion() == payload.CRInfoMultiSignVersion {
+		if !contract.IsMultiSig(t.Programs()[0].Code) {
+			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("CRInfoMultiSignVersion match multi code")), true
+
+		}
 	}
 
 	// check url

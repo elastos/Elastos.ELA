@@ -148,7 +148,7 @@ func (t *RegisterCRTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
 	}
 
 	if t.parameters.BlockHeight >= t.parameters.Config.CRConfiguration.RegisterCRByDIDHeight &&
-		t.PayloadVersion() == payload.CRInfoDIDVersion {
+		t.PayloadVersion() >= payload.CRInfoDIDVersion {
 		// get DID program hash
 
 		programHash, err = getDIDFromCode(code)

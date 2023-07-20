@@ -8,6 +8,7 @@ package state
 import (
 	"encoding/hex"
 	"errors"
+	"fmt"
 
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
@@ -251,6 +252,12 @@ func (s *State) rollbackTo(height uint32) error {
 func (s *State) registerCR(tx interfaces.Transaction, height uint32) {
 	info := tx.Payload().(*payload.CRInfo)
 	nickname := info.NickName
+	if height == 6745 {
+		fmt.Println("")
+	}
+	if info.NickName == "prv_multcr_cr01_linda_update" {
+		fmt.Println("1234")
+	}
 	var code string
 	if tx.PayloadVersion() == payload.CRInfoSchnorrVersion ||
 		tx.PayloadVersion() == payload.CRInfoMultiSignVersion {
@@ -344,8 +351,11 @@ func (s *State) updateCandidateInfo(origin *payload.CRInfo, update *payload.CRIn
 		delete(s.Nicknames, origin.NickName)
 		s.Nicknames[update.NickName] = struct{}{}
 	}
-
+	originCode := candidate.Info.Code
 	candidate.Info = *update
+	if len(originCode) != 0 && update.Code == nil {
+		candidate.Info.Code = originCode
+	}
 }
 
 // processDeposit takes a transaction output with deposit program hash.

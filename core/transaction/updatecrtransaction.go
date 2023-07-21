@@ -57,6 +57,9 @@ func (t *UpdateCRTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
 	if contract.IsMultiSig(t.Programs()[0].Code) && t.PayloadVersion() != payload.CRInfoMultiSignVersion {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("UpdateCRTransaction multisign code but not CRInfoMultiSignVersion")), true
 	}
+	if t.PayloadVersion() == payload.CRInfoSchnorrVersion && !contract.IsSchnorr(t.Programs()[0].Code) {
+		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("UpdateCRTransaction not schnorr code but  CRInfoSchnorrVersion")), true
+	}
 
 	var code []byte
 	if t.payloadVersion == payload.CRInfoSchnorrVersion ||

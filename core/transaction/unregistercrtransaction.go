@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/elastos/Elastos.ELA/blockchain"
+	"github.com/elastos/Elastos.ELA/core/contract"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	crstate "github.com/elastos/Elastos.ELA/cr/state"
 	elaerr "github.com/elastos/Elastos.ELA/errors"
@@ -52,6 +53,21 @@ func (t *UnregisterCRTransaction) SpecialContextCheck() (elaerr.ELAError, bool) 
 
 	if !t.parameters.BlockChain.GetCRCommittee().IsInVotingPeriod(t.parameters.BlockHeight) {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("should create tx during voting period")), true
+	}
+
+	switch t.payloadVersion {
+	case payload.UnregisterCRVersion:
+		if !contract.IsStandard(t.Programs()[0].Code) {
+			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("UnregisterCRTransaction UnregisterCRVersion match standard code")), true
+		}
+	case payload.UnregisterCRSchnorrVersion:
+		if !contract.IsSchnorr(t.Programs()[0].Code) {
+			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("UnregisterCRTransaction UnregisterCRSchnorrVersion match schnorr code")), true
+		}
+	case payload.UnregisterCRMultiVersion:
+		if !contract.IsMultiSig(t.Programs()[0].Code) {
+			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("UnregisterCRTransaction UnregisterCRMultiVersion match multi code")), true
+		}
 	}
 
 	cr := t.parameters.BlockChain.GetCRCommittee().GetCandidate(info.CID)

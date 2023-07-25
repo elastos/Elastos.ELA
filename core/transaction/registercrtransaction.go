@@ -86,11 +86,19 @@ func (t *RegisterCRTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
 	if err := checkStringField(info.NickName, "NickName", false); err != nil {
 		return elaerr.Simple(elaerr.ErrTxPayload, err), true
 	}
-	contract.IsMultiSig(t.Programs()[0].Code)
-	if t.PayloadVersion() == payload.CRInfoMultiSignVersion {
+
+	switch t.payloadVersion {
+	case payload.CRInfoVersion, payload.CRInfoDIDVersion:
+		if !contract.IsStandard(t.Programs()[0].Code) {
+			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("CRInfoVersion or CRInfoDIDVersion match standard code")), true
+		}
+	case payload.CRInfoSchnorrVersion:
+		if !contract.IsSchnorr(t.Programs()[0].Code) {
+			return elaerr.Simple(elaerr.ErrTxPayload, errors.New(" CRInfoSchnorrVersion match schnorr code")), true
+		}
+	case payload.CRInfoMultiSignVersion:
 		if !contract.IsMultiSig(t.Programs()[0].Code) {
 			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("CRInfoMultiSignVersion match multi code")), true
-
 		}
 	}
 

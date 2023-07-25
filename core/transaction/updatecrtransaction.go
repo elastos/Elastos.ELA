@@ -49,16 +49,19 @@ func (t *UpdateCRTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
 		return elaerr.Simple(elaerr.ErrTxPayload, err), true
 	}
 
-	if t.PayloadVersion() == payload.CRInfoMultiSignVersion {
-		if !contract.IsMultiSig(t.Programs()[0].Code) {
-			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("UpdateCRTransaction CRInfoMultiSignVersion match multi code")), true
+	switch t.payloadVersion {
+	case payload.CRInfoVersion, payload.CRInfoDIDVersion:
+		if !contract.IsStandard(t.Programs()[0].Code) {
+			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("CRInfoVersion or CRInfoDIDVersion match standard code")), true
 		}
-	}
-	if contract.IsMultiSig(t.Programs()[0].Code) && t.PayloadVersion() != payload.CRInfoMultiSignVersion {
-		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("UpdateCRTransaction multisign code but not CRInfoMultiSignVersion")), true
-	}
-	if t.PayloadVersion() == payload.CRInfoSchnorrVersion && !contract.IsSchnorr(t.Programs()[0].Code) {
-		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("UpdateCRTransaction not schnorr code but  CRInfoSchnorrVersion")), true
+	case payload.CRInfoSchnorrVersion:
+		if !contract.IsSchnorr(t.Programs()[0].Code) {
+			return elaerr.Simple(elaerr.ErrTxPayload, errors.New(" CRInfoSchnorrVersion match schnorr code")), true
+		}
+	case payload.CRInfoMultiSignVersion:
+		if !contract.IsMultiSig(t.Programs()[0].Code) {
+			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("CRInfoMultiSignVersion match multi code")), true
+		}
 	}
 
 	var code []byte

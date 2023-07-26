@@ -452,7 +452,7 @@ func (c *Committee) updateVotingCandidatesState(height uint32) {
 		// Check if any pending candidates has got 6 confirms, set them to activate.
 		activateCandidateFromPending :=
 			func(key common.Uint168, candidate *Candidate) {
-				c.state.History.Append(height, func() {
+				c.committeeHistory.Append(height, func() {
 					candidate.State = Active
 					c.state.Candidates[key] = candidate
 				}, func() {
@@ -506,11 +506,11 @@ func (c *Committee) ProcessBlock(block *types.Block, confirm *payload.Confirm) {
 	c.recordLastVotingStartHeight(block.Height)
 
 	c.processTransactions(block.Transactions, block.Height)
-	c.updateVotingCandidatesState(block.Height)
 	c.updateCandidatesDepositCoin(block.Height)
 	c.state.History.Commit(block.Height)
 
 	inElectionPeriod := c.tryStartVotingPeriod(block.Height)
+	c.updateVotingCandidatesState(block.Height)
 	c.updateProposals(block.Height, inElectionPeriod)
 	c.updateCirculationAmount(c.committeeHistory, block.Height)
 

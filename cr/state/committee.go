@@ -573,11 +573,15 @@ func (c *Committee) checkAndSetMemberToInactive(history *utils.History, height u
 		m := v
 		if len(m.DPOSPublicKey) == 0 && m.MemberState == MemberElected {
 			history.Append(height, func() {
-				m.MemberState = MemberInactive
-				if height >= c.Params.CRConfiguration.ChangeCommitteeNewCRHeight {
-					c.state.UpdateCRInactivePenalty(m.Info.CID, height)
+				changeState := canChangeState(m.MemberState, MemberInactive)
+				if changeState {
+					m.MemberState = MemberInactive
+					if height >= c.Params.CRConfiguration.ChangeCommitteeNewCRHeight {
+						c.state.UpdateCRInactivePenalty(m.Info.CID, height)
+					}
 				}
 			}, func() {
+				//todo revert
 				m.MemberState = MemberElected
 				if height >= c.Params.CRConfiguration.ChangeCommitteeNewCRHeight {
 					c.state.RevertUpdateCRInactivePenalty(m.Info.CID, height)
@@ -1325,7 +1329,7 @@ func (c *Committee) processCRCouncilMemberClaimNode(tx interfaces.Transaction,
 	var cr *CRMember
 	if height >= c.Params.DPoSV2StartHeight {
 		switch tx.PayloadVersion() {
-		case payload.CurrentCRClaimDPoSNodeVersion:
+		case payload.CurrentCRClaimDPoSNodeVersion, payload.CurrentCRClaimDPoSNodeMultiSignVersion:
 			cr = c.getMember(claimNodePayload.CRCouncilCommitteeDID)
 			if cr == nil {
 				return
@@ -1339,7 +1343,7 @@ func (c *Committee) processCRCouncilMemberClaimNode(tx interfaces.Transaction,
 			}, func() {
 				c.ClaimedDPoSKeys = oriClaimDPoSKeys
 			})
-		case payload.NextCRClaimDPoSNodeVersion:
+		case payload.NextCRClaimDPoSNodeVersion, payload.NextCRClaimDPoSNodeMultiSignVersion:
 			cr = c.getNextMember(claimNodePayload.CRCouncilCommitteeDID)
 			if cr == nil {
 				return

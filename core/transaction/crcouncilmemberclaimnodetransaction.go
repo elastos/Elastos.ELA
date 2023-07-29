@@ -61,7 +61,7 @@ func (t *CRCouncilMemberClaimNodeTransaction) SpecialContextCheck() (result elae
 	comm := t.parameters.BlockChain.GetCRCommittee()
 	if t.parameters.BlockHeight >= t.parameters.Config.DPoSV2StartHeight {
 		switch t.payloadVersion {
-		case payload.CurrentCRClaimDPoSNodeVersion:
+		case payload.CurrentCRClaimDPoSNodeVersion, payload.CurrentCRClaimDPoSNodeMultiSignVersion:
 			crMember = t.parameters.BlockChain.GetCRCommittee().GetMember(did)
 			if ok := comm.PubKeyExistClaimedDPoSKeys(manager.NodePublicKey); ok {
 				return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("producer already registered")), true
@@ -70,7 +70,7 @@ func (t *CRCouncilMemberClaimNodeTransaction) SpecialContextCheck() (result elae
 			if t.parameters.BlockChain.GetState().ProducerAndCurrentCRNodePublicKeyExists(manager.NodePublicKey) {
 				return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("producer already registered")), true
 			}
-		case payload.NextCRClaimDPoSNodeVersion:
+		case payload.NextCRClaimDPoSNodeVersion, payload.NextCRClaimDPoSNodeMultiSignVersion:
 			crMember = t.parameters.BlockChain.GetCRCommittee().GetNextMember(did)
 			if ok := comm.PubKeyExistNextClaimedDPoSKey(manager.NodePublicKey); ok {
 				return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("producer already registered")), true
@@ -102,9 +102,11 @@ func (t *CRCouncilMemberClaimNodeTransaction) SpecialContextCheck() (result elae
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid operating public key")), true
 	}
 
-	err = checkCRCouncilMemberClaimNodeSignature(manager, crMember.Info.Code)
-	if err != nil {
-		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("CR claim DPOS signature check failed")), true
+	if t.payloadVersion < payload.CurrentCRClaimDPoSNodeMultiSignVersion {
+		err = checkCRCouncilMemberClaimNodeSignature(manager, crMember.Info.Code)
+		if err != nil {
+			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("CR claim DPOS signature check failed")), true
+		}
 	}
 
 	return nil, false

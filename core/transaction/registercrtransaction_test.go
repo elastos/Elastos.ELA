@@ -142,7 +142,8 @@ func (s *txValidatorTestSuite) TestCheckRegisterCRTransaction() {
 	s.Chain.GetCRCommittee().GetState().CodeCIDMap[codeStr1] = *cid1
 	s.Chain.GetCRCommittee().GetState().Candidates[*cid1] = &crstate.Candidate{}
 	err, _ = txn.SpecialContextCheck()
-	s.EqualError(err, "transaction validate error: payload content invalid:cid "+cid1.String()+" already exist")
+	cid1Addr, _ := cid1.ToAddress()
+	s.EqualError(err, "transaction validate error: payload content invalid:cid "+cid1Addr+" already exist")
 	delete(s.Chain.GetCRCommittee().GetState().Candidates, *cid1)
 
 	// Give an invalid code in payload
@@ -227,35 +228,7 @@ func (s *txValidatorTestSuite) TestCheckRegisterCRTransaction() {
 		BlockChain:  s.Chain,
 	})
 	err, _ = txn.SpecialContextCheck()
-	s.EqualError(err, "transaction validate error: payload content invalid:CR not support multi sign code")
-
-	txn = s.getMultiSigRegisterCRTx(
-		[]string{publicKeyStr1, publicKeyStr2, publicKeyStr3},
-		[]string{privateKeyStr1, privateKeyStr2}, nickName1)
-	txn = CreateTransactionByType(txn, s.Chain)
-	txn.SetParameters(&TransactionParameters{
-		Transaction: txn,
-		BlockHeight: votingHeight,
-		TimeStamp:   s.Chain.BestChain.Timestamp,
-		Config:      s.Chain.GetParams(),
-		BlockChain:  s.Chain,
-	})
-	err, _ = txn.SpecialContextCheck()
-	s.EqualError(err, "transaction validate error: payload content invalid:CR not support multi sign code")
-
-	txn = s.getMultiSigRegisterCRTx(
-		[]string{publicKeyStr1, publicKeyStr2, publicKeyStr3},
-		[]string{privateKeyStr1}, nickName1)
-	txn = CreateTransactionByType(txn, s.Chain)
-	txn.SetParameters(&TransactionParameters{
-		Transaction: txn,
-		BlockHeight: votingHeight,
-		TimeStamp:   s.Chain.BestChain.Timestamp,
-		Config:      s.Chain.GetParams(),
-		BlockChain:  s.Chain,
-	})
-	err, _ = txn.SpecialContextCheck()
-	s.EqualError(err, "transaction validate error: payload content invalid:CR not support multi sign code")
+	s.EqualError(err, "transaction validate error: payload content invalid:CRInfoVersion or CRInfoDIDVersion match standard code")
 
 	//check register cr with CRInfoDIDVersion
 	txn2 := s.getRegisterCRTx(publicKeyStr1, privateKeyStr1, nickName1,

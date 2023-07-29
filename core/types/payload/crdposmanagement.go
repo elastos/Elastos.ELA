@@ -11,6 +11,8 @@ import (
 
 const CurrentCRClaimDPoSNodeVersion byte = 0x00
 const NextCRClaimDPoSNodeVersion byte = 0x01
+const CurrentCRClaimDPoSNodeMultiSignVersion byte = 0x02
+const NextCRClaimDPoSNodeMultiSignVersion byte = 0x03
 
 type CRCouncilMemberClaimNode struct {
 	NodePublicKey               []byte
@@ -31,10 +33,12 @@ func (p *CRCouncilMemberClaimNode) Serialize(w io.Writer, version byte) error {
 	if err != nil {
 		return err
 	}
-
-	if err := common.WriteVarBytes(w, p.CRCouncilCommitteeSignature); err != nil {
-		return errors.New("Serialize error")
+	if version < CurrentCRClaimDPoSNodeMultiSignVersion {
+		if err := common.WriteVarBytes(w, p.CRCouncilCommitteeSignature); err != nil {
+			return errors.New("Serialize error")
+		}
 	}
+
 	return nil
 }
 
@@ -53,10 +57,13 @@ func (p *CRCouncilMemberClaimNode) Deserialize(r io.Reader, version byte) error 
 	if err != nil {
 		return err
 	}
-	p.CRCouncilCommitteeSignature, err = common.ReadVarBytes(r, crypto.MaxSignatureScriptLength, "signature")
-	if err != nil {
-		return errors.New("Deserialize error")
+	if version < CurrentCRClaimDPoSNodeMultiSignVersion {
+		p.CRCouncilCommitteeSignature, err = common.ReadVarBytes(r, crypto.MaxSignatureScriptLength, "signature")
+		if err != nil {
+			return errors.New("Deserialize error")
+		}
 	}
+
 	return nil
 }
 

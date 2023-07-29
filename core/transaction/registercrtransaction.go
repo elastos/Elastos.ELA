@@ -117,7 +117,8 @@ func (t *RegisterCRTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
 
 	cr := t.parameters.BlockChain.GetCRCommittee().GetCandidate(info.CID)
 	if cr != nil {
-		return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("cid %s already exist", info.CID)), true
+		cidAddr, _ := info.CID.ToAddress()
+		return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("cid %s already exist", cidAddr)), true
 	}
 
 	// get CID program hash and check length of code

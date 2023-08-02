@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/elastos/Elastos.ELA/core/contract"
 
 	"github.com/elastos/Elastos.ELA/blockchain"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
@@ -54,6 +55,17 @@ func (t *CRCouncilMemberClaimNodeTransaction) SpecialContextCheck() (result elae
 	if t.parameters.BlockHeight < t.parameters.Config.DPoSV2StartHeight &&
 		!t.parameters.BlockChain.GetCRCommittee().IsInElectionPeriod() {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("CRCouncilMemberClaimNode must during election period")), true
+	}
+
+	switch t.payloadVersion {
+	case payload.CurrentCRClaimDPoSNodeVersion, payload.NextCRClaimDPoSNodeVersion:
+		if !contract.IsStandard(t.Programs()[0].Code) {
+			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("CurrentCRClaimDPoSNodeVersion or NextCRClaimDPoSNodeVersion match standard code")), true
+		}
+	case payload.CurrentCRClaimDPoSNodeMultiSignVersion, payload.NextCRClaimDPoSNodeMultiSignVersion:
+		if !contract.IsMultiSig(t.Programs()[0].Code) {
+			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("CurrentCRClaimDPoSNodeMultiSignVersion or NextCRClaimDPoSNodeMultiSignVersion match multi code")), true
+		}
 	}
 
 	did := manager.CRCouncilCommitteeDID

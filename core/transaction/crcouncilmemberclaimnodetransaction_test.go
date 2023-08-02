@@ -27,10 +27,14 @@ func (s *txValidatorTestSuite) TestCRCouncilMemberClaimNodeTransaction() {
 	//publicKey2, _ := common.HexStringToBytes(publicKeyStr2)
 	//errPublicKeyStr := "02b611f07341d5ddce51b5c4366aca7b889cfe0993bd63fd4"
 	//errPublicKey, _ := common.HexStringToBytes(errPublicKeyStr)
-	did := randomUint168()
+	//did := randomUint168()
+	code := getCodeByPubKeyStr(publicKeyStr1)
+	did, _ := getDIDFromCode(code)
+
 	{
 		claimPayload := &payload.CRCouncilMemberClaimNode{
-			NodePublicKey: publicKey1,
+			NodePublicKey:         publicKey1,
+			CRCouncilCommitteeDID: *did,
 		}
 
 		programs := []*program.Program{{
@@ -81,7 +85,8 @@ func (s *txValidatorTestSuite) TestCRCouncilMemberClaimNodeTransaction() {
 
 	{
 		claimPayload := &payload.CRCouncilMemberClaimNode{
-			NodePublicKey: publicKey1,
+			NodePublicKey:         publicKey1,
+			CRCouncilCommitteeDID: *did,
 		}
 
 		programs := []*program.Program{{
@@ -113,6 +118,9 @@ func (s *txValidatorTestSuite) TestCRCouncilMemberClaimNodeTransaction() {
 			"transaction validate error: payload content invalid:producer already registered")
 
 		s.Chain.GetCRCommittee().NextMembers[*did] = &state.CRMember{
+			Info: payload.CRInfo{
+				DID: *did,
+			},
 			MemberState: state.MemberIllegal,
 		}
 		s.Chain.GetCRCommittee().NextClaimedDPoSKeys = make(map[string]struct{}, 0)
@@ -122,6 +130,9 @@ func (s *txValidatorTestSuite) TestCRCouncilMemberClaimNodeTransaction() {
 			"transaction validate error: payload content invalid:CR Council Member should be an elected or inactive CR members")
 
 		s.Chain.GetCRCommittee().NextMembers[*did] = &state.CRMember{
+			Info: payload.CRInfo{
+				DID: *did,
+			},
 			MemberState:   state.MemberElected,
 			DPOSPublicKey: publicKey1,
 		}
@@ -130,7 +141,8 @@ func (s *txValidatorTestSuite) TestCRCouncilMemberClaimNodeTransaction() {
 			"transaction validate error: payload content invalid:NodePublicKey is the same as crMember.DPOSPublicKey")
 
 		claimPayload = &payload.CRCouncilMemberClaimNode{
-			NodePublicKey: randomBytes(22),
+			NodePublicKey:         randomBytes(22),
+			CRCouncilCommitteeDID: *did,
 		}
 		txn.SetPayload(claimPayload)
 		err, _ = txn.SpecialContextCheck()
@@ -143,10 +155,12 @@ func (s *txValidatorTestSuite) TestCRCouncilMemberClaimNodeTransaction() {
 			DPOSPublicKey: randomBytes(32),
 			Info: payload.CRInfo{
 				Code: code,
+				DID:  *did,
 			},
 		}
 		claimPayload = &payload.CRCouncilMemberClaimNode{
-			NodePublicKey: publicKey1,
+			NodePublicKey:         publicKey1,
+			CRCouncilCommitteeDID: *did,
 		}
 		buf := new(bytes.Buffer)
 		claimPayload.SerializeUnsigned(buf, 0)

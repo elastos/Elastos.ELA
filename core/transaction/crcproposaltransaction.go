@@ -92,6 +92,34 @@ func (t *CRCProposalTransaction) SpecialContextCheck() (result elaerr.ELAError, 
 	if t.parameters.BlockChain.GetCRCommittee().IsProposalFull(proposal.CRCouncilMemberDID) {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("proposal is full")), true
 	}
+	//todo compatible with old tx
+	programDID, err1 := getDIDFromCode(t.Programs()[0].Code)
+	if err1 != nil {
+		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("can not create did from program code")), true
+	}
+	if !programDID.IsEqual(proposal.CRCouncilMemberDID) {
+		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("program code not match with payload CRCouncilCommitteeDID")), true
+	}
+	switch t.payloadVersion {
+	case payload.CRCProposalVersion, payload.CRCProposalVersion01:
+		if !contract.IsStandard(t.Programs()[0].Code) {
+			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("CRCProposalVersion or CRCProposalVersion01 match standard code")), true
+		}
+	case payload.CRCProposalMultiSignVersion:
+		if !contract.IsMultiSig(t.Programs()[0].Code) {
+			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("CRCProposalMultiSignVersion match multi code")), true
+		}
+	}
+
+	if len(proposal.OwnerKey) != 0 && len(proposal.OwnerKey) != 33 {
+		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("OwnerKey must standard publickey")), true
+	}
+	if len(proposal.NewOwnerKey) != 0 && len(proposal.NewOwnerKey) != 33 {
+		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("NewOwnerKey must standard publickey")), true
+	}
+	if len(proposal.SecretaryGeneralPublicKey) != 0 && len(proposal.SecretaryGeneralPublicKey) != 33 {
+		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("SecretaryGeneralPublicKey must standard publickey")), true
+	}
 	// Check draft hash of proposal.
 	if t.parameters.BlockChain.GetCRCommittee().ExistDraft(proposal.DraftHash) {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("duplicated draft proposal hash")), true
@@ -301,17 +329,18 @@ func (t *CRCProposalTransaction) checkOwnerAndCRCouncilMemberSign(proposal *payl
 		signedBuf.Bytes()); err != nil {
 		return errors.New("owner signature check failed")
 	}
-
-	// Check signature of CR Council Member.
-	if err = common.WriteVarBytes(signedBuf, proposal.Signature); err != nil {
-		return errors.New("failed to write proposal owner signature")
-	}
-	if err = proposal.CRCouncilMemberDID.Serialize(signedBuf); err != nil {
-		return errors.New("failed to write CR Council Member's DID")
-	}
-	if err = blockchain.CheckCRTransactionSignature(proposal.CRCouncilMemberSignature, crMemberCode,
-		signedBuf.Bytes()); err != nil {
-		return errors.New("failed to check CR Council Member signature")
+	if PayloadVersion < payload.CRCProposalMultiSignVersion {
+		// Check signature of CR Council Member.
+		if err = common.WriteVarBytes(signedBuf, proposal.Signature); err != nil {
+			return errors.New("failed to write proposal owner signature")
+		}
+		if err = proposal.CRCouncilMemberDID.Serialize(signedBuf); err != nil {
+			return errors.New("failed to write CR Council Member's DID")
+		}
+		if err = blockchain.CheckCRTransactionSignature(proposal.CRCouncilMemberSignature, crMemberCode,
+			signedBuf.Bytes()); err != nil {
+			return errors.New("failed to check CR Council Member signature")
+		}
 	}
 	return nil
 }
@@ -346,9 +375,12 @@ func (t *CRCProposalTransaction) checkChangeSecretaryGeneralProposalTx(params *T
 	if crMember == nil {
 		return errors.New("CR Council Member should be one of the CR members")
 	}
-	if err := checkProposalCRCouncilMemberSign(crcProposal, crMember.Info.Code, signedBuf); err != nil {
-		return errors.New("CR Council Member signature check failed")
+	if PayloadVersion < payload.CRCProposalMultiSignVersion {
+		if err := checkProposalCRCouncilMemberSign(crcProposal, crMember.Info.Code, signedBuf); err != nil {
+			return errors.New("CR Council Member signature check failed")
+		}
 	}
+
 	return nil
 }
 

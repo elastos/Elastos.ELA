@@ -102,6 +102,9 @@ const (
 	//add draft data
 	CRCProposalVersion01 byte = 0x01
 
+	//remove payload CRCouncilMemberSignature
+	CRCProposalMultiSignVersion byte = 0x02
+
 	// MaxProposalDataSize the max size of proposal draft data or proposal
 	// tracking document data.
 	MaxProposalDataSize = 1 * 1024 * 1024
@@ -746,8 +749,12 @@ func (p *CRCProposal) SerializeNormalOrELIP(w io.Writer, version byte) error {
 	if err := p.CRCouncilMemberDID.Serialize(w); err != nil {
 		return errors.New("failed to serialize CRCouncilMemberDID")
 	}
+	var err error
+	if version < CRCProposalMultiSignVersion {
+		err = common.WriteVarBytes(w, p.CRCouncilMemberSignature)
+	}
 
-	return common.WriteVarBytes(w, p.CRCouncilMemberSignature)
+	return err
 }
 
 func (p *CRCProposal) SerializeChangeProposalOwner(w io.Writer, version byte) error {
@@ -763,7 +770,11 @@ func (p *CRCProposal) SerializeChangeProposalOwner(w io.Writer, version byte) er
 	if err := p.CRCouncilMemberDID.Serialize(w); err != nil {
 		return errors.New("failed to serialize CRCouncilMemberDID")
 	}
-	return common.WriteVarBytes(w, p.CRCouncilMemberSignature)
+	var err error
+	if version < CRCProposalMultiSignVersion {
+		err = common.WriteVarBytes(w, p.CRCouncilMemberSignature)
+	}
+	return err
 }
 
 func (p *CRCProposal) SerializeUpgradeCode(w io.Writer, version byte) error {
@@ -779,7 +790,11 @@ func (p *CRCProposal) SerializeUpgradeCode(w io.Writer, version byte) error {
 		return errors.New("failed to serialize CRCouncilMemberDID")
 	}
 
-	return common.WriteVarBytes(w, p.CRCouncilMemberSignature)
+	var err error
+	if version < CRCProposalMultiSignVersion {
+		err = common.WriteVarBytes(w, p.CRCouncilMemberSignature)
+	}
+	return err
 }
 
 func (p *CRCProposal) SerializeChangeSecretaryGeneral(w io.Writer, version byte) error {
@@ -798,7 +813,11 @@ func (p *CRCProposal) SerializeChangeSecretaryGeneral(w io.Writer, version byte)
 		return errors.New("failed to serialize CRCouncilMemberDID")
 	}
 
-	return common.WriteVarBytes(w, p.CRCouncilMemberSignature)
+	var err error
+	if version < CRCProposalMultiSignVersion {
+		err = common.WriteVarBytes(w, p.CRCouncilMemberSignature)
+	}
+	return err
 }
 
 func (p *CRCProposal) SerializeRegisterSideChain(w io.Writer, version byte) error {
@@ -814,7 +833,11 @@ func (p *CRCProposal) SerializeRegisterSideChain(w io.Writer, version byte) erro
 		return errors.New("failed to serialize CRCouncilMemberDID")
 	}
 
-	return common.WriteVarBytes(w, p.CRCouncilMemberSignature)
+	var err error
+	if version < CRCProposalMultiSignVersion {
+		err = common.WriteVarBytes(w, p.CRCouncilMemberSignature)
+	}
+	return err
 }
 
 func (p *CRCProposal) SerializeCloseProposal(w io.Writer, version byte) error {
@@ -830,7 +853,11 @@ func (p *CRCProposal) SerializeCloseProposal(w io.Writer, version byte) error {
 		return errors.New("failed to serialize CRCouncilMemberDID")
 	}
 
-	return common.WriteVarBytes(w, p.CRCouncilMemberSignature)
+	var err error
+	if version < CRCProposalMultiSignVersion {
+		err = common.WriteVarBytes(w, p.CRCouncilMemberSignature)
+	}
+	return err
 }
 
 func (b *Budget) Serialize(w io.Writer) error {
@@ -1208,11 +1235,13 @@ func (p *CRCProposal) DeserializeNormalOrELIP(r io.Reader, version byte) error {
 		return errors.New("failed to deserialize CRCouncilMemberDID")
 	}
 
-	CRCouncilMemberSignature, err := common.ReadVarBytes(r, crypto.SignatureLength, "CR sign data")
-	if err != nil {
-		return err
+	if version < CRCProposalMultiSignVersion {
+		CRCouncilMemberSignature, err := common.ReadVarBytes(r, crypto.SignatureLength, "CR sign data")
+		if err != nil {
+			return err
+		}
+		p.CRCouncilMemberSignature = CRCouncilMemberSignature
 	}
-	p.CRCouncilMemberSignature = CRCouncilMemberSignature
 
 	return nil
 }
@@ -1232,12 +1261,14 @@ func (p *CRCProposal) DeserializeUpgradeCode(r io.Reader, version byte) error {
 	if err := p.CRCouncilMemberDID.Deserialize(r); err != nil {
 		return errors.New("failed to deserialize CRCouncilMemberDID")
 	}
-	// cr signature
-	CRCouncilMemberSignature, err := common.ReadVarBytes(r, crypto.SignatureLength, "CR sign data")
-	if err != nil {
-		return err
+	if version < CRCProposalMultiSignVersion {
+		CRCouncilMemberSignature, err := common.ReadVarBytes(r, crypto.SignatureLength, "CR sign data")
+		if err != nil {
+			return err
+		}
+		p.CRCouncilMemberSignature = CRCouncilMemberSignature
 	}
-	p.CRCouncilMemberSignature = CRCouncilMemberSignature
+
 	return nil
 }
 
@@ -1264,11 +1295,14 @@ func (p *CRCProposal) DeserializeChangeProposalOwner(r io.Reader, version byte) 
 		return errors.New("failed to deserialize CRCouncilMemberDID")
 	}
 	// cr signature
-	CRCouncilMemberSignature, err := common.ReadVarBytes(r, crypto.SignatureLength, "CR sign data")
-	if err != nil {
-		return err
+	if version < CRCProposalMultiSignVersion {
+		CRCouncilMemberSignature, err := common.ReadVarBytes(r, crypto.SignatureLength, "CR sign data")
+		if err != nil {
+			return err
+		}
+		p.CRCouncilMemberSignature = CRCouncilMemberSignature
 	}
-	p.CRCouncilMemberSignature = CRCouncilMemberSignature
+
 	return nil
 }
 
@@ -1286,11 +1320,13 @@ func (p *CRCProposal) DeserializeRegisterSideChain(r io.Reader, version byte) er
 		return errors.New("failed to deserialize CRCouncilMemberDID")
 	}
 
-	CRCouncilMemberSignature, err := common.ReadVarBytes(r, crypto.SignatureLength, "CR sign data")
-	if err != nil {
-		return err
+	if version < CRCProposalMultiSignVersion {
+		CRCouncilMemberSignature, err := common.ReadVarBytes(r, crypto.SignatureLength, "CR sign data")
+		if err != nil {
+			return err
+		}
+		p.CRCouncilMemberSignature = CRCouncilMemberSignature
 	}
-	p.CRCouncilMemberSignature = CRCouncilMemberSignature
 
 	return nil
 }
@@ -1311,11 +1347,13 @@ func (p *CRCProposal) DeserializeCloseProposal(r io.Reader, version byte) error 
 		return errors.New("failed to deserialize CRCouncilMemberDID")
 	}
 
-	CRCouncilMemberSignature, err := common.ReadVarBytes(r, crypto.SignatureLength, "CR sign data")
-	if err != nil {
-		return err
+	if version < CRCProposalMultiSignVersion {
+		CRCouncilMemberSignature, err := common.ReadVarBytes(r, crypto.SignatureLength, "CR sign data")
+		if err != nil {
+			return err
+		}
+		p.CRCouncilMemberSignature = CRCouncilMemberSignature
 	}
-	p.CRCouncilMemberSignature = CRCouncilMemberSignature
 
 	return nil
 }
@@ -1342,11 +1380,14 @@ func (p *CRCProposal) DeserializeChangeSecretaryGeneral(r io.Reader, version byt
 		return errors.New("failed to deserialize CRCouncilMemberDID")
 	}
 
-	CRCouncilMemberSignature, err := common.ReadVarBytes(r, crypto.SignatureLength, "CR sign data")
-	if err != nil {
-		return err
+	if version < CRCProposalMultiSignVersion {
+		CRCouncilMemberSignature, err := common.ReadVarBytes(r, crypto.SignatureLength, "CR sign data")
+		if err != nil {
+			return err
+		}
+		p.CRCouncilMemberSignature = CRCouncilMemberSignature
 	}
-	p.CRCouncilMemberSignature = CRCouncilMemberSignature
+
 	return nil
 }
 

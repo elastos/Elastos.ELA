@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/elastos/Elastos.ELA/core/contract"
 
 	"github.com/elastos/Elastos.ELA/blockchain"
 	"github.com/elastos/Elastos.ELA/common"
@@ -59,6 +60,25 @@ func (t *CRCProposalReviewTransaction) SpecialContextCheck() (result elaerr.ELAE
 	if !ok {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid payload")), true
 	}
+	//todo compatible with old tx
+	programDID, err1 := getDIDFromCode(t.Programs()[0].Code)
+	if err1 != nil {
+		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("can not create did from program code")), true
+	}
+	if !programDID.IsEqual(crcProposalReview.DID) {
+		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("program code not match with payload DID")), true
+	}
+	switch t.payloadVersion {
+	case payload.CRCProposalReviewVersion, payload.CRCProposalReviewVersion01:
+		if !contract.IsStandard(t.Programs()[0].Code) {
+			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("CRCProposalReviewVersion or CRCProposalReviewVersion01 match standard code")), true
+		}
+	case payload.CRCProposalReviewMultiSignVersion:
+		if !contract.IsMultiSig(t.Programs()[0].Code) {
+			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("CRCProposalReviewMultiSignVersion match multi code")), true
+		}
+	}
+
 	// Check if the proposal exist.
 	proposalState := t.parameters.BlockChain.GetCRCommittee().GetProposal(crcProposalReview.ProposalHash)
 	if proposalState == nil {
@@ -98,16 +118,19 @@ func (t *CRCProposalReviewTransaction) SpecialContextCheck() (result elaerr.ELAE
 	}
 
 	// check signature.
-	signedBuf := new(bytes.Buffer)
-	err := crcProposalReview.SerializeUnsigned(signedBuf, t.PayloadVersion())
-	if err != nil {
-		return elaerr.Simple(elaerr.ErrTxPayload, err), true
+	if t.PayloadVersion() < payload.CRCProposalReviewMultiSignVersion {
+		signedBuf := new(bytes.Buffer)
+		err := crcProposalReview.SerializeUnsigned(signedBuf, t.PayloadVersion())
+		if err != nil {
+			return elaerr.Simple(elaerr.ErrTxPayload, err), true
+		}
+		err = blockchain.CheckCRTransactionSignature(crcProposalReview.Signature, crMember.Info.Code,
+			signedBuf.Bytes())
+		if err != nil {
+			return elaerr.Simple(elaerr.ErrTxPayload, err), true
+		}
 	}
-	err = blockchain.CheckCRTransactionSignature(crcProposalReview.Signature, crMember.Info.Code,
-		signedBuf.Bytes())
-	if err != nil {
-		return elaerr.Simple(elaerr.ErrTxPayload, err), true
-	}
+
 	return nil, false
 }
 

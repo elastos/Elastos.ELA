@@ -265,6 +265,7 @@ func GetDefaultParams() *Configuration {
 		HttpRestPort:                    20334,
 		HttpWsPort:                      20335,
 		HttpJsonPort:                    20336,
+		EnableRPC:                       true,
 		PowConfiguration: PowConfiguration{
 			PowLimit:           powLimit,
 			PowLimitBits:       0x1f0008ff,
@@ -856,9 +857,9 @@ type PowConfiguration struct {
 
 // RpcConfiguration defines the JSON-RPC authenticate parameters.
 type RpcConfiguration struct {
-	User        string   `json:"User"`
-	Pass        string   `json:"Pass"`
-	WhiteIPList []string `json:"WhiteIPList"`
+	User        string   `screw:"--rpcuser" usage:"username for JSON-RPC connections"`
+	Pass        string   `screw:"--rpcpassword" usage:"password for JSON-RPC connections"`
+	WhiteIPList []string `screw:"--rpcips" usage:"white IP list allowed to access RPC server"`
 }
 
 // InstantBlock returns the network parameters for generate instant block.

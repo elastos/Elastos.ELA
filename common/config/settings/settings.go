@@ -99,6 +99,13 @@ func (s *Settings) SetupConfig(withScrew bool, about string, version string) *co
 	}
 	conf.Configuration = conf.Sterilize()
 	config.Parameters = conf.Configuration
+
+	if len(conf.RpcConfiguration.WhiteIPList) > 1 {
+		ips := strings.Split(conf.RpcConfiguration.WhiteIPList[0], ",")
+		for i, ip := range ips {
+			conf.RpcConfiguration.WhiteIPList[i] = ip
+		}
+	}
 	return conf.Configuration
 }
 

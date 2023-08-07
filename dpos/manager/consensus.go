@@ -113,6 +113,10 @@ func (c *Consensus) ProcessBlock(b *types.Block) {
 }
 
 func (c *Consensus) ChangeView() {
+	log.Warn("ChangeView finishedHeight ", c.finishedHeight)
+	log.Warn("ChangeView ChangeViewV1Height ", c.manager.chainParams.DPoSConfiguration.ChangeViewV1Height)
+
+	log.Infof("ChangeView finishedHeight %d ChangeViewV1Height %d", c.finishedHeight, c.manager.chainParams.DPoSConfiguration.ChangeViewV1Height)
 	if c.finishedHeight < c.manager.chainParams.DPoSConfiguration.ChangeViewV1Height {
 		c.currentView.ChangeView(&c.viewOffset, c.manager.timeSource.AdjustedTime())
 	} else {
@@ -123,6 +127,8 @@ func (c *Consensus) ChangeView() {
 
 func (c *Consensus) TryChangeView() bool {
 	if c.IsRunning() {
+		log.Warn("TryChangeView finishedHeight ", c.finishedHeight)
+		log.Warn("TryChangeView ChangeViewV1Height ", c.manager.chainParams.DPoSConfiguration.ChangeViewV1Height)
 		if c.finishedHeight < c.manager.chainParams.DPoSConfiguration.ChangeViewV1Height {
 			return c.currentView.TryChangeView(&c.viewOffset, c.manager.timeSource.AdjustedTime())
 		} else {

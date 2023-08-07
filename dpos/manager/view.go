@@ -61,6 +61,8 @@ func (v *view) ChangeView(viewOffset *uint32, now time.Time) {
 		currentArbiter := v.arbitrators.GetNextOnDutyArbitrator(*viewOffset)
 
 		v.isDposOnDuty = bytes.Equal(currentArbiter, v.publicKey)
+		log.Info("v0 viewOffset:", *viewOffset)
+
 		log.Info("current onduty arbiter:",
 			common.BytesToHexString(currentArbiter))
 
@@ -80,6 +82,7 @@ func (v *view) ChangeViewV1(viewOffset *uint32, now time.Time) {
 		currentArbiter := v.arbitrators.GetNextOnDutyArbitrator(*viewOffset)
 
 		v.isDposOnDuty = bytes.Equal(currentArbiter, v.publicKey)
+		log.Info("viewOffset:", *viewOffset)
 		log.Info("current onduty arbiter:",
 			common.BytesToHexString(currentArbiter))
 

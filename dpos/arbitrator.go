@@ -302,6 +302,7 @@ func NewArbitrator(account account.Account, cfg Config) (*Arbitrator, error) {
 			EventAnalyzerConfig: manager.EventAnalyzerConfig{
 				Arbitrators: cfg.Arbitrators,
 			},
+			BestHeight: cfg.Chain.BestChain.Height,
 		})
 	dposHandlerSwitch.Initialize(proposalDispatcher, consensus)
 

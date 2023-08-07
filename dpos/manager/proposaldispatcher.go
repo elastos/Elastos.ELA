@@ -40,6 +40,7 @@ type ProposalDispatcherConfig struct {
 	Account      account.Account
 	ChainParams  *config.Configuration
 	TimeSource   dtime.MedianTimeSource
+	BestHeight   uint32
 }
 
 type ProposalDispatcher struct {
@@ -1056,6 +1057,7 @@ func NewDispatcherAndIllegalMonitor(cfg ProposalDispatcherConfig) (
 	*ProposalDispatcher, *IllegalBehaviorMonitor) {
 	p := &ProposalDispatcher{
 		cfg:                    cfg,
+		finishedHeight:         cfg.BestHeight,
 		processingBlock:        nil,
 		processingProposal:     nil,
 		acceptVotes:            make(map[common.Uint256]*payload.DPOSProposalVote),

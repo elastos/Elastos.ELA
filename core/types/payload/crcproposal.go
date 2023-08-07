@@ -53,13 +53,17 @@ const (
 	// Registration of side chain.
 	RegisterSideChain CRCProposalType = 0x0410
 
-	// 0x04 DID related proposals.
+	// 0x05 DID related proposals.
 	// Reserved did custom id.
 	ReserveCustomID CRCProposalType = 0x0500
 	// Receive did custom id.
 	ReceiveCustomID CRCProposalType = 0x0501
 	// The rate of custom id fee.
 	ChangeCustomIDFee CRCProposalType = 0x0502
+
+	// 0x06 Change side chain transaction fee
+	// change ESC side chain min gas price
+	SetESCMinGasPrice CRCProposalType = 0x0600
 )
 
 type CRCProposalType uint16
@@ -91,6 +95,8 @@ func (pt CRCProposalType) Name() string {
 		return "ReceiveCustomID"
 	case ChangeCustomIDFee:
 		return "ChangeCustomIDFee"
+	case SetESCMinGasPrice:
+		return "SetESCMinGasPrice"
 	default:
 		return "Unknown"
 	}
@@ -209,6 +215,8 @@ type CRCProposal struct {
 
 	// The registered side chain information
 	SideChainInfo
+
+	MinGasPrice common.Fixed64
 
 	hash *common.Uint256
 }
@@ -418,6 +426,8 @@ func (p *CRCProposal) SerializeUnsigned(w io.Writer, version byte) error {
 		return p.SerializeUnsignedChangeCustomIDFee(w, version)
 	case RegisterSideChain:
 		return p.SerializeUnsignedRegisterSideChain(w, version)
+	case SetESCMinGasPrice:
+		return p.SerializeChangeSideChainFee(w, version)
 	default:
 		return p.SerializeUnsignedNormalOrELIP(w, version)
 	}
@@ -576,6 +586,36 @@ func (p *CRCProposal) SerializeUnsignedRegisterSideChain(w io.Writer, version by
 	}
 
 	if err := p.SideChainInfo.Serialize(w); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (p *CRCProposal) SerializeChangeSideChainFee(w io.Writer, version byte) error {
+	if err := common.WriteElement(w, p.ProposalType); err != nil {
+		return errors.New("failed to serialize ProposalType")
+	}
+
+	if err := common.WriteVarString(w, p.CategoryData); err != nil {
+		return errors.New("[CRCProposal], Category Data serialize failed")
+	}
+
+	if err := common.WriteVarBytes(w, p.OwnerKey); err != nil {
+		return errors.New("failed to serialize OwnerKey")
+	}
+
+	if err := p.DraftHash.Serialize(w); err != nil {
+		return errors.New("failed to serialize DraftHash")
+	}
+
+	if version >= CRCProposalVersion01 {
+		if err := common.WriteVarBytes(w, p.DraftData); err != nil {
+			return errors.New("failed to serialize DraftData")
+		}
+	}
+
+	if err := p.MinGasPrice.Serialize(w); err != nil {
 		return err
 	}
 
@@ -872,6 +912,8 @@ func (p *CRCProposal) DeserializeUnSigned(r io.Reader, version byte) error {
 		return p.DeserializeUnSignedChangeCustomIDFee(r, version)
 	case RegisterSideChain:
 		return p.DeserializeUnsignedRegisterSideChain(r, version)
+	case SetESCMinGasPrice:
+		return p.DeserializeChangeSideChainFee(r, version)
 	default:
 		return p.DeserializeUnSignedNormalOrELIP(r, version)
 	}
@@ -992,6 +1034,37 @@ func (p *CRCProposal) DeserializeUnsignedRegisterSideChain(r io.Reader, version 
 	}
 
 	if err = p.SideChainInfo.Deserialize(r); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (p *CRCProposal) DeserializeChangeSideChainFee(r io.Reader, version byte) error {
+	var err error
+
+	p.CategoryData, err = common.ReadVarString(r)
+	if err != nil {
+		return errors.New("[CRCProposal], Category data deserialize failed")
+	}
+
+	p.OwnerKey, err = common.ReadVarBytes(r, crypto.NegativeBigLength, "owner")
+	if err != nil {
+		return errors.New("failed to deserialize OwnerKey")
+	}
+
+	if err = p.DraftHash.Deserialize(r); err != nil {
+		return errors.New("failed to deserialize DraftHash")
+	}
+
+	if version >= CRCProposalVersion01 {
+		p.DraftData, err = common.ReadVarBytes(r, MaxProposalDataSize, "draft data")
+		if err != nil {
+			return errors.New("failed to deserialize draft data")
+		}
+	}
+
+	if err = p.MinGasPrice.Deserialize(r); err != nil {
 		return err
 	}
 

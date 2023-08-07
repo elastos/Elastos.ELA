@@ -73,6 +73,11 @@ func (t *CRCProposalTransaction) HeightVersionCheck() error {
 			return errors.New(fmt.Sprintf("not support %s CRCProposal"+
 				" transaction before NewCrossChainStartHeight", p.ProposalType.Name()))
 		}
+	case payload.SetESCMinGasPrice:
+		if blockHeight < chainParams.CRConfiguration.ChangeSideChainFeeHeight {
+			return errors.New(fmt.Sprintf("not support %s CRCProposal"+
+				" transaction before ChangeSideChainFeeHeight", p.ProposalType.Name()))
+		}
 	default:
 		if blockHeight < chainParams.CRConfiguration.CRCommitteeStartHeight {
 			return errors.New(fmt.Sprintf("not support %s CRCProposal"+
@@ -164,6 +169,8 @@ func (t *CRCProposalTransaction) SpecialContextCheck() (result elaerr.ELAError, 
 		if err != nil {
 			return elaerr.Simple(elaerr.ErrTxPayload, err), true
 		}
+	case payload.SetESCMinGasPrice:
+
 	default:
 		err := t.checkNormalOrELIPProposal(t.parameters, proposal, t.parameters.ProposalsUsedAmount, t.PayloadVersion())
 		if err != nil {
@@ -573,6 +580,31 @@ func (t *CRCProposalTransaction) checkRegisterSideChainProposal(params *Transact
 	emptyUint168 := common.Uint168{}
 	if proposal.Recipient != emptyUint168 {
 		return errors.New("RegisterSideChain recipient must be empty")
+	}
+	crMember := t.parameters.BlockChain.GetCRCommittee().GetMember(proposal.CRCouncilMemberDID)
+	if crMember == nil {
+		return errors.New("CR Council Member should be one of the CR members")
+	}
+
+	return t.checkOwnerAndCRCouncilMemberSign(proposal, crMember.Info.Code, payloadVersion)
+}
+
+func (t *CRCProposalTransaction) checkChangeSideChainFeeProposal(proposal *payload.CRCProposal, payloadVersion byte) error {
+	_, err := crypto.DecodePoint(proposal.OwnerKey)
+	if err != nil {
+		return errors.New("DecodePoint from OwnerKey error")
+	}
+
+	if proposal.MinGasPrice < 0 {
+		return errors.New("ChangeSideChainFee invalid MinGasPrice")
+	}
+
+	if len(proposal.Budgets) > 0 {
+		return errors.New("ChangeSideChainFee cannot have budget")
+	}
+	emptyUint168 := common.Uint168{}
+	if proposal.Recipient != emptyUint168 {
+		return errors.New("ChangeSideChainFee recipient must be empty")
 	}
 	crMember := t.parameters.BlockChain.GetCRCommittee().GetMember(proposal.CRCouncilMemberDID)
 	if crMember == nil {

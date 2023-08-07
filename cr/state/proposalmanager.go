@@ -284,6 +284,9 @@ func recordPartProposalResult(results *[]payload.ProposalResult,
 	case payload.ReserveCustomID, payload.ReceiveCustomID, payload.ChangeCustomIDFee:
 		needRecordResult = true
 
+	case payload.SetESCMinGasPrice:
+		needRecordResult = true
+
 	default:
 		if proposalType > payload.MinUpgradeProposalType && proposalType <= payload.MaxUpgradeProposalType {
 			needRecordResult = true

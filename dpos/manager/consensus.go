@@ -32,7 +32,7 @@ type Consensus struct {
 }
 
 func NewConsensus(manager *DPOSManager, tolerance time.Duration,
-	viewListener ViewListener, changeViewV1Height uint32) *Consensus {
+	viewListener ViewListener, changeViewV1Height, bestHeight uint32) *Consensus {
 	c := &Consensus{
 		consensusStatus: consensusReady,
 		viewOffset:      DefaultViewOffset,
@@ -44,6 +44,7 @@ func NewConsensus(manager *DPOSManager, tolerance time.Duration,
 			arbitrators:        manager.arbitrators,
 			changeViewV1Height: changeViewV1Height,
 		},
+		finishedHeight: bestHeight,
 	}
 
 	return c

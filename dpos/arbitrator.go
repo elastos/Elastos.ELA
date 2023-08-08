@@ -289,7 +289,7 @@ func NewArbitrator(account account.Account, cfg Config) (*Arbitrator, error) {
 
 	consensus := manager.NewConsensus(dposManager,
 		cfg.ChainParams.DPoSConfiguration.SignTolerance,
-		dposHandlerSwitch, cfg.ChainParams.DPoSConfiguration.ChangeViewV1Height)
+		dposHandlerSwitch, cfg.ChainParams.DPoSConfiguration.ChangeViewV1Height, cfg.Chain.BestChain.Height)
 	proposalDispatcher, illegalMonitor := manager.NewDispatcherAndIllegalMonitor(
 		manager.ProposalDispatcherConfig{
 			EventMonitor: eventMonitor,

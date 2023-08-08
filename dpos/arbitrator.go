@@ -233,6 +233,7 @@ func (a *Arbitrator) OnPeersChanged(currentPeers []peer.PID, nextPeers []peer.PI
 
 func (a *Arbitrator) changeViewLoop() {
 	for a.enableViewLoop {
+		//log.Warn("#### changeViewLoop PostChangeViewTask")
 		a.network.PostChangeViewTask()
 
 		time.Sleep(1 * time.Second)

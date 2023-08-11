@@ -698,7 +698,6 @@ func (b *BlockChain) GetHeight() uint32 {
 
 	return b.getHeight()
 }
-
 func (b *BlockChain) getHeight() uint32 {
 	if len(b.Nodes) == 0 {
 		return 0

@@ -638,6 +638,51 @@ func (s *State) GetVotesWithdrawableTxInfo() map[common.Uint256]common2.OutputIn
 	return s.StateKeyFrame.VotesWithdrawableTxInfo
 }
 
+func (s *State) GetDposV2RewardClaimedInfo(addr string) common.Fixed64 {
+	s.mtx.RLock()
+	defer s.mtx.RUnlock()
+	return s.DposV2RewardClaimedInfo[addr]
+}
+
+func (s *State) GetDPoSV2RewardInfo(addr string) common.Fixed64 {
+	s.mtx.RLock()
+	defer s.mtx.RUnlock()
+	return s.DPoSV2RewardInfo[addr]
+}
+
+// copy
+func (s *State) CopyDPoSV2RewardInfo() map[string]common.Fixed64 {
+	s.mtx.RLock()
+	defer s.mtx.RUnlock()
+	DPoSV2RewardInfo := copyFixed64Map(s.DPoSV2RewardInfo)
+	return DPoSV2RewardInfo
+}
+
+func (s *State) GetDposV2RewardClaimingInfo(addr string) common.Fixed64 {
+	s.mtx.RLock()
+	defer s.mtx.RUnlock()
+	return s.DposV2RewardClaimingInfo[addr]
+}
+
+func (s *State) GetUsedDposV2Votes(stakeProgramHash common.Uint168) common.Fixed64 {
+	s.mtx.RLock()
+	defer s.mtx.RUnlock()
+	return s.UsedDposV2Votes[stakeProgramHash]
+}
+
+func (s *State) GetUsedDposVotes(stakeProgramHash common.Uint168) ([]payload.VotesWithLockTime, bool) {
+	s.mtx.RLock()
+	defer s.mtx.RUnlock()
+	usedDposVotes, ok := s.UsedDposVotes[stakeProgramHash]
+	return usedDposVotes, ok
+}
+
+func (s *State) GetDposV2VoteRights(stakeProgramHash common.Uint168) common.Fixed64 {
+	s.mtx.RLock()
+	defer s.mtx.RUnlock()
+	return s.DposV2VoteRights[stakeProgramHash]
+}
+
 // getProducerKey returns the producer's owner public key string, whether the
 // given public key is the producer's node public key or owner public key.
 func (s *State) getProducerKey(publicKey []byte) string {
@@ -800,6 +845,12 @@ func (s *State) GetAllProducers() []Producer {
 	s.mtx.RLock()
 	defer s.mtx.RUnlock()
 	return s.getAllProducersByCopy()
+}
+
+func (s *State) GetDPoSV2ActiveHeight() uint32 {
+	s.mtx.RLock()
+	defer s.mtx.RUnlock()
+	return s.DPoSV2ActiveHeight
 }
 
 func (s *State) GetDetailedDPoSV2Votes(stakeProgramHash *common.Uint168) []payload.DetailedVoteInfo {

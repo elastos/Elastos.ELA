@@ -862,6 +862,27 @@ func (c *Committee) GetCommitteeCanUseAmount() common.Fixed64 {
 	return c.CRCCurrentStageAmount - c.CRCCommitteeUsedAmount
 }
 
+func (c *Committee) GetUsedCRVotes(stakeProgramHash common.Uint168) []payload.VotesWithLockTime {
+	c.mtx.RLock()
+	defer c.mtx.RUnlock()
+	usedCRVotes := c.state.UsedCRVotes[stakeProgramHash]
+	return usedCRVotes
+}
+
+func (c *Committee) GetUsedCRImpeachmentVotes(stakeProgramHash common.Uint168) []payload.VotesWithLockTime {
+	c.mtx.RLock()
+	defer c.mtx.RUnlock()
+	usedCRImpeachmentVotes := c.state.UsedCRImpeachmentVotes[stakeProgramHash]
+	return usedCRImpeachmentVotes
+}
+
+func (c *Committee) GetUsedCRCProposalVotes(stakeProgramHash common.Uint168) []payload.VotesWithLockTime {
+	c.mtx.RLock()
+	defer c.mtx.RUnlock()
+	usedCRCProposalVotes := c.state.UsedCRCProposalVotes[stakeProgramHash]
+	return usedCRCProposalVotes
+}
+
 func (c *Committee) recordCurrentStageAmount(height uint32, lockedAmount common.Fixed64) {
 	oriCurrentStageAmount := c.CRCCurrentStageAmount
 	oriAppropriationAmount := c.AppropriationAmount

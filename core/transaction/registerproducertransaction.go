@@ -9,14 +9,13 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	state2 "github.com/elastos/Elastos.ELA/dpos/state"
-
 	"github.com/elastos/Elastos.ELA/blockchain"
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/core/contract"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	crstate "github.com/elastos/Elastos.ELA/cr/state"
 	"github.com/elastos/Elastos.ELA/crypto"
+	state2 "github.com/elastos/Elastos.ELA/dpos/state"
 	elaerr "github.com/elastos/Elastos.ELA/errors"
 	"github.com/elastos/Elastos.ELA/vm"
 )
@@ -201,12 +200,11 @@ func (t *RegisterProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bo
 	state := t.parameters.BlockChain.GetState()
 	if height < t.parameters.Config.DPoSV2StartHeight && t.payloadVersion == payload.ProducerInfoDposV2Version {
 		return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("can not register dposv2 before dposv2 start height")), true
-	} else if height > state.DPoSV2ActiveHeight && t.payloadVersion == payload.ProducerInfoVersion {
+	} else if height > state.GetDPoSV2ActiveHeight() && t.payloadVersion == payload.ProducerInfoVersion {
 		return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("can not register dposv1 after dposv2 active height")), true
 	} else if height < t.parameters.Config.SupportMultiCodeHeight && t.payloadVersion == payload.ProducerInfoMultiVersion {
 		return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("not support ProducerInfoMultiVersion when height is not reach  SupportMultiCodeHeight")), true
 	}
-
 	var ownKeyProgramHash *common.Uint168
 
 	ownKeyProgramHash, err := state2.GetOwnerKeyDepositProgramHash(info.OwnerKey)

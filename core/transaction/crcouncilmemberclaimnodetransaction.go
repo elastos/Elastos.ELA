@@ -7,7 +7,6 @@ package transaction
 
 import (
 	"bytes"
-	"encoding/hex"
 	"errors"
 	"fmt"
 
@@ -64,7 +63,7 @@ func (t *CRCouncilMemberClaimNodeTransaction) SpecialContextCheck() (result elae
 		switch t.payloadVersion {
 		case payload.CurrentCRClaimDPoSNodeVersion:
 			crMember = t.parameters.BlockChain.GetCRCommittee().GetMember(did)
-			if _, ok := comm.ClaimedDPoSKeys[hex.EncodeToString(manager.NodePublicKey)]; ok {
+			if ok := comm.ClaimedDPoSKey(manager.NodePublicKey); ok {
 				return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("producer already registered")), true
 			}
 			// check duplication of node.
@@ -73,7 +72,7 @@ func (t *CRCouncilMemberClaimNodeTransaction) SpecialContextCheck() (result elae
 			}
 		case payload.NextCRClaimDPoSNodeVersion:
 			crMember = t.parameters.BlockChain.GetCRCommittee().GetNextMember(did)
-			if _, ok := comm.NextClaimedDPoSKeys[hex.EncodeToString(manager.NodePublicKey)]; ok {
+			if ok := comm.NextClaimedDPoSKey(manager.NodePublicKey); ok {
 				return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("producer already registered")), true
 			}
 			// check duplication of node.

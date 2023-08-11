@@ -698,7 +698,6 @@ func (b *BlockChain) GetHeight() uint32 {
 
 	return b.getHeight()
 }
-
 func (b *BlockChain) getHeight() uint32 {
 	if len(b.Nodes) == 0 {
 		return 0
@@ -1645,9 +1644,7 @@ func (b *BlockChain) maybeAcceptBlock(block *Block, confirm *payload.Confirm) (b
 			b.state.RevertToPOWBlockHeight, false)
 		DefaultLedger.Arbitrators.DumpInfo(block.Height)
 	}
-
 	events.Notify(events.ETBlockProcessed, block)
-
 	// Notify the caller that the new block was accepted into the block
 	// chain.  The caller would typically want to react by relaying the
 	// inventory to other peers.

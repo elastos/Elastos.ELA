@@ -120,7 +120,7 @@ func (a *Arbiters) Start() {
 func (a *Arbiters) SetNeedRevertToDPOSTX(need bool) {
 	a.mtx.Lock()
 	defer a.mtx.Unlock()
-	a.NeedRevertToDPOSTX = need
+	a.SetStateNeedRevertToDPOSTX(need)
 }
 
 func GetOwnerKeyStandardProgramHash(ownerKey []byte) (ownKeyProgramHash *common.Uint168, err error) {
@@ -135,7 +135,7 @@ func GetOwnerKeyStandardProgramHash(ownerKey []byte) (ownKeyProgramHash *common.
 func (a *Arbiters) SetNeedNextTurnDPOSInfo(need bool) {
 	a.mtx.Lock()
 	defer a.mtx.Unlock()
-	a.NeedNextTurnDPOSInfo = need
+	a.SetStateNeedNextTurnDPOSInfo(need)
 }
 
 func (a *Arbiters) IsInPOWMode() bool {
@@ -179,6 +179,7 @@ func (a *Arbiters) RecoverFromCheckPoints(point *CheckPoint) {
 
 func (a *Arbiters) recoverFromCheckPoints(point *CheckPoint) {
 	// reset history
+	a.State.mtx.Lock()
 	a.History = utils.NewHistory(maxHistoryCapacity)
 	a.State.History = utils.NewHistory(maxHistoryCapacity)
 
@@ -201,10 +202,14 @@ func (a *Arbiters) recoverFromCheckPoints(point *CheckPoint) {
 	a.nextCRCArbitersMap = point.NextCRCArbitersMap
 	a.nextCRCArbiters = point.NextCRCArbiters
 	a.forceChanged = point.ForceChanged
+	a.State.mtx.Unlock()
+
 }
 
 func (a *Arbiters) ProcessBlock(block *types.Block, confirm *payload.Confirm) {
+	a.mtx.Lock()
 	a.State.ProcessBlock(block, confirm, a.DutyIndex)
+	a.mtx.Unlock()
 	a.IncreaseChainHeight(block, confirm)
 }
 
@@ -679,14 +684,20 @@ func (a *Arbiters) revertToPOWAtNextTurn(height uint32) {
 		a.nextCRCArbitersMap = make(map[common.Uint168]ArbiterMember)
 		a.nextCRCArbiters = make([]ArbiterMember, 0)
 		if a.ConsensusAlgorithm == DPOS {
+			a.State.mtx.Lock()
 			a.NoProducers = true
+			a.State.mtx.Unlock()
+
 		}
 	}, func() {
 		a.nextArbitrators = oriNextArbitrators
 		a.nextCandidates = oriNextCandidates
 		a.nextCRCArbitersMap = oriNextCRCArbitersMap
 		a.nextCRCArbiters = oriNextCRCArbiters
+		a.State.mtx.Lock()
 		a.NoProducers = oriNoProducers
+		a.State.mtx.Unlock()
+
 	})
 }
 func (a *Arbiters) AccumulateReward(block *types.Block, confirm *payload.Confirm) {
@@ -815,15 +826,19 @@ func (a *Arbiters) accumulateReward(block *types.Block, confirm *payload.Confirm
 		}
 
 		a.History.Append(block.Height, func() {
+			a.State.mtx.Lock()
 			for k, v := range rewards {
 				a.DPoSV2RewardInfo[k] += v
 			}
+			a.State.mtx.Unlock()
 			a.forceChanged = false
 			a.DutyIndex = oriDutyIndex + 1
 		}, func() {
+			a.State.mtx.Lock()
 			for k, v := range rewards {
 				a.DPoSV2RewardInfo[k] -= v
 			}
+			a.State.mtx.Unlock()
 			a.forceChanged = oriForceChanged
 			a.DutyIndex = oriDutyIndex
 		})
@@ -2075,8 +2090,10 @@ func (a *Arbiters) getSortedProducersWithRandom(height uint32, unclaimedCount in
 	candidateProducer := votedProducers[selectedCandidateIndex]
 
 	// todo need to use History?
+	a.State.mtx.Lock()
 	a.LastRandomCandidateHeight = height
 	a.LastRandomCandidateOwner = common.BytesToHexString(candidateProducer.info.OwnerKey)
+	a.State.mtx.Unlock()
 
 	newProducers := make([]*Producer, 0, len(votedProducers))
 	newProducers = append(newProducers, votedProducers[:unclaimedCount+normalCount]...)
@@ -2170,9 +2187,15 @@ func (a *Arbiters) UpdateNextArbitrators(versionHeight, height uint32) error {
 	if height >= a.ChainParams.CRConfiguration.CRClaimDPOSNodeStartHeight {
 		oriNeedNextTurnDPOSInfo := a.NeedNextTurnDPOSInfo
 		a.History.Append(height, func() {
+			a.State.mtx.Lock()
 			a.NeedNextTurnDPOSInfo = true
+			a.State.mtx.Unlock()
+
 		}, func() {
+			a.State.mtx.Lock()
 			a.NeedNextTurnDPOSInfo = oriNeedNextTurnDPOSInfo
+			a.State.mtx.Unlock()
+
 		})
 	}
 
@@ -2186,9 +2209,15 @@ func (a *Arbiters) UpdateNextArbitrators(versionHeight, height uint32) error {
 	if a.DPoSV2ActiveHeight == math.MaxUint32 && a.isDposV2Active() {
 		oriHeight := height
 		a.History.Append(height, func() {
+			a.State.mtx.Lock()
 			a.DPoSV2ActiveHeight = height + a.ChainParams.CRConfiguration.MemberCount + uint32(a.ChainParams.DPoSConfiguration.NormalArbitratorsCount)
+			a.State.mtx.Unlock()
+
 		}, func() {
+			a.State.mtx.Lock()
 			a.DPoSV2ActiveHeight = oriHeight
+			a.State.mtx.Unlock()
+
 		})
 	}
 
@@ -2801,7 +2830,7 @@ func (a *Arbiters) newCheckPoint(height uint32) *CheckPoint {
 		ArbitersRoundReward:         make(map[common.Uint168]common.Fixed64),
 		IllegalBlocksPayloadHashes:  make(map[common.Uint256]interface{}),
 		CurrentArbitrators:          a.CurrentArbitrators,
-		StateKeyFrame:               *a.State.snapshot(),
+		StateKeyFrame:               *a.State.Snapshot(),
 	}
 	point.CurrentArbitrators = copyByteList(a.CurrentArbitrators)
 	point.CurrentCandidates = copyByteList(a.CurrentCandidates)

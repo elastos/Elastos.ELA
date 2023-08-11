@@ -149,7 +149,7 @@ func (t *UpdateProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bool
 	if producer == nil {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("updating unknown producer")), true
 	}
-	stake := t.parameters.BlockChain.GetState()
+	dposState := t.parameters.BlockChain.GetState()
 	//if producer is already dposv2
 	switch producer.Identity() {
 	case state.DPoSV1:
@@ -173,7 +173,7 @@ func (t *UpdateProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bool
 		}
 
 	case state.DPoSV1V2:
-		if t.parameters.BlockHeight >= stake.DPoSV2ActiveHeight {
+		if t.parameters.BlockHeight >= dposState.GetDPoSV2ActiveHeight() {
 			if t.parameters.BlockHeight > producer.Info().StakeUntil {
 				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("producer already expired and dposv2 already started, can not update anything ")), true
 			}
@@ -246,7 +246,7 @@ func (t *UpdateProducerTransaction) additionalProducerInfoCheck(info *payload.Pr
 			return errors.New("invalid node public key in payload")
 		}
 
-		for _, m := range t.parameters.BlockChain.GetCRCommittee().Members {
+		for _, m := range t.parameters.BlockChain.GetCRCommittee().GetMembers() {
 			if bytes.Equal(m.DPOSPublicKey, info.NodePublicKey) {
 				return errors.New("node public key can't equal with current CR Node PK")
 			}
@@ -255,7 +255,7 @@ func (t *UpdateProducerTransaction) additionalProducerInfoCheck(info *payload.Pr
 			}
 		}
 
-		for _, m := range t.parameters.BlockChain.GetCRCommittee().NextMembers {
+		for _, m := range t.parameters.BlockChain.GetCRCommittee().GetNextMembers() {
 			if bytes.Equal(m.DPOSPublicKey, info.NodePublicKey) {
 				return errors.New("node public key can't equal with next CR Node PK")
 			}

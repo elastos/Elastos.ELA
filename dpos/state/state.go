@@ -10,11 +10,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"io"
-	"math"
-	"sort"
-	"sync"
-
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/core/contract"
@@ -31,6 +26,10 @@ import (
 	"github.com/elastos/Elastos.ELA/p2p"
 	"github.com/elastos/Elastos.ELA/p2p/msg"
 	"github.com/elastos/Elastos.ELA/utils"
+	"io"
+	"math"
+	"sort"
+	"sync"
 )
 
 // ProducerState represents the state of a producer.
@@ -608,6 +607,24 @@ type State struct {
 	LastRenewalDPoSV2Votes map[common.Uint256]struct{}
 }
 
+func (s *State) GetDPOSWorkHeight() uint32 {
+	s.mtx.RLock()
+	defer s.mtx.RUnlock()
+	return s.DPOSWorkHeight
+}
+
+func (s *State) GetNoProducers() bool {
+	s.mtx.RLock()
+	defer s.mtx.RUnlock()
+	return s.NoProducers
+}
+
+func (s *State) GetNoClaimDPOSNode() bool {
+	s.mtx.RLock()
+	defer s.mtx.RUnlock()
+	return s.NoClaimDPOSNode
+}
+
 func (s *State) DPoSV2Started() bool {
 	s.mtx.RLock()
 	defer s.mtx.RUnlock()
@@ -636,6 +653,51 @@ func (s *State) GetVotesWithdrawableTxInfo() map[common.Uint256]common2.OutputIn
 	defer s.mtx.RUnlock()
 
 	return s.StateKeyFrame.VotesWithdrawableTxInfo
+}
+
+func (s *State) GetDposV2RewardClaimedInfo(addr string) common.Fixed64 {
+	s.mtx.RLock()
+	defer s.mtx.RUnlock()
+	return s.DposV2RewardClaimedInfo[addr]
+}
+
+func (s *State) GetDPoSV2RewardInfo(addr string) common.Fixed64 {
+	s.mtx.RLock()
+	defer s.mtx.RUnlock()
+	return s.DPoSV2RewardInfo[addr]
+}
+
+// copy
+func (s *State) CopyDPoSV2RewardInfo() map[string]common.Fixed64 {
+	s.mtx.RLock()
+	defer s.mtx.RUnlock()
+	rewardInfo := copyFixed64Map(s.DPoSV2RewardInfo)
+	return rewardInfo
+}
+
+func (s *State) GetDposV2RewardClaimingInfo(addr string) common.Fixed64 {
+	s.mtx.RLock()
+	defer s.mtx.RUnlock()
+	return s.DposV2RewardClaimingInfo[addr]
+}
+
+func (s *State) GetUsedDposV2Votes(stakeProgramHash common.Uint168) common.Fixed64 {
+	s.mtx.RLock()
+	defer s.mtx.RUnlock()
+	return s.UsedDposV2Votes[stakeProgramHash]
+}
+
+func (s *State) GetUsedDposVotes(stakeProgramHash common.Uint168) ([]payload.VotesWithLockTime, bool) {
+	s.mtx.RLock()
+	defer s.mtx.RUnlock()
+	usedDposVotes, ok := s.UsedDposVotes[stakeProgramHash]
+	return usedDposVotes, ok
+}
+
+func (s *State) GetDposV2VoteRights(stakeProgramHash common.Uint168) common.Fixed64 {
+	s.mtx.RLock()
+	defer s.mtx.RUnlock()
+	return s.DposV2VoteRights[stakeProgramHash]
 }
 
 // getProducerKey returns the producer's owner public key string, whether the
@@ -802,6 +864,12 @@ func (s *State) GetAllProducers() []Producer {
 	return s.getAllProducersByCopy()
 }
 
+func (s *State) GetDPoSV2ActiveHeight() uint32 {
+	s.mtx.RLock()
+	defer s.mtx.RUnlock()
+	return s.DPoSV2ActiveHeight
+}
+
 func (s *State) GetDetailedDPoSV2Votes(stakeProgramHash *common.Uint168) []payload.DetailedVoteInfo {
 	s.mtx.RLock()
 	defer s.mtx.RUnlock()
@@ -889,6 +957,17 @@ func (s *State) getAllNodePublicKey() map[string]struct{} {
 	}
 	return nodePublicKeyMap
 }
+
+func (s *State) GetNFTInfo(nftID common.Uint256) *payload.NFTInfo {
+	s.mtx.RLock()
+	defer s.mtx.RUnlock()
+	nftInfo, exist := s.NFTIDInfoHashMap[nftID]
+	if !exist {
+		return nil
+	}
+	return &nftInfo
+}
+
 func (s *State) GetNFTReferKey(nftID common.Uint256) (common.Uint256, error) {
 	s.mtx.RLock()
 	defer s.mtx.RUnlock()
@@ -1309,7 +1388,6 @@ func (s *State) ProcessBlock(block *types.Block, confirm *payload.Confirm, dutyI
 
 	// Commit changes here if no errors found.
 	s.History.Commit(block.Height)
-
 	if block.Height >= s.ChainParams.DPoSV2StartHeight &&
 		len(s.WithdrawableTxInfo) != 0 {
 		s.createDposV2ClaimRewardRealWithdrawTransaction(block.Height)
@@ -2685,13 +2763,16 @@ func (s *State) processRetVotesRewardRealWithdraw(tx interfaces.Transaction, hei
 func (s *State) processCreateNFT(tx interfaces.Transaction, height uint32) {
 	nftPayload := tx.Payload().(*payload.CreateNFT)
 	nftID := common.GetNFTID(nftPayload.ReferKey, tx.Hash())
-
-	// record the relationship map between ID and genesis block hash
-	s.NFTIDInfoHashMap[nftID] = payload.NFTInfo{
-		ReferKey:         nftPayload.ReferKey,
-		GenesisBlockHash: nftPayload.GenesisBlockHash,
-		CreateNFTTxHash:  tx.Hash(),
-	}
+	s.History.Append(height, func() {
+		// record the relationship map between ID and genesis block hash
+		s.NFTIDInfoHashMap[nftID] = payload.NFTInfo{
+			ReferKey:         nftPayload.ReferKey,
+			GenesisBlockHash: nftPayload.GenesisBlockHash,
+			CreateNFTTxHash:  tx.Hash(),
+		}
+	}, func() {
+		delete(s.NFTIDInfoHashMap, nftID)
+	})
 
 	producers := s.getDposV2Producers()
 	for _, producer := range producers {
@@ -3021,6 +3102,18 @@ func (s *State) ExistNFTID(id common.Uint256) bool {
 	_, exist := s.NFTIDInfoHashMap[id]
 
 	return exist
+}
+
+func (a *State) SetStateNeedRevertToDPOSTX(need bool) {
+	a.mtx.Lock()
+	defer a.mtx.Unlock()
+	a.NeedRevertToDPOSTX = need
+}
+
+func (s *State) SetStateNeedNextTurnDPOSInfo(need bool) {
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
+	s.NeedNextTurnDPOSInfo = need
 }
 
 func (s *State) CanNFTDestroy(IDs []common.Uint256) []common.Uint256 {
@@ -3743,6 +3836,12 @@ func (s *State) RollbackTo(height uint32) error {
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
 	return s.History.RollbackTo(height)
+}
+
+func (s *State) Snapshot() *StateKeyFrame {
+	s.mtx.RLock()
+	defer s.mtx.RUnlock()
+	return s.snapshot()
 }
 
 // GetHistory returns a History state instance storing the producers and votes

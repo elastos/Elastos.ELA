@@ -298,6 +298,8 @@ func (p *ProposalDispatcher) ProcessProposal(id peer.PID, d *payload.DPOSProposa
 
 		if d.ViewOffset > p.cfg.Consensus.GetViewOffset() {
 			log.Infof("d.ViewOffset %d > p.cfg.Consensus.GetViewOffset() %d", d.ViewOffset, p.cfg.Consensus.GetViewOffset())
+			log.Infof("####houpei Hash %s BlockHash %s ViewOffset %d", d.Hash(), d.BlockHash, d.ViewOffset)
+
 			p.precociousProposals[d.Hash()] = d
 		}
 		return true, !self
@@ -327,6 +329,9 @@ func (p *ProposalDispatcher) ProcessProposal(id peer.PID, d *payload.DPOSProposa
 	}
 
 	currentBlock, ok := p.cfg.Manager.GetBlockCache().TryGetValue(d.BlockHash)
+	log.Infof("####houpeibefore received pending proposal ok %t p.cfg.Consensus.IsRunning() %v consensusStatus %d",
+		ok, p.cfg.Consensus.IsRunning(), p.cfg.Consensus.consensusStatus)
+
 	if !ok || !p.cfg.Consensus.IsRunning() {
 		p.pendingProposals[d.Hash()] = d
 		p.cfg.Manager.OnInv(id, d.BlockHash)
@@ -806,6 +811,7 @@ func (p *ProposalDispatcher) countAcceptedVote(v *payload.DPOSProposalVote) (
 	if v.Accept {
 		log.Info("[countAcceptedVote] Received needed sign, collect it into AcceptVotes!")
 		p.acceptVotes[v.Hash()] = v
+		log.Infof("[countAcceptedVote] Received needed sign, collect it into AcceptVotes! %d", len(p.acceptVotes))
 
 		if p.cfg.Manager.GetArbitrators().HasArbitersMajorityCount(len(p.acceptVotes)) {
 			log.Info("Collect majority signs, finish proposal.")

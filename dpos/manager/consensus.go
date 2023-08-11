@@ -93,6 +93,7 @@ func (c *Consensus) StartConsensus(b *types.Block) {
 	c.manager.GetBlockCache().Reset(b)
 	c.SetRunning()
 
+	log.Infof("#### houpei StartConsensus AddValue b.Hash().String()%s, Height %d", b.Hash().String(), b.Height)
 	c.manager.GetBlockCache().AddValue(b.Hash(), b)
 	c.currentView.ResetView(now)
 
@@ -110,6 +111,8 @@ func (c *Consensus) GetViewOffset() uint32 {
 }
 
 func (c *Consensus) ProcessBlock(b *types.Block) {
+	log.Infof("#### houpei ProcessBlock AddValue b.Hash().String()%s, Height %d", b.Hash().String(), b.Height)
+
 	c.manager.GetBlockCache().AddValue(b.Hash(), b)
 }
 

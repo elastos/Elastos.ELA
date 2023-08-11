@@ -159,6 +159,8 @@ func NewManager(cfg DPOSManagerConfig) *DPOSManager {
 		statusMap:          make(map[uint32]map[string]*dmsg.ConsensusStatus),
 		requestedBlocks:    make(map[common.Uint256]struct{}),
 	}
+	log.Info("#### houpei NewManager d.blockCache.Reset(nil)")
+
 	m.blockCache.Reset(nil)
 
 	return m
@@ -647,8 +649,10 @@ func (d *DPOSManager) clearInactiveData(p *payload.InactiveArbitrators) {
 			blocks = append(blocks, v)
 		}
 	}
+	log.Info("#### houpei d.blockCache.Reset(nil)")
 	d.blockCache.Reset(nil)
 	for _, b := range blocks {
+		log.Infof("#### houpei AddValue b.Hash().String()%s, Height %d", b.Hash().String(), b.Height)
 		d.blockCache.AddValue(b.Hash(), b)
 	}
 

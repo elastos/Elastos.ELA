@@ -7,6 +7,7 @@ package manager
 
 import (
 	"github.com/elastos/Elastos.ELA/common"
+	"github.com/elastos/Elastos.ELA/common/log"
 	"github.com/elastos/Elastos.ELA/core/types"
 )
 
@@ -23,6 +24,8 @@ type ConsensusBlockCache struct {
 
 func (c *ConsensusBlockCache) Reset(block *types.Block) {
 	if block == nil {
+		log.Warnf("####houpei ConsensusBlockCache Reset block == nil")
+
 		c.ConsensusBlocks = make(map[common.Uint256]*types.Block)
 		c.ConsensusBlockList = make([]common.Uint256, 0)
 		return
@@ -30,6 +33,7 @@ func (c *ConsensusBlockCache) Reset(block *types.Block) {
 
 	newConsensusBlocks := make(map[common.Uint256]*types.Block)
 	newConsensusBlockList := make([]common.Uint256, 0)
+	log.Warnf("####houpeiConsensusBlockCache Reset", block.Height)
 	for _, b := range c.ConsensusBlocks {
 		if b.Height < block.Height {
 			continue

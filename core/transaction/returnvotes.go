@@ -103,15 +103,15 @@ func (t *ReturnVotesTransaction) SpecialContextCheck() (result elaerr.ELAError, 
 	stakeProgramHash := ct.ToProgramHash()
 	state := t.parameters.BlockChain.GetState()
 	commitee := t.parameters.BlockChain.GetCRCommittee()
-	voteRights := state.DposV2VoteRights[*stakeProgramHash]
+	voteRights := state.GetDposV2VoteRights(*stakeProgramHash)
 	usedDposVoteRights := state.GetUsedDPoSVoteRights(stakeProgramHash)
-	usedDposV2VoteRights := state.UsedDposV2Votes[*stakeProgramHash]
+	usedDposV2VoteRights := state.GetUsedDposV2Votes(*stakeProgramHash)
 	cs := commitee.GetState()
 	usedCRVoteRights := cs.GetUsedCRVoteRights(stakeProgramHash)
 	usedCRImpeachmentVoteRights := cs.GetUsedCRImpeachmentVoteRights(stakeProgramHash)
 	usedCRCProposalVoteRights := cs.GetUsedCRCProposalVoteRights(stakeProgramHash)
 
-	if t.parameters.BlockHeight > state.DPoSV2ActiveHeight {
+	if t.parameters.BlockHeight > state.GetDPoSV2ActiveHeight() {
 		if pl.Value > voteRights-usedDposV2VoteRights ||
 			pl.Value > voteRights-usedCRVoteRights ||
 			pl.Value > voteRights-usedCRImpeachmentVoteRights ||

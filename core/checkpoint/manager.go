@@ -355,7 +355,6 @@ func (m *Manager) onBlockSaved(block *types.DposBlock,
 				<-reply
 			}
 		}
-
 		if block.Height >=
 			originalHeight+v.SavePeriod() {
 			v.SetHeight(block.Height)

@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/core/contract"
@@ -13,6 +14,23 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestProducer_Map2(t *testing.T) {
+	begin := time.Now()
+	DposV2RewardClaimingInfo := make(map[string]common.Fixed64)
+
+	for i := 0; i < 2000000000; i++ {
+		var firstKey string
+		for firstKey, _ = range DposV2RewardClaimingInfo {
+			break
+		}
+		DposV2RewardClaimingInfo[firstKey] += 1
+		DposV2RewardClaimingInfo[firstKey] -= 1
+
+	}
+	log.Warnf("####used time %f", float64(time.Now().Sub(begin).Seconds()))
+	fmt.Printf("####used time %f", float64(time.Now().Sub(begin).Seconds()))
+
+}
 func TestProducer_ActivateRequestHeight(t *testing.T) {
 	detailedDPoSV2Votes := make(map[common.Uint168]map[common.Uint256]payload.DetailedVoteInfo)
 	programHash1, _ := common.Uint168FromAddress("SWqLCTLHCs7pMzPwUU9CK2zeMceb6XzG4v")

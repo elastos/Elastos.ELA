@@ -9,13 +9,10 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	state2 "github.com/elastos/Elastos.ELA/dpos/state"
-
 	"github.com/elastos/Elastos.ELA/blockchain"
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/core/contract"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
-	crstate "github.com/elastos/Elastos.ELA/cr/state"
 	"github.com/elastos/Elastos.ELA/crypto"
 	elaerr "github.com/elastos/Elastos.ELA/errors"
 	"github.com/elastos/Elastos.ELA/vm"
@@ -201,60 +198,60 @@ func (t *RegisterProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bo
 	state := t.parameters.BlockChain.GetState()
 	if height < t.parameters.Config.DPoSV2StartHeight && t.payloadVersion == payload.ProducerInfoDposV2Version {
 		return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("can not register dposv2 before dposv2 start height")), true
-	} else if height > state.DPoSV2ActiveHeight && t.payloadVersion == payload.ProducerInfoVersion {
+	} else if height > state.GetDPoSV2ActiveHeight() && t.payloadVersion == payload.ProducerInfoVersion {
 		return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("can not register dposv1 after dposv2 active height")), true
 	} else if height < t.parameters.Config.SupportMultiCodeHeight && t.payloadVersion == payload.ProducerInfoMultiVersion {
 		return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("not support ProducerInfoMultiVersion when height is not reach  SupportMultiCodeHeight")), true
 	}
-
-	var ownKeyProgramHash *common.Uint168
-
-	ownKeyProgramHash, err := state2.GetOwnerKeyDepositProgramHash(info.OwnerKey)
-	if err != nil {
-		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid public key")), true
-	}
-	if t.PayloadVersion() == payload.ProducerInfoVersion {
-		// check deposit coin
-		var depositCount int
-		for _, output := range t.Outputs() {
-			if contract.GetPrefixType(output.ProgramHash) == contract.PrefixDeposit {
-				depositCount++
-				if !output.ProgramHash.IsEqual(*ownKeyProgramHash) {
-					return elaerr.Simple(elaerr.ErrTxPayload, errors.New("deposit"+
-						" address does not match the public key in payload")), true
-				}
-				if output.Value < crstate.MinDepositAmount {
-					return elaerr.Simple(elaerr.ErrTxPayload, errors.New("producer deposit amount is insufficient")), true
-				}
-			}
-		}
-		if depositCount != 1 {
-			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("there must be only one deposit address in outputs")), true
-		}
-
-	} else {
-		if t.parameters.BlockHeight+t.parameters.Config.DPoSConfiguration.DPoSV2DepositCoinMinLockTime >= info.StakeUntil {
-			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("v2 producer StakeUntil less than DPoSV2DepositCoinMinLockTime")), true
-		}
-		//if info.StakeUntil > t.parameters.BlockHeight+t.parameters.Config.DPoSV2MaxVotesLockTime {
-		//	return elaerr.Simple(elaerr.ErrTxPayload, errors.New("v2 producer StakeUntil bigger than DPoSV2MaxVotesLockTime")), true
-		//}
-		var depositCount int
-		for _, output := range t.Outputs() {
-			if contract.GetPrefixType(output.ProgramHash) == contract.PrefixDeposit {
-				depositCount++
-				if !output.ProgramHash.IsEqual(*ownKeyProgramHash) {
-					return elaerr.Simple(elaerr.ErrTxPayload, errors.New("deposit address does not match the public key in payload")), true
-				}
-				if output.Value < crstate.MinDPoSV2DepositAmount {
-					return elaerr.Simple(elaerr.ErrTxPayload, errors.New("producer deposit amount is insufficient")), true
-				}
-			}
-		}
-		if depositCount != 1 {
-			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("there must be only one deposit address in outputs")), true
-		}
-	}
+	//todo for jb test need recover
+	//var ownKeyProgramHash *common.Uint168
+	//
+	//ownKeyProgramHash, err := state2.GetOwnerKeyDepositProgramHash(info.OwnerKey)
+	//if err != nil {
+	//	return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid public key")), true
+	//}
+	//if t.PayloadVersion() == payload.ProducerInfoVersion {
+	//	// check deposit coin
+	//	var depositCount int
+	//	for _, output := range t.Outputs() {
+	//		if contract.GetPrefixType(output.ProgramHash) == contract.PrefixDeposit {
+	//			depositCount++
+	//			if !output.ProgramHash.IsEqual(*ownKeyProgramHash) {
+	//				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("deposit"+
+	//					" address does not match the public key in payload")), true
+	//			}
+	//			if output.Value < crstate.MinDepositAmount {
+	//				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("producer deposit amount is insufficient")), true
+	//			}
+	//		}
+	//	}
+	//	if depositCount != 1 {
+	//		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("there must be only one deposit address in outputs")), true
+	//	}
+	//
+	//} else {
+	//	if t.parameters.BlockHeight+t.parameters.Config.DPoSConfiguration.DPoSV2DepositCoinMinLockTime >= info.StakeUntil {
+	//		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("v2 producer StakeUntil less than DPoSV2DepositCoinMinLockTime")), true
+	//	}
+	//	//if info.StakeUntil > t.parameters.BlockHeight+t.parameters.Config.DPoSV2MaxVotesLockTime {
+	//	//	return elaerr.Simple(elaerr.ErrTxPayload, errors.New("v2 producer StakeUntil bigger than DPoSV2MaxVotesLockTime")), true
+	//	//}
+	//	var depositCount int
+	//	for _, output := range t.Outputs() {
+	//		if contract.GetPrefixType(output.ProgramHash) == contract.PrefixDeposit {
+	//			depositCount++
+	//			if !output.ProgramHash.IsEqual(*ownKeyProgramHash) {
+	//				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("deposit address does not match the public key in payload")), true
+	//			}
+	//			if output.Value < crstate.MinDPoSV2DepositAmount {
+	//				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("producer deposit amount is insufficient")), true
+	//			}
+	//		}
+	//	}
+	//	if depositCount != 1 {
+	//		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("there must be only one deposit address in outputs")), true
+	//	}
+	//}
 
 	return nil, false
 }

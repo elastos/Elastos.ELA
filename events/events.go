@@ -106,10 +106,10 @@ func (n EventType) String() string {
 // Event defines notification that is sent to the caller via the callback
 // function provided during the call to New and consists of a notification type
 // as well as associated data that depends on the type as follows:
-// 	- ETBlockAccepted:     *types.Block
-// 	- ETBlockConnected:    *types.Block
-// 	- ETBlockDisconnected: *types.Block
-// 	- ETTransactionAccepted: *types.BaseTransaction
+//   - ETBlockAccepted:     *types.Block
+//   - ETBlockConnected:    *types.Block
+//   - ETBlockDisconnected: *types.Block
+//   - ETTransactionAccepted: *types.BaseTransaction
 type Event struct {
 	Type EventType
 	Data interface{}

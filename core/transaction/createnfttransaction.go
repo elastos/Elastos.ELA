@@ -92,7 +92,8 @@ func (t *CreateNFTTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
 	}
 
 	state := t.parameters.BlockChain.GetState()
-	crState := t.parameters.BlockChain.GetCRCommittee().GetState()
+	crCommittee := t.parameters.BlockChain.GetCRCommittee()
+
 	producers := state.GetDposV2Producers()
 	nftID := common.GetNFTID(pld.ReferKey, t.hash())
 	var existVote bool
@@ -143,29 +144,29 @@ func (t *CreateNFTTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
 	}
 
 	// nft has not been created before
-	if g, ok := state.NFTIDInfoHashMap[nftID]; ok {
+	if nftInfo := state.GetNFTInfo(nftID); nftInfo != nil {
 		log.Warnf("NFT has been create before, side chain genesis block "+
-			"hash: %s", g)
+			"hash: %s", nftInfo.GenesisBlockHash.String())
 		return elaerr.Simple(elaerr.ErrTxPayload,
 			errors.New("NFT has been created before")), true
 	}
 
 	// check the vote rights is enough or not
-	totalVoteRights := state.DposV2VoteRights[*stakeProgramHash]
+	totalVoteRights := state.GetDposV2VoteRights(*stakeProgramHash)
 	var usedCRVotes common.Fixed64
-	if ucv := crState.UsedCRVotes[*stakeProgramHash]; ucv != nil {
+	if ucv := crCommittee.GetUsedCRVotes(*stakeProgramHash); ucv != nil {
 		for _, v := range ucv {
 			usedCRVotes += v.Votes
 		}
 	}
 	var usedCRImpeachmentVotes common.Fixed64
-	if ucv := crState.UsedCRImpeachmentVotes[*stakeProgramHash]; ucv != nil {
+	if ucv := crCommittee.GetUsedCRImpeachmentVotes(*stakeProgramHash); ucv != nil {
 		for _, v := range ucv {
 			usedCRImpeachmentVotes += v.Votes
 		}
 	}
 	var usedCRProposalVotes common.Fixed64
-	if ucv := crState.UsedCRCProposalVotes[*stakeProgramHash]; ucv != nil {
+	if ucv := crCommittee.GetUsedCRCProposalVotes(*stakeProgramHash); ucv != nil {
 		for _, v := range ucv {
 			if usedCRProposalVotes < v.Votes {
 				usedCRProposalVotes = v.Votes
@@ -173,7 +174,7 @@ func (t *CreateNFTTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
 		}
 	}
 	var usedDPoSVotes common.Fixed64
-	if udv := state.UsedDposVotes[*stakeProgramHash]; udv != nil {
+	if udv, ok := state.GetUsedDposVotes(*stakeProgramHash); ok {
 		for _, v := range udv {
 			if usedDPoSVotes < v.Votes {
 				usedDPoSVotes = v.Votes
@@ -182,7 +183,7 @@ func (t *CreateNFTTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
 	}
 
 	blockHeight := t.parameters.BlockHeight
-	if blockHeight < state.DPoSV2ActiveHeight {
+	if blockHeight < state.GetDPoSV2ActiveHeight() {
 		if nftAmount > totalVoteRights-usedDPoSVotes {
 			log.Errorf("vote rights is not enough, nft amount:%s, "+
 				"total vote rights:%s, used DPoS 1.0 votes:%s",

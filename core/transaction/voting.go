@@ -127,13 +127,8 @@ func (t *VotingTransaction) SpecialContextCheck() (result elaerr.ELAError, end b
 	}
 	stakeProgramHash := ct.ToProgramHash()
 	state := t.parameters.BlockChain.GetState()
-	//commitee := t.parameters.BlockChain.GetCRCommittee()
-	voteRights := state.DposV2VoteRights
-	totalVotes, exist := voteRights[*stakeProgramHash]
-	if !exist {
-		return elaerr.Simple(elaerr.ErrTxInvalidOutput, errors.New("has no vote rights")), true
-	}
-	usedDPoSV2VoteRights, _ := state.UsedDposV2Votes[*stakeProgramHash]
+	totalVotes := state.GetDposV2VoteRights(*stakeProgramHash)
+	usedDPoSV2VoteRights := state.GetUsedDposV2Votes(*stakeProgramHash)
 
 	var candidates []*crstate.Candidate
 	if crCommittee.IsInVotingPeriod(blockHeight) {
@@ -161,7 +156,7 @@ func (t *VotingTransaction) SpecialContextCheck() (result elaerr.ELAError, end b
 
 			switch content.VoteType {
 			case outputpayload.Delegate:
-				if blockHeight > state.DPoSV2ActiveHeight {
+				if blockHeight > state.GetDPoSV2ActiveHeight() {
 					return elaerr.Simple(elaerr.ErrTxPayload,
 						errors.New("delegate votes is not allowed in DPoS V2")), true
 				}

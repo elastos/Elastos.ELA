@@ -294,7 +294,10 @@ func (p *ProposalDispatcher) ProcessProposal(id peer.PID, d *payload.DPOSProposa
 
 	if d.ViewOffset != p.cfg.Consensus.GetViewOffset() {
 		log.Info("have different view offset")
+		log.Infof("d.ViewOffset %d  p.cfg.Consensus.GetViewOffset() %d", d.ViewOffset, p.cfg.Consensus.GetViewOffset())
+
 		if d.ViewOffset > p.cfg.Consensus.GetViewOffset() {
+			log.Infof("d.ViewOffset %d > p.cfg.Consensus.GetViewOffset() %d", d.ViewOffset, p.cfg.Consensus.GetViewOffset())
 			p.precociousProposals[d.Hash()] = d
 		}
 		return true, !self

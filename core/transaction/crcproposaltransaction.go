@@ -73,10 +73,10 @@ func (t *CRCProposalTransaction) HeightVersionCheck() error {
 			return errors.New(fmt.Sprintf("not support %s CRCProposal"+
 				" transaction before NewCrossChainStartHeight", p.ProposalType.Name()))
 		}
-	case payload.ChangeESCMinGasPrice:
-		if blockHeight < chainParams.CRConfiguration.ChangeESCMinGasPriceHeight {
+	case payload.ChangeESCMinGasPrice, payload.ChangeEIDMinGasPrice:
+		if blockHeight < chainParams.CRConfiguration.ChangeSideChainMinGasPriceHeight {
 			return errors.New(fmt.Sprintf("not support %s CRCProposal"+
-				" transaction before ChangeESCMinGasPriceHeight", p.ProposalType.Name()))
+				" transaction before ChangeSideChainMinGasPriceHeight", p.ProposalType.Name()))
 		}
 	default:
 		if blockHeight < chainParams.CRConfiguration.CRCommitteeStartHeight {
@@ -169,8 +169,11 @@ func (t *CRCProposalTransaction) SpecialContextCheck() (result elaerr.ELAError, 
 		if err != nil {
 			return elaerr.Simple(elaerr.ErrTxPayload, err), true
 		}
-	case payload.ChangeESCMinGasPrice:
-
+	case payload.ChangeESCMinGasPrice, payload.ChangeEIDMinGasPrice:
+		err := t.checkChangeSideChainGasPriceProposal(proposal, t.PayloadVersion())
+		if err != nil {
+			return elaerr.Simple(elaerr.ErrTxPayload, err), true
+		}
 	default:
 		err := t.checkNormalOrELIPProposal(t.parameters, proposal, t.parameters.ProposalsUsedAmount, t.PayloadVersion())
 		if err != nil {
@@ -589,7 +592,7 @@ func (t *CRCProposalTransaction) checkRegisterSideChainProposal(params *Transact
 	return t.checkOwnerAndCRCouncilMemberSign(proposal, crMember.Info.Code, payloadVersion)
 }
 
-func (t *CRCProposalTransaction) checkChangeSideChainFeeProposal(proposal *payload.CRCProposal, payloadVersion byte) error {
+func (t *CRCProposalTransaction) checkChangeSideChainGasPriceProposal(proposal *payload.CRCProposal, payloadVersion byte) error {
 	_, err := crypto.DecodePoint(proposal.OwnerKey)
 	if err != nil {
 		return errors.New("DecodePoint from OwnerKey error")

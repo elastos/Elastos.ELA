@@ -167,7 +167,7 @@ func GetDefaultParams() *Configuration {
 			ChangeCommitteeNewCRHeight:         932530,
 			CheckVoteCRCountHeight:             658930,
 			CRClaimPeriod:                      720 * 14,
-			ChangeESCMinGasPriceHeight:         math.MaxUint32, // todo complete me
+			ChangeSideChainMinGasPriceHeight:   math.MaxUint32, // todo complete me
 		},
 
 		DPoSConfiguration: DPoSConfiguration{
@@ -400,7 +400,7 @@ func (p *Configuration) TestNet() *Configuration {
 
 	p.MemoryPoolTxMaximumStayHeight = 10
 
-	p.CRConfiguration.ChangeESCMinGasPriceHeight = math.MaxUint32 // todo complete me
+	p.CRConfiguration.ChangeSideChainMinGasPriceHeight = math.MaxUint32 // todo complete me
 
 	return p
 }
@@ -523,7 +523,7 @@ func (p *Configuration) RegNet() *Configuration {
 	p.MultiExchangeVotesStartHeight = math.MaxUint32    // todo complete me
 	p.DPoSConfiguration.DexStartHeight = math.MaxUint32 // todo complete me
 
-	p.CRConfiguration.ChangeESCMinGasPriceHeight = math.MaxUint32 // todo complete me
+	p.CRConfiguration.ChangeSideChainMinGasPriceHeight = math.MaxUint32 // todo complete me
 
 	p.MemoryPoolTxMaximumStayHeight = 10
 
@@ -815,8 +815,8 @@ type CRConfiguration struct {
 	CRCProposalDraftDataStartHeight uint32 `screw:"--crcproposaldraftdatastartheight" usage:"defines the proposal draft data start height"`
 	// CRClaimPeriod defines the duration of CR claim DPoS node period which measured by block height
 	CRClaimPeriod uint32 `screw:"--crclaimperiod" usage:"defines the duration of CR claim DPoS node"`
-	// ChangeESCMinGasPriceHeight defines the height to use CR proposal to change gas price of side chain
-	ChangeESCMinGasPriceHeight uint32 `screw:"--changesidechainfeeheight" usage:"defines the height to use CR proposal to change gas price of side chain"`
+	// ChangeSideChainMinGasPriceHeight defines the height to use CR proposal to change gas price of side chain
+	ChangeSideChainMinGasPriceHeight uint32 `screw:"--changesidechainmingaspriceheight" usage:"defines the height to use CR proposal to change gas price of side chain"`
 }
 
 // PowConfiguration defines the Proof-of-Work parameters.

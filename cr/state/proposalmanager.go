@@ -284,7 +284,7 @@ func recordPartProposalResult(results *[]payload.ProposalResult,
 	case payload.ReserveCustomID, payload.ReceiveCustomID, payload.ChangeCustomIDFee:
 		needRecordResult = true
 
-	case payload.ChangeESCMinGasPrice:
+	case payload.ChangeESCMinGasPrice, payload.ChangeEIDMinGasPrice:
 		needRecordResult = true
 
 	default:

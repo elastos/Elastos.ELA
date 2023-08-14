@@ -120,7 +120,7 @@ func (t *DefaultChecker) ContextCheck(params interfaces.Parameters) (
 	}
 
 	if err := t.CheckTransactionUTXOLock(t.parameters.Transaction, references); err != nil {
-		log.Warn("[CheckTransactionUTXOLock],", err)
+		log.Warn("[CheckTransactionContext],", err)
 		return nil, elaerr.Simple(elaerr.ErrTxUTXOLocked, err)
 	}
 
@@ -656,7 +656,7 @@ func checkDestructionAddress(references map[*common2.Input]common2.Output) error
 	return nil
 }
 
-//tx interfaces.Transaction,
+// tx interfaces.Transaction,
 func (t *DefaultChecker) CheckTransactionFee(references map[*common2.Input]common2.Output) error {
 	log.Debug("DefaultChecker checkTransactionFee begin")
 	txn := t.parameters.Transaction

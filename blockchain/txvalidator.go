@@ -72,8 +72,16 @@ func (b *BlockChain) CheckTransactionSanity(blockHeight uint32,
 	return txn.SanityCheck(para)
 }
 
-// CheckTransactionContext verifies a transaction with history transaction in ledger
 func (b *BlockChain) CheckTransactionContext(blockHeight uint32,
+	tx interfaces.Transaction, proposalsUsedAmount common.Fixed64, timeStamp uint32) (
+	map[*common2.Input]common2.Output, elaerr.ELAError) {
+	b.mutex.Lock()
+	defer b.mutex.Unlock()
+	return b.checkTransactionContext(blockHeight, tx, proposalsUsedAmount, timeStamp)
+}
+
+// CheckTransactionContext verifies a transaction with history transaction in ledger
+func (b *BlockChain) checkTransactionContext(blockHeight uint32,
 	tx interfaces.Transaction, proposalsUsedAmount common.Fixed64, timeStamp uint32) (
 	map[*common2.Input]common2.Output, elaerr.ELAError) {
 

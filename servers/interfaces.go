@@ -3479,7 +3479,7 @@ func getPayloadInfo(tx interfaces.Transaction, payloadVersion byte) PayloadInfo 
 			obj.MagicNumber = object.MagicNumber
 			obj.GenesisHash = common.ToReversedString(object.GenesisHash)
 			obj.ExchangeRate = object.ExchangeRate
-			obj.EffectiveHeight = object.EffectiveHeight
+			obj.EffectiveHeight = object.SideChainInfo.EffectiveHeight
 			obj.ResourcePath = object.ResourcePath
 			obj.Signature = common.BytesToHexString(object.Signature)
 			crmdid, _ := object.CRCouncilMemberDID.ToAddress()

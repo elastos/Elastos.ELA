@@ -73,10 +73,10 @@ func (t *CRCProposalTransaction) HeightVersionCheck() error {
 			return errors.New(fmt.Sprintf("not support %s CRCProposal"+
 				" transaction before NewCrossChainStartHeight", p.ProposalType.Name()))
 		}
-	case payload.SetESCMinGasPrice:
-		if blockHeight < chainParams.CRConfiguration.ChangeSideChainFeeHeight {
+	case payload.ChangeESCMinGasPrice:
+		if blockHeight < chainParams.CRConfiguration.ChangeESCMinGasPriceHeight {
 			return errors.New(fmt.Sprintf("not support %s CRCProposal"+
-				" transaction before ChangeSideChainFeeHeight", p.ProposalType.Name()))
+				" transaction before ChangeESCMinGasPriceHeight", p.ProposalType.Name()))
 		}
 	default:
 		if blockHeight < chainParams.CRConfiguration.CRCommitteeStartHeight {
@@ -169,7 +169,7 @@ func (t *CRCProposalTransaction) SpecialContextCheck() (result elaerr.ELAError, 
 		if err != nil {
 			return elaerr.Simple(elaerr.ErrTxPayload, err), true
 		}
-	case payload.SetESCMinGasPrice:
+	case payload.ChangeESCMinGasPrice:
 
 	default:
 		err := t.checkNormalOrELIPProposal(t.parameters, proposal, t.parameters.ProposalsUsedAmount, t.PayloadVersion())
@@ -566,7 +566,7 @@ func (t *CRCProposalTransaction) checkRegisterSideChainProposal(params *Transact
 		return errors.New("ExchangeRate should be 1.0")
 	}
 
-	if proposal.EffectiveHeight < t.parameters.BlockChain.GetHeight() {
+	if proposal.SideChainInfo.EffectiveHeight < t.parameters.BlockChain.GetHeight() {
 		return errors.New("EffectiveHeight must be bigger than current height")
 	}
 

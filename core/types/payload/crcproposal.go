@@ -63,7 +63,7 @@ const (
 
 	// 0x06 Change side chain transaction fee
 	// change ESC side chain min gas price
-	SetESCMinGasPrice CRCProposalType = 0x0600
+	ChangeESCMinGasPrice CRCProposalType = 0x0600
 )
 
 type CRCProposalType uint16
@@ -95,8 +95,8 @@ func (pt CRCProposalType) Name() string {
 		return "ReceiveCustomID"
 	case ChangeCustomIDFee:
 		return "ChangeCustomIDFee"
-	case SetESCMinGasPrice:
-		return "SetESCMinGasPrice"
+	case ChangeESCMinGasPrice:
+		return "ChangeESCMinGasPrice"
 	default:
 		return "Unknown"
 	}
@@ -182,6 +182,8 @@ type CRCProposal struct {
 
 	CustomIDFeeRateInfo
 
+	ChangeESCMinGasPriceInfo
+
 	// The specified ELA address where the funds are to be sent.
 	NewRecipient common.Uint168
 
@@ -215,8 +217,6 @@ type CRCProposal struct {
 
 	// The registered side chain information
 	SideChainInfo
-
-	MinGasPrice common.Fixed64
 
 	hash *common.Uint256
 }
@@ -399,6 +399,39 @@ func (sc *CustomIDFeeRateInfo) Deserialize(r io.Reader) error {
 	return nil
 }
 
+type ChangeESCMinGasPriceInfo struct {
+	// The min gas price of ESC side chain
+	MinGasPrice common.Fixed64
+
+	// Effective at the side chain height of ESC.
+	EffectiveHeight uint32
+}
+
+func (sc *ChangeESCMinGasPriceInfo) Serialize(w io.Writer) error {
+	if err := sc.MinGasPrice.Serialize(w); err != nil {
+		return errors.New("failed to serialize MinGasPrice")
+	}
+
+	if err := common.WriteUint32(w, sc.EffectiveHeight); err != nil {
+		return errors.New("failed to serialize EffectiveHeight")
+	}
+
+	return nil
+}
+
+func (sc *ChangeESCMinGasPriceInfo) Deserialize(r io.Reader) error {
+	var err error
+	if err = sc.MinGasPrice.Deserialize(r); err != nil {
+		return errors.New("failed to deserialize MinGasPrice")
+	}
+
+	sc.EffectiveHeight, err = common.ReadUint32(r)
+	if err != nil {
+		return errors.New("failed to deserialize EffectiveHeight")
+	}
+	return nil
+}
+
 func (p *CRCProposal) Data(version byte) []byte {
 	buf := new(bytes.Buffer)
 	if err := p.SerializeUnsigned(buf, version); err != nil {
@@ -426,7 +459,7 @@ func (p *CRCProposal) SerializeUnsigned(w io.Writer, version byte) error {
 		return p.SerializeUnsignedChangeCustomIDFee(w, version)
 	case RegisterSideChain:
 		return p.SerializeUnsignedRegisterSideChain(w, version)
-	case SetESCMinGasPrice:
+	case ChangeESCMinGasPrice:
 		return p.SerializeChangeSideChainFee(w, version)
 	default:
 		return p.SerializeUnsignedNormalOrELIP(w, version)
@@ -615,7 +648,7 @@ func (p *CRCProposal) SerializeChangeSideChainFee(w io.Writer, version byte) err
 		}
 	}
 
-	if err := p.MinGasPrice.Serialize(w); err != nil {
+	if err := p.ChangeESCMinGasPriceInfo.Serialize(w); err != nil {
 		return err
 	}
 
@@ -912,7 +945,7 @@ func (p *CRCProposal) DeserializeUnSigned(r io.Reader, version byte) error {
 		return p.DeserializeUnSignedChangeCustomIDFee(r, version)
 	case RegisterSideChain:
 		return p.DeserializeUnsignedRegisterSideChain(r, version)
-	case SetESCMinGasPrice:
+	case ChangeESCMinGasPrice:
 		return p.DeserializeChangeSideChainFee(r, version)
 	default:
 		return p.DeserializeUnSignedNormalOrELIP(r, version)
@@ -1064,7 +1097,7 @@ func (p *CRCProposal) DeserializeChangeSideChainFee(r io.Reader, version byte) e
 		}
 	}
 
-	if err = p.MinGasPrice.Deserialize(r); err != nil {
+	if err = p.ChangeESCMinGasPriceInfo.Deserialize(r); err != nil {
 		return err
 	}
 

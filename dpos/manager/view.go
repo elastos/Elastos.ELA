@@ -146,7 +146,7 @@ func (v *view) calculateOffsetTimeV2(currentViewOffset uint32, startTime time.Ti
 
 func (v *view) TryChangeView(viewOffset *uint32, now time.Time) bool {
 	if now.After(v.viewStartTime.Add(v.signTolerance)) {
-		log.Info("[TryChangeView] succeed")
+		log.Info("[TryChangeView] succeed 1")
 		v.ChangeView(viewOffset, now)
 		return true
 	}
@@ -155,7 +155,7 @@ func (v *view) TryChangeView(viewOffset *uint32, now time.Time) bool {
 
 func (v *view) TryChangeViewV1(viewOffset *uint32, now time.Time) bool {
 	if now.After(v.viewStartTime.Add(v.signTolerance)) {
-		log.Info("[TryChangeView] succeed")
+		log.Info("[TryChangeView] succeed 2")
 		v.ChangeViewV1(viewOffset, now)
 		return true
 	}

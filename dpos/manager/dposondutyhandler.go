@@ -131,3 +131,18 @@ func (h *DPOSOnDutyHandler) tryCreateInactiveArbitratorsTx() bool {
 	}
 	return false
 }
+
+func (h *DPOSOnDutyHandler) DealPrecociousProposals() {
+	log.Warn("########houpei DPOSOnDutyHandler DealPrecociousProposals")
+	// sign proposal with same view offset to me
+	for _, v := range h.proposalDispatcher.precociousProposals {
+		log.Infof("####[OnViewChanged] h.consensus.GetViewOffset %d, v.ViewOffset", h.consensus.GetViewOffset(), v.ViewOffset)
+
+		if h.consensus.GetViewOffset() == v.ViewOffset {
+			//log.Infof("####OnViewChanged h.consensus.GetViewOffset() == v.ViewOffset BlockHash", v.BlockHash)
+			log.Infof("####DPOSOnDutyHandler h.consensus.GetViewOffset() == v.ViewOffset BlockHash %s Sponsor %v", v.BlockHash, v.Sponsor)
+
+			h.proposalDispatcher.ProcessProposal(peer.PID(v.Sponsor), v, false)
+		}
+	}
+}

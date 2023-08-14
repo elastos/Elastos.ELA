@@ -222,6 +222,7 @@ func (p *ProposalDispatcher) CleanProposals(changeView bool) {
 		p.signedTxs = map[common.Uint256]interface{}{}
 		p.pendingProposals = make(map[common.Uint256]*payload.DPOSProposal)
 		p.precociousProposals = make(map[common.Uint256]*payload.DPOSProposal)
+		log.Info("Clean proposals precociousProposals clear")
 
 		p.eventAnalyzer.Clear()
 	} else {
@@ -335,7 +336,7 @@ func (p *ProposalDispatcher) ProcessProposal(id peer.PID, d *payload.DPOSProposa
 	if !ok || !p.cfg.Consensus.IsRunning() {
 		p.pendingProposals[d.Hash()] = d
 		p.cfg.Manager.OnInv(id, d.BlockHash)
-		log.Info("received pending proposal")
+		log.Info("received pending proposal id", id)
 		return true, true
 	} else {
 		p.TryStartSpeculatingProposal(currentBlock)
@@ -393,6 +394,7 @@ func (p *ProposalDispatcher) UpdatePrecociousProposals() {
 	for k, v := range p.precociousProposals {
 		if p.cfg.Consensus.IsRunning() &&
 			v.ViewOffset == p.cfg.Consensus.GetViewOffset() {
+			//todo peer.PID{}
 			if needRecord, _ := p.ProcessProposal(
 				peer.PID{}, v, true); needRecord {
 				p.illegalMonitor.AddProposal(v)

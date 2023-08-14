@@ -198,6 +198,7 @@ func (a *Arbitrator) OnSidechainIllegalEvidenceReceived(
 }
 
 func (a *Arbitrator) OnBlockReceived(b *types.Block, confirmed bool) {
+	log.Info("####OnBlockReceived begin b.Hash()", b.Hash())
 	if !a.cfg.Server.IsCurrent() {
 		return
 	}
@@ -216,7 +217,11 @@ func (a *Arbitrator) OnBlockReceived(b *types.Block, confirmed bool) {
 			return
 		}
 	}
+	log.Info("####OnBlockReceived before PostBlockReceivedTask b.Hash()", b.Hash())
+
 	a.network.PostBlockReceivedTask(b, confirmed)
+	log.Info("####OnBlockReceived end b.Hash()", b.Hash())
+
 }
 
 func (a *Arbitrator) OnConfirmReceived(p *mempool.ConfirmInfo) {

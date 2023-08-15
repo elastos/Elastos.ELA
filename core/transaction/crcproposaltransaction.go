@@ -73,7 +73,7 @@ func (t *CRCProposalTransaction) HeightVersionCheck() error {
 			return errors.New(fmt.Sprintf("not support %s CRCProposal"+
 				" transaction before NewCrossChainStartHeight", p.ProposalType.Name()))
 		}
-	case payload.ChangeESCMinGasPrice, payload.ChangeEIDMinGasPrice:
+	case payload.ChangeSideChainMinGasPrice:
 		if blockHeight < chainParams.CRConfiguration.ChangeSideChainMinGasPriceHeight {
 			return errors.New(fmt.Sprintf("not support %s CRCProposal"+
 				" transaction before ChangeSideChainMinGasPriceHeight", p.ProposalType.Name()))
@@ -169,7 +169,7 @@ func (t *CRCProposalTransaction) SpecialContextCheck() (result elaerr.ELAError, 
 		if err != nil {
 			return elaerr.Simple(elaerr.ErrTxPayload, err), true
 		}
-	case payload.ChangeESCMinGasPrice, payload.ChangeEIDMinGasPrice:
+	case payload.ChangeSideChainMinGasPrice:
 		err := t.checkChangeSideChainGasPriceProposal(proposal, t.PayloadVersion())
 		if err != nil {
 			return elaerr.Simple(elaerr.ErrTxPayload, err), true

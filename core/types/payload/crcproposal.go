@@ -60,11 +60,8 @@ const (
 	ReceiveCustomID CRCProposalType = 0x0501
 	// The rate of custom id fee.
 	ChangeCustomIDFee CRCProposalType = 0x0502
-
-	// 0x06 Change side chain transaction fee
-	// change ESC side chain min gas price
-	ChangeESCMinGasPrice CRCProposalType = 0x0600
-	ChangeEIDMinGasPrice CRCProposalType = 0x0601
+	// change side chain min gas price
+	ChangeSideChainMinGasPrice CRCProposalType = 0x0503
 )
 
 type CRCProposalType uint16
@@ -96,10 +93,8 @@ func (pt CRCProposalType) Name() string {
 		return "ReceiveCustomID"
 	case ChangeCustomIDFee:
 		return "ChangeCustomIDFee"
-	case ChangeESCMinGasPrice:
-		return "ChangeESCMinGasPrice"
-	case ChangeEIDMinGasPrice:
-		return "ChangeEIDMinGasPrice"
+	case ChangeSideChainMinGasPrice:
+		return "ChangeSideChainMinGasPrice"
 	default:
 		return "Unknown"
 	}
@@ -403,6 +398,9 @@ func (sc *CustomIDFeeRateInfo) Deserialize(r io.Reader) error {
 }
 
 type ChangeSideChainMinGasPriceInfo struct {
+	// Genesis hash of side chain
+	GenesisBlockHash common.Uint256
+
 	// The min gas price of ESC side chain
 	MinGasPrice common.Fixed64
 
@@ -411,6 +409,10 @@ type ChangeSideChainMinGasPriceInfo struct {
 }
 
 func (sc *ChangeSideChainMinGasPriceInfo) Serialize(w io.Writer) error {
+	if err := sc.GenesisBlockHash.Serialize(w); err != nil {
+		return errors.New("failed to serialize GenesisBlockHash")
+	}
+
 	if err := sc.MinGasPrice.Serialize(w); err != nil {
 		return errors.New("failed to serialize MinGasPrice")
 	}
@@ -424,6 +426,10 @@ func (sc *ChangeSideChainMinGasPriceInfo) Serialize(w io.Writer) error {
 
 func (sc *ChangeSideChainMinGasPriceInfo) Deserialize(r io.Reader) error {
 	var err error
+	if err = sc.GenesisBlockHash.Deserialize(r); err != nil {
+		return errors.New("failed to deserialize GenesisBlockHash")
+	}
+
 	if err = sc.MinGasPrice.Deserialize(r); err != nil {
 		return errors.New("failed to deserialize MinGasPrice")
 	}
@@ -462,7 +468,7 @@ func (p *CRCProposal) SerializeUnsigned(w io.Writer, version byte) error {
 		return p.SerializeUnsignedChangeCustomIDFee(w, version)
 	case RegisterSideChain:
 		return p.SerializeUnsignedRegisterSideChain(w, version)
-	case ChangeESCMinGasPrice, ChangeEIDMinGasPrice:
+	case ChangeSideChainMinGasPrice:
 		return p.SerializeChangeSideChainFee(w, version)
 	default:
 		return p.SerializeUnsignedNormalOrELIP(w, version)
@@ -948,7 +954,7 @@ func (p *CRCProposal) DeserializeUnSigned(r io.Reader, version byte) error {
 		return p.DeserializeUnSignedChangeCustomIDFee(r, version)
 	case RegisterSideChain:
 		return p.DeserializeUnsignedRegisterSideChain(r, version)
-	case ChangeESCMinGasPrice, ChangeEIDMinGasPrice:
+	case ChangeSideChainMinGasPrice:
 		return p.DeserializeChangeSideChainFee(r, version)
 	default:
 		return p.DeserializeUnSignedNormalOrELIP(r, version)

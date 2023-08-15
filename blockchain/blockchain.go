@@ -1890,7 +1890,7 @@ func (b *BlockChain) processBlock(block *Block, confirm *payload.Confirm) (bool,
 	}
 
 	//log.Debugf("Accepted block %v", blockHash)
-
+	time.Sleep(1 * time.Minute)
 	return inMainChain, false, nil
 }
 

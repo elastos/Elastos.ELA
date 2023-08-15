@@ -1369,13 +1369,13 @@ func (s *State) ProcessBlock(block *types.Block, confirm *payload.Confirm, dutyI
 			if (a.identity == DPoSV2 || a.identity == DPoSV1V2) &&
 				a.state == Active {
 
-				hash, _ := contract.PublicKeyToStandardProgramHash(
+				pgHash, _ := contract.PublicKeyToStandardProgramHash(
 					a.OwnerPublicKey())
 				if a.GetTotalDPoSV2VoteRights() >= float64(s.ChainParams.DPoSV2EffectiveVotes) {
-					dutyNodes[*hash] = a.ConfirmBlockCount
+					dutyNodes[*pgHash] = a.ConfirmBlockCount
 				} else {
 
-					notDutyNodes = append(notDutyNodes, *hash)
+					notDutyNodes = append(notDutyNodes, *pgHash)
 				}
 			}
 		}

@@ -418,6 +418,47 @@ func (b *BlockChain) createTransaction(pd interfaces.Payload, txType common.TxTy
 	), nil
 }
 
+func (b *BlockChain) createAutoRewardsTransaction(pd interfaces.Payload, txType common.TxType,
+	fromAddress Uint168, fee Fixed64, lockedUntil uint32,
+	utxos []*common.UTXO, outputs ...*common.OutputInfo) (interfaces.Transaction, error) {
+
+	// check output
+	if len(outputs) == 0 {
+		return nil, errors.New("invalid transaction target")
+	}
+	// create outputs
+	txOutputs, totalAmount, err := b.createNormalOutputs(outputs, fee,
+		lockedUntil)
+	if err != nil {
+		return nil, err
+	}
+	// create Inputs
+	txInputs, changeOutputs, err := b.createInputs(fromAddress, totalAmount, utxos)
+	if err != nil {
+		return nil, err
+	}
+	txOutputs = append(txOutputs, changeOutputs...)
+
+	des := "type:text,msg:BPoS Validator Incentive Program"
+	desData := []byte(des)
+	return functions.CreateTransaction(
+		common.TxVersion09,
+		txType,
+		0,
+		pd,
+		[]*common.Attribute{
+			&common.Attribute{
+				Usage: common.Memo,
+				Data:  desData,
+			},
+		},
+		txInputs,
+		txOutputs,
+		0,
+		[]*program.Program{},
+	), nil
+}
+
 func (b *BlockChain) createNormalOutputs(outputs []*common.OutputInfo, fee Fixed64,
 	lockedUntil uint32) ([]*common.Output, Fixed64, error) {
 	var totalAmount = Fixed64(0)   // The total amount will be spend
@@ -591,7 +632,7 @@ func (b *BlockChain) TryCreateBPoSRewardTransaction(addr Uint168,
 	}
 	outputs[0].Amount += exchange
 
-	tx, err := b.createTransaction(&payload.TransferAsset{}, common.TransferAsset,
+	tx, err := b.createAutoRewardsTransaction(&payload.TransferAsset{}, common.TransferAsset,
 		addr, fee, uint32(0), utxos, outputs...)
 	if err != nil {
 		return nil, 0, err

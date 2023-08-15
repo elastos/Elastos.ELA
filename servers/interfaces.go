@@ -80,7 +80,7 @@ func GetTransactionInfo(tx interfaces.Transaction) *TransactionInfo {
 	attributes := make([]AttributeInfo, len(tx.Attributes()))
 	for i, v := range tx.Attributes() {
 		attributes[i].Usage = v.Usage
-		attributes[i].Data = common.BytesToHexString(v.Data)
+		attributes[i].Data = string(v.Data)
 	}
 
 	programs := make([]ProgramInfo, len(tx.Programs()))

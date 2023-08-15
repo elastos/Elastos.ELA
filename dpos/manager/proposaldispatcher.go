@@ -388,15 +388,19 @@ func (p *ProposalDispatcher) OnBlockAdded(b *types.Block) {
 			delete(p.pendingProposals, k)
 		}
 	}
+	//p.UpdatePrecociousProposals()
 }
 
 func (p *ProposalDispatcher) UpdatePrecociousProposals() {
+	log.Warn("########houpei UpdatePrecociousProposals begin ", len(p.precociousProposals))
 	for k, v := range p.precociousProposals {
+		log.Infof("####[UpdatePrecociousProposals] consensus.GetViewOffset %d, v.ViewOffset %d IsRunning %d",
+			p.cfg.Consensus.GetViewOffset(), v.ViewOffset, p.cfg.Consensus.IsRunning())
 		if p.cfg.Consensus.IsRunning() &&
 			v.ViewOffset == p.cfg.Consensus.GetViewOffset() {
-			//todo peer.PID{}
+			log.Infof("#### UpdatePrecociousProposals ProcessProposal BlockHash %s Sponsor %v", v.BlockHash, v.Sponsor)
 			if needRecord, _ := p.ProcessProposal(
-				peer.PID{}, v, true); needRecord {
+				peer.PID(v.Sponsor), v, true); needRecord {
 				p.illegalMonitor.AddProposal(v)
 			}
 			delete(p.precociousProposals, k)

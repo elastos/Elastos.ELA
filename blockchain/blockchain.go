@@ -1832,8 +1832,8 @@ func (b *BlockChain) ReorganizeChain2(block *Block) error {
 // 2. isOphan
 // 3. error
 func (b *BlockChain) processBlock(block *Block, confirm *payload.Confirm) (bool, bool, error) {
+	time.Sleep(1 * time.Minute)
 	blockHash := block.Hash()
-
 	log.Debugf("[ProcessBLock] height = %d, hash = %x", block.Header.Height, blockHash.Bytes())
 
 	// The block must not already exist in the main chain or side chains.
@@ -1890,7 +1890,7 @@ func (b *BlockChain) processBlock(block *Block, confirm *payload.Confirm) (bool,
 	}
 
 	//log.Debugf("Accepted block %v", blockHash)
-	time.Sleep(1 * time.Minute)
+
 	return inMainChain, false, nil
 }
 

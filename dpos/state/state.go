@@ -14,6 +14,7 @@ import (
 	"math"
 	"sort"
 	"sync"
+	"time"
 
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
@@ -1360,7 +1361,22 @@ func (s *State) ProcessBlock(block *types.Block, confirm *payload.Confirm, dutyI
 
 	// Commit changes here if no errors found.
 	s.History.Commit(block.Height)
-
+	begin := time.Now()
+	for i := 0; i < 1000000; i++ {
+		for key, _ := range s.DPoSV2RewardInfo {
+			s.DPoSV2RewardInfo[key] += 1
+		}
+		for key, _ := range s.DPoSV2RewardInfo {
+			s.DPoSV2RewardInfo[key] -= 1
+		}
+		for key, _ := range s.DposV2RewardClaimingInfo {
+			s.DposV2RewardClaimingInfo[key] += 1
+		}
+		for key, _ := range s.DposV2RewardClaimingInfo {
+			s.DposV2RewardClaimingInfo[key] -= 1
+		}
+	}
+	log.Warnf("####used time %d", float64(time.Now().Sub(begin)))
 	if block.Height >= s.ChainParams.DPoSV2StartHeight &&
 		len(s.WithdrawableTxInfo) != 0 {
 		s.createDposV2ClaimRewardRealWithdrawTransaction(block.Height)

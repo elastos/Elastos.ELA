@@ -1644,9 +1644,10 @@ func (b *BlockChain) maybeAcceptBlock(block *Block, confirm *payload.Confirm) (b
 			b.state.RevertToPOWBlockHeight, false)
 		DefaultLedger.Arbitrators.DumpInfo(block.Height)
 	}
-
+	b.mutex.Unlock()
+	//CheckTransactionContext with blockchain mutex
 	events.Notify(events.ETBlockProcessed, block)
-
+	b.mutex.Lock()
 	// Notify the caller that the new block was accepted into the block
 	// chain.  The caller would typically want to react by relaying the
 	// inventory to other peers.

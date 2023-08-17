@@ -112,12 +112,15 @@ func (mp *TxPool) appendToTxPool(tx interfaces.Transaction) elaerr.ELAError {
 		log.Warn("[TxPool CheckTransactionSanity] failed", tx.Hash())
 		return err
 	}
+	mp.Unlock()
 	if _, err := chain.CheckTransactionContext(
 		bestHeight+1, tx, mp.proposalsUsedAmount, 0); err != nil {
 		log.Warnf("[TxPool CheckTransactionContext] failed, hash: %s, err: %s", tx.Hash(),
 			err)
+		mp.Lock()
 		return err
 	}
+	mp.Lock()
 	//verify transaction by pool with lock
 	if err := mp.verifyTransactionWithTxnPool(tx); err != nil {
 		log.Error("[TxPool verifyTransactionWithTxnPool] err", err)
@@ -228,9 +231,28 @@ func (mp *TxPool) ResendOutdatedTransactions(block *Block) {
 }
 
 func (mp *TxPool) CheckAndCleanAllTransactions() {
-	mp.Lock()
-	mp.checkAndCleanAllTransactions()
-	mp.Unlock()
+	txnList := mp.CopyTXList()
+
+	chain := blockchain.DefaultLedger.Blockchain
+	bestHeight := blockchain.DefaultLedger.Blockchain.GetHeight()
+	txCount := len(txnList)
+	var deleteCount int
+	var proposalsUsedAmount Fixed64
+	for _, tx := range txnList {
+		_, err := chain.CheckTransactionContext(bestHeight+1, tx, proposalsUsedAmount, 0)
+		if err != nil {
+			log.Warn("[checkAndCleanAllTransactions] check transaction context failed,", err)
+			deleteCount++
+			mp.doRemoveTransaction(tx)
+			continue
+		}
+		if tx.IsCRCProposalTx() {
+			blockchain.RecordCRCProposalAmount(&proposalsUsedAmount, tx)
+		}
+	}
+	log.Debug(fmt.Sprintf("[checkAndCleanAllTransactions],transaction %d "+
+		"in transaction pool before, %d deleted. Remains %d in TxPool", txCount,
+		deleteCount, txCount-deleteCount))
 }
 
 func (mp *TxPool) BroadcastSmallCrossChainTransactions(bestHeight uint32) {
@@ -346,6 +368,7 @@ func (mp *TxPool) cleanCanceledProducerAndCR(txs []interfaces.Transaction) error
 	return nil
 }
 
+// CopyTXList
 func (mp *TxPool) checkAndCleanAllTransactions() {
 	chain := blockchain.DefaultLedger.Blockchain
 	bestHeight := blockchain.DefaultLedger.Blockchain.GetHeight()

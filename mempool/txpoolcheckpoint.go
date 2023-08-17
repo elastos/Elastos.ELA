@@ -40,6 +40,17 @@ type txPoolCheckpoint struct {
 	initConflictManager func(map[common.Uint256]interfaces.Transaction)
 }
 
+func (c *txPoolCheckpoint) CopyTXList() (dst map[common.Uint256]interfaces.Transaction) {
+	c.txPool.Lock()
+	defer c.txPool.Unlock()
+	dst = map[common.Uint256]interfaces.Transaction{}
+	for k, v := range c.txnList {
+		p := v
+		dst[k] = p
+	}
+	return
+}
+
 func (c *txPoolCheckpoint) OnBlockSaved(block *types.DposBlock) {
 }
 

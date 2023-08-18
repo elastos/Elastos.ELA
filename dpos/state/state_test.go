@@ -5,7 +5,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"testing"
-	"time"
 
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/core/contract"
@@ -13,25 +12,6 @@ import (
 	"github.com/elastos/Elastos.ELA/crypto"
 	"github.com/stretchr/testify/assert"
 )
-
-func TestProducer_ActivateRequestHeight2(t *testing.T) {
-	DposV2RewardClaimingInfo := make(map[string]common.Fixed64, 0)
-	DposV2RewardClaimingInfo["1"] = 1
-	DposV2RewardClaimingInfo["2"] = 2
-
-	begin := time.Now()
-	for i := 0; i < 20000000; i++ {
-		var firstKey string
-		for firstKey, _ = range DposV2RewardClaimingInfo {
-			break
-		}
-
-		DposV2RewardClaimingInfo[firstKey] += 1
-		DposV2RewardClaimingInfo[firstKey] -= 1
-
-	}
-	fmt.Println("time ", float64(time.Now().Sub(begin).Seconds()))
-}
 
 func TestProducer_ActivateRequestHeight(t *testing.T) {
 	detailedDPoSV2Votes := make(map[common.Uint168]map[common.Uint256]payload.DetailedVoteInfo)

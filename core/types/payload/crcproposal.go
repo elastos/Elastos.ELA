@@ -402,7 +402,7 @@ type ChangeSideChainMinGasPriceInfo struct {
 	GenesisBlockHash common.Uint256
 
 	// The min gas price of ESC side chain
-	MinGasPrice common.Fixed64
+	MinGasPrice uint64
 
 	// Effective at the side chain height of ESC.
 	EffectiveHeight uint32
@@ -413,7 +413,7 @@ func (sc *ChangeSideChainMinGasPriceInfo) Serialize(w io.Writer) error {
 		return errors.New("failed to serialize GenesisBlockHash")
 	}
 
-	if err := sc.MinGasPrice.Serialize(w); err != nil {
+	if err := common.WriteUint64(w, sc.MinGasPrice); err != nil {
 		return errors.New("failed to serialize MinGasPrice")
 	}
 
@@ -430,7 +430,7 @@ func (sc *ChangeSideChainMinGasPriceInfo) Deserialize(r io.Reader) error {
 		return errors.New("failed to deserialize GenesisBlockHash")
 	}
 
-	if err = sc.MinGasPrice.Deserialize(r); err != nil {
+	if sc.MinGasPrice, err = common.ReadUint64(r); err != nil {
 		return errors.New("failed to deserialize MinGasPrice")
 	}
 

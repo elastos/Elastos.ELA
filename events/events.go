@@ -106,17 +106,17 @@ func (n EventType) String() string {
 // Event defines notification that is sent to the caller via the callback
 // function provided during the call to New and consists of a notification type
 // as well as associated data that depends on the type as follows:
-// 	- ETBlockAccepted:     *types.Block
-// 	- ETBlockConnected:    *types.Block
-// 	- ETBlockDisconnected: *types.Block
-// 	- ETTransactionAccepted: *types.BaseTransaction
+//   - ETBlockAccepted:     *types.Block
+//   - ETBlockConnected:    *types.Block
+//   - ETBlockDisconnected: *types.Block
+//   - ETTransactionAccepted: *types.BaseTransaction
 type Event struct {
 	Type EventType
 	Data interface{}
 }
 
 var events struct {
-	mtx       sync.Mutex
+	mtx       sync.RWMutex
 	callbacks []EventCallback
 }
 
@@ -150,12 +150,12 @@ func Notify(typ EventType, data interface{}) {
 	mutex.Unlock()
 
 	// Generate and send the notification.
-	events.mtx.Lock()
+	events.mtx.RLock()
 	n := Event{Type: typ, Data: data}
 	for _, callback := range events.callbacks {
 		callback(&n)
 	}
-	events.mtx.Unlock()
+	events.mtx.RUnlock()
 
 	// Reset notify count.
 	mutex.Lock()

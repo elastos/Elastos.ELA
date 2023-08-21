@@ -1552,6 +1552,7 @@ func (b *BlockChain) connectBlock(node *BlockNode, block *Block, confirm *payloa
 	// Notify the caller that the block was connected to the main chain.
 	// The caller would typically want to react with actions such as
 	// updating wallets.
+	//todo add go
 	events.Notify(events.ETBlockConnected, block)
 
 	return nil

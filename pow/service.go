@@ -308,9 +308,9 @@ func (pow *Service) GenerateBlock(minerAddr string,
 	var proposalsUsedAmount common.Fixed64
 	for _, tx := range txs {
 
-		if tx.IsIllegalProposalTx() || tx.IsIllegalVoteTx() {
-			continue
-		}
+		//if tx.IsIllegalProposalTx() || tx.IsIllegalVoteTx() {
+		//	continue
+		//}
 
 		size := totalTxsSize + tx.GetSize()
 		if size > int(pact.MaxBlockContextSize) {

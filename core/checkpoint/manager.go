@@ -356,18 +356,36 @@ func (m *Manager) onBlockSaved(block *types.DposBlock,
 			}
 		}
 
-		if block.Height >=
-			originalHeight+v.SavePeriod() {
-			v.SetHeight(block.Height)
-			snapshot := v.Snapshot()
-			if snapshot == nil {
-				log.Error("snapshot is nil, key:", v.Key())
-				continue
-			}
-			reply := make(chan bool, 1)
-			m.channels[v.Key()].Save(snapshot, reply)
-			if !async {
-				<-reply
+		if v.Key() == txpoolCheckpointKey {
+			go func() {
+				if block.Height >=
+					originalHeight+v.SavePeriod() {
+					v.SetHeight(block.Height)
+					snapshot := v.Snapshot()
+					if snapshot == nil {
+						log.Error("snapshot is nil, key:", v.Key())
+					}
+					reply := make(chan bool, 1)
+					m.channels[v.Key()].Save(snapshot, reply)
+					if !async {
+						<-reply
+					}
+				}
+			}()
+		} else {
+			if block.Height >=
+				originalHeight+v.SavePeriod() {
+				v.SetHeight(block.Height)
+				snapshot := v.Snapshot()
+				if snapshot == nil {
+					log.Error("snapshot is nil, key:", v.Key())
+					continue
+				}
+				reply := make(chan bool, 1)
+				m.channels[v.Key()].Save(snapshot, reply)
+				if !async {
+					<-reply
+				}
 			}
 		}
 	}

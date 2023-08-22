@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"errors"
 	"io"
+	"math/big"
 	"regexp"
 
 	"github.com/elastos/Elastos.ELA/common"
@@ -19,6 +20,9 @@ const (
 	// upgrade side chain proposal type
 	MinUpgradeProposalType = 0x0200
 	MaxUpgradeProposalType = 0x02ff
+
+	// MaxSideChainGasPriceLength is the max bytes of side chain gas price.
+	MaxSideChainGasPriceLength = 1024
 )
 
 const (
@@ -402,7 +406,7 @@ type ChangeSideChainMinGasPriceInfo struct {
 	GenesisBlockHash common.Uint256
 
 	// The min gas price of ESC side chain
-	MinGasPrice uint64
+	MinGasPrice big.Int
 
 	// Effective at the side chain height of ESC.
 	EffectiveHeight uint32
@@ -413,7 +417,7 @@ func (sc *ChangeSideChainMinGasPriceInfo) Serialize(w io.Writer) error {
 		return errors.New("failed to serialize GenesisBlockHash")
 	}
 
-	if err := common.WriteUint64(w, sc.MinGasPrice); err != nil {
+	if err := common.WriteVarBytes(w, sc.MinGasPrice.Bytes()); err != nil {
 		return errors.New("failed to serialize MinGasPrice")
 	}
 
@@ -430,9 +434,11 @@ func (sc *ChangeSideChainMinGasPriceInfo) Deserialize(r io.Reader) error {
 		return errors.New("failed to deserialize GenesisBlockHash")
 	}
 
-	if sc.MinGasPrice, err = common.ReadUint64(r); err != nil {
+	var minGasPriceBytes []byte
+	if minGasPriceBytes, err = common.ReadVarBytes(r, MaxSideChainGasPriceLength, "gas price"); err != nil {
 		return errors.New("failed to deserialize MinGasPrice")
 	}
+	sc.MinGasPrice.SetBytes(minGasPriceBytes)
 
 	sc.EffectiveHeight, err = common.ReadUint32(r)
 	if err != nil {

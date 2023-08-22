@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"math/big"
 	"sort"
 
 	"github.com/elastos/Elastos.ELA/blockchain"
@@ -598,7 +599,7 @@ func (t *CRCProposalTransaction) checkChangeSideChainGasPriceProposal(proposal *
 		return errors.New("DecodePoint from OwnerKey error")
 	}
 
-	if proposal.MinGasPrice < 0 {
+	if proposal.MinGasPrice.Cmp(big.NewInt(0)) <= 0 {
 		return errors.New("ChangeSideChainFee invalid MinGasPrice")
 	}
 

@@ -21,9 +21,6 @@ const (
 	// CRCProposalReviewVersion01 add opinion data.
 	CRCProposalReviewVersion01 byte = 0x01
 
-	// CRCProposalReviewVersion01 add opinion data.
-	CRCProposalReviewMultiSignVersion byte = 0x02
-
 	// MaxOpinionDataSize the max size of opinion data.
 	MaxOpinionDataSize = 1 * 1024 * 1024
 )
@@ -72,12 +69,11 @@ func (a *CRCProposalReview) Serialize(w io.Writer, version byte) error {
 		return err
 	}
 
-	if version < CRCProposalReviewMultiSignVersion {
-		err = common.WriteVarBytes(w, a.Signature)
-		if err != nil {
-			return errors.New("[CRCProposalReview], Signature serialize failed")
-		}
+	err = common.WriteVarBytes(w, a.Signature)
+	if err != nil {
+		return errors.New("[CRCProposalReview], Signature serialize failed")
 	}
+
 	return nil
 }
 
@@ -108,12 +104,11 @@ func (a *CRCProposalReview) Deserialize(r io.Reader, version byte) error {
 	if err != nil {
 		return err
 	}
-	if version < CRCProposalReviewMultiSignVersion {
-		a.Signature, err = common.ReadVarBytes(r, crypto.MaxSignatureScriptLength, "sign")
-		if err != nil {
-			return errors.New("[CRCProposalReview], Signature deserialize failed")
-		}
+	a.Signature, err = common.ReadVarBytes(r, crypto.MaxSignatureScriptLength, "sign")
+	if err != nil {
+		return errors.New("[CRCProposalReview], Signature deserialize failed")
 	}
+
 	return nil
 }
 

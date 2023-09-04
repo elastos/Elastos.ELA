@@ -3653,7 +3653,8 @@ func (s *txValidatorTestSuite) getSecretaryGeneralCRCProposalTx(ownerPublicKeySt
 	secretaryGeneralDID, _ := blockchain.GetDiDFromPublicKey(secretaryPublicKey)
 	secretaryGeneralPrivateKey, _ := common.HexStringToBytes(secretaryPrivateKeyStr)
 
-	ownerCode := getCodeByPubKeyStr(ownerPublicKeyStr)
+	crPrivateKey, _ := common.HexStringToBytes(crPrivateKeyStr)
+	crCode := getCodeByPubKeyStr(crPublicKeyStr)
 
 	draftData := randomBytes(10)
 	txn := functions.CreateTransaction(
@@ -3669,7 +3670,7 @@ func (s *txValidatorTestSuite) getSecretaryGeneralCRCProposalTx(ownerPublicKeySt
 	)
 	recipient := *randomUint168()
 	recipient[0] = uint8(contract.PrefixStandard)
-	ownerDID, _ := blockchain.GetDIDFromCode(ownerCode)
+	crDID, _ := blockchain.GetDIDFromCode(crCode)
 	crcProposalPayload := &payload.CRCProposal{
 		ProposalType:              payload.SecretaryGeneral,
 		CategoryData:              "111",
@@ -3677,7 +3678,7 @@ func (s *txValidatorTestSuite) getSecretaryGeneralCRCProposalTx(ownerPublicKeySt
 		DraftHash:                 common.Hash(draftData),
 		SecretaryGeneralPublicKey: secretaryPublicKey,
 		SecretaryGeneralDID:       *secretaryGeneralDID,
-		CRCouncilMemberDID:        *ownerDID,
+		CRCouncilMemberDID:        *crDID,
 	}
 
 	signBuf := new(bytes.Buffer)
@@ -3691,7 +3692,7 @@ func (s *txValidatorTestSuite) getSecretaryGeneralCRCProposalTx(ownerPublicKeySt
 	common.WriteVarBytes(signBuf, sig)
 	common.WriteVarBytes(signBuf, secretaryGeneralSig)
 	crcProposalPayload.CRCouncilMemberDID.Serialize(signBuf)
-	crSig, _ := crypto.Sign(ownerPrivateKey, signBuf.Bytes())
+	crSig, _ := crypto.Sign(crPrivateKey, signBuf.Bytes())
 	crcProposalPayload.CRCouncilMemberSignature = crSig
 
 	txn.SetPayload(crcProposalPayload)
@@ -3749,7 +3750,7 @@ func (s *txValidatorTestSuite) getCRCProposalTx(publicKeyStr, privateKeyStr,
 
 	txn.SetPayload(crcProposalPayload)
 	txn.SetPrograms([]*program.Program{{
-		Code:      getCodeByPubKeyStr(crPublicKeyStr),
+		Code:      getCodeByPubKeyStr(publicKeyStr),
 		Parameter: nil,
 	}})
 	return txn
@@ -3842,7 +3843,7 @@ func (s *txValidatorTestSuite) getCRCCloseProposalTxWithHash(publicKeyStr, priva
 
 	txn.SetPayload(crcProposalPayload)
 	txn.SetPrograms([]*program.Program{{
-		Code:      getCodeByPubKeyStr(crPublicKeyStr),
+		Code:      getCodeByPubKeyStr(publicKeyStr),
 		Parameter: nil,
 	}})
 	return txn
@@ -3896,7 +3897,7 @@ func (s *txValidatorTestSuite) getCRCRegisterSideChainProposalTx(publicKeyStr, p
 
 	txn.SetPayload(crcProposalPayload)
 	txn.SetPrograms([]*program.Program{{
-		Code:      getCodeByPubKeyStr(crPublicKeyStr),
+		Code:      getCodeByPubKeyStr(publicKeyStr),
 		Parameter: nil,
 	}})
 	return txn
@@ -3947,7 +3948,7 @@ func (s *txValidatorTestSuite) getCRCCloseProposalTx(publicKeyStr, privateKeyStr
 
 	txn.SetPayload(crcProposalPayload)
 	txn.SetPrograms([]*program.Program{{
-		Code:      getCodeByPubKeyStr(crPublicKeyStr),
+		Code:      getCodeByPubKeyStr(publicKeyStr),
 		Parameter: nil,
 	}})
 	return txn
@@ -4062,7 +4063,7 @@ func (s *txValidatorTestSuite) getCRCReservedCustomIDProposalTx(publicKeyStr, pr
 
 	txn.SetPayload(crcProposalPayload)
 	txn.SetPrograms([]*program.Program{{
-		Code:      getCodeByPubKeyStr(crPublicKeyStr),
+		Code:      getCodeByPubKeyStr(publicKeyStr),
 		Parameter: nil,
 	}})
 	return txn
@@ -5398,7 +5399,7 @@ func (s *txValidatorTestSuite) getCRChangeProposalOwnerProposalTx(publicKeyStr, 
 
 	txn.SetPayload(crcProposalPayload)
 	txn.SetPrograms([]*program.Program{{
-		Code:      getCodeByPubKeyStr(crPublicKeyStr),
+		Code:      getCodeByPubKeyStr(publicKeyStr),
 		Parameter: nil,
 	}})
 	return txn

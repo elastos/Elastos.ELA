@@ -127,7 +127,11 @@ func (t *VotingTransaction) SpecialContextCheck() (result elaerr.ELAError, end b
 	}
 	stakeProgramHash := ct.ToProgramHash()
 	state := t.parameters.BlockChain.GetState()
-	totalVotes := state.GetDposV2VoteRights(*stakeProgramHash)
+	totalVotes, exist := state.GetDposV2VoteRights(*stakeProgramHash)
+	if !exist {
+		return elaerr.Simple(elaerr.ErrTxInvalidOutput, errors.New("has no vote rights")), true
+	}
+
 	usedDPoSV2VoteRights := state.GetUsedDposV2Votes(*stakeProgramHash)
 
 	var candidates []*crstate.Candidate

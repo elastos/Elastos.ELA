@@ -607,6 +607,24 @@ type State struct {
 	LastRenewalDPoSV2Votes map[common.Uint256]struct{}
 }
 
+func (s *State) IsInPOWMode() bool {
+	s.mtx.RLock()
+	defer s.mtx.RUnlock()
+	return s.ConsensusAlgorithm == POW
+}
+
+func (s *State) GetRevertToPOWBlockHeight() uint32 {
+	s.mtx.RLock()
+	defer s.mtx.RUnlock()
+	return s.RevertToPOWBlockHeight
+}
+
+func (s *State) IsNeedNextTurnDPOSInfo() bool {
+	s.mtx.RLock()
+	defer s.mtx.RUnlock()
+	return s.NeedNextTurnDPOSInfo
+}
+
 func (s *State) GetDPOSWorkHeight() uint32 {
 	s.mtx.RLock()
 	defer s.mtx.RUnlock()
@@ -635,12 +653,6 @@ func (s *State) dposV2Started() bool {
 	return s.DPoSV2ActiveHeight != math.MaxUint32
 }
 
-func (s *State) isDposV2Active() bool {
-	log.Errorf("isDposV2Active len(a.DposV2EffectedProducers) %d  GeneralArbiters %d", len(s.DposV2EffectedProducers),
-		s.ChainParams.DPoSConfiguration.NormalArbitratorsCount)
-	return len(s.DposV2EffectedProducers) >= s.ChainParams.DPoSConfiguration.NormalArbitratorsCount*3/2
-}
-
 func (s *State) GetRealWithdrawTransactions() map[common.Uint256]common2.OutputInfo {
 	s.mtx.RLock()
 	defer s.mtx.RUnlock()
@@ -661,10 +673,11 @@ func (s *State) GetDposV2RewardClaimedInfo(addr string) common.Fixed64 {
 	return s.DposV2RewardClaimedInfo[addr]
 }
 
-func (s *State) GetDPoSV2RewardInfo(addr string) common.Fixed64 {
+func (s *State) GetDPoSV2RewardInfo(addr string) (common.Fixed64, bool) {
 	s.mtx.RLock()
 	defer s.mtx.RUnlock()
-	return s.DPoSV2RewardInfo[addr]
+	claimAmount, ok := s.DPoSV2RewardInfo[addr]
+	return claimAmount, ok
 }
 
 // copy
@@ -694,10 +707,18 @@ func (s *State) GetUsedDposVotes(stakeProgramHash common.Uint168) ([]payload.Vot
 	return usedDposVotes, ok
 }
 
-func (s *State) GetDposV2VoteRights(stakeProgramHash common.Uint168) common.Fixed64 {
+func (s *State) GetDposV2VoteRights(stakeProgramHash common.Uint168) (common.Fixed64, bool) {
 	s.mtx.RLock()
 	defer s.mtx.RUnlock()
-	return s.DposV2VoteRights[stakeProgramHash]
+	totalVotes, exist := s.DposV2VoteRights[stakeProgramHash]
+	return totalVotes, exist
+
+}
+
+func (s *State) GetProducerKey(publicKey []byte) string {
+	s.mtx.RLock()
+	defer s.mtx.RUnlock()
+	return s.getProducerKey(publicKey)
 }
 
 // getProducerKey returns the producer's owner public key string, whether the
@@ -864,10 +885,31 @@ func (s *State) GetAllProducers() []Producer {
 	return s.getAllProducersByCopy()
 }
 
-func (s *State) GetDPoSV2ActiveHeight() uint32 {
+func (s *State) GetLastRandomCandidateHeight() uint32 {
 	s.mtx.RLock()
 	defer s.mtx.RUnlock()
-	return s.DPoSV2ActiveHeight
+	return s.LastRandomCandidateHeight
+}
+func (s *State) GetLastRandomCandidateOwner() string {
+	s.mtx.RLock()
+	defer s.mtx.RUnlock()
+	return s.LastRandomCandidateOwner
+}
+
+func (s *State) isDposV2Active() bool {
+	if s.DPoSV2ActiveHeight != math.MaxUint32 {
+		return true
+	}
+	return len(s.DposV2EffectedProducers) >= s.ChainParams.DPoSConfiguration.NormalArbitratorsCount*3/2
+}
+
+func (s *State) IsDposV2Active() bool {
+	s.mtx.RLock()
+	defer s.mtx.RUnlock()
+	if s.DPoSV2ActiveHeight != math.MaxUint32 {
+		return true
+	}
+	return len(s.DposV2EffectedProducers) >= s.ChainParams.DPoSConfiguration.NormalArbitratorsCount*3/2
 }
 
 func (s *State) GetDetailedDPoSV2Votes(stakeProgramHash *common.Uint168) []payload.DetailedVoteInfo {
@@ -958,14 +1000,11 @@ func (s *State) getAllNodePublicKey() map[string]struct{} {
 	return nodePublicKeyMap
 }
 
-func (s *State) GetNFTInfo(nftID common.Uint256) *payload.NFTInfo {
+func (s *State) GetNFTInfo(nftID common.Uint256) (payload.NFTInfo, bool) {
 	s.mtx.RLock()
 	defer s.mtx.RUnlock()
 	nftInfo, exist := s.NFTIDInfoHashMap[nftID]
-	if !exist {
-		return nil
-	}
-	return &nftInfo
+	return nftInfo, exist
 }
 
 func (s *State) GetNFTReferKey(nftID common.Uint256) (common.Uint256, error) {
@@ -1135,6 +1174,26 @@ func (s *State) GetConsensusAlgorithm() ConsesusAlgorithm {
 	s.mtx.RLock()
 	defer s.mtx.RUnlock()
 	return s.ConsensusAlgorithm
+}
+
+func (s *State) getDPoSV2ActiveHeight() uint32 {
+	return s.DPoSV2ActiveHeight
+}
+
+func (s *State) GetDPoSV2ActiveHeight() uint32 {
+	s.mtx.RLock()
+	defer s.mtx.RUnlock()
+	return s.DPoSV2ActiveHeight
+}
+
+func (s *State) isDPoSV2Run(blockHeight uint32) bool {
+	return blockHeight >= s.DPoSV2ActiveHeight
+}
+
+func (s *State) IsDPoSV2Run(blockHeight uint32) bool {
+	s.mtx.RLock()
+	defer s.mtx.RUnlock()
+	return blockHeight >= s.DPoSV2ActiveHeight
 }
 
 // IsActiveProducer returns if a producer is in activate list according to the
@@ -3104,13 +3163,31 @@ func (s *State) ExistNFTID(id common.Uint256) bool {
 	return exist
 }
 
-func (a *State) SetStateNeedRevertToDPOSTX(need bool) {
+func (s *State) GetNeedRevertToDPOSTX() bool {
+	s.mtx.RLock()
+	defer s.mtx.RUnlock()
+	return s.NeedRevertToDPOSTX
+}
+
+func (s *State) GetNeedNextTurnDPOSInfo() bool {
+	s.mtx.RLock()
+	defer s.mtx.RUnlock()
+	return s.NeedNextTurnDPOSInfo
+}
+
+func (s *State) GetLastBlockTimestamp() uint32 {
+	s.mtx.RLock()
+	defer s.mtx.RUnlock()
+	return s.LastBlockTimestamp
+}
+
+func (a *State) SetNeedRevertToDPOSTX(need bool) {
 	a.mtx.Lock()
 	defer a.mtx.Unlock()
 	a.NeedRevertToDPOSTX = need
 }
 
-func (s *State) SetStateNeedNextTurnDPOSInfo(need bool) {
+func (s *State) SetNeedNextTurnDPOSInfo(need bool) {
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
 	s.NeedNextTurnDPOSInfo = need
@@ -3836,12 +3913,6 @@ func (s *State) RollbackTo(height uint32) error {
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
 	return s.History.RollbackTo(height)
-}
-
-func (s *State) Snapshot() *StateKeyFrame {
-	s.mtx.RLock()
-	defer s.mtx.RUnlock()
-	return s.snapshot()
 }
 
 // GetHistory returns a History state instance storing the producers and votes

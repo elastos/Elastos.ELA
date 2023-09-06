@@ -144,7 +144,7 @@ func (t *CreateNFTTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
 	}
 
 	// nft has not been created before
-	if nftInfo := state.GetNFTInfo(nftID); nftInfo != nil {
+	if nftInfo, ok := state.GetNFTInfo(nftID); ok {
 		log.Warnf("NFT has been create before, side chain genesis block "+
 			"hash: %s", nftInfo.GenesisBlockHash.String())
 		return elaerr.Simple(elaerr.ErrTxPayload,
@@ -152,7 +152,7 @@ func (t *CreateNFTTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
 	}
 
 	// check the vote rights is enough or not
-	totalVoteRights := state.GetDposV2VoteRights(*stakeProgramHash)
+	totalVoteRights, _ := state.GetDposV2VoteRights(*stakeProgramHash)
 	var usedCRVotes common.Fixed64
 	if ucv := crCommittee.GetUsedCRVotes(*stakeProgramHash); ucv != nil {
 		for _, v := range ucv {

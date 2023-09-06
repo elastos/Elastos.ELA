@@ -76,7 +76,7 @@ func (c *Committee) GetProposalManager() *ProposalManager {
 	return c.manager
 }
 
-func (c *Committee) ClaimedDPoSKey(publicKey []byte) bool {
+func (c *Committee) PubKeyExistClaimedDPoSKeys(publicKey []byte) bool {
 	c.mtx.RLock()
 	defer c.mtx.RUnlock()
 	if _, ok := c.ClaimedDPoSKeys[hex.EncodeToString(publicKey)]; ok {
@@ -85,7 +85,7 @@ func (c *Committee) ClaimedDPoSKey(publicKey []byte) bool {
 	return false
 }
 
-func (c *Committee) NextClaimedDPoSKey(publicKey []byte) bool {
+func (c *Committee) PubKeyExistNextClaimedDPoSKey(publicKey []byte) bool {
 	c.mtx.RLock()
 	defer c.mtx.RUnlock()
 	if _, ok := c.NextClaimedDPoSKeys[hex.EncodeToString(publicKey)]; ok {
@@ -271,6 +271,24 @@ func (c *Committee) GetMembers() []*CRMember {
 
 	result := getCRMembers(c.Members)
 	return result
+}
+
+func (c *Committee) GetNeedAppropriation() bool {
+	c.mtx.RLock()
+	defer c.mtx.RUnlock()
+	return c.NeedAppropriation
+}
+
+func (c *Committee) GetNeedRecordProposalResult() bool {
+	c.mtx.RLock()
+	defer c.mtx.RUnlock()
+	return c.NeedRecordProposalResult
+}
+
+func (c *Committee) GetLastCommitteeHeight() uint32 {
+	c.mtx.RLock()
+	defer c.mtx.RUnlock()
+	return c.LastCommitteeHeight
 }
 
 // get all next CRMembers ordered by CID

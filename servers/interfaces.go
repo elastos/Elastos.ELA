@@ -620,7 +620,8 @@ func GetNFTInfo(params Params) map[string]interface{} {
 		info.StartHeight = detailVoteInfo.BlockHeight
 		info.EndHeight = detailVoteInfo.Info[0].LockTime
 		info.Votes = detailVoteInfo.Info[0].Votes.String()
-		info.Rewards = Chain.GetState().GetDPoSV2RewardInfo(nftStakeAddress).String()
+		rewards, _ := Chain.GetState().GetDPoSV2RewardInfo(nftStakeAddress)
+		info.Rewards = rewards.String()
 		return
 	}
 	nftReferKey, err := Chain.GetState().GetNFTReferKey(*nftID)
@@ -726,7 +727,7 @@ func GetVoteRights(params Params) map[string]interface{} {
 		}
 		stakeProgramHash := *programhash
 		//get totalVotes
-		totalVotesRight := Chain.GetState().GetDposV2VoteRights(stakeProgramHash)
+		totalVotesRight, _ := Chain.GetState().GetDposV2VoteRights(stakeProgramHash)
 		vote := &detailedVoteRight{
 			StakeAddress:    address,
 			TotalVotesRight: totalVotesRight.String(),
@@ -2331,7 +2332,7 @@ func DposV2RewardInfo(param Params) map[string]interface{} {
 			}
 		}
 
-		claimable := Chain.GetState().GetDPoSV2RewardInfo(stakeAddress)
+		claimable, _ := Chain.GetState().GetDPoSV2RewardInfo(stakeAddress)
 		claiming := Chain.GetState().GetDposV2RewardClaimingInfo(stakeAddress)
 		claimed := Chain.GetState().GetDposV2RewardClaimedInfo(stakeAddress)
 		result := RPCDposV2RewardInfo{

@@ -98,8 +98,8 @@ func (t *DPoSV2ClaimRewardTransaction) SpecialContextCheck() (elaerr.ELAError, b
 	if err != nil {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("Programs code to address error")), true
 	}
-	claimAmount := t.parameters.BlockChain.GetState().GetDPoSV2RewardInfo(addr)
-	if claimAmount == 0 {
+	claimAmount, ok := t.parameters.BlockChain.GetState().GetDPoSV2RewardInfo(addr)
+	if !ok {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("no reward to claim for such address")), true
 	}
 

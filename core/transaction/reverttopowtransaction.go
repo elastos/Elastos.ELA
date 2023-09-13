@@ -95,11 +95,11 @@ func (t *RevertToPOWTransaction) SpecialContextCheck() (result elaerr.ELAError, 
 			}
 		}
 	case payload.NoProducers:
-		if !t.parameters.BlockChain.GetState().NoProducers {
+		if !t.parameters.BlockChain.GetState().GetNoProducers() {
 			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("current producers is enough")), true
 		}
 	case payload.NoClaimDPOSNode:
-		if !t.parameters.BlockChain.GetState().NoClaimDPOSNode {
+		if !t.parameters.BlockChain.GetState().GetNoClaimDPOSNode() {
 			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("current CR member claimed DPoS node")), true
 		}
 	}

@@ -47,7 +47,7 @@ type StateKeyFrame struct {
 	Votes                    map[string]struct{}
 
 	// NFT
-	// key: ID value: (genesis block hash, createNFT tx hash)
+	// key: NFTID value: (genesis block hash, createNFT tx hash)
 	NFTIDInfoHashMap map[common.Uint256]payload.NFTInfo
 
 	// dpos 2.0

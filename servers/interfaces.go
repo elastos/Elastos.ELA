@@ -620,7 +620,8 @@ func GetNFTInfo(params Params) map[string]interface{} {
 		info.StartHeight = detailVoteInfo.BlockHeight
 		info.EndHeight = detailVoteInfo.Info[0].LockTime
 		info.Votes = detailVoteInfo.Info[0].Votes.String()
-		info.Rewards = Chain.GetState().DPoSV2RewardInfo[nftStakeAddress].String()
+		rewards, _ := Chain.GetState().GetDPoSV2RewardInfo(nftStakeAddress)
+		info.Rewards = rewards.String()
 		return
 	}
 	nftReferKey, err := Chain.GetState().GetNFTReferKey(*nftID)
@@ -715,8 +716,7 @@ func GetVoteRights(params Params) map[string]interface{} {
 		RemainVoteRight []string                `json:"remainvoteright"` //index is same to VoteType
 	}
 	var result []*detailedVoteRight
-	state := Chain.GetState()
-	crstate := Chain.GetCRCommittee().GetState()
+	crCommittee := Chain.GetCRCommittee()
 	for _, address := range addresses {
 		if !strings.HasPrefix(address, "S") {
 			return ResponsePack(InvalidParams, "invalid stake address need prefix s")
@@ -725,10 +725,9 @@ func GetVoteRights(params Params) map[string]interface{} {
 		if err != nil {
 			return ResponsePack(InvalidParams, "invalid stake address")
 		}
-		voteRights := state.DposV2VoteRights
 		stakeProgramHash := *programhash
 		//get totalVotes
-		totalVotesRight := voteRights[stakeProgramHash]
+		totalVotesRight, _ := Chain.GetState().GetDposV2VoteRights(stakeProgramHash)
 		vote := &detailedVoteRight{
 			StakeAddress:    address,
 			TotalVotesRight: totalVotesRight.String(),
@@ -742,8 +741,7 @@ func GetVoteRights(params Params) map[string]interface{} {
 			RemainVoteRight: make([]string, 5),
 		}
 		// dposv1
-
-		if udv := state.UsedDposVotes[stakeProgramHash]; !dposV2 && udv != nil {
+		if udv, _ := Chain.GetState().GetUsedDposVotes(stakeProgramHash); !dposV2 && udv != nil {
 			for _, v := range udv {
 				vote.UsedVotesInfo.UsedDPoSVotes = append(vote.UsedVotesInfo.UsedDPoSVotes, VotesWithLockTimeInfo{
 					Candidate: hex.EncodeToString(v.Candidate),
@@ -753,7 +751,7 @@ func GetVoteRights(params Params) map[string]interface{} {
 			}
 		}
 		// crc
-		if ucv := crstate.UsedCRVotes[stakeProgramHash]; ucv != nil {
+		if ucv := crCommittee.GetUsedCRVotes(stakeProgramHash); ucv != nil {
 			for _, v := range ucv {
 				c, _ := common.Uint168FromBytes(v.Candidate)
 				candidate, _ := c.ToAddress()
@@ -765,7 +763,7 @@ func GetVoteRights(params Params) map[string]interface{} {
 			}
 		}
 		// cr Impeachment
-		if uciv := crstate.UsedCRImpeachmentVotes[stakeProgramHash]; uciv != nil {
+		if uciv := crCommittee.GetUsedCRImpeachmentVotes(stakeProgramHash); uciv != nil {
 			for _, v := range uciv {
 				c, _ := common.Uint168FromBytes(v.Candidate)
 				candidate, _ := c.ToAddress()
@@ -778,7 +776,7 @@ func GetVoteRights(params Params) map[string]interface{} {
 		}
 
 		// cr Proposal
-		if ucpv := crstate.UsedCRCProposalVotes[stakeProgramHash]; ucpv != nil {
+		if ucpv := crCommittee.GetUsedCRCProposalVotes(stakeProgramHash); ucpv != nil {
 			for _, v := range ucpv {
 				proposalHash, _ := common.Uint256FromBytes(v.Candidate)
 				vote.UsedVotesInfo.UsedCRCProposalVotes = append(vote.UsedVotesInfo.UsedCRCProposalVotes, VotesWithLockTimeInfo{
@@ -790,7 +788,7 @@ func GetVoteRights(params Params) map[string]interface{} {
 		}
 
 		// dposv2
-		if dpv2 := state.GetDetailedDPoSV2Votes(&stakeProgramHash); dpv2 != nil {
+		if dpv2 := Chain.GetState().GetDetailedDPoSV2Votes(&stakeProgramHash); dpv2 != nil {
 			for i, v := range dpv2 {
 				address, _ := v.StakeProgramHash.ToAddress()
 				vote.UsedVotesInfo.UsedDPoSV2Votes = append(vote.UsedVotesInfo.UsedDPoSV2Votes, DetailedVoteInfo{
@@ -829,15 +827,14 @@ func GetVoteRights(params Params) map[string]interface{} {
 }
 
 func GetUsedVoteRight(voteType outputpayload.VoteType, stakeProgramHash *common.Uint168) (common.Fixed64, error) {
-	state := Chain.GetState()
-	crstate := Chain.GetCRCommittee().GetState()
+	crCommittee := Chain.GetCRCommittee()
 	usedDposVote := common.Fixed64(0)
 	switch voteType {
 	case outputpayload.Delegate:
-		if Chain.GetHeight() >= Chain.GetState().DPoSV2ActiveHeight {
+		if Chain.GetHeight() >= Chain.GetState().GetDPoSV2ActiveHeight() {
 			usedDposVote = 0
 		} else {
-			if dposVotes, ok := state.UsedDposVotes[*stakeProgramHash]; ok {
+			if dposVotes, ok := Chain.GetState().GetUsedDposVotes(*stakeProgramHash); ok {
 				maxVotes := common.Fixed64(0)
 				for _, votesInfo := range dposVotes {
 					if votesInfo.Votes > maxVotes {
@@ -848,13 +845,13 @@ func GetUsedVoteRight(voteType outputpayload.VoteType, stakeProgramHash *common.
 			}
 		}
 	case outputpayload.CRC:
-		if usedCRVoteRights, ok := crstate.UsedCRVotes[*stakeProgramHash]; ok {
+		if usedCRVoteRights := crCommittee.GetUsedCRVotes(*stakeProgramHash); usedCRVoteRights != nil {
 			for _, votesInfo := range usedCRVoteRights {
 				usedDposVote += votesInfo.Votes
 			}
 		}
 	case outputpayload.CRCProposal:
-		if usedCRCProposalVoteRights, ok := crstate.UsedCRCProposalVotes[*stakeProgramHash]; ok {
+		if usedCRCProposalVoteRights := crCommittee.GetUsedCRCProposalVotes(*stakeProgramHash); usedCRCProposalVoteRights != nil {
 			maxVotes := common.Fixed64(0)
 			for _, votesInfo := range usedCRCProposalVoteRights {
 				if votesInfo.Votes > maxVotes {
@@ -865,7 +862,7 @@ func GetUsedVoteRight(voteType outputpayload.VoteType, stakeProgramHash *common.
 		}
 
 	case outputpayload.CRCImpeachment:
-		if usedCRImpeachmentVoteRights, ok := crstate.UsedCRImpeachmentVotes[*stakeProgramHash]; ok {
+		if usedCRImpeachmentVoteRights := crCommittee.GetUsedCRImpeachmentVotes(*stakeProgramHash); usedCRImpeachmentVoteRights != nil {
 			for _, votesInfo := range usedCRImpeachmentVoteRights {
 				usedDposVote += votesInfo.Votes
 			}
@@ -873,7 +870,7 @@ func GetUsedVoteRight(voteType outputpayload.VoteType, stakeProgramHash *common.
 	case outputpayload.DposV2:
 		addr, _ := stakeProgramHash.ToAddress()
 		fmt.Println("addr", addr)
-		usedDposVote = state.UsedDposV2Votes[*stakeProgramHash]
+		usedDposVote = Chain.GetState().GetUsedDposV2Votes(*stakeProgramHash)
 	default:
 		return 0, errors.New("unsupport vote type")
 	}
@@ -2335,9 +2332,9 @@ func DposV2RewardInfo(param Params) map[string]interface{} {
 			}
 		}
 
-		claimable := Chain.GetState().DPoSV2RewardInfo[stakeAddress]
-		claiming := Chain.GetState().DposV2RewardClaimingInfo[stakeAddress]
-		claimed := Chain.GetState().DposV2RewardClaimedInfo[stakeAddress]
+		claimable, _ := Chain.GetState().GetDPoSV2RewardInfo(stakeAddress)
+		claiming := Chain.GetState().GetDposV2RewardClaimingInfo(stakeAddress)
+		claimed := Chain.GetState().GetDposV2RewardClaimedInfo(stakeAddress)
 		result := RPCDposV2RewardInfo{
 			Address:   addr,
 			Claimable: claimable.String(),
@@ -2347,13 +2344,13 @@ func DposV2RewardInfo(param Params) map[string]interface{} {
 		return ResponsePack(Success, result)
 	} else {
 		var result []RPCDposV2RewardInfo
-		dposV2RewardInfo := Chain.GetState().DPoSV2RewardInfo
+		dposV2RewardInfo := Chain.GetState().CopyDPoSV2RewardInfo()
 		for addr, value := range dposV2RewardInfo {
 			result = append(result, RPCDposV2RewardInfo{
 				Address:   addr,
 				Claimable: value.String(),
-				Claiming:  Chain.GetState().DposV2RewardClaimingInfo[addr].String(),
-				Claimed:   Chain.GetState().DposV2RewardClaimedInfo[addr].String(),
+				Claiming:  Chain.GetState().GetDposV2RewardClaimingInfo(addr).String(),
+				Claimed:   Chain.GetState().GetDposV2RewardClaimedInfo(addr).String(),
 			})
 		}
 
@@ -2365,7 +2362,7 @@ func GetDPosV2Info(param Params) map[string]interface{} {
 	result := &RPCDPosV2Info{
 		ConsensusAlgorithm: Chain.GetState().GetConsensusAlgorithm().String(),
 		Height:             Store.GetHeight(),
-		DPoSV2ActiveHeight: Chain.GetState().DPoSV2ActiveHeight,
+		DPoSV2ActiveHeight: Chain.GetState().GetDPoSV2ActiveHeight(),
 	}
 	return ResponsePack(Success, result)
 }

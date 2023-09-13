@@ -358,7 +358,7 @@ func (t *DefaultChecker) tryCheckVoteOutputs() error {
 			candidates = []*crstate.Candidate{}
 		}
 		dposv2Run := false
-		if blockHeight >= dposState.DPoSV2ActiveHeight {
+		if blockHeight >= dposState.GetDPoSV2ActiveHeight() {
 			dposv2Run = true
 		}
 		err := t.checkVoteOutputs(blockHeight, txn.Outputs(), t.references,

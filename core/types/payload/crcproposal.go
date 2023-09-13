@@ -1208,7 +1208,7 @@ func (p *CRCProposal) DeserializeNormalOrELIP(r io.Reader, version byte) error {
 		return errors.New("failed to deserialize CRCouncilMemberDID")
 	}
 
-	CRCouncilMemberSignature, err := common.ReadVarBytes(r, crypto.SignatureLength, "CR sign data")
+	CRCouncilMemberSignature, err := common.ReadVarBytes(r, crypto.MaxSignatureScriptLength, "CR sign data")
 	if err != nil {
 		return err
 	}
@@ -1233,7 +1233,7 @@ func (p *CRCProposal) DeserializeUpgradeCode(r io.Reader, version byte) error {
 		return errors.New("failed to deserialize CRCouncilMemberDID")
 	}
 	// cr signature
-	CRCouncilMemberSignature, err := common.ReadVarBytes(r, crypto.SignatureLength, "CR sign data")
+	CRCouncilMemberSignature, err := common.ReadVarBytes(r, crypto.MaxSignatureScriptLength, "CR sign data")
 	if err != nil {
 		return err
 	}
@@ -1264,7 +1264,7 @@ func (p *CRCProposal) DeserializeChangeProposalOwner(r io.Reader, version byte) 
 		return errors.New("failed to deserialize CRCouncilMemberDID")
 	}
 	// cr signature
-	CRCouncilMemberSignature, err := common.ReadVarBytes(r, crypto.SignatureLength, "CR sign data")
+	CRCouncilMemberSignature, err := common.ReadVarBytes(r, crypto.MaxSignatureScriptLength, "CR sign data")
 	if err != nil {
 		return err
 	}
@@ -1286,7 +1286,7 @@ func (p *CRCProposal) DeserializeRegisterSideChain(r io.Reader, version byte) er
 		return errors.New("failed to deserialize CRCouncilMemberDID")
 	}
 
-	CRCouncilMemberSignature, err := common.ReadVarBytes(r, crypto.SignatureLength, "CR sign data")
+	CRCouncilMemberSignature, err := common.ReadVarBytes(r, crypto.MaxSignatureScriptLength, "CR sign data")
 	if err != nil {
 		return err
 	}
@@ -1311,7 +1311,7 @@ func (p *CRCProposal) DeserializeCloseProposal(r io.Reader, version byte) error 
 		return errors.New("failed to deserialize CRCouncilMemberDID")
 	}
 
-	CRCouncilMemberSignature, err := common.ReadVarBytes(r, crypto.SignatureLength, "CR sign data")
+	CRCouncilMemberSignature, err := common.ReadVarBytes(r, crypto.MaxSignatureScriptLength, "CR sign data")
 	if err != nil {
 		return err
 	}
@@ -1342,7 +1342,7 @@ func (p *CRCProposal) DeserializeChangeSecretaryGeneral(r io.Reader, version byt
 		return errors.New("failed to deserialize CRCouncilMemberDID")
 	}
 
-	CRCouncilMemberSignature, err := common.ReadVarBytes(r, crypto.SignatureLength, "CR sign data")
+	CRCouncilMemberSignature, err := common.ReadVarBytes(r, crypto.MaxSignatureScriptLength, "CR sign data")
 	if err != nil {
 		return err
 	}

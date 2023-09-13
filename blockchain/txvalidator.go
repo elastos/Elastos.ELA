@@ -841,9 +841,7 @@ func CheckCRTransactionSignature(signature []byte, code []byte, data []byte) err
 			return err
 		}
 	} else if signType == vm.CHECKMULTISIG {
-		return errors.New("CR not support multi sign code")
-
-		// check code and signature
+		//todo  add compatible height
 		if err := CheckMultiSigSignatures(program.Program{
 			Code:      code,
 			Parameter: signature,

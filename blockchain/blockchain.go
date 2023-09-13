@@ -1832,7 +1832,6 @@ func (b *BlockChain) ReorganizeChain2(block *Block) error {
 // 2. isOphan
 // 3. error
 func (b *BlockChain) processBlock(block *Block, confirm *payload.Confirm) (bool, bool, error) {
-	time.Sleep(1 * time.Minute)
 	blockHash := block.Hash()
 	log.Debugf("[ProcessBLock] height = %d, hash = %x", block.Header.Height, blockHash.Bytes())
 

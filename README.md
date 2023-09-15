@@ -18,20 +18,20 @@ Make sure the [macOS version](https://en.wikipedia.org/wiki/MacOS#Release_histor
 
 ```bash
 $ uname -srm
-Darwin 18.7.0 x86_64
+Darwin 20.04 x86_64
 ```
 
-Use [Homebrew](https://brew.sh/) to install Golang 1.16
+Use [Homebrew](https://brew.sh/) to install Golang 1.20
 
 ```bash
-$ brew install go@1.16
+$ brew install go@1.20
 ```
 
 Check the golang version. Make sure they are the following version number or above.
 
 ```bash
 $ go version
-go version go1.16.5 darwin/amd64
+go version go1.20.3 darwin/amd64
 ```
 
 ### 2. Ubuntu Prerequisites
@@ -40,7 +40,7 @@ Make sure your ubuntu version is 18.04 or later.
 
 ```bash
 $ cat /etc/issue
-Ubuntu 18.04.5 LTS \n \l
+Ubuntu 20.04 LTS \n \l
 ```
 
 Install Git.

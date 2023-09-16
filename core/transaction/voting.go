@@ -32,6 +32,13 @@ func (t *VotingTransaction) HeightVersionCheck() error {
 		return errors.New(fmt.Sprintf("not support %s transaction "+
 			"before DPoSV2StartHeight", t.TxType().Name()))
 	}
+	if blockHeight < chainParams.DPoSConfiguration.ChangeVoteTargetStartHeight {
+		if t.PayloadVersion() == payload.RenewalVoteTargetVersion {
+			return errors.New(fmt.Sprintf("not support %s transaction "+
+				"with payload version RenewalVoteTargetVersion before "+
+				"ChangeVoteTargetStartHeight", t.TxType().Name()))
+		}
+	}
 	return nil
 }
 
@@ -221,7 +228,6 @@ func (t *VotingTransaction) SpecialContextCheck() (result elaerr.ELAError, end b
 			if content.VotesInfo.LockTime <= vote.Info[0].LockTime {
 				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("new lock time <= old lock time")), true
 			}
-
 			if content.VotesInfo.LockTime > producer.Info().StakeUntil {
 				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("new lock time > producer StakeUntil")), true
 			}
@@ -230,6 +236,50 @@ func (t *VotingTransaction) SpecialContextCheck() (result elaerr.ELAError, end b
 			}
 			if !bytes.Equal(vote.Info[0].Candidate, content.VotesInfo.Candidate) {
 				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("candidate should be the same one")), true
+			}
+		}
+	case payload.RenewalVoteTargetVersion:
+		if len(pld.RenewalContents) == 0 {
+			return elaerr.Simple(elaerr.ErrTxPayload,
+				errors.New("renewal contents is nil")), true
+		}
+		for _, content := range pld.RenewalContents {
+
+			v2Producers := t.parameters.BlockChain.GetState().GetDposV2Producers()
+			var oriVote *payload.DetailedVoteInfo
+			for _, p := range v2Producers {
+				v, err := p.GetDetailedDPoSV2Votes(*stakeProgramHash, content.ReferKey)
+				if err != nil {
+					continue
+				}
+				oriVote = &v
+				break
+			}
+			if oriVote == nil {
+				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("votes can not found")), true
+			}
+
+			newTarget := state.GetProducer(content.VotesInfo.Candidate)
+			if newTarget == nil {
+				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("producer can not found")), true
+			}
+			if oriVote.VoteType != outputpayload.DposV2 {
+				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid vote type")), true
+			}
+			if len(oriVote.Info) != 1 || oriVote.Info[0].Votes != content.VotesInfo.Votes {
+				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("votes not equal")), true
+			}
+			if content.VotesInfo.LockTime <= oriVote.Info[0].LockTime {
+				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("new lock time <= old lock time")), true
+			}
+			if content.VotesInfo.LockTime > newTarget.Info().StakeUntil {
+				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("new lock time > producer StakeUntil")), true
+			}
+			if content.VotesInfo.LockTime-blockHeight > t.parameters.Config.DPoSConfiguration.DPoSV2MaxVotesLockTime {
+				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid lock time > DPoSV2MaxVotesLockTime")), true
+			}
+			if bytes.Equal(oriVote.Info[0].Candidate, content.VotesInfo.Candidate) {
+				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("candidate should not be the same one")), true
 			}
 		}
 	default:

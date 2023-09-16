@@ -19,6 +19,7 @@ import (
 
 const VoteVersion byte = 0x00
 const RenewalVoteVersion byte = 0x01
+const RenewalVoteTargetVersion byte = 0x02
 
 type Voting struct {
 	Contents        []VotesContent
@@ -46,7 +47,7 @@ func (p *Voting) Serialize(w io.Writer, version byte) error {
 				return err
 			}
 		}
-	case RenewalVoteVersion:
+	case RenewalVoteVersion, RenewalVoteTargetVersion:
 		if err := common.WriteVarUint(w, uint64(len(p.RenewalContents))); err != nil {
 			return err
 		}
@@ -75,7 +76,7 @@ func (p *Voting) Deserialize(r io.Reader, version byte) error {
 			}
 			p.Contents = append(p.Contents, content)
 		}
-	case RenewalVoteVersion:
+	case RenewalVoteVersion, RenewalVoteTargetVersion:
 		p.RenewalContents = make([]RenewalVotesContent, 0)
 		for i := uint64(0); i < contentsCount; i++ {
 			var renewalContents RenewalVotesContent
@@ -193,7 +194,6 @@ func (v *VotesWithLockTime) String() string {
 		"}\n\t\t\t\t")
 }
 
-//
 // VotesContent defines the vote type and vote information of candidates.
 type VotesContent struct {
 	VoteType  outputpayload.VoteType

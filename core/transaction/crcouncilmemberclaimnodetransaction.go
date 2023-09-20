@@ -57,7 +57,8 @@ func (t *CRCouncilMemberClaimNodeTransaction) SpecialContextCheck() (result elae
 	}
 	switch t.payloadVersion {
 	case payload.CurrentCRClaimDPoSNodeVersion, payload.NextCRClaimDPoSNodeVersion:
-		if !contract.IsStandard(t.Programs()[0].Code) {
+		crMember := t.parameters.BlockChain.GetCRCommittee().GetMember(manager.CRCouncilCommitteeDID)
+		if crMember != nil && (!contract.IsStandard(crMember.Info.Code)) {
 			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("CurrentCRClaimDPoSNodeVersion or NextCRClaimDPoSNodeVersion match standard code")), true
 		}
 	case payload.CurrentCRClaimDPoSNodeMultiSignVersion, payload.NextCRClaimDPoSNodeMultiSignVersion:

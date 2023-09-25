@@ -510,6 +510,7 @@ func (p *StateKeyFrame) deserializeWithdrawableTransactionsMap(r io.Reader) (
 		if err = withdrawInfo.Deserialize(r); err != nil {
 			return
 		}
+		withdrawableTxsMap[hash] = withdrawInfo
 	}
 	return
 }

@@ -52,8 +52,8 @@ $ sudo apt-get install -y git
 Install Go distribution.
 
 ```bash
-$ curl -O https://golang.org/dl/go1.13.15.linux-amd64.tar.gz
-$ tar -xvf go1.13.15.linux-amd64.tar.gz
+$ curl -O https://golang.org/dl/go1.20.3.linux-amd64.tar.gz
+$ tar -xvf go1.20.3.linux-amd64.tar.gz
 $ sudo chown -R root:root ./go
 $ sudo mv go /usr/local
 $ export GOPATH=$HOME/go

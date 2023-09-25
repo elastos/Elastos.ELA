@@ -134,8 +134,8 @@ func VarIntSerializeSize(val uint64) int {
 	return 9
 }
 
-//get ip string from addr string
-//if addr is not the format x.x.x.x:port return empt string ""
+// get ip string from addr string
+// if addr is not the format x.x.x.x:port return empt string ""
 func GetIpFromAddr(addr string) string {
 	endIndex := strings.Index(addr, ":")
 	if endIndex < 0 {
@@ -153,4 +153,12 @@ func IsLetterOrNumber(s string) bool {
 // get NFT ID by refer key and tx hash
 func GetNFTID(referkey, txHash Uint256) Uint256 {
 	return Sha256D(append(referkey[:], txHash[:]...))
+}
+
+// standard code return publickey, muticode return code
+func GetOwnerKey(code []byte) []byte {
+	if len(code) == 35 {
+		return code[1 : len(code)-1]
+	}
+	return code
 }

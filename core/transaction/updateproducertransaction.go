@@ -250,7 +250,8 @@ func (t *UpdateProducerTransaction) additionalProducerInfoCheck(info *payload.Pr
 			if bytes.Equal(m.DPOSPublicKey, info.NodePublicKey) {
 				return errors.New("node public key can't equal with current CR Node PK")
 			}
-			if bytes.Equal(m.Info.Code[1:len(m.Info.Code)-1], info.NodePublicKey) {
+			ownerKey := common.GetOwnerKey(m.Info.Code)
+			if bytes.Equal(ownerKey, info.NodePublicKey) {
 				return errors.New("node public key can't equal with current CR Owner PK")
 			}
 		}
@@ -259,7 +260,8 @@ func (t *UpdateProducerTransaction) additionalProducerInfoCheck(info *payload.Pr
 			if bytes.Equal(m.DPOSPublicKey, info.NodePublicKey) {
 				return errors.New("node public key can't equal with next CR Node PK")
 			}
-			if bytes.Equal(m.Info.Code[1:len(m.Info.Code)-1], info.NodePublicKey) {
+			ownerKey := common.GetOwnerKey(m.Info.Code)
+			if bytes.Equal(ownerKey, info.NodePublicKey) {
 				return errors.New("node public key can't equal with current CR Owner PK")
 			}
 		}

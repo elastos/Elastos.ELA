@@ -58,6 +58,8 @@ func (c *crcArbiter) GetType() ArbiterType {
 	return CRC
 }
 
+// GetOwnerKey  standard is  publickey ,   multisign is  code
+// GetOwnerKey
 func (c *crcArbiter) GetOwnerPublicKey() []byte {
 	return c.getPublicKey()
 }
@@ -83,9 +85,9 @@ func (c *crcArbiter) Clone() ArbiterMember {
 	return result
 }
 
+// get owner key
 func (c *crcArbiter) getPublicKey() []byte {
-	// todo support for multi public key later
-	return c.crMember.Info.Code[1 : len(c.crMember.Info.Code)-1]
+	return common.GetOwnerKey(c.crMember.Info.Code)
 }
 
 func NewCRCArbiter(nodePK []byte, ownerPK []byte, cr *state.CRMember,

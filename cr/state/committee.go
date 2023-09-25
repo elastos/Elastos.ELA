@@ -303,7 +303,7 @@ func (c *Committee) GetNextMembers() []*CRMember {
 	return result
 }
 
-// get CRMember ordered by owner public key
+// get CRMember ordered by owner  key
 func (c *Committee) GetCRMember(key string) *CRMember {
 	c.mtx.RLock()
 	defer c.mtx.RUnlock()
@@ -311,7 +311,9 @@ func (c *Committee) GetCRMember(key string) *CRMember {
 	result := getCRMembers(c.Members)
 
 	for _, cr := range result {
-		if hex.EncodeToString(cr.Info.Code[1:len(cr.Info.Code)-1]) == key {
+		//ownerKey
+		ownerKey := common.GetOwnerKey(cr.Info.Code)
+		if hex.EncodeToString(ownerKey) == key {
 			return cr
 		}
 	}
@@ -319,7 +321,8 @@ func (c *Committee) GetCRMember(key string) *CRMember {
 	result = getCRMembers(c.NextMembers)
 
 	for _, cr := range result {
-		if hex.EncodeToString(cr.Info.Code[1:len(cr.Info.Code)-1]) == key {
+		ownerKey := common.GetOwnerKey(cr.Info.Code)
+		if hex.EncodeToString(ownerKey) == key {
 			return cr
 		}
 	}

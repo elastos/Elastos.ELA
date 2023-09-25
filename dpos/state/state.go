@@ -565,6 +565,9 @@ const (
 	// ActivateDuration is about how long we should activate from pending or
 	// inactive state
 	ActivateDuration = 6
+
+	// RenewalDuration is about how long the voting target changed
+	RenewalDuration = 14 * 720
 )
 
 // State is a memory database storing DPOS producers state, like pending
@@ -1878,6 +1881,12 @@ func (s *State) processTransactions(txs []interfaces.Transaction, height uint32)
 		}
 	}
 
+	if rtxs := s.RenewalTargetTransactionsInfo[height-RenewalDuration]; len(rtxs) != 0 {
+		// process renewal voting target transactions
+		for _, tx := range rtxs {
+			s.processRenewalVotingTargetContent(tx, height)
+		}
+	}
 }
 
 // processTransaction take a transaction and the height it has been packed into
@@ -2190,6 +2199,17 @@ func (s *State) processVoting(tx interfaces.Transaction, height uint32) {
 		s.processVotingContent(tx, height)
 	case payload.RenewalVoteVersion:
 		s.processRenewalVotingContent(tx, height)
+	case payload.RenewalVoteTargetVersion:
+		oriList := copyRenewalTargetTransactionsMap(s.RenewalTargetTransactionsInfo)
+		s.History.Append(height, func() {
+			if _, ok := s.RenewalTargetTransactionsInfo[height]; !ok {
+				s.RenewalTargetTransactionsInfo[height] = make([]interfaces.Transaction, 0)
+			}
+			s.RenewalTargetTransactionsInfo[height] = append(s.RenewalTargetTransactionsInfo[height], tx)
+		}, func() {
+			s.RenewalTargetTransactionsInfo = oriList
+		})
+		//s.processRenewalVotingTargetContent(tx, height)
 	}
 }
 
@@ -2376,6 +2396,62 @@ func (s *State) processRenewalVotingContent(tx interfaces.Transaction, height ui
 		}, func() {
 			delete(producer.detailedDPoSV2Votes[*stakeAddress], referKey)
 			producer.detailedDPoSV2Votes[*stakeAddress][content.ReferKey] = voteInfo
+		})
+	}
+}
+
+func (s *State) processRenewalVotingTargetContent(tx interfaces.Transaction, height uint32) {
+	// get stake address
+	code := tx.Programs()[0].Code
+	ct, _ := contract.CreateStakeContractByCode(code)
+	stakeAddress := ct.ToProgramHash()
+	pld := tx.Payload().(*payload.Voting)
+	for _, cont := range pld.RenewalContents {
+		content := cont
+
+		v2Producers := s.getDposV2Producers()
+		var oriVote *payload.DetailedVoteInfo
+		var oriProducer *Producer
+		for _, p := range v2Producers {
+			v, err := p.GetDetailedDPoSV2Votes(*stakeAddress, content.ReferKey)
+			if err != nil {
+				continue
+			}
+			oriVote = &v
+			oriProducer = p
+			break
+		}
+		if oriVote == nil {
+			log.Errorf("invalid voting refer key:%s, statke addr:%s", content.ReferKey, stakeAddress)
+			return
+		}
+
+		// get producer and update the votes
+		newProducer := s.getDPoSV2Producer(content.VotesInfo.Candidate)
+		if newProducer == nil {
+			log.Info("can not find producer ", hex.EncodeToString(content.VotesInfo.Candidate))
+			continue
+		}
+
+		// record all new votes information
+		detailVoteInfo := payload.DetailedVoteInfo{
+			StakeProgramHash: *stakeAddress,
+			TransactionHash:  tx.Hash(),
+			BlockHeight:      oriVote.BlockHeight,
+			PayloadVersion:   oriVote.PayloadVersion,
+			VoteType:         outputpayload.DposV2,
+			Info:             []payload.VotesWithLockTime{content.VotesInfo},
+		}
+
+		s.LastRenewalDPoSV2Votes[content.ReferKey] = struct{}{}
+
+		referKey := detailVoteInfo.ReferKey()
+		s.History.Append(height, func() {
+			newProducer.detailedDPoSV2Votes[*stakeAddress][referKey] = detailVoteInfo
+			delete(oriProducer.detailedDPoSV2Votes[*stakeAddress], content.ReferKey)
+		}, func() {
+			delete(newProducer.detailedDPoSV2Votes[*stakeAddress], referKey)
+			oriProducer.detailedDPoSV2Votes[*stakeAddress][content.ReferKey] = *oriVote
 		})
 	}
 }

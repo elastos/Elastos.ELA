@@ -13,6 +13,7 @@ import (
 	"github.com/elastos/Elastos.ELA/core/contract"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	crstate "github.com/elastos/Elastos.ELA/cr/state"
+	"github.com/elastos/Elastos.ELA/crypto"
 	elaerr "github.com/elastos/Elastos.ELA/errors"
 	"github.com/elastos/Elastos.ELA/vm"
 )
@@ -99,6 +100,13 @@ func (t *RegisterCRTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
 	case payload.CRInfoMultiSignVersion:
 		if !contract.IsMultiSig(t.Programs()[0].Code) {
 			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("CRInfoMultiSignVersion match multi code")), true
+		}
+		//check n
+		code := t.Programs()[0].Code
+		n := int(code[len(code)-2]) - crypto.PUSH1 + 1
+		if n > MaxMultisignN {
+			return elaerr.Simple(elaerr.ErrTxPayload,
+				errors.New("RegisterCRTransaction multisign n can not over 10")), true
 		}
 	}
 

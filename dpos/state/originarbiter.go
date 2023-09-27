@@ -60,7 +60,7 @@ func (o *originArbiter) Clone() ArbiterMember {
 }
 
 func NewOriginArbiter(key []byte) (ArbiterMember, error) {
-	hash, err := GetOwnerKeyStandardProgramHash(key)
+	hash, err := GetOwnerKeyProgramHash(key)
 	if err != nil {
 		return nil, err
 	}

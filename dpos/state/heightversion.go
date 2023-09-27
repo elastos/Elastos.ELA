@@ -57,7 +57,7 @@ func (a *Arbiters) getDposV2NormalArbitratorsDescV2(arbitratorsCount int,
 	result := make([]ArbiterMember, 0)
 	for i := 0; i < arbitratorsCount && i < len(producers); i++ {
 		ownkey, _ := hex.DecodeString(producers[i])
-		hash, _ := GetOwnerKeyStandardProgramHash(ownkey)
+		hash, _ := GetOwnerKeyProgramHash(ownkey)
 		crc, exist := choosingArbiters[*hash]
 		if exist {
 			result = append(result, crc)

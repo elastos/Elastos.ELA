@@ -66,7 +66,7 @@ func NewDPoSArbiter(producer *Producer) (ArbiterMember, error) {
 	ar := &dposArbiter{
 		producer: *producer,
 	}
-	hash, err := GetOwnerKeyStandardProgramHash(producer.OwnerPublicKey())
+	hash, err := GetOwnerKeyProgramHash(producer.OwnerPublicKey())
 	if err != nil {
 		return nil, err
 	}

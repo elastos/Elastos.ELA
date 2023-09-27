@@ -94,7 +94,7 @@ func NewCRCArbiter(nodePK []byte, ownerPK []byte, cr *state.CRMember,
 		crMember: cr,
 		nodePk:   nodePK,
 	}
-	hash, err := GetOwnerKeyStandardProgramHash(ownerPK)
+	hash, err := GetOwnerKeyProgramHash(ownerPK)
 	if err != nil {
 		return nil, err
 	}

@@ -269,7 +269,7 @@ func (t *VotingTransaction) SpecialContextCheck() (result elaerr.ELAError, end b
 			if len(oriVote.Info) != 1 || oriVote.Info[0].Votes != content.VotesInfo.Votes {
 				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("votes not equal")), true
 			}
-			if content.VotesInfo.LockTime <= oriVote.Info[0].LockTime {
+			if content.VotesInfo.LockTime < oriVote.Info[0].LockTime {
 				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("new lock time <= old lock time")), true
 			}
 			if content.VotesInfo.LockTime > newTarget.Info().StakeUntil {

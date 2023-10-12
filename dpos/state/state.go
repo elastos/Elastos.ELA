@@ -2447,10 +2447,19 @@ func (s *State) processRenewalVotingTargetContent(tx interfaces.Transaction, hei
 
 		referKey := detailVoteInfo.ReferKey()
 		s.History.Append(height, func() {
+			if newProducer.detailedDPoSV2Votes == nil {
+				newProducer.detailedDPoSV2Votes = make(map[common.Uint168]map[common.Uint256]payload.DetailedVoteInfo)
+			}
+			if _, ok := newProducer.detailedDPoSV2Votes[*stakeAddress]; !ok {
+				newProducer.detailedDPoSV2Votes[*stakeAddress] = make(map[common.Uint256]payload.DetailedVoteInfo, 0)
+			}
 			newProducer.detailedDPoSV2Votes[*stakeAddress][referKey] = detailVoteInfo
 			delete(oriProducer.detailedDPoSV2Votes[*stakeAddress], content.ReferKey)
 		}, func() {
 			delete(newProducer.detailedDPoSV2Votes[*stakeAddress], referKey)
+			if len(newProducer.detailedDPoSV2Votes[*stakeAddress]) == 0 {
+				delete(newProducer.detailedDPoSV2Votes, *stakeAddress)
+			}
 			oriProducer.detailedDPoSV2Votes[*stakeAddress][content.ReferKey] = *oriVote
 		})
 	}

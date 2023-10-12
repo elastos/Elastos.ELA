@@ -270,7 +270,7 @@ func (t *VotingTransaction) SpecialContextCheck() (result elaerr.ELAError, end b
 				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("votes not equal")), true
 			}
 			if content.VotesInfo.LockTime < oriVote.Info[0].LockTime {
-				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("new lock time <= old lock time")), true
+				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("new lock time < old lock time")), true
 			}
 			if content.VotesInfo.LockTime > newTarget.Info().StakeUntil {
 				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("new lock time > producer StakeUntil")), true

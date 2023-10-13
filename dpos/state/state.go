@@ -2437,7 +2437,7 @@ func (s *State) processRenewalVotingTargetContent(tx interfaces.Transaction, hei
 		detailVoteInfo := payload.DetailedVoteInfo{
 			StakeProgramHash: *stakeAddress,
 			TransactionHash:  tx.Hash(),
-			BlockHeight:      oriVote.BlockHeight,
+			BlockHeight:      height,
 			PayloadVersion:   oriVote.PayloadVersion,
 			VoteType:         outputpayload.DposV2,
 			Info:             []payload.VotesWithLockTime{content.VotesInfo},

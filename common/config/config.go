@@ -197,6 +197,7 @@ func GetDefaultParams() *Configuration {
 			NFTV2StartHeight:                  math.MaxUint32, // todo complete me
 			DexStartHeight:                    math.MaxUint32, // todo complete me
 			ChangeVoteTargetStartHeight:       math.MaxUint32, // todo complete me
+			RenewalVotingTargetDuration:       14 * 720,       // todo complete me
 			OriginArbiters: []string{
 				"0248df6705a909432be041e0baa25b8f648741018f70d1911f2ed28778db4b8fe4",
 				"02771faf0f4d4235744b30972d5f2c470993920846c761e4d08889ecfdc061cddf",
@@ -389,6 +390,7 @@ func (p *Configuration) TestNet() *Configuration {
 	p.DPoSConfiguration.NFTV2StartHeight = 1171000
 	p.DPoSConfiguration.DexStartHeight = 1171000
 	p.DPoSConfiguration.ChangeVoteTargetStartHeight = math.MaxUint32 // todo complete me
+	p.DPoSConfiguration.RenewalVotingTargetDuration = 14 * 720       // todo complete me
 
 	p.HttpInfoPort = 21333
 	p.HttpRestPort = 21334
@@ -522,6 +524,7 @@ func (p *Configuration) RegNet() *Configuration {
 	p.MultiExchangeVotesStartHeight = math.MaxUint32                 // todo complete me
 	p.DPoSConfiguration.DexStartHeight = math.MaxUint32              // todo complete me
 	p.DPoSConfiguration.ChangeVoteTargetStartHeight = math.MaxUint32 // todo complete me
+	p.DPoSConfiguration.RenewalVotingTargetDuration = 14 * 720       // todo complete me
 
 	p.MemoryPoolTxMaximumStayHeight = 10
 
@@ -745,6 +748,8 @@ type DPoSConfiguration struct {
 	DexStartHeight uint32 `screw:"--dexstartheight" usage:"the starting height of Dex support"`
 	// ChangeVoteTargetStartHeight defines the starting height for allowing changes to the voting target.
 	ChangeVoteTargetStartHeight uint32 `screw:"--changevotetargetstartheight" usage:"the starting height for allowing changes to the voting target"`
+	// RenewalVotingTargetDuration defines the duration of renewal voting target.
+	RenewalVotingTargetDuration uint32 `crrew:"--renewalvotingtargetduration" usage:"the duration of renewal voting target"`
 }
 
 type CRConfiguration struct {

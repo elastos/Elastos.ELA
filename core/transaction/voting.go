@@ -278,6 +278,9 @@ func (t *VotingTransaction) SpecialContextCheck() (result elaerr.ELAError, end b
 			if content.VotesInfo.LockTime-blockHeight > t.parameters.Config.DPoSConfiguration.DPoSV2MaxVotesLockTime {
 				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid lock time > DPoSV2MaxVotesLockTime")), true
 			}
+			if content.VotesInfo.LockTime-blockHeight <= t.parameters.Config.DPoSConfiguration.RenewalVotingTargetDuration {
+				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid lock time <= RenewalVotingTargetDuration")), true
+			}
 			if bytes.Equal(oriVote.Info[0].Candidate, content.VotesInfo.Candidate) {
 				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("candidate should not be the same one")), true
 			}

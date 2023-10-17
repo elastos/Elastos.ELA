@@ -565,9 +565,6 @@ const (
 	// ActivateDuration is about how long we should activate from pending or
 	// inactive state
 	ActivateDuration = 6
-
-	// RenewalDuration is about how long the voting target changed
-	RenewalDuration = 14 * 720
 )
 
 // State is a memory database storing DPOS producers state, like pending
@@ -1881,7 +1878,8 @@ func (s *State) processTransactions(txs []interfaces.Transaction, height uint32)
 		}
 	}
 
-	if rtxs := s.RenewalTargetTransactionsInfo[height-RenewalDuration]; len(rtxs) != 0 {
+	if rtxs := s.RenewalTargetTransactionsInfo[height-
+		s.ChainParams.DPoSConfiguration.RenewalVotingTargetDuration]; len(rtxs) != 0 {
 		// process renewal voting target transactions
 		for _, tx := range rtxs {
 			s.processRenewalVotingTargetContent(tx, height)

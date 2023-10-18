@@ -8,8 +8,6 @@ package state
 import (
 	"encoding/hex"
 	"errors"
-	"fmt"
-
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/core/contract"
@@ -252,12 +250,6 @@ func (s *State) rollbackTo(height uint32) error {
 func (s *State) registerCR(tx interfaces.Transaction, height uint32) {
 	info := tx.Payload().(*payload.CRInfo)
 	nickname := info.NickName
-	if height == 6745 {
-		fmt.Println("")
-	}
-	if info.NickName == "prv_multcr_cr01_linda_update" {
-		fmt.Println("1234")
-	}
 	var code string
 	if tx.PayloadVersion() == payload.CRInfoSchnorrVersion ||
 		tx.PayloadVersion() == payload.CRInfoMultiSignVersion {

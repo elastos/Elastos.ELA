@@ -1935,7 +1935,7 @@ func (s *State) processTransaction(tx interfaces.Transaction, height uint32) {
 
 	case common2.NextTurnDPOSInfo:
 		s.processNextTurnDPOSInfo(tx, height)
-	//1111
+
 	case common2.CRCouncilMemberClaimNode:
 		s.processCRCouncilMemberClaimNode(tx, height)
 

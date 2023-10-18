@@ -159,7 +159,6 @@ func NewManager(cfg DPOSManagerConfig) *DPOSManager {
 		statusMap:          make(map[uint32]map[string]*dmsg.ConsensusStatus),
 		requestedBlocks:    make(map[common.Uint256]struct{}),
 	}
-	log.Info("#### houpei NewManager d.blockCache.Reset(nil)")
 
 	m.blockCache.Reset(nil)
 
@@ -311,10 +310,7 @@ func (d *DPOSManager) OnBlock(id dpeer.PID, block *types.Block) {
 		}); err != nil {
 			log.Error("[OnBlock] err: ", err.Error())
 		}
-
 	}
-	log.Debug("[OnBlock] received block: end", block.Hash().String())
-
 }
 
 func (d *DPOSManager) OnInv(id dpeer.PID, blockHash common.Uint256) {
@@ -659,10 +655,8 @@ func (d *DPOSManager) clearInactiveData(p *payload.InactiveArbitrators) {
 			blocks = append(blocks, v)
 		}
 	}
-	log.Info("#### houpei d.blockCache.Reset(nil)")
 	d.blockCache.Reset(nil)
 	for _, b := range blocks {
-		log.Infof("#### houpei AddValue b.Hash().String()%s, Height %d", b.Hash().String(), b.Height)
 		d.blockCache.AddValue(b.Hash(), b)
 	}
 

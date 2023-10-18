@@ -295,12 +295,7 @@ func (p *ProposalDispatcher) ProcessProposal(id peer.PID, d *payload.DPOSProposa
 
 	if d.ViewOffset != p.cfg.Consensus.GetViewOffset() {
 		log.Info("have different view offset")
-		log.Infof("d.ViewOffset %d  p.cfg.Consensus.GetViewOffset() %d", d.ViewOffset, p.cfg.Consensus.GetViewOffset())
-
 		if d.ViewOffset > p.cfg.Consensus.GetViewOffset() {
-			log.Infof("d.ViewOffset %d > p.cfg.Consensus.GetViewOffset() %d", d.ViewOffset, p.cfg.Consensus.GetViewOffset())
-			log.Infof("####houpei Hash %s BlockHash %s ViewOffset %d", d.Hash(), d.BlockHash, d.ViewOffset)
-
 			p.precociousProposals[d.Hash()] = d
 		}
 		return true, !self
@@ -330,13 +325,9 @@ func (p *ProposalDispatcher) ProcessProposal(id peer.PID, d *payload.DPOSProposa
 	}
 
 	currentBlock, ok := p.cfg.Manager.GetBlockCache().TryGetValue(d.BlockHash)
-	log.Infof("####houpeibefore received pending proposal ok %t p.cfg.Consensus.IsRunning() %v consensusStatus %d",
-		ok, p.cfg.Consensus.IsRunning(), p.cfg.Consensus.consensusStatus)
-
 	if !ok || !p.cfg.Consensus.IsRunning() {
 		p.pendingProposals[d.Hash()] = d
 		p.cfg.Manager.OnInv(id, d.BlockHash)
-		log.Info("received pending proposal id", id)
 		return true, true
 	} else {
 		p.TryStartSpeculatingProposal(currentBlock)
@@ -388,17 +379,12 @@ func (p *ProposalDispatcher) OnBlockAdded(b *types.Block) {
 			delete(p.pendingProposals, k)
 		}
 	}
-	//p.UpdatePrecociousProposals()
 }
 
 func (p *ProposalDispatcher) UpdatePrecociousProposals() {
-	log.Warn("########houpei UpdatePrecociousProposals begin ", len(p.precociousProposals))
 	for k, v := range p.precociousProposals {
-		log.Infof("####[UpdatePrecociousProposals] consensus.GetViewOffset %d, v.ViewOffset %d IsRunning %d",
-			p.cfg.Consensus.GetViewOffset(), v.ViewOffset, p.cfg.Consensus.IsRunning())
 		if p.cfg.Consensus.IsRunning() &&
 			v.ViewOffset == p.cfg.Consensus.GetViewOffset() {
-			log.Infof("#### UpdatePrecociousProposals ProcessProposal BlockHash %s Sponsor %v", v.BlockHash, v.Sponsor)
 			if needRecord, _ := p.ProcessProposal(
 				peer.PID(v.Sponsor), v, true); needRecord {
 				p.illegalMonitor.AddProposal(v)

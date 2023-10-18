@@ -93,7 +93,6 @@ func (c *Consensus) StartConsensus(b *types.Block) {
 	c.manager.GetBlockCache().Reset(b)
 	c.SetRunning()
 
-	log.Infof("#### houpei StartConsensus AddValue b.Hash().String()%s, Height %d", b.Hash().String(), b.Height)
 	c.manager.GetBlockCache().AddValue(b.Hash(), b)
 	c.currentView.ResetView(now)
 
@@ -111,16 +110,11 @@ func (c *Consensus) GetViewOffset() uint32 {
 }
 
 func (c *Consensus) ProcessBlock(b *types.Block) {
-	log.Infof("#### houpei ProcessBlock AddValue b.Hash().String()%s, Height %d", b.Hash().String(), b.Height)
 
 	c.manager.GetBlockCache().AddValue(b.Hash(), b)
 }
 
 func (c *Consensus) ChangeView() {
-	log.Warn("ChangeView finishedHeight ", c.finishedHeight)
-	log.Warn("ChangeView ChangeViewV1Height ", c.manager.chainParams.DPoSConfiguration.ChangeViewV1Height)
-
-	log.Infof("ChangeView finishedHeight %d ChangeViewV1Height %d", c.finishedHeight, c.manager.chainParams.DPoSConfiguration.ChangeViewV1Height)
 	if c.finishedHeight < c.manager.chainParams.DPoSConfiguration.ChangeViewV1Height {
 		c.currentView.ChangeView(&c.viewOffset, c.manager.timeSource.AdjustedTime())
 	} else {

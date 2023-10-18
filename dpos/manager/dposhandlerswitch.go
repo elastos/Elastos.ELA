@@ -28,7 +28,6 @@ type DPOSEventConditionHandler interface {
 	ProcessAcceptVote(id peer.PID, p *payload.DPOSProposalVote) (succeed bool, finished bool)
 	ProcessRejectVote(id peer.PID, p *payload.DPOSProposalVote) (succeed bool, finished bool)
 	TryCreateRevertToDPOSTx(BlockHeight uint32) bool
-	//DealPrecociousProposals()
 }
 
 type DPOSHandlerConfig struct {
@@ -126,10 +125,6 @@ func (h *DPOSHandlerSwitch) ChangeView(firstBlockHash *common.Uint256) {
 	}
 	h.cfg.Monitor.OnViewStarted(&viewEvent)
 }
-
-//func (h *DPOSHandlerSwitch) DealPrecociousProposals() {
-//	h.currentHandler.DealPrecociousProposals()
-//}
 
 func (h *DPOSHandlerSwitch) TryStartNewConsensus(b *types.Block) bool {
 	if _, ok := h.cfg.Manager.GetBlockCache().TryGetValue(b.Hash()); ok {

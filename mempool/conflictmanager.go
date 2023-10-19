@@ -53,6 +53,7 @@ const (
 	slotCreateNFT                               = "createnft"
 	slotCreateNFTStakeAddr                      = "createnftstakeaddr"
 	slotNFTDestroyFromSideChainHash             = "NFTDestroyFromSideChainHash"
+	slotRenewalVotingTarget                     = "RenewalVotingTarget"
 )
 
 type conflict struct {
@@ -605,6 +606,19 @@ func newConflictManager() conflictManager {
 					keyTypeFuncPair{
 						Type: common2.CreateNFT,
 						Func: strCreateNFTID,
+					},
+				),
+			},
+			{
+				name: slotRenewalVotingTarget,
+				slot: newConflictSlot(hashArray,
+					keyTypeFuncPair{
+						Type: common2.CreateNFT,
+						Func: hashArrayRenewalTargetReferKeys,
+					},
+					keyTypeFuncPair{
+						Type: common2.Voting,
+						Func: hashArrayRenewalTargetReferKeys,
 					},
 				),
 			},

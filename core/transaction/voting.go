@@ -210,6 +210,17 @@ func (t *VotingTransaction) SpecialContextCheck() (result elaerr.ELAError, end b
 			return elaerr.Simple(elaerr.ErrTxPayload,
 				errors.New("renewal contents is nil")), true
 		}
+
+		processingReferKeys := make(map[common.Uint256]struct{}, 0)
+		for _, v := range state.GetRenewalTargetTransactionsInfo() {
+			for _, tx := range v {
+				pd := tx.Payload().(*payload.Voting)
+				for _, content := range pd.RenewalContents {
+					processingReferKeys[content.ReferKey] = struct{}{}
+				}
+			}
+		}
+
 		for _, content := range pld.RenewalContents {
 			producer := state.GetProducer(content.VotesInfo.Candidate)
 			if producer == nil {
@@ -237,12 +248,26 @@ func (t *VotingTransaction) SpecialContextCheck() (result elaerr.ELAError, end b
 			if !bytes.Equal(vote.Info[0].Candidate, content.VotesInfo.Candidate) {
 				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("candidate should be the same one")), true
 			}
+			if _, ok := processingReferKeys[content.ReferKey]; ok {
+				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("refer key is processing")), true
+			}
 		}
 	case payload.RenewalVoteTargetVersion:
 		if len(pld.RenewalContents) == 0 {
 			return elaerr.Simple(elaerr.ErrTxPayload,
 				errors.New("renewal contents is nil")), true
 		}
+
+		processingReferKeys := make(map[common.Uint256]struct{}, 0)
+		for _, v := range state.GetRenewalTargetTransactionsInfo() {
+			for _, tx := range v {
+				pd := tx.Payload().(*payload.Voting)
+				for _, content := range pd.RenewalContents {
+					processingReferKeys[content.ReferKey] = struct{}{}
+				}
+			}
+		}
+
 		for _, content := range pld.RenewalContents {
 
 			v2Producers := t.parameters.BlockChain.GetState().GetDposV2Producers()
@@ -283,6 +308,9 @@ func (t *VotingTransaction) SpecialContextCheck() (result elaerr.ELAError, end b
 			}
 			if bytes.Equal(oriVote.Info[0].Candidate, content.VotesInfo.Candidate) {
 				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("candidate should not be the same one")), true
+			}
+			if _, ok := processingReferKeys[content.ReferKey]; ok {
+				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("refer key is processing")), true
 			}
 		}
 	default:

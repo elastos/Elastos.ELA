@@ -667,6 +667,13 @@ func (s *State) GetVotesWithdrawableTxInfo() map[common.Uint256]common2.OutputIn
 	return s.StateKeyFrame.VotesWithdrawableTxInfo
 }
 
+func (s *State) GetRenewalTargetTransactionsInfo() map[uint32][]interfaces.Transaction {
+	s.mtx.RLock()
+	defer s.mtx.RUnlock()
+
+	return s.RenewalTargetTransactionsInfo
+}
+
 func (s *State) GetDposV2RewardClaimedInfo(addr string) common.Fixed64 {
 	s.mtx.RLock()
 	defer s.mtx.RUnlock()
@@ -2444,6 +2451,7 @@ func (s *State) processRenewalVotingTargetContent(tx interfaces.Transaction, hei
 		s.LastRenewalDPoSV2Votes[content.ReferKey] = struct{}{}
 
 		referKey := detailVoteInfo.ReferKey()
+		oriRenewalTargetInfo := s.RenewalTargetTransactionsInfo[height]
 		s.History.Append(height, func() {
 			if newProducer.detailedDPoSV2Votes == nil {
 				newProducer.detailedDPoSV2Votes = make(map[common.Uint168]map[common.Uint256]payload.DetailedVoteInfo)
@@ -2453,12 +2461,14 @@ func (s *State) processRenewalVotingTargetContent(tx interfaces.Transaction, hei
 			}
 			newProducer.detailedDPoSV2Votes[*stakeAddress][referKey] = detailVoteInfo
 			delete(oriProducer.detailedDPoSV2Votes[*stakeAddress], content.ReferKey)
+			delete(s.RenewalTargetTransactionsInfo, height)
 		}, func() {
 			delete(newProducer.detailedDPoSV2Votes[*stakeAddress], referKey)
 			if len(newProducer.detailedDPoSV2Votes[*stakeAddress]) == 0 {
 				delete(newProducer.detailedDPoSV2Votes, *stakeAddress)
 			}
 			oriProducer.detailedDPoSV2Votes[*stakeAddress][content.ReferKey] = *oriVote
+			s.RenewalTargetTransactionsInfo[height] = oriRenewalTargetInfo
 		})
 	}
 }

@@ -94,6 +94,19 @@ func (t *CreateNFTTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
 	state := t.parameters.BlockChain.GetState()
 	crCommittee := t.parameters.BlockChain.GetCRCommittee()
 
+	processingReferKeys := make(map[common.Uint256]struct{}, 0)
+	for _, v := range state.GetRenewalTargetTransactionsInfo() {
+		for _, tx := range v {
+			pd := tx.Payload().(*payload.Voting)
+			for _, content := range pd.RenewalContents {
+				processingReferKeys[content.ReferKey] = struct{}{}
+			}
+		}
+	}
+	if _, ok := processingReferKeys[pld.ReferKey]; ok {
+		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("refer key is processing")), true
+	}
+
 	producers := state.GetDposV2Producers()
 	nftID := common.GetNFTID(pld.ReferKey, t.hash())
 	var existVote bool

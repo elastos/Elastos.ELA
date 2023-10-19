@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/elastos/Elastos.ELA/core/contract/program"
+	state2 "github.com/elastos/Elastos.ELA/dpos/state"
 
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/core/contract"
@@ -287,6 +288,9 @@ func (t *VotingTransaction) SpecialContextCheck() (result elaerr.ELAError, end b
 			newTarget := state.GetProducer(content.VotesInfo.Candidate)
 			if newTarget == nil {
 				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("producer can not found")), true
+			}
+			if newTarget.State() != state2.Active {
+				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("new target producer should be active")), true
 			}
 			if oriVote.VoteType != outputpayload.DposV2 {
 				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid vote type")), true

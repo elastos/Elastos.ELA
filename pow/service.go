@@ -115,7 +115,8 @@ func (pow *Service) GetDefaultTxVersion(height uint32) common2.TransactionVersio
 	return v
 }
 
-func (pow *Service) CreateCoinbaseTx(minerAddr string, height uint32) (interfaces.Transaction, error) {
+func (pow *Service) CreateCoinbaseTx(minerAddr string,
+	minerInfo string, height uint32) (interfaces.Transaction, error) {
 
 	crRewardAddr := pow.chainParams.FoundationProgramHash
 	if height >= pow.chainParams.CRConfiguration.CRCommitteeStartHeight {
@@ -135,7 +136,7 @@ func (pow *Service) CreateCoinbaseTx(minerAddr string, height uint32) (interface
 		common2.CoinBase,
 		payload.CoinBaseVersion,
 		&payload.CoinBase{
-			Content: []byte(pow.MinerInfo),
+			Content: []byte(minerInfo),
 		},
 		[]*common2.Attribute{&txAttr},
 		[]*common2.Input{
@@ -277,10 +278,11 @@ func (pow *Service) distributeDPOSReward(coinBaseTx interfaces.Transaction,
 }
 
 func (pow *Service) GenerateBlock(minerAddr string,
+	minerInfo string,
 	txPerBlock int) (*types.Block, error) {
 	bestChain := pow.chain.BestChain
 	nextBlockHeight := bestChain.Height + 1
-	coinBaseTx, err := pow.CreateCoinbaseTx(minerAddr, nextBlockHeight)
+	coinBaseTx, err := pow.CreateCoinbaseTx(minerAddr, minerInfo, nextBlockHeight)
 	if err != nil {
 		return nil, err
 	}
@@ -389,7 +391,7 @@ func (pow *Service) GenerateBlock(minerAddr string,
 	return msgBlock, err
 }
 
-func (pow *Service) CreateAuxBlock(payToAddr string) (*types.Block, error) {
+func (pow *Service) CreateAuxBlock(payToAddr, minerInfo string) (*types.Block, error) {
 	pow.mutex.Lock()
 	defer pow.mutex.Unlock()
 
@@ -403,7 +405,7 @@ func (pow *Service) CreateAuxBlock(payToAddr string) (*types.Block, error) {
 		}
 
 		// Create new block with nonce = 0
-		auxBlock, err := pow.GenerateBlock(payToAddr, maxTxPerBlock)
+		auxBlock, err := pow.GenerateBlock(payToAddr, minerInfo, maxTxPerBlock)
 		if err != nil {
 			return nil, err
 		}
@@ -463,7 +465,8 @@ func (pow *Service) DiscreteMining(n uint32) ([]*common.Uint256, error) {
 
 	log.Info("<================Discrete Mining==============>\n")
 	for {
-		msgBlock, err := pow.GenerateBlock(pow.PayToAddr, maxTxPerBlock)
+		msgBlock, err := pow.GenerateBlock(pow.PayToAddr,
+			pow.chainParams.PowConfiguration.MinerInfo, maxTxPerBlock)
 		if err != nil {
 			log.Warn("Generate block failed, ", err.Error())
 			continue
@@ -572,7 +575,8 @@ out:
 		log.Debug("<================Packing Block==============>")
 		//time.Sleep(15 * time.Second)
 
-		msgBlock, err := pow.GenerateBlock(pow.PayToAddr, maxTxPerBlock)
+		msgBlock, err := pow.GenerateBlock(pow.PayToAddr,
+			pow.chainParams.PowConfiguration.MinerInfo, maxTxPerBlock)
 		if err != nil {
 			log.Debug("generage block err", err)
 			continue

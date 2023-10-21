@@ -918,9 +918,10 @@ Generate an auxiliary block
 
 #### Parameter 
 
-| name         | type   | description     |
-| ------------ | ------ | --------------- |
-| paytoaddress | string | miner's address |
+| name         | type   | description         |
+|--------------| ------ |---------------------|
+| paytoaddress | string | miner's address     |
+| minerinfo    | string | miner's information |
 
 #### Example
 
@@ -931,16 +932,10 @@ named arguments:
 ```json
 {
   "method":"createauxblock",
-  "params":{"paytoaddress":"Ef4UcaHwvFrFzzsyVf5YH4JBWgYgUqfTAB"}
-}
-```
-
-positional arguments:
-
-```json
-{
-  "method": "createauxblock",
-  "params": ["Ef4UcaHwvFrFzzsyVf5YH4JBWgYgUqfTAB"]
+  "params":{
+    "paytoaddress":"Ef4UcaHwvFrFzzsyVf5YH4JBWgYgUqfTAB",
+    "minerinfo": "ELA"
+  }
 }
 ```
 

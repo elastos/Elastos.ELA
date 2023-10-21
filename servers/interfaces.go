@@ -251,8 +251,12 @@ func CreateAuxBlock(param Params) map[string]interface{} {
 	if !ok {
 		return ResponsePack(InvalidParams, "parameter paytoaddress not found")
 	}
+	minerInfo, ok := param.String("minerinfo")
+	if !ok {
+		return ResponsePack(InvalidParams, "parameter minerInfo not found")
+	}
 
-	block, err := Pow.CreateAuxBlock(payToAddr)
+	block, err := Pow.CreateAuxBlock(payToAddr, minerInfo)
 	if err != nil {
 		return ResponsePack(InternalError, "generate block failed")
 	}
@@ -2110,7 +2114,7 @@ type RPCProducerInfo struct {
 	Index          uint64 `json:"index"`
 }
 
-//a group producer info include TotalDPoSV1Votes and producer count
+// a group producer info include TotalDPoSV1Votes and producer count
 type RPCProducersInfo struct {
 	ProducerInfoSlice []RPCProducerInfo `json:"producers"`
 	TotalDPoSV1Votes  string            `json:"totaldposv1votes"`
@@ -2134,7 +2138,7 @@ type RPCCRCandidateInfo struct {
 	Index uint64 `json:"index"`
 }
 
-//a group cr candidate info include TotalDPoSV1Votes and candidate count
+// a group cr candidate info include TotalDPoSV1Votes and candidate count
 type RPCCRCandidatesInfo struct {
 	CRCandidateInfoSlice []RPCCRCandidateInfo `json:"crcandidatesinfo"`
 	TotalVotes           string               `json:"totalvotes"`

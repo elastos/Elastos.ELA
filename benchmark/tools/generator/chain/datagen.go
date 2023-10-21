@@ -195,7 +195,7 @@ func (g *DataGen) generateBlock(
 		}
 	})
 
-	if block, err = g.pow.GenerateBlock(g.foundationAddr,
+	if block, err = g.pow.GenerateBlock(g.foundationAddr, "ELA",
 		maxTxPerBlock); err != nil {
 		return
 	}

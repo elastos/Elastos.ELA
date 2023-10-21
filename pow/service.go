@@ -357,7 +357,7 @@ func (pow *Service) CreateAuxBlock(payToAddr string) (*types.Block, error) {
 	defer pow.mutex.Unlock()
 
 	if pow.chain.GetHeight() == 0 || pow.preChainHeight != pow.chain.GetHeight() ||
-		time.Now().After(pow.preTime.Add(createAuxBlockInterval)) {
+		time.Now().After(pow.preTime) {
 
 		if pow.preChainHeight != pow.chain.GetHeight() {
 			// Clear old blocks since they're obsolete now.

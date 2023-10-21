@@ -161,7 +161,7 @@ func newGenesisBlock(ac *account.Account) *types.Block {
 func quickGenerateBlock(pow *pow.Service, prevHash *common.Uint256,
 	txs []interfaces.Transaction, minerAddr string, params *config.Configuration,
 	height uint32) (*types.Block, error) {
-	coinBaseTx, err := pow.CreateCoinbaseTx(minerAddr, height)
+	coinBaseTx, err := pow.CreateCoinbaseTx(minerAddr, "ELA", height)
 	if err != nil {
 		return nil, err
 	}

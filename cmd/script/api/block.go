@@ -45,7 +45,7 @@ func newBlock(L *lua.LState) int {
 		ChainParams: &config.DefaultParams,
 		TxMemPool:   m.Peer.GetTxPool(),
 	})
-	block, err := service.GenerateBlock(minerAddress, maxTxPerBlock)
+	block, err := service.GenerateBlock(minerAddress, service.MinerInfo, maxTxPerBlock)
 	if err != nil {
 		fmt.Printf("New block error: %s \n", err.Error())
 	}

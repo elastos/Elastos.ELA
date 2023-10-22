@@ -92,51 +92,52 @@ func (t *TransferAssetTransaction) CheckTransactionPayload() error {
 }
 
 func (t *TransferAssetTransaction) IsAllowedInPOWConsensus() bool {
-	if t.Version() >= common2.TxVersion09 {
-		var containVoteOutput bool
-		for _, output := range t.Outputs() {
-			if output.Type == common2.OTVote {
-				p := output.Payload.(*outputpayload.VoteOutput)
-				for _, vote := range p.Contents {
-					switch vote.VoteType {
-					case outputpayload.Delegate:
-					case outputpayload.CRC:
-						log.Warn("not allow to vote CR in POW consensus")
-						return false
-					case outputpayload.CRCProposal:
-						log.Warn("not allow to vote CRC proposal in POW consensus")
-						return false
-					case outputpayload.CRCImpeachment:
-						log.Warn("not allow to vote CRImpeachment in POW consensus")
-						return false
-					}
-				}
-				containVoteOutput = true
-			}
-		}
-		if !containVoteOutput {
-			log.Warn("not allow to transfer asset in POW consensus")
-			return false
-		}
+	//if t.Version() >= common2.TxVersion09 {
+	//	var containVoteOutput bool
+	//	for _, output := range t.Outputs() {
+	//		if output.Type == common2.OTVote {
+	//			p := output.Payload.(*outputpayload.VoteOutput)
+	//			for _, vote := range p.Contents {
+	//				switch vote.VoteType {
+	//				case outputpayload.Delegate:
+	//				case outputpayload.CRC:
+	//					log.Warn("not allow to vote CR in POW consensus")
+	//					return false
+	//				case outputpayload.CRCProposal:
+	//					log.Warn("not allow to vote CRC proposal in POW consensus")
+	//					return false
+	//				case outputpayload.CRCImpeachment:
+	//					log.Warn("not allow to vote CRImpeachment in POW consensus")
+	//					return false
+	//				}
+	//			}
+	//			containVoteOutput = true
+	//		}
+	//	}
+	//	if !containVoteOutput {
+	//		log.Warn("not allow to transfer asset in POW consensus")
+	//		return false
+	//	}
+	//
+	//	inputProgramHashes := make(map[common.Uint168]struct{})
+	//	for _, output := range t.references {
+	//		inputProgramHashes[output.ProgramHash] = struct{}{}
+	//	}
+	//	outputProgramHashes := make(map[common.Uint168]struct{})
+	//	for _, output := range t.Outputs() {
+	//		outputProgramHashes[output.ProgramHash] = struct{}{}
+	//	}
+	//	for k, _ := range outputProgramHashes {
+	//		if _, ok := inputProgramHashes[k]; !ok {
+	//			log.Warn("output program hash is not in inputs")
+	//			return false
+	//		}
+	//	}
+	//} else {
+	//	log.Warn("not allow to transfer asset in POW consensus")
+	//	return false
+	//}
 
-		inputProgramHashes := make(map[common.Uint168]struct{})
-		for _, output := range t.references {
-			inputProgramHashes[output.ProgramHash] = struct{}{}
-		}
-		outputProgramHashes := make(map[common.Uint168]struct{})
-		for _, output := range t.Outputs() {
-			outputProgramHashes[output.ProgramHash] = struct{}{}
-		}
-		for k, _ := range outputProgramHashes {
-			if _, ok := inputProgramHashes[k]; !ok {
-				log.Warn("output program hash is not in inputs")
-				return false
-			}
-		}
-	} else {
-		log.Warn("not allow to transfer asset in POW consensus")
-		return false
-	}
 	return true
 }
 

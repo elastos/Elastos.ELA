@@ -1582,8 +1582,11 @@ func (s *State) processTransactions(txs []interfaces.Transaction, height uint32)
 	cancelDposV2AndDposV1V2Producer := func(key string, producer *Producer) {
 		oriState := producer.state
 		oriDepositAmount := producer.depositAmount
+		nodePublicKey := common.BytesToHexString(producer.info.NodePublicKey)
+		oriOwnerKey := s.NodeOwnerKeys[nodePublicKey]
 		s.History.Append(height, func() {
 			producer.state = Canceled
+			delete(s.NodeOwnerKeys, nodePublicKey)
 			producer.depositAmount -= state.MinDPoSV2DepositAmount
 			s.CanceledProducers[key] = producer
 			switch oriState {
@@ -1606,6 +1609,7 @@ func (s *State) processTransactions(txs []interfaces.Transaction, height uint32)
 			case Illegal:
 				s.IllegalProducers[key] = producer
 			}
+			s.NodeOwnerKeys[common.BytesToHexString(producer.info.NodePublicKey)] = oriOwnerKey
 			delete(s.CanceledProducers, key)
 			s.Nicknames[producer.info.NickName] = struct{}{}
 		})

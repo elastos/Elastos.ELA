@@ -390,9 +390,9 @@ func (p *Configuration) TestNet() *Configuration {
 	p.DPoSConfiguration.NFTStartHeight = 1098000
 	p.DPoSConfiguration.NFTV2StartHeight = 1171000
 	p.DPoSConfiguration.DexStartHeight = 1171000
-	p.DPoSConfiguration.ChangeVoteTargetStartHeight = math.MaxUint32 // todo complete me
-	p.DPoSConfiguration.RenewalVotingTargetDuration = 14 * 720       // todo complete me
-	p.DPoSConfiguration.MinRenewalVotingTargetLockTime = 720         // todo complete me
+	p.DPoSConfiguration.ChangeVoteTargetStartHeight = 1252600
+	p.DPoSConfiguration.RenewalVotingTargetDuration = 14 * 720
+	p.DPoSConfiguration.MinRenewalVotingTargetLockTime = 720
 
 	p.HttpInfoPort = 21333
 	p.HttpRestPort = 21334

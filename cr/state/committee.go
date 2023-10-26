@@ -76,6 +76,47 @@ func (c *Committee) GetProposalManager() *ProposalManager {
 	return c.manager
 }
 
+func (c *Committee) PubKeyExistClaimedDPoSKeys(publicKey []byte) bool {
+	c.mtx.RLock()
+	defer c.mtx.RUnlock()
+	if _, ok := c.ClaimedDPoSKeys[hex.EncodeToString(publicKey)]; ok {
+		return true
+	}
+	return false
+}
+
+func (c *Committee) PubKeyExistNextClaimedDPoSKey(publicKey []byte) bool {
+	c.mtx.RLock()
+	defer c.mtx.RUnlock()
+	if _, ok := c.NextClaimedDPoSKeys[hex.EncodeToString(publicKey)]; ok {
+		return true
+	}
+	return false
+}
+func (c *Committee) GetAppropriationAmount() common.Fixed64 {
+	c.mtx.RLock()
+	defer c.mtx.RUnlock()
+	return c.AppropriationAmount
+}
+
+func (c *Committee) GetCRCCurrentStageAmount() common.Fixed64 {
+	c.mtx.RLock()
+	defer c.mtx.RUnlock()
+	return c.CRCCurrentStageAmount
+}
+
+func (c *Committee) GetCommitteeUsedAmount() common.Fixed64 {
+	c.mtx.RLock()
+	defer c.mtx.RUnlock()
+	return c.CommitteeUsedAmount
+}
+
+func (c *Committee) GetCRCCommitteeUsedAmount() common.Fixed64 {
+	c.mtx.RLock()
+	defer c.mtx.RUnlock()
+	return c.CRCCommitteeUsedAmount
+}
+
 func (c *Committee) ExistCR(programCode []byte) bool {
 	c.mtx.RLock()
 	defer c.mtx.RUnlock()
@@ -245,6 +286,33 @@ func (c *Committee) GetCurrentMembers() []*CRMember {
 		return result[i].Info.DID.Compare(result[j].Info.DID) <= 0
 	})
 	return result
+}
+
+// get all next CRMembers ordered by CID
+func (c *Committee) GetMembers() []*CRMember {
+	c.mtx.RLock()
+	defer c.mtx.RUnlock()
+
+	result := getCRMembers(c.Members)
+	return result
+}
+
+func (c *Committee) GetNeedAppropriation() bool {
+	c.mtx.RLock()
+	defer c.mtx.RUnlock()
+	return c.NeedAppropriation
+}
+
+func (c *Committee) GetNeedRecordProposalResult() bool {
+	c.mtx.RLock()
+	defer c.mtx.RUnlock()
+	return c.NeedRecordProposalResult
+}
+
+func (c *Committee) GetLastCommitteeHeight() uint32 {
+	c.mtx.RLock()
+	defer c.mtx.RUnlock()
+	return c.LastCommitteeHeight
 }
 
 // get all next CRMembers ordered by CID
@@ -886,6 +954,27 @@ func (c *Committee) GetCommitteeCanUseAmount() common.Fixed64 {
 	return c.CRCCurrentStageAmount - c.CRCCommitteeUsedAmount
 }
 
+func (c *Committee) GetUsedCRVotes(stakeProgramHash common.Uint168) []payload.VotesWithLockTime {
+	c.mtx.RLock()
+	defer c.mtx.RUnlock()
+	usedCRVotes := c.state.UsedCRVotes[stakeProgramHash]
+	return usedCRVotes
+}
+
+func (c *Committee) GetUsedCRImpeachmentVotes(stakeProgramHash common.Uint168) []payload.VotesWithLockTime {
+	c.mtx.RLock()
+	defer c.mtx.RUnlock()
+	usedCRImpeachmentVotes := c.state.UsedCRImpeachmentVotes[stakeProgramHash]
+	return usedCRImpeachmentVotes
+}
+
+func (c *Committee) GetUsedCRCProposalVotes(stakeProgramHash common.Uint168) []payload.VotesWithLockTime {
+	c.mtx.RLock()
+	defer c.mtx.RUnlock()
+	usedCRCProposalVotes := c.state.UsedCRCProposalVotes[stakeProgramHash]
+	return usedCRCProposalVotes
+}
+
 func (c *Committee) recordCurrentStageAmount(height uint32, lockedAmount common.Fixed64) {
 	oriCurrentStageAmount := c.CRCCurrentStageAmount
 	oriAppropriationAmount := c.AppropriationAmount
@@ -1209,6 +1298,7 @@ func (c *Committee) getSignersFromWithdrawFromSideChainTx(tx interfaces.Transact
 	publicKeys := make([]string, 0)
 	if tx.PayloadVersion() == payload.WithdrawFromSideChainVersionV2 {
 		allPulicKeys := c.getCurrentArbiters()
+
 		pld := tx.Payload().(*payload.WithdrawFromSideChain)
 		for _, index := range pld.Signers {
 			publicKeys = append(publicKeys, hex.EncodeToString(allPulicKeys[index]))

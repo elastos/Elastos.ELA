@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/elastos/Elastos.ELA/core/contract/program"
+	state2 "github.com/elastos/Elastos.ELA/dpos/state"
 
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/core/contract"
@@ -31,6 +32,13 @@ func (t *VotingTransaction) HeightVersionCheck() error {
 	if blockHeight < chainParams.DPoSV2StartHeight {
 		return errors.New(fmt.Sprintf("not support %s transaction "+
 			"before DPoSV2StartHeight", t.TxType().Name()))
+	}
+	if blockHeight < chainParams.DPoSConfiguration.ChangeVoteTargetStartHeight {
+		if t.PayloadVersion() == payload.RenewalVoteTargetVersion {
+			return errors.New(fmt.Sprintf("not support %s transaction "+
+				"with payload version RenewalVoteTargetVersion before "+
+				"ChangeVoteTargetStartHeight", t.TxType().Name()))
+		}
 	}
 	return nil
 }
@@ -127,13 +135,12 @@ func (t *VotingTransaction) SpecialContextCheck() (result elaerr.ELAError, end b
 	}
 	stakeProgramHash := ct.ToProgramHash()
 	state := t.parameters.BlockChain.GetState()
-	//commitee := t.parameters.BlockChain.GetCRCommittee()
-	voteRights := state.DposV2VoteRights
-	totalVotes, exist := voteRights[*stakeProgramHash]
+	totalVotes, exist := state.GetDposV2VoteRights(*stakeProgramHash)
 	if !exist {
 		return elaerr.Simple(elaerr.ErrTxInvalidOutput, errors.New("has no vote rights")), true
 	}
-	usedDPoSV2VoteRights, _ := state.UsedDposV2Votes[*stakeProgramHash]
+
+	usedDPoSV2VoteRights := state.GetUsedDposV2Votes(*stakeProgramHash)
 
 	var candidates []*crstate.Candidate
 	if crCommittee.IsInVotingPeriod(blockHeight) {
@@ -161,7 +168,7 @@ func (t *VotingTransaction) SpecialContextCheck() (result elaerr.ELAError, end b
 
 			switch content.VoteType {
 			case outputpayload.Delegate:
-				if blockHeight > state.DPoSV2ActiveHeight {
+				if blockHeight > state.GetDPoSV2ActiveHeight() {
 					return elaerr.Simple(elaerr.ErrTxPayload,
 						errors.New("delegate votes is not allowed in DPoS V2")), true
 				}
@@ -204,6 +211,17 @@ func (t *VotingTransaction) SpecialContextCheck() (result elaerr.ELAError, end b
 			return elaerr.Simple(elaerr.ErrTxPayload,
 				errors.New("renewal contents is nil")), true
 		}
+
+		processingReferKeys := make(map[common.Uint256]struct{}, 0)
+		for _, v := range state.GetRenewalTargetTransactionsInfo() {
+			for _, tx := range v {
+				pd := tx.Payload().(*payload.Voting)
+				for _, content := range pd.RenewalContents {
+					processingReferKeys[content.ReferKey] = struct{}{}
+				}
+			}
+		}
+
 		for _, content := range pld.RenewalContents {
 			producer := state.GetProducer(content.VotesInfo.Candidate)
 			if producer == nil {
@@ -230,6 +248,74 @@ func (t *VotingTransaction) SpecialContextCheck() (result elaerr.ELAError, end b
 			}
 			if !bytes.Equal(vote.Info[0].Candidate, content.VotesInfo.Candidate) {
 				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("candidate should be the same one")), true
+			}
+			if _, ok := processingReferKeys[content.ReferKey]; ok {
+				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("refer key is processing")), true
+			}
+		}
+	case payload.RenewalVoteTargetVersion:
+		if len(pld.RenewalContents) == 0 {
+			return elaerr.Simple(elaerr.ErrTxPayload,
+				errors.New("renewal contents is nil")), true
+		}
+
+		processingReferKeys := make(map[common.Uint256]struct{}, 0)
+		for _, v := range state.GetRenewalTargetTransactionsInfo() {
+			for _, tx := range v {
+				pd := tx.Payload().(*payload.Voting)
+				for _, content := range pd.RenewalContents {
+					processingReferKeys[content.ReferKey] = struct{}{}
+				}
+			}
+		}
+
+		for _, content := range pld.RenewalContents {
+
+			v2Producers := t.parameters.BlockChain.GetState().GetDposV2Producers()
+			var oriVote *payload.DetailedVoteInfo
+			for _, p := range v2Producers {
+				v, err := p.GetDetailedDPoSV2Votes(*stakeProgramHash, content.ReferKey)
+				if err != nil {
+					continue
+				}
+				oriVote = &v
+				break
+			}
+			if oriVote == nil {
+				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("votes can not found")), true
+			}
+
+			newTarget := state.GetProducer(content.VotesInfo.Candidate)
+			if newTarget == nil {
+				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("producer can not found")), true
+			}
+			if newTarget.State() != state2.Active {
+				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("new target producer should be active")), true
+			}
+			if oriVote.VoteType != outputpayload.DposV2 {
+				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid vote type")), true
+			}
+			if len(oriVote.Info) != 1 || oriVote.Info[0].Votes != content.VotesInfo.Votes {
+				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("votes not equal")), true
+			}
+			if content.VotesInfo.LockTime < oriVote.Info[0].LockTime {
+				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("new lock time < old lock time")), true
+			}
+			if content.VotesInfo.LockTime > newTarget.Info().StakeUntil {
+				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("new lock time > producer StakeUntil")), true
+			}
+			if content.VotesInfo.LockTime-blockHeight > t.parameters.Config.DPoSConfiguration.DPoSV2MaxVotesLockTime {
+				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid lock time > DPoSV2MaxVotesLockTime")), true
+			}
+			if content.VotesInfo.LockTime-blockHeight <= t.parameters.Config.DPoSConfiguration.MinRenewalVotingTargetLockTime+
+				t.parameters.Config.DPoSConfiguration.RenewalVotingTargetDuration {
+				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid lock time")), true
+			}
+			if bytes.Equal(oriVote.Info[0].Candidate, content.VotesInfo.Candidate) {
+				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("candidate should not be the same one")), true
+			}
+			if _, ok := processingReferKeys[content.ReferKey]; ok {
+				return elaerr.Simple(elaerr.ErrTxPayload, errors.New("refer key is processing")), true
 			}
 		}
 	default:

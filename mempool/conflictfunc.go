@@ -680,3 +680,27 @@ func strCreateNFTID(tx interfaces.Transaction) (interface{}, error) {
 	}
 	return p.StakeAddress, nil
 }
+
+func hashArrayRenewalTargetReferKeys(tx interfaces.Transaction) (interface{}, error) {
+	arrayHash := make([]common.Uint256, 0)
+	if tx.TxType() == common2.Voting {
+		p, ok := tx.Payload().(*payload.Voting)
+		if !ok {
+			return nil, fmt.Errorf(
+				"CRC proposal payload cast failed, tx:%s", tx.Hash())
+		}
+
+		for _, c := range p.RenewalContents {
+			arrayHash = append(arrayHash, c.ReferKey)
+		}
+	} else if tx.TxType() == common2.CreateNFT {
+		p, ok := tx.Payload().(*payload.CreateNFT)
+		if !ok {
+			return nil, fmt.Errorf(
+				"CreateNFT payload cast failed, tx: %s", tx.Hash())
+		}
+		arrayHash = append(arrayHash, p.ReferKey)
+	}
+
+	return arrayHash, nil
+}

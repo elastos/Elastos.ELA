@@ -115,7 +115,7 @@ func (t *RevertToDPOSTransaction) SpecialContextCheck() (elaerr.ELAError, bool) 
 	}
 
 	// to avoid init DPOSWorkHeight repeatedly
-	if t.parameters.BlockChain.GetState().DPOSWorkHeight > t.parameters.BlockHeight {
+	if t.parameters.BlockChain.GetState().GetDPOSWorkHeight() > t.parameters.BlockHeight {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("already receieved  revertodpos")), true
 	}
 

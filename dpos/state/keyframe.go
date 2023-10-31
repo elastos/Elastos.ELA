@@ -7,6 +7,8 @@ package state
 
 import (
 	"fmt"
+	"github.com/elastos/Elastos.ELA/core/types/functions"
+	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"io"
 	"math"
 
@@ -47,7 +49,7 @@ type StateKeyFrame struct {
 	Votes                    map[string]struct{}
 
 	// NFT
-	// key: ID value: (genesis block hash, createNFT tx hash)
+	// key: NFTID value: (genesis block hash, createNFT tx hash)
 	NFTIDInfoHashMap map[common.Uint256]payload.NFTInfo
 
 	// dpos 2.0
@@ -70,6 +72,9 @@ type StateKeyFrame struct {
 	ClaimingRewardAddr map[common.Uint256]common.Uint168
 	// votes withdraw
 	VotesWithdrawableTxInfo map[common.Uint256]common2.OutputInfo
+
+	// key: height value: votings tx
+	RenewalTargetTransactionsInfo map[uint32][]interfaces.Transaction
 
 	EmergencyInactiveArbiters map[string]struct{}
 	LastRandomCandidateOwner  string
@@ -122,17 +127,18 @@ func (s *StateKeyFrame) snapshot() *StateKeyFrame {
 		UsedDposVotes:    make(map[common.Uint168][]payload.VotesWithLockTime),
 		UsedDposV2Votes:  make(map[common.Uint168]common.Fixed64),
 
-		DepositOutputs:           make(map[string]common.Fixed64),
-		DPoSV2RewardInfo:         make(map[string]common.Fixed64),
-		DposV2RewardClaimingInfo: make(map[string]common.Fixed64),
-		DposV2RewardClaimedInfo:  make(map[string]common.Fixed64),
-		WithdrawableTxInfo:       make(map[common.Uint256]common2.OutputInfo),
-		ClaimingRewardAddr:       make(map[common.Uint256]common.Uint168),
-		VotesWithdrawableTxInfo:  make(map[common.Uint256]common2.OutputInfo),
-		Nicknames:                make(map[string]struct{}),
-		SpecialTxHashes:          make(map[common.Uint256]struct{}),
-		PreBlockArbiters:         make(map[string]struct{}),
-		ProducerDepositMap:       make(map[common.Uint168]struct{}),
+		DepositOutputs:                make(map[string]common.Fixed64),
+		DPoSV2RewardInfo:              make(map[string]common.Fixed64),
+		DposV2RewardClaimingInfo:      make(map[string]common.Fixed64),
+		DposV2RewardClaimedInfo:       make(map[string]common.Fixed64),
+		WithdrawableTxInfo:            make(map[common.Uint256]common2.OutputInfo),
+		ClaimingRewardAddr:            make(map[common.Uint256]common.Uint168),
+		VotesWithdrawableTxInfo:       make(map[common.Uint256]common2.OutputInfo),
+		RenewalTargetTransactionsInfo: make(map[uint32][]interfaces.Transaction),
+		Nicknames:                     make(map[string]struct{}),
+		SpecialTxHashes:               make(map[common.Uint256]struct{}),
+		PreBlockArbiters:              make(map[string]struct{}),
+		ProducerDepositMap:            make(map[common.Uint168]struct{}),
 	}
 	state.NodeOwnerKeys = copyStringMap(s.NodeOwnerKeys)
 	state.CurrentCRNodeOwnerKeys = copyStringMap(s.CurrentCRNodeOwnerKeys)
@@ -160,6 +166,7 @@ func (s *StateKeyFrame) snapshot() *StateKeyFrame {
 	state.ClaimingRewardAddr = copyRewardClaimingAddrMap(s.ClaimingRewardAddr)
 
 	state.VotesWithdrawableTxInfo = copyWithdrawableTransactionsMap(s.VotesWithdrawableTxInfo)
+	state.RenewalTargetTransactionsInfo = copyRenewalTargetTransactionsMap(s.RenewalTargetTransactionsInfo)
 
 	state.Nicknames = copyStringSet(s.Nicknames)
 	state.SpecialTxHashes = copyHashSet(s.SpecialTxHashes)
@@ -253,6 +260,9 @@ func (s *StateKeyFrame) Serialize(w io.Writer) (err error) {
 		return
 	}
 	if err = s.serializeWithdrawableTransactionsMap(s.VotesWithdrawableTxInfo, w); err != nil {
+		return
+	}
+	if err = s.SerializeRenewalTargetMap(s.RenewalTargetTransactionsInfo, w); err != nil {
 		return
 	}
 	if err = s.SerializeStringSet(s.Nicknames, w); err != nil {
@@ -376,6 +386,11 @@ func (s *StateKeyFrame) Deserialize(r io.Reader) (err error) {
 	if s.VotesWithdrawableTxInfo, err = s.deserializeWithdrawableTransactionsMap(r); err != nil {
 		return
 	}
+
+	if s.RenewalTargetTransactionsInfo, err = s.deserializeRenewalTargetTransactionsMap(r); err != nil {
+		return
+	}
+
 	if s.Nicknames, err = s.DeserializeStringSet(r); err != nil {
 		return
 	}
@@ -494,6 +509,27 @@ func (p *StateKeyFrame) serializeWithdrawableTransactionsMap(
 	return
 }
 
+func (s *StateKeyFrame) SerializeRenewalTargetMap(vmap map[uint32][]interfaces.Transaction,
+	w io.Writer) (err error) {
+	if err = common.WriteVarUint(w, uint64(len(vmap))); err != nil {
+		return
+	}
+	for k, v := range vmap {
+		if err = common.WriteUint32(w, k); err != nil {
+			return
+		}
+		if err = common.WriteVarUint(w, uint64(len(v))); err != nil {
+			return
+		}
+		for _, tx := range v {
+			if err = tx.Serialize(w); err != nil {
+				return err
+			}
+		}
+	}
+	return
+}
+
 func (p *StateKeyFrame) deserializeWithdrawableTransactionsMap(r io.Reader) (
 	withdrawableTxsMap map[common.Uint256]common2.OutputInfo, err error) {
 	var count uint64
@@ -510,6 +546,42 @@ func (p *StateKeyFrame) deserializeWithdrawableTransactionsMap(r io.Reader) (
 		if err = withdrawInfo.Deserialize(r); err != nil {
 			return
 		}
+		withdrawableTxsMap[hash] = withdrawInfo
+	}
+	return
+}
+
+func (p *StateKeyFrame) deserializeRenewalTargetTransactionsMap(r io.Reader) (
+	renewalTargetTxsMap map[uint32][]interfaces.Transaction, err error) {
+	var count uint64
+	if count, err = common.ReadVarUint(r, 0); err != nil {
+		return
+	}
+	renewalTargetTxsMap = make(map[uint32][]interfaces.Transaction)
+	for i := uint64(0); i < count; i++ {
+		var height uint32
+		if height, err = common.ReadUint32(r); err != nil {
+			return
+		}
+		var votesCount uint64
+		if votesCount, err = common.ReadVarUint(r, 0); err != nil {
+			return
+		}
+		txs := make([]interfaces.Transaction, 0)
+		for i := uint64(0); i < votesCount; i++ {
+			var txn interfaces.Transaction
+			txn, err = functions.GetTransactionByBytes(r)
+			if err != nil {
+				log.Errorf("invalid renewal transaction")
+				return
+			}
+			if err = txn.Deserialize(r); err != nil {
+				return
+			}
+			txs = append(txs, txn)
+		}
+
+		renewalTargetTxsMap[height] = txs
 	}
 	return
 }
@@ -902,36 +974,37 @@ func (kf *StateKeyFrame) GetUsedDPoSVoteRights(stakeProgramHash *common.Uint168)
 func NewStateKeyFrame() *StateKeyFrame {
 	info := make(map[string]common.Fixed64)
 	return &StateKeyFrame{
-		NodeOwnerKeys:             make(map[string]string),
-		CurrentCRNodeOwnerKeys:    make(map[string]string),
-		NextCRNodeOwnerKeys:       make(map[string]string),
-		PendingProducers:          make(map[string]*Producer),
-		ActivityProducers:         make(map[string]*Producer),
-		InactiveProducers:         make(map[string]*Producer),
-		CanceledProducers:         make(map[string]*Producer),
-		IllegalProducers:          make(map[string]*Producer),
-		PendingCanceledProducers:  make(map[string]*Producer),
-		DposV2EffectedProducers:   make(map[string]*Producer),
-		Votes:                     make(map[string]struct{}),
-		DposV2VoteRights:          make(map[common.Uint168]common.Fixed64),
-		NFTIDInfoHashMap:          make(map[common.Uint256]payload.NFTInfo),
-		UsedDposVotes:             make(map[common.Uint168][]payload.VotesWithLockTime),
-		UsedDposV2Votes:           make(map[common.Uint168]common.Fixed64),
-		DepositOutputs:            make(map[string]common.Fixed64),
-		DPoSV2RewardInfo:          info,
-		DposV2RewardClaimingInfo:  make(map[string]common.Fixed64),
-		DposV2RewardClaimedInfo:   make(map[string]common.Fixed64),
-		WithdrawableTxInfo:        make(map[common.Uint256]common2.OutputInfo),
-		ClaimingRewardAddr:        make(map[common.Uint256]common.Uint168),
-		VotesWithdrawableTxInfo:   make(map[common.Uint256]common2.OutputInfo),
-		Nicknames:                 make(map[string]struct{}),
-		SpecialTxHashes:           make(map[common.Uint256]struct{}),
-		PreBlockArbiters:          make(map[string]struct{}),
-		EmergencyInactiveArbiters: make(map[string]struct{}),
-		ProducerDepositMap:        make(map[common.Uint168]struct{}),
-		VersionStartHeight:        0,
-		VersionEndHeight:          0,
-		DPoSV2ActiveHeight:        math.MaxUint32,
+		NodeOwnerKeys:                 make(map[string]string),
+		CurrentCRNodeOwnerKeys:        make(map[string]string),
+		NextCRNodeOwnerKeys:           make(map[string]string),
+		PendingProducers:              make(map[string]*Producer),
+		ActivityProducers:             make(map[string]*Producer),
+		InactiveProducers:             make(map[string]*Producer),
+		CanceledProducers:             make(map[string]*Producer),
+		IllegalProducers:              make(map[string]*Producer),
+		PendingCanceledProducers:      make(map[string]*Producer),
+		DposV2EffectedProducers:       make(map[string]*Producer),
+		Votes:                         make(map[string]struct{}),
+		DposV2VoteRights:              make(map[common.Uint168]common.Fixed64),
+		NFTIDInfoHashMap:              make(map[common.Uint256]payload.NFTInfo),
+		UsedDposVotes:                 make(map[common.Uint168][]payload.VotesWithLockTime),
+		UsedDposV2Votes:               make(map[common.Uint168]common.Fixed64),
+		DepositOutputs:                make(map[string]common.Fixed64),
+		DPoSV2RewardInfo:              info,
+		DposV2RewardClaimingInfo:      make(map[string]common.Fixed64),
+		DposV2RewardClaimedInfo:       make(map[string]common.Fixed64),
+		WithdrawableTxInfo:            make(map[common.Uint256]common2.OutputInfo),
+		ClaimingRewardAddr:            make(map[common.Uint256]common.Uint168),
+		VotesWithdrawableTxInfo:       make(map[common.Uint256]common2.OutputInfo),
+		RenewalTargetTransactionsInfo: make(map[uint32][]interfaces.Transaction),
+		Nicknames:                     make(map[string]struct{}),
+		SpecialTxHashes:               make(map[common.Uint256]struct{}),
+		PreBlockArbiters:              make(map[string]struct{}),
+		EmergencyInactiveArbiters:     make(map[string]struct{}),
+		ProducerDepositMap:            make(map[common.Uint168]struct{}),
+		VersionStartHeight:            0,
+		VersionEndHeight:              0,
+		DPoSV2ActiveHeight:            math.MaxUint32,
 	}
 }
 
@@ -1023,6 +1096,14 @@ func copyWithdrawableTransactionsMap(src map[common.Uint256]common2.OutputInfo) 
 			Recipient: v.Recipient,
 			Amount:    v.Amount,
 		}
+	}
+	return
+}
+
+func copyRenewalTargetTransactionsMap(src map[uint32][]interfaces.Transaction) (dst map[uint32][]interfaces.Transaction) {
+	dst = map[uint32][]interfaces.Transaction{}
+	for k, v := range src {
+		dst[k] = v
 	}
 	return
 }

@@ -139,7 +139,7 @@ func (t *CRCAppropriationTransaction) SpecialContextCheck() (result elaerr.ELAEr
 	//
 	// Outputs has check in CheckTransactionOutput function:
 	// first one to CRCommitteeAddress, second one to CRAssetsAddress
-	appropriationAmount := t.parameters.BlockChain.GetCRCommittee().AppropriationAmount
+	appropriationAmount := t.parameters.BlockChain.GetCRCommittee().GetAppropriationAmount()
 	if appropriationAmount != t.Outputs()[0].Value {
 		return elaerr.Simple(elaerr.ErrTxPayload,
 			fmt.Errorf("invalid appropriation amount %s, need to be %s",

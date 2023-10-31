@@ -6,12 +6,31 @@
 package events
 
 import (
+	"fmt"
+	"math"
+	"math/big"
 	"testing"
 	"time"
 
 	"github.com/elastos/Elastos.ELA/utils/test"
 	"github.com/stretchr/testify/assert"
 )
+
+func TestNotify2(t *testing.T) {
+	// 创建一个 big.Int 对象
+	intValue := big.NewInt(10000)
+
+	// 转换为 big.Float
+	floatValue := new(big.Float).SetInt(intValue)
+	decimal := int(3)
+	floatValue.Quo(floatValue, new(big.Float).SetFloat64(math.Pow(float64(10), float64(decimal))))
+
+	// 将 big.Float 格式化为字符串
+	formattedValue := floatValue.Text('f', 18)
+
+	fmt.Println(formattedValue)
+
+}
 
 func TestNotify(t *testing.T) {
 	test.SkipShort(t)

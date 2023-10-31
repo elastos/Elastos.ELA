@@ -175,7 +175,7 @@ func (t *ActivateProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bo
 	}
 
 	var minActivateAmount common.Fixed64
-	if t.parameters.BlockHeight >= t.parameters.BlockChain.GetState().DPoSV2ActiveHeight {
+	if t.parameters.BlockHeight >= t.parameters.BlockChain.GetState().GetDPoSV2ActiveHeight() {
 		switch producer.Identity() {
 		case state.DPoSV1:
 			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("not allow to activate producer 1.0")), true

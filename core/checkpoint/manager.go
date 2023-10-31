@@ -113,6 +113,9 @@ type ICheckPoint interface {
 
 	// GetHeight returns initial height checkpoint should start with.
 	StartHeight() uint32
+
+	//reset
+	OnReset() error
 }
 
 // Manager holds checkpoints save automatically.
@@ -201,6 +204,20 @@ func (m *Manager) GetCheckpoint(key string, height uint32) (
 	} else {
 		return nil, false
 	}
+}
+
+func (m *Manager) OnReset() error {
+	m.mtx.Lock()
+	defer m.mtx.Unlock()
+
+	sortedPoints := m.getOrderedCheckpoints()
+	for i, v := range sortedPoints {
+		err := v.OnReset()
+		if err != nil {
+			log.Error(" Reset ", err, " i", i)
+		}
+	}
+	return nil
 }
 
 // Restore will load all data of each checkpoints file and store in
@@ -338,7 +355,6 @@ func (m *Manager) onBlockSaved(block *types.DposBlock,
 				<-reply
 			}
 		}
-
 		if block.Height >=
 			originalHeight+v.SavePeriod() {
 			v.SetHeight(block.Height)

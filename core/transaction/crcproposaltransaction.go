@@ -643,15 +643,15 @@ func (t *CRCProposalTransaction) checkNormalOrELIPProposal(params *TransactionPa
 	if finalPaymentCount != 1 {
 		return errors.New("final payment count invalid")
 	}
-	if amount > (t.parameters.BlockChain.GetCRCommittee().CRCCurrentStageAmount-
-		t.parameters.BlockChain.GetCRCommittee().CommitteeUsedAmount)*blockchain.CRCProposalBudgetsPercentage/100 {
+	if amount > (t.parameters.BlockChain.GetCRCommittee().GetCRCCurrentStageAmount()-
+		t.parameters.BlockChain.GetCRCommittee().GetCommitteeUsedAmount())*blockchain.CRCProposalBudgetsPercentage/100 {
 		return errors.New("budgets exceeds 10% of CRC committee balance")
-	} else if amount > t.parameters.BlockChain.GetCRCommittee().CRCCurrentStageAmount-
-		t.parameters.BlockChain.GetCRCommittee().CRCCommitteeUsedAmount-proposalsUsedAmount {
+	} else if amount > t.parameters.BlockChain.GetCRCommittee().GetCRCCurrentStageAmount()-
+		t.parameters.BlockChain.GetCRCommittee().GetCRCCommitteeUsedAmount()-proposalsUsedAmount {
 		return errors.New(fmt.Sprintf("budgets exceeds the balance of CRC"+
 			" committee, proposal hash:%s, budgets:%s, need <= %s",
-			common.ToReversedString(proposal.Hash(PayloadVersion)), amount, t.parameters.BlockChain.GetCRCommittee().CRCCurrentStageAmount-
-				t.parameters.BlockChain.GetCRCommittee().CRCCommitteeUsedAmount-proposalsUsedAmount))
+			common.ToReversedString(proposal.Hash(PayloadVersion)), amount, t.parameters.BlockChain.GetCRCommittee().GetCRCCurrentStageAmount()-
+				t.parameters.BlockChain.GetCRCommittee().GetCRCCommitteeUsedAmount()-proposalsUsedAmount))
 	} else if amount < 0 {
 		return errors.New("budgets is invalid")
 	}

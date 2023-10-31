@@ -10,11 +10,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"io"
-	"math"
-	"sort"
-	"sync"
-
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/core/contract"
@@ -31,6 +26,10 @@ import (
 	"github.com/elastos/Elastos.ELA/p2p"
 	"github.com/elastos/Elastos.ELA/p2p/msg"
 	"github.com/elastos/Elastos.ELA/utils"
+	"io"
+	"math"
+	"sort"
+	"sync"
 )
 
 // ProducerState represents the state of a producer.
@@ -608,6 +607,42 @@ type State struct {
 	LastRenewalDPoSV2Votes map[common.Uint256]struct{}
 }
 
+func (s *State) IsInPOWMode() bool {
+	s.mtx.RLock()
+	defer s.mtx.RUnlock()
+	return s.ConsensusAlgorithm == POW
+}
+
+func (s *State) GetRevertToPOWBlockHeight() uint32 {
+	s.mtx.RLock()
+	defer s.mtx.RUnlock()
+	return s.RevertToPOWBlockHeight
+}
+
+func (s *State) IsNeedNextTurnDPOSInfo() bool {
+	s.mtx.RLock()
+	defer s.mtx.RUnlock()
+	return s.NeedNextTurnDPOSInfo
+}
+
+func (s *State) GetDPOSWorkHeight() uint32 {
+	s.mtx.RLock()
+	defer s.mtx.RUnlock()
+	return s.DPOSWorkHeight
+}
+
+func (s *State) GetNoProducers() bool {
+	s.mtx.RLock()
+	defer s.mtx.RUnlock()
+	return s.NoProducers
+}
+
+func (s *State) GetNoClaimDPOSNode() bool {
+	s.mtx.RLock()
+	defer s.mtx.RUnlock()
+	return s.NoClaimDPOSNode
+}
+
 func (s *State) DPoSV2Started() bool {
 	s.mtx.RLock()
 	defer s.mtx.RUnlock()
@@ -616,12 +651,6 @@ func (s *State) DPoSV2Started() bool {
 
 func (s *State) dposV2Started() bool {
 	return s.DPoSV2ActiveHeight != math.MaxUint32
-}
-
-func (s *State) isDposV2Active() bool {
-	log.Errorf("isDposV2Active len(a.DposV2EffectedProducers) %d  GeneralArbiters %d", len(s.DposV2EffectedProducers),
-		s.ChainParams.DPoSConfiguration.NormalArbitratorsCount)
-	return len(s.DposV2EffectedProducers) >= s.ChainParams.DPoSConfiguration.NormalArbitratorsCount*3/2
 }
 
 func (s *State) GetRealWithdrawTransactions() map[common.Uint256]common2.OutputInfo {
@@ -636,6 +665,67 @@ func (s *State) GetVotesWithdrawableTxInfo() map[common.Uint256]common2.OutputIn
 	defer s.mtx.RUnlock()
 
 	return s.StateKeyFrame.VotesWithdrawableTxInfo
+}
+
+func (s *State) GetRenewalTargetTransactionsInfo() map[uint32][]interfaces.Transaction {
+	s.mtx.RLock()
+	defer s.mtx.RUnlock()
+
+	return s.RenewalTargetTransactionsInfo
+}
+
+func (s *State) GetDposV2RewardClaimedInfo(addr string) common.Fixed64 {
+	s.mtx.RLock()
+	defer s.mtx.RUnlock()
+	return s.DposV2RewardClaimedInfo[addr]
+}
+
+func (s *State) GetDPoSV2RewardInfo(addr string) (common.Fixed64, bool) {
+	s.mtx.RLock()
+	defer s.mtx.RUnlock()
+	claimAmount, ok := s.DPoSV2RewardInfo[addr]
+	return claimAmount, ok
+}
+
+// copy
+func (s *State) CopyDPoSV2RewardInfo() map[string]common.Fixed64 {
+	s.mtx.RLock()
+	defer s.mtx.RUnlock()
+	rewardInfo := copyFixed64Map(s.DPoSV2RewardInfo)
+	return rewardInfo
+}
+
+func (s *State) GetDposV2RewardClaimingInfo(addr string) common.Fixed64 {
+	s.mtx.RLock()
+	defer s.mtx.RUnlock()
+	return s.DposV2RewardClaimingInfo[addr]
+}
+
+func (s *State) GetUsedDposV2Votes(stakeProgramHash common.Uint168) common.Fixed64 {
+	s.mtx.RLock()
+	defer s.mtx.RUnlock()
+	return s.UsedDposV2Votes[stakeProgramHash]
+}
+
+func (s *State) GetUsedDposVotes(stakeProgramHash common.Uint168) ([]payload.VotesWithLockTime, bool) {
+	s.mtx.RLock()
+	defer s.mtx.RUnlock()
+	usedDposVotes, ok := s.UsedDposVotes[stakeProgramHash]
+	return usedDposVotes, ok
+}
+
+func (s *State) GetDposV2VoteRights(stakeProgramHash common.Uint168) (common.Fixed64, bool) {
+	s.mtx.RLock()
+	defer s.mtx.RUnlock()
+	totalVotes, exist := s.DposV2VoteRights[stakeProgramHash]
+	return totalVotes, exist
+
+}
+
+func (s *State) GetProducerKey(publicKey []byte) string {
+	s.mtx.RLock()
+	defer s.mtx.RUnlock()
+	return s.getProducerKey(publicKey)
 }
 
 // getProducerKey returns the producer's owner public key string, whether the
@@ -802,6 +892,33 @@ func (s *State) GetAllProducers() []Producer {
 	return s.getAllProducersByCopy()
 }
 
+func (s *State) GetLastRandomCandidateHeight() uint32 {
+	s.mtx.RLock()
+	defer s.mtx.RUnlock()
+	return s.LastRandomCandidateHeight
+}
+func (s *State) GetLastRandomCandidateOwner() string {
+	s.mtx.RLock()
+	defer s.mtx.RUnlock()
+	return s.LastRandomCandidateOwner
+}
+
+func (s *State) isDposV2Active() bool {
+	if s.DPoSV2ActiveHeight != math.MaxUint32 {
+		return true
+	}
+	return len(s.DposV2EffectedProducers) >= s.ChainParams.DPoSConfiguration.NormalArbitratorsCount*3/2
+}
+
+func (s *State) IsDposV2Active() bool {
+	s.mtx.RLock()
+	defer s.mtx.RUnlock()
+	if s.DPoSV2ActiveHeight != math.MaxUint32 {
+		return true
+	}
+	return len(s.DposV2EffectedProducers) >= s.ChainParams.DPoSConfiguration.NormalArbitratorsCount*3/2
+}
+
 func (s *State) GetDetailedDPoSV2Votes(stakeProgramHash *common.Uint168) []payload.DetailedVoteInfo {
 	s.mtx.RLock()
 	defer s.mtx.RUnlock()
@@ -889,6 +1006,14 @@ func (s *State) getAllNodePublicKey() map[string]struct{} {
 	}
 	return nodePublicKeyMap
 }
+
+func (s *State) GetNFTInfo(nftID common.Uint256) (payload.NFTInfo, bool) {
+	s.mtx.RLock()
+	defer s.mtx.RUnlock()
+	nftInfo, exist := s.NFTIDInfoHashMap[nftID]
+	return nftInfo, exist
+}
+
 func (s *State) GetNFTReferKey(nftID common.Uint256) (common.Uint256, error) {
 	s.mtx.RLock()
 	defer s.mtx.RUnlock()
@@ -1056,6 +1181,26 @@ func (s *State) GetConsensusAlgorithm() ConsesusAlgorithm {
 	s.mtx.RLock()
 	defer s.mtx.RUnlock()
 	return s.ConsensusAlgorithm
+}
+
+func (s *State) getDPoSV2ActiveHeight() uint32 {
+	return s.DPoSV2ActiveHeight
+}
+
+func (s *State) GetDPoSV2ActiveHeight() uint32 {
+	s.mtx.RLock()
+	defer s.mtx.RUnlock()
+	return s.DPoSV2ActiveHeight
+}
+
+func (s *State) isDPoSV2Run(blockHeight uint32) bool {
+	return blockHeight >= s.DPoSV2ActiveHeight
+}
+
+func (s *State) IsDPoSV2Run(blockHeight uint32) bool {
+	s.mtx.RLock()
+	defer s.mtx.RUnlock()
+	return blockHeight >= s.DPoSV2ActiveHeight
 }
 
 // IsActiveProducer returns if a producer is in activate list according to the
@@ -1309,7 +1454,6 @@ func (s *State) ProcessBlock(block *types.Block, confirm *payload.Confirm, dutyI
 
 	// Commit changes here if no errors found.
 	s.History.Commit(block.Height)
-
 	if block.Height >= s.ChainParams.DPoSV2StartHeight &&
 		len(s.WithdrawableTxInfo) != 0 {
 		s.createDposV2ClaimRewardRealWithdrawTransaction(block.Height)
@@ -1745,6 +1889,13 @@ func (s *State) processTransactions(txs []interfaces.Transaction, height uint32)
 		}
 	}
 
+	if rtxs := s.RenewalTargetTransactionsInfo[height-
+		s.ChainParams.DPoSConfiguration.RenewalVotingTargetDuration]; len(rtxs) != 0 {
+		// process renewal voting target transactions
+		for _, tx := range rtxs {
+			s.processRenewalVotingTargetContent(tx, height)
+		}
+	}
 }
 
 // processTransaction take a transaction and the height it has been packed into
@@ -2057,6 +2208,17 @@ func (s *State) processVoting(tx interfaces.Transaction, height uint32) {
 		s.processVotingContent(tx, height)
 	case payload.RenewalVoteVersion:
 		s.processRenewalVotingContent(tx, height)
+	case payload.RenewalVoteTargetVersion:
+		oriList := copyRenewalTargetTransactionsMap(s.RenewalTargetTransactionsInfo)
+		s.History.Append(height, func() {
+			if _, ok := s.RenewalTargetTransactionsInfo[height]; !ok {
+				s.RenewalTargetTransactionsInfo[height] = make([]interfaces.Transaction, 0)
+			}
+			s.RenewalTargetTransactionsInfo[height] = append(s.RenewalTargetTransactionsInfo[height], tx)
+		}, func() {
+			s.RenewalTargetTransactionsInfo = oriList
+		})
+		//s.processRenewalVotingTargetContent(tx, height)
 	}
 }
 
@@ -2243,6 +2405,74 @@ func (s *State) processRenewalVotingContent(tx interfaces.Transaction, height ui
 		}, func() {
 			delete(producer.detailedDPoSV2Votes[*stakeAddress], referKey)
 			producer.detailedDPoSV2Votes[*stakeAddress][content.ReferKey] = voteInfo
+		})
+	}
+}
+
+func (s *State) processRenewalVotingTargetContent(tx interfaces.Transaction, height uint32) {
+	// get stake address
+	code := tx.Programs()[0].Code
+	ct, _ := contract.CreateStakeContractByCode(code)
+	stakeAddress := ct.ToProgramHash()
+	pld := tx.Payload().(*payload.Voting)
+	for _, cont := range pld.RenewalContents {
+		content := cont
+
+		v2Producers := s.getDposV2Producers()
+		var oriVote *payload.DetailedVoteInfo
+		var oriProducer *Producer
+		for _, p := range v2Producers {
+			v, err := p.GetDetailedDPoSV2Votes(*stakeAddress, content.ReferKey)
+			if err != nil {
+				continue
+			}
+			oriVote = &v
+			oriProducer = p
+			break
+		}
+		if oriVote == nil {
+			log.Errorf("invalid voting refer key:%s, statke addr:%s", content.ReferKey, stakeAddress)
+			return
+		}
+
+		// get producer and update the votes
+		newProducer := s.getDPoSV2Producer(content.VotesInfo.Candidate)
+		if newProducer == nil {
+			log.Info("can not find producer ", hex.EncodeToString(content.VotesInfo.Candidate))
+			continue
+		}
+
+		// record all new votes information
+		detailVoteInfo := payload.DetailedVoteInfo{
+			StakeProgramHash: *stakeAddress,
+			TransactionHash:  tx.Hash(),
+			BlockHeight:      height,
+			PayloadVersion:   oriVote.PayloadVersion,
+			VoteType:         outputpayload.DposV2,
+			Info:             []payload.VotesWithLockTime{content.VotesInfo},
+		}
+
+		s.LastRenewalDPoSV2Votes[content.ReferKey] = struct{}{}
+
+		referKey := detailVoteInfo.ReferKey()
+		oriRenewalTargetInfo := s.RenewalTargetTransactionsInfo[height]
+		s.History.Append(height, func() {
+			if newProducer.detailedDPoSV2Votes == nil {
+				newProducer.detailedDPoSV2Votes = make(map[common.Uint168]map[common.Uint256]payload.DetailedVoteInfo)
+			}
+			if _, ok := newProducer.detailedDPoSV2Votes[*stakeAddress]; !ok {
+				newProducer.detailedDPoSV2Votes[*stakeAddress] = make(map[common.Uint256]payload.DetailedVoteInfo, 0)
+			}
+			newProducer.detailedDPoSV2Votes[*stakeAddress][referKey] = detailVoteInfo
+			delete(oriProducer.detailedDPoSV2Votes[*stakeAddress], content.ReferKey)
+			delete(s.RenewalTargetTransactionsInfo, height)
+		}, func() {
+			delete(newProducer.detailedDPoSV2Votes[*stakeAddress], referKey)
+			if len(newProducer.detailedDPoSV2Votes[*stakeAddress]) == 0 {
+				delete(newProducer.detailedDPoSV2Votes, *stakeAddress)
+			}
+			oriProducer.detailedDPoSV2Votes[*stakeAddress][content.ReferKey] = *oriVote
+			s.RenewalTargetTransactionsInfo[height] = oriRenewalTargetInfo
 		})
 	}
 }
@@ -2689,13 +2919,16 @@ func (s *State) processRetVotesRewardRealWithdraw(tx interfaces.Transaction, hei
 func (s *State) processCreateNFT(tx interfaces.Transaction, height uint32) {
 	nftPayload := tx.Payload().(*payload.CreateNFT)
 	nftID := common.GetNFTID(nftPayload.ReferKey, tx.Hash())
-
-	// record the relationship map between ID and genesis block hash
-	s.NFTIDInfoHashMap[nftID] = payload.NFTInfo{
-		ReferKey:         nftPayload.ReferKey,
-		GenesisBlockHash: nftPayload.GenesisBlockHash,
-		CreateNFTTxHash:  tx.Hash(),
-	}
+	s.History.Append(height, func() {
+		// record the relationship map between ID and genesis block hash
+		s.NFTIDInfoHashMap[nftID] = payload.NFTInfo{
+			ReferKey:         nftPayload.ReferKey,
+			GenesisBlockHash: nftPayload.GenesisBlockHash,
+			CreateNFTTxHash:  tx.Hash(),
+		}
+	}, func() {
+		delete(s.NFTIDInfoHashMap, nftID)
+	})
 
 	producers := s.getDposV2Producers()
 	for _, producer := range producers {
@@ -3025,6 +3258,36 @@ func (s *State) ExistNFTID(id common.Uint256) bool {
 	_, exist := s.NFTIDInfoHashMap[id]
 
 	return exist
+}
+
+func (s *State) GetNeedRevertToDPOSTX() bool {
+	s.mtx.RLock()
+	defer s.mtx.RUnlock()
+	return s.NeedRevertToDPOSTX
+}
+
+func (s *State) GetNeedNextTurnDPOSInfo() bool {
+	s.mtx.RLock()
+	defer s.mtx.RUnlock()
+	return s.NeedNextTurnDPOSInfo
+}
+
+func (s *State) GetLastBlockTimestamp() uint32 {
+	s.mtx.RLock()
+	defer s.mtx.RUnlock()
+	return s.LastBlockTimestamp
+}
+
+func (a *State) SetNeedRevertToDPOSTX(need bool) {
+	a.mtx.Lock()
+	defer a.mtx.Unlock()
+	a.NeedRevertToDPOSTX = need
+}
+
+func (s *State) SetNeedNextTurnDPOSInfo(need bool) {
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
+	s.NeedNextTurnDPOSInfo = need
 }
 
 func (s *State) CanNFTDestroy(IDs []common.Uint256) []common.Uint256 {

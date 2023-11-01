@@ -508,12 +508,9 @@ func (c *Committee) checkAndSetMemberToInactive(history *utils.History, height u
 		m := v
 		if len(m.DPOSPublicKey) == 0 && m.MemberState == MemberElected {
 			history.Append(height, func() {
-				changeState := canChangeState(m.MemberState, MemberInactive)
-				if changeState {
-					m.MemberState = MemberInactive
-					if height >= c.Params.CRConfiguration.ChangeCommitteeNewCRHeight {
-						c.state.UpdateCRInactivePenalty(m.Info.CID, height)
-					}
+				m.MemberState = MemberInactive
+				if height >= c.Params.CRConfiguration.ChangeCommitteeNewCRHeight {
+					c.state.UpdateCRInactivePenalty(m.Info.CID, height)
 				}
 			}, func() {
 				//todo revert
@@ -633,6 +630,7 @@ func (c *Committee) transferCRMemberState(crMember *CRMember, height uint32) {
 	oriMemberState := crMember.MemberState
 	penalty := c.getMemberPenalty(height, crMember, true)
 	c.committeeHistory.Append(height, func() {
+		//here is also before processtransaction history commit
 		crMember.MemberState = MemberImpeached
 		c.state.DepositInfo[crMember.Info.CID].Penalty = penalty
 		c.state.DepositInfo[crMember.Info.CID].DepositAmount -= MinDepositAmount

@@ -43,10 +43,15 @@ func (c *Committee) processTransactions(txs []interfaces.Transaction, height uin
 		oriState := cr.MemberState
 		oriActivateRequestHeight := cr.ActivateRequestHeight
 		c.state.History.Append(height, func() {
+			//At first MemberState is MemberInactive or  MemberIllegal
+			//CRCouncilMemberClaimNode MemberInactive->MemberElected
+			//CRCouncilMemberClaimNode may confilct with ActivateProducer
 			if canChangeState(cr.MemberState, MemberElected) {
 				cr.MemberState = MemberElected
-				cr.ActivateRequestHeight = math.MaxUint32
 			}
+			//in case of more call of  activateCRMemberFromInactive
+			cr.ActivateRequestHeight = math.MaxUint32
+
 		}, func() {
 			cr.MemberState = oriState
 			cr.ActivateRequestHeight = oriActivateRequestHeight
@@ -74,7 +79,20 @@ func canChangeState(nowState, targetState MemberState) bool {
 			return true
 		}
 	case MemberInactive:
+		//only MemberElected
 		if nowState != MemberElected {
+			return false
+		} else {
+			return true
+		}
+	case MemberImpeached:
+		if nowState != MemberElected && nowState != MemberInactive && nowState != MemberIllegal {
+			return false
+		} else {
+			return true
+		}
+	case MemberTerminated:
+		if nowState != MemberElected && nowState != MemberInactive && nowState != MemberIllegal {
 			return false
 		} else {
 			return true
@@ -156,6 +174,8 @@ func (c *Committee) inactiveMembersByWithdrawKeys(height uint32,
 		if _, ok := wmap[hex.EncodeToString(m.DPOSPublicKey)]; !ok {
 			// inactive CR member
 			c.state.History.Append(height, func() {
+				//here should becarefull. this is before processtransaction history commit, MemberState may change since tx
+				//MemberImpeached, MemberTerminated, MemberReturned MemberIllegal  MemberElected
 				changeState := canChangeState(member.MemberState, MemberInactive)
 				if changeState {
 					member.MemberState = MemberInactive

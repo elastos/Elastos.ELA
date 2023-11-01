@@ -2959,10 +2959,17 @@ func GetCRProposalState(param Params) map[string]interface{} {
 		rpcProposal.SideChainInfo.MagicNumber = proposalState.Proposal.MagicNumber
 		rpcProposal.SideChainInfo.GenesisHash = common.ToReversedString(proposalState.Proposal.GenesisHash)
 		rpcProposal.SideChainInfo.ExchangeRate = proposalState.Proposal.ExchangeRate.String()
-		rpcProposal.SideChainInfo.EffectiveHeight = proposalState.Proposal.EffectiveHeight
+		rpcProposal.SideChainInfo.EffectiveHeight = proposalState.Proposal.SideChainInfo.EffectiveHeight
 		rpcProposal.SideChainInfo.ResourcePath = proposalState.Proposal.ResourcePath
 		did, _ := proposalState.Proposal.CRCouncilMemberDID.ToAddress()
 		rpcProposal.CRCouncilMemberDID = did
+		rpcProposalState.Proposal = rpcProposal
+
+	case payload.ChangeSideChainMinGasPrice:
+		var rpcProposal CRCChangeSideChainMinGasPriceInfo
+		rpcProposal.GenesisBlockHash = proposalState.Proposal.ChangeSideChainMinGasPriceInfo.GenesisBlockHash.String()
+		rpcProposal.MinGasPrice = proposalState.Proposal.ChangeSideChainMinGasPriceInfo.MinGasPrice.String()
+		rpcProposal.EffectiveHeight = proposalState.Proposal.ChangeSideChainMinGasPriceInfo.EffectiveHeight
 		rpcProposalState.Proposal = rpcProposal
 	}
 

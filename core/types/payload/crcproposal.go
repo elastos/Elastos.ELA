@@ -1483,25 +1483,26 @@ func (p *CRCProposal) Hash(payloadVersion byte) common.Uint256 {
 
 func (p *CRCProposal) ToProposalInfo(payloadVersion byte) CRCProposalInfo {
 	info := CRCProposalInfo{
-		ProposalType:              p.ProposalType,
-		CategoryData:              p.CategoryData,
-		OwnerPublicKey:            p.OwnerKey,
-		DraftHash:                 p.DraftHash,
-		Budgets:                   p.Budgets,
-		Recipient:                 p.Recipient,
-		TargetProposalHash:        p.TargetProposalHash,
-		ReservedCustomIDList:      p.ReservedCustomIDList,
-		ReceivedCustomIDList:      p.ReceivedCustomIDList,
-		ReceiverDID:               p.ReceiverDID,
-		RateOfCustomIDFee:         p.RateOfCustomIDFee,
-		EIDEffectiveHeight:        p.EIDEffectiveHeight,
-		NewRecipient:              p.NewRecipient,
-		NewOwnerPublicKey:         p.NewOwnerKey,
-		SecretaryGeneralPublicKey: p.SecretaryGeneralPublicKey,
-		SecretaryGeneralDID:       p.SecretaryGeneralDID,
-		CRCouncilMemberDID:        p.CRCouncilMemberDID,
-		SideChainInfo:             p.SideChainInfo,
-		Hash:                      p.Hash(payloadVersion),
+		ProposalType:                   p.ProposalType,
+		CategoryData:                   p.CategoryData,
+		OwnerPublicKey:                 p.OwnerKey,
+		DraftHash:                      p.DraftHash,
+		Budgets:                        p.Budgets,
+		Recipient:                      p.Recipient,
+		TargetProposalHash:             p.TargetProposalHash,
+		ReservedCustomIDList:           p.ReservedCustomIDList,
+		ReceivedCustomIDList:           p.ReceivedCustomIDList,
+		ReceiverDID:                    p.ReceiverDID,
+		RateOfCustomIDFee:              p.RateOfCustomIDFee,
+		EIDEffectiveHeight:             p.EIDEffectiveHeight,
+		NewRecipient:                   p.NewRecipient,
+		NewOwnerPublicKey:              p.NewOwnerKey,
+		SecretaryGeneralPublicKey:      p.SecretaryGeneralPublicKey,
+		SecretaryGeneralDID:            p.SecretaryGeneralDID,
+		CRCouncilMemberDID:             p.CRCouncilMemberDID,
+		SideChainInfo:                  p.SideChainInfo,
+		ChangeSideChainMinGasPriceInfo: p.ChangeSideChainMinGasPriceInfo,
+		Hash:                           p.Hash(payloadVersion),
 	}
 
 	if info.Budgets == nil {
@@ -1577,6 +1578,8 @@ type CRCProposalInfo struct {
 	CRCouncilMemberDID common.Uint168
 
 	SideChainInfo
+
+	ChangeSideChainMinGasPriceInfo
 
 	// The proposal hash
 	Hash common.Uint256
@@ -1673,6 +1676,10 @@ func (p *CRCProposalInfo) Serialize(w io.Writer, version byte) error {
 
 	if err := p.SideChainInfo.Serialize(w); err != nil {
 		return errors.New("failed to serialize SideChainInfo")
+	}
+
+	if err := p.ChangeSideChainMinGasPriceInfo.Serialize(w); err != nil {
+		return errors.New("failed to serialize ChangeSideChainMinGasPriceInfo")
 	}
 
 	if err := p.Hash.Serialize(w); err != nil {
@@ -1784,6 +1791,10 @@ func (p *CRCProposalInfo) Deserialize(r io.Reader, version byte) error {
 
 	if err := p.SideChainInfo.Deserialize(r); err != nil {
 		return errors.New("failed to deserialize SideChainInfo")
+	}
+
+	if err := p.ChangeSideChainMinGasPriceInfo.Deserialize(r); err != nil {
+		return errors.New("failed to deserialize ChangeSideChainMinGasPriceInfo")
 	}
 
 	if err := p.Hash.Deserialize(r); err != nil {

@@ -54,6 +54,7 @@ const (
 	slotCreateNFTStakeAddr                      = "createnftstakeaddr"
 	slotNFTDestroyFromSideChainHash             = "NFTDestroyFromSideChainHash"
 	slotRenewalVotingTarget                     = "RenewalVotingTarget"
+	slotSideChainMinGasPrice                    = "SideChainMinGasPrice"
 )
 
 type conflict struct {
@@ -619,6 +620,15 @@ func newConflictManager() conflictManager {
 					keyTypeFuncPair{
 						Type: common2.Voting,
 						Func: hashArrayRenewalTargetReferKeys,
+					},
+				),
+			},
+			{
+				name: slotSideChainMinGasPrice,
+				slot: newConflictSlot(hash,
+					keyTypeFuncPair{
+						Type: common2.CRCProposal,
+						Func: hashSideChainMinGasPrice,
 					},
 				),
 			},

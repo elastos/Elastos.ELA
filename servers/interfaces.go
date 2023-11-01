@@ -3484,6 +3484,13 @@ func getPayloadInfo(tx interfaces.Transaction, payloadVersion byte) PayloadInfo 
 			obj.CRCouncilMemberSignature = common.BytesToHexString(object.CRCouncilMemberSignature)
 			obj.Hash = common.ToReversedString(object.Hash(payloadVersion))
 			return obj
+
+		case payload.ChangeSideChainMinGasPrice:
+			obj := new(CRCChangeSideChainMinGasPriceInfo)
+			obj.GenesisBlockHash = object.ChangeSideChainMinGasPriceInfo.GenesisBlockHash.String()
+			obj.MinGasPrice = object.ChangeSideChainMinGasPriceInfo.MinGasPrice.String()
+			obj.EffectiveHeight = object.ChangeSideChainMinGasPriceInfo.EffectiveHeight
+			return obj
 		}
 
 	case *payload.RecordProposalResult:

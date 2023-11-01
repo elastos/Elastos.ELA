@@ -399,6 +399,12 @@ type CRCRegisterSideChainProposalInfo struct {
 	Hash                     string         `json:"hash"`
 }
 
+type CRCChangeSideChainMinGasPriceInfo struct {
+	GenesisBlockHash string `json:"genesisblockhash"`
+	MinGasPrice      string `json:"mingasprice"`
+	EffectiveHeight  uint32 `json:"effectiveheight"`
+}
+
 type CRCProposalReviewInfo struct {
 	ProposalHash string `json:"proposalhash"`
 	VoteResult   string `json:"voteresult"`

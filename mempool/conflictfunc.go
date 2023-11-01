@@ -704,3 +704,16 @@ func hashArrayRenewalTargetReferKeys(tx interfaces.Transaction) (interface{}, er
 
 	return arrayHash, nil
 }
+
+func hashSideChainMinGasPrice(tx interfaces.Transaction) (interface{}, error) {
+	p, ok := tx.Payload().(*payload.CRCProposal)
+	if !ok {
+		return nil, fmt.Errorf(
+			"CRC proposal payload cast failed, tx:%s", tx.Hash())
+	}
+	if p.ProposalType == payload.ChangeSideChainMinGasPrice {
+		return p.ChangeSideChainMinGasPriceInfo.GenesisBlockHash, nil
+	}
+
+	return nil, nil
+}

@@ -22,7 +22,7 @@ const (
 	MaxUpgradeProposalType = 0x02ff
 
 	// MaxSideChainGasPriceLength is the max bytes of side chain gas price.
-	MaxSideChainGasPriceLength = 1024
+	MaxSideChainGasPriceLength = 256
 )
 
 const (
@@ -405,7 +405,8 @@ type ChangeSideChainMinGasPriceInfo struct {
 	// Genesis hash of side chain
 	GenesisBlockHash common.Uint256
 
-	// The min gas price of ESC side chain
+	// The min gas price of ESC side chain.
+	// Negative integers are not supported at this time, Values larger than 256bits are rejected
 	MinGasPrice big.Int
 
 	// Effective at the side chain height of ESC.

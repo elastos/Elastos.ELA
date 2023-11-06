@@ -353,7 +353,8 @@ func (tx *BaseTransaction) IsCustomIDRelatedTx() bool {
 		p, _ := tx.payload.(*payload.CRCProposal)
 		return p.ProposalType == payload.ReserveCustomID ||
 			p.ProposalType == payload.ReceiveCustomID ||
-			p.ProposalType == payload.ChangeCustomIDFee
+			p.ProposalType == payload.ChangeCustomIDFee ||
+			p.ProposalType == payload.ChangeSideChainMinGasPrice
 	}
 	if tx.IsCustomIDResultTx() {
 		return true
@@ -410,7 +411,7 @@ func (tx *BaseTransaction) IsIllegalTypeTx() bool {
 	return tx.IsIllegalProposalTx() || tx.IsIllegalVoteTx() || tx.IsIllegalBlockTx() || tx.IsSidechainIllegalDataTx()
 }
 
-//special tx is this kind of tx who have no input and output
+// special tx is this kind of tx who have no input and output
 func (tx *BaseTransaction) IsSpecialTx() bool {
 	if tx.IsIllegalTypeTx() || tx.IsInactiveArbitrators() || tx.IsNextTurnDPOSInfoTx() {
 		return true

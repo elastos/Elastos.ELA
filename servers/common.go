@@ -400,9 +400,31 @@ type CRCRegisterSideChainProposalInfo struct {
 }
 
 type CRCChangeSideChainMinGasPriceInfo struct {
+	ProposalType             string `json:"proposaltype"`
+	CategoryData             string `json:"categorydata"`
+	OwnerPublicKey           string `json:"ownerpublickey"`
+	DraftHash                string `json:"drafthash"`
+	GenesisBlockHash         string `json:"genesisblockhash"`
+	MinGasPrice              string `json:"mingasprice"`
+	EffectiveHeight          uint32 `json:"effectiveheight"`
+	Signature                string `json:"signature"`
+	CRCouncilMemberDID       string `json:"crcouncilmemberdid"`
+	CRCouncilMemberSignature string `json:"crcouncilmembersignature"`
+}
+
+type ChangeSideChainMinGasPriceInfo struct {
 	GenesisBlockHash string `json:"genesisblockhash"`
 	MinGasPrice      string `json:"mingasprice"`
 	EffectiveHeight  uint32 `json:"effectiveheight"`
+}
+
+type CRCChangeSideChainMinGasPriceProposal struct {
+	ProposalType       string                         `json:"proposaltype"`
+	CategoryData       string                         `json:"categorydata"`
+	OwnerPublicKey     string                         `json:"ownerpublickey"`
+	DraftHash          string                         `json:"drafthash"`
+	GasPriceInfo       ChangeSideChainMinGasPriceInfo `json:"gaspriceinfo"`
+	CRCouncilMemberDID string                         `json:"crcouncilmemberdid"`
 }
 
 type CRCProposalReviewInfo struct {

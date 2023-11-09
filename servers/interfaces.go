@@ -2966,10 +2966,18 @@ func GetCRProposalState(param Params) map[string]interface{} {
 		rpcProposalState.Proposal = rpcProposal
 
 	case payload.ChangeSideChainMinGasPrice:
-		var rpcProposal CRCChangeSideChainMinGasPriceInfo
-		rpcProposal.GenesisBlockHash = proposalState.Proposal.ChangeSideChainMinGasPriceInfo.GenesisBlockHash.String()
-		rpcProposal.MinGasPrice = proposalState.Proposal.ChangeSideChainMinGasPriceInfo.MinGasPrice.String()
-		rpcProposal.EffectiveHeight = proposalState.Proposal.ChangeSideChainMinGasPriceInfo.EffectiveHeight
+		var rpcProposal CRCChangeSideChainMinGasPriceProposal
+		rpcProposal.ProposalType = proposalState.Proposal.ProposalType.Name()
+		rpcProposal.CategoryData = proposalState.Proposal.CategoryData
+		rpcProposal.OwnerPublicKey = common.BytesToHexString(proposalState.Proposal.OwnerPublicKey)
+		rpcProposal.DraftHash = common.ToReversedString(proposalState.Proposal.DraftHash)
+
+		rpcProposal.GasPriceInfo.GenesisBlockHash = common.ToReversedString(proposalState.Proposal.ChangeSideChainMinGasPriceInfo.GenesisBlockHash)
+		rpcProposal.GasPriceInfo.MinGasPrice = proposalState.Proposal.ChangeSideChainMinGasPriceInfo.MinGasPrice.String()
+		rpcProposal.GasPriceInfo.EffectiveHeight = proposalState.Proposal.ChangeSideChainMinGasPriceInfo.EffectiveHeight
+		did, _ := proposalState.Proposal.CRCouncilMemberDID.ToAddress()
+		rpcProposal.CRCouncilMemberDID = did
+
 		rpcProposalState.Proposal = rpcProposal
 	}
 
@@ -3494,9 +3502,18 @@ func getPayloadInfo(tx interfaces.Transaction, payloadVersion byte) PayloadInfo 
 
 		case payload.ChangeSideChainMinGasPrice:
 			obj := new(CRCChangeSideChainMinGasPriceInfo)
+			obj.ProposalType = object.ProposalType.Name()
+			obj.CategoryData = object.CategoryData
+			obj.OwnerPublicKey = common.BytesToHexString(object.OwnerKey)
+			obj.DraftHash = common.ToReversedString(object.DraftHash)
 			obj.GenesisBlockHash = object.ChangeSideChainMinGasPriceInfo.GenesisBlockHash.String()
 			obj.MinGasPrice = object.ChangeSideChainMinGasPriceInfo.MinGasPrice.String()
 			obj.EffectiveHeight = object.ChangeSideChainMinGasPriceInfo.EffectiveHeight
+			obj.Signature = common.BytesToHexString(object.Signature)
+			crmdid, _ := object.CRCouncilMemberDID.ToAddress()
+			obj.CRCouncilMemberDID = crmdid
+			obj.CRCouncilMemberSignature = common.BytesToHexString(object.CRCouncilMemberSignature)
+
 			return obj
 		}
 

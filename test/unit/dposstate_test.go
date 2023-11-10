@@ -1697,6 +1697,7 @@ func TestState_CountArbitratorsInactivityV1(t *testing.T) {
 				},
 			})
 		state.History.Commit(height)
+		state.InactiveHistory.Commit(height)
 	}
 
 	// check the status of random DPOS node.

@@ -182,6 +182,7 @@ func (a *Arbiters) recoverFromCheckPoints(point *CheckPoint) {
 	// reset history
 	a.History = utils.NewHistory(maxHistoryCapacity)
 	a.State.History = utils.NewHistory(maxHistoryCapacity)
+	a.State.InactiveHistory = utils.NewHistory(maxHistoryCapacity)
 
 	a.DutyIndex = point.DutyIndex
 	a.CurrentArbitrators = point.CurrentArbitrators

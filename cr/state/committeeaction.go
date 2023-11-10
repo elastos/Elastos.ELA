@@ -70,6 +70,14 @@ func (c *Committee) processTransactions(txs []interfaces.Transaction, height uin
 	}
 }
 
+/*
+transaction effect statue is
+	MemberInactive by tx  CRCouncilMemberClaimNode ---》  MemberElected
+    by tx ReturnCRDepositCoin --》MemberReturned
+*/
+
+// MemberElected  MemberImpeached  MemberTerminated	MemberReturned MemberInactive MemberIllegal
+// MemberIllegal MemberInactive change is  in dpos state
 func canChangeState(nowState, targetState MemberState) bool {
 	switch targetState {
 	case MemberElected:
@@ -78,7 +86,7 @@ func canChangeState(nowState, targetState MemberState) bool {
 		} else {
 			return true
 		}
-	case MemberInactive:
+	case MemberInactive: //first is MemberElected,then
 		//only MemberElected
 		if nowState != MemberElected {
 			return false

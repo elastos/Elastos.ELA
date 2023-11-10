@@ -235,7 +235,7 @@ func (c *Committee) GetNextMembers() []*CRMember {
 	return result
 }
 
-// get CRMember ordered by owner public key
+// get CRMember ordered by owner  key
 func (c *Committee) GetCRMember(key string) *CRMember {
 	c.mtx.RLock()
 	defer c.mtx.RUnlock()
@@ -243,7 +243,9 @@ func (c *Committee) GetCRMember(key string) *CRMember {
 	result := getCRMembers(c.Members)
 
 	for _, cr := range result {
-		if hex.EncodeToString(cr.Info.Code[1:len(cr.Info.Code)-1]) == key {
+		//ownerKey
+		ownerKey := common.GetOwnerKey(cr.Info.Code)
+		if hex.EncodeToString(ownerKey) == key {
 			return cr
 		}
 	}
@@ -251,7 +253,8 @@ func (c *Committee) GetCRMember(key string) *CRMember {
 	result = getCRMembers(c.NextMembers)
 
 	for _, cr := range result {
-		if hex.EncodeToString(cr.Info.Code[1:len(cr.Info.Code)-1]) == key {
+		ownerKey := common.GetOwnerKey(cr.Info.Code)
+		if hex.EncodeToString(ownerKey) == key {
 			return cr
 		}
 	}
@@ -384,7 +387,7 @@ func (c *Committee) updateVotingCandidatesState(height uint32) {
 		// Check if any pending candidates has got 6 confirms, set them to activate.
 		activateCandidateFromPending :=
 			func(key common.Uint168, candidate *Candidate) {
-				c.state.History.Append(height, func() {
+				c.committeeHistory.Append(height, func() {
 					candidate.State = Active
 					c.state.Candidates[key] = candidate
 				}, func() {
@@ -438,11 +441,11 @@ func (c *Committee) ProcessBlock(block *types.Block, confirm *payload.Confirm) {
 	c.recordLastVotingStartHeight(block.Height)
 
 	c.processTransactions(block.Transactions, block.Height)
-	c.updateVotingCandidatesState(block.Height)
 	c.updateCandidatesDepositCoin(block.Height)
 	c.state.History.Commit(block.Height)
 
 	inElectionPeriod := c.tryStartVotingPeriod(block.Height)
+	c.updateVotingCandidatesState(block.Height)
 	c.updateProposals(block.Height, inElectionPeriod)
 	c.updateCirculationAmount(c.committeeHistory, block.Height)
 
@@ -510,6 +513,7 @@ func (c *Committee) checkAndSetMemberToInactive(history *utils.History, height u
 					c.state.UpdateCRInactivePenalty(m.Info.CID, height)
 				}
 			}, func() {
+				//todo revert
 				m.MemberState = MemberElected
 				if height >= c.Params.CRConfiguration.ChangeCommitteeNewCRHeight {
 					c.state.RevertUpdateCRInactivePenalty(m.Info.CID, height)
@@ -626,6 +630,7 @@ func (c *Committee) transferCRMemberState(crMember *CRMember, height uint32) {
 	oriMemberState := crMember.MemberState
 	penalty := c.getMemberPenalty(height, crMember, true)
 	c.committeeHistory.Append(height, func() {
+		//here is also before processtransaction history commit
 		crMember.MemberState = MemberImpeached
 		c.state.DepositInfo[crMember.Info.CID].Penalty = penalty
 		c.state.DepositInfo[crMember.Info.CID].DepositAmount -= MinDepositAmount
@@ -1185,6 +1190,7 @@ func (c *Committee) getSignersFromWithdrawFromSideChainTx(tx interfaces.Transact
 	publicKeys := make([]string, 0)
 	if tx.PayloadVersion() == payload.WithdrawFromSideChainVersionV2 {
 		allPulicKeys := c.getCurrentArbiters()
+
 		pld := tx.Payload().(*payload.WithdrawFromSideChain)
 		for _, index := range pld.Signers {
 			publicKeys = append(publicKeys, hex.EncodeToString(allPulicKeys[index]))
@@ -1235,7 +1241,7 @@ func (c *Committee) processCRCouncilMemberClaimNode(tx interfaces.Transaction,
 	var cr *CRMember
 	if height >= c.Params.DPoSV2StartHeight {
 		switch tx.PayloadVersion() {
-		case payload.CurrentCRClaimDPoSNodeVersion:
+		case payload.CurrentCRClaimDPoSNodeVersion, payload.CurrentCRClaimDPoSNodeMultiSignVersion:
 			cr = c.getMember(claimNodePayload.CRCouncilCommitteeDID)
 			if cr == nil {
 				return
@@ -1249,7 +1255,7 @@ func (c *Committee) processCRCouncilMemberClaimNode(tx interfaces.Transaction,
 			}, func() {
 				c.ClaimedDPoSKeys = oriClaimDPoSKeys
 			})
-		case payload.NextCRClaimDPoSNodeVersion:
+		case payload.NextCRClaimDPoSNodeVersion, payload.NextCRClaimDPoSNodeMultiSignVersion:
 			cr = c.getNextMember(claimNodePayload.CRCouncilCommitteeDID)
 			if cr == nil {
 				return

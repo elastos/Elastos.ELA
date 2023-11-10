@@ -49,6 +49,21 @@ func (t *UpdateCRTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
 		return elaerr.Simple(elaerr.ErrTxPayload, err), true
 	}
 
+	switch t.payloadVersion {
+	case payload.CRInfoVersion, payload.CRInfoDIDVersion:
+		if !contract.IsStandard(t.Programs()[0].Code) {
+			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("CRInfoVersion or CRInfoDIDVersion match standard code")), true
+		}
+	case payload.CRInfoSchnorrVersion:
+		if !contract.IsSchnorr(t.Programs()[0].Code) {
+			return elaerr.Simple(elaerr.ErrTxPayload, errors.New(" CRInfoSchnorrVersion match schnorr code")), true
+		}
+	case payload.CRInfoMultiSignVersion:
+		if !contract.IsMultiSig(t.Programs()[0].Code) {
+			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("CRInfoMultiSignVersion match multi code")), true
+		}
+	}
+
 	var code []byte
 	if t.payloadVersion == payload.CRInfoSchnorrVersion ||
 		t.payloadVersion == payload.CRInfoMultiSignVersion {
@@ -70,7 +85,7 @@ func (t *UpdateCRTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
 	}
 
 	if t.parameters.BlockHeight >= t.parameters.Config.CRConfiguration.RegisterCRByDIDHeight &&
-		t.PayloadVersion() == payload.CRInfoDIDVersion {
+		t.PayloadVersion() >= payload.CRInfoDIDVersion {
 		// get DID program hash
 
 		programHash, err = getDIDFromCode(code)

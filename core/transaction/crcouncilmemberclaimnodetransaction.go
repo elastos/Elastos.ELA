@@ -10,8 +10,8 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-
 	"github.com/elastos/Elastos.ELA/blockchain"
+	"github.com/elastos/Elastos.ELA/core/contract"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	crstate "github.com/elastos/Elastos.ELA/cr/state"
 	"github.com/elastos/Elastos.ELA/crypto"
@@ -56,13 +56,31 @@ func (t *CRCouncilMemberClaimNodeTransaction) SpecialContextCheck() (result elae
 		!t.parameters.BlockChain.GetCRCommittee().IsInElectionPeriod() {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("CRCouncilMemberClaimNode must during election period")), true
 	}
+	switch t.payloadVersion {
+	case payload.CurrentCRClaimDPoSNodeVersion, payload.NextCRClaimDPoSNodeVersion:
+		crMember := t.parameters.BlockChain.GetCRCommittee().GetMember(manager.CRCouncilCommitteeDID)
+		if crMember != nil && (!contract.IsStandard(crMember.Info.Code)) {
+			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("CurrentCRClaimDPoSNodeVersion or NextCRClaimDPoSNodeVersion match standard code")), true
+		}
+	case payload.CurrentCRClaimDPoSNodeMultiSignVersion, payload.NextCRClaimDPoSNodeMultiSignVersion:
+		if !contract.IsMultiSig(t.Programs()[0].Code) {
+			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("CurrentCRClaimDPoSNodeMultiSignVersion or NextCRClaimDPoSNodeMultiSignVersion match multi code")), true
+		}
+		programDID, err1 := getDIDFromCode(t.Programs()[0].Code)
+		if err1 != nil {
+			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("can not create did from program code")), true
+		}
+		if !programDID.IsEqual(manager.CRCouncilCommitteeDID) {
+			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("program code not match with payload CRCouncilCommitteeDID")), true
+		}
+	}
 
 	did := manager.CRCouncilCommitteeDID
 	var crMember *crstate.CRMember
 	comm := t.parameters.BlockChain.GetCRCommittee()
 	if t.parameters.BlockHeight >= t.parameters.Config.DPoSV2StartHeight {
 		switch t.payloadVersion {
-		case payload.CurrentCRClaimDPoSNodeVersion:
+		case payload.CurrentCRClaimDPoSNodeVersion, payload.CurrentCRClaimDPoSNodeMultiSignVersion:
 			crMember = t.parameters.BlockChain.GetCRCommittee().GetMember(did)
 			if _, ok := comm.ClaimedDPoSKeys[hex.EncodeToString(manager.NodePublicKey)]; ok {
 				return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("producer already registered")), true
@@ -71,7 +89,7 @@ func (t *CRCouncilMemberClaimNodeTransaction) SpecialContextCheck() (result elae
 			if t.parameters.BlockChain.GetState().ProducerAndCurrentCRNodePublicKeyExists(manager.NodePublicKey) {
 				return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("producer already registered")), true
 			}
-		case payload.NextCRClaimDPoSNodeVersion:
+		case payload.NextCRClaimDPoSNodeVersion, payload.NextCRClaimDPoSNodeMultiSignVersion:
 			crMember = t.parameters.BlockChain.GetCRCommittee().GetNextMember(did)
 			if _, ok := comm.NextClaimedDPoSKeys[hex.EncodeToString(manager.NodePublicKey)]; ok {
 				return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("producer already registered")), true
@@ -103,9 +121,11 @@ func (t *CRCouncilMemberClaimNodeTransaction) SpecialContextCheck() (result elae
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("invalid operating public key")), true
 	}
 
-	err = checkCRCouncilMemberClaimNodeSignature(manager, crMember.Info.Code)
-	if err != nil {
-		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("CR claim DPOS signature check failed")), true
+	if t.payloadVersion < payload.CurrentCRClaimDPoSNodeMultiSignVersion {
+		err = checkCRCouncilMemberClaimNodeSignature(manager, crMember.Info.Code)
+		if err != nil {
+			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("CR claim DPOS signature check failed")), true
+		}
 	}
 
 	return nil, false

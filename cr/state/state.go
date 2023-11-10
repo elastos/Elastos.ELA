@@ -8,7 +8,6 @@ package state
 import (
 	"encoding/hex"
 	"errors"
-
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/core/contract"
@@ -344,8 +343,11 @@ func (s *State) updateCandidateInfo(origin *payload.CRInfo, update *payload.CRIn
 		delete(s.Nicknames, origin.NickName)
 		s.Nicknames[update.NickName] = struct{}{}
 	}
-
+	originCode := candidate.Info.Code
 	candidate.Info = *update
+	if len(originCode) != 0 && update.Code == nil {
+		candidate.Info.Code = originCode
+	}
 }
 
 // processDeposit takes a transaction output with deposit program hash.

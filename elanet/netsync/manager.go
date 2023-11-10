@@ -437,6 +437,7 @@ func (sm *SyncManager) handleBlockMsg(bmsg *blockMsg) {
 
 	log.Debug("sm.chain.BestChain.Height:", sm.chain.BestChain.Height,
 		"sm.syncHeight:", sm.syncHeight, "isOrphan:", isOrphan)
+
 	// Request the parents for the orphan block from the peer that sent it.
 	if isOrphan {
 		orphanRoot := sm.chain.GetOrphanRoot(&blockHash)
@@ -568,7 +569,6 @@ func (sm *SyncManager) handleInvMsg(imsg *invMsg) {
 			state.requestQueue = append(state.requestQueue, iv)
 			continue
 		}
-
 		if iv.Type == msg.InvTypeConfirmedBlock {
 			// The block is an orphan block that we already have.
 			// When the existing orphan was processed, it requested
@@ -659,7 +659,7 @@ func (sm *SyncManager) handleInvMsg(imsg *invMsg) {
 	}
 
 	// maxBlockLocators = 500
-	if len(gdmsg.InvList) == 500 {
+	if len(invVects) == 500 {
 		locator := sm.chain.GetOrphanBlockLocator(invVects)
 		log.Info("PushGetBlocksMsg 2:", locator, "count:", len(gdmsg.InvList))
 		if err := peer.PushGetBlocksMsg(locator, &zeroHash); err != nil {

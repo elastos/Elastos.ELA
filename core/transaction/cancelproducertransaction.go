@@ -65,7 +65,7 @@ func (t *CancelProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bool
 			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("can not cancel DPoS V1&V2 producer")), true
 		}
 	}
-
+	//need return Returned
 	if producer.State() == state.Illegal ||
 		producer.State() == state.Canceled {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("can not cancel this producer")), true

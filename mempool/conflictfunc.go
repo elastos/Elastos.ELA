@@ -421,9 +421,9 @@ func strRegisterCRPublicKey(tx interfaces.Transaction) (interface{}, error) {
 	}
 
 	if signType == vm.CHECKMULTISIG {
-		return hex.EncodeToString(p.Code), nil
+		return hex.EncodeToString(code), nil
 	} else if signType == vm.CHECKSIG {
-		return hex.EncodeToString(p.Code[1 : len(p.Code)-1]), nil
+		return hex.EncodeToString(code[1 : len(code)-1]), nil
 	} else if bytes.Equal(p.Code, []byte{}) && contract.IsSchnorr(code) {
 		return hex.EncodeToString(code[2:]), nil
 	} else {

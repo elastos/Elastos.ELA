@@ -307,11 +307,6 @@ func (pow *Service) GenerateBlock(minerAddr string,
 
 	var proposalsUsedAmount common.Fixed64
 	for _, tx := range txs {
-
-		if tx.IsIllegalProposalTx() || tx.IsIllegalVoteTx() {
-			continue
-		}
-
 		size := totalTxsSize + tx.GetSize()
 		if size > int(pact.MaxBlockContextSize) {
 			continue
@@ -440,6 +435,10 @@ func (pow *Service) DiscreteMining(n uint32) ([]*common.Uint256, error) {
 					Block: msgBlock,
 				})
 				if err != nil {
+					pow.mutex.Lock()
+					pow.started = false
+					pow.discreteMining = false
+					pow.mutex.Unlock()
 					return blockHashes, nil
 				}
 
@@ -455,6 +454,11 @@ func (pow *Service) DiscreteMining(n uint32) ([]*common.Uint256, error) {
 				}
 			}
 		}
+
+		pow.mutex.Lock()
+		pow.started = false
+		pow.discreteMining = false
+		pow.mutex.Unlock()
 		return blockHashes, nil
 	}
 }

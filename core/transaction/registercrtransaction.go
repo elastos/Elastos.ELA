@@ -8,12 +8,12 @@ package transaction
 import (
 	"errors"
 	"fmt"
-
 	"github.com/elastos/Elastos.ELA/blockchain"
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/core/contract"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	crstate "github.com/elastos/Elastos.ELA/cr/state"
+	"github.com/elastos/Elastos.ELA/crypto"
 	elaerr "github.com/elastos/Elastos.ELA/errors"
 	"github.com/elastos/Elastos.ELA/vm"
 )
@@ -55,6 +55,11 @@ func (t *RegisterCRTransaction) HeightVersionCheck() error {
 			return errors.New(fmt.Sprintf("not support %s transaction "+
 				"before CRSchnorrStartHeight", t.TxType().Name()))
 		}
+	case payload.CRInfoMultiSignVersion:
+		if blockHeight < chainParams.DPoSConfiguration.ChangeViewV1Height {
+			return errors.New(fmt.Sprintf("not support %s transaction CRInfoMultiSignVersion"+
+				"before ChangeViewV1Height", t.TxType().Name()))
+		}
 	default:
 		return errors.New(fmt.Sprintf("invalid payload version, "+
 			"%s transaction", t.TxType().Name()))
@@ -82,6 +87,28 @@ func (t *RegisterCRTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
 		return elaerr.Simple(elaerr.ErrTxPayload, err), true
 	}
 
+	switch t.payloadVersion {
+	case payload.CRInfoVersion, payload.CRInfoDIDVersion:
+		if !contract.IsStandard(t.Programs()[0].Code) {
+			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("CRInfoVersion or CRInfoDIDVersion match standard code")), true
+		}
+	case payload.CRInfoSchnorrVersion:
+		if !contract.IsSchnorr(t.Programs()[0].Code) {
+			return elaerr.Simple(elaerr.ErrTxPayload, errors.New(" CRInfoSchnorrVersion match schnorr code")), true
+		}
+	case payload.CRInfoMultiSignVersion:
+		if !contract.IsMultiSig(t.Programs()[0].Code) {
+			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("CRInfoMultiSignVersion match multi code")), true
+		}
+		//check n
+		code := t.Programs()[0].Code
+		n := int(code[len(code)-2]) - crypto.PUSH1 + 1
+		if n > MaxMultisignN {
+			return elaerr.Simple(elaerr.ErrTxPayload,
+				errors.New("RegisterCRTransaction multisign n can not over 10")), true
+		}
+	}
+
 	// check url
 	if err := checkStringField(info.Url, "Url", true); err != nil {
 		return elaerr.Simple(elaerr.ErrTxPayload, err), true
@@ -97,7 +124,8 @@ func (t *RegisterCRTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
 
 	cr := t.parameters.BlockChain.GetCRCommittee().GetCandidate(info.CID)
 	if cr != nil {
-		return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("cid %s already exist", info.CID)), true
+		cidAddr, _ := info.CID.ToAddress()
+		return elaerr.Simple(elaerr.ErrTxPayload, fmt.Errorf("cid %s already exist", cidAddr)), true
 	}
 
 	// get CID program hash and check length of code
@@ -142,7 +170,7 @@ func (t *RegisterCRTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
 	}
 
 	if t.parameters.BlockHeight >= t.parameters.Config.CRConfiguration.RegisterCRByDIDHeight &&
-		t.PayloadVersion() == payload.CRInfoDIDVersion {
+		t.PayloadVersion() >= payload.CRInfoDIDVersion {
 		// get DID program hash
 
 		programHash, err = getDIDFromCode(code)

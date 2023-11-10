@@ -85,14 +85,10 @@ func (h *DPOSNormalHandler) ProcessProposal(id peer.PID, p *payload.DPOSProposal
 }
 
 func (h *DPOSNormalHandler) ChangeView(firstBlockHash *common.Uint256) {
-	log.Info("[OnViewChanged] clean proposal")
+	log.Info("[ChangeView] begin len precociousProposals", len(h.proposalDispatcher.precociousProposals))
 	h.proposalDispatcher.CleanProposals(true)
-	// sign proposal with same view offset to me
-	for _, v := range h.proposalDispatcher.precociousProposals {
-		if h.consensus.GetViewOffset() == v.ViewOffset {
-			h.proposalDispatcher.ProcessProposal(peer.PID{}, v, false)
-		}
-	}
+	log.Info("[ChangeView] end")
+
 }
 
 func (h *DPOSNormalHandler) TryStartNewConsensus(b *types.Block) bool {

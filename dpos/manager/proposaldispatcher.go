@@ -40,6 +40,7 @@ type ProposalDispatcherConfig struct {
 	Account      account.Account
 	ChainParams  *config.Configuration
 	TimeSource   dtime.MedianTimeSource
+	BestHeight   uint32
 }
 
 type ProposalDispatcher struct {
@@ -221,6 +222,7 @@ func (p *ProposalDispatcher) CleanProposals(changeView bool) {
 		p.signedTxs = map[common.Uint256]interface{}{}
 		p.pendingProposals = make(map[common.Uint256]*payload.DPOSProposal)
 		p.precociousProposals = make(map[common.Uint256]*payload.DPOSProposal)
+		log.Info("Clean proposals precociousProposals clear")
 
 		p.eventAnalyzer.Clear()
 	} else {
@@ -326,7 +328,6 @@ func (p *ProposalDispatcher) ProcessProposal(id peer.PID, d *payload.DPOSProposa
 	if !ok || !p.cfg.Consensus.IsRunning() {
 		p.pendingProposals[d.Hash()] = d
 		p.cfg.Manager.OnInv(id, d.BlockHash)
-		log.Info("received pending proposal")
 		return true, true
 	} else {
 		p.TryStartSpeculatingProposal(currentBlock)
@@ -385,7 +386,7 @@ func (p *ProposalDispatcher) UpdatePrecociousProposals() {
 		if p.cfg.Consensus.IsRunning() &&
 			v.ViewOffset == p.cfg.Consensus.GetViewOffset() {
 			if needRecord, _ := p.ProcessProposal(
-				peer.PID{}, v, true); needRecord {
+				peer.PID(v.Sponsor), v, true); needRecord {
 				p.illegalMonitor.AddProposal(v)
 			}
 			delete(p.precociousProposals, k)
@@ -802,6 +803,7 @@ func (p *ProposalDispatcher) countAcceptedVote(v *payload.DPOSProposalVote) (
 	if v.Accept {
 		log.Info("[countAcceptedVote] Received needed sign, collect it into AcceptVotes!")
 		p.acceptVotes[v.Hash()] = v
+		log.Infof("[countAcceptedVote] Received needed sign, collect it into AcceptVotes! %d", len(p.acceptVotes))
 
 		if p.cfg.Manager.GetArbitrators().HasArbitersMajorityCount(len(p.acceptVotes)) {
 			log.Info("Collect majority signs, finish proposal.")
@@ -1056,6 +1058,7 @@ func NewDispatcherAndIllegalMonitor(cfg ProposalDispatcherConfig) (
 	*ProposalDispatcher, *IllegalBehaviorMonitor) {
 	p := &ProposalDispatcher{
 		cfg:                    cfg,
+		finishedHeight:         cfg.BestHeight,
 		processingBlock:        nil,
 		processingProposal:     nil,
 		acceptVotes:            make(map[common.Uint256]*payload.DPOSProposalVote),

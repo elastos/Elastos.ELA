@@ -37,15 +37,21 @@ func (c *Committee) processTransactions(txs []interfaces.Transaction, height uin
 	}
 
 	c.checkWithdrawAndInactiveCR(sortedTxs[1:], height)
-
 	// Check if any pending inactive CR member has got 6 confirms, then set them
 	// to elected.
 	activateCRMemberFromInactive := func(cr *CRMember) {
 		oriState := cr.MemberState
 		oriActivateRequestHeight := cr.ActivateRequestHeight
 		c.state.History.Append(height, func() {
-			cr.MemberState = MemberElected
+			//At first MemberState is MemberInactive or  MemberIllegal
+			//CRCouncilMemberClaimNode MemberInactive->MemberElected
+			//CRCouncilMemberClaimNode may confilct with ActivateProducer
+			if canChangeState(cr.MemberState, MemberElected) {
+				cr.MemberState = MemberElected
+			}
+			//in case of more call of  activateCRMemberFromInactive
 			cr.ActivateRequestHeight = math.MaxUint32
+
 		}, func() {
 			cr.MemberState = oriState
 			cr.ActivateRequestHeight = oriActivateRequestHeight
@@ -62,6 +68,45 @@ func (c *Committee) processTransactions(txs []interfaces.Transaction, height uin
 			}
 		}
 	}
+}
+
+/*
+transaction effect statue is
+	MemberInactive by tx  CRCouncilMemberClaimNode ---》  MemberElected
+    by tx ReturnCRDepositCoin --》MemberReturned
+*/
+
+// MemberElected  MemberImpeached  MemberTerminated	MemberReturned MemberInactive MemberIllegal
+// MemberIllegal MemberInactive change is  in dpos state
+func canChangeState(nowState, targetState MemberState) bool {
+	switch targetState {
+	case MemberElected:
+		if nowState != MemberInactive && nowState != MemberIllegal {
+			return false
+		} else {
+			return true
+		}
+	case MemberInactive: //first is MemberElected,then
+		//only MemberElected
+		if nowState != MemberElected {
+			return false
+		} else {
+			return true
+		}
+	case MemberImpeached:
+		if nowState != MemberElected && nowState != MemberInactive && nowState != MemberIllegal {
+			return false
+		} else {
+			return true
+		}
+	case MemberTerminated:
+		if nowState != MemberElected && nowState != MemberInactive && nowState != MemberIllegal {
+			return false
+		} else {
+			return true
+		}
+	}
+	return false
 }
 
 // SortTransactions purpose is to process some transaction first.
@@ -137,12 +182,19 @@ func (c *Committee) inactiveMembersByWithdrawKeys(height uint32,
 		if _, ok := wmap[hex.EncodeToString(m.DPOSPublicKey)]; !ok {
 			// inactive CR member
 			c.state.History.Append(height, func() {
-				member.MemberState = MemberInactive
-				log.Infof("[checkWithdrawAndInactiveCR] Set %s to inactive", member.Info.NickName)
-				if height >= c.Params.CRConfiguration.ChangeCommitteeNewCRHeight {
-					c.state.UpdateCRInactivePenalty(member.Info.CID, height)
+				//here should becarefull. this is before processtransaction history commit, MemberState may change since tx
+				//MemberImpeached, MemberTerminated, MemberReturned MemberIllegal  MemberElected
+				changeState := canChangeState(member.MemberState, MemberInactive)
+				if changeState {
+					member.MemberState = MemberInactive
+					log.Infof("[checkWithdrawAndInactiveCR] Set %s to inactive", member.Info.NickName)
+					if height >= c.Params.CRConfiguration.ChangeCommitteeNewCRHeight {
+						c.state.UpdateCRInactivePenalty(member.Info.CID, height)
+					}
 				}
+
 			}, func() {
+				//todo
 				member.MemberState = MemberElected
 				if height >= c.Params.CRConfiguration.ChangeCommitteeNewCRHeight {
 					c.state.RevertUpdateCRInactivePenalty(member.Info.CID, height)

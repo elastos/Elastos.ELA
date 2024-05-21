@@ -51,7 +51,8 @@ func (b *BlockChain) CheckBlockSanity(block *Block) error {
 	// Ensure the block time is not too far in the future.
 	maxTimestamp := b.TimeSource.AdjustedTime().Add(time.Second * MaxTimeOffsetSeconds)
 	if tempTime.After(maxTimestamp) {
-		return errors.New("[PowCheckBlockSanity] block timestamp of is too far in the future")
+		return errors.New("[PowCheckBlockSanity] block timestamp of is too far in the future, miner:" +
+			string(block.Transactions[0].Payload().(*payload.CoinBase).Content[:]))
 	}
 
 	// A block must have at least one transaction.

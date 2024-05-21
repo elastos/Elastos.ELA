@@ -6,6 +6,7 @@
 package blockchain
 
 import (
+	"bufio"
 	"bytes"
 	"container/list"
 	"errors"
@@ -88,6 +89,8 @@ type BlockChain struct {
 	mutex          sync.RWMutex
 
 	AncestorBlock Block
+
+	writer *bufio.Writer
 }
 
 func New(db IChainStore, chainParams *config.Configuration, state *state.State,
@@ -96,6 +99,13 @@ func New(db IChainStore, chainParams *config.Configuration, state *state.State,
 	targetTimespan := int64(chainParams.PowConfiguration.TargetTimespan / time.Second)
 	targetTimePerBlock := int64(chainParams.PowConfiguration.TargetTimePerBlock / time.Second)
 	adjustmentFactor := chainParams.PowConfiguration.AdjustmentFactor
+
+	// record sponsor to file
+	file, err := os.OpenFile("sponsor", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	chain := BlockChain{
 		chainParams:         chainParams,
 		db:                  db,
@@ -119,6 +129,7 @@ func New(db IChainStore, chainParams *config.Configuration, state *state.State,
 		confirmCache:        make(map[Uint256]*payload.Confirm),
 		orphanConfirms:      make(map[Uint256]*payload.Confirm),
 		TimeSource:          NewMedianTime(),
+		writer:              bufio.NewWriter(file),
 	}
 
 	// Initialize the chain state from the passed database.  When the DB
@@ -1914,6 +1925,17 @@ func (b *BlockChain) processBlock(block *Block, confirm *payload.Confirm) (bool,
 	}
 
 	//log.Debugf("Accepted block %v", blockHash)
+
+	if inMainChain && confirm != nil {
+		_, err := b.writer.WriteString(fmt.Sprintf("%d,%s\n", block.Height, BytesToHexString(confirm.Proposal.Sponsor)))
+		if err != nil {
+			panic(err)
+		}
+		err = b.writer.Flush()
+		if err != nil {
+			panic(err)
+		}
+	}
 
 	return inMainChain, false, nil
 }

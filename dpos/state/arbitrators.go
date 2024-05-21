@@ -794,6 +794,7 @@ func (a *Arbiters) accumulateReward(block *types.Block, confirm *payload.Confirm
 
 		var rewards map[string]common.Fixed64
 		if confirm != nil {
+			// todo get sponsor from cache first
 			rewards = a.getDPoSV2RewardsV2(dposReward, confirm.Proposal.Sponsor, block.Height)
 		}
 

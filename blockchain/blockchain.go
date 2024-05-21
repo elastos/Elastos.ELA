@@ -1926,7 +1926,7 @@ func (b *BlockChain) processBlock(block *Block, confirm *payload.Confirm) (bool,
 
 	//log.Debugf("Accepted block %v", blockHash)
 
-	if inMainChain && confirm != nil {
+	if inMainChain && confirm != nil && block.Height >= b.chainParams.DPoSV2StartHeight {
 		_, err := b.writer.WriteString(fmt.Sprintf("%d,%s\n", block.Height, BytesToHexString(confirm.Proposal.Sponsor)))
 		if err != nil {
 			panic(err)

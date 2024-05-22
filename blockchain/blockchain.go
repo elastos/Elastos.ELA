@@ -101,7 +101,7 @@ func New(db IChainStore, chainParams *config.Configuration, state *state.State,
 	adjustmentFactor := chainParams.PowConfiguration.AdjustmentFactor
 
 	// record sponsor to file
-	file, err := os.OpenFile("sponsor", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+	file, err := os.OpenFile("sponsors", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
 	if err != nil {
 		log.Fatal(err)
 	}

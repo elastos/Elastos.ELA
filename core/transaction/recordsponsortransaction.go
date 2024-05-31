@@ -8,6 +8,7 @@ package transaction
 import (
 	"bytes"
 	"errors"
+	"fmt"
 
 	"github.com/elastos/Elastos.ELA/blockchain"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
@@ -16,6 +17,21 @@ import (
 
 type RecordSponsorTransaction struct {
 	BaseTransaction
+}
+
+func (t *RecordSponsorTransaction) HeightVersionCheck() error {
+	blockHeight := t.parameters.BlockHeight
+	chainParams := t.parameters.Config
+
+	if t.payloadVersion != 0 {
+		return errors.New("invalid payload version, need to be zero")
+	}
+
+	if blockHeight < chainParams.DPoSConfiguration.RecordSponsorStartHeight {
+		return fmt.Errorf("not support %s transaction before RecordSponsorStartHeight", t.TxType().Name())
+	}
+
+	return nil
 }
 
 func (t *RecordSponsorTransaction) CheckTransactionInput() error {

@@ -336,7 +336,7 @@ func (b *BlockChain) CheckBlockContext(block *Block, prevNode *BlockNode) error 
 	}
 
 	// check if need to record sponsor
-	if block.Height > b.chainParams.DPoSConfiguration.RecordSponsorStartHeight {
+	if block.Height >= b.chainParams.DPoSConfiguration.RecordSponsorStartHeight {
 		lastBlock, err := b.GetDposBlockByHash(*prevNode.Hash)
 		if err != nil {
 			return errors.New("get last block failed")

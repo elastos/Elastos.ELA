@@ -14,11 +14,11 @@ import (
 	elaerr "github.com/elastos/Elastos.ELA/errors"
 )
 
-type SponsorTransaction struct {
+type RecordSponsorTransaction struct {
 	BaseTransaction
 }
 
-func (t *SponsorTransaction) CheckTransactionInput() error {
+func (t *RecordSponsorTransaction) CheckTransactionInput() error {
 
 	if len(t.Inputs()) != 0 {
 		return errors.New("no cost transactions must has no input")
@@ -27,7 +27,7 @@ func (t *SponsorTransaction) CheckTransactionInput() error {
 	return nil
 }
 
-func (t *SponsorTransaction) CheckTransactionOutput() error {
+func (t *RecordSponsorTransaction) CheckTransactionOutput() error {
 
 	if len(t.Outputs()) != 0 {
 		return errors.New("no need to have output in sponsor transaction")
@@ -36,7 +36,7 @@ func (t *SponsorTransaction) CheckTransactionOutput() error {
 	return nil
 }
 
-func (t *SponsorTransaction) CheckAttributeProgram() error {
+func (t *RecordSponsorTransaction) CheckAttributeProgram() error {
 
 	if len(t.Programs()) != 0 || len(t.Attributes()) != 0 {
 		return errors.New("no need to have attribute or program in sponsor transaction")
@@ -45,7 +45,7 @@ func (t *SponsorTransaction) CheckAttributeProgram() error {
 	return nil
 }
 
-func (t *SponsorTransaction) CheckTransactionPayload() error {
+func (t *RecordSponsorTransaction) CheckTransactionPayload() error {
 	switch t.Payload().(type) {
 	case *payload.RecordSponsor:
 		return nil
@@ -54,11 +54,11 @@ func (t *SponsorTransaction) CheckTransactionPayload() error {
 	return errors.New("invalid payload type")
 }
 
-func (t *SponsorTransaction) IsAllowedInPOWConsensus() bool {
+func (t *RecordSponsorTransaction) IsAllowedInPOWConsensus() bool {
 	return true
 }
 
-func (t *SponsorTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
+func (t *RecordSponsorTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
 	payloadRecordSponsor, ok := t.Payload().(*payload.RecordSponsor)
 	if !ok {
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("record sponsor transaction has invalid payload")), true

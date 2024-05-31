@@ -214,6 +214,9 @@ func GetTransaction(txType common2.TxType) (txn interfaces.Transaction, err erro
 	case common2.VotesRealWithdraw:
 		txn = new(VotesRealWithdrawTransaction)
 
+	case common2.RecordSponsor:
+		txn = new(RecordSponsorTransaction)
+
 	case common2.DposV2ClaimReward:
 		txn = new(DPoSV2ClaimRewardTransaction)
 

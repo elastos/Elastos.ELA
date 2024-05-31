@@ -85,6 +85,7 @@ type Arbiters struct {
 	CurrentReward RewardData
 	NextReward    RewardData
 
+	LastArbitrators    []ArbiterMember
 	CurrentArbitrators []ArbiterMember
 	CurrentCandidates  []ArbiterMember
 	nextArbitrators    []ArbiterMember
@@ -176,6 +177,7 @@ func (a *Arbiters) recoverFromCheckPoints(point *CheckPoint) {
 	a.State.History = utils.NewHistory(maxHistoryCapacity)
 
 	a.DutyIndex = point.DutyIndex
+	a.LastArbitrators = point.LastArbitrators
 	a.CurrentArbitrators = point.CurrentArbitrators
 	a.CurrentCandidates = point.CurrentCandidates
 	a.nextArbitrators = point.NextArbitrators
@@ -1302,6 +1304,63 @@ func (a *Arbiters) IsArbitrator(pk []byte) bool {
 	return false
 }
 
+func (a *Arbiters) GetCurrentAndLastArbitrators() ([]*ArbiterInfo, []*ArbiterInfo) {
+	a.mtx.Lock()
+	defer a.mtx.Unlock()
+
+	return a.getCurrentAndLastArbitrators()
+}
+
+func (a *Arbiters) getCurrentAndLastArbitrators() ([]*ArbiterInfo, []*ArbiterInfo) {
+	currentArbitrators := make([]*ArbiterInfo, 0, len(a.CurrentArbitrators))
+	for _, v := range a.CurrentArbitrators {
+		isNormal := true
+		isCRMember := false
+		claimedDPOSNode := false
+		abt, ok := v.(*crcArbiter)
+		if ok {
+			isCRMember = true
+			if !abt.isNormal {
+				isNormal = false
+			}
+			if len(abt.crMember.DPOSPublicKey) != 0 {
+				claimedDPOSNode = true
+			}
+		}
+		currentArbitrators = append(currentArbitrators, &ArbiterInfo{
+			NodePublicKey:   v.GetNodePublicKey(),
+			IsNormal:        isNormal,
+			IsCRMember:      isCRMember,
+			ClaimedDPOSNode: claimedDPOSNode,
+		})
+	}
+
+	lastArbitrators := make([]*ArbiterInfo, 0, len(a.LastArbitrators))
+	for _, v := range a.LastArbitrators {
+		isNormal := true
+		isCRMember := false
+		claimedDPOSNode := false
+		abt, ok := v.(*crcArbiter)
+		if ok {
+			isCRMember = true
+			if !abt.isNormal {
+				isNormal = false
+			}
+			if len(abt.crMember.DPOSPublicKey) != 0 {
+				claimedDPOSNode = true
+			}
+		}
+		lastArbitrators = append(lastArbitrators, &ArbiterInfo{
+			NodePublicKey:   v.GetNodePublicKey(),
+			IsNormal:        isNormal,
+			IsCRMember:      isCRMember,
+			ClaimedDPOSNode: claimedDPOSNode,
+		})
+	}
+
+	return currentArbitrators, lastArbitrators
+}
+
 func (a *Arbiters) GetArbitrators() []*ArbiterInfo {
 	a.mtx.Lock()
 	result := a.getArbitrators()
@@ -1758,6 +1817,7 @@ func (a *Arbiters) getChangeType(height uint32) (ChangeType, uint32) {
 
 func (a *Arbiters) cleanArbitrators(height uint32) {
 	oriCurrentCRCArbitersMap := copyCRCArbitersMap(a.CurrentCRCArbitersMap)
+	oriLastArbitrators := a.LastArbitrators
 	oriCurrentArbitrators := a.CurrentArbitrators
 	oriCurrentCandidates := a.CurrentCandidates
 	oriNextCRCArbitersMap := copyCRCArbitersMap(a.nextCRCArbitersMap)
@@ -1766,6 +1826,7 @@ func (a *Arbiters) cleanArbitrators(height uint32) {
 	oriDutyIndex := a.DutyIndex
 	a.History.Append(height, func() {
 		a.CurrentCRCArbitersMap = make(map[common.Uint168]ArbiterMember)
+		a.LastArbitrators = make([]ArbiterMember, 0)
 		a.CurrentArbitrators = make([]ArbiterMember, 0)
 		a.CurrentCandidates = make([]ArbiterMember, 0)
 		a.nextCRCArbitersMap = make(map[common.Uint168]ArbiterMember)
@@ -1774,6 +1835,7 @@ func (a *Arbiters) cleanArbitrators(height uint32) {
 		a.DutyIndex = 0
 	}, func() {
 		a.CurrentCRCArbitersMap = oriCurrentCRCArbitersMap
+		a.LastArbitrators = oriLastArbitrators
 		a.CurrentArbitrators = oriCurrentArbitrators
 		a.CurrentCandidates = oriCurrentCandidates
 		a.nextCRCArbitersMap = oriNextCRCArbitersMap
@@ -1785,6 +1847,7 @@ func (a *Arbiters) cleanArbitrators(height uint32) {
 
 func (a *Arbiters) ChangeCurrentArbitrators(height uint32) error {
 	oriCurrentCRCArbitersMap := copyCRCArbitersMap(a.CurrentCRCArbitersMap)
+	oriLastArbitrators := a.LastArbitrators
 	oriCurrentArbitrators := a.CurrentArbitrators
 	oriCurrentCandidates := a.CurrentCandidates
 	oriCurrentReward := a.CurrentReward
@@ -1795,12 +1858,14 @@ func (a *Arbiters) ChangeCurrentArbitrators(height uint32) error {
 				a.nextArbitrators[j].GetNodePublicKey()) < 0
 		})
 		a.CurrentCRCArbitersMap = copyCRCArbitersMap(a.nextCRCArbitersMap)
+		a.LastArbitrators = a.CurrentArbitrators
 		a.CurrentArbitrators = a.nextArbitrators
 		a.CurrentCandidates = a.nextCandidates
 		a.CurrentReward = a.NextReward
 		a.DutyIndex = 0
 	}, func() {
 		a.CurrentCRCArbitersMap = oriCurrentCRCArbitersMap
+		a.LastArbitrators = oriLastArbitrators
 		a.CurrentArbitrators = oriCurrentArbitrators
 		a.CurrentCandidates = oriCurrentCandidates
 		a.CurrentReward = oriCurrentReward
@@ -2742,9 +2807,11 @@ func (a *Arbiters) newCheckPoint(height uint32) *CheckPoint {
 		ForceChanged:                a.forceChanged,
 		ArbitersRoundReward:         make(map[common.Uint168]common.Fixed64),
 		IllegalBlocksPayloadHashes:  make(map[common.Uint256]interface{}),
+		LastArbitrators:             a.LastArbitrators,
 		CurrentArbitrators:          a.CurrentArbitrators,
 		StateKeyFrame:               *a.State.snapshot(),
 	}
+	point.LastArbitrators = copyByteList(a.LastArbitrators)
 	point.CurrentArbitrators = copyByteList(a.CurrentArbitrators)
 	point.CurrentCandidates = copyByteList(a.CurrentCandidates)
 	point.NextArbitrators = copyByteList(a.nextArbitrators)
@@ -2897,6 +2964,7 @@ func (a *Arbiters) initArbitrators(chainParams *config.Configuration) error {
 		crcArbiters[ar.GetOwnerProgramHash()] = ar
 	}
 
+	a.LastArbitrators = make([]ArbiterMember, 0)
 	a.CurrentArbitrators = originArbiters
 	a.nextArbitrators = originArbiters
 	a.nextCRCArbitersMap = copyCRCArbitersMap(crcArbiters)

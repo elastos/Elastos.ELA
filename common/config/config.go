@@ -246,7 +246,7 @@ func GetDefaultParams() *Configuration {
 		ProhibitTransferToDIDHeight:     1032840,
 		DIDSideChainAddress:             "XKUh4GLhFJiqAMTF6HyWQrV9pK9HcGUdfJ",
 		DPoSV2EffectiveVotes:            80000 * 100000000,
-		DPoSV2StartHeight:               1405000,
+		DPoSV2StartHeight:               1405000, //1405000+262800=1667800
 		StakePoolProgramHash:            StakePoolProgramHash,
 		SchnorrStartHeight:              math.MaxUint32,
 		NormalSchnorrStartHeight:        1405000,

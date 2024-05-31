@@ -37,6 +37,7 @@ type CheckPoint struct {
 	StateKeyFrame
 	Height                      uint32
 	DutyIndex                   int
+	LastArbitrators             []ArbiterMember
 	CurrentArbitrators          []ArbiterMember
 	NextArbitrators             []ArbiterMember
 	NextCandidates              []ArbiterMember
@@ -163,6 +164,10 @@ func (c *CheckPoint) Serialize(w io.Writer) (err error) {
 	}
 
 	if err = common.WriteUint32(w, uint32(c.DutyIndex)); err != nil {
+		return
+	}
+
+	if err = c.writeArbiters(w, c.LastArbitrators); err != nil {
 		return
 	}
 
@@ -296,6 +301,10 @@ func (c *CheckPoint) Deserialize(r io.Reader) (err error) {
 		return
 	}
 	c.DutyIndex = int(dutyIndex)
+
+	if c.LastArbitrators, err = c.readArbiters(r); err != nil {
+		return
+	}
 
 	if c.CurrentArbitrators, err = c.readArbiters(r); err != nil {
 		return
@@ -480,6 +489,7 @@ func (c *CheckPoint) initFromArbitrators(ar *Arbiters) {
 	c.NextCandidates = ar.nextCandidates
 	c.CurrentReward = ar.CurrentReward
 	c.NextReward = ar.NextReward
+	c.LastArbitrators = ar.LastArbitrators
 	c.CurrentArbitrators = ar.CurrentArbitrators
 	c.StateKeyFrame = *ar.State.StateKeyFrame
 	c.DutyIndex = ar.DutyIndex

@@ -195,6 +195,7 @@ func GetDefaultParams() *Configuration {
 			DPoSV2RewardAccumulateProgramHash: StakeRewardProgramHash,
 			NFTStartHeight:                    1405000,
 			SponsorsFilePath:                  "sponsors",
+			RecordSponsorStartHeight:          math.MaxUint32,
 			OriginArbiters: []string{
 				"0248df6705a909432be041e0baa25b8f648741018f70d1911f2ed28778db4b8fe4",
 				"02771faf0f4d4235744b30972d5f2c470993920846c761e4d08889ecfdc061cddf",
@@ -382,6 +383,7 @@ func (p *Configuration) TestNet() *Configuration {
 	p.CRConfiguration.CRClaimPeriod = 10080
 	p.DPoSConfiguration.NFTStartHeight = 1098000
 	p.DPoSConfiguration.SponsorsFilePath = "sponsors"
+	p.DPoSConfiguration.RecordSponsorStartHeight = math.MaxUint32
 
 	p.HttpInfoPort = 21333
 	p.HttpRestPort = 21334
@@ -503,6 +505,7 @@ func (p *Configuration) RegNet() *Configuration {
 	p.CRConfiguration.CRClaimPeriod = 10080
 	p.DPoSConfiguration.NFTStartHeight = 968000
 	p.DPoSConfiguration.SponsorsFilePath = "sponsors"
+	p.DPoSConfiguration.RecordSponsorStartHeight = math.MaxUint32
 	p.HttpInfoPort = 22333
 	p.HttpRestPort = 22334
 	p.HttpWsPort = 22335
@@ -725,6 +728,8 @@ type DPoSConfiguration struct {
 	NFTStartHeight uint32 `screw:"--nftstartheight" usage:"the start height of NFT transaction"`
 	// SponsorsFilePath defines the sponsors file path.
 	SponsorsFilePath string `screw:"--sponsorsfilepath" usage:"defines the sponsors file path"`
+	// RecordSponsorStartHeight defines the start height to record sponsor.
+	RecordSponsorStartHeight uint32 `screw:"--recordsponsorstartheight" usage:"defines the start height to record sponsor"`
 }
 
 type CRConfiguration struct {

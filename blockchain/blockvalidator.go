@@ -141,8 +141,15 @@ func CheckDuplicateTx(block *Block) error {
 	existingProducer := make(map[string]struct{})
 	existingProducerNode := make(map[string]struct{})
 	existingCR := make(map[Uint168]struct{})
+	recordSponsorCount := 0
 	for _, txn := range block.Transactions {
 		switch txn.TxType() {
+		case common.RecordSponsor:
+			recordSponsorCount++
+			if recordSponsorCount > 1 {
+				return errors.New("[PowCheckBlockSanity] block contains duplicate record sponsor Tx")
+			}
+
 		case common.WithdrawFromSideChain:
 			witPayload := txn.Payload().(*payload.WithdrawFromSideChain)
 

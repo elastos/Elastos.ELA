@@ -1133,6 +1133,15 @@ func copyReward(src *RewardData) (dst *RewardData) {
 	return
 }
 
+func copyDPoSRewardMap(src map[string]common.Fixed64) (dst map[string]common.Fixed64) {
+	dst = make(map[string]common.Fixed64)
+	for k, v := range src {
+		dst[k] = v
+	}
+	return
+
+}
+
 func copyCRCArbitersMap(src map[common.Uint168]ArbiterMember) (dst map[common.Uint168]ArbiterMember) {
 	dst = make(map[common.Uint168]ArbiterMember)
 	for k, v := range src {

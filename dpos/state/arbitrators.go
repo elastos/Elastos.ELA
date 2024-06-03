@@ -85,6 +85,8 @@ type Arbiters struct {
 	CurrentReward RewardData
 	NextReward    RewardData
 
+	LastDPoSRewards map[string]common.Fixed64
+
 	LastArbitrators    []ArbiterMember
 	CurrentArbitrators []ArbiterMember
 	CurrentCandidates  []ArbiterMember
@@ -184,6 +186,7 @@ func (a *Arbiters) recoverFromCheckPoints(point *CheckPoint) {
 	a.nextCandidates = point.NextCandidates
 	a.CurrentReward = point.CurrentReward
 	a.NextReward = point.NextReward
+	a.LastDPoSRewards = point.LastDPoSRewards
 	a.StateKeyFrame = &point.StateKeyFrame
 	a.accumulativeReward = point.AccumulativeReward
 	a.finalRoundChange = point.FinalRoundChange
@@ -807,6 +810,11 @@ func (a *Arbiters) accumulateReward(block *types.Block, confirm *payload.Confirm
 			rewards = a.getDPoSV2RewardsV2(dposReward, sponsor, block.Height)
 		}
 
+		// need record rewards after RecordSponsorStartHeight, real reward at next block.
+		if block.Height >= a.ChainParams.DPoSConfiguration.RecordSponsorStartHeight {
+			swapReardMapContent(&a.LastDPoSRewards, &rewards)
+		}
+
 		a.History.Append(block.Height, func() {
 			for k, v := range rewards {
 				a.DPoSV2RewardInfo[k] += v
@@ -841,6 +849,12 @@ func (a *Arbiters) accumulateReward(block *types.Block, confirm *payload.Confirm
 			a.DutyIndex = oriDutyIndex
 		})
 	}
+}
+
+func swapReardMapContent(map1, map2 *map[string]common.Fixed64) {
+	temp := *map1
+	*map1 = *map2
+	*map2 = temp
 }
 
 func (a *Arbiters) clearingDPOSReward(block *types.Block, historyHeight uint32,
@@ -2796,6 +2810,7 @@ func (a *Arbiters) newCheckPoint(height uint32) *CheckPoint {
 		NextCandidates:              make([]ArbiterMember, 0),
 		CurrentReward:               *NewRewardData(),
 		NextReward:                  *NewRewardData(),
+		LastDPoSRewards:             make(map[string]common.Fixed64),
 		CurrentCRCArbitersMap:       make(map[common.Uint168]ArbiterMember),
 		CurrentOnDutyCRCArbitersMap: make(map[common.Uint168]ArbiterMember),
 		NextCRCArbitersMap:          make(map[common.Uint168]ArbiterMember),
@@ -2818,6 +2833,7 @@ func (a *Arbiters) newCheckPoint(height uint32) *CheckPoint {
 	point.NextCandidates = copyByteList(a.nextCandidates)
 	point.CurrentReward = *copyReward(&a.CurrentReward)
 	point.NextReward = *copyReward(&a.NextReward)
+	point.LastDPoSRewards = copyDPoSRewardMap(a.LastDPoSRewards)
 	point.NextCRCArbitersMap = copyCRCArbitersMap(a.nextCRCArbitersMap)
 	point.CurrentCRCArbitersMap = copyCRCArbitersMap(a.CurrentCRCArbitersMap)
 	point.NextCRCArbiters = copyByteList(a.nextCRCArbiters)
@@ -3028,6 +3044,7 @@ func NewArbitrators(chainParams *config.Configuration, committee *state.Committe
 		Snapshots:                    make(map[uint32][]*CheckPoint),
 		SnapshotKeysDesc:             make([]uint32, 0),
 		BlockConfirmProposalSponsors: blockConfirmProposalSponsors,
+		LastDPoSRewards:              make(map[string]common.Fixed64),
 		crcChangedHeight:             0,
 		degradation: &degradation{
 			inactiveTxs:       make(map[common.Uint256]interface{}),

@@ -202,7 +202,15 @@ func (a *Arbiters) recoverFromCheckPoints(point *CheckPoint) {
 }
 
 func (a *Arbiters) ProcessBlock(block *types.Block, confirm *payload.Confirm) {
-	a.State.ProcessBlock(block, confirm, a.DutyIndex)
+	var sponsor []byte
+	if confirm != nil {
+		sponsor = confirm.Proposal.Sponsor
+		if sp, ok := a.BlockConfirmProposalSponsors[block.Height]; ok {
+			sponsor = sp
+		}
+	}
+
+	a.State.ProcessBlock(block, sponsor, a.DutyIndex)
 	a.IncreaseChainHeight(block, confirm)
 }
 
@@ -212,7 +220,7 @@ func (a *Arbiters) CheckDPOSIllegalTx(block *types.Block) error {
 	hashes := a.illegalBlocksPayloadHashes
 	a.mtx.Unlock()
 
-	if hashes == nil || len(hashes) == 0 {
+	if len(hashes) == 0 {
 		return nil
 	}
 
@@ -802,7 +810,7 @@ func (a *Arbiters) accumulateReward(block *types.Block, confirm *payload.Confirm
 
 		var rewards map[string]common.Fixed64
 		if confirm != nil {
-			// todo get sponsor from cache first
+			// get sponsor from cache first
 			sponsor := confirm.Proposal.Sponsor
 			if sp, ok := a.BlockConfirmProposalSponsors[block.Height]; ok {
 				sponsor = sp

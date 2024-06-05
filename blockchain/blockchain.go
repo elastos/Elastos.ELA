@@ -90,7 +90,7 @@ type BlockChain struct {
 
 	AncestorBlock Block
 
-	writer *bufio.Writer
+	sponsorWriter *bufio.Writer
 }
 
 func New(db IChainStore, chainParams *config.Configuration, state *state.State,
@@ -129,7 +129,7 @@ func New(db IChainStore, chainParams *config.Configuration, state *state.State,
 		confirmCache:        make(map[Uint256]*payload.Confirm),
 		orphanConfirms:      make(map[Uint256]*payload.Confirm),
 		TimeSource:          NewMedianTime(),
-		writer:              bufio.NewWriter(file),
+		sponsorWriter:       bufio.NewWriter(file),
 	}
 
 	// Initialize the chain state from the passed database.  When the DB
@@ -327,7 +327,6 @@ func (b *BlockChain) InitCheckpoint(interrupt <-chan struct{},
 			}
 
 			if b.AncestorBlock.Height == 0 && block.Height > b.chainParams.DPoSV2StartHeight {
-				// tod check block
 				err := b.CheckTransactions(block.Block)
 				if err != nil {
 					b.AncestorBlock = lastBlock
@@ -349,6 +348,18 @@ func (b *BlockChain) InitCheckpoint(interrupt <-chan struct{},
 			if e = PreProcessSpecialTx(block.Block); e != nil {
 				err = e
 				break
+			}
+
+			// record from local db
+			if block.HaveConfirm && block.Height >= b.chainParams.DPoSV2StartHeight {
+				_, err := b.sponsorWriter.WriteString(fmt.Sprintf("%d,%s\n", block.Height, BytesToHexString(block.Confirm.Proposal.Sponsor)))
+				if err != nil {
+					panic(err)
+				}
+				err = b.sponsorWriter.Flush()
+				if err != nil {
+					panic(err)
+				}
 			}
 
 			b.CkpManager.OnBlockSaved(block, nil,
@@ -1927,11 +1938,11 @@ func (b *BlockChain) processBlock(block *Block, confirm *payload.Confirm) (bool,
 	//log.Debugf("Accepted block %v", blockHash)
 
 	if inMainChain && confirm != nil && block.Height >= b.chainParams.DPoSV2StartHeight {
-		_, err := b.writer.WriteString(fmt.Sprintf("%d,%s\n", block.Height, BytesToHexString(confirm.Proposal.Sponsor)))
+		_, err := b.sponsorWriter.WriteString(fmt.Sprintf("%d,%s\n", block.Height, BytesToHexString(confirm.Proposal.Sponsor)))
 		if err != nil {
 			panic(err)
 		}
-		err = b.writer.Flush()
+		err = b.sponsorWriter.Flush()
 		if err != nil {
 			panic(err)
 		}

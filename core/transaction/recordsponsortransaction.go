@@ -9,7 +9,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-
 	"github.com/elastos/Elastos.ELA/blockchain"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	elaerr "github.com/elastos/Elastos.ELA/errors"
@@ -54,8 +53,12 @@ func (t *RecordSponsorTransaction) CheckTransactionOutput() error {
 
 func (t *RecordSponsorTransaction) CheckAttributeProgram() error {
 
-	if len(t.Programs()) != 0 || len(t.Attributes()) != 0 {
-		return errors.New("no need to have attribute or program in sponsor transaction")
+	if len(t.Programs()) != 0 {
+		return errors.New("no need to have program in sponsor transaction")
+
+	}
+	if len(t.Attributes()) != 1 {
+		return errors.New("need to have one attribute in sponsor transaction")
 	}
 
 	return nil
@@ -99,5 +102,5 @@ func (t *RecordSponsorTransaction) SpecialContextCheck() (elaerr.ELAError, bool)
 		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("sponsor is not in current or last arbitrators")), true
 	}
 
-	return nil, false
+	return nil, true
 }

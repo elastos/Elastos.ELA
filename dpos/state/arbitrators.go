@@ -85,7 +85,7 @@ type Arbiters struct {
 	CurrentReward RewardData
 	NextReward    RewardData
 
-	LastDPoSRewards map[string]common.Fixed64
+	LastDPoSRewards map[string]map[string]common.Fixed64
 
 	LastArbitrators    []ArbiterMember
 	CurrentArbitrators []ArbiterMember
@@ -809,18 +809,40 @@ func (a *Arbiters) accumulateReward(block *types.Block, confirm *payload.Confirm
 		oriForceChanged := a.forceChanged
 
 		var rewards map[string]common.Fixed64
-		if confirm != nil {
-			// get sponsor from cache first
-			sponsor := confirm.Proposal.Sponsor
-			if sp, ok := a.BlockConfirmProposalSponsors[block.Height]; ok {
-				sponsor = sp
-			}
-			rewards = a.getDPoSV2RewardsV2(dposReward, sponsor, block.Height)
-		}
 
 		// need record rewards after RecordSponsorStartHeight, real reward at next block.
 		if block.Height >= a.ChainParams.DPoSConfiguration.RecordSponsorStartHeight {
-			swapReardMapContent(&a.LastDPoSRewards, &rewards)
+			possibleRewards := make(map[string]map[string]common.Fixed64)
+			if confirm != nil {
+				for _, arb := range a.CurrentArbitrators {
+					arbNodePK := arb.GetNodePublicKey()
+					rew := a.getDPoSV2RewardsV2(dposReward, arbNodePK, block.Height)
+					possibleRewards[common.BytesToHexString(arbNodePK)] = rew
+				}
+			}
+			var existSponsorTx bool
+			var recordedSponsor string
+			for _, tx := range block.Transactions {
+				if tx.IsRecordSponorTx() {
+					existSponsorTx = true
+					pld := tx.Payload().(*payload.RecordSponsor)
+					recordedSponsor = common.BytesToHexString(pld.Sponsor)
+				}
+			}
+			if existSponsorTx {
+				rewards = a.LastDPoSRewards[recordedSponsor]
+			}
+
+			swapReardMapContent(&a.LastDPoSRewards, &possibleRewards)
+		} else {
+			if confirm != nil {
+				// get sponsor from cache first
+				sponsor := confirm.Proposal.Sponsor
+				if sp, ok := a.BlockConfirmProposalSponsors[block.Height]; ok {
+					sponsor = sp
+				}
+				rewards = a.getDPoSV2RewardsV2(dposReward, sponsor, block.Height)
+			}
 		}
 
 		a.History.Append(block.Height, func() {
@@ -859,7 +881,7 @@ func (a *Arbiters) accumulateReward(block *types.Block, confirm *payload.Confirm
 	}
 }
 
-func swapReardMapContent(map1, map2 *map[string]common.Fixed64) {
+func swapReardMapContent(map1, map2 *map[string]map[string]common.Fixed64) {
 	temp := *map1
 	*map1 = *map2
 	*map2 = temp
@@ -2818,7 +2840,7 @@ func (a *Arbiters) newCheckPoint(height uint32) *CheckPoint {
 		NextCandidates:              make([]ArbiterMember, 0),
 		CurrentReward:               *NewRewardData(),
 		NextReward:                  *NewRewardData(),
-		LastDPoSRewards:             make(map[string]common.Fixed64),
+		LastDPoSRewards:             make(map[string]map[string]common.Fixed64),
 		CurrentCRCArbitersMap:       make(map[common.Uint168]ArbiterMember),
 		CurrentOnDutyCRCArbitersMap: make(map[common.Uint168]ArbiterMember),
 		NextCRCArbitersMap:          make(map[common.Uint168]ArbiterMember),
@@ -3052,7 +3074,7 @@ func NewArbitrators(chainParams *config.Configuration, committee *state.Committe
 		Snapshots:                    make(map[uint32][]*CheckPoint),
 		SnapshotKeysDesc:             make([]uint32, 0),
 		BlockConfirmProposalSponsors: blockConfirmProposalSponsors,
-		LastDPoSRewards:              make(map[string]common.Fixed64),
+		LastDPoSRewards:              make(map[string]map[string]common.Fixed64),
 		crcChangedHeight:             0,
 		degradation: &degradation{
 			inactiveTxs:       make(map[common.Uint256]interface{}),

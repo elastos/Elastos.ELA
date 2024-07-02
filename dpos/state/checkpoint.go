@@ -44,7 +44,7 @@ type CheckPoint struct {
 	CurrentCandidates           []ArbiterMember
 	CurrentReward               RewardData
 	NextReward                  RewardData
-	LastDPoSRewards             map[string]common.Fixed64
+	LastDPoSRewards             map[string]map[string]common.Fixed64
 	CurrentCRCArbitersMap       map[common.Uint168]ArbiterMember
 	CurrentOnDutyCRCArbitersMap map[common.Uint168]ArbiterMember
 	NextCRCArbitersMap          map[common.Uint168]ArbiterMember
@@ -266,7 +266,7 @@ func (c *CheckPoint) serializeCRCArbitersMap(w io.Writer,
 }
 
 func (c *CheckPoint) serializeDPoSRewardsMap(w io.Writer,
-	rmap map[string]common.Fixed64) (err error) {
+	rmap map[string]map[string]common.Fixed64) (err error) {
 	if err = common.WriteVarUint(w, uint64(len(rmap))); err != nil {
 		return
 	}
@@ -274,8 +274,16 @@ func (c *CheckPoint) serializeDPoSRewardsMap(w io.Writer,
 		if err = common.WriteVarString(w, k); err != nil {
 			return
 		}
-		if err = v.Serialize(w); err != nil {
+		if err = common.WriteVarUint(w, uint64(len(v))); err != nil {
 			return
+		}
+		for k2, v2 := range v {
+			if err = common.WriteVarString(w, k2); err != nil {
+				return
+			}
+			if err = v2.Serialize(w); err != nil {
+				return
+			}
 		}
 	}
 	return
@@ -457,22 +465,36 @@ func (c *CheckPoint) deserializeIllegalPayloadHashes(
 }
 
 func (c *CheckPoint) deserializeDPoSRewardsMap(
-	r io.Reader) (rmap map[string]common.Fixed64, err error) {
+	r io.Reader) (rmap map[string]map[string]common.Fixed64, err error) {
 	var count uint64
 	if count, err = common.ReadVarUint(r, 0); err != nil {
 		return
 	}
-	rmap = make(map[string]common.Fixed64)
+	rmap = make(map[string]map[string]common.Fixed64)
 	for i := uint64(0); i < count; i++ {
 		var k string
 		if k, err = common.ReadVarString(r); err != nil {
 			return
 		}
-		reward := common.Fixed64(0)
-		if err = reward.Deserialize(r); err != nil {
+
+		var count2 uint64
+		if count2, err = common.ReadVarUint(r, 0); err != nil {
 			return
 		}
-		rmap[k] = reward
+		rmap2 := make(map[string]common.Fixed64)
+		for i := uint64(0); i < count2; i++ {
+			var k2 string
+			if k2, err = common.ReadVarString(r); err != nil {
+				return
+			}
+			reward := common.Fixed64(0)
+			if err = reward.Deserialize(r); err != nil {
+				return
+			}
+			rmap2[k2] = reward
+		}
+
+		rmap[k] = rmap2
 	}
 	return
 }

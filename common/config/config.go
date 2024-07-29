@@ -383,7 +383,7 @@ func (p *Configuration) TestNet() *Configuration {
 	p.CRConfiguration.CRClaimPeriod = 10080
 	p.DPoSConfiguration.NFTStartHeight = 1098000
 	p.DPoSConfiguration.SponsorsFilePath = "sponsors"
-	p.DPoSConfiguration.RecordSponsorStartHeight = math.MaxUint32
+	p.DPoSConfiguration.RecordSponsorStartHeight = 1174500
 
 	p.HttpInfoPort = 21333
 	p.HttpRestPort = 21334

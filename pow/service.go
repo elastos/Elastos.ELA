@@ -15,13 +15,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/elastos/Elastos.ELA/core"
-
 	"github.com/elastos/Elastos.ELA/auxpow"
 	"github.com/elastos/Elastos.ELA/blockchain"
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/common/log"
+	"github.com/elastos/Elastos.ELA/core"
 	pg "github.com/elastos/Elastos.ELA/core/contract/program"
 	"github.com/elastos/Elastos.ELA/core/types"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
@@ -478,6 +477,10 @@ func (pow *Service) DiscreteMining(n uint32) ([]*common.Uint256, error) {
 					Block: msgBlock,
 				})
 				if err != nil {
+					pow.mutex.Lock()
+					pow.started = false
+					pow.discreteMining = false
+					pow.mutex.Unlock()
 					return blockHashes, nil
 				}
 
@@ -493,6 +496,11 @@ func (pow *Service) DiscreteMining(n uint32) ([]*common.Uint256, error) {
 				}
 			}
 		}
+
+		pow.mutex.Lock()
+		pow.started = false
+		pow.discreteMining = false
+		pow.mutex.Unlock()
 		return blockHashes, nil
 	}
 }

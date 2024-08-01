@@ -9,7 +9,6 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"github.com/elastos/Elastos.ELA/core"
 	"math"
 	"math/rand"
 	"sort"
@@ -21,6 +20,7 @@ import (
 	"github.com/elastos/Elastos.ELA/common"
 	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/common/log"
+	"github.com/elastos/Elastos.ELA/core"
 	pg "github.com/elastos/Elastos.ELA/core/contract/program"
 	"github.com/elastos/Elastos.ELA/core/types"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
@@ -170,6 +170,28 @@ func (pow *Service) CreateCoinbaseTx(minerAddr string, height uint32) (interface
 	return tx, nil
 }
 
+func (pow *Service) CreateRecordSponsorTx(sponsor []byte, height uint32) (interfaces.Transaction, error) {
+
+	nonce := make([]byte, 8)
+	binary.BigEndian.PutUint64(nonce, rand.Uint64())
+	txAttr := common2.NewAttribute(common2.Nonce, nonce)
+	tx := functions.CreateTransaction(
+		pow.GetDefaultTxVersion(height),
+		common2.RecordSponsor,
+		payload.RecordSponsorVersion,
+		&payload.RecordSponsor{
+			Sponsor: sponsor,
+		},
+		[]*common2.Attribute{&txAttr},
+		[]*common2.Input{},
+		[]*common2.Output{},
+		height,
+		[]*pg.Program{},
+	)
+
+	return tx, nil
+}
+
 func (pow *Service) AssignCoinbaseTxRewards(block *types.Block, totalReward common.Fixed64) error {
 	activeHeight := pow.arbiters.GetDPoSV2ActiveHeight()
 
@@ -278,6 +300,21 @@ func (pow *Service) GenerateBlock(minerAddr string,
 	}
 
 	msgBlock.Transactions = append(msgBlock.Transactions, coinBaseTx)
+
+	if bestChain.Height+1 >= pow.chainParams.DPoSConfiguration.RecordSponsorStartHeight {
+		bestBlock, err := pow.chain.GetDposBlockByHash(*bestChain.Hash)
+		if err != nil {
+			return nil, err
+		}
+		if bestBlock.HaveConfirm {
+			recordSponsorTx, err := pow.CreateRecordSponsorTx(bestBlock.Confirm.Proposal.Sponsor, nextBlockHeight)
+			if err != nil {
+				return nil, err
+			}
+			msgBlock.Transactions = append(msgBlock.Transactions, recordSponsorTx)
+		}
+	}
+
 	totalTxsSize := coinBaseTx.GetSize()
 	txCount := 1
 	totalTxFee := common.Fixed64(0)
@@ -440,6 +477,10 @@ func (pow *Service) DiscreteMining(n uint32) ([]*common.Uint256, error) {
 					Block: msgBlock,
 				})
 				if err != nil {
+					pow.mutex.Lock()
+					pow.started = false
+					pow.discreteMining = false
+					pow.mutex.Unlock()
 					return blockHashes, nil
 				}
 
@@ -455,6 +496,11 @@ func (pow *Service) DiscreteMining(n uint32) ([]*common.Uint256, error) {
 				}
 			}
 		}
+
+		pow.mutex.Lock()
+		pow.started = false
+		pow.discreteMining = false
+		pow.mutex.Unlock()
 		return blockHashes, nil
 	}
 }

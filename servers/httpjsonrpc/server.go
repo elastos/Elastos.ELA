@@ -24,7 +24,7 @@ import (
 	elaErr "github.com/elastos/Elastos.ELA/servers/errors"
 )
 
-//an instance of the multiplexer
+// an instance of the multiplexer
 var mainMux map[string]func(Params) map[string]interface{}
 
 const (
@@ -135,6 +135,7 @@ func StartRPCServer() {
 	//nft
 	mainMux["getcandestroynftids"] = GetCanDestroynftIDs
 	mainMux["getnftinfo"] = GetNFTInfo
+	mainMux["getreferkeyinfo"] = GetReferKeyInfo
 
 	var handler http.Handler
 	rpcServeMux := http.NewServeMux()
@@ -161,8 +162,8 @@ func StartRPCServer() {
 	}
 }
 
-//this is the function that should be called in order to answer an rpc call
-//should be registered like "http.AddMethod("/", httpjsonrpc.Handle)"
+// this is the function that should be called in order to answer an rpc call
+// should be registered like "http.AddMethod("/", httpjsonrpc.Handle)"
 func Handle(w http.ResponseWriter, r *http.Request) {
 	isClientAllowed := clientAllowed(r)
 	if !isClientAllowed {

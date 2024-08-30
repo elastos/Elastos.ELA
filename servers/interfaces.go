@@ -694,21 +694,21 @@ func GetReferKeyInfo(params Params) map[string]interface{} {
 	}
 
 	type VotesWithLockTime struct {
-		Candidate string
-		Votes     int64
-		LockTime  uint32
+		Candidate string `json:"candiate"`
+		Votes     int64  `json:"votes"`
+		LockTime  uint32 `json:"lockTime"`
 	}
 
-	type referKeyInfo struct {
-		Hash            string
-		TransactionHash string
-		BlockHeight     uint32
-		PayloadVersion  byte
-		VoteType        byte
-		Info            []VotesWithLockTime
+	type ReferKeyInfo struct {
+		Hash            string              `json:"hash"`
+		TransactionHash string              `json:"transactionHash"`
+		BlockHeight     uint32              `json:"blockHeight"`
+		PayloadVersion  byte                `json:"payloadVersion"`
+		VoteType        byte                `json:"voteType"`
+		Info            []VotesWithLockTime `json:"info"`
 	}
 
-	fillReferKeyINFO := func(detailVoteInfo payload.DetailedVoteInfo) (info referKeyInfo) {
+	fillReferKeyINFO := func(detailVoteInfo payload.DetailedVoteInfo) (info ReferKeyInfo) {
 		info.TransactionHash = detailVoteInfo.TransactionHash.ReversedString()
 		info.BlockHeight = detailVoteInfo.BlockHeight
 		info.PayloadVersion = detailVoteInfo.PayloadVersion

@@ -678,6 +678,78 @@ func GetNFTInfo(params Params) map[string]interface{} {
 	return ResponsePack(InvalidParams, "wrong nft id, not found it!")
 }
 
+func GetReferKeyInfo(params Params) map[string]interface{} {
+	idParam, ok := params.String("id")
+	if !ok {
+		return ResponsePack(InvalidParams, "need string id ")
+	}
+
+	idBytes, err := common.HexStringToBytes(idParam)
+	if err != nil {
+		return ResponsePack(InvalidParams, "id HexStringToBytes error")
+	}
+	nftID, err := common.Uint256FromBytes(idBytes)
+	if err != nil {
+		return ResponsePack(InvalidParams, "idbytes to hash error")
+	}
+
+	type VotesWithLockTime struct {
+		Candidate string
+		Votes     int64
+		LockTime  uint32
+	}
+
+	type referKeyInfo struct {
+		Hash            string
+		TransactionHash string
+		BlockHeight     uint32
+		PayloadVersion  byte
+		VoteType        byte
+		Info            []VotesWithLockTime
+	}
+
+	fillReferKeyINFO := func(detailVoteInfo payload.DetailedVoteInfo) (info referKeyInfo) {
+		info.TransactionHash = detailVoteInfo.TransactionHash.ReversedString()
+		info.BlockHeight = detailVoteInfo.BlockHeight
+		info.PayloadVersion = detailVoteInfo.PayloadVersion
+		info.VoteType = byte(detailVoteInfo.VoteType)
+		info.Info = []VotesWithLockTime{
+			{
+				Candidate: common.BytesToHexString(detailVoteInfo.Info[0].Candidate),
+				Votes:     detailVoteInfo.Info[0].Votes.IntValue(),
+				LockTime:  detailVoteInfo.Info[0].LockTime,
+			},
+		}
+		return
+	}
+
+	nftReferKey, err := Chain.GetState().GetNFTReferKey(*nftID)
+	if err != nil {
+		return ResponsePack(InvalidParams, "wrong nft id, not found it!")
+	}
+	producers := Chain.GetState().GetAllProducers()
+	for _, producer := range producers {
+		for _, votesInfo := range producer.GetAllDetailedDPoSV2Votes() {
+			for referKey, detailVoteInfo := range votesInfo {
+				if referKey.IsEqual(nftReferKey) {
+					info := fillReferKeyINFO(detailVoteInfo)
+					info.Hash = nftReferKey.ReversedString()
+					return ResponsePack(Success, info)
+				}
+			}
+		}
+		for _, expiredVotesInfo := range producer.GetExpiredNFTVotes() {
+			if expiredVotesInfo.ReferKey().IsEqual(nftReferKey) {
+				info := fillReferKeyINFO(expiredVotesInfo)
+				info.Hash = nftReferKey.ReversedString()
+				return ResponsePack(Success, info)
+			}
+		}
+	}
+
+	return ResponsePack(InvalidParams, "wrong nft id, not found it!")
+}
+
 func GetCanDestroynftIDs(params Params) map[string]interface{} {
 	idsParam, ok := params.ArrayString("ids")
 	if !ok {
@@ -2159,7 +2231,7 @@ type RPCProducerInfo struct {
 	Index          uint64 `json:"index"`
 }
 
-//a group producer info include TotalDPoSV1Votes and producer count
+// a group producer info include TotalDPoSV1Votes and producer count
 type RPCProducersInfo struct {
 	ProducerInfoSlice []RPCProducerInfo `json:"producers"`
 	TotalVotes        string            `json:"totalvotes"`
@@ -2184,7 +2256,7 @@ type RPCCRCandidateInfo struct {
 	Index uint64 `json:"index"`
 }
 
-//a group cr candidate info include TotalDPoSV1Votes and candidate count
+// a group cr candidate info include TotalDPoSV1Votes and candidate count
 type RPCCRCandidatesInfo struct {
 	CRCandidateInfoSlice []RPCCRCandidateInfo `json:"crcandidatesinfo"`
 	TotalVotes           string               `json:"totalvotes"`
@@ -2253,7 +2325,7 @@ type RPCCRCouncilMemberInfo struct {
 	Index          uint64 `json:"index"`
 }
 
-//a group cr member info  include cr member count
+// a group cr member info  include cr member count
 type RPCCRCouncilMembersInfo struct {
 	CRMemberInfoSlice []RPCCRCouncilMemberInfo `json:"crmembersinfo"`
 	TotalCounts       uint64                   `json:"totalcounts"`
@@ -2289,7 +2361,7 @@ type RPCCRMemberInfoV2 struct {
 	State                   string                   `json:"state"`
 }
 
-//single CR Term Info
+// single CR Term Info
 type RPCCRTermInfo struct {
 	Index       uint64 `json:"index"`
 	State       string `json:"state"`
@@ -2297,7 +2369,7 @@ type RPCCRTermInfo struct {
 	EndHeight   uint32 `json:"endHeight"`
 }
 
-//a group CR Term Info  include CR term count
+// a group CR Term Info  include CR term count
 type RPCCRTermsInfo struct {
 	CRTermInfoSlice []RPCCRTermInfo `json:"crtermsinfo"`
 	TotalCounts     uint64          `json:"totalcounts"`
@@ -2938,7 +3010,7 @@ func ListNextCRs(param Params) map[string]interface{} {
 	return ResponsePack(Success, result)
 }
 
-//list CR Terms
+// list CR Terms
 func ListCRTerms(param Params) map[string]interface{} {
 	cm := Chain.GetCRCommittee()
 	crTerms := cm.GetCRTerms()
@@ -2974,7 +3046,7 @@ func ListCRTerms(param Params) map[string]interface{} {
 	return ResponsePack(Success, result)
 }
 
-//Get CR Members by Term
+// Get CR Members by Term
 func ListCRMembers(param Params) map[string]interface{} {
 	cm := Chain.GetCRCommittee()
 	crTerm, ok := param.Uint("term")

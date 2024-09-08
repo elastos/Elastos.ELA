@@ -620,6 +620,11 @@ func GetNFTInfo(params Params) map[string]interface{} {
 		return ResponsePack(InvalidParams, "need string id ")
 	}
 
+	if idParam == "e53979c8afbd73b2700fc6a62b3fe9bbbadecfd7d675ff48ae63abc1edb845" ||
+		idParam == "e53979c8afbd73b2700fc6a62b3fe9bbbadecfd7d675ff48ae63abc1edb84500" {
+		idParam = "00e53979c8afbd73b2700fc6a62b3fe9bbbadecfd7d675ff48ae63abc1edb845"
+	}
+
 	idBytes, err := common.HexStringToBytes(idParam)
 	if err != nil {
 		return ResponsePack(InvalidParams, "id HexStringToBytes error")

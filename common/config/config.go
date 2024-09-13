@@ -195,7 +195,7 @@ func GetDefaultParams() *Configuration {
 			DPoSV2RewardAccumulateProgramHash: StakeRewardProgramHash,
 			NFTStartHeight:                    1405000,
 			SponsorsFilePath:                  "sponsors",
-			RecordSponsorStartHeight:          math.MaxUint32,
+			RecordSponsorStartHeight:          1801550,
 			OriginArbiters: []string{
 				"0248df6705a909432be041e0baa25b8f648741018f70d1911f2ed28778db4b8fe4",
 				"02771faf0f4d4235744b30972d5f2c470993920846c761e4d08889ecfdc061cddf",

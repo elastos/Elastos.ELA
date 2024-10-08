@@ -410,7 +410,7 @@ func (tx *BaseTransaction) IsIllegalTypeTx() bool {
 	return tx.IsIllegalProposalTx() || tx.IsIllegalVoteTx() || tx.IsIllegalBlockTx() || tx.IsSidechainIllegalDataTx()
 }
 
-//special tx is this kind of tx who have no input and output
+// special tx is this kind of tx who have no input and output
 func (tx *BaseTransaction) IsSpecialTx() bool {
 	if tx.IsIllegalTypeTx() || tx.IsInactiveArbitrators() || tx.IsNextTurnDPOSInfoTx() {
 		return true
@@ -536,6 +536,10 @@ func (tx *BaseTransaction) IsVotesRealWithdrawTX() bool {
 
 func (tx *BaseTransaction) IsCreateNFTTX() bool {
 	return tx.txType == common2.CreateNFT
+}
+
+func (tx *BaseTransaction) IsRecordSponorTx() bool {
+	return tx.txType == common2.RecordSponsor
 }
 
 // SerializeSizeStripped returns the number of bytes it would take to serialize

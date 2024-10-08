@@ -1096,11 +1096,7 @@ func TestState_InactiveProducer_Normal(t *testing.T) {
 	for round := 0; round < 3; round++ {
 		for arIndex := 1; arIndex <= 4; arIndex++ {
 			state.ProcessBlock(mockBlock(uint32(currentHeight)),
-				&payload.Confirm{
-					Proposal: payload.DPOSProposal{
-						Sponsor: producers[arIndex].NodePublicKey,
-					},
-				}, 0)
+				producers[arIndex].NodePublicKey, 0)
 			currentHeight++
 		}
 	}
@@ -1175,18 +1171,10 @@ func TestState_InactiveProducer_FailNoContinuous(t *testing.T) {
 
 			if round == 2 && arIndex == 4 {
 				state.ProcessBlock(mockBlock(uint32(currentHeight)),
-					&payload.Confirm{
-						Proposal: payload.DPOSProposal{
-							Sponsor: producers[0].NodePublicKey,
-						},
-					}, 0)
+					producers[0].NodePublicKey, 0)
 			} else {
 				state.ProcessBlock(mockBlock(uint32(currentHeight)),
-					&payload.Confirm{
-						Proposal: payload.DPOSProposal{
-							Sponsor: producers[arIndex].NodePublicKey,
-						},
-					}, 0)
+					producers[arIndex].NodePublicKey, 0)
 			}
 			currentHeight++
 		}
@@ -1252,11 +1240,7 @@ func TestState_InactiveProducer_RecoverFromInactiveState(t *testing.T) {
 	for round := 0; round < 3; round++ {
 		for arIndex := 1; arIndex <= 4; arIndex++ {
 			state.ProcessBlock(mockBlock(uint32(currentHeight)),
-				&payload.Confirm{
-					Proposal: payload.DPOSProposal{
-						Sponsor: producers[arIndex].NodePublicKey,
-					},
-				}, 0)
+				producers[arIndex].NodePublicKey, 0)
 			currentHeight++
 		}
 	}
@@ -1366,11 +1350,7 @@ func TestState_InactiveProducer_DuringUpdateVersion(t *testing.T) {
 	for round := 0; round < 3; round++ {
 		for arIndex := 1; arIndex <= 4; arIndex++ {
 			state.ProcessBlock(mockBlock(uint32(currentHeight)),
-				&payload.Confirm{
-					Proposal: payload.DPOSProposal{
-						Sponsor: producers[arIndex].NodePublicKey,
-					},
-				}, 0)
+				producers[arIndex].NodePublicKey, 0)
 			currentHeight++
 		}
 	}
@@ -1691,11 +1671,7 @@ func TestState_CountArbitratorsInactivityV1(t *testing.T) {
 		height := state.ChainParams.CRConfiguration.ChangeCommitteeNewCRHeight + 1 + uint32(i)
 		state.CountArbitratorsInactivityV1(
 			height,
-			&payload.Confirm{
-				Proposal: payload.DPOSProposal{
-					Sponsor: nodePublcKey,
-				},
-			})
+			nodePublcKey)
 		state.History.Commit(height)
 	}
 

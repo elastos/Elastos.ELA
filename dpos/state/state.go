@@ -1277,7 +1277,7 @@ func (s *State) IsDPOSTransaction(tx interfaces.Transaction) bool {
 
 // ProcessBlock takes a block and it's confirm to update producers state and
 // votes accordingly.
-func (s *State) ProcessBlock(block *types.Block, confirm *payload.Confirm, dutyIndex int) {
+func (s *State) ProcessBlock(block *types.Block, sponsor []byte, dutyIndex int) {
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
 
@@ -1289,15 +1289,16 @@ func (s *State) ProcessBlock(block *types.Block, confirm *payload.Confirm, dutyI
 	s.tryRevertToPOWByStateOfCRMember(block.Height)
 	s.tryUpdateLastIrreversibleHeight(block.Height)
 
-	if confirm != nil {
+	if len(sponsor) != 0 {
 		if block.Height > s.DPoSV2ActiveHeight {
-			s.countArbitratorsInactivityV3(block.Height, confirm, dutyIndex)
+			// tpdp get sponsor from cache first
+			s.countArbitratorsInactivityV3(block.Height, sponsor, dutyIndex)
 		} else if block.Height >= s.ChainParams.CRConfiguration.ChangeCommitteeNewCRHeight {
-			s.countArbitratorsInactivityV2(block.Height, confirm)
+			s.countArbitratorsInactivityV2(block.Height, sponsor)
 		} else if block.Height >= s.ChainParams.CRConfiguration.CRClaimDPOSNodeStartHeight {
-			s.countArbitratorsInactivityV1(block.Height, confirm)
+			s.countArbitratorsInactivityV1(block.Height, sponsor)
 		} else {
-			s.countArbitratorsInactivityV0(block.Height, confirm)
+			s.countArbitratorsInactivityV0(block.Height, sponsor)
 		}
 	}
 
@@ -3251,7 +3252,7 @@ func (s *State) revertSettingInactiveProducer(producer *Producer, key string,
 // countArbitratorsInactivity count Arbiters inactive rounds, and change to
 // inactive if more than "MaxInactiveRounds"
 func (s *State) countArbitratorsInactivityV3(height uint32,
-	confirm *payload.Confirm, dutyIndex int) {
+	sponsor []byte, dutyIndex int) {
 	// check inactive Arbiters after producers has participated in
 	if height < s.ChainParams.DPoSV2StartHeight {
 		return
@@ -3282,7 +3283,7 @@ func (s *State) countArbitratorsInactivityV3(height uint32,
 			changingArbiters[key] = false
 		}
 	}
-	currSponsor := s.getProducerKey(confirm.Proposal.Sponsor)
+	currSponsor := s.getProducerKey(sponsor)
 	changingArbiters[currSponsor] = true
 	crMembersMap := s.getClaimedCRMembersMap()
 	// CRC producers are not in the ActivityProducers,
@@ -3416,7 +3417,7 @@ func (s *State) updateInactiveCountV2(lastPosition, needReset, workedInRound boo
 // countArbitratorsInactivity count Arbiters inactive rounds, and change to
 // inactive if more than "MaxInactiveRounds"
 func (s *State) countArbitratorsInactivityV2(height uint32,
-	confirm *payload.Confirm) {
+	sponsor []byte) {
 	// check inactive Arbiters after producers has participated in
 	if height < s.ChainParams.PublicDPOSHeight {
 		return
@@ -3444,7 +3445,7 @@ func (s *State) countArbitratorsInactivityV2(height uint32,
 			changingArbiters[key] = false
 		}
 	}
-	changingArbiters[s.getProducerKey(confirm.Proposal.Sponsor)] = true
+	changingArbiters[s.getProducerKey(sponsor)] = true
 
 	crMembersMap := s.getClaimedCRMembersMap()
 	// CRC producers are not in the ActivityProducers,
@@ -3515,16 +3516,16 @@ func (s *State) countArbitratorsInactivityV2(height uint32,
 // CountArbitratorsInactivityV1 count Arbiters inactive rounds, and change to
 // inactive if more than "MaxInactiveRounds" with lock
 func (s *State) CountArbitratorsInactivityV1(height uint32,
-	confirm *payload.Confirm) {
+	sponsor []byte) {
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
-	s.countArbitratorsInactivityV1(height, confirm)
+	s.countArbitratorsInactivityV1(height, sponsor)
 }
 
 // countArbitratorsInactivity count Arbiters inactive rounds, and change to
 // inactive if more than "MaxInactiveRounds"
 func (s *State) countArbitratorsInactivityV1(height uint32,
-	confirm *payload.Confirm) {
+	sponsor []byte) {
 	// check inactive Arbiters after producers has participated in
 	if height < s.ChainParams.PublicDPOSHeight {
 		return
@@ -3541,7 +3542,7 @@ func (s *State) countArbitratorsInactivityV1(height uint32,
 		key := s.getProducerKey(a.NodePublicKey)
 		changingArbiters[key] = false
 	}
-	changingArbiters[s.getProducerKey(confirm.Proposal.Sponsor)] = true
+	changingArbiters[s.getProducerKey(sponsor)] = true
 
 	crMembersMap := s.getClaimedCRMembersMap()
 	// CRC producers are not in the ActivityProducers,
@@ -3586,7 +3587,7 @@ func (s *State) countArbitratorsInactivityV1(height uint32,
 // countArbitratorsInactivity count Arbiters inactive rounds, and change to
 // inactive if more than "MaxInactiveRounds"
 func (s *State) countArbitratorsInactivityV0(height uint32,
-	confirm *payload.Confirm) {
+	sponsor []byte) {
 	// check inactive Arbiters after producers has participated in
 	if height < s.ChainParams.PublicDPOSHeight {
 		return
@@ -3608,7 +3609,7 @@ func (s *State) countArbitratorsInactivityV0(height uint32,
 			changingArbiters[key] = false
 		}
 	}
-	changingArbiters[s.getProducerKey(confirm.Proposal.Sponsor)] = true
+	changingArbiters[s.getProducerKey(sponsor)] = true
 
 	// CRC producers are not in the ActivityProducers,
 	// so they will not be inactive

@@ -349,19 +349,19 @@ func (b *BlockChain) InitCheckpoint(interrupt <-chan struct{},
 			}
 		}
 
-		log.Info("ancestor block height:", b.AncestorBlock.Height)
-		if b.AncestorBlock.Height != 0 {
-			log.Info("ReorganizeChain2 ancestor block height:", b.AncestorBlock.Height)
-			err := b.ReorganizeChain2(&b.AncestorBlock)
-			if err != nil {
-				log.Info("ReorganizeChain2 error:", err)
-				panic(err)
-			}
-
-			b.db.Close()
-			log.Info("###################### need to restart again ######################")
-			os.Exit(0)
-		}
+		//log.Info("ancestor block height:", b.AncestorBlock.Height)
+		//if b.AncestorBlock.Height != 0 {
+		//	log.Info("ReorganizeChain2 ancestor block height:", b.AncestorBlock.Height)
+		//	err := b.ReorganizeChain2(&b.AncestorBlock)
+		//	if err != nil {
+		//		log.Info("ReorganizeChain2 error:", err)
+		//		panic(err)
+		//	}
+		//
+		//	b.db.Close()
+		//	log.Info("###################### need to restart again ######################")
+		//	os.Exit(0)
+		//}
 
 		done <- struct{}{}
 	}()

@@ -141,8 +141,15 @@ func CheckDuplicateTx(block *Block) error {
 	existingProducer := make(map[string]struct{})
 	existingProducerNode := make(map[string]struct{})
 	existingCR := make(map[Uint168]struct{})
+	recordSponsorCount := 0
 	for _, txn := range block.Transactions {
 		switch txn.TxType() {
+		case common.RecordSponsor:
+			recordSponsorCount++
+			if recordSponsorCount > 1 {
+				return errors.New("[PowCheckBlockSanity] block contains duplicate record sponsor Tx")
+			}
+
 		case common.WithdrawFromSideChain:
 			witPayload := txn.Payload().(*payload.WithdrawFromSideChain)
 
@@ -318,9 +325,28 @@ func (b *BlockChain) CheckBlockContext(block *Block, prevNode *BlockNode) error 
 		return errors.New("block timestamp is not after expected")
 	}
 
+	var recordSponsorExist bool
 	for _, tx := range block.Transactions[1:] {
 		if !IsFinalizedTransaction(tx, block.Height) {
 			return errors.New("block contains unfinalized transaction")
+		}
+		if tx.IsRecordSponorTx() {
+			recordSponsorExist = true
+		}
+	}
+
+	// check if need to record sponsor
+	if block.Height >= b.chainParams.DPoSConfiguration.RecordSponsorStartHeight {
+		lastBlock, err := b.GetDposBlockByHash(*prevNode.Hash)
+		if err != nil {
+			return errors.New("get last block failed")
+		}
+
+		if lastBlock.Confirm == nil && recordSponsorExist {
+			return errors.New("record sponsor transaction must be confirmed")
+		}
+		if lastBlock.Confirm != nil && !recordSponsorExist {
+			return errors.New("confirmed block must have record sponsor transaction")
 		}
 	}
 

@@ -17,6 +17,7 @@ import (
 func NewArbitratorsMock(arbitersByte []ArbiterMember, changeCount,
 	majorityCount int) *ArbitratorsMock {
 	return &ArbitratorsMock{
+		LastArbitrators:    arbitersByte,
 		CurrentArbitrators: arbitersByte,
 		Snapshot: []*CheckPoint{
 			{
@@ -43,8 +44,9 @@ func NewArbitratorsMock(arbitersByte []ArbiterMember, changeCount,
 	}
 }
 
-//mock object of Arbiters
+// mock object of Arbiters
 type ArbitratorsMock struct {
+	LastArbitrators             []ArbiterMember
 	CurrentArbitrators          []ArbiterMember
 	CRCArbitrators              []ArbiterMember
 	NextCRCArbitrators          []ArbiterMember
@@ -265,6 +267,26 @@ func (a *ArbitratorsMock) IsMemberElectedNextCRCArbitrator(pk []byte) bool {
 
 func (a *ArbitratorsMock) SetDutyChangeCount(count int) {
 	a.DutyChangedCount = count
+}
+
+func (a *ArbitratorsMock) GetCurrentAndLastArbitrators() ([]*ArbiterInfo, []*ArbiterInfo) {
+	current := make([]*ArbiterInfo, 0, len(a.CurrentArbitrators))
+	for _, v := range a.CurrentArbitrators {
+		current = append(current, &ArbiterInfo{
+			NodePublicKey: v.GetNodePublicKey(),
+			IsNormal:      true,
+		})
+	}
+
+	last := make([]*ArbiterInfo, 0, len(a.LastArbitrators))
+	for _, v := range a.LastArbitrators {
+		last = append(last, &ArbiterInfo{
+			NodePublicKey: v.GetNodePublicKey(),
+			IsNormal:      true,
+		})
+	}
+
+	return current, last
 }
 
 func (a *ArbitratorsMock) GetArbitrators() []*ArbiterInfo {

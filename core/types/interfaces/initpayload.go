@@ -97,6 +97,8 @@ func GetPayload(txType common.TxType, payloadVersion byte) (Payload, error) {
 		p = new(payload.ReturnVotes)
 	case common.VotesRealWithdraw:
 		p = new(payload.VotesRealWithdrawPayload)
+	case common.RecordSponsor:
+		p = new(payload.RecordSponsor)
 	case common.DposV2ClaimReward:
 		p = new(payload.DPoSV2ClaimReward)
 	case common.DposV2ClaimRewardRealWithdraw:

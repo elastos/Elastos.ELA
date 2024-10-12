@@ -194,6 +194,8 @@ func GetDefaultParams() *Configuration {
 			CandidatesCount:                   72,
 			DPoSV2RewardAccumulateProgramHash: StakeRewardProgramHash,
 			NFTStartHeight:                    1405000,
+			SponsorsFilePath:                  "sponsors",
+			RecordSponsorStartHeight:          1801550,
 			OriginArbiters: []string{
 				"0248df6705a909432be041e0baa25b8f648741018f70d1911f2ed28778db4b8fe4",
 				"02771faf0f4d4235744b30972d5f2c470993920846c761e4d08889ecfdc061cddf",
@@ -245,7 +247,7 @@ func GetDefaultParams() *Configuration {
 		ProhibitTransferToDIDHeight:     1032840,
 		DIDSideChainAddress:             "XKUh4GLhFJiqAMTF6HyWQrV9pK9HcGUdfJ",
 		DPoSV2EffectiveVotes:            80000 * 100000000,
-		DPoSV2StartHeight:               1405000,
+		DPoSV2StartHeight:               1405000, //1405000+262800=1667800
 		StakePoolProgramHash:            StakePoolProgramHash,
 		SchnorrStartHeight:              math.MaxUint32,
 		NormalSchnorrStartHeight:        1405000,
@@ -380,6 +382,8 @@ func (p *Configuration) TestNet() *Configuration {
 	p.CrossChainMonitorInterval = 100
 	p.CRConfiguration.CRClaimPeriod = 10080
 	p.DPoSConfiguration.NFTStartHeight = 1098000
+	p.DPoSConfiguration.SponsorsFilePath = "sponsors"
+	p.DPoSConfiguration.RecordSponsorStartHeight = 1174500
 
 	p.HttpInfoPort = 21333
 	p.HttpRestPort = 21334
@@ -500,6 +504,8 @@ func (p *Configuration) RegNet() *Configuration {
 	p.CrossChainMonitorInterval = 100
 	p.CRConfiguration.CRClaimPeriod = 10080
 	p.DPoSConfiguration.NFTStartHeight = 968000
+	p.DPoSConfiguration.SponsorsFilePath = "sponsors"
+	p.DPoSConfiguration.RecordSponsorStartHeight = math.MaxUint32
 	p.HttpInfoPort = 22333
 	p.HttpRestPort = 22334
 	p.HttpWsPort = 22335
@@ -720,6 +726,10 @@ type DPoSConfiguration struct {
 	CRDPoSNodeHotFixHeight uint32 `screw:"--crdposnodehotfixheight" usage:"CRDPoSNodeHotFixHeight indicates the hot fix start height of CR DPoS node"`
 	// NFTStartHeight defines the height of NFT started.
 	NFTStartHeight uint32 `screw:"--nftstartheight" usage:"the start height of NFT transaction"`
+	// SponsorsFilePath defines the sponsors file path.
+	SponsorsFilePath string `screw:"--sponsorsfilepath" usage:"defines the sponsors file path"`
+	// RecordSponsorStartHeight defines the start height to record sponsor.
+	RecordSponsorStartHeight uint32 `screw:"--recordsponsorstartheight" usage:"defines the start height to record sponsor"`
 }
 
 type CRConfiguration struct {

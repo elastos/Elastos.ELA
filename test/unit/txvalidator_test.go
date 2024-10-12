@@ -71,6 +71,7 @@ func (s *txValidatorTestSuite) SetupSuite() {
 	log.NewDefault(test.NodeLogPath, 0, 0, 0)
 
 	params := &config.DefaultParams
+	params.Sterilize()
 	params.DPoSV2StartHeight = 0
 	blockchain.FoundationAddress = *params.FoundationProgramHash
 	s.foundationAddress = *params.FoundationProgramHash
@@ -7596,7 +7597,12 @@ func (s *txValidatorTestSuite) TestArbitersAccumulateReward() {
 	ownerPubKeyStr := "0306e3deefee78e0e25f88e98f1f3290ccea98f08dd3a890616755f1a066c4b9b8"
 	nodePubKeyStr := "0250c5019a00f8bb4fd59bb6d613c70a39bb3026b87cfa247fd26f59fd04987855"
 
-	nodePubKey, err := hex.DecodeString(ownerPubKeyStr)
+	ownerPubKey, err := hex.DecodeString(ownerPubKeyStr)
+	if err != nil {
+		fmt.Println("err", err)
+	}
+
+	nodePubKey, err := hex.DecodeString(nodePubKeyStr)
 	if err != nil {
 		fmt.Println("err", err)
 	}
@@ -7656,8 +7662,8 @@ func (s *txValidatorTestSuite) TestArbitersAccumulateReward() {
 					HalvingRewardHeight:   1,
 					HalvingRewardInterval: 1,
 					DPoSConfiguration: config.DPoSConfiguration{
-
-						NormalArbitratorsCount: 12,
+						RecordSponsorStartHeight: math.MaxUint32,
+						NormalArbitratorsCount:   12,
 					},
 				},
 				DposV2ActiveHeight:      1,
@@ -7721,7 +7727,7 @@ func (s *txValidatorTestSuite) TestArbitersAccumulateReward() {
 			}
 			producer := &state.Producer{}
 			producer.SetInfo(payload.ProducerInfo{
-				OwnerPublicKey: nodePubKey,
+				OwnerPublicKey: ownerPubKey,
 				NodePublicKey:  nodePubKey,
 			})
 			a.State.ActivityProducers[ownerPubKeyStr] = producer
@@ -7732,7 +7738,8 @@ func (s *txValidatorTestSuite) TestArbitersAccumulateReward() {
 			addr[0] = byte(contract.PrefixDPoSV2)
 			stakeAddr, _ := addr.ToAddress()
 			if a.State.DPoSV2RewardInfo[stakeAddr] != 102 {
-				t.Errorf("DPoSV2RewardInfo() addr %v, want %v", "ET54cpnGG4JHeRatvPij6hGV6zN18eVSSj", 102)
+				t.Errorf("DPoSV2RewardInfo() addr %v, want %v, but %v",
+					"ET54cpnGG4JHeRatvPij6hGV6zN18eVSSj", 102, a.State.DPoSV2RewardInfo)
 			}
 		})
 	}

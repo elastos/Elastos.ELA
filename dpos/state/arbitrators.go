@@ -12,7 +12,9 @@ import (
 	"fmt"
 	"math"
 	"math/rand"
+	"os"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 
@@ -83,6 +85,9 @@ type Arbiters struct {
 	CurrentReward RewardData
 	NextReward    RewardData
 
+	LastDPoSRewards map[string]map[string]common.Fixed64
+
+	LastArbitrators    []ArbiterMember
 	CurrentArbitrators []ArbiterMember
 	CurrentCandidates  []ArbiterMember
 	nextArbitrators    []ArbiterMember
@@ -102,8 +107,9 @@ type Arbiters struct {
 	arbitersRoundReward        map[common.Uint168]common.Fixed64
 	illegalBlocksPayloadHashes map[common.Uint256]interface{}
 
-	Snapshots        map[uint32][]*CheckPoint
-	SnapshotKeysDesc []uint32
+	Snapshots                    map[uint32][]*CheckPoint
+	SnapshotKeysDesc             []uint32
+	BlockConfirmProposalSponsors map[uint32][]byte
 
 	forceChanged bool
 
@@ -173,12 +179,14 @@ func (a *Arbiters) recoverFromCheckPoints(point *CheckPoint) {
 	a.State.History = utils.NewHistory(maxHistoryCapacity)
 
 	a.DutyIndex = point.DutyIndex
+	a.LastArbitrators = point.LastArbitrators
 	a.CurrentArbitrators = point.CurrentArbitrators
 	a.CurrentCandidates = point.CurrentCandidates
 	a.nextArbitrators = point.NextArbitrators
 	a.nextCandidates = point.NextCandidates
 	a.CurrentReward = point.CurrentReward
 	a.NextReward = point.NextReward
+	a.LastDPoSRewards = point.LastDPoSRewards
 	a.StateKeyFrame = &point.StateKeyFrame
 	a.accumulativeReward = point.AccumulativeReward
 	a.finalRoundChange = point.FinalRoundChange
@@ -194,7 +202,15 @@ func (a *Arbiters) recoverFromCheckPoints(point *CheckPoint) {
 }
 
 func (a *Arbiters) ProcessBlock(block *types.Block, confirm *payload.Confirm) {
-	a.State.ProcessBlock(block, confirm, a.DutyIndex)
+	var sponsor []byte
+	if confirm != nil {
+		sponsor = confirm.Proposal.Sponsor
+		if sp, ok := a.BlockConfirmProposalSponsors[block.Height]; ok {
+			sponsor = sp
+		}
+	}
+
+	a.State.ProcessBlock(block, sponsor, a.DutyIndex)
 	a.IncreaseChainHeight(block, confirm)
 }
 
@@ -204,7 +220,7 @@ func (a *Arbiters) CheckDPOSIllegalTx(block *types.Block) error {
 	hashes := a.illegalBlocksPayloadHashes
 	a.mtx.Unlock()
 
-	if hashes == nil || len(hashes) == 0 {
+	if len(hashes) == 0 {
 		return nil
 	}
 
@@ -793,8 +809,40 @@ func (a *Arbiters) accumulateReward(block *types.Block, confirm *payload.Confirm
 		oriForceChanged := a.forceChanged
 
 		var rewards map[string]common.Fixed64
-		if confirm != nil {
-			rewards = a.getDPoSV2RewardsV2(dposReward, confirm.Proposal.Sponsor, block.Height)
+
+		// need record rewards after RecordSponsorStartHeight, real reward at next block.
+		if block.Height >= a.ChainParams.DPoSConfiguration.RecordSponsorStartHeight {
+			possibleRewards := make(map[string]map[string]common.Fixed64)
+			if confirm != nil {
+				for _, arb := range a.CurrentArbitrators {
+					arbNodePK := arb.GetNodePublicKey()
+					rew := a.getDPoSV2RewardsV2(dposReward, arbNodePK, block.Height)
+					possibleRewards[common.BytesToHexString(arbNodePK)] = rew
+				}
+			}
+			var existSponsorTx bool
+			var recordedSponsor string
+			for _, tx := range block.Transactions {
+				if tx.IsRecordSponorTx() {
+					existSponsorTx = true
+					pld := tx.Payload().(*payload.RecordSponsor)
+					recordedSponsor = common.BytesToHexString(pld.Sponsor)
+				}
+			}
+			if existSponsorTx {
+				rewards = a.LastDPoSRewards[recordedSponsor]
+			}
+
+			swapReardMapContent(&a.LastDPoSRewards, &possibleRewards)
+		} else {
+			if confirm != nil {
+				// get sponsor from cache first
+				sponsor := confirm.Proposal.Sponsor
+				if sp, ok := a.BlockConfirmProposalSponsors[block.Height]; ok {
+					sponsor = sp
+				}
+				rewards = a.getDPoSV2RewardsV2(dposReward, sponsor, block.Height)
+			}
 		}
 
 		a.History.Append(block.Height, func() {
@@ -831,6 +879,12 @@ func (a *Arbiters) accumulateReward(block *types.Block, confirm *payload.Confirm
 			a.DutyIndex = oriDutyIndex
 		})
 	}
+}
+
+func swapReardMapContent(map1, map2 *map[string]map[string]common.Fixed64) {
+	temp := *map1
+	*map1 = *map2
+	*map2 = temp
 }
 
 func (a *Arbiters) clearingDPOSReward(block *types.Block, historyHeight uint32,
@@ -1294,6 +1348,63 @@ func (a *Arbiters) IsArbitrator(pk []byte) bool {
 	return false
 }
 
+func (a *Arbiters) GetCurrentAndLastArbitrators() ([]*ArbiterInfo, []*ArbiterInfo) {
+	a.mtx.Lock()
+	defer a.mtx.Unlock()
+
+	return a.getCurrentAndLastArbitrators()
+}
+
+func (a *Arbiters) getCurrentAndLastArbitrators() ([]*ArbiterInfo, []*ArbiterInfo) {
+	currentArbitrators := make([]*ArbiterInfo, 0, len(a.CurrentArbitrators))
+	for _, v := range a.CurrentArbitrators {
+		isNormal := true
+		isCRMember := false
+		claimedDPOSNode := false
+		abt, ok := v.(*crcArbiter)
+		if ok {
+			isCRMember = true
+			if !abt.isNormal {
+				isNormal = false
+			}
+			if len(abt.crMember.DPOSPublicKey) != 0 {
+				claimedDPOSNode = true
+			}
+		}
+		currentArbitrators = append(currentArbitrators, &ArbiterInfo{
+			NodePublicKey:   v.GetNodePublicKey(),
+			IsNormal:        isNormal,
+			IsCRMember:      isCRMember,
+			ClaimedDPOSNode: claimedDPOSNode,
+		})
+	}
+
+	lastArbitrators := make([]*ArbiterInfo, 0, len(a.LastArbitrators))
+	for _, v := range a.LastArbitrators {
+		isNormal := true
+		isCRMember := false
+		claimedDPOSNode := false
+		abt, ok := v.(*crcArbiter)
+		if ok {
+			isCRMember = true
+			if !abt.isNormal {
+				isNormal = false
+			}
+			if len(abt.crMember.DPOSPublicKey) != 0 {
+				claimedDPOSNode = true
+			}
+		}
+		lastArbitrators = append(lastArbitrators, &ArbiterInfo{
+			NodePublicKey:   v.GetNodePublicKey(),
+			IsNormal:        isNormal,
+			IsCRMember:      isCRMember,
+			ClaimedDPOSNode: claimedDPOSNode,
+		})
+	}
+
+	return currentArbitrators, lastArbitrators
+}
+
 func (a *Arbiters) GetArbitrators() []*ArbiterInfo {
 	a.mtx.Lock()
 	result := a.getArbitrators()
@@ -1750,6 +1861,7 @@ func (a *Arbiters) getChangeType(height uint32) (ChangeType, uint32) {
 
 func (a *Arbiters) cleanArbitrators(height uint32) {
 	oriCurrentCRCArbitersMap := copyCRCArbitersMap(a.CurrentCRCArbitersMap)
+	oriLastArbitrators := a.LastArbitrators
 	oriCurrentArbitrators := a.CurrentArbitrators
 	oriCurrentCandidates := a.CurrentCandidates
 	oriNextCRCArbitersMap := copyCRCArbitersMap(a.nextCRCArbitersMap)
@@ -1758,6 +1870,7 @@ func (a *Arbiters) cleanArbitrators(height uint32) {
 	oriDutyIndex := a.DutyIndex
 	a.History.Append(height, func() {
 		a.CurrentCRCArbitersMap = make(map[common.Uint168]ArbiterMember)
+		a.LastArbitrators = make([]ArbiterMember, 0)
 		a.CurrentArbitrators = make([]ArbiterMember, 0)
 		a.CurrentCandidates = make([]ArbiterMember, 0)
 		a.nextCRCArbitersMap = make(map[common.Uint168]ArbiterMember)
@@ -1766,6 +1879,7 @@ func (a *Arbiters) cleanArbitrators(height uint32) {
 		a.DutyIndex = 0
 	}, func() {
 		a.CurrentCRCArbitersMap = oriCurrentCRCArbitersMap
+		a.LastArbitrators = oriLastArbitrators
 		a.CurrentArbitrators = oriCurrentArbitrators
 		a.CurrentCandidates = oriCurrentCandidates
 		a.nextCRCArbitersMap = oriNextCRCArbitersMap
@@ -1777,6 +1891,7 @@ func (a *Arbiters) cleanArbitrators(height uint32) {
 
 func (a *Arbiters) ChangeCurrentArbitrators(height uint32) error {
 	oriCurrentCRCArbitersMap := copyCRCArbitersMap(a.CurrentCRCArbitersMap)
+	oriLastArbitrators := a.LastArbitrators
 	oriCurrentArbitrators := a.CurrentArbitrators
 	oriCurrentCandidates := a.CurrentCandidates
 	oriCurrentReward := a.CurrentReward
@@ -1787,12 +1902,14 @@ func (a *Arbiters) ChangeCurrentArbitrators(height uint32) error {
 				a.nextArbitrators[j].GetNodePublicKey()) < 0
 		})
 		a.CurrentCRCArbitersMap = copyCRCArbitersMap(a.nextCRCArbitersMap)
+		a.LastArbitrators = a.CurrentArbitrators
 		a.CurrentArbitrators = a.nextArbitrators
 		a.CurrentCandidates = a.nextCandidates
 		a.CurrentReward = a.NextReward
 		a.DutyIndex = 0
 	}, func() {
 		a.CurrentCRCArbitersMap = oriCurrentCRCArbitersMap
+		a.LastArbitrators = oriLastArbitrators
 		a.CurrentArbitrators = oriCurrentArbitrators
 		a.CurrentCandidates = oriCurrentCandidates
 		a.CurrentReward = oriCurrentReward
@@ -2723,6 +2840,7 @@ func (a *Arbiters) newCheckPoint(height uint32) *CheckPoint {
 		NextCandidates:              make([]ArbiterMember, 0),
 		CurrentReward:               *NewRewardData(),
 		NextReward:                  *NewRewardData(),
+		LastDPoSRewards:             make(map[string]map[string]common.Fixed64),
 		CurrentCRCArbitersMap:       make(map[common.Uint168]ArbiterMember),
 		CurrentOnDutyCRCArbitersMap: make(map[common.Uint168]ArbiterMember),
 		NextCRCArbitersMap:          make(map[common.Uint168]ArbiterMember),
@@ -2734,15 +2852,18 @@ func (a *Arbiters) newCheckPoint(height uint32) *CheckPoint {
 		ForceChanged:                a.forceChanged,
 		ArbitersRoundReward:         make(map[common.Uint168]common.Fixed64),
 		IllegalBlocksPayloadHashes:  make(map[common.Uint256]interface{}),
+		LastArbitrators:             a.LastArbitrators,
 		CurrentArbitrators:          a.CurrentArbitrators,
 		StateKeyFrame:               *a.State.snapshot(),
 	}
+	point.LastArbitrators = copyByteList(a.LastArbitrators)
 	point.CurrentArbitrators = copyByteList(a.CurrentArbitrators)
 	point.CurrentCandidates = copyByteList(a.CurrentCandidates)
 	point.NextArbitrators = copyByteList(a.nextArbitrators)
 	point.NextCandidates = copyByteList(a.nextCandidates)
 	point.CurrentReward = *copyReward(&a.CurrentReward)
 	point.NextReward = *copyReward(&a.NextReward)
+	point.LastDPoSRewards = copyDPoSRewardMap(a.LastDPoSRewards)
 	point.NextCRCArbitersMap = copyCRCArbitersMap(a.nextCRCArbitersMap)
 	point.CurrentCRCArbitersMap = copyCRCArbitersMap(a.CurrentCRCArbitersMap)
 	point.NextCRCArbiters = copyByteList(a.nextCRCArbiters)
@@ -2889,6 +3010,7 @@ func (a *Arbiters) initArbitrators(chainParams *config.Configuration) error {
 		crcArbiters[ar.GetOwnerProgramHash()] = ar
 	}
 
+	a.LastArbitrators = make([]ArbiterMember, 0)
 	a.CurrentArbitrators = originArbiters
 	a.nextArbitrators = originArbiters
 	a.nextCRCArbitersMap = copyCRCArbitersMap(crcArbiters)
@@ -2913,18 +3035,47 @@ func NewArbitrators(chainParams *config.Configuration, committee *state.Committe
 	updateCRInactivePenalty func(cid common.Uint168, height uint32),
 	revertUpdateCRInactivePenalty func(cid common.Uint168, height uint32),
 	ckpManager *checkpoint.Manager) (*Arbiters, error) {
+
+	blockConfirmProposalSponsors := make(map[uint32][]byte)
+	sponsorsFilePath := chainParams.DPoSConfiguration.SponsorsFilePath
+	sponsors, err := os.ReadFile(sponsorsFilePath)
+	if err != nil {
+		log.Warn("sponsors file not exist!")
+	} else {
+		sponsorsStr := strings.Split(string(sponsors), "\n")
+		for _, sponsor := range sponsorsStr {
+			if len(sponsor) == 0 {
+				continue
+			}
+			sponsorInfo := strings.Split(sponsor, ",")
+			height, err := strconv.Atoi(sponsorInfo[0])
+			if err != nil {
+				return nil, err
+			}
+			sponsorBytes, err := common.HexStringToBytes(sponsorInfo[1])
+			if err != nil {
+				return nil, err
+
+			}
+			blockConfirmProposalSponsors[uint32(height)] = sponsorBytes
+		}
+		log.Info("block confirm proposal sponsors: ", len(blockConfirmProposalSponsors))
+	}
+
 	a := &Arbiters{
-		ChainParams:                chainParams,
-		CRCommittee:                committee,
-		CkpManager:                 ckpManager,
-		nextCandidates:             make([]ArbiterMember, 0),
-		accumulativeReward:         common.Fixed64(0),
-		finalRoundChange:           common.Fixed64(0),
-		arbitersRoundReward:        nil,
-		illegalBlocksPayloadHashes: make(map[common.Uint256]interface{}),
-		Snapshots:                  make(map[uint32][]*CheckPoint),
-		SnapshotKeysDesc:           make([]uint32, 0),
-		crcChangedHeight:           0,
+		ChainParams:                  chainParams,
+		CRCommittee:                  committee,
+		CkpManager:                   ckpManager,
+		nextCandidates:               make([]ArbiterMember, 0),
+		accumulativeReward:           common.Fixed64(0),
+		finalRoundChange:             common.Fixed64(0),
+		arbitersRoundReward:          nil,
+		illegalBlocksPayloadHashes:   make(map[common.Uint256]interface{}),
+		Snapshots:                    make(map[uint32][]*CheckPoint),
+		SnapshotKeysDesc:             make([]uint32, 0),
+		BlockConfirmProposalSponsors: blockConfirmProposalSponsors,
+		LastDPoSRewards:              make(map[string]map[string]common.Fixed64),
+		crcChangedHeight:             0,
 		degradation: &degradation{
 			inactiveTxs:       make(map[common.Uint256]interface{}),
 			inactivateHeight:  0,

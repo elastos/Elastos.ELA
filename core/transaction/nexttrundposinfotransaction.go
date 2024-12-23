@@ -8,6 +8,7 @@ package transaction
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"math"
 
 	"github.com/elastos/Elastos.ELA/blockchain"
@@ -24,6 +25,16 @@ type NextTurnDPOSInfoTransaction struct {
 func (t *NextTurnDPOSInfoTransaction) CheckTransactionInput() error {
 	if len(t.Inputs()) != 0 {
 		return errors.New("no cost transactions must has no input")
+	}
+	return nil
+}
+
+func (t *NextTurnDPOSInfoTransaction) HeightVersionCheck() error {
+	blockHeight := t.parameters.BlockHeight
+	chainParams := t.parameters.Config
+	if t.PayloadVersion() >= payload.NextTurnDPOSInfoVersion2 && blockHeight < chainParams.DPoSConfiguration.DexStartHeight {
+		return errors.New(fmt.Sprintf("not support %s transaction "+
+			"before DexStartHeight", t.TxType().Name()))
 	}
 	return nil
 }
@@ -84,6 +95,14 @@ func (t *NextTurnDPOSInfoTransaction) SpecialContextCheck() (elaerr.ELAError, bo
 		if !isNextArbitratorsSame(nextTurnDPOSInfo, nextArbitrators) {
 			log.Warnf("[checkNextTurnDPOSInfoTransaction] CRPublicKeys %v, DPOSPublicKeys%v\n",
 				convertToArbitersStr(nextTurnDPOSInfo.CRPublicKeys), convertToArbitersStr(nextTurnDPOSInfo.DPOSPublicKeys))
+			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("checkNextTurnDPOSInfoTransaction nextTurnDPOSInfo was wrong")), true
+		}
+	}
+
+	if t.PayloadVersion() >= payload.NextTurnDPOSInfoVersion2 {
+		if !isCompleteArbitratorsSame(nextTurnDPOSInfo, nextCRCArbitrators) {
+			log.Warnf("[checkNextTurnDPOSInfoTransaction] CRPublicKeys %v, nextCRCArbitrators%v\n",
+				convertToArbitersStr(nextTurnDPOSInfo.CompleteCRPublicKeys), convertToArbitersStr(nextCRCArbitrators))
 			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("checkNextTurnDPOSInfoTransaction nextTurnDPOSInfo was wrong")), true
 		}
 	}
@@ -152,5 +171,39 @@ func isNextArbitratorsSameV1(nextTurnDPOSInfo *payload.NextTurnDPOSInfo,
 			return false
 		}
 	}
+	return true
+}
+
+func isCompleteArbitratorsSame(nextTurnDPOSInfo *payload.NextTurnDPOSInfo, CRCArbitrators [][]byte) bool {
+	if len(nextTurnDPOSInfo.CompleteCRPublicKeys) != len(CRCArbitrators) {
+		log.Warn("[isCompleteArbitratorsSame] CompleteCRPublicKeys len ", len(CRCArbitrators))
+		return false
+	}
+
+	crcArbitersMap := make(map[string]struct{})
+	for _, v := range CRCArbitrators {
+		crcArbitersMap[common.BytesToHexString(v)] = struct{}{}
+	}
+	if len(crcArbitersMap) != len(CRCArbitrators) {
+		log.Warn("[isCompleteArbitratorsSame] duplicated crc arbiters")
+		return false
+	}
+
+	currentCRCArbtiersMap := make(map[string]struct{})
+	for _, v := range nextTurnDPOSInfo.CompleteCRPublicKeys {
+		currentCRCArbtiersMap[common.BytesToHexString(v)] = struct{}{}
+	}
+	if len(currentCRCArbtiersMap) != len(nextTurnDPOSInfo.CompleteCRPublicKeys) {
+		log.Warn("[isCompleteArbitratorsSame] duplicated crc arbiters in payload")
+		return false
+	}
+
+	for k, _ := range crcArbitersMap {
+		if _, ok := currentCRCArbtiersMap[k]; !ok {
+			log.Warn("[isCompleteArbitratorsSame] invalid crc arbiter in payload")
+			return false
+		}
+	}
+
 	return true
 }

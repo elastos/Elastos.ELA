@@ -75,7 +75,7 @@ func main() {
 	// Setting config
 	setting := settings.NewSettings()
 	config := setting.SetupConfig(true, "Copyright (c) 2017-"+
-		fmt.Sprint(time.Now().Year())+" The Elastos Foundation", nodePrefix+Version+GoVersion)
+		fmt.Sprint(time.Now().Year())+" The Elastos Foundation", nodePrefix+Version+" "+GoVersion)
 
 	// Use all processor cores.
 	runtime.GOMAXPROCS(runtime.NumCPU())

@@ -8,7 +8,9 @@ package transaction
 import (
 	"errors"
 	"fmt"
+	"github.com/elastos/Elastos.ELA/core/contract"
 	"github.com/elastos/Elastos.ELA/core/contract/program"
+	state2 "github.com/elastos/Elastos.ELA/dpos/state"
 
 	"github.com/elastos/Elastos.ELA/common"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
@@ -95,8 +97,13 @@ func (t *ReturnDepositCoinTransaction) SpecialContextCheck() (elaerr.ELAError, b
 	}
 	state := t.parameters.BlockChain.GetState()
 	var availableAmount common.Fixed64
+	var p *state2.Producer
 	for _, program := range t.Programs() {
-		p := state.GetProducer(program.Code[1 : len(program.Code)-1])
+		if contract.IsMultiSig(program.Code) {
+			p = state.GetProducer(program.Code)
+		} else {
+			p = state.GetProducer(program.Code[1 : len(program.Code)-1])
+		}
 		if p == nil {
 			return elaerr.Simple(elaerr.ErrTxPayload, errors.New("signer must be producer")), true
 		}

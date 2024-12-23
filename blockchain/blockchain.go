@@ -302,7 +302,6 @@ func (b *BlockChain) InitCheckpoint(interrupt <-chan struct{},
 			barStart(bestHeight - startHeight)
 		}
 
-		var lastBlock Block
 		for i := startHeight; i <= bestHeight; i++ {
 			hash, e := b.GetBlockHash(i)
 			if e != nil {
@@ -313,17 +312,6 @@ func (b *BlockChain) InitCheckpoint(interrupt <-chan struct{},
 			if e != nil {
 				err = e
 				break
-			}
-
-			if b.AncestorBlock.Height == 0 && block.Height > b.chainParams.DPoSV2StartHeight {
-				// tod check block
-				err := b.CheckTransactions(block.Block)
-				if err != nil {
-					b.AncestorBlock = lastBlock
-					log.Info("transaction check error:", err)
-				} else {
-					lastBlock = *block.Block
-				}
 			}
 
 			if block.Height >= b.chainParams.DPoSV2StartHeight {
@@ -348,20 +336,6 @@ func (b *BlockChain) InitCheckpoint(interrupt <-chan struct{},
 				increase()
 			}
 		}
-
-		//log.Info("ancestor block height:", b.AncestorBlock.Height)
-		//if b.AncestorBlock.Height != 0 {
-		//	log.Info("ReorganizeChain2 ancestor block height:", b.AncestorBlock.Height)
-		//	err := b.ReorganizeChain2(&b.AncestorBlock)
-		//	if err != nil {
-		//		log.Info("ReorganizeChain2 error:", err)
-		//		panic(err)
-		//	}
-		//
-		//	b.db.Close()
-		//	log.Info("###################### need to restart again ######################")
-		//	os.Exit(0)
-		//}
 
 		done <- struct{}{}
 	}()

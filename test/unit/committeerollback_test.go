@@ -212,7 +212,7 @@ func getCRCProposalTx(elaAddress string, publicKeyStr, privateKeyStr,
 
 	crcProposalPayload := &payload.CRCProposal{
 		ProposalType:       payload.Normal,
-		OwnerPublicKey:     publicKey1,
+		OwnerKey:           publicKey1,
 		CRCouncilMemberDID: *getDID(code2),
 		DraftHash:          common.Hash(draftData),
 		Budgets:            createBudgets(3),
@@ -309,8 +309,8 @@ func getCRCProposalTrackingTx(
 		ProposalHash:                proposalHash,
 		Stage:                       stage,
 		MessageHash:                 common.Hash(documentData),
-		OwnerPublicKey:              ownerpublickey,
-		NewOwnerPublicKey:           newownerpublickey,
+		OwnerKey:                    ownerpublickey,
+		NewOwnerKey:                 newownerpublickey,
 		SecretaryGeneralOpinionHash: common.Hash(opinionHash),
 	}
 
@@ -354,8 +354,8 @@ func getCRCProposalWithdrawTx(proposalHash common.Uint256,
 	sponsorPrivateKey, _ := common.HexStringToBytes(sponsorPrivateKeyStr)
 
 	crcProposalWithdraw := &payload.CRCProposalWithdraw{
-		ProposalHash:   proposalHash,
-		OwnerPublicKey: OwnerPublicKey,
+		ProposalHash: proposalHash,
+		OwnerKey:     OwnerPublicKey,
 	}
 
 	signBuf := new(bytes.Buffer)

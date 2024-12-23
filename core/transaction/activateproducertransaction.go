@@ -12,7 +12,6 @@ import (
 	"math"
 
 	"github.com/elastos/Elastos.ELA/common"
-	"github.com/elastos/Elastos.ELA/core/contract"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	crstate "github.com/elastos/Elastos.ELA/cr/state"
@@ -158,8 +157,7 @@ func (t *ActivateProducerTransaction) SpecialContextCheck() (elaerr.ELAError, bo
 
 	depositAmount := common.Fixed64(0)
 	if t.parameters.BlockHeight < t.parameters.Config.CRConfiguration.CRVotingStartHeight {
-		programHash, err := contract.PublicKeyToDepositProgramHash(
-			producer.OwnerPublicKey())
+		programHash, err := state.GetOwnerKeyDepositProgramHash(producer.OwnerPublicKey())
 		if err != nil {
 			return elaerr.Simple(elaerr.ErrTxPayload, err), true
 		}

@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 
 	"github.com/elastos/Elastos.ELA/blockchain"

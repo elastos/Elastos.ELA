@@ -832,7 +832,13 @@ func (a *Arbiters) accumulateReward(block *types.Block, confirm *payload.Confirm
 				rewards = a.LastDPoSRewards[recordedSponsor]
 			}
 
-			swapReardMapContent(&a.LastDPoSRewards, &possibleRewards)
+			originRewardsMap := copyDPoSRewardMap(a.LastDPoSRewards)
+			a.History.Append(block.Height, func() {
+				a.LastDPoSRewards = possibleRewards
+			}, func() {
+				a.LastDPoSRewards = originRewardsMap
+			})
+
 		} else {
 			if confirm != nil {
 				// get sponsor from cache first
@@ -878,12 +884,6 @@ func (a *Arbiters) accumulateReward(block *types.Block, confirm *payload.Confirm
 			a.DutyIndex = oriDutyIndex
 		})
 	}
-}
-
-func swapReardMapContent(map1, map2 *map[string]map[string]common.Fixed64) {
-	temp := *map1
-	*map1 = *map2
-	*map2 = temp
 }
 
 func (a *Arbiters) clearingDPOSReward(block *types.Block, historyHeight uint32,

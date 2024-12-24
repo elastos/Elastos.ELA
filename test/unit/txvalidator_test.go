@@ -7623,7 +7623,7 @@ func (s *txValidatorTestSuite) TestArbitersAccumulateReward() {
 	ownerPubKeyStr := "0306e3deefee78e0e25f88e98f1f3290ccea98f08dd3a890616755f1a066c4b9b8"
 	nodePubKeyStr := "0250c5019a00f8bb4fd59bb6d613c70a39bb3026b87cfa247fd26f59fd04987855"
 
-	ownerPubKey, err := hex.DecodeString(ownerPubKeyStr)
+	_, err := hex.DecodeString(ownerPubKeyStr)
 	if err != nil {
 		fmt.Println("err", err)
 	}
@@ -7760,12 +7760,12 @@ func (s *txValidatorTestSuite) TestArbitersAccumulateReward() {
 			//CurrentCRCArbitersMap
 			a.AccumulateReward(tt.args.block, tt.args.confirm)
 			a.History.Commit(tt.args.block.Height)
-			addr, _ := common.Uint168FromAddress("ET54cpnGG4JHeRatvPij6hGV6zN18eVSSj")
+			addr, _ := common.Uint168FromAddress("SYWG3rnjyfU6PKu1yjSqDLMHaxvn8d8nDn")
 			addr[0] = byte(contract.PrefixDPoSV2)
 			stakeAddr, _ := addr.ToAddress()
 			if a.State.DPoSV2RewardInfo[stakeAddr] != 102 {
 				t.Errorf("DPoSV2RewardInfo() addr %v, want %v, but %v",
-					"ET54cpnGG4JHeRatvPij6hGV6zN18eVSSj", 102, a.State.DPoSV2RewardInfo)
+					"SYWG3rnjyfU6PKu1yjSqDLMHaxvn8d8nDn", 102, a.State.DPoSV2RewardInfo)
 			}
 		})
 	}

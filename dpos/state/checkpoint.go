@@ -78,6 +78,20 @@ func (c *CheckPoint) OnRollbackSeekTo(height uint32) {
 	c.arbitrators.RollbackSeekTo(height)
 }
 
+func (c *CheckPoint) OnReset() error {
+	log.Info("dpos state OnReset")
+	ar := &Arbiters{}
+	ar.State = &State{
+		StateKeyFrame: NewStateKeyFrame(),
+	}
+	if err := ar.initArbitrators(c.arbitrators.ChainParams); err != nil {
+		return err
+	}
+	c.initFromArbitrators(ar)
+	c.arbitrators.RecoverFromCheckPoints(c)
+	return nil
+}
+
 func (c *CheckPoint) OnRollbackTo(height uint32) error {
 	if height < c.StartHeight() {
 		ar := &Arbiters{}

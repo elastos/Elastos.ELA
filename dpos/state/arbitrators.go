@@ -1878,7 +1878,6 @@ func (a *Arbiters) getChangeType(height uint32) (ChangeType, uint32) {
 
 func (a *Arbiters) cleanArbitrators(height uint32) {
 	oriCurrentCRCArbitersMap := copyCRCArbitersMap(a.CurrentCRCArbitersMap)
-	oriLastArbitrators := a.LastArbitrators
 	oriCurrentArbitrators := a.CurrentArbitrators
 	oriCurrentCandidates := a.CurrentCandidates
 	oriNextCRCArbitersMap := copyCRCArbitersMap(a.nextCRCArbitersMap)
@@ -1887,7 +1886,6 @@ func (a *Arbiters) cleanArbitrators(height uint32) {
 	oriDutyIndex := a.DutyIndex
 	a.History.Append(height, func() {
 		a.CurrentCRCArbitersMap = make(map[common.Uint168]ArbiterMember)
-		a.LastArbitrators = make([]ArbiterMember, 0)
 		a.CurrentArbitrators = make([]ArbiterMember, 0)
 		a.CurrentCandidates = make([]ArbiterMember, 0)
 		a.nextCRCArbitersMap = make(map[common.Uint168]ArbiterMember)
@@ -1896,7 +1894,6 @@ func (a *Arbiters) cleanArbitrators(height uint32) {
 		a.DutyIndex = 0
 	}, func() {
 		a.CurrentCRCArbitersMap = oriCurrentCRCArbitersMap
-		a.LastArbitrators = oriLastArbitrators
 		a.CurrentArbitrators = oriCurrentArbitrators
 		a.CurrentCandidates = oriCurrentCandidates
 		a.nextCRCArbitersMap = oriNextCRCArbitersMap

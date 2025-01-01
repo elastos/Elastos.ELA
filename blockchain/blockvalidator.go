@@ -339,7 +339,20 @@ func (b *BlockChain) CheckBlockContext(block *Block, prevNode *BlockNode) error 
 	if block.Height >= b.chainParams.DPoSConfiguration.RecordSponsorStartHeight {
 		lastBlock, err := b.GetDposBlockByHash(*prevNode.Hash)
 		if err != nil {
-			return errors.New("get last block failed")
+			// try get block from cache
+			lastBlockInCache, ok := b.blockCache[*prevNode.Hash]
+			if !ok {
+				return errors.New("get last block failed")
+			}
+			lastConfirmInCache, ok := b.confirmCache[*prevNode.Hash]
+			if !ok {
+				return errors.New("get last block confirm failed")
+			}
+			lastBlock = &DposBlock{
+				Block:       lastBlockInCache,
+				HaveConfirm: lastConfirmInCache != nil,
+				Confirm:     lastConfirmInCache,
+			}
 		}
 
 		if lastBlock.Confirm == nil && recordSponsorExist {

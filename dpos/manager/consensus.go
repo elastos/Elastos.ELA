@@ -18,9 +18,12 @@ import (
 const (
 	consensusReady = iota
 	consensusRunning
+
+	DefaultViewOffset = 0
 )
 
 type Consensus struct {
+	finishedHeight  uint32
 	consensusStatus uint32
 	viewOffset      uint32
 
@@ -29,16 +32,17 @@ type Consensus struct {
 }
 
 func NewConsensus(manager *DPOSManager, tolerance time.Duration,
-	viewListener ViewListener) *Consensus {
+	viewListener ViewListener, changeViewV1Height uint32) *Consensus {
 	c := &Consensus{
 		consensusStatus: consensusReady,
-		viewOffset:      0,
+		viewOffset:      DefaultViewOffset,
 		manager:         manager,
 		currentView: view{
-			publicKey:     manager.publicKey,
-			signTolerance: tolerance,
-			listener:      viewListener,
-			arbitrators:   manager.arbitrators,
+			publicKey:          manager.publicKey,
+			signTolerance:      tolerance,
+			listener:           viewListener,
+			arbitrators:        manager.arbitrators,
+			changeViewV1Height: changeViewV1Height,
 		},
 	}
 
@@ -58,7 +62,8 @@ func (c *Consensus) SetRunning() {
 	c.resetViewOffset()
 }
 
-func (c *Consensus) SetReady() {
+func (c *Consensus) SetReady(height uint32) {
+	c.finishedHeight = height
 	c.consensusStatus = consensusReady
 	c.resetViewOffset()
 }
@@ -108,12 +113,22 @@ func (c *Consensus) ProcessBlock(b *types.Block) {
 }
 
 func (c *Consensus) ChangeView() {
-	c.currentView.ChangeView(&c.viewOffset, c.manager.timeSource.AdjustedTime())
+	if c.finishedHeight < c.manager.chainParams.DPoSConfiguration.ChangeViewV1Height {
+		c.currentView.ChangeView(&c.viewOffset, c.manager.timeSource.AdjustedTime())
+	} else {
+		c.currentView.ChangeViewV1(&c.viewOffset, c.manager.timeSource.AdjustedTime())
+	}
+
 }
 
 func (c *Consensus) TryChangeView() bool {
 	if c.IsRunning() {
-		return c.currentView.TryChangeView(&c.viewOffset, c.manager.timeSource.AdjustedTime())
+		if c.finishedHeight < c.manager.chainParams.DPoSConfiguration.ChangeViewV1Height {
+			return c.currentView.TryChangeView(&c.viewOffset, c.manager.timeSource.AdjustedTime())
+		} else {
+			return c.currentView.TryChangeViewV1(&c.viewOffset, c.manager.timeSource.AdjustedTime())
+		}
+
 	}
 	return false
 }
@@ -135,5 +150,5 @@ func (c *Consensus) RecoverFromConsensusStatus(status *msg.ConsensusStatus) erro
 }
 
 func (c *Consensus) resetViewOffset() {
-	c.viewOffset = 0
+	c.viewOffset = DefaultViewOffset
 }

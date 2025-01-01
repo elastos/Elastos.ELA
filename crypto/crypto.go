@@ -17,6 +17,7 @@ import (
 	"sort"
 
 	"github.com/elastos/Elastos.ELA/common"
+	"github.com/elastos/Elastos.ELA/core/contract/program"
 	"github.com/elastos/Elastos.ELA/crypto/ecies"
 )
 
@@ -243,4 +244,63 @@ func Equal(e1 *PublicKey, e2 *PublicKey) bool {
 		return false
 	}
 	return true
+}
+
+func CheckMultiSigSignatures(program program.Program, data []byte) error {
+	code := program.Code
+	// Get N parameter
+	n := int(code[len(code)-2]) - PUSH1 + 1
+	// Get M parameter
+	m := int(code[0]) - PUSH1 + 1
+	if m < 1 || m > n {
+		return errors.New("invalid multi sign script code")
+	}
+	publicKeys, err := ParseMultisigScript(code)
+	if err != nil {
+		return err
+	}
+
+	return VerifyMultisigSignatures(m, n, publicKeys, program.Parameter, data)
+}
+func VerifyMultisigSignatures(m, n int, publicKeys [][]byte, signatures, data []byte) error {
+	if len(publicKeys) != n {
+		return errors.New("invalid multi sign public key script count")
+	}
+	if len(signatures)%SignatureScriptLength != 0 {
+		return errors.New("invalid multi sign signatures, length not match")
+	}
+	if len(signatures)/SignatureScriptLength < m {
+		return errors.New("invalid signatures, not enough signatures")
+	}
+	if len(signatures)/SignatureScriptLength > n {
+		return errors.New("invalid signatures, too many signatures")
+	}
+
+	var verified = make(map[common.Uint256]struct{})
+	for i := 0; i < len(signatures); i += SignatureScriptLength {
+		// Remove length byte
+		sign := signatures[i : i+SignatureScriptLength][1:]
+		// Match public key with signature
+		for _, publicKey := range publicKeys {
+			pubKey, err := DecodePoint(publicKey[1:])
+			if err != nil {
+				return err
+			}
+			err = Verify(*pubKey, data, sign)
+			if err == nil {
+				hash := sha256.Sum256(publicKey)
+				if _, ok := verified[hash]; ok {
+					return errors.New("duplicated signatures")
+				}
+				verified[hash] = struct{}{}
+				break // back to public keys loop
+			}
+		}
+	}
+	// Check signatures count
+	if len(verified) < m {
+		return errors.New("matched signatures not enough")
+	}
+
+	return nil
 }

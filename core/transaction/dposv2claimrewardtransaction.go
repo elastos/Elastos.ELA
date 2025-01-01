@@ -10,7 +10,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/elastos/Elastos.ELA/common"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 
 	"github.com/elastos/Elastos.ELA/blockchain"
@@ -106,7 +105,7 @@ func (t *DPoSV2ClaimRewardTransaction) SpecialContextCheck() (elaerr.ELAError, b
 	}
 
 	if claimAmount < claimReward.Value {
-		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("claim reward exceeded , max claim reward "+claimAmount.String())), true
+		return elaerr.Simple(elaerr.ErrTxPayload, errors.New("claim reward exceeded , max claim reward "+claimAmount.String()+"current:"+claimAmount.String())), true
 	}
 
 	if claimReward.Value <= t.parameters.Config.CRConfiguration.RealWithdrawSingleFee {
@@ -150,7 +149,7 @@ func (t *DPoSV2ClaimRewardTransaction) checkClaimRewardSignature(code []byte, si
 		}
 	} else if signType == vm.CHECKMULTISIG {
 		// check code and signature
-		if err := blockchain.CheckMultiSigSignatures(program.Program{
+		if err := crypto.CheckMultiSigSignatures(program.Program{
 			Code:      code,
 			Parameter: signature,
 		}, data); err != nil {

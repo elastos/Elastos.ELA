@@ -598,7 +598,7 @@ func randomProposalHashSet() state.ProposalHashSet {
 func randomCRCProposal() *payload.CRCProposal {
 	return &payload.CRCProposal{
 		ProposalType:             payload.CRCProposalType(rand.Int31n(6)),
-		OwnerPublicKey:           randomBytes(33),
+		OwnerKey:                 randomBytes(33),
 		CRCouncilMemberDID:       *randomUint168(),
 		DraftHash:                *randomUint256(),
 		Budgets:                  createBudgets(5),

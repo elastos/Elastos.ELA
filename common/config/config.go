@@ -180,6 +180,9 @@ func GetDefaultParams() *Configuration {
 			MaxInactiveRoundsOfRandomNode:     36 * 8,
 			RevertToPOWNoBlockTime:            12 * 3600,
 			StopConfirmBlockTime:              11 * 3600,
+			RevertToPOWNoBlockTimeV1:          2 * 3600,       // todo complete me
+			StopConfirmBlockTimeV1:            6600,           // todo complete me
+			ChangeViewV1Height:                math.MaxUint32, // todo complete me
 			DPoSV2IllegalPenalty:              20000000000,
 			DPOSNodeCrossChainHeight:          math.MaxUint32,
 			DPoSV2DepositCoinMinLockTime:      7200,
@@ -196,6 +199,8 @@ func GetDefaultParams() *Configuration {
 			NFTStartHeight:                    1405000,
 			SponsorsFilePath:                  "sponsors",
 			RecordSponsorStartHeight:          1801550,
+			NFTV2StartHeight:                  math.MaxUint32, // todo complete me
+			DexStartHeight:                    math.MaxUint32, // todo complete me
 			OriginArbiters: []string{
 				"0248df6705a909432be041e0baa25b8f648741018f70d1911f2ed28778db4b8fe4",
 				"02771faf0f4d4235744b30972d5f2c470993920846c761e4d08889ecfdc061cddf",
@@ -256,6 +261,8 @@ func GetDefaultParams() *Configuration {
 		VotesSchnorrStartHeight:         math.MaxUint32,
 		CrossChainMonitorStartHeight:    math.MaxUint32,
 		CrossChainMonitorInterval:       100,
+		SupportMultiCodeHeight:          math.MaxUint32, // todo complete me
+		MultiExchangeVotesStartHeight:   math.MaxUint32, // todo complete me
 		HttpInfoPort:                    20333,
 		HttpRestPort:                    20334,
 		HttpWsPort:                      20335,
@@ -354,10 +361,13 @@ func (p *Configuration) TestNet() *Configuration {
 	p.DPoSConfiguration.NoCRCDPOSNodeHeight = 815060
 	p.DPoSConfiguration.RandomCandidatePeriod = 36 * 10
 	p.DPoSConfiguration.MaxInactiveRoundsOfRandomNode = 36 * 8
-	p.DPoSConfiguration.DPOSNodeCrossChainHeight = 2000000 // todo complete me
+	p.DPoSConfiguration.DPOSNodeCrossChainHeight = math.MaxUint32 // todo complete me
 	p.MaxReservedCustomIDLength = 255
 	p.DPoSConfiguration.RevertToPOWNoBlockTime = 12 * 3600
 	p.DPoSConfiguration.StopConfirmBlockTime = 11 * 3600
+	p.DPoSConfiguration.RevertToPOWNoBlockTimeV1 = 2 * 3600 // todo complete me
+	p.DPoSConfiguration.StopConfirmBlockTimeV1 = 6600       // todo complete me
+	p.DPoSConfiguration.ChangeViewV1Height = math.MaxUint32 // todo complete me
 	p.DPoSConfiguration.RevertToPOWStartHeight = 815060
 	p.HalvingRewardHeight = 877880    //767000 + 154 * 720
 	p.HalvingRewardInterval = 1051200 //4 * 365 * 720
@@ -370,6 +380,7 @@ func (p *Configuration) TestNet() *Configuration {
 	p.ProhibitTransferToDIDHeight = 807000
 	p.DIDSideChainAddress = "XKUh4GLhFJiqAMTF6HyWQrV9pK9HcGUdfJ"
 	p.DPoSV2StartHeight = 965800 + 720*3
+	p.SupportMultiCodeHeight = 2000
 	p.DPoSV2EffectiveVotes = 3000 * 100000000
 	p.DPoSConfiguration.DPoSV2DepositCoinMinLockTime = 7200 * 3
 	p.DPoSConfiguration.DPoSV2MinVotesLockTime = 7200
@@ -384,6 +395,8 @@ func (p *Configuration) TestNet() *Configuration {
 	p.DPoSConfiguration.NFTStartHeight = 1098000
 	p.DPoSConfiguration.SponsorsFilePath = "sponsors"
 	p.DPoSConfiguration.RecordSponsorStartHeight = 1174500
+	p.DPoSConfiguration.NFTV2StartHeight = math.MaxUint32 // todo complete me
+	p.DPoSConfiguration.DexStartHeight = math.MaxUint32   // todo complete me
 
 	p.HttpInfoPort = 21333
 	p.HttpRestPort = 21334
@@ -392,6 +405,7 @@ func (p *Configuration) TestNet() *Configuration {
 	p.ProducerSchnorrStartHeight = math.MaxUint32
 	p.CRSchnorrStartHeight = math.MaxUint32
 	p.VotesSchnorrStartHeight = math.MaxUint32
+	p.MultiExchangeVotesStartHeight = math.MaxUint32 // todo complete me
 
 	p.MemoryPoolTxMaximumStayHeight = 10
 
@@ -476,10 +490,13 @@ func (p *Configuration) RegNet() *Configuration {
 	p.DPoSConfiguration.NoCRCDPOSNodeHeight = 706240
 	p.DPoSConfiguration.RandomCandidatePeriod = 36 * 10
 	p.DPoSConfiguration.MaxInactiveRoundsOfRandomNode = 36 * 8
-	p.DPoSConfiguration.DPOSNodeCrossChainHeight = 2000000 // todo complete me
+	p.DPoSConfiguration.DPOSNodeCrossChainHeight = math.MaxUint32 // todo complete me
 	p.MaxReservedCustomIDLength = 255
 	p.DPoSConfiguration.RevertToPOWNoBlockTime = 12 * 3600
 	p.DPoSConfiguration.StopConfirmBlockTime = 11 * 3600
+	p.DPoSConfiguration.RevertToPOWNoBlockTimeV1 = 2 * 3600 // todo complete me
+	p.DPoSConfiguration.StopConfirmBlockTimeV1 = 6600       // todo complete me
+	p.DPoSConfiguration.ChangeViewV1Height = math.MaxUint32 // todo complete me
 	p.DPoSConfiguration.RevertToPOWStartHeight = 706240
 	p.HalvingRewardHeight = 801240    //690360 + 154 * 720
 	p.HalvingRewardInterval = 1051200 //4 * 365 * 720
@@ -492,6 +509,7 @@ func (p *Configuration) RegNet() *Configuration {
 	p.ProhibitTransferToDIDHeight = 730000
 	p.DIDSideChainAddress = "XKUh4GLhFJiqAMTF6HyWQrV9pK9HcGUdfJ"
 	p.DPoSV2StartHeight = 875544 + 720*2
+	p.SupportMultiCodeHeight = 2000
 	p.DPoSV2EffectiveVotes = 300000000000
 	p.DPoSConfiguration.DPoSV2DepositCoinMinLockTime = 7200 * 3
 	p.DPoSConfiguration.DPoSV2MinVotesLockTime = 7200
@@ -506,6 +524,7 @@ func (p *Configuration) RegNet() *Configuration {
 	p.DPoSConfiguration.NFTStartHeight = 968000
 	p.DPoSConfiguration.SponsorsFilePath = "sponsors"
 	p.DPoSConfiguration.RecordSponsorStartHeight = math.MaxUint32
+	p.DPoSConfiguration.NFTV2StartHeight = math.MaxUint32 // todo complete me
 	p.HttpInfoPort = 22333
 	p.HttpRestPort = 22334
 	p.HttpWsPort = 22335
@@ -513,6 +532,8 @@ func (p *Configuration) RegNet() *Configuration {
 	p.ProducerSchnorrStartHeight = math.MaxUint32
 	p.CRSchnorrStartHeight = math.MaxUint32
 	p.VotesSchnorrStartHeight = math.MaxUint32
+	p.MultiExchangeVotesStartHeight = math.MaxUint32    // todo complete me
+	p.DPoSConfiguration.DexStartHeight = math.MaxUint32 // todo complete me
 
 	p.MemoryPoolTxMaximumStayHeight = 10
 
@@ -629,6 +650,8 @@ type Configuration struct {
 	ReturnCrossChainCoinStartHeight uint32 `screw:"--returncrosschaincoinstartheight" usage:"defines the start height to support ReturnCrossChainDepositCoin transaction"`
 	// DPoSV2StartHeight defines the start height of dpos 2.0.
 	DPoSV2StartHeight uint32 `screw:"--dposv2startheight" usage:"defines the start height to support DPoSV2 transaction"`
+	// multicode support height
+	SupportMultiCodeHeight uint32 `screw:"--supportmulticodeheight" usage:"defines the support height of multicode transaction"`
 	// DPoSV2EffectiveVotes defines the votes which producer will become a dposV2 effective node
 	DPoSV2EffectiveVotes common.Fixed64 `screw:"--dposv2effectivevotes" usage:"defines the minimum votes to active a DposV2 producer"`
 	// ExchangeVotes address of votes
@@ -646,6 +669,8 @@ type Configuration struct {
 	CRSchnorrStartHeight uint32 `screw:"--crschnorrstartheight" usage:"defines the start height to support CR related schnorr transaction"`
 	// VotesSchnorrStartHeight indicates the start height of votes related schnorr tx
 	VotesSchnorrStartHeight uint32 `screw:"--votesschnorrstartheight" usage:"defines the start height to support votes related schnorr transaction"`
+	// MultiExchangeVotesStartHeight indicates the start height of multi-addr exchange votes transaction
+	MultiExchangeVotesStartHeight uint32 `screw:"--multiexchangevotesstartheight" usage:"defines the start height to support multi-addr exchange votes transaction"`
 	// CrossChainMonitorStartHeight indicates the monitor height of cr cross chain arbitration
 	CrossChainMonitorStartHeight uint32 `screw:"--crosschainmonitorstartheight" usage:"defines the start height to monitor cr cross chain transaction"`
 	// CrossChainMonitorInterval indicates the interval value of cr cross chain arbitration
@@ -711,6 +736,12 @@ type DPoSConfiguration struct {
 	RevertToPOWNoBlockTime int64 `screw:"--reverttopownoblocktime" usage:"defines how long time does it take to revert to POW mode"`
 	// StopConfirmBlockTime defines how long time dose it take before stop confirm block.
 	StopConfirmBlockTime int64 `screw:"--stopconfirmblocktime" usage:"defines how long time does it take to stop confirm block"`
+	// RevertToPOWInterval defines how long time does it take to revert to POW mode.
+	RevertToPOWNoBlockTimeV1 int64 `screw:"--reverttopownoblocktimev1" usage:"defines how long time does it take to revert to POW mode"`
+	// StopConfirmBlockTime defines how long time dose it take before stop confirm block.
+	StopConfirmBlockTimeV1 int64 `screw:"--stopconfirmblocktimev1" usage:"defines how long time does it take to stop confirm block"`
+	// ChangeViewV1Height defines the height of ChangeView version 1.0
+	ChangeViewV1Height uint32 `screw:"--changeviewv1height" usage:"defines how the height of ChangeView version 1.0"`
 	// RevertToPOWStartHeight defines the start height to allow to revert to POW mode.
 	RevertToPOWStartHeight uint32 `screw:"--reverttopowstartheight" usage:"defines the start height to allow to revert to POW mode"`
 	// DPoSV2RewardAccumulateAddress defines the dposv2 reward accumulating address
@@ -730,6 +761,10 @@ type DPoSConfiguration struct {
 	SponsorsFilePath string `screw:"--sponsorsfilepath" usage:"defines the sponsors file path"`
 	// RecordSponsorStartHeight defines the start height to record sponsor.
 	RecordSponsorStartHeight uint32 `screw:"--recordsponsorstartheight" usage:"defines the start height to record sponsor"`
+	// NFTV2StartHeight defines the height of NFT 2.0 started, NFT transaction will record the detailed votes information.
+	NFTV2StartHeight uint32 `screw:"--NFTV2StartHeight" usage:"the start height of NFT 2.0 transaction"`
+	// DexStartHeight defines the height of DEX started.
+	DexStartHeight uint32 `screw:"--dexstartheight" usage:"the starting height of Dex support"`
 }
 
 type CRConfiguration struct {
@@ -900,9 +935,8 @@ func (p *Configuration) newRewardPerBlock(targetTimePerBlock time.Duration, heig
 	generatedBlocksPerYear := 365 * 24 * 60 * 60 / blockGenerateInterval
 	factor := uint32(1)
 	if height >= p.HalvingRewardHeight {
-		factor = 2 + (height-p.HalvingRewardHeight)/p.HalvingRewardInterval
+		factor = 2 + (height-p.HalvingRewardHeight)/p.HalvingRewardInterval // HalvingRewardHeight: 1051200
 	}
-
 	return common.Fixed64(float64(newInflationPerYear) / float64(generatedBlocksPerYear) / math.Pow(2, float64(factor-1)))
 }
 

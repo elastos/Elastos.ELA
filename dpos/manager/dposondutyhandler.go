@@ -93,8 +93,8 @@ func (h *DPOSOnDutyHandler) getActiveArbitersCount() int {
 func (h *DPOSOnDutyHandler) TryCreateRevertToDPOSTx(BlockHeight uint32) bool {
 	// connect count is not enough
 	// if i am not onduty return
-	activeArbitersCount := float64(h.getActiveArbitersCount())
-	needCount := float64(h.cfg.Arbitrators.GetArbitersCount())*float64(4)/float64(5) + 1
+	activeArbitersCount := h.getActiveArbitersCount()
+	needCount := int(float64(h.cfg.Arbitrators.GetArbitersCount())*float64(4)/float64(5)) + 1
 	log.Info("[TryCreateRevertToDPOSTx] current active arbiters count:", activeArbitersCount, "need:", needCount)
 	if len(h.cfg.Arbitrators.GetArbitrators()) == 0 ||
 		len(h.cfg.Arbitrators.GetNextArbitrators()) == 0 ||

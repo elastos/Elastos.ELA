@@ -5,6 +5,18 @@
 
 local m = require("api")
 
+local keystore = getWallet()
+local password = getPassword()
+
+if keystore == "" then
+	keystore = "keystore.dat"
+end
+if password == "" then
+	password = "123"
+end
+
+local wallet = client.new(keystore, password, false)
+
 -- account
 local privatekeys = getPrivateKeys()
 print("------------------------")
@@ -87,8 +99,8 @@ print("location:", location)
 print("payload version:", payload_version)
 
 -- register cr payload: publickey, nickname, url, local, wallet
-local up_payload =updatecr.new(cr_publickey, nick_name, url, location,
- payload_version, wallet)
+local up_payload =updatecr.new(payload_version, cr_publickey, nick_name, url,
+	location, wallet)
 print(up_payload:get())
 
 -- transaction: version, txType, payloadVersion, payload, locktime

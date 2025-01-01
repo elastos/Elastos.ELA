@@ -50,7 +50,8 @@ func (t *UpdateCRTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
 	}
 
 	var code []byte
-	if t.payloadVersion == payload.CRInfoSchnorrVersion {
+	if t.payloadVersion == payload.CRInfoSchnorrVersion ||
+		t.payloadVersion == payload.CRInfoMultiSignVersion {
 		code = t.Programs()[0].Code
 	} else {
 		code = info.Code
@@ -101,7 +102,8 @@ func (t *UpdateCRTransaction) SpecialContextCheck() (elaerr.ELAError, bool) {
 	}
 
 	// check code and signature
-	if t.payloadVersion != payload.CRInfoSchnorrVersion {
+	if t.payloadVersion != payload.CRInfoSchnorrVersion &&
+		t.payloadVersion != payload.CRInfoMultiSignVersion {
 		if err := blockchain.CheckPayloadSignature(info, t.PayloadVersion()); err != nil {
 			return elaerr.Simple(elaerr.ErrTxPayload, err), true
 		}

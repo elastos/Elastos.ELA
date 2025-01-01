@@ -248,10 +248,13 @@ func (d *DPOSManager) OnProposalReceived(id dpeer.PID, p *payload.DPOSProposal) 
 		if d.consensus.viewOffset != 0 && d.arbitrators.HasArbitersHalfMinorityCount(count) {
 			log.Info("[OnProposalReceived] has minority not handled" +
 				" proposals, need recover")
-			if d.recoverAbnormalState() {
-				log.Info("[OnProposalReceived] recover start")
-			} else {
-				log.Error("[OnProposalReceived] has no active peers recover failed")
+
+			if d.consensus.finishedHeight < d.chainParams.DPoSConfiguration.ChangeViewV1Height {
+				if d.recoverAbnormalState() {
+					log.Info("[OnProposalReceived] recover start")
+				} else {
+					log.Error("[OnProposalReceived] has no active peers recover failed")
+				}
 			}
 		}
 	}
@@ -658,14 +661,20 @@ func (d *DPOSManager) clearInactiveData(p *payload.InactiveArbitrators) {
 
 func (d *DPOSManager) OnRevertToDPOSTxReceived(id dpeer.PID,
 	tx interfaces.Transaction) {
+	log.Info("### RevertToDPoS OnRevertToDPOSTxReceived  start 1, id:", id.String(), "tx hash:", tx.Hash())
 
 	if !d.isCurrentArbiter() {
+		log.Info("### RevertToDPoS OnRevertToDPOSTxReceived  but is not current")
 		return
 	}
+	log.Info("### RevertToDPoS OnRevertToDPOSTxReceived  start 2")
+
 	if err := blockchain.CheckRevertToDPOSTransaction(tx); err != nil {
 		log.Info("[OnRevertToDPOSTxReceived] received error evidence: ", err)
 		return
 	}
+
+	log.Info("### RevertToDPoS OnRevertToDPOSTxReceived  start 3")
 	d.dispatcher.OnRevertToDPOSTxReceived(id, tx)
 }
 

@@ -9,7 +9,6 @@ import (
 	"io"
 
 	"github.com/elastos/Elastos.ELA/common"
-	"github.com/elastos/Elastos.ELA/core/contract"
 	"github.com/elastos/Elastos.ELA/crypto"
 )
 
@@ -61,7 +60,7 @@ func (o *originArbiter) Clone() ArbiterMember {
 }
 
 func NewOriginArbiter(key []byte) (ArbiterMember, error) {
-	hash, err := contract.PublicKeyToStandardProgramHash(key)
+	hash, err := GetOwnerKeyStandardProgramHash(key)
 	if err != nil {
 		return nil, err
 	}

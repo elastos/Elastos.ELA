@@ -345,7 +345,7 @@ func (pow *Service) GenerateBlock(minerAddr string,
 	var proposalsUsedAmount common.Fixed64
 	for _, tx := range txs {
 
-		if tx.IsIllegalProposalTx() || tx.IsIllegalVoteTx() || tx.IsRecordSponorTx() {
+		if tx.IsRecordSponorTx() {
 			continue
 		}
 

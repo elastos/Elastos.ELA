@@ -68,13 +68,14 @@ func (v *view) ChangeView(viewOffset *uint32, now time.Time) {
 	}
 }
 
-func (v *view) ChangeViewV1(viewOffset *uint32, now time.Time) {
+func (v *view) ChangeViewV1(viewOffset *uint32, now time.Time) bool {
 	arbitersCount := v.arbitrators.GetArbitersCount()
 
 	offset, offsetTime := v.calculateOffsetTimeV1(*viewOffset, v.viewStartTime, now, uint32(arbitersCount))
 	if offset == *viewOffset {
-		return
+		return false
 	}
+	log.Info("ChangeView succeed, offset from:", *viewOffset, "to:", offset)
 
 	*viewOffset = offset
 	v.viewStartTime = now.Add(-offsetTime)
@@ -88,6 +89,8 @@ func (v *view) ChangeViewV1(viewOffset *uint32, now time.Time) {
 
 		v.listener.OnViewChanged(v.isDposOnDuty)
 	}
+
+	return true
 }
 
 func (v *view) calculateOffsetTimeV0(startTime time.Time,
@@ -170,9 +173,7 @@ func (v *view) TryChangeView(viewOffset *uint32, now time.Time) bool {
 
 func (v *view) TryChangeViewV1(viewOffset *uint32, now time.Time) bool {
 	if now.After(v.viewStartTime.Add(v.signTolerance)) {
-		log.Info("[TryChangeView] succeed")
-		v.ChangeViewV1(viewOffset, now)
-		return true
+		return v.ChangeViewV1(viewOffset, now)
 	}
 	return false
 }

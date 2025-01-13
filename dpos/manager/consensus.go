@@ -23,6 +23,7 @@ const (
 )
 
 type Consensus struct {
+	currentHeight   uint32
 	finishedHeight  uint32
 	consensusStatus uint32
 	viewOffset      uint32
@@ -88,6 +89,8 @@ func (c *Consensus) StartConsensus(b *types.Block) {
 	log.Info("[StartConsensus] consensus start")
 	defer log.Info("[StartConsensus] consensus end")
 
+	c.currentHeight = b.Height
+
 	now := c.manager.timeSource.AdjustedTime()
 	c.manager.GetBlockCache().Reset(b)
 	c.SetRunning()
@@ -113,7 +116,7 @@ func (c *Consensus) ProcessBlock(b *types.Block) {
 }
 
 func (c *Consensus) ChangeView() {
-	if c.finishedHeight < c.manager.chainParams.DPoSConfiguration.ChangeViewV1Height {
+	if c.currentHeight < c.manager.chainParams.DPoSConfiguration.ChangeViewV1Height {
 		c.currentView.ChangeView(&c.viewOffset, c.manager.timeSource.AdjustedTime())
 	} else {
 		c.currentView.ChangeViewV1(&c.viewOffset, c.manager.timeSource.AdjustedTime())
@@ -123,7 +126,7 @@ func (c *Consensus) ChangeView() {
 
 func (c *Consensus) TryChangeView() bool {
 	if c.IsRunning() {
-		if c.finishedHeight < c.manager.chainParams.DPoSConfiguration.ChangeViewV1Height {
+		if c.currentHeight < c.manager.chainParams.DPoSConfiguration.ChangeViewV1Height {
 			return c.currentView.TryChangeView(&c.viewOffset, c.manager.timeSource.AdjustedTime())
 		} else {
 			return c.currentView.TryChangeViewV1(&c.viewOffset, c.manager.timeSource.AdjustedTime())

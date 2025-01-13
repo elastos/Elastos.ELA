@@ -48,16 +48,16 @@ func (h *DPOSOnDutyHandler) ProcessProposal(id peer.PID, p *payload.DPOSProposal
 
 func (h *DPOSOnDutyHandler) ChangeView(firstBlockHash *common.Uint256) {
 
-	if !h.tryCreateInactiveArbitratorsTx() {
-		b, ok := h.cfg.Manager.GetBlockCache().TryGetValue(*firstBlockHash)
-		if !ok {
-			log.Info("[OnViewChanged] get block failed for proposal")
-		} else {
-			log.Info("[OnViewChanged] start proposal")
-			h.proposalDispatcher.CleanProposals(true)
-			h.proposalDispatcher.StartProposal(b)
-		}
+	// if !h.tryCreateInactiveArbitratorsTx() {
+	b, ok := h.cfg.Manager.GetBlockCache().TryGetValue(*firstBlockHash)
+	if !ok {
+		log.Info("[OnViewChanged] get block failed for proposal")
+	} else {
+		log.Info("[OnViewChanged] start proposal")
+		h.proposalDispatcher.CleanProposals(true)
+		h.proposalDispatcher.StartProposal(b)
 	}
+	// }
 }
 
 func (h *DPOSOnDutyHandler) TryStartNewConsensus(b *types.Block) bool {

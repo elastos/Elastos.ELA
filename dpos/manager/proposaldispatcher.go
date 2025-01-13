@@ -680,7 +680,7 @@ func (p *ProposalDispatcher) OnResponseResetViewReceived(msg *dmsg.ResetView) {
 	log.Info("[OnResponseResetViewReceived] signer:", common.BytesToHexString(signer))
 
 	if len(p.resetViewRequests) >= p.cfg.Arbitrators.GetArbitersMajorityCount() {
-		log.Info("[OnResponseResetViewReceived] signer:", common.BytesToHexString(signer))
+		log.Info("[OnResponseResetViewReceived] enough signers:", len(p.resetViewRequests))
 		// do reset
 		p.resetConsensus(p.finishedHeight)
 		p.resetViewRequests = make(map[string]struct{}, 0)

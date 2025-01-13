@@ -356,6 +356,8 @@ func (d *DPOSManager) OnResponseBlocks(id dpeer.PID, blockConfirms []*types.Dpos
 }
 
 func (d *DPOSManager) OnRequestConsensus(id dpeer.PID, height uint32) {
+	// only use reset view
+	return
 	if !d.isCurrentArbiter() {
 		return
 	}
@@ -400,6 +402,8 @@ func (d *DPOSManager) OnRecoverTimeout() {
 }
 
 func (d *DPOSManager) recoverAbnormalState() bool {
+	// only use reset view
+	return false
 	if d.recoverStarted {
 		return false
 	}
@@ -439,6 +443,8 @@ func (d *DPOSManager) recoverAbnormalState() bool {
 }
 
 func (d *DPOSManager) DoRecover() {
+	// only use reset view
+	return
 	if d.consensus.viewOffset == 0 {
 		log.Info("no need to recover view offset")
 		return
@@ -504,6 +510,10 @@ func medianOf(nums []int64) int64 {
 func (d *DPOSManager) OnChangeView() {
 	if d.consensus.TryChangeView() {
 		log.Info("[TryChangeView] succeed")
+	}
+
+	if d.consensus.currentHeight >= d.chainParams.DPoSConfiguration.ChangeViewV1Height {
+		return
 	}
 
 	if d.consensus.viewOffset >= maxViewOffset {
@@ -714,6 +724,9 @@ func (d *DPOSManager) OnResponseRevertToDPOSTxReceived(
 }
 
 func (d *DPOSManager) OnResponseResetViewReceived(msg *dmsg.ResetView) {
+	if d.consensus.currentHeight >= d.chainParams.DPoSConfiguration.ChangeViewV1Height {
+		return
+	}
 
 	if !d.isCurrentArbiter() {
 		return

@@ -117,10 +117,10 @@ func (c *Consensus) ProcessBlock(b *types.Block) {
 
 func (c *Consensus) ChangeView() {
 	if c.currentHeight < c.manager.chainParams.DPoSConfiguration.ChangeViewV1Height {
-		log.Info("[ChangeView] old,  finishedHeight:", c.finishedHeight, ", changeViewV1Height:", c.manager.chainParams.DPoSConfiguration.ChangeViewV1Height)
+		log.Info("[ChangeView] old,  currentHeight:", c.currentHeight, ", changeViewV1Height:", c.manager.chainParams.DPoSConfiguration.ChangeViewV1Height)
 		c.currentView.ChangeView(&c.viewOffset, c.manager.timeSource.AdjustedTime())
 	} else {
-		log.Info("[ChangeView] new,  finishedHeight:", c.finishedHeight, ", changeViewV1Height:", c.manager.chainParams.DPoSConfiguration.ChangeViewV1Height)
+		log.Info("[ChangeView] new,  currentHeight:", c.currentHeight, ", changeViewV1Height:", c.manager.chainParams.DPoSConfiguration.ChangeViewV1Height)
 		c.currentView.ChangeViewV1(&c.viewOffset, c.manager.timeSource.AdjustedTime())
 	}
 
@@ -129,10 +129,10 @@ func (c *Consensus) ChangeView() {
 func (c *Consensus) TryChangeView() bool {
 	if c.IsRunning() {
 		if c.currentHeight < c.manager.chainParams.DPoSConfiguration.ChangeViewV1Height {
-			log.Info("[TryChangeView] old,  finishedHeight:", c.finishedHeight, ", changeViewV1Height:", c.manager.chainParams.DPoSConfiguration.ChangeViewV1Height)
+			log.Info("[TryChangeView] old,  currentHeight:", c.currentHeight, ", changeViewV1Height:", c.manager.chainParams.DPoSConfiguration.ChangeViewV1Height)
 			return c.currentView.TryChangeView(&c.viewOffset, c.manager.timeSource.AdjustedTime())
 		} else {
-			log.Info("[TryChangeView] new,  finishedHeight:", c.finishedHeight, ", changeViewV1Height:", c.manager.chainParams.DPoSConfiguration.ChangeViewV1Height)
+			log.Info("[TryChangeView] new,  currentHeight:", c.currentHeight, ", changeViewV1Height:", c.manager.chainParams.DPoSConfiguration.ChangeViewV1Height)
 			return c.currentView.TryChangeViewV1(&c.viewOffset, c.manager.timeSource.AdjustedTime())
 		}
 

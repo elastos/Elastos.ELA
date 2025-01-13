@@ -112,25 +112,25 @@ func (v *view) calculateOffsetTimeV1(currentViewOffset uint32, startTime time.Ti
 	if currentOffset < arbitersCount {
 		offsetSeconds = 5 * time.Second
 	} else {
-		// view 18:  5+ 0*3 * 20^1 = 5
-		// view 19:  5+ 1*3 * 20^1 = 65
-		// view 20:  5+ 2*3 * 20^1 = 125
-		// view 21:  5+ 3*3 * 20^1 = 185
-		// view 22:  5+ 4*3 * 20^1 = 245
-		// view 23:  5+ 5*3 * 20^1 = 305
-		// view 24:  5+ 6*3 * 20^1 = 365
-		// view 25:  5+ 7*3 * 20^1 = 425
-		// view 26:  5+ 8*3 * 20^1 = 485
-		// view 27:  5+ 9*3 * 20^1 = 545
-		// view 28:  5+ 10*3 * 20^1 = 605
-		// view 29:  5+ 11*3 * 20^1 = 665
-		// view 30:  5+ 12*3 * 20^1 = 725
-		// view 31:  5+ 13*3 * 20^1 = 785
-		// view 32:  5+ 14*3 * 20^1 = 845
-		// view 33:  5+ 15*3 * 20^1 = 905
-		// view 34:  5+ 16*3 * 20^1 = 965
-		// view 35:  5+ 17*3 * 20^1 = 1025
-		offsetSeconds = time.Duration(5+(currentOffset-arbitersCount)*ChangeViewAddStep*
+		// view 18:  5+ 1*3 * 20^1 = 65
+		// view 19:  5+ 2*3 * 20^1 = 125
+		// view 20:  5+ 3*3 * 20^1 = 185
+		// view 21:  5+ 4*3 * 20^1 = 245
+		// view 22:  5+ 5*3 * 20^1 = 305
+		// view 23:  5+ 6*3 * 20^1 = 365
+		// view 24:  5+ 7*3 * 20^1 = 425
+		// view 25:  5+ 8*3 * 20^1 = 485
+		// view 26:  5+ 9*3 * 20^1 = 545
+		// view 27:  5+10*3 * 20^1 = 605
+		// view 28:  5+11*3 * 20^1 = 665
+		// view 29:  5+12*3 * 20^1 = 725
+		// view 30:  5+13*3 * 20^1 = 785
+		// view 31:  5+14*3 * 20^1 = 845
+		// view 32:  5+15*3 * 20^1 = 905
+		// view 33:  5+16*3 * 20^1 = 965
+		// view 34:  5+17*3 * 20^1 = 1025
+		// view 35:  5+18*3 * 20^1 = 1085
+		offsetSeconds = time.Duration(5+(1+currentOffset-arbitersCount)*ChangeViewAddStep*
 			uint32(math.Pow(float64(ChangeViewMulStep), float64(currentOffset/arbitersCount)))) * time.Second
 	}
 	for duration >= offsetSeconds {

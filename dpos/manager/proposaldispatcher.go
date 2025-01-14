@@ -222,6 +222,7 @@ func (p *ProposalDispatcher) CleanProposals(changeView bool) {
 		p.signedTxs = map[common.Uint256]interface{}{}
 		p.pendingProposals = make(map[common.Uint256]*payload.DPOSProposal)
 		p.precociousProposals = make(map[common.Uint256]*payload.DPOSProposal)
+		log.Info("### Clean proposals  precociousProposals:", len(p.precociousProposals))
 
 		p.eventAnalyzer.Clear()
 	} else {
@@ -235,6 +236,7 @@ func (p *ProposalDispatcher) CleanProposals(changeView bool) {
 		for k, v := range p.precociousProposals {
 			if v.ViewOffset < currentOffset {
 				delete(p.precociousProposals, k)
+				log.Info("### Delete precociousProposals:", v.Hash(), "offset:", v.ViewOffset, "sponsor:", common.BytesToHexString(v.Sponsor))
 			}
 		}
 	}
@@ -296,6 +298,7 @@ func (p *ProposalDispatcher) ProcessProposal(id peer.PID, d *payload.DPOSProposa
 		log.Info("have different view offset")
 		if d.ViewOffset > p.cfg.Consensus.GetViewOffset() {
 			p.precociousProposals[d.Hash()] = d
+			log.Info("### Add precociousProposals:", d.Hash(), "offset:", d.ViewOffset, "sponsor:", common.BytesToHexString(d.Sponsor))
 		}
 		return true, !self
 	}
@@ -390,6 +393,7 @@ func (p *ProposalDispatcher) UpdatePrecociousProposals() {
 				p.illegalMonitor.AddProposal(v)
 			}
 			delete(p.precociousProposals, k)
+			log.Info("### 2 Delete precociousProposals:", v.Hash(), "offset:", v.ViewOffset, "sponsor:", common.BytesToHexString(v.Sponsor))
 		}
 	}
 }

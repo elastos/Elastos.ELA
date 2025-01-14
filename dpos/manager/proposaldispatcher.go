@@ -322,8 +322,8 @@ func (p *ProposalDispatcher) ProcessProposal(id peer.PID, d *payload.DPOSProposa
 		return true, !self
 	}
 
-	currentBlock, ok := p.cfg.Manager.GetBlockCache().TryGetValue(d.BlockHash)
-	if !ok || !p.cfg.Consensus.IsRunning() {
+	currentBlock, err := p.GetBlockByHash(d.BlockHash)
+	if err != nil || !p.cfg.Consensus.IsRunning() {
 		p.pendingProposals[d.Hash()] = d
 		p.cfg.Manager.OnInv(id, d.BlockHash)
 		log.Info("received pending proposal")
@@ -347,6 +347,15 @@ func (p *ProposalDispatcher) ProcessProposal(id peer.PID, d *payload.DPOSProposa
 	}
 
 	return true, true
+}
+
+func (p *ProposalDispatcher) GetBlockByHash(hash common.Uint256) (*types.Block, error) {
+	block, ok := p.cfg.Manager.GetBlockCache().TryGetValue(hash)
+	if ok {
+		return block, nil
+	}
+
+	return p.cfg.Manager.GetBlockByHash(hash)
 }
 
 func (p *ProposalDispatcher) AppendConfirm() {

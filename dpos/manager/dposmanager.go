@@ -331,6 +331,10 @@ func (d *DPOSManager) isBlockExist(blockHash common.Uint256) bool {
 	return block != nil
 }
 
+func (d *DPOSManager) GetBlockByHash(blockHash common.Uint256) (*types.Block, error) {
+	return d.getBlock(blockHash)
+}
+
 func (d *DPOSManager) OnGetBlock(id dpeer.PID, blockHash common.Uint256) {
 	if !d.isCurrentArbiter() {
 		return

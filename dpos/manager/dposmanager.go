@@ -339,6 +339,12 @@ func (d *DPOSManager) OnGetBlock(id dpeer.PID, blockHash common.Uint256) {
 	if !d.isCurrentArbiter() {
 		return
 	}
+
+	if block, ok := d.GetBlockCache().TryGetValue(blockHash); ok {
+		go d.network.SendMessageToPeer(id, msg.NewBlock(block))
+		return
+	}
+
 	if block, err := d.getBlock(blockHash); err == nil {
 		go d.network.SendMessageToPeer(id, msg.NewBlock(block))
 	}

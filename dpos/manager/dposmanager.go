@@ -311,12 +311,15 @@ func (d *DPOSManager) OnBlock(id dpeer.PID, block *types.Block) {
 
 func (d *DPOSManager) OnInv(id dpeer.PID, blockHash common.Uint256) {
 	if !d.isCurrentArbiter() {
+		log.Info("### OnInv but is not current")
 		return
 	}
 	if d.isBlockExist(blockHash) {
+		log.Info("### OnInv already exist block")
 		return
 	}
 	if _, ok := d.requestedBlocks[blockHash]; ok {
+		log.Info("### OnInv already requested block")
 		return
 	}
 

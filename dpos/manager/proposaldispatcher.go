@@ -328,6 +328,7 @@ func (p *ProposalDispatcher) ProcessProposal(id peer.PID, d *payload.DPOSProposa
 
 	currentBlock, err := p.GetBlockByHash(d.BlockHash)
 	if err != nil || !p.cfg.Consensus.IsRunning() {
+		log.Info("### consensus:", p.cfg.Consensus.IsRunning(), "err:", err, "blockHash:", d.BlockHash)
 		p.pendingProposals[d.Hash()] = d
 		p.cfg.Manager.OnInv(id, d.BlockHash)
 		log.Info("received pending proposal")

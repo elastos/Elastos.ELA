@@ -89,9 +89,10 @@ func (h *DPOSNormalHandler) ChangeView(firstBlockHash *common.Uint256) {
 	h.proposalDispatcher.CleanProposals(true)
 	// sign proposal with same view offset to me
 	for _, v := range h.proposalDispatcher.precociousProposals {
-		if h.consensus.GetViewOffset() == v.ViewOffset {
-			log.Info("### [OnViewChanged] sign proposal with same view offset to me, proposal:", v.Hash(), "offset:", v.ViewOffset, "sponsor:", common.BytesToHexString(v.Sponsor))
-			h.proposalDispatcher.ProcessProposal(peer.PID{}, v, false)
+		if h.consensus.GetViewOffset() == v.Proposal.ViewOffset {
+			log.Info("### [OnViewChanged] sign proposal with same view offset to me, proposal:",
+				v.Proposal.Hash(), "offset:", v.Proposal.ViewOffset, "sponsor:", common.BytesToHexString(v.Proposal.Sponsor))
+			h.proposalDispatcher.ProcessProposal(v.ID, v.Proposal, false)
 		}
 	}
 }

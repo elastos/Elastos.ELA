@@ -8,6 +8,7 @@ package manager
 import (
 	"bytes"
 	"errors"
+
 	"github.com/elastos/Elastos.ELA/benchmark/common/utils"
 
 	"github.com/elastos/Elastos.ELA/blockchain"
@@ -42,6 +43,11 @@ type ProposalDispatcherConfig struct {
 	TimeSource   dtime.MedianTimeSource
 }
 
+type ProposalWithID struct {
+	Proposal *payload.DPOSProposal
+	ID       peer.PID
+}
+
 type ProposalDispatcher struct {
 	cfg ProposalDispatcherConfig
 
@@ -52,7 +58,7 @@ type ProposalDispatcher struct {
 	acceptVotes         map[common.Uint256]*payload.DPOSProposalVote
 	rejectedVotes       map[common.Uint256]*payload.DPOSProposalVote
 	pendingProposals    map[common.Uint256]*payload.DPOSProposal
-	precociousProposals map[common.Uint256]*payload.DPOSProposal
+	precociousProposals map[common.Uint256]*ProposalWithID
 	pendingVotes        map[common.Uint256]*payload.DPOSProposalVote
 
 	proposalProcessFinished bool
@@ -220,7 +226,7 @@ func (p *ProposalDispatcher) CleanProposals(changeView bool) {
 		p.currentInactiveArbitratorTx = nil
 		p.signedTxs = map[common.Uint256]interface{}{}
 		p.pendingProposals = make(map[common.Uint256]*payload.DPOSProposal)
-		p.precociousProposals = make(map[common.Uint256]*payload.DPOSProposal)
+		p.precociousProposals = make(map[common.Uint256]*ProposalWithID)
 
 		p.eventAnalyzer.Clear()
 	} else {
@@ -232,7 +238,7 @@ func (p *ProposalDispatcher) CleanProposals(changeView bool) {
 			}
 		}
 		for k, v := range p.precociousProposals {
-			if v.ViewOffset < currentOffset {
+			if v.Proposal.ViewOffset < currentOffset {
 				delete(p.precociousProposals, k)
 			}
 		}
@@ -253,7 +259,7 @@ func (p *ProposalDispatcher) ResetByCurrentView() {
 	p.currentInactiveArbitratorTx = nil
 	p.signedTxs = map[common.Uint256]interface{}{}
 	p.pendingProposals = make(map[common.Uint256]*payload.DPOSProposal)
-	p.precociousProposals = make(map[common.Uint256]*payload.DPOSProposal)
+	p.precociousProposals = make(map[common.Uint256]*ProposalWithID)
 
 	p.eventAnalyzer.Clear()
 
@@ -294,7 +300,7 @@ func (p *ProposalDispatcher) ProcessProposal(id peer.PID, d *payload.DPOSProposa
 	if d.ViewOffset != p.cfg.Consensus.GetViewOffset() {
 		log.Info("have different view offset")
 		if d.ViewOffset > p.cfg.Consensus.GetViewOffset() {
-			p.precociousProposals[d.Hash()] = d
+			p.precociousProposals[d.Hash()] = &ProposalWithID{d, id}
 		}
 		return true, !self
 	}
@@ -392,10 +398,10 @@ func (p *ProposalDispatcher) OnBlockAdded(b *types.Block) {
 func (p *ProposalDispatcher) UpdatePrecociousProposals() {
 	for k, v := range p.precociousProposals {
 		if p.cfg.Consensus.IsRunning() &&
-			v.ViewOffset == p.cfg.Consensus.GetViewOffset() {
+			v.Proposal.ViewOffset == p.cfg.Consensus.GetViewOffset() {
 			if needRecord, _ := p.ProcessProposal(
-				peer.PID{}, v, true); needRecord {
-				p.illegalMonitor.AddProposal(v)
+				peer.PID{}, v.Proposal, true); needRecord {
+				p.illegalMonitor.AddProposal(v.Proposal)
 			}
 			delete(p.precociousProposals, k)
 		}
@@ -1070,7 +1076,7 @@ func NewDispatcherAndIllegalMonitor(cfg ProposalDispatcherConfig) (
 		acceptVotes:            make(map[common.Uint256]*payload.DPOSProposalVote),
 		rejectedVotes:          make(map[common.Uint256]*payload.DPOSProposalVote),
 		pendingProposals:       make(map[common.Uint256]*payload.DPOSProposal),
-		precociousProposals:    make(map[common.Uint256]*payload.DPOSProposal),
+		precociousProposals:    make(map[common.Uint256]*ProposalWithID),
 		pendingVotes:           make(map[common.Uint256]*payload.DPOSProposalVote),
 		signedTxs:              make(map[common.Uint256]interface{}),
 		firstBadNetworkRecover: true,

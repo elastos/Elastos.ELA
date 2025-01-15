@@ -448,6 +448,15 @@ func (pow *Service) SubmitAuxBlock(hash *common.Uint256, auxPow *auxpow.AuxPow) 
 func (pow *Service) DiscreteMining(n uint32) ([]*common.Uint256, error) {
 	pow.mutex.Lock()
 
+	// temp relay last block
+	block, err := pow.chain.GetBlockByHeight(pow.chain.GetBestChain().Height)
+	if err != nil {
+		return nil, err
+	}
+	pow.blkMemPool.RelayBlock(block)
+	log.Info("### [DiscreteMining] relay last block:", block.Hash().String())
+	time.Sleep(time.Second * 2)
+
 	if pow.started || pow.discreteMining {
 		pow.mutex.Unlock()
 		return nil, errors.New("node is mining")

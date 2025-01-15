@@ -85,6 +85,10 @@ func (bm *BlockPool) AppendDposBlock(dposBlock *types.DposBlock) (bool, bool, er
 	return bm.appendBlockAndConfirm(dposBlock)
 }
 
+func (bm *BlockPool) RelayBlock(block *types.Block) {
+	events.Notify(events.ETBlockConfirmAccepted, block)
+}
+
 func (bm *BlockPool) appendBlock(dposBlock *types.DposBlock) (bool, bool, error) {
 	// add block
 	block := dposBlock.Block

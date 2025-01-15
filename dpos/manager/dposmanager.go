@@ -340,17 +340,23 @@ func (d *DPOSManager) GetBlockByHash(blockHash common.Uint256) (*types.Block, er
 
 func (d *DPOSManager) OnGetBlock(id dpeer.PID, blockHash common.Uint256) {
 	if !d.isCurrentArbiter() {
+		log.Info("### OnGetBlock but is not current, blockHash:", blockHash.String())
 		return
 	}
 
 	if block, ok := d.GetBlockCache().TryGetValue(blockHash); ok {
 		go d.network.SendMessageToPeer(id, msg.NewBlock(block))
+		log.Info("### [OnGetBlock] send block:", blockHash.String())
 		return
 	}
 
 	if block, err := d.getBlock(blockHash); err == nil {
 		go d.network.SendMessageToPeer(id, msg.NewBlock(block))
+		log.Info("### [OnGetBlock] send block:", blockHash.String())
+		return
 	}
+
+	log.Info("### [OnGetBlock] not found block:", blockHash.String())
 }
 
 func (d *DPOSManager) OnGetBlocks(id dpeer.PID, startBlockHeight, endBlockHeight uint32) {

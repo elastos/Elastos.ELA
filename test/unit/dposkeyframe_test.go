@@ -74,7 +74,8 @@ func dposCheckPointsEqual(first *state.CheckPoint, second *state.CheckPoint) boo
 			second.CurrentReward.TotalVotesInRound ||
 		second.NextReward.TotalVotesInRound !=
 			second.NextReward.TotalVotesInRound ||
-		first.ForceChanged != second.ForceChanged {
+		first.ForceChanged != second.ForceChanged ||
+		first.NeedNextTurnDPOSInfo != second.NeedNextTurnDPOSInfo {
 		return false
 	}
 
@@ -366,6 +367,7 @@ func randomDPOSStateKeyFrame() *state.StateKeyFrame {
 		VersionStartHeight:        rand.Uint32(),
 		VersionEndHeight:          rand.Uint32(),
 		DPoSV2ActiveHeight:        rand.Uint32(),
+		NeedNextTurnDPOSInfo:      randomBool(),
 	}
 
 	for i := 0; i < 5; i++ {

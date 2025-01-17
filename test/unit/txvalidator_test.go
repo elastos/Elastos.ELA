@@ -7623,7 +7623,7 @@ func (s *txValidatorTestSuite) TestArbitersAccumulateReward() {
 	ownerPubKeyStr := "0306e3deefee78e0e25f88e98f1f3290ccea98f08dd3a890616755f1a066c4b9b8"
 	nodePubKeyStr := "0250c5019a00f8bb4fd59bb6d613c70a39bb3026b87cfa247fd26f59fd04987855"
 
-	_, err := hex.DecodeString(ownerPubKeyStr)
+	ownerPubKey, err := hex.DecodeString(ownerPubKeyStr)
 	if err != nil {
 		fmt.Println("err", err)
 	}

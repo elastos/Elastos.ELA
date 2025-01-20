@@ -300,6 +300,9 @@ func (pow *Service) GenerateBlock(minerAddr string,
 	}
 
 	msgBlock.Transactions = append(msgBlock.Transactions, coinBaseTx)
+	txCount := 1
+	totalTxsSize := coinBaseTx.GetSize()
+	totalTxFee := common.Fixed64(0)
 
 	if bestChain.Height+1 >= pow.chainParams.DPoSConfiguration.RecordSponsorStartHeight {
 		bestBlock, err := pow.chain.GetDposBlockByHash(*bestChain.Hash)
@@ -312,14 +315,12 @@ func (pow *Service) GenerateBlock(minerAddr string,
 				return nil, err
 			}
 			msgBlock.Transactions = append(msgBlock.Transactions, recordSponsorTx)
+			txCount++
+			totalTxsSize += recordSponsorTx.GetSize()
 		}
 	}
 
-	totalTxsSize := coinBaseTx.GetSize()
-	txCount := 1
-	totalTxFee := common.Fixed64(0)
 	txs := pow.txMemPool.GetTxsInPool()
-
 	isHighPriority := func(tx interfaces.Transaction) bool {
 		if tx.IsRevertToPOW() || tx.IsRevertToDPOS() ||
 			tx.IsIllegalTypeTx() || tx.IsInactiveArbitrators() ||
@@ -344,7 +345,6 @@ func (pow *Service) GenerateBlock(minerAddr string,
 
 	var proposalsUsedAmount common.Fixed64
 	for _, tx := range txs {
-
 		if tx.IsRecordSponorTx() {
 			continue
 		}

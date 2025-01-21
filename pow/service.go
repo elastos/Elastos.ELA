@@ -38,7 +38,6 @@ const (
 	maxNonce               = ^uint32(0) // 2^32 - 1
 	updateInterval         = 30 * time.Second
 	createAuxBlockInterval = 5 * time.Second
-	maxTxPerBlock          = 100
 )
 
 type Config struct {
@@ -277,7 +276,7 @@ func (pow *Service) distributeDPOSReward(coinBaseTx interfaces.Transaction,
 }
 
 func (pow *Service) GenerateBlock(minerAddr string,
-	txPerBlock int) (*types.Block, error) {
+	txPerBlock uint32) (*types.Block, error) {
 	bestChain := pow.chain.BestChain
 	nextBlockHeight := bestChain.Height + 1
 	coinBaseTx, err := pow.CreateCoinbaseTx(minerAddr, nextBlockHeight)
@@ -300,7 +299,7 @@ func (pow *Service) GenerateBlock(minerAddr string,
 	}
 
 	msgBlock.Transactions = append(msgBlock.Transactions, coinBaseTx)
-	txCount := 1
+	txCount := uint32(1)
 	totalTxsSize := coinBaseTx.GetSize()
 	totalTxFee := common.Fixed64(0)
 
@@ -403,7 +402,7 @@ func (pow *Service) CreateAuxBlock(payToAddr string) (*types.Block, error) {
 		}
 
 		// Create new block with nonce = 0
-		auxBlock, err := pow.GenerateBlock(payToAddr, maxTxPerBlock)
+		auxBlock, err := pow.GenerateBlock(payToAddr, pact.MaxTxPerBlock)
 		if err != nil {
 			return nil, err
 		}
@@ -463,7 +462,7 @@ func (pow *Service) DiscreteMining(n uint32) ([]*common.Uint256, error) {
 
 	log.Info("<================Discrete Mining==============>\n")
 	for {
-		msgBlock, err := pow.GenerateBlock(pow.PayToAddr, maxTxPerBlock)
+		msgBlock, err := pow.GenerateBlock(pow.PayToAddr, pact.MaxTxPerBlock)
 		if err != nil {
 			log.Warn("Generate block failed, ", err.Error())
 			continue
@@ -572,7 +571,7 @@ out:
 		log.Debug("<================Packing Block==============>")
 		//time.Sleep(15 * time.Second)
 
-		msgBlock, err := pow.GenerateBlock(pow.PayToAddr, maxTxPerBlock)
+		msgBlock, err := pow.GenerateBlock(pow.PayToAddr, pact.MaxTxPerBlock)
 		if err != nil {
 			log.Debug("generage block err", err)
 			continue

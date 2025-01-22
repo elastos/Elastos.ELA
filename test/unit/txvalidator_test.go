@@ -7632,7 +7632,9 @@ func (s *txValidatorTestSuite) TestArbitersAccumulateReward() {
 	if err != nil {
 		fmt.Println("err", err)
 	}
-
+	ownerAddr, _ := getProgramHash(ownerPubKeyStr)
+	ownerAddr[0] = byte(contract.PrefixDPoSV2)
+	ownerStakeAddr, _ := ownerAddr.ToAddress()
 	type fields struct {
 		State                      *state.State
 		ChainParams                *config.Configuration
@@ -7760,10 +7762,7 @@ func (s *txValidatorTestSuite) TestArbitersAccumulateReward() {
 			//CurrentCRCArbitersMap
 			a.AccumulateReward(tt.args.block, tt.args.confirm)
 			a.History.Commit(tt.args.block.Height)
-			addr, _ := common.Uint168FromAddress("SYWG3rnjyfU6PKu1yjSqDLMHaxvn8d8nDn")
-			addr[0] = byte(contract.PrefixDPoSV2)
-			stakeAddr, _ := addr.ToAddress()
-			if a.State.DPoSV2RewardInfo[stakeAddr] != 102 {
+			if a.State.DPoSV2RewardInfo[ownerStakeAddr] != 102 {
 				t.Errorf("DPoSV2RewardInfo() addr %v, want %v, but %v",
 					"SYWG3rnjyfU6PKu1yjSqDLMHaxvn8d8nDn", 102, a.State.DPoSV2RewardInfo)
 			}

@@ -6,7 +6,6 @@ package transaction
 import (
 	"bytes"
 	"errors"
-	"fmt"
 	"math"
 
 	"github.com/elastos/Elastos.ELA/blockchain"
@@ -18,17 +17,6 @@ import (
 
 type IllegalProposalTransaction struct {
 	BaseTransaction
-}
-
-func (t *IllegalProposalTransaction) HeightVersionCheck() error {
-	blockHeight := t.parameters.BlockHeight
-	chainParams := t.parameters.Config
-
-	if blockHeight < chainParams.DPoSConfiguration.ChangeViewV1Height {
-		return errors.New(fmt.Sprintf("not support %s transaction "+
-			"before ChangeViewV1Height", t.TxType().Name()))
-	}
-	return nil
 }
 
 func (t *IllegalProposalTransaction) CheckTransactionInput() error {

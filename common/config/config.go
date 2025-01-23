@@ -365,9 +365,9 @@ func (p *Configuration) TestNet() *Configuration {
 	p.MaxReservedCustomIDLength = 255
 	p.DPoSConfiguration.RevertToPOWNoBlockTime = 12 * 3600
 	p.DPoSConfiguration.StopConfirmBlockTime = 11 * 3600
-	p.DPoSConfiguration.RevertToPOWNoBlockTimeV1 = 2 * 3600 // todo complete me
-	p.DPoSConfiguration.StopConfirmBlockTimeV1 = 6600       // todo complete me
-	p.DPoSConfiguration.ChangeViewV1Height = math.MaxUint32 // todo complete me
+	p.DPoSConfiguration.RevertToPOWNoBlockTimeV1 = 2 * 3600
+	p.DPoSConfiguration.StopConfirmBlockTimeV1 = 6600
+	p.DPoSConfiguration.ChangeViewV1Height = 1304005
 	p.DPoSConfiguration.RevertToPOWStartHeight = 815060
 	p.HalvingRewardHeight = 877880    //767000 + 154 * 720
 	p.HalvingRewardInterval = 1051200 //4 * 365 * 720

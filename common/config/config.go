@@ -180,9 +180,9 @@ func GetDefaultParams() *Configuration {
 			MaxInactiveRoundsOfRandomNode:     36 * 8,
 			RevertToPOWNoBlockTime:            12 * 3600,
 			StopConfirmBlockTime:              11 * 3600,
-			RevertToPOWNoBlockTimeV1:          2 * 3600,       // todo complete me
-			StopConfirmBlockTimeV1:            6600,           // todo complete me
-			ChangeViewV1Height:                math.MaxUint32, // todo complete me
+			RevertToPOWNoBlockTimeV1:          2 * 3600,
+			StopConfirmBlockTimeV1:            6600,
+			ChangeViewV1Height:                1911200,
 			DPoSV2IllegalPenalty:              20000000000,
 			DPOSNodeCrossChainHeight:          math.MaxUint32,
 			DPoSV2DepositCoinMinLockTime:      7200,

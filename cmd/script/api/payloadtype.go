@@ -19,6 +19,7 @@ import (
 	"github.com/elastos/Elastos.ELA/core/types/outputpayload"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/crypto"
+	"github.com/elastos/Elastos.ELA/dpos/state"
 	lua "github.com/yuin/gopher-lua"
 )
 
@@ -595,7 +596,7 @@ func RegisterUpdateProducerType(L *lua.LState) {
 	L.SetField(mt, "__index", L.SetFuncs(L.NewTable(), updateProducerMethods))
 }
 
-//luaUpdateV2ProducerName
+// luaUpdateV2ProducerName
 func RegisterUpdateV2ProducerType(L *lua.LState) {
 	mt := L.NewTypeMetatable(luaUpdateV2ProducerName)
 	L.SetGlobal("updatev2producer", mt)
@@ -607,7 +608,7 @@ func RegisterUpdateV2ProducerType(L *lua.LState) {
 
 // Constructor
 func newUpdateV2Producer(L *lua.LState) int {
-	ownerPublicKeyStr := L.ToString(1)
+	ownerKeyStr := L.ToString(1)
 	nodePublicKeyStr := L.ToString(2)
 	nickName := L.ToString(3)
 	url := L.ToString(4)
@@ -624,7 +625,7 @@ func newUpdateV2Producer(L *lua.LState) int {
 		}
 	}
 
-	ownerPublicKey, err := common.HexStringToBytes(ownerPublicKeyStr)
+	ownerKey, err := common.HexStringToBytes(ownerKeyStr)
 	if err != nil {
 		fmt.Println("wrong producer public key")
 		os.Exit(1)
@@ -635,13 +636,13 @@ func newUpdateV2Producer(L *lua.LState) int {
 		os.Exit(1)
 	}
 	updateProducer := &payload.ProducerInfo{
-		OwnerPublicKey: []byte(ownerPublicKey),
-		NodePublicKey:  []byte(nodePublicKey),
-		NickName:       nickName,
-		Url:            url,
-		Location:       uint64(location),
-		NetAddress:     address,
-		StakeUntil:     uint32(stakeuntil),
+		OwnerKey:      []byte(ownerKey),
+		NodePublicKey: []byte(nodePublicKey),
+		NickName:      nickName,
+		Url:           url,
+		Location:      uint64(location),
+		NetAddress:    address,
+		StakeUntil:    uint32(stakeuntil),
 	}
 
 	if needSign {
@@ -651,7 +652,7 @@ func newUpdateV2Producer(L *lua.LState) int {
 			version = payload.ProducerInfoDposV2Version
 		}
 
-		codeHash, err := contract.PublicKeyToStandardCodeHash(ownerPublicKey)
+		codeHash, err := state.GetOwnerKeyCodeHash(ownerKey)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
@@ -694,20 +695,21 @@ func newUpdateV2Producer(L *lua.LState) int {
 
 // Constructor
 func newUpdateProducer(L *lua.LState) int {
-	ownerPublicKeyStr := L.ToString(1)
+	ownerKeyStr := L.ToString(1)
 	nodePublicKeyStr := L.ToString(2)
 	nickName := L.ToString(3)
 	url := L.ToString(4)
 	location := L.ToInt64(5)
 	address := L.ToString(6)
 	stakeuntil := L.ToInt64(7)
+	payloadversion := L.ToInt(8)
 	needSign := true
-	client, err := checkClient(L, 8)
+	client, err := checkClient(L, 9)
 	if err != nil {
 		needSign = false
 	}
 
-	ownerPublicKey, err := common.HexStringToBytes(ownerPublicKeyStr)
+	ownerKey, err := common.HexStringToBytes(ownerKeyStr)
 	if err != nil {
 		fmt.Println("wrong producer public key")
 		os.Exit(1)
@@ -718,28 +720,29 @@ func newUpdateProducer(L *lua.LState) int {
 		os.Exit(1)
 	}
 	updateProducer := &payload.ProducerInfo{
-		OwnerPublicKey: []byte(ownerPublicKey),
-		NodePublicKey:  []byte(nodePublicKey),
-		NickName:       nickName,
-		Url:            url,
-		Location:       uint64(location),
-		NetAddress:     address,
-		StakeUntil:     uint32(stakeuntil),
+		OwnerKey:      []byte(ownerKey),
+		NodePublicKey: []byte(nodePublicKey),
+		NickName:      nickName,
+		Url:           url,
+		Location:      uint64(location),
+		NetAddress:    address,
+		StakeUntil:    uint32(stakeuntil),
 	}
 
-	if needSign {
+	if needSign && payloadversion != int(payload.ProducerInfoMultiVersion) {
 		upSignBuf := new(bytes.Buffer)
 		version := payload.ProducerInfoVersion
 		if stakeuntil != 0 {
 			version = payload.ProducerInfoDposV2Version
 		}
+		version = byte(payloadversion)
 		err = updateProducer.SerializeUnsigned(upSignBuf, version)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
 		}
 
-		codeHash, err := contract.PublicKeyToStandardCodeHash(ownerPublicKey)
+		codeHash, err := state.GetOwnerKeyCodeHash(ownerKey)
 		acc := client.GetAccountByCodeHash(*codeHash)
 		if acc == nil {
 			fmt.Println("no available account in wallet")
@@ -840,12 +843,12 @@ func newRegisterProducer(L *lua.LState) int {
 	}
 
 	registerProducer := &payload.ProducerInfo{
-		OwnerPublicKey: []byte(ownerPublicKey),
-		NodePublicKey:  []byte(nodePublicKey),
-		NickName:       nickName,
-		Url:            url,
-		Location:       uint64(location),
-		NetAddress:     address,
+		OwnerKey:      []byte(ownerPublicKey),
+		NodePublicKey: []byte(nodePublicKey),
+		NickName:      nickName,
+		Url:           url,
+		Location:      uint64(location),
+		NetAddress:    address,
 	}
 
 	if needSign {
@@ -855,7 +858,7 @@ func newRegisterProducer(L *lua.LState) int {
 			fmt.Println(err)
 			os.Exit(1)
 		}
-		codeHash, err := contract.PublicKeyToStandardCodeHash(ownerPublicKey)
+		codeHash, err := state.GetOwnerKeyCodeHash(ownerPublicKey)
 		acc := client.GetAccountByCodeHash(*codeHash)
 		if acc == nil {
 			fmt.Println("no available account in wallet")
@@ -879,17 +882,21 @@ func newRegisterProducer(L *lua.LState) int {
 
 // Constructor
 func newRegisterV2Producer(L *lua.LState) int {
-	ownerPublicKeyStr := L.ToString(1)
+	ownerKeyStr := L.ToString(1)
 	nodePublicKeyStr := L.ToString(2)
 	nickName := L.ToString(3)
 	url := L.ToString(4)
 	location := L.ToInt64(5)
 	address := L.ToString(6)
 	stakeUntil := L.ToInt64(7)
+	payloadversion := L.ToInt(8)
+
 	fmt.Println(" newRegisterV2Producer stakeUntil", stakeUntil)
+	fmt.Println(" newRegisterV2Producer payloadversion", payloadversion)
+
 	needSign := true
 	var account *account.SchnorAccount
-	client, err := checkClient(L, 8)
+	client, err := checkClient(L, 9)
 	if err != nil {
 		account, err = checkAccount(L, 9)
 		if err != nil {
@@ -897,7 +904,7 @@ func newRegisterV2Producer(L *lua.LState) int {
 		}
 	}
 
-	ownerPublicKey, err := common.HexStringToBytes(ownerPublicKeyStr)
+	ownerKey, err := common.HexStringToBytes(ownerKeyStr)
 	if err != nil {
 		fmt.Println("wrong producer public key")
 		os.Exit(1)
@@ -909,25 +916,25 @@ func newRegisterV2Producer(L *lua.LState) int {
 	}
 
 	registerProducer := &payload.ProducerInfo{
-		OwnerPublicKey: []byte(ownerPublicKey),
-		NodePublicKey:  []byte(nodePublicKey),
-		NickName:       nickName,
-		Url:            url,
-		Location:       uint64(location),
-		NetAddress:     address,
-		StakeUntil:     uint32(stakeUntil),
+		OwnerKey:      []byte(ownerKey),
+		NodePublicKey: []byte(nodePublicKey),
+		NickName:      nickName,
+		Url:           url,
+		Location:      uint64(location),
+		NetAddress:    address,
+		StakeUntil:    uint32(stakeUntil),
 	}
 
-	if needSign {
+	if needSign && payloadversion != int(payload.ProducerInfoMultiVersion) {
 		rpSignBuf := new(bytes.Buffer)
 
-		codeHash, err := contract.PublicKeyToStandardCodeHash(ownerPublicKey)
+		codeHash, err := state.GetOwnerKeyCodeHash(ownerKey)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
 		}
 		if account == nil {
-			err = registerProducer.SerializeUnsigned(rpSignBuf, payload.ProducerInfoDposV2Version)
+			err = registerProducer.SerializeUnsigned(rpSignBuf, byte(payloadversion))
 			if err != nil {
 				fmt.Println(err)
 				os.Exit(1)
@@ -945,7 +952,7 @@ func newRegisterV2Producer(L *lua.LState) int {
 			registerProducer.Signature = rpSig
 		} else {
 			fmt.Println("process AggregateSignatures payload version 2")
-			err = registerProducer.SerializeUnsigned(rpSignBuf, payload.ProducerInfoSchnorrVersion)
+			err = registerProducer.SerializeUnsigned(rpSignBuf, byte(payloadversion))
 			if err != nil {
 				fmt.Println(err)
 				os.Exit(1)
@@ -1019,42 +1026,45 @@ func RegisterCancelProducerType(L *lua.LState) {
 // Constructor
 func newProcessProducer(L *lua.LState) int {
 	publicKeyStr := L.ToString(1)
-	client, err := checkClient(L, 2)
+	payloadversion := L.ToInt(2)
+	client, err := checkClient(L, 3)
 	if err != nil {
 		fmt.Println(err)
 	}
-
+	fmt.Println("payloadversion", payloadversion)
 	publicKey, err := common.HexStringToBytes(publicKeyStr)
 	if err != nil {
 		fmt.Println("wrong producer public key")
 		os.Exit(1)
 	}
 	processProducer := &payload.ProcessProducer{
-		OwnerPublicKey: []byte(publicKey),
+		OwnerKey: []byte(publicKey),
 	}
 
 	cpSignBuf := new(bytes.Buffer)
-	err = processProducer.SerializeUnsigned(cpSignBuf, payload.ProcessProducerVersion)
+	err = processProducer.SerializeUnsigned(cpSignBuf, byte(payloadversion))
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
-	codeHash, err := contract.PublicKeyToStandardCodeHash(publicKey)
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+	if payloadversion == int(payload.ProcessProducerVersion) {
+		codeHash, err := state.GetOwnerKeyCodeHash(publicKey)
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+		acc := client.GetAccountByCodeHash(*codeHash)
+		if acc == nil {
+			fmt.Println("no available account in wallet")
+			os.Exit(1)
+		}
+		rpSig, err := crypto.Sign(acc.PrivKey(), cpSignBuf.Bytes())
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+		processProducer.Signature = rpSig
 	}
-	acc := client.GetAccountByCodeHash(*codeHash)
-	if acc == nil {
-		fmt.Println("no available account in wallet")
-		os.Exit(1)
-	}
-	rpSig, err := crypto.Sign(acc.PrivKey(), cpSignBuf.Bytes())
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
-	processProducer.Signature = rpSig
 
 	ud := L.NewUserData()
 	ud.Value = processProducer
@@ -1125,7 +1135,7 @@ func newCancelProducerSchnorr(L *lua.LState) int {
 		os.Exit(1)
 	}
 	processProducer := &payload.ProcessProducer{
-		OwnerPublicKey: []byte(publicKey),
+		OwnerKey: []byte(publicKey),
 	}
 
 	cpSignBuf := new(bytes.Buffer)
@@ -1357,11 +1367,71 @@ func RegisterRegisterCRType(L *lua.LState) {
 
 // Constructor
 func newRegisterCR(L *lua.LState) int {
-	publicKeyStr := L.ToString(1)
-	nickName := L.ToString(2)
-	url := L.ToString(3)
-	location := L.ToInt64(4)
-	payloadVersion := byte(L.ToInt(5))
+	payloadVersion := byte(L.ToInt(1))
+
+	// multi sign
+	if payloadVersion == payload.CRInfoMultiSignVersion {
+		nickName := L.ToString(2)
+		url := L.ToString(3)
+		location := L.ToInt64(4)
+		m := L.ToInt(5)
+		client, err := checkClient(L, 6)
+
+		var code []byte
+		var pks []*crypto.PublicKey
+		accs := client.GetAccounts()
+		for _, acc := range accs {
+			if acc.PublicKey == nil {
+				continue
+			}
+			pks = append(pks, acc.PublicKey)
+		}
+		fmt.Println("pks:", len(pks), pks)
+
+		multiCode, err := contract.CreateMultiSigRedeemScript(int(m), pks)
+		if err != nil {
+			fmt.Println(err)
+			return 0
+		}
+		code = multiCode
+
+		ct, err := contract.CreateCRIDContractByCode(code)
+		if err != nil {
+			fmt.Println("wrong cr public key")
+			os.Exit(1)
+		}
+
+		didCode := make([]byte, len(code))
+		copy(didCode, code)
+		didCode = append(didCode[:len(code)-1], common.DID)
+		didCT, err := contract.CreateCRIDContractByCode(didCode)
+		if err != nil {
+			fmt.Println("wrong cr public key")
+			os.Exit(1)
+		}
+
+		registerCR := &payload.CRInfo{
+			CID:      *ct.ToProgramHash(),
+			DID:      *didCT.ToProgramHash(),
+			NickName: nickName,
+			Url:      url,
+			Location: uint64(location),
+		}
+		fmt.Println("pld:", registerCR)
+
+		ud := L.NewUserData()
+		ud.Value = registerCR
+		L.SetMetatable(ud, L.GetTypeMetatable(luaRegisterCRName))
+		L.Push(ud)
+
+		return 1
+	}
+
+	// normal sign or schnorr sign (old logic)
+	publicKeyStr := L.ToString(2)
+	nickName := L.ToString(3)
+	url := L.ToString(4)
+	location := L.ToInt64(5)
 	needSign := true
 	var account *account.SchnorAccount
 	client, err := checkClient(L, 6)
@@ -1472,7 +1542,6 @@ func newRegisterCR(L *lua.LState) int {
 			//}
 			//registerCR.Signature = rpSig[:]
 		}
-
 	}
 
 	ud := L.NewUserData()
@@ -1518,11 +1587,69 @@ func RegisterUpdateCRType(L *lua.LState) {
 
 // Constructor
 func newUpdateCR(L *lua.LState) int {
-	publicKeyStr := L.ToString(1)
-	nickName := L.ToString(2)
-	url := L.ToString(3)
-	location := L.ToInt64(4)
-	payloadVersion := byte(L.ToInt(5))
+	payloadVersion := byte(L.ToInt(1))
+	// multi sign
+	if payloadVersion == payload.CRInfoMultiSignVersion {
+		nickName := L.ToString(2)
+		url := L.ToString(3)
+		location := L.ToInt64(4)
+		m := L.ToInt(5)
+		client, err := checkClient(L, 6)
+
+		var code []byte
+		var pks []*crypto.PublicKey
+		accs := client.GetAccounts()
+		for _, acc := range accs {
+			if acc.PublicKey == nil {
+				continue
+			}
+			pks = append(pks, acc.PublicKey)
+		}
+		fmt.Println("pks:", len(pks), pks)
+
+		multiCode, err := contract.CreateMultiSigRedeemScript(int(m), pks)
+		if err != nil {
+			fmt.Println(err)
+			return 0
+		}
+		code = multiCode
+
+		ct, err := contract.CreateCRIDContractByCode(code)
+		if err != nil {
+			fmt.Println("wrong cr public key")
+			os.Exit(1)
+		}
+
+		didCode := make([]byte, len(code))
+		copy(didCode, code)
+		didCode = append(didCode[:len(code)-1], common.DID)
+		didCT, err := contract.CreateCRIDContractByCode(didCode)
+		if err != nil {
+			fmt.Println("wrong cr public key")
+			os.Exit(1)
+		}
+
+		updateCR := &payload.CRInfo{
+			CID:      *ct.ToProgramHash(),
+			DID:      *didCT.ToProgramHash(),
+			NickName: nickName,
+			Url:      url,
+			Location: uint64(location),
+		}
+		fmt.Println("pld:", updateCR)
+
+		ud := L.NewUserData()
+		ud.Value = updateCR
+		L.SetMetatable(ud, L.GetTypeMetatable(luaUpdateCRName))
+		L.Push(ud)
+
+		return 1
+	}
+
+	publicKeyStr := L.ToString(2)
+	nickName := L.ToString(3)
+	url := L.ToString(4)
+	location := L.ToInt64(5)
 	needSign := true
 	client, err := checkClient(L, 6)
 	if err != nil {
@@ -1655,6 +1782,7 @@ func RegisterUnregisterCRType(L *lua.LState) {
 	L.SetGlobal("unregistercr", mt)
 	// static attributes
 	L.SetField(mt, "new", L.NewFunction(newUnregisterCR))
+	L.SetField(mt, "newmulti", L.NewFunction(newMultiUnregisterCR))
 	// methods
 	L.SetField(mt, "__index", L.SetFuncs(L.NewTable(), unregisterCRMethods))
 }
@@ -1734,6 +1862,47 @@ func newUnregisterCR(L *lua.LState) int {
 			os.Exit(1)
 		}
 		unregisterCR.Signature = rpSig
+	}
+
+	ud := L.NewUserData()
+	ud.Value = unregisterCR
+	L.SetMetatable(ud, L.GetTypeMetatable(luaUnregisterCRName))
+	L.Push(ud)
+
+	return 1
+}
+
+// Constructor
+func newMultiUnregisterCR(L *lua.LState) int {
+	m := L.ToInt(1)
+	client, err := checkClient(L, 2)
+
+	var code []byte
+	var pks []*crypto.PublicKey
+	accs := client.GetAccounts()
+	for _, acc := range accs {
+		if acc.PublicKey == nil {
+			continue
+		}
+		pks = append(pks, acc.PublicKey)
+	}
+	fmt.Println("pks:", len(pks), pks)
+
+	multiCode, err := contract.CreateMultiSigRedeemScript(m, pks)
+	if err != nil {
+		fmt.Println(err)
+		return 0
+	}
+	code = multiCode
+
+	ct, err := contract.CreateCRIDContractByCode(code)
+	if err != nil {
+		fmt.Println("wrong code")
+		os.Exit(1)
+	}
+
+	unregisterCR := &payload.UnregisterCR{
+		CID: *ct.ToProgramHash(),
 	}
 
 	ud := L.NewUserData()
@@ -1874,7 +2043,7 @@ func newSecretaryGeneralProposal(L *lua.LState) int {
 
 	crcProposal := &payload.CRCProposal{
 		ProposalType:              payload.CRCProposalType(proposalType),
-		OwnerPublicKey:            ownPublicKey,
+		OwnerKey:                  ownPublicKey,
 		DraftData:                 []byte(draftDataStr),
 		DraftHash:                 draftHash,
 		SecretaryGeneralPublicKey: secretaryGeneralPublicKey,
@@ -1994,7 +2163,7 @@ func newCRCProposal(L *lua.LState) int {
 	did, _ := getDIDFromCode(ct.Code)
 	crcProposal := &payload.CRCProposal{
 		ProposalType:       payload.CRCProposalType(proposalType),
-		OwnerPublicKey:     publicKey,
+		OwnerKey:           publicKey,
 		DraftHash:          draftHash,
 		DraftData:          []byte(draftDataStr),
 		Budgets:            budgets,
@@ -2124,12 +2293,12 @@ func newCRChangeProposalOwner(L *lua.LState) int {
 
 	crcProposal := &payload.CRCProposal{
 		ProposalType:       payload.CRCProposalType(proposalType),
-		OwnerPublicKey:     ownerPublicKey,
+		OwnerKey:           ownerPublicKey,
 		Recipient:          *recipient,
 		DraftHash:          draftHash,
 		DraftData:          []byte(draftDataStr),
 		TargetProposalHash: *targetHash,
-		NewOwnerPublicKey:  newOwnerPublicKey,
+		NewOwnerKey:        newOwnerPublicKey,
 		CRCouncilMemberDID: *CRCouncilMemberDID,
 		NewOwnerSignature:  []byte{},
 	}
@@ -2233,9 +2402,9 @@ func newCRCRegisterSideChainProposalHash(L *lua.LState) int {
 	}
 	did, _ := getDIDFromCode(ct.Code)
 	crcProposal := &payload.CRCProposal{
-		ProposalType:   payload.CRCProposalType(proposalType),
-		OwnerPublicKey: publicKey,
-		DraftHash:      *draftHash,
+		ProposalType: payload.CRCProposalType(proposalType),
+		OwnerKey:     publicKey,
+		DraftHash:    *draftHash,
 		SideChainInfo: payload.SideChainInfo{
 			SideChainName:   sideChainName,
 			MagicNumber:     uint32(magicNumber),
@@ -2335,7 +2504,7 @@ func newCRCChangeCustomIDFee(L *lua.LState) int {
 	}
 	crcProposal := &payload.CRCProposal{
 		ProposalType:        payload.ChangeCustomIDFee,
-		OwnerPublicKey:      publicKey,
+		OwnerKey:            publicKey,
 		DraftHash:           draftHash,
 		DraftData:           []byte(draftDataStr),
 		CustomIDFeeRateInfo: payload.CustomIDFeeRateInfo{RateOfCustomIDFee: *rate},
@@ -2432,7 +2601,7 @@ func newCRCReceivedCustomID(L *lua.LState) int {
 
 	crcProposal := &payload.CRCProposal{
 		ProposalType:         payload.CRCProposalType(proposalType),
-		OwnerPublicKey:       publicKey,
+		OwnerKey:             publicKey,
 		DraftHash:            draftHash,
 		DraftData:            []byte(draftDataStr),
 		CRCouncilMemberDID:   *did,
@@ -2524,7 +2693,7 @@ func newCRCReservedCustomID(L *lua.LState) int {
 	did, _ := getDIDFromCode(ct.Code)
 	crcProposal := &payload.CRCProposal{
 		ProposalType:         payload.CRCProposalType(proposalType),
-		OwnerPublicKey:       publicKey,
+		OwnerKey:             publicKey,
 		DraftHash:            draftHash,
 		DraftData:            []byte(draftDataStr),
 		CRCouncilMemberDID:   *did,
@@ -2620,7 +2789,7 @@ func newCRCCloseProposalHash(L *lua.LState) int {
 	did, _ := getDIDFromCode(ct.Code)
 	crcProposal := &payload.CRCProposal{
 		ProposalType:       payload.CRCProposalType(proposalType),
-		OwnerPublicKey:     publicKey,
+		OwnerKey:           publicKey,
 		DraftHash:          draftHash,
 		DraftData:          []byte(draftDataStr),
 		TargetProposalHash: *closeProposalHash,
@@ -2864,8 +3033,8 @@ func newCRCProposalTracking(L *lua.LState) int {
 		MessageHash:                 *MessageHash,
 		SecretaryGeneralOpinionHash: *opinionHash,
 		Stage:                       uint8(stage),
-		OwnerPublicKey:              ownerpublickey,
-		NewOwnerPublicKey:           newownerpublickey,
+		OwnerKey:                    ownerpublickey,
+		NewOwnerKey:                 newownerpublickey,
 		OwnerSignature:              []byte{},
 		NewOwnerSignature:           []byte{},
 		SecretaryGeneralSignature:   []byte{},
@@ -2973,7 +3142,7 @@ func newCRCProposalWithdraw(L *lua.LState) int {
 		os.Exit(1)
 	}
 	pubkey := getPublicKeyFromCode(acc.RedeemScript)
-	crcProposalWithdraw.OwnerPublicKey = pubkey
+	crcProposalWithdraw.OwnerKey = pubkey
 	if payloadversion == 1 {
 		r, err := common.Uint168FromAddress(receipt)
 		if err != nil {

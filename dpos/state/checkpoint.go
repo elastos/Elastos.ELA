@@ -29,7 +29,7 @@ const (
 
 	// checkpointEffectiveHeight defines the minimal height Arbiters obj
 	// should scan to recover effective state.
-	checkpointEffectiveHeight = uint32(7)
+	checkpointEffectiveHeight = uint32(720)
 )
 
 // CheckPoint defines all variables need record in database
@@ -59,6 +59,11 @@ type CheckPoint struct {
 
 	ForceChanged bool
 	arbitrators  *Arbiters
+}
+
+func (c *CheckPoint) SaveStartHeight() uint32 {
+	// same to CR
+	return c.arbitrators.ChainParams.CRConfiguration.CRVotingStartHeight
 }
 
 func (c *CheckPoint) StartHeight() uint32 {

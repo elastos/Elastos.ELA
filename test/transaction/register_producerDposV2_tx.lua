@@ -19,9 +19,7 @@ local wallet = client.new(keystore, password, false)
 
 -- account
 local addr = wallet:get_address()
-local pubkey = wallet:get_publickey()
 print(addr)
-print(pubkey)
 
 -- asset_id
 local asset_id = m.get_asset_id()
@@ -49,6 +47,7 @@ local nick_name = getNickName()
 local url = getUrl()
 local location = getLocation()
 local host_address = getHostAddr()
+local payloadversion = getPayloadVersion()
 
 if amount == 0
 then
@@ -109,14 +108,15 @@ print("url:", url)
 print("location:", location)
 print("host_address",host_address)
 print("stakeuntil:", stakeuntil)
+print("payloadversion:", payloadversion)
 
 
 -- register producer payload: publickey, nickname, url, local, host, wallet
-local rp_payload = registerv2producer.new(own_publickey, node_publickey, nick_name, url, location, host_address, stakeuntil, wallet)
+local rp_payload = registerv2producer.new(own_publickey, node_publickey, nick_name, url, location, host_address, stakeuntil,payloadversion, wallet)
 print(rp_payload:get())
 
 -- transaction: version, txType, payloadVersion, payload, locktime
-local tx = transaction.new(9, 0x09, 1, rp_payload, 0)
+local tx = transaction.new(9, 0x09, payloadversion, rp_payload, 0)
 print(tx:get())
 
 -- input: from, amount + fee
@@ -135,7 +135,7 @@ tx:appendtxout(amount_output)
 -- print(amount_output:get())
 
 -- sign
-tx:sign(wallet)
+tx:multisign(wallet, 3)
 print(tx:get())
 
 -- send

@@ -28,12 +28,12 @@ func (s *txValidatorTestSuite) TestCheckUpdateProducerTransaction() {
 	errPublicKey, _ := common.HexStringToBytes(errPublicKeyStr)
 
 	registerPayload := &payload.ProducerInfo{
-		OwnerPublicKey: publicKey1,
-		NodePublicKey:  publicKey1,
-		NickName:       "",
-		Url:            "",
-		Location:       1,
-		NetAddress:     "",
+		OwnerKey:      publicKey1,
+		NodePublicKey: publicKey1,
+		NickName:      "",
+		Url:           "",
+		Location:      1,
+		NetAddress:    "",
 	}
 	programs := []*program.Program{{
 		Code:      getCodeByPubKeyStr(publicKeyStr1),
@@ -85,12 +85,12 @@ func (s *txValidatorTestSuite) TestCheckUpdateProducerTransaction() {
 
 	txn.SetTxType(common2.UpdateProducer)
 	updatePayload := &payload.ProducerInfo{
-		OwnerPublicKey: publicKey1,
-		NodePublicKey:  publicKey1,
-		NickName:       "",
-		Url:            "",
-		Location:       2,
-		NetAddress:     "",
+		OwnerKey:      publicKey1,
+		NodePublicKey: publicKey1,
+		NickName:      "",
+		Url:           "",
+		Location:      2,
+		NetAddress:    "",
 	}
 	txn.SetPayload(updatePayload)
 	s.CurrentHeight++
@@ -102,7 +102,7 @@ func (s *txValidatorTestSuite) TestCheckUpdateProducerTransaction() {
 	updatePayload.NickName = "nick name"
 
 	updatePayload.Url = "www.elastos.org"
-	updatePayload.OwnerPublicKey = errPublicKey
+	updatePayload.OwnerKey = errPublicKey
 	err, _ = txn.SpecialContextCheck()
 	s.EqualError(err, "transaction validate error: payload content invalid:invalid owner public key in payload")
 
@@ -115,7 +115,7 @@ func (s *txValidatorTestSuite) TestCheckUpdateProducerTransaction() {
 	config.DefaultParams.PublicDPOSHeight = originHeight
 
 	// check node public key same with CRC
-	txn.Payload().(*payload.ProducerInfo).OwnerPublicKey = publicKey2
+	txn.Payload().(*payload.ProducerInfo).OwnerKey = publicKey2
 	pk, _ := common.HexStringToBytes(config.DefaultParams.DPoSConfiguration.CRCArbiters[0])
 	txn.Payload().(*payload.ProducerInfo).NodePublicKey = pk
 	config.DefaultParams.PublicDPOSHeight = 0
@@ -126,18 +126,18 @@ func (s *txValidatorTestSuite) TestCheckUpdateProducerTransaction() {
 	// check owner public key same with CRC
 	txn.Payload().(*payload.ProducerInfo).NodePublicKey = publicKey2
 	pk, _ = common.HexStringToBytes(config.DefaultParams.DPoSConfiguration.CRCArbiters[0])
-	txn.Payload().(*payload.ProducerInfo).OwnerPublicKey = pk
+	txn.Payload().(*payload.ProducerInfo).OwnerKey = pk
 	config.DefaultParams.PublicDPOSHeight = 0
 	err, _ = txn.SpecialContextCheck()
 	config.DefaultParams.PublicDPOSHeight = originHeight
 	s.EqualError(err, "transaction validate error: payload content invalid:invalid signature in payload")
 
-	updatePayload.OwnerPublicKey = publicKey2
+	updatePayload.OwnerKey = publicKey2
 	updatePayload.NodePublicKey = publicKey1
 	err, _ = txn.SpecialContextCheck()
 	s.EqualError(err, "transaction validate error: payload content invalid:invalid signature in payload")
 
-	updatePayload.OwnerPublicKey = publicKey1
+	updatePayload.OwnerKey = publicKey1
 	updateSignBuf := new(bytes.Buffer)
 	err1 := updatePayload.SerializeUnsigned(updateSignBuf, payload.ProducerInfoVersion)
 	s.NoError(err1)
@@ -161,12 +161,12 @@ func (s *txValidatorTestSuite) TestCheckUpdateProducerV1V2Transaction() {
 	errPublicKey, _ := common.HexStringToBytes(errPublicKeyStr)
 
 	registerPayload := &payload.ProducerInfo{
-		OwnerPublicKey: publicKey1,
-		NodePublicKey:  publicKey1,
-		NickName:       "",
-		Url:            "",
-		Location:       1,
-		NetAddress:     "",
+		OwnerKey:      publicKey1,
+		NodePublicKey: publicKey1,
+		NickName:      "",
+		Url:           "",
+		Location:      1,
+		NetAddress:    "",
 	}
 	programs := []*program.Program{{
 		Code:      getCodeByPubKeyStr(publicKeyStr1),
@@ -218,13 +218,13 @@ func (s *txValidatorTestSuite) TestCheckUpdateProducerV1V2Transaction() {
 
 	txn.SetTxType(common2.UpdateProducer)
 	updatePayload := &payload.ProducerInfo{
-		OwnerPublicKey: publicKey1,
-		NodePublicKey:  publicKey1,
-		NickName:       "",
-		Url:            "",
-		Location:       2,
-		NetAddress:     "",
-		StakeUntil:     10,
+		OwnerKey:      publicKey1,
+		NodePublicKey: publicKey1,
+		NickName:      "",
+		Url:           "",
+		Location:      2,
+		NetAddress:    "",
+		StakeUntil:    10,
 	}
 	txn.SetPayload(updatePayload)
 	s.CurrentHeight++
@@ -236,7 +236,7 @@ func (s *txValidatorTestSuite) TestCheckUpdateProducerV1V2Transaction() {
 	updatePayload.NickName = "nick name"
 
 	updatePayload.Url = "www.elastos.org"
-	updatePayload.OwnerPublicKey = errPublicKey
+	updatePayload.OwnerKey = errPublicKey
 	err, _ = txn.SpecialContextCheck()
 	s.EqualError(err, "transaction validate error: payload content invalid:invalid owner public key in payload")
 
@@ -249,7 +249,7 @@ func (s *txValidatorTestSuite) TestCheckUpdateProducerV1V2Transaction() {
 	config.DefaultParams.PublicDPOSHeight = originHeight
 
 	// check node public key same with CRC
-	txn.Payload().(*payload.ProducerInfo).OwnerPublicKey = publicKey2
+	txn.Payload().(*payload.ProducerInfo).OwnerKey = publicKey2
 	pk, _ := common.HexStringToBytes(config.DefaultParams.DPoSConfiguration.CRCArbiters[0])
 	txn.Payload().(*payload.ProducerInfo).NodePublicKey = pk
 	config.DefaultParams.PublicDPOSHeight = 0
@@ -260,18 +260,18 @@ func (s *txValidatorTestSuite) TestCheckUpdateProducerV1V2Transaction() {
 	// check owner public key same with CRC
 	txn.Payload().(*payload.ProducerInfo).NodePublicKey = publicKey2
 	pk, _ = common.HexStringToBytes(config.DefaultParams.DPoSConfiguration.CRCArbiters[0])
-	txn.Payload().(*payload.ProducerInfo).OwnerPublicKey = pk
+	txn.Payload().(*payload.ProducerInfo).OwnerKey = pk
 	config.DefaultParams.PublicDPOSHeight = 0
 	err, _ = txn.SpecialContextCheck()
 	config.DefaultParams.PublicDPOSHeight = originHeight
 	s.EqualError(err, "transaction validate error: payload content invalid:invalid signature in payload")
 
-	updatePayload.OwnerPublicKey = publicKey2
+	updatePayload.OwnerKey = publicKey2
 	updatePayload.NodePublicKey = publicKey1
 	err, _ = txn.SpecialContextCheck()
 	s.EqualError(err, "transaction validate error: payload content invalid:invalid signature in payload")
 
-	updatePayload.OwnerPublicKey = publicKey1
+	updatePayload.OwnerKey = publicKey1
 	updateSignBuf := new(bytes.Buffer)
 	err1 := updatePayload.SerializeUnsigned(updateSignBuf, payload.ProducerInfoVersion)
 	s.NoError(err1)
@@ -325,13 +325,13 @@ func (s *txValidatorTestSuite) TestCheckUpdateProducerV2Transaction() {
 	errPublicKey, _ := common.HexStringToBytes(errPublicKeyStr)
 
 	registerPayload := &payload.ProducerInfo{
-		OwnerPublicKey: publicKey1,
-		NodePublicKey:  publicKey1,
-		NickName:       "",
-		Url:            "",
-		Location:       1,
-		NetAddress:     "",
-		StakeUntil:     100,
+		OwnerKey:      publicKey1,
+		NodePublicKey: publicKey1,
+		NickName:      "",
+		Url:           "",
+		Location:      1,
+		NetAddress:    "",
+		StakeUntil:    100,
 	}
 	programs := []*program.Program{{
 		Code:      getCodeByPubKeyStr(publicKeyStr1),
@@ -383,13 +383,13 @@ func (s *txValidatorTestSuite) TestCheckUpdateProducerV2Transaction() {
 
 	txn.SetTxType(common2.UpdateProducer)
 	updatePayload := &payload.ProducerInfo{
-		OwnerPublicKey: publicKey1,
-		NodePublicKey:  publicKey1,
-		NickName:       "",
-		Url:            "",
-		Location:       2,
-		NetAddress:     "",
-		StakeUntil:     1000,
+		OwnerKey:      publicKey1,
+		NodePublicKey: publicKey1,
+		NickName:      "",
+		Url:           "",
+		Location:      2,
+		NetAddress:    "",
+		StakeUntil:    1000,
 	}
 	txn.SetPayload(updatePayload)
 	s.CurrentHeight++
@@ -401,7 +401,7 @@ func (s *txValidatorTestSuite) TestCheckUpdateProducerV2Transaction() {
 	updatePayload.NickName = "nick name"
 
 	updatePayload.Url = "www.elastos.org"
-	updatePayload.OwnerPublicKey = errPublicKey
+	updatePayload.OwnerKey = errPublicKey
 	err, _ = txn.SpecialContextCheck()
 	s.EqualError(err, "transaction validate error: payload content invalid:invalid owner public key in payload")
 
@@ -414,7 +414,7 @@ func (s *txValidatorTestSuite) TestCheckUpdateProducerV2Transaction() {
 	config.DefaultParams.PublicDPOSHeight = originHeight
 
 	// check node public key same with CRC
-	txn.Payload().(*payload.ProducerInfo).OwnerPublicKey = publicKey2
+	txn.Payload().(*payload.ProducerInfo).OwnerKey = publicKey2
 	pk, _ := common.HexStringToBytes(config.DefaultParams.DPoSConfiguration.CRCArbiters[0])
 	txn.Payload().(*payload.ProducerInfo).NodePublicKey = pk
 	config.DefaultParams.PublicDPOSHeight = 0
@@ -425,18 +425,18 @@ func (s *txValidatorTestSuite) TestCheckUpdateProducerV2Transaction() {
 	// check owner public key same with CRC
 	txn.Payload().(*payload.ProducerInfo).NodePublicKey = publicKey2
 	pk, _ = common.HexStringToBytes(config.DefaultParams.DPoSConfiguration.CRCArbiters[0])
-	txn.Payload().(*payload.ProducerInfo).OwnerPublicKey = pk
+	txn.Payload().(*payload.ProducerInfo).OwnerKey = pk
 	config.DefaultParams.PublicDPOSHeight = 0
 	err, _ = txn.SpecialContextCheck()
 	config.DefaultParams.PublicDPOSHeight = originHeight
 	s.EqualError(err, "transaction validate error: payload content invalid:invalid signature in payload")
 
-	updatePayload.OwnerPublicKey = publicKey2
+	updatePayload.OwnerKey = publicKey2
 	updatePayload.NodePublicKey = publicKey1
 	err, _ = txn.SpecialContextCheck()
 	s.EqualError(err, "transaction validate error: payload content invalid:invalid signature in payload")
 
-	updatePayload.OwnerPublicKey = publicKey1
+	updatePayload.OwnerKey = publicKey1
 	updateSignBuf := new(bytes.Buffer)
 	err1 := updatePayload.SerializeUnsigned(updateSignBuf, payload.ProducerInfoVersion)
 	s.NoError(err1)

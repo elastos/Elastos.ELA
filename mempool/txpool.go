@@ -80,8 +80,8 @@ func (mp *TxPool) removeCRAppropriationConflictTransactions() {
 }
 
 func (mp *TxPool) appendToTxPool(tx interfaces.Transaction) elaerr.ELAError {
-	// todo complete me
-	if tx.IsIllegalProposalTx() || tx.IsIllegalVoteTx() || tx.IsRecordSponorTx() {
+
+	if tx.IsRecordSponorTx() {
 		return elaerr.Simple(elaerr.ErrTxValidation, nil)
 	}
 
@@ -328,7 +328,7 @@ func (mp *TxPool) cleanCanceledProducerAndCR(txs []interfaces.Transaction) error
 			if !ok {
 				return errors.New("invalid cancel producer payload")
 			}
-			if err := mp.cleanVoteAndUpdateProducer(cpPayload.OwnerPublicKey); err != nil {
+			if err := mp.cleanVoteAndUpdateProducer(cpPayload.OwnerKey); err != nil {
 				log.Error(err)
 			}
 		}
@@ -398,10 +398,10 @@ func (mp *TxPool) cleanVoteAndUpdateProducer(ownerPublicKey []byte) error {
 			if !ok {
 				return errors.New("invalid update producer payload")
 			}
-			if bytes.Equal(upPayload.OwnerPublicKey, ownerPublicKey) {
+			if bytes.Equal(upPayload.OwnerKey, ownerPublicKey) {
 				mp.removeTransaction(txn)
 				if err := mp.RemoveKey(
-					BytesToHexString(upPayload.OwnerPublicKey),
+					BytesToHexString(upPayload.OwnerKey),
 					slotDPoSOwnerPublicKey); err != nil {
 					return err
 				}

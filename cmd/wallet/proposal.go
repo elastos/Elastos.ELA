@@ -212,13 +212,13 @@ func payloadProposalNormalOwnerUnsigned(c *cli.Context) error {
 	}
 
 	p := &payload.CRCProposal{
-		ProposalType:   payload.Normal,
-		CategoryData:   categoryData,
-		OwnerPublicKey: ownerPublicKey,
-		DraftHash:      *draftHash,
-		DraftData:      draftData,
-		Budgets:        budgets,
-		Recipient:      *recipient,
+		ProposalType: payload.Normal,
+		CategoryData: categoryData,
+		OwnerKey:     ownerPublicKey,
+		DraftHash:    *draftHash,
+		DraftData:    draftData,
+		Budgets:      budgets,
+		Recipient:    *recipient,
 	}
 
 	w := new(bytes.Buffer)
@@ -368,12 +368,12 @@ func payloadProposalTrackingOwnerUnsigned(c *cli.Context) error {
 	}
 
 	p := &payload.CRCProposalTracking{
-		ProposalHash:      *proposalHash,
-		MessageHash:       *messageHash,
-		MessageData:       messageData,
-		Stage:             uint8(stage),
-		OwnerPublicKey:    ownerPubKey,
-		NewOwnerPublicKey: newOwnerPublicKey,
+		ProposalHash: *proposalHash,
+		MessageHash:  *messageHash,
+		MessageData:  messageData,
+		Stage:        uint8(stage),
+		OwnerKey:     ownerPubKey,
+		NewOwnerKey:  newOwnerPublicKey,
 	}
 
 	pSignBuf := new(bytes.Buffer)
@@ -636,7 +636,7 @@ func payloadProposalSecretaryGeneralElectionUnsigned(c *cli.Context) error {
 	p := &payload.CRCProposal{
 		ProposalType:              payload.SecretaryGeneral,
 		CategoryData:              categoryData,
-		OwnerPublicKey:            ownerPublicKey,
+		OwnerKey:                  ownerPublicKey,
 		DraftHash:                 *draftHash,
 		DraftData:                 draftData,
 		SecretaryGeneralPublicKey: secretaryPubKey,
@@ -825,12 +825,12 @@ func payloadProposalChangeOwnerUnsigned(c *cli.Context) error {
 	p := &payload.CRCProposal{
 		ProposalType:       payload.ChangeProposalOwner,
 		CategoryData:       categoryData,
-		OwnerPublicKey:     ownerPublicKey,
+		OwnerKey:           ownerPublicKey,
 		DraftHash:          *draftHash,
 		DraftData:          draftData,
 		TargetProposalHash: *targetProposalHash,
 		NewRecipient:       *recipient,
-		NewOwnerPublicKey:  newOwnerPublicKey,
+		NewOwnerKey:        newOwnerPublicKey,
 	}
 
 	w := new(bytes.Buffer)
@@ -1003,7 +1003,7 @@ func payloadProposalTerminateOwnerUnsigned(c *cli.Context) error {
 	p := &payload.CRCProposal{
 		ProposalType:       payload.CloseProposal,
 		CategoryData:       categoryData,
-		OwnerPublicKey:     ownerPublicKey,
+		OwnerKey:           ownerPublicKey,
 		DraftHash:          *draftHash,
 		DraftData:          draftData,
 		TargetProposalHash: *targetProposalHash,
@@ -1055,7 +1055,7 @@ func payloadProposalReserverCustomIDOwnerUnsigned(c *cli.Context) error {
 	p := &payload.CRCProposal{
 		ProposalType:         payload.ReserveCustomID,
 		CategoryData:         categoryData,
-		OwnerPublicKey:       ownerPublicKey,
+		OwnerKey:             ownerPublicKey,
 		DraftHash:            *draftHash,
 		DraftData:            draftData,
 		ReservedCustomIDList: reservedCustomIDList,
@@ -1113,7 +1113,7 @@ func payloadProposalReceiveCustomIDOwnerUnsigned(c *cli.Context) error {
 	p := &payload.CRCProposal{
 		ProposalType:         payload.ReceiveCustomID,
 		CategoryData:         categoryData,
-		OwnerPublicKey:       ownerPublicKey,
+		OwnerKey:             ownerPublicKey,
 		DraftHash:            *draftHash,
 		DraftData:            draftData,
 		ReceivedCustomIDList: receivedCustomIDList,
@@ -1180,7 +1180,7 @@ func payloadProposalChangeCustomIDFeeOwnerUnsigned(c *cli.Context) error {
 	p := &payload.CRCProposal{
 		ProposalType:        payload.ChangeCustomIDFee,
 		CategoryData:        categoryData,
-		OwnerPublicKey:      ownerPublicKey,
+		OwnerKey:            ownerPublicKey,
 		DraftHash:           *draftHash,
 		DraftData:           draftData,
 		CustomIDFeeRateInfo: customIDFeeRate,
@@ -1257,12 +1257,12 @@ func payloadProposalRegisterSidechainOwnerUnsigned(c *cli.Context) error {
 	}
 
 	p := &payload.CRCProposal{
-		ProposalType:   payload.RegisterSideChain,
-		CategoryData:   categoryData,
-		OwnerPublicKey: ownerPublicKey,
-		DraftHash:      *draftHash,
-		DraftData:      draftData,
-		SideChainInfo:  sidechainInfo,
+		ProposalType:  payload.RegisterSideChain,
+		CategoryData:  categoryData,
+		OwnerKey:      ownerPublicKey,
+		DraftHash:     *draftHash,
+		DraftData:     draftData,
+		SideChainInfo: sidechainInfo,
 	}
 
 	w := new(bytes.Buffer)
@@ -1307,10 +1307,10 @@ func payloadProposalWithdraw(c *cli.Context) error {
 	}
 
 	p := payload.CRCProposalWithdraw{
-		ProposalHash:   *proposalHash,
-		OwnerPublicKey: ownerPublicKey,
-		Recipient:      *recipient,
-		Amount:         *amount,
+		ProposalHash: *proposalHash,
+		OwnerKey:     ownerPublicKey,
+		Recipient:    *recipient,
+		Amount:       *amount,
 	}
 
 	w := new(bytes.Buffer)

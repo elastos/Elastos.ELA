@@ -248,10 +248,13 @@ func (d *DPOSManager) OnProposalReceived(id dpeer.PID, p *payload.DPOSProposal) 
 		if d.consensus.viewOffset != 0 && d.arbitrators.HasArbitersHalfMinorityCount(count) {
 			log.Info("[OnProposalReceived] has minority not handled" +
 				" proposals, need recover")
-			if d.recoverAbnormalState() {
-				log.Info("[OnProposalReceived] recover start")
-			} else {
-				log.Error("[OnProposalReceived] has no active peers recover failed")
+
+			if d.consensus.finishedHeight < d.chainParams.DPoSConfiguration.ChangeViewV1Height {
+				if d.recoverAbnormalState() {
+					log.Info("[OnProposalReceived] recover start")
+				} else {
+					log.Error("[OnProposalReceived] has no active peers recover failed")
+				}
 			}
 		}
 	}
@@ -328,10 +331,20 @@ func (d *DPOSManager) isBlockExist(blockHash common.Uint256) bool {
 	return block != nil
 }
 
+func (d *DPOSManager) GetBlockByHash(blockHash common.Uint256) (*types.Block, error) {
+	return d.getBlock(blockHash)
+}
+
 func (d *DPOSManager) OnGetBlock(id dpeer.PID, blockHash common.Uint256) {
 	if !d.isCurrentArbiter() {
 		return
 	}
+
+	if block, ok := d.GetBlockCache().TryGetValue(blockHash); ok {
+		go d.network.SendMessageToPeer(id, msg.NewBlock(block))
+		return
+	}
+
 	if block, err := d.getBlock(blockHash); err == nil {
 		go d.network.SendMessageToPeer(id, msg.NewBlock(block))
 	}
@@ -353,6 +366,8 @@ func (d *DPOSManager) OnResponseBlocks(id dpeer.PID, blockConfirms []*types.Dpos
 }
 
 func (d *DPOSManager) OnRequestConsensus(id dpeer.PID, height uint32) {
+	// only use reset view
+	return
 	if !d.isCurrentArbiter() {
 		return
 	}
@@ -397,6 +412,8 @@ func (d *DPOSManager) OnRecoverTimeout() {
 }
 
 func (d *DPOSManager) recoverAbnormalState() bool {
+	// only use reset view
+	return false
 	if d.recoverStarted {
 		return false
 	}
@@ -436,6 +453,8 @@ func (d *DPOSManager) recoverAbnormalState() bool {
 }
 
 func (d *DPOSManager) DoRecover() {
+	// only use reset view
+	return
 	if d.consensus.viewOffset == 0 {
 		log.Info("no need to recover view offset")
 		return
@@ -501,6 +520,10 @@ func medianOf(nums []int64) int64 {
 func (d *DPOSManager) OnChangeView() {
 	if d.consensus.TryChangeView() {
 		log.Info("[TryChangeView] succeed")
+	}
+
+	if d.consensus.currentHeight >= d.chainParams.DPoSConfiguration.ChangeViewV1Height {
+		return
 	}
 
 	if d.consensus.viewOffset >= maxViewOffset {
@@ -658,14 +681,20 @@ func (d *DPOSManager) clearInactiveData(p *payload.InactiveArbitrators) {
 
 func (d *DPOSManager) OnRevertToDPOSTxReceived(id dpeer.PID,
 	tx interfaces.Transaction) {
+	log.Info("### RevertToDPoS OnRevertToDPOSTxReceived  start 1, id:", id.String(), "tx hash:", tx.Hash())
 
 	if !d.isCurrentArbiter() {
+		log.Info("### RevertToDPoS OnRevertToDPOSTxReceived  but is not current")
 		return
 	}
+	log.Info("### RevertToDPoS OnRevertToDPOSTxReceived  start 2")
+
 	if err := blockchain.CheckRevertToDPOSTransaction(tx); err != nil {
 		log.Info("[OnRevertToDPOSTxReceived] received error evidence: ", err)
 		return
 	}
+
+	log.Info("### RevertToDPoS OnRevertToDPOSTxReceived  start 3")
 	d.dispatcher.OnRevertToDPOSTxReceived(id, tx)
 }
 
@@ -705,6 +734,9 @@ func (d *DPOSManager) OnResponseRevertToDPOSTxReceived(
 }
 
 func (d *DPOSManager) OnResponseResetViewReceived(msg *dmsg.ResetView) {
+	if d.consensus.currentHeight >= d.chainParams.DPoSConfiguration.ChangeViewV1Height {
+		return
+	}
 
 	if !d.isCurrentArbiter() {
 		return

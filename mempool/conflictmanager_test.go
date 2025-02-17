@@ -16,11 +16,13 @@ import (
 	"github.com/elastos/Elastos.ELA/core/contract"
 	"github.com/elastos/Elastos.ELA/core/contract/program"
 	transaction2 "github.com/elastos/Elastos.ELA/core/transaction"
+	"github.com/elastos/Elastos.ELA/core/types"
 	common2 "github.com/elastos/Elastos.ELA/core/types/common"
 	"github.com/elastos/Elastos.ELA/core/types/functions"
 	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
 	"github.com/elastos/Elastos.ELA/crypto"
+	"github.com/elastos/Elastos.ELA/dpos/state"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -40,9 +42,9 @@ func TestConflictManager_DPoS_OwnerPublicKey(t *testing.T) {
 			common2.RegisterProducer,
 			0,
 			&payload.ProducerInfo{
-				OwnerPublicKey: pk,
-				NodePublicKey:  randomPublicKey(),
-				NickName:       randomNickname(),
+				OwnerKey:      pk,
+				NodePublicKey: randomPublicKey(),
+				NickName:      randomNickname(),
 			},
 			[]*common2.Attribute{},
 			[]*common2.Input{},
@@ -56,9 +58,9 @@ func TestConflictManager_DPoS_OwnerPublicKey(t *testing.T) {
 			common2.UpdateProducer,
 			0,
 			&payload.ProducerInfo{
-				OwnerPublicKey: pk,
-				NodePublicKey:  randomPublicKey(),
-				NickName:       randomNickname(),
+				OwnerKey:      pk,
+				NodePublicKey: randomPublicKey(),
+				NickName:      randomNickname(),
 			},
 			[]*common2.Attribute{},
 			[]*common2.Input{},
@@ -66,21 +68,6 @@ func TestConflictManager_DPoS_OwnerPublicKey(t *testing.T) {
 			0,
 			[]*program.Program{},
 		)
-
-		tx3 := functions.CreateTransaction(
-			0,
-			common2.CancelProducer,
-			0,
-			&payload.ProcessProducer{
-				OwnerPublicKey: pk,
-			},
-			[]*common2.Attribute{},
-			[]*common2.Input{},
-			[]*common2.Output{},
-			0,
-			[]*program.Program{},
-		)
-
 		tx4 := functions.CreateTransaction(
 			0,
 			common2.RegisterCR,
@@ -95,8 +82,165 @@ func TestConflictManager_DPoS_OwnerPublicKey(t *testing.T) {
 			[]*program.Program{},
 		)
 
-		txs := []interfaces.Transaction{tx1, tx2, tx3, tx4}
+		txs := []interfaces.Transaction{tx1, tx2, tx4} //tx3,
 		verifyTxListWithConflictManager(txs, db, true, t)
+	})
+
+	conflictTestProc(func(db *UtxoCacheDB) {
+		currentHeight := uint32(1)
+		dposState := blockchain.DefaultLedger.Blockchain.GetState()
+		ownerPK1 := randomPublicKey()
+		NodePublicKey1 := randomPublicKey()
+		ownerPK2 := randomPublicKey()
+		NodePublicKey2 := randomPublicKey()
+		regProTX1 := functions.CreateTransaction(
+			0,
+			common2.RegisterProducer,
+			0,
+			&payload.ProducerInfo{
+				OwnerKey:      ownerPK1,
+				NodePublicKey: NodePublicKey1,
+				NickName:      randomNickname(),
+			},
+			[]*common2.Attribute{},
+			[]*common2.Input{},
+			[]*common2.Output{},
+			0,
+			[]*program.Program{},
+		)
+		regProTX2 := functions.CreateTransaction(
+			0,
+			common2.RegisterProducer,
+			0,
+			&payload.ProducerInfo{
+				OwnerKey:      ownerPK2,
+				NodePublicKey: NodePublicKey2,
+				NickName:      randomNickname(),
+			},
+			[]*common2.Attribute{},
+			[]*common2.Input{},
+			[]*common2.Output{},
+			0,
+			[]*program.Program{},
+		)
+		block := &types.Block{
+			Transactions: []interfaces.Transaction{
+				regProTX1,
+				regProTX2,
+			},
+			Header: common2.Header{Height: currentHeight},
+		}
+		dposState.ProcessBlock(block, nil, 0)
+		currentHeight++
+
+		CancelProTX1 := functions.CreateTransaction(
+			0,
+			common2.CancelProducer,
+			0,
+			&payload.ProcessProducer{
+				OwnerKey: ownerPK1,
+			},
+			[]*common2.Attribute{},
+			[]*common2.Input{},
+			[]*common2.Output{},
+			0,
+			[]*program.Program{},
+		)
+		CancelProTX2 := functions.CreateTransaction(
+			0,
+			common2.CancelProducer,
+			0,
+			&payload.ProcessProducer{
+				OwnerKey: ownerPK2,
+			},
+			[]*common2.Attribute{},
+			[]*common2.Input{},
+			[]*common2.Output{},
+			0,
+			[]*program.Program{},
+		)
+
+		activProTX1 := functions.CreateTransaction(
+			0,
+			common2.ActivateProducer,
+			0,
+			&payload.ActivateProducer{
+				NodePublicKey: NodePublicKey1,
+			},
+			[]*common2.Attribute{},
+			[]*common2.Input{},
+			[]*common2.Output{},
+			0,
+			[]*program.Program{},
+		)
+		activProTX2 := functions.CreateTransaction(
+			0,
+			common2.ActivateProducer,
+			0,
+			&payload.ActivateProducer{
+				NodePublicKey: NodePublicKey2,
+			},
+			[]*common2.Attribute{},
+			[]*common2.Input{},
+			[]*common2.Output{},
+			0,
+			[]*program.Program{},
+		)
+		//register two different producer at the same time
+		{
+			manager := newConflictManager()
+			assert.NoError(t, manager.VerifyTx(regProTX1))
+			assert.NoError(t, manager.AppendTx(regProTX1))
+			assert.NoError(t, manager.VerifyTx(regProTX2))
+			assert.NoError(t, manager.AppendTx(regProTX2))
+		}
+		//activate two different producers at the same time
+		{
+			manager := newConflictManager()
+			assert.NoError(t, manager.VerifyTx(activProTX1))
+			assert.NoError(t, manager.AppendTx(activProTX1))
+			assert.NoError(t, manager.VerifyTx(activProTX2))
+			assert.NoError(t, manager.AppendTx(activProTX2))
+		}
+		//activate two different producers at the same time
+		{
+			manager := newConflictManager()
+			assert.NoError(t, manager.VerifyTx(activProTX1))
+			assert.NoError(t, manager.AppendTx(activProTX1))
+			assert.NoError(t, manager.VerifyTx(activProTX2))
+			assert.NoError(t, manager.AppendTx(activProTX2))
+		}
+
+		//cancel two different producers at the same time
+		{
+			manager := newConflictManager()
+			assert.NoError(t, manager.VerifyTx(CancelProTX1))
+			assert.NoError(t, manager.AppendTx(CancelProTX1))
+			assert.NoError(t, manager.VerifyTx(CancelProTX2))
+			assert.NoError(t, manager.AppendTx(CancelProTX2))
+		}
+
+		//active and cancel one producer at the same time  must report error
+		{
+			manager := newConflictManager()
+			assert.NoError(t, manager.VerifyTx(CancelProTX1))
+			assert.NoError(t, manager.AppendTx(CancelProTX1))
+			//assert.NoError(t, manager.VerifyTx(activProTX1))
+			err := manager.VerifyTx(activProTX1)
+			assert.Error(t, err, "slot DPoSActivateCancel verify tx error")
+			//no need append
+			//assert.NoError(t, manager.AppendTx(activProTX1))
+		}
+
+		//active and cancel diffrent producers at the same time
+		{
+			manager := newConflictManager()
+			assert.NoError(t, manager.VerifyTx(CancelProTX1))
+			assert.NoError(t, manager.AppendTx(CancelProTX1))
+			assert.NoError(t, manager.VerifyTx(activProTX2))
+			assert.NoError(t, manager.AppendTx(activProTX2))
+		}
+
 	})
 }
 
@@ -109,9 +253,9 @@ func TestConflictManager_DPoS_NodePublicKey(t *testing.T) {
 			common2.RegisterProducer,
 			0,
 			&payload.ProducerInfo{
-				OwnerPublicKey: randomPublicKey(),
-				NodePublicKey:  pk,
-				NickName:       randomNickname(),
+				OwnerKey:      randomPublicKey(),
+				NodePublicKey: pk,
+				NickName:      randomNickname(),
 			},
 			[]*common2.Attribute{},
 			[]*common2.Input{},
@@ -125,9 +269,9 @@ func TestConflictManager_DPoS_NodePublicKey(t *testing.T) {
 			common2.UpdateProducer,
 			0,
 			&payload.ProducerInfo{
-				OwnerPublicKey: randomPublicKey(),
-				NodePublicKey:  pk,
-				NickName:       randomNickname(),
+				OwnerKey:      randomPublicKey(),
+				NodePublicKey: pk,
+				NickName:      randomNickname(),
 			},
 			[]*common2.Attribute{},
 			[]*common2.Input{},
@@ -178,9 +322,9 @@ func TestConflictManager_DPoS_Nickname(t *testing.T) {
 			common2.RegisterProducer,
 			0,
 			&payload.ProducerInfo{
-				OwnerPublicKey: randomPublicKey(),
-				NodePublicKey:  randomPublicKey(),
-				NickName:       name,
+				OwnerKey:      randomPublicKey(),
+				NodePublicKey: randomPublicKey(),
+				NickName:      name,
 			},
 			[]*common2.Attribute{},
 			[]*common2.Input{},
@@ -194,9 +338,9 @@ func TestConflictManager_DPoS_Nickname(t *testing.T) {
 			common2.UpdateProducer,
 			0,
 			&payload.ProducerInfo{
-				OwnerPublicKey: randomPublicKey(),
-				NodePublicKey:  randomPublicKey(),
-				NickName:       name,
+				OwnerKey:      randomPublicKey(),
+				NodePublicKey: randomPublicKey(),
+				NickName:      name,
 			},
 			[]*common2.Attribute{},
 			[]*common2.Input{},
@@ -696,9 +840,9 @@ func TestConflictManager_InputInferKeys(t *testing.T) {
 			common2.RegisterProducer,
 			0,
 			&payload.ProducerInfo{
-				OwnerPublicKey: randomPublicKey(),
-				NodePublicKey:  randomPublicKey(),
-				NickName:       randomNickname(),
+				OwnerKey:      randomPublicKey(),
+				NodePublicKey: randomPublicKey(),
+				NickName:      randomNickname(),
 			},
 			[]*common2.Attribute{},
 			[]*common2.Input{},
@@ -712,9 +856,9 @@ func TestConflictManager_InputInferKeys(t *testing.T) {
 			common2.UpdateProducer,
 			0,
 			&payload.ProducerInfo{
-				OwnerPublicKey: randomPublicKey(),
-				NodePublicKey:  randomPublicKey(),
-				NickName:       randomNickname(),
+				OwnerKey:      randomPublicKey(),
+				NodePublicKey: randomPublicKey(),
+				NickName:      randomNickname(),
 			},
 			[]*common2.Attribute{},
 			[]*common2.Input{},
@@ -722,21 +866,6 @@ func TestConflictManager_InputInferKeys(t *testing.T) {
 			0,
 			[]*program.Program{},
 		)
-
-		tx3 := functions.CreateTransaction(
-			0,
-			common2.CancelProducer,
-			0,
-			&payload.ProcessProducer{
-				OwnerPublicKey: randomPublicKey(),
-			},
-			[]*common2.Attribute{},
-			[]*common2.Input{},
-			[]*common2.Output{},
-			0,
-			[]*program.Program{},
-		)
-
 		tx4 := functions.CreateTransaction(
 			0,
 			common2.RegisterCR,
@@ -894,8 +1023,7 @@ func TestConflictManager_InputInferKeys(t *testing.T) {
 			0,
 			[]*program.Program{},
 		)
-
-		txs := []interfaces.Transaction{tx1, tx2, tx3, tx4, tx5, tx6, tx7, tx8, tx9, tx10, tx11, tx12, tx13, tx14}
+		txs := []interfaces.Transaction{tx1, tx2, tx4, tx5, tx6, tx7, tx8, tx9, tx10, tx11, tx12, tx13, tx14}
 
 		verifyTxListWithConflictManager(txs, db, false, t)
 	})
@@ -909,6 +1037,20 @@ func conflictTestProc(action func(*UtxoCacheDB)) {
 			UTXOCache: blockchain.NewUTXOCache(utxoCacheDB, &config.DefaultParams),
 		},
 	}
+
+	blockchain.DefaultLedger.Blockchain.SetState(state.NewState(&config.DefaultParams, nil, nil, nil,
+		func() bool { return false }, func(programHash common.Uint168) (common.Fixed64,
+			error) {
+			amount := common.Fixed64(0)
+			utxos, err := blockchain.DefaultLedger.Blockchain.GetDB().GetFFLDB().GetUTXO(&programHash)
+			if err != nil {
+				return amount, err
+			}
+			for _, utxo := range utxos {
+				amount += utxo.Value
+			}
+			return amount, nil
+		}, nil, nil, nil, nil, nil, nil))
 	action(utxoCacheDB)
 	blockchain.DefaultLedger = origin
 }

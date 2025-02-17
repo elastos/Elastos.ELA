@@ -5,6 +5,18 @@
 
 local m = require("api")
 
+local keystore = getWallet()
+local password = getPassword()
+
+if keystore == "" then
+    keystore = "keystore.dat"
+end
+if password == "" then
+    password = "123"
+end
+
+local wallet = client.new(keystore, password, false)
+
 -- account
 local privatekeys = getPrivateKeys()
 print("------------------------")

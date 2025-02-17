@@ -38,7 +38,7 @@ func (s *txValidatorTestSuite) TestCheckCRCProposalTrackingTransaction() {
 
 	pld := payload.CRCProposal{
 		ProposalType:       0,
-		OwnerPublicKey:     ownerPubKey,
+		OwnerKey:           ownerPubKey,
 		CRCouncilMemberDID: *randomUint168(),
 		DraftHash:          *randomUint256(),
 		Budgets:            createBudgets(3),
@@ -88,7 +88,7 @@ func (s *txValidatorTestSuite) TestCheckCRCProposalTrackingTransaction() {
 		BlockChain:  s.Chain,
 	})
 	err, _ = txn.SpecialContextCheck()
-	s.EqualError(err, "transaction validate error: payload content invalid:the NewOwnerPublicKey need to be empty")
+	s.EqualError(err, "transaction validate error: payload content invalid:the NewOwnerKey need to be empty")
 
 	// Check Progress tracking tx.
 	txn = s.getCRCProposalTrackingTx(payload.Progress, *proposalHash, 1,
@@ -117,7 +117,7 @@ func (s *txValidatorTestSuite) TestCheckCRCProposalTrackingTransaction() {
 		BlockChain:  s.Chain,
 	})
 	err, _ = txn.SpecialContextCheck()
-	s.EqualError(err, "transaction validate error: payload content invalid:the NewOwnerPublicKey need to be empty")
+	s.EqualError(err, "transaction validate error: payload content invalid:the NewOwnerKey need to be empty")
 
 	// Check Terminated tracking tx.
 	txn = s.getCRCProposalTrackingTx(payload.Terminated, *proposalHash, 0,
@@ -160,7 +160,7 @@ func (s *txValidatorTestSuite) TestCheckCRCProposalTrackingTransaction() {
 		BlockChain:  s.Chain,
 	})
 	err, _ = txn.SpecialContextCheck()
-	s.EqualError(err, "transaction validate error: payload content invalid:the NewOwnerPublicKey need to be empty")
+	s.EqualError(err, "transaction validate error: payload content invalid:the NewOwnerKey need to be empty")
 
 	// Check ChangeOwner tracking tx.
 	txn = s.getCRCProposalTrackingTx(payload.ChangeOwner, *proposalHash, 0,
@@ -227,7 +227,7 @@ func (s *txValidatorTestSuite) TestCheckCRCProposalTrackingTransaction() {
 	// Check proposal status is not VoterAgreed.
 	pld = payload.CRCProposal{
 		ProposalType:       0,
-		OwnerPublicKey:     ownerPubKey,
+		OwnerKey:           ownerPubKey,
 		CRCouncilMemberDID: *randomUint168(),
 		DraftHash:          *randomUint256(),
 		Budgets:            createBudgets(3),
@@ -255,7 +255,7 @@ func (s *txValidatorTestSuite) TestCheckCRCProposalTrackingTransaction() {
 	// Check reach max proposal tracking count.
 	pld = payload.CRCProposal{
 		ProposalType:       0,
-		OwnerPublicKey:     ownerPubKey,
+		OwnerKey:           ownerPubKey,
 		CRCouncilMemberDID: *randomUint168(),
 		DraftHash:          *randomUint256(),
 		Budgets:            createBudgets(3),
@@ -316,8 +316,8 @@ func (s *txValidatorTestSuite) getCRCProposalTrackingTx(
 		ProposalHash:                proposalHash,
 		Stage:                       stage,
 		MessageHash:                 common.Hash(documentData),
-		OwnerPublicKey:              ownerPublicKey,
-		NewOwnerPublicKey:           newownerpublickey,
+		OwnerKey:                    ownerPublicKey,
+		NewOwnerKey:                 newownerpublickey,
 		SecretaryGeneralOpinionHash: common.Hash(opinionHash),
 	}
 

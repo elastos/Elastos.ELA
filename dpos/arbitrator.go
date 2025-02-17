@@ -54,17 +54,17 @@ type Arbitrator struct {
 }
 
 type PeerInfo struct {
-	OwnerPublicKey string `json:"ownerpublickey"`
-	NodePublicKey  string `json:"nodepublickey"`
-	IP             string `json:"ip"`
-	ConnState      string `json:"connstate"`
+	OwnerKey      string `json:"ownerpublickey"`
+	NodePublicKey string `json:"nodepublickey"`
+	IP            string `json:"ip"`
+	ConnState     string `json:"connstate"`
 }
 
 func (p *PeerInfo) String() string {
 	return fmt.Sprint("PeerInfo: {\n\t",
 		"IP: ", p.IP, "\n\t",
 		"ConnState: ", p.ConnState, "\n\t",
-		"OwnerPublicKey: ", p.OwnerPublicKey, "\n\t",
+		"OwnerKey: ", p.OwnerKey, "\n\t",
 		"NodePublicKey: ", p.NodePublicKey, "\n\t",
 		"}\n")
 }
@@ -137,7 +137,7 @@ func (a *Arbitrator) dumpPeersInfo() {
 				continue
 			}
 			peerInfo := PeerInfo{
-				OwnerPublicKey: common.BytesToHexString(
+				OwnerKey: common.BytesToHexString(
 					producer.GetOwnerPublicKey()),
 				NodePublicKey: common.BytesToHexString(
 					producer.GetNodePublicKey()),
@@ -204,7 +204,15 @@ func (a *Arbitrator) OnBlockReceived(b *types.Block, confirmed bool) {
 	if b.Height >= a.cfg.ChainParams.DPoSConfiguration.RevertToPOWStartHeight {
 		lastBlockTimestamp := int64(a.cfg.Arbitrators.GetLastBlockTimestamp())
 		localTimestamp := a.cfg.Chain.TimeSource.AdjustedTime().Unix()
-		if localTimestamp-lastBlockTimestamp >= a.cfg.ChainParams.DPoSConfiguration.StopConfirmBlockTime {
+
+		var stopConfirmTime int64
+		if b.Height < a.cfg.ChainParams.DPoSConfiguration.ChangeViewV1Height {
+			stopConfirmTime = a.cfg.ChainParams.DPoSConfiguration.StopConfirmBlockTime
+		} else {
+			stopConfirmTime = a.cfg.ChainParams.DPoSConfiguration.StopConfirmBlockTimeV1
+		}
+
+		if localTimestamp-lastBlockTimestamp >= stopConfirmTime {
 			return
 		}
 	}
@@ -281,7 +289,7 @@ func NewArbitrator(account account.Account, cfg Config) (*Arbitrator, error) {
 
 	consensus := manager.NewConsensus(dposManager,
 		cfg.ChainParams.DPoSConfiguration.SignTolerance,
-		dposHandlerSwitch)
+		dposHandlerSwitch, cfg.ChainParams.DPoSConfiguration.ChangeViewV1Height)
 	proposalDispatcher, illegalMonitor := manager.NewDispatcherAndIllegalMonitor(
 		manager.ProposalDispatcherConfig{
 			EventMonitor: eventMonitor,

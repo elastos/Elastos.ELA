@@ -8,6 +8,7 @@ package manager
 import (
 	"bytes"
 	"errors"
+
 	"github.com/elastos/Elastos.ELA/benchmark/common/utils"
 
 	"github.com/elastos/Elastos.ELA/blockchain"
@@ -42,6 +43,11 @@ type ProposalDispatcherConfig struct {
 	TimeSource   dtime.MedianTimeSource
 }
 
+type ProposalWithID struct {
+	Proposal *payload.DPOSProposal
+	ID       peer.PID
+}
+
 type ProposalDispatcher struct {
 	cfg ProposalDispatcherConfig
 
@@ -52,7 +58,7 @@ type ProposalDispatcher struct {
 	acceptVotes         map[common.Uint256]*payload.DPOSProposalVote
 	rejectedVotes       map[common.Uint256]*payload.DPOSProposalVote
 	pendingProposals    map[common.Uint256]*payload.DPOSProposal
-	precociousProposals map[common.Uint256]*payload.DPOSProposal
+	precociousProposals map[common.Uint256]*ProposalWithID
 	pendingVotes        map[common.Uint256]*payload.DPOSProposalVote
 
 	proposalProcessFinished bool
@@ -109,10 +115,12 @@ func (p *ProposalDispatcher) ProcessVote(v *payload.DPOSProposalVote,
 		return false, false
 	}
 
-	//if anotherVote, legal := p.illegalMonitor.IsLegalVote(v); !legal {
-	//	p.illegalMonitor.ProcessIllegalVote(v, anotherVote)
-	//	return
-	//}
+	if p.finishedHeight > p.cfg.ChainParams.DPoSConfiguration.ChangeViewV1Height {
+		if anotherVote, legal := p.illegalMonitor.IsLegalVote(v); !legal {
+			p.illegalMonitor.ProcessIllegalVote(v, anotherVote)
+			return
+		}
+	}
 
 	if accept {
 		return p.countAcceptedVote(v)
@@ -218,7 +226,7 @@ func (p *ProposalDispatcher) CleanProposals(changeView bool) {
 		p.currentInactiveArbitratorTx = nil
 		p.signedTxs = map[common.Uint256]interface{}{}
 		p.pendingProposals = make(map[common.Uint256]*payload.DPOSProposal)
-		p.precociousProposals = make(map[common.Uint256]*payload.DPOSProposal)
+		p.precociousProposals = make(map[common.Uint256]*ProposalWithID)
 
 		p.eventAnalyzer.Clear()
 	} else {
@@ -230,7 +238,7 @@ func (p *ProposalDispatcher) CleanProposals(changeView bool) {
 			}
 		}
 		for k, v := range p.precociousProposals {
-			if v.ViewOffset < currentOffset {
+			if v.Proposal.ViewOffset < currentOffset {
 				delete(p.precociousProposals, k)
 			}
 		}
@@ -251,7 +259,7 @@ func (p *ProposalDispatcher) ResetByCurrentView() {
 	p.currentInactiveArbitratorTx = nil
 	p.signedTxs = map[common.Uint256]interface{}{}
 	p.pendingProposals = make(map[common.Uint256]*payload.DPOSProposal)
-	p.precociousProposals = make(map[common.Uint256]*payload.DPOSProposal)
+	p.precociousProposals = make(map[common.Uint256]*ProposalWithID)
 
 	p.eventAnalyzer.Clear()
 
@@ -292,7 +300,7 @@ func (p *ProposalDispatcher) ProcessProposal(id peer.PID, d *payload.DPOSProposa
 	if d.ViewOffset != p.cfg.Consensus.GetViewOffset() {
 		log.Info("have different view offset")
 		if d.ViewOffset > p.cfg.Consensus.GetViewOffset() {
-			p.precociousProposals[d.Hash()] = d
+			p.precociousProposals[d.Hash()] = &ProposalWithID{d, id}
 		}
 		return true, !self
 	}
@@ -304,10 +312,12 @@ func (p *ProposalDispatcher) ProcessProposal(id peer.PID, d *payload.DPOSProposa
 		}
 	}
 
-	//if anotherProposal, ok := p.illegalMonitor.IsLegalProposal(d); !ok {
-	//	p.illegalMonitor.ProcessIllegalProposal(d, anotherProposal)
-	//	return true, true
-	//}
+	if p.finishedHeight > p.cfg.ChainParams.DPoSConfiguration.ChangeViewV1Height {
+		if anotherProposal, ok := p.illegalMonitor.IsLegalProposal(d); !ok {
+			p.illegalMonitor.ProcessIllegalProposal(d, anotherProposal)
+			return true, true
+		}
+	}
 
 	if !p.cfg.Consensus.IsArbitratorOnDuty(d.Sponsor) {
 		currentArbiter := p.cfg.Manager.GetArbitrators().GetNextOnDutyArbitrator(p.cfg.Consensus.GetViewOffset())
@@ -318,8 +328,8 @@ func (p *ProposalDispatcher) ProcessProposal(id peer.PID, d *payload.DPOSProposa
 		return true, !self
 	}
 
-	currentBlock, ok := p.cfg.Manager.GetBlockCache().TryGetValue(d.BlockHash)
-	if !ok || !p.cfg.Consensus.IsRunning() {
+	currentBlock, err := p.GetBlockByHash(d.BlockHash)
+	if err != nil || !p.cfg.Consensus.IsRunning() {
 		p.pendingProposals[d.Hash()] = d
 		p.cfg.Manager.OnInv(id, d.BlockHash)
 		log.Info("received pending proposal")
@@ -343,6 +353,15 @@ func (p *ProposalDispatcher) ProcessProposal(id peer.PID, d *payload.DPOSProposa
 	}
 
 	return true, true
+}
+
+func (p *ProposalDispatcher) GetBlockByHash(hash common.Uint256) (*types.Block, error) {
+	block, ok := p.cfg.Manager.GetBlockCache().TryGetValue(hash)
+	if ok {
+		return block, nil
+	}
+
+	return p.cfg.Manager.GetBlockByHash(hash)
 }
 
 func (p *ProposalDispatcher) AppendConfirm() {
@@ -379,10 +398,10 @@ func (p *ProposalDispatcher) OnBlockAdded(b *types.Block) {
 func (p *ProposalDispatcher) UpdatePrecociousProposals() {
 	for k, v := range p.precociousProposals {
 		if p.cfg.Consensus.IsRunning() &&
-			v.ViewOffset == p.cfg.Consensus.GetViewOffset() {
+			v.Proposal.ViewOffset == p.cfg.Consensus.GetViewOffset() {
 			if needRecord, _ := p.ProcessProposal(
-				peer.PID{}, v, true); needRecord {
-				p.illegalMonitor.AddProposal(v)
+				peer.PID{}, v.Proposal, true); needRecord {
+				p.illegalMonitor.AddProposal(v.Proposal)
 			}
 			delete(p.precociousProposals, k)
 		}
@@ -399,19 +418,19 @@ func (p *ProposalDispatcher) FinishConsensus(height uint32, blockHash common.Uin
 		p.cfg.Manager.changeOnDuty()
 		c := log.ConsensusEvent{EndTime: p.cfg.TimeSource.AdjustedTime(), Height: height}
 		p.cfg.EventMonitor.OnConsensusFinished(&c)
-		p.cfg.Consensus.SetReady()
+		p.cfg.Consensus.SetReady(height)
 		p.CleanProposals(false)
 		p.resetViewRequests = make(map[string]struct{}, 0)
 	}
 }
 
-func (p *ProposalDispatcher) resetConsensus() {
+func (p *ProposalDispatcher) resetConsensus(height uint32) {
 	log.Info("[resetConsensus] start")
 	defer log.Info("[resetConsensus] end")
 
 	if p.cfg.Consensus.IsRunning() {
 		log.Info("[resetConsensus] reset view")
-		p.cfg.Consensus.SetReady()
+		p.cfg.Consensus.SetReady(height)
 		p.CleanProposals(false)
 	}
 }
@@ -513,6 +532,7 @@ func (p *ProposalDispatcher) OnIllegalBlocksTxReceived(i *payload.DPOSIllegalBlo
 func (p *ProposalDispatcher) OnRevertToDPOSTxReceived(id peer.PID,
 	tx interfaces.Transaction) {
 	if _, ok := p.signedTxs[tx.Hash()]; ok {
+		log.Warn("### RevertToDPoS OnRevertToDPOSTxReceived  already signed, hash", tx.Hash(), "id:", id.String())
 		return
 	}
 
@@ -522,14 +542,20 @@ func (p *ProposalDispatcher) OnRevertToDPOSTxReceived(id peer.PID,
 		TxHash: tx.Hash(),
 		Signer: p.cfg.Manager.GetPublicKey(),
 	}
+	log.Warn("### RevertToDPoS OnRevertToDPOSTxReceived  signer:", common.BytesToHexString(response.Signer))
 	var err error
 	if response.Sign, err = p.cfg.Account.SignTx(tx); err != nil {
+		log.Warn("### RevertToDPoS OnRevertToDPOSTxReceived  err:", err)
 		log.Warn("[OnRevertToDPOSTxReceived] sign response message"+
 			" error, details: ", err.Error())
 	}
 	go func() {
+		log.Info("### RevertToDPoS OnRevertToDPOSTxReceived  send to peer!")
 		if err := p.cfg.Network.SendMessageToPeer(id, response); err != nil {
+			log.Warn("### RevertToDPoS OnRevertToDPOSTxReceived  send to peer err:", err)
 			log.Warn("[OnRevertToDPOSTxReceived] send msg error: ", err)
+		} else {
+			log.Info("### RevertToDPoS OnRevertToDPOSTxReceived  send to peer finished!")
 		}
 
 	}()
@@ -605,6 +631,7 @@ func (p *ProposalDispatcher) checkInactivePayloadContent(
 func (p *ProposalDispatcher) OnResponseRevertToDPOSTxReceived(
 	txHash *common.Uint256, signer []byte, sign []byte) {
 
+	log.Info("### RevertToDPoS OnResponseRevertToDPOSTxReceived  current signer:", common.BytesToHexString(signer))
 	if p.RevertToDPOSTx == nil ||
 		!p.RevertToDPOSTx.Hash().IsEqual(*txHash) {
 		return
@@ -613,15 +640,18 @@ func (p *ProposalDispatcher) OnResponseRevertToDPOSTxReceived(
 	data := new(bytes.Buffer)
 	if err := p.RevertToDPOSTx.SerializeUnsigned(
 		data); err != nil {
+		log.Warn("### RevertToDPoS OnResponseRevertToDPOSTxReceived 1 err:", err)
 		return
 	}
 
 	pk, err := crypto.DecodePoint(signer)
 	if err != nil {
+		log.Warn("### RevertToDPoS OnResponseRevertToDPOSTxReceived 2 err:", err)
 		return
 	}
 
 	if err := crypto.Verify(*pk, data.Bytes(), sign); err != nil {
+		log.Warn("### RevertToDPoS OnResponseRevertToDPOSTxReceived 3 err:", err)
 		return
 	}
 
@@ -631,6 +661,9 @@ func (p *ProposalDispatcher) OnResponseRevertToDPOSTxReceived(
 	buf.WriteByte(byte(len(sign)))
 	buf.Write(sign)
 	pro.Parameter = buf.Bytes()
+
+	log.Info("### RevertToDPoS OnResponseRevertToDPOSTxReceived  current count:", len(pro.Parameter)/crypto.SignatureScriptLength)
+
 	p.tryEnterDPOSState(len(pro.Parameter) / crypto.SignatureScriptLength)
 }
 
@@ -662,9 +695,9 @@ func (p *ProposalDispatcher) OnResponseResetViewReceived(msg *dmsg.ResetView) {
 	log.Info("[OnResponseResetViewReceived] signer:", common.BytesToHexString(signer))
 
 	if len(p.resetViewRequests) >= p.cfg.Arbitrators.GetArbitersMajorityCount() {
-		log.Info("[OnResponseResetViewReceived] signer:", common.BytesToHexString(signer))
+		log.Info("[OnResponseResetViewReceived] enough signers:", len(p.resetViewRequests))
 		// do reset
-		p.resetConsensus()
+		p.resetConsensus(p.finishedHeight)
 		p.resetViewRequests = make(map[string]struct{}, 0)
 	}
 }
@@ -715,13 +748,17 @@ func (p *ProposalDispatcher) OnResponseInactiveArbitratorsReceived(
 func (p *ProposalDispatcher) tryEnterDPOSState(signCount int) bool {
 	minSignCount := int(float64(p.cfg.Arbitrators.GetArbitersCount())*
 		state.MajoritySignRatioNumerator/state.MajoritySignRatioDenominator) + 1
+	log.Info("### RevertToDPoS OnResponseRevertToDPOSTxReceived  current need count:", minSignCount, "current count:", signCount)
 	if signCount >= minSignCount {
+		log.Info("### RevertToDPoS OnResponseRevertToDPOSTxReceived  enough! try to append to tx pool")
 		payload := p.RevertToDPOSTx.Payload().(*payload.RevertToDPOS)
 		p.cfg.Arbitrators.SetNeedRevertToDPOSTX(true)
 		err := p.cfg.Manager.AppendToTxnPool(p.RevertToDPOSTx)
 		if err != nil {
 			log.Warnf("[tryEnterDPOSState] err %s", err)
 		}
+
+		log.Info("### RevertToDPoS OnResponseRevertToDPOSTxReceived  enough! added to tx pool")
 		p.cfg.Manager.clearRevertToDPOSData(payload)
 		return true
 	}
@@ -1039,7 +1076,7 @@ func NewDispatcherAndIllegalMonitor(cfg ProposalDispatcherConfig) (
 		acceptVotes:            make(map[common.Uint256]*payload.DPOSProposalVote),
 		rejectedVotes:          make(map[common.Uint256]*payload.DPOSProposalVote),
 		pendingProposals:       make(map[common.Uint256]*payload.DPOSProposal),
-		precociousProposals:    make(map[common.Uint256]*payload.DPOSProposal),
+		precociousProposals:    make(map[common.Uint256]*ProposalWithID),
 		pendingVotes:           make(map[common.Uint256]*payload.DPOSProposalVote),
 		signedTxs:              make(map[common.Uint256]interface{}),
 		firstBadNetworkRecover: true,

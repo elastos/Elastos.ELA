@@ -10,7 +10,6 @@ import (
 	"io"
 
 	"github.com/elastos/Elastos.ELA/common"
-	"github.com/elastos/Elastos.ELA/core/contract"
 	"github.com/elastos/Elastos.ELA/cr/state"
 	"github.com/elastos/Elastos.ELA/crypto"
 )
@@ -95,7 +94,7 @@ func NewCRCArbiter(nodePK []byte, ownerPK []byte, cr *state.CRMember,
 		crMember: cr,
 		nodePk:   nodePK,
 	}
-	hash, err := contract.PublicKeyToStandardProgramHash(ownerPK)
+	hash, err := GetOwnerKeyStandardProgramHash(ownerPK)
 	if err != nil {
 		return nil, err
 	}

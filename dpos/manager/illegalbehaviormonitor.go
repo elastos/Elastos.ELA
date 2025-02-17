@@ -76,7 +76,7 @@ func (i *IllegalBehaviorMonitor) Reset(changeView bool) {
 			i.cachedProposals[k] = v
 		}
 		for k, v := range i.dispatcher.precociousProposals {
-			i.cachedProposals[k] = v
+			i.cachedProposals[k] = v.Proposal
 		}
 	}
 }
@@ -105,8 +105,8 @@ func (i *IllegalBehaviorMonitor) IsLegalProposal(p *payload.DPOSProposal) (*payl
 		}
 	}
 	for _, pre := range i.dispatcher.precociousProposals {
-		if i.isProposalsIllegal(p, pre) {
-			return pre, false
+		if i.isProposalsIllegal(p, pre.Proposal) {
+			return pre.Proposal, false
 		}
 	}
 

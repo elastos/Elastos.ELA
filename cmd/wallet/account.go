@@ -380,6 +380,7 @@ func generateDposV2Address(c *cli.Context) error {
 		if err != nil {
 			return err
 		}
+
 	} else {
 		programHash, err = common.Uint168FromAddress(addr)
 		if err != nil {
@@ -403,10 +404,6 @@ func generateDposV2Address(c *cli.Context) error {
 }
 
 func generateDepositAddress(c *cli.Context) error {
-	if c.NArg() < 1 {
-		cmdcom.PrintErrorMsg("Missing argument. Standard address expected.")
-		cli.ShowCommandHelpAndExit(c, "depositaddress", 1)
-	}
 	addr := c.Args().First()
 
 	var programHash *common.Uint168
@@ -429,10 +426,6 @@ func generateDepositAddress(c *cli.Context) error {
 		if err != nil {
 			return err
 		}
-	}
-
-	if contract.GetPrefixType(*programHash) != contract.PrefixStandard {
-		return errors.New("standard address expected")
 	}
 
 	codeHash := programHash.ToCodeHash()

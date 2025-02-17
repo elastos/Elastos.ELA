@@ -164,11 +164,11 @@ func newConflictManager() conflictManager {
 				slot: newConflictSlot(str,
 					keyTypeFuncPair{
 						Type: common2.CancelProducer,
-						Func: strActivateAndCancelKeys,
+						Func: strCancelKey,
 					},
 					keyTypeFuncPair{
 						Type: common2.ActivateProducer,
-						Func: strActivateAndCancelKeys,
+						Func: strActivateKey,
 					},
 				),
 			},

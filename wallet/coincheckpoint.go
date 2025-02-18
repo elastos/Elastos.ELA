@@ -28,6 +28,10 @@ type CoinsCheckPoint struct {
 	sync.RWMutex
 }
 
+func (c *CoinsCheckPoint) SaveStartHeight() uint32 {
+	return 0
+}
+
 func (ccp *CoinsCheckPoint) StartHeight() uint32 {
 	return 0
 }

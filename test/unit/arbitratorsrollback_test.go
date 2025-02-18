@@ -147,9 +147,9 @@ func getRegisterProducerTx(ownerPublicKey, nodePublicKey []byte,
 		common2.RegisterProducer,
 		0,
 		&payload.ProducerInfo{
-			OwnerPublicKey: ownerPublicKey,
-			NodePublicKey:  nodePublicKey,
-			NickName:       nickName,
+			OwnerKey:      ownerPublicKey,
+			NodePublicKey: nodePublicKey,
+			NickName:      nickName,
 		},
 		[]*common2.Attribute{},
 		[]*common2.Input{},
@@ -206,9 +206,9 @@ func getUpdateProducerTx(ownerPublicKey, nodePublicKey []byte,
 		common2.UpdateProducer,
 		0,
 		&payload.ProducerInfo{
-			OwnerPublicKey: ownerPublicKey,
-			NodePublicKey:  nodePublicKey,
-			NickName:       nickName,
+			OwnerKey:      ownerPublicKey,
+			NodePublicKey: nodePublicKey,
+			NickName:      nickName,
 		},
 		[]*common2.Attribute{},
 		[]*common2.Input{},
@@ -226,7 +226,7 @@ func getCancelProducer(publicKey []byte) interfaces.Transaction {
 		common2.CancelProducer,
 		0,
 		&payload.ProcessProducer{
-			OwnerPublicKey: publicKey,
+			OwnerKey: publicKey,
 		},
 		[]*common2.Attribute{},
 		[]*common2.Input{},
@@ -572,7 +572,7 @@ func TestArbitrators_RollbackReturnProducerDeposit(t *testing.T) {
 		producers := abt.GetAllProducers()
 		for _, v := range producers {
 			hash, _ := contract.PublicKeyToDepositProgramHash(
-				v.Info().OwnerPublicKey)
+				v.Info().OwnerKey)
 			if hash.IsEqual(programHash) {
 				return v.DepositAmount(), nil
 			}
@@ -983,7 +983,7 @@ func TestArbitrators_RollbackMultipleTransactions(t *testing.T) {
 		producers := abt.GetAllProducers()
 		for _, v := range producers {
 			hash, _ := contract.PublicKeyToDepositProgramHash(
-				v.Info().OwnerPublicKey)
+				v.Info().OwnerKey)
 			if hash.IsEqual(programHash) {
 				return v.DepositAmount(), nil
 			}

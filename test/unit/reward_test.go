@@ -123,8 +123,8 @@ func TestCommittee_ChangeCommitteeReward(t *testing.T) {
 	producers := make([]*payload.ProducerInfo, 200)
 	for i, p := range producers {
 		p = &payload.ProducerInfo{
-			OwnerPublicKey: randomPublicKey(),
-			NodePublicKey:  make([]byte, 33),
+			OwnerKey:      randomPublicKey(),
+			NodePublicKey: make([]byte, 33),
 		}
 		rand.Read(p.NodePublicKey)
 		p.NickName = fmt.Sprintf("Producer-%d", i+1)
@@ -153,7 +153,7 @@ func TestCommittee_ChangeCommitteeReward(t *testing.T) {
 	// Vote 140 producers.
 	publicKeys := make([][]byte, 140)
 	for i, p := range producers[10:150] {
-		publicKeys[i] = p.OwnerPublicKey
+		publicKeys[i] = p.OwnerKey
 	}
 	voteTX := mockVoteTx(publicKeys)
 	arbitrators.ProcessBlock(mockBlock(23, voteTX), nil)

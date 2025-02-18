@@ -48,16 +48,16 @@ func (h *DPOSOnDutyHandler) ProcessProposal(id peer.PID, p *payload.DPOSProposal
 
 func (h *DPOSOnDutyHandler) ChangeView(firstBlockHash *common.Uint256) {
 
-	if !h.tryCreateInactiveArbitratorsTx() {
-		b, ok := h.cfg.Manager.GetBlockCache().TryGetValue(*firstBlockHash)
-		if !ok {
-			log.Info("[OnViewChanged] get block failed for proposal")
-		} else {
-			log.Info("[OnViewChanged] start proposal")
-			h.proposalDispatcher.CleanProposals(true)
-			h.proposalDispatcher.StartProposal(b)
-		}
+	// if !h.tryCreateInactiveArbitratorsTx() {
+	b, ok := h.cfg.Manager.GetBlockCache().TryGetValue(*firstBlockHash)
+	if !ok {
+		log.Info("[OnViewChanged] get block failed for proposal")
+	} else {
+		log.Info("[OnViewChanged] start proposal")
+		h.proposalDispatcher.CleanProposals(true)
+		h.proposalDispatcher.StartProposal(b)
 	}
+	// }
 }
 
 func (h *DPOSOnDutyHandler) TryStartNewConsensus(b *types.Block) bool {
@@ -93,8 +93,8 @@ func (h *DPOSOnDutyHandler) getActiveArbitersCount() int {
 func (h *DPOSOnDutyHandler) TryCreateRevertToDPOSTx(BlockHeight uint32) bool {
 	// connect count is not enough
 	// if i am not onduty return
-	activeArbitersCount := float64(h.getActiveArbitersCount())
-	needCount := float64(h.cfg.Arbitrators.GetArbitersCount())*float64(4)/float64(5) + 1
+	activeArbitersCount := h.getActiveArbitersCount()
+	needCount := int(float64(h.cfg.Arbitrators.GetArbitersCount())*float64(4)/float64(5)) + 1
 	log.Info("[TryCreateRevertToDPOSTx] current active arbiters count:", activeArbitersCount, "need:", needCount)
 	if len(h.cfg.Arbitrators.GetArbitrators()) == 0 ||
 		len(h.cfg.Arbitrators.GetNextArbitrators()) == 0 ||

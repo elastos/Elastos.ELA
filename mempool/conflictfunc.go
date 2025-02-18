@@ -220,17 +220,45 @@ func strCancelProducerOwnerPublicKey(tx interfaces.Transaction) (interface{},
 			"cancel producer payload cast failed, tx:%s", tx.Hash())
 		return nil, errors.Simple(errors.ErrTxPoolFailure, err)
 	}
-	return common.BytesToHexString(p.OwnerPublicKey), nil
+	return common.BytesToHexString(p.OwnerKey), nil
 }
 
-func strActivateAndCancelKeys(tx interfaces.Transaction) (interface{},
+func strActivateKey(tx interfaces.Transaction) (interface{},
 	error) {
-	if tx.TxType() != common2.CancelProducer && tx.TxType() != common2.ActivateProducer {
+	if tx.TxType() != common2.ActivateProducer {
 		err := fmt.Errorf(
 			"invalid tx:%s", tx.Hash())
 		return nil, errors.Simple(errors.ErrTxPoolFailure, err)
 	}
-	return "activatecancel", nil
+	p, ok := tx.Payload().(*payload.ActivateProducer)
+	if !ok {
+		return nil, fmt.Errorf(
+			"activate producer payload cast failed, tx:%s", tx.Hash())
+	}
+	return common.BytesToHexString(p.NodePublicKey), nil
+
+}
+
+func strCancelKey(tx interfaces.Transaction) (interface{},
+	error) {
+	if tx.TxType() != common2.CancelProducer {
+		err := fmt.Errorf(
+			"invalid tx:%s", tx.Hash())
+		return nil, errors.Simple(errors.ErrTxPoolFailure, err)
+	}
+	p, ok := tx.Payload().(*payload.ProcessProducer)
+	if !ok {
+		err := fmt.Errorf(
+			"cancel producer payload cast failed, tx:%s", tx.Hash())
+		return nil, errors.Simple(errors.ErrTxPoolFailure, err)
+	}
+	producer := blockchain.DefaultLedger.Blockchain.GetState().GetProducer(p.OwnerKey)
+	if producer == nil {
+		err := fmt.Errorf(
+			"cancel producer GetProducer(p.OwnerKey) failed, tx:%s", tx.Hash())
+		return nil, errors.Simple(errors.ErrTxPoolFailure, err)
+	}
+	return common.BytesToHexString(producer.NodePublicKey()), nil
 }
 
 func strProducerInfoOwnerPublicKey(tx interfaces.Transaction) (interface{}, error) {
@@ -238,7 +266,7 @@ func strProducerInfoOwnerPublicKey(tx interfaces.Transaction) (interface{}, erro
 	if err != nil {
 		return nil, err
 	}
-	return common.BytesToHexString(p.OwnerPublicKey), nil
+	return common.BytesToHexString(p.OwnerKey), nil
 }
 
 func strProducerInfoNodePublicKey(tx interfaces.Transaction) (interface{}, error) {
@@ -381,7 +409,8 @@ func strRegisterCRPublicKey(tx interfaces.Transaction) (interface{}, error) {
 	}
 
 	var code []byte
-	if tx.PayloadVersion() == payload.CRInfoSchnorrVersion {
+	if tx.PayloadVersion() == payload.CRInfoSchnorrVersion ||
+		tx.PayloadVersion() == payload.CRInfoMultiSignVersion {
 		code = tx.Programs()[0].Code
 	} else {
 		code = p.Code
@@ -391,7 +420,9 @@ func strRegisterCRPublicKey(tx interfaces.Transaction) (interface{}, error) {
 		return nil, err
 	}
 
-	if signType == vm.CHECKSIG {
+	if signType == vm.CHECKMULTISIG {
+		return hex.EncodeToString(p.Code), nil
+	} else if signType == vm.CHECKSIG {
 		return hex.EncodeToString(p.Code[1 : len(p.Code)-1]), nil
 	} else if bytes.Equal(p.Code, []byte{}) && contract.IsSchnorr(code) {
 		return hex.EncodeToString(code[2:]), nil
@@ -587,7 +618,7 @@ func strDPoSOwnerNodePublicKeys(tx interfaces.Transaction) (interface{}, error) 
 	}
 	result := make([]string, 0, 2)
 
-	ownerPubkeyStr := common.BytesToHexString(p.OwnerPublicKey)
+	ownerPubkeyStr := common.BytesToHexString(p.OwnerKey)
 	result = append(result, ownerPubkeyStr)
 
 	nodePubkeyStr := common.BytesToHexString(p.NodePublicKey)

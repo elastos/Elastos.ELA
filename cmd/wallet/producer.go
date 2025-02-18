@@ -16,6 +16,7 @@ import (
 	"github.com/elastos/Elastos.ELA/core/types/functions"
 	"github.com/elastos/Elastos.ELA/core/types/interfaces"
 	"github.com/elastos/Elastos.ELA/core/types/payload"
+	"github.com/elastos/Elastos.ELA/dpos/state"
 
 	"github.com/urfave/cli"
 )
@@ -69,7 +70,7 @@ func createProducerInfoCommonTransaction(c *cli.Context, txType common2.TxType, 
 			return errors.New("invalid transaction amount")
 		}
 
-		programHash, err := contract.PublicKeyToDepositProgramHash(ownerPublicKey)
+		programHash, err := state.GetOwnerKeyDepositProgramHash(ownerPublicKey)
 		if err != nil {
 			return err
 		}
@@ -122,13 +123,13 @@ func createProducerInfoCommonTransaction(c *cli.Context, txType common2.TxType, 
 	}
 
 	p := &payload.ProducerInfo{
-		OwnerPublicKey: ownerPublicKey,
-		NodePublicKey:  nodePublicKey,
-		NickName:       nickName,
-		Url:            url,
-		Location:       locationCode,
-		NetAddress:     netAddress,
-		StakeUntil:     uint32(stakeUntil),
+		OwnerKey:      ownerPublicKey,
+		NodePublicKey: nodePublicKey,
+		NickName:      nickName,
+		Url:           url,
+		Location:      locationCode,
+		NetAddress:    netAddress,
+		StakeUntil:    uint32(stakeUntil),
 	}
 
 	rpSignBuf := new(bytes.Buffer)
@@ -200,7 +201,7 @@ func createUnregisterProducerTransaction(c *cli.Context) error {
 	outputs := make([]*OutputInfo, 0)
 
 	p := &payload.ProcessProducer{
-		OwnerPublicKey: ownerPublicKey,
+		OwnerKey: ownerPublicKey,
 	}
 
 	rpSignBuf := new(bytes.Buffer)

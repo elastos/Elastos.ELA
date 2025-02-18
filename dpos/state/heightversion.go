@@ -11,7 +11,6 @@ import (
 	"math"
 
 	"github.com/elastos/Elastos.ELA/common"
-	"github.com/elastos/Elastos.ELA/core/contract"
 )
 
 // 0 - H1
@@ -58,7 +57,7 @@ func (a *Arbiters) getDposV2NormalArbitratorsDescV2(arbitratorsCount int,
 	result := make([]ArbiterMember, 0)
 	for i := 0; i < arbitratorsCount && i < len(producers); i++ {
 		ownkey, _ := hex.DecodeString(producers[i])
-		hash, _ := contract.PublicKeyToStandardProgramHash(ownkey)
+		hash, _ := GetOwnerKeyStandardProgramHash(ownkey)
 		crc, exist := choosingArbiters[*hash]
 		if exist {
 			result = append(result, crc)

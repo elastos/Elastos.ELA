@@ -19,6 +19,7 @@ import (
 
 func registerParams(c *cli.Context, L *lua.LState) {
 	wallet := c.String("wallet")
+	addresses := c.String("addresses")
 	password := c.String("password")
 	code := c.String("code")
 	publicKey := c.String("publickey")
@@ -94,6 +95,17 @@ func registerParams(c *cli.Context, L *lua.LState) {
 
 	getWallet := func(L *lua.LState) int {
 		L.Push(lua.LString(wallet))
+		return 1
+	}
+	//get_addresses
+	getAddresses := func(L *lua.LState) int {
+		table := L.NewTable()
+		L.SetMetatable(table, L.GetTypeMetatable("addresses"))
+		cs := strings.Split(addresses, ",")
+		for _, c := range cs {
+			table.Append(lua.LString(c))
+		}
+		L.Push(table)
 		return 1
 	}
 	getPassword := func(L *lua.LState) int {
@@ -391,7 +403,7 @@ func registerParams(c *cli.Context, L *lua.LState) {
 		L.Push(lua.LString(stakeAddress))
 		return 1
 	}
-
+	L.Register("getAddresses", getAddresses)
 	L.Register("getWallet", getWallet)
 	L.Register("getPassword", getPassword)
 	L.Register("getDepositAddr", getDepositAddr)
@@ -533,6 +545,10 @@ func NewCommand() *cli.Command {
 			cli.StringFlag{
 				Name:  "privatekeys, priks",
 				Usage: "set the private key",
+			},
+			cli.StringFlag{
+				Name:  "addresses",
+				Usage: "set the addresses",
 			},
 			cli.StringFlag{
 				Name:  "publickeys, pubs",

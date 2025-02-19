@@ -24,31 +24,24 @@ print(addr)
 -- asset_id
 local asset_id = m.get_asset_id()
 
--- fee
-local fee = 0.001
+local fee = getFee()
+local payload_version = getPayloadVersion()
 
--- deposit params
---local own_publickey =
---"034f3a7d2f33ac7f4e30876080d359ce5f314c9eabddbaaca637676377f655e16c"
-
-local own_publickey = getOwnerPublicKey()
-if own_publickey == ""
-then
-    print("owner public key is nil, should use --ownerpubkey or -opk to set it.")
-    return
+if fee == 0
+    then
+    fee = 0.1
 end
-print("owner public key:", own_publickey)
 
-local payloadversion = getPayloadVersion()
-print("payloadversion:", payloadversion)
+print("fee:", fee)
+print("payload version:", payload_version)
 
-
--- cancel producer payload: publickey, wallet
-local cp_payload = cancelproducer.new(own_publickey,payloadversion, wallet)
-print(cp_payload:get())
+-- unregister cr payload: publickey, nickname, url, local, wallet
+local ur_payload =unregistercr.newmulti(3, wallet)
+print(ur_payload:get())
 
 -- transaction: version, txType, payloadVersion, payload, locktime
-local tx = transaction.new(9, 0x0a, payloadversion, cp_payload, 0)
+local tx = transaction.new(9, 0x22, payload_version, ur_payload, 0)
+print(tx:get())
 
 -- input: from, amount + fee
 local charge = tx:appendenough(addr, fee * 100000000)
@@ -59,13 +52,11 @@ local default_output = defaultoutput.new()
 
 -- output: asset_id, value, recipient, output_paload_type, outputpaload
 local charge_output = output.new(asset_id, charge, addr, 0, default_output)
+
 tx:appendtxout(charge_output)
--- print(charge_output:get())
 
 -- sign
---tx:sign(wallet)
 tx:multisign(wallet, 3)
-
 print(tx:get())
 
 -- send

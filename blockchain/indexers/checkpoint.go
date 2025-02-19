@@ -95,6 +95,10 @@ func (c *Checkpoint) OnInit() {
 
 }
 
+func (c *Checkpoint) SaveStartHeight() uint32 {
+	return 500000
+}
+
 func (c *Checkpoint) StartHeight() uint32 {
 	//return math.MaxInt32
 	return 500000

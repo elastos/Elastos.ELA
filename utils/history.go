@@ -132,9 +132,25 @@ func (h *History) Commit(height uint32) {
 		h.changes[i].commit()
 	}
 
+	// same height changes is just one
+	holdHeight := make(map[uint32]bool, 0)
+	var lastHeight uint32
+	lastHeightChangesCount := 0
+	for i, change := range h.changes {
+		if i == 0 {
+			lastHeight = change.height
+		}
+		if change.height == lastHeight {
+			lastHeightChangesCount++
+		}
+		_, ok := holdHeight[change.height]
+		if !ok {
+			holdHeight[change.height] = true
+		}
+	}
 	// if changes overflows history's capacity, remove the oldest change.
-	if len(h.changes) >= h.capacity {
-		h.changes = h.changes[1:]
+	if len(holdHeight) >= h.capacity {
+		h.changes = h.changes[lastHeightChangesCount:]
 	}
 
 	// if no cached changes, create an empty height change.

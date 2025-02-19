@@ -100,7 +100,7 @@ func GetTransactionInfo(tx interfaces.Transaction) *TransactionInfo {
 		Version:        tx.Version(),
 		TxType:         tx.TxType(),
 		PayloadVersion: tx.PayloadVersion(),
-		Payload:        getPayloadInfo(tx.Payload(), tx.PayloadVersion()),
+		Payload:        getPayloadInfo(tx, tx.PayloadVersion()),
 		Attributes:     attributes,
 		Inputs:         inputs,
 		Outputs:        outputs,
@@ -562,16 +562,13 @@ func GetProducerInfo(params Params) map[string]interface{} {
 	if err != nil {
 		return ResponsePack(InvalidParams, "invalid public key")
 	}
-	if _, err = contract.PublicKeyToStandardProgramHash(publicKeyBytes); err != nil {
-		return ResponsePack(InvalidParams, "invalid public key bytes")
-	}
 	p := Chain.GetState().GetProducer(publicKeyBytes)
 	if p == nil {
 		return ResponsePack(InvalidParams, "unknown producer public key")
 	}
 
 	producerInfo := RPCProducerInfo{
-		OwnerPublicKey: hex.EncodeToString(p.Info().OwnerPublicKey),
+		OwnerPublicKey: hex.EncodeToString(p.Info().OwnerKey),
 		NodePublicKey:  hex.EncodeToString(p.Info().NodePublicKey),
 		Nickname:       p.Info().NickName,
 		Url:            p.Info().Url,
@@ -2110,7 +2107,7 @@ type RPCProducerInfo struct {
 	Index          uint64 `json:"index"`
 }
 
-//a group producer info include TotalDPoSV1Votes and producer count
+// a group producer info include TotalDPoSV1Votes and producer count
 type RPCProducersInfo struct {
 	ProducerInfoSlice []RPCProducerInfo `json:"producers"`
 	TotalDPoSV1Votes  string            `json:"totaldposv1votes"`
@@ -2134,7 +2131,7 @@ type RPCCRCandidateInfo struct {
 	Index uint64 `json:"index"`
 }
 
-//a group cr candidate info include TotalDPoSV1Votes and candidate count
+// a group cr candidate info include TotalDPoSV1Votes and candidate count
 type RPCCRCandidatesInfo struct {
 	CRCandidateInfoSlice []RPCCRCandidateInfo `json:"crcandidatesinfo"`
 	TotalVotes           string               `json:"totalvotes"`
@@ -2423,7 +2420,7 @@ func ListProducers(param Params) map[string]interface{} {
 		totalVotes += p.Votes()
 		totalDPoSV2Votes += common.Fixed64(p.GetTotalDPoSV2VoteRights())
 		producerInfo := RPCProducerInfo{
-			OwnerPublicKey: hex.EncodeToString(p.Info().OwnerPublicKey),
+			OwnerPublicKey: hex.EncodeToString(p.Info().OwnerKey),
 			NodePublicKey:  hex.EncodeToString(p.Info().NodePublicKey),
 			Nickname:       p.Info().NickName,
 			Url:            p.Info().Url,
@@ -3010,9 +3007,6 @@ func ProducerStatus(param Params) map[string]interface{} {
 	if err != nil {
 		return ResponsePack(InvalidParams, "invalid public key")
 	}
-	if _, err = contract.PublicKeyToStandardProgramHash(publicKeyBytes); err != nil {
-		return ResponsePack(InvalidParams, "invalid public key bytes")
-	}
 	producer := Chain.GetState().GetProducer(publicKeyBytes)
 	if producer == nil {
 		return ResponsePack(InvalidParams, "unknown producer public key")
@@ -3216,7 +3210,8 @@ func DecodeRawTransaction(param Params) map[string]interface{} {
 	return ResponsePack(Success, GetTransactionInfo(txn))
 }
 
-func getPayloadInfo(p interfaces.Payload, payloadVersion byte) PayloadInfo {
+func getPayloadInfo(tx interfaces.Transaction, payloadVersion byte) PayloadInfo {
+	p := tx.Payload()
 	switch object := p.(type) {
 	case *payload.CoinBase:
 		obj := new(CoinbaseInfo)
@@ -3270,7 +3265,7 @@ func getPayloadInfo(p interfaces.Payload, payloadVersion byte) PayloadInfo {
 	case *payload.Record:
 	case *payload.ProducerInfo:
 		obj := new(ProducerInfo)
-		obj.OwnerPublicKey = common.BytesToHexString(object.OwnerPublicKey)
+		obj.OwnerPublicKey = common.BytesToHexString(object.OwnerKey)
 		obj.NodePublicKey = common.BytesToHexString(object.NodePublicKey)
 		obj.NickName = object.NickName
 		obj.Url = object.Url
@@ -3281,7 +3276,7 @@ func getPayloadInfo(p interfaces.Payload, payloadVersion byte) PayloadInfo {
 		return obj
 	case *payload.ProcessProducer:
 		obj := new(CancelProducerInfo)
-		obj.OwnerPublicKey = common.BytesToHexString(object.OwnerPublicKey)
+		obj.OwnerPublicKey = common.BytesToHexString(object.OwnerKey)
 		obj.Signature = common.BytesToHexString(object.Signature)
 		return obj
 	case *payload.InactiveArbitrators:
@@ -3314,21 +3309,40 @@ func getPayloadInfo(p interfaces.Payload, payloadVersion byte) PayloadInfo {
 		obj.EndHeight = object.EndHeight
 		return obj
 	case *payload.CRInfo:
-		obj := new(CRInfo)
-		obj.Code = common.BytesToHexString(object.Code)
-		cid, _ := object.CID.ToAddress()
-		obj.CID = cid
-		did, _ := object.DID.ToAddress()
-		if object.DID.IsEqual(emptyHash) {
-			obj.DID = ""
-		} else {
-			obj.DID = did
+		switch payloadVersion {
+		case payload.CRInfoSchnorrVersion, payload.CRInfoMultiSignVersion:
+			obj := new(MultiCRInfo)
+			cid, _ := object.CID.ToAddress()
+			obj.CID = cid
+			did, _ := object.DID.ToAddress()
+			if object.DID.IsEqual(emptyHash) {
+				obj.DID = ""
+			} else {
+				obj.DID = did
+			}
+			obj.NickName = object.NickName
+			obj.Url = object.Url
+			obj.Location = object.Location
+			return obj
+
+		default:
+			obj := new(CRInfo)
+			obj.Code = common.BytesToHexString(object.Code)
+			cid, _ := object.CID.ToAddress()
+			obj.CID = cid
+			did, _ := object.DID.ToAddress()
+			if object.DID.IsEqual(emptyHash) {
+				obj.DID = ""
+			} else {
+				obj.DID = did
+			}
+			obj.NickName = object.NickName
+			obj.Url = object.Url
+			obj.Location = object.Location
+			obj.Signature = common.BytesToHexString(object.Signature)
+			return obj
 		}
-		obj.NickName = object.NickName
-		obj.Url = object.Url
-		obj.Location = object.Location
-		obj.Signature = common.BytesToHexString(object.Signature)
-		return obj
+
 	case *payload.UnregisterCR:
 		obj := new(UnregisterCRInfo)
 		cid, _ := object.CID.ToAddress()
@@ -3350,7 +3364,7 @@ func getPayloadInfo(p interfaces.Payload, payloadVersion byte) PayloadInfo {
 			obj := new(CRCProposalInfo)
 			obj.ProposalType = object.ProposalType.Name()
 			obj.CategoryData = object.CategoryData
-			obj.OwnerPublicKey = common.BytesToHexString(object.OwnerPublicKey)
+			obj.OwnerPublicKey = common.BytesToHexString(object.OwnerKey)
 			obj.DraftHash = common.ToReversedString(object.DraftHash)
 			obj.Budgets = budgets
 			addr, _ := object.Recipient.ToAddress()
@@ -3366,12 +3380,12 @@ func getPayloadInfo(p interfaces.Payload, payloadVersion byte) PayloadInfo {
 			obj := new(CRCChangeProposalOwnerInfo)
 			obj.ProposalType = object.ProposalType.Name()
 			obj.CategoryData = object.CategoryData
-			obj.OwnerPublicKey = common.BytesToHexString(object.OwnerPublicKey)
+			obj.OwnerPublicKey = common.BytesToHexString(object.OwnerKey)
 			obj.DraftHash = common.ToReversedString(object.DraftHash)
 			obj.TargetProposalHash = common.ToReversedString(object.TargetProposalHash)
 			addr, _ := object.NewRecipient.ToAddress()
 			obj.NewRecipient = addr
-			obj.NewOwnerPublicKey = common.BytesToHexString(object.NewOwnerPublicKey)
+			obj.NewOwnerPublicKey = common.BytesToHexString(object.NewOwnerKey)
 			obj.Signature = common.BytesToHexString(object.Signature)
 			obj.NewOwnerSignature = common.BytesToHexString(object.NewOwnerSignature)
 			crmdid, _ := object.CRCouncilMemberDID.ToAddress()
@@ -3384,7 +3398,7 @@ func getPayloadInfo(p interfaces.Payload, payloadVersion byte) PayloadInfo {
 			obj := new(CRCCloseProposalInfo)
 			obj.ProposalType = object.ProposalType.Name()
 			obj.CategoryData = object.CategoryData
-			obj.OwnerPublicKey = common.BytesToHexString(object.OwnerPublicKey)
+			obj.OwnerPublicKey = common.BytesToHexString(object.OwnerKey)
 			obj.DraftHash = common.ToReversedString(object.DraftHash)
 			obj.TargetProposalHash = common.ToReversedString(object.TargetProposalHash)
 			obj.Signature = common.BytesToHexString(object.Signature)
@@ -3398,7 +3412,7 @@ func getPayloadInfo(p interfaces.Payload, payloadVersion byte) PayloadInfo {
 			obj := new(CRCReservedCustomIDProposalInfo)
 			obj.ProposalType = object.ProposalType.Name()
 			obj.CategoryData = object.CategoryData
-			obj.OwnerPublicKey = common.BytesToHexString(object.OwnerPublicKey)
+			obj.OwnerPublicKey = common.BytesToHexString(object.OwnerKey)
 			obj.DraftHash = common.ToReversedString(object.DraftHash)
 			obj.ReservedCustomIDList = object.ReservedCustomIDList
 			obj.Signature = common.BytesToHexString(object.Signature)
@@ -3412,7 +3426,7 @@ func getPayloadInfo(p interfaces.Payload, payloadVersion byte) PayloadInfo {
 			obj := new(CRCReceivedCustomIDProposalInfo)
 			obj.ProposalType = object.ProposalType.Name()
 			obj.CategoryData = object.CategoryData
-			obj.OwnerPublicKey = common.BytesToHexString(object.OwnerPublicKey)
+			obj.OwnerPublicKey = common.BytesToHexString(object.OwnerKey)
 			obj.DraftHash = common.ToReversedString(object.DraftHash)
 			obj.ReceiveCustomIDList = object.ReceivedCustomIDList
 			obj.ReceiverDID, _ = object.ReceiverDID.ToAddress()
@@ -3427,7 +3441,7 @@ func getPayloadInfo(p interfaces.Payload, payloadVersion byte) PayloadInfo {
 			obj := new(CRCChangeCustomIDFeeInfo)
 			obj.ProposalType = object.ProposalType.Name()
 			obj.CategoryData = object.CategoryData
-			obj.OwnerPublicKey = common.BytesToHexString(object.OwnerPublicKey)
+			obj.OwnerPublicKey = common.BytesToHexString(object.OwnerKey)
 			obj.DraftHash = common.ToReversedString(object.DraftHash)
 			obj.FeeRate = int64(object.RateOfCustomIDFee)
 			obj.EIDEffectiveHeight = object.EIDEffectiveHeight
@@ -3442,7 +3456,7 @@ func getPayloadInfo(p interfaces.Payload, payloadVersion byte) PayloadInfo {
 			obj := new(CRCSecretaryGeneralProposalInfo)
 			obj.ProposalType = object.ProposalType.Name()
 			obj.CategoryData = object.CategoryData
-			obj.OwnerPublicKey = common.BytesToHexString(object.OwnerPublicKey)
+			obj.OwnerPublicKey = common.BytesToHexString(object.OwnerKey)
 			obj.DraftHash = common.ToReversedString(object.DraftHash)
 			obj.SecretaryGeneralPublicKey = common.BytesToHexString(object.SecretaryGeneralPublicKey)
 			sgDID, _ := object.SecretaryGeneralDID.ToAddress()
@@ -3459,7 +3473,7 @@ func getPayloadInfo(p interfaces.Payload, payloadVersion byte) PayloadInfo {
 			obj := new(CRCRegisterSideChainProposalInfo)
 			obj.ProposalType = object.ProposalType.Name()
 			obj.CategoryData = object.CategoryData
-			obj.OwnerPublicKey = common.BytesToHexString(object.OwnerPublicKey)
+			obj.OwnerPublicKey = common.BytesToHexString(object.OwnerKey)
 			obj.DraftHash = common.ToReversedString(object.DraftHash)
 			obj.SideChainName = object.SideChainName
 			obj.MagicNumber = object.MagicNumber
@@ -3504,10 +3518,10 @@ func getPayloadInfo(p interfaces.Payload, payloadVersion byte) PayloadInfo {
 		obj.ProposalHash = common.ToReversedString(object.ProposalHash)
 		obj.MessageHash = common.ToReversedString(object.MessageHash)
 		obj.Stage = object.Stage
-		obj.OwnerPublicKey = common.BytesToHexString(object.OwnerPublicKey)
-		obj.NewOwnerPublicKey = common.BytesToHexString(object.NewOwnerPublicKey)
+		obj.OwnerPublicKey = common.BytesToHexString(object.OwnerKey)
+		obj.NewOwnerPublicKey = common.BytesToHexString(object.NewOwnerKey)
 		obj.OwnerSignature = common.BytesToHexString(object.OwnerSignature)
-		obj.NewOwnerPublicKey = common.BytesToHexString(object.NewOwnerPublicKey)
+		obj.NewOwnerPublicKey = common.BytesToHexString(object.NewOwnerKey)
 		obj.SecretaryGeneralOpinionHash = common.ToReversedString(object.SecretaryGeneralOpinionHash)
 		obj.SecretaryGeneralSignature = common.BytesToHexString(object.SecretaryGeneralSignature)
 		obj.NewOwnerSignature = common.BytesToHexString(object.NewOwnerSignature)
@@ -3516,7 +3530,7 @@ func getPayloadInfo(p interfaces.Payload, payloadVersion byte) PayloadInfo {
 	case *payload.CRCProposalWithdraw:
 		obj := new(CRCProposalWithdrawInfo)
 		obj.ProposalHash = common.ToReversedString(object.ProposalHash)
-		obj.OwnerPublicKey = common.BytesToHexString(object.OwnerPublicKey)
+		obj.OwnerPublicKey = common.BytesToHexString(object.OwnerKey)
 		if payloadVersion == payload.CRCProposalWithdrawVersion01 {
 			recipient, err := object.Recipient.ToAddress()
 			if err == nil {
@@ -3535,18 +3549,39 @@ func getPayloadInfo(p interfaces.Payload, payloadVersion byte) PayloadInfo {
 		return obj
 
 	case *payload.NextTurnDPOSInfo:
-		obj := new(NextTurnDPOSPayloadInfo)
+		if payloadVersion == payload.NextTurnDPOSInfoVersion {
+			obj := new(NextTurnDPOSPayloadInfo)
+			crPublicKeysString := make([]string, 0)
+			dposPublicKeysString := make([]string, 0)
+			for _, v := range object.CRPublicKeys {
+				crPublicKeysString = append(crPublicKeysString, common.BytesToHexString(v))
+			}
+			for _, v := range object.DPOSPublicKeys {
+				dposPublicKeysString = append(dposPublicKeysString, common.BytesToHexString(v))
+			}
+			obj.WorkingHeight = object.WorkingHeight
+			obj.CRPublickeys = crPublicKeysString
+			obj.DPOSPublicKeys = dposPublicKeysString
+			return obj
+		}
+
+		obj := new(NextTurnDPOSPayloadInfoV2)
 		crPublicKeysString := make([]string, 0)
 		dposPublicKeysString := make([]string, 0)
+		completeCRPublicKeysString := make([]string, 0)
 		for _, v := range object.CRPublicKeys {
 			crPublicKeysString = append(crPublicKeysString, common.BytesToHexString(v))
 		}
 		for _, v := range object.DPOSPublicKeys {
 			dposPublicKeysString = append(dposPublicKeysString, common.BytesToHexString(v))
 		}
+		for _, v := range object.CompleteCRPublicKeys {
+			completeCRPublicKeysString = append(completeCRPublicKeysString, common.BytesToHexString(v))
+		}
 		obj.WorkingHeight = object.WorkingHeight
-		obj.CRPublickeys = crPublicKeysString
+		obj.CRPublicKeys = crPublicKeysString
 		obj.DPOSPublicKeys = dposPublicKeysString
+		obj.CompleteCRPublicKeys = completeCRPublicKeysString
 		return obj
 
 	case *payload.CRCProposalRealWithdraw:
@@ -3752,10 +3787,26 @@ func getPayloadInfo(p interfaces.Payload, payloadVersion byte) PayloadInfo {
 		return obj
 
 	case *payload.CreateNFT:
-		obj := &CreateNFTInfo{
-			ID:               object.ReferKey.ReversedString(),
+		if payloadVersion == payload.CreateNFTVersion {
+			obj := &CreateNFTInfo{
+				ID:               common.GetNFTID(object.ReferKey, tx.Hash()).ReversedString(),
+				ReferKey:         object.ReferKey.ReversedString(),
+				StakeAddress:     object.StakeAddress,
+				GenesisBlockHash: common.ToReversedString(object.GenesisBlockHash),
+			}
+			return obj
+		}
+
+		obj := &CreateNFTInfoV2{
+			ID:               common.GetNFTID(object.ReferKey, tx.Hash()).ReversedString(),
+			ReferKey:         object.ReferKey.ReversedString(),
 			StakeAddress:     object.StakeAddress,
 			GenesisBlockHash: common.ToReversedString(object.GenesisBlockHash),
+			StartHeight:      object.StartHeight,
+			EndHeight:        object.EndHeight,
+			Votes:            object.Votes.String(),
+			VoteRights:       object.VoteRights.String(),
+			TargetOwnerKey:   common.BytesToHexString(object.TargetOwnerKey),
 		}
 		return obj
 

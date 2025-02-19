@@ -17,7 +17,7 @@ import (
 func TestMapping_Serialize(t *testing.T) {
 	m := Mapping{}
 	priKey, pubKey, err := crypto.GenerateKeyPair()
-	m.OwnerPublicKey, _ = pubKey.EncodePoint(true)
+	m.OwnerKey, _ = pubKey.EncodePoint(true)
 	m.SideProducerID = make([]byte, 33)
 	m.Signature, _ = crypto.Sign(priKey, m.Data())
 
@@ -26,7 +26,7 @@ func TestMapping_Serialize(t *testing.T) {
 	assert.NoError(t, err)
 
 	// 1 byte(Version)
-	// 1 byte(len) + 33 bytes(OwnerPublicKey)
+	// 1 byte(len) + 33 bytes(OwnerKey)
 	// 1 byte(len) + 33 bytes(SideProducerID)
 	// 1 byte(len) + 64 bytes(Signature)
 	// = 134 bytes
@@ -38,8 +38,8 @@ func TestMapping_Serialize(t *testing.T) {
 
 func TestMapping_Deserialize(t *testing.T) {
 	m := Mapping{}
-	// OwnerPublicKey over size.
-	m.OwnerPublicKey = make([]byte, 34)
+	// OwnerKey over size.
+	m.OwnerKey = make([]byte, crypto.MaxMultiSignCodeLength+1)
 	m.SideProducerID = make([]byte, 33)
 	buf := new(bytes.Buffer)
 	err := m.Serialize(buf)
@@ -48,7 +48,7 @@ func TestMapping_Deserialize(t *testing.T) {
 	assert.Error(t, err)
 
 	// SideProducerID over size.
-	m.OwnerPublicKey = make([]byte, 33)
+	m.OwnerKey = make([]byte, 33)
 	m.SideProducerID = make([]byte, 257)
 	buf = new(bytes.Buffer)
 	err = m.Serialize(buf)
@@ -60,7 +60,7 @@ func TestMapping_Deserialize(t *testing.T) {
 	m1, m2 := Mapping{}, Mapping{}
 	m1.Version = 2
 	priKey, pubKey, err := crypto.GenerateKeyPair()
-	m1.OwnerPublicKey, _ = pubKey.EncodePoint(true)
+	m1.OwnerKey, _ = pubKey.EncodePoint(true)
 	m1.SideProducerID = make([]byte, 33)
 	rand.Read(m1.SideProducerID)
 	m1.Signature, _ = crypto.Sign(priKey, m1.Data())
@@ -80,7 +80,7 @@ func TestMapping_Deserialize(t *testing.T) {
 
 func TestMapping_Validate(t *testing.T) {
 	m := Mapping{}
-	m.OwnerPublicKey = make([]byte, 33)
+	m.OwnerKey = make([]byte, 33)
 	m.SideProducerID = make([]byte, 33)
 	err := m.Validate()
 	assert.Error(t, err)

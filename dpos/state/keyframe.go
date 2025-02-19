@@ -34,16 +34,16 @@ func (consesus ConsesusAlgorithm) String() string {
 
 // StateKeyFrame holds necessary state about State
 type StateKeyFrame struct {
-	NodeOwnerKeys            map[string]string // NodePublicKey as key, OwnerPublicKey as value
-	CurrentCRNodeOwnerKeys   map[string]string // NodePublicKey as key, OwnerPublicKey as value
-	NextCRNodeOwnerKeys      map[string]string // NodePublicKey as key, OwnerPublicKey as value
-	PendingProducers         map[string]*Producer
-	ActivityProducers        map[string]*Producer
-	InactiveProducers        map[string]*Producer
-	CanceledProducers        map[string]*Producer
-	IllegalProducers         map[string]*Producer
-	PendingCanceledProducers map[string]*Producer
-	DposV2EffectedProducers  map[string]*Producer
+	NodeOwnerKeys            map[string]string    // (NodePublicKey as key, OwnerKey or OwnMulitCode as value)
+	CurrentCRNodeOwnerKeys   map[string]string    // (NodePublicKey as key, OwnerKey or OwnMulitCode as value)
+	NextCRNodeOwnerKeys      map[string]string    // (NodePublicKey as key, OwnerKey or OwnMulitCode  value)
+	PendingProducers         map[string]*Producer //OwnerKey or OwnMulitCode as key Producer pointer as value
+	ActivityProducers        map[string]*Producer //OwnerKey or OwnMulitCode as key Producer pointer as value
+	InactiveProducers        map[string]*Producer //OwnerKey or OwnMulitCode as key Producer pointer as value
+	CanceledProducers        map[string]*Producer //OwnerKey or OwnMulitCode as key Producer pointer as value
+	IllegalProducers         map[string]*Producer //OwnerKey or OwnMulitCode as key Producer pointer as value
+	PendingCanceledProducers map[string]*Producer //OwnerKey or OwnMulitCode as key Producer pointer as value
+	DposV2EffectedProducers  map[string]*Producer //OwnerKey or OwnMulitCode as key Producer pointer as value
 	Votes                    map[string]struct{}
 
 	// NFT

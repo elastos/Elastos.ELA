@@ -27,12 +27,12 @@ func (s *txValidatorTestSuite) TestCheckRegisterProducerTransaction() {
 	errPublicKey, _ := common.HexStringToBytes(errPublicKeyStr)
 
 	rpPayload := &payload.ProducerInfo{
-		OwnerPublicKey: publicKey1,
-		NodePublicKey:  publicKey1,
-		NickName:       "nickname 1",
-		Url:            "http://www.elastos_test.com",
-		Location:       1,
-		NetAddress:     "127.0.0.1:20338",
+		OwnerKey:      publicKey1,
+		NodePublicKey: publicKey1,
+		NickName:      "nickname 1",
+		Url:           "http://www.elastos_test.com",
+		Location:      1,
+		NetAddress:    "127.0.0.1:20338",
 	}
 	rpSignBuf := new(bytes.Buffer)
 	err := rpPayload.SerializeUnsigned(rpSignBuf, payload.ProducerInfoVersion)
@@ -69,7 +69,7 @@ func (s *txValidatorTestSuite) TestCheckRegisterProducerTransaction() {
 	s.NoError(err)
 
 	// Give an invalid owner public key in payload
-	txn.Payload().(*payload.ProducerInfo).OwnerPublicKey = errPublicKey
+	txn.Payload().(*payload.ProducerInfo).OwnerKey = errPublicKey
 	err, _ = txn.SpecialContextCheck()
 	s.EqualError(err, "transaction validate error: payload content invalid:invalid owner public key in payload")
 
@@ -82,7 +82,7 @@ func (s *txValidatorTestSuite) TestCheckRegisterProducerTransaction() {
 	s.EqualError(err, "transaction validate error: payload content invalid:invalid node public key in payload")
 
 	// check node public key same with CRC
-	txn.Payload().(*payload.ProducerInfo).OwnerPublicKey = publicKey2
+	txn.Payload().(*payload.ProducerInfo).OwnerKey = publicKey2
 	pk, _ := common.HexStringToBytes(config.DefaultParams.DPoSConfiguration.CRCArbiters[0])
 	txn.Payload().(*payload.ProducerInfo).NodePublicKey = pk
 	config.DefaultParams.PublicDPOSHeight = 0
@@ -93,20 +93,20 @@ func (s *txValidatorTestSuite) TestCheckRegisterProducerTransaction() {
 	// check owner public key same with CRC
 	txn.Payload().(*payload.ProducerInfo).NodePublicKey = publicKey2
 	pk, _ = common.HexStringToBytes(config.DefaultParams.DPoSConfiguration.CRCArbiters[0])
-	txn.Payload().(*payload.ProducerInfo).OwnerPublicKey = pk
+	txn.Payload().(*payload.ProducerInfo).OwnerKey = pk
 	config.DefaultParams.PublicDPOSHeight = 0
 	err, _ = txn.SpecialContextCheck()
 	config.DefaultParams.PublicDPOSHeight = originHeight
 	s.EqualError(err, "transaction validate error: payload content invalid:owner public key can't equal with CRC")
 
 	// Invalidates the signature in payload
-	txn.Payload().(*payload.ProducerInfo).OwnerPublicKey = publicKey2
+	txn.Payload().(*payload.ProducerInfo).OwnerKey = publicKey2
 	txn.Payload().(*payload.ProducerInfo).NodePublicKey = publicKey2
 	err, _ = txn.SpecialContextCheck()
 	s.EqualError(err, "transaction validate error: payload content invalid:invalid signature in payload")
 
 	// Give a mismatching deposit address
-	rpPayload.OwnerPublicKey = publicKey1
+	rpPayload.OwnerKey = publicKey1
 	rpPayload.Url = "www.test.com"
 	rpSignBuf = new(bytes.Buffer)
 	err = rpPayload.SerializeUnsigned(rpSignBuf, payload.ProducerInfoVersion)
@@ -165,13 +165,13 @@ func (s *txValidatorTestSuite) TestCheckRegisterDposV2ProducerTransaction() {
 	errPublicKey, _ := common.HexStringToBytes(errPublicKeyStr)
 
 	rpPayload := &payload.ProducerInfo{
-		OwnerPublicKey: publicKey1,
-		NodePublicKey:  publicKey1,
-		NickName:       "nickname 1",
-		Url:            "http://www.elastos_test.com",
-		Location:       1,
-		NetAddress:     "127.0.0.1:20338",
-		StakeUntil:     100000,
+		OwnerKey:      publicKey1,
+		NodePublicKey: publicKey1,
+		NickName:      "nickname 1",
+		Url:           "http://www.elastos_test.com",
+		Location:      1,
+		NetAddress:    "127.0.0.1:20338",
+		StakeUntil:    100000,
 	}
 	rpSignBuf := new(bytes.Buffer)
 	err := rpPayload.SerializeUnsigned(rpSignBuf, payload.ProducerInfoDposV2Version)
@@ -218,7 +218,7 @@ func (s *txValidatorTestSuite) TestCheckRegisterDposV2ProducerTransaction() {
 	s.NoError(err)
 
 	// Give an invalid owner public key in payload
-	txn.Payload().(*payload.ProducerInfo).OwnerPublicKey = errPublicKey
+	txn.Payload().(*payload.ProducerInfo).OwnerKey = errPublicKey
 	err, _ = tx.SpecialContextCheck()
 	s.EqualError(err.(errors.ELAError).InnerError(), "invalid owner public key in payload")
 
@@ -227,12 +227,12 @@ func (s *txValidatorTestSuite) TestCheckRegisterDposV2ProducerTransaction() {
 		{}, {}, {}, {},
 	}
 	param.PublicDPOSHeight = 1
-	txn.Payload().(*payload.ProducerInfo).OwnerPublicKey = publicKey1
+	txn.Payload().(*payload.ProducerInfo).OwnerKey = publicKey1
 	err, _ = tx.SpecialContextCheck()
 	s.EqualError(err.(errors.ELAError).InnerError(), "can not register dposv2 before dposv2 start height")
 
 	// Invalidates public key in payload
-	txn.Payload().(*payload.ProducerInfo).OwnerPublicKey = publicKey2
+	txn.Payload().(*payload.ProducerInfo).OwnerKey = publicKey2
 	txn.Payload().(*payload.ProducerInfo).NodePublicKey = publicKey2
 	param.PublicDPOSHeight = 5
 	s.Chain.Nodes = []*blockchain.BlockNode{
@@ -242,7 +242,7 @@ func (s *txValidatorTestSuite) TestCheckRegisterDposV2ProducerTransaction() {
 	s.EqualError(err.(errors.ELAError).InnerError(), "invalid signature in payload")
 
 	// Give a insufficient deposit coin
-	txn.Payload().(*payload.ProducerInfo).OwnerPublicKey = publicKey1
+	txn.Payload().(*payload.ProducerInfo).OwnerKey = publicKey1
 	txn.Payload().(*payload.ProducerInfo).NodePublicKey = publicKey1
 	txn.SetOutputs([]*common2.Output{{
 		AssetID:     common.Uint256{},

@@ -74,7 +74,8 @@ func dposCheckPointsEqual(first *state.CheckPoint, second *state.CheckPoint) boo
 			second.CurrentReward.TotalVotesInRound ||
 		second.NextReward.TotalVotesInRound !=
 			second.NextReward.TotalVotesInRound ||
-		first.ForceChanged != second.ForceChanged {
+		first.ForceChanged != second.ForceChanged ||
+		first.NeedNextTurnDPOSInfo != second.NeedNextTurnDPOSInfo {
 		return false
 	}
 
@@ -366,6 +367,7 @@ func randomDPOSStateKeyFrame() *state.StateKeyFrame {
 		VersionStartHeight:        rand.Uint32(),
 		VersionEndHeight:          rand.Uint32(),
 		DPoSV2ActiveHeight:        rand.Uint32(),
+		NeedNextTurnDPOSInfo:      randomBool(),
 	}
 
 	for i := 0; i < 5; i++ {
@@ -426,7 +428,7 @@ func producerInfoEqual(first *payload.ProducerInfo,
 		return false
 	}
 
-	return bytes.Equal(first.OwnerPublicKey, second.OwnerPublicKey) &&
+	return bytes.Equal(first.OwnerKey, second.OwnerKey) &&
 		bytes.Equal(first.NodePublicKey, second.NodePublicKey) &&
 		bytes.Equal(first.Signature, second.Signature)
 }
@@ -488,13 +490,13 @@ func randomProgramHash() *common.Uint168 {
 func randomProducer() *state.Producer {
 	p := &state.Producer{}
 	p.SetInfo(payload.ProducerInfo{
-		OwnerPublicKey: randomFakePK(),
-		NodePublicKey:  randomFakePK(),
-		NickName:       randomString(),
-		Url:            randomString(),
-		Location:       rand.Uint64(),
-		NetAddress:     randomString(),
-		Signature:      randomBytes(64),
+		OwnerKey:      randomFakePK(),
+		NodePublicKey: randomFakePK(),
+		NickName:      randomString(),
+		Url:           randomString(),
+		Location:      rand.Uint64(),
+		NetAddress:    randomString(),
+		Signature:     randomBytes(64),
 	})
 	p.SetState(state.ProducerState(rand.Uint32()))
 	p.SetRegisterHeight(rand.Uint32())

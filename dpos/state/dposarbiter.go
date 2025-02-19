@@ -10,7 +10,6 @@ import (
 	"io"
 
 	"github.com/elastos/Elastos.ELA/common"
-	"github.com/elastos/Elastos.ELA/core/contract"
 )
 
 type dposArbiter struct {
@@ -67,8 +66,7 @@ func NewDPoSArbiter(producer *Producer) (ArbiterMember, error) {
 	ar := &dposArbiter{
 		producer: *producer,
 	}
-	hash, err := contract.PublicKeyToStandardProgramHash(
-		producer.OwnerPublicKey())
+	hash, err := GetOwnerKeyStandardProgramHash(producer.OwnerPublicKey())
 	if err != nil {
 		return nil, err
 	}

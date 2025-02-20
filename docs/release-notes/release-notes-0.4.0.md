@@ -32,7 +32,7 @@ distribution provides binaries for the x86_64 platform.
 Notable changes
 ===============
 
-- New CR related transactions, inclouding register,update, unregister and return transcations.
+- New CR related transactions, inclouding register,update, unregister and return transactions.
 - The first upgrade node carries out the old data migration, and the block stored by the leveldb is transferred to the ffldb.
 - Faster processing of transaction.
 - Faster processing of block.
@@ -44,7 +44,7 @@ Notable changes
 - #1273 fix the rollback exception
 - #1243 fix rollback error and set default value of EnableUtxoDB
 
-### CR and Prodcuer transcation
+### CR and Prodcuer transaction
 - #1314 add duplicate check to ReturnDepositCoin transaction
 - #1302 modify to allow URL field of producer and CR be empty
 - #1275 add votes output cache for CR state

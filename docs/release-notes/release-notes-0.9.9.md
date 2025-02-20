@@ -114,7 +114,7 @@ Notable changes
 * **multi:** modify to create multi-sign register CR tx correctly ([e3fc737](https://github.com/elastos/Elastos.ELA/commit/e3fc7379435c2323e68bbcb0261b3f77bcf2d5ad))
 * **multi:** register CR tx with multi sign payload is not allowed before NFTStartHeight ([00cc9bd](https://github.com/elastos/Elastos.ELA/commit/00cc9bdc1c016ba817f5e3031f1960ac1c65fb51))
 * **multi:** support the creation of CR related multi-sign transactions ([3e18862](https://github.com/elastos/Elastos.ELA/commit/3e18862d4f1ab8121b2c6353d3a1f80a67299439))
-* **nft:** add deailed votes infromation into NFT tx payload ([e904fc4](https://github.com/elastos/Elastos.ELA/commit/e904fc40a4bf558c005a351d949568a218d902c0))
+* **nft:** add deailed votes information into NFT tx payload ([e904fc4](https://github.com/elastos/Elastos.ELA/commit/e904fc40a4bf558c005a351d949568a218d902c0))
 * **nft:** add genesis block hash to createNFT tx payload ([5ad5e3e](https://github.com/elastos/Elastos.ELA/commit/5ad5e3ef62e21cc2b0c9cdd6609941baaaa2f85c))
 * **nft:** after NFTV2StartHeight create NFT tx with payload version 0 is invalid ([fad35aa](https://github.com/elastos/Elastos.ELA/commit/fad35aabe17e0df39cf747fa1bb50c897c7aee5b))
 * **nft:** change deposit ([761ab1d](https://github.com/elastos/Elastos.ELA/commit/761ab1d384b1c897b020334a4af5542a1bb97aae))

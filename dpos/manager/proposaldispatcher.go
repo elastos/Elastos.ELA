@@ -881,6 +881,10 @@ func (p *ProposalDispatcher) acceptProposal(d *payload.DPOSProposal) {
 }
 
 func (p *ProposalDispatcher) rejectProposal(d *payload.DPOSProposal) {
+
+	// need to do nothing now
+	return
+
 	if p.setProcessingProposal(d) {
 		return
 	}

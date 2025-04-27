@@ -322,7 +322,7 @@ Request:
 }
 ```
 
-Response when verbosity is true, pure:
+Response when verbosity is true:
 
 ```json
 {
@@ -444,7 +444,7 @@ Response:
                 "blockheight": 366174,
                 "sideblockhash": "50e95c5452808282249827971def9b6d01a83a62251aada221b20ea66755f44b",
                 "sidegenesishash": "a3c455a90843db2acd22554f2768a8d4233fafbf8dd549e6b261c2786993be56",
-                "signatrue, pure": "fdcb69746140a2c9b42c91642e5f887c7859c3709c189a83ed09ac2305d524d66e3b77dff3e9c070323d312afb8efedc60ce41c12e6684e0db5088bad1683a92"
+                "signatrue": "fdcb69746140a2c9b42c91642e5f887c7859c3709c189a83ed09ac2305d524d66e3b77dff3e9c070323d312afb8efedc60ce41c12e6684e0db5088bad1683a92"
             },
             "attributes": [
                 {

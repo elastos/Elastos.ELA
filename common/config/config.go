@@ -201,6 +201,7 @@ func GetDefaultParams() *Configuration {
 			RecordSponsorStartHeight:          1801550,
 			NFTV2StartHeight:                  math.MaxUint32, // todo complete me
 			DexStartHeight:                    math.MaxUint32, // todo complete me
+			ZeroIllegalPenaltyStartHeight:     math.MaxUint32, // todo complete me
 			OriginArbiters: []string{
 				"0248df6705a909432be041e0baa25b8f648741018f70d1911f2ed28778db4b8fe4",
 				"02771faf0f4d4235744b30972d5f2c470993920846c761e4d08889ecfdc061cddf",
@@ -395,8 +396,9 @@ func (p *Configuration) TestNet() *Configuration {
 	p.DPoSConfiguration.NFTStartHeight = 1098000
 	p.DPoSConfiguration.SponsorsFilePath = "sponsors"
 	p.DPoSConfiguration.RecordSponsorStartHeight = 1174500
-	p.DPoSConfiguration.NFTV2StartHeight = math.MaxUint32 // todo complete me
-	p.DPoSConfiguration.DexStartHeight = math.MaxUint32   // todo complete me
+	p.DPoSConfiguration.NFTV2StartHeight = math.MaxUint32              // todo complete me
+	p.DPoSConfiguration.DexStartHeight = math.MaxUint32                // todo complete me
+	p.DPoSConfiguration.ZeroIllegalPenaltyStartHeight = math.MaxUint32 // todo complete me
 
 	p.HttpInfoPort = 21333
 	p.HttpRestPort = 21334
@@ -524,7 +526,8 @@ func (p *Configuration) RegNet() *Configuration {
 	p.DPoSConfiguration.NFTStartHeight = 968000
 	p.DPoSConfiguration.SponsorsFilePath = "sponsors"
 	p.DPoSConfiguration.RecordSponsorStartHeight = math.MaxUint32
-	p.DPoSConfiguration.NFTV2StartHeight = math.MaxUint32 // todo complete me
+	p.DPoSConfiguration.NFTV2StartHeight = math.MaxUint32              // todo complete me
+	p.DPoSConfiguration.ZeroIllegalPenaltyStartHeight = math.MaxUint32 // todo complete me
 	p.HttpInfoPort = 22333
 	p.HttpRestPort = 22334
 	p.HttpWsPort = 22335
@@ -765,6 +768,8 @@ type DPoSConfiguration struct {
 	NFTV2StartHeight uint32 `screw:"--NFTV2StartHeight" usage:"the start height of NFT 2.0 transaction"`
 	// DexStartHeight defines the height of DEX started.
 	DexStartHeight uint32 `screw:"--dexstartheight" usage:"the starting height of Dex support"`
+	// ZeroIllegalPenaltyStartHeight indicates the start height of zero illegal penalty
+	ZeroIllegalPenaltyStartHeight uint32 `screw:"--zeroillegalpenaltystartheight" usage:"defines the start height to support zero illegal penalty"`
 }
 
 type CRConfiguration struct {

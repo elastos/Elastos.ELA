@@ -396,9 +396,9 @@ func (p *Configuration) TestNet() *Configuration {
 	p.DPoSConfiguration.NFTStartHeight = 1098000
 	p.DPoSConfiguration.SponsorsFilePath = "sponsors"
 	p.DPoSConfiguration.RecordSponsorStartHeight = 1174500
-	p.DPoSConfiguration.NFTV2StartHeight = math.MaxUint32              // todo complete me
-	p.DPoSConfiguration.DexStartHeight = math.MaxUint32                // todo complete me
-	p.DPoSConfiguration.ZeroIllegalPenaltyStartHeight = math.MaxUint32 // todo complete me
+	p.DPoSConfiguration.NFTV2StartHeight = math.MaxUint32 // todo complete me
+	p.DPoSConfiguration.DexStartHeight = math.MaxUint32   // todo complete me
+	p.DPoSConfiguration.ZeroIllegalPenaltyStartHeight = 1415263
 
 	p.HttpInfoPort = 21333
 	p.HttpRestPort = 21334

@@ -336,7 +336,7 @@ Support Schnorr multi-signature transaction.
 * **dpos2.0:** print multi address ([4f166e4](https://github.com/elastos/Elastos.ELA/commit/4f166e4820e1dbb15bf8c7ba1aa90603ca678c1c))
 * **dpos2.0:** print multi signature address ([906aaf6](https://github.com/elastos/Elastos.ELA/commit/906aaf66f5bd928a8d574cb567d3a6e80766dc5a))
 * **dpos2.0:** process and check voting transactions ([fda725b](https://github.com/elastos/Elastos.ELA/commit/fda725b880ad11fb6735a0a760b3b28d33723d8e))
-* **dpos2.0:** process CRC CRCProposal CRCImpeachment votes of Voting trasnaction ([e25257b](https://github.com/elastos/Elastos.ELA/commit/e25257b56277912ac481fa1069ba9be4753aeda6))
+* **dpos2.0:** process CRC CRCProposal CRCImpeachment votes of Voting transaction ([e25257b](https://github.com/elastos/Elastos.ELA/commit/e25257b56277912ac481fa1069ba9be4753aeda6))
 * **dpos2.0:** process dpos votes of Voting transaction ([a66a4b5](https://github.com/elastos/Elastos.ELA/commit/a66a4b56c80130ac6b195ab3e567c28ca09d59a9))
 * **dpos2.0:** process renewalVoting transaction ([95d3b65](https://github.com/elastos/Elastos.ELA/commit/95d3b65a1e48a780cfe0d088934c858bdc0d69f3))
 * **dpos2.0:** reanounce tx when stay in txpool too long ([d3e609a](https://github.com/elastos/Elastos.ELA/commit/d3e609aa7d37a05f0063d17731677bf44f517ce6))

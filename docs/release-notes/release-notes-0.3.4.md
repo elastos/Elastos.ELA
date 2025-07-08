@@ -70,7 +70,7 @@ New RPCs
 
 ### Miscellaneous
 
-- #1077 Add log to show block infomation when check failed
+- #1077 Add log to show block information when check failed
 - #1112 Change Build Status to travis.com
 - #1105 Update glide.yaml
 - #1101 Travis: remove auto-deployment code

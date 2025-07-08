@@ -285,7 +285,7 @@ Response:
 
 ### getrawtransaction
 
-Get transaction infomation of given transaction hash.
+Get transaction information of given transaction hash.
 
 #### Parameter 
 
@@ -322,7 +322,7 @@ Request:
 }
 ```
 
-Response when verbosity is ture:
+Response when verbosity is true:
 
 ```json
 {
@@ -444,7 +444,7 @@ Response:
                 "blockheight": 366174,
                 "sideblockhash": "50e95c5452808282249827971def9b6d01a83a62251aada221b20ea66755f44b",
                 "sidegenesishash": "a3c455a90843db2acd22554f2768a8d4233fafbf8dd549e6b261c2786993be56",
-                "signature": "fdcb69746140a2c9b42c91642e5f887c7859c3709c189a83ed09ac2305d524d66e3b77dff3e9c070323d312afb8efedc60ce41c12e6684e0db5088bad1683a92"
+                "signatrue": "fdcb69746140a2c9b42c91642e5f887c7859c3709c189a83ed09ac2305d524d66e3b77dff3e9c070323d312afb8efedc60ce41c12e6684e0db5088bad1683a92"
             },
             "attributes": [
                 {
@@ -1142,7 +1142,7 @@ warning: this interface is ready to be deprecated. So no api information will be
 
 ### listproducers
 
-Show producers infromation
+Show producers information
 
 #### Parameter 
 
@@ -2123,19 +2123,19 @@ if state flag not provided return the cr candidates in pending and active state.
 #### Result
 | name           | type   | description                               |
 | -------------- | ------ | ----------------------------------------- |
-| code           | string | the cr candiate code                      |
-| cid            | string | the cr candiate address                   |
-| did            | string | the cr candiate did address               |
-| nickname       | string | the nick name of the cr candiate          |
-| url            | string | the url of the cr candiate                |
-| location       | uint64 | the location number of the cr candiate    |
-| state          | bool   | if cr candiate has confirmed              |
+| code           | string | the cr candidate code                      |
+| cid            | string | the cr candidate address                   |
+| did            | string | the cr candidate did address               |
+| nickname       | string | the nick name of the cr candidate          |
+| url            | string | the url of the cr candidate                |
+| location       | uint64 | the location number of the cr candidate    |
+| state          | bool   | if cr candidate has confirmed              |
 | votes          | string | the votes currently held                  |
 | registerheight | uint32 | the register CR candidate height          |
 | cancelheight   | uint32 | the unregister CR candidate height        |
-| index          | uint64 | the index of the cr candiate              |
-| totalvotes     | string | the total votes of registered cr candiate |
-| totalcounts    | uint64 | the total counts of registered cr candiate|
+| index          | uint64 | the index of the cr candidate              |
+| totalvotes     | string | the total votes of registered cr candidate |
+| totalcounts    | uint64 | the total counts of registered cr candidate|
 
 #### Example
 
@@ -2222,11 +2222,12 @@ Show current cr members information
 | url             | string | the url of the cr member              |
 | location        | uint64 | the location number of the cr member  |
 | impeachmentvotes| int64  | impeachment votes of the cr member    |
-| depositamount   | string | the deposite amout of the cr member   |
-| depositaddress  | string | the deposite address of the cr member |
+| depositamount   | string | the deposit amount of the cr member   |
+| depositaddress  | string | the deposit address of the cr member  |
 | penalty         | int64  | the penalty of the cr member          |
 | index           | uint64 | the index of the cr member            |
 | totalcounts     | uint64 | the total counts of current cr member |
+
 
 
 #### Example
@@ -2256,7 +2257,7 @@ Response:
                 "nickname": "ela_cr2",
                 "url": "ela_cr2.org",
                 "location": 112211, "impeachmentvotes": 0,
-                "depositamout": "5000",
+                "depositamount": "5000",
                 "deposithash": "De87Qiekzpx7Xqf8RphdwNX5Z84iGgHLKMF5b",
                 "penalty": 0,
                 "index": 0,
@@ -2270,7 +2271,7 @@ Response:
                 "url": "ela_cr1.org",
                 "location": 112211,
                 "impeachmentvotes": 0,
-                "depositamout": "5000",
+                "depositamount": "5000",
                 "depositaddress": "DnemZpPgHLKMF5bMX3WbJYSGTpqJkBN7pe",
                 "penalty": 0,
                 "index": 1,
@@ -2539,19 +2540,19 @@ Show current cr proposal base state information
 
 #### Result
 
-| name               | type                  | description                                        |
-|--------------------| --------------------- |----------------------------------------------------|
-| status             | string                | the proposal status                                |
-| proposalhash       | string                | the cr proposal hash                               |
-| proposalTitle      | string                | the title of the cr proposal                       |
-| txhash             | string                | the transacion's hash which cr proposal located in |
-| crvotes            | map[string]VoteResult | per cr VoteResult                                  |
-| votersrejectamount | common.Fixed64        | voters reject amount                               |
-| registerheight     | uint32                | register height of proposal                        |
-| terminatedheight   | uint32                | terminated height of proposal                      |
-| trackingcounts     | uint32                | tracking counts of proposal                        |
-| proposalowner      | string                | owner of proposal                                  |
-| Index              | uint64                | the index of the cr proposal                       |
+| name               | type                  | description                                         |
+|--------------------| --------------------- |-----------------------------------------------------|
+| status             | string                | the proposal status                                 |
+| proposalhash       | string                | the cr proposal hash                                |
+| proposalTitle      | string                | the title of the cr proposal                        |
+| txhash             | string                | the transaction's hash which cr proposal located in |
+| crvotes            | map[string]VoteResult | per cr VoteResult                                   |
+| votersrejectamount | common.Fixed64        | voters reject amount                                |
+| registerheight     | uint32                | register height of proposal                         |
+| terminatedheight   | uint32                | terminated height of proposal                       |
+| trackingcounts     | uint32                | tracking counts of proposal                         |
+| proposalowner      | string                | owner of proposal                                   |
+| Index              | uint64                | the index of the cr proposal                        |
 
 #### Example
 
@@ -2617,7 +2618,7 @@ Get one cr proposal detail state information by proposalhash or drafthash
 | ------------------ | --------------------- | -------------------------------------------------- |
 | Status             | string                | the proposal status                                |
 | Proposal           | CRCProposal           | the cr proposal                                    |
-| TxHash             | string                | hash of the transacion which cr proposal located in|
+| TxHash             | string                | hash of the transaction which cr proposal located in|
 | CRVotes            | map[string]VoteResult | per cr VoteResult                                  |
 | VotersRejectAmount | string                | voters reject amount                               |
 | RegisterHeight     | uint32                | the proposal register height                       |
@@ -2839,7 +2840,7 @@ Response:
 | -------- | ------------- | ---------------------------------- |
 | inputs   | array[string] | inputs json array of json objects  |
 | outputs  | array[string] | outputs json array of json objects |
-| locktime | interger      | the transaction lock time number   |
+| locktime | integer      | the transaction lock time number   |
 
 #### Example
 

@@ -2845,7 +2845,9 @@ func (s *State) RemoveSpecialTx(hash common.Uint256) {
 
 func (s *State) getIllegalPenaltyByHeight(height uint32) common.Fixed64 {
 	var illegalPenalty common.Fixed64
-	if height >= s.DPoSV2ActiveHeight {
+	if height >= s.ChainParams.DPoSConfiguration.ZeroIllegalPenaltyStartHeight {
+		illegalPenalty = s.ChainParams.DPoSConfiguration.IllegalPenalty
+	} else if height >= s.DPoSV2ActiveHeight {
 		illegalPenalty = s.ChainParams.DPoSConfiguration.DPoSV2IllegalPenalty
 	} else if height >= s.ChainParams.CRConfiguration.ChangeCommitteeNewCRHeight {
 		illegalPenalty = s.ChainParams.DPoSConfiguration.IllegalPenalty

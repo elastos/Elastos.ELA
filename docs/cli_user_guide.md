@@ -878,7 +878,7 @@ File:  to_be_signed.txn
   ```
 
   - step 4: crcouncil member sign the digest of payload
-  - step 5: create chage custom id fee proposal transaction
+  - step 5: create change, charge custom id fee proposal transaction
 
   ```shell
   $ ./ela-cli wallet buildtx proposal changecustomidfee -w temp.dat --fee 0.0001 --payload 0205043132333421024b89fe23a982325126058cea21374bc6599ebe38fd950a8f9bf2804f2bfc98423bb9c593ed65b2fe2fea729588d5d8dced2d474a885b75fcb8a52ced366745a10312345610270000000000004e61bc0040a872e9313fabd7a0cbd16ba74394390050abfaadadf6a28d24d972a1cadda90097f39d2bd82b2d6db9800dfae3e38f61dc6a4f4fdfd2a3e7e2b100fc11ce628b677278335e5528c304acda6fb59d612c340cc17022 --crcmembersignature cc7f0b3dd78718635698bbe0e4676245795a80f177bc43c78e30ddb7552074f36348a8e4ad5824c7b565649849e9af5ca59305c361537924b353c8170c3f6bec

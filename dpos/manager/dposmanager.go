@@ -214,6 +214,9 @@ func (d *DPOSManager) ProcessHigherBlock(b *types.Block) {
 	//	return
 	//}
 
+	// check and change onduty status
+	d.changeHeight()
+
 	if !d.consensus.IsOnDuty() {
 		log.Info("[ProcessHigherBlock] broadcast inv and try start new consensus")
 		d.network.BroadcastMessage(dmsg.NewInventory(b.Header.Previous))

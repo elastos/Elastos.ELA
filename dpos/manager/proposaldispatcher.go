@@ -409,7 +409,7 @@ func (p *ProposalDispatcher) UpdatePrecociousProposals() {
 }
 
 func (p *ProposalDispatcher) FinishConsensus(height uint32, blockHash common.Uint256) {
-	if p.cfg.Consensus.IsRunning() {
+	if p.cfg.Consensus.IsRunning() && p.finishedHeight < height {
 		log.Info("[FinishConsensus] start")
 		defer log.Info("[FinishConsensus] end")
 

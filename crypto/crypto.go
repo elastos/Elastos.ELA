@@ -115,6 +115,7 @@ func Sign(priKey []byte, data []byte) ([]byte, error) {
 
 	privateKey := new(ecdsa.PrivateKey)
 	privateKey.Curve = DefaultCurve
+	privateKey.PublicKey.X, privateKey.PublicKey.Y = privateKey.PublicKey.ScalarBaseMult(priKey)
 	privateKey.D = big.NewInt(0)
 	privateKey.D.SetBytes(priKey)
 

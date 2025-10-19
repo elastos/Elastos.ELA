@@ -1840,7 +1840,7 @@ func (b *BlockChain) processBlock(block *Block, confirm *payload.Confirm) (bool,
 	exists := b.BlockExists(&blockHash)
 	if exists {
 		str := fmt.Sprintf("already have block %x height %d\n ", blockHash.Bytes(), block.Height)
-		return false, false, fmt.Errorf(str)
+		return false, false, fmt.Errorf("%s", str)
 	}
 
 	// The block must not already exist as an orphan.

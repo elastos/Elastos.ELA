@@ -1075,14 +1075,14 @@ func isTransactionExisted(pool *TxPool, tx interfaces.Transaction) error {
 	}
 	for _, input := range tx.Inputs() {
 		if poolInput := pool.getInputUTXOList(input); poolInput == nil {
-			return fmt.Errorf("does not have utxo inputs in input list pool" + input.String())
+			return fmt.Errorf("does not have utxo inputs in input list pool %s", input.String())
 		}
 	}
 	if tx.TxType() == common2.WithdrawFromSideChain {
 		payload := tx.Payload().(*payload.WithdrawFromSideChain)
 		for _, hash := range payload.SideChainTransactionHashes {
 			if pool.ContainsKey(hash, slotSidechainTxHashes) {
-				return fmt.Errorf("does not have sidechain hash in sidechain list pool" + hash.String())
+				return fmt.Errorf("does not have sidechain hash in sidechain list pool %s", hash.String())
 			}
 		}
 	}
@@ -1091,18 +1091,18 @@ func isTransactionExisted(pool *TxPool, tx interfaces.Transaction) error {
 
 func isTransactionCleaned(pool *TxPool, tx interfaces.Transaction) error {
 	if tx := pool.txnList[tx.Hash()]; tx != nil {
-		return fmt.Errorf("has transaction in transaction pool" + tx.Hash().String())
+		return fmt.Errorf("has transaction in transaction pool %s", tx.Hash().String())
 	}
 	for _, input := range tx.Inputs() {
 		if poolInput := pool.getInputUTXOList(input); poolInput != nil {
-			return fmt.Errorf("has utxo inputs in input list pool" + input.String())
+			return fmt.Errorf("has utxo inputs in input list pool %s", input.String())
 		}
 	}
 	if tx.TxType() == common2.WithdrawFromSideChain {
 		payload := tx.Payload().(*payload.WithdrawFromSideChain)
 		for _, hash := range payload.SideChainTransactionHashes {
 			if pool.ContainsKey(hash, slotSidechainTxHashes) {
-				return fmt.Errorf("has sidechain hash in sidechain list pool" + hash.String())
+				return fmt.Errorf("has sidechain hash in sidechain list pool %s", hash.String())
 			}
 		}
 	}

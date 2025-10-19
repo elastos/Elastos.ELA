@@ -21,17 +21,17 @@ $ uname -srm
 Darwin 20.04 x86_64
 ```
 
-Use [Homebrew](https://brew.sh/) to install Golang 1.20
+Use [Homebrew](https://brew.sh/) to install Golang 1.24
 
 ```bash
-$ brew install go@1.20
+$ brew install go@1.24
 ```
 
 Check the golang version. Make sure they are the following version number or above.
 
 ```bash
 $ go version
-go version go1.20.3 darwin/amd64
+go version go1.24.0 darwin/amd64
 ```
 
 ### 2. Ubuntu Prerequisites
@@ -52,8 +52,8 @@ $ sudo apt-get install -y git
 Install Go distribution.
 
 ```bash
-$ curl -O https://golang.org/dl/go1.20.3.linux-amd64.tar.gz
-$ tar -xvf go1.20.3.linux-amd64.tar.gz
+$ curl -O https://golang.org/dl/go1.24.0.linux-amd64.tar.gz
+$ tar -xvf go1.24.0.linux-amd64.tar.gz
 $ sudo chown -R root:root ./go
 $ sudo mv go /usr/local
 $ export GOPATH=$HOME/go

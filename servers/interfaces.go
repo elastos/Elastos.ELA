@@ -15,6 +15,7 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/elastos/Elastos.ELA/account"
 	aux "github.com/elastos/Elastos.ELA/auxpow"
@@ -3806,6 +3807,116 @@ func VoteStatus(param Params) map[string]interface{} {
 		Total:   total.String(),
 		Voting:  voting.String(),
 		Pending: pending,
+	})
+}
+
+func GetPoll(param Params) map[string]interface{} {
+	type Poll struct {
+		IDs []string `json:"ids"`
+	}
+	votings := Chain.GetState().InitateVotings
+	ids := make([]string, 0)
+	for _, v := range votings {
+		ids = append(ids, v.ID.String())
+	}
+	return ResponsePack(Success, &Poll{IDs: ids})
+}
+
+func GetVotingInfo(param Params) map[string]interface{} {
+	ids, exist := param.ArrayString("ids")
+	if !exist {
+		return ResponsePack(InvalidParams, "need a param called ids")
+	}
+
+	type VotingInfo struct {
+		ID          string   `json:"id"`
+		Status      string   `json:"status"`
+		Description string   `json:"description"`
+		StartTime   uint64   `json:"startTime"`
+		EndTime     uint64   `json:"endTime"`
+		Options     []string `json:"options"`
+	}
+	votings := Chain.GetState().InitateVotings
+	idsMap := make(map[string]struct{})
+	for _, id := range ids {
+		idsMap[id] = struct{}{}
+	}
+
+	result := make([]VotingInfo, 0)
+	for _, v := range votings {
+		if _, ok := idsMap[v.ID.String()]; ok {
+			var status string
+			if time.Now().Unix() < int64(v.EndTime) {
+				status = "voting"
+			} else {
+				status = "finished"
+			}
+			result = append(result, VotingInfo{
+				ID:          v.ID.String(),
+				Status:      status,
+				Description: v.Description,
+				StartTime:   v.StartTime,
+				EndTime:     v.EndTime,
+				Options:     v.Options,
+			})
+		}
+	}
+
+	return ResponsePack(Success, result)
+}
+
+func GetVotingDetails(param Params) map[string]interface{} {
+	idStr, exist := param.String("id")
+	if !exist {
+		return ResponsePack(InvalidParams, "need a param called id")
+	}
+	id, err := common.Uint256FromHexString(idStr)
+	if err != nil {
+		return ResponsePack(InvalidParams, "invalid id")
+	}
+	voting, ok := Chain.GetState().InitateVotings[*id]
+	if !ok {
+		return ResponsePack(InvalidParams, "id is not exist")
+	}
+	type VoteInfo struct {
+		Voter  string `json:"voter"`
+		Amount string `json:"amount"`
+		Option uint32 `json:"option"`
+	}
+	type VotingDetails struct {
+		ID          string     `json:"id"`
+		Status      string     `json:"status"`
+		Description string     `json:"description"`
+		StartTime   uint64     `json:"startTime"`
+		EndTime     uint64     `json:"endTime"`
+		Options     []string   `json:"options"`
+		Votes       []VoteInfo `json:"votes"`
+	}
+
+	var status string
+	if time.Now().Unix() < int64(voting.EndTime) {
+		status = "voting"
+	} else {
+		status = "finished"
+	}
+
+	votes := make([]VoteInfo, 0)
+	userVotes := Chain.GetState().UserVotings
+	for k, v := range userVotes[*id] {
+		votes = append(votes, VoteInfo{
+			Voter:  k,
+			Amount: v.Amount,
+			Option: v.OptionIndex,
+		})
+	}
+	return ResponsePack(Success, &VotingDetails{
+		ID:          idStr,
+		Status:      status,
+		Description: voting.Description,
+		StartTime:   voting.StartTime,
+		EndTime:     voting.EndTime,
+		Options:     voting.Options,
+		Votes:       votes,
 	})
 }
 

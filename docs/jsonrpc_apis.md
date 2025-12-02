@@ -30,7 +30,7 @@ Request:
 {
   "jsonrpc": "2.0",
   "method":"getpoll",
-  "params": [],
+  "params": {},
   "id": 1
 }
 ```
@@ -81,12 +81,12 @@ Request:
 {
   "jsonrpc": "2.0",
   "method":"getvotinginfo",
-  "params": [
+  "params": {
     "ids": [
       "8d7014f2f941caa1972c8033b2f0a860ec8d4938b12bae2c62512852a558f405",
       "c0433b918f500392869aa14cf7a909430fd94502b5c9f05421c9da7519bd6a65"
     ]
-  ],
+  },
   "id": 1
 }
 ```
@@ -165,9 +165,9 @@ Request:
 {
   "jsonrpc": "2.0",
   "method":"getvotingdetails",
-  "params": [
+  "params": {
     "id": "8d7014f2f941caa1972c8033b2f0a860ec8d4938b12bae2c62512852a558f405"
-  ],
+  },
   "id": 1
 }
 ```

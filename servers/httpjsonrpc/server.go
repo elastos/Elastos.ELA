@@ -10,13 +10,14 @@ import (
 	"crypto/subtle"
 	"encoding/base64"
 	"encoding/json"
-	"github.com/rs/cors"
 	"io/ioutil"
 	"mime"
 	"net"
 	"net/http"
 	"strconv"
 	"time"
+
+	"github.com/rs/cors"
 
 	"github.com/elastos/Elastos.ELA/common/config"
 	"github.com/elastos/Elastos.ELA/common/log"
@@ -112,6 +113,11 @@ func StartRPCServer() {
 
 	mainMux["producerstatus"] = ProducerStatus
 	mainMux["votestatus"] = VoteStatus
+
+	// memo voting
+	mainMux["getpoll"] = GetPoll
+	mainMux["getvotinginfo"] = GetVotingInfo
+	mainMux["getvotingdetails"] = GetVotingDetails
 
 	// for cross-chain arbiter
 	mainMux["submitsidechainillegaldata"] = SubmitSidechainIllegalData

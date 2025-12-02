@@ -1283,7 +1283,7 @@ func (s *State) ProcessBlock(block *types.Block, sponsor []byte, dutyIndex int) 
 	defer s.mtx.Unlock()
 
 	//s.tryInitProducerAssetAmounts(block.Height)
-	s.processTransactions(block.Transactions, block.Height)
+	s.processTransactions(block.Transactions, block.Timestamp, block.Height)
 	s.ProcessVoteStatisticsBlock(block)
 	s.updateProducersDepositCoin(block.Height)
 	s.recordLastBlockTime(block)
@@ -1522,7 +1522,7 @@ func (s *State) updateProducersDepositCoin(height uint32) {
 // ProcessVoteStatisticsBlock deal with block with vote statistics error.
 func (s *State) ProcessVoteStatisticsBlock(block *types.Block) {
 	if block.Height == s.ChainParams.VoteStatisticsHeight {
-		s.processTransactions(block.Transactions, block.Height)
+		s.processTransactions(block.Transactions, block.Timestamp, block.Height)
 	}
 }
 
@@ -1547,10 +1547,10 @@ func (s *State) getNFTID(referKey common.Uint256) (bool, common.Uint256) {
 // processTransactions takes the transactions and the height when they have been
 // packed into a block.  Then loop through the transactions to update producers
 // state and votes according to transactions content.
-func (s *State) processTransactions(txs []interfaces.Transaction, height uint32) {
+func (s *State) processTransactions(txs []interfaces.Transaction, blockTime uint32, height uint32) {
 	s.LastRenewalDPoSV2Votes = make(map[common.Uint256]struct{}, 0)
 	for _, tx := range txs {
-		s.processTransaction(tx, height)
+		s.processTransaction(tx, blockTime, height)
 	}
 
 	// Check if any pending producers has got 6 confirms, set them to activate.
@@ -1747,7 +1747,7 @@ func (s *State) processTransactions(txs []interfaces.Transaction, height uint32)
 // processTransaction take a transaction and the height it has been packed into
 // a block, then update producers state and votes according to the transaction
 // content.
-func (s *State) processTransaction(tx interfaces.Transaction, height uint32) {
+func (s *State) processTransaction(tx interfaces.Transaction, blockTime uint32, height uint32) {
 	switch tx.TxType() {
 	case common2.RegisterProducer:
 		s.registerProducer(tx, height)
@@ -1762,7 +1762,7 @@ func (s *State) processTransaction(tx interfaces.Transaction, height uint32) {
 		s.activateProducer(tx.Payload().(*payload.ActivateProducer), height)
 
 	case common2.TransferAsset:
-		s.processVotes(tx, height)
+		s.processVotes(tx, blockTime, height)
 
 	case common2.ExchangeVotes:
 		s.processStake(tx, height)
@@ -2003,6 +2003,9 @@ type InitateVoting struct {
 	OptionCount uint32
 	Options     []string
 	Url         string
+
+	// not from memo
+	StartTime uint64
 }
 
 func (v *InitateVoting) Serialize(w io.Writer) error {
@@ -2118,7 +2121,7 @@ const UserVotingFlag = "uservote"
 
 // processVotes takes a transaction, if the transaction including any vote
 // inputs or outputs, validate and update producers votes.
-func (s *State) processVotes(tx interfaces.Transaction, height uint32) {
+func (s *State) processVotes(tx interfaces.Transaction, blockTime uint32, height uint32) {
 
 	for _, att := range tx.Attributes() {
 		if att.Usage == common2.Memo {
@@ -2141,7 +2144,7 @@ func (s *State) processVotes(tx interfaces.Transaction, height uint32) {
 					log.Warn("[memo vote] initateVoting.ID is already in s.InitateVotings")
 					continue
 				}
-
+				initateVoting.StartTime = uint64(blockTime)
 				s.History.Append(height, func() {
 					s.InitateVotings[initateVoting.ID] = initateVoting
 				}, func() {
